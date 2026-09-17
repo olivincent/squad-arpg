@@ -4,7 +4,7 @@
 
 int main() {
     sf::RenderWindow window(sf::VideoMode({1200, 800}), "Suqad-ARPG");
-    sf::RectangleShape carre({100, 100});
+    sf::RectangleShape carre({20, 20});
     carre.setFillColor(sf::Color::Green);
  
     while (window.isOpen()) {
@@ -14,6 +14,7 @@ int main() {
             }
             if (const auto* data = event->getIf<sf::Event::MouseButtonPressed>()) {
                 std::cout << "x: " << data->position.x <<", y: " << data->position.y << std::endl;
+                carre.setPosition(sf::Vector2f(data->position));
             }
         }
         window.clear();
