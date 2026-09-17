@@ -5,8 +5,6 @@
 - On avance une pièce à la fois : d'abord la structure de données (les
   paramètres/membres), puis les fonctions une par une. Déclaration dans le
   `.hpp` avant implémentation dans le `.cpp`.
-- Claude ne code pas à la place d'Olivier — syntaxe, noms pertinents,
-  indices, jamais la solution finale prête à copier-coller.
 - On ne construit que ce dont on a besoin maintenant, jamais en prévision
   d'une étape future.
 - Après chaque petit ajout (même une seule fonction), on compile et on
