@@ -24,27 +24,52 @@
 - [x] `.gitignore` (`build/`)
 - [x] Commits Git propres (main.cpp, puis CMakeLists.txt séparément)
 
-### Étape 1 — Carré qui bouge au clic (en cours)
+### Étape 1 — Carré qui bouge au clic ✅ TERMINÉE
 
-Sous-étapes prévues :
+Sous-étapes :
 
 1. [x] Squelette de projet (fait à l'étape 0)
-2. [ ] Ouvrir une fenêtre SFML vide
-3. [ ] Dessiner un carré statique dedans
-4. [ ] Détecter un clic de souris (afficher les coordonnées en console,
+2. [x] Ouvrir une fenêtre SFML vide
+3. [x] Dessiner un carré statique dedans
+4. [x] Détecter un clic de souris (afficher les coordonnées en console,
        rien ne bouge encore)
-5. [ ] Déplacer le carré à la position du clic
-6. [ ] Afficher la position sous le carré (texte SFML)
+5. [x] Déplacer le carré à la position du clic
+6. [x] Afficher la position sous le carré (texte SFML)
 
-### Étape 2 — Salle avec murs (à détailler plus tard)
+### Étape 2 — Déplacement progressif ("tic" par "tic") (en cours)
 
-Sera découpée en sous-étapes une fois l'étape 1 stable et terminée.
+Le carré ne doit plus se téléporter instantanément à la position cliquée :
+il doit s'en approcher graduellement, à chaque itération de la boucle
+principale, jusqu'à l'atteindre.
+
+Sous-étapes prévues (à confirmer/détailler ensemble au fil de l'étape) :
+
+1. [ ] À définir avec Claude : structure de données pour garder en mémoire
+       la position cible (là où on a cliqué) séparément de la position
+       actuelle du carré
+2. [ ] À définir : logique de déplacement d'un "tic" vers la cible (pas
+       fixe ou proportionnel à la distance restante — à décider)
+3. [ ] Le carré s'arrête proprement une fois la cible atteinte (pas
+       d'oscillation ou de dépassement)
+4. [ ] Test visuel : le déplacement paraît fluide, pas saccadé
+
+### Étape 3 — Salle avec murs (à détailler plus tard)
+
+Sera découpée en sous-étapes une fois l'étape 2 stable et terminée.
 
 ## État actuel (à mettre à jour à chaque session)
 
 - Dépôt Git : `squad-arpg`, poussé sur GitHub
-- Bibliothèque graphique : SFML (confirmé, pas encore intégrée à CMake)
-- Étape en cours : **Étape 1, sous-étape 2** (ouvrir une fenêtre SFML vide)
-- Prochaine décision technique à prendre : intégration de SFML dans
-  `CMakeLists.txt` (méthode d'installation/liaison encore à définir avec
-  MSYS2 UCRT64)
+- Bibliothèque graphique : SFML 3.0.2, intégrée à CMake
+  (`find_package(SFML 3.0.2 COMPONENTS Graphics REQUIRED)` +
+  `target_link_libraries(main PRIVATE SFML::Graphics)`)
+- Étape 1 terminée : fenêtre SFML, carré qui se téléporte au clic, position
+  affichée en texte sous le carré (police système Windows, `arial.ttf`,
+  chargée via chemin absolu — à revoir plus tard pour une police committée
+  dans le projet)
+- Étape en cours : **Étape 2** — faire bouger le carré graduellement
+  ("tic" par "tic") vers la position cliquée, plutôt qu'un déplacement
+  instantané
+- Prochaine décision technique à prendre : comment structurer la boucle de
+  déplacement progressif (position cible vs position actuelle, calcul du
+  déplacement par itération)

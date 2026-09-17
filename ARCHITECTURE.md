@@ -39,6 +39,7 @@ SFML gère aussi nativement le texte (police + rendu), utile pour afficher
 des informations à l'écran (ex. position du curseur/de l'escouade).
 
 ## Structure du dépôt (état actuel)
+La position des fichiers sont inscrit en commentaires sur la première ligne des fichiers (par exemple "./src/main.cpp" ou "./CMakeLists.txt" sur les première lignes)
 
 ```
 squad-arpg/
