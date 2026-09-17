@@ -1,5 +1,6 @@
 #include <iostream>
 #include <SFML/Graphics.hpp>
+#include <SFML/Window/Event.hpp>
 
 int main() {
     sf::RenderWindow window(sf::VideoMode({1200, 800}), "Suqad-ARPG");
@@ -10,6 +11,9 @@ int main() {
         while (const std::optional event = window.pollEvent()) {
             if (event->is<sf::Event::Closed>()) {
                 window.close();
+            }
+            if (const auto* data = event->getIf<sf::Event::MouseButtonPressed>()) {
+                std::cout << "x: " << data->position.x <<", y: " << data->position.y << std::endl;
             }
         }
         window.clear();
