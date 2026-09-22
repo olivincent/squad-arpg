@@ -75,3 +75,11 @@ par anticipation (voir principe ci-dessous).
   cible `add_executable(main src/main.cpp)`.
 - **Générateur Ninja** choisi pour la configuration CMake
   (`cmake -S . -B build -G Ninja`).
+- **Boucle de jeu en trois phases** : événements (le clic modifie la
+  cible), mise à jour (le carré avance), dessin.
+- **Déplacement à pas fixe** plutôt que proportionnel à la distance :
+  vitesse constante, comme un personnage d'ARPG.
+- **Delta time** (`sf::Clock::restart()`) : vitesse exprimée en pixels
+  par seconde, pour qu'elle ne dépende pas de la cadence réelle.
+  `setFramerateLimit(60)` est conservé pour limiter l'usage du CPU, mais
+  la logique n'en dépend plus.

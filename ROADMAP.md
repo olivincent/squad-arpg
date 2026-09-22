@@ -36,22 +36,15 @@ Sous-étapes :
 5. [x] Déplacer le carré à la position du clic
 6. [x] Afficher la position sous le carré (texte SFML)
 
-### Étape 2 — Déplacement progressif ("tic" par "tic") (en cours)
+### Étape 2 — Déplacement progressif ("tic" par "tic") ✅ TERMINÉE
 
-Le carré ne doit plus se téléporter instantanément à la position cliquée :
-il doit s'en approcher graduellement, à chaque itération de la boucle
-principale, jusqu'à l'atteindre.
-
-Sous-étapes prévues (à confirmer/détailler ensemble au fil de l'étape) :
-
-1. [ ] À définir avec Claude : structure de données pour garder en mémoire
-       la position cible (là où on a cliqué) séparément de la position
-       actuelle du carré
-2. [ ] À définir : logique de déplacement d'un "tic" vers la cible (pas
-       fixe ou proportionnel à la distance restante — à décider)
-3. [ ] Le carré s'arrête proprement une fois la cible atteinte (pas
-       d'oscillation ou de dépassement)
-4. [ ] Test visuel : le déplacement paraît fluide, pas saccadé
+1. [x] Position cible (`cible`) stockée séparément de la position du carré
+2. [x] Déplacement d'un pas fixe par tic vers la cible (vecteur direction
+       normalisé × vitesse)
+3. [x] Arrêt exact sur la cible : si la distance restante ≤ pas, on pose
+       le carré sur la cible (pas d'oscillation)
+4. [x] Vitesse indépendante de la cadence : delta time via `sf::Clock`,
+       vitesse en pixels par seconde
 
 ### Étape 3 — Salle avec murs (à détailler plus tard)
 
@@ -67,9 +60,8 @@ Sera découpée en sous-étapes une fois l'étape 2 stable et terminée.
   affichée en texte sous le carré (police système Windows, `arial.ttf`,
   chargée via chemin absolu — à revoir plus tard pour une police committée
   dans le projet)
-- Étape en cours : **Étape 2** — faire bouger le carré graduellement
-  ("tic" par "tic") vers la position cliquée, plutôt qu'un déplacement
-  instantané
-- Prochaine décision technique à prendre : comment structurer la boucle de
-  déplacement progressif (position cible vs position actuelle, calcul du
-  déplacement par itération)
+- Étape 2 terminée : le carré se déplace à vitesse constante (180 px/s)
+  vers le point cliqué et s'arrête exactement dessus
+- Le texte de position se téléporte encore au point cliqué (ne suit pas
+  le carré)
+- Étape en cours : **Étape 3** — salle avec murs, à découper en sous-étapes
