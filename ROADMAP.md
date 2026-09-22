@@ -46,9 +46,13 @@ Sous-étapes :
 4. [x] Vitesse indépendante de la cadence : delta time via `sf::Clock`,
        vitesse en pixels par seconde
 
-### Étape 3 — Salle avec murs (à détailler plus tard)
+### Étape 3 — Salle avec murs
 
-Sera découpée en sous-étapes une fois l'étape 2 stable et terminée.
+1. Dessiner un mur : un seul rectangle statique au milieu de la fenêtre. Le carré le traverse encore.
+2. Détecter le chevauchement : afficher un message en console quand le carré touche le mur. Le carré le traverse  toujours, on vérifie seulement que la détection fonctionne.
+3. Bloquer le carré : avant chaque pas, calculer la position suivante. Si elle entre dans le mur, on n'avance pas. Le carré s'arrête contre le mur.
+4. Glisser le long du mur : tester les axes X et Y séparément, pour que le carré longe le mur au lieu de s'y coller. C'est la sensation habituelle dans un ARPG.
+5. Plusieurs murs : passer d'un mur à une collection de murs (std::vector) pour former une vraie salle, avec une boucle pour les dessiner et tester les collisions.
 
 ## État actuel (à mettre à jour à chaque session)
 
