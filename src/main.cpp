@@ -4,7 +4,9 @@
 #include <SFML/Window/Event.hpp>
 
 int main() {
-    sf::RenderWindow window(sf::VideoMode({1200, 800}), "Suqad-ARPG");
+    sf::RenderWindow window(sf::VideoMode({1200, 800}), "Squad-ARPG");
+    window.setFramerateLimit(60);
+
     sf::RectangleShape carre({20, 20});
     carre.setFillColor(sf::Color::Green);
     
@@ -16,6 +18,7 @@ int main() {
     sf::Text text(font);
 
     sf::Vector2f cible = carre.getPosition();
+    const float pixelsParTic = 3.0f;
 
     while (window.isOpen()) {
         while (const std::optional event = window.pollEvent()) {
@@ -29,6 +32,12 @@ int main() {
                 text.setPosition(sf::Vector2f(data->position.x - 60.0f, data->position.y + 40.0f));
             }
         }
+
+        sf::Vector2f direction = cible - carre.getPosition();
+        if (direction.length() > 0) {
+            carre.move(direction.normalized() * pixelsParTic);
+        }
+
         window.clear();
         window.draw(carre);
         window.draw(text);
