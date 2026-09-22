@@ -18,9 +18,11 @@ int main() {
     sf::Text text(font);
 
     sf::Vector2f cible = carre.getPosition();
-    const float pixelsParTic = 3.0f;
+    const float pixelsParSeconde = 180.0f;
+    sf::Clock horloge;
 
     while (window.isOpen()) {
+        const float dt = horloge.restart().asSeconds();
         while (const std::optional event = window.pollEvent()) {
             if (event->is<sf::Event::Closed>()) {
                 window.close();
@@ -33,12 +35,13 @@ int main() {
             }
         }
 
+        // MISE À JOUR
         sf::Vector2f direction = cible - carre.getPosition();
         float distance = direction.length();
-
-        if (distance > 0 && distance > pixelsParTic) {
-            carre.move(direction.normalized() * pixelsParTic);
-        }else if (distance > 0 && distance < pixelsParTic) {
+        float pasDuTic = pixelsParSeconde * dt;
+        if (distance > pasDuTic) {
+            carre.move(direction.normalized() * pasDuTic);
+        }else if (distance > 0 && distance <= pasDuTic) {
             carre.setPosition(cible);
         }
 
