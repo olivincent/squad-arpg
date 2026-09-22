@@ -34,8 +34,12 @@ int main() {
         }
 
         sf::Vector2f direction = cible - carre.getPosition();
-        if (direction.length() > 0) {
+        float distance = direction.length();
+
+        if (distance > 0 && distance > pixelsParTic) {
             carre.move(direction.normalized() * pixelsParTic);
+        }else if (distance > 0 && distance < pixelsParTic) {
+            carre.setPosition(cible);
         }
 
         window.clear();
