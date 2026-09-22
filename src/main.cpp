@@ -36,12 +36,12 @@ int main() {
         }
 
         // MISE À JOUR
-        sf::Vector2f direction = cible - carre.getPosition();
-        float distance = direction.length();
-        float pasDuTic = pixelsParSeconde * dt;
+        const sf::Vector2f direction = cible - carre.getPosition();
+        const float distance = direction.length();
+        const float pasDuTic = pixelsParSeconde * dt;
         if (distance > pasDuTic) {
             carre.move(direction.normalized() * pasDuTic);
-        }else if (distance > 0 && distance <= pasDuTic) {
+        }else if (distance > 0) {
             carre.setPosition(cible);
         }
 
