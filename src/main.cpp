@@ -9,6 +9,9 @@ int main() {
 
     sf::RectangleShape carre({20, 20});
     carre.setFillColor(sf::Color::Green);
+    sf::RectangleShape mur({20, 400});
+    mur.setPosition({600, 200});
+    mur.setFillColor(sf::Color(128, 128, 128));
     
     sf::Font font; 
     if (!font.openFromFile("C:/Windows/Fonts/arial.ttf")) {
@@ -39,13 +42,21 @@ int main() {
         const sf::Vector2f direction = cible - carre.getPosition();
         const float distance = direction.length();
         const float pasDuTic = pixelsParSeconde * dt;
+        
         if (distance > pasDuTic) {
             carre.move(direction.normalized() * pasDuTic);
         }else if (distance > 0) {
             carre.setPosition(cible);
         }
 
+        if (carre.getGlobalBounds().findIntersection(mur.getGlobalBounds())) {
+            carre.setFillColor(sf::Color::Red);
+        } else {
+            carre.setFillColor(sf::Color::Green);
+        }
+
         window.clear();
+        window.draw(mur);
         window.draw(carre);
         window.draw(text);
         window.display();
