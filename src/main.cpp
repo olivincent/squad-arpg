@@ -42,17 +42,18 @@ int main() {
         const sf::Vector2f direction = cible - carre.getPosition();
         const float distance = direction.length();
         const float pasDuTic = pixelsParSeconde * dt;
-        
-        if (distance > pasDuTic) {
-            carre.move(direction.normalized() * pasDuTic);
+        sf::Vector2f prochainePosition = carre.getPosition();
+
+        if (distance > pasDuTic ) {
+            prochainePosition += (direction.normalized() * pasDuTic);
         }else if (distance > 0) {
-            carre.setPosition(cible);
+            prochainePosition = cible;
         }
 
-        if (carre.getGlobalBounds().findIntersection(mur.getGlobalBounds())) {
-            carre.setFillColor(sf::Color::Red);
-        } else {
-            carre.setFillColor(sf::Color::Green);
+        const sf::FloatRect prochainRect(prochainePosition, carre.getSize());
+
+        if (!prochainRect.findIntersection(mur.getGlobalBounds())) {
+            carre.setPosition(prochainePosition);
         }
 
         window.clear();
