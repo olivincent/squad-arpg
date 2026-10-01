@@ -22,7 +22,7 @@ sans complexité excessive pour démarrer.
 | Élément | Choix |
 |---|---|
 | OS | Windows, console MSYS2 UCRT64 |
-| IDE | VSCode |
+| IDE | VSCode, avec Claude Code pour l'implémentation |
 | Compilateur | MinGW-w64 (via MSYS2 UCRT64) |
 | Build | CMake + Ninja |
 | Langage | C++20 |
@@ -49,15 +49,20 @@ squad-arpg/
 ├── src/
 │   ├── main.cpp
 │   ├── TileMap.hpp
-│   └── TileMap.cpp
+│   ├── TileMap.cpp
+│   ├── Escouade.hpp
+│   └── Escouade.cpp
 ├── .gitignore
+├── CLAUDE.md
 ├── ARCHITECTURE.md
 └── ROADMAP.md
 ```
 
-Un seul exécutable `main`. Premier module : `TileMap` (l'environnement de
-jeu). La structure continue d'évoluer par nécessité réelle, pas par
-anticipation (voir principes ci-dessous).
+Un seul exécutable `main`. Deux modules : `TileMap` (l'environnement de
+jeu) et `Escouade` (l'entité contrôlée par le joueur). `main.cpp` ne garde
+que la fenêtre, la boucle de jeu, les événements, la caméra, la carte (son
+plan) et le texte de position. La structure continue d'évoluer par
+nécessité réelle, pas par anticipation (voir principes ci-dessous).
 
 ## Modules
 
@@ -86,6 +91,28 @@ Interface publique :
 | `void dessiner(sf::RenderTarget& rendu) const` | Dessine toutes les cases |
 | `bool chevaucheUnMur(const sf::FloatRect& rect) const` | Le rectangle (en pixels du monde) chevauche-t-il un mur ? |
 
+### `Escouade` — l'entité contrôlée par le joueur
+
+Pour l'instant un carré vert de 20 × 20 qui se déplace vers le point
+cliqué. Aucun membre d'escouade n'existe encore : ils seront ajoutés
+quand le besoin sera réel.
+
+- **Données membres** : `m_position` (coin haut-gauche, pixels du monde),
+  `m_taille`, `m_cible`, `m_vitesse` (pixels par seconde).
+- **Valeurs fixes** dans le constructeur : taille 20 × 20, vitesse
+  180 px/s, cible = position de départ (immobile tant qu'on n'a pas
+  cliqué). Elles deviendront des paramètres quand il le faudra.
+
+Interface publique :
+
+| Fonction | Rôle |
+|---|---|
+| `explicit Escouade(sf::Vector2f positionDepart)` | Crée l'escouade à la position donnée |
+| `void allerVers(sf::Vector2f destination)` | Donne une nouvelle destination |
+| `void mettreAJour(float dt, const TileMap& carte)` | Avance vers la cible, avec collision et glissement le long des murs |
+| `void dessiner(sf::RenderTarget& rendu) const` | Dessine l'escouade |
+| `sf::Vector2f getCentre() const` | Centre de l'escouade (utilisé par la caméra) |
+
 ## Principes de conception à respecter
 
 1. **Ne jamais anticiper.** On ne construit que ce qui est nécessaire pour
@@ -100,9 +127,14 @@ Interface publique :
 4. **Build out-of-source.** Le dossier `build/` (généré par CMake/Ninja)
    n'est jamais commité — voir `.gitignore`.
 5. **Fonctions membres de lecture `const`**, objets en lecture passés par
-   référence constante (`const T&`).
+   référence constante (`const T&`) ; petits types (`sf::Vector2f`,
+   `float`) passés par valeur.
 6. **Chaque fichier inclut lui-même les en-têtes des types qu'il utilise
    directement**, sans dépendre des inclusions indirectes.
+7. **Migrer sans casser.** Une nouvelle classe est construite à côté de
+   l'ancien code, validée par comparaison, puis substituée. Le code
+   déplacé l'est sans modification ; les améliorations viennent dans un
+   commit séparé.
 
 ## Décisions techniques prises
 
@@ -110,7 +142,7 @@ Interface publique :
 
 - **CMake minimal** : `cmake_minimum_required`, `project()`,
   `CMAKE_CXX_STANDARD` = 20 (`CMAKE_CXX_STANDARD_REQUIRED` = ON), une seule
-  cible `add_executable(main src/main.cpp src/TileMap.cpp)`.
+  cible `add_executable(main src/main.cpp src/TileMap.cpp src/Escouade.cpp)`.
 - **SFML** : `find_package(SFML 3.0.2 COMPONENTS Graphics REQUIRED)` +
   `target_link_libraries(main PRIVATE SFML::Graphics)`.
 - **Générateur Ninja** (`cmake -S . -B build -G Ninja`). Ninja relance la
@@ -118,20 +150,21 @@ Interface publique :
 
 ### Boucle de jeu et déplacement
 
-- **Boucle de jeu en trois phases** : événements (le clic modifie la
-  cible), mise à jour (le carré avance), dessin.
+- **Boucle de jeu en trois phases** : événements (le clic appelle
+  `escouade.allerVers`), mise à jour (`escouade.mettreAJour`), dessin.
 - **Déplacement à pas fixe** plutôt que proportionnel à la distance :
   vitesse constante, comme un personnage d'ARPG.
 - **Delta time** (`sf::Clock::restart()`) : vitesse exprimée en pixels
   par seconde, pour qu'elle ne dépende pas de la cadence réelle.
   `setFramerateLimit(60)` est conservé pour limiter l'usage du CPU, mais
-  la logique n'en dépend plus.
+  la logique n'en dépend plus. L'horloge reste dans `main.cpp` ; `dt` est
+  passé en paramètre à l'escouade.
 
 ### Carte, collision et dessin
 
-- **Coordonnées du monde** : la carte et le carré sont positionnés en
-  pixels de la carte, jamais en pixels de l'écran. C'est ce qui permettra
-  d'ajouter une caméra (`sf::View`) sans modifier `TileMap`.
+- **Coordonnées du monde** : la carte et l'escouade sont positionnées en
+  pixels de la carte, jamais en pixels de l'écran. C'est ce qui a permis
+  d'ajouter la caméra sans modifier `TileMap`.
 - **Hors de la carte = mur** : `getTile` vérifie les bornes et renvoie
   `Tile::Wall` pour toute case hors limites (pas d'accès indéfini au
   vecteur, et la carte est infranchissable à ses bords).
@@ -143,15 +176,15 @@ Interface publique :
   collision (même convention que `sf::Rect::findIntersection`).
 - **Glissement le long des murs** : le déplacement est testé axe par axe,
   X puis Y, l'essai Y partant de la position obtenue après l'essai X.
-  Conséquence acceptée pour l'instant : en glissant, le carré ne garde que
-  la composante du déplacement parallèle au mur et avance donc plus
+  Conséquence acceptée pour l'instant : en glissant, l'escouade ne garde
+  que la composante du déplacement parallèle au mur et avance donc plus
   lentement.
-- **Dessin** : un seul `sf::RectangleShape` repositionné et recoloré pour
-  chaque case, avec un contour de -1 px pour rendre la grille visible.
-  Environ 600 appels à `draw` par image, acceptable à cette taille
-  (`sf::VertexArray` envisageable si la carte grandit beaucoup).
-  `dessiner` prend un `sf::RenderTarget&` (classe de base de
-  `sf::RenderWindow`) pour ne pas être couplée à la fenêtre.
+- **Dessin de la carte** : un seul `sf::RectangleShape` repositionné et
+  recoloré pour chaque case, avec un contour de -1 px pour rendre la
+  grille visible. Environ 2400 appels à `draw` par image avec la carte
+  actuelle (`sf::VertexArray` envisageable si ça devient un problème).
+  Les fonctions `dessiner` prennent un `sf::RenderTarget&` (classe de base
+  de `sf::RenderWindow`) pour ne pas être couplées à la fenêtre.
 
 ### Plan texte et validation
 
@@ -164,21 +197,38 @@ Interface publique :
   une erreur de saisie dans le plan.
 - Le plan est pour l'instant défini directement dans `main.cpp`.
 
+### Escouade
+
+- **État de jeu séparé de l'affichage** : la position, la taille et la
+  cible sont des données de la classe ; le `sf::RectangleShape` n'existe
+  que dans `dessiner`. Même modèle que `TileMap`.
+- **Dépendance à `TileMap` le temps d'un appel** : la carte est passée en
+  `const TileMap&` à `mettreAJour` plutôt que gardée en membre — pas de
+  question de durée de vie, et l'escouade ne peut pas modifier la carte.
+- **Déclaration anticipée** : `Escouade.hpp` contient `class TileMap;`
+  (une référence ne demande pas la définition complète) ; l'include de
+  `TileMap.hpp` est dans `Escouade.cpp`. Les fichiers qui incluent
+  `Escouade.hpp` ne dépendent donc pas de `TileMap.hpp`.
+- **En-têtes SFML précis** dans `Escouade` (`Vector2.hpp`,
+  `RenderTarget.hpp`, `RectangleShape.hpp`…), alors que `TileMap.hpp`
+  inclut tout `<SFML/Graphics.hpp>`. Non harmonisé pour l'instant.
+- **`explicit`** sur le constructeur à un paramètre, pour interdire la
+  conversion implicite `sf::Vector2f` → `Escouade`.
+- **Noms d'intention** : `allerVers` plutôt que `setCible` ; `getCentre`
+  encapsule le calcul « coin haut-gauche + moitié de la taille », pour que
+  `main.cpp` ne dépende pas de la convention de position.
+
 ### Caméra
 
 - **`sf::View` dans `main.cpp`** : une simple variable `camera`, copiée de
   `window.getDefaultView()` (taille de la fenêtre). Pas de classe `Camera`
   tant qu'il n'y a pas de comportement à y encapsuler.
-- **Toujours centrée sur le carré** : à chaque image, après la mise à jour
-  et avant le dessin, `camera.setCenter(position + taille / 2)` puis
-  `window.setView(camera)`. La position du carré est son coin haut-gauche
-  (l'origine n'est pas modifiée, car la collision suppose
-  `sf::FloatRect(position, taille)`).
+- **Toujours centrée sur l'escouade** : à chaque image, après la mise à
+  jour et avant le dessin, `camera.setCenter(escouade.getCentre())` puis
+  `window.setView(camera)`.
 - **Conséquence acceptée** : près des bords de la carte, la caméra montre
   du noir au-delà des murs. Bloquer la caméra aux bords de la carte reste
   une option pour plus tard.
-- **Aucun changement à `TileMap`** : grâce aux coordonnées du monde, la
-  caméra ne concerne que ce que la fenêtre affiche.
 - **Clic** : converti avec `window.mapPixelToCoords(...)`. Les événements
   étant traités en début d'image, la vue utilisée est celle de l'image
   précédente, c'est-à-dire celle affichée au moment du clic — ce qui est

@@ -2,6 +2,11 @@
 
 ## Méthode de travail
 
+- **Conception dans Claude.ai, implémentation dans Claude Code.** On
+  discute des options (génie logiciel et design de jeu) dans Claude.ai ;
+  quand Olivier dit « fait moi un prompt », Claude.ai rédige un prompt qu'il
+  colle dans Claude Code (VSCode). Les règles de travail de Claude Code
+  sont dans `CLAUDE.md`.
 - On avance une pièce à la fois : d'abord la structure de données (les
   paramètres/membres), puis les fonctions une par une. Déclaration dans le
   `.hpp` avant implémentation dans le `.cpp`.
@@ -9,7 +14,7 @@
   d'une étape future.
 - Après chaque petit ajout (même une seule fonction), on compile et on
   teste avant de continuer.
-- Commandes exactes (build, exécution, git) données à chaque étape.
+- Olivier teste visuellement et fait les commits lui-même.
 - On confirme toujours où en est Olivier avant de proposer la suite.
 
 ## Découpage des étapes
@@ -76,25 +81,45 @@
 3. [x] Clic converti en coordonnées du monde (`window.mapPixelToCoords`) ;
        le texte de position reste attaché au point cliqué sur la carte
 
-### Étape 6 — À définir
+### Étape 6 — Classe `Escouade` ✅ TERMINÉE
+
+Le carré de `main.cpp` devient une classe, construite à côté de l'ancien
+carré puis substituée à lui une fois validée.
+
+1. [x] `Escouade.hpp` : structure de données seule (position, taille,
+       cible, vitesse)
+2. [x] Constructeur `explicit` (position de départ) ; `Escouade.cpp`
+       ajouté au CMake
+3. [x] `dessiner` : forme SFML créée à partir des données
+4. [x] `allerVers(destination)` : le clic donne la cible
+5. [x] `mettreAJour(dt, carte)` : déplacement et collision transférés
+       sans modification (déclaration anticipée de `TileMap`) ; validé en
+       comparant les deux carrés
+6. [x] `getCentre()` pour la caméra ; suppression de l'ancien carré
+
+### Étape 7 — À définir
+
+Pistes discutées :
+- Premiers tests unitaires avec Catch2 (`TileMap::getTile`,
+  `TileMap::chevaucheUnMur`, cas limites)
+- Recherche de chemin (A*) sur la grille, pour contourner les murs
+- Finitions : caméra bloquée aux bords de la carte, texte qui suit
+  l'escouade ou affichage fixe à l'écran, police committée dans le dépôt
 
 ## État actuel (à mettre à jour à chaque session)
 
 - Dépôt Git : `squad-arpg`, poussé sur GitHub
+- Outils : conception dans Claude.ai, implémentation avec Claude Code dans
+  VSCode (règles dans `CLAUDE.md`)
 - Bibliothèque graphique : SFML 3.0.2, intégrée à CMake
-  (`find_package(SFML 3.0.2 COMPONENTS Graphics REQUIRED)` +
-  `target_link_libraries(main PRIVATE SFML::Graphics)`)
 - Fenêtre 1200 × 800 ; carte de 59 × 40 cases de 40 px (2360 × 1600 px),
   plusieurs pièces et couloirs, définie en texte dans `main.cpp`
-- Caméra (`sf::View`) toujours centrée sur le carré ; du noir apparaît
+- L'escouade (classe `Escouade`, carré vert de 20 × 20) démarre en
+  `(100, 100)`, se déplace à 180 px/s vers le point cliqué, s'arrête
+  exactement dessus, est bloquée par les murs et glisse le long de ceux-ci
+- Caméra (`sf::View`) toujours centrée sur l'escouade ; du noir apparaît
   au-delà des bords de la carte
-- Le carré (20 × 20, vert) démarre en `(100, 100)`, se déplace à 180 px/s
-  vers le point cliqué (converti en coordonnées du monde), s'arrête
-  exactement dessus, est bloqué par les murs et glisse le long de ceux-ci
 - Police : `arial.ttf` du système Windows, chargée via chemin absolu — à
   revoir plus tard pour une police committée dans le projet
-- Le texte de position s'affiche au point cliqué (coordonnées du monde),
-  pas sous le carré
-- Toute la logique du carré (position, cible, vitesse, déplacement,
-  collision) est encore directement dans `main.cpp`
-- Étape en cours : **Étape 6** — à choisir
+- Le texte de position s'affiche au point cliqué (coordonnées du monde)
+- Étape en cours : **Étape 7** — à choisir
