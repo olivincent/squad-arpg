@@ -68,15 +68,15 @@
        validation (plan vide, lignes de longueurs différentes) ; l'ancien
        constructeur "bordure" est supprimé
 
-### Étape 5 — Caméra centrée sur le personnage
+### Étape 5 — Caméra centrée sur le personnage ✅ TERMINÉE
 
-Objectif : le carré reste toujours au centre de l'écran, et c'est la carte
-qui défile quand il se déplace. Sous-étapes à définir au début de la
-prochaine session.
+1. [x] Carte agrandie au-delà de la fenêtre (59 × 40 cases), sans caméra
+2. [x] `sf::View` centrée sur le carré à chaque image (après la mise à
+       jour, avant le dessin)
+3. [x] Clic converti en coordonnées du monde (`window.mapPixelToCoords`) ;
+       le texte de position reste attaché au point cliqué sur la carte
 
-Point déjà identifié : avec une caméra, les coordonnées du clic (pixels
-de l'écran) ne correspondent plus aux coordonnées du monde ; il faudra
-les convertir (`window.mapPixelToCoords`).
+### Étape 6 — À définir
 
 ## État actuel (à mettre à jour à chaque session)
 
@@ -84,14 +84,17 @@ les convertir (`window.mapPixelToCoords`).
 - Bibliothèque graphique : SFML 3.0.2, intégrée à CMake
   (`find_package(SFML 3.0.2 COMPONENTS Graphics REQUIRED)` +
   `target_link_libraries(main PRIVATE SFML::Graphics)`)
-- Fenêtre 1200 × 800 ; carte de 30 × 20 cases de 40 px (deux pièces
-  reliées par une porte, deux piliers), définie en texte dans `main.cpp`
+- Fenêtre 1200 × 800 ; carte de 59 × 40 cases de 40 px (2360 × 1600 px),
+  plusieurs pièces et couloirs, définie en texte dans `main.cpp`
+- Caméra (`sf::View`) toujours centrée sur le carré ; du noir apparaît
+  au-delà des bords de la carte
 - Le carré (20 × 20, vert) démarre en `(100, 100)`, se déplace à 180 px/s
-  vers le point cliqué, s'arrête exactement dessus, est bloqué par les
-  murs et glisse le long de ceux-ci
+  vers le point cliqué (converti en coordonnées du monde), s'arrête
+  exactement dessus, est bloqué par les murs et glisse le long de ceux-ci
 - Police : `arial.ttf` du système Windows, chargée via chemin absolu — à
   revoir plus tard pour une police committée dans le projet
-- Le texte de position se téléporte encore au point cliqué (ne suit pas
-  le carré)
-- Étape en cours : **Étape 5** — caméra centrée sur le personnage, à
-  découper en sous-étapes
+- Le texte de position s'affiche au point cliqué (coordonnées du monde),
+  pas sous le carré
+- Toute la logique du carré (position, cible, vitesse, déplacement,
+  collision) est encore directement dans `main.cpp`
+- Étape en cours : **Étape 6** — à choisir

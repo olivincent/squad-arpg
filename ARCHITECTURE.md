@@ -163,3 +163,25 @@ Interface publique :
   programme s'arrête avec un message clair, ce qui est voulu pour détecter
   une erreur de saisie dans le plan.
 - Le plan est pour l'instant défini directement dans `main.cpp`.
+
+### Caméra
+
+- **`sf::View` dans `main.cpp`** : une simple variable `camera`, copiée de
+  `window.getDefaultView()` (taille de la fenêtre). Pas de classe `Camera`
+  tant qu'il n'y a pas de comportement à y encapsuler.
+- **Toujours centrée sur le carré** : à chaque image, après la mise à jour
+  et avant le dessin, `camera.setCenter(position + taille / 2)` puis
+  `window.setView(camera)`. La position du carré est son coin haut-gauche
+  (l'origine n'est pas modifiée, car la collision suppose
+  `sf::FloatRect(position, taille)`).
+- **Conséquence acceptée** : près des bords de la carte, la caméra montre
+  du noir au-delà des murs. Bloquer la caméra aux bords de la carte reste
+  une option pour plus tard.
+- **Aucun changement à `TileMap`** : grâce aux coordonnées du monde, la
+  caméra ne concerne que ce que la fenêtre affiche.
+- **Clic** : converti avec `window.mapPixelToCoords(...)`. Les événements
+  étant traités en début d'image, la vue utilisée est celle de l'image
+  précédente, c'est-à-dire celle affichée au moment du clic — ce qui est
+  voulu.
+- **Texte de position** : placé en coordonnées du monde au point cliqué,
+  il reste attaché à cet endroit de la carte quand elle défile.
