@@ -76,10 +76,11 @@ int main() {
                 window.close();
             }
             if (const auto* data = event->getIf<sf::Event::MouseButtonPressed>()) {
-                std::cout << "x: " << data->position.x <<", y: " << data->position.y << std::endl;
-                cible = sf::Vector2f(data->position);
-                text.setString(std::to_string(data->position.x) + " , " + std::to_string(data->position.y));
-                text.setPosition(sf::Vector2f(data->position.x - 60.0f, data->position.y + 40.0f));
+                const sf::Vector2f clicMonde = window.mapPixelToCoords(data->position);
+                std::cout << "x: " << clicMonde.x <<", y: " << clicMonde.y << std::endl;
+                cible = clicMonde;
+                text.setString(std::to_string(static_cast<int>(clicMonde.x)) + " , " + std::to_string(static_cast<int>(clicMonde.y)));
+                text.setPosition({clicMonde.x - 60.0f, clicMonde.y + 40.0f});
             }
         }
 
