@@ -3,6 +3,9 @@
 #include <SFML/System/Vector2.hpp>
 
 class Escouade {
+public:
+    explicit Escouade(sf::Vector2f positionDepart);
+    
 private:
     sf::Vector2f m_position;    // coin haut-gauche, en pixels du monde
     sf::Vector2f m_taille;      // en pixels

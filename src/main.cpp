@@ -57,6 +57,7 @@ int main() {
     sf::RectangleShape carre({20, 20});
     carre.setFillColor(sf::Color::Green);
     carre.setPosition({100.0f, 100.0f});
+    Escouade escouade({200.0f, 100.0f});
     
     sf::Font font; 
     if (!font.openFromFile("C:/Windows/Fonts/arial.ttf")) {
