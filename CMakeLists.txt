@@ -6,7 +6,11 @@ project(SquadArpg LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_executable(main src/main.cpp src/TileMap.cpp src/Escouade.cpp)
-
 find_package(SFML 3.0.2 COMPONENTS Graphics REQUIRED)
-target_link_libraries(main PRIVATE SFML::Graphics)
+
+add_library(squad_core STATIC src/TileMap.cpp src/Escouade.cpp)
+target_include_directories(squad_core PUBLIC src)
+target_link_libraries(squad_core PUBLIC SFML::Graphics)
+
+add_executable(main src/main.cpp)
+target_link_libraries(main PRIVATE squad_core)
