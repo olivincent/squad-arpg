@@ -58,7 +58,7 @@ int main() {
     carre.setFillColor(sf::Color::Green);
     carre.setPosition({100.0f, 100.0f});
     Escouade escouade({200.0f, 100.0f});
-    
+
     sf::Font font; 
     if (!font.openFromFile("C:/Windows/Fonts/arial.ttf")) {
         return 1;
@@ -112,9 +112,11 @@ int main() {
 
         camera.setCenter(carre.getPosition() + carre.getSize() / 2.0f);
         window.setView(camera);
+
         window.clear();
         carte.dessiner(window);
         window.draw(carre);
+        escouade.dessiner(window);
         window.draw(text);
         window.display();
     }
