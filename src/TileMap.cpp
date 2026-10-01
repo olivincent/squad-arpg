@@ -15,3 +15,14 @@ TileMap::TileMap(int largeur, int hauteur, float tailleCase)
         }
     }
 }
+
+int TileMap::indice(int x, int y) const {
+    return y * m_largeur + x;
+}
+
+Tile TileMap::getTile(int x, int y) const {
+    if (x < 0 || y < 0 || x >= m_largeur || y >= m_hauteur) {
+        return Tile::Wall;
+    }
+    return m_cases[indice(x, y)];
+}

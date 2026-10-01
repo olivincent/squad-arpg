@@ -9,6 +9,11 @@ int main() {
     window.setFramerateLimit(60);
     TileMap carte(30, 20, 40.0f);
 
+    std::cout << std::boolalpha;
+    std::cout << "(0,0) mur ? "  << (carte.getTile(0, 0)  == Tile::Wall) << '\n';
+    std::cout << "(5,5) mur ? "  << (carte.getTile(5, 5)  == Tile::Wall) << '\n';
+    std::cout << "(-1,3) mur ? " << (carte.getTile(-1, 3) == Tile::Wall) << '\n';
+
     sf::RectangleShape carre({20, 20});
     carre.setFillColor(sf::Color::Green);
     sf::RectangleShape mur({20, 400});
