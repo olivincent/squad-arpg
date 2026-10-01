@@ -48,3 +48,7 @@ void Escouade::mettreAJour(float dt, const TileMap& carte) {
         m_position = essaiY;
     }
 }
+
+sf::Vector2f Escouade::getCentre() const {
+    return m_position + m_taille / 2.0f;
+}

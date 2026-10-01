@@ -10,6 +10,7 @@ public:
     void dessiner(sf::RenderTarget& rendu) const;
     void allerVers(sf::Vector2f destination);
     void mettreAJour(float dt, const TileMap& carte);
+    sf::Vector2f getCentre() const;
 
 private:
     sf::Vector2f m_position;    // coin haut-gauche, en pixels du monde

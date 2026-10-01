@@ -112,7 +112,7 @@ int main() {
         }
         escouade.mettreAJour(dt, carte);
 
-        camera.setCenter(carre.getPosition() + carre.getSize() / 2.0f);
+        camera.setCenter(escouade.getCentre());
         window.setView(camera);
 
         window.clear();
