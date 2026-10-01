@@ -53,11 +53,7 @@ int main() {
         "###########################################################",
     };
     TileMap carte(plan, 40.0f);
-
-    sf::RectangleShape carre({20, 20});
-    carre.setFillColor(sf::Color::Green);
-    carre.setPosition({100.0f, 100.0f});
-    Escouade escouade({200.0f, 100.0f});
+    Escouade escouade({100.0f, 100.0f});
 
     sf::Font font; 
     if (!font.openFromFile("C:/Windows/Fonts/arial.ttf")) {
@@ -66,7 +62,6 @@ int main() {
 
     sf::Text text(font);
 
-    sf::Vector2f cible = carre.getPosition();
     const float pixelsParSeconde = 180.0f;
     sf::Clock horloge;
     sf::View camera = window.getDefaultView();
@@ -80,7 +75,6 @@ int main() {
             if (const auto* data = event->getIf<sf::Event::MouseButtonPressed>()) {
                 const sf::Vector2f clicMonde = window.mapPixelToCoords(data->position);
                 std::cout << "x: " << clicMonde.x <<", y: " << clicMonde.y << std::endl;
-                cible = clicMonde;
                 escouade.allerVers(clicMonde);
                 text.setString(std::to_string(static_cast<int>(clicMonde.x)) + " , " + std::to_string(static_cast<int>(clicMonde.y)));
                 text.setPosition({clicMonde.x - 60.0f, clicMonde.y + 40.0f});
@@ -88,36 +82,12 @@ int main() {
         }
 
         // MISE À JOUR
-        const sf::Vector2f direction = cible - carre.getPosition();
-        const float distance = direction.length();
-        const float pasDuTic = pixelsParSeconde * dt;
-        sf::Vector2f prochainePosition = carre.getPosition();
-
-        if (distance > pasDuTic ) {
-            prochainePosition += (direction.normalized() * pasDuTic);
-        }else if (distance > 0) {
-            prochainePosition = cible;
-        }
-
-        const sf::Vector2f deplacement = prochainePosition - carre.getPosition();
-
-        const sf::Vector2f essaiX = carre.getPosition() + sf::Vector2f(deplacement.x, 0.0f);
-        if (!carte.chevaucheUnMur(sf::FloatRect(essaiX, carre.getSize()))) {
-            carre.setPosition(essaiX);
-        }
-
-        const sf::Vector2f essaiY = carre.getPosition() + sf::Vector2f(0.0f, deplacement.y);
-        if (!carte.chevaucheUnMur(sf::FloatRect(essaiY, carre.getSize()))) {
-            carre.setPosition(essaiY);
-        }
         escouade.mettreAJour(dt, carte);
 
         camera.setCenter(escouade.getCentre());
         window.setView(camera);
-
         window.clear();
         carte.dessiner(window);
-        window.draw(carre);
         escouade.dessiner(window);
         window.draw(text);
         window.display();
