@@ -1,5 +1,6 @@
 // ./tests/test_TileMap.cpp
 #include <catch2/catch_test_macros.hpp>
+#include <SFML/Graphics/Rect.hpp>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -63,4 +64,81 @@ TEST_CASE("Des lignes de longueurs différentes lèvent std::invalid_argument") 
     };
 
     REQUIRE_THROWS_AS(TileMap(plan, 40.0f), std::invalid_argument);
+}
+
+TEST_CASE("chevaucheUnMur renvoie faux pour un rectangle entièrement sur du sol") {
+    // Mur unique en (2, 2), donc en pixels x dans [80, 120), y dans [80, 120)
+    // pour une taille de case de 40.
+    const std::vector<std::string> plan = {
+        ".....",
+        ".....",
+        "..#..",
+        ".....",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    const sf::FloatRect rect({0.0f, 0.0f}, {40.0f, 40.0f});
+    REQUIRE_FALSE(carte.chevaucheUnMur(rect));
+}
+
+TEST_CASE("chevaucheUnMur renvoie vrai pour un rectangle qui chevauche un mur") {
+    const std::vector<std::string> plan = {
+        ".....",
+        ".....",
+        "..#..",
+        ".....",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    const sf::FloatRect rect({90.0f, 90.0f}, {20.0f, 20.0f});
+    REQUIRE(carte.chevaucheUnMur(rect));
+}
+
+TEST_CASE("Un rectangle qui touche exactement le bord d'un mur ne le chevauche pas") {
+    // Bord droit du rectangle en x = 80, exactement sur le bord gauche du
+    // mur (qui commence à x = 80) : convention ceil - 1, un contact sans
+    // chevauchement ne doit pas compter comme une collision.
+    const std::vector<std::string> plan = {
+        ".....",
+        ".....",
+        "..#..",
+        ".....",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    const sf::FloatRect rect({40.0f, 80.0f}, {40.0f, 40.0f});
+    REQUIRE_FALSE(carte.chevaucheUnMur(rect));
+}
+
+TEST_CASE("Le même rectangle décalé de 1 px vers le mur le chevauche") {
+    const std::vector<std::string> plan = {
+        ".....",
+        ".....",
+        "..#..",
+        ".....",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    const sf::FloatRect rect({41.0f, 80.0f}, {40.0f, 40.0f});
+    REQUIRE(carte.chevaucheUnMur(rect));
+}
+
+TEST_CASE("Un rectangle hors carte en coordonnées négatives chevauche toujours un mur") {
+    // Bord en sol : seule la sortie de carte doit déclencher la collision,
+    // pas un mur du plan.
+    const std::vector<std::string> plan = {
+        ".....",
+        ".....",
+        "..#..",
+        ".....",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    const sf::FloatRect rect({-10.0f, -10.0f}, {20.0f, 20.0f});
+    REQUIRE(carte.chevaucheUnMur(rect));
 }
