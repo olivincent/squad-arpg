@@ -7,6 +7,7 @@ class Escouade {
 public:
     explicit Escouade(sf::Vector2f positionDepart);
     void dessiner(sf::RenderTarget& rendu) const;
+    void allerVers(sf::Vector2f destination);
 
 private:
     sf::Vector2f m_position;    // coin haut-gauche, en pixels du monde

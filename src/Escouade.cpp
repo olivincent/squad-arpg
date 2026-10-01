@@ -17,3 +17,7 @@ void Escouade::dessiner(sf::RenderTarget& rendu) const {
     forme.setFillColor(sf::Color::Green);
     rendu.draw(forme);
 }
+
+void Escouade::allerVers(sf::Vector2f destination) {
+    m_cible = destination;
+}
