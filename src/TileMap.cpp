@@ -1,17 +1,22 @@
 // ./src/TileMap.cpp
 #include "TileMap.hpp"
 #include <cmath>
+#include <stdexcept>
 
-TileMap::TileMap(int largeur, int hauteur, float tailleCase)
-    : m_largeur(largeur),
-      m_hauteur(hauteur),
+TileMap::TileMap(const std::vector<std::string>& plan, float tailleCase)
+    : m_largeur(static_cast<int>(plan.at(0).size())),
+      m_hauteur(static_cast<int>(plan.size())),
       m_tailleCase(tailleCase),
-      m_cases(largeur * hauteur, Tile::Floor)
+      m_cases(m_largeur * m_hauteur, Tile::Floor)
 {
     for (int y = 0; y < m_hauteur; ++y) {
+        const std::string& ligne = plan[y];
+        if (static_cast<int>(ligne.size()) != m_largeur) {
+            throw std::invalid_argument("TileMap : la ligne " + std::to_string(y) + " n'a pas la bonne longueur");
+        }
         for (int x = 0; x < m_largeur; ++x) {
-            if (x == 0 || y == 0 || x == m_largeur - 1 || y == m_hauteur - 1) {
-                m_cases[y * m_largeur + x] = Tile::Wall;
+            if (ligne[x] == '#') {
+                m_cases[indice(x, y)] = Tile::Wall;
             }
         }
     }

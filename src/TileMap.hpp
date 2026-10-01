@@ -2,6 +2,7 @@
 #pragma once
 #include <vector>
 #include <SFML/Graphics.hpp>
+#include <string>
 
 enum class Tile {
     Floor,
@@ -10,7 +11,7 @@ enum class Tile {
 
 class TileMap {
 public:
-    TileMap(int largeur, int hauteur, float tailleCase);
+    TileMap(const std::vector<std::string>& plan, float tailleCase);
     Tile getTile(int x, int y) const;
     void dessiner(sf::RenderTarget& rendu) const;
     bool chevaucheUnMur(const sf::FloatRect& rect) const;
