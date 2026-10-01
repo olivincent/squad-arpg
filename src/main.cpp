@@ -50,10 +50,16 @@ int main() {
             prochainePosition = cible;
         }
 
-        const sf::FloatRect prochainRect(prochainePosition, carre.getSize());
+        const sf::Vector2f deplacement = prochainePosition - carre.getPosition();
 
-        if (!carte.chevaucheUnMur(prochainRect)) {
-            carre.setPosition(prochainePosition);
+        const sf::Vector2f essaiX = carre.getPosition() + sf::Vector2f(deplacement.x, 0.0f);
+        if (!carte.chevaucheUnMur(sf::FloatRect(essaiX, carre.getSize()))) {
+            carre.setPosition(essaiX);
+        }
+
+        const sf::Vector2f essaiY = carre.getPosition() + sf::Vector2f(0.0f, deplacement.y);
+        if (!carte.chevaucheUnMur(sf::FloatRect(essaiY, carre.getSize()))) {
+            carre.setPosition(essaiY);
         }
 
         window.clear();
