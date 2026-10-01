@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(C:/msys64/usr/bin/bash.exe -lc 'cd /c/Projets_Prog/squad-arpg && MSYSTEM=UCRT64 source /etc/profile 2>/dev/null; ./build/tests.exe')",
+      "Bash(C:/msys64/usr/bin/bash.exe -lc 'export MSYSTEM=UCRT64; export PATH=\"/ucrt64/bin:$PATH\"; cd /c/Projets_Prog/squad-arpg && ./build/tests.exe')"
+    ]
+  }
+}
