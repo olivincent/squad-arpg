@@ -7,6 +7,7 @@
 int main() {
     sf::RenderWindow window(sf::VideoMode({1200, 800}), "Squad-ARPG");
     window.setFramerateLimit(60);
+    TileMap carte(30, 20, 40.0f);
 
     sf::RectangleShape carre({20, 20});
     carre.setFillColor(sf::Color::Green);
