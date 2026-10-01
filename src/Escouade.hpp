@@ -3,11 +3,13 @@
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 
+class TileMap;
 class Escouade {
 public:
     explicit Escouade(sf::Vector2f positionDepart);
     void dessiner(sf::RenderTarget& rendu) const;
     void allerVers(sf::Vector2f destination);
+    void mettreAJour(float dt, const TileMap& carte);
 
 private:
     sf::Vector2f m_position;    // coin haut-gauche, en pixels du monde

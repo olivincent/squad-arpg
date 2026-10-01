@@ -110,6 +110,7 @@ int main() {
         if (!carte.chevaucheUnMur(sf::FloatRect(essaiY, carre.getSize()))) {
             carre.setPosition(essaiY);
         }
+        escouade.mettreAJour(dt, carte);
 
         camera.setCenter(carre.getPosition() + carre.getSize() / 2.0f);
         window.setView(camera);
