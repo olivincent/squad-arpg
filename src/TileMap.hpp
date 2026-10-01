@@ -13,7 +13,7 @@ public:
     TileMap(int largeur, int hauteur, float tailleCase);
     Tile getTile(int x, int y) const;
     void dessiner(sf::RenderTarget& rendu) const;
-
+    bool chevaucheUnMur(const sf::FloatRect& rect) const;
 
 private:
     int indice(int x, int y) const;

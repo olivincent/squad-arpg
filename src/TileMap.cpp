@@ -1,5 +1,6 @@
 // ./src/TileMap.cpp
 #include "TileMap.hpp"
+#include <cmath>
 
 TileMap::TileMap(int largeur, int hauteur, float tailleCase)
     : m_largeur(largeur),
@@ -43,4 +44,20 @@ void TileMap::dessiner(sf::RenderTarget& rendu) const {
             rendu.draw(forme);
         }
     }
+}
+
+bool TileMap::chevaucheUnMur(const sf::FloatRect& rect) const {
+    const int xMin = static_cast<int>(std::floor(rect.position.x / m_tailleCase));
+    const int yMin = static_cast<int>(std::floor(rect.position.y / m_tailleCase));
+    const int xMax = static_cast<int>(std::ceil((rect.position.x + rect.size.x) / m_tailleCase)) - 1;
+    const int yMax = static_cast<int>(std::ceil((rect.position.y + rect.size.y) / m_tailleCase)) - 1;
+
+    for (int y = yMin; y <= yMax; ++y) {
+        for (int x = xMin; x <= xMax; ++x) {
+            if (getTile(x, y) == Tile::Wall) {
+                return true;
+            }
+        }
+    }
+    return false;
 }

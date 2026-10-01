@@ -9,16 +9,9 @@ int main() {
     window.setFramerateLimit(60);
     TileMap carte(30, 20, 40.0f);
 
-    std::cout << std::boolalpha;
-    std::cout << "(0,0) mur ? "  << (carte.getTile(0, 0)  == Tile::Wall) << '\n';
-    std::cout << "(5,5) mur ? "  << (carte.getTile(5, 5)  == Tile::Wall) << '\n';
-    std::cout << "(-1,3) mur ? " << (carte.getTile(-1, 3) == Tile::Wall) << '\n';
-
     sf::RectangleShape carre({20, 20});
     carre.setFillColor(sf::Color::Green);
-    sf::RectangleShape mur({20, 400});
-    mur.setPosition({600, 200});
-    mur.setFillColor(sf::Color(128, 128, 128));
+    carre.setPosition({100.0f, 100.0f});
     
     sf::Font font; 
     if (!font.openFromFile("C:/Windows/Fonts/arial.ttf")) {
@@ -59,13 +52,12 @@ int main() {
 
         const sf::FloatRect prochainRect(prochainePosition, carre.getSize());
 
-        if (!prochainRect.findIntersection(mur.getGlobalBounds())) {
+        if (!carte.chevaucheUnMur(prochainRect)) {
             carre.setPosition(prochainePosition);
         }
 
         window.clear();
         carte.dessiner(window);
-        window.draw(mur);
         window.draw(carre);
         window.draw(text);
         window.display();
