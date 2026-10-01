@@ -64,6 +64,7 @@ int main() {
         }
 
         window.clear();
+        carte.dessiner(window);
         window.draw(mur);
         window.draw(carre);
         window.draw(text);

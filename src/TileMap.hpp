@@ -1,6 +1,7 @@
 // ./src/TileMap.hpp
 #pragma once
 #include <vector>
+#include <SFML/Graphics.hpp>
 
 enum class Tile {
     Floor,
@@ -11,6 +12,7 @@ class TileMap {
 public:
     TileMap(int largeur, int hauteur, float tailleCase);
     Tile getTile(int x, int y) const;
+    void dessiner(sf::RenderTarget& rendu) const;
 
 
 private:
