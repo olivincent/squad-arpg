@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include "TileMap.hpp"
+#include "Escouade.hpp"
 
 int main() {
     sf::RenderWindow window(sf::VideoMode({1200, 800}), "Squad-ARPG");
