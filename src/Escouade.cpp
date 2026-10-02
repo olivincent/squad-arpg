@@ -35,11 +35,13 @@ void Escouade::allerVers(sf::Vector2f destination, const TileMap& carte) {
     // viser d'abord la ferait reculer vers le centre de sa propre case.
     // Le dernier point est le point exact cliqué, pas le centre de la
     // case d'arrivée, pour que l'escouade s'arrête précisément dessus.
-    m_chemin.clear();
+    std::vector<sf::Vector2f> points;
     for (std::size_t i = 1; i < chemin.size() - 1; ++i) {
-        m_chemin.push_back(carte.centreDeCase(chemin[i]));
+        points.push_back(carte.centreDeCase(chemin[i]));
     }
-    m_chemin.push_back(destination);
+    points.push_back(destination);
+
+    m_chemin = lisserChemin(carte, getCentre(), points, m_taille);
     m_indexChemin = 0;
 }
 

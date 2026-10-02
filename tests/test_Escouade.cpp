@@ -198,3 +198,34 @@ TEST_CASE("Un second ordre valide pendant un déplacement remplace la destinatio
 
     verifierPointProche(escouade.getCentre(), secondeDestination);
 }
+
+TEST_CASE("Le lissage rend un trajet diagonal plus rapide qu'un escalier") {
+    // Terrain dégagé, destination 240 px plus loin en x et en y. Sans
+    // lissage, le A* produirait un escalier dont la longueur totale vaut
+    // la distance de Manhattan (240 + 240 = 480 px, soit 480 / 180 ≈
+    // 2,67 s). Avec lissage, le trajet devient la ligne droite directe,
+    // de longueur euclidienne (240 * racine(2) ≈ 339,4 px, soit ≈ 1,89 s).
+    // Une simulation de 2 s est donc suffisante pour la ligne droite, mais
+    // insuffisante pour l'escalier : si l'escouade est bien arrivée après
+    // seulement 2 s, c'est que le chemin a été lissé.
+    const std::vector<std::string> plan = {
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+    };
+    TileMap carte(plan, 40.0f);
+    Escouade escouade({50.0f, 50.0f});
+
+    const sf::Vector2f destination{300.0f, 300.0f};
+    escouade.allerVers(destination, carte);
+    simuler(escouade, carte, 2.0f);
+
+    verifierPointProche(escouade.getCentre(), destination);
+}
