@@ -8,7 +8,7 @@
 Escouade::Escouade(sf::Vector2f positionDepart)
     : m_position(positionDepart),
       m_taille(20.0f, 20.0f),
-      m_cible(positionDepart),
+      m_cible(positionDepart + m_taille / 2.0f),
       m_vitesse(180.0f)
 {
 }
@@ -25,18 +25,16 @@ void Escouade::allerVers(sf::Vector2f destination) {
 }
 
 void Escouade::mettreAJour(float dt, const TileMap& carte) {
-    const sf::Vector2f direction = m_cible - m_position;
+    const sf::Vector2f direction = m_cible - getCentre();
     const float distance = direction.length();
     const float pasDuTic = m_vitesse * dt;
-    sf::Vector2f prochainePosition = m_position;
+    sf::Vector2f deplacement(0.0f, 0.0f);
 
     if (distance > pasDuTic ) {
-        prochainePosition += (direction.normalized() * pasDuTic);
+        deplacement = direction.normalized() * pasDuTic;
     }else if (distance > 0) {
-        prochainePosition = m_cible;
+        deplacement = direction;
     }
-
-    const sf::Vector2f deplacement = prochainePosition - m_position;
 
     const sf::Vector2f essaiX = m_position + sf::Vector2f(deplacement.x, 0.0f);
     if (!carte.chevaucheUnMur(sf::FloatRect(essaiX, m_taille))) {
