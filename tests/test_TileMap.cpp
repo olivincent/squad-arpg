@@ -1,6 +1,7 @@
 // ./tests/test_TileMap.cpp
 #include <catch2/catch_test_macros.hpp>
 #include <SFML/Graphics/Rect.hpp>
+#include <SFML/System/Vector2.hpp>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -51,6 +52,43 @@ TEST_CASE("getLargeur et getHauteur renvoient les dimensions du plan") {
 
     REQUIRE(carte.getLargeur() == 5);
     REQUIRE(carte.getHauteur() == 3);
+}
+
+TEST_CASE("caseContenant renvoie la case d'un point au milieu de celle-ci") {
+    const std::vector<std::string> plan = {
+        ".....",
+        ".....",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    // Milieu de la case (1, 1) : x = 1*40 + 20 = 60, y pareil.
+    REQUIRE(carte.caseContenant({60.0f, 60.0f}) == sf::Vector2i(1, 1));
+}
+
+TEST_CASE("caseContenant renvoie la case de droite sur la limite exacte entre deux cases") {
+    // x = 40 est à la fois le bord droit de la case 0 et le bord gauche de
+    // la case 1 : comme chevaucheUnMur (std::floor), la limite appartient
+    // à la case de droite.
+    const std::vector<std::string> plan = {
+        ".....",
+        ".....",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    REQUIRE(carte.caseContenant({40.0f, 0.0f}) == sf::Vector2i(1, 0));
+}
+
+TEST_CASE("caseContenant renvoie une case négative pour un point avant la carte") {
+    const std::vector<std::string> plan = {
+        ".....",
+        ".....",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    REQUIRE(carte.caseContenant({-10.0f, -10.0f}) == sf::Vector2i(-1, -1));
 }
 
 TEST_CASE("Une coordonnée négative est hors carte, donc un mur") {

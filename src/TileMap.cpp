@@ -41,6 +41,10 @@ int TileMap::getHauteur() const {
     return m_hauteur;
 }
 
+sf::Vector2i TileMap::caseContenant(sf::Vector2f point) const {
+    return {static_cast<int>(std::floor(point.x / m_tailleCase)), static_cast<int>(std::floor(point.y / m_tailleCase))};
+}
+
 void TileMap::dessiner(sf::RenderTarget& rendu) const {
     sf::RectangleShape forme({m_tailleCase, m_tailleCase});
     forme.setOutlineThickness(-1.0f);
