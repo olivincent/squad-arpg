@@ -91,6 +91,40 @@ TEST_CASE("caseContenant renvoie une case négative pour un point avant la carte
     REQUIRE(carte.caseContenant({-10.0f, -10.0f}) == sf::Vector2i(-1, -1));
 }
 
+TEST_CASE("centreDeCase renvoie le centre de la case (0, 0)") {
+    const std::vector<std::string> plan = {
+        ".....",
+        ".....",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    REQUIRE(carte.centreDeCase({0, 0}) == sf::Vector2f(20.0f, 20.0f));
+}
+
+TEST_CASE("centreDeCase renvoie le centre d'une autre case") {
+    const std::vector<std::string> plan = {
+        ".....",
+        ".....",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    REQUIRE(carte.centreDeCase({2, 1}) == sf::Vector2f(100.0f, 60.0f));
+}
+
+TEST_CASE("caseContenant et centreDeCase sont des conversions inverses") {
+    const std::vector<std::string> plan = {
+        ".....",
+        ".....",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    const sf::Vector2i coordCase{3, 2};
+    REQUIRE(carte.caseContenant(carte.centreDeCase(coordCase)) == coordCase);
+}
+
 TEST_CASE("Une coordonnée négative est hors carte, donc un mur") {
     const std::vector<std::string> plan = {
         "....",

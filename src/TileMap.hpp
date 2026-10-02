@@ -16,6 +16,7 @@ public:
     int getLargeur() const;
     int getHauteur() const;
     sf::Vector2i caseContenant(sf::Vector2f point) const;
+    sf::Vector2f centreDeCase(sf::Vector2i coordCase) const;
     void dessiner(sf::RenderTarget& rendu) const;
     bool chevaucheUnMur(const sf::FloatRect& rect) const;
 

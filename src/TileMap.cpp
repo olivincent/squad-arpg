@@ -45,6 +45,10 @@ sf::Vector2i TileMap::caseContenant(sf::Vector2f point) const {
     return {static_cast<int>(std::floor(point.x / m_tailleCase)), static_cast<int>(std::floor(point.y / m_tailleCase))};
 }
 
+sf::Vector2f TileMap::centreDeCase(sf::Vector2i coordCase) const {
+    return {(coordCase.x + 0.5f) * m_tailleCase, (coordCase.y + 0.5f) * m_tailleCase};
+}
+
 void TileMap::dessiner(sf::RenderTarget& rendu) const {
     sf::RectangleShape forme({m_tailleCase, m_tailleCase});
     forme.setOutlineThickness(-1.0f);
