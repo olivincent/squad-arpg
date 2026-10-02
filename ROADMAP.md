@@ -131,11 +131,39 @@ elle continue d'aller en ligne droite (branchement prévu à l'étape 9).
        reconstruction du chemin) ; tests : ligne droite, contournement
        d'un mur, arrivée inaccessible
 
-### Étape 9 — À définir
+### Étape 9 — L'escouade suit le chemin du A* ✅ TERMINÉE
+
+1. [x] `TileMap::caseContenant(sf::Vector2f)` : conversion pixels → case
+       (`std::floor`, comme `chevaucheUnMur`) ; tests (milieu de case,
+       limite exacte entre deux cases, coordonnée négative)
+2. [x] `TileMap::centreDeCase(sf::Vector2i)` : conversion case → pixels ;
+       tests (case `(0,0)`, une autre case, aller-retour avec
+       `caseContenant`)
+3. [x] Le centre de l'escouade (et non plus son coin haut-gauche) vise le
+       point visé dans `mettreAJour`, via un simple vecteur de
+       déplacement appliqué à `m_position`
+4. [x] `m_cible` remplacée par `m_chemin` (`std::vector<sf::Vector2f>`) et
+       un indice de progression ; `allerVers` y place un seul point,
+       `mettreAJour` avance l'indice quand un point est atteint
+5. [x] Branchement du A* : nouvelle signature
+       `allerVers(destination, const TileMap&)`, appel de
+       `trouverChemin` depuis `Escouade` (`main.cpp` ne connaît pas le
+       module `Chemin`) ; case de départ ignorée ; chemin vide = ordre
+       ignoré
+6. [x] Le dernier point du chemin est le point exact cliqué, pas le
+       centre de la case d'arrivée
+
+**Limite connue** : en cliquant près du coin d'une case alignée avec
+l'escouade sur un seul axe, le centre de case visé peut être presque sur
+la même ligne/colonne que l'escouade, ce qui produit parfois un léger
+zigzag (l'escouade descend sur l'axe avant de remonter). Comportement
+accepté pour l'instant, à revisiter plus tard.
+
+### Étape 10 — À définir
 
 Pistes discutées :
-- Brancher `Chemin` sur `Escouade` (conversion pixels ↔ cases, suivi du
-  chemin calculé au lieu de la ligne droite actuelle)
+- Corriger le zigzag occasionnel près des coins de case (voir limite
+  connue de l'étape 9)
 - Finitions : caméra bloquée aux bords de la carte, texte qui suit
   l'escouade ou affichage fixe à l'écran, police committée dans le dépôt
 - Tests unitaires pour `Escouade` (à discuter séparément)
@@ -149,16 +177,18 @@ Pistes discutées :
 - Fenêtre 1200 × 800 ; carte de 59 × 40 cases de 40 px (2360 × 1600 px),
   plusieurs pièces et couloirs, définie en texte dans `main.cpp`
 - L'escouade (classe `Escouade`, carré vert de 20 × 20) démarre en
-  `(100, 100)`, se déplace à 180 px/s vers le point cliqué, s'arrête
-  exactement dessus, est bloquée par les murs et glisse le long de ceux-ci
+  `(100, 100)`, se déplace à 180 px/s en suivant le chemin calculé par le
+  A* (contourne les murs par les ouvertures), s'arrête exactement sur le
+  point cliqué, reste bloquée par les murs et glisse le long de ceux-ci
+  (filet de sécurité conservé)
 - Caméra (`sf::View`) toujours centrée sur l'escouade ; du noir apparaît
   au-delà des bords de la carte
 - Police : `arial.ttf` du système Windows, chargée via chemin absolu — à
   revoir plus tard pour une police committée dans le projet
 - Le texte de position s'affiche au point cliqué (coordonnées du monde)
 - Logique de jeu (`TileMap`, `Escouade`, `Chemin`) dans une bibliothèque
-  `squad_core`, testée avec Catch2 3 (`./build/tests.exe`, 20 tests :
-  11 sur `TileMap`, 9 sur `Chemin`)
-- Module `Chemin` (A*, 4 directions, coût 1 par pas) disponible mais pas
-  encore branché sur `Escouade` : le déplacement reste en ligne droite
-- Étape en cours : **Étape 9** — à choisir
+  `squad_core`, testée avec Catch2 3 (`./build/tests.exe`, 26 tests :
+  17 sur `TileMap`, 9 sur `Chemin`)
+- Zigzag occasionnel observé près des coins de case (voir étape 9, limite
+  connue) — à revisiter
+- Étape en cours : **Étape 10** — à choisir

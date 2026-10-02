@@ -64,11 +64,12 @@ squad-arpg/
 ```
 
 Trois modules : `TileMap` (l'environnement de jeu), `Escouade` (l'entité
-contrôlée par le joueur) et `Chemin` (recherche de chemin A*, pas encore
-branché sur `Escouade`). `main.cpp` ne garde que la fenêtre, la boucle de
-jeu, les événements, la caméra, la carte (son plan) et le texte de
-position. La structure continue d'évoluer par nécessité réelle, pas par
-anticipation (voir principes ci-dessous).
+contrôlée par le joueur, qui suit un chemin calculé par le A*) et
+`Chemin` (recherche de chemin A*, utilisé uniquement par `Escouade`).
+`main.cpp` ne garde que la fenêtre, la boucle de jeu, les événements, la
+caméra, la carte (son plan) et le texte de position ; il ne connaît pas
+le module `Chemin`. La structure continue d'évoluer par nécessité réelle,
+pas par anticipation (voir principes ci-dessous).
 
 Deux exécutables : `main` (le jeu) et `tests` (les tests Catch2). Les deux
 se lient à la bibliothèque statique `squad_core`, qui contient la logique
@@ -101,30 +102,35 @@ Interface publique :
 | `Tile getTile(int x, int y) const` | Type de la case `(x, y)` ; **hors de la carte = `Wall`** |
 | `int getLargeur() const` | Largeur de la carte, en cases |
 | `int getHauteur() const` | Hauteur de la carte, en cases |
+| `sf::Vector2i caseContenant(sf::Vector2f point) const` | Case (coordonnées de grille) contenant ce point, en pixels du monde |
+| `sf::Vector2f centreDeCase(sf::Vector2i coordCase) const` | Centre de cette case, en pixels du monde |
 | `void dessiner(sf::RenderTarget& rendu) const` | Dessine toutes les cases |
 | `bool chevaucheUnMur(const sf::FloatRect& rect) const` | Le rectangle (en pixels du monde) chevauche-t-il un mur ? |
 
 ### `Escouade` — l'entité contrôlée par le joueur
 
-Pour l'instant un carré vert de 20 × 20 qui se déplace vers le point
-cliqué. Aucun membre d'escouade n'existe encore : ils seront ajoutés
-quand le besoin sera réel.
+Pour l'instant un carré vert de 20 × 20 qui suit le chemin calculé par le
+A* jusqu'au point cliqué, en contournant les murs. Aucun membre
+d'escouade n'existe encore : ils seront ajoutés quand le besoin sera réel.
 
 - **Données membres** : `m_position` (coin haut-gauche, pixels du monde),
-  `m_taille`, `m_cible`, `m_vitesse` (pixels par seconde).
+  `m_taille`, `m_chemin` (`std::vector<sf::Vector2f>`, les points — centre
+  de l'escouade — à atteindre dans l'ordre), `m_indexChemin` (indice du
+  prochain point visé), `m_vitesse` (pixels par seconde).
 - **Valeurs fixes** dans le constructeur : taille 20 × 20, vitesse
-  180 px/s, cible = position de départ (immobile tant qu'on n'a pas
-  cliqué). Elles deviendront des paramètres quand il le faudra.
+  180 px/s, chemin = un seul point (le centre de départ, donc immobile
+  tant qu'on n'a pas cliqué). Elles deviendront des paramètres quand il
+  le faudra.
 
 Interface publique :
 
 | Fonction | Rôle |
 |---|---|
 | `explicit Escouade(sf::Vector2f positionDepart)` | Crée l'escouade à la position donnée |
-| `void allerVers(sf::Vector2f destination)` | Donne une nouvelle destination |
-| `void mettreAJour(float dt, const TileMap& carte)` | Avance vers la cible, avec collision et glissement le long des murs |
+| `void allerVers(sf::Vector2f destination, const TileMap& carte)` | Calcule un chemin vers la destination (A*) et le remplace comme trajet à suivre ; ordre ignoré si aucun chemin n'existe |
+| `void mettreAJour(float dt, const TileMap& carte)` | Avance vers le point courant du chemin, avec collision et glissement le long des murs |
 | `void dessiner(sf::RenderTarget& rendu) const` | Dessine l'escouade |
-| `sf::Vector2f getCentre() const` | Centre de l'escouade (utilisé par la caméra) |
+| `sf::Vector2f getCentre() const` | Centre de l'escouade (utilisé par la caméra et par `allerVers`) |
 
 ### `Chemin` — recherche de chemin (A*)
 
@@ -147,9 +153,8 @@ Interface publique :
 |---|---|
 | `std::vector<sf::Vector2i> trouverChemin(const TileMap& carte, sf::Vector2i depart, sf::Vector2i arrivee)` | Plus court chemin entre deux cases (4 directions, coût 1 par pas, heuristique de Manhattan) ; inclut le départ et l'arrivée ; vecteur vide si départ/arrivée est un mur (ou hors carte) ou si l'arrivée est inaccessible |
 
-Pas encore branché sur `Escouade` : elle continue d'aller en ligne droite
-vers le point cliqué. Le branchement (conversion pixels ↔ cases, suivi du
-chemin calculé) est prévu à une étape ultérieure.
+Utilisé uniquement par `Escouade::allerVers` ; `main.cpp` ne connaît pas
+ce module.
 
 ## Principes de conception à respecter
 
@@ -274,6 +279,44 @@ chemin calculé) est prévu à une étape ultérieure.
   encapsule le calcul « coin haut-gauche + moitié de la taille », pour que
   `main.cpp` ne dépende pas de la convention de position.
 
+### Suivi de chemin par l'escouade
+
+- **Conversions pixels ↔ cases regroupées dans `TileMap`** (seule à
+  connaître `m_tailleCase`) : `caseContenant` (comme `chevaucheUnMur`,
+  avec `std::floor` pour rester correct en négatif) et `centreDeCase`.
+- **Les points de passage sont des positions du centre de l'escouade**,
+  pas de son coin haut-gauche. `mettreAJour` calcule donc la direction et
+  la distance depuis `getCentre()`, mais applique le déplacement obtenu
+  (un simple vecteur de translation) à `m_position` — une translation
+  déplace un rectangle rigide tout entier, inutile de la recalculer
+  séparément pour le centre et le coin.
+- **`m_chemin` + `m_indexChemin`** plutôt qu'un seul point cible : avancer
+  l'indice évite un `erase(begin())` à chaque point atteint (coûteux, car
+  il décale tous les éléments suivants en mémoire). Le chemin déjà
+  parcouru reste en mémoire jusqu'au prochain `allerVers`.
+- **L'appel au A* est dans `Escouade::allerVers`**, pas dans `main.cpp`,
+  avec la carte passée en paramètre comme pour `mettreAJour` (jamais
+  gardée en membre).
+- **Construction du chemin suivi** à partir du résultat de
+  `trouverChemin` (qui travaille en cases) : la case de départ est
+  ignorée (l'escouade est déjà dessus, la viser d'abord la ferait
+  reculer vers le centre de sa propre case) ; les cases intermédiaires
+  sont converties en centres de case ; le dernier point est remplacé par
+  le point exact cliqué, pour que l'escouade s'arrête précisément dessus
+  plutôt qu'au centre de la case d'arrivée.
+- **Chemin vide = ordre ignoré** : `allerVers` ne touche à `m_chemin`
+  qu'après avoir confirmé que `trouverChemin` a renvoyé un résultat non
+  vide ; un clic sur un mur ou une zone inaccessible n'interrompt donc
+  pas le trajet en cours.
+- **Collision et glissement conservés tels quels**, comme filet de
+  sécurité : l'escouade peut partir d'une position décentrée dans sa case
+  ou viser un point proche d'un mur (notamment le point exact cliqué).
+- **Limite connue** : viser le centre d'une case intermédiaire peut
+  produire un zigzag visible quand ce centre est presque aligné avec
+  l'escouade sur un seul axe (clic proche d'un coin de case) — la
+  trajectoire descend sur cet axe avant de remonter. Accepté pour
+  l'instant, à revisiter.
+
 ### Recherche de chemin (A*)
 
 - **Fonction libre `trouverChemin`**, pas de classe : aucun état à
@@ -333,9 +376,9 @@ chemin calculé) est prévu à une étape ultérieure.
   (3×3, 4×4, 5×5…), jamais la carte de `main.cpp`, pour isoler exactement
   le cas testé.
 - **Teste uniquement l'interface publique** de `TileMap` et `Chemin`
-  (`getTile`, `chevaucheUnMur`, `getLargeur`/`getHauteur`, le
-  constructeur, `trouverChemin`) — aucune fonction n'a été ajoutée
-  seulement pour faciliter les tests.
+  (`getTile`, `chevaucheUnMur`, `getLargeur`/`getHauteur`,
+  `caseContenant`/`centreDeCase`, le constructeur, `trouverChemin`) —
+  aucune fonction n'a été ajoutée seulement pour faciliter les tests.
 - **Propriétés plutôt que chemin exact** : pour `trouverChemin`, comme
   plusieurs plus courts chemins peuvent exister, les tests vérifient des
   propriétés (premier élément = départ, dernier = arrivée, cases
