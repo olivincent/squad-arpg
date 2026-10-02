@@ -28,6 +28,32 @@ TEST_CASE("Le centre initial est au centre du carré de départ") {
     verifierPointProche(escouade.getCentre(), {60.0f, 60.0f});
 }
 
+TEST_CASE("Un seul tic avance le centre de vitesse * dt") {
+    // Terrain dégagé, destination à plusieurs cases : le premier point visé
+    // est donc loin, bien au-delà de la distance parcourue en un seul tic
+    // (180 px/s * 0.1 s = 18 px), quelle que soit sa direction exacte.
+    const std::vector<std::string> plan = {
+        ".........",
+        ".........",
+        ".........",
+        ".........",
+        ".........",
+        ".........",
+        ".........",
+        ".........",
+        ".........",
+    };
+    TileMap carte(plan, 40.0f);
+    Escouade escouade({50.0f, 50.0f});
+
+    const sf::Vector2f centreInitial = escouade.getCentre();
+    escouade.allerVers({300.0f, 300.0f}, carte);
+    escouade.mettreAJour(0.1f, carte);
+
+    const float distanceParcourue = (escouade.getCentre() - centreInitial).length();
+    REQUIRE_THAT(distanceParcourue, Catch::Matchers::WithinAbs(18.0f, 0.5f));
+}
+
 TEST_CASE("Sans ordre, l'escouade ne bouge pas") {
     const std::vector<std::string> plan = {
         ".....",
