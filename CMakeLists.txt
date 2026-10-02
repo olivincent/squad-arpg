@@ -9,12 +9,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(SFML 3.0.2 COMPONENTS Graphics REQUIRED)
 find_package(Catch2 3 REQUIRED)
 
-add_library(squad_core STATIC src/TileMap.cpp src/Escouade.cpp)
+add_library(squad_core STATIC src/TileMap.cpp src/Escouade.cpp src/Chemin.cpp)
 target_include_directories(squad_core PUBLIC src)
 target_link_libraries(squad_core PUBLIC SFML::Graphics)
 
 add_executable(main src/main.cpp)
 target_link_libraries(main PRIVATE squad_core)
 
-add_executable(tests tests/test_TileMap.cpp)
+add_executable(tests tests/test_TileMap.cpp tests/test_Chemin.cpp)
 target_link_libraries(tests PRIVATE squad_core Catch2::Catch2WithMain)
