@@ -60,7 +60,9 @@ Documents de référence (à lire avant toute modification) :
 - État de jeu stocké dans des données (positions, tailles…), pas dans des
   objets graphiques SFML ; les formes SFML sont créées dans `dessiner`.
 - Coordonnées en pixels du **monde**, jamais de l'écran.
-- Tout nouveau `.cpp` est ajouté à `add_executable` dans `CMakeLists.txt`.
+- Tout nouveau `.cpp` de logique de jeu est ajouté à `add_library(squad_core
+  ...)` dans `CMakeLists.txt` ; un nouveau fichier de test est ajouté à
+  `add_executable(tests ...)`.
 
 ## Commandes
 

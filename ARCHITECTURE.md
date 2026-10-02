@@ -51,17 +51,21 @@ squad-arpg/
 │   ├── TileMap.hpp
 │   ├── TileMap.cpp
 │   ├── Escouade.hpp
-│   └── Escouade.cpp
+│   ├── Escouade.cpp
+│   ├── Chemin.hpp
+│   └── Chemin.cpp
 ├── tests/
-│   └── test_TileMap.cpp
+│   ├── test_TileMap.cpp
+│   └── test_Chemin.cpp
 ├── .gitignore
 ├── CLAUDE.md
 ├── ARCHITECTURE.md
 └── ROADMAP.md
 ```
 
-Deux modules : `TileMap` (l'environnement de jeu) et `Escouade` (l'entité
-contrôlée par le joueur). `main.cpp` ne garde que la fenêtre, la boucle de
+Trois modules : `TileMap` (l'environnement de jeu), `Escouade` (l'entité
+contrôlée par le joueur) et `Chemin` (recherche de chemin A*, pas encore
+branché sur `Escouade`). `main.cpp` ne garde que la fenêtre, la boucle de
 jeu, les événements, la caméra, la carte (son plan) et le texte de
 position. La structure continue d'évoluer par nécessité réelle, pas par
 anticipation (voir principes ci-dessous).
@@ -95,6 +99,8 @@ Interface publique :
 |---|---|
 | `TileMap(const std::vector<std::string>& plan, float tailleCase)` | Construit la carte à partir d'un plan texte (`'#'` = mur, tout autre caractère = sol) |
 | `Tile getTile(int x, int y) const` | Type de la case `(x, y)` ; **hors de la carte = `Wall`** |
+| `int getLargeur() const` | Largeur de la carte, en cases |
+| `int getHauteur() const` | Hauteur de la carte, en cases |
 | `void dessiner(sf::RenderTarget& rendu) const` | Dessine toutes les cases |
 | `bool chevaucheUnMur(const sf::FloatRect& rect) const` | Le rectangle (en pixels du monde) chevauche-t-il un mur ? |
 
@@ -119,6 +125,31 @@ Interface publique :
 | `void mettreAJour(float dt, const TileMap& carte)` | Avance vers la cible, avec collision et glissement le long des murs |
 | `void dessiner(sf::RenderTarget& rendu) const` | Dessine l'escouade |
 | `sf::Vector2f getCentre() const` | Centre de l'escouade (utilisé par la caméra) |
+
+### `Chemin` — recherche de chemin (A*)
+
+Une fonction libre, pas une classe : l'algorithme n'a aucun état à
+conserver entre deux appels.
+
+- **Travaille en cases** (coordonnées de grille, `sf::Vector2i`), jamais
+  en pixels — contrairement à `Escouade`, qui travaille en pixels
+  (`sf::Vector2f`). Pas encore de conversion pixels ↔ cases dans le
+  projet.
+- **Déclaration anticipée** : `Chemin.hpp` contient `class TileMap;` ;
+  l'include de `TileMap.hpp` est dans `Chemin.cpp`.
+- **Tout l'interne de l'algorithme** (structure de nœud, comparateur de
+  la file de priorité, heuristique) est dans un espace de noms anonyme
+  de `Chemin.cpp` — rien n'apparaît dans `Chemin.hpp`.
+
+Interface publique :
+
+| Fonction | Rôle |
+|---|---|
+| `std::vector<sf::Vector2i> trouverChemin(const TileMap& carte, sf::Vector2i depart, sf::Vector2i arrivee)` | Plus court chemin entre deux cases (4 directions, coût 1 par pas, heuristique de Manhattan) ; inclut le départ et l'arrivée ; vecteur vide si départ/arrivée est un mur (ou hors carte) ou si l'arrivée est inaccessible |
+
+Pas encore branché sur `Escouade` : elle continue d'aller en ligne droite
+vers le point cliqué. Le branchement (conversion pixels ↔ cases, suivi du
+chemin calculé) est prévu à une étape ultérieure.
 
 ## Principes de conception à respecter
 
@@ -153,8 +184,8 @@ Interface publique :
   (`find_package(SFML 3.0.2 COMPONENTS Graphics REQUIRED)`) et Catch2
   (`find_package(Catch2 3 REQUIRED)`).
 - **Bibliothèque `squad_core`** (`add_library(squad_core STATIC
-  src/TileMap.cpp src/Escouade.cpp)`) : regroupe la logique de jeu,
-  réutilisée par `main` et par `tests`.
+  src/TileMap.cpp src/Escouade.cpp src/Chemin.cpp)`) : regroupe la logique
+  de jeu, réutilisée par `main` et par `tests`.
   - `target_link_libraries(squad_core PUBLIC SFML::Graphics)` : `PUBLIC`
     parce que les en-têtes de `squad_core` (`TileMap.hpp`, `Escouade.hpp`)
     incluent des en-têtes SFML — cette dépendance fait partie de son
@@ -166,9 +197,10 @@ Interface publique :
   en `PRIVATE` (`target_link_libraries(main PRIVATE squad_core)`) :
   `PRIVATE` parce que rien d'autre ne relie jamais `main`, un exécutable
   final.
-- **`tests`** (`add_executable(tests tests/test_TileMap.cpp)`) se lie à
-  `squad_core` et à `Catch2::Catch2WithMain` (qui fournit le `main()` des
-  tests) ; lancé directement (`./build/tests.exe`), sans CTest.
+- **`tests`** (`add_executable(tests tests/test_TileMap.cpp
+  tests/test_Chemin.cpp)`) se lie à `squad_core` et à
+  `Catch2::Catch2WithMain` (qui fournit le `main()` des tests) ; lancé
+  directement (`./build/tests.exe`), sans CTest.
 - **Générateur Ninja** (`cmake -S . -B build -G Ninja`). Ninja relance la
   configuration automatiquement quand `CMakeLists.txt` change.
 
@@ -242,6 +274,35 @@ Interface publique :
   encapsule le calcul « coin haut-gauche + moitié de la taille », pour que
   `main.cpp` ne dépende pas de la convention de position.
 
+### Recherche de chemin (A*)
+
+- **Fonction libre `trouverChemin`**, pas de classe : aucun état à
+  conserver entre deux appels.
+- **File de priorité** : `std::priority_queue<Noeud, std::vector<Noeud>,
+  ComparateurNoeud>`. `std::priority_queue` sort toujours le plus **grand**
+  élément selon son comparateur ; `ComparateurNoeud` inverse l'ordre
+  (`a.coutTotal > b.coutTotal`) pour que ce soit le plus **petit** coût
+  total qui sorte en premier.
+- **Heuristique** : distance de Manhattan entre la case et l'arrivée,
+  ignorant les murs. Elle ne surestime jamais la distance réelle
+  (admissible), ce qui garantit que l'A* trouve le plus court chemin ; son
+  rôle est de diriger l'exploration vers l'arrivée plutôt que dans toutes
+  les directions comme le ferait un Dijkstra sans heuristique.
+- **Entrées périmées** : `std::priority_queue` ne permet pas de mettre à
+  jour une entrée existante. Quand un meilleur chemin est trouvé vers une
+  case déjà dans la file, une nouvelle entrée est ajoutée sans retirer
+  l'ancienne. Le tableau `cout` (coût réel actuellement connu par case)
+  fait autorité : à la sortie de la file, une entrée dont le coût
+  parcouru dépasse `cout[case]` est ignorée (suppression paresseuse).
+- **Tableaux 1D** `cout` et `parent`, indexés `y * largeur + x` comme
+  `TileMap::m_cases`, dimensionnés via `getLargeur()`/`getHauteur()`.
+- **Reconstruction** : remontée des `parent` depuis l'arrivée jusqu'au
+  départ, puis `std::reverse`.
+- **Chemin vide** si départ ou arrivée est un mur (ou hors carte, que
+  `getTile` traite comme un mur) ou si l'arrivée est inaccessible ; ce
+  test précède le raccourci départ == arrivée, pour qu'une case murée ne
+  renvoie jamais un chemin d'une case.
+
 ### Caméra
 
 - **`sf::View` dans `main.cpp`** : une simple variable `camera`, copiée de
@@ -265,15 +326,22 @@ Interface publique :
 - **Catch2 3 adopté**, installé via MSYS2
   (`mingw-w64-ucrt-x86_64-catch`), trouvé par `find_package(Catch2 3
   REQUIRED)` comme SFML (pas de `FetchContent`).
-- **Un seul exécutable `tests`**, pour l'instant un seul fichier
-  `tests/test_TileMap.cpp`, lancé directement (`./build/tests.exe`) —
-  pas de CTest ni de `catch_discover_tests`.
+- **Un seul exécutable `tests`**, deux fichiers (`test_TileMap.cpp`,
+  `test_Chemin.cpp`), lancé directement (`./build/tests.exe`) — pas de
+  CTest ni de `catch_discover_tests`.
 - **Petits plans dédiés** : chaque test construit son propre plan texte
   (3×3, 4×4, 5×5…), jamais la carte de `main.cpp`, pour isoler exactement
   le cas testé.
-- **Teste uniquement l'interface publique actuelle** de `TileMap`
-  (`getTile`, `chevaucheUnMur`, le constructeur) — aucune fonction n'a été
-  ajoutée pour faciliter les tests (pas de `getLargeur`, par exemple).
+- **Teste uniquement l'interface publique** de `TileMap` et `Chemin`
+  (`getTile`, `chevaucheUnMur`, `getLargeur`/`getHauteur`, le
+  constructeur, `trouverChemin`) — aucune fonction n'a été ajoutée
+  seulement pour faciliter les tests.
+- **Propriétés plutôt que chemin exact** : pour `trouverChemin`, comme
+  plusieurs plus courts chemins peuvent exister, les tests vérifient des
+  propriétés (premier élément = départ, dernier = arrivée, cases
+  consécutives voisines, aucun mur, longueur attendue) via une fonction
+  d'aide partagée (`verifierCheminValide`), plutôt que de comparer à une
+  liste de cases exacte.
 - **`Escouade` n'est pas encore testée** : à discuter séparément (elle
   dépend de `TileMap` et du temps, ce qui demande de décider comment
   isoler ces dépendances dans un test).

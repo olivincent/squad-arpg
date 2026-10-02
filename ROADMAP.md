@@ -114,10 +114,28 @@ carré puis substituée à lui une fois validée.
        exact sans chevauchement (convention `ceil - 1`), décalage de 1 px,
        hors carte en négatif
 
-### Étape 8 — À définir
+### Étape 8 — Module de recherche de chemin (A*) ✅ TERMINÉE
+
+Module `Chemin` autonome, testé, mais pas encore branché sur l'escouade :
+elle continue d'aller en ligne droite (branchement prévu à l'étape 9).
+
+1. [x] Squelette : `Chemin.hpp`/`Chemin.cpp`, fonction libre
+       `trouverChemin(const TileMap&, sf::Vector2i depart, sf::Vector2i
+       arrivee)` (cas départ == arrivée seulement) ; ajout à `squad_core`
+       et à l'exécutable `tests` (`test_Chemin.cpp`)
+2. [x] Chemin vide si départ ou arrivée est un mur ou hors carte (y
+       compris quand départ == arrivée sur un mur)
+3. [x] `TileMap::getLargeur`/`getHauteur` (en cases), avec un test sur un
+       plan non carré
+4. [x] Algorithme A* complet (file de priorité, coûts, parents,
+       reconstruction du chemin) ; tests : ligne droite, contournement
+       d'un mur, arrivée inaccessible
+
+### Étape 9 — À définir
 
 Pistes discutées :
-- Recherche de chemin (A*) sur la grille, pour contourner les murs
+- Brancher `Chemin` sur `Escouade` (conversion pixels ↔ cases, suivi du
+  chemin calculé au lieu de la ligne droite actuelle)
 - Finitions : caméra bloquée aux bords de la carte, texte qui suit
   l'escouade ou affichage fixe à l'écran, police committée dans le dépôt
 - Tests unitaires pour `Escouade` (à discuter séparément)
@@ -138,6 +156,9 @@ Pistes discutées :
 - Police : `arial.ttf` du système Windows, chargée via chemin absolu — à
   revoir plus tard pour une police committée dans le projet
 - Le texte de position s'affiche au point cliqué (coordonnées du monde)
-- Logique de jeu (`TileMap`, `Escouade`) dans une bibliothèque `squad_core`,
-  testée avec Catch2 3 (`./build/tests.exe`, 10 tests sur `TileMap`)
-- Étape en cours : **Étape 8** — à choisir
+- Logique de jeu (`TileMap`, `Escouade`, `Chemin`) dans une bibliothèque
+  `squad_core`, testée avec Catch2 3 (`./build/tests.exe`, 20 tests :
+  11 sur `TileMap`, 9 sur `Chemin`)
+- Module `Chemin` (A*, 4 directions, coût 1 par pas) disponible mais pas
+  encore branché sur `Escouade` : le déplacement reste en ligne droite
+- Étape en cours : **Étape 9** — à choisir
