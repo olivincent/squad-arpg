@@ -330,3 +330,154 @@ TEST_CASE("trajetLibre renvoie faux pour un trajet horizontal qui sort de la car
     const sf::FloatRect rect({180.0f, 180.0f}, {20.0f, 20.0f});
     REQUIRE_FALSE(carte.trajetLibre(rect, {40.0f, 0.0f}));
 }
+
+TEST_CASE("trajetLibre renvoie vrai pour un trajet oblique dégagé") {
+    // Mur en (2, 2) : x et y dans [80, 120). Le rectangle balaie les
+    // colonnes 0 et 1 (x : [0, 60)), loin de la colonne 2 du mur.
+    const std::vector<std::string> plan = {
+        ".....",
+        ".....",
+        "..#..",
+        ".....",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    const sf::FloatRect rect({0.0f, 0.0f}, {20.0f, 20.0f});
+    REQUIRE(carte.trajetLibre(rect, {40.0f, 40.0f}));
+}
+
+TEST_CASE("trajetLibre renvoie faux pour un mur en plein milieu, dx et dy positifs") {
+    // Départ (60, 60), arrivée (100, 100) : à mi-trajet (t = 0.5), le
+    // rectangle est en (80, 80), exactement dans la case du mur.
+    const std::vector<std::string> plan = {
+        ".....",
+        ".....",
+        "..#..",
+        ".....",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    const sf::FloatRect rect({60.0f, 60.0f}, {20.0f, 20.0f});
+    REQUIRE_FALSE(carte.trajetLibre(rect, {40.0f, 40.0f}));
+}
+
+TEST_CASE("trajetLibre renvoie faux pour un mur en plein milieu, dx positif et dy négatif") {
+    // Même trajet que le précédent, reflété verticalement par rapport au
+    // centre du mur (y = 100) : départ (60, 140), arrivée (100, 100).
+    const std::vector<std::string> plan = {
+        ".....",
+        ".....",
+        "..#..",
+        ".....",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    const sf::FloatRect rect({60.0f, 140.0f}, {20.0f, 20.0f});
+    REQUIRE_FALSE(carte.trajetLibre(rect, {40.0f, -40.0f}));
+}
+
+TEST_CASE("trajetLibre renvoie faux pour un mur en plein milieu, dx négatif et dy positif") {
+    // Reflété horizontalement par rapport au centre du mur (x = 100) :
+    // départ (140, 60), arrivée (100, 100).
+    const std::vector<std::string> plan = {
+        ".....",
+        ".....",
+        "..#..",
+        ".....",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    const sf::FloatRect rect({140.0f, 60.0f}, {20.0f, 20.0f});
+    REQUIRE_FALSE(carte.trajetLibre(rect, {-40.0f, 40.0f}));
+}
+
+TEST_CASE("trajetLibre renvoie faux pour un mur en plein milieu, dx et dy négatifs") {
+    // Reflété par rapport au centre du mur sur les deux axes : départ
+    // (140, 140), arrivée (100, 100).
+    const std::vector<std::string> plan = {
+        ".....",
+        ".....",
+        "..#..",
+        ".....",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    const sf::FloatRect rect({140.0f, 140.0f}, {20.0f, 20.0f});
+    REQUIRE_FALSE(carte.trajetLibre(rect, {-40.0f, -40.0f}));
+}
+
+TEST_CASE("Un coin du rectangle accroche le mur même si la ligne des centres passe à côté") {
+    // Départ (90, 40), arrivée (150, 100). Le centre du rectangle va de
+    // (100, 50) à (160, 110) : pour que le centre soit dans la case du
+    // mur (x et y dans [80, 120)), il faudrait x < 120 (t < 1/3) ET
+    // y > 80 (t > 1/2), deux conditions incompatibles — le centre ne
+    // traverse donc jamais le mur. Pourtant, tant que le rectangle
+    // chevauche la colonne du mur (t de 0 à 0,5), son bord bas descend
+    // jusqu'à y = 90, soit 10 px à l'intérieur de la case du mur : son
+    // coin bas-droit accroche le coin du mur que son centre a évité.
+    const std::vector<std::string> plan = {
+        ".....",
+        ".....",
+        "..#..",
+        ".....",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    const sf::FloatRect rect({90.0f, 40.0f}, {20.0f, 20.0f});
+    REQUIRE_FALSE(carte.trajetLibre(rect, {60.0f, 60.0f}));
+}
+
+TEST_CASE("Un trajet voisin décalé de la même distance passe juste à côté du mur") {
+    // Même direction (60, 60) que le test précédent, départ décalé de
+    // (15, -5) : assez pour que le rectangle ne touche plus jamais la
+    // case du mur à aucun instant du trajet.
+    const std::vector<std::string> plan = {
+        ".....",
+        ".....",
+        "..#..",
+        ".....",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    const sf::FloatRect rect({105.0f, 35.0f}, {20.0f, 20.0f});
+    REQUIRE(carte.trajetLibre(rect, {60.0f, 60.0f}));
+}
+
+TEST_CASE("trajetLibre renvoie faux quand l'arrivée est dans un mur") {
+    // Départ (40, 40), loin du mur ; arrivée (110, 110) : le rectangle y
+    // couvre (110,120)x(110,120), entièrement dans la case du mur
+    // (x et y dans [80, 120)).
+    const std::vector<std::string> plan = {
+        ".....",
+        ".....",
+        "..#..",
+        ".....",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    const sf::FloatRect rect({40.0f, 40.0f}, {10.0f, 10.0f});
+    REQUIRE_FALSE(carte.trajetLibre(rect, {70.0f, 70.0f}));
+}
+
+TEST_CASE("trajetLibre renvoie faux quand le départ est dans un mur") {
+    // Départ (85, 85) : déjà entièrement dans la case du mur.
+    const std::vector<std::string> plan = {
+        ".....",
+        ".....",
+        "..#..",
+        ".....",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    const sf::FloatRect rect({85.0f, 85.0f}, {10.0f, 10.0f});
+    REQUIRE_FALSE(carte.trajetLibre(rect, {40.0f, 40.0f}));
+}

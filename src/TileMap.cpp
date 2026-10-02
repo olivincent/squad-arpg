@@ -85,15 +85,55 @@ bool TileMap::chevaucheUnMur(const sf::FloatRect& rect) const {
 }
 
 bool TileMap::trajetLibre(const sf::FloatRect& rect, sf::Vector2f deplacement) const {
-    if (deplacement.x != 0.0f && deplacement.y != 0.0f) {
-        return false; // cas oblique : sous-étape suivante
+    if (deplacement.x == 0.0f || deplacement.y == 0.0f) {
+        // Déplacement horizontal, vertical ou nul : la zone balayée est le
+        // rectangle qui englobe la position de départ et celle d'arrivée.
+        const sf::Vector2f position(std::min(rect.position.x, rect.position.x + deplacement.x),
+                                     std::min(rect.position.y, rect.position.y + deplacement.y));
+        const sf::Vector2f taille(rect.size.x + std::abs(deplacement.x), rect.size.y + std::abs(deplacement.y));
+
+        return !chevaucheUnMur(sf::FloatRect(position, taille));
     }
 
-    // Déplacement horizontal, vertical ou nul : la zone balayée est le
-    // rectangle qui englobe la position de départ et celle d'arrivée.
-    const sf::Vector2f position(std::min(rect.position.x, rect.position.x + deplacement.x),
-                                 std::min(rect.position.y, rect.position.y + deplacement.y));
-    const sf::Vector2f taille(rect.size.x + std::abs(deplacement.x), rect.size.y + std::abs(deplacement.y));
+    // Cas oblique : balayage par colonnes de cases. Pour chaque colonne
+    // couverte par le mouvement, on calcule la fenêtre de temps [tEntree,
+    // tSortie] (t = 0 au départ, t = 1 à l'arrivée) durant laquelle le
+    // rectangle en mouvement chevauche horizontalement cette colonne, puis
+    // la plage de hauteur balayée par le rectangle pendant cette fenêtre.
+    const float xMin = std::min(rect.position.x, rect.position.x + deplacement.x);
+    const float xMax = std::max(rect.position.x + rect.size.x, rect.position.x + rect.size.x + deplacement.x);
+    const int colonneGauche = static_cast<int>(std::floor(xMin / m_tailleCase));
+    const int colonneDroite = static_cast<int>(std::ceil(xMax / m_tailleCase)) - 1;
 
-    return !chevaucheUnMur(sf::FloatRect(position, taille));
+    for (int colonne = colonneGauche; colonne <= colonneDroite; ++colonne) {
+        const float xGauche = colonne * m_tailleCase;
+        const float xDroite = xGauche + m_tailleCase;
+
+        // t1 : instant où le bord arrière du rectangle atteint xGauche.
+        // t2 : instant où son bord avant atteint xDroite. Selon le sens du
+        // déplacement (signe de deplacement.x), l'un ou l'autre peut être
+        // l'entrée ou la sortie : min/max rend le calcul valable dans les
+        // deux sens, sans avoir à distinguer les cas.
+        const float t1 = (xGauche - (rect.position.x + rect.size.x)) / deplacement.x;
+        const float t2 = (xDroite - rect.position.x) / deplacement.x;
+        const float tEntree = std::clamp(std::min(t1, t2), 0.0f, 1.0f);
+        const float tSortie = std::clamp(std::max(t1, t2), 0.0f, 1.0f);
+
+        if (tEntree >= tSortie) {
+            continue; // colonne seulement touchée, jamais réellement chevauchée
+        }
+
+        const float haut = rect.position.y + std::min(tEntree * deplacement.y, tSortie * deplacement.y);
+        const float bas = rect.position.y + rect.size.y + std::max(tEntree * deplacement.y, tSortie * deplacement.y);
+        const int ligneHaut = static_cast<int>(std::floor(haut / m_tailleCase));
+        const int ligneBas = static_cast<int>(std::ceil(bas / m_tailleCase)) - 1;
+
+        for (int ligne = ligneHaut; ligne <= ligneBas; ++ligne) {
+            if (getTile(colonne, ligne) == Tile::Wall) {
+                return false;
+            }
+        }
+    }
+
+    return true;
 }
