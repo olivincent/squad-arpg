@@ -229,3 +229,104 @@ TEST_CASE("Un rectangle hors carte en coordonnées négatives chevauche toujours
     const sf::FloatRect rect({-10.0f, -10.0f}, {20.0f, 20.0f});
     REQUIRE(carte.chevaucheUnMur(rect));
 }
+
+TEST_CASE("trajetLibre renvoie vrai pour un trajet horizontal dégagé") {
+    // Mur unique en (2, 2) : x dans [80, 120), y dans [80, 120). Le
+    // rectangle reste sur la rangée y: [0, 20), loin de la rangée du mur.
+    // Déplacement de 160 px : arrivée x: [160, 180), à l'intérieur de la
+    // carte (5 cases de 40 px = 200 px de large).
+    const std::vector<std::string> plan = {
+        ".....",
+        ".....",
+        "..#..",
+        ".....",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    const sf::FloatRect rect({0.0f, 0.0f}, {20.0f, 20.0f});
+    REQUIRE(carte.trajetLibre(rect, {160.0f, 0.0f}));
+}
+
+TEST_CASE("trajetLibre renvoie faux pour un trajet horizontal qui traverse un mur") {
+    // Même mur ; rectangle sur y: [90, 110), entièrement dans la bande du
+    // mur (y: [80, 120)). Le trajet horizontal x: [0, 180) traverse donc
+    // la colonne du mur (x: [80, 120)), sans sortir de la carte.
+    const std::vector<std::string> plan = {
+        ".....",
+        ".....",
+        "..#..",
+        ".....",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    const sf::FloatRect rect({0.0f, 90.0f}, {20.0f, 20.0f});
+    REQUIRE_FALSE(carte.trajetLibre(rect, {160.0f, 0.0f}));
+}
+
+TEST_CASE("Un trajet vertical qui touche exactement le mur est libre") {
+    // Rectangle en x: [90, 110), dans la colonne du mur (x: [80, 120)).
+    // Départ y: [40, 60), déplacement vertical de 20 px : arrivée
+    // y: [60, 80), donc enveloppe y: [40, 80) — touche le bord du mur
+    // (y = 80) sans le chevaucher, même convention que chevaucheUnMur.
+    const std::vector<std::string> plan = {
+        ".....",
+        ".....",
+        "..#..",
+        ".....",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    const sf::FloatRect rect({90.0f, 40.0f}, {20.0f, 20.0f});
+    REQUIRE(carte.trajetLibre(rect, {0.0f, 20.0f}));
+}
+
+TEST_CASE("Le même trajet vertical décalé de 1 px vers le mur n'est plus libre") {
+    // Déplacement de 21 px au lieu de 20 : l'enveloppe devient
+    // y: [40, 81), qui chevauche le mur (y: [80, 120)) sur 1 px.
+    const std::vector<std::string> plan = {
+        ".....",
+        ".....",
+        "..#..",
+        ".....",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    const sf::FloatRect rect({90.0f, 40.0f}, {20.0f, 20.0f});
+    REQUIRE_FALSE(carte.trajetLibre(rect, {0.0f, 21.0f}));
+}
+
+TEST_CASE("Un déplacement nul est libre si le rectangle n'est pas déjà dans un mur") {
+    const std::vector<std::string> plan = {
+        ".....",
+        ".....",
+        "..#..",
+        ".....",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    const sf::FloatRect rect({0.0f, 0.0f}, {20.0f, 20.0f});
+    REQUIRE(carte.trajetLibre(rect, {0.0f, 0.0f}));
+}
+
+TEST_CASE("trajetLibre renvoie faux pour un trajet horizontal qui sort de la carte") {
+    // Carte de 5 cases (0 à 4) de 40 px : 200 px de large. Rectangle sur
+    // la dernière case (x: [180, 200)), déplacement de 40 px vers la
+    // droite : l'enveloppe x: [180, 240) dépasse la carte, et hors carte
+    // = mur.
+    const std::vector<std::string> plan = {
+        ".....",
+        ".....",
+        "..#..",
+        ".....",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    const sf::FloatRect rect({180.0f, 180.0f}, {20.0f, 20.0f});
+    REQUIRE_FALSE(carte.trajetLibre(rect, {40.0f, 0.0f}));
+}

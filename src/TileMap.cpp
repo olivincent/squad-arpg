@@ -1,5 +1,6 @@
 // ./src/TileMap.cpp
 #include "TileMap.hpp"
+#include <algorithm>
 #include <cmath>
 #include <stdexcept>
 
@@ -81,4 +82,18 @@ bool TileMap::chevaucheUnMur(const sf::FloatRect& rect) const {
         }
     }
     return false;
+}
+
+bool TileMap::trajetLibre(const sf::FloatRect& rect, sf::Vector2f deplacement) const {
+    if (deplacement.x != 0.0f && deplacement.y != 0.0f) {
+        return false; // cas oblique : sous-étape suivante
+    }
+
+    // Déplacement horizontal, vertical ou nul : la zone balayée est le
+    // rectangle qui englobe la position de départ et celle d'arrivée.
+    const sf::Vector2f position(std::min(rect.position.x, rect.position.x + deplacement.x),
+                                 std::min(rect.position.y, rect.position.y + deplacement.y));
+    const sf::Vector2f taille(rect.size.x + std::abs(deplacement.x), rect.size.y + std::abs(deplacement.y));
+
+    return !chevaucheUnMur(sf::FloatRect(position, taille));
 }

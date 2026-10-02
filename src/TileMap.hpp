@@ -19,6 +19,7 @@ public:
     sf::Vector2f centreDeCase(sf::Vector2i coordCase) const;
     void dessiner(sf::RenderTarget& rendu) const;
     bool chevaucheUnMur(const sf::FloatRect& rect) const;
+    bool trajetLibre(const sf::FloatRect& rect, sf::Vector2f deplacement) const;
 
 private:
     int indice(int x, int y) const;
