@@ -130,3 +130,71 @@ TEST_CASE("Sans ordre, l'escouade ne bouge pas") {
 
     verifierPointProche(escouade.getCentre(), {60.0f, 60.0f});
 }
+
+TEST_CASE("À l'arrêt, un ordre vers un mur ne fait pas bouger l'escouade") {
+    // Mur en case (2, 2) ; départ en case (1, 1), comme pour tous les
+    // autres tests.
+    const std::vector<std::string> plan = {
+        "....",
+        "....",
+        "..#.",
+        "....",
+    };
+    TileMap carte(plan, 40.0f);
+    Escouade escouade({50.0f, 50.0f});
+    const sf::Vector2f centreInitial = escouade.getCentre();
+
+    escouade.allerVers(carte.centreDeCase({2, 2}), carte);
+    simuler(escouade, carte, 1.0f);
+
+    verifierPointProche(escouade.getCentre(), centreInitial);
+}
+
+TEST_CASE("Un ordre vers un mur pendant un déplacement n'interrompt pas le trajet en cours") {
+    // Mur isolé en case (0, 0), loin du trajet entre le départ (1, 1) et
+    // la première destination (case (5, 5)) : il ne sert qu'à fournir un
+    // second ordre invalide, sans jamais bloquer le chemin réel.
+    const std::vector<std::string> plan = {
+        "#.....",
+        "......",
+        "......",
+        "......",
+        "......",
+        "......",
+    };
+    TileMap carte(plan, 40.0f);
+    Escouade escouade({50.0f, 50.0f});
+
+    const sf::Vector2f destination{220.0f, 220.0f};
+    escouade.allerVers(destination, carte);
+    simuler(escouade, carte, 0.3f); // en route, loin d'avoir fini
+
+    escouade.allerVers(carte.centreDeCase({0, 0}), carte); // ordre invalide, ignoré
+    simuler(escouade, carte, 10.0f); // largement assez pour finir le trajet d'origine
+
+    verifierPointProche(escouade.getCentre(), destination);
+}
+
+TEST_CASE("Un second ordre valide pendant un déplacement remplace la destination") {
+    const std::vector<std::string> plan = {
+        "........",
+        "........",
+        "........",
+        "........",
+        "........",
+        "........",
+        "........",
+        "........",
+    };
+    TileMap carte(plan, 40.0f);
+    Escouade escouade({50.0f, 50.0f});
+
+    escouade.allerVers({280.0f, 100.0f}, carte);
+    simuler(escouade, carte, 0.3f); // en route vers la première destination
+
+    const sf::Vector2f secondeDestination{100.0f, 280.0f};
+    escouade.allerVers(secondeDestination, carte);
+    simuler(escouade, carte, 10.0f); // largement assez pour atteindre la seconde
+
+    verifierPointProche(escouade.getCentre(), secondeDestination);
+}
