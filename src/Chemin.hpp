@@ -6,3 +6,6 @@
 class TileMap;
 
 std::vector<sf::Vector2i> trouverChemin(const TileMap& carte, sf::Vector2i depart, sf::Vector2i arrivee);
+
+std::vector<sf::Vector2f> lisserChemin(const TileMap& carte, sf::Vector2f depart,
+                                        const std::vector<sf::Vector2f>& points, sf::Vector2f taille);

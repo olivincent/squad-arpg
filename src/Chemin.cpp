@@ -1,6 +1,7 @@
 // ./src/Chemin.cpp
 #include "Chemin.hpp"
 #include "TileMap.hpp"
+#include <SFML/Graphics/Rect.hpp>
 #include <algorithm>
 #include <cstdlib>
 #include <queue>
@@ -109,4 +110,35 @@ std::vector<sf::Vector2i> trouverChemin(const TileMap& carte, sf::Vector2i depar
 
     std::reverse(chemin.begin(), chemin.end());
     return chemin;
+}
+
+std::vector<sf::Vector2f> lisserChemin(const TileMap& carte, sf::Vector2f depart,
+                                        const std::vector<sf::Vector2f>& points, sf::Vector2f taille) {
+    std::vector<sf::Vector2f> resultat;
+    sf::Vector2f ancre = depart;
+    std::size_t indice = 0;
+
+    while (indice < points.size()) {
+        const sf::FloatRect rectAncre(ancre - taille / 2.0f, taille);
+
+        // Cherche, en partant de la fin, le point le plus lointain
+        // atteignable en ligne droite depuis l'ancre. S'arrête au premier
+        // trouvé (donc le plus lointain, puisqu'on part de la fin).
+        std::size_t loin = indice;
+        for (std::size_t i = points.size() - 1; i > indice; --i) {
+            if (carte.trajetLibre(rectAncre, points[i] - ancre)) {
+                loin = i;
+                break;
+            }
+        }
+
+        // Aucun point au-delà de `indice` n'est atteignable : on garde le
+        // prochain point tel quel, la collision restant le filet de
+        // sécurité dans Escouade::mettreAJour.
+        resultat.push_back(points[loin]);
+        ancre = points[loin];
+        indice = loin + 1;
+    }
+
+    return resultat;
 }

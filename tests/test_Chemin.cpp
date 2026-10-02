@@ -1,5 +1,6 @@
 // ./tests/test_Chemin.cpp
 #include <catch2/catch_test_macros.hpp>
+#include <SFML/Graphics/Rect.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <cstdlib>
 #include <string>
@@ -144,4 +145,89 @@ TEST_CASE("Le chemin est vide si l'arrivée est enfermée par des murs") {
     TileMap carte(plan, 40.0f);
 
     REQUIRE(trouverChemin(carte, {0, 0}, {2, 2}).empty());
+}
+
+TEST_CASE("lisserChemin renvoie une liste vide pour une liste vide") {
+    const std::vector<std::string> plan = {
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    const std::vector<sf::Vector2f> resultat = lisserChemin(carte, {20.0f, 20.0f}, {}, {20.0f, 20.0f});
+
+    REQUIRE(resultat.empty());
+}
+
+TEST_CASE("lisserChemin avec un seul point le renvoie tel quel") {
+    const std::vector<std::string> plan = {
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    const std::vector<sf::Vector2f> points = {{150.0f, 20.0f}};
+    const std::vector<sf::Vector2f> resultat = lisserChemin(carte, {20.0f, 20.0f}, points, {20.0f, 20.0f});
+
+    REQUIRE(resultat.size() == 1);
+    REQUIRE(resultat[0] == points[0]);
+}
+
+TEST_CASE("En terrain dégagé, lisserChemin ne garde que le dernier point") {
+    // Carte 8x8 entièrement en sol : la ligne droite du départ au dernier
+    // point ne peut chevaucher aucun mur, donc tous les points
+    // intermédiaires sont superflus.
+    const std::vector<std::string> plan = {
+        "........",
+        "........",
+        "........",
+        "........",
+        "........",
+        "........",
+        "........",
+        "........",
+    };
+    TileMap carte(plan, 40.0f);
+
+    const std::vector<sf::Vector2f> points = {{60.0f, 20.0f}, {140.0f, 60.0f}, {220.0f, 100.0f}, {300.0f, 140.0f}};
+    const std::vector<sf::Vector2f> resultat = lisserChemin(carte, {20.0f, 20.0f}, points, {20.0f, 20.0f});
+
+    REQUIRE(resultat.size() == 1);
+    REQUIRE(resultat[0] == points.back());
+}
+
+TEST_CASE("lisserChemin réduit un chemin en escalier qui contourne un mur") {
+    // Mur sur la rangée 1, colonnes 2 à 4 ; ouverture par la rangée 0 (et
+    // la rangée 2). Départ en case (0, 1), arrivée en case (6, 1) :
+    // directement à droite du départ, mais le mur bloque le trajet
+    // direct. Le chemin du A* (en escalier par la rangée 0) est converti
+    // en centres de case, comme le ferait Escouade::allerVers, puis lissé.
+    const std::vector<std::string> plan = {
+        ".......",
+        "..###..",
+        ".......",
+    };
+    TileMap carte(plan, 40.0f);
+
+    const sf::Vector2i caseDepart{0, 1};
+    const sf::Vector2i caseArrivee{6, 1};
+    const std::vector<sf::Vector2i> chemin = trouverChemin(carte, caseDepart, caseArrivee);
+    REQUIRE(chemin.size() == 9); // 6 pas horizontaux + 2 pas pour sortir et revenir sur la rangée 1
+
+    std::vector<sf::Vector2f> points;
+    for (std::size_t i = 1; i < chemin.size(); ++i) {
+        points.push_back(carte.centreDeCase(chemin[i]));
+    }
+
+    const sf::Vector2f depart = carte.centreDeCase(caseDepart);
+    const sf::Vector2f taille{20.0f, 20.0f};
+    const std::vector<sf::Vector2f> resultat = lisserChemin(carte, depart, points, taille);
+
+    REQUIRE(resultat.size() < points.size());
+    REQUIRE(resultat.back() == points.back());
+
+    sf::Vector2f ancre = depart;
+    for (const sf::Vector2f& point : resultat) {
+        const sf::FloatRect rect(ancre - taille / 2.0f, taille);
+        REQUIRE(carte.trajetLibre(rect, point - ancre));
+        ancre = point;
+    }
 }
