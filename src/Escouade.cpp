@@ -3,6 +3,7 @@
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include "TileMap.hpp"
+#include "Chemin.hpp"
 #include <SFML/Graphics/Rect.hpp>
 
 Escouade::Escouade(sf::Vector2f positionDepart)
@@ -21,8 +22,21 @@ void Escouade::dessiner(sf::RenderTarget& rendu) const {
     rendu.draw(forme);
 }
 
-void Escouade::allerVers(sf::Vector2f destination) {
-    m_chemin = {destination};
+void Escouade::allerVers(sf::Vector2f destination, const TileMap& carte) {
+    const sf::Vector2i caseDepart = carte.caseContenant(getCentre());
+    const sf::Vector2i caseArrivee = carte.caseContenant(destination);
+    const std::vector<sf::Vector2i> chemin = trouverChemin(carte, caseDepart, caseArrivee);
+
+    if (chemin.empty()) {
+        return;
+    }
+
+    // La case de départ est ignorée : l'escouade est déjà dessus, la
+    // viser d'abord la ferait reculer vers le centre de sa propre case.
+    m_chemin.clear();
+    for (std::size_t i = 1; i < chemin.size(); ++i) {
+        m_chemin.push_back(carte.centreDeCase(chemin[i]));
+    }
     m_indexChemin = 0;
 }
 

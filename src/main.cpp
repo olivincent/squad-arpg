@@ -75,7 +75,7 @@ int main() {
             if (const auto* data = event->getIf<sf::Event::MouseButtonPressed>()) {
                 const sf::Vector2f clicMonde = window.mapPixelToCoords(data->position);
                 std::cout << "x: " << clicMonde.x <<", y: " << clicMonde.y << std::endl;
-                escouade.allerVers(clicMonde);
+                escouade.allerVers(clicMonde, carte);
                 text.setString(std::to_string(static_cast<int>(clicMonde.x)) + " , " + std::to_string(static_cast<int>(clicMonde.y)));
                 text.setPosition({clicMonde.x - 60.0f, clicMonde.y + 40.0f});
             }
