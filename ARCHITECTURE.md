@@ -107,6 +107,7 @@ Interface publique :
 | `sf::Vector2f centreDeCase(sf::Vector2i coordCase) const` | Centre de cette case, en pixels du monde |
 | `void dessiner(sf::RenderTarget& rendu) const` | Dessine toutes les cases |
 | `bool chevaucheUnMur(const sf::FloatRect& rect) const` | Le rectangle (en pixels du monde) chevauche-t-il un mur ? |
+| `bool trajetLibre(const sf::FloatRect& rect, sf::Vector2f deplacement) const` | Le rectangle, translaté de sa position jusqu'à `position + deplacement`, ne chevauche-t-il un mur à aucun moment du trajet ? |
 
 ### `Escouade` — l'entité contrôlée par le joueur
 
@@ -153,9 +154,11 @@ Interface publique :
 | Fonction | Rôle |
 |---|---|
 | `std::vector<sf::Vector2i> trouverChemin(const TileMap& carte, sf::Vector2i depart, sf::Vector2i arrivee)` | Plus court chemin entre deux cases (4 directions, coût 1 par pas, heuristique de Manhattan) ; inclut le départ et l'arrivée ; vecteur vide si départ/arrivée est un mur (ou hors carte) ou si l'arrivée est inaccessible |
+| `std::vector<sf::Vector2f> lisserChemin(const TileMap& carte, sf::Vector2f depart, const std::vector<sf::Vector2f>& points, sf::Vector2f taille)` | Retire de `points` (positions du centre d'un rectangle `taille`, en pixels) les points de passage inutiles ; `depart` n'en fait pas partie dans le résultat |
 
-Utilisé uniquement par `Escouade::allerVers` ; `main.cpp` ne connaît pas
-ce module.
+Deux niveaux : `trouverChemin` raisonne en cases, `lisserChemin` en
+pixels. Utilisé uniquement par `Escouade::allerVers` ; `main.cpp` ne
+connaît pas ce module.
 
 ## Principes de conception à respecter
 
@@ -312,11 +315,65 @@ ce module.
 - **Collision et glissement conservés tels quels**, comme filet de
   sécurité : l'escouade peut partir d'une position décentrée dans sa case
   ou viser un point proche d'un mur (notamment le point exact cliqué).
-- **Limite connue** : viser le centre d'une case intermédiaire peut
-  produire un zigzag visible quand ce centre est presque aligné avec
-  l'escouade sur un seul axe (clic proche d'un coin de case) — la
-  trajectoire descend sur cet axe avant de remonter. Accepté pour
-  l'instant, à revisiter.
+- **Chemin lissé avant d'être stocké** (étape 11) : entre la
+  construction du chemin en pixels et son affectation à `m_chemin`,
+  `allerVers` le passe par `Chemin::lisserChemin`, avec `getCentre()`
+  comme point de départ et `m_taille` comme taille de rectangle. Voir
+  « Lissage de chemin » ci-dessous. L'ancien zigzag près des coins de
+  case (viser un centre de case presque aligné avec l'escouade sur un
+  seul axe) est résolu par ce lissage.
+
+### Lissage de chemin
+
+- **`TileMap::trajetLibre(rect, deplacement)`** : vrai si le rectangle,
+  translaté de sa position jusqu'à `position + deplacement`, ne chevauche
+  un mur à aucun moment du trajet. Même convention que `chevaucheUnMur`
+  (toucher sans chevaucher n'est pas une collision ; hors carte = mur).
+  Calcul exact, pas d'échantillonnage.
+  - **Cas horizontal, vertical ou nul** (une composante de `deplacement`
+    nulle) : la zone balayée est le rectangle qui englobe la position de
+    départ et celle d'arrivée ; un seul appel à `chevaucheUnMur` suffit.
+  - **Cas oblique** : balayage par colonnes de cases, paramétré par `t`
+    entre 0 (départ) et 1 (arrivée). Pour chaque colonne couverte par le
+    mouvement, deux instants (`t1`, `t2`) marquent quand le bord arrière
+    du rectangle atteint le bord gauche de la colonne, et quand son bord
+    avant atteint son bord droit. `tEntree = min(t1, t2)` et
+    `tSortie = max(t1, t2)` (bornés à `[0, 1]`) donnent la bonne paire
+    entrée/sortie quel que soit le sens du déplacement, puisque diviser
+    par une composante négative de `deplacement` inverse l'ordre de `t1`
+    et `t2` — sans `min`/`max`, il faudrait une branche selon le signe.
+    Une composante nulle est exclue de ce cas parce que les formules de
+    `t1`/`t2` divisent par elle (division par zéro indéfinie), d'où la
+    séparation avec le cas horizontal/vertical.
+  - Pour chaque colonne avec une fenêtre `[tEntree, tSortie]` non vide,
+    la plage de hauteur balayée pendant cette fenêtre (`haut`/`bas`) donne
+    les rangées à vérifier avec `getTile`.
+  - Un rectangle peut « accrocher » le coin d'un mur même quand la ligne
+    reliant les CENTRES du rectangle à chaque instant ne traverse jamais
+    la case du mur — vérifié par un test dédié (voir Tests ci-dessous) :
+    le rectangle a une taille, pas seulement un centre.
+- **`Chemin::lisserChemin(carte, depart, points, taille)`** : algorithme
+  glouton. L'ancre part de `depart` ; à chaque tour, on cherche, **en
+  partant de la fin** de `points`, le plus lointain atteignable depuis
+  l'ancre (`trajetLibre` avec le rectangle `taille` centré sur l'ancre) —
+  s'arrêter au premier trouvé donne directement le plus lointain. Ce
+  point devient la nouvelle ancre, et on continue avec les points qui le
+  suivent. Si aucun point restant n'est atteignable, le prochain point
+  de la liste est gardé tel quel, sans être testé : la collision dans
+  `mettreAJour` reste le filet de sécurité.
+- **Branchement dans `Escouade::allerVers`** : le chemin en pixels est
+  construit comme avant l'étape 11 (centres de case, puis point exact
+  cliqué), puis lissé avant d'être stocké dans `m_chemin`. Le reste
+  d'`Escouade` (`mettreAJour`, collision, glissement, chemin vide = ordre
+  ignoré) n'a pas changé.
+- **Limite connue** : `lisserChemin` ne fait que retirer des points de la
+  liste donnée par le A* (centres de case) ; il ne peut pas en ajouter ni
+  en déplacer. Autour d'un pilier, dès qu'un saut direct est bloqué par
+  le mur, l'escouade retombe sur le centre de la case suivante tel quel,
+  plutôt que sur un point plus proche du coin du pilier qui
+  raccourcirait encore le trajet — elle frôle donc moins les murs qu'un
+  lissage « idéal » (type *funnel algorithm* ou Theta*) ne le ferait,
+  mais elle ne reste jamais coincée. Accepté pour l'instant.
 
 ### Recherche de chemin (A*)
 
@@ -377,16 +434,25 @@ ce module.
   (3×3, 4×4, 5×5…), jamais la carte de `main.cpp`, pour isoler exactement
   le cas testé.
 - **Teste uniquement l'interface publique** de `TileMap`, `Chemin` et
-  `Escouade` (`getTile`, `chevaucheUnMur`, `getLargeur`/`getHauteur`,
-  `caseContenant`/`centreDeCase`, le constructeur, `trouverChemin`,
-  `allerVers`, `mettreAJour`, `getCentre`) — aucune fonction n'a été
-  ajoutée seulement pour faciliter les tests.
+  `Escouade` (`getTile`, `chevaucheUnMur`, `trajetLibre`,
+  `getLargeur`/`getHauteur`, `caseContenant`/`centreDeCase`, le
+  constructeur, `trouverChemin`, `lisserChemin`, `allerVers`,
+  `mettreAJour`, `getCentre`) — aucune fonction n'a été ajoutée
+  seulement pour faciliter les tests.
 - **Propriétés plutôt que chemin exact** : pour `trouverChemin`, comme
   plusieurs plus courts chemins peuvent exister, les tests vérifient des
   propriétés (premier élément = départ, dernier = arrivée, cases
   consécutives voisines, aucun mur, longueur attendue) via une fonction
   d'aide partagée (`verifierCheminValide`), plutôt que de comparer à une
-  liste de cases exacte.
+  liste de cases exacte. Même principe pour `lisserChemin` (moins de
+  points, dernier point conservé, chaque segment validé par
+  `trajetLibre`).
+- **Chaque test `trajetLibre` porte un commentaire qui justifie ses
+  chiffres** : les tests obliques en particulier (coin qui accroche un
+  mur malgré une ligne des centres dégagée, même obstacle abordé dans
+  les 4 sens obliques) ont été vérifiés à la main avant d'être écrits,
+  pour s'assurer que le résultat attendu correspond bien à la géométrie
+  décrite, pas à une intuition approximative.
 - **`Escouade` : des résultats, pas des trajectoires**. Les tests
   vérifient où l'escouade finit et ce qu'elle fait d'un ordre, jamais sa
   position à un tic intermédiaire précis ni la forme du chemin suivi —

@@ -157,7 +157,8 @@ elle continue d'aller en ligne droite (branchement prévu à l'étape 9).
 l'escouade sur un seul axe, le centre de case visé peut être presque sur
 la même ligne/colonne que l'escouade, ce qui produit parfois un léger
 zigzag (l'escouade descend sur l'axe avant de remonter). Comportement
-accepté pour l'instant, à revisiter plus tard.
+accepté pour l'instant, à revisiter plus tard. **Résolu à l'étape 11**
+par le lissage du chemin.
 
 ### Étape 10 — Tests unitaires de l'escouade ✅ TERMINÉE
 
@@ -179,13 +180,46 @@ serviront de filet de sécurité pour le lissage de chemin à venir.
 Aucun comportement inattendu révélé : les 8 tests passent sans qu'aucune
 modification de `src/` n'ait été nécessaire.
 
-### Étape 11 — À définir
+### Étape 11 — Lissage du chemin ✅ TERMINÉE
+
+Retire du chemin calculé par le A* les points de passage inutiles :
+l'escouade va en ligne droite vers le point le plus lointain qu'elle peut
+atteindre sans toucher un mur. Corrige le zigzag de l'étape 9.
+
+1. [x] `TileMap::trajetLibre(sf::FloatRect, sf::Vector2f)`, cas
+       horizontal et vertical (enveloppe rectangulaire + `chevaucheUnMur`) ;
+       tests (trajet dégagé, mur sur le trajet, contact exact, décalage
+       de 1 px, déplacement nul, sortie de carte)
+2. [x] `trajetLibre`, cas oblique : balayage par colonnes de cases,
+       paramétré par `t` entre 0 (départ) et 1 (arrivée) ; tests (trajet
+       oblique dégagé, mur en plein milieu dans les 4 sens obliques, coin
+       qui accroche malgré une ligne des centres dégagée, trajet voisin
+       libre, arrivée et départ dans un mur)
+3. [x] `Chemin::lisserChemin` : algorithme glouton (recherche du point le
+       plus lointain atteignable, en partant de la fin) ; tests (liste
+       vide, un seul point, terrain dégagé → seul le dernier point
+       reste, mur à contourner → moins de points, segments tous libres)
+4. [x] Branchement dans `Escouade::allerVers`, entre la construction du
+       chemin en pixels et son stockage ; les 8 tests d'`Escouade` de
+       l'étape 10 passent sans modification, plus un test de vitesse
+       (ligne droite lissée assez rapide pour un trajet diagonal, alors
+       qu'un escalier non lissé aurait été trop lent pour la même durée
+       simulée)
+
+**Limite connue** : `lisserChemin` ne fait que retirer des points de la
+liste donnée par le A* (centres de case) ; il ne peut pas en ajouter ni
+en déplacer. Autour d'un pilier, dès qu'un saut direct est bloqué par le
+mur, l'escouade retombe sur le centre de la case suivante tel quel,
+plutôt que sur un point plus proche du coin du pilier qui raccourcirait
+encore le trajet. Elle frôle donc moins les murs qu'un lissage « idéal »
+(type *funnel algorithm* ou Theta*) ne le ferait, mais elle ne reste
+jamais coincée. Accepté pour l'instant (cf. ARCHITECTURE.md).
+
+### Étape 12 — À définir
 
 Pistes discutées :
-- Lissage du chemin calculé par le A* (les tests d'`Escouade` serviront
-  de filet de sécurité)
-- Corriger le zigzag occasionnel près des coins de case (voir limite
-  connue de l'étape 9)
+- Un lissage plus serré autour des coins (*funnel algorithm* ou Theta*),
+  si le contournement actuel des piliers s'avère insuffisant
 - Finitions : caméra bloquée aux bords de la carte, texte qui suit
   l'escouade ou affichage fixe à l'écran, police committée dans le dépôt
 
@@ -199,17 +233,18 @@ Pistes discutées :
   plusieurs pièces et couloirs, définie en texte dans `main.cpp`
 - L'escouade (classe `Escouade`, carré vert de 20 × 20) démarre en
   `(100, 100)`, se déplace à 180 px/s en suivant le chemin calculé par le
-  A* (contourne les murs par les ouvertures), s'arrête exactement sur le
-  point cliqué, reste bloquée par les murs et glisse le long de ceux-ci
-  (filet de sécurité conservé)
+  A* puis lissé (trajets directs en terrain dégagé, plus de zigzag,
+  coins de murs contournés au plus court sans les frôler exactement),
+  s'arrête exactement sur le point cliqué, reste bloquée par les murs et
+  glisse le long de ceux-ci (filet de sécurité conservé)
 - Caméra (`sf::View`) toujours centrée sur l'escouade ; du noir apparaît
   au-delà des bords de la carte
 - Police : `arial.ttf` du système Windows, chargée via chemin absolu — à
   revoir plus tard pour une police committée dans le projet
 - Le texte de position s'affiche au point cliqué (coordonnées du monde)
 - Logique de jeu (`TileMap`, `Escouade`, `Chemin`) dans une bibliothèque
-  `squad_core`, testée avec Catch2 3 (`./build/tests.exe`, 34 tests :
-  17 sur `TileMap`, 9 sur `Chemin`, 8 sur `Escouade`)
-- Zigzag occasionnel observé près des coins de case (voir étape 9, limite
-  connue) — à revisiter
-- Étape en cours : **Étape 11** — à choisir
+  `squad_core`, testée avec Catch2 3 (`./build/tests.exe`, 54 tests :
+  32 sur `TileMap`, 13 sur `Chemin`, 9 sur `Escouade`)
+- Près des piliers, le contournement n'est pas toujours le plus court
+  possible (voir étape 11, limite connue) — accepté pour l'instant
+- Étape en cours : **Étape 12** — à choisir
