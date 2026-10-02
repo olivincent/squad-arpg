@@ -97,14 +97,30 @@ carré puis substituée à lui une fois validée.
        comparant les deux carrés
 6. [x] `getCentre()` pour la caméra ; suppression de l'ancien carré
 
-### Étape 7 — À définir
+### Étape 7 — Tests unitaires (Catch2) ✅ TERMINÉE
+
+1. [x] `CMakeLists.txt` réorganisé : `TileMap.cpp` et `Escouade.cpp`
+       regroupés dans une bibliothèque statique `squad_core` (SFML en
+       `PUBLIC`, dossier `src` en `PUBLIC` include) ; `main` ne compile
+       plus que `src/main.cpp` et se lie à `squad_core` en `PRIVATE`
+2. [x] `find_package(Catch2 3 REQUIRED)` ; exécutable `tests` (lié à
+       `squad_core` et `Catch2::Catch2WithMain`) avec un test trivial pour
+       valider la chaîne d'outils
+3. [x] Tests du constructeur et de `TileMap::getTile` : sol/mur,
+       dimensions déduites du plan, coordonnée négative, plan vide
+       (`std::out_of_range`), lignes de longueurs différentes
+       (`std::invalid_argument`)
+4. [x] Tests de `TileMap::chevaucheUnMur` : sol, chevauchement, contact
+       exact sans chevauchement (convention `ceil - 1`), décalage de 1 px,
+       hors carte en négatif
+
+### Étape 8 — À définir
 
 Pistes discutées :
-- Premiers tests unitaires avec Catch2 (`TileMap::getTile`,
-  `TileMap::chevaucheUnMur`, cas limites)
 - Recherche de chemin (A*) sur la grille, pour contourner les murs
 - Finitions : caméra bloquée aux bords de la carte, texte qui suit
   l'escouade ou affichage fixe à l'écran, police committée dans le dépôt
+- Tests unitaires pour `Escouade` (à discuter séparément)
 
 ## État actuel (à mettre à jour à chaque session)
 
@@ -122,4 +138,6 @@ Pistes discutées :
 - Police : `arial.ttf` du système Windows, chargée via chemin absolu — à
   revoir plus tard pour une police committée dans le projet
 - Le texte de position s'affiche au point cliqué (coordonnées du monde)
-- Étape en cours : **Étape 7** — à choisir
+- Logique de jeu (`TileMap`, `Escouade`) dans une bibliothèque `squad_core`,
+  testée avec Catch2 3 (`./build/tests.exe`, 10 tests sur `TileMap`)
+- Étape en cours : **Étape 8** — à choisir

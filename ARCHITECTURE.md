@@ -27,7 +27,7 @@ sans complexité excessive pour démarrer.
 | Build | CMake + Ninja |
 | Langage | C++20 |
 | Bibliothèque graphique | SFML 3.0.2 |
-| Tests | À introduire plus tard (Catch2 pressenti, pas encore décidé formellement) |
+| Tests | Catch2 3 (paquet MSYS2 `mingw-w64-ucrt-x86_64-catch`) |
 
 ### Pourquoi SFML plutôt que raylib
 
@@ -52,17 +52,24 @@ squad-arpg/
 │   ├── TileMap.cpp
 │   ├── Escouade.hpp
 │   └── Escouade.cpp
+├── tests/
+│   └── test_TileMap.cpp
 ├── .gitignore
 ├── CLAUDE.md
 ├── ARCHITECTURE.md
 └── ROADMAP.md
 ```
 
-Un seul exécutable `main`. Deux modules : `TileMap` (l'environnement de
-jeu) et `Escouade` (l'entité contrôlée par le joueur). `main.cpp` ne garde
-que la fenêtre, la boucle de jeu, les événements, la caméra, la carte (son
-plan) et le texte de position. La structure continue d'évoluer par
-nécessité réelle, pas par anticipation (voir principes ci-dessous).
+Deux modules : `TileMap` (l'environnement de jeu) et `Escouade` (l'entité
+contrôlée par le joueur). `main.cpp` ne garde que la fenêtre, la boucle de
+jeu, les événements, la caméra, la carte (son plan) et le texte de
+position. La structure continue d'évoluer par nécessité réelle, pas par
+anticipation (voir principes ci-dessous).
+
+Deux exécutables : `main` (le jeu) et `tests` (les tests Catch2). Les deux
+se lient à la bibliothèque statique `squad_core`, qui contient la logique
+de jeu (`TileMap`, `Escouade`) indépendamment de la fenêtre et de la
+boucle de jeu.
 
 ## Modules
 
@@ -141,10 +148,27 @@ Interface publique :
 ### Build
 
 - **CMake minimal** : `cmake_minimum_required`, `project()`,
-  `CMAKE_CXX_STANDARD` = 20 (`CMAKE_CXX_STANDARD_REQUIRED` = ON), une seule
-  cible `add_executable(main src/main.cpp src/TileMap.cpp src/Escouade.cpp)`.
-- **SFML** : `find_package(SFML 3.0.2 COMPONENTS Graphics REQUIRED)` +
-  `target_link_libraries(main PRIVATE SFML::Graphics)`.
+  `CMAKE_CXX_STANDARD` = 20 (`CMAKE_CXX_STANDARD_REQUIRED` = ON).
+- **`find_package`** regroupés en haut du fichier : SFML
+  (`find_package(SFML 3.0.2 COMPONENTS Graphics REQUIRED)`) et Catch2
+  (`find_package(Catch2 3 REQUIRED)`).
+- **Bibliothèque `squad_core`** (`add_library(squad_core STATIC
+  src/TileMap.cpp src/Escouade.cpp)`) : regroupe la logique de jeu,
+  réutilisée par `main` et par `tests`.
+  - `target_link_libraries(squad_core PUBLIC SFML::Graphics)` : `PUBLIC`
+    parce que les en-têtes de `squad_core` (`TileMap.hpp`, `Escouade.hpp`)
+    incluent des en-têtes SFML — cette dépendance fait partie de son
+    interface et doit se propager à qui la lie.
+  - `target_include_directories(squad_core PUBLIC src)` : même raison,
+    pour que `tests/` puisse faire `#include "TileMap.hpp"` sans connaître
+    le chemin relatif vers `src/`.
+- **`main`** (`add_executable(main src/main.cpp)`) se lie à `squad_core`
+  en `PRIVATE` (`target_link_libraries(main PRIVATE squad_core)`) :
+  `PRIVATE` parce que rien d'autre ne relie jamais `main`, un exécutable
+  final.
+- **`tests`** (`add_executable(tests tests/test_TileMap.cpp)`) se lie à
+  `squad_core` et à `Catch2::Catch2WithMain` (qui fournit le `main()` des
+  tests) ; lancé directement (`./build/tests.exe`), sans CTest.
 - **Générateur Ninja** (`cmake -S . -B build -G Ninja`). Ninja relance la
   configuration automatiquement quand `CMakeLists.txt` change.
 
@@ -235,3 +259,21 @@ Interface publique :
   voulu.
 - **Texte de position** : placé en coordonnées du monde au point cliqué,
   il reste attaché à cet endroit de la carte quand elle défile.
+
+### Tests
+
+- **Catch2 3 adopté**, installé via MSYS2
+  (`mingw-w64-ucrt-x86_64-catch`), trouvé par `find_package(Catch2 3
+  REQUIRED)` comme SFML (pas de `FetchContent`).
+- **Un seul exécutable `tests`**, pour l'instant un seul fichier
+  `tests/test_TileMap.cpp`, lancé directement (`./build/tests.exe`) —
+  pas de CTest ni de `catch_discover_tests`.
+- **Petits plans dédiés** : chaque test construit son propre plan texte
+  (3×3, 4×4, 5×5…), jamais la carte de `main.cpp`, pour isoler exactement
+  le cas testé.
+- **Teste uniquement l'interface publique actuelle** de `TileMap`
+  (`getTile`, `chevaucheUnMur`, le constructeur) — aucune fonction n'a été
+  ajoutée pour faciliter les tests (pas de `getLargeur`, par exemple).
+- **`Escouade` n'est pas encore testée** : à discuter séparément (elle
+  dépend de `TileMap` et du temps, ce qui demande de décider comment
+  isoler ces dépendances dans un test).
