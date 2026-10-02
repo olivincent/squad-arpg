@@ -20,6 +20,17 @@ void verifierPointProche(sf::Vector2f point, sf::Vector2f attendu, float toleran
     REQUIRE_THAT(point.y, Catch::Matchers::WithinAbs(attendu.y, tolerance));
 }
 
+// Simule le temps qui passe par tics de 1/60 s (comme setFramerateLimit(60)
+// dans main.cpp), pendant la durée demandée. Les tests passent une durée
+// généreuse par rapport au trajet attendu et ne vérifient que l'état final.
+void simuler(Escouade& escouade, const TileMap& carte, float dureeSecondes) {
+    constexpr float dt = 1.0f / 60.0f;
+    const int nombreTics = static_cast<int>(dureeSecondes / dt);
+    for (int i = 0; i < nombreTics; ++i) {
+        escouade.mettreAJour(dt, carte);
+    }
+}
+
 } // namespace
 
 TEST_CASE("Le centre initial est au centre du carré de départ") {
@@ -52,6 +63,54 @@ TEST_CASE("Un seul tic avance le centre de vitesse * dt") {
 
     const float distanceParcourue = (escouade.getCentre() - centreInitial).length();
     REQUIRE_THAT(distanceParcourue, Catch::Matchers::WithinAbs(18.0f, 0.5f));
+}
+
+TEST_CASE("En terrain dégagé, l'escouade finit centrée sur le point exact demandé") {
+    const std::vector<std::string> plan = {
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+    };
+    TileMap carte(plan, 40.0f);
+    Escouade escouade({50.0f, 50.0f});
+
+    // Point choisi hors de tout centre de case (les centres de case sont à
+    // 20, 60, 100, 140... pour une taille de case de 40).
+    const sf::Vector2f destination{137.0f, 251.0f};
+    escouade.allerVers(destination, carte);
+    simuler(escouade, carte, 10.0f);
+
+    verifierPointProche(escouade.getCentre(), destination);
+}
+
+TEST_CASE("Avec un mur entre le départ et la destination, l'escouade le contourne et l'atteint") {
+    // Mur sur la rangée 3, colonnes 1 à 3 ; ouverture par la colonne 0 (et
+    // par les colonnes 4 à 6). Départ en case (1, 1), destination en case
+    // (1, 5) : directement sous le départ, mais le mur bloque le trajet
+    // direct en colonne 1.
+    const std::vector<std::string> plan = {
+        ".......",
+        ".......",
+        ".......",
+        ".###...",
+        ".......",
+        ".......",
+    };
+    TileMap carte(plan, 40.0f);
+    Escouade escouade({50.0f, 50.0f});
+
+    const sf::Vector2f destination = carte.centreDeCase({1, 5});
+    escouade.allerVers(destination, carte);
+    simuler(escouade, carte, 10.0f);
+
+    verifierPointProche(escouade.getCentre(), destination);
 }
 
 TEST_CASE("Sans ordre, l'escouade ne bouge pas") {
