@@ -159,14 +159,35 @@ la même ligne/colonne que l'escouade, ce qui produit parfois un léger
 zigzag (l'escouade descend sur l'axe avant de remonter). Comportement
 accepté pour l'instant, à revisiter plus tard.
 
-### Étape 10 — À définir
+### Étape 10 — Tests unitaires de l'escouade ✅ TERMINÉE
+
+Couvre `Escouade` par des tests Catch2, sans modifier `src/` — ces tests
+serviront de filet de sécurité pour le lissage de chemin à venir.
+
+1. [x] `test_Escouade.cpp` créé et ajouté au CMake ; état initial (centre
+       = position de départ + `(10, 10)`) et immobilité sans ordre
+2. [x] Test de vitesse : un seul tic vers une destination lointaine en
+       terrain dégagé avance le centre de `vitesse * dt`, quelle que soit
+       la direction exacte
+3. [x] Fonction d'aide de simulation (tics de 1/60 s pendant une durée
+       donnée) ; tests d'arrivée : point exact hors centre de case en
+       terrain dégagé, et contournement d'un mur
+4. [x] Gestion des ordres : ordre vers un mur à l'arrêt (ignoré), ordre
+       vers un mur en cours de route (trajet d'origine conservé), second
+       ordre valide en cours de route (remplace la destination)
+
+Aucun comportement inattendu révélé : les 8 tests passent sans qu'aucune
+modification de `src/` n'ait été nécessaire.
+
+### Étape 11 — À définir
 
 Pistes discutées :
+- Lissage du chemin calculé par le A* (les tests d'`Escouade` serviront
+  de filet de sécurité)
 - Corriger le zigzag occasionnel près des coins de case (voir limite
   connue de l'étape 9)
 - Finitions : caméra bloquée aux bords de la carte, texte qui suit
   l'escouade ou affichage fixe à l'écran, police committée dans le dépôt
-- Tests unitaires pour `Escouade` (à discuter séparément)
 
 ## État actuel (à mettre à jour à chaque session)
 
@@ -187,8 +208,8 @@ Pistes discutées :
   revoir plus tard pour une police committée dans le projet
 - Le texte de position s'affiche au point cliqué (coordonnées du monde)
 - Logique de jeu (`TileMap`, `Escouade`, `Chemin`) dans une bibliothèque
-  `squad_core`, testée avec Catch2 3 (`./build/tests.exe`, 26 tests :
-  17 sur `TileMap`, 9 sur `Chemin`)
+  `squad_core`, testée avec Catch2 3 (`./build/tests.exe`, 34 tests :
+  17 sur `TileMap`, 9 sur `Chemin`, 8 sur `Escouade`)
 - Zigzag occasionnel observé près des coins de case (voir étape 9, limite
   connue) — à revisiter
-- Étape en cours : **Étape 10** — à choisir
+- Étape en cours : **Étape 11** — à choisir

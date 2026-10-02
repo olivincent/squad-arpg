@@ -56,7 +56,8 @@ squad-arpg/
 │   └── Chemin.cpp
 ├── tests/
 │   ├── test_TileMap.cpp
-│   └── test_Chemin.cpp
+│   ├── test_Chemin.cpp
+│   └── test_Escouade.cpp
 ├── .gitignore
 ├── CLAUDE.md
 ├── ARCHITECTURE.md
@@ -203,9 +204,9 @@ ce module.
   `PRIVATE` parce que rien d'autre ne relie jamais `main`, un exécutable
   final.
 - **`tests`** (`add_executable(tests tests/test_TileMap.cpp
-  tests/test_Chemin.cpp)`) se lie à `squad_core` et à
-  `Catch2::Catch2WithMain` (qui fournit le `main()` des tests) ; lancé
-  directement (`./build/tests.exe`), sans CTest.
+  tests/test_Chemin.cpp tests/test_Escouade.cpp)`) se lie à `squad_core`
+  et à `Catch2::Catch2WithMain` (qui fournit le `main()` des tests) ;
+  lancé directement (`./build/tests.exe`), sans CTest.
 - **Générateur Ninja** (`cmake -S . -B build -G Ninja`). Ninja relance la
   configuration automatiquement quand `CMakeLists.txt` change.
 
@@ -369,22 +370,42 @@ ce module.
 - **Catch2 3 adopté**, installé via MSYS2
   (`mingw-w64-ucrt-x86_64-catch`), trouvé par `find_package(Catch2 3
   REQUIRED)` comme SFML (pas de `FetchContent`).
-- **Un seul exécutable `tests`**, deux fichiers (`test_TileMap.cpp`,
-  `test_Chemin.cpp`), lancé directement (`./build/tests.exe`) — pas de
-  CTest ni de `catch_discover_tests`.
+- **Un seul exécutable `tests`**, trois fichiers (`test_TileMap.cpp`,
+  `test_Chemin.cpp`, `test_Escouade.cpp`), lancé directement
+  (`./build/tests.exe`) — pas de CTest ni de `catch_discover_tests`.
 - **Petits plans dédiés** : chaque test construit son propre plan texte
   (3×3, 4×4, 5×5…), jamais la carte de `main.cpp`, pour isoler exactement
   le cas testé.
-- **Teste uniquement l'interface publique** de `TileMap` et `Chemin`
-  (`getTile`, `chevaucheUnMur`, `getLargeur`/`getHauteur`,
-  `caseContenant`/`centreDeCase`, le constructeur, `trouverChemin`) —
-  aucune fonction n'a été ajoutée seulement pour faciliter les tests.
+- **Teste uniquement l'interface publique** de `TileMap`, `Chemin` et
+  `Escouade` (`getTile`, `chevaucheUnMur`, `getLargeur`/`getHauteur`,
+  `caseContenant`/`centreDeCase`, le constructeur, `trouverChemin`,
+  `allerVers`, `mettreAJour`, `getCentre`) — aucune fonction n'a été
+  ajoutée seulement pour faciliter les tests.
 - **Propriétés plutôt que chemin exact** : pour `trouverChemin`, comme
   plusieurs plus courts chemins peuvent exister, les tests vérifient des
   propriétés (premier élément = départ, dernier = arrivée, cases
   consécutives voisines, aucun mur, longueur attendue) via une fonction
   d'aide partagée (`verifierCheminValide`), plutôt que de comparer à une
   liste de cases exacte.
-- **`Escouade` n'est pas encore testée** : à discuter séparément (elle
-  dépend de `TileMap` et du temps, ce qui demande de décider comment
-  isoler ces dépendances dans un test).
+- **`Escouade` : des résultats, pas des trajectoires**. Les tests
+  vérifient où l'escouade finit et ce qu'elle fait d'un ordre, jamais sa
+  position à un tic intermédiaire précis ni la forme du chemin suivi —
+  pour rester valides même après un futur lissage du chemin. Pas de
+  doublure (mock) : `dt` étant déjà un paramètre de `mettreAJour`, et
+  `TileMap` se construisant à partir d'un plan texte, les tests utilisent
+  les vraies classes.
+  - **Comparaison avec tolérance** (`REQUIRE_THAT` + `Catch::Matchers::
+    WithinAbs`, jamais `==`) : les positions accumulent des calculs en
+    virgule flottante (vitesse × dt, racines carrées), donc deux calculs
+    mathématiquement égaux peuvent différer d'une poussière d'arrondi.
+    Fonction d'aide `verifierPointProche`.
+  - **Fonction d'aide de simulation** `simuler(escouade, carte, durée)` :
+    appelle `mettreAJour` en boucle avec un `dt` de 1/60 s (comme
+    `setFramerateLimit(60)` dans `main.cpp`) pendant la durée donnée. Les
+    tests simulent une durée généreuse par rapport au trajet attendu et
+    ne vérifient que l'état final.
+  - **`dt` en paramètre rend la classe testable** : si `mettreAJour`
+    lisait le temps lui-même (horloge interne), un test n'aurait aucun
+    moyen de contrôler le temps simulé à chaque tic ; en le recevant en
+    paramètre, le comportement devient déterministe et reproductible
+    sans horloge factice.
