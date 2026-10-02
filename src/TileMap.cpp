@@ -33,6 +33,14 @@ Tile TileMap::getTile(int x, int y) const {
     return m_cases[indice(x, y)];
 }
 
+int TileMap::getLargeur() const {
+    return m_largeur;
+}
+
+int TileMap::getHauteur() const {
+    return m_hauteur;
+}
+
 void TileMap::dessiner(sf::RenderTarget& rendu) const {
     sf::RectangleShape forme({m_tailleCase, m_tailleCase});
     forme.setOutlineThickness(-1.0f);

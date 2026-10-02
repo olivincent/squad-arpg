@@ -38,6 +38,21 @@ TEST_CASE("Les dimensions de la carte sont déduites du plan") {
     REQUIRE(carte.getTile(3, 4) == Tile::Wall);
 }
 
+TEST_CASE("getLargeur et getHauteur renvoient les dimensions du plan") {
+    // Plan non carré : si largeur et hauteur étaient inversées par erreur
+    // dans l'implémentation, ce test échouerait, contrairement à un plan
+    // carré où l'erreur serait invisible.
+    const std::vector<std::string> plan = {
+        ".....",
+        ".....",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    REQUIRE(carte.getLargeur() == 5);
+    REQUIRE(carte.getHauteur() == 3);
+}
+
 TEST_CASE("Une coordonnée négative est hors carte, donc un mur") {
     const std::vector<std::string> plan = {
         "....",

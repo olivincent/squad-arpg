@@ -13,6 +13,8 @@ class TileMap {
 public:
     TileMap(const std::vector<std::string>& plan, float tailleCase);
     Tile getTile(int x, int y) const;
+    int getLargeur() const;
+    int getHauteur() const;
     void dessiner(sf::RenderTarget& rendu) const;
     bool chevaucheUnMur(const sf::FloatRect& rect) const;
 
