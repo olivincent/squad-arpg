@@ -4,6 +4,7 @@
 #include <SFML/Graphics/Color.hpp>
 #include "TileMap.hpp"
 #include "Chemin.hpp"
+#include "Personnage.hpp"
 #include <SFML/Graphics/Rect.hpp>
 
 Escouade::Escouade(sf::Vector2f positionDepart)
@@ -11,8 +12,19 @@ Escouade::Escouade(sf::Vector2f positionDepart)
       m_taille(20.0f, 20.0f),
       m_chemin({positionDepart + m_taille / 2.0f}),
       m_indexChemin(0),
-      m_vitesse(180.0f)
+      m_vitesse(180.0f),
+      m_decalages({{25.0f, -25.0f}, {25.0f, 25.0f}, {-25.0f, -25.0f}, {-25.0f, 25.0f}}),
+      m_personnages({
+          Personnage(placePersonnage(0), sf::Color::Red),
+          Personnage(placePersonnage(1), sf::Color::Yellow),
+          Personnage(placePersonnage(2), sf::Color::Blue),
+          Personnage(placePersonnage(3), sf::Color::Magenta),
+      })
 {
+}
+
+sf::Vector2f Escouade::placePersonnage(std::size_t indice) const {
+    return getCentre() + m_decalages[indice];
 }
 
 void Escouade::dessiner(sf::RenderTarget& rendu) const {
@@ -20,6 +32,10 @@ void Escouade::dessiner(sf::RenderTarget& rendu) const {
     forme.setPosition(m_position);
     forme.setFillColor(sf::Color::Green);
     rendu.draw(forme);
+
+    for (const Personnage& personnage : m_personnages) {
+        personnage.dessiner(rendu);
+    }
 }
 
 void Escouade::allerVers(sf::Vector2f destination, const TileMap& carte) {
