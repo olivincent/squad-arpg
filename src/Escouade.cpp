@@ -72,6 +72,10 @@ void Escouade::mettreAJour(float dt, const TileMap& carte) {
         const float distance = direction.length();
         const float pasDuTic = m_vitesse * dt;
 
+        if (distance > 0.0f) {
+            m_orientation = direction.angle();
+        }
+
         if (distance <= pasDuTic) {
             deplacement = direction;
             ++m_indexChemin;
