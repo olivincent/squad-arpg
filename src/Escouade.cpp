@@ -87,6 +87,10 @@ void Escouade::mettreAJour(float dt, const TileMap& carte) {
     if (!carte.chevaucheUnMur(sf::FloatRect(essaiY, m_taille))) {
         m_position = essaiY;
     }
+
+    for (std::size_t i = 0; i < m_personnages.size(); ++i) {
+        m_personnages[i].mettreAJour(dt, placePersonnage(i));
+    }
 }
 
 sf::Vector2f Escouade::getCentre() const {
