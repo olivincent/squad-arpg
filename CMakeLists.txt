@@ -16,5 +16,5 @@ target_link_libraries(squad_core PUBLIC SFML::Graphics)
 add_executable(main src/main.cpp)
 target_link_libraries(main PRIVATE squad_core)
 
-add_executable(tests tests/test_TileMap.cpp tests/test_Chemin.cpp tests/test_Escouade.cpp)
+add_executable(tests tests/test_TileMap.cpp tests/test_Chemin.cpp tests/test_Escouade.cpp tests/test_Deplacement.cpp)
 target_link_libraries(tests PRIVATE squad_core Catch2::Catch2WithMain)
