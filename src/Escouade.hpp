@@ -1,5 +1,6 @@
 // ./src/Escouade.hpp
 #pragma once
+#include <SFML/System/Angle.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <cstddef>
@@ -24,5 +25,6 @@ private:
     std::size_t m_indexChemin;             // indice du prochain point de m_chemin à atteindre
     float m_vitesse;                       // en pixels par seconde
     std::vector<sf::Vector2f> m_decalages; // décalages de formation, pour une escouade orientée vers +x
+    sf::Angle m_orientation;               // 0 = orientée vers +x
     std::vector<Personnage> m_personnages;
 };

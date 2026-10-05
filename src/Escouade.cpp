@@ -15,6 +15,7 @@ Escouade::Escouade(sf::Vector2f positionDepart)
       m_indexChemin(0),
       m_vitesse(180.0f),
       m_decalages({{25.0f, -25.0f}, {25.0f, 25.0f}, {-25.0f, -25.0f}, {-25.0f, 25.0f}}),
+      m_orientation(),
       m_personnages({
           Personnage(placePersonnage(0), sf::Color::Red),
           Personnage(placePersonnage(1), sf::Color::Yellow),
@@ -25,7 +26,7 @@ Escouade::Escouade(sf::Vector2f positionDepart)
 }
 
 sf::Vector2f Escouade::placePersonnage(std::size_t indice) const {
-    return getCentre() + m_decalages[indice];
+    return getCentre() + m_decalages[indice].rotatedBy(m_orientation);
 }
 
 void Escouade::dessiner(sf::RenderTarget& rendu) const {
