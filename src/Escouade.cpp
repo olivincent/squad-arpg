@@ -5,6 +5,7 @@
 #include "TileMap.hpp"
 #include "Chemin.hpp"
 #include "Personnage.hpp"
+#include "Deplacement.hpp"
 #include <SFML/Graphics/Rect.hpp>
 
 Escouade::Escouade(sf::Vector2f positionDepart)
@@ -78,15 +79,7 @@ void Escouade::mettreAJour(float dt, const TileMap& carte) {
         }
     }
 
-    const sf::Vector2f essaiX = m_position + sf::Vector2f(deplacement.x, 0.0f);
-    if (!carte.chevaucheUnMur(sf::FloatRect(essaiX, m_taille))) {
-        m_position = essaiX;
-    }
-
-    const sf::Vector2f essaiY = m_position + sf::Vector2f(0.0f, deplacement.y);
-    if (!carte.chevaucheUnMur(sf::FloatRect(essaiY, m_taille))) {
-        m_position = essaiY;
-    }
+    m_position = deplacerAvecGlissement(carte, sf::FloatRect(m_position, m_taille), deplacement);
 
     for (std::size_t i = 0; i < m_personnages.size(); ++i) {
         m_personnages[i].mettreAJour(dt, placePersonnage(i));
