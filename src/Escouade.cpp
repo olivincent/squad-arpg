@@ -82,7 +82,7 @@ void Escouade::mettreAJour(float dt, const TileMap& carte) {
     m_position = deplacerAvecGlissement(carte, sf::FloatRect(m_position, m_taille), deplacement);
 
     for (std::size_t i = 0; i < m_personnages.size(); ++i) {
-        m_personnages[i].mettreAJour(dt, placePersonnage(i));
+        m_personnages[i].mettreAJour(dt, placePersonnage(i), carte);
     }
 }
 

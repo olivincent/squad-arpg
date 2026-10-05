@@ -4,11 +4,13 @@
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/System/Vector2.hpp>
 
+class TileMap;
+
 class Personnage {
 public:
     Personnage(sf::Vector2f centre, sf::Color couleur);
     void dessiner(sf::RenderTarget& rendu) const;
-    void mettreAJour(float dt, sf::Vector2f cible);
+    void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte);
 
 private:
     sf::Vector2f m_centre;  // pixels du monde
