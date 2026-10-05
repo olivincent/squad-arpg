@@ -215,13 +215,59 @@ encore le trajet. Elle frôle donc moins les murs qu'un lissage « idéal »
 (type *funnel algorithm* ou Theta*) ne le ferait, mais elle ne reste
 jamais coincée. Accepté pour l'instant (cf. ARCHITECTURE.md).
 
-### Étape 12 — À définir
+### Étape 12 — Membres de l'escouade (`Personnage`, formation en carré) ✅ TERMINÉE
+
+L'escouade possède 4 personnages qui se déplacent eux-mêmes pour tenir
+une formation en carré autour d'elle, avec collision contre les murs, et
+la formation s'oriente selon la direction de déplacement. Principe
+retenu pour l'avenir (combat, actions) : un personnage sait seulement
+« aller vers un point » ; c'est l'escouade qui décide de ce point.
+
+1. [x] `Personnage.hpp`/`.cpp` : structure de données (`m_centre`,
+       `m_taille`, `m_couleur`) et constructeur ; ajout à `squad_core`
+2. [x] `Personnage::dessiner`
+3. [x] `Escouade` : `m_decalages` (4 décalages de formation, orientation
+       0 = vers +x) et `m_personnages`, créés à leur place dans le
+       constructeur via la fonction privée `placePersonnage` (point de
+       calcul unique) ; dessinés après l'ancre
+4. [x] `Personnage::mettreAJour(dt, cible)` : ligne droite, pas fixe,
+       sans collision à ce stade
+5. [x] `Escouade::mettreAJour` met à jour l'ancre puis appelle celle de
+       chaque personnage avec sa place courante
+6. [x] Module `Deplacement` : extraction de `deplacerAvecGlissement`
+       (collision/glissement axe par axe) depuis `Escouade::mettreAJour`,
+       sans modification de comportement ; les 9 tests d'`Escouade`
+       passent sans changement
+7. [x] `tests/test_Deplacement.cpp` : terrain dégagé, mur qui bloque un
+       axe, glissement oblique (composante parallèle conservée),
+       déplacement nul
+8. [x] `Personnage::mettreAJour` utilise `deplacerAvecGlissement` ; les
+       personnages ne traversent plus les murs
+9. [x] `Escouade::m_orientation` (`sf::Angle`, 0 au départ), utilisée
+       dans `placePersonnage` via `rotatedBy`
+10. [x] `Escouade::mettreAJour` met à jour `m_orientation` selon la
+        direction **voulue** de l'ancre (avant collision), seulement si
+        elle a un point à atteindre et que la distance est `> 0` ;
+        rotation instantanée, dernière orientation conservée à l'arrêt
+
+**Limite connue** : rotation instantanée de la formation (pas de
+transition progressive) — un personnage peut donc traverser brusquement
+sa place à chaque virage du chemin. Accepté pour l'instant (cf.
+ARCHITECTURE.md). Autre limite héritée des décisions de conception : pas
+de collision entre personnages ni entre un personnage et l'ancre ; un
+personnage peut rester accroché derrière un coin de mur tant que
+l'escouade ne repasse pas par là.
+
+### Étape 13 — À définir
 
 Pistes discutées :
+- Rotation progressive de la formation plutôt qu'instantanée
 - Un lissage plus serré autour des coins (*funnel algorithm* ou Theta*),
   si le contournement actuel des piliers s'avère insuffisant
 - Finitions : caméra bloquée aux bords de la carte, texte qui suit
   l'escouade ou affichage fixe à l'écran, police committée dans le dépôt
+- Types de personnages, statistiques, combat, actions (hors de portée
+  explicite de l'étape 12)
 
 ## État actuel (à mettre à jour à chaque session)
 
@@ -231,20 +277,29 @@ Pistes discutées :
 - Bibliothèque graphique : SFML 3.0.2, intégrée à CMake
 - Fenêtre 1200 × 800 ; carte de 59 × 40 cases de 40 px (2360 × 1600 px),
   plusieurs pièces et couloirs, définie en texte dans `main.cpp`
-- L'escouade (classe `Escouade`, carré vert de 20 × 20) démarre en
-  `(100, 100)`, se déplace à 180 px/s en suivant le chemin calculé par le
-  A* puis lissé (trajets directs en terrain dégagé, plus de zigzag,
+- L'escouade (classe `Escouade`, carré vert de 20 × 20, l'ancre) démarre
+  en `(100, 100)`, se déplace à 180 px/s en suivant le chemin calculé par
+  le A* puis lissé (trajets directs en terrain dégagé, plus de zigzag,
   coins de murs contournés au plus court sans les frôler exactement),
   s'arrête exactement sur le point cliqué, reste bloquée par les murs et
   glisse le long de ceux-ci (filet de sécurité conservé)
+- L'escouade possède 4 personnages (`Personnage`, carrés colorés de
+  20 × 20, 240 px/s) qui tiennent une formation en carré autour de
+  l'ancre, bloqués par les murs et glissant le long d'eux comme elle
+  (fonction partagée `deplacerAvecGlissement`, module `Deplacement`) ;
+  la formation pivote selon la direction de marche (rotation
+  instantanée)
 - Caméra (`sf::View`) toujours centrée sur l'escouade ; du noir apparaît
   au-delà des bords de la carte
 - Police : `arial.ttf` du système Windows, chargée via chemin absolu — à
   revoir plus tard pour une police committée dans le projet
 - Le texte de position s'affiche au point cliqué (coordonnées du monde)
-- Logique de jeu (`TileMap`, `Escouade`, `Chemin`) dans une bibliothèque
-  `squad_core`, testée avec Catch2 3 (`./build/tests.exe`, 54 tests :
-  32 sur `TileMap`, 13 sur `Chemin`, 9 sur `Escouade`)
+- Logique de jeu (`TileMap`, `Escouade`, `Chemin`, `Personnage`,
+  `Deplacement`) dans une bibliothèque `squad_core`, testée avec Catch2 3
+  (`./build/tests.exe`, 58 tests : 32 sur `TileMap`, 13 sur `Chemin`,
+  9 sur `Escouade`, 4 sur `Deplacement`)
 - Près des piliers, le contournement n'est pas toujours le plus court
   possible (voir étape 11, limite connue) — accepté pour l'instant
-- Étape en cours : **Étape 12** — à choisir
+- Rotation de la formation instantanée, pas progressive (voir étape 12,
+  limite connue) — accepté pour l'instant
+- Étape en cours : **Étape 13** — à choisir

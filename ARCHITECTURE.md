@@ -53,24 +53,32 @@ squad-arpg/
 │   ├── Escouade.hpp
 │   ├── Escouade.cpp
 │   ├── Chemin.hpp
-│   └── Chemin.cpp
+│   ├── Chemin.cpp
+│   ├── Personnage.hpp
+│   ├── Personnage.cpp
+│   ├── Deplacement.hpp
+│   └── Deplacement.cpp
 ├── tests/
 │   ├── test_TileMap.cpp
 │   ├── test_Chemin.cpp
-│   └── test_Escouade.cpp
+│   ├── test_Escouade.cpp
+│   └── test_Deplacement.cpp
 ├── .gitignore
 ├── CLAUDE.md
 ├── ARCHITECTURE.md
 └── ROADMAP.md
 ```
 
-Trois modules : `TileMap` (l'environnement de jeu), `Escouade` (l'entité
-contrôlée par le joueur, qui suit un chemin calculé par le A*) et
-`Chemin` (recherche de chemin A*, utilisé uniquement par `Escouade`).
-`main.cpp` ne garde que la fenêtre, la boucle de jeu, les événements, la
-caméra, la carte (son plan) et le texte de position ; il ne connaît pas
-le module `Chemin`. La structure continue d'évoluer par nécessité réelle,
-pas par anticipation (voir principes ci-dessous).
+Cinq modules : `TileMap` (l'environnement de jeu), `Escouade` (le point
+de contrôle, l'ancre, qui suit un chemin calculé par le A* et possède
+les personnages), `Chemin` (recherche de chemin A*, utilisé uniquement
+par `Escouade`), `Personnage` (un membre de l'escouade, qui sait aller
+vers un point) et `Deplacement` (collision/glissement partagée entre
+`Escouade` et `Personnage`). `main.cpp` ne garde que la fenêtre, la
+boucle de jeu, les événements, la caméra, la carte (son plan) et le
+texte de position ; il ne connaît ni `Chemin` ni `Personnage`. La
+structure continue d'évoluer par nécessité réelle, pas par anticipation
+(voir principes ci-dessous).
 
 Deux exécutables : `main` (le jeu) et `tests` (les tests Catch2). Les deux
 se lient à la bibliothèque statique `squad_core`, qui contient la logique
@@ -109,30 +117,41 @@ Interface publique :
 | `bool chevaucheUnMur(const sf::FloatRect& rect) const` | Le rectangle (en pixels du monde) chevauche-t-il un mur ? |
 | `bool trajetLibre(const sf::FloatRect& rect, sf::Vector2f deplacement) const` | Le rectangle, translaté de sa position jusqu'à `position + deplacement`, ne chevauche-t-il un mur à aucun moment du trajet ? |
 
-### `Escouade` — l'entité contrôlée par le joueur
+### `Escouade` — le point de contrôle (l'ancre)
 
-Pour l'instant un carré vert de 20 × 20 qui suit le chemin calculé par le
-A* jusqu'au point cliqué, en contournant les murs. Aucun membre
-d'escouade n'existe encore : ils seront ajoutés quand le besoin sera réel.
+Un carré vert de 20 × 20 qui suit le chemin calculé par le A* jusqu'au
+point cliqué, en contournant les murs, et qui possède 4 `Personnage` en
+formation en carré autour d'elle.
 
 - **Données membres** : `m_position` (coin haut-gauche, pixels du monde),
   `m_taille`, `m_chemin` (`std::vector<sf::Vector2f>`, les points — centre
   de l'escouade — à atteindre dans l'ordre), `m_indexChemin` (indice du
-  prochain point visé), `m_vitesse` (pixels par seconde).
+  prochain point visé), `m_vitesse` (pixels par seconde), `m_decalages`
+  (les 4 décalages de formation, pour une escouade orientée vers `+x`),
+  `m_orientation` (`sf::Angle`, `0` = vers `+x`), `m_personnages`
+  (`std::vector<Personnage>`, inclut `Personnage.hpp` en entier — un
+  `std::vector` a besoin de la définition complète de son type
+  d'élément).
 - **Valeurs fixes** dans le constructeur : taille 20 × 20, vitesse
   180 px/s, chemin = un seul point (le centre de départ, donc immobile
-  tant qu'on n'a pas cliqué). Elles deviendront des paramètres quand il
-  le faudra.
+  tant qu'on n'a pas cliqué), orientation `0`. Elles deviendront des
+  paramètres quand il le faudra.
+- **Fonction privée `placePersonnage(indice)`** : seul endroit du code
+  qui calcule la place d'un personnage (`getCentre() + m_decalages[indice]
+  .rotatedBy(m_orientation)`) — utilisée à la fois pour créer les
+  personnages dans le constructeur et pour leur donner leur cible à
+  chaque `mettreAJour`.
 
-Interface publique :
+Interface publique (inchangée pour `main.cpp`, qui ne connaît pas
+`Personnage`) :
 
 | Fonction | Rôle |
 |---|---|
-| `explicit Escouade(sf::Vector2f positionDepart)` | Crée l'escouade à la position donnée |
-| `void allerVers(sf::Vector2f destination, const TileMap& carte)` | Calcule un chemin vers la destination (A*) et le remplace comme trajet à suivre ; ordre ignoré si aucun chemin n'existe |
-| `void mettreAJour(float dt, const TileMap& carte)` | Avance vers le point courant du chemin, avec collision et glissement le long des murs |
-| `void dessiner(sf::RenderTarget& rendu) const` | Dessine l'escouade |
-| `sf::Vector2f getCentre() const` | Centre de l'escouade (utilisé par la caméra et par `allerVers`) |
+| `explicit Escouade(sf::Vector2f positionDepart)` | Crée l'escouade (et ses 4 personnages en formation) à la position donnée |
+| `void allerVers(sf::Vector2f destination, const TileMap& carte)` | Calcule un chemin vers la destination (A*, puis lissé) et le remplace comme trajet à suivre ; ordre ignoré si aucun chemin n'existe |
+| `void mettreAJour(float dt, const TileMap& carte)` | Avance l'ancre vers le point courant du chemin (collision, glissement, orientation), puis chaque personnage vers sa place |
+| `void dessiner(sf::RenderTarget& rendu) const` | Dessine l'ancre, puis les 4 personnages |
+| `sf::Vector2f getCentre() const` | Centre de l'escouade (utilisé par la caméra, par `allerVers` et par `placePersonnage`) |
 
 ### `Chemin` — recherche de chemin (A*)
 
@@ -159,6 +178,55 @@ Interface publique :
 Deux niveaux : `trouverChemin` raisonne en cases, `lisserChemin` en
 pixels. Utilisé uniquement par `Escouade::allerVers` ; `main.cpp` ne
 connaît pas ce module.
+
+### `Personnage` — un membre de l'escouade
+
+Un carré coloré de 20 × 20 qui sait seulement « aller vers un point » :
+il ne connaît ni la formation, ni son décalage, ni l'escouade qui le
+possède. C'est elle qui décide du point à atteindre et le lui donne en
+paramètre de `mettreAJour` — principe retenu pour permettre, plus tard,
+qu'un personnage reçoive un point différent de sa place en formation
+(combat, action sur un coffre ou une porte) sans changer son interface.
+
+- **Stocke son centre** (`m_centre`), pas son coin haut-gauche : le point
+  qu'on lui demande d'atteindre est lui-même un centre (une place de
+  formation), pas un coin.
+- **Données membres** : `m_centre`, `m_taille` (20 × 20, fixée dans le
+  constructeur), `m_couleur` (reçue au constructeur, pour distinguer les
+  4 personnages à l'écran), `m_vitesse` (240 px/s — plus rapide que
+  l'escouade à 180 px/s, pour qu'un personnage retardé par un mur
+  puisse rattraper sa place).
+- **Déclaration anticipée** : `Personnage.hpp` contient `class TileMap;`
+  (une référence ne demande pas la définition complète) ; aucun include
+  de `TileMap.hpp` n'est nécessaire dans `Personnage.cpp` non plus,
+  puisque la carte n'est que transmise à `deplacerAvecGlissement`, jamais
+  utilisée directement.
+- **Pas de A* ni de lissage** : juste une ligne droite vers la cible, pas
+  fixe (`vitesse * dt`), arrêt exact si la distance restante est `≤` ce
+  pas — même logique que l'ancre avant l'étape 11.
+
+Interface publique :
+
+| Fonction | Rôle |
+|---|---|
+| `Personnage(sf::Vector2f centre, sf::Color couleur)` | Crée le personnage à ce centre, avec cette couleur |
+| `void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte)` | Avance vers la cible, avec collision et glissement le long des murs |
+| `void dessiner(sf::RenderTarget& rendu) const` | Dessine le personnage |
+
+### `Deplacement` — collision et glissement partagés
+
+Une fonction libre, pas une classe : extraite sans modification du code
+qui était auparavant dans `Escouade::mettreAJour`, pour que `Personnage`
+puisse l'utiliser aussi, sans dépendre d'`Escouade` ni dupliquer le code.
+
+| Fonction | Rôle |
+|---|---|
+| `sf::Vector2f deplacerAvecGlissement(const TileMap& carte, const sf::FloatRect& rect, sf::Vector2f deplacement)` | Essaie le déplacement axe par axe (X puis Y, l'essai Y partant du résultat du X) ; renvoie la nouvelle position du coin haut-gauche |
+
+Utilisée par `Escouade::mettreAJour` (pour l'ancre) et par
+`Personnage::mettreAJour` (qui convertit entre son centre et le coin
+haut-gauche attendu par la fonction, comme `Escouade::getCentre()` le
+fait dans l'autre sens).
 
 ## Principes de conception à respecter
 
@@ -193,8 +261,9 @@ connaît pas ce module.
   (`find_package(SFML 3.0.2 COMPONENTS Graphics REQUIRED)`) et Catch2
   (`find_package(Catch2 3 REQUIRED)`).
 - **Bibliothèque `squad_core`** (`add_library(squad_core STATIC
-  src/TileMap.cpp src/Escouade.cpp src/Chemin.cpp)`) : regroupe la logique
-  de jeu, réutilisée par `main` et par `tests`.
+  src/TileMap.cpp src/Escouade.cpp src/Chemin.cpp src/Personnage.cpp
+  src/Deplacement.cpp)`) : regroupe la logique de jeu, réutilisée par
+  `main` et par `tests`.
   - `target_link_libraries(squad_core PUBLIC SFML::Graphics)` : `PUBLIC`
     parce que les en-têtes de `squad_core` (`TileMap.hpp`, `Escouade.hpp`)
     incluent des en-têtes SFML — cette dépendance fait partie de son
@@ -207,9 +276,10 @@ connaît pas ce module.
   `PRIVATE` parce que rien d'autre ne relie jamais `main`, un exécutable
   final.
 - **`tests`** (`add_executable(tests tests/test_TileMap.cpp
-  tests/test_Chemin.cpp tests/test_Escouade.cpp)`) se lie à `squad_core`
-  et à `Catch2::Catch2WithMain` (qui fournit le `main()` des tests) ;
-  lancé directement (`./build/tests.exe`), sans CTest.
+  tests/test_Chemin.cpp tests/test_Escouade.cpp
+  tests/test_Deplacement.cpp)`) se lie à `squad_core` et à
+  `Catch2::Catch2WithMain` (qui fournit le `main()` des tests) ; lancé
+  directement (`./build/tests.exe`), sans CTest.
 - **Générateur Ninja** (`cmake -S . -B build -G Ninja`). Ninja relance la
   configuration automatiquement quand `CMakeLists.txt` change.
 
@@ -323,6 +393,44 @@ connaît pas ce module.
   case (viser un centre de case presque aligné avec l'escouade sur un
   seul axe) est résolu par ce lissage.
 
+### Formation de l'escouade
+
+- **Un personnage sait seulement « aller vers un point »** (décision de
+  conception retenue en vue de l'avenir — combat, actions) : il reçoit
+  sa cible en paramètre de `mettreAJour`, sans connaître la formation ni
+  son décalage. C'est `Escouade` qui décide de ce point et le lui donne.
+- **`Escouade` possède les personnages** (`std::vector<Personnage>`
+  stocké par valeur) et les décalages de formation ; elle reste le
+  point de contrôle dessiné (le carré vert), dont le comportement
+  (chemin, vitesse, collision, `getCentre`) n'a pas changé.
+- **`placePersonnage(indice)` : un seul point de calcul** pour la place
+  d'un personnage (`getCentre() + m_decalages[indice].rotatedBy(
+  m_orientation)`), utilisé à la fois dans le constructeur (pour créer
+  les personnages à leur place) et dans `mettreAJour` (pour leur donner
+  leur cible à chaque tic) — éviter de dupliquer cette formule à deux
+  endroits qui pourraient diverger.
+- **Ordre dans `mettreAJour` et `dessiner`** : l'ancre d'abord, les
+  personnages ensuite. Les personnages visent la place de l'image
+  *courante* (calculée après que l'ancre a bougé), pas celle d'avant.
+- **Module `Deplacement` extrait** (voir ci-dessus) pour que
+  `Personnage` réutilise la même collision/glissement que l'ancre, sans
+  dépendre d'`Escouade`.
+- **Orientation suit la direction voulue, pas le déplacement réel** :
+  `m_orientation` est mise à jour à partir du vecteur vers le point
+  courant du chemin *avant* l'essai de collision — si l'escouade est
+  bloquée par un mur et glisse, la formation s'oriente quand même vers
+  où elle essaie d'aller. Mise à jour seulement si l'ancre a un point à
+  atteindre et que la distance est `> 0` (`sf::Vector2f::angle()` sur un
+  vecteur nul n'a pas de sens) ; sinon, la dernière orientation est
+  conservée.
+- **Rotation instantanée** (`rotatedBy`, pas d'interpolation) : plus
+  simple à implémenter, mais un personnage peut traverser brusquement
+  sa place à chaque virage du chemin. Accepté pour l'instant.
+- **Limites connues** : pas de collision entre personnages ni entre un
+  personnage et l'ancre ; un personnage peut rester accroché derrière un
+  coin de mur tant que l'escouade ne repasse pas par là ; rotation
+  instantanée plutôt que progressive.
+
 ### Lissage de chemin
 
 - **`TileMap::trajetLibre(rect, deplacement)`** : vrai si le rectangle,
@@ -427,9 +535,10 @@ connaît pas ce module.
 - **Catch2 3 adopté**, installé via MSYS2
   (`mingw-w64-ucrt-x86_64-catch`), trouvé par `find_package(Catch2 3
   REQUIRED)` comme SFML (pas de `FetchContent`).
-- **Un seul exécutable `tests`**, trois fichiers (`test_TileMap.cpp`,
-  `test_Chemin.cpp`, `test_Escouade.cpp`), lancé directement
-  (`./build/tests.exe`) — pas de CTest ni de `catch_discover_tests`.
+- **Un seul exécutable `tests`**, quatre fichiers (`test_TileMap.cpp`,
+  `test_Chemin.cpp`, `test_Escouade.cpp`, `test_Deplacement.cpp`), lancé
+  directement (`./build/tests.exe`) — pas de CTest ni de
+  `catch_discover_tests`.
 - **Petits plans dédiés** : chaque test construit son propre plan texte
   (3×3, 4×4, 5×5…), jamais la carte de `main.cpp`, pour isoler exactement
   le cas testé.
@@ -475,3 +584,6 @@ connaît pas ce module.
     moyen de contrôler le temps simulé à chaque tic ; en le recevant en
     paramètre, le comportement devient déterministe et reproductible
     sans horloge factice.
+- **`Personnage` et la formation ne sont pas encore testés** : seule la
+  fonction partagée `deplacerAvecGlissement` (module `Deplacement`) est
+  couverte. À discuter séparément si le besoin se présente.
