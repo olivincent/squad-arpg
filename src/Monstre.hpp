@@ -15,4 +15,5 @@ private:
     sf::Vector2f m_centre;  // pixels du monde
     sf::Vector2f m_taille;  // en pixels
     int m_pointsDeVie;
+    int m_pointsDeVieMax;
 };
