@@ -55,14 +55,6 @@ int main() {
     TileMap carte(plan, 40.0f);
     Escouade escouade({100.0f, 100.0f});
 
-    sf::Font font; 
-    if (!font.openFromFile("C:/Windows/Fonts/arial.ttf")) {
-        return 1;
-    }
-
-    sf::Text text(font);
-
-    const float pixelsParSeconde = 180.0f;
     sf::Clock horloge;
     sf::View camera = window.getDefaultView();
 
@@ -76,8 +68,6 @@ int main() {
                 const sf::Vector2f clicMonde = window.mapPixelToCoords(data->position);
                 std::cout << "x: " << clicMonde.x <<", y: " << clicMonde.y << std::endl;
                 escouade.allerVers(clicMonde, carte);
-                text.setString(std::to_string(static_cast<int>(clicMonde.x)) + " , " + std::to_string(static_cast<int>(clicMonde.y)));
-                text.setPosition({clicMonde.x - 60.0f, clicMonde.y + 40.0f});
             }
         }
 
@@ -89,7 +79,6 @@ int main() {
         window.clear();
         carte.dessiner(window);
         escouade.dessiner(window);
-        window.draw(text);
         window.display();
     }
     return 0;
