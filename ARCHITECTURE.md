@@ -57,28 +57,34 @@ squad-arpg/
 │   ├── Personnage.hpp
 │   ├── Personnage.cpp
 │   ├── Deplacement.hpp
-│   └── Deplacement.cpp
+│   ├── Deplacement.cpp
+│   ├── Monstre.hpp
+│   └── Monstre.cpp
 ├── tests/
 │   ├── test_TileMap.cpp
 │   ├── test_Chemin.cpp
 │   ├── test_Escouade.cpp
-│   └── test_Deplacement.cpp
+│   ├── test_Deplacement.cpp
+│   └── test_Monstre.cpp
 ├── .gitignore
 ├── CLAUDE.md
 ├── ARCHITECTURE.md
 └── ROADMAP.md
 ```
 
-Cinq modules : `TileMap` (l'environnement de jeu), `Escouade` (le point
+Six modules : `TileMap` (l'environnement de jeu), `Escouade` (le point
 de contrôle, l'ancre, qui suit un chemin calculé par le A* et possède
 les personnages), `Chemin` (recherche de chemin A*, utilisé uniquement
 par `Escouade`), `Personnage` (un membre de l'escouade, qui sait aller
-vers un point) et `Deplacement` (collision/glissement partagée entre
-`Escouade` et `Personnage`). `main.cpp` ne garde que la fenêtre, la
-boucle de jeu, les événements, l'état de la souris, la caméra et la
-carte (son plan) ; il ne connaît ni `Chemin` ni `Personnage`. La
-structure continue d'évoluer par nécessité réelle, pas par anticipation
-(voir principes ci-dessous).
+vers un point), `Deplacement` (collision/glissement partagée entre
+`Escouade` et `Personnage`) et `Monstre` (un ennemi immobile, avec des
+points de vie, possédé directement par `main.cpp`, sans lien avec
+`Escouade` ni `Personnage`). `main.cpp` garde la fenêtre, la boucle de
+jeu, les événements (fermeture, et maintenant l'attaque au clic), l'état
+de la souris (déplacement), la caméra, la carte (son plan) et le
+monstre ; il ne connaît ni `Chemin` ni `Personnage`. La structure
+continue d'évoluer par nécessité réelle, pas par anticipation (voir
+principes ci-dessous).
 
 Deux exécutables : `main` (le jeu) et `tests` (les tests Catch2). Les deux
 se lient à la bibliothèque statique `squad_core`, qui contient la logique
@@ -231,6 +237,54 @@ Utilisée par `Escouade::mettreAJour` (pour l'ancre) et par
 haut-gauche attendu par la fonction, comme `Escouade::getCentre()` le
 fait dans l'autre sens).
 
+### `Monstre` — un ennemi immobile
+
+Un carré rouge de 30 × 30, avec des points de vie et une barre de vie.
+Pas de classe de base commune avec `Personnage`, pas d'héritage : les
+deux classes restent indépendantes, même si toutes les deux stockent un
+centre et une taille — la ressemblance n'implique pas de dépendance
+commune tant qu'aucun comportement partagé ne le justifie.
+
+- **Stocke son centre** (`m_centre`), comme `Personnage`.
+- **Données membres** : `m_centre`, `m_taille` (30 × 30, fixée dans le
+  constructeur), `m_pointsDeVie` et `m_pointsDeVieMax` (`100` chacun à
+  la création). Pas de couleur stockée : toujours rouge, donc une
+  valeur fixe directement dans `dessiner`, pas un membre (contrairement
+  à `Personnage`, qui a besoin d'une couleur différente par instance).
+- **`explicit Monstre(sf::Vector2f centre)`** : seul le centre est un
+  paramètre.
+- **`contient`** réutilise `sf::FloatRect::contains` plutôt que de
+  réimplémenter sa convention à la main (bords gauche/haut inclus,
+  droit/bas exclus).
+- **`recevoirDegats` ne descend jamais sous zéro** : `m_pointsDeVie` est
+  ramené à `0` s'il devient négatif, pour qu'un coup qui dépasse le
+  reste ne laisse pas un nombre négatif stocké.
+- **Pas d'accesseur pour les points de vie** : les tests passent par
+  `estVivant()`, et la barre de vie est dessinée par la classe
+  elle-même — aucun autre code n'a besoin de lire `m_pointsDeVie`
+  directement.
+- **Barre de vie dans `dessiner`** : un rectangle de fond sombre (largeur
+  du monstre, quelques pixels au-dessus de lui), recouvert d'un
+  rectangle vert dont la largeur est `m_taille.x * (m_pointsDeVie /
+  m_pointsDeVieMax)`.
+- **Possédé par `main.cpp`**, pas par `Escouade` : une simple variable
+  `Monstre`, pas un `std::vector` ni un `std::optional` (un seul monstre
+  pour l'instant, qui ne meurt jamais au sens de disparaître de la
+  mémoire — seulement de ne plus être dessiné ni attaquable).
+- **Pas de collision avec lui** : l'escouade et les personnages lui
+  passent dessus ; le A* l'ignore complètement (il n'existe pas du
+  point de vue de `TileMap`).
+
+Interface publique :
+
+| Fonction | Rôle |
+|---|---|
+| `explicit Monstre(sf::Vector2f centre)` | Crée le monstre à ce centre, 30 × 30, 100 points de vie |
+| `void dessiner(sf::RenderTarget& rendu) const` | Dessine le monstre et sa barre de vie |
+| `bool contient(sf::Vector2f point) const` | Le point (pixels du monde) est-il dans le carré du monstre ? |
+| `void recevoirDegats(int quantite)` | Retire des points de vie, sans descendre sous zéro |
+| `bool estVivant() const` | Points de vie `> 0` |
+
 ## Principes de conception à respecter
 
 1. **Ne jamais anticiper.** On ne construit que ce qui est nécessaire pour
@@ -265,8 +319,8 @@ fait dans l'autre sens).
   (`find_package(Catch2 3 REQUIRED)`).
 - **Bibliothèque `squad_core`** (`add_library(squad_core STATIC
   src/TileMap.cpp src/Escouade.cpp src/Chemin.cpp src/Personnage.cpp
-  src/Deplacement.cpp)`) : regroupe la logique de jeu, réutilisée par
-  `main` et par `tests`.
+  src/Deplacement.cpp src/Monstre.cpp)`) : regroupe la logique de jeu,
+  réutilisée par `main` et par `tests`.
   - `target_link_libraries(squad_core PUBLIC SFML::Graphics)` : `PUBLIC`
     parce que les en-têtes de `squad_core` (`TileMap.hpp`, `Escouade.hpp`)
     incluent des en-têtes SFML — cette dépendance fait partie de son
@@ -280,9 +334,9 @@ fait dans l'autre sens).
   final.
 - **`tests`** (`add_executable(tests tests/test_TileMap.cpp
   tests/test_Chemin.cpp tests/test_Escouade.cpp
-  tests/test_Deplacement.cpp)`) se lie à `squad_core` et à
-  `Catch2::Catch2WithMain` (qui fournit le `main()` des tests) ; lancé
-  directement (`./build/tests.exe`), sans CTest.
+  tests/test_Deplacement.cpp tests/test_Monstre.cpp)`) se lie à
+  `squad_core` et à `Catch2::Catch2WithMain` (qui fournit le `main()`
+  des tests) ; lancé directement (`./build/tests.exe`), sans CTest.
 - **Générateur Ninja** (`cmake -S . -B build -G Ninja`). Ninja relance la
   configuration automatiquement quand `CMakeLists.txt` change.
 
@@ -302,21 +356,32 @@ fait dans l'autre sens).
 
 ### Entrée souris
 
-- **Lecture d'état plutôt qu'événement** (étape 13) : `main.cpp` ne
-  traite plus `sf::Event::MouseButtonPressed` (qui n'arrive qu'une fois
-  par clic) ; à la place, `sf::Mouse::isButtonPressed(sf::Mouse::
-  Button::Left)` est interrogé à chaque image, après la boucle
-  d'événements et avant `escouade.mettreAJour`. Tant que le bouton reste
-  enfoncé, `escouade.allerVers` est rappelée à chaque image avec la
-  position courante du curseur — pas de second mode de déplacement
-  « en direction du curseur », c'est le même A* + lissage qu'un clic
-  ponctuel, simplement redonné en continu.
+- **Déplacement : lecture d'état** (étape 13) : `main.cpp` traite
+  `sf::Event::MouseButtonPressed` uniquement pour l'attaque (voir
+  ci-dessous) ; pour le déplacement, `sf::Mouse::isButtonPressed(
+  sf::Mouse::Button::Left)` est interrogé à chaque image, après la
+  boucle d'événements et avant `escouade.mettreAJour`. Tant que le
+  bouton reste enfoncé, `escouade.allerVers` est rappelée à chaque image
+  avec la position courante du curseur — pas de second mode de
+  déplacement « en direction du curseur », c'est le même A* + lissage
+  qu'un clic ponctuel, simplement redonné en continu.
 - **`window.hasFocus()`** : condition nécessaire, parce que
   `isButtonPressed` lit l'état global de la souris au niveau du système,
   même quand la fenêtre du jeu n'a pas le focus.
 - **Pas de limitation de fréquence** : un appel au A* par image, jugé
   négligeable sur la carte actuelle ; à revisiter seulement si un
   problème de performance est mesuré.
+- **Attaque : événement** (étape 15) : l'événement
+  `MouseButtonPressed` (bouton gauche) est redevenu nécessaire pour le
+  monstre, parce que l'attaque doit être un coup par clic, pas un coup
+  par image — contrairement au déplacement, qui veut justement se
+  répéter tant que le bouton reste enfoncé. Les deux coexistent sans
+  conflit : l'événement gère l'attaque (si le monstre est vivant et que
+  le clic le touche, `monstre.recevoirDegats(degatsParClic)`), la
+  lecture d'état gère le déplacement ; un même clic sur le monstre
+  déclenche les deux indépendamment, sans cas particulier à écrire.
+  `degatsParClic` (20) est une constante locale à `main.cpp` — une
+  propriété de l'attaque, pas du monstre.
 - **Texte de position retiré** (ainsi que la police `arial.ttf` qui ne
   servait qu'à lui) : plus rien n'affiche la position du curseur à
   l'écran.
@@ -583,10 +648,10 @@ fait dans l'autre sens).
 - **Catch2 3 adopté**, installé via MSYS2
   (`mingw-w64-ucrt-x86_64-catch`), trouvé par `find_package(Catch2 3
   REQUIRED)` comme SFML (pas de `FetchContent`).
-- **Un seul exécutable `tests`**, quatre fichiers (`test_TileMap.cpp`,
-  `test_Chemin.cpp`, `test_Escouade.cpp`, `test_Deplacement.cpp`), lancé
-  directement (`./build/tests.exe`) — pas de CTest ni de
-  `catch_discover_tests`.
+- **Un seul exécutable `tests`**, cinq fichiers (`test_TileMap.cpp`,
+  `test_Chemin.cpp`, `test_Escouade.cpp`, `test_Deplacement.cpp`,
+  `test_Monstre.cpp`), lancé directement (`./build/tests.exe`) — pas de
+  CTest ni de `catch_discover_tests`.
 - **Petits plans dédiés** : chaque test construit son propre plan texte
   (3×3, 4×4, 5×5…), jamais la carte de `main.cpp`, pour isoler exactement
   le cas testé.
@@ -635,3 +700,11 @@ fait dans l'autre sens).
 - **`Personnage` et la formation ne sont pas encore testés** : seule la
   fonction partagée `deplacerAvecGlissement` (module `Deplacement`) est
   couverte. À discuter séparément si le besoin se présente.
+- **`Monstre` testé par son interface publique** (`contient`,
+  `recevoirDegats`, `estVivant`) : bords d'inclusion/exclusion de
+  `contient` vérifiés séparément sur chaque côté (gauche/haut inclus,
+  droit/bas exclus) ; `recevoirDegats`/`estVivant` couvrent le cas d'un
+  coup qui dépasse le reste des points de vie et celui d'un coup
+  supplémentaire une fois déjà mort. Le branchement dans `main.cpp`
+  (événement de clic, constante `degatsParClic`) n'est pas testé — tout
+  se passe dans `main.cpp`, hors de portée de `tests/`.

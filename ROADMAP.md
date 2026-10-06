@@ -307,20 +307,60 @@ Cause : chaque personnage poursuit sa cible en ligne droite
 déplacement qui suit l'arc plutôt qu'une ligne droite — les deux hors de
 portée de cette étape (cf. ARCHITECTURE.md).
 
-### Étape 15 — À définir
+### Étape 15 — Un monstre avec des points de vie ✅ TERMINÉE
+
+Un monstre immobile (carré rouge, avec une barre de vie) est présent sur
+la carte. Chaque clic gauche sur lui retire des points de vie ; à zéro,
+il disparaît. Pas de classe de base commune avec `Personnage`, pas
+d'héritage ; `main.cpp` possède le monstre (une simple variable), pas
+`Escouade`.
+
+1. [x] `Monstre.hpp`/`.cpp` : structure de données (`m_centre`,
+       `m_taille`, `m_pointsDeVie`) et constructeur `explicit` (30 × 30,
+       100 points de vie) ; ajout à `squad_core`
+2. [x] `Monstre::dessiner` (carré rouge) ; création dans `main.cpp` à
+       `(300, 100)`, dans la première pièce, vérifiée sans chevauchement
+       de mur ; dessiné après la carte, avant l'escouade (pour qu'elle
+       apparaisse par-dessus en lui passant dessus)
+3. [x] `Monstre::contient(sf::Vector2f)` (convention `sf::FloatRect::
+       contains` : bords gauche/haut inclus, droit/bas exclus) ;
+       `tests/test_Monstre.cpp` créé et ajouté au CMake
+4. [x] `Monstre::recevoirDegats(int)` (jamais sous zéro) et
+       `Monstre::estVivant() const` ; tests (vivant à la création,
+       encore vivant après 80 dégâts, mort après 100, mort après un coup
+       qui dépasse le reste, toujours mort après un coup de plus)
+5. [x] Branchement dans `main.cpp` : l'événement `MouseButtonPressed`
+       (bouton gauche) revient dans la boucle d'événements, uniquement
+       pour l'attaque (20 points de dégâts par clic, constante locale) —
+       un coup par clic, pas par image ; la lecture d'état de l'étape 13
+       reste inchangée pour le déplacement ; un clic sur le monstre fait
+       les deux sans cas particulier ; le monstre mort n'est plus dessiné
+       ni attaquable, mais continue d'exister
+6. [x] Membre des points de vie maximum ; barre de vie dessinée dans
+       `Monstre::dessiner` (fond sombre + rectangle vert proportionnel
+       aux points de vie restants, au-dessus du monstre)
+
+Aucune modification d'`Escouade`, `Personnage`, `Chemin`, `TileMap`,
+`Deplacement`, ni des tests existants ; les 58 tests passent toujours,
+plus 11 nouveaux sur `Monstre`.
+
+### Étape 16 — À définir
 
 Pistes discutées :
 - Collision entre personnages, ou déplacement suivant l'arc de rotation
   plutôt qu'une ligne droite, pour éliminer le chevauchement résiduel
   lors d'un demi-tour rapide (voir limite connue de l'étape 14)
+- Attaque continue (bouton tenu), cadence d'attaque, verrouillage de
+  cible sur le monstre (explicitement reportés à cette étape)
+- Déplacement, comportement ou attaque du monstre ; plusieurs monstres
 - Un lissage plus serré autour des coins (*funnel algorithm* ou Theta*),
   si le contournement actuel des piliers s'avère insuffisant
 - Finitions : caméra bloquée aux bords de la carte, affichage fixe à
   l'écran, police committée dans le dépôt
 - Limitation de fréquence des appels à `allerVers`, si un problème de
   performance est mesuré sur une carte plus grande
-- Types de personnages, statistiques, combat, actions (hors de portée
-  explicite des étapes 12 à 14)
+- Types de personnages, statistiques, combat (hors de portée explicite
+  des étapes 12 à 15)
 
 ## État actuel (à mettre à jour à chaque session)
 
@@ -349,13 +389,22 @@ Pistes discutées :
   curseur à chaque image (lecture d'état, pas d'événement) ; un clic
   bref reste un simple aller-vers ponctuel. Plus de texte de position ni
   de police chargée dans `main.cpp` (retirés à l'étape 13)
+- Un monstre immobile (classe `Monstre`, carré rouge de 30 × 30, 100
+  points de vie, barre de vie au-dessus de lui) est présent dans la
+  première pièce, à `(300, 100)` ; `main.cpp` le possède directement
+  (pas `Escouade`). Chaque clic gauche qui le touche lui retire 20
+  points de vie (un coup par clic, pas par image) et fait aussi avancer
+  l'escouade vers ce point, comme n'importe quel clic ; à zéro, il n'est
+  plus dessiné ni attaquable, mais l'objet continue d'exister ; pas de
+  collision avec lui (l'escouade et les personnages lui passent dessus)
 - Logique de jeu (`TileMap`, `Escouade`, `Chemin`, `Personnage`,
-  `Deplacement`) dans une bibliothèque `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 58 tests : 32 sur `TileMap`, 13 sur `Chemin`,
-  9 sur `Escouade`, 4 sur `Deplacement`)
+  `Deplacement`, `Monstre`) dans une bibliothèque `squad_core`, testée
+  avec Catch2 3 (`./build/tests.exe`, 69 tests : 32 sur `TileMap`,
+  13 sur `Chemin`, 9 sur `Escouade`, 4 sur `Deplacement`,
+  11 sur `Monstre`)
 - Près des piliers, le contournement n'est pas toujours le plus court
   possible (voir étape 11, limite connue) — accepté pour l'instant
 - Lors d'un demi-tour rapide, deux personnages peuvent encore se
   chevaucher brièvement en traversant le centre de la formation (voir
   étape 14, limite connue) — accepté pour l'instant
-- Étape en cours : **Étape 15** — à choisir
+- Étape en cours : **Étape 16** — à choisir
