@@ -1,6 +1,7 @@
 // ./src/Escouade.cpp
 #include "Escouade.hpp"
 #include <SFML/Graphics/RectangleShape.hpp>
+#include <cmath>
 #include <SFML/Graphics/Color.hpp>
 #include "TileMap.hpp"
 #include "Chemin.hpp"
@@ -17,6 +18,7 @@ Escouade::Escouade(sf::Vector2f positionDepart)
       m_decalages({{25.0f, -25.0f}, {25.0f, 25.0f}, {-25.0f, -25.0f}, {-25.0f, 25.0f}}),
       m_orientation(),
       m_orientationVoulue(),
+      m_vitesseRotation(360.0f),
       m_personnages({
           Personnage(placePersonnage(0), sf::Color::Red),
           Personnage(placePersonnage(1), sf::Color::Yellow),
@@ -76,7 +78,6 @@ void Escouade::mettreAJour(float dt, const TileMap& carte) {
         if (distance > 0.0f) {
             m_orientationVoulue = direction.angle();
         }
-        m_orientation = m_orientationVoulue;
 
         if (distance <= pasDuTic) {
             deplacement = direction;
@@ -87,6 +88,18 @@ void Escouade::mettreAJour(float dt, const TileMap& carte) {
     }
 
     m_position = deplacerAvecGlissement(carte, sf::FloatRect(m_position, m_taille), deplacement);
+
+    // Rotation progressive vers l'orientation voulue, par le plus court
+    // côté (wrapSigned ramène l'écart entre -180° et 180°), à vitesse
+    // angulaire bornée, que l'ancre bouge ou non.
+    const sf::Angle ecart = (m_orientationVoulue - m_orientation).wrapSigned();
+    const float pasRotation = m_vitesseRotation * dt;
+    if (std::abs(ecart.asDegrees()) <= pasRotation) {
+        m_orientation = m_orientationVoulue;
+    } else {
+        const float signe = (ecart.asDegrees() > 0.0f) ? 1.0f : -1.0f;
+        m_orientation += sf::degrees(pasRotation * signe);
+    }
 
     for (std::size_t i = 0; i < m_personnages.size(); ++i) {
         m_personnages[i].mettreAJour(dt, placePersonnage(i), carte);
