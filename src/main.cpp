@@ -1,7 +1,7 @@
 // ./src/main.cpp
-#include <iostream>
 #include <SFML/Graphics.hpp>
 #include <SFML/Window/Event.hpp>
+#include <SFML/Window/Mouse.hpp>
 #include <string>
 #include <vector>
 #include "TileMap.hpp"
@@ -64,11 +64,11 @@ int main() {
             if (event->is<sf::Event::Closed>()) {
                 window.close();
             }
-            if (const auto* data = event->getIf<sf::Event::MouseButtonPressed>()) {
-                const sf::Vector2f clicMonde = window.mapPixelToCoords(data->position);
-                std::cout << "x: " << clicMonde.x <<", y: " << clicMonde.y << std::endl;
-                escouade.allerVers(clicMonde, carte);
-            }
+        }
+
+        if (window.hasFocus() && sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
+            const sf::Vector2f curseurMonde = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+            escouade.allerVers(curseurMonde, carte);
         }
 
         // MISE À JOUR
