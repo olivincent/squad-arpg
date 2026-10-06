@@ -75,8 +75,8 @@ les personnages), `Chemin` (recherche de chemin A*, utilisé uniquement
 par `Escouade`), `Personnage` (un membre de l'escouade, qui sait aller
 vers un point) et `Deplacement` (collision/glissement partagée entre
 `Escouade` et `Personnage`). `main.cpp` ne garde que la fenêtre, la
-boucle de jeu, les événements, la caméra, la carte (son plan) et le
-texte de position ; il ne connaît ni `Chemin` ni `Personnage`. La
+boucle de jeu, les événements, l'état de la souris, la caméra et la
+carte (son plan) ; il ne connaît ni `Chemin` ni `Personnage`. La
 structure continue d'évoluer par nécessité réelle, pas par anticipation
 (voir principes ci-dessous).
 
@@ -285,8 +285,10 @@ fait dans l'autre sens).
 
 ### Boucle de jeu et déplacement
 
-- **Boucle de jeu en trois phases** : événements (le clic appelle
-  `escouade.allerVers`), mise à jour (`escouade.mettreAJour`), dessin.
+- **Boucle de jeu en quatre phases** : événements (fermeture de la
+  fenêtre), entrée souris (`escouade.allerVers` si le bouton gauche est
+  enfoncé — voir « Entrée souris » ci-dessous), mise à jour
+  (`escouade.mettreAJour`), dessin.
 - **Déplacement à pas fixe** plutôt que proportionnel à la distance :
   vitesse constante, comme un personnage d'ARPG.
 - **Delta time** (`sf::Clock::restart()`) : vitesse exprimée en pixels
@@ -294,6 +296,27 @@ fait dans l'autre sens).
   `setFramerateLimit(60)` est conservé pour limiter l'usage du CPU, mais
   la logique n'en dépend plus. L'horloge reste dans `main.cpp` ; `dt` est
   passé en paramètre à l'escouade.
+
+### Entrée souris
+
+- **Lecture d'état plutôt qu'événement** (étape 13) : `main.cpp` ne
+  traite plus `sf::Event::MouseButtonPressed` (qui n'arrive qu'une fois
+  par clic) ; à la place, `sf::Mouse::isButtonPressed(sf::Mouse::
+  Button::Left)` est interrogé à chaque image, après la boucle
+  d'événements et avant `escouade.mettreAJour`. Tant que le bouton reste
+  enfoncé, `escouade.allerVers` est rappelée à chaque image avec la
+  position courante du curseur — pas de second mode de déplacement
+  « en direction du curseur », c'est le même A* + lissage qu'un clic
+  ponctuel, simplement redonné en continu.
+- **`window.hasFocus()`** : condition nécessaire, parce que
+  `isButtonPressed` lit l'état global de la souris au niveau du système,
+  même quand la fenêtre du jeu n'a pas le focus.
+- **Pas de limitation de fréquence** : un appel au A* par image, jugé
+  négligeable sur la carte actuelle ; à revisiter seulement si un
+  problème de performance est mesuré.
+- **Texte de position retiré** (ainsi que la police `arial.ttf` qui ne
+  servait qu'à lui) : plus rien n'affiche la position du curseur à
+  l'écran.
 
 ### Carte, collision et dessin
 
@@ -523,12 +546,11 @@ fait dans l'autre sens).
 - **Conséquence acceptée** : près des bords de la carte, la caméra montre
   du noir au-delà des murs. Bloquer la caméra aux bords de la carte reste
   une option pour plus tard.
-- **Clic** : converti avec `window.mapPixelToCoords(...)`. Les événements
-  étant traités en début d'image, la vue utilisée est celle de l'image
-  précédente, c'est-à-dire celle affichée au moment du clic — ce qui est
-  voulu.
-- **Texte de position** : placé en coordonnées du monde au point cliqué,
-  il reste attaché à cet endroit de la carte quand elle défile.
+- **Position du curseur** : convertie avec `window.mapPixelToCoords(...)`
+  après la boucle d'événements, donc avec la vue de l'image précédente —
+  celle effectivement affichée à l'écran au moment de la lecture — ce
+  qui est voulu (même raisonnement que pour l'ancien clic, voir
+  « Entrée souris » ci-dessous).
 
 ### Tests
 

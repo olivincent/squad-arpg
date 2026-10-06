@@ -258,16 +258,37 @@ de collision entre personnages ni entre un personnage et l'ancre ; un
 personnage peut rester accroché derrière un coin de mur tant que
 l'escouade ne repasse pas par là.
 
-### Étape 13 — À définir
+### Étape 13 — Déplacement continu tant que le bouton est enfoncé ✅ TERMINÉE
+
+Tant que le bouton gauche de la souris est enfoncé, l'escouade reçoit à
+chaque image l'ordre d'aller vers le point du monde sous le curseur :
+elle avance sans arrêt et ajuste sa trajectoire en continu, comme dans
+un ARPG classique.
+
+1. [x] Retrait du texte de position et de la police (`arial.ttf`)
+       associée dans `main.cpp` : suppression pure, le déplacement au
+       clic ne change pas
+2. [x] Remplacement de l'événement `MouseButtonPressed` par la lecture
+       de l'état (`sf::Mouse::isButtonPressed`, uniquement si
+       `window.hasFocus()`) : à chaque image, la position du curseur est
+       reconvertie en coordonnées du monde et redonnée à `allerVers`
+       (A* + lissage, pas de second mode « direction du curseur »)
+
+Seul `main.cpp` a été modifié ; `Escouade` et le reste de `squad_core`
+sont inchangés, les 58 tests passent sans modification.
+
+### Étape 14 — À définir
 
 Pistes discutées :
 - Rotation progressive de la formation plutôt qu'instantanée
 - Un lissage plus serré autour des coins (*funnel algorithm* ou Theta*),
   si le contournement actuel des piliers s'avère insuffisant
-- Finitions : caméra bloquée aux bords de la carte, texte qui suit
-  l'escouade ou affichage fixe à l'écran, police committée dans le dépôt
+- Finitions : caméra bloquée aux bords de la carte, affichage fixe à
+  l'écran, police committée dans le dépôt
+- Limitation de fréquence des appels à `allerVers`, si un problème de
+  performance est mesuré sur une carte plus grande
 - Types de personnages, statistiques, combat, actions (hors de portée
-  explicite de l'étape 12)
+  explicite des étapes 12 et 13)
 
 ## État actuel (à mettre à jour à chaque session)
 
@@ -291,9 +312,11 @@ Pistes discutées :
   instantanée)
 - Caméra (`sf::View`) toujours centrée sur l'escouade ; du noir apparaît
   au-delà des bords de la carte
-- Police : `arial.ttf` du système Windows, chargée via chemin absolu — à
-  revoir plus tard pour une police committée dans le projet
-- Le texte de position s'affiche au point cliqué (coordonnées du monde)
+- Tant que le bouton gauche de la souris est enfoncé et que la fenêtre a
+  le focus, l'escouade reçoit l'ordre d'aller vers le point sous le
+  curseur à chaque image (lecture d'état, pas d'événement) ; un clic
+  bref reste un simple aller-vers ponctuel. Plus de texte de position ni
+  de police chargée dans `main.cpp` (retirés à l'étape 13)
 - Logique de jeu (`TileMap`, `Escouade`, `Chemin`, `Personnage`,
   `Deplacement`) dans une bibliothèque `squad_core`, testée avec Catch2 3
   (`./build/tests.exe`, 58 tests : 32 sur `TileMap`, 13 sur `Chemin`,
@@ -302,4 +325,4 @@ Pistes discutées :
   possible (voir étape 11, limite connue) — accepté pour l'instant
 - Rotation de la formation instantanée, pas progressive (voir étape 12,
   limite connue) — accepté pour l'instant
-- Étape en cours : **Étape 13** — à choisir
+- Étape en cours : **Étape 14** — à choisir
