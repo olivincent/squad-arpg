@@ -57,6 +57,7 @@ int main() {
     Escouade escouade({100.0f, 100.0f});
     Monstre monstre({300.0f, 100.0f});
     const int degatsParClic = 20;
+    bool cibleVerrouillee = false;
 
     sf::Clock horloge;
     sf::View camera = window.getDefaultView();
@@ -72,12 +73,17 @@ int main() {
                     const sf::Vector2f clicMonde = window.mapPixelToCoords(data->position);
                     if (monstre.estVivant() && monstre.contient(clicMonde)) {
                         monstre.recevoirDegats(degatsParClic);
+                        cibleVerrouillee = true;
                     }
                 }
             }
         }
 
-        if (window.hasFocus() && sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
+        if (!window.hasFocus() || !sf::Mouse::isButtonPressed(sf::Mouse::Button::Left) || !monstre.estVivant()) {
+            cibleVerrouillee = false;
+        }
+
+        if (window.hasFocus() && sf::Mouse::isButtonPressed(sf::Mouse::Button::Left) && !cibleVerrouillee) {
             const sf::Vector2f curseurMonde = window.mapPixelToCoords(sf::Mouse::getPosition(window));
             escouade.allerVers(curseurMonde, carte);
         }
