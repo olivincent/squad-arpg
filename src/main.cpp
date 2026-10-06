@@ -6,6 +6,7 @@
 #include <vector>
 #include "TileMap.hpp"
 #include "Escouade.hpp"
+#include "Monstre.hpp"
 
 int main() {
     sf::RenderWindow window(sf::VideoMode({1200, 800}), "Squad-ARPG");
@@ -54,6 +55,7 @@ int main() {
     };
     TileMap carte(plan, 40.0f);
     Escouade escouade({100.0f, 100.0f});
+    Monstre monstre({300.0f, 100.0f});
 
     sf::Clock horloge;
     sf::View camera = window.getDefaultView();
@@ -78,6 +80,7 @@ int main() {
         window.setView(camera);
         window.clear();
         carte.dessiner(window);
+        monstre.dessiner(window);
         escouade.dessiner(window);
         window.display();
     }

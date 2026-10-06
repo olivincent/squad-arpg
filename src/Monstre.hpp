@@ -1,10 +1,12 @@
 // ./src/Monstre.hpp
 #pragma once
+#include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/System/Vector2.hpp>
 
 class Monstre {
 public:
     explicit Monstre(sf::Vector2f centre);
+    void dessiner(sf::RenderTarget& rendu) const;
 
 private:
     sf::Vector2f m_centre;  // pixels du monde
