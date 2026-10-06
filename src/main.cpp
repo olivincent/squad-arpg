@@ -56,6 +56,7 @@ int main() {
     TileMap carte(plan, 40.0f);
     Escouade escouade({100.0f, 100.0f});
     Monstre monstre({300.0f, 100.0f});
+    const int degatsParClic = 20;
 
     sf::Clock horloge;
     sf::View camera = window.getDefaultView();
@@ -65,6 +66,14 @@ int main() {
         while (const std::optional event = window.pollEvent()) {
             if (event->is<sf::Event::Closed>()) {
                 window.close();
+            }
+            if (const auto* data = event->getIf<sf::Event::MouseButtonPressed>()) {
+                if (data->button == sf::Mouse::Button::Left) {
+                    const sf::Vector2f clicMonde = window.mapPixelToCoords(data->position);
+                    if (monstre.estVivant() && monstre.contient(clicMonde)) {
+                        monstre.recevoirDegats(degatsParClic);
+                    }
+                }
             }
         }
 
@@ -80,7 +89,9 @@ int main() {
         window.setView(camera);
         window.clear();
         carte.dessiner(window);
-        monstre.dessiner(window);
+        if (monstre.estVivant()) {
+            monstre.dessiner(window);
+        }
         escouade.dessiner(window);
         window.display();
     }
