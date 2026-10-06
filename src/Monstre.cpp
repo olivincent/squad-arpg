@@ -2,6 +2,7 @@
 #include "Monstre.hpp"
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Color.hpp>
+#include <SFML/Graphics/Rect.hpp>
 
 Monstre::Monstre(sf::Vector2f centre)
     : m_centre(centre),
@@ -15,4 +16,8 @@ void Monstre::dessiner(sf::RenderTarget& rendu) const {
     forme.setPosition(m_centre - m_taille / 2.0f);
     forme.setFillColor(sf::Color::Red);
     rendu.draw(forme);
+}
+
+bool Monstre::contient(sf::Vector2f point) const {
+    return sf::FloatRect(m_centre - m_taille / 2.0f, m_taille).contains(point);
 }
