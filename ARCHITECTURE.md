@@ -128,7 +128,10 @@ formation en carré autour d'elle.
   de l'escouade — à atteindre dans l'ordre), `m_indexChemin` (indice du
   prochain point visé), `m_vitesse` (pixels par seconde), `m_decalages`
   (les 4 décalages de formation, pour une escouade orientée vers `+x`),
-  `m_orientation` (`sf::Angle`, `0` = vers `+x`), `m_personnages`
+  `m_orientation` (`sf::Angle`, `0` = vers `+x`, ce qu'utilise
+  `placePersonnage`), `m_orientationVoulue` (`sf::Angle`, la direction
+  vers laquelle `m_orientation` tourne progressivement),
+  `m_vitesseRotation` (degrés par seconde), `m_personnages`
   (`std::vector<Personnage>`, inclut `Personnage.hpp` en entier — un
   `std::vector` a besoin de la définition complète de son type
   d'élément).
@@ -438,21 +441,44 @@ fait dans l'autre sens).
 - **Module `Deplacement` extrait** (voir ci-dessus) pour que
   `Personnage` réutilise la même collision/glissement que l'ancre, sans
   dépendre d'`Escouade`.
-- **Orientation suit la direction voulue, pas le déplacement réel** :
-  `m_orientation` est mise à jour à partir du vecteur vers le point
-  courant du chemin *avant* l'essai de collision — si l'escouade est
-  bloquée par un mur et glisse, la formation s'oriente quand même vers
-  où elle essaie d'aller. Mise à jour seulement si l'ancre a un point à
+- **Orientation voulue et orientation réelle séparées** : `m_orientationVoulue`
+  reçoit la direction voulue de l'ancre (vecteur vers le point courant du
+  chemin, *avant* l'essai de collision — si l'escouade est bloquée par un
+  mur et glisse, la formation vise quand même la direction qu'elle
+  essayait de suivre) ; mise à jour seulement si l'ancre a un point à
   atteindre et que la distance est `> 0` (`sf::Vector2f::angle()` sur un
-  vecteur nul n'a pas de sens) ; sinon, la dernière orientation est
-  conservée.
-- **Rotation instantanée** (`rotatedBy`, pas d'interpolation) : plus
-  simple à implémenter, mais un personnage peut traverser brusquement
-  sa place à chaque virage du chemin. Accepté pour l'instant.
+  vecteur nul n'a pas de sens), sinon la dernière valeur est conservée.
+  `m_orientation`, elle, est ce qu'utilise réellement `placePersonnage`.
+- **Rotation progressive, par le plus court côté** (étape 14) :
+  `m_orientation` se rapproche de `m_orientationVoulue` à chaque
+  `mettreAJour`, que l'ancre bouge ou non (si elle s'arrête en pleine
+  rotation, la formation finit quand même de pivoter sur place).
+  L'écart, `(m_orientationVoulue - m_orientation).wrapSigned()`, est
+  ramené dans `[-180°, 180°]` pour que passer de 350° à 10° tourne de
+  +20° et non de -340°. La rotation par image est bornée à
+  `m_vitesseRotation * dt` (`m_vitesseRotation` = 360°/s, fixe, comme
+  `m_vitesse`) ; si l'écart restant est inférieur ou égal à ce pas,
+  `m_orientation` prend exactement la valeur voulue (même logique que
+  le déplacement à pas fixe de l'ancre).
 - **Limites connues** : pas de collision entre personnages ni entre un
   personnage et l'ancre ; un personnage peut rester accroché derrière un
-  coin de mur tant que l'escouade ne repasse pas par là ; rotation
-  instantanée plutôt que progressive.
+  coin de mur tant que l'escouade ne repasse pas par là.
+  - **Chevauchement résiduel lors d'un demi-tour rapide** : les 4
+    décalages forment deux paires diagonales exactement opposées
+    (`avant-gauche`/`arrière-droite`, `avant-droite`/`arrière-gauche`),
+    donc les places *idéales* de deux personnages quelconques ne se
+    chevauchent jamais pendant la rotation. Mais chaque personnage
+    poursuit sa cible en ligne droite (`Personnage::mettreAJour`), pas
+    en suivant l'arc de la rotation : lors d'un demi-tour très rapide,
+    la cible d'un personnage peut passer presque instantanément de
+    l'avant à l'arrière (ou l'inverse), et il coupe alors tout droit à
+    travers le centre de la formation — pendant qu'un autre personnage
+    fait le trajet inverse au même moment. La rotation progressive
+    réduit nettement ce phénomène (elle a remplacé un saut instantané
+    par un mouvement continu), sans l'éliminer. Le corriger demanderait
+    une vraie collision personnage-personnage, ou un déplacement qui
+    suit l'arc plutôt qu'une ligne droite — les deux explicitement hors
+    de portée de l'étape 14.
 
 ### Lissage de chemin
 

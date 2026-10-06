@@ -277,10 +277,42 @@ un ARPG classique.
 Seul `main.cpp` a été modifié ; `Escouade` et le reste de `squad_core`
 sont inchangés, les 58 tests passent sans modification.
 
-### Étape 14 — À définir
+### Étape 14 — Rotation progressive de la formation ✅ TERMINÉE
+
+L'orientation de la formation tourne progressivement vers la direction
+voulue, à vitesse angulaire limitée, plutôt que de sauter d'un coup :
+les places glissent en arc de cercle autour de l'ancre.
+
+1. [x] Membre `m_orientationVoulue` (`sf::Angle`, 0 au départ) : reçoit
+       la direction voulue de l'ancre (comme `m_orientation` avant),
+       recopiée telle quelle dans `m_orientation`. Aucun changement de
+       comportement à ce stade
+2. [x] Membre `m_vitesseRotation` (360°/s, fixé dans le constructeur) ;
+       la recopie directe est remplacée par une rotation bornée,
+       exécutée à chaque `mettreAJour` (que l'ancre bouge ou non) :
+       écart par `wrapSigned()` (toujours le plus court côté, entre
+       -180° et 180°), pas limité à `vitesseRotation * dt`, arrêt exact
+       si l'écart restant est plus petit que ce pas
+
+**Limite connue** : la rotation progressive réduit nettement les
+croisements entre personnages dans les virages, mais ne les élimine pas
+complètement. Lors d'un demi-tour très rapide, un personnage peut couper
+en ligne droite vers sa nouvelle place (de l'avant vers l'arrière ou
+inversement) pendant qu'un autre fait le trajet inverse, et les deux
+carrés se chevauchent brièvement en traversant le centre de la
+formation — même si leurs places *finales* ne se chevauchent jamais.
+Cause : chaque personnage poursuit sa cible en ligne droite
+(`Personnage::mettreAJour`), pas en suivant l'arc de la rotation ; corriger
+ça demanderait soit une vraie collision personnage-personnage, soit un
+déplacement qui suit l'arc plutôt qu'une ligne droite — les deux hors de
+portée de cette étape (cf. ARCHITECTURE.md).
+
+### Étape 15 — À définir
 
 Pistes discutées :
-- Rotation progressive de la formation plutôt qu'instantanée
+- Collision entre personnages, ou déplacement suivant l'arc de rotation
+  plutôt qu'une ligne droite, pour éliminer le chevauchement résiduel
+  lors d'un demi-tour rapide (voir limite connue de l'étape 14)
 - Un lissage plus serré autour des coins (*funnel algorithm* ou Theta*),
   si le contournement actuel des piliers s'avère insuffisant
 - Finitions : caméra bloquée aux bords de la carte, affichage fixe à
@@ -288,7 +320,7 @@ Pistes discutées :
 - Limitation de fréquence des appels à `allerVers`, si un problème de
   performance est mesuré sur une carte plus grande
 - Types de personnages, statistiques, combat, actions (hors de portée
-  explicite des étapes 12 et 13)
+  explicite des étapes 12 à 14)
 
 ## État actuel (à mettre à jour à chaque session)
 
@@ -308,8 +340,8 @@ Pistes discutées :
   20 × 20, 240 px/s) qui tiennent une formation en carré autour de
   l'ancre, bloqués par les murs et glissant le long d'eux comme elle
   (fonction partagée `deplacerAvecGlissement`, module `Deplacement`) ;
-  la formation pivote selon la direction de marche (rotation
-  instantanée)
+  la formation pivote progressivement vers la direction de marche
+  (360°/s, toujours par le plus court côté)
 - Caméra (`sf::View`) toujours centrée sur l'escouade ; du noir apparaît
   au-delà des bords de la carte
 - Tant que le bouton gauche de la souris est enfoncé et que la fenêtre a
@@ -323,6 +355,7 @@ Pistes discutées :
   9 sur `Escouade`, 4 sur `Deplacement`)
 - Près des piliers, le contournement n'est pas toujours le plus court
   possible (voir étape 11, limite connue) — accepté pour l'instant
-- Rotation de la formation instantanée, pas progressive (voir étape 12,
-  limite connue) — accepté pour l'instant
-- Étape en cours : **Étape 14** — à choisir
+- Lors d'un demi-tour rapide, deux personnages peuvent encore se
+  chevaucher brièvement en traversant le centre de la formation (voir
+  étape 14, limite connue) — accepté pour l'instant
+- Étape en cours : **Étape 15** — à choisir
