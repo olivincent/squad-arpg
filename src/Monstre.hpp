@@ -8,6 +8,8 @@ public:
     explicit Monstre(sf::Vector2f centre);
     void dessiner(sf::RenderTarget& rendu) const;
     bool contient(sf::Vector2f point) const;
+    void recevoirDegats(int quantite);
+    bool estVivant() const;
 
 private:
     sf::Vector2f m_centre;  // pixels du monde

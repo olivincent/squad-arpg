@@ -21,3 +21,14 @@ void Monstre::dessiner(sf::RenderTarget& rendu) const {
 bool Monstre::contient(sf::Vector2f point) const {
     return sf::FloatRect(m_centre - m_taille / 2.0f, m_taille).contains(point);
 }
+
+void Monstre::recevoirDegats(int quantite) {
+    m_pointsDeVie -= quantite;
+    if (m_pointsDeVie < 0) {
+        m_pointsDeVie = 0;
+    }
+}
+
+bool Monstre::estVivant() const {
+    return m_pointsDeVie > 0;
+}

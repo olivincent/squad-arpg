@@ -42,3 +42,45 @@ TEST_CASE("contient renvoie faux pour un point sur le bord bas") {
 
     REQUIRE_FALSE(monstre.contient({100.0f, 115.0f}));
 }
+
+// Le monstre a 100 points de vie à la création.
+
+TEST_CASE("Le monstre est vivant à la création") {
+    const Monstre monstre({100.0f, 100.0f});
+
+    REQUIRE(monstre.estVivant());
+}
+
+TEST_CASE("Le monstre est encore vivant après 80 points de dégâts") {
+    Monstre monstre({100.0f, 100.0f});
+
+    monstre.recevoirDegats(80);
+
+    REQUIRE(monstre.estVivant());
+}
+
+TEST_CASE("Le monstre est mort après 100 points de dégâts") {
+    Monstre monstre({100.0f, 100.0f});
+
+    monstre.recevoirDegats(100);
+
+    REQUIRE_FALSE(monstre.estVivant());
+}
+
+TEST_CASE("Le monstre est mort après un coup qui dépasse les points de vie restants") {
+    Monstre monstre({100.0f, 100.0f});
+
+    monstre.recevoirDegats(80); // reste 20 points de vie
+    monstre.recevoirDegats(50); // dépasse largement le reste
+
+    REQUIRE_FALSE(monstre.estVivant());
+}
+
+TEST_CASE("Le monstre reste mort après un coup supplémentaire") {
+    Monstre monstre({100.0f, 100.0f});
+
+    monstre.recevoirDegats(100);
+    monstre.recevoirDegats(1);
+
+    REQUIRE_FALSE(monstre.estVivant());
+}
