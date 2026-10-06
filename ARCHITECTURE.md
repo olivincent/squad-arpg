@@ -80,16 +80,17 @@ vers un point), `Deplacement` (collision/glissement partagée entre
 `Escouade` et `Personnage`) et `Monstre` (un ennemi immobile, avec des
 points de vie, possédé directement par `main.cpp`, sans lien avec
 `Escouade` ni `Personnage`). `main.cpp` garde la fenêtre, la boucle de
-jeu, les événements (fermeture, et maintenant l'attaque au clic), l'état
-de la souris (déplacement), la caméra, la carte (son plan) et le
-monstre ; il ne connaît ni `Chemin` ni `Personnage`. La structure
-continue d'évoluer par nécessité réelle, pas par anticipation (voir
-principes ci-dessous).
+jeu, les événements (fermeture, et le verrouillage de cible sur le
+monstre), l'état de la souris (déplacement), le minuteur de recharge
+d'attaque, la caméra, la carte (son plan) et le monstre ; il ne connaît
+ni `Chemin` ni `Personnage`. La structure continue d'évoluer par
+nécessité réelle, pas par anticipation (voir principes ci-dessous).
 
 Deux exécutables : `main` (le jeu) et `tests` (les tests Catch2). Les deux
-se lient à la bibliothèque statique `squad_core`, qui contient la logique
-de jeu (`TileMap`, `Escouade`) indépendamment de la fenêtre et de la
-boucle de jeu.
+se lient à la bibliothèque statique `squad_core`, qui contient toute la
+logique de jeu (`TileMap`, `Escouade`, `Chemin`, `Personnage`,
+`Deplacement`, `Monstre`) indépendamment de la fenêtre et de la boucle de
+jeu.
 
 ## Modules
 
@@ -342,10 +343,12 @@ Interface publique :
 
 ### Boucle de jeu et déplacement
 
-- **Boucle de jeu en quatre phases** : événements (fermeture de la
-  fenêtre), entrée souris (`escouade.allerVers` si le bouton gauche est
-  enfoncé — voir « Entrée souris » ci-dessous), mise à jour
-  (`escouade.mettreAJour`), dessin.
+- **Boucle de jeu** : événements (fermeture de la fenêtre, et
+  verrouillage de cible sur un clic qui touche le monstre), recharge et
+  attaque, retrait du verrou, entrée souris (`escouade.allerVers` si le
+  bouton gauche est enfoncé et la cible non verrouillée — voir « Entrée
+  souris et attaque » ci-dessous), mise à jour (`escouade.mettreAJour`),
+  dessin.
 - **Déplacement à pas fixe** plutôt que proportionnel à la distance :
   vitesse constante, comme un personnage d'ARPG.
 - **Delta time** (`sf::Clock::restart()`) : vitesse exprimée en pixels
@@ -354,34 +357,57 @@ Interface publique :
   la logique n'en dépend plus. L'horloge reste dans `main.cpp` ; `dt` est
   passé en paramètre à l'escouade.
 
-### Entrée souris
+### Entrée souris et attaque
 
-- **Déplacement : lecture d'état** (étape 13) : `main.cpp` traite
-  `sf::Event::MouseButtonPressed` uniquement pour l'attaque (voir
-  ci-dessous) ; pour le déplacement, `sf::Mouse::isButtonPressed(
-  sf::Mouse::Button::Left)` est interrogé à chaque image, après la
-  boucle d'événements et avant `escouade.mettreAJour`. Tant que le
-  bouton reste enfoncé, `escouade.allerVers` est rappelée à chaque image
-  avec la position courante du curseur — pas de second mode de
-  déplacement « en direction du curseur », c'est le même A* + lissage
-  qu'un clic ponctuel, simplement redonné en continu.
+- **Déplacement : lecture d'état** (étape 13) : `sf::Mouse::
+  isButtonPressed(sf::Mouse::Button::Left)` est interrogé à chaque
+  image, après la boucle d'événements et avant `escouade.mettreAJour`.
+  Tant que le bouton reste enfoncé (et que la cible n'est pas
+  verrouillée sur le monstre, voir ci-dessous), `escouade.allerVers` est
+  rappelée à chaque image avec la position courante du curseur — pas de
+  second mode de déplacement « en direction du curseur », c'est le même
+  A* + lissage qu'un clic ponctuel, simplement redonné en continu.
 - **`window.hasFocus()`** : condition nécessaire, parce que
   `isButtonPressed` lit l'état global de la souris au niveau du système,
   même quand la fenêtre du jeu n'a pas le focus.
 - **Pas de limitation de fréquence** : un appel au A* par image, jugé
   négligeable sur la carte actuelle ; à revisiter seulement si un
   problème de performance est mesuré.
-- **Attaque : événement** (étape 15) : l'événement
-  `MouseButtonPressed` (bouton gauche) est redevenu nécessaire pour le
-  monstre, parce que l'attaque doit être un coup par clic, pas un coup
-  par image — contrairement au déplacement, qui veut justement se
-  répéter tant que le bouton reste enfoncé. Les deux coexistent sans
-  conflit : l'événement gère l'attaque (si le monstre est vivant et que
-  le clic le touche, `monstre.recevoirDegats(degatsParClic)`), la
-  lecture d'état gère le déplacement ; un même clic sur le monstre
-  déclenche les deux indépendamment, sans cas particulier à écrire.
-  `degatsParClic` (20) est une constante locale à `main.cpp` — une
-  propriété de l'attaque, pas du monstre.
+- **Verrouillage de cible : événement, pas d'état** (étape 16) :
+  l'événement `MouseButtonPressed` (bouton gauche) sert uniquement à
+  **poser** le verrou (`cibleVerrouillee = true`) si le monstre est
+  vivant et que le point cliqué le contient — il n'inflige plus de
+  dégâts lui-même. Nécessaire en tant qu'événement (pas lecture d'état)
+  parce qu'il ne doit se déclencher qu'à l'instant du clic, une fois,
+  même si le bouton reste ensuite enfoncé.
+- **Retrait du verrou : lecture d'état, pas d'événement
+  `MouseButtonReleased`** : après la boucle d'événements, le verrou
+  retombe si la fenêtre n'a plus le focus, si le bouton gauche n'est
+  plus enfoncé, ou si le monstre est mort. La position du curseur ne
+  compte plus une fois le verrou posé — aucune zone de tolérance autour
+  du monstre.
+- **Recharge et attaque continue** : `rechargeAttaque` (`float`,
+  secondes) est décrémentée de `dt` à chaque image, sans descendre sous
+  zéro — le même `dt` que celui passé à `escouade.mettreAJour`. Un coup
+  (`monstre.recevoirDegats(degatsParClic)`) n'est permis que si la cible
+  est verrouillée **et** que la recharge est à zéro ; après un coup, la
+  recharge repart à `tempsRecharge` (0,5 s). Conséquence : cliquer très
+  vite ne frappe pas plus souvent que tenir le bouton, puisque seul le
+  temps réel écoulé fait descendre la recharge.
+- **Ordre précis après la boucle d'événements** : 1) diminuer la
+  recharge ; 2) attaquer si verrou posé et recharge à zéro ; 3) retirer
+  le verrou si nécessaire ; 4) donner l'ordre de déplacement si le
+  bouton est enfoncé et la cible non verrouillée. L'attaque (2) passe
+  **avant** le retrait du verrou (3) pour qu'un clic très bref, posé et
+  retiré dans la même image, compte quand même pour un coup ; et si ce
+  coup tue le monstre, l'étape 3 fait retomber le verrou aussitôt,
+  permettant à l'étape 4 de redonner un ordre de déplacement vers le
+  curseur dès cette même image.
+- **`degatsParClic` (20) et `tempsRecharge` (0,5 s)** : constantes
+  locales à `main.cpp` — des propriétés de l'attaque, pas du monstre.
+  Le verrou (`cibleVerrouillee`) et la recharge (`rechargeAttaque`) sont
+  eux aussi de simples variables locales ; pas de nouvelle classe
+  (`Combat`, `Attaque`, `Minuteur`) pour les porter.
 - **Texte de position retiré** (ainsi que la police `arial.ttf` qui ne
   servait qu'à lui) : plus rien n'affiche la position du curseur à
   l'écran.
@@ -641,7 +667,7 @@ Interface publique :
   après la boucle d'événements, donc avec la vue de l'image précédente —
   celle effectivement affichée à l'écran au moment de la lecture — ce
   qui est voulu (même raisonnement que pour l'ancien clic, voir
-  « Entrée souris » ci-dessous).
+  « Entrée souris et attaque » ci-dessous).
 
 ### Tests
 
@@ -706,5 +732,6 @@ Interface publique :
   droit/bas exclus) ; `recevoirDegats`/`estVivant` couvrent le cas d'un
   coup qui dépasse le reste des points de vie et celui d'un coup
   supplémentaire une fois déjà mort. Le branchement dans `main.cpp`
-  (événement de clic, constante `degatsParClic`) n'est pas testé — tout
-  se passe dans `main.cpp`, hors de portée de `tests/`.
+  (verrouillage de cible, recharge, constantes `degatsParClic` et
+  `tempsRecharge`) n'est pas testé — tout se passe dans `main.cpp`, hors
+  de portée de `tests/`.

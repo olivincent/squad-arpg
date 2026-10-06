@@ -344,14 +344,46 @@ Aucune modification d'`Escouade`, `Personnage`, `Chemin`, `TileMap`,
 `Deplacement`, ni des tests existants ; les 58 tests passent toujours,
 plus 11 nouveaux sur `Monstre`.
 
-### Étape 16 — À définir
+### Étape 16 — Attaque continue et verrouillage de cible ✅ TERMINÉE
+
+Quand le joueur appuie sur le monstre et garde le bouton enfoncé, la
+cible se verrouille : le monstre reçoit un coup toutes les 0,5 seconde
+et l'escouade ne reçoit plus d'ordre de déplacement, où que soit le
+curseur, jusqu'au relâchement du bouton ou à la mort du monstre. Seul
+`main.cpp` est modifié ; `Escouade` et `Monstre` ne changent pas.
+
+1. [x] Variable locale `cibleVerrouillee` (`bool`) : posée par l'événement
+       de clic si le monstre est vivant et contient le point ; retirée
+       après la boucle d'événements si le bouton n'est plus enfoncé, si
+       la fenêtre n'a plus le focus, ou si le monstre est mort (lecture
+       d'état, pas d'événement `MouseButtonReleased`) ; `allerVers`
+       conditionnée à l'absence de verrou
+2. [x] Variable locale `rechargeAttaque` (`float`, secondes, décrémentée
+       de `dt`, jamais sous zéro) et constante `tempsRecharge` (0,5 s) ;
+       les dégâts quittent l'événement de clic (qui ne pose plus que le
+       verrou) pour une règle unique dans la phase de mise à jour : si la
+       cible est verrouillée et que la recharge est à zéro, le monstre
+       reçoit `degatsParClic` et la recharge repart à `tempsRecharge`.
+       Ordre après la boucle d'événements : diminuer la recharge,
+       attaquer si verrou + recharge à zéro, retirer le verrou si
+       nécessaire, puis donner l'ordre de déplacement si le bouton est
+       enfoncé et la cible non verrouillée — l'attaque passe avant le
+       retrait du verrou pour qu'un clic très bref compte quand même pour
+       un coup
+
+Les 69 tests passent sans modification ; aucun nouveau test (tout se
+passe dans `main.cpp`).
+
+### Étape 17 — À définir
 
 Pistes discutées :
 - Collision entre personnages, ou déplacement suivant l'arc de rotation
   plutôt qu'une ligne droite, pour éliminer le chevauchement résiduel
   lors d'un demi-tour rapide (voir limite connue de l'étape 14)
-- Attaque continue (bouton tenu), cadence d'attaque, verrouillage de
-  cible sur le monstre (explicitement reportés à cette étape)
+- Portée d'attaque (l'escouade s'approche avant de frapper), attaque par
+  les personnages plutôt que directement au clic
+- Indicateur visuel du verrouillage de cible, effet visuel au coup ou à
+  la mort
 - Déplacement, comportement ou attaque du monstre ; plusieurs monstres
 - Un lissage plus serré autour des coins (*funnel algorithm* ou Theta*),
   si le contournement actuel des piliers s'avère insuffisant
@@ -360,7 +392,7 @@ Pistes discutées :
 - Limitation de fréquence des appels à `allerVers`, si un problème de
   performance est mesuré sur une carte plus grande
 - Types de personnages, statistiques, combat (hors de portée explicite
-  des étapes 12 à 15)
+  des étapes 12 à 16)
 
 ## État actuel (à mettre à jour à chaque session)
 
@@ -392,11 +424,16 @@ Pistes discutées :
 - Un monstre immobile (classe `Monstre`, carré rouge de 30 × 30, 100
   points de vie, barre de vie au-dessus de lui) est présent dans la
   première pièce, à `(300, 100)` ; `main.cpp` le possède directement
-  (pas `Escouade`). Chaque clic gauche qui le touche lui retire 20
-  points de vie (un coup par clic, pas par image) et fait aussi avancer
-  l'escouade vers ce point, comme n'importe quel clic ; à zéro, il n'est
-  plus dessiné ni attaquable, mais l'objet continue d'exister ; pas de
-  collision avec lui (l'escouade et les personnages lui passent dessus)
+  (pas `Escouade`) ; pas de collision avec lui (l'escouade et les
+  personnages lui passent dessus)
+- Cliquer sur le monstre verrouille la cible : il reçoit un coup de 20
+  points de vie immédiatement, puis un coup toutes les 0,5 seconde tant
+  que le bouton reste enfoncé (peu importe où va le curseur) — il meurt
+  en environ 2 secondes. Le verrou tombe au relâchement du bouton, à la
+  perte du focus, ou à la mort du monstre ; l'escouade ne reçoit alors
+  plus d'ordre de déplacement tant qu'il est posé, et en reçoit un de
+  nouveau (vers le curseur) dès qu'il retombe. À zéro, le monstre n'est
+  plus dessiné ni attaquable, mais l'objet continue d'exister
 - Logique de jeu (`TileMap`, `Escouade`, `Chemin`, `Personnage`,
   `Deplacement`, `Monstre`) dans une bibliothèque `squad_core`, testée
   avec Catch2 3 (`./build/tests.exe`, 69 tests : 32 sur `TileMap`,
@@ -407,4 +444,4 @@ Pistes discutées :
 - Lors d'un demi-tour rapide, deux personnages peuvent encore se
   chevaucher brièvement en traversant le centre de la formation (voir
   étape 14, limite connue) — accepté pour l'instant
-- Étape en cours : **Étape 16** — à choisir
+- Étape en cours : **Étape 17** — à choisir
