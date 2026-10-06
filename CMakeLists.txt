@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(SFML 3.0.2 COMPONENTS Graphics REQUIRED)
 find_package(Catch2 3 REQUIRED)
 
-add_library(squad_core STATIC src/TileMap.cpp src/Escouade.cpp src/Chemin.cpp src/Personnage.cpp src/Deplacement.cpp)
+add_library(squad_core STATIC src/TileMap.cpp src/Escouade.cpp src/Chemin.cpp src/Personnage.cpp src/Deplacement.cpp src/Monstre.cpp)
 target_include_directories(squad_core PUBLIC src)
 target_link_libraries(squad_core PUBLIC SFML::Graphics)
 
