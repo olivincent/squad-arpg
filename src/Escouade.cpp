@@ -16,6 +16,7 @@ Escouade::Escouade(sf::Vector2f positionDepart)
       m_vitesse(180.0f),
       m_decalages({{25.0f, -25.0f}, {25.0f, 25.0f}, {-25.0f, -25.0f}, {-25.0f, 25.0f}}),
       m_orientation(),
+      m_orientationVoulue(),
       m_personnages({
           Personnage(placePersonnage(0), sf::Color::Red),
           Personnage(placePersonnage(1), sf::Color::Yellow),
@@ -73,8 +74,9 @@ void Escouade::mettreAJour(float dt, const TileMap& carte) {
         const float pasDuTic = m_vitesse * dt;
 
         if (distance > 0.0f) {
-            m_orientation = direction.angle();
+            m_orientationVoulue = direction.angle();
         }
+        m_orientation = m_orientationVoulue;
 
         if (distance <= pasDuTic) {
             deplacement = direction;

@@ -26,5 +26,6 @@ private:
     float m_vitesse;                       // en pixels par seconde
     std::vector<sf::Vector2f> m_decalages; // décalages de formation, pour une escouade orientée vers +x
     sf::Angle m_orientation;               // 0 = orientée vers +x
+    sf::Angle m_orientationVoulue;         // direction voulue de l'ancre, vers laquelle m_orientation tourne
     std::vector<Personnage> m_personnages;
 };
