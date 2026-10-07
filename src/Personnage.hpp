@@ -15,6 +15,7 @@ public:
     int frapper(sf::Vector2f cible);
     void recevoirDegats(int quantite);
     bool estVivant() const;
+    sf::Vector2f getCentre() const;
 
 private:
     sf::Vector2f m_centre;  // pixels du monde

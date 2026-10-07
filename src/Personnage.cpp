@@ -85,3 +85,7 @@ void Personnage::recevoirDegats(int quantite) {
 bool Personnage::estVivant() const {
     return m_pointsDeVie > 0;
 }
+
+sf::Vector2f Personnage::getCentre() const {
+    return m_centre;
+}

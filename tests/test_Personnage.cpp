@@ -125,6 +125,12 @@ TEST_CASE("Un personnage est mort apres 100 degats") {
     REQUIRE_FALSE(personnage.estVivant());
 }
 
+TEST_CASE("getCentre renvoie le centre donne au constructeur") {
+    const Personnage personnage({100.0f, 100.0f}, sf::Color::White);
+
+    REQUIRE(personnage.getCentre() == sf::Vector2f(100.0f, 100.0f));
+}
+
 TEST_CASE("Un personnage est mort apres un coup qui depasse le reste de ses points de vie") {
     Personnage personnage({100.0f, 100.0f}, sf::Color::White);
 

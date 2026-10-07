@@ -311,3 +311,14 @@ TEST_CASE("Le lissage rend un trajet diagonal plus rapide qu'un escalier") {
 
     verifierPointProche(escouade.getCentre(), destination);
 }
+
+TEST_CASE("personnageLePlusProche renvoie un centre plus proche du point que le centre de l'escouade") {
+    const Escouade escouade({50.0f, 50.0f});
+
+    const sf::Vector2f pointLointain{1000.0f, 1000.0f};
+    const sf::Vector2f centrePersonnage = escouade.personnageLePlusProche(pointLointain);
+    const float distancePersonnage = (centrePersonnage - pointLointain).length();
+    const float distanceEscouade = (escouade.getCentre() - pointLointain).length();
+
+    REQUIRE(distancePersonnage < distanceEscouade);
+}

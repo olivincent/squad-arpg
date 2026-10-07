@@ -9,7 +9,11 @@ Monstre::Monstre(sf::Vector2f centre, int id)
       m_taille(30.0f, 30.0f),
       m_pointsDeVie(100),
       m_pointsDeVieMax(100),
-      m_id(id)
+      m_id(id),
+      m_portee(80.0f),
+      m_degats(10),
+      m_tempsRecharge(1.0f),
+      m_recharge(0.0f)
 {
 }
 
@@ -61,4 +65,20 @@ void Monstre::recevoirDegats(int quantite) {
 
 bool Monstre::estVivant() const {
     return m_pointsDeVie > 0;
+}
+
+void Monstre::mettreAJour(float dt) {
+    m_recharge -= dt;
+    if (m_recharge < 0.0f) {
+        m_recharge = 0.0f;
+    }
+}
+
+int Monstre::frapper(sf::Vector2f cible) {
+    if ((cible - m_centre).length() > m_portee || m_recharge > 0.0f) {
+        return 0;
+    }
+
+    m_recharge = m_tempsRecharge;
+    return m_degats;
 }

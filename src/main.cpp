@@ -115,6 +115,12 @@ int main() {
         // MISE À JOUR
         escouade.mettreAJour(dt, carte);
 
+        for (Monstre& m : monstres) {
+            m.mettreAJour(dt);
+            const sf::Vector2f origine = m.getCentre();
+            escouade.recevoirDegats(origine, m.frapper(escouade.personnageLePlusProche(origine)));
+        }
+
         camera.setCenter(escouade.getCentre());
         window.setView(camera);
         window.clear();

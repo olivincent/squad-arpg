@@ -4,6 +4,21 @@
 
 #include "Monstre.hpp"
 
+namespace {
+
+// Simule le temps qui passe par tics de 1/60 s, comme dans main.cpp.
+void ecoulerTemps(Monstre& monstre, float duree) {
+    const float dt = 1.0f / 60.0f;
+    float tempsRestant = duree;
+    while (tempsRestant > 0.0f) {
+        const float pas = (tempsRestant < dt) ? tempsRestant : dt;
+        monstre.mettreAJour(pas);
+        tempsRestant -= pas;
+    }
+}
+
+}  // namespace
+
 // Monstre centré en (100, 100), taille 30x30 : bords en x: [85, 115),
 // y: [85, 115).
 
@@ -97,4 +112,52 @@ TEST_CASE("Le monstre reste mort après un coup supplémentaire") {
     monstre.recevoirDegats(1);
 
     REQUIRE_FALSE(monstre.estVivant());
+}
+
+// Monstre centré en (100, 100), portée 80 px, dégâts 10, recharge 1 s.
+
+TEST_CASE("Monstre.frapper renvoie les dégâts pour une cible à portée") {
+    Monstre monstre({100.0f, 100.0f}, 1);
+
+    REQUIRE(monstre.frapper({150.0f, 100.0f}) == 10);
+}
+
+TEST_CASE("Monstre.frapper renvoie 0 pour une cible hors de portée") {
+    Monstre monstre({100.0f, 100.0f}, 1);
+
+    REQUIRE(monstre.frapper({300.0f, 100.0f}) == 0);
+}
+
+TEST_CASE("Monstre.frapper renvoie 0 au second appel immédiat (recharge en cours)") {
+    Monstre monstre({100.0f, 100.0f}, 1);
+
+    REQUIRE(monstre.frapper({150.0f, 100.0f}) == 10);
+    REQUIRE(monstre.frapper({150.0f, 100.0f}) == 0);
+}
+
+TEST_CASE("Monstre.frapper renvoie 0 après une durée simulée trop courte") {
+    Monstre monstre({100.0f, 100.0f}, 1);
+    const sf::Vector2f cible(150.0f, 100.0f);
+
+    REQUIRE(monstre.frapper(cible) == 10);
+    ecoulerTemps(monstre, 0.5f);
+    REQUIRE(monstre.frapper(cible) == 0);
+}
+
+TEST_CASE("Monstre.frapper renvoie de nouveau les dégâts après une durée simulée généreuse") {
+    Monstre monstre({100.0f, 100.0f}, 1);
+    const sf::Vector2f cible(150.0f, 100.0f);
+
+    REQUIRE(monstre.frapper(cible) == 10);
+    ecoulerTemps(monstre, 1.2f);
+    REQUIRE(monstre.frapper(cible) == 10);
+}
+
+TEST_CASE("Un coup tenté hors de portée ne déclenche pas la recharge du monstre") {
+    Monstre monstre({100.0f, 100.0f}, 1);
+    const sf::Vector2f loin(300.0f, 100.0f);
+    const sf::Vector2f proche(150.0f, 100.0f);
+
+    REQUIRE(monstre.frapper(loin) == 0);
+    REQUIRE(monstre.frapper(proche) == 10);
 }

@@ -7,6 +7,8 @@ class Monstre {
 public:
     Monstre(sf::Vector2f centre, int id);
     void dessiner(sf::RenderTarget& rendu, bool estCible) const;
+    void mettreAJour(float dt);
+    int frapper(sf::Vector2f cible);
     sf::Vector2f getCentre() const;
     int getId() const;
     bool contient(sf::Vector2f point) const;
@@ -19,4 +21,8 @@ private:
     int m_pointsDeVie;
     int m_pointsDeVieMax;
     int m_id;
+    float m_portee;         // en pixels
+    int m_degats;
+    float m_tempsRecharge;  // en secondes
+    float m_recharge;       // en secondes, avant le prochain coup possible
 };

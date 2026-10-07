@@ -16,9 +16,12 @@ public:
     int attaquer(sf::Vector2f cible, const TileMap& carte);
     void mettreAJour(float dt, const TileMap& carte);
     sf::Vector2f getCentre() const;
+    sf::Vector2f personnageLePlusProche(sf::Vector2f point) const;
+    void recevoirDegats(sf::Vector2f origine, int quantite);
 
 private:
     sf::Vector2f placePersonnage(std::size_t indice) const;
+    std::size_t indicePersonnageLePlusProche(sf::Vector2f point) const;
 
     sf::Vector2f m_position;               // coin haut-gauche, en pixels du monde
     sf::Vector2f m_taille;                 // en pixels

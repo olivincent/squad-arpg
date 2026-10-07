@@ -132,3 +132,26 @@ void Escouade::mettreAJour(float dt, const TileMap& carte) {
 sf::Vector2f Escouade::getCentre() const {
     return m_position + m_taille / 2.0f;
 }
+
+std::size_t Escouade::indicePersonnageLePlusProche(sf::Vector2f point) const {
+    std::size_t indicePlusProche = 0;
+    float distancePlusProche = (m_personnages[0].getCentre() - point).length();
+
+    for (std::size_t i = 1; i < m_personnages.size(); ++i) {
+        const float distance = (m_personnages[i].getCentre() - point).length();
+        if (distance < distancePlusProche) {
+            distancePlusProche = distance;
+            indicePlusProche = i;
+        }
+    }
+
+    return indicePlusProche;
+}
+
+sf::Vector2f Escouade::personnageLePlusProche(sf::Vector2f point) const {
+    return m_personnages[indicePersonnageLePlusProche(point)].getCentre();
+}
+
+void Escouade::recevoirDegats(sf::Vector2f origine, int quantite) {
+    m_personnages[indicePersonnageLePlusProche(origine)].recevoirDegats(quantite);
+}
