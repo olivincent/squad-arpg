@@ -55,14 +55,17 @@
     moyen de contrôler le temps simulé à chaque tic ; en le recevant en
     paramètre, le comportement devient déterministe et reproductible
     sans horloge factice.
-- **`Monstre` testé par son interface publique** (`getCentre`,
+- **`Monstre` testé par son interface publique** (`getCentre`, `getId`,
   `contient`, `recevoirDegats`, `estVivant`) : bords d'inclusion/
   exclusion de `contient` vérifiés séparément sur chaque côté
   (gauche/haut inclus, droit/bas exclus) ; `recevoirDegats`/
   `estVivant` couvrent le cas d'un coup qui dépasse le reste des points
-  de vie et celui d'un coup supplémentaire une fois déjà mort. Le
-  branchement dans `main.cpp` (verrouillage de cible) n'est pas testé —
-  tout se passe dans `main.cpp`, hors de portée de `tests/`.
+  de vie et celui d'un coup supplémentaire une fois déjà mort ; `getId`
+  vérifié sur deux monstres créés avec des identifiants différents, qui
+  renvoient chacun le leur (étape 18). Le branchement dans `main.cpp`
+  (verrouillage de cible par identifiant, vecteur de monstres,
+  `std::erase_if`) n'est pas testé — tout se passe dans `main.cpp`,
+  hors de portée de `tests/`.
 - **`Personnage` (`test_Personnage.cpp`, étape 17)** :
   - `estAPortee` : point proche à portée, point lointain hors portée,
     distance exactement égale à la portée (cas limite, `<=`).

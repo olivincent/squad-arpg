@@ -65,7 +65,8 @@ squad-arpg/
 │   ├── test_Chemin.cpp
 │   ├── test_Escouade.cpp
 │   ├── test_Deplacement.cpp
-│   └── test_Monstre.cpp
+│   ├── test_Monstre.cpp
+│   └── test_Personnage.cpp
 ├── docs/
 │   ├── build.md
 │   ├── boucle-et-entrees.md
@@ -85,15 +86,16 @@ personnages et les fait attaquer), `Chemin` (recherche de chemin A*,
 utilisé uniquement par `Escouade`), `Personnage` (un membre de
 l'escouade, qui sait aller vers un point et frapper une cible à
 portée), `Deplacement` (collision/glissement partagée entre `Escouade`
-et `Personnage`) et `Monstre` (un ennemi immobile, avec des points de
-vie, possédé directement par `main.cpp`, sans lien avec `Escouade` ni
-`Personnage`). `main.cpp` garde la fenêtre, la boucle de jeu, les
-événements (fermeture, et le verrouillage de cible sur le monstre),
-l'état de la souris (déplacement), la caméra, la carte (son plan) et le
-monstre ; il ne connaît ni `Chemin` ni `Personnage`, et ne gère plus la
-recharge d'attaque lui-même depuis l'étape 17 (`Escouade::attaquer`
-s'en charge via les personnages). La structure continue d'évoluer par
-nécessité réelle, pas par anticipation (voir principes ci-dessous).
+et `Personnage`) et `Monstre` (un ennemi immobile, avec un identifiant
+et des points de vie, possédé directement par `main.cpp` dans un
+`std::vector<Monstre>`, sans lien avec `Escouade` ni `Personnage`).
+`main.cpp` garde la fenêtre, la boucle de jeu, les événements
+(fermeture, et le verrouillage de cible sur un monstre), l'état de la
+souris (déplacement), la caméra, la carte (son plan) et les monstres ;
+il ne connaît ni `Chemin` ni `Personnage`, et ne gère plus la recharge
+d'attaque lui-même depuis l'étape 17 (`Escouade::attaquer` s'en charge
+via les personnages). La structure continue d'évoluer par nécessité
+réelle, pas par anticipation (voir principes ci-dessous).
 
 Deux exécutables : `main` (le jeu) et `tests` (les tests Catch2). Les deux
 se lient à la bibliothèque statique `squad_core`, qui contient toute la
@@ -265,11 +267,16 @@ commune tant qu'aucun comportement partagé ne le justifie.
 - **Stocke son centre** (`m_centre`), comme `Personnage`.
 - **Données membres** : `m_centre`, `m_taille` (30 × 30, fixée dans le
   constructeur), `m_pointsDeVie` et `m_pointsDeVieMax` (`100` chacun à
-  la création). Pas de couleur stockée : toujours rouge, donc une
-  valeur fixe directement dans `dessiner`, pas un membre (contrairement
-  à `Personnage`, qui a besoin d'une couleur différente par instance).
-- **`explicit Monstre(sf::Vector2f centre)`** : seul le centre est un
-  paramètre.
+  la création), `m_id`. Pas de couleur stockée : toujours rouge, donc
+  une valeur fixe directement dans `dessiner`, pas un membre
+  (contrairement à `Personnage`, qui a besoin d'une couleur différente
+  par instance).
+- **`Monstre(sf::Vector2f centre, int id)`** : centre et identifiant en
+  paramètres ; `explicit` retiré puisque le constructeur en prend deux
+  (une conversion implicite à un seul argument n'est plus possible).
+  C'est `main.cpp` qui attribue les identifiants (variable locale
+  `prochainId`, incrémentée à chaque création) — pas de compteur
+  `static` dans `Monstre`.
 - **`contient`** réutilise `sf::FloatRect::contains` plutôt que de
   réimplémenter sa convention à la main (bords gauche/haut inclus,
   droit/bas exclus).
@@ -284,10 +291,12 @@ commune tant qu'aucun comportement partagé ne le justifie.
   du monstre, quelques pixels au-dessus de lui), recouvert d'un
   rectangle vert dont la largeur est `m_taille.x * (m_pointsDeVie /
   m_pointsDeVieMax)`.
-- **Possédé par `main.cpp`**, pas par `Escouade` : une simple variable
-  `Monstre`, pas un `std::vector` ni un `std::optional` (un seul monstre
-  pour l'instant, qui ne meurt jamais au sens de disparaître de la
-  mémoire — seulement de ne plus être dessiné ni attaquable).
+- **Possédé par `main.cpp`**, pas par `Escouade` : un `std::vector<Monstre>`
+  (trois monstres pour l'instant), pas une classe dédiée (`Horde`,
+  `Monstres`...) pour les porter. Un monstre mort est retiré du vecteur
+  (`std::erase_if`, à chaque image) ; l'objet lui-même cesse donc
+  d'exister, contrairement à l'étape 17 où il restait en mémoire sans
+  être dessiné ni attaquable.
 - **Pas de collision avec lui** : l'escouade et les personnages lui
   passent dessus ; le A* l'ignore complètement (il n'existe pas du
   point de vue de `TileMap`).
@@ -296,9 +305,10 @@ Interface publique :
 
 | Fonction | Rôle |
 |---|---|
-| `explicit Monstre(sf::Vector2f centre)` | Crée le monstre à ce centre, 30 × 30, 100 points de vie |
+| `Monstre(sf::Vector2f centre, int id)` | Crée le monstre à ce centre, avec cet identifiant, 30 × 30, 100 points de vie |
 | `void dessiner(sf::RenderTarget& rendu) const` | Dessine le monstre et sa barre de vie |
 | `sf::Vector2f getCentre() const` | Centre du monstre (utilisé par `main.cpp` pour le donner à `Escouade::attaquer`) |
+| `int getId() const` | Identifiant du monstre (utilisé par `main.cpp` pour désigner la cible verrouillée) |
 | `bool contient(sf::Vector2f point) const` | Le point (pixels du monde) est-il dans le carré du monstre ? |
 | `void recevoirDegats(int quantite)` | Retire des points de vie, sans descendre sous zéro |
 | `bool estVivant() const` | Points de vie `> 0` |

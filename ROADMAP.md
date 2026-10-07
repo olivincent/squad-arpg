@@ -404,7 +404,38 @@ n'inflige plus de dégâts lui-même.
 **Limite connue** : la portée ignore les murs (un personnage peut
 frapper à travers) — acceptée pour l'instant.
 
-### Étape 18 — À définir
+### Étape 18 — Plusieurs monstres, cible désignée par identifiant ✅ TERMINÉE
+
+Plusieurs monstres sur la carte, stockés dans un `std::vector<Monstre>`.
+Cliquer sur l'un d'eux verrouille CE monstre, désigné par un identifiant
+stable ; les monstres morts sont retirés du vecteur.
+
+1. [x] `Monstre` : membre `m_id` et second paramètre du constructeur
+       (`Monstre(sf::Vector2f centre, int id)`) ; `explicit` retiré.
+       C'est `main.cpp` qui attribue les identifiants (variable locale
+       `prochainId`, incrémentée à chaque création), pas un compteur
+       `static` dans `Monstre`
+2. [x] `int Monstre::getId() const` ; test sur deux monstres créés avec
+       des identifiants différents
+3. [x] Le verrou `bool cibleVerrouillee` devient `std::optional<int>
+       idCible` (vide = pas de verrou), toujours avec un seul monstre
+4. [x] La variable `monstre` devient `std::vector<Monstre> monstres` (un
+       seul élément à ce stade) ; boucles pour le clic (premier monstre
+       qui contient le point, `std::find_if`) et pour le dessin ;
+       recherche de la cible par `std::find_if` sur l'`id`, l'itérateur
+       recalculé à chaque image plutôt que conservé (il ne survit pas à
+       un retrait du vecteur)
+5. [x] Trois monstres dans la première pièce, identifiants attribués par
+       `prochainId` : `(300, 100)` (id 1, position d'origine),
+       `(100, 300)` (id 2), `(300, 500)` (id 3) — tous espacés d'au
+       moins 100 px
+6. [x] Retrait des monstres morts avec `std::erase_if`, après le retrait
+       du verrou et avant l'ordre de déplacement ; suppression des
+       vérifications `estVivant()` devenues inutiles dans la boucle du
+       clic et celle du dessin, l'invariant « tout monstre du vecteur
+       est vivant » tenant désormais entre deux appels d'`erase_if`
+
+### Étape 19 — À définir
 
 Pistes discutées :
 - Collision entre personnages, ou déplacement suivant l'arc de rotation
@@ -412,7 +443,8 @@ Pistes discutées :
   lors d'un demi-tour rapide (voir limite connue de l'étape 14)
 - Indicateur visuel du verrouillage de cible, effet visuel au coup ou à
   la mort
-- Déplacement, comportement ou attaque du monstre ; plusieurs monstres
+- Déplacement ou comportement des monstres (ils restent immobiles pour
+  l'instant)
 - Un lissage plus serré autour des coins (*funnel algorithm* ou Theta*),
   si le contournement actuel des piliers s'avère insuffisant
 - Finitions : caméra bloquée aux bords de la carte, affichage fixe à
@@ -450,26 +482,30 @@ Pistes discutées :
   curseur à chaque image (lecture d'état, pas d'événement) ; un clic
   bref reste un simple aller-vers ponctuel. Plus de texte de position ni
   de police chargée dans `main.cpp` (retirés à l'étape 13)
-- Un monstre immobile (classe `Monstre`, carré rouge de 30 × 30, 100
-  points de vie, barre de vie au-dessus de lui) est présent dans la
-  première pièce, à `(300, 100)` ; `main.cpp` le possède directement
-  (pas `Escouade`) ; pas de collision avec lui (l'escouade et les
-  personnages lui passent dessus)
-- Cliquer sur le monstre verrouille la cible : l'escouade s'approche en
-  formation jusqu'à ce que ses 4 personnages soient à portée (80 px),
-  puis s'arrête et chacun frappe pour 5 points de dégâts dès que sa
-  propre recharge (0,5 s) est écoulée — la barre de vie descend par
-  petits crans, plus vite une fois tout le monde à portée, mort en 2 à
+- Trois monstres immobiles (classe `Monstre`, carrés rouges de 30 × 30,
+  100 points de vie chacun, barre de vie au-dessus d'eux, identifiant
+  stable `m_id` attribué par `main.cpp`) sont présents dans la première
+  pièce, à `(300, 100)` (id 1), `(100, 300)` (id 2) et `(300, 500)`
+  (id 3) ; `main.cpp` les possède directement dans un
+  `std::vector<Monstre>` (pas `Escouade`) ; pas de collision avec eux
+  (l'escouade et les personnages leur passent dessus)
+- Cliquer sur un monstre verrouille CE monstre (son `id`, dans
+  `std::optional<int> idCible`) : l'escouade s'approche en formation
+  jusqu'à ce que ses 4 personnages soient à portée (80 px), puis
+  s'arrête et chacun frappe pour 5 points de dégâts dès que sa propre
+  recharge (0,5 s) est écoulée — la barre de vie descend par petits
+  crans, plus vite une fois tout le monde à portée, mort en 2 à
   3 secondes. Le verrou tombe au relâchement du bouton, à la perte du
-  focus, ou à la mort du monstre ; l'escouade ne reçoit alors plus
+  focus, ou à la mort du monstre visé ; l'escouade ne reçoit alors plus
   d'ordre de déplacement tant qu'il est posé, et en reçoit un de nouveau
-  (vers le curseur) dès qu'il retombe. À zéro, le monstre n'est plus
-  dessiné ni attaquable, mais l'objet continue d'exister
+  (vers le curseur) dès qu'il retombe. Un monstre mort est retiré du
+  vecteur (`std::erase_if`, à chaque image) ; les autres restent
+  attaquables, quel que soit l'ordre dans lequel ils meurent
 - Logique de jeu (`TileMap`, `Escouade`, `Chemin`, `Personnage`,
   `Deplacement`, `Monstre`) dans une bibliothèque `squad_core`, testée
-  avec Catch2 3 (`./build/tests.exe`, 82 tests : 32 sur `TileMap`,
+  avec Catch2 3 (`./build/tests.exe`, 83 tests : 32 sur `TileMap`,
   13 sur `Chemin`, 12 sur `Escouade`, 4 sur `Deplacement`,
-  12 sur `Monstre`, 9 sur `Personnage`)
+  13 sur `Monstre`, 9 sur `Personnage`)
 - Près des piliers, le contournement n'est pas toujours le plus court
   possible (voir étape 11, limite connue) — accepté pour l'instant
 - Lors d'un demi-tour rapide, deux personnages peuvent encore se
@@ -477,4 +513,4 @@ Pistes discutées :
   étape 14, limite connue) — accepté pour l'instant
 - La portée d'attaque des personnages ignore les murs (voir étape 17,
   limite connue) — accepté pour l'instant
-- Étape en cours : **Étape 18** — à choisir
+- Étape en cours : **Étape 19** — à choisir
