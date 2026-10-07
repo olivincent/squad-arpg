@@ -23,6 +23,7 @@ public:
     std::optional<Cercle> personnageLePlusProche(sf::Vector2f point) const;
     void recevoirDegats(sf::Vector2f origine, int quantite);
     bool estVivante() const;
+    std::vector<Cercle> cerclesDesVivants() const;
     void verrouiller(int idCible);
     void deverrouiller();
     std::optional<int> getCibleVerrouillee() const;

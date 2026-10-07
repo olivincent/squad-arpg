@@ -443,6 +443,39 @@ TEST_CASE("estVivante devient fausse une fois les 4 personnages morts") {
     REQUIRE_FALSE(escouade.estVivante());
 }
 
+TEST_CASE("cerclesDesVivants renvoie 4 cercles a la creation") {
+    const Escouade escouade({50.0f, 50.0f});
+
+    REQUIRE(escouade.cerclesDesVivants().size() == 4);
+}
+
+TEST_CASE("cerclesDesVivants n'inclut plus le cercle d'un personnage mort") {
+    Escouade escouade({50.0f, 50.0f});
+    const sf::Vector2f point{1000.0f, 1000.0f};
+
+    const std::optional<Cercle> futurMort = escouade.personnageLePlusProche(point);
+    REQUIRE(futurMort.has_value());
+
+    escouade.recevoirDegats(point, 100);
+    const std::vector<Cercle> cercles = escouade.cerclesDesVivants();
+
+    REQUIRE(cercles.size() == 3);
+    for (const Cercle& cercle : cercles) {
+        REQUIRE_FALSE(cercle.centre == futurMort->centre);
+    }
+}
+
+TEST_CASE("cerclesDesVivants est vide une fois tous les personnages morts") {
+    Escouade escouade({50.0f, 50.0f});
+    const sf::Vector2f point{1000.0f, 1000.0f};
+
+    for (int i = 0; i < 4; ++i) {
+        escouade.recevoirDegats(point, 100);
+    }
+
+    REQUIRE(escouade.cerclesDesVivants().empty());
+}
+
 TEST_CASE("getCibleVerrouillee est vide a la creation") {
     const Escouade escouade({50.0f, 50.0f});
 

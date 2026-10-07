@@ -170,6 +170,16 @@ bool Escouade::estVivante() const {
     return false;
 }
 
+std::vector<Cercle> Escouade::cerclesDesVivants() const {
+    std::vector<Cercle> cercles;
+    for (const Personnage& personnage : m_personnages) {
+        if (personnage.estVivant()) {
+            cercles.push_back(personnage.getCercle());
+        }
+    }
+    return cercles;
+}
+
 void Escouade::verrouiller(int idCible) {
     m_cibleVerrouillee = idCible;
 }

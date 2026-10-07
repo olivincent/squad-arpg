@@ -136,9 +136,12 @@ int main() {
         // MISE À JOUR
         escouade.mettreAJour(dt, carte);
 
+        // Les personnages vivants (à leur position à jour) sont des obstacles pour tous les monstres.
+        const std::vector<Cercle> cerclesPersonnages = escouade.cerclesDesVivants();
+
         for (Monstre& m : monstres) {
-            // Les autres monstres, à leur position courante, sont des obstacles.
-            std::vector<Cercle> obstacles;
+            // Les autres monstres, à leur position courante, sont aussi des obstacles.
+            std::vector<Cercle> obstacles = cerclesPersonnages;
             for (const Monstre& autre : monstres) {
                 if (autre.getId() != m.getId()) {
                     obstacles.push_back(autre.getCercle());
