@@ -59,9 +59,12 @@ int main() {
     Escouade escouade({100.0f, 100.0f});
     int prochainId = 1;
     std::vector<Monstre> monstres = {
-        Monstre({300.0f, 100.0f}, prochainId++),
-        Monstre({100.0f, 300.0f}, prochainId++),
-        Monstre({300.0f, 500.0f}, prochainId++),
+        Monstre({660.0f, 380.0f}, prochainId++),
+        Monstre({500.0f, 580.0f}, prochainId++),
+        Monstre({900.0f, 220.0f}, prochainId++),
+        Monstre({1940.0f, 180.0f}, prochainId++),
+        Monstre({1500.0f, 540.0f}, prochainId++),
+        Monstre({1620.0f, 540.0f}, prochainId++),
     };
     std::optional<int> idCible;
 
