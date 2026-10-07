@@ -550,9 +550,44 @@ d'interface publique de ces deux classes.
 Aucune modification d'`Escouade` ni de `main.cpp` ; les interfaces
 publiques de `Personnage` et de `Monstre` sont inchangées.
 
-### Étape 23 — À définir
+### Étape 23 — Classe `Mobile` : le déplacement par chemin sort d'`Escouade` ✅ TERMINÉE
+
+Extrait dans une classe `Mobile` (composition, comme `Attaque`) le
+déplacement par chemin qui vivait directement dans `Escouade` :
+position, taille, vitesse, chemin, suivi d'indice, A* + lissage,
+collision/glissement. Prépare l'étape 24, où `Monstre` aura besoin du
+même déplacement.
+
+1. [x] `Mobile.hpp`/`.cpp` : structure de données (`m_position`,
+       `m_taille`, `m_chemin`, `m_indexChemin`, `m_vitesse`) et
+       constructeur (en centre) ; ajout à `squad_core`
+2. [x] `Mobile::getCentre`/`getTaille` ; `tests/test_Mobile.cpp` créé et
+       ajouté au CMake
+3. [x] `Mobile::allerVers` : code déplacé tel quel depuis
+       `Escouade::allerVers`
+4. [x] `Mobile::mettreAJour` : partie « ancre » copiée depuis
+       `Escouade::mettreAJour` (sans orientation ni personnages) ;
+       tests calqués sur ceux d'`Escouade`
+5. [x] `Mobile::arreter` (chemin réduit au centre actuel)
+6. [x] `Mobile::directionVoulue` (vecteur du centre vers le point
+       courant du chemin, vide si plus de point ou distance nulle)
+7. [x] Substitution dans `Escouade` : `m_position`, `m_taille`,
+       `m_vitesse`, `m_chemin`, `m_indexChemin` remplacés par
+       `m_mobile` ; `allerVers`, `getCentre`, l'arrêt dans `attaquer`
+       et la partie « ancre » de `mettreAJour` délèguent à `m_mobile` ;
+       l'orientation de la formation est désormais calculée à partir
+       de `m_mobile.directionVoulue()`, lue au même moment du tic
+       qu'avant (avant la collision). Les tests d'`Escouade` passent
+       sans modification
+
+Aucune modification de `Personnage`, `Monstre`, `Attaque` ni
+`main.cpp` ; interface publique d'`Escouade` inchangée.
+
+### Étape 24 — À définir
 
 Pistes discutées :
+- Donner un `Mobile` à `Monstre`, pour qu'il se déplace (ils restent
+  immobiles pour l'instant)
 - Mort ou mise hors combat d'un personnage à 0 point de vie (retrait de
   la formation, apparence), condition de défaite de l'escouade
 - Collision entre personnages, ou déplacement suivant l'arc de rotation
@@ -561,8 +596,6 @@ Pistes discutées :
 - Factorisation des points de vie et de la barre de vie entre
   `Monstre` et `Personnage`, si la duplication devient gênante
 - Effet visuel au coup ou à la mort d'un monstre ou d'un personnage
-- Déplacement ou comportement des monstres (ils restent immobiles pour
-  l'instant)
 - Un lissage plus serré autour des coins (*funnel algorithm* ou Theta*),
   si le contournement actuel des piliers s'avère insuffisant
 - Finitions : caméra bloquée aux bords de la carte, affichage fixe à
@@ -585,7 +618,10 @@ Pistes discutées :
   le A* puis lissé (trajets directs en terrain dégagé, plus de zigzag,
   coins de murs contournés au plus court sans les frôler exactement),
   s'arrête exactement sur le point cliqué, reste bloquée par les murs et
-  glisse le long de ceux-ci (filet de sécurité conservé)
+  glisse le long de ceux-ci (filet de sécurité conservé). Depuis l'étape
+  23, ce déplacement par chemin vit dans un module séparé, `Mobile`
+  (possédé par valeur par `Escouade`, `m_mobile`), en vue de l'étape 24
+  où `Monstre` en aura besoin aussi
 - L'escouade possède 4 personnages (`Personnage`, carrés colorés de
   20 × 20, 240 px/s) qui tiennent une formation en carré autour de
   l'ancre, bloqués par les murs et glissant le long d'eux comme elle
@@ -630,15 +666,20 @@ Pistes discutées :
   (vers le curseur) dès qu'il retombe. Un monstre mort est retiré du
   vecteur (`std::erase_if`, à chaque image) ; les autres restent
   attaquables, quel que soit l'ordre dans lequel ils meurent
-- Logique de jeu (`TileMap`, `Escouade`, `Chemin`, `Personnage`,
-  `Deplacement`, `Monstre`, `Attaque`) dans une bibliothèque
-  `squad_core`, testée avec Catch2 3 (`./build/tests.exe`, 101 tests :
-  32 sur `TileMap`, 13 sur `Chemin`, 16 sur `Escouade`, 4 sur
-  `Deplacement`, 16 sur `Monstre`, 11 sur `Personnage`, 9 sur `Attaque`)
+- Logique de jeu (`TileMap`, `Escouade`, `Mobile`, `Chemin`,
+  `Personnage`, `Deplacement`, `Monstre`, `Attaque`) dans une
+  bibliothèque `squad_core`, testée avec Catch2 3
+  (`./build/tests.exe`, 112 tests : 32 sur `TileMap`, 13 sur `Chemin`,
+  16 sur `Escouade`, 4 sur `Deplacement`, 16 sur `Monstre`, 11 sur
+  `Personnage`, 9 sur `Attaque`, 11 sur `Mobile`)
 - Depuis l'étape 22, `Personnage` et `Monstre` possèdent chacun un
   `m_attaque` (`Attaque`) plutôt que leurs propres membres de portée,
   dégâts et recharge — composition, pas héritage ; aucun changement de
   comportement ni d'interface publique
+- Depuis l'étape 23, `Escouade` possède un `m_mobile` (`Mobile`) plutôt
+  que ses propres membres de position/chemin/vitesse — composition,
+  comme `Attaque` ; aucun changement de comportement ni d'interface
+  publique
 - Près des piliers, le contournement n'est pas toujours le plus court
   possible (voir étape 11, limite connue) — accepté pour l'instant
 - Lors d'un demi-tour rapide, deux personnages peuvent encore se
@@ -652,4 +693,4 @@ Pistes discutées :
   ne frappe plus et n'est plus ciblé par les monstres, qui reportent
   leur attaque sur un autre personnage vivant, ou cessent de frapper si
   aucun ne l'est (voir étape 20, limite connue) — accepté pour l'instant
-- Étape en cours : **Étape 23** — à choisir
+- Étape en cours : **Étape 24** — à choisir

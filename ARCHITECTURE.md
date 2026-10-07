@@ -61,7 +61,9 @@ squad-arpg/
 │   ├── Monstre.hpp
 │   ├── Monstre.cpp
 │   ├── Attaque.hpp
-│   └── Attaque.cpp
+│   ├── Attaque.cpp
+│   ├── Mobile.hpp
+│   └── Mobile.cpp
 ├── tests/
 │   ├── test_TileMap.cpp
 │   ├── test_Chemin.cpp
@@ -69,7 +71,8 @@ squad-arpg/
 │   ├── test_Deplacement.cpp
 │   ├── test_Monstre.cpp
 │   ├── test_Personnage.cpp
-│   └── test_Attaque.cpp
+│   ├── test_Attaque.cpp
+│   └── test_Mobile.cpp
 ├── docs/
 │   ├── build.md
 │   ├── boucle-et-entrees.md
@@ -83,18 +86,19 @@ squad-arpg/
 └── ROADMAP.md
 ```
 
-Sept modules : `TileMap` (l'environnement de jeu), `Escouade` (le point
-de contrôle, l'ancre, qui suit un chemin calculé par le A*, possède les
-personnages et les fait attaquer), `Chemin` (recherche de chemin A*,
-utilisé uniquement par `Escouade`), `Personnage` (un membre de
-l'escouade, qui sait aller vers un point et frapper une cible à
-portée), `Deplacement` (collision/glissement partagée entre `Escouade`
-et `Personnage`), `Monstre` (un ennemi immobile, avec un identifiant,
-des points de vie et une riposte à portée, possédé directement par
-`main.cpp` dans un `std::vector<Monstre>`, sans lien direct avec
-`Escouade` ni `Personnage` — `main.cpp` fait l'intermédiaire) et
-`Attaque` (portée, dégâts et recharge, possédée par valeur par
-`Personnage` et par `Monstre`).
+Huit modules : `TileMap` (l'environnement de jeu), `Escouade` (le point
+de contrôle, l'ancre, qui possède les personnages et les fait
+attaquer), `Mobile` (déplacement par chemin calculé par le A*, possédé
+par valeur par `Escouade`), `Chemin` (recherche de chemin A*, utilisé
+uniquement par `Mobile`), `Personnage` (un membre de l'escouade, qui
+sait aller vers un point et frapper une cible à portée), `Deplacement`
+(collision/glissement partagée entre `Mobile` et `Personnage`),
+`Monstre` (un ennemi immobile, avec un identifiant, des points de vie
+et une riposte à portée, possédé directement par `main.cpp` dans un
+`std::vector<Monstre>`, sans lien direct avec `Escouade` ni
+`Personnage` — `main.cpp` fait l'intermédiaire) et `Attaque` (portée,
+dégâts et recharge, possédée par valeur par `Personnage` et par
+`Monstre`).
 `main.cpp` garde la fenêtre, la boucle de jeu, les événements
 (fermeture, et le verrouillage de cible sur un monstre), l'état de la
 souris (déplacement), la caméra, la carte (son plan) et les monstres ;
@@ -105,7 +109,7 @@ réelle, pas par anticipation (voir principes ci-dessous).
 
 Deux exécutables : `main` (le jeu) et `tests` (les tests Catch2). Les deux
 se lient à la bibliothèque statique `squad_core`, qui contient toute la
-logique de jeu (`TileMap`, `Escouade`, `Chemin`, `Personnage`,
+logique de jeu (`TileMap`, `Escouade`, `Mobile`, `Chemin`, `Personnage`,
 `Deplacement`, `Monstre`, `Attaque`) indépendamment de la fenêtre et de la boucle de
 jeu.
 
@@ -147,11 +151,9 @@ Un carré vert de 20 × 20 qui suit le chemin calculé par le A* jusqu'au
 point cliqué, en contournant les murs, et qui possède 4 `Personnage` en
 formation en carré autour d'elle.
 
-- **Données membres** : `m_position` (coin haut-gauche, pixels du monde),
-  `m_taille`, `m_chemin` (`std::vector<sf::Vector2f>`, les points — centre
-  de l'escouade — à atteindre dans l'ordre), `m_indexChemin` (indice du
-  prochain point visé), `m_vitesse` (pixels par seconde), `m_decalages`
-  (les 4 décalages de formation, pour une escouade orientée vers `+x`),
+- **Données membres** : `m_mobile` (`Mobile`, depuis l'étape 23 — porte
+  le déplacement par chemin, voir plus bas), `m_decalages` (les 4
+  décalages de formation, pour une escouade orientée vers `+x`),
   `m_orientation` (`sf::Angle`, `0` = vers `+x`, ce qu'utilise
   `placePersonnage`), `m_orientationVoulue` (`sf::Angle`, la direction
   vers laquelle `m_orientation` tourne progressivement),
@@ -159,10 +161,9 @@ formation en carré autour d'elle.
   (`std::vector<Personnage>`, inclut `Personnage.hpp` en entier — un
   `std::vector` a besoin de la définition complète de son type
   d'élément).
-- **Valeurs fixes** dans le constructeur : taille 20 × 20, vitesse
-  180 px/s, chemin = un seul point (le centre de départ, donc immobile
-  tant qu'on n'a pas cliqué), orientation `0`. Elles deviendront des
-  paramètres quand il le faudra.
+- **Valeurs fixes** passées au constructeur de `m_mobile` : taille
+  20 × 20, vitesse 180 px/s. Orientation `0` à la création. Elles
+  deviendront des paramètres quand il le faudra.
 - **Fonction privée `placePersonnage(indice)`** : seul endroit du code
   qui calcule la place d'un personnage (`getCentre() + m_decalages[indice]
   .rotatedBy(m_orientation)`) — utilisée à la fois pour créer les
@@ -182,13 +183,66 @@ Interface publique (inchangée pour `main.cpp`, qui ne connaît pas
 | Fonction | Rôle |
 |---|---|
 | `explicit Escouade(sf::Vector2f positionDepart)` | Crée l'escouade (et ses 4 personnages en formation) à la position donnée |
-| `void allerVers(sf::Vector2f destination, const TileMap& carte)` | Calcule un chemin vers la destination (A*, puis lissé) et le remplace comme trajet à suivre ; ordre ignoré si aucun chemin n'existe |
-| `int attaquer(sf::Vector2f cible, const TileMap& carte)` | Approche la cible (`allerVers`) tant qu'un personnage n'est pas à portée, s'arrête sur place quand les 4 y sont, puis fait frapper chacun ; renvoie la somme des dégâts |
-| `void mettreAJour(float dt, const TileMap& carte)` | Avance l'ancre vers le point courant du chemin (collision, glissement, orientation), puis chaque personnage vers sa place |
-| `void dessiner(sf::RenderTarget& rendu) const` | Dessine l'ancre, puis les 4 personnages |
-| `sf::Vector2f getCentre() const` | Centre de l'escouade (utilisé par la caméra, par `allerVers` et par `placePersonnage`) |
+| `void allerVers(sf::Vector2f destination, const TileMap& carte)` | Délègue à `m_mobile.allerVers` |
+| `int attaquer(sf::Vector2f cible, const TileMap& carte)` | Approche la cible (`allerVers`) tant qu'un personnage n'est pas à portée, s'arrête sur place (`m_mobile.arreter()`) quand les 4 y sont, puis fait frapper chacun ; renvoie la somme des dégâts |
+| `void mettreAJour(float dt, const TileMap& carte)` | Met à jour `m_orientationVoulue` à partir de `m_mobile.directionVoulue()`, avance l'ancre (`m_mobile.mettreAJour`), met à jour l'orientation, puis chaque personnage vers sa place |
+| `void dessiner(sf::RenderTarget& rendu) const` | Dessine l'ancre (position reconstruite à partir de `getCentre()` et `m_mobile.getTaille()`), puis les 4 personnages |
+| `sf::Vector2f getCentre() const` | Délègue à `m_mobile.getCentre()` (utilisé par la caméra, par `allerVers` et par `placePersonnage`) |
 | `std::optional<sf::Vector2f> personnageLePlusProche(sf::Vector2f point) const` | Centre du personnage **vivant** le plus proche de `point` (vide si aucun n'est vivant) ; utilisé par `main.cpp` pour désigner la cible d'un monstre |
 | `void recevoirDegats(sf::Vector2f origine, int quantite)` | Applique `quantite` de dégâts au personnage vivant le plus proche d'`origine` ; ne fait rien si aucun n'est vivant |
+
+### `Mobile` — déplacement par chemin (étape 23)
+
+Possédée par valeur par `Escouade` (`m_mobile`). Porte tout ce
+qu'`Escouade` faisait elle-même avant l'étape 23 pour suivre un chemin
+calculé par le A* : position, chemin, vitesse, collision/glissement.
+Extraite en vue de l'étape 24, où `Monstre` aura besoin du même
+déplacement.
+
+- **Composition, pas héritage** : `Escouade` a un membre `Mobile
+  m_mobile` ; aucune classe de base commune, aucune fonction virtuelle.
+- **Données membres** : `m_position` (coin haut-gauche, pixels du
+  monde), `m_taille`, `m_chemin` (`std::vector<sf::Vector2f>`, les
+  points — son centre — à atteindre dans l'ordre), `m_indexChemin`
+  (indice du prochain point visé), `m_vitesse` (pixels par seconde) —
+  les mêmes données qu'`Escouade` portait directement avant cette
+  étape.
+- **Interface en centres** : le constructeur et `getCentre` raisonnent
+  en centre, pas en coin haut-gauche (`Escouade::placePersonnage` et le
+  reste du code de formation ont toujours raisonné en centre). En
+  interne, `m_position` reste le coin haut-gauche, comme avant, pour
+  que le code d'`allerVers` et de `mettreAJour` ait pu être déplacé sans
+  modification.
+- **`allerVers` et la partie « ancre » de `mettreAJour`** sont le code
+  d'`Escouade` déplacé tel quel (A* + lissage pour le premier,
+  déplacement à pas fixe + collision/glissement pour le second), sans
+  aucune réécriture.
+- **`arreter()`** extrait l'arrêt sur place qu'`Escouade::attaquer`
+  faisait en ligne (`m_chemin = {getCentre()}`) quand les 4 personnages
+  sont à portée.
+- **`directionVoulue()`** : vecteur du centre vers le point courant du
+  chemin, vide s'il n'y a plus de point à atteindre ou si la distance
+  est nulle — remplace l'écriture directe de `m_orientationVoulue` dans
+  l'ancien `Escouade::mettreAJour`. `Escouade` l'appelle avant
+  `m_mobile.mettreAJour(dt, carte)`, pour lire la direction au même
+  moment du tic qu'avant (avant l'essai de collision), et en déduit
+  elle-même son `m_orientationVoulue` (`direction.angle()`).
+- **Ne connaît ni `Escouade`, ni `Personnage`, ni `Monstre`, ni
+  `Attaque`**, et ne dessine rien ; connaît `TileMap`, `Chemin` et
+  `Deplacement`. `Escouade.cpp` n'inclut plus directement ni
+  `TileMap.hpp`, ni `Chemin.hpp`, ni `Deplacement.hpp`.
+
+Interface publique :
+
+| Fonction | Rôle |
+|---|---|
+| `Mobile(sf::Vector2f centre, sf::Vector2f taille, float vitesse)` | Crée le mobile à ce centre, cette taille, cette vitesse ; chemin initial réduit au centre (immobile) |
+| `void allerVers(sf::Vector2f destination, const TileMap& carte)` | Calcule un chemin vers la destination (A*, puis lissé) et le remplace comme trajet à suivre ; ordre ignoré si aucun chemin n'existe |
+| `void arreter()` | Réduit le chemin au centre actuel, pour cesser d'avancer sans reculer |
+| `void mettreAJour(float dt, const TileMap& carte)` | Avance vers le point courant du chemin (collision, glissement) |
+| `sf::Vector2f getCentre() const` | Centre du mobile |
+| `sf::Vector2f getTaille() const` | Taille du mobile |
+| `std::optional<sf::Vector2f> directionVoulue() const` | Vecteur du centre vers le point courant du chemin ; vide s'il n'y a plus de point à atteindre ou si la distance est nulle |
 
 ### `Chemin` — recherche de chemin (A*)
 
@@ -212,8 +266,8 @@ Interface publique :
 | `std::vector<sf::Vector2f> lisserChemin(const TileMap& carte, sf::Vector2f depart, const std::vector<sf::Vector2f>& points, sf::Vector2f taille)` | Retire de `points` (positions du centre d'un rectangle `taille`, en pixels) les points de passage inutiles ; `depart` n'en fait pas partie dans le résultat |
 
 Deux niveaux : `trouverChemin` raisonne en cases, `lisserChemin` en
-pixels. Utilisé uniquement par `Escouade::allerVers` ; `main.cpp` ne
-connaît pas ce module.
+pixels. Utilisé uniquement par `Mobile::allerVers` (depuis l'étape 23 ;
+auparavant `Escouade::allerVers`) ; `main.cpp` ne connaît pas ce module.
 
 ### `Personnage` — un membre de l'escouade
 
@@ -284,10 +338,10 @@ puisse l'utiliser aussi, sans dépendre d'`Escouade` ni dupliquer le code.
 |---|---|
 | `sf::Vector2f deplacerAvecGlissement(const TileMap& carte, const sf::FloatRect& rect, sf::Vector2f deplacement)` | Essaie le déplacement axe par axe (X puis Y, l'essai Y partant du résultat du X) ; renvoie la nouvelle position du coin haut-gauche |
 
-Utilisée par `Escouade::mettreAJour` (pour l'ancre) et par
-`Personnage::mettreAJour` (qui convertit entre son centre et le coin
-haut-gauche attendu par la fonction, comme `Escouade::getCentre()` le
-fait dans l'autre sens).
+Utilisée par `Mobile::mettreAJour` (pour l'ancre, depuis l'étape 23 ;
+auparavant `Escouade::mettreAJour`) et par `Personnage::mettreAJour`
+(qui convertit entre son centre et le coin haut-gauche attendu par la
+fonction, comme `Mobile::getCentre()` le fait dans l'autre sens).
 
 ### `Monstre` — un ennemi immobile
 
@@ -428,6 +482,6 @@ lire le fichier correspondant :
 | `docs/build.md` | Build (CMake, `squad_core`, exécutables) | Avant de modifier `CMakeLists.txt` ou d'ajouter un fichier source |
 | `docs/boucle-et-entrees.md` | Boucle de jeu, déplacement, entrée souris et attaque, caméra | Avant de modifier `main.cpp` |
 | `docs/carte-et-collision.md` | Carte, collision et dessin, plan texte et validation | Avant de modifier `TileMap` ou `Deplacement` |
-| `docs/chemin.md` | Recherche de chemin (A*), suivi de chemin par l'escouade, lissage de chemin | Avant de modifier `Chemin` ou le suivi de chemin dans `Escouade` |
+| `docs/chemin.md` | Recherche de chemin (A*), lissage de chemin, déplacement par chemin (`Mobile`) | Avant de modifier `Chemin` ou `Mobile` |
 | `docs/formation.md` | `Escouade`, formation de l'escouade, attaque (`Attaque`, `Personnage`, `Monstre`) | Avant de modifier `Escouade`, `Personnage`, `Monstre` ou `Attaque` |
 | `docs/tests.md` | Tests (Catch2, conventions) | Avant d'ajouter ou de modifier un test |

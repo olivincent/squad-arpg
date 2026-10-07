@@ -29,14 +29,20 @@
   test précède le raccourci départ == arrivée, pour qu'une case murée ne
   renvoie jamais un chemin d'une case.
 
-## Suivi de chemin par l'escouade
+## Suivi de chemin par `Mobile`
+
+Ce déplacement vivait directement dans `Escouade` jusqu'à l'étape 23 ;
+il a été extrait dans une classe `Mobile`, possédée par valeur par
+`Escouade` (`m_mobile`), en vue de l'étape 24 où `Monstre` en aura
+besoin aussi. Le code ci-dessous n'a pas changé par rapport à avant
+l'extraction, seulement son emplacement.
 
 - **Conversions pixels ↔ cases regroupées dans `TileMap`** (seule à
   connaître `m_tailleCase`) : `caseContenant` (comme `chevaucheUnMur`,
   avec `std::floor` pour rester correct en négatif) et `centreDeCase`.
-- **Les points de passage sont des positions du centre de l'escouade**,
-  pas de son coin haut-gauche. `mettreAJour` calcule donc la direction et
-  la distance depuis `getCentre()`, mais applique le déplacement obtenu
+- **Les points de passage sont des positions du centre du mobile**, pas
+  de son coin haut-gauche. `mettreAJour` calcule donc la direction et la
+  distance depuis `getCentre()`, mais applique le déplacement obtenu
   (un simple vecteur de translation) à `m_position` — une translation
   déplace un rectangle rigide tout entier, inutile de la recalculer
   séparément pour le centre et le coin.
@@ -44,30 +50,40 @@
   l'indice évite un `erase(begin())` à chaque point atteint (coûteux, car
   il décale tous les éléments suivants en mémoire). Le chemin déjà
   parcouru reste en mémoire jusqu'au prochain `allerVers`.
-- **L'appel au A* est dans `Escouade::allerVers`**, pas dans `main.cpp`,
+- **L'appel au A* est dans `Mobile::allerVers`**, pas dans `main.cpp`,
   avec la carte passée en paramètre comme pour `mettreAJour` (jamais
   gardée en membre).
 - **Construction du chemin suivi** à partir du résultat de
   `trouverChemin` (qui travaille en cases) : la case de départ est
-  ignorée (l'escouade est déjà dessus, la viser d'abord la ferait
-  reculer vers le centre de sa propre case) ; les cases intermédiaires
-  sont converties en centres de case ; le dernier point est remplacé par
-  le point exact cliqué, pour que l'escouade s'arrête précisément dessus
+  ignorée (le mobile est déjà dessus, la viser d'abord le ferait reculer
+  vers le centre de sa propre case) ; les cases intermédiaires sont
+  converties en centres de case ; le dernier point est remplacé par le
+  point exact cliqué, pour que le mobile s'arrête précisément dessus
   plutôt qu'au centre de la case d'arrivée.
 - **Chemin vide = ordre ignoré** : `allerVers` ne touche à `m_chemin`
   qu'après avoir confirmé que `trouverChemin` a renvoyé un résultat non
   vide ; un clic sur un mur ou une zone inaccessible n'interrompt donc
   pas le trajet en cours.
 - **Collision et glissement conservés tels quels**, comme filet de
-  sécurité : l'escouade peut partir d'une position décentrée dans sa case
+  sécurité : le mobile peut partir d'une position décentrée dans sa case
   ou viser un point proche d'un mur (notamment le point exact cliqué).
 - **Chemin lissé avant d'être stocké** (étape 11) : entre la
   construction du chemin en pixels et son affectation à `m_chemin`,
   `allerVers` le passe par `Chemin::lisserChemin`, avec `getCentre()`
   comme point de départ et `m_taille` comme taille de rectangle. Voir
   « Lissage de chemin » ci-dessous. L'ancien zigzag près des coins de
-  case (viser un centre de case presque aligné avec l'escouade sur un
-  seul axe) est résolu par ce lissage.
+  case (viser un centre de case presque aligné sur un seul axe) est
+  résolu par ce lissage.
+- **`directionVoulue()`, le point de passage vers `Escouade` (étape 23)** :
+  `Mobile` ne connaît pas l'orientation de la formation (qui est
+  l'affaire d'`Escouade`), mais `Escouade` a besoin, pour orienter la
+  formation, de la même direction que celle que `mettreAJour` utilise
+  en interne, lue au même moment du tic (avant l'essai de collision,
+  sur les positions du *début* du tic). `directionVoulue()` renvoie
+  cette direction (vide si plus aucun point à atteindre, ou si la
+  distance est nulle) sans modifier d'état ; `Escouade::mettreAJour`
+  l'appelle avant `m_mobile.mettreAJour(dt, carte)`, pour obtenir
+  exactement le même résultat qu'avant l'extraction.
 
 ## Lissage de chemin
 
@@ -107,11 +123,12 @@
   suivent. Si aucun point restant n'est atteignable, le prochain point
   de la liste est gardé tel quel, sans être testé : la collision dans
   `mettreAJour` reste le filet de sécurité.
-- **Branchement dans `Escouade::allerVers`** : le chemin en pixels est
-  construit comme avant l'étape 11 (centres de case, puis point exact
-  cliqué), puis lissé avant d'être stocké dans `m_chemin`. Le reste
-  d'`Escouade` (`mettreAJour`, collision, glissement, chemin vide = ordre
-  ignoré) n'a pas changé.
+- **Branchement dans `Mobile::allerVers`** (dans `Escouade::allerVers`
+  avant l'étape 23) : le chemin en pixels est construit comme avant
+  l'étape 11 (centres de case, puis point exact cliqué), puis lissé
+  avant d'être stocké dans `m_chemin`. Le reste de `Mobile`
+  (`mettreAJour`, collision, glissement, chemin vide = ordre ignoré) n'a
+  pas changé.
 - **Limite connue** : `lisserChemin` ne fait que retirer des points de la
   liste donnée par le A* (centres de case) ; il ne peut pas en ajouter ni
   en déplacer. Autour d'un pilier, dès qu'un saut direct est bloqué par
