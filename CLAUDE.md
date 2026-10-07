@@ -26,21 +26,34 @@ Documents de référence (à lire avant toute modification) :
    avant l'implémentation dans le `.cpp`.
 2. **Compiler après chaque sous-étape** (`cmake --build build`) et corriger
    les erreurs et avertissements avant de continuer.
-3. **S'arrêter après chaque sous-étape** et donner à Olivier :
-   - un résumé de ce qui a changé et **pourquoi** (expliquer les notions de
-     C++ ou de conception utilisées, en français) ;
-   - ce qu'il doit **tester visuellement** en lançant le jeu (Claude Code ne
-     voit pas la fenêtre du jeu) ;
+3. **S'arrêter après chaque sous-étape** et donner à Olivier un résumé
+   court :
+   - ce qui a changé et **pourquoi**, en quelques lignes ;
+   - l'explication des notions de C++ ou de conception **nouvelles**
+     dans cette sous-étape (les notions déjà rencontrées dans le projet
+     ne sont pas réexpliquées, sauf si Olivier le demande) ;
+   - ce qu'il doit **tester visuellement** en lançant le jeu (Claude Code
+     ne voit pas la fenêtre du jeu) ;
    - le message de commit proposé.
    Puis attendre sa confirmation avant la sous-étape suivante.
-4. **Ne jamais anticiper.** Rien « pour plus tard » : pas de fonction,
+4. **Sous-étapes enchaînables.** Si un prompt marque une sous-étape
+   « (enchaînable) » parce qu'elle n'a rien à tester visuellement, la
+   réaliser, compiler, lancer les tests, puis passer directement à la
+   sous-étape suivante sans s'arrêter. Au prochain arrêt, le résumé
+   couvre tout le groupe de sous-étapes enchaînées, et un seul commit
+   est proposé pour l'ensemble. S'arrêter quand même si la compilation
+   ou un test échoue, ou si quelque chose d'imprévu se présente. Sans
+   cette mention, la règle précédente (un arrêt par sous-étape)
+   s'applique. Ne jamais décider soi-même qu'une sous-étape est
+   enchaînable : seule la mention dans le prompt compte.
+5. **Ne jamais anticiper.** Rien « pour plus tard » : pas de fonction,
    paramètre, membre ou dépendance dont l'étape en cours n'a pas besoin.
    Le code devenu inutile est supprimé (Git le garde).
-5. **Migrations sans casse** : quand on déplace du code, on le déplace sans
+6. **Migrations sans casse** : quand on déplace du code, on le déplace sans
    le modifier, et les améliorations se font dans un commit séparé.
-6. **Git** : ne pas faire de commit soi-même. Proposer la commande
+7. **Git** : ne pas faire de commit soi-même. Proposer la commande
    `git add` / `git commit -m "..."` ; Olivier la lance après avoir testé.
-7. **Fin d'une étape complète** : quand Olivier le demande, mettre à jour
+8. **Fin d'une étape complète** : quand Olivier le demande, mettre à jour
    `ROADMAP.md` (étape cochée, section « État actuel ») et
    `ARCHITECTURE.md` (modules, décisions prises).
 
