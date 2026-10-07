@@ -723,7 +723,29 @@ de cercles quelconque, afin de resservir aux étapes 33 et 34.
   premier.
 - **L'ancre et les personnages passent une liste vide** : ils traversent
   toujours les monstres, comme avant ; blocage dans les deux sens aux
-  étapes 33 (monstres bloqués par les personnages vivants) et 34
-  (personnages bloqués par les monstres).
+  étapes 33 (monstres bloqués par les personnages vivants, voir
+  ci-dessous) et 34 (personnages bloqués par les monstres).
 - **Limite connue** : un monstre bloqué ne contourne pas, il glisse si
   l'angle le permet, sinon il attend que l'autre bouge.
+
+## Les monstres bloqués par les personnages (étape 33)
+
+Un monstre ne peut plus entrer dans un personnage vivant ni le
+traverser : un mêlée à l'avant barre le passage aux tireurs derrière lui
+(début du rôle de « tank »). Aucun changement de mécanisme : on ajoute
+seulement des cercles à la liste d'obstacles de l'étape 32.
+
+- **`Escouade::cerclesDesVivants()`** expose les cercles plutôt que de
+  laisser `main.cpp` parcourir les personnages : `Escouade` reste seule à
+  connaître `m_personnages`, et `Monstre` ne connaît toujours ni
+  `Escouade` ni `Personnage` (`main.cpp` est l'intermédiaire).
+- **Les morts ne bloquent pas** : un cadavre (carré gris) est franchissable,
+  cohérent avec le fait qu'il n'est plus ciblé ni dangereux.
+- **L'ancre n'est pas un obstacle** : c'est un point de contrôle abstrait,
+  pas une entité de combat.
+- **Calculé une fois par image**, après `escouade.mettreAJour` (positions
+  à jour), avant la boucle des monstres, puis copié comme base de la liste
+  de chaque monstre, où s'ajoutent les cercles des autres monstres.
+- **Sens unique** : les personnages traversent encore les monstres (étape
+  34), un chevauchement peut donc exister. La règle de `deplacementBloque`
+  (ne refuser que ce qui rapproche) permet au monstre de s'en dégager.

@@ -198,6 +198,12 @@
   de `personnageLePlusProche` ci-dessus (même point lointain, mêmes
   dégâts) — vraie à la création, encore vraie après la mort d'un seul
   personnage, fausse une fois les 4 morts.
+- **`Escouade::cerclesDesVivants` (étape 33)** : trois cas, même point
+  lointain et mêmes dégâts que ci-dessus — 4 cercles à la création, 3
+  après une mort (le cercle du mort, repéré avant par
+  `personnageLePlusProche`, n'y figure plus), liste vide une fois les 4
+  morts. Le branchement dans `main.cpp` n'est pas testé (vérifié
+  visuellement).
 - **`Attaque` (`test_Attaque.cpp`, étape 22)** : couvre les six cas de
   recharge/portée en un seul endroit, plutôt que dupliqués dans
   `test_Personnage.cpp` et `test_Monstre.cpp` — dégâts à portée,

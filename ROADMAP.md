@@ -854,10 +854,30 @@ l'angle le permet, sinon il attend (le A* ignore les entités).
 inversement (étapes 33 et 34), blocage entre personnages ou de l'ancre,
 poussée/séparation, grille spatiale.
 
-### Étape 33 — Les monstres bloqués par les personnages vivants (prévue)
+### Étape 33 — Les monstres bloqués par les personnages vivants ✅ TERMINÉE
 
 Les monstres reçoivent les cercles des personnages vivants comme
-obstacles.
+obstacles, en plus de ceux des autres monstres. Même mécanisme qu'à
+l'étape 32, sans le modifier.
+
+1. [x] `Escouade::cerclesDesVivants() const` (les `getCercle()` des
+       personnages vivants) ; tests (4 cercles à la création, 3 après une
+       mort et le cercle du mort absent, liste vide si tous sont morts)
+       (enchaînée)
+2. [x] `main.cpp` : liste calculée une fois par image, après
+       `escouade.mettreAJour` et avant la boucle des monstres ; chaque
+       monstre en part et y ajoute les cercles des autres monstres
+
+Seuls `Escouade` (une fonction de lecture) et `main.cpp` changent. Un
+personnage mort ne bloque personne ; l'ancre n'est pas un obstacle.
+
+**Limite connue** : sens unique — les personnages traversent encore les
+monstres, un chevauchement peut donc exister ; la règle « on ne refuse
+que ce qui rapproche » (étape 32) permet au monstre de s'en dégager.
+
+**Hors de portée** : personnages bloqués par les monstres (étape 34),
+blocage entre personnages ou de l'ancre, poussée, contournement par le A*,
+changement de la règle de choix de cible.
 
 ### Étape 34 — Les personnages bloqués par les monstres (prévue)
 
@@ -1017,8 +1037,8 @@ Pistes discutées :
 - Logique de jeu (`TileMap`, `Escouade`, `Mobile`, `Chemin`,
   `Personnage`, `Deplacement`, `Monstre`, `Attaque`, `Cercle`) dans une
   bibliothèque `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 160 tests : 32 sur `TileMap`, 13 sur `Chemin`,
-  30 sur `Escouade`, 12 sur `Deplacement`, 27 sur `Monstre`, 19 sur
+  (`./build/tests.exe`, 163 tests : 32 sur `TileMap`, 13 sur `Chemin`,
+  33 sur `Escouade`, 12 sur `Deplacement`, 27 sur `Monstre`, 19 sur
   `Personnage`, 11 sur `Attaque`, 12 sur `Mobile`, 4 sur `Cercle`)
 - Depuis l'étape 31, le mêlée avant-gauche possède un skill (une
   seconde `Attaque`, `std::optional` dans `Personnage` : 25 dégâts,
@@ -1075,7 +1095,9 @@ Pistes discutées :
   l'instant
 - Depuis l'étape 32, les monstres se bloquent entre eux (liste de cercles
   obstacles passée à `Monstre::mettreAJour`, puis à `Mobile` et
-  `deplacerAvecGlissement`) ; l'escouade et les personnages traversent
-  encore les monstres ; un monstre bloqué ne contourne pas, il glisse
-  ou attend
-- Étape en cours : **Étape 35** — à choisir (étapes 33 et 34 prévues)
+  `deplacerAvecGlissement`) ; depuis l'étape 33, ils sont aussi bloqués
+  par les personnages vivants (`Escouade::cerclesDesVivants`, les morts
+  ne bloquent pas) ; l'ancre et les personnages traversent encore les
+  monstres ; un monstre bloqué ne contourne pas, il glisse ou attend
+- Étape en cours : **Étape 34** — les personnages bloqués par les
+  monstres (prévue) ; étape 35 à choisir

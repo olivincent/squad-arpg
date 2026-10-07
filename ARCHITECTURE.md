@@ -133,6 +133,9 @@ Depuis l'étape 32, il construit aussi, pour chaque monstre et juste avant
 sa mise à jour, la liste des cercles des autres monstres (identifiant
 différent) et la lui passe comme obstacles : les monstres se bloquent
 entre eux ; l'ancre et les personnages passent une liste vide.
+Depuis l'étape 33, cette liste commence par les cercles des personnages
+vivants (`Escouade::cerclesDesVivants`, calculés une fois par image
+avant la boucle des monstres) : les monstres sont aussi bloqués par eux.
 La structure continue d'évoluer par nécessité réelle, pas par
 anticipation (voir principes ci-dessous).
 
@@ -248,6 +251,7 @@ Interface publique (inchangée pour `main.cpp`, qui ne connaît pas
 | `std::optional<Cercle> personnageLePlusProche(sf::Vector2f point) const` | Cercle du personnage **vivant** dont le centre est le plus proche de `point` (vide si aucun n'est vivant) ; utilisé par `main.cpp` pour désigner la cible d'un monstre (un `Cercle` depuis l'étape 30, pour que le monstre mesure sa portée bord à bord) |
 | `void recevoirDegats(sf::Vector2f origine, int quantite)` | Applique `quantite` de dégâts au personnage vivant le plus proche d'`origine` ; ne fait rien si aucun n'est vivant |
 | `bool estVivante() const` | Vrai si au moins un personnage est vivant (étape 26) ; utilisé par `main.cpp` pour bloquer tout ordre du joueur une fois l'escouade vaincue |
+| `std::vector<Cercle> cerclesDesVivants() const` | Cercles des personnages **vivants** (étape 33) ; un mort n'y figure pas. Utilisé par `main.cpp` comme obstacles des monstres |
 | `void verrouiller(int idCible)` | Pose le verrou de combat sur ce monstre (étape 27), en remplaçant la cible précédente s'il y en avait une |
 | `void deverrouiller()` | Retire le verrou de combat |
 | `std::optional<int> getCibleVerrouillee() const` | Identifiant du monstre engagé en combat, vide si aucun |
