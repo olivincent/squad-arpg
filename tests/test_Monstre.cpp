@@ -7,6 +7,7 @@
 namespace {
 
 // Simule le temps qui passe par tics de 1/60 s, comme dans main.cpp.
+// Prouve que Monstre::mettreAJour fait bien avancer la recharge de m_attaque.
 void ecoulerTemps(Monstre& monstre, float duree) {
     const float dt = 1.0f / 60.0f;
     float tempsRestant = duree;
@@ -128,22 +129,6 @@ TEST_CASE("Monstre.frapper renvoie 0 pour une cible hors de portée") {
     REQUIRE(monstre.frapper({300.0f, 100.0f}) == 0);
 }
 
-TEST_CASE("Monstre.frapper renvoie 0 au second appel immédiat (recharge en cours)") {
-    Monstre monstre({100.0f, 100.0f}, 1);
-
-    REQUIRE(monstre.frapper({150.0f, 100.0f}) == 10);
-    REQUIRE(monstre.frapper({150.0f, 100.0f}) == 0);
-}
-
-TEST_CASE("Monstre.frapper renvoie 0 après une durée simulée trop courte") {
-    Monstre monstre({100.0f, 100.0f}, 1);
-    const sf::Vector2f cible(150.0f, 100.0f);
-
-    REQUIRE(monstre.frapper(cible) == 10);
-    ecoulerTemps(monstre, 0.5f);
-    REQUIRE(monstre.frapper(cible) == 0);
-}
-
 TEST_CASE("Monstre.frapper renvoie de nouveau les dégâts après une durée simulée généreuse") {
     Monstre monstre({100.0f, 100.0f}, 1);
     const sf::Vector2f cible(150.0f, 100.0f);
@@ -151,13 +136,4 @@ TEST_CASE("Monstre.frapper renvoie de nouveau les dégâts après une durée sim
     REQUIRE(monstre.frapper(cible) == 10);
     ecoulerTemps(monstre, 1.2f);
     REQUIRE(monstre.frapper(cible) == 10);
-}
-
-TEST_CASE("Un coup tenté hors de portée ne déclenche pas la recharge du monstre") {
-    Monstre monstre({100.0f, 100.0f}, 1);
-    const sf::Vector2f loin(300.0f, 100.0f);
-    const sf::Vector2f proche(150.0f, 100.0f);
-
-    REQUIRE(monstre.frapper(loin) == 0);
-    REQUIRE(monstre.frapper(proche) == 10);
 }

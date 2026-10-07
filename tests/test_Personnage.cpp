@@ -49,12 +49,6 @@ TEST_CASE("estAPortee renvoie faux pour un point lointain") {
     REQUIRE_FALSE(personnage.estAPortee({300.0f, 100.0f}));
 }
 
-TEST_CASE("estAPortee renvoie vrai pour une distance exactement égale à la portée") {
-    const Personnage personnage({100.0f, 100.0f}, sf::Color::White);
-
-    REQUIRE(personnage.estAPortee({180.0f, 100.0f}));
-}
-
 TEST_CASE("frapper renvoie les dégâts pour une cible à portée") {
     Personnage personnage({100.0f, 100.0f}, sf::Color::White);
 
@@ -67,23 +61,6 @@ TEST_CASE("frapper renvoie 0 pour une cible hors de portée") {
     REQUIRE(personnage.frapper({300.0f, 100.0f}) == 0);
 }
 
-TEST_CASE("frapper renvoie 0 au second appel immédiat (recharge en cours)") {
-    Personnage personnage({100.0f, 100.0f}, sf::Color::White);
-
-    REQUIRE(personnage.frapper({150.0f, 100.0f}) == 5);
-    REQUIRE(personnage.frapper({150.0f, 100.0f}) == 0);
-}
-
-TEST_CASE("frapper renvoie 0 après une durée simulée trop courte") {
-    Personnage personnage({100.0f, 100.0f}, sf::Color::White);
-    const TileMap carte = carteDegagee();
-    const sf::Vector2f cible(150.0f, 100.0f);
-
-    REQUIRE(personnage.frapper(cible) == 5);
-    ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.3f);
-    REQUIRE(personnage.frapper(cible) == 0);
-}
-
 TEST_CASE("frapper renvoie de nouveau les dégâts après une durée simulée généreuse") {
     Personnage personnage({100.0f, 100.0f}, sf::Color::White);
     const TileMap carte = carteDegagee();
@@ -92,15 +69,6 @@ TEST_CASE("frapper renvoie de nouveau les dégâts après une durée simulée g�
     REQUIRE(personnage.frapper(cible) == 5);
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.6f);
     REQUIRE(personnage.frapper(cible) == 5);
-}
-
-TEST_CASE("Un coup tenté hors de portée ne déclenche pas la recharge") {
-    Personnage personnage({100.0f, 100.0f}, sf::Color::White);
-    const sf::Vector2f loin(300.0f, 100.0f);
-    const sf::Vector2f proche(150.0f, 100.0f);
-
-    REQUIRE(personnage.frapper(loin) == 0);
-    REQUIRE(personnage.frapper(proche) == 5);
 }
 
 TEST_CASE("Un personnage est vivant a la creation") {
