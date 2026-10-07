@@ -18,8 +18,12 @@ Personnage::Personnage(sf::Vector2f centre, sf::Color couleur)
 void Personnage::dessiner(sf::RenderTarget& rendu) const {
     sf::RectangleShape forme(m_taille);
     forme.setPosition(m_centre - m_taille / 2.0f);
-    forme.setFillColor(m_couleur);
+    forme.setFillColor(estVivant() ? m_couleur : sf::Color(100, 100, 100));
     rendu.draw(forme);
+
+    if (!estVivant()) {
+        return;
+    }
 
     const float hauteurBarre = 5.0f;
     const float ecart = 6.0f;
