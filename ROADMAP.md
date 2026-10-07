@@ -703,7 +703,57 @@ bouton enfoncé.
        uniquement par l'événement d'appui, pour que le déplacement
        continu de l'étape 13 reste indépendant de l'état du combat
 
-### Étape 28 — À définir
+### Étape 28 — Portées d'attaque différentes selon le personnage ✅ TERMINÉE
+
+Deux personnages de mêlée à l'avant de la formation et deux tireurs à
+l'arrière, reconnaissables à leur couleur, chacun frappant selon sa
+propre portée. Étape de données : aucun comportement de déplacement ne
+change.
+
+1. [x] `Personnage` : le constructeur reçoit son `Attaque` et sa couleur
+       (injection, `Personnage(sf::Vector2f centre, sf::Color couleur,
+       Attaque attaque)`) au lieu de les fixer lui-même ; `Escouade`
+       passe encore les mêmes valeurs qu'avant aux 4 personnages. Tests
+       unitaires existants adaptés pour compiler et passer
+2. [x] `Escouade` donne aux deux personnages arrière (décalage `x =
+       -25`, donc à l'arrière quand l'orientation est 0 = vers `+x`) une
+       `Attaque` de portée 150 px et la couleur cyan (tireurs) ; aux deux
+       personnages avant (`x = +25`), portée 80 px (inchangée) et la
+       couleur rouge (mêlée). Constantes nommées dans un espace de noms
+       anonyme de `Escouade.cpp`
+
+Aucune modification d'`Attaque`, `Monstre` ni `Mobile` ; pas d'énumération
+ni de notion de « type » de personnage — un personnage reste défini
+uniquement par ses données (couleur, attaque).
+
+### Étape 29 — Un clic engage le combat qui continue seul — placement individuel en combat ✅ TERMINÉE
+
+Limite de l'étape 28 : toute la formation avançait jusqu'au contact, les
+tireurs finissant collés au monstre comme les mêlées. Désormais, pendant
+un combat, un personnage déjà à portée de la cible cesse d'avancer et
+reste sur place ; les tireurs s'arrêtent à distance pendant que les
+mêlées continuent jusqu'au contact.
+
+1. [x] `Escouade` : nouveau membre `m_cibleCombat` (`std::optional<
+       sf::Vector2f>`), mis à jour à chaque appel d'`attaquer(cible,
+       carte)` — seul endroit où `Escouade` apprend la position de la
+       cible verrouillée. Dans `mettreAJour`, un personnage vivant à
+       portée de `m_cibleCombat`, et seulement si le verrou
+       (`m_cibleVerrouillee`) est posé, reçoit son propre centre comme
+       point à atteindre (immobile) au lieu de sa place en formation ;
+       sinon il continue de suivre `placePersonnage(i)` comme avant.
+       Tests unitaires ajoutés : un personnage à portée reste figé
+       pendant que les autres avancent ; sans verrou, ce même
+       personnage suit quand même son emplacement (la règle ne
+       s'applique qu'en combat)
+2. [x] Lancer le jeu, vérifier les scénarios (approche, mort de la
+       cible, retraite, changement de cible) — comportement confirmé
+
+`Personnage`, `Attaque`, `Monstre` et `Mobile` non modifiés ; aucun
+`Mobile` ni recherche de chemin individuelle par personnage, aucune
+collision ajoutée — seul le chemin de l'ancre contourne les murs.
+
+### Étape 30 — À définir
 
 Pistes discutées :
 - Patrouille, escouade de monstres, récupération de points de vie au
@@ -726,8 +776,12 @@ Pistes discutées :
   performance est mesuré sur une carte plus grande
 - Ligne de vue pour la détection ou la portée (hors de portée explicite
   des étapes 17 et 24)
-- Types de personnages, statistiques, armes, capacités (hors de portée
-  explicite des étapes 12 à 17, 20 et 22)
+- Types de personnages, statistiques, armes, capacités, au-delà de la
+  simple portée différenciée de l'étape 28 (hors de portée explicite
+  des étapes 12 à 17, 20, 22 et 28)
+- Placement « intelligent » en combat (encerclement, écartement, ligne
+  de tir), recul des tireurs si un monstre s'approche d'eux (hors de
+  portée explicite de l'étape 29)
 
 ## État actuel (à mettre à jour à chaque session)
 
@@ -752,10 +806,15 @@ Pistes discutées :
   (fonction partagée `deplacerAvecGlissement`, module `Deplacement`) ;
   la formation pivote progressivement vers la direction de marche
   (360°/s, toujours par le plus court côté). Chaque personnage a aussi
-  une attaque (portée 80 px, dégâts 5, recharge 0,5 s, module `Attaque`
-  partagé avec `Monstre` depuis l'étape 22), 100 points de vie et une
-  barre de vie au-dessus de lui ; depuis l'étape 21, il ne frappe plus
-  et n'est plus ciblé par les monstres une fois mort. Depuis l'étape 26,
+  une attaque (module `Attaque` partagé avec `Monstre` depuis
+  l'étape 22), 100 points de vie et une barre de vie au-dessus de lui ;
+  depuis l'étape 21, il ne frappe plus et n'est plus ciblé par les
+  monstres une fois mort. Depuis l'étape 28, les deux personnages à
+  l'avant de la formation sont des mêlées (rouges, portée 80 px) et les
+  deux à l'arrière des tireurs (cyan, portée 150 px) — dégâts (5) et
+  recharge (0,5 s) identiques pour les 4 ; `Escouade` injecte la
+  couleur et l'`Attaque` de chacun au constructeur de `Personnage`, qui
+  ne les choisit plus lui-même. Depuis l'étape 26,
   un personnage à 0 point de vie tombe sur place (il ne bouge plus,
   `Personnage::mettreAJour` revient immédiatement) et devient un carré
   gris sans barre de vie ; il reste dans `m_personnages` (pas de
@@ -806,11 +865,17 @@ Pistes discutées :
   monstre : le verrou vit désormais dans `Escouade` elle-même
   (`std::optional<int>`, posé par `escouade.verrouiller(id)`), et non
   plus dans une variable locale de `main.cpp`. L'escouade s'approche en
-  formation jusqu'à ce que ses 4 personnages soient à portée (80 px),
-  puis s'arrête et chacun frappe pour 5 points de dégâts dès que sa
-  propre recharge (0,5 s) est écoulée — la barre de vie descend par
-  petits crans, plus vite une fois tout le monde à portée, mort en 2 à
-  3 secondes. Le monstre verrouillé est entouré d'un contour jaune
+  formation jusqu'à ce que ses 4 personnages soient à portée, puis
+  s'arrête, et chacun frappe pour 5 points de dégâts dès que sa propre
+  recharge (0,5 s) est écoulée — la barre de vie descend par petits
+  crans, plus vite une fois tout le monde à portée, mort en 2 à
+  3 secondes. Depuis l'étape 29, pendant ce combat, un personnage déjà
+  à portée de la cible cesse de suivre sa place en formation et reste
+  immobile (il continue de frapper) : les deux tireurs (150 px)
+  s'arrêtent donc à distance pendant que les deux mêlées (80 px)
+  continuent jusqu'au contact ; un personnage qui n'est pas encore à
+  portée, ou si le verrou n'est pas posé, continue de suivre sa place
+  comme avant. Le monstre verrouillé est entouré d'un contour jaune
   (étape 19). Depuis l'étape 27, le combat ne se rompt plus au
   relâchement du bouton ni à la perte du focus : seuls trois cas le
   rompent — mort du monstre visé, clic sur le sol (l'escouade s'y rend
@@ -826,8 +891,8 @@ Pistes discutées :
 - Logique de jeu (`TileMap`, `Escouade`, `Mobile`, `Chemin`,
   `Personnage`, `Deplacement`, `Monstre`, `Attaque`) dans une
   bibliothèque `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 131 tests : 32 sur `TileMap`, 13 sur `Chemin`,
-  24 sur `Escouade`, 4 sur `Deplacement`, 26 sur `Monstre`, 12 sur
+  (`./build/tests.exe`, 133 tests : 32 sur `TileMap`, 13 sur `Chemin`,
+  26 sur `Escouade`, 4 sur `Deplacement`, 26 sur `Monstre`, 12 sur
   `Personnage`, 9 sur `Attaque`, 11 sur `Mobile`)
 - Depuis l'étape 22, `Personnage` et `Monstre` possèdent chacun un
   `m_attaque` (`Attaque`) plutôt que leurs propres membres de portée,
@@ -862,4 +927,10 @@ Pistes discutées :
   chacun leur propre poste et territoire sans se coordonner ; pas de
   patrouille ni de récupération de points de vie au retour (voir
   étape 25, limites connues) — accepté pour l'instant
-- Étape en cours : **Étape 28** — à choisir
+- Depuis l'étape 29, en combat, un personnage à portée de la cible
+  reste figé là où il est plutôt que de continuer à suivre sa place en
+  formation ; aucun placement « intelligent » (encerclement, ligne de
+  tir), pas de recul si un monstre approche, pas de `Mobile` individuel
+  par personnage (voir étape 29, limites connues) — accepté pour
+  l'instant
+- Étape en cours : **Étape 30** — à choisir

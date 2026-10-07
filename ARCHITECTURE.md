@@ -175,18 +175,30 @@ formation en carré autour d'elle.
   `m_vitesseRotation` (degrés par seconde), `m_personnages`
   (`std::vector<Personnage>`, inclut `Personnage.hpp` en entier — un
   `std::vector` a besoin de la définition complète de son type
-  d'élément), et `m_cibleVerrouillee` (`std::optional<int>`, vide à la
+  d'élément), `m_cibleVerrouillee` (`std::optional<int>`, vide à la
   création, étape 27 — l'identifiant du monstre engagé en combat ;
   `Escouade` ne connaît toujours pas `Monstre`, seul l'identifiant est
-  stocké).
+  stocké) et `m_cibleCombat` (`std::optional<sf::Vector2f>`, vide à la
+  création, étape 29 — dernière position de cible reçue par `attaquer`,
+  seul moyen pour `Escouade` de connaître la position de la cible
+  verrouillée).
 - **Valeurs fixes** passées au constructeur de `m_mobile` : taille
   20 × 20, vitesse 180 px/s. Orientation `0` à la création. Elles
   deviendront des paramètres quand il le faudra.
+- **Les 4 `Personnage` reçoivent chacun leur couleur et leur `Attaque`
+  au constructeur** (étape 28, injection — `Escouade` les crée, elle
+  décide des valeurs ; `Personnage` ne les choisit plus lui-même) :
+  les deux personnages à l'avant de la formation (décalage `x = +25`)
+  sont des mêlées (rouge, portée 80 px), les deux à l'arrière
+  (`x = -25`) des tireurs (cyan, portée 150 px) ; dégâts et recharge
+  identiques pour les 4. Constantes nommées dans un espace de noms
+  anonyme d'`Escouade.cpp` (`s_couleurMelee`, `s_couleurTireur`,
+  `s_porteeTireur`).
 - **Fonction privée `placePersonnage(indice)`** : seul endroit du code
   qui calcule la place d'un personnage (`getCentre() + m_decalages[indice]
   .rotatedBy(m_orientation)`) — utilisée à la fois pour créer les
   personnages dans le constructeur et pour leur donner leur cible à
-  chaque `mettreAJour`.
+  chaque `mettreAJour`, sauf règle contraire (voir plus bas, étape 29).
 - **Fonction privée `indicePersonnageLePlusProche(point)`** (étape 20,
   filtrage des morts à l'étape 21) : seul endroit du code qui cherche,
   parmi les personnages **vivants**, celui dont le centre est le plus
@@ -194,16 +206,24 @@ formation en carré autour d'elle.
   `std::optional<std::size_t>` vide si aucun n'est vivant) ; utilisée
   par `personnageLePlusProche` et par `recevoirDegats`, pour que les
   deux désignent toujours le même personnage par le même critère.
+- **En combat, un personnage à portée de la cible reste sur place**
+  (étape 29) : dans `mettreAJour`, si le verrou (`m_cibleVerrouillee`)
+  est posé et que `m_cibleCombat` a une valeur, un personnage vivant
+  dont `estAPortee(*m_cibleCombat)` est vrai reçoit son propre centre
+  (au lieu de `placePersonnage(i)`) comme point à atteindre — il ne
+  bouge donc plus, bien qu'il continue de frapper. Un personnage hors
+  de portée, ou en l'absence de verrou, continue de suivre sa place en
+  formation comme avant.
 
 Interface publique (inchangée pour `main.cpp`, qui ne connaît pas
 `Personnage`) :
 
 | Fonction | Rôle |
 |---|---|
-| `explicit Escouade(sf::Vector2f positionDepart)` | Crée l'escouade (et ses 4 personnages en formation) à la position donnée |
+| `explicit Escouade(sf::Vector2f positionDepart)` | Crée l'escouade (et ses 4 personnages en formation, mêlées devant/tireurs derrière depuis l'étape 28) à la position donnée |
 | `void allerVers(sf::Vector2f destination, const TileMap& carte)` | Délègue à `m_mobile.allerVers` |
-| `int attaquer(sf::Vector2f cible, const TileMap& carte)` | Approche la cible (`allerVers`) tant qu'un personnage **vivant** n'est pas à portée, s'arrête sur place (`m_mobile.arreter()`) quand tous les vivants y sont (vrai par vacuité s'il n'en reste aucun, depuis l'étape 26), puis fait frapper chacun (les morts renvoient 0 sans rien faire) ; renvoie la somme des dégâts |
-| `void mettreAJour(float dt, const TileMap& carte)` | Met à jour `m_orientationVoulue` à partir de `m_mobile.directionVoulue()`, avance l'ancre (`m_mobile.mettreAJour`), met à jour l'orientation, puis chaque personnage vers sa place (un mort ne bouge pas, voir `Personnage::mettreAJour`) |
+| `int attaquer(sf::Vector2f cible, const TileMap& carte)` | Mémorise `cible` dans `m_cibleCombat` (étape 29), approche la cible (`allerVers`) tant qu'un personnage **vivant** n'est pas à portée, s'arrête sur place (`m_mobile.arreter()`) quand tous les vivants y sont (vrai par vacuité s'il n'en reste aucun, depuis l'étape 26), puis fait frapper chacun (les morts renvoient 0 sans rien faire) ; renvoie la somme des dégâts |
+| `void mettreAJour(float dt, const TileMap& carte)` | Met à jour `m_orientationVoulue` à partir de `m_mobile.directionVoulue()`, avance l'ancre (`m_mobile.mettreAJour`), met à jour l'orientation, puis chaque personnage vers sa place (un mort ne bouge pas, voir `Personnage::mettreAJour`) ou vers son propre centre s'il est en combat et à portée de la cible (étape 29) |
 | `void dessiner(sf::RenderTarget& rendu) const` | Dessine l'ancre (position reconstruite à partir de `getCentre()` et `m_mobile.getTaille()`), puis les 4 personnages |
 | `sf::Vector2f getCentre() const` | Délègue à `m_mobile.getCentre()` (utilisé par la caméra, par `allerVers` et par `placePersonnage`) |
 | `std::optional<sf::Vector2f> personnageLePlusProche(sf::Vector2f point) const` | Centre du personnage **vivant** le plus proche de `point` (vide si aucun n'est vivant) ; utilisé par `main.cpp` pour désigner la cible d'un monstre |
@@ -298,6 +318,9 @@ possède. C'est elle qui décide du point à atteindre et le lui donne en
 paramètre de `mettreAJour` — principe retenu pour permettre, plus tard,
 qu'un personnage reçoive un point différent de sa place en formation
 (combat, action sur un coffre ou une porte) sans changer son interface.
+Depuis l'étape 29, c'est exactement ce qui se produit en combat (voir
+`Escouade::mettreAJour`) : `Personnage` lui-même n'en sait rien, il
+continue de recevoir un simple point en paramètre.
 
 - **Stocke son centre** (`m_centre`), pas son coin haut-gauche : le point
   qu'on lui demande d'atteindre est lui-même un centre (une place de
@@ -307,9 +330,11 @@ qu'un personnage reçoive un point différent de sa place en formation
   4 personnages à l'écran), `m_vitesse` (240 px/s — plus rapide que
   l'escouade à 180 px/s, pour qu'un personnage retardé par un mur
   puisse rattraper sa place) et, depuis l'étape 22, `m_attaque`
-  (`Attaque`, portée 80 px / dégâts 5 / recharge 0,5 s — valeurs fixes
-  identiques pour les 4, comme `m_vitesse`, en attendant de dépendre
-  d'une arme ou de capacités propres à chacun). Depuis l'étape 20 :
+  (`Attaque`, reçue au constructeur, comme `m_couleur` depuis l'étape 28
+  — dégâts (5) et recharge (0,5 s) identiques pour les 4, mais portée
+  différente selon la place en formation : 80 px pour les deux mêlées à
+  l'avant, 150 px pour les deux tireurs à l'arrière ; voir `Escouade`).
+  Depuis l'étape 20 :
   `m_pointsDeVie` et `m_pointsDeVieMax` (`100` chacun à la création),
   dupliqués volontairement de `Monstre` (même logique de points de vie
   et de barre de vie) — aucune factorisation entre les deux classes
@@ -349,7 +374,7 @@ Interface publique :
 
 | Fonction | Rôle |
 |---|---|
-| `Personnage(sf::Vector2f centre, sf::Color couleur)` | Crée le personnage à ce centre, avec cette couleur |
+| `Personnage(sf::Vector2f centre, sf::Color couleur, Attaque attaque)` | Crée le personnage à ce centre, avec cette couleur et cette attaque (injectées par `Escouade` depuis l'étape 28) |
 | `void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte)` | Si vivant, avance vers la cible (collision, glissement) puis décrémente la recharge d'attaque ; sinon ne fait rien (étape 26) |
 | `void dessiner(sf::RenderTarget& rendu) const` | Dessine le personnage (gris et sans barre de vie s'il n'est pas vivant, étape 26) |
 | `bool estAPortee(sf::Vector2f cible) const` | La distance entre le centre et `cible` est-elle `<=` la portée de `m_attaque` ? |

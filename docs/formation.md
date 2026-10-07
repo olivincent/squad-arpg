@@ -480,3 +480,92 @@ suffit désormais à engager un combat qui continue seul.
   clic sur le sol (retraite), ou clic sur un autre monstre (cible
   remplacée) — voir `docs/boucle-et-entrees.md` pour le détail de ces
   règles côté `main.cpp`.
+
+## Portées d'attaque différentes selon le personnage (étape 28)
+
+Jusqu'ici, les 4 personnages étaient interchangeables : même portée,
+mêmes dégâts, même recharge, seule la couleur différait (et seulement
+pour les distinguer à l'écran). Cette étape introduit deux rôles — deux
+mêlées à l'avant, deux tireurs à l'arrière — en ne touchant qu'aux
+données, sans ajouter de comportement nouveau.
+
+- **Injection par le constructeur, pas de notion de « type »** :
+  `Personnage(sf::Vector2f centre, sf::Color couleur, Attaque attaque)`
+  reçoit désormais sa couleur *et* son attaque depuis l'extérieur,
+  plutôt que de les fixer lui-même (comme c'était le cas depuis
+  l'étape 17 pour l'attaque, et depuis l'étape 12 pour la couleur). Un
+  personnage reste défini uniquement par ses données : aucune
+  énumération, aucun champ « type » ou « classe » de personnage n'a été
+  ajouté — deux personnages ayant la même `Attaque` et la même couleur
+  seraient indiscernables, et c'est voulu.
+- **C'est `Escouade` qui choisit les valeurs**, dans son constructeur,
+  pour chacun des 4 personnages qu'elle crée — comme elle décidait déjà
+  de leur position initiale (`placePersonnage`). Les valeurs (couleurs,
+  portée des tireurs) sont des constantes nommées dans un espace de
+  noms anonyme d'`Escouade.cpp` (`s_couleurMelee`, `s_couleurTireur`,
+  `s_porteeTireur`), pas des littéraux répétés quatre fois.
+- **Le rôle découle du décalage de formation, pas d'une liste séparée** :
+  `m_decalages` vaut `{{25,-25}, {25,25}, {-25,-25}, {-25,25}}` pour une
+  escouade orientée vers `+x` (voir plus haut) — les indices 0 et 1
+  (`x = +25`, à l'avant) sont les mêlées, les indices 2 et 3 (`x = -25`,
+  à l'arrière) les tireurs. Aucune nouvelle donnée n'a été ajoutée pour
+  mémoriser « qui est quoi » : la place dans `m_personnages` suffit,
+  exactement comme elle suffit déjà à associer chaque personnage à son
+  décalage de formation.
+- **Valeurs retenues** : mêlée, portée 80 px (inchangée depuis
+  l'étape 17) ; tireur, portée 150 px (nouvelle constante). Dégâts (5)
+  et recharge (0,5 s) identiques pour les 4 — seule la portée distingue
+  les deux rôles à cette étape. Couleurs nettement différentes (rouge
+  pour la mêlée, cyan pour le tireur), remplaçant les 4 couleurs
+  distinctes de l'étape 12 (rouge, jaune, bleu, magenta).
+- **Aucun changement de comportement de déplacement** : `attaquer` et
+  `mettreAJour` ne sont pas modifiées par cette étape ; l'escouade
+  continue de s'arrêter seulement quand les 4 personnages vivants sont
+  à portée (règle de l'étape 17/26), ce qui amène les tireurs au
+  contact comme les mêlées — corrigé par l'étape suivante.
+
+## Un personnage à portée cesse de suivre sa place en formation (étape 29)
+
+Limite de l'étape 28 : la règle d'arrêt de l'ancre ne change pas (tous
+les vivants à portée), donc même avec une portée de 150 px, un tireur
+continuait d'avancer avec le reste de la formation jusqu'au contact.
+Cette étape ajoute une seconde règle, individuelle, qui s'applique
+seulement en combat.
+
+- **Une seule règle nouvelle, dans `Escouade::mettreAJour`** : pour
+  chaque personnage vivant, si l'escouade est en combat (`m_cibleVerrouillee`
+  posé) et que ce personnage est à portée de la cible
+  (`estAPortee(*m_cibleCombat)`), son point à atteindre devient son
+  propre centre (`getCentre()`) au lieu de `placePersonnage(i)` — il
+  cesse donc d'avancer, sans qu'aucun code n'ait été ajouté à
+  `Personnage` pour ça (il reçoit toujours un simple point en
+  paramètre, exactement le principe retenu depuis l'étape 12). Dès que
+  la cible n'est plus à portée (elle s'est éloignée) ou que le verrou
+  tombe, le personnage recommence à suivre sa place normalement, au
+  tic suivant.
+- **`m_cibleCombat` (`std::optional<sf::Vector2f>`), le seul moyen pour
+  `Escouade` de connaître la position de la cible** : mis à jour au
+  début d'`attaquer(cible, carte)`, avant tout le reste de la fonction
+  (approche/arrêt/frappe, inchangés). `Escouade` ne connaît toujours
+  pas `Monstre` : elle ne stocke qu'un `sf::Vector2f`, exactement comme
+  le paramètre `cible` qu'elle reçoit déjà depuis l'étape 17.
+- **La règle exige le verrou, pas seulement une cible connue** :
+  `enCombat` dans `mettreAJour` vaut `m_cibleVerrouillee.has_value() &&
+  m_cibleCombat.has_value()`. Sans cette double condition, un appel
+  isolé à `attaquer()` (en théorie possible sans verrou, même si
+  `main.cpp` ne le fait jamais ainsi) figerait quand même les
+  personnages à portée — contraire à la décision « le placement
+  individuel est un comportement de combat », documentée aussi par un
+  test unitaire dédié (voir `tests/test_Escouade.cpp`).
+- **Pas de nouveau `Mobile`, pas de collision** : un personnage figé
+  reste exactement là où il était ; aucune vérification de mur n'est
+  nécessaire puisqu'il ne se déplace pas. Le chemin qui contourne les
+  murs reste entièrement celui de l'ancre (`m_mobile`), comme avant
+  cette étape.
+- **Limites connues** : pas de placement « intelligent » (encerclement,
+  écartement, ligne de tir) — un personnage à portée s'arrête
+  exactement là où il se trouvait au moment d'entrer en portée, même si
+  cette position est maladroite (par exemple collée à un autre
+  personnage) ; pas de recul si un monstre s'approche d'un tireur déjà
+  arrêté ; pas de collision entre personnages, ni entre un personnage
+  et un monstre (limites héritées, inchangées par cette étape).
