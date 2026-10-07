@@ -4,12 +4,12 @@
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Rect.hpp>
 
-Personnage::Personnage(sf::Vector2f centre, sf::Color couleur)
+Personnage::Personnage(sf::Vector2f centre, sf::Color couleur, Attaque attaque)
     : m_centre(centre),
       m_taille(20.0f, 20.0f),
       m_couleur(couleur),
       m_vitesse(240.0f),
-      m_attaque(80.0f, 5, 0.5f),
+      m_attaque(attaque),
       m_pointsDeVie(100),
       m_pointsDeVieMax(100)
 {

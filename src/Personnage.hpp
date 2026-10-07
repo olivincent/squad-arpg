@@ -9,7 +9,7 @@ class TileMap;
 
 class Personnage {
 public:
-    Personnage(sf::Vector2f centre, sf::Color couleur);
+    Personnage(sf::Vector2f centre, sf::Color couleur, Attaque attaque);
     void dessiner(sf::RenderTarget& rendu) const;
     void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte);
     bool estAPortee(sf::Vector2f cible) const;

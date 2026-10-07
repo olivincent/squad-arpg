@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "Personnage.hpp"
+#include "Attaque.hpp"
 #include "TileMap.hpp"
 
 namespace {
@@ -38,31 +39,31 @@ void ecoulerTemps(Personnage& personnage, const TileMap& carte, sf::Vector2f cen
 // Personnage centré en (100, 100), portée 80 px.
 
 TEST_CASE("estAPortee renvoie vrai pour un point proche") {
-    const Personnage personnage({100.0f, 100.0f}, sf::Color::White);
+    const Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f));
 
     REQUIRE(personnage.estAPortee({150.0f, 100.0f}));
 }
 
 TEST_CASE("estAPortee renvoie faux pour un point lointain") {
-    const Personnage personnage({100.0f, 100.0f}, sf::Color::White);
+    const Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f));
 
     REQUIRE_FALSE(personnage.estAPortee({300.0f, 100.0f}));
 }
 
 TEST_CASE("frapper renvoie les dégâts pour une cible à portée") {
-    Personnage personnage({100.0f, 100.0f}, sf::Color::White);
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f));
 
     REQUIRE(personnage.frapper({150.0f, 100.0f}) == 5);
 }
 
 TEST_CASE("frapper renvoie 0 pour une cible hors de portée") {
-    Personnage personnage({100.0f, 100.0f}, sf::Color::White);
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f));
 
     REQUIRE(personnage.frapper({300.0f, 100.0f}) == 0);
 }
 
 TEST_CASE("frapper renvoie de nouveau les dégâts après une durée simulée généreuse") {
-    Personnage personnage({100.0f, 100.0f}, sf::Color::White);
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f));
     const TileMap carte = carteDegagee();
     const sf::Vector2f cible(150.0f, 100.0f);
 
@@ -72,13 +73,13 @@ TEST_CASE("frapper renvoie de nouveau les dégâts après une durée simulée g�
 }
 
 TEST_CASE("Un personnage est vivant a la creation") {
-    const Personnage personnage({100.0f, 100.0f}, sf::Color::White);
+    const Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f));
 
     REQUIRE(personnage.estVivant());
 }
 
 TEST_CASE("Un personnage est encore vivant apres 80 degats") {
-    Personnage personnage({100.0f, 100.0f}, sf::Color::White);
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f));
 
     personnage.recevoirDegats(80);
 
@@ -86,7 +87,7 @@ TEST_CASE("Un personnage est encore vivant apres 80 degats") {
 }
 
 TEST_CASE("Un personnage est mort apres 100 degats") {
-    Personnage personnage({100.0f, 100.0f}, sf::Color::White);
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f));
 
     personnage.recevoirDegats(100);
 
@@ -94,13 +95,13 @@ TEST_CASE("Un personnage est mort apres 100 degats") {
 }
 
 TEST_CASE("getCentre renvoie le centre donne au constructeur") {
-    const Personnage personnage({100.0f, 100.0f}, sf::Color::White);
+    const Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f));
 
     REQUIRE(personnage.getCentre() == sf::Vector2f(100.0f, 100.0f));
 }
 
 TEST_CASE("Un personnage est mort apres un coup qui depasse le reste de ses points de vie") {
-    Personnage personnage({100.0f, 100.0f}, sf::Color::White);
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f));
 
     personnage.recevoirDegats(80);
     personnage.recevoirDegats(50);
@@ -109,7 +110,7 @@ TEST_CASE("Un personnage est mort apres un coup qui depasse le reste de ses poin
 }
 
 TEST_CASE("Un personnage mort ne frappe plus") {
-    Personnage personnage({100.0f, 100.0f}, sf::Color::White);
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f));
     const sf::Vector2f cible(150.0f, 100.0f);
 
     personnage.recevoirDegats(100);
@@ -118,7 +119,7 @@ TEST_CASE("Un personnage mort ne frappe plus") {
 }
 
 TEST_CASE("Un personnage mort ne bouge plus") {
-    Personnage personnage({100.0f, 100.0f}, sf::Color::White);
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f));
     const TileMap carte = carteDegagee();
     const sf::Vector2f centreInitial = personnage.getCentre();
 

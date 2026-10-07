@@ -4,6 +4,13 @@
 #include <cmath>
 #include <SFML/Graphics/Color.hpp>
 #include "Personnage.hpp"
+#include "Attaque.hpp"
+
+namespace {
+const sf::Color s_couleurMelee = sf::Color::Red;
+const sf::Color s_couleurTireur = sf::Color::Cyan;
+constexpr float s_porteeTireur = 150.0f;
+}  // namespace
 
 Escouade::Escouade(sf::Vector2f positionDepart)
     : m_mobile(positionDepart + sf::Vector2f(10.0f, 10.0f), {20.0f, 20.0f}, 180.0f),
@@ -12,10 +19,10 @@ Escouade::Escouade(sf::Vector2f positionDepart)
       m_orientationVoulue(),
       m_vitesseRotation(360.0f),
       m_personnages({
-          Personnage(placePersonnage(0), sf::Color::Red),
-          Personnage(placePersonnage(1), sf::Color::Yellow),
-          Personnage(placePersonnage(2), sf::Color::Blue),
-          Personnage(placePersonnage(3), sf::Color::Magenta),
+          Personnage(placePersonnage(0), s_couleurMelee, Attaque(80.0f, 5, 0.5f)),
+          Personnage(placePersonnage(1), s_couleurMelee, Attaque(80.0f, 5, 0.5f)),
+          Personnage(placePersonnage(2), s_couleurTireur, Attaque(s_porteeTireur, 5, 0.5f)),
+          Personnage(placePersonnage(3), s_couleurTireur, Attaque(s_porteeTireur, 5, 0.5f)),
       }),
       m_cibleVerrouillee()
 {
