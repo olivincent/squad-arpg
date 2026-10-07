@@ -204,3 +204,62 @@ TEST_CASE("Monstre.mettreAJour s'arrête à portée d'attaque sans atteindre la 
     REQUIRE(distanceFinale <= 80.0f);
     REQUIRE(monstre.getCentre() != cible);
 }
+
+// État de poursuite : une fois détectée (<= 200 px), la cible n'est abandonnée
+// qu'au-delà de 400 px ; entre les deux, l'état ne change pas.
+
+TEST_CASE("Monstre.mettreAJour continue de poursuivre une cible repoussée entre les deux rayons") {
+    const TileMap carte = carteDegagee();
+    Monstre monstre({100.0f, 100.0f}, 1);
+
+    ecoulerTemps(monstre, 0.2f, sf::Vector2f(250.0f, 100.0f), carte); // déclenche la détection
+    const sf::Vector2f centreApresDetection = monstre.getCentre();
+
+    const sf::Vector2f cibleEloignee(400.0f, 100.0f); // hors détection, dans l'abandon
+    const float distanceAvant = (cibleEloignee - centreApresDetection).length();
+    ecoulerTemps(monstre, 0.2f, cibleEloignee, carte);
+    const float distanceApres = (cibleEloignee - monstre.getCentre()).length();
+
+    REQUIRE(distanceApres < distanceAvant);
+}
+
+TEST_CASE("Monstre.mettreAJour abandonne une cible au-delà du rayon d'abandon") {
+    const TileMap carte = carteDegagee();
+    Monstre monstre({100.0f, 100.0f}, 1);
+
+    ecoulerTemps(monstre, 0.2f, sf::Vector2f(250.0f, 100.0f), carte); // déclenche la détection
+
+    const sf::Vector2f cibleTresEloignee(600.0f, 100.0f); // au-delà de l'abandon
+    ecoulerTemps(monstre, 0.2f, cibleTresEloignee, carte);
+    const sf::Vector2f centreApresAbandon = monstre.getCentre();
+
+    ecoulerTemps(monstre, 0.5f, cibleTresEloignee, carte);
+
+    REQUIRE(monstre.getCentre() == centreApresAbandon);
+}
+
+TEST_CASE("Monstre.mettreAJour ne reprend pas la poursuite d'une cible abandonnée revenue entre les deux rayons") {
+    const TileMap carte = carteDegagee();
+    Monstre monstre({100.0f, 100.0f}, 1);
+
+    ecoulerTemps(monstre, 0.2f, sf::Vector2f(250.0f, 100.0f), carte); // détection
+    ecoulerTemps(monstre, 0.2f, sf::Vector2f(600.0f, 100.0f), carte); // abandon
+    const sf::Vector2f centreApresAbandon = monstre.getCentre();
+
+    const sf::Vector2f cibleIntermediaire(centreApresAbandon.x + 300.0f, centreApresAbandon.y);
+    ecoulerTemps(monstre, 0.5f, cibleIntermediaire, carte);
+
+    REQUIRE(monstre.getCentre() == centreApresAbandon);
+}
+
+TEST_CASE("Monstre.mettreAJour s'arrête si la cible disparaît après détection") {
+    const TileMap carte = carteDegagee();
+    Monstre monstre({100.0f, 100.0f}, 1);
+
+    ecoulerTemps(monstre, 0.2f, sf::Vector2f(250.0f, 100.0f), carte); // détection
+    const sf::Vector2f centreEnPoursuite = monstre.getCentre();
+
+    ecoulerTemps(monstre, 0.5f, std::nullopt, carte);
+
+    REQUIRE(monstre.getCentre() == centreEnPoursuite);
+}

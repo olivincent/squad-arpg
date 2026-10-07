@@ -27,4 +27,6 @@ private:
     int m_id;
     Attaque m_attaque;
     float m_rayonDetection;
+    float m_rayonAbandon;
+    bool m_enPoursuite;
 };
