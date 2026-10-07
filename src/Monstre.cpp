@@ -4,11 +4,12 @@
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Rect.hpp>
 
-Monstre::Monstre(sf::Vector2f centre)
+Monstre::Monstre(sf::Vector2f centre, int id)
     : m_centre(centre),
       m_taille(30.0f, 30.0f),
       m_pointsDeVie(100),
-      m_pointsDeVieMax(100)
+      m_pointsDeVieMax(100),
+      m_id(id)
 {
 }
 
@@ -37,6 +38,10 @@ void Monstre::dessiner(sf::RenderTarget& rendu) const {
 
 sf::Vector2f Monstre::getCentre() const {
     return m_centre;
+}
+
+int Monstre::getId() const {
+    return m_id;
 }
 
 bool Monstre::contient(sf::Vector2f point) const {

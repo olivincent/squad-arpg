@@ -2,6 +2,8 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/Mouse.hpp>
+#include <algorithm>
+#include <optional>
 #include <string>
 #include <vector>
 #include "TileMap.hpp"
@@ -55,8 +57,10 @@ int main() {
     };
     TileMap carte(plan, 40.0f);
     Escouade escouade({100.0f, 100.0f});
-    Monstre monstre({300.0f, 100.0f});
-    bool cibleVerrouillee = false;
+    std::vector<Monstre> monstres = {
+        Monstre({300.0f, 100.0f}, 1),
+    };
+    std::optional<int> idCible;
 
     sf::Clock horloge;
     sf::View camera = window.getDefaultView();
@@ -70,22 +74,35 @@ int main() {
             if (const auto* data = event->getIf<sf::Event::MouseButtonPressed>()) {
                 if (data->button == sf::Mouse::Button::Left) {
                     const sf::Vector2f clicMonde = window.mapPixelToCoords(data->position);
-                    if (monstre.estVivant() && monstre.contient(clicMonde)) {
-                        cibleVerrouillee = true;
+                    const auto it = std::find_if(monstres.begin(), monstres.end(), [&](const Monstre& m) {
+                        return m.estVivant() && m.contient(clicMonde);
+                    });
+                    if (it != monstres.end()) {
+                        idCible = it->getId();
                     }
                 }
             }
         }
 
-        if (cibleVerrouillee) {
-            monstre.recevoirDegats(escouade.attaquer(monstre.getCentre(), carte));
+        if (idCible.has_value()) {
+            const auto it = std::find_if(monstres.begin(), monstres.end(), [&](const Monstre& m) {
+                return m.getId() == idCible.value();
+            });
+            if (it == monstres.end()) {
+                idCible.reset();
+            } else {
+                it->recevoirDegats(escouade.attaquer(it->getCentre(), carte));
+                if (!it->estVivant()) {
+                    idCible.reset();
+                }
+            }
         }
 
-        if (!window.hasFocus() || !sf::Mouse::isButtonPressed(sf::Mouse::Button::Left) || !monstre.estVivant()) {
-            cibleVerrouillee = false;
+        if (!window.hasFocus() || !sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
+            idCible.reset();
         }
 
-        if (window.hasFocus() && sf::Mouse::isButtonPressed(sf::Mouse::Button::Left) && !cibleVerrouillee) {
+        if (window.hasFocus() && sf::Mouse::isButtonPressed(sf::Mouse::Button::Left) && !idCible.has_value()) {
             const sf::Vector2f curseurMonde = window.mapPixelToCoords(sf::Mouse::getPosition(window));
             escouade.allerVers(curseurMonde, carte);
         }
@@ -97,8 +114,10 @@ int main() {
         window.setView(camera);
         window.clear();
         carte.dessiner(window);
-        if (monstre.estVivant()) {
-            monstre.dessiner(window);
+        for (const Monstre& m : monstres) {
+            if (m.estVivant()) {
+                m.dessiner(window);
+            }
         }
         escouade.dessiner(window);
         window.display();

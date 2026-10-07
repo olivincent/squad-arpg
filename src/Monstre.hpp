@@ -5,9 +5,10 @@
 
 class Monstre {
 public:
-    explicit Monstre(sf::Vector2f centre);
+    Monstre(sf::Vector2f centre, int id);
     void dessiner(sf::RenderTarget& rendu) const;
     sf::Vector2f getCentre() const;
+    int getId() const;
     bool contient(sf::Vector2f point) const;
     void recevoirDegats(int quantite);
     bool estVivant() const;
@@ -17,4 +18,5 @@ private:
     sf::Vector2f m_taille;  // en pixels
     int m_pointsDeVie;
     int m_pointsDeVieMax;
+    int m_id;
 };
