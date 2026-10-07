@@ -374,14 +374,42 @@ curseur, jusqu'au relâchement du bouton ou à la mort du monstre. Seul
 Les 69 tests passent sans modification ; aucun nouveau test (tout se
 passe dans `main.cpp`).
 
-### Étape 17 — À définir
+### Étape 17 — Portée d'attaque : les personnages frappent ✅ TERMINÉE
+
+Quand la cible est verrouillée, l'escouade s'approche du monstre en
+gardant sa formation, et ce sont les personnages qui frappent, chacun
+avec sa propre portée, ses propres dégâts et sa propre recharge. `main.cpp`
+n'inflige plus de dégâts lui-même.
+
+1. [x] `Monstre::getCentre() const` ; un test dans `tests/test_Monstre.cpp`
+2. [x] `Personnage` : membres `m_portee` (80 px), `m_degats` (5),
+       `m_tempsRecharge` (0,5 s) et `m_recharge` (0 à la création),
+       valeurs fixes identiques pour les 4, comme `m_vitesse`
+3. [x] `Personnage::estAPortee(cible)` (distance au centre `<=` portée) ;
+       `tests/test_Personnage.cpp` créé et ajouté au CMake
+4. [x] Décrémentation de `m_recharge` dans `Personnage::mettreAJour`
+       (jamais sous zéro), puis `Personnage::frapper(cible)` (dégâts si
+       à portée et recharge écoulée, sinon 0, et relance la recharge)
+5. [x] `Escouade::attaquer(cible, carte)` : approche (`allerVers`) tant
+       qu'un personnage n'est pas à portée, arrêt sur place (chemin
+       réduit au centre actuel) quand les 4 y sont, puis `frapper` sur
+       chacun ; renvoie la somme des dégâts. `Escouade` et `Personnage`
+       ne connaissent toujours pas `Monstre`, tout passe par
+       `sf::Vector2f`
+6. [x] Branchement dans `main.cpp` : le verrou de cible appelle
+       `monstre.recevoirDegats(escouade.attaquer(monstre.getCentre(),
+       carte))` à chaque image ; `rechargeAttaque`, `tempsRecharge` et
+       `degatsParClic` de l'étape 16 supprimés
+
+**Limite connue** : la portée ignore les murs (un personnage peut
+frapper à travers) — acceptée pour l'instant.
+
+### Étape 18 — À définir
 
 Pistes discutées :
 - Collision entre personnages, ou déplacement suivant l'arc de rotation
   plutôt qu'une ligne droite, pour éliminer le chevauchement résiduel
   lors d'un demi-tour rapide (voir limite connue de l'étape 14)
-- Portée d'attaque (l'escouade s'approche avant de frapper), attaque par
-  les personnages plutôt que directement au clic
 - Indicateur visuel du verrouillage de cible, effet visuel au coup ou à
   la mort
 - Déplacement, comportement ou attaque du monstre ; plusieurs monstres
@@ -391,8 +419,8 @@ Pistes discutées :
   l'écran, police committée dans le dépôt
 - Limitation de fréquence des appels à `allerVers`, si un problème de
   performance est mesuré sur une carte plus grande
-- Types de personnages, statistiques, combat (hors de portée explicite
-  des étapes 12 à 16)
+- Types de personnages, statistiques, armes, capacités, ligne de vue
+  pour la portée (hors de portée explicite des étapes 12 à 17)
 
 ## État actuel (à mettre à jour à chaque session)
 
@@ -413,7 +441,8 @@ Pistes discutées :
   l'ancre, bloqués par les murs et glissant le long d'eux comme elle
   (fonction partagée `deplacerAvecGlissement`, module `Deplacement`) ;
   la formation pivote progressivement vers la direction de marche
-  (360°/s, toujours par le plus court côté)
+  (360°/s, toujours par le plus court côté). Chaque personnage a aussi
+  une portée d'attaque (80 px), des dégâts (5) et une recharge (0,5 s)
 - Caméra (`sf::View`) toujours centrée sur l'escouade ; du noir apparaît
   au-delà des bords de la carte
 - Tant que le bouton gauche de la souris est enfoncé et que la fenêtre a
@@ -426,22 +455,26 @@ Pistes discutées :
   première pièce, à `(300, 100)` ; `main.cpp` le possède directement
   (pas `Escouade`) ; pas de collision avec lui (l'escouade et les
   personnages lui passent dessus)
-- Cliquer sur le monstre verrouille la cible : il reçoit un coup de 20
-  points de vie immédiatement, puis un coup toutes les 0,5 seconde tant
-  que le bouton reste enfoncé (peu importe où va le curseur) — il meurt
-  en environ 2 secondes. Le verrou tombe au relâchement du bouton, à la
-  perte du focus, ou à la mort du monstre ; l'escouade ne reçoit alors
-  plus d'ordre de déplacement tant qu'il est posé, et en reçoit un de
-  nouveau (vers le curseur) dès qu'il retombe. À zéro, le monstre n'est
-  plus dessiné ni attaquable, mais l'objet continue d'exister
+- Cliquer sur le monstre verrouille la cible : l'escouade s'approche en
+  formation jusqu'à ce que ses 4 personnages soient à portée (80 px),
+  puis s'arrête et chacun frappe pour 5 points de dégâts dès que sa
+  propre recharge (0,5 s) est écoulée — la barre de vie descend par
+  petits crans, plus vite une fois tout le monde à portée, mort en 2 à
+  3 secondes. Le verrou tombe au relâchement du bouton, à la perte du
+  focus, ou à la mort du monstre ; l'escouade ne reçoit alors plus
+  d'ordre de déplacement tant qu'il est posé, et en reçoit un de nouveau
+  (vers le curseur) dès qu'il retombe. À zéro, le monstre n'est plus
+  dessiné ni attaquable, mais l'objet continue d'exister
 - Logique de jeu (`TileMap`, `Escouade`, `Chemin`, `Personnage`,
   `Deplacement`, `Monstre`) dans une bibliothèque `squad_core`, testée
-  avec Catch2 3 (`./build/tests.exe`, 69 tests : 32 sur `TileMap`,
-  13 sur `Chemin`, 9 sur `Escouade`, 4 sur `Deplacement`,
-  11 sur `Monstre`)
+  avec Catch2 3 (`./build/tests.exe`, 82 tests : 32 sur `TileMap`,
+  13 sur `Chemin`, 12 sur `Escouade`, 4 sur `Deplacement`,
+  12 sur `Monstre`, 9 sur `Personnage`)
 - Près des piliers, le contournement n'est pas toujours le plus court
   possible (voir étape 11, limite connue) — accepté pour l'instant
 - Lors d'un demi-tour rapide, deux personnages peuvent encore se
   chevaucher brièvement en traversant le centre de la formation (voir
   étape 14, limite connue) — accepté pour l'instant
-- Étape en cours : **Étape 17** — à choisir
+- La portée d'attaque des personnages ignore les murs (voir étape 17,
+  limite connue) — accepté pour l'instant
+- Étape en cours : **Étape 18** — à choisir

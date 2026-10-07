@@ -80,17 +80,19 @@ squad-arpg/
 ```
 
 Six modules : `TileMap` (l'environnement de jeu), `Escouade` (le point
-de contrôle, l'ancre, qui suit un chemin calculé par le A* et possède
-les personnages), `Chemin` (recherche de chemin A*, utilisé uniquement
-par `Escouade`), `Personnage` (un membre de l'escouade, qui sait aller
-vers un point), `Deplacement` (collision/glissement partagée entre
-`Escouade` et `Personnage`) et `Monstre` (un ennemi immobile, avec des
-points de vie, possédé directement par `main.cpp`, sans lien avec
-`Escouade` ni `Personnage`). `main.cpp` garde la fenêtre, la boucle de
-jeu, les événements (fermeture, et le verrouillage de cible sur le
-monstre), l'état de la souris (déplacement), le minuteur de recharge
-d'attaque, la caméra, la carte (son plan) et le monstre ; il ne connaît
-ni `Chemin` ni `Personnage`. La structure continue d'évoluer par
+de contrôle, l'ancre, qui suit un chemin calculé par le A*, possède les
+personnages et les fait attaquer), `Chemin` (recherche de chemin A*,
+utilisé uniquement par `Escouade`), `Personnage` (un membre de
+l'escouade, qui sait aller vers un point et frapper une cible à
+portée), `Deplacement` (collision/glissement partagée entre `Escouade`
+et `Personnage`) et `Monstre` (un ennemi immobile, avec des points de
+vie, possédé directement par `main.cpp`, sans lien avec `Escouade` ni
+`Personnage`). `main.cpp` garde la fenêtre, la boucle de jeu, les
+événements (fermeture, et le verrouillage de cible sur le monstre),
+l'état de la souris (déplacement), la caméra, la carte (son plan) et le
+monstre ; il ne connaît ni `Chemin` ni `Personnage`, et ne gère plus la
+recharge d'attaque lui-même depuis l'étape 17 (`Escouade::attaquer`
+s'en charge via les personnages). La structure continue d'évoluer par
 nécessité réelle, pas par anticipation (voir principes ci-dessous).
 
 Deux exécutables : `main` (le jeu) et `tests` (les tests Catch2). Les deux
@@ -166,6 +168,7 @@ Interface publique (inchangée pour `main.cpp`, qui ne connaît pas
 |---|---|
 | `explicit Escouade(sf::Vector2f positionDepart)` | Crée l'escouade (et ses 4 personnages en formation) à la position donnée |
 | `void allerVers(sf::Vector2f destination, const TileMap& carte)` | Calcule un chemin vers la destination (A*, puis lissé) et le remplace comme trajet à suivre ; ordre ignoré si aucun chemin n'existe |
+| `int attaquer(sf::Vector2f cible, const TileMap& carte)` | Approche la cible (`allerVers`) tant qu'un personnage n'est pas à portée, s'arrête sur place quand les 4 y sont, puis fait frapper chacun ; renvoie la somme des dégâts |
 | `void mettreAJour(float dt, const TileMap& carte)` | Avance l'ancre vers le point courant du chemin (collision, glissement, orientation), puis chaque personnage vers sa place |
 | `void dessiner(sf::RenderTarget& rendu) const` | Dessine l'ancre, puis les 4 personnages |
 | `sf::Vector2f getCentre() const` | Centre de l'escouade (utilisé par la caméra, par `allerVers` et par `placePersonnage`) |
@@ -212,7 +215,12 @@ qu'un personnage reçoive un point différent de sa place en formation
   constructeur), `m_couleur` (reçue au constructeur, pour distinguer les
   4 personnages à l'écran), `m_vitesse` (240 px/s — plus rapide que
   l'escouade à 180 px/s, pour qu'un personnage retardé par un mur
-  puisse rattraper sa place).
+  puisse rattraper sa place), `m_portee` (80 px), `m_degats` (5),
+  `m_tempsRecharge` (0,5 s, ne change jamais) et `m_recharge` (secondes
+  avant le prochain coup possible, 0 à la création, décrémentée dans
+  `mettreAJour` sans descendre sous zéro) — valeurs fixes identiques
+  pour les 4, comme `m_vitesse`, en attendant de dépendre d'une arme ou
+  de capacités propres à chacun.
 - **Déclaration anticipée** : `Personnage.hpp` contient `class TileMap;`
   (une référence ne demande pas la définition complète) ; aucun include
   de `TileMap.hpp` n'est nécessaire dans `Personnage.cpp` non plus,
@@ -227,8 +235,10 @@ Interface publique :
 | Fonction | Rôle |
 |---|---|
 | `Personnage(sf::Vector2f centre, sf::Color couleur)` | Crée le personnage à ce centre, avec cette couleur |
-| `void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte)` | Avance vers la cible, avec collision et glissement le long des murs |
+| `void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte)` | Avance vers la cible (collision, glissement), puis décrémente la recharge d'attaque |
 | `void dessiner(sf::RenderTarget& rendu) const` | Dessine le personnage |
+| `bool estAPortee(sf::Vector2f cible) const` | La distance entre le centre et `cible` est-elle `<=` `m_portee` ? |
+| `int frapper(sf::Vector2f cible)` | Si `cible` est à portée et la recharge écoulée, relance la recharge et renvoie `m_degats` ; sinon renvoie 0 |
 
 ### `Deplacement` — collision et glissement partagés
 
@@ -289,6 +299,7 @@ Interface publique :
 |---|---|
 | `explicit Monstre(sf::Vector2f centre)` | Crée le monstre à ce centre, 30 × 30, 100 points de vie |
 | `void dessiner(sf::RenderTarget& rendu) const` | Dessine le monstre et sa barre de vie |
+| `sf::Vector2f getCentre() const` | Centre du monstre (utilisé par `main.cpp` pour le donner à `Escouade::attaquer`) |
 | `bool contient(sf::Vector2f point) const` | Le point (pixels du monde) est-il dans le carré du monstre ? |
 | `void recevoirDegats(int quantite)` | Retire des points de vie, sans descendre sous zéro |
 | `bool estVivant() const` | Points de vie `> 0` |
