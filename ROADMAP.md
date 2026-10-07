@@ -753,7 +753,46 @@ mêlées continuent jusqu'au contact.
 `Mobile` ni recherche de chemin individuelle par personnage, aucune
 collision ajoutée — seul le chemin de l'ancre contourne les murs.
 
-### Étape 30 — À définir
+### Étape 30 — Portée mesurée de bord à bord ✅ TERMINÉE
+
+La portée d'une attaque était comparée à la distance entre les centres
+des deux entités : avec une petite portée, un personnage devait entrer
+dans le monstre pour frapper, et le résultat dépendait de la taille de
+la cible. Désormais, chaque entité est représentée par un cercle, et la
+portée est l'écart entre les bords des deux cercles : « portée 10 »
+signifie 10 px de vide entre l'attaquant et sa cible.
+
+1. [x] Module `Cercle` (`Cercle.hpp`/`.cpp`) : structure `Cercle
+       { centre, rayon }` sans comportement, et fonction libre
+       `distanceBordABord(a, b)` (distance entre centres moins les deux
+       rayons, jamais négative) ; ajout à `squad_core` ;
+       `tests/test_Cercle.cpp` (cercles séparés, qui se touchent, qui se
+       chevauchent, rayons différents) (enchaînée)
+2. [x] `Personnage::getCercle()` (rayon 10) et `Monstre::getCercle()`
+       (rayon 15) : rayon = demi-côté du carré dessiné ; un test chacun
+       (enchaînée)
+3. [x] `Attaque::estAPortee`/`frapper` reçoivent deux `Cercle` au lieu
+       de deux positions ; tous les appelants adaptés : frappes des
+       personnages (`Personnage::estAPortee`/`frapper(Cercle)`), riposte
+       des monstres (`Monstre::frapper(Cercle)`), arrêt de l'ancre
+       (`Escouade::attaquer(Cercle, carte)`), arrêt des personnages à
+       portée (`m_cibleCombat` devient un `std::optional<Cercle>`), arrêt
+       du monstre en poursuite (`Monstre::mettreAJour` reçoit un
+       `std::optional<Cercle>`, fourni par `Escouade::personnageLePlusProche`
+       qui renvoie désormais un `Cercle`) ; tests existants adaptés
+       (enchaînée)
+4. [x] Nouvelles valeurs de portée, bord à bord : mêlée 10 px
+       (`s_porteeMelee`), tireurs 120 px (`s_porteeTireur`), monstres
+       15 px (ancienne portée de 40 px, moins les deux rayons 10 + 15) ;
+       tests de `Monstre` et d'`Escouade` dont les chiffres dépendaient
+       des anciennes portées mis à jour
+
+Détection et territoire des monstres, test du clic sur un monstre,
+formation, choix du personnage le plus proche et lissage du chemin
+restent mesurés de centre à centre ; l'apparence des entités ne change
+pas (toujours des carrés).
+
+### Étape 31 — À définir
 
 Pistes discutées :
 - Patrouille, escouade de monstres, récupération de points de vie au
@@ -782,6 +821,9 @@ Pistes discutées :
 - Placement « intelligent » en combat (encerclement, écartement, ligne
   de tir), recul des tireurs si un monstre s'approche d'eux (hors de
   portée explicite de l'étape 29)
+- Forme plus fidèle que le cercle unique (plusieurs cercles, rectangle
+  orienté), orientation des entités (hors de portée explicite de
+  l'étape 30)
 
 ## État actuel (à mettre à jour à chaque session)
 
@@ -810,8 +852,10 @@ Pistes discutées :
   l'étape 22), 100 points de vie et une barre de vie au-dessus de lui ;
   depuis l'étape 21, il ne frappe plus et n'est plus ciblé par les
   monstres une fois mort. Depuis l'étape 28, les deux personnages à
-  l'avant de la formation sont des mêlées (rouges, portée 80 px) et les
-  deux à l'arrière des tireurs (cyan, portée 150 px) — dégâts (5) et
+  l'avant de la formation sont des mêlées (rouges) et les deux à
+  l'arrière des tireurs (cyan) ; depuis l'étape 30, leurs portées sont
+  mesurées de bord à bord (10 px pour les mêlées, 120 px pour les
+  tireurs — voir plus bas) — dégâts (5) et
   recharge (0,5 s) identiques pour les 4 ; `Escouade` injecte la
   couleur et l'`Attaque` de chacun au constructeur de `Personnage`, qui
   ne les choisit plus lui-même. Depuis l'étape 26,
@@ -847,20 +891,22 @@ Pistes discutées :
   un rayon de 200 px (`m_rayonDetection`) ET dans son territoire de
   400 px autour de son poste (`m_rayonTerritoire`, poste = sa position
   de départ), et le poursuit (A* + lissage) jusqu'à être à portée de
-  son attaque (80 px) où il s'arrête. Depuis l'étape 25, son statut
+  son attaque où il s'arrête. Depuis l'étape 25, son statut
   (`EnGarde`/`Poursuite`/`Retour`, un `enum class` privé) remplace le
   simple booléen de l'étape 24 : il abandonne quand lui-même (pas la
   proie) sort de son territoire, ou si elle meurt, et retourne alors à
   son poste plutôt que de s'arrêter sur place ; une proie qui rentre
   dans le territoire pendant ce retour relance la poursuite, par la
   même règle de détection qu'en garde. Chaque monstre a aussi une
-  attaque (portée 80 px, dégâts 10, recharge 1 s, module `Attaque`) :
+  attaque (portée 15 px bord à bord depuis l'étape 30, dégâts 10,
+  recharge 1 s, module `Attaque`) :
   il frappe le personnage **vivant** de l'escouade le plus proche de
   lui dès qu'il est à portée, qu'il soit lui-même attaqué ou non
   (`Escouade::personnageLePlusProche`/`recevoirDegats`, étape 20 ;
   filtrage des morts, étape 21) ; s'il n'en reste aucun, il ne frappe
   plus. Détection, poursuite et portée sont toutes mesurées à vol
-  d'oiseau et ignorent les murs
+  d'oiseau et ignorent les murs ; détection et territoire de centre à
+  centre, portée de bord à bord
 - Un clic (même bref, depuis l'étape 27) sur un monstre verrouille CE
   monstre : le verrou vit désormais dans `Escouade` elle-même
   (`std::optional<int>`, posé par `escouade.verrouiller(id)`), et non
@@ -871,9 +917,10 @@ Pistes discutées :
   crans, plus vite une fois tout le monde à portée, mort en 2 à
   3 secondes. Depuis l'étape 29, pendant ce combat, un personnage déjà
   à portée de la cible cesse de suivre sa place en formation et reste
-  immobile (il continue de frapper) : les deux tireurs (150 px)
-  s'arrêtent donc à distance pendant que les deux mêlées (80 px)
-  continuent jusqu'au contact ; un personnage qui n'est pas encore à
+  immobile (il continue de frapper) : les deux tireurs (120 px)
+  s'arrêtent donc à distance pendant que les deux mêlées (10 px)
+  continuent jusqu'à s'arrêter juste devant le monstre, sans entrer
+  dedans (étape 30) ; un personnage qui n'est pas encore à
   portée, ou si le verrou n'est pas posé, continue de suivre sa place
   comme avant. Le monstre verrouillé est entouré d'un contour jaune
   (étape 19). Depuis l'étape 27, le combat ne se rompt plus au
@@ -889,11 +936,16 @@ Pistes discutées :
   (`std::erase_if`, à chaque image) ; les autres restent attaquables,
   quel que soit l'ordre dans lequel ils meurent
 - Logique de jeu (`TileMap`, `Escouade`, `Mobile`, `Chemin`,
-  `Personnage`, `Deplacement`, `Monstre`, `Attaque`) dans une
+  `Personnage`, `Deplacement`, `Monstre`, `Attaque`, `Cercle`) dans une
   bibliothèque `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 133 tests : 32 sur `TileMap`, 13 sur `Chemin`,
-  26 sur `Escouade`, 4 sur `Deplacement`, 26 sur `Monstre`, 12 sur
-  `Personnage`, 9 sur `Attaque`, 11 sur `Mobile`)
+  (`./build/tests.exe`, 139 tests : 32 sur `TileMap`, 13 sur `Chemin`,
+  26 sur `Escouade`, 4 sur `Deplacement`, 27 sur `Monstre`, 13 sur
+  `Personnage`, 9 sur `Attaque`, 11 sur `Mobile`, 4 sur `Cercle`)
+- Depuis l'étape 30, la portée d'attaque est l'écart entre les bords de
+  deux cercles (module `Cercle`, un cercle par entité, rayon = demi-côté
+  du carré dessiné : 10 px pour un personnage, 15 px pour un monstre),
+  et non plus la distance entre les centres ; les entités restent
+  dessinées comme des carrés
 - Depuis l'étape 22, `Personnage` et `Monstre` possèdent chacun un
   `m_attaque` (`Attaque`) plutôt que leurs propres membres de portée,
   dégâts et recharge — composition, pas héritage ; aucun changement de
@@ -933,4 +985,4 @@ Pistes discutées :
   tir), pas de recul si un monstre approche, pas de `Mobile` individuel
   par personnage (voir étape 29, limites connues) — accepté pour
   l'instant
-- Étape en cours : **Étape 30** — à choisir
+- Étape en cours : **Étape 31** — à choisir

@@ -569,3 +569,75 @@ seulement en combat.
   personnage) ; pas de recul si un monstre s'approche d'un tireur déjà
   arrêté ; pas de collision entre personnages, ni entre un personnage
   et un monstre (limites héritées, inchangées par cette étape).
+
+## Portée mesurée de bord à bord (étape 30)
+
+Jusqu'ici, la portée d'une `Attaque` était comparée à la distance entre
+les **centres** de l'attaquant et de sa cible. Conséquence observée avec
+une petite portée : un personnage devait entrer dans le monstre pour le
+frapper, et la même portée donnait un écart visible différent selon la
+taille de la cible (un monstre de 30 px « absorbe » 15 px de portée, un
+personnage de 20 px seulement 10). Désormais, la portée est l'écart
+entre les **bords** : « portée 10 » signifie 10 px de vide entre les
+deux, quelle que soit leur taille.
+
+- **Le cercle comme forme** : identique sous tous les angles, donc
+  compatible avec une future orientation des entités, sans calcul
+  d'angle. Un rectangle orienté ou plusieurs cercles par entité ont été
+  écartés : rien ne les justifie encore.
+- **Une structure sans comportement + une fonction libre**, dans leur
+  propre module (`Cercle.hpp`/`.cpp`), plutôt qu'une classe : un cercle
+  n'a aucun invariant à protéger, et la distance bord à bord ne
+  « appartient » à aucun des deux cercles plus qu'à l'autre — même
+  raisonnement que `trouverChemin` ou `deplacerAvecGlissement`.
+- **`distanceBordABord` jamais négative** : deux cercles qui se
+  chevauchent sont à 0, pas à une distance négative. Sinon, une portée
+  de 10 serait aussi « satisfaite » à −50 px, ce qui reste vrai mais
+  rend le nombre renvoyé dénué de sens pour qui le lirait.
+- **Rayon calculé, pas stocké** : `getCercle()` recalcule le rayon
+  (demi-côté) à partir de la taille déjà stockée (`m_taille` pour
+  `Personnage`, `m_mobile.getTaille()` pour `Monstre`) — une seule
+  source de vérité pour la taille, comme depuis l'étape 24 pour la
+  position du monstre.
+- **Seules les portées d'attaque changent de mesure.** Tous les appels
+  passent par `Attaque::estAPortee` : frappe des personnages, riposte
+  des monstres, arrêt de l'ancre (`attaquer`), arrêt individuel en
+  combat (étape 29, `m_cibleCombat` devient un `Cercle`) et arrêt du
+  monstre en poursuite. Restent de centre à centre, volontairement :
+  détection et territoire du monstre (`proieDetectee` ne lit que
+  `cible->centre`), choix du personnage le plus proche
+  (`indicePersonnageLePlusProche`), clic sur un monstre (`contient`),
+  formation et lissage du chemin.
+- **Pour transporter la taille de la cible, les signatures passent de
+  `sf::Vector2f` à `Cercle`** plutôt que d'ajouter un paramètre `rayon`
+  à côté de la position : `Escouade::attaquer(Cercle, carte)`,
+  `Escouade::personnageLePlusProche` (renvoie un `Cercle`, dont le
+  monstre lit `.centre` pour se déplacer), `Monstre::mettreAJour`
+  (reçoit un `std::optional<Cercle>`), `Monstre::frapper(Cercle)`.
+  `Escouade` et `Monstre` ne se connaissent toujours pas : ils
+  n'échangent que des `Cercle`, comme ils n'échangeaient que des
+  positions.
+- **Valeurs retenues**, en constantes nommées pour les personnages
+  (`s_porteeMelee`, `s_porteeTireur`) : mêlée 10 px, tireurs 120 px
+  (presque la même position d'arrêt qu'avant, à l'œil). Monstres :
+  ancienne portée moins les deux rayons, avec un minimum de 5 px —
+  partie de 40 px (valeur d'essai en place juste avant l'étape, à la
+  place des 80 px de l'étape 20), soit 40 − (10 + 15) = **15 px**.
+- **La taille de la cible compte pour les mêlées, à cause de la
+  formation** : un mêlée est toujours à 35,4 px du centre de l'ancre
+  (décalage `(25, ±25)`), dont 25 px de côté par rapport à l'axe
+  d'approche. Face à une cible de rayon nul, il ne passe jamais à moins
+  d'environ 25 px de son centre, alors qu'il lui faudrait 20 px (portée
+  10 + son rayon 10) : la condition « tous à portée » ne devient jamais
+  vraie et l'ancre avance jusque sur la cible. Avec un vrai monstre
+  (rayon 15), le seuil passe à 35 px et les mêlées l'atteignent. C'est
+  pourquoi les tests de combat d'`Escouade` utilisent une cible de la
+  taille d'un monstre (voir `docs/tests.md`). Une portée de mêlée de
+  2 px laisse encore une marge (seuil de 27 px), mais faible.
+- **Limites connues** : les entités restent dessinées comme des carrés,
+  et les coins d'un carré dépassent de son cercle (de 4,1 px pour un
+  personnage, 6,2 px pour un monstre) — face à face, l'écart visible
+  est bien la portée, mais en diagonale (coin contre coin), une portée
+  de mêlée de 10 px laisse à peine un écart. Toujours pas de collision :
+  rien n'empêche deux entités de se chevaucher hors d'un arrêt à
+  portée. La portée ignore toujours les murs (étape 17).

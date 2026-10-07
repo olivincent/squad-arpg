@@ -63,7 +63,9 @@ squad-arpg/
 │   ├── Attaque.hpp
 │   ├── Attaque.cpp
 │   ├── Mobile.hpp
-│   └── Mobile.cpp
+│   ├── Mobile.cpp
+│   ├── Cercle.hpp
+│   └── Cercle.cpp
 ├── tests/
 │   ├── test_TileMap.cpp
 │   ├── test_Chemin.cpp
@@ -72,7 +74,8 @@ squad-arpg/
 │   ├── test_Monstre.cpp
 │   ├── test_Personnage.cpp
 │   ├── test_Attaque.cpp
-│   └── test_Mobile.cpp
+│   ├── test_Mobile.cpp
+│   └── test_Cercle.cpp
 ├── docs/
 │   ├── build.md
 │   ├── boucle-et-entrees.md
@@ -86,7 +89,7 @@ squad-arpg/
 └── ROADMAP.md
 ```
 
-Huit modules : `TileMap` (l'environnement de jeu), `Escouade` (le point
+Neuf modules : `TileMap` (l'environnement de jeu), `Escouade` (le point
 de contrôle, l'ancre, qui possède les personnages et les fait
 attaquer), `Mobile` (déplacement par chemin calculé par le A*, possédé
 par valeur par `Escouade` et, depuis l'étape 24, par `Monstre`),
@@ -98,8 +101,10 @@ détecte, poursuit et abandonne une cible via son propre `Mobile`, avec
 un identifiant, des points de vie et une riposte à portée, possédé
 directement par `main.cpp` dans un `std::vector<Monstre>`, sans lien
 direct avec `Escouade` ni `Personnage` — `main.cpp` fait
-l'intermédiaire) et `Attaque` (portée, dégâts et recharge, possédée par
-valeur par `Personnage` et par `Monstre`).
+l'intermédiaire), `Attaque` (portée, dégâts et recharge, possédée par
+valeur par `Personnage` et par `Monstre`) et `Cercle` (la forme d'une
+entité pour la portée d'attaque, et la distance bord à bord entre deux
+cercles, depuis l'étape 30).
 `main.cpp` garde la fenêtre, la boucle de jeu, les événements
 (fermeture, et l'appui de souris qui engage ou change un combat — voir
 plus bas), la caméra, la carte (son plan) et les monstres ; il ne
@@ -107,8 +112,8 @@ connaît ni `Chemin` ni `Personnage`, et ne gère plus la recharge
 d'attaque lui-même depuis l'étape 17 (`Escouade::attaquer` s'en charge
 via les personnages). Depuis l'étape 24, il donne aussi à chaque
 monstre le personnage le plus proche de lui comme cible de poursuite
-(`Escouade::personnageLePlusProche`), avant de relire son centre à jour
-pour la riposte. Depuis l'étape 26, il consulte `Escouade::estVivante()`
+(`Escouade::personnageLePlusProche`, qui renvoie son `Cercle` depuis
+l'étape 30), avant de relire son centre à jour pour la riposte. Depuis l'étape 26, il consulte `Escouade::estVivante()`
 pour bloquer tout ordre du joueur (verrouillage de cible, déplacement)
 une fois l'escouade vaincue, sans arrêter la boucle de jeu elle-même.
 Depuis l'étape 27, le verrou de cible vit dans `Escouade`
@@ -125,7 +130,7 @@ anticipation (voir principes ci-dessous).
 Deux exécutables : `main` (le jeu) et `tests` (les tests Catch2). Les deux
 se lient à la bibliothèque statique `squad_core`, qui contient toute la
 logique de jeu (`TileMap`, `Escouade`, `Mobile`, `Chemin`, `Personnage`,
-`Deplacement`, `Monstre`, `Attaque`) indépendamment de la fenêtre et de la boucle de
+`Deplacement`, `Monstre`, `Attaque`, `Cercle`) indépendamment de la fenêtre et de la boucle de
 jeu.
 
 ## Modules
@@ -178,10 +183,10 @@ formation en carré autour d'elle.
   d'élément), `m_cibleVerrouillee` (`std::optional<int>`, vide à la
   création, étape 27 — l'identifiant du monstre engagé en combat ;
   `Escouade` ne connaît toujours pas `Monstre`, seul l'identifiant est
-  stocké) et `m_cibleCombat` (`std::optional<sf::Vector2f>`, vide à la
-  création, étape 29 — dernière position de cible reçue par `attaquer`,
-  seul moyen pour `Escouade` de connaître la position de la cible
-  verrouillée).
+  stocké) et `m_cibleCombat` (`std::optional<Cercle>`, vide à la
+  création, étape 29 — dernier cercle de cible reçu par `attaquer`,
+  seul moyen pour `Escouade` de connaître la position et la taille de
+  la cible verrouillée ; une simple position jusqu'à l'étape 30).
 - **Valeurs fixes** passées au constructeur de `m_mobile` : taille
   20 × 20, vitesse 180 px/s. Orientation `0` à la création. Elles
   deviendront des paramètres quand il le faudra.
@@ -189,10 +194,11 @@ formation en carré autour d'elle.
   au constructeur** (étape 28, injection — `Escouade` les crée, elle
   décide des valeurs ; `Personnage` ne les choisit plus lui-même) :
   les deux personnages à l'avant de la formation (décalage `x = +25`)
-  sont des mêlées (rouge, portée 80 px), les deux à l'arrière
-  (`x = -25`) des tireurs (cyan, portée 150 px) ; dégâts et recharge
-  identiques pour les 4. Constantes nommées dans un espace de noms
-  anonyme d'`Escouade.cpp` (`s_couleurMelee`, `s_couleurTireur`,
+  sont des mêlées (rouge, portée 10 px bord à bord depuis l'étape 30),
+  les deux à l'arrière (`x = -25`) des tireurs (cyan, portée 120 px bord
+  à bord) ; dégâts et recharge identiques pour les 4. Constantes
+  nommées dans un espace de noms anonyme d'`Escouade.cpp`
+  (`s_couleurMelee`, `s_couleurTireur`, `s_porteeMelee`,
   `s_porteeTireur`).
 - **Fonction privée `placePersonnage(indice)`** : seul endroit du code
   qui calcule la place d'un personnage (`getCentre() + m_decalages[indice]
@@ -222,11 +228,11 @@ Interface publique (inchangée pour `main.cpp`, qui ne connaît pas
 |---|---|
 | `explicit Escouade(sf::Vector2f positionDepart)` | Crée l'escouade (et ses 4 personnages en formation, mêlées devant/tireurs derrière depuis l'étape 28) à la position donnée |
 | `void allerVers(sf::Vector2f destination, const TileMap& carte)` | Délègue à `m_mobile.allerVers` |
-| `int attaquer(sf::Vector2f cible, const TileMap& carte)` | Mémorise `cible` dans `m_cibleCombat` (étape 29), approche la cible (`allerVers`) tant qu'un personnage **vivant** n'est pas à portée, s'arrête sur place (`m_mobile.arreter()`) quand tous les vivants y sont (vrai par vacuité s'il n'en reste aucun, depuis l'étape 26), puis fait frapper chacun (les morts renvoient 0 sans rien faire) ; renvoie la somme des dégâts |
+| `int attaquer(Cercle cible, const TileMap& carte)` | Mémorise `cible` dans `m_cibleCombat` (étape 29), approche le centre de la cible (`allerVers(cible.centre, ...)`) tant qu'un personnage **vivant** n'est pas à portée (bord à bord, étape 30), s'arrête sur place (`m_mobile.arreter()`) quand tous les vivants y sont (vrai par vacuité s'il n'en reste aucun, depuis l'étape 26), puis fait frapper chacun (les morts renvoient 0 sans rien faire) ; renvoie la somme des dégâts |
 | `void mettreAJour(float dt, const TileMap& carte)` | Met à jour `m_orientationVoulue` à partir de `m_mobile.directionVoulue()`, avance l'ancre (`m_mobile.mettreAJour`), met à jour l'orientation, puis chaque personnage vers sa place (un mort ne bouge pas, voir `Personnage::mettreAJour`) ou vers son propre centre s'il est en combat et à portée de la cible (étape 29) |
 | `void dessiner(sf::RenderTarget& rendu) const` | Dessine l'ancre (position reconstruite à partir de `getCentre()` et `m_mobile.getTaille()`), puis les 4 personnages |
 | `sf::Vector2f getCentre() const` | Délègue à `m_mobile.getCentre()` (utilisé par la caméra, par `allerVers` et par `placePersonnage`) |
-| `std::optional<sf::Vector2f> personnageLePlusProche(sf::Vector2f point) const` | Centre du personnage **vivant** le plus proche de `point` (vide si aucun n'est vivant) ; utilisé par `main.cpp` pour désigner la cible d'un monstre |
+| `std::optional<Cercle> personnageLePlusProche(sf::Vector2f point) const` | Cercle du personnage **vivant** dont le centre est le plus proche de `point` (vide si aucun n'est vivant) ; utilisé par `main.cpp` pour désigner la cible d'un monstre (un `Cercle` depuis l'étape 30, pour que le monstre mesure sa portée bord à bord) |
 | `void recevoirDegats(sf::Vector2f origine, int quantite)` | Applique `quantite` de dégâts au personnage vivant le plus proche d'`origine` ; ne fait rien si aucun n'est vivant |
 | `bool estVivante() const` | Vrai si au moins un personnage est vivant (étape 26) ; utilisé par `main.cpp` pour bloquer tout ordre du joueur une fois l'escouade vaincue |
 | `void verrouiller(int idCible)` | Pose le verrou de combat sur ce monstre (étape 27), en remplaçant la cible précédente s'il y en avait une |
@@ -332,8 +338,9 @@ continue de recevoir un simple point en paramètre.
   puisse rattraper sa place) et, depuis l'étape 22, `m_attaque`
   (`Attaque`, reçue au constructeur, comme `m_couleur` depuis l'étape 28
   — dégâts (5) et recharge (0,5 s) identiques pour les 4, mais portée
-  différente selon la place en formation : 80 px pour les deux mêlées à
-  l'avant, 150 px pour les deux tireurs à l'arrière ; voir `Escouade`).
+  différente selon la place en formation : 10 px bord à bord pour les
+  deux mêlées à l'avant, 120 px pour les deux tireurs à l'arrière ;
+  voir `Escouade`).
   Depuis l'étape 20 :
   `m_pointsDeVie` et `m_pointsDeVieMax` (`100` chacun à la création),
   dupliqués volontairement de `Monstre` (même logique de points de vie
@@ -351,7 +358,8 @@ continue de recevoir un simple point en paramètre.
   de `Monstre` (fond sombre + rectangle vert proportionnel aux points de
   vie restants, au-dessus du personnage).
 - **`estAPortee` et `frapper` délèguent à `m_attaque`** (étape 22),
-  avec `m_centre` comme origine ; `mettreAJour` délègue la
+  avec son propre cercle (`getCercle()`, depuis l'étape 30 ; `m_centre`
+  auparavant) comme origine ; `mettreAJour` délègue la
   décrémentation de la recharge à `m_attaque.mettreAJour(dt)`. La règle
   « un personnage mort ne frappe pas » reste dans `Personnage::frapper`,
   avant la délégation.
@@ -377,11 +385,12 @@ Interface publique :
 | `Personnage(sf::Vector2f centre, sf::Color couleur, Attaque attaque)` | Crée le personnage à ce centre, avec cette couleur et cette attaque (injectées par `Escouade` depuis l'étape 28) |
 | `void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte)` | Si vivant, avance vers la cible (collision, glissement) puis décrémente la recharge d'attaque ; sinon ne fait rien (étape 26) |
 | `void dessiner(sf::RenderTarget& rendu) const` | Dessine le personnage (gris et sans barre de vie s'il n'est pas vivant, étape 26) |
-| `bool estAPortee(sf::Vector2f cible) const` | La distance entre le centre et `cible` est-elle `<=` la portée de `m_attaque` ? |
-| `int frapper(sf::Vector2f cible)` | Si le personnage est vivant, délègue à `m_attaque.frapper` avec `m_centre` comme origine ; sinon renvoie 0 |
+| `bool estAPortee(Cercle cible) const` | L'écart bord à bord entre son cercle et `cible` est-il `<=` la portée de `m_attaque` ? |
+| `int frapper(Cercle cible)` | Si le personnage est vivant, délègue à `m_attaque.frapper` avec `getCercle()` comme origine ; sinon renvoie 0 |
 | `void recevoirDegats(int quantite)` | Retire des points de vie, sans descendre sous zéro |
 | `bool estVivant() const` | Points de vie `> 0` |
 | `sf::Vector2f getCentre() const` | Centre du personnage (utilisé par `Escouade::indicePersonnageLePlusProche`) |
+| `Cercle getCercle() const` | Cercle centré sur le personnage, de rayon la moitié du côté (10 px) — étape 30 |
 
 ### `Deplacement` — collision et glissement partagés
 
@@ -414,7 +423,8 @@ comportement partagé ne le justifie.
   lisent `m_mobile.getCentre()`/`getTaille()`.
 - **Données membres** : `m_mobile`, `m_pointsDeVie` et
   `m_pointsDeVieMax` (`100` chacun à la création), `m_id`, `m_attaque`
-  (`Attaque`, portée 80 px / dégâts 10 / recharge 1 s — même structure
+  (`Attaque`, portée 15 px bord à bord depuis l'étape 30 / dégâts 10 /
+  recharge 1 s — même structure
   que celle de `Personnage`, valeurs différentes, dupliquée
   volontairement comme objet, pas de factorisation des points de vie
   pour l'instant), `m_rayonDetection` (200 px, depuis l'étape 24), et
@@ -454,13 +464,17 @@ comportement partagé ne le justifie.
   après le `switch` des transitions, pour agir une seule fois et non à
   chaque image), `arreter()` puis `allerVers(m_poste, carte)` ; en
   `Poursuite`, à chaque image, `arreter()` si la proie est à portée de
-  `m_attaque`, sinon `allerVers(proie, carte)` ; en `EnGarde` et
+  `m_attaque` (bord à bord, entre `getCercle()` et le cercle de la
+  proie, depuis l'étape 30), sinon `allerVers(proie.centre, carte)` ;
+  en `EnGarde` et
   pendant le reste du `Retour`, aucun ordre (le chemin donné à l'entrée
   suffit à `Mobile`). La riposte (`frapper`) ne dépend pas du statut :
   un monstre en retour frappe toujours ce qui passe à sa portée.
 - **Les distances (détection, territoire, portée) sont mesurées à vol
-  d'oiseau**, centre à centre, en ignorant les murs — comme la portée
-  d'attaque (étape 17, limite connue).
+  d'oiseau**, en ignorant les murs — comme la portée d'attaque
+  (étape 17, limite connue). Détection et territoire : centre à centre
+  (`proieDetectee` ne lit que `cible->centre`) ; portée : bord à bord
+  depuis l'étape 30.
 - **Limites connues** (étape 25) : un monstre qui rentre ignore une
   proie dès qu'elle sort du territoire, même si elle reste proche de
   lui (le filtre `proieDetectee` l'exige) ; pas de patrouille ni de
@@ -505,13 +519,14 @@ comportement partagé ne le justifie.
   la barre de vie
   ni changer l'empreinte du monstre.
 - **Riposte** (étape 20) : `frapper(cible)` délègue entièrement à
-  `m_attaque.frapper`, avec `m_mobile.getCentre()` comme origine — sans
-  règle supplémentaire, contrairement à `Personnage::frapper` qui
-  vérifie d'abord `estVivant()`. `Monstre` ne connaît toujours pas
-  `Escouade` ni `Personnage` : il frappe un simple `sf::Vector2f`,
-  c'est `main.cpp` qui lui donne le centre du personnage le plus proche
-  (`Escouade::personnageLePlusProche`) et qui transmet le résultat à
-  `Escouade::recevoirDegats`.
+  `m_attaque.frapper`, avec `getCercle()` comme origine (depuis
+  l'étape 30 ; le centre auparavant) — sans règle supplémentaire,
+  contrairement à `Personnage::frapper` qui vérifie d'abord
+  `estVivant()`. `Monstre` ne connaît toujours pas `Escouade` ni
+  `Personnage` : il frappe un simple `Cercle` (un `sf::Vector2f` avant
+  l'étape 30), c'est `main.cpp` qui lui donne le cercle du personnage le
+  plus proche (`Escouade::personnageLePlusProche`) et qui transmet le
+  résultat à `Escouade::recevoirDegats`.
 - **`main.cpp` donne la cible, relit le centre après coup** (étape 24) :
   pour chaque monstre, `escouade.personnageLePlusProche(m.getCentre())`
   est calculé *avant* `m.mettreAJour(dt, cible, carte)` (sur la position
@@ -524,9 +539,10 @@ Interface publique :
 |---|---|
 | `Monstre(sf::Vector2f centre, int id)` | Crée le monstre à ce centre, avec cet identifiant, 30 × 30, 100 points de vie |
 | `void dessiner(sf::RenderTarget& rendu, bool estCible) const` | Dessine le monstre et sa barre de vie ; ajoute un contour jaune si `estCible` |
-| `void mettreAJour(float dt, std::optional<sf::Vector2f> cible, const TileMap& carte)` | Décrémente la recharge d'attaque, met à jour l'état de poursuite (détection/abandon par hystérésis) et avance vers `cible` en poursuite (s'arrête à portée d'attaque), reste sur place sinon |
-| `int frapper(sf::Vector2f cible)` | Délègue à `m_attaque.frapper`, avec `m_mobile.getCentre()` comme origine |
-| `sf::Vector2f getCentre() const` | Centre du monstre (utilisé par `main.cpp` pour le donner à `Escouade::attaquer` et `personnageLePlusProche`) |
+| `void mettreAJour(float dt, std::optional<Cercle> cible, const TileMap& carte)` | Décrémente la recharge d'attaque, met à jour l'état (en garde, poursuite, retour) et avance vers le centre de `cible` en poursuite (s'arrête à portée d'attaque, bord à bord), reste sur place ou rentre à son poste sinon |
+| `int frapper(Cercle cible)` | Délègue à `m_attaque.frapper`, avec `getCercle()` comme origine |
+| `sf::Vector2f getCentre() const` | Centre du monstre (utilisé par `main.cpp` pour `personnageLePlusProche` et `recevoirDegats`) |
+| `Cercle getCercle() const` | Cercle centré sur le monstre, de rayon la moitié du côté (15 px) — étape 30 ; utilisé par `main.cpp` pour le donner à `Escouade::attaquer` |
 | `int getId() const` | Identifiant du monstre (utilisé par `main.cpp` pour désigner la cible verrouillée) |
 | `bool contient(sf::Vector2f point) const` | Le point (pixels du monde) est-il dans le carré du monstre ? |
 | `void recevoirDegats(int quantite)` | Retire des points de vie, sans descendre sous zéro |
@@ -541,9 +557,11 @@ pas héritage : aucune classe de base commune, aucune fonction virtuelle.
 
 - **Ne connaît pas la position de son propriétaire** : `origine` et
   `cible` sont reçus en paramètre de `estAPortee` et `frapper`, plutôt
-  que stockés. Ne connaît ni `TileMap`, ni `Personnage`, ni `Monstre`,
-  ni `Escouade`, et ne dessine rien.
-- **Données membres** : `m_portee`, `m_degats`, `m_tempsRecharge`
+  que stockés — deux `Cercle` depuis l'étape 30 (deux positions
+  auparavant). Ne connaît ni `TileMap`, ni `Personnage`, ni `Monstre`,
+  ni `Escouade`, et ne dessine rien ; connaît `Cercle`.
+- **Données membres** : `m_portee` (écart bord à bord, depuis
+  l'étape 30), `m_degats`, `m_tempsRecharge`
   (ces trois valeurs sont des paramètres du constructeur, puisqu'elles
   diffèrent déjà entre `Personnage` et `Monstre`) et `m_recharge`
   (0 à la création).
@@ -554,8 +572,29 @@ Interface publique :
 |---|---|
 | `Attaque(float portee, int degats, float tempsRecharge)` | Crée l'attaque avec cette portée, ces dégâts et ce temps de recharge |
 | `void mettreAJour(float dt)` | Décrémente la recharge, sans descendre sous zéro |
-| `bool estAPortee(sf::Vector2f origine, sf::Vector2f cible) const` | La distance entre `origine` et `cible` est-elle `<=` `m_portee` ? |
-| `int frapper(sf::Vector2f origine, sf::Vector2f cible)` | Si `cible` est à portée de `origine` et la recharge écoulée, relance la recharge et renvoie `m_degats` ; sinon renvoie 0 |
+| `bool estAPortee(Cercle origine, Cercle cible) const` | `distanceBordABord(origine, cible)` est-elle `<=` `m_portee` ? |
+| `int frapper(Cercle origine, Cercle cible)` | Si `cible` est à portée de `origine` et la recharge écoulée, relance la recharge et renvoie `m_degats` ; sinon renvoie 0 |
+
+### `Cercle` — la forme d'une entité pour la portée (étape 30)
+
+Une structure sans comportement et une fonction libre, pas une classe :
+il n'y a aucun invariant à protéger (tout centre et tout rayon positif
+ou nul est valide).
+
+- **`struct Cercle { sf::Vector2f centre; float rayon; }`** : agrégat,
+  membres publics sans préfixe `m_` (ce ne sont pas des données
+  privées d'une classe), construit par accolades (`Cercle{centre,
+  rayon}`).
+- **Un seul cercle par entité**, fourni par `Personnage::getCercle()`
+  (rayon 10) et `Monstre::getCercle()` (rayon 15) : rayon = demi-côté
+  du carré dessiné, calculé à la demande à partir du centre et de la
+  taille, jamais stocké.
+- **Ne connaît aucun autre module** et ne dessine rien ; utilisé par
+  `Attaque`, `Personnage`, `Monstre` et `Escouade`.
+
+| Fonction | Rôle |
+|---|---|
+| `float distanceBordABord(const Cercle& a, const Cercle& b)` | Distance entre les centres moins les deux rayons ; 0 si les cercles se touchent ou se chevauchent (jamais négative) |
 
 ## Principes de conception à respecter
 
@@ -593,5 +632,5 @@ lire le fichier correspondant :
 | `docs/boucle-et-entrees.md` | Boucle de jeu, déplacement, entrée souris et attaque, caméra | Avant de modifier `main.cpp` |
 | `docs/carte-et-collision.md` | Carte, collision et dessin, plan texte et validation | Avant de modifier `TileMap` ou `Deplacement` |
 | `docs/chemin.md` | Recherche de chemin (A*), lissage de chemin, déplacement par chemin (`Mobile`) | Avant de modifier `Chemin` ou `Mobile` |
-| `docs/formation.md` | `Escouade`, formation de l'escouade, attaque (`Attaque`, `Personnage`, `Monstre`) | Avant de modifier `Escouade`, `Personnage`, `Monstre` ou `Attaque` |
+| `docs/formation.md` | `Escouade`, formation de l'escouade, attaque (`Attaque`, `Personnage`, `Monstre`), portée bord à bord (`Cercle`) | Avant de modifier `Escouade`, `Personnage`, `Monstre`, `Attaque` ou `Cercle` |
 | `docs/tests.md` | Tests (Catch2, conventions) | Avant d'ajouter ou de modifier un test |

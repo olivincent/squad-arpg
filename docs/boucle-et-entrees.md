@@ -82,8 +82,9 @@
 - **Attaque déplacée dans `Escouade` (étape 17)** : `main.cpp` ne gère
   plus de recharge lui-même. Tant que `escouade.getCibleVerrouillee()`
   a une valeur et que le monstre correspondant est trouvé dans le
-  vecteur, `it->recevoirDegats(escouade.attaquer(it->getCentre(),
-  carte))` est appelée à chaque image, que le bouton de souris soit
+  vecteur, `it->recevoirDegats(escouade.attaquer(it->getCercle(),
+  carte))` (`getCentre()` avant l'étape 30, où la portée devient
+  mesurée de bord à bord) est appelée à chaque image, que le bouton de souris soit
   enfoncé ou non (étape 27) ; `attaquer` décide si l'escouade doit
   encore s'approcher ou si elle peut s'arrêter et frapper (portée,
   dégâts et recharge par personnage — voir `docs/formation.md`), et
@@ -135,8 +136,9 @@
   après `escouade.mettreAJour(dt, carte)` et avant la caméra, une
   boucle sur `monstres` fait, pour chacun :
   1. `const auto cible = escouade.personnageLePlusProche(m.getCentre())`
-     — le personnage **vivant** le plus proche du monstre, calculé sur
-     sa position *avant* qu'il ne bouge ce tic-ci (vide si aucun
+     — le cercle du personnage **vivant** le plus proche du monstre
+     (un `Cercle` depuis l'étape 30), calculé sur la position du
+     monstre *avant* qu'il ne bouge ce tic-ci (vide si aucun
      personnage n'est vivant) ;
   2. `m.mettreAJour(dt, cible, carte)` — le monstre décide lui-même de
      poursuivre, de s'arrêter à portée ou d'abandonner (voir

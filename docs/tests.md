@@ -5,16 +5,17 @@
 - **Catch2 3 adopté**, installé via MSYS2
   (`mingw-w64-ucrt-x86_64-catch`), trouvé par `find_package(Catch2 3
   REQUIRED)` comme SFML (pas de `FetchContent`).
-- **Un seul exécutable `tests`**, huit fichiers (`test_TileMap.cpp`,
+- **Un seul exécutable `tests`**, neuf fichiers (`test_TileMap.cpp`,
   `test_Chemin.cpp`, `test_Escouade.cpp`, `test_Deplacement.cpp`,
   `test_Monstre.cpp`, `test_Personnage.cpp`, `test_Attaque.cpp`,
-  `test_Mobile.cpp`), lancé directement (`./build/tests.exe`) — pas de
-  CTest ni de `catch_discover_tests`.
+  `test_Mobile.cpp`, `test_Cercle.cpp`), lancé directement
+  (`./build/tests.exe`) — pas de CTest ni de `catch_discover_tests`.
 - **Petits plans dédiés** : chaque test construit son propre plan texte
   (3×3, 4×4, 5×5…), jamais la carte de `main.cpp`, pour isoler exactement
   le cas testé.
 - **Teste uniquement l'interface publique** de `TileMap`, `Chemin`,
-  `Escouade`, `Personnage`, `Monstre`, `Attaque` et `Mobile` (`getTile`,
+  `Escouade`, `Personnage`, `Monstre`, `Attaque`, `Mobile` et `Cercle`
+  (`distanceBordABord`, `getCercle`, `getTile`,
   `chevaucheUnMur`, `trajetLibre`, `getLargeur`/`getHauteur`,
   `caseContenant`/`centreDeCase`, le constructeur, `trouverChemin`,
   `lisserChemin`, `allerVers`, `arreter`, `attaquer`, `mettreAJour`,
@@ -79,14 +80,17 @@
   - **`mettreAJour` : détection, arrêt à portée (étape 24)** : depuis
     que `Monstre` se déplace par son propre `Mobile`, la fonction
     d'aide `ecoulerTemps(monstre, duree, cible, carte)` prend en plus une
-    cible (`std::optional<sf::Vector2f>`, vide = aucune) et une
+    cible (`std::optional<Cercle>` depuis l'étape 30, vide = aucune ;
+    les tests y passent un point de rayon nul, `pointCible`) et une
     `TileMap` (carte dégagée dédiée, `carteDegagee()`, même principe que
     pour `Mobile`/`Escouade`) — des résultats (le centre du monstre),
     jamais une trajectoire exacte. Cas couverts : une cible dans le
     rayon de détection (200 px) rapproche le monstre ; une cible hors de
     ce rayon, ou son absence, le laisse immobile ; une durée généreuse
-    face à une cible dans le rayon l'amène à portée d'attaque (80 px)
-    sans l'atteindre.
+    face à une cible dans le rayon l'amène à portée d'attaque sans
+    l'atteindre — à 30 px au plus de son centre depuis l'étape 30
+    (portée de 15 px bord à bord + rayon du monstre de 15 px, la cible
+    étant un point).
   - **Territoire et retour au poste (étape 25)** : `carteLongue()`,
     une carte dégagée plus large que `carteDegagee()`, dédiée aux cas
     où une cible ou un trajet de retour dépasse les 400 px du
@@ -103,6 +107,24 @@
     quand même) ; une cible replacée dans le territoire et proche du
     monstre pendant le retour relance la poursuite (la distance entre
     les deux diminue de nouveau).
+- **Cibles ponctuelles ou de la taille d'un monstre (étape 30)** :
+  depuis que la portée se mesure entre deux `Cercle`, les tests
+  d'`Attaque`, de `Personnage` et de `Monstre` donnent leurs cibles
+  comme des cercles de rayon nul (fonction d'aide `pointCible`, ou
+  `point` dans `test_Attaque.cpp`) : la portée reste alors facile à
+  vérifier à la main (distance entre centres moins le seul rayon de
+  l'attaquant). Les tests de combat d'`Escouade`, eux, utilisent une
+  cible de rayon 15 (`cibleMonstre`), comme le monstre que `main.cpp`
+  passe réellement : avec un point, la géométrie de la formation
+  empêche les mêlées (portée 10 px) d'arriver jamais à portée (voir
+  `docs/formation.md`, étape 30), et ces tests ne décriraient plus une
+  situation possible en jeu.
+- **`Cercle` (`test_Cercle.cpp`, étape 30)** : `distanceBordABord` sur
+  deux cercles séparés, qui se touchent (0), qui se chevauchent (0, pas
+  une valeur négative) et de rayons différents. Valeurs choisies pour
+  être exactes en virgule flottante (comparaison `==` sans tolérance).
+  `getCercle` est testé dans `test_Personnage.cpp` (rayon 10) et
+  `test_Monstre.cpp` (rayon 15).
 - **`Personnage` (`test_Personnage.cpp`, étape 17)** :
   - `estAPortee` : point proche à portée, point lointain hors portée,
     distance exactement égale à la portée (cas limite, `<=`).
@@ -140,7 +162,10 @@
     une durée généreuse, le total des dégâts cumulés est `> 0`, mais
     l'escouade ne finit pas sur la cible (elle s'arrête à portée).
   - Cible déjà à portée des 4 personnages dès le départ : le premier
-    appel renvoie 20 (4 × 5) et l'escouade ne bouge pas.
+    appel renvoie 20 (4 × 5) et l'escouade ne bouge pas. Depuis
+    l'étape 30, cette cible est placée entre les deux mêlées (et non
+    plus au centre de l'escouade, à 35 px de chacun d'eux), pour que
+    leur portée de 10 px bord à bord soit atteinte.
   - **Les morts sont ignorés pour décider de l'arrêt (étape 26)** :
     `recevoirDegats` tue le personnage le plus proche d'un point
     lointain, l'escouade se déplace pour le laisser loin derrière
