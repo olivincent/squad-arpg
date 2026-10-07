@@ -262,6 +262,38 @@ TEST_CASE("attaquer finit par infliger des dégâts sans que l'escouade atteigne
     REQUIRE((cible - escouade.getCentre()).length() > 1.0f);
 }
 
+TEST_CASE("attaquer ignore les personnages morts pour décider si l'escouade doit s'arrêter") {
+    const std::vector<std::string> plan = {
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+    };
+    TileMap carte(plan, 40.0f);
+    Escouade escouade({50.0f, 50.0f});
+
+    escouade.recevoirDegats({1000.0f, 1000.0f}, 100); // tue le personnage le plus proche de ce point
+
+    escouade.allerVers({300.0f, 60.0f}, carte); // éloigne l'escouade, laisse le mort derrière
+    simuler(escouade, carte, 10.0f); // largement assez pour arriver
+    const sf::Vector2f centreAvant = escouade.getCentre();
+
+    // À portée des 3 vivants (qui ont suivi l'ancre), loin du mort resté
+    // en arrière.
+    const sf::Vector2f cible = centreAvant + sf::Vector2f(30.0f, 0.0f);
+
+    REQUIRE(escouade.attaquer(cible, carte) == 15); // 3 vivants x 5 degats
+    escouade.mettreAJour(1.0f / 60.0f, carte);
+
+    verifierPointProche(escouade.getCentre(), centreAvant);
+}
+
 TEST_CASE("attaquer renvoie les dégâts de tous les personnages pour une cible déjà proche") {
     const std::vector<std::string> plan = {
         ".....",

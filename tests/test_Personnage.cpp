@@ -116,3 +116,14 @@ TEST_CASE("Un personnage mort ne frappe plus") {
 
     REQUIRE(personnage.frapper(cible) == 0);
 }
+
+TEST_CASE("Un personnage mort ne bouge plus") {
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White);
+    const TileMap carte = carteDegagee();
+    const sf::Vector2f centreInitial = personnage.getCentre();
+
+    personnage.recevoirDegats(100);
+    ecoulerTemps(personnage, carte, {500.0f, 500.0f}, 2.0f); // cible lointaine, durée généreuse
+
+    REQUIRE(personnage.getCentre() == centreInitial);
+}

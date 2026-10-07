@@ -43,7 +43,7 @@ void Escouade::allerVers(sf::Vector2f destination, const TileMap& carte) {
 int Escouade::attaquer(sf::Vector2f cible, const TileMap& carte) {
     bool tousAPortee = true;
     for (const Personnage& personnage : m_personnages) {
-        if (!personnage.estAPortee(cible)) {
+        if (personnage.estVivant() && !personnage.estAPortee(cible)) {
             tousAPortee = false;
             break;
         }

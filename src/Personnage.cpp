@@ -39,6 +39,10 @@ void Personnage::dessiner(sf::RenderTarget& rendu) const {
 }
 
 void Personnage::mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte) {
+    if (!estVivant()) {
+        return;
+    }
+
     const sf::Vector2f direction = cible - m_centre;
     const float distance = direction.length();
     const float pasDuTic = m_vitesse * dt;
