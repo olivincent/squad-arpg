@@ -306,3 +306,83 @@
   entre monstres, ni entre un monstre et l'escouade/les personnages —
   cohérent avec l'absence de collision déjà actée pour un monstre
   immobile). Les deux sont hors de portée de cette étape.
+
+## Statut du monstre et retour au poste (étape 25)
+
+Corrige la première limite connue de l'étape 24 : un monstre qui
+abandonne sa proie retourne maintenant à son poste au lieu de rester
+sur place. L'occasion aussi de remplacer `m_enPoursuite` (un `bool`)
+par un statut explicite, et de revoir ce qui déclenche l'abandon.
+
+- **`enum class Etat { EnGarde, Poursuite, Retour }`, privé**, plutôt
+  que des booléens : un type à trois valeurs rend impossible l'état
+  incohérent « en poursuite et en retour à la fois », que deux `bool`
+  indépendants (`m_enPoursuite`, un hypothétique `m_enRetour`)
+  auraient permis d'exprimer par erreur. Même principe que `Tile` dans
+  `TileMap`, mais encore plus local : `Etat` n'existe que pour
+  `Monstre`, pas même visible depuis `Monstre.hpp` à l'extérieur de la
+  classe.
+- **« À portée, en train de frapper » n'est pas un quatrième statut** :
+  ni en `Poursuite` ni ailleurs — c'est recalculé à chaque image à
+  partir de la distance (`m_attaque.estAPortee`), exactement comme
+  avant cette étape. Ajouter un statut pour ça aurait dupliqué une
+  information déjà disponible par ailleurs, au risque de la désynchroniser.
+- **`m_poste`, le centre donné au constructeur, jamais modifié** :
+  l'ancre fixe à laquelle le monstre revient. Contrairement à
+  `m_mobile.getCentre()` (qui bouge), `m_poste` ne change jamais après
+  la construction.
+- **Le territoire remplace la distance à la proie pour l'abandon** :
+  `m_rayonAbandon` (étape 24, mesurait la distance monstre-proie) est
+  renommé `m_rayonTerritoire` et change de sens — distance maximale
+  entre le **monstre** et son **poste** (toujours 400 px). Un monstre
+  peut désormais poursuivre une proie arbitrairement loin de son point
+  de départ initial, tant que lui-même ne s'éloigne pas de plus de
+  400 px de son poste ; avant, une proie qui s'enfuyait tout en restant
+  proche du poste pouvait quand même déclencher un abandon si elle
+  s'éloignait du *monstre* au-delà de 400 px — l'ancienne règle, jugée
+  moins cohérente avec l'idée d'un territoire, a été entièrement
+  supprimée (pas conservée en option).
+- **Détection unique, dans une fonction privée `const`
+  `proieDetectee(cible)`** : une proie est détectée si elle existe, si
+  elle est à `<=` `m_rayonDetection` **du monstre** ET à `<=`
+  `m_rayonTerritoire` **du poste**. La seconde condition est
+  nécessaire : sans elle, un monstre qui vient de rentrer au bord de
+  son territoire redétecterait aussitôt une proie restée juste à la
+  frontière (puisqu'elle est probablement encore à moins de 200 px du
+  monstre à cet instant), et le monstre tremblerait sur place entre
+  `Poursuite` et `Retour` au lieu de rentrer franchement. Utilisée à
+  l'identique en `EnGarde` (déclenche `Poursuite`) et en `Retour`
+  (peut relancer `Poursuite`) — la même fonction, appelée aux deux
+  mêmes endroits, garantit qu'un monstre en garde et un monstre qui
+  rentre appliquent exactement la même règle, sans légère divergence
+  possible entre deux copies du calcul.
+- **Transitions, une seule par appel de `mettreAJour`**, dans un
+  `switch` sur `m_etat` : `EnGarde` → `Poursuite` si `proieDetectee` ;
+  `Poursuite` → `Retour` si plus de proie, ou si le monstre est à `>`
+  `m_rayonTerritoire` de son poste ; `Retour` → `Poursuite` si
+  `proieDetectee` (vérifié avant l'arrivée, de façon à ce qu'une proie
+  qui redevient pertinente au moment même où le monstre atteint son
+  poste reprenne le dessus) ; `Retour` → `EnGarde` sinon, une fois
+  arrivé (`m_mobile.directionVoulue()` vide).
+- **Détecter l'entrée dans un état, pas seulement l'état courant** :
+  l'ordre `arreter()` puis `allerVers(m_poste, carte)` ne doit être
+  donné qu'une seule fois, au moment où le monstre **devient**
+  `Retour` — le redonner à chaque image écraserait inutilement le
+  chemin déjà calculé par `Mobile` (et, avec le A*, recalculerait un
+  chemin identique à chaque tic pour rien). La fonction compare l'état
+  avant et après le `switch` (`etatPrecedent != m_etat`) pour ne
+  déclencher cet ordre qu'à la transition elle-même. En `Poursuite`,
+  à l'inverse, l'ordre (`arreter()` si à portée, sinon `allerVers`)
+  est bien redonné à chaque image, comme avant l'étape 25 : la cible
+  elle-même peut bouger d'une image à l'autre (c'est un personnage de
+  l'escouade), contrairement au poste qui est fixe.
+- **La riposte ne dépend pas du statut** : `frapper` n'a pas changé, et
+  `main.cpp` n'a pas été modifié — un monstre en retour frappe toujours
+  ce qui passe à sa portée, exactement comme avant cette étape.
+  Interface publique de `Monstre` inchangée.
+- **Limites connues** : un monstre qui rentre ignore une proie dès
+  qu'elle sort de son territoire, même si elle reste proche de lui (le
+  filtre `proieDetectee` l'exige par construction) ; pas de patrouille
+  ni de récupération de points de vie pendant le retour ; chaque
+  monstre garde son propre poste et territoire sans les partager ni se
+  coordonner avec les autres monstres.

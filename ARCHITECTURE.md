@@ -346,7 +346,7 @@ auparavant `Escouade::mettreAJour`) et par `Personnage::mettreAJour`
 (qui convertit entre son centre et le coin haut-gauche attendu par la
 fonction, comme `Mobile::getCentre()` le fait dans l'autre sens).
 
-### `Monstre` — un ennemi qui détecte, poursuit et abandonne
+### `Monstre` — un ennemi qui détecte, poursuit et retourne à son poste
 
 Un carré rouge de 30 × 30, avec des points de vie et une barre de vie.
 Pas de classe de base commune avec `Personnage`, pas d'héritage : les
@@ -365,25 +365,56 @@ comportement partagé ne le justifie.
   (`Attaque`, portée 80 px / dégâts 10 / recharge 1 s — même structure
   que celle de `Personnage`, valeurs différentes, dupliquée
   volontairement comme objet, pas de factorisation des points de vie
-  pour l'instant), et depuis l'étape 24 : `m_rayonDetection` (200 px),
-  `m_rayonAbandon` (400 px), `m_enPoursuite` (`bool`, faux à la
-  création). Pas de couleur stockée : toujours rouge, donc une valeur
-  fixe directement dans `dessiner`, pas un membre (contrairement à
-  `Personnage`, qui a besoin d'une couleur différente par instance).
-- **Détection/poursuite/abandon avec hystérésis** (étape 24) : une
-  cible (son centre, donnée par `main.cpp`) n'est poursuivie
-  (`m_enPoursuite = true`) qu'une fois entrée dans `m_rayonDetection` ;
-  elle n'est abandonnée (`m_enPoursuite = false`) qu'une fois sortie de
-  `m_rayonAbandon`, plus large — entre les deux rayons, l'état ne
-  change pas, pour éviter qu'un monstre n'oscille en poursuite/abandon
-  quand la cible frôle un seuil unique. Sans cible, l'abandon est
-  immédiat. En poursuite, le monstre s'arrête (`m_mobile.arreter()`)
-  dès qu'il est à portée de `m_attaque`, sinon il avance
-  (`m_mobile.allerVers`) ; hors poursuite, il reste où il est
-  (`m_mobile.arreter()`), sans retour à un poste.
-- **Les distances (détection, abandon, portée) sont mesurées à vol
+  pour l'instant), `m_rayonDetection` (200 px, depuis l'étape 24), et
+  depuis l'étape 25 : `m_rayonTerritoire` (400 px, renommé et resenti
+  depuis `m_rayonAbandon` de l'étape 24), `m_etat` (`Etat`, un
+  `enum class` **privé** à trois valeurs — `EnGarde`, `Poursuite`,
+  `Retour` —, `EnGarde` à la création) et `m_poste` (le centre donné au
+  constructeur, fixe). Pas de couleur stockée : toujours rouge, donc
+  une valeur fixe directement dans `dessiner`, pas un membre
+  (contrairement à `Personnage`, qui a besoin d'une couleur différente
+  par instance).
+- **Statut à trois valeurs plutôt que des booléens** (étape 25) :
+  `enum class Etat { EnGarde, Poursuite, Retour }`, déclaré privé dans
+  `Monstre.hpp` (comme `Tile` dans `TileMap`, mais à portée encore plus
+  restreinte) — un `enum class` rend impossible l'état incohérent
+  « en poursuite et en retour à la fois » que deux `bool` indépendants
+  auraient permis. « À portée, en train de frapper » n'est pas un
+  statut : recalculé à chaque image à partir de la distance
+  (`m_attaque.estAPortee`), comme avant l'étape 25.
+- **Détection limitée au territoire** (étape 25), dans une fonction
+  privée `const`, `proieDetectee(cible)` : une proie est détectée si
+  elle existe, si elle est à `<=` `m_rayonDetection` **du monstre** ET
+  à `<=` `m_rayonTerritoire` **du poste** — la seconde condition évite
+  qu'un monstre en retour ne redétecte aussitôt une proie restée à la
+  frontière et ne tremble sur place. Utilisée à l'identique en
+  `EnGarde` et en `Retour`, pour que les deux appliquent exactement la
+  même règle.
+- **Transitions, une seule par appel de `mettreAJour`** : `EnGarde` →
+  `Poursuite` si `proieDetectee` ; `Poursuite` → `Retour` si plus de
+  proie, ou si le monstre lui-même est à `>` `m_rayonTerritoire` de
+  `m_poste` (mesuré sur le monstre, pas sur la proie, depuis
+  l'étape 25 — avant, la règle portait sur la distance à la proie) ;
+  `Retour` → `Poursuite` si `proieDetectee` ; `Retour` → `EnGarde` une
+  fois arrivé (`m_mobile.directionVoulue()` vide).
+- **Ordres donnés à `m_mobile`, séparés des transitions** : à l'entrée
+  en `Retour` **seulement** (détectée en comparant l'état avant et
+  après le `switch` des transitions, pour agir une seule fois et non à
+  chaque image), `arreter()` puis `allerVers(m_poste, carte)` ; en
+  `Poursuite`, à chaque image, `arreter()` si la proie est à portée de
+  `m_attaque`, sinon `allerVers(proie, carte)` ; en `EnGarde` et
+  pendant le reste du `Retour`, aucun ordre (le chemin donné à l'entrée
+  suffit à `Mobile`). La riposte (`frapper`) ne dépend pas du statut :
+  un monstre en retour frappe toujours ce qui passe à sa portée.
+- **Les distances (détection, territoire, portée) sont mesurées à vol
   d'oiseau**, centre à centre, en ignorant les murs — comme la portée
   d'attaque (étape 17, limite connue).
+- **Limites connues** (étape 25) : un monstre qui rentre ignore une
+  proie dès qu'elle sort du territoire, même si elle reste proche de
+  lui (le filtre `proieDetectee` l'exige) ; pas de patrouille ni de
+  récupération de points de vie au retour ; plusieurs monstres
+  gardent chacun leur propre poste et territoire, sans les partager ni
+  se coordonner.
 - **`Monstre(sf::Vector2f centre, int id)`** : centre et identifiant en
   paramètres ; `explicit` retiré puisque le constructeur en prend deux
   (une conversion implicite à un seul argument n'est plus possible).

@@ -75,8 +75,8 @@
     distincts de ceux de `test_Personnage.cpp`** (préfixés `Monstre.`) :
     Catch2 exige des noms de cas de test uniques dans tout l'exécutable
     `tests`, pas seulement dans un fichier.
-  - **`mettreAJour` : détection, arrêt à portée, abandon (étape 24)** :
-    depuis que `Monstre` se déplace par son propre `Mobile`, la fonction
+  - **`mettreAJour` : détection, arrêt à portée (étape 24)** : depuis
+    que `Monstre` se déplace par son propre `Mobile`, la fonction
     d'aide `ecoulerTemps(monstre, duree, cible, carte)` prend en plus une
     cible (`std::optional<sf::Vector2f>`, vide = aucune) et une
     `TileMap` (carte dégagée dédiée, `carteDegagee()`, même principe que
@@ -85,11 +85,23 @@
     rayon de détection (200 px) rapproche le monstre ; une cible hors de
     ce rayon, ou son absence, le laisse immobile ; une durée généreuse
     face à une cible dans le rayon l'amène à portée d'attaque (80 px)
-    sans l'atteindre ; une fois détectée, une cible repoussée entre les
-    deux rayons (200 et 400 px) continue d'être poursuivie, mais plus
-    au-delà de 400 px (abandon) ; une cible abandonnée revenue entre les
-    deux rayons n'est pas reprise ; une cible qui disparaît après
-    détection arrête le monstre.
+    sans l'atteindre.
+  - **Territoire et retour au poste (étape 25)** : `carteLongue()`,
+    une carte dégagée plus large que `carteDegagee()`, dédiée aux cas
+    où une cible ou un trajet de retour dépasse les 400 px du
+    territoire. Toujours des résultats (le centre du monstre, comparé
+    au poste `{100.0f, 100.0f}` donné au constructeur dans tous ces
+    tests), jamais une trajectoire exacte. Cas couverts : une cible
+    poursuivie qui s'éloigne continue d'être poursuivie tant que le
+    *monstre* reste dans son territoire (peu importe la distance à la
+    cible elle-même) ; une cible à 300 px du poste est rejointe à
+    portée et le reste ; une cible à 1000 px du poste, ou qui disparaît
+    après détection, fait rentrer le monstre à son poste après une
+    durée généreuse ; une cible hors du territoire mais transitoirement
+    proche du monstre pendant le retour est ignorée (le monstre rentre
+    quand même) ; une cible replacée dans le territoire et proche du
+    monstre pendant le retour relance la poursuite (la distance entre
+    les deux diminue de nouveau).
 - **`Personnage` (`test_Personnage.cpp`, étape 17)** :
   - `estAPortee` : point proche à portée, point lointain hors portée,
     distance exactement égale à la portée (cas limite, `<=`).

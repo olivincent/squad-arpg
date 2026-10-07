@@ -615,10 +615,44 @@ entre monstres). La détection, comme la portée d'attaque (étape 17),
 ignore les murs. Les trois sont acceptées pour l'instant (cf.
 ARCHITECTURE.md).
 
-### Étape 25 — À définir
+### Étape 25 — Statut du monstre et retour au poste ✅ TERMINÉE
+
+Le monstre a un statut explicite à trois valeurs (en garde, poursuite,
+retour) et un territoire autour de son poste : il abandonne quand
+lui-même s'éloigne trop de son poste, puis y retourne.
+
+1. [x] `m_enPoursuite` devient `m_etat` (`enum class Etat { EnGarde,
+       Poursuite }`, privé) ; aucun changement de comportement
+2. [x] Membre `m_poste` (le centre donné au constructeur), pas encore
+       utilisé (enchaînés avec la sous-étape précédente)
+3. [x] Statut `Retour` : au lieu de s'arrêter sur place, le monstre
+       retourne à son poste (`arreter()` puis `allerVers(m_poste,
+       carte)`, une seule fois à l'entrée en `Retour`), puis repasse
+       `EnGarde` une fois arrivé (`directionVoulue()` vide) ; règle
+       d'abandon encore inchangée (proie trop loin du monstre, ou plus
+       de proie) ; pendant le retour, toute proie est encore ignorée
+4. [x] Territoire : `m_rayonAbandon` renommé `m_rayonTerritoire` ;
+       l'abandon dépend désormais de la distance entre le **monstre**
+       et son **poste** (`> 400 px`), plus de celle à sa proie ;
+       ancienne règle supprimée
+5. [x] Détection limitée au territoire : fonction privée `const`
+       `proieDetectee(cible)` (proie à portée de détection du monstre
+       ET dans le territoire du poste), utilisée à l'identique en
+       `EnGarde` et en `Retour` — un monstre qui rentre peut donc de
+       nouveau être détourné par une proie, à condition qu'elle soit
+       dans son territoire
+
+**Limites connues** : un monstre qui rentre ignore une proie dès
+qu'elle sort du territoire, même si elle reste proche de lui ; pas de
+patrouille ni de récupération de points de vie au retour ; plusieurs
+monstres gardent chacun leur poste et territoire sans se coordonner
+(cf. ARCHITECTURE.md).
+
+### Étape 26 — À définir
 
 Pistes discutées :
-- Retour du monstre à son poste, patrouille, escouade de monstres
+- Patrouille, escouade de monstres, récupération de points de vie au
+  retour
 - Mort ou mise hors combat d'un personnage à 0 point de vie (retrait de
   la formation, apparence), condition de défaite de l'escouade
 - Collision entre personnages, ou déplacement suivant l'arc de rotation
@@ -684,11 +718,16 @@ Pistes discutées :
   dessus, et depuis l'étape 24 ils peuvent se superposer entre eux).
   Depuis l'étape 24, chaque monstre se déplace par son propre `Mobile`
   (30 × 30, 120 px/s) : il détecte un personnage vivant qui entre dans
-  un rayon de 200 px, le poursuit (A* + lissage) jusqu'à être à portée
-  de son attaque (80 px) où il s'arrête, et n'abandonne qu'une fois la
-  proie sortie d'un rayon plus large de 400 px (hystérésis, pour éviter
-  les oscillations) ou si elle meurt ; sans proie, il reste où il
-  s'est arrêté (pas de retour à un poste). Chaque monstre a aussi une
+  un rayon de 200 px (`m_rayonDetection`) ET dans son territoire de
+  400 px autour de son poste (`m_rayonTerritoire`, poste = sa position
+  de départ), et le poursuit (A* + lissage) jusqu'à être à portée de
+  son attaque (80 px) où il s'arrête. Depuis l'étape 25, son statut
+  (`EnGarde`/`Poursuite`/`Retour`, un `enum class` privé) remplace le
+  simple booléen de l'étape 24 : il abandonne quand lui-même (pas la
+  proie) sort de son territoire, ou si elle meurt, et retourne alors à
+  son poste plutôt que de s'arrêter sur place ; une proie qui rentre
+  dans le territoire pendant ce retour relance la poursuite, par la
+  même règle de détection qu'en garde. Chaque monstre a aussi une
   attaque (portée 80 px, dégâts 10, recharge 1 s, module `Attaque`) :
   il frappe le personnage **vivant** de l'escouade le plus proche de
   lui dès qu'il est à portée, qu'il soit lui-même attaqué ou non
@@ -712,8 +751,8 @@ Pistes discutées :
 - Logique de jeu (`TileMap`, `Escouade`, `Mobile`, `Chemin`,
   `Personnage`, `Deplacement`, `Monstre`, `Attaque`) dans une
   bibliothèque `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 120 tests : 32 sur `TileMap`, 13 sur `Chemin`,
-  16 sur `Escouade`, 4 sur `Deplacement`, 24 sur `Monstre`, 11 sur
+  (`./build/tests.exe`, 122 tests : 32 sur `TileMap`, 13 sur `Chemin`,
+  16 sur `Escouade`, 4 sur `Deplacement`, 26 sur `Monstre`, 11 sur
   `Personnage`, 9 sur `Attaque`, 11 sur `Mobile`)
 - Depuis l'étape 22, `Personnage` et `Monstre` possèdent chacun un
   `m_attaque` (`Attaque`) plutôt que leurs propres membres de portée,
@@ -737,8 +776,12 @@ Pistes discutées :
   ne frappe plus et n'est plus ciblé par les monstres, qui reportent
   leur attaque sur un autre personnage vivant, ou cessent de frapper si
   aucun ne l'est (voir étape 20, limite connue) — accepté pour l'instant
-- Un monstre qui abandonne sa proie reste sur place (pas de retour à un
-  poste, pas de patrouille) ; plusieurs monstres peuvent se superposer
-  en poursuivant la même cible (pas de collision entre eux) — voir
-  étape 24, limites connues — accepté pour l'instant
-- Étape en cours : **Étape 25** — à choisir
+- Depuis l'étape 25, un monstre qui abandonne sa proie retourne à son
+  poste (statut `Retour`) plutôt que de rester sur place ; il ignore
+  toute proie dès qu'elle sort de son territoire, même si elle reste
+  proche de lui ; plusieurs monstres peuvent toujours se superposer en
+  poursuivant la même cible (pas de collision entre eux), et gardent
+  chacun leur propre poste et territoire sans se coordonner ; pas de
+  patrouille ni de récupération de points de vie au retour (voir
+  étape 25, limites connues) — accepté pour l'instant
+- Étape en cours : **Étape 26** — à choisir
