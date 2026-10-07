@@ -180,8 +180,7 @@ conserver entre deux appels.
 
 - **Travaille en cases** (coordonnées de grille, `sf::Vector2i`), jamais
   en pixels — contrairement à `Escouade`, qui travaille en pixels
-  (`sf::Vector2f`). Pas encore de conversion pixels ↔ cases dans le
-  projet.
+  (`sf::Vector2f`).
 - **Déclaration anticipée** : `Chemin.hpp` contient `class TileMap;` ;
   l'include de `TileMap.hpp` est dans `Chemin.cpp`.
 - **Tout l'interne de l'algorithme** (structure de nœud, comparateur de

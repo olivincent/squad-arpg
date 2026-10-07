@@ -40,9 +40,9 @@
 - **Ordre dans `mettreAJour` et `dessiner`** : l'ancre d'abord, les
   personnages ensuite. Les personnages visent la place de l'image
   *courante* (calculée après que l'ancre a bougé), pas celle d'avant.
-- **Module `Deplacement` extrait** (voir ci-dessus) pour que
-  `Personnage` réutilise la même collision/glissement que l'ancre, sans
-  dépendre d'`Escouade`.
+- **Module `Deplacement` extrait** (voir la description du module dans
+  `ARCHITECTURE.md`) pour que `Personnage` réutilise la même
+  collision/glissement que l'ancre, sans dépendre d'`Escouade`.
 - **Orientation voulue et orientation réelle séparées** : `m_orientationVoulue`
   reçoit la direction voulue de l'ancre (vecteur vers le point courant du
   chemin, *avant* l'essai de collision — si l'escouade est bloquée par un
@@ -81,3 +81,46 @@
     une vraie collision personnage-personnage, ou un déplacement qui
     suit l'arc plutôt qu'une ligne droite — les deux explicitement hors
     de portée de l'étape 14.
+
+## Attaque par les personnages (étape 17)
+
+- **La portée, les dégâts et la recharge appartiennent à `Personnage`**,
+  pas à `Escouade` ni à `Monstre` : à terme, ces valeurs dépendront de
+  l'arme et des capacités de chacun. Pour l'instant, valeurs fixes dans
+  le constructeur, identiques pour les 4, comme `m_vitesse` :
+  `m_portee` (80 px, distance du centre du personnage au point visé),
+  `m_degats` (5), `m_tempsRecharge` (0,5 s, ne change jamais) et
+  `m_recharge` (secondes avant le prochain coup possible, 0 à la
+  création — le premier coup part donc immédiatement).
+- **`m_recharge` décrémentée dans `Personnage::mettreAJour`**, sans
+  descendre sous zéro : le temps passe même quand le personnage
+  n'attaque pas, comme la recharge d'attaque de l'étape 16 dans
+  `main.cpp` avant d'être déplacée ici.
+- **`Personnage` ne connaît toujours pas `Monstre`** : il raisonne sur un
+  simple point (`sf::Vector2f`), pas sur une cible typée.
+  - `estAPortee(cible)` : distance entre le centre et `cible`
+    `<=` `m_portee`.
+  - `frapper(cible)` : si la cible est à portée et que `m_recharge` est
+    à zéro, relance la recharge (`m_tempsRecharge`) et renvoie
+    `m_degats` ; sinon renvoie 0, sans toucher la recharge (un coup
+    tenté hors de portée ne la déclenche pas).
+- **`Escouade` ne connaît pas `Monstre` non plus.** `attaquer(cible,
+  carte)` raisonne sur le même point que `Personnage` :
+  - si au moins un personnage n'est pas à portée (positions
+    *actuelles*, avant le tic) : `allerVers(cible, carte)`, comme un
+    ordre de déplacement classique ;
+  - si les 4 sont à portée : l'ancre s'arrête sur place (`m_chemin`
+    réduit à son centre actuel, comme dans le constructeur), pour
+    qu'elle cesse d'avancer sans pour autant reculer ;
+  - dans les deux cas, `frapper(cible)` est ensuite appelée sur chaque
+    personnage, et la fonction renvoie la somme des dégâts — `main.cpp`
+    la passe directement à `monstre.recevoirDegats`.
+- **La formation tient pendant l'attaque** : les personnages continuent
+  de viser leur place en formation (`placePersonnage`) dans
+  `mettreAJour`, qu'`attaquer` ait été appelée ou non ce tic-là ; rien
+  ne change dans leur déplacement.
+- **Limite connue** : la portée ignore les murs — un personnage peut
+  frapper à travers un mur s'il est à moins de 80 px de la cible, même
+  sans ligne de vue dégagée. Accepté pour l'instant ; une vérification
+  de ligne de vue (via `TileMap::trajetLibre`, par exemple) reste une
+  option pour plus tard.

@@ -3,11 +3,11 @@
 ## Boucle de jeu et déplacement
 
 - **Boucle de jeu** : événements (fermeture de la fenêtre, et
-  verrouillage de cible sur un clic qui touche le monstre), recharge et
-  attaque, retrait du verrou, entrée souris (`escouade.allerVers` si le
-  bouton gauche est enfoncé et la cible non verrouillée — voir « Entrée
-  souris et attaque » ci-dessous), mise à jour (`escouade.mettreAJour`),
-  dessin.
+  verrouillage de cible sur un clic qui touche le monstre), attaque si
+  la cible est verrouillée, retrait du verrou, entrée souris
+  (`escouade.allerVers` si le bouton gauche est enfoncé et la cible non
+  verrouillée — voir « Entrée souris et attaque » ci-dessous), mise à
+  jour (`escouade.mettreAJour`), dessin.
 - **Déplacement à pas fixe** plutôt que proportionnel à la distance :
   vitesse constante, comme un personnage d'ARPG.
 - **Delta time** (`sf::Clock::restart()`) : vitesse exprimée en pixels
@@ -45,28 +45,27 @@
   plus enfoncé, ou si le monstre est mort. La position du curseur ne
   compte plus une fois le verrou posé — aucune zone de tolérance autour
   du monstre.
-- **Recharge et attaque continue** : `rechargeAttaque` (`float`,
-  secondes) est décrémentée de `dt` à chaque image, sans descendre sous
-  zéro — le même `dt` que celui passé à `escouade.mettreAJour`. Un coup
-  (`monstre.recevoirDegats(degatsParClic)`) n'est permis que si la cible
-  est verrouillée **et** que la recharge est à zéro ; après un coup, la
-  recharge repart à `tempsRecharge` (0,5 s). Conséquence : cliquer très
-  vite ne frappe pas plus souvent que tenir le bouton, puisque seul le
-  temps réel écoulé fait descendre la recharge.
-- **Ordre précis après la boucle d'événements** : 1) diminuer la
-  recharge ; 2) attaquer si verrou posé et recharge à zéro ; 3) retirer
-  le verrou si nécessaire ; 4) donner l'ordre de déplacement si le
-  bouton est enfoncé et la cible non verrouillée. L'attaque (2) passe
-  **avant** le retrait du verrou (3) pour qu'un clic très bref, posé et
-  retiré dans la même image, compte quand même pour un coup ; et si ce
-  coup tue le monstre, l'étape 3 fait retomber le verrou aussitôt,
-  permettant à l'étape 4 de redonner un ordre de déplacement vers le
-  curseur dès cette même image.
-- **`degatsParClic` (20) et `tempsRecharge` (0,5 s)** : constantes
-  locales à `main.cpp` — des propriétés de l'attaque, pas du monstre.
-  Le verrou (`cibleVerrouillee`) et la recharge (`rechargeAttaque`) sont
-  eux aussi de simples variables locales ; pas de nouvelle classe
-  (`Combat`, `Attaque`, `Minuteur`) pour les porter.
+- **Attaque déplacée dans `Escouade` (étape 17)** : `main.cpp` ne gère
+  plus de recharge lui-même. Tant que la cible est verrouillée,
+  `monstre.recevoirDegats(escouade.attaquer(monstre.getCentre(),
+  carte))` est appelée à chaque image ; `attaquer` décide si l'escouade
+  doit encore s'approcher ou si elle peut s'arrêter et frapper (portée,
+  dégâts et recharge par personnage — voir `docs/formation.md`), et
+  renvoie la somme des dégâts à appliquer au monstre. Les variables
+  locales `rechargeAttaque`, `tempsRecharge` et `degatsParClic` de
+  l'étape 16 ont disparu de `main.cpp`.
+- **Ordre précis après la boucle d'événements** : 1) attaquer si la
+  cible est verrouillée ; 2) retirer le verrou si nécessaire ; 3) donner
+  l'ordre de déplacement si le bouton est enfoncé et la cible non
+  verrouillée. L'attaque (1) passe **avant** le retrait du verrou (2)
+  pour qu'un clic très bref, posé et retiré dans la même image, compte
+  quand même pour une tentative de coup ; et si ce coup tue le monstre,
+  l'étape 2 fait retomber le verrou aussitôt, permettant à l'étape 3 de
+  redonner un ordre de déplacement vers le curseur dès cette même
+  image.
+- **Le verrou (`cibleVerrouillee`) reste une simple variable locale** à
+  `main.cpp` ; pas de nouvelle classe (`Combat`, `Minuteur`) pour le
+  porter.
 - **Texte de position retiré** (ainsi que la police `arial.ttf` qui ne
   servait qu'à lui) : plus rien n'affiche la position du curseur à
   l'écran.

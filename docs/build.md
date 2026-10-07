@@ -24,8 +24,9 @@
   final.
 - **`tests`** (`add_executable(tests tests/test_TileMap.cpp
   tests/test_Chemin.cpp tests/test_Escouade.cpp
-  tests/test_Deplacement.cpp tests/test_Monstre.cpp)`) se lie à
-  `squad_core` et à `Catch2::Catch2WithMain` (qui fournit le `main()`
-  des tests) ; lancé directement (`./build/tests.exe`), sans CTest.
+  tests/test_Deplacement.cpp tests/test_Monstre.cpp
+  tests/test_Personnage.cpp)`) se lie à `squad_core` et à
+  `Catch2::Catch2WithMain` (qui fournit le `main()` des tests) ; lancé
+  directement (`./build/tests.exe`), sans CTest.
 - **Générateur Ninja** (`cmake -S . -B build -G Ninja`). Ninja relance la
   configuration automatiquement quand `CMakeLists.txt` change.

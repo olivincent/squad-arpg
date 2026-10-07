@@ -53,9 +53,19 @@ Documents de référence (à lire avant toute modification) :
    le modifier, et les améliorations se font dans un commit séparé.
 7. **Git** : ne pas faire de commit soi-même. Proposer la commande
    `git add` / `git commit -m "..."` ; Olivier la lance après avoir testé.
-8. **Fin d'une étape complète** : quand Olivier le demande, mettre à jour
-   `ROADMAP.md` (étape cochée, section « État actuel ») et
-   `ARCHITECTURE.md` (modules, décisions prises).
+8. **Fin d'une étape complète** : quand Olivier le demande, mettre à
+   jour :
+   - `ROADMAP.md` : étape cochée, section « État actuel » ;
+   - `ARCHITECTURE.md` : le **quoi** — structure du dépôt, modules,
+     données membres, interfaces publiques ;
+   - les fichiers de `docs/` correspondant aux modules modifiés
+     pendant l'étape (tableau à la fin d'`ARCHITECTURE.md`) : le
+     **pourquoi** — décisions, compromis, limites connues.
+   Ne pas dupliquer le détail d'un fichier de `docs/` dans
+   `ARCHITECTURE.md`. Un nouveau fichier dans `docs/` seulement si
+   aucun fichier existant ne couvre le sujet ; l'ajouter alors au
+   tableau. Terminer en listant les fichiers de documentation
+   modifiés.
 
 ## Conventions de code
 
