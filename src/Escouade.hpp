@@ -20,6 +20,7 @@ public:
     sf::Vector2f getCentre() const;
     std::optional<sf::Vector2f> personnageLePlusProche(sf::Vector2f point) const;
     void recevoirDegats(sf::Vector2f origine, int quantite);
+    bool estVivante() const;
 
 private:
     sf::Vector2f placePersonnage(std::size_t indice) const;

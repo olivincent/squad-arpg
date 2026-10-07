@@ -123,3 +123,12 @@ void Escouade::recevoirDegats(sf::Vector2f origine, int quantite) {
     }
     m_personnages[*indice].recevoirDegats(quantite);
 }
+
+bool Escouade::estVivante() const {
+    for (const Personnage& personnage : m_personnages) {
+        if (personnage.estVivant()) {
+            return true;
+        }
+    }
+    return false;
+}

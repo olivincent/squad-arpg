@@ -78,7 +78,7 @@ int main() {
                 window.close();
             }
             if (const auto* data = event->getIf<sf::Event::MouseButtonPressed>()) {
-                if (data->button == sf::Mouse::Button::Left) {
+                if (data->button == sf::Mouse::Button::Left && escouade.estVivante()) {
                     const sf::Vector2f clicMonde = window.mapPixelToCoords(data->position);
                     const auto it = std::find_if(monstres.begin(), monstres.end(), [&](const Monstre& m) {
                         return m.contient(clicMonde);
@@ -104,13 +104,13 @@ int main() {
             }
         }
 
-        if (!window.hasFocus() || !sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
+        if (!window.hasFocus() || !sf::Mouse::isButtonPressed(sf::Mouse::Button::Left) || !escouade.estVivante()) {
             idCible.reset();
         }
 
         std::erase_if(monstres, [](const Monstre& m) { return !m.estVivant(); });
 
-        if (window.hasFocus() && sf::Mouse::isButtonPressed(sf::Mouse::Button::Left) && !idCible.has_value()) {
+        if (window.hasFocus() && sf::Mouse::isButtonPressed(sf::Mouse::Button::Left) && !idCible.has_value() && escouade.estVivante()) {
             const sf::Vector2f curseurMonde = window.mapPixelToCoords(sf::Mouse::getPosition(window));
             escouade.allerVers(curseurMonde, carte);
         }

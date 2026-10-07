@@ -399,3 +399,29 @@ TEST_CASE("personnageLePlusProche est vide une fois tous les personnages morts")
     escouade.recevoirDegats(point, 100);
     REQUIRE_FALSE(escouade.personnageLePlusProche(point).has_value());
 }
+
+TEST_CASE("estVivante est vraie a la creation") {
+    const Escouade escouade({50.0f, 50.0f});
+
+    REQUIRE(escouade.estVivante());
+}
+
+TEST_CASE("estVivante reste vraie apres la mort d'un seul personnage") {
+    Escouade escouade({50.0f, 50.0f});
+    const sf::Vector2f point{1000.0f, 1000.0f};
+
+    escouade.recevoirDegats(point, 100);
+
+    REQUIRE(escouade.estVivante());
+}
+
+TEST_CASE("estVivante devient fausse une fois les 4 personnages morts") {
+    Escouade escouade({50.0f, 50.0f});
+    const sf::Vector2f point{1000.0f, 1000.0f};
+
+    for (int i = 0; i < 4; ++i) {
+        escouade.recevoirDegats(point, 100);
+    }
+
+    REQUIRE_FALSE(escouade.estVivante());
+}
