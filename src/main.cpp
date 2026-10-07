@@ -120,7 +120,7 @@ int main() {
         window.clear();
         carte.dessiner(window);
         for (const Monstre& m : monstres) {
-            m.dessiner(window);
+            m.dessiner(window, idCible == m.getId());
         }
         escouade.dessiner(window);
         window.display();

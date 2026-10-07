@@ -6,7 +6,7 @@
 class Monstre {
 public:
     Monstre(sf::Vector2f centre, int id);
-    void dessiner(sf::RenderTarget& rendu) const;
+    void dessiner(sf::RenderTarget& rendu, bool estCible) const;
     sf::Vector2f getCentre() const;
     int getId() const;
     bool contient(sf::Vector2f point) const;

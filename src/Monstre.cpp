@@ -13,10 +13,14 @@ Monstre::Monstre(sf::Vector2f centre, int id)
 {
 }
 
-void Monstre::dessiner(sf::RenderTarget& rendu) const {
+void Monstre::dessiner(sf::RenderTarget& rendu, bool estCible) const {
     sf::RectangleShape forme(m_taille);
     forme.setPosition(m_centre - m_taille / 2.0f);
     forme.setFillColor(sf::Color::Red);
+    if (estCible) {
+        forme.setOutlineColor(sf::Color::Yellow);
+        forme.setOutlineThickness(-3.0f);
+    }
     rendu.draw(forme);
 
     const float hauteurBarre = 5.0f;
