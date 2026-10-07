@@ -67,7 +67,7 @@ bool Personnage::estAPortee(sf::Vector2f cible) const {
 }
 
 int Personnage::frapper(sf::Vector2f cible) {
-    if (!estAPortee(cible) || m_recharge > 0.0f) {
+    if (!estVivant() || !estAPortee(cible) || m_recharge > 0.0f) {
         return 0;
     }
 

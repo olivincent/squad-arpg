@@ -2,6 +2,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <SFML/System/Vector2.hpp>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -316,9 +317,53 @@ TEST_CASE("personnageLePlusProche renvoie un centre plus proche du point que le 
     const Escouade escouade({50.0f, 50.0f});
 
     const sf::Vector2f pointLointain{1000.0f, 1000.0f};
-    const sf::Vector2f centrePersonnage = escouade.personnageLePlusProche(pointLointain);
-    const float distancePersonnage = (centrePersonnage - pointLointain).length();
+    const std::optional<sf::Vector2f> centrePersonnage = escouade.personnageLePlusProche(pointLointain);
+    REQUIRE(centrePersonnage.has_value());
+
+    const float distancePersonnage = (*centrePersonnage - pointLointain).length();
     const float distanceEscouade = (escouade.getCentre() - pointLointain).length();
 
     REQUIRE(distancePersonnage < distanceEscouade);
+}
+
+TEST_CASE("personnageLePlusProche ignore les degats insuffisants pour tuer") {
+    Escouade escouade({50.0f, 50.0f});
+    const sf::Vector2f point{1000.0f, 1000.0f};
+
+    const std::optional<sf::Vector2f> avant = escouade.personnageLePlusProche(point);
+    REQUIRE(avant.has_value());
+
+    escouade.recevoirDegats(point, 50);
+    const std::optional<sf::Vector2f> apres = escouade.personnageLePlusProche(point);
+    REQUIRE(apres.has_value());
+
+    REQUIRE(*apres == *avant);
+}
+
+TEST_CASE("personnageLePlusProche change de cible une fois le plus proche mort") {
+    Escouade escouade({50.0f, 50.0f});
+    const sf::Vector2f point{1000.0f, 1000.0f};
+
+    const std::optional<sf::Vector2f> avant = escouade.personnageLePlusProche(point);
+    REQUIRE(avant.has_value());
+
+    escouade.recevoirDegats(point, 100);
+    const std::optional<sf::Vector2f> apres = escouade.personnageLePlusProche(point);
+    REQUIRE(apres.has_value());
+
+    REQUIRE_FALSE(*apres == *avant);
+}
+
+TEST_CASE("personnageLePlusProche est vide une fois tous les personnages morts") {
+    Escouade escouade({50.0f, 50.0f});
+    const sf::Vector2f point{1000.0f, 1000.0f};
+
+    for (int i = 0; i < 4; ++i) {
+        escouade.recevoirDegats(point, 100);
+    }
+
+    REQUIRE_FALSE(escouade.personnageLePlusProche(point).has_value());
+
+    escouade.recevoirDegats(point, 100);
+    REQUIRE_FALSE(escouade.personnageLePlusProche(point).has_value());
 }

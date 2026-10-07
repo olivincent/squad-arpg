@@ -139,3 +139,12 @@ TEST_CASE("Un personnage est mort apres un coup qui depasse le reste de ses poin
 
     REQUIRE_FALSE(personnage.estVivant());
 }
+
+TEST_CASE("Un personnage mort ne frappe plus") {
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White);
+    const sf::Vector2f cible(150.0f, 100.0f);
+
+    personnage.recevoirDegats(100);
+
+    REQUIRE(personnage.frapper(cible) == 0);
+}

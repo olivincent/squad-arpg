@@ -118,7 +118,9 @@ int main() {
         for (Monstre& m : monstres) {
             m.mettreAJour(dt);
             const sf::Vector2f origine = m.getCentre();
-            escouade.recevoirDegats(origine, m.frapper(escouade.personnageLePlusProche(origine)));
+            if (auto cible = escouade.personnageLePlusProche(origine)) {
+                escouade.recevoirDegats(origine, m.frapper(*cible));
+            }
         }
 
         camera.setCenter(escouade.getCentre());

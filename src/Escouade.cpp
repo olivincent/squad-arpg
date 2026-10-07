@@ -133,13 +133,16 @@ sf::Vector2f Escouade::getCentre() const {
     return m_position + m_taille / 2.0f;
 }
 
-std::size_t Escouade::indicePersonnageLePlusProche(sf::Vector2f point) const {
-    std::size_t indicePlusProche = 0;
-    float distancePlusProche = (m_personnages[0].getCentre() - point).length();
+std::optional<std::size_t> Escouade::indicePersonnageLePlusProche(sf::Vector2f point) const {
+    std::optional<std::size_t> indicePlusProche;
+    float distancePlusProche = 0.0f;
 
-    for (std::size_t i = 1; i < m_personnages.size(); ++i) {
+    for (std::size_t i = 0; i < m_personnages.size(); ++i) {
+        if (!m_personnages[i].estVivant()) {
+            continue;
+        }
         const float distance = (m_personnages[i].getCentre() - point).length();
-        if (distance < distancePlusProche) {
+        if (!indicePlusProche.has_value() || distance < distancePlusProche) {
             distancePlusProche = distance;
             indicePlusProche = i;
         }
@@ -148,10 +151,18 @@ std::size_t Escouade::indicePersonnageLePlusProche(sf::Vector2f point) const {
     return indicePlusProche;
 }
 
-sf::Vector2f Escouade::personnageLePlusProche(sf::Vector2f point) const {
-    return m_personnages[indicePersonnageLePlusProche(point)].getCentre();
+std::optional<sf::Vector2f> Escouade::personnageLePlusProche(sf::Vector2f point) const {
+    const std::optional<std::size_t> indice = indicePersonnageLePlusProche(point);
+    if (!indice.has_value()) {
+        return std::nullopt;
+    }
+    return m_personnages[*indice].getCentre();
 }
 
 void Escouade::recevoirDegats(sf::Vector2f origine, int quantite) {
-    m_personnages[indicePersonnageLePlusProche(origine)].recevoirDegats(quantite);
+    const std::optional<std::size_t> indice = indicePersonnageLePlusProche(origine);
+    if (!indice.has_value()) {
+        return;
+    }
+    m_personnages[*indice].recevoirDegats(quantite);
 }
