@@ -5,21 +5,22 @@
 - **Catch2 3 adopté**, installé via MSYS2
   (`mingw-w64-ucrt-x86_64-catch`), trouvé par `find_package(Catch2 3
   REQUIRED)` comme SFML (pas de `FetchContent`).
-- **Un seul exécutable `tests`**, six fichiers (`test_TileMap.cpp`,
+- **Un seul exécutable `tests`**, huit fichiers (`test_TileMap.cpp`,
   `test_Chemin.cpp`, `test_Escouade.cpp`, `test_Deplacement.cpp`,
-  `test_Monstre.cpp`, `test_Personnage.cpp`), lancé directement
-  (`./build/tests.exe`) — pas de CTest ni de `catch_discover_tests`.
+  `test_Monstre.cpp`, `test_Personnage.cpp`, `test_Attaque.cpp`,
+  `test_Mobile.cpp`), lancé directement (`./build/tests.exe`) — pas de
+  CTest ni de `catch_discover_tests`.
 - **Petits plans dédiés** : chaque test construit son propre plan texte
   (3×3, 4×4, 5×5…), jamais la carte de `main.cpp`, pour isoler exactement
   le cas testé.
 - **Teste uniquement l'interface publique** de `TileMap`, `Chemin`,
-  `Escouade`, `Personnage` et `Monstre` (`getTile`, `chevaucheUnMur`,
-  `trajetLibre`, `getLargeur`/`getHauteur`,
+  `Escouade`, `Personnage`, `Monstre`, `Attaque` et `Mobile` (`getTile`,
+  `chevaucheUnMur`, `trajetLibre`, `getLargeur`/`getHauteur`,
   `caseContenant`/`centreDeCase`, le constructeur, `trouverChemin`,
-  `lisserChemin`, `allerVers`, `attaquer`, `mettreAJour`, `getCentre`,
-  `estAPortee`, `frapper`, `recevoirDegats`, `estVivant`,
-  `personnageLePlusProche`) — aucune fonction n'a été ajoutée seulement
-  pour faciliter les tests.
+  `lisserChemin`, `allerVers`, `arreter`, `attaquer`, `mettreAJour`,
+  `getCentre`, `getTaille`, `directionVoulue`, `estAPortee`, `frapper`,
+  `recevoirDegats`, `estVivant`, `personnageLePlusProche`) — aucune
+  fonction n'a été ajoutée seulement pour faciliter les tests.
 - **Propriétés plutôt que chemin exact** : pour `trouverChemin`, comme
   plusieurs plus courts chemins peuvent exister, les tests vérifient des
   propriétés (premier élément = départ, dernier = arrivée, cases
@@ -67,16 +68,28 @@
   (verrouillage de cible par identifiant, vecteur de monstres,
   `std::erase_if`, contour sur la cible, riposte) n'est pas testé —
   tout se passe dans `main.cpp`, hors de portée de `tests/`.
-  - **`frapper`/`mettreAJour` (étape 20)** : mêmes six cas que
-    `Personnage::frapper` ci-dessous, avec les valeurs du monstre
-    (portée 80 px, dégâts 10, recharge 1 s). Fonction d'aide
-    `ecoulerTemps(monstre, duree)`, même principe que celle de
-    `test_Personnage.cpp` mais sans cible ni carte, puisque
-    `Monstre::mettreAJour` ne prend que `dt` (le monstre ne se déplace
-    pas). **Noms de `TEST_CASE` distincts de ceux de
-    `test_Personnage.cpp`** (préfixés `Monstre.`) : Catch2 exige des
-    noms de cas de test uniques dans tout l'exécutable `tests`, pas
-    seulement dans un fichier.
+  - **`frapper` (étape 20)** : deux cas (dégâts à portée avec la valeur
+    du monstre — 10 —, 0 hors de portée) et un troisième qui prouve que
+    `mettreAJour` avance bien la recharge de `m_attaque` (dégâts de
+    nouveau après une durée simulée généreuse). **Noms de `TEST_CASE`
+    distincts de ceux de `test_Personnage.cpp`** (préfixés `Monstre.`) :
+    Catch2 exige des noms de cas de test uniques dans tout l'exécutable
+    `tests`, pas seulement dans un fichier.
+  - **`mettreAJour` : détection, arrêt à portée, abandon (étape 24)** :
+    depuis que `Monstre` se déplace par son propre `Mobile`, la fonction
+    d'aide `ecoulerTemps(monstre, duree, cible, carte)` prend en plus une
+    cible (`std::optional<sf::Vector2f>`, vide = aucune) et une
+    `TileMap` (carte dégagée dédiée, `carteDegagee()`, même principe que
+    pour `Mobile`/`Escouade`) — des résultats (le centre du monstre),
+    jamais une trajectoire exacte. Cas couverts : une cible dans le
+    rayon de détection (200 px) rapproche le monstre ; une cible hors de
+    ce rayon, ou son absence, le laisse immobile ; une durée généreuse
+    face à une cible dans le rayon l'amène à portée d'attaque (80 px)
+    sans l'atteindre ; une fois détectée, une cible repoussée entre les
+    deux rayons (200 et 400 px) continue d'être poursuivie, mais plus
+    au-delà de 400 px (abandon) ; une cible abandonnée revenue entre les
+    deux rayons n'est pas reprise ; une cible qui disparaît après
+    détection arrête le monstre.
 - **`Personnage` (`test_Personnage.cpp`, étape 17)** :
   - `estAPortee` : point proche à portée, point lointain hors portée,
     distance exactement égale à la portée (cas limite, `<=`).
@@ -115,6 +128,36 @@
   distance entre le centre de l'escouade et ce point (un personnage en
   formation est forcément plus proche d'un point extérieur que le
   centre de l'escouade lui-même, quelle que soit l'orientation exacte
-  de la formation). `recevoirDegats` n'a pas de test unitaire : son
-  effet n'est observable par aucune fonction publique, et on n'ajoute
-  pas d'accesseur juste pour le tester (vérifié visuellement en jeu).
+  de la formation).
+- **`Escouade::recevoirDegats`, observé via `personnageLePlusProche`
+  (étape 21)** : `recevoirDegats` n'a pas d'accesseur dédié, mais son
+  effet devient visible dès que les dégâts tuent un personnage — le
+  filtre des morts dans `indicePersonnageLePlusProche` change alors ce
+  que `personnageLePlusProche` renvoie. Trois cas : des dégâts
+  insuffisants pour tuer le plus proche ne changent pas le centre
+  renvoyé ; le tuer en change le centre renvoyé (un autre personnage) ;
+  tuer les 4 rend `personnageLePlusProche` vide (`std::optional`), y
+  compris après un coup supplémentaire sur une escouade déjà entièrement
+  morte.
+- **`Attaque` (`test_Attaque.cpp`, étape 22)** : couvre les six cas de
+  recharge/portée en un seul endroit, plutôt que dupliqués dans
+  `test_Personnage.cpp` et `test_Monstre.cpp` — dégâts à portée,
+  0 hors de portée, distance exactement égale à la portée (cas limite,
+  `<=`), 0 au second appel immédiat (recharge en cours), 0 après une
+  durée simulée trop courte puis de nouveau les dégâts après une durée
+  généreuse (même fonction d'aide `ecoulerTemps(attaque, duree)` que
+  dans les autres fichiers, adaptée à une classe sans position ni
+  carte), et un coup tenté hors de portée qui ne déclenche pas la
+  recharge. `test_Personnage.cpp` et `test_Monstre.cpp` ne gardent que
+  les cas qui prouvent leur propre branchement (voir plus haut), pas
+  ces six cas génériques.
+- **`Mobile` (`test_Mobile.cpp`, étape 23)** : repris quasiment tel
+  quel des tests d'`Escouade` dont le code a été déplacé (même fonction
+  d'aide `simuler(mobile, carte, duree)`, même tolérance
+  `verifierPointProche`, mêmes principes — des résultats, pas des
+  trajectoires) : `getCentre`/`getTaille` donnés au constructeur, aucun
+  déplacement sans ordre, avance de `vitesse * dt` sur un tic, atteint
+  le point exact en terrain dégagé, contourne un mur, ignore un ordre
+  vers un mur, `arreter()` stoppe un trajet en cours,
+  `directionVoulue()` vide à la création et une fois arrivé, pointe
+  vers la destination après `allerVers`.

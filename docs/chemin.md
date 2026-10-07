@@ -33,9 +33,9 @@
 
 Ce déplacement vivait directement dans `Escouade` jusqu'à l'étape 23 ;
 il a été extrait dans une classe `Mobile`, possédée par valeur par
-`Escouade` (`m_mobile`), en vue de l'étape 24 où `Monstre` en aura
-besoin aussi. Le code ci-dessous n'a pas changé par rapport à avant
-l'extraction, seulement son emplacement.
+`Escouade` (`m_mobile`) et, depuis l'étape 24, par `Monstre` également.
+Le code ci-dessous n'a pas changé par rapport à avant l'extraction,
+seulement son emplacement.
 
 - **Conversions pixels ↔ cases regroupées dans `TileMap`** (seule à
   connaître `m_tailleCase`) : `caseContenant` (comme `chevaucheUnMur`,

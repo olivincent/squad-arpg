@@ -654,8 +654,8 @@ Pistes discutées :
   s'arrête exactement sur le point cliqué, reste bloquée par les murs et
   glisse le long de ceux-ci (filet de sécurité conservé). Depuis l'étape
   23, ce déplacement par chemin vit dans un module séparé, `Mobile`
-  (possédé par valeur par `Escouade`, `m_mobile`), en vue de l'étape 24
-  où `Monstre` en aura besoin aussi
+  (possédé par valeur par `Escouade`, `m_mobile`, et depuis l'étape 24
+  par `Monstre` également)
 - L'escouade possède 4 personnages (`Personnage`, carrés colorés de
   20 × 20, 240 px/s) qui tiennent une formation en carré autour de
   l'ancre, bloqués par les murs et glissant le long d'eux comme elle

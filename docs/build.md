@@ -9,8 +9,8 @@
   (`find_package(Catch2 3 REQUIRED)`).
 - **Bibliothèque `squad_core`** (`add_library(squad_core STATIC
   src/TileMap.cpp src/Escouade.cpp src/Chemin.cpp src/Personnage.cpp
-  src/Deplacement.cpp src/Monstre.cpp)`) : regroupe la logique de jeu,
-  réutilisée par `main` et par `tests`.
+  src/Deplacement.cpp src/Monstre.cpp src/Attaque.cpp src/Mobile.cpp)`) :
+  regroupe la logique de jeu, réutilisée par `main` et par `tests`.
   - `target_link_libraries(squad_core PUBLIC SFML::Graphics)` : `PUBLIC`
     parce que les en-têtes de `squad_core` (`TileMap.hpp`, `Escouade.hpp`)
     incluent des en-têtes SFML — cette dépendance fait partie de son
@@ -25,7 +25,8 @@
 - **`tests`** (`add_executable(tests tests/test_TileMap.cpp
   tests/test_Chemin.cpp tests/test_Escouade.cpp
   tests/test_Deplacement.cpp tests/test_Monstre.cpp
-  tests/test_Personnage.cpp)`) se lie à `squad_core` et à
+  tests/test_Personnage.cpp tests/test_Attaque.cpp
+  tests/test_Mobile.cpp)`) se lie à `squad_core` et à
   `Catch2::Catch2WithMain` (qui fournit le `main()` des tests) ; lancé
   directement (`./build/tests.exe`), sans CTest.
 - **Générateur Ninja** (`cmake -S . -B build -G Ninja`). Ninja relance la

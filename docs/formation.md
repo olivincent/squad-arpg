@@ -2,16 +2,24 @@
 
 ## Escouade
 
-- **État de jeu séparé de l'affichage** : la position, la taille et la
-  cible sont des données de la classe ; le `sf::RectangleShape` n'existe
-  que dans `dessiner`. Même modèle que `TileMap`.
-- **Dépendance à `TileMap` le temps d'un appel** : la carte est passée en
-  `const TileMap&` à `mettreAJour` plutôt que gardée en membre — pas de
-  question de durée de vie, et l'escouade ne peut pas modifier la carte.
-- **Déclaration anticipée** : `Escouade.hpp` contient `class TileMap;`
-  (une référence ne demande pas la définition complète) ; l'include de
-  `TileMap.hpp` est dans `Escouade.cpp`. Les fichiers qui incluent
-  `Escouade.hpp` ne dépendent donc pas de `TileMap.hpp`.
+- **État de jeu séparé de l'affichage** : le `sf::RectangleShape` de
+  l'ancre n'existe que dans `dessiner`. Même modèle que `TileMap`.
+- **Composition avec `Mobile` depuis l'étape 23** : la position, le
+  chemin, la vitesse et la collision/glissement de l'ancre ne sont plus
+  des données d'`Escouade` elle-même — elles vivent dans `m_mobile`
+  (voir `docs/chemin.md`), qu'`Escouade` délègue (`allerVers`,
+  `getCentre`, l'arrêt dans `attaquer`, la partie « ancre » de
+  `mettreAJour`).
+- **Dépendance à `TileMap` le temps d'un appel, mais plus directe** :
+  la carte est reçue en `const TileMap&` par `allerVers`, `attaquer` et
+  `mettreAJour`, et transmise telle quelle à `m_mobile` — `Escouade` ne
+  la garde pas en membre et ne l'inspecte jamais elle-même.
+- **Déclaration anticipée malgré tout** : `Escouade.hpp` contient
+  `class TileMap;` (une référence ne demande pas la définition
+  complète), uniquement pour ces paramètres de passage. Depuis
+  l'étape 23, `Escouade.cpp` n'inclut même plus `TileMap.hpp` (ni
+  `Chemin.hpp`, ni `Deplacement.hpp`) : ces dépendances sont désormais
+  celles de `Mobile.cpp`, pas les siennes.
 - **En-têtes SFML précis** dans `Escouade` (`Vector2.hpp`,
   `RenderTarget.hpp`, `RectangleShape.hpp`…), alors que `TileMap.hpp`
   inclut tout `<SFML/Graphics.hpp>`. Non harmonisé pour l'instant.
