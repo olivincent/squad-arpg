@@ -129,6 +129,10 @@ Depuis l'étape 31, il lit aussi l'appui sur la touche 1 (événement
 une variable locale à chaque image (`skillDemande`), et demande alors
 `Escouade::declencherSkill` sur le monstre verrouillé, avant
 `attaquer`.
+Depuis l'étape 32, il construit aussi, pour chaque monstre et juste avant
+sa mise à jour, la liste des cercles des autres monstres (identifiant
+différent) et la lui passe comme obstacles : les monstres se bloquent
+entre eux ; l'ancre et les personnages passent une liste vide.
 La structure continue d'évoluer par nécessité réelle, pas par
 anticipation (voir principes ci-dessous).
 
@@ -295,7 +299,7 @@ Interface publique :
 | `Mobile(sf::Vector2f centre, sf::Vector2f taille, float vitesse)` | Crée le mobile à ce centre, cette taille, cette vitesse ; chemin initial réduit au centre (immobile) |
 | `void allerVers(sf::Vector2f destination, const TileMap& carte)` | Calcule un chemin vers la destination (A*, puis lissé) et le remplace comme trajet à suivre ; ordre ignoré si aucun chemin n'existe |
 | `void arreter()` | Réduit le chemin au centre actuel, pour cesser d'avancer sans reculer |
-| `void mettreAJour(float dt, const TileMap& carte)` | Avance vers le point courant du chemin (collision, glissement) |
+| `void mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles)` | Avance vers le point courant du chemin (collision avec les murs et les cercles obstacles, glissement ; étape 32) |
 | `sf::Vector2f getCentre() const` | Centre du mobile |
 | `sf::Vector2f getTaille() const` | Taille du mobile |
 | `std::optional<sf::Vector2f> directionVoulue() const` | Vecteur du centre vers le point courant du chemin ; vide s'il n'y a plus de point à atteindre ou si la distance est nulle |
@@ -417,11 +421,12 @@ puisse l'utiliser aussi, sans dépendre d'`Escouade` ni dupliquer le code.
 
 | Fonction | Rôle |
 |---|---|
-| `sf::Vector2f deplacerAvecGlissement(const TileMap& carte, const sf::FloatRect& rect, sf::Vector2f deplacement)` | Essaie le déplacement axe par axe (X puis Y, l'essai Y partant du résultat du X) ; renvoie la nouvelle position du coin haut-gauche |
+| `bool deplacementBloque(const Cercle& avant, const Cercle& apres, const std::vector<Cercle>& obstacles)` | Étape 32 : vrai si, pour au moins un obstacle, `apres` chevauche l'obstacle (distance entre centres `<` somme des rayons) ET la distance entre centres a diminué par rapport à `avant` ; un simple contact ou un éloignement n'est jamais bloqué |
+| `sf::Vector2f deplacerAvecGlissement(const TileMap& carte, const sf::FloatRect& rect, sf::Vector2f deplacement, const std::vector<Cercle>& obstacles)` | Essaie le déplacement axe par axe (X puis Y, l'essai Y partant du résultat du X) ; un essai est refusé s'il chevauche un mur ou si `deplacementBloque` est vrai (cercle de l'entité = centre du rectangle, rayon = demi-largeur) ; renvoie la nouvelle position du coin haut-gauche |
 
 Utilisée par `Mobile::mettreAJour` (pour l'ancre, depuis l'étape 23 ;
 auparavant `Escouade::mettreAJour`) et par `Personnage::mettreAJour`
-(qui convertit entre son centre et le coin haut-gauche attendu par la
+(qui passe une liste d'obstacles vide depuis l'étape 32, et convertit entre son centre et le coin haut-gauche attendu par la
 fonction, comme `Mobile::getCentre()` le fait dans l'autre sens).
 
 ### `Monstre` — un ennemi qui détecte, poursuit et retourne à son poste
@@ -556,7 +561,7 @@ Interface publique :
 |---|---|
 | `Monstre(sf::Vector2f centre, int id)` | Crée le monstre à ce centre, avec cet identifiant, 30 × 30, 100 points de vie |
 | `void dessiner(sf::RenderTarget& rendu, bool estCible) const` | Dessine le monstre et sa barre de vie ; ajoute un contour jaune si `estCible` |
-| `void mettreAJour(float dt, std::optional<Cercle> cible, const TileMap& carte)` | Décrémente la recharge d'attaque, met à jour l'état (en garde, poursuite, retour) et avance vers le centre de `cible` en poursuite (s'arrête à portée d'attaque, bord à bord), reste sur place ou rentre à son poste sinon |
+| `void mettreAJour(float dt, std::optional<Cercle> cible, const TileMap& carte, const std::vector<Cercle>& obstacles)` | Décrémente la recharge d'attaque, met à jour l'état (en garde, poursuite, retour) et avance vers le centre de `cible` en poursuite (s'arrête à portée d'attaque, bord à bord), reste sur place ou rentre à son poste sinon ; `obstacles` (étape 32) est transmis à `m_mobile` : le monstre n'entre dans aucun de ces cercles |
 | `int frapper(Cercle cible)` | Délègue à `m_attaque.frapper`, avec `getCercle()` comme origine |
 | `sf::Vector2f getCentre() const` | Centre du monstre (utilisé par `main.cpp` pour `personnageLePlusProche` et `recevoirDegats`) |
 | `Cercle getCercle() const` | Cercle centré sur le monstre, de rayon la moitié du côté (15 px) — étape 30 ; utilisé par `main.cpp` pour le donner à `Escouade::attaquer` |

@@ -26,6 +26,33 @@
   Les fonctions `dessiner` prennent un `sf::RenderTarget&` (classe de base
   de `sf::RenderWindow`) pour ne pas être couplées à la fenêtre.
 
+## Blocage par des cercles obstacles (étape 32)
+
+`deplacerAvecGlissement` refuse aussi un essai d'axe qui mène à un
+chevauchement avec un cercle obstacle (`deplacementBloque`), en plus
+des murs.
+
+- **Blocage, pas séparation ni poussée** : même schéma que pour les
+  murs (essai axe par axe, l'autre axe peut passer : glissement). Rien
+  ne déplace jamais un obstacle.
+- **On ne refuse que ce qui rapproche** : un essai est bloqué si, après,
+  les cercles se chevauchent (distance strictement inférieure à la somme
+  des rayons) ET que la distance entre centres a diminué. Deux entités
+  déjà superposées peuvent donc toujours s'éloigner, au lieu de rester
+  collées pour toujours. Se toucher exactement n'est pas un
+  chevauchement, même convention que pour les murs.
+- **Murs en rectangle, entités en cercle** : les murs restent testés
+  avec le rectangle de l'entité ; le cercle (centre du rectangle, rayon
+  = demi-largeur) ne sert qu'aux obstacles, par cohérence avec
+  `getCercle()`.
+- **Une liste de cercles, pas de types** : celui qui bouge reçoit ses
+  obstacles en paramètre ; `Deplacement` ne sait pas d'où ils viennent
+  (monstres, plus tard personnages). Aucune dépendance nouvelle entre
+  modules.
+- **Limites connues** : parcours de toutes les paires sans structure
+  d'accélération ; le A* ignore les entités, donc un monstre bloqué ne
+  contourne pas, il glisse si l'angle le permet, sinon il attend.
+
 ## Plan texte et validation
 
 - **Format** : `std::vector<std::string>`, une chaîne par ligne de cases.

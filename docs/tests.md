@@ -231,6 +231,14 @@
     mêlées, à portée de chacun — refusé sans verrou ; avec verrou, 25
     et non 50 (un seul personnage a un skill) ; 0 hors de portée ; 0 au
     second appel immédiat.
+- **Obstacles (étape 32)** : `test_Deplacement.cpp` couvre
+  `deplacementBloque` (aucun obstacle, entrée dans un obstacle, contact
+  exact, chevauchement existant en s'éloignant puis en se rapprochant,
+  un obstacle bloquant parmi plusieurs) et `deplacerAvecGlissement` avec
+  obstacles (axe bloqué, déplacement oblique où l'axe libre passe) ;
+  les appels existants passent `{}`. `test_Mobile.cpp` : un mobile qui
+  va vers un point derrière un obstacle s'arrête au plus à son contact.
+  Le blocage entre monstres dans `main.cpp` n'est pas testé (visuel).
 - **`Mobile` (`test_Mobile.cpp`, étape 23)** : repris quasiment tel
   quel des tests d'`Escouade` dont le code a été déplacé (même fonction
   d'aide `simuler(mobile, carte, duree)`, même tolérance

@@ -831,9 +831,46 @@ classe — un skill est une seconde `Attaque`.
 à 4, effets sur le monstre (renversement, zone, soin), mana, HUD,
 animation ou effet visuel de frappe, mise en attente du skill.
 
-### Étape 32 — À définir
+### Étape 32 — Les monstres se bloquent entre eux ✅ TERMINÉE
+
+Un monstre ne peut plus entrer dans un autre monstre. Technique : le
+blocage (le déplacement est refusé), pas de séparation ni de poussée,
+selon une liste de cercles obstacles réutilisable.
+
+1. [x] `deplacementBloque(avant, apres, obstacles)` dans `Deplacement` :
+       refuse seulement ce qui chevauche ET rapproche ; tests (enchaînée)
+2. [x] `deplacerAvecGlissement` reçoit `obstacles` ; essai d'axe refusé
+       par un mur ou par `deplacementBloque` ; `Mobile` et `Personnage`
+       passent `{}` ; nouveaux tests (enchaînée)
+3. [x] `Mobile::mettreAJour(dt, carte, obstacles)` ; `Escouade` passe
+       `{}` ; test (un mobile s'arrête avant un obstacle) (enchaînée)
+4. [x] `Monstre::mettreAJour(..., obstacles)` ; `main.cpp` construit pour
+       chaque monstre la liste des cercles des autres monstres
+
+**Limite connue** : un monstre bloqué ne contourne pas, il glisse si
+l'angle le permet, sinon il attend (le A* ignore les entités).
+
+**Hors de portée** : personnages bloqués par les monstres et
+inversement (étapes 33 et 34), blocage entre personnages ou de l'ancre,
+poussée/séparation, grille spatiale.
+
+### Étape 33 — Les monstres bloqués par les personnages vivants (prévue)
+
+Les monstres reçoivent les cercles des personnages vivants comme
+obstacles.
+
+### Étape 34 — Les personnages bloqués par les monstres (prévue)
+
+Les personnages reçoivent les cercles des monstres comme obstacles.
+
+### Étape 35 — À définir
 
 Pistes discutées :
+- Améliorer le A* pour qu'il tienne compte des entités (contournement
+  d'un obstacle mobile)
+- Blocage de l'ancre par les monstres, si le décalage ancre/personnages
+  s'avère gênant
+- Skills qui bousculent un adversaire ou permettent de se faufiler
 - Skills pour les autres personnages (touches 2 à 4), effets de skill
   (zone, état posé sur le monstre, soin), HUD ou icônes de skill (hors
   de portée explicite de l'étape 31)
@@ -980,9 +1017,9 @@ Pistes discutées :
 - Logique de jeu (`TileMap`, `Escouade`, `Mobile`, `Chemin`,
   `Personnage`, `Deplacement`, `Monstre`, `Attaque`, `Cercle`) dans une
   bibliothèque `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 151 tests : 32 sur `TileMap`, 13 sur `Chemin`,
-  30 sur `Escouade`, 4 sur `Deplacement`, 27 sur `Monstre`, 19 sur
-  `Personnage`, 11 sur `Attaque`, 11 sur `Mobile`, 4 sur `Cercle`)
+  (`./build/tests.exe`, 160 tests : 32 sur `TileMap`, 13 sur `Chemin`,
+  30 sur `Escouade`, 12 sur `Deplacement`, 27 sur `Monstre`, 19 sur
+  `Personnage`, 11 sur `Attaque`, 12 sur `Mobile`, 4 sur `Cercle`)
 - Depuis l'étape 31, le mêlée avant-gauche possède un skill (une
   seconde `Attaque`, `std::optional` dans `Personnage` : 25 dégâts,
   5 s de recharge, portée de mêlée), déclenché par la touche 1
@@ -1036,4 +1073,9 @@ Pistes discutées :
   tir), pas de recul si un monstre approche, pas de `Mobile` individuel
   par personnage (voir étape 29, limites connues) — accepté pour
   l'instant
-- Étape en cours : **Étape 32** — à choisir
+- Depuis l'étape 32, les monstres se bloquent entre eux (liste de cercles
+  obstacles passée à `Monstre::mettreAJour`, puis à `Mobile` et
+  `deplacerAvecGlissement`) ; l'escouade et les personnages traversent
+  encore les monstres ; un monstre bloqué ne contourne pas, il glisse
+  ou attend
+- Étape en cours : **Étape 35** — à choisir (étapes 33 et 34 prévues)

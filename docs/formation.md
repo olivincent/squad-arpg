@@ -702,3 +702,28 @@ déclenchée par la touche 1 sur la cible verrouillée.
   à portée. Pas d'effet visuel au déclenchement, pas de HUD : seule la
   barre de recharge et la barre de vie du monstre montrent que le skill
   est parti.
+
+## Les monstres se bloquent entre eux (étape 32)
+
+Un monstre ne peut plus entrer dans un autre monstre : plusieurs
+monstres qui poursuivent le même personnage ne se superposent plus.
+Le mécanisme (voir `docs/carte-et-collision.md`) est écrit pour une liste
+de cercles quelconque, afin de resservir aux étapes 33 et 34.
+
+- **`Monstre` ne connaît pas les autres monstres** : `mettreAJour`
+  reçoit `obstacles` (`std::vector<Cercle>`) et le transmet à
+  `m_mobile`. C'est `main.cpp`, qui possède le vecteur, qui construit
+  pour chaque monstre la liste des cercles des AUTRES (identifiant
+  différent), à chaque image — même rôle d'intermédiaire que pour la
+  cible de poursuite.
+- **Mise à jour séquentielle** : chaque monstre voit les autres à leur
+  position courante, déjà déplacés ou pas encore selon leur rang dans le
+  vecteur. Deux monstres ne peuvent pas se chevaucher en bougeant dans
+  la même image : le second à bouger voit déjà la nouvelle place du
+  premier.
+- **L'ancre et les personnages passent une liste vide** : ils traversent
+  toujours les monstres, comme avant ; blocage dans les deux sens aux
+  étapes 33 (monstres bloqués par les personnages vivants) et 34
+  (personnages bloqués par les monstres).
+- **Limite connue** : un monstre bloqué ne contourne pas, il glisse si
+  l'angle le permet, sinon il attend que l'autre bouge.
