@@ -13,7 +13,8 @@ Monstre::Monstre(sf::Vector2f centre, int id)
       m_attaque(80.0f, 10, 1.0f),
       m_rayonDetection(200.0f),
       m_rayonAbandon(400.0f),
-      m_enPoursuite(false)
+      m_etat(Etat::EnGarde),
+      m_poste(centre)
 {
 }
 
@@ -75,25 +76,37 @@ bool Monstre::estVivant() const {
 void Monstre::mettreAJour(float dt, std::optional<sf::Vector2f> cible, const TileMap& carte) {
     m_attaque.mettreAJour(dt);
 
-    if (!cible) {
-        m_enPoursuite = false;
-    } else {
-        const float distance = (*cible - m_mobile.getCentre()).length();
-        if (distance <= m_rayonDetection) {
-            m_enPoursuite = true;
-        } else if (distance > m_rayonAbandon) {
-            m_enPoursuite = false;
-        }
+    const Etat etatPrecedent = m_etat;
+
+    switch (m_etat) {
+        case Etat::EnGarde:
+            if (cible && (*cible - m_mobile.getCentre()).length() <= m_rayonDetection) {
+                m_etat = Etat::Poursuite;
+            }
+            break;
+        case Etat::Poursuite:
+            if (!cible || (*cible - m_mobile.getCentre()).length() > m_rayonAbandon) {
+                m_etat = Etat::Retour;
+            }
+            break;
+        case Etat::Retour:
+            if (!m_mobile.directionVoulue()) {
+                m_etat = Etat::EnGarde;
+            }
+            break;
     }
 
-    if (m_enPoursuite) {
+    if (m_etat == Etat::Retour && etatPrecedent != Etat::Retour) {
+        m_mobile.arreter();
+        m_mobile.allerVers(m_poste, carte);
+    }
+
+    if (m_etat == Etat::Poursuite) {
         if (m_attaque.estAPortee(m_mobile.getCentre(), *cible)) {
             m_mobile.arreter();
         } else {
             m_mobile.allerVers(*cible, carte);
         }
-    } else {
-        m_mobile.arreter();
     }
 
     m_mobile.mettreAJour(dt, carte);

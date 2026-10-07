@@ -21,6 +21,8 @@ public:
     bool estVivant() const;
 
 private:
+    enum class Etat { EnGarde, Poursuite, Retour };
+
     Mobile m_mobile;
     int m_pointsDeVie;
     int m_pointsDeVieMax;
@@ -28,5 +30,6 @@ private:
     Attaque m_attaque;
     float m_rayonDetection;
     float m_rayonAbandon;
-    bool m_enPoursuite;
+    Etat m_etat;
+    sf::Vector2f m_poste;
 };
