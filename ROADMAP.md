@@ -679,7 +679,31 @@ arrêter l'ancre à la mort du dernier personnage (si elle avait un
 trajet en cours, elle le termine) ; factoriser les points de vie entre
 `Personnage` et `Monstre`.
 
-### Étape 27 — À définir
+### Étape 27 — Un clic engage le combat ✅ TERMINÉE
+
+Le verrou de cible devient un état d'`Escouade` au lieu d'une variable
+locale de `main.cpp` : un seul clic sur un monstre engage le combat, qui
+continue seul jusqu'à ce qu'il soit rompu, sans avoir à tenir le
+bouton enfoncé.
+
+1. [x] Pas de type nommé à sortir dans son propre en-tête : l'identifiant
+       de monstre est un simple `int`, déjà un paramètre de constructeur
+       dans `Monstre.hpp`
+2. [x] `Escouade` : `m_cibleVerrouillee` (`std::optional<int>`, vide à la
+       création) et ses trois fonctions (`verrouiller`, `deverrouiller`,
+       `getCibleVerrouillee`) ; tests unitaires (verrou vide au départ,
+       verrouiller, remplacer, déverrouiller)
+3. [x] `main.cpp` : la variable locale du verrou remplacée par les
+       appels à `Escouade`, sans changer le comportement (le relâchement
+       du bouton déverrouillait encore à ce stade)
+4. [x] `main.cpp` : le relâchement du bouton et la perte du focus ne
+       déverrouillent plus la cible ; le combat ne se rompt que dans
+       trois cas (mort de la cible, clic sur le sol, clic sur un autre
+       monstre) ; nouvelle variable locale `deplacementContinu`, armée
+       uniquement par l'événement d'appui, pour que le déplacement
+       continu de l'étape 13 reste indépendant de l'état du combat
+
+### Étape 28 — À définir
 
 Pistes discutées :
 - Patrouille, escouade de monstres, récupération de points de vie au
@@ -778,25 +802,32 @@ Pistes discutées :
   filtrage des morts, étape 21) ; s'il n'en reste aucun, il ne frappe
   plus. Détection, poursuite et portée sont toutes mesurées à vol
   d'oiseau et ignorent les murs
-- Cliquer sur un monstre verrouille CE monstre (son `id`, dans
-  `std::optional<int> idCible`) : l'escouade s'approche en formation
-  jusqu'à ce que ses 4 personnages soient à portée (80 px), puis
-  s'arrête et chacun frappe pour 5 points de dégâts dès que sa propre
-  recharge (0,5 s) est écoulée — la barre de vie descend par petits
-  crans, plus vite une fois tout le monde à portée, mort en 2 à
+- Un clic (même bref, depuis l'étape 27) sur un monstre verrouille CE
+  monstre : le verrou vit désormais dans `Escouade` elle-même
+  (`std::optional<int>`, posé par `escouade.verrouiller(id)`), et non
+  plus dans une variable locale de `main.cpp`. L'escouade s'approche en
+  formation jusqu'à ce que ses 4 personnages soient à portée (80 px),
+  puis s'arrête et chacun frappe pour 5 points de dégâts dès que sa
+  propre recharge (0,5 s) est écoulée — la barre de vie descend par
+  petits crans, plus vite une fois tout le monde à portée, mort en 2 à
   3 secondes. Le monstre verrouillé est entouré d'un contour jaune
-  (étape 19). Le verrou tombe au relâchement du bouton, à la perte du
-  focus, à la mort du monstre visé, ou à la défaite de l'escouade
-  (étape 26) ; l'escouade ne reçoit alors plus d'ordre de déplacement
-  tant qu'il est posé, et en reçoit un de nouveau (vers le curseur) dès
-  qu'il retombe, sauf si l'escouade est vaincue. Un monstre mort est
-  retiré du vecteur (`std::erase_if`, à chaque image) ; les autres
-  restent attaquables, quel que soit l'ordre dans lequel ils meurent
+  (étape 19). Depuis l'étape 27, le combat ne se rompt plus au
+  relâchement du bouton ni à la perte du focus : seuls trois cas le
+  rompent — mort du monstre visé, clic sur le sol (l'escouade s'y rend
+  en abandonnant le combat) ou clic sur un autre monstre (la cible est
+  remplacée). Le déplacement continu de l'étape 13 reste possible
+  pendant ce temps, indépendamment du combat : une variable locale de
+  `main.cpp` (`deplacementContinu`) retient, depuis le seul événement
+  d'appui, si le bouton tenu doit produire un déplacement (clic initial
+  sur le sol) ou non (clic initial sur un monstre, même si le curseur
+  glisse ensuite sur le sol). Un monstre mort est retiré du vecteur
+  (`std::erase_if`, à chaque image) ; les autres restent attaquables,
+  quel que soit l'ordre dans lequel ils meurent
 - Logique de jeu (`TileMap`, `Escouade`, `Mobile`, `Chemin`,
   `Personnage`, `Deplacement`, `Monstre`, `Attaque`) dans une
   bibliothèque `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 127 tests : 32 sur `TileMap`, 13 sur `Chemin`,
-  20 sur `Escouade`, 4 sur `Deplacement`, 26 sur `Monstre`, 12 sur
+  (`./build/tests.exe`, 131 tests : 32 sur `TileMap`, 13 sur `Chemin`,
+  24 sur `Escouade`, 4 sur `Deplacement`, 26 sur `Monstre`, 12 sur
   `Personnage`, 9 sur `Attaque`, 11 sur `Mobile`)
 - Depuis l'étape 22, `Personnage` et `Monstre` possèdent chacun un
   `m_attaque` (`Attaque`) plutôt que leurs propres membres de portée,
@@ -831,4 +862,4 @@ Pistes discutées :
   chacun leur propre poste et territoire sans se coordonner ; pas de
   patrouille ni de récupération de points de vie au retour (voir
   étape 25, limites connues) — accepté pour l'instant
-- Étape en cours : **Étape 27** — à choisir
+- Étape en cours : **Étape 28** — à choisir

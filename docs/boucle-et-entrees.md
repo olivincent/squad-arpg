@@ -2,13 +2,14 @@
 
 ## Boucle de jeu et déplacement
 
-- **Boucle de jeu** : événements (fermeture de la fenêtre, et
-  verrouillage de cible sur un clic qui touche un monstre — seulement
-  si l'escouade est vivante, depuis l'étape 26), attaque si la cible
-  est verrouillée, retrait du verrou (aussi à la défaite de l'escouade),
-  retrait des monstres morts, entrée souris (`escouade.allerVers` si le
-  bouton gauche est enfoncé, la cible non verrouillée et l'escouade
-  vivante — voir « Entrée souris et attaque » ci-dessous), mise à jour
+- **Boucle de jeu** : événements (fermeture de la fenêtre, et l'appui de
+  souris qui pose ou retire le verrou de combat d'`Escouade`, ou arme le
+  déplacement continu — seulement si l'escouade est vivante, depuis
+  l'étape 26), attaque si la cible est verrouillée, retrait du verrou
+  (mort de la cible seulement, depuis l'étape 27), retrait des monstres
+  morts, entrée souris (`escouade.allerVers` si le bouton gauche est
+  enfoncé et que le déplacement continu a été armé par l'événement
+  d'appui — voir « Entrée souris et attaque » ci-dessous), mise à jour
   (`escouade.mettreAJour`, puis chaque monstre : détection/poursuite via
   son propre `Mobile` et riposte — voir « Riposte des monstres »
   ci-dessous), caméra, dessin. La défaite n'arrête jamais la boucle
@@ -23,11 +24,15 @@
 
 ## Entrée souris et attaque
 
-- **Déplacement : lecture d'état** (étape 13) : `sf::Mouse::
+- **Déplacement continu : lecture d'état, armée par l'événement
+  d'appui** (étape 13, revu à l'étape 27) : `sf::Mouse::
   isButtonPressed(sf::Mouse::Button::Left)` est interrogé à chaque
   image, après la boucle d'événements et avant `escouade.mettreAJour`.
-  Tant que le bouton reste enfoncé (et que la cible n'est pas
-  verrouillée sur le monstre, voir ci-dessous), `escouade.allerVers` est
+  Depuis l'étape 27, ce n'est plus suffisant à lui seul : une variable
+  locale `deplacementContinu` (`bool`), mise à jour uniquement par
+  l'événement `MouseButtonPressed`, dit si le bouton tenu doit
+  effectivement produire un déplacement. Tant que le bouton reste
+  enfoncé et que `deplacementContinu` est vrai, `escouade.allerVers` est
   rappelée à chaque image avec la position courante du curseur — pas de
   second mode de déplacement « en direction du curseur », c'est le même
   A* + lissage qu'un clic ponctuel, simplement redonné en continu.
@@ -40,41 +45,51 @@
 - **Plusieurs monstres, cible désignée par identifiant** (étape 18) :
   `main.cpp` possède `std::vector<Monstre> monstres` ; chaque `Monstre`
   porte un `m_id` (`int`) attribué par `main.cpp` (variable locale
-  `prochainId`, incrémentée à chaque création). Le verrou devient
-  `std::optional<int> idCible` (vide = pas de verrou) : on stocke
-  l'identifiant du monstre visé, jamais un indice, un pointeur ou un
-  itérateur — l'itérateur est recalculé à chaque image avec
-  `std::find_if` et ne survit pas au-delà du bloc où il est utilisé
-  (un monstre pourrait être retiré du vecteur entre deux images,
-  invalidant tout itérateur gardé plus longtemps).
-- **Verrouillage de cible : événement, pas d'état** (étape 16) :
-  l'événement `MouseButtonPressed` (bouton gauche) sert uniquement à
-  **poser** le verrou (`idCible = ...`) sur le premier monstre du
-  vecteur dont le point cliqué est à l'intérieur (`std::find_if`,
-  étape 18 — plus de vérification `estVivant()` ici, voir plus bas) —
-  il n'inflige plus de dégâts lui-même. Nécessaire en tant qu'événement
-  (pas lecture d'état) parce qu'il ne doit se déclencher qu'à l'instant
-  du clic, une fois, même si le bouton reste ensuite enfoncé. Depuis
-  l'étape 26, la condition du clic inclut `escouade.estVivante()` : une
-  escouade vaincue ne peut plus désigner de nouvelle cible.
-- **Retrait du verrou : lecture d'état, pas d'événement
-  `MouseButtonReleased`** : après la boucle d'événements, le verrou
-  retombe si la fenêtre n'a plus le focus, si le bouton gauche n'est
-  plus enfoncé, si le monstre visé n'est plus trouvé dans le vecteur
-  (`std::find_if` par `id`, mort donc retiré) ou vient de mourir, ou
-  depuis l'étape 26, si l'escouade n'est plus vivante (`!escouade.
-  estVivante()`, ajouté à la même condition que la perte de focus ou
-  du bouton). La position du curseur ne compte plus une fois le verrou
-  posé — aucune zone de tolérance autour du monstre.
+  `prochainId`, incrémentée à chaque création). Le verrou vit depuis
+  l'étape 27 dans `Escouade` (`std::optional<int>`, vide = pas de
+  verrou, voir `docs/formation.md`) : on y stocke l'identifiant du
+  monstre visé, jamais un indice, un pointeur ou un itérateur —
+  l'itérateur est recalculé à chaque image avec `std::find_if` et ne
+  survit pas au-delà du bloc où il est utilisé (un monstre pourrait
+  être retiré du vecteur entre deux images, invalidant tout itérateur
+  gardé plus longtemps).
+- **Un seul événement d'appui décide de tout** (étape 16, revu à
+  l'étape 27) : l'événement `MouseButtonPressed` (bouton gauche) décide,
+  une fois pour toutes à l'instant du clic, ce que fait ce clic — peu
+  importe où le curseur se déplace ensuite tant que le bouton reste
+  enfoncé (« si le bouton a été enfoncé sur un monstre, glisser le
+  curseur sur le sol ne déclenche ni déplacement ni rupture du verrou »).
+  Si le point cliqué est à l'intérieur d'un monstre du vecteur
+  (`std::find_if`, étape 18 — plus de vérification `estVivant()` ici,
+  voir plus bas) : `escouade.verrouiller(it->getId())` et
+  `deplacementContinu = false`. Sinon (clic sur le sol) :
+  `escouade.deverrouiller()` et `deplacementContinu = true`. Dans les
+  deux cas, la condition `escouade.estVivante()` (étape 26) garde le
+  clic : une escouade vaincue ne peut plus désigner de cible ni
+  commencer un déplacement.
+- **Retrait du verrou : seulement la mort de la cible, plus le bouton
+  ni le focus (étape 27)** : après la boucle d'événements, le verrou ne
+  retombe plus que si le monstre visé n'est plus trouvé dans le vecteur
+  (`std::find_if` par `id`, mort donc retiré) ou vient de mourir.
+  Relâcher le bouton ou perdre le focus ne rompt plus le combat — avant
+  l'étape 27, ces deux conditions retiraient aussi le verrou, ce qui
+  obligeait à tenir le bouton enfoncé pendant toute l'attaque. Un clic
+  sur le sol ou sur un autre monstre rompt le combat **via** l'appui
+  décrit au point précédent (`deverrouiller()` ou `verrouiller()` sur un
+  autre identifiant), pas via cette condition de retrait. La position du
+  curseur ne compte plus une fois le verrou posé — aucune zone de
+  tolérance autour du monstre.
 - **Attaque déplacée dans `Escouade` (étape 17)** : `main.cpp` ne gère
-  plus de recharge lui-même. Tant que la cible est verrouillée et
-  trouvée dans le vecteur, `it->recevoirDegats(escouade.attaquer(
-  it->getCentre(), carte))` est appelée à chaque image ; `attaquer`
-  décide si l'escouade doit encore s'approcher ou si elle peut
-  s'arrêter et frapper (portée, dégâts et recharge par personnage —
-  voir `docs/formation.md`), et renvoie la somme des dégâts à appliquer
-  au monstre. Les variables locales `rechargeAttaque`, `tempsRecharge`
-  et `degatsParClic` de l'étape 16 ont disparu de `main.cpp`.
+  plus de recharge lui-même. Tant que `escouade.getCibleVerrouillee()`
+  a une valeur et que le monstre correspondant est trouvé dans le
+  vecteur, `it->recevoirDegats(escouade.attaquer(it->getCentre(),
+  carte))` est appelée à chaque image, que le bouton de souris soit
+  enfoncé ou non (étape 27) ; `attaquer` décide si l'escouade doit
+  encore s'approcher ou si elle peut s'arrêter et frapper (portée,
+  dégâts et recharge par personnage — voir `docs/formation.md`), et
+  renvoie la somme des dégâts à appliquer au monstre. Les variables
+  locales `rechargeAttaque`, `tempsRecharge` et `degatsParClic` de
+  l'étape 16 ont disparu de `main.cpp`.
 - **Retrait des monstres morts** (étape 18) : `std::erase_if(monstres,
   ...)` enlève du vecteur tout monstre dont `estVivant()` est faux.
   Exécuté après le retrait du verrou et avant l'ordre de déplacement.
@@ -82,42 +97,40 @@
   tient jusqu'au prochain appel d'`erase_if` — ce qui permet à la
   boucle de clic et à la boucle de dessin de ne plus tester
   `estVivant()` elles-mêmes.
-- **Ordre précis après la boucle d'événements** : 1) attaquer si la
-  cible est verrouillée (et retomber si le monstre n'est plus trouvé) ;
-  2) retirer le verrou si la fenêtre n'a plus le focus, le bouton n'est
-  plus enfoncé, ou l'escouade n'est plus vivante (étape 26) ; 3) retirer
-  les monstres morts ; 4) donner l'ordre de déplacement si le bouton
-  est enfoncé, la cible non verrouillée, et l'escouade vivante.
-  L'attaque (1) passe **avant** le retrait du verrou de focus/bouton/
-  défaite (2) pour qu'un clic très bref, posé et retiré dans la même
-  image, compte quand même pour une tentative de coup ; et si ce coup
-  tue le monstre, l'étape 1 fait déjà retomber le verrou, permettant à
-  l'étape 4 de redonner un ordre de déplacement vers le curseur dès
-  cette même image.
+- **Ordre précis après la boucle d'événements** (étape 27) : 1) attaquer
+  si la cible est verrouillée (et retomber si le monstre n'est plus
+  trouvé ou vient de mourir) ; 2) retirer les monstres morts ; 3) donner
+  l'ordre de déplacement si le bouton est enfoncé, que
+  `deplacementContinu` est vrai, et que l'escouade est vivante. L'étape
+  de retrait du verrou liée au focus/bouton de l'étape 16 a disparu —
+  elle n'a plus lieu d'être, puisque ni l'un ni l'autre ne rompt plus
+  le combat.
 - **Défaite de l'escouade : `estVivante()` consultée, jamais mise en
   cache** (étape 26) : `main.cpp` ne garde pas de variable locale
   séparée pour « l'escouade est vaincue » — il appelle
   `escouade.estVivante()` à chaque fois que la décision en dépend
-  (clic, retrait du verrou, ordre de déplacement), comme il le fait
-  déjà pour `window.hasFocus()`. Seuls les ordres du joueur sont
-  bloqués ; la boucle continue de tourner normalement (mise à jour,
-  caméra, dessin, fermeture de la fenêtre) — les monstres, par
-  exemple, rentrent à leur poste comme n'importe quelle autre fois où
-  ils perdent leur proie, sans code spécifique à la défaite dans
-  `Monstre` (voir `docs/formation.md`).
-- **Le verrou (`idCible`) reste une simple variable locale** à
-  `main.cpp` ; pas de nouvelle classe (`Combat`, `Minuteur`) pour le
-  porter.
+  (clic, ordre de déplacement), comme il le fait déjà pour
+  `window.hasFocus()`. Seuls les ordres du joueur sont bloqués ; la
+  boucle continue de tourner normalement (mise à jour, caméra, dessin,
+  fermeture de la fenêtre) — les monstres, par exemple, rentrent à leur
+  poste comme n'importe quelle autre fois où ils perdent leur proie,
+  sans code spécifique à la défaite dans `Monstre` (voir
+  `docs/formation.md`).
+- **Le verrou vit dans `Escouade` depuis l'étape 27** (voir
+  `docs/formation.md`) ; `deplacementContinu` reste une simple variable
+  locale à `main.cpp`, comme l'était le verrou avant cette étape — pas
+  de nouvelle classe (`Combat`, `Minuteur`) pour les porter.
 - **Texte de position retiré** (ainsi que la police `arial.ttf` qui ne
   servait qu'à lui) : plus rien n'affiche la position du curseur à
   l'écran.
 - **Indicateur visuel de la cible verrouillée (étape 19)** : dans la
   boucle de dessin, chaque monstre reçoit
-  `idCible == m.getId()` comme second argument de `dessiner` — une
-  comparaison directe d'un `std::optional<int>` avec un `int`, sans
-  tester `has_value()` au préalable (gère déjà le cas vide). `idCible`
-  reste l'unique source de vérité sur le monstre visé ; `Monstre` ne
-  stocke rien de cette information lui-même (voir `ARCHITECTURE.md`).
+  `escouade.getCibleVerrouillee() == m.getId()` comme second argument de
+  `dessiner` — une comparaison directe d'un `std::optional<int>` avec
+  un `int`, sans tester `has_value()` au préalable (gère déjà le cas
+  vide). Le verrou d'`Escouade` reste l'unique source de vérité sur le
+  monstre visé ; `Monstre` ne stocke rien de cette information lui-même
+  (voir `ARCHITECTURE.md`).
 - **Détection/poursuite et riposte des monstres (étapes 20, 21, 24)** :
   après `escouade.mettreAJour(dt, carte)` et avant la caméra, une
   boucle sur `monstres` fait, pour chacun :

@@ -451,3 +451,32 @@ personnages morts.
   partie ; l'ancre ne s'arrête pas instantanément à la mort du dernier
   personnage — si elle avait un trajet en cours (lancé juste avant la
   défaite), elle le termine.
+
+## Le verrou de combat devient un état d'`Escouade` (étape 27)
+
+Avant cette étape, le verrou de cible (`idCible`) était une simple
+variable locale de `main.cpp` : il retombait dès que le bouton de
+souris était relâché, ce qui obligeait à le tenir enfoncé pendant tout
+le combat. Le verrou devient un état d'`Escouade`, et un clic bref
+suffit désormais à engager un combat qui continue seul.
+
+- **`m_cibleVerrouillee` (`std::optional<int>`), trois fonctions
+  minimales** : `verrouiller(idCible)`, `deverrouiller()`,
+  `getCibleVerrouillee() const`. `Escouade` ne connaît toujours pas
+  `Monstre` — elle ne stocke que son identifiant (`int`), un simple
+  paramètre de constructeur dans `Monstre.hpp`, pas un type nommé à
+  sortir dans un en-tête séparé.
+- **`Escouade` ne décide de rien elle-même** : elle ne pose ni ne
+  retire le verrou de sa propre initiative (ni dans `allerVers`, ni
+  dans `mettreAJour`) — même séparation que pour `estVivante()` à
+  l'étape 26. C'est `main.cpp` qui appelle `verrouiller`/`deverrouiller`
+  en réponse aux événements de clic, et qui reste l'intermédiaire avec
+  `Monstre` (retrouver le monstre à partir de l'identifiant, vérifier
+  s'il est mort).
+- **Le combat n'est plus lié à l'état du bouton de souris** : tant que
+  `getCibleVerrouillee()` a une valeur, `main.cpp` appelle
+  `escouade.attaquer(...)` à chaque image, que le bouton soit enfoncé
+  ou non. Le verrou n'est retiré que dans trois cas : mort de la cible,
+  clic sur le sol (retraite), ou clic sur un autre monstre (cible
+  remplacée) — voir `docs/boucle-et-entrees.md` pour le détail de ces
+  règles côté `main.cpp`.

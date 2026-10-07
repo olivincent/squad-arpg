@@ -101,9 +101,9 @@ direct avec `Escouade` ni `Personnage` — `main.cpp` fait
 l'intermédiaire) et `Attaque` (portée, dégâts et recharge, possédée par
 valeur par `Personnage` et par `Monstre`).
 `main.cpp` garde la fenêtre, la boucle de jeu, les événements
-(fermeture, et le verrouillage de cible sur un monstre), l'état de la
-souris (déplacement), la caméra, la carte (son plan) et les monstres ;
-il ne connaît ni `Chemin` ni `Personnage`, et ne gère plus la recharge
+(fermeture, et l'appui de souris qui engage ou change un combat — voir
+plus bas), la caméra, la carte (son plan) et les monstres ; il ne
+connaît ni `Chemin` ni `Personnage`, et ne gère plus la recharge
 d'attaque lui-même depuis l'étape 17 (`Escouade::attaquer` s'en charge
 via les personnages). Depuis l'étape 24, il donne aussi à chaque
 monstre le personnage le plus proche de lui comme cible de poursuite
@@ -111,6 +111,14 @@ monstre le personnage le plus proche de lui comme cible de poursuite
 pour la riposte. Depuis l'étape 26, il consulte `Escouade::estVivante()`
 pour bloquer tout ordre du joueur (verrouillage de cible, déplacement)
 une fois l'escouade vaincue, sans arrêter la boucle de jeu elle-même.
+Depuis l'étape 27, le verrou de cible vit dans `Escouade`
+(`verrouiller`/`deverrouiller`/`getCibleVerrouillee`) plutôt que dans
+une variable locale de `main.cpp` : un clic bref sur un monstre engage
+un combat qui continue seul, jusqu'à la mort de la cible ou un nouveau
+clic (sur le sol ou sur un autre monstre) ; `main.cpp` garde en plus
+une variable locale (`deplacementContinu`) qui retient, depuis le seul
+événement d'appui, si le déplacement continu de l'étape 13 doit
+s'appliquer tant que le bouton reste enfoncé.
 La structure continue d'évoluer par nécessité réelle, pas par
 anticipation (voir principes ci-dessous).
 
@@ -167,7 +175,10 @@ formation en carré autour d'elle.
   `m_vitesseRotation` (degrés par seconde), `m_personnages`
   (`std::vector<Personnage>`, inclut `Personnage.hpp` en entier — un
   `std::vector` a besoin de la définition complète de son type
-  d'élément).
+  d'élément), et `m_cibleVerrouillee` (`std::optional<int>`, vide à la
+  création, étape 27 — l'identifiant du monstre engagé en combat ;
+  `Escouade` ne connaît toujours pas `Monstre`, seul l'identifiant est
+  stocké).
 - **Valeurs fixes** passées au constructeur de `m_mobile` : taille
   20 × 20, vitesse 180 px/s. Orientation `0` à la création. Elles
   deviendront des paramètres quand il le faudra.
@@ -198,6 +209,9 @@ Interface publique (inchangée pour `main.cpp`, qui ne connaît pas
 | `std::optional<sf::Vector2f> personnageLePlusProche(sf::Vector2f point) const` | Centre du personnage **vivant** le plus proche de `point` (vide si aucun n'est vivant) ; utilisé par `main.cpp` pour désigner la cible d'un monstre |
 | `void recevoirDegats(sf::Vector2f origine, int quantite)` | Applique `quantite` de dégâts au personnage vivant le plus proche d'`origine` ; ne fait rien si aucun n'est vivant |
 | `bool estVivante() const` | Vrai si au moins un personnage est vivant (étape 26) ; utilisé par `main.cpp` pour bloquer tout ordre du joueur une fois l'escouade vaincue |
+| `void verrouiller(int idCible)` | Pose le verrou de combat sur ce monstre (étape 27), en remplaçant la cible précédente s'il y en avait une |
+| `void deverrouiller()` | Retire le verrou de combat |
+| `std::optional<int> getCibleVerrouillee() const` | Identifiant du monstre engagé en combat, vide si aucun |
 
 ### `Mobile` — déplacement par chemin (étape 23)
 
@@ -459,10 +473,11 @@ comportement partagé ne le justifie.
   point de vue de `TileMap`).
 - **Contour jaune sur la cible verrouillée** (étape 19) : `dessiner`
   reçoit un paramètre `bool estCible`, calculé par `main.cpp` par
-  comparaison directe (`idCible == monstre.getId()`) — `Monstre` ne
-  stocke pas lui-même le fait d'être visé, `idCible` reste l'unique
-  source de vérité. Contour de 3 px vers l'intérieur
-  (`setOutlineThickness(-3.0f)`), pour ne pas toucher la barre de vie
+  comparaison directe (`escouade.getCibleVerrouillee() == monstre.
+  getId()`, le verrou vivant dans `Escouade` depuis l'étape 27) —
+  `Monstre` ne stocke pas lui-même le fait d'être visé. Contour de 3 px
+  vers l'intérieur (`setOutlineThickness(-3.0f)`), pour ne pas toucher
+  la barre de vie
   ni changer l'empreinte du monstre.
 - **Riposte** (étape 20) : `frapper(cible)` délègue entièrement à
   `m_attaque.frapper`, avec `m_mobile.getCentre()` comme origine — sans
