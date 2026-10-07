@@ -57,8 +57,11 @@ int main() {
     };
     TileMap carte(plan, 40.0f);
     Escouade escouade({100.0f, 100.0f});
+    int prochainId = 1;
     std::vector<Monstre> monstres = {
-        Monstre({300.0f, 100.0f}, 1),
+        Monstre({300.0f, 100.0f}, prochainId++),
+        Monstre({100.0f, 300.0f}, prochainId++),
+        Monstre({300.0f, 500.0f}, prochainId++),
     };
     std::optional<int> idCible;
 
