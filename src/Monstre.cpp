@@ -10,10 +10,7 @@ Monstre::Monstre(sf::Vector2f centre, int id)
       m_pointsDeVie(100),
       m_pointsDeVieMax(100),
       m_id(id),
-      m_portee(80.0f),
-      m_degats(10),
-      m_tempsRecharge(1.0f),
-      m_recharge(0.0f)
+      m_attaque(80.0f, 10, 1.0f)
 {
 }
 
@@ -68,17 +65,9 @@ bool Monstre::estVivant() const {
 }
 
 void Monstre::mettreAJour(float dt) {
-    m_recharge -= dt;
-    if (m_recharge < 0.0f) {
-        m_recharge = 0.0f;
-    }
+    m_attaque.mettreAJour(dt);
 }
 
 int Monstre::frapper(sf::Vector2f cible) {
-    if ((cible - m_centre).length() > m_portee || m_recharge > 0.0f) {
-        return 0;
-    }
-
-    m_recharge = m_tempsRecharge;
-    return m_degats;
+    return m_attaque.frapper(m_centre, cible);
 }

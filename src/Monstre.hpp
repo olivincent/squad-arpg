@@ -1,5 +1,6 @@
 // ./src/Monstre.hpp
 #pragma once
+#include "Attaque.hpp"
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/System/Vector2.hpp>
 
@@ -21,8 +22,5 @@ private:
     int m_pointsDeVie;
     int m_pointsDeVieMax;
     int m_id;
-    float m_portee;         // en pixels
-    int m_degats;
-    float m_tempsRecharge;  // en secondes
-    float m_recharge;       // en secondes, avant le prochain coup possible
+    Attaque m_attaque;
 };

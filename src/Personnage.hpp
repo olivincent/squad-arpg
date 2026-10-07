@@ -1,5 +1,6 @@
 // ./src/Personnage.hpp
 #pragma once
+#include "Attaque.hpp"
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/System/Vector2.hpp>
@@ -22,10 +23,7 @@ private:
     sf::Vector2f m_taille;  // en pixels
     sf::Color m_couleur;
     float m_vitesse;        // en pixels par seconde
-    float m_portee;         // en pixels
-    int m_degats;
-    float m_tempsRecharge;  // en secondes
-    float m_recharge;       // en secondes, avant le prochain coup possible
+    Attaque m_attaque;
     int m_pointsDeVie;
     int m_pointsDeVieMax;
 };
