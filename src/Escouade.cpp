@@ -3,18 +3,10 @@
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <cmath>
 #include <SFML/Graphics/Color.hpp>
-#include "TileMap.hpp"
-#include "Chemin.hpp"
 #include "Personnage.hpp"
-#include "Deplacement.hpp"
-#include <SFML/Graphics/Rect.hpp>
 
 Escouade::Escouade(sf::Vector2f positionDepart)
-    : m_position(positionDepart),
-      m_taille(20.0f, 20.0f),
-      m_chemin({positionDepart + m_taille / 2.0f}),
-      m_indexChemin(0),
-      m_vitesse(180.0f),
+    : m_mobile(positionDepart + sf::Vector2f(10.0f, 10.0f), {20.0f, 20.0f}, 180.0f),
       m_decalages({{25.0f, -25.0f}, {25.0f, 25.0f}, {-25.0f, -25.0f}, {-25.0f, 25.0f}}),
       m_orientation(),
       m_orientationVoulue(),
@@ -33,8 +25,9 @@ sf::Vector2f Escouade::placePersonnage(std::size_t indice) const {
 }
 
 void Escouade::dessiner(sf::RenderTarget& rendu) const {
-    sf::RectangleShape forme(m_taille);
-    forme.setPosition(m_position);
+    const sf::Vector2f taille = m_mobile.getTaille();
+    sf::RectangleShape forme(taille);
+    forme.setPosition(getCentre() - taille / 2.0f);
     forme.setFillColor(sf::Color::Green);
     rendu.draw(forme);
 
@@ -44,26 +37,7 @@ void Escouade::dessiner(sf::RenderTarget& rendu) const {
 }
 
 void Escouade::allerVers(sf::Vector2f destination, const TileMap& carte) {
-    const sf::Vector2i caseDepart = carte.caseContenant(getCentre());
-    const sf::Vector2i caseArrivee = carte.caseContenant(destination);
-    const std::vector<sf::Vector2i> chemin = trouverChemin(carte, caseDepart, caseArrivee);
-
-    if (chemin.empty()) {
-        return;
-    }
-
-    // La case de départ est ignorée : l'escouade est déjà dessus, la
-    // viser d'abord la ferait reculer vers le centre de sa propre case.
-    // Le dernier point est le point exact cliqué, pas le centre de la
-    // case d'arrivée, pour que l'escouade s'arrête précisément dessus.
-    std::vector<sf::Vector2f> points;
-    for (std::size_t i = 1; i < chemin.size() - 1; ++i) {
-        points.push_back(carte.centreDeCase(chemin[i]));
-    }
-    points.push_back(destination);
-
-    m_chemin = lisserChemin(carte, getCentre(), points, m_taille);
-    m_indexChemin = 0;
+    m_mobile.allerVers(destination, carte);
 }
 
 int Escouade::attaquer(sf::Vector2f cible, const TileMap& carte) {
@@ -76,8 +50,7 @@ int Escouade::attaquer(sf::Vector2f cible, const TileMap& carte) {
     }
 
     if (tousAPortee) {
-        m_chemin = {getCentre()};
-        m_indexChemin = 0;
+        m_mobile.arreter();
     } else {
         allerVers(cible, carte);
     }
@@ -90,27 +63,11 @@ int Escouade::attaquer(sf::Vector2f cible, const TileMap& carte) {
 }
 
 void Escouade::mettreAJour(float dt, const TileMap& carte) {
-    sf::Vector2f deplacement(0.0f, 0.0f);
-
-    if (m_indexChemin < m_chemin.size()) {
-        const sf::Vector2f pointCourant = m_chemin[m_indexChemin];
-        const sf::Vector2f direction = pointCourant - getCentre();
-        const float distance = direction.length();
-        const float pasDuTic = m_vitesse * dt;
-
-        if (distance > 0.0f) {
-            m_orientationVoulue = direction.angle();
-        }
-
-        if (distance <= pasDuTic) {
-            deplacement = direction;
-            ++m_indexChemin;
-        } else {
-            deplacement = direction.normalized() * pasDuTic;
-        }
+    if (const std::optional<sf::Vector2f> direction = m_mobile.directionVoulue()) {
+        m_orientationVoulue = direction->angle();
     }
 
-    m_position = deplacerAvecGlissement(carte, sf::FloatRect(m_position, m_taille), deplacement);
+    m_mobile.mettreAJour(dt, carte);
 
     // Rotation progressive vers l'orientation voulue, par le plus court
     // côté (wrapSigned ramène l'écart entre -180° et 180°), à vitesse
@@ -130,7 +87,7 @@ void Escouade::mettreAJour(float dt, const TileMap& carte) {
 }
 
 sf::Vector2f Escouade::getCentre() const {
-    return m_position + m_taille / 2.0f;
+    return m_mobile.getCentre();
 }
 
 std::optional<std::size_t> Escouade::indicePersonnageLePlusProche(sf::Vector2f point) const {
