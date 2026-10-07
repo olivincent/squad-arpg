@@ -13,11 +13,12 @@
   (3×3, 4×4, 5×5…), jamais la carte de `main.cpp`, pour isoler exactement
   le cas testé.
 - **Teste uniquement l'interface publique** de `TileMap`, `Chemin`,
-  `Escouade` et `Personnage` (`getTile`, `chevaucheUnMur`,
+  `Escouade`, `Personnage` et `Monstre` (`getTile`, `chevaucheUnMur`,
   `trajetLibre`, `getLargeur`/`getHauteur`,
   `caseContenant`/`centreDeCase`, le constructeur, `trouverChemin`,
   `lisserChemin`, `allerVers`, `attaquer`, `mettreAJour`, `getCentre`,
-  `estAPortee`, `frapper`) — aucune fonction n'a été ajoutée seulement
+  `estAPortee`, `frapper`, `recevoirDegats`, `estVivant`,
+  `personnageLePlusProche`) — aucune fonction n'a été ajoutée seulement
   pour faciliter les tests.
 - **Propriétés plutôt que chemin exact** : pour `trouverChemin`, comme
   plusieurs plus courts chemins peuvent exister, les tests vérifient des
@@ -56,16 +57,26 @@
     paramètre, le comportement devient déterministe et reproductible
     sans horloge factice.
 - **`Monstre` testé par son interface publique** (`getCentre`, `getId`,
-  `contient`, `recevoirDegats`, `estVivant`) : bords d'inclusion/
-  exclusion de `contient` vérifiés séparément sur chaque côté
-  (gauche/haut inclus, droit/bas exclus) ; `recevoirDegats`/
+  `contient`, `recevoirDegats`, `estVivant`, `mettreAJour`, `frapper`) :
+  bords d'inclusion/exclusion de `contient` vérifiés séparément sur
+  chaque côté (gauche/haut inclus, droit/bas exclus) ; `recevoirDegats`/
   `estVivant` couvrent le cas d'un coup qui dépasse le reste des points
   de vie et celui d'un coup supplémentaire une fois déjà mort ; `getId`
   vérifié sur deux monstres créés avec des identifiants différents, qui
   renvoient chacun le leur (étape 18). Le branchement dans `main.cpp`
   (verrouillage de cible par identifiant, vecteur de monstres,
-  `std::erase_if`) n'est pas testé — tout se passe dans `main.cpp`,
-  hors de portée de `tests/`.
+  `std::erase_if`, contour sur la cible, riposte) n'est pas testé —
+  tout se passe dans `main.cpp`, hors de portée de `tests/`.
+  - **`frapper`/`mettreAJour` (étape 20)** : mêmes six cas que
+    `Personnage::frapper` ci-dessous, avec les valeurs du monstre
+    (portée 80 px, dégâts 10, recharge 1 s). Fonction d'aide
+    `ecoulerTemps(monstre, duree)`, même principe que celle de
+    `test_Personnage.cpp` mais sans cible ni carte, puisque
+    `Monstre::mettreAJour` ne prend que `dt` (le monstre ne se déplace
+    pas). **Noms de `TEST_CASE` distincts de ceux de
+    `test_Personnage.cpp`** (préfixés `Monstre.`) : Catch2 exige des
+    noms de cas de test uniques dans tout l'exécutable `tests`, pas
+    seulement dans un fichier.
 - **`Personnage` (`test_Personnage.cpp`, étape 17)** :
   - `estAPortee` : point proche à portée, point lointain hors portée,
     distance exactement égale à la portée (cas limite, `<=`).
@@ -81,6 +92,10 @@
     centre du personnage comme cible (il reste immobile, seule la
     recharge évolue), sur un petit plan dégagé dédié — même principe
     que `simuler` pour `Escouade`.
+  - **Points de vie (étape 20)** : `estVivant` à la création, encore
+    vivant après 80 dégâts, mort après 100, mort après un coup qui
+    dépasse le reste — mêmes quatre cas que `Monstre`. `getCentre`
+    vérifié directement sur le centre donné au constructeur.
 - **`Escouade::attaquer` (`test_Escouade.cpp`)** : comme pour les autres
   fonctions d'`Escouade`, des résultats plutôt que des trajectoires
   exactes.
@@ -93,3 +108,13 @@
     l'escouade ne finit pas sur la cible (elle s'arrête à portée).
   - Cible déjà à portée des 4 personnages dès le départ : le premier
     appel renvoie 20 (4 × 5) et l'escouade ne bouge pas.
+- **`Escouade::personnageLePlusProche` (étape 20)** : test par
+  propriété plutôt que par position de formation exacte, comme les
+  autres tests d'`Escouade` — pour un point lointain, la distance entre
+  le centre renvoyé et ce point est strictement inférieure à la
+  distance entre le centre de l'escouade et ce point (un personnage en
+  formation est forcément plus proche d'un point extérieur que le
+  centre de l'escouade lui-même, quelle que soit l'orientation exacte
+  de la formation). `recevoirDegats` n'a pas de test unitaire : son
+  effet n'est observable par aucune fonction publique, et on n'ajoute
+  pas d'accesseur juste pour le tester (vérifié visuellement en jeu).

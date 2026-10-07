@@ -86,9 +86,10 @@ personnages et les fait attaquer), `Chemin` (recherche de chemin A*,
 utilisé uniquement par `Escouade`), `Personnage` (un membre de
 l'escouade, qui sait aller vers un point et frapper une cible à
 portée), `Deplacement` (collision/glissement partagée entre `Escouade`
-et `Personnage`) et `Monstre` (un ennemi immobile, avec un identifiant
-et des points de vie, possédé directement par `main.cpp` dans un
-`std::vector<Monstre>`, sans lien avec `Escouade` ni `Personnage`).
+et `Personnage`) et `Monstre` (un ennemi immobile, avec un identifiant,
+des points de vie et une riposte à portée, possédé directement par
+`main.cpp` dans un `std::vector<Monstre>`, sans lien direct avec
+`Escouade` ni `Personnage` — `main.cpp` fait l'intermédiaire).
 `main.cpp` garde la fenêtre, la boucle de jeu, les événements
 (fermeture, et le verrouillage de cible sur un monstre), l'état de la
 souris (déplacement), la caméra, la carte (son plan) et les monstres ;
@@ -162,6 +163,12 @@ formation en carré autour d'elle.
   .rotatedBy(m_orientation)`) — utilisée à la fois pour créer les
   personnages dans le constructeur et pour leur donner leur cible à
   chaque `mettreAJour`.
+- **Fonction privée `indicePersonnageLePlusProche(point)`** (étape 20) :
+  seul endroit du code qui cherche, parmi les 4 personnages, celui dont
+  le centre est le plus proche d'un point donné (boucle simple,
+  comparaison de distances) ; utilisée par `personnageLePlusProche` et
+  par `recevoirDegats`, pour que les deux désignent toujours le même
+  personnage par le même critère.
 
 Interface publique (inchangée pour `main.cpp`, qui ne connaît pas
 `Personnage`) :
@@ -174,6 +181,8 @@ Interface publique (inchangée pour `main.cpp`, qui ne connaît pas
 | `void mettreAJour(float dt, const TileMap& carte)` | Avance l'ancre vers le point courant du chemin (collision, glissement, orientation), puis chaque personnage vers sa place |
 | `void dessiner(sf::RenderTarget& rendu) const` | Dessine l'ancre, puis les 4 personnages |
 | `sf::Vector2f getCentre() const` | Centre de l'escouade (utilisé par la caméra, par `allerVers` et par `placePersonnage`) |
+| `sf::Vector2f personnageLePlusProche(sf::Vector2f point) const` | Centre du personnage le plus proche de `point` (utilisé par `main.cpp` pour désigner la cible d'un monstre) |
+| `void recevoirDegats(sf::Vector2f origine, int quantite)` | Applique `quantite` de dégâts au personnage le plus proche d'`origine` |
 
 ### `Chemin` — recherche de chemin (A*)
 
@@ -221,7 +230,11 @@ qu'un personnage reçoive un point différent de sa place en formation
   avant le prochain coup possible, 0 à la création, décrémentée dans
   `mettreAJour` sans descendre sous zéro) — valeurs fixes identiques
   pour les 4, comme `m_vitesse`, en attendant de dépendre d'une arme ou
-  de capacités propres à chacun.
+  de capacités propres à chacun. Depuis l'étape 20 : `m_pointsDeVie` et
+  `m_pointsDeVieMax` (`100` chacun à la création), dupliqués
+  volontairement de `Monstre` (même logique de points de vie et de
+  barre de vie) — aucune factorisation entre les deux classes pour
+  l'instant.
 - **Déclaration anticipée** : `Personnage.hpp` contient `class TileMap;`
   (une référence ne demande pas la définition complète) ; aucun include
   de `TileMap.hpp` n'est nécessaire dans `Personnage.cpp` non plus,
@@ -230,6 +243,12 @@ qu'un personnage reçoive un point différent de sa place en formation
 - **Pas de A* ni de lissage** : juste une ligne droite vers la cible, pas
   fixe (`vitesse * dt`), arrêt exact si la distance restante est `≤` ce
   pas — même logique que l'ancre avant l'étape 11.
+- **Barre de vie dans `dessiner`** (étape 20) : même apparence que celle
+  de `Monstre` (fond sombre + rectangle vert proportionnel aux points de
+  vie restants, au-dessus du personnage).
+- **Un personnage à 0 point de vie ne meurt pas encore** : il reste en
+  formation, continue de frapper et reste ciblable par les monstres
+  (limite connue, voir état actuel de ROADMAP.md).
 
 Interface publique :
 
@@ -237,9 +256,12 @@ Interface publique :
 |---|---|
 | `Personnage(sf::Vector2f centre, sf::Color couleur)` | Crée le personnage à ce centre, avec cette couleur |
 | `void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte)` | Avance vers la cible (collision, glissement), puis décrémente la recharge d'attaque |
-| `void dessiner(sf::RenderTarget& rendu) const` | Dessine le personnage |
+| `void dessiner(sf::RenderTarget& rendu) const` | Dessine le personnage et sa barre de vie |
 | `bool estAPortee(sf::Vector2f cible) const` | La distance entre le centre et `cible` est-elle `<=` `m_portee` ? |
 | `int frapper(sf::Vector2f cible)` | Si `cible` est à portée et la recharge écoulée, relance la recharge et renvoie `m_degats` ; sinon renvoie 0 |
+| `void recevoirDegats(int quantite)` | Retire des points de vie, sans descendre sous zéro |
+| `bool estVivant() const` | Points de vie `> 0` |
+| `sf::Vector2f getCentre() const` | Centre du personnage (utilisé par `Escouade::indicePersonnageLePlusProche`) |
 
 ### `Deplacement` — collision et glissement partagés
 
@@ -267,8 +289,12 @@ commune tant qu'aucun comportement partagé ne le justifie.
 - **Stocke son centre** (`m_centre`), comme `Personnage`.
 - **Données membres** : `m_centre`, `m_taille` (30 × 30, fixée dans le
   constructeur), `m_pointsDeVie` et `m_pointsDeVieMax` (`100` chacun à
-  la création), `m_id`. Pas de couleur stockée : toujours rouge, donc
-  une valeur fixe directement dans `dessiner`, pas un membre
+  la création), `m_id`, et depuis l'étape 20 : `m_portee` (80 px),
+  `m_degats` (10), `m_tempsRecharge` (1 s) et `m_recharge` (secondes
+  avant le prochain coup possible, 0 à la création) — même structure
+  que la portée/recharge de `Personnage`, dupliquée volontairement (pas
+  de factorisation pour l'instant). Pas de couleur stockée : toujours
+  rouge, donc une valeur fixe directement dans `dessiner`, pas un membre
   (contrairement à `Personnage`, qui a besoin d'une couleur différente
   par instance).
 - **`Monstre(sf::Vector2f centre, int id)`** : centre et identifiant en
@@ -300,14 +326,31 @@ commune tant qu'aucun comportement partagé ne le justifie.
 - **Pas de collision avec lui** : l'escouade et les personnages lui
   passent dessus ; le A* l'ignore complètement (il n'existe pas du
   point de vue de `TileMap`).
+- **Contour jaune sur la cible verrouillée** (étape 19) : `dessiner`
+  reçoit un paramètre `bool estCible`, calculé par `main.cpp` par
+  comparaison directe (`idCible == monstre.getId()`) — `Monstre` ne
+  stocke pas lui-même le fait d'être visé, `idCible` reste l'unique
+  source de vérité. Contour de 3 px vers l'intérieur
+  (`setOutlineThickness(-3.0f)`), pour ne pas toucher la barre de vie
+  ni changer l'empreinte du monstre.
+- **Riposte** (étape 20) : `mettreAJour(dt)` décrémente seulement
+  `m_recharge` (le monstre reste immobile) ; `frapper(cible)` a le même
+  contrat que `Personnage::frapper` (dégâts si `cible` est à portée et
+  la recharge écoulée, sinon 0 sans toucher la recharge). `Monstre` ne
+  connaît toujours pas `Escouade` ni `Personnage` : il frappe un simple
+  `sf::Vector2f`, c'est `main.cpp` qui lui donne le centre du
+  personnage le plus proche (`Escouade::personnageLePlusProche`) et qui
+  transmet le résultat à `Escouade::recevoirDegats`.
 
 Interface publique :
 
 | Fonction | Rôle |
 |---|---|
 | `Monstre(sf::Vector2f centre, int id)` | Crée le monstre à ce centre, avec cet identifiant, 30 × 30, 100 points de vie |
-| `void dessiner(sf::RenderTarget& rendu) const` | Dessine le monstre et sa barre de vie |
-| `sf::Vector2f getCentre() const` | Centre du monstre (utilisé par `main.cpp` pour le donner à `Escouade::attaquer`) |
+| `void dessiner(sf::RenderTarget& rendu, bool estCible) const` | Dessine le monstre et sa barre de vie ; ajoute un contour jaune si `estCible` |
+| `void mettreAJour(float dt)` | Décrémente la recharge d'attaque, sans descendre sous zéro |
+| `int frapper(sf::Vector2f cible)` | Si `cible` est à portée et la recharge écoulée, relance la recharge et renvoie `m_degats` ; sinon renvoie 0 |
+| `sf::Vector2f getCentre() const` | Centre du monstre (utilisé par `main.cpp` pour le donner à `Escouade::attaquer` et `personnageLePlusProche`) |
 | `int getId() const` | Identifiant du monstre (utilisé par `main.cpp` pour désigner la cible verrouillée) |
 | `bool contient(sf::Vector2f point) const` | Le point (pixels du monde) est-il dans le carré du monstre ? |
 | `void recevoirDegats(int quantite)` | Retire des points de vie, sans descendre sous zéro |

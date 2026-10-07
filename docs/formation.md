@@ -124,3 +124,55 @@
   sans ligne de vue dégagée. Accepté pour l'instant ; une vérification
   de ligne de vue (via `TileMap::trajetLibre`, par exemple) reste une
   option pour plus tard.
+
+## Points de vie des personnages et riposte des monstres (étape 20)
+
+- **`Personnage` gagne les mêmes points de vie que `Monstre`** :
+  `m_pointsDeVie`/`m_pointsDeVieMax` (100 chacun), `recevoirDegats`
+  (jamais sous zéro) et `estVivant()`, plus une barre de vie dans
+  `dessiner`, visuellement identique à celle de `Monstre` (fond sombre
+  + rectangle vert proportionnel, au-dessus du personnage). Duplication
+  assumée entre les deux classes — aucune n'hérite de l'autre, aucune
+  structure commune n'a été introduite ; ce sera factorisé dans une
+  étape dédiée si le besoin se confirme.
+- **`Personnage::getCentre() const`** ajoutée (même rôle que
+  `Monstre::getCentre`) : nécessaire pour qu'`Escouade` puisse comparer
+  les positions des 4 personnages entre eux et avec un point donné.
+- **`Escouade` désigne elle-même le personnage le plus proche d'un
+  point**, sans passer par `Monstre` ni connaître la notion de monstre :
+  - `indicePersonnageLePlusProche(point)` (privée) : seul endroit du
+    code qui fait cette recherche (boucle sur les 4 personnages,
+    comparaison de distances au centre) ;
+  - `personnageLePlusProche(point)` (publique, lecture) : renvoie le
+    centre de ce personnage ;
+  - `recevoirDegats(origine, quantite)` (publique) : applique les
+    dégâts au personnage le plus proche d'`origine`, via le même indice.
+  Les deux fonctions publiques partagent la même fonction privée pour
+  garantir qu'elles désignent toujours le même personnage par le même
+  critère, même appelées séparément par `main.cpp` sur deux lignes
+  consécutives.
+- **`Monstre` riposte avec la même logique de portée/recharge que
+  `Personnage`**, elle aussi dupliquée plutôt que partagée :
+  `m_portee` (80 px), `m_degats` (10, le double d'un personnage, pour
+  qu'un monstre seul reste dangereux face à 4 personnages),
+  `m_tempsRecharge` (1 s, plus lent qu'un personnage), `m_recharge`.
+  `mettreAJour(dt)` ne décrémente que la recharge (le monstre reste
+  immobile) ; `frapper(cible)` a exactement le même contrat que
+  `Personnage::frapper`. `Monstre` ne connaît toujours pas `Escouade`
+  ni `Personnage` : il raisonne sur un simple `sf::Vector2f`, comme
+  `Personnage::frapper` raisonne sans connaître `Monstre`.
+- **`main.cpp` fait l'intermédiaire, en miroir de l'attaque des
+  personnages (étape 17)** : pour chaque monstre, à chaque image,
+  `monstre.mettreAJour(dt)` puis `escouade.recevoirDegats(origine,
+  monstre.frapper(escouade.personnageLePlusProche(origine)))`, où
+  `origine` est `monstre.getCentre()`. Les deux appels à `Escouade`
+  (`personnageLePlusProche` pour donner la cible au monstre,
+  `recevoirDegats` pour appliquer le résultat) utilisent la même
+  `origine`, donc désignent forcément le même personnage.
+- **Un monstre frappe qu'il soit lui-même attaqué ou non** : sa riposte
+  ne dépend pas du verrou de cible (`idCible`) ni de l'attaque des
+  personnages — uniquement de la distance et de sa propre recharge.
+- **Limite connue** : un personnage à 0 point de vie ne meurt pas — il
+  reste en formation, continue de frapper et de recevoir des coups.
+  Traiter la mort d'un personnage (retrait de la formation, etc.) est
+  hors de portée de cette étape.

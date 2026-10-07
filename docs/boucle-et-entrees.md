@@ -90,6 +90,23 @@
 - **Texte de position retiré** (ainsi que la police `arial.ttf` qui ne
   servait qu'à lui) : plus rien n'affiche la position du curseur à
   l'écran.
+- **Indicateur visuel de la cible verrouillée (étape 19)** : dans la
+  boucle de dessin, chaque monstre reçoit
+  `idCible == m.getId()` comme second argument de `dessiner` — une
+  comparaison directe d'un `std::optional<int>` avec un `int`, sans
+  tester `has_value()` au préalable (gère déjà le cas vide). `idCible`
+  reste l'unique source de vérité sur le monstre visé ; `Monstre` ne
+  stocke rien de cette information lui-même (voir `ARCHITECTURE.md`).
+- **Riposte des monstres (étape 20)** : après `escouade.mettreAJour(dt,
+  carte)` et avant la caméra, une boucle sur `monstres` fait, pour
+  chacun, `m.mettreAJour(dt)` puis
+  `escouade.recevoirDegats(origine, m.frapper(
+  escouade.personnageLePlusProche(origine)))`, où `origine` est
+  `m.getCentre()`. Indépendante du verrou de cible (`idCible`) et de la
+  boucle d'attaque de l'escouade qui la précède dans l'image : un
+  monstre riposte dès qu'un personnage est à sa portée, qu'il soit
+  lui-même attaqué ou non. Voir `docs/formation.md` pour le détail côté
+  `Escouade`/`Monstre`.
 
 ## Caméra
 

@@ -435,14 +435,75 @@ stable ; les monstres morts sont retirés du vecteur.
        clic et celle du dessin, l'invariant « tout monstre du vecteur
        est vivant » tenant désormais entre deux appels d'`erase_if`
 
-### Étape 19 — À définir
+### Étape 19 — Indicateur visuel de la cible verrouillée ✅ TERMINÉE
+
+Le monstre verrouillé (`idCible`) est entouré d'un contour jaune tant
+que le verrou est posé sur lui.
+
+1. [x] `Monstre::dessiner` reçoit le paramètre `bool estCible`, sans
+       encore s'en servir ; `main.cpp` passe `idCible == monstre.getId()`
+       dans la boucle de dessin (comparaison directe de l'`optional`
+       avec l'identifiant, sans tester `has_value()` au préalable)
+2. [x] `Monstre::dessiner` applique un contour jaune de 3 px vers
+       l'intérieur (`setOutlineThickness(-3.0f)`) au carré du monstre
+       quand `estCible` est vrai — ne touche pas la barre de vie, ne
+       change pas l'empreinte du monstre à l'écran
+
+`idCible` reste l'unique source de vérité sur le monstre visé ;
+`Monstre` ne stocke rien de cette information lui-même. Aucune
+modification d'`Escouade`, `Personnage`, `Chemin`, `TileMap` ni
+`Deplacement`.
+
+### Étape 20 — Les monstres ripostent ✅ TERMINÉE
+
+Chaque monstre frappe le personnage le plus proche de lui dès que
+celui-ci est à sa portée, qu'il soit lui-même attaqué ou non. Les
+personnages ont maintenant des points de vie et une barre de vie.
+
+1. [x] `Personnage` : membres `m_pointsDeVie` et `m_pointsDeVieMax`
+       (100 chacun)
+2. [x] `Personnage::recevoirDegats` et `estVivant` ; tests dans
+       `test_Personnage.cpp`
+3. [x] `Personnage::dessiner` : barre de vie (même apparence que celle
+       de `Monstre`)
+4. [x] `Personnage::getCentre() const` ; un test
+5. [x] `Escouade` : fonction privée `indicePersonnageLePlusProche`, puis
+       `personnageLePlusProche` ; test par propriété (centre renvoyé
+       plus proche d'un point lointain que ne l'est le centre de
+       l'escouade)
+6. [x] `Escouade::recevoirDegats(origine, quantite)` (applique les
+       dégâts au personnage le plus proche d'`origine`) ; pas de test
+       unitaire, effet vérifié visuellement
+7. [x] `Monstre` : membres `m_portee` (80 px), `m_degats` (10),
+       `m_tempsRecharge` (1 s), `m_recharge`
+8. [x] `Monstre::mettreAJour(dt)` (décrémente la recharge, le monstre
+       reste immobile) et `Monstre::frapper(cible)` (même contrat que
+       `Personnage::frapper`) ; tests dans `test_Monstre.cpp`, calqués
+       sur ceux de `Personnage::frapper`
+9. [x] Branchement dans `main.cpp` : pour chaque monstre, à chaque
+       image, `m.mettreAJour(dt)` puis `escouade.recevoirDegats(origine,
+       m.frapper(escouade.personnageLePlusProche(origine)))`, après
+       `escouade.mettreAJour(dt, carte)`
+
+Duplication assumée entre `Monstre` et `Personnage` (portée/recharge
+d'un côté, points de vie/barre de vie de l'autre) — aucune
+factorisation à cette étape, elle reste une option pour plus tard.
+
+**Limite connue** : un personnage à 0 point de vie ne meurt pas — il
+reste en formation, continue de frapper et de recevoir des coups.
+Traiter la mort d'un personnage est hors de portée de cette étape.
+
+### Étape 21 — À définir
 
 Pistes discutées :
+- Mort ou mise hors combat d'un personnage à 0 point de vie (voir
+  limite connue de l'étape 20), condition de défaite de l'escouade
 - Collision entre personnages, ou déplacement suivant l'arc de rotation
   plutôt qu'une ligne droite, pour éliminer le chevauchement résiduel
   lors d'un demi-tour rapide (voir limite connue de l'étape 14)
-- Indicateur visuel du verrouillage de cible, effet visuel au coup ou à
-  la mort
+- Factorisation entre `Monstre` et `Personnage` (points de vie/barre de
+  vie, portée/dégâts/recharge), si la duplication devient gênante
+- Effet visuel au coup ou à la mort d'un monstre ou d'un personnage
 - Déplacement ou comportement des monstres (ils restent immobiles pour
   l'instant)
 - Un lissage plus serré autour des coins (*funnel algorithm* ou Theta*),
@@ -452,7 +513,7 @@ Pistes discutées :
 - Limitation de fréquence des appels à `allerVers`, si un problème de
   performance est mesuré sur une carte plus grande
 - Types de personnages, statistiques, armes, capacités, ligne de vue
-  pour la portée (hors de portée explicite des étapes 12 à 17)
+  pour la portée (hors de portée explicite des étapes 12 à 17 et 20)
 
 ## État actuel (à mettre à jour à chaque session)
 
@@ -474,7 +535,9 @@ Pistes discutées :
   (fonction partagée `deplacerAvecGlissement`, module `Deplacement`) ;
   la formation pivote progressivement vers la direction de marche
   (360°/s, toujours par le plus court côté). Chaque personnage a aussi
-  une portée d'attaque (80 px), des dégâts (5) et une recharge (0,5 s)
+  une portée d'attaque (80 px), des dégâts (5), une recharge (0,5 s),
+  100 points de vie et une barre de vie au-dessus de lui ; un personnage
+  à 0 point de vie ne meurt pas encore (limite connue, étape 20)
 - Caméra (`sf::View`) toujours centrée sur l'escouade ; du noir apparaît
   au-delà des bords de la carte
 - Tant que le bouton gauche de la souris est enfoncé et que la fenêtre a
@@ -488,14 +551,19 @@ Pistes discutées :
   pièce, à `(300, 100)` (id 1), `(100, 300)` (id 2) et `(300, 500)`
   (id 3) ; `main.cpp` les possède directement dans un
   `std::vector<Monstre>` (pas `Escouade`) ; pas de collision avec eux
-  (l'escouade et les personnages leur passent dessus)
+  (l'escouade et les personnages leur passent dessus). Chaque monstre a
+  aussi une portée d'attaque (80 px), des dégâts (10) et une recharge
+  (1 s) : il frappe le personnage de l'escouade le plus proche de lui
+  dès qu'il est à portée, qu'il soit lui-même attaqué ou non
+  (`Escouade::personnageLePlusProche`/`recevoirDegats`, étape 20)
 - Cliquer sur un monstre verrouille CE monstre (son `id`, dans
   `std::optional<int> idCible`) : l'escouade s'approche en formation
   jusqu'à ce que ses 4 personnages soient à portée (80 px), puis
   s'arrête et chacun frappe pour 5 points de dégâts dès que sa propre
   recharge (0,5 s) est écoulée — la barre de vie descend par petits
   crans, plus vite une fois tout le monde à portée, mort en 2 à
-  3 secondes. Le verrou tombe au relâchement du bouton, à la perte du
+  3 secondes. Le monstre verrouillé est entouré d'un contour jaune
+  (étape 19). Le verrou tombe au relâchement du bouton, à la perte du
   focus, ou à la mort du monstre visé ; l'escouade ne reçoit alors plus
   d'ordre de déplacement tant qu'il est posé, et en reçoit un de nouveau
   (vers le curseur) dès qu'il retombe. Un monstre mort est retiré du
@@ -503,14 +571,18 @@ Pistes discutées :
   attaquables, quel que soit l'ordre dans lequel ils meurent
 - Logique de jeu (`TileMap`, `Escouade`, `Chemin`, `Personnage`,
   `Deplacement`, `Monstre`) dans une bibliothèque `squad_core`, testée
-  avec Catch2 3 (`./build/tests.exe`, 83 tests : 32 sur `TileMap`,
-  13 sur `Chemin`, 12 sur `Escouade`, 4 sur `Deplacement`,
-  13 sur `Monstre`, 9 sur `Personnage`)
+  avec Catch2 3 (`./build/tests.exe`, 95 tests : 32 sur `TileMap`,
+  13 sur `Chemin`, 13 sur `Escouade`, 4 sur `Deplacement`,
+  19 sur `Monstre`, 14 sur `Personnage`)
 - Près des piliers, le contournement n'est pas toujours le plus court
   possible (voir étape 11, limite connue) — accepté pour l'instant
 - Lors d'un demi-tour rapide, deux personnages peuvent encore se
   chevaucher brièvement en traversant le centre de la formation (voir
   étape 14, limite connue) — accepté pour l'instant
-- La portée d'attaque des personnages ignore les murs (voir étape 17,
-  limite connue) — accepté pour l'instant
-- Étape en cours : **Étape 19** — à choisir
+- La portée d'attaque des personnages (et désormais des monstres)
+  ignore les murs (voir étape 17, limite connue) — accepté pour
+  l'instant
+- Un personnage à 0 point de vie ne meurt pas : il reste en formation,
+  continue de frapper et de recevoir des coups (voir étape 20, limite
+  connue) — accepté pour l'instant
+- Étape en cours : **Étape 21** — à choisir
