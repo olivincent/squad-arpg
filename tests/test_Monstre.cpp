@@ -1,19 +1,38 @@
 // ./tests/test_Monstre.cpp
 #include <catch2/catch_test_macros.hpp>
 #include <SFML/System/Vector2.hpp>
+#include <optional>
+#include <string>
+#include <vector>
 
 #include "Monstre.hpp"
+#include "TileMap.hpp"
 
 namespace {
 
+TileMap carteDegagee() {
+    const std::vector<std::string> plan = {
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+    };
+    return TileMap(plan, 40.0f);
+}
+
 // Simule le temps qui passe par tics de 1/60 s, comme dans main.cpp.
-// Prouve que Monstre::mettreAJour fait bien avancer la recharge de m_attaque.
-void ecoulerTemps(Monstre& monstre, float duree) {
+void ecoulerTemps(Monstre& monstre, float duree, std::optional<sf::Vector2f> cible, const TileMap& carte) {
     const float dt = 1.0f / 60.0f;
     float tempsRestant = duree;
     while (tempsRestant > 0.0f) {
         const float pas = (tempsRestant < dt) ? tempsRestant : dt;
-        monstre.mettreAJour(pas);
+        monstre.mettreAJour(pas, cible, carte);
         tempsRestant -= pas;
     }
 }
@@ -130,10 +149,46 @@ TEST_CASE("Monstre.frapper renvoie 0 pour une cible hors de portée") {
 }
 
 TEST_CASE("Monstre.frapper renvoie de nouveau les dégâts après une durée simulée généreuse") {
+    const TileMap carte = carteDegagee();
     Monstre monstre({100.0f, 100.0f}, 1);
     const sf::Vector2f cible(150.0f, 100.0f);
 
     REQUIRE(monstre.frapper(cible) == 10);
-    ecoulerTemps(monstre, 1.2f);
+    ecoulerTemps(monstre, 1.2f, std::nullopt, carte);
     REQUIRE(monstre.frapper(cible) == 10);
+}
+
+// Monstre centré en (100, 100), rayon de détection 200 px.
+
+TEST_CASE("Monstre.mettreAJour approche une cible dans le rayon de détection") {
+    const TileMap carte = carteDegagee();
+    Monstre monstre({100.0f, 100.0f}, 1);
+    const sf::Vector2f cible(300.0f, 100.0f);
+    const float distanceInitiale = (cible - monstre.getCentre()).length();
+
+    ecoulerTemps(monstre, 0.5f, cible, carte);
+
+    const float distanceApres = (cible - monstre.getCentre()).length();
+    REQUIRE(distanceApres < distanceInitiale);
+}
+
+TEST_CASE("Monstre.mettreAJour ignore une cible hors du rayon de détection") {
+    const TileMap carte = carteDegagee();
+    Monstre monstre({100.0f, 100.0f}, 1);
+    const sf::Vector2f cible(400.0f, 100.0f); // 300 px, hors des 200 px de détection
+    const sf::Vector2f centreInitial = monstre.getCentre();
+
+    ecoulerTemps(monstre, 1.0f, cible, carte);
+
+    REQUIRE(monstre.getCentre() == centreInitial);
+}
+
+TEST_CASE("Monstre.mettreAJour reste immobile sans cible") {
+    const TileMap carte = carteDegagee();
+    Monstre monstre({100.0f, 100.0f}, 1);
+    const sf::Vector2f centreInitial = monstre.getCentre();
+
+    ecoulerTemps(monstre, 1.0f, std::nullopt, carte);
+
+    REQUIRE(monstre.getCentre() == centreInitial);
 }

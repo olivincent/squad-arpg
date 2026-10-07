@@ -4,12 +4,15 @@
 #include "Mobile.hpp"
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/System/Vector2.hpp>
+#include <optional>
+
+class TileMap;
 
 class Monstre {
 public:
     Monstre(sf::Vector2f centre, int id);
     void dessiner(sf::RenderTarget& rendu, bool estCible) const;
-    void mettreAJour(float dt);
+    void mettreAJour(float dt, std::optional<sf::Vector2f> cible, const TileMap& carte);
     int frapper(sf::Vector2f cible);
     sf::Vector2f getCentre() const;
     int getId() const;
@@ -23,4 +26,5 @@ private:
     int m_pointsDeVieMax;
     int m_id;
     Attaque m_attaque;
+    float m_rayonDetection;
 };

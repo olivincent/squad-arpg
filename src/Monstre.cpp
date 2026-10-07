@@ -1,5 +1,6 @@
 // ./src/Monstre.cpp
 #include "Monstre.hpp"
+#include "TileMap.hpp"
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Rect.hpp>
@@ -9,7 +10,8 @@ Monstre::Monstre(sf::Vector2f centre, int id)
       m_pointsDeVie(100),
       m_pointsDeVieMax(100),
       m_id(id),
-      m_attaque(80.0f, 10, 1.0f)
+      m_attaque(80.0f, 10, 1.0f),
+      m_rayonDetection(200.0f)
 {
 }
 
@@ -68,8 +70,16 @@ bool Monstre::estVivant() const {
     return m_pointsDeVie > 0;
 }
 
-void Monstre::mettreAJour(float dt) {
+void Monstre::mettreAJour(float dt, std::optional<sf::Vector2f> cible, const TileMap& carte) {
     m_attaque.mettreAJour(dt);
+
+    if (cible && (*cible - m_mobile.getCentre()).length() <= m_rayonDetection) {
+        m_mobile.allerVers(*cible, carte);
+    } else {
+        m_mobile.arreter();
+    }
+
+    m_mobile.mettreAJour(dt, carte);
 }
 
 int Monstre::frapper(sf::Vector2f cible) {

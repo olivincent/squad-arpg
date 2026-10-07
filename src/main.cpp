@@ -119,9 +119,10 @@ int main() {
         escouade.mettreAJour(dt, carte);
 
         for (Monstre& m : monstres) {
-            m.mettreAJour(dt);
+            const auto cible = escouade.personnageLePlusProche(m.getCentre());
+            m.mettreAJour(dt, cible, carte);
             const sf::Vector2f origine = m.getCentre();
-            if (auto cible = escouade.personnageLePlusProche(origine)) {
+            if (cible) {
                 escouade.recevoirDegats(origine, m.frapper(*cible));
             }
         }
