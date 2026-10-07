@@ -173,6 +173,36 @@
   ne dépend pas du verrou de cible (`idCible`) ni de l'attaque des
   personnages — uniquement de la distance et de sa propre recharge.
 - **Limite connue** : un personnage à 0 point de vie ne meurt pas — il
-  reste en formation, continue de frapper et de recevoir des coups.
+  reste en formation et continue de recevoir des coups (voir la suite,
+  étape 21, pour le fait qu'il ne frappe plus et n'est plus ciblé).
   Traiter la mort d'un personnage (retrait de la formation, etc.) est
   hors de portée de cette étape.
+
+## Un monstre change de cible quand un personnage meurt (étape 21)
+
+- **Le filtre est dans `Escouade::indicePersonnageLePlusProche`
+  seulement** : elle ignore désormais les personnages dont
+  `estVivant()` est faux. `personnageLePlusProche` et `recevoirDegats`
+  n'ont pas changé de logique, ils héritent du filtre via cette
+  fonction privée commune. `Monstre` n'est pas modifié : il continue de
+  frapper un simple `sf::Vector2f` donné par `main.cpp`.
+- **L'absence de personnage vivant est exprimée dans le type, pas par
+  une valeur sentinelle** : `indicePersonnageLePlusProche` renvoie
+  `std::optional<std::size_t>`, `personnageLePlusProche` renvoie
+  `std::optional<sf::Vector2f>` (vide = aucun vivant),
+  `recevoirDegats` ne fait rien si l'indice est vide.
+- **C'est `Personnage::frapper` qui refuse de frapper quand il n'est
+  pas vivant** (il connaît son propre état), pas `Escouade::attaquer` :
+  elle ne filtre rien et continue d'appeler `frapper` sur les 4
+  personnages sans distinction ; celui qui est mort renvoie simplement
+  0 sans relancer sa recharge.
+- **Dans `main.cpp`, la riposte des monstres devient conditionnelle** :
+  `if (auto cible = escouade.personnageLePlusProche(origine))` avant
+  d'appeler `monstre.frapper` et `escouade.recevoirDegats` ;
+  `monstre.mettreAJour(dt)` reste appelée dans tous les cas, qu'il y
+  ait un vivant ou non.
+- **Un personnage mort reste en formation, se déplace et est dessiné
+  comme avant** (barre de vie vide) — seule sa participation au combat
+  change (il ne frappe plus, n'est plus ciblé). Retirer un personnage
+  mort de la formation ou du vecteur, le griser, et la condition de
+  défaite restent hors de portée de cette étape.

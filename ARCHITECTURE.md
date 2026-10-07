@@ -163,12 +163,13 @@ formation en carré autour d'elle.
   .rotatedBy(m_orientation)`) — utilisée à la fois pour créer les
   personnages dans le constructeur et pour leur donner leur cible à
   chaque `mettreAJour`.
-- **Fonction privée `indicePersonnageLePlusProche(point)`** (étape 20) :
-  seul endroit du code qui cherche, parmi les 4 personnages, celui dont
-  le centre est le plus proche d'un point donné (boucle simple,
-  comparaison de distances) ; utilisée par `personnageLePlusProche` et
-  par `recevoirDegats`, pour que les deux désignent toujours le même
-  personnage par le même critère.
+- **Fonction privée `indicePersonnageLePlusProche(point)`** (étape 20,
+  filtrage des morts à l'étape 21) : seul endroit du code qui cherche,
+  parmi les personnages **vivants**, celui dont le centre est le plus
+  proche d'un point donné (boucle simple, comparaison de distances,
+  `std::optional<std::size_t>` vide si aucun n'est vivant) ; utilisée
+  par `personnageLePlusProche` et par `recevoirDegats`, pour que les
+  deux désignent toujours le même personnage par le même critère.
 
 Interface publique (inchangée pour `main.cpp`, qui ne connaît pas
 `Personnage`) :
@@ -181,8 +182,8 @@ Interface publique (inchangée pour `main.cpp`, qui ne connaît pas
 | `void mettreAJour(float dt, const TileMap& carte)` | Avance l'ancre vers le point courant du chemin (collision, glissement, orientation), puis chaque personnage vers sa place |
 | `void dessiner(sf::RenderTarget& rendu) const` | Dessine l'ancre, puis les 4 personnages |
 | `sf::Vector2f getCentre() const` | Centre de l'escouade (utilisé par la caméra, par `allerVers` et par `placePersonnage`) |
-| `sf::Vector2f personnageLePlusProche(sf::Vector2f point) const` | Centre du personnage le plus proche de `point` (utilisé par `main.cpp` pour désigner la cible d'un monstre) |
-| `void recevoirDegats(sf::Vector2f origine, int quantite)` | Applique `quantite` de dégâts au personnage le plus proche d'`origine` |
+| `std::optional<sf::Vector2f> personnageLePlusProche(sf::Vector2f point) const` | Centre du personnage **vivant** le plus proche de `point` (vide si aucun n'est vivant) ; utilisé par `main.cpp` pour désigner la cible d'un monstre |
+| `void recevoirDegats(sf::Vector2f origine, int quantite)` | Applique `quantite` de dégâts au personnage vivant le plus proche d'`origine` ; ne fait rien si aucun n'est vivant |
 
 ### `Chemin` — recherche de chemin (A*)
 
@@ -247,8 +248,10 @@ qu'un personnage reçoive un point différent de sa place en formation
   de `Monstre` (fond sombre + rectangle vert proportionnel aux points de
   vie restants, au-dessus du personnage).
 - **Un personnage à 0 point de vie ne meurt pas encore** : il reste en
-  formation, continue de frapper et reste ciblable par les monstres
-  (limite connue, voir état actuel de ROADMAP.md).
+  formation et continue de se déplacer (limite connue, voir état actuel
+  de ROADMAP.md). Depuis l'étape 21, il ne frappe plus
+  (`Personnage::frapper`) et n'est plus ciblé par les monstres
+  (`Escouade::indicePersonnageLePlusProche` l'ignore).
 
 Interface publique :
 
@@ -258,7 +261,7 @@ Interface publique :
 | `void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte)` | Avance vers la cible (collision, glissement), puis décrémente la recharge d'attaque |
 | `void dessiner(sf::RenderTarget& rendu) const` | Dessine le personnage et sa barre de vie |
 | `bool estAPortee(sf::Vector2f cible) const` | La distance entre le centre et `cible` est-elle `<=` `m_portee` ? |
-| `int frapper(sf::Vector2f cible)` | Si `cible` est à portée et la recharge écoulée, relance la recharge et renvoie `m_degats` ; sinon renvoie 0 |
+| `int frapper(sf::Vector2f cible)` | Si le personnage est vivant, `cible` est à portée et la recharge écoulée, relance la recharge et renvoie `m_degats` ; sinon renvoie 0 |
 | `void recevoirDegats(int quantite)` | Retire des points de vie, sans descendre sous zéro |
 | `bool estVivant() const` | Points de vie `> 0` |
 | `sf::Vector2f getCentre() const` | Centre du personnage (utilisé par `Escouade::indicePersonnageLePlusProche`) |

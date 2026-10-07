@@ -493,11 +493,39 @@ factorisation à cette étape, elle reste une option pour plus tard.
 reste en formation, continue de frapper et de recevoir des coups.
 Traiter la mort d'un personnage est hors de portée de cette étape.
 
-### Étape 21 — À définir
+### Étape 21 — Un monstre change de cible quand un personnage meurt ✅ TERMINÉE
+
+Limite connue de l'étape 20 : un personnage à 0 point de vie restait
+ciblé par les monstres et continuait de frapper. Un monstre ignore
+maintenant les personnages morts et frappe le vivant le plus proche de
+lui ; un personnage mort ne frappe plus.
+
+1. [x] `Personnage::frapper` renvoie 0, sans relancer la recharge, si
+       le personnage n'est pas vivant ; test dans `test_Personnage.cpp`
+2. [x] Passage aux `std::optional`, sans encore filtrer les morts
+       (comportement inchangé) : `indicePersonnageLePlusProche` renvoie
+       un `std::optional<std::size_t>`, `personnageLePlusProche` un
+       `std::optional<sf::Vector2f>`, `recevoirDegats` ne fait rien si
+       l'indice est vide ; `main.cpp` adapté (riposte conditionnelle,
+       `if (auto cible = ...)`) ; test existant de
+       `personnageLePlusProche` adapté
+3. [x] `indicePersonnageLePlusProche` ignore les personnages non
+       vivants et renvoie un optional vide s'il n'en reste aucun ;
+       nouveaux tests dans `test_Escouade.cpp` (dégâts insuffisants
+       pour tuer, changement de cible une fois le plus proche mort,
+       plus aucun vivant)
+
+**Limite connue** : un personnage mort reste en formation, se déplace
+et est dessiné comme avant (barre de vie vide) ; seule sa participation
+au combat change. Le retirer de la formation ou du vecteur, le griser,
+et une condition de défaite de l'escouade restent hors de portée de
+cette étape (cf. ARCHITECTURE.md).
+
+### Étape 22 — À définir
 
 Pistes discutées :
-- Mort ou mise hors combat d'un personnage à 0 point de vie (voir
-  limite connue de l'étape 20), condition de défaite de l'escouade
+- Mort ou mise hors combat d'un personnage à 0 point de vie (retrait de
+  la formation, apparence), condition de défaite de l'escouade
 - Collision entre personnages, ou déplacement suivant l'arc de rotation
   plutôt qu'une ligne droite, pour éliminer le chevauchement résiduel
   lors d'un demi-tour rapide (voir limite connue de l'étape 14)
@@ -537,7 +565,9 @@ Pistes discutées :
   (360°/s, toujours par le plus court côté). Chaque personnage a aussi
   une portée d'attaque (80 px), des dégâts (5), une recharge (0,5 s),
   100 points de vie et une barre de vie au-dessus de lui ; un personnage
-  à 0 point de vie ne meurt pas encore (limite connue, étape 20)
+  à 0 point de vie ne meurt pas encore (limite connue, étape 20), mais
+  depuis l'étape 21 il ne frappe plus et n'est plus ciblé par les
+  monstres
 - Caméra (`sf::View`) toujours centrée sur l'escouade ; du noir apparaît
   au-delà des bords de la carte
 - Tant que le bouton gauche de la souris est enfoncé et que la fenêtre a
@@ -553,9 +583,11 @@ Pistes discutées :
   `std::vector<Monstre>` (pas `Escouade`) ; pas de collision avec eux
   (l'escouade et les personnages leur passent dessus). Chaque monstre a
   aussi une portée d'attaque (80 px), des dégâts (10) et une recharge
-  (1 s) : il frappe le personnage de l'escouade le plus proche de lui
-  dès qu'il est à portée, qu'il soit lui-même attaqué ou non
-  (`Escouade::personnageLePlusProche`/`recevoirDegats`, étape 20)
+  (1 s) : il frappe le personnage **vivant** de l'escouade le plus
+  proche de lui dès qu'il est à portée, qu'il soit lui-même attaqué ou
+  non (`Escouade::personnageLePlusProche`/`recevoirDegats`, étape 20 ;
+  filtrage des morts, étape 21) ; s'il n'en reste aucun, il ne frappe
+  plus
 - Cliquer sur un monstre verrouille CE monstre (son `id`, dans
   `std::optional<int> idCible`) : l'escouade s'approche en formation
   jusqu'à ce que ses 4 personnages soient à portée (80 px), puis
@@ -571,9 +603,9 @@ Pistes discutées :
   attaquables, quel que soit l'ordre dans lequel ils meurent
 - Logique de jeu (`TileMap`, `Escouade`, `Chemin`, `Personnage`,
   `Deplacement`, `Monstre`) dans une bibliothèque `squad_core`, testée
-  avec Catch2 3 (`./build/tests.exe`, 95 tests : 32 sur `TileMap`,
-  13 sur `Chemin`, 13 sur `Escouade`, 4 sur `Deplacement`,
-  19 sur `Monstre`, 14 sur `Personnage`)
+  avec Catch2 3 (`./build/tests.exe`, 99 tests : 32 sur `TileMap`,
+  13 sur `Chemin`, 16 sur `Escouade`, 4 sur `Deplacement`,
+  19 sur `Monstre`, 15 sur `Personnage`)
 - Près des piliers, le contournement n'est pas toujours le plus court
   possible (voir étape 11, limite connue) — accepté pour l'instant
 - Lors d'un demi-tour rapide, deux personnages peuvent encore se
@@ -583,6 +615,8 @@ Pistes discutées :
   ignore les murs (voir étape 17, limite connue) — accepté pour
   l'instant
 - Un personnage à 0 point de vie ne meurt pas : il reste en formation,
-  continue de frapper et de recevoir des coups (voir étape 20, limite
-  connue) — accepté pour l'instant
-- Étape en cours : **Étape 21** — à choisir
+  se déplace et continue de recevoir des coups ; depuis l'étape 21, il
+  ne frappe plus et n'est plus ciblé par les monstres, qui reportent
+  leur attaque sur un autre personnage vivant, ou cessent de frapper si
+  aucun ne l'est (voir étape 20, limite connue) — accepté pour l'instant
+- Étape en cours : **Étape 22** — à choisir
