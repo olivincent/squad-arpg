@@ -9,6 +9,7 @@ public:
     bool estAPortee(Cercle origine, Cercle cible) const;
     int frapper(Cercle origine, Cercle cible);
     void relancerRecharge();
+    float getProgressionRecharge() const;
 
 private:
     float m_portee;         // en pixels, écart bord à bord

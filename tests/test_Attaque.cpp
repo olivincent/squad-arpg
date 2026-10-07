@@ -106,3 +106,20 @@ TEST_CASE("Attaque.relancerRecharge empêche de frapper avant une recharge compl
     ecoulerTemps(attaque, 0.6f);
     REQUIRE(attaque.frapper(origine, cible) == 5);
 }
+
+TEST_CASE("Attaque.getProgressionRecharge vaut 1 prête, 0 juste après un coup, entre les deux ensuite") {
+    Attaque attaque(80.0f, 5, 0.5f);
+
+    REQUIRE(attaque.getProgressionRecharge() == 1.0f);
+
+    attaque.relancerRecharge();
+    REQUIRE(attaque.getProgressionRecharge() == 0.0f);
+
+    ecoulerTemps(attaque, 0.3f);
+    const float progression = attaque.getProgressionRecharge();
+    REQUIRE(progression > 0.0f);
+    REQUIRE(progression < 1.0f);
+
+    ecoulerTemps(attaque, 0.3f);
+    REQUIRE(attaque.getProgressionRecharge() == 1.0f);
+}

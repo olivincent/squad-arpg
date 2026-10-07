@@ -41,6 +41,24 @@ void Personnage::dessiner(sf::RenderTarget& rendu) const {
     vie.setPosition(positionBarre);
     vie.setFillColor(sf::Color::Green);
     rendu.draw(vie);
+
+    if (!m_skill.has_value()) {
+        return;
+    }
+
+    // Barre de recharge du skill, juste sous la barre de vie : pleine = prêt.
+    const float hauteurBarreSkill = 3.0f;
+    const sf::Vector2f positionBarreSkill(positionBarre.x, positionBarre.y + hauteurBarre + 1.0f);
+
+    sf::RectangleShape fondSkill({m_taille.x, hauteurBarreSkill});
+    fondSkill.setPosition(positionBarreSkill);
+    fondSkill.setFillColor(sf::Color(60, 60, 60));
+    rendu.draw(fondSkill);
+
+    sf::RectangleShape recharge({m_taille.x * m_skill->getProgressionRecharge(), hauteurBarreSkill});
+    recharge.setPosition(positionBarreSkill);
+    recharge.setFillColor(sf::Color(255, 165, 0));
+    rendu.draw(recharge);
 }
 
 void Personnage::mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte) {

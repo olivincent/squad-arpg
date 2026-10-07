@@ -32,3 +32,10 @@ int Attaque::frapper(Cercle origine, Cercle cible) {
 void Attaque::relancerRecharge() {
     m_recharge = m_tempsRecharge;
 }
+
+float Attaque::getProgressionRecharge() const {
+    if (m_tempsRecharge <= 0.0f) {
+        return 1.0f;
+    }
+    return 1.0f - m_recharge / m_tempsRecharge;
+}
