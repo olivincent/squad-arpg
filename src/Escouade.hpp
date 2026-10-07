@@ -36,4 +36,5 @@ private:
     float m_vitesseRotation;               // en degrés par seconde
     std::vector<Personnage> m_personnages;
     std::optional<int> m_cibleVerrouillee;
+    std::optional<sf::Vector2f> m_cibleCombat; // dernière cible donnée à attaquer(), pour figer les personnages déjà à portée
 };

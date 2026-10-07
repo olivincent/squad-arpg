@@ -457,3 +457,71 @@ TEST_CASE("deverrouiller vide la cible") {
 
     REQUIRE_FALSE(escouade.getCibleVerrouillee().has_value());
 }
+
+TEST_CASE("En combat, un personnage a portee de la cible reste immobile pendant que les autres avancent") {
+    const std::vector<std::string> plan = {
+        "............",
+        "............",
+        "............",
+        "............",
+        "............",
+        "............",
+        "............",
+        "............",
+        "............",
+        "............",
+    };
+    TileMap carte(plan, 40.0f);
+    Escouade escouade({50.0f, 50.0f});
+    escouade.verrouiller(1); // id arbitraire, Escouade ne connaît pas Monstre
+
+    // Centre initial (60, 60). Les deux tireurs (portée 150 px) démarrent
+    // à l'arrière, en (35, 35) et (35, 85) ; les deux mêlées (portée 80 px)
+    // à l'avant, en (85, 35) et (85, 85). Cette cible met déjà les tireurs
+    // à portée (≈142 px) mais pas les mêlées (≈93 px) : l'ancre doit donc
+    // encore avancer.
+    const sf::Vector2f cible{175.0f, 60.0f};
+
+    const sf::Vector2f tireurAvant = *escouade.personnageLePlusProche({35.0f, 60.0f});
+    const sf::Vector2f meleeAvant = *escouade.personnageLePlusProche({85.0f, 60.0f});
+
+    for (int i = 0; i < 10; ++i) {
+        escouade.attaquer(cible, carte);
+        escouade.mettreAJour(1.0f / 60.0f, carte);
+    }
+
+    const sf::Vector2f tireurApres = *escouade.personnageLePlusProche({35.0f, 60.0f});
+    verifierPointProche(tireurApres, tireurAvant, 0.01f);
+
+    const sf::Vector2f meleeApres = *escouade.personnageLePlusProche({85.0f, 60.0f});
+    REQUIRE((meleeApres - meleeAvant).length() > 5.0f);
+}
+
+TEST_CASE("Sans verrou, un personnage deja a portee suit tout de meme son emplacement") {
+    const std::vector<std::string> plan = {
+        "............",
+        "............",
+        "............",
+        "............",
+        "............",
+        "............",
+        "............",
+        "............",
+        "............",
+        "............",
+    };
+    TileMap carte(plan, 40.0f);
+    Escouade escouade({50.0f, 50.0f}); // pas de verrouiller()
+
+    const sf::Vector2f cible{175.0f, 60.0f}; // même configuration que le test précédent
+
+    const sf::Vector2f tireurAvant = *escouade.personnageLePlusProche({35.0f, 60.0f});
+
+    for (int i = 0; i < 10; ++i) {
+        escouade.attaquer(cible, carte);
+        escouade.mettreAJour(1.0f / 60.0f, carte);
+    }
+
+    const sf::Vector2f tireurApres = *escouade.personnageLePlusProche({35.0f, 60.0f});
+    REQUIRE((tireurApres - tireurAvant).length() > 5.0f);
+}

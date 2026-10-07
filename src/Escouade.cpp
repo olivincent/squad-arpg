@@ -24,7 +24,8 @@ Escouade::Escouade(sf::Vector2f positionDepart)
           Personnage(placePersonnage(2), s_couleurTireur, Attaque(s_porteeTireur, 5, 0.5f)),
           Personnage(placePersonnage(3), s_couleurTireur, Attaque(s_porteeTireur, 5, 0.5f)),
       }),
-      m_cibleVerrouillee()
+      m_cibleVerrouillee(),
+      m_cibleCombat()
 {
 }
 
@@ -49,6 +50,8 @@ void Escouade::allerVers(sf::Vector2f destination, const TileMap& carte) {
 }
 
 int Escouade::attaquer(sf::Vector2f cible, const TileMap& carte) {
+    m_cibleCombat = cible;
+
     bool tousAPortee = true;
     for (const Personnage& personnage : m_personnages) {
         if (personnage.estVivant() && !personnage.estAPortee(cible)) {
@@ -89,8 +92,17 @@ void Escouade::mettreAJour(float dt, const TileMap& carte) {
         m_orientation += sf::degrees(pasRotation * signe);
     }
 
+    // En combat (verrou posé), un personnage déjà à portée de la cible
+    // reste sur place plutôt que de suivre sa place en formation, pour
+    // que les tireurs s'arrêtent à distance pendant que les mêlées
+    // continuent jusqu'au contact.
+    const bool enCombat = m_cibleVerrouillee.has_value() && m_cibleCombat.has_value();
     for (std::size_t i = 0; i < m_personnages.size(); ++i) {
-        m_personnages[i].mettreAJour(dt, placePersonnage(i), carte);
+        sf::Vector2f pointVoulu = placePersonnage(i);
+        if (enCombat && m_personnages[i].estVivant() && m_personnages[i].estAPortee(*m_cibleCombat)) {
+            pointVoulu = m_personnages[i].getCentre();
+        }
+        m_personnages[i].mettreAJour(dt, pointVoulu, carte);
     }
 }
 
