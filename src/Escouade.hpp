@@ -21,6 +21,9 @@ public:
     std::optional<sf::Vector2f> personnageLePlusProche(sf::Vector2f point) const;
     void recevoirDegats(sf::Vector2f origine, int quantite);
     bool estVivante() const;
+    void verrouiller(int idCible);
+    void deverrouiller();
+    std::optional<int> getCibleVerrouillee() const;
 
 private:
     sf::Vector2f placePersonnage(std::size_t indice) const;
@@ -32,4 +35,5 @@ private:
     sf::Angle m_orientationVoulue;         // direction voulue de l'ancre, vers laquelle m_orientation tourne
     float m_vitesseRotation;               // en degrés par seconde
     std::vector<Personnage> m_personnages;
+    std::optional<int> m_cibleVerrouillee;
 };

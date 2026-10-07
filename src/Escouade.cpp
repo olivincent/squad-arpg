@@ -16,7 +16,8 @@ Escouade::Escouade(sf::Vector2f positionDepart)
           Personnage(placePersonnage(1), sf::Color::Yellow),
           Personnage(placePersonnage(2), sf::Color::Blue),
           Personnage(placePersonnage(3), sf::Color::Magenta),
-      })
+      }),
+      m_cibleVerrouillee()
 {
 }
 
@@ -131,4 +132,16 @@ bool Escouade::estVivante() const {
         }
     }
     return false;
+}
+
+void Escouade::verrouiller(int idCible) {
+    m_cibleVerrouillee = idCible;
+}
+
+void Escouade::deverrouiller() {
+    m_cibleVerrouillee = std::nullopt;
+}
+
+std::optional<int> Escouade::getCibleVerrouillee() const {
+    return m_cibleVerrouillee;
 }

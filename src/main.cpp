@@ -66,7 +66,6 @@ int main() {
         Monstre({1500.0f, 540.0f}, prochainId++),
         Monstre({1620.0f, 540.0f}, prochainId++),
     };
-    std::optional<int> idCible;
 
     sf::Clock horloge;
     sf::View camera = window.getDefaultView();
@@ -84,33 +83,33 @@ int main() {
                         return m.contient(clicMonde);
                     });
                     if (it != monstres.end()) {
-                        idCible = it->getId();
+                        escouade.verrouiller(it->getId());
                     }
                 }
             }
         }
 
-        if (idCible.has_value()) {
+        if (const std::optional<int> idCible = escouade.getCibleVerrouillee(); idCible.has_value()) {
             const auto it = std::find_if(monstres.begin(), monstres.end(), [&](const Monstre& m) {
                 return m.getId() == idCible.value();
             });
             if (it == monstres.end()) {
-                idCible.reset();
+                escouade.deverrouiller();
             } else {
                 it->recevoirDegats(escouade.attaquer(it->getCentre(), carte));
                 if (!it->estVivant()) {
-                    idCible.reset();
+                    escouade.deverrouiller();
                 }
             }
         }
 
         if (!window.hasFocus() || !sf::Mouse::isButtonPressed(sf::Mouse::Button::Left) || !escouade.estVivante()) {
-            idCible.reset();
+            escouade.deverrouiller();
         }
 
         std::erase_if(monstres, [](const Monstre& m) { return !m.estVivant(); });
 
-        if (window.hasFocus() && sf::Mouse::isButtonPressed(sf::Mouse::Button::Left) && !idCible.has_value() && escouade.estVivante()) {
+        if (window.hasFocus() && sf::Mouse::isButtonPressed(sf::Mouse::Button::Left) && !escouade.getCibleVerrouillee().has_value() && escouade.estVivante()) {
             const sf::Vector2f curseurMonde = window.mapPixelToCoords(sf::Mouse::getPosition(window));
             escouade.allerVers(curseurMonde, carte);
         }
@@ -132,7 +131,7 @@ int main() {
         window.clear();
         carte.dessiner(window);
         for (const Monstre& m : monstres) {
-            m.dessiner(window, idCible == m.getId());
+            m.dessiner(window, escouade.getCibleVerrouillee() == m.getId());
         }
         escouade.dessiner(window);
         window.display();

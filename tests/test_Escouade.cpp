@@ -425,3 +425,35 @@ TEST_CASE("estVivante devient fausse une fois les 4 personnages morts") {
 
     REQUIRE_FALSE(escouade.estVivante());
 }
+
+TEST_CASE("getCibleVerrouillee est vide a la creation") {
+    const Escouade escouade({50.0f, 50.0f});
+
+    REQUIRE_FALSE(escouade.getCibleVerrouillee().has_value());
+}
+
+TEST_CASE("verrouiller pose la cible donnee") {
+    Escouade escouade({50.0f, 50.0f});
+
+    escouade.verrouiller(3);
+
+    REQUIRE(escouade.getCibleVerrouillee() == std::optional<int>(3));
+}
+
+TEST_CASE("verrouiller remplace une cible deja posee") {
+    Escouade escouade({50.0f, 50.0f});
+
+    escouade.verrouiller(3);
+    escouade.verrouiller(7);
+
+    REQUIRE(escouade.getCibleVerrouillee() == std::optional<int>(7));
+}
+
+TEST_CASE("deverrouiller vide la cible") {
+    Escouade escouade({50.0f, 50.0f});
+
+    escouade.verrouiller(3);
+    escouade.deverrouiller();
+
+    REQUIRE_FALSE(escouade.getCibleVerrouillee().has_value());
+}
