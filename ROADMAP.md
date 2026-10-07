@@ -583,16 +583,48 @@ même déplacement.
 Aucune modification de `Personnage`, `Monstre`, `Attaque` ni
 `main.cpp` ; interface publique d'`Escouade` inchangée.
 
-### Étape 24 — À définir
+### Étape 24 — Les monstres détectent, poursuivent et abandonnent ✅ TERMINÉE
+
+Un monstre qui voit un personnage vivant entrer dans son rayon de
+détection le poursuit (A* + lissage, via `Mobile`), s'arrête dès qu'il
+est à portée d'attaque, et abandonne si sa proie s'éloigne trop.
+
+1. [x] Six nouveaux emplacements de monstres (`(660, 380)`, `(500, 580)`,
+       `(900, 220)`, `(1940, 180)`, `(1500, 540)`, `(1620, 540)`),
+       remplaçant les trois de l'étape 18, hors de la salle de départ
+2. [x] `Monstre` : `m_centre` et `m_taille` remplacés par `m_mobile`
+       (`Mobile`, 30 × 30, 120 px/s), sans encore le faire bouger
+       (signature de `mettreAJour` inchangée) ; `getCentre`, `contient`,
+       `dessiner` et `frapper` délèguent à `m_mobile`
+3. [x] Détection sans état : `m_rayonDetection` (200 px) ; nouvelle
+       signature `mettreAJour(dt, std::optional<sf::Vector2f> cible,
+       const TileMap&)` ; cible dans le rayon → `allerVers`, sinon
+       `arreter()` ; `main.cpp` adapté
+4. [x] Arrêt à portée : `arreter()` aussi si la cible est à portée de
+       `m_attaque`, pour que le monstre cherche à frapper plutôt qu'à
+       rejoindre sa proie
+5. [x] État et abandon : `m_enPoursuite` et `m_rayonAbandon` (400 px) ;
+       une cible détectée (`<=` 200 px) n'est abandonnée qu'au-delà de
+       400 px — hystérésis entre les deux rayons, pour éviter les
+       oscillations poursuite/abandon près d'un seuil unique
+
+**Limites connues** : un monstre qui abandonne reste sur place plutôt
+que de retourner à son poste (pas de patrouille) ; plusieurs monstres
+qui poursuivent la même cible peuvent se superposer (pas de collision
+entre monstres). La détection, comme la portée d'attaque (étape 17),
+ignore les murs. Les trois sont acceptées pour l'instant (cf.
+ARCHITECTURE.md).
+
+### Étape 25 — À définir
 
 Pistes discutées :
-- Donner un `Mobile` à `Monstre`, pour qu'il se déplace (ils restent
-  immobiles pour l'instant)
+- Retour du monstre à son poste, patrouille, escouade de monstres
 - Mort ou mise hors combat d'un personnage à 0 point de vie (retrait de
   la formation, apparence), condition de défaite de l'escouade
 - Collision entre personnages, ou déplacement suivant l'arc de rotation
   plutôt qu'une ligne droite, pour éliminer le chevauchement résiduel
   lors d'un demi-tour rapide (voir limite connue de l'étape 14)
+- Collision entre monstres, ou entre monstres et personnages
 - Factorisation des points de vie et de la barre de vie entre
   `Monstre` et `Personnage`, si la duplication devient gênante
 - Effet visuel au coup ou à la mort d'un monstre ou d'un personnage
@@ -600,10 +632,12 @@ Pistes discutées :
   si le contournement actuel des piliers s'avère insuffisant
 - Finitions : caméra bloquée aux bords de la carte, affichage fixe à
   l'écran, police committée dans le dépôt
-- Limitation de fréquence des appels à `allerVers`, si un problème de
+- Limitation de fréquence des appels à `allerVers`/A*, si un problème de
   performance est mesuré sur une carte plus grande
-- Types de personnages, statistiques, armes, capacités, ligne de vue
-  pour la portée (hors de portée explicite des étapes 12 à 17, 20 et 22)
+- Ligne de vue pour la détection ou la portée (hors de portée explicite
+  des étapes 17 et 24)
+- Types de personnages, statistiques, armes, capacités (hors de portée
+  explicite des étapes 12 à 17, 20 et 22)
 
 ## État actuel (à mettre à jour à chaque session)
 
@@ -640,19 +674,28 @@ Pistes discutées :
   curseur à chaque image (lecture d'état, pas d'événement) ; un clic
   bref reste un simple aller-vers ponctuel. Plus de texte de position ni
   de police chargée dans `main.cpp` (retirés à l'étape 13)
-- Trois monstres immobiles (classe `Monstre`, carrés rouges de 30 × 30,
-  100 points de vie chacun, barre de vie au-dessus d'eux, identifiant
-  stable `m_id` attribué par `main.cpp`) sont présents dans la première
-  pièce, à `(300, 100)` (id 1), `(100, 300)` (id 2) et `(300, 500)`
-  (id 3) ; `main.cpp` les possède directement dans un
-  `std::vector<Monstre>` (pas `Escouade`) ; pas de collision avec eux
-  (l'escouade et les personnages leur passent dessus). Chaque monstre a
-  aussi une attaque (portée 80 px, dégâts 10, recharge 1 s, module
-  `Attaque`) : il frappe le personnage **vivant** de l'escouade le plus
-  proche de lui dès qu'il est à portée, qu'il soit lui-même attaqué ou
-  non (`Escouade::personnageLePlusProche`/`recevoirDegats`, étape 20 ;
+- Six monstres (classe `Monstre`, carrés rouges de 30 × 30, 100 points
+  de vie chacun, barre de vie au-dessus d'eux, identifiant stable
+  `m_id` attribué par `main.cpp`) sont répartis sur la carte, hors de
+  la salle de départ, à `(660, 380)`, `(500, 580)`, `(900, 220)`,
+  `(1940, 180)`, `(1500, 540)` et `(1620, 540)` ; `main.cpp` les
+  possède directement dans un `std::vector<Monstre>` (pas `Escouade`) ;
+  pas de collision avec eux (l'escouade et les personnages leur passent
+  dessus, et depuis l'étape 24 ils peuvent se superposer entre eux).
+  Depuis l'étape 24, chaque monstre se déplace par son propre `Mobile`
+  (30 × 30, 120 px/s) : il détecte un personnage vivant qui entre dans
+  un rayon de 200 px, le poursuit (A* + lissage) jusqu'à être à portée
+  de son attaque (80 px) où il s'arrête, et n'abandonne qu'une fois la
+  proie sortie d'un rayon plus large de 400 px (hystérésis, pour éviter
+  les oscillations) ou si elle meurt ; sans proie, il reste où il
+  s'est arrêté (pas de retour à un poste). Chaque monstre a aussi une
+  attaque (portée 80 px, dégâts 10, recharge 1 s, module `Attaque`) :
+  il frappe le personnage **vivant** de l'escouade le plus proche de
+  lui dès qu'il est à portée, qu'il soit lui-même attaqué ou non
+  (`Escouade::personnageLePlusProche`/`recevoirDegats`, étape 20 ;
   filtrage des morts, étape 21) ; s'il n'en reste aucun, il ne frappe
-  plus
+  plus. Détection, poursuite et portée sont toutes mesurées à vol
+  d'oiseau et ignorent les murs
 - Cliquer sur un monstre verrouille CE monstre (son `id`, dans
   `std::optional<int> idCible`) : l'escouade s'approche en formation
   jusqu'à ce que ses 4 personnages soient à portée (80 px), puis
@@ -669,8 +712,8 @@ Pistes discutées :
 - Logique de jeu (`TileMap`, `Escouade`, `Mobile`, `Chemin`,
   `Personnage`, `Deplacement`, `Monstre`, `Attaque`) dans une
   bibliothèque `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 112 tests : 32 sur `TileMap`, 13 sur `Chemin`,
-  16 sur `Escouade`, 4 sur `Deplacement`, 16 sur `Monstre`, 11 sur
+  (`./build/tests.exe`, 120 tests : 32 sur `TileMap`, 13 sur `Chemin`,
+  16 sur `Escouade`, 4 sur `Deplacement`, 24 sur `Monstre`, 11 sur
   `Personnage`, 9 sur `Attaque`, 11 sur `Mobile`)
 - Depuis l'étape 22, `Personnage` et `Monstre` possèdent chacun un
   `m_attaque` (`Attaque`) plutôt que leurs propres membres de portée,
@@ -679,18 +722,23 @@ Pistes discutées :
 - Depuis l'étape 23, `Escouade` possède un `m_mobile` (`Mobile`) plutôt
   que ses propres membres de position/chemin/vitesse — composition,
   comme `Attaque` ; aucun changement de comportement ni d'interface
-  publique
+  publique. Depuis l'étape 24, `Monstre` possède lui aussi un
+  `m_mobile`, et s'en sert pour poursuivre une cible
 - Près des piliers, le contournement n'est pas toujours le plus court
   possible (voir étape 11, limite connue) — accepté pour l'instant
 - Lors d'un demi-tour rapide, deux personnages peuvent encore se
   chevaucher brièvement en traversant le centre de la formation (voir
   étape 14, limite connue) — accepté pour l'instant
-- La portée d'attaque des personnages (et désormais des monstres)
-  ignore les murs (voir étape 17, limite connue) — accepté pour
-  l'instant
+- La portée d'attaque des personnages et des monstres, ainsi que la
+  détection des monstres depuis l'étape 24, ignorent les murs (voir
+  étapes 17 et 24, limites connues) — accepté pour l'instant
 - Un personnage à 0 point de vie ne meurt pas : il reste en formation,
   se déplace et continue de recevoir des coups ; depuis l'étape 21, il
   ne frappe plus et n'est plus ciblé par les monstres, qui reportent
   leur attaque sur un autre personnage vivant, ou cessent de frapper si
   aucun ne l'est (voir étape 20, limite connue) — accepté pour l'instant
-- Étape en cours : **Étape 24** — à choisir
+- Un monstre qui abandonne sa proie reste sur place (pas de retour à un
+  poste, pas de patrouille) ; plusieurs monstres peuvent se superposer
+  en poursuivant la même cible (pas de collision entre eux) — voir
+  étape 24, limites connues — accepté pour l'instant
+- Étape en cours : **Étape 25** — à choisir

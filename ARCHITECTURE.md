@@ -89,23 +89,27 @@ squad-arpg/
 Huit modules : `TileMap` (l'environnement de jeu), `Escouade` (le point
 de contrôle, l'ancre, qui possède les personnages et les fait
 attaquer), `Mobile` (déplacement par chemin calculé par le A*, possédé
-par valeur par `Escouade`), `Chemin` (recherche de chemin A*, utilisé
-uniquement par `Mobile`), `Personnage` (un membre de l'escouade, qui
-sait aller vers un point et frapper une cible à portée), `Deplacement`
-(collision/glissement partagée entre `Mobile` et `Personnage`),
-`Monstre` (un ennemi immobile, avec un identifiant, des points de vie
-et une riposte à portée, possédé directement par `main.cpp` dans un
-`std::vector<Monstre>`, sans lien direct avec `Escouade` ni
-`Personnage` — `main.cpp` fait l'intermédiaire) et `Attaque` (portée,
-dégâts et recharge, possédée par valeur par `Personnage` et par
-`Monstre`).
+par valeur par `Escouade` et, depuis l'étape 24, par `Monstre`),
+`Chemin` (recherche de chemin A*, utilisé uniquement par `Mobile`),
+`Personnage` (un membre de l'escouade, qui sait aller vers un point et
+frapper une cible à portée), `Deplacement` (collision/glissement
+partagée entre `Mobile` et `Personnage`), `Monstre` (un ennemi qui
+détecte, poursuit et abandonne une cible via son propre `Mobile`, avec
+un identifiant, des points de vie et une riposte à portée, possédé
+directement par `main.cpp` dans un `std::vector<Monstre>`, sans lien
+direct avec `Escouade` ni `Personnage` — `main.cpp` fait
+l'intermédiaire) et `Attaque` (portée, dégâts et recharge, possédée par
+valeur par `Personnage` et par `Monstre`).
 `main.cpp` garde la fenêtre, la boucle de jeu, les événements
 (fermeture, et le verrouillage de cible sur un monstre), l'état de la
 souris (déplacement), la caméra, la carte (son plan) et les monstres ;
 il ne connaît ni `Chemin` ni `Personnage`, et ne gère plus la recharge
 d'attaque lui-même depuis l'étape 17 (`Escouade::attaquer` s'en charge
-via les personnages). La structure continue d'évoluer par nécessité
-réelle, pas par anticipation (voir principes ci-dessous).
+via les personnages). Depuis l'étape 24, il donne aussi à chaque
+monstre le personnage le plus proche de lui comme cible de poursuite
+(`Escouade::personnageLePlusProche`), avant de relire son centre à jour
+pour la riposte. La structure continue d'évoluer par nécessité réelle,
+pas par anticipation (voir principes ci-dessous).
 
 Deux exécutables : `main` (le jeu) et `tests` (les tests Catch2). Les deux
 se lient à la bibliothèque statique `squad_core`, qui contient toute la
@@ -193,11 +197,10 @@ Interface publique (inchangée pour `main.cpp`, qui ne connaît pas
 
 ### `Mobile` — déplacement par chemin (étape 23)
 
-Possédée par valeur par `Escouade` (`m_mobile`). Porte tout ce
-qu'`Escouade` faisait elle-même avant l'étape 23 pour suivre un chemin
-calculé par le A* : position, chemin, vitesse, collision/glissement.
-Extraite en vue de l'étape 24, où `Monstre` aura besoin du même
-déplacement.
+Possédée par valeur par `Escouade` (`m_mobile`) et, depuis l'étape 24,
+par `Monstre` également. Porte tout ce qu'`Escouade` faisait elle-même
+avant l'étape 23 pour suivre un chemin calculé par le A* : position,
+chemin, vitesse, collision/glissement.
 
 - **Composition, pas héritage** : `Escouade` a un membre `Mobile
   m_mobile` ; aucune classe de base commune, aucune fonction virtuelle.
@@ -343,25 +346,44 @@ auparavant `Escouade::mettreAJour`) et par `Personnage::mettreAJour`
 (qui convertit entre son centre et le coin haut-gauche attendu par la
 fonction, comme `Mobile::getCentre()` le fait dans l'autre sens).
 
-### `Monstre` — un ennemi immobile
+### `Monstre` — un ennemi qui détecte, poursuit et abandonne
 
 Un carré rouge de 30 × 30, avec des points de vie et une barre de vie.
 Pas de classe de base commune avec `Personnage`, pas d'héritage : les
 deux classes restent indépendantes, même si toutes les deux stockent un
-centre et une taille — la ressemblance n'implique pas de dépendance
-commune tant qu'aucun comportement partagé ne le justifie.
+centre (et, depuis l'étape 24, se déplacent par un `Mobile`) — la
+ressemblance n'implique pas de dépendance commune tant qu'aucun
+comportement partagé ne le justifie.
 
-- **Stocke son centre** (`m_centre`), comme `Personnage`.
-- **Données membres** : `m_centre`, `m_taille` (30 × 30, fixée dans le
-  constructeur), `m_pointsDeVie` et `m_pointsDeVieMax` (`100` chacun à
-  la création), `m_id`, et depuis l'étape 20 (portée/recharge extraites
-  dans `m_attaque` à l'étape 22) : `m_attaque` (`Attaque`, portée
-  80 px / dégâts 10 / recharge 1 s — même structure que celle de
-  `Personnage`, valeurs différentes, dupliquée volontairement comme
-  objet, pas de factorisation des points de vie pour l'instant). Pas de
-  couleur stockée : toujours rouge, donc une valeur fixe directement
-  dans `dessiner`, pas un membre (contrairement à `Personnage`, qui a
-  besoin d'une couleur différente par instance).
+- **Position et taille portées par `m_mobile`** (`Mobile`, depuis
+  l'étape 24 ; taille 30 × 30, vitesse 120 px/s) : `m_centre` et
+  `m_taille` ont quitté `Monstre`, une seule copie de ces données
+  existe désormais. `getCentre`, `contient`, `dessiner` et `frapper`
+  lisent `m_mobile.getCentre()`/`getTaille()`.
+- **Données membres** : `m_mobile`, `m_pointsDeVie` et
+  `m_pointsDeVieMax` (`100` chacun à la création), `m_id`, `m_attaque`
+  (`Attaque`, portée 80 px / dégâts 10 / recharge 1 s — même structure
+  que celle de `Personnage`, valeurs différentes, dupliquée
+  volontairement comme objet, pas de factorisation des points de vie
+  pour l'instant), et depuis l'étape 24 : `m_rayonDetection` (200 px),
+  `m_rayonAbandon` (400 px), `m_enPoursuite` (`bool`, faux à la
+  création). Pas de couleur stockée : toujours rouge, donc une valeur
+  fixe directement dans `dessiner`, pas un membre (contrairement à
+  `Personnage`, qui a besoin d'une couleur différente par instance).
+- **Détection/poursuite/abandon avec hystérésis** (étape 24) : une
+  cible (son centre, donnée par `main.cpp`) n'est poursuivie
+  (`m_enPoursuite = true`) qu'une fois entrée dans `m_rayonDetection` ;
+  elle n'est abandonnée (`m_enPoursuite = false`) qu'une fois sortie de
+  `m_rayonAbandon`, plus large — entre les deux rayons, l'état ne
+  change pas, pour éviter qu'un monstre n'oscille en poursuite/abandon
+  quand la cible frôle un seuil unique. Sans cible, l'abandon est
+  immédiat. En poursuite, le monstre s'arrête (`m_mobile.arreter()`)
+  dès qu'il est à portée de `m_attaque`, sinon il avance
+  (`m_mobile.allerVers`) ; hors poursuite, il reste où il est
+  (`m_mobile.arreter()`), sans retour à un poste.
+- **Les distances (détection, abandon, portée) sont mesurées à vol
+  d'oiseau**, centre à centre, en ignorant les murs — comme la portée
+  d'attaque (étape 17, limite connue).
 - **`Monstre(sf::Vector2f centre, int id)`** : centre et identifiant en
   paramètres ; `explicit` retiré puisque le constructeur en prend deux
   (une conversion implicite à un seul argument n'est plus possible).
@@ -383,11 +405,11 @@ commune tant qu'aucun comportement partagé ne le justifie.
   rectangle vert dont la largeur est `m_taille.x * (m_pointsDeVie /
   m_pointsDeVieMax)`.
 - **Possédé par `main.cpp`**, pas par `Escouade` : un `std::vector<Monstre>`
-  (trois monstres pour l'instant), pas une classe dédiée (`Horde`,
-  `Monstres`...) pour les porter. Un monstre mort est retiré du vecteur
-  (`std::erase_if`, à chaque image) ; l'objet lui-même cesse donc
-  d'exister, contrairement à l'étape 17 où il restait en mémoire sans
-  être dessiné ni attaquable.
+  (six monstres depuis l'étape 24, répartis sur la carte), pas une
+  classe dédiée (`Horde`, `Monstres`...) pour les porter. Un monstre
+  mort est retiré du vecteur (`std::erase_if`, à chaque image) ;
+  l'objet lui-même cesse donc d'exister, contrairement à l'étape 17 où
+  il restait en mémoire sans être dessiné ni attaquable.
 - **Pas de collision avec lui** : l'escouade et les personnages lui
   passent dessus ; le A* l'ignore complètement (il n'existe pas du
   point de vue de `TileMap`).
@@ -398,15 +420,19 @@ commune tant qu'aucun comportement partagé ne le justifie.
   source de vérité. Contour de 3 px vers l'intérieur
   (`setOutlineThickness(-3.0f)`), pour ne pas toucher la barre de vie
   ni changer l'empreinte du monstre.
-- **Riposte** (étape 20) : `mettreAJour(dt)` délègue à
-  `m_attaque.mettreAJour(dt)` (le monstre reste immobile) ;
-  `frapper(cible)` délègue entièrement à `m_attaque.frapper`, avec
-  `m_centre` comme origine — sans règle supplémentaire, contrairement à
-  `Personnage::frapper` qui vérifie d'abord `estVivant()`. `Monstre` ne
-  connaît toujours pas `Escouade` ni `Personnage` : il frappe un simple
-  `sf::Vector2f`, c'est `main.cpp` qui lui donne le centre du
-  personnage le plus proche (`Escouade::personnageLePlusProche`) et qui
-  transmet le résultat à `Escouade::recevoirDegats`.
+- **Riposte** (étape 20) : `frapper(cible)` délègue entièrement à
+  `m_attaque.frapper`, avec `m_mobile.getCentre()` comme origine — sans
+  règle supplémentaire, contrairement à `Personnage::frapper` qui
+  vérifie d'abord `estVivant()`. `Monstre` ne connaît toujours pas
+  `Escouade` ni `Personnage` : il frappe un simple `sf::Vector2f`,
+  c'est `main.cpp` qui lui donne le centre du personnage le plus proche
+  (`Escouade::personnageLePlusProche`) et qui transmet le résultat à
+  `Escouade::recevoirDegats`.
+- **`main.cpp` donne la cible, relit le centre après coup** (étape 24) :
+  pour chaque monstre, `escouade.personnageLePlusProche(m.getCentre())`
+  est calculé *avant* `m.mettreAJour(dt, cible, carte)` (sur la position
+  précédente du monstre), puis `m.getCentre()` est relu *après* pour la
+  riposte (`frapper`/`recevoirDegats`), sur la position à jour.
 
 Interface publique :
 
@@ -414,8 +440,8 @@ Interface publique :
 |---|---|
 | `Monstre(sf::Vector2f centre, int id)` | Crée le monstre à ce centre, avec cet identifiant, 30 × 30, 100 points de vie |
 | `void dessiner(sf::RenderTarget& rendu, bool estCible) const` | Dessine le monstre et sa barre de vie ; ajoute un contour jaune si `estCible` |
-| `void mettreAJour(float dt)` | Décrémente la recharge d'attaque (délègue à `m_attaque`), sans descendre sous zéro |
-| `int frapper(sf::Vector2f cible)` | Délègue à `m_attaque.frapper`, avec `m_centre` comme origine |
+| `void mettreAJour(float dt, std::optional<sf::Vector2f> cible, const TileMap& carte)` | Décrémente la recharge d'attaque, met à jour l'état de poursuite (détection/abandon par hystérésis) et avance vers `cible` en poursuite (s'arrête à portée d'attaque), reste sur place sinon |
+| `int frapper(sf::Vector2f cible)` | Délègue à `m_attaque.frapper`, avec `m_mobile.getCentre()` comme origine |
 | `sf::Vector2f getCentre() const` | Centre du monstre (utilisé par `main.cpp` pour le donner à `Escouade::attaquer` et `personnageLePlusProche`) |
 | `int getId() const` | Identifiant du monstre (utilisé par `main.cpp` pour désigner la cible verrouillée) |
 | `bool contient(sf::Vector2f point) const` | Le point (pixels du monde) est-il dans le carré du monstre ? |

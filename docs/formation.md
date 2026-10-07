@@ -242,3 +242,59 @@
   nouveau coup après une durée généreuse — preuve que `mettreAJour`
   avance bien la recharge de `m_attaque` —, et pour `Personnage`
   seulement, 0 quand il n'est pas vivant).
+
+## Les monstres détectent, poursuivent et abandonnent (étape 24)
+
+- **`Monstre` perd `m_centre`/`m_taille` au profit d'un `Mobile`**
+  (`m_mobile`, taille 30 × 30, vitesse 120 px/s — plus lent que les
+  personnages à 240 px/s, pour qu'un groupe reste rattrapable). Une
+  seule copie de la position et de la taille existe désormais (lue via
+  `m_mobile.getCentre()`/`getTaille()`), là où `Escouade` et `Monstre`
+  dupliquaient chacun ces données avant l'extraction de `Mobile` à
+  l'étape 23.
+- **`Monstre` ne connaît toujours ni `Escouade` ni `Personnage`** :
+  c'est `main.cpp` qui lui donne sa proie, comme il lui donnait déjà la
+  cible de `frapper` depuis l'étape 20. Nouvelle signature de
+  `mettreAJour` : `(float dt, std::optional<sf::Vector2f> cible, const
+  TileMap& carte)` — `cible` vide quand `Escouade::personnageLePlusProche`
+  ne renvoie personne (aucun personnage vivant).
+- **But du monstre : se mettre à portée pour frapper, pas rejoindre sa
+  proie.** En poursuite, il avance vers la cible (`m_mobile.allerVers`,
+  A* + lissage, comme l'ancre ou les personnages) tant qu'il n'est pas
+  à portée de `m_attaque`, puis s'arrête sur place
+  (`m_mobile.arreter()`) — même logique que `Escouade::attaquer`
+  s'arrêtant une fois ses 4 personnages à portée (étape 17), mais pour
+  un seul mobile plutôt que pour quatre.
+- **État de poursuite avec hystérésis, plutôt qu'une réaction à la
+  seule distance instantanée** : `m_enPoursuite` (faux à la création)
+  passe à vrai dès que la cible entre dans `m_rayonDetection` (200 px),
+  et ne repasse à faux que lorsqu'elle sort de `m_rayonAbandon`
+  (400 px, plus large) ou disparaît (`cible` vide). Entre les deux
+  rayons, l'état ne change pas : sans ce second seuil, un monstre et sa
+  proie resteraient à une distance qui oscille autour d'un rayon
+  unique, et le monstre s'arrêterait puis repartirait sans cesse. Hors
+  poursuite, le monstre ne retourne pas à un poste : il reste où il
+  s'est arrêté (limite acceptée, voir plus bas).
+- **Toutes les distances (détection, abandon, portée d'attaque) sont à
+  vol d'oiseau, centre à centre, et ignorent les murs** — la détection
+  hérite de la même simplification que la portée (étape 17, limite
+  connue) : un monstre peut détecter et poursuivre une proie à travers
+  un mur, sans ligne de vue.
+- **Dans `main.cpp`, la cible est lue avant le déplacement du monstre,
+  son centre après** : pour chaque monstre,
+  `escouade.personnageLePlusProche(m.getCentre())` est calculé sur la
+  position du monstre *avant* `mettreAJour` (comme pour la riposte
+  depuis l'étape 20), puis transmis à `m.mettreAJour(dt, cible, carte)`
+  ; `m.getCentre()` est relu *après* pour la riposte, sur la position à
+  jour — sinon la riposte frapperait depuis la position du tic
+  précédent.
+- **Nouveaux emplacements** : les trois monstres de l'étape 18 sont
+  remplacés par six, répartis sur des centres de case de sol, hors de
+  la salle de départ, pour que la poursuite ait la place de s'exprimer
+  sans pousser l'escouade hors de la carte dès le début.
+- **Limites connues** : un monstre qui abandonne reste sur place plutôt
+  que de retourner à son poste (pas de patrouille) ; plusieurs monstres
+  qui poursuivent la même cible peuvent se superposer (pas de collision
+  entre monstres, ni entre un monstre et l'escouade/les personnages —
+  cohérent avec l'absence de collision déjà actée pour un monstre
+  immobile). Les deux sont hors de portée de cette étape.
