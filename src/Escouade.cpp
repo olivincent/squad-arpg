@@ -95,7 +95,7 @@ void Escouade::mettreAJour(float dt, const TileMap& carte) {
         m_orientationVoulue = direction->angle();
     }
 
-    m_mobile.mettreAJour(dt, carte);
+    m_mobile.mettreAJour(dt, carte, {});
 
     // Rotation progressive vers l'orientation voulue, par le plus court
     // côté (wrapSigned ramène l'écart entre -180° et 180°), à vitesse

@@ -86,7 +86,7 @@ bool Monstre::proieDetectee(std::optional<Cercle> cible) const {
     return distanceMonstre <= m_rayonDetection && distancePoste <= m_rayonTerritoire;
 }
 
-void Monstre::mettreAJour(float dt, std::optional<Cercle> cible, const TileMap& carte) {
+void Monstre::mettreAJour(float dt, std::optional<Cercle> cible, const TileMap& carte, const std::vector<Cercle>& obstacles) {
     m_attaque.mettreAJour(dt);
 
     const Etat etatPrecedent = m_etat;
@@ -124,7 +124,7 @@ void Monstre::mettreAJour(float dt, std::optional<Cercle> cible, const TileMap& 
         }
     }
 
-    m_mobile.mettreAJour(dt, carte);
+    m_mobile.mettreAJour(dt, carte, obstacles);
 }
 
 int Monstre::frapper(Cercle cible) {

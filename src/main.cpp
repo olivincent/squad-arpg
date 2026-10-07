@@ -7,6 +7,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include "Cercle.hpp"
 #include "TileMap.hpp"
 #include "Escouade.hpp"
 #include "Monstre.hpp"
@@ -136,8 +137,15 @@ int main() {
         escouade.mettreAJour(dt, carte);
 
         for (Monstre& m : monstres) {
+            // Les autres monstres, à leur position courante, sont des obstacles.
+            std::vector<Cercle> obstacles;
+            for (const Monstre& autre : monstres) {
+                if (autre.getId() != m.getId()) {
+                    obstacles.push_back(autre.getCercle());
+                }
+            }
             const auto cible = escouade.personnageLePlusProche(m.getCentre());
-            m.mettreAJour(dt, cible, carte);
+            m.mettreAJour(dt, cible, carte, obstacles);
             const sf::Vector2f origine = m.getCentre();
             if (cible) {
                 escouade.recevoirDegats(origine, m.frapper(*cible));

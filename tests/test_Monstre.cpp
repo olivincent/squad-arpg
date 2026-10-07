@@ -60,7 +60,7 @@ void ecoulerTemps(Monstre& monstre, float duree, std::optional<Cercle> cible, co
     float tempsRestant = duree;
     while (tempsRestant > 0.0f) {
         const float pas = (tempsRestant < dt) ? tempsRestant : dt;
-        monstre.mettreAJour(pas, cible, carte);
+        monstre.mettreAJour(pas, cible, carte, {});
         tempsRestant -= pas;
     }
 }

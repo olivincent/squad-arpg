@@ -5,8 +5,65 @@
 #include <string>
 #include <vector>
 
+#include "Cercle.hpp"
 #include "Deplacement.hpp"
 #include "TileMap.hpp"
+
+TEST_CASE("deplacementBloque : aucun obstacle ne bloque rien") {
+    const Cercle avant{{0.0f, 0.0f}, 10.0f};
+    const Cercle apres{{50.0f, 0.0f}, 10.0f};
+
+    REQUIRE_FALSE(deplacementBloque(avant, apres, {}));
+}
+
+TEST_CASE("deplacementBloque : un déplacement qui entre dans un obstacle est bloqué") {
+    // Obstacle à 40 px, rayons 10 + 10 = 20. Après le déplacement, la
+    // distance est 10 < 20 (chevauchement) et elle a diminué (40 -> 10).
+    const Cercle avant{{0.0f, 0.0f}, 10.0f};
+    const Cercle apres{{30.0f, 0.0f}, 10.0f};
+    const std::vector<Cercle> obstacles = {{{40.0f, 0.0f}, 10.0f}};
+
+    REQUIRE(deplacementBloque(avant, apres, obstacles));
+}
+
+TEST_CASE("deplacementBloque : arriver exactement au contact n'est pas bloqué") {
+    // Distance après = 20 = 10 + 10 : les cercles se touchent sans se chevaucher.
+    const Cercle avant{{0.0f, 0.0f}, 10.0f};
+    const Cercle apres{{20.0f, 0.0f}, 10.0f};
+    const std::vector<Cercle> obstacles = {{{40.0f, 0.0f}, 10.0f}};
+
+    REQUIRE_FALSE(deplacementBloque(avant, apres, obstacles));
+}
+
+TEST_CASE("deplacementBloque : déjà en chevauchement, s'éloigner n'est pas bloqué") {
+    // Distance avant 10, après 15 : toujours en chevauchement (< 20) mais on s'éloigne.
+    const Cercle avant{{0.0f, 0.0f}, 10.0f};
+    const Cercle apres{{-5.0f, 0.0f}, 10.0f};
+    const std::vector<Cercle> obstacles = {{{10.0f, 0.0f}, 10.0f}};
+
+    REQUIRE_FALSE(deplacementBloque(avant, apres, obstacles));
+}
+
+TEST_CASE("deplacementBloque : déjà en chevauchement, se rapprocher est bloqué") {
+    // Distance avant 15, après 10 : en chevauchement et plus près.
+    const Cercle avant{{0.0f, 0.0f}, 10.0f};
+    const Cercle apres{{5.0f, 0.0f}, 10.0f};
+    const std::vector<Cercle> obstacles = {{{15.0f, 0.0f}, 10.0f}};
+
+    REQUIRE(deplacementBloque(avant, apres, obstacles));
+}
+
+TEST_CASE("deplacementBloque : un seul obstacle sur plusieurs suffit à bloquer") {
+    const Cercle avant{{0.0f, 0.0f}, 10.0f};
+    const Cercle apres{{30.0f, 0.0f}, 10.0f};
+    const std::vector<Cercle> obstacles = {
+        {{0.0f, 200.0f}, 10.0f},   // loin
+        {{40.0f, 0.0f}, 10.0f},    // bloque
+        {{-100.0f, 0.0f}, 10.0f},  // loin
+    };
+
+    REQUIRE(deplacementBloque(avant, apres, obstacles));
+}
 
 TEST_CASE("deplacerAvecGlissement avance normalement en terrain dégagé") {
     const std::vector<std::string> plan = {
@@ -19,7 +76,7 @@ TEST_CASE("deplacerAvecGlissement avance normalement en terrain dégagé") {
     TileMap carte(plan, 40.0f);
 
     const sf::FloatRect rect({0.0f, 0.0f}, {20.0f, 20.0f});
-    const sf::Vector2f position = deplacerAvecGlissement(carte, rect, {50.0f, 30.0f});
+    const sf::Vector2f position = deplacerAvecGlissement(carte, rect, {50.0f, 30.0f}, {});
 
     REQUIRE(position == sf::Vector2f(50.0f, 30.0f));
 }
@@ -40,7 +97,7 @@ TEST_CASE("Un mur bloque complètement un déplacement sur un seul axe") {
     TileMap carte(plan, 40.0f);
 
     const sf::FloatRect rect({50.0f, 90.0f}, {20.0f, 20.0f});
-    const sf::Vector2f position = deplacerAvecGlissement(carte, rect, {60.0f, 0.0f});
+    const sf::Vector2f position = deplacerAvecGlissement(carte, rect, {60.0f, 0.0f}, {});
 
     REQUIRE(position == sf::Vector2f(50.0f, 90.0f));
 }
@@ -62,7 +119,7 @@ TEST_CASE("Un déplacement oblique contre un mur ne garde que la composante para
     TileMap carte(plan, 40.0f);
 
     const sf::FloatRect rect({50.0f, 90.0f}, {20.0f, 20.0f});
-    const sf::Vector2f position = deplacerAvecGlissement(carte, rect, {60.0f, 30.0f});
+    const sf::Vector2f position = deplacerAvecGlissement(carte, rect, {60.0f, 30.0f}, {});
 
     REQUIRE(position == sf::Vector2f(50.0f, 120.0f));
 }
@@ -78,7 +135,48 @@ TEST_CASE("Un déplacement nul laisse la position inchangée") {
     TileMap carte(plan, 40.0f);
 
     const sf::FloatRect rect({50.0f, 50.0f}, {20.0f, 20.0f});
-    const sf::Vector2f position = deplacerAvecGlissement(carte, rect, {0.0f, 0.0f});
+    const sf::Vector2f position = deplacerAvecGlissement(carte, rect, {0.0f, 0.0f}, {});
 
     REQUIRE(position == sf::Vector2f(50.0f, 50.0f));
+}
+
+TEST_CASE("Un obstacle droit devant bloque le déplacement sur cet axe") {
+    // Rectangle 20x20 en (0, 0), centre (10, 10), rayon 10. Obstacle de rayon 10
+    // centré en (50, 10). Déplacement de +30 en X : le centre irait en
+    // (40, 10), à 10 < 10 + 10 de l'obstacle et plus près qu'avant (40) :
+    // bloqué. Aucun déplacement en Y : la position ne change pas.
+    const std::vector<std::string> plan = {
+        ".....",
+        ".....",
+        ".....",
+        ".....",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    const sf::FloatRect rect({0.0f, 0.0f}, {20.0f, 20.0f});
+    const std::vector<Cercle> obstacles = {{{50.0f, 10.0f}, 10.0f}};
+    const sf::Vector2f position = deplacerAvecGlissement(carte, rect, {30.0f, 0.0f}, obstacles);
+
+    REQUIRE(position == sf::Vector2f(0.0f, 0.0f));
+}
+
+TEST_CASE("Un déplacement oblique contre un obstacle laisse passer l'axe libre") {
+    // Même rectangle et même obstacle. Déplacement (30, 30) : l'essai en X est
+    // bloqué (voir ci-dessus), l'essai en Y part de (0, 0) vers centre (10, 40) :
+    // distance à (50, 10) = 50 > 20, libre. Seule la composante Y passe.
+    const std::vector<std::string> plan = {
+        ".....",
+        ".....",
+        ".....",
+        ".....",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    const sf::FloatRect rect({0.0f, 0.0f}, {20.0f, 20.0f});
+    const std::vector<Cercle> obstacles = {{{50.0f, 10.0f}, 10.0f}};
+    const sf::Vector2f position = deplacerAvecGlissement(carte, rect, {30.0f, 30.0f}, obstacles);
+
+    REQUIRE(position == sf::Vector2f(0.0f, 30.0f));
 }

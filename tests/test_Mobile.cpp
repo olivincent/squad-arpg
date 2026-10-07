@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "Cercle.hpp"
 #include "Mobile.hpp"
 #include "TileMap.hpp"
 
@@ -17,11 +18,12 @@ void verifierPointProche(sf::Vector2f point, sf::Vector2f attendu, float toleran
     REQUIRE_THAT(point.y, Catch::Matchers::WithinAbs(attendu.y, tolerance));
 }
 
-void simuler(Mobile& mobile, const TileMap& carte, float dureeSecondes) {
+void simuler(Mobile& mobile, const TileMap& carte, float dureeSecondes,
+             const std::vector<Cercle>& obstacles = {}) {
     constexpr float dt = 1.0f / 60.0f;
     const int nombreTics = static_cast<int>(dureeSecondes / dt);
     for (int i = 0; i < nombreTics; ++i) {
-        mobile.mettreAJour(dt, carte);
+        mobile.mettreAJour(dt, carte, obstacles);
     }
 }
 
@@ -69,7 +71,7 @@ TEST_CASE("Mobile.mettreAJour avance de vitesse * dt sur un seul tic") {
     Mobile mobile({60.0f, 60.0f}, {20.0f, 20.0f}, 180.0f);
 
     mobile.allerVers({300.0f, 300.0f}, carte);
-    mobile.mettreAJour(0.1f, carte);
+    mobile.mettreAJour(0.1f, carte, {});
 
     const float distanceParcourue = (mobile.getCentre() - sf::Vector2f(60.0f, 60.0f)).length();
     REQUIRE_THAT(distanceParcourue, Catch::Matchers::WithinAbs(18.0f, 0.5f));
@@ -162,4 +164,20 @@ TEST_CASE("Mobile.directionVoulue est vide une fois arrivé") {
     simuler(mobile, carte, 10.0f);
 
     REQUIRE_FALSE(mobile.directionVoulue().has_value());
+}
+
+TEST_CASE("Mobile.mettreAJour s'arrête avant un obstacle placé sur son trajet") {
+    // Mobile de rayon 10 en (60, 60), destination (300, 60) en ligne droite.
+    // Obstacle de rayon 10 centré en (180, 60) : le contact exact est à
+    // x = 160, le mobile ne doit jamais dépasser ce centre.
+    const TileMap carte = carteDegagee();
+    Mobile mobile({60.0f, 60.0f}, {20.0f, 20.0f}, 180.0f);
+    const std::vector<Cercle> obstacles = {{{180.0f, 60.0f}, 10.0f}};
+
+    mobile.allerVers({300.0f, 60.0f}, carte);
+    simuler(mobile, carte, 5.0f, obstacles);
+
+    REQUIRE(mobile.getCentre().x > 100.0f);
+    REQUIRE(mobile.getCentre().x <= 160.0f);
+    REQUIRE_THAT(mobile.getCentre().y, Catch::Matchers::WithinAbs(60.0f, 0.5f));
 }

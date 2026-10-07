@@ -6,6 +6,7 @@
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <optional>
+#include <vector>
 
 class TileMap;
 
@@ -13,7 +14,7 @@ class Monstre {
 public:
     Monstre(sf::Vector2f centre, int id);
     void dessiner(sf::RenderTarget& rendu, bool estCible) const;
-    void mettreAJour(float dt, std::optional<Cercle> cible, const TileMap& carte);
+    void mettreAJour(float dt, std::optional<Cercle> cible, const TileMap& carte, const std::vector<Cercle>& obstacles);
     int frapper(Cercle cible);
     sf::Vector2f getCentre() const;
     Cercle getCercle() const;

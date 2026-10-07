@@ -50,7 +50,7 @@ void Mobile::arreter() {
     m_indexChemin = 0;
 }
 
-void Mobile::mettreAJour(float dt, const TileMap& carte) {
+void Mobile::mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles) {
     sf::Vector2f deplacement(0.0f, 0.0f);
 
     if (m_indexChemin < m_chemin.size()) {
@@ -67,7 +67,7 @@ void Mobile::mettreAJour(float dt, const TileMap& carte) {
         }
     }
 
-    m_position = deplacerAvecGlissement(carte, sf::FloatRect(m_position, m_taille), deplacement);
+    m_position = deplacerAvecGlissement(carte, sf::FloatRect(m_position, m_taille), deplacement, obstacles);
 }
 
 std::optional<sf::Vector2f> Mobile::directionVoulue() const {

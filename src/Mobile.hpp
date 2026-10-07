@@ -1,5 +1,6 @@
 // ./src/Mobile.hpp
 #pragma once
+#include "Cercle.hpp"
 #include <SFML/System/Vector2.hpp>
 #include <cstddef>
 #include <optional>
@@ -12,7 +13,7 @@ public:
     Mobile(sf::Vector2f centre, sf::Vector2f taille, float vitesse);
     void allerVers(sf::Vector2f destination, const TileMap& carte);
     void arreter();
-    void mettreAJour(float dt, const TileMap& carte);
+    void mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles);
     sf::Vector2f getCentre() const;
     sf::Vector2f getTaille() const;
     std::optional<sf::Vector2f> directionVoulue() const;
