@@ -18,7 +18,7 @@ public:
     void allerVers(sf::Vector2f destination, const TileMap& carte);
     int attaquer(Cercle cible, const TileMap& carte);
     int declencherSkill(Cercle cible);
-    void mettreAJour(float dt, const TileMap& carte);
+    void mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles);
     sf::Vector2f getCentre() const;
     std::optional<Cercle> personnageLePlusProche(sf::Vector2f point) const;
     void recevoirDegats(sf::Vector2f origine, int quantite);

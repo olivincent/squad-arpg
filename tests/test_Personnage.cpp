@@ -37,7 +37,7 @@ void ecoulerTemps(Personnage& personnage, const TileMap& carte, sf::Vector2f cen
     float tempsRestant = duree;
     while (tempsRestant > 0.0f) {
         const float pas = (tempsRestant < dt) ? tempsRestant : dt;
-        personnage.mettreAJour(pas, centre, carte);
+        personnage.mettreAJour(pas, centre, carte, {});
         tempsRestant -= pas;
     }
 }
@@ -205,4 +205,21 @@ TEST_CASE("Apres un skill reussi, l'attaque de base attend une recharge complete
     REQUIRE(personnage.frapper(cible) == 0);
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.3f);
     REQUIRE(personnage.frapper(cible) == 5);
+}
+
+TEST_CASE("mettreAJour s'arrête avant d'entrer dans un obstacle") {
+    const TileMap carte = carteDegagee();
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f), std::nullopt);
+    const std::vector<Cercle> obstacles = {{{140.0f, 100.0f}, 15.0f}};
+
+    for (int i = 0; i < 60; ++i) {
+        personnage.mettreAJour(1.0f / 60.0f, {170.0f, 100.0f}, carte, obstacles);
+    }
+
+    // distanceBordABord est bornée à 0 : on compare donc les distances
+    // entre centres et la somme des rayons.
+    const float ecartCentres = (personnage.getCentre() - obstacles[0].centre).length();
+    REQUIRE(ecartCentres >= personnage.getCercle().rayon + obstacles[0].rayon - 0.001f);
+    REQUIRE(personnage.getCentre().x > 100.0f);
+    REQUIRE(personnage.getCentre().x < 140.0f);
 }

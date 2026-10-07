@@ -41,7 +41,7 @@ void simuler(Escouade& escouade, const TileMap& carte, float dureeSecondes) {
     constexpr float dt = 1.0f / 60.0f;
     const int nombreTics = static_cast<int>(dureeSecondes / dt);
     for (int i = 0; i < nombreTics; ++i) {
-        escouade.mettreAJour(dt, carte);
+        escouade.mettreAJour(dt, carte, {});
     }
 }
 
@@ -53,7 +53,7 @@ int simulerAttaque(Escouade& escouade, const TileMap& carte, Cercle cible, float
     int degats = 0;
     for (int i = 0; i < nombreTics; ++i) {
         degats += escouade.attaquer(cible, carte);
-        escouade.mettreAJour(dt, carte);
+        escouade.mettreAJour(dt, carte, {});
     }
     return degats;
 }
@@ -86,7 +86,7 @@ TEST_CASE("Un seul tic avance le centre de vitesse * dt") {
 
     const sf::Vector2f centreInitial = escouade.getCentre();
     escouade.allerVers({300.0f, 300.0f}, carte);
-    escouade.mettreAJour(0.1f, carte);
+    escouade.mettreAJour(0.1f, carte, {});
 
     const float distanceParcourue = (escouade.getCentre() - centreInitial).length();
     REQUIRE_THAT(distanceParcourue, Catch::Matchers::WithinAbs(18.0f, 0.5f));
@@ -152,7 +152,7 @@ TEST_CASE("Sans ordre, l'escouade ne bouge pas") {
     Escouade escouade({50.0f, 50.0f});
 
     for (int i = 0; i < 60; ++i) {
-        escouade.mettreAJour(1.0f / 60.0f, carte);
+        escouade.mettreAJour(1.0f / 60.0f, carte, {});
     }
 
     verifierPointProche(escouade.getCentre(), {60.0f, 60.0f});
@@ -246,7 +246,7 @@ TEST_CASE("attaquer renvoie 0 pour une cible lointaine et l'escouade s'en rappro
     const float distanceInitiale = (cible - escouade.getCentre()).length();
 
     REQUIRE(escouade.attaquer(pointCible(cible), carte) == 0);
-    escouade.mettreAJour(1.0f / 60.0f, carte);
+    escouade.mettreAJour(1.0f / 60.0f, carte, {});
 
     const float distanceApres = (cible - escouade.getCentre()).length();
     REQUIRE(distanceApres < distanceInitiale);
@@ -302,7 +302,7 @@ TEST_CASE("attaquer ignore les personnages morts pour décider si l'escouade doi
     const sf::Vector2f cible = centreAvant + sf::Vector2f(30.0f, 0.0f);
 
     REQUIRE(escouade.attaquer(cibleMonstre(cible), carte) == 15); // 3 vivants x 5 degats
-    escouade.mettreAJour(1.0f / 60.0f, carte);
+    escouade.mettreAJour(1.0f / 60.0f, carte, {});
 
     verifierPointProche(escouade.getCentre(), centreAvant);
 }
@@ -326,7 +326,7 @@ TEST_CASE("attaquer renvoie les dégâts de tous les personnages pour une cible 
     const sf::Vector2f centreInitial = escouade.getCentre();
 
     REQUIRE(escouade.attaquer(cibleMonstre(cible), carte) == 20);
-    escouade.mettreAJour(1.0f / 60.0f, carte);
+    escouade.mettreAJour(1.0f / 60.0f, carte, {});
 
     verifierPointProche(escouade.getCentre(), centreInitial);
 }
@@ -538,7 +538,7 @@ TEST_CASE("En combat, un personnage a portee de la cible reste immobile pendant 
 
     for (int i = 0; i < 10; ++i) {
         escouade.attaquer(cibleMonstre(cible), carte);
-        escouade.mettreAJour(1.0f / 60.0f, carte);
+        escouade.mettreAJour(1.0f / 60.0f, carte, {});
     }
 
     const sf::Vector2f tireurApres = escouade.personnageLePlusProche({35.0f, 60.0f})->centre;
@@ -570,7 +570,7 @@ TEST_CASE("Sans verrou, un personnage deja a portee suit tout de meme son emplac
 
     for (int i = 0; i < 10; ++i) {
         escouade.attaquer(cibleMonstre(cible), carte);
-        escouade.mettreAJour(1.0f / 60.0f, carte);
+        escouade.mettreAJour(1.0f / 60.0f, carte, {});
     }
 
     const sf::Vector2f tireurApres = escouade.personnageLePlusProche({35.0f, 60.0f})->centre;
@@ -609,4 +609,36 @@ TEST_CASE("En combat, declencherSkill renvoie 0 au second appel immediat (rechar
 
     REQUIRE(escouade.declencherSkill(cible) == 25);
     REQUIRE(escouade.declencherSkill(cible) == 0);
+}
+
+TEST_CASE("Les obstacles bloquent les personnages mais pas l'ancre") {
+    const std::vector<std::string> plan = {
+        "............",
+        "............",
+        "............",
+        "............",
+        "............",
+        "............",
+        "............",
+        "............",
+        "............",
+        "............",
+    };
+    TileMap carte(plan, 40.0f);
+    Escouade escouade({50.0f, 50.0f}); // centre (60, 60), personnages en (35|85, 35|85)
+    const std::vector<Cercle> obstacles = {{{200.0f, 60.0f}, 30.0f}};
+
+    escouade.allerVers({400.0f, 60.0f}, carte);
+    for (int i = 0; i < 300; ++i) {
+        escouade.mettreAJour(1.0f / 60.0f, carte, obstacles);
+    }
+
+    // L'ancre a traversé l'obstacle (bord droit en x = 230)...
+    REQUIRE(escouade.getCentre().x > 230.0f);
+
+    // ... mais aucun personnage n'y est entré.
+    for (const Cercle& cercle : escouade.cerclesDesVivants()) {
+        const float ecartCentres = (cercle.centre - obstacles[0].centre).length();
+        REQUIRE(ecartCentres >= cercle.rayon + obstacles[0].rayon - 0.001f);
+    }
 }

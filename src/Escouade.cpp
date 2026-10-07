@@ -90,11 +90,12 @@ int Escouade::declencherSkill(Cercle cible) {
     return degats;
 }
 
-void Escouade::mettreAJour(float dt, const TileMap& carte) {
+void Escouade::mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles) {
     if (const std::optional<sf::Vector2f> direction = m_mobile.directionVoulue()) {
         m_orientationVoulue = direction->angle();
     }
 
+    // L'ancre n'est pas bloquée par les obstacles : seuls les personnages le sont.
     m_mobile.mettreAJour(dt, carte, {});
 
     // Rotation progressive vers l'orientation voulue, par le plus court
@@ -119,7 +120,7 @@ void Escouade::mettreAJour(float dt, const TileMap& carte) {
         if (enCombat && m_personnages[i].estVivant() && m_personnages[i].estAPortee(*m_cibleCombat)) {
             pointVoulu = m_personnages[i].getCentre();
         }
-        m_personnages[i].mettreAJour(dt, pointVoulu, carte);
+        m_personnages[i].mettreAJour(dt, pointVoulu, carte, obstacles);
     }
 }
 

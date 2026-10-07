@@ -61,7 +61,7 @@ void Personnage::dessiner(sf::RenderTarget& rendu) const {
     rendu.draw(recharge);
 }
 
-void Personnage::mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte) {
+void Personnage::mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte, const std::vector<Cercle>& obstacles) {
     if (!estVivant()) {
         return;
     }
@@ -78,7 +78,7 @@ void Personnage::mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte)
     }
 
     const sf::FloatRect rect(m_centre - m_taille / 2.0f, m_taille);
-    m_centre = deplacerAvecGlissement(carte, rect, deplacement, {}) + m_taille / 2.0f;
+    m_centre = deplacerAvecGlissement(carte, rect, deplacement, obstacles) +m_taille / 2.0f;
 
     m_attaque.mettreAJour(dt);
     if (m_skill.has_value()) {
