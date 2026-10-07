@@ -34,6 +34,19 @@ TileMap carteDegagee() {
     return TileMap(plan, 40.0f);
 }
 
+// Dégagée, mais assez longue pour les tests de territoire (une proie à
+// 1000 px du poste, par exemple).
+TileMap carteLongue() {
+    const std::vector<std::string> plan = {
+        "..............................",
+        "..............................",
+        "..............................",
+        "..............................",
+        "..............................",
+    };
+    return TileMap(plan, 40.0f);
+}
+
 // Simule le temps qui passe par tics de 1/60 s, comme dans main.cpp.
 void ecoulerTemps(Monstre& monstre, float duree, std::optional<sf::Vector2f> cible, const TileMap& carte) {
     const float dt = 1.0f / 60.0f;
@@ -213,17 +226,18 @@ TEST_CASE("Monstre.mettreAJour s'arrête à portée d'attaque sans atteindre la 
     REQUIRE(monstre.getCentre() != cible);
 }
 
-// État de poursuite : une fois détectée (<= 200 px), la cible n'est abandonnée
-// qu'au-delà de 400 px ; entre les deux, l'état ne change pas.
+// Territoire : une fois détectée (<= 200 px), une cible reste poursuivie
+// tant que le MONSTRE lui-même ne s'éloigne pas de plus de 400 px de son
+// poste (m_rayonTerritoire) ; peu importe à quelle distance la cible est.
 
-TEST_CASE("Monstre.mettreAJour continue de poursuivre une cible repoussée entre les deux rayons") {
+TEST_CASE("Monstre.mettreAJour continue de poursuivre une cible qui s'éloigne, tant que le territoire n'est pas franchi") {
     const TileMap carte = carteDegagee();
     Monstre monstre({100.0f, 100.0f}, 1);
 
     ecoulerTemps(monstre, 0.2f, sf::Vector2f(250.0f, 100.0f), carte); // déclenche la détection
     const sf::Vector2f centreApresDetection = monstre.getCentre();
 
-    const sf::Vector2f cibleEloignee(400.0f, 100.0f); // hors détection, dans l'abandon
+    const sf::Vector2f cibleEloignee(400.0f, 100.0f); // hors détection, mais le monstre reste dans son territoire
     const float distanceAvant = (cibleEloignee - centreApresDetection).length();
     ecoulerTemps(monstre, 0.2f, cibleEloignee, carte);
     const float distanceApres = (cibleEloignee - monstre.getCentre()).length();
@@ -231,31 +245,64 @@ TEST_CASE("Monstre.mettreAJour continue de poursuivre une cible repoussée entre
     REQUIRE(distanceApres < distanceAvant);
 }
 
-TEST_CASE("Monstre.mettreAJour retourne à son poste après avoir abandonné une cible trop loin") {
-    const TileMap carte = carteDegagee();
+TEST_CASE("Monstre.mettreAJour rejoint à portée une proie à 300 px de son poste, et y reste") {
+    const TileMap carte = carteLongue();
     Monstre monstre({100.0f, 100.0f}, 1);
 
     ecoulerTemps(monstre, 0.2f, sf::Vector2f(250.0f, 100.0f), carte); // déclenche la détection
 
-    const sf::Vector2f cibleTresEloignee(600.0f, 100.0f); // au-delà de l'abandon
-    ecoulerTemps(monstre, 10.0f, cibleTresEloignee, carte); // durée généreuse : abandon puis retour
+    const sf::Vector2f cible(400.0f, 100.0f); // 300 px du poste, dans le territoire (400 px)
+    ecoulerTemps(monstre, 10.0f, cible, carte); // durée généreuse
+
+    const float distance = (cible - monstre.getCentre()).length();
+    REQUIRE(distance <= 80.0f); // à portée de m_attaque
+    REQUIRE_FALSE(monstre.getCentre() == sf::Vector2f(100.0f, 100.0f)); // pas revenu au poste
+}
+
+TEST_CASE("Monstre.mettreAJour retourne à son poste si la poursuite l'éloigne trop de son territoire") {
+    const TileMap carte = carteLongue();
+    Monstre monstre({100.0f, 100.0f}, 1);
+
+    ecoulerTemps(monstre, 0.2f, sf::Vector2f(250.0f, 100.0f), carte); // déclenche la détection
+
+    const sf::Vector2f cibleLointaine(1100.0f, 100.0f); // 1000 px du poste, hors du territoire
+    ecoulerTemps(monstre, 20.0f, cibleLointaine, carte); // durée généreuse : sort du territoire, puis rentre
 
     verifierPointProche(monstre.getCentre(), {100.0f, 100.0f});
 }
 
-TEST_CASE("Monstre.mettreAJour ignore une proie pendant le retour et atteint quand même son poste") {
-    const TileMap carte = carteDegagee();
+TEST_CASE("Monstre.mettreAJour ignore une proie hors de son territoire même proche de lui pendant le retour") {
+    const TileMap carte = carteLongue();
     Monstre monstre({100.0f, 100.0f}, 1);
 
     ecoulerTemps(monstre, 0.2f, sf::Vector2f(250.0f, 100.0f), carte); // détection
-    ecoulerTemps(monstre, 0.2f, sf::Vector2f(600.0f, 100.0f), carte); // abandon, début du retour
 
-    // Cible maintenue, mais hors du rayon de détection depuis le poste (250 px) :
-    // elle ne doit pas interrompre le retour, ni être redétectée une fois arrivé.
-    const sf::Vector2f cibleIntermediaire(350.0f, 100.0f);
-    ecoulerTemps(monstre, 10.0f, cibleIntermediaire, carte); // durée généreuse
+    // Proie à 600 px du poste : pousse le monstre hors de son territoire
+    // (déclenchant le retour), puis reste assez proche de lui en tout début
+    // de retour (moins de 200 px) sans jamais être elle-même dans le
+    // territoire (toujours à plus de 400 px du poste) — elle ne doit donc
+    // jamais être redétectée.
+    ecoulerTemps(monstre, 20.0f, sf::Vector2f(700.0f, 100.0f), carte); // durée généreuse
 
     verifierPointProche(monstre.getCentre(), {100.0f, 100.0f});
+}
+
+TEST_CASE("Monstre.mettreAJour redétecte une proie revenue dans son territoire pendant le retour") {
+    const TileMap carte = carteLongue();
+    Monstre monstre({100.0f, 100.0f}, 1);
+
+    ecoulerTemps(monstre, 0.2f, sf::Vector2f(250.0f, 100.0f), carte); // détection
+    ecoulerTemps(monstre, 4.0f, sf::Vector2f(900.0f, 100.0f), carte); // franchit le territoire : début du retour
+    const sf::Vector2f centrePendantLeRetour = monstre.getCentre();
+
+    // Proie replacée dans le territoire (< 400 px du poste) et à moins de
+    // 200 px du monstre : la poursuite doit reprendre.
+    const sf::Vector2f cibleProche(centrePendantLeRetour.x + 100.0f, centrePendantLeRetour.y);
+    const float distanceAvant = (cibleProche - centrePendantLeRetour).length();
+    ecoulerTemps(monstre, 0.3f, cibleProche, carte);
+    const float distanceApres = (cibleProche - monstre.getCentre()).length();
+
+    REQUIRE(distanceApres < distanceAvant);
 }
 
 TEST_CASE("Monstre.mettreAJour retourne à son poste si la cible disparaît après détection") {

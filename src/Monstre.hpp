@@ -23,13 +23,15 @@ public:
 private:
     enum class Etat { EnGarde, Poursuite, Retour };
 
+    bool proieDetectee(std::optional<sf::Vector2f> cible) const;
+
     Mobile m_mobile;
     int m_pointsDeVie;
     int m_pointsDeVieMax;
     int m_id;
     Attaque m_attaque;
     float m_rayonDetection;
-    float m_rayonAbandon;
+    float m_rayonTerritoire;
     Etat m_etat;
     sf::Vector2f m_poste;
 };
