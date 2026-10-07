@@ -31,6 +31,19 @@ void simuler(Escouade& escouade, const TileMap& carte, float dureeSecondes) {
     }
 }
 
+// Simule attaquer() + mettreAJour() par tics de 1/60 s, et renvoie le
+// total des dégâts cumulés sur toute la durée.
+int simulerAttaque(Escouade& escouade, const TileMap& carte, sf::Vector2f cible, float dureeSecondes) {
+    constexpr float dt = 1.0f / 60.0f;
+    const int nombreTics = static_cast<int>(dureeSecondes / dt);
+    int degats = 0;
+    for (int i = 0; i < nombreTics; ++i) {
+        degats += escouade.attaquer(cible, carte);
+        escouade.mettreAJour(dt, carte);
+    }
+    return degats;
+}
+
 } // namespace
 
 TEST_CASE("Le centre initial est au centre du carré de départ") {
@@ -197,6 +210,75 @@ TEST_CASE("Un second ordre valide pendant un déplacement remplace la destinatio
     simuler(escouade, carte, 10.0f); // largement assez pour atteindre la seconde
 
     verifierPointProche(escouade.getCentre(), secondeDestination);
+}
+
+TEST_CASE("attaquer renvoie 0 pour une cible lointaine et l'escouade s'en rapproche") {
+    const std::vector<std::string> plan = {
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+    };
+    TileMap carte(plan, 40.0f);
+    Escouade escouade({50.0f, 50.0f});
+
+    const sf::Vector2f cible{380.0f, 380.0f};
+    const float distanceInitiale = (cible - escouade.getCentre()).length();
+
+    REQUIRE(escouade.attaquer(cible, carte) == 0);
+    escouade.mettreAJour(1.0f / 60.0f, carte);
+
+    const float distanceApres = (cible - escouade.getCentre()).length();
+    REQUIRE(distanceApres < distanceInitiale);
+}
+
+TEST_CASE("attaquer finit par infliger des dégâts sans que l'escouade atteigne la cible") {
+    const std::vector<std::string> plan = {
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+    };
+    TileMap carte(plan, 40.0f);
+    Escouade escouade({50.0f, 50.0f});
+
+    const sf::Vector2f cible{300.0f, 300.0f};
+    const int degatsTotal = simulerAttaque(escouade, carte, cible, 5.0f);
+
+    REQUIRE(degatsTotal > 0);
+    REQUIRE((cible - escouade.getCentre()).length() > 1.0f);
+}
+
+TEST_CASE("attaquer renvoie les dégâts de tous les personnages pour une cible déjà proche") {
+    const std::vector<std::string> plan = {
+        ".....",
+        ".....",
+        ".....",
+        ".....",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+    Escouade escouade({50.0f, 50.0f});
+
+    const sf::Vector2f cible = escouade.getCentre();
+    const sf::Vector2f centreInitial = escouade.getCentre();
+
+    REQUIRE(escouade.attaquer(cible, carte) == 20);
+    escouade.mettreAJour(1.0f / 60.0f, carte);
+
+    verifierPointProche(escouade.getCentre(), centreInitial);
 }
 
 TEST_CASE("Le lissage rend un trajet diagonal plus rapide qu'un escalier") {

@@ -66,6 +66,29 @@ void Escouade::allerVers(sf::Vector2f destination, const TileMap& carte) {
     m_indexChemin = 0;
 }
 
+int Escouade::attaquer(sf::Vector2f cible, const TileMap& carte) {
+    bool tousAPortee = true;
+    for (const Personnage& personnage : m_personnages) {
+        if (!personnage.estAPortee(cible)) {
+            tousAPortee = false;
+            break;
+        }
+    }
+
+    if (tousAPortee) {
+        m_chemin = {getCentre()};
+        m_indexChemin = 0;
+    } else {
+        allerVers(cible, carte);
+    }
+
+    int degats = 0;
+    for (Personnage& personnage : m_personnages) {
+        degats += personnage.frapper(cible);
+    }
+    return degats;
+}
+
 void Escouade::mettreAJour(float dt, const TileMap& carte) {
     sf::Vector2f deplacement(0.0f, 0.0f);
 

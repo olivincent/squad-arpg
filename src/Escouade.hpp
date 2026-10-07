@@ -13,6 +13,7 @@ public:
     explicit Escouade(sf::Vector2f positionDepart);
     void dessiner(sf::RenderTarget& rendu) const;
     void allerVers(sf::Vector2f destination, const TileMap& carte);
+    int attaquer(sf::Vector2f cible, const TileMap& carte);
     void mettreAJour(float dt, const TileMap& carte);
     sf::Vector2f getCentre() const;
 

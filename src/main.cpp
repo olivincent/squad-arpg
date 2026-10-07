@@ -56,10 +56,7 @@ int main() {
     TileMap carte(plan, 40.0f);
     Escouade escouade({100.0f, 100.0f});
     Monstre monstre({300.0f, 100.0f});
-    const int degatsParClic = 20;
-    const float tempsRecharge = 0.5f;
     bool cibleVerrouillee = false;
-    float rechargeAttaque = 0.0f;
 
     sf::Clock horloge;
     sf::View camera = window.getDefaultView();
@@ -80,14 +77,8 @@ int main() {
             }
         }
 
-        rechargeAttaque -= dt;
-        if (rechargeAttaque < 0.0f) {
-            rechargeAttaque = 0.0f;
-        }
-
-        if (cibleVerrouillee && rechargeAttaque <= 0.0f) {
-            monstre.recevoirDegats(degatsParClic);
-            rechargeAttaque = tempsRecharge;
+        if (cibleVerrouillee) {
+            monstre.recevoirDegats(escouade.attaquer(monstre.getCentre(), carte));
         }
 
         if (!window.hasFocus() || !sf::Mouse::isButtonPressed(sf::Mouse::Button::Left) || !monstre.estVivant()) {
