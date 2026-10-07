@@ -66,6 +66,7 @@ int main() {
         Monstre({1500.0f, 540.0f}, prochainId++),
         Monstre({1620.0f, 540.0f}, prochainId++),
     };
+    bool deplacementContinu = false;
 
     sf::Clock horloge;
     sf::View camera = window.getDefaultView();
@@ -84,6 +85,10 @@ int main() {
                     });
                     if (it != monstres.end()) {
                         escouade.verrouiller(it->getId());
+                        deplacementContinu = false;
+                    } else {
+                        escouade.deverrouiller();
+                        deplacementContinu = true;
                     }
                 }
             }
@@ -103,13 +108,9 @@ int main() {
             }
         }
 
-        if (!window.hasFocus() || !sf::Mouse::isButtonPressed(sf::Mouse::Button::Left) || !escouade.estVivante()) {
-            escouade.deverrouiller();
-        }
-
         std::erase_if(monstres, [](const Monstre& m) { return !m.estVivant(); });
 
-        if (window.hasFocus() && sf::Mouse::isButtonPressed(sf::Mouse::Button::Left) && !escouade.getCibleVerrouillee().has_value() && escouade.estVivante()) {
+        if (window.hasFocus() && sf::Mouse::isButtonPressed(sf::Mouse::Button::Left) && deplacementContinu && escouade.estVivante()) {
             const sf::Vector2f curseurMonde = window.mapPixelToCoords(sf::Mouse::getPosition(window));
             escouade.allerVers(curseurMonde, carte);
         }
