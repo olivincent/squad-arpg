@@ -11,6 +11,8 @@ const sf::Color s_couleurMelee = sf::Color::Red;
 const sf::Color s_couleurTireur = sf::Color::Cyan;
 constexpr float s_porteeMelee = 10.0f;    // bord à bord
 constexpr float s_porteeTireur = 120.0f;  // bord à bord
+constexpr int s_degatsSkill = 25;
+constexpr float s_rechargeSkill = 5.0f;   // en secondes
 }  // namespace
 
 Escouade::Escouade(sf::Vector2f positionDepart)
@@ -20,10 +22,11 @@ Escouade::Escouade(sf::Vector2f positionDepart)
       m_orientationVoulue(),
       m_vitesseRotation(360.0f),
       m_personnages({
-          Personnage(placePersonnage(0), s_couleurMelee, Attaque(s_porteeMelee, 5, 0.5f)),
-          Personnage(placePersonnage(1), s_couleurMelee, Attaque(s_porteeMelee, 5, 0.5f)),
-          Personnage(placePersonnage(2), s_couleurTireur, Attaque(s_porteeTireur, 5, 0.5f)),
-          Personnage(placePersonnage(3), s_couleurTireur, Attaque(s_porteeTireur, 5, 0.5f)),
+          Personnage(placePersonnage(0), s_couleurMelee, Attaque(s_porteeMelee, 5, 0.5f),
+                     Attaque(s_porteeMelee, s_degatsSkill, s_rechargeSkill)),
+          Personnage(placePersonnage(1), s_couleurMelee, Attaque(s_porteeMelee, 5, 0.5f), std::nullopt),
+          Personnage(placePersonnage(2), s_couleurTireur, Attaque(s_porteeTireur, 5, 0.5f), std::nullopt),
+          Personnage(placePersonnage(3), s_couleurTireur, Attaque(s_porteeTireur, 5, 0.5f), std::nullopt),
       }),
       m_cibleVerrouillee(),
       m_cibleCombat()
@@ -70,6 +73,19 @@ int Escouade::attaquer(Cercle cible, const TileMap& carte) {
     int degats = 0;
     for (Personnage& personnage : m_personnages) {
         degats += personnage.frapper(cible);
+    }
+    return degats;
+}
+
+int Escouade::declencherSkill(Cercle cible) {
+    if (!m_cibleVerrouillee.has_value()) {
+        return 0;
+    }
+
+    // Un personnage sans skill renvoie 0 : inutile de savoir lequel en a un.
+    int degats = 0;
+    for (Personnage& personnage : m_personnages) {
+        degats += personnage.declencherSkill(cible);
     }
     return degats;
 }

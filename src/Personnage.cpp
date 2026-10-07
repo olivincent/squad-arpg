@@ -4,12 +4,13 @@
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Rect.hpp>
 
-Personnage::Personnage(sf::Vector2f centre, sf::Color couleur, Attaque attaque)
+Personnage::Personnage(sf::Vector2f centre, sf::Color couleur, Attaque attaque, std::optional<Attaque> skill)
     : m_centre(centre),
       m_taille(20.0f, 20.0f),
       m_couleur(couleur),
       m_vitesse(240.0f),
       m_attaque(attaque),
+      m_skill(skill),
       m_pointsDeVie(100),
       m_pointsDeVieMax(100)
 {
@@ -62,6 +63,9 @@ void Personnage::mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte)
     m_centre = deplacerAvecGlissement(carte, rect, deplacement) + m_taille / 2.0f;
 
     m_attaque.mettreAJour(dt);
+    if (m_skill.has_value()) {
+        m_skill->mettreAJour(dt);
+    }
 }
 
 bool Personnage::estAPortee(Cercle cible) const {
@@ -74,6 +78,20 @@ int Personnage::frapper(Cercle cible) {
     }
 
     return m_attaque.frapper(getCercle(), cible);
+}
+
+int Personnage::declencherSkill(Cercle cible) {
+    if (!m_skill.has_value() || !estVivant()) {
+        return 0;
+    }
+
+    const int degats = m_skill->frapper(getCercle(), cible);
+    if (degats > 0) {
+        // Le skill remplace l'attaque de base à ce moment : elle repart
+        // pour une recharge complète.
+        m_attaque.relancerRecharge();
+    }
+    return degats;
 }
 
 void Personnage::recevoirDegats(int quantite) {

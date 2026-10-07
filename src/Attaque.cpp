@@ -28,3 +28,7 @@ int Attaque::frapper(Cercle origine, Cercle cible) {
     m_recharge = m_tempsRecharge;
     return m_degats;
 }
+
+void Attaque::relancerRecharge() {
+    m_recharge = m_tempsRecharge;
+}

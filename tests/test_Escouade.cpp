@@ -543,3 +543,37 @@ TEST_CASE("Sans verrou, un personnage deja a portee suit tout de meme son emplac
     const sf::Vector2f tireurApres = escouade.personnageLePlusProche({35.0f, 60.0f})->centre;
     REQUIRE((tireurApres - tireurAvant).length() > 5.0f);
 }
+
+// Pour les tests du skill : centre initial (60, 60), mêlées en (85, 35) et
+// (85, 85). Une cible de la taille d'un monstre en (85, 60) est à 0 px bord
+// à bord de chacun d'eux, donc à portée du skill (10 px, comme la mêlée).
+
+TEST_CASE("declencherSkill renvoie 0 sans combat engage, meme avec une cible a portee") {
+    Escouade escouade({50.0f, 50.0f}); // pas de verrouiller()
+
+    REQUIRE(escouade.declencherSkill(cibleMonstre({85.0f, 60.0f})) == 0);
+}
+
+TEST_CASE("En combat, declencherSkill renvoie les degats du seul personnage qui a un skill") {
+    Escouade escouade({50.0f, 50.0f});
+    escouade.verrouiller(1);
+
+    // Les deux mêlées sont à portée, mais un seul a un skill : 25, pas 50.
+    REQUIRE(escouade.declencherSkill(cibleMonstre({85.0f, 60.0f})) == 25);
+}
+
+TEST_CASE("En combat, declencherSkill renvoie 0 pour une cible hors de portee du skill") {
+    Escouade escouade({50.0f, 50.0f});
+    escouade.verrouiller(1);
+
+    REQUIRE(escouade.declencherSkill(cibleMonstre({300.0f, 60.0f})) == 0);
+}
+
+TEST_CASE("En combat, declencherSkill renvoie 0 au second appel immediat (recharge du skill)") {
+    Escouade escouade({50.0f, 50.0f});
+    escouade.verrouiller(1);
+    const Cercle cible = cibleMonstre({85.0f, 60.0f});
+
+    REQUIRE(escouade.declencherSkill(cible) == 25);
+    REQUIRE(escouade.declencherSkill(cible) == 0);
+}

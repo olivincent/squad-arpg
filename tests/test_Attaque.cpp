@@ -95,3 +95,14 @@ TEST_CASE("Un coup d'Attaque tenté hors de portée ne déclenche pas la recharg
     REQUIRE(attaque.frapper(origine, loin) == 0);
     REQUIRE(attaque.frapper(origine, proche) == 5);
 }
+
+TEST_CASE("Attaque.relancerRecharge empêche de frapper avant une recharge complète") {
+    Attaque attaque(80.0f, 5, 0.5f);
+    const Cercle origine = point({100.0f, 100.0f});
+    const Cercle cible = point({150.0f, 100.0f});
+
+    attaque.relancerRecharge(); // jamais utilisée, pourtant elle recharge
+    REQUIRE(attaque.frapper(origine, cible) == 0);
+    ecoulerTemps(attaque, 0.6f);
+    REQUIRE(attaque.frapper(origine, cible) == 5);
+}

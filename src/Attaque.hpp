@@ -8,6 +8,7 @@ public:
     void mettreAJour(float dt);
     bool estAPortee(Cercle origine, Cercle cible) const;
     int frapper(Cercle origine, Cercle cible);
+    void relancerRecharge();
 
 private:
     float m_portee;         // en pixels, écart bord à bord
