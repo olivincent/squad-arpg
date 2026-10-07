@@ -102,3 +102,34 @@ TEST_CASE("Un coup tenté hors de portée ne déclenche pas la recharge") {
     REQUIRE(personnage.frapper(loin) == 0);
     REQUIRE(personnage.frapper(proche) == 5);
 }
+
+TEST_CASE("Un personnage est vivant a la creation") {
+    const Personnage personnage({100.0f, 100.0f}, sf::Color::White);
+
+    REQUIRE(personnage.estVivant());
+}
+
+TEST_CASE("Un personnage est encore vivant apres 80 degats") {
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White);
+
+    personnage.recevoirDegats(80);
+
+    REQUIRE(personnage.estVivant());
+}
+
+TEST_CASE("Un personnage est mort apres 100 degats") {
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White);
+
+    personnage.recevoirDegats(100);
+
+    REQUIRE_FALSE(personnage.estVivant());
+}
+
+TEST_CASE("Un personnage est mort apres un coup qui depasse le reste de ses points de vie") {
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White);
+
+    personnage.recevoirDegats(80);
+    personnage.recevoirDegats(50);
+
+    REQUIRE_FALSE(personnage.estVivant());
+}

@@ -13,6 +13,8 @@ public:
     void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte);
     bool estAPortee(sf::Vector2f cible) const;
     int frapper(sf::Vector2f cible);
+    void recevoirDegats(int quantite);
+    bool estVivant() const;
 
 private:
     sf::Vector2f m_centre;  // pixels du monde
@@ -23,4 +25,6 @@ private:
     int m_degats;
     float m_tempsRecharge;  // en secondes
     float m_recharge;       // en secondes, avant le prochain coup possible
+    int m_pointsDeVie;
+    int m_pointsDeVieMax;
 };
