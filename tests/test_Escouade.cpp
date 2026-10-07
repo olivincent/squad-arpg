@@ -6,10 +6,23 @@
 #include <string>
 #include <vector>
 
+#include "Cercle.hpp"
 #include "Escouade.hpp"
 #include "TileMap.hpp"
 
 namespace {
+
+// Cible ponctuelle (rayon nul), pour les tests qui ne portent pas sur
+// la forme de la cible elle-même.
+Cercle pointCible(sf::Vector2f centre) {
+    return {centre, 0.0f};
+}
+
+// Cible de la taille d'un monstre (rayon 15 px), pour les tests de combat
+// où la taille de la cible décide si les mêlées peuvent l'atteindre.
+Cercle cibleMonstre(sf::Vector2f centre) {
+    return {centre, 15.0f};
+}
 
 // Compare un point à un point attendu avec une tolérance : les positions
 // manipulées par Escouade sont des flottants accumulés sur plusieurs tics
@@ -34,7 +47,7 @@ void simuler(Escouade& escouade, const TileMap& carte, float dureeSecondes) {
 
 // Simule attaquer() + mettreAJour() par tics de 1/60 s, et renvoie le
 // total des dégâts cumulés sur toute la durée.
-int simulerAttaque(Escouade& escouade, const TileMap& carte, sf::Vector2f cible, float dureeSecondes) {
+int simulerAttaque(Escouade& escouade, const TileMap& carte, Cercle cible, float dureeSecondes) {
     constexpr float dt = 1.0f / 60.0f;
     const int nombreTics = static_cast<int>(dureeSecondes / dt);
     int degats = 0;
@@ -232,7 +245,7 @@ TEST_CASE("attaquer renvoie 0 pour une cible lointaine et l'escouade s'en rappro
     const sf::Vector2f cible{380.0f, 380.0f};
     const float distanceInitiale = (cible - escouade.getCentre()).length();
 
-    REQUIRE(escouade.attaquer(cible, carte) == 0);
+    REQUIRE(escouade.attaquer(pointCible(cible), carte) == 0);
     escouade.mettreAJour(1.0f / 60.0f, carte);
 
     const float distanceApres = (cible - escouade.getCentre()).length();
@@ -256,7 +269,7 @@ TEST_CASE("attaquer finit par infliger des dégâts sans que l'escouade atteigne
     Escouade escouade({50.0f, 50.0f});
 
     const sf::Vector2f cible{300.0f, 300.0f};
-    const int degatsTotal = simulerAttaque(escouade, carte, cible, 5.0f);
+    const int degatsTotal = simulerAttaque(escouade, carte, cibleMonstre(cible), 5.0f);
 
     REQUIRE(degatsTotal > 0);
     REQUIRE((cible - escouade.getCentre()).length() > 1.0f);
@@ -288,7 +301,7 @@ TEST_CASE("attaquer ignore les personnages morts pour décider si l'escouade doi
     // en arrière.
     const sf::Vector2f cible = centreAvant + sf::Vector2f(30.0f, 0.0f);
 
-    REQUIRE(escouade.attaquer(cible, carte) == 15); // 3 vivants x 5 degats
+    REQUIRE(escouade.attaquer(cibleMonstre(cible), carte) == 15); // 3 vivants x 5 degats
     escouade.mettreAJour(1.0f / 60.0f, carte);
 
     verifierPointProche(escouade.getCentre(), centreAvant);
@@ -305,10 +318,14 @@ TEST_CASE("attaquer renvoie les dégâts de tous les personnages pour une cible 
     TileMap carte(plan, 40.0f);
     Escouade escouade({50.0f, 50.0f});
 
-    const sf::Vector2f cible = escouade.getCentre();
+    // Centre initial (60, 60) ; mêlées en (85, 35) et (85, 85), tireurs en
+    // (35, 35) et (35, 85). Une cible de la taille d'un monstre en (85, 60)
+    // est à 25 px du centre de chaque mêlée, soit 0 px bord à bord : les
+    // 4 personnages sont déjà à portée.
+    const sf::Vector2f cible{85.0f, 60.0f};
     const sf::Vector2f centreInitial = escouade.getCentre();
 
-    REQUIRE(escouade.attaquer(cible, carte) == 20);
+    REQUIRE(escouade.attaquer(cibleMonstre(cible), carte) == 20);
     escouade.mettreAJour(1.0f / 60.0f, carte);
 
     verifierPointProche(escouade.getCentre(), centreInitial);
@@ -349,10 +366,10 @@ TEST_CASE("personnageLePlusProche renvoie un centre plus proche du point que le 
     const Escouade escouade({50.0f, 50.0f});
 
     const sf::Vector2f pointLointain{1000.0f, 1000.0f};
-    const std::optional<sf::Vector2f> centrePersonnage = escouade.personnageLePlusProche(pointLointain);
-    REQUIRE(centrePersonnage.has_value());
+    const std::optional<Cercle> cerclePersonnage = escouade.personnageLePlusProche(pointLointain);
+    REQUIRE(cerclePersonnage.has_value());
 
-    const float distancePersonnage = (*centrePersonnage - pointLointain).length();
+    const float distancePersonnage = (cerclePersonnage->centre - pointLointain).length();
     const float distanceEscouade = (escouade.getCentre() - pointLointain).length();
 
     REQUIRE(distancePersonnage < distanceEscouade);
@@ -362,28 +379,28 @@ TEST_CASE("personnageLePlusProche ignore les degats insuffisants pour tuer") {
     Escouade escouade({50.0f, 50.0f});
     const sf::Vector2f point{1000.0f, 1000.0f};
 
-    const std::optional<sf::Vector2f> avant = escouade.personnageLePlusProche(point);
+    const std::optional<Cercle> avant = escouade.personnageLePlusProche(point);
     REQUIRE(avant.has_value());
 
     escouade.recevoirDegats(point, 50);
-    const std::optional<sf::Vector2f> apres = escouade.personnageLePlusProche(point);
+    const std::optional<Cercle> apres = escouade.personnageLePlusProche(point);
     REQUIRE(apres.has_value());
 
-    REQUIRE(*apres == *avant);
+    REQUIRE(apres->centre == avant->centre);
 }
 
 TEST_CASE("personnageLePlusProche change de cible une fois le plus proche mort") {
     Escouade escouade({50.0f, 50.0f});
     const sf::Vector2f point{1000.0f, 1000.0f};
 
-    const std::optional<sf::Vector2f> avant = escouade.personnageLePlusProche(point);
+    const std::optional<Cercle> avant = escouade.personnageLePlusProche(point);
     REQUIRE(avant.has_value());
 
     escouade.recevoirDegats(point, 100);
-    const std::optional<sf::Vector2f> apres = escouade.personnageLePlusProche(point);
+    const std::optional<Cercle> apres = escouade.personnageLePlusProche(point);
     REQUIRE(apres.has_value());
 
-    REQUIRE_FALSE(*apres == *avant);
+    REQUIRE_FALSE(apres->centre == avant->centre);
 }
 
 TEST_CASE("personnageLePlusProche est vide une fois tous les personnages morts") {
@@ -475,25 +492,26 @@ TEST_CASE("En combat, un personnage a portee de la cible reste immobile pendant 
     Escouade escouade({50.0f, 50.0f});
     escouade.verrouiller(1); // id arbitraire, Escouade ne connaît pas Monstre
 
-    // Centre initial (60, 60). Les deux tireurs (portée 150 px) démarrent
-    // à l'arrière, en (35, 35) et (35, 85) ; les deux mêlées (portée 80 px)
-    // à l'avant, en (85, 35) et (85, 85). Cette cible met déjà les tireurs
-    // à portée (≈142 px) mais pas les mêlées (≈93 px) : l'ancre doit donc
-    // encore avancer.
+    // Centre initial (60, 60). Les deux tireurs (portée 120 px bord à bord)
+    // démarrent à l'arrière, en (35, 35) et (35, 85) ; les deux mêlées
+    // (portée 10 px) à l'avant, en (85, 35) et (85, 85). Rayons : 10 px
+    // pour un personnage, 15 px pour la cible. Cette cible met déjà les
+    // tireurs à portée (≈142 - 25 ≈ 117 px bord à bord) mais pas les mêlées
+    // (≈93 - 25 ≈ 68 px) : l'ancre doit donc encore avancer.
     const sf::Vector2f cible{175.0f, 60.0f};
 
-    const sf::Vector2f tireurAvant = *escouade.personnageLePlusProche({35.0f, 60.0f});
-    const sf::Vector2f meleeAvant = *escouade.personnageLePlusProche({85.0f, 60.0f});
+    const sf::Vector2f tireurAvant = escouade.personnageLePlusProche({35.0f, 60.0f})->centre;
+    const sf::Vector2f meleeAvant = escouade.personnageLePlusProche({85.0f, 60.0f})->centre;
 
     for (int i = 0; i < 10; ++i) {
-        escouade.attaquer(cible, carte);
+        escouade.attaquer(cibleMonstre(cible), carte);
         escouade.mettreAJour(1.0f / 60.0f, carte);
     }
 
-    const sf::Vector2f tireurApres = *escouade.personnageLePlusProche({35.0f, 60.0f});
+    const sf::Vector2f tireurApres = escouade.personnageLePlusProche({35.0f, 60.0f})->centre;
     verifierPointProche(tireurApres, tireurAvant, 0.01f);
 
-    const sf::Vector2f meleeApres = *escouade.personnageLePlusProche({85.0f, 60.0f});
+    const sf::Vector2f meleeApres = escouade.personnageLePlusProche({85.0f, 60.0f})->centre;
     REQUIRE((meleeApres - meleeAvant).length() > 5.0f);
 }
 
@@ -515,13 +533,13 @@ TEST_CASE("Sans verrou, un personnage deja a portee suit tout de meme son emplac
 
     const sf::Vector2f cible{175.0f, 60.0f}; // même configuration que le test précédent
 
-    const sf::Vector2f tireurAvant = *escouade.personnageLePlusProche({35.0f, 60.0f});
+    const sf::Vector2f tireurAvant = escouade.personnageLePlusProche({35.0f, 60.0f})->centre;
 
     for (int i = 0; i < 10; ++i) {
-        escouade.attaquer(cible, carte);
+        escouade.attaquer(cibleMonstre(cible), carte);
         escouade.mettreAJour(1.0f / 60.0f, carte);
     }
 
-    const sf::Vector2f tireurApres = *escouade.personnageLePlusProche({35.0f, 60.0f});
+    const sf::Vector2f tireurApres = escouade.personnageLePlusProche({35.0f, 60.0f})->centre;
     REQUIRE((tireurApres - tireurAvant).length() > 5.0f);
 }

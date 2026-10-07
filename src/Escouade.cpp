@@ -9,7 +9,8 @@
 namespace {
 const sf::Color s_couleurMelee = sf::Color::Red;
 const sf::Color s_couleurTireur = sf::Color::Cyan;
-constexpr float s_porteeTireur = 150.0f;
+constexpr float s_porteeMelee = 10.0f;    // bord à bord
+constexpr float s_porteeTireur = 120.0f;  // bord à bord
 }  // namespace
 
 Escouade::Escouade(sf::Vector2f positionDepart)
@@ -19,8 +20,8 @@ Escouade::Escouade(sf::Vector2f positionDepart)
       m_orientationVoulue(),
       m_vitesseRotation(360.0f),
       m_personnages({
-          Personnage(placePersonnage(0), s_couleurMelee, Attaque(80.0f, 5, 0.5f)),
-          Personnage(placePersonnage(1), s_couleurMelee, Attaque(80.0f, 5, 0.5f)),
+          Personnage(placePersonnage(0), s_couleurMelee, Attaque(s_porteeMelee, 5, 0.5f)),
+          Personnage(placePersonnage(1), s_couleurMelee, Attaque(s_porteeMelee, 5, 0.5f)),
           Personnage(placePersonnage(2), s_couleurTireur, Attaque(s_porteeTireur, 5, 0.5f)),
           Personnage(placePersonnage(3), s_couleurTireur, Attaque(s_porteeTireur, 5, 0.5f)),
       }),
@@ -49,7 +50,7 @@ void Escouade::allerVers(sf::Vector2f destination, const TileMap& carte) {
     m_mobile.allerVers(destination, carte);
 }
 
-int Escouade::attaquer(sf::Vector2f cible, const TileMap& carte) {
+int Escouade::attaquer(Cercle cible, const TileMap& carte) {
     m_cibleCombat = cible;
 
     bool tousAPortee = true;
@@ -63,7 +64,7 @@ int Escouade::attaquer(sf::Vector2f cible, const TileMap& carte) {
     if (tousAPortee) {
         m_mobile.arreter();
     } else {
-        allerVers(cible, carte);
+        allerVers(cible.centre, carte);
     }
 
     int degats = 0;
@@ -128,12 +129,12 @@ std::optional<std::size_t> Escouade::indicePersonnageLePlusProche(sf::Vector2f p
     return indicePlusProche;
 }
 
-std::optional<sf::Vector2f> Escouade::personnageLePlusProche(sf::Vector2f point) const {
+std::optional<Cercle> Escouade::personnageLePlusProche(sf::Vector2f point) const {
     const std::optional<std::size_t> indice = indicePersonnageLePlusProche(point);
     if (!indice.has_value()) {
         return std::nullopt;
     }
-    return m_personnages[*indice].getCentre();
+    return m_personnages[*indice].getCercle();
 }
 
 void Escouade::recevoirDegats(sf::Vector2f origine, int quantite) {

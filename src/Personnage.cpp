@@ -64,16 +64,16 @@ void Personnage::mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte)
     m_attaque.mettreAJour(dt);
 }
 
-bool Personnage::estAPortee(sf::Vector2f cible) const {
-    return m_attaque.estAPortee(m_centre, cible);
+bool Personnage::estAPortee(Cercle cible) const {
+    return m_attaque.estAPortee(getCercle(), cible);
 }
 
-int Personnage::frapper(sf::Vector2f cible) {
+int Personnage::frapper(Cercle cible) {
     if (!estVivant()) {
         return 0;
     }
 
-    return m_attaque.frapper(m_centre, cible);
+    return m_attaque.frapper(getCercle(), cible);
 }
 
 void Personnage::recevoirDegats(int quantite) {
@@ -89,4 +89,8 @@ bool Personnage::estVivant() const {
 
 sf::Vector2f Personnage::getCentre() const {
     return m_centre;
+}
+
+Cercle Personnage::getCercle() const {
+    return {m_centre, m_taille.x / 2.0f};
 }

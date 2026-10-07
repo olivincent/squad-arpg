@@ -9,8 +9,8 @@ Attaque::Attaque(float portee, int degats, float tempsRecharge)
 {
 }
 
-bool Attaque::estAPortee(sf::Vector2f origine, sf::Vector2f cible) const {
-    return (cible - origine).length() <= m_portee;
+bool Attaque::estAPortee(Cercle origine, Cercle cible) const {
+    return distanceBordABord(origine, cible) <= m_portee;
 }
 
 void Attaque::mettreAJour(float dt) {
@@ -20,7 +20,7 @@ void Attaque::mettreAJour(float dt) {
     }
 }
 
-int Attaque::frapper(sf::Vector2f origine, sf::Vector2f cible) {
+int Attaque::frapper(Cercle origine, Cercle cible) {
     if (!estAPortee(origine, cible) || m_recharge > 0.0f) {
         return 0;
     }

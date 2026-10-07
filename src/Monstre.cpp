@@ -10,7 +10,7 @@ Monstre::Monstre(sf::Vector2f centre, int id)
       m_pointsDeVie(100),
       m_pointsDeVieMax(100),
       m_id(id),
-      m_attaque(80.0f, 10, 1.0f),
+      m_attaque(15.0f, 10, 1.0f),  // bord à bord : ancienne portée (40) moins les deux rayons (10 + 15)
       m_rayonDetection(200.0f),
       m_rayonTerritoire(400.0f),
       m_etat(Etat::EnGarde),
@@ -52,6 +52,10 @@ sf::Vector2f Monstre::getCentre() const {
     return m_mobile.getCentre();
 }
 
+Cercle Monstre::getCercle() const {
+    return {m_mobile.getCentre(), m_mobile.getTaille().x / 2.0f};
+}
+
 int Monstre::getId() const {
     return m_id;
 }
@@ -73,16 +77,16 @@ bool Monstre::estVivant() const {
     return m_pointsDeVie > 0;
 }
 
-bool Monstre::proieDetectee(std::optional<sf::Vector2f> cible) const {
+bool Monstre::proieDetectee(std::optional<Cercle> cible) const {
     if (!cible) {
         return false;
     }
-    const float distanceMonstre = (*cible - m_mobile.getCentre()).length();
-    const float distancePoste = (*cible - m_poste).length();
+    const float distanceMonstre = (cible->centre - m_mobile.getCentre()).length();
+    const float distancePoste = (cible->centre - m_poste).length();
     return distanceMonstre <= m_rayonDetection && distancePoste <= m_rayonTerritoire;
 }
 
-void Monstre::mettreAJour(float dt, std::optional<sf::Vector2f> cible, const TileMap& carte) {
+void Monstre::mettreAJour(float dt, std::optional<Cercle> cible, const TileMap& carte) {
     m_attaque.mettreAJour(dt);
 
     const Etat etatPrecedent = m_etat;
@@ -113,16 +117,16 @@ void Monstre::mettreAJour(float dt, std::optional<sf::Vector2f> cible, const Til
     }
 
     if (m_etat == Etat::Poursuite) {
-        if (m_attaque.estAPortee(m_mobile.getCentre(), *cible)) {
+        if (m_attaque.estAPortee(getCercle(), *cible)) {
             m_mobile.arreter();
         } else {
-            m_mobile.allerVers(*cible, carte);
+            m_mobile.allerVers(cible->centre, carte);
         }
     }
 
     m_mobile.mettreAJour(dt, carte);
 }
 
-int Monstre::frapper(sf::Vector2f cible) {
-    return m_attaque.frapper(m_mobile.getCentre(), cible);
+int Monstre::frapper(Cercle cible) {
+    return m_attaque.frapper(getCercle(), cible);
 }

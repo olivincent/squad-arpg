@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <optional>
 #include <vector>
+#include "Cercle.hpp"
 #include "Mobile.hpp"
 #include "Personnage.hpp"
 
@@ -15,10 +16,10 @@ public:
     explicit Escouade(sf::Vector2f positionDepart);
     void dessiner(sf::RenderTarget& rendu) const;
     void allerVers(sf::Vector2f destination, const TileMap& carte);
-    int attaquer(sf::Vector2f cible, const TileMap& carte);
+    int attaquer(Cercle cible, const TileMap& carte);
     void mettreAJour(float dt, const TileMap& carte);
     sf::Vector2f getCentre() const;
-    std::optional<sf::Vector2f> personnageLePlusProche(sf::Vector2f point) const;
+    std::optional<Cercle> personnageLePlusProche(sf::Vector2f point) const;
     void recevoirDegats(sf::Vector2f origine, int quantite);
     bool estVivante() const;
     void verrouiller(int idCible);
@@ -36,5 +37,5 @@ private:
     float m_vitesseRotation;               // en degrés par seconde
     std::vector<Personnage> m_personnages;
     std::optional<int> m_cibleVerrouillee;
-    std::optional<sf::Vector2f> m_cibleCombat; // dernière cible donnée à attaquer(), pour figer les personnages déjà à portée
+    std::optional<Cercle> m_cibleCombat; // dernière cible donnée à attaquer(), pour figer les personnages déjà à portée
 };

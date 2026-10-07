@@ -101,7 +101,7 @@ int main() {
             if (it == monstres.end()) {
                 escouade.deverrouiller();
             } else {
-                it->recevoirDegats(escouade.attaquer(it->getCentre(), carte));
+                it->recevoirDegats(escouade.attaquer(it->getCercle(), carte));
                 if (!it->estVivant()) {
                     escouade.deverrouiller();
                 }

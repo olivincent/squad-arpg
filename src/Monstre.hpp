@@ -1,6 +1,7 @@
 // ./src/Monstre.hpp
 #pragma once
 #include "Attaque.hpp"
+#include "Cercle.hpp"
 #include "Mobile.hpp"
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/System/Vector2.hpp>
@@ -12,9 +13,10 @@ class Monstre {
 public:
     Monstre(sf::Vector2f centre, int id);
     void dessiner(sf::RenderTarget& rendu, bool estCible) const;
-    void mettreAJour(float dt, std::optional<sf::Vector2f> cible, const TileMap& carte);
-    int frapper(sf::Vector2f cible);
+    void mettreAJour(float dt, std::optional<Cercle> cible, const TileMap& carte);
+    int frapper(Cercle cible);
     sf::Vector2f getCentre() const;
+    Cercle getCercle() const;
     int getId() const;
     bool contient(sf::Vector2f point) const;
     void recevoirDegats(int quantite);
@@ -23,7 +25,7 @@ public:
 private:
     enum class Etat { EnGarde, Poursuite, Retour };
 
-    bool proieDetectee(std::optional<sf::Vector2f> cible) const;
+    bool proieDetectee(std::optional<Cercle> cible) const;
 
     Mobile m_mobile;
     int m_pointsDeVie;
