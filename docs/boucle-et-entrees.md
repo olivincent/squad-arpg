@@ -5,7 +5,8 @@
 - **Boucle de jeu** : événements (fermeture de la fenêtre, et l'appui de
   souris qui pose ou retire le verrou de combat d'`Escouade`, ou arme le
   déplacement continu — seulement si l'escouade est vivante, depuis
-  l'étape 26), attaque si la cible est verrouillée, retrait du verrou
+  l'étape 26 — et l'appui sur la touche 1, qui demande le skill depuis
+  l'étape 31), skill puis attaque si la cible est verrouillée, retrait du verrou
   (mort de la cible seulement, depuis l'étape 27), retrait des monstres
   morts, entrée souris (`escouade.allerVers` si le bouton gauche est
   enfoncé et que le déplacement continu a été armé par l'événement
@@ -154,6 +155,32 @@
   riposte dès qu'un personnage vivant est à sa portée, qu'il soit
   lui-même attaqué ou non. Voir `docs/formation.md` pour le détail côté
   `Escouade`/`Monstre`.
+
+## Entrée clavier : le skill (étape 31)
+
+- **Événement d'appui, pas lecture d'état** : contrairement au
+  déplacement continu, un skill est une action ponctuelle — un appui =
+  une tentative. L'événement `KeyPressed` met à vrai une variable
+  locale `skillDemande`, déclarée juste avant la boucle d'événements et
+  donc remise à faux à chaque image.
+- **`window.setKeyRepeatEnabled(false)`** : par défaut, une touche
+  maintenue produit des `KeyPressed` répétés (répétition du système).
+  Comme le skill se recharge en 5 s, une touche tenue assez longtemps
+  l'aurait relancé ; désactiver la répétition garantit un seul appui
+  par enfoncement.
+- **Scancode plutôt que code de touche** : `data->scancode ==
+  sf::Keyboard::Scan::Num1` désigne la touche physique « 1 » de la
+  rangée du haut, quelle que soit la disposition du clavier — en
+  AZERTY, cette touche donne « & » sans majuscule, et le code de touche
+  dépendrait de la disposition.
+- **Skill demandé avant `attaquer`, dans le bloc du verrou** : si
+  `skillDemande` est vrai et que le monstre verrouillé est trouvé,
+  `it->recevoirDegats(escouade.declencherSkill(it->getCercle()))`, puis
+  `attaquer` comme d'habitude. Dans cet ordre, un skill qui part relance
+  la recharge de base du personnage, qui ne frappe donc pas une seconde
+  fois dans la même image — le skill remplace bien l'attaque de base
+  (voir `docs/formation.md`). Sans verrou, `declencherSkill` n'est même
+  pas appelée ; `Escouade` le vérifie de toute façon elle-même.
 
 ## Caméra
 

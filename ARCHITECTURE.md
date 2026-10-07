@@ -124,6 +124,11 @@ clic (sur le sol ou sur un autre monstre) ; `main.cpp` garde en plus
 une variable locale (`deplacementContinu`) qui retient, depuis le seul
 événement d'appui, si le déplacement continu de l'étape 13 doit
 s'appliquer tant que le bouton reste enfoncé.
+Depuis l'étape 31, il lit aussi l'appui sur la touche 1 (événement
+`KeyPressed`, scancode `Num1`, répétition des touches désactivée) dans
+une variable locale à chaque image (`skillDemande`), et demande alors
+`Escouade::declencherSkill` sur le monstre verrouillé, avant
+`attaquer`.
 La structure continue d'évoluer par nécessité réelle, pas par
 anticipation (voir principes ci-dessous).
 
@@ -196,10 +201,13 @@ formation en carré autour d'elle.
   les deux personnages à l'avant de la formation (décalage `x = +25`)
   sont des mêlées (rouge, portée 10 px bord à bord depuis l'étape 30),
   les deux à l'arrière (`x = -25`) des tireurs (cyan, portée 120 px bord
-  à bord) ; dégâts et recharge identiques pour les 4. Constantes
+  à bord) ; dégâts et recharge identiques pour les 4. Depuis
+  l'étape 31, le personnage 0 (mêlée avant-gauche) reçoit aussi un
+  skill (`Attaque` de portée `s_porteeMelee`, 25 dégâts, 5 s de
+  recharge) ; les trois autres reçoivent `std::nullopt`. Constantes
   nommées dans un espace de noms anonyme d'`Escouade.cpp`
   (`s_couleurMelee`, `s_couleurTireur`, `s_porteeMelee`,
-  `s_porteeTireur`).
+  `s_porteeTireur`, `s_degatsSkill`, `s_rechargeSkill`).
 - **Fonction privée `placePersonnage(indice)`** : seul endroit du code
   qui calcule la place d'un personnage (`getCentre() + m_decalages[indice]
   .rotatedBy(m_orientation)`) — utilisée à la fois pour créer les
@@ -229,6 +237,7 @@ Interface publique (inchangée pour `main.cpp`, qui ne connaît pas
 | `explicit Escouade(sf::Vector2f positionDepart)` | Crée l'escouade (et ses 4 personnages en formation, mêlées devant/tireurs derrière depuis l'étape 28) à la position donnée |
 | `void allerVers(sf::Vector2f destination, const TileMap& carte)` | Délègue à `m_mobile.allerVers` |
 | `int attaquer(Cercle cible, const TileMap& carte)` | Mémorise `cible` dans `m_cibleCombat` (étape 29), approche le centre de la cible (`allerVers(cible.centre, ...)`) tant qu'un personnage **vivant** n'est pas à portée (bord à bord, étape 30), s'arrête sur place (`m_mobile.arreter()`) quand tous les vivants y sont (vrai par vacuité s'il n'en reste aucun, depuis l'étape 26), puis fait frapper chacun (les morts renvoient 0 sans rien faire) ; renvoie la somme des dégâts |
+| `int declencherSkill(Cercle cible)` | Étape 31 : 0 si aucun combat n'est engagé (`m_cibleVerrouillee` vide) ; sinon somme des `Personnage::declencherSkill(cible)` des 4 personnages (ceux sans skill renvoient 0) |
 | `void mettreAJour(float dt, const TileMap& carte)` | Met à jour `m_orientationVoulue` à partir de `m_mobile.directionVoulue()`, avance l'ancre (`m_mobile.mettreAJour`), met à jour l'orientation, puis chaque personnage vers sa place (un mort ne bouge pas, voir `Personnage::mettreAJour`) ou vers son propre centre s'il est en combat et à portée de la cible (étape 29) |
 | `void dessiner(sf::RenderTarget& rendu) const` | Dessine l'ancre (position reconstruite à partir de `getCentre()` et `m_mobile.getTaille()`), puis les 4 personnages |
 | `sf::Vector2f getCentre() const` | Délègue à `m_mobile.getCentre()` (utilisé par la caméra, par `allerVers` et par `placePersonnage`) |
@@ -340,7 +349,9 @@ continue de recevoir un simple point en paramètre.
   — dégâts (5) et recharge (0,5 s) identiques pour les 4, mais portée
   différente selon la place en formation : 10 px bord à bord pour les
   deux mêlées à l'avant, 120 px pour les deux tireurs à l'arrière ;
-  voir `Escouade`).
+  voir `Escouade`). Depuis l'étape 31, `m_skill`
+  (`std::optional<Attaque>`, reçu au constructeur, vide = pas de
+  skill) : une seconde `Attaque`, sans nouvelle classe.
   Depuis l'étape 20 :
   `m_pointsDeVie` et `m_pointsDeVieMax` (`100` chacun à la création),
   dupliqués volontairement de `Monstre` (même logique de points de vie
@@ -377,16 +388,22 @@ continue de recevoir un simple point en paramètre.
   (`sf::Color(100, 100, 100)`, valeur fixe, `m_couleur` conservée mais
   ignorée) et pas de barre de vie — `dessiner` revient juste après
   avoir dessiné le carré si le personnage n'est pas vivant.
+- **Skill** (étape 31) : sa recharge s'écoule dans `mettreAJour`, à
+  côté de celle de `m_attaque`. Une barre orange de 3 px, juste sous la
+  barre de vie, montre `m_skill->getProgressionRecharge()` (pleine =
+  prêt) ; elle n'est dessinée que si `m_skill` a une valeur et que le
+  personnage est vivant.
 
 Interface publique :
 
 | Fonction | Rôle |
 |---|---|
-| `Personnage(sf::Vector2f centre, sf::Color couleur, Attaque attaque)` | Crée le personnage à ce centre, avec cette couleur et cette attaque (injectées par `Escouade` depuis l'étape 28) |
-| `void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte)` | Si vivant, avance vers la cible (collision, glissement) puis décrémente la recharge d'attaque ; sinon ne fait rien (étape 26) |
-| `void dessiner(sf::RenderTarget& rendu) const` | Dessine le personnage (gris et sans barre de vie s'il n'est pas vivant, étape 26) |
+| `Personnage(sf::Vector2f centre, sf::Color couleur, Attaque attaque, std::optional<Attaque> skill)` | Crée le personnage à ce centre, avec cette couleur, cette attaque (injectées par `Escouade` depuis l'étape 28) et ce skill éventuel (étape 31) |
+| `void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte)` | Si vivant, avance vers la cible (collision, glissement) puis décrémente la recharge d'attaque et celle du skill ; sinon ne fait rien (étape 26) |
+| `void dessiner(sf::RenderTarget& rendu) const` | Dessine le personnage (gris et sans barre de vie s'il n'est pas vivant, étape 26), et la barre de recharge du skill s'il en a un (étape 31) |
 | `bool estAPortee(Cercle cible) const` | L'écart bord à bord entre son cercle et `cible` est-il `<=` la portée de `m_attaque` ? |
 | `int frapper(Cercle cible)` | Si le personnage est vivant, délègue à `m_attaque.frapper` avec `getCercle()` comme origine ; sinon renvoie 0 |
+| `int declencherSkill(Cercle cible)` | Étape 31 : 0 sans skill ou s'il n'est pas vivant ; sinon délègue à `m_skill->frapper` avec `getCercle()` comme origine et, si des dégâts partent, relance au complet la recharge de `m_attaque` |
 | `void recevoirDegats(int quantite)` | Retire des points de vie, sans descendre sous zéro |
 | `bool estVivant() const` | Points de vie `> 0` |
 | `sf::Vector2f getCentre() const` | Centre du personnage (utilisé par `Escouade::indicePersonnageLePlusProche`) |
@@ -574,6 +591,8 @@ Interface publique :
 | `void mettreAJour(float dt)` | Décrémente la recharge, sans descendre sous zéro |
 | `bool estAPortee(Cercle origine, Cercle cible) const` | `distanceBordABord(origine, cible)` est-elle `<=` `m_portee` ? |
 | `int frapper(Cercle origine, Cercle cible)` | Si `cible` est à portée de `origine` et la recharge écoulée, relance la recharge et renvoie `m_degats` ; sinon renvoie 0 |
+| `void relancerRecharge()` | Remet la recharge à `m_tempsRecharge`, sans frapper (étape 31, utilisée par `Personnage::declencherSkill`) |
+| `float getProgressionRecharge() const` | Avancement de la recharge, de 0 (juste après un coup) à 1 (prête) ; 1 si le temps de recharge est nul (étape 31, pour la barre de recharge du skill) |
 
 ### `Cercle` — la forme d'une entité pour la portée (étape 30)
 
@@ -632,5 +651,5 @@ lire le fichier correspondant :
 | `docs/boucle-et-entrees.md` | Boucle de jeu, déplacement, entrée souris et attaque, caméra | Avant de modifier `main.cpp` |
 | `docs/carte-et-collision.md` | Carte, collision et dessin, plan texte et validation | Avant de modifier `TileMap` ou `Deplacement` |
 | `docs/chemin.md` | Recherche de chemin (A*), lissage de chemin, déplacement par chemin (`Mobile`) | Avant de modifier `Chemin` ou `Mobile` |
-| `docs/formation.md` | `Escouade`, formation de l'escouade, attaque (`Attaque`, `Personnage`, `Monstre`), portée bord à bord (`Cercle`) | Avant de modifier `Escouade`, `Personnage`, `Monstre`, `Attaque` ou `Cercle` |
+| `docs/formation.md` | `Escouade`, formation de l'escouade, attaque (`Attaque`, `Personnage`, `Monstre`), portée bord à bord (`Cercle`), skill | Avant de modifier `Escouade`, `Personnage`, `Monstre`, `Attaque` ou `Cercle` |
 | `docs/tests.md` | Tests (Catch2, conventions) | Avant d'ajouter ou de modifier un test |

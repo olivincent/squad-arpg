@@ -792,9 +792,51 @@ formation, choix du personnage le plus proche et lissage du chemin
 restent mesurés de centre à centre ; l'apparence des entités ne change
 pas (toujours des carrés).
 
-### Étape 31 — À définir
+### Étape 31 — Premier skill, déclenché au clavier ✅ TERMINÉE
+
+Le mêlée avant-gauche possède un skill : une attaque plus forte et plus
+lente (25 dégâts, 5 s de recharge, même portée que son attaque de
+base), déclenchée par la touche 1 sur la cible verrouillée, avec une
+barre de recharge visible sous sa barre de vie.
+
+1. [x] `Personnage` : quatrième paramètre du constructeur,
+       `std::optional<Attaque> skill` (vide = pas de skill), stocké dans
+       `m_skill` ; sa recharge s'écoule dans `mettreAJour`, en combat ou
+       non. `Escouade` le fournit au seul personnage 0 (mêlée
+       avant-gauche), constantes `s_degatsSkill` et `s_rechargeSkill` ;
+       tests existants adaptés (`std::nullopt`) (enchaînée)
+2. [x] `Attaque::relancerRecharge()` (seul ajout à `Attaque`) ;
+       `Personnage::declencherSkill(Cercle)` : 0 sans skill ou si mort,
+       sinon délègue à `m_skill->frapper` et, si le skill part, relance
+       au complet la recharge de l'attaque de base ; tests (refusé sans
+       skill, mort, hors de portée, en recharge ; attaque de base
+       retardée après un skill réussi) (enchaînée)
+3. [x] `Escouade::declencherSkill(Cercle)` : 0 sans verrou, sinon somme
+       des `declencherSkill` de tous les personnages (ceux sans skill
+       renvoient 0) ; tests (refusé sans combat, 25 et non 50, hors de
+       portée, recharge) (enchaînée)
+4. [x] `main.cpp` : événement `KeyPressed` sur le scancode `Num1` (touche
+       physique, indépendante de la disposition du clavier),
+       `setKeyRepeatEnabled(false)` pour qu'une touche maintenue ne
+       produise qu'un seul appui ; skill demandé avant `attaquer` dans le
+       bloc du verrou, dégâts appliqués au monstre verrouillé
+5. [x] `Attaque::getProgressionRecharge()` (0 juste après un coup, 1
+       prête) ; barre orange de 3 px sous la barre de vie du personnage
+       qui a un skill, absente pour les autres et pour un mort
+
+Aucune modification de `Monstre`, `Mobile` ni `Cercle` ; aucune nouvelle
+classe — un skill est une seconde `Attaque`.
+
+**Hors de portée** : skills des trois autres personnages, touches 2
+à 4, effets sur le monstre (renversement, zone, soin), mana, HUD,
+animation ou effet visuel de frappe, mise en attente du skill.
+
+### Étape 32 — À définir
 
 Pistes discutées :
+- Skills pour les autres personnages (touches 2 à 4), effets de skill
+  (zone, état posé sur le monstre, soin), HUD ou icônes de skill (hors
+  de portée explicite de l'étape 31)
 - Patrouille, escouade de monstres, récupération de points de vie au
   retour d'un monstre
 - Retirer un personnage mort de `m_personnages` et resserrer la
@@ -938,9 +980,18 @@ Pistes discutées :
 - Logique de jeu (`TileMap`, `Escouade`, `Mobile`, `Chemin`,
   `Personnage`, `Deplacement`, `Monstre`, `Attaque`, `Cercle`) dans une
   bibliothèque `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 139 tests : 32 sur `TileMap`, 13 sur `Chemin`,
-  26 sur `Escouade`, 4 sur `Deplacement`, 27 sur `Monstre`, 13 sur
-  `Personnage`, 9 sur `Attaque`, 11 sur `Mobile`, 4 sur `Cercle`)
+  (`./build/tests.exe`, 151 tests : 32 sur `TileMap`, 13 sur `Chemin`,
+  30 sur `Escouade`, 4 sur `Deplacement`, 27 sur `Monstre`, 19 sur
+  `Personnage`, 11 sur `Attaque`, 11 sur `Mobile`, 4 sur `Cercle`)
+- Depuis l'étape 31, le mêlée avant-gauche possède un skill (une
+  seconde `Attaque`, `std::optional` dans `Personnage` : 25 dégâts,
+  5 s de recharge, portée de mêlée), déclenché par la touche 1
+  (événement d'appui, touche physique, sans répétition) seulement en
+  combat, s'il est vivant, à portée et rechargé ; sinon la touche est
+  ignorée. Le skill remplace l'attaque de base à ce moment (il en
+  relance la recharge au complet), l'inverse n'étant pas vrai. Une
+  barre orange sous sa barre de vie montre la recharge du skill
+  (pleine = prêt), y compris hors combat
 - Depuis l'étape 30, la portée d'attaque est l'écart entre les bords de
   deux cercles (module `Cercle`, un cercle par entité, rayon = demi-côté
   du carré dessiné : 10 px pour un personnage, 15 px pour un monstre),
@@ -985,4 +1036,4 @@ Pistes discutées :
   tir), pas de recul si un monstre approche, pas de `Mobile` individuel
   par personnage (voir étape 29, limites connues) — accepté pour
   l'instant
-- Étape en cours : **Étape 31** — à choisir
+- Étape en cours : **Étape 32** — à choisir

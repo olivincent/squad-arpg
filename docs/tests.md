@@ -20,6 +20,7 @@
   `caseContenant`/`centreDeCase`, le constructeur, `trouverChemin`,
   `lisserChemin`, `allerVers`, `arreter`, `attaquer`, `mettreAJour`,
   `getCentre`, `getTaille`, `directionVoulue`, `estAPortee`, `frapper`,
+  `declencherSkill`, `relancerRecharge`, `getProgressionRecharge`,
   `recevoirDegats`, `estVivant`, `personnageLePlusProche`,
   `estVivante`) — aucune fonction n'a été ajoutée seulement pour
   faciliter les tests.
@@ -209,6 +210,27 @@
   recharge. `test_Personnage.cpp` et `test_Monstre.cpp` ne gardent que
   les cas qui prouvent leur propre branchement (voir plus haut), pas
   ces six cas génériques.
+- **Skill (étape 31)** : chaque `Personnage` des tests existants reçoit
+  `std::nullopt` comme skill (paramètre sans valeur par défaut).
+  - `test_Attaque.cpp` : `relancerRecharge` empêche de frapper avant une
+    recharge complète, même sur une attaque jamais utilisée ;
+    `getProgressionRecharge` vaut 1 à la création, 0 juste après
+    `relancerRecharge`, strictement entre les deux après 0,3 s, et de
+    nouveau 1 après 0,6 s (valeurs extrêmes exactes, comparées par `==`,
+    puisque la recharge est ramenée à 0 pile).
+  - `test_Personnage.cpp` (skill de portée 80 px, 25 dégâts, 5 s) :
+    dégâts du skill à portée ; 0 sans skill, 0 si mort, 0 hors de
+    portée, 0 pendant la recharge puis 25 de nouveau après (4,8 s puis
+    0,4 s, en évitant 5 s pile). Les cas « sans skill » et « hors de
+    portée » vérifient aussi que l'attaque de base n'est pas touchée.
+    **Preuve de la relance complète** : attaque de base, 0,3 s
+    (il lui reste 0,2 s), skill, 0,3 s → l'attaque de base renvoie
+    encore 0 (elle serait partie sans la relance), puis 5 après 0,3 s
+    de plus.
+  - `test_Escouade.cpp` : cible de la taille d'un monstre entre les deux
+    mêlées, à portée de chacun — refusé sans verrou ; avec verrou, 25
+    et non 50 (un seul personnage a un skill) ; 0 hors de portée ; 0 au
+    second appel immédiat.
 - **`Mobile` (`test_Mobile.cpp`, étape 23)** : repris quasiment tel
   quel des tests d'`Escouade` dont le code a été déplacé (même fonction
   d'aide `simuler(mobile, carte, duree)`, même tolérance

@@ -641,3 +641,64 @@ deux, quelle que soit leur taille.
   de mêlée de 10 px laisse à peine un écart. Toujours pas de collision :
   rien n'empêche deux entités de se chevaucher hors d'un arrêt à
   portée. La portée ignore toujours les murs (étape 17).
+
+## Premier skill, déclenché au clavier (étape 31)
+
+Le mêlée avant-gauche possède un skill : une attaque plus forte et plus
+lente (25 dégâts, 5 s de recharge, même portée que sa mêlée),
+déclenchée par la touche 1 sur la cible verrouillée.
+
+- **Un skill est une seconde `Attaque`, pas une nouvelle classe** :
+  portée, dégâts et recharge sont exactement ce qu'`Attaque` porte
+  déjà. Aucun comportement propre au skill (effet de zone, état posé
+  sur le monstre) ne justifie encore un type à part.
+- **L'absence de skill est exprimée par `std::optional<Attaque>`**,
+  reçu au constructeur comme l'attaque de base (injection, étape 28) :
+  même principe que `personnageLePlusProche` (étape 21), plutôt qu'une
+  `Attaque` « vide » à 0 dégâts qui ferait semblant d'exister. Le
+  paramètre n'a pas de valeur par défaut : chaque création de
+  `Personnage` dit explicitement s'il a un skill.
+- **Le personnage qui a le skill est désigné par sa place**, comme les
+  rôles de l'étape 28 : `Escouade` le donne au personnage 0 (mêlée
+  avant-gauche), sans champ « type » ni indice mémorisé.
+  `Escouade::declencherSkill` interroge donc les 4 personnages et
+  additionne les résultats (ceux sans skill renvoient 0), exactement
+  comme `attaquer` additionne les `frapper` : elle n'a jamais besoin de
+  savoir lequel a un skill.
+- **Le skill remplace l'attaque de base, pas l'inverse** : quand il
+  part, `Personnage::declencherSkill` relance au complet la recharge de
+  `m_attaque` (`Attaque::relancerRecharge`, seul ajout nécessaire à
+  `Attaque` pour cette règle) ; la prochaine attaque de base attend
+  donc une recharge entière. Une attaque de base, elle, ne touche pas
+  la recharge du skill. La relance n'a lieu que si le skill part
+  réellement (dégâts `> 0`) : une tentative refusée (hors de portée, en
+  recharge) ne pénalise pas l'attaque de base.
+- **Les refus sont répartis selon qui connaît l'information** : « pas
+  de combat engagé » est vérifié par `Escouade` (elle seule porte le
+  verrou) ; « pas de skill » et « mort » par `Personnage` (même endroit
+  que la garde de `frapper`, étape 21) ; « hors de portée » et « en
+  recharge » par `Attaque::frapper`, inchangée. Aucune mise en attente :
+  un appui refusé est perdu.
+- **La recharge du skill s'écoule en permanence**, dans
+  `Personnage::mettreAJour`, à côté de celle de l'attaque de base — en
+  combat ou non, y compris en retraite. Comme pour l'attaque de base,
+  elle s'arrête pour un mort (retour immédiat, étape 26), ce qui est
+  sans conséquence puisqu'un mort ne peut plus lancer le skill.
+- **Même circuit que les frappes de base** : `main.cpp` demande à
+  `Escouade`, qui demande au personnage, et `main.cpp` applique les
+  dégâts au monstre verrouillé. `Escouade` et `Personnage` ne
+  connaissent toujours pas `Monstre` (voir `docs/boucle-et-entrees.md`
+  pour l'ordre skill puis `attaquer` dans une même image).
+- **Barre de recharge** : dessinée par `Personnage` lui-même, comme sa
+  barre de vie — orange, 3 px de haut, 1 px sous la barre de vie,
+  largeur proportionnelle à `Attaque::getProgressionRecharge()` (pleine
+  = prêt). Cette fraction est calculée par `Attaque`, qui seule connaît
+  sa recharge et son temps de recharge, plutôt que d'exposer ces deux
+  valeurs séparément. Pas de barre pour un personnage sans skill ni
+  pour un mort.
+- **Limites connues** : un seul skill, sur un seul personnage, une
+  seule touche ; si c'est l'autre mêlée qui atteint la cible le
+  premier, la touche ne fait rien tant que le mêlée au skill n'est pas
+  à portée. Pas d'effet visuel au déclenchement, pas de HUD : seule la
+  barre de recharge et la barre de vie du monstre montrent que le skill
+  est parti.
