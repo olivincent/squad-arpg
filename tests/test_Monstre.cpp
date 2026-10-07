@@ -192,3 +192,15 @@ TEST_CASE("Monstre.mettreAJour reste immobile sans cible") {
 
     REQUIRE(monstre.getCentre() == centreInitial);
 }
+
+TEST_CASE("Monstre.mettreAJour s'arrête à portée d'attaque sans atteindre la cible") {
+    const TileMap carte = carteDegagee();
+    Monstre monstre({100.0f, 100.0f}, 1);
+    const sf::Vector2f cible(300.0f, 100.0f);
+
+    ecoulerTemps(monstre, 10.0f, cible, carte); // durée généreuse
+
+    const float distanceFinale = (cible - monstre.getCentre()).length();
+    REQUIRE(distanceFinale <= 80.0f);
+    REQUIRE(monstre.getCentre() != cible);
+}

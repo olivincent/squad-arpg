@@ -74,7 +74,11 @@ void Monstre::mettreAJour(float dt, std::optional<sf::Vector2f> cible, const Til
     m_attaque.mettreAJour(dt);
 
     if (cible && (*cible - m_mobile.getCentre()).length() <= m_rayonDetection) {
-        m_mobile.allerVers(*cible, carte);
+        if (m_attaque.estAPortee(m_mobile.getCentre(), *cible)) {
+            m_mobile.arreter();
+        } else {
+            m_mobile.allerVers(*cible, carte);
+        }
     } else {
         m_mobile.arreter();
     }
