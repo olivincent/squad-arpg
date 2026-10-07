@@ -108,8 +108,11 @@ d'attaque lui-même depuis l'étape 17 (`Escouade::attaquer` s'en charge
 via les personnages). Depuis l'étape 24, il donne aussi à chaque
 monstre le personnage le plus proche de lui comme cible de poursuite
 (`Escouade::personnageLePlusProche`), avant de relire son centre à jour
-pour la riposte. La structure continue d'évoluer par nécessité réelle,
-pas par anticipation (voir principes ci-dessous).
+pour la riposte. Depuis l'étape 26, il consulte `Escouade::estVivante()`
+pour bloquer tout ordre du joueur (verrouillage de cible, déplacement)
+une fois l'escouade vaincue, sans arrêter la boucle de jeu elle-même.
+La structure continue d'évoluer par nécessité réelle, pas par
+anticipation (voir principes ci-dessous).
 
 Deux exécutables : `main` (le jeu) et `tests` (les tests Catch2). Les deux
 se lient à la bibliothèque statique `squad_core`, qui contient toute la
@@ -188,12 +191,13 @@ Interface publique (inchangée pour `main.cpp`, qui ne connaît pas
 |---|---|
 | `explicit Escouade(sf::Vector2f positionDepart)` | Crée l'escouade (et ses 4 personnages en formation) à la position donnée |
 | `void allerVers(sf::Vector2f destination, const TileMap& carte)` | Délègue à `m_mobile.allerVers` |
-| `int attaquer(sf::Vector2f cible, const TileMap& carte)` | Approche la cible (`allerVers`) tant qu'un personnage n'est pas à portée, s'arrête sur place (`m_mobile.arreter()`) quand les 4 y sont, puis fait frapper chacun ; renvoie la somme des dégâts |
-| `void mettreAJour(float dt, const TileMap& carte)` | Met à jour `m_orientationVoulue` à partir de `m_mobile.directionVoulue()`, avance l'ancre (`m_mobile.mettreAJour`), met à jour l'orientation, puis chaque personnage vers sa place |
+| `int attaquer(sf::Vector2f cible, const TileMap& carte)` | Approche la cible (`allerVers`) tant qu'un personnage **vivant** n'est pas à portée, s'arrête sur place (`m_mobile.arreter()`) quand tous les vivants y sont (vrai par vacuité s'il n'en reste aucun, depuis l'étape 26), puis fait frapper chacun (les morts renvoient 0 sans rien faire) ; renvoie la somme des dégâts |
+| `void mettreAJour(float dt, const TileMap& carte)` | Met à jour `m_orientationVoulue` à partir de `m_mobile.directionVoulue()`, avance l'ancre (`m_mobile.mettreAJour`), met à jour l'orientation, puis chaque personnage vers sa place (un mort ne bouge pas, voir `Personnage::mettreAJour`) |
 | `void dessiner(sf::RenderTarget& rendu) const` | Dessine l'ancre (position reconstruite à partir de `getCentre()` et `m_mobile.getTaille()`), puis les 4 personnages |
 | `sf::Vector2f getCentre() const` | Délègue à `m_mobile.getCentre()` (utilisé par la caméra, par `allerVers` et par `placePersonnage`) |
 | `std::optional<sf::Vector2f> personnageLePlusProche(sf::Vector2f point) const` | Centre du personnage **vivant** le plus proche de `point` (vide si aucun n'est vivant) ; utilisé par `main.cpp` pour désigner la cible d'un monstre |
 | `void recevoirDegats(sf::Vector2f origine, int quantite)` | Applique `quantite` de dégâts au personnage vivant le plus proche d'`origine` ; ne fait rien si aucun n'est vivant |
+| `bool estVivante() const` | Vrai si au moins un personnage est vivant (étape 26) ; utilisé par `main.cpp` pour bloquer tout ordre du joueur une fois l'escouade vaincue |
 
 ### `Mobile` — déplacement par chemin (étape 23)
 
@@ -307,24 +311,33 @@ qu'un personnage reçoive un point différent de sa place en formation
 - **Barre de vie dans `dessiner`** (étape 20) : même apparence que celle
   de `Monstre` (fond sombre + rectangle vert proportionnel aux points de
   vie restants, au-dessus du personnage).
-- **Un personnage à 0 point de vie ne meurt pas encore** : il reste en
-  formation et continue de se déplacer (limite connue, voir état actuel
-  de ROADMAP.md). Depuis l'étape 21, il ne frappe plus
-  (`Personnage::frapper`) et n'est plus ciblé par les monstres
-  (`Escouade::indicePersonnageLePlusProche` l'ignore).
 - **`estAPortee` et `frapper` délèguent à `m_attaque`** (étape 22),
   avec `m_centre` comme origine ; `mettreAJour` délègue la
   décrémentation de la recharge à `m_attaque.mettreAJour(dt)`. La règle
   « un personnage mort ne frappe pas » reste dans `Personnage::frapper`,
   avant la délégation.
+- **Un personnage à 0 point de vie tombe sur place** (étape 26) :
+  `mettreAJour` revient immédiatement s'il n'est pas vivant — ni
+  déplacement, ni décrémentation de la recharge — même garde que
+  `frapper` depuis l'étape 21. Depuis l'étape 21 déjà, il ne frappe
+  plus et n'est plus ciblé par les monstres
+  (`Escouade::indicePersonnageLePlusProche` l'ignore). Il reste dans
+  `m_personnages` (pas de retrait, contrairement à `Monstre`) : sa
+  place dans le `std::vector` continue de désigner le même décalage de
+  formation (`m_decalages[indice]`), et sa place en formation reste
+  simplement vide — la formation ne se resserre pas.
+- **Apparence d'un mort dans `dessiner`** (étape 26) : carré gris
+  (`sf::Color(100, 100, 100)`, valeur fixe, `m_couleur` conservée mais
+  ignorée) et pas de barre de vie — `dessiner` revient juste après
+  avoir dessiné le carré si le personnage n'est pas vivant.
 
 Interface publique :
 
 | Fonction | Rôle |
 |---|---|
 | `Personnage(sf::Vector2f centre, sf::Color couleur)` | Crée le personnage à ce centre, avec cette couleur |
-| `void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte)` | Avance vers la cible (collision, glissement), puis décrémente la recharge d'attaque |
-| `void dessiner(sf::RenderTarget& rendu) const` | Dessine le personnage et sa barre de vie |
+| `void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte)` | Si vivant, avance vers la cible (collision, glissement) puis décrémente la recharge d'attaque ; sinon ne fait rien (étape 26) |
+| `void dessiner(sf::RenderTarget& rendu) const` | Dessine le personnage (gris et sans barre de vie s'il n'est pas vivant, étape 26) |
 | `bool estAPortee(sf::Vector2f cible) const` | La distance entre le centre et `cible` est-elle `<=` la portée de `m_attaque` ? |
 | `int frapper(sf::Vector2f cible)` | Si le personnage est vivant, délègue à `m_attaque.frapper` avec `m_centre` comme origine ; sinon renvoie 0 |
 | `void recevoirDegats(int quantite)` | Retire des points de vie, sans descendre sous zéro |

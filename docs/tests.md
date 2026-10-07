@@ -19,8 +19,9 @@
   `caseContenant`/`centreDeCase`, le constructeur, `trouverChemin`,
   `lisserChemin`, `allerVers`, `arreter`, `attaquer`, `mettreAJour`,
   `getCentre`, `getTaille`, `directionVoulue`, `estAPortee`, `frapper`,
-  `recevoirDegats`, `estVivant`, `personnageLePlusProche`) — aucune
-  fonction n'a été ajoutée seulement pour faciliter les tests.
+  `recevoirDegats`, `estVivant`, `personnageLePlusProche`,
+  `estVivante`) — aucune fonction n'a été ajoutée seulement pour
+  faciliter les tests.
 - **Propriétés plutôt que chemin exact** : pour `trouverChemin`, comme
   plusieurs plus courts chemins peuvent exister, les tests vérifient des
   propriétés (premier élément = départ, dernier = arrivée, cases
@@ -121,6 +122,13 @@
     vivant après 80 dégâts, mort après 100, mort après un coup qui
     dépasse le reste — mêmes quatre cas que `Monstre`. `getCentre`
     vérifié directement sur le centre donné au constructeur.
+  - **Un mort ne bouge plus (étape 26)** : `recevoirDegats(100)` puis
+    `ecoulerTemps` avec une cible lointaine pendant une durée
+    généreuse ; le centre reste strictement égal (`==`, pas de
+    tolérance nécessaire puisqu'aucun mouvement n'a lieu) à celui
+    d'avant. Preuve que `mettreAJour` revient bien immédiatement sans
+    rien calculer, pas seulement que le résultat final coïncide par
+    hasard.
 - **`Escouade::attaquer` (`test_Escouade.cpp`)** : comme pour les autres
   fonctions d'`Escouade`, des résultats plutôt que des trajectoires
   exactes.
@@ -133,6 +141,15 @@
     l'escouade ne finit pas sur la cible (elle s'arrête à portée).
   - Cible déjà à portée des 4 personnages dès le départ : le premier
     appel renvoie 20 (4 × 5) et l'escouade ne bouge pas.
+  - **Les morts sont ignorés pour décider de l'arrêt (étape 26)** :
+    `recevoirDegats` tue le personnage le plus proche d'un point
+    lointain, l'escouade se déplace pour le laisser loin derrière
+    (lui ne bouge plus), puis `attaquer` est appelée avec une cible à
+    portée seulement des 3 survivants — le premier appel renvoie 15
+    (3 × 5, pas 20) et un tic de `mettreAJour` supplémentaire ne fait
+    pas bouger l'escouade. Sans ce filtre, le mort resté loin derrière
+    empêcherait indéfiniment la condition « tous à portée » de devenir
+    vraie.
 - **`Escouade::personnageLePlusProche` (étape 20)** : test par
   propriété plutôt que par position de formation exacte, comme les
   autres tests d'`Escouade` — pour un point lointain, la distance entre
@@ -151,6 +168,10 @@
   tuer les 4 rend `personnageLePlusProche` vide (`std::optional`), y
   compris après un coup supplémentaire sur une escouade déjà entièrement
   morte.
+- **`Escouade::estVivante` (étape 26)** : trois cas, calqués sur ceux
+  de `personnageLePlusProche` ci-dessus (même point lointain, mêmes
+  dégâts) — vraie à la création, encore vraie après la mort d'un seul
+  personnage, fausse une fois les 4 morts.
 - **`Attaque` (`test_Attaque.cpp`, étape 22)** : couvre les six cas de
   recharge/portée en un seul endroit, plutôt que dupliqués dans
   `test_Personnage.cpp` et `test_Monstre.cpp` — dégâts à portée,

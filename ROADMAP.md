@@ -648,13 +648,45 @@ patrouille ni de récupération de points de vie au retour ; plusieurs
 monstres gardent chacun leur poste et territoire sans se coordonner
 (cf. ARCHITECTURE.md).
 
-### Étape 26 — À définir
+### Étape 26 — Mort d'un personnage et défaite de l'escouade ✅ TERMINÉE
+
+Un personnage à 0 point de vie tombe sur place : il ne bouge plus et
+devient gris. Quand les 4 sont morts, l'escouade ne reçoit plus aucun
+ordre du joueur.
+
+1. [x] `Personnage::mettreAJour` : retour immédiat si le personnage
+       n'est pas vivant (ni déplacement, ni recharge d'attaque)
+2. [x] `Escouade::attaquer` : la condition d'approche/arrêt ignore les
+       personnages non vivants (vrai par vacuité si aucun n'est vivant,
+       donc l'escouade s'arrête aussi dans ce cas)
+3. [x] `Personnage::dessiner` : carré gris et sans barre de vie s'il
+       n'est pas vivant (`m_couleur` conservée mais ignorée)
+4. [x] `bool Escouade::estVivante() const` (vrai si au moins un
+       personnage est vivant)
+5. [x] Branchement dans `main.cpp` : si l'escouade n'est pas vivante,
+       le clic ne pose plus de verrou, un verrou déjà posé retombe, et
+       `allerVers` n'est plus appelée ; le reste de la boucle (mise à
+       jour, caméra, dessin, fermeture de la fenêtre) continue de
+       tourner normalement
+
+Un personnage mort reste dans `m_personnages` (pas de retrait,
+contrairement à `Monstre`) : la formation ne se resserre pas, sa place
+reste vide.
+
+**Hors de portée, toujours vrai** : retirer un mort du vecteur ;
+resserrer la formation ; résurrection ou soin ; écran de défaite ;
+arrêter l'ancre à la mort du dernier personnage (si elle avait un
+trajet en cours, elle le termine) ; factoriser les points de vie entre
+`Personnage` et `Monstre`.
+
+### Étape 27 — À définir
 
 Pistes discutées :
 - Patrouille, escouade de monstres, récupération de points de vie au
-  retour
-- Mort ou mise hors combat d'un personnage à 0 point de vie (retrait de
-  la formation, apparence), condition de défaite de l'escouade
+  retour d'un monstre
+- Retirer un personnage mort de `m_personnages` et resserrer la
+  formation, si l'avoir laissé en place (étape 26) s'avère gênant ;
+  écran ou texte de défaite ; recommencer la partie
 - Collision entre personnages, ou déplacement suivant l'arc de rotation
   plutôt qu'une ligne droite, pour éliminer le chevauchement résiduel
   lors d'un demi-tour rapide (voir limite connue de l'étape 14)
@@ -698,16 +730,27 @@ Pistes discutées :
   (360°/s, toujours par le plus court côté). Chaque personnage a aussi
   une attaque (portée 80 px, dégâts 5, recharge 0,5 s, module `Attaque`
   partagé avec `Monstre` depuis l'étape 22), 100 points de vie et une
-  barre de vie au-dessus de lui ; un personnage à 0 point de vie ne
-  meurt pas encore (limite connue, étape 20), mais depuis l'étape 21 il
-  ne frappe plus et n'est plus ciblé par les monstres
+  barre de vie au-dessus de lui ; depuis l'étape 21, il ne frappe plus
+  et n'est plus ciblé par les monstres une fois mort. Depuis l'étape 26,
+  un personnage à 0 point de vie tombe sur place (il ne bouge plus,
+  `Personnage::mettreAJour` revient immédiatement) et devient un carré
+  gris sans barre de vie ; il reste dans `m_personnages` (pas de
+  retrait), sa place en formation reste simplement vide. L'escouade
+  s'arrête pour attaquer dès que tous les personnages **vivants** sont
+  à portée (`Escouade::attaquer` ignore les morts, qui ne bougeant plus
+  resteraient sinon loin derrière) ; `Escouade::estVivante()` est vraie
+  tant qu'il reste au moins un vivant
 - Caméra (`sf::View`) toujours centrée sur l'escouade ; du noir apparaît
   au-delà des bords de la carte
-- Tant que le bouton gauche de la souris est enfoncé et que la fenêtre a
-  le focus, l'escouade reçoit l'ordre d'aller vers le point sous le
-  curseur à chaque image (lecture d'état, pas d'événement) ; un clic
-  bref reste un simple aller-vers ponctuel. Plus de texte de position ni
-  de police chargée dans `main.cpp` (retirés à l'étape 13)
+- Tant que le bouton gauche de la souris est enfoncé, que la fenêtre a
+  le focus et que l'escouade est vivante (étape 26), elle reçoit
+  l'ordre d'aller vers le point sous le curseur à chaque image (lecture
+  d'état, pas d'événement) ; un clic bref reste un simple aller-vers
+  ponctuel. Une fois les 4 personnages morts, plus aucun ordre du
+  joueur n'est accepté (ni déplacement, ni verrouillage de cible), mais
+  le jeu continue de tourner (mise à jour, caméra, dessin, fermeture de
+  la fenêtre). Plus de texte de position ni de police chargée dans
+  `main.cpp` (retirés à l'étape 13)
 - Six monstres (classe `Monstre`, carrés rouges de 30 × 30, 100 points
   de vie chacun, barre de vie au-dessus d'eux, identifiant stable
   `m_id` attribué par `main.cpp`) sont répartis sur la carte, hors de
@@ -743,16 +786,17 @@ Pistes discutées :
   crans, plus vite une fois tout le monde à portée, mort en 2 à
   3 secondes. Le monstre verrouillé est entouré d'un contour jaune
   (étape 19). Le verrou tombe au relâchement du bouton, à la perte du
-  focus, ou à la mort du monstre visé ; l'escouade ne reçoit alors plus
-  d'ordre de déplacement tant qu'il est posé, et en reçoit un de nouveau
-  (vers le curseur) dès qu'il retombe. Un monstre mort est retiré du
-  vecteur (`std::erase_if`, à chaque image) ; les autres restent
-  attaquables, quel que soit l'ordre dans lequel ils meurent
+  focus, à la mort du monstre visé, ou à la défaite de l'escouade
+  (étape 26) ; l'escouade ne reçoit alors plus d'ordre de déplacement
+  tant qu'il est posé, et en reçoit un de nouveau (vers le curseur) dès
+  qu'il retombe, sauf si l'escouade est vaincue. Un monstre mort est
+  retiré du vecteur (`std::erase_if`, à chaque image) ; les autres
+  restent attaquables, quel que soit l'ordre dans lequel ils meurent
 - Logique de jeu (`TileMap`, `Escouade`, `Mobile`, `Chemin`,
   `Personnage`, `Deplacement`, `Monstre`, `Attaque`) dans une
   bibliothèque `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 122 tests : 32 sur `TileMap`, 13 sur `Chemin`,
-  16 sur `Escouade`, 4 sur `Deplacement`, 26 sur `Monstre`, 11 sur
+  (`./build/tests.exe`, 127 tests : 32 sur `TileMap`, 13 sur `Chemin`,
+  20 sur `Escouade`, 4 sur `Deplacement`, 26 sur `Monstre`, 12 sur
   `Personnage`, 9 sur `Attaque`, 11 sur `Mobile`)
 - Depuis l'étape 22, `Personnage` et `Monstre` possèdent chacun un
   `m_attaque` (`Attaque`) plutôt que leurs propres membres de portée,
@@ -771,11 +815,14 @@ Pistes discutées :
 - La portée d'attaque des personnages et des monstres, ainsi que la
   détection des monstres depuis l'étape 24, ignorent les murs (voir
   étapes 17 et 24, limites connues) — accepté pour l'instant
-- Un personnage à 0 point de vie ne meurt pas : il reste en formation,
-  se déplace et continue de recevoir des coups ; depuis l'étape 21, il
-  ne frappe plus et n'est plus ciblé par les monstres, qui reportent
-  leur attaque sur un autre personnage vivant, ou cessent de frapper si
-  aucun ne l'est (voir étape 20, limite connue) — accepté pour l'instant
+- Depuis l'étape 26, un personnage à 0 point de vie tombe sur place
+  (carré gris, sans barre de vie) au lieu de rester en formation ;
+  depuis l'étape 21 déjà, il ne frappe plus et n'est plus ciblé par les
+  monstres, qui reportent leur attaque sur un autre personnage vivant,
+  ou cessent de frapper si aucun ne l'est. Une fois les 4 personnages
+  morts, l'escouade ne reçoit plus aucun ordre du joueur (voir étape 26,
+  limites connues : pas de retrait du mort, pas d'écran de défaite) —
+  accepté pour l'instant
 - Depuis l'étape 25, un monstre qui abandonne sa proie retourne à son
   poste (statut `Retour`) plutôt que de rester sur place ; il ignore
   toute proie dès qu'elle sort de son territoire, même si elle reste
@@ -784,4 +831,4 @@ Pistes discutées :
   chacun leur propre poste et territoire sans se coordonner ; pas de
   patrouille ni de récupération de points de vie au retour (voir
   étape 25, limites connues) — accepté pour l'instant
-- Étape en cours : **Étape 26** — à choisir
+- Étape en cours : **Étape 27** — à choisir

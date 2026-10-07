@@ -386,3 +386,68 @@ par un statut explicite, et de revoir ce qui déclenche l'abandon.
   ni de récupération de points de vie pendant le retour ; chaque
   monstre garde son propre poste et territoire sans les partager ni se
   coordonner avec les autres monstres.
+
+## Mort d'un personnage et défaite de l'escouade (étape 26)
+
+Corrige la limite connue de l'étape 20 : un personnage à 0 point de
+vie restait en formation, continuait de se déplacer et d'être dessiné
+comme un vivant, et l'escouade restait pilotable même avec ses 4
+personnages morts.
+
+- **Un mort reste dans `m_personnages`, il n'est pas retiré** —
+  contrairement à `Monstre`, où `main.cpp` fait `std::erase_if` sur le
+  vecteur. La raison tient à `m_decalages` : l'indice `i` d'un
+  personnage dans `m_personnages` désigne aussi son décalage de
+  formation (`m_decalages[i]`, voir `placePersonnage`). Retirer un
+  élément décalerait tous les indices suivants, et associerait chaque
+  survivant au décalage d'un autre — `std::erase_if` n'est donc pas une
+  option ici, sans changer aussi `m_decalages` en conséquence (hors de
+  portée de cette étape). La formation ne se resserre donc pas : la
+  place du mort reste simplement vide.
+- **« Un mort ne bouge pas » vit dans `Personnage::mettreAJour`**,
+  retour immédiat si `!estVivant()` — même endroit, même garde que
+  « un mort ne frappe pas » dans `Personnage::frapper` depuis
+  l'étape 21. `Escouade::mettreAJour` n'a pas été modifiée : elle
+  continue d'appeler les 4 personnages sans distinction, c'est
+  `Personnage` qui sait quoi faire de son propre état.
+- **`Escouade::attaquer` ignore les morts pour décider de s'arrêter**
+  (et non plus seulement pour frapper, comme depuis l'étape 21) :
+  la condition d'approche ne porte que sur les personnages **vivants**.
+  Sans ce changement, un mort immobile resté loin derrière — puisqu'il
+  ne bouge plus — aurait empêché la condition « tous à portée » de
+  jamais devenir vraie, et l'escouade aurait continué à avancer vers la
+  cible indéfiniment. Si aucun personnage n'est vivant, « tous les
+  vivants sont à portée » est vrai par vacuité (une quantification
+  universelle sur un ensemble vide est toujours vraie) : l'escouade
+  s'arrête, ce qui est le comportement voulu plutôt qu'un cas à exclure
+  explicitement.
+- **Apparence d'un mort, dans `Personnage::dessiner` seulement** : un
+  carré gris (`sf::Color(100, 100, 100)`, une valeur fixe, pas un
+  nouveau membre — `m_couleur` reste celle reçue au constructeur, juste
+  ignorée) et aucune barre de vie (`dessiner` revient juste après avoir
+  dessiné le carré). Aucun changement ailleurs : la place en formation,
+  elle, reste déterminée par `Escouade::placePersonnage` comme pour un
+  vivant (le mort continue d'en avoir une, simplement vide puisqu'il ne
+  s'y déplace plus).
+- **`Escouade::estVivante()` est une simple lecture** (vraie si au
+  moins un personnage est vivant) : `Escouade` ne décide de rien
+  elle-même en cas de défaite, elle se contente d'exposer l'état.
+  C'est `main.cpp` qui choisit quoi en faire — même séparation que pour
+  `idCible`, où `Monstre` ne sait pas lui-même s'il est visé.
+- **`main.cpp` bloque les ordres du joueur sans arrêter le jeu** :
+  tant qu'`estVivante()` est fausse, le clic qui poserait normalement
+  le verrou (`idCible`) ne le pose pas, un verrou déjà posé retombe
+  (ajouté à la même condition que la perte de focus ou du bouton), et
+  `allerVers` n'est plus appelée. La mise à jour, la caméra, le dessin
+  et la fermeture de la fenêtre continuent de tourner normalement :
+  les monstres, par exemple, rentrent à leur poste comme n'importe
+  quelle fois où ils perdent leur proie (`Escouade::personnageLePlusProche`
+  renvoie vide dès que les 4 sont morts, sans code spécifique à la
+  défaite dans `Monstre`).
+- **Limites connues** : un personnage mort n'est jamais retiré de
+  `m_personnages` ni remplacé ; la formation ne se resserre jamais ;
+  pas de résurrection, de soin, ni de récupération de points de vie ;
+  pas d'écran ou de texte de défaite, ni de moyen de recommencer la
+  partie ; l'ancre ne s'arrête pas instantanément à la mort du dernier
+  personnage — si elle avait un trajet en cours (lancé juste avant la
+  défaite), elle le termine.
