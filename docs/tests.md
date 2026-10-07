@@ -245,6 +245,14 @@
   les appels existants passent `{}`. `test_Mobile.cpp` : un mobile qui
   va vers un point derrière un obstacle s'arrête au plus à son contact.
   Le blocage entre monstres dans `main.cpp` n'est pas testé (visuel).
+- **Obstacles pour les personnages (étape 34)** : `test_Personnage.cpp` :
+  un personnage envoyé vers un point derrière un obstacle s'arrête avant
+  d'y entrer ; les appels existants passent `{}`. `test_Escouade.cpp` :
+  avec un obstacle sur le trajet, l'ancre le dépasse alors qu'aucun
+  cercle de `cerclesDesVivants()` ne le chevauche à la fin. Dans les deux
+  cas on compare la distance entre centres à la somme des rayons, et non
+  `distanceBordABord`, qui est bornée à 0 (un `>= 0` serait toujours
+  vrai). Le branchement dans `main.cpp` n'est pas testé (visuel).
 - **`Mobile` (`test_Mobile.cpp`, étape 23)** : repris quasiment tel
   quel des tests d'`Escouade` dont le code a été déplacé (même fonction
   d'aide `simuler(mobile, carte, duree)`, même tolérance

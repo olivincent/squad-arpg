@@ -136,6 +136,10 @@ entre eux ; l'ancre et les personnages passent une liste vide.
 Depuis l'étape 33, cette liste commence par les cercles des personnages
 vivants (`Escouade::cerclesDesVivants`, calculés une fois par image
 avant la boucle des monstres) : les monstres sont aussi bloqués par eux.
+Depuis l'étape 34, il construit aussi, une fois par image avant
+`escouade.mettreAJour`, la liste des cercles de tous les monstres et la
+passe à `Escouade::mettreAJour` : les personnages sont bloqués par eux
+(l'ancre passe toujours une liste vide).
 La structure continue d'évoluer par nécessité réelle, pas par
 anticipation (voir principes ci-dessous).
 
@@ -245,7 +249,7 @@ Interface publique (inchangée pour `main.cpp`, qui ne connaît pas
 | `void allerVers(sf::Vector2f destination, const TileMap& carte)` | Délègue à `m_mobile.allerVers` |
 | `int attaquer(Cercle cible, const TileMap& carte)` | Mémorise `cible` dans `m_cibleCombat` (étape 29), approche le centre de la cible (`allerVers(cible.centre, ...)`) tant qu'un personnage **vivant** n'est pas à portée (bord à bord, étape 30), s'arrête sur place (`m_mobile.arreter()`) quand tous les vivants y sont (vrai par vacuité s'il n'en reste aucun, depuis l'étape 26), puis fait frapper chacun (les morts renvoient 0 sans rien faire) ; renvoie la somme des dégâts |
 | `int declencherSkill(Cercle cible)` | Étape 31 : 0 si aucun combat n'est engagé (`m_cibleVerrouillee` vide) ; sinon somme des `Personnage::declencherSkill(cible)` des 4 personnages (ceux sans skill renvoient 0) |
-| `void mettreAJour(float dt, const TileMap& carte)` | Met à jour `m_orientationVoulue` à partir de `m_mobile.directionVoulue()`, avance l'ancre (`m_mobile.mettreAJour`), met à jour l'orientation, puis chaque personnage vers sa place (un mort ne bouge pas, voir `Personnage::mettreAJour`) ou vers son propre centre s'il est en combat et à portée de la cible (étape 29) |
+| `void mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles)` | Met à jour `m_orientationVoulue` à partir de `m_mobile.directionVoulue()`, avance l'ancre (`m_mobile.mettreAJour`), met à jour l'orientation, puis chaque personnage vers sa place (un mort ne bouge pas, voir `Personnage::mettreAJour`) ou vers son propre centre s'il est en combat et à portée de la cible (étape 29) ; `obstacles` (étape 34, les cercles des monstres, fournis par `main.cpp`) est transmis à chaque personnage, jamais à l'ancre |
 | `void dessiner(sf::RenderTarget& rendu) const` | Dessine l'ancre (position reconstruite à partir de `getCentre()` et `m_mobile.getTaille()`), puis les 4 personnages |
 | `sf::Vector2f getCentre() const` | Délègue à `m_mobile.getCentre()` (utilisé par la caméra, par `allerVers` et par `placePersonnage`) |
 | `std::optional<Cercle> personnageLePlusProche(sf::Vector2f point) const` | Cercle du personnage **vivant** dont le centre est le plus proche de `point` (vide si aucun n'est vivant) ; utilisé par `main.cpp` pour désigner la cible d'un monstre (un `Cercle` depuis l'étape 30, pour que le monstre mesure sa portée bord à bord) |
@@ -407,7 +411,7 @@ Interface publique :
 | Fonction | Rôle |
 |---|---|
 | `Personnage(sf::Vector2f centre, sf::Color couleur, Attaque attaque, std::optional<Attaque> skill)` | Crée le personnage à ce centre, avec cette couleur, cette attaque (injectées par `Escouade` depuis l'étape 28) et ce skill éventuel (étape 31) |
-| `void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte)` | Si vivant, avance vers la cible (collision, glissement) puis décrémente la recharge d'attaque et celle du skill ; sinon ne fait rien (étape 26) |
+| `void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte, const std::vector<Cercle>& obstacles)` | Si vivant, avance vers la cible (collision avec les murs et les cercles obstacles, glissement ; étape 34) puis décrémente la recharge d'attaque et celle du skill ; sinon ne fait rien (étape 26) |
 | `void dessiner(sf::RenderTarget& rendu) const` | Dessine le personnage (gris et sans barre de vie s'il n'est pas vivant, étape 26), et la barre de recharge du skill s'il en a un (étape 31) |
 | `bool estAPortee(Cercle cible) const` | L'écart bord à bord entre son cercle et `cible` est-il `<=` la portée de `m_attaque` ? |
 | `int frapper(Cercle cible)` | Si le personnage est vivant, délègue à `m_attaque.frapper` avec `getCercle()` comme origine ; sinon renvoie 0 |
@@ -430,7 +434,7 @@ puisse l'utiliser aussi, sans dépendre d'`Escouade` ni dupliquer le code.
 
 Utilisée par `Mobile::mettreAJour` (pour l'ancre, depuis l'étape 23 ;
 auparavant `Escouade::mettreAJour`) et par `Personnage::mettreAJour`
-(qui passe une liste d'obstacles vide depuis l'étape 32, et convertit entre son centre et le coin haut-gauche attendu par la
+(qui transmet depuis l'étape 34 la liste d'obstacles reçue d'`Escouade`, vide avant, et convertit entre son centre et le coin haut-gauche attendu par la
 fonction, comme `Mobile::getCentre()` le fait dans l'autre sens).
 
 ### `Monstre` — un ennemi qui détecte, poursuit et retourne à son poste

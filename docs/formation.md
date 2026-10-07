@@ -746,6 +746,36 @@ seulement des cercles à la liste d'obstacles de l'étape 32.
 - **Calculé une fois par image**, après `escouade.mettreAJour` (positions
   à jour), avant la boucle des monstres, puis copié comme base de la liste
   de chaque monstre, où s'ajoutent les cercles des autres monstres.
-- **Sens unique** : les personnages traversent encore les monstres (étape
-  34), un chevauchement peut donc exister. La règle de `deplacementBloque`
-  (ne refuser que ce qui rapproche) permet au monstre de s'en dégager.
+- **Sens unique à l'étape 33** : les personnages traversaient encore les
+  monstres, un chevauchement pouvait donc exister. La règle de
+  `deplacementBloque` (ne refuser que ce qui rapproche) permet au monstre
+  de s'en dégager. Résolu à l'étape 34 (ci-dessous).
+
+## Les personnages bloqués par les monstres (étape 34)
+
+Le blocage devient mutuel : un personnage ne peut plus entrer dans un
+monstre ni le traverser. Aucun changement de mécanisme (`Deplacement`,
+`Mobile`, `Monstre`, `Cercle`, `Attaque` inchangés) : on fait seulement
+descendre une liste d'obstacles jusqu'aux personnages.
+
+- **`Escouade` ne connaît toujours pas `Monstre`** : elle reçoit
+  `const std::vector<Cercle>& obstacles` en paramètre de `mettreAJour` et
+  le transmet à chaque `Personnage::mettreAJour`, qui le passe à
+  `deplacerAvecGlissement`. `main.cpp` reste l'intermédiaire et construit
+  la liste des cercles de tous les monstres.
+- **L'ancre n'est pas bloquée** : `m_mobile` reçoit toujours une liste
+  vide, comme à l'étape 33 (l'ancre n'est pas une entité de combat, donc
+  pas un obstacle non plus). Seuls les personnages reçoivent les
+  obstacles.
+- **Les personnages ne se bloquent pas entre eux** : la liste ne contient
+  que les monstres.
+- **Calculée une fois par image, avant `escouade.mettreAJour`**, sur la
+  position des monstres de l'image précédente (l'escouade est mise à jour
+  avant les monstres, ordre inchangé). Un mort ne bouge déjà plus
+  (étape 26) : rien à changer pour lui.
+- **Limites connues** : un personnage bloqué ne contourne pas (pas de
+  recherche de chemin individuelle), il glisse si l'angle le permet,
+  sinon il attend ; l'ancre traverse les monstres alors que les
+  personnages sont bloqués, donc l'ancre (et la caméra) peut s'éloigner
+  des personnages. La formation n'est pas resserrée quand l'un d'eux est
+  bloqué.

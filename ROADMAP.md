@@ -879,9 +879,32 @@ que ce qui rapproche » (étape 32) permet au monstre de s'en dégager.
 blocage entre personnages ou de l'ancre, poussée, contournement par le A*,
 changement de la règle de choix de cible.
 
-### Étape 34 — Les personnages bloqués par les monstres (prévue)
+### Étape 34 — Les personnages bloqués par les monstres ✅ TERMINÉE
 
-Les personnages reçoivent les cercles des monstres comme obstacles.
+Les personnages reçoivent les cercles des monstres comme obstacles : le
+blocage entre les deux camps devient mutuel. Même mécanisme que les
+étapes 32 et 33, une liste d'obstacles descend simplement jusqu'aux
+personnages.
+
+1. [x] `Personnage::mettreAJour(dt, cible, carte, obstacles)` : transmet
+       la liste à `deplacerAvecGlissement` ; tests existants adaptés,
+       nouveau test (un personnage s'arrête avant un obstacle)
+       (enchaînée)
+2. [x] `Escouade::mettreAJour(dt, carte, obstacles)` : transmet la liste
+       à chaque personnage, liste vide pour l'ancre ; nouveau test
+       (l'ancre dépasse l'obstacle, aucun personnage n'y entre)
+       (enchaînée)
+3. [x] `main.cpp` : liste des cercles de tous les monstres, calculée une
+       fois par image avant `escouade.mettreAJour`
+
+**Limite connue** : l'ancre traverse les monstres alors que les
+personnages sont bloqués, donc l'ancre (et la caméra) peut s'éloigner
+des personnages. Un personnage bloqué ne contourne pas (pas de A*
+individuel), il glisse ou attend.
+
+**Hors de portée** : blocage de l'ancre, blocage entre personnages,
+contournement par les personnages, poussée, resserrement de la
+formation.
 
 ### Étape 35 — À définir
 
@@ -889,7 +912,7 @@ Pistes discutées :
 - Améliorer le A* pour qu'il tienne compte des entités (contournement
   d'un obstacle mobile)
 - Blocage de l'ancre par les monstres, si le décalage ancre/personnages
-  s'avère gênant
+  s'avère gênant (limite connue de l'étape 34)
 - Skills qui bousculent un adversaire ou permettent de se faufiler
 - Skills pour les autres personnages (touches 2 à 4), effets de skill
   (zone, état posé sur le monstre, soin), HUD ou icônes de skill (hors
@@ -1037,8 +1060,8 @@ Pistes discutées :
 - Logique de jeu (`TileMap`, `Escouade`, `Mobile`, `Chemin`,
   `Personnage`, `Deplacement`, `Monstre`, `Attaque`, `Cercle`) dans une
   bibliothèque `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 163 tests : 32 sur `TileMap`, 13 sur `Chemin`,
-  33 sur `Escouade`, 12 sur `Deplacement`, 27 sur `Monstre`, 19 sur
+  (`./build/tests.exe`, 165 tests : 32 sur `TileMap`, 13 sur `Chemin`,
+  34 sur `Escouade`, 12 sur `Deplacement`, 27 sur `Monstre`, 20 sur
   `Personnage`, 11 sur `Attaque`, 12 sur `Mobile`, 4 sur `Cercle`)
 - Depuis l'étape 31, le mêlée avant-gauche possède un skill (une
   seconde `Attaque`, `std::optional` dans `Personnage` : 25 dégâts,
@@ -1097,7 +1120,10 @@ Pistes discutées :
   obstacles passée à `Monstre::mettreAJour`, puis à `Mobile` et
   `deplacerAvecGlissement`) ; depuis l'étape 33, ils sont aussi bloqués
   par les personnages vivants (`Escouade::cerclesDesVivants`, les morts
-  ne bloquent pas) ; l'ancre et les personnages traversent encore les
-  monstres ; un monstre bloqué ne contourne pas, il glisse ou attend
-- Étape en cours : **Étape 34** — les personnages bloqués par les
-  monstres (prévue) ; étape 35 à choisir
+  ne bloquent pas) ; depuis l'étape 34, les personnages sont aussi
+  bloqués par les monstres (`Escouade::mettreAJour` reçoit les cercles
+  des monstres et les transmet à chaque personnage). L'ancre, elle,
+  traverse toujours les monstres, donc elle (et la caméra) peut
+  s'éloigner des personnages bloqués ; un monstre ou un personnage
+  bloqué ne contourne pas, il glisse ou attend
+- Étape en cours : **Étape 35** à choisir
