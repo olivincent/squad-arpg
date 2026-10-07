@@ -59,14 +59,17 @@ squad-arpg/
 │   ├── Deplacement.hpp
 │   ├── Deplacement.cpp
 │   ├── Monstre.hpp
-│   └── Monstre.cpp
+│   ├── Monstre.cpp
+│   ├── Attaque.hpp
+│   └── Attaque.cpp
 ├── tests/
 │   ├── test_TileMap.cpp
 │   ├── test_Chemin.cpp
 │   ├── test_Escouade.cpp
 │   ├── test_Deplacement.cpp
 │   ├── test_Monstre.cpp
-│   └── test_Personnage.cpp
+│   ├── test_Personnage.cpp
+│   └── test_Attaque.cpp
 ├── docs/
 │   ├── build.md
 │   ├── boucle-et-entrees.md
@@ -80,16 +83,18 @@ squad-arpg/
 └── ROADMAP.md
 ```
 
-Six modules : `TileMap` (l'environnement de jeu), `Escouade` (le point
+Sept modules : `TileMap` (l'environnement de jeu), `Escouade` (le point
 de contrôle, l'ancre, qui suit un chemin calculé par le A*, possède les
 personnages et les fait attaquer), `Chemin` (recherche de chemin A*,
 utilisé uniquement par `Escouade`), `Personnage` (un membre de
 l'escouade, qui sait aller vers un point et frapper une cible à
 portée), `Deplacement` (collision/glissement partagée entre `Escouade`
-et `Personnage`) et `Monstre` (un ennemi immobile, avec un identifiant,
+et `Personnage`), `Monstre` (un ennemi immobile, avec un identifiant,
 des points de vie et une riposte à portée, possédé directement par
 `main.cpp` dans un `std::vector<Monstre>`, sans lien direct avec
-`Escouade` ni `Personnage` — `main.cpp` fait l'intermédiaire).
+`Escouade` ni `Personnage` — `main.cpp` fait l'intermédiaire) et
+`Attaque` (portée, dégâts et recharge, possédée par valeur par
+`Personnage` et par `Monstre`).
 `main.cpp` garde la fenêtre, la boucle de jeu, les événements
 (fermeture, et le verrouillage de cible sur un monstre), l'état de la
 souris (déplacement), la caméra, la carte (son plan) et les monstres ;
@@ -101,7 +106,7 @@ réelle, pas par anticipation (voir principes ci-dessous).
 Deux exécutables : `main` (le jeu) et `tests` (les tests Catch2). Les deux
 se lient à la bibliothèque statique `squad_core`, qui contient toute la
 logique de jeu (`TileMap`, `Escouade`, `Chemin`, `Personnage`,
-`Deplacement`, `Monstre`) indépendamment de la fenêtre et de la boucle de
+`Deplacement`, `Monstre`, `Attaque`) indépendamment de la fenêtre et de la boucle de
 jeu.
 
 ## Modules
@@ -226,16 +231,14 @@ qu'un personnage reçoive un point différent de sa place en formation
   constructeur), `m_couleur` (reçue au constructeur, pour distinguer les
   4 personnages à l'écran), `m_vitesse` (240 px/s — plus rapide que
   l'escouade à 180 px/s, pour qu'un personnage retardé par un mur
-  puisse rattraper sa place), `m_portee` (80 px), `m_degats` (5),
-  `m_tempsRecharge` (0,5 s, ne change jamais) et `m_recharge` (secondes
-  avant le prochain coup possible, 0 à la création, décrémentée dans
-  `mettreAJour` sans descendre sous zéro) — valeurs fixes identiques
-  pour les 4, comme `m_vitesse`, en attendant de dépendre d'une arme ou
-  de capacités propres à chacun. Depuis l'étape 20 : `m_pointsDeVie` et
-  `m_pointsDeVieMax` (`100` chacun à la création), dupliqués
-  volontairement de `Monstre` (même logique de points de vie et de
-  barre de vie) — aucune factorisation entre les deux classes pour
-  l'instant.
+  puisse rattraper sa place) et, depuis l'étape 22, `m_attaque`
+  (`Attaque`, portée 80 px / dégâts 5 / recharge 0,5 s — valeurs fixes
+  identiques pour les 4, comme `m_vitesse`, en attendant de dépendre
+  d'une arme ou de capacités propres à chacun). Depuis l'étape 20 :
+  `m_pointsDeVie` et `m_pointsDeVieMax` (`100` chacun à la création),
+  dupliqués volontairement de `Monstre` (même logique de points de vie
+  et de barre de vie) — aucune factorisation entre les deux classes
+  pour l'instant.
 - **Déclaration anticipée** : `Personnage.hpp` contient `class TileMap;`
   (une référence ne demande pas la définition complète) ; aucun include
   de `TileMap.hpp` n'est nécessaire dans `Personnage.cpp` non plus,
@@ -252,6 +255,11 @@ qu'un personnage reçoive un point différent de sa place en formation
   de ROADMAP.md). Depuis l'étape 21, il ne frappe plus
   (`Personnage::frapper`) et n'est plus ciblé par les monstres
   (`Escouade::indicePersonnageLePlusProche` l'ignore).
+- **`estAPortee` et `frapper` délèguent à `m_attaque`** (étape 22),
+  avec `m_centre` comme origine ; `mettreAJour` délègue la
+  décrémentation de la recharge à `m_attaque.mettreAJour(dt)`. La règle
+  « un personnage mort ne frappe pas » reste dans `Personnage::frapper`,
+  avant la délégation.
 
 Interface publique :
 
@@ -260,8 +268,8 @@ Interface publique :
 | `Personnage(sf::Vector2f centre, sf::Color couleur)` | Crée le personnage à ce centre, avec cette couleur |
 | `void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte)` | Avance vers la cible (collision, glissement), puis décrémente la recharge d'attaque |
 | `void dessiner(sf::RenderTarget& rendu) const` | Dessine le personnage et sa barre de vie |
-| `bool estAPortee(sf::Vector2f cible) const` | La distance entre le centre et `cible` est-elle `<=` `m_portee` ? |
-| `int frapper(sf::Vector2f cible)` | Si le personnage est vivant, `cible` est à portée et la recharge écoulée, relance la recharge et renvoie `m_degats` ; sinon renvoie 0 |
+| `bool estAPortee(sf::Vector2f cible) const` | La distance entre le centre et `cible` est-elle `<=` la portée de `m_attaque` ? |
+| `int frapper(sf::Vector2f cible)` | Si le personnage est vivant, délègue à `m_attaque.frapper` avec `m_centre` comme origine ; sinon renvoie 0 |
 | `void recevoirDegats(int quantite)` | Retire des points de vie, sans descendre sous zéro |
 | `bool estVivant() const` | Points de vie `> 0` |
 | `sf::Vector2f getCentre() const` | Centre du personnage (utilisé par `Escouade::indicePersonnageLePlusProche`) |
@@ -292,14 +300,14 @@ commune tant qu'aucun comportement partagé ne le justifie.
 - **Stocke son centre** (`m_centre`), comme `Personnage`.
 - **Données membres** : `m_centre`, `m_taille` (30 × 30, fixée dans le
   constructeur), `m_pointsDeVie` et `m_pointsDeVieMax` (`100` chacun à
-  la création), `m_id`, et depuis l'étape 20 : `m_portee` (80 px),
-  `m_degats` (10), `m_tempsRecharge` (1 s) et `m_recharge` (secondes
-  avant le prochain coup possible, 0 à la création) — même structure
-  que la portée/recharge de `Personnage`, dupliquée volontairement (pas
-  de factorisation pour l'instant). Pas de couleur stockée : toujours
-  rouge, donc une valeur fixe directement dans `dessiner`, pas un membre
-  (contrairement à `Personnage`, qui a besoin d'une couleur différente
-  par instance).
+  la création), `m_id`, et depuis l'étape 20 (portée/recharge extraites
+  dans `m_attaque` à l'étape 22) : `m_attaque` (`Attaque`, portée
+  80 px / dégâts 10 / recharge 1 s — même structure que celle de
+  `Personnage`, valeurs différentes, dupliquée volontairement comme
+  objet, pas de factorisation des points de vie pour l'instant). Pas de
+  couleur stockée : toujours rouge, donc une valeur fixe directement
+  dans `dessiner`, pas un membre (contrairement à `Personnage`, qui a
+  besoin d'une couleur différente par instance).
 - **`Monstre(sf::Vector2f centre, int id)`** : centre et identifiant en
   paramètres ; `explicit` retiré puisque le constructeur en prend deux
   (une conversion implicite à un seul argument n'est plus possible).
@@ -336,10 +344,11 @@ commune tant qu'aucun comportement partagé ne le justifie.
   source de vérité. Contour de 3 px vers l'intérieur
   (`setOutlineThickness(-3.0f)`), pour ne pas toucher la barre de vie
   ni changer l'empreinte du monstre.
-- **Riposte** (étape 20) : `mettreAJour(dt)` décrémente seulement
-  `m_recharge` (le monstre reste immobile) ; `frapper(cible)` a le même
-  contrat que `Personnage::frapper` (dégâts si `cible` est à portée et
-  la recharge écoulée, sinon 0 sans toucher la recharge). `Monstre` ne
+- **Riposte** (étape 20) : `mettreAJour(dt)` délègue à
+  `m_attaque.mettreAJour(dt)` (le monstre reste immobile) ;
+  `frapper(cible)` délègue entièrement à `m_attaque.frapper`, avec
+  `m_centre` comme origine — sans règle supplémentaire, contrairement à
+  `Personnage::frapper` qui vérifie d'abord `estVivant()`. `Monstre` ne
   connaît toujours pas `Escouade` ni `Personnage` : il frappe un simple
   `sf::Vector2f`, c'est `main.cpp` qui lui donne le centre du
   personnage le plus proche (`Escouade::personnageLePlusProche`) et qui
@@ -351,13 +360,38 @@ Interface publique :
 |---|---|
 | `Monstre(sf::Vector2f centre, int id)` | Crée le monstre à ce centre, avec cet identifiant, 30 × 30, 100 points de vie |
 | `void dessiner(sf::RenderTarget& rendu, bool estCible) const` | Dessine le monstre et sa barre de vie ; ajoute un contour jaune si `estCible` |
-| `void mettreAJour(float dt)` | Décrémente la recharge d'attaque, sans descendre sous zéro |
-| `int frapper(sf::Vector2f cible)` | Si `cible` est à portée et la recharge écoulée, relance la recharge et renvoie `m_degats` ; sinon renvoie 0 |
+| `void mettreAJour(float dt)` | Décrémente la recharge d'attaque (délègue à `m_attaque`), sans descendre sous zéro |
+| `int frapper(sf::Vector2f cible)` | Délègue à `m_attaque.frapper`, avec `m_centre` comme origine |
 | `sf::Vector2f getCentre() const` | Centre du monstre (utilisé par `main.cpp` pour le donner à `Escouade::attaquer` et `personnageLePlusProche`) |
 | `int getId() const` | Identifiant du monstre (utilisé par `main.cpp` pour désigner la cible verrouillée) |
 | `bool contient(sf::Vector2f point) const` | Le point (pixels du monde) est-il dans le carré du monstre ? |
 | `void recevoirDegats(int quantite)` | Retire des points de vie, sans descendre sous zéro |
 | `bool estVivant() const` | Points de vie `> 0` |
+
+### `Attaque` — portée, dégâts et recharge (étape 22)
+
+Possédée par valeur par `Personnage` et par `Monstre`, qui portaient
+chacun la même structure (portée, dégâts, temps de recharge, recharge
+courante) depuis l'étape 20, avec des valeurs différentes. Composition,
+pas héritage : aucune classe de base commune, aucune fonction virtuelle.
+
+- **Ne connaît pas la position de son propriétaire** : `origine` et
+  `cible` sont reçus en paramètre de `estAPortee` et `frapper`, plutôt
+  que stockés. Ne connaît ni `TileMap`, ni `Personnage`, ni `Monstre`,
+  ni `Escouade`, et ne dessine rien.
+- **Données membres** : `m_portee`, `m_degats`, `m_tempsRecharge`
+  (ces trois valeurs sont des paramètres du constructeur, puisqu'elles
+  diffèrent déjà entre `Personnage` et `Monstre`) et `m_recharge`
+  (0 à la création).
+
+Interface publique :
+
+| Fonction | Rôle |
+|---|---|
+| `Attaque(float portee, int degats, float tempsRecharge)` | Crée l'attaque avec cette portée, ces dégâts et ce temps de recharge |
+| `void mettreAJour(float dt)` | Décrémente la recharge, sans descendre sous zéro |
+| `bool estAPortee(sf::Vector2f origine, sf::Vector2f cible) const` | La distance entre `origine` et `cible` est-elle `<=` `m_portee` ? |
+| `int frapper(sf::Vector2f origine, sf::Vector2f cible)` | Si `cible` est à portée de `origine` et la recharge écoulée, relance la recharge et renvoie `m_degats` ; sinon renvoie 0 |
 
 ## Principes de conception à respecter
 
@@ -395,5 +429,5 @@ lire le fichier correspondant :
 | `docs/boucle-et-entrees.md` | Boucle de jeu, déplacement, entrée souris et attaque, caméra | Avant de modifier `main.cpp` |
 | `docs/carte-et-collision.md` | Carte, collision et dessin, plan texte et validation | Avant de modifier `TileMap` ou `Deplacement` |
 | `docs/chemin.md` | Recherche de chemin (A*), suivi de chemin par l'escouade, lissage de chemin | Avant de modifier `Chemin` ou le suivi de chemin dans `Escouade` |
-| `docs/formation.md` | `Escouade`, formation de l'escouade | Avant de modifier `Escouade` ou `Personnage` |
+| `docs/formation.md` | `Escouade`, formation de l'escouade, attaque (`Attaque`, `Personnage`, `Monstre`) | Avant de modifier `Escouade`, `Personnage`, `Monstre` ou `Attaque` |
 | `docs/tests.md` | Tests (Catch2, conventions) | Avant d'ajouter ou de modifier un test |

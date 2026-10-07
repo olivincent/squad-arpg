@@ -206,3 +206,39 @@
   change (il ne frappe plus, n'est plus ciblé). Retirer un personnage
   mort de la formation ou du vecteur, le griser, et la condition de
   défaite restent hors de portée de cette étape.
+
+## Classe `Attaque`, partagée par `Personnage` et `Monstre` (étape 22)
+
+- **Composition, pas héritage** : la duplication assumée depuis
+  l'étape 20 (portée, dégâts, recharge, identiques dans leur structure
+  mais pas dans leurs valeurs) est extraite dans une classe `Attaque`,
+  possédée par valeur (`m_attaque`) par `Personnage` et par `Monstre`.
+  Aucune classe de base commune, aucune fonction virtuelle : les deux
+  classes restent par ailleurs indépendantes (points de vie, barre de
+  vie, dessin — toujours dupliqués, non touchés par cette étape).
+- **`Attaque` ne connaît pas la position de son propriétaire** : elle
+  reçoit `origine` en paramètre de `estAPortee` et `frapper`, plutôt
+  que de stocker elle-même un centre. Elle ne connaît ni `TileMap`, ni
+  `Personnage`, ni `Monstre`, ni `Escouade`, et ne dessine rien.
+- **Les trois valeurs (portée, dégâts, temps de recharge) restent des
+  paramètres du constructeur** (`Attaque(float portee, int degats,
+  float tempsRecharge)`), puisqu'elles diffèrent déjà entre les deux
+  propriétaires : 80 px / 5 / 0,5 s pour `Personnage`, 80 px / 10 / 1 s
+  pour `Monstre`.
+- **La règle « un personnage mort ne frappe pas » (étape 21) reste dans
+  `Personnage::frapper`**, avant la délégation à `m_attaque` : être
+  vivant est l'affaire de `Personnage`, pas de son attaque. `Monstre`
+  délègue entièrement à `m_attaque`, sans règle supplémentaire.
+- **Interfaces publiques de `Personnage` et de `Monstre` inchangées** ;
+  `Escouade` et `main.cpp` ne connaissent pas `Attaque` et n'ont pas été
+  modifiés.
+- **Tests** : `test_Attaque.cpp` couvre maintenant les six cas de
+  recharge/portée (dégâts à portée, 0 hors de portée, 0 au second appel
+  immédiat, 0 après une durée trop courte, dégâts de nouveau après une
+  durée généreuse, un coup hors de portée ne déclenche pas la
+  recharge). `test_Personnage.cpp` et `test_Monstre.cpp` ne gardent que
+  les cas qui prouvent le branchement et les valeurs propres à chaque
+  classe (dégâts à portée avec leur propre valeur, 0 hors de portée,
+  nouveau coup après une durée généreuse — preuve que `mettreAJour`
+  avance bien la recharge de `m_attaque` —, et pour `Personnage`
+  seulement, 0 quand il n'est pas vivant).

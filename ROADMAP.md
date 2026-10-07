@@ -521,7 +521,36 @@ au combat change. Le retirer de la formation ou du vecteur, le griser,
 et une condition de défaite de l'escouade restent hors de portée de
 cette étape (cf. ARCHITECTURE.md).
 
-### Étape 22 — À définir
+### Étape 22 — Classe `Attaque`, partagée par `Personnage` et `Monstre` ✅ TERMINÉE
+
+Extrait dans une classe `Attaque` (composition, pas héritage) la
+logique de portée/dégâts/recharge dupliquée entre `Personnage` et
+`Monstre` depuis l'étape 20, sans aucun changement de comportement ni
+d'interface publique de ces deux classes.
+
+1. [x] `Attaque.hpp`/`.cpp` : structure de données (`m_portee`,
+       `m_degats`, `m_tempsRecharge`, `m_recharge`) et constructeur ;
+       ajout à `squad_core`
+2. [x] `Attaque::estAPortee` ; `tests/test_Attaque.cpp` créé et ajouté
+       au CMake (point à portée, hors portée, distance exactement
+       égale à la portée)
+3. [x] `Attaque::mettreAJour` puis `Attaque::frapper` ; tests calqués
+       sur les six cas existants de `Personnage::frapper`
+4. [x] Substitution dans `Personnage` : les quatre membres remplacés
+       par `m_attaque` ; `estAPortee`, `frapper` et la décrémentation
+       dans `mettreAJour` délèguent à `m_attaque`. La règle « un
+       personnage mort ne frappe pas » reste dans `Personnage::frapper`
+5. [x] Substitution dans `Monstre`, de la même façon, sans règle
+       supplémentaire
+6. [x] Ménage dans `test_Personnage.cpp` et `test_Monstre.cpp` : ne
+       gardent que les cas prouvant le branchement et les valeurs
+       propres à chaque classe, les six cas génériques restant
+       couverts par `test_Attaque.cpp`
+
+Aucune modification d'`Escouade` ni de `main.cpp` ; les interfaces
+publiques de `Personnage` et de `Monstre` sont inchangées.
+
+### Étape 23 — À définir
 
 Pistes discutées :
 - Mort ou mise hors combat d'un personnage à 0 point de vie (retrait de
@@ -529,8 +558,8 @@ Pistes discutées :
 - Collision entre personnages, ou déplacement suivant l'arc de rotation
   plutôt qu'une ligne droite, pour éliminer le chevauchement résiduel
   lors d'un demi-tour rapide (voir limite connue de l'étape 14)
-- Factorisation entre `Monstre` et `Personnage` (points de vie/barre de
-  vie, portée/dégâts/recharge), si la duplication devient gênante
+- Factorisation des points de vie et de la barre de vie entre
+  `Monstre` et `Personnage`, si la duplication devient gênante
 - Effet visuel au coup ou à la mort d'un monstre ou d'un personnage
 - Déplacement ou comportement des monstres (ils restent immobiles pour
   l'instant)
@@ -541,7 +570,7 @@ Pistes discutées :
 - Limitation de fréquence des appels à `allerVers`, si un problème de
   performance est mesuré sur une carte plus grande
 - Types de personnages, statistiques, armes, capacités, ligne de vue
-  pour la portée (hors de portée explicite des étapes 12 à 17 et 20)
+  pour la portée (hors de portée explicite des étapes 12 à 17, 20 et 22)
 
 ## État actuel (à mettre à jour à chaque session)
 
@@ -563,11 +592,11 @@ Pistes discutées :
   (fonction partagée `deplacerAvecGlissement`, module `Deplacement`) ;
   la formation pivote progressivement vers la direction de marche
   (360°/s, toujours par le plus court côté). Chaque personnage a aussi
-  une portée d'attaque (80 px), des dégâts (5), une recharge (0,5 s),
-  100 points de vie et une barre de vie au-dessus de lui ; un personnage
-  à 0 point de vie ne meurt pas encore (limite connue, étape 20), mais
-  depuis l'étape 21 il ne frappe plus et n'est plus ciblé par les
-  monstres
+  une attaque (portée 80 px, dégâts 5, recharge 0,5 s, module `Attaque`
+  partagé avec `Monstre` depuis l'étape 22), 100 points de vie et une
+  barre de vie au-dessus de lui ; un personnage à 0 point de vie ne
+  meurt pas encore (limite connue, étape 20), mais depuis l'étape 21 il
+  ne frappe plus et n'est plus ciblé par les monstres
 - Caméra (`sf::View`) toujours centrée sur l'escouade ; du noir apparaît
   au-delà des bords de la carte
 - Tant que le bouton gauche de la souris est enfoncé et que la fenêtre a
@@ -582,8 +611,8 @@ Pistes discutées :
   (id 3) ; `main.cpp` les possède directement dans un
   `std::vector<Monstre>` (pas `Escouade`) ; pas de collision avec eux
   (l'escouade et les personnages leur passent dessus). Chaque monstre a
-  aussi une portée d'attaque (80 px), des dégâts (10) et une recharge
-  (1 s) : il frappe le personnage **vivant** de l'escouade le plus
+  aussi une attaque (portée 80 px, dégâts 10, recharge 1 s, module
+  `Attaque`) : il frappe le personnage **vivant** de l'escouade le plus
   proche de lui dès qu'il est à portée, qu'il soit lui-même attaqué ou
   non (`Escouade::personnageLePlusProche`/`recevoirDegats`, étape 20 ;
   filtrage des morts, étape 21) ; s'il n'en reste aucun, il ne frappe
@@ -602,10 +631,14 @@ Pistes discutées :
   vecteur (`std::erase_if`, à chaque image) ; les autres restent
   attaquables, quel que soit l'ordre dans lequel ils meurent
 - Logique de jeu (`TileMap`, `Escouade`, `Chemin`, `Personnage`,
-  `Deplacement`, `Monstre`) dans une bibliothèque `squad_core`, testée
-  avec Catch2 3 (`./build/tests.exe`, 99 tests : 32 sur `TileMap`,
-  13 sur `Chemin`, 16 sur `Escouade`, 4 sur `Deplacement`,
-  19 sur `Monstre`, 15 sur `Personnage`)
+  `Deplacement`, `Monstre`, `Attaque`) dans une bibliothèque
+  `squad_core`, testée avec Catch2 3 (`./build/tests.exe`, 101 tests :
+  32 sur `TileMap`, 13 sur `Chemin`, 16 sur `Escouade`, 4 sur
+  `Deplacement`, 16 sur `Monstre`, 11 sur `Personnage`, 9 sur `Attaque`)
+- Depuis l'étape 22, `Personnage` et `Monstre` possèdent chacun un
+  `m_attaque` (`Attaque`) plutôt que leurs propres membres de portée,
+  dégâts et recharge — composition, pas héritage ; aucun changement de
+  comportement ni d'interface publique
 - Près des piliers, le contournement n'est pas toujours le plus court
   possible (voir étape 11, limite connue) — accepté pour l'instant
 - Lors d'un demi-tour rapide, deux personnages peuvent encore se
@@ -619,4 +652,4 @@ Pistes discutées :
   ne frappe plus et n'est plus ciblé par les monstres, qui reportent
   leur attaque sur un autre personnage vivant, ou cessent de frapper si
   aucun ne l'est (voir étape 20, limite connue) — accepté pour l'instant
-- Étape en cours : **Étape 22** — à choisir
+- Étape en cours : **Étape 23** — à choisir
