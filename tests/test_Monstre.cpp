@@ -43,6 +43,12 @@ TEST_CASE("contient renvoie faux pour un point sur le bord bas") {
     REQUIRE_FALSE(monstre.contient({100.0f, 115.0f}));
 }
 
+TEST_CASE("getCentre renvoie le centre du monstre") {
+    const Monstre monstre({100.0f, 100.0f});
+
+    REQUIRE(monstre.getCentre() == sf::Vector2f(100.0f, 100.0f));
+}
+
 // Le monstre a 100 points de vie à la création.
 
 TEST_CASE("Le monstre est vivant à la création") {

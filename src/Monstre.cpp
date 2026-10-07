@@ -35,6 +35,10 @@ void Monstre::dessiner(sf::RenderTarget& rendu) const {
     rendu.draw(vie);
 }
 
+sf::Vector2f Monstre::getCentre() const {
+    return m_centre;
+}
+
 bool Monstre::contient(sf::Vector2f point) const {
     return sf::FloatRect(m_centre - m_taille / 2.0f, m_taille).contains(point);
 }

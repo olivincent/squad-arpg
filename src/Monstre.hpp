@@ -7,6 +7,7 @@ class Monstre {
 public:
     explicit Monstre(sf::Vector2f centre);
     void dessiner(sf::RenderTarget& rendu) const;
+    sf::Vector2f getCentre() const;
     bool contient(sf::Vector2f point) const;
     void recevoirDegats(int quantite);
     bool estVivant() const;

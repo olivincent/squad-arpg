@@ -8,7 +8,11 @@ Personnage::Personnage(sf::Vector2f centre, sf::Color couleur)
     : m_centre(centre),
       m_taille(20.0f, 20.0f),
       m_couleur(couleur),
-      m_vitesse(240.0f)
+      m_vitesse(240.0f),
+      m_portee(80.0f),
+      m_degats(5),
+      m_tempsRecharge(0.5f),
+      m_recharge(0.0f)
 {
 }
 
@@ -33,4 +37,22 @@ void Personnage::mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte)
 
     const sf::FloatRect rect(m_centre - m_taille / 2.0f, m_taille);
     m_centre = deplacerAvecGlissement(carte, rect, deplacement) + m_taille / 2.0f;
+
+    m_recharge -= dt;
+    if (m_recharge < 0.0f) {
+        m_recharge = 0.0f;
+    }
+}
+
+bool Personnage::estAPortee(sf::Vector2f cible) const {
+    return (cible - m_centre).length() <= m_portee;
+}
+
+int Personnage::frapper(sf::Vector2f cible) {
+    if (!estAPortee(cible) || m_recharge > 0.0f) {
+        return 0;
+    }
+
+    m_recharge = m_tempsRecharge;
+    return m_degats;
 }
