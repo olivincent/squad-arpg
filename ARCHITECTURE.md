@@ -131,7 +131,10 @@ Données membres : `m_mobile` (`Mobile`), `m_decalages` (4
 `place` du lanceur, `Cible cible`), `m_cibleCombat`
 (`std::optional<Cercle>`), `m_places` (`std::vector<sf::Vector2f>`, place
 de formation de chaque personnage après repli, recalculée par
-`mettreAJour`).
+`mettreAJour`), `m_monstreAPortee` (`std::vector<bool>`, par personnage :
+monstre à portée de son attaque, calculé par `attaquer`), `m_agresseurs`
+(`std::vector<Agresseur>`, structure publique : `id`, `cercle`,
+`tempsRestant`).
 
 | Fonction | Rôle |
 |---|---|
@@ -140,17 +143,18 @@ de formation de chaque personnage après repli, recalculée par
 | `std::vector<Coup> attaquer(const std::vector<MonstreVu>& monstres, const TileMap& carte)` | Avec un verrou dont le monstre est dans `monstres` : mémorise son cercle, approche tant qu'un personnage vivant n'est pas à portée, s'arrête sinon, et fait partir le skill de dégâts en attente si son lanceur est à portée. Verrou ou non : chaque personnage choisit pour lui-même le monstre à frapper (`choisirMonstreAFrapper`) et frappe ; renvoie un `Coup` par frappe qui touche |
 | `std::vector<Coup> declencherSkill(std::size_t place, const std::vector<MonstreVu>& monstres)` | Skill du personnage à la place `place` (1 à 4). Liste vide si la place est invalide, sans skill, si le lanceur est mort, si le skill est en recharge, si un skill est déjà en attente ou si `choisirCible` ne trouve rien. Cible à portée : un skill de dégâts renvoie un coup (identifiant de la cible, dégâts), un soin est appliqué sur place (liste vide). Hors de portée (seulement avec un verrou) : le skill est mis en attente (liste vide) |
 | `std::optional<Cible> choisirCible(TypeSkill type, std::size_t place, const std::vector<MonstreVu>& monstres) const` | `Degats` : avec un verrou, le monstre verrouillé trouvé dans `monstres` (à portée ou non, vide s'il n'y est pas) ; sans verrou, le monstre que le lanceur de la place `place` frapperait en autodéfense, avec la portée de son skill (vide si aucun). `Soin` : le vivant qui a le moins de points de vie parmi ceux qui ne sont pas à pleine vie (égalité : la plus petite place) |
-| `void mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles)` | Avance l'ancre, tourne la formation, calcule la place de chaque personnage (place théorique ramenée vers l'ancre par `replierVersOrigine` si elle est dans un mur ou cachée derrière un coin), déplace chaque personnage vers sa place (ou reste sur place s'il est à portée de la cible en combat) ; le lanceur d'un skill en attente vise sa cible à la place (un soin part ici, annulé si le lanceur ou la cible meurt ou si la cible est à pleine vie) ; `obstacles` est transmis aux personnages, jamais à l'ancre |
+| `void mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles)` | Avance l'ancre, tourne la formation, calcule la place de chaque personnage (place théorique ramenée vers l'ancre par `replierVersOrigine` si elle est dans un mur ou cachée derrière un coin), déplace chaque personnage vers sa place (ou reste sur place s'il est à portée de la cible en combat ; ancre à l'arrêt : vers l'agresseur le plus proche dans une laisse de 100 px autour de sa place, ou sur place s'il a déjà un monstre à portée) ; fait écouler le délai d'oubli des agresseurs ; le lanceur d'un skill en attente vise sa cible à la place (un soin part ici, annulé si le lanceur ou la cible meurt ou si la cible est à pleine vie) ; `obstacles` est transmis aux personnages, jamais à l'ancre |
 | `void dessiner(sf::RenderTarget& rendu) const` | Dessine l'ancre, les 4 personnages, puis un point jaune (repère provisoire) à la place de formation de chaque personnage vivant |
 | `sf::Vector2f getCentre() const` | Centre de l'ancre (utilisé par la caméra) |
 | `std::optional<Cercle> personnageLePlusProche(sf::Vector2f point) const` | Cercle du personnage vivant dont le centre est le plus proche de `point` ; vide si aucun n'est vivant |
-| `void recevoirDegats(sf::Vector2f origine, int quantite)` | Applique les dégâts au personnage vivant le plus proche d'`origine` ; ne fait rien si aucun n'est vivant |
+| `void recevoirDegats(int idMonstre, sf::Vector2f origine, int quantite)` | Applique les dégâts au personnage vivant le plus proche d'`origine` ; ne fait rien si aucun n'est vivant. Si `quantite > 0`, enregistre le monstre comme agresseur (ou remet son temps à 3 s) |
 | `bool estVivante() const` | Vrai si au moins un personnage est vivant |
 | `std::vector<Cercle> cerclesDesVivants() const` | Cercles des personnages vivants |
 | `void verrouiller(int idCible)` | Pose le verrou de combat sur ce monstre, en remplaçant la cible précédente ; annule un skill de dégâts en attente si l'identifiant change |
 | `void deverrouiller()` | Retire le verrou de combat et annule un skill de dégâts en attente |
 | `std::optional<int> getCibleVerrouillee() const` | Identifiant du monstre engagé en combat, vide si aucun |
 | `const std::vector<sf::Vector2f>& getPlacesDeFormation() const` | Places de formation (après repli) calculées par le dernier `mettreAJour` |
+| `const std::vector<Agresseur>& getAgresseurs() const` | Monstres qui ont frappé l'escouade récemment (oubliés après 3 s sans coup, ou absents de `monstres` dans `attaquer`) |
 
 ### `Mobile` — déplacement par chemin
 
@@ -293,12 +297,14 @@ dégâts à infliger à ce monstre).
 
 ### `Autodefense` — quel monstre un combattant frappe
 
-Une fonction libre, sans état, utilisée par `Escouade::attaquer` et
-`Escouade::choisirCible`.
+Deux fonctions libres, sans état. `choisirMonstreAFrapper` est utilisée par
+`Escouade::attaquer` et `Escouade::choisirCible`, `choisirAgresseurAViser`
+par `Escouade::mettreAJour`.
 
 | Fonction | Rôle |
 |---|---|
 | `std::optional<int> choisirMonstreAFrapper(Cercle origine, const std::function<bool(Cercle)>& estAPortee, const std::vector<MonstreVu>& monstres, std::optional<int> idVerrouille)` | Identifiant du monstre verrouillé s'il est à portée ; sinon du plus proche (bord à bord) parmi ceux à portée (égalité : le premier de la liste) ; sinon vide. `estAPortee` dit si un cercle est à portée (celle de l'attaque ou celle d'un skill) |
+| `std::optional<Cercle> choisirAgresseurAViser(Cercle personnage, sf::Vector2f place, float laisse, const std::vector<MonstreVu>& agresseurs)` | Cercle de l'agresseur le plus proche du personnage (bord à bord ; égalité : le premier de la liste) parmi ceux dont le centre est à `laisse` ou moins de `place` ; sinon vide |
 
 ### `Cible` — ce que vise un skill
 

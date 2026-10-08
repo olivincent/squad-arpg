@@ -322,3 +322,20 @@
   `verrouiller` sur la même cible ; un soin est refusé pendant l'attente
   d'un skill de dégâts. Le branchement des touches dans `main.cpp` n'est
   pas testé (visuel).
+
+## Agresseurs (étape 40)
+
+- **`test_Escouade.cpp`** : enregistrement (coup `> 0`, coup à 0, doublon
+  rafraîchi, aucun vivant), oubli (3 s, nouveau coup, `attaquer` retire
+  l'absent et met à jour le cercle), et déplacement vers l'agresseur sur
+  une carte dégagée (`carteDegagee`, `simulerAvecMonstre` : `attaquer` puis
+  `mettreAJour` à chaque tic, le monstre étant obstacle) : mêlée qui
+  s'approche, agresseur hors laisse, ancre en mouvement, oubli. Observé par
+  `personnageLePlusProche` du monstre.
+- **Piège** : `recevoirDegats` enregistre maintenant un agresseur. Les tests
+  qui blessent un personnage avec un monstre « fantôme » puis simulent
+  longtemps appellent `escouade.attaquer({}, carte)` pour l'oublier,
+  sinon un personnage se met en marche vers ce fantôme.
+- **`test_Autodefense.cpp`** : `choisirAgresseurAViser` seule (aucun
+  agresseur, hors laisse, laisse mesurée depuis la place, pile à la
+  laisse, le plus proche, égalité).

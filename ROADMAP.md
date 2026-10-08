@@ -45,11 +45,12 @@ est dans `docs/historique.md`.
 - Étape 37 — Autodéfense : les personnages ripostent sans clic ✅
 - Étape 38 — Places de formation toujours valides ✅
 - Étape 39 — Personnages autonomes dans leur chemin ✅
+- Étape 40 — Les personnages vont vers leurs agresseurs ✅
 
-## Étape 40 — À définir
+## Étape 41 — À définir
 
 Pistes discutées :
-- Un mêlée fait un pas vers le monstre qui l'attaque
+- Skill de provocation
 - L'escouade poursuit d'elle-même un monstre qui l'attaque (écartée pour
   l'instant)
 - Indicateur visuel de la cible de chaque personnage
@@ -144,6 +145,14 @@ Pistes discutées :
   égalité : le premier de la liste). Deux personnages peuvent frapper
   deux monstres différents. Elle ne déplace personne : les mêlées ne
   frappent que ce qui est à 20 px d'eux, les tireurs à 120 px.
+- **Agresseurs** : `Escouade` retient les monstres qui viennent de la
+  frapper (3 s sans nouveau coup, ou mort du monstre). Quand l'ancre est
+  à l'arrêt, un personnage vivant sans monstre à portée quitte sa place
+  pour aller vers l'agresseur le plus proche, à condition que celui-ci
+  soit à 100 px ou moins de sa place ; avec un monstre déjà à portée, il
+  reste sur place. L'ordre du joueur (ancre en mouvement), le skill en
+  attente et le verrou (personnage à portée du monstre verrouillé) passent
+  avant.
 - **Skills** : deux, de classe `Skill` (type + `Attaque`). Touche 1 :
   skill de dégâts du mêlée avant-gauche (25 dégâts, recharge 5 s, portée
   de mêlée, 20 px), sur le monstre verrouillé ou, sans verrou, sur le
@@ -174,10 +183,10 @@ Pistes discutées :
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 227 tests : 32 sur `TileMap`, 17 sur `Chemin`, 69
+  (`./build/tests.exe`, 244 tests : 32 sur `TileMap`, 17 sur `Chemin`, 80
   sur `Escouade`, 12 sur `Deplacement`, 27 sur `Monstre`, 26 sur
   `Personnage`, 11 sur `Attaque`, 5 sur `Skill`, 14 sur `Mobile`, 4 sur
-  `Cercle`, 7 sur `Autodefense`).
+  `Cercle`, 13 sur `Autodefense`).
 
 **Limites connues** (acceptées pour l'instant) :
 - Deux places peuvent se replier presque au même endroit dans un passage
@@ -205,4 +214,6 @@ Pistes discutées :
 - L'autodéfense ne déplace personne : un mêlée attaqué par un monstre
   qui s'arrête à 15 px de lui riposte sur place, mais un tireur ou un
   mêlée qui n'a rien à portée ne réagit pas ; elle ne regarde que la
-  portée (pas de notion de « qui attaque qui »).
+  portée (pas de notion de « qui attaque qui »). Le déplacement vers
+  un agresseur (voir « Agresseurs ») s'y ajoute, mais seulement dans la
+  laisse de 100 px et ancre à l'arrêt.

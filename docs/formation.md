@@ -257,6 +257,18 @@ L'attaque, la portée, le skill et les obstacles sont dans
   `deverrouiller`, plutôt que par une vérification à chaque image : ce
   sont les deux seuls endroits où le verrou change.
 
+## Déplacement vers un agresseur (étape 40)
+
+- **Priorité du point visé** dans `Escouade::mettreAJour`, du plus faible
+  au plus fort : la place en formation ; le point de l'agresseur (ou le
+  centre du personnage s'il a déjà un monstre à portée), seulement si
+  l'ancre est à l'arrêt ; le centre du personnage s'il est à portée du
+  monstre verrouillé ; la cible du skill en attente. Le détail et le
+  pourquoi sont dans `docs/combat.md` (« Agresseurs »).
+- **« Ancre à l'arrêt »** = `m_mobile.directionVoulue()` vide, lu après le
+  déplacement de l'ancre dans la même image.
+- **`Personnage` n'en sait rien** : il reçoit toujours un simple point.
+
 ## Mort d'un personnage et défaite
 
 - **Un mort reste dans `m_personnages`**, contrairement à `Monstre` que

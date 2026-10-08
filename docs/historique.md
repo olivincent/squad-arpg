@@ -1026,3 +1026,29 @@ peuvent se replier au même endroit dans un passage étroit.
 **Hors de portée** : A* tenant compte des entités, vitesses différentes,
 ralentir l'ancre quand un personnage est en retard, déplacer des
 décisions (cible, skills, autodéfense) dans `Personnage`.
+
+### Étape 40 — Les personnages vont vers leurs agresseurs ✅ TERMINÉE
+
+L'autodéfense ne déplaçait personne : un monstre qui frappait un tireur
+laissait les mêlées plantées à leur place. `Escouade` retient maintenant
+ses agresseurs et les personnages vont vers eux.
+
+1. [x] Données et enregistrement : `Escouade::Agresseur`, `m_agresseurs`,
+       `recevoirDegats(idMonstre, origine, quantite)` ; tests (enchaînée)
+2. [x] Oubli : 3 s sans coup, ou absence de `monstresVus` ; cercle mis à
+       jour dans `attaquer` ; tests (enchaînée)
+3. [x] `choisirAgresseurAViser` (laisse de 100 px depuis la place, plus
+       proche, égalité) ; tests (enchaînée)
+4. [x] Branchement dans `mettreAJour` (`pointVersAgresseur`, ancre à
+       l'arrêt, `m_monstreAPortee`) ; tests
+5. [x] Mise à jour des documents
+
+**Choix** : laisse mesurée depuis la place de formation ; règle générique
+sans type de personnage ; l'ordre du joueur, le skill en attente et le
+verrou passent avant ; `m_monstreAPortee` mémorisé dans `attaquer`.
+
+**Limites connues** : voir `docs/combat.md` (« Agresseurs »).
+
+**Hors de portée** : skill de provocation, déplacement de l'ancre vers
+l'agresseur, verrou automatique, poursuite au-delà de la laisse, recul des
+tireurs, indicateur visuel, A* tenant compte des entités.

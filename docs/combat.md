@@ -133,6 +133,43 @@ personnages sont dans `docs/formation.md`, le monstre dans
   tireurs) ; la portée ignore les murs ; pas d'indicateur visuel de la
   cible de chaque personnage.
 
+## Agresseurs (étape 40)
+
+- **Pourquoi** : l'autodéfense ne déplace personne. Un monstre qui frappe
+  un tireur à l'arrière laissait les mêlées plantées à leur place. Les
+  personnages vont maintenant vers ceux qui les frappent.
+- **`Escouade` retient ses agresseurs** (`m_agresseurs` : identifiant,
+  cercle, temps restant) sans connaître `Monstre` : `recevoirDegats`
+  reçoit l'identifiant du monstre, `main.cpp` reste l'intermédiaire. Un
+  coup de dégâts `> 0` ajoute l'agresseur ou remet son temps à 3 s
+  (`s_dureeMemoireAgresseur`) ; un coup à 0 n'enregistre rien. À
+  l'enregistrement le cercle n'a que le centre (rayon nul, `recevoirDegats`
+  n'a que l'origine) ; `attaquer` le met à jour à l'image suivante.
+- **Oubli** : le temps s'écoule dans `mettreAJour` ; un agresseur absent
+  de `monstresVus` (monstre mort) est retiré dans `attaquer`.
+- **Choix de la cible** : `choisirAgresseurAViser` (module `Autodefense`,
+  fonction libre testée seule) garde les agresseurs dont le centre est à
+  100 px ou moins (`s_laisseAgresseur`) de la **place en formation** du
+  personnage (pas de sa position actuelle, sinon la laisse suivrait le
+  personnage et il pourrait être entraîné sans limite), puis prend le plus
+  proche de lui.
+- **Règle de déplacement** (`pointVersAgresseur`), ancre à l'arrêt
+  seulement : aucun agresseur dans la laisse → la place ; sinon, monstre
+  déjà à portée de l'attaque de base → reste sur place (sans cela il
+  reviendrait à sa place, sortirait de portée et oscillerait) ; sinon
+  centre de l'agresseur. « Monstre à portée » est mémorisé par `attaquer`
+  (`m_monstreAPortee`), comme `m_cibleCombat`.
+- **Priorités** : le lanceur d'un skill en attente vise sa cible ; avec un
+  verrou, un personnage à portée du monstre verrouillé reste sur place ;
+  l'ordre du joueur (ancre en mouvement) fait viser la place à tous.
+- **Règle générique** : aucun type « mêlée / tireur » ; un tireur à 120 px
+  ne bouge presque jamais, un mêlée va au contact. Même `Mobile` que les
+  autres déplacements (mêmes blocages).
+- **Limites connues** : l'ancre ne bouge pas vers l'agresseur ; pas de
+  poursuite au-delà de la laisse ; l'ancre est « à l'arrêt » dès que son
+  chemin est fini, même un instant ; un agresseur qui frappe depuis plus
+  de 100 px de la place d'un personnage n'attire pas celui-ci.
+
 ## Skill
 
 - **Une classe `Skill` autour d'une `Attaque`** : un `TypeSkill` (`Degats`
@@ -249,8 +286,8 @@ image).
 - **Un monstre frappe un personnage** : pour chaque monstre,
   `main.cpp` demande `escouade.personnageLePlusProche(m.getCentre())`
   (le cercle du vivant le plus proche), met le monstre à jour, relit son
-  centre, puis applique `escouade.recevoirDegats(origine,
-  m.frapper(*cible))`. Les deux appels à `Escouade` désignent le même
+  centre, puis applique `escouade.recevoirDegats(m.getId(),
+  origine, m.frapper(*cible))`. Les deux appels à `Escouade` désignent le même
   personnage grâce au même critère. La cible est calculée avant le
   déplacement du monstre et `origine` relu après, pour que les dégâts
   partent de la position à jour.
