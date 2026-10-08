@@ -125,33 +125,30 @@ int main() {
             }
         }
 
-        // Le skill passe avant l'attaque de base : s'il part, il relance
-        // la recharge de base de ce personnage, qui ne frappe donc pas une
-        // seconde fois dans la même image. Un soin ne rend aucun dégât.
-        if (placeSkillDemandee.has_value()) {
-            std::optional<Cercle> cercleCible;
-            if (monstreVerrouille != monstres.end()) {
-                cercleCible = monstreVerrouille->getCercle();
-            }
-            const int degats = escouade.declencherSkill(*placeSkillDemandee, cercleCible);
-            if (monstreVerrouille != monstres.end()) {
-                monstreVerrouille->recevoirDegats(degats);
-            }
+        std::vector<MonstreVu> monstresVus;
+        for (const Monstre& m : monstres) {
+            monstresVus.push_back({m.getId(), m.getCercle()});
         }
-
-        // Les coups sont demandés à chaque image, verrou ou non : chaque
-        // personnage vivant frappe de lui-même un monstre à sa portée.
-        if (escouade.estVivante()) {
-            std::vector<MonstreVu> monstresVus;
-            for (const Monstre& m : monstres) {
-                monstresVus.push_back({m.getId(), m.getCercle()});
-            }
-            for (const Coup& coup : escouade.attaquer(monstresVus, carte)) {
+        const auto appliquer = [&](const std::vector<Coup>& coups) {
+            for (const Coup& coup : coups) {
                 const auto touche = std::find_if(monstres.begin(), monstres.end(), [&](const Monstre& m) {
                     return m.getId() == coup.idMonstre;
                 });
                 touche->recevoirDegats(coup.degats);
             }
+        };
+
+        // Le skill passe avant l'attaque de base : s'il part, il relance
+        // la recharge de base de ce personnage, qui ne frappe donc pas une
+        // seconde fois dans la même image. Un soin ne rend aucun dégât.
+        if (placeSkillDemandee.has_value()) {
+            appliquer(escouade.declencherSkill(*placeSkillDemandee, monstresVus));
+        }
+
+        // Les coups sont demandés à chaque image, verrou ou non : chaque
+        // personnage vivant frappe de lui-même un monstre à sa portée.
+        if (escouade.estVivante()) {
+            appliquer(escouade.attaquer(monstresVus, carte));
             if (monstreVerrouille != monstres.end() && !monstreVerrouille->estVivant()) {
                 escouade.deverrouiller();
             }

@@ -20,14 +20,14 @@ public:
     void dessiner(sf::RenderTarget& rendu) const;
     void allerVers(sf::Vector2f destination, const TileMap& carte);
     std::vector<Coup> attaquer(const std::vector<MonstreVu>& monstres, const TileMap& carte);
-    int declencherSkill(std::size_t place, std::optional<Cercle> monstreVerrouille);
+    std::vector<Coup> declencherSkill(std::size_t place, const std::vector<MonstreVu>& monstres);
     void mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles);
     sf::Vector2f getCentre() const;
     std::optional<Cercle> personnageLePlusProche(sf::Vector2f point) const;
     void recevoirDegats(sf::Vector2f origine, int quantite);
     bool estVivante() const;
     std::vector<Cercle> cerclesDesVivants() const;
-    std::optional<Cible> choisirCible(TypeSkill type, std::optional<Cercle> monstreVerrouille) const;
+    std::optional<Cible> choisirCible(TypeSkill type, std::size_t place, const std::vector<MonstreVu>& monstres) const;
     void verrouiller(int idCible);
     void deverrouiller();
     std::optional<int> getCibleVerrouillee() const;

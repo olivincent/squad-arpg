@@ -9,6 +9,7 @@ struct CibleAllie {
 };
 
 struct CibleMonstre {
+    int id;         // identifiant du monstre, pour attribuer les dégâts
     Cercle cercle;
 };
 

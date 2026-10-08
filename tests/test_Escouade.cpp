@@ -29,6 +29,21 @@ Cercle cibleMonstre(sf::Vector2f centre) {
     return {centre, 15.0f};
 }
 
+// Le monstre d'identifiant 1 tel que l'escouade le voit, seul dans la liste.
+std::vector<MonstreVu> unSeulMonstre(Cercle cercle) {
+    return {MonstreVu{1, cercle}};
+}
+
+// Déclenche le skill de cette place et renvoie le total des dégâts de la
+// liste de coups.
+int declencher(Escouade& escouade, std::size_t place, const std::vector<MonstreVu>& monstres) {
+    int total = 0;
+    for (const Coup& coup : escouade.declencherSkill(place, monstres)) {
+        total += coup.degats;
+    }
+    return total;
+}
+
 // Compare un point à un point attendu avec une tolérance : les positions
 // manipulées par Escouade sont des flottants accumulés sur plusieurs tics
 // (vitesse * dt, racines carrées de sf::Vector2f::length...), donc deux
@@ -75,7 +90,7 @@ int simulerAttaque(Escouade& escouade, const TileMap& carte, Cercle cible, float
 
 // Place de l'allié désigné par choisirCible, vide si aucune cible.
 std::optional<std::size_t> placeAlliePourSoin(const Escouade& escouade) {
-    const std::optional<Cible> cible = escouade.choisirCible(TypeSkill::Soin, std::nullopt);
+    const std::optional<Cible> cible = escouade.choisirCible(TypeSkill::Soin, 3, {});
     if (!cible.has_value()) {
         return std::nullopt;
     }
@@ -609,10 +624,57 @@ TEST_CASE("Sans verrou, un personnage deja a portee suit tout de meme son emplac
 // (85, 85). Une cible de la taille d'un monstre en (85, 60) est à 0 px bord
 // à bord de chacun d'eux, donc à portée du skill (20 px, comme la mêlée).
 
-TEST_CASE("declencherSkill renvoie 0 sans combat engage, meme avec une cible a portee") {
-    Escouade escouade({50.0f, 50.0f}); // pas de verrouiller()
+// Sans verrou, le skill de dégâts vise le monstre que son lanceur frapperait
+// en autodéfense, avec la portée du skill (20 px). Le lanceur de la place 1
+// est en (85, 35), rayon 10 : un monstre (rayon 15) à 45 px ou moins est à portée.
 
-    REQUIRE(escouade.declencherSkill(1, cibleMonstre({85.0f, 60.0f})) == 0);
+TEST_CASE("Sans verrou, le skill de degats part sur un monstre a portee, sans creer de verrou") {
+    Escouade escouade({50.0f, 50.0f});
+
+    const std::vector<Coup> coups = escouade.declencherSkill(1, {MonstreVu{4, cibleMonstre({85.0f, 60.0f})}});
+
+    REQUIRE(coups.size() == 1);
+    REQUIRE(coups[0].idMonstre == 4);
+    REQUIRE(coups[0].degats == 25);
+    REQUIRE_FALSE(escouade.getCibleVerrouillee().has_value());
+}
+
+TEST_CASE("Sans verrou, le skill de degats vise le plus proche parmi plusieurs monstres a portee") {
+    Escouade escouade({50.0f, 50.0f});
+
+    // Le monstre 1 (premier de la liste) est à 15 px bord à bord, le 2 à 0.
+    const std::vector<Coup> coups = escouade.declencherSkill(
+        1, {MonstreVu{1, cibleMonstre({125.0f, 35.0f})}, MonstreVu{2, cibleMonstre({110.0f, 35.0f})}});
+
+    REQUIRE(coups.size() == 1);
+    REQUIRE(coups[0].idMonstre == 2);
+}
+
+TEST_CASE("Sans verrou, le skill de degats est refuse sans monstre a portee, et sans recharge") {
+    Escouade escouade({50.0f, 50.0f});
+
+    REQUIRE(declencher(escouade, 1, unSeulMonstre(cibleMonstre({300.0f, 60.0f}))) == 0);
+    REQUIRE(declencher(escouade, 1, {}) == 0);
+    // Pas de mise en attente ni de recharge : un monstre à portée est frappé aussitôt.
+    REQUIRE(declencher(escouade, 1, unSeulMonstre(cibleMonstre({85.0f, 60.0f}))) == 25);
+}
+
+TEST_CASE("Avec un verrou, le skill de degats vise le monstre verrouille, pas le plus proche") {
+    Escouade escouade({50.0f, 50.0f});
+    escouade.verrouiller(1);
+
+    const std::vector<Coup> coups = escouade.declencherSkill(
+        1, {MonstreVu{1, cibleMonstre({125.0f, 35.0f})}, MonstreVu{2, cibleMonstre({110.0f, 35.0f})}});
+
+    REQUIRE(coups.size() == 1);
+    REQUIRE(coups[0].idMonstre == 1);
+}
+
+TEST_CASE("Avec un verrou absent de la liste des monstres, le skill de degats est refuse") {
+    Escouade escouade({50.0f, 50.0f});
+    escouade.verrouiller(9);
+
+    REQUIRE(declencher(escouade, 1, unSeulMonstre(cibleMonstre({85.0f, 60.0f}))) == 0);
 }
 
 TEST_CASE("En combat, declencherSkill renvoie les degats du seul personnage qui a un skill") {
@@ -620,14 +682,14 @@ TEST_CASE("En combat, declencherSkill renvoie les degats du seul personnage qui 
     escouade.verrouiller(1);
 
     // Les deux mêlées sont à portée, mais un seul a un skill : 25, pas 50.
-    REQUIRE(escouade.declencherSkill(1, cibleMonstre({85.0f, 60.0f})) == 25);
+    REQUIRE(declencher(escouade, 1, unSeulMonstre(cibleMonstre({85.0f, 60.0f}))) == 25);
 }
 
 TEST_CASE("En combat, declencherSkill renvoie 0 pour une cible hors de portee du skill") {
     Escouade escouade({50.0f, 50.0f});
     escouade.verrouiller(1);
 
-    REQUIRE(escouade.declencherSkill(1, cibleMonstre({300.0f, 60.0f})) == 0);
+    REQUIRE(declencher(escouade, 1, unSeulMonstre(cibleMonstre({300.0f, 60.0f}))) == 0);
 }
 
 TEST_CASE("En combat, declencherSkill renvoie 0 au second appel immediat (recharge du skill)") {
@@ -635,8 +697,8 @@ TEST_CASE("En combat, declencherSkill renvoie 0 au second appel immediat (rechar
     escouade.verrouiller(1);
     const Cercle cible = cibleMonstre({85.0f, 60.0f});
 
-    REQUIRE(escouade.declencherSkill(1, cible) == 25);
-    REQUIRE(escouade.declencherSkill(1, cible) == 0);
+    REQUIRE(declencher(escouade, 1, unSeulMonstre(cible)) == 25);
+    REQUIRE(declencher(escouade, 1, unSeulMonstre(cible)) == 0);
 }
 
 TEST_CASE("Les obstacles bloquent les personnages mais pas l'ancre") {
@@ -676,9 +738,9 @@ TEST_CASE("En combat, declencherSkill renvoie 0 pour une place sans skill ou hor
     escouade.verrouiller(1);
     const Cercle cible = cibleMonstre({85.0f, 60.0f});
 
-    REQUIRE(escouade.declencherSkill(2, cible) == 0);
-    REQUIRE(escouade.declencherSkill(0, cible) == 0);
-    REQUIRE(escouade.declencherSkill(5, cible) == 0);
+    REQUIRE(declencher(escouade, 2, unSeulMonstre(cible)) == 0);
+    REQUIRE(declencher(escouade, 0, unSeulMonstre(cible)) == 0);
+    REQUIRE(declencher(escouade, 5, unSeulMonstre(cible)) == 0);
 }
 
 // Escouade en (50, 50), orientée vers +x : les quatre places sont en
@@ -688,7 +750,7 @@ TEST_CASE("En combat, declencherSkill renvoie 0 pour une place sans skill ou hor
 TEST_CASE("choisirCible (soin) est vide quand tout le monde est à pleine vie") {
     Escouade escouade({50.0f, 50.0f});
 
-    REQUIRE_FALSE(escouade.choisirCible(TypeSkill::Soin, std::nullopt).has_value());
+    REQUIRE_FALSE(escouade.choisirCible(TypeSkill::Soin, 3, {}).has_value());
 }
 
 TEST_CASE("choisirCible (soin) désigne le seul blessé") {
@@ -729,7 +791,7 @@ TEST_CASE("choisirCible (soin) est vide quand tout le monde est mort") {
         escouade.recevoirDegats(origine, 100);
     }
 
-    REQUIRE_FALSE(escouade.choisirCible(TypeSkill::Soin, std::nullopt).has_value());
+    REQUIRE_FALSE(escouade.choisirCible(TypeSkill::Soin, 3, {}).has_value());
 }
 
 // Soin (place 3, en (35, 35), portée 40 px bord à bord = 60 px entre
@@ -740,37 +802,37 @@ TEST_CASE("Le soin de la place 3 soigne un allié à portée, sans combat engag�
     Escouade escouade({50.0f, 50.0f});
     escouade.recevoirDegats({35.0f, 85.0f}, 20);
 
-    REQUIRE(escouade.declencherSkill(3, std::nullopt) == 0);
+    REQUIRE(declencher(escouade, 3, {}) == 0);
 
     // 80 + 30 plafonné à 100 : plus personne à soigner.
-    REQUIRE_FALSE(escouade.choisirCible(TypeSkill::Soin, std::nullopt).has_value());
+    REQUIRE_FALSE(escouade.choisirCible(TypeSkill::Soin, 3, {}).has_value());
 }
 
 TEST_CASE("Le soin ne part pas si la cible est hors de portée") {
     Escouade escouade({50.0f, 50.0f});
     escouade.recevoirDegats({85.0f, 85.0f}, 20);
 
-    escouade.declencherSkill(3, std::nullopt);
+    declencher(escouade, 3, {});
 
     REQUIRE(placeAlliePourSoin(escouade) == 2);
 }
 
 TEST_CASE("Le soin ne part pas à pleine vie et ne déclenche alors pas la recharge") {
     Escouade escouade({50.0f, 50.0f});
-    escouade.declencherSkill(3, std::nullopt);
+    declencher(escouade, 3, {});
 
     escouade.recevoirDegats({35.0f, 85.0f}, 20);
-    escouade.declencherSkill(3, std::nullopt);
+    declencher(escouade, 3, {});
 
-    REQUIRE_FALSE(escouade.choisirCible(TypeSkill::Soin, std::nullopt).has_value());
+    REQUIRE_FALSE(escouade.choisirCible(TypeSkill::Soin, 3, {}).has_value());
 }
 
 TEST_CASE("Le soin est en recharge juste après son lancement") {
     Escouade escouade({50.0f, 50.0f});
     escouade.recevoirDegats({35.0f, 85.0f}, 60);
 
-    escouade.declencherSkill(3, std::nullopt);   // 40 -> 70
-    escouade.declencherSkill(3, std::nullopt);   // refusé : recharge
+    declencher(escouade, 3, {});   // 40 -> 70
+    declencher(escouade, 3, {});   // refusé : recharge
 
     REQUIRE(placeAlliePourSoin(escouade) == 4);
 }
@@ -780,7 +842,7 @@ TEST_CASE("Un soigneur mort ne soigne pas") {
     escouade.recevoirDegats({35.0f, 35.0f}, 100);
     escouade.recevoirDegats({35.0f, 85.0f}, 20);
 
-    escouade.declencherSkill(3, std::nullopt);
+    declencher(escouade, 3, {});
 
     REQUIRE(placeAlliePourSoin(escouade) == 4);
 }
@@ -788,7 +850,7 @@ TEST_CASE("Un soigneur mort ne soigne pas") {
 TEST_CASE("Le skill de dégâts est refusé sans monstre verrouillé même si une cible est donnée") {
     Escouade escouade({50.0f, 50.0f});
 
-    REQUIRE(escouade.declencherSkill(1, std::nullopt) == 0);
+    REQUIRE(declencher(escouade, 1, {}) == 0);
 }
 
 // Skill de soin en attente. Carte dégagée dédiée ; escouade immobile en
@@ -810,7 +872,7 @@ TEST_CASE("Un soin hors de portée est mis en attente : le soigneur marche, soig
     Escouade escouade({50.0f, 50.0f});
     escouade.recevoirDegats({85.0f, 85.0f}, 20);
 
-    escouade.declencherSkill(3, std::nullopt);
+    declencher(escouade, 3, {});
     REQUIRE(placeAlliePourSoin(escouade) == 2);   // pas encore soigné
 
     simuler(escouade, carte, 0.5f);
@@ -826,7 +888,7 @@ TEST_CASE("Le soin en attente est annulé si la cible meurt, sans recharge") {
     const TileMap carte = carteDegageeSoin();
     Escouade escouade({50.0f, 50.0f});
     escouade.recevoirDegats({85.0f, 85.0f}, 20);
-    escouade.declencherSkill(3, std::nullopt);
+    declencher(escouade, 3, {});
 
     escouade.recevoirDegats({85.0f, 85.0f}, 100);
     simuler(escouade, carte, 2.0f);
@@ -836,7 +898,7 @@ TEST_CASE("Le soin en attente est annulé si la cible meurt, sans recharge") {
     const std::optional<Cercle> soigneur = escouade.personnageLePlusProche({35.0f, 35.0f});
     verifierPointProche(soigneur->centre, {35.0f, 35.0f});
     escouade.recevoirDegats({35.0f, 85.0f}, 20);
-    escouade.declencherSkill(3, std::nullopt);
+    declencher(escouade, 3, {});
     REQUIRE_FALSE(placeAlliePourSoin(escouade).has_value());
 }
 
@@ -844,7 +906,7 @@ TEST_CASE("Le soin en attente est annulé si le soigneur meurt") {
     const TileMap carte = carteDegageeSoin();
     Escouade escouade({50.0f, 50.0f});
     escouade.recevoirDegats({85.0f, 85.0f}, 20);
-    escouade.declencherSkill(3, std::nullopt);
+    declencher(escouade, 3, {});
 
     escouade.recevoirDegats({35.0f, 35.0f}, 100);
     simuler(escouade, carte, 2.0f);
@@ -856,7 +918,7 @@ TEST_CASE("Un ordre de déplacement n'annule pas un soin en attente") {
     const TileMap carte = carteDegageeSoin();
     Escouade escouade({50.0f, 50.0f});
     escouade.recevoirDegats({85.0f, 85.0f}, 20);
-    escouade.declencherSkill(3, std::nullopt);
+    declencher(escouade, 3, {});
 
     escouade.allerVers({300.0f, 300.0f}, carte);
     simuler(escouade, carte, 5.0f);
@@ -868,11 +930,11 @@ TEST_CASE("Un seul skill en attente à la fois") {
     const TileMap carte = carteDegageeSoin();
     Escouade escouade({50.0f, 50.0f});
     escouade.recevoirDegats({85.0f, 85.0f}, 20);
-    escouade.declencherSkill(3, std::nullopt);   // en attente
+    declencher(escouade, 3, {});   // en attente
 
     // Le skill de dégâts de la place 1, à portée d'une cible, est refusé.
     escouade.verrouiller(1);
-    REQUIRE(escouade.declencherSkill(1, cibleMonstre({85.0f, 60.0f})) == 0);
+    REQUIRE(declencher(escouade, 1, unSeulMonstre(cibleMonstre({85.0f, 60.0f}))) == 0);
 }
 
 // Skill de dégâts en attente. Aucune attaque de base ne dépasse 20 dégâts
@@ -886,7 +948,7 @@ TEST_CASE("Un skill de dégâts hors de portée est mis en attente, puis part à
     escouade.verrouiller(1);
     attaquerCible(escouade, carte, cible);
 
-    REQUIRE(escouade.declencherSkill(1, cible) == 0);
+    REQUIRE(declencher(escouade, 1, unSeulMonstre(cible)) == 0);
 
     int degatsMax = 0;
     for (int i = 0; i < 600; ++i) {
@@ -902,12 +964,12 @@ TEST_CASE("Un skill de dégâts en attente est annulé par deverrouiller, sans r
     Escouade escouade({50.0f, 50.0f});
     escouade.verrouiller(1);
     attaquerCible(escouade, carte, cibleMonstre({300.0f, 60.0f}));
-    escouade.declencherSkill(1, cibleMonstre({300.0f, 60.0f}));
+    declencher(escouade, 1, unSeulMonstre(cibleMonstre({300.0f, 60.0f})));
 
     escouade.deverrouiller();
     escouade.verrouiller(1);
 
-    REQUIRE(escouade.declencherSkill(1, cibleMonstre({85.0f, 60.0f})) == 25);
+    REQUIRE(declencher(escouade, 1, unSeulMonstre(cibleMonstre({85.0f, 60.0f}))) == 25);
 }
 
 TEST_CASE("Un skill de dégâts en attente est annulé par un changement de cible, pas par la même cible") {
@@ -915,13 +977,13 @@ TEST_CASE("Un skill de dégâts en attente est annulé par un changement de cibl
     Escouade escouade({50.0f, 50.0f});
     escouade.verrouiller(1);
     attaquerCible(escouade, carte, cibleMonstre({300.0f, 60.0f}));
-    escouade.declencherSkill(1, cibleMonstre({300.0f, 60.0f}));
+    declencher(escouade, 1, unSeulMonstre(cibleMonstre({300.0f, 60.0f})));
 
     escouade.verrouiller(1);   // même cible : toujours en attente
-    REQUIRE(escouade.declencherSkill(1, cibleMonstre({85.0f, 60.0f})) == 0);
+    REQUIRE(declencher(escouade, 1, unSeulMonstre(cibleMonstre({85.0f, 60.0f}))) == 0);
 
     escouade.verrouiller(2);   // autre cible : annulé
-    REQUIRE(escouade.declencherSkill(1, cibleMonstre({85.0f, 60.0f})) == 25);
+    REQUIRE(declencher(escouade, 1, {MonstreVu{2, cibleMonstre({85.0f, 60.0f})}}) == 25);
 }
 
 TEST_CASE("Un soin est refusé pendant qu'un skill de dégâts est en attente") {
@@ -929,10 +991,10 @@ TEST_CASE("Un soin est refusé pendant qu'un skill de dégâts est en attente") 
     Escouade escouade({50.0f, 50.0f});
     escouade.verrouiller(1);
     attaquerCible(escouade, carte, cibleMonstre({300.0f, 60.0f}));
-    escouade.declencherSkill(1, cibleMonstre({300.0f, 60.0f}));
+    declencher(escouade, 1, unSeulMonstre(cibleMonstre({300.0f, 60.0f})));
     escouade.recevoirDegats({35.0f, 85.0f}, 20);
 
-    escouade.declencherSkill(3, cibleMonstre({300.0f, 60.0f}));
+    declencher(escouade, 3, unSeulMonstre(cibleMonstre({300.0f, 60.0f})));
 
     REQUIRE(placeAlliePourSoin(escouade) == 4);
 }

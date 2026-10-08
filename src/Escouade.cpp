@@ -95,7 +95,7 @@ std::vector<Coup> Escouade::attaquer(const std::vector<MonstreVu>& monstres, con
                 if (lanceur.skillEstAPortee(cible)) {
                     const int degats = lanceur.declencherSkill(cible);
                     if (degats > 0) {
-                        coups.push_back({verrou->id, degats});
+                        coups.push_back({std::get<CibleMonstre>(m_skillEnAttente->cible).id, degats});
                     }
                     m_skillEnAttente = std::nullopt;
                 }
@@ -105,7 +105,8 @@ std::vector<Coup> Escouade::attaquer(const std::vector<MonstreVu>& monstres, con
 
     // Chaque personnage choisit pour lui-même le monstre qu'il frappe.
     for (Personnage& personnage : m_personnages) {
-        const std::optional<int> id = choisirMonstreAFrapper(personnage, monstres, m_cibleVerrouillee);
+        const std::optional<int> id = choisirMonstreAFrapper(
+            personnage.getCercle(), [&](Cercle c) { return personnage.estAPortee(c); }, monstres, m_cibleVerrouillee);
         if (!id.has_value()) {
             continue;
         }
@@ -120,30 +121,31 @@ std::vector<Coup> Escouade::attaquer(const std::vector<MonstreVu>& monstres, con
     return coups;
 }
 
-int Escouade::declencherSkill(std::size_t place, std::optional<Cercle> monstreVerrouille) {
+std::vector<Coup> Escouade::declencherSkill(std::size_t place, const std::vector<MonstreVu>& monstres) {
     if (place < 1 || place > m_personnages.size()) {
-        return 0;
+        return {};
     }
 
     Personnage& lanceur = m_personnages[place - 1];
     const std::optional<TypeSkill> type = lanceur.typeSkill();
     if (!type.has_value() || m_skillEnAttente.has_value() || !lanceur.skillEstPret()) {
-        return 0;
+        return {};
     }
 
-    const std::optional<Cible> cible = choisirCible(*type, monstreVerrouille);
+    const std::optional<Cible> cible = choisirCible(*type, place, monstres);
     if (!cible.has_value()) {
-        return 0;
+        return {};
     }
 
     // Dégâts : renvoyés à l'appelant, ou ajoutés aux coups d'attaquer()
     // si le skill part après une attente.
     if (const CibleMonstre* monstre = std::get_if<CibleMonstre>(&*cible)) {
         if (lanceur.skillEstAPortee(monstre->cercle)) {
-            return lanceur.declencherSkill(monstre->cercle);
+            const int degats = lanceur.declencherSkill(monstre->cercle);
+            return degats > 0 ? std::vector<Coup>{{monstre->id, degats}} : std::vector<Coup>{};
         }
         m_skillEnAttente = SkillEnAttente{place, *cible};
-        return 0;
+        return {};
     }
 
     // Soin : appliqué ici, il ne sort pas d'Escouade.
@@ -153,7 +155,7 @@ int Escouade::declencherSkill(std::size_t place, std::optional<Cercle> monstreVe
     } else {
         m_skillEnAttente = SkillEnAttente{place, *cible};
     }
-    return 0;
+    return {};
 }
 
 void Escouade::soigner(std::size_t placeLanceur, std::size_t placeAllie) {
@@ -301,13 +303,34 @@ std::vector<Cercle> Escouade::cerclesDesVivants() const {
     return cercles;
 }
 
-std::optional<Cible> Escouade::choisirCible(TypeSkill type, std::optional<Cercle> monstreVerrouille) const {
-    // Dégâts : le monstre verrouillé, s'il y en a un.
+std::optional<Cible> Escouade::choisirCible(TypeSkill type, std::size_t place, const std::vector<MonstreVu>& monstres) const {
     if (type == TypeSkill::Degats) {
-        if (!m_cibleVerrouillee.has_value() || !monstreVerrouille.has_value()) {
+        // Avec un verrou : le monstre verrouillé, à portée ou non.
+        if (m_cibleVerrouillee.has_value()) {
+            const auto verrou = std::find_if(monstres.begin(), monstres.end(), [&](const MonstreVu& m) {
+                return m.id == *m_cibleVerrouillee;
+            });
+            if (verrou == monstres.end()) {
+                return std::nullopt;
+            }
+            return Cible(CibleMonstre{verrou->id, verrou->cercle});
+        }
+
+        // Sans verrou : le monstre que le lanceur frapperait en autodéfense,
+        // mais avec la portée de son skill.
+        if (place < 1 || place > m_personnages.size()) {
             return std::nullopt;
         }
-        return Cible(CibleMonstre{*monstreVerrouille});
+        const Personnage& lanceur = m_personnages[place - 1];
+        const std::optional<int> id = choisirMonstreAFrapper(
+            lanceur.getCercle(), [&](Cercle c) { return lanceur.skillEstAPortee(c); }, monstres, std::nullopt);
+        if (!id.has_value()) {
+            return std::nullopt;
+        }
+        const auto cible = std::find_if(monstres.begin(), monstres.end(), [&](const MonstreVu& m) {
+            return m.id == *id;
+        });
+        return Cible(CibleMonstre{cible->id, cible->cercle});
     }
 
     // Le plus blessé parmi les vivants qui ne sont pas à pleine vie ;
