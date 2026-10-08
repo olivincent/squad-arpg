@@ -10,6 +10,7 @@
 #include "Cercle.hpp"
 #include "Mobile.hpp"
 #include "Personnage.hpp"
+#include "Skill.hpp"
 
 class TileMap;
 class Escouade {
@@ -25,7 +26,7 @@ public:
     void recevoirDegats(sf::Vector2f origine, int quantite);
     bool estVivante() const;
     std::vector<Cercle> cerclesDesVivants() const;
-    std::optional<Cible> choisirAlliePourSoin() const;
+    std::optional<Cible> choisirCible(TypeSkill type, std::optional<Cercle> monstreVerrouille) const;
     void verrouiller(int idCible);
     void deverrouiller();
     std::optional<int> getCibleVerrouillee() const;
@@ -38,7 +39,7 @@ private:
 
     struct SkillEnAttente {
         std::size_t place;  // du lanceur, de 1 à 4
-        Cible cible;        // fixée à l'appui
+        Cible cible;        // fixée à l'appui (pour un monstre, le cercle lu en route est m_cibleCombat)
     };
 
     Mobile m_mobile;

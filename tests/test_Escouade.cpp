@@ -2,6 +2,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <SFML/System/Vector2.hpp>
+#include <algorithm>
 #include <optional>
 #include <string>
 #include <variant>
@@ -10,6 +11,7 @@
 #include "Cercle.hpp"
 #include "Cible.hpp"
 #include "Escouade.hpp"
+#include "Skill.hpp"
 #include "TileMap.hpp"
 
 namespace {
@@ -60,9 +62,9 @@ int simulerAttaque(Escouade& escouade, const TileMap& carte, Cercle cible, float
     return degats;
 }
 
-// Place de l'allié désigné par choisirAlliePourSoin, vide si aucune cible.
+// Place de l'allié désigné par choisirCible, vide si aucune cible.
 std::optional<std::size_t> placeAlliePourSoin(const Escouade& escouade) {
-    const std::optional<Cible> cible = escouade.choisirAlliePourSoin();
+    const std::optional<Cible> cible = escouade.choisirCible(TypeSkill::Soin, std::nullopt);
     if (!cible.has_value()) {
         return std::nullopt;
     }
@@ -667,20 +669,20 @@ TEST_CASE("En combat, declencherSkill renvoie 0 pour une place sans skill ou hor
 // (85, 35), (85, 85), (35, 35) et (35, 85). Des dégâts d'origine égale à
 // l'une de ces positions touchent la place correspondante.
 
-TEST_CASE("choisirAlliePourSoin est vide quand tout le monde est à pleine vie") {
+TEST_CASE("choisirCible (soin) est vide quand tout le monde est à pleine vie") {
     Escouade escouade({50.0f, 50.0f});
 
-    REQUIRE_FALSE(escouade.choisirAlliePourSoin().has_value());
+    REQUIRE_FALSE(escouade.choisirCible(TypeSkill::Soin, std::nullopt).has_value());
 }
 
-TEST_CASE("choisirAlliePourSoin désigne le seul blessé") {
+TEST_CASE("choisirCible (soin) désigne le seul blessé") {
     Escouade escouade({50.0f, 50.0f});
     escouade.recevoirDegats({35.0f, 85.0f}, 10);
 
     REQUIRE(placeAlliePourSoin(escouade) == 4);
 }
 
-TEST_CASE("choisirAlliePourSoin désigne celui qui a le moins de points de vie") {
+TEST_CASE("choisirCible (soin) désigne celui qui a le moins de points de vie") {
     Escouade escouade({50.0f, 50.0f});
     escouade.recevoirDegats({85.0f, 85.0f}, 30);
     escouade.recevoirDegats({35.0f, 85.0f}, 50);
@@ -688,7 +690,7 @@ TEST_CASE("choisirAlliePourSoin désigne celui qui a le moins de points de vie")
     REQUIRE(placeAlliePourSoin(escouade) == 4);
 }
 
-TEST_CASE("choisirAlliePourSoin choisit la plus petite place en cas d'égalité") {
+TEST_CASE("choisirCible (soin) choisit la plus petite place en cas d'égalité") {
     Escouade escouade({50.0f, 50.0f});
     escouade.recevoirDegats({35.0f, 35.0f}, 20);
     escouade.recevoirDegats({85.0f, 85.0f}, 20);
@@ -696,7 +698,7 @@ TEST_CASE("choisirAlliePourSoin choisit la plus petite place en cas d'égalité"
     REQUIRE(placeAlliePourSoin(escouade) == 2);
 }
 
-TEST_CASE("choisirAlliePourSoin ignore les morts") {
+TEST_CASE("choisirCible (soin) ignore les morts") {
     Escouade escouade({50.0f, 50.0f});
     escouade.recevoirDegats({35.0f, 85.0f}, 100);
     escouade.recevoirDegats({85.0f, 85.0f}, 10);
@@ -704,14 +706,14 @@ TEST_CASE("choisirAlliePourSoin ignore les morts") {
     REQUIRE(placeAlliePourSoin(escouade) == 2);
 }
 
-TEST_CASE("choisirAlliePourSoin est vide quand tout le monde est mort") {
+TEST_CASE("choisirCible (soin) est vide quand tout le monde est mort") {
     Escouade escouade({50.0f, 50.0f});
     for (const sf::Vector2f origine : {sf::Vector2f(85.0f, 35.0f), sf::Vector2f(85.0f, 85.0f),
                                        sf::Vector2f(35.0f, 35.0f), sf::Vector2f(35.0f, 85.0f)}) {
         escouade.recevoirDegats(origine, 100);
     }
 
-    REQUIRE_FALSE(escouade.choisirAlliePourSoin().has_value());
+    REQUIRE_FALSE(escouade.choisirCible(TypeSkill::Soin, std::nullopt).has_value());
 }
 
 // Soin (place 3, en (35, 35), portée 40 px bord à bord = 60 px entre
@@ -725,7 +727,7 @@ TEST_CASE("Le soin de la place 3 soigne un allié à portée, sans combat engag�
     REQUIRE(escouade.declencherSkill(3, std::nullopt) == 0);
 
     // 80 + 30 plafonné à 100 : plus personne à soigner.
-    REQUIRE_FALSE(escouade.choisirAlliePourSoin().has_value());
+    REQUIRE_FALSE(escouade.choisirCible(TypeSkill::Soin, std::nullopt).has_value());
 }
 
 TEST_CASE("Le soin ne part pas si la cible est hors de portée") {
@@ -744,7 +746,7 @@ TEST_CASE("Le soin ne part pas à pleine vie et ne déclenche alors pas la recha
     escouade.recevoirDegats({35.0f, 85.0f}, 20);
     escouade.declencherSkill(3, std::nullopt);
 
-    REQUIRE_FALSE(escouade.choisirAlliePourSoin().has_value());
+    REQUIRE_FALSE(escouade.choisirCible(TypeSkill::Soin, std::nullopt).has_value());
 }
 
 TEST_CASE("Le soin est en recharge juste après son lancement") {
@@ -855,4 +857,66 @@ TEST_CASE("Un seul skill en attente à la fois") {
     // Le skill de dégâts de la place 1, à portée d'une cible, est refusé.
     escouade.verrouiller(1);
     REQUIRE(escouade.declencherSkill(1, cibleMonstre({85.0f, 60.0f})) == 0);
+}
+
+// Skill de dégâts en attente. Aucune attaque de base ne dépasse 20 dégâts
+// en un tic (4 personnages x 5) : un tic qui rapporte 25 ou plus contient
+// donc forcément le skill.
+
+TEST_CASE("Un skill de dégâts hors de portée est mis en attente, puis part à l'arrivée du lanceur") {
+    const TileMap carte = carteDegageeSoin();
+    Escouade escouade({50.0f, 50.0f});
+    const Cercle cible = cibleMonstre({300.0f, 60.0f});
+    escouade.verrouiller(1);
+    escouade.attaquer(cible, carte);
+
+    REQUIRE(escouade.declencherSkill(1, cible) == 0);
+
+    int degatsMax = 0;
+    for (int i = 0; i < 600; ++i) {
+        const int degats = escouade.attaquer(cible, carte);
+        degatsMax = std::max(degatsMax, degats);
+        escouade.mettreAJour(1.0f / 60.0f, carte, {});
+    }
+    REQUIRE(degatsMax >= 25);
+}
+
+TEST_CASE("Un skill de dégâts en attente est annulé par deverrouiller, sans recharge") {
+    const TileMap carte = carteDegageeSoin();
+    Escouade escouade({50.0f, 50.0f});
+    escouade.verrouiller(1);
+    escouade.attaquer(cibleMonstre({300.0f, 60.0f}), carte);
+    escouade.declencherSkill(1, cibleMonstre({300.0f, 60.0f}));
+
+    escouade.deverrouiller();
+    escouade.verrouiller(1);
+
+    REQUIRE(escouade.declencherSkill(1, cibleMonstre({85.0f, 60.0f})) == 25);
+}
+
+TEST_CASE("Un skill de dégâts en attente est annulé par un changement de cible, pas par la même cible") {
+    const TileMap carte = carteDegageeSoin();
+    Escouade escouade({50.0f, 50.0f});
+    escouade.verrouiller(1);
+    escouade.attaquer(cibleMonstre({300.0f, 60.0f}), carte);
+    escouade.declencherSkill(1, cibleMonstre({300.0f, 60.0f}));
+
+    escouade.verrouiller(1);   // même cible : toujours en attente
+    REQUIRE(escouade.declencherSkill(1, cibleMonstre({85.0f, 60.0f})) == 0);
+
+    escouade.verrouiller(2);   // autre cible : annulé
+    REQUIRE(escouade.declencherSkill(1, cibleMonstre({85.0f, 60.0f})) == 25);
+}
+
+TEST_CASE("Un soin est refusé pendant qu'un skill de dégâts est en attente") {
+    const TileMap carte = carteDegageeSoin();
+    Escouade escouade({50.0f, 50.0f});
+    escouade.verrouiller(1);
+    escouade.attaquer(cibleMonstre({300.0f, 60.0f}), carte);
+    escouade.declencherSkill(1, cibleMonstre({300.0f, 60.0f}));
+    escouade.recevoirDegats({35.0f, 85.0f}, 20);
+
+    escouade.declencherSkill(3, cibleMonstre({300.0f, 60.0f}));
+
+    REQUIRE(placeAlliePourSoin(escouade) == 4);
 }

@@ -77,6 +77,18 @@ int Escouade::attaquer(Cercle cible, const TileMap& carte) {
     }
 
     int degats = 0;
+
+    // Skill de dégâts en attente : il part dès que son lanceur est à portée
+    // du cercle à jour de la cible, avant l'attaque de base (dont il
+    // relance la recharge).
+    if (m_skillEnAttente.has_value() && std::holds_alternative<CibleMonstre>(m_skillEnAttente->cible)) {
+        Personnage& lanceur = m_personnages[m_skillEnAttente->place - 1];
+        if (lanceur.skillEstAPortee(cible)) {
+            degats += lanceur.declencherSkill(cible);
+            m_skillEnAttente = std::nullopt;
+        }
+    }
+
     for (Personnage& personnage : m_personnages) {
         degats += personnage.frapper(cible);
     }
@@ -94,21 +106,25 @@ int Escouade::declencherSkill(std::size_t place, std::optional<Cercle> monstreVe
         return 0;
     }
 
-    if (*type == TypeSkill::Degats) {
-        if (!m_cibleVerrouillee.has_value() || !monstreVerrouille.has_value()) {
-            return 0;
-        }
-        return lanceur.declencherSkill(*monstreVerrouille);
-    }
-
-    // Soin : appliqué ici, il ne sort pas d'Escouade.
-    const std::optional<Cible> cible = choisirAlliePourSoin();
+    const std::optional<Cible> cible = choisirCible(*type, monstreVerrouille);
     if (!cible.has_value()) {
         return 0;
     }
-    const Personnage& allie = m_personnages[std::get<CibleAllie>(*cible).place - 1];
-    if (lanceur.skillEstAPortee(allie.getCercle())) {
-        soigner(place, std::get<CibleAllie>(*cible).place);
+
+    // Dégâts : renvoyés à l'appelant, ou ajoutés à la somme d'attaquer()
+    // si le skill part après une attente.
+    if (const CibleMonstre* monstre = std::get_if<CibleMonstre>(&*cible)) {
+        if (lanceur.skillEstAPortee(monstre->cercle)) {
+            return lanceur.declencherSkill(monstre->cercle);
+        }
+        m_skillEnAttente = SkillEnAttente{place, *cible};
+        return 0;
+    }
+
+    // Soin : appliqué ici, il ne sort pas d'Escouade.
+    const std::size_t placeAllie = std::get<CibleAllie>(*cible).place;
+    if (lanceur.skillEstAPortee(m_personnages[placeAllie - 1].getCercle())) {
+        soigner(place, placeAllie);
     } else {
         m_skillEnAttente = SkillEnAttente{place, *cible};
     }
@@ -127,12 +143,27 @@ std::optional<sf::Vector2f> Escouade::avancerSkillEnAttente() {
     }
 
     const std::size_t placeLanceur = m_skillEnAttente->place;
-    const std::size_t placeAllie = std::get<CibleAllie>(m_skillEnAttente->cible).place;
     const Personnage& lanceur = m_personnages[placeLanceur - 1];
-    const Personnage& allie = m_personnages[placeAllie - 1];
 
-    // Annulation : lanceur mort, cible morte ou remontée à pleine vie.
-    if (!lanceur.estVivant() || !allie.estVivant() || allie.getPointsDeVie() >= allie.getPointsDeVieMax()) {
+    if (!lanceur.estVivant()) {
+        m_skillEnAttente = std::nullopt;
+        return std::nullopt;
+    }
+
+    // Dégâts : le skill part dans attaquer(), qui reçoit le cercle à jour du
+    // monstre. Ici, le lanceur marche vers ce cercle. L'annulation (combat
+    // rompu) se fait dans verrouiller() et deverrouiller().
+    if (std::holds_alternative<CibleMonstre>(m_skillEnAttente->cible)) {
+        if (!m_cibleCombat.has_value()) {
+            return std::nullopt;
+        }
+        return m_cibleCombat->centre;
+    }
+
+    // Soin : annulation si la cible est morte ou remontée à pleine vie.
+    const std::size_t placeAllie = std::get<CibleAllie>(m_skillEnAttente->cible).place;
+    const Personnage& allie = m_personnages[placeAllie - 1];
+    if (!allie.estVivant() || allie.getPointsDeVie() >= allie.getPointsDeVieMax()) {
         m_skillEnAttente = std::nullopt;
         return std::nullopt;
     }
@@ -245,7 +276,15 @@ std::vector<Cercle> Escouade::cerclesDesVivants() const {
     return cercles;
 }
 
-std::optional<Cible> Escouade::choisirAlliePourSoin() const {
+std::optional<Cible> Escouade::choisirCible(TypeSkill type, std::optional<Cercle> monstreVerrouille) const {
+    // Dégâts : le monstre verrouillé, s'il y en a un.
+    if (type == TypeSkill::Degats) {
+        if (!m_cibleVerrouillee.has_value() || !monstreVerrouille.has_value()) {
+            return std::nullopt;
+        }
+        return Cible(CibleMonstre{*monstreVerrouille});
+    }
+
     // Le plus blessé parmi les vivants qui ne sont pas à pleine vie ;
     // l'inégalité stricte garde la plus petite place en cas d'égalité.
     std::optional<std::size_t> indiceChoisi;
@@ -267,10 +306,18 @@ std::optional<Cible> Escouade::choisirAlliePourSoin() const {
 }
 
 void Escouade::verrouiller(int idCible) {
+    // Un skill de dégâts en attente ne survit pas à un changement de cible.
+    if (m_cibleVerrouillee != idCible && m_skillEnAttente.has_value()
+        && std::holds_alternative<CibleMonstre>(m_skillEnAttente->cible)) {
+        m_skillEnAttente = std::nullopt;
+    }
     m_cibleVerrouillee = idCible;
 }
 
 void Escouade::deverrouiller() {
+    if (m_skillEnAttente.has_value() && std::holds_alternative<CibleMonstre>(m_skillEnAttente->cible)) {
+        m_skillEnAttente = std::nullopt;
+    }
     m_cibleVerrouillee = std::nullopt;
 }
 
