@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include "Cercle.hpp"
+#include "Coup.hpp"
 #include "TileMap.hpp"
 #include "Escouade.hpp"
 #include "Monstre.hpp"
@@ -139,7 +140,16 @@ int main() {
         }
 
         if (monstreVerrouille != monstres.end()) {
-            monstreVerrouille->recevoirDegats(escouade.attaquer(monstreVerrouille->getCercle(), carte));
+            std::vector<MonstreVu> monstresVus;
+            for (const Monstre& m : monstres) {
+                monstresVus.push_back({m.getId(), m.getCercle()});
+            }
+            for (const Coup& coup : escouade.attaquer(monstresVus, carte)) {
+                const auto touche = std::find_if(monstres.begin(), monstres.end(), [&](const Monstre& m) {
+                    return m.getId() == coup.idMonstre;
+                });
+                touche->recevoirDegats(coup.degats);
+            }
             if (!monstreVerrouille->estVivant()) {
                 escouade.deverrouiller();
             }

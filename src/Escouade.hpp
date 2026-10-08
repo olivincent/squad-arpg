@@ -8,6 +8,7 @@
 #include <vector>
 #include "Cible.hpp"
 #include "Cercle.hpp"
+#include "Coup.hpp"
 #include "Mobile.hpp"
 #include "Personnage.hpp"
 #include "Skill.hpp"
@@ -18,7 +19,7 @@ public:
     explicit Escouade(sf::Vector2f positionDepart);
     void dessiner(sf::RenderTarget& rendu) const;
     void allerVers(sf::Vector2f destination, const TileMap& carte);
-    int attaquer(Cercle cible, const TileMap& carte);
+    std::vector<Coup> attaquer(const std::vector<MonstreVu>& monstres, const TileMap& carte);
     int declencherSkill(std::size_t place, std::optional<Cercle> monstreVerrouille);
     void mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles);
     sf::Vector2f getCentre() const;

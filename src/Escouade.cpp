@@ -1,11 +1,13 @@
 // ./src/Escouade.cpp
 #include "Escouade.hpp"
 #include <SFML/Graphics/RectangleShape.hpp>
+#include <algorithm>
 #include <cmath>
 #include <SFML/Graphics/Color.hpp>
 #include <variant>
 #include "Personnage.hpp"
 #include "Attaque.hpp"
+#include "Autodefense.hpp"
 
 namespace {
 const sf::Color s_couleurMelee = sf::Color::Red;
@@ -59,40 +61,63 @@ void Escouade::allerVers(sf::Vector2f destination, const TileMap& carte) {
     m_mobile.allerVers(destination, carte);
 }
 
-int Escouade::attaquer(Cercle cible, const TileMap& carte) {
-    m_cibleCombat = cible;
+std::vector<Coup> Escouade::attaquer(const std::vector<MonstreVu>& monstres, const TileMap& carte) {
+    std::vector<Coup> coups;
 
-    bool tousAPortee = true;
-    for (const Personnage& personnage : m_personnages) {
-        if (personnage.estVivant() && !personnage.estAPortee(cible)) {
-            tousAPortee = false;
-            break;
+    // Approche du monstre verrouillé, s'il y en a un dans la liste.
+    if (m_cibleVerrouillee.has_value()) {
+        const auto verrou = std::find_if(monstres.begin(), monstres.end(), [&](const MonstreVu& m) {
+            return m.id == *m_cibleVerrouillee;
+        });
+        if (verrou != monstres.end()) {
+            const Cercle cible = verrou->cercle;
+            m_cibleCombat = cible;
+
+            bool tousAPortee = true;
+            for (const Personnage& personnage : m_personnages) {
+                if (personnage.estVivant() && !personnage.estAPortee(cible)) {
+                    tousAPortee = false;
+                    break;
+                }
+            }
+
+            if (tousAPortee) {
+                m_mobile.arreter();
+            } else {
+                allerVers(cible.centre, carte);
+            }
+
+            // Skill de dégâts en attente : il part dès que son lanceur est à
+            // portée du cercle à jour de la cible, avant l'attaque de base
+            // (dont il relance la recharge).
+            if (m_skillEnAttente.has_value() && std::holds_alternative<CibleMonstre>(m_skillEnAttente->cible)) {
+                Personnage& lanceur = m_personnages[m_skillEnAttente->place - 1];
+                if (lanceur.skillEstAPortee(cible)) {
+                    const int degats = lanceur.declencherSkill(cible);
+                    if (degats > 0) {
+                        coups.push_back({verrou->id, degats});
+                    }
+                    m_skillEnAttente = std::nullopt;
+                }
+            }
         }
     }
 
-    if (tousAPortee) {
-        m_mobile.arreter();
-    } else {
-        allerVers(cible.centre, carte);
-    }
-
-    int degats = 0;
-
-    // Skill de dégâts en attente : il part dès que son lanceur est à portée
-    // du cercle à jour de la cible, avant l'attaque de base (dont il
-    // relance la recharge).
-    if (m_skillEnAttente.has_value() && std::holds_alternative<CibleMonstre>(m_skillEnAttente->cible)) {
-        Personnage& lanceur = m_personnages[m_skillEnAttente->place - 1];
-        if (lanceur.skillEstAPortee(cible)) {
-            degats += lanceur.declencherSkill(cible);
-            m_skillEnAttente = std::nullopt;
-        }
-    }
-
+    // Chaque personnage choisit pour lui-même le monstre qu'il frappe.
     for (Personnage& personnage : m_personnages) {
-        degats += personnage.frapper(cible);
+        const std::optional<int> id = choisirMonstreAFrapper(personnage, monstres, m_cibleVerrouillee);
+        if (!id.has_value()) {
+            continue;
+        }
+        const auto cible = std::find_if(monstres.begin(), monstres.end(), [&](const MonstreVu& m) {
+            return m.id == *id;
+        });
+        const int degats = personnage.frapper(cible->cercle);
+        if (degats > 0) {
+            coups.push_back({*id, degats});
+        }
     }
-    return degats;
+    return coups;
 }
 
 int Escouade::declencherSkill(std::size_t place, std::optional<Cercle> monstreVerrouille) {
@@ -111,7 +136,7 @@ int Escouade::declencherSkill(std::size_t place, std::optional<Cercle> monstreVe
         return 0;
     }
 
-    // Dégâts : renvoyés à l'appelant, ou ajoutés à la somme d'attaquer()
+    // Dégâts : renvoyés à l'appelant, ou ajoutés aux coups d'attaquer()
     // si le skill part après une attente.
     if (const CibleMonstre* monstre = std::get_if<CibleMonstre>(&*cible)) {
         if (lanceur.skillEstAPortee(monstre->cercle)) {

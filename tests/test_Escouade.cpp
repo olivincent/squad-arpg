@@ -10,6 +10,7 @@
 
 #include "Cercle.hpp"
 #include "Cible.hpp"
+#include "Coup.hpp"
 #include "Escouade.hpp"
 #include "Skill.hpp"
 #include "TileMap.hpp"
@@ -49,6 +50,16 @@ void simuler(Escouade& escouade, const TileMap& carte, float dureeSecondes) {
     }
 }
 
+// Appelle attaquer() avec un seul monstre (identifiant 1) et renvoie le
+// total des dégâts de la liste de coups.
+int attaquerCible(Escouade& escouade, const TileMap& carte, Cercle cible) {
+    int total = 0;
+    for (const Coup& coup : escouade.attaquer({MonstreVu{1, cible}}, carte)) {
+        total += coup.degats;
+    }
+    return total;
+}
+
 // Simule attaquer() + mettreAJour() par tics de 1/60 s, et renvoie le
 // total des dégâts cumulés sur toute la durée.
 int simulerAttaque(Escouade& escouade, const TileMap& carte, Cercle cible, float dureeSecondes) {
@@ -56,7 +67,7 @@ int simulerAttaque(Escouade& escouade, const TileMap& carte, Cercle cible, float
     const int nombreTics = static_cast<int>(dureeSecondes / dt);
     int degats = 0;
     for (int i = 0; i < nombreTics; ++i) {
-        degats += escouade.attaquer(cible, carte);
+        degats += attaquerCible(escouade, carte, cible);
         escouade.mettreAJour(dt, carte, {});
     }
     return degats;
@@ -253,11 +264,12 @@ TEST_CASE("attaquer renvoie 0 pour une cible lointaine et l'escouade s'en rappro
     };
     TileMap carte(plan, 40.0f);
     Escouade escouade({50.0f, 50.0f});
+    escouade.verrouiller(1);
 
     const sf::Vector2f cible{380.0f, 380.0f};
     const float distanceInitiale = (cible - escouade.getCentre()).length();
 
-    REQUIRE(escouade.attaquer(pointCible(cible), carte) == 0);
+    REQUIRE(attaquerCible(escouade, carte, pointCible(cible)) == 0);
     escouade.mettreAJour(1.0f / 60.0f, carte, {});
 
     const float distanceApres = (cible - escouade.getCentre()).length();
@@ -279,6 +291,7 @@ TEST_CASE("attaquer finit par infliger des dégâts sans que l'escouade atteigne
     };
     TileMap carte(plan, 40.0f);
     Escouade escouade({50.0f, 50.0f});
+    escouade.verrouiller(1);
 
     const sf::Vector2f cible{300.0f, 300.0f};
     const int degatsTotal = simulerAttaque(escouade, carte, cibleMonstre(cible), 5.0f);
@@ -302,6 +315,7 @@ TEST_CASE("attaquer ignore les personnages morts pour décider si l'escouade doi
     };
     TileMap carte(plan, 40.0f);
     Escouade escouade({50.0f, 50.0f});
+    escouade.verrouiller(1);
 
     escouade.recevoirDegats({1000.0f, 1000.0f}, 100); // tue le personnage le plus proche de ce point
 
@@ -313,7 +327,7 @@ TEST_CASE("attaquer ignore les personnages morts pour décider si l'escouade doi
     // en arrière.
     const sf::Vector2f cible = centreAvant + sf::Vector2f(30.0f, 0.0f);
 
-    REQUIRE(escouade.attaquer(cibleMonstre(cible), carte) == 15); // 3 vivants x 5 degats
+    REQUIRE(attaquerCible(escouade, carte, cibleMonstre(cible)) == 15); // 3 vivants x 5 degats
     escouade.mettreAJour(1.0f / 60.0f, carte, {});
 
     verifierPointProche(escouade.getCentre(), centreAvant);
@@ -329,6 +343,7 @@ TEST_CASE("attaquer renvoie les dégâts de tous les personnages pour une cible 
     };
     TileMap carte(plan, 40.0f);
     Escouade escouade({50.0f, 50.0f});
+    escouade.verrouiller(1);
 
     // Centre initial (60, 60) ; mêlées en (85, 35) et (85, 85), tireurs en
     // (35, 35) et (35, 85). Une cible de la taille d'un monstre en (85, 60)
@@ -337,7 +352,7 @@ TEST_CASE("attaquer renvoie les dégâts de tous les personnages pour une cible 
     const sf::Vector2f cible{85.0f, 60.0f};
     const sf::Vector2f centreInitial = escouade.getCentre();
 
-    REQUIRE(escouade.attaquer(cibleMonstre(cible), carte) == 20);
+    REQUIRE(attaquerCible(escouade, carte, cibleMonstre(cible)) == 20);
     escouade.mettreAJour(1.0f / 60.0f, carte, {});
 
     verifierPointProche(escouade.getCentre(), centreInitial);
@@ -549,7 +564,7 @@ TEST_CASE("En combat, un personnage a portee de la cible reste immobile pendant 
     const sf::Vector2f meleeAvant = escouade.personnageLePlusProche({85.0f, 60.0f})->centre;
 
     for (int i = 0; i < 10; ++i) {
-        escouade.attaquer(cibleMonstre(cible), carte);
+        attaquerCible(escouade, carte, cibleMonstre(cible));
         escouade.mettreAJour(1.0f / 60.0f, carte, {});
     }
 
@@ -577,11 +592,12 @@ TEST_CASE("Sans verrou, un personnage deja a portee suit tout de meme son emplac
     Escouade escouade({50.0f, 50.0f}); // pas de verrouiller()
 
     const sf::Vector2f cible{175.0f, 60.0f}; // même configuration que le test précédent
+    escouade.allerVers(cible, carte); // sans verrou, attaquer() n'approche pas : l'ordre vient du joueur
 
     const sf::Vector2f tireurAvant = escouade.personnageLePlusProche({35.0f, 60.0f})->centre;
 
     for (int i = 0; i < 10; ++i) {
-        escouade.attaquer(cibleMonstre(cible), carte);
+        attaquerCible(escouade, carte, cibleMonstre(cible));
         escouade.mettreAJour(1.0f / 60.0f, carte, {});
     }
 
@@ -868,13 +884,13 @@ TEST_CASE("Un skill de dégâts hors de portée est mis en attente, puis part à
     Escouade escouade({50.0f, 50.0f});
     const Cercle cible = cibleMonstre({300.0f, 60.0f});
     escouade.verrouiller(1);
-    escouade.attaquer(cible, carte);
+    attaquerCible(escouade, carte, cible);
 
     REQUIRE(escouade.declencherSkill(1, cible) == 0);
 
     int degatsMax = 0;
     for (int i = 0; i < 600; ++i) {
-        const int degats = escouade.attaquer(cible, carte);
+        const int degats = attaquerCible(escouade, carte, cible);
         degatsMax = std::max(degatsMax, degats);
         escouade.mettreAJour(1.0f / 60.0f, carte, {});
     }
@@ -885,7 +901,7 @@ TEST_CASE("Un skill de dégâts en attente est annulé par deverrouiller, sans r
     const TileMap carte = carteDegageeSoin();
     Escouade escouade({50.0f, 50.0f});
     escouade.verrouiller(1);
-    escouade.attaquer(cibleMonstre({300.0f, 60.0f}), carte);
+    attaquerCible(escouade, carte, cibleMonstre({300.0f, 60.0f}));
     escouade.declencherSkill(1, cibleMonstre({300.0f, 60.0f}));
 
     escouade.deverrouiller();
@@ -898,7 +914,7 @@ TEST_CASE("Un skill de dégâts en attente est annulé par un changement de cibl
     const TileMap carte = carteDegageeSoin();
     Escouade escouade({50.0f, 50.0f});
     escouade.verrouiller(1);
-    escouade.attaquer(cibleMonstre({300.0f, 60.0f}), carte);
+    attaquerCible(escouade, carte, cibleMonstre({300.0f, 60.0f}));
     escouade.declencherSkill(1, cibleMonstre({300.0f, 60.0f}));
 
     escouade.verrouiller(1);   // même cible : toujours en attente
@@ -912,7 +928,7 @@ TEST_CASE("Un soin est refusé pendant qu'un skill de dégâts est en attente") 
     const TileMap carte = carteDegageeSoin();
     Escouade escouade({50.0f, 50.0f});
     escouade.verrouiller(1);
-    escouade.attaquer(cibleMonstre({300.0f, 60.0f}), carte);
+    attaquerCible(escouade, carte, cibleMonstre({300.0f, 60.0f}));
     escouade.declencherSkill(1, cibleMonstre({300.0f, 60.0f}));
     escouade.recevoirDegats({35.0f, 85.0f}, 20);
 
