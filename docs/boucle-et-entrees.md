@@ -11,9 +11,10 @@ ne se connaissent pas.
   1. événements : fermeture ; appui de souris (pose ou retire le verrou
      de combat, arme le déplacement continu) ; appui sur une touche 1 à 4
      (demande le skill de cette place) ;
-  2. skill demandé (avec le cercle du monstre verrouillé s'il y en a un),
-     puis, si un combat est engagé, attaque sur le monstre verrouillé,
-     retrait du verrou s'il est mort ;
+  2. liste des monstres vus (identifiant et cercle), skill demandé s'il y
+     a un appui, puis coups de l'escouade (`attaquer`, à chaque image,
+     verrou ou non, tant que l'escouade a un vivant), appliqués monstre
+     par monstre ; retrait du verrou si le monstre verrouillé est mort ;
   3. retrait des monstres morts ;
   4. ordre de déplacement continu ;
   5. mise à jour : liste des cercles des monstres, puis
@@ -80,11 +81,15 @@ ne se connaissent pas.
   position du curseur ne compte plus une fois le verrou posé — aucune
   zone de tolérance autour du monstre.
 - **L'attaque est dans `Escouade`** : `main.cpp` n'a aucune recharge ni
-  dégât à lui. Tant que le verrou est posé et que le monstre est trouvé,
-  `it->recevoirDegats(escouade.attaquer(it->getCercle(), carte))` est
-  appelé à chaque image, bouton enfoncé ou non. `attaquer` décide si
-  l'escouade s'approche ou s'arrête et frappe, et renvoie la somme des
-  dégâts (voir `docs/combat.md`).
+  dégât à lui. Il construit chaque image la liste des `MonstreVu`
+  (identifiant et cercle), la passe à `escouade.attaquer(monstresVus,
+  carte)` et applique chaque `Coup` renvoyé au monstre qui porte
+  l'identifiant (lambda `appliquer`, `std::find_if`). `attaquer` est
+  appelé à chaque image, bouton enfoncé ou non, **verrou ou non** :
+  avec un verrou elle décide si l'escouade s'approche ou s'arrête ;
+  dans tous les cas chaque personnage vivant frappe de lui-même un
+  monstre à sa portée (autodéfense, voir `docs/combat.md`). Seule la
+  mort du monstre verrouillé retire le verrou.
 - **Retrait des monstres morts** : `std::erase_if(monstres, ...)` après
   le bloc d'attaque et avant l'ordre de déplacement. À partir de là,
   « tout monstre du vecteur est vivant » jusqu'au prochain appel, ce qui
@@ -109,14 +114,14 @@ ne se connaissent pas.
 - **Scancode plutôt que code de touche** : `sf::Keyboard::Scan::Num1`
   désigne la touche physique « 1 » de la rangée du haut, quelle que soit
   la disposition du clavier (en AZERTY elle donne « & » sans majuscule).
-- **Skill demandé avant `attaquer`, hors du bloc du verrou** : un skill
-  qui part relance la recharge de base du personnage, qui ne frappe donc
-  pas une seconde fois dans la même image (voir `docs/combat.md`). Le
-  soin marche sans combat, donc `declencherSkill` est appelée même sans
-  verrou : `main.cpp` lui passe le cercle du monstre verrouillé, ou
-  `std::nullopt`, et `Escouade` refuse un skill de dégâts sans monstre.
-  `monstres.end()` tient lieu de « pas de monstre verrouillé »
-  (`monstreVerrouille`).
+- **Skill demandé avant `attaquer`** : un skill qui part relance la
+  recharge de base du personnage, qui ne frappe donc pas une seconde
+  fois dans la même image (voir `docs/combat.md`). `declencherSkill` est
+  appelée même sans verrou : le soin marche sans combat, et le skill de
+  dégâts vise alors le monstre que son lanceur frapperait en
+  autodéfense. `main.cpp` lui passe la liste des monstres vus, et
+  `Escouade` retrouve le monstre verrouillé elle-même. Les coups
+  renvoyés sont appliqués comme ceux d'`attaquer`.
 
 ## Défaite de l'escouade
 

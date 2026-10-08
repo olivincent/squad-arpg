@@ -8,7 +8,8 @@
 - **Un seul exécutable `tests`**, dix fichiers (`test_TileMap.cpp`,
   `test_Chemin.cpp`, `test_Escouade.cpp`, `test_Deplacement.cpp`,
   `test_Monstre.cpp`, `test_Personnage.cpp`, `test_Attaque.cpp`,
-  `test_Skill.cpp`, `test_Mobile.cpp`, `test_Cercle.cpp`), lancé directement
+  `test_Skill.cpp`, `test_Mobile.cpp`, `test_Cercle.cpp`,
+  `test_Autodefense.cpp`), lancé directement
   (`./build/tests.exe`) — pas de CTest ni de `catch_discover_tests`.
 - **Petits plans dédiés** : chaque test construit son propre plan texte
   (3×3, 4×4, 5×5…), jamais la carte de `main.cpp`, pour isoler exactement
@@ -117,9 +118,9 @@
   l'attaquant). Les tests de combat d'`Escouade`, eux, utilisent une
   cible de rayon 15 (`cibleMonstre`), comme le monstre que `main.cpp`
   passe réellement : avec un point, la géométrie de la formation
-  empêche les mêlées (portée 10 px) d'arriver jamais à portée (voir
-  `docs/formation.md`), et ces tests ne décriraient plus une
-  situation possible en jeu.
+  empêchait les mêlées (portée 10 px, aujourd'hui 20) d'arriver
+  jamais à portée (voir `docs/formation.md`), et ces tests ne
+  décriraient pas la situation de jeu.
 - **`Cercle` (`test_Cercle.cpp`)** : `distanceBordABord` sur
   deux cercles séparés, qui se touchent (0), qui se chevauchent (0, pas
   une valeur négative) et de rayons différents. Valeurs choisies pour
@@ -154,18 +155,23 @@
     hasard.
 - **`Escouade::attaquer` (`test_Escouade.cpp`)** : comme pour les autres
   fonctions d'`Escouade`, des résultats plutôt que des trajectoires
-  exactes.
-  - Fonction d'aide `simulerAttaque` : appelle `attaquer` puis
-    `mettreAJour` à chaque tic, et cumule les dégâts renvoyés par
-    `attaquer` sur toute la durée simulée.
-  - Cible lointaine en terrain dégagé : le premier appel renvoie 0 et
-    l'escouade s'en rapproche (distance réduite après un tic) ; après
-    une durée généreuse, le total des dégâts cumulés est `> 0`, mais
-    l'escouade ne finit pas sur la cible (elle s'arrête à portée).
+  exactes. `attaquer` reçoit une liste de `MonstreVu` et renvoie des
+  `Coup`.
+  - Fonction d'aide `attaquerCible` : appelle `attaquer` avec un seul
+    monstre (identifiant 1) et renvoie le total des dégâts de la liste.
+    `simulerAttaque` l'appelle puis `mettreAJour` à chaque tic et cumule
+    les dégâts sur toute la durée simulée.
+  - **L'approche exige le verrou** : les tests d'approche appellent
+    `verrouiller(1)`. Cible lointaine en terrain dégagé : le premier
+    appel renvoie 0 et l'escouade s'en rapproche (distance réduite après
+    un tic) ; après une durée généreuse, le total des dégâts cumulés est
+    `> 0`, mais l'escouade ne finit pas sur la cible (elle s'arrête à
+    portée).
   - Cible déjà à portée des 4 personnages dès le départ : le premier
-    appel renvoie 20 (4 × 5) et l'escouade ne bouge pas. Cette cible est placée entre les deux mêlées (et non
-    plus au centre de l'escouade, à 35 px de chacun d'eux), pour que
-    leur portée de 10 px bord à bord soit atteinte.
+    appel renvoie 20 (4 × 5) et l'escouade ne bouge pas. Cette cible est
+    placée entre les deux mêlées (et non plus au centre de l'escouade, à
+    35 px de chacun d'eux), pour que leur portée de 20 px bord à bord
+    soit atteinte.
   - **Les morts sont ignorés pour décider de l'arrêt** :
     `recevoirDegats` tue le personnage le plus proche d'un point
     lointain, l'escouade se déplace pour le laisser loin derrière
@@ -175,6 +181,20 @@
     pas bouger l'escouade. Sans ce filtre, le mort resté loin derrière
     empêcherait indéfiniment la condition « tous à portée » de devenir
     vraie.
+  - **Autodéfense, sans verrou** : tous les personnages frappent un
+    monstre à leur portée et l'ancre ne bouge pas (4 coups de 5, tous
+    attribués au bon identifiant) ; un monstre hors de portée ne reçoit
+    aucun coup ; seuls les tireurs frappent un monstre éloigné ; un
+    verrou hors de portée n'empêche pas de frapper un autre monstre à
+    portée ; un verrou à portée passe avant un monstre plus proche ; deux
+    personnages frappent deux monstres différents dans la même image ;
+    une escouade entièrement morte ne frappe plus.
+  - `test_Autodefense.cpp` : `choisirMonstreAFrapper` seule, via la
+    fonction d'aide `choisir(personnage, ...)` qui lui passe le cercle et
+    la portée d'un `Personnage` de portée 20 : aucun monstre à portée,
+    un seul, verrou à portée avant un monstre plus proche, verrou hors de
+    portée ou absent de la liste, plusieurs à portée (le plus proche),
+    égalité (le premier de la liste).
 - **`Escouade::personnageLePlusProche`** : test par
   propriété plutôt que par position de formation exacte, comme les
   autres tests d'`Escouade` — pour un point lointain, la distance entre
@@ -237,10 +257,18 @@
   - `test_Skill.cpp` : le type donné au constructeur, la puissance à
     portée, 0 hors de portée, 0 pendant la recharge puis la puissance de
     nouveau (4,8 s puis 0,4 s), progression de la recharge.
-  - `test_Escouade.cpp`, `declencherSkill(place, ...)` : cible de la
-    taille d'un monstre entre les deux mêlées, à portée de chacun —
-    refusé sans verrou ; avec verrou, 25 depuis la place 1 ; 0 pour une
-    place sans skill ou hors formation (0, 2, 5) ; 0 au second appel
+  - `test_Escouade.cpp`, `declencherSkill(place, monstres)` (fonctions
+    d'aide `declencher`, qui additionne les dégâts des coups, et
+    `unSeulMonstre`) : cible de la taille d'un monstre entre les deux
+    mêlées, à portée de chacun. **Sans verrou**, le skill part sur un
+    monstre à portée (25, coup attribué à son identifiant, aucun verrou
+    créé), vise le plus proche parmi plusieurs (le premier de la liste
+    est le plus éloigné, pour prouver que ce n'est pas l'ordre), est
+    refusé sans monstre à portée et sans recharge consommée (un monstre à
+    portée est frappé aussitôt après). **Avec un verrou**, 25 depuis la
+    place 1, le monstre verrouillé passe avant un monstre plus proche,
+    refusé si le verrou est absent de la liste ; 0 hors de portée, pour
+    une place sans skill ou hors formation (0, 2, 5) et au second appel
     immédiat.
 - **Obstacles** : `test_Deplacement.cpp` couvre
   `deplacementBloque` (aucun obstacle, entrée dans un obstacle, contact
@@ -271,7 +299,7 @@
 - **Soin** (`test_Personnage.cpp`, `test_Escouade.cpp`) :
   - `Personnage::recevoirSoin` : points de vie rendus, plafond au maximum,
     sans effet sur un mort.
-  - `choisirCible(TypeSkill::Soin, ...)`, observé par la fonction d'aide
+  - `choisirCible(TypeSkill::Soin, 3, {})`, observé par la fonction d'aide
     `placeAlliePourSoin` (extrait la place du `CibleAllie`) : personne de
     blessé, un seul blessé, le moins de points de vie, égalité (plus
     petite place), morts ignorés, tous morts. Les blessés sont créés par

@@ -42,10 +42,16 @@ est dans `docs/historique.md`.
 - Étape 34 — Les personnages bloqués par les monstres ✅
 - Étape 35 — Réorganisation de la documentation ✅
 - Étape 36 — Classe Skill, skill de soin et cible générale ✅
+- Étape 37 — Autodéfense : les personnages ripostent sans clic ✅
 
-## Étape 37 — À définir
+## Étape 38 — À définir
 
 Pistes discutées :
+- Un mêlée fait un pas vers le monstre qui l'attaque
+- L'escouade poursuit d'elle-même un monstre qui l'attaque (écartée pour
+  l'instant)
+- Indicateur visuel de la cible de chaque personnage
+- Choisir sans verrou lequel de deux monstres à portée reçoit le skill
 - Améliorer le A* pour qu'il tienne compte des entités (contournement
   d'un obstacle mobile)
 - Blocage de l'ancre par les monstres, si le décalage ancre/personnages
@@ -99,7 +105,7 @@ Pistes discutées :
   en carré autour de l'ancre, bloqués par les murs et par les monstres. La
   formation pivote progressivement vers la direction de marche (360°/s,
   par le plus court côté). Les deux de devant sont des mêlées (rouges,
-  portée 10 px), les deux de derrière des tireurs (cyan, portée 120 px) ;
+  portée 20 px), les deux de derrière des tireurs (cyan, portée 120 px) ;
   portées mesurées de bord à bord ; 5 dégâts, recharge 0,5 s ; 100
   points de vie et une barre de vie au-dessus d'eux.
 - **Mort et défaite** : un personnage à 0 point de vie tombe sur place
@@ -119,9 +125,18 @@ Pistes discutées :
   tireurs s'arrêtent à distance pendant que les mêlées vont jusqu'au
   contact. Le combat ne se rompt que par la mort de la cible, un clic sur
   le sol ou un clic sur un autre monstre.
+- **Autodéfense** : sans clic, chaque personnage vivant frappe de
+  lui-même un monstre qui se trouve à sa portée, à chaque image (à
+  l'arrêt, en marche, en combat). Il choisit le monstre verrouillé s'il
+  est à sa portée, sinon le plus proche à sa portée (bord à bord ;
+  égalité : le premier de la liste). Deux personnages peuvent frapper
+  deux monstres différents. Elle ne déplace personne : les mêlées ne
+  frappent que ce qui est à 20 px d'eux, les tireurs à 120 px.
 - **Skills** : deux, de classe `Skill` (type + `Attaque`). Touche 1 :
   skill de dégâts du mêlée avant-gauche (25 dégâts, recharge 5 s, portée
-  de mêlée), seulement en combat. Touche 3 : soin du tireur
+  de mêlée, 20 px), sur le monstre verrouillé ou, sans verrou, sur le
+  monstre à portée que ce mêlée frapperait en autodéfense (alors sans
+  marche ni mise en attente). Touche 3 : soin du tireur
   arrière-gauche (30 points de vie, recharge 8 s, portée 40 px), sur le
   vivant le plus blessé (soigneur inclus), permis hors combat. Touches 2
   et 4 : rien. Un skill hors de portée met son lanceur en marche vers la
@@ -147,10 +162,10 @@ Pistes discutées :
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 195 tests : 32 sur `TileMap`, 13 sur `Chemin`, 56
+  (`./build/tests.exe`, 213 tests : 32 sur `TileMap`, 13 sur `Chemin`, 67
   sur `Escouade`, 12 sur `Deplacement`, 27 sur `Monstre`, 23 sur
   `Personnage`, 11 sur `Attaque`, 5 sur `Skill`, 12 sur `Mobile`, 4 sur
-  `Cercle`).
+  `Cercle`, 7 sur `Autodefense`).
 
 **Limites connues** (acceptées pour l'instant) :
 - Le A* et le lissage ignorent les entités : une entité bloquée ne
@@ -168,4 +183,9 @@ Pistes discutées :
 - En combat, un personnage s'arrête où il se trouve en entrant à portée,
   sans placement « intelligent ».
 - Les entités sont dessinées en carrés mais mesurées en cercles : en
-  diagonale, une portée de mêlée de 10 px laisse à peine un écart.
+  diagonale, l'écart visible est plus petit que la portée (d'une dizaine
+  de pixels).
+- L'autodéfense ne déplace personne : un mêlée attaqué par un monstre
+  qui s'arrête à 15 px de lui riposte sur place, mais un tireur ou un
+  mêlée qui n'a rien à portée ne réagit pas ; elle ne regarde que la
+  portée (pas de notion de « qui attaque qui »).

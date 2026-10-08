@@ -60,8 +60,10 @@ personnages sont dans `docs/formation.md`, le monstre dans
   de `Personnage` (rayon 10) et de `Monstre` (rayon 15) recalcule le
   rayon (demi-côté) à partir de la taille déjà stockée — une seule
   source de vérité.
-- **Valeurs de portée** : mêlée 10 px, tireur 120 px, monstre 15 px,
-  skill = portée de mêlée.
+- **Valeurs de portée** : mêlée 20 px, tireur 120 px, monstre 15 px,
+  skill de dégâts = portée de mêlée. La mêlée est passée de 10 à 20 px
+  (étape 37) : un monstre s'arrête à 15 px de sa proie, et avec 10 px
+  un mêlée attaqué n'aurait pas pu riposter sans bouger.
 - **Ce qui passe par `Attaque::estAPortee`** : la frappe des personnages,
   la riposte des monstres, l'arrêt de l'ancre (`Escouade::attaquer`),
   l'arrêt individuel en combat et l'arrêt du monstre en poursuite. Pour
@@ -75,23 +77,61 @@ personnages sont dans `docs/formation.md`, le monstre dans
 - **Limites connues** : les entités sont dessinées comme des carrés et
   leurs coins dépassent du cercle (4,1 px pour un personnage, 6,2 px pour
   un monstre) — face à face, l'écart visible est bien la portée, mais en
-  diagonale une portée de mêlée de 10 px laisse à peine un écart. La
+  diagonale l'écart visible est plus petit que la portée (d'une
+  dizaine de pixels). La
   portée ignore les murs : un personnage peut frapper à travers un mur
   s'il est assez près, une vérification de ligne de vue (via
   `TileMap::trajetLibre`, par exemple) restant une option.
 
 ## Attaque de l'escouade
 
-- **`Escouade::attaquer(cible, carte)`** mémorise la cible
-  (`m_cibleCombat`), puis : si au moins un personnage **vivant** n'est
-  pas à portée, `allerVers(cible.centre, carte)` ; sinon l'ancre
-  s'arrête sur place (`m_mobile.arreter()`, pour cesser d'avancer sans
-  reculer). Dans les deux cas, chaque personnage frappe ensuite et la
-  somme des dégâts est renvoyée à `main.cpp`.
+- **`Escouade::attaquer(monstres, carte)`** reçoit la liste des monstres
+  tels que l'escouade les voit (`MonstreVu` : identifiant et cercle,
+  dans `Coup.hpp`) et renvoie une liste de `Coup` (identifiant du
+  monstre, dégâts) que `main.cpp` applique. Elle ne connaît toujours pas
+  `Monstre`. Deux parties indépendantes :
+  - **l'approche, seulement avec un verrou** : si le monstre verrouillé
+    est dans la liste, son cercle est mémorisé (`m_cibleCombat`) ; si au
+    moins un personnage **vivant** n'est pas à portée,
+    `allerVers(cercle.centre, carte)`, sinon l'ancre s'arrête sur place
+    (`m_mobile.arreter()`, pour cesser d'avancer sans reculer). Le skill
+    de dégâts en attente part aussi ici, dès que son lanceur est à
+    portée (voir « Choix de la cible et skill en attente ») ;
+  - **les frappes, verrou ou non** : voir « Autodéfense ».
 - **Les morts sont ignorés pour l'arrêt** (voir `docs/formation.md`).
 - **La formation tient pendant l'attaque** : les personnages continuent
-  de viser leur place (`placePersonnage`), sauf ceux déjà à portée, qui
-  restent sur place.
+  de viser leur place (`placePersonnage`), sauf ceux déjà à portée du
+  monstre verrouillé, qui restent sur place.
+
+## Autodéfense
+
+- **Chaque personnage vivant choisit pour lui-même, à chaque image, le
+  monstre qu'il frappe** : le monstre verrouillé s'il est à sa portée
+  (la cible prioritaire passe toujours en premier), sinon le plus
+  proche (bord à bord) parmi ceux à sa portée (égalité : le premier de
+  la liste), sinon aucun. Deux personnages peuvent donc frapper deux
+  monstres différents dans la même image. Un mort ne frappe pas
+  (`Personnage::frapper` renvoie 0), la recharge est celle de chacun.
+- **Une fonction libre isolée**, `choisirMonstreAFrapper(origine,
+  estAPortee, monstres, idVerrouille)` (module `Autodefense`), sans état
+  et testée seule. Elle reçoit une origine et un test de portée
+  (`std::function<bool(Cercle)>`) plutôt qu'un `Personnage`, pour que le
+  choix de la cible d'un skill sans verrou réutilise la même règle avec
+  la portée du skill, au lieu d'en dupliquer une copie.
+- **Elle ne déplace personne** : ni l'ancre, ni les personnages. La
+  formation et le placement individuel en combat restent ceux d'avant
+  (le placement ne regarde que le verrou). Elle s'applique tout le
+  temps : à l'arrêt, en marche, en combat verrouillé, et pour un lanceur
+  en route vers la cible de son skill. `main.cpp` demande les coups à
+  chaque image tant que l'escouade a un vivant.
+- **Le clic sur un monstre garde son rôle** : désigner la cible
+  prioritaire et aller l'engager. Seul le monstre verrouillé a le
+  contour jaune.
+- **Limites connues** : la règle ne regarde que la portée (pas de notion
+  de « qui attaque qui ») ; aucun déplacement provoqué par l'autodéfense
+  (pas de pas vers l'attaquant, pas de poursuite, pas de recul des
+  tireurs) ; la portée ignore les murs ; pas d'indicateur visuel de la
+  cible de chaque personnage.
 
 ## Skill
 
@@ -108,7 +148,7 @@ personnages sont dans `docs/formation.md`, le monstre dans
   création de `Personnage` dit explicitement s'il a un skill.
 - **Deux skills**, aux valeurs écrites dans `Escouade.cpp` :
   - dégâts : personnage 0 (mêlée avant-gauche), 25 dégâts, recharge 5 s,
-    portée de mêlée (10 px) ;
+    portée de mêlée (20 px) ;
   - soin : personnage 2 (tireur arrière-gauche), 30 points de vie,
     recharge 8 s, portée 40 px bord à bord.
 - **Le lanceur est désigné par sa place** : la touche N déclenche le skill
@@ -133,22 +173,34 @@ personnages sont dans `docs/formation.md`, le monstre dans
 - **Le soin est appliqué dans `Escouade` et n'en sort pas** : `main.cpp`
   ne reçoit aucun dégât pour un soin. `Personnage::recevoirSoin`
   plafonne au maximum et ne soigne pas un mort.
-- **Le soin est permis hors combat** ; le skill de dégâts exige un
-  monstre verrouillé.
+- **Le soin est permis hors combat** ; le skill de dégâts vise le
+  monstre verrouillé, ou, sans verrou, le monstre que son lanceur
+  frapperait en autodéfense (voir ci-dessous).
 
 ## Choix de la cible et skill en attente
 
 - **`Cible`** est un `std::variant<CibleAllie, CibleMonstre>`
-  (`CibleAllie` : place de 1 à 4 ; `CibleMonstre` : un `Cercle`). Pas de
+  (`CibleAllie` : place de 1 à 4 ; `CibleMonstre` : l'identifiant du monstre et son `Cercle`). Pas de
   troisième cas « aucune » : l'absence est un `std::optional` vide. Les
   deux cibles n'ont rien de commun, d'où un variant plutôt qu'une classe
   de base.
 - **Le type du skill décide de la cible cherchée**, dans
-  `Escouade::choisirCible(type, monstreVerrouille)`, une fonction à
-  part : `Degats` prend le monstre verrouillé, `Soin` le vivant qui a le
-  moins de points de vie parmi les blessés (soigneur inclus ; égalité :
-  la plus petite place). Un futur choix manuel par le joueur ne devra
-  remplacer que cette fonction.
+  `Escouade::choisirCible(type, place, monstres)`, une fonction à part.
+  `Soin` : le vivant qui a le moins de points de vie parmi les blessés
+  (soigneur inclus ; égalité : la plus petite place). `Degats` :
+  1. avec un verrou, le monstre verrouillé trouvé dans la liste, à
+     portée ou non (mise en attente et marche s'il est hors de portée) ;
+     s'il n'est pas dans la liste, pas de cible ;
+  2. sans verrou, le monstre que le lanceur frapperait en autodéfense
+     (`choisirMonstreAFrapper`), mais avec la portée de son skill ;
+  3. sinon aucune cible : l'appui est refusé, sans recharge.
+
+  `CibleMonstre` porte l'identifiant du monstre : c'est lui qui attribue
+  les dégâts dans la liste des coups. Un futur choix manuel par le
+  joueur ne devra remplacer que `choisirCible`.
+- **Sans verrou, le skill part toujours dans l'image de l'appui** (la
+  cible est à portée par construction) : jamais de mise en attente dans
+  ce cas. Il ne crée pas de verrou et ne déplace personne.
 - **À l'appui** : `declencherSkill` refuse si le lanceur n'a pas de skill,
   est mort ou est en recharge, si un skill est déjà en attente, ou si
   `choisirCible` ne trouve rien. Sinon, cible à portée : le skill part
@@ -161,10 +213,12 @@ personnages sont dans `docs/formation.md`, le monstre dans
   route est `m_cibleCombat`, mis à jour à chaque `attaquer`, pas la copie
   de l'appui.
 - **Où le skill part** : un soin, dans `Escouade::mettreAJour` (début de
-  l'image, avant les déplacements) ; un skill de dégâts, dans
-  `attaquer`, avant les attaques de base, qui reçoit le cercle à jour du
-  monstre. Ses dégâts s'ajoutent donc à la somme déjà renvoyée à
-  `main.cpp`.
+  l'image, avant les déplacements) ; un skill de dégâts à portée, tout de
+  suite, dans `declencherSkill`, qui renvoie un `std::vector<Coup>` (vide
+  ou un coup) ; un skill de dégâts mis en attente, dans `attaquer`, avant
+  les attaques de base, qui reçoit le cercle à jour du monstre : son coup
+  s'ajoute alors à la liste renvoyée à `main.cpp`, attribué à
+  l'identifiant de sa cible.
 - **Annulations** : lanceur mort (les deux types) ; soin : cible morte ou
   remontée à pleine vie ; dégâts : `deverrouiller()` (mort de la cible,
   clic au sol) ou `verrouiller` avec un autre identifiant (changement de
@@ -183,14 +237,15 @@ personnages sont dans `docs/formation.md`, le monstre dans
 l'intermédiaire (voir `docs/boucle-et-entrees.md` pour l'ordre dans une
 image).
 
-- **Les personnages frappent un monstre** : `main.cpp` retrouve le monstre
-  verrouillé et lui applique la somme renvoyée par
-  `escouade.declencherSkill(...)` puis `escouade.attaquer(...)` (un
-  skill de dégâts parti après une attente s'ajoute à cette dernière somme ;
-  un soin ne rend aucun dégât). Le skill
-  passe avant l'attaque de base : s'il part, il relance la recharge de
-  base de ce personnage, qui ne frappe donc pas deux fois dans la même
-  image.
+- **Les personnages frappent un monstre** : à chaque image, `main.cpp`
+  construit la liste `monstresVus` (identifiant et cercle de chaque
+  monstre), puis applique, avec une petite lambda `appliquer`, les coups
+  renvoyés par `escouade.declencherSkill(...)` (si une touche est
+  appuyée) puis par `escouade.attaquer(...)`, chacun au monstre dont
+  l'identifiant figure dans le `Coup`. Un soin ne rend aucun coup. Le
+  skill passe avant l'attaque de base : s'il part, il relance la
+  recharge de base de ce personnage, qui ne frappe donc pas deux fois
+  dans la même image.
 - **Un monstre frappe un personnage** : pour chaque monstre,
   `main.cpp` demande `escouade.personnageLePlusProche(m.getCentre())`
   (le cercle du vivant le plus proche), met le monstre à jour, relit son

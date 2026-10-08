@@ -922,3 +922,45 @@ manuel de la cible ; un lanceur bloqué par un monstre glisse ou attend.
 
 **Hors de portée** : choix manuel de la cible, skills pour les personnages
 2 et 4, soin de zone, résurrection, HUD, icônes, effets visuels.
+
+### Étape 37 — Autodéfense : les personnages ripostent sans clic ✅ TERMINÉE
+
+Jusqu'ici les personnages ne frappaient que le monstre verrouillé par un
+clic, alors que les monstres frappaient sans clic. Désormais chaque
+personnage vivant frappe de lui-même un monstre à sa portée ; le clic
+garde son rôle (désigner la cible prioritaire et aller l'engager).
+
+1. [x] Portée des mêlées et du skill de dégâts : 10 → 20 px (un monstre
+       s'arrête à 15 px de sa proie, un mêlée attaqué ne pouvait pas
+       riposter sans bouger)
+2. [x] `Coup.hpp` : `MonstreVu` (identifiant + cercle) et `Coup`
+       (identifiant + dégâts) (enchaînée)
+3. [x] `Autodefense.hpp/.cpp` : `choisirMonstreAFrapper`, avec
+       `test_Autodefense.cpp` (enchaînée)
+4. [x] `Escouade::attaquer` reçoit la liste des monstres et renvoie la
+       liste des coups ; `main.cpp` construit les `MonstreVu` et applique
+       les coups (encore seulement avec un verrou)
+5. [x] `main.cpp` demande les coups à chaque image, verrou ou non :
+       l'autodéfense est active
+6. [x] `CibleMonstre` reçoit l'identifiant du monstre (enchaînée)
+7. [x] Le skill de dégâts sans verrou vise le monstre que son lanceur
+       frapperait en autodéfense, avec la portée du skill :
+       `choisirCible(type, place, monstres)`, `declencherSkill` renvoie
+       une liste de `Coup` ; `choisirMonstreAFrapper` reçoit une origine
+       et un test de portée au lieu d'un `Personnage`
+8. [x] Mise à jour des documents
+
+**Choix** : l'approche de l'escouade reste liée au verrou ; l'autodéfense
+ne déplace personne. Sans verrou le skill part toujours dans l'image de
+l'appui (cible à portée par construction), sans mise en attente, sans
+créer de verrou. `Escouade` ne connaît toujours pas `Monstre`.
+
+**Limites connues** : la règle ne regarde que la portée (pas de « qui
+attaque qui ») ; aucun déplacement provoqué par l'autodéfense ; pas
+d'indicateur visuel de la cible de chaque personnage ; sans verrou, le
+choix entre deux monstres à portée du skill est automatique (le plus
+proche).
+
+**Hors de portée** : verrou automatique sur un attaquant, pas vers
+l'attaquant, poursuite, recul des tireurs, ligne de vue, effet visuel
+des coups, HUD, choix manuel de la cible d'un skill.

@@ -51,7 +51,7 @@ L'attaque, la portée, le skill et les obstacles sont dans
   une escouade orientée vers `+x` : les indices 0 et 1 sont à l'avant,
   les indices 2 et 3 à l'arrière.
 - **Le rôle découle de la place** : les deux personnages avant sont des
-  mêlées (rouge, portée de bord à bord 10 px), les deux arrière des
+  mêlées (rouge, portée de bord à bord 20 px), les deux arrière des
   tireurs (cyan, 120 px). Aucune énumération ni champ « type » : un
   personnage est défini par ses données (couleur, `Attaque`, skill) et
   la place dans `m_personnages` suffit à dire qui est quoi, comme elle
@@ -150,8 +150,8 @@ L'attaque, la portée, le skill et les obstacles sont dans
   valeur sentinelle ; `recevoirDegats` ne fait rien si l'indice est
   vide.
 - **`Escouade` ne filtre pas les morts dans `attaquer`** pour la frappe :
-  elle appelle `frapper` sur les 4 et c'est `Personnage` qui renvoie 0
-  s'il est mort. Elle les ignore en revanche pour décider de
+  elle appelle `frapper` pour chaque personnage qui a une cible et c'est
+  `Personnage` qui renvoie 0 s'il est mort. Elle les ignore en revanche pour décider de
   s'arrêter (voir « Mort et défaite »).
 
 ## Verrou de cible
@@ -166,7 +166,10 @@ L'attaque, la portée, le skill et les obstacles sont dans
   l'identifiant (voir `docs/boucle-et-entrees.md` pour les trois cas qui
   rompent le combat).
 - **Le combat n'est pas lié au bouton de souris** : tant que le verrou
-  est posé, `main.cpp` appelle `attaquer` à chaque image.
+  est posé, `attaquer` approche le monstre verrouillé à chaque image.
+  `main.cpp` appelle `attaquer` à chaque image même sans verrou, pour
+  l'autodéfense (voir `docs/combat.md`), mais l'approche, elle, exige le
+  verrou.
 
 ## Placement individuel en combat
 
@@ -182,21 +185,24 @@ L'attaque, la portée, le skill et les obstacles sont dans
 - **`Personnage` n'en sait rien** : il reçoit toujours un simple point.
 - **`m_cibleCombat` (`std::optional<Cercle>`)** est le seul moyen pour
   `Escouade` de connaître la position et la taille de la cible : elle
-  est mise à jour au début de chaque `attaquer`.
-- **La règle exige le verrou, pas seulement une cible connue** : sans
-  cette double condition, un appel isolé à `attaquer` (que `main.cpp` ne
-  fait jamais) figerait quand même les personnages à portée. Un test
-  unitaire le vérifie.
+  est mise à jour à chaque `attaquer` où le monstre verrouillé est dans
+  la liste des monstres.
+- **La règle exige le verrou, pas seulement une cible connue** :
+  `m_cibleCombat` n'est pas effacée quand le verrou tombe, et `main.cpp`
+  appelle `attaquer` à chaque image même sans verrou. Sans cette double
+  condition, la dernière cible resterait mémorisée et figerait les
+  personnages qui étaient à sa portée. Un test unitaire le vérifie.
 - **La taille de la cible compte pour les mêlées**, à cause de la
   formation : un mêlée est à 35,4 px du centre de l'ancre (décalage
   `(25, ±25)`), dont 25 px de côté par rapport à l'axe d'approche. Face
-  à une cible de rayon nul, il ne passe jamais à moins d'environ 25 px
-  de son centre alors qu'il lui faudrait 20 px (portée 10 + son rayon
-  10) : la condition « tous à portée » ne devient jamais vraie et
-  l'ancre avance jusque sur la cible. Avec un vrai monstre (rayon 15),
-  le seuil passe à 35 px et les mêlées l'atteignent. C'est pourquoi les
-  tests de combat d'`Escouade` utilisent une cible de la taille d'un
-  monstre (voir `docs/tests.md`).
+  à une cible de rayon nul, il ne passe donc jamais à moins d'environ
+  25 px de son centre. Avec la portée de 10 px d'avant l'étape 37, il
+  lui en fallait 20 (portée 10 + son rayon 10) : la condition « tous à
+  portée » ne devenait jamais vraie et l'ancre avançait jusque sur la
+  cible. Avec la portée de 20 px, le seuil est de 30 px, ce qui est
+  atteignable même face à un point ; avec un vrai monstre (rayon 15) il
+  est de 45 px. Les tests de combat d'`Escouade` utilisent quand même
+  une cible de la taille d'un monstre (voir `docs/tests.md`).
 - **Limites connues** : pas de placement « intelligent » (encerclement,
   écartement, ligne de tir) — un personnage à portée s'arrête exactement
   là où il se trouvait en entrant en portée, même si la position est
@@ -215,7 +221,8 @@ L'attaque, la portée, le skill et les obstacles sont dans
   partir un soin dès que le lanceur est à portée, et renvoie le point à
   viser. Le skill de dégâts, lui, part dans `attaquer` (voir
   `docs/combat.md`) ; `avancerSkillEnAttente` ne fait alors que renvoyer
-  `m_cibleCombat->centre`, ou rien tant que `attaquer` n'a pas été appelée.
+  `m_cibleCombat->centre`, ou rien tant que `attaquer` n'a pas été appelée
+  avec le monstre verrouillé dans la liste.
 - **Annulation sur rupture du combat** dans `verrouiller` et
   `deverrouiller`, plutôt que par une vérification à chaque image : ce
   sont les deux seuls endroits où le verrou change.

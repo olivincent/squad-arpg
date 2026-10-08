@@ -48,12 +48,15 @@ squad-arpg/
 │   ├── Attaque.hpp / .cpp
 │   ├── Skill.hpp / .cpp
 │   ├── Cible.hpp
+│   ├── Coup.hpp
+│   ├── Autodefense.hpp / .cpp
 │   ├── Mobile.hpp / .cpp
 │   └── Cercle.hpp / .cpp
 ├── tests/
 │   ├── test_TileMap.cpp, test_Chemin.cpp, test_Escouade.cpp
 │   ├── test_Deplacement.cpp, test_Monstre.cpp, test_Personnage.cpp
-│   └── test_Attaque.cpp, test_Skill.cpp, test_Mobile.cpp, test_Cercle.cpp
+│   └── test_Attaque.cpp, test_Skill.cpp, test_Mobile.cpp, test_Cercle.cpp,
+│       test_Autodefense.cpp
 ├── docs/
 │   ├── build.md
 │   ├── boucle-et-entrees.md
@@ -79,14 +82,15 @@ Qui possède quoi :
 - `main.cpp` possède la fenêtre, la boucle de jeu, la caméra, la carte
   (`TileMap`), l'`Escouade` et un `std::vector<Monstre>`. Il traite les
   événements (fermeture, clic, touches 1 à 4) et fait l'intermédiaire entre
-  `Escouade` et `Monstre`, qui ne se connaissent pas. Il ne connaît ni
-  `Chemin` ni `Personnage`.
+  `Escouade` et `Monstre`, qui ne se connaissent pas : il donne à
+  `Escouade` la liste des monstres (`MonstreVu`) et applique les `Coup`
+  qu'elle renvoie. Il ne connaît ni `Chemin` ni `Personnage`.
 - `Escouade` possède un `Mobile` (l'ancre) et 4 `Personnage`.
 - `Personnage` possède une `Attaque` et, en option, un `Skill` ; `Skill` possède une `Attaque` ; `Monstre` possède un `Mobile` et une
   `Attaque`.
 - `Mobile` utilise `Chemin` et `Deplacement` ; `Personnage` utilise
   `Deplacement`. `Attaque`, `Personnage`, `Monstre` et `Escouade` échangent
-  des `Cercle`.
+  des `Cercle`. `Escouade` utilise `choisirMonstreAFrapper` (`Autodefense`).
 
 ## Modules
 
@@ -130,9 +134,9 @@ Données membres : `m_mobile` (`Mobile`), `m_decalages` (4
 |---|---|
 | `explicit Escouade(sf::Vector2f positionDepart)` | Crée l'escouade et ses 4 personnages en formation (deux mêlées devant, deux tireurs derrière) |
 | `void allerVers(sf::Vector2f destination, const TileMap& carte)` | Délègue à `m_mobile.allerVers` |
-| `int attaquer(Cercle cible, const TileMap& carte)` | Mémorise `cible`, approche tant qu'un personnage vivant n'est pas à portée, s'arrête sinon ; fait partir le skill de dégâts en attente si son lanceur est à portée, puis fait frapper chaque personnage ; renvoie la somme des dégâts |
-| `int declencherSkill(std::size_t place, std::optional<Cercle> monstreVerrouille)` | Skill du personnage à la place `place` (1 à 4). 0 si la place est invalide, sans skill, si le lanceur est mort, si le skill est en recharge, si un skill est déjà en attente ou si `choisirCible` ne trouve rien. Cible à portée : un skill de dégâts renvoie ses dégâts, un soin est appliqué sur place (renvoie 0). Hors de portée : le skill est mis en attente (renvoie 0) |
-| `std::optional<Cible> choisirCible(TypeSkill type, std::optional<Cercle> monstreVerrouille) const` | `Degats` : le monstre verrouillé (vide sans verrou ou sans cercle) ; `Soin` : le vivant qui a le moins de points de vie parmi ceux qui ne sont pas à pleine vie (égalité : la plus petite place) |
+| `std::vector<Coup> attaquer(const std::vector<MonstreVu>& monstres, const TileMap& carte)` | Avec un verrou dont le monstre est dans `monstres` : mémorise son cercle, approche tant qu'un personnage vivant n'est pas à portée, s'arrête sinon, et fait partir le skill de dégâts en attente si son lanceur est à portée. Verrou ou non : chaque personnage choisit pour lui-même le monstre à frapper (`choisirMonstreAFrapper`) et frappe ; renvoie un `Coup` par frappe qui touche |
+| `std::vector<Coup> declencherSkill(std::size_t place, const std::vector<MonstreVu>& monstres)` | Skill du personnage à la place `place` (1 à 4). Liste vide si la place est invalide, sans skill, si le lanceur est mort, si le skill est en recharge, si un skill est déjà en attente ou si `choisirCible` ne trouve rien. Cible à portée : un skill de dégâts renvoie un coup (identifiant de la cible, dégâts), un soin est appliqué sur place (liste vide). Hors de portée (seulement avec un verrou) : le skill est mis en attente (liste vide) |
+| `std::optional<Cible> choisirCible(TypeSkill type, std::size_t place, const std::vector<MonstreVu>& monstres) const` | `Degats` : avec un verrou, le monstre verrouillé trouvé dans `monstres` (à portée ou non, vide s'il n'y est pas) ; sans verrou, le monstre que le lanceur de la place `place` frapperait en autodéfense, avec la portée de son skill (vide si aucun). `Soin` : le vivant qui a le moins de points de vie parmi ceux qui ne sont pas à pleine vie (égalité : la plus petite place) |
 | `void mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles)` | Avance l'ancre, tourne la formation, déplace chaque personnage vers sa place (ou reste sur place s'il est à portée de la cible en combat) ; le lanceur d'un skill en attente vise sa cible à la place (un soin part ici, annulé si le lanceur ou la cible meurt ou si la cible est à pleine vie) ; `obstacles` est transmis aux personnages, jamais à l'ancre |
 | `void dessiner(sf::RenderTarget& rendu) const` | Dessine l'ancre, puis les 4 personnages |
 | `sf::Vector2f getCentre() const` | Centre de l'ancre (utilisé par la caméra) |
@@ -273,10 +277,26 @@ Données membres : `m_type` (`TypeSkill`), `m_attaque` (`Attaque`).
 | `float getProgressionRecharge() const` | De 0 (juste après le déclenchement) à 1 (prêt) |
 | `TypeSkill getType() const` | Type du skill |
 
+### `Coup` — ce qui circule entre `main.cpp` et `Escouade`
+
+`Coup.hpp`, sans `.cpp`, deux structures sans comportement :
+`struct MonstreVu { int id; Cercle cercle; }` (un monstre tel que
+l'escouade le voit) et `struct Coup { int idMonstre; int degats; }` (des
+dégâts à infliger à ce monstre).
+
+### `Autodefense` — quel monstre un combattant frappe
+
+Une fonction libre, sans état, utilisée par `Escouade::attaquer` et
+`Escouade::choisirCible`.
+
+| Fonction | Rôle |
+|---|---|
+| `std::optional<int> choisirMonstreAFrapper(Cercle origine, const std::function<bool(Cercle)>& estAPortee, const std::vector<MonstreVu>& monstres, std::optional<int> idVerrouille)` | Identifiant du monstre verrouillé s'il est à portée ; sinon du plus proche (bord à bord) parmi ceux à portée (égalité : le premier de la liste) ; sinon vide. `estAPortee` dit si un cercle est à portée (celle de l'attaque ou celle d'un skill) |
+
 ### `Cible` — ce que vise un skill
 
 `Cible.hpp`, sans `.cpp` : `struct CibleAllie { std::size_t place; }`
-(de 1 à 4), `struct CibleMonstre { Cercle cercle; }` et
+(de 1 à 4), `struct CibleMonstre { int id; Cercle cercle; }` et
 `using Cible = std::variant<CibleAllie, CibleMonstre>`. L'absence de
 cible est un `std::optional<Cible>` vide.
 
@@ -327,7 +347,7 @@ lire le fichier correspondant :
 | `docs/carte-et-collision.md` | Carte, collision et dessin, déplacement avec glissement et obstacles, plan texte et validation | Avant de modifier `TileMap` ou `Deplacement` |
 | `docs/chemin.md` | Recherche de chemin (A*), suivi de chemin (`Mobile`), lissage de chemin | Avant de modifier `Chemin` ou `Mobile` |
 | `docs/formation.md` | `Escouade` et `Personnage` : ancre, formation, orientation, verrou de cible, placement en combat, mort et défaite | Avant de modifier `Escouade` ou `Personnage` |
-| `docs/combat.md` | `Attaque`, `Cercle`, portée bord à bord, `Skill`, `Cible`, skill en attente, circuit des dégâts, qui bloque qui | Avant de modifier `Attaque`, `Cercle`, `Skill`, `Cible`, le skill ou les listes d'obstacles |
+| `docs/combat.md` | `Attaque`, `Cercle`, portée bord à bord, autodéfense, `Skill`, `Cible`, skill en attente, circuit des dégâts, qui bloque qui | Avant de modifier `Attaque`, `Cercle`, `Autodefense`, `Coup`, `Skill`, `Cible`, le skill ou les listes d'obstacles |
 | `docs/monstre.md` | `Monstre` : identifiant, états, détection, territoire, poursuite, retour au poste, riposte | Avant de modifier `Monstre` |
 | `docs/tests.md` | Tests (Catch2, conventions) | Avant d'ajouter ou de modifier un test |
 | `docs/historique.md` | Historique détaillé, tel quel | Jamais nécessaire avant de modifier du code |
