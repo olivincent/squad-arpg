@@ -18,6 +18,7 @@ public:
     void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte, const std::vector<Cercle>& obstacles);
     bool estAPortee(Cercle cible) const;
     int frapper(Cercle cible);
+    std::optional<TypeSkill> typeSkill() const;
     int declencherSkill(Cercle cible);
     void recevoirDegats(int quantite);
     void recevoirSoin(int quantite);

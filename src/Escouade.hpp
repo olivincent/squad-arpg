@@ -17,7 +17,7 @@ public:
     void dessiner(sf::RenderTarget& rendu) const;
     void allerVers(sf::Vector2f destination, const TileMap& carte);
     int attaquer(Cercle cible, const TileMap& carte);
-    int declencherSkill(std::size_t place, Cercle cible);
+    int declencherSkill(std::size_t place, std::optional<Cercle> monstreVerrouille);
     void mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles);
     sf::Vector2f getCentre() const;
     std::optional<Cercle> personnageLePlusProche(sf::Vector2f point) const;

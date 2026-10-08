@@ -113,23 +113,35 @@ int main() {
             }
         }
 
+        // Monstre verrouillé : monstres.end() s'il n'y en a pas.
+        auto monstreVerrouille = monstres.end();
         if (const std::optional<int> idCible = escouade.getCibleVerrouillee(); idCible.has_value()) {
-            const auto it = std::find_if(monstres.begin(), monstres.end(), [&](const Monstre& m) {
+            monstreVerrouille = std::find_if(monstres.begin(), monstres.end(), [&](const Monstre& m) {
                 return m.getId() == idCible.value();
             });
-            if (it == monstres.end()) {
+            if (monstreVerrouille == monstres.end()) {
                 escouade.deverrouiller();
-            } else {
-                // Le skill passe avant l'attaque de base : s'il part, il
-                // relance la recharge de base de ce personnage, qui ne
-                // frappe donc pas une seconde fois dans la même image.
-                if (placeSkillDemandee.has_value()) {
-                    it->recevoirDegats(escouade.declencherSkill(*placeSkillDemandee, it->getCercle()));
-                }
-                it->recevoirDegats(escouade.attaquer(it->getCercle(), carte));
-                if (!it->estVivant()) {
-                    escouade.deverrouiller();
-                }
+            }
+        }
+
+        // Le skill passe avant l'attaque de base : s'il part, il relance
+        // la recharge de base de ce personnage, qui ne frappe donc pas une
+        // seconde fois dans la même image. Un soin ne rend aucun dégât.
+        if (placeSkillDemandee.has_value()) {
+            std::optional<Cercle> cercleCible;
+            if (monstreVerrouille != monstres.end()) {
+                cercleCible = monstreVerrouille->getCercle();
+            }
+            const int degats = escouade.declencherSkill(*placeSkillDemandee, cercleCible);
+            if (monstreVerrouille != monstres.end()) {
+                monstreVerrouille->recevoirDegats(degats);
+            }
+        }
+
+        if (monstreVerrouille != monstres.end()) {
+            monstreVerrouille->recevoirDegats(escouade.attaquer(monstreVerrouille->getCercle(), carte));
+            if (!monstreVerrouille->estVivant()) {
+                escouade.deverrouiller();
             }
         }
 

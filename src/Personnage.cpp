@@ -98,6 +98,13 @@ int Personnage::frapper(Cercle cible) {
     return m_attaque.frapper(getCercle(), cible);
 }
 
+std::optional<TypeSkill> Personnage::typeSkill() const {
+    if (!m_skill.has_value()) {
+        return std::nullopt;
+    }
+    return m_skill->getType();
+}
+
 int Personnage::declencherSkill(Cercle cible) {
     if (!m_skill.has_value() || !estVivant()) {
         return 0;

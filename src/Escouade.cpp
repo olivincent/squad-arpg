@@ -13,6 +13,9 @@ constexpr float s_porteeMelee = 10.0f;    // bord à bord
 constexpr float s_porteeTireur = 120.0f;  // bord à bord
 constexpr int s_degatsSkill = 25;
 constexpr float s_rechargeSkill = 5.0f;   // en secondes
+constexpr float s_porteeSoin = 40.0f;     // bord à bord
+constexpr int s_puissanceSoin = 30;
+constexpr float s_rechargeSoin = 8.0f;    // en secondes
 }  // namespace
 
 Escouade::Escouade(sf::Vector2f positionDepart)
@@ -25,7 +28,8 @@ Escouade::Escouade(sf::Vector2f positionDepart)
           Personnage(placePersonnage(0), s_couleurMelee, Attaque(s_porteeMelee, 5, 0.5f),
                      Skill(TypeSkill::Degats, Attaque(s_porteeMelee, s_degatsSkill, s_rechargeSkill))),
           Personnage(placePersonnage(1), s_couleurMelee, Attaque(s_porteeMelee, 5, 0.5f), std::nullopt),
-          Personnage(placePersonnage(2), s_couleurTireur, Attaque(s_porteeTireur, 5, 0.5f), std::nullopt),
+          Personnage(placePersonnage(2), s_couleurTireur, Attaque(s_porteeTireur, 5, 0.5f),
+                     Skill(TypeSkill::Soin, Attaque(s_porteeSoin, s_puissanceSoin, s_rechargeSoin))),
           Personnage(placePersonnage(3), s_couleurTireur, Attaque(s_porteeTireur, 5, 0.5f), std::nullopt),
       }),
       m_cibleVerrouillee(),
@@ -77,13 +81,32 @@ int Escouade::attaquer(Cercle cible, const TileMap& carte) {
     return degats;
 }
 
-int Escouade::declencherSkill(std::size_t place, Cercle cible) {
-    if (!m_cibleVerrouillee.has_value() || place < 1 || place > m_personnages.size()) {
+int Escouade::declencherSkill(std::size_t place, std::optional<Cercle> monstreVerrouille) {
+    if (place < 1 || place > m_personnages.size()) {
         return 0;
     }
 
-    // Un personnage sans skill renvoie 0.
-    return m_personnages[place - 1].declencherSkill(cible);
+    Personnage& lanceur = m_personnages[place - 1];
+    const std::optional<TypeSkill> type = lanceur.typeSkill();
+    if (!type.has_value()) {
+        return 0;
+    }
+
+    if (*type == TypeSkill::Degats) {
+        if (!m_cibleVerrouillee.has_value() || !monstreVerrouille.has_value()) {
+            return 0;
+        }
+        return lanceur.declencherSkill(*monstreVerrouille);
+    }
+
+    // Soin : appliqué ici, il ne sort pas d'Escouade.
+    const std::optional<std::size_t> placeAllie = choisirAlliePourSoin();
+    if (!placeAllie.has_value()) {
+        return 0;
+    }
+    Personnage& allie = m_personnages[*placeAllie - 1];
+    allie.recevoirSoin(lanceur.declencherSkill(allie.getCercle()));
+    return 0;
 }
 
 void Escouade::mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles) {

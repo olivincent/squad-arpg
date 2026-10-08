@@ -703,3 +703,62 @@ TEST_CASE("choisirAlliePourSoin est vide quand tout le monde est mort") {
 
     REQUIRE_FALSE(escouade.choisirAlliePourSoin().has_value());
 }
+
+// Soin (place 3, en (35, 35), portée 40 px bord à bord = 60 px entre
+// centres, 30 points de vie, recharge 8 s). Place 4 en (35, 85) : 50 px,
+// à portée. Place 2 en (85, 85) : environ 70,7 px, hors de portée.
+
+TEST_CASE("Le soin de la place 3 soigne un allié à portée, sans combat engagé") {
+    Escouade escouade({50.0f, 50.0f});
+    escouade.recevoirDegats({35.0f, 85.0f}, 20);
+
+    REQUIRE(escouade.declencherSkill(3, std::nullopt) == 0);
+
+    // 80 + 30 plafonné à 100 : plus personne à soigner.
+    REQUIRE_FALSE(escouade.choisirAlliePourSoin().has_value());
+}
+
+TEST_CASE("Le soin ne part pas si la cible est hors de portée") {
+    Escouade escouade({50.0f, 50.0f});
+    escouade.recevoirDegats({85.0f, 85.0f}, 20);
+
+    escouade.declencherSkill(3, std::nullopt);
+
+    REQUIRE(escouade.choisirAlliePourSoin() == 2);
+}
+
+TEST_CASE("Le soin ne part pas à pleine vie et ne déclenche alors pas la recharge") {
+    Escouade escouade({50.0f, 50.0f});
+    escouade.declencherSkill(3, std::nullopt);
+
+    escouade.recevoirDegats({35.0f, 85.0f}, 20);
+    escouade.declencherSkill(3, std::nullopt);
+
+    REQUIRE_FALSE(escouade.choisirAlliePourSoin().has_value());
+}
+
+TEST_CASE("Le soin est en recharge juste après son lancement") {
+    Escouade escouade({50.0f, 50.0f});
+    escouade.recevoirDegats({35.0f, 85.0f}, 60);
+
+    escouade.declencherSkill(3, std::nullopt);   // 40 -> 70
+    escouade.declencherSkill(3, std::nullopt);   // refusé : recharge
+
+    REQUIRE(escouade.choisirAlliePourSoin() == 4);
+}
+
+TEST_CASE("Un soigneur mort ne soigne pas") {
+    Escouade escouade({50.0f, 50.0f});
+    escouade.recevoirDegats({35.0f, 35.0f}, 100);
+    escouade.recevoirDegats({35.0f, 85.0f}, 20);
+
+    escouade.declencherSkill(3, std::nullopt);
+
+    REQUIRE(escouade.choisirAlliePourSoin() == 4);
+}
+
+TEST_CASE("Le skill de dégâts est refusé sans monstre verrouillé même si une cible est donnée") {
+    Escouade escouade({50.0f, 50.0f});
+
+    REQUIRE(escouade.declencherSkill(1, std::nullopt) == 0);
+}
