@@ -20,6 +20,8 @@ constexpr float s_rechargeSkill = 5.0f;   // en secondes
 constexpr float s_porteeSoin = 40.0f;     // bord à bord
 constexpr int s_puissanceSoin = 30;
 constexpr float s_rechargeSoin = 8.0f;    // en secondes
+constexpr float s_laisseAgresseur = 100.0f;      // en pixels, centre à centre, mesurée depuis la place de formation
+constexpr float s_dureeMemoireAgresseur = 3.0f;  // en secondes, sans nouveau coup du même monstre
 }  // namespace
 
 Escouade::Escouade(sf::Vector2f positionDepart)
@@ -39,7 +41,9 @@ Escouade::Escouade(sf::Vector2f positionDepart)
       m_cibleVerrouillee(),
       m_skillEnAttente(),
       m_cibleCombat(),
-      m_places({placePersonnage(0), placePersonnage(1), placePersonnage(2), placePersonnage(3)})
+      m_places({placePersonnage(0), placePersonnage(1), placePersonnage(2), placePersonnage(3)}),
+      m_monstreAPortee(4, false),
+      m_agresseurs()
 {
 }
 
@@ -65,6 +69,17 @@ void Escouade::allerVers(sf::Vector2f destination, const TileMap& carte) {
 
 std::vector<Coup> Escouade::attaquer(const std::vector<MonstreVu>& monstres, const TileMap& carte) {
     std::vector<Coup> coups;
+
+    // Un agresseur absent de la liste est mort : on l'oublie ; les autres
+    // voient leur cercle mis à jour.
+    std::erase_if(m_agresseurs, [&](const Agresseur& a) {
+        return std::none_of(monstres.begin(), monstres.end(), [&](const MonstreVu& m) { return m.id == a.id; });
+    });
+    for (Agresseur& agresseur : m_agresseurs) {
+        agresseur.cercle = std::find_if(monstres.begin(), monstres.end(), [&](const MonstreVu& m) {
+                               return m.id == agresseur.id;
+                           })->cercle;
+    }
 
     // Approche du monstre verrouillé, s'il y en a un dans la liste.
     if (m_cibleVerrouillee.has_value()) {
@@ -106,9 +121,11 @@ std::vector<Coup> Escouade::attaquer(const std::vector<MonstreVu>& monstres, con
     }
 
     // Chaque personnage choisit pour lui-même le monstre qu'il frappe.
-    for (Personnage& personnage : m_personnages) {
+    for (std::size_t i = 0; i < m_personnages.size(); ++i) {
+        Personnage& personnage = m_personnages[i];
         const std::optional<int> id = choisirMonstreAFrapper(
             personnage.getCercle(), [&](Cercle c) { return personnage.estAPortee(c); }, monstres, m_cibleVerrouillee);
+        m_monstreAPortee[i] = id.has_value();
         if (!id.has_value()) {
             continue;
         }
@@ -206,13 +223,39 @@ std::optional<sf::Vector2f> Escouade::avancerSkillEnAttente() {
     return allie.getCentre();
 }
 
+// Point à viser pour un personnage vivant qui a un agresseur dans sa laisse :
+// son propre centre s'il a déjà un monstre à portée (il reste sur place),
+// sinon le centre de l'agresseur le plus proche. Vide : il vise sa place.
+std::optional<sf::Vector2f> Escouade::pointVersAgresseur(std::size_t indice) const {
+    std::vector<MonstreVu> agresseurs;
+    for (const Agresseur& agresseur : m_agresseurs) {
+        agresseurs.push_back({agresseur.id, agresseur.cercle});
+    }
+    const std::optional<Cercle> cible = choisirAgresseurAViser(
+        m_personnages[indice].getCercle(), m_places[indice], s_laisseAgresseur, agresseurs);
+    if (!cible.has_value()) {
+        return std::nullopt;
+    }
+    if (m_monstreAPortee[indice]) {
+        return m_personnages[indice].getCentre();
+    }
+    return cible->centre;
+}
+
 void Escouade::mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles) {
     if (const std::optional<sf::Vector2f> direction = m_mobile.directionVoulue()) {
         m_orientationVoulue = direction->angle();
     }
 
+    // Un agresseur qui n'a pas frappé depuis assez longtemps est oublié.
+    for (Agresseur& agresseur : m_agresseurs) {
+        agresseur.tempsRestant -= dt;
+    }
+    std::erase_if(m_agresseurs, [](const Agresseur& a) { return a.tempsRestant <= 0.0f; });
+
     // L'ancre n'est pas bloquée par les obstacles : seuls les personnages le sont.
     m_mobile.mettreAJour(dt, carte, {});
+    const bool ancreArretee = !m_mobile.directionVoulue().has_value();
 
     // Rotation progressive vers l'orientation voulue, par le plus court
     // côté (wrapSigned ramène l'écart entre -180° et 180°), à vitesse
@@ -242,6 +285,12 @@ void Escouade::mettreAJour(float dt, const TileMap& carte, const std::vector<Cer
         const float diametre = 2.0f * m_personnages[i].getCercle().rayon;
         m_places[i] = replierVersOrigine(carte, getCentre(), placePersonnage(i), {diametre, diametre});
         sf::Vector2f pointVoulu = m_places[i];
+        // L'ordre du joueur gagne : on ne va vers un agresseur que si l'ancre est à l'arrêt.
+        if (ancreArretee && m_personnages[i].estVivant()) {
+            if (const std::optional<sf::Vector2f> pointAgresseur = pointVersAgresseur(i)) {
+                pointVoulu = *pointAgresseur;
+            }
+        }
         if (enCombat && m_personnages[i].estVivant() && m_personnages[i].estAPortee(*m_cibleCombat)) {
             pointVoulu = m_personnages[i].getCentre();
         }
@@ -286,12 +335,30 @@ std::optional<Cercle> Escouade::personnageLePlusProche(sf::Vector2f point) const
     return m_personnages[*indice].getCercle();
 }
 
-void Escouade::recevoirDegats(sf::Vector2f origine, int quantite) {
+void Escouade::recevoirDegats(int idMonstre, sf::Vector2f origine, int quantite) {
     const std::optional<std::size_t> indice = indicePersonnageLePlusProche(origine);
     if (!indice.has_value()) {
         return;
     }
     m_personnages[*indice].recevoirDegats(quantite);
+
+    // Un coup qui fait des dégâts désigne son auteur comme agresseur.
+    if (quantite <= 0) {
+        return;
+    }
+    const auto connu = std::find_if(m_agresseurs.begin(), m_agresseurs.end(), [&](const Agresseur& a) {
+        return a.id == idMonstre;
+    });
+    if (connu != m_agresseurs.end()) {
+        connu->cercle.centre = origine;
+        connu->tempsRestant = s_dureeMemoireAgresseur;
+    } else {
+        m_agresseurs.push_back({idMonstre, {origine, 0.0f}, s_dureeMemoireAgresseur});
+    }
+}
+
+const std::vector<Escouade::Agresseur>& Escouade::getAgresseurs() const {
+    return m_agresseurs;
 }
 
 bool Escouade::estVivante() const {

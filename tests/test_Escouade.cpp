@@ -332,7 +332,7 @@ TEST_CASE("attaquer ignore les personnages morts pour décider si l'escouade doi
     Escouade escouade({50.0f, 50.0f});
     escouade.verrouiller(1);
 
-    escouade.recevoirDegats({1000.0f, 1000.0f}, 100); // tue le personnage le plus proche de ce point
+    escouade.recevoirDegats(1, {1000.0f, 1000.0f}, 100); // tue le personnage le plus proche de ce point
 
     escouade.allerVers({300.0f, 60.0f}, carte); // éloigne l'escouade, laisse le mort derrière
     simuler(escouade, carte, 10.0f); // largement assez pour arriver
@@ -424,7 +424,7 @@ TEST_CASE("personnageLePlusProche ignore les degats insuffisants pour tuer") {
     const std::optional<Cercle> avant = escouade.personnageLePlusProche(point);
     REQUIRE(avant.has_value());
 
-    escouade.recevoirDegats(point, 50);
+    escouade.recevoirDegats(1, point, 50);
     const std::optional<Cercle> apres = escouade.personnageLePlusProche(point);
     REQUIRE(apres.has_value());
 
@@ -438,7 +438,7 @@ TEST_CASE("personnageLePlusProche change de cible une fois le plus proche mort")
     const std::optional<Cercle> avant = escouade.personnageLePlusProche(point);
     REQUIRE(avant.has_value());
 
-    escouade.recevoirDegats(point, 100);
+    escouade.recevoirDegats(1, point, 100);
     const std::optional<Cercle> apres = escouade.personnageLePlusProche(point);
     REQUIRE(apres.has_value());
 
@@ -450,12 +450,12 @@ TEST_CASE("personnageLePlusProche est vide une fois tous les personnages morts")
     const sf::Vector2f point{1000.0f, 1000.0f};
 
     for (int i = 0; i < 4; ++i) {
-        escouade.recevoirDegats(point, 100);
+        escouade.recevoirDegats(1, point, 100);
     }
 
     REQUIRE_FALSE(escouade.personnageLePlusProche(point).has_value());
 
-    escouade.recevoirDegats(point, 100);
+    escouade.recevoirDegats(1, point, 100);
     REQUIRE_FALSE(escouade.personnageLePlusProche(point).has_value());
 }
 
@@ -469,7 +469,7 @@ TEST_CASE("estVivante reste vraie apres la mort d'un seul personnage") {
     Escouade escouade({50.0f, 50.0f});
     const sf::Vector2f point{1000.0f, 1000.0f};
 
-    escouade.recevoirDegats(point, 100);
+    escouade.recevoirDegats(1, point, 100);
 
     REQUIRE(escouade.estVivante());
 }
@@ -479,7 +479,7 @@ TEST_CASE("estVivante devient fausse une fois les 4 personnages morts") {
     const sf::Vector2f point{1000.0f, 1000.0f};
 
     for (int i = 0; i < 4; ++i) {
-        escouade.recevoirDegats(point, 100);
+        escouade.recevoirDegats(1, point, 100);
     }
 
     REQUIRE_FALSE(escouade.estVivante());
@@ -498,7 +498,7 @@ TEST_CASE("cerclesDesVivants n'inclut plus le cercle d'un personnage mort") {
     const std::optional<Cercle> futurMort = escouade.personnageLePlusProche(point);
     REQUIRE(futurMort.has_value());
 
-    escouade.recevoirDegats(point, 100);
+    escouade.recevoirDegats(1, point, 100);
     const std::vector<Cercle> cercles = escouade.cerclesDesVivants();
 
     REQUIRE(cercles.size() == 3);
@@ -512,7 +512,7 @@ TEST_CASE("cerclesDesVivants est vide une fois tous les personnages morts") {
     const sf::Vector2f point{1000.0f, 1000.0f};
 
     for (int i = 0; i < 4; ++i) {
-        escouade.recevoirDegats(point, 100);
+        escouade.recevoirDegats(1, point, 100);
     }
 
     REQUIRE(escouade.cerclesDesVivants().empty());
@@ -755,31 +755,31 @@ TEST_CASE("choisirCible (soin) est vide quand tout le monde est à pleine vie") 
 
 TEST_CASE("choisirCible (soin) désigne le seul blessé") {
     Escouade escouade({50.0f, 50.0f});
-    escouade.recevoirDegats({35.0f, 85.0f}, 10);
+    escouade.recevoirDegats(1, {35.0f, 85.0f}, 10);
 
     REQUIRE(placeAlliePourSoin(escouade) == 4);
 }
 
 TEST_CASE("choisirCible (soin) désigne celui qui a le moins de points de vie") {
     Escouade escouade({50.0f, 50.0f});
-    escouade.recevoirDegats({85.0f, 85.0f}, 30);
-    escouade.recevoirDegats({35.0f, 85.0f}, 50);
+    escouade.recevoirDegats(1, {85.0f, 85.0f}, 30);
+    escouade.recevoirDegats(1, {35.0f, 85.0f}, 50);
 
     REQUIRE(placeAlliePourSoin(escouade) == 4);
 }
 
 TEST_CASE("choisirCible (soin) choisit la plus petite place en cas d'égalité") {
     Escouade escouade({50.0f, 50.0f});
-    escouade.recevoirDegats({35.0f, 35.0f}, 20);
-    escouade.recevoirDegats({85.0f, 85.0f}, 20);
+    escouade.recevoirDegats(1, {35.0f, 35.0f}, 20);
+    escouade.recevoirDegats(1, {85.0f, 85.0f}, 20);
 
     REQUIRE(placeAlliePourSoin(escouade) == 2);
 }
 
 TEST_CASE("choisirCible (soin) ignore les morts") {
     Escouade escouade({50.0f, 50.0f});
-    escouade.recevoirDegats({35.0f, 85.0f}, 100);
-    escouade.recevoirDegats({85.0f, 85.0f}, 10);
+    escouade.recevoirDegats(1, {35.0f, 85.0f}, 100);
+    escouade.recevoirDegats(1, {85.0f, 85.0f}, 10);
 
     REQUIRE(placeAlliePourSoin(escouade) == 2);
 }
@@ -788,7 +788,7 @@ TEST_CASE("choisirCible (soin) est vide quand tout le monde est mort") {
     Escouade escouade({50.0f, 50.0f});
     for (const sf::Vector2f origine : {sf::Vector2f(85.0f, 35.0f), sf::Vector2f(85.0f, 85.0f),
                                        sf::Vector2f(35.0f, 35.0f), sf::Vector2f(35.0f, 85.0f)}) {
-        escouade.recevoirDegats(origine, 100);
+        escouade.recevoirDegats(1, origine, 100);
     }
 
     REQUIRE_FALSE(escouade.choisirCible(TypeSkill::Soin, 3, {}).has_value());
@@ -800,7 +800,7 @@ TEST_CASE("choisirCible (soin) est vide quand tout le monde est mort") {
 
 TEST_CASE("Le soin de la place 3 soigne un allié à portée, sans combat engagé") {
     Escouade escouade({50.0f, 50.0f});
-    escouade.recevoirDegats({35.0f, 85.0f}, 20);
+    escouade.recevoirDegats(1, {35.0f, 85.0f}, 20);
 
     REQUIRE(declencher(escouade, 3, {}) == 0);
 
@@ -810,7 +810,7 @@ TEST_CASE("Le soin de la place 3 soigne un allié à portée, sans combat engag�
 
 TEST_CASE("Le soin ne part pas si la cible est hors de portée") {
     Escouade escouade({50.0f, 50.0f});
-    escouade.recevoirDegats({85.0f, 85.0f}, 20);
+    escouade.recevoirDegats(1, {85.0f, 85.0f}, 20);
 
     declencher(escouade, 3, {});
 
@@ -821,7 +821,7 @@ TEST_CASE("Le soin ne part pas à pleine vie et ne déclenche alors pas la recha
     Escouade escouade({50.0f, 50.0f});
     declencher(escouade, 3, {});
 
-    escouade.recevoirDegats({35.0f, 85.0f}, 20);
+    escouade.recevoirDegats(1, {35.0f, 85.0f}, 20);
     declencher(escouade, 3, {});
 
     REQUIRE_FALSE(escouade.choisirCible(TypeSkill::Soin, 3, {}).has_value());
@@ -829,7 +829,7 @@ TEST_CASE("Le soin ne part pas à pleine vie et ne déclenche alors pas la recha
 
 TEST_CASE("Le soin est en recharge juste après son lancement") {
     Escouade escouade({50.0f, 50.0f});
-    escouade.recevoirDegats({35.0f, 85.0f}, 60);
+    escouade.recevoirDegats(1, {35.0f, 85.0f}, 60);
 
     declencher(escouade, 3, {});   // 40 -> 70
     declencher(escouade, 3, {});   // refusé : recharge
@@ -839,8 +839,8 @@ TEST_CASE("Le soin est en recharge juste après son lancement") {
 
 TEST_CASE("Un soigneur mort ne soigne pas") {
     Escouade escouade({50.0f, 50.0f});
-    escouade.recevoirDegats({35.0f, 35.0f}, 100);
-    escouade.recevoirDegats({35.0f, 85.0f}, 20);
+    escouade.recevoirDegats(1, {35.0f, 35.0f}, 100);
+    escouade.recevoirDegats(1, {35.0f, 85.0f}, 20);
 
     declencher(escouade, 3, {});
 
@@ -870,7 +870,8 @@ TileMap carteDegageeSoin() {
 TEST_CASE("Un soin hors de portée est mis en attente : le soigneur marche, soigne, puis revient à sa place") {
     const TileMap carte = carteDegageeSoin();
     Escouade escouade({50.0f, 50.0f});
-    escouade.recevoirDegats({85.0f, 85.0f}, 20);
+    escouade.recevoirDegats(1, {85.0f, 85.0f}, 20);
+    escouade.attaquer({}, carte); // le monstre fantôme n'existe pas : il n'est pas un agresseur
 
     declencher(escouade, 3, {});
     REQUIRE(placeAlliePourSoin(escouade) == 2);   // pas encore soigné
@@ -887,17 +888,18 @@ TEST_CASE("Un soin hors de portée est mis en attente : le soigneur marche, soig
 TEST_CASE("Le soin en attente est annulé si la cible meurt, sans recharge") {
     const TileMap carte = carteDegageeSoin();
     Escouade escouade({50.0f, 50.0f});
-    escouade.recevoirDegats({85.0f, 85.0f}, 20);
+    escouade.recevoirDegats(1, {85.0f, 85.0f}, 20);
     declencher(escouade, 3, {});
 
-    escouade.recevoirDegats({85.0f, 85.0f}, 100);
+    escouade.recevoirDegats(1, {85.0f, 85.0f}, 100);
+    escouade.attaquer({}, carte); // le monstre fantôme n'existe pas : il n'est pas un agresseur
     simuler(escouade, carte, 2.0f);
 
     // Le soigneur est revenu à sa place et son skill est prêt : un nouveau
     // blessé à portée est soigné aussitôt.
     const std::optional<Cercle> soigneur = escouade.personnageLePlusProche({35.0f, 35.0f});
     verifierPointProche(soigneur->centre, {35.0f, 35.0f});
-    escouade.recevoirDegats({35.0f, 85.0f}, 20);
+    escouade.recevoirDegats(1, {35.0f, 85.0f}, 20);
     declencher(escouade, 3, {});
     REQUIRE_FALSE(placeAlliePourSoin(escouade).has_value());
 }
@@ -905,10 +907,10 @@ TEST_CASE("Le soin en attente est annulé si la cible meurt, sans recharge") {
 TEST_CASE("Le soin en attente est annulé si le soigneur meurt") {
     const TileMap carte = carteDegageeSoin();
     Escouade escouade({50.0f, 50.0f});
-    escouade.recevoirDegats({85.0f, 85.0f}, 20);
+    escouade.recevoirDegats(1, {85.0f, 85.0f}, 20);
     declencher(escouade, 3, {});
 
-    escouade.recevoirDegats({35.0f, 35.0f}, 100);
+    escouade.recevoirDegats(1, {35.0f, 35.0f}, 100);
     simuler(escouade, carte, 2.0f);
 
     REQUIRE(placeAlliePourSoin(escouade) == 2);
@@ -917,7 +919,7 @@ TEST_CASE("Le soin en attente est annulé si le soigneur meurt") {
 TEST_CASE("Un ordre de déplacement n'annule pas un soin en attente") {
     const TileMap carte = carteDegageeSoin();
     Escouade escouade({50.0f, 50.0f});
-    escouade.recevoirDegats({85.0f, 85.0f}, 20);
+    escouade.recevoirDegats(1, {85.0f, 85.0f}, 20);
     declencher(escouade, 3, {});
 
     escouade.allerVers({300.0f, 300.0f}, carte);
@@ -929,7 +931,7 @@ TEST_CASE("Un ordre de déplacement n'annule pas un soin en attente") {
 TEST_CASE("Un seul skill en attente à la fois") {
     const TileMap carte = carteDegageeSoin();
     Escouade escouade({50.0f, 50.0f});
-    escouade.recevoirDegats({85.0f, 85.0f}, 20);
+    escouade.recevoirDegats(1, {85.0f, 85.0f}, 20);
     declencher(escouade, 3, {});   // en attente
 
     // Le skill de dégâts de la place 1, à portée d'une cible, est refusé.
@@ -992,7 +994,7 @@ TEST_CASE("Un soin est refusé pendant qu'un skill de dégâts est en attente") 
     escouade.verrouiller(1);
     attaquerCible(escouade, carte, cibleMonstre({300.0f, 60.0f}));
     declencher(escouade, 1, unSeulMonstre(cibleMonstre({300.0f, 60.0f})));
-    escouade.recevoirDegats({35.0f, 85.0f}, 20);
+    escouade.recevoirDegats(1, {35.0f, 85.0f}, 20);
 
     declencher(escouade, 3, unSeulMonstre(cibleMonstre({300.0f, 60.0f})));
 
@@ -1080,10 +1082,10 @@ TEST_CASE("Deux personnages peuvent frapper deux monstres differents dans la mem
 TEST_CASE("Une escouade dont tous les personnages sont morts ne frappe plus") {
     const TileMap carte = carteDegageeSoin();
     Escouade escouade({50.0f, 50.0f});
-    escouade.recevoirDegats({85.0f, 35.0f}, 100);
-    escouade.recevoirDegats({85.0f, 85.0f}, 100);
-    escouade.recevoirDegats({35.0f, 35.0f}, 100);
-    escouade.recevoirDegats({35.0f, 85.0f}, 100);
+    escouade.recevoirDegats(1, {85.0f, 35.0f}, 100);
+    escouade.recevoirDegats(1, {85.0f, 85.0f}, 100);
+    escouade.recevoirDegats(1, {35.0f, 35.0f}, 100);
+    escouade.recevoirDegats(1, {35.0f, 85.0f}, 100);
 
     REQUIRE(escouade.attaquer({MonstreVu{1, cibleMonstre({85.0f, 60.0f})}}, carte).empty());
 }
@@ -1133,4 +1135,163 @@ TEST_CASE("Ancre collée à un mur, aucune place de formation n'est dans un mur"
     }
     // Les places de gauche, qui tombaient dans le mur, se sont rapprochées de l'ancre.
     REQUIRE(places[2].x > escouade.getCentre().x - 25.0f);
+}
+
+TEST_CASE("Un coup qui fait des degats enregistre son auteur comme agresseur") {
+    Escouade escouade({50.0f, 50.0f});
+    escouade.recevoirDegats(7, {300.0f, 60.0f}, 10);
+
+    const auto& agresseurs = escouade.getAgresseurs();
+    REQUIRE(agresseurs.size() == 1);
+    REQUIRE(agresseurs[0].id == 7);
+    verifierPointProche(agresseurs[0].cercle.centre, {300.0f, 60.0f});
+    REQUIRE(agresseurs[0].tempsRestant == 3.0f);
+}
+
+TEST_CASE("Un coup a zero degat n'enregistre aucun agresseur") {
+    Escouade escouade({50.0f, 50.0f});
+    escouade.recevoirDegats(7, {300.0f, 60.0f}, 0);
+
+    REQUIRE(escouade.getAgresseurs().empty());
+}
+
+TEST_CASE("Un coup d'un agresseur deja connu ne le duplique pas et remet son temps au maximum") {
+    Escouade escouade({50.0f, 50.0f});
+    escouade.recevoirDegats(7, {300.0f, 60.0f}, 10);
+    escouade.recevoirDegats(8, {310.0f, 60.0f}, 10);
+    escouade.recevoirDegats(7, {320.0f, 60.0f}, 10);
+
+    const auto& agresseurs = escouade.getAgresseurs();
+    REQUIRE(agresseurs.size() == 2);
+    REQUIRE(agresseurs[0].id == 7);
+    verifierPointProche(agresseurs[0].cercle.centre, {320.0f, 60.0f});
+    REQUIRE(agresseurs[1].id == 8);
+}
+
+TEST_CASE("Sans personnage vivant, un coup n'enregistre aucun agresseur") {
+    Escouade escouade({50.0f, 50.0f});
+    for (int i = 0; i < 4; ++i) {
+        escouade.recevoirDegats(1, {50.0f, 50.0f}, 100);
+    }
+    escouade.recevoirDegats(9, {50.0f, 50.0f}, 10);
+
+    REQUIRE_FALSE(escouade.estVivante());
+    const auto& agresseurs = escouade.getAgresseurs();
+    REQUIRE(std::none_of(agresseurs.begin(), agresseurs.end(), [](const Escouade::Agresseur& a) { return a.id == 9; }));
+}
+
+TEST_CASE("Un agresseur est oublie 3 s apres son dernier coup") {
+    const TileMap carte({"..........", "..........", ".........."}, 40.0f);
+    Escouade escouade({50.0f, 50.0f});
+    escouade.recevoirDegats(7, {300.0f, 60.0f}, 10);
+
+    escouade.mettreAJour(2.9f, carte, {});
+    REQUIRE(escouade.getAgresseurs().size() == 1);
+    escouade.mettreAJour(0.2f, carte, {});
+    REQUIRE(escouade.getAgresseurs().empty());
+}
+
+TEST_CASE("Un nouveau coup repousse l'oubli de l'agresseur") {
+    const TileMap carte({"..........", "..........", ".........."}, 40.0f);
+    Escouade escouade({50.0f, 50.0f});
+    escouade.recevoirDegats(7, {300.0f, 60.0f}, 10);
+    escouade.mettreAJour(2.0f, carte, {});
+    escouade.recevoirDegats(7, {300.0f, 60.0f}, 10);
+    escouade.mettreAJour(2.0f, carte, {});
+
+    REQUIRE(escouade.getAgresseurs().size() == 1);
+}
+
+TEST_CASE("attaquer retire l'agresseur absent de la liste et met a jour le cercle des autres") {
+    const TileMap carte({"..........", "..........", ".........."}, 40.0f);
+    Escouade escouade({50.0f, 50.0f});
+    escouade.recevoirDegats(7, {300.0f, 60.0f}, 10);
+    escouade.recevoirDegats(8, {310.0f, 60.0f}, 10);
+
+    escouade.attaquer({MonstreVu{8, cibleMonstre({320.0f, 70.0f})}}, carte);
+
+    const auto& agresseurs = escouade.getAgresseurs();
+    REQUIRE(agresseurs.size() == 1);
+    REQUIRE(agresseurs[0].id == 8);
+    verifierPointProche(agresseurs[0].cercle.centre, {320.0f, 70.0f});
+    REQUIRE(agresseurs[0].cercle.rayon == 15.0f);
+}
+
+namespace {
+
+// Carte dégagée de 800 × 600 px, entourée de murs.
+TileMap carteDegagee() {
+    std::vector<std::string> plan;
+    plan.push_back(std::string(20, '#'));
+    for (int i = 0; i < 13; ++i) {
+        plan.push_back("#" + std::string(18, '.') + "#");
+    }
+    plan.push_back(std::string(20, '#'));
+    return TileMap(plan, 40.0f);
+}
+
+// Comme main.cpp : attaquer puis mettreAJour à chaque tic, le monstre étant
+// un obstacle pour les personnages.
+void simulerAvecMonstre(Escouade& escouade, const TileMap& carte, Cercle monstre, int tics) {
+    for (int i = 0; i < tics; ++i) {
+        escouade.attaquer({MonstreVu{1, monstre}}, carte);
+        escouade.mettreAJour(1.0f / 60.0f, carte, {monstre});
+    }
+}
+
+float distanceDuPlusProche(const Escouade& escouade, Cercle monstre) {
+    return (escouade.personnageLePlusProche(monstre.centre)->centre - monstre.centre).length();
+}
+
+}  // namespace
+
+// Escouade en (210, 210), orientée vers +x : mêlées en (235, 185) et
+// (235, 235), tireurs en (185, 185) et (185, 235). Monstre en (180, 120) :
+// le tireur arrière-gauche est à 65 px, la mêlée avant-gauche à 85 px de sa
+// place (dans la laisse), l'autre mêlée à 127 px (hors laisse).
+
+TEST_CASE("Un personnage sans monstre a portee va vers l'agresseur de sa laisse") {
+    const TileMap carte = carteDegagee();
+    const Cercle monstre = cibleMonstre({180.0f, 120.0f});
+    Escouade escouade({200.0f, 200.0f});
+    escouade.recevoirDegats(1, monstre.centre, 10);
+
+    simulerAvecMonstre(escouade, carte, monstre, 90);
+
+    REQUIRE(distanceDuPlusProche(escouade, monstre) < 45.0f);
+}
+
+TEST_CASE("Un agresseur hors de la laisse de tous laisse chacun a sa place") {
+    const TileMap carte = carteDegagee();
+    const Cercle monstre = cibleMonstre({210.0f, 380.0f});
+    Escouade escouade({200.0f, 200.0f});
+    escouade.recevoirDegats(1, monstre.centre, 10);
+
+    simulerAvecMonstre(escouade, carte, monstre, 90);
+
+    REQUIRE(distanceDuPlusProche(escouade, monstre) > 130.0f);
+}
+
+TEST_CASE("Quand l'ancre se deplace, personne ne va vers l'agresseur") {
+    const TileMap carte = carteDegagee();
+    const Cercle monstre = cibleMonstre({180.0f, 120.0f});
+    Escouade escouade({200.0f, 200.0f});
+    escouade.recevoirDegats(1, monstre.centre, 10);
+    escouade.allerVers({700.0f, 210.0f}, carte);
+
+    simulerAvecMonstre(escouade, carte, monstre, 10);
+
+    REQUIRE(distanceDuPlusProche(escouade, monstre) > 60.0f);
+}
+
+TEST_CASE("Apres l'oubli de l'agresseur, tout le monde reprend sa place") {
+    const TileMap carte = carteDegagee();
+    const Cercle monstre = cibleMonstre({180.0f, 120.0f});
+    Escouade escouade({200.0f, 200.0f});
+    escouade.recevoirDegats(1, monstre.centre, 10);
+
+    simulerAvecMonstre(escouade, carte, monstre, 300);
+
+    REQUIRE(escouade.getAgresseurs().empty());
+    REQUIRE(distanceDuPlusProche(escouade, monstre) > 60.0f);
 }

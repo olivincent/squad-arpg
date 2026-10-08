@@ -81,3 +81,46 @@ TEST_CASE("choisirMonstreAFrapper : a egalite, le premier de la liste est choisi
 
     REQUIRE(choisir(personnage, monstres, std::nullopt) == 5);
 }
+
+TEST_CASE("choisirAgresseurAViser : aucun agresseur, aucun choix") {
+    REQUIRE_FALSE(choisirAgresseurAViser({{0.0f, 0.0f}, 10.0f}, {0.0f, 0.0f}, 100.0f, {}).has_value());
+}
+
+TEST_CASE("choisirAgresseurAViser : un agresseur hors de la laisse est ignore") {
+    const std::vector<MonstreVu> agresseurs = {monstreEn(1, 101.0f)};
+
+    REQUIRE_FALSE(choisirAgresseurAViser({{0.0f, 0.0f}, 10.0f}, {0.0f, 0.0f}, 100.0f, agresseurs).has_value());
+}
+
+TEST_CASE("choisirAgresseurAViser : la laisse se mesure depuis la place, pas depuis le personnage") {
+    const std::vector<MonstreVu> agresseurs = {monstreEn(1, 150.0f)};
+    const Cercle personnage{{120.0f, 0.0f}, 10.0f};  // loin de sa place, mais proche de l'agresseur
+
+    REQUIRE_FALSE(choisirAgresseurAViser(personnage, {0.0f, 0.0f}, 100.0f, agresseurs).has_value());
+    REQUIRE(choisirAgresseurAViser(personnage, {50.0f, 0.0f}, 100.0f, agresseurs).has_value());
+}
+
+TEST_CASE("choisirAgresseurAViser : un agresseur pile a la laisse compte") {
+    const std::vector<MonstreVu> agresseurs = {monstreEn(1, 100.0f)};
+
+    REQUIRE(choisirAgresseurAViser({{0.0f, 0.0f}, 10.0f}, {0.0f, 0.0f}, 100.0f, agresseurs).has_value());
+}
+
+TEST_CASE("choisirAgresseurAViser : le plus proche du personnage est choisi parmi ceux de la laisse") {
+    const std::vector<MonstreVu> agresseurs = {monstreEn(1, 90.0f), monstreEn(2, 40.0f), monstreEn(3, 150.0f)};
+    const auto choix = choisirAgresseurAViser({{0.0f, 0.0f}, 10.0f}, {0.0f, 0.0f}, 100.0f, agresseurs);
+
+    REQUIRE(choix.has_value());
+    REQUIRE(choix->centre.x == 40.0f);
+}
+
+TEST_CASE("choisirAgresseurAViser : a egalite, le premier de la liste est choisi") {
+    const std::vector<MonstreVu> agresseurs = {
+        {5, {{30.0f, 0.0f}, 15.0f}},
+        {6, {{-30.0f, 0.0f}, 15.0f}},
+    };
+    const auto choix = choisirAgresseurAViser({{0.0f, 0.0f}, 10.0f}, {0.0f, 0.0f}, 100.0f, agresseurs);
+
+    REQUIRE(choix.has_value());
+    REQUIRE(choix->centre.x == 30.0f);
+}

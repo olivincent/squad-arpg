@@ -23,3 +23,23 @@ std::optional<int> choisirMonstreAFrapper(Cercle origine,
     }
     return meilleur;
 }
+
+std::optional<Cercle> choisirAgresseurAViser(Cercle personnage,
+                                             sf::Vector2f place,
+                                             float laisse,
+                                             const std::vector<MonstreVu>& agresseurs) {
+    std::optional<Cercle> meilleur;
+    float meilleurEcart = 0.0f;
+
+    for (const MonstreVu& agresseur : agresseurs) {
+        if ((agresseur.cercle.centre - place).length() > laisse) {
+            continue;
+        }
+        const float ecart = distanceBordABord(personnage, agresseur.cercle);
+        if (!meilleur || ecart < meilleurEcart) {
+            meilleur = agresseur.cercle;
+            meilleurEcart = ecart;
+        }
+    }
+    return meilleur;
+}

@@ -2,6 +2,7 @@
 #pragma once
 #include <functional>
 #include <optional>
+#include <SFML/System/Vector2.hpp>
 #include <vector>
 #include "Cercle.hpp"
 #include "Coup.hpp"
@@ -15,3 +16,12 @@ std::optional<int> choisirMonstreAFrapper(Cercle origine,
                                           const std::function<bool(Cercle)>& estAPortee,
                                           const std::vector<MonstreVu>& monstres,
                                           std::optional<int> idVerrouille);
+
+// Agresseur vers lequel va un combattant (en `personnage`) dont la place en
+// formation est `place` : le plus proche de lui (bord à bord ; égalité : le
+// premier de la liste) parmi ceux dont le centre est à `laisse` ou moins de
+// `place`, sinon aucun. Renvoie le cercle de l'agresseur.
+std::optional<Cercle> choisirAgresseurAViser(Cercle personnage,
+                                             sf::Vector2f place,
+                                             float laisse,
+                                             const std::vector<MonstreVu>& agresseurs);

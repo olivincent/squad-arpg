@@ -184,7 +184,7 @@ int main() {
             m.mettreAJour(dt, cible, carte, obstacles);
             const sf::Vector2f origine = m.getCentre();
             if (cible) {
-                escouade.recevoirDegats(origine, m.frapper(*cible));
+                escouade.recevoirDegats(m.getId(), origine, m.frapper(*cible));
             }
         }
 
