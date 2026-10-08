@@ -584,7 +584,7 @@ TEST_CASE("Sans verrou, un personnage deja a portee suit tout de meme son emplac
 TEST_CASE("declencherSkill renvoie 0 sans combat engage, meme avec une cible a portee") {
     Escouade escouade({50.0f, 50.0f}); // pas de verrouiller()
 
-    REQUIRE(escouade.declencherSkill(cibleMonstre({85.0f, 60.0f})) == 0);
+    REQUIRE(escouade.declencherSkill(1, cibleMonstre({85.0f, 60.0f})) == 0);
 }
 
 TEST_CASE("En combat, declencherSkill renvoie les degats du seul personnage qui a un skill") {
@@ -592,14 +592,14 @@ TEST_CASE("En combat, declencherSkill renvoie les degats du seul personnage qui 
     escouade.verrouiller(1);
 
     // Les deux mêlées sont à portée, mais un seul a un skill : 25, pas 50.
-    REQUIRE(escouade.declencherSkill(cibleMonstre({85.0f, 60.0f})) == 25);
+    REQUIRE(escouade.declencherSkill(1, cibleMonstre({85.0f, 60.0f})) == 25);
 }
 
 TEST_CASE("En combat, declencherSkill renvoie 0 pour une cible hors de portee du skill") {
     Escouade escouade({50.0f, 50.0f});
     escouade.verrouiller(1);
 
-    REQUIRE(escouade.declencherSkill(cibleMonstre({300.0f, 60.0f})) == 0);
+    REQUIRE(escouade.declencherSkill(1, cibleMonstre({300.0f, 60.0f})) == 0);
 }
 
 TEST_CASE("En combat, declencherSkill renvoie 0 au second appel immediat (recharge du skill)") {
@@ -607,8 +607,8 @@ TEST_CASE("En combat, declencherSkill renvoie 0 au second appel immediat (rechar
     escouade.verrouiller(1);
     const Cercle cible = cibleMonstre({85.0f, 60.0f});
 
-    REQUIRE(escouade.declencherSkill(cible) == 25);
-    REQUIRE(escouade.declencherSkill(cible) == 0);
+    REQUIRE(escouade.declencherSkill(1, cible) == 25);
+    REQUIRE(escouade.declencherSkill(1, cible) == 0);
 }
 
 TEST_CASE("Les obstacles bloquent les personnages mais pas l'ancre") {
@@ -641,4 +641,14 @@ TEST_CASE("Les obstacles bloquent les personnages mais pas l'ancre") {
         const float ecartCentres = (cercle.centre - obstacles[0].centre).length();
         REQUIRE(ecartCentres >= cercle.rayon + obstacles[0].rayon - 0.001f);
     }
+}
+
+TEST_CASE("En combat, declencherSkill renvoie 0 pour une place sans skill ou hors formation") {
+    Escouade escouade({50.0f, 50.0f});
+    escouade.verrouiller(1);
+    const Cercle cible = cibleMonstre({85.0f, 60.0f});
+
+    REQUIRE(escouade.declencherSkill(2, cible) == 0);
+    REQUIRE(escouade.declencherSkill(0, cible) == 0);
+    REQUIRE(escouade.declencherSkill(5, cible) == 0);
 }

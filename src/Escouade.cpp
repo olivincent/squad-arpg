@@ -77,17 +77,13 @@ int Escouade::attaquer(Cercle cible, const TileMap& carte) {
     return degats;
 }
 
-int Escouade::declencherSkill(Cercle cible) {
-    if (!m_cibleVerrouillee.has_value()) {
+int Escouade::declencherSkill(std::size_t place, Cercle cible) {
+    if (!m_cibleVerrouillee.has_value() || place < 1 || place > m_personnages.size()) {
         return 0;
     }
 
-    // Un personnage sans skill renvoie 0 : inutile de savoir lequel en a un.
-    int degats = 0;
-    for (Personnage& personnage : m_personnages) {
-        degats += personnage.declencherSkill(cible);
-    }
-    return degats;
+    // Un personnage sans skill renvoie 0.
+    return m_personnages[place - 1].declencherSkill(cible);
 }
 
 void Escouade::mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles) {

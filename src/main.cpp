@@ -77,7 +77,7 @@ int main() {
 
     while (window.isOpen()) {
         const float dt = horloge.restart().asSeconds();
-        bool skillDemande = false;
+        std::optional<std::size_t> placeSkillDemandee;
         while (const std::optional event = window.pollEvent()) {
             if (event->is<sf::Event::Closed>()) {
                 window.close();
@@ -100,8 +100,15 @@ int main() {
             if (const auto* data = event->getIf<sf::Event::KeyPressed>()) {
                 // Scancode : la touche physique « 1 » de la rangée du haut,
                 // quelle que soit la disposition du clavier (AZERTY : « & »).
+                // Touche N = personnage à la place N de la formation.
                 if (data->scancode == sf::Keyboard::Scan::Num1) {
-                    skillDemande = true;
+                    placeSkillDemandee = 1;
+                } else if (data->scancode == sf::Keyboard::Scan::Num2) {
+                    placeSkillDemandee = 2;
+                } else if (data->scancode == sf::Keyboard::Scan::Num3) {
+                    placeSkillDemandee = 3;
+                } else if (data->scancode == sf::Keyboard::Scan::Num4) {
+                    placeSkillDemandee = 4;
                 }
             }
         }
@@ -116,8 +123,8 @@ int main() {
                 // Le skill passe avant l'attaque de base : s'il part, il
                 // relance la recharge de base de ce personnage, qui ne
                 // frappe donc pas une seconde fois dans la même image.
-                if (skillDemande) {
-                    it->recevoirDegats(escouade.declencherSkill(it->getCercle()));
+                if (placeSkillDemandee.has_value()) {
+                    it->recevoirDegats(escouade.declencherSkill(*placeSkillDemandee, it->getCercle()));
                 }
                 it->recevoirDegats(escouade.attaquer(it->getCercle(), carte));
                 if (!it->estVivant()) {
