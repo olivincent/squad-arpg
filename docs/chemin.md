@@ -44,7 +44,7 @@
 
 `Mobile` porte le déplacement par chemin : position, chemin, vitesse,
 A* + lissage, collision/glissement. Elle est possédée par valeur par
-`Escouade` (`m_mobile`) et par `Monstre` — composition, pas héritage :
+`Escouade` (`m_mobile`), par `Personnage` et par `Monstre` — composition, pas héritage :
 aucune classe de base commune, aucune fonction virtuelle. Elle ne connaît
 ni `Escouade`, ni `Personnage`, ni `Monstre`, ni `Attaque`, et ne dessine
 rien ; elle connaît `TileMap`, `Chemin` et `Deplacement`.
@@ -90,6 +90,12 @@ rien ; elle connaît `TileMap`, `Chemin` et `Deplacement`.
   point proche d'un mur (notamment le point exact cliqué).
   `mettreAJour(dt, carte, obstacles)` passe aussi les cercles obstacles à
   `deplacerAvecGlissement` (voir `docs/carte-et-collision.md`).
+- **`allerToutDroit(destination)`** (étape 39) : remplace le chemin par
+  ce seul point, sans A* ni carte. Un `Personnage` en a besoin pour
+  avancer en ligne droite vers un point qui change à chaque image :
+  `allerVers` ferait un A* à chaque image et ignorerait un point dans un
+  mur. `mettreAJour` traite le chemin d'un seul point comme les autres
+  (arrivée exacte, glissement).
 - **`directionVoulue()`, le point de passage vers `Escouade`** : `Mobile`
   ne connaît pas l'orientation de la formation (affaire d'`Escouade`),
   mais `Escouade` a besoin, pour l'orienter, de la même direction que

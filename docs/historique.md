@@ -994,3 +994,35 @@ au même endroit dans un passage étroit.
 **Hors de portée** : chemin A* individuel (étape 39), changement du
 placement en combat ou de la marche vers un skill, écart minimal entre
 places, prise en compte des monstres.
+
+### Étape 39 — Personnages autonomes dans leur chemin ✅ TERMINÉE
+
+Un `Personnage` visait sa cible en ligne droite : resté derrière un mur
+pendant que l'escouade passait une porte ou contournait un coin, il
+fonçait dans le mur. Il trouve désormais seul son chemin.
+
+1. [x] `Personnage` possède un `Mobile` à la place de `m_centre` ;
+       `Mobile::allerToutDroit` (ajout minimal accepté) pour garder la
+       ligne droite sans A* (enchaînée)
+2. [x] Règle hybride : ligne droite si le trajet direct est libre, sinon
+       chemin A* lissé recalculé à chaque image ; tests (terrain dégagé,
+       mur avec ouverture, aucun chemin)
+3. [x] Recalcul limité : seulement sans chemin, chemin fini, ou cible
+       éloignée de plus d'une case de la cible du dernier A* ; tests
+       (enchaînée)
+4. [x] Retrait des points de places de formation de l'étape 38
+       (enchaînée)
+5. [x] Mise à jour des documents
+
+**Choix** : composition (un `Mobile` par personnage), pas d'héritage ;
+`m_cibleChemin` dans `Personnage` plutôt qu'un accesseur de fin de chemin
+dans `Mobile` ; une cible sans chemin A* est mémorisée pour ne pas
+relancer un A* voué à l'échec à chaque image.
+
+**Limites connues** : le chemin ignore les monstres (le personnage
+glisse ou attend) ; pas de blocage entre personnages ; deux places
+peuvent se replier au même endroit dans un passage étroit.
+
+**Hors de portée** : A* tenant compte des entités, vitesses différentes,
+ralentir l'ancre quand un personnage est en retard, déplacer des
+décisions (cible, skills, autodéfense) dans `Personnage`.

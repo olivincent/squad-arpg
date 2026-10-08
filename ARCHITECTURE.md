@@ -86,10 +86,10 @@ Qui possède quoi :
   `Escouade` la liste des monstres (`MonstreVu`) et applique les `Coup`
   qu'elle renvoie. Il ne connaît ni `Chemin` ni `Personnage`.
 - `Escouade` possède un `Mobile` (l'ancre) et 4 `Personnage`.
-- `Personnage` possède une `Attaque` et, en option, un `Skill` ; `Skill` possède une `Attaque` ; `Monstre` possède un `Mobile` et une
+- `Personnage` possède un `Mobile`, une `Attaque` et, en option, un `Skill` ; `Skill` possède une `Attaque` ; `Monstre` possède un `Mobile` et une
   `Attaque`.
-- `Mobile` utilise `Chemin` et `Deplacement` ; `Personnage` utilise
-  `Deplacement`. `Attaque`, `Personnage`, `Monstre` et `Escouade` échangent
+- `Mobile` utilise `Chemin` et `Deplacement`. `Personnage` utilise
+  `Mobile` et le test de trajet de `TileMap`. `Attaque`, `Personnage`, `Monstre` et `Escouade` échangent
   des `Cercle`. `Escouade` utilise `choisirMonstreAFrapper` (`Autodefense`) et
 `replierVersOrigine` (`Chemin`).
 
@@ -155,7 +155,7 @@ de formation de chaque personnage après repli, recalculée par
 ### `Mobile` — déplacement par chemin
 
 Suit un chemin calculé par le A* puis lissé, avec collision contre les
-murs et les cercles obstacles. Possédé par valeur par `Escouade` et par
+murs et les cercles obstacles. Possédé par valeur par `Escouade`, `Personnage` et
 `Monstre`. Ne connaît ni `Escouade`, ni `Personnage`, ni `Monstre`, ni
 `Attaque`, et ne dessine rien.
 
@@ -166,6 +166,7 @@ Données membres : `m_position` (coin haut-gauche), `m_taille`, `m_chemin`
 |---|---|
 | `Mobile(sf::Vector2f centre, sf::Vector2f taille, float vitesse)` | Crée le mobile à ce centre, cette taille, cette vitesse ; immobile |
 | `void allerVers(sf::Vector2f destination, const TileMap& carte)` | Calcule un chemin vers la destination (A*, puis lissé) et le remplace comme trajet à suivre ; ordre ignoré si aucun chemin n'existe |
+| `void allerToutDroit(sf::Vector2f destination)` | Remplace le chemin par ce seul point, sans A* : le mobile avance en ligne droite (collision et glissement) |
 | `void arreter()` | Réduit le chemin au centre actuel, pour cesser d'avancer sans reculer |
 | `void mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles)` | Avance vers le point courant du chemin (collision avec les murs et les cercles obstacles, glissement) |
 | `sf::Vector2f getCentre() const` | Centre du mobile |
@@ -190,14 +191,15 @@ Un carré coloré de 20 × 20 qui va vers le point que lui donne `Escouade`,
 frappe à portée, a des points de vie et peut mourir. Ne connaît ni la
 formation, ni `Escouade`, ni `Monstre`.
 
-Données membres : `m_centre`, `m_taille`, `m_couleur`, `m_vitesse`,
-`m_attaque` (`Attaque`), `m_skill` (`std::optional<Skill>`),
-`m_pointsDeVie`, `m_pointsDeVieMax`.
+Données membres : `m_mobile` (`Mobile`, porte la position et la vitesse),
+`m_taille`, `m_couleur`, `m_attaque` (`Attaque`), `m_skill`
+(`std::optional<Skill>`), `m_cibleChemin` (`std::optional<sf::Vector2f>`,
+cible du dernier A*), `m_pointsDeVie`, `m_pointsDeVieMax`.
 
 | Fonction | Rôle |
 |---|---|
 | `Personnage(sf::Vector2f centre, sf::Color couleur, Attaque attaque, std::optional<Skill> skill)` | Crée le personnage à ce centre, avec cette couleur, cette attaque et ce skill éventuel |
-| `void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte, const std::vector<Cercle>& obstacles)` | Si vivant, avance vers la cible (collision avec les murs et les cercles obstacles, glissement) puis décrémente la recharge de l'attaque et du skill ; sinon ne fait rien |
+| `void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte, const std::vector<Cercle>& obstacles)` | Si vivant, avance vers la cible (en ligne droite si le trajet est libre, sinon par un chemin A* lissé recalculé seulement si la cible s'éloigne de plus d'une case de sa fin ; collision avec les murs et les cercles obstacles, glissement) puis décrémente la recharge de l'attaque et du skill ; sinon ne fait rien |
 | `void dessiner(sf::RenderTarget& rendu) const` | Dessine le personnage et sa barre de vie, plus la barre de recharge du skill s'il en a un ; carré gris sans barre s'il est mort |
 | `bool estAPortee(Cercle cible) const` | L'écart bord à bord entre son cercle et `cible` est-il `<=` la portée de `m_attaque` ? |
 | `int frapper(Cercle cible)` | 0 s'il est mort ; sinon délègue à `m_attaque.frapper` avec `getCercle()` comme origine |
@@ -214,8 +216,7 @@ Données membres : `m_centre`, `m_taille`, `m_couleur`, `m_vitesse`,
 
 ### `Deplacement` — collision et glissement partagés
 
-Deux fonctions libres, sans état, utilisées par `Mobile::mettreAJour` et
-`Personnage::mettreAJour`.
+Deux fonctions libres, sans état, utilisées par `Mobile::mettreAJour`.
 
 | Fonction | Rôle |
 |---|---|

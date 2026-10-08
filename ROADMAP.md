@@ -44,12 +44,11 @@ est dans `docs/historique.md`.
 - Étape 36 — Classe Skill, skill de soin et cible générale ✅
 - Étape 37 — Autodéfense : les personnages ripostent sans clic ✅
 - Étape 38 — Places de formation toujours valides ✅
+- Étape 39 — Personnages autonomes dans leur chemin ✅
 
-## Étape 39 — À définir
+## Étape 40 — À définir
 
 Pistes discutées :
-- Donner un `Mobile` ou un chemin A* aux personnages, pour qu'un
-  personnage resté derrière un coin le contourne
 - Un mêlée fait un pas vers le monstre qui l'attaque
 - L'escouade poursuit d'elle-même un monstre qui l'attaque (écartée pour
   l'instant)
@@ -105,7 +104,12 @@ Pistes discutées :
   le point cliqué, est bloquée par les murs et glisse le long d'eux. Son
   déplacement vit dans `Mobile`, que `Monstre` utilise aussi.
 - **Personnages** : 4 carrés de 20 × 20 (240 px/s) tiennent une formation
-  en carré autour de l'ancre, bloqués par les murs et par les monstres. La
+  en carré autour de l'ancre, bloqués par les murs et par les monstres.
+  Chacun possède un `Mobile` : en ligne droite quand le trajet vers son
+  point est libre, par un chemin A* lissé quand un mur est dans le chemin
+  (recalculé seulement si la cible s'éloigne de plus d'une case de la fin
+  du chemin) ; un personnage resté derrière un coin ou un pilier le
+  contourne donc. La
   formation pivote progressivement vers la direction de marche (360°/s,
   par le plus court côté). Les deux de devant sont des mêlées (rouges,
   portée 20 px), les deux de derrière des tireurs (cyan, portée 120 px) ;
@@ -115,8 +119,7 @@ Pistes discutées :
   (ancre + décalage tourné) est ramenée vers l'ancre si le trajet en ligne
   droite de l'ancre à cette place n'est pas libre (`replierVersOrigine`) :
   près d'un mur, d'un coin ou d'un pilier, la formation se resserre
-  d'elle-même. Un petit point jaune (repère provisoire, jusqu'à la fin de
-  l'étape 39) marque la place de chaque personnage vivant.
+  d'elle-même.
 - **Mort et défaite** : un personnage à 0 point de vie tombe sur place
   (carré gris, sans barre de vie), ne frappe plus, n'est plus ciblé et ne
   bloque plus personne ; il reste dans la formation, sa place est
@@ -171,16 +174,17 @@ Pistes discutées :
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 219 tests : 32 sur `TileMap`, 17 sur `Chemin`, 69
-  sur `Escouade`, 12 sur `Deplacement`, 27 sur `Monstre`, 23 sur
-  `Personnage`, 11 sur `Attaque`, 5 sur `Skill`, 12 sur `Mobile`, 4 sur
+  (`./build/tests.exe`, 227 tests : 32 sur `TileMap`, 17 sur `Chemin`, 69
+  sur `Escouade`, 12 sur `Deplacement`, 27 sur `Monstre`, 26 sur
+  `Personnage`, 11 sur `Attaque`, 5 sur `Skill`, 14 sur `Mobile`, 4 sur
   `Cercle`, 7 sur `Autodefense`).
 
 **Limites connues** (acceptées pour l'instant) :
-- Un personnage resté derrière un coin peut s'y accrocher : les places
-  sont valides, mais il se déplace en ligne droite vers elles (étape 39).
-  Deux places peuvent se replier presque au même endroit dans un passage
+- Deux places peuvent se replier presque au même endroit dans un passage
   étroit.
+- Le chemin d'un personnage ignore les monstres : bloqué par un monstre,
+  il glisse ou attend. Un personnage dont le A* ne trouve aucun chemin
+  garde la ligne droite.
 - Le A* et le lissage ignorent les entités : une entité bloquée ne
   contourne pas, elle glisse ou attend. Près des piliers, le contournement
   n'est pas toujours le plus court.

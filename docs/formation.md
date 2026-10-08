@@ -58,9 +58,6 @@ L'attaque, la portée, le skill et les obstacles sont dans
   le personnage *comment*. Seules les places de formation sont
   corrigées : les cibles individuelles en combat et la marche vers un
   skill en attente ne le sont pas.
-- **Repère de débogage** : un point jaune de 3 px marque `m_places[i]`
-  de chaque personnage vivant. Provisoire, à retirer à la fin de
-  l'étape 39.
 - **Quatre décalages** `{{25,-25}, {25,25}, {-25,-25}, {-25,25}}` pour
   une escouade orientée vers `+x` : les indices 0 et 1 sont à l'avant,
   les indices 2 et 3 à l'arrière.
@@ -99,9 +96,8 @@ L'attaque, la portée, le skill et les obstacles sont dans
   - l'ancre traverse les monstres alors que les personnages sont
     bloqués par eux : elle (et la caméra) peut donc s'éloigner des
     personnages bloqués ;
-  - un personnage peut rester accroché derrière un coin de mur tant que
-    l'escouade ne repasse pas par là ; il ne contourne pas (pas de
-    recherche de chemin individuelle), il glisse ou attend ;
+  - le chemin d'un personnage ignore les monstres : bloqué par un
+    monstre, il glisse ou attend ;
   - deux places peuvent se replier presque au même endroit dans un
     passage étroit (les personnages ne se bloquent pas entre eux) ;
   - **chevauchement résiduel lors d'un demi-tour rapide** : les 4
@@ -121,19 +117,37 @@ L'attaque, la portée, le skill et les obstacles sont dans
   son décalage ni l'escouade. C'est `Escouade` qui décide du point, ce
   qui permet qu'il soit différent de la place en formation (en combat,
   voir plus bas) sans changer l'interface de `Personnage`.
-- **Il stocke son centre** (`m_centre`) et non son coin haut-gauche : le
-  point qu'on lui demande d'atteindre est lui-même un centre. Il
-  convertit en coin pour appeler `deplacerAvecGlissement`, comme
-  `Mobile::getCentre()` le fait dans l'autre sens.
-- **Pas de A* ni de lissage** : une ligne droite vers la cible, à pas
-  fixe (`vitesse * dt`), arrêt exact si la distance restante est `≤` ce
-  pas. Collision avec les murs et les obstacles par
-  `deplacerAvecGlissement`.
-- **240 px/s** (contre 180 px/s pour l'ancre) : un personnage retardé
-  par un mur peut rattraper sa place.
+- **Il possède un `Mobile`** (étape 39), comme `Monstre` : composition,
+  pas héritage. La position (le centre) et la vitesse vivent dans le
+  `Mobile` ; `Personnage` garde `m_taille` pour le dessin et le cercle.
+- **Règle hybride, décidée dans `Personnage::mettreAJour`** : `Escouade`
+  décide *où*, `Personnage` *comment*. Si le trajet direct de sa
+  position à sa cible est libre (`trajetLibre`, avec sa taille), il
+  avance en ligne droite (`allerToutDroit`) et tout chemin en cours est
+  abandonné. Sinon il suit un chemin A* lissé (`allerVers`). Même règle
+  pour toutes les cibles (place de formation, placement en combat,
+  marche vers un skill) : aucun cas particulier.
+- **Recalcul limité** : tant que le trajet direct est bloqué, le chemin
+  n'est recalculé que s'il n'y en a pas (`m_cibleChemin` vide), s'il est
+  fini (`directionVoulue()` vide), ou si la cible est à plus d'une case
+  (`s_seuilRecalcul`, 40 px) de la cible du dernier A*. `m_cibleChemin`
+  mémorise la cible donnée à `allerVers`, ce qui évite d'ajouter un
+  accesseur à `Mobile` pour lire la fin du chemin. Une cible qui bouge de
+  moins d'une case laisse donc le personnage finir son chemin ; s'il
+  l'a fini sans que le trajet soit libre, il recalcule.
+- **Repli en ligne droite** : `allerToutDroit` passe avant `allerVers`
+  lors d'un recalcul. Si le A* ne trouve aucun chemin (cible dans un mur,
+  zone fermée), `allerVers` laisse le chemin intact et le personnage
+  garde la ligne droite. La cible est quand même mémorisée : sans cela,
+  un A* voué à l'échec relancerait à chaque image toute la recherche.
+- **Obstacles inchangés** : les cercles des monstres bloquent le
+  personnage dans les deux modes (`Mobile::mettreAJour`) ; le A* les
+  ignore.
+- **240 px/s** (contre 180 px/s pour l'ancre), en ligne droite comme sur
+  un chemin : un personnage retardé par un mur peut rattraper sa place.
 - **`Personnage.hpp` ne contient que `class TileMap;`** : la carte est
-  seulement transmise à `deplacerAvecGlissement`, jamais utilisée
-  directement.
+  seulement transmise au `Mobile` et à `trajetLibre`, jamais gardée en
+  membre.
 - **Points de vie et barre de vie** : 100 points, `recevoirDegats`
   (jamais sous zéro), `estVivant()`. Barre dessinée par `Personnage`
   lui-même (fond sombre + rectangle vert proportionnel, au-dessus du
