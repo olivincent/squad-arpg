@@ -177,6 +177,27 @@ std::vector<Cercle> Escouade::cerclesDesVivants() const {
     return cercles;
 }
 
+std::optional<std::size_t> Escouade::choisirAlliePourSoin() const {
+    // Le plus blessé parmi les vivants qui ne sont pas à pleine vie ;
+    // l'inégalité stricte garde la plus petite place en cas d'égalité.
+    std::optional<std::size_t> indiceChoisi;
+    for (std::size_t i = 0; i < m_personnages.size(); ++i) {
+        const Personnage& personnage = m_personnages[i];
+        if (!personnage.estVivant() || personnage.getPointsDeVie() >= personnage.getPointsDeVieMax()) {
+            continue;
+        }
+        if (!indiceChoisi.has_value() ||
+            personnage.getPointsDeVie() < m_personnages[*indiceChoisi].getPointsDeVie()) {
+            indiceChoisi = i;
+        }
+    }
+
+    if (!indiceChoisi.has_value()) {
+        return std::nullopt;
+    }
+    return *indiceChoisi + 1;  // place de 1 à 4, comme declencherSkill
+}
+
 void Escouade::verrouiller(int idCible) {
     m_cibleVerrouillee = idCible;
 }

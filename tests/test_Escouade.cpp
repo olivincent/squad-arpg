@@ -652,3 +652,54 @@ TEST_CASE("En combat, declencherSkill renvoie 0 pour une place sans skill ou hor
     REQUIRE(escouade.declencherSkill(0, cible) == 0);
     REQUIRE(escouade.declencherSkill(5, cible) == 0);
 }
+
+// Escouade en (50, 50), orientée vers +x : les quatre places sont en
+// (85, 35), (85, 85), (35, 35) et (35, 85). Des dégâts d'origine égale à
+// l'une de ces positions touchent la place correspondante.
+
+TEST_CASE("choisirAlliePourSoin est vide quand tout le monde est à pleine vie") {
+    Escouade escouade({50.0f, 50.0f});
+
+    REQUIRE_FALSE(escouade.choisirAlliePourSoin().has_value());
+}
+
+TEST_CASE("choisirAlliePourSoin désigne le seul blessé") {
+    Escouade escouade({50.0f, 50.0f});
+    escouade.recevoirDegats({35.0f, 85.0f}, 10);
+
+    REQUIRE(escouade.choisirAlliePourSoin() == 4);
+}
+
+TEST_CASE("choisirAlliePourSoin désigne celui qui a le moins de points de vie") {
+    Escouade escouade({50.0f, 50.0f});
+    escouade.recevoirDegats({85.0f, 85.0f}, 30);
+    escouade.recevoirDegats({35.0f, 85.0f}, 50);
+
+    REQUIRE(escouade.choisirAlliePourSoin() == 4);
+}
+
+TEST_CASE("choisirAlliePourSoin choisit la plus petite place en cas d'égalité") {
+    Escouade escouade({50.0f, 50.0f});
+    escouade.recevoirDegats({35.0f, 35.0f}, 20);
+    escouade.recevoirDegats({85.0f, 85.0f}, 20);
+
+    REQUIRE(escouade.choisirAlliePourSoin() == 2);
+}
+
+TEST_CASE("choisirAlliePourSoin ignore les morts") {
+    Escouade escouade({50.0f, 50.0f});
+    escouade.recevoirDegats({35.0f, 85.0f}, 100);
+    escouade.recevoirDegats({85.0f, 85.0f}, 10);
+
+    REQUIRE(escouade.choisirAlliePourSoin() == 2);
+}
+
+TEST_CASE("choisirAlliePourSoin est vide quand tout le monde est mort") {
+    Escouade escouade({50.0f, 50.0f});
+    for (const sf::Vector2f origine : {sf::Vector2f(85.0f, 35.0f), sf::Vector2f(85.0f, 85.0f),
+                                       sf::Vector2f(35.0f, 35.0f), sf::Vector2f(35.0f, 85.0f)}) {
+        escouade.recevoirDegats(origine, 100);
+    }
+
+    REQUIRE_FALSE(escouade.choisirAlliePourSoin().has_value());
+}

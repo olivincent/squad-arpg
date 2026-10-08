@@ -20,7 +20,10 @@ public:
     int frapper(Cercle cible);
     int declencherSkill(Cercle cible);
     void recevoirDegats(int quantite);
+    void recevoirSoin(int quantite);
     bool estVivant() const;
+    int getPointsDeVie() const;
+    int getPointsDeVieMax() const;
     sf::Vector2f getCentre() const;
     Cercle getCercle() const;
 

@@ -224,3 +224,31 @@ TEST_CASE("mettreAJour s'arrête avant d'entrer dans un obstacle") {
     REQUIRE(personnage.getCentre().x > 100.0f);
     REQUIRE(personnage.getCentre().x < 140.0f);
 }
+
+TEST_CASE("recevoirSoin rend des points de vie") {
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f), std::nullopt);
+    personnage.recevoirDegats(50);
+
+    personnage.recevoirSoin(30);
+
+    REQUIRE(personnage.getPointsDeVie() == 80);
+}
+
+TEST_CASE("recevoirSoin ne dépasse pas le maximum") {
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f), std::nullopt);
+    personnage.recevoirDegats(10);
+
+    personnage.recevoirSoin(30);
+
+    REQUIRE(personnage.getPointsDeVie() == personnage.getPointsDeVieMax());
+}
+
+TEST_CASE("recevoirSoin est sans effet sur un mort") {
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f), std::nullopt);
+    personnage.recevoirDegats(100);
+
+    personnage.recevoirSoin(30);
+
+    REQUIRE_FALSE(personnage.estVivant());
+    REQUIRE(personnage.getPointsDeVie() == 0);
+}

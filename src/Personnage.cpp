@@ -119,8 +119,26 @@ void Personnage::recevoirDegats(int quantite) {
     }
 }
 
+void Personnage::recevoirSoin(int quantite) {
+    if (!estVivant()) {
+        return;
+    }
+    m_pointsDeVie += quantite;
+    if (m_pointsDeVie > m_pointsDeVieMax) {
+        m_pointsDeVie = m_pointsDeVieMax;
+    }
+}
+
 bool Personnage::estVivant() const {
     return m_pointsDeVie > 0;
+}
+
+int Personnage::getPointsDeVie() const {
+    return m_pointsDeVie;
+}
+
+int Personnage::getPointsDeVieMax() const {
+    return m_pointsDeVieMax;
 }
 
 sf::Vector2f Personnage::getCentre() const {

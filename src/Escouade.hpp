@@ -24,6 +24,7 @@ public:
     void recevoirDegats(sf::Vector2f origine, int quantite);
     bool estVivante() const;
     std::vector<Cercle> cerclesDesVivants() const;
+    std::optional<std::size_t> choisirAlliePourSoin() const;
     void verrouiller(int idCible);
     void deverrouiller();
     std::optional<int> getCibleVerrouillee() const;
