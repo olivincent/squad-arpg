@@ -5,10 +5,10 @@
 - **Catch2 3 adopté**, installé via MSYS2
   (`mingw-w64-ucrt-x86_64-catch`), trouvé par `find_package(Catch2 3
   REQUIRED)` comme SFML (pas de `FetchContent`).
-- **Un seul exécutable `tests`**, neuf fichiers (`test_TileMap.cpp`,
+- **Un seul exécutable `tests`**, dix fichiers (`test_TileMap.cpp`,
   `test_Chemin.cpp`, `test_Escouade.cpp`, `test_Deplacement.cpp`,
   `test_Monstre.cpp`, `test_Personnage.cpp`, `test_Attaque.cpp`,
-  `test_Mobile.cpp`, `test_Cercle.cpp`), lancé directement
+  `test_Skill.cpp`, `test_Mobile.cpp`, `test_Cercle.cpp`), lancé directement
   (`./build/tests.exe`) — pas de CTest ni de `catch_discover_tests`.
 - **Petits plans dédiés** : chaque test construit son propre plan texte
   (3×3, 4×4, 5×5…), jamais la carte de `main.cpp`, pour isoler exactement
@@ -216,7 +216,9 @@
   les cas qui prouvent leur propre branchement (voir plus haut), pas
   ces six cas génériques.
 - **Skill** : chaque `Personnage` des tests existants reçoit
-  `std::nullopt` comme skill (paramètre sans valeur par défaut).
+  `std::nullopt` comme skill (paramètre sans valeur par défaut) ; ceux qui
+  testent le skill de dégâts passent un
+  `Skill(TypeSkill::Degats, Attaque(...))`.
   - `test_Attaque.cpp` : `relancerRecharge` empêche de frapper avant une
     recharge complète, même sur une attaque jamais utilisée ;
     `getProgressionRecharge` vaut 1 à la création, 0 juste après
@@ -232,10 +234,14 @@
     (il lui reste 0,2 s), skill, 0,3 s → l'attaque de base renvoie
     encore 0 (elle serait partie sans la relance), puis 5 après 0,3 s
     de plus.
-  - `test_Escouade.cpp` : cible de la taille d'un monstre entre les deux
-    mêlées, à portée de chacun — refusé sans verrou ; avec verrou, 25
-    et non 50 (un seul personnage a un skill) ; 0 hors de portée ; 0 au
-    second appel immédiat.
+  - `test_Skill.cpp` : le type donné au constructeur, la puissance à
+    portée, 0 hors de portée, 0 pendant la recharge puis la puissance de
+    nouveau (4,8 s puis 0,4 s), progression de la recharge.
+  - `test_Escouade.cpp`, `declencherSkill(place, ...)` : cible de la
+    taille d'un monstre entre les deux mêlées, à portée de chacun —
+    refusé sans verrou ; avec verrou, 25 depuis la place 1 ; 0 pour une
+    place sans skill ou hors formation (0, 2, 5) ; 0 au second appel
+    immédiat.
 - **Obstacles** : `test_Deplacement.cpp` couvre
   `deplacementBloque` (aucun obstacle, entrée dans un obstacle, contact
   exact, chevauchement existant en s'éloignant puis en se rapprochant,
@@ -262,3 +268,29 @@
   vers un mur, `arreter()` stoppe un trajet en cours,
   `directionVoulue()` vide à la création et une fois arrivé, pointe
   vers la destination après `allerVers`.
+- **Soin** (`test_Personnage.cpp`, `test_Escouade.cpp`) :
+  - `Personnage::recevoirSoin` : points de vie rendus, plafond au maximum,
+    sans effet sur un mort.
+  - `choisirCible(TypeSkill::Soin, ...)`, observé par la fonction d'aide
+    `placeAlliePourSoin` (extrait la place du `CibleAllie`) : personne de
+    blessé, un seul blessé, le moins de points de vie, égalité (plus
+    petite place), morts ignorés, tous morts. Les blessés sont créés par
+    `recevoirDegats` à la position exacte d'une place de la formation
+    (escouade en `(50, 50)`, orientée vers `+x` : places en `(85, 35)`,
+    `(85, 85)`, `(35, 35)`, `(35, 85)`).
+  - Soin de la place 3 hors combat : allié à 50 px (à portée), allié à
+    environ 70,7 px (hors de portée, mis en attente), pleine vie sans
+    recharge consommée, recharge juste après le lancement, soigneur mort.
+- **Skill en attente** : comme pour les autres tests d'`Escouade`, des
+  résultats plutôt que des trajectoires, sur une carte dégagée dédiée
+  (`carteDegageeSoin`). Soin : le soigneur marche, soigne, puis revient à
+  sa place (`personnageLePlusProche` près de sa place) ; annulation si la
+  cible ou le soigneur meurt (sans recharge : un nouveau soin part
+  aussitôt) ; un ordre de déplacement n'annule rien ; un seul skill en
+  attente (un skill de dégâts à portée est refusé). Dégâts : **un tic qui
+  rapporte 25 ou plus prouve que le skill est parti**, l'attaque de base
+  des 4 personnages plafonnant à 20 par tic ; annulation par
+  `deverrouiller`, par un changement de cible, et pas par un
+  `verrouiller` sur la même cible ; un soin est refusé pendant l'attente
+  d'un skill de dégâts. Le branchement des touches dans `main.cpp` n'est
+  pas testé (visuel).

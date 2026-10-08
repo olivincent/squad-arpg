@@ -124,10 +124,15 @@ L'attaque, la portée, le skill et les obstacles sont dans
   carré), identique à celle de `Monstre`. La duplication avec `Monstre`
   est assumée : aucune factorisation tant que le besoin ne se confirme
   pas.
-- **Il délègue son attaque à `m_attaque`** et son skill à `m_skill`
-  (voir `docs/combat.md`). La règle « un mort ne frappe pas » vit dans
-  `Personnage::frapper` et `declencherSkill`, avant la délégation :
-  être vivant est l'affaire de `Personnage`, pas de l'attaque.
+- **Il délègue son attaque à `m_attaque`** et son skill (un
+  `std::optional<Skill>`) à `m_skill` (voir `docs/combat.md`). La règle
+  « un mort ne frappe pas » vit dans `Personnage::frapper` et
+  `declencherSkill`, avant la délégation : être vivant est l'affaire de
+  `Personnage`, pas de l'attaque. Il expose `typeSkill`, `skillEstPret` et
+  `skillEstAPortee` pour qu'`Escouade` décide quoi faire du skill.
+- **Soin** : `recevoirSoin` plafonne au maximum de points de vie et ne
+  fait rien sur un mort ; `getPointsDeVie` et `getPointsDeVieMax`
+  permettent à `Escouade` de choisir le plus blessé.
 - **Cercle** : `getCercle()` renvoie un cercle centré sur le personnage,
   de rayon la moitié du côté (10 px), calculé à la demande.
 
@@ -198,6 +203,23 @@ L'attaque, la portée, le skill et les obstacles sont dans
   maladroite ; pas de recul si un monstre s'approche d'un tireur arrêté ;
   pas de `Mobile` individuel.
 
+## Lanceur d'un skill en attente
+
+- **Priorité du point visé** dans `Escouade::mettreAJour` : la place en
+  formation, remplacée par le centre du personnage s'il est en combat et
+  à portée de la cible, remplacée à son tour par le centre de la cible de
+  son skill s'il est le lanceur d'un skill en attente. `Personnage` reçoit
+  toujours un simple point.
+- **`avancerSkillEnAttente()`** (privée) est appelée une fois par image,
+  avant la boucle des personnages : elle annule l'attente si besoin, fait
+  partir un soin dès que le lanceur est à portée, et renvoie le point à
+  viser. Le skill de dégâts, lui, part dans `attaquer` (voir
+  `docs/combat.md`) ; `avancerSkillEnAttente` ne fait alors que renvoyer
+  `m_cibleCombat->centre`, ou rien tant que `attaquer` n'a pas été appelée.
+- **Annulation sur rupture du combat** dans `verrouiller` et
+  `deverrouiller`, plutôt que par une vérification à chaque image : ce
+  sont les deux seuls endroits où le verrou change.
+
 ## Mort d'un personnage et défaite
 
 - **Un mort reste dans `m_personnages`**, contrairement à `Monstre` que
@@ -229,6 +251,6 @@ L'attaque, la portée, le skill et les obstacles sont dans
   (`personnageLePlusProche` renvoie vide), sans code propre à la
   défaite.
 - **Limites connues** : un mort n'est jamais retiré ni remplacé ; pas de
-  résurrection ni de soin ; pas d'écran de défaite ni de moyen de
+  résurrection (le soin ne s'applique pas aux morts) ; pas d'écran de défaite ni de moyen de
   recommencer ; l'ancre ne s'arrête pas à la mort du dernier
   personnage (si elle avait un trajet en cours, elle le termine).

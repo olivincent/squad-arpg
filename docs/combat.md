@@ -9,7 +9,7 @@ personnages sont dans `docs/formation.md`, le monstre dans
 
 - **Composition, pas héritage** : `Attaque` (portée, dégâts, temps de
   recharge, recharge courante) est possédée par valeur par `Personnage`
-  (`m_attaque`, plus `m_skill` en option) et par `Monstre`. Aucune classe
+  (`m_attaque`), par `Skill` et par `Monstre`. Aucune classe
   de base commune, aucune fonction virtuelle.
 - **Elle ne connaît pas la position de son propriétaire** : `origine` et
   `cible` (deux `Cercle`) sont reçus en paramètre de `estAPortee` et
@@ -95,45 +95,87 @@ personnages sont dans `docs/formation.md`, le monstre dans
 
 ## Skill
 
-- **Un skill est une seconde `Attaque`, pas une nouvelle classe** :
-  aucun comportement propre (effet de zone, état posé sur le monstre) ne
-  justifie encore un type à part. Le personnage 0 (mêlée avant-gauche) a
-  un skill de 25 dégâts et 5 s de recharge, à la portée de mêlée ; les
-  trois autres n'en ont pas.
-- **L'absence de skill est un `std::optional<Attaque>`**, reçu au
-  constructeur comme l'attaque de base (injection), plutôt qu'une
-  `Attaque` « vide » à 0 dégâts qui ferait semblant d'exister. Pas de
-  valeur par défaut : chaque création de `Personnage` dit explicitement
-  s'il a un skill.
-- **Le personnage qui l'a est désigné par sa place**, sans champ « type »
-  ni indice mémorisé. `Escouade::declencherSkill` interroge les 4
-  personnages et additionne les résultats (ceux sans skill renvoient 0),
-  comme `attaquer` additionne les `frapper` : elle n'a jamais besoin de
-  savoir lequel en a un.
-- **Le skill remplace l'attaque de base, pas l'inverse** : quand il
-  part, `Personnage::declencherSkill` relance au complet la recharge de
-  `m_attaque` (`Attaque::relancerRecharge`). La relance n'a lieu que si le
-  skill part réellement (dégâts `> 0`) : une tentative refusée ne
-  pénalise pas l'attaque de base. Une attaque de base ne touche pas la
+- **Une classe `Skill` autour d'une `Attaque`** : un `TypeSkill` (`Degats`
+  ou `Soin`) et l'`Attaque` qui fournit portée, puissance et recharge.
+  `Skill` cache le mot « dégâts » derrière un nom neutre, la puissance
+  (dégâts infligés ou points de vie rendus selon le type), et son
+  `declencher` n'est qu'un `frapper` renommé. Un `enum class` suffit pour
+  le type : ni `std::variant` ni polymorphisme tant que les deux types ne
+  diffèrent que par ce que fait `Escouade` du résultat.
+- **L'absence de skill est un `std::optional<Skill>`**, reçu au
+  constructeur de `Personnage` comme l'attaque de base (injection), plutôt
+  qu'un skill « vide » à 0 de puissance. Pas de valeur par défaut : chaque
+  création de `Personnage` dit explicitement s'il a un skill.
+- **Deux skills**, aux valeurs écrites dans `Escouade.cpp` :
+  - dégâts : personnage 0 (mêlée avant-gauche), 25 dégâts, recharge 5 s,
+    portée de mêlée (10 px) ;
+  - soin : personnage 2 (tireur arrière-gauche), 30 points de vie,
+    recharge 8 s, portée 40 px bord à bord.
+- **Le lanceur est désigné par sa place** : la touche N déclenche le skill
+  du personnage à la place N (1 à 4) de la formation, par
+  `Escouade::declencherSkill(place, ...)`. Sans champ « type de
+  personnage » ni indice mémorisé.
+- **Le skill remplace l'attaque de base, pas l'inverse** : quand il part,
+  `Personnage::declencherSkill` relance au complet la recharge de
+  `m_attaque`, pour les deux types. La relance n'a lieu que si le skill
+  part réellement (puissance `> 0`). Une attaque de base ne touche pas la
   recharge du skill.
 - **Les refus sont répartis selon qui connaît l'information** : « pas de
-  combat engagé » par `Escouade` (elle seule porte le verrou) ; « pas de
-  skill » et « mort » par `Personnage` ; « hors de portée » et « en
-  recharge » par `Attaque::frapper`. Aucune mise en attente : un appui
-  refusé est perdu.
-- **La recharge du skill s'écoule en permanence**, dans
-  `Personnage::mettreAJour`, à côté de celle de l'attaque de base — en
-  combat ou non. Elle s'arrête pour un mort, sans conséquence.
-- **Barre de recharge** : dessinée par `Personnage`, orange, 3 px de
-  haut, 1 px sous la barre de vie, largeur proportionnelle à
-  `Attaque::getProgressionRecharge()` (0 juste après un coup, 1 prête).
-  Cette fraction est calculée par `Attaque`, qui seule connaît sa
-  recharge et son temps de recharge. Pas de barre pour un personnage
-  sans skill ni pour un mort.
-- **Limites connues** : un seul skill, sur un seul personnage, une seule
-  touche ; si c'est l'autre mêlée qui atteint la cible le premier, la
-  touche ne fait rien tant que le mêlée au skill n'est pas à portée. Pas
-  d'effet visuel au déclenchement, pas de HUD.
+  skill », « mort » et « en recharge » (`Personnage::skillEstPret`) ;
+  « skill déjà en attente » et « aucune cible » par `Escouade`, qui seule
+  porte le verrou, le skill en attente et la liste des alliés. Un appui
+  refusé est perdu (pas de file d'attente).
+- **La recharge s'écoule en permanence**, dans `Personnage::mettreAJour`,
+  en combat ou non, et ne démarre qu'au moment où le skill part, pas à
+  l'appui. Barre orange dessinée par `Personnage`, 3 px sous la barre de
+  vie, proportionnelle à `getProgressionRecharge()` ; ni pour un mort ni
+  pour un personnage sans skill.
+- **Le soin est appliqué dans `Escouade` et n'en sort pas** : `main.cpp`
+  ne reçoit aucun dégât pour un soin. `Personnage::recevoirSoin`
+  plafonne au maximum et ne soigne pas un mort.
+- **Le soin est permis hors combat** ; le skill de dégâts exige un
+  monstre verrouillé.
+
+## Choix de la cible et skill en attente
+
+- **`Cible`** est un `std::variant<CibleAllie, CibleMonstre>`
+  (`CibleAllie` : place de 1 à 4 ; `CibleMonstre` : un `Cercle`). Pas de
+  troisième cas « aucune » : l'absence est un `std::optional` vide. Les
+  deux cibles n'ont rien de commun, d'où un variant plutôt qu'une classe
+  de base.
+- **Le type du skill décide de la cible cherchée**, dans
+  `Escouade::choisirCible(type, monstreVerrouille)`, une fonction à
+  part : `Degats` prend le monstre verrouillé, `Soin` le vivant qui a le
+  moins de points de vie parmi les blessés (soigneur inclus ; égalité :
+  la plus petite place). Un futur choix manuel par le joueur ne devra
+  remplacer que cette fonction.
+- **À l'appui** : `declencherSkill` refuse si le lanceur n'a pas de skill,
+  est mort ou est en recharge, si un skill est déjà en attente, ou si
+  `choisirCible` ne trouve rien. Sinon, cible à portée : le skill part
+  tout de suite ; hors de portée : il est mis en attente
+  (`m_skillEnAttente`, un seul pour toute l'escouade).
+- **Pendant l'attente, le lanceur vise le centre de sa cible** au lieu de
+  sa place en formation (même déplacement et mêmes blocages que les
+  autres personnages), puis reprend sa place une fois le skill parti ou
+  annulé. La cible est fixée à l'appui. Pour un monstre, le cercle lu en
+  route est `m_cibleCombat`, mis à jour à chaque `attaquer`, pas la copie
+  de l'appui.
+- **Où le skill part** : un soin, dans `Escouade::mettreAJour` (début de
+  l'image, avant les déplacements) ; un skill de dégâts, dans
+  `attaquer`, avant les attaques de base, qui reçoit le cercle à jour du
+  monstre. Ses dégâts s'ajoutent donc à la somme déjà renvoyée à
+  `main.cpp`.
+- **Annulations** : lanceur mort (les deux types) ; soin : cible morte ou
+  remontée à pleine vie ; dégâts : `deverrouiller()` (mort de la cible,
+  clic au sol) ou `verrouiller` avec un autre identifiant (changement de
+  cible). Re-cliquer sur le même monstre ne l'annule pas. Un ordre de
+  déplacement de l'escouade n'annule rien. Une annulation ne coûte aucune
+  recharge.
+- **Limites connues** : un seul skill en attente à la fois ; pas de choix
+  manuel de la cible ; un lanceur bloqué par un monstre glisse ou attend
+  (le A* ignore les entités) ; pas d'effet visuel au déclenchement ni
+  sur la cible soignée, pas de HUD ni d'icône de skill ; les skills des
+  personnages 2 et 4 n'existent pas encore.
 
 ## Circuit des dégâts
 
@@ -143,7 +185,9 @@ image).
 
 - **Les personnages frappent un monstre** : `main.cpp` retrouve le monstre
   verrouillé et lui applique la somme renvoyée par
-  `escouade.declencherSkill(...)` puis `escouade.attaquer(...)`. Le skill
+  `escouade.declencherSkill(...)` puis `escouade.attaquer(...)` (un
+  skill de dégâts parti après une attente s'ajoute à cette dernière somme ;
+  un soin ne rend aucun dégât). Le skill
   passe avant l'attaque de base : s'il part, il relance la recharge de
   base de ce personnage, qui ne frappe donc pas deux fois dans la même
   image.

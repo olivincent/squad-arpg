@@ -9,10 +9,11 @@ ne se connaissent pas.
 
 - **Ordre d'une image** :
   1. événements : fermeture ; appui de souris (pose ou retire le verrou
-     de combat, arme le déplacement continu) ; appui sur la touche 1
-     (demande le skill) ;
-  2. si un combat est engagé : skill puis attaque sur le monstre
-     verrouillé, retrait du verrou s'il est mort ;
+     de combat, arme le déplacement continu) ; appui sur une touche 1 à 4
+     (demande le skill de cette place) ;
+  2. skill demandé (avec le cercle du monstre verrouillé s'il y en a un),
+     puis, si un combat est engagé, attaque sur le monstre verrouillé,
+     retrait du verrou s'il est mort ;
   3. retrait des monstres morts ;
   4. ordre de déplacement continu ;
   5. mise à jour : liste des cercles des monstres, puis
@@ -28,7 +29,7 @@ ne se connaissent pas.
   paramètre.
 - **Aucune classe de plus** (`Combat`, `Minuteur`, `Camera`…) tant qu'il
   n'y a pas de comportement à y encapsuler : les variables locales
-  `deplacementContinu`, `skillDemande`, `prochainId` et la vue `camera`
+  `deplacementContinu`, `placeSkillDemandee`, `prochainId` et la vue `camera`
   suffisent.
 - **Pas de texte de position ni de police chargée** : rien n'affiche la
   position du curseur à l'écran.
@@ -95,9 +96,12 @@ ne se connaissent pas.
 ## Entrée clavier : le skill
 
 - **Événement d'appui, pas lecture d'état** : un skill est une action
-  ponctuelle, un appui = une tentative. L'événement `KeyPressed` met à
-  vrai la variable locale `skillDemande`, déclarée juste avant la boucle
-  d'événements et donc remise à faux à chaque image.
+  ponctuelle, un appui = une tentative. L'événement `KeyPressed` met dans
+  la variable locale `placeSkillDemandee` (`std::optional<std::size_t>`)
+  la place du lanceur, 1 à 4 pour les touches 1 à 4 ; elle est déclarée
+  juste avant la boucle d'événements et donc remise à vide à chaque
+  image. Si plusieurs touches sont appuyées dans la même image, la
+  dernière gagne.
 - **`window.setKeyRepeatEnabled(false)`** : par défaut une touche
   maintenue produit des `KeyPressed` répétés. Comme le skill se recharge
   en 5 s, une touche tenue assez longtemps l'aurait relancé ; désactiver
@@ -105,11 +109,14 @@ ne se connaissent pas.
 - **Scancode plutôt que code de touche** : `sf::Keyboard::Scan::Num1`
   désigne la touche physique « 1 » de la rangée du haut, quelle que soit
   la disposition du clavier (en AZERTY elle donne « & » sans majuscule).
-- **Skill demandé avant `attaquer`, dans le bloc du verrou** : un skill
+- **Skill demandé avant `attaquer`, hors du bloc du verrou** : un skill
   qui part relance la recharge de base du personnage, qui ne frappe donc
-  pas une seconde fois dans la même image (voir `docs/combat.md`). Sans
-  verrou, `declencherSkill` n'est même pas appelée ; `Escouade` le
-  vérifie de toute façon elle-même.
+  pas une seconde fois dans la même image (voir `docs/combat.md`). Le
+  soin marche sans combat, donc `declencherSkill` est appelée même sans
+  verrou : `main.cpp` lui passe le cercle du monstre verrouillé, ou
+  `std::nullopt`, et `Escouade` refuse un skill de dégâts sans monstre.
+  `monstres.end()` tient lieu de « pas de monstre verrouillé »
+  (`monstreVerrouille`).
 
 ## Défaite de l'escouade
 

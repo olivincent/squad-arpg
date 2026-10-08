@@ -886,3 +886,39 @@ individuel), il glisse ou attend.
 **Hors de portée** : blocage de l'ancre, blocage entre personnages,
 contournement par les personnages, poussée, resserrement de la
 formation.
+
+### Étape 36 — Classe Skill, skill de soin et cible générale ✅ TERMINÉE
+
+Un deuxième skill d'un autre type, un soin lancé par le tireur
+arrière-gauche (touche 3). Au passage, tout skill hors de portée fait
+marcher son lanceur vers sa cible, puis se déclenche à l'arrivée.
+
+1. [x] `Skill.hpp/.cpp` : `TypeSkill { Degats, Soin }` et `Skill` autour
+       d'une `Attaque`, avec `test_Skill.cpp` (enchaînée)
+2. [x] `Personnage` possède un `std::optional<Skill>` ; skill de dégâts
+       existant créé avec `TypeSkill::Degats` (enchaînée)
+3. [x] `Escouade::declencherSkill(place, ...)` ; `main.cpp` relie les
+       touches 1 à 4 aux places 1 à 4
+4. [x] `Personnage::recevoirSoin`, `getPointsDeVie`, `getPointsDeVieMax`
+       (enchaînée)
+5. [x] Choix de l'allié le plus blessé dans `Escouade` (enchaînée)
+6. [x] Le tireur arrière-gauche reçoit le skill de soin (30 points de vie,
+       8 s, 40 px) ; touche 3, refusé hors de portée (provisoire)
+7. [x] `Cible.hpp` (`CibleAllie`, `CibleMonstre`, `std::variant`) ; la
+       fonction de choix renvoie un `std::optional<Cible>` (enchaînée)
+8. [x] `SkillEnAttente` pour le soin : mise en attente, déplacement du
+       soigneur, déclenchement à l'arrivée, annulations
+9. [x] Le skill de dégâts passe par le même mécanisme : `choisirCible`
+       (monstre verrouillé), attente, déplacement du mêlée, dégâts
+       ajoutés à la somme d'`attaquer`, annulation par `verrouiller` et
+       `deverrouiller`
+
+**Choix** : le skill de dégâts part dans `attaquer` (qui reçoit le cercle
+à jour du monstre) et le soin dans `mettreAJour` ; `main.cpp` appelle
+désormais `declencherSkill` même sans verrou, avec `std::optional<Cercle>`.
+
+**Limites connues** : un seul skill en attente à la fois ; pas de choix
+manuel de la cible ; un lanceur bloqué par un monstre glisse ou attend.
+
+**Hors de portée** : choix manuel de la cible, skills pour les personnages
+2 et 4, soin de zone, résurrection, HUD, icônes, effets visuels.

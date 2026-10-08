@@ -41,8 +41,9 @@ est dans `docs/historique.md`.
 - Étape 33 — Les monstres bloqués par les personnages vivants ✅
 - Étape 34 — Les personnages bloqués par les monstres ✅
 - Étape 35 — Réorganisation de la documentation ✅
+- Étape 36 — Classe Skill, skill de soin et cible générale ✅
 
-## Étape 36 — À définir
+## Étape 37 — À définir
 
 Pistes discutées :
 - Améliorer le A* pour qu'il tienne compte des entités (contournement
@@ -50,8 +51,11 @@ Pistes discutées :
 - Blocage de l'ancre par les monstres, si le décalage ancre/personnages
   s'avère gênant
 - Skills qui bousculent un adversaire ou permettent de se faufiler
-- Skills pour les autres personnages (touches 2 à 4), effets de skill
-  (zone, état posé sur le monstre, soin), HUD ou icônes de skill
+- Skills pour les personnages 2 et 4 (touches 2 et 4), effets de skill
+  (zone, état posé sur le monstre), soin de zone, résurrection, HUD ou
+  icônes de skill
+- Choix manuel de la cible d'un skill par le joueur
+- Plusieurs skills en attente à la fois
 - Patrouille, escouade de monstres, récupération de points de vie au
   retour d'un monstre
 - Retirer un personnage mort de `m_personnages` et resserrer la
@@ -107,7 +111,7 @@ Pistes discutées :
   que le bouton reste enfoncé (fenêtre ayant le focus, escouade vivante),
   l'ordre est redonné à chaque image vers le curseur. Un clic bref sur un
   monstre engage un combat qui continue seul, sans tenir le bouton ; la
-  touche 1 déclenche le skill.
+  touches 1 à 4 déclenchent le skill du personnage de la même place.
 - **Combat** : le monstre verrouillé est entouré d'un contour jaune.
   L'escouade s'approche en formation jusqu'à ce que tous ses personnages
   vivants soient à portée, puis s'arrête et chacun frappe selon sa propre
@@ -115,11 +119,18 @@ Pistes discutées :
   tireurs s'arrêtent à distance pendant que les mêlées vont jusqu'au
   contact. Le combat ne se rompt que par la mort de la cible, un clic sur
   le sol ou un clic sur un autre monstre.
-- **Skill** : le mêlée avant-gauche a un skill (25 dégâts, recharge 5 s,
-  portée de mêlée), déclenché par la touche 1 seulement en combat, s'il
-  est vivant, à portée et rechargé. Il remplace l'attaque de base à ce
-  moment (il en relance la recharge). Une barre orange sous sa barre de
-  vie montre la recharge du skill (pleine = prêt).
+- **Skills** : deux, de classe `Skill` (type + `Attaque`). Touche 1 :
+  skill de dégâts du mêlée avant-gauche (25 dégâts, recharge 5 s, portée
+  de mêlée), seulement en combat. Touche 3 : soin du tireur
+  arrière-gauche (30 points de vie, recharge 8 s, portée 40 px), sur le
+  vivant le plus blessé (soigneur inclus), permis hors combat. Touches 2
+  et 4 : rien. Un skill hors de portée met son lanceur en marche vers la
+  cible et part à l'arrivée (un seul skill en attente à la fois ; annulé
+  par la mort du lanceur, celle de la cible ou son retour à pleine vie
+  pour un soin, la rupture du combat pour des dégâts). Un skill remplace
+  l'attaque de base à ce moment (il en relance la recharge). Une barre
+  orange sous la barre de vie montre la recharge (pleine = prêt), qui ne
+  démarre qu'au départ du skill.
 - **Monstres** : six carrés rouges de 30 × 30 (120 px/s, 100 points de
   vie, barre de vie), à `(660, 380)`, `(500, 580)`, `(900, 220)`,
   `(1940, 180)`, `(1500, 540)` et `(1620, 540)`, possédés par
@@ -136,9 +147,10 @@ Pistes discutées :
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 165 tests : 32 sur `TileMap`, 13 sur `Chemin`, 34
-  sur `Escouade`, 12 sur `Deplacement`, 27 sur `Monstre`, 20 sur
-  `Personnage`, 11 sur `Attaque`, 12 sur `Mobile`, 4 sur `Cercle`).
+  (`./build/tests.exe`, 195 tests : 32 sur `TileMap`, 13 sur `Chemin`, 56
+  sur `Escouade`, 12 sur `Deplacement`, 27 sur `Monstre`, 23 sur
+  `Personnage`, 11 sur `Attaque`, 5 sur `Skill`, 12 sur `Mobile`, 4 sur
+  `Cercle`).
 
 **Limites connues** (acceptées pour l'instant) :
 - Le A* et le lissage ignorent les entités : une entité bloquée ne
