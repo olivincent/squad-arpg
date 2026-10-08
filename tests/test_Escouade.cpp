@@ -539,7 +539,7 @@ TEST_CASE("En combat, un personnage a portee de la cible reste immobile pendant 
 
     // Centre initial (60, 60). Les deux tireurs (portée 120 px bord à bord)
     // démarrent à l'arrière, en (35, 35) et (35, 85) ; les deux mêlées
-    // (portée 10 px) à l'avant, en (85, 35) et (85, 85). Rayons : 10 px
+    // (portée 20 px) à l'avant, en (85, 35) et (85, 85). Rayons : 10 px
     // pour un personnage, 15 px pour la cible. Cette cible met déjà les
     // tireurs à portée (≈142 - 25 ≈ 117 px bord à bord) mais pas les mêlées
     // (≈93 - 25 ≈ 68 px) : l'ancre doit donc encore avancer.
@@ -591,7 +591,7 @@ TEST_CASE("Sans verrou, un personnage deja a portee suit tout de meme son emplac
 
 // Pour les tests du skill : centre initial (60, 60), mêlées en (85, 35) et
 // (85, 85). Une cible de la taille d'un monstre en (85, 60) est à 0 px bord
-// à bord de chacun d'eux, donc à portée du skill (10 px, comme la mêlée).
+// à bord de chacun d'eux, donc à portée du skill (20 px, comme la mêlée).
 
 TEST_CASE("declencherSkill renvoie 0 sans combat engage, meme avec une cible a portee") {
     Escouade escouade({50.0f, 50.0f}); // pas de verrouiller()

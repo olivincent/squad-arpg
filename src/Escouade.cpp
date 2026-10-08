@@ -10,7 +10,7 @@
 namespace {
 const sf::Color s_couleurMelee = sf::Color::Red;
 const sf::Color s_couleurTireur = sf::Color::Cyan;
-constexpr float s_porteeMelee = 10.0f;    // bord à bord
+constexpr float s_porteeMelee = 20.0f;    // bord à bord
 constexpr float s_porteeTireur = 120.0f;  // bord à bord
 constexpr int s_degatsSkill = 25;
 constexpr float s_rechargeSkill = 5.0f;   // en secondes
