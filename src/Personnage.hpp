@@ -2,6 +2,7 @@
 #pragma once
 #include "Attaque.hpp"
 #include "Cercle.hpp"
+#include "Skill.hpp"
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/System/Vector2.hpp>
@@ -12,7 +13,7 @@ class TileMap;
 
 class Personnage {
 public:
-    Personnage(sf::Vector2f centre, sf::Color couleur, Attaque attaque, std::optional<Attaque> skill);
+    Personnage(sf::Vector2f centre, sf::Color couleur, Attaque attaque, std::optional<Skill> skill);
     void dessiner(sf::RenderTarget& rendu) const;
     void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte, const std::vector<Cercle>& obstacles);
     bool estAPortee(Cercle cible) const;
@@ -29,7 +30,7 @@ private:
     sf::Color m_couleur;
     float m_vitesse;        // en pixels par seconde
     Attaque m_attaque;
-    std::optional<Attaque> m_skill; // vide = pas de skill
+    std::optional<Skill> m_skill; // vide = pas de skill
     int m_pointsDeVie;
     int m_pointsDeVieMax;
 };

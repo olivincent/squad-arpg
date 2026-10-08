@@ -9,6 +9,7 @@
 #include "Personnage.hpp"
 #include "Attaque.hpp"
 #include "Cercle.hpp"
+#include "Skill.hpp"
 #include "TileMap.hpp"
 
 namespace {
@@ -148,7 +149,7 @@ TEST_CASE("Un personnage mort ne bouge plus") {
 // Skill : portée 80 px comme l'attaque de base, 25 dégâts, 5 s de recharge.
 
 TEST_CASE("declencherSkill renvoie les degats du skill pour une cible a portee") {
-    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f), Attaque(80.0f, 25, 5.0f));
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f), Skill(TypeSkill::Degats, Attaque(80.0f, 25, 5.0f)));
 
     REQUIRE(personnage.declencherSkill(pointCible({150.0f, 100.0f})) == 25);
 }
@@ -162,7 +163,7 @@ TEST_CASE("declencherSkill renvoie 0 pour un personnage sans skill, sans toucher
 }
 
 TEST_CASE("declencherSkill renvoie 0 pour un personnage mort") {
-    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f), Attaque(80.0f, 25, 5.0f));
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f), Skill(TypeSkill::Degats, Attaque(80.0f, 25, 5.0f)));
 
     personnage.recevoirDegats(100);
 
@@ -170,14 +171,14 @@ TEST_CASE("declencherSkill renvoie 0 pour un personnage mort") {
 }
 
 TEST_CASE("declencherSkill renvoie 0 hors de portee, sans toucher a l'attaque de base") {
-    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f), Attaque(80.0f, 25, 5.0f));
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f), Skill(TypeSkill::Degats, Attaque(80.0f, 25, 5.0f)));
 
     REQUIRE(personnage.declencherSkill(pointCible({300.0f, 100.0f})) == 0);
     REQUIRE(personnage.frapper(pointCible({150.0f, 100.0f})) == 5);
 }
 
 TEST_CASE("declencherSkill renvoie 0 pendant sa recharge, puis de nouveau les degats une fois ecoulee") {
-    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f), Attaque(80.0f, 25, 5.0f));
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f), Skill(TypeSkill::Degats, Attaque(80.0f, 25, 5.0f)));
     const TileMap carte = carteDegagee();
     const Cercle cible = pointCible({150.0f, 100.0f});
 
@@ -190,7 +191,7 @@ TEST_CASE("declencherSkill renvoie 0 pendant sa recharge, puis de nouveau les de
 }
 
 TEST_CASE("Apres un skill reussi, l'attaque de base attend une recharge complete") {
-    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f), Attaque(80.0f, 25, 5.0f));
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f), Skill(TypeSkill::Degats, Attaque(80.0f, 25, 5.0f)));
     const TileMap carte = carteDegagee();
     const Cercle cible = pointCible({150.0f, 100.0f});
 

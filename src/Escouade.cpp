@@ -23,7 +23,7 @@ Escouade::Escouade(sf::Vector2f positionDepart)
       m_vitesseRotation(360.0f),
       m_personnages({
           Personnage(placePersonnage(0), s_couleurMelee, Attaque(s_porteeMelee, 5, 0.5f),
-                     Attaque(s_porteeMelee, s_degatsSkill, s_rechargeSkill)),
+                     Skill(TypeSkill::Degats, Attaque(s_porteeMelee, s_degatsSkill, s_rechargeSkill))),
           Personnage(placePersonnage(1), s_couleurMelee, Attaque(s_porteeMelee, 5, 0.5f), std::nullopt),
           Personnage(placePersonnage(2), s_couleurTireur, Attaque(s_porteeTireur, 5, 0.5f), std::nullopt),
           Personnage(placePersonnage(3), s_couleurTireur, Attaque(s_porteeTireur, 5, 0.5f), std::nullopt),

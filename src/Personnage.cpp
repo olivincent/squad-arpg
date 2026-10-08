@@ -4,7 +4,7 @@
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Rect.hpp>
 
-Personnage::Personnage(sf::Vector2f centre, sf::Color couleur, Attaque attaque, std::optional<Attaque> skill)
+Personnage::Personnage(sf::Vector2f centre, sf::Color couleur, Attaque attaque, std::optional<Skill> skill)
     : m_centre(centre),
       m_taille(20.0f, 20.0f),
       m_couleur(couleur),
@@ -103,7 +103,7 @@ int Personnage::declencherSkill(Cercle cible) {
         return 0;
     }
 
-    const int degats = m_skill->frapper(getCercle(), cible);
+    const int degats = m_skill->declencher(getCercle(), cible);
     if (degats > 0) {
         // Le skill remplace l'attaque de base à ce moment : elle repart
         // pour une recharge complète.
