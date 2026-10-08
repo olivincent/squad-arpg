@@ -37,6 +37,7 @@ private:
     sf::Color m_couleur;
     Attaque m_attaque;
     std::optional<Skill> m_skill; // vide = pas de skill
+    std::optional<sf::Vector2f> m_cibleChemin; // cible du dernier A* ; vide = pas de chemin en cours
     int m_pointsDeVie;
     int m_pointsDeVieMax;
 };

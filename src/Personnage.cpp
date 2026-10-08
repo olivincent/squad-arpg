@@ -4,12 +4,17 @@
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Rect.hpp>
 
+namespace {
+constexpr float s_seuilRecalcul = 40.0f;  // une case, en pixels
+}  // namespace
+
 Personnage::Personnage(sf::Vector2f centre, sf::Color couleur, Attaque attaque, std::optional<Skill> skill)
     : m_mobile(centre, {20.0f, 20.0f}, 240.0f),
       m_taille(20.0f, 20.0f),
       m_couleur(couleur),
       m_attaque(attaque),
       m_skill(skill),
+      m_cibleChemin(),
       m_pointsDeVie(100),
       m_pointsDeVieMax(100)
 {
@@ -66,14 +71,23 @@ void Personnage::mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte,
         return;
     }
 
-    // Règle hybride : en ligne droite quand le trajet est libre, par un
-    // chemin A* sinon. allerToutDroit passe d'abord, pour que le
-    // personnage garde la ligne droite si le A* ne trouve aucun chemin
-    // (allerVers laisse alors le chemin intact).
-    m_mobile.allerToutDroit(cible);
+    // Règle hybride : en ligne droite quand le trajet est libre (tout
+    // chemin en cours est alors abandonné), par un chemin A* sinon.
     const sf::Vector2f centre = getCentre();
-    if (!carte.trajetLibre(sf::FloatRect(centre - m_taille / 2.0f, m_taille), cible - centre)) {
+    if (carte.trajetLibre(sf::FloatRect(centre - m_taille / 2.0f, m_taille), cible - centre)) {
+        m_mobile.allerToutDroit(cible);
+        m_cibleChemin.reset();
+    } else if (!m_cibleChemin.has_value() || !m_mobile.directionVoulue().has_value() ||
+               (cible - *m_cibleChemin).length() > s_seuilRecalcul) {
+        // Chemin à (re)calculer : aucun en cours, ou fini, ou la cible
+        // s'est éloignée de sa fin de plus d'une case. allerToutDroit passe
+        // d'abord, pour que le personnage garde la ligne droite si le A*
+        // ne trouve aucun chemin (allerVers laisse alors le chemin
+        // intact). Même sans chemin trouvé, la cible est mémorisée : on
+        // ne relance pas un A* voué à l'échec à chaque image.
+        m_mobile.allerToutDroit(cible);
         m_mobile.allerVers(cible, carte);
+        m_cibleChemin = cible;
     }
     m_mobile.mettreAJour(dt, carte, obstacles);
 

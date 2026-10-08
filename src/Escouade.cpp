@@ -1,6 +1,5 @@
 // ./src/Escouade.cpp
 #include "Escouade.hpp"
-#include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <algorithm>
 #include <cmath>
@@ -21,7 +20,6 @@ constexpr float s_rechargeSkill = 5.0f;   // en secondes
 constexpr float s_porteeSoin = 40.0f;     // bord à bord
 constexpr int s_puissanceSoin = 30;
 constexpr float s_rechargeSoin = 8.0f;    // en secondes
-constexpr float s_rayonPointPlace = 3.0f; // repère de débogage des places
 }  // namespace
 
 Escouade::Escouade(sf::Vector2f positionDepart)
@@ -58,18 +56,6 @@ void Escouade::dessiner(sf::RenderTarget& rendu) const {
 
     for (const Personnage& personnage : m_personnages) {
         personnage.dessiner(rendu);
-    }
-
-    // Repère de débogage (jusqu'à la fin de l'étape 39) : la place de
-    // formation de chaque personnage vivant.
-    sf::CircleShape point(s_rayonPointPlace);
-    point.setOrigin({s_rayonPointPlace, s_rayonPointPlace});
-    point.setFillColor(sf::Color::Yellow);
-    for (std::size_t i = 0; i < m_personnages.size(); ++i) {
-        if (m_personnages[i].estVivant()) {
-            point.setPosition(m_places[i]);
-            rendu.draw(point);
-        }
     }
 }
 

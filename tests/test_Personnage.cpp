@@ -295,3 +295,51 @@ TEST_CASE("Sans aucun chemin possible, le personnage ne plante pas et reste bloq
     REQUIRE(personnage.getCentre().x <= 70.01f);
     REQUIRE(personnage.estVivant());
 }
+
+namespace {
+// Deux pièces séparées par un mur (colonne 3) avec une ouverture en bas.
+TileMap deuxPiecesAvecPorte() {
+    return TileMap({"#######",
+                    "#..#..#",
+                    "#..#..#",
+                    "#.....#",
+                    "#######"},
+                   40.0f);
+}
+}  // namespace
+
+TEST_CASE("Une cible qui bouge de moins d'une case ne fait pas recalculer le chemin") {
+    const TileMap carte = deuxPiecesAvecPorte();
+    Personnage personnage({60.0f, 60.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f), std::nullopt);
+
+    ecoulerTemps(personnage, carte, {220.0f, 60.0f}, 0.2f);
+    // Nouvelle cible à 30 px de la précédente, mais dans le mur de droite :
+    // un recalcul ne trouverait aucun chemin et le personnage irait tout
+    // droit contre le mur du milieu. Le chemin conservé le mène par la porte.
+    ecoulerTemps(personnage, carte, {250.0f, 60.0f}, 1.0f);
+
+    REQUIRE(personnage.getCentre().x > 160.0f);
+}
+
+TEST_CASE("Une cible qui bouge de plus d'une case fait recalculer le chemin") {
+    const TileMap carte = deuxPiecesAvecPorte();
+    Personnage personnage({60.0f, 60.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f), std::nullopt);
+
+    ecoulerTemps(personnage, carte, {220.0f, 60.0f}, 0.2f);
+    // Nouvelle cible à 50 px, dans le mur : le chemin est recalculé, le A*
+    // n'en trouve pas, et le personnage va tout droit contre le mur du milieu.
+    ecoulerTemps(personnage, carte, {270.0f, 60.0f}, 1.0f);
+
+    REQUIRE(personnage.getCentre().x <= 110.01f);
+}
+
+TEST_CASE("Quand le trajet direct redevient libre, le chemin en cours est abandonné") {
+    const TileMap carte = deuxPiecesAvecPorte();
+    Personnage personnage({60.0f, 60.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f), std::nullopt);
+
+    ecoulerTemps(personnage, carte, {220.0f, 60.0f}, 0.2f);
+    ecoulerTemps(personnage, carte, {60.0f, 100.0f}, 1.0f);
+
+    REQUIRE_THAT(personnage.getCentre().x, Catch::Matchers::WithinAbs(60.0f, 1.0f));
+    REQUIRE_THAT(personnage.getCentre().y, Catch::Matchers::WithinAbs(100.0f, 1.0f));
+}
