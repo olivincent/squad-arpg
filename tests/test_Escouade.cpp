@@ -936,3 +936,92 @@ TEST_CASE("Un soin est refusé pendant qu'un skill de dégâts est en attente") 
 
     REQUIRE(placeAlliePourSoin(escouade) == 4);
 }
+
+// Autodéfense : sans verrou, chaque personnage vivant frappe de lui-même un
+// monstre à sa portée. Centre initial (60, 60) ; mêlées en (85, 35) et
+// (85, 85) (portée 20), tireurs en (35, 35) et (35, 85) (portée 120).
+
+TEST_CASE("Sans verrou, tous les personnages frappent un monstre a leur portee, sans bouger") {
+    const TileMap carte = carteDegageeSoin();
+    Escouade escouade({50.0f, 50.0f});
+    const sf::Vector2f centreInitial = escouade.getCentre();
+
+    const std::vector<Coup> coups = escouade.attaquer({MonstreVu{4, cibleMonstre({85.0f, 60.0f})}}, carte);
+    escouade.mettreAJour(1.0f / 60.0f, carte, {});
+
+    REQUIRE(coups.size() == 4);
+    for (const Coup& coup : coups) {
+        REQUIRE(coup.idMonstre == 4);
+        REQUIRE(coup.degats == 5);
+    }
+    verifierPointProche(escouade.getCentre(), centreInitial);
+}
+
+TEST_CASE("Sans verrou, un monstre hors de portee de tous ne recoit aucun coup") {
+    const TileMap carte = carteDegageeSoin();
+    Escouade escouade({50.0f, 50.0f});
+
+    REQUIRE(escouade.attaquer({MonstreVu{1, cibleMonstre({300.0f, 60.0f})}}, carte).empty());
+}
+
+TEST_CASE("Sans verrou, seuls les tireurs frappent un monstre eloigne") {
+    const TileMap carte = carteDegageeSoin();
+    Escouade escouade({50.0f, 50.0f});
+
+    // À 92 px bord à bord des tireurs, à 44 px des mêlées.
+    const std::vector<Coup> coups = escouade.attaquer({MonstreVu{1, cibleMonstre({150.0f, 60.0f})}}, carte);
+
+    REQUIRE(coups.size() == 2);
+}
+
+TEST_CASE("Un verrou hors de portee n'empeche pas de frapper un autre monstre a portee") {
+    const TileMap carte = carteDegageeSoin();
+    Escouade escouade({50.0f, 50.0f});
+    escouade.verrouiller(2);
+
+    const std::vector<Coup> coups = escouade.attaquer(
+        {MonstreVu{1, cibleMonstre({150.0f, 60.0f})}, MonstreVu{2, cibleMonstre({300.0f, 60.0f})}}, carte);
+
+    REQUIRE(coups.size() == 2);
+    for (const Coup& coup : coups) {
+        REQUIRE(coup.idMonstre == 1);
+    }
+}
+
+TEST_CASE("Le verrou a portee passe avant un monstre qui est a portee aussi") {
+    const TileMap carte = carteDegageeSoin();
+    Escouade escouade({50.0f, 50.0f});
+    escouade.verrouiller(2);
+
+    // Le monstre 1 est plus proche des tireurs, mais le 2 est verrouillé.
+    const std::vector<Coup> coups = escouade.attaquer(
+        {MonstreVu{1, cibleMonstre({150.0f, 60.0f})}, MonstreVu{2, cibleMonstre({150.0f, 90.0f})}}, carte);
+
+    REQUIRE(coups.size() == 2);
+    for (const Coup& coup : coups) {
+        REQUIRE(coup.idMonstre == 2);
+    }
+}
+
+TEST_CASE("Deux personnages peuvent frapper deux monstres differents dans la meme image") {
+    const TileMap carte = carteDegageeSoin();
+    Escouade escouade({50.0f, 50.0f});
+
+    // Le monstre 1 est à portée du tireur du haut seulement, le 2 du tireur du bas seulement.
+    const std::vector<Coup> coups = escouade.attaquer(
+        {MonstreVu{1, cibleMonstre({140.0f, -50.0f})}, MonstreVu{2, cibleMonstre({140.0f, 170.0f})}}, carte);
+
+    REQUIRE(coups.size() == 2);
+    REQUIRE(coups[0].idMonstre != coups[1].idMonstre);
+}
+
+TEST_CASE("Une escouade dont tous les personnages sont morts ne frappe plus") {
+    const TileMap carte = carteDegageeSoin();
+    Escouade escouade({50.0f, 50.0f});
+    escouade.recevoirDegats({85.0f, 35.0f}, 100);
+    escouade.recevoirDegats({85.0f, 85.0f}, 100);
+    escouade.recevoirDegats({35.0f, 35.0f}, 100);
+    escouade.recevoirDegats({35.0f, 85.0f}, 100);
+
+    REQUIRE(escouade.attaquer({MonstreVu{1, cibleMonstre({85.0f, 60.0f})}}, carte).empty());
+}

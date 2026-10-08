@@ -139,7 +139,9 @@ int main() {
             }
         }
 
-        if (monstreVerrouille != monstres.end()) {
+        // Les coups sont demandés à chaque image, verrou ou non : chaque
+        // personnage vivant frappe de lui-même un monstre à sa portée.
+        if (escouade.estVivante()) {
             std::vector<MonstreVu> monstresVus;
             for (const Monstre& m : monstres) {
                 monstresVus.push_back({m.getId(), m.getCercle()});
@@ -150,7 +152,7 @@ int main() {
                 });
                 touche->recevoirDegats(coup.degats);
             }
-            if (!monstreVerrouille->estVivant()) {
+            if (monstreVerrouille != monstres.end() && !monstreVerrouille->estVivant()) {
                 escouade.deverrouiller();
             }
         }
