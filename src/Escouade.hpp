@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <optional>
 #include <vector>
+#include "Cible.hpp"
 #include "Cercle.hpp"
 #include "Mobile.hpp"
 #include "Personnage.hpp"
@@ -24,7 +25,7 @@ public:
     void recevoirDegats(sf::Vector2f origine, int quantite);
     bool estVivante() const;
     std::vector<Cercle> cerclesDesVivants() const;
-    std::optional<std::size_t> choisirAlliePourSoin() const;
+    std::optional<Cible> choisirAlliePourSoin() const;
     void verrouiller(int idCible);
     void deverrouiller();
     std::optional<int> getCibleVerrouillee() const;
@@ -32,6 +33,13 @@ public:
 private:
     sf::Vector2f placePersonnage(std::size_t indice) const;
     std::optional<std::size_t> indicePersonnageLePlusProche(sf::Vector2f point) const;
+    void soigner(std::size_t placeLanceur, std::size_t placeAllie);
+    std::optional<sf::Vector2f> avancerSkillEnAttente();
+
+    struct SkillEnAttente {
+        std::size_t place;  // du lanceur, de 1 à 4
+        Cible cible;        // fixée à l'appui
+    };
 
     Mobile m_mobile;
     std::vector<sf::Vector2f> m_decalages; // décalages de formation, pour une escouade orientée vers +x
@@ -40,5 +48,6 @@ private:
     float m_vitesseRotation;               // en degrés par seconde
     std::vector<Personnage> m_personnages;
     std::optional<int> m_cibleVerrouillee;
+    std::optional<SkillEnAttente> m_skillEnAttente; // un seul skill en attente pour toute l'escouade
     std::optional<Cercle> m_cibleCombat; // dernière cible donnée à attaquer(), pour figer les personnages déjà à portée
 };

@@ -3,6 +3,7 @@
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <cmath>
 #include <SFML/Graphics/Color.hpp>
+#include <variant>
 #include "Personnage.hpp"
 #include "Attaque.hpp"
 
@@ -33,6 +34,7 @@ Escouade::Escouade(sf::Vector2f positionDepart)
           Personnage(placePersonnage(3), s_couleurTireur, Attaque(s_porteeTireur, 5, 0.5f), std::nullopt),
       }),
       m_cibleVerrouillee(),
+      m_skillEnAttente(),
       m_cibleCombat()
 {
 }
@@ -88,7 +90,7 @@ int Escouade::declencherSkill(std::size_t place, std::optional<Cercle> monstreVe
 
     Personnage& lanceur = m_personnages[place - 1];
     const std::optional<TypeSkill> type = lanceur.typeSkill();
-    if (!type.has_value()) {
+    if (!type.has_value() || m_skillEnAttente.has_value() || !lanceur.skillEstPret()) {
         return 0;
     }
 
@@ -100,13 +102,48 @@ int Escouade::declencherSkill(std::size_t place, std::optional<Cercle> monstreVe
     }
 
     // Soin : appliqué ici, il ne sort pas d'Escouade.
-    const std::optional<std::size_t> placeAllie = choisirAlliePourSoin();
-    if (!placeAllie.has_value()) {
+    const std::optional<Cible> cible = choisirAlliePourSoin();
+    if (!cible.has_value()) {
         return 0;
     }
-    Personnage& allie = m_personnages[*placeAllie - 1];
-    allie.recevoirSoin(lanceur.declencherSkill(allie.getCercle()));
+    const Personnage& allie = m_personnages[std::get<CibleAllie>(*cible).place - 1];
+    if (lanceur.skillEstAPortee(allie.getCercle())) {
+        soigner(place, std::get<CibleAllie>(*cible).place);
+    } else {
+        m_skillEnAttente = SkillEnAttente{place, *cible};
+    }
     return 0;
+}
+
+void Escouade::soigner(std::size_t placeLanceur, std::size_t placeAllie) {
+    // Le skill rend 0 s'il ne part pas (lanceur mort, hors de portée, en recharge).
+    const int soin = m_personnages[placeLanceur - 1].declencherSkill(m_personnages[placeAllie - 1].getCercle());
+    m_personnages[placeAllie - 1].recevoirSoin(soin);
+}
+
+std::optional<sf::Vector2f> Escouade::avancerSkillEnAttente() {
+    if (!m_skillEnAttente.has_value()) {
+        return std::nullopt;
+    }
+
+    const std::size_t placeLanceur = m_skillEnAttente->place;
+    const std::size_t placeAllie = std::get<CibleAllie>(m_skillEnAttente->cible).place;
+    const Personnage& lanceur = m_personnages[placeLanceur - 1];
+    const Personnage& allie = m_personnages[placeAllie - 1];
+
+    // Annulation : lanceur mort, cible morte ou remontée à pleine vie.
+    if (!lanceur.estVivant() || !allie.estVivant() || allie.getPointsDeVie() >= allie.getPointsDeVieMax()) {
+        m_skillEnAttente = std::nullopt;
+        return std::nullopt;
+    }
+
+    if (lanceur.skillEstAPortee(allie.getCercle())) {
+        soigner(placeLanceur, placeAllie);
+        m_skillEnAttente = std::nullopt;
+        return std::nullopt;
+    }
+
+    return allie.getCentre();
 }
 
 void Escouade::mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles) {
@@ -134,10 +171,18 @@ void Escouade::mettreAJour(float dt, const TileMap& carte, const std::vector<Cer
     // que les tireurs s'arrêtent à distance pendant que les mêlées
     // continuent jusqu'au contact.
     const bool enCombat = m_cibleVerrouillee.has_value() && m_cibleCombat.has_value();
+
+    // Un lanceur dont le skill est en attente vise sa cible au lieu de sa place.
+    const std::size_t placeLanceur = m_skillEnAttente.has_value() ? m_skillEnAttente->place : 0;
+    const std::optional<sf::Vector2f> pointSkill = avancerSkillEnAttente();
+
     for (std::size_t i = 0; i < m_personnages.size(); ++i) {
         sf::Vector2f pointVoulu = placePersonnage(i);
         if (enCombat && m_personnages[i].estVivant() && m_personnages[i].estAPortee(*m_cibleCombat)) {
             pointVoulu = m_personnages[i].getCentre();
+        }
+        if (pointSkill.has_value() && i == placeLanceur - 1) {
+            pointVoulu = *pointSkill;
         }
         m_personnages[i].mettreAJour(dt, pointVoulu, carte, obstacles);
     }
@@ -200,7 +245,7 @@ std::vector<Cercle> Escouade::cerclesDesVivants() const {
     return cercles;
 }
 
-std::optional<std::size_t> Escouade::choisirAlliePourSoin() const {
+std::optional<Cible> Escouade::choisirAlliePourSoin() const {
     // Le plus blessé parmi les vivants qui ne sont pas à pleine vie ;
     // l'inégalité stricte garde la plus petite place en cas d'égalité.
     std::optional<std::size_t> indiceChoisi;
@@ -218,7 +263,7 @@ std::optional<std::size_t> Escouade::choisirAlliePourSoin() const {
     if (!indiceChoisi.has_value()) {
         return std::nullopt;
     }
-    return *indiceChoisi + 1;  // place de 1 à 4, comme declencherSkill
+    return Cible(CibleAllie{*indiceChoisi + 1});  // place de 1 à 4, comme declencherSkill
 }
 
 void Escouade::verrouiller(int idCible) {

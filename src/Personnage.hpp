@@ -19,6 +19,8 @@ public:
     bool estAPortee(Cercle cible) const;
     int frapper(Cercle cible);
     std::optional<TypeSkill> typeSkill() const;
+    bool skillEstPret() const;
+    bool skillEstAPortee(Cercle cible) const;
     int declencherSkill(Cercle cible);
     void recevoirDegats(int quantite);
     void recevoirSoin(int quantite);

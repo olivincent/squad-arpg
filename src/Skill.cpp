@@ -11,6 +11,10 @@ void Skill::mettreAJour(float dt) {
     m_attaque.mettreAJour(dt);
 }
 
+bool Skill::estAPortee(Cercle origine, Cercle cible) const {
+    return m_attaque.estAPortee(origine, cible);
+}
+
 int Skill::declencher(Cercle origine, Cercle cible) {
     return m_attaque.frapper(origine, cible);
 }

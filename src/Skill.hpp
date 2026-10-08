@@ -12,6 +12,7 @@ class Skill {
 public:
     Skill(TypeSkill type, Attaque attaque);
     void mettreAJour(float dt);
+    bool estAPortee(Cercle origine, Cercle cible) const;
     int declencher(Cercle origine, Cercle cible);
     float getProgressionRecharge() const;
     TypeSkill getType() const;

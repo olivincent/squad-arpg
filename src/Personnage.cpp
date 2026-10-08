@@ -105,6 +105,14 @@ std::optional<TypeSkill> Personnage::typeSkill() const {
     return m_skill->getType();
 }
 
+bool Personnage::skillEstPret() const {
+    return estVivant() && m_skill.has_value() && m_skill->getProgressionRecharge() >= 1.0f;
+}
+
+bool Personnage::skillEstAPortee(Cercle cible) const {
+    return m_skill.has_value() && m_skill->estAPortee(getCercle(), cible);
+}
+
 int Personnage::declencherSkill(Cercle cible) {
     if (!m_skill.has_value() || !estVivant()) {
         return 0;
