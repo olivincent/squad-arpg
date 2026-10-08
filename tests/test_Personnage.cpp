@@ -1,5 +1,6 @@
 // ./tests/test_Personnage.cpp
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <optional>
@@ -251,4 +252,46 @@ TEST_CASE("recevoirSoin est sans effet sur un mort") {
 
     REQUIRE_FALSE(personnage.estVivant());
     REQUIRE(personnage.getPointsDeVie() == 0);
+}
+
+TEST_CASE("En terrain dégagé, le personnage avance en ligne droite de vitesse * dt") {
+    const TileMap carte = carteDegagee();
+    Personnage personnage({60.0f, 60.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f), std::nullopt);
+
+    for (int i = 0; i < 10; ++i) {
+        personnage.mettreAJour(1.0f / 60.0f, {180.0f, 60.0f}, carte, {});
+    }
+
+    // 240 px/s * (1/60) s = 4 px par tic.
+    REQUIRE_THAT(personnage.getCentre().x, Catch::Matchers::WithinAbs(100.0f, 0.01f));
+    REQUIRE_THAT(personnage.getCentre().y, Catch::Matchers::WithinAbs(60.0f, 0.01f));
+}
+
+TEST_CASE("Un personnage séparé de sa cible par un mur avec une ouverture finit par l'atteindre") {
+    const TileMap carte({"#######",
+                         "#..#..#",
+                         "#..#..#",
+                         "#.....#",
+                         "#######"},
+                        40.0f);
+    Personnage personnage({60.0f, 60.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f), std::nullopt);
+    const sf::Vector2f cible{220.0f, 60.0f};
+
+    ecoulerTemps(personnage, carte, cible, 5.0f);
+
+    REQUIRE_THAT(personnage.getCentre().x, Catch::Matchers::WithinAbs(cible.x, 1.0f));
+    REQUIRE_THAT(personnage.getCentre().y, Catch::Matchers::WithinAbs(cible.y, 1.0f));
+}
+
+TEST_CASE("Sans aucun chemin possible, le personnage ne plante pas et reste bloqué contre le mur") {
+    const TileMap carte({"#####",
+                         "#.#.#",
+                         "#####"},
+                        40.0f);
+    Personnage personnage({60.0f, 60.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f), std::nullopt);
+
+    ecoulerTemps(personnage, carte, {140.0f, 60.0f}, 2.0f);
+
+    REQUIRE(personnage.getCentre().x <= 70.01f);
+    REQUIRE(personnage.estVivant());
 }

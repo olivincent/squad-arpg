@@ -1,14 +1,13 @@
 // ./src/Personnage.cpp
 #include "Personnage.hpp"
-#include "Deplacement.hpp"
+#include "TileMap.hpp"
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Rect.hpp>
 
 Personnage::Personnage(sf::Vector2f centre, sf::Color couleur, Attaque attaque, std::optional<Skill> skill)
-    : m_centre(centre),
+    : m_mobile(centre, {20.0f, 20.0f}, 240.0f),
       m_taille(20.0f, 20.0f),
       m_couleur(couleur),
-      m_vitesse(240.0f),
       m_attaque(attaque),
       m_skill(skill),
       m_pointsDeVie(100),
@@ -18,7 +17,7 @@ Personnage::Personnage(sf::Vector2f centre, sf::Color couleur, Attaque attaque, 
 
 void Personnage::dessiner(sf::RenderTarget& rendu) const {
     sf::RectangleShape forme(m_taille);
-    forme.setPosition(m_centre - m_taille / 2.0f);
+    forme.setPosition(getCentre() - m_taille / 2.0f);
     forme.setFillColor(estVivant() ? m_couleur : sf::Color(100, 100, 100));
     rendu.draw(forme);
 
@@ -28,8 +27,9 @@ void Personnage::dessiner(sf::RenderTarget& rendu) const {
 
     const float hauteurBarre = 5.0f;
     const float ecart = 6.0f;
-    const sf::Vector2f positionBarre(m_centre.x - m_taille.x / 2.0f,
-                                      m_centre.y - m_taille.y / 2.0f - ecart - hauteurBarre);
+    const sf::Vector2f centre = getCentre();
+    const sf::Vector2f positionBarre(centre.x - m_taille.x / 2.0f,
+                                      centre.y - m_taille.y / 2.0f - ecart - hauteurBarre);
 
     sf::RectangleShape fond({m_taille.x, hauteurBarre});
     fond.setPosition(positionBarre);
@@ -66,19 +66,16 @@ void Personnage::mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte,
         return;
     }
 
-    const sf::Vector2f direction = cible - m_centre;
-    const float distance = direction.length();
-    const float pasDuTic = m_vitesse * dt;
-    sf::Vector2f deplacement(0.0f, 0.0f);
-
-    if (distance <= pasDuTic) {
-        deplacement = direction;
-    } else {
-        deplacement = direction.normalized() * pasDuTic;
+    // Règle hybride : en ligne droite quand le trajet est libre, par un
+    // chemin A* sinon. allerToutDroit passe d'abord, pour que le
+    // personnage garde la ligne droite si le A* ne trouve aucun chemin
+    // (allerVers laisse alors le chemin intact).
+    m_mobile.allerToutDroit(cible);
+    const sf::Vector2f centre = getCentre();
+    if (!carte.trajetLibre(sf::FloatRect(centre - m_taille / 2.0f, m_taille), cible - centre)) {
+        m_mobile.allerVers(cible, carte);
     }
-
-    const sf::FloatRect rect(m_centre - m_taille / 2.0f, m_taille);
-    m_centre = deplacerAvecGlissement(carte, rect, deplacement, obstacles) +m_taille / 2.0f;
+    m_mobile.mettreAJour(dt, carte, obstacles);
 
     m_attaque.mettreAJour(dt);
     if (m_skill.has_value()) {
@@ -157,9 +154,9 @@ int Personnage::getPointsDeVieMax() const {
 }
 
 sf::Vector2f Personnage::getCentre() const {
-    return m_centre;
+    return m_mobile.getCentre();
 }
 
 Cercle Personnage::getCercle() const {
-    return {m_centre, m_taille.x / 2.0f};
+    return {getCentre(), m_taille.x / 2.0f};
 }

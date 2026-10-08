@@ -2,6 +2,7 @@
 #pragma once
 #include "Attaque.hpp"
 #include "Cercle.hpp"
+#include "Mobile.hpp"
 #include "Skill.hpp"
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
@@ -31,10 +32,9 @@ public:
     Cercle getCercle() const;
 
 private:
-    sf::Vector2f m_centre;  // pixels du monde
+    Mobile m_mobile;        // position (centre en pixels du monde) et déplacement
     sf::Vector2f m_taille;  // en pixels
     sf::Color m_couleur;
-    float m_vitesse;        // en pixels par seconde
     Attaque m_attaque;
     std::optional<Skill> m_skill; // vide = pas de skill
     int m_pointsDeVie;

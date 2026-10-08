@@ -12,6 +12,7 @@ class Mobile {
 public:
     Mobile(sf::Vector2f centre, sf::Vector2f taille, float vitesse);
     void allerVers(sf::Vector2f destination, const TileMap& carte);
+    void allerToutDroit(sf::Vector2f destination);
     void arreter();
     void mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles);
     sf::Vector2f getCentre() const;

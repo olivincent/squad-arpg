@@ -181,3 +181,27 @@ TEST_CASE("Mobile.mettreAJour s'arrête avant un obstacle placé sur son trajet"
     REQUIRE(mobile.getCentre().x <= 160.0f);
     REQUIRE_THAT(mobile.getCentre().y, Catch::Matchers::WithinAbs(60.0f, 0.5f));
 }
+
+TEST_CASE("allerToutDroit mène le mobile exactement au point, sans A*") {
+    const TileMap carte = carteDegagee();
+    Mobile mobile({60.0f, 60.0f}, {20.0f, 20.0f}, 100.0f);
+
+    mobile.allerToutDroit({160.0f, 100.0f});
+    simuler(mobile, carte, 2.0f);
+
+    verifierPointProche(mobile.getCentre(), {160.0f, 100.0f}, 0.01f);
+}
+
+TEST_CASE("allerToutDroit vers un point dans un mur ne fait pas contourner le mur") {
+    const TileMap carte({"..#..",
+                         "..#..",
+                         "..#.."},
+                        40.0f);
+    Mobile mobile({60.0f, 60.0f}, {20.0f, 20.0f}, 100.0f);
+
+    mobile.allerToutDroit({140.0f, 60.0f});
+    simuler(mobile, carte, 5.0f);
+
+    // Bloqué contre le mur (x = 80) : il glisse, mais ne passe pas de l'autre côté.
+    REQUIRE(mobile.getCentre().x <= 70.0f);
+}

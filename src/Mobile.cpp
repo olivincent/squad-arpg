@@ -45,6 +45,11 @@ void Mobile::allerVers(sf::Vector2f destination, const TileMap& carte) {
     m_indexChemin = 0;
 }
 
+void Mobile::allerToutDroit(sf::Vector2f destination) {
+    m_chemin = {destination};
+    m_indexChemin = 0;
+}
+
 void Mobile::arreter() {
     m_chemin = {getCentre()};
     m_indexChemin = 0;
