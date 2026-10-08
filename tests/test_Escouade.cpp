@@ -1087,3 +1087,50 @@ TEST_CASE("Une escouade dont tous les personnages sont morts ne frappe plus") {
 
     REQUIRE(escouade.attaquer({MonstreVu{1, cibleMonstre({85.0f, 60.0f})}}, carte).empty());
 }
+
+TEST_CASE("En terrain dégagé, les places de formation ne sont pas modifiées") {
+    const TileMap carte({"##########",
+                         "#........#",
+                         "#........#",
+                         "#........#",
+                         "#........#",
+                         "#........#",
+                         "##########"},
+                        40.0f);
+    Escouade escouade({150.0f, 110.0f});
+    escouade.mettreAJour(0.016f, carte, {});
+
+    const sf::Vector2f centre = escouade.getCentre();
+    const std::vector<sf::Vector2f> attendues = {centre + sf::Vector2f(25.0f, -25.0f),
+                                                 centre + sf::Vector2f(25.0f, 25.0f),
+                                                 centre + sf::Vector2f(-25.0f, -25.0f),
+                                                 centre + sf::Vector2f(-25.0f, 25.0f)};
+    const std::vector<sf::Vector2f>& places = escouade.getPlacesDeFormation();
+    REQUIRE(places.size() == 4);
+    for (std::size_t i = 0; i < places.size(); ++i) {
+        REQUIRE_THAT(places[i].x, Catch::Matchers::WithinAbs(attendues[i].x, 0.01f));
+        REQUIRE_THAT(places[i].y, Catch::Matchers::WithinAbs(attendues[i].y, 0.01f));
+    }
+}
+
+TEST_CASE("Ancre collée à un mur, aucune place de formation n'est dans un mur") {
+    const TileMap carte({"##########",
+                         "#........#",
+                         "#........#",
+                         "#........#",
+                         "#........#",
+                         "#........#",
+                         "##########"},
+                        40.0f);
+    Escouade escouade({40.0f, 80.0f}); // centre (50, 90) : le bord gauche de l'ancre touche le mur
+    escouade.mettreAJour(0.016f, carte, {});
+
+    const sf::Vector2f taille{20.0f, 20.0f};
+    const std::vector<sf::Vector2f>& places = escouade.getPlacesDeFormation();
+    REQUIRE(places.size() == 4);
+    for (const sf::Vector2f& place : places) {
+        REQUIRE_FALSE(carte.chevaucheUnMur(sf::FloatRect(place - taille / 2.0f, taille)));
+    }
+    // Les places de gauche, qui tombaient dans le mur, se sont rapprochées de l'ancre.
+    REQUIRE(places[2].x > escouade.getCentre().x - 25.0f);
+}

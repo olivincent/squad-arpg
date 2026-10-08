@@ -9,6 +9,7 @@
 #include "Personnage.hpp"
 #include "Attaque.hpp"
 #include "Autodefense.hpp"
+#include "Chemin.hpp"
 
 namespace {
 const sf::Color s_couleurMelee = sf::Color::Red;
@@ -39,7 +40,8 @@ Escouade::Escouade(sf::Vector2f positionDepart)
       }),
       m_cibleVerrouillee(),
       m_skillEnAttente(),
-      m_cibleCombat()
+      m_cibleCombat(),
+      m_places({placePersonnage(0), placePersonnage(1), placePersonnage(2), placePersonnage(3)})
 {
 }
 
@@ -65,7 +67,7 @@ void Escouade::dessiner(sf::RenderTarget& rendu) const {
     point.setFillColor(sf::Color::Yellow);
     for (std::size_t i = 0; i < m_personnages.size(); ++i) {
         if (m_personnages[i].estVivant()) {
-            point.setPosition(placePersonnage(i));
+            point.setPosition(m_places[i]);
             rendu.draw(point);
         }
     }
@@ -249,7 +251,11 @@ void Escouade::mettreAJour(float dt, const TileMap& carte, const std::vector<Cer
     const std::optional<sf::Vector2f> pointSkill = avancerSkillEnAttente();
 
     for (std::size_t i = 0; i < m_personnages.size(); ++i) {
-        sf::Vector2f pointVoulu = placePersonnage(i);
+        // Une place théorique dans un mur ou derrière un coin est ramenée
+        // vers l'ancre jusqu'à un point libre.
+        const float diametre = 2.0f * m_personnages[i].getCercle().rayon;
+        m_places[i] = replierVersOrigine(carte, getCentre(), placePersonnage(i), {diametre, diametre});
+        sf::Vector2f pointVoulu = m_places[i];
         if (enCombat && m_personnages[i].estVivant() && m_personnages[i].estAPortee(*m_cibleCombat)) {
             pointVoulu = m_personnages[i].getCentre();
         }
@@ -258,6 +264,10 @@ void Escouade::mettreAJour(float dt, const TileMap& carte, const std::vector<Cer
         }
         m_personnages[i].mettreAJour(dt, pointVoulu, carte, obstacles);
     }
+}
+
+const std::vector<sf::Vector2f>& Escouade::getPlacesDeFormation() const {
+    return m_places;
 }
 
 sf::Vector2f Escouade::getCentre() const {

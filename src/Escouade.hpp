@@ -31,6 +31,7 @@ public:
     void verrouiller(int idCible);
     void deverrouiller();
     std::optional<int> getCibleVerrouillee() const;
+    const std::vector<sf::Vector2f>& getPlacesDeFormation() const;
 
 private:
     sf::Vector2f placePersonnage(std::size_t indice) const;
@@ -52,4 +53,5 @@ private:
     std::optional<int> m_cibleVerrouillee;
     std::optional<SkillEnAttente> m_skillEnAttente; // un seul skill en attente pour toute l'escouade
     std::optional<Cercle> m_cibleCombat; // dernière cible donnée à attaquer(), pour figer les personnages déjà à portée
+    std::vector<sf::Vector2f> m_places;  // place de formation de chaque personnage, repliée si besoin (recalculée par mettreAJour)
 };
