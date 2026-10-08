@@ -150,3 +150,25 @@ rien ; elle connaît `TileMap`, `Chemin` et `Deplacement`.
   lissage « idéal » (type *funnel algorithm* ou Theta*) ne le ferait,
   mais il ne reste jamais coincé. Accepté pour l'instant.
 
+## Repli d'un point vers une origine
+
+- **`Chemin::replierVersOrigine(carte, origine, cible, taille)`** : si
+  `trajetLibre` dit que le rectangle `taille` centré sur `origine` peut
+  aller jusqu'à `cible` en ligne droite, `cible` est renvoyée telle
+  quelle. Sinon, dichotomie sur la fraction du segment : `libre` (0 au
+  départ, donc l'origine) et `bloque` (1), 6 itérations
+  (`s_iterationsRepli`) ; le milieu devient `libre` si son trajet est
+  libre, `bloque` sinon. Renvoie `origine + segment * libre`.
+- **Pourquoi la dichotomie est correcte** : le trajet vers un point plus
+  proche est un début du trajet vers un point plus lointain ; si un
+  point du segment est atteignable, tous les précédents le sont. Le
+  prédicat « trajet libre jusqu'à la fraction t » est donc monotone.
+- **Pourquoi 6 itérations** : précision de 1/64 de la longueur du segment
+  (moins d'un pixel pour une place de formation à ~35 px) ; si même le
+  point le plus proche n'est pas libre, `libre` reste 0 et le résultat
+  est l'origine, sans cas particulier.
+- **Pourquoi `trajetLibre` et non `chevaucheUnMur` sur la cible** : une
+  cible peut être libre mais cachée derrière un coin de pilier ; seul le
+  trajet exact le détecte.
+- **Limites connues** : ne cherche pas la case libre la plus proche, ne
+  tient pas compte des entités ; le résultat est toujours sur le segment.

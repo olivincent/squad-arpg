@@ -90,7 +90,8 @@ Qui possède quoi :
   `Attaque`.
 - `Mobile` utilise `Chemin` et `Deplacement` ; `Personnage` utilise
   `Deplacement`. `Attaque`, `Personnage`, `Monstre` et `Escouade` échangent
-  des `Cercle`. `Escouade` utilise `choisirMonstreAFrapper` (`Autodefense`).
+  des `Cercle`. `Escouade` utilise `choisirMonstreAFrapper` (`Autodefense`) et
+`replierVersOrigine` (`Chemin`).
 
 ## Modules
 
@@ -128,7 +129,9 @@ Données membres : `m_mobile` (`Mobile`), `m_decalages` (4
 (`std::vector<Personnage>`), `m_cibleVerrouillee` (`std::optional<int>`),
 `m_skillEnAttente` (`std::optional<SkillEnAttente>`, structure privée :
 `place` du lanceur, `Cible cible`), `m_cibleCombat`
-(`std::optional<Cercle>`).
+(`std::optional<Cercle>`), `m_places` (`std::vector<sf::Vector2f>`, place
+de formation de chaque personnage après repli, recalculée par
+`mettreAJour`).
 
 | Fonction | Rôle |
 |---|---|
@@ -137,8 +140,8 @@ Données membres : `m_mobile` (`Mobile`), `m_decalages` (4
 | `std::vector<Coup> attaquer(const std::vector<MonstreVu>& monstres, const TileMap& carte)` | Avec un verrou dont le monstre est dans `monstres` : mémorise son cercle, approche tant qu'un personnage vivant n'est pas à portée, s'arrête sinon, et fait partir le skill de dégâts en attente si son lanceur est à portée. Verrou ou non : chaque personnage choisit pour lui-même le monstre à frapper (`choisirMonstreAFrapper`) et frappe ; renvoie un `Coup` par frappe qui touche |
 | `std::vector<Coup> declencherSkill(std::size_t place, const std::vector<MonstreVu>& monstres)` | Skill du personnage à la place `place` (1 à 4). Liste vide si la place est invalide, sans skill, si le lanceur est mort, si le skill est en recharge, si un skill est déjà en attente ou si `choisirCible` ne trouve rien. Cible à portée : un skill de dégâts renvoie un coup (identifiant de la cible, dégâts), un soin est appliqué sur place (liste vide). Hors de portée (seulement avec un verrou) : le skill est mis en attente (liste vide) |
 | `std::optional<Cible> choisirCible(TypeSkill type, std::size_t place, const std::vector<MonstreVu>& monstres) const` | `Degats` : avec un verrou, le monstre verrouillé trouvé dans `monstres` (à portée ou non, vide s'il n'y est pas) ; sans verrou, le monstre que le lanceur de la place `place` frapperait en autodéfense, avec la portée de son skill (vide si aucun). `Soin` : le vivant qui a le moins de points de vie parmi ceux qui ne sont pas à pleine vie (égalité : la plus petite place) |
-| `void mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles)` | Avance l'ancre, tourne la formation, déplace chaque personnage vers sa place (ou reste sur place s'il est à portée de la cible en combat) ; le lanceur d'un skill en attente vise sa cible à la place (un soin part ici, annulé si le lanceur ou la cible meurt ou si la cible est à pleine vie) ; `obstacles` est transmis aux personnages, jamais à l'ancre |
-| `void dessiner(sf::RenderTarget& rendu) const` | Dessine l'ancre, puis les 4 personnages |
+| `void mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles)` | Avance l'ancre, tourne la formation, calcule la place de chaque personnage (place théorique ramenée vers l'ancre par `replierVersOrigine` si elle est dans un mur ou cachée derrière un coin), déplace chaque personnage vers sa place (ou reste sur place s'il est à portée de la cible en combat) ; le lanceur d'un skill en attente vise sa cible à la place (un soin part ici, annulé si le lanceur ou la cible meurt ou si la cible est à pleine vie) ; `obstacles` est transmis aux personnages, jamais à l'ancre |
+| `void dessiner(sf::RenderTarget& rendu) const` | Dessine l'ancre, les 4 personnages, puis un point jaune (repère provisoire) à la place de formation de chaque personnage vivant |
 | `sf::Vector2f getCentre() const` | Centre de l'ancre (utilisé par la caméra) |
 | `std::optional<Cercle> personnageLePlusProche(sf::Vector2f point) const` | Cercle du personnage vivant dont le centre est le plus proche de `point` ; vide si aucun n'est vivant |
 | `void recevoirDegats(sf::Vector2f origine, int quantite)` | Applique les dégâts au personnage vivant le plus proche d'`origine` ; ne fait rien si aucun n'est vivant |
@@ -147,6 +150,7 @@ Données membres : `m_mobile` (`Mobile`), `m_decalages` (4
 | `void verrouiller(int idCible)` | Pose le verrou de combat sur ce monstre, en remplaçant la cible précédente ; annule un skill de dégâts en attente si l'identifiant change |
 | `void deverrouiller()` | Retire le verrou de combat et annule un skill de dégâts en attente |
 | `std::optional<int> getCibleVerrouillee() const` | Identifiant du monstre engagé en combat, vide si aucun |
+| `const std::vector<sf::Vector2f>& getPlacesDeFormation() const` | Places de formation (après repli) calculées par le dernier `mettreAJour` |
 
 ### `Mobile` — déplacement par chemin
 
@@ -170,13 +174,15 @@ Données membres : `m_position` (coin haut-gauche), `m_taille`, `m_chemin`
 
 ### `Chemin` — recherche de chemin (A*)
 
-Deux fonctions libres, sans état. `trouverChemin` raisonne en cases,
-`lisserChemin` en pixels. Utilisées uniquement par `Mobile::allerVers`.
+Trois fonctions libres, sans état. `trouverChemin` raisonne en cases,
+`lisserChemin` et `replierVersOrigine` en pixels. Les deux premières sont
+utilisées par `Mobile::allerVers`, la troisième par `Escouade::mettreAJour`.
 
 | Fonction | Rôle |
 |---|---|
 | `std::vector<sf::Vector2i> trouverChemin(const TileMap& carte, sf::Vector2i depart, sf::Vector2i arrivee)` | Plus court chemin entre deux cases (4 directions, coût 1 par pas, heuristique de Manhattan) ; inclut le départ et l'arrivée ; vecteur vide si départ/arrivée est un mur (ou hors carte) ou si l'arrivée est inaccessible |
 | `std::vector<sf::Vector2f> lisserChemin(const TileMap& carte, sf::Vector2f depart, const std::vector<sf::Vector2f>& points, sf::Vector2f taille)` | Retire de `points` (positions du centre d'un rectangle `taille`, en pixels) les points de passage inutiles ; `depart` n'en fait pas partie dans le résultat |
+| `sf::Vector2f replierVersOrigine(const TileMap& carte, sf::Vector2f origine, sf::Vector2f cible, sf::Vector2f taille)` | `cible` si le rectangle `taille` centré sur `origine` peut aller en ligne droite jusqu'à elle sans toucher un mur ; sinon le point libre le plus éloigné de `origine` sur le segment (dichotomie, 6 itérations) ; `origine` si aucun point n'est libre |
 
 ### `Personnage` — un membre de l'escouade
 

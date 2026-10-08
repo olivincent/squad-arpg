@@ -964,3 +964,33 @@ proche).
 **Hors de portée** : verrou automatique sur un attaquant, pas vers
 l'attaquant, poursuite, recul des tireurs, ligne de vue, effet visuel
 des coups, HUD, choix manuel de la cible d'un skill.
+
+### Étape 38 — Places de formation toujours valides ✅ TERMINÉE
+
+Une place de formation calculée sans regarder la carte pouvait tomber
+dans un mur ou derrière un coin : le personnage poussait contre le mur
+et restait coincé. `Escouade` ramène désormais une telle place vers
+l'ancre.
+
+1. [x] `Escouade::dessiner` : un point jaune à la place de formation de
+       chaque personnage vivant (repère provisoire)
+2. [x] `Chemin` : `replierVersOrigine` (enchaînée)
+3. [x] Tests de `replierVersOrigine` (trajet libre, cible dans un mur,
+       cible derrière un coin de pilier, origine = cible) (enchaînée)
+4. [x] `Escouade::mettreAJour` replie chaque place ; `m_places` et
+       `getPlacesDeFormation` ; tests d'`Escouade` (terrain dégagé :
+       places inchangées ; ancre collée à un mur : aucune place dans le
+       mur)
+5. [x] Mise à jour des documents
+
+**Choix** : repli sur le segment ancre-place par dichotomie (6
+itérations) plutôt que recherche de la case libre la plus proche ; seules
+les places de formation sont corrigées.
+
+**Limites connues** : un personnage resté derrière un coin peut encore
+s'y accrocher (pas de chemin individuel) ; deux places peuvent se replier
+au même endroit dans un passage étroit.
+
+**Hors de portée** : chemin A* individuel (étape 39), changement du
+placement en combat ou de la marche vers un skill, écart minimal entre
+places, prise en compte des monstres.

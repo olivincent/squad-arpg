@@ -43,10 +43,13 @@ est dans `docs/historique.md`.
 - Étape 35 — Réorganisation de la documentation ✅
 - Étape 36 — Classe Skill, skill de soin et cible générale ✅
 - Étape 37 — Autodéfense : les personnages ripostent sans clic ✅
+- Étape 38 — Places de formation toujours valides ✅
 
-## Étape 38 — À définir
+## Étape 39 — À définir
 
 Pistes discutées :
+- Donner un `Mobile` ou un chemin A* aux personnages, pour qu'un
+  personnage resté derrière un coin le contourne
 - Un mêlée fait un pas vers le monstre qui l'attaque
 - L'escouade poursuit d'elle-même un monstre qui l'attaque (écartée pour
   l'instant)
@@ -108,6 +111,12 @@ Pistes discutées :
   portée 20 px), les deux de derrière des tireurs (cyan, portée 120 px) ;
   portées mesurées de bord à bord ; 5 dégâts, recharge 0,5 s ; 100
   points de vie et une barre de vie au-dessus d'eux.
+- **Places de formation** : la place théorique de chaque personnage
+  (ancre + décalage tourné) est ramenée vers l'ancre si le trajet en ligne
+  droite de l'ancre à cette place n'est pas libre (`replierVersOrigine`) :
+  près d'un mur, d'un coin ou d'un pilier, la formation se resserre
+  d'elle-même. Un petit point jaune (repère provisoire, jusqu'à la fin de
+  l'étape 39) marque la place de chaque personnage vivant.
 - **Mort et défaite** : un personnage à 0 point de vie tombe sur place
   (carré gris, sans barre de vie), ne frappe plus, n'est plus ciblé et ne
   bloque plus personne ; il reste dans la formation, sa place est
@@ -162,12 +171,16 @@ Pistes discutées :
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 213 tests : 32 sur `TileMap`, 13 sur `Chemin`, 67
+  (`./build/tests.exe`, 219 tests : 32 sur `TileMap`, 17 sur `Chemin`, 69
   sur `Escouade`, 12 sur `Deplacement`, 27 sur `Monstre`, 23 sur
   `Personnage`, 11 sur `Attaque`, 5 sur `Skill`, 12 sur `Mobile`, 4 sur
   `Cercle`, 7 sur `Autodefense`).
 
 **Limites connues** (acceptées pour l'instant) :
+- Un personnage resté derrière un coin peut s'y accrocher : les places
+  sont valides, mais il se déplace en ligne droite vers elles (étape 39).
+  Deux places peuvent se replier presque au même endroit dans un passage
+  étroit.
 - Le A* et le lissage ignorent les entités : une entité bloquée ne
   contourne pas, elle glisse ou attend. Près des piliers, le contournement
   n'est pas toujours le plus court.

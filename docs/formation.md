@@ -47,6 +47,20 @@ L'attaque, la portée, le skill et les obstacles sont dans
   m_orientation)`), utilisé à la fois dans le constructeur et dans
   `mettreAJour` — pour ne pas dupliquer la formule à deux endroits qui
   pourraient diverger.
+- **Places repliées (étape 38)** : `placePersonnage` donne la place
+  *théorique*. Dans `mettreAJour`, elle passe par `replierVersOrigine`
+  (ancre comme origine, taille du personnage prise sur son cercle :
+  `2 × rayon`, ce qui évite d'ajouter un accesseur à `Personnage`). Le
+  résultat est rangé dans `m_places`, utilisé comme point voulu, et lu par
+  `dessiner` (qui n'a pas la carte) et par `getPlacesDeFormation`
+  (tests). Le constructeur y met les places non repliées, remplacées au
+  premier `mettreAJour`. Répartition inchangée : l'escouade décide *où*,
+  le personnage *comment*. Seules les places de formation sont
+  corrigées : les cibles individuelles en combat et la marche vers un
+  skill en attente ne le sont pas.
+- **Repère de débogage** : un point jaune de 3 px marque `m_places[i]`
+  de chaque personnage vivant. Provisoire, à retirer à la fin de
+  l'étape 39.
 - **Quatre décalages** `{{25,-25}, {25,25}, {-25,-25}, {-25,25}}` pour
   une escouade orientée vers `+x` : les indices 0 et 1 sont à l'avant,
   les indices 2 et 3 à l'arrière.
@@ -88,6 +102,8 @@ L'attaque, la portée, le skill et les obstacles sont dans
   - un personnage peut rester accroché derrière un coin de mur tant que
     l'escouade ne repasse pas par là ; il ne contourne pas (pas de
     recherche de chemin individuelle), il glisse ou attend ;
+  - deux places peuvent se replier presque au même endroit dans un
+    passage étroit (les personnages ne se bloquent pas entre eux) ;
   - **chevauchement résiduel lors d'un demi-tour rapide** : les 4
     décalages forment deux paires diagonales exactement opposées, donc
     les places *idéales* de deux personnages ne se chevauchent jamais
