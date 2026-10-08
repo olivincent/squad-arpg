@@ -32,3 +32,11 @@
   directement (`./build/tests.exe`), sans CTest.
 - **Générateur Ninja** (`cmake -S . -B build -G Ninja`). Ninja relance la
   configuration automatiquement quand `CMakeLists.txt` change.
+
+## Choix de SFML plutôt que raylib
+
+SFML a été choisie plutôt que raylib parce qu'elle est orientée objet
+(`sf::RenderWindow`, `sf::RectangleShape`, `sf::Text`, `sf::Event`), ce qui
+correspond à l'objectif d'apprendre le C++ et le génie logiciel (classes,
+encapsulation). raylib est plus proche du C, avec des fonctions libres.
+SFML gère aussi nativement le texte (police + rendu).

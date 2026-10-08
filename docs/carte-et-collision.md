@@ -2,9 +2,18 @@
 
 ## Carte, collision et dessin
 
-- **Coordonnées du monde** : la carte et l'escouade sont positionnées en
+- **Coordonnées du monde** : la carte et les entités sont positionnées en
   pixels de la carte, jamais en pixels de l'écran. C'est ce qui a permis
   d'ajouter la caméra sans modifier `TileMap`.
+- **`enum class Tile { Floor, Wall }`** : `enum class` plutôt que `enum`
+  pour la portée (`Tile::Wall`) et l'absence de conversion implicite en
+  `int`.
+- **Stockage 1D** : la case `(x, y)` est à l'indice `y * largeur + x`,
+  calculé par la fonction privée `indice(x, y)`. Plus simple et contigu en
+  mémoire qu'un vecteur de vecteurs.
+- **Ordre de déclaration des membres** : `m_cases` est déclaré après
+  `m_largeur` et `m_hauteur`, car il est initialisé à partir d'eux dans la
+  liste d'initialisation du constructeur.
 - **Hors de la carte = mur** : `getTile` vérifie les bornes et renvoie
   `Tile::Wall` pour toute case hors limites (pas d'accès indéfini au
   vecteur, et la carte est infranchissable à ses bords).
@@ -16,7 +25,7 @@
   collision (même convention que `sf::Rect::findIntersection`).
 - **Glissement le long des murs** : le déplacement est testé axe par axe,
   X puis Y, l'essai Y partant de la position obtenue après l'essai X.
-  Conséquence acceptée pour l'instant : en glissant, l'escouade ne garde
+  Conséquence acceptée pour l'instant : en glissant, l'entité ne garde
   que la composante du déplacement parallèle au mur et avance donc plus
   lentement.
 - **Dessin de la carte** : un seul `sf::RectangleShape` repositionné et
@@ -26,15 +35,18 @@
   Les fonctions `dessiner` prennent un `sf::RenderTarget&` (classe de base
   de `sf::RenderWindow`) pour ne pas être couplées à la fenêtre.
 
-## Blocage par des cercles obstacles (étape 32)
+## Déplacement avec glissement et obstacles
 
-`deplacerAvecGlissement` refuse aussi un essai d'axe qui mène à un
-chevauchement avec un cercle obstacle (`deplacementBloque`), en plus
-des murs.
+`deplacerAvecGlissement` est une fonction libre, pas une classe : elle n'a
+aucun état à conserver. Elle est partagée par `Mobile` et `Personnage`,
+qui n'ont ainsi à dépendre ni l'un de l'autre ni d'`Escouade`, et sans
+dupliquer le code. Elle essaie le déplacement axe par axe (voir le
+glissement ci-dessus) et refuse un essai d'axe qui chevauche un mur ou qui
+mène à un chevauchement avec un cercle obstacle (`deplacementBloque`).
 
-- **Blocage, pas séparation ni poussée** : même schéma que pour les
-  murs (essai axe par axe, l'autre axe peut passer : glissement). Rien
-  ne déplace jamais un obstacle.
+- **Blocage, pas séparation ni poussée** : même schéma que pour les murs
+  (essai axe par axe, l'autre axe peut passer : glissement). Rien ne
+  déplace jamais un obstacle.
 - **On ne refuse que ce qui rapproche** : un essai est bloqué si, après,
   les cercles se chevauchent (distance strictement inférieure à la somme
   des rayons) ET que la distance entre centres a diminué. Deux entités
@@ -47,11 +59,11 @@ des murs.
   `getCercle()`.
 - **Une liste de cercles, pas de types** : celui qui bouge reçoit ses
   obstacles en paramètre ; `Deplacement` ne sait pas d'où ils viennent
-  (monstres, plus tard personnages). Aucune dépendance nouvelle entre
-  modules.
+  (monstres ou personnages). Aucune dépendance entre modules. Qui reçoit
+  quelle liste est décrit dans `docs/combat.md`.
 - **Limites connues** : parcours de toutes les paires sans structure
-  d'accélération ; le A* ignore les entités, donc un monstre bloqué ne
-  contourne pas, il glisse si l'angle le permet, sinon il attend.
+  d'accélération ; le A* ignore les entités, donc une entité bloquée ne
+  contourne pas, elle glisse si l'angle le permet, sinon elle attend.
 
 ## Plan texte et validation
 

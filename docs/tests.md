@@ -67,21 +67,21 @@
   `estVivant` couvrent le cas d'un coup qui dépasse le reste des points
   de vie et celui d'un coup supplémentaire une fois déjà mort ; `getId`
   vérifié sur deux monstres créés avec des identifiants différents, qui
-  renvoient chacun le leur (étape 18). Le branchement dans `main.cpp`
+  renvoient chacun le leur. Le branchement dans `main.cpp`
   (verrouillage de cible par identifiant, vecteur de monstres,
   `std::erase_if`, contour sur la cible, riposte) n'est pas testé —
   tout se passe dans `main.cpp`, hors de portée de `tests/`.
-  - **`frapper` (étape 20)** : deux cas (dégâts à portée avec la valeur
+  - **`frapper`** : deux cas (dégâts à portée avec la valeur
     du monstre — 10 —, 0 hors de portée) et un troisième qui prouve que
     `mettreAJour` avance bien la recharge de `m_attaque` (dégâts de
     nouveau après une durée simulée généreuse). **Noms de `TEST_CASE`
     distincts de ceux de `test_Personnage.cpp`** (préfixés `Monstre.`) :
     Catch2 exige des noms de cas de test uniques dans tout l'exécutable
     `tests`, pas seulement dans un fichier.
-  - **`mettreAJour` : détection, arrêt à portée (étape 24)** : depuis
+  - **`mettreAJour` : détection, arrêt à portée** : depuis
     que `Monstre` se déplace par son propre `Mobile`, la fonction
     d'aide `ecoulerTemps(monstre, duree, cible, carte)` prend en plus une
-    cible (`std::optional<Cercle>` depuis l'étape 30, vide = aucune ;
+    cible (`std::optional<Cercle>`, vide = aucune ;
     les tests y passent un point de rayon nul, `pointCible`) et une
     `TileMap` (carte dégagée dédiée, `carteDegagee()`, même principe que
     pour `Mobile`/`Escouade`) — des résultats (le centre du monstre),
@@ -89,10 +89,10 @@
     rayon de détection (200 px) rapproche le monstre ; une cible hors de
     ce rayon, ou son absence, le laisse immobile ; une durée généreuse
     face à une cible dans le rayon l'amène à portée d'attaque sans
-    l'atteindre — à 30 px au plus de son centre depuis l'étape 30
+    l'atteindre — à 30 px au plus de son centre
     (portée de 15 px bord à bord + rayon du monstre de 15 px, la cible
     étant un point).
-  - **Territoire et retour au poste (étape 25)** : `carteLongue()`,
+  - **Territoire et retour au poste** : `carteLongue()`,
     une carte dégagée plus large que `carteDegagee()`, dédiée aux cas
     où une cible ou un trajet de retour dépasse les 400 px du
     territoire. Toujours des résultats (le centre du monstre, comparé
@@ -108,7 +108,7 @@
     quand même) ; une cible replacée dans le territoire et proche du
     monstre pendant le retour relance la poursuite (la distance entre
     les deux diminue de nouveau).
-- **Cibles ponctuelles ou de la taille d'un monstre (étape 30)** :
+- **Cibles ponctuelles ou de la taille d'un monstre** :
   depuis que la portée se mesure entre deux `Cercle`, les tests
   d'`Attaque`, de `Personnage` et de `Monstre` donnent leurs cibles
   comme des cercles de rayon nul (fonction d'aide `pointCible`, ou
@@ -118,15 +118,15 @@
   cible de rayon 15 (`cibleMonstre`), comme le monstre que `main.cpp`
   passe réellement : avec un point, la géométrie de la formation
   empêche les mêlées (portée 10 px) d'arriver jamais à portée (voir
-  `docs/formation.md`, étape 30), et ces tests ne décriraient plus une
+  `docs/formation.md`), et ces tests ne décriraient plus une
   situation possible en jeu.
-- **`Cercle` (`test_Cercle.cpp`, étape 30)** : `distanceBordABord` sur
+- **`Cercle` (`test_Cercle.cpp`)** : `distanceBordABord` sur
   deux cercles séparés, qui se touchent (0), qui se chevauchent (0, pas
   une valeur négative) et de rayons différents. Valeurs choisies pour
   être exactes en virgule flottante (comparaison `==` sans tolérance).
   `getCercle` est testé dans `test_Personnage.cpp` (rayon 10) et
   `test_Monstre.cpp` (rayon 15).
-- **`Personnage` (`test_Personnage.cpp`, étape 17)** :
+- **`Personnage` (`test_Personnage.cpp`)** :
   - `estAPortee` : point proche à portée, point lointain hors portée,
     distance exactement égale à la portée (cas limite, `<=`).
   - `frapper` : renvoie les dégâts à portée ; 0 hors portée ; 0 au
@@ -141,11 +141,11 @@
     centre du personnage comme cible (il reste immobile, seule la
     recharge évolue), sur un petit plan dégagé dédié — même principe
     que `simuler` pour `Escouade`.
-  - **Points de vie (étape 20)** : `estVivant` à la création, encore
+  - **Points de vie** : `estVivant` à la création, encore
     vivant après 80 dégâts, mort après 100, mort après un coup qui
     dépasse le reste — mêmes quatre cas que `Monstre`. `getCentre`
     vérifié directement sur le centre donné au constructeur.
-  - **Un mort ne bouge plus (étape 26)** : `recevoirDegats(100)` puis
+  - **Un mort ne bouge plus** : `recevoirDegats(100)` puis
     `ecoulerTemps` avec une cible lointaine pendant une durée
     généreuse ; le centre reste strictement égal (`==`, pas de
     tolérance nécessaire puisqu'aucun mouvement n'a lieu) à celui
@@ -163,11 +163,10 @@
     une durée généreuse, le total des dégâts cumulés est `> 0`, mais
     l'escouade ne finit pas sur la cible (elle s'arrête à portée).
   - Cible déjà à portée des 4 personnages dès le départ : le premier
-    appel renvoie 20 (4 × 5) et l'escouade ne bouge pas. Depuis
-    l'étape 30, cette cible est placée entre les deux mêlées (et non
+    appel renvoie 20 (4 × 5) et l'escouade ne bouge pas. Cette cible est placée entre les deux mêlées (et non
     plus au centre de l'escouade, à 35 px de chacun d'eux), pour que
     leur portée de 10 px bord à bord soit atteinte.
-  - **Les morts sont ignorés pour décider de l'arrêt (étape 26)** :
+  - **Les morts sont ignorés pour décider de l'arrêt** :
     `recevoirDegats` tue le personnage le plus proche d'un point
     lointain, l'escouade se déplace pour le laisser loin derrière
     (lui ne bouge plus), puis `attaquer` est appelée avec une cible à
@@ -176,7 +175,7 @@
     pas bouger l'escouade. Sans ce filtre, le mort resté loin derrière
     empêcherait indéfiniment la condition « tous à portée » de devenir
     vraie.
-- **`Escouade::personnageLePlusProche` (étape 20)** : test par
+- **`Escouade::personnageLePlusProche`** : test par
   propriété plutôt que par position de formation exacte, comme les
   autres tests d'`Escouade` — pour un point lointain, la distance entre
   le centre renvoyé et ce point est strictement inférieure à la
@@ -185,7 +184,7 @@
   centre de l'escouade lui-même, quelle que soit l'orientation exacte
   de la formation).
 - **`Escouade::recevoirDegats`, observé via `personnageLePlusProche`
-  (étape 21)** : `recevoirDegats` n'a pas d'accesseur dédié, mais son
+ ** : `recevoirDegats` n'a pas d'accesseur dédié, mais son
   effet devient visible dès que les dégâts tuent un personnage — le
   filtre des morts dans `indicePersonnageLePlusProche` change alors ce
   que `personnageLePlusProche` renvoie. Trois cas : des dégâts
@@ -194,17 +193,17 @@
   tuer les 4 rend `personnageLePlusProche` vide (`std::optional`), y
   compris après un coup supplémentaire sur une escouade déjà entièrement
   morte.
-- **`Escouade::estVivante` (étape 26)** : trois cas, calqués sur ceux
+- **`Escouade::estVivante`** : trois cas, calqués sur ceux
   de `personnageLePlusProche` ci-dessus (même point lointain, mêmes
   dégâts) — vraie à la création, encore vraie après la mort d'un seul
   personnage, fausse une fois les 4 morts.
-- **`Escouade::cerclesDesVivants` (étape 33)** : trois cas, même point
+- **`Escouade::cerclesDesVivants`** : trois cas, même point
   lointain et mêmes dégâts que ci-dessus — 4 cercles à la création, 3
   après une mort (le cercle du mort, repéré avant par
   `personnageLePlusProche`, n'y figure plus), liste vide une fois les 4
   morts. Le branchement dans `main.cpp` n'est pas testé (vérifié
   visuellement).
-- **`Attaque` (`test_Attaque.cpp`, étape 22)** : couvre les six cas de
+- **`Attaque` (`test_Attaque.cpp`)** : couvre les six cas de
   recharge/portée en un seul endroit, plutôt que dupliqués dans
   `test_Personnage.cpp` et `test_Monstre.cpp` — dégâts à portée,
   0 hors de portée, distance exactement égale à la portée (cas limite,
@@ -216,7 +215,7 @@
   recharge. `test_Personnage.cpp` et `test_Monstre.cpp` ne gardent que
   les cas qui prouvent leur propre branchement (voir plus haut), pas
   ces six cas génériques.
-- **Skill (étape 31)** : chaque `Personnage` des tests existants reçoit
+- **Skill** : chaque `Personnage` des tests existants reçoit
   `std::nullopt` comme skill (paramètre sans valeur par défaut).
   - `test_Attaque.cpp` : `relancerRecharge` empêche de frapper avant une
     recharge complète, même sur une attaque jamais utilisée ;
@@ -237,7 +236,7 @@
     mêlées, à portée de chacun — refusé sans verrou ; avec verrou, 25
     et non 50 (un seul personnage a un skill) ; 0 hors de portée ; 0 au
     second appel immédiat.
-- **Obstacles (étape 32)** : `test_Deplacement.cpp` couvre
+- **Obstacles** : `test_Deplacement.cpp` couvre
   `deplacementBloque` (aucun obstacle, entrée dans un obstacle, contact
   exact, chevauchement existant en s'éloignant puis en se rapprochant,
   un obstacle bloquant parmi plusieurs) et `deplacerAvecGlissement` avec
@@ -245,7 +244,7 @@
   les appels existants passent `{}`. `test_Mobile.cpp` : un mobile qui
   va vers un point derrière un obstacle s'arrête au plus à son contact.
   Le blocage entre monstres dans `main.cpp` n'est pas testé (visuel).
-- **Obstacles pour les personnages (étape 34)** : `test_Personnage.cpp` :
+- **Obstacles pour les personnages** : `test_Personnage.cpp` :
   un personnage envoyé vers un point derrière un obstacle s'arrête avant
   d'y entrer ; les appels existants passent `{}`. `test_Escouade.cpp` :
   avec un obstacle sur le trajet, l'ancre le dépasse alors qu'aucun
@@ -253,7 +252,7 @@
   cas on compare la distance entre centres à la somme des rayons, et non
   `distanceBordABord`, qui est bornée à 0 (un `>= 0` serait toujours
   vrai). Le branchement dans `main.cpp` n'est pas testé (visuel).
-- **`Mobile` (`test_Mobile.cpp`, étape 23)** : repris quasiment tel
+- **`Mobile` (`test_Mobile.cpp`)** : repris quasiment tel
   quel des tests d'`Escouade` dont le code a été déplacé (même fonction
   d'aide `simuler(mobile, carte, duree)`, même tolérance
   `verifierPointProche`, mêmes principes — des résultats, pas des
