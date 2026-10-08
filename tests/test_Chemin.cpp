@@ -231,3 +231,64 @@ TEST_CASE("lisserChemin réduit un chemin en escalier qui contourne un mur") {
         ancre = point;
     }
 }
+
+namespace {
+// Salle de 7 x 6 cases de 40 px, avec un pilier en case (3, 3).
+TileMap salleAvecPilier() {
+    return TileMap({"#######",
+                    "#.....#",
+                    "#.....#",
+                    "#..#..#",
+                    "#.....#",
+                    "#######"},
+                   40.0f);
+}
+} // namespace
+
+TEST_CASE("replierVersOrigine renvoie la cible telle quelle si le trajet est libre") {
+    const TileMap carte = salleAvecPilier();
+    const sf::Vector2f origine{60.0f, 60.0f};
+    const sf::Vector2f cible{180.0f, 60.0f};
+
+    REQUIRE(replierVersOrigine(carte, origine, cible, {20.0f, 20.0f}) == cible);
+}
+
+TEST_CASE("replierVersOrigine ramène une cible située dans un mur sur un point libre du segment") {
+    const TileMap carte = salleAvecPilier();
+    const sf::Vector2f origine{60.0f, 60.0f};
+    const sf::Vector2f cible{260.0f, 60.0f}; // dans le mur de la case (6, 1)
+    const sf::Vector2f taille{20.0f, 20.0f};
+
+    const sf::Vector2f resultat = replierVersOrigine(carte, origine, cible, taille);
+
+    REQUIRE(resultat.y == 60.0f);
+    REQUIRE(resultat.x >= origine.x);
+    REQUIRE(resultat.x < cible.x);
+    REQUIRE_FALSE(carte.chevaucheUnMur(sf::FloatRect(resultat - taille / 2.0f, taille)));
+}
+
+TEST_CASE("replierVersOrigine ramène une cible cachée derrière un coin de pilier") {
+    const TileMap carte = salleAvecPilier();
+    const sf::Vector2f origine{60.0f, 60.0f};
+    const sf::Vector2f cible{220.0f, 220.0f}; // case (5, 5), derrière le pilier en diagonale
+    const sf::Vector2f taille{20.0f, 20.0f};
+
+    const sf::Vector2f resultat = replierVersOrigine(carte, origine, cible, taille);
+
+    REQUIRE(resultat != cible);
+    // Le résultat est sur le segment origine-cible (colinéaire, entre les deux).
+    const sf::Vector2f segment = cible - origine;
+    const sf::Vector2f versResultat = resultat - origine;
+    REQUIRE(segment.cross(versResultat) == 0.0f);
+    REQUIRE(versResultat.length() < segment.length());
+    // Le trajet de l'origine au résultat est libre.
+    const sf::FloatRect rectOrigine(origine - taille / 2.0f, taille);
+    REQUIRE(carte.trajetLibre(rectOrigine, versResultat));
+}
+
+TEST_CASE("replierVersOrigine avec origine et cible identiques renvoie l'origine") {
+    const TileMap carte = salleAvecPilier();
+    const sf::Vector2f origine{60.0f, 60.0f};
+
+    REQUIRE(replierVersOrigine(carte, origine, origine, {20.0f, 20.0f}) == origine);
+}

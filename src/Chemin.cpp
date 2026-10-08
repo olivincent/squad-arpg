@@ -36,6 +36,10 @@ int heuristique(sf::Vector2i a, sf::Vector2i b) {
     return std::abs(a.x - b.x) + std::abs(a.y - b.y);
 }
 
+// Nombre de divisions du segment dans la recherche de replierVersOrigine :
+// le point trouvé est précis à 1/2^6 de la longueur du segment.
+constexpr int s_iterationsRepli = 6;
+
 } // namespace
 
 std::vector<sf::Vector2i> trouverChemin(const TileMap& carte, sf::Vector2i depart, sf::Vector2i arrivee) {
@@ -141,4 +145,32 @@ std::vector<sf::Vector2f> lisserChemin(const TileMap& carte, sf::Vector2f depart
     }
 
     return resultat;
+}
+
+sf::Vector2f replierVersOrigine(const TileMap& carte, sf::Vector2f origine, sf::Vector2f cible,
+                                sf::Vector2f taille) {
+    const sf::FloatRect rectOrigine(origine - taille / 2.0f, taille);
+    const sf::Vector2f segment = cible - origine;
+
+    if (carte.trajetLibre(rectOrigine, segment)) {
+        return cible;
+    }
+
+    // Dichotomie sur la fraction du segment : `libre` est une fraction dont
+    // le trajet est libre (0 = l'origine elle-même), `bloque` une fraction
+    // dont le trajet ne l'est pas. Le trajet vers un point plus proche est
+    // un début du trajet vers un point plus lointain, donc si un point est
+    // atteignable, tous les points plus proches le sont aussi.
+    float libre = 0.0f;
+    float bloque = 1.0f;
+    for (int i = 0; i < s_iterationsRepli; ++i) {
+        const float milieu = (libre + bloque) / 2.0f;
+        if (carte.trajetLibre(rectOrigine, segment * milieu)) {
+            libre = milieu;
+        } else {
+            bloque = milieu;
+        }
+    }
+
+    return origine + segment * libre;
 }
