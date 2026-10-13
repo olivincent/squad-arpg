@@ -160,7 +160,7 @@ L'attaque, la portée, le skill et les obstacles sont dans
   `declencherSkill`, avant la délégation : être vivant est l'affaire de
   `Personnage`, pas de l'attaque. Il expose `typeSkill`, `skillEstPret`,
   `skillEstAPortee` et `zoneDuSkill` (cercle centré sur lui, au rayon de
-  zone du skill) pour qu'`Escouade` décide quoi faire du skill.
+  zone du skill), `cercleDePorteeDuSkill` (rayon du personnage + portée du skill, pour la visée) pour qu'`Escouade` décide quoi faire du skill.
 - **Soin** : `recevoirSoin` plafonne au maximum de points de vie et ne
   fait rien sur un mort ; `getPointsDeVie` et `getPointsDeVieMax`
   permettent à `Escouade` de choisir le plus blessé.

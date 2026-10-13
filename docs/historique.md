@@ -1107,3 +1107,30 @@ pas de booléen « attendre le relâchement » : `deplacementContinu` remis à
 **Hors de portée** : lecture de la portée, marche du lanceur vers le
 point, `CiblePoint`, effet visuel à l'impact, HUD, dégâts aux alliés ou
 dans le temps.
+
+### Étape 43 — Portée de lancement du skill de zone, provocation toujours consommée ✅ TERMINÉE
+
+1. [x] Provocation toujours consommée, même sans monstre dans la zone ;
+       tests
+2. [x] `CiblePoint` ajouté au variant `Cible`, cas traité partout où
+       `Cible` est lue (enchaînée)
+3. [x] `declencherSkillDeZone` lit la portée : départ immédiat ou mise en
+       attente avec `CiblePoint` ; tests (enchaînée)
+4. [x] Sort en attente : le lanceur marche, le sort part dans `attaquer`
+       au point fixé ; annulation à la mort du lanceur ; tests (enchaînée)
+5. [x] `main.cpp` : cercle de portée autour du lanceur pendant la visée
+       (`cercleDePorteeDuSkill`, `getPortee`)
+6. [x] Mise à jour des documents
+
+**Choix** : `Cible` lue par `get_if` (relecture manuelle à chaque nouveau
+cas) ; point fixé au clic mais zone évaluée au départ du sort ; le sort de
+zone n'est pas lié au combat verrouillé (seule la mort du lanceur
+l'annule) ; fonction privée `lancerSkillDeZone` partagée par le départ
+immédiat et le départ après attente.
+
+**Limites connues** : voir `docs/combat.md` (« Portée de lancement du
+skill de zone »).
+
+**Hors de portée** : ligne de vue, activation d'un monstre qui reçoit des
+dégâts, plusieurs skills en attente, annulation manuelle, couleur de la
+prévisualisation selon la portée, effet visuel à l'impact.

@@ -284,7 +284,8 @@ personnages sont dans `docs/formation.md`, le monstre dans
   `declencherSkill` le traite avant `choisirCible` : tous les monstres de
   `monstresVus` touchés par la zone (bord à bord 0) sont provoqués, dans l'image de
   l'appui (jamais de mise en attente ni de marche). Aucun monstre dans le
-  rayon : appui refusé, sans recharge. Un seul déclenchement du `Skill`
+  rayon : elle part quand même et consomme sa recharge (étape 43, comme
+  le skill de zone). Un seul déclenchement du `Skill`
   pour la recharge, quel que soit le nombre de monstres. Aucun dégât :
   liste de coups vide. Les refus habituels s'appliquent (lanceur mort,
   recharge, skill en attente) et la recharge de l'attaque de base du
@@ -335,29 +336,60 @@ personnages sont dans `docs/formation.md`, le monstre dans
 
 - **Quatrième `TypeSkill`**, `Zone`, pour le personnage de la place 4
   (tireur arrière-droit) : 15 dégâts (la puissance), recharge 8 s, zone
-  60 px, portée 250 px (valeurs dans `Escouade.cpp`). **La portée n'est
-  pas lue à cette étape** : on peut viser n'importe où.
+  60 px, portée 250 px (valeurs dans `Escouade.cpp`). La portée de
+  lancement est lue depuis l'étape 43 (voir « Portée de lancement »).
 - **Lancer à un point** : `Escouade::declencherSkillDeZone(place, point,
   monstres)`, distincte de `declencherSkill` qui n'a pas de point et
-  refuse un skill `Zone` (`choisirCible` renvoie aussi vide). Pas de cas
-  `CiblePoint` dans `Cible` : la fonction reçoit le point directement.
+  refuse un skill `Zone` (`choisirCible` renvoie aussi vide). La
+  fonction reçoit le point directement ; `CiblePoint` n'existe que pour
+  l'attente (étape 43).
   Chaque monstre touché reçoit un `Coup` (dégâts du skill), appliqué par
   `main.cpp` comme les autres. Le sort part et coûte sa recharge même si
   la zone est vide (choix de jeu, contrairement à la provocation) ; il
   relance la recharge de l'attaque de base du lanceur. Refus : place
   invalide, skill non `Zone`, lanceur mort, recharge, skill en attente.
-  Pas de dégâts aux alliés ; le lanceur ne bouge pas, jamais de mise en
-  attente. Comme pour la provocation, le lanceur est sa propre cible pour
-  le déclenchement, donc la portée n'est pas testée.
+  Pas de dégâts aux alliés. Pour le déclenchement du `Skill`, le lanceur
+  est sa propre cible (distance 0) ; la vraie portée est testée avant,
+  contre le point.
 - **`skillEstPret(place)`** permet à `main.cpp` de savoir s'il peut
   entrer en visée sans connaître `Personnage` ; `rayonZoneDuSkill(place)`
   lui donne le rayon du cercle de prévisualisation.
 - **Le mode visée est un état d'interface** (voir
   `docs/boucle-et-entrees.md`) : `Escouade` ne connaît ni la souris ni le
   mode.
-- **Limites connues** : portée de lancement ignorée, pas de marche du
-  lanceur vers le point (étape suivante) ; pas d'effet visuel à l'impact,
-  de HUD ni d'icône ; pas de dégâts aux alliés ni dans le temps.
+- **Limites connues** : le sort traverse les murs (pas de ligne de vue) ;
+  pas d'effet visuel à l'impact, de HUD ni d'icône ; pas de dégâts aux
+  alliés ni dans le temps.
+
+## Portée de lancement du skill de zone (étape 43)
+
+- **Mesure** : distance bord à bord entre le cercle du lanceur et un
+  `Cercle` de rayon 0 centré sur le point (`Personnage::skillEstAPortee`,
+  donc `Attaque::estAPortee`), comme les autres skills.
+- **À portée** : le sort part dans l'image du clic. **Hors portée** :
+  `m_skillEnAttente` reçoit `CiblePoint { point }` (point fixé au clic),
+  sans coup ni recharge, et le lanceur marche vers le point (même
+  déplacement que les autres skills en attente, `avancerSkillEnAttente`).
+- **Départ** : au début de `attaquer`, avant l'approche du verrou et les
+  attaques de base : dès que le lanceur vivant est à portée du point, le
+  sort part (`lancerSkillDeZone`, partagée avec le départ immédiat) et ses
+  coups s'ajoutent à la liste renvoyée. La zone est évaluée à ce moment,
+  sur `monstres` à jour, pas au moment du clic.
+- **Annulation** : seulement par la mort du lanceur, sans recharge. Ni le
+  verrou, ni un clic, ni un ordre de déplacement n'annulent un
+  `CiblePoint` : `verrouiller`/`deverrouiller` n'annulent que les
+  `CibleMonstre`. Un seul skill en attente pour toute l'escouade : un
+  autre skill (ou un autre lancer de zone) est refusé pendant ce temps.
+- **`Cible` est lue par `get_if`/`holds_alternative`, pas `std::visit`** :
+  le compilateur ne signale pas un cas oublié. À chaque nouveau cas du
+  variant, relire `declencherSkill`, `avancerSkillEnAttente`, `attaquer`,
+  `verrouiller` et `deverrouiller`.
+- **Visée** : `Escouade::cercleDePorteeDuSkill(place)` donne à `main.cpp`
+  le cercle de portée (centre du lanceur, rayon du lanceur + portée).
+- **Limites** : le lanceur marche en ligne droite ou par A* comme les
+  autres personnages (bloqué par les monstres) ; si le point est
+  inaccessible il ne l'atteint peut-être jamais, et le sort reste en
+  attente jusqu'à sa mort.
 
 ## Circuit des dégâts
 

@@ -151,7 +151,12 @@ ne se connaissent pas.
   booléen de plus.
 - **Visuel** : un `sf::CircleShape` (contour jaune, sans remplissage, au
   rayon exact de la zone, origine au centre) est créé dans la boucle de
-  dessin sous le curseur, en coordonnées du monde. Rien à l'impact.
+  dessin sous le curseur, en coordonnées du monde. Depuis l'étape 43, un
+  second cercle (contour blanc) montre la portée de lancement autour du
+  lanceur (`cercleDePorteeDuSkill`). Rien à l'impact.
+- **Portée (étape 43)** : le clic lance toujours le sort et sort de la
+  visée ; hors portée, `Escouade` met le sort en attente et le lanceur
+  marche (voir `docs/combat.md`). `main.cpp` n'a rien d'autre à faire.
 - **Touches 1 à 3** restent actives pendant la visée (non spécifié).
 
 ## Défaite de l'escouade
