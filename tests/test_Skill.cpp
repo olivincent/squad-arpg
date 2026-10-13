@@ -27,38 +27,48 @@ Cercle point(sf::Vector2f centre) {
 // Origine en (100, 100), portée 80 px, puissance 25, recharge 5 s.
 
 TEST_CASE("Skill.getType renvoie le type donné au constructeur") {
-    Skill degats(TypeSkill::Degats, Attaque(80.0f, 25, 5.0f));
-    Skill soin(TypeSkill::Soin, Attaque(80.0f, 25, 5.0f));
+    Skill degats(TypeSkill::Degats, Attaque(80.0f, 25, 5.0f), 0.0f);
+    Skill soin(TypeSkill::Soin, Attaque(80.0f, 25, 5.0f), 0.0f);
 
     REQUIRE(degats.getType() == TypeSkill::Degats);
     REQUIRE(soin.getType() == TypeSkill::Soin);
 }
 
-TEST_CASE("Skill de provocation : la puissance est la durée, avec portée et recharge") {
-    Skill provocation(TypeSkill::Provocation, Attaque(150.0f, 4, 10.0f));
+TEST_CASE("Skill.getRayonZone renvoie le rayon donne au constructeur, distinct de la portee") {
+    Skill zone(TypeSkill::Degats, Attaque(250.0f, 15, 8.0f), 60.0f);
+    Skill monoCible(TypeSkill::Soin, Attaque(40.0f, 30, 8.0f), 0.0f);
+
+    REQUIRE(zone.getRayonZone() == 60.0f);
+    REQUIRE(zone.estAPortee(point({100.0f, 100.0f}), point({300.0f, 100.0f})));
+    REQUIRE(monoCible.getRayonZone() == 0.0f);
+}
+
+TEST_CASE("Skill de provocation : la puissance est la durée, avec zone et recharge") {
+    Skill provocation(TypeSkill::Provocation, Attaque(0.0f, 4, 10.0f), 150.0f);
     const Cercle origine = point({100.0f, 100.0f});
 
     REQUIRE(provocation.getType() == TypeSkill::Provocation);
-    REQUIRE(provocation.estAPortee(origine, point({200.0f, 100.0f})));
-    REQUIRE_FALSE(provocation.estAPortee(origine, point({300.0f, 100.0f})));
-    REQUIRE(provocation.declencher(origine, point({200.0f, 100.0f})) == 4);
+    REQUIRE(provocation.getRayonZone() == 150.0f);
+    REQUIRE(provocation.estAPortee(origine, origine));
+    REQUIRE_FALSE(provocation.estAPortee(origine, point({200.0f, 100.0f})));
+    REQUIRE(provocation.declencher(origine, origine) == 4);
     REQUIRE(provocation.getProgressionRecharge() == 0.0f);
 }
 
 TEST_CASE("Skill.declencher renvoie la puissance pour une cible à portée") {
-    Skill skill(TypeSkill::Degats, Attaque(80.0f, 25, 5.0f));
+    Skill skill(TypeSkill::Degats, Attaque(80.0f, 25, 5.0f), 0.0f);
 
     REQUIRE(skill.declencher(point({100.0f, 100.0f}), point({150.0f, 100.0f})) == 25);
 }
 
 TEST_CASE("Skill.declencher renvoie 0 pour une cible hors de portée") {
-    Skill skill(TypeSkill::Degats, Attaque(80.0f, 25, 5.0f));
+    Skill skill(TypeSkill::Degats, Attaque(80.0f, 25, 5.0f), 0.0f);
 
     REQUIRE(skill.declencher(point({100.0f, 100.0f}), point({300.0f, 100.0f})) == 0);
 }
 
 TEST_CASE("Skill.declencher renvoie 0 pendant la recharge, puis de nouveau la puissance") {
-    Skill skill(TypeSkill::Soin, Attaque(80.0f, 25, 5.0f));
+    Skill skill(TypeSkill::Soin, Attaque(80.0f, 25, 5.0f), 0.0f);
     const Cercle origine = point({100.0f, 100.0f});
     const Cercle cible = point({150.0f, 100.0f});
 
@@ -73,7 +83,7 @@ TEST_CASE("Skill.declencher renvoie 0 pendant la recharge, puis de nouveau la pu
 }
 
 TEST_CASE("Skill.getProgressionRecharge vaut 1 prêt, 0 juste après le déclenchement") {
-    Skill skill(TypeSkill::Degats, Attaque(80.0f, 25, 5.0f));
+    Skill skill(TypeSkill::Degats, Attaque(80.0f, 25, 5.0f), 0.0f);
 
     REQUIRE(skill.getProgressionRecharge() == 1.0f);
 

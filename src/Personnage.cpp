@@ -124,6 +124,10 @@ bool Personnage::skillEstAPortee(Cercle cible) const {
     return m_skill.has_value() && m_skill->estAPortee(getCercle(), cible);
 }
 
+Cercle Personnage::zoneDuSkill() const {
+    return {getCentre(), m_skill.has_value() ? m_skill->getRayonZone() : 0.0f};
+}
+
 int Personnage::declencherSkill(Cercle cible) {
     if (!m_skill.has_value() || !estVivant()) {
         return 0;

@@ -1425,6 +1425,21 @@ TEST_CASE("Provocation : provoque tous les monstres dans le rayon, sans degats")
     REQUIRE(provocations[0].tempsRestant == 4.0f);
 }
 
+TEST_CASE("Provocation : la zone se mesure depuis le centre du lanceur, bord du monstre compris") {
+    Escouade escouade({200.0f, 200.0f});
+    // Centre du lanceur (235, 235), rayon de zone 150, rayon du monstre 15 :
+    // le monstre est touché jusqu'à 165 px de distance entre centres.
+    const std::vector<MonstreVu> monstres = {
+        MonstreVu{1, cibleMonstre({400.0f, 235.0f})},
+        MonstreVu{2, cibleMonstre({401.0f, 235.0f})},
+    };
+
+    escouade.declencherSkill(2, monstres);
+
+    REQUIRE(escouade.getProvocations().size() == 1);
+    REQUIRE(escouade.getProvocations()[0].id == 1);
+}
+
 TEST_CASE("Provocation : refusee sans monstre dans le rayon, et la recharge reste pleine") {
     Escouade escouade({200.0f, 200.0f});
     const std::vector<MonstreVu> loin = {MonstreVu{1, cibleMonstre({800.0f, 235.0f})}};

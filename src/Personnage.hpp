@@ -22,6 +22,7 @@ public:
     std::optional<TypeSkill> typeSkill() const;
     bool skillEstPret() const;
     bool skillEstAPortee(Cercle cible) const;
+    Cercle zoneDuSkill() const;
     int declencherSkill(Cercle cible);
     void recevoirDegats(int quantite);
     void recevoirSoin(int quantite);

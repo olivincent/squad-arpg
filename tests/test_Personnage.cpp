@@ -150,18 +150,27 @@ TEST_CASE("Un personnage mort ne bouge plus") {
 // Skill : portée 80 px comme l'attaque de base, 25 dégâts, 5 s de recharge.
 
 TEST_CASE("declencherSkill renvoie les degats du skill pour une cible a portee") {
-    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f), Skill(TypeSkill::Degats, Attaque(80.0f, 25, 5.0f)));
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f), Skill(TypeSkill::Degats, Attaque(80.0f, 25, 5.0f), 0.0f));
 
     REQUIRE(personnage.declencherSkill(pointCible({150.0f, 100.0f})) == 25);
 }
 
 TEST_CASE("Un personnage avec un skill de provocation en expose le type et le declenche") {
-    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(20.0f, 5, 0.5f), Skill(TypeSkill::Provocation, Attaque(150.0f, 4, 10.0f)));
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(20.0f, 5, 0.5f), Skill(TypeSkill::Provocation, Attaque(0.0f, 4, 10.0f), 150.0f));
 
     REQUIRE(personnage.typeSkill() == TypeSkill::Provocation);
     REQUIRE(personnage.skillEstPret());
-    REQUIRE(personnage.declencherSkill(pointCible({200.0f, 100.0f})) == 4);
+    REQUIRE(personnage.declencherSkill(personnage.getCercle()) == 4);
     REQUIRE_FALSE(personnage.skillEstPret());
+}
+
+TEST_CASE("zoneDuSkill est centree sur le personnage, au rayon de zone du skill") {
+    Personnage provocateur({100.0f, 100.0f}, sf::Color::White, Attaque(20.0f, 5, 0.5f), Skill(TypeSkill::Provocation, Attaque(0.0f, 4, 10.0f), 150.0f));
+    Personnage sansSkill({100.0f, 100.0f}, sf::Color::White, Attaque(20.0f, 5, 0.5f), std::nullopt);
+
+    REQUIRE(provocateur.zoneDuSkill().centre == provocateur.getCentre());
+    REQUIRE(provocateur.zoneDuSkill().rayon == 150.0f);
+    REQUIRE(sansSkill.zoneDuSkill().rayon == 0.0f);
 }
 
 TEST_CASE("declencherSkill renvoie 0 pour un personnage sans skill, sans toucher a l'attaque de base") {
@@ -173,7 +182,7 @@ TEST_CASE("declencherSkill renvoie 0 pour un personnage sans skill, sans toucher
 }
 
 TEST_CASE("declencherSkill renvoie 0 pour un personnage mort") {
-    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f), Skill(TypeSkill::Degats, Attaque(80.0f, 25, 5.0f)));
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f), Skill(TypeSkill::Degats, Attaque(80.0f, 25, 5.0f), 0.0f));
 
     personnage.recevoirDegats(100);
 
@@ -181,14 +190,14 @@ TEST_CASE("declencherSkill renvoie 0 pour un personnage mort") {
 }
 
 TEST_CASE("declencherSkill renvoie 0 hors de portee, sans toucher a l'attaque de base") {
-    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f), Skill(TypeSkill::Degats, Attaque(80.0f, 25, 5.0f)));
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f), Skill(TypeSkill::Degats, Attaque(80.0f, 25, 5.0f), 0.0f));
 
     REQUIRE(personnage.declencherSkill(pointCible({300.0f, 100.0f})) == 0);
     REQUIRE(personnage.frapper(pointCible({150.0f, 100.0f})) == 5);
 }
 
 TEST_CASE("declencherSkill renvoie 0 pendant sa recharge, puis de nouveau les degats une fois ecoulee") {
-    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f), Skill(TypeSkill::Degats, Attaque(80.0f, 25, 5.0f)));
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f), Skill(TypeSkill::Degats, Attaque(80.0f, 25, 5.0f), 0.0f));
     const TileMap carte = carteDegagee();
     const Cercle cible = pointCible({150.0f, 100.0f});
 
@@ -201,7 +210,7 @@ TEST_CASE("declencherSkill renvoie 0 pendant sa recharge, puis de nouveau les de
 }
 
 TEST_CASE("Apres un skill reussi, l'attaque de base attend une recharge complete") {
-    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f), Skill(TypeSkill::Degats, Attaque(80.0f, 25, 5.0f)));
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f), Skill(TypeSkill::Degats, Attaque(80.0f, 25, 5.0f), 0.0f));
     const TileMap carte = carteDegagee();
     const Cercle cible = pointCible({150.0f, 100.0f});
 

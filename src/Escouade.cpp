@@ -20,7 +20,7 @@ constexpr float s_rechargeSkill = 5.0f;   // en secondes
 constexpr float s_porteeSoin = 40.0f;     // bord à bord
 constexpr int s_puissanceSoin = 30;
 constexpr float s_rechargeSoin = 8.0f;    // en secondes
-constexpr float s_rayonProvocation = 150.0f;  // bord à bord
+constexpr float s_rayonProvocation = 150.0f;  // rayon de zone, depuis le centre du provocateur
 constexpr int s_dureeProvocation = 4;         // en secondes (la puissance de ce skill)
 constexpr float s_rechargeProvocation = 10.0f;  // en secondes
 constexpr float s_laisseAgresseur = 100.0f;      // en pixels, centre à centre, mesurée depuis la place de formation
@@ -35,11 +35,11 @@ Escouade::Escouade(sf::Vector2f positionDepart)
       m_vitesseRotation(360.0f),
       m_personnages({
           Personnage(placePersonnage(0), s_couleurMelee, Attaque(s_porteeMelee, 5, 0.5f),
-                     Skill(TypeSkill::Degats, Attaque(s_porteeMelee, s_degatsSkill, s_rechargeSkill))),
+                     Skill(TypeSkill::Degats, Attaque(s_porteeMelee, s_degatsSkill, s_rechargeSkill), 0.0f)),
           Personnage(placePersonnage(1), s_couleurMelee, Attaque(s_porteeMelee, 5, 0.5f),
-                     Skill(TypeSkill::Provocation, Attaque(s_rayonProvocation, s_dureeProvocation, s_rechargeProvocation))),
+                     Skill(TypeSkill::Provocation, Attaque(0.0f, s_dureeProvocation, s_rechargeProvocation), s_rayonProvocation)),
           Personnage(placePersonnage(2), s_couleurTireur, Attaque(s_porteeTireur, 5, 0.5f),
-                     Skill(TypeSkill::Soin, Attaque(s_porteeSoin, s_puissanceSoin, s_rechargeSoin))),
+                     Skill(TypeSkill::Soin, Attaque(s_porteeSoin, s_puissanceSoin, s_rechargeSoin), 0.0f)),
           Personnage(placePersonnage(3), s_couleurTireur, Attaque(s_porteeTireur, 5, 0.5f), std::nullopt),
       }),
       m_cibleVerrouillee(),
@@ -161,20 +161,23 @@ std::vector<Coup> Escouade::declencherSkill(std::size_t place, const std::vector
         return {};
     }
 
-    // Provocation : skill de zone, sans cible. Il part dans l'image de
-    // l'appui sur tous les monstres dans le rayon, ou pas du tout.
+    // Provocation : skill de zone centrée sur le lanceur, sans cible. Il
+    // part dans l'image de l'appui sur tous les monstres touchés par la
+    // zone, ou pas du tout.
     if (*type == TypeSkill::Provocation) {
+        const Cercle zone = lanceur.zoneDuSkill();
         std::vector<MonstreVu> touches;
         for (const MonstreVu& monstre : monstres) {
-            if (lanceur.skillEstAPortee(monstre.cercle)) {
+            if (distanceBordABord(zone, monstre.cercle) == 0.0f) {
                 touches.push_back(monstre);
             }
         }
         if (touches.empty()) {
             return {};
         }
-        // Un seul déclenchement pour la recharge ; la puissance est la durée.
-        const int duree = lanceur.declencherSkill(touches[0].cercle);
+        // Un seul déclenchement pour la recharge ; la puissance est la
+        // durée. La portée est nulle : le lanceur est sa propre cible.
+        const int duree = lanceur.declencherSkill(lanceur.getCercle());
         for (const MonstreVu& monstre : touches) {
             provoquer(monstre.id, place, static_cast<float>(duree));
         }

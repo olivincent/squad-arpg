@@ -1,9 +1,10 @@
 // ./src/Skill.cpp
 #include "Skill.hpp"
 
-Skill::Skill(TypeSkill type, Attaque attaque)
+Skill::Skill(TypeSkill type, Attaque attaque, float rayonZone)
     : m_type(type),
-      m_attaque(attaque)
+      m_attaque(attaque),
+      m_rayonZone(rayonZone)
 {
 }
 
@@ -25,4 +26,8 @@ float Skill::getProgressionRecharge() const {
 
 TypeSkill Skill::getType() const {
     return m_type;
+}
+
+float Skill::getRayonZone() const {
+    return m_rayonZone;
 }
