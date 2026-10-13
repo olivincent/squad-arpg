@@ -9,6 +9,7 @@
 #include "Attaque.hpp"
 #include "Autodefense.hpp"
 #include "Chemin.hpp"
+#include "TileMap.hpp"
 
 namespace {
 const sf::Color s_couleurMelee = sf::Color::Red;
@@ -103,9 +104,8 @@ std::vector<Coup> Escouade::attaquer(const std::vector<MonstreVu>& monstres, con
     if (m_skillEnAttente.has_value()) {
         if (const CiblePoint* point = std::get_if<CiblePoint>(&m_skillEnAttente->cible)) {
             const std::size_t place = m_skillEnAttente->place;
-            if (m_personnages[place - 1].estVivant()
-                && m_personnages[place - 1].skillEstAPortee(Cercle{point->point, 0.0f})) {
-                const std::vector<Coup> coupsDeZone = lancerSkillDeZone(place, point->point, monstres);
+            if (m_personnages[place - 1].estVivant() && peutLancerAuPoint(place, point->point, carte)) {
+                const std::vector<Coup> coupsDeZone = lancerSkillDeZone(place, point->point, monstres, carte);
                 coups.insert(coups.end(), coupsDeZone.begin(), coupsDeZone.end());
                 m_skillEnAttente = std::nullopt;
             }
@@ -256,7 +256,13 @@ Cercle Escouade::cercleDePorteeDuSkill(std::size_t place) const {
     return m_personnages[place - 1].cercleDePorteeDuSkill();
 }
 
-std::vector<Coup> Escouade::declencherSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<MonstreVu>& monstres) {
+bool Escouade::peutLancerAuPoint(std::size_t place, sf::Vector2f point, const TileMap& carte) const {
+    const Personnage& lanceur = m_personnages[place - 1];
+    // Le point est un cercle de rayon 0 pour la portée (bord à bord).
+    return lanceur.skillEstAPortee(Cercle{point, 0.0f}) && carte.ligneDeVue(lanceur.getCentre(), point);
+}
+
+std::vector<Coup> Escouade::declencherSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<MonstreVu>& monstres, const TileMap& carte) {
     if (!skillEstPret(place) || m_skillEnAttente.has_value()) {
         return {};
     }
@@ -266,16 +272,22 @@ std::vector<Coup> Escouade::declencherSkillDeZone(std::size_t place, sf::Vector2
         return {};
     }
 
-    // À portée du point (un cercle de rayon 0) : le sort part tout de suite.
-    // Sinon il est mis en attente, et le lanceur marche vers le point.
-    if (lanceur.skillEstAPortee(Cercle{point, 0.0f})) {
-        return lancerSkillDeZone(place, point, monstres);
+    // Un point dans un mur est refusé : ni départ, ni attente, ni recharge.
+    const sf::Vector2i coordCase = carte.caseContenant(point);
+    if (carte.getTile(coordCase.x, coordCase.y) == Tile::Wall) {
+        return {};
+    }
+
+    // À portée du point et en vue : le sort part tout de suite. Sinon il
+    // est mis en attente, et le lanceur marche vers le point.
+    if (peutLancerAuPoint(place, point, carte)) {
+        return lancerSkillDeZone(place, point, monstres, carte);
     }
     m_skillEnAttente = SkillEnAttente{place, Cible(CiblePoint{point})};
     return {};
 }
 
-std::vector<Coup> Escouade::lancerSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<MonstreVu>& monstres) {
+std::vector<Coup> Escouade::lancerSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<MonstreVu>& monstres, const TileMap& carte) {
     Personnage& lanceur = m_personnages[place - 1];
 
     // Un seul déclenchement pour la recharge ; la puissance est le nombre
@@ -285,7 +297,8 @@ std::vector<Coup> Escouade::lancerSkillDeZone(std::size_t place, sf::Vector2f po
 
     std::vector<Coup> coups;
     for (const MonstreVu& monstre : monstres) {
-        if (distanceBordABord(zone, monstre.cercle) == 0.0f) {
+        // Dans la zone, et en vue du point d'impact (centre à centre) : le sort ne traverse pas les murs.
+        if (distanceBordABord(zone, monstre.cercle) == 0.0f && carte.ligneDeVue(point, monstre.cercle.centre)) {
             coups.push_back({monstre.id, degats});
         }
     }

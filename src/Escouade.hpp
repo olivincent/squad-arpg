@@ -40,7 +40,7 @@ public:
     bool skillEstPret(std::size_t place) const;
     float rayonZoneDuSkill(std::size_t place) const;
     Cercle cercleDePorteeDuSkill(std::size_t place) const;
-    std::vector<Coup> declencherSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<MonstreVu>& monstres);
+    std::vector<Coup> declencherSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<MonstreVu>& monstres, const TileMap& carte);
     void mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles);
     sf::Vector2f getCentre() const;
     std::optional<Cercle> proieDuMonstre(int idMonstre, sf::Vector2f positionMonstre) const;
@@ -60,7 +60,8 @@ private:
     sf::Vector2f placePersonnage(std::size_t indice) const;
     std::optional<std::size_t> indicePersonnageLePlusProche(sf::Vector2f point) const;
     std::optional<std::size_t> indiceProieDuMonstre(int idMonstre, sf::Vector2f positionMonstre) const;
-    std::vector<Coup> lancerSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<MonstreVu>& monstres);
+    bool peutLancerAuPoint(std::size_t place, sf::Vector2f point, const TileMap& carte) const;
+    std::vector<Coup> lancerSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<MonstreVu>& monstres, const TileMap& carte);
     void soigner(std::size_t placeLanceur, std::size_t placeAllie);
     std::optional<sf::Vector2f> avancerSkillEnAttente();
     std::optional<sf::Vector2f> pointVersAgresseur(std::size_t indice) const;

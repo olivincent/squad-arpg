@@ -137,3 +137,15 @@ bool TileMap::trajetLibre(const sf::FloatRect& rect, sf::Vector2f deplacement) c
 
     return true;
 }
+
+namespace {
+// Côté du petit carré balayé par ligneDeVue. Pas nul : un rectangle vide ne
+// chevauche jamais rien (toucher n'est pas chevaucher).
+constexpr float COTE_LIGNE_DE_VUE = 2.0f;
+}
+
+bool TileMap::ligneDeVue(sf::Vector2f a, sf::Vector2f b) const {
+    const sf::Vector2f coin(a.x - COTE_LIGNE_DE_VUE / 2.0f, a.y - COTE_LIGNE_DE_VUE / 2.0f);
+    const sf::FloatRect carre(coin, {COTE_LIGNE_DE_VUE, COTE_LIGNE_DE_VUE});
+    return trajetLibre(carre, b - a);
+}

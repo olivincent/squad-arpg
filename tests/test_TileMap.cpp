@@ -481,3 +481,72 @@ TEST_CASE("trajetLibre renvoie faux quand le départ est dans un mur") {
     const sf::FloatRect rect({85.0f, 85.0f}, {10.0f, 10.0f});
     REQUIRE_FALSE(carte.trajetLibre(rect, {40.0f, 40.0f}));
 }
+
+TEST_CASE("ligneDeVue : terrain dégagé") {
+    const std::vector<std::string> plan = {
+        ".....",
+        ".....",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    REQUIRE(carte.ligneDeVue({10.0f, 10.0f}, {190.0f, 110.0f}));
+}
+
+TEST_CASE("ligneDeVue : un mur entre les deux points bloque la vue") {
+    const std::vector<std::string> plan = {
+        ".....",
+        "..#..",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    REQUIRE_FALSE(carte.ligneDeVue({10.0f, 60.0f}, {190.0f, 60.0f}));
+}
+
+TEST_CASE("ligneDeVue : deux points identiques en terrain libre") {
+    const std::vector<std::string> plan = {
+        "...",
+        "...",
+    };
+    TileMap carte(plan, 40.0f);
+
+    REQUIRE(carte.ligneDeVue({50.0f, 50.0f}, {50.0f, 50.0f}));
+}
+
+TEST_CASE("ligneDeVue : le segment par le coin de deux murs en diagonale est bloqué") {
+    // Murs en (2, 1) et (1, 2), qui se touchent au point (80, 80).
+    const std::vector<std::string> plan = {
+        "....",
+        "..#.",
+        ".#..",
+        "....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    REQUIRE_FALSE(carte.ligneDeVue({60.0f, 60.0f}, {100.0f, 100.0f}));
+}
+
+TEST_CASE("ligneDeVue : un segment qui longe un mur sans le traverser est libre") {
+    // Mur en (2, 1) : y dans [40, 80). Le segment horizontal y = 39 passe
+    // 1 px au-dessus du mur.
+    const std::vector<std::string> plan = {
+        ".....",
+        "..#..",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    REQUIRE(carte.ligneDeVue({10.0f, 39.0f}, {190.0f, 39.0f}));
+}
+
+TEST_CASE("ligneDeVue : un point d'arrivée dans un mur n'est pas visible") {
+    const std::vector<std::string> plan = {
+        ".....",
+        "..#..",
+        ".....",
+    };
+    TileMap carte(plan, 40.0f);
+
+    REQUIRE_FALSE(carte.ligneDeVue({10.0f, 60.0f}, {100.0f, 60.0f}));
+}

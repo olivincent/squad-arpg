@@ -166,7 +166,7 @@ int main() {
         // Lancer du skill de zone : sur l'événement d'appui, jamais sur
         // l'état du bouton. Réussi ou refusé, on sort de la visée.
         if (placeEnVisee.has_value() && pointDeLancer.has_value()) {
-            appliquer(escouade.declencherSkillDeZone(*placeEnVisee, *pointDeLancer, monstresVus));
+            appliquer(escouade.declencherSkillDeZone(*placeEnVisee, *pointDeLancer, monstresVus, carte));
             placeEnVisee.reset();
         }
 

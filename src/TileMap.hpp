@@ -20,6 +20,7 @@ public:
     void dessiner(sf::RenderTarget& rendu) const;
     bool chevaucheUnMur(const sf::FloatRect& rect) const;
     bool trajetLibre(const sf::FloatRect& rect, sf::Vector2f deplacement) const;
+    bool ligneDeVue(sf::Vector2f a, sf::Vector2f b) const;
 
 private:
     int indice(int x, int y) const;
