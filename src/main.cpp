@@ -3,30 +3,14 @@
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Mouse.hpp>
-#include <algorithm>
 #include <array>
 #include <iostream>
 #include <optional>
-#include <string>
-#include <vector>
 #include "BarreDeSkills.hpp"
 #include "Cercle.hpp"
-#include "Coup.hpp"
-#include "TileMap.hpp"
-#include "Escouade.hpp"
 #include "EtatSkill.hpp"
-#include "Monstre.hpp"
-#include "MonstreVu.hpp"
-
-namespace {
-// Le monstre portant cet identifiant, nullptr s'il n'est pas dans la liste.
-Monstre* trouverMonstreParId(std::vector<Monstre>& monstres, int id) {
-    const auto it = std::find_if(monstres.begin(), monstres.end(), [&](const Monstre& m) {
-        return m.getId() == id;
-    });
-    return it == monstres.end() ? nullptr : &*it;
-}
-}  // namespace
+#include "Niveau.hpp"
+#include "Partie.hpp"
 
 int main() {
     sf::RenderWindow window(sf::VideoMode({1200, 800}), "Squad-ARPG");
@@ -40,59 +24,7 @@ int main() {
                      "(lancer le jeu depuis le dossier de main.exe)\n";
         return 1;
     }
-    const std::vector<std::string> plan = {
-        "###########################################################",
-        "#.........#..................###########..................#",
-        "#.........#..................###########..................#",
-        "#.........#...............................................#",
-        "#.........#...............................................#",
-        "#.........#.......####....................................#",
-        "#.........#.......####.......###########..................#",
-        "#.........#..................###########..................#",
-        "#............................####################...#######",
-        "#............................#............................#",
-        "#............................#............................#",
-        "#.........#..................#............................#",
-        "#.........#..................#............................#",
-        "#.........#.......####.......#............................#",
-        "#.........#.......####.......#............................#",
-        "#.........#..................#............................#",
-        "#.........#..................#............................#",
-        "#.........#..................#............................#",
-        "#.........#..................#............................#",
-        "##############################################...##########",
-        "##############################################...##########",
-        "#............................######.......................#",
-        "#............................######.......................#",
-        "#.....####...................#............................#",
-        "#.....####...................#............................#",
-        "#.................####.......#............................#",
-        "#.................####.......######.......................#",
-        "#............................######.......................#",
-        "#............................####################...#######",
-        "#............................#............................#",
-        "#............................#............................#",
-        "###########..................#............................#",
-        "#.........#..................#............................#",
-        "#.........#.......####.................###................#",
-        "#.........#.......####.................###................#",
-        "#......................................###.........########",
-        "#............................#............................#",
-        "#............................#............................#",
-        "#.........#..................#............................#",
-        "###########################################################",
-    };
-    TileMap carte(plan, 40.0f);
-    Escouade escouade({100.0f, 100.0f});
-    int prochainId = 1;
-    std::vector<Monstre> monstres = {
-        Monstre({660.0f, 380.0f}, prochainId++),
-        Monstre({500.0f, 580.0f}, prochainId++),
-        Monstre({900.0f, 220.0f}, prochainId++),
-        Monstre({1940.0f, 180.0f}, prochainId++),
-        Monstre({1500.0f, 540.0f}, prochainId++),
-        Monstre({1620.0f, 540.0f}, prochainId++),
-    };
+    Partie partie(creerNiveau());
     bool deplacementContinu = false;
     // Mode visée : état d'interface. Vide = mode normal, sinon la place du
     // lanceur du skill de zone en cours de visée.
@@ -109,7 +41,7 @@ int main() {
         std::optional<std::size_t> placeSkillDemandee;
         std::optional<sf::Vector2f> pointDeLancer;
         // Lanceur mort ou escouade vaincue : on sort de la visée.
-        if (placeEnVisee.has_value() && !escouade.skillEstPret(*placeEnVisee)) {
+        if (placeEnVisee.has_value() && !partie.getEscouade().skillEstPret(*placeEnVisee)) {
             placeEnVisee.reset();
         }
         while (const std::optional event = window.pollEvent()) {
@@ -125,16 +57,11 @@ int main() {
                     } else if (data->button == sf::Mouse::Button::Right) {
                         placeEnVisee.reset();
                     }
-                } else if (data->button == sf::Mouse::Button::Left && escouade.estVivante()) {
-                    const sf::Vector2f clicMonde = window.mapPixelToCoords(data->position);
-                    const auto it = std::find_if(monstres.begin(), monstres.end(), [&](const Monstre& m) {
-                        return m.contient(clicMonde);
-                    });
-                    if (it != monstres.end()) {
-                        escouade.verrouiller(it->getId());
+                } else if (data->button == sf::Mouse::Button::Left) {
+                    const ResultatClic resultat = partie.cliquer(window.mapPixelToCoords(data->position));
+                    if (resultat == ResultatClic::Monstre) {
                         deplacementContinu = false;
-                    } else {
-                        escouade.deverrouiller();
+                    } else if (resultat == ResultatClic::Sol) {
                         deplacementContinu = true;
                     }
                 }
@@ -154,7 +81,7 @@ int main() {
                 } else if (data->scancode == sf::Keyboard::Scan::Num4) {
                     if (placeEnVisee.has_value()) {
                         placeEnVisee.reset();
-                    } else if (escouade.estVivante() && escouade.skillEstPret(4)) {
+                    } else if (partie.getEscouade().estVivante() && partie.getEscouade().skillEstPret(4)) {
                         placeEnVisee = 4;
                         // Le déplacement continu est suspendu : il ne
                         // reprendra qu'à un nouvel appui sur le sol.
@@ -164,95 +91,27 @@ int main() {
             }
         }
 
-        // Monstre verrouillé : nullptr s'il n'y en a pas.
-        Monstre* monstreVerrouille = nullptr;
-        if (const std::optional<int> idCible = escouade.getCibleVerrouillee(); idCible.has_value()) {
-            monstreVerrouille = trouverMonstreParId(monstres, idCible.value());
-            if (monstreVerrouille == nullptr) {
-                escouade.deverrouiller();
-            }
-        }
-
-        std::vector<MonstreVu> monstresVus;
-        for (const Monstre& m : monstres) {
-            monstresVus.push_back({m.getId(), m.getCercle()});
-        }
-        const auto appliquer = [&](const std::vector<Coup>& coups) {
-            for (const Coup& coup : coups) {
-                if (Monstre* touche = trouverMonstreParId(monstres, coup.idMonstre)) {
-                    touche->recevoirDegats(coup.degats);
-                }
-            }
-        };
-
         // Lancer du skill de zone : sur l'événement d'appui, jamais sur
         // l'état du bouton. Réussi ou refusé, on sort de la visée.
         if (placeEnVisee.has_value() && pointDeLancer.has_value()) {
-            appliquer(escouade.declencherSkillDeZone(*placeEnVisee, *pointDeLancer, monstresVus, carte));
+            partie.lancerSkillDeZone(*placeEnVisee, *pointDeLancer);
             placeEnVisee.reset();
         }
-
-        // Le skill passe avant l'attaque de base : s'il part, il relance
-        // la recharge de base de ce personnage, qui ne frappe donc pas une
-        // seconde fois dans la même image. Un soin ne rend aucun dégât.
         if (placeSkillDemandee.has_value()) {
-            appliquer(escouade.declencherSkill(*placeSkillDemandee, monstresVus, carte));
+            partie.demanderSkill(*placeSkillDemandee);
         }
-
-        // Les coups sont demandés à chaque image, verrou ou non : chaque
-        // personnage vivant frappe de lui-même un monstre à sa portée.
-        if (escouade.estVivante()) {
-            appliquer(escouade.attaquer(monstresVus, carte));
-            if (monstreVerrouille != nullptr && !monstreVerrouille->estVivant()) {
-                escouade.deverrouiller();
-            }
+        if (window.hasFocus() && sf::Mouse::isButtonPressed(sf::Mouse::Button::Left) && deplacementContinu) {
+            partie.ordonnerDeplacement(window.mapPixelToCoords(sf::Mouse::getPosition(window)));
         }
+        partie.mettreAJour(dt);
 
-        std::erase_if(monstres, [](const Monstre& m) { return !m.estVivant(); });
-
-        if (window.hasFocus() && sf::Mouse::isButtonPressed(sf::Mouse::Button::Left) && deplacementContinu && escouade.estVivante()) {
-            const sf::Vector2f curseurMonde = window.mapPixelToCoords(sf::Mouse::getPosition(window));
-            escouade.allerVers(curseurMonde, carte);
-        }
-
-        // MISE À JOUR
-        // Les monstres (à leur position de l'image précédente) sont des obstacles pour les personnages.
-        std::vector<Cercle> cerclesMonstres;
-        for (const Monstre& m : monstres) {
-            cerclesMonstres.push_back(m.getCercle());
-        }
-        escouade.mettreAJour(dt, carte, cerclesMonstres);
-
-        // Les personnages vivants (à leur position à jour) sont des obstacles pour tous les monstres.
-        const std::vector<Cercle> cerclesPersonnages = escouade.cerclesDesVivants();
-
-        for (Monstre& m : monstres) {
-            // Les autres monstres, à leur position courante, sont aussi des obstacles.
-            std::vector<Cercle> obstacles = cerclesPersonnages;
-            for (const Monstre& autre : monstres) {
-                if (autre.getId() != m.getId()) {
-                    obstacles.push_back(autre.getCercle());
-                }
-            }
-            const auto cible = escouade.proieDuMonstre(m.getId(), m.getCentre());
-            m.mettreAJour(dt, cible, carte, obstacles);
-            const sf::Vector2f origine = m.getCentre();
-            if (cible) {
-                escouade.recevoirDegats(m.getId(), origine, m.frapper(*cible));
-            }
-        }
-
-        camera.setCenter(escouade.getCentre());
+        camera.setCenter(partie.getEscouade().getCentre());
         window.setView(camera);
         window.clear();
-        carte.dessiner(window);
-        for (const Monstre& m : monstres) {
-            m.dessiner(window, escouade.getCibleVerrouillee() == m.getId());
-        }
-        escouade.dessiner(window);
+        partie.dessiner(window);
         if (placeEnVisee.has_value()) {
             // Cercle de prévisualisation au rayon exact de la zone, sous le curseur.
-            const float rayon = escouade.rayonZoneDuSkill(*placeEnVisee);
+            const float rayon = partie.getEscouade().rayonZoneDuSkill(*placeEnVisee);
             sf::CircleShape apercu(rayon);
             apercu.setOrigin({rayon, rayon});
             apercu.setPosition(window.mapPixelToCoords(sf::Mouse::getPosition(window)));
@@ -262,7 +121,7 @@ int main() {
             window.draw(apercu);
 
             // Cercle de portée de lancement autour du lanceur.
-            const Cercle portee = escouade.cercleDePorteeDuSkill(*placeEnVisee);
+            const Cercle portee = partie.getEscouade().cercleDePorteeDuSkill(*placeEnVisee);
             sf::CircleShape contourPortee(portee.rayon);
             contourPortee.setOrigin({portee.rayon, portee.rayon});
             contourPortee.setPosition(portee.centre);
@@ -276,7 +135,7 @@ int main() {
         window.setView(window.getDefaultView());
         std::array<std::optional<EtatSkill>, 4> etatsDesSkills;
         for (std::size_t i = 0; i < etatsDesSkills.size(); ++i) {
-            etatsDesSkills[i] = escouade.etatDuSkill(i + 1);
+            etatsDesSkills[i] = partie.getEscouade().etatDuSkill(i + 1);
         }
         dessinerBarreDeSkills(window, police, etatsDesSkills, placeEnVisee);
         window.display();

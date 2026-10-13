@@ -35,6 +35,8 @@ add_library(squad_core STATIC
     src/BarreDeSkills.cpp
     src/MonstreVu.cpp
     src/BarreDeVie.cpp
+    src/Niveau.cpp
+    src/Partie.cpp
 )
 target_include_directories(squad_core PUBLIC src)
 target_link_libraries(squad_core PUBLIC SFML::Graphics)
@@ -70,5 +72,6 @@ add_executable(tests
     tests/test_BarreDeSkills.cpp
     tests/test_MonstreVu.cpp
     tests/test_BarreDeVie.cpp
+    tests/test_Partie.cpp
 )
 target_link_libraries(tests PRIVATE squad_core Catch2::Catch2WithMain)
