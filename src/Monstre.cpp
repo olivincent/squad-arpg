@@ -14,7 +14,8 @@ Monstre::Monstre(sf::Vector2f centre, int id)
       m_rayonDetection(200.0f),
       m_rayonTerritoire(400.0f),
       m_etat(Etat::EnGarde),
-      m_poste(centre)
+      m_poste(centre),
+      m_vientDEtreTouche(false)
 {
 }
 
@@ -71,6 +72,9 @@ void Monstre::recevoirDegats(int quantite) {
     if (m_pointsDeVie < 0) {
         m_pointsDeVie = 0;
     }
+    if (quantite > 0) {
+        m_vientDEtreTouche = true;
+    }
 }
 
 bool Monstre::estVivant() const {
@@ -91,9 +95,15 @@ void Monstre::mettreAJour(float dt, std::optional<Cercle> cible, const TileMap& 
 
     const Etat etatPrecedent = m_etat;
 
+    // Un coup reçu réveille le monstre s'il a une proie et se trouve dans
+    // son territoire ; l'indicateur ne sert qu'une fois.
+    const bool reveilleParCoup = m_vientDEtreTouche && cible
+        && (m_mobile.getCentre() - m_poste).length() <= m_rayonTerritoire;
+    m_vientDEtreTouche = false;
+
     switch (m_etat) {
         case Etat::EnGarde:
-            if (proieDetectee(cible)) {
+            if (proieDetectee(cible) || reveilleParCoup) {
                 m_etat = Etat::Poursuite;
             }
             break;
@@ -103,7 +113,7 @@ void Monstre::mettreAJour(float dt, std::optional<Cercle> cible, const TileMap& 
             }
             break;
         case Etat::Retour:
-            if (proieDetectee(cible)) {
+            if (proieDetectee(cible) || reveilleParCoup) {
                 m_etat = Etat::Poursuite;
             } else if (!m_mobile.directionVoulue()) {
                 m_etat = Etat::EnGarde;

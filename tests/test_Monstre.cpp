@@ -331,3 +331,101 @@ TEST_CASE("Monstre.mettreAJour retourne à son poste si la cible disparaît apr�
 
     verifierPointProche(monstre.getCentre(), {100.0f, 100.0f});
 }
+
+// Coup reçu : un monstre touché dans son territoire poursuit sa proie
+// habituelle, même hors du rayon de détection (200 px).
+
+namespace {
+
+// Amène le monstre en retour, sorti du territoire (plus de 400 px de son
+// poste) : la proie lointaine à 800 px de son poste n'est jamais détectée.
+void amenerEnRetourHorsTerritoire(Monstre& monstre, const TileMap& carte) {
+    ecoulerTemps(monstre, 0.2f, pointCible({250.0f, 100.0f}), carte); // détection
+    while ((monstre.getCentre() - sf::Vector2f(100.0f, 100.0f)).length() <= 400.0f) {
+        ecoulerTemps(monstre, 1.0f / 60.0f, pointCible({900.0f, 100.0f}), carte);
+    }
+    ecoulerTemps(monstre, 1.0f / 60.0f, pointCible({900.0f, 100.0f}), carte); // bascule en retour
+}
+
+}  // namespace
+
+TEST_CASE("Monstre touché en garde poursuit une proie hors détection") {
+    const TileMap carte = carteDegagee();
+    Monstre monstre({100.0f, 100.0f}, 1);
+    const sf::Vector2f cible(350.0f, 100.0f); // 250 px, hors détection
+
+    monstre.recevoirDegats(10);
+    ecoulerTemps(monstre, 0.5f, pointCible(cible), carte);
+
+    REQUIRE(monstre.getCentre().x > 100.0f);
+}
+
+TEST_CASE("Monstre non touché reste en garde devant une proie hors détection") {
+    const TileMap carte = carteDegagee();
+    Monstre monstre({100.0f, 100.0f}, 1);
+
+    ecoulerTemps(monstre, 0.5f, pointCible({350.0f, 100.0f}), carte);
+
+    REQUIRE(monstre.getCentre() == sf::Vector2f(100.0f, 100.0f));
+}
+
+TEST_CASE("Monstre.recevoirDegats de 0 ne réveille pas le monstre") {
+    const TileMap carte = carteDegagee();
+    Monstre monstre({100.0f, 100.0f}, 1);
+
+    monstre.recevoirDegats(0);
+    ecoulerTemps(monstre, 0.5f, pointCible({350.0f, 100.0f}), carte);
+
+    REQUIRE(monstre.getCentre() == sf::Vector2f(100.0f, 100.0f));
+}
+
+TEST_CASE("Monstre touché sans proie reste en garde et le coup est consommé") {
+    const TileMap carte = carteDegagee();
+    Monstre monstre({100.0f, 100.0f}, 1);
+
+    monstre.recevoirDegats(10);
+    ecoulerTemps(monstre, 1.0f / 60.0f, std::nullopt, carte);
+    ecoulerTemps(monstre, 0.5f, pointCible({350.0f, 100.0f}), carte);
+
+    REQUIRE(monstre.getCentre() == sf::Vector2f(100.0f, 100.0f));
+}
+
+TEST_CASE("Monstre touché en retour dans son territoire poursuit") {
+    const TileMap carte = carteLongue();
+    Monstre monstre({100.0f, 100.0f}, 1);
+    amenerEnRetourHorsTerritoire(monstre, carte);
+    // Laisse le retour ramener le monstre dans son territoire.
+    while ((monstre.getCentre() - sf::Vector2f(100.0f, 100.0f)).length() > 300.0f) {
+        ecoulerTemps(monstre, 1.0f / 60.0f, pointCible({900.0f, 100.0f}), carte);
+    }
+    const float xAvant = monstre.getCentre().x;
+
+    monstre.recevoirDegats(10);
+    ecoulerTemps(monstre, 0.3f, pointCible({900.0f, 100.0f}), carte);
+
+    REQUIRE(monstre.getCentre().x > xAvant); // va vers la proie, à l'est
+}
+
+TEST_CASE("Monstre touché en retour hors de son territoire continue de rentrer") {
+    const TileMap carte = carteLongue();
+    Monstre monstre({100.0f, 100.0f}, 1);
+    amenerEnRetourHorsTerritoire(monstre, carte);
+    const float xAvant = monstre.getCentre().x;
+
+    monstre.recevoirDegats(10);
+    ecoulerTemps(monstre, 0.3f, pointCible({900.0f, 100.0f}), carte);
+
+    REQUIRE(monstre.getCentre().x < xAvant); // va vers son poste, à l'ouest
+}
+
+TEST_CASE("Monstre touché en poursuite continue de poursuivre") {
+    const TileMap carte = carteLongue();
+    Monstre monstre({100.0f, 100.0f}, 1);
+    ecoulerTemps(monstre, 0.2f, pointCible({250.0f, 100.0f}), carte); // détection
+    const float xAvant = monstre.getCentre().x;
+
+    monstre.recevoirDegats(10);
+    ecoulerTemps(monstre, 0.3f, pointCible({400.0f, 100.0f}), carte);
+
+    REQUIRE(monstre.getCentre().x > xAvant);
+}

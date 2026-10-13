@@ -37,4 +37,5 @@ private:
     float m_rayonTerritoire;
     Etat m_etat;
     sf::Vector2f m_poste;
+    bool m_vientDEtreTouche;
 };
