@@ -17,7 +17,7 @@
 - **Teste uniquement l'interface publique** de `TileMap`, `Chemin`,
   `Escouade`, `Personnage`, `Monstre`, `Attaque`, `Mobile` et `Cercle`
   (`distanceBordABord`, `getCercle`, `getTile`,
-  `chevaucheUnMur`, `trajetLibre`, `getLargeur`/`getHauteur`,
+  `chevaucheUnMur`, `trajetLibre`, `ligneDeVue`, `getLargeur`/`getHauteur`,
   `caseContenant`/`centreDeCase`, le constructeur, `trouverChemin`,
   `lisserChemin`, `allerVers`, `arreter`, `attaquer`, `mettreAJour`,
   `getCentre`, `getTaille`, `directionVoulue`, `estAPortee`, `frapper`,
@@ -378,5 +378,14 @@
   skill en attente, place invalide ou sans skill `Zone`, recharge de
   l'attaque de base relancée) ; `declencherSkill` sans point refuse un
   skill `Zone` et `choisirCible` renvoie vide.
+- **`test_Escouade.cpp`, ligne de vue du skill de zone** (carte 15 × 10
+  avec un mur vertical épais de 40 px, `carteAvecMurVertical`, contournable
+  par le haut ou le bas) : point à portée et en vue (départ immédiat),
+  derrière le mur (attente, sans recharge), dans le mur (refus, sans
+  attente), lanceur qui contourne puis lance ; monstre dans la zone mais
+  derrière le mur épargné, monstre du même côté touché.
+- **`test_TileMap.cpp`, `ligneDeVue`** : terrain dégagé, mur entre les
+  points, points identiques, coin de deux murs en diagonale (bloqué),
+  segment à 1 px d'un mur (libre), arrivée dans un mur.
 - **Non testé** : le mode visée et le cercle, qui vivent dans `main.cpp`
   (vérifiés à la main dans le jeu).

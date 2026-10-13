@@ -339,7 +339,7 @@ personnages sont dans `docs/formation.md`, le monstre dans
   60 px, portée 250 px (valeurs dans `Escouade.cpp`). La portée de
   lancement est lue depuis l'étape 43 (voir « Portée de lancement »).
 - **Lancer à un point** : `Escouade::declencherSkillDeZone(place, point,
-  monstres)`, distincte de `declencherSkill` qui n'a pas de point et
+  monstres, carte)`, distincte de `declencherSkill` qui n'a pas de point et
   refuse un skill `Zone` (`choisirCible` renvoie aussi vide). La
   fonction reçoit le point directement ; `CiblePoint` n'existe que pour
   l'attente (étape 43).
@@ -357,8 +357,7 @@ personnages sont dans `docs/formation.md`, le monstre dans
 - **Le mode visée est un état d'interface** (voir
   `docs/boucle-et-entrees.md`) : `Escouade` ne connaît ni la souris ni le
   mode.
-- **Limites connues** : le sort traverse les murs (pas de ligne de vue) ;
-  pas d'effet visuel à l'impact, de HUD ni d'icône ; pas de dégâts aux
+- **Limites connues** : pas d'effet visuel à l'impact, de HUD ni d'icône ; pas de dégâts aux
   alliés ni dans le temps.
 
 ## Portée de lancement du skill de zone (étape 43)
@@ -390,6 +389,30 @@ personnages sont dans `docs/formation.md`, le monstre dans
   autres personnages (bloqué par les monstres) ; si le point est
   inaccessible il ne l'atteint peut-être jamais, et le sort reste en
   attente jusqu'à sa mort.
+
+## Ligne de vue du skill de zone (étape 44)
+
+- **Condition unique « peut lancer au point »** :
+  `Escouade::peutLancerAuPoint(place, point, carte)` = point à portée
+  (bord à bord) ET `TileMap::ligneDeVue(centre du lanceur, point)`. Elle
+  sert au clic (`declencherSkillDeZone`) et pendant l'attente
+  (`attaquer`), pour que les deux chemins ne divergent pas.
+- **À portée mais pas en vue** : même traitement que hors de portée,
+  mise en attente. Le lanceur marche vers le point ; son `Mobile` passe
+  par le A* quand un mur le sépare de sa destination, donc il contourne,
+  et le sort part dès que la condition est vraie.
+- **Point dans un mur** : refusé (liste vide, ni attente ni recharge) ;
+  `main.cpp` sort de la visée comme pour les autres refus.
+- **Explosion** : un monstre est touché s'il est dans la zone (règle
+  inchangée) ET si `ligneDeVue(point d'impact, centre du monstre)`.
+  Centre à centre, sans test sur les bords : un monstre dont le centre est
+  derrière un mur mince est épargné même si son bord dépasse. La carte est
+  un paramètre de `declencherSkillDeZone`, `lancerSkillDeZone` et
+  `attaquer`, jamais un membre.
+- **Limites** : ligne de vue limitée au skill de zone (attaques de base,
+  skill de dégâts, soin, provocation et détection des monstres l'ignorent
+  encore) ; la prévisualisation de la visée n'indique pas si le point est
+  en vue ; un lanceur qui ne peut jamais voir le point reste en attente.
 
 ## Circuit des dégâts
 

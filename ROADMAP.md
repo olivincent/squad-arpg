@@ -50,11 +50,13 @@ est dans `docs/historique.md`.
 - Étape 42 — Rayon de zone des skills, skill de zone ciblé au sol (touche 4) ✅
 
 - Étape 43 — Portée de lancement du skill de zone, provocation toujours consommée ✅
+- Étape 44 — Ligne de vue pour le skill de zone ✅
 
-## Étape 44 — À définir
+## Étape 45 — À définir
 
 Pistes discutées :
-- Ligne de vue pour le skill de zone (il traverse encore les murs)
+- Ligne de vue pour les attaques de base, le skill de dégâts, le soin et
+  la provocation
 - Activation d'un monstre qui reçoit des dégâts
 - Effet visuel à l'impact du skill de zone, HUD ou icônes de skill
 - Indicateur visuel du monstre provoqué
@@ -177,11 +179,14 @@ Pistes discutées :
   mode visée (un cercle jaune de 60 px suit le curseur, un cercle blanc
   montre la portée autour du lanceur), puis un clic gauche lance le sort
   au point visé (même sur un monstre : pas de verrou). À portée (bord à
-  bord), il part tout de suite ; hors portée, le lanceur quitte sa place,
-  marche vers le point et lance le sort au point fixé au clic dès qu'il
-  est à portée (seule sa mort l'annule : ni verrou, ni clic, ni ordre de
+  bord) et en vue (ligne de vue entre le lanceur et le point, sans mur),
+  il part tout de suite ; hors portée ou derrière un mur, le lanceur
+  quitte sa place, marche vers le point (contournant le mur) et lance le
+  sort au point fixé au clic dès qu'il est à portée et en vue (un point
+  dans un mur est refusé, sans recharge ; seule sa mort l'annule : ni verrou, ni clic, ni ordre de
   déplacement). Le sort touche tous les monstres dont le bord est dans le
-  cercle au moment du départ, et coûte sa recharge même si la zone est vide. Clic
+  cercle au moment du départ et qui sont en vue du point d'impact (centre
+  à centre, il ne traverse pas les murs), et coûte sa recharge même si la zone est vide. Clic
   droit, Échap ou 4 annulent sans recharge ; le déplacement continu est
   suspendu pendant la visée. Un skill de dégâts ou de soin hors de portée met son lanceur en marche vers la
   cible et part à l'arrivée (un seul skill en attente à la fois ; annulé
@@ -206,13 +211,13 @@ Pistes discutées :
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 284 tests : 32 sur `TileMap`, 17 sur `Chemin`, 116
+  (`./build/tests.exe`, 296 tests : 38 sur `TileMap`, 17 sur `Chemin`, 122
   sur `Escouade`, 12 sur `Deplacement`, 27 sur `Monstre`, 31 sur
   `Personnage`, 11 sur `Attaque`, 7 sur `Skill`, 14 sur `Mobile`, 4 sur
   `Cercle`, 13 sur `Autodefense`).
 
 **Limites connues** (acceptées pour l'instant) :
-- Le skill de zone traverse les murs, n'a pas d'effet visuel à
+- Le skill de zone n'a pas d'effet visuel à
   l'impact et ne touche pas les alliés ; son lanceur, bloqué par un
   monstre ou face à un point inaccessible, peut rester en attente.
 - Deux places peuvent se replier presque au même endroit dans un passage

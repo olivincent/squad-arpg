@@ -1134,3 +1134,26 @@ skill de zone »).
 **Hors de portée** : ligne de vue, activation d'un monstre qui reçoit des
 dégâts, plusieurs skills en attente, annulation manuelle, couleur de la
 prévisualisation selon la portée, effet visuel à l'impact.
+
+### Étape 44 — Ligne de vue pour le skill de zone ✅ TERMINÉE
+
+1. [x] `TileMap::ligneDeVue(a, b)` (carré de 2 × 2 px balayé par
+       `trajetLibre`) ; tests (enchaînée)
+2. [x] `Escouade::peutLancerAuPoint` (portée ET vue) au clic et pendant
+       l'attente ; refus d'un point dans un mur ; tests (enchaînée)
+3. [x] L'explosion ne touche que les monstres en vue du point d'impact ;
+       tests
+4. [x] Mise à jour des documents
+
+**Choix** : ligne de vue = question posée à la carte, implémentée par
+`trajetLibre` pour ne pas écrire de nouveau parcours de grille ; une seule
+condition partagée entre le clic et l'attente ; explosion testée centre à
+centre ; la carte passée en paramètre, jamais gardée.
+
+**Limites connues** : voir `docs/combat.md` (« Ligne de vue du skill de
+zone »).
+
+**Hors de portée** : ligne de vue pour les attaques de base, le skill de
+dégâts, le soin et la provocation (étape 45), activation d'un monstre qui
+reçoit des dégâts, détection des monstres, indication visuelle dans la
+prévisualisation, DDA.

@@ -35,6 +35,24 @@
   Les fonctions `dessiner` prennent un `sf::RenderTarget&` (classe de base
   de `sf::RenderWindow`) pour ne pas être couplées à la fenêtre.
 
+## Ligne de vue (étape 44)
+
+- **`TileMap::ligneDeVue(a, b)`** : vrai si le segment de `a` à `b` ne
+  traverse aucun mur. C'est une question posée à la carte, à côté de
+  `trajetLibre`.
+- **Implémentation** : `trajetLibre` avec un carré de 2 × 2 px centré sur
+  `a` et déplacé de `b - a` (constante `COTE_LIGNE_DE_VUE` dans
+  `TileMap.cpp`). Le carré n'est pas de taille nulle : avec la convention
+  « toucher n'est pas chevaucher », un rectangle vide ne chevauche jamais
+  rien. Le nom cache le « comment » : un parcours de grille (DDA) pourra le
+  remplacer sans toucher aux appelants.
+- **Conséquences** : un point d'arrivée dans un mur donne faux ; un segment
+  qui passe par le coin où deux murs se touchent en diagonale est bloqué ;
+  un segment à 1 px d'un mur est libre. Si `a` est à moins de 1 px d'un
+  mur, le carré le touche et la vue est refusée (limite acceptée).
+- **Utilisée** pour l'instant seulement par le skill de zone (voir
+  `docs/combat.md`).
+
 ## Déplacement avec glissement et obstacles
 
 `deplacerAvecGlissement` est une fonction libre, pas une classe : elle n'a
