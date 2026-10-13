@@ -145,8 +145,10 @@ ne se connaissent pas.
   des autres monstres (identifiant différent). Voir « Qui bloque qui »
   dans `docs/combat.md`.
 - **Pour chaque monstre, dans l'ordre** :
-  1. `const auto cible = escouade.personnageLePlusProche(m.getCentre())`
-     — le cercle du personnage **vivant** le plus proche, calculé sur la
+  1. `const auto cible = escouade.proieDuMonstre(m.getId(), m.getCentre())`
+     — le cercle du provocateur si ce monstre est provoqué (voir
+     « Provocation » dans `docs/combat.md`), sinon du personnage
+     **vivant** le plus proche, calculé sur la
      position du monstre *avant* qu'il ne bouge (vide si aucun
      personnage n'est vivant) ;
   2. `m.mettreAJour(dt, cible, carte, obstacles)` — le monstre décide

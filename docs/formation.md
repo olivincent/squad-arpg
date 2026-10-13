@@ -36,7 +36,7 @@ L'attaque, la portée, le skill et les obstacles sont dans
   visent la place de l'image *courante*, calculée une fois l'ancre
   déplacée.
 - **`Escouade` ne connaît pas `Monstre`** : elle échange des `Cercle`
-  (la cible de `attaquer`, la proie renvoyée par `personnageLePlusProche`)
+  (la cible de `attaquer`, la proie renvoyée par `proieDuMonstre`)
   et un identifiant entier pour le verrou. C'est `main.cpp` qui fait
   l'intermédiaire (voir `docs/boucle-et-entrees.md`).
 
@@ -168,12 +168,14 @@ L'attaque, la portée, le skill et les obstacles sont dans
 
 ## Choix du personnage le plus proche
 
-- **Un seul endroit fait la recherche** : la fonction privée
-  `indicePersonnageLePlusProche(point)` (boucle sur les personnages
-  **vivants**, comparaison de distances de centre à centre).
-  `personnageLePlusProche` (qui renvoie le `Cercle`) et
-  `recevoirDegats(origine, quantite)` s'en servent, pour qu'ils
-  désignent toujours le même personnage par le même critère, même
+- **Un seul endroit décide** : la fonction privée
+  `indiceProieDuMonstre(id, position)` renvoie le provocateur du monstre
+  s'il est provoqué et vivant (voir « Provocation » dans
+  `docs/combat.md`), sinon `indicePersonnageLePlusProche(point)` (boucle
+  sur les personnages **vivants**, distances de centre à centre).
+  `proieDuMonstre` (qui renvoie le `Cercle`) et
+  `recevoirDegats(idMonstre, origine, quantite)` s'en servent, pour
+  qu'ils désignent toujours le même personnage par la même règle, même
   appelés séparément par `main.cpp`.
 - **L'absence de vivant est exprimée dans le type** : l'indice et le
   cercle sont des `std::optional` (vide = aucun vivant) plutôt qu'une
@@ -297,7 +299,7 @@ L'attaque, la portée, le skill et les obstacles sont dans
   `main.cpp` qui bloque les ordres du joueur (voir
   `docs/boucle-et-entrees.md`). Les monstres, eux, rentrent à leur poste
   comme chaque fois qu'ils perdent leur proie
-  (`personnageLePlusProche` renvoie vide), sans code propre à la
+  (`proieDuMonstre` renvoie vide), sans code propre à la
   défaite.
 - **Limites connues** : un mort n'est jamais retiré ni remplacé ; pas de
   résurrection (le soin ne s'applique pas aux morts) ; pas d'écran de défaite ni de moyen de

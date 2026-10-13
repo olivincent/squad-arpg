@@ -134,26 +134,29 @@ de formation de chaque personnage après repli, recalculée par
 `mettreAJour`), `m_monstreAPortee` (`std::vector<bool>`, par personnage :
 monstre à portée de son attaque, calculé par `attaquer`), `m_agresseurs`
 (`std::vector<Agresseur>`, structure publique : `id`, `cercle`,
-`tempsRestant`).
+`tempsRestant`), `m_provocations` (`std::vector<Provocation>`, structure
+publique : `id` du monstre, `place` du provocateur, `tempsRestant`).
 
 | Fonction | Rôle |
 |---|---|
 | `explicit Escouade(sf::Vector2f positionDepart)` | Crée l'escouade et ses 4 personnages en formation (deux mêlées devant, deux tireurs derrière) |
 | `void allerVers(sf::Vector2f destination, const TileMap& carte)` | Délègue à `m_mobile.allerVers` |
 | `std::vector<Coup> attaquer(const std::vector<MonstreVu>& monstres, const TileMap& carte)` | Avec un verrou dont le monstre est dans `monstres` : mémorise son cercle, approche tant qu'un personnage vivant n'est pas à portée, s'arrête sinon, et fait partir le skill de dégâts en attente si son lanceur est à portée. Verrou ou non : chaque personnage choisit pour lui-même le monstre à frapper (`choisirMonstreAFrapper`) et frappe ; renvoie un `Coup` par frappe qui touche |
-| `std::vector<Coup> declencherSkill(std::size_t place, const std::vector<MonstreVu>& monstres)` | Skill du personnage à la place `place` (1 à 4). Liste vide si la place est invalide, sans skill, si le lanceur est mort, si le skill est en recharge, si un skill est déjà en attente ou si `choisirCible` ne trouve rien. Cible à portée : un skill de dégâts renvoie un coup (identifiant de la cible, dégâts), un soin est appliqué sur place (liste vide). Hors de portée (seulement avec un verrou) : le skill est mis en attente (liste vide) |
+| `std::vector<Coup> declencherSkill(std::size_t place, const std::vector<MonstreVu>& monstres)` | Skill du personnage à la place `place` (1 à 4). Liste vide si la place est invalide, sans skill, si le lanceur est mort, si le skill est en recharge, si un skill est déjà en attente ou si `choisirCible` ne trouve rien. Une provocation (sans cible) provoque tous les monstres de `monstres` à portée du lanceur, sans dégât ni attente, et est refusée (sans recharge) s'il n'y en a aucun. Cible à portée : un skill de dégâts renvoie un coup (identifiant de la cible, dégâts), un soin est appliqué sur place (liste vide). Hors de portée (seulement avec un verrou) : le skill est mis en attente (liste vide) |
 | `std::optional<Cible> choisirCible(TypeSkill type, std::size_t place, const std::vector<MonstreVu>& monstres) const` | `Degats` : avec un verrou, le monstre verrouillé trouvé dans `monstres` (à portée ou non, vide s'il n'y est pas) ; sans verrou, le monstre que le lanceur de la place `place` frapperait en autodéfense, avec la portée de son skill (vide si aucun). `Soin` : le vivant qui a le moins de points de vie parmi ceux qui ne sont pas à pleine vie (égalité : la plus petite place) |
 | `void mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles)` | Avance l'ancre, tourne la formation, calcule la place de chaque personnage (place théorique ramenée vers l'ancre par `replierVersOrigine` si elle est dans un mur ou cachée derrière un coin), déplace chaque personnage vers sa place (ou reste sur place s'il est à portée de la cible en combat ; ancre à l'arrêt : vers l'agresseur le plus proche dans une laisse de 100 px autour de sa place, ou sur place s'il a déjà un monstre à portée) ; fait écouler le délai d'oubli des agresseurs ; le lanceur d'un skill en attente vise sa cible à la place (un soin part ici, annulé si le lanceur ou la cible meurt ou si la cible est à pleine vie) ; `obstacles` est transmis aux personnages, jamais à l'ancre |
 | `void dessiner(sf::RenderTarget& rendu) const` | Dessine l'ancre, les 4 personnages, puis un point jaune (repère provisoire) à la place de formation de chaque personnage vivant |
 | `sf::Vector2f getCentre() const` | Centre de l'ancre (utilisé par la caméra) |
-| `std::optional<Cercle> personnageLePlusProche(sf::Vector2f point) const` | Cercle du personnage vivant dont le centre est le plus proche de `point` ; vide si aucun n'est vivant |
-| `void recevoirDegats(int idMonstre, sf::Vector2f origine, int quantite)` | Applique les dégâts au personnage vivant le plus proche d'`origine` ; ne fait rien si aucun n'est vivant. Si `quantite > 0`, enregistre le monstre comme agresseur (ou remet son temps à 3 s) |
+| `std::optional<Cercle> proieDuMonstre(int idMonstre, sf::Vector2f positionMonstre) const` | Cercle du provocateur si ce monstre est provoqué et que le provocateur est vivant ; sinon du personnage vivant le plus proche de `positionMonstre` ; vide si aucun n'est vivant |
+| `void recevoirDegats(int idMonstre, sf::Vector2f origine, int quantite)` | Applique les dégâts au personnage que `idMonstre` vise (même règle que `proieDuMonstre`) ; ne fait rien si aucun n'est vivant. Si `quantite > 0`, enregistre le monstre comme agresseur (ou remet son temps à 3 s) |
 | `bool estVivante() const` | Vrai si au moins un personnage est vivant |
 | `std::vector<Cercle> cerclesDesVivants() const` | Cercles des personnages vivants |
 | `void verrouiller(int idCible)` | Pose le verrou de combat sur ce monstre, en remplaçant la cible précédente ; annule un skill de dégâts en attente si l'identifiant change |
 | `void deverrouiller()` | Retire le verrou de combat et annule un skill de dégâts en attente |
 | `std::optional<int> getCibleVerrouillee() const` | Identifiant du monstre engagé en combat, vide si aucun |
 | `const std::vector<sf::Vector2f>& getPlacesDeFormation() const` | Places de formation (après repli) calculées par le dernier `mettreAJour` |
+| `void provoquer(int idMonstre, std::size_t place, float duree)` | Enregistre ce monstre comme provoqué par le personnage de la place `place` (1 à 4) pour `duree` secondes, ou remet sa durée au maximum s'il l'est déjà. Fin : durée écoulée ou provocateur mort (`mettreAJour`), monstre absent de `monstres` (`attaquer`) |
+| `const std::vector<Provocation>& getProvocations() const` | Monstres actuellement provoqués |
 | `const std::vector<Agresseur>& getAgresseurs() const` | Monstres qui ont frappé l'escouade récemment (oubliés après 3 s sans coup, ou absents de `monstres` dans `attaquer`) |
 
 ### `Mobile` — déplacement par chemin
@@ -271,8 +274,9 @@ Données membres : `m_portee` (bord à bord), `m_degats`, `m_tempsRecharge`,
 
 ### `Skill` — une capacité spéciale
 
-Un `TypeSkill` (`enum class { Degats, Soin }`) et une `Attaque`, qui
-fournit portée, puissance (dégâts ou points de vie rendus) et recharge.
+Un `TypeSkill` (`enum class { Degats, Soin, Provocation }`) et une
+`Attaque`, qui fournit portée, puissance (dégâts, points de vie rendus ou
+durée en secondes) et recharge.
 Possédé par valeur, en option, par `Personnage`. Ne connaît ni la
 position de son lanceur ni sa cible : il reçoit deux `Cercle`. Ne dessine
 rien.

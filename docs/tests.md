@@ -22,7 +22,7 @@
   `lisserChemin`, `allerVers`, `arreter`, `attaquer`, `mettreAJour`,
   `getCentre`, `getTaille`, `directionVoulue`, `estAPortee`, `frapper`,
   `declencherSkill`, `relancerRecharge`, `getProgressionRecharge`,
-  `recevoirDegats`, `estVivant`, `personnageLePlusProche`,
+  `recevoirDegats`, `estVivant`, `proieDuMonstre`,
   `estVivante`) — aucune fonction n'a été ajoutée seulement pour
   faciliter les tests.
 - **Propriétés plutôt que chemin exact** : pour `trouverChemin`, comme
@@ -195,7 +195,7 @@
     un seul, verrou à portée avant un monstre plus proche, verrou hors de
     portée ou absent de la liste, plusieurs à portée (le plus proche),
     égalité (le premier de la liste).
-- **`Escouade::personnageLePlusProche`** : test par
+- **`Escouade::proieDuMonstre`** : test par
   propriété plutôt que par position de formation exacte, comme les
   autres tests d'`Escouade` — pour un point lointain, la distance entre
   le centre renvoyé et ce point est strictement inférieure à la
@@ -203,24 +203,24 @@
   formation est forcément plus proche d'un point extérieur que le
   centre de l'escouade lui-même, quelle que soit l'orientation exacte
   de la formation).
-- **`Escouade::recevoirDegats`, observé via `personnageLePlusProche`
+- **`Escouade::recevoirDegats`, observé via `proieDuMonstre`
  ** : `recevoirDegats` n'a pas d'accesseur dédié, mais son
   effet devient visible dès que les dégâts tuent un personnage — le
   filtre des morts dans `indicePersonnageLePlusProche` change alors ce
-  que `personnageLePlusProche` renvoie. Trois cas : des dégâts
+  que `proieDuMonstre` renvoie. Trois cas : des dégâts
   insuffisants pour tuer le plus proche ne changent pas le centre
   renvoyé ; le tuer en change le centre renvoyé (un autre personnage) ;
-  tuer les 4 rend `personnageLePlusProche` vide (`std::optional`), y
+  tuer les 4 rend `proieDuMonstre` vide (`std::optional`), y
   compris après un coup supplémentaire sur une escouade déjà entièrement
   morte.
 - **`Escouade::estVivante`** : trois cas, calqués sur ceux
-  de `personnageLePlusProche` ci-dessus (même point lointain, mêmes
+  de `proieDuMonstre` ci-dessus (même point lointain, mêmes
   dégâts) — vraie à la création, encore vraie après la mort d'un seul
   personnage, fausse une fois les 4 morts.
 - **`Escouade::cerclesDesVivants`** : trois cas, même point
   lointain et mêmes dégâts que ci-dessus — 4 cercles à la création, 3
   après une mort (le cercle du mort, repéré avant par
-  `personnageLePlusProche`, n'y figure plus), liste vide une fois les 4
+  `proieDuMonstre`, n'y figure plus), liste vide une fois les 4
   morts. Le branchement dans `main.cpp` n'est pas testé (vérifié
   visuellement).
 - **`Attaque` (`test_Attaque.cpp`)** : couvre les six cas de
@@ -312,7 +312,7 @@
 - **Skill en attente** : comme pour les autres tests d'`Escouade`, des
   résultats plutôt que des trajectoires, sur une carte dégagée dédiée
   (`carteDegageeSoin`). Soin : le soigneur marche, soigne, puis revient à
-  sa place (`personnageLePlusProche` près de sa place) ; annulation si la
+  sa place (`proieDuMonstre` près de sa place) ; annulation si la
   cible ou le soigneur meurt (sans recharge : un nouveau soin part
   aussitôt) ; un ordre de déplacement n'annule rien ; un seul skill en
   attente (un skill de dégâts à portée est refusé). Dégâts : **un tic qui
@@ -331,7 +331,7 @@
   une carte dégagée (`carteDegagee`, `simulerAvecMonstre` : `attaquer` puis
   `mettreAJour` à chaque tic, le monstre étant obstacle) : mêlée qui
   s'approche, agresseur hors laisse, ancre en mouvement, oubli. Observé par
-  `personnageLePlusProche` du monstre.
+  `proieDuMonstre` du monstre.
 - **Piège** : `recevoirDegats` enregistre maintenant un agresseur. Les tests
   qui blessent un personnage avec un monstre « fantôme » puis simulent
   longtemps appellent `escouade.attaquer({}, carte)` pour l'oublier,
@@ -339,3 +339,20 @@
 - **`test_Autodefense.cpp`** : `choisirAgresseurAViser` seule (aucun
   agresseur, hors laisse, laisse mesurée depuis la place, pile à la
   laisse, le plus proche, égalité).
+
+## Provocation (étape 41)
+
+- **`test_Skill.cpp`, `test_Personnage.cpp`** : un `Skill` de type
+  `Provocation` (type, portée, puissance = durée, recharge) ; un
+  personnage qui en expose le type et le déclenche.
+- **`test_Escouade.cpp`** : `provoquer` (enregistrement, doublon dont la
+  durée est remise au maximum), fin d'une provocation (durée, mort du
+  provocateur, monstre absent de `attaquer`) ; `proieDuMonstre` (sans
+  provocation, monstre provoqué, autre monstre non concerné, provocateur
+  mort) ; `recevoirDegats` frappe le même personnage que `proieDuMonstre` ;
+  touche 2 (monstres dans le rayon seulement, aucun dégât, refus sans
+  monstre et recharge intacte, recharge de 10 s, lanceur mort, skill en
+  attente). Escouade en (200, 200) : le lanceur est en (235, 235).
+- **Renommage** : `personnageLePlusProche(point)` est devenu
+  `proieDuMonstre(idMonstre, point)` ; les tests anciens passent
+  l'identifiant 1, sans provocation.

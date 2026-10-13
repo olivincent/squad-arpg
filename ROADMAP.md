@@ -46,11 +46,12 @@ est dans `docs/historique.md`.
 - Étape 38 — Places de formation toujours valides ✅
 - Étape 39 — Personnages autonomes dans leur chemin ✅
 - Étape 40 — Les personnages vont vers leurs agresseurs ✅
+- Étape 41 — Skill de provocation (touche 2) ✅
 
-## Étape 41 — À définir
+## Étape 42 — À définir
 
 Pistes discutées :
-- Skill de provocation
+- Indicateur visuel du monstre provoqué
 - L'escouade poursuit d'elle-même un monstre qui l'attaque (écartée pour
   l'instant)
 - Indicateur visuel de la cible de chaque personnage
@@ -60,9 +61,9 @@ Pistes discutées :
 - Blocage de l'ancre par les monstres, si le décalage ancre/personnages
   s'avère gênant
 - Skills qui bousculent un adversaire ou permettent de se faufiler
-- Skills pour les personnages 2 et 4 (touches 2 et 4), effets de skill
-  (zone, état posé sur le monstre), soin de zone, résurrection, HUD ou
-  icônes de skill
+- Skill du personnage 4 (touche 4), autres effets de skill
+  (étourdissement, ralentissement, dégâts de zone), soin de zone,
+  résurrection, HUD ou icônes de skill
 - Choix manuel de la cible d'un skill par le joueur
 - Plusieurs skills en attente à la fois
 - Patrouille, escouade de monstres, récupération de points de vie au
@@ -153,14 +154,19 @@ Pistes discutées :
   reste sur place. L'ordre du joueur (ancre en mouvement), le skill en
   attente et le verrou (personnage à portée du monstre verrouillé) passent
   avant.
-- **Skills** : deux, de classe `Skill` (type + `Attaque`). Touche 1 :
+- **Skills** : trois, de classe `Skill` (type + `Attaque`). Touche 1 :
   skill de dégâts du mêlée avant-gauche (25 dégâts, recharge 5 s, portée
   de mêlée, 20 px), sur le monstre verrouillé ou, sans verrou, sur le
   monstre à portée que ce mêlée frapperait en autodéfense (alors sans
   marche ni mise en attente). Touche 3 : soin du tireur
   arrière-gauche (30 points de vie, recharge 8 s, portée 40 px), sur le
-  vivant le plus blessé (soigneur inclus), permis hors combat. Touches 2
-  et 4 : rien. Un skill hors de portée met son lanceur en marche vers la
+  vivant le plus blessé (soigneur inclus), permis hors combat. Touche 2 :
+  provocation du mêlée avant-droit (rayon 150 px bord à bord, 4 s,
+  recharge 10 s) : tous les monstres dans le rayon le prennent pour
+  proie au lieu du personnage le plus proche, sans dégâts ni attente
+  (refusée s'il n'y a aucun monstre dans le rayon) ; elle prend fin à
+  l'écoulement de la durée, à la mort du provocateur ou à celle du
+  monstre. Touche 4 : rien. Un skill de dégâts ou de soin hors de portée met son lanceur en marche vers la
   cible et part à l'arrivée (un seul skill en attente à la fois ; annulé
   par la mort du lanceur, celle de la cible ou son retour à pleine vie
   pour un soin, la rupture du combat pour des dégâts). Un skill remplace
@@ -183,9 +189,9 @@ Pistes discutées :
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 244 tests : 32 sur `TileMap`, 17 sur `Chemin`, 80
-  sur `Escouade`, 12 sur `Deplacement`, 27 sur `Monstre`, 26 sur
-  `Personnage`, 11 sur `Attaque`, 5 sur `Skill`, 14 sur `Mobile`, 4 sur
+  (`./build/tests.exe`, 261 tests : 32 sur `TileMap`, 17 sur `Chemin`, 95
+  sur `Escouade`, 12 sur `Deplacement`, 27 sur `Monstre`, 27 sur
+  `Personnage`, 11 sur `Attaque`, 6 sur `Skill`, 14 sur `Mobile`, 4 sur
   `Cercle`, 13 sur `Autodefense`).
 
 **Limites connues** (acceptées pour l'instant) :

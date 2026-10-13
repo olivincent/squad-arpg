@@ -69,7 +69,7 @@ personnages sont dans `docs/formation.md`, le monstre dans
   l'arrêt individuel en combat et l'arrêt du monstre en poursuite. Pour
   transporter la taille de la cible, les signatures échangent un `Cercle`
   plutôt qu'une position suivie d'un rayon : `Escouade::attaquer`,
-  `personnageLePlusProche`, `Monstre::mettreAJour` et
+  `proieDuMonstre`, `Monstre::mettreAJour` et
   `Monstre::frapper`.
 - **Restent mesurés de centre à centre**, volontairement : la détection
   et le territoire du monstre, le choix du personnage le plus proche, le
@@ -172,10 +172,10 @@ personnages sont dans `docs/formation.md`, le monstre dans
 
 ## Skill
 
-- **Une classe `Skill` autour d'une `Attaque`** : un `TypeSkill` (`Degats`
-  ou `Soin`) et l'`Attaque` qui fournit portée, puissance et recharge.
+- **Une classe `Skill` autour d'une `Attaque`** : un `TypeSkill` (`Degats`,
+  `Soin` ou `Provocation`) et l'`Attaque` qui fournit portée, puissance et recharge.
   `Skill` cache le mot « dégâts » derrière un nom neutre, la puissance
-  (dégâts infligés ou points de vie rendus selon le type), et son
+  (dégâts infligés, points de vie rendus ou durée selon le type), et son
   `declencher` n'est qu'un `frapper` renommé. Un `enum class` suffit pour
   le type : ni `std::variant` ni polymorphisme tant que les deux types ne
   diffèrent que par ce que fait `Escouade` du résultat.
@@ -183,7 +183,8 @@ personnages sont dans `docs/formation.md`, le monstre dans
   constructeur de `Personnage` comme l'attaque de base (injection), plutôt
   qu'un skill « vide » à 0 de puissance. Pas de valeur par défaut : chaque
   création de `Personnage` dit explicitement s'il a un skill.
-- **Deux skills**, aux valeurs écrites dans `Escouade.cpp` :
+- **Trois skills** (le troisième est décrit dans « Provocation »), aux
+  valeurs écrites dans `Escouade.cpp` :
   - dégâts : personnage 0 (mêlée avant-gauche), 25 dégâts, recharge 5 s,
     portée de mêlée (20 px) ;
   - soin : personnage 2 (tireur arrière-gauche), 30 points de vie,
@@ -265,8 +266,49 @@ personnages sont dans `docs/formation.md`, le monstre dans
 - **Limites connues** : un seul skill en attente à la fois ; pas de choix
   manuel de la cible ; un lanceur bloqué par un monstre glisse ou attend
   (le A* ignore les entités) ; pas d'effet visuel au déclenchement ni
-  sur la cible soignée, pas de HUD ni d'icône de skill ; les skills des
-  personnages 2 et 4 n'existent pas encore.
+  sur la cible soignée, pas de HUD ni d'icône de skill ; le skill du
+  personnage 4 n'existe pas encore.
+
+## Provocation (étape 41)
+
+- **Troisième `TypeSkill`**, `Provocation`, pour le personnage de la
+  place 2 (mêlée avant-droit) : rayon 150 px bord à bord (la portée de
+  son `Attaque`), durée 4 s (sa puissance : pour ce type, une durée en
+  secondes), recharge 10 s. Valeurs écrites dans `Escouade.cpp`. On
+  garde `enum class` + `if`/`switch` ; un nouveau type ne doit jamais
+  tomber par défaut dans la branche d'un autre (`choisirCible` renvoie
+  vide pour une provocation, qui ne passe pas par elle).
+- **Skill de zone, sans cible** : pas de cas ajouté à `Cible`.
+  `declencherSkill` le traite avant `choisirCible` : tous les monstres de
+  `monstresVus` à portée du lanceur sont provoqués, dans l'image de
+  l'appui (jamais de mise en attente ni de marche). Aucun monstre dans le
+  rayon : appui refusé, sans recharge. Un seul déclenchement du `Skill`
+  pour la recharge, quel que soit le nombre de monstres. Aucun dégât :
+  liste de coups vide. Les refus habituels s'appliquent (lanceur mort,
+  recharge, skill en attente) et la recharge de l'attaque de base du
+  lanceur est relancée.
+- **L'état « provoqué » vit dans `Escouade`**, pas dans `Monstre` :
+  `m_provocations` (`Provocation` : identifiant du monstre, place du
+  provocateur, temps restant), sur le modèle des agresseurs.
+  `Monstre` ne change pas : il reçoit toujours sa proie en paramètre.
+  `provoquer(id, place, duree)` ajoute ou remet la durée au maximum ;
+  elle est publique pour que les tests la préparent, mais le contrôle de
+  la recharge et du lanceur est dans `declencherSkill`.
+- **Fin d'une provocation** : durée écoulée et provocateur mort
+  (`mettreAJour`), monstre absent de la liste (`attaquer`).
+- **Une seule règle pour la proie** : `indiceProieDuMonstre(id,
+  position)` renvoie le provocateur s'il est vivant, sinon le vivant le
+  plus proche. `proieDuMonstre` (demande de `main.cpp`) et
+  `recevoirDegats` s'en servent. Si le provocateur est mort entre-temps,
+  la règle retombe tout de suite sur le plus proche, même avant le
+  retrait de la provocation.
+- **Le reste du monstre ne change pas** : détection, territoire, abandon
+  et retour au poste suivent leurs règles, même provoqué. Un monstre
+  provoqué dont le provocateur est hors de son territoire ou de sa
+  détection abandonne donc comme avant.
+- **Limites connues** : pas d'indicateur visuel du monstre provoqué ni
+  d'effet au déclenchement ; pas de système d'effets général ;
+  `provoquer` n'est pas protégée contre un appel direct sans recharge.
 
 ## Circuit des dégâts
 
@@ -284,11 +326,12 @@ image).
   recharge de base de ce personnage, qui ne frappe donc pas deux fois
   dans la même image.
 - **Un monstre frappe un personnage** : pour chaque monstre,
-  `main.cpp` demande `escouade.personnageLePlusProche(m.getCentre())`
-  (le cercle du vivant le plus proche), met le monstre à jour, relit son
-  centre, puis applique `escouade.recevoirDegats(m.getId(),
-  origine, m.frapper(*cible))`. Les deux appels à `Escouade` désignent le même
-  personnage grâce au même critère. La cible est calculée avant le
+  `main.cpp` demande `escouade.proieDuMonstre(m.getId(), m.getCentre())`
+  (le cercle du provocateur si ce monstre est provoqué, sinon du vivant
+  le plus proche), met le monstre à jour, relit son centre, puis applique
+  `escouade.recevoirDegats(m.getId(), origine, m.frapper(*cible))`. Les
+  deux appels à `Escouade` désignent le même personnage grâce à la même
+  règle (`indiceProieDuMonstre`). La cible est calculée avant le
   déplacement du monstre et `origine` relu après, pour que les dégâts
   partent de la position à jour.
 - **Un monstre frappe qu'il soit lui-même attaqué ou non** : sa riposte

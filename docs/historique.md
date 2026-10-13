@@ -1052,3 +1052,28 @@ verrou passent avant ; `m_monstreAPortee` mémorisé dans `attaquer`.
 **Hors de portée** : skill de provocation, déplacement de l'ancre vers
 l'agresseur, verrou automatique, poursuite au-delà de la laisse, recul des
 tireurs, indicateur visuel, A* tenant compte des entités.
+
+### Étape 41 — Skill de provocation (touche 2) ✅ TERMINÉE
+
+Le mêlée de la place 2 reçoit un skill de zone : les monstres proches
+le prennent pour proie pendant quelques secondes.
+
+1. [x] `TypeSkill::Provocation` et le skill de la place 2, sans effet ;
+       tests `Skill` et `Personnage` (enchaînée)
+2. [x] `Escouade::Provocation`, `m_provocations`, `provoquer`, écoulement
+       et retraits ; tests (enchaînée)
+3. [x] Règle unique `indiceProieDuMonstre` ; `personnageLePlusProche`
+       renommée `proieDuMonstre(idMonstre, position)` ; branchée sur
+       `main.cpp` et `recevoirDegats` ; tests (enchaînée)
+4. [x] Déclenchement par la touche 2 dans `declencherSkill` ; tests
+5. [x] Mise à jour des documents
+
+**Choix** : état « provoqué » dans `Escouade` (`Monstre` inchangé) ;
+skill de zone sans cible (pas de cas dans `Cible`) ; puissance = durée en
+secondes ; `provoquer` publique pour les tests.
+
+**Limites connues** : voir `docs/combat.md` (« Provocation »).
+
+**Hors de portée** : indicateur visuel du monstre provoqué, autres effets
+(étourdissement, ralentissement), système d'effets général, skill de la
+touche 4.
