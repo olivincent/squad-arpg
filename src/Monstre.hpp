@@ -1,6 +1,6 @@
 // ./src/Monstre.hpp
 #pragma once
-#include "Attaque.hpp"
+#include "Skill.hpp"
 #include "Cercle.hpp"
 #include "Mobile.hpp"
 #include <SFML/Graphics/RenderTarget.hpp>
@@ -32,7 +32,7 @@ private:
     int m_pointsDeVie;
     int m_pointsDeVieMax;
     int m_id;
-    Attaque m_attaque;
+    Skill m_attaque;
     float m_rayonDetection;
     float m_rayonTerritoire;
     Etat m_etat;

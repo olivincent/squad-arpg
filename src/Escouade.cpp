@@ -6,7 +6,7 @@
 #include <SFML/Graphics/Color.hpp>
 #include <variant>
 #include "Personnage.hpp"
-#include "Attaque.hpp"
+#include "Skill.hpp"
 #include "Autodefense.hpp"
 #include "Chemin.hpp"
 #include "TileMap.hpp"
@@ -39,14 +39,14 @@ Escouade::Escouade(sf::Vector2f positionDepart)
       m_orientationVoulue(),
       m_vitesseRotation(360.0f),
       m_personnages({
-          Personnage(placePersonnage(0), s_couleurMelee, Attaque(s_porteeMelee, 5, 0.5f),
-                     Skill(TypeSkill::Degats, Attaque(s_porteeMelee, s_degatsSkill, s_rechargeSkill), 0.0f)),
-          Personnage(placePersonnage(1), s_couleurMelee, Attaque(s_porteeMelee, 5, 0.5f),
-                     Skill(TypeSkill::Provocation, Attaque(0.0f, s_dureeProvocation, s_rechargeProvocation), s_rayonProvocation)),
-          Personnage(placePersonnage(2), s_couleurTireur, Attaque(s_porteeTireur, 5, 0.5f),
-                     Skill(TypeSkill::Soin, Attaque(s_porteeSoin, s_puissanceSoin, s_rechargeSoin), 0.0f)),
-          Personnage(placePersonnage(3), s_couleurTireur, Attaque(s_porteeTireur, 5, 0.5f),
-                     Skill(TypeSkill::Zone, Attaque(s_porteeZone, s_degatsZone, s_rechargeZone), s_rayonZone)),
+          Personnage(placePersonnage(0), s_couleurMelee, Skill(TypeSkill::Degats, s_porteeMelee, 5, 0.5f, 0.0f),
+                     Skill(TypeSkill::Degats, s_porteeMelee, s_degatsSkill, s_rechargeSkill, 0.0f)),
+          Personnage(placePersonnage(1), s_couleurMelee, Skill(TypeSkill::Degats, s_porteeMelee, 5, 0.5f, 0.0f),
+                     Skill(TypeSkill::Provocation, 0.0f, s_dureeProvocation, s_rechargeProvocation, s_rayonProvocation)),
+          Personnage(placePersonnage(2), s_couleurTireur, Skill(TypeSkill::Degats, s_porteeTireur, 5, 0.5f, 0.0f),
+                     Skill(TypeSkill::Soin, s_porteeSoin, s_puissanceSoin, s_rechargeSoin, 0.0f)),
+          Personnage(placePersonnage(3), s_couleurTireur, Skill(TypeSkill::Degats, s_porteeTireur, 5, 0.5f, 0.0f),
+                     Skill(TypeSkill::Zone, s_porteeZone, s_degatsZone, s_rechargeZone, s_rayonZone)),
       }),
       m_cibleVerrouillee(),
       m_skillEnAttente(),

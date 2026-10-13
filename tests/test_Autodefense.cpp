@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "Autodefense.hpp"
-#include "Attaque.hpp"
 #include "Coup.hpp"
 #include "Personnage.hpp"
 
@@ -15,7 +14,7 @@ namespace {
 // Personnage en (0, 0), rayon 10, portée 20 px bord à bord : un cercle de
 // rayon 15 est à portée si son centre est à 45 px ou moins.
 Personnage personnageDePortee20() {
-    return Personnage({0.0f, 0.0f}, sf::Color::Red, Attaque(20.0f, 5, 0.5f), std::nullopt);
+    return Personnage({0.0f, 0.0f}, sf::Color::Red, Skill(TypeSkill::Degats, 20.0f, 5, 0.5f, 0.0f), std::nullopt);
 }
 
 MonstreVu monstreEn(int id, float x) {

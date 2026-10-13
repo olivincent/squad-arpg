@@ -8,11 +8,11 @@ namespace {
 constexpr float s_seuilRecalcul = 40.0f;  // une case, en pixels
 }  // namespace
 
-Personnage::Personnage(sf::Vector2f centre, sf::Color couleur, Attaque attaque, std::optional<Skill> skill)
+Personnage::Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::optional<Skill> skill)
     : m_mobile(centre, {20.0f, 20.0f}, 240.0f),
       m_taille(20.0f, 20.0f),
       m_couleur(couleur),
-      m_attaque(attaque),
+      m_attaqueDeBase(attaqueDeBase),
       m_skill(skill),
       m_cibleChemin(),
       m_pointsDeVie(100),
@@ -91,14 +91,14 @@ void Personnage::mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte,
     }
     m_mobile.mettreAJour(dt, carte, obstacles);
 
-    m_attaque.mettreAJour(dt);
+    m_attaqueDeBase.mettreAJour(dt);
     if (m_skill.has_value()) {
         m_skill->mettreAJour(dt);
     }
 }
 
 bool Personnage::estAPortee(Cercle cible) const {
-    return m_attaque.estAPortee(getCercle(), cible);
+    return m_attaqueDeBase.estAPortee(getCercle(), cible);
 }
 
 int Personnage::frapper(Cercle cible) {
@@ -106,7 +106,7 @@ int Personnage::frapper(Cercle cible) {
         return 0;
     }
 
-    return m_attaque.frapper(getCercle(), cible);
+    return m_attaqueDeBase.declencher(getCercle(), cible);
 }
 
 std::optional<TypeSkill> Personnage::typeSkill() const {
@@ -142,7 +142,7 @@ int Personnage::declencherSkill(Cercle cible) {
     if (degats > 0) {
         // Le skill remplace l'attaque de base à ce moment : elle repart
         // pour une recharge complète.
-        m_attaque.relancerRecharge();
+        m_attaqueDeBase.relancerRecharge();
     }
     return degats;
 }

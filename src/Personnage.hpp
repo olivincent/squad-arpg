@@ -1,6 +1,5 @@
 // ./src/Personnage.hpp
 #pragma once
-#include "Attaque.hpp"
 #include "Cercle.hpp"
 #include "Mobile.hpp"
 #include "Skill.hpp"
@@ -14,7 +13,7 @@ class TileMap;
 
 class Personnage {
 public:
-    Personnage(sf::Vector2f centre, sf::Color couleur, Attaque attaque, std::optional<Skill> skill);
+    Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::optional<Skill> skill);
     void dessiner(sf::RenderTarget& rendu) const;
     void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte, const std::vector<Cercle>& obstacles);
     bool estAPortee(Cercle cible) const;
@@ -37,7 +36,7 @@ private:
     Mobile m_mobile;        // position (centre en pixels du monde) et déplacement
     sf::Vector2f m_taille;  // en pixels
     sf::Color m_couleur;
-    Attaque m_attaque;
+    Skill m_attaqueDeBase;
     std::optional<Skill> m_skill; // vide = pas de skill
     std::optional<sf::Vector2f> m_cibleChemin; // cible du dernier A* ; vide = pas de chemin en cours
     int m_pointsDeVie;

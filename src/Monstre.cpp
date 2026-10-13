@@ -10,7 +10,7 @@ Monstre::Monstre(sf::Vector2f centre, int id)
       m_pointsDeVie(100),
       m_pointsDeVieMax(100),
       m_id(id),
-      m_attaque(15.0f, 10, 1.0f),  // bord à bord : ancienne portée (40) moins les deux rayons (10 + 15)
+      m_attaque(TypeSkill::Degats, 15.0f, 10, 1.0f, 0.0f),  // bord à bord : ancienne portée (40) moins les deux rayons (10 + 15)
       m_rayonDetection(200.0f),
       m_rayonTerritoire(400.0f),
       m_etat(Etat::EnGarde),
@@ -128,5 +128,5 @@ void Monstre::mettreAJour(float dt, std::optional<Cercle> cible, const TileMap& 
 }
 
 int Monstre::frapper(Cercle cible) {
-    return m_attaque.frapper(getCercle(), cible);
+    return m_attaque.declencher(getCercle(), cible);
 }
