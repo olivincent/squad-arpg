@@ -270,7 +270,7 @@ int main() {
         for (std::size_t i = 0; i < etatsDesSkills.size(); ++i) {
             etatsDesSkills[i] = escouade.etatDuSkill(i + 1);
         }
-        dessinerBarreDeSkills(window, police, etatsDesSkills);
+        dessinerBarreDeSkills(window, police, etatsDesSkills, placeEnVisee);
         window.display();
     }
     return 0;

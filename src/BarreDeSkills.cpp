@@ -77,7 +77,8 @@ std::vector<sf::Vector2f> pointsDuQuartier(sf::Vector2f centre, float cote, floa
 }
 
 void dessinerBarreDeSkills(sf::RenderTarget& rendu, const sf::Font& police,
-                           const std::array<std::optional<EtatSkill>, 4>& etats) {
+                           const std::array<std::optional<EtatSkill>, 4>& etats,
+                           std::optional<std::size_t> placeEnVisee) {
     const sf::Vector2f tailleVue = rendu.getDefaultView().getSize();
     const float largeurBarre = 4.0f * s_coteIcone + 3.0f * s_espacement;
     const float gauche = (tailleVue.x - largeurBarre) / 2.0f;
@@ -91,14 +92,23 @@ void dessinerBarreDeSkills(sf::RenderTarget& rendu, const sf::Font& police,
         fond.setFillColor(sf::Color(50, 50, 50));
         fond.setOutlineColor(sf::Color(140, 140, 140));
         fond.setOutlineThickness(1.0f);
+        if (placeEnVisee == i + 1) {
+            fond.setOutlineColor(sf::Color::Yellow);
+            fond.setOutlineThickness(3.0f);
+        }
         rendu.draw(fond);
 
         if (!etats[i].has_value()) {
             continue;
         }
         const sf::Vector2f centre = coin + sf::Vector2f{s_coteIcone, s_coteIcone} / 2.0f;
-        dessinerTexteCentre(rendu, police, std::string(1, lettreDuSkill(etats[i]->type)), 30, centre, sf::Color::White);
-        dessinerTexteCentre(rendu, police, std::to_string(i + 1), 12, coin + sf::Vector2f{9.0f, 11.0f}, sf::Color::White);
+        // Lanceur mort : lettre et numéro atténués, ni quartier ni chiffre.
+        const sf::Color couleurTexte = etats[i]->lanceurVivant ? sf::Color::White : sf::Color(90, 90, 90);
+        dessinerTexteCentre(rendu, police, std::string(1, lettreDuSkill(etats[i]->type)), 30, centre, couleurTexte);
+        dessinerTexteCentre(rendu, police, std::to_string(i + 1), 12, coin + sf::Vector2f{9.0f, 11.0f}, couleurTexte);
+        if (!etats[i]->lanceurVivant) {
+            continue;
+        }
 
         // Zone sombre : la fraction de recharge restante, de l'aiguille à midi.
         sf::VertexArray quartier(sf::PrimitiveType::TriangleFan);

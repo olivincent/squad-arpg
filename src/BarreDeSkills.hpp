@@ -4,6 +4,7 @@
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <array>
+#include <cstddef>
 #include <optional>
 #include <vector>
 #include "EtatSkill.hpp"
@@ -22,6 +23,8 @@ std::vector<sf::Vector2f> pointsDuQuartier(sf::Vector2f centre, float cote, floa
 
 // Dessine la barre des 4 skills en bas de la cible, en coordonnées de la
 // fenêtre : à appeler avec la vue par défaut. `etats[i]` est la place i + 1 ;
-// vide = pas de skill (cadre vide).
+// vide = pas de skill (cadre vide). `placeEnVisee` : place dont le skill est
+// en cours de visée (contour jaune), vide sinon.
 void dessinerBarreDeSkills(sf::RenderTarget& rendu, const sf::Font& police,
-                           const std::array<std::optional<EtatSkill>, 4>& etats);
+                           const std::array<std::optional<EtatSkill>, 4>& etats,
+                           std::optional<std::size_t> placeEnVisee);
