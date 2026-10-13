@@ -106,5 +106,9 @@ void dessinerBarreDeSkills(sf::RenderTarget& rendu, const sf::Font& police,
             quartier.append({point, sf::Color(0, 0, 0, 170)});
         }
         rendu.draw(quartier);
+
+        if (etats[i]->tempsRestant > 0.0f) {
+            dessinerTexteCentre(rendu, police, std::to_string(secondesAffichees(etats[i]->tempsRestant)), 24, centre, sf::Color::White);
+        }
     }
 }
