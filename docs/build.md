@@ -9,7 +9,7 @@
   (`find_package(Catch2 3 REQUIRED)`).
 - **Bibliothèque `squad_core`** (`add_library(squad_core STATIC
   src/TileMap.cpp src/Escouade.cpp src/Chemin.cpp src/Personnage.cpp
-  src/Deplacement.cpp src/Monstre.cpp src/Attaque.cpp src/Skill.cpp
+  src/Deplacement.cpp src/Monstre.cpp src/Skill.cpp
   src/Mobile.cpp src/Cercle.cpp)`) :
   regroupe la logique de jeu, réutilisée par `main` et par `tests`.
   - `target_link_libraries(squad_core PUBLIC SFML::Graphics)` : `PUBLIC`
@@ -26,7 +26,7 @@
 - **`tests`** (`add_executable(tests tests/test_TileMap.cpp
   tests/test_Chemin.cpp tests/test_Escouade.cpp
   tests/test_Deplacement.cpp tests/test_Monstre.cpp
-  tests/test_Personnage.cpp tests/test_Attaque.cpp
+  tests/test_Personnage.cpp
   tests/test_Skill.cpp tests/test_Mobile.cpp tests/test_Cercle.cpp)`) se lie à `squad_core` et à
   `Catch2::Catch2WithMain` (qui fournit le `main()` des tests) ; lancé
   directement (`./build/tests.exe`), sans CTest.

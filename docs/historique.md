@@ -1157,3 +1157,24 @@ zone »).
 dégâts, le soin et la provocation (étape 45), activation d'un monstre qui
 reçoit des dégâts, détection des monstres, indication visuelle dans la
 prévisualisation, DDA.
+
+### Étape 45 — Fusion d'Attaque dans Skill ✅ TERMINÉE
+
+1. [x] `Skill` porte directement portée, puissance, recharge (plus
+       d'`Attaque` imbriquée) ; `Escouade` et tests adaptés (enchaînée)
+2. [x] `Monstre` : son attaque est un `Skill` `Degats` (enchaînée)
+3. [x] `Personnage` : `m_attaque` devient `Skill m_attaqueDeBase`
+       (enchaînée)
+4. [x] `Attaque.hpp`, `Attaque.cpp` et `test_Attaque.cpp` supprimés ; cas
+       génériques migrés dans `test_Skill.cpp`
+5. [x] Mise à jour des documents
+
+**Choix** : refactorisation pure, aucun changement de comportement ni de
+valeur ; le rôle « attaque de base » vient du membre qui range le `Skill`,
+pas d'un marqueur dans le type ; composition, pas d'héritage ; `Skill`
+reste ignorant de la carte ; la règle « un skill relance la recharge de
+l'attaque de base » reste dans `Personnage::declencherSkill`.
+
+**Hors de portée** : ligne de vue pour les attaques de base et les autres
+skills (étape 46), activation des monstres touchés (étape 47), skills pour
+les monstres, faire passer l'attaque de base par le circuit des skills.

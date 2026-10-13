@@ -45,7 +45,6 @@ squad-arpg/
 │   ├── Personnage.hpp / .cpp
 │   ├── Deplacement.hpp / .cpp
 │   ├── Monstre.hpp / .cpp
-│   ├── Attaque.hpp / .cpp
 │   ├── Skill.hpp / .cpp
 │   ├── Cible.hpp
 │   ├── Coup.hpp
@@ -55,7 +54,7 @@ squad-arpg/
 ├── tests/
 │   ├── test_TileMap.cpp, test_Chemin.cpp, test_Escouade.cpp
 │   ├── test_Deplacement.cpp, test_Monstre.cpp, test_Personnage.cpp
-│   └── test_Attaque.cpp, test_Skill.cpp, test_Mobile.cpp, test_Cercle.cpp,
+│   └── test_Skill.cpp, test_Mobile.cpp, test_Cercle.cpp,
 │       test_Autodefense.cpp
 ├── docs/
 │   ├── build.md
@@ -87,10 +86,10 @@ Qui possède quoi :
   `Escouade` la liste des monstres (`MonstreVu`) et applique les `Coup`
   qu'elle renvoie. Il ne connaît ni `Chemin` ni `Personnage`.
 - `Escouade` possède un `Mobile` (l'ancre) et 4 `Personnage`.
-- `Personnage` possède un `Mobile`, une `Attaque` et, en option, un `Skill` ; `Skill` possède une `Attaque` ; `Monstre` possède un `Mobile` et une
-  `Attaque`.
+- `Personnage` possède un `Mobile`, un `Skill` (son attaque de base) et, en option, un second `Skill` ; `Monstre` possède un `Mobile` et un
+  `Skill` (son attaque).
 - `Mobile` utilise `Chemin` et `Deplacement`. `Personnage` utilise
-  `Mobile` et le test de trajet de `TileMap`. `Attaque`, `Personnage`, `Monstre` et `Escouade` échangent
+  `Mobile` et le test de trajet de `TileMap`. `Skill`, `Personnage`, `Monstre` et `Escouade` échangent
   des `Cercle`. `Escouade` utilise `choisirMonstreAFrapper` (`Autodefense`) et
 `replierVersOrigine` (`Chemin`).
 
@@ -170,7 +169,7 @@ publique : `id` du monstre, `place` du provocateur, `tempsRestant`).
 Suit un chemin calculé par le A* puis lissé, avec collision contre les
 murs et les cercles obstacles. Possédé par valeur par `Escouade`, `Personnage` et
 `Monstre`. Ne connaît ni `Escouade`, ni `Personnage`, ni `Monstre`, ni
-`Attaque`, et ne dessine rien.
+`Skill`, et ne dessine rien.
 
 Données membres : `m_position` (coin haut-gauche), `m_taille`, `m_chemin`
 (`std::vector<sf::Vector2f>`), `m_indexChemin`, `m_vitesse`.
@@ -205,13 +204,13 @@ frappe à portée, a des points de vie et peut mourir. Ne connaît ni la
 formation, ni `Escouade`, ni `Monstre`.
 
 Données membres : `m_mobile` (`Mobile`, porte la position et la vitesse),
-`m_taille`, `m_couleur`, `m_attaque` (`Attaque`), `m_skill`
+`m_taille`, `m_couleur`, `m_attaqueDeBase` (`Skill`), `m_skill`
 (`std::optional<Skill>`), `m_cibleChemin` (`std::optional<sf::Vector2f>`,
 cible du dernier A*), `m_pointsDeVie`, `m_pointsDeVieMax`.
 
 | Fonction | Rôle |
 |---|---|
-| `Personnage(sf::Vector2f centre, sf::Color couleur, Attaque attaque, std::optional<Skill> skill)` | Crée le personnage à ce centre, avec cette couleur, cette attaque et ce skill éventuel |
+| `Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::optional<Skill> skill)` | Crée le personnage à ce centre, avec cette couleur, cette attaque de base et ce skill éventuel |
 | `void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte, const std::vector<Cercle>& obstacles)` | Si vivant, avance vers la cible (en ligne droite si le trajet est libre, sinon par un chemin A* lissé recalculé seulement si la cible s'éloigne de plus d'une case de sa fin ; collision avec les murs et les cercles obstacles, glissement) puis décrémente la recharge de l'attaque et du skill ; sinon ne fait rien |
 | `void dessiner(sf::RenderTarget& rendu) const` | Dessine le personnage et sa barre de vie, plus la barre de recharge du skill s'il en a un ; carré gris sans barre s'il est mort |
 | `bool estAPortee(Cercle cible) const` | L'écart bord à bord entre son cercle et `cible` est-il `<=` la portée de `m_attaque` ? |
@@ -262,49 +261,33 @@ Données membres : `m_mobile`, `m_pointsDeVie`, `m_pointsDeVieMax`, `m_id`,
 | `void recevoirDegats(int quantite)` | Retire des points de vie, sans descendre sous zéro |
 | `bool estVivant() const` | Points de vie `> 0` |
 
-### `Attaque` — portée, dégâts et recharge
-
-Possédée par valeur par `Personnage` (attaque de base), par `Skill` et par
-`Monstre`. Ne connaît pas la position de son propriétaire : elle reçoit
-deux `Cercle` en paramètre. Ne dessine rien.
-
-Données membres : `m_portee` (bord à bord), `m_degats`, `m_tempsRecharge`,
-`m_recharge`.
-
-| Fonction | Rôle |
-|---|---|
-| `Attaque(float portee, int degats, float tempsRecharge)` | Crée l'attaque avec cette portée, ces dégâts et ce temps de recharge |
-| `void mettreAJour(float dt)` | Décrémente la recharge, sans descendre sous zéro |
-| `bool estAPortee(Cercle origine, Cercle cible) const` | `distanceBordABord(origine, cible)` est-elle `<=` `m_portee` ? |
-| `int frapper(Cercle origine, Cercle cible)` | Si `cible` est à portée de `origine` et la recharge écoulée, relance la recharge et renvoie `m_degats` ; sinon renvoie 0 |
-| `void relancerRecharge()` | Remet la recharge à `m_tempsRecharge`, sans frapper |
-| `float getProgressionRecharge() const` | Avancement de la recharge, de 0 (juste après un coup) à 1 (prête) ; 1 si le temps de recharge est nul |
-| `float getPortee() const` | Portée (bord à bord) |
-
 ### `Skill` — une capacité spéciale
 
-Un `TypeSkill` (`enum class { Degats, Soin, Provocation, Zone }`) et une
-`Attaque`, qui fournit portée, puissance (dégâts, points de vie rendus ou
-durée en secondes, dégâts d'un skill de zone) et recharge, ainsi qu'un
-rayon de zone (la taille de la zone touchée par un skill de zone ; 0, non
-lu, pour un skill à cible unique).
-Possédé par valeur, en option, par `Personnage`. Ne connaît ni la
-position de son lanceur ni sa cible : il reçoit deux `Cercle`. Ne dessine
-rien.
+Un `TypeSkill` (`enum class { Degats, Soin, Provocation, Zone }`), une
+portée, une puissance (dégâts, points de vie rendus ou durée en secondes,
+dégâts d'un skill de zone), une recharge, ainsi qu'un rayon de zone (la
+taille de la zone touchée par un skill de zone ; 0, non lu, pour un skill
+à cible unique). Sert aussi d'attaque de base : un `Skill` de type
+`Degats`, de rayon de zone 0.
+Possédé par valeur par `Personnage` (attaque de base, plus un skill en
+option) et par `Monstre` (son attaque). Ne connaît ni la position de son
+propriétaire ni sa cible : il reçoit deux `Cercle`. Ne dessine rien.
 
-Données membres : `m_type` (`TypeSkill`), `m_attaque` (`Attaque`),
-`m_rayonZone` (`float`, en pixels).
+Données membres : `m_type` (`TypeSkill`), `m_portee` (bord à bord),
+`m_puissance`, `m_tempsRecharge`, `m_recharge`, `m_rayonZone` (`float`,
+en pixels).
 
 | Fonction | Rôle |
 |---|---|
-| `Skill(TypeSkill type, Attaque attaque, float rayonZone)` | Crée le skill de ce type, autour de cette attaque, avec ce rayon de zone |
-| `void mettreAJour(float dt)` | Fait avancer la recharge |
-| `bool estAPortee(Cercle origine, Cercle cible) const` | Délègue à l'`Attaque` |
-| `int declencher(Cercle origine, Cercle cible)` | Puissance si la cible est à portée et la recharge écoulée (relance alors la recharge), sinon 0 |
-| `float getProgressionRecharge() const` | De 0 (juste après le déclenchement) à 1 (prêt) |
+| `Skill(TypeSkill type, float portee, int puissance, float tempsRecharge, float rayonZone)` | Crée le skill de ce type, avec cette portée, cette puissance, ce temps de recharge et ce rayon de zone ; prêt à la création |
+| `void mettreAJour(float dt)` | Décrémente la recharge, sans descendre sous zéro |
+| `bool estAPortee(Cercle origine, Cercle cible) const` | `distanceBordABord(origine, cible)` est-elle `<=` `m_portee` ? |
+| `int declencher(Cercle origine, Cercle cible)` | Puissance si la cible est à portée et la recharge écoulée (relance alors la recharge), sinon 0 sans toucher la recharge |
+| `void relancerRecharge()` | Remet la recharge à `m_tempsRecharge`, sans déclencher |
+| `float getProgressionRecharge() const` | De 0 (juste après le déclenchement) à 1 (prêt) ; 1 si le temps de recharge est nul |
 | `TypeSkill getType() const` | Type du skill |
 | `float getRayonZone() const` | Rayon de zone du skill |
-| `float getPortee() const` | Portée du skill (celle de son `Attaque`) |
+| `float getPortee() const` | Portée du skill (bord à bord) |
 
 ### `Coup` — ce qui circule entre `main.cpp` et `Escouade`
 
@@ -380,7 +363,7 @@ lire le fichier correspondant :
 | `docs/carte-et-collision.md` | Carte, collision et dessin, déplacement avec glissement et obstacles, plan texte et validation | Avant de modifier `TileMap` ou `Deplacement` |
 | `docs/chemin.md` | Recherche de chemin (A*), suivi de chemin (`Mobile`), lissage de chemin | Avant de modifier `Chemin` ou `Mobile` |
 | `docs/formation.md` | `Escouade` et `Personnage` : ancre, formation, orientation, verrou de cible, placement en combat, mort et défaite | Avant de modifier `Escouade` ou `Personnage` |
-| `docs/combat.md` | `Attaque`, `Cercle`, portée bord à bord, autodéfense, `Skill`, `Cible`, skill en attente, circuit des dégâts, qui bloque qui | Avant de modifier `Attaque`, `Cercle`, `Autodefense`, `Coup`, `Skill`, `Cible`, le skill ou les listes d'obstacles |
+| `docs/combat.md` | `Skill` (dont l'attaque de base), `Cercle`, portée bord à bord, autodéfense, `Cible`, skill en attente, circuit des dégâts, qui bloque qui | Avant de modifier `Cercle`, `Autodefense`, `Coup`, `Skill`, `Cible`, le skill ou les listes d'obstacles |
 | `docs/monstre.md` | `Monstre` : identifiant, états, détection, territoire, poursuite, retour au poste, riposte | Avant de modifier `Monstre` |
 | `docs/tests.md` | Tests (Catch2, conventions) | Avant d'ajouter ou de modifier un test |
 | `docs/historique.md` | Historique détaillé, tel quel | Jamais nécessaire avant de modifier du code |

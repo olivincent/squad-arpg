@@ -64,12 +64,12 @@ L'attaque, la portée, le skill et les obstacles sont dans
 - **Le rôle découle de la place** : les deux personnages avant sont des
   mêlées (rouge, portée de bord à bord 20 px), les deux arrière des
   tireurs (cyan, 120 px). Aucune énumération ni champ « type » : un
-  personnage est défini par ses données (couleur, `Attaque`, skill) et
+  personnage est défini par ses données (couleur, attaque de base, skill) et
   la place dans `m_personnages` suffit à dire qui est quoi, comme elle
   suffit déjà à l'associer à son décalage.
 - **Injection** : `Escouade` choisit les valeurs (constantes nommées
   dans un espace de noms anonyme d'`Escouade.cpp`) et les passe au
-  constructeur de chaque `Personnage` (couleur, `Attaque`, skill
+  constructeur de chaque `Personnage` (couleur, attaque de base, skill
   éventuel). Deux personnages ayant la même couleur, la même attaque et
   le même skill seraient indiscernables, et c'est voulu.
 - **Orientation voulue et orientation réelle séparées** :

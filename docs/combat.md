@@ -1,40 +1,10 @@
 # Squad-ARPG — Combat
 
-`Attaque`, `Cercle`, la portée bord à bord, le skill, le circuit des
+`Skill` (qui sert aussi d'attaque de base), `Cercle`, la portée bord à
+bord, le circuit des
 dégâts et le blocage entre monstres et personnages. L'escouade et ses
 personnages sont dans `docs/formation.md`, le monstre dans
 `docs/monstre.md`.
-
-## Attaque
-
-- **Composition, pas héritage** : `Attaque` (portée, dégâts, temps de
-  recharge, recharge courante) est possédée par valeur par `Personnage`
-  (`m_attaque`), par `Skill` et par `Monstre`. Aucune classe
-  de base commune, aucune fonction virtuelle.
-- **Elle ne connaît pas la position de son propriétaire** : `origine` et
-  `cible` (deux `Cercle`) sont reçus en paramètre de `estAPortee` et
-  `frapper`, plutôt que stockés. Elle ne connaît ni `TileMap`, ni
-  `Personnage`, ni `Monstre`, ni `Escouade`, et ne dessine rien ; elle
-  connaît `Cercle`.
-- **Portée, dégâts et temps de recharge sont des paramètres du
-  constructeur**, puisqu'ils diffèrent selon le propriétaire (mêlée,
-  tireur, monstre, skill). `m_recharge` vaut 0 à la création : le
-  premier coup part tout de suite.
-- **`frapper`** renvoie les dégâts et relance la recharge si la cible est
-  à portée et la recharge écoulée ; sinon renvoie 0 sans toucher la
-  recharge (un coup tenté hors de portée ne la déclenche pas).
-  **`mettreAJour(dt)`** décrémente la recharge, sans descendre sous zéro :
-  le temps passe même quand le propriétaire n'attaque pas.
-- **Valeurs actuelles** : personnages 5 dégâts, 0,5 s de recharge ;
-  monstre 10 dégâts (de quoi rester dangereux seul face à 4
-  personnages), 1 s de recharge.
-- **La règle « un mort ne frappe pas » reste dans `Personnage::frapper`**,
-  avant la délégation : `Monstre` délègue entièrement, sans règle
-  supplémentaire.
-- **Tests** : `test_Attaque.cpp` couvre les cas génériques de
-  recharge/portée ; `test_Personnage.cpp` et `test_Monstre.cpp` ne gardent
-  que ce qui prouve le branchement et les valeurs propres à chaque
-  classe.
 
 ## Cercle et portée bord à bord
 
@@ -64,7 +34,7 @@ personnages sont dans `docs/formation.md`, le monstre dans
   skill de dégâts = portée de mêlée. La mêlée est passée de 10 à 20 px
   (étape 37) : un monstre s'arrête à 15 px de sa proie, et avec 10 px
   un mêlée attaqué n'aurait pas pu riposter sans bouger.
-- **Ce qui passe par `Attaque::estAPortee`** : la frappe des personnages,
+- **Ce qui passe par `Skill::estAPortee`** : la frappe des personnages,
   la riposte des monstres, l'arrêt de l'ancre (`Escouade::attaquer`),
   l'arrêt individuel en combat et l'arrêt du monstre en poursuite. Pour
   transporter la taille de la cible, les signatures échangent un `Cercle`
@@ -172,13 +142,47 @@ personnages sont dans `docs/formation.md`, le monstre dans
 
 ## Skill
 
-- **Une classe `Skill` autour d'une `Attaque`** : un `TypeSkill` (`Degats`,
-  `Soin`, `Provocation` ou `Zone`), l'`Attaque` qui fournit portée, puissance et recharge, et un rayon de zone.
-  `Skill` cache le mot « dégâts » derrière un nom neutre, la puissance
-  (dégâts infligés, points de vie rendus ou durée selon le type), et son
-  `declencher` n'est qu'un `frapper` renommé. Un `enum class` suffit pour
-  le type : ni `std::variant` ni polymorphisme tant que les deux types ne
-  diffèrent que par ce que fait `Escouade` du résultat.
+- **Une classe `Skill`** : un `TypeSkill` (`Degats`, `Soin`,
+  `Provocation` ou `Zone`), une portée (bord à bord), une puissance, un
+  temps de recharge, la recharge courante et un rayon de zone. Le mot
+  « dégâts » est caché derrière un nom neutre, la puissance (dégâts
+  infligés, points de vie rendus ou durée selon le type). Un `enum class`
+  suffit pour le type : ni `std::variant` ni polymorphisme tant que les
+  types ne diffèrent que par ce que fait `Escouade` du résultat.
+- **Composition, pas héritage** : `Skill` est possédé par valeur par
+  `Personnage` (`m_attaqueDeBase`, plus `m_skill` en option) et par
+  `Monstre` (`m_attaque`). Aucune classe de base commune, aucune fonction
+  virtuelle. Il ne connaît pas la position de son propriétaire : `origine`
+  et `cible` (deux `Cercle`) sont reçus en paramètre de `estAPortee` et
+  `declencher`, plutôt que stockés. Il ne connaît ni `TileMap`, ni
+  `Personnage`, ni `Monstre`, ni `Escouade`, et ne dessine rien ; il
+  connaît `Cercle`.
+- **L'attaque de base est un `Skill` comme un autre**, de type `Degats`,
+  rayon de zone 0. Le rôle « attaque de base » est donné par le membre
+  qui la range (`m_attaqueDeBase`), pas par un marqueur dans le type.
+  Elle garde son circuit propre (autodéfense, combat verrouillé) : elle
+  ne passe ni par `choisirCible`, ni par le skill en attente, ni par les
+  touches. `Monstre` dépend donc de `TypeSkill` ; ses attaques sont des
+  `Skill` `Degats`, et il pourra recevoir des skills plus tard.
+- **Portée, puissance, recharge et rayon de zone sont des paramètres du
+  constructeur**, puisqu'ils diffèrent selon le propriétaire. `m_recharge`
+  vaut 0 à la création : le premier déclenchement part tout de suite.
+- **`declencher`** renvoie la puissance et relance la recharge si la cible
+  est à portée et la recharge écoulée ; sinon renvoie 0 sans toucher la
+  recharge (un essai hors de portée ne la déclenche pas).
+  **`mettreAJour(dt)`** décrémente la recharge, sans descendre sous zéro :
+  le temps passe même quand le propriétaire n'agit pas.
+  **`relancerRecharge`** la remet au maximum sans déclencher.
+- **Valeurs des attaques de base** : personnages 5 dégâts, 0,5 s de
+  recharge, portée 20 px (mêlées) ou 120 px (tireurs) ; monstre 10 dégâts
+  (de quoi rester dangereux seul face à 4 personnages), 1 s de recharge,
+  portée 15 px.
+- **La règle « un mort ne frappe pas » reste dans `Personnage::frapper`**,
+  avant la délégation : `Monstre` délègue entièrement, sans règle
+  supplémentaire.
+- **Tests** : `test_Skill.cpp` couvre les cas génériques de recharge et de
+  portée ; `test_Personnage.cpp` et `test_Monstre.cpp` ne gardent que ce
+  qui prouve le branchement et les valeurs propres à chaque classe.
 - **L'absence de skill est un `std::optional<Skill>`**, reçu au
   constructeur de `Personnage` comme l'attaque de base (injection), plutôt
   qu'un skill « vide » à 0 de puissance. Pas de valeur par défaut : chaque
@@ -196,7 +200,7 @@ personnages sont dans `docs/formation.md`, le monstre dans
   personnage » ni indice mémorisé.
 - **Le skill remplace l'attaque de base, pas l'inverse** : quand il part,
   `Personnage::declencherSkill` relance au complet la recharge de
-  `m_attaque`, pour les deux types. La relance n'a lieu que si le skill
+  `m_attaqueDeBase`, pour les deux types. La relance n'a lieu que si le skill
   part réellement (puissance `> 0`). Une attaque de base ne touche pas la
   recharge du skill.
 - **Les refus sont répartis selon qui connaît l'information** : « pas de
@@ -316,10 +320,9 @@ personnages sont dans `docs/formation.md`, le monstre dans
 ## Portée et rayon de zone (étape 42)
 
 - **Deux notions distinctes** : la portée (jusqu'où le skill peut être
-  lancé) reste dans l'`Attaque` ; le rayon de zone (taille de la zone
-  touchée) est dans `Skill` (`m_rayonZone`, getter `getRayonZone`).
-  `Attaque` est partagée avec les attaques de base des personnages et des
-  monstres, qui n'ont pas de zone. Pas de valeur par défaut au
+  lancé, `m_portee`) et le rayon de zone (taille de la zone touchée,
+  `m_rayonZone`, getter `getRayonZone`). Les attaques de base, qui sont
+  aussi des `Skill`, n'ont pas de zone. Pas de valeur par défaut au
   constructeur ; pas de `std::optional` : un skill à cible unique reçoit 0
   et ne le lit pas (c'est le `TypeSkill` qui décide).
 - **Règle commune des skills de zone** : un `Cercle` centré sur le point
@@ -364,7 +367,7 @@ personnages sont dans `docs/formation.md`, le monstre dans
 
 - **Mesure** : distance bord à bord entre le cercle du lanceur et un
   `Cercle` de rayon 0 centré sur le point (`Personnage::skillEstAPortee`,
-  donc `Attaque::estAPortee`), comme les autres skills.
+  donc `Skill::estAPortee`), comme les autres skills.
 - **À portée** : le sort part dans l'image du clic. **Hors portée** :
   `m_skillEnAttente` reçoit `CiblePoint { point }` (point fixé au clic),
   sans coup ni recharge, et le lanceur marche vers le point (même

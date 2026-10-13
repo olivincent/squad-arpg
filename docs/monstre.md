@@ -8,7 +8,7 @@ déplacement par chemin dans `docs/chemin.md`.
 
 - **Pas de classe de base commune avec `Personnage`, pas d'héritage** :
   les deux classes restent indépendantes, même si elles se déplacent
-  toutes deux par un `Mobile` et portent chacune une `Attaque`. La
+  toutes deux par un `Mobile` et portent chacune un `Skill` (attaque de base). La
   ressemblance n'implique pas de dépendance commune tant qu'aucun
   comportement partagé ne le justifie. Les points de vie et la barre de
   vie sont dupliqués volontairement.

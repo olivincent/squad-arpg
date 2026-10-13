@@ -51,13 +51,15 @@ est dans `docs/historique.md`.
 
 - Étape 43 — Portée de lancement du skill de zone, provocation toujours consommée ✅
 - Étape 44 — Ligne de vue pour le skill de zone ✅
+- Étape 45 — Fusion d'`Attaque` dans `Skill` (refactorisation pure) ✅
 
-## Étape 45 — À définir
+## Étape 46 — Ligne de vue pour les attaques de base et les autres skills
 
-Pistes discutées :
-- Ligne de vue pour les attaques de base, le skill de dégâts, le soin et
-  la provocation
-- Activation d'un monstre qui reçoit des dégâts
+`Escouade` combinerait portée et vue dans une fonction `peutAtteindre` ;
+`Skill` reste ignorant de la carte. Suivie de l'étape 47 : activation des
+monstres qui reçoivent des dégâts.
+
+Autres pistes discutées :
 - Effet visuel à l'impact du skill de zone, HUD ou icônes de skill
 - Indicateur visuel du monstre provoqué
 - L'escouade poursuit d'elle-même un monstre qui l'attaque (écartée pour
@@ -162,7 +164,7 @@ Pistes discutées :
   reste sur place. L'ordre du joueur (ancre en mouvement), le skill en
   attente et le verrou (personnage à portée du monstre verrouillé) passent
   avant.
-- **Skills** : trois, de classe `Skill` (type + `Attaque`). Touche 1 :
+- **Skills** : trois, de classe `Skill` (type, portée, puissance, recharge, rayon de zone). Touche 1 :
   skill de dégâts du mêlée avant-gauche (25 dégâts, recharge 5 s, portée
   de mêlée, 20 px), sur le monstre verrouillé ou, sans verrou, sur le
   monstre à portée que ce mêlée frapperait en autodéfense (alors sans
@@ -211,9 +213,9 @@ Pistes discutées :
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 296 tests : 38 sur `TileMap`, 17 sur `Chemin`, 122
+  (`./build/tests.exe`, 295 tests : 38 sur `TileMap`, 17 sur `Chemin`, 122
   sur `Escouade`, 12 sur `Deplacement`, 27 sur `Monstre`, 31 sur
-  `Personnage`, 11 sur `Attaque`, 7 sur `Skill`, 14 sur `Mobile`, 4 sur
+  `Personnage`, 17 sur `Skill`, 14 sur `Mobile`, 4 sur
   `Cercle`, 13 sur `Autodefense`).
 
 **Limites connues** (acceptées pour l'instant) :

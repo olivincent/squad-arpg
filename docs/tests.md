@@ -7,7 +7,7 @@
   REQUIRED)` comme SFML (pas de `FetchContent`).
 - **Un seul exécutable `tests`**, dix fichiers (`test_TileMap.cpp`,
   `test_Chemin.cpp`, `test_Escouade.cpp`, `test_Deplacement.cpp`,
-  `test_Monstre.cpp`, `test_Personnage.cpp`, `test_Attaque.cpp`,
+  `test_Monstre.cpp`, `test_Personnage.cpp`,
   `test_Skill.cpp`, `test_Mobile.cpp`, `test_Cercle.cpp`,
   `test_Autodefense.cpp`), lancé directement
   (`./build/tests.exe`) — pas de CTest ni de `catch_discover_tests`.
@@ -15,7 +15,7 @@
   (3×3, 4×4, 5×5…), jamais la carte de `main.cpp`, pour isoler exactement
   le cas testé.
 - **Teste uniquement l'interface publique** de `TileMap`, `Chemin`,
-  `Escouade`, `Personnage`, `Monstre`, `Attaque`, `Mobile` et `Cercle`
+  `Escouade`, `Personnage`, `Monstre`, `Skill`, `Mobile` et `Cercle`
   (`distanceBordABord`, `getCercle`, `getTile`,
   `chevaucheUnMur`, `trajetLibre`, `ligneDeVue`, `getLargeur`/`getHauteur`,
   `caseContenant`/`centreDeCase`, le constructeur, `trouverChemin`,
@@ -111,9 +111,9 @@
     les deux diminue de nouveau).
 - **Cibles ponctuelles ou de la taille d'un monstre** :
   depuis que la portée se mesure entre deux `Cercle`, les tests
-  d'`Attaque`, de `Personnage` et de `Monstre` donnent leurs cibles
+  de `Skill`, de `Personnage` et de `Monstre` donnent leurs cibles
   comme des cercles de rayon nul (fonction d'aide `pointCible`, ou
-  `point` dans `test_Attaque.cpp`) : la portée reste alors facile à
+  `point` dans `test_Skill.cpp`) : la portée reste alors facile à
   vérifier à la main (distance entre centres moins le seul rayon de
   l'attaquant). Les tests de combat d'`Escouade`, eux, utilisent une
   cible de rayon 15 (`cibleMonstre`), comme le monstre que `main.cpp`
@@ -223,23 +223,21 @@
   `proieDuMonstre`, n'y figure plus), liste vide une fois les 4
   morts. Le branchement dans `main.cpp` n'est pas testé (vérifié
   visuellement).
-- **`Attaque` (`test_Attaque.cpp`)** : couvre les six cas de
-  recharge/portée en un seul endroit, plutôt que dupliqués dans
-  `test_Personnage.cpp` et `test_Monstre.cpp` — dégâts à portée,
-  0 hors de portée, distance exactement égale à la portée (cas limite,
+- **`Skill` (`test_Skill.cpp`), cas génériques de recharge et de
+  portée** (ex-tests d'`Attaque`) : couverts en un seul endroit, plutôt
+  que dupliqués dans `test_Personnage.cpp` et `test_Monstre.cpp` — portée
+  (proche, lointain, distance exactement égale à la portée, cas limite
   `<=`), 0 au second appel immédiat (recharge en cours), 0 après une
-  durée simulée trop courte puis de nouveau les dégâts après une durée
-  généreuse (même fonction d'aide `ecoulerTemps(attaque, duree)` que
-  dans les autres fichiers, adaptée à une classe sans position ni
-  carte), et un coup tenté hors de portée qui ne déclenche pas la
-  recharge. `test_Personnage.cpp` et `test_Monstre.cpp` ne gardent que
-  les cas qui prouvent leur propre branchement (voir plus haut), pas
-  ces six cas génériques.
+  durée simulée trop courte puis de nouveau la puissance après une durée
+  généreuse (fonction d'aide `ecoulerTemps(skill, duree)`), un
+  déclenchement hors de portée qui ne lance pas la recharge.
+  `test_Personnage.cpp` et `test_Monstre.cpp` ne gardent que les cas qui
+  prouvent leur propre branchement.
 - **Skill** : chaque `Personnage` des tests existants reçoit
   `std::nullopt` comme skill (paramètre sans valeur par défaut) ; ceux qui
   testent le skill de dégâts passent un
-  `Skill(TypeSkill::Degats, Attaque(...))`.
-  - `test_Attaque.cpp` : `relancerRecharge` empêche de frapper avant une
+  `Skill(TypeSkill::Degats, portée, puissance, recharge, 0.0f)`.
+  - `test_Skill.cpp` : `relancerRecharge` empêche de frapper avant une
     recharge complète, même sur une attaque jamais utilisée ;
     `getProgressionRecharge` vaut 1 à la création, 0 juste après
     `relancerRecharge`, strictement entre les deux après 0,3 s, et de

@@ -46,7 +46,7 @@
 A* + lissage, collision/glissement. Elle est possédée par valeur par
 `Escouade` (`m_mobile`), par `Personnage` et par `Monstre` — composition, pas héritage :
 aucune classe de base commune, aucune fonction virtuelle. Elle ne connaît
-ni `Escouade`, ni `Personnage`, ni `Monstre`, ni `Attaque`, et ne dessine
+ni `Escouade`, ni `Personnage`, ni `Monstre`, ni `Skill`, et ne dessine
 rien ; elle connaît `TileMap`, `Chemin` et `Deplacement`.
 
 - **Interface en centres** : le constructeur et `getCentre` raisonnent en
