@@ -1238,3 +1238,36 @@ début d'image (bug de conversion des clics trouvé en chemin).
 **Hors de portée** : indication du skill en attente, infobulle, clic sur
 les icônes, images d'icônes, autre texte à l'écran, redimensionnement de la
 fenêtre.
+
+### Étape 49 — Hygiène et sûreté du code (refactorisation pure) ✅ TERMINÉE
+
+1. [x] `static_cast<float>` dans `TileMap.cpp` ; `CMakeLists.txt` à une
+       source par ligne et avertissements activés (enchaînée)
+2. [x] Inclusions précises de `TileMap.hpp` ; `TypeSkill.hpp` et
+       `MonstreVu.hpp` ; includes inutiles retirés (enchaînée)
+3. [x] `Cercle` par valeur, constantes `s_`, `Personnage::m_taille`
+       supprimé, attaque de base construite à un endroit, commentaires
+       périmés, règles dans CLAUDE.md (enchaînée)
+4. [x] `placeValide`, `personnageDeLaPlace`, `skillEnAttenteDeDegats`,
+       `annulerSkillDeDegatsEnAttente` (enchaînée)
+5. [x] `trouverMonstre` et ses tests ; `trouverMonstreParId` dans
+       `main.cpp`, itérateurs et pointeurs testés avant usage (enchaînée)
+6. [x] `Surcharges` et `std::visit` sur `Cible` (enchaînée)
+7. [x] `[[nodiscard]]` et adaptation de 39 appels de tests (enchaînée)
+8. [x] `std::array<bool, s_nombrePersonnages>` pour `m_monstreAPortee` ;
+       ordre d'appel `attaquer` avant `mettreAJour` documenté (enchaînée)
+9. [x] Module `BarreDeVie` utilisé par `Personnage` et `Monstre`
+10. [x] Mise à jour des documents
+
+**Choix** : constantes en `constexpr` dans un namespace anonyme (style
+majoritaire, `static` redondant) ; `provoquer` ignore une place invalide
+(avant : comportement indéfini plus tard) ; `attaquer` garde ses `get_if`
+(une seule alternative à la fois) ; `avancerSkillEnAttente` visite une copie
+de la cible car une lambda peut vider le skill en attente ; barre de vie en
+deux fonctions (`positionBarreDeVie`, `dessinerBarreDeVie`) pour que la
+position ne soit pas calculée deux fois ; pas de type `PointsDeVie`.
+
+**Hors de portée** : découpage de `test_Escouade.cpp` et `aides.hpp`
+(étape 50), extraction de `Provocations` et `Agresseurs` (étape 51),
+allègement de `main.cpp` (étape 52), `declencherSansCible` (R4),
+sous-dossiers (F1).

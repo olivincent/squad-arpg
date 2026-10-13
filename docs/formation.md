@@ -119,7 +119,7 @@ L'attaque, la portée, le skill et les obstacles sont dans
   voir plus bas) sans changer l'interface de `Personnage`.
 - **Il possède un `Mobile`** (étape 39), comme `Monstre` : composition,
   pas héritage. La position (le centre) et la vitesse vivent dans le
-  `Mobile` ; `Personnage` garde `m_taille` pour le dessin et le cercle.
+  `Mobile` ; la taille se lit dans `m_mobile.getTaille()` (plus de `m_taille` en double depuis l'étape 49), comme dans `Monstre`.
 - **Règle hybride, décidée dans `Personnage::mettreAJour`** : `Escouade`
   décide *où*, `Personnage` *comment*. Si le trajet direct de sa
   position à sa cible est libre (`trajetLibre`, avec sa taille), il
@@ -150,11 +150,11 @@ L'attaque, la portée, le skill et les obstacles sont dans
   membre.
 - **Points de vie et barre de vie** : 100 points, `recevoirDegats`
   (jamais sous zéro), `estVivant()`. Barre dessinée par `Personnage`
-  lui-même (fond sombre + rectangle vert proportionnel, au-dessus du
-  carré), identique à celle de `Monstre`. La duplication avec `Monstre`
-  est assumée : aucune factorisation tant que le besoin ne se confirme
-  pas.
-- **Il délègue son attaque à `m_attaque`** et son skill (un
+  la fonction commune `dessinerBarreDeVie` (module `BarreDeVie`, partagé
+  avec `Monstre` depuis l'étape 49). La logique des points de vie
+  (`recevoirDegats`, `estVivant`) reste dupliquée avec `Monstre` : aucun
+  type `PointsDeVie` tant que le besoin ne se confirme pas.
+- **Il délègue son attaque à `m_attaqueDeBase`** et son skill (un
   `std::optional<Skill>`) à `m_skill` (voir `docs/combat.md`). La règle
   « un mort ne frappe pas » vit dans `Personnage::frapper` et
   `declencherSkill`, avant la délégation : être vivant est l'affaire de
@@ -309,3 +309,28 @@ L'attaque, la portée, le skill et les obstacles sont dans
   résurrection (le soin ne s'applique pas aux morts) ; pas d'écran de défaite ni de moyen de
   recommencer ; l'ancre ne s'arrête pas à la mort du dernier
   personnage (si elle avait un trajet en cours, elle le termine).
+
+## Hygiène du code (étape 49)
+
+- **Places** : `Escouade::placeValide(place)` et `personnageDeLaPlace(place)`
+  (versions `const` et non `const`, `.at()`) sont la seule conversion de la
+  place 1 à 4 vers l'indice 0 à 3. Plus de `m_personnages[place - 1]` ni de
+  test de bornes ailleurs ; `declencherSkillDeZone` et `lancerSkillDeZone`
+  valident la place eux-mêmes. `provoquer` ignore une place invalide (avant :
+  comportement indéfini plus tard dans `mettreAJour`). Restent deux
+  conversions vers un *indice* (pas un accès) : `indiceProieDuMonstre` et le
+  test `i == placeLanceur - 1` de `mettreAJour`.
+- **Skill en attente** : `skillEnAttenteDeDegats()` et
+  `annulerSkillDeDegatsEnAttente()` sont utilisées par `verrouiller`,
+  `deverrouiller`, `attaquer` et `avancerSkillEnAttente`.
+- **Ordre d'appel** : `attaquer` avant `mettreAJour` dans une même image,
+  documenté au-dessus de la classe : `m_monstreAPortee` et `m_cibleCombat`
+  passent de l'une à l'autre. `m_monstreAPortee` est un
+  `std::array<bool, s_nombrePersonnages>` (et non un `std::vector<bool>`,
+  spécialisation particulière).
+- **Constantes** : tailles, vitesses, points de vie et attaque de base
+  (`attaqueDeBase(portee)`, un seul endroit) ont des constantes `s_` ;
+  `Personnage::m_taille` est supprimé.
+- **Barre de vie** : module `BarreDeVie`, partagé avec `Monstre`. La barre
+  orange de recharge reste dans `Personnage::dessiner`, placée sous la barre
+  de vie grâce à `s_hauteurBarreDeVie`.

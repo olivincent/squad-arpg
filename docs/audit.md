@@ -198,6 +198,8 @@ inclut `Personnage.hpp` ; voir P2). **Aucune règle violée.**
 - **Risque et tests touchés** : faible ; `test_Skill.cpp` à compléter.
 - **Dépend de** : aucun.
 
+**Écarté à l'étape 49** : hors de portée de la refactorisation d'hygiène ; l'astuce du cercle du lanceur reste documentée dans `Skill.hpp` et `docs/combat.md`.
+
 ---
 
 ## D — Duplication
@@ -225,6 +227,8 @@ inclut `Personnage.hpp` ; voir P2). **Aucune règle violée.**
   de `recevoirDegats`/`recevoirSoin` ne changent pas.
 - **Dépend de** : aucun.
 
+**Traité à l'étape 49.**
+
 ### D2 — Validation de la place (1 à 4) répétée
 - **Constat** : `place < 1 || place > m_personnages.size()` apparaît 5 fois
   dans `Escouade.cpp` (`declencherSkill`, `etatDuSkill`, `rayonZoneDuSkill`,
@@ -242,6 +246,8 @@ inclut `Personnage.hpp` ; voir P2). **Aucune règle violée.**
 - **Risque et tests touchés** : faible ; les tests « place invalide » existants
   servent de filet.
 - **Dépend de** : aucun (à faire avant R2/R3).
+
+**Traité à l'étape 49.**
 
 ### D3 — « Trouver un monstre par identifiant » écrit 7 fois
 - **Constat** : le même `std::find_if(... m.id == x)` apparaît dans
@@ -262,6 +268,8 @@ inclut `Personnage.hpp` ; voir P2). **Aucune règle violée.**
 - **Coût** : petit.
 - **Risque et tests touchés** : faible ; aucun test modifié.
 - **Dépend de** : aucun.
+
+**Traité à l'étape 49.**
 
 ### D4 — Valeurs magiques et constantes dispersées
 - **Constat** : (a) taille 20 × 20 écrite dans `Escouade::Escouade` (ancre),
@@ -288,6 +296,8 @@ inclut `Personnage.hpp` ; voir P2). **Aucune règle violée.**
 - **Coût** : petit.
 - **Risque et tests touchés** : faible ; `m_taille` n'est pas testé directement.
 - **Dépend de** : aucun.
+
+**Traité à l'étape 49** (a à f).
 
 ### D5 — Deux types presque identiques : `Escouade::Agresseur` et `MonstreVu`
 - **Constat** : `pointVersAgresseur` reconstruit, à chaque appel (donc 4 fois par
@@ -316,6 +326,8 @@ inclut `Personnage.hpp` ; voir P2). **Aucune règle violée.**
 - **Risque et tests touchés** : faible.
 - **Dépend de** : aucun.
 
+**Traité à l'étape 49.**
+
 ---
 
 ## P — Dépendances
@@ -340,6 +352,8 @@ inclut `Personnage.hpp` ; voir P2). **Aucune règle violée.**
 - **Risque et tests touchés** : faible ; peut obliger à ajouter des `#include`
   dans quelques tests.
 - **Dépend de** : aucun.
+
+**Traité à l'étape 49.**
 
 ### P2 — `Escouade.hpp` expose `Personnage.hpp` et `Skill.hpp` à `main.cpp`
 - **Constat** : `main.cpp` « ne connaît pas `Personnage` », mais il l'inclut
@@ -370,6 +384,8 @@ inclut `Personnage.hpp` ; voir P2). **Aucune règle violée.**
 - **Risque et tests touchés** : aucun.
 - **Dépend de** : F2.
 
+**Traité à l'étape 49.**
+
 ---
 
 ## F — Fichiers et organisation
@@ -391,6 +407,8 @@ inclut `Personnage.hpp` ; voir P2). **Aucune règle violée.**
   changent seulement leurs `#include`.
 - **Dépend de** : P1, F2, R2 (faire d'abord les extractions, déplacer ensuite).
 
+**Écarté à l'étape 49** : `src/` compte 31 fichiers, sous le seuil d'environ 40 fixé par le constat ; pas de déplacement maintenant.
+
 ### F2 — En-têtes « fourre-tout »
 - **Constat** : (a) `Coup.hpp` contient deux types de sens opposé : `MonstreVu`
   (entrée d'`Escouade`, aussi lu par `Autodefense`) et `Coup` (sortie) ; (b)
@@ -405,6 +423,8 @@ inclut `Personnage.hpp` ; voir P2). **Aucune règle violée.**
 - **Coût** : petit.
 - **Risque et tests touchés** : faible ; adapter les `#include` des tests.
 - **Dépend de** : aucun.
+
+**Traité à l'étape 49.**
 
 ### F3 — Frontière `squad_core` / exécutable
 - **Constat** : (a) de la **logique** vit dans l'exécutable : voir R1 (boucle monstre/
@@ -437,6 +457,8 @@ inclut `Personnage.hpp` ; voir P2). **Aucune règle violée.**
 - **Risque et tests touchés** : aucun.
 - **Dépend de** : D4 (si `m_taille` disparaît).
 
+**Traité à l'étape 49.**
+
 ### F5 — `CMakeLists.txt` : listes de sources sur une seule ligne
 - **Constat** : `add_library(squad_core ...)` et `add_executable(tests ...)` listent
   11 fichiers sur une ligne chacun ; chaque ajout oblige à éditer une ligne de plus
@@ -452,6 +474,8 @@ inclut `Personnage.hpp` ; voir P2). **Aucune règle violée.**
   d'avertissement.
 - **Dépend de** : C1.
 
+**Traité à l'étape 49.**
+
 ---
 
 ## C — Qualité C++
@@ -466,6 +490,8 @@ inclut `Personnage.hpp` ; voir P2). **Aucune règle violée.**
 - **Coût** : petit.
 - **Risque et tests touchés** : aucun (arithmétique identique).
 - **Dépend de** : aucun.
+
+**Traité à l'étape 49.**
 
 ### C2 — `Cible` lue avec `holds_alternative` / `get_if` / `get`, jamais `std::visit`
 - **Constat** : `avancerSkillEnAttente` teste `holds_alternative<CibleMonstre>`,
@@ -486,6 +512,8 @@ inclut `Personnage.hpp` ; voir P2). **Aucune règle violée.**
 - **Risque et tests touchés** : faible ; tests de skill en attente.
 - **Dépend de** : D6.
 
+**Traité à l'étape 49.**
+
 ### C3 — `[[nodiscard]]` et `explicit`
 - **Constat** : aucun `[[nodiscard]]` dans le projet. Des retours dont l'oubli est un
   bogue : `Escouade::attaquer`/`declencherSkill`/`declencherSkillDeZone` (liste de
@@ -500,6 +528,8 @@ inclut `Personnage.hpp` ; voir P2). **Aucune règle violée.**
 - **Coût** : petit.
 - **Risque et tests touchés** : faible ; quelques tests à adapter.
 - **Dépend de** : aucun.
+
+**Traité à l'étape 49.**
 
 ### C4 — Passage par valeur / référence et `const`
 - **Constat** : globalement conforme à CLAUDE.md. Points à relever : `Cercle`
@@ -517,6 +547,8 @@ inclut `Personnage.hpp` ; voir P2). **Aucune règle violée.**
 - **Coût** : petit.
 - **Risque et tests touchés** : aucun.
 - **Dépend de** : aucun.
+
+**Traité à l'étape 49.**
 
 ### C5 — Divers
 - **Constat** : (a) `Personnage::dessiner`, `Monstre::dessiner` et `TileMap::dessiner`
@@ -537,6 +569,8 @@ inclut `Personnage.hpp` ; voir P2). **Aucune règle violée.**
 - **Coût** : petit.
 - **Risque et tests touchés** : faible.
 - **Dépend de** : D3.
+
+**Traité à l'étape 49** (b, c, d). Le dessin à chaque image (a) et l'ancre (e) sont conformes aux conventions et restent tels quels.
 
 ---
 
@@ -605,6 +639,8 @@ inclut `Personnage.hpp` ; voir P2). **Aucune règle violée.**
 - **Coût** : —
 - **Risque et tests touchés** : —
 - **Dépend de** : D4.
+
+**Écarté à l'étape 49** : rien à faire, à surveiller lors d'un changement d'équilibrage.
 
 ---
 

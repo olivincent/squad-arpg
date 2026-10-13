@@ -48,18 +48,22 @@ squad-arpg/
 │   ├── Skill.hpp / .cpp
 │   ├── Cible.hpp
 │   ├── Coup.hpp
+│   ├── MonstreVu.hpp / .cpp
+│   ├── TypeSkill.hpp
 │   ├── Autodefense.hpp / .cpp
 │   ├── Mobile.hpp / .cpp
 │   ├── Cercle.hpp / .cpp
 │   ├── EtatSkill.hpp
-│   └── BarreDeSkills.hpp / .cpp
+│   ├── BarreDeSkills.hpp / .cpp
+│   └── BarreDeVie.hpp / .cpp
 ├── assets/
 │   └── fonts/ (DejaVuSans.ttf, LICENSE-DejaVu.txt)
 ├── tests/
 │   ├── test_TileMap.cpp, test_Chemin.cpp, test_Escouade.cpp
 │   ├── test_Deplacement.cpp, test_Monstre.cpp, test_Personnage.cpp
 │   └── test_Skill.cpp, test_Mobile.cpp, test_Cercle.cpp,
-│       test_Autodefense.cpp, test_BarreDeSkills.cpp
+│       test_Autodefense.cpp, test_BarreDeSkills.cpp,
+│       test_MonstreVu.cpp, test_BarreDeVie.cpp
 ├── docs/
 │   ├── build.md
 │   ├── boucle-et-entrees.md
@@ -69,6 +73,7 @@ squad-arpg/
 │   ├── combat.md
 │   ├── monstre.md
 │   ├── tests.md
+│   ├── audit.md
 │   └── historique.md
 ├── .gitignore
 ├── CLAUDE.md
@@ -94,7 +99,7 @@ Qui possède quoi :
   `Skill` (son attaque).
 - `Mobile` utilise `Chemin` et `Deplacement`. `Personnage` utilise
   `Mobile` et le test de trajet de `TileMap`. `Skill`, `Personnage`, `Monstre` et `Escouade` échangent
-  des `Cercle`. `Escouade` utilise `choisirMonstreAFrapper` (`Autodefense`) et
+  des `Cercle`. `Personnage` et `Monstre` dessinent leur barre de vie avec `BarreDeVie`. `Escouade` utilise `choisirMonstreAFrapper` (`Autodefense`) et
 `replierVersOrigine` (`Chemin`).
 
 ## Modules
@@ -136,8 +141,8 @@ Données membres : `m_mobile` (`Mobile`), `m_decalages` (4
 `place` du lanceur, `Cible cible`, qui peut être un `CiblePoint`), `m_cibleCombat`
 (`std::optional<Cercle>`), `m_places` (`std::vector<sf::Vector2f>`, place
 de formation de chaque personnage après repli, recalculée par
-`mettreAJour`), `m_monstreAPortee` (`std::vector<bool>`, par personnage :
-monstre à portée de son attaque et en vue, calculé par `attaquer`), `m_agresseurs`
+`mettreAJour`), `m_monstreAPortee` (`std::array<bool, s_nombrePersonnages>`, par personnage :
+monstre à portée de son attaque et en vue, calculé par `attaquer`, lu par `mettreAJour`), `m_agresseurs`
 (`std::vector<Agresseur>`, structure publique : `id`, `cercle`,
 `tempsRestant`), `m_provocations` (`std::vector<Provocation>`, structure
 publique : `id` du monstre, `place` du provocateur, `tempsRestant`).
@@ -209,7 +214,7 @@ frappe à portée, a des points de vie et peut mourir. Ne connaît ni la
 formation, ni `Escouade`, ni `Monstre`.
 
 Données membres : `m_mobile` (`Mobile`, porte la position et la vitesse),
-`m_taille`, `m_couleur`, `m_attaqueDeBase` (`Skill`), `m_skill`
+`m_couleur`, `m_attaqueDeBase` (`Skill`), `m_skill`
 (`std::optional<Skill>`), `m_cibleChemin` (`std::optional<sf::Vector2f>`,
 cible du dernier A*), `m_pointsDeVie`, `m_pointsDeVieMax`.
 
@@ -218,15 +223,15 @@ cible du dernier A*), `m_pointsDeVie`, `m_pointsDeVieMax`.
 | `Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::optional<Skill> skill)` | Crée le personnage à ce centre, avec cette couleur, cette attaque de base et ce skill éventuel |
 | `void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte, const std::vector<Cercle>& obstacles)` | Si vivant, avance vers la cible (en ligne droite si le trajet est libre, sinon par un chemin A* lissé recalculé seulement si la cible s'éloigne de plus d'une case de sa fin ; collision avec les murs et les cercles obstacles, glissement) puis décrémente la recharge de l'attaque et du skill ; sinon ne fait rien |
 | `void dessiner(sf::RenderTarget& rendu) const` | Dessine le personnage et sa barre de vie, plus la barre de recharge du skill s'il en a un ; carré gris sans barre s'il est mort |
-| `bool estAPortee(Cercle cible) const` | L'écart bord à bord entre son cercle et `cible` est-il `<=` la portée de `m_attaque` ? |
-| `int frapper(Cercle cible)` | 0 s'il est mort ; sinon délègue à `m_attaque.frapper` avec `getCercle()` comme origine |
+| `bool estAPortee(Cercle cible) const` | L'écart bord à bord entre son cercle et `cible` est-il `<=` la portée de `m_attaqueDeBase` ? |
+| `int frapper(Cercle cible)` | 0 s'il est mort ; sinon délègue à `m_attaqueDeBase.frapper` avec `getCercle()` comme origine |
 | `std::optional<TypeSkill> typeSkill() const` | Type du skill, vide sans skill |
 | `bool skillEstPret() const` | Vivant, avec un skill dont la recharge est écoulée |
 | `std::optional<EtatSkill> etatDuSkill() const` | Type, progression de la recharge, temps restant et état de vie ; vide sans skill |
 | `bool skillEstAPortee(Cercle cible) const` | Le skill est-il à portée de `cible` (bord à bord) ? Faux sans skill |
 | `Cercle zoneDuSkill() const` | Cercle centré sur le personnage, de rayon le rayon de zone de son skill (0 sans skill) |
 | `Cercle cercleDePorteeDuSkill() const` | Cercle centré sur le personnage, de rayon son rayon + la portée de son skill (rayon seul sans skill) |
-| `int declencherSkill(Cercle cible)` | 0 sans skill ou s'il est mort ; sinon délègue à `m_skill->declencher` (dégâts ou points de vie rendus) et, si la puissance est `> 0`, relance au complet la recharge de `m_attaque` |
+| `int declencherSkill(Cercle cible)` | 0 sans skill ou s'il est mort ; sinon délègue à `m_skill->declencher` (dégâts ou points de vie rendus) et, si la puissance est `> 0`, relance au complet la recharge de `m_attaqueDeBase` |
 | `void recevoirSoin(int quantite)` | Rend des points de vie, sans dépasser le maximum ; sans effet sur un mort |
 | `int getPointsDeVie() const` / `int getPointsDeVieMax() const` | Points de vie actuels et maximum |
 | `void recevoirDegats(int quantite)` | Retire des points de vie, sans descendre sous zéro |
@@ -300,10 +305,26 @@ en pixels).
 
 ### `Coup` — ce qui circule entre `main.cpp` et `Escouade`
 
-`Coup.hpp`, sans `.cpp`, deux structures sans comportement :
-`struct MonstreVu { int id; Cercle cercle; }` (un monstre tel que
-l'escouade le voit) et `struct Coup { int idMonstre; int degats; }` (des
-dégâts à infliger à ce monstre).
+`Coup.hpp`, sans `.cpp` : `struct Coup { int idMonstre; int degats; }` (des
+dégâts à infliger à ce monstre). Sortie d'`Escouade`.
+
+### `MonstreVu` — un monstre tel que l'escouade le voit
+
+`MonstreVu.hpp` / `.cpp` : `struct MonstreVu { int id; Cercle cercle; }`
+(entrée d'`Escouade` et d'`Autodefense`) et une fonction libre.
+
+| Fonction | Rôle |
+|---|---|
+| `const MonstreVu* trouverMonstre(const std::vector<MonstreVu>& monstres, int id)` | Monstre portant cet identifiant, `nullptr` s'il est absent (`[[nodiscard]]`) |
+
+`main.cpp` a son équivalent pour `std::vector<Monstre>`, `trouverMonstreParId`
+(namespace anonyme).
+
+### `TypeSkill` — le type d'un skill
+
+`TypeSkill.hpp`, sans `.cpp` : `enum class TypeSkill { Degats, Soin,
+Provocation, Zone }`. Inclus par `Skill`, `EtatSkill`, `BarreDeSkills` et
+`Escouade` sans qu'ils dépendent de la classe `Skill`.
 
 ### `Autodefense` — quel monstre un combattant frappe
 
@@ -323,7 +344,10 @@ par `Escouade::mettreAJour`.
 `struct CiblePoint { sf::Vector2f point; }` (point fixé au clic, pour un
 skill de zone en attente) et
 `using Cible = std::variant<CibleAllie, CibleMonstre, CiblePoint>`. L'absence de
-cible est un `std::optional<Cible>` vide.
+cible est un `std::optional<Cible>` vide. `Cible.hpp` définit aussi
+`template<class... Ts> struct Surcharges : Ts... { using Ts::operator()...; }`
+pour `std::visit` : une lambda par alternative, et un cas oublié est une
+erreur de compilation.
 
 ### `EtatSkill` — le skill d'une place, pour l'affichage
 
@@ -339,6 +363,16 @@ Fonctions libres, sans état : tout est recalculé à chaque image. Ne connaît 
 | `int secondesAffichees(float tempsRestant)` | Secondes entières, arrondies vers le haut |
 | `std::vector<sf::Vector2f> pointsDuQuartier(sf::Vector2f centre, float cote, float fractionSombre)` | Sommets d'un `TriangleFan` : centre, aiguille, coins du carré dans l'intervalle, midi ; vide si la fraction est nulle |
 | `void dessinerBarreDeSkills(sf::RenderTarget& rendu, const sf::Font& police, const std::array<std::optional<EtatSkill>, 4>& etats, std::optional<std::size_t> placeEnVisee)` | Dessine 4 icônes de 56 px en bas de la vue par défaut (à appeler avec elle) : fond, lettre, numéro de touche, quartier sombre et chiffre en recharge, grisée si le lanceur est mort, contour jaune si `placeEnVisee` |
+
+### `BarreDeVie` — la barre de vie d'une entité
+
+Deux fonctions libres, sans état, utilisées par `Personnage::dessiner` et
+`Monstre::dessiner`, et une constante `s_hauteurBarreDeVie` (5 px).
+
+| Fonction | Rôle |
+|---|---|
+| `sf::Vector2f positionBarreDeVie(sf::Vector2f centre, sf::Vector2f taille)` | Coin haut-gauche de la barre d'une entité de ce centre et de cette taille : alignée sur son bord gauche, 6 px au-dessus de son carré |
+| `void dessinerBarreDeVie(sf::RenderTarget& rendu, sf::Vector2f position, float largeur, int pointsDeVie, int pointsDeVieMax)` | Fond gris, puis rectangle vert proportionnel aux points de vie ; ne dessine rien si `pointsDeVieMax <= 0` |
 
 ### `Cercle` — la forme d'une entité
 
@@ -390,4 +424,5 @@ lire le fichier correspondant :
 | `docs/combat.md` | `Skill` (dont l'attaque de base), `Cercle`, portée bord à bord, autodéfense, `Cible`, skill en attente, circuit des dégâts, qui bloque qui | Avant de modifier `Cercle`, `Autodefense`, `Coup`, `Skill`, `Cible`, le skill ou les listes d'obstacles |
 | `docs/monstre.md` | `Monstre` : identifiant, états, détection, territoire, poursuite, retour au poste, riposte | Avant de modifier `Monstre` |
 | `docs/tests.md` | Tests (Catch2, conventions) | Avant d'ajouter ou de modifier un test |
+| `docs/audit.md` | Audit du code avant l'étape 49 : constats (R, D, P, F, C, T) et ce qui a été traité | Avant de planifier une refactorisation |
 | `docs/historique.md` | Historique détaillé, tel quel | Jamais nécessaire avant de modifier du code |

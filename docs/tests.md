@@ -424,3 +424,14 @@
   segment à 1 px d'un mur (libre), arrivée dans un mur.
 - **Non testé** : le mode visée et le cercle, qui vivent dans `main.cpp`
   (vérifiés à la main dans le jeu).
+
+## Hygiène du code (étape 49)
+
+- **`test_MonstreVu.cpp`** : `trouverMonstre` (monstre trouvé, premier de la
+  liste, identifiant absent, liste vide).
+- **`test_BarreDeVie.cpp`** : `positionBarreDeVie` seule. `dessinerBarreDeVie`
+  n'est pas testée (dessin, vérifié dans le jeu).
+- **`[[nodiscard]]`** : 38 appels de `test_Escouade.cpp` et un de
+  `test_Skill.cpp`, qui n'ont besoin que de l'effet (consommer une
+  recharge, enregistrer un agresseur), sont écrits `static_cast<void>(...)`.
+- **Avertissements** : pas activés sur la cible `tests` (macros de Catch2).

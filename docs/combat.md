@@ -56,7 +56,7 @@ personnages sont dans `docs/formation.md`, le monstre dans
 
 - **`Escouade::attaquer(monstres, carte)`** reçoit la liste des monstres
   tels que l'escouade les voit (`MonstreVu` : identifiant et cercle,
-  dans `Coup.hpp`) et renvoie une liste de `Coup` (identifiant du
+  dans `MonstreVu.hpp`) et renvoie une liste de `Coup` (identifiant du
   monstre, dégâts) que `main.cpp` applique. Elle ne connaît toujours pas
   `Monstre`. Deux parties indépendantes :
   - **l'approche, seulement avec un verrou** : si le monstre verrouillé
@@ -243,11 +243,22 @@ personnages sont dans `docs/formation.md`, le monstre dans
 
 ## Choix de la cible et skill en attente
 
-- **`Cible`** est un `std::variant<CibleAllie, CibleMonstre>`
-  (`CibleAllie` : place de 1 à 4 ; `CibleMonstre` : l'identifiant du monstre et son `Cercle`). Pas de
-  troisième cas « aucune » : l'absence est un `std::optional` vide. Les
-  deux cibles n'ont rien de commun, d'où un variant plutôt qu'une classe
+- **`Cible`** est un `std::variant<CibleAllie, CibleMonstre, CiblePoint>`
+  (`CibleAllie` : place de 1 à 4 ; `CibleMonstre` : l'identifiant du monstre et son `Cercle` ;
+  `CiblePoint` : le point fixé au clic d'un skill de zone). Pas de
+  quatrième cas « aucune » : l'absence est un `std::optional` vide. Les
+  cibles n'ont rien de commun, d'où un variant plutôt qu'une classe
   de base.
+- **`std::visit` plutôt que `get_if` en cascade** (étape 49) : là où le
+  code traite toutes les alternatives (`avancerSkillEnAttente`,
+  `declencherSkill`), il utilise `std::visit` avec `Surcharges` (définie
+  dans `Cible.hpp`) : une cinquième cible non traitée est une erreur de
+  compilation, au lieu d'un `bad_variant_access` à l'exécution.
+  `holds_alternative` reste pour les simples tests booléens
+  (`skillEnAttenteDeDegats`), et `attaquer` garde ses `get_if` à une
+  seule alternative. Dans les lambdas, `avancerSkillEnAttente` visite une
+  *copie* de la cible : une lambda peut vider `m_skillEnAttente`, ce qui
+  détruirait la cible visitée.
 - **Le type du skill décide de la cible cherchée**, dans
   `Escouade::choisirCible(type, place, monstres)`, une fonction à part.
   `Soin` : le vivant qui a le moins de points de vie parmi les blessés
@@ -537,3 +548,21 @@ l'enfoncerait dans un obstacle.
   chevauchement déjà existant
   peut subsister, la règle de blocage permettant seulement de s'en
   dégager.
+
+## Hygiène du code (étape 49)
+
+- **`trouverMonstre`** (`MonstreVu.hpp`) remplace les sept `find_if` par
+  identifiant : renvoie un pointeur, `nullptr` si absent, et chaque appelant
+  teste avant de déréférencer. `main.cpp` a `trouverMonstreParId` pour ses
+  `Monstre`.
+- **`[[nodiscard]]`** sur ce dont ignorer le retour est forcément un
+  bogue : listes de `Coup`, `Skill::declencher`, `frapper`, les `choisir*`,
+  `trouverChemin`, `trouverMonstre`, ainsi que les fonctions pures
+  (`distanceBordABord`, requêtes de `TileMap`, etc.). Un test qui n'a
+  besoin que de l'effet de bord écrit `static_cast<void>(...)`.
+- **`TypeSkill.hpp` et `MonstreVu.hpp` séparés** : un module d'affichage
+  ou de décision n'a plus besoin de la classe `Skill` ni de `Coup` pour un
+  enum ou une entrée.
+- **Limite connue** : `Skill::declencher` est encore appelé avec le
+  cercle du lanceur comme « cible » pour la provocation et la zone
+  (audit R4, écarté à l'étape 49).

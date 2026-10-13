@@ -55,10 +55,20 @@ est dans `docs/historique.md`.
 - Étape 46 — Ligne de vue pour les attaques de base et les autres skills ✅
 - Étape 47 — Un monstre touché s'active ✅
 - Étape 48 — Barre de skills à l'écran (HUD) ✅
+- Étape 49 — Hygiène et sûreté du code (refactorisation pure) ✅
 
-## Étape 49 — à définir
+## Étape 50 — à définir
 
-Pistes discutées :
+Pistes discutées (les étapes 50 à 52 sont issues de `docs/audit.md`) :
+- Étape 50 prévue : découper `test_Escouade.cpp`, `aides.hpp` pour les
+  aides de test communes, tests de rotation de la formation, graphie des
+  noms de tests (audit T1 à T3)
+- Étape 51 prévue : extraire `Provocations` et `Agresseurs` d'`Escouade`,
+  découper `attaquer` et `mettreAJour` (audit R2, R3, D5)
+- Étape 52 prévue : alléger `main.cpp` (audit R1, F3)
+- `Skill::declencherSansCible` (audit R4)
+- Type `PointsDeVie` pour la logique de points de vie dupliquée entre
+  `Personnage` et `Monstre`
 - Le monstre touché se jette sur l'auteur du coup (mémoire de
   l'attaquant), aggro sociale des voisins, effet visuel d'alerte
 - Effet visuel à l'impact du skill de zone
@@ -119,6 +129,11 @@ Pistes discutées :
   l'icône du skill en cours de visée. Police DejaVu Sans dans
   `assets/fonts/`, copiée à côté de `main.exe` par CMake ; le jeu refuse
   de démarrer si elle manque.
+- **Qualité du code** (étape 49) : `squad_core` et `main` se compilent avec
+  `-Wall -Wextra -Wpedantic -Wshadow -Wconversion` sans aucun avertissement
+  (pas de `-Werror`, pas sur `tests`) ; `[[nodiscard]]` sur les retours à ne
+  pas ignorer ; `Cercle` passé par valeur ; constantes en `s_`. Barre de vie
+  des personnages et des monstres dessinée par le module `BarreDeVie`.
 - **Escouade** : l'ancre (carré vert de 20 × 20, démarre en `(100, 100)`,
   180 px/s) suit le chemin calculé par le A* puis lissé (trajets directs en
   terrain dégagé, coins contournés au plus court), s'arrête exactement sur
@@ -235,10 +250,11 @@ Pistes discutées :
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 325 tests : 38 sur `TileMap`, 17 sur `Chemin`, 139
+  (`./build/tests.exe`, 330 tests : 38 sur `TileMap`, 17 sur `Chemin`, 139
   sur `Escouade`, 12 sur `Deplacement`, 34 sur `Monstre`, 31 sur
   `Personnage`, 17 sur `Skill`, 14 sur `Mobile`, 4 sur
-  `Cercle`, 13 sur `Autodefense`, 6 sur `BarreDeSkills`).
+  `Cercle`, 13 sur `Autodefense`, 6 sur `BarreDeSkills`, 4 sur `MonstreVu`,
+  1 sur `BarreDeVie`).
 
 **Limites connues** (acceptées pour l'instant) :
 - La barre de skills ne montre pas le skill en attente et n'est pas
