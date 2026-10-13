@@ -318,11 +318,20 @@ L'attaque, la portée, le skill et les obstacles sont dans
   test de bornes ailleurs ; `declencherSkillDeZone` et `lancerSkillDeZone`
   valident la place eux-mêmes. `provoquer` ignore une place invalide (avant :
   comportement indéfini plus tard dans `mettreAJour`). Restent deux
-  conversions vers un *indice* (pas un accès) : `indiceProieDuMonstre` et le
-  test `i == placeLanceur - 1` de `mettreAJour`.
+  conversions vers un *indice* (pas un accès) ; depuis l'étape 51 elles passent
+  par `indiceDeLaPlace` (namespace anonyme de `Escouade.cpp`), la seule
+  écriture de `place - 1`.
 - **Skill en attente** : `skillEnAttenteDeDegats()` et
   `annulerSkillDeDegatsEnAttente()` sont utilisées par `verrouiller`,
   `deverrouiller`, `attaquer` et `avancerSkillEnAttente`.
+- **Étape 51** : `attaquer` se lit comme la liste de ses étapes privées
+  (`actualiserMemoires`, `departSkillDeZoneEnAttente`, `approcherVerrou`,
+  `departSkillDeDegatsEnAttente`, `autodefense`). `mettreAJour` appelle
+  `ecoulerMemoires`, `tournerFormation`, `calculerPlaces`, puis
+  `pointVoulu(i, ...)` pour chaque personnage : la priorité y est écrite
+  une fois, en `return` anticipés (skill en attente, puis rester sur place
+  à portée du verrou, puis agresseur ancre à l'arrêt, puis place en
+  formation). La formation (R2c) n'est pas extraite.
 - **Ordre d'appel** : `attaquer` avant `mettreAJour` dans une même image,
   documenté au-dessus de la classe : `m_monstreAPortee` et `m_cibleCombat`
   passent de l'une à l'autre. `m_monstreAPortee` est un

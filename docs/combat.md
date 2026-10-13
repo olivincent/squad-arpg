@@ -108,15 +108,20 @@ personnages sont dans `docs/formation.md`, le monstre dans
 - **Pourquoi** : l'autodéfense ne déplace personne. Un monstre qui frappe
   un tireur à l'arrière laissait les mêlées plantées à leur place. Les
   personnages vont maintenant vers ceux qui les frappent.
-- **`Escouade` retient ses agresseurs** (`m_agresseurs` : identifiant,
-  cercle, temps restant) sans connaître `Monstre` : `recevoirDegats`
+- **`Escouade` retient ses agresseurs** dans un `Agresseurs` (étape 51,
+  `m_agresseurs`, fichiers à part : par agresseur un `MonstreVu` et le
+  temps restant) sans connaître `Monstre` : `recevoirDegats`
   reçoit l'identifiant du monstre, `main.cpp` reste l'intermédiaire. Un
   coup de dégâts `> 0` ajoute l'agresseur ou remet son temps à 3 s
-  (`s_dureeMemoireAgresseur`) ; un coup à 0 n'enregistre rien. À
+  (`s_dureeMemoire`, dans `Agresseurs.cpp`) ; un coup à 0 n'enregistre rien. À
   l'enregistrement le cercle n'a que le centre (rayon nul, `recevoirDegats`
   n'a que l'origine) ; `attaquer` le met à jour à l'image suivante.
 - **Oubli** : le temps s'écoule dans `mettreAJour` ; un agresseur absent
-  de `monstresVus` (monstre mort) est retiré dans `attaquer`.
+  de `monstresVus` (monstre mort) est retiré dans `attaquer`
+  (`Agresseurs::actualiser`). Depuis l'étape 51, la liste de `MonstreVu`
+  que lit `choisirAgresseurAViser` est construite une fois par image
+  (`Agresseurs::monstresVus`, dans `mettreAJour`), non plus une fois par
+  personnage.
 - **Choix de la cible** : `choisirAgresseurAViser` (module `Autodefense`,
   fonction libre testée seule) garde les agresseurs dont le centre est à
   100 px ou moins (`s_laisseAgresseur`) de la **place en formation** du
@@ -327,14 +332,18 @@ personnages sont dans `docs/formation.md`, le monstre dans
   recharge, skill en attente) et la recharge de l'attaque de base du
   lanceur est relancée.
 - **L'état « provoqué » vit dans `Escouade`**, pas dans `Monstre` :
-  `m_provocations` (`Provocation` : identifiant du monstre, place du
-  provocateur, temps restant), sur le modèle des agresseurs.
+  `m_provocations`, une classe `Provocations` (étape 51 ; par provocation
+  l'identifiant du monstre, la place du provocateur et le temps restant),
+  sur le modèle des agresseurs. `Provocations` ne connaît pas `Personnage` :
+  `Escouade::mettreAJour` lui signale la mort d'un provocateur
+  (`retirerProvocateur`).
   `Monstre` ne change pas : il reçoit toujours sa proie en paramètre.
   `provoquer(id, place, duree)` ajoute ou remet la durée au maximum ;
   elle est publique pour que les tests la préparent, mais le contrôle de
   la recharge et du lanceur est dans `declencherSkill`.
 - **Fin d'une provocation** : durée écoulée et provocateur mort
-  (`mettreAJour`), monstre absent de la liste (`attaquer`).
+  (`mettreAJour`), monstre absent de la liste (`attaquer`) ; les trois
+  retraits sont des fonctions de `Provocations`.
 - **Une seule règle pour la proie** : `indiceProieDuMonstre(id,
   position)` renvoie le provocateur s'il est vivant, sinon le vivant le
   plus proche. `proieDuMonstre` (demande de `main.cpp`) et

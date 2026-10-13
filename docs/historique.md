@@ -1302,3 +1302,31 @@ fichier de `src/` modifié, aucun bogue révélé.
 allègement de `main.cpp` (étape 52), tests de `replierVersOrigine` en direct,
 `SECTION` de Catch2, sous-dossiers de `tests/`. `test_Escouade_skills.cpp`
 fait 786 lignes (un peu plus que les 700 visées).
+
+### Étape 51 — Alléger Escouade : Provocations, Agresseurs, découpage (refactorisation pure) ✅ TERMINÉE
+
+1. [x] `.gitattributes` (`* text=auto`, `*.ttf` et `*.png` en binaire) ;
+       l'index étant déjà en LF, la normalisation n'a rien changé d'autre
+       (enchaînée). 335 tests.
+2. [x] Aides de simulation par nombre de tics (`s_dureeTic`,
+       `nombreDeTics`, `std::lround`) ; `simulerUnDixiemeDeSeconde` remplacée
+       par `simuler(escouade, carte, 0.1f)` (enchaînée). 335 tests.
+3. [x] Classe `Provocations` et ses 9 tests ; plus de `place - 1` dans
+       `indiceProieDuMonstre` (`indiceDeLaPlace`) (enchaînée). 344 tests.
+4. [x] Classe `Agresseurs` et ses 8 tests ; `Agresseur` contient un
+       `MonstreVu` ; liste de `MonstreVu` construite une fois par image (D5)
+       (enchaînée). 352 tests.
+5. [x] `attaquer` découpée en fonctions privées nommées (enchaînée).
+6. [x] `pointVoulu` et découpage de `mettreAJour` (enchaînée). 352 tests.
+7. [x] Mise à jour des documents
+
+**Mesures** : `Escouade.cpp` 674 → 697 lignes (commentaires et signatures des
+nouvelles fonctions) ; `attaquer` 88 → 14 lignes ; `mettreAJour` 68 → 19.
+
+**Choix** : l'ordre de priorité de `pointVoulu` est celui du code d'avant
+(skill en attente, rester sur place à portée du verrou, agresseur, place) ;
+la règle « coup à 0 = rien » reste dans `Escouade::recevoirDegats` ; les
+accès des tests d'agresseurs sont adaptés (`.monstre.id`, `.monstre.cercle`),
+pas ce qu'ils vérifient.
+
+**Hors de portée** : extraction de la formation (R2c), `main.cpp` (étape 52).

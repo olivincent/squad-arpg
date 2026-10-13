@@ -10,7 +10,8 @@
   (`test_TileMap.cpp`, `test_Chemin.cpp`, `test_Deplacement.cpp`,
   `test_Monstre.cpp`, `test_Personnage.cpp`, `test_Skill.cpp`,
   `test_Mobile.cpp`, `test_Cercle.cpp`, `test_Autodefense.cpp`,
-  `test_BarreDeSkills.cpp`, `test_MonstreVu.cpp`, `test_BarreDeVie.cpp`),
+  `test_BarreDeSkills.cpp`, `test_MonstreVu.cpp`, `test_BarreDeVie.cpp`,
+  `test_Provocations.cpp`, `test_Agresseurs.cpp`),
   sauf `Escouade`, coupée par thème en cinq fichiers à plat (pas de
   sous-dossier) :
   - `test_Escouade_deplacement.cpp` : ancre, chemin, formation, places,
@@ -20,7 +21,8 @@
   - `test_Escouade_skills.cpp` : les quatre types de skill, le skill en
     attente, `etatDuSkill`, la visée et la portée du skill de zone ;
   - `test_Escouade_agresseurs.cpp` : agresseurs, laisse, provocations,
-    `proieDuMonstre` ;
+    `proieDuMonstre` (filet d'intégration ; les fonctions de `Provocations`
+    et d'`Agresseurs` sont testées seules dans leurs fichiers, étape 51) ;
   - `test_Escouade_vue.cpp` : la ligne de vue (étapes 44 et 46).
   Un cas qui touche plusieurs thèmes est dans le fichier de son sujet
   principal. Le plus gros (`test_Escouade_skills.cpp`) fait environ 790
@@ -30,7 +32,10 @@
   `verifierPointProche`, `pointCible`, `cibleMonstre`,
   `carteDegagee10x10`, `carteDegageeEntouree` (800 × 600 px, murs
   autour), `carteOuverte`, `simuler(escouade, ...)`, `attaquerCible`,
-  `placeAlliePourSoin`. Quand deux copies différaient, elles ont des noms
+  `placeAlliePourSoin`, ainsi que `s_dureeTic` et `nombreDeTics(duree)`
+  (étape 51 : le nombre de tics est calculé une fois par `std::lround`, puis
+  les boucles comptent des entiers ; additionner des `float` jusqu'à la
+  durée accumulait des arrondis et faisait 5 tics au lieu de 6 pour 0,1 s). Quand deux copies différaient, elles ont des noms
   distincts et explicites (`carteDegagee10x10` pour `Mobile`, `Monstre` et
   `Escouade` ; `carteDegagee5x5` reste dans `test_Personnage.cpp`). Une
   aide utilisée par un seul fichier y reste, dans un `namespace {}` (plus

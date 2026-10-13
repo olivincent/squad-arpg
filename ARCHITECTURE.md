@@ -41,6 +41,8 @@ squad-arpg/
 │   ├── main.cpp
 │   ├── TileMap.hpp / .cpp
 │   ├── Escouade.hpp / .cpp
+│   ├── Provocations.hpp / .cpp
+│   ├── Agresseurs.hpp / .cpp
 │   ├── Chemin.hpp / .cpp
 │   ├── Personnage.hpp / .cpp
 │   ├── Deplacement.hpp / .cpp
@@ -64,6 +66,7 @@ squad-arpg/
 │   ├── test_Escouade_deplacement.cpp, test_Escouade_combat.cpp,
 │   │   test_Escouade_skills.cpp, test_Escouade_agresseurs.cpp,
 │   │   test_Escouade_vue.cpp
+│   ├── test_Provocations.cpp, test_Agresseurs.cpp
 │   ├── test_Deplacement.cpp, test_Monstre.cpp, test_Personnage.cpp
 │   └── test_Skill.cpp, test_Mobile.cpp, test_Cercle.cpp,
 │       test_Autodefense.cpp, test_BarreDeSkills.cpp,
@@ -98,7 +101,7 @@ Qui possède quoi :
   `Escouade` et `Monstre`, qui ne se connaissent pas : il donne à
   `Escouade` la liste des monstres (`MonstreVu`) et applique les `Coup`
   qu'elle renvoie. Il ne connaît ni `Chemin` ni `Personnage`.
-- `Escouade` possède un `Mobile` (l'ancre) et 4 `Personnage`.
+- `Escouade` possède un `Mobile` (l'ancre), 4 `Personnage`, des `Provocations` et des `Agresseurs`. Ces deux derniers ne connaissent ni `Personnage`, ni `Monstre`, ni `Escouade`.
 - `Personnage` possède un `Mobile`, un `Skill` (son attaque de base) et, en option, un second `Skill` ; `Monstre` possède un `Mobile` et un
   `Skill` (son attaque).
 - `Mobile` utilise `Chemin` et `Deplacement`. `Personnage` utilise
@@ -147,9 +150,8 @@ Données membres : `m_mobile` (`Mobile`), `m_decalages` (4
 de formation de chaque personnage après repli, recalculée par
 `mettreAJour`), `m_monstreAPortee` (`std::array<bool, s_nombrePersonnages>`, par personnage :
 monstre à portée de son attaque et en vue, calculé par `attaquer`, lu par `mettreAJour`), `m_agresseurs`
-(`std::vector<Agresseur>`, structure publique : `id`, `cercle`,
-`tempsRestant`), `m_provocations` (`std::vector<Provocation>`, structure
-publique : `id` du monstre, `place` du provocateur, `tempsRestant`).
+(`Agresseurs`, monstres qui ont frappé l'escouade récemment),
+`m_provocations` (`Provocations`, monstres provoqués et leur provocateur).
 
 | Fonction | Rôle |
 |---|---|
@@ -177,6 +179,35 @@ publique : `id` du monstre, `place` du provocateur, `tempsRestant`).
 | `void provoquer(int idMonstre, std::size_t place, float duree)` | Enregistre ce monstre comme provoqué par le personnage de la place `place` (1 à 4) pour `duree` secondes, ou remet sa durée au maximum s'il l'est déjà. Fin : durée écoulée ou provocateur mort (`mettreAJour`), monstre absent de `monstres` (`attaquer`) |
 | `const std::vector<Provocation>& getProvocations() const` | Monstres actuellement provoqués |
 | `const std::vector<Agresseur>& getAgresseurs() const` | Monstres qui ont frappé l'escouade récemment (oubliés après 3 s sans coup, ou absents de `monstres` dans `attaquer`) |
+
+### `Provocations` — les monstres provoqués
+
+Possédée par valeur par `Escouade`. Données privées : `m_provocations`
+(`std::vector<Provocation>`, structure publique : `id` du monstre, `place` du
+provocateur de 1 à 4, `tempsRestant`).
+
+| Fonction | Rôle |
+|---|---|
+| `void provoquer(int id, std::size_t place, float duree)` | Ajoute la provocation, ou remet la durée au maximum (et change le provocateur) si ce monstre l'est déjà ; pas de doublon. La validation de la place reste dans `Escouade::provoquer` |
+| `void mettreAJour(float dt)` | Fait écouler le temps ; retire les provocations échues |
+| `void retirerMonstresAbsents(const std::vector<MonstreVu>& monstres)` | Retire les monstres absents de la liste (morts) |
+| `void retirerProvocateur(std::size_t place)` | Retire les provocations de ce provocateur (mort) |
+| `std::optional<std::size_t> provocateurDe(int id) const` | Place du provocateur de ce monstre, vide s'il n'est pas provoqué |
+| `const std::vector<Provocation>& liste() const` | Provocations en cours |
+
+### `Agresseurs` — les monstres qui ont frappé l'escouade
+
+Possédée par valeur par `Escouade`. Données privées : `m_agresseurs`
+(`std::vector<Agresseur>`, structure publique : `MonstreVu monstre`,
+`tempsRestant`). Mémoire de 3 s sans nouveau coup du même monstre.
+
+| Fonction | Rôle |
+|---|---|
+| `void enregistrer(int id, sf::Vector2f origine)` | Ajoute l'agresseur (cercle de rayon nul centré sur l'origine du coup), ou remet son temps à 3 s et son centre à l'origine s'il est connu. La règle « coup à 0 = rien » reste dans `Escouade::recevoirDegats` |
+| `void mettreAJour(float dt)` | Fait écouler le temps ; oublie les agresseurs échus |
+| `void actualiser(const std::vector<MonstreVu>& monstres)` | Oublie les absents (morts) et met à jour le cercle des autres |
+| `std::vector<MonstreVu> monstresVus() const` | Les agresseurs en `MonstreVu` ; `Escouade::mettreAJour` l'appelle une fois par image |
+| `const std::vector<Agresseur>& liste() const` | Agresseurs retenus |
 
 ### `Mobile` — déplacement par chemin
 

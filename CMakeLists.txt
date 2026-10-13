@@ -22,6 +22,8 @@ endif()
 add_library(squad_core STATIC
     src/TileMap.cpp
     src/Escouade.cpp
+    src/Provocations.cpp
+    src/Agresseurs.cpp
     src/Chemin.cpp
     src/Personnage.cpp
     src/Deplacement.cpp
@@ -56,6 +58,8 @@ add_executable(tests
     tests/test_Escouade_skills.cpp
     tests/test_Escouade_agresseurs.cpp
     tests/test_Escouade_vue.cpp
+    tests/test_Provocations.cpp
+    tests/test_Agresseurs.cpp
     tests/test_Deplacement.cpp
     tests/test_Monstre.cpp
     tests/test_Personnage.cpp

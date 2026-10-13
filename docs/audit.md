@@ -135,6 +135,8 @@ inclut `Personnage.hpp` ; voir P2). **Aucune règle violée.**
 - **Dépend de** : D3 (la recherche par identifiant) simplifie l'extraction.
 
 ### R2 — `Escouade` porte six responsabilités
+- **Traité à l'étape 51** : (a) `Provocations` et (b) `Agresseurs` sont extraits.
+  (c), la formation, n'est **pas** traitée.
 - **Constat** : `Escouade` fait (1) la formation et l'orientation (ancre,
   décalages, rotation, `m_places`, repli) ; (2) le verrou de combat et
   l'approche ; (3) la création et la résolution de quatre types de skill
@@ -161,6 +163,8 @@ inclut `Personnage.hpp` ; voir P2). **Aucune règle violée.**
 - **Dépend de** : aucun (R3 et D2 sont plus faciles après).
 
 ### R3 — `attaquer`, `mettreAJour` et `declencherSkill` mélangent plusieurs niveaux
+- **Traité à l'étape 51** pour `attaquer` (88 → 14 lignes) et `mettreAJour`
+  (68 → 19 lignes, `pointVoulu`). `declencherSkill` n'est pas touchée.
 - **Constat** : `attaquer` (93 lignes) fait successivement : maintenance des
   agresseurs, maintenance des provocations, départ du skill de zone en attente,
   approche du verrou (calcul de `tousAtteignent`, ordre d'arrêt/marche), départ
@@ -300,6 +304,8 @@ inclut `Personnage.hpp` ; voir P2). **Aucune règle violée.**
 **Traité à l'étape 49** (a à f).
 
 ### D5 — Deux types presque identiques : `Escouade::Agresseur` et `MonstreVu`
+- **Traité à l'étape 51** : `Agresseur` contient un `MonstreVu`, et la liste de
+  `MonstreVu` est construite une fois par image.
 - **Constat** : `pointVersAgresseur` reconstruit, à chaque appel (donc 4 fois par
   image), un `std::vector<MonstreVu>` à partir de `m_agresseurs` pour appeler
   `choisirAgresseurAViser`. `Agresseur{id, cercle, tempsRestant}` contient
