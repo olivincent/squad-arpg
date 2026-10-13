@@ -49,9 +49,8 @@ personnages sont dans `docs/formation.md`, le monstre dans
   un monstre) — face à face, l'écart visible est bien la portée, mais en
   diagonale l'écart visible est plus petit que la portée (d'une
   dizaine de pixels). La
-  portée ignore les murs : un personnage peut frapper à travers un mur
-  s'il est assez près, une vérification de ligne de vue (via
-  `TileMap::trajetLibre`, par exemple) restant une option.
+  portée seule ignore les murs : depuis l'étape 46, `Escouade` y ajoute la
+  ligne de vue (voir « Ligne de vue des personnages »).
 
 ## Attaque de l'escouade
 
@@ -100,8 +99,9 @@ personnages sont dans `docs/formation.md`, le monstre dans
 - **Limites connues** : la règle ne regarde que la portée (pas de notion
   de « qui attaque qui ») ; aucun déplacement provoqué par l'autodéfense
   (pas de pas vers l'attaquant, pas de poursuite, pas de recul des
-  tireurs) ; la portée ignore les murs ; pas d'indicateur visuel de la
+  tireurs) ; pas d'indicateur visuel de la
   cible de chaque personnage.
+  La ligne de vue s'ajoute à la portée depuis l'étape 46.
 
 ## Agresseurs (étape 40)
 
@@ -412,10 +412,49 @@ personnages sont dans `docs/formation.md`, le monstre dans
   derrière un mur mince est épargné même si son bord dépasse. La carte est
   un paramètre de `declencherSkillDeZone`, `lancerSkillDeZone` et
   `attaquer`, jamais un membre.
-- **Limites** : ligne de vue limitée au skill de zone (attaques de base,
-  skill de dégâts, soin, provocation et détection des monstres l'ignorent
-  encore) ; la prévisualisation de la visée n'indique pas si le point est
-  en vue ; un lanceur qui ne peut jamais voir le point reste en attente.
+- **Limites** : la prévisualisation de la visée n'indique pas si le point
+  est en vue ; un lanceur qui ne peut jamais voir le point reste en
+  attente.
+
+## Ligne de vue des personnages (étape 46)
+
+- **Une seule règle, dans `Escouade`** : `peutAtteindre(personnage, arme,
+  cible, carte)` = `Skill::estAPortee` (bord à bord) ET
+  `TileMap::ligneDeVue(centre du personnage, centre de la cible)`.
+  `Skill` reste pur (il ne connaît pas `TileMap`). Comme `Escouade` ne voit
+  pas le `Skill` d'un `Personnage`, une `enum class Arme { AttaqueDeBase,
+  Skill }` privée dit laquelle des deux portées utiliser. Aucun autre
+  appel à `estAPortee` ne reste dans `Escouade` ; la condition « peut
+  lancer au point » du skill de zone (`peutLancerAuPoint`) s'appuie aussi
+  dessus (cible : cercle de rayon 0).
+- **Autodéfense** : la lambda passée à `choisirMonstreAFrapper` appelle
+  `peutAtteindre` ; le module `Autodefense` n'a pas changé. Un monstre
+  caché n'est pas candidat, le suivant (même plus loin) peut l'être.
+- **Combat verrouillé** : l'ancre s'arrête quand tous les vivants
+  atteignent la cible, et un personnage s'arrête individuellement quand
+  lui l'atteint. Un tireur à portée sans vue ne s'arrête donc pas, et
+  l'ancre continue d'avancer jusqu'à ce que tous voient la cible.
+- **Agresseurs** : `m_monstreAPortee` exige aussi la vue ; un personnage
+  qui ne voit pas son agresseur va vers lui (dans la laisse de 100 px,
+  ancre à l'arrêt, comme avant).
+- **Skill de dégâts** : avec un verrou, départ immédiat ou en attente
+  seulement si le lanceur atteint le monstre ; sinon mise en attente et
+  marche, sans recharge. Sans verrou, `choisirCible` passe la même lambda
+  que l'autodéfense avec la portée du skill : un monstre caché n'est pas
+  candidat, l'appui est refusé.
+- **Soin** : le soigneur doit voir l'allié, au clic comme pendant l'attente
+  (`avancerSkillEnAttente`) ; sinon mise en attente et marche. Le choix du
+  plus blessé ne change pas (vu ou non).
+- **Provocation** : un monstre est provoqué s'il est dans la zone ET si
+  `ligneDeVue(centre du provocateur, centre du monstre)`, même règle que
+  l'explosion du skill de zone. La recharge est consommée dans tous les
+  cas.
+- **Cartes en paramètre** : `declencherSkill`, `choisirCible` et
+  `avancerSkillEnAttente` reçoivent la carte, jamais en membre.
+- **Hors de portée de l'étape** : la riposte et la détection des monstres
+  ignorent toujours les murs ; pas de placement pour obtenir la vue (le
+  personnage avance simplement vers sa cible) ; pas d'indicateur d'une
+  cible non visible ; la vue est centre à centre, pas bord à bord.
 
 ## Circuit des dégâts
 

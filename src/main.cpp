@@ -174,7 +174,7 @@ int main() {
         // la recharge de base de ce personnage, qui ne frappe donc pas une
         // seconde fois dans la même image. Un soin ne rend aucun dégât.
         if (placeSkillDemandee.has_value()) {
-            appliquer(escouade.declencherSkill(*placeSkillDemandee, monstresVus));
+            appliquer(escouade.declencherSkill(*placeSkillDemandee, monstresVus, carte));
         }
 
         // Les coups sont demandés à chaque image, verrou ou non : chaque

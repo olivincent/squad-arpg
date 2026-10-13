@@ -1178,3 +1178,24 @@ l'attaque de base » reste dans `Personnage::declencherSkill`.
 **Hors de portée** : ligne de vue pour les attaques de base et les autres
 skills (étape 46), activation des monstres touchés (étape 47), skills pour
 les monstres, faire passer l'attaque de base par le circuit des skills.
+
+### Étape 46 — Ligne de vue pour les attaques de base et les autres skills ✅ TERMINÉE
+
+1. [x] `Escouade::peutAtteindre` (portée ET vue) ; `peutLancerAuPoint`
+       réécrite avec elle (enchaînée)
+2. [x] Autodéfense : lambda `peutAtteindre` ; tests (enchaînée)
+3. [x] Combat verrouillé et agresseurs ; tests
+4. [x] Skill de dégâts (avec et sans verrou) et soin, carte passée à
+       `declencherSkill` et `choisirCible` ; tests (enchaînée)
+5. [x] Provocation limitée aux monstres en vue ; tests
+6. [x] Mise à jour des documents
+
+**Choix** : `Skill` reste ignorant de la carte, la règle vit à un seul
+endroit dans `Escouade` ; une `enum class Arme` privée choisit la portée
+(attaque de base ou skill) ; vue centre à centre ; à portée sans vue =
+même traitement qu'hors de portée ; la carte est un paramètre, jamais un
+membre.
+
+**Hors de portée** : ligne de vue pour la riposte et la détection des
+monstres, placement pour obtenir la vue, indicateur d'une cible non
+visible, vue bord à bord, activation des monstres touchés (étape 47).

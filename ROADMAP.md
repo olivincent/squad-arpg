@@ -52,14 +52,11 @@ est dans `docs/historique.md`.
 - Étape 43 — Portée de lancement du skill de zone, provocation toujours consommée ✅
 - Étape 44 — Ligne de vue pour le skill de zone ✅
 - Étape 45 — Fusion d'`Attaque` dans `Skill` (refactorisation pure) ✅
+- Étape 46 — Ligne de vue pour les attaques de base et les autres skills ✅
 
-## Étape 46 — Ligne de vue pour les attaques de base et les autres skills
+## Étape 47 — Activation des monstres qui reçoivent des dégâts
 
-`Escouade` combinerait portée et vue dans une fonction `peutAtteindre` ;
-`Skill` reste ignorant de la carte. Suivie de l'étape 47 : activation des
-monstres qui reçoivent des dégâts.
-
-Autres pistes discutées :
+Pistes discutées :
 - Effet visuel à l'impact du skill de zone, HUD ou icônes de skill
 - Indicateur visuel du monstre provoqué
 - L'escouade poursuit d'elle-même un monstre qui l'attaque (écartée pour
@@ -92,7 +89,7 @@ Autres pistes discutées :
   l'écran, police committée dans le dépôt
 - Limitation de fréquence des appels à `allerVers`/A*, si un problème de
   performance est mesuré sur une carte plus grande
-- Ligne de vue pour la détection ou la portée
+- Ligne de vue pour la détection des monstres et leur riposte
 - Types de personnages, statistiques, armes, capacités, au-delà de la
   simple portée différenciée
 - Placement « intelligent » en combat (encerclement, écartement, ligne
@@ -142,6 +139,15 @@ Autres pistes discutées :
   monstre engage un combat qui continue seul, sans tenir le bouton ; la
   touches 1 à 3 déclenchent le skill du personnage de la même place ; la
   touche 4 entre en mode visée (voir « Skills »).
+- **Ligne de vue** : un personnage ne frappe, ne soigne et ne provoque
+  que ce qu'il voit (à portée ET `TileMap::ligneDeVue` centre à centre,
+  règle unique `Escouade::peutAtteindre`) : autodéfense, combat verrouillé
+  (l'ancre continue d'avancer tant que tous les vivants ne voient pas la
+  cible), agresseurs (qui ne voit pas son agresseur va vers lui), skills
+  de dégâts, soin et zone. Un skill de dégâts ou de soin à portée mais
+  sans vue est mis en attente et le lanceur marche ; sans verrou, un
+  monstre caché n'est pas candidat. La provocation ne touche que les
+  monstres en vue (recharge consommée dans tous les cas).
 - **Combat** : le monstre verrouillé est entouré d'un contour jaune.
   L'escouade s'approche en formation jusqu'à ce que tous ses personnages
   vivants soient à portée, puis s'arrête et chacun frappe selon sa propre
@@ -213,7 +219,7 @@ Autres pistes discutées :
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 295 tests : 38 sur `TileMap`, 17 sur `Chemin`, 122
+  (`./build/tests.exe`, 307 tests : 38 sur `TileMap`, 17 sur `Chemin`, 134
   sur `Escouade`, 12 sur `Deplacement`, 27 sur `Monstre`, 31 sur
   `Personnage`, 17 sur `Skill`, 14 sur `Mobile`, 4 sur
   `Cercle`, 13 sur `Autodefense`).
@@ -230,7 +236,8 @@ Autres pistes discutées :
 - Le A* et le lissage ignorent les entités : une entité bloquée ne
   contourne pas, elle glisse ou attend. Près des piliers, le contournement
   n'est pas toujours le plus court.
-- Portée d'attaque, détection et territoire ignorent les murs.
+- La détection, le territoire et la riposte des monstres ignorent les
+  murs ; la ligne de vue des personnages est mesurée centre à centre.
 - Lors d'un demi-tour rapide, deux personnages peuvent se chevaucher
   brièvement ; l'ancre traversant les monstres, elle (et la caméra) peut
   s'éloigner des personnages bloqués.

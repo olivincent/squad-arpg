@@ -382,6 +382,20 @@
   derrière le mur (attente, sans recharge), dans le mur (refus, sans
   attente), lanceur qui contourne puis lance ; monstre dans la zone mais
   derrière le mur épargné, monstre du même côté touché.
+- **`test_Escouade.cpp`, ligne de vue des personnages** (étape 46) :
+  `carteOuverte()` (4000 × 4000 px sans mur) est passée aux appels
+  existants de `declencherSkill` et `choisirCible` ; les nouveaux tests
+  utilisent `carteAvecMursFins` (300 × 300 px en cases de 2 px, deux murs
+  fins posés hors des bandes de repli de la formation) ou
+  `carteAvecMurVertical`. Autodéfense (monstre caché non frappé, visible
+  frappé, le plus proche caché → l'autre) ; combat verrouillé (ancre qui
+  continue d'avancer ou s'arrête, seule la place 4 laissée en vie) ;
+  agresseur caché ; skill de dégâts avec et sans verrou ; soin caché ;
+  provocation avec un monstre caché. « Dès que la vue est obtenue » est
+  simulé en repassant une carte sans mur (un personnage ne contourne pas
+  un mur de 2 px : son A* ignore sa taille). Un test existant (deux
+  personnages, deux monstres) a été décalé pour que les monstres soient
+  dans la carte : hors carte = mur, donc jamais en vue.
 - **`test_TileMap.cpp`, `ligneDeVue`** : terrain dégagé, mur entre les
   points, points identiques, coin de deux murs en diagonale (bloqué),
   segment à 1 px d'un mur (libre), arrivée dans un mur.

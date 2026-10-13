@@ -140,7 +140,7 @@ std::vector<Coup> Escouade::attaquer(const std::vector<MonstreVu>& monstres, con
             // (dont il relance la recharge).
             if (m_skillEnAttente.has_value() && std::holds_alternative<CibleMonstre>(m_skillEnAttente->cible)) {
                 Personnage& lanceur = m_personnages[m_skillEnAttente->place - 1];
-                if (lanceur.skillEstAPortee(cible)) {
+                if (peutAtteindre(lanceur, Arme::Skill, cible, carte)) {
                     const int degats = lanceur.declencherSkill(cible);
                     if (degats > 0) {
                         coups.push_back({std::get<CibleMonstre>(m_skillEnAttente->cible).id, degats});
@@ -172,7 +172,7 @@ std::vector<Coup> Escouade::attaquer(const std::vector<MonstreVu>& monstres, con
     return coups;
 }
 
-std::vector<Coup> Escouade::declencherSkill(std::size_t place, const std::vector<MonstreVu>& monstres) {
+std::vector<Coup> Escouade::declencherSkill(std::size_t place, const std::vector<MonstreVu>& monstres, const TileMap& carte) {
     if (place < 1 || place > m_personnages.size()) {
         return {};
     }
@@ -185,12 +185,13 @@ std::vector<Coup> Escouade::declencherSkill(std::size_t place, const std::vector
 
     // Provocation : skill de zone centrée sur le lanceur, sans cible. Il
     // part dans l'image de l'appui sur tous les monstres touchés par la
-    // zone, même s'il n'y en a aucun (la recharge est alors consommée).
+    // zone et en vue du lanceur (centre à centre), même s'il n'y en a aucun
+    // (la recharge est alors consommée).
     if (*type == TypeSkill::Provocation) {
         const Cercle zone = lanceur.zoneDuSkill();
         std::vector<MonstreVu> touches;
         for (const MonstreVu& monstre : monstres) {
-            if (distanceBordABord(zone, monstre.cercle) == 0.0f) {
+            if (distanceBordABord(zone, monstre.cercle) == 0.0f && carte.ligneDeVue(lanceur.getCentre(), monstre.cercle.centre)) {
                 touches.push_back(monstre);
             }
         }
@@ -208,7 +209,7 @@ std::vector<Coup> Escouade::declencherSkill(std::size_t place, const std::vector
         return {};
     }
 
-    const std::optional<Cible> cible = choisirCible(*type, place, monstres);
+    const std::optional<Cible> cible = choisirCible(*type, place, monstres, carte);
     if (!cible.has_value()) {
         return {};
     }
@@ -216,7 +217,7 @@ std::vector<Coup> Escouade::declencherSkill(std::size_t place, const std::vector
     // Dégâts : renvoyés à l'appelant, ou ajoutés aux coups d'attaquer()
     // si le skill part après une attente.
     if (const CibleMonstre* monstre = std::get_if<CibleMonstre>(&*cible)) {
-        if (lanceur.skillEstAPortee(monstre->cercle)) {
+        if (peutAtteindre(lanceur, Arme::Skill, monstre->cercle, carte)) {
             const int degats = lanceur.declencherSkill(monstre->cercle);
             return degats > 0 ? std::vector<Coup>{{monstre->id, degats}} : std::vector<Coup>{};
         }
@@ -231,7 +232,7 @@ std::vector<Coup> Escouade::declencherSkill(std::size_t place, const std::vector
         return {};
     }
     const std::size_t placeAllie = allie->place;
-    if (lanceur.skillEstAPortee(m_personnages[placeAllie - 1].getCercle())) {
+    if (peutAtteindre(lanceur, Arme::Skill, m_personnages[placeAllie - 1].getCercle(), carte)) {
         soigner(place, placeAllie);
     } else {
         m_skillEnAttente = SkillEnAttente{place, *cible};
@@ -317,7 +318,7 @@ void Escouade::soigner(std::size_t placeLanceur, std::size_t placeAllie) {
     m_personnages[placeAllie - 1].recevoirSoin(soin);
 }
 
-std::optional<sf::Vector2f> Escouade::avancerSkillEnAttente() {
+std::optional<sf::Vector2f> Escouade::avancerSkillEnAttente(const TileMap& carte) {
     if (!m_skillEnAttente.has_value()) {
         return std::nullopt;
     }
@@ -353,7 +354,7 @@ std::optional<sf::Vector2f> Escouade::avancerSkillEnAttente() {
         return std::nullopt;
     }
 
-    if (lanceur.skillEstAPortee(allie.getCercle())) {
+    if (peutAtteindre(lanceur, Arme::Skill, allie.getCercle(), carte)) {
         soigner(placeLanceur, placeAllie);
         m_skillEnAttente = std::nullopt;
         return std::nullopt;
@@ -425,7 +426,7 @@ void Escouade::mettreAJour(float dt, const TileMap& carte, const std::vector<Cer
 
     // Un lanceur dont le skill est en attente vise sa cible au lieu de sa place.
     const std::size_t placeLanceur = m_skillEnAttente.has_value() ? m_skillEnAttente->place : 0;
-    const std::optional<sf::Vector2f> pointSkill = avancerSkillEnAttente();
+    const std::optional<sf::Vector2f> pointSkill = avancerSkillEnAttente(carte);
 
     for (std::size_t i = 0; i < m_personnages.size(); ++i) {
         // Une place théorique dans un mur ou derrière un coin est ramenée
@@ -557,7 +558,7 @@ std::vector<Cercle> Escouade::cerclesDesVivants() const {
     return cercles;
 }
 
-std::optional<Cible> Escouade::choisirCible(TypeSkill type, std::size_t place, const std::vector<MonstreVu>& monstres) const {
+std::optional<Cible> Escouade::choisirCible(TypeSkill type, std::size_t place, const std::vector<MonstreVu>& monstres, const TileMap& carte) const {
     // Skills de zone, sans cible.
     if (type == TypeSkill::Provocation || type == TypeSkill::Zone) {
         return std::nullopt;
@@ -581,7 +582,7 @@ std::optional<Cible> Escouade::choisirCible(TypeSkill type, std::size_t place, c
         }
         const Personnage& lanceur = m_personnages[place - 1];
         const std::optional<int> id = choisirMonstreAFrapper(
-            lanceur.getCercle(), [&](Cercle c) { return lanceur.skillEstAPortee(c); }, monstres, std::nullopt);
+            lanceur.getCercle(), [&](Cercle c) { return peutAtteindre(lanceur, Arme::Skill, c, carte); }, monstres, std::nullopt);
         if (!id.has_value()) {
             return std::nullopt;
         }

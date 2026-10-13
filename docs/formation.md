@@ -215,6 +215,9 @@ L'attaque, la portée, le skill et les obstacles sont dans
   recommence à suivre sa place dès que la cible n'est plus à portée ou
   que le verrou tombe. Les tireurs s'arrêtent donc à distance pendant
   que les mêlées continuent jusqu'au contact.
+  Depuis l'étape 46, « à portée » veut dire à portée ET en vue
+  (`Escouade::peutAtteindre`, voir `docs/combat.md`) : un personnage à
+  portée mais sans vue continue d'avancer.
 - **`Personnage` n'en sait rien** : il reçoit toujours un simple point.
 - **`m_cibleCombat` (`std::optional<Cercle>`)** est le seul moyen pour
   `Escouade` de connaître la position et la taille de la cible : elle

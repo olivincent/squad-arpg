@@ -36,7 +36,7 @@ public:
     void dessiner(sf::RenderTarget& rendu) const;
     void allerVers(sf::Vector2f destination, const TileMap& carte);
     std::vector<Coup> attaquer(const std::vector<MonstreVu>& monstres, const TileMap& carte);
-    std::vector<Coup> declencherSkill(std::size_t place, const std::vector<MonstreVu>& monstres);
+    std::vector<Coup> declencherSkill(std::size_t place, const std::vector<MonstreVu>& monstres, const TileMap& carte);
     bool skillEstPret(std::size_t place) const;
     float rayonZoneDuSkill(std::size_t place) const;
     Cercle cercleDePorteeDuSkill(std::size_t place) const;
@@ -47,7 +47,7 @@ public:
     void recevoirDegats(int idMonstre, sf::Vector2f origine, int quantite);
     bool estVivante() const;
     std::vector<Cercle> cerclesDesVivants() const;
-    std::optional<Cible> choisirCible(TypeSkill type, std::size_t place, const std::vector<MonstreVu>& monstres) const;
+    std::optional<Cible> choisirCible(TypeSkill type, std::size_t place, const std::vector<MonstreVu>& monstres, const TileMap& carte) const;
     void verrouiller(int idCible);
     void deverrouiller();
     std::optional<int> getCibleVerrouillee() const;
@@ -66,7 +66,7 @@ private:
     bool peutLancerAuPoint(std::size_t place, sf::Vector2f point, const TileMap& carte) const;
     std::vector<Coup> lancerSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<MonstreVu>& monstres, const TileMap& carte);
     void soigner(std::size_t placeLanceur, std::size_t placeAllie);
-    std::optional<sf::Vector2f> avancerSkillEnAttente();
+    std::optional<sf::Vector2f> avancerSkillEnAttente(const TileMap& carte);
     std::optional<sf::Vector2f> pointVersAgresseur(std::size_t indice) const;
 
     struct SkillEnAttente {
