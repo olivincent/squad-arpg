@@ -3,6 +3,7 @@
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Text.hpp>
+#include <SFML/Graphics/VertexArray.hpp>
 #include <algorithm>
 #include <cmath>
 #include <numbers>
@@ -98,5 +99,12 @@ void dessinerBarreDeSkills(sf::RenderTarget& rendu, const sf::Font& police,
         const sf::Vector2f centre = coin + sf::Vector2f{s_coteIcone, s_coteIcone} / 2.0f;
         dessinerTexteCentre(rendu, police, std::string(1, lettreDuSkill(etats[i]->type)), 30, centre, sf::Color::White);
         dessinerTexteCentre(rendu, police, std::to_string(i + 1), 12, coin + sf::Vector2f{9.0f, 11.0f}, sf::Color::White);
+
+        // Zone sombre : la fraction de recharge restante, de l'aiguille à midi.
+        sf::VertexArray quartier(sf::PrimitiveType::TriangleFan);
+        for (const sf::Vector2f point : pointsDuQuartier(centre, s_coteIcone, 1.0f - etats[i]->progression)) {
+            quartier.append({point, sf::Color(0, 0, 0, 170)});
+        }
+        rendu.draw(quartier);
     }
 }
