@@ -72,6 +72,9 @@ int main() {
         Monstre({1620.0f, 540.0f}, prochainId++),
     };
     bool deplacementContinu = false;
+    // Mode visée : état d'interface. Vide = mode normal, sinon la place du
+    // lanceur du skill de zone en cours de visée.
+    std::optional<std::size_t> placeEnVisee;
 
     sf::Clock horloge;
     sf::View camera = window.getDefaultView();
@@ -79,12 +82,25 @@ int main() {
     while (window.isOpen()) {
         const float dt = horloge.restart().asSeconds();
         std::optional<std::size_t> placeSkillDemandee;
+        std::optional<sf::Vector2f> pointDeLancer;
+        // Lanceur mort ou escouade vaincue : on sort de la visée.
+        if (placeEnVisee.has_value() && !escouade.skillEstPret(*placeEnVisee)) {
+            placeEnVisee.reset();
+        }
         while (const std::optional event = window.pollEvent()) {
             if (event->is<sf::Event::Closed>()) {
                 window.close();
             }
             if (const auto* data = event->getIf<sf::Event::MouseButtonPressed>()) {
-                if (data->button == sf::Mouse::Button::Left && escouade.estVivante()) {
+                if (placeEnVisee.has_value()) {
+                    // En visée, le clic gauche lance le sort (même sur un
+                    // monstre) et le clic droit annule ; rien d'autre.
+                    if (data->button == sf::Mouse::Button::Left) {
+                        pointDeLancer = window.mapPixelToCoords(data->position);
+                    } else if (data->button == sf::Mouse::Button::Right) {
+                        placeEnVisee.reset();
+                    }
+                } else if (data->button == sf::Mouse::Button::Left && escouade.estVivante()) {
                     const sf::Vector2f clicMonde = window.mapPixelToCoords(data->position);
                     const auto it = std::find_if(monstres.begin(), monstres.end(), [&](const Monstre& m) {
                         return m.contient(clicMonde);
@@ -108,8 +124,17 @@ int main() {
                     placeSkillDemandee = 2;
                 } else if (data->scancode == sf::Keyboard::Scan::Num3) {
                     placeSkillDemandee = 3;
+                } else if (data->scancode == sf::Keyboard::Scan::Escape) {
+                    placeEnVisee.reset();
                 } else if (data->scancode == sf::Keyboard::Scan::Num4) {
-                    placeSkillDemandee = 4;
+                    if (placeEnVisee.has_value()) {
+                        placeEnVisee.reset();
+                    } else if (escouade.estVivante() && escouade.skillEstPret(4)) {
+                        placeEnVisee = 4;
+                        // Le déplacement continu est suspendu : il ne
+                        // reprendra qu'à un nouvel appui sur le sol.
+                        deplacementContinu = false;
+                    }
                 }
             }
         }
@@ -137,6 +162,13 @@ int main() {
                 touche->recevoirDegats(coup.degats);
             }
         };
+
+        // Lancer du skill de zone : sur l'événement d'appui, jamais sur
+        // l'état du bouton. Réussi ou refusé, on sort de la visée.
+        if (placeEnVisee.has_value() && pointDeLancer.has_value()) {
+            appliquer(escouade.declencherSkillDeZone(*placeEnVisee, *pointDeLancer, monstresVus));
+            placeEnVisee.reset();
+        }
 
         // Le skill passe avant l'attaque de base : s'il part, il relance
         // la recharge de base de ce personnage, qui ne frappe donc pas une

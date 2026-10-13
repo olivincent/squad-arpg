@@ -23,6 +23,10 @@ constexpr float s_rechargeSoin = 8.0f;    // en secondes
 constexpr float s_rayonProvocation = 150.0f;  // rayon de zone, depuis le centre du provocateur
 constexpr int s_dureeProvocation = 4;         // en secondes (la puissance de ce skill)
 constexpr float s_rechargeProvocation = 10.0f;  // en secondes
+constexpr float s_porteeZone = 250.0f;        // portée de lancement du skill de zone (pas encore lue)
+constexpr int s_degatsZone = 15;
+constexpr float s_rechargeZone = 8.0f;        // en secondes
+constexpr float s_rayonZone = 60.0f;          // rayon de zone, depuis le point visé
 constexpr float s_laisseAgresseur = 100.0f;      // en pixels, centre à centre, mesurée depuis la place de formation
 constexpr float s_dureeMemoireAgresseur = 3.0f;  // en secondes, sans nouveau coup du même monstre
 }  // namespace
@@ -40,7 +44,8 @@ Escouade::Escouade(sf::Vector2f positionDepart)
                      Skill(TypeSkill::Provocation, Attaque(0.0f, s_dureeProvocation, s_rechargeProvocation), s_rayonProvocation)),
           Personnage(placePersonnage(2), s_couleurTireur, Attaque(s_porteeTireur, 5, 0.5f),
                      Skill(TypeSkill::Soin, Attaque(s_porteeSoin, s_puissanceSoin, s_rechargeSoin), 0.0f)),
-          Personnage(placePersonnage(3), s_couleurTireur, Attaque(s_porteeTireur, 5, 0.5f), std::nullopt),
+          Personnage(placePersonnage(3), s_couleurTireur, Attaque(s_porteeTireur, 5, 0.5f),
+                     Skill(TypeSkill::Zone, Attaque(s_porteeZone, s_degatsZone, s_rechargeZone), s_rayonZone)),
       }),
       m_cibleVerrouillee(),
       m_skillEnAttente(),
@@ -184,6 +189,11 @@ std::vector<Coup> Escouade::declencherSkill(std::size_t place, const std::vector
         return {};
     }
 
+    // Zone : elle se lance à un point choisi (declencherSkillDeZone), pas ici.
+    if (*type == TypeSkill::Zone) {
+        return {};
+    }
+
     const std::optional<Cible> cible = choisirCible(*type, place, monstres);
     if (!cible.has_value()) {
         return {};
@@ -208,6 +218,34 @@ std::vector<Coup> Escouade::declencherSkill(std::size_t place, const std::vector
         m_skillEnAttente = SkillEnAttente{place, *cible};
     }
     return {};
+}
+
+bool Escouade::skillEstPret(std::size_t place) const {
+    return place >= 1 && place <= m_personnages.size() && m_personnages[place - 1].skillEstPret();
+}
+
+std::vector<Coup> Escouade::declencherSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<MonstreVu>& monstres) {
+    if (!skillEstPret(place) || m_skillEnAttente.has_value()) {
+        return {};
+    }
+
+    Personnage& lanceur = m_personnages[place - 1];
+    if (lanceur.typeSkill() != TypeSkill::Zone) {
+        return {};
+    }
+
+    // Un seul déclenchement pour la recharge ; la puissance est le nombre
+    // de dégâts. La portée n'est pas lue : le lanceur est sa propre cible.
+    const int degats = lanceur.declencherSkill(lanceur.getCercle());
+    const Cercle zone{point, lanceur.zoneDuSkill().rayon};
+
+    std::vector<Coup> coups;
+    for (const MonstreVu& monstre : monstres) {
+        if (distanceBordABord(zone, monstre.cercle) == 0.0f) {
+            coups.push_back({monstre.id, degats});
+        }
+    }
+    return coups;
 }
 
 void Escouade::soigner(std::size_t placeLanceur, std::size_t placeAllie) {
@@ -451,8 +489,8 @@ std::vector<Cercle> Escouade::cerclesDesVivants() const {
 }
 
 std::optional<Cible> Escouade::choisirCible(TypeSkill type, std::size_t place, const std::vector<MonstreVu>& monstres) const {
-    // Skill de zone, sans cible (sans effet pour l'instant).
-    if (type == TypeSkill::Provocation) {
+    // Skills de zone, sans cible.
+    if (type == TypeSkill::Provocation || type == TypeSkill::Zone) {
         return std::nullopt;
     }
     if (type == TypeSkill::Degats) {

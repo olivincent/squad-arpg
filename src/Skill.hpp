@@ -3,12 +3,13 @@
 #include "Attaque.hpp"
 #include "Cercle.hpp"
 
-enum class TypeSkill { Degats, Soin, Provocation };
+enum class TypeSkill { Degats, Soin, Provocation, Zone };
 
 // Un skill : un type et une Attaque, qui fournit portée, puissance et
 // recharge. La « puissance » est le nombre de dégâts pour un skill de
 // Degats, le nombre de points de vie rendus pour un skill de Soin, la
-// durée en secondes pour un skill de Provocation. Le rayon de zone est la
+// durée en secondes pour un skill de Provocation, le nombre de dégâts
+// pour un skill de Zone. Le rayon de zone est la
 // taille de la zone touchée par un skill de zone ; il vaut 0 et n'est pas
 // lu pour un skill à cible unique (c'est le type qui décide).
 class Skill {
