@@ -168,7 +168,7 @@ std::vector<Coup> Escouade::declencherSkill(std::size_t place, const std::vector
 
     // Provocation : skill de zone centrée sur le lanceur, sans cible. Il
     // part dans l'image de l'appui sur tous les monstres touchés par la
-    // zone, ou pas du tout.
+    // zone, même s'il n'y en a aucun (la recharge est alors consommée).
     if (*type == TypeSkill::Provocation) {
         const Cercle zone = lanceur.zoneDuSkill();
         std::vector<MonstreVu> touches;
@@ -176,9 +176,6 @@ std::vector<Coup> Escouade::declencherSkill(std::size_t place, const std::vector
             if (distanceBordABord(zone, monstre.cercle) == 0.0f) {
                 touches.push_back(monstre);
             }
-        }
-        if (touches.empty()) {
-            return {};
         }
         // Un seul déclenchement pour la recharge ; la puissance est la
         // durée. La portée est nulle : le lanceur est sa propre cible.

@@ -1440,17 +1440,20 @@ TEST_CASE("Provocation : la zone se mesure depuis le centre du lanceur, bord du 
     REQUIRE(escouade.getProvocations()[0].id == 1);
 }
 
-TEST_CASE("Provocation : refusee sans monstre dans le rayon, et la recharge reste pleine") {
+TEST_CASE("Provocation : sans monstre dans le rayon, elle part quand même et consomme sa recharge") {
     Escouade escouade({200.0f, 200.0f});
     const std::vector<MonstreVu> loin = {MonstreVu{1, cibleMonstre({800.0f, 235.0f})}};
+    REQUIRE(escouade.skillEstPret(2));
 
     REQUIRE(escouade.declencherSkill(2, loin).empty());
     REQUIRE(escouade.getProvocations().empty());
+    REQUIRE_FALSE(escouade.skillEstPret(2));
 
-    // Le skill est resté prêt : un monstre qui arrive est provoqué aussitôt.
+    // Recharge en cours : un monstre qui arrive n'est pas provoqué.
     escouade.declencherSkill(2, {MonstreVu{1, cibleMonstre({335.0f, 235.0f})}});
-    REQUIRE(escouade.getProvocations().size() == 1);
+    REQUIRE(escouade.getProvocations().empty());
 }
+
 
 TEST_CASE("Provocation : un nouvel appui pendant la recharge est ignore, puis accepte apres 10 s") {
     const TileMap carte = carteDegagee();
