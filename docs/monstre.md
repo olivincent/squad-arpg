@@ -76,6 +76,8 @@ déplacement par chemin dans `docs/chemin.md`.
   - `Retour` → `Poursuite` si `proieDetectee` (vérifié avant l'arrivée,
     pour qu'une proie qui redevient pertinente au moment même où le
     monstre atteint son poste reprenne le dessus) ;
+  - `EnGarde` et `Retour` → `Poursuite` aussi si le monstre vient d'être
+    touché (voir « Coup reçu ») ;
   - `Retour` → `EnGarde` sinon, une fois arrivé
     (`m_mobile.directionVoulue()` vide).
 
@@ -100,6 +102,25 @@ déplacement par chemin dans `docs/chemin.md`.
   sans ligne de vue. Détection et territoire : centre à centre
   (`proieDetectee` ne lit que `cible->centre`) ; portée d'attaque : bord
   à bord.
+
+## Coup reçu
+
+- **`m_vientDEtreTouche`**, posé par `recevoirDegats` si les dégâts sont
+  `> 0` (un coup de 0 ne réveille personne). `mettreAJour` calcule
+  `reveilleParCoup` : touché ET proie existante ET monstre à
+  `<= m_rayonTerritoire` de son poste. Il s'ajoute à `proieDetectee` en
+  `EnGarde` et en `Retour` (même priorité, donc avant le test d'arrivée
+  au poste). En `Poursuite`, être touché ne change rien.
+- **L'indicateur est remis à faux à chaque `mettreAJour`**, qu'il ait
+  servi ou non : un coup ne sert qu'une fois, pas de mémoire durable
+  (touché sans proie = coup perdu).
+- **Pourquoi la règle du territoire** : sans elle, un monstre en `Retour`
+  hors de son territoire, touché, passerait en `Poursuite` puis serait
+  renvoyé en `Retour` à l'image suivante (la poursuite le vérifie), en
+  boucle, avec un A* à chaque coup.
+- **La proie reste la proie habituelle** (provocateur, sinon personnage
+  le plus proche) : le monstre ne se jette pas sur l'auteur du coup.
+  `Coup`, `Escouade` et `main.cpp` n'ont pas changé.
 
 ## Ordres donnés à `Mobile`
 
@@ -131,6 +152,8 @@ déplacement par chemin dans `docs/chemin.md`.
 
 ## Limites connues
 
+- Un monstre touché ne se jette pas sur l'auteur du coup et ses voisins
+  ne s'activent pas.
 - Un monstre qui rentre ignore une proie dès qu'elle sort du territoire,
   même si elle reste proche de lui (le filtre `proieDetectee` l'exige par
   construction).

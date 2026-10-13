@@ -79,6 +79,15 @@
     distincts de ceux de `test_Personnage.cpp`** (préfixés `Monstre.`) :
     Catch2 exige des noms de cas de test uniques dans tout l'exécutable
     `tests`, pas seulement dans un fichier.
+  - **Coup reçu** (étape 47) : 7 cas, l'état observé par le
+    déplacement (le centre avance vers la proie ou non) : touché en garde
+    devant une proie à 250 px (hors détection) ; même cas sans coup ;
+    coup de 0 ; touché sans proie, puis un appel sans coup (indicateur
+    consommé) ; touché en retour dans le territoire (poursuit) et hors du
+    territoire (continue de rentrer) ; touché en poursuite. La fonction
+    d'aide `amenerEnRetourHorsTerritoire` fait sortir le monstre du
+    territoire. Piège : une cible à `(400, 100)` est dans un mur sur
+    `carteDegagee` (10 cases de 40 px), le A* échoue.
   - **`mettreAJour` : détection, arrêt à portée** : depuis
     que `Monstre` se déplace par son propre `Mobile`, la fonction
     d'aide `ecoulerTemps(monstre, duree, cible, carte)` prend en plus une

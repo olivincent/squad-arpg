@@ -1199,3 +1199,18 @@ membre.
 **Hors de portée** : ligne de vue pour la riposte et la détection des
 monstres, placement pour obtenir la vue, indicateur d'une cible non
 visible, vue bord à bord, activation des monstres touchés (étape 47).
+
+### Étape 47 — Un monstre touché s'active ✅ TERMINÉE
+
+1. [x] `Monstre::m_vientDEtreTouche`, posé par `recevoirDegats` si
+       dégâts `> 0` (enchaînée)
+2. [x] Transition par coup reçu dans `mettreAJour`, consommation de
+       l'indicateur ; tests
+
+**Choix** : tout dans `Monstre` ; proie habituelle, pas l'auteur du coup ;
+règle du territoire pour éviter la boucle `Retour`/`Poursuite` ; indicateur
+consommé à chaque appel ; une seule transition par appel.
+
+**Hors de portée** : se jeter sur l'auteur du coup, aggro sociale, ignorer
+le territoire après un coup, ligne de vue pour la détection ou la riposte,
+effet visuel d'alerte.

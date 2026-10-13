@@ -246,7 +246,9 @@ paramètres.
 
 Données membres : `m_mobile`, `m_pointsDeVie`, `m_pointsDeVieMax`, `m_id`,
 `m_attaque`, `m_rayonDetection`, `m_rayonTerritoire`, `m_etat` (`Etat`,
-`enum class` privé : `EnGarde`, `Poursuite`, `Retour`), `m_poste`.
+`enum class` privé : `EnGarde`, `Poursuite`, `Retour`), `m_poste`,
+`m_vientDEtreTouche` (`bool`, posé par `recevoirDegats` si dégâts `> 0`,
+consommé par `mettreAJour`).
 
 | Fonction | Rôle |
 |---|---|
@@ -258,7 +260,7 @@ Données membres : `m_mobile`, `m_pointsDeVie`, `m_pointsDeVieMax`, `m_id`,
 | `Cercle getCercle() const` | Cercle centré sur le monstre, de rayon 15 |
 | `int getId() const` | Identifiant du monstre |
 | `bool contient(sf::Vector2f point) const` | Le point (pixels du monde) est-il dans le carré du monstre ? |
-| `void recevoirDegats(int quantite)` | Retire des points de vie, sans descendre sous zéro |
+| `void recevoirDegats(int quantite)` | Retire des points de vie, sans descendre sous zéro ; si `quantite > 0`, mémorise que le monstre vient d'être touché |
 | `bool estVivant() const` | Points de vie `> 0` |
 
 ### `Skill` — une capacité spéciale

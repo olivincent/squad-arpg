@@ -53,10 +53,13 @@ est dans `docs/historique.md`.
 - Étape 44 — Ligne de vue pour le skill de zone ✅
 - Étape 45 — Fusion d'`Attaque` dans `Skill` (refactorisation pure) ✅
 - Étape 46 — Ligne de vue pour les attaques de base et les autres skills ✅
+- Étape 47 — Un monstre touché s'active ✅
 
-## Étape 47 — Activation des monstres qui reçoivent des dégâts
+## Étape 48 — à définir
 
 Pistes discutées :
+- Le monstre touché se jette sur l'auteur du coup (mémoire de
+  l'attaquant), aggro sociale des voisins, effet visuel d'alerte
 - Effet visuel à l'impact du skill de zone, HUD ou icônes de skill
 - Indicateur visuel du monstre provoqué
 - L'escouade poursuit d'elle-même un monstre qui l'attaque (écartée pour
@@ -209,7 +212,10 @@ Pistes discutées :
   `main.cpp` dans un `std::vector<Monstre>`. Un monstre détecte un
   personnage vivant à moins de 200 px de lui et de 400 px de son poste (sa
   position de départ), le poursuit (A* + lissage) et s'arrête à portée
-  d'attaque (15 px bord à bord, 10 dégâts, recharge 1 s). Il abandonne
+  d'attaque (15 px bord à bord, 10 dégâts, recharge 1 s). Un monstre qui reçoit des dégâts (> 0) entre en poursuite de sa
+  proie habituelle (provocateur, sinon le plus proche) même hors de sa
+  détection, s'il est lui-même dans son territoire ; un coup reçu hors
+  du territoire ne le réveille pas, et ne sert qu'une fois. Il abandonne
   quand lui-même s'éloigne de plus de 400 px de son poste, ou si la proie
   meurt, et rentre alors à son poste ; une proie qui revient dans le
   territoire relance la poursuite. Il frappe le personnage vivant le plus
@@ -219,8 +225,8 @@ Pistes discutées :
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 307 tests : 38 sur `TileMap`, 17 sur `Chemin`, 134
-  sur `Escouade`, 12 sur `Deplacement`, 27 sur `Monstre`, 31 sur
+  (`./build/tests.exe`, 314 tests : 38 sur `TileMap`, 17 sur `Chemin`, 134
+  sur `Escouade`, 12 sur `Deplacement`, 34 sur `Monstre`, 31 sur
   `Personnage`, 17 sur `Skill`, 14 sur `Mobile`, 4 sur
   `Cercle`, 13 sur `Autodefense`).
 
