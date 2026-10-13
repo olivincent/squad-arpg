@@ -2,6 +2,7 @@
 #pragma once
 #include <cstddef>
 #include <variant>
+#include <SFML/System/Vector2.hpp>
 #include "Cercle.hpp"
 
 struct CibleAllie {
@@ -13,5 +14,9 @@ struct CibleMonstre {
     Cercle cercle;
 };
 
-// L'absence de cible est un std::optional<Cible> vide, pas un troisième cas.
-using Cible = std::variant<CibleAllie, CibleMonstre>;
+struct CiblePoint {
+    sf::Vector2f point;  // en pixels du monde, fixé au moment du lancer
+};
+
+// L'absence de cible est un std::optional<Cible> vide, pas un quatrième cas.
+using Cible = std::variant<CibleAllie, CibleMonstre, CiblePoint>;

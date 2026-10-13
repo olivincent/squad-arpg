@@ -96,6 +96,22 @@ std::vector<Coup> Escouade::attaquer(const std::vector<MonstreVu>& monstres, con
         return std::none_of(monstres.begin(), monstres.end(), [&](const MonstreVu& m) { return m.id == p.id; });
     });
 
+    // Skill de zone en attente : il part dès que son lanceur est à portée
+    // du point fixé au clic, sur les monstres présents à ce moment. Il
+    // part avant les attaques de base (dont il relance la recharge). Il ne
+    // dépend pas du verrou. La mort du lanceur l'annule (avancerSkillEnAttente).
+    if (m_skillEnAttente.has_value()) {
+        if (const CiblePoint* point = std::get_if<CiblePoint>(&m_skillEnAttente->cible)) {
+            const std::size_t place = m_skillEnAttente->place;
+            if (m_personnages[place - 1].estVivant()
+                && m_personnages[place - 1].skillEstAPortee(Cercle{point->point, 0.0f})) {
+                const std::vector<Coup> coupsDeZone = lancerSkillDeZone(place, point->point, monstres);
+                coups.insert(coups.end(), coupsDeZone.begin(), coupsDeZone.end());
+                m_skillEnAttente = std::nullopt;
+            }
+        }
+    }
+
     // Approche du monstre verrouillé, s'il y en a un dans la liste.
     if (m_cibleVerrouillee.has_value()) {
         const auto verrou = std::find_if(monstres.begin(), monstres.end(), [&](const MonstreVu& m) {
@@ -207,8 +223,13 @@ std::vector<Coup> Escouade::declencherSkill(std::size_t place, const std::vector
         return {};
     }
 
-    // Soin : appliqué ici, il ne sort pas d'Escouade.
-    const std::size_t placeAllie = std::get<CibleAllie>(*cible).place;
+    // Soin : appliqué ici, il ne sort pas d'Escouade. choisirCible ne
+    // renvoie jamais de CiblePoint (réservée au skill de zone).
+    const CibleAllie* allie = std::get_if<CibleAllie>(&*cible);
+    if (allie == nullptr) {
+        return {};
+    }
+    const std::size_t placeAllie = allie->place;
     if (lanceur.skillEstAPortee(m_personnages[placeAllie - 1].getCercle())) {
         soigner(place, placeAllie);
     } else {
@@ -238,8 +259,20 @@ std::vector<Coup> Escouade::declencherSkillDeZone(std::size_t place, sf::Vector2
         return {};
     }
 
+    // À portée du point (un cercle de rayon 0) : le sort part tout de suite.
+    // Sinon il est mis en attente, et le lanceur marche vers le point.
+    if (lanceur.skillEstAPortee(Cercle{point, 0.0f})) {
+        return lancerSkillDeZone(place, point, monstres);
+    }
+    m_skillEnAttente = SkillEnAttente{place, Cible(CiblePoint{point})};
+    return {};
+}
+
+std::vector<Coup> Escouade::lancerSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<MonstreVu>& monstres) {
+    Personnage& lanceur = m_personnages[place - 1];
+
     // Un seul déclenchement pour la recharge ; la puissance est le nombre
-    // de dégâts. La portée n'est pas lue : le lanceur est sa propre cible.
+    // de dégâts. La portée a déjà été vérifiée : le lanceur est sa propre cible.
     const int degats = lanceur.declencherSkill(lanceur.getCercle());
     const Cercle zone{point, lanceur.zoneDuSkill().rayon};
 
@@ -279,6 +312,11 @@ std::optional<sf::Vector2f> Escouade::avancerSkillEnAttente() {
             return std::nullopt;
         }
         return m_cibleCombat->centre;
+    }
+
+    // Point (skill de zone) : le lanceur marche vers le point fixé au clic.
+    if (const CiblePoint* point = std::get_if<CiblePoint>(&m_skillEnAttente->cible)) {
+        return point->point;
     }
 
     // Soin : annulation si la cible est morte ou remontée à pleine vie.

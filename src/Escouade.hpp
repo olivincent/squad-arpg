@@ -59,6 +59,7 @@ private:
     sf::Vector2f placePersonnage(std::size_t indice) const;
     std::optional<std::size_t> indicePersonnageLePlusProche(sf::Vector2f point) const;
     std::optional<std::size_t> indiceProieDuMonstre(int idMonstre, sf::Vector2f positionMonstre) const;
+    std::vector<Coup> lancerSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<MonstreVu>& monstres);
     void soigner(std::size_t placeLanceur, std::size_t placeAllie);
     std::optional<sf::Vector2f> avancerSkillEnAttente();
     std::optional<sf::Vector2f> pointVersAgresseur(std::size_t indice) const;

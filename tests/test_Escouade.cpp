@@ -1517,7 +1517,7 @@ TEST_CASE("skillEstPret : faux si le lanceur est mort") {
 TEST_CASE("skillEstPret : faux pendant la recharge, vrai apres 8 s") {
     const TileMap carte = carteDegagee();
     Escouade escouade({200.0f, 200.0f});
-    escouade.declencherSkillDeZone(4, {500.0f, 500.0f}, {});
+    escouade.declencherSkillDeZone(4, {300.0f, 300.0f}, {});
 
     REQUIRE_FALSE(escouade.skillEstPret(4));
 
@@ -1528,12 +1528,12 @@ TEST_CASE("skillEstPret : faux pendant la recharge, vrai apres 8 s") {
 TEST_CASE("Zone : les monstres dans la zone sont touches, celui hors zone est epargne") {
     Escouade escouade({200.0f, 200.0f});
     const std::vector<MonstreVu> monstres = {
-        MonstreVu{1, cibleMonstre({500.0f, 500.0f})},
-        MonstreVu{2, cibleMonstre({530.0f, 500.0f})},
-        MonstreVu{3, cibleMonstre({700.0f, 500.0f})},
+        MonstreVu{1, cibleMonstre({300.0f, 300.0f})},
+        MonstreVu{2, cibleMonstre({330.0f, 300.0f})},
+        MonstreVu{3, cibleMonstre({500.0f, 300.0f})},
     };
 
-    const std::vector<Coup> coups = escouade.declencherSkillDeZone(4, {500.0f, 500.0f}, monstres);
+    const std::vector<Coup> coups = escouade.declencherSkillDeZone(4, {300.0f, 300.0f}, monstres);
 
     REQUIRE(coups.size() == 2);
     REQUIRE(coups[0].idMonstre == 1);
@@ -1545,11 +1545,11 @@ TEST_CASE("Zone : les monstres dans la zone sont touches, celui hors zone est ep
 TEST_CASE("Zone : un monstre qui touche tout juste le bord de la zone est touche") {
     Escouade escouade({200.0f, 200.0f});
     const std::vector<MonstreVu> monstres = {
-        MonstreVu{1, cibleMonstre({575.0f, 500.0f})},
-        MonstreVu{2, cibleMonstre({500.0f, 576.0f})},
+        MonstreVu{1, cibleMonstre({375.0f, 300.0f})},
+        MonstreVu{2, cibleMonstre({300.0f, 376.0f})},
     };
 
-    const std::vector<Coup> coups = escouade.declencherSkillDeZone(4, {500.0f, 500.0f}, monstres);
+    const std::vector<Coup> coups = escouade.declencherSkillDeZone(4, {300.0f, 300.0f}, monstres);
 
     REQUIRE(coups.size() == 1);
     REQUIRE(coups[0].idMonstre == 1);
@@ -1558,41 +1558,153 @@ TEST_CASE("Zone : un monstre qui touche tout juste le bord de la zone est touche
 TEST_CASE("Zone : une zone vide part quand meme et lance la recharge") {
     Escouade escouade({200.0f, 200.0f});
 
-    REQUIRE(escouade.declencherSkillDeZone(4, {500.0f, 500.0f}, {MonstreVu{1, cibleMonstre({900.0f, 500.0f})}}).empty());
+    REQUIRE(escouade.declencherSkillDeZone(4, {300.0f, 300.0f}, {MonstreVu{1, cibleMonstre({700.0f, 300.0f})}}).empty());
 
     REQUIRE_FALSE(escouade.skillEstPret(4));
 }
 
-TEST_CASE("Zone : la portee n'est pas lue, le point peut etre tres loin du lanceur") {
+TEST_CASE("Zone : un point a portee (250 px bord a bord) part tout de suite") {
     Escouade escouade({200.0f, 200.0f});
-
-    const std::vector<Coup> coups = escouade.declencherSkillDeZone(4, {2000.0f, 1000.0f}, {MonstreVu{1, cibleMonstre({2000.0f, 1000.0f})}});
+    // Lanceur (place 4) en (185, 235), rayon 10 : (435, 235) est à 240 px du bord.
+    const std::vector<Coup> coups = escouade.declencherSkillDeZone(4, {435.0f, 235.0f}, {MonstreVu{1, cibleMonstre({435.0f, 235.0f})}});
 
     REQUIRE(coups.size() == 1);
+    REQUIRE_FALSE(escouade.skillEstPret(4));
+}
+
+TEST_CASE("Zone : un point hors de portee met le sort en attente, sans coup ni recharge") {
+    Escouade escouade({200.0f, 200.0f});
+    const std::vector<MonstreVu> monstres = {MonstreVu{1, cibleMonstre({650.0f, 235.0f})}};
+
+    REQUIRE(escouade.declencherSkillDeZone(4, {650.0f, 235.0f}, monstres).empty());
+
+    REQUIRE(escouade.skillEstPret(4));
+    // Un sort est en attente : un autre skill est refusé.
+    escouade.declencherSkill(2, monstres);
+    REQUIRE(escouade.getProvocations().empty());
+    REQUIRE(escouade.skillEstPret(2));
+}
+
+TEST_CASE("Zone en attente : le lanceur se rapproche, puis le sort part au point fixe") {
+    const TileMap carte = carteDegagee();
+    Escouade escouade({200.0f, 200.0f});
+    const std::vector<MonstreVu> monstres = {
+        MonstreVu{1, cibleMonstre({650.0f, 235.0f})},
+        MonstreVu{2, cibleMonstre({650.0f, 400.0f})},
+    };
+    escouade.declencherSkillDeZone(4, {650.0f, 235.0f}, monstres);
+
+    std::vector<Coup> coupsDeZone;
+    int tics = 0;
+    while (coupsDeZone.empty() && tics < 300) {
+        for (const Coup& coup : escouade.attaquer(monstres, carte)) {
+            if (coup.degats == 15) {
+                coupsDeZone.push_back(coup);
+            }
+        }
+        escouade.mettreAJour(0.016f, carte, {});
+        ++tics;
+    }
+
+    REQUIRE(coupsDeZone.size() == 1);
+    REQUIRE(coupsDeZone[0].idMonstre == 1);
+    REQUIRE(tics > 5);  // le lanceur a dû marcher
+    REQUIRE_FALSE(escouade.skillEstPret(4));
+    // Plus rien en attente : un autre skill peut maintenant partir.
+    escouade.declencherSkill(2, monstres);
+    REQUIRE_FALSE(escouade.skillEstPret(2));
+}
+
+TEST_CASE("Zone en attente : elle touche les monstres presents au depart, pas ceux du clic") {
+    const TileMap carte = carteDegagee();
+    Escouade escouade({200.0f, 200.0f});
+    escouade.declencherSkillDeZone(4, {650.0f, 235.0f}, {MonstreVu{1, cibleMonstre({650.0f, 235.0f})}});
+
+    const std::vector<MonstreVu> ailleurs = {
+        MonstreVu{1, cibleMonstre({650.0f, 500.0f})},
+        MonstreVu{2, cibleMonstre({660.0f, 235.0f})},
+    };
+    std::vector<Coup> coupsDeZone;
+    for (int i = 0; i < 300 && coupsDeZone.empty(); ++i) {
+        for (const Coup& coup : escouade.attaquer(ailleurs, carte)) {
+            if (coup.degats == 15) {
+                coupsDeZone.push_back(coup);
+            }
+        }
+        escouade.mettreAJour(0.016f, carte, {});
+    }
+
+    REQUIRE(coupsDeZone.size() == 1);
+    REQUIRE(coupsDeZone[0].idMonstre == 2);
+}
+
+TEST_CASE("Zone en attente : la mort du lanceur l'annule sans recharge") {
+    const TileMap carte = carteDegagee();
+    Escouade escouade({200.0f, 200.0f});
+    const std::vector<MonstreVu> monstres = {MonstreVu{1, cibleMonstre({650.0f, 235.0f})}};
+    escouade.declencherSkillDeZone(4, {650.0f, 235.0f}, monstres);
+    escouade.recevoirDegats(1, {185.0f, 235.0f}, 100);  // tue la place 4
+
+    for (int i = 0; i < 300; ++i) {
+        REQUIRE(escouade.attaquer(monstres, carte).empty());
+        escouade.mettreAJour(0.016f, carte, {});
+    }
+
+    // Plus rien en attente : une provocation (place 2) est acceptée.
+    escouade.declencherSkill(2, monstres);
+    REQUIRE_FALSE(escouade.skillEstPret(2));
+}
+
+TEST_CASE("Zone en attente : verrouiller, deverrouiller et un ordre de deplacement ne l'annulent pas") {
+    const TileMap carte = carteDegagee();
+    Escouade escouade({200.0f, 200.0f});
+    const std::vector<MonstreVu> monstres = {
+        MonstreVu{1, cibleMonstre({650.0f, 235.0f})},
+        MonstreVu{2, cibleMonstre({300.0f, 400.0f})},
+    };
+    escouade.declencherSkillDeZone(4, {650.0f, 235.0f}, monstres);
+
+    escouade.verrouiller(2);
+    escouade.verrouiller(1);
+    escouade.deverrouiller();
+    escouade.allerVers({200.0f, 500.0f}, carte);
+
+    std::vector<Coup> coupsDeZone;
+    for (int i = 0; i < 300 && coupsDeZone.empty(); ++i) {
+        for (const Coup& coup : escouade.attaquer(monstres, carte)) {
+            if (coup.degats == 15) {
+                coupsDeZone.push_back(coup);
+            }
+        }
+        escouade.mettreAJour(0.016f, carte, {});
+    }
+
+    REQUIRE(coupsDeZone.size() == 1);
+    REQUIRE(coupsDeZone[0].idMonstre == 1);
 }
 
 TEST_CASE("Zone : refusee pendant la recharge") {
     Escouade escouade({200.0f, 200.0f});
-    const std::vector<MonstreVu> monstres = {MonstreVu{1, cibleMonstre({500.0f, 500.0f})}};
-    escouade.declencherSkillDeZone(4, {500.0f, 500.0f}, monstres);
+    const std::vector<MonstreVu> monstres = {MonstreVu{1, cibleMonstre({300.0f, 300.0f})}};
+    escouade.declencherSkillDeZone(4, {300.0f, 300.0f}, monstres);
 
-    REQUIRE(escouade.declencherSkillDeZone(4, {500.0f, 500.0f}, monstres).empty());
+    REQUIRE(escouade.declencherSkillDeZone(4, {300.0f, 300.0f}, monstres).empty());
 }
 
 TEST_CASE("Zone : refusee si le lanceur est mort") {
     Escouade escouade({200.0f, 200.0f});
     escouade.recevoirDegats(1, {185.0f, 235.0f}, 100);  // tue la place 4
 
-    REQUIRE(escouade.declencherSkillDeZone(4, {500.0f, 500.0f}, {MonstreVu{1, cibleMonstre({500.0f, 500.0f})}}).empty());
+    REQUIRE(escouade.declencherSkillDeZone(4, {300.0f, 300.0f}, {MonstreVu{1, cibleMonstre({300.0f, 300.0f})}}).empty());
 }
 
 TEST_CASE("Zone : refusee si un skill est en attente") {
     Escouade escouade({200.0f, 200.0f});
     escouade.verrouiller(1);
-    const std::vector<MonstreVu> monstres = {MonstreVu{1, cibleMonstre({500.0f, 500.0f})}};
+    const std::vector<MonstreVu> monstres = {MonstreVu{1, cibleMonstre({300.0f, 300.0f})}};
     escouade.declencherSkill(1, monstres);  // dégâts hors de portée de mêlée : mis en attente
 
-    REQUIRE(escouade.declencherSkillDeZone(4, {500.0f, 500.0f}, monstres).empty());
+    REQUIRE(escouade.declencherSkillDeZone(4, {300.0f, 300.0f}, monstres).empty());
     REQUIRE(escouade.skillEstPret(4));
 }
 
@@ -1626,7 +1738,7 @@ TEST_CASE("Zone : relance la recharge de l'attaque de base du lanceur") {
     // Ce monstre est à portée de tir des places 3 et 4 (120 px) et hors de
     // portée des mêlées : sans le skill, les deux tireurs frapperaient.
     const std::vector<MonstreVu> monstres = {MonstreVu{1, cibleMonstre({285.0f, 235.0f})}};
-    escouade.declencherSkillDeZone(4, {900.0f, 900.0f}, {});
+    escouade.declencherSkillDeZone(4, {300.0f, 300.0f}, {});
 
     const std::vector<Coup> coups = escouade.attaquer(monstres, carte);
 
