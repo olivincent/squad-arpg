@@ -173,7 +173,7 @@ personnages sont dans `docs/formation.md`, le monstre dans
 ## Skill
 
 - **Une classe `Skill` autour d'une `Attaque`** : un `TypeSkill` (`Degats`,
-  `Soin` ou `Provocation`) et l'`Attaque` qui fournit portée, puissance et recharge.
+  `Soin`, `Provocation` ou `Zone`), l'`Attaque` qui fournit portée, puissance et recharge, et un rayon de zone.
   `Skill` cache le mot « dégâts » derrière un nom neutre, la puissance
   (dégâts infligés, points de vie rendus ou durée selon le type), et son
   `declencher` n'est qu'un `frapper` renommé. Un `enum class` suffit pour
@@ -183,7 +183,8 @@ personnages sont dans `docs/formation.md`, le monstre dans
   constructeur de `Personnage` comme l'attaque de base (injection), plutôt
   qu'un skill « vide » à 0 de puissance. Pas de valeur par défaut : chaque
   création de `Personnage` dit explicitement s'il a un skill.
-- **Trois skills** (le troisième est décrit dans « Provocation »), aux
+- **Quatre skills** (les deux derniers sont décrits dans « Provocation »
+  et « Skill de zone ciblé »), aux
   valeurs écrites dans `Escouade.cpp` :
   - dégâts : personnage 0 (mêlée avant-gauche), 25 dégâts, recharge 5 s,
     portée de mêlée (20 px) ;
@@ -267,20 +268,21 @@ personnages sont dans `docs/formation.md`, le monstre dans
   manuel de la cible ; un lanceur bloqué par un monstre glisse ou attend
   (le A* ignore les entités) ; pas d'effet visuel au déclenchement ni
   sur la cible soignée, pas de HUD ni d'icône de skill ; le skill du
-  personnage 4 n'existe pas encore.
+  personnage 4 se lance en deux temps (voir « Skill de zone ciblé »).
 
 ## Provocation (étape 41)
 
 - **Troisième `TypeSkill`**, `Provocation`, pour le personnage de la
-  place 2 (mêlée avant-droit) : rayon 150 px bord à bord (la portée de
-  son `Attaque`), durée 4 s (sa puissance : pour ce type, une durée en
+  place 2 (mêlée avant-droit) : rayon de zone 150 px (étape 42 : portée 0
+  et zone centrée sur le centre du provocateur, voir « Portée et rayon de
+  zone »), durée 4 s (sa puissance : pour ce type, une durée en
   secondes), recharge 10 s. Valeurs écrites dans `Escouade.cpp`. On
   garde `enum class` + `if`/`switch` ; un nouveau type ne doit jamais
   tomber par défaut dans la branche d'un autre (`choisirCible` renvoie
   vide pour une provocation, qui ne passe pas par elle).
 - **Skill de zone, sans cible** : pas de cas ajouté à `Cible`.
   `declencherSkill` le traite avant `choisirCible` : tous les monstres de
-  `monstresVus` à portée du lanceur sont provoqués, dans l'image de
+  `monstresVus` touchés par la zone (bord à bord 0) sont provoqués, dans l'image de
   l'appui (jamais de mise en attente ni de marche). Aucun monstre dans le
   rayon : appui refusé, sans recharge. Un seul déclenchement du `Skill`
   pour la recharge, quel que soit le nombre de monstres. Aucun dégât :
@@ -310,6 +312,53 @@ personnages sont dans `docs/formation.md`, le monstre dans
   d'effet au déclenchement ; pas de système d'effets général ;
   `provoquer` n'est pas protégée contre un appel direct sans recharge.
 
+## Portée et rayon de zone (étape 42)
+
+- **Deux notions distinctes** : la portée (jusqu'où le skill peut être
+  lancé) reste dans l'`Attaque` ; le rayon de zone (taille de la zone
+  touchée) est dans `Skill` (`m_rayonZone`, getter `getRayonZone`).
+  `Attaque` est partagée avec les attaques de base des personnages et des
+  monstres, qui n'ont pas de zone. Pas de valeur par défaut au
+  constructeur ; pas de `std::optional` : un skill à cible unique reçoit 0
+  et ne le lit pas (c'est le `TypeSkill` qui décide).
+- **Règle commune des skills de zone** : un `Cercle` centré sur le point
+  d'effet, de rayon le rayon de zone ; un monstre est touché si
+  `distanceBordABord(zone, monstre) == 0`. `Personnage::zoneDuSkill()`
+  donne ce cercle centré sur le personnage (provocation).
+- **Provocation** : portée 0, zone 150 px depuis le **centre** du
+  provocateur (avant l'étape 42 : 150 px depuis son bord ; la zone a
+  rétréci de 10 px). Pour relancer la recharge, le lanceur se prend
+  lui-même pour cible (distance 0, portée 0) ; la portée n'est pas un
+  vrai test ici.
+
+## Skill de zone ciblé (étape 42, touche 4)
+
+- **Quatrième `TypeSkill`**, `Zone`, pour le personnage de la place 4
+  (tireur arrière-droit) : 15 dégâts (la puissance), recharge 8 s, zone
+  60 px, portée 250 px (valeurs dans `Escouade.cpp`). **La portée n'est
+  pas lue à cette étape** : on peut viser n'importe où.
+- **Lancer à un point** : `Escouade::declencherSkillDeZone(place, point,
+  monstres)`, distincte de `declencherSkill` qui n'a pas de point et
+  refuse un skill `Zone` (`choisirCible` renvoie aussi vide). Pas de cas
+  `CiblePoint` dans `Cible` : la fonction reçoit le point directement.
+  Chaque monstre touché reçoit un `Coup` (dégâts du skill), appliqué par
+  `main.cpp` comme les autres. Le sort part et coûte sa recharge même si
+  la zone est vide (choix de jeu, contrairement à la provocation) ; il
+  relance la recharge de l'attaque de base du lanceur. Refus : place
+  invalide, skill non `Zone`, lanceur mort, recharge, skill en attente.
+  Pas de dégâts aux alliés ; le lanceur ne bouge pas, jamais de mise en
+  attente. Comme pour la provocation, le lanceur est sa propre cible pour
+  le déclenchement, donc la portée n'est pas testée.
+- **`skillEstPret(place)`** permet à `main.cpp` de savoir s'il peut
+  entrer en visée sans connaître `Personnage` ; `rayonZoneDuSkill(place)`
+  lui donne le rayon du cercle de prévisualisation.
+- **Le mode visée est un état d'interface** (voir
+  `docs/boucle-et-entrees.md`) : `Escouade` ne connaît ni la souris ni le
+  mode.
+- **Limites connues** : portée de lancement ignorée, pas de marche du
+  lanceur vers le point (étape suivante) ; pas d'effet visuel à l'impact,
+  de HUD ni d'icône ; pas de dégâts aux alliés ni dans le temps.
+
 ## Circuit des dégâts
 
 `Escouade` et `Monstre` ne se connaissent pas : `main.cpp` fait
@@ -319,7 +368,8 @@ image).
 - **Les personnages frappent un monstre** : à chaque image, `main.cpp`
   construit la liste `monstresVus` (identifiant et cercle de chaque
   monstre), puis applique, avec une petite lambda `appliquer`, les coups
-  renvoyés par `escouade.declencherSkill(...)` (si une touche est
+  renvoyés par `escouade.declencherSkillDeZone(...)` (clic de lancer en
+  visée), par `escouade.declencherSkill(...)` (si une touche est
   appuyée) puis par `escouade.attaquer(...)`, chacun au monstre dont
   l'identifiant figure dans le `Coup`. Un soin ne rend aucun coup. Le
   skill passe avant l'attaque de base : s'il part, il relance la

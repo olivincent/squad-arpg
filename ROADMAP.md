@@ -47,10 +47,14 @@ est dans `docs/historique.md`.
 - Étape 39 — Personnages autonomes dans leur chemin ✅
 - Étape 40 — Les personnages vont vers leurs agresseurs ✅
 - Étape 41 — Skill de provocation (touche 2) ✅
+- Étape 42 — Rayon de zone des skills, skill de zone ciblé au sol (touche 4) ✅
 
-## Étape 42 — À définir
+## Étape 43 — À définir
 
 Pistes discutées :
+- Lire la portée du skill de zone : le lanceur marche vers le point visé
+  et le sort part à l'arrivée (cas `CiblePoint` dans `Cible`)
+- Effet visuel à l'impact du skill de zone, HUD ou icônes de skill
 - Indicateur visuel du monstre provoqué
 - L'escouade poursuit d'elle-même un monstre qui l'attaque (écartée pour
   l'instant)
@@ -61,9 +65,8 @@ Pistes discutées :
 - Blocage de l'ancre par les monstres, si le décalage ancre/personnages
   s'avère gênant
 - Skills qui bousculent un adversaire ou permettent de se faufiler
-- Skill du personnage 4 (touche 4), autres effets de skill
-  (étourdissement, ralentissement, dégâts de zone), soin de zone,
-  résurrection, HUD ou icônes de skill
+- Autres effets de skill (étourdissement, ralentissement, dégâts de zone
+  dans le temps ou aux alliés), soin de zone, résurrection
 - Choix manuel de la cible d'un skill par le joueur
 - Plusieurs skills en attente à la fois
 - Patrouille, escouade de monstres, récupération de points de vie au
@@ -131,7 +134,8 @@ Pistes discutées :
   que le bouton reste enfoncé (fenêtre ayant le focus, escouade vivante),
   l'ordre est redonné à chaque image vers le curseur. Un clic bref sur un
   monstre engage un combat qui continue seul, sans tenir le bouton ; la
-  touches 1 à 4 déclenchent le skill du personnage de la même place.
+  touches 1 à 3 déclenchent le skill du personnage de la même place ; la
+  touche 4 entre en mode visée (voir « Skills »).
 - **Combat** : le monstre verrouillé est entouré d'un contour jaune.
   L'escouade s'approche en formation jusqu'à ce que tous ses personnages
   vivants soient à portée, puis s'arrête et chacun frappe selon sa propre
@@ -161,12 +165,19 @@ Pistes discutées :
   marche ni mise en attente). Touche 3 : soin du tireur
   arrière-gauche (30 points de vie, recharge 8 s, portée 40 px), sur le
   vivant le plus blessé (soigneur inclus), permis hors combat. Touche 2 :
-  provocation du mêlée avant-droit (rayon 150 px bord à bord, 4 s,
-  recharge 10 s) : tous les monstres dans le rayon le prennent pour
+  provocation du mêlée avant-droit (zone de 150 px depuis son centre,
+  4 s, recharge 10 s) : tous les monstres dans la zone le prennent pour
   proie au lieu du personnage le plus proche, sans dégâts ni attente
-  (refusée s'il n'y a aucun monstre dans le rayon) ; elle prend fin à
+  (refusée s'il n'y a aucun monstre dans la zone) ; elle prend fin à
   l'écoulement de la durée, à la mort du provocateur ou à celle du
-  monstre. Touche 4 : rien. Un skill de dégâts ou de soin hors de portée met son lanceur en marche vers la
+  monstre. Touche 4 : skill de zone du tireur arrière-droit (15 dégâts, recharge 8 s,
+  zone de 60 px, portée 250 px non lue) en deux temps : 4 fait entrer en
+  mode visée (un cercle jaune de 60 px suit le curseur), puis un clic
+  gauche lance le sort au point visé (même sur un monstre : ni verrou ni
+  déplacement) et touche tous les monstres dont le bord est dans le
+  cercle. Il part et coûte sa recharge même si la zone est vide. Clic
+  droit, Échap ou 4 annulent sans recharge ; le déplacement continu est
+  suspendu pendant la visée. Un skill de dégâts ou de soin hors de portée met son lanceur en marche vers la
   cible et part à l'arrivée (un seul skill en attente à la fois ; annulé
   par la mort du lanceur, celle de la cible ou son retour à pleine vie
   pour un soin, la rupture du combat pour des dégâts). Un skill remplace
@@ -189,12 +200,14 @@ Pistes discutées :
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 261 tests : 32 sur `TileMap`, 17 sur `Chemin`, 95
-  sur `Escouade`, 12 sur `Deplacement`, 27 sur `Monstre`, 27 sur
-  `Personnage`, 11 sur `Attaque`, 6 sur `Skill`, 14 sur `Mobile`, 4 sur
+  (`./build/tests.exe`, 279 tests : 32 sur `TileMap`, 17 sur `Chemin`, 111
+  sur `Escouade`, 12 sur `Deplacement`, 27 sur `Monstre`, 31 sur
+  `Personnage`, 11 sur `Attaque`, 7 sur `Skill`, 14 sur `Mobile`, 4 sur
   `Cercle`, 13 sur `Autodefense`).
 
 **Limites connues** (acceptées pour l'instant) :
+- Le skill de zone ignore sa portée (on vise n'importe où), n'a pas
+  d'effet visuel à l'impact et ne touche pas les alliés.
 - Deux places peuvent se replier presque au même endroit dans un passage
   étroit.
 - Le chemin d'un personnage ignore les monstres : bloqué par un monstre,

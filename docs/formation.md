@@ -158,8 +158,9 @@ L'attaque, la portée, le skill et les obstacles sont dans
   `std::optional<Skill>`) à `m_skill` (voir `docs/combat.md`). La règle
   « un mort ne frappe pas » vit dans `Personnage::frapper` et
   `declencherSkill`, avant la délégation : être vivant est l'affaire de
-  `Personnage`, pas de l'attaque. Il expose `typeSkill`, `skillEstPret` et
-  `skillEstAPortee` pour qu'`Escouade` décide quoi faire du skill.
+  `Personnage`, pas de l'attaque. Il expose `typeSkill`, `skillEstPret`,
+  `skillEstAPortee` et `zoneDuSkill` (cercle centré sur lui, au rayon de
+  zone du skill) pour qu'`Escouade` décide quoi faire du skill.
 - **Soin** : `recevoirSoin` plafonne au maximum de points de vie et ne
   fait rien sur un mort ; `getPointsDeVie` et `getPointsDeVieMax`
   permettent à `Escouade` de choisir le plus blessé.

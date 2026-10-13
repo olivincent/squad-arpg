@@ -1077,3 +1077,33 @@ secondes ; `provoquer` publique pour les tests.
 **Hors de portée** : indicateur visuel du monstre provoqué, autres effets
 (étourdissement, ralentissement), système d'effets général, skill de la
 touche 4.
+
+### Étape 42 — Rayon de zone des skills et skill de zone ciblé (touche 4) ✅ TERMINÉE
+
+Séparation de la portée (dans `Attaque`) et du rayon de zone (dans
+`Skill`), puis premier skill en deux temps : 4 entre en mode visée, un
+clic gauche lance le sort sur un cercle de dégâts.
+
+1. [x] `Skill` : `rayonZone` (constructeur, getter) ; tests (enchaînée)
+2. [x] Provocation : portée 0, zone 150 centrée sur le provocateur ;
+       `Personnage::zoneDuSkill` ; tests
+3. [x] `TypeSkill::Zone` et skill de la place 4 (enchaînée)
+4. [x] `Escouade::skillEstPret(place)` ; tests (enchaînée)
+5. [x] `Escouade::declencherSkillDeZone(place, point, monstres)` ; tests
+       (enchaînée)
+6. [x] `main.cpp` : mode visée (`placeEnVisee`), entrées, lancer sur
+       événement d'appui
+7. [x] Cercle de prévisualisation (`rayonZoneDuSkill`)
+8. [x] Mise à jour des documents
+
+**Choix** : rayon de zone dans `Skill` (0 et non lu pour les skills à cible
+unique, pas de `std::optional`) ; zone = `Cercle` touché si bord à bord 0 ;
+le sort part même à vide ; mode visée = état d'interface dans `main.cpp` ;
+pas de booléen « attendre le relâchement » : `deplacementContinu` remis à
+`false` à l'entrée en visée suffit.
+
+**Limites connues** : voir `docs/combat.md` (« Skill de zone ciblé »).
+
+**Hors de portée** : lecture de la portée, marche du lanceur vers le
+point, `CiblePoint`, effet visuel à l'impact, HUD, dégâts aux alliés ou
+dans le temps.

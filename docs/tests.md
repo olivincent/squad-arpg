@@ -356,3 +356,27 @@
 - **Renommage** : `personnageLePlusProche(point)` est devenu
   `proieDuMonstre(idMonstre, point)` ; les tests anciens passent
   l'identifiant 1, sans provocation.
+
+## Skill de zone (étape 42)
+
+- **Signature de `Skill`** : le constructeur reçoit un rayon de zone
+  (0 pour les skills à cible unique) ; tous les `Skill(...)` des tests
+  existants l'ont reçu. `test_Skill.cpp` vérifie `getRayonZone` et que
+  rayon et portée sont indépendants ; la provocation a désormais une
+  portée de 0 et une zone de 150, et le lanceur se prend pour cible.
+- **`test_Personnage.cpp`** : `zoneDuSkill` (centre sur le personnage,
+  rayon du skill, 0 sans skill).
+- **`test_Escouade.cpp`, provocation** : la zone se mesure depuis le centre
+  du lanceur, monstre compris : touché à 165 px de distance entre centres
+  (150 + 15), pas à 166.
+- **`test_Escouade.cpp`, skill de zone** (lanceur de la place 4 en
+  (185, 235), monstres de rayon 15, donc touchés jusqu'à 75 px de
+  distance entre centres) : `skillEstPret` (prêt, place invalide, mort,
+  recharge de 8 s) ; `rayonZoneDuSkill` ; `declencherSkillDeZone`
+  (monstres touchés et épargnés, bord à bord exact, zone vide qui part
+  quand même, portée non lue, refus pendant la recharge, lanceur mort,
+  skill en attente, place invalide ou sans skill `Zone`, recharge de
+  l'attaque de base relancée) ; `declencherSkill` sans point refuse un
+  skill `Zone` et `choisirCible` renvoie vide.
+- **Non testé** : le mode visée et le cercle, qui vivent dans `main.cpp`
+  (vérifiés à la main dans le jeu).

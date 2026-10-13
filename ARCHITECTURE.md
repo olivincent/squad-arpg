@@ -80,8 +80,9 @@ et de la boucle de jeu.
 
 Qui possède quoi :
 - `main.cpp` possède la fenêtre, la boucle de jeu, la caméra, la carte
-  (`TileMap`), l'`Escouade` et un `std::vector<Monstre>`. Il traite les
-  événements (fermeture, clic, touches 1 à 4) et fait l'intermédiaire entre
+  (`TileMap`), l'`Escouade` et un `std::vector<Monstre>`, ainsi que le mode
+  visée du skill de zone (état d'interface). Il traite les
+  événements (fermeture, clic, touches 1 à 4, Échap, clic droit) et fait l'intermédiaire entre
   `Escouade` et `Monstre`, qui ne se connaissent pas : il donne à
   `Escouade` la liste des monstres (`MonstreVu`) et applique les `Coup`
   qu'elle renvoie. Il ne connaît ni `Chemin` ni `Personnage`.
@@ -142,7 +143,10 @@ publique : `id` du monstre, `place` du provocateur, `tempsRestant`).
 | `explicit Escouade(sf::Vector2f positionDepart)` | Crée l'escouade et ses 4 personnages en formation (deux mêlées devant, deux tireurs derrière) |
 | `void allerVers(sf::Vector2f destination, const TileMap& carte)` | Délègue à `m_mobile.allerVers` |
 | `std::vector<Coup> attaquer(const std::vector<MonstreVu>& monstres, const TileMap& carte)` | Avec un verrou dont le monstre est dans `monstres` : mémorise son cercle, approche tant qu'un personnage vivant n'est pas à portée, s'arrête sinon, et fait partir le skill de dégâts en attente si son lanceur est à portée. Verrou ou non : chaque personnage choisit pour lui-même le monstre à frapper (`choisirMonstreAFrapper`) et frappe ; renvoie un `Coup` par frappe qui touche |
-| `std::vector<Coup> declencherSkill(std::size_t place, const std::vector<MonstreVu>& monstres)` | Skill du personnage à la place `place` (1 à 4). Liste vide si la place est invalide, sans skill, si le lanceur est mort, si le skill est en recharge, si un skill est déjà en attente ou si `choisirCible` ne trouve rien. Une provocation (sans cible) provoque tous les monstres de `monstres` à portée du lanceur, sans dégât ni attente, et est refusée (sans recharge) s'il n'y en a aucun. Cible à portée : un skill de dégâts renvoie un coup (identifiant de la cible, dégâts), un soin est appliqué sur place (liste vide). Hors de portée (seulement avec un verrou) : le skill est mis en attente (liste vide) |
+| `std::vector<Coup> declencherSkill(std::size_t place, const std::vector<MonstreVu>& monstres)` | Skill du personnage à la place `place` (1 à 4). Liste vide si la place est invalide, sans skill, si le skill est de type `Zone` (il se lance par `declencherSkillDeZone`), si le lanceur est mort, si le skill est en recharge, si un skill est déjà en attente ou si `choisirCible` ne trouve rien. Une provocation (sans cible) provoque tous les monstres de `monstres` touchés par sa zone (cercle centré sur le lanceur, rayon de zone du skill), sans dégât ni attente, et est refusée (sans recharge) s'il n'y en a aucun. Cible à portée : un skill de dégâts renvoie un coup (identifiant de la cible, dégâts), un soin est appliqué sur place (liste vide). Hors de portée (seulement avec un verrou) : le skill est mis en attente (liste vide) |
+| `bool skillEstPret(std::size_t place) const` | Le personnage à cette place est-il vivant, avec un skill dont la recharge est écoulée ? Faux si la place est invalide |
+| `float rayonZoneDuSkill(std::size_t place) const` | Rayon de zone du skill de cette place ; 0 sans skill ou si la place est invalide |
+| `std::vector<Coup> declencherSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<MonstreVu>& monstres)` | Lance le skill de type `Zone` de cette place sur un cercle centré sur `point` (rayon de zone du skill) : un `Coup` (identifiant, dégâts du skill) par monstre touché (bord à bord 0). Le sort part et lance la recharge même si la zone est vide ; la portée n'est pas lue. Liste vide, sans recharge, si la place est invalide, si son skill n'est pas de type `Zone`, si le lanceur est mort ou en recharge, ou si un skill est en attente |
 | `std::optional<Cible> choisirCible(TypeSkill type, std::size_t place, const std::vector<MonstreVu>& monstres) const` | `Degats` : avec un verrou, le monstre verrouillé trouvé dans `monstres` (à portée ou non, vide s'il n'y est pas) ; sans verrou, le monstre que le lanceur de la place `place` frapperait en autodéfense, avec la portée de son skill (vide si aucun). `Soin` : le vivant qui a le moins de points de vie parmi ceux qui ne sont pas à pleine vie (égalité : la plus petite place) |
 | `void mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles)` | Avance l'ancre, tourne la formation, calcule la place de chaque personnage (place théorique ramenée vers l'ancre par `replierVersOrigine` si elle est dans un mur ou cachée derrière un coin), déplace chaque personnage vers sa place (ou reste sur place s'il est à portée de la cible en combat ; ancre à l'arrêt : vers l'agresseur le plus proche dans une laisse de 100 px autour de sa place, ou sur place s'il a déjà un monstre à portée) ; fait écouler le délai d'oubli des agresseurs ; le lanceur d'un skill en attente vise sa cible à la place (un soin part ici, annulé si le lanceur ou la cible meurt ou si la cible est à pleine vie) ; `obstacles` est transmis aux personnages, jamais à l'ancre |
 | `void dessiner(sf::RenderTarget& rendu) const` | Dessine l'ancre, les 4 personnages, puis un point jaune (repère provisoire) à la place de formation de chaque personnage vivant |
@@ -213,6 +217,7 @@ cible du dernier A*), `m_pointsDeVie`, `m_pointsDeVieMax`.
 | `std::optional<TypeSkill> typeSkill() const` | Type du skill, vide sans skill |
 | `bool skillEstPret() const` | Vivant, avec un skill dont la recharge est écoulée |
 | `bool skillEstAPortee(Cercle cible) const` | Le skill est-il à portée de `cible` (bord à bord) ? Faux sans skill |
+| `Cercle zoneDuSkill() const` | Cercle centré sur le personnage, de rayon le rayon de zone de son skill (0 sans skill) |
 | `int declencherSkill(Cercle cible)` | 0 sans skill ou s'il est mort ; sinon délègue à `m_skill->declencher` (dégâts ou points de vie rendus) et, si la puissance est `> 0`, relance au complet la recharge de `m_attaque` |
 | `void recevoirSoin(int quantite)` | Rend des points de vie, sans dépasser le maximum ; sans effet sur un mort |
 | `int getPointsDeVie() const` / `int getPointsDeVieMax() const` | Points de vie actuels et maximum |
@@ -274,23 +279,27 @@ Données membres : `m_portee` (bord à bord), `m_degats`, `m_tempsRecharge`,
 
 ### `Skill` — une capacité spéciale
 
-Un `TypeSkill` (`enum class { Degats, Soin, Provocation }`) et une
+Un `TypeSkill` (`enum class { Degats, Soin, Provocation, Zone }`) et une
 `Attaque`, qui fournit portée, puissance (dégâts, points de vie rendus ou
-durée en secondes) et recharge.
+durée en secondes, dégâts d'un skill de zone) et recharge, ainsi qu'un
+rayon de zone (la taille de la zone touchée par un skill de zone ; 0, non
+lu, pour un skill à cible unique).
 Possédé par valeur, en option, par `Personnage`. Ne connaît ni la
 position de son lanceur ni sa cible : il reçoit deux `Cercle`. Ne dessine
 rien.
 
-Données membres : `m_type` (`TypeSkill`), `m_attaque` (`Attaque`).
+Données membres : `m_type` (`TypeSkill`), `m_attaque` (`Attaque`),
+`m_rayonZone` (`float`, en pixels).
 
 | Fonction | Rôle |
 |---|---|
-| `Skill(TypeSkill type, Attaque attaque)` | Crée le skill de ce type, autour de cette attaque |
+| `Skill(TypeSkill type, Attaque attaque, float rayonZone)` | Crée le skill de ce type, autour de cette attaque, avec ce rayon de zone |
 | `void mettreAJour(float dt)` | Fait avancer la recharge |
 | `bool estAPortee(Cercle origine, Cercle cible) const` | Délègue à l'`Attaque` |
 | `int declencher(Cercle origine, Cercle cible)` | Puissance si la cible est à portée et la recharge écoulée (relance alors la recharge), sinon 0 |
 | `float getProgressionRecharge() const` | De 0 (juste après le déclenchement) à 1 (prêt) |
 | `TypeSkill getType() const` | Type du skill |
+| `float getRayonZone() const` | Rayon de zone du skill |
 
 ### `Coup` — ce qui circule entre `main.cpp` et `Escouade`
 

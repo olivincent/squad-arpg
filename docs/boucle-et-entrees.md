@@ -8,11 +8,13 @@ ne se connaissent pas.
 ## Boucle de jeu
 
 - **Ordre d'une image** :
+  0. sortie de la visée si le lanceur ne peut plus lancer (mort, défaite) ;
   1. événements : fermeture ; appui de souris (pose ou retire le verrou
-     de combat, arme le déplacement continu) ; appui sur une touche 1 à 4
-     (demande le skill de cette place) ;
-  2. liste des monstres vus (identifiant et cercle), skill demandé s'il y
-     a un appui, puis coups de l'escouade (`attaquer`, à chaque image,
+     de combat, arme le déplacement continu ; en visée, lance ou annule
+     le sort) ; appui sur une touche 1 à 3 (demande le skill de cette
+     place), 4 ou Échap (entre en visée ou en sort) ;
+  2. liste des monstres vus (identifiant et cercle), lancer du skill de
+     zone s'il y a un clic en visée, skill demandé s'il y a un appui, puis coups de l'escouade (`attaquer`, à chaque image,
      verrou ou non, tant que l'escouade a un vivant), appliqués monstre
      par monstre ; retrait du verrou si le monstre verrouillé est mort ;
   3. retrait des monstres morts ;
@@ -30,7 +32,7 @@ ne se connaissent pas.
   paramètre.
 - **Aucune classe de plus** (`Combat`, `Minuteur`, `Camera`…) tant qu'il
   n'y a pas de comportement à y encapsuler : les variables locales
-  `deplacementContinu`, `placeSkillDemandee`, `prochainId` et la vue `camera`
+  `deplacementContinu`, `placeSkillDemandee`, `placeEnVisee`, `prochainId` et la vue `camera`
   suffisent.
 - **Pas de texte de position ni de police chargée** : rien n'affiche la
   position du curseur à l'écran.
@@ -122,6 +124,35 @@ ne se connaissent pas.
   autodéfense. `main.cpp` lui passe la liste des monstres vus, et
   `Escouade` retrouve le monstre verrouillé elle-même. Les coups
   renvoyés sont appliqués comme ceux d'`attaquer`.
+
+## Mode visée : le skill de zone (étape 42)
+
+- **État d'interface, pas état de jeu** : `placeEnVisee`
+  (`std::optional<std::size_t>`, vide = mode normal, sinon la place du
+  lanceur) vit dans `main.cpp`. `Escouade` ne connaît ni la souris ni le
+  mode ; elle expose `skillEstPret`, `rayonZoneDuSkill` et
+  `declencherSkillDeZone`.
+- **Entrée** : appui sur 4 avec le skill prêt ; sinon ignoré. **Sorties
+  sans lancer** : clic droit, Échap, nouvel appui sur 4, mort du lanceur
+  ou défaite (testée en début d'image par `!skillEstPret`). Aucune
+  recharge consommée.
+- **Lancer** : uniquement sur l'événement `MouseButtonPressed` gauche
+  reçu pendant la visée, jamais sur l'état du bouton. Le point est
+  converti en coordonnées du monde. Le clic lance le sort même sur un
+  monstre : il ne verrouille pas, ne déverrouille pas, ne déplace pas
+  l'escouade (la branche normale n'est pas exécutée en visée). Après le
+  lancer, réussi ou refusé, on sort de la visée. Les coups sont appliqués
+  par `appliquer`, avant le skill demandé au clavier et avant `attaquer`.
+- **Bouton déjà enfoncé** : entrer en visée met `deplacementContinu` à
+  `false` ; il ne repasse à `true` que sur un nouvel appui au sol. Donc ni
+  pendant la visée ni après le lancer l'escouade ne suit le curseur
+  tant que le bouton n'a pas été relâché puis réappuyé. Le drapeau
+  existant joue le rôle d'un « attendre le relâchement » : pas de
+  booléen de plus.
+- **Visuel** : un `sf::CircleShape` (contour jaune, sans remplissage, au
+  rayon exact de la zone, origine au centre) est créé dans la boucle de
+  dessin sous le curseur, en coordonnées du monde. Rien à l'impact.
+- **Touches 1 à 3** restent actives pendant la visée (non spécifié).
 
 ## Défaite de l'escouade
 
