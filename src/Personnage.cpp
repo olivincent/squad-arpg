@@ -124,6 +124,11 @@ bool Personnage::skillEstAPortee(Cercle cible) const {
     return m_skill.has_value() && m_skill->estAPortee(getCercle(), cible);
 }
 
+Cercle Personnage::cercleDePorteeDuSkill() const {
+    // La portée se mesure depuis le bord du personnage : rayon du personnage + portée.
+    return {getCentre(), getCercle().rayon + (m_skill.has_value() ? m_skill->getPortee() : 0.0f)};
+}
+
 Cercle Personnage::zoneDuSkill() const {
     return {getCentre(), m_skill.has_value() ? m_skill->getRayonZone() : 0.0f};
 }

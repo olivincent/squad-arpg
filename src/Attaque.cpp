@@ -33,6 +33,10 @@ void Attaque::relancerRecharge() {
     m_recharge = m_tempsRecharge;
 }
 
+float Attaque::getPortee() const {
+    return m_portee;
+}
+
 float Attaque::getProgressionRecharge() const {
     if (m_tempsRecharge <= 0.0f) {
         return 1.0f;

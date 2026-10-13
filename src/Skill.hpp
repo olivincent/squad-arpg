@@ -21,6 +21,7 @@ public:
     float getProgressionRecharge() const;
     TypeSkill getType() const;
     float getRayonZone() const;
+    float getPortee() const;
 
 private:
     TypeSkill m_type;

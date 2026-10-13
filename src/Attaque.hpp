@@ -10,6 +10,7 @@ public:
     int frapper(Cercle origine, Cercle cible);
     void relancerRecharge();
     float getProgressionRecharge() const;
+    float getPortee() const;
 
 private:
     float m_portee;         // en pixels, écart bord à bord

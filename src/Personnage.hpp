@@ -23,6 +23,7 @@ public:
     bool skillEstPret() const;
     bool skillEstAPortee(Cercle cible) const;
     Cercle zoneDuSkill() const;
+    Cercle cercleDePorteeDuSkill() const;
     int declencherSkill(Cercle cible);
     void recevoirDegats(int quantite);
     void recevoirSoin(int quantite);

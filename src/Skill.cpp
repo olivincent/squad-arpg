@@ -28,6 +28,10 @@ TypeSkill Skill::getType() const {
     return m_type;
 }
 
+float Skill::getPortee() const {
+    return m_attaque.getPortee();
+}
+
 float Skill::getRayonZone() const {
     return m_rayonZone;
 }

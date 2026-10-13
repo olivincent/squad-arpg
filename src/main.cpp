@@ -238,6 +238,16 @@ int main() {
             apercu.setOutlineColor(sf::Color::Yellow);
             apercu.setOutlineThickness(2.0f);
             window.draw(apercu);
+
+            // Cercle de portée de lancement autour du lanceur.
+            const Cercle portee = escouade.cercleDePorteeDuSkill(*placeEnVisee);
+            sf::CircleShape contourPortee(portee.rayon);
+            contourPortee.setOrigin({portee.rayon, portee.rayon});
+            contourPortee.setPosition(portee.centre);
+            contourPortee.setFillColor(sf::Color::Transparent);
+            contourPortee.setOutlineColor(sf::Color(255, 255, 255, 160));
+            contourPortee.setOutlineThickness(2.0f);
+            window.draw(contourPortee);
         }
         window.display();
     }
