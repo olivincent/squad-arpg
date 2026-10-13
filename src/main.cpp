@@ -16,6 +16,17 @@
 #include "Escouade.hpp"
 #include "EtatSkill.hpp"
 #include "Monstre.hpp"
+#include "MonstreVu.hpp"
+
+namespace {
+// Le monstre portant cet identifiant, nullptr s'il n'est pas dans la liste.
+Monstre* trouverMonstreParId(std::vector<Monstre>& monstres, int id) {
+    const auto it = std::find_if(monstres.begin(), monstres.end(), [&](const Monstre& m) {
+        return m.getId() == id;
+    });
+    return it == monstres.end() ? nullptr : &*it;
+}
+}  // namespace
 
 int main() {
     sf::RenderWindow window(sf::VideoMode({1200, 800}), "Squad-ARPG");
@@ -153,13 +164,11 @@ int main() {
             }
         }
 
-        // Monstre verrouillé : monstres.end() s'il n'y en a pas.
-        auto monstreVerrouille = monstres.end();
+        // Monstre verrouillé : nullptr s'il n'y en a pas.
+        Monstre* monstreVerrouille = nullptr;
         if (const std::optional<int> idCible = escouade.getCibleVerrouillee(); idCible.has_value()) {
-            monstreVerrouille = std::find_if(monstres.begin(), monstres.end(), [&](const Monstre& m) {
-                return m.getId() == idCible.value();
-            });
-            if (monstreVerrouille == monstres.end()) {
+            monstreVerrouille = trouverMonstreParId(monstres, idCible.value());
+            if (monstreVerrouille == nullptr) {
                 escouade.deverrouiller();
             }
         }
@@ -170,10 +179,9 @@ int main() {
         }
         const auto appliquer = [&](const std::vector<Coup>& coups) {
             for (const Coup& coup : coups) {
-                const auto touche = std::find_if(monstres.begin(), monstres.end(), [&](const Monstre& m) {
-                    return m.getId() == coup.idMonstre;
-                });
-                touche->recevoirDegats(coup.degats);
+                if (Monstre* touche = trouverMonstreParId(monstres, coup.idMonstre)) {
+                    touche->recevoirDegats(coup.degats);
+                }
             }
         };
 
@@ -195,7 +203,7 @@ int main() {
         // personnage vivant frappe de lui-même un monstre à sa portée.
         if (escouade.estVivante()) {
             appliquer(escouade.attaquer(monstresVus, carte));
-            if (monstreVerrouille != monstres.end() && !monstreVerrouille->estVivant()) {
+            if (monstreVerrouille != nullptr && !monstreVerrouille->estVivant()) {
                 escouade.deverrouiller();
             }
         }

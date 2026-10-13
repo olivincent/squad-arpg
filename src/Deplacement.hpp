@@ -7,7 +7,7 @@
 
 class TileMap;
 
-bool deplacementBloque(const Cercle& avant, const Cercle& apres, const std::vector<Cercle>& obstacles);
+[[nodiscard]] bool deplacementBloque(Cercle avant, Cercle apres, const std::vector<Cercle>& obstacles);
 
-sf::Vector2f deplacerAvecGlissement(const TileMap& carte, const sf::FloatRect& rect, sf::Vector2f deplacement,
+[[nodiscard]] sf::Vector2f deplacerAvecGlissement(const TileMap& carte, const sf::FloatRect& rect, sf::Vector2f deplacement,
                                     const std::vector<Cercle>& obstacles);

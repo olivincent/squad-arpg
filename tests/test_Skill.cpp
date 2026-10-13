@@ -86,7 +86,7 @@ TEST_CASE("Skill.getProgressionRecharge vaut 1 prêt, 0 juste après le déclenc
 
     REQUIRE(skill.getProgressionRecharge() == 1.0f);
 
-    skill.declencher(point({100.0f, 100.0f}), point({150.0f, 100.0f}));
+    static_cast<void>(skill.declencher(point({100.0f, 100.0f}), point({150.0f, 100.0f})));
     REQUIRE(skill.getProgressionRecharge() == 0.0f);
 
     ecoulerTemps(skill, 6.0f);

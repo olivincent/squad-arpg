@@ -138,7 +138,7 @@ std::vector<sf::Vector2f> lisserChemin(const TileMap& carte, sf::Vector2f depart
 
         // Aucun point au-delà de `indice` n'est atteignable : on garde le
         // prochain point tel quel, la collision restant le filet de
-        // sécurité dans Escouade::mettreAJour.
+        // sécurité dans Mobile::mettreAJour.
         resultat.push_back(points[loin]);
         ancre = points[loin];
         indice = loin + 1;

@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "BarreDeSkills.hpp"
-#include "Skill.hpp"
+#include "TypeSkill.hpp"
 
 namespace {
 

@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "Autodefense.hpp"
-#include "Coup.hpp"
+#include "MonstreVu.hpp"
 #include "Personnage.hpp"
 
 namespace {

@@ -1,8 +1,7 @@
 // ./src/Skill.hpp
 #pragma once
 #include "Cercle.hpp"
-
-enum class TypeSkill { Degats, Soin, Provocation, Zone };
+#include "TypeSkill.hpp"
 
 // Un skill : un type, une portée, une puissance et une recharge. La
 // « puissance » est le nombre de dégâts pour un skill de Degats, le nombre
@@ -15,8 +14,8 @@ class Skill {
 public:
     Skill(TypeSkill type, float portee, int puissance, float tempsRecharge, float rayonZone);
     void mettreAJour(float dt);
-    bool estAPortee(Cercle origine, Cercle cible) const;
-    int declencher(Cercle origine, Cercle cible);
+    [[nodiscard]] bool estAPortee(Cercle origine, Cercle cible) const;
+    [[nodiscard]] int declencher(Cercle origine, Cercle cible);
     void relancerRecharge();
     float getProgressionRecharge() const;
     float getRechargeRestante() const;

@@ -1,16 +1,23 @@
 // ./src/Monstre.cpp
 #include "Monstre.hpp"
+#include "BarreDeVie.hpp"
 #include "TileMap.hpp"
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Rect.hpp>
 
+namespace {
+constexpr float s_cote = 30.0f;      // côté du carré, en pixels
+constexpr float s_vitesse = 120.0f;  // en pixels par seconde
+constexpr int s_pointsDeVieMax = 100;
+}  // namespace
+
 Monstre::Monstre(sf::Vector2f centre, int id)
-    : m_mobile(centre, {30.0f, 30.0f}, 120.0f),
-      m_pointsDeVie(100),
-      m_pointsDeVieMax(100),
+    : m_mobile(centre, {s_cote, s_cote}, s_vitesse),
+      m_pointsDeVie(s_pointsDeVieMax),
+      m_pointsDeVieMax(s_pointsDeVieMax),
       m_id(id),
-      m_attaque(TypeSkill::Degats, 15.0f, 10, 1.0f, 0.0f),  // bord à bord : ancienne portée (40) moins les deux rayons (10 + 15)
+      m_attaque(TypeSkill::Degats, 15.0f, 10, 1.0f, 0.0f),  // portée de 15 px, bord à bord
       m_rayonDetection(200.0f),
       m_rayonTerritoire(400.0f),
       m_etat(Etat::EnGarde),
@@ -32,21 +39,7 @@ void Monstre::dessiner(sf::RenderTarget& rendu, bool estCible) const {
     }
     rendu.draw(forme);
 
-    const float hauteurBarre = 5.0f;
-    const float ecart = 6.0f;
-    const sf::Vector2f positionBarre(centre.x - taille.x / 2.0f,
-                                      centre.y - taille.y / 2.0f - ecart - hauteurBarre);
-
-    sf::RectangleShape fond({taille.x, hauteurBarre});
-    fond.setPosition(positionBarre);
-    fond.setFillColor(sf::Color(60, 60, 60));
-    rendu.draw(fond);
-
-    const float ratio = static_cast<float>(m_pointsDeVie) / static_cast<float>(m_pointsDeVieMax);
-    sf::RectangleShape vie({taille.x * ratio, hauteurBarre});
-    vie.setPosition(positionBarre);
-    vie.setFillColor(sf::Color::Green);
-    rendu.draw(vie);
+    dessinerBarreDeVie(rendu, positionBarreDeVie(centre, taille), taille.x, m_pointsDeVie, m_pointsDeVieMax);
 }
 
 sf::Vector2f Monstre::getCentre() const {

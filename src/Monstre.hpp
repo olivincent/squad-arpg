@@ -15,7 +15,7 @@ public:
     Monstre(sf::Vector2f centre, int id);
     void dessiner(sf::RenderTarget& rendu, bool estCible) const;
     void mettreAJour(float dt, std::optional<Cercle> cible, const TileMap& carte, const std::vector<Cercle>& obstacles);
-    int frapper(Cercle cible);
+    [[nodiscard]] int frapper(Cercle cible);
     sf::Vector2f getCentre() const;
     Cercle getCercle() const;
     int getId() const;

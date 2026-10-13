@@ -1,5 +1,7 @@
 // ./src/TileMap.cpp
 #include "TileMap.hpp"
+#include <SFML/Graphics/Color.hpp>
+#include <SFML/Graphics/RectangleShape.hpp>
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
@@ -47,7 +49,7 @@ sf::Vector2i TileMap::caseContenant(sf::Vector2f point) const {
 }
 
 sf::Vector2f TileMap::centreDeCase(sf::Vector2i coordCase) const {
-    return {(coordCase.x + 0.5f) * m_tailleCase, (coordCase.y + 0.5f) * m_tailleCase};
+    return {(static_cast<float>(coordCase.x) + 0.5f) * m_tailleCase, (static_cast<float>(coordCase.y) + 0.5f) * m_tailleCase};
 }
 
 void TileMap::dessiner(sf::RenderTarget& rendu) const {
@@ -57,7 +59,7 @@ void TileMap::dessiner(sf::RenderTarget& rendu) const {
 
     for (int y = 0; y < m_hauteur; ++y) {
         for (int x = 0; x < m_largeur; ++x) {
-            forme.setPosition({x * m_tailleCase, y * m_tailleCase});
+            forme.setPosition({static_cast<float>(x) * m_tailleCase, static_cast<float>(y) * m_tailleCase});
             if (m_cases[indice(x, y)] == Tile::Wall) {
                 forme.setFillColor(sf::Color(128, 128, 128));
             } else {
@@ -106,7 +108,7 @@ bool TileMap::trajetLibre(const sf::FloatRect& rect, sf::Vector2f deplacement) c
     const int colonneDroite = static_cast<int>(std::ceil(xMax / m_tailleCase)) - 1;
 
     for (int colonne = colonneGauche; colonne <= colonneDroite; ++colonne) {
-        const float xGauche = colonne * m_tailleCase;
+        const float xGauche = static_cast<float>(colonne) * m_tailleCase;
         const float xDroite = xGauche + m_tailleCase;
 
         // t1 : instant où le bord arrière du rectangle atteint xGauche.
@@ -141,11 +143,11 @@ bool TileMap::trajetLibre(const sf::FloatRect& rect, sf::Vector2f deplacement) c
 namespace {
 // Côté du petit carré balayé par ligneDeVue. Pas nul : un rectangle vide ne
 // chevauche jamais rien (toucher n'est pas chevaucher).
-constexpr float COTE_LIGNE_DE_VUE = 2.0f;
+constexpr float s_coteLigneDeVue = 2.0f;
 }
 
 bool TileMap::ligneDeVue(sf::Vector2f a, sf::Vector2f b) const {
-    const sf::Vector2f coin(a.x - COTE_LIGNE_DE_VUE / 2.0f, a.y - COTE_LIGNE_DE_VUE / 2.0f);
-    const sf::FloatRect carre(coin, {COTE_LIGNE_DE_VUE, COTE_LIGNE_DE_VUE});
+    const sf::Vector2f coin(a.x - s_coteLigneDeVue / 2.0f, a.y - s_coteLigneDeVue / 2.0f);
+    const sf::FloatRect carre(coin, {s_coteLigneDeVue, s_coteLigneDeVue});
     return trajetLibre(carre, b - a);
 }

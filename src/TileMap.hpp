@@ -1,8 +1,10 @@
 // ./src/TileMap.hpp
 #pragma once
-#include <vector>
-#include <SFML/Graphics.hpp>
+#include <SFML/Graphics/Rect.hpp>
+#include <SFML/Graphics/RenderTarget.hpp>
+#include <SFML/System/Vector2.hpp>
 #include <string>
+#include <vector>
 
 enum class Tile {
     Floor,
@@ -15,12 +17,12 @@ public:
     Tile getTile(int x, int y) const;
     int getLargeur() const;
     int getHauteur() const;
-    sf::Vector2i caseContenant(sf::Vector2f point) const;
-    sf::Vector2f centreDeCase(sf::Vector2i coordCase) const;
+    [[nodiscard]] sf::Vector2i caseContenant(sf::Vector2f point) const;
+    [[nodiscard]] sf::Vector2f centreDeCase(sf::Vector2i coordCase) const;
     void dessiner(sf::RenderTarget& rendu) const;
-    bool chevaucheUnMur(const sf::FloatRect& rect) const;
-    bool trajetLibre(const sf::FloatRect& rect, sf::Vector2f deplacement) const;
-    bool ligneDeVue(sf::Vector2f a, sf::Vector2f b) const;
+    [[nodiscard]] bool chevaucheUnMur(const sf::FloatRect& rect) const;
+    [[nodiscard]] bool trajetLibre(const sf::FloatRect& rect, sf::Vector2f deplacement) const;
+    [[nodiscard]] bool ligneDeVue(sf::Vector2f a, sf::Vector2f b) const;
 
 private:
     int indice(int x, int y) const;

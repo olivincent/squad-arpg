@@ -76,6 +76,13 @@ Documents de référence (à lire avant toute modification) :
 - `#pragma once` dans les en-têtes.
 - Fonctions membres de lecture `const` ; objets lourds en lecture passés
   par `const T&` ; petits types (`sf::Vector2f`, `float`) par valeur.
+- `Cercle` (12 octets) est toujours passé **par valeur**, comme un petit
+  type, y compris dans `Cercle.hpp` et `Deplacement.hpp`. Seul un
+  `std::vector<Cercle>` se passe par `const&`.
+- Constantes nommées : préfixe `s_` (`s_porteeMelee`), `constexpr` dans un
+  namespace anonyme du `.cpp` (`static constexpr` pour un membre de
+  classe). Pas de majuscules (`COTE_LIGNE_DE_VUE`) ni de littéral local
+  répété : une valeur qui sert deux fois a un nom.
 - Constructeur à un seul paramètre : `explicit`.
 - Chaque fichier inclut lui-même les en-têtes des types qu'il utilise ;
   déclaration anticipée (`class X;`) dans un `.hpp` quand une référence

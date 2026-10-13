@@ -17,15 +17,15 @@ public:
     Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::optional<Skill> skill);
     void dessiner(sf::RenderTarget& rendu) const;
     void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte, const std::vector<Cercle>& obstacles);
-    bool estAPortee(Cercle cible) const;
-    int frapper(Cercle cible);
+    [[nodiscard]] bool estAPortee(Cercle cible) const;
+    [[nodiscard]] int frapper(Cercle cible);
     std::optional<TypeSkill> typeSkill() const;
     bool skillEstPret() const;
     std::optional<EtatSkill> etatDuSkill() const;
-    bool skillEstAPortee(Cercle cible) const;
-    Cercle zoneDuSkill() const;
-    Cercle cercleDePorteeDuSkill() const;
-    int declencherSkill(Cercle cible);
+    [[nodiscard]] bool skillEstAPortee(Cercle cible) const;
+    [[nodiscard]] Cercle zoneDuSkill() const;
+    [[nodiscard]] Cercle cercleDePorteeDuSkill() const;
+    [[nodiscard]] int declencherSkill(Cercle cible);
     void recevoirDegats(int quantite);
     void recevoirSoin(int quantite);
     bool estVivant() const;
@@ -36,7 +36,6 @@ public:
 
 private:
     Mobile m_mobile;        // position (centre en pixels du monde) et déplacement
-    sf::Vector2f m_taille;  // en pixels
     sf::Color m_couleur;
     Skill m_attaqueDeBase;
     std::optional<Skill> m_skill; // vide = pas de skill

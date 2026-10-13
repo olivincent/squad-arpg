@@ -2,7 +2,7 @@
 #include "Deplacement.hpp"
 #include "TileMap.hpp"
 
-bool deplacementBloque(const Cercle& avant, const Cercle& apres, const std::vector<Cercle>& obstacles) {
+bool deplacementBloque(Cercle avant, Cercle apres, const std::vector<Cercle>& obstacles) {
     for (const Cercle& obstacle : obstacles) {
         const float distanceApres = (apres.centre - obstacle.centre).length();
         const float distanceAvant = (avant.centre - obstacle.centre).length();

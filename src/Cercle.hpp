@@ -7,4 +7,4 @@ struct Cercle {
     float rayon;
 };
 
-float distanceBordABord(const Cercle& a, const Cercle& b);
+[[nodiscard]] float distanceBordABord(Cercle a, Cercle b);

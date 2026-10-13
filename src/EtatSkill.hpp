@@ -1,6 +1,6 @@
 // ./src/EtatSkill.hpp
 #pragma once
-#include "Skill.hpp"
+#include "TypeSkill.hpp"
 
 // Le skill d'une place tel que l'affichage en a besoin.
 struct EtatSkill {

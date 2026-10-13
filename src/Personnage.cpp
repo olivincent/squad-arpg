@@ -1,28 +1,33 @@
 // ./src/Personnage.cpp
 #include "Personnage.hpp"
+#include "BarreDeVie.hpp"
 #include "TileMap.hpp"
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Rect.hpp>
 
 namespace {
 constexpr float s_seuilRecalcul = 40.0f;  // une case, en pixels
+constexpr float s_cote = 20.0f;           // côté du carré, en pixels
+constexpr float s_vitesse = 240.0f;       // en pixels par seconde
+constexpr int s_pointsDeVieMax = 100;
+constexpr float s_hauteurBarreSkill = 3.0f;
 }  // namespace
 
 Personnage::Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::optional<Skill> skill)
-    : m_mobile(centre, {20.0f, 20.0f}, 240.0f),
-      m_taille(20.0f, 20.0f),
+    : m_mobile(centre, {s_cote, s_cote}, s_vitesse),
       m_couleur(couleur),
       m_attaqueDeBase(attaqueDeBase),
       m_skill(skill),
       m_cibleChemin(),
-      m_pointsDeVie(100),
-      m_pointsDeVieMax(100)
+      m_pointsDeVie(s_pointsDeVieMax),
+      m_pointsDeVieMax(s_pointsDeVieMax)
 {
 }
 
 void Personnage::dessiner(sf::RenderTarget& rendu) const {
-    sf::RectangleShape forme(m_taille);
-    forme.setPosition(getCentre() - m_taille / 2.0f);
+    const sf::Vector2f taille = m_mobile.getTaille();
+    sf::RectangleShape forme(taille);
+    forme.setPosition(getCentre() - taille / 2.0f);
     forme.setFillColor(estVivant() ? m_couleur : sf::Color(100, 100, 100));
     rendu.draw(forme);
 
@@ -30,37 +35,22 @@ void Personnage::dessiner(sf::RenderTarget& rendu) const {
         return;
     }
 
-    const float hauteurBarre = 5.0f;
-    const float ecart = 6.0f;
-    const sf::Vector2f centre = getCentre();
-    const sf::Vector2f positionBarre(centre.x - m_taille.x / 2.0f,
-                                      centre.y - m_taille.y / 2.0f - ecart - hauteurBarre);
-
-    sf::RectangleShape fond({m_taille.x, hauteurBarre});
-    fond.setPosition(positionBarre);
-    fond.setFillColor(sf::Color(60, 60, 60));
-    rendu.draw(fond);
-
-    const float ratio = static_cast<float>(m_pointsDeVie) / static_cast<float>(m_pointsDeVieMax);
-    sf::RectangleShape vie({m_taille.x * ratio, hauteurBarre});
-    vie.setPosition(positionBarre);
-    vie.setFillColor(sf::Color::Green);
-    rendu.draw(vie);
+    const sf::Vector2f positionBarre = positionBarreDeVie(getCentre(), taille);
+    dessinerBarreDeVie(rendu, positionBarre, taille.x, m_pointsDeVie, m_pointsDeVieMax);
 
     if (!m_skill.has_value()) {
         return;
     }
 
     // Barre de recharge du skill, juste sous la barre de vie : pleine = prêt.
-    const float hauteurBarreSkill = 3.0f;
-    const sf::Vector2f positionBarreSkill(positionBarre.x, positionBarre.y + hauteurBarre + 1.0f);
+    const sf::Vector2f positionBarreSkill(positionBarre.x, positionBarre.y + s_hauteurBarreDeVie + 1.0f);
 
-    sf::RectangleShape fondSkill({m_taille.x, hauteurBarreSkill});
+    sf::RectangleShape fondSkill({taille.x, s_hauteurBarreSkill});
     fondSkill.setPosition(positionBarreSkill);
     fondSkill.setFillColor(sf::Color(60, 60, 60));
     rendu.draw(fondSkill);
 
-    sf::RectangleShape recharge({m_taille.x * m_skill->getProgressionRecharge(), hauteurBarreSkill});
+    sf::RectangleShape recharge({taille.x * m_skill->getProgressionRecharge(), s_hauteurBarreSkill});
     recharge.setPosition(positionBarreSkill);
     recharge.setFillColor(sf::Color(255, 165, 0));
     rendu.draw(recharge);
@@ -74,7 +64,8 @@ void Personnage::mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte,
     // Règle hybride : en ligne droite quand le trajet est libre (tout
     // chemin en cours est alors abandonné), par un chemin A* sinon.
     const sf::Vector2f centre = getCentre();
-    if (carte.trajetLibre(sf::FloatRect(centre - m_taille / 2.0f, m_taille), cible - centre)) {
+    const sf::Vector2f taille = m_mobile.getTaille();
+    if (carte.trajetLibre(sf::FloatRect(centre - taille / 2.0f, taille), cible - centre)) {
         m_mobile.allerToutDroit(cible);
         m_cibleChemin.reset();
     } else if (!m_cibleChemin.has_value() || !m_mobile.directionVoulue().has_value() ||
@@ -188,5 +179,5 @@ sf::Vector2f Personnage::getCentre() const {
 }
 
 Cercle Personnage::getCercle() const {
-    return {getCentre(), m_taille.x / 2.0f};
+    return {getCentre(), m_mobile.getTaille().x / 2.0f};
 }
