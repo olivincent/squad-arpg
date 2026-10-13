@@ -38,6 +38,7 @@ public:
     std::vector<Coup> attaquer(const std::vector<MonstreVu>& monstres, const TileMap& carte);
     std::vector<Coup> declencherSkill(std::size_t place, const std::vector<MonstreVu>& monstres);
     bool skillEstPret(std::size_t place) const;
+    float rayonZoneDuSkill(std::size_t place) const;
     std::vector<Coup> declencherSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<MonstreVu>& monstres);
     void mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles);
     sf::Vector2f getCentre() const;

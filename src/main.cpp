@@ -228,6 +228,17 @@ int main() {
             m.dessiner(window, escouade.getCibleVerrouillee() == m.getId());
         }
         escouade.dessiner(window);
+        if (placeEnVisee.has_value()) {
+            // Cercle de prévisualisation au rayon exact de la zone, sous le curseur.
+            const float rayon = escouade.rayonZoneDuSkill(*placeEnVisee);
+            sf::CircleShape apercu(rayon);
+            apercu.setOrigin({rayon, rayon});
+            apercu.setPosition(window.mapPixelToCoords(sf::Mouse::getPosition(window)));
+            apercu.setFillColor(sf::Color::Transparent);
+            apercu.setOutlineColor(sf::Color::Yellow);
+            apercu.setOutlineThickness(2.0f);
+            window.draw(apercu);
+        }
         window.display();
     }
     return 0;

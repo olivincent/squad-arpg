@@ -1630,3 +1630,13 @@ TEST_CASE("Zone : relance la recharge de l'attaque de base du lanceur") {
     REQUIRE(coups.size() == 1);
     REQUIRE(coups[0].degats == 5);
 }
+
+TEST_CASE("rayonZoneDuSkill : 60 pour la place 4, 150 pour la provocation, 0 sans zone ou place invalide") {
+    Escouade escouade({200.0f, 200.0f});
+
+    REQUIRE(escouade.rayonZoneDuSkill(4) == 60.0f);
+    REQUIRE(escouade.rayonZoneDuSkill(2) == 150.0f);
+    REQUIRE(escouade.rayonZoneDuSkill(1) == 0.0f);
+    REQUIRE(escouade.rayonZoneDuSkill(0) == 0.0f);
+    REQUIRE(escouade.rayonZoneDuSkill(5) == 0.0f);
+}

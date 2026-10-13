@@ -224,6 +224,13 @@ bool Escouade::skillEstPret(std::size_t place) const {
     return place >= 1 && place <= m_personnages.size() && m_personnages[place - 1].skillEstPret();
 }
 
+float Escouade::rayonZoneDuSkill(std::size_t place) const {
+    if (place < 1 || place > m_personnages.size()) {
+        return 0.0f;
+    }
+    return m_personnages[place - 1].zoneDuSkill().rayon;
+}
+
 std::vector<Coup> Escouade::declencherSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<MonstreVu>& monstres) {
     if (!skillEstPret(place) || m_skillEnAttente.has_value()) {
         return {};
