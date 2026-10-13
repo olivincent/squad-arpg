@@ -1,11 +1,29 @@
 // ./src/BarreDeSkills.cpp
 #include "BarreDeSkills.hpp"
+#include <SFML/Graphics/Color.hpp>
+#include <SFML/Graphics/RectangleShape.hpp>
+#include <SFML/Graphics/Text.hpp>
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <numbers>
+#include <string>
 
 namespace {
+
+constexpr float s_coteIcone = 56.0f;
+constexpr float s_espacement = 8.0f;
+constexpr float s_margeBas = 16.0f;
+
+// Écrit `texte` centré sur `centre`.
+void dessinerTexteCentre(sf::RenderTarget& rendu, const sf::Font& police, const std::string& texte,
+                         unsigned int taille, sf::Vector2f centre, sf::Color couleur) {
+    sf::Text objet(police, texte, taille);
+    objet.setFillColor(couleur);
+    const sf::FloatRect zone = objet.getLocalBounds();
+    objet.setOrigin(zone.position + zone.size / 2.0f);
+    objet.setPosition(centre);
+    rendu.draw(objet);
+}
 
 // Point du bord du carré dans la direction d'un angle mesuré depuis midi,
 // en sens horaire, en degrés (y vers le bas).
@@ -55,4 +73,30 @@ std::vector<sf::Vector2f> pointsDuQuartier(sf::Vector2f centre, float cote, floa
     }
     points.push_back({centre.x, centre.y - demiCote});
     return points;
+}
+
+void dessinerBarreDeSkills(sf::RenderTarget& rendu, const sf::Font& police,
+                           const std::array<std::optional<EtatSkill>, 4>& etats) {
+    const sf::Vector2f tailleVue = rendu.getDefaultView().getSize();
+    const float largeurBarre = 4.0f * s_coteIcone + 3.0f * s_espacement;
+    const float gauche = (tailleVue.x - largeurBarre) / 2.0f;
+    const float haut = tailleVue.y - s_margeBas - s_coteIcone;
+
+    for (std::size_t i = 0; i < etats.size(); ++i) {
+        const sf::Vector2f coin{gauche + static_cast<float>(i) * (s_coteIcone + s_espacement), haut};
+
+        sf::RectangleShape fond({s_coteIcone, s_coteIcone});
+        fond.setPosition(coin);
+        fond.setFillColor(sf::Color(50, 50, 50));
+        fond.setOutlineColor(sf::Color(140, 140, 140));
+        fond.setOutlineThickness(1.0f);
+        rendu.draw(fond);
+
+        if (!etats[i].has_value()) {
+            continue;
+        }
+        const sf::Vector2f centre = coin + sf::Vector2f{s_coteIcone, s_coteIcone} / 2.0f;
+        dessinerTexteCentre(rendu, police, std::string(1, lettreDuSkill(etats[i]->type)), 30, centre, sf::Color::White);
+        dessinerTexteCentre(rendu, police, std::to_string(i + 1), 12, coin + sf::Vector2f{9.0f, 11.0f}, sf::Color::White);
+    }
 }

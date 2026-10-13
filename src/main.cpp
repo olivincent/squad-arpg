@@ -4,14 +4,17 @@
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Mouse.hpp>
 #include <algorithm>
+#include <array>
 #include <iostream>
 #include <optional>
 #include <string>
 #include <vector>
+#include "BarreDeSkills.hpp"
 #include "Cercle.hpp"
 #include "Coup.hpp"
 #include "TileMap.hpp"
 #include "Escouade.hpp"
+#include "EtatSkill.hpp"
 #include "Monstre.hpp"
 
 int main() {
@@ -89,6 +92,9 @@ int main() {
 
     while (window.isOpen()) {
         const float dt = horloge.restart().asSeconds();
+        // L'image précédente a fini sur la vue de l'interface : les clics
+        // doivent être convertis avec la caméra du monde.
+        window.setView(camera);
         std::optional<std::size_t> placeSkillDemandee;
         std::optional<sf::Vector2f> pointDeLancer;
         // Lanceur mort ou escouade vaincue : on sort de la visée.
@@ -260,9 +266,11 @@ int main() {
 
         // Interface fixe à l'écran : vue par défaut, dessinée en dernier.
         window.setView(window.getDefaultView());
-        sf::Text texteDeTest(police, "Squad-ARPG", 24);
-        texteDeTest.setPosition({10.0f, 10.0f});
-        window.draw(texteDeTest);
+        std::array<std::optional<EtatSkill>, 4> etatsDesSkills;
+        for (std::size_t i = 0; i < etatsDesSkills.size(); ++i) {
+            etatsDesSkills[i] = escouade.etatDuSkill(i + 1);
+        }
+        dessinerBarreDeSkills(window, police, etatsDesSkills);
         window.display();
     }
     return 0;
