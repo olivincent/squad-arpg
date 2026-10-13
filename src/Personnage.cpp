@@ -120,6 +120,13 @@ bool Personnage::skillEstPret() const {
     return estVivant() && m_skill.has_value() && m_skill->getProgressionRecharge() >= 1.0f;
 }
 
+std::optional<EtatSkill> Personnage::etatDuSkill() const {
+    if (!m_skill.has_value()) {
+        return std::nullopt;
+    }
+    return EtatSkill{m_skill->getType(), m_skill->getProgressionRecharge(), m_skill->getRechargeRestante(), estVivant()};
+}
+
 bool Personnage::skillEstAPortee(Cercle cible) const {
     return m_skill.has_value() && m_skill->estAPortee(getCercle(), cible);
 }

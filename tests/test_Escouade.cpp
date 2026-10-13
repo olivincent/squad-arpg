@@ -12,6 +12,7 @@
 #include "Cible.hpp"
 #include "Coup.hpp"
 #include "Escouade.hpp"
+#include "EtatSkill.hpp"
 #include "Skill.hpp"
 #include "TileMap.hpp"
 
@@ -2081,4 +2082,54 @@ TEST_CASE("Provocation : seuls les monstres dans la zone et en vue sont provoqu�
     REQUIRE(escouade.getProvocations().size() == 1);
     REQUIRE(escouade.getProvocations()[0].id == 2);
     REQUIRE_FALSE(escouade.skillEstPret(2));
+}
+
+TEST_CASE("etatDuSkill est vide pour une place invalide") {
+    Escouade escouade({50.0f, 50.0f});
+
+    REQUIRE_FALSE(escouade.etatDuSkill(0).has_value());
+    REQUIRE_FALSE(escouade.etatDuSkill(5).has_value());
+}
+
+TEST_CASE("etatDuSkill donne le type du skill de chaque place") {
+    Escouade escouade({50.0f, 50.0f});
+
+    REQUIRE(escouade.etatDuSkill(1)->type == TypeSkill::Degats);
+    REQUIRE(escouade.etatDuSkill(2)->type == TypeSkill::Provocation);
+    REQUIRE(escouade.etatDuSkill(3)->type == TypeSkill::Soin);
+    REQUIRE(escouade.etatDuSkill(4)->type == TypeSkill::Zone);
+}
+
+TEST_CASE("etatDuSkill d'un skill prêt : progression 1, temps restant 0") {
+    Escouade escouade({50.0f, 50.0f});
+
+    const std::optional<EtatSkill> etat = escouade.etatDuSkill(2);
+
+    REQUIRE(etat.has_value());
+    REQUIRE(etat->progression == 1.0f);
+    REQUIRE(etat->tempsRestant == 0.0f);
+    REQUIRE(etat->lanceurVivant);
+}
+
+TEST_CASE("etatDuSkill juste après un déclenchement : recharge complète") {
+    Escouade escouade({50.0f, 50.0f});
+
+    escouade.declencherSkill(2, {}, carteOuverte()); // la provocation part même sans monstre
+    const std::optional<EtatSkill> etat = escouade.etatDuSkill(2);
+
+    REQUIRE(etat.has_value());
+    REQUIRE(etat->progression == 0.0f);
+    REQUIRE(etat->tempsRestant > 0.0f);
+}
+
+TEST_CASE("etatDuSkill d'un lanceur mort : lanceurVivant est faux") {
+    Escouade escouade({50.0f, 50.0f});
+    for (int i = 0; i < 4; ++i) {
+        escouade.recevoirDegats(1, {1000.0f, 1000.0f}, 100);
+    }
+
+    const std::optional<EtatSkill> etat = escouade.etatDuSkill(2);
+
+    REQUIRE(etat.has_value());
+    REQUIRE_FALSE(etat->lanceurVivant);
 }

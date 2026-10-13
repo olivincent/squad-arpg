@@ -9,6 +9,7 @@
 #include "Cible.hpp"
 #include "Cercle.hpp"
 #include "Coup.hpp"
+#include "EtatSkill.hpp"
 #include "Mobile.hpp"
 #include "Personnage.hpp"
 #include "Skill.hpp"
@@ -38,6 +39,7 @@ public:
     std::vector<Coup> attaquer(const std::vector<MonstreVu>& monstres, const TileMap& carte);
     std::vector<Coup> declencherSkill(std::size_t place, const std::vector<MonstreVu>& monstres, const TileMap& carte);
     bool skillEstPret(std::size_t place) const;
+    std::optional<EtatSkill> etatDuSkill(std::size_t place) const;
     float rayonZoneDuSkill(std::size_t place) const;
     Cercle cercleDePorteeDuSkill(std::size_t place) const;
     std::vector<Coup> declencherSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<MonstreVu>& monstres, const TileMap& carte);

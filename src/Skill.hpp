@@ -19,6 +19,7 @@ public:
     int declencher(Cercle origine, Cercle cible);
     void relancerRecharge();
     float getProgressionRecharge() const;
+    float getRechargeRestante() const;
     TypeSkill getType() const;
     float getRayonZone() const;
     float getPortee() const;

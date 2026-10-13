@@ -42,6 +42,10 @@ float Skill::getProgressionRecharge() const {
     return 1.0f - m_recharge / m_tempsRecharge;
 }
 
+float Skill::getRechargeRestante() const {
+    return m_recharge;
+}
+
 TypeSkill Skill::getType() const {
     return m_type;
 }

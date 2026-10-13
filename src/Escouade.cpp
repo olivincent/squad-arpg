@@ -244,6 +244,13 @@ bool Escouade::skillEstPret(std::size_t place) const {
     return place >= 1 && place <= m_personnages.size() && m_personnages[place - 1].skillEstPret();
 }
 
+std::optional<EtatSkill> Escouade::etatDuSkill(std::size_t place) const {
+    if (place < 1 || place > m_personnages.size()) {
+        return std::nullopt;
+    }
+    return m_personnages[place - 1].etatDuSkill();
+}
+
 float Escouade::rayonZoneDuSkill(std::size_t place) const {
     if (place < 1 || place > m_personnages.size()) {
         return 0.0f;

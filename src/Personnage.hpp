@@ -1,6 +1,7 @@
 // ./src/Personnage.hpp
 #pragma once
 #include "Cercle.hpp"
+#include "EtatSkill.hpp"
 #include "Mobile.hpp"
 #include "Skill.hpp"
 #include <SFML/Graphics/Color.hpp>
@@ -20,6 +21,7 @@ public:
     int frapper(Cercle cible);
     std::optional<TypeSkill> typeSkill() const;
     bool skillEstPret() const;
+    std::optional<EtatSkill> etatDuSkill() const;
     bool skillEstAPortee(Cercle cible) const;
     Cercle zoneDuSkill() const;
     Cercle cercleDePorteeDuSkill() const;
