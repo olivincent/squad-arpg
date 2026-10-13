@@ -1069,11 +1069,12 @@ TEST_CASE("Le verrou a portee passe avant un monstre qui est a portee aussi") {
 
 TEST_CASE("Deux personnages peuvent frapper deux monstres differents dans la meme image") {
     const TileMap carte = carteDegageeSoin();
-    Escouade escouade({50.0f, 50.0f});
+    Escouade escouade({50.0f, 150.0f});
 
-    // Le monstre 1 est à portée du tireur du haut seulement, le 2 du tireur du bas seulement.
+    // Le monstre 1 est à portée du tireur du haut seulement, le 2 du tireur du bas seulement
+    // (tous deux dans la carte, en vue : la ligne de vue exige des points dans la carte).
     const std::vector<Coup> coups = escouade.attaquer(
-        {MonstreVu{1, cibleMonstre({140.0f, -50.0f})}, MonstreVu{2, cibleMonstre({140.0f, 170.0f})}}, carte);
+        {MonstreVu{1, cibleMonstre({140.0f, 50.0f})}, MonstreVu{2, cibleMonstre({140.0f, 270.0f})}}, carte);
 
     REQUIRE(coups.size() == 2);
     REQUIRE(coups[0].idMonstre != coups[1].idMonstre);
@@ -1870,4 +1871,95 @@ TEST_CASE("Zone : un monstre dans la zone et en vue est touche, celui derriere l
     REQUIRE(coups.size() == 1);
     REQUIRE(coups[0].idMonstre == 2);
     REQUIRE(coups[0].degats == 15);
+}
+
+TEST_CASE("Autodéfense : un monstre à portée mais derrière un mur n'est pas frappé") {
+    const TileMap carte = carteAvecMurVertical();
+    Escouade escouade({200.0f, 200.0f});
+    // Place 4 en (185, 235) : portée de tir 120 px, monstre à 110 px bord à bord, mur entre les deux.
+    const std::vector<MonstreVu> monstres = {MonstreVu{1, cibleMonstre({320.0f, 235.0f})}};
+
+    REQUIRE(escouade.attaquer(monstres, carte).empty());
+}
+
+TEST_CASE("Autodéfense : un monstre à portée et en vue est frappé") {
+    const TileMap carte = carteAvecMurVertical();
+    Escouade escouade({200.0f, 200.0f});
+    const std::vector<MonstreVu> monstres = {MonstreVu{1, cibleMonstre({100.0f, 235.0f})}};
+
+    const std::vector<Coup> coups = escouade.attaquer(monstres, carte);
+
+    REQUIRE_FALSE(coups.empty());
+    REQUIRE(coups[0].idMonstre == 1);
+}
+
+TEST_CASE("Autodéfense : le monstre le plus proche est caché, l'autre est frappé") {
+    const TileMap carte = carteAvecMurVertical();
+    Escouade escouade({200.0f, 200.0f});
+    const std::vector<MonstreVu> monstres = {
+        MonstreVu{1, cibleMonstre({285.0f, 235.0f})},  // plus proche de la place 4, mais derrière le mur
+        MonstreVu{2, cibleMonstre({185.0f, 130.0f})},  // plus loin, en vue
+    };
+
+    const std::vector<Coup> coups = escouade.attaquer(monstres, carte);
+
+    REQUIRE_FALSE(coups.empty());
+    for (const Coup& coup : coups) {
+        REQUIRE(coup.idMonstre == 2);
+    }
+}
+
+// Ne laisse en vie que la place 4 (tireur en (185, 235)) : seule sa portée et sa vue comptent.
+static void garderSeulementLaPlace4(Escouade& escouade) {
+    escouade.recevoirDegats(1, {235.0f, 185.0f}, 100);
+    escouade.recevoirDegats(1, {235.0f, 235.0f}, 100);
+    escouade.recevoirDegats(1, {185.0f, 185.0f}, 100);
+}
+
+TEST_CASE("Combat verrouillé : une cible à portée mais cachée ne fait pas arrêter l'ancre") {
+    const TileMap carte = carteAvecMurVertical();
+    Escouade escouade({200.0f, 200.0f});
+    garderSeulementLaPlace4(escouade);
+    escouade.verrouiller(1);
+    const sf::Vector2f depart = escouade.getCentre();
+    const std::vector<MonstreVu> monstres = {MonstreVu{1, cibleMonstre({320.0f, 235.0f})}};
+
+    for (int i = 0; i < 20; ++i) {
+        escouade.attaquer(monstres, carte);
+        escouade.mettreAJour(0.016f, carte, {});
+    }
+
+    REQUIRE((escouade.getCentre() - depart).length() > 5.0f);
+}
+
+TEST_CASE("Combat verrouillé : une cible à portée et en vue fait arrêter l'ancre") {
+    const TileMap carte = carteAvecMurVertical();
+    Escouade escouade({200.0f, 200.0f});
+    garderSeulementLaPlace4(escouade);
+    escouade.verrouiller(1);
+    const sf::Vector2f depart = escouade.getCentre();
+    const std::vector<MonstreVu> monstres = {MonstreVu{1, cibleMonstre({100.0f, 235.0f})}};
+
+    for (int i = 0; i < 20; ++i) {
+        escouade.attaquer(monstres, carte);
+        escouade.mettreAJour(0.016f, carte, {});
+    }
+
+    REQUIRE((escouade.getCentre() - depart).length() < 1.0f);
+}
+
+TEST_CASE("Agresseur à portée mais caché : le personnage va vers lui") {
+    const TileMap carte = carteAvecMurVertical();
+    Escouade escouade({200.0f, 200.0f});
+    const std::vector<MonstreVu> monstres = {MonstreVu{1, cibleMonstre({283.0f, 235.0f})}};
+    escouade.recevoirDegats(1, {283.0f, 235.0f}, 1);  // enregistre l'agresseur (touche le plus proche)
+    const sf::Vector2f depart = escouade.cerclesDesVivants()[3].centre;
+    escouade.attaquer(monstres, carte);
+
+    for (int i = 0; i < 20; ++i) {
+        escouade.attaquer(monstres, carte);
+        escouade.mettreAJour(0.016f, carte, {});
+    }
+
+    REQUIRE((escouade.cerclesDesVivants()[3].centre - depart).length() > 10.0f);
 }

@@ -121,15 +121,15 @@ std::vector<Coup> Escouade::attaquer(const std::vector<MonstreVu>& monstres, con
             const Cercle cible = verrou->cercle;
             m_cibleCombat = cible;
 
-            bool tousAPortee = true;
+            bool tousAtteignent = true;
             for (const Personnage& personnage : m_personnages) {
-                if (personnage.estVivant() && !personnage.estAPortee(cible)) {
-                    tousAPortee = false;
+                if (personnage.estVivant() && !peutAtteindre(personnage, Arme::AttaqueDeBase, cible, carte)) {
+                    tousAtteignent = false;
                     break;
                 }
             }
 
-            if (tousAPortee) {
+            if (tousAtteignent) {
                 m_mobile.arreter();
             } else {
                 allerVers(cible.centre, carte);
@@ -151,11 +151,12 @@ std::vector<Coup> Escouade::attaquer(const std::vector<MonstreVu>& monstres, con
         }
     }
 
-    // Chaque personnage choisit pour lui-même le monstre qu'il frappe.
+    // Chaque personnage choisit pour lui-même le monstre qu'il frappe, parmi
+    // ceux qu'il atteint (à portée et en vue).
     for (std::size_t i = 0; i < m_personnages.size(); ++i) {
         Personnage& personnage = m_personnages[i];
         const std::optional<int> id = choisirMonstreAFrapper(
-            personnage.getCercle(), [&](Cercle c) { return personnage.estAPortee(c); }, monstres, m_cibleVerrouillee);
+            personnage.getCercle(), [&](Cercle c) { return peutAtteindre(personnage, Arme::AttaqueDeBase, c, carte); }, monstres, m_cibleVerrouillee);
         m_monstreAPortee[i] = id.has_value();
         if (!id.has_value()) {
             continue;
@@ -256,10 +257,15 @@ Cercle Escouade::cercleDePorteeDuSkill(std::size_t place) const {
     return m_personnages[place - 1].cercleDePorteeDuSkill();
 }
 
+bool Escouade::peutAtteindre(const Personnage& personnage, Arme arme, Cercle cible, const TileMap& carte) const {
+    // À portée (bord à bord) ET en vue (centre à centre) : la seule règle d'atteinte d'Escouade.
+    const bool aPortee = (arme == Arme::Skill) ? personnage.skillEstAPortee(cible) : personnage.estAPortee(cible);
+    return aPortee && carte.ligneDeVue(personnage.getCentre(), cible.centre);
+}
+
 bool Escouade::peutLancerAuPoint(std::size_t place, sf::Vector2f point, const TileMap& carte) const {
-    const Personnage& lanceur = m_personnages[place - 1];
     // Le point est un cercle de rayon 0 pour la portée (bord à bord).
-    return lanceur.skillEstAPortee(Cercle{point, 0.0f}) && carte.ligneDeVue(lanceur.getCentre(), point);
+    return peutAtteindre(m_personnages[place - 1], Arme::Skill, Cercle{point, 0.0f}, carte);
 }
 
 std::vector<Coup> Escouade::declencherSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<MonstreVu>& monstres, const TileMap& carte) {
@@ -433,7 +439,8 @@ void Escouade::mettreAJour(float dt, const TileMap& carte, const std::vector<Cer
                 pointVoulu = *pointAgresseur;
             }
         }
-        if (enCombat && m_personnages[i].estVivant() && m_personnages[i].estAPortee(*m_cibleCombat)) {
+        if (enCombat && m_personnages[i].estVivant()
+            && peutAtteindre(m_personnages[i], Arme::AttaqueDeBase, *m_cibleCombat, carte)) {
             pointVoulu = m_personnages[i].getCentre();
         }
         if (pointSkill.has_value() && i == placeLanceur - 1) {

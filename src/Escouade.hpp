@@ -60,6 +60,9 @@ private:
     sf::Vector2f placePersonnage(std::size_t indice) const;
     std::optional<std::size_t> indicePersonnageLePlusProche(sf::Vector2f point) const;
     std::optional<std::size_t> indiceProieDuMonstre(int idMonstre, sf::Vector2f positionMonstre) const;
+    // Avec quoi un personnage atteint une cible : son attaque de base ou son skill.
+    enum class Arme { AttaqueDeBase, Skill };
+    bool peutAtteindre(const Personnage& personnage, Arme arme, Cercle cible, const TileMap& carte) const;
     bool peutLancerAuPoint(std::size_t place, sf::Vector2f point, const TileMap& carte) const;
     std::vector<Coup> lancerSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<MonstreVu>& monstres, const TileMap& carte);
     void soigner(std::size_t placeLanceur, std::size_t placeAllie);
