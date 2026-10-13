@@ -28,12 +28,9 @@ TileMap carteLongue() {
 
 // Simule le temps qui passe par tics de 1/60 s, comme dans main.cpp.
 void ecoulerTemps(Monstre& monstre, float duree, std::optional<Cercle> cible, const TileMap& carte) {
-    const float dt = 1.0f / 60.0f;
-    float tempsRestant = duree;
-    while (tempsRestant > 0.0f) {
-        const float pas = (tempsRestant < dt) ? tempsRestant : dt;
-        monstre.mettreAJour(pas, cible, carte, {});
-        tempsRestant -= pas;
+    const int nombreTics = nombreDeTics(duree);
+    for (int i = 0; i < nombreTics; ++i) {
+        monstre.mettreAJour(s_dureeTic, cible, carte, {});
     }
 }
 

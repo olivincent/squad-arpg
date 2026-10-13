@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <optional>
 #include <vector>
+#include "Agresseurs.hpp"
 #include "Cible.hpp"
 #include "Cercle.hpp"
 #include "Coup.hpp"
@@ -14,6 +15,7 @@
 #include "Mobile.hpp"
 #include "MonstreVu.hpp"
 #include "Personnage.hpp"
+#include "Provocations.hpp"
 #include "TypeSkill.hpp"
 
 class TileMap;
@@ -23,22 +25,6 @@ class TileMap;
 // précédente (les personnages réagiraient avec une image de retard).
 class Escouade {
 public:
-    // Monstre qui vient de frapper l'escouade, retenu jusqu'à ce que son
-    // temps restant tombe à zéro.
-    struct Agresseur {
-        int id;
-        Cercle cercle;       // à jour à chaque attaquer() ; centre seul (rayon nul) à l'enregistrement
-        float tempsRestant;  // en secondes, remis au maximum à chaque coup reçu
-    };
-
-    // Monstre provoqué : il prend le personnage de cette place pour proie
-    // jusqu'à ce que son temps restant tombe à zéro.
-    struct Provocation {
-        int id;              // du monstre provoqué
-        std::size_t place;   // du provocateur, de 1 à 4
-        float tempsRestant;  // en secondes
-    };
-
     explicit Escouade(sf::Vector2f positionDepart);
     void dessiner(sf::RenderTarget& rendu) const;
     void allerVers(sf::Vector2f destination, const TileMap& carte);
@@ -60,9 +46,9 @@ public:
     void deverrouiller();
     std::optional<int> getCibleVerrouillee() const;
     const std::vector<sf::Vector2f>& getPlacesDeFormation() const;
-    const std::vector<Agresseur>& getAgresseurs() const;
+    const std::vector<Agresseurs::Agresseur>& getAgresseurs() const;
     void provoquer(int idMonstre, std::size_t place, float duree);
-    const std::vector<Provocation>& getProvocations() const;
+    const std::vector<Provocations::Provocation>& getProvocations() const;
 
 private:
     sf::Vector2f placePersonnage(std::size_t indice) const;
@@ -81,7 +67,20 @@ private:
     std::vector<Coup> lancerSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<MonstreVu>& monstres, const TileMap& carte);
     void soigner(std::size_t placeLanceur, std::size_t placeAllie);
     std::optional<sf::Vector2f> avancerSkillEnAttente(const TileMap& carte);
-    std::optional<sf::Vector2f> pointVersAgresseur(std::size_t indice) const;
+    // Étapes d'attaquer(), dans l'ordre où elles sont appelées.
+    void actualiserMemoires(const std::vector<MonstreVu>& monstres);
+    std::vector<Coup> departSkillDeZoneEnAttente(const std::vector<MonstreVu>& monstres, const TileMap& carte);
+    bool tousLesVivantsAtteignent(Cercle cible, const TileMap& carte) const;
+    std::optional<Cercle> approcherVerrou(const std::vector<MonstreVu>& monstres, const TileMap& carte);
+    std::optional<Coup> departSkillDeDegatsEnAttente(Cercle cible, const TileMap& carte);
+    std::vector<Coup> autodefense(const std::vector<MonstreVu>& monstres, const TileMap& carte);
+    std::optional<sf::Vector2f> pointVersAgresseur(std::size_t indice, const std::vector<MonstreVu>& agresseurs) const;
+    // Étapes de mettreAJour().
+    void ecoulerMemoires(float dt);
+    void tournerFormation(float dt);
+    void calculerPlaces(const TileMap& carte);
+    sf::Vector2f pointVoulu(std::size_t indice, const std::optional<sf::Vector2f>& pointSkill, bool ancreArretee,
+                            const std::vector<MonstreVu>& agresseurs, const TileMap& carte) const;
 
     struct SkillEnAttente {
         std::size_t place;  // du lanceur, de 1 à 4
@@ -100,6 +99,6 @@ private:
     std::optional<Cercle> m_cibleCombat; // dernière cible donnée à attaquer(), pour figer les personnages déjà à portée
     std::vector<sf::Vector2f> m_places;  // place de formation de chaque personnage, repliée si besoin (recalculée par mettreAJour)
     std::array<bool, s_nombrePersonnages> m_monstreAPortee;  // par personnage : a-t-il un monstre à portée de son attaque (calculé par attaquer, lu par mettreAJour)
-    std::vector<Agresseur> m_agresseurs; // monstres qui ont frappé l'escouade récemment
-    std::vector<Provocation> m_provocations; // monstres provoqués par un personnage
+    Agresseurs m_agresseurs; // monstres qui ont frappé l'escouade récemment
+    Provocations m_provocations; // monstres provoqués par un personnage
 };

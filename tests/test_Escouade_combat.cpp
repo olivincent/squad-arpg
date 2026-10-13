@@ -17,8 +17,8 @@ namespace {
 // Simule attaquer() + mettreAJour() par tics de 1/60 s, et renvoie le
 // total des dégâts cumulés sur toute la durée.
 int simulerAttaque(Escouade& escouade, const TileMap& carte, Cercle cible, float dureeSecondes) {
-    constexpr float dt = 1.0f / 60.0f;
-    const int nombreTics = static_cast<int>(dureeSecondes / dt);
+    constexpr float dt = s_dureeTic;
+    const int nombreTics = nombreDeTics(dureeSecondes);
     int degats = 0;
     for (int i = 0; i < nombreTics; ++i) {
         degats += attaquerCible(escouade, carte, cible);

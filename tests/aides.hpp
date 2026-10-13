@@ -4,6 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <SFML/System/Vector2.hpp>
+#include <cmath>
 #include <cstddef>
 #include <optional>
 #include <string>
@@ -78,12 +79,24 @@ inline const TileMap& carteOuverte() {
     return carte;
 }
 
-// Simule le temps qui passe par tics de 1/60 s (comme setFramerateLimit(60)
-// dans main.cpp), pendant la durée demandée. Les tests passent une durée
-// généreuse par rapport au trajet attendu et ne vérifient que l'état final.
+// Durée d'un tic des simulations : 1/60 s (comme setFramerateLimit(60) dans
+// main.cpp).
+inline constexpr float s_dureeTic = 1.0f / 60.0f;
+
+// Nombre de tics de 1/60 s dans une durée, arrondi au plus proche : calculé
+// une fois, puis les boucles comptent des entiers (additionner des float
+// jusqu'à la durée accumulerait des arrondis et ferait un tic de trop ou de
+// moins, par exemple 5 au lieu de 6 pour 0,1 s).
+inline int nombreDeTics(float dureeSecondes) {
+    return static_cast<int>(std::lround(dureeSecondes / s_dureeTic));
+}
+
+// Simule le temps qui passe par tics de 1/60 s, pendant la durée demandée.
+// Les tests passent une durée généreuse par rapport au trajet attendu et ne
+// vérifient que l'état final.
 inline void simuler(Escouade& escouade, const TileMap& carte, float dureeSecondes) {
-    constexpr float dt = 1.0f / 60.0f;
-    const int nombreTics = static_cast<int>(dureeSecondes / dt);
+    constexpr float dt = s_dureeTic;
+    const int nombreTics = nombreDeTics(dureeSecondes);
     for (int i = 0; i < nombreTics; ++i) {
         escouade.mettreAJour(dt, carte, {});
     }

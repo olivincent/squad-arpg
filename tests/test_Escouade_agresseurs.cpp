@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "aides.hpp"
+#include "Agresseurs.hpp"
 #include "Cercle.hpp"
 #include "Escouade.hpp"
 #include "MonstreVu.hpp"
@@ -72,8 +73,8 @@ TEST_CASE("Un coup qui fait des degats enregistre son auteur comme agresseur") {
 
     const auto& agresseurs = escouade.getAgresseurs();
     REQUIRE(agresseurs.size() == 1);
-    REQUIRE(agresseurs[0].id == 7);
-    verifierPointProche(agresseurs[0].cercle.centre, {300.0f, 60.0f});
+    REQUIRE(agresseurs[0].monstre.id == 7);
+    verifierPointProche(agresseurs[0].monstre.cercle.centre, {300.0f, 60.0f});
     REQUIRE(agresseurs[0].tempsRestant == 3.0f);
 }
 
@@ -92,9 +93,9 @@ TEST_CASE("Un coup d'un agresseur deja connu ne le duplique pas et remet son tem
 
     const auto& agresseurs = escouade.getAgresseurs();
     REQUIRE(agresseurs.size() == 2);
-    REQUIRE(agresseurs[0].id == 7);
-    verifierPointProche(agresseurs[0].cercle.centre, {320.0f, 60.0f});
-    REQUIRE(agresseurs[1].id == 8);
+    REQUIRE(agresseurs[0].monstre.id == 7);
+    verifierPointProche(agresseurs[0].monstre.cercle.centre, {320.0f, 60.0f});
+    REQUIRE(agresseurs[1].monstre.id == 8);
 }
 
 TEST_CASE("Sans personnage vivant, un coup n'enregistre aucun agresseur") {
@@ -106,7 +107,7 @@ TEST_CASE("Sans personnage vivant, un coup n'enregistre aucun agresseur") {
 
     REQUIRE_FALSE(escouade.estVivante());
     const auto& agresseurs = escouade.getAgresseurs();
-    REQUIRE(std::none_of(agresseurs.begin(), agresseurs.end(), [](const Escouade::Agresseur& a) { return a.id == 9; }));
+    REQUIRE(std::none_of(agresseurs.begin(), agresseurs.end(), [](const Agresseurs::Agresseur& a) { return a.monstre.id == 9; }));
 }
 
 TEST_CASE("Un agresseur est oublie 3 s apres son dernier coup") {
@@ -141,9 +142,9 @@ TEST_CASE("attaquer retire l'agresseur absent de la liste et met a jour le cercl
 
     const auto& agresseurs = escouade.getAgresseurs();
     REQUIRE(agresseurs.size() == 1);
-    REQUIRE(agresseurs[0].id == 8);
-    verifierPointProche(agresseurs[0].cercle.centre, {320.0f, 70.0f});
-    REQUIRE(agresseurs[0].cercle.rayon == 15.0f);
+    REQUIRE(agresseurs[0].monstre.id == 8);
+    verifierPointProche(agresseurs[0].monstre.cercle.centre, {320.0f, 70.0f});
+    REQUIRE(agresseurs[0].monstre.cercle.rayon == 15.0f);
 }
 
 namespace {

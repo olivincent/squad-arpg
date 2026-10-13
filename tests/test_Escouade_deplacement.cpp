@@ -361,14 +361,6 @@ float orientationDeLaFormation(const Escouade& escouade) {
     return (decalage.angle() + sf::degrees(45.0f)).wrapSigned().asDegrees();
 }
 
-// Six tics de 1/60 s, soit 0,1 s. Un seul appel à simuler() en ferait cinq :
-// 0.1f / (1.0f / 60.0f) tombe juste sous 6 en virgule flottante.
-void simulerUnDixiemeDeSeconde(Escouade& escouade, const TileMap& carte) {
-    for (int i = 0; i < 6; ++i) {
-        escouade.mettreAJour(1.0f / 60.0f, carte, {});
-    }
-}
-
 }  // namespace
 
 TEST_CASE("Rotation : la formation finit tournee vers la direction de marche") {
@@ -386,7 +378,7 @@ TEST_CASE("Rotation : la formation tourne par le plus court cote") {
     Escouade escouade({200.0f, 200.0f});  // centre (210, 210), orientation 0
     escouade.allerVers({210.0f, 100.0f}, carte);  // vers le haut : -90° (270°, pas +270°)
 
-    simulerUnDixiemeDeSeconde(escouade, carte);
+    simuler(escouade, carte, 0.1f);
     REQUIRE(orientationDeLaFormation(escouade) < 0.0f);
 
     simuler(escouade, carte, 1.0f);
@@ -398,7 +390,7 @@ TEST_CASE("Rotation : la vitesse est bornee a 360 degres par seconde") {
     Escouade escouade({100.0f, 100.0f});
     escouade.allerVers({110.0f, 300.0f}, carte);  // 90° à parcourir
 
-    simulerUnDixiemeDeSeconde(escouade, carte);
+    simuler(escouade, carte, 0.1f);
 
     const float orientation = orientationDeLaFormation(escouade);
     REQUIRE(orientation > 0.0f);     // elle a commencé à tourner

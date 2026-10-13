@@ -14,8 +14,8 @@ namespace {
 
 void simuler(Mobile& mobile, const TileMap& carte, float dureeSecondes,
              const std::vector<Cercle>& obstacles = {}) {
-    constexpr float dt = 1.0f / 60.0f;
-    const int nombreTics = static_cast<int>(dureeSecondes / dt);
+    constexpr float dt = s_dureeTic;
+    const int nombreTics = nombreDeTics(dureeSecondes);
     for (int i = 0; i < nombreTics; ++i) {
         mobile.mettreAJour(dt, carte, obstacles);
     }

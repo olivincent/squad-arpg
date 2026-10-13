@@ -29,12 +29,9 @@ TileMap carteDegagee5x5() {
 }
 
 void ecoulerTemps(Personnage& personnage, const TileMap& carte, sf::Vector2f centre, float duree) {
-    const float dt = 1.0f / 60.0f;
-    float tempsRestant = duree;
-    while (tempsRestant > 0.0f) {
-        const float pas = (tempsRestant < dt) ? tempsRestant : dt;
-        personnage.mettreAJour(pas, centre, carte, {});
-        tempsRestant -= pas;
+    const int nombreTics = nombreDeTics(duree);
+    for (int i = 0; i < nombreTics; ++i) {
+        personnage.mettreAJour(s_dureeTic, centre, carte, {});
     }
 }
 
