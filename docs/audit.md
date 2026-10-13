@@ -594,6 +594,9 @@ inclut `Personnage.hpp` ; voir P2). **Aucune règle violée.**
 - **Risque et tests touchés** : faible (nombre de tests inchangé : 325, vérifié par `tests.exe`).
 - **Dépend de** : T2 (les helpers doivent être partagés avant de couper).
 
+**Traité à l'étape 50.** Cinq fichiers (`deplacement`, `combat`, `skills`,
+`agresseurs`, `vue`) ; le plus gros, `skills`, fait 786 lignes.
+
 ### T2 — Helpers de test copiés d'un fichier à l'autre
 - **Constat** : `verifierPointProche` est copiée dans 3 fichiers (`test_Escouade`,
   `test_Mobile`, `test_Monstre`) ; `carteDegagee()` dans 4 (et `carteDegageeSoin` dans
@@ -608,6 +611,10 @@ inclut `Personnage.hpp` ; voir P2). **Aucune règle violée.**
 - **Coût** : petit.
 - **Risque et tests touchés** : faible.
 - **Dépend de** : aucun.
+
+**Traité à l'étape 50.** `tests/aides.hpp` ; `ecoulerTemps` reste local
+(trois signatures différentes). Pas de modification de `CMakeLists.txt` :
+`#include "aides.hpp"` se résout depuis le dossier du `.cpp`.
 
 ### T3 — Zones non couvertes
 - **Constat** : (a) **la rotation progressive de la formation** (`m_orientation`,
@@ -626,6 +633,10 @@ inclut `Personnage.hpp` ; voir P2). **Aucune règle violée.**
 - **Coût** : petit.
 - **Risque et tests touchés** : aucun test existant touché.
 - **Dépend de** : aucun.
+
+**Traité à l'étape 50** pour (a) (quatre tests de rotation) et (e) (noms sans
+accents). (b) relève de l'étape 52 (allègement de `main.cpp`), (c) est assumé
+(le dessin se vérifie dans le jeu), (d) n'est pas traité.
 
 ### T4 — Tests dépendants du temps simulé
 - **Constat** : plusieurs tests simulent par tics de 1/60 s avec une durée

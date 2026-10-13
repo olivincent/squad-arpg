@@ -59,7 +59,11 @@ squad-arpg/
 ├── assets/
 │   └── fonts/ (DejaVuSans.ttf, LICENSE-DejaVu.txt)
 ├── tests/
-│   ├── test_TileMap.cpp, test_Chemin.cpp, test_Escouade.cpp
+│   ├── aides.hpp (aides communes, inline)
+│   ├── test_TileMap.cpp, test_Chemin.cpp
+│   ├── test_Escouade_deplacement.cpp, test_Escouade_combat.cpp,
+│   │   test_Escouade_skills.cpp, test_Escouade_agresseurs.cpp,
+│   │   test_Escouade_vue.cpp
 │   ├── test_Deplacement.cpp, test_Monstre.cpp, test_Personnage.cpp
 │   └── test_Skill.cpp, test_Mobile.cpp, test_Cercle.cpp,
 │       test_Autodefense.cpp, test_BarreDeSkills.cpp,

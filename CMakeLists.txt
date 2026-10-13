@@ -51,7 +51,11 @@ add_custom_command(TARGET main POST_BUILD
 add_executable(tests
     tests/test_TileMap.cpp
     tests/test_Chemin.cpp
-    tests/test_Escouade.cpp
+    tests/test_Escouade_deplacement.cpp
+    tests/test_Escouade_combat.cpp
+    tests/test_Escouade_skills.cpp
+    tests/test_Escouade_agresseurs.cpp
+    tests/test_Escouade_vue.cpp
     tests/test_Deplacement.cpp
     tests/test_Monstre.cpp
     tests/test_Personnage.cpp

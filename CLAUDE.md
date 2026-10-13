@@ -84,6 +84,9 @@ Documents de référence (à lire avant toute modification) :
   classe). Pas de majuscules (`COTE_LIGNE_DE_VUE`) ni de littéral local
   répété : une valeur qui sert deux fois a un nom.
 - Constructeur à un seul paramètre : `explicit`.
+- Noms de `TEST_CASE` **sans accents ni cédilles** (« a portee », « degats »,
+  « deja »), pour pouvoir les filtrer en ligne de commande dans n'importe
+  quel terminal ; les commentaires gardent leurs accents.
 - Chaque fichier inclut lui-même les en-têtes des types qu'il utilise ;
   déclaration anticipée (`class X;`) dans un `.hpp` quand une référence
   suffit, include complet dans le `.cpp`.

@@ -1271,3 +1271,34 @@ position ne soit pas calculée deux fois ; pas de type `PointsDeVie`.
 (étape 50), extraction de `Provocations` et `Agresseurs` (étape 51),
 allègement de `main.cpp` (étape 52), `declencherSansCible` (R4),
 sous-dossiers (F1).
+
+### Étape 50 — Réorganisation des tests (refactorisation pure) ✅ TERMINÉE
+
+1. [x] `tests/aides.hpp` (aides `inline` identiques) ; `namespace {}` pour
+       les aides locales (enchaînée). 330 tests.
+2. [x] `test_Escouade.cpp` (139 cas) coupé en cinq fichiers par thème :
+       `deplacement` (18), `combat` (17), `skills` (61), `agresseurs` (25),
+       `vue` (18) ; `CMakeLists.txt` mis à jour (enchaînée). 330 tests.
+3. [x] Revue des `static_cast<void>` : 30 remplacés par une vérification
+       (`REQUIRE(...empty())`, un `Coup`, `== 25`), 9 gardés (`attaquer`
+       appelé pour avancer l'état, avec commentaire) (enchaînée). 330 tests.
+4. [x] Test de `provoquer` à une place invalide (0 et 5) (enchaînée).
+       331 tests.
+5. [x] Quatre tests de rotation de la formation, l'orientation étant
+       déduite de `getPlacesDeFormation()` (enchaînée). 335 tests.
+6. [x] Noms de `TEST_CASE` sans accents : 151 noms modifiés (enchaînée).
+       335 tests, aucun nom accentué dans `--list-tests`.
+7. [x] Mise à jour des documents
+
+**Choix** : une aide n'est partagée que si les copies sont identiques ;
+`carteDegagee` devient `carteDegagee10x10` (`Mobile`, `Monstre`, `Escouade`),
+`carteDegagee5x5` (`Personnage`, locale) et `carteDegageeEntouree`
+(`Escouade`) ; les trois `ecoulerTemps` (signatures différentes, un fichier
+chacun) et les aides propres à un fichier restent locales. Pas d'accesseur
+d'orientation : elle se déduit de la première place de formation. Aucun
+fichier de `src/` modifié, aucun bogue révélé.
+
+**Hors de portée** : extraction de `Provocations` et `Agresseurs` (étape 51),
+allègement de `main.cpp` (étape 52), tests de `replierVersOrigine` en direct,
+`SECTION` de Catch2, sous-dossiers de `tests/`. `test_Escouade_skills.cpp`
+fait 786 lignes (un peu plus que les 700 visées).

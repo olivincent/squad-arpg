@@ -2,6 +2,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <SFML/System/Vector2.hpp>
 
+#include "aides.hpp"
 #include "Cercle.hpp"
 #include "Skill.hpp"
 
@@ -17,15 +18,11 @@ void ecoulerTemps(Skill& skill, float duree) {
     }
 }
 
-Cercle point(sf::Vector2f centre) {
-    return {centre, 0.0f};
-}
-
 }  // namespace
 
 // Origine en (100, 100), portée 80 px, puissance 25, recharge 5 s.
 
-TEST_CASE("Skill.getType renvoie le type donné au constructeur") {
+TEST_CASE("Skill.getType renvoie le type donne au constructeur") {
     Skill degats(TypeSkill::Degats, 80.0f, 25, 5.0f, 0.0f);
     Skill soin(TypeSkill::Soin, 80.0f, 25, 5.0f, 0.0f);
 
@@ -38,38 +35,38 @@ TEST_CASE("Skill.getRayonZone renvoie le rayon donne au constructeur, distinct d
     Skill monoCible(TypeSkill::Soin, 40.0f, 30, 8.0f, 0.0f);
 
     REQUIRE(zone.getRayonZone() == 60.0f);
-    REQUIRE(zone.estAPortee(point({100.0f, 100.0f}), point({300.0f, 100.0f})));
+    REQUIRE(zone.estAPortee(pointCible({100.0f, 100.0f}), pointCible({300.0f, 100.0f})));
     REQUIRE(monoCible.getRayonZone() == 0.0f);
 }
 
-TEST_CASE("Skill de provocation : la puissance est la durée, avec zone et recharge") {
+TEST_CASE("Skill de provocation : la puissance est la duree, avec zone et recharge") {
     Skill provocation(TypeSkill::Provocation, 0.0f, 4, 10.0f, 150.0f);
-    const Cercle origine = point({100.0f, 100.0f});
+    const Cercle origine = pointCible({100.0f, 100.0f});
 
     REQUIRE(provocation.getType() == TypeSkill::Provocation);
     REQUIRE(provocation.getRayonZone() == 150.0f);
     REQUIRE(provocation.estAPortee(origine, origine));
-    REQUIRE_FALSE(provocation.estAPortee(origine, point({200.0f, 100.0f})));
+    REQUIRE_FALSE(provocation.estAPortee(origine, pointCible({200.0f, 100.0f})));
     REQUIRE(provocation.declencher(origine, origine) == 4);
     REQUIRE(provocation.getProgressionRecharge() == 0.0f);
 }
 
-TEST_CASE("Skill.declencher renvoie la puissance pour une cible à portée") {
+TEST_CASE("Skill.declencher renvoie la puissance pour une cible a portee") {
     Skill skill(TypeSkill::Degats, 80.0f, 25, 5.0f, 0.0f);
 
-    REQUIRE(skill.declencher(point({100.0f, 100.0f}), point({150.0f, 100.0f})) == 25);
+    REQUIRE(skill.declencher(pointCible({100.0f, 100.0f}), pointCible({150.0f, 100.0f})) == 25);
 }
 
-TEST_CASE("Skill.declencher renvoie 0 pour une cible hors de portée") {
+TEST_CASE("Skill.declencher renvoie 0 pour une cible hors de portee") {
     Skill skill(TypeSkill::Degats, 80.0f, 25, 5.0f, 0.0f);
 
-    REQUIRE(skill.declencher(point({100.0f, 100.0f}), point({300.0f, 100.0f})) == 0);
+    REQUIRE(skill.declencher(pointCible({100.0f, 100.0f}), pointCible({300.0f, 100.0f})) == 0);
 }
 
 TEST_CASE("Skill.declencher renvoie 0 pendant la recharge, puis de nouveau la puissance") {
     Skill skill(TypeSkill::Soin, 80.0f, 25, 5.0f, 0.0f);
-    const Cercle origine = point({100.0f, 100.0f});
-    const Cercle cible = point({150.0f, 100.0f});
+    const Cercle origine = pointCible({100.0f, 100.0f});
+    const Cercle cible = pointCible({150.0f, 100.0f});
 
     REQUIRE(skill.declencher(origine, cible) == 25);
     REQUIRE(skill.declencher(origine, cible) == 0);
@@ -81,12 +78,12 @@ TEST_CASE("Skill.declencher renvoie 0 pendant la recharge, puis de nouveau la pu
     REQUIRE(skill.declencher(origine, cible) == 25);
 }
 
-TEST_CASE("Skill.getProgressionRecharge vaut 1 prêt, 0 juste après le déclenchement") {
+TEST_CASE("Skill.getProgressionRecharge vaut 1 pret, 0 juste apres le declenchement") {
     Skill skill(TypeSkill::Degats, 80.0f, 25, 5.0f, 0.0f);
 
     REQUIRE(skill.getProgressionRecharge() == 1.0f);
 
-    static_cast<void>(skill.declencher(point({100.0f, 100.0f}), point({150.0f, 100.0f})));
+    REQUIRE(skill.declencher(pointCible({100.0f, 100.0f}), pointCible({150.0f, 100.0f})) == 25);
     REQUIRE(skill.getProgressionRecharge() == 0.0f);
 
     ecoulerTemps(skill, 6.0f);
@@ -96,64 +93,64 @@ TEST_CASE("Skill.getProgressionRecharge vaut 1 prêt, 0 juste après le déclenc
 TEST_CASE("Skill.estAPortee renvoie vrai pour un point proche") {
     Skill skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.0f);
 
-    REQUIRE(skill.estAPortee(point({100.0f, 100.0f}), point({150.0f, 100.0f})));
+    REQUIRE(skill.estAPortee(pointCible({100.0f, 100.0f}), pointCible({150.0f, 100.0f})));
 }
 
 TEST_CASE("Skill.estAPortee renvoie faux pour un point lointain") {
     Skill skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.0f);
 
-    REQUIRE_FALSE(skill.estAPortee(point({100.0f, 100.0f}), point({300.0f, 100.0f})));
+    REQUIRE_FALSE(skill.estAPortee(pointCible({100.0f, 100.0f}), pointCible({300.0f, 100.0f})));
 }
 
-TEST_CASE("Skill.estAPortee renvoie vrai pour une distance exactement égale à la portée") {
+TEST_CASE("Skill.estAPortee renvoie vrai pour une distance exactement egale a la portee") {
     Skill skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.0f);
 
-    REQUIRE(skill.estAPortee(point({100.0f, 100.0f}), point({180.0f, 100.0f})));
+    REQUIRE(skill.estAPortee(pointCible({100.0f, 100.0f}), pointCible({180.0f, 100.0f})));
 }
 
-TEST_CASE("Skill.declencher renvoie 0 au second appel immédiat (recharge en cours)") {
+TEST_CASE("Skill.declencher renvoie 0 au second appel immediat (recharge en cours)") {
     Skill skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.0f);
-    const Cercle origine = point({100.0f, 100.0f});
-    const Cercle cible = point({150.0f, 100.0f});
+    const Cercle origine = pointCible({100.0f, 100.0f});
+    const Cercle cible = pointCible({150.0f, 100.0f});
 
     REQUIRE(skill.declencher(origine, cible) == 5);
     REQUIRE(skill.declencher(origine, cible) == 0);
 }
 
-TEST_CASE("Skill.declencher renvoie 0 après une durée simulée trop courte") {
+TEST_CASE("Skill.declencher renvoie 0 apres une duree simulee trop courte") {
     Skill skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.0f);
-    const Cercle origine = point({100.0f, 100.0f});
-    const Cercle cible = point({150.0f, 100.0f});
+    const Cercle origine = pointCible({100.0f, 100.0f});
+    const Cercle cible = pointCible({150.0f, 100.0f});
 
     REQUIRE(skill.declencher(origine, cible) == 5);
     ecoulerTemps(skill, 0.3f);
     REQUIRE(skill.declencher(origine, cible) == 0);
 }
 
-TEST_CASE("Skill.declencher renvoie de nouveau les dégâts après une durée simulée généreuse") {
+TEST_CASE("Skill.declencher renvoie de nouveau les degats apres une duree simulee genereuse") {
     Skill skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.0f);
-    const Cercle origine = point({100.0f, 100.0f});
-    const Cercle cible = point({150.0f, 100.0f});
+    const Cercle origine = pointCible({100.0f, 100.0f});
+    const Cercle cible = pointCible({150.0f, 100.0f});
 
     REQUIRE(skill.declencher(origine, cible) == 5);
     ecoulerTemps(skill, 0.6f);
     REQUIRE(skill.declencher(origine, cible) == 5);
 }
 
-TEST_CASE("Un déclenchement de Skill tenté hors de portée ne déclenche pas la recharge") {
+TEST_CASE("Un declenchement de Skill tente hors de portee ne declenche pas la recharge") {
     Skill skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.0f);
-    const Cercle origine = point({100.0f, 100.0f});
-    const Cercle loin = point({300.0f, 100.0f});
-    const Cercle proche = point({150.0f, 100.0f});
+    const Cercle origine = pointCible({100.0f, 100.0f});
+    const Cercle loin = pointCible({300.0f, 100.0f});
+    const Cercle proche = pointCible({150.0f, 100.0f});
 
     REQUIRE(skill.declencher(origine, loin) == 0);
     REQUIRE(skill.declencher(origine, proche) == 5);
 }
 
-TEST_CASE("Skill.relancerRecharge empêche de frapper avant une recharge complète") {
+TEST_CASE("Skill.relancerRecharge empeche de frapper avant une recharge complete") {
     Skill skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.0f);
-    const Cercle origine = point({100.0f, 100.0f});
-    const Cercle cible = point({150.0f, 100.0f});
+    const Cercle origine = pointCible({100.0f, 100.0f});
+    const Cercle cible = pointCible({150.0f, 100.0f});
 
     skill.relancerRecharge(); // jamais utilisée, pourtant elle recharge
     REQUIRE(skill.declencher(origine, cible) == 0);
@@ -161,7 +158,7 @@ TEST_CASE("Skill.relancerRecharge empêche de frapper avant une recharge complè
     REQUIRE(skill.declencher(origine, cible) == 5);
 }
 
-TEST_CASE("Skill.getProgressionRecharge vaut 1 prête, 0 juste après un coup, entre les deux ensuite") {
+TEST_CASE("Skill.getProgressionRecharge vaut 1 prete, 0 juste apres un coup, entre les deux ensuite") {
     Skill skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.0f);
 
     REQUIRE(skill.getProgressionRecharge() == 1.0f);
@@ -178,7 +175,7 @@ TEST_CASE("Skill.getProgressionRecharge vaut 1 prête, 0 juste après un coup, e
     REQUIRE(skill.getProgressionRecharge() == 1.0f);
 }
 
-TEST_CASE("Skill.getProgressionRecharge ne dépasse jamais 1, même après un long temps écoulé") {
+TEST_CASE("Skill.getProgressionRecharge ne depasse jamais 1, meme apres un long temps ecoule") {
     Skill skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.0f);
 
     skill.relancerRecharge();

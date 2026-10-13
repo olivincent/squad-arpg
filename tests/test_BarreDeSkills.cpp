@@ -42,7 +42,7 @@ TEST_CASE("pointsDuQuartier n'a aucun sommet pour une fraction nulle") {
     REQUIRE(pointsDuQuartier({100.0f, 100.0f}, 56.0f, 0.0f).empty());
 }
 
-TEST_CASE("pointsDuQuartier commence au centre et finit à midi") {
+TEST_CASE("pointsDuQuartier commence au centre et finit a midi") {
     const sf::Vector2f centre{100.0f, 200.0f};
 
     for (const float fraction : {0.1f, 0.3f, 0.5f, 0.75f, 1.0f}) {
@@ -54,7 +54,7 @@ TEST_CASE("pointsDuQuartier commence au centre et finit à midi") {
     }
 }
 
-TEST_CASE("pointsDuQuartier couvre la fraction demandée de l'aire du carré") {
+TEST_CASE("pointsDuQuartier couvre la fraction demandee de l'aire du carre") {
     const sf::Vector2f centre{100.0f, 200.0f};
     const float cote = 56.0f;
 
@@ -65,7 +65,7 @@ TEST_CASE("pointsDuQuartier couvre la fraction demandée de l'aire du carré") {
     }
 }
 
-TEST_CASE("pointsDuQuartier reste dans le carré") {
+TEST_CASE("pointsDuQuartier reste dans le carre") {
     const sf::Vector2f centre{100.0f, 200.0f};
 
     for (const sf::Vector2f point : pointsDuQuartier(centre, 56.0f, 0.6f)) {

@@ -56,13 +56,11 @@ est dans `docs/historique.md`.
 - Étape 47 — Un monstre touché s'active ✅
 - Étape 48 — Barre de skills à l'écran (HUD) ✅
 - Étape 49 — Hygiène et sûreté du code (refactorisation pure) ✅
+- Étape 50 — Réorganisation des tests (refactorisation pure) ✅
 
-## Étape 50 — à définir
+## Étape 51 — à définir
 
-Pistes discutées (les étapes 50 à 52 sont issues de `docs/audit.md`) :
-- Étape 50 prévue : découper `test_Escouade.cpp`, `aides.hpp` pour les
-  aides de test communes, tests de rotation de la formation, graphie des
-  noms de tests (audit T1 à T3)
+Pistes discutées (les étapes 51 et 52 sont issues de `docs/audit.md`) :
 - Étape 51 prévue : extraire `Provocations` et `Agresseurs` d'`Escouade`,
   découper `attaquer` et `mettreAJour` (audit R2, R3, D5)
 - Étape 52 prévue : alléger `main.cpp` (audit R1, F3)
@@ -250,11 +248,14 @@ Pistes discutées (les étapes 50 à 52 sont issues de `docs/audit.md`) :
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 330 tests : 38 sur `TileMap`, 17 sur `Chemin`, 139
-  sur `Escouade`, 12 sur `Deplacement`, 34 sur `Monstre`, 31 sur
-  `Personnage`, 17 sur `Skill`, 14 sur `Mobile`, 4 sur
-  `Cercle`, 13 sur `Autodefense`, 6 sur `BarreDeSkills`, 4 sur `MonstreVu`,
-  1 sur `BarreDeVie`).
+  (`./build/tests.exe`, 335 tests : 38 sur `TileMap`, 17 sur `Chemin`, 144
+  sur `Escouade` en cinq fichiers par thème — 22 déplacement, 17 combat, 61
+  skills, 26 agresseurs, 18 vue —, 12 sur `Deplacement`, 34 sur `Monstre`,
+  31 sur `Personnage`, 17 sur `Skill`, 14 sur `Mobile`, 4 sur `Cercle`, 13
+  sur `Autodefense`, 6 sur `BarreDeSkills`, 4 sur `MonstreVu`, 1 sur
+  `BarreDeVie`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
+  accents (`./build/tests.exe "*a portee*"` filtre) ; rotation de la
+  formation et `provoquer` à une place invalide couverts.
 
 **Limites connues** (acceptées pour l'instant) :
 - La barre de skills ne montre pas le skill en attente et n'est pas

@@ -9,12 +9,14 @@
 #include "Chemin.hpp"
 #include "TileMap.hpp"
 
+namespace {
+
 // Vérifie les propriétés qu'un chemin valide doit respecter, sans exiger
 // une liste exacte de cases (plusieurs plus courts chemins peuvent
 // exister) : commence au départ, finit à l'arrivée, chaque case est du
 // sol, deux cases consécutives sont voisines (distance de Manhattan de
 // 1), et la longueur correspond au plus court chemin attendu.
-static void verifierCheminValide(const std::vector<sf::Vector2i>& chemin, const TileMap& carte,
+void verifierCheminValide(const std::vector<sf::Vector2i>& chemin, const TileMap& carte,
                                   sf::Vector2i depart, sf::Vector2i arrivee, std::size_t longueurAttendue) {
     REQUIRE(chemin.size() == longueurAttendue);
     REQUIRE(chemin.front() == depart);
@@ -29,7 +31,9 @@ static void verifierCheminValide(const std::vector<sf::Vector2i>& chemin, const 
     }
 }
 
-TEST_CASE("Le chemin entre une case de départ et d'arrivée identiques est cette seule case") {
+}  // namespace
+
+TEST_CASE("Le chemin entre une case de depart et d'arrivee identiques est cette seule case") {
     const std::vector<std::string> plan = {
         "...",
         "...",
@@ -43,7 +47,7 @@ TEST_CASE("Le chemin entre une case de départ et d'arrivée identiques est cett
     REQUIRE(chemin[0] == sf::Vector2i(1, 1));
 }
 
-TEST_CASE("Le chemin est vide si le départ est un mur") {
+TEST_CASE("Le chemin est vide si le depart est un mur") {
     const std::vector<std::string> plan = {
         "...",
         ".#.",
@@ -54,7 +58,7 @@ TEST_CASE("Le chemin est vide si le départ est un mur") {
     REQUIRE(trouverChemin(carte, {1, 1}, {0, 0}).empty());
 }
 
-TEST_CASE("Le chemin est vide si l'arrivée est un mur") {
+TEST_CASE("Le chemin est vide si l'arrivee est un mur") {
     const std::vector<std::string> plan = {
         "...",
         ".#.",
@@ -65,7 +69,7 @@ TEST_CASE("Le chemin est vide si l'arrivée est un mur") {
     REQUIRE(trouverChemin(carte, {0, 0}, {1, 1}).empty());
 }
 
-TEST_CASE("Le chemin est vide si le départ est hors carte") {
+TEST_CASE("Le chemin est vide si le depart est hors carte") {
     const std::vector<std::string> plan = {
         "...",
         "...",
@@ -76,7 +80,7 @@ TEST_CASE("Le chemin est vide si le départ est hors carte") {
     REQUIRE(trouverChemin(carte, {-1, 0}, {0, 0}).empty());
 }
 
-TEST_CASE("Le chemin est vide si l'arrivée est hors carte") {
+TEST_CASE("Le chemin est vide si l'arrivee est hors carte") {
     const std::vector<std::string> plan = {
         "...",
         "...",
@@ -87,7 +91,7 @@ TEST_CASE("Le chemin est vide si l'arrivée est hors carte") {
     REQUIRE(trouverChemin(carte, {0, 0}, {3, 0}).empty());
 }
 
-TEST_CASE("Le chemin est vide quand départ et arrivée sont la même case murée") {
+TEST_CASE("Le chemin est vide quand depart et arrivee sont la meme case muree") {
     // Ce cas doit l'emporter sur le raccourci « départ == arrivée » : être
     // sur la même case ne suffit pas si cette case est un mur.
     const std::vector<std::string> plan = {
@@ -113,7 +117,7 @@ TEST_CASE("Le chemin en ligne droite sans obstacle a la longueur de Manhattan") 
     verifierCheminValide(chemin, carte, depart, arrivee, 5);
 }
 
-TEST_CASE("Le chemin contourne un mur placé entre le départ et l'arrivée") {
+TEST_CASE("Le chemin contourne un mur place entre le depart et l'arrivee") {
     // Mur sur toute la largeur de la rangée du milieu, sauf les bords :
     // il faut remonter d'une rangée pour passer, puis redescendre.
     const std::vector<std::string> plan = {
@@ -132,7 +136,7 @@ TEST_CASE("Le chemin contourne un mur placé entre le départ et l'arrivée") {
     verifierCheminValide(chemin, carte, depart, arrivee, 7);
 }
 
-TEST_CASE("Le chemin est vide si l'arrivée est enfermée par des murs") {
+TEST_CASE("Le chemin est vide si l'arrivee est enfermee par des murs") {
     // La case (2, 2) est entourée de murs sur ses 4 côtés : aucun chemin
     // ne peut l'atteindre depuis l'extérieur.
     const std::vector<std::string> plan = {
@@ -171,7 +175,7 @@ TEST_CASE("lisserChemin avec un seul point le renvoie tel quel") {
     REQUIRE(resultat[0] == points[0]);
 }
 
-TEST_CASE("En terrain dégagé, lisserChemin ne garde que le dernier point") {
+TEST_CASE("En terrain degage, lisserChemin ne garde que le dernier point") {
     // Carte 8x8 entièrement en sol : la ligne droite du départ au dernier
     // point ne peut chevaucher aucun mur, donc tous les points
     // intermédiaires sont superflus.
@@ -194,7 +198,7 @@ TEST_CASE("En terrain dégagé, lisserChemin ne garde que le dernier point") {
     REQUIRE(resultat[0] == points.back());
 }
 
-TEST_CASE("lisserChemin réduit un chemin en escalier qui contourne un mur") {
+TEST_CASE("lisserChemin reduit un chemin en escalier qui contourne un mur") {
     // Mur sur la rangée 1, colonnes 2 à 4 ; ouverture par la rangée 0 (et
     // la rangée 2). Départ en case (0, 1), arrivée en case (6, 1) :
     // directement à droite du départ, mais le mur bloque le trajet
@@ -253,7 +257,7 @@ TEST_CASE("replierVersOrigine renvoie la cible telle quelle si le trajet est lib
     REQUIRE(replierVersOrigine(carte, origine, cible, {20.0f, 20.0f}) == cible);
 }
 
-TEST_CASE("replierVersOrigine ramène une cible située dans un mur sur un point libre du segment") {
+TEST_CASE("replierVersOrigine ramene une cible situee dans un mur sur un point libre du segment") {
     const TileMap carte = salleAvecPilier();
     const sf::Vector2f origine{60.0f, 60.0f};
     const sf::Vector2f cible{260.0f, 60.0f}; // dans le mur de la case (6, 1)
@@ -267,7 +271,7 @@ TEST_CASE("replierVersOrigine ramène une cible située dans un mur sur un point
     REQUIRE_FALSE(carte.chevaucheUnMur(sf::FloatRect(resultat - taille / 2.0f, taille)));
 }
 
-TEST_CASE("replierVersOrigine ramène une cible cachée derrière un coin de pilier") {
+TEST_CASE("replierVersOrigine ramene une cible cachee derriere un coin de pilier") {
     const TileMap carte = salleAvecPilier();
     const sf::Vector2f origine{60.0f, 60.0f};
     const sf::Vector2f cible{220.0f, 220.0f}; // case (5, 5), derrière le pilier en diagonale

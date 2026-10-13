@@ -20,7 +20,7 @@ TEST_CASE("getTile distingue une case de sol d'une case de mur") {
     REQUIRE(carte.getTile(1, 1) == Tile::Wall);
 }
 
-TEST_CASE("Les dimensions de la carte sont déduites du plan") {
+TEST_CASE("Les dimensions de la carte sont deduites du plan") {
     // Bord en sol (pas en mur) : sinon une case de bord et une case hors
     // carte renverraient toutes les deux Wall, et ce test ne prouverait
     // rien sur les dimensions réelles de la carte.
@@ -80,7 +80,7 @@ TEST_CASE("caseContenant renvoie la case de droite sur la limite exacte entre de
     REQUIRE(carte.caseContenant({40.0f, 0.0f}) == sf::Vector2i(1, 0));
 }
 
-TEST_CASE("caseContenant renvoie une case négative pour un point avant la carte") {
+TEST_CASE("caseContenant renvoie une case negative pour un point avant la carte") {
     const std::vector<std::string> plan = {
         ".....",
         ".....",
@@ -125,7 +125,7 @@ TEST_CASE("caseContenant et centreDeCase sont des conversions inverses") {
     REQUIRE(carte.caseContenant(carte.centreDeCase(coordCase)) == coordCase);
 }
 
-TEST_CASE("Une coordonnée négative est hors carte, donc un mur") {
+TEST_CASE("Une coordonnee negative est hors carte, donc un mur") {
     const std::vector<std::string> plan = {
         "....",
         "....",
@@ -137,13 +137,13 @@ TEST_CASE("Une coordonnée négative est hors carte, donc un mur") {
     REQUIRE(carte.getTile(-1, -1) == Tile::Wall);
 }
 
-TEST_CASE("Un plan vide lève std::out_of_range") {
+TEST_CASE("Un plan vide leve std::out_of_range") {
     const std::vector<std::string> plan = {};
 
     REQUIRE_THROWS_AS(TileMap(plan, 40.0f), std::out_of_range);
 }
 
-TEST_CASE("Des lignes de longueurs différentes lèvent std::invalid_argument") {
+TEST_CASE("Des lignes de longueurs differentes levent std::invalid_argument") {
     const std::vector<std::string> plan = {
         "....",
         "...",
@@ -153,7 +153,7 @@ TEST_CASE("Des lignes de longueurs différentes lèvent std::invalid_argument") 
     REQUIRE_THROWS_AS(TileMap(plan, 40.0f), std::invalid_argument);
 }
 
-TEST_CASE("chevaucheUnMur renvoie faux pour un rectangle entièrement sur du sol") {
+TEST_CASE("chevaucheUnMur renvoie faux pour un rectangle entierement sur du sol") {
     // Mur unique en (2, 2), donc en pixels x dans [80, 120), y dans [80, 120)
     // pour une taille de case de 40.
     const std::vector<std::string> plan = {
@@ -200,7 +200,7 @@ TEST_CASE("Un rectangle qui touche exactement le bord d'un mur ne le chevauche p
     REQUIRE_FALSE(carte.chevaucheUnMur(rect));
 }
 
-TEST_CASE("Le même rectangle décalé de 1 px vers le mur le chevauche") {
+TEST_CASE("Le meme rectangle decale de 1 px vers le mur le chevauche") {
     const std::vector<std::string> plan = {
         ".....",
         ".....",
@@ -214,7 +214,7 @@ TEST_CASE("Le même rectangle décalé de 1 px vers le mur le chevauche") {
     REQUIRE(carte.chevaucheUnMur(rect));
 }
 
-TEST_CASE("Un rectangle hors carte en coordonnées négatives chevauche toujours un mur") {
+TEST_CASE("Un rectangle hors carte en coordonnees negatives chevauche toujours un mur") {
     // Bord en sol : seule la sortie de carte doit déclencher la collision,
     // pas un mur du plan.
     const std::vector<std::string> plan = {
@@ -230,7 +230,7 @@ TEST_CASE("Un rectangle hors carte en coordonnées négatives chevauche toujours
     REQUIRE(carte.chevaucheUnMur(rect));
 }
 
-TEST_CASE("trajetLibre renvoie vrai pour un trajet horizontal dégagé") {
+TEST_CASE("trajetLibre renvoie vrai pour un trajet horizontal degage") {
     // Mur unique en (2, 2) : x dans [80, 120), y dans [80, 120). Le
     // rectangle reste sur la rangée y: [0, 20), loin de la rangée du mur.
     // Déplacement de 160 px : arrivée x: [160, 180), à l'intérieur de la
@@ -283,7 +283,7 @@ TEST_CASE("Un trajet vertical qui touche exactement le mur est libre") {
     REQUIRE(carte.trajetLibre(rect, {0.0f, 20.0f}));
 }
 
-TEST_CASE("Le même trajet vertical décalé de 1 px vers le mur n'est plus libre") {
+TEST_CASE("Le meme trajet vertical decale de 1 px vers le mur n'est plus libre") {
     // Déplacement de 21 px au lieu de 20 : l'enveloppe devient
     // y: [40, 81), qui chevauche le mur (y: [80, 120)) sur 1 px.
     const std::vector<std::string> plan = {
@@ -299,7 +299,7 @@ TEST_CASE("Le même trajet vertical décalé de 1 px vers le mur n'est plus libr
     REQUIRE_FALSE(carte.trajetLibre(rect, {0.0f, 21.0f}));
 }
 
-TEST_CASE("Un déplacement nul est libre si le rectangle n'est pas déjà dans un mur") {
+TEST_CASE("Un deplacement nul est libre si le rectangle n'est pas deja dans un mur") {
     const std::vector<std::string> plan = {
         ".....",
         ".....",
@@ -331,7 +331,7 @@ TEST_CASE("trajetLibre renvoie faux pour un trajet horizontal qui sort de la car
     REQUIRE_FALSE(carte.trajetLibre(rect, {40.0f, 0.0f}));
 }
 
-TEST_CASE("trajetLibre renvoie vrai pour un trajet oblique dégagé") {
+TEST_CASE("trajetLibre renvoie vrai pour un trajet oblique degage") {
     // Mur en (2, 2) : x et y dans [80, 120). Le rectangle balaie les
     // colonnes 0 et 1 (x : [0, 60)), loin de la colonne 2 du mur.
     const std::vector<std::string> plan = {
@@ -363,7 +363,7 @@ TEST_CASE("trajetLibre renvoie faux pour un mur en plein milieu, dx et dy positi
     REQUIRE_FALSE(carte.trajetLibre(rect, {40.0f, 40.0f}));
 }
 
-TEST_CASE("trajetLibre renvoie faux pour un mur en plein milieu, dx positif et dy négatif") {
+TEST_CASE("trajetLibre renvoie faux pour un mur en plein milieu, dx positif et dy negatif") {
     // Même trajet que le précédent, reflété verticalement par rapport au
     // centre du mur (y = 100) : départ (60, 140), arrivée (100, 100).
     const std::vector<std::string> plan = {
@@ -379,7 +379,7 @@ TEST_CASE("trajetLibre renvoie faux pour un mur en plein milieu, dx positif et d
     REQUIRE_FALSE(carte.trajetLibre(rect, {40.0f, -40.0f}));
 }
 
-TEST_CASE("trajetLibre renvoie faux pour un mur en plein milieu, dx négatif et dy positif") {
+TEST_CASE("trajetLibre renvoie faux pour un mur en plein milieu, dx negatif et dy positif") {
     // Reflété horizontalement par rapport au centre du mur (x = 100) :
     // départ (140, 60), arrivée (100, 100).
     const std::vector<std::string> plan = {
@@ -395,7 +395,7 @@ TEST_CASE("trajetLibre renvoie faux pour un mur en plein milieu, dx négatif et 
     REQUIRE_FALSE(carte.trajetLibre(rect, {-40.0f, 40.0f}));
 }
 
-TEST_CASE("trajetLibre renvoie faux pour un mur en plein milieu, dx et dy négatifs") {
+TEST_CASE("trajetLibre renvoie faux pour un mur en plein milieu, dx et dy negatifs") {
     // Reflété par rapport au centre du mur sur les deux axes : départ
     // (140, 140), arrivée (100, 100).
     const std::vector<std::string> plan = {
@@ -411,7 +411,7 @@ TEST_CASE("trajetLibre renvoie faux pour un mur en plein milieu, dx et dy négat
     REQUIRE_FALSE(carte.trajetLibre(rect, {-40.0f, -40.0f}));
 }
 
-TEST_CASE("Un coin du rectangle accroche le mur même si la ligne des centres passe à côté") {
+TEST_CASE("Un coin du rectangle accroche le mur meme si la ligne des centres passe a cote") {
     // Départ (90, 40), arrivée (150, 100). Le centre du rectangle va de
     // (100, 50) à (160, 110) : pour que le centre soit dans la case du
     // mur (x et y dans [80, 120)), il faudrait x < 120 (t < 1/3) ET
@@ -433,7 +433,7 @@ TEST_CASE("Un coin du rectangle accroche le mur même si la ligne des centres pa
     REQUIRE_FALSE(carte.trajetLibre(rect, {60.0f, 60.0f}));
 }
 
-TEST_CASE("Un trajet voisin décalé de la même distance passe juste à côté du mur") {
+TEST_CASE("Un trajet voisin decale de la meme distance passe juste a cote du mur") {
     // Même direction (60, 60) que le test précédent, départ décalé de
     // (15, -5) : assez pour que le rectangle ne touche plus jamais la
     // case du mur à aucun instant du trajet.
@@ -450,7 +450,7 @@ TEST_CASE("Un trajet voisin décalé de la même distance passe juste à côté 
     REQUIRE(carte.trajetLibre(rect, {60.0f, 60.0f}));
 }
 
-TEST_CASE("trajetLibre renvoie faux quand l'arrivée est dans un mur") {
+TEST_CASE("trajetLibre renvoie faux quand l'arrivee est dans un mur") {
     // Départ (40, 40), loin du mur ; arrivée (110, 110) : le rectangle y
     // couvre (110,120)x(110,120), entièrement dans la case du mur
     // (x et y dans [80, 120)).
@@ -467,7 +467,7 @@ TEST_CASE("trajetLibre renvoie faux quand l'arrivée est dans un mur") {
     REQUIRE_FALSE(carte.trajetLibre(rect, {70.0f, 70.0f}));
 }
 
-TEST_CASE("trajetLibre renvoie faux quand le départ est dans un mur") {
+TEST_CASE("trajetLibre renvoie faux quand le depart est dans un mur") {
     // Départ (85, 85) : déjà entièrement dans la case du mur.
     const std::vector<std::string> plan = {
         ".....",
@@ -482,7 +482,7 @@ TEST_CASE("trajetLibre renvoie faux quand le départ est dans un mur") {
     REQUIRE_FALSE(carte.trajetLibre(rect, {40.0f, 40.0f}));
 }
 
-TEST_CASE("ligneDeVue : terrain dégagé") {
+TEST_CASE("ligneDeVue : terrain degage") {
     const std::vector<std::string> plan = {
         ".....",
         ".....",
@@ -514,7 +514,7 @@ TEST_CASE("ligneDeVue : deux points identiques en terrain libre") {
     REQUIRE(carte.ligneDeVue({50.0f, 50.0f}, {50.0f, 50.0f}));
 }
 
-TEST_CASE("ligneDeVue : le segment par le coin de deux murs en diagonale est bloqué") {
+TEST_CASE("ligneDeVue : le segment par le coin de deux murs en diagonale est bloque") {
     // Murs en (2, 1) et (1, 2), qui se touchent au point (80, 80).
     const std::vector<std::string> plan = {
         "....",
@@ -540,7 +540,7 @@ TEST_CASE("ligneDeVue : un segment qui longe un mur sans le traverser est libre"
     REQUIRE(carte.ligneDeVue({10.0f, 39.0f}, {190.0f, 39.0f}));
 }
 
-TEST_CASE("ligneDeVue : un point d'arrivée dans un mur n'est pas visible") {
+TEST_CASE("ligneDeVue : un point d'arrivee dans un mur n'est pas visible") {
     const std::vector<std::string> plan = {
         ".....",
         "..#..",

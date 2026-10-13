@@ -5,12 +5,47 @@
 - **Catch2 3 adopté**, installé via MSYS2
   (`mingw-w64-ucrt-x86_64-catch`), trouvé par `find_package(Catch2 3
   REQUIRED)` comme SFML (pas de `FetchContent`).
-- **Un seul exécutable `tests`**, dix fichiers (`test_TileMap.cpp`,
-  `test_Chemin.cpp`, `test_Escouade.cpp`, `test_Deplacement.cpp`,
-  `test_Monstre.cpp`, `test_Personnage.cpp`,
-  `test_Skill.cpp`, `test_Mobile.cpp`, `test_Cercle.cpp`,
-  `test_Autodefense.cpp`), lancé directement
-  (`./build/tests.exe`) — pas de CTest ni de `catch_discover_tests`.
+- **Un seul exécutable `tests`**, lancé directement (`./build/tests.exe`)
+  — pas de CTest ni de `catch_discover_tests`. Un fichier par module
+  (`test_TileMap.cpp`, `test_Chemin.cpp`, `test_Deplacement.cpp`,
+  `test_Monstre.cpp`, `test_Personnage.cpp`, `test_Skill.cpp`,
+  `test_Mobile.cpp`, `test_Cercle.cpp`, `test_Autodefense.cpp`,
+  `test_BarreDeSkills.cpp`, `test_MonstreVu.cpp`, `test_BarreDeVie.cpp`),
+  sauf `Escouade`, coupée par thème en cinq fichiers à plat (pas de
+  sous-dossier) :
+  - `test_Escouade_deplacement.cpp` : ancre, chemin, formation, places,
+    vivants, rotation de la formation ;
+  - `test_Escouade_combat.cpp` : verrou, approche, autodéfense, placement
+    en combat ;
+  - `test_Escouade_skills.cpp` : les quatre types de skill, le skill en
+    attente, `etatDuSkill`, la visée et la portée du skill de zone ;
+  - `test_Escouade_agresseurs.cpp` : agresseurs, laisse, provocations,
+    `proieDuMonstre` ;
+  - `test_Escouade_vue.cpp` : la ligne de vue (étapes 44 et 46).
+  Un cas qui touche plusieurs thèmes est dans le fichier de son sujet
+  principal. Le plus gros (`test_Escouade_skills.cpp`) fait environ 790
+  lignes.
+- **`tests/aides.hpp`** (étape 50) : en-tête seul, fonctions `inline`, pour
+  les aides **identiques** utilisées par plusieurs fichiers :
+  `verifierPointProche`, `pointCible`, `cibleMonstre`,
+  `carteDegagee10x10`, `carteDegageeEntouree` (800 × 600 px, murs
+  autour), `carteOuverte`, `simuler(escouade, ...)`, `attaquerCible`,
+  `placeAlliePourSoin`. Quand deux copies différaient, elles ont des noms
+  distincts et explicites (`carteDegagee10x10` pour `Mobile`, `Monstre` et
+  `Escouade` ; `carteDegagee5x5` reste dans `test_Personnage.cpp`). Une
+  aide utilisée par un seul fichier y reste, dans un `namespace {}` (plus
+  de `static`) : `ecoulerTemps` (trois signatures différentes, une par
+  fichier : `Skill`, `Monstre`, `Personnage`), `simuler(mobile, ...)`,
+  `declencher`, `unSeulMonstre`, `simulerAttaque`, `simulerAvecMonstre`,
+  `carteAvecMurVertical`, `carteAvecMursFins`, etc. `#include
+  "aides.hpp"` suffit : l'en-tête est dans le dossier des `.cpp`.
+- **Noms de `TEST_CASE` sans accents ni cédilles** (étape 50) : « a
+  portee », « degats », « deja ». Les commentaires gardent leurs
+  accents. Raison : filtrer en ligne de commande dans n'importe quel
+  terminal, par exemple `./build/tests.exe "*a portee*"` (le filtre est
+  un motif entre guillemets, `*` remplace n'importe quel texte) ; la liste
+  complète : `./build/tests.exe --list-tests`. Les noms restent uniques
+  dans tout l'exécutable.
 - **Petits plans dédiés** : chaque test construit son propre plan texte
   (3×3, 4×4, 5×5…), jamais la carte de `main.cpp`, pour isoler exactement
   le cas testé.
@@ -87,13 +122,13 @@
     territoire (continue de rentrer) ; touché en poursuite. La fonction
     d'aide `amenerEnRetourHorsTerritoire` fait sortir le monstre du
     territoire. Piège : une cible à `(400, 100)` est dans un mur sur
-    `carteDegagee` (10 cases de 40 px), le A* échoue.
+    `carteDegagee10x10` (10 cases de 40 px), le A* échoue.
   - **`mettreAJour` : détection, arrêt à portée** : depuis
     que `Monstre` se déplace par son propre `Mobile`, la fonction
     d'aide `ecoulerTemps(monstre, duree, cible, carte)` prend en plus une
     cible (`std::optional<Cercle>`, vide = aucune ;
     les tests y passent un point de rayon nul, `pointCible`) et une
-    `TileMap` (carte dégagée dédiée, `carteDegagee()`, même principe que
+    `TileMap` (carte dégagée dédiée, `carteDegagee10x10()`, même principe que
     pour `Mobile`/`Escouade`) — des résultats (le centre du monstre),
     jamais une trajectoire exacte. Cas couverts : une cible dans le
     rayon de détection (200 px) rapproche le monstre ; une cible hors de
@@ -103,7 +138,7 @@
     (portée de 15 px bord à bord + rayon du monstre de 15 px, la cible
     étant un point).
   - **Territoire et retour au poste** : `carteLongue()`,
-    une carte dégagée plus large que `carteDegagee()`, dédiée aux cas
+    une carte dégagée plus large que `carteDegagee10x10()`, dédiée aux cas
     où une cible ou un trajet de retour dépasse les 400 px du
     territoire. Toujours des résultats (le centre du monstre, comparé
     au poste `{100.0f, 100.0f}` donné au constructeur dans tous ces
@@ -121,8 +156,7 @@
 - **Cibles ponctuelles ou de la taille d'un monstre** :
   depuis que la portée se mesure entre deux `Cercle`, les tests
   de `Skill`, de `Personnage` et de `Monstre` donnent leurs cibles
-  comme des cercles de rayon nul (fonction d'aide `pointCible`, ou
-  `point` dans `test_Skill.cpp`) : la portée reste alors facile à
+  comme des cercles de rayon nul (fonction d'aide commune `pointCible`) : la portée reste alors facile à
   vérifier à la main (distance entre centres moins le seul rayon de
   l'attaquant). Les tests de combat d'`Escouade`, eux, utilisent une
   cible de rayon 15 (`cibleMonstre`), comme le monstre que `main.cpp`
@@ -162,7 +196,7 @@
     d'avant. Preuve que `mettreAJour` revient bien immédiatement sans
     rien calculer, pas seulement que le résultat final coïncide par
     hasard.
-- **`Escouade::attaquer` (`test_Escouade.cpp`)** : comme pour les autres
+- **`Escouade::attaquer` (`test_Escouade_combat.cpp`)** : comme pour les autres
   fonctions d'`Escouade`, des résultats plutôt que des trajectoires
   exactes. `attaquer` reçoit une liste de `MonstreVu` et renvoie des
   `Coup`.
@@ -264,7 +298,7 @@
   - `test_Skill.cpp` : le type donné au constructeur, la puissance à
     portée, 0 hors de portée, 0 pendant la recharge puis la puissance de
     nouveau (4,8 s puis 0,4 s), progression de la recharge.
-  - `test_Escouade.cpp`, `declencherSkill(place, monstres)` (fonctions
+  - `test_Escouade_skills.cpp`, `declencherSkill(place, monstres)` (fonctions
     d'aide `declencher`, qui additionne les dégâts des coups, et
     `unSeulMonstre`) : cible de la taille d'un monstre entre les deux
     mêlées, à portée de chacun. **Sans verrou**, le skill part sur un
@@ -287,7 +321,7 @@
   Le blocage entre monstres dans `main.cpp` n'est pas testé (visuel).
 - **Obstacles pour les personnages** : `test_Personnage.cpp` :
   un personnage envoyé vers un point derrière un obstacle s'arrête avant
-  d'y entrer ; les appels existants passent `{}`. `test_Escouade.cpp` :
+  d'y entrer ; les appels existants passent `{}`. `test_Escouade_deplacement.cpp` :
   avec un obstacle sur le trajet, l'ancre le dépasse alors qu'aucun
   cercle de `cerclesDesVivants()` ne le chevauche à la fin. Dans les deux
   cas on compare la distance entre centres à la somme des rayons, et non
@@ -303,7 +337,7 @@
   vers un mur, `arreter()` stoppe un trajet en cours,
   `directionVoulue()` vide à la création et une fois arrivé, pointe
   vers la destination après `allerVers`.
-- **Soin** (`test_Personnage.cpp`, `test_Escouade.cpp`) :
+- **Soin** (`test_Personnage.cpp`, `test_Escouade_skills.cpp`) :
   - `Personnage::recevoirSoin` : points de vie rendus, plafond au maximum,
     sans effet sur un mort.
   - `choisirCible(TypeSkill::Soin, 3, {})`, observé par la fonction d'aide
@@ -318,7 +352,7 @@
     recharge consommée, recharge juste après le lancement, soigneur mort.
 - **Skill en attente** : comme pour les autres tests d'`Escouade`, des
   résultats plutôt que des trajectoires, sur une carte dégagée dédiée
-  (`carteDegageeSoin`). Soin : le soigneur marche, soigne, puis revient à
+  (`carteDegagee10x10`). Soin : le soigneur marche, soigne, puis revient à
   sa place (`proieDuMonstre` près de sa place) ; annulation si la
   cible ou le soigneur meurt (sans recharge : un nouveau soin part
   aussitôt) ; un ordre de déplacement n'annule rien ; un seul skill en
@@ -332,7 +366,7 @@
 
 ## Barre de skills (étape 48)
 
-- **`test_Escouade.cpp`, `etatDuSkill`** : place invalide (0 et 5) → vide ;
+- **`test_Escouade_skills.cpp`, `etatDuSkill`** : place invalide (0 et 5) → vide ;
   type de chaque place ; skill prêt (progression 1, temps 0, lanceur
   vivant) ; juste après un déclenchement (la provocation de la place 2 part
   même sans monstre : progression 0, temps `> 0`) ; lanceur mort (4 coups
@@ -346,10 +380,10 @@
 
 ## Agresseurs (étape 40)
 
-- **`test_Escouade.cpp`** : enregistrement (coup `> 0`, coup à 0, doublon
+- **`test_Escouade_agresseurs.cpp`** : enregistrement (coup `> 0`, coup à 0, doublon
   rafraîchi, aucun vivant), oubli (3 s, nouveau coup, `attaquer` retire
   l'absent et met à jour le cercle), et déplacement vers l'agresseur sur
-  une carte dégagée (`carteDegagee`, `simulerAvecMonstre` : `attaquer` puis
+  une carte dégagée (`carteDegageeEntouree`, `simulerAvecMonstre` : `attaquer` puis
   `mettreAJour` à chaque tic, le monstre étant obstacle) : mêlée qui
   s'approche, agresseur hors laisse, ancre en mouvement, oubli. Observé par
   `proieDuMonstre` du monstre.
@@ -366,7 +400,7 @@
 - **`test_Skill.cpp`, `test_Personnage.cpp`** : un `Skill` de type
   `Provocation` (type, portée, puissance = durée, recharge) ; un
   personnage qui en expose le type et le déclenche.
-- **`test_Escouade.cpp`** : `provoquer` (enregistrement, doublon dont la
+- **`test_Escouade_agresseurs.cpp`** : `provoquer` (enregistrement, doublon dont la
   durée est remise au maximum), fin d'une provocation (durée, mort du
   provocateur, monstre absent de `attaquer`) ; `proieDuMonstre` (sans
   provocation, monstre provoqué, autre monstre non concerné, provocateur
@@ -387,10 +421,10 @@
   portée de 0 et une zone de 150, et le lanceur se prend pour cible.
 - **`test_Personnage.cpp`** : `zoneDuSkill` (centre sur le personnage,
   rayon du skill, 0 sans skill).
-- **`test_Escouade.cpp`, provocation** : la zone se mesure depuis le centre
+- **`test_Escouade_skills.cpp`, provocation** : la zone se mesure depuis le centre
   du lanceur, monstre compris : touché à 165 px de distance entre centres
   (150 + 15), pas à 166.
-- **`test_Escouade.cpp`, skill de zone** (lanceur de la place 4 en
+- **`test_Escouade_skills.cpp`, skill de zone** (lanceur de la place 4 en
   (185, 235), monstres de rayon 15, donc touchés jusqu'à 75 px de
   distance entre centres) : `skillEstPret` (prêt, place invalide, mort,
   recharge de 8 s) ; `rayonZoneDuSkill` ; `declencherSkillDeZone`
@@ -399,13 +433,13 @@
   skill en attente, place invalide ou sans skill `Zone`, recharge de
   l'attaque de base relancée) ; `declencherSkill` sans point refuse un
   skill `Zone` et `choisirCible` renvoie vide.
-- **`test_Escouade.cpp`, ligne de vue du skill de zone** (carte 15 × 10
+- **`test_Escouade_vue.cpp`, ligne de vue du skill de zone** (carte 15 × 10
   avec un mur vertical épais de 40 px, `carteAvecMurVertical`, contournable
   par le haut ou le bas) : point à portée et en vue (départ immédiat),
   derrière le mur (attente, sans recharge), dans le mur (refus, sans
   attente), lanceur qui contourne puis lance ; monstre dans la zone mais
   derrière le mur épargné, monstre du même côté touché.
-- **`test_Escouade.cpp`, ligne de vue des personnages** (étape 46) :
+- **`test_Escouade_vue.cpp`, ligne de vue des personnages** (étape 46) :
   `carteOuverte()` (4000 × 4000 px sans mur) est passée aux appels
   existants de `declencherSkill` et `choisirCible` ; les nouveaux tests
   utilisent `carteAvecMursFins` (300 × 300 px en cases de 2 px, deux murs
@@ -431,7 +465,32 @@
   liste, identifiant absent, liste vide).
 - **`test_BarreDeVie.cpp`** : `positionBarreDeVie` seule. `dessinerBarreDeVie`
   n'est pas testée (dessin, vérifié dans le jeu).
-- **`[[nodiscard]]`** : 38 appels de `test_Escouade.cpp` et un de
-  `test_Skill.cpp`, qui n'ont besoin que de l'effet (consommer une
-  recharge, enregistrer un agresseur), sont écrits `static_cast<void>(...)`.
+- **`[[nodiscard]]`** : 39 appels de tests (38 dans `test_Escouade.cpp`, un
+  dans `test_Skill.cpp`) ont été écrits `static_cast<void>(...)` à
+  l'étape 49 ; l'étape 50 les a tous revus. 30 sont devenus une
+  vérification de la valeur renvoyée : liste de `Coup` vide pour une
+  provocation, un skill refusé ou mis en attente, un seul `Coup` pour une
+  zone qui touche, `== 25` pour `Skill::declencher`. Les 9 restants sont
+  des `attaquer` appelés seulement pour avancer l'état (agresseurs
+  oubliés, boucles de simulation) : les coups ne sont pas l'objet du
+  test, et un commentaire le dit.
 - **Avertissements** : pas activés sur la cible `tests` (macros de Catch2).
+
+## Réorganisation des tests (étape 50)
+
+- **Tests de rotation** (`test_Escouade_deplacement.cpp`) : aucun
+  accesseur ne donne l'orientation, et on n'en a pas ajouté. L'aide
+  `orientationDeLaFormation` la déduit de `getPlacesDeFormation()[0] -
+  getCentre()` : à l'orientation 0, ce décalage vaut (25, -25), soit
+  -45°, donc orientation = angle du décalage + 45°. Valable en terrain
+  dégagé, où aucune place n'est repliée. Quatre cas : la formation finit
+  tournée vers la direction de marche (90° vers le bas) ; plus court côté
+  (vers le haut, l'orientation devient négative, puis -90°, au lieu de
+  +270°) ; vitesse bornée (après 0,1 s, entre 0° exclu et 36°) ; la
+  rotation se termine après l'arrêt de l'ancre (destination à 10 px,
+  l'ancre arrêtée avant la fin de la rotation, qui finit quand même).
+  Piège : `simuler(escouade, carte, 0.1f)` ne fait que 5 tics
+  (`0.1f / (1.0f / 60.0f)` est juste sous 6) ; l'aide
+  `simulerUnDixiemeDeSeconde` en fait 6.
+- **`provoquer` à une place invalide** (0 et 5) : aucune provocation, la
+  mise à jour suivante ne plante pas, `proieDuMonstre` reste défini.

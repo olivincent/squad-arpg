@@ -5,18 +5,12 @@
 #include <string>
 #include <vector>
 
+#include "aides.hpp"
 #include "Cercle.hpp"
 #include "Mobile.hpp"
 #include "TileMap.hpp"
 
 namespace {
-
-// Même tolérance que test_Escouade.cpp, pour la même raison (flottants
-// accumulés sur plusieurs tics).
-void verifierPointProche(sf::Vector2f point, sf::Vector2f attendu, float tolerance = 0.5f) {
-    REQUIRE_THAT(point.x, Catch::Matchers::WithinAbs(attendu.x, tolerance));
-    REQUIRE_THAT(point.y, Catch::Matchers::WithinAbs(attendu.y, tolerance));
-}
 
 void simuler(Mobile& mobile, const TileMap& carte, float dureeSecondes,
              const std::vector<Cercle>& obstacles = {}) {
@@ -27,38 +21,22 @@ void simuler(Mobile& mobile, const TileMap& carte, float dureeSecondes,
     }
 }
 
-TileMap carteDegagee() {
-    const std::vector<std::string> plan = {
-        "..........",
-        "..........",
-        "..........",
-        "..........",
-        "..........",
-        "..........",
-        "..........",
-        "..........",
-        "..........",
-        "..........",
-    };
-    return TileMap(plan, 40.0f);
-}
-
 }  // namespace
 
-TEST_CASE("Mobile.getCentre renvoie le centre donné au constructeur") {
+TEST_CASE("Mobile.getCentre renvoie le centre donne au constructeur") {
     const Mobile mobile({60.0f, 60.0f}, {20.0f, 20.0f}, 180.0f);
 
     REQUIRE(mobile.getCentre() == sf::Vector2f(60.0f, 60.0f));
 }
 
-TEST_CASE("Mobile.getTaille renvoie la taille donnée au constructeur") {
+TEST_CASE("Mobile.getTaille renvoie la taille donnee au constructeur") {
     const Mobile mobile({60.0f, 60.0f}, {20.0f, 20.0f}, 180.0f);
 
     REQUIRE(mobile.getTaille() == sf::Vector2f(20.0f, 20.0f));
 }
 
 TEST_CASE("Mobile.mettreAJour sans ordre ne bouge pas") {
-    const TileMap carte = carteDegagee();
+    const TileMap carte = carteDegagee10x10();
     Mobile mobile({60.0f, 60.0f}, {20.0f, 20.0f}, 180.0f);
 
     simuler(mobile, carte, 1.0f);
@@ -67,7 +45,7 @@ TEST_CASE("Mobile.mettreAJour sans ordre ne bouge pas") {
 }
 
 TEST_CASE("Mobile.mettreAJour avance de vitesse * dt sur un seul tic") {
-    const TileMap carte = carteDegagee();
+    const TileMap carte = carteDegagee10x10();
     Mobile mobile({60.0f, 60.0f}, {20.0f, 20.0f}, 180.0f);
 
     mobile.allerVers({300.0f, 300.0f}, carte);
@@ -77,8 +55,8 @@ TEST_CASE("Mobile.mettreAJour avance de vitesse * dt sur un seul tic") {
     REQUIRE_THAT(distanceParcourue, Catch::Matchers::WithinAbs(18.0f, 0.5f));
 }
 
-TEST_CASE("Mobile.allerVers atteint le point exact en terrain dégagé") {
-    const TileMap carte = carteDegagee();
+TEST_CASE("Mobile.allerVers atteint le point exact en terrain degage") {
+    const TileMap carte = carteDegagee10x10();
     Mobile mobile({60.0f, 60.0f}, {20.0f, 20.0f}, 180.0f);
 
     const sf::Vector2f destination{137.0f, 251.0f};
@@ -107,7 +85,7 @@ TEST_CASE("Mobile.allerVers contourne un mur et atteint la destination") {
     verifierPointProche(mobile.getCentre(), destination);
 }
 
-TEST_CASE("Mobile.allerVers vers un mur est ignoré") {
+TEST_CASE("Mobile.allerVers vers un mur est ignore") {
     const std::vector<std::string> plan = {
         "....",
         "....",
@@ -125,7 +103,7 @@ TEST_CASE("Mobile.allerVers vers un mur est ignoré") {
 }
 
 TEST_CASE("Mobile.arreter stoppe le mobile en cours de trajet") {
-    const TileMap carte = carteDegagee();
+    const TileMap carte = carteDegagee10x10();
     Mobile mobile({60.0f, 60.0f}, {20.0f, 20.0f}, 180.0f);
 
     mobile.allerVers({300.0f, 300.0f}, carte);
@@ -138,14 +116,14 @@ TEST_CASE("Mobile.arreter stoppe le mobile en cours de trajet") {
     verifierPointProche(mobile.getCentre(), centreApresArret);
 }
 
-TEST_CASE("Mobile.directionVoulue est vide à la création") {
+TEST_CASE("Mobile.directionVoulue est vide a la creation") {
     const Mobile mobile({60.0f, 60.0f}, {20.0f, 20.0f}, 180.0f);
 
     REQUIRE_FALSE(mobile.directionVoulue().has_value());
 }
 
-TEST_CASE("Mobile.directionVoulue pointe vers la destination après allerVers") {
-    const TileMap carte = carteDegagee();
+TEST_CASE("Mobile.directionVoulue pointe vers la destination apres allerVers") {
+    const TileMap carte = carteDegagee10x10();
     Mobile mobile({60.0f, 60.0f}, {20.0f, 20.0f}, 180.0f);
 
     mobile.allerVers({300.0f, 300.0f}, carte);
@@ -156,8 +134,8 @@ TEST_CASE("Mobile.directionVoulue pointe vers la destination après allerVers") 
     REQUIRE(direction->y > 0.0f);
 }
 
-TEST_CASE("Mobile.directionVoulue est vide une fois arrivé") {
-    const TileMap carte = carteDegagee();
+TEST_CASE("Mobile.directionVoulue est vide une fois arrive") {
+    const TileMap carte = carteDegagee10x10();
     Mobile mobile({60.0f, 60.0f}, {20.0f, 20.0f}, 180.0f);
 
     mobile.allerVers({137.0f, 251.0f}, carte);
@@ -166,11 +144,11 @@ TEST_CASE("Mobile.directionVoulue est vide une fois arrivé") {
     REQUIRE_FALSE(mobile.directionVoulue().has_value());
 }
 
-TEST_CASE("Mobile.mettreAJour s'arrête avant un obstacle placé sur son trajet") {
+TEST_CASE("Mobile.mettreAJour s'arrete avant un obstacle place sur son trajet") {
     // Mobile de rayon 10 en (60, 60), destination (300, 60) en ligne droite.
     // Obstacle de rayon 10 centré en (180, 60) : le contact exact est à
     // x = 160, le mobile ne doit jamais dépasser ce centre.
-    const TileMap carte = carteDegagee();
+    const TileMap carte = carteDegagee10x10();
     Mobile mobile({60.0f, 60.0f}, {20.0f, 20.0f}, 180.0f);
     const std::vector<Cercle> obstacles = {{{180.0f, 60.0f}, 10.0f}};
 
@@ -182,8 +160,8 @@ TEST_CASE("Mobile.mettreAJour s'arrête avant un obstacle placé sur son trajet"
     REQUIRE_THAT(mobile.getCentre().y, Catch::Matchers::WithinAbs(60.0f, 0.5f));
 }
 
-TEST_CASE("allerToutDroit mène le mobile exactement au point, sans A*") {
-    const TileMap carte = carteDegagee();
+TEST_CASE("allerToutDroit mene le mobile exactement au point, sans A*") {
+    const TileMap carte = carteDegagee10x10();
     Mobile mobile({60.0f, 60.0f}, {20.0f, 20.0f}, 100.0f);
 
     mobile.allerToutDroit({160.0f, 100.0f});

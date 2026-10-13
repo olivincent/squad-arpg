@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "aides.hpp"
 #include "Personnage.hpp"
 #include "Cercle.hpp"
 #include "Skill.hpp"
@@ -14,15 +15,9 @@
 
 namespace {
 
-// Cible ponctuelle (rayon nul), pour les tests qui ne portent pas sur
-// la forme de la cible elle-même.
-Cercle pointCible(sf::Vector2f centre) {
-    return {centre, 0.0f};
-}
-
 // Carte dégagée dédiée aux tests de recharge : le personnage ne bouge
 // pas (cible = son propre centre), seul le temps doit s'écouler.
-TileMap carteDegagee() {
+TileMap carteDegagee5x5() {
     const std::vector<std::string> plan = {
         ".....",
         ".....",
@@ -59,21 +54,21 @@ TEST_CASE("estAPortee renvoie faux pour un point lointain") {
     REQUIRE_FALSE(personnage.estAPortee(pointCible({300.0f, 100.0f})));
 }
 
-TEST_CASE("frapper renvoie les dégâts pour une cible à portée") {
+TEST_CASE("frapper renvoie les degats pour une cible a portee") {
     Personnage personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.0f), std::nullopt);
 
     REQUIRE(personnage.frapper(pointCible({150.0f, 100.0f})) == 5);
 }
 
-TEST_CASE("frapper renvoie 0 pour une cible hors de portée") {
+TEST_CASE("frapper renvoie 0 pour une cible hors de portee") {
     Personnage personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.0f), std::nullopt);
 
     REQUIRE(personnage.frapper(pointCible({300.0f, 100.0f})) == 0);
 }
 
-TEST_CASE("frapper renvoie de nouveau les dégâts après une durée simulée généreuse") {
+TEST_CASE("frapper renvoie de nouveau les degats apres une duree simulee genereuse") {
     Personnage personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.0f), std::nullopt);
-    const TileMap carte = carteDegagee();
+    const TileMap carte = carteDegagee5x5();
     const Cercle cible = pointCible({150.0f, 100.0f});
 
     REQUIRE(personnage.frapper(cible) == 5);
@@ -137,7 +132,7 @@ TEST_CASE("Un personnage mort ne frappe plus") {
 
 TEST_CASE("Un personnage mort ne bouge plus") {
     Personnage personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.0f), std::nullopt);
-    const TileMap carte = carteDegagee();
+    const TileMap carte = carteDegagee5x5();
     const sf::Vector2f centreInitial = personnage.getCentre();
 
     personnage.recevoirDegats(100);
@@ -197,7 +192,7 @@ TEST_CASE("declencherSkill renvoie 0 hors de portee, sans toucher a l'attaque de
 
 TEST_CASE("declencherSkill renvoie 0 pendant sa recharge, puis de nouveau les degats une fois ecoulee") {
     Personnage personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.0f), Skill(TypeSkill::Degats, 80.0f, 25, 5.0f, 0.0f));
-    const TileMap carte = carteDegagee();
+    const TileMap carte = carteDegagee5x5();
     const Cercle cible = pointCible({150.0f, 100.0f});
 
     REQUIRE(personnage.declencherSkill(cible) == 25);
@@ -210,7 +205,7 @@ TEST_CASE("declencherSkill renvoie 0 pendant sa recharge, puis de nouveau les de
 
 TEST_CASE("Apres un skill reussi, l'attaque de base attend une recharge complete") {
     Personnage personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.0f), Skill(TypeSkill::Degats, 80.0f, 25, 5.0f, 0.0f));
-    const TileMap carte = carteDegagee();
+    const TileMap carte = carteDegagee5x5();
     const Cercle cible = pointCible({150.0f, 100.0f});
 
     // Attaque de base lancée, puis 0,3 s écoulées : il ne lui reste que
@@ -226,8 +221,8 @@ TEST_CASE("Apres un skill reussi, l'attaque de base attend une recharge complete
     REQUIRE(personnage.frapper(cible) == 5);
 }
 
-TEST_CASE("mettreAJour s'arrête avant d'entrer dans un obstacle") {
-    const TileMap carte = carteDegagee();
+TEST_CASE("mettreAJour s'arrete avant d'entrer dans un obstacle") {
+    const TileMap carte = carteDegagee5x5();
     Personnage personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.0f), std::nullopt);
     const std::vector<Cercle> obstacles = {{{140.0f, 100.0f}, 15.0f}};
 
@@ -252,7 +247,7 @@ TEST_CASE("recevoirSoin rend des points de vie") {
     REQUIRE(personnage.getPointsDeVie() == 80);
 }
 
-TEST_CASE("recevoirSoin ne dépasse pas le maximum") {
+TEST_CASE("recevoirSoin ne depasse pas le maximum") {
     Personnage personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.0f), std::nullopt);
     personnage.recevoirDegats(10);
 
@@ -271,8 +266,8 @@ TEST_CASE("recevoirSoin est sans effet sur un mort") {
     REQUIRE(personnage.getPointsDeVie() == 0);
 }
 
-TEST_CASE("En terrain dégagé, le personnage avance en ligne droite de vitesse * dt") {
-    const TileMap carte = carteDegagee();
+TEST_CASE("En terrain degage, le personnage avance en ligne droite de vitesse * dt") {
+    const TileMap carte = carteDegagee5x5();
     Personnage personnage({60.0f, 60.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.0f), std::nullopt);
 
     for (int i = 0; i < 10; ++i) {
@@ -284,7 +279,7 @@ TEST_CASE("En terrain dégagé, le personnage avance en ligne droite de vitesse 
     REQUIRE_THAT(personnage.getCentre().y, Catch::Matchers::WithinAbs(60.0f, 0.01f));
 }
 
-TEST_CASE("Un personnage séparé de sa cible par un mur avec une ouverture finit par l'atteindre") {
+TEST_CASE("Un personnage separe de sa cible par un mur avec une ouverture finit par l'atteindre") {
     const TileMap carte({"#######",
                          "#..#..#",
                          "#..#..#",
@@ -300,7 +295,7 @@ TEST_CASE("Un personnage séparé de sa cible par un mur avec une ouverture fini
     REQUIRE_THAT(personnage.getCentre().y, Catch::Matchers::WithinAbs(cible.y, 1.0f));
 }
 
-TEST_CASE("Sans aucun chemin possible, le personnage ne plante pas et reste bloqué contre le mur") {
+TEST_CASE("Sans aucun chemin possible, le personnage ne plante pas et reste bloque contre le mur") {
     const TileMap carte({"#####",
                          "#.#.#",
                          "#####"},
@@ -350,7 +345,7 @@ TEST_CASE("Une cible qui bouge de plus d'une case fait recalculer le chemin") {
     REQUIRE(personnage.getCentre().x <= 110.01f);
 }
 
-TEST_CASE("Quand le trajet direct redevient libre, le chemin en cours est abandonné") {
+TEST_CASE("Quand le trajet direct redevient libre, le chemin en cours est abandonne") {
     const TileMap carte = deuxPiecesAvecPorte();
     Personnage personnage({60.0f, 60.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.0f), std::nullopt);
 

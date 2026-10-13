@@ -3,7 +3,7 @@
 
 #include "Cercle.hpp"
 
-TEST_CASE("distanceBordABord renvoie l'écart entre deux cercles séparés") {
+TEST_CASE("distanceBordABord renvoie l'ecart entre deux cercles separes") {
     Cercle a{{0.0f, 0.0f}, 10.0f};
     Cercle b{{50.0f, 0.0f}, 10.0f};
 
@@ -24,7 +24,7 @@ TEST_CASE("distanceBordABord renvoie 0 pour deux cercles qui se chevauchent") {
     REQUIRE(distanceBordABord(a, b) == 0.0f);
 }
 
-TEST_CASE("distanceBordABord tient compte de rayons différents") {
+TEST_CASE("distanceBordABord tient compte de rayons differents") {
     Cercle a{{0.0f, 0.0f}, 5.0f};
     Cercle b{{100.0f, 0.0f}, 20.0f};
 
