@@ -220,6 +220,27 @@ personnages sont dans `docs/formation.md`, le monstre dans
   monstre verrouillé, ou, sans verrou, le monstre que son lanceur
   frapperait en autodéfense (voir ci-dessous).
 
+## État d'un skill pour l'affichage (étape 48)
+
+- **`EtatSkill`** (`EtatSkill.hpp`, sans comportement, sur le modèle de
+  `Coup.hpp`) : `type`, `progression` (0 juste lancé, 1 prêt : même sens que
+  la barre orange sous les personnages), `tempsRestant` (secondes),
+  `lanceurVivant`. `Escouade::etatDuSkill(place)` le renvoie, vide si la
+  place est invalide ou sans skill ; la progression d'un mort est celle
+  qu'il avait en mourant.
+- **Pourquoi une structure plutôt que des getters** : `main.cpp` ne connaît
+  pas `Personnage` ; un seul appel par place donne tout ce que la barre
+  montre. `Skill` n'a gagné que `getRechargeRestante`.
+- **Présentation séparée de la logique** : `Skill` ne sait pas comment il
+  est dessiné ; la lettre (D, P, S, Z) vient d'un `switch` sans `default`
+  dans `BarreDeSkills`, que le compilateur signale si un type est oublié.
+- **Quartier** : la zone sombre couvre la fraction `1 − progression`, de
+  l'aiguille jusqu'à midi, avec des sommets sur le bord du carré
+  (projection `demiCote / max(|dx|, |dy|)`), pas sur un cercle.
+  `pointsDuQuartier` est pure et testée (aire = fraction × côté²).
+- **Limites connues** : le skill en attente n'est pas indiqué, pas
+  d'infobulle, d'icône image ni de clic sur la barre.
+
 ## Choix de la cible et skill en attente
 
 - **`Cible`** est un `std::variant<CibleAllie, CibleMonstre>`
@@ -360,7 +381,7 @@ personnages sont dans `docs/formation.md`, le monstre dans
 - **Le mode visée est un état d'interface** (voir
   `docs/boucle-et-entrees.md`) : `Escouade` ne connaît ni la souris ni le
   mode.
-- **Limites connues** : pas d'effet visuel à l'impact, de HUD ni d'icône ; pas de dégâts aux
+- **Limites connues** : pas d'effet visuel à l'impact ; pas de dégâts aux
   alliés ni dans le temps.
 
 ## Portée de lancement du skill de zone (étape 43)

@@ -10,7 +10,8 @@
 - **Bibliothèque `squad_core`** (`add_library(squad_core STATIC
   src/TileMap.cpp src/Escouade.cpp src/Chemin.cpp src/Personnage.cpp
   src/Deplacement.cpp src/Monstre.cpp src/Skill.cpp
-  src/Mobile.cpp src/Cercle.cpp)`) :
+  src/Mobile.cpp src/Cercle.cpp src/Autodefense.cpp
+  src/BarreDeSkills.cpp)`) :
   regroupe la logique de jeu, réutilisée par `main` et par `tests`.
   - `target_link_libraries(squad_core PUBLIC SFML::Graphics)` : `PUBLIC`
     parce que les en-têtes de `squad_core` (`TileMap.hpp`, `Escouade.hpp`)
@@ -23,11 +24,18 @@
   en `PRIVATE` (`target_link_libraries(main PRIVATE squad_core)`) :
   `PRIVATE` parce que rien d'autre ne relie jamais `main`, un exécutable
   final.
+  - **Assets** : une commande `POST_BUILD` (`add_custom_command(TARGET
+    main ...)`, `cmake -E copy_directory`) copie `assets/` à côté de
+    `main.exe` (`$<TARGET_FILE_DIR:main>`). Le jeu charge la police par
+    chemin relatif (`assets/fonts/DejaVuSans.ttf`) : il doit être lancé
+    depuis le dossier de `main.exe`. La copie n'est refaite qu'à la
+    recompilation de `main`.
 - **`tests`** (`add_executable(tests tests/test_TileMap.cpp
   tests/test_Chemin.cpp tests/test_Escouade.cpp
   tests/test_Deplacement.cpp tests/test_Monstre.cpp
   tests/test_Personnage.cpp
-  tests/test_Skill.cpp tests/test_Mobile.cpp tests/test_Cercle.cpp)`) se lie à `squad_core` et à
+  tests/test_Skill.cpp tests/test_Mobile.cpp tests/test_Cercle.cpp
+  tests/test_Autodefense.cpp tests/test_BarreDeSkills.cpp)`) se lie à `squad_core` et à
   `Catch2::Catch2WithMain` (qui fournit le `main()` des tests) ; lancé
   directement (`./build/tests.exe`), sans CTest.
 - **Générateur Ninja** (`cmake -S . -B build -G Ninja`). Ninja relance la

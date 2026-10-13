@@ -330,6 +330,20 @@
   d'un skill de dégâts. Le branchement des touches dans `main.cpp` n'est
   pas testé (visuel).
 
+## Barre de skills (étape 48)
+
+- **`test_Escouade.cpp`, `etatDuSkill`** : place invalide (0 et 5) → vide ;
+  type de chaque place ; skill prêt (progression 1, temps 0, lanceur
+  vivant) ; juste après un déclenchement (la provocation de la place 2 part
+  même sans monstre : progression 0, temps `> 0`) ; lanceur mort (4 coups
+  mortels au même point).
+- **`test_BarreDeSkills.cpp`** : lettre de chaque type ; secondes affichées
+  (4,2 → 5, 1,0 → 1, 0,01 → 1, 0 → 0) ; quartier : fraction nulle → aucun
+  sommet, premier sommet = centre, dernier = midi, aire = fraction × côté²
+  pour k/8 (formule du lacet, tolérance 0,5), sommets dans le carré.
+- **Non testé** : `dessinerBarreDeSkills` (couleurs, positions, chiffre,
+  contour), vérifié à la main dans le jeu.
+
 ## Agresseurs (étape 40)
 
 - **`test_Escouade.cpp`** : enregistrement (coup `> 0`, coup à 0, doublon

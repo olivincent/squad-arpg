@@ -54,13 +54,14 @@ est dans `docs/historique.md`.
 - Étape 45 — Fusion d'`Attaque` dans `Skill` (refactorisation pure) ✅
 - Étape 46 — Ligne de vue pour les attaques de base et les autres skills ✅
 - Étape 47 — Un monstre touché s'active ✅
+- Étape 48 — Barre de skills à l'écran (HUD) ✅
 
-## Étape 48 — à définir
+## Étape 49 — à définir
 
 Pistes discutées :
 - Le monstre touché se jette sur l'auteur du coup (mémoire de
   l'attaquant), aggro sociale des voisins, effet visuel d'alerte
-- Effet visuel à l'impact du skill de zone, HUD ou icônes de skill
+- Effet visuel à l'impact du skill de zone
 - Indicateur visuel du monstre provoqué
 - L'escouade poursuit d'elle-même un monstre qui l'attaque (écartée pour
   l'instant)
@@ -88,8 +89,7 @@ Pistes discutées :
 - Effet visuel au coup ou à la mort d'un monstre ou d'un personnage
 - Un lissage plus serré autour des coins (*funnel algorithm* ou Theta*),
   si le contournement actuel des piliers s'avère insuffisant
-- Finitions : caméra bloquée aux bords de la carte, affichage fixe à
-  l'écran, police committée dans le dépôt
+- Finitions : caméra bloquée aux bords de la carte
 - Limitation de fréquence des appels à `allerVers`/A*, si un problème de
   performance est mesuré sur une carte plus grande
 - Ligne de vue pour la détection des monstres et leur riposte
@@ -109,6 +109,16 @@ Pistes discutées :
   40 px (2360 × 1600 px), plusieurs pièces et couloirs, définie en texte
   dans `main.cpp`. La caméra (`sf::View`) est centrée sur l'escouade ;
   du noir apparaît au-delà des bords de la carte.
+- **Barre de skills** : en bas de la fenêtre, fixe à l'écran (vue par
+  défaut, dessinée en dernier), 4 icônes carrées de 56 px dans l'ordre des
+  touches 1 à 4, avec la lettre du skill (D, P, S, Z) et le numéro de
+  touche. Pendant la recharge, un quartier noir semi-transparent suit les
+  bords du carré (zone claire grandissante depuis midi, sens horaire) et
+  le temps restant en secondes entières s'affiche au centre. Icône grisée,
+  sans quartier ni chiffre, quand le lanceur est mort ; contour jaune sur
+  l'icône du skill en cours de visée. Police DejaVu Sans dans
+  `assets/fonts/`, copiée à côté de `main.exe` par CMake ; le jeu refuse
+  de démarrer si elle manque.
 - **Escouade** : l'ancre (carré vert de 20 × 20, démarre en `(100, 100)`,
   180 px/s) suit le chemin calculé par le A* puis lissé (trajets directs en
   terrain dégagé, coins contournés au plus court), s'arrête exactement sur
@@ -225,12 +235,16 @@ Pistes discutées :
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 314 tests : 38 sur `TileMap`, 17 sur `Chemin`, 134
+  (`./build/tests.exe`, 325 tests : 38 sur `TileMap`, 17 sur `Chemin`, 139
   sur `Escouade`, 12 sur `Deplacement`, 34 sur `Monstre`, 31 sur
   `Personnage`, 17 sur `Skill`, 14 sur `Mobile`, 4 sur
-  `Cercle`, 13 sur `Autodefense`).
+  `Cercle`, 13 sur `Autodefense`, 6 sur `BarreDeSkills`).
 
 **Limites connues** (acceptées pour l'instant) :
+- La barre de skills ne montre pas le skill en attente et n'est pas
+  cliquable ; sa position suit la taille initiale de la fenêtre (pas de
+  gestion du redimensionnement). La police se charge par chemin relatif :
+  le jeu doit être lancé depuis le dossier de `main.exe`.
 - Le skill de zone n'a pas d'effet visuel à
   l'impact et ne touche pas les alliés ; son lanceur, bloqué par un
   monstre ou face à un point inaccessible, peut rester en attente.

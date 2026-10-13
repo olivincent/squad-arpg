@@ -50,12 +50,16 @@ squad-arpg/
 │   ├── Coup.hpp
 │   ├── Autodefense.hpp / .cpp
 │   ├── Mobile.hpp / .cpp
-│   └── Cercle.hpp / .cpp
+│   ├── Cercle.hpp / .cpp
+│   ├── EtatSkill.hpp
+│   └── BarreDeSkills.hpp / .cpp
+├── assets/
+│   └── fonts/ (DejaVuSans.ttf, LICENSE-DejaVu.txt)
 ├── tests/
 │   ├── test_TileMap.cpp, test_Chemin.cpp, test_Escouade.cpp
 │   ├── test_Deplacement.cpp, test_Monstre.cpp, test_Personnage.cpp
 │   └── test_Skill.cpp, test_Mobile.cpp, test_Cercle.cpp,
-│       test_Autodefense.cpp
+│       test_Autodefense.cpp, test_BarreDeSkills.cpp
 ├── docs/
 │   ├── build.md
 │   ├── boucle-et-entrees.md
@@ -80,7 +84,7 @@ et de la boucle de jeu.
 Qui possède quoi :
 - `main.cpp` possède la fenêtre, la boucle de jeu, la caméra, la carte
   (`TileMap`), l'`Escouade` et un `std::vector<Monstre>`, ainsi que le mode
-  visée du skill de zone (état d'interface). Il traite les
+  visée du skill de zone (état d'interface) et la police (`sf::Font`). Il traite les
   événements (fermeture, clic, touches 1 à 4, Échap, clic droit) et fait l'intermédiaire entre
   `Escouade` et `Monstre`, qui ne se connaissent pas : il donne à
   `Escouade` la liste des monstres (`MonstreVu`) et applique les `Coup`
@@ -144,6 +148,7 @@ publique : `id` du monstre, `place` du provocateur, `tempsRestant`).
 | `void allerVers(sf::Vector2f destination, const TileMap& carte)` | Délègue à `m_mobile.allerVers` |
 | `std::vector<Coup> attaquer(const std::vector<MonstreVu>& monstres, const TileMap& carte)` | Avec un verrou dont le monstre est dans `monstres` : mémorise son cercle, approche tant qu'un personnage vivant n'atteint pas la cible (à portée ET en vue : `peutAtteindre`), s'arrête sinon, et fait partir le skill de dégâts en attente si son lanceur l'atteint. Dans tous les cas, fait partir le skill de zone en attente (`CiblePoint`) dès que son lanceur vivant peut lancer au point (à portée ET en vue), avant les attaques de base ; ses coups s'ajoutent à la liste. Verrou ou non : chaque personnage choisit pour lui-même le monstre à frapper parmi ceux qu'il atteint (`choisirMonstreAFrapper` avec `peutAtteindre`) et frappe ; renvoie un `Coup` par frappe qui touche |
 | `std::vector<Coup> declencherSkill(std::size_t place, const std::vector<MonstreVu>& monstres, const TileMap& carte)` | Skill du personnage à la place `place` (1 à 4). Liste vide si la place est invalide, sans skill, si le skill est de type `Zone` (il se lance par `declencherSkillDeZone`), si le lanceur est mort, si le skill est en recharge, si un skill est déjà en attente ou si `choisirCible` ne trouve rien. Une provocation (sans cible) provoque tous les monstres de `monstres` touchés par sa zone (cercle centré sur le lanceur, rayon de zone du skill) ET en vue du lanceur (centre à centre), sans dégât ni attente ; elle part et consomme sa recharge même s'il n'y en a aucun. Cible atteinte (à portée ET en vue) : un skill de dégâts renvoie un coup (identifiant de la cible, dégâts), un soin est appliqué sur place (liste vide). Non atteinte (seulement avec un verrou pour les dégâts) : le skill est mis en attente (liste vide) |
+| `std::optional<EtatSkill> etatDuSkill(std::size_t place) const` | Skill de cette place tel que l'affichage en a besoin (`EtatSkill`) ; vide si la place est invalide ou sans skill |
 | `bool skillEstPret(std::size_t place) const` | Le personnage à cette place est-il vivant, avec un skill dont la recharge est écoulée ? Faux si la place est invalide |
 | `float rayonZoneDuSkill(std::size_t place) const` | Rayon de zone du skill de cette place ; 0 sans skill ou si la place est invalide |
 | `Cercle cercleDePorteeDuSkill(std::size_t place) const` | Cercle centré sur le lanceur, de rayon (rayon du personnage + portée du skill) ; rayon 0 si la place est invalide |
@@ -217,6 +222,7 @@ cible du dernier A*), `m_pointsDeVie`, `m_pointsDeVieMax`.
 | `int frapper(Cercle cible)` | 0 s'il est mort ; sinon délègue à `m_attaque.frapper` avec `getCercle()` comme origine |
 | `std::optional<TypeSkill> typeSkill() const` | Type du skill, vide sans skill |
 | `bool skillEstPret() const` | Vivant, avec un skill dont la recharge est écoulée |
+| `std::optional<EtatSkill> etatDuSkill() const` | Type, progression de la recharge, temps restant et état de vie ; vide sans skill |
 | `bool skillEstAPortee(Cercle cible) const` | Le skill est-il à portée de `cible` (bord à bord) ? Faux sans skill |
 | `Cercle zoneDuSkill() const` | Cercle centré sur le personnage, de rayon le rayon de zone de son skill (0 sans skill) |
 | `Cercle cercleDePorteeDuSkill() const` | Cercle centré sur le personnage, de rayon son rayon + la portée de son skill (rayon seul sans skill) |
@@ -287,6 +293,7 @@ en pixels).
 | `int declencher(Cercle origine, Cercle cible)` | Puissance si la cible est à portée et la recharge écoulée (relance alors la recharge), sinon 0 sans toucher la recharge |
 | `void relancerRecharge()` | Remet la recharge à `m_tempsRecharge`, sans déclencher |
 | `float getProgressionRecharge() const` | De 0 (juste après le déclenchement) à 1 (prêt) ; 1 si le temps de recharge est nul |
+| `float getRechargeRestante() const` | Temps de recharge restant, en secondes (0 si prêt) |
 | `TypeSkill getType() const` | Type du skill |
 | `float getRayonZone() const` | Rayon de zone du skill |
 | `float getPortee() const` | Portée du skill (bord à bord) |
@@ -317,6 +324,21 @@ par `Escouade::mettreAJour`.
 skill de zone en attente) et
 `using Cible = std::variant<CibleAllie, CibleMonstre, CiblePoint>`. L'absence de
 cible est un `std::optional<Cible>` vide.
+
+### `EtatSkill` — le skill d'une place, pour l'affichage
+
+`EtatSkill.hpp`, sans `.cpp` : `struct EtatSkill { TypeSkill type; float progression; float tempsRestant; bool lanceurVivant; }`. `progression` va de 0 (juste lancé) à 1 (prêt), `tempsRestant` est en secondes. Produite par `Escouade::etatDuSkill`, consommée par `BarreDeSkills`.
+
+### `BarreDeSkills` — la barre de skills à l'écran
+
+Fonctions libres, sans état : tout est recalculé à chaque image. Ne connaît ni `Escouade` ni `Personnage` : elle reçoit des `EtatSkill`.
+
+| Fonction | Rôle |
+|---|---|
+| `char lettreDuSkill(TypeSkill type)` | D (dégâts), P (provocation), S (soin), Z (zone) |
+| `int secondesAffichees(float tempsRestant)` | Secondes entières, arrondies vers le haut |
+| `std::vector<sf::Vector2f> pointsDuQuartier(sf::Vector2f centre, float cote, float fractionSombre)` | Sommets d'un `TriangleFan` : centre, aiguille, coins du carré dans l'intervalle, midi ; vide si la fraction est nulle |
+| `void dessinerBarreDeSkills(sf::RenderTarget& rendu, const sf::Font& police, const std::array<std::optional<EtatSkill>, 4>& etats, std::optional<std::size_t> placeEnVisee)` | Dessine 4 icônes de 56 px en bas de la vue par défaut (à appeler avec elle) : fond, lettre, numéro de touche, quartier sombre et chiffre en recharge, grisée si le lanceur est mort, contour jaune si `placeEnVisee` |
 
 ### `Cercle` — la forme d'une entité
 

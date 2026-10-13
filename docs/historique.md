@@ -1214,3 +1214,27 @@ consommé à chaque appel ; une seule transition par appel.
 **Hors de portée** : se jeter sur l'auteur du coup, aggro sociale, ignorer
 le territoire après un coup, ligne de vue pour la détection ou la riposte,
 effet visuel d'alerte.
+
+### Étape 48 — Barre de skills à l'écran (HUD) ✅ TERMINÉE
+
+1. [x] Police DejaVu Sans dans `assets/fonts/`, copie par CMake, chargement
+       dans `main.cpp` avec gestion d'échec, vue fixe
+2. [x] `EtatSkill`, `Skill::getRechargeRestante`, `Personnage::etatDuSkill`,
+       `Escouade::etatDuSkill` ; tests (enchaînée)
+3. [x] Fonctions pures de `BarreDeSkills` (lettre, secondes, quartier) ;
+       tests (enchaînée)
+4. [x] Icônes statiques (fond, contour, lettre, numéro)
+5. [x] Quartier sombre pendant la recharge
+6. [x] Chiffre du temps restant
+7. [x] Lanceur mort (grisé) et visée active (contour jaune)
+8. [x] Mise à jour des documents
+
+**Choix** : fonctions libres sans classe `Hud` (aucun état propre) ;
+`EtatSkill` comme structure sans comportement pour que `main.cpp` ignore
+`Personnage` ; présentation séparée de `Skill` ; quartier calculé sur le
+bord du carré ; vue par défaut pour l'interface, avec retour à `camera` en
+début d'image (bug de conversion des clics trouvé en chemin).
+
+**Hors de portée** : indication du skill en attente, infobulle, clic sur
+les icônes, images d'icônes, autre texte à l'écran, redimensionnement de la
+fenêtre.

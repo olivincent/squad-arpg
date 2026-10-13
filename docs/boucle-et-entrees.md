@@ -8,7 +8,9 @@ ne se connaissent pas.
 ## Boucle de jeu
 
 - **Ordre d'une image** :
-  0. sortie de la visée si le lanceur ne peut plus lancer (mort, défaite) ;
+  0. retour à la vue `camera` (l'image précédente a fini sur la vue de
+     l'interface : sans cela, `mapPixelToCoords` convertirait les clics
+     avec la vue par défaut) ; sortie de la visée si le lanceur ne peut plus lancer (mort, défaite) ;
   1. événements : fermeture ; appui de souris (pose ou retire le verrou
      de combat, arme le déplacement continu ; en visée, lance ou annule
      le sort) ; appui sur une touche 1 à 3 (demande le skill de cette
@@ -22,7 +24,8 @@ ne se connaissent pas.
   5. mise à jour : liste des cercles des monstres, puis
      `escouade.mettreAJour`, puis `escouade.cerclesDesVivants()`, puis
      chaque monstre (cible, obstacles, mise à jour, riposte) ;
-  6. caméra, dessin.
+  6. caméra, dessin du monde, puis de la barre de skills dans la vue
+     par défaut (voir « Interface fixe à l'écran »).
 - **Déplacement à pas fixe** plutôt que proportionnel à la distance :
   vitesse constante, comme un personnage d'ARPG.
 - **Delta time** (`sf::Clock::restart()`) : vitesse exprimée en pixels par
@@ -34,8 +37,8 @@ ne se connaissent pas.
   n'y a pas de comportement à y encapsuler : les variables locales
   `deplacementContinu`, `placeSkillDemandee`, `placeEnVisee`, `prochainId` et la vue `camera`
   suffisent.
-- **Pas de texte de position ni de police chargée** : rien n'affiche la
-  position du curseur à l'écran.
+- **Pas de texte de position** : rien n'affiche la position du curseur à
+  l'écran.
 
 ## Entrée souris
 
@@ -198,6 +201,29 @@ ne se connaissent pas.
 - **Indépendant du verrou de cible** : un monstre poursuit et riposte dès
   qu'un personnage vivant est à sa portée, qu'il soit lui-même attaqué ou
   non.
+
+## Interface fixe à l'écran (étape 48)
+
+- **Deux vues par image** : le monde est dessiné avec `camera`, puis
+  `window.setView(window.getDefaultView())` donne des coordonnées en
+  pixels de la fenêtre pour la barre de skills, dessinée en dernier, par-
+  dessus tout. Conséquence : la vue active en fin d'image n'est plus la
+  caméra ; c'est pourquoi l'image suivante commence par
+  `window.setView(camera)` (sinon les clics seraient mal convertis : bug
+  rencontré pendant l'étape).
+- **Police** : DejaVu Sans, libre, committée avec sa licence dans
+  `assets/fonts/` (pas de dépendance aux polices du système). Chargée une
+  fois au départ de `main`, passée par `const sf::Font&` au dessin. Un
+  `sf::Text` garde un pointeur vers sa police : elle doit vivre plus
+  longtemps que lui. Échec de chargement : message sur `std::cerr`, `main`
+  rend 1.
+- **`main.cpp` prépare les états** : un `std::array<std::optional<
+  EtatSkill>, 4>` rempli par `escouade.etatDuSkill(place)`, et `placeEnVisee`
+  est transmise telle quelle ; `main.cpp` ne connaît toujours pas
+  `Personnage`. Pas de classe `Hud` : la barre n'a aucun état propre.
+- **Limites connues** : la position se calcule depuis la taille de la
+  vue par défaut, mais le redimensionnement de la fenêtre n'est pas géré ;
+  le chemin de la police est relatif au dossier courant.
 
 ## Caméra
 
