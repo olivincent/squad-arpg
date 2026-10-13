@@ -404,11 +404,11 @@ TEST_CASE("Le lissage rend un trajet diagonal plus rapide qu'un escalier") {
     verifierPointProche(escouade.getCentre(), destination);
 }
 
-TEST_CASE("personnageLePlusProche renvoie un centre plus proche du point que le centre de l'escouade") {
+TEST_CASE("proieDuMonstre renvoie un centre plus proche du point que le centre de l'escouade") {
     const Escouade escouade({50.0f, 50.0f});
 
     const sf::Vector2f pointLointain{1000.0f, 1000.0f};
-    const std::optional<Cercle> cerclePersonnage = escouade.personnageLePlusProche(pointLointain);
+    const std::optional<Cercle> cerclePersonnage = escouade.proieDuMonstre(1, pointLointain);
     REQUIRE(cerclePersonnage.has_value());
 
     const float distancePersonnage = (cerclePersonnage->centre - pointLointain).length();
@@ -417,35 +417,35 @@ TEST_CASE("personnageLePlusProche renvoie un centre plus proche du point que le 
     REQUIRE(distancePersonnage < distanceEscouade);
 }
 
-TEST_CASE("personnageLePlusProche ignore les degats insuffisants pour tuer") {
+TEST_CASE("proieDuMonstre ignore les degats insuffisants pour tuer") {
     Escouade escouade({50.0f, 50.0f});
     const sf::Vector2f point{1000.0f, 1000.0f};
 
-    const std::optional<Cercle> avant = escouade.personnageLePlusProche(point);
+    const std::optional<Cercle> avant = escouade.proieDuMonstre(1, point);
     REQUIRE(avant.has_value());
 
     escouade.recevoirDegats(1, point, 50);
-    const std::optional<Cercle> apres = escouade.personnageLePlusProche(point);
+    const std::optional<Cercle> apres = escouade.proieDuMonstre(1, point);
     REQUIRE(apres.has_value());
 
     REQUIRE(apres->centre == avant->centre);
 }
 
-TEST_CASE("personnageLePlusProche change de cible une fois le plus proche mort") {
+TEST_CASE("proieDuMonstre change de cible une fois le plus proche mort") {
     Escouade escouade({50.0f, 50.0f});
     const sf::Vector2f point{1000.0f, 1000.0f};
 
-    const std::optional<Cercle> avant = escouade.personnageLePlusProche(point);
+    const std::optional<Cercle> avant = escouade.proieDuMonstre(1, point);
     REQUIRE(avant.has_value());
 
     escouade.recevoirDegats(1, point, 100);
-    const std::optional<Cercle> apres = escouade.personnageLePlusProche(point);
+    const std::optional<Cercle> apres = escouade.proieDuMonstre(1, point);
     REQUIRE(apres.has_value());
 
     REQUIRE_FALSE(apres->centre == avant->centre);
 }
 
-TEST_CASE("personnageLePlusProche est vide une fois tous les personnages morts") {
+TEST_CASE("proieDuMonstre est vide une fois tous les personnages morts") {
     Escouade escouade({50.0f, 50.0f});
     const sf::Vector2f point{1000.0f, 1000.0f};
 
@@ -453,10 +453,10 @@ TEST_CASE("personnageLePlusProche est vide une fois tous les personnages morts")
         escouade.recevoirDegats(1, point, 100);
     }
 
-    REQUIRE_FALSE(escouade.personnageLePlusProche(point).has_value());
+    REQUIRE_FALSE(escouade.proieDuMonstre(1, point).has_value());
 
     escouade.recevoirDegats(1, point, 100);
-    REQUIRE_FALSE(escouade.personnageLePlusProche(point).has_value());
+    REQUIRE_FALSE(escouade.proieDuMonstre(1, point).has_value());
 }
 
 TEST_CASE("estVivante est vraie a la creation") {
@@ -495,7 +495,7 @@ TEST_CASE("cerclesDesVivants n'inclut plus le cercle d'un personnage mort") {
     Escouade escouade({50.0f, 50.0f});
     const sf::Vector2f point{1000.0f, 1000.0f};
 
-    const std::optional<Cercle> futurMort = escouade.personnageLePlusProche(point);
+    const std::optional<Cercle> futurMort = escouade.proieDuMonstre(1, point);
     REQUIRE(futurMort.has_value());
 
     escouade.recevoirDegats(1, point, 100);
@@ -575,18 +575,18 @@ TEST_CASE("En combat, un personnage a portee de la cible reste immobile pendant 
     // (≈93 - 25 ≈ 68 px) : l'ancre doit donc encore avancer.
     const sf::Vector2f cible{175.0f, 60.0f};
 
-    const sf::Vector2f tireurAvant = escouade.personnageLePlusProche({35.0f, 60.0f})->centre;
-    const sf::Vector2f meleeAvant = escouade.personnageLePlusProche({85.0f, 60.0f})->centre;
+    const sf::Vector2f tireurAvant = escouade.proieDuMonstre(1, {35.0f, 60.0f})->centre;
+    const sf::Vector2f meleeAvant = escouade.proieDuMonstre(1, {85.0f, 60.0f})->centre;
 
     for (int i = 0; i < 10; ++i) {
         attaquerCible(escouade, carte, cibleMonstre(cible));
         escouade.mettreAJour(1.0f / 60.0f, carte, {});
     }
 
-    const sf::Vector2f tireurApres = escouade.personnageLePlusProche({35.0f, 60.0f})->centre;
+    const sf::Vector2f tireurApres = escouade.proieDuMonstre(1, {35.0f, 60.0f})->centre;
     verifierPointProche(tireurApres, tireurAvant, 0.01f);
 
-    const sf::Vector2f meleeApres = escouade.personnageLePlusProche({85.0f, 60.0f})->centre;
+    const sf::Vector2f meleeApres = escouade.proieDuMonstre(1, {85.0f, 60.0f})->centre;
     REQUIRE((meleeApres - meleeAvant).length() > 5.0f);
 }
 
@@ -609,14 +609,14 @@ TEST_CASE("Sans verrou, un personnage deja a portee suit tout de meme son emplac
     const sf::Vector2f cible{175.0f, 60.0f}; // même configuration que le test précédent
     escouade.allerVers(cible, carte); // sans verrou, attaquer() n'approche pas : l'ordre vient du joueur
 
-    const sf::Vector2f tireurAvant = escouade.personnageLePlusProche({35.0f, 60.0f})->centre;
+    const sf::Vector2f tireurAvant = escouade.proieDuMonstre(1, {35.0f, 60.0f})->centre;
 
     for (int i = 0; i < 10; ++i) {
         attaquerCible(escouade, carte, cibleMonstre(cible));
         escouade.mettreAJour(1.0f / 60.0f, carte, {});
     }
 
-    const sf::Vector2f tireurApres = escouade.personnageLePlusProche({35.0f, 60.0f})->centre;
+    const sf::Vector2f tireurApres = escouade.proieDuMonstre(1, {35.0f, 60.0f})->centre;
     REQUIRE((tireurApres - tireurAvant).length() > 5.0f);
 }
 
@@ -880,7 +880,7 @@ TEST_CASE("Un soin hors de portée est mis en attente : le soigneur marche, soig
     REQUIRE_FALSE(placeAlliePourSoin(escouade).has_value());  // soigné en route
 
     simuler(escouade, carte, 2.0f);
-    const std::optional<Cercle> soigneur = escouade.personnageLePlusProche({35.0f, 35.0f});
+    const std::optional<Cercle> soigneur = escouade.proieDuMonstre(1, {35.0f, 35.0f});
     REQUIRE(soigneur.has_value());
     verifierPointProche(soigneur->centre, {35.0f, 35.0f});
 }
@@ -897,7 +897,7 @@ TEST_CASE("Le soin en attente est annulé si la cible meurt, sans recharge") {
 
     // Le soigneur est revenu à sa place et son skill est prêt : un nouveau
     // blessé à portée est soigné aussitôt.
-    const std::optional<Cercle> soigneur = escouade.personnageLePlusProche({35.0f, 35.0f});
+    const std::optional<Cercle> soigneur = escouade.proieDuMonstre(1, {35.0f, 35.0f});
     verifierPointProche(soigneur->centre, {35.0f, 35.0f});
     escouade.recevoirDegats(1, {35.0f, 85.0f}, 20);
     declencher(escouade, 3, {});
@@ -1240,7 +1240,7 @@ void simulerAvecMonstre(Escouade& escouade, const TileMap& carte, Cercle monstre
 }
 
 float distanceDuPlusProche(const Escouade& escouade, Cercle monstre) {
-    return (escouade.personnageLePlusProche(monstre.centre)->centre - monstre.centre).length();
+    return (escouade.proieDuMonstre(1, monstre.centre)->centre - monstre.centre).length();
 }
 
 }  // namespace
@@ -1294,4 +1294,180 @@ TEST_CASE("Apres l'oubli de l'agresseur, tout le monde reprend sa place") {
 
     REQUIRE(escouade.getAgresseurs().empty());
     REQUIRE(distanceDuPlusProche(escouade, monstre) > 60.0f);
+}
+
+TEST_CASE("provoquer enregistre le monstre, le provocateur et la duree") {
+    Escouade escouade({50.0f, 50.0f});
+    escouade.provoquer(7, 2, 4.0f);
+
+    const auto& provocations = escouade.getProvocations();
+    REQUIRE(provocations.size() == 1);
+    REQUIRE(provocations[0].id == 7);
+    REQUIRE(provocations[0].place == 2);
+    REQUIRE(provocations[0].tempsRestant == 4.0f);
+}
+
+TEST_CASE("Provoquer de nouveau un monstre deja provoque ne le duplique pas et remet sa duree au maximum") {
+    const TileMap carte({"..........", "..........", ".........."}, 40.0f);
+    Escouade escouade({50.0f, 50.0f});
+    escouade.provoquer(7, 2, 4.0f);
+    escouade.provoquer(8, 2, 4.0f);
+    escouade.mettreAJour(3.0f, carte, {});
+    escouade.provoquer(7, 2, 4.0f);
+
+    const auto& provocations = escouade.getProvocations();
+    REQUIRE(provocations.size() == 2);
+    REQUIRE(provocations[0].id == 7);
+    REQUIRE(provocations[0].tempsRestant == 4.0f);
+    REQUIRE(provocations[1].id == 8);
+}
+
+TEST_CASE("Une provocation prend fin apres sa duree") {
+    const TileMap carte({"..........", "..........", ".........."}, 40.0f);
+    Escouade escouade({50.0f, 50.0f});
+    escouade.provoquer(7, 2, 4.0f);
+
+    escouade.mettreAJour(3.9f, carte, {});
+    REQUIRE(escouade.getProvocations().size() == 1);
+    escouade.mettreAJour(0.2f, carte, {});
+    REQUIRE(escouade.getProvocations().empty());
+}
+
+TEST_CASE("Une provocation prend fin a la mort du provocateur") {
+    const TileMap carte = carteDegagee();
+    Escouade escouade({200.0f, 200.0f});
+    escouade.provoquer(7, 2, 4.0f);
+    escouade.provoquer(8, 1, 4.0f);
+
+    escouade.recevoirDegats(1, {235.0f, 235.0f}, 100);  // tue la place 2
+    escouade.mettreAJour(0.016f, carte, {});
+
+    const auto& provocations = escouade.getProvocations();
+    REQUIRE(provocations.size() == 1);
+    REQUIRE(provocations[0].id == 8);
+}
+
+TEST_CASE("attaquer retire la provocation d'un monstre absent de la liste") {
+    const TileMap carte({"..........", "..........", ".........."}, 40.0f);
+    Escouade escouade({50.0f, 50.0f});
+    escouade.provoquer(7, 2, 4.0f);
+    escouade.provoquer(8, 2, 4.0f);
+
+    escouade.attaquer({MonstreVu{8, cibleMonstre({300.0f, 60.0f})}}, carte);
+
+    const auto& provocations = escouade.getProvocations();
+    REQUIRE(provocations.size() == 1);
+    REQUIRE(provocations[0].id == 8);
+}
+
+// Escouade en (200, 200), orientée vers +x, personnages en (235, 185),
+// (235, 235), (185, 185) et (185, 235). Un monstre en (185, 185) est tout
+// près de la place 3 ; la place 2 est le provocateur.
+
+TEST_CASE("Sans provocation, la proie d'un monstre est le personnage vivant le plus proche") {
+    Escouade escouade({200.0f, 200.0f});
+
+    verifierPointProche(escouade.proieDuMonstre(7, {170.0f, 170.0f})->centre, {185.0f, 185.0f});
+}
+
+TEST_CASE("Un monstre provoque vise le provocateur, pas le plus proche") {
+    Escouade escouade({200.0f, 200.0f});
+    escouade.provoquer(7, 2, 4.0f);
+
+    verifierPointProche(escouade.proieDuMonstre(7, {170.0f, 170.0f})->centre, {235.0f, 235.0f});
+}
+
+TEST_CASE("La provocation d'un monstre ne change pas la proie des autres") {
+    Escouade escouade({200.0f, 200.0f});
+    escouade.provoquer(7, 2, 4.0f);
+
+    verifierPointProche(escouade.proieDuMonstre(8, {170.0f, 170.0f})->centre, {185.0f, 185.0f});
+}
+
+TEST_CASE("Un monstre provoque dont le provocateur est mort reprend le plus proche") {
+    Escouade escouade({200.0f, 200.0f});
+    escouade.provoquer(7, 2, 4.0f);
+    escouade.recevoirDegats(1, {235.0f, 235.0f}, 100);  // tue la place 2
+
+    verifierPointProche(escouade.proieDuMonstre(7, {170.0f, 170.0f})->centre, {185.0f, 185.0f});
+}
+
+TEST_CASE("recevoirDegats frappe le meme personnage que proieDuMonstre") {
+    Escouade escouade({200.0f, 200.0f});
+    escouade.provoquer(7, 2, 4.0f);
+    const sf::Vector2f monstre{170.0f, 170.0f};
+    const Cercle proie = *escouade.proieDuMonstre(7, monstre);
+
+    escouade.recevoirDegats(7, monstre, 100);
+
+    const std::vector<Cercle> vivants = escouade.cerclesDesVivants();
+    REQUIRE(vivants.size() == 3);
+    REQUIRE(std::none_of(vivants.begin(), vivants.end(), [&](const Cercle& c) { return c.centre == proie.centre; }));
+}
+
+// Provocation (touche 2) : lanceur en (235, 235), rayon 150 px bord à bord.
+
+TEST_CASE("Provocation : provoque tous les monstres dans le rayon, sans degats") {
+    Escouade escouade({200.0f, 200.0f});
+    const std::vector<MonstreVu> monstres = {
+        MonstreVu{1, cibleMonstre({335.0f, 235.0f})},
+        MonstreVu{2, cibleMonstre({235.0f, 335.0f})},
+        MonstreVu{3, cibleMonstre({800.0f, 235.0f})},
+    };
+
+    REQUIRE(escouade.declencherSkill(2, monstres).empty());
+
+    const auto& provocations = escouade.getProvocations();
+    REQUIRE(provocations.size() == 2);
+    REQUIRE(provocations[0].id == 1);
+    REQUIRE(provocations[1].id == 2);
+    REQUIRE(provocations[0].place == 2);
+    REQUIRE(provocations[0].tempsRestant == 4.0f);
+}
+
+TEST_CASE("Provocation : refusee sans monstre dans le rayon, et la recharge reste pleine") {
+    Escouade escouade({200.0f, 200.0f});
+    const std::vector<MonstreVu> loin = {MonstreVu{1, cibleMonstre({800.0f, 235.0f})}};
+
+    REQUIRE(escouade.declencherSkill(2, loin).empty());
+    REQUIRE(escouade.getProvocations().empty());
+
+    // Le skill est resté prêt : un monstre qui arrive est provoqué aussitôt.
+    escouade.declencherSkill(2, {MonstreVu{1, cibleMonstre({335.0f, 235.0f})}});
+    REQUIRE(escouade.getProvocations().size() == 1);
+}
+
+TEST_CASE("Provocation : un nouvel appui pendant la recharge est ignore, puis accepte apres 10 s") {
+    const TileMap carte = carteDegagee();
+    Escouade escouade({200.0f, 200.0f});
+    const std::vector<MonstreVu> monstres = {MonstreVu{1, cibleMonstre({335.0f, 235.0f})}};
+
+    escouade.declencherSkill(2, monstres);
+    escouade.mettreAJour(3.0f, carte, {});
+    escouade.declencherSkill(2, monstres);
+    REQUIRE(escouade.getProvocations()[0].tempsRestant < 1.5f);  // pas remis à 4
+
+    escouade.mettreAJour(7.1f, carte, {});
+    escouade.declencherSkill(2, monstres);
+    REQUIRE(escouade.getProvocations()[0].tempsRestant == 4.0f);
+}
+
+TEST_CASE("Provocation : refusee si le lanceur est mort") {
+    Escouade escouade({200.0f, 200.0f});
+    escouade.recevoirDegats(1, {235.0f, 235.0f}, 100);  // tue la place 2
+
+    escouade.declencherSkill(2, {MonstreVu{1, cibleMonstre({335.0f, 235.0f})}});
+
+    REQUIRE(escouade.getProvocations().empty());
+}
+
+TEST_CASE("Provocation : refusee si un autre skill est en attente") {
+    Escouade escouade({200.0f, 200.0f});
+    escouade.verrouiller(1);
+    const std::vector<MonstreVu> monstres = {MonstreVu{1, cibleMonstre({335.0f, 235.0f})}};
+    escouade.declencherSkill(1, monstres);  // dégâts hors de portée de mêlée : mis en attente
+
+    escouade.declencherSkill(2, monstres);
+
+    REQUIRE(escouade.getProvocations().empty());
 }

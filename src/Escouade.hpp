@@ -24,6 +24,14 @@ public:
         float tempsRestant;  // en secondes, remis au maximum à chaque coup reçu
     };
 
+    // Monstre provoqué : il prend le personnage de cette place pour proie
+    // jusqu'à ce que son temps restant tombe à zéro.
+    struct Provocation {
+        int id;              // du monstre provoqué
+        std::size_t place;   // du provocateur, de 1 à 4
+        float tempsRestant;  // en secondes
+    };
+
     explicit Escouade(sf::Vector2f positionDepart);
     void dessiner(sf::RenderTarget& rendu) const;
     void allerVers(sf::Vector2f destination, const TileMap& carte);
@@ -31,7 +39,7 @@ public:
     std::vector<Coup> declencherSkill(std::size_t place, const std::vector<MonstreVu>& monstres);
     void mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles);
     sf::Vector2f getCentre() const;
-    std::optional<Cercle> personnageLePlusProche(sf::Vector2f point) const;
+    std::optional<Cercle> proieDuMonstre(int idMonstre, sf::Vector2f positionMonstre) const;
     void recevoirDegats(int idMonstre, sf::Vector2f origine, int quantite);
     bool estVivante() const;
     std::vector<Cercle> cerclesDesVivants() const;
@@ -41,10 +49,13 @@ public:
     std::optional<int> getCibleVerrouillee() const;
     const std::vector<sf::Vector2f>& getPlacesDeFormation() const;
     const std::vector<Agresseur>& getAgresseurs() const;
+    void provoquer(int idMonstre, std::size_t place, float duree);
+    const std::vector<Provocation>& getProvocations() const;
 
 private:
     sf::Vector2f placePersonnage(std::size_t indice) const;
     std::optional<std::size_t> indicePersonnageLePlusProche(sf::Vector2f point) const;
+    std::optional<std::size_t> indiceProieDuMonstre(int idMonstre, sf::Vector2f positionMonstre) const;
     void soigner(std::size_t placeLanceur, std::size_t placeAllie);
     std::optional<sf::Vector2f> avancerSkillEnAttente();
     std::optional<sf::Vector2f> pointVersAgresseur(std::size_t indice) const;
@@ -66,4 +77,5 @@ private:
     std::vector<sf::Vector2f> m_places;  // place de formation de chaque personnage, repliée si besoin (recalculée par mettreAJour)
     std::vector<bool> m_monstreAPortee;  // par personnage : a-t-il un monstre à portée de son attaque (calculé par attaquer)
     std::vector<Agresseur> m_agresseurs; // monstres qui ont frappé l'escouade récemment
+    std::vector<Provocation> m_provocations; // monstres provoqués par un personnage
 };

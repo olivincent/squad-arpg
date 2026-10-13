@@ -34,6 +34,17 @@ TEST_CASE("Skill.getType renvoie le type donné au constructeur") {
     REQUIRE(soin.getType() == TypeSkill::Soin);
 }
 
+TEST_CASE("Skill de provocation : la puissance est la durée, avec portée et recharge") {
+    Skill provocation(TypeSkill::Provocation, Attaque(150.0f, 4, 10.0f));
+    const Cercle origine = point({100.0f, 100.0f});
+
+    REQUIRE(provocation.getType() == TypeSkill::Provocation);
+    REQUIRE(provocation.estAPortee(origine, point({200.0f, 100.0f})));
+    REQUIRE_FALSE(provocation.estAPortee(origine, point({300.0f, 100.0f})));
+    REQUIRE(provocation.declencher(origine, point({200.0f, 100.0f})) == 4);
+    REQUIRE(provocation.getProgressionRecharge() == 0.0f);
+}
+
 TEST_CASE("Skill.declencher renvoie la puissance pour une cible à portée") {
     Skill skill(TypeSkill::Degats, Attaque(80.0f, 25, 5.0f));
 

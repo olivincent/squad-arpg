@@ -3,11 +3,12 @@
 #include "Attaque.hpp"
 #include "Cercle.hpp"
 
-enum class TypeSkill { Degats, Soin };
+enum class TypeSkill { Degats, Soin, Provocation };
 
 // Un skill : un type et une Attaque, qui fournit portée, puissance et
 // recharge. La « puissance » est le nombre de dégâts pour un skill de
-// Degats, le nombre de points de vie rendus pour un skill de Soin.
+// Degats, le nombre de points de vie rendus pour un skill de Soin, la
+// durée en secondes pour un skill de Provocation.
 class Skill {
 public:
     Skill(TypeSkill type, Attaque attaque);

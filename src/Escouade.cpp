@@ -20,6 +20,9 @@ constexpr float s_rechargeSkill = 5.0f;   // en secondes
 constexpr float s_porteeSoin = 40.0f;     // bord à bord
 constexpr int s_puissanceSoin = 30;
 constexpr float s_rechargeSoin = 8.0f;    // en secondes
+constexpr float s_rayonProvocation = 150.0f;  // bord à bord
+constexpr int s_dureeProvocation = 4;         // en secondes (la puissance de ce skill)
+constexpr float s_rechargeProvocation = 10.0f;  // en secondes
 constexpr float s_laisseAgresseur = 100.0f;      // en pixels, centre à centre, mesurée depuis la place de formation
 constexpr float s_dureeMemoireAgresseur = 3.0f;  // en secondes, sans nouveau coup du même monstre
 }  // namespace
@@ -33,7 +36,8 @@ Escouade::Escouade(sf::Vector2f positionDepart)
       m_personnages({
           Personnage(placePersonnage(0), s_couleurMelee, Attaque(s_porteeMelee, 5, 0.5f),
                      Skill(TypeSkill::Degats, Attaque(s_porteeMelee, s_degatsSkill, s_rechargeSkill))),
-          Personnage(placePersonnage(1), s_couleurMelee, Attaque(s_porteeMelee, 5, 0.5f), std::nullopt),
+          Personnage(placePersonnage(1), s_couleurMelee, Attaque(s_porteeMelee, 5, 0.5f),
+                     Skill(TypeSkill::Provocation, Attaque(s_rayonProvocation, s_dureeProvocation, s_rechargeProvocation))),
           Personnage(placePersonnage(2), s_couleurTireur, Attaque(s_porteeTireur, 5, 0.5f),
                      Skill(TypeSkill::Soin, Attaque(s_porteeSoin, s_puissanceSoin, s_rechargeSoin))),
           Personnage(placePersonnage(3), s_couleurTireur, Attaque(s_porteeTireur, 5, 0.5f), std::nullopt),
@@ -43,7 +47,8 @@ Escouade::Escouade(sf::Vector2f positionDepart)
       m_cibleCombat(),
       m_places({placePersonnage(0), placePersonnage(1), placePersonnage(2), placePersonnage(3)}),
       m_monstreAPortee(4, false),
-      m_agresseurs()
+      m_agresseurs(),
+      m_provocations()
 {
 }
 
@@ -80,6 +85,11 @@ std::vector<Coup> Escouade::attaquer(const std::vector<MonstreVu>& monstres, con
                                return m.id == agresseur.id;
                            })->cercle;
     }
+
+    // Un monstre provoqué absent de la liste est mort : sa provocation prend fin.
+    std::erase_if(m_provocations, [&](const Provocation& p) {
+        return std::none_of(monstres.begin(), monstres.end(), [&](const MonstreVu& m) { return m.id == p.id; });
+    });
 
     // Approche du monstre verrouillé, s'il y en a un dans la liste.
     if (m_cibleVerrouillee.has_value()) {
@@ -148,6 +158,26 @@ std::vector<Coup> Escouade::declencherSkill(std::size_t place, const std::vector
     Personnage& lanceur = m_personnages[place - 1];
     const std::optional<TypeSkill> type = lanceur.typeSkill();
     if (!type.has_value() || m_skillEnAttente.has_value() || !lanceur.skillEstPret()) {
+        return {};
+    }
+
+    // Provocation : skill de zone, sans cible. Il part dans l'image de
+    // l'appui sur tous les monstres dans le rayon, ou pas du tout.
+    if (*type == TypeSkill::Provocation) {
+        std::vector<MonstreVu> touches;
+        for (const MonstreVu& monstre : monstres) {
+            if (lanceur.skillEstAPortee(monstre.cercle)) {
+                touches.push_back(monstre);
+            }
+        }
+        if (touches.empty()) {
+            return {};
+        }
+        // Un seul déclenchement pour la recharge ; la puissance est la durée.
+        const int duree = lanceur.declencherSkill(touches[0].cercle);
+        for (const MonstreVu& monstre : touches) {
+            provoquer(monstre.id, place, static_cast<float>(duree));
+        }
         return {};
     }
 
@@ -253,6 +283,15 @@ void Escouade::mettreAJour(float dt, const TileMap& carte, const std::vector<Cer
     }
     std::erase_if(m_agresseurs, [](const Agresseur& a) { return a.tempsRestant <= 0.0f; });
 
+    // Une provocation prend fin quand sa durée est écoulée ou que son
+    // provocateur est mort.
+    for (Provocation& provocation : m_provocations) {
+        provocation.tempsRestant -= dt;
+    }
+    std::erase_if(m_provocations, [&](const Provocation& p) {
+        return p.tempsRestant <= 0.0f || !m_personnages[p.place - 1].estVivant();
+    });
+
     // L'ancre n'est pas bloquée par les obstacles : seuls les personnages le sont.
     m_mobile.mettreAJour(dt, carte, {});
     const bool ancreArretee = !m_mobile.directionVoulue().has_value();
@@ -327,8 +366,20 @@ std::optional<std::size_t> Escouade::indicePersonnageLePlusProche(sf::Vector2f p
     return indicePlusProche;
 }
 
-std::optional<Cercle> Escouade::personnageLePlusProche(sf::Vector2f point) const {
-    const std::optional<std::size_t> indice = indicePersonnageLePlusProche(point);
+// Seule règle de « quel personnage ce monstre vise » : le provocateur s'il
+// est provoqué et vivant, sinon le vivant le plus proche du monstre.
+std::optional<std::size_t> Escouade::indiceProieDuMonstre(int idMonstre, sf::Vector2f positionMonstre) const {
+    const auto provocation = std::find_if(m_provocations.begin(), m_provocations.end(), [&](const Provocation& p) {
+        return p.id == idMonstre;
+    });
+    if (provocation != m_provocations.end() && m_personnages[provocation->place - 1].estVivant()) {
+        return provocation->place - 1;
+    }
+    return indicePersonnageLePlusProche(positionMonstre);
+}
+
+std::optional<Cercle> Escouade::proieDuMonstre(int idMonstre, sf::Vector2f positionMonstre) const {
+    const std::optional<std::size_t> indice = indiceProieDuMonstre(idMonstre, positionMonstre);
     if (!indice.has_value()) {
         return std::nullopt;
     }
@@ -336,7 +387,7 @@ std::optional<Cercle> Escouade::personnageLePlusProche(sf::Vector2f point) const
 }
 
 void Escouade::recevoirDegats(int idMonstre, sf::Vector2f origine, int quantite) {
-    const std::optional<std::size_t> indice = indicePersonnageLePlusProche(origine);
+    const std::optional<std::size_t> indice = indiceProieDuMonstre(idMonstre, origine);
     if (!indice.has_value()) {
         return;
     }
@@ -361,6 +412,22 @@ const std::vector<Escouade::Agresseur>& Escouade::getAgresseurs() const {
     return m_agresseurs;
 }
 
+void Escouade::provoquer(int idMonstre, std::size_t place, float duree) {
+    const auto connu = std::find_if(m_provocations.begin(), m_provocations.end(), [&](const Provocation& p) {
+        return p.id == idMonstre;
+    });
+    if (connu != m_provocations.end()) {
+        connu->place = place;
+        connu->tempsRestant = duree;
+    } else {
+        m_provocations.push_back({idMonstre, place, duree});
+    }
+}
+
+const std::vector<Escouade::Provocation>& Escouade::getProvocations() const {
+    return m_provocations;
+}
+
 bool Escouade::estVivante() const {
     for (const Personnage& personnage : m_personnages) {
         if (personnage.estVivant()) {
@@ -381,6 +448,10 @@ std::vector<Cercle> Escouade::cerclesDesVivants() const {
 }
 
 std::optional<Cible> Escouade::choisirCible(TypeSkill type, std::size_t place, const std::vector<MonstreVu>& monstres) const {
+    // Skill de zone, sans cible (sans effet pour l'instant).
+    if (type == TypeSkill::Provocation) {
+        return std::nullopt;
+    }
     if (type == TypeSkill::Degats) {
         // Avec un verrou : le monstre verrouillé, à portée ou non.
         if (m_cibleVerrouillee.has_value()) {

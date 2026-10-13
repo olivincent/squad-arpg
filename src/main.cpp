@@ -180,7 +180,7 @@ int main() {
                     obstacles.push_back(autre.getCercle());
                 }
             }
-            const auto cible = escouade.personnageLePlusProche(m.getCentre());
+            const auto cible = escouade.proieDuMonstre(m.getId(), m.getCentre());
             m.mettreAJour(dt, cible, carte, obstacles);
             const sf::Vector2f origine = m.getCentre();
             if (cible) {

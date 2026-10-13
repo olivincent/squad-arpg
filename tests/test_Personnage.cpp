@@ -155,6 +155,15 @@ TEST_CASE("declencherSkill renvoie les degats du skill pour une cible a portee")
     REQUIRE(personnage.declencherSkill(pointCible({150.0f, 100.0f})) == 25);
 }
 
+TEST_CASE("Un personnage avec un skill de provocation en expose le type et le declenche") {
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(20.0f, 5, 0.5f), Skill(TypeSkill::Provocation, Attaque(150.0f, 4, 10.0f)));
+
+    REQUIRE(personnage.typeSkill() == TypeSkill::Provocation);
+    REQUIRE(personnage.skillEstPret());
+    REQUIRE(personnage.declencherSkill(pointCible({200.0f, 100.0f})) == 4);
+    REQUIRE_FALSE(personnage.skillEstPret());
+}
+
 TEST_CASE("declencherSkill renvoie 0 pour un personnage sans skill, sans toucher a l'attaque de base") {
     Personnage personnage({100.0f, 100.0f}, sf::Color::White, Attaque(80.0f, 5, 0.5f), std::nullopt);
     const Cercle cible = pointCible({150.0f, 100.0f});
