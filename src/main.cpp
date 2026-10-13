@@ -4,6 +4,7 @@
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Mouse.hpp>
 #include <algorithm>
+#include <iostream>
 #include <optional>
 #include <string>
 #include <vector>
@@ -18,6 +19,13 @@ int main() {
     window.setFramerateLimit(60);
     // Une touche maintenue ne produit qu'un seul événement d'appui.
     window.setKeyRepeatEnabled(false);
+    // La police doit vivre plus longtemps que tout sf::Text qui l'utilise.
+    sf::Font police;
+    if (!police.openFromFile("assets/fonts/DejaVuSans.ttf")) {
+        std::cerr << "Impossible de charger la police assets/fonts/DejaVuSans.ttf "
+                     "(lancer le jeu depuis le dossier de main.exe)\n";
+        return 1;
+    }
     const std::vector<std::string> plan = {
         "###########################################################",
         "#.........#..................###########..................#",
@@ -249,6 +257,12 @@ int main() {
             contourPortee.setOutlineThickness(2.0f);
             window.draw(contourPortee);
         }
+
+        // Interface fixe à l'écran : vue par défaut, dessinée en dernier.
+        window.setView(window.getDefaultView());
+        sf::Text texteDeTest(police, "Squad-ARPG", 24);
+        texteDeTest.setPosition({10.0f, 10.0f});
+        window.draw(texteDeTest);
         window.display();
     }
     return 0;
