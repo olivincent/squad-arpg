@@ -183,3 +183,40 @@ TEST_CASE("allerToutDroit vers un point dans un mur ne fait pas contourner le mu
     // Bloqué contre le mur (x = 80) : il glisse, mais ne passe pas de l'autre côté.
     REQUIRE(mobile.getCentre().x <= 70.0f);
 }
+
+TEST_CASE("Mobile.estEnMouvement est faux a la creation et une fois arrive") {
+    const TileMap carte = carteDegagee10x10();
+    Mobile mobile({60.0f, 60.0f}, {20.0f, 20.0f}, 180.0f);
+    REQUIRE_FALSE(mobile.estEnMouvement());
+
+    mobile.allerVers({137.0f, 251.0f}, carte);
+    simuler(mobile, carte, 10.0f);
+
+    REQUIRE_FALSE(mobile.estEnMouvement());
+}
+
+TEST_CASE("Mobile.estEnMouvement est vrai en marche et faux apres arreter") {
+    const TileMap carte = carteDegagee10x10();
+    Mobile mobile({60.0f, 60.0f}, {20.0f, 20.0f}, 180.0f);
+
+    mobile.allerVers({300.0f, 300.0f}, carte);
+    simuler(mobile, carte, 0.1f);
+    REQUIRE(mobile.estEnMouvement());
+
+    mobile.arreter();
+    REQUIRE_FALSE(mobile.estEnMouvement());
+}
+
+TEST_CASE("Mobile.estEnMouvement reste vrai quand le mobile est bloque en essayant d'avancer") {
+    const TileMap carte = carteDegagee10x10();
+    Mobile mobile({60.0f, 60.0f}, {20.0f, 20.0f}, 180.0f);
+    const std::vector<Cercle> obstacles = {{{180.0f, 60.0f}, 10.0f}};
+
+    mobile.allerToutDroit({300.0f, 60.0f});
+    simuler(mobile, carte, 5.0f, obstacles);
+    const sf::Vector2f centreBloque = mobile.getCentre();
+    simuler(mobile, carte, 0.5f, obstacles);
+
+    REQUIRE(mobile.getCentre() == centreBloque);
+    REQUIRE(mobile.estEnMouvement());
+}

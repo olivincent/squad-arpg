@@ -18,6 +18,9 @@ public:
     sf::Vector2f getCentre() const;
     sf::Vector2f getTaille() const;
     std::optional<sf::Vector2f> directionVoulue() const;
+    // Vrai tant qu'un point du chemin reste à atteindre : un mobile bloqué qui
+    // essaie d'avancer est donc en mouvement.
+    [[nodiscard]] bool estEnMouvement() const;
 
 private:
     sf::Vector2f m_position;            // coin haut-gauche, en pixels du monde

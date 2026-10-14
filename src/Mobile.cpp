@@ -87,3 +87,7 @@ std::optional<sf::Vector2f> Mobile::directionVoulue() const {
 
     return direction;
 }
+
+bool Mobile::estEnMouvement() const {
+    return directionVoulue().has_value();
+}
