@@ -220,7 +220,7 @@ TEST_CASE("estVivante reste vraie apres la mort d'un seul personnage") {
     Escouade escouade({50.0f, 50.0f});
     const sf::Vector2f point{1000.0f, 1000.0f};
 
-    escouade.recevoirDegats(1, point, 100);
+    escouade.recevoirDegats(1, point, 200);
 
     REQUIRE(escouade.estVivante());
 }
@@ -230,7 +230,7 @@ TEST_CASE("estVivante devient fausse une fois les 4 personnages morts") {
     const sf::Vector2f point{1000.0f, 1000.0f};
 
     for (int i = 0; i < 4; ++i) {
-        escouade.recevoirDegats(1, point, 100);
+        escouade.recevoirDegats(1, point, 200);
     }
 
     REQUIRE_FALSE(escouade.estVivante());
@@ -249,7 +249,7 @@ TEST_CASE("cerclesDesVivants n'inclut plus le cercle d'un personnage mort") {
     const std::optional<Cercle> futurMort = escouade.proieDuMonstre(1, point);
     REQUIRE(futurMort.has_value());
 
-    escouade.recevoirDegats(1, point, 100);
+    escouade.recevoirDegats(1, point, 200);
     const std::vector<Cercle> cercles = escouade.cerclesDesVivants();
 
     REQUIRE(cercles.size() == 3);
@@ -263,7 +263,7 @@ TEST_CASE("cerclesDesVivants est vide une fois tous les personnages morts") {
     const sf::Vector2f point{1000.0f, 1000.0f};
 
     for (int i = 0; i < 4; ++i) {
-        escouade.recevoirDegats(1, point, 100);
+        escouade.recevoirDegats(1, point, 200);
     }
 
     REQUIRE(escouade.cerclesDesVivants().empty());

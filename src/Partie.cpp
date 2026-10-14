@@ -9,7 +9,7 @@ Partie::Partie(const Niveau& niveau)
     : m_carte(niveau.plan, niveau.tailleCase), m_escouade(niveau.departEscouade) {
     int prochainId = 1;
     for (const sf::Vector2f position : niveau.positionsMonstres) {
-        m_monstres.emplace_back(position, prochainId++);
+        m_monstres.emplace_back(position, prochainId++, niveau.armureMonstres);
     }
 }
 

@@ -1,6 +1,7 @@
 // ./src/Personnage.cpp
 #include "Personnage.hpp"
 #include "BarreDeVie.hpp"
+#include "Defense.hpp"
 #include "TileMap.hpp"
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Rect.hpp>
@@ -13,13 +14,14 @@ constexpr int s_pointsDeVieMax = 100;
 constexpr float s_hauteurBarreSkill = 3.0f;
 }  // namespace
 
-Personnage::Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::optional<Skill> skill)
+Personnage::Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::optional<Skill> skill, int armure)
     : m_mobile(centre, {s_cote, s_cote}, s_vitesse),
       m_couleur(couleur),
       m_attaqueDeBase(attaqueDeBase),
       m_skill(skill),
       m_cibleChemin(),
-      m_pointsDeVie(s_pointsDeVieMax)
+      m_pointsDeVie(s_pointsDeVieMax),
+      m_armure(armure)
 {
 }
 
@@ -157,7 +159,7 @@ int Personnage::declencherSkillSansCible() {
 }
 
 void Personnage::recevoirDegats(int quantite) {
-    m_pointsDeVie.subirDegats(quantite);
+    m_pointsDeVie.subirDegats(appliquerArmure(quantite, m_armure));
 }
 
 void Personnage::recevoirSoin(int quantite) {

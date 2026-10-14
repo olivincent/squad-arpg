@@ -15,7 +15,7 @@ class TileMap;
 
 class Personnage {
 public:
-    Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::optional<Skill> skill);
+    Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::optional<Skill> skill, int armure);
     void dessiner(sf::RenderTarget& rendu) const;
     void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte, const std::vector<Cercle>& obstacles);
     [[nodiscard]] bool estAPortee(Cercle cible) const;
@@ -43,4 +43,5 @@ private:
     std::optional<Skill> m_skill; // vide = pas de skill
     std::optional<sf::Vector2f> m_cibleChemin; // cible du dernier A* ; vide = pas de chemin en cours
     PointsDeVie m_pointsDeVie;
+    int m_armure;
 };

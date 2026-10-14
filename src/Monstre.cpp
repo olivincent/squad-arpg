@@ -1,6 +1,7 @@
 // ./src/Monstre.cpp
 #include "Monstre.hpp"
 #include "BarreDeVie.hpp"
+#include "Defense.hpp"
 #include "TileMap.hpp"
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Color.hpp>
@@ -12,9 +13,10 @@ constexpr float s_vitesse = 120.0f;  // en pixels par seconde
 constexpr int s_pointsDeVieMax = 100;
 }  // namespace
 
-Monstre::Monstre(sf::Vector2f centre, int id)
+Monstre::Monstre(sf::Vector2f centre, int id, int armure)
     : m_mobile(centre, {s_cote, s_cote}, s_vitesse),
       m_pointsDeVie(s_pointsDeVieMax),
+      m_armure(armure),
       m_id(id),
       m_attaque(TypeSkill::Degats, 15.0f, 10, 1.0f, 0.0f),  // portée de 15 px, bord à bord
       m_rayonDetection(200.0f),
@@ -60,7 +62,7 @@ bool Monstre::contient(sf::Vector2f point) const {
 }
 
 void Monstre::recevoirDegats(int quantite) {
-    m_pointsDeVie.subirDegats(quantite);
+    m_pointsDeVie.subirDegats(appliquerArmure(quantite, m_armure));
     if (quantite > 0) {
         m_vientDEtreTouche = true;
     }

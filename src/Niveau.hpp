@@ -10,6 +10,7 @@ struct Niveau {
     float tailleCase;                            // en pixels
     sf::Vector2f departEscouade;                 // centre de l'ancre, en pixels du monde
     std::vector<sf::Vector2f> positionsMonstres; // centre de chaque monstre, en pixels du monde
+    int armureMonstres;                          // armure de chaque monstre
 };
 
 // Le niveau du jeu.

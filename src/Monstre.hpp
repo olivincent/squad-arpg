@@ -13,7 +13,7 @@ class TileMap;
 
 class Monstre {
 public:
-    Monstre(sf::Vector2f centre, int id);
+    Monstre(sf::Vector2f centre, int id, int armure);
     void dessiner(sf::RenderTarget& rendu, bool estCible) const;
     void mettreAJour(float dt, std::optional<Cercle> cible, const TileMap& carte, const std::vector<Cercle>& obstacles);
     [[nodiscard]] int frapper(Cercle cible);
@@ -32,6 +32,7 @@ private:
 
     Mobile m_mobile;
     PointsDeVie m_pointsDeVie;
+    int m_armure;
     int m_id;
     Skill m_attaque;
     float m_rayonDetection;

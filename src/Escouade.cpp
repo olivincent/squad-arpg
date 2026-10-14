@@ -22,6 +22,8 @@ constexpr float s_vitesseAncre = 180.0f;     // en pixels par seconde
 constexpr float s_vitesseRotation = 360.0f;  // de la formation, en degrés par seconde
 constexpr float s_porteeMelee = 20.0f;    // bord à bord
 constexpr float s_porteeTireur = 120.0f;  // bord à bord
+constexpr int s_armureMelee = 50;
+constexpr int s_armureTireur = 0;
 constexpr int s_degatsAttaqueDeBase = 5;
 constexpr float s_rechargeAttaqueDeBase = 0.5f;  // en secondes
 constexpr int s_degatsSkill = 25;
@@ -57,13 +59,14 @@ Escouade::Escouade(sf::Vector2f positionDepart)
       m_vitesseRotation(s_vitesseRotation),
       m_personnages({
           Personnage(placePersonnage(0), s_couleurMelee, attaqueDeBase(s_porteeMelee),
-                     Skill(TypeSkill::Degats, s_porteeMelee, s_degatsSkill, s_rechargeSkill, 0.0f)),
+                     Skill(TypeSkill::Degats, s_porteeMelee, s_degatsSkill, s_rechargeSkill, 0.0f), s_armureMelee),
           Personnage(placePersonnage(1), s_couleurMelee, attaqueDeBase(s_porteeMelee),
-                     Skill(TypeSkill::Provocation, 0.0f, s_dureeProvocation, s_rechargeProvocation, s_rayonProvocation)),
+                     Skill(TypeSkill::Provocation, 0.0f, s_dureeProvocation, s_rechargeProvocation, s_rayonProvocation),
+                     s_armureMelee),
           Personnage(placePersonnage(2), s_couleurTireur, attaqueDeBase(s_porteeTireur),
-                     Skill(TypeSkill::Soin, s_porteeSoin, s_puissanceSoin, s_rechargeSoin, 0.0f)),
+                     Skill(TypeSkill::Soin, s_porteeSoin, s_puissanceSoin, s_rechargeSoin, 0.0f), s_armureTireur),
           Personnage(placePersonnage(3), s_couleurTireur, attaqueDeBase(s_porteeTireur),
-                     Skill(TypeSkill::Zone, s_porteeZone, s_degatsZone, s_rechargeZone, s_rayonZone)),
+                     Skill(TypeSkill::Zone, s_porteeZone, s_degatsZone, s_rechargeZone, s_rayonZone), s_armureTireur),
       }),
       m_cibleVerrouillee(),
       m_skillEnAttente(),

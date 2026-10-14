@@ -154,15 +154,15 @@ TEST_CASE("choisirCible (soin) designe celui qui a le moins de points de vie") {
 
 TEST_CASE("choisirCible (soin) choisit la plus petite place en cas d'egalite") {
     Escouade escouade({50.0f, 50.0f});
-    escouade.recevoirDegats(1, {35.0f, 35.0f}, 20);
-    escouade.recevoirDegats(1, {85.0f, 85.0f}, 20);
+    escouade.recevoirDegats(1, {35.0f, 35.0f}, 20);  // tireur, sans armure : perd 20
+    escouade.recevoirDegats(1, {85.0f, 85.0f}, 30);  // mêlée, armure 50 : 30 x 2/3 = 20
 
     REQUIRE(placeAlliePourSoin(escouade) == 2);
 }
 
 TEST_CASE("choisirCible (soin) ignore les morts") {
     Escouade escouade({50.0f, 50.0f});
-    escouade.recevoirDegats(1, {35.0f, 85.0f}, 100);
+    escouade.recevoirDegats(1, {35.0f, 85.0f}, 200);
     escouade.recevoirDegats(1, {85.0f, 85.0f}, 10);
 
     REQUIRE(placeAlliePourSoin(escouade) == 2);
@@ -172,7 +172,7 @@ TEST_CASE("choisirCible (soin) est vide quand tout le monde est mort") {
     Escouade escouade({50.0f, 50.0f});
     for (const sf::Vector2f origine : {sf::Vector2f(85.0f, 35.0f), sf::Vector2f(85.0f, 85.0f),
                                        sf::Vector2f(35.0f, 35.0f), sf::Vector2f(35.0f, 85.0f)}) {
-        escouade.recevoirDegats(1, origine, 100);
+        escouade.recevoirDegats(1, origine, 200);
     }
 
     REQUIRE_FALSE(escouade.choisirCible(TypeSkill::Soin, 3, {}, carteOuverte()).has_value());
@@ -223,7 +223,7 @@ TEST_CASE("Le soin est en recharge juste apres son lancement") {
 
 TEST_CASE("Un soigneur mort ne soigne pas") {
     Escouade escouade({50.0f, 50.0f});
-    escouade.recevoirDegats(1, {35.0f, 35.0f}, 100);
+    escouade.recevoirDegats(1, {35.0f, 35.0f}, 200);
     escouade.recevoirDegats(1, {35.0f, 85.0f}, 20);
 
     declencher(escouade, 3, {});
@@ -265,7 +265,7 @@ TEST_CASE("Le soin en attente est annule si la cible meurt, sans recharge") {
     escouade.recevoirDegats(1, {85.0f, 85.0f}, 20);
     declencher(escouade, 3, {});
 
-    escouade.recevoirDegats(1, {85.0f, 85.0f}, 100);
+    escouade.recevoirDegats(1, {85.0f, 85.0f}, 200);
     static_cast<void>(escouade.attaquer({}, carte)); // le monstre fantôme n'existe pas : il n'est pas un agresseur
     simuler(escouade, carte, 2.0f);
 
@@ -284,7 +284,7 @@ TEST_CASE("Le soin en attente est annule si le soigneur meurt") {
     escouade.recevoirDegats(1, {85.0f, 85.0f}, 20);
     declencher(escouade, 3, {});
 
-    escouade.recevoirDegats(1, {35.0f, 35.0f}, 100);
+    escouade.recevoirDegats(1, {35.0f, 35.0f}, 200);
     simuler(escouade, carte, 2.0f);
 
     REQUIRE(placeAlliePourSoin(escouade) == 2);
@@ -442,7 +442,7 @@ TEST_CASE("Provocation : un nouvel appui pendant la recharge est ignore, puis ac
 
 TEST_CASE("Provocation : refusee si le lanceur est mort") {
     Escouade escouade({200.0f, 200.0f});
-    escouade.recevoirDegats(1, {235.0f, 235.0f}, 100);  // tue la place 2
+    escouade.recevoirDegats(1, {235.0f, 235.0f}, 200);  // tue la place 2
 
     REQUIRE(escouade.declencherSkill(2, {MonstreVu{1, cibleMonstre({335.0f, 235.0f})}}, carteOuverte()).empty());
 
@@ -479,7 +479,7 @@ TEST_CASE("skillEstPret : faux pour une place invalide") {
 
 TEST_CASE("skillEstPret : faux si le lanceur est mort") {
     Escouade escouade({200.0f, 200.0f});
-    escouade.recevoirDegats(1, {185.0f, 235.0f}, 100);  // tue la place 4
+    escouade.recevoirDegats(1, {185.0f, 235.0f}, 200);  // tue la place 4
 
     REQUIRE_FALSE(escouade.skillEstPret(4));
 }
@@ -618,7 +618,7 @@ TEST_CASE("Zone en attente : la mort du lanceur l'annule sans recharge") {
     Escouade escouade({200.0f, 200.0f});
     const std::vector<MonstreVu> monstres = {MonstreVu{1, cibleMonstre({650.0f, 235.0f})}};
     REQUIRE(escouade.declencherSkillDeZone(4, {650.0f, 235.0f}, monstres, carte).empty());
-    escouade.recevoirDegats(1, {185.0f, 235.0f}, 100);  // tue la place 4
+    escouade.recevoirDegats(1, {185.0f, 235.0f}, 200);  // tue la place 4
 
     for (int i = 0; i < 300; ++i) {
         REQUIRE(escouade.attaquer(monstres, carte).empty());
@@ -670,7 +670,7 @@ TEST_CASE("Zone : refusee pendant la recharge") {
 TEST_CASE("Zone : refusee si le lanceur est mort") {
     const TileMap carte = carteDegageeEntouree();
     Escouade escouade({200.0f, 200.0f});
-    escouade.recevoirDegats(1, {185.0f, 235.0f}, 100);  // tue la place 4
+    escouade.recevoirDegats(1, {185.0f, 235.0f}, 200);  // tue la place 4
 
     REQUIRE(escouade.declencherSkillDeZone(4, {300.0f, 300.0f}, {MonstreVu{1, cibleMonstre({300.0f, 300.0f})}}, carte).empty());
 }
@@ -776,7 +776,7 @@ TEST_CASE("etatDuSkill juste apres un declenchement : recharge complete") {
 TEST_CASE("etatDuSkill d'un lanceur mort : lanceurVivant est faux") {
     Escouade escouade({50.0f, 50.0f});
     for (int i = 0; i < 4; ++i) {
-        escouade.recevoirDegats(1, {1000.0f, 1000.0f}, 100);
+        escouade.recevoirDegats(1, {1000.0f, 1000.0f}, 200);
     }
 
     const std::optional<EtatSkill> etat = escouade.etatDuSkill(2);

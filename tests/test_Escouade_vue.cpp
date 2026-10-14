@@ -161,9 +161,9 @@ TEST_CASE("Autodefense : le monstre le plus proche est cache, l'autre est frappe
 // Ne laisse en vie que la place 4 (tireur en (185, 235)) : seule sa portée et sa vue comptent.
 namespace {
 void garderSeulementLaPlace4(Escouade& escouade) {
-    escouade.recevoirDegats(1, {235.0f, 185.0f}, 100);
-    escouade.recevoirDegats(1, {235.0f, 235.0f}, 100);
-    escouade.recevoirDegats(1, {185.0f, 185.0f}, 100);
+    escouade.recevoirDegats(1, {235.0f, 185.0f}, 200);
+    escouade.recevoirDegats(1, {235.0f, 235.0f}, 200);
+    escouade.recevoirDegats(1, {185.0f, 185.0f}, 200);
 }
 }  // namespace
 

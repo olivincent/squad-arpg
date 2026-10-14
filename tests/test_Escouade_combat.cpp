@@ -98,7 +98,7 @@ TEST_CASE("attaquer ignore les personnages morts pour decider si l'escouade doit
     Escouade escouade({50.0f, 50.0f});
     escouade.verrouiller(1);
 
-    escouade.recevoirDegats(1, {1000.0f, 1000.0f}, 100); // tue le personnage le plus proche de ce point
+    escouade.recevoirDegats(1, {1000.0f, 1000.0f}, 200); // tue le personnage le plus proche de ce point
 
     escouade.allerVers({300.0f, 60.0f}, carte); // éloigne l'escouade, laisse le mort derrière
     simuler(escouade, carte, 10.0f); // largement assez pour arriver
@@ -323,10 +323,10 @@ TEST_CASE("Deux personnages peuvent frapper deux monstres differents dans la mem
 TEST_CASE("Une escouade dont tous les personnages sont morts ne frappe plus") {
     const TileMap carte = carteDegagee10x10();
     Escouade escouade({50.0f, 50.0f});
-    escouade.recevoirDegats(1, {85.0f, 35.0f}, 100);
-    escouade.recevoirDegats(1, {85.0f, 85.0f}, 100);
-    escouade.recevoirDegats(1, {35.0f, 35.0f}, 100);
-    escouade.recevoirDegats(1, {35.0f, 85.0f}, 100);
+    escouade.recevoirDegats(1, {85.0f, 35.0f}, 200);
+    escouade.recevoirDegats(1, {85.0f, 85.0f}, 200);
+    escouade.recevoirDegats(1, {35.0f, 35.0f}, 200);
+    escouade.recevoirDegats(1, {35.0f, 85.0f}, 200);
 
     REQUIRE(escouade.attaquer({MonstreVu{1, cibleMonstre({85.0f, 60.0f})}}, carte).empty());
 }
