@@ -65,6 +65,14 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   visée** : la vue `camera` reste une variable de `main.cpp`, la visée est un
   `std::optional<std::size_t>` du `Controleur`.
 - **Pas de texte de position** : rien n'affiche la position du curseur.
+- **Générateur aléatoire (étape 56)** : `Partie` possède un `Generateur`
+  initialisé par la graine de son constructeur et le passe par référence
+  aux appels qui peuvent déclencher un skill (`attaquer`, `declencherSkill`,
+  `declencherSkillDeZone`, `escouade.mettreAJour`, `Monstre::frapper`).
+  `main.cpp` tire la graine avec `std::random_device` (variable locale de
+  `main`) au démarrage et à chaque recommencement, et l'affiche dans la
+  console (`Graine : …`) pour rejouer une partie à l'identique. L'ordre
+  d'une image ne change pas.
 - **`prochainId`** n'est pas un membre de `Partie` : il ne sert qu'à numéroter
   les monstres dans son constructeur.
 
@@ -183,8 +191,8 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   par défaut, après la barre de skills : le voile semi-transparent la laisse
   visible dessous. `main.cpp` l'appelle si `partie.estPerdue()`.
 - **Recommencer = remplacer l'objet** : la touche R, seulement si la partie
-  est perdue (ignorée en jeu), fait `partie = Partie(creerNiveau())` et
-  `controleur = Controleur{}`. Pas de `reinitialiser()` : un état remis à
+  est perdue (ignorée en jeu), fait `partie = Partie(creerNiveau(), graine)`
+  (nouvelle graine tirée et affichée) et `controleur = Controleur{}`. Pas de `reinitialiser()` : un état remis à
   zéro membre par membre risque d'oublier un membre. Une visée ou un
   déplacement continu en cours ne survivent pas. La caméra, recentrée à
   chaque image, suit l'escouade neuve sans code propre. Pas de touche de

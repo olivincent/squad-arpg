@@ -170,18 +170,21 @@ personnages sont dans `docs/formation.md`, le monstre dans
   touches. `Monstre` dépend donc de `TypeSkill` ; ses attaques sont des
   `Skill` `Degats`, et il pourra recevoir des skills plus tard.
 - **Portée, puissance, recharge et rayon de zone sont des paramètres du
-  constructeur**, puisqu'ils diffèrent selon le propriétaire. `m_recharge`
-  vaut 0 à la création : le premier déclenchement part tout de suite.
+  constructeur**, puisqu'ils diffèrent selon le propriétaire. La recharge
+  est un intervalle `[rechargeMin, rechargeMax]` (voir « Recharge aléatoire »).
+  `m_recharge` vaut 0 à la création : le premier déclenchement part tout de
+  suite.
 - **`declencher`** renvoie la puissance et relance la recharge si la cible
   est à portée et la recharge écoulée ; sinon renvoie 0 sans toucher la
   recharge (un essai hors de portée ne la déclenche pas).
   **`mettreAJour(dt)`** décrémente la recharge, sans descendre sous zéro :
   le temps passe même quand le propriétaire n'agit pas.
-  **`relancerRecharge`** la remet au maximum sans déclencher.
-- **Valeurs des attaques de base** : personnages 5 dégâts, 0,5 s de
-  recharge, portée 20 px (mêlées) ou 120 px (tireurs) ; monstre 10 dégâts
-  (de quoi rester dangereux seul face à 4 personnages), 1 s de recharge,
-  portée 15 px.
+  **`relancerRecharge`** la remet au complet (nouveau tirage) sans déclencher.
+- **Valeurs des attaques de base** : personnages 5 dégâts, recharge de
+  0,3 à 0,7 s (mêlées, portée 20 px) ou de 0,4 à 0,6 s (tireurs, portée
+  120 px) ; monstre 10 dégâts (de quoi rester dangereux seul face à 4
+  personnages), recharge de 0,7 à 1,3 s, portée 15 px. Les moyennes sont
+  celles d'avant l'étape 56 (0,5 s ; 0,5 s ; 1 s).
 - **La règle « un mort ne frappe pas » reste dans `Personnage::frapper`**,
   avant la délégation : `Monstre` délègue entièrement, sans règle
   supplémentaire.
@@ -496,6 +499,40 @@ personnages sont dans `docs/formation.md`, le monstre dans
   ignorent toujours les murs ; pas de placement pour obtenir la vue (le
   personnage avance simplement vers sa cible) ; pas d'indicateur d'une
   cible non visible ; la vue est centre à centre, pas bord à bord.
+
+## Recharge aléatoire (étape 56)
+
+- **Intervalle plutôt que base ± %** : `Skill` reçoit `rechargeMin` et
+  `rechargeMax` (`assert(0 <= min <= max)`). Deux nombres se lisent
+  directement (« 0,3 à 0,7 s ») et `min == max` exprime une recharge fixe
+  sans cas particulier de configuration. Base ± % aurait demandé un nombre
+  de plus à interpréter.
+- **Tirage au déclenchement** (début de la recharge), dans `declencher`,
+  `declencherSansCible` et `relancerRecharge` : uniforme,
+  `std::uniform_real_distribution<float>(min, max)` créée sur place (elle
+  ne garde pas d'état utile ; le générateur oui). Si `min == max`, **aucun
+  nombre n'est tiré** : l'état du générateur n'avance pas, ce qui garde les
+  suites reproductibles et prévisibles pour les skills fixes.
+- **`m_tempsRecharge`** devient la durée de la recharge en cours (dernier
+  tirage) : `getProgressionRecharge` reste exact pour la barre de recharge.
+  Avant le premier tirage il vaut `rechargeMax` (sans effet : la recharge
+  restante est 0, donc la progression 1).
+- **`relancerRecharge` tire aussi** : quand un skill part, l'attaque de
+  base de son lanceur repart pour une recharge complète, donc avec un
+  nouveau tirage dans son intervalle.
+- **Valeurs** : attaques de base en intervalle (voir « Skill ») ; les
+  skills des touches 1 à 4 restent fixes (5, 10, 8 et 8 s) : le joueur
+  planifie son prochain soin. Pas d'aléa sur les dégâts.
+- **Le `Generateur` descend par paramètre** : `Partie` →
+  `Escouade::attaquer` / `declencherSkill` / `declencherSkillDeZone` /
+  `mettreAJour` (le soin d'un skill en attente part dans `mettreAJour`) →
+  `Personnage::frapper` / `declencherSkill` / `declencherSkillSansCible` →
+  `Skill` ; `Partie` → `Monstre::frapper` → `Skill`. Toujours `Generateur&` :
+  une copie repartirait du même état et redonnerait la même suite.
+  Personne ne garde de référence ni de pointeur vers lui.
+- **Limites** : distribution uniforme (pas en cloche) ; pas de classe
+  `Arme` (les intervalles sont écrits dans `Escouade.cpp` et
+  `Monstre.cpp`) ; la barre de skills n'est pas concernée (skills fixes).
 
 ## Armure à rendement décroissant (étape 55)
 

@@ -1436,3 +1436,31 @@ est un seul entier dans `Niveau`, commun aux six.
 **Hors de portée** : affichage de l'armure, esquive, blocage, types de
 dégâts et résistances, K par entité, équipement, structure
 `Degats { montant, type }`, autre changement d'équilibrage.
+
+
+### Étape 56 — Générateur aléatoire injecté et recharge aléatoire ✅ TERMINÉE
+
+1. [x] `Aleatoire.hpp` : `using Generateur = std::mt19937` (enchaînée).
+2. [x] `Skill` : `rechargeMin` / `rechargeMax` à la place de la recharge
+       fixe, tous les skills en `min == max` (enchaînée).
+3. [x] Le `Generateur&` descend de `Partie` à `Skill` ; constructeur de
+       `Partie` avec graine ; `main.cpp` tire la graine avec
+       `std::random_device` ; `generateurDeTest()` dans `tests/aides.hpp`
+       (enchaînée).
+4. [x] Tirage uniforme quand `min < max`, 4 tests dans `test_Skill.cpp`
+       (enchaînée).
+5. [x] Intervalles des attaques de base : mêlées 0,3–0,7 s, tireurs
+       0,4–0,6 s, monstres 0,7–1,3 s (enchaînée).
+6. [x] Graine affichée dans la console (démarrage et R), test visuel.
+7. [x] Documents mis à jour. 396 tests.
+
+**Choix** : intervalle `[min, max]` plutôt que base ± % ; `min == max` = recharge
+fixe, sans aucun tirage ; générateur possédé par `Partie`, jamais copié ni
+gardé ni global ; `relancerRecharge` reçoit aussi le générateur (l'attaque de
+base repart pour une recharge complète quand un skill part). Un seul test a
+changé d'attente (`Monstre.frapper` : 1,2 s → 1,5 s, au-dessus du maximum) ;
+la suite passe avec 7 graines différentes.
+
+**Hors de portée** : classe `Arme`, équipement, aléa sur les skills des
+touches 1 à 4 ou sur les dégâts, esquive, coup double, génération de donjon,
+distribution en cloche, saisie de la graine par le joueur.

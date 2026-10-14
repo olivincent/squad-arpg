@@ -62,13 +62,15 @@ est dans `docs/historique.md`.
 - Étape 53 — Type PointsDeVie et Skill::declencherSansCible (refactorisation pure) ✅
 - Étape 54 — Défaite et recommencer la partie ✅
 - Étape 55 — Armure à rendement décroissant ✅
+- Étape 56 — Générateur aléatoire injecté et recharge aléatoire ✅
 
-## Étape 56
+## Étape 57
 
-Générateur aléatoire injecté et recharge aléatoire (à préciser dans
-Claude.ai).
+À préciser dans Claude.ai.
 
 Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes) :
+- Classe `Arme` qui fournit l'intervalle de recharge de l'attaque de base
+  (aujourd'hui écrit dans `Escouade.cpp` et `Monstre.cpp`)
 - Le monstre touché se jette sur l'auteur du coup (mémoire de
   l'attaquant), aggro sociale des voisins, effet visuel d'alerte
 - Effet visuel à l'impact du skill de zone
@@ -147,6 +149,14 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   terrain dégagé, coins contournés au plus court), s'arrête exactement sur
   le point cliqué, est bloquée par les murs et glisse le long d'eux. Son
   déplacement vit dans `Mobile`, que `Monstre` utilise aussi.
+- **Aléatoire** (étape 56) : `Partie` possède un `Generateur`
+  (`std::mt19937`, `Aleatoire.hpp`) initialisé par une graine que `main.cpp`
+  tire avec `std::random_device` et affiche dans la console (au démarrage
+  et à chaque R) ; il est passé par référence jusqu'à `Skill`. La recharge
+  d'un `Skill` est un intervalle `[min, max]` tiré au déclenchement (aucun
+  tirage si `min == max`) : attaques de base des mêlées 0,3–0,7 s, des
+  tireurs 0,4–0,6 s, des monstres 0,7–1,3 s ; skills des touches 1 à 4
+  fixes. Voir `docs/combat.md`.
 - **Armure** (étape 55) : `appliquerArmure` (module `Defense`) réduit les
   dégâts reçus, même formule pour tous : réduction = armure / (armure +
   100), arrondi au plus proche, au moins 1 par coup positif. Mêlées 50
@@ -162,7 +172,7 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   formation pivote progressivement vers la direction de marche (360°/s,
   par le plus court côté). Les deux de devant sont des mêlées (rouges,
   portée 20 px), les deux de derrière des tireurs (cyan, portée 120 px) ;
-  portées mesurées de bord à bord ; 5 dégâts, recharge 0,5 s ; 100
+  portées mesurées de bord à bord ; 5 dégâts, recharge 0,3–0,7 s (mêlées) ou 0,4–0,6 s (tireurs) ; 100
   points de vie et une barre de vie au-dessus d'eux.
 - **Places de formation** : la place théorique de chaque personnage
   (ancre + décalage tourné) est ramenée vers l'ancre si le trajet en ligne
@@ -252,7 +262,7 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   `Partie` dans un `std::vector<Monstre>`. Un monstre détecte un
   personnage vivant à moins de 200 px de lui et de 400 px de son poste (sa
   position de départ), le poursuit (A* + lissage) et s'arrête à portée
-  d'attaque (15 px bord à bord, 10 dégâts, recharge 1 s). Un monstre qui reçoit des dégâts (> 0) entre en poursuite de sa
+  d'attaque (15 px bord à bord, 10 dégâts, recharge 0,7–1,3 s). Un monstre qui reçoit des dégâts (> 0) entre en poursuite de sa
   proie habituelle (provocateur, sinon le plus proche) même hors de sa
   détection, s'il est lui-même dans son territoire ; un coup reçu hors
   du territoire ne le réveille pas, et ne sert qu'une fois. Il abandonne
@@ -265,10 +275,10 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 392 tests : 38 sur `TileMap`, 17 sur `Chemin`, 144
+  (`./build/tests.exe`, 396 tests : 38 sur `TileMap`, 17 sur `Chemin`, 144
   sur `Escouade` en cinq fichiers par thème — 22 déplacement, 17 combat, 61
   skills, 26 agresseurs, 18 vue —, 12 sur `Deplacement`, 37 sur `Monstre`,
-  33 sur `Personnage`, 19 sur `Skill`, 14 sur `Mobile`, 4 sur `Cercle`, 13
+  33 sur `Personnage`, 23 sur `Skill`, 14 sur `Mobile`, 4 sur `Cercle`, 13
   sur `Autodefense`, 6 sur `BarreDeSkills`, 4 sur `MonstreVu`, 1 sur
   `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 12 sur `Partie`, 7 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
   accents (`./build/tests.exe "*a portee*"` filtre) ; rotation de la

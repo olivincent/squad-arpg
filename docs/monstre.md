@@ -155,6 +155,10 @@ déplacement par chemin dans `docs/chemin.md`.
 - **La riposte ne dépend pas du statut** : un monstre en retour frappe
   aussi ce qui passe à sa portée. Elle ne dépend pas non plus du verrou
   de cible.
+- **`frapper(cible, generateur)`** reçoit le `Generateur` de la `Partie` par
+  référence et le transmet à `Skill` : la recharge de l'attaque est tirée
+  dans [0,7 s ; 1,3 s] à chaque coup (moyenne 1 s, comme avant l'étape 56).
+  `Monstre` ne garde pas le générateur.
 - **`mettreAJour` décrémente d'abord la recharge** (`m_attaque.mettreAJour`),
   quel que soit l'état.
 

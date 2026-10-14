@@ -547,6 +547,30 @@
 - Les tests existants de `Personnage`, `Monstre`, provocation et zone n'ont
   pas été modifiés. 377 tests.
 
+## Générateur aléatoire (étape 56)
+
+- **`tests/aides.hpp`** : `s_graineDeTest` (12345) et `generateurDeTest()`
+  (un `Generateur` neuf à graine fixe). Chaque test qui en a besoin crée le
+  sien (`Generateur generateur = generateurDeTest();`) et le passe par
+  référence : jamais de générateur partagé entre tests, donc aucune
+  dépendance à l'ordre d'exécution. Les aides `simuler`, `attaquerCible`
+  et les petites fonctions de simulation en créent un local. Les tests de
+  `Partie` passent `s_graineDeTest` au constructeur.
+- **Règle : un test qui ne mesure pas le rythme ne doit pas dépendre du
+  hasard.** Il vérifie « au moins un coup », une durée plus généreuse que
+  la borne haute de la recharge (`Monstre.frapper` attend 1,5 s, pas 1,2 s :
+  le maximum est 1,3 s), ou un résultat sans rapport avec le tirage. La
+  suite complète a été lancée avec 7 graines différentes (1, 7, 99, 2024,
+  31337, 777777, 12345) : tout passe. Lancer `tests.exe` deux fois de suite
+  donne exactement le même résultat.
+- **`test_Skill.cpp`** (+4 cas) : `min == max` donne exactement cette valeur
+  et ne touche pas à l'état du générateur (comparé par `==`) ; sur 200
+  déclenchements, chaque recharge est dans `[min, max]` et elles ne sont pas
+  toutes égales ; deux générateurs de même graine donnent la même suite de
+  recharges ; `relancerRecharge` tire dans l'intervalle.
+- Les constructions de `Skill` reçoivent `min == max` (ancienne valeur) ;
+  les appels qui descendent le générateur en reçoivent un. 396 tests.
+
 ## Armure (étape 55)
 
 - **`test_Defense.cpp`** (6 cas) : armure 0 = montant inchangé ; 100

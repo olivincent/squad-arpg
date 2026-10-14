@@ -34,6 +34,8 @@ Objectif commun : casser la « rotation de skills » à la WoW pour que le comba
 
 **Dans le code.** `Skill` stockerait une recharge de base et une variation au lieu d'une valeur fixe. Le tirage demande un générateur aléatoire.
 
+*Étape 56 (retenue) : tirage uniforme dans un intervalle `[min, max]` (et non base ± %), tiré au déclenchement, seulement pour les attaques de base (mêlées 0,3–0,7 s, tireurs 0,4–0,6 s, monstres 0,7–1,3 s, mêmes moyennes qu'avant) ; les skills des touches 1 à 4 restent fixes (`min == max`, aucun tirage). Générateur `std::mt19937` possédé par `Partie`, passé par référence ; graine tirée par `std::random_device` et affichée dans la console. La distribution en cloche reste à explorer.*
+
 **Notion C++ : `<random>`.** On utilise `std::mt19937` avec une distribution (`std::uniform_real_distribution`), jamais `rand()`. Le générateur doit être fourni de l'extérieur (injection) avec une graine fixe dans les tests, sinon les tests de combat deviennent non reproductibles.
 
 ### 1.2 Coup double
@@ -173,8 +175,8 @@ Plusieurs idées partagent des fondations : un **générateur aléatoire inject�
 
 | Idée | Statut | Prérequis | Taille |
 | --- | --- | --- | --- |
-| Générateur aléatoire injecté (graine) | à explorer | aucun | Petite |
-| 1.1 Recharge aléatoire | à explorer | générateur aléatoire | Petite |
+| Générateur aléatoire injecté (graine) | **retenue** (étape 56) | aucun | Petite |
+| 1.1 Recharge aléatoire | **retenue** (étape 56) | générateur aléatoire | Petite |
 | Point d'entrée unique des dégâts | à explorer | aucun | Petite |
 | 2. Armure à rendement décroissant | **retenue** (étape 55) | point d'entrée des dégâts (les `recevoirDegats` de `Personnage` et `Monstre` en tiennent lieu) | Petite |
 | 3. Gambits, niveau A (bascule auto) | à explorer | aucun | Moyenne |
