@@ -392,9 +392,9 @@ personnages sont dans `docs/formation.md`, le monstre dans
   la zone est vide (choix de jeu, contrairement à la provocation) ; il
   relance la recharge de l'attaque de base du lanceur. Refus : place
   invalide, skill non `Zone`, lanceur mort, recharge, skill en attente.
-  Pas de dégâts aux alliés. Pour le déclenchement du `Skill`, le lanceur
-  est sa propre cible (distance 0) ; la vraie portée est testée avant,
-  contre le point.
+  Pas de dégâts aux alliés. Le `Skill` se déclenche par
+  `declencherSansCible` (recharge et puissance, sans portée) ; la vraie
+  portée est testée avant, contre le point.
 - **`skillEstPret(place)`** permet à `main.cpp` de savoir s'il peut
   entrer en visée sans connaître `Personnage` ; `rayonZoneDuSkill(place)`
   lui donne le rayon du cercle de prévisualisation.
@@ -572,6 +572,10 @@ l'enfoncerait dans un obstacle.
 - **`TypeSkill.hpp` et `MonstreVu.hpp` séparés** : un module d'affichage
   ou de décision n'a plus besoin de la classe `Skill` ni de `Coup` pour un
   enum ou une entrée.
-- **Limite connue** : `Skill::declencher` est encore appelé avec le
-  cercle du lanceur comme « cible » pour la provocation et la zone
-  (audit R4, écarté à l'étape 49).
+- **`Skill::declencherSansCible`** (étape 53, audit R4) : la provocation et
+  la zone n'ont pas de cible ; elles ne passent plus le cercle du lanceur
+  comme « cible » pour contourner la vérification de portée. Mêmes
+  conditions que `declencher` (refusé tant que la recharge court), sans
+  portée. `Personnage::declencherSkillSansCible` ajoute les règles du
+  personnage (mort, pas de skill, recharge de l'attaque de base).
+  `declencher` reste pour les dégâts et le soin, qui ont une cible.

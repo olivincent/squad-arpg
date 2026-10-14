@@ -11,7 +11,7 @@
   `test_Monstre.cpp`, `test_Personnage.cpp`, `test_Skill.cpp`,
   `test_Mobile.cpp`, `test_Cercle.cpp`, `test_Autodefense.cpp`,
   `test_BarreDeSkills.cpp`, `test_MonstreVu.cpp`, `test_BarreDeVie.cpp`,
-  `test_Provocations.cpp`, `test_Agresseurs.cpp`, `test_Partie.cpp`,
+  `test_PointsDeVie.cpp`, `test_Provocations.cpp`, `test_Agresseurs.cpp`, `test_Partie.cpp`,
   `test_Controleur.cpp`),
   sauf `Escouade`, coupée par thème en cinq fichiers à plat (pas de
   sous-dossier) :
@@ -513,10 +513,11 @@
   `getAgresseurs`) ; un skill demandé ne part qu'à `mettreAJour` (sa recharge
   démarre) ; escouade vaincue par 30 monstres : `cliquer` renvoie `Ignore`,
   les demandes sont sans effet.
-- **Non testé** : « un skill et `attaquer` dans la même image ne font pas
-  frapper deux fois le même personnage ». `Monstre` n'a pas d'accesseur de
-  points de vie, et l'écart de 5 dégâts ne changeait pas l'image de mort du
-  monstre dans les essais. Un `Monstre::getPointsDeVie` le rendrait possible.
+- **Double frappe** (étape 53) : un skill et `attaquer` dans la même image
+  ne font pas frapper deux fois le même personnage. Monstre à portée du
+  mêlée avant-gauche (skill de 25) et des deux tireurs (5 chacun) :
+  `Monstre::getPointsDeVie` vaut 100 − 25 − 5 − 5, le mêlée ne frappant
+  pas avec son attaque de base puisque le skill en relance la recharge.
 - **`test_Controleur.cpp`** (7 cas) : 4 entre en visée ; 4 n'entre pas si le
   skill n'est pas prêt (recharge après un lancer) ; un clic en visée lance
   (rien ne part avant `mettreAJour`) et sort de la visée ; clic droit, Échap
@@ -528,3 +529,17 @@
   l'opposé du curseur, l'escouade avance vers lui et non vers le curseur).
 - **Non testé** : `dessinerApercu` (dessin, vérifié dans le jeu) et la
   traduction des événements dans `main.cpp`.
+
+## PointsDeVie et declencherSansCible (étape 53)
+
+- **`test_PointsDeVie.cpp`** (8 cas) : départ plein ; dégâts qui retirent des
+  points ; borne à 0 ; dégâts de 0 sans effet ; soin ; soin borné au
+  maximum ; soin d'un mort sans effet ; `getRatio` (plein, moitié, mort).
+  Les `assert` (montant négatif, maximum nul) ne sont pas testés : un
+  `assert` qui échoue arrête le programme.
+- **`test_Skill.cpp`** (+2 cas) : `declencherSansCible` renvoie la
+  puissance sans portée ; relance la recharge, refuse tant qu'elle court,
+  puis repart.
+- **`test_Partie.cpp`** (+1 cas) : la double frappe (voir plus haut).
+- Les tests existants de `Personnage`, `Monstre`, provocation et zone n'ont
+  pas été modifiés. 377 tests.

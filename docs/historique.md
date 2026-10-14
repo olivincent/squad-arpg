@@ -1364,3 +1364,28 @@ qu'un clic de lancer en visée n'annule plus le lancer (la demande part à
 chargement de niveau depuis un fichier, écran de défaite, `Camera`, bus
 d'événements. Non testé faute d'accesseur : l'absence de double frappe quand
 un skill et `attaquer` partent dans la même image.
+
+
+### Étape 53 — Type PointsDeVie et Skill::declencherSansCible (refactorisation pure) ✅ TERMINÉE
+
+1. [x] `PointsDeVie.hpp` : déclaration et invariants (enchaînée).
+2. [x] `PointsDeVie.cpp`, `squad_core`, `tests/test_PointsDeVie.cpp` (8 cas)
+       (enchaînée).
+3. [x] `Personnage` utilise un `PointsDeVie` ; `dessinerBarreDeVie` reçoit
+       un ratio (enchaînée).
+4. [x] `Monstre` idem, plus `getPointsDeVie` ; test de la double frappe
+       skill + `attaquer` dans `test_Partie.cpp` (enchaînée).
+5. [x] `Skill::declencherSansCible` et 2 tests (enchaînée).
+6. [x] `Escouade` l'utilise pour la provocation et la zone, via
+       `Personnage::declencherSkillSansCible` (enchaînée). 377 tests.
+7. [x] Test visuel et mise à jour des documents.
+
+**Choix** : `PointsDeVie` est une classe (membres privés, `assert` sur les
+invariants), un mort ne se soigne pas ; `Personnage` et `Monstre` gardent
+leurs fonctions publiques, qui délèguent. La règle « un coup > 0 réveille le
+monstre » reste dans `Monstre`. `Personnage::declencherSkillSansCible` a été
+ajoutée parce qu'`Escouade` n'accède pas au `Skill` du personnage.
+
+**Hors de portée** : armure, résurrection, classe de base commune,
+changement de la barre de vie à l'écran ou de l'équilibrage, écran de
+défaite (étape 54).

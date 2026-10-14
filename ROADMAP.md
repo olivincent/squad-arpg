@@ -59,15 +59,13 @@ est dans `docs/historique.md`.
 - Étape 50 — Réorganisation des tests (refactorisation pure) ✅
 - Étape 51 — Alléger Escouade : Provocations, Agresseurs, découpage (refactorisation pure) ✅
 - Étape 52 — Alléger main.cpp : Niveau, Partie et Controleur (refactorisation pure) ✅
+- Étape 53 — Type PointsDeVie et Skill::declencherSansCible (refactorisation pure) ✅
 
-## Étape 53 — à définir
+## Étape 54 — défaite et recommencer la partie
 
-Pistes discutées (issues de `docs/audit.md` et des étapes précédentes) :
-- `Monstre::getPointsDeVie`, pour tester qu'un skill et `attaquer` dans la
-  même image ne font pas frapper deux fois (étape 52)
-- `Skill::declencherSansCible` (audit R4)
-- Type `PointsDeVie` pour la logique de points de vie dupliquée entre
-  `Personnage` et `Monstre`
+À préciser dans Claude.ai (écran ou texte de défaite, recommencer la partie).
+
+Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes) :
 - Le monstre touché se jette sur l'auteur du coup (mémoire de
   l'attaquant), aggro sociale des voisins, effet visuel d'alerte
 - Effet visuel à l'impact du skill de zone
@@ -93,8 +91,6 @@ Pistes discutées (issues de `docs/audit.md` et des étapes précédentes) :
 - Collision entre personnages, ou déplacement suivant l'arc de rotation
   plutôt qu'une ligne droite, pour éliminer le chevauchement résiduel
   lors d'un demi-tour rapide
-- Factorisation des points de vie et de la barre de vie entre
-  `Monstre` et `Personnage`, si la duplication devient gênante
 - Effet visuel au coup ou à la mort d'un monstre ou d'un personnage
 - Un lissage plus serré autour des coins (*funnel algorithm* ou Theta*),
   si le contournement actuel des piliers s'avère insuffisant
@@ -139,6 +135,9 @@ Pistes discutées (issues de `docs/audit.md` et des étapes précédentes) :
   (pas de `-Werror`, pas sur `tests`) ; `[[nodiscard]]` sur les retours à ne
   pas ignorer ; `Cercle` passé par valeur ; constantes en `s_`. Barre de vie
   des personnages et des monstres dessinée par le module `BarreDeVie`.
+  Points de vie portés par la classe `PointsDeVie` (étape 53), possédée par
+  `Personnage` et `Monstre` ; provocation et zone par
+  `Skill::declencherSansCible`.
 - **Escouade** : l'ancre (carré vert de 20 × 20, démarre en `(100, 100)`,
   180 px/s) suit le chemin calculé par le A* puis lissé (trajets directs en
   terrain dégagé, coins contournés au plus court), s'arrête exactement sur
@@ -255,12 +254,12 @@ Pistes discutées (issues de `docs/audit.md` et des étapes précédentes) :
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 366 tests : 38 sur `TileMap`, 17 sur `Chemin`, 144
+  (`./build/tests.exe`, 377 tests : 38 sur `TileMap`, 17 sur `Chemin`, 144
   sur `Escouade` en cinq fichiers par thème — 22 déplacement, 17 combat, 61
   skills, 26 agresseurs, 18 vue —, 12 sur `Deplacement`, 34 sur `Monstre`,
-  31 sur `Personnage`, 17 sur `Skill`, 14 sur `Mobile`, 4 sur `Cercle`, 13
+  31 sur `Personnage`, 19 sur `Skill`, 14 sur `Mobile`, 4 sur `Cercle`, 13
   sur `Autodefense`, 6 sur `BarreDeSkills`, 4 sur `MonstreVu`, 1 sur
-  `BarreDeVie`, 9 sur `Provocations`, 8 sur `Agresseurs`, 7 sur `Partie`, 7 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
+  `BarreDeVie`, 8 sur `PointsDeVie`, 9 sur `Provocations`, 8 sur `Agresseurs`, 8 sur `Partie`, 7 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
   accents (`./build/tests.exe "*a portee*"` filtre) ; rotation de la
   formation et `provoquer` à une place invalide couverts.
 

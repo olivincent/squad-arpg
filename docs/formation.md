@@ -148,12 +148,13 @@ L'attaque, la portée, le skill et les obstacles sont dans
 - **`Personnage.hpp` ne contient que `class TileMap;`** : la carte est
   seulement transmise au `Mobile` et à `trajetLibre`, jamais gardée en
   membre.
-- **Points de vie et barre de vie** : 100 points, `recevoirDegats`
-  (jamais sous zéro), `estVivant()`. Barre dessinée par `Personnage`
-  la fonction commune `dessinerBarreDeVie` (module `BarreDeVie`, partagé
-  avec `Monstre` depuis l'étape 49). La logique des points de vie
-  (`recevoirDegats`, `estVivant`) reste dupliquée avec `Monstre` : aucun
-  type `PointsDeVie` tant que le besoin ne se confirme pas.
+- **Points de vie et barre de vie** : 100 points, portés par un
+  `PointsDeVie` (étape 53, partagé par valeur avec `Monstre`, sans
+  héritage). `recevoirDegats`, `recevoirSoin` et `estVivant()` sont des
+  façades qui lui délèguent : `Escouade` et les tests n'ont pas changé, et
+  l'objet n'est pas exposé (loi de Déméter). Barre dessinée par la
+  fonction commune `dessinerBarreDeVie` (module `BarreDeVie`), à qui
+  `Personnage` passe `getRatio()`.
 - **Il délègue son attaque à `m_attaqueDeBase`** et son skill (un
   `std::optional<Skill>`) à `m_skill` (voir `docs/combat.md`). La règle
   « un mort ne frappe pas » vit dans `Personnage::frapper` et

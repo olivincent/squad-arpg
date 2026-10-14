@@ -60,7 +60,8 @@ squad-arpg/
 │   ├── Cercle.hpp / .cpp
 │   ├── EtatSkill.hpp
 │   ├── BarreDeSkills.hpp / .cpp
-│   └── BarreDeVie.hpp / .cpp
+│   ├── BarreDeVie.hpp / .cpp
+│   └── PointsDeVie.hpp / .cpp
 ├── assets/
 │   └── fonts/ (DejaVuSans.ttf, LICENSE-DejaVu.txt)
 ├── tests/
@@ -74,7 +75,8 @@ squad-arpg/
 │   ├── test_Partie.cpp, test_Controleur.cpp
 │   └── test_Skill.cpp, test_Mobile.cpp, test_Cercle.cpp,
 │       test_Autodefense.cpp, test_BarreDeSkills.cpp,
-│       test_MonstreVu.cpp, test_BarreDeVie.cpp
+│       test_MonstreVu.cpp, test_BarreDeVie.cpp,
+│       test_PointsDeVie.cpp
 ├── docs/
 │   ├── build.md
 │   ├── boucle-et-entrees.md
@@ -116,7 +118,7 @@ Qui possède quoi :
   `Skill` (son attaque).
 - `Mobile` utilise `Chemin` et `Deplacement`. `Personnage` utilise
   `Mobile` et le test de trajet de `TileMap`. `Skill`, `Personnage`, `Monstre` et `Escouade` échangent
-  des `Cercle`. `Personnage` et `Monstre` dessinent leur barre de vie avec `BarreDeVie`. `Escouade` utilise `choisirMonstreAFrapper` (`Autodefense`) et
+  des `Cercle`. `Personnage` et `Monstre` possèdent chacun un `PointsDeVie` et dessinent leur barre de vie avec `BarreDeVie`. `Escouade` utilise `choisirMonstreAFrapper` (`Autodefense`) et
 `replierVersOrigine` (`Chemin`).
 
 ## Modules
@@ -318,7 +320,7 @@ formation, ni `Escouade`, ni `Monstre`.
 Données membres : `m_mobile` (`Mobile`, porte la position et la vitesse),
 `m_couleur`, `m_attaqueDeBase` (`Skill`), `m_skill`
 (`std::optional<Skill>`), `m_cibleChemin` (`std::optional<sf::Vector2f>`,
-cible du dernier A*), `m_pointsDeVie`, `m_pointsDeVieMax`.
+cible du dernier A*), `m_pointsDeVie` (`PointsDeVie`).
 
 | Fonction | Rôle |
 |---|---|
@@ -334,9 +336,10 @@ cible du dernier A*), `m_pointsDeVie`, `m_pointsDeVieMax`.
 | `Cercle zoneDuSkill() const` | Cercle centré sur le personnage, de rayon le rayon de zone de son skill (0 sans skill) |
 | `Cercle cercleDePorteeDuSkill() const` | Cercle centré sur le personnage, de rayon son rayon + la portée de son skill (rayon seul sans skill) |
 | `int declencherSkill(Cercle cible)` | 0 sans skill ou s'il est mort ; sinon délègue à `m_skill->declencher` (dégâts ou points de vie rendus) et, si la puissance est `> 0`, relance au complet la recharge de `m_attaqueDeBase` |
-| `void recevoirSoin(int quantite)` | Rend des points de vie, sans dépasser le maximum ; sans effet sur un mort |
+| `int declencherSkillSansCible()` | 0 sans skill ou s'il est mort ; sinon délègue à `m_skill->declencherSansCible` (sans portée) et, si la puissance est `> 0`, relance au complet la recharge de `m_attaqueDeBase`. Pour la provocation et la zone |
+| `void recevoirSoin(int quantite)` | Rend des points de vie, sans dépasser le maximum ; sans effet sur un mort (délègue à `PointsDeVie::soigner`) |
 | `int getPointsDeVie() const` / `int getPointsDeVieMax() const` | Points de vie actuels et maximum |
-| `void recevoirDegats(int quantite)` | Retire des points de vie, sans descendre sous zéro |
+| `void recevoirDegats(int quantite)` | Retire des points de vie, sans descendre sous zéro (délègue à `PointsDeVie::subirDegats`) |
 | `bool estVivant() const` | Points de vie `> 0` |
 | `sf::Vector2f getCentre() const` | Centre du personnage |
 | `Cercle getCercle() const` | Cercle centré sur le personnage, de rayon 10 |
@@ -357,7 +360,7 @@ Un carré rouge de 30 × 30 qui détecte un personnage, le poursuit, riposte
 `Escouade` ni `Personnage` : il reçoit sa proie et ses obstacles en
 paramètres.
 
-Données membres : `m_mobile`, `m_pointsDeVie`, `m_pointsDeVieMax`, `m_id`,
+Données membres : `m_mobile`, `m_pointsDeVie` (`PointsDeVie`), `m_id`,
 `m_attaque`, `m_rayonDetection`, `m_rayonTerritoire`, `m_etat` (`Etat`,
 `enum class` privé : `EnGarde`, `Poursuite`, `Retour`), `m_poste`,
 `m_vientDEtreTouche` (`bool`, posé par `recevoirDegats` si dégâts `> 0`,
@@ -373,8 +376,9 @@ consommé par `mettreAJour`).
 | `Cercle getCercle() const` | Cercle centré sur le monstre, de rayon 15 |
 | `int getId() const` | Identifiant du monstre |
 | `bool contient(sf::Vector2f point) const` | Le point (pixels du monde) est-il dans le carré du monstre ? |
-| `void recevoirDegats(int quantite)` | Retire des points de vie, sans descendre sous zéro ; si `quantite > 0`, mémorise que le monstre vient d'être touché |
+| `void recevoirDegats(int quantite)` | Retire des points de vie, sans descendre sous zéro (`PointsDeVie::subirDegats`) ; si `quantite > 0`, mémorise que le monstre vient d'être touché |
 | `bool estVivant() const` | Points de vie `> 0` |
+| `int getPointsDeVie() const` | Points de vie actuels |
 
 ### `Skill` — une capacité spéciale
 
@@ -398,6 +402,7 @@ en pixels).
 | `void mettreAJour(float dt)` | Décrémente la recharge, sans descendre sous zéro |
 | `bool estAPortee(Cercle origine, Cercle cible) const` | `distanceBordABord(origine, cible)` est-elle `<=` `m_portee` ? |
 | `int declencher(Cercle origine, Cercle cible)` | Puissance si la cible est à portée et la recharge écoulée (relance alors la recharge), sinon 0 sans toucher la recharge |
+| `int declencherSansCible()` | Comme `declencher`, sans vérifier la portée ni prendre de cible : puissance si la recharge est écoulée (relance alors la recharge), sinon 0. Pour la provocation et la zone |
 | `void relancerRecharge()` | Remet la recharge à `m_tempsRecharge`, sans déclencher |
 | `float getProgressionRecharge() const` | De 0 (juste après le déclenchement) à 1 (prêt) ; 1 si le temps de recharge est nul |
 | `float getRechargeRestante() const` | Temps de recharge restant, en secondes (0 si prêt) |
@@ -474,7 +479,25 @@ Deux fonctions libres, sans état, utilisées par `Personnage::dessiner` et
 | Fonction | Rôle |
 |---|---|
 | `sf::Vector2f positionBarreDeVie(sf::Vector2f centre, sf::Vector2f taille)` | Coin haut-gauche de la barre d'une entité de ce centre et de cette taille : alignée sur son bord gauche, 6 px au-dessus de son carré |
-| `void dessinerBarreDeVie(sf::RenderTarget& rendu, sf::Vector2f position, float largeur, int pointsDeVie, int pointsDeVieMax)` | Fond gris, puis rectangle vert proportionnel aux points de vie ; ne dessine rien si `pointsDeVieMax <= 0` |
+| `void dessinerBarreDeVie(sf::RenderTarget& rendu, sf::Vector2f position, float largeur, float ratio)` | Fond gris, puis rectangle vert proportionnel à `ratio` (0 à 1) |
+
+### `PointsDeVie` — les points de vie d'une entité
+
+Classe à sémantique de valeur, possédée par valeur par `Personnage` et
+`Monstre`, qui lui délèguent leurs façades (`recevoirDegats`, `estVivant`…).
+Ne dépend d'aucun autre module ni de SFML. Invariants : `0 <= valeur <=
+maximum`, `maximum > 0`, une valeur à 0 ne remonte plus.
+
+Données membres : `m_valeur`, `m_maximum`.
+
+| Fonction | Rôle |
+|---|---|
+| `explicit PointsDeVie(int maximum)` | Commence plein ; `assert(maximum > 0)` |
+| `void subirDegats(int montant)` | `assert(montant >= 0)` ; valeur bornée à 0 ; un montant de 0 est permis |
+| `void soigner(int montant)` | `assert(montant >= 0)` ; valeur bornée au maximum ; sans effet si la valeur est à 0 |
+| `bool estVivant() const` | Valeur `> 0` (`[[nodiscard]]`) |
+| `int getValeur() const` / `int getMaximum() const` | Valeur actuelle et maximum |
+| `float getRatio() const` | Valeur / maximum |
 
 ### `Cercle` — la forme d'une entité
 

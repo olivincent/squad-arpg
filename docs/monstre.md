@@ -42,7 +42,7 @@ déplacement par chemin dans `docs/chemin.md`.
 - **Pas d'accesseur pour les points de vie** : les tests passent par
   `estVivant()` et la barre de vie est dessinée par la classe elle-même.
 - **Barre de vie** : dessinée par `dessinerBarreDeVie` (module
-  `BarreDeVie`, partagé avec `Personnage` depuis l'étape 49) : fond sombre
+  `BarreDeVie`, partagé avec `Personnage` depuis l'étape 49, qui reçoit `getRatio()` du `PointsDeVie` du monstre depuis l'étape 53) : fond sombre
   de la largeur du monstre, quelques pixels au-dessus de lui, recouvert
   d'un rectangle vert proportionnel aux points de vie restants.
 - **Couleur** : toujours rouge, donc une valeur fixe dans `dessiner`, pas

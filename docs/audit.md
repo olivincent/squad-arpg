@@ -204,7 +204,9 @@ inclut `Personnage.hpp` ; voir P2). **Aucune règle violée.**
 - **Risque et tests touchés** : faible ; `test_Skill.cpp` à compléter.
 - **Dépend de** : aucun.
 
-**Écarté à l'étape 49** : hors de portée de la refactorisation d'hygiène ; l'astuce du cercle du lanceur reste documentée dans `Skill.hpp` et `docs/combat.md`.
+**Écarté à l'étape 49** : hors de portée de la refactorisation d'hygiène.
+
+**Traité à l'étape 53.** `Skill::declencherSansCible` et `Personnage::declencherSkillSansCible` ; la provocation et le skill de zone les utilisent, l'astuce du cercle du lanceur a disparu.
 
 ---
 
@@ -233,7 +235,7 @@ inclut `Personnage.hpp` ; voir P2). **Aucune règle violée.**
   de `recevoirDegats`/`recevoirSoin` ne changent pas.
 - **Dépend de** : aucun.
 
-**Traité à l'étape 49.**
+**Traité à l'étape 49** (fonction de dessin commune) **et à l'étape 53** (classe `PointsDeVie`, possédée par `Personnage` et `Monstre` ; `dessinerBarreDeVie` reçoit un ratio).
 
 ### D2 — Validation de la place (1 à 4) répétée
 - **Constat** : `place < 1 || place > m_personnages.size()` apparaît 5 fois
