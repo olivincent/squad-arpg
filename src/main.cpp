@@ -26,7 +26,7 @@ int main() {
         return 1;
     }
     Partie partie(creerNiveau());
-    Controleur controleur(partie);
+    Controleur controleur;
 
     sf::Clock horloge;
     sf::View camera = window.getDefaultView();
@@ -36,14 +36,14 @@ int main() {
         // L'image précédente a fini sur la vue de l'interface : les clics
         // doivent être convertis avec la caméra du monde.
         window.setView(camera);
-        controleur.debutImage();
+        controleur.debutImage(partie);
         while (const std::optional event = window.pollEvent()) {
             if (event->is<sf::Event::Closed>()) {
                 window.close();
             }
             if (const auto* data = event->getIf<sf::Event::MouseButtonPressed>()) {
                 if (data->button == sf::Mouse::Button::Left) {
-                    controleur.appuiGauche(window.mapPixelToCoords(data->position));
+                    controleur.appuiGauche(partie, window.mapPixelToCoords(data->position));
                 } else if (data->button == sf::Mouse::Button::Right) {
                     controleur.appuiDroit();
                 }
@@ -53,13 +53,13 @@ int main() {
                 // quelle que soit la disposition du clavier (AZERTY : « & »).
                 // Touche N = personnage à la place N de la formation.
                 if (data->scancode == sf::Keyboard::Scan::Num1) {
-                    controleur.appuiTouche(1);
+                    controleur.appuiTouche(partie, 1);
                 } else if (data->scancode == sf::Keyboard::Scan::Num2) {
-                    controleur.appuiTouche(2);
+                    controleur.appuiTouche(partie, 2);
                 } else if (data->scancode == sf::Keyboard::Scan::Num3) {
-                    controleur.appuiTouche(3);
+                    controleur.appuiTouche(partie, 3);
                 } else if (data->scancode == sf::Keyboard::Scan::Num4) {
-                    controleur.appuiTouche(4);
+                    controleur.appuiTouche(partie, 4);
                 } else if (data->scancode == sf::Keyboard::Scan::Escape) {
                     controleur.appuiEchap();
                 }
@@ -67,14 +67,14 @@ int main() {
         }
 
         const bool boutonTenu = window.hasFocus() && sf::Mouse::isButtonPressed(sf::Mouse::Button::Left);
-        controleur.mettreAJourDeplacement(boutonTenu, window.mapPixelToCoords(sf::Mouse::getPosition(window)));
+        controleur.mettreAJourDeplacement(partie, boutonTenu, window.mapPixelToCoords(sf::Mouse::getPosition(window)));
         partie.mettreAJour(dt);
 
         camera.setCenter(partie.getEscouade().getCentre());
         window.setView(camera);
         window.clear();
         partie.dessiner(window);
-        controleur.dessinerApercu(window, window.mapPixelToCoords(sf::Mouse::getPosition(window)));
+        controleur.dessinerApercu(partie, window, window.mapPixelToCoords(sf::Mouse::getPosition(window)));
 
         // Interface fixe à l'écran : vue par défaut, dessinée en dernier.
         window.setView(window.getDefaultView());

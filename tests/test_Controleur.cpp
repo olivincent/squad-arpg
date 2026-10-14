@@ -30,33 +30,33 @@ void avancer(Partie& partie, int nombreDeTicsAFaire) {
 
 TEST_CASE("4 entre en visee quand le skill est pret") {
     Partie partie(niveauDegage({}));
-    Controleur controleur(partie);
+    Controleur controleur;
 
-    controleur.appuiTouche(4);
+    controleur.appuiTouche(partie, 4);
 
     REQUIRE(controleur.getPlaceEnVisee() == 4);
 }
 
 TEST_CASE("4 n'entre pas en visee si le skill n'est pas pret") {
     Partie partie(niveauDegage({}));
-    Controleur controleur(partie);
-    controleur.appuiTouche(4);
-    controleur.appuiGauche(s_pointDeLancer);
+    Controleur controleur;
+    controleur.appuiTouche(partie, 4);
+    controleur.appuiGauche(partie, s_pointDeLancer);
     avancer(partie, 1);
     REQUIRE_FALSE(partie.getEscouade().skillEstPret(4));
 
-    controleur.debutImage();
-    controleur.appuiTouche(4);
+    controleur.debutImage(partie);
+    controleur.appuiTouche(partie, 4);
 
     REQUIRE_FALSE(controleur.getPlaceEnVisee().has_value());
 }
 
 TEST_CASE("un clic en visee lance le sort et sort de la visee") {
     Partie partie(niveauDegage({}));
-    Controleur controleur(partie);
-    controleur.appuiTouche(4);
+    Controleur controleur;
+    controleur.appuiTouche(partie, 4);
 
-    controleur.appuiGauche(s_pointDeLancer);
+    controleur.appuiGauche(partie, s_pointDeLancer);
 
     REQUIRE_FALSE(controleur.getPlaceEnVisee().has_value());
     REQUIRE(partie.getEscouade().skillEstPret(4)); // rien ne part avant mettreAJour
@@ -66,18 +66,18 @@ TEST_CASE("un clic en visee lance le sort et sort de la visee") {
 
 TEST_CASE("clic droit, Echap et 4 annulent la visee sans consommer la recharge") {
     Partie partie(niveauDegage({}));
-    Controleur controleur(partie);
+    Controleur controleur;
 
-    controleur.appuiTouche(4);
+    controleur.appuiTouche(partie, 4);
     controleur.appuiDroit();
     REQUIRE_FALSE(controleur.getPlaceEnVisee().has_value());
 
-    controleur.appuiTouche(4);
+    controleur.appuiTouche(partie, 4);
     controleur.appuiEchap();
     REQUIRE_FALSE(controleur.getPlaceEnVisee().has_value());
 
-    controleur.appuiTouche(4);
-    controleur.appuiTouche(4);
+    controleur.appuiTouche(partie, 4);
+    controleur.appuiTouche(partie, 4);
     REQUIRE_FALSE(controleur.getPlaceEnVisee().has_value());
 
     avancer(partie, 1);
@@ -86,23 +86,23 @@ TEST_CASE("clic droit, Echap et 4 annulent la visee sans consommer la recharge")
 
 TEST_CASE("un bouton tenu a l'entree en visee ne deplace pas l'escouade avant un nouvel appui") {
     Partie partie(niveauDegage({}));
-    Controleur controleur(partie);
+    Controleur controleur;
     const sf::Vector2f depart = partie.getEscouade().getCentre();
     const sf::Vector2f curseur{500.0f, 500.0f};
 
-    controleur.appuiGauche(curseur);  // arme le déplacement continu
-    controleur.appuiTouche(4);
-    controleur.mettreAJourDeplacement(true, curseur);
+    controleur.appuiGauche(partie, curseur);  // arme le déplacement continu
+    controleur.appuiTouche(partie, 4);
+    controleur.mettreAJourDeplacement(partie, true, curseur);
     avancer(partie, 30);
     verifierPointProche(partie.getEscouade().getCentre(), depart);
 
-    controleur.appuiGauche(s_pointDeLancer);  // lance, sort de la visée
-    controleur.mettreAJourDeplacement(true, curseur);
+    controleur.appuiGauche(partie, s_pointDeLancer);  // lance, sort de la visée
+    controleur.mettreAJourDeplacement(partie, true, curseur);
     avancer(partie, 30);
     verifierPointProche(partie.getEscouade().getCentre(), depart);
 
-    controleur.appuiGauche(curseur);  // nouvel appui au sol
-    controleur.mettreAJourDeplacement(true, curseur);
+    controleur.appuiGauche(partie, curseur);  // nouvel appui au sol
+    controleur.mettreAJourDeplacement(partie, true, curseur);
     avancer(partie, 30);
     REQUIRE((partie.getEscouade().getCentre() - depart).length() > 10.0f);
 }
@@ -115,35 +115,35 @@ TEST_CASE("la mort du lanceur fait sortir de la visee au debutImage suivant") {
         }
     }
     Partie partie(niveauDegage(monstres));
-    Controleur controleur(partie);
-    controleur.appuiTouche(4);
+    Controleur controleur;
+    controleur.appuiTouche(partie, 4);
     for (int i = 0; i < 5400 && partie.getEscouade().estVivante(); ++i) {
         partie.mettreAJour(s_dureeTic);
     }
     REQUIRE_FALSE(partie.getEscouade().estVivante());
     REQUIRE(controleur.getPlaceEnVisee() == 4);
 
-    controleur.debutImage();
+    controleur.debutImage(partie);
 
     REQUIRE_FALSE(controleur.getPlaceEnVisee().has_value());
 }
 
 TEST_CASE("un clic au sol arme le deplacement continu, un clic sur un monstre non") {
     Partie partie(niveauDegage({{400.0f, 400.0f}}));
-    Controleur controleur(partie);
+    Controleur controleur;
     const sf::Vector2f depart = partie.getEscouade().getCentre();
     const sf::Vector2f curseur{20.0f, 200.0f};  // à l'opposé du monstre
 
-    controleur.appuiGauche(curseur);
-    controleur.mettreAJourDeplacement(true, curseur);
+    controleur.appuiGauche(partie, curseur);
+    controleur.mettreAJourDeplacement(partie, true, curseur);
     avancer(partie, 30);
     REQUIRE(partie.getEscouade().getCentre().x < depart.x);
 
     // Le combat engagé fait avancer l'escouade vers le monstre ; l'ordre du
     // curseur, à l'opposé, ne doit plus être donné.
-    controleur.appuiGauche({400.0f, 400.0f});
+    controleur.appuiGauche(partie, {400.0f, 400.0f});
     const float xAvant = partie.getEscouade().getCentre().x;
-    controleur.mettreAJourDeplacement(true, curseur);
+    controleur.mettreAJourDeplacement(partie, true, curseur);
     avancer(partie, 30);
     REQUIRE(partie.getEscouade().getCentre().x > xAvant);
 }

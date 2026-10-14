@@ -10,33 +10,31 @@ class Partie;
 // L'état d'interface : le mode visée du skill de zone et le déplacement
 // continu. Traduit les actions du joueur (déjà dépouillées des événements
 // SFML par main.cpp) en demandes à la Partie. Tous les points sont en
-// pixels du monde.
+// pixels du monde. Type valeur : la Partie est reçue à chaque appel, sans
+// référence membre, pour que le Controleur reste réaffectable.
 class Controleur {
 public:
-    explicit Controleur(Partie& partie);
-
     // À appeler au début de chaque image : sort de la visée si le lanceur
     // ne peut plus lancer (mort, défaite).
-    void debutImage();
+    void debutImage(const Partie& partie);
     // Clic gauche : en visée, lance le sort au point ; sinon engage un
     // combat (monstre) ou arme le déplacement continu (sol).
-    void appuiGauche(sf::Vector2f point);
+    void appuiGauche(Partie& partie, sf::Vector2f point);
     // Clic droit : annule la visée.
     void appuiDroit();
     // Touches 1 à 3 : skill de cette place. Touche 4 : entre en visée
     // (skill prêt) ou en sort. Toute autre place est ignorée.
-    void appuiTouche(std::size_t place);
+    void appuiTouche(Partie& partie, std::size_t place);
     void appuiEchap();
     // `boutonTenu` : bouton gauche enfoncé ET fenêtre avec le focus.
-    void mettreAJourDeplacement(bool boutonTenu, sf::Vector2f curseur);
+    void mettreAJourDeplacement(Partie& partie, bool boutonTenu, sf::Vector2f curseur);
 
     // Cercle de zone sous le curseur et cercle de portée du lanceur ; rien hors visée.
-    void dessinerApercu(sf::RenderTarget& rendu, sf::Vector2f curseur) const;
+    void dessinerApercu(const Partie& partie, sf::RenderTarget& rendu, sf::Vector2f curseur) const;
     std::optional<std::size_t> getPlaceEnVisee() const;
 
 private:
-    Partie& m_partie;
-    bool m_deplacementContinu;
+    bool m_deplacementContinu = false;
     // Vide = mode normal, sinon la place du lanceur en cours de visée.
     std::optional<std::size_t> m_placeEnVisee;
 };
