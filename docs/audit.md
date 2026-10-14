@@ -134,6 +134,8 @@ inclut `Personnage.hpp` ; voir P2). **Aucune règle violée.**
   deviennent possibles. Vérification visuelle nécessaire.
 - **Dépend de** : D3 (la recherche par identifiant) simplifie l'extraction.
 
+**Traité à l'étape 52.** `Partie` (règles de jeu, ordre des appels conservé), `Controleur` (état d'interface) et `Niveau` (données) dans `squad_core`, testés ; `main.cpp` passe de 285 à 88 lignes.
+
 ### R2 — `Escouade` porte six responsabilités
 - **Traité à l'étape 51** : (a) `Provocations` et (b) `Agresseurs` sont extraits.
   (c), la formation, n'est **pas** traitée.
@@ -450,6 +452,8 @@ inclut `Personnage.hpp` ; voir P2). **Aucune règle violée.**
 - **Risque et tests touchés** : faible ; dessin non testé.
 - **Dépend de** : R1.
 
+**Traité à l'étape 52** : (a) par R1 ; (b) le plan et les positions vont dans `Niveau.cpp` (`creerNiveau()`, sans chargeur de fichiers) ; l'aperçu de visée est dessiné par `Controleur::dessinerApercu` plutôt que par une fonction libre.
+
 ### F4 — Documentation en retard sur le code
 - **Constat** : ARCHITECTURE.md décrit `Personnage::estAPortee` avec « `m_attaque` »
   et `frapper` avec « `m_attaque.frapper` », ainsi que `declencherSkill` avec
@@ -641,7 +645,7 @@ inclut `Personnage.hpp` ; voir P2). **Aucune règle violée.**
 - **Dépend de** : aucun.
 
 **Traité à l'étape 50** pour (a) (quatre tests de rotation) et (e) (noms sans
-accents). (b) relève de l'étape 52 (allègement de `main.cpp`), (c) est assumé
+accents). (b) traité à l'étape 52 (`test_Partie.cpp`, `test_Controleur.cpp`), (c) est assumé
 (le dessin se vérifie dans le jeu), (d) n'est pas traité.
 
 ### T4 — Tests dépendants du temps simulé

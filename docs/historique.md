@@ -1330,3 +1330,37 @@ accès des tests d'agresseurs sont adaptés (`.monstre.id`, `.monstre.cercle`),
 pas ce qu'ils vérifient.
 
 **Hors de portée** : extraction de la formation (R2c), `main.cpp` (étape 52).
+
+
+### Étape 52 — Alléger main.cpp : Niveau, Partie et Controleur (refactorisation pure) ✅ TERMINÉE
+
+1. [x] `Niveau` et `creerNiveau()` ; `main.cpp` lit le niveau par cette
+       fonction (enchaînée). 352 tests.
+2. [x] Classe `Partie` et `tests/test_Partie.cpp` (7 cas) ; `main.cpp` pas
+       encore branché (enchaînée). 359 tests.
+3. [x] `main.cpp` passe par `Partie` : plus de règle de jeu ni de
+       `std::vector<Monstre>` dans `main.cpp`. Test visuel.
+4. [x] Classe `Controleur` (avec `dessinerApercu`) et
+       `tests/test_Controleur.cpp` (7 cas) (enchaînée). 366 tests.
+5. [x] `main.cpp` passe par le `Controleur`. Test visuel.
+6. [x] Mise à jour des documents
+
+**Mesures** : `main.cpp` 285 → 144 lignes après la sous-étape 3, → 88 après
+la sous-étape 5. Aucun comportement ni rendu modifié.
+
+**Choix** : l'ordre d'une image est celui d'avant (zone, skill, `attaquer`,
+déverrouillage, retrait, déplacement, mise à jour), obtenu en mémorisant les
+demandes du joueur dans `Partie` et en les exécutant dans `mettreAJour` ;
+seul `cliquer` s'applique tout de suite. `prochainId` est local au
+constructeur de `Partie` (un membre n'aurait servi à rien). `Partie` a un
+accesseur `getMonstres` pour les tests. La correspondance des touches (4 =
+visée, 1 à 3 = skill direct) est inchangée.
+
+**Écart connu** : un Échap, un 4 ou un clic droit reçu dans la même image
+qu'un clic de lancer en visée n'annule plus le lancer (la demande part à
+`appuiGauche`). Négligeable à 60 images par seconde.
+
+**Hors de portée** : extraction de la formation (R2c), sous-dossiers (F1),
+chargement de niveau depuis un fichier, écran de défaite, `Camera`, bus
+d'événements. Non testé faute d'accesseur : l'absence de double frappe quand
+un skill et `attaquer` partent dans la même image.

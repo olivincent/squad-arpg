@@ -11,7 +11,8 @@
   `test_Monstre.cpp`, `test_Personnage.cpp`, `test_Skill.cpp`,
   `test_Mobile.cpp`, `test_Cercle.cpp`, `test_Autodefense.cpp`,
   `test_BarreDeSkills.cpp`, `test_MonstreVu.cpp`, `test_BarreDeVie.cpp`,
-  `test_Provocations.cpp`, `test_Agresseurs.cpp`),
+  `test_Provocations.cpp`, `test_Agresseurs.cpp`, `test_Partie.cpp`,
+  `test_Controleur.cpp`),
   sauf `Escouade`, coupée par thème en cinq fichiers à plat (pas de
   sous-dossier) :
   - `test_Escouade_deplacement.cpp` : ancre, chemin, formation, places,
@@ -499,3 +500,31 @@
   `simulerUnDixiemeDeSeconde` en fait 6.
 - **`provoquer` à une place invalide** (0 et 5) : aucune provocation, la
   mise à jour suivante ne plante pas, `proieDuMonstre` reste défini.
+
+
+## Partie et Controleur (étape 52)
+
+- **`test_Partie.cpp`** (7 cas) : niveaux construits dans le test
+  (`niveauDegage`, 15 × 15 cases sans mur, escouade en `(200, 200)`, centre
+  en `(210, 210)`). Clic sur un monstre (`Monstre`, verrou posé, identifiant
+  2 pour le second) ; clic au sol (`Sol`, verrou levé) ; monstre tué retiré
+  et verrou levé ; aucun monstre mort dans le vecteur après chaque
+  `mettreAJour` ; un monstre approché poursuit et frappe (observé par
+  `getAgresseurs`) ; un skill demandé ne part qu'à `mettreAJour` (sa recharge
+  démarre) ; escouade vaincue par 30 monstres : `cliquer` renvoie `Ignore`,
+  les demandes sont sans effet.
+- **Non testé** : « un skill et `attaquer` dans la même image ne font pas
+  frapper deux fois le même personnage ». `Monstre` n'a pas d'accesseur de
+  points de vie, et l'écart de 5 dégâts ne changeait pas l'image de mort du
+  monstre dans les essais. Un `Monstre::getPointsDeVie` le rendrait possible.
+- **`test_Controleur.cpp`** (7 cas) : 4 entre en visée ; 4 n'entre pas si le
+  skill n'est pas prêt (recharge après un lancer) ; un clic en visée lance
+  (rien ne part avant `mettreAJour`) et sort de la visée ; clic droit, Échap
+  et 4 annulent sans consommer la recharge ; un bouton tenu à l'entrée en
+  visée ne déplace pas l'escouade, ni pendant la visée ni après le lancer,
+  mais un nouvel appui au sol la déplace ; la mort du lanceur (défaite)
+  fait sortir de la visée au `debutImage` suivant ; un clic au sol arme le
+  déplacement continu, un clic sur un monstre le désarme (le monstre est à
+  l'opposé du curseur, l'escouade avance vers lui et non vers le curseur).
+- **Non testé** : `dessinerApercu` (dessin, vérifié dans le jeu) et la
+  traduction des événements dans `main.cpp`.

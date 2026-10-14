@@ -39,6 +39,9 @@ squad-arpg/
 ├── CMakeLists.txt
 ├── src/
 │   ├── main.cpp
+│   ├── Niveau.hpp / .cpp
+│   ├── Partie.hpp / .cpp
+│   ├── Controleur.hpp / .cpp
 │   ├── TileMap.hpp / .cpp
 │   ├── Escouade.hpp / .cpp
 │   ├── Provocations.hpp / .cpp
@@ -68,6 +71,7 @@ squad-arpg/
 │   │   test_Escouade_vue.cpp
 │   ├── test_Provocations.cpp, test_Agresseurs.cpp
 │   ├── test_Deplacement.cpp, test_Monstre.cpp, test_Personnage.cpp
+│   ├── test_Partie.cpp, test_Controleur.cpp
 │   └── test_Skill.cpp, test_Mobile.cpp, test_Cercle.cpp,
 │       test_Autodefense.cpp, test_BarreDeSkills.cpp,
 │       test_MonstreVu.cpp, test_BarreDeVie.cpp
@@ -94,13 +98,19 @@ logique de jeu (les modules ci-dessous) indépendamment de la fenêtre
 et de la boucle de jeu.
 
 Qui possède quoi :
-- `main.cpp` possède la fenêtre, la boucle de jeu, la caméra, la carte
-  (`TileMap`), l'`Escouade` et un `std::vector<Monstre>`, ainsi que le mode
-  visée du skill de zone (état d'interface) et la police (`sf::Font`). Il traite les
-  événements (fermeture, clic, touches 1 à 4, Échap, clic droit) et fait l'intermédiaire entre
-  `Escouade` et `Monstre`, qui ne se connaissent pas : il donne à
-  `Escouade` la liste des monstres (`MonstreVu`) et applique les `Coup`
-  qu'elle renvoie. Il ne connaît ni `Chemin` ni `Personnage`.
+- `main.cpp` possède la fenêtre, la boucle SFML, la caméra, la police
+  (`sf::Font`), une `Partie` et un `Controleur`. Il traduit les événements
+  SFML (fermeture, clic, touches 1 à 4, Échap, clic droit) en appels au
+  `Controleur`, convertit le curseur en coordonnées du monde, centre la
+  caméra sur l'escouade et enchaîne le dessin. Il ne connaît ni `Monstre`,
+  ni `Coup`, ni `MonstreVu`, ni `Chemin`, ni `Personnage`.
+- `Partie` possède la `TileMap`, l'`Escouade` et un `std::vector<Monstre>`,
+  construits à partir d'un `Niveau`. Elle fait l'intermédiaire entre
+  `Escouade` et `Monstre`, qui ne se connaissent pas : elle leur donne la
+  liste des monstres (`MonstreVu`) et applique les `Coup` renvoyés.
+- `Controleur` tient une référence à la `Partie` (qui lui survit) et porte
+  l'état d'interface : le mode visée et le déplacement continu. Il ne
+  connaît pas les événements SFML.
 - `Escouade` possède un `Mobile` (l'ancre), 4 `Personnage`, des `Provocations` et des `Agresseurs`. Ces deux derniers ne connaissent ni `Personnage`, ni `Monstre`, ni `Escouade`.
 - `Personnage` possède un `Mobile`, un `Skill` (son attaque de base) et, en option, un second `Skill` ; `Monstre` possède un `Mobile` et un
   `Skill` (son attaque).
@@ -132,6 +142,63 @@ Données membres : `m_largeur`, `m_hauteur` (cases), `m_tailleCase`
 | `bool chevaucheUnMur(const sf::FloatRect& rect) const` | Le rectangle (en pixels du monde) chevauche-t-il un mur ? |
 | `bool trajetLibre(const sf::FloatRect& rect, sf::Vector2f deplacement) const` | Le rectangle, translaté de sa position jusqu'à `position + deplacement`, ne chevauche-t-il un mur à aucun moment du trajet ? |
 | `bool ligneDeVue(sf::Vector2f a, sf::Vector2f b) const` | Le segment de `a` à `b` (pixels du monde) ne traverse-t-il aucun mur ? Faux si `a` ou `b` est dans un mur |
+
+### `Niveau` — les données d'un niveau
+
+`Niveau.hpp` / `.cpp` : structure sans comportement et une fonction libre.
+
+Données membres : `struct Niveau { std::vector<std::string> plan; float
+tailleCase; sf::Vector2f departEscouade; std::vector<sf::Vector2f>
+positionsMonstres; }`.
+
+| Fonction | Rôle |
+|---|---|
+| `Niveau creerNiveau()` | Le niveau du jeu (carte de 59 × 40 cases de 40 px, départ en `(100, 100)`, six monstres) ; pas de lecture de fichier |
+
+### `Partie` — les règles de jeu
+
+Possède par valeur la carte, l'escouade et les monstres. Orchestre
+seulement : les règles propres à `Escouade` ou à `Monstre` y restent. Le
+joueur agit par des demandes, mémorisées puis exécutées par `mettreAJour` à
+leur place dans l'image ; l'ordre est décrit dans `docs/boucle-et-entrees.md`.
+Invariant : entre deux appels, tout monstre du vecteur est vivant.
+
+Données membres : `m_carte` (`TileMap`), `m_escouade` (`Escouade`),
+`m_monstres` (`std::vector<Monstre>`), `m_lancerDeZoneDemande`
+(`std::optional<LancerDeZone>`, structure privée : `place`, `point`),
+`m_skillDemande` (`std::optional<std::size_t>`), `m_deplacementOrdonne`
+(`std::optional<sf::Vector2f>`).
+
+| Fonction | Rôle |
+|---|---|
+| `explicit Partie(const Niveau& niveau)` | Construit la carte, l'escouade et les monstres (identifiants 1, 2, 3…) |
+| `ResultatClic cliquer(sf::Vector2f point)` | Appliqué tout de suite. `Monstre` : verrouille le monstre qui contient le point ; `Sol` : lève le verrou ; `Ignore` si l'escouade est vaincue, sans rien changer. `enum class ResultatClic { Monstre, Sol, Ignore }` |
+| `void demanderSkill(std::size_t place)` | Mémorise la demande de skill (touches 1 à 3) ; la dernière demande de l'image gagne |
+| `void lancerSkillDeZone(std::size_t place, sf::Vector2f point)` | Mémorise le lancer du skill de zone |
+| `void ordonnerDeplacement(sf::Vector2f point)` | Mémorise l'ordre de déplacement ; exécuté seulement si l'escouade est vivante |
+| `void mettreAJour(float dt)` | Exécute, dans l'ordre : lancer de zone, skill demandé, `attaquer` et application des coups, déverrouillage si la cible est morte, retrait des monstres morts, ordre de déplacement, mise à jour (obstacles, escouade, tour de chaque monstre) ; vide les demandes |
+| `void dessiner(sf::RenderTarget& rendu) const` | Carte, monstres (contour jaune sur le monstre verrouillé), escouade |
+| `const Escouade& getEscouade() const` | Lecture seule : caméra, barre de skills, requêtes du `Controleur` |
+| `const std::vector<Monstre>& getMonstres() const` | Lecture seule (utilisée par les tests) |
+
+### `Controleur` — l'état d'interface
+
+Ne connaît pas les événements SFML : `main.cpp` les traduit en appels
+simples. Points en pixels du monde.
+
+Données membres : `m_partie` (`Partie&`), `m_deplacementContinu` (`bool`),
+`m_placeEnVisee` (`std::optional<std::size_t>`, vide = mode normal).
+
+| Fonction | Rôle |
+|---|---|
+| `explicit Controleur(Partie& partie)` | Se lie à la partie ; mode normal, déplacement continu désarmé |
+| `void debutImage()` | Sort de la visée si le lanceur ne peut plus lancer (`!skillEstPret`) |
+| `void appuiGauche(sf::Vector2f point)` | En visée : `lancerSkillDeZone` puis sortie de la visée (sans verrouiller ni déplacer). Sinon `cliquer` : `Monstre` désarme le déplacement continu, `Sol` l'arme, `Ignore` ne change rien |
+| `void appuiDroit()` / `void appuiEchap()` | Annulent la visée sans recharge |
+| `void appuiTouche(std::size_t place)` | 1 à 3 : `demanderSkill`. 4 : sort de la visée si on y est ; sinon y entre si l'escouade est vivante et le skill prêt, et désarme le déplacement continu. Autre place : ignorée |
+| `void mettreAJourDeplacement(bool boutonTenu, sf::Vector2f curseur)` | Si `boutonTenu` (bouton gauche enfoncé ET focus, calculé par `main.cpp`) et déplacement armé : `ordonnerDeplacement(curseur)` |
+| `void dessinerApercu(sf::RenderTarget& rendu, sf::Vector2f curseur) const` | En visée seulement : cercle jaune de la zone sous le curseur, cercle blanc de la portée autour du lanceur |
+| `std::optional<std::size_t> getPlaceEnVisee() const` | Place en visée (pour la barre de skills) |
 
 ### `Escouade` — le point de contrôle (l'ancre)
 
@@ -452,7 +519,7 @@ lire le fichier correspondant :
 | Fichier | Contenu | Quand le lire |
 |---|---|---|
 | `docs/build.md` | Build (CMake, `squad_core`, exécutables), choix de SFML | Avant de modifier `CMakeLists.txt` ou d'ajouter un fichier source |
-| `docs/boucle-et-entrees.md` | Boucle de jeu, entrée souris et clavier, combat engagé, défaite, monstres dans la boucle, caméra | Avant de modifier `main.cpp` |
+| `docs/boucle-et-entrees.md` | Qui fait quoi entre `main.cpp`, `Controleur` et `Partie`, ordre d'une image, entrée souris et clavier, mode visée, combat engagé, défaite, caméra | Avant de modifier `main.cpp`, `Partie`, `Controleur` ou `Niveau` |
 | `docs/carte-et-collision.md` | Carte, collision et dessin, déplacement avec glissement et obstacles, plan texte et validation | Avant de modifier `TileMap` ou `Deplacement` |
 | `docs/chemin.md` | Recherche de chemin (A*), suivi de chemin (`Mobile`), lissage de chemin | Avant de modifier `Chemin` ou `Mobile` |
 | `docs/formation.md` | `Escouade` et `Personnage` : ancre, formation, orientation, verrou de cible, placement en combat, mort et défaite | Avant de modifier `Escouade` ou `Personnage` |

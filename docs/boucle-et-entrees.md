@@ -1,239 +1,230 @@
 # Squad-ARPG — Boucle de jeu et entrées
 
-`main.cpp` garde la fenêtre, la boucle de jeu, les événements, la caméra,
-la carte (son plan) et les monstres. Il ne connaît ni `Chemin` ni
-`Personnage`, et il est l'intermédiaire entre `Escouade` et `Monstre`, qui
-ne se connaissent pas.
+Depuis l'étape 52, trois acteurs se partagent ce qui tenait dans `main()` :
+
+| Acteur | Rôle | Connaît SFML Window/Event ? |
+|---|---|---|
+| `main.cpp` (88 lignes) | Fenêtre, police, horloge, caméra, traduction des événements SFML en appels au `Controleur`, conversion du curseur en coordonnées du monde, enchaînement du dessin | Oui, seul |
+| `Controleur` | État d'interface : mode visée (`m_placeEnVisee`) et déplacement continu (`m_deplacementContinu`) ; traduit les actions du joueur en demandes à la `Partie` ; dessine l'aperçu de visée | Non |
+| `Partie` | Règles de jeu : possède la carte, l'`Escouade` et les `Monstre` ; intermédiaire entre `Escouade` et `Monstre`, qui ne se connaissent pas | Non |
+
+`Niveau` (`Niveau.hpp/.cpp`) est une structure de données (plan, taille de
+case, départ de l'escouade, positions des monstres) ; `creerNiveau()` renvoie
+le niveau du jeu et `Partie` se construit à partir de lui. Pas de lecture de
+fichier : un seul niveau, codé dans `Niveau.cpp`.
 
 ## Boucle de jeu
 
-- **Ordre d'une image** :
-  0. retour à la vue `camera` (l'image précédente a fini sur la vue de
-     l'interface : sans cela, `mapPixelToCoords` convertirait les clics
-     avec la vue par défaut) ; sortie de la visée si le lanceur ne peut plus lancer (mort, défaite) ;
-  1. événements : fermeture ; appui de souris (pose ou retire le verrou
-     de combat, arme le déplacement continu ; en visée, lance ou annule
-     le sort) ; appui sur une touche 1 à 3 (demande le skill de cette
-     place), 4 ou Échap (entre en visée ou en sort) ;
-  2. liste des monstres vus (identifiant et cercle), lancer du skill de
-     zone s'il y a un clic en visée, skill demandé s'il y a un appui, puis coups de l'escouade (`attaquer`, à chaque image,
-     verrou ou non, tant que l'escouade a un vivant), appliqués monstre
-     par monstre ; retrait du verrou si le monstre verrouillé est mort ;
-  3. retrait des monstres morts ;
-  4. ordre de déplacement continu ;
-  5. mise à jour : liste des cercles des monstres, puis
-     `escouade.mettreAJour`, puis `escouade.cerclesDesVivants()`, puis
-     chaque monstre (cible, obstacles, mise à jour, riposte) ;
-  6. caméra, dessin du monde, puis de la barre de skills dans la vue
-     par défaut (voir « Interface fixe à l'écran »).
+- **Ordre d'une image** (tel que l'exécutent `main.cpp` et
+  `Partie::mettreAJour`) :
+  0. `main.cpp` : retour à la vue `camera` (l'image précédente a fini sur la
+     vue de l'interface : sans cela, `mapPixelToCoords` convertirait les
+     clics avec la vue par défaut) ; `controleur.debutImage()` (sortie de la
+     visée si le lanceur ne peut plus lancer : mort, défaite) ;
+  1. événements, traduits en appels au `Controleur` : fermeture ;
+     `appuiGauche(point)`, `appuiDroit()`, `appuiTouche(place)` (1 à 4),
+     `appuiEchap()`. Le `Controleur` les convertit en demandes à la `Partie` :
+     `cliquer` (appliqué tout de suite : pose ou retire le verrou), et
+     `demanderSkill`, `lancerSkillDeZone`, mémorisés ;
+  2. `controleur.mettreAJourDeplacement(boutonTenu, curseur)` : si le bouton
+     est tenu et le déplacement continu armé, `partie.ordonnerDeplacement`
+     (mémorisé) ;
+  3. `partie.mettreAJour(dt)`, qui déroule, dans cet ordre exact :
+     a. verrou levé si le monstre verrouillé n'est plus dans le vecteur ;
+        liste des `MonstreVu` (une fois pour toute l'image) ;
+     b. lancer du skill de zone demandé ;
+     c. skill demandé (avant `attaquer` : un skill qui part relance la
+        recharge de base de son lanceur, qui ne frappe donc pas deux fois) ;
+     d. `attaquer`, si l'escouade est vivante, et application des `Coup` ;
+        verrou levé si le monstre verrouillé est mort ;
+     e. retrait des monstres morts ;
+     f. ordre de déplacement, si l'escouade est vivante ;
+     g. cercles des monstres comme obstacles, `escouade.mettreAJour`, puis
+        `cerclesDesVivants` et le tour de chaque monstre (proie, mise à jour,
+        riposte) ;
+     h. les demandes sont vidées ;
+  4. `main.cpp` : caméra centrée sur l'escouade, `partie.dessiner` (carte,
+     monstres avec le contour du verrou, escouade), `controleur.
+     dessinerApercu`, puis barre de skills dans la vue par défaut.
+- **Demandes mémorisées** : à part `cliquer`, les actions du joueur ne sont
+  pas exécutées à l'événement mais à leur place dans `mettreAJour`. Un clic
+  est appliqué tout de suite parce qu'il ne dépend que de l'état au moment
+  du clic ; les autres doivent passer avant `attaquer` ou avant la mise à
+  jour, dans un ordre qui compte. Les demandes ne survivent pas à l'image.
+- **Invariant** : entre deux appels de `mettreAJour`, tout monstre du vecteur
+  est vivant (documenté dans `Partie.hpp`) ; ni `cliquer` ni le dessin n'ont
+  besoin de tester `estVivant()`.
 - **Déplacement à pas fixe** plutôt que proportionnel à la distance :
   vitesse constante, comme un personnage d'ARPG.
-- **Delta time** (`sf::Clock::restart()`) : vitesse exprimée en pixels par
-  seconde, pour qu'elle ne dépende pas de la cadence réelle.
-  `setFramerateLimit(60)` limite l'usage du CPU, mais la logique n'en
-  dépend pas. L'horloge reste dans `main.cpp` ; `dt` est passé en
-  paramètre.
-- **Aucune classe de plus** (`Combat`, `Minuteur`, `Camera`…) tant qu'il
-  n'y a pas de comportement à y encapsuler : les variables locales
-  `deplacementContinu`, `placeSkillDemandee`, `placeEnVisee`, `prochainId` et la vue `camera`
-  suffisent.
-- **Pas de texte de position** : rien n'affiche la position du curseur à
-  l'écran.
+- **Delta time** (`sf::Clock::restart()`) : vitesse en pixels par seconde.
+  `setFramerateLimit(60)` limite l'usage du CPU, mais la logique n'en dépend
+  pas. L'horloge reste dans `main.cpp` ; `dt` est passé en paramètre.
+- **Pas de `Camera`, de bus d'événements ni de hiérarchie d'états pour la
+  visée** : la vue `camera` reste une variable de `main.cpp`, la visée est un
+  `std::optional<std::size_t>` du `Controleur`.
+- **Pas de texte de position** : rien n'affiche la position du curseur.
+- **`prochainId`** n'est pas un membre de `Partie` : il ne sert qu'à numéroter
+  les monstres dans son constructeur.
 
 ## Entrée souris
 
-- **Un seul événement d'appui décide de tout** : l'événement
-  `MouseButtonPressed` (bouton gauche) décide, à l'instant du clic, ce
-  que fait ce clic — peu importe où le curseur se déplace ensuite tant
-  que le bouton reste enfoncé. Si le point cliqué est dans un monstre
-  (`std::find_if` sur `contient`) : `escouade.verrouiller(it->getId())`
-  et `deplacementContinu = false`. Sinon (clic sur le sol) :
-  `escouade.deverrouiller()` et `deplacementContinu = true`. La
-  condition `escouade.estVivante()` garde le clic : une escouade vaincue
-  ne peut plus désigner de cible ni commencer un déplacement.
-- **Déplacement continu : lecture d'état, armée par l'événement
-  d'appui** : `sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)` est
-  interrogé à chaque image, après la boucle d'événements. Tant que le
-  bouton reste enfoncé, que `deplacementContinu` est vrai et que
-  l'escouade est vivante, `escouade.allerVers` est rappelée à chaque
-  image avec la position courante du curseur — le même A* + lissage
-  qu'un clic ponctuel, simplement redonné en continu. Un clic bref reste
-  un simple aller-vers ponctuel. `deplacementContinu` est une variable
-  locale mise à jour uniquement par l'événement d'appui : cliquer sur un
-  monstre puis glisser le curseur sur le sol ne déclenche aucun
-  déplacement.
-- **`window.hasFocus()`** est une condition nécessaire, parce que
-  `isButtonPressed` lit l'état global de la souris au niveau du système,
-  même quand la fenêtre n'a pas le focus.
-- **Position du curseur** : convertie avec `window.mapPixelToCoords(...)`
-  après la boucle d'événements, donc avec la vue de l'image précédente —
-  celle effectivement affichée au moment du clic.
-- **Pas de limitation de fréquence** : un appel au A* par image, jugé
-  négligeable sur la carte actuelle ; à revisiter seulement si un
-  problème de performance est mesuré.
+- **Un seul événement d'appui décide de tout** : `MouseButtonPressed`
+  (bouton gauche) décide, à l'instant du clic, ce que fait ce clic, peu
+  importe où le curseur va ensuite. `Controleur::appuiGauche` : hors visée,
+  `Partie::cliquer` renvoie `Monstre` (verrou posé, déplacement continu
+  désarmé), `Sol` (verrou levé, déplacement continu armé) ou `Ignore`
+  (escouade vaincue : rien ne change, y compris le déplacement continu).
+- **Déplacement continu : lecture d'état, armée par l'événement d'appui** :
+  `main.cpp` calcule `boutonTenu` = fenêtre avec le focus ET
+  `sf::Mouse::isButtonPressed(Left)` et le passe à
+  `mettreAJourDeplacement`, une fois par image. Tant que le bouton est tenu
+  et le déplacement armé, la `Partie` rappelle `allerVers` avec le curseur
+  (même A* + lissage qu'un clic ponctuel), si l'escouade est vivante.
+  Cliquer sur un monstre puis glisser le curseur sur le sol ne déplace donc
+  rien.
+- **`window.hasFocus()`** est nécessaire : `isButtonPressed` lit l'état
+  global de la souris, même sans focus.
+- **Position du curseur** : convertie par `main.cpp` avec
+  `window.mapPixelToCoords(...)` avec la vue de l'image précédente (celle
+  effectivement affichée au moment du clic), avant la mise à jour de la
+  caméra. L'aperçu de visée, lui, est converti avec la caméra de l'image.
+- **Pas de limitation de fréquence** : un appel au A* par image, négligeable
+  sur la carte actuelle.
 
 ## Combat engagé
 
-- **Le verrou vit dans `Escouade`** (voir `docs/formation.md`) ; on y
-  stocke l'identifiant du monstre visé. Chaque image, `main.cpp` retrouve
-  le monstre par `std::find_if` sur l'identifiant, l'itérateur étant
-  recalculé à chaque fois et ne survivant pas au bloc : un monstre peut
-  être retiré du vecteur entre deux images.
-- **Le verrou ne se rompt que dans trois cas** : mort de la cible
-  (monstre introuvable ou qui vient de mourir), clic sur le sol, clic sur
-  un autre monstre (cible remplacée). Relâcher le bouton ou perdre le
-  focus ne rompt pas le combat : un clic bref suffit à l'engager. La
-  position du curseur ne compte plus une fois le verrou posé — aucune
-  zone de tolérance autour du monstre.
-- **L'attaque est dans `Escouade`** : `main.cpp` n'a aucune recharge ni
-  dégât à lui. Il construit chaque image la liste des `MonstreVu`
-  (identifiant et cercle), la passe à `escouade.attaquer(monstresVus,
-  carte)` et applique chaque `Coup` renvoyé au monstre qui porte
-  l'identifiant (lambda `appliquer`, `std::find_if`). `attaquer` est
-  appelé à chaque image, bouton enfoncé ou non, **verrou ou non** :
-  avec un verrou elle décide si l'escouade s'approche ou s'arrête ;
-  dans tous les cas chaque personnage vivant frappe de lui-même un
-  monstre à sa portée (autodéfense, voir `docs/combat.md`). Seule la
-  mort du monstre verrouillé retire le verrou.
-- **Retrait des monstres morts** : `std::erase_if(monstres, ...)` après
-  le bloc d'attaque et avant l'ordre de déplacement. À partir de là,
-  « tout monstre du vecteur est vivant » jusqu'au prochain appel, ce qui
-  dispense la boucle de clic et celle de dessin de tester `estVivant()`.
-- **Indicateur de cible** : chaque monstre reçoit
-  `escouade.getCibleVerrouillee() == m.getId()` comme second argument de
-  `dessiner` (voir `docs/monstre.md`).
+- **Le verrou vit dans `Escouade`** (voir `docs/formation.md`) ; il stocke
+  l'identifiant du monstre visé. `Partie` le retrouve par identifiant à
+  chaque image, car un monstre peut être retiré du vecteur entre deux images.
+- **Le verrou ne se rompt que dans trois cas** : mort de la cible (monstre
+  introuvable ou qui vient de mourir), clic sur le sol, clic sur un autre
+  monstre. Relâcher le bouton ou perdre le focus ne rompt pas le combat.
+  Aucune zone de tolérance autour du monstre.
+- **L'attaque est dans `Escouade`** : ni `main.cpp` ni `Controleur` n'ont de
+  recharge ni de dégât. `Partie` passe la liste des `MonstreVu` à
+  `escouade.attaquer` et applique chaque `Coup` renvoyé au monstre qui porte
+  l'identifiant. `attaquer` est appelé à chaque image, **verrou ou non** :
+  avec un verrou elle décide si l'escouade s'approche ou s'arrête ; dans tous
+  les cas chaque personnage vivant frappe de lui-même un monstre à sa portée
+  (autodéfense, voir `docs/combat.md`).
+- **Indicateur de cible** : `Partie::dessiner` donne à chaque monstre
+  `escouade.getCibleVerrouillee() == m.getId()` (voir `docs/monstre.md`).
 
 ## Entrée clavier : le skill
 
-- **Événement d'appui, pas lecture d'état** : un skill est une action
-  ponctuelle, un appui = une tentative. L'événement `KeyPressed` met dans
-  la variable locale `placeSkillDemandee` (`std::optional<std::size_t>`)
-  la place du lanceur, 1 à 4 pour les touches 1 à 4 ; elle est déclarée
-  juste avant la boucle d'événements et donc remise à vide à chaque
-  image. Si plusieurs touches sont appuyées dans la même image, la
-  dernière gagne.
-- **`window.setKeyRepeatEnabled(false)`** : par défaut une touche
-  maintenue produit des `KeyPressed` répétés. Comme le skill se recharge
-  en 5 s, une touche tenue assez longtemps l'aurait relancé ; désactiver
-  la répétition garantit un seul appui par enfoncement.
+- **Événement d'appui, pas lecture d'état** : un appui = une tentative.
+  `main.cpp` traduit la touche en `controleur.appuiTouche(place)` ; le
+  `Controleur` envoie 1 à 3 en `partie.demanderSkill(place)`. Plusieurs
+  appuis dans la même image : le dernier gagne (une seule demande
+  mémorisée).
+- **`window.setKeyRepeatEnabled(false)`** (dans `main.cpp`) : une touche
+  tenue ne produit qu'un appui, sans quoi elle relancerait un skill
+  rechargé.
 - **Scancode plutôt que code de touche** : `sf::Keyboard::Scan::Num1`
-  désigne la touche physique « 1 » de la rangée du haut, quelle que soit
-  la disposition du clavier (en AZERTY elle donne « & » sans majuscule).
-- **Skill demandé avant `attaquer`** : un skill qui part relance la
-  recharge de base du personnage, qui ne frappe donc pas une seconde
-  fois dans la même image (voir `docs/combat.md`). `declencherSkill` est
-  appelée même sans verrou : le soin marche sans combat, et le skill de
-  dégâts vise alors le monstre que son lanceur frapperait en
-  autodéfense. `main.cpp` lui passe la liste des monstres vus, et
-  `Escouade` retrouve le monstre verrouillé elle-même. Les coups
-  renvoyés sont appliqués comme ceux d'`attaquer`.
+  désigne la touche physique « 1 » de la rangée du haut, quelle que soit la
+  disposition (en AZERTY elle donne « & »).
+- **Skill demandé avant `attaquer`** : voir l'ordre d'une image.
+  `declencherSkill` est appelée même sans verrou : le soin marche sans
+  combat, et le skill de dégâts vise alors le monstre que son lanceur
+  frapperait en autodéfense.
+- **Correspondance des touches** : 4 = visée, 1 à 3 = skill direct. Elle est
+  écrite dans le `Controleur` (`s_placeDuSkillDeZone`), pas déduite du type
+  du skill.
 
 ## Mode visée : le skill de zone (étape 42)
 
-- **État d'interface, pas état de jeu** : `placeEnVisee`
-  (`std::optional<std::size_t>`, vide = mode normal, sinon la place du
-  lanceur) vit dans `main.cpp`. `Escouade` ne connaît ni la souris ni le
-  mode ; elle expose `skillEstPret`, `rayonZoneDuSkill` et
-  `declencherSkillDeZone`.
-- **Entrée** : appui sur 4 avec le skill prêt ; sinon ignoré. **Sorties
-  sans lancer** : clic droit, Échap, nouvel appui sur 4, mort du lanceur
-  ou défaite (testée en début d'image par `!skillEstPret`). Aucune
+- **État d'interface, pas état de jeu** : `m_placeEnVisee` vit dans le
+  `Controleur`. `Escouade` et `Partie` ne connaissent ni la souris ni le
+  mode ; l'`Escouade` expose `skillEstPret`, `rayonZoneDuSkill`,
+  `cercleDePorteeDuSkill` et `declencherSkillDeZone`.
+- **Entrée** : appui sur 4 avec l'escouade vivante et le skill prêt ; sinon
+  ignoré. **Sorties sans lancer** : clic droit, Échap, nouvel appui sur 4,
+  mort du lanceur ou défaite (`debutImage`, par `!skillEstPret`). Aucune
   recharge consommée.
-- **Lancer** : uniquement sur l'événement `MouseButtonPressed` gauche
-  reçu pendant la visée, jamais sur l'état du bouton. Le point est
-  converti en coordonnées du monde. Le clic lance le sort même sur un
-  monstre : il ne verrouille pas, ne déverrouille pas, ne déplace pas
-  l'escouade (la branche normale n'est pas exécutée en visée). Après le
-  lancer, réussi ou refusé, on sort de la visée. Les coups sont appliqués
-  par `appliquer`, avant le skill demandé au clavier et avant `attaquer`.
-- **Bouton déjà enfoncé** : entrer en visée met `deplacementContinu` à
-  `false` ; il ne repasse à `true` que sur un nouvel appui au sol. Donc ni
-  pendant la visée ni après le lancer l'escouade ne suit le curseur
-  tant que le bouton n'a pas été relâché puis réappuyé. Le drapeau
-  existant joue le rôle d'un « attendre le relâchement » : pas de
-  booléen de plus.
-- **Visuel** : un `sf::CircleShape` (contour jaune, sans remplissage, au
-  rayon exact de la zone, origine au centre) est créé dans la boucle de
-  dessin sous le curseur, en coordonnées du monde. Depuis l'étape 43, un
-  second cercle (contour blanc) montre la portée de lancement autour du
-  lanceur (`cercleDePorteeDuSkill`). Rien à l'impact.
-- **Portée (étape 43)** : le clic lance toujours le sort et sort de la
-  visée ; hors portée, `Escouade` met le sort en attente et le lanceur
-  marche (voir `docs/combat.md`). `main.cpp` n'a rien d'autre à faire.
-- **Touches 1 à 3** restent actives pendant la visée (non spécifié).
+- **Lancer** : uniquement sur l'événement d'appui gauche reçu pendant la
+  visée. Le clic lance le sort même sur un monstre : il ne verrouille pas, ne
+  déverrouille pas, ne déplace pas l'escouade. Après le lancer, réussi ou
+  refusé, on sort de la visée. Le `Controleur` appelle
+  `partie.lancerSkillDeZone`, qui n'agit que dans `mettreAJour`, avant le
+  skill demandé et avant `attaquer`.
+- **Écart minime avec l'avant-étape 52** : le lancer est transmis à la
+  `Partie` au moment du clic. Autrefois, un Échap, un 4 ou un clic droit
+  arrivant dans la même image après le clic l'annulait ; maintenant le sort
+  part quand même.
+- **Bouton déjà enfoncé** : entrer en visée désarme le déplacement continu ;
+  il ne se réarme que sur un nouvel appui au sol. L'escouade ne suit donc pas
+  le curseur ni pendant la visée ni après le lancer, tant que le bouton n'a
+  pas été relâché puis réappuyé. Le drapeau joue le rôle d'un « attendre le
+  relâchement » : pas de booléen de plus.
+- **Visuel** : `Controleur::dessinerApercu(rendu, curseur)` (curseur en
+  coordonnées du monde, converti par `main.cpp` avec la caméra de l'image) :
+  un `sf::CircleShape` jaune, sans remplissage, au rayon exact de la zone,
+  sous le curseur, et un cercle blanc (portée de lancement) autour du
+  lanceur. Rien hors visée, rien à l'impact.
+- **Portée (étape 43)** : le clic lance toujours le sort et sort de la visée ;
+  hors portée, `Escouade` met le sort en attente et le lanceur marche (voir
+  `docs/combat.md`).
+- **Touches 1 à 3** restent actives pendant la visée.
 
 ## Défaite de l'escouade
 
-- **`estVivante()` est consultée, jamais mise en cache** : `main.cpp` ne
-  garde pas de variable locale « l'escouade est vaincue », il l'appelle
-  quand une décision en dépend (clic, ordre de déplacement), comme pour
-  `window.hasFocus()`.
-- **Seuls les ordres du joueur sont bloqués** : la boucle continue de
-  tourner normalement (mise à jour, caméra, dessin, fermeture de la
-  fenêtre). Les monstres, par exemple, rentrent à leur poste sans code
-  propre à la défaite (voir `docs/formation.md`).
+- **`estVivante()` est consultée, jamais mise en cache** : `Partie::cliquer`
+  la lit à chaque clic (`Ignore` si vaincue) ; `Partie::mettreAJour` la lit
+  avant `attaquer` et avant l'ordre de déplacement ; le `Controleur` la lit
+  pour entrer en visée.
+- **Seuls les ordres du joueur sont bloqués** : la boucle continue (mise à
+  jour, caméra, dessin, fermeture). Les monstres rentrent à leur poste sans
+  code propre à la défaite (voir `docs/formation.md`).
 
-## Les monstres dans la boucle
+## Les monstres dans `Partie::mettreAJour`
 
-- **Obstacles pour les personnages** : avant `escouade.mettreAJour`, la
-  liste des cercles de tous les monstres (à leur position de l'image
-  précédente) est construite et passée en paramètre.
-- **Obstacles pour les monstres** : après `escouade.mettreAJour`, les
-  cercles des personnages vivants sont calculés une fois
-  (`cerclesDesVivants`) ; chaque monstre en part et y ajoute les cercles
-  des autres monstres (identifiant différent). Voir « Qui bloque qui »
-  dans `docs/combat.md`.
+- **Obstacles pour les personnages** : avant `escouade.mettreAJour`, la liste
+  des cercles de tous les monstres (à leur position de l'image précédente).
+- **Obstacles pour les monstres** : après `escouade.mettreAJour`, les cercles
+  des personnages vivants sont calculés une fois ; chaque monstre en part et y
+  ajoute les cercles des autres monstres (identifiant différent). Voir « Qui
+  bloque qui » dans `docs/combat.md`.
 - **Pour chaque monstre, dans l'ordre** :
-  1. `const auto cible = escouade.proieDuMonstre(m.getId(), m.getCentre())`
-     — le cercle du provocateur si ce monstre est provoqué (voir
-     « Provocation » dans `docs/combat.md`), sinon du personnage
-     **vivant** le plus proche, calculé sur la
-     position du monstre *avant* qu'il ne bouge (vide si aucun
-     personnage n'est vivant) ;
-  2. `m.mettreAJour(dt, cible, carte, obstacles)` — le monstre décide
-     seul de poursuivre, de s'arrêter à portée ou de rentrer (voir
-     `docs/monstre.md`) ;
-  3. `const sf::Vector2f origine = m.getCentre()` — son centre **relu
-     après** le déplacement, pour que la riposte parte de la position à
-     jour ;
-  4. si `cible` a une valeur, `escouade.recevoirDegats(origine,
-     m.frapper(*cible))`, sinon rien.
-- **Indépendant du verrou de cible** : un monstre poursuit et riposte dès
-  qu'un personnage vivant est à sa portée, qu'il soit lui-même attaqué ou
-  non.
+  1. `proieDuMonstre(id, centre)` : le provocateur si le monstre est
+     provoqué, sinon le personnage **vivant** le plus proche, sur la position
+     du monstre *avant* qu'il ne bouge (vide si aucun n'est vivant) ;
+  2. `m.mettreAJour(dt, cible, carte, obstacles)` : le monstre décide seul de
+     poursuivre, s'arrêter à portée ou rentrer (voir `docs/monstre.md`) ;
+  3. son centre est **relu après** le déplacement, pour que la riposte parte
+     de la position à jour ;
+  4. si `cible` a une valeur, `escouade.recevoirDegats(id, origine,
+     m.frapper(*cible))`.
+- **Indépendant du verrou** : un monstre poursuit et riposte dès qu'un
+  personnage vivant est à sa portée.
 
 ## Interface fixe à l'écran (étape 48)
 
 - **Deux vues par image** : le monde est dessiné avec `camera`, puis
-  `window.setView(window.getDefaultView())` donne des coordonnées en
-  pixels de la fenêtre pour la barre de skills, dessinée en dernier, par-
-  dessus tout. Conséquence : la vue active en fin d'image n'est plus la
-  caméra ; c'est pourquoi l'image suivante commence par
-  `window.setView(camera)` (sinon les clics seraient mal convertis : bug
-  rencontré pendant l'étape).
+  `window.setView(window.getDefaultView())` donne des coordonnées en pixels
+  de la fenêtre pour la barre de skills, dessinée en dernier. La vue active
+  en fin d'image n'est donc plus la caméra : l'image suivante commence par
+  `window.setView(camera)` (sinon les clics seraient mal convertis).
 - **Police** : DejaVu Sans, libre, committée avec sa licence dans
-  `assets/fonts/` (pas de dépendance aux polices du système). Chargée une
-  fois au départ de `main`, passée par `const sf::Font&` au dessin. Un
-  `sf::Text` garde un pointeur vers sa police : elle doit vivre plus
-  longtemps que lui. Échec de chargement : message sur `std::cerr`, `main`
-  rend 1.
+  `assets/fonts/`. Chargée une fois au départ de `main`, passée par
+  `const sf::Font&` au dessin. Un `sf::Text` garde un pointeur vers sa
+  police : elle doit vivre plus longtemps que lui. Échec de chargement :
+  message sur `std::cerr`, `main` rend 1.
 - **`main.cpp` prépare les états** : un `std::array<std::optional<
-  EtatSkill>, 4>` rempli par `escouade.etatDuSkill(place)`, et `placeEnVisee`
-  est transmise telle quelle ; `main.cpp` ne connaît toujours pas
-  `Personnage`. Pas de classe `Hud` : la barre n'a aucun état propre.
-- **Limites connues** : la position se calcule depuis la taille de la
-  vue par défaut, mais le redimensionnement de la fenêtre n'est pas géré ;
-  le chemin de la police est relatif au dossier courant.
+  EtatSkill>, 4>` rempli par `escouade.etatDuSkill(place)`, et
+  `controleur.getPlaceEnVisee()` est transmise telle quelle. Pas de classe
+  `Hud` : la barre n'a aucun état propre.
+- **Limites connues** : la position se calcule depuis la taille de la vue par
+  défaut (le redimensionnement n'est pas géré) ; le chemin de la police est
+  relatif au dossier courant.
 
 ## Caméra
 
-- **`sf::View` dans `main.cpp`** : une simple variable `camera`, copiée de
-  `window.getDefaultView()` (taille de la fenêtre). Pas de classe `Camera`
-  tant qu'il n'y a pas de comportement à y encapsuler.
-- **Toujours centrée sur l'escouade** : à chaque image, après la mise à
-  jour et avant le dessin, `camera.setCenter(escouade.getCentre())` puis
-  `window.setView(camera)`.
-- **Conséquence acceptée** : près des bords de la carte, la caméra montre
-  du noir au-delà des murs. Bloquer la caméra aux bords reste une option.
-  L'ancre traversant les monstres, la caméra (centrée sur elle) peut
+- **`sf::View` dans `main.cpp`** : une variable `camera`, copiée de
+  `window.getDefaultView()`. Pas de classe `Camera` tant qu'il n'y a pas de
+  comportement à y encapsuler.
+- **Toujours centrée sur l'escouade** : à chaque image, après la mise à jour
+  et avant le dessin, `camera.setCenter(partie.getEscouade().getCentre())`
+  puis `window.setView(camera)`.
+- **Conséquence acceptée** : près des bords de la carte, la caméra montre du
+  noir au-delà des murs. L'ancre traversant les monstres, la caméra peut
   s'éloigner des personnages bloqués.

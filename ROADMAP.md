@@ -58,11 +58,13 @@ est dans `docs/historique.md`.
 - Étape 49 — Hygiène et sûreté du code (refactorisation pure) ✅
 - Étape 50 — Réorganisation des tests (refactorisation pure) ✅
 - Étape 51 — Alléger Escouade : Provocations, Agresseurs, découpage (refactorisation pure) ✅
+- Étape 52 — Alléger main.cpp : Niveau, Partie et Controleur (refactorisation pure) ✅
 
-## Étape 52 — à définir
+## Étape 53 — à définir
 
-Pistes discutées (l'étape 52 est issue de `docs/audit.md`) :
-- Étape 52 prévue : alléger `main.cpp` (audit R1, F3)
+Pistes discutées (issues de `docs/audit.md` et des étapes précédentes) :
+- `Monstre::getPointsDeVie`, pour tester qu'un skill et `attaquer` dans la
+  même image ne font pas frapper deux fois (étape 52)
 - `Skill::declencherSansCible` (audit R4)
 - Type `PointsDeVie` pour la logique de points de vie dupliquée entre
   `Personnage` et `Monstre`
@@ -114,8 +116,14 @@ Pistes discutées (l'étape 52 est issue de `docs/audit.md`) :
   sur GitHub ; SFML 3.0.2 intégrée à CMake.
 - **Fenêtre et carte** : fenêtre 1200 × 800 ; carte de 59 × 40 cases de
   40 px (2360 × 1600 px), plusieurs pièces et couloirs, définie en texte
-  dans `main.cpp`. La caméra (`sf::View`) est centrée sur l'escouade ;
-  du noir apparaît au-delà des bords de la carte.
+  dans `Niveau.cpp` (`creerNiveau()`). La caméra (`sf::View`) est centrée
+  sur l'escouade ; du noir apparaît au-delà des bords de la carte.
+- **Architecture de la boucle** (étape 52) : `main.cpp` (88 lignes) garde la
+  fenêtre, la police, la caméra et traduit les événements SFML en appels au
+  `Controleur` (mode visée, déplacement continu, aperçu de visée) ; la
+  `Partie` (carte, escouade, monstres) porte les règles de jeu et
+  l'intermédiaire entre `Escouade` et `Monstre`, avec l'ordre d'une image
+  conservé ; `Niveau` porte les données. Voir `docs/boucle-et-entrees.md`.
 - **Barre de skills** : en bas de la fenêtre, fixe à l'écran (vue par
   défaut, dessinée en dernier), 4 icônes carrées de 56 px dans l'ordre des
   touches 1 à 4, avec la lettre du skill (D, P, S, Z) et le numéro de
@@ -231,7 +239,7 @@ Pistes discutées (l'étape 52 est issue de `docs/audit.md`) :
 - **Monstres** : six carrés rouges de 30 × 30 (120 px/s, 100 points de
   vie, barre de vie), à `(660, 380)`, `(500, 580)`, `(900, 220)`,
   `(1940, 180)`, `(1500, 540)` et `(1620, 540)`, possédés par
-  `main.cpp` dans un `std::vector<Monstre>`. Un monstre détecte un
+  `Partie` dans un `std::vector<Monstre>`. Un monstre détecte un
   personnage vivant à moins de 200 px de lui et de 400 px de son poste (sa
   position de départ), le poursuit (A* + lissage) et s'arrête à portée
   d'attaque (15 px bord à bord, 10 dégâts, recharge 1 s). Un monstre qui reçoit des dégâts (> 0) entre en poursuite de sa
@@ -247,12 +255,12 @@ Pistes discutées (l'étape 52 est issue de `docs/audit.md`) :
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 352 tests : 38 sur `TileMap`, 17 sur `Chemin`, 144
+  (`./build/tests.exe`, 366 tests : 38 sur `TileMap`, 17 sur `Chemin`, 144
   sur `Escouade` en cinq fichiers par thème — 22 déplacement, 17 combat, 61
   skills, 26 agresseurs, 18 vue —, 12 sur `Deplacement`, 34 sur `Monstre`,
   31 sur `Personnage`, 17 sur `Skill`, 14 sur `Mobile`, 4 sur `Cercle`, 13
   sur `Autodefense`, 6 sur `BarreDeSkills`, 4 sur `MonstreVu`, 1 sur
-  `BarreDeVie`, 9 sur `Provocations`, 8 sur `Agresseurs`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
+  `BarreDeVie`, 9 sur `Provocations`, 8 sur `Agresseurs`, 7 sur `Partie`, 7 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
   accents (`./build/tests.exe "*a portee*"` filtre) ; rotation de la
   formation et `provoquer` à une place invalide couverts.
 
