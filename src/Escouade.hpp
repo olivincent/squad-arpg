@@ -40,7 +40,12 @@ public:
     void mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles, Generateur& generateur);
     sf::Vector2f getCentre() const;
     [[nodiscard]] std::optional<Cercle> proieDuMonstre(int idMonstre, sf::Vector2f positionMonstre) const;
+    // Place (de 1 à 4) du personnage que ce monstre vise : même règle que proieDuMonstre.
+    [[nodiscard]] std::optional<std::size_t> placeDeLaProie(int idMonstre, sf::Vector2f positionMonstre) const;
+    [[nodiscard]] bool placeEstVivante(std::size_t place) const;
     void recevoirDegats(int idMonstre, sf::Vector2f origine, int quantite);
+    // Comme recevoirDegats, mais sur le personnage de cette place (un coup engagé).
+    void recevoirCoup(int idMonstre, std::size_t place, sf::Vector2f origine, int quantite);
     bool estVivante() const;
     std::vector<Cercle> cerclesDesVivants() const;
     [[nodiscard]] std::optional<Cible> choisirCible(TypeSkill type, std::size_t place, const std::vector<MonstreVu>& monstres, const TileMap& carte) const;

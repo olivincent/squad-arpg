@@ -110,10 +110,29 @@ void Partie::faireTournerLesMonstres(float dt) {
         }
         const auto cible = m_escouade.proieDuMonstre(m.getId(), m.getCentre());
         m.mettreAJour(dt, cible, m_carte, obstacles);
-        const sf::Vector2f origine = m.getCentre();
-        if (cible) {
-            m_escouade.recevoirDegats(m.getId(), origine, m.frapper(*cible, m_generateur));
+        faireFrapperLeMonstre(m, cible, dt);
+    }
+}
+
+// Un coup engagé part toujours à la fin de son exécution, sur le personnage
+// visé à l'engagement (même si une provocation a changé la proie entre-temps).
+// Seule la mort de ce personnage l'annule. Sinon, un monstre immobile avec une
+// proie à portée engage un coup.
+void Partie::faireFrapperLeMonstre(Monstre& monstre, std::optional<Cercle> proie, float dt) {
+    if (const std::optional<int> place = monstre.proieEngagee()) {
+        const std::size_t placeVisee = static_cast<std::size_t>(*place);
+        if (!m_escouade.placeEstVivante(placeVisee)) {
+            monstre.annulerAttaque();
+        } else if (const int degats = monstre.avancerAttaque(dt, m_generateur); degats > 0) {
+            m_escouade.recevoirCoup(monstre.getId(), placeVisee, monstre.getCentre(), degats);
         }
+        return;
+    }
+    if (!proie) {
+        return;
+    }
+    if (const std::optional<std::size_t> place = m_escouade.placeDeLaProie(monstre.getId(), monstre.getCentre())) {
+        monstre.engagerAttaque(*proie, static_cast<int>(*place));
     }
 }
 

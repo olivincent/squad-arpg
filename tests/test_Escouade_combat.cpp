@@ -507,3 +507,23 @@ TEST_CASE("Un skill qui part annule le coup en execution de son lanceur") {
     }
     REQUIRE(total == 15);  // le mêlée du skill ne frappe pas : les 3 autres seulement
 }
+
+TEST_CASE("recevoirCoup frappe le personnage de la place donnee, pas le plus proche") {
+    Escouade escouade({50.0f, 50.0f});
+
+    // Origine à côté du mêlée de la place 1 (85, 35) ; le coup vise la place 4 (35, 85).
+    escouade.recevoirCoup(1, 4, {85.0f, 35.0f}, 1000);
+
+    REQUIRE(escouade.cerclesDesVivants().size() == 3);
+    REQUIRE(escouade.placeEstVivante(1));
+    REQUIRE_FALSE(escouade.placeEstVivante(4));
+}
+
+TEST_CASE("placeDeLaProie suit la meme regle que proieDuMonstre") {
+    Escouade escouade({50.0f, 50.0f});
+
+    REQUIRE(escouade.placeDeLaProie(1, {85.0f, 35.0f}) == 1);
+    REQUIRE(escouade.placeDeLaProie(1, {35.0f, 85.0f}) == 4);
+    escouade.provoquer(1, 2, 4.0f);
+    REQUIRE(escouade.placeDeLaProie(1, {35.0f, 85.0f}) == 2);
+}

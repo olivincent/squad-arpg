@@ -11,6 +11,7 @@ namespace {
 constexpr float s_cote = 30.0f;      // côté du carré, en pixels
 constexpr float s_vitesse = 120.0f;  // en pixels par seconde
 constexpr int s_pointsDeVieMax = 100;
+constexpr float s_executionAttaque = 0.3f;  // en secondes, immobile avant que le coup parte
 }  // namespace
 
 Monstre::Monstre(sf::Vector2f centre, int id, int armure)
@@ -18,12 +19,13 @@ Monstre::Monstre(sf::Vector2f centre, int id, int armure)
       m_pointsDeVie(s_pointsDeVieMax),
       m_armure(armure),
       m_id(id),
-      m_attaque(TypeSkill::Degats, 15.0f, 10, 0.7f, 1.3f, 0.0f),  // portée de 15 px, bord à bord
+      m_attaque(TypeSkill::Degats, 15.0f, 10, 0.7f, 1.3f, 0.0f, s_executionAttaque),  // portée de 15 px, bord à bord
       m_rayonDetection(200.0f),
       m_rayonTerritoire(400.0f),
       m_etat(Etat::EnGarde),
       m_poste(centre),
-      m_vientDEtreTouche(false)
+      m_vientDEtreTouche(false),
+      m_idProieEngagee()
 {
 }
 
@@ -88,6 +90,14 @@ bool Monstre::proieDetectee(std::optional<Cercle> cible) const {
 void Monstre::mettreAJour(float dt, std::optional<Cercle> cible, const TileMap& carte, const std::vector<Cercle>& obstacles) {
     m_attaque.mettreAJour(dt);
 
+    // Un coup en exécution : le monstre reste sur place, ni poursuite ni
+    // retour (l'état et le coup reçu sont pris en compte après le coup).
+    if (proieEngagee().has_value()) {
+        m_mobile.arreter();
+        m_mobile.mettreAJour(dt, carte, obstacles);
+        return;
+    }
+
     const Etat etatPrecedent = m_etat;
 
     // Un coup reçu réveille le monstre s'il a une proie et se trouve dans
@@ -132,6 +142,30 @@ void Monstre::mettreAJour(float dt, std::optional<Cercle> cible, const TileMap& 
     m_mobile.mettreAJour(dt, carte, obstacles);
 }
 
-int Monstre::frapper(Cercle cible, Generateur& generateur) {
-    return m_attaque.declencher(getCercle(), cible, generateur);
+bool Monstre::engagerAttaque(Cercle proie, int idProie) {
+    if (!m_attaque.estAPortee(getCercle(), proie) || m_mobile.estEnMouvement() || !m_attaque.commencer()) {
+        return false;
+    }
+    m_idProieEngagee = idProie;
+    return true;
+}
+
+std::optional<int> Monstre::proieEngagee() const {
+    if (m_attaque.getPhase() != PhaseSkill::EnExecution) {
+        return std::nullopt;
+    }
+    return m_idProieEngagee;
+}
+
+int Monstre::avancerAttaque(float dt, Generateur& generateur) {
+    if (!proieEngagee().has_value() || !m_attaque.avancer(dt, generateur)) {
+        return 0;
+    }
+    m_idProieEngagee.reset();
+    return m_attaque.getPuissance();
+}
+
+void Monstre::annulerAttaque() {
+    m_attaque.annuler();
+    m_idProieEngagee.reset();
 }

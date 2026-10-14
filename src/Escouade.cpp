@@ -602,12 +602,31 @@ std::optional<Cercle> Escouade::proieDuMonstre(int idMonstre, sf::Vector2f posit
     return m_personnages[*indice].getCercle();
 }
 
-void Escouade::recevoirDegats(int idMonstre, sf::Vector2f origine, int quantite) {
-    const std::optional<std::size_t> indice = indiceProieDuMonstre(idMonstre, origine);
+std::optional<std::size_t> Escouade::placeDeLaProie(int idMonstre, sf::Vector2f positionMonstre) const {
+    const std::optional<std::size_t> indice = indiceProieDuMonstre(idMonstre, positionMonstre);
     if (!indice.has_value()) {
+        return std::nullopt;
+    }
+    return *indice + 1;
+}
+
+bool Escouade::placeEstVivante(std::size_t place) const {
+    return placeValide(place) && personnageDeLaPlace(place).estVivant();
+}
+
+void Escouade::recevoirDegats(int idMonstre, sf::Vector2f origine, int quantite) {
+    const std::optional<std::size_t> place = placeDeLaProie(idMonstre, origine);
+    if (!place.has_value()) {
         return;
     }
-    m_personnages[*indice].recevoirDegats(quantite);
+    recevoirCoup(idMonstre, *place, origine, quantite);
+}
+
+void Escouade::recevoirCoup(int idMonstre, std::size_t place, sf::Vector2f origine, int quantite) {
+    if (!placeEstVivante(place)) {
+        return;
+    }
+    personnageDeLaPlace(place).recevoirDegats(quantite);
 
     // Un coup qui fait des dégâts désigne son auteur comme agresseur.
     if (quantite <= 0) {

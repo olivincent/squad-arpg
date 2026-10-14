@@ -197,3 +197,24 @@ TEST_CASE("une partie reaffectee avec un niveau neuf recommence") {
     }
     verifierPointProche(partie.getEscouade().getCentre(), {210.0f, 210.0f});
 }
+
+TEST_CASE("un monstre qui prepare son coup ne bouge pas, meme si l'escouade s'eloigne") {
+    // Monstre au contact du mêlée arrière-droit (235, 235), à 35 px.
+    Partie partie(niveauDegage({{270.0f, 235.0f}}), s_graineDeTest);
+    const sf::Vector2f depart = partie.getMonstres().front().getCentre();
+    partie.mettreAJour(s_dureeTic);  // le coup est engagé
+
+    partie.ordonnerDeplacement({100.0f, 500.0f});
+    avancer(partie, nombreDeTics(0.2f));  // moins que les 0,3 s d'exécution
+
+    verifierPointProche(partie.getMonstres().front().getCentre(), depart, 0.01f);
+}
+
+TEST_CASE("un monstre reprend la poursuite une fois son coup parti") {
+    Partie partie(niveauDegage({{270.0f, 235.0f}}), s_graineDeTest);
+    partie.mettreAJour(s_dureeTic);
+    partie.ordonnerDeplacement({100.0f, 500.0f});
+    avancer(partie, nombreDeTics(1.0f));
+
+    REQUIRE((partie.getMonstres().front().getCentre() - sf::Vector2f(270.0f, 235.0f)).length() > 5.0f);
+}

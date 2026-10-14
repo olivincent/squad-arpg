@@ -60,6 +60,7 @@ private:
     // Étapes de mettreAJour(), dans l'ordre où elles sont appelées.
     void resoudreLesCoups(float dt);
     void faireTournerLesMonstres(float dt);
+    void faireFrapperLeMonstre(Monstre& monstre, std::optional<Cercle> proie, float dt);
 
     TileMap m_carte;
     Escouade m_escouade;
