@@ -116,7 +116,14 @@ void Partie::faireTournerLesMonstres(float dt) {
     }
 }
 
+bool Partie::estPerdue() const {
+    return !m_escouade.estVivante();
+}
+
 void Partie::mettreAJour(float dt) {
+    if (estPerdue()) {
+        return;
+    }
     resoudreLesCoups();
 
     if (m_deplacementOrdonne.has_value() && m_escouade.estVivante()) {

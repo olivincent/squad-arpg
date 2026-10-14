@@ -24,6 +24,17 @@ void avancer(Partie& partie, int nombreDeTicsAFaire) {
     }
 }
 
+// Une grille de 30 monstres serrés devant l'escouade, assez pour la vaincre.
+std::vector<sf::Vector2f> groupeDeMonstres() {
+    std::vector<sf::Vector2f> monstres;
+    for (int colonne = 0; colonne < 5; ++colonne) {
+        for (int ligne = 0; ligne < 6; ++ligne) {
+            monstres.push_back({300.0f + 35.0f * static_cast<float>(colonne), 150.0f + 35.0f * static_cast<float>(ligne)});
+        }
+    }
+    return monstres;
+}
+
 }  // namespace
 
 TEST_CASE("cliquer sur un monstre le verrouille") {
@@ -88,13 +99,7 @@ TEST_CASE("un monstre approche poursuit et frappe") {
 }
 
 TEST_CASE("une fois l'escouade vaincue, les clics et les demandes sont sans effet") {
-    std::vector<sf::Vector2f> monstres;
-    for (int colonne = 0; colonne < 5; ++colonne) {
-        for (int ligne = 0; ligne < 6; ++ligne) {
-            monstres.push_back({300.0f + 35.0f * static_cast<float>(colonne), 150.0f + 35.0f * static_cast<float>(ligne)});
-        }
-    }
-    Partie partie(niveauDegage(monstres));
+    Partie partie(niveauDegage(groupeDeMonstres()));
 
     for (int i = 0; i < 5400 && partie.getEscouade().estVivante(); ++i) {
         partie.mettreAJour(s_dureeTic);
@@ -125,4 +130,68 @@ TEST_CASE("un skill et attaquer dans la meme image ne frappent pas deux fois le 
     partie.mettreAJour(s_dureeTic);
 
     REQUIRE(partie.getMonstres().front().getPointsDeVie() == 100 - 25 - 5 - 5);
+}
+
+TEST_CASE("estPerdue est faux au depart") {
+    Partie partie(niveauDegage({{400.0f, 400.0f}}));
+
+    REQUIRE_FALSE(partie.estPerdue());
+}
+
+TEST_CASE("estPerdue est faux tant qu'un personnage survit et vrai quand les 4 sont morts") {
+    Partie partie(niveauDegage(groupeDeMonstres()));
+
+    bool survivantUnique = false;
+    for (int i = 0; i < 5400 && !partie.estPerdue(); ++i) {
+        partie.mettreAJour(s_dureeTic);
+        if (partie.getEscouade().cerclesDesVivants().size() == 1) {
+            survivantUnique = true;
+            REQUIRE_FALSE(partie.estPerdue());
+        }
+    }
+
+    REQUIRE(survivantUnique);
+    REQUIRE(partie.estPerdue());
+}
+
+TEST_CASE("une partie perdue se fige") {
+    Partie partie(niveauDegage(groupeDeMonstres()));
+    for (int i = 0; i < 5400 && !partie.estPerdue(); ++i) {
+        partie.mettreAJour(s_dureeTic);
+    }
+    REQUIRE(partie.estPerdue());
+    REQUIRE_FALSE(partie.getMonstres().empty());
+
+    std::vector<sf::Vector2f> positions;
+    std::vector<int> pointsDeVie;
+    for (const Monstre& monstre : partie.getMonstres()) {
+        positions.push_back(monstre.getCentre());
+        pointsDeVie.push_back(monstre.getPointsDeVie());
+    }
+
+    avancer(partie, nombreDeTics(3.0f));
+
+    REQUIRE(partie.getMonstres().size() == positions.size());
+    for (std::size_t i = 0; i < positions.size(); ++i) {
+        verifierPointProche(partie.getMonstres()[i].getCentre(), positions[i]);
+        REQUIRE(partie.getMonstres()[i].getPointsDeVie() == pointsDeVie[i]);
+    }
+}
+
+TEST_CASE("une partie reaffectee avec un niveau neuf recommence") {
+    Partie partie(niveauDegage(groupeDeMonstres()));
+    for (int i = 0; i < 5400 && !partie.estPerdue(); ++i) {
+        partie.mettreAJour(s_dureeTic);
+    }
+    REQUIRE(partie.estPerdue());
+
+    partie = Partie(niveauDegage({{400.0f, 400.0f}, {450.0f, 400.0f}, {500.0f, 400.0f},
+                                  {400.0f, 450.0f}, {450.0f, 450.0f}, {500.0f, 450.0f}}));
+
+    REQUIRE_FALSE(partie.estPerdue());
+    REQUIRE(partie.getMonstres().size() == 6);
+    for (const Monstre& monstre : partie.getMonstres()) {
+        REQUIRE(monstre.getPointsDeVie() == 100);
+    }
+    verifierPointProche(partie.getEscouade().getCentre(), {210.0f, 210.0f});
 }
