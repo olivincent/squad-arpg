@@ -2,6 +2,7 @@
 #include "Personnage.hpp"
 #include "BarreDeVie.hpp"
 #include "Defense.hpp"
+#include "Eclaircir.hpp"
 #include "TileMap.hpp"
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Rect.hpp>
@@ -12,6 +13,7 @@ constexpr float s_cote = 20.0f;           // côté du carré, en pixels
 constexpr float s_vitesse = 240.0f;       // en pixels par seconde
 constexpr int s_pointsDeVieMax = 100;
 constexpr float s_hauteurBarreSkill = 3.0f;
+constexpr float s_eclaircissementExecution = 0.5f;  // part de blanc pendant l'exécution d'un coup
 }  // namespace
 
 Personnage::Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::optional<Skill> skill, int armure)
@@ -30,7 +32,9 @@ void Personnage::dessiner(sf::RenderTarget& rendu) const {
     const sf::Vector2f taille = m_mobile.getTaille();
     sf::RectangleShape forme(taille);
     forme.setPosition(getCentre() - taille / 2.0f);
-    forme.setFillColor(estVivant() ? m_couleur : sf::Color(100, 100, 100));
+    // Un coup en préparation éclaircit le carré.
+    const sf::Color couleur = cibleEngagee().has_value() ? eclaircir(m_couleur, s_eclaircissementExecution) : m_couleur;
+    forme.setFillColor(estVivant() ? couleur : sf::Color(100, 100, 100));
     rendu.draw(forme);
 
     if (!estVivant()) {

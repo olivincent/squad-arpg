@@ -36,6 +36,7 @@ add_library(squad_core STATIC
     src/EcranDeDefaite.cpp
     src/MonstreVu.cpp
     src/BarreDeVie.cpp
+    src/Eclaircir.cpp
     src/PointsDeVie.cpp
     src/Defense.cpp
     src/Niveau.cpp
@@ -76,6 +77,7 @@ add_executable(tests
     tests/test_BarreDeSkills.cpp
     tests/test_MonstreVu.cpp
     tests/test_BarreDeVie.cpp
+    tests/test_Eclaircir.cpp
     tests/test_PointsDeVie.cpp
     tests/test_Defense.cpp
     tests/test_Partie.cpp

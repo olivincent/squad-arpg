@@ -2,6 +2,7 @@
 #include "Monstre.hpp"
 #include "BarreDeVie.hpp"
 #include "Defense.hpp"
+#include "Eclaircir.hpp"
 #include "TileMap.hpp"
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Color.hpp>
@@ -11,6 +12,7 @@ namespace {
 constexpr float s_cote = 30.0f;      // côté du carré, en pixels
 constexpr float s_vitesse = 120.0f;  // en pixels par seconde
 constexpr int s_pointsDeVieMax = 100;
+constexpr float s_eclaircissementExecution = 0.5f;  // part de blanc pendant l'exécution d'un coup
 constexpr float s_executionAttaque = 0.3f;  // en secondes, immobile avant que le coup parte
 }  // namespace
 
@@ -35,7 +37,7 @@ void Monstre::dessiner(sf::RenderTarget& rendu, bool estCible) const {
 
     sf::RectangleShape forme(taille);
     forme.setPosition(centre - taille / 2.0f);
-    forme.setFillColor(sf::Color::Red);
+    forme.setFillColor(proieEngagee().has_value() ? eclaircir(sf::Color::Red, s_eclaircissementExecution) : sf::Color::Red);
     if (estCible) {
         forme.setOutlineColor(sf::Color::Yellow);
         forme.setOutlineThickness(-3.0f);
