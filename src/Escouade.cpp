@@ -25,7 +25,10 @@ constexpr float s_porteeTireur = 120.0f;  // bord à bord
 constexpr int s_armureMelee = 50;
 constexpr int s_armureTireur = 0;
 constexpr int s_degatsAttaqueDeBase = 5;
-constexpr float s_rechargeAttaqueDeBase = 0.5f;  // en secondes
+constexpr float s_rechargeMeleeMin = 0.3f;   // attaque de base des mêlées, en secondes
+constexpr float s_rechargeMeleeMax = 0.7f;
+constexpr float s_rechargeTireurMin = 0.4f;  // attaque de base des tireurs, en secondes
+constexpr float s_rechargeTireurMax = 0.6f;
 constexpr int s_degatsSkill = 25;
 constexpr float s_rechargeSkill = 5.0f;   // en secondes
 constexpr float s_porteeSoin = 40.0f;     // bord à bord
@@ -40,9 +43,9 @@ constexpr float s_rechargeZone = 8.0f;        // en secondes
 constexpr float s_rayonZone = 60.0f;          // rayon de zone, depuis le point visé
 constexpr float s_laisseAgresseur = 100.0f;      // en pixels, centre à centre, mesurée depuis la place de formation
 
-// Attaque de base d'un personnage, mêlée ou tireur : seule la portée change.
-Skill attaqueDeBase(float portee) {
-    return Skill(TypeSkill::Degats, portee, s_degatsAttaqueDeBase, s_rechargeAttaqueDeBase, 0.0f);
+// Attaque de base d'un personnage, mêlée ou tireur : la portée et l'intervalle de recharge changent.
+Skill attaqueDeBase(float portee, float rechargeMin, float rechargeMax) {
+    return Skill(TypeSkill::Degats, portee, s_degatsAttaqueDeBase, rechargeMin, rechargeMax, 0.0f);
 }
 
 // Seule conversion d'une place (de 1 à 4, comme la touche du skill) vers l'indice (de 0 à 3).
@@ -58,15 +61,15 @@ Escouade::Escouade(sf::Vector2f positionDepart)
       m_orientationVoulue(),
       m_vitesseRotation(s_vitesseRotation),
       m_personnages({
-          Personnage(placePersonnage(0), s_couleurMelee, attaqueDeBase(s_porteeMelee),
-                     Skill(TypeSkill::Degats, s_porteeMelee, s_degatsSkill, s_rechargeSkill, 0.0f), s_armureMelee),
-          Personnage(placePersonnage(1), s_couleurMelee, attaqueDeBase(s_porteeMelee),
-                     Skill(TypeSkill::Provocation, 0.0f, s_dureeProvocation, s_rechargeProvocation, s_rayonProvocation),
+          Personnage(placePersonnage(0), s_couleurMelee, attaqueDeBase(s_porteeMelee, s_rechargeMeleeMin, s_rechargeMeleeMax),
+                     Skill(TypeSkill::Degats, s_porteeMelee, s_degatsSkill, s_rechargeSkill, s_rechargeSkill, 0.0f), s_armureMelee),
+          Personnage(placePersonnage(1), s_couleurMelee, attaqueDeBase(s_porteeMelee, s_rechargeMeleeMin, s_rechargeMeleeMax),
+                     Skill(TypeSkill::Provocation, 0.0f, s_dureeProvocation, s_rechargeProvocation, s_rechargeProvocation, s_rayonProvocation),
                      s_armureMelee),
-          Personnage(placePersonnage(2), s_couleurTireur, attaqueDeBase(s_porteeTireur),
-                     Skill(TypeSkill::Soin, s_porteeSoin, s_puissanceSoin, s_rechargeSoin, 0.0f), s_armureTireur),
-          Personnage(placePersonnage(3), s_couleurTireur, attaqueDeBase(s_porteeTireur),
-                     Skill(TypeSkill::Zone, s_porteeZone, s_degatsZone, s_rechargeZone, s_rayonZone), s_armureTireur),
+          Personnage(placePersonnage(2), s_couleurTireur, attaqueDeBase(s_porteeTireur, s_rechargeTireurMin, s_rechargeTireurMax),
+                     Skill(TypeSkill::Soin, s_porteeSoin, s_puissanceSoin, s_rechargeSoin, s_rechargeSoin, 0.0f), s_armureTireur),
+          Personnage(placePersonnage(3), s_couleurTireur, attaqueDeBase(s_porteeTireur, s_rechargeTireurMin, s_rechargeTireurMax),
+                     Skill(TypeSkill::Zone, s_porteeZone, s_degatsZone, s_rechargeZone, s_rechargeZone, s_rayonZone), s_armureTireur),
       }),
       m_cibleVerrouillee(),
       m_skillEnAttente(),
@@ -120,17 +123,17 @@ void Escouade::allerVers(sf::Vector2f destination, const TileMap& carte) {
     m_mobile.allerVers(destination, carte);
 }
 
-std::vector<Coup> Escouade::attaquer(const std::vector<MonstreVu>& monstres, const TileMap& carte) {
+std::vector<Coup> Escouade::attaquer(const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur) {
     actualiserMemoires(monstres);
-    std::vector<Coup> coups = departSkillDeZoneEnAttente(monstres, carte);
+    std::vector<Coup> coups = departSkillDeZoneEnAttente(monstres, carte, generateur);
 
     if (const std::optional<Cercle> verrou = approcherVerrou(monstres, carte)) {
-        if (const std::optional<Coup> coup = departSkillDeDegatsEnAttente(*verrou, carte)) {
+        if (const std::optional<Coup> coup = departSkillDeDegatsEnAttente(*verrou, carte, generateur)) {
             coups.push_back(*coup);
         }
     }
 
-    const std::vector<Coup> coupsDAutodefense = autodefense(monstres, carte);
+    const std::vector<Coup> coupsDAutodefense = autodefense(monstres, carte, generateur);
     coups.insert(coups.end(), coupsDAutodefense.begin(), coupsDAutodefense.end());
     return coups;
 }
@@ -146,7 +149,7 @@ void Escouade::actualiserMemoires(const std::vector<MonstreVu>& monstres) {
 // du point fixé au clic, sur les monstres présents à ce moment. Il
 // part avant les attaques de base (dont il relance la recharge). Il ne
 // dépend pas du verrou. La mort du lanceur l'annule (avancerSkillEnAttente).
-std::vector<Coup> Escouade::departSkillDeZoneEnAttente(const std::vector<MonstreVu>& monstres, const TileMap& carte) {
+std::vector<Coup> Escouade::departSkillDeZoneEnAttente(const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur) {
     if (!m_skillEnAttente.has_value()) {
         return {};
     }
@@ -158,7 +161,7 @@ std::vector<Coup> Escouade::departSkillDeZoneEnAttente(const std::vector<Monstre
     if (!personnageDeLaPlace(place).estVivant() || !peutLancerAuPoint(place, point->point, carte)) {
         return {};
     }
-    const std::vector<Coup> coups = lancerSkillDeZone(place, point->point, monstres, carte);
+    const std::vector<Coup> coups = lancerSkillDeZone(place, point->point, monstres, carte, generateur);
     m_skillEnAttente = std::nullopt;
     return coups;
 }
@@ -194,7 +197,7 @@ std::optional<Cercle> Escouade::approcherVerrou(const std::vector<MonstreVu>& mo
 // Skill de dégâts en attente : il part dès que son lanceur est à
 // portée du cercle à jour de la cible, avant l'attaque de base
 // (dont il relance la recharge).
-std::optional<Coup> Escouade::departSkillDeDegatsEnAttente(Cercle cible, const TileMap& carte) {
+std::optional<Coup> Escouade::departSkillDeDegatsEnAttente(Cercle cible, const TileMap& carte, Generateur& generateur) {
     if (!skillEnAttenteDeDegats()) {
         return std::nullopt;
     }
@@ -202,7 +205,7 @@ std::optional<Coup> Escouade::departSkillDeDegatsEnAttente(Cercle cible, const T
     if (!peutAtteindre(lanceur, Arme::Skill, cible, carte)) {
         return std::nullopt;
     }
-    const int degats = lanceur.declencherSkill(cible);
+    const int degats = lanceur.declencherSkill(cible, generateur);
     const int idCible = std::get<CibleMonstre>(m_skillEnAttente->cible).id;
     m_skillEnAttente = std::nullopt;
     if (degats <= 0) {
@@ -213,7 +216,7 @@ std::optional<Coup> Escouade::departSkillDeDegatsEnAttente(Cercle cible, const T
 
 // Chaque personnage choisit pour lui-même le monstre qu'il frappe, parmi
 // ceux qu'il atteint (à portée et en vue).
-std::vector<Coup> Escouade::autodefense(const std::vector<MonstreVu>& monstres, const TileMap& carte) {
+std::vector<Coup> Escouade::autodefense(const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur) {
     std::vector<Coup> coups;
     for (std::size_t i = 0; i < m_personnages.size(); ++i) {
         Personnage& personnage = m_personnages[i];
@@ -227,7 +230,7 @@ std::vector<Coup> Escouade::autodefense(const std::vector<MonstreVu>& monstres, 
         if (cible == nullptr) {
             continue;
         }
-        const int degats = personnage.frapper(cible->cercle);
+        const int degats = personnage.frapper(cible->cercle, generateur);
         if (degats > 0) {
             coups.push_back({*id, degats});
         }
@@ -235,7 +238,7 @@ std::vector<Coup> Escouade::autodefense(const std::vector<MonstreVu>& monstres, 
     return coups;
 }
 
-std::vector<Coup> Escouade::declencherSkill(std::size_t place, const std::vector<MonstreVu>& monstres, const TileMap& carte) {
+std::vector<Coup> Escouade::declencherSkill(std::size_t place, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur) {
     if (!placeValide(place)) {
         return {};
     }
@@ -260,7 +263,7 @@ std::vector<Coup> Escouade::declencherSkill(std::size_t place, const std::vector
         }
         // Un seul déclenchement pour la recharge ; la puissance est la
         // durée.
-        const int duree = lanceur.declencherSkillSansCible();
+        const int duree = lanceur.declencherSkillSansCible(generateur);
         for (const MonstreVu& monstre : touches) {
             provoquer(monstre.id, place, static_cast<float>(duree));
         }
@@ -283,7 +286,7 @@ std::vector<Coup> Escouade::declencherSkill(std::size_t place, const std::vector
             // si le skill part après une attente.
             [&](const CibleMonstre& monstre) -> std::vector<Coup> {
                 if (peutAtteindre(lanceur, Arme::Skill, monstre.cercle, carte)) {
-                    const int degats = lanceur.declencherSkill(monstre.cercle);
+                    const int degats = lanceur.declencherSkill(monstre.cercle, generateur);
                     return degats > 0 ? std::vector<Coup>{{monstre.id, degats}} : std::vector<Coup>{};
                 }
                 m_skillEnAttente = SkillEnAttente{place, *cible};
@@ -292,7 +295,7 @@ std::vector<Coup> Escouade::declencherSkill(std::size_t place, const std::vector
             // Soin : appliqué ici, il ne sort pas d'Escouade.
             [&](const CibleAllie& allie) -> std::vector<Coup> {
                 if (peutAtteindre(lanceur, Arme::Skill, personnageDeLaPlace(allie.place).getCercle(), carte)) {
-                    soigner(place, allie.place);
+                    soigner(place, allie.place, generateur);
                 } else {
                     m_skillEnAttente = SkillEnAttente{place, *cible};
                 }
@@ -340,7 +343,7 @@ bool Escouade::peutLancerAuPoint(std::size_t place, sf::Vector2f point, const Ti
     return peutAtteindre(personnageDeLaPlace(place), Arme::Skill, Cercle{point, 0.0f}, carte);
 }
 
-std::vector<Coup> Escouade::declencherSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<MonstreVu>& monstres, const TileMap& carte) {
+std::vector<Coup> Escouade::declencherSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur) {
     if (!placeValide(place) || !skillEstPret(place) || m_skillEnAttente.has_value()) {
         return {};
     }
@@ -359,13 +362,13 @@ std::vector<Coup> Escouade::declencherSkillDeZone(std::size_t place, sf::Vector2
     // À portée du point et en vue : le sort part tout de suite. Sinon il
     // est mis en attente, et le lanceur marche vers le point.
     if (peutLancerAuPoint(place, point, carte)) {
-        return lancerSkillDeZone(place, point, monstres, carte);
+        return lancerSkillDeZone(place, point, monstres, carte, generateur);
     }
     m_skillEnAttente = SkillEnAttente{place, Cible(CiblePoint{point})};
     return {};
 }
 
-std::vector<Coup> Escouade::lancerSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<MonstreVu>& monstres, const TileMap& carte) {
+std::vector<Coup> Escouade::lancerSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur) {
     if (!placeValide(place)) {
         return {};
     }
@@ -373,7 +376,7 @@ std::vector<Coup> Escouade::lancerSkillDeZone(std::size_t place, sf::Vector2f po
 
     // Un seul déclenchement pour la recharge ; la puissance est le nombre
     // de dégâts. La portée a déjà été vérifiée.
-    const int degats = lanceur.declencherSkillSansCible();
+    const int degats = lanceur.declencherSkillSansCible(generateur);
     const Cercle zone{point, lanceur.zoneDuSkill().rayon};
 
     std::vector<Coup> coups;
@@ -386,13 +389,13 @@ std::vector<Coup> Escouade::lancerSkillDeZone(std::size_t place, sf::Vector2f po
     return coups;
 }
 
-void Escouade::soigner(std::size_t placeLanceur, std::size_t placeAllie) {
+void Escouade::soigner(std::size_t placeLanceur, std::size_t placeAllie, Generateur& generateur) {
     // Le skill rend 0 s'il ne part pas (lanceur mort, hors de portée, en recharge).
-    const int soin = personnageDeLaPlace(placeLanceur).declencherSkill(personnageDeLaPlace(placeAllie).getCercle());
+    const int soin = personnageDeLaPlace(placeLanceur).declencherSkill(personnageDeLaPlace(placeAllie).getCercle(), generateur);
     personnageDeLaPlace(placeAllie).recevoirSoin(soin);
 }
 
-std::optional<sf::Vector2f> Escouade::avancerSkillEnAttente(const TileMap& carte) {
+std::optional<sf::Vector2f> Escouade::avancerSkillEnAttente(const TileMap& carte, Generateur& generateur) {
     if (!m_skillEnAttente.has_value()) {
         return std::nullopt;
     }
@@ -429,7 +432,7 @@ std::optional<sf::Vector2f> Escouade::avancerSkillEnAttente(const TileMap& carte
                 }
 
                 if (peutAtteindre(lanceur, Arme::Skill, allie.getCercle(), carte)) {
-                    soigner(placeLanceur, cibleAllie.place);
+                    soigner(placeLanceur, cibleAllie.place, generateur);
                     m_skillEnAttente = std::nullopt;
                     return std::nullopt;
                 }
@@ -516,7 +519,7 @@ void Escouade::calculerPlaces(const TileMap& carte) {
     }
 }
 
-void Escouade::mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles) {
+void Escouade::mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles, Generateur& generateur) {
     if (const std::optional<sf::Vector2f> direction = m_mobile.directionVoulue()) {
         m_orientationVoulue = direction->angle();
     }
@@ -531,7 +534,7 @@ void Escouade::mettreAJour(float dt, const TileMap& carte, const std::vector<Cer
     tournerFormation(dt);
     calculerPlaces(carte);
 
-    const std::optional<sf::Vector2f> pointSkill = avancerSkillEnAttente(carte);
+    const std::optional<sf::Vector2f> pointSkill = avancerSkillEnAttente(carte, generateur);
     for (std::size_t i = 0; i < m_personnages.size(); ++i) {
         m_personnages[i].mettreAJour(dt, pointVoulu(i, pointSkill, ancreArretee, agresseurs, carte), carte, obstacles);
     }

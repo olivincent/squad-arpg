@@ -5,8 +5,8 @@
 #include "Coup.hpp"
 #include "MonstreVu.hpp"
 
-Partie::Partie(const Niveau& niveau)
-    : m_carte(niveau.plan, niveau.tailleCase), m_escouade(niveau.departEscouade) {
+Partie::Partie(const Niveau& niveau, Generateur::result_type graine)
+    : m_carte(niveau.plan, niveau.tailleCase), m_escouade(niveau.departEscouade), m_generateur(graine) {
     int prochainId = 1;
     for (const sf::Vector2f position : niveau.positionsMonstres) {
         m_monstres.emplace_back(position, prochainId++, niveau.armureMonstres);
@@ -70,20 +70,20 @@ void Partie::resoudreLesCoups() {
 
     // Lancer du skill de zone : réussi ou refusé, la demande est consommée.
     if (m_lancerDeZoneDemande.has_value()) {
-        appliquer(m_escouade.declencherSkillDeZone(m_lancerDeZoneDemande->place, m_lancerDeZoneDemande->point, monstresVus, m_carte));
+        appliquer(m_escouade.declencherSkillDeZone(m_lancerDeZoneDemande->place, m_lancerDeZoneDemande->point, monstresVus, m_carte, m_generateur));
     }
 
     // Le skill passe avant l'attaque de base : s'il part, il relance
     // la recharge de base de ce personnage, qui ne frappe donc pas une
     // seconde fois dans la même image. Un soin ne rend aucun dégât.
     if (m_skillDemande.has_value()) {
-        appliquer(m_escouade.declencherSkill(*m_skillDemande, monstresVus, m_carte));
+        appliquer(m_escouade.declencherSkill(*m_skillDemande, monstresVus, m_carte, m_generateur));
     }
 
     // Les coups sont demandés à chaque image, verrou ou non : chaque
     // personnage vivant frappe de lui-même un monstre à sa portée.
     if (m_escouade.estVivante()) {
-        appliquer(m_escouade.attaquer(monstresVus, m_carte));
+        appliquer(m_escouade.attaquer(monstresVus, m_carte, m_generateur));
         if (idVerrouille.has_value()) {
             const Monstre* verrouille = trouverMonstre(*idVerrouille);
             if (verrouille != nullptr && !verrouille->estVivant()) {
@@ -111,7 +111,7 @@ void Partie::faireTournerLesMonstres(float dt) {
         m.mettreAJour(dt, cible, m_carte, obstacles);
         const sf::Vector2f origine = m.getCentre();
         if (cible) {
-            m_escouade.recevoirDegats(m.getId(), origine, m.frapper(*cible));
+            m_escouade.recevoirDegats(m.getId(), origine, m.frapper(*cible, m_generateur));
         }
     }
 }
@@ -135,7 +135,7 @@ void Partie::mettreAJour(float dt) {
     for (const Monstre& m : m_monstres) {
         cerclesMonstres.push_back(m.getCercle());
     }
-    m_escouade.mettreAJour(dt, m_carte, cerclesMonstres);
+    m_escouade.mettreAJour(dt, m_carte, cerclesMonstres, m_generateur);
     faireTournerLesMonstres(dt);
 
     m_lancerDeZoneDemande.reset();

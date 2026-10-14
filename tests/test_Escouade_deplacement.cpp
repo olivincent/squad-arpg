@@ -20,6 +20,7 @@ TEST_CASE("Le centre initial est au centre du carre de depart") {
 }
 
 TEST_CASE("Un seul tic avance le centre de vitesse * dt") {
+    Generateur generateur = generateurDeTest();
     // Terrain dégagé, destination à plusieurs cases : le premier point visé
     // est donc loin, bien au-delà de la distance parcourue en un seul tic
     // (180 px/s * 0.1 s = 18 px), quelle que soit sa direction exacte.
@@ -39,7 +40,7 @@ TEST_CASE("Un seul tic avance le centre de vitesse * dt") {
 
     const sf::Vector2f centreInitial = escouade.getCentre();
     escouade.allerVers({300.0f, 300.0f}, carte);
-    escouade.mettreAJour(0.1f, carte, {});
+    escouade.mettreAJour(0.1f, carte, {}, generateur);
 
     const float distanceParcourue = (escouade.getCentre() - centreInitial).length();
     REQUIRE_THAT(distanceParcourue, Catch::Matchers::WithinAbs(18.0f, 0.5f));
@@ -94,6 +95,7 @@ TEST_CASE("Avec un mur entre le depart et la destination, l'escouade le contourn
 }
 
 TEST_CASE("Sans ordre, l'escouade ne bouge pas") {
+    Generateur generateur = generateurDeTest();
     const std::vector<std::string> plan = {
         ".....",
         ".....",
@@ -105,7 +107,7 @@ TEST_CASE("Sans ordre, l'escouade ne bouge pas") {
     Escouade escouade({50.0f, 50.0f});
 
     for (int i = 0; i < 60; ++i) {
-        escouade.mettreAJour(1.0f / 60.0f, carte, {});
+        escouade.mettreAJour(1.0f / 60.0f, carte, {}, generateur);
     }
 
     verifierPointProche(escouade.getCentre(), {60.0f, 60.0f});
@@ -270,6 +272,7 @@ TEST_CASE("cerclesDesVivants est vide une fois tous les personnages morts") {
 }
 
 TEST_CASE("Les obstacles bloquent les personnages mais pas l'ancre") {
+    Generateur generateur = generateurDeTest();
     const std::vector<std::string> plan = {
         "............",
         "............",
@@ -288,7 +291,7 @@ TEST_CASE("Les obstacles bloquent les personnages mais pas l'ancre") {
 
     escouade.allerVers({400.0f, 60.0f}, carte);
     for (int i = 0; i < 300; ++i) {
-        escouade.mettreAJour(1.0f / 60.0f, carte, obstacles);
+        escouade.mettreAJour(1.0f / 60.0f, carte, obstacles, generateur);
     }
 
     // L'ancre a traversé l'obstacle (bord droit en x = 230)...
@@ -302,6 +305,7 @@ TEST_CASE("Les obstacles bloquent les personnages mais pas l'ancre") {
 }
 
 TEST_CASE("En terrain degage, les places de formation ne sont pas modifiees") {
+    Generateur generateur = generateurDeTest();
     const TileMap carte({"##########",
                          "#........#",
                          "#........#",
@@ -311,7 +315,7 @@ TEST_CASE("En terrain degage, les places de formation ne sont pas modifiees") {
                          "##########"},
                         40.0f);
     Escouade escouade({150.0f, 110.0f});
-    escouade.mettreAJour(0.016f, carte, {});
+    escouade.mettreAJour(0.016f, carte, {}, generateur);
 
     const sf::Vector2f centre = escouade.getCentre();
     const std::vector<sf::Vector2f> attendues = {centre + sf::Vector2f(25.0f, -25.0f),
@@ -327,6 +331,7 @@ TEST_CASE("En terrain degage, les places de formation ne sont pas modifiees") {
 }
 
 TEST_CASE("Ancre collee a un mur, aucune place de formation n'est dans un mur") {
+    Generateur generateur = generateurDeTest();
     const TileMap carte({"##########",
                          "#........#",
                          "#........#",
@@ -336,7 +341,7 @@ TEST_CASE("Ancre collee a un mur, aucune place de formation n'est dans un mur") 
                          "##########"},
                         40.0f);
     Escouade escouade({40.0f, 80.0f}); // centre (50, 90) : le bord gauche de l'ancre touche le mur
-    escouade.mettreAJour(0.016f, carte, {});
+    escouade.mettreAJour(0.016f, carte, {}, generateur);
 
     const sf::Vector2f taille{20.0f, 20.0f};
     const std::vector<sf::Vector2f>& places = escouade.getPlacesDeFormation();

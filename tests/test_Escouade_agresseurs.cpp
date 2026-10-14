@@ -111,34 +111,37 @@ TEST_CASE("Sans personnage vivant, un coup n'enregistre aucun agresseur") {
 }
 
 TEST_CASE("Un agresseur est oublie 3 s apres son dernier coup") {
+    Generateur generateur = generateurDeTest();
     const TileMap carte({"..........", "..........", ".........."}, 40.0f);
     Escouade escouade({50.0f, 50.0f});
     escouade.recevoirDegats(7, {300.0f, 60.0f}, 10);
 
-    escouade.mettreAJour(2.9f, carte, {});
+    escouade.mettreAJour(2.9f, carte, {}, generateur);
     REQUIRE(escouade.getAgresseurs().size() == 1);
-    escouade.mettreAJour(0.2f, carte, {});
+    escouade.mettreAJour(0.2f, carte, {}, generateur);
     REQUIRE(escouade.getAgresseurs().empty());
 }
 
 TEST_CASE("Un nouveau coup repousse l'oubli de l'agresseur") {
+    Generateur generateur = generateurDeTest();
     const TileMap carte({"..........", "..........", ".........."}, 40.0f);
     Escouade escouade({50.0f, 50.0f});
     escouade.recevoirDegats(7, {300.0f, 60.0f}, 10);
-    escouade.mettreAJour(2.0f, carte, {});
+    escouade.mettreAJour(2.0f, carte, {}, generateur);
     escouade.recevoirDegats(7, {300.0f, 60.0f}, 10);
-    escouade.mettreAJour(2.0f, carte, {});
+    escouade.mettreAJour(2.0f, carte, {}, generateur);
 
     REQUIRE(escouade.getAgresseurs().size() == 1);
 }
 
 TEST_CASE("attaquer retire l'agresseur absent de la liste et met a jour le cercle des autres") {
+    Generateur generateur = generateurDeTest();
     const TileMap carte({"..........", "..........", ".........."}, 40.0f);
     Escouade escouade({50.0f, 50.0f});
     escouade.recevoirDegats(7, {300.0f, 60.0f}, 10);
     escouade.recevoirDegats(8, {310.0f, 60.0f}, 10);
 
-    static_cast<void>(escouade.attaquer({MonstreVu{8, cibleMonstre({320.0f, 70.0f})}}, carte)); // avance l'état : les coups ne sont pas l'objet du test
+    static_cast<void>(escouade.attaquer({MonstreVu{8, cibleMonstre({320.0f, 70.0f})}}, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
 
     const auto& agresseurs = escouade.getAgresseurs();
     REQUIRE(agresseurs.size() == 1);
@@ -152,9 +155,10 @@ namespace {
 // Comme main.cpp : attaquer puis mettreAJour à chaque tic, le monstre étant
 // un obstacle pour les personnages.
 void simulerAvecMonstre(Escouade& escouade, const TileMap& carte, Cercle monstre, int tics) {
+    Generateur generateur = generateurDeTest();
     for (int i = 0; i < tics; ++i) {
-        static_cast<void>(escouade.attaquer({MonstreVu{1, monstre}}, carte)); // avance l'état : les coups ne sont pas l'objet du test
-        escouade.mettreAJour(1.0f / 60.0f, carte, {monstre});
+        static_cast<void>(escouade.attaquer({MonstreVu{1, monstre}}, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
+        escouade.mettreAJour(1.0f / 60.0f, carte, {monstre}, generateur);
     }
 }
 
@@ -227,6 +231,7 @@ TEST_CASE("provoquer enregistre le monstre, le provocateur et la duree") {
 }
 
 TEST_CASE("provoquer ignore une place invalide (0 et 5) : aucune provocation, aucun plantage") {
+    Generateur generateur = generateurDeTest();
     const TileMap carte = carteDegagee10x10();
     Escouade escouade({50.0f, 50.0f});
 
@@ -234,17 +239,18 @@ TEST_CASE("provoquer ignore une place invalide (0 et 5) : aucune provocation, au
     escouade.provoquer(8, 5, 4.0f);
 
     REQUIRE(escouade.getProvocations().empty());
-    escouade.mettreAJour(1.0f / 60.0f, carte, {});
+    escouade.mettreAJour(1.0f / 60.0f, carte, {}, generateur);
     REQUIRE(escouade.getProvocations().empty());
     REQUIRE(escouade.proieDuMonstre(7, {300.0f, 60.0f}).has_value());
 }
 
 TEST_CASE("Provoquer de nouveau un monstre deja provoque ne le duplique pas et remet sa duree au maximum") {
+    Generateur generateur = generateurDeTest();
     const TileMap carte({"..........", "..........", ".........."}, 40.0f);
     Escouade escouade({50.0f, 50.0f});
     escouade.provoquer(7, 2, 4.0f);
     escouade.provoquer(8, 2, 4.0f);
-    escouade.mettreAJour(3.0f, carte, {});
+    escouade.mettreAJour(3.0f, carte, {}, generateur);
     escouade.provoquer(7, 2, 4.0f);
 
     const auto& provocations = escouade.getProvocations();
@@ -255,24 +261,26 @@ TEST_CASE("Provoquer de nouveau un monstre deja provoque ne le duplique pas et r
 }
 
 TEST_CASE("Une provocation prend fin apres sa duree") {
+    Generateur generateur = generateurDeTest();
     const TileMap carte({"..........", "..........", ".........."}, 40.0f);
     Escouade escouade({50.0f, 50.0f});
     escouade.provoquer(7, 2, 4.0f);
 
-    escouade.mettreAJour(3.9f, carte, {});
+    escouade.mettreAJour(3.9f, carte, {}, generateur);
     REQUIRE(escouade.getProvocations().size() == 1);
-    escouade.mettreAJour(0.2f, carte, {});
+    escouade.mettreAJour(0.2f, carte, {}, generateur);
     REQUIRE(escouade.getProvocations().empty());
 }
 
 TEST_CASE("Une provocation prend fin a la mort du provocateur") {
+    Generateur generateur = generateurDeTest();
     const TileMap carte = carteDegageeEntouree();
     Escouade escouade({200.0f, 200.0f});
     escouade.provoquer(7, 2, 4.0f);
     escouade.provoquer(8, 1, 4.0f);
 
     escouade.recevoirDegats(1, {235.0f, 235.0f}, 200);  // tue la place 2
-    escouade.mettreAJour(0.016f, carte, {});
+    escouade.mettreAJour(0.016f, carte, {}, generateur);
 
     const auto& provocations = escouade.getProvocations();
     REQUIRE(provocations.size() == 1);
@@ -280,12 +288,13 @@ TEST_CASE("Une provocation prend fin a la mort du provocateur") {
 }
 
 TEST_CASE("attaquer retire la provocation d'un monstre absent de la liste") {
+    Generateur generateur = generateurDeTest();
     const TileMap carte({"..........", "..........", ".........."}, 40.0f);
     Escouade escouade({50.0f, 50.0f});
     escouade.provoquer(7, 2, 4.0f);
     escouade.provoquer(8, 2, 4.0f);
 
-    static_cast<void>(escouade.attaquer({MonstreVu{8, cibleMonstre({300.0f, 60.0f})}}, carte)); // avance l'état : les coups ne sont pas l'objet du test
+    static_cast<void>(escouade.attaquer({MonstreVu{8, cibleMonstre({300.0f, 60.0f})}}, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
 
     const auto& provocations = escouade.getProvocations();
     REQUIRE(provocations.size() == 1);

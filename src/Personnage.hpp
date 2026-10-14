@@ -1,5 +1,6 @@
 // ./src/Personnage.hpp
 #pragma once
+#include "Aleatoire.hpp"
 #include "Cercle.hpp"
 #include "EtatSkill.hpp"
 #include "Mobile.hpp"
@@ -19,15 +20,15 @@ public:
     void dessiner(sf::RenderTarget& rendu) const;
     void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte, const std::vector<Cercle>& obstacles);
     [[nodiscard]] bool estAPortee(Cercle cible) const;
-    [[nodiscard]] int frapper(Cercle cible);
+    [[nodiscard]] int frapper(Cercle cible, Generateur& generateur);
     std::optional<TypeSkill> typeSkill() const;
     bool skillEstPret() const;
     std::optional<EtatSkill> etatDuSkill() const;
     [[nodiscard]] bool skillEstAPortee(Cercle cible) const;
     [[nodiscard]] Cercle zoneDuSkill() const;
     [[nodiscard]] Cercle cercleDePorteeDuSkill() const;
-    [[nodiscard]] int declencherSkill(Cercle cible);
-    [[nodiscard]] int declencherSkillSansCible();
+    [[nodiscard]] int declencherSkill(Cercle cible, Generateur& generateur);
+    [[nodiscard]] int declencherSkillSansCible(Generateur& generateur);
     void recevoirDegats(int quantite);
     void recevoirSoin(int quantite);
     bool estVivant() const;

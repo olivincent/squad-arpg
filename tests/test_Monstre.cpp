@@ -143,25 +143,28 @@ TEST_CASE("Le monstre reste mort apres un coup supplementaire") {
 // dégâts 10, recharge 1 s.
 
 TEST_CASE("Monstre.frapper renvoie les degats pour une cible a portee") {
+    Generateur generateur = generateurDeTest();
     Monstre monstre({100.0f, 100.0f}, 1, 0);
 
-    REQUIRE(monstre.frapper(pointCible({110.0f, 100.0f})) == 10);
+    REQUIRE(monstre.frapper(pointCible({110.0f, 100.0f}), generateur) == 10);
 }
 
 TEST_CASE("Monstre.frapper renvoie 0 pour une cible hors de portee") {
+    Generateur generateur = generateurDeTest();
     Monstre monstre({100.0f, 100.0f}, 1, 0);
 
-    REQUIRE(monstre.frapper(pointCible({300.0f, 100.0f})) == 0);
+    REQUIRE(monstre.frapper(pointCible({300.0f, 100.0f}), generateur) == 0);
 }
 
 TEST_CASE("Monstre.frapper renvoie de nouveau les degats apres une duree simulee genereuse") {
+    Generateur generateur = generateurDeTest();
     const TileMap carte = carteDegagee10x10();
     Monstre monstre({100.0f, 100.0f}, 1, 0);
     const Cercle cible = pointCible({110.0f, 100.0f});
 
-    REQUIRE(monstre.frapper(cible) == 10);
-    ecoulerTemps(monstre, 1.2f, std::nullopt, carte);
-    REQUIRE(monstre.frapper(cible) == 10);
+    REQUIRE(monstre.frapper(cible, generateur) == 10);
+    ecoulerTemps(monstre, 1.5f, std::nullopt, carte);
+    REQUIRE(monstre.frapper(cible, generateur) == 10);
 }
 
 // Monstre centré en (100, 100), rayon de détection 200 px.

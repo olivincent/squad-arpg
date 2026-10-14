@@ -1,9 +1,12 @@
 // ./src/Skill.hpp
 #pragma once
+#include "Aleatoire.hpp"
 #include "Cercle.hpp"
 #include "TypeSkill.hpp"
 
-// Un skill : un type, une portée, une puissance et une recharge. La
+// Un skill : un type, une portée, une puissance et une recharge (un
+// intervalle [rechargeMin, rechargeMax] en secondes, tiré au hasard à chaque
+// déclenchement ; fixe si les deux bornes sont égales, sans aucun tirage). La
 // « puissance » est le nombre de dégâts pour un skill de Degats, le nombre
 // de points de vie rendus pour un skill de Soin, la durée en secondes pour
 // un skill de Provocation, le nombre de dégâts pour un skill de Zone. Le
@@ -12,12 +15,12 @@
 // décide).
 class Skill {
 public:
-    Skill(TypeSkill type, float portee, int puissance, float tempsRecharge, float rayonZone);
+    Skill(TypeSkill type, float portee, int puissance, float rechargeMin, float rechargeMax, float rayonZone);
     void mettreAJour(float dt);
     [[nodiscard]] bool estAPortee(Cercle origine, Cercle cible) const;
-    [[nodiscard]] int declencher(Cercle origine, Cercle cible);
-    [[nodiscard]] int declencherSansCible();
-    void relancerRecharge();
+    [[nodiscard]] int declencher(Cercle origine, Cercle cible, Generateur& generateur);
+    [[nodiscard]] int declencherSansCible(Generateur& generateur);
+    void relancerRecharge(Generateur& generateur);
     float getProgressionRecharge() const;
     float getRechargeRestante() const;
     TypeSkill getType() const;
@@ -28,7 +31,11 @@ private:
     TypeSkill m_type;
     float m_portee;         // en pixels, écart bord à bord
     int m_puissance;
-    float m_tempsRecharge;  // en secondes
+    float m_rechargeMin;    // en secondes
+    float m_rechargeMax;    // en secondes
+    float m_tempsRecharge;  // en secondes, durée de la recharge en cours (dernier tirage)
     float m_recharge;       // en secondes, avant le prochain déclenchement possible
     float m_rayonZone;      // en pixels
+
+    float tirerRecharge(Generateur& generateur) const;
 };

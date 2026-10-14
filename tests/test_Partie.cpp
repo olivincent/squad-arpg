@@ -38,14 +38,14 @@ std::vector<sf::Vector2f> groupeDeMonstres() {
 }  // namespace
 
 TEST_CASE("cliquer sur un monstre le verrouille") {
-    Partie partie(niveauDegage({{400.0f, 400.0f}, {300.0f, 400.0f}}));
+    Partie partie(niveauDegage({{400.0f, 400.0f}, {300.0f, 400.0f}}), s_graineDeTest);
 
     REQUIRE(partie.cliquer({300.0f, 400.0f}) == ResultatClic::Monstre);
     REQUIRE(partie.getEscouade().getCibleVerrouillee() == 2);
 }
 
 TEST_CASE("cliquer au sol renvoie Sol et leve le verrou") {
-    Partie partie(niveauDegage({{400.0f, 400.0f}}));
+    Partie partie(niveauDegage({{400.0f, 400.0f}}), s_graineDeTest);
     REQUIRE(partie.cliquer({400.0f, 400.0f}) == ResultatClic::Monstre);
 
     REQUIRE(partie.cliquer({100.0f, 500.0f}) == ResultatClic::Sol);
@@ -53,7 +53,7 @@ TEST_CASE("cliquer au sol renvoie Sol et leve le verrou") {
 }
 
 TEST_CASE("un monstre tue est retire et le verrou est leve") {
-    Partie partie(niveauDegage({{235.0f, 210.0f}}));
+    Partie partie(niveauDegage({{235.0f, 210.0f}}), s_graineDeTest);
     REQUIRE(partie.cliquer({235.0f, 210.0f}) == ResultatClic::Monstre);
 
     for (int i = 0; i < 600 && !partie.getMonstres().empty(); ++i) {
@@ -65,7 +65,7 @@ TEST_CASE("un monstre tue est retire et le verrou est leve") {
 }
 
 TEST_CASE("aucun monstre mort ne reste dans le vecteur apres mettreAJour") {
-    Partie partie(niveauDegage({{235.0f, 210.0f}, {245.0f, 240.0f}}));
+    Partie partie(niveauDegage({{235.0f, 210.0f}, {245.0f, 240.0f}}), s_graineDeTest);
 
     for (int i = 0; i < 600; ++i) {
         partie.mettreAJour(s_dureeTic);
@@ -78,7 +78,7 @@ TEST_CASE("aucun monstre mort ne reste dans le vecteur apres mettreAJour") {
 }
 
 TEST_CASE("un skill demande part dans mettreAJour et sa recharge demarre") {
-    Partie partie(niveauDegage({{235.0f, 150.0f}}));
+    Partie partie(niveauDegage({{235.0f, 150.0f}}), s_graineDeTest);
     REQUIRE(partie.getEscouade().skillEstPret(1));
 
     partie.demanderSkill(1);
@@ -89,7 +89,7 @@ TEST_CASE("un skill demande part dans mettreAJour et sa recharge demarre") {
 }
 
 TEST_CASE("un monstre approche poursuit et frappe") {
-    Partie partie(niveauDegage({{400.0f, 210.0f}}));
+    Partie partie(niveauDegage({{400.0f, 210.0f}}), s_graineDeTest);
 
     for (int i = 0; i < 600 && partie.getEscouade().getAgresseurs().empty(); ++i) {
         partie.mettreAJour(s_dureeTic);
@@ -99,7 +99,7 @@ TEST_CASE("un monstre approche poursuit et frappe") {
 }
 
 TEST_CASE("une fois l'escouade vaincue, les clics et les demandes sont sans effet") {
-    Partie partie(niveauDegage(groupeDeMonstres()));
+    Partie partie(niveauDegage(groupeDeMonstres()), s_graineDeTest);
 
     for (int i = 0; i < 5400 && partie.getEscouade().estVivante(); ++i) {
         partie.mettreAJour(s_dureeTic);
@@ -124,7 +124,7 @@ TEST_CASE("un skill et attaquer dans la meme image ne frappent pas deux fois le 
     // Monstre à portée du mêlée avant-gauche (skill de 25) et des deux
     // tireurs (attaques de base de 5). Le mêlée qui lance son skill ne
     // frappe pas avec son attaque de base dans la même image.
-    Partie partie(niveauDegage({{235.0f, 150.0f}}));
+    Partie partie(niveauDegage({{235.0f, 150.0f}}), s_graineDeTest);
 
     partie.demanderSkill(1);
     partie.mettreAJour(s_dureeTic);
@@ -133,13 +133,13 @@ TEST_CASE("un skill et attaquer dans la meme image ne frappent pas deux fois le 
 }
 
 TEST_CASE("estPerdue est faux au depart") {
-    Partie partie(niveauDegage({{400.0f, 400.0f}}));
+    Partie partie(niveauDegage({{400.0f, 400.0f}}), s_graineDeTest);
 
     REQUIRE_FALSE(partie.estPerdue());
 }
 
 TEST_CASE("estPerdue est faux tant qu'un personnage survit et vrai quand les 4 sont morts") {
-    Partie partie(niveauDegage(groupeDeMonstres()));
+    Partie partie(niveauDegage(groupeDeMonstres()), s_graineDeTest);
 
     bool survivantUnique = false;
     for (int i = 0; i < 5400 && !partie.estPerdue(); ++i) {
@@ -155,7 +155,7 @@ TEST_CASE("estPerdue est faux tant qu'un personnage survit et vrai quand les 4 s
 }
 
 TEST_CASE("une partie perdue se fige") {
-    Partie partie(niveauDegage(groupeDeMonstres()));
+    Partie partie(niveauDegage(groupeDeMonstres()), s_graineDeTest);
     for (int i = 0; i < 5400 && !partie.estPerdue(); ++i) {
         partie.mettreAJour(s_dureeTic);
     }
@@ -179,14 +179,14 @@ TEST_CASE("une partie perdue se fige") {
 }
 
 TEST_CASE("une partie reaffectee avec un niveau neuf recommence") {
-    Partie partie(niveauDegage(groupeDeMonstres()));
+    Partie partie(niveauDegage(groupeDeMonstres()), s_graineDeTest);
     for (int i = 0; i < 5400 && !partie.estPerdue(); ++i) {
         partie.mettreAJour(s_dureeTic);
     }
     REQUIRE(partie.estPerdue());
 
     partie = Partie(niveauDegage({{400.0f, 400.0f}, {450.0f, 400.0f}, {500.0f, 400.0f},
-                                  {400.0f, 450.0f}, {450.0f, 450.0f}, {500.0f, 450.0f}}));
+                                  {400.0f, 450.0f}, {450.0f, 450.0f}, {500.0f, 450.0f}}), s_graineDeTest);
 
     REQUIRE_FALSE(partie.estPerdue());
     REQUIRE(partie.getMonstres().size() == 6);

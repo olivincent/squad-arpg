@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <optional>
 #include <vector>
+#include "Aleatoire.hpp"
 #include "Coup.hpp"
 #include "Escouade.hpp"
 #include "Monstre.hpp"
@@ -25,7 +26,8 @@ enum class ResultatClic { Monstre, Sol, Ignore };
 // Invariant : entre deux appels, tout monstre du vecteur est vivant.
 class Partie {
 public:
-    explicit Partie(const Niveau& niveau);
+    // La graine initialise le générateur aléatoire de la partie, qui est à elle seule.
+    Partie(const Niveau& niveau, Generateur::result_type graine);
 
     // Verrouille le monstre qui contient ce point (Monstre), sinon lève le
     // verrou (Sol). Ignore si l'escouade est vaincue : rien ne change.
@@ -65,4 +67,5 @@ private:
     std::optional<LancerDeZone> m_lancerDeZoneDemande;
     std::optional<std::size_t> m_skillDemande;
     std::optional<sf::Vector2f> m_deplacementOrdonne;
+    Generateur m_generateur;  // passé par référence jusqu'au tirage, jamais copié
 };

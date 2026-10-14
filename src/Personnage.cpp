@@ -93,12 +93,12 @@ bool Personnage::estAPortee(Cercle cible) const {
     return m_attaqueDeBase.estAPortee(getCercle(), cible);
 }
 
-int Personnage::frapper(Cercle cible) {
+int Personnage::frapper(Cercle cible, Generateur& generateur) {
     if (!estVivant()) {
         return 0;
     }
 
-    return m_attaqueDeBase.declencher(getCercle(), cible);
+    return m_attaqueDeBase.declencher(getCercle(), cible, generateur);
 }
 
 std::optional<TypeSkill> Personnage::typeSkill() const {
@@ -132,28 +132,28 @@ Cercle Personnage::zoneDuSkill() const {
     return {getCentre(), m_skill.has_value() ? m_skill->getRayonZone() : 0.0f};
 }
 
-int Personnage::declencherSkill(Cercle cible) {
+int Personnage::declencherSkill(Cercle cible, Generateur& generateur) {
     if (!m_skill.has_value() || !estVivant()) {
         return 0;
     }
 
-    const int degats = m_skill->declencher(getCercle(), cible);
+    const int degats = m_skill->declencher(getCercle(), cible, generateur);
     if (degats > 0) {
         // Le skill remplace l'attaque de base à ce moment : elle repart
         // pour une recharge complète.
-        m_attaqueDeBase.relancerRecharge();
+        m_attaqueDeBase.relancerRecharge(generateur);
     }
     return degats;
 }
 
-int Personnage::declencherSkillSansCible() {
+int Personnage::declencherSkillSansCible(Generateur& generateur) {
     if (!m_skill.has_value() || !estVivant()) {
         return 0;
     }
 
-    const int puissance = m_skill->declencherSansCible();
+    const int puissance = m_skill->declencherSansCible(generateur);
     if (puissance > 0) {
-        m_attaqueDeBase.relancerRecharge();
+        m_attaqueDeBase.relancerRecharge(generateur);
     }
     return puissance;
 }

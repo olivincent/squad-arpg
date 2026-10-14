@@ -18,7 +18,7 @@ Monstre::Monstre(sf::Vector2f centre, int id, int armure)
       m_pointsDeVie(s_pointsDeVieMax),
       m_armure(armure),
       m_id(id),
-      m_attaque(TypeSkill::Degats, 15.0f, 10, 1.0f, 0.0f),  // portée de 15 px, bord à bord
+      m_attaque(TypeSkill::Degats, 15.0f, 10, 0.7f, 1.3f, 0.0f),  // portée de 15 px, bord à bord
       m_rayonDetection(200.0f),
       m_rayonTerritoire(400.0f),
       m_etat(Etat::EnGarde),
@@ -132,6 +132,6 @@ void Monstre::mettreAJour(float dt, std::optional<Cercle> cible, const TileMap& 
     m_mobile.mettreAJour(dt, carte, obstacles);
 }
 
-int Monstre::frapper(Cercle cible) {
-    return m_attaque.declencher(getCercle(), cible);
+int Monstre::frapper(Cercle cible, Generateur& generateur) {
+    return m_attaque.declencher(getCercle(), cible, generateur);
 }

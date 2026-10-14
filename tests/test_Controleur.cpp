@@ -29,7 +29,7 @@ void avancer(Partie& partie, int nombreDeTicsAFaire) {
 }  // namespace
 
 TEST_CASE("4 entre en visee quand le skill est pret") {
-    Partie partie(niveauDegage({}));
+    Partie partie(niveauDegage({}), s_graineDeTest);
     Controleur controleur;
 
     controleur.appuiTouche(partie, 4);
@@ -38,7 +38,7 @@ TEST_CASE("4 entre en visee quand le skill est pret") {
 }
 
 TEST_CASE("4 n'entre pas en visee si le skill n'est pas pret") {
-    Partie partie(niveauDegage({}));
+    Partie partie(niveauDegage({}), s_graineDeTest);
     Controleur controleur;
     controleur.appuiTouche(partie, 4);
     controleur.appuiGauche(partie, s_pointDeLancer);
@@ -52,7 +52,7 @@ TEST_CASE("4 n'entre pas en visee si le skill n'est pas pret") {
 }
 
 TEST_CASE("un clic en visee lance le sort et sort de la visee") {
-    Partie partie(niveauDegage({}));
+    Partie partie(niveauDegage({}), s_graineDeTest);
     Controleur controleur;
     controleur.appuiTouche(partie, 4);
 
@@ -65,7 +65,7 @@ TEST_CASE("un clic en visee lance le sort et sort de la visee") {
 }
 
 TEST_CASE("clic droit, Echap et 4 annulent la visee sans consommer la recharge") {
-    Partie partie(niveauDegage({}));
+    Partie partie(niveauDegage({}), s_graineDeTest);
     Controleur controleur;
 
     controleur.appuiTouche(partie, 4);
@@ -85,7 +85,7 @@ TEST_CASE("clic droit, Echap et 4 annulent la visee sans consommer la recharge")
 }
 
 TEST_CASE("un bouton tenu a l'entree en visee ne deplace pas l'escouade avant un nouvel appui") {
-    Partie partie(niveauDegage({}));
+    Partie partie(niveauDegage({}), s_graineDeTest);
     Controleur controleur;
     const sf::Vector2f depart = partie.getEscouade().getCentre();
     const sf::Vector2f curseur{500.0f, 500.0f};
@@ -114,7 +114,7 @@ TEST_CASE("la mort du lanceur fait sortir de la visee au debutImage suivant") {
             monstres.push_back({300.0f + 35.0f * static_cast<float>(colonne), 150.0f + 35.0f * static_cast<float>(ligne)});
         }
     }
-    Partie partie(niveauDegage(monstres));
+    Partie partie(niveauDegage(monstres), s_graineDeTest);
     Controleur controleur;
     controleur.appuiTouche(partie, 4);
     for (int i = 0; i < 5400 && partie.getEscouade().estVivante(); ++i) {
@@ -129,7 +129,7 @@ TEST_CASE("la mort du lanceur fait sortir de la visee au debutImage suivant") {
 }
 
 TEST_CASE("un clic au sol arme le deplacement continu, un clic sur un monstre non") {
-    Partie partie(niveauDegage({{400.0f, 400.0f}}));
+    Partie partie(niveauDegage({{400.0f, 400.0f}}), s_graineDeTest);
     Controleur controleur;
     const sf::Vector2f depart = partie.getEscouade().getCentre();
     const sf::Vector2f curseur{20.0f, 200.0f};  // à l'opposé du monstre

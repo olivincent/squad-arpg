@@ -11,6 +11,7 @@
 #include <variant>
 #include <vector>
 
+#include "Aleatoire.hpp"
 #include "Cercle.hpp"
 #include "Cible.hpp"
 #include "Coup.hpp"
@@ -22,6 +23,16 @@
 // Aides communes à plusieurs fichiers de tests. Chaque fonction est
 // `inline` (définie dans un en-tête). Une aide utilisée par un seul
 // fichier reste dans ce fichier, dans un `namespace {}`.
+
+// Graine fixe des tests : la même suite de nombres à chaque exécution.
+inline constexpr Generateur::result_type s_graineDeTest = 12345;
+
+// Un générateur neuf à graine fixe. Chaque test en crée un à lui
+// (`Generateur generateur = generateurDeTest();`) et le passe par référence :
+// jamais de générateur partagé entre deux tests.
+inline Generateur generateurDeTest() {
+    return Generateur(s_graineDeTest);
+}
 
 // Compare un point à un point attendu avec une tolérance : les positions
 // manipulées par les entités sont des flottants accumulés sur plusieurs tics
@@ -96,9 +107,10 @@ inline int nombreDeTics(float dureeSecondes) {
 // vérifient que l'état final.
 inline void simuler(Escouade& escouade, const TileMap& carte, float dureeSecondes) {
     constexpr float dt = s_dureeTic;
+    Generateur generateur = generateurDeTest();
     const int nombreTics = nombreDeTics(dureeSecondes);
     for (int i = 0; i < nombreTics; ++i) {
-        escouade.mettreAJour(dt, carte, {});
+        escouade.mettreAJour(dt, carte, {}, generateur);
     }
 }
 
@@ -106,7 +118,8 @@ inline void simuler(Escouade& escouade, const TileMap& carte, float dureeSeconde
 // total des dégâts de la liste de coups.
 inline int attaquerCible(Escouade& escouade, const TileMap& carte, Cercle cible) {
     int total = 0;
-    for (const Coup& coup : escouade.attaquer({MonstreVu{1, cible}}, carte)) {
+    Generateur generateur = generateurDeTest();
+    for (const Coup& coup : escouade.attaquer({MonstreVu{1, cible}}, carte, generateur)) {
         total += coup.degats;
     }
     return total;

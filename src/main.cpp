@@ -6,12 +6,26 @@
 #include <array>
 #include <iostream>
 #include <optional>
+#include <random>
+#include "Aleatoire.hpp"
 #include "BarreDeSkills.hpp"
 #include "Controleur.hpp"
 #include "EcranDeDefaite.hpp"
 #include "EtatSkill.hpp"
 #include "Niveau.hpp"
 #include "Partie.hpp"
+
+namespace {
+
+// Tire une graine et l'affiche dans la console, pour pouvoir rejouer une
+// partie à l'identique.
+Generateur::result_type tirerGraine(std::random_device& tirage) {
+    const Generateur::result_type graine = tirage();
+    std::cout << "Graine : " << graine << '\n';
+    return graine;
+}
+
+}  // namespace
 
 int main() {
     sf::RenderWindow window(sf::VideoMode({1200, 800}), "Squad-ARPG");
@@ -25,7 +39,8 @@ int main() {
                      "(lancer le jeu depuis le dossier de main.exe)\n";
         return 1;
     }
-    Partie partie(creerNiveau());
+    std::random_device tirageDeGraine;
+    Partie partie(creerNiveau(), tirerGraine(tirageDeGraine));
     Controleur controleur;
 
     sf::Clock horloge;
@@ -65,7 +80,7 @@ int main() {
                 } else if (data->scancode == sf::Keyboard::Scan::R && partie.estPerdue()) {
                     // Réaffectation : la Partie garde son adresse, et le
                     // Controleur repart sans visée ni déplacement continu.
-                    partie = Partie(creerNiveau());
+                    partie = Partie(creerNiveau(), tirerGraine(tirageDeGraine));
                     controleur = Controleur{};
                 }
             }

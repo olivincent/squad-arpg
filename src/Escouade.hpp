@@ -8,6 +8,7 @@
 #include <optional>
 #include <vector>
 #include "Agresseurs.hpp"
+#include "Aleatoire.hpp"
 #include "Cible.hpp"
 #include "Cercle.hpp"
 #include "Coup.hpp"
@@ -28,14 +29,14 @@ public:
     explicit Escouade(sf::Vector2f positionDepart);
     void dessiner(sf::RenderTarget& rendu) const;
     void allerVers(sf::Vector2f destination, const TileMap& carte);
-    [[nodiscard]] std::vector<Coup> attaquer(const std::vector<MonstreVu>& monstres, const TileMap& carte);
-    [[nodiscard]] std::vector<Coup> declencherSkill(std::size_t place, const std::vector<MonstreVu>& monstres, const TileMap& carte);
+    [[nodiscard]] std::vector<Coup> attaquer(const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur);
+    [[nodiscard]] std::vector<Coup> declencherSkill(std::size_t place, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur);
     [[nodiscard]] bool skillEstPret(std::size_t place) const;
     [[nodiscard]] std::optional<EtatSkill> etatDuSkill(std::size_t place) const;
     [[nodiscard]] float rayonZoneDuSkill(std::size_t place) const;
     [[nodiscard]] Cercle cercleDePorteeDuSkill(std::size_t place) const;
-    [[nodiscard]] std::vector<Coup> declencherSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<MonstreVu>& monstres, const TileMap& carte);
-    void mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles);
+    [[nodiscard]] std::vector<Coup> declencherSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur);
+    void mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles, Generateur& generateur);
     sf::Vector2f getCentre() const;
     [[nodiscard]] std::optional<Cercle> proieDuMonstre(int idMonstre, sf::Vector2f positionMonstre) const;
     void recevoirDegats(int idMonstre, sf::Vector2f origine, int quantite);
@@ -64,16 +65,16 @@ private:
     enum class Arme { AttaqueDeBase, Skill };
     bool peutAtteindre(const Personnage& personnage, Arme arme, Cercle cible, const TileMap& carte) const;
     bool peutLancerAuPoint(std::size_t place, sf::Vector2f point, const TileMap& carte) const;
-    std::vector<Coup> lancerSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<MonstreVu>& monstres, const TileMap& carte);
-    void soigner(std::size_t placeLanceur, std::size_t placeAllie);
-    std::optional<sf::Vector2f> avancerSkillEnAttente(const TileMap& carte);
+    std::vector<Coup> lancerSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur);
+    void soigner(std::size_t placeLanceur, std::size_t placeAllie, Generateur& generateur);
+    std::optional<sf::Vector2f> avancerSkillEnAttente(const TileMap& carte, Generateur& generateur);
     // Étapes d'attaquer(), dans l'ordre où elles sont appelées.
     void actualiserMemoires(const std::vector<MonstreVu>& monstres);
-    std::vector<Coup> departSkillDeZoneEnAttente(const std::vector<MonstreVu>& monstres, const TileMap& carte);
+    std::vector<Coup> departSkillDeZoneEnAttente(const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur);
     bool tousLesVivantsAtteignent(Cercle cible, const TileMap& carte) const;
     std::optional<Cercle> approcherVerrou(const std::vector<MonstreVu>& monstres, const TileMap& carte);
-    std::optional<Coup> departSkillDeDegatsEnAttente(Cercle cible, const TileMap& carte);
-    std::vector<Coup> autodefense(const std::vector<MonstreVu>& monstres, const TileMap& carte);
+    std::optional<Coup> departSkillDeDegatsEnAttente(Cercle cible, const TileMap& carte, Generateur& generateur);
+    std::vector<Coup> autodefense(const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur);
     std::optional<sf::Vector2f> pointVersAgresseur(std::size_t indice, const std::vector<MonstreVu>& agresseurs) const;
     // Étapes de mettreAJour().
     void ecoulerMemoires(float dt);

@@ -1,14 +1,28 @@
 // ./src/Skill.cpp
 #include "Skill.hpp"
+#include <cassert>
+#include <random>
 
-Skill::Skill(TypeSkill type, float portee, int puissance, float tempsRecharge, float rayonZone)
+Skill::Skill(TypeSkill type, float portee, int puissance, float rechargeMin, float rechargeMax, float rayonZone)
     : m_type(type),
       m_portee(portee),
       m_puissance(puissance),
-      m_tempsRecharge(tempsRecharge),
+      m_rechargeMin(rechargeMin),
+      m_rechargeMax(rechargeMax),
+      m_tempsRecharge(rechargeMax),
       m_recharge(0.0f),
       m_rayonZone(rayonZone)
 {
+    assert(rechargeMin >= 0.0f && rechargeMin <= rechargeMax);
+}
+
+// Recharge fixe (aucun tirage) si les deux bornes sont égales ; sinon tirage
+// uniforme dans l'intervalle.
+float Skill::tirerRecharge(Generateur& generateur) const {
+    if (m_rechargeMin == m_rechargeMax) {
+        return m_rechargeMin;
+    }
+    return std::uniform_real_distribution<float>(m_rechargeMin, m_rechargeMax)(generateur);
 }
 
 void Skill::mettreAJour(float dt) {
@@ -22,25 +36,26 @@ bool Skill::estAPortee(Cercle origine, Cercle cible) const {
     return distanceBordABord(origine, cible) <= m_portee;
 }
 
-int Skill::declencher(Cercle origine, Cercle cible) {
+int Skill::declencher(Cercle origine, Cercle cible, Generateur& generateur) {
     if (!estAPortee(origine, cible) || m_recharge > 0.0f) {
         return 0;
     }
 
-    m_recharge = m_tempsRecharge;
+    relancerRecharge(generateur);
     return m_puissance;
 }
 
-int Skill::declencherSansCible() {
+int Skill::declencherSansCible(Generateur& generateur) {
     if (m_recharge > 0.0f) {
         return 0;
     }
 
-    m_recharge = m_tempsRecharge;
+    relancerRecharge(generateur);
     return m_puissance;
 }
 
-void Skill::relancerRecharge() {
+void Skill::relancerRecharge(Generateur& generateur) {
+    m_tempsRecharge = tirerRecharge(generateur);
     m_recharge = m_tempsRecharge;
 }
 
