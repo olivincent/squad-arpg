@@ -35,6 +35,7 @@ add_library(squad_core STATIC
     src/BarreDeSkills.cpp
     src/MonstreVu.cpp
     src/BarreDeVie.cpp
+    src/PointsDeVie.cpp
     src/Niveau.cpp
     src/Partie.cpp
     src/Controleur.cpp
@@ -73,6 +74,7 @@ add_executable(tests
     tests/test_BarreDeSkills.cpp
     tests/test_MonstreVu.cpp
     tests/test_BarreDeVie.cpp
+    tests/test_PointsDeVie.cpp
     tests/test_Partie.cpp
     tests/test_Controleur.cpp
 )

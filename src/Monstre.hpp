@@ -3,6 +3,7 @@
 #include "Skill.hpp"
 #include "Cercle.hpp"
 #include "Mobile.hpp"
+#include "PointsDeVie.hpp"
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <optional>
@@ -22,6 +23,7 @@ public:
     bool contient(sf::Vector2f point) const;
     void recevoirDegats(int quantite);
     bool estVivant() const;
+    int getPointsDeVie() const;
 
 private:
     enum class Etat { EnGarde, Poursuite, Retour };
@@ -29,8 +31,7 @@ private:
     bool proieDetectee(std::optional<Cercle> cible) const;
 
     Mobile m_mobile;
-    int m_pointsDeVie;
-    int m_pointsDeVieMax;
+    PointsDeVie m_pointsDeVie;
     int m_id;
     Skill m_attaque;
     float m_rayonDetection;

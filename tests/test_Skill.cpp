@@ -180,3 +180,20 @@ TEST_CASE("Skill.getProgressionRecharge ne depasse jamais 1, meme apres un long 
 
     REQUIRE(skill.getProgressionRecharge() == 1.0f);
 }
+
+TEST_CASE("Skill.declencherSansCible renvoie la puissance sans verifier la portee") {
+    Skill skill(TypeSkill::Provocation, 0.0f, 4, 10.0f, 150.0f);
+
+    REQUIRE(skill.declencherSansCible() == 4);
+}
+
+TEST_CASE("Skill.declencherSansCible relance la recharge et refuse tant qu'elle court") {
+    Skill skill(TypeSkill::Zone, 250.0f, 15, 8.0f, 60.0f);
+
+    REQUIRE(skill.declencherSansCible() == 15);
+    REQUIRE(skill.getProgressionRecharge() == 0.0f);
+    REQUIRE(skill.declencherSansCible() == 0);
+
+    ecoulerTemps(skill, 8.2f);
+    REQUIRE(skill.declencherSansCible() == 15);
+}

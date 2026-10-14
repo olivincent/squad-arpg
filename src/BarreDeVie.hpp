@@ -11,7 +11,6 @@ constexpr float s_hauteurBarreDeVie = 5.0f;
 [[nodiscard]] sf::Vector2f positionBarreDeVie(sf::Vector2f centre, sf::Vector2f taille);
 
 // Dessine une barre de vie de cette largeur, dont le coin haut-gauche est à
-// `position` : fond gris, puis partie verte proportionnelle aux points de
-// vie. Ne dessine rien si `pointsDeVieMax` est nul ou négatif.
-void dessinerBarreDeVie(sf::RenderTarget& rendu, sf::Vector2f position, float largeur,
-                        int pointsDeVie, int pointsDeVieMax);
+// `position` : fond gris, puis partie verte proportionnelle à `ratio`
+// (de 0, vide, à 1, pleine).
+void dessinerBarreDeVie(sf::RenderTarget& rendu, sf::Vector2f position, float largeur, float ratio);

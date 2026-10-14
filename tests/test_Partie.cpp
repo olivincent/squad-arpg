@@ -114,3 +114,15 @@ TEST_CASE("une fois l'escouade vaincue, les clics et les demandes sont sans effe
     verifierPointProche(partie.getEscouade().getCentre(), centre);
     REQUIRE_FALSE(partie.getEscouade().getCibleVerrouillee().has_value());
 }
+
+TEST_CASE("un skill et attaquer dans la meme image ne frappent pas deux fois le meme lanceur") {
+    // Monstre à portée du mêlée avant-gauche (skill de 25) et des deux
+    // tireurs (attaques de base de 5). Le mêlée qui lance son skill ne
+    // frappe pas avec son attaque de base dans la même image.
+    Partie partie(niveauDegage({{235.0f, 150.0f}}));
+
+    partie.demanderSkill(1);
+    partie.mettreAJour(s_dureeTic);
+
+    REQUIRE(partie.getMonstres().front().getPointsDeVie() == 100 - 25 - 5 - 5);
+}

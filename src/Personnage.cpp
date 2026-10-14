@@ -19,8 +19,7 @@ Personnage::Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBa
       m_attaqueDeBase(attaqueDeBase),
       m_skill(skill),
       m_cibleChemin(),
-      m_pointsDeVie(s_pointsDeVieMax),
-      m_pointsDeVieMax(s_pointsDeVieMax)
+      m_pointsDeVie(s_pointsDeVieMax)
 {
 }
 
@@ -36,7 +35,7 @@ void Personnage::dessiner(sf::RenderTarget& rendu) const {
     }
 
     const sf::Vector2f positionBarre = positionBarreDeVie(getCentre(), taille);
-    dessinerBarreDeVie(rendu, positionBarre, taille.x, m_pointsDeVie, m_pointsDeVieMax);
+    dessinerBarreDeVie(rendu, positionBarre, taille.x, m_pointsDeVie.getRatio());
 
     if (!m_skill.has_value()) {
         return;
@@ -145,33 +144,36 @@ int Personnage::declencherSkill(Cercle cible) {
     return degats;
 }
 
-void Personnage::recevoirDegats(int quantite) {
-    m_pointsDeVie -= quantite;
-    if (m_pointsDeVie < 0) {
-        m_pointsDeVie = 0;
+int Personnage::declencherSkillSansCible() {
+    if (!m_skill.has_value() || !estVivant()) {
+        return 0;
     }
+
+    const int puissance = m_skill->declencherSansCible();
+    if (puissance > 0) {
+        m_attaqueDeBase.relancerRecharge();
+    }
+    return puissance;
+}
+
+void Personnage::recevoirDegats(int quantite) {
+    m_pointsDeVie.subirDegats(quantite);
 }
 
 void Personnage::recevoirSoin(int quantite) {
-    if (!estVivant()) {
-        return;
-    }
-    m_pointsDeVie += quantite;
-    if (m_pointsDeVie > m_pointsDeVieMax) {
-        m_pointsDeVie = m_pointsDeVieMax;
-    }
+    m_pointsDeVie.soigner(quantite);
 }
 
 bool Personnage::estVivant() const {
-    return m_pointsDeVie > 0;
+    return m_pointsDeVie.estVivant();
 }
 
 int Personnage::getPointsDeVie() const {
-    return m_pointsDeVie;
+    return m_pointsDeVie.getValeur();
 }
 
 int Personnage::getPointsDeVieMax() const {
-    return m_pointsDeVieMax;
+    return m_pointsDeVie.getMaximum();
 }
 
 sf::Vector2f Personnage::getCentre() const {

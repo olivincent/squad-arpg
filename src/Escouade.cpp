@@ -256,8 +256,8 @@ std::vector<Coup> Escouade::declencherSkill(std::size_t place, const std::vector
             }
         }
         // Un seul déclenchement pour la recharge ; la puissance est la
-        // durée. La portée est nulle : le lanceur est sa propre cible.
-        const int duree = lanceur.declencherSkill(lanceur.getCercle());
+        // durée.
+        const int duree = lanceur.declencherSkillSansCible();
         for (const MonstreVu& monstre : touches) {
             provoquer(monstre.id, place, static_cast<float>(duree));
         }
@@ -369,8 +369,8 @@ std::vector<Coup> Escouade::lancerSkillDeZone(std::size_t place, sf::Vector2f po
     Personnage& lanceur = personnageDeLaPlace(place);
 
     // Un seul déclenchement pour la recharge ; la puissance est le nombre
-    // de dégâts. La portée a déjà été vérifiée : le lanceur est sa propre cible.
-    const int degats = lanceur.declencherSkill(lanceur.getCercle());
+    // de dégâts. La portée a déjà été vérifiée.
+    const int degats = lanceur.declencherSkillSansCible();
     const Cercle zone{point, lanceur.zoneDuSkill().rayon};
 
     std::vector<Coup> coups;

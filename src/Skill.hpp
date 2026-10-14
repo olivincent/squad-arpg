@@ -16,6 +16,7 @@ public:
     void mettreAJour(float dt);
     [[nodiscard]] bool estAPortee(Cercle origine, Cercle cible) const;
     [[nodiscard]] int declencher(Cercle origine, Cercle cible);
+    [[nodiscard]] int declencherSansCible();
     void relancerRecharge();
     float getProgressionRecharge() const;
     float getRechargeRestante() const;

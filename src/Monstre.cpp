@@ -15,7 +15,6 @@ constexpr int s_pointsDeVieMax = 100;
 Monstre::Monstre(sf::Vector2f centre, int id)
     : m_mobile(centre, {s_cote, s_cote}, s_vitesse),
       m_pointsDeVie(s_pointsDeVieMax),
-      m_pointsDeVieMax(s_pointsDeVieMax),
       m_id(id),
       m_attaque(TypeSkill::Degats, 15.0f, 10, 1.0f, 0.0f),  // portée de 15 px, bord à bord
       m_rayonDetection(200.0f),
@@ -39,7 +38,7 @@ void Monstre::dessiner(sf::RenderTarget& rendu, bool estCible) const {
     }
     rendu.draw(forme);
 
-    dessinerBarreDeVie(rendu, positionBarreDeVie(centre, taille), taille.x, m_pointsDeVie, m_pointsDeVieMax);
+    dessinerBarreDeVie(rendu, positionBarreDeVie(centre, taille), taille.x, m_pointsDeVie.getRatio());
 }
 
 sf::Vector2f Monstre::getCentre() const {
@@ -61,17 +60,18 @@ bool Monstre::contient(sf::Vector2f point) const {
 }
 
 void Monstre::recevoirDegats(int quantite) {
-    m_pointsDeVie -= quantite;
-    if (m_pointsDeVie < 0) {
-        m_pointsDeVie = 0;
-    }
+    m_pointsDeVie.subirDegats(quantite);
     if (quantite > 0) {
         m_vientDEtreTouche = true;
     }
 }
 
 bool Monstre::estVivant() const {
-    return m_pointsDeVie > 0;
+    return m_pointsDeVie.estVivant();
+}
+
+int Monstre::getPointsDeVie() const {
+    return m_pointsDeVie.getValeur();
 }
 
 bool Monstre::proieDetectee(std::optional<Cercle> cible) const {

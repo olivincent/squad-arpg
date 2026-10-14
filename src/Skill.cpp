@@ -31,6 +31,15 @@ int Skill::declencher(Cercle origine, Cercle cible) {
     return m_puissance;
 }
 
+int Skill::declencherSansCible() {
+    if (m_recharge > 0.0f) {
+        return 0;
+    }
+
+    m_recharge = m_tempsRecharge;
+    return m_puissance;
+}
+
 void Skill::relancerRecharge() {
     m_recharge = m_tempsRecharge;
 }

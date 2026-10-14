@@ -3,6 +3,7 @@
 #include "Cercle.hpp"
 #include "EtatSkill.hpp"
 #include "Mobile.hpp"
+#include "PointsDeVie.hpp"
 #include "Skill.hpp"
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
@@ -26,6 +27,7 @@ public:
     [[nodiscard]] Cercle zoneDuSkill() const;
     [[nodiscard]] Cercle cercleDePorteeDuSkill() const;
     [[nodiscard]] int declencherSkill(Cercle cible);
+    [[nodiscard]] int declencherSkillSansCible();
     void recevoirDegats(int quantite);
     void recevoirSoin(int quantite);
     bool estVivant() const;
@@ -40,6 +42,5 @@ private:
     Skill m_attaqueDeBase;
     std::optional<Skill> m_skill; // vide = pas de skill
     std::optional<sf::Vector2f> m_cibleChemin; // cible du dernier A* ; vide = pas de chemin en cours
-    int m_pointsDeVie;
-    int m_pointsDeVieMax;
+    PointsDeVie m_pointsDeVie;
 };
