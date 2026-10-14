@@ -248,7 +248,8 @@ L'attaque, la portée, le skill et les obstacles sont dans
 
 ## Lanceur d'un skill en attente
 
-- **Priorité du point visé** dans `Escouade::mettreAJour` : la place en
+- **Priorité du point visé** dans `Escouade::mettreAJour` (étape 57 : en
+  tête, un personnage qui exécute un coup reste sur place, règle 0) : la place en
   formation, remplacée par le centre du personnage s'il est en combat et
   à portée de la cible, remplacée à son tour par le centre de la cible de
   son skill s'il est le lanceur d'un skill en attente. `Personnage` reçoit

@@ -63,6 +63,9 @@ squad-arpg/
 │   ├── EcranDeDefaite.hpp / .cpp
 │   ├── BarreDeVie.hpp / .cpp
 │   ├── Defense.hpp / .cpp
+│   ├── Eclaircir.hpp / .cpp
+│   ├── Eclaircir.hpp / .cpp
+│   ├── Eclaircir.hpp / .cpp
 │   ├── Aleatoire.hpp
 │   └── PointsDeVie.hpp / .cpp
 ├── assets/
@@ -79,7 +82,7 @@ squad-arpg/
 │   └── test_Skill.cpp, test_Mobile.cpp, test_Cercle.cpp,
 │       test_Autodefense.cpp, test_BarreDeSkills.cpp,
 │       test_MonstreVu.cpp, test_BarreDeVie.cpp,
-│       test_PointsDeVie.cpp, test_Defense.cpp
+│       test_PointsDeVie.cpp, test_Defense.cpp, test_Eclaircir.cpp
 ├── docs/
 │   ├── build.md
 │   ├── boucle-et-entrees.md
@@ -183,12 +186,12 @@ personne ne copie ni ne garde).
 | Fonction | Rôle |
 |---|---|
 | `Partie(const Niveau& niveau, Generateur::result_type graine)` | Construit la carte, l'escouade et les monstres (identifiants 1, 2, 3…, armure `niveau.armureMonstres`) et initialise le générateur avec `graine` (`main.cpp` la tire avec `std::random_device` et l'affiche ; les tests passent une graine fixe) |
-| `ResultatClic cliquer(sf::Vector2f point)` | Appliqué tout de suite. `Monstre` : verrouille le monstre qui contient le point ; `Sol` : lève le verrou ; `Ignore` si l'escouade est vaincue, sans rien changer. `enum class ResultatClic { Monstre, Sol, Ignore }` |
+| `ResultatClic cliquer(sf::Vector2f point)` | Appliqué tout de suite. `Monstre` : verrouille le monstre qui contient le point ; `Sol` : lève le verrou et annule les coups en exécution des personnages ; `Ignore` si l'escouade est vaincue, sans rien changer. `enum class ResultatClic { Monstre, Sol, Ignore }` |
 | `void demanderSkill(std::size_t place)` | Mémorise la demande de skill (touches 1 à 3) ; la dernière demande de l'image gagne |
 | `void lancerSkillDeZone(std::size_t place, sf::Vector2f point)` | Mémorise le lancer du skill de zone |
 | `void ordonnerDeplacement(sf::Vector2f point)` | Mémorise l'ordre de déplacement ; exécuté seulement si l'escouade est vivante |
 | `bool estPerdue() const` | Vrai quand tous les personnages sont morts (`!m_escouade.estVivante()`) ; `[[nodiscard]]` |
-| `void mettreAJour(float dt)` | Sans effet si la partie est perdue (le monde est figé). Sinon exécute, dans l'ordre : lancer de zone, skill demandé, `attaquer` et application des coups, déverrouillage si la cible est morte, retrait des monstres morts, ordre de déplacement, mise à jour (obstacles, escouade, tour de chaque monstre) ; vide les demandes |
+| `void mettreAJour(float dt)` | Sans effet si la partie est perdue (le monde est figé). Sinon exécute, dans l'ordre : lancer de zone, skill demandé, `attaquer(dt, …)` et application des coups, déverrouillage si la cible est morte, retrait des monstres morts, ordre de déplacement, mise à jour (obstacles, escouade, tour de chaque monstre, avec l'engagement et le départ de son coup) ; vide les demandes |
 | `void dessiner(sf::RenderTarget& rendu) const` | Carte, monstres (contour jaune sur le monstre verrouillé), escouade |
 | `const Escouade& getEscouade() const` | Lecture seule : caméra, barre de skills, requêtes du `Controleur` |
 | `const std::vector<Monstre>& getMonstres() const` | Lecture seule (utilisée par les tests) |
@@ -239,8 +242,9 @@ monstre à portée de son attaque et en vue, calculé par `attaquer`, lu par `me
 | Fonction | Rôle |
 |---|---|
 | `explicit Escouade(sf::Vector2f positionDepart)` | Crée l'escouade et ses 4 personnages en formation (deux mêlées devant, deux tireurs derrière) |
-| `void allerVers(sf::Vector2f destination, const TileMap& carte)` | Délègue à `m_mobile.allerVers` |
-| `std::vector<Coup> attaquer(const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur)` | Avec un verrou dont le monstre est dans `monstres` : mémorise son cercle, approche tant qu'un personnage vivant n'atteint pas la cible (à portée ET en vue : `peutAtteindre`), s'arrête sinon, et fait partir le skill de dégâts en attente si son lanceur l'atteint. Dans tous les cas, fait partir le skill de zone en attente (`CiblePoint`) dès que son lanceur vivant peut lancer au point (à portée ET en vue), avant les attaques de base ; ses coups s'ajoutent à la liste. Verrou ou non : chaque personnage choisit pour lui-même le monstre à frapper parmi ceux qu'il atteint (`choisirMonstreAFrapper` avec `peutAtteindre`) et frappe ; renvoie un `Coup` par frappe qui touche |
+| `void allerVers(sf::Vector2f destination, const TileMap& carte)` | Ordre du joueur : annule les coups en exécution (`annulerAttaquesEngagees`), puis délègue à `m_mobile.allerVers` |
+| `void annulerAttaquesEngagees()` | Annule le coup en exécution de chaque personnage, sans recharge consommée ; appelée par `allerVers`, `verrouiller` (autre monstre) et `Partie::cliquer` (sol) |
+| `std::vector<Coup> attaquer(float dt, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur)` | Avec un verrou dont le monstre est dans `monstres` : mémorise son cercle, approche tant qu'un personnage vivant n'atteint pas la cible (à portée ET en vue : `peutAtteindre`), s'arrête sinon, et fait partir le skill de dégâts en attente si son lanceur l'atteint. Dans tous les cas, fait partir le skill de zone en attente (`CiblePoint`) dès que son lanceur vivant peut lancer au point (à portée ET en vue), avant les attaques de base ; ses coups s'ajoutent à la liste. Verrou ou non : chaque personnage choisit pour lui-même le monstre à frapper parmi ceux qu'il atteint (`choisirMonstreAFrapper` avec `peutAtteindre`). S'il est immobile et son attaque prête, il **engage** un coup ; le coup engagé avance de `dt` et part à la fin de l'exécution (0,15 s), même si le monstre a bougé. Il n'est annulé que par la mort de son auteur ou la disparition de sa cible (et par un ordre du joueur ou un skill, voir ci-dessus). Renvoie un `Coup` par coup parti |
 | `std::vector<Coup> declencherSkill(std::size_t place, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur)` | Skill du personnage à la place `place` (1 à 4). Liste vide si la place est invalide, sans skill, si le skill est de type `Zone` (il se lance par `declencherSkillDeZone`), si le lanceur est mort, si le skill est en recharge, si un skill est déjà en attente ou si `choisirCible` ne trouve rien. Une provocation (sans cible) provoque tous les monstres de `monstres` touchés par sa zone (cercle centré sur le lanceur, rayon de zone du skill) ET en vue du lanceur (centre à centre), sans dégât ni attente ; elle part et consomme sa recharge même s'il n'y en a aucun. Cible atteinte (à portée ET en vue) : un skill de dégâts renvoie un coup (identifiant de la cible, dégâts), un soin est appliqué sur place (liste vide). Non atteinte (seulement avec un verrou pour les dégâts) : le skill est mis en attente (liste vide) |
 | `std::optional<EtatSkill> etatDuSkill(std::size_t place) const` | Skill de cette place tel que l'affichage en a besoin (`EtatSkill`) ; vide si la place est invalide ou sans skill |
 | `bool skillEstPret(std::size_t place) const` | Le personnage à cette place est-il vivant, avec un skill dont la recharge est écoulée ? Faux si la place est invalide |
@@ -252,7 +256,10 @@ monstre à portée de son attaque et en vue, calculé par `attaquer`, lu par `me
 | `void dessiner(sf::RenderTarget& rendu) const` | Dessine l'ancre, les 4 personnages, puis un point jaune (repère provisoire) à la place de formation de chaque personnage vivant |
 | `sf::Vector2f getCentre() const` | Centre de l'ancre (utilisé par la caméra) |
 | `std::optional<Cercle> proieDuMonstre(int idMonstre, sf::Vector2f positionMonstre) const` | Cercle du provocateur si ce monstre est provoqué et que le provocateur est vivant ; sinon du personnage vivant le plus proche de `positionMonstre` ; vide si aucun n'est vivant |
-| `void recevoirDegats(int idMonstre, sf::Vector2f origine, int quantite)` | Applique les dégâts au personnage que `idMonstre` vise (même règle que `proieDuMonstre`) ; ne fait rien si aucun n'est vivant. Si `quantite > 0`, enregistre le monstre comme agresseur (ou remet son temps à 3 s) |
+| `std::optional<std::size_t> placeDeLaProie(int idMonstre, sf::Vector2f positionMonstre) const` | Place (1 à 4) du personnage que ce monstre vise : même règle que `proieDuMonstre` |
+| `bool placeEstVivante(std::size_t place) const` | Place valide ET personnage vivant |
+| `void recevoirDegats(int idMonstre, sf::Vector2f origine, int quantite)` | Applique les dégâts au personnage que `idMonstre` vise (même règle que `proieDuMonstre`) ; ne fait rien si aucun n'est vivant. Délègue à `recevoirCoup` |
+| `void recevoirCoup(int idMonstre, std::size_t place, sf::Vector2f origine, int quantite)` | Applique les dégâts au personnage de cette place (le coup engagé d'un monstre) ; sans effet s'il est mort. Si `quantite > 0`, enregistre le monstre comme agresseur (ou remet son temps à 3 s) |
 | `bool estVivante() const` | Vrai si au moins un personnage est vivant |
 | `std::vector<Cercle> cerclesDesVivants() const` | Cercles des personnages vivants |
 | `void verrouiller(int idCible)` | Pose le verrou de combat sur ce monstre, en remplaçant la cible précédente ; annule un skill de dégâts en attente si l'identifiant change |
@@ -300,17 +307,20 @@ murs et les cercles obstacles. Possédé par valeur par `Escouade`, `Personnage`
 `Skill`, et ne dessine rien.
 
 Données membres : `m_position` (coin haut-gauche), `m_taille`, `m_chemin`
-(`std::vector<sf::Vector2f>`), `m_indexChemin`, `m_vitesse`.
+(`std::vector<sf::Vector2f>`), `m_indexChemin`, `m_vitesse`, `m_enMouvement` (`bool`).
 
 | Fonction | Rôle |
 |---|---|
 | `Mobile(sf::Vector2f centre, sf::Vector2f taille, float vitesse)` | Crée le mobile à ce centre, cette taille, cette vitesse ; immobile |
 | `void allerVers(sf::Vector2f destination, const TileMap& carte)` | Calcule un chemin vers la destination (A*, puis lissé) et le remplace comme trajet à suivre ; ordre ignoré si aucun chemin n'existe |
 | `void allerToutDroit(sf::Vector2f destination)` | Remplace le chemin par ce seul point, sans A* : le mobile avance en ligne droite (collision et glissement) |
-| `void arreter()` | Réduit le chemin au centre actuel, pour cesser d'avancer sans reculer |
+| `void arreter()` | Réduit le chemin au centre actuel, pour cesser d'avancer sans reculer ; `estEnMouvement()` devient faux |
 | `void mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles)` | Avance vers le point courant du chemin (collision avec les murs et les cercles obstacles, glissement) |
 | `sf::Vector2f getCentre() const` | Centre du mobile |
 | `sf::Vector2f getTaille() const` | Taille du mobile |
+| `bool estEnMouvement() const` | Définition unique de « en mouvement » : au dernier tic, le point courant du chemin était à plus de 0,01 px, que le mobile ait pu avancer ou non (bloqué = en mouvement ; arrivé à ce tic = encore en mouvement). Faux avant le premier tic et après `arreter()` ; `[[nodiscard]]` |
+| `bool estEnMouvement() const` | Définition unique de « en mouvement » : au dernier tic, le point courant du chemin était à plus de 0,01 px, que le mobile ait pu avancer ou non (bloqué = en mouvement ; arrivé à ce tic = encore en mouvement). Faux avant le premier tic et après `arreter()` ; `[[nodiscard]]` |
+| `bool estEnMouvement() const` | Définition unique de « en mouvement » : au dernier tic, le point courant du chemin était à plus de 0,01 px, que le mobile ait pu avancer ou non (bloqué = en mouvement ; arrivé à ce tic = encore en mouvement). Faux avant le premier tic et après `arreter()` ; `[[nodiscard]]` |
 | `std::optional<sf::Vector2f> directionVoulue() const` | Vecteur du centre vers le point courant du chemin ; vide s'il n'y a plus de point à atteindre ou si la distance est nulle |
 
 ### `Chemin` — recherche de chemin (A*)
@@ -334,23 +344,26 @@ formation, ni `Escouade`, ni `Monstre`.
 Données membres : `m_mobile` (`Mobile`, porte la position et la vitesse),
 `m_couleur`, `m_attaqueDeBase` (`Skill`), `m_skill`
 (`std::optional<Skill>`), `m_cibleChemin` (`std::optional<sf::Vector2f>`,
-cible du dernier A*), `m_pointsDeVie` (`PointsDeVie`), `m_armure` (`int`).
+cible du dernier A*), `m_pointsDeVie` (`PointsDeVie`), `m_armure` (`int`), `m_idCibleEngagee` (`std::optional<int>`, monstre visé par le coup en exécution, lu seulement pendant l'exécution).
 
 | Fonction | Rôle |
 |---|---|
 | `Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::optional<Skill> skill, int armure)` | Crée le personnage à ce centre, avec cette couleur, cette attaque de base, ce skill éventuel et cette armure (50 pour les mêlées, 0 pour les tireurs, fournie par `Escouade`) |
 | `void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte, const std::vector<Cercle>& obstacles)` | Si vivant, avance vers la cible (en ligne droite si le trajet est libre, sinon par un chemin A* lissé recalculé seulement si la cible s'éloigne de plus d'une case de sa fin ; collision avec les murs et les cercles obstacles, glissement) puis décrémente la recharge de l'attaque et du skill ; sinon ne fait rien |
-| `void dessiner(sf::RenderTarget& rendu) const` | Dessine le personnage et sa barre de vie, plus la barre de recharge du skill s'il en a un ; carré gris sans barre s'il est mort |
+| `void dessiner(sf::RenderTarget& rendu) const` | Dessine le personnage (éclairci de 50 % pendant l'exécution d'un coup) et sa barre de vie, plus la barre de recharge du skill s'il en a un ; carré gris sans barre s'il est mort |
 | `bool estAPortee(Cercle cible) const` | L'écart bord à bord entre son cercle et `cible` est-il `<=` la portée de `m_attaqueDeBase` ? |
-| `int frapper(Cercle cible, Generateur& generateur)` | 0 s'il est mort ; sinon délègue à `m_attaqueDeBase.declencher` avec `getCercle()` comme origine |
+| `bool engagerAttaque(int idCible)` | Engage un coup d'attaque de base sur ce monstre : faux s'il est mort, en mouvement (`Mobile::estEnMouvement`), ou si l'attaque n'est pas prête (`Skill::commencer`). La portée et la vue sont vérifiées par `Escouade` |
+| `std::optional<int> cibleEngagee() const` | Monstre visé par le coup en exécution ; vide hors exécution |
+| `int avancerAttaque(float dt, Generateur& generateur)` | Fait avancer l'exécution ; rend les dégâts (puissance de l'attaque) au départ du coup, 0 sinon ; `[[nodiscard]]` |
+| `void annulerAttaque()` | Annule le coup en exécution, sans recharge consommée |
 | `std::optional<TypeSkill> typeSkill() const` | Type du skill, vide sans skill |
 | `bool skillEstPret() const` | Vivant, avec un skill dont la recharge est écoulée |
 | `std::optional<EtatSkill> etatDuSkill() const` | Type, progression de la recharge, temps restant et état de vie ; vide sans skill |
 | `bool skillEstAPortee(Cercle cible) const` | Le skill est-il à portée de `cible` (bord à bord) ? Faux sans skill |
 | `Cercle zoneDuSkill() const` | Cercle centré sur le personnage, de rayon le rayon de zone de son skill (0 sans skill) |
 | `Cercle cercleDePorteeDuSkill() const` | Cercle centré sur le personnage, de rayon son rayon + la portée de son skill (rayon seul sans skill) |
-| `int declencherSkill(Cercle cible, Generateur& generateur)` | 0 sans skill ou s'il est mort ; sinon délègue à `m_skill->declencher` (dégâts ou points de vie rendus) et, si la puissance est `> 0`, relance au complet la recharge de `m_attaqueDeBase` |
-| `int declencherSkillSansCible(Generateur& generateur)` | 0 sans skill ou s'il est mort ; sinon délègue à `m_skill->declencherSansCible` (sans portée) et, si la puissance est `> 0`, relance au complet la recharge de `m_attaqueDeBase`. Pour la provocation et la zone |
+| `int declencherSkill(Cercle cible, Generateur& generateur)` | 0 sans skill ou s'il est mort ; sinon délègue à `m_skill->declencher` (dégâts ou points de vie rendus) et, si la puissance est `> 0`, annule le coup en exécution et relance au complet la recharge de `m_attaqueDeBase` |
+| `int declencherSkillSansCible(Generateur& generateur)` | 0 sans skill ou s'il est mort ; sinon délègue à `m_skill->declencherSansCible` (sans portée) et, si la puissance est `> 0`, annule le coup en exécution et relance au complet la recharge de `m_attaqueDeBase`. Pour la provocation et la zone |
 | `void recevoirSoin(int quantite)` | Rend des points de vie, sans dépasser le maximum ; sans effet sur un mort (délègue à `PointsDeVie::soigner`) |
 | `int getPointsDeVie() const` / `int getPointsDeVieMax() const` | Points de vie actuels et maximum |
 | `void recevoirDegats(int quantite)` | Retire `appliquerArmure(quantite, m_armure)` points de vie, sans descendre sous zéro (délègue à `PointsDeVie::subirDegats`) |
@@ -378,14 +391,17 @@ Données membres : `m_mobile`, `m_pointsDeVie` (`PointsDeVie`), `m_armure` (`int
 `m_attaque`, `m_rayonDetection`, `m_rayonTerritoire`, `m_etat` (`Etat`,
 `enum class` privé : `EnGarde`, `Poursuite`, `Retour`), `m_poste`,
 `m_vientDEtreTouche` (`bool`, posé par `recevoirDegats` si dégâts `> 0`,
-consommé par `mettreAJour`).
+consommé par `mettreAJour`), `m_idProieEngagee` (`std::optional<int>`, place du personnage visé par le coup en exécution).
 
 | Fonction | Rôle |
 |---|---|
 | `Monstre(sf::Vector2f centre, int id, int armure)` | Crée le monstre à ce centre, avec cet identifiant, cette armure (20, donnée par `Niveau`) et 100 points de vie ; son poste est ce centre |
-| `void dessiner(sf::RenderTarget& rendu, bool estCible) const` | Dessine le monstre et sa barre de vie ; ajoute un contour jaune si `estCible` |
-| `void mettreAJour(float dt, std::optional<Cercle> cible, const TileMap& carte, const std::vector<Cercle>& obstacles)` | Décrémente la recharge, met à jour l'état et donne ses ordres à `m_mobile` (poursuite, arrêt à portée, retour au poste), puis le déplace ; `obstacles` lui est transmis |
-| `int frapper(Cercle cible, Generateur& generateur)` | Délègue à `m_attaque.declencher`, avec `getCercle()` comme origine |
+| `void dessiner(sf::RenderTarget& rendu, bool estCible) const` | Dessine le monstre (éclairci de 50 % pendant l'exécution d'un coup) et sa barre de vie ; ajoute un contour jaune si `estCible` |
+| `void mettreAJour(float dt, std::optional<Cercle> cible, const TileMap& carte, const std::vector<Cercle>& obstacles)` | Décrémente la recharge. Pendant l'exécution d'un coup : arrête le monstre et le déplace (immobile), sans toucher à l'état. Sinon met à jour l'état et donne ses ordres à `m_mobile` (poursuite, arrêt à portée, retour au poste), puis le déplace ; `obstacles` lui est transmis |
+| `bool engagerAttaque(Cercle proie, int idProie)` | Engage un coup (0,3 s d'exécution) : faux si la proie n'est pas à portée, si le monstre est en mouvement ou si l'attaque n'est pas prête. `idProie` (la place du personnage) est retenu jusqu'au départ |
+| `std::optional<int> proieEngagee() const` | `idProie` du coup en exécution ; vide hors exécution |
+| `int avancerAttaque(float dt, Generateur& generateur)` | Fait avancer l'exécution ; rend les dégâts au départ du coup, 0 sinon ; `[[nodiscard]]` |
+| `void annulerAttaque()` | Annule le coup en exécution, sans recharge consommée (appelée par `Partie` quand la proie engagée meurt) |
 | `sf::Vector2f getCentre() const` | Centre du monstre |
 | `Cercle getCercle() const` | Cercle centré sur le monstre, de rayon 15 |
 | `int getId() const` | Identifiant du monstre |
@@ -402,6 +418,9 @@ dégâts d'un skill de zone), une recharge, ainsi qu'un rayon de zone (la
 taille de la zone touchée par un skill de zone ; 0, non lu, pour un skill
 à cible unique). Sert aussi d'attaque de base : un `Skill` de type
 `Degats`, de rayon de zone 0.
+Il suit une machine à états (`enum class PhaseSkill { Pret, EnExecution, EnRecharge }`) : `commencer` (prêt → en exécution), `avancer` (fin de l'exécution : le coup part, la recharge est tirée, → en recharge), `annuler` (en exécution → prêt, sans recharge). Le temps d'exécution est 0 pour les skills des touches 1 à 4 (`declencher` fait alors partir le coup tout de suite) ; il ne connaît pas la cible du coup engagé, c'est son propriétaire qui la retient.
+Il suit une machine à états (`enum class PhaseSkill { Pret, EnExecution, EnRecharge }`) : `commencer` (prêt → en exécution), `avancer` (fin de l'exécution : le coup part, la recharge est tirée, → en recharge), `annuler` (en exécution → prêt, sans recharge). Le temps d'exécution est 0 pour les skills des touches 1 à 4 (`declencher` fait alors partir le coup tout de suite) ; il ne connaît pas la cible du coup engagé, c'est son propriétaire qui la retient.
+Il suit une machine à états (`enum class PhaseSkill { Pret, EnExecution, EnRecharge }`) : `commencer` (prêt → en exécution), `avancer` (fin de l'exécution : le coup part, la recharge est tirée, → en recharge), `annuler` (en exécution → prêt, sans recharge). Le temps d'exécution est 0 pour les skills des touches 1 à 4 (`declencher` fait alors partir le coup tout de suite) ; il ne connaît pas la cible du coup engagé, c'est son propriétaire qui la retient.
 Possédé par valeur par `Personnage` (attaque de base, plus un skill en
 option) et par `Monstre` (son attaque). Ne connaît ni la position de son
 propriétaire ni sa cible : il reçoit deux `Cercle`. Ne dessine rien.
@@ -409,14 +428,19 @@ propriétaire ni sa cible : il reçoit deux `Cercle`. Ne dessine rien.
 Données membres : `m_type` (`TypeSkill`), `m_portee` (bord à bord),
 `m_puissance`, `m_rechargeMin`, `m_rechargeMax` (intervalle de recharge,
 en secondes), `m_tempsRecharge` (durée de la recharge en cours, dernier
-tirage), `m_recharge`, `m_rayonZone` (`float`, en pixels).
+tirage), `m_recharge`, `m_rayonZone` (`float`, en pixels), `m_tempsExecution`, `m_executionRestante` (secondes), `m_phase` (`PhaseSkill`).
 
 | Fonction | Rôle |
 |---|---|
-| `Skill(TypeSkill type, float portee, int puissance, float rechargeMin, float rechargeMax, float rayonZone)` | Crée le skill de ce type, avec cette portée, cette puissance, cet intervalle de recharge (`assert(0 <= min <= max)` ; fixe si `min == max`) et ce rayon de zone ; prêt à la création |
-| `void mettreAJour(float dt)` | Décrémente la recharge, sans descendre sous zéro |
+| `Skill(TypeSkill type, float portee, int puissance, float rechargeMin, float rechargeMax, float rayonZone, float tempsExecution = 0)` | Crée le skill de ce type, avec cette portée, cette puissance, cet intervalle de recharge (`assert(0 <= min <= max)` ; fixe si `min == max`), ce rayon de zone et ce temps d'exécution (`assert >= 0`) ; prêt à la création |
+| `bool commencer()` | Prêt → en exécution ; faux, sans rien changer, dans toute autre phase ; `[[nodiscard]]` |
+| `bool avancer(float dt, Generateur& generateur)` | En exécution : fait avancer l'exécution ; vrai une seule fois, au départ du coup (la recharge est alors tirée, phase → en recharge). Autres phases : comme `mettreAJour`, faux ; `[[nodiscard]]` |
+| `void annuler()` | En exécution → prêt, sans recharge ; sans effet ailleurs |
+| `PhaseSkill getPhase() const` | Phase actuelle |
+| `int getPuissance() const` | Puissance du skill |
+| `void mettreAJour(float dt)` | Décrémente la recharge, sans descendre sous zéro ; en recharge écoulée, repasse à prêt |
 | `bool estAPortee(Cercle origine, Cercle cible) const` | `distanceBordABord(origine, cible)` est-elle `<=` `m_portee` ? |
-| `int declencher(Cercle origine, Cercle cible, Generateur& generateur)` | Puissance si la cible est à portée et la recharge écoulée (relance alors la recharge, tirée dans l'intervalle), sinon 0 sans toucher la recharge ni le générateur |
+| `int declencher(Cercle origine, Cercle cible, Generateur& generateur)` | Puissance si la cible est à portée et le skill prêt (relance alors la recharge, tirée dans l'intervalle), sinon 0 sans toucher la recharge ni le générateur |
 | `int declencherSansCible(Generateur& generateur)` | Comme `declencher`, sans vérifier la portée ni prendre de cible : puissance si la recharge est écoulée (relance alors la recharge), sinon 0. Pour la provocation et la zone |
 | `void relancerRecharge(Generateur& generateur)` | Remet la recharge au complet, sans déclencher : `min` si `min == max` (aucun tirage), sinon un tirage uniforme (`std::uniform_real_distribution<float>`) dans `[min, max]` |
 | `float getProgressionRecharge() const` | De 0 (juste après le déclenchement) à 1 (prêt) ; 1 si le temps de recharge est nul |
@@ -503,6 +527,22 @@ Deux fonctions libres, sans état, utilisées par `Personnage::dessiner` et
 |---|---|
 | `sf::Vector2f positionBarreDeVie(sf::Vector2f centre, sf::Vector2f taille)` | Coin haut-gauche de la barre d'une entité de ce centre et de cette taille : alignée sur son bord gauche, 6 px au-dessus de son carré |
 | `void dessinerBarreDeVie(sf::RenderTarget& rendu, sf::Vector2f position, float largeur, float ratio)` | Fond gris, puis rectangle vert proportionnel à `ratio` (0 à 1) |
+
+### `Eclaircir` — l'indice visuel d'un coup en préparation
+
+Une fonction libre, sans état, utilisée par `Personnage::dessiner` et `Monstre::dessiner`.
+
+| Fonction | Rôle |
+|---|---|
+| `sf::Color eclaircir(sf::Color couleur, float fraction)` | La couleur mélangée au blanc à raison de `fraction` (0 = inchangée, 1 = blanc) ; l'opacité est conservée ; `[[nodiscard]]` |
+
+### `Eclaircir` — l'indice visuel d'un coup en préparation
+
+Une fonction libre, sans état, utilisée par `Personnage::dessiner` et `Monstre::dessiner`.
+
+| Fonction | Rôle |
+|---|---|
+| `sf::Color eclaircir(sf::Color couleur, float fraction)` | La couleur mélangée au blanc à raison de `fraction` (0 = inchangée, 1 = blanc) ; l'opacité est conservée ; `[[nodiscard]]` |
 
 ### `Aleatoire` — le générateur aléatoire
 

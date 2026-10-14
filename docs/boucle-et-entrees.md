@@ -219,10 +219,10 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
      du monstre *avant* qu'il ne bouge (vide si aucun n'est vivant) ;
   2. `m.mettreAJour(dt, cible, carte, obstacles)` : le monstre décide seul de
      poursuivre, s'arrêter à portée ou rentrer (voir `docs/monstre.md`) ;
-  3. son centre est **relu après** le déplacement, pour que la riposte parte
-     de la position à jour ;
-  4. si `cible` a une valeur, `escouade.recevoirDegats(id, origine,
-     m.frapper(*cible))`.
+  3. `faireFrapperLeMonstre` (étape 57) : un coup engagé avance, et part
+     au bout de 0,3 s sur la place retenue (`escouade.recevoirCoup`), annulé
+     si ce personnage est mort ; sinon, un monstre immobile avec une proie à
+     portée engage un coup (voir `docs/combat.md`).
 - **Indépendant du verrou** : un monstre poursuit et riposte dès qu'un
   personnage vivant est à sa portée.
 

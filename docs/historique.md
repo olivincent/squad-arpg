@@ -1464,3 +1464,31 @@ la suite passe avec 7 graines différentes.
 **Hors de portée** : classe `Arme`, équipement, aléa sur les skills des
 touches 1 à 4 ou sur les dégâts, esquive, coup double, génération de donjon,
 distribution en cloche, saisie de la graine par le joueur.
+
+
+### Étape 57 — Temps d'exécution des attaques : on s'immobilise pour frapper ✅ TERMINÉE
+
+1. [x] `Skill.hpp` : `PhaseSkill`, `tempsExecution`, transitions (enchaînée).
+2. [x] `Skill.cpp` et tests de la machine à états (enchaînée).
+3. [x] `Mobile::estEnMouvement` et ses tests (enchaînée).
+4. [x] Personnages : 0,15 s d'exécution, coup engagé, annulations
+       (ordre du joueur, skill, mort de la cible ou de l'auteur).
+5. [x] Monstres : 0,3 s d'exécution, coup engagé sur la place retenue,
+       `Escouade::placeDeLaProie` / `recevoirCoup`.
+6. [x] Indice visuel : le carré s'éclaircit de 50 % (module `Eclaircir`).
+7. [x] Test visuel et mise à jour des documents. 432 tests.
+
+**Choix** : machine à états explicite dans `Skill` (pas de booléens) ;
+« en mouvement » = « a voulu bouger au dernier tic » (un mobile bloqué ou qui
+vient d'arriver l'est), défini une fois dans `Mobile` ; `Escouade::attaquer`
+reçoit `dt` ; un skill qui part annule le coup en exécution et relance la
+recharge de l'attaque de base ; le monstre retient la place du personnage visé
+(entier), `Partie` reste l'intermédiaire ; `frapper` supprimé de `Personnage`
+et `Monstre` (plus d'usage) ; `tempsExecution` vaut 0 par défaut pour ne pas
+toucher les constructions des skills 1 à 4 ; éclaircissement plutôt que
+contour, pour ne pas masquer le contour jaune du monstre verrouillé.
+
+**Hors de portée** : temps d'activation des skills 1 à 4 (étape 58),
+attaque d'opportunité, ralentissement de l'escouade engagée, changement de
+vitesse, recul des tireurs, revérification de portée ou de vue au départ du
+coup, barre de progression, animation.

@@ -68,6 +68,8 @@ personnages sont dans `docs/formation.md`, le monstre dans
     portée (voir « Choix de la cible et skill en attente ») ;
   - **les frappes, verrou ou non** : voir « Autodéfense ».
 - **Les morts sont ignorés pour l'arrêt** (voir `docs/formation.md`).
+- **Frapper se fait en deux temps** depuis l'étape 57 (voir « Temps d'exécution et coup engagé »).
+- **Frapper se fait en deux temps** depuis l'étape 57 (voir « Temps d'exécution et coup engagé »).
 - **La formation tient pendant l'attaque** : les personnages continuent
   de viser leur place (`placePersonnage`), sauf ceux déjà à portée du
   monstre verrouillé, qui restent sur place.
@@ -526,8 +528,8 @@ personnages sont dans `docs/formation.md`, le monstre dans
 - **Le `Generateur` descend par paramètre** : `Partie` →
   `Escouade::attaquer` / `declencherSkill` / `declencherSkillDeZone` /
   `mettreAJour` (le soin d'un skill en attente part dans `mettreAJour`) →
-  `Personnage::frapper` / `declencherSkill` / `declencherSkillSansCible` →
-  `Skill` ; `Partie` → `Monstre::frapper` → `Skill`. Toujours `Generateur&` :
+  `Personnage::avancerAttaque` / `declencherSkill` / `declencherSkillSansCible` →
+  `Skill` ; `Partie` → `Monstre::avancerAttaque` → `Skill`. Toujours `Generateur&` :
   une copie repartirait du même état et redonnerait la même suite.
   Personne ne garde de référence ni de pointeur vers lui.
 - **Limites** : distribution uniforme (pas en cloche) ; pas de classe
@@ -562,6 +564,96 @@ personnages sont dans `docs/formation.md`, le monstre dans
   pas de types de dégâts ni de résistances, un seul K pour toutes les
   entités, pas d'équipement.
 
+## Temps d'exécution et coup engagé (étape 57)
+
+- **Cycle** : une attaque de base n'est plus instantanée. Prête → **engagée**
+  (l'attaquant doit être vivant, immobile, avec une cible à portée et en vue :
+  règles d'atteinte inchangées) → **en exécution** (0,15 s pour un personnage,
+  0,3 s pour un monstre) → le **coup part** (la recharge est tirée à ce
+  moment, comme à l'étape 56) → **en recharge** → prête. Le joueur voit chaque
+  coup se préparer et on ne frappe plus en marchant.
+- **Machine à états dans `Skill`** (`PhaseSkill`, voir `ARCHITECTURE.md`) :
+  une phase explicite plutôt que des booléens qui pourraient se contredire.
+  `Skill` ne connaît pas la cible : l'entité retient sur qui porte le coup
+  (`Personnage::m_idCibleEngagee` : id du monstre ; `Monstre::m_idProieEngagee` :
+  place du personnage).
+- **« Immobile »** : défini une seule fois, `Mobile::estEnMouvement()` :
+  au dernier tic, le point à atteindre était à plus de 0,01 px. Un mobile
+  bloqué qui essaie d'avancer est en mouvement. Une définition « il reste un
+  point dans le chemin » ne convenait pas : un personnage qui rattrape sa
+  place à chaque image aurait paru immobile pendant que l'ancre marche.
+- **Pendant l'exécution**, l'attaquant reste sur place : un personnage ne
+  suit ni sa place de formation, ni un agresseur ni un skill en attente
+  (`Escouade::pointVoulu`, règle 0) ; un monstre ne poursuit ni ne rentre.
+- **Le coup engagé part toujours**, même si la cible a bougé hors de portée
+  ou de vue (pas de revérification à la fin). Annulation, sans recharge
+  consommée :
+  - mort de l'attaquant, disparition ou mort de la cible (`Escouade::attaquer`
+    pour un personnage ; `Partie::faireFrapperLeMonstre` pour un monstre,
+    qui annule si le personnage visé est mort) ;
+  - personnage seulement : un ordre de déplacement (`Escouade::allerVers`,
+    donc aussi le déplacement continu), un verrouillage sur un autre monstre,
+    un clic au sol (`Escouade::annulerAttaquesEngagees`) ;
+  - personnage seulement : un skill de ce personnage qui part. Il annule le
+    coup **et** relance la recharge de l'attaque de base (règle « un skill
+    remplace l'attaque de base », inchangée).
+  Un monstre ne s'annule jamais : même si une provocation change sa proie
+  entre-temps, le coup en cours touche le personnage retenu à l'engagement ;
+  la nouvelle proie compte pour le coup suivant.
+- **La recharge court pendant la marche** : elle démarre au départ du coup.
+- **Skills des touches 1 à 4** : exécution 0, pas soumis à l'immobilité
+  (étape 58 pour leurs temps d'activation).
+- **`Escouade::attaquer` reçoit `dt`** : c'est elle qui fait avancer les
+  exécutions des personnages, avant `mettreAJour`.
+- **Limites** : un coup part sans revérifier portée ni vue ; un personnage
+  en mouvement ne peut pas engager (kiting possible tant que les vitesses
+  le permettent) ; pas de barre de progression ni d'animation.
+
+## Temps d'exécution et coup engagé (étape 57)
+
+- **Cycle** : une attaque de base n'est plus instantanée. Prête → **engagée**
+  (l'attaquant doit être vivant, immobile, avec une cible à portée et en vue :
+  règles d'atteinte inchangées) → **en exécution** (0,15 s pour un personnage,
+  0,3 s pour un monstre) → le **coup part** (la recharge est tirée à ce
+  moment, comme à l'étape 56) → **en recharge** → prête. Le joueur voit chaque
+  coup se préparer et on ne frappe plus en marchant.
+- **Machine à états dans `Skill`** (`PhaseSkill`, voir `ARCHITECTURE.md`) :
+  une phase explicite plutôt que des booléens qui pourraient se contredire.
+  `Skill` ne connaît pas la cible : l'entité retient sur qui porte le coup
+  (`Personnage::m_idCibleEngagee` : id du monstre ; `Monstre::m_idProieEngagee` :
+  place du personnage).
+- **« Immobile »** : défini une seule fois, `Mobile::estEnMouvement()` :
+  au dernier tic, le point à atteindre était à plus de 0,01 px. Un mobile
+  bloqué qui essaie d'avancer est en mouvement. Une définition « il reste un
+  point dans le chemin » ne convenait pas : un personnage qui rattrape sa
+  place à chaque image aurait paru immobile pendant que l'ancre marche.
+- **Pendant l'exécution**, l'attaquant reste sur place : un personnage ne
+  suit ni sa place de formation, ni un agresseur ni un skill en attente
+  (`Escouade::pointVoulu`, règle 0) ; un monstre ne poursuit ni ne rentre.
+- **Le coup engagé part toujours**, même si la cible a bougé hors de portée
+  ou de vue (pas de revérification à la fin). Annulation, sans recharge
+  consommée :
+  - mort de l'attaquant, disparition ou mort de la cible (`Escouade::attaquer`
+    pour un personnage ; `Partie::faireFrapperLeMonstre` pour un monstre,
+    qui annule si le personnage visé est mort) ;
+  - personnage seulement : un ordre de déplacement (`Escouade::allerVers`,
+    donc aussi le déplacement continu), un verrouillage sur un autre monstre,
+    un clic au sol (`Escouade::annulerAttaquesEngagees`) ;
+  - personnage seulement : un skill de ce personnage qui part. Il annule le
+    coup **et** relance la recharge de l'attaque de base (règle « un skill
+    remplace l'attaque de base », inchangée).
+  Un monstre ne s'annule jamais : même si une provocation change sa proie
+  entre-temps, le coup en cours touche le personnage retenu à l'engagement ;
+  la nouvelle proie compte pour le coup suivant.
+- **La recharge court pendant la marche** : elle démarre au départ du coup.
+- **Skills des touches 1 à 4** : exécution 0, pas soumis à l'immobilité
+  (étape 58 pour leurs temps d'activation).
+- **`Escouade::attaquer` reçoit `dt`** : c'est elle qui fait avancer les
+  exécutions des personnages, avant `mettreAJour`.
+- **Limites** : un coup part sans revérifier portée ni vue ; un personnage
+  en mouvement ne peut pas engager (kiting possible tant que les vitesses
+  le permettent) ; pas de barre de progression ni d'animation.
+
 ## Circuit des dégâts
 
 `Escouade` et `Monstre` ne se connaissent pas : `main.cpp` fait
@@ -578,16 +670,16 @@ image).
   skill passe avant l'attaque de base : s'il part, il relance la
   recharge de base de ce personnage, qui ne frappe donc pas deux fois
   dans la même image.
-- **Un monstre frappe un personnage** : pour chaque monstre,
-  `main.cpp` demande `escouade.proieDuMonstre(m.getId(), m.getCentre())`
-  (le cercle du provocateur si ce monstre est provoqué, sinon du vivant
-  le plus proche), met le monstre à jour, relit son centre, puis applique
-  `escouade.recevoirDegats(m.getId(), origine, m.frapper(*cible))`. Les
-  deux appels à `Escouade` désignent le même personnage grâce à la même
-  règle (`indiceProieDuMonstre`). L'armure du personnage touché réduit
-  ensuite le coup (voir plus haut). La cible est calculée avant le
-  déplacement du monstre et `origine` relu après, pour que les dégâts
-  partent de la position à jour.
+- **Un monstre frappe un personnage** (étape 57) : pour chaque monstre,
+  `Partie` demande `escouade.proieDuMonstre(...)` (le cercle du provocateur
+  si ce monstre est provoqué, sinon du vivant le plus proche) et met le
+  monstre à jour. Puis `faireFrapperLeMonstre` : si un coup est engagé, il
+  avance (annulé si le personnage visé est mort) et, au départ, `Partie`
+  appelle `escouade.recevoirCoup(id, place, origine, dégâts)` sur la place
+  retenue à l'engagement ; sinon, un monstre immobile avec une proie à
+  portée engage un coup, avec la place donnée par
+  `escouade.placeDeLaProie(...)` (même règle `indiceProieDuMonstre`).
+  L'armure du personnage touché réduit ensuite le coup (voir plus haut).
 - **Un monstre frappe qu'il soit lui-même attaqué ou non** : sa riposte
   ne dépend ni du verrou, ni de son statut — uniquement de la distance
   et de sa recharge. S'il n'y a aucun personnage vivant, il ne frappe

@@ -63,12 +63,18 @@ est dans `docs/historique.md`.
 - Étape 54 — Défaite et recommencer la partie ✅
 - Étape 55 — Armure à rendement décroissant ✅
 - Étape 56 — Générateur aléatoire injecté et recharge aléatoire ✅
+- Étape 57 — Temps d'exécution des attaques : on s'immobilise pour frapper ✅
 
-## Étape 57
+## Étape 58
 
-À préciser dans Claude.ai.
+Temps d'activation des skills des touches 1 à 4, avec la même machine à
+états que l'attaque de base (`Skill`), et leur rapport au mouvement (à
+préciser dans Claude.ai).
 
 Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes) :
+- Vitesse relative escouade/monstres comme levier contre le kiting
+- Ralentissement de l'escouade engagée
+- Attaque d'opportunité au désengagement
 - Classe `Arme` qui fournit l'intervalle de recharge de l'attaque de base
   (aujourd'hui écrit dans `Escouade.cpp` et `Monstre.cpp`)
 - Le monstre touché se jette sur l'auteur du coup (mémoire de
@@ -149,6 +155,21 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   terrain dégagé, coins contournés au plus court), s'arrête exactement sur
   le point cliqué, est bloquée par les murs et glisse le long d'eux. Son
   déplacement vit dans `Mobile`, que `Monstre` utilise aussi.
+- **Temps d'exécution** (étape 57) : toute attaque de base a un temps
+  d'exécution, 0,15 s pour les personnages, 0,3 s pour les monstres,
+  pendant lequel l'attaquant est immobile. Pour engager un coup il faut
+  être vivant, immobile (`Mobile::estEnMouvement` faux), avoir l'attaque
+  prête et une cible à portée et en vue : on ne frappe plus en marchant.
+  Le coup engagé part toujours à la fin de l'exécution, même si la cible a
+  bougé. Il est annulé, sans recharge consommée, par la mort de l'auteur ou
+  de la cible ; pour un personnage aussi par un ordre de déplacement (clic,
+  déplacement continu, clic sur un autre monstre) ou par un de ses skills
+  (qui relance la recharge de l'attaque de base). Un monstre va toujours au
+  bout de son coup, même si une provocation change sa proie. La recharge
+  démarre au départ du coup. Le carré de l'entité s'éclaircit de 50 % pendant
+  l'exécution (le contour jaune du monstre verrouillé est inchangé). Les
+  skills des touches 1 à 4 ont une exécution nulle et ne sont pas soumis à
+  l'immobilité. Voir `docs/combat.md`.
 - **Aléatoire** (étape 56) : `Partie` possède un `Generateur`
   (`std::mt19937`, `Aleatoire.hpp`) initialisé par une graine que `main.cpp`
   tire avec `std::random_device` et affiche dans la console (au démarrage
@@ -223,7 +244,7 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   reste sur place. L'ordre du joueur (ancre en mouvement), le skill en
   attente et le verrou (personnage à portée du monstre verrouillé) passent
   avant.
-- **Skills** : trois, de classe `Skill` (type, portée, puissance, recharge, rayon de zone). Touche 1 :
+- **Skills** : trois, de classe `Skill` (exécution nulle) (type, portée, puissance, recharge, rayon de zone). Touche 1 :
   skill de dégâts du mêlée avant-gauche (25 dégâts, recharge 5 s, portée
   de mêlée, 20 px), sur le monstre verrouillé ou, sans verrou, sur le
   monstre à portée que ce mêlée frapperait en autodéfense (alors sans
@@ -275,12 +296,12 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 396 tests : 38 sur `TileMap`, 17 sur `Chemin`, 144
-  sur `Escouade` en cinq fichiers par thème — 22 déplacement, 17 combat, 61
-  skills, 26 agresseurs, 18 vue —, 12 sur `Deplacement`, 37 sur `Monstre`,
-  33 sur `Personnage`, 23 sur `Skill`, 14 sur `Mobile`, 4 sur `Cercle`, 13
+  (`./build/tests.exe`, 432 tests : 38 sur `TileMap`, 17 sur `Chemin`, 154
+  sur `Escouade` en cinq fichiers par thème — 22 déplacement, 27 combat, 61
+  skills, 26 agresseurs, 18 vue —, 12 sur `Deplacement`, 43 sur `Monstre`,
+  39 sur `Personnage`, 30 sur `Skill`, 17 sur `Mobile`, 2 sur `Eclaircir`, 4 sur `Cercle`, 13
   sur `Autodefense`, 6 sur `BarreDeSkills`, 4 sur `MonstreVu`, 1 sur
-  `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 12 sur `Partie`, 7 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
+  `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 14 sur `Partie`, 7 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
   accents (`./build/tests.exe "*a portee*"` filtre) ; rotation de la
   formation et `provoquer` à une place invalide couverts.
 
@@ -302,6 +323,8 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   n'est pas toujours le plus court.
 - La détection, le territoire et la riposte des monstres ignorent les
   murs ; la ligne de vue des personnages est mesurée centre à centre.
+- Un coup engagé part sans revérifier portée ni vue ; seule la marche
+  empêche d'engager (pas de ralentissement de l'escouade engagée).
 - Lors d'un demi-tour rapide, deux personnages peuvent se chevaucher
   brièvement ; l'ancre traversant les monstres, elle (et la caméra) peut
   s'éloigner des personnages bloqués.

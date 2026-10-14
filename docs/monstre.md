@@ -149,15 +149,29 @@ déplacement par chemin dans `docs/chemin.md`.
 
 ## Riposte
 
-- **`frapper(cible)` délègue entièrement à `m_attaque.frapper`**, avec
-  `getCercle()` comme origine, sans règle supplémentaire (contrairement à
-  `Personnage::frapper`, qui vérifie d'abord `estVivant()`).
+- **Frapper se fait en deux temps** (étape 57, voir `docs/combat.md`) :
+  `engagerAttaque(proie, idProie)` (proie à portée, monstre immobile,
+  attaque prête) puis `avancerAttaque(dt, generateur)`, qui rend les dégâts
+  0,3 s plus tard. `Monstre::frapper` n'existe plus.
+- **Exécution** : pendant ces 0,3 s, `mettreAJour` arrête le monstre et le
+  déplace sans rien changer d'autre : ni poursuite, ni retour, ni changement
+  d'état (l'état et le « coup reçu » sont traités après le coup). Un monstre
+  arrivé au contact s'arrête donc un instant avant chaque coup.
+- **Coup engagé** : `Monstre` retient seulement un entier (`idProie`, la place
+  du personnage donnée par `Escouade::placeDeLaProie`). Le coup part toujours,
+  même si la cible s'est éloignée, et touche ce personnage (`Escouade::recevoirCoup`).
+  Une provocation survenue pendant l'exécution ne change pas la cible du coup
+  en cours. Seule la mort du personnage visé l'annule, sans recharge
+  (`Partie::faireFrapperLeMonstre` appelle `annulerAttaque`) ; un monstre ne
+  s'annule jamais lui-même.
+- **Indice visuel** : pendant l'exécution, le carré est éclairci de 50 %
+  (`eclaircir`), le contour jaune du monstre verrouillé est inchangé.
 - **La riposte ne dépend pas du statut** : un monstre en retour frappe
   aussi ce qui passe à sa portée. Elle ne dépend pas non plus du verrou
   de cible.
-- **`frapper(cible, generateur)`** reçoit le `Generateur` de la `Partie` par
+- **`avancerAttaque(dt, generateur)`** reçoit le `Generateur` de la `Partie` par
   référence et le transmet à `Skill` : la recharge de l'attaque est tirée
-  dans [0,7 s ; 1,3 s] à chaque coup (moyenne 1 s, comme avant l'étape 56).
+  dans [0,7 s ; 1,3 s] à chaque départ de coup (moyenne 1 s, comme avant l'étape 56).
   `Monstre` ne garde pas le générateur.
 - **`mettreAJour` décrémente d'abord la recharge** (`m_attaque.mettreAJour`),
   quel que soit l'état.

@@ -38,6 +38,12 @@ Objectif commun : casser la « rotation de skills » à la WoW pour que le comba
 
 **Notion C++ : `<random>`.** On utilise `std::mt19937` avec une distribution (`std::uniform_real_distribution`), jamais `rand()`. Le générateur doit être fourni de l'extérieur (injection) avec une graine fixe dans les tests, sinon les tests de combat deviennent non reproductibles.
 
+### 1.1 bis Temps d'exécution (étape 57, retenue)
+
+Chaque attaque de base a un temps d'exécution pendant lequel l'attaquant est immobile : pour engager un coup il faut être immobile, et le coup engagé part à la fin de l'exécution (0,15 s pour un personnage, 0,3 s pour un monstre), même si la cible a bougé. Annulation sans recharge par la mort de la cible ou de l'attaquant, et, pour un personnage, par un ordre du joueur ou un skill. Indice visuel : le carré s'éclaircit. Voir `docs/combat.md`.
+
+*Pistes liées, non retenues pour l'instant* : vitesse relative escouade/monstres comme levier contre le kiting, ralentissement de l'escouade engagée, attaque d'opportunité au désengagement, temps d'activation des skills 1 à 4 (étape 58).
+
 ### 1.2 Coup double
 
 **L'idée.** Une arme ou un passif (un voleur, par exemple) donne une chance de frapper deux fois au lieu d'une.

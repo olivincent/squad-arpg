@@ -601,3 +601,39 @@
   aussi que `Partie` se déplace). Aide `groupeDeMonstres()` (30 monstres).
 - **Non testé** : `dessinerEcranDeDefaite` (dessin, vérifié dans le jeu) et
   la touche R dans `main.cpp`. 381 tests.
+
+## Temps d'exécution des attaques (étape 57)
+
+- **`aides.hpp`** : `attaquerJusquAuDepart` appelle `attaquer(s_dureeTic, …)`
+  pendant 0,2 s (plus que l'exécution de 0,15 s, moins que la plus petite
+  recharge, 0,3 s) : chaque personnage qui atteint un monstre l'engage et le
+  frappe une fois, au plus. `attaquerCible` s'en sert. Sans `mettreAJour`,
+  personne n'est « en mouvement ».
+- **Tests adaptés, pas supprimés** : les tests d'`Escouade` qui comptaient les
+  coups d'un seul `attaquer` passent par `attaquerJusquAuDepart` ; l'ancien
+  `Personnage::frapper` / `Monstre::frapper` devient un helper local
+  `frapperEnEntier` (portée, engagement, avancée jusqu'au départ) ; « un
+  personnage déjà à portée suit son emplacement » redonne l'ordre à chaque
+  image (bouton tenu), qui annule le coup que le tireur vient d'engager ;
+  le test de `Partie` « skill et attaquer » laisse passer 0,25 s.
+- **`test_Skill.cpp`** (+7) : `commencer` seulement depuis prêt, départ unique
+  en fin d'exécution, recharge tirée au départ, `annuler` sans recharge,
+  exécution 0 = départ immédiat, `declencher` refusé hors prêt.
+- **`test_Mobile.cpp`** (+3) : `estEnMouvement` à l'arrêt, en marche, après
+  `arreter`, bloqué par un obstacle.
+- **`test_Personnage.cpp`** (+6) et **`test_Monstre.cpp`** (+6) : engagement
+  (immobilité, portée, mort), départ unique, immobilité du monstre pendant
+  l'exécution, annulation sans recharge, recharge après le départ, skill qui
+  annule le coup.
+- **`test_Escouade_combat.cpp`** (+10) : aucun coup pendant la marche (l'ordre
+  n'est donné qu'une fois, sinon l'annulation par l'ordre masquerait la règle
+  d'immobilité : vérifié en retirant la règle, le test échoue), coups qui
+  reprennent à l'arrêt, départ à 0,15 s, ordre qui annule sans recharge,
+  coup engagé qui part malgré l'éloignement, disparition de la cible, mort de
+  l'attaquant, skill qui annule, `recevoirCoup`, `placeDeLaProie`.
+- **`test_Partie.cpp`** (+2) : un monstre ne bouge pas pendant son exécution,
+  puis reprend la poursuite. Non couvert à ce niveau : le coup sur une cible
+  éloignée et l'annulation par mort (les points de vie des personnages ne sont
+  pas exposés) ; couverts dans `test_Monstre.cpp` et `test_Escouade_combat.cpp`.
+- **`test_Eclaircir.cpp`** (2) : mélange au blanc, opacité conservée.
+  432 tests.
