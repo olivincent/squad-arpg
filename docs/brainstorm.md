@@ -84,6 +84,8 @@ Idée liée à 1.1 : un bloc réussi a une chance d'allonger la prochaine rechar
 
 ### 2.5 Dans le code
 
+*Étape 55 : l'armure à rendement décroissant est faite (`appliquerArmure`, module `Defense`, K = 100) ; elle s'applique dans `Personnage::recevoirDegats` et `Monstre::recevoirDegats`, qui servent de point d'entrée. Le texte ci-dessous reste valable pour les types de dégâts.*
+
 Aujourd'hui, les dégâts sont soustraits directement aux points de vie. Avant toute défense, il faut **un seul point d'entrée** pour recevoir un coup (une fonction comme `subirDegats`), où la formule viendra se loger. Avec les types de dégâts, ce point recevrait une petite structure `Degats { montant, type }` au lieu d'un entier.
 
 **Questions ouvertes.** L'armure vient-elle de l'équipement ou de la classe ? Les monstres ont-ils les mêmes mécanismes ?
@@ -174,7 +176,7 @@ Plusieurs idées partagent des fondations : un **générateur aléatoire inject�
 | Générateur aléatoire injecté (graine) | à explorer | aucun | Petite |
 | 1.1 Recharge aléatoire | à explorer | générateur aléatoire | Petite |
 | Point d'entrée unique des dégâts | à explorer | aucun | Petite |
-| 2. Armure à rendement décroissant | à explorer | point d'entrée des dégâts | Petite |
+| 2. Armure à rendement décroissant | **retenue** (étape 55) | point d'entrée des dégâts (les `recevoirDegats` de `Personnage` et `Monstre` en tiennent lieu) | Petite |
 | 3. Gambits, niveau A (bascule auto) | à explorer | aucun | Moyenne |
 | 1.2 Coup double | à explorer | générateur, notion de passif ou d'arme | Moyenne |
 | 2.4 Bouclier qui déséquilibre | à explorer | 1.1, blocage au bouclier | Petite |

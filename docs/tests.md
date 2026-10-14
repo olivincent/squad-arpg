@@ -547,6 +547,24 @@
 - Les tests existants de `Personnage`, `Monstre`, provocation et zone n'ont
   pas été modifiés. 377 tests.
 
+## Armure (étape 55)
+
+- **`test_Defense.cpp`** (6 cas) : armure 0 = montant inchangé ; 100
+  d'armure = moitié ; arrondi au plus proche (10/50 → 7, 5/20 → 4,
+  15/20 → 13, 25/20 → 21) ; plancher à 1 ; montant 0 → 0 ; la réduction
+  n'atteint jamais 100 % avec une armure énorme.
+- **`test_Personnage.cpp`** (+2 cas) : un mêlée (armure 50) perd 7 sur un
+  coup de 10, un tireur 10 ; le soin n'est pas réduit par l'armure.
+- **`test_Monstre.cpp`** (+3 cas) : armure 20, un coup de 5 retire 4 ; armure
+  0, un coup de 5 retire 5 ; un coup de 1 retire 1 et réveille toujours le
+  monstre.
+- **Tests existants adaptés** : les constructions directes de `Personnage`
+  et de `Monstre` reçoivent une armure de 0 (leurs attentes sont
+  inchangées). Dans les tests d'`Escouade`, les mêlées ont maintenant
+  50 d'armure : les coups « pour tuer » passent de 100 à 200 dégâts (200 ×
+  2/3 = 133 ≥ 100), et le test d'égalité du soin frappe le mêlée avec 30
+  au lieu de 20 (30 × 2/3 = 20, comme le tireur). 392 tests.
+
 ## Défaite et recommencement (étape 54)
 
 - **`test_Partie.cpp`** (+4 cas) : `estPerdue` faux au départ ; faux tant

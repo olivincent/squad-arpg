@@ -37,6 +37,10 @@ déplacement par chemin dans `docs/chemin.md`.
 - **`contient`** réutilise `sf::FloatRect::contains` plutôt que de
   réimplémenter sa convention (bords gauche/haut inclus, droit/bas
   exclus).
+- **Armure** (étape 55) : le constructeur prend aussi l'armure (`int`, 20
+  pour les six monstres, donnée par `Niveau::armureMonstres` via `Partie`).
+  `recevoirDegats` retire `appliquerArmure(quantite, m_armure)`. Voir
+  `docs/combat.md`.
 - **`recevoirDegats` ne descend jamais sous zéro** : un coup qui dépasse
   le reste ne laisse pas un nombre négatif stocké.
 - **Pas d'accesseur pour les points de vie** : les tests passent par
@@ -112,6 +116,9 @@ déplacement par chemin dans `docs/chemin.md`.
   `<= m_rayonTerritoire` de son poste. Il s'ajoute à `proieDetectee` en
   `EnGarde` et en `Retour` (même priorité, donc avant le test d'arrivée
   au poste). En `Poursuite`, être touché ne change rien.
+- **L'armure ne change pas le réveil** : il dépend du montant reçu `> 0`,
+  pas du montant retiré. Grâce au plancher à 1 de `appliquerArmure`, un
+  coup de 1 retire 1 point et réveille le monstre (testé).
 - **L'indicateur est remis à faux à chaque `mettreAJour`**, qu'il ait
   servi ou non : un coup ne sert qu'une fois, pas de mémoire durable
   (touché sans proie = coup perdu).

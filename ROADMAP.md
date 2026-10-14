@@ -61,10 +61,12 @@ est dans `docs/historique.md`.
 - Étape 52 — Alléger main.cpp : Niveau, Partie et Controleur (refactorisation pure) ✅
 - Étape 53 — Type PointsDeVie et Skill::declencherSansCible (refactorisation pure) ✅
 - Étape 54 — Défaite et recommencer la partie ✅
+- Étape 55 — Armure à rendement décroissant ✅
 
-## Étape 55
+## Étape 56
 
-À préciser dans Claude.ai.
+Générateur aléatoire injecté et recharge aléatoire (à préciser dans
+Claude.ai).
 
 Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes) :
 - Le monstre touché se jette sur l'auteur du coup (mémoire de
@@ -145,6 +147,11 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   terrain dégagé, coins contournés au plus court), s'arrête exactement sur
   le point cliqué, est bloquée par les murs et glisse le long d'eux. Son
   déplacement vit dans `Mobile`, que `Monstre` utilise aussi.
+- **Armure** (étape 55) : `appliquerArmure` (module `Defense`) réduit les
+  dégâts reçus, même formule pour tous : réduction = armure / (armure +
+  100), arrondi au plus proche, au moins 1 par coup positif. Mêlées 50
+  (un tiers de moins), tireurs 0, monstres 20 (un sixième de moins). Le
+  soin n'est pas réduit. Rien n'est affiché à l'écran.
 - **Personnages** : 4 carrés de 20 × 20 (240 px/s) tiennent une formation
   en carré autour de l'ancre, bloqués par les murs et par les monstres.
   Chacun possède un `Mobile` : en ligne droite quand le trajet vers son
@@ -258,12 +265,12 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 381 tests : 38 sur `TileMap`, 17 sur `Chemin`, 144
+  (`./build/tests.exe`, 392 tests : 38 sur `TileMap`, 17 sur `Chemin`, 144
   sur `Escouade` en cinq fichiers par thème — 22 déplacement, 17 combat, 61
-  skills, 26 agresseurs, 18 vue —, 12 sur `Deplacement`, 34 sur `Monstre`,
-  31 sur `Personnage`, 19 sur `Skill`, 14 sur `Mobile`, 4 sur `Cercle`, 13
+  skills, 26 agresseurs, 18 vue —, 12 sur `Deplacement`, 37 sur `Monstre`,
+  33 sur `Personnage`, 19 sur `Skill`, 14 sur `Mobile`, 4 sur `Cercle`, 13
   sur `Autodefense`, 6 sur `BarreDeSkills`, 4 sur `MonstreVu`, 1 sur
-  `BarreDeVie`, 8 sur `PointsDeVie`, 9 sur `Provocations`, 8 sur `Agresseurs`, 12 sur `Partie`, 7 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
+  `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 12 sur `Partie`, 7 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
   accents (`./build/tests.exe "*a portee*"` filtre) ; rotation de la
   formation et `provoquer` à une place invalide couverts.
 

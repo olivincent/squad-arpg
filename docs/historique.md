@@ -1386,7 +1386,7 @@ leurs fonctions publiques, qui délèguent. La règle « un coup > 0 réveille l
 monstre » reste dans `Monstre`. `Personnage::declencherSkillSansCible` a été
 ajoutée parce qu'`Escouade` n'accède pas au `Skill` du personnage.
 
-**Hors de portée** : armure, résurrection, classe de base commune,
+**Hors de portée** : armure (traitée à l'étape 55), résurrection, classe de base commune,
 changement de la barre de vie à l'écran ou de l'équilibrage, écran de
 défaite (étape 54).
 
@@ -1415,3 +1415,24 @@ anonyme) plutôt que de toucher à ce module.
 **Hors de portée** : écran de victoire, menu, pause, touche de
 recommencement en cours de partie, retrait des personnages morts de la
 formation, changement d'équilibrage.
+
+
+### Étape 55 — Armure à rendement décroissant ✅ TERMINÉE
+
+1. [x] `Defense.hpp` : déclaration d'`appliquerArmure` (enchaînée).
+2. [x] `Defense.cpp`, `CMakeLists.txt`, `test_Defense.cpp` (enchaînée).
+3. [x] `Personnage` : `m_armure`, constructeur, `recevoirDegats` ;
+       `Escouade` fournit 50 aux mêlées et 0 aux tireurs (enchaînée).
+4. [x] `Monstre` : même chose ; `Niveau::armureMonstres` (20), transmis par
+       `Partie` (enchaînée).
+5. [x] Test visuel et mise à jour des documents. 392 tests.
+
+**Choix** : formule `montant × K / (armure + K)`, K = 100, arrondi au plus
+proche avec plancher à 1, dans une fonction pure (module `Defense`).
+`PointsDeVie` ignore l'armure ; le soin n'est pas réduit ; le réveil du
+monstre (étape 47) est inchangé grâce au plancher. L'armure des monstres
+est un seul entier dans `Niveau`, commun aux six.
+
+**Hors de portée** : affichage de l'armure, esquive, blocage, types de
+dégâts et résistances, K par entité, équipement, structure
+`Degats { montant, type }`, autre changement d'équilibrage.

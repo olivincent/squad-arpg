@@ -62,6 +62,7 @@ squad-arpg/
 │   ├── BarreDeSkills.hpp / .cpp
 │   ├── EcranDeDefaite.hpp / .cpp
 │   ├── BarreDeVie.hpp / .cpp
+│   ├── Defense.hpp / .cpp
 │   └── PointsDeVie.hpp / .cpp
 ├── assets/
 │   └── fonts/ (DejaVuSans.ttf, LICENSE-DejaVu.txt)
@@ -77,7 +78,7 @@ squad-arpg/
 │   └── test_Skill.cpp, test_Mobile.cpp, test_Cercle.cpp,
 │       test_Autodefense.cpp, test_BarreDeSkills.cpp,
 │       test_MonstreVu.cpp, test_BarreDeVie.cpp,
-│       test_PointsDeVie.cpp
+│       test_PointsDeVie.cpp, test_Defense.cpp
 ├── docs/
 │   ├── build.md
 │   ├── boucle-et-entrees.md
@@ -120,7 +121,7 @@ Qui possède quoi :
   `Skill` (son attaque).
 - `Mobile` utilise `Chemin` et `Deplacement`. `Personnage` utilise
   `Mobile` et le test de trajet de `TileMap`. `Skill`, `Personnage`, `Monstre` et `Escouade` échangent
-  des `Cercle`. `Personnage` et `Monstre` possèdent chacun un `PointsDeVie` et dessinent leur barre de vie avec `BarreDeVie`. `Escouade` utilise `choisirMonstreAFrapper` (`Autodefense`) et
+  des `Cercle`. `Personnage` et `Monstre` possèdent chacun un `PointsDeVie` et dessinent leur barre de vie avec `BarreDeVie` ; leur `recevoirDegats` passe par `appliquerArmure` (`Defense`). `Escouade` utilise `choisirMonstreAFrapper` (`Autodefense`) et
 `replierVersOrigine` (`Chemin`).
 
 ## Modules
@@ -153,11 +154,11 @@ Données membres : `m_largeur`, `m_hauteur` (cases), `m_tailleCase`
 
 Données membres : `struct Niveau { std::vector<std::string> plan; float
 tailleCase; sf::Vector2f departEscouade; std::vector<sf::Vector2f>
-positionsMonstres; }`.
+positionsMonstres; int armureMonstres; }`.
 
 | Fonction | Rôle |
 |---|---|
-| `Niveau creerNiveau()` | Le niveau du jeu (carte de 59 × 40 cases de 40 px, départ en `(100, 100)`, six monstres) ; pas de lecture de fichier |
+| `Niveau creerNiveau()` | Le niveau du jeu (carte de 59 × 40 cases de 40 px, départ en `(100, 100)`, six monstres d'armure 20) ; pas de lecture de fichier |
 
 ### `Partie` — les règles de jeu
 
@@ -177,7 +178,7 @@ Données membres : `m_carte` (`TileMap`), `m_escouade` (`Escouade`),
 
 | Fonction | Rôle |
 |---|---|
-| `explicit Partie(const Niveau& niveau)` | Construit la carte, l'escouade et les monstres (identifiants 1, 2, 3…) |
+| `explicit Partie(const Niveau& niveau)` | Construit la carte, l'escouade et les monstres (identifiants 1, 2, 3…, armure `niveau.armureMonstres`) |
 | `ResultatClic cliquer(sf::Vector2f point)` | Appliqué tout de suite. `Monstre` : verrouille le monstre qui contient le point ; `Sol` : lève le verrou ; `Ignore` si l'escouade est vaincue, sans rien changer. `enum class ResultatClic { Monstre, Sol, Ignore }` |
 | `void demanderSkill(std::size_t place)` | Mémorise la demande de skill (touches 1 à 3) ; la dernière demande de l'image gagne |
 | `void lancerSkillDeZone(std::size_t place, sf::Vector2f point)` | Mémorise le lancer du skill de zone |
@@ -329,11 +330,11 @@ formation, ni `Escouade`, ni `Monstre`.
 Données membres : `m_mobile` (`Mobile`, porte la position et la vitesse),
 `m_couleur`, `m_attaqueDeBase` (`Skill`), `m_skill`
 (`std::optional<Skill>`), `m_cibleChemin` (`std::optional<sf::Vector2f>`,
-cible du dernier A*), `m_pointsDeVie` (`PointsDeVie`).
+cible du dernier A*), `m_pointsDeVie` (`PointsDeVie`), `m_armure` (`int`).
 
 | Fonction | Rôle |
 |---|---|
-| `Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::optional<Skill> skill)` | Crée le personnage à ce centre, avec cette couleur, cette attaque de base et ce skill éventuel |
+| `Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::optional<Skill> skill, int armure)` | Crée le personnage à ce centre, avec cette couleur, cette attaque de base, ce skill éventuel et cette armure (50 pour les mêlées, 0 pour les tireurs, fournie par `Escouade`) |
 | `void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte, const std::vector<Cercle>& obstacles)` | Si vivant, avance vers la cible (en ligne droite si le trajet est libre, sinon par un chemin A* lissé recalculé seulement si la cible s'éloigne de plus d'une case de sa fin ; collision avec les murs et les cercles obstacles, glissement) puis décrémente la recharge de l'attaque et du skill ; sinon ne fait rien |
 | `void dessiner(sf::RenderTarget& rendu) const` | Dessine le personnage et sa barre de vie, plus la barre de recharge du skill s'il en a un ; carré gris sans barre s'il est mort |
 | `bool estAPortee(Cercle cible) const` | L'écart bord à bord entre son cercle et `cible` est-il `<=` la portée de `m_attaqueDeBase` ? |
@@ -348,7 +349,7 @@ cible du dernier A*), `m_pointsDeVie` (`PointsDeVie`).
 | `int declencherSkillSansCible()` | 0 sans skill ou s'il est mort ; sinon délègue à `m_skill->declencherSansCible` (sans portée) et, si la puissance est `> 0`, relance au complet la recharge de `m_attaqueDeBase`. Pour la provocation et la zone |
 | `void recevoirSoin(int quantite)` | Rend des points de vie, sans dépasser le maximum ; sans effet sur un mort (délègue à `PointsDeVie::soigner`) |
 | `int getPointsDeVie() const` / `int getPointsDeVieMax() const` | Points de vie actuels et maximum |
-| `void recevoirDegats(int quantite)` | Retire des points de vie, sans descendre sous zéro (délègue à `PointsDeVie::subirDegats`) |
+| `void recevoirDegats(int quantite)` | Retire `appliquerArmure(quantite, m_armure)` points de vie, sans descendre sous zéro (délègue à `PointsDeVie::subirDegats`) |
 | `bool estVivant() const` | Points de vie `> 0` |
 | `sf::Vector2f getCentre() const` | Centre du personnage |
 | `Cercle getCercle() const` | Cercle centré sur le personnage, de rayon 10 |
@@ -369,7 +370,7 @@ Un carré rouge de 30 × 30 qui détecte un personnage, le poursuit, riposte
 `Escouade` ni `Personnage` : il reçoit sa proie et ses obstacles en
 paramètres.
 
-Données membres : `m_mobile`, `m_pointsDeVie` (`PointsDeVie`), `m_id`,
+Données membres : `m_mobile`, `m_pointsDeVie` (`PointsDeVie`), `m_armure` (`int`), `m_id`,
 `m_attaque`, `m_rayonDetection`, `m_rayonTerritoire`, `m_etat` (`Etat`,
 `enum class` privé : `EnGarde`, `Poursuite`, `Retour`), `m_poste`,
 `m_vientDEtreTouche` (`bool`, posé par `recevoirDegats` si dégâts `> 0`,
@@ -377,7 +378,7 @@ consommé par `mettreAJour`).
 
 | Fonction | Rôle |
 |---|---|
-| `Monstre(sf::Vector2f centre, int id)` | Crée le monstre à ce centre, avec cet identifiant, 100 points de vie ; son poste est ce centre |
+| `Monstre(sf::Vector2f centre, int id, int armure)` | Crée le monstre à ce centre, avec cet identifiant, cette armure (20, donnée par `Niveau`) et 100 points de vie ; son poste est ce centre |
 | `void dessiner(sf::RenderTarget& rendu, bool estCible) const` | Dessine le monstre et sa barre de vie ; ajoute un contour jaune si `estCible` |
 | `void mettreAJour(float dt, std::optional<Cercle> cible, const TileMap& carte, const std::vector<Cercle>& obstacles)` | Décrémente la recharge, met à jour l'état et donne ses ordres à `m_mobile` (poursuite, arrêt à portée, retour au poste), puis le déplace ; `obstacles` lui est transmis |
 | `int frapper(Cercle cible)` | Délègue à `m_attaque.frapper`, avec `getCercle()` comme origine |
@@ -385,7 +386,7 @@ consommé par `mettreAJour`).
 | `Cercle getCercle() const` | Cercle centré sur le monstre, de rayon 15 |
 | `int getId() const` | Identifiant du monstre |
 | `bool contient(sf::Vector2f point) const` | Le point (pixels du monde) est-il dans le carré du monstre ? |
-| `void recevoirDegats(int quantite)` | Retire des points de vie, sans descendre sous zéro (`PointsDeVie::subirDegats`) ; si `quantite > 0`, mémorise que le monstre vient d'être touché |
+| `void recevoirDegats(int quantite)` | Retire `appliquerArmure(quantite, m_armure)` points de vie, sans descendre sous zéro (`PointsDeVie::subirDegats`) ; si `quantite > 0`, mémorise que le monstre vient d'être touché |
 | `bool estVivant() const` | Points de vie `> 0` |
 | `int getPointsDeVie() const` | Points de vie actuels |
 
@@ -497,6 +498,15 @@ Deux fonctions libres, sans état, utilisées par `Personnage::dessiner` et
 |---|---|
 | `sf::Vector2f positionBarreDeVie(sf::Vector2f centre, sf::Vector2f taille)` | Coin haut-gauche de la barre d'une entité de ce centre et de cette taille : alignée sur son bord gauche, 6 px au-dessus de son carré |
 | `void dessinerBarreDeVie(sf::RenderTarget& rendu, sf::Vector2f position, float largeur, float ratio)` | Fond gris, puis rectangle vert proportionnel à `ratio` (0 à 1) |
+
+### `Defense` — l'armure
+
+Une fonction libre pure, sans état, utilisée par `Personnage::recevoirDegats`
+et `Monstre::recevoirDegats`. Ne dépend d'aucun autre module ni de SFML.
+
+| Fonction | Rôle |
+|---|---|
+| `int appliquerArmure(int montant, int armure)` | Dégâts réellement subis : `montant × K / (armure + K)` avec K = 100 (rendement décroissant, jamais 100 %), arrondi au plus proche, au moins 1 si `montant > 0`, 0 si `montant == 0` ; `assert(montant >= 0)` et `assert(armure >= 0)` ; `[[nodiscard]]` |
 
 ### `PointsDeVie` — les points de vie d'une entité
 

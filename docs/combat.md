@@ -497,6 +497,34 @@ personnages sont dans `docs/formation.md`, le monstre dans
   personnage avance simplement vers sa cible) ; pas d'indicateur d'une
   cible non visible ; la vue est centre à centre, pas bord à bord.
 
+## Armure à rendement décroissant (étape 55)
+
+- **Formule** : réduction = armure / (armure + K), dégâts subis = montant ×
+  (1 − réduction), avec K = 100 (`s_constanteArmure` dans `Defense.cpp`).
+  Chaque point d'armure compte, mais la réduction n'atteint jamais 100 % :
+  100 d'armure = moitié des dégâts, 50 = un tiers de moins, 20 = un sixième
+  de moins.
+- **Code** : la fonction libre pure `appliquerArmure(montant, armure)`
+  (module `Defense`) ne dépend ni de SFML ni d'un autre module. Elle est
+  écrite `montant × K / (armure + K)` (même valeur, une seule division) :
+  avec `montant × (1 − réduction)` en flottant, 15 avec 20 d'armure pouvait
+  donner 12,4999 au lieu de 12,5, donc 12 au lieu de 13.
+- **Arrondi** : au plus proche (`std::lround`, conversion `static_cast`
+  explicite), avec un plancher à 1 : un coup positif inflige toujours au
+  moins 1, un coup de 0 reste 0. Exemples : 10 avec 50 → 7, 5 avec 20 → 4,
+  15 avec 20 → 13, 25 avec 20 → 21.
+- **Qui l'applique** : `Personnage::recevoirDegats` et
+  `Monstre::recevoirDegats`, avant `PointsDeVie::subirDegats`.
+  `PointsDeVie` ne connaît pas l'armure. Chaque entité a un `m_armure`
+  (`int`) reçu par son constructeur ; pas d'accesseur.
+- **Valeurs** : mêlées (places 1 et 2) 50, tireurs (places 3 et 4) 0, les
+  six monstres 20 (`Niveau::armureMonstres`).
+- **Le soin n'est pas touché** par l'armure. Les dégâts de zone, de skill
+  et d'attaque de base passent tous par `recevoirDegats`, donc par l'armure.
+- **Limites** : pas d'affichage de l'armure, pas d'esquive ni de blocage,
+  pas de types de dégâts ni de résistances, un seul K pour toutes les
+  entités, pas d'équipement.
+
 ## Circuit des dégâts
 
 `Escouade` et `Monstre` ne se connaissent pas : `main.cpp` fait
@@ -519,7 +547,8 @@ image).
   le plus proche), met le monstre à jour, relit son centre, puis applique
   `escouade.recevoirDegats(m.getId(), origine, m.frapper(*cible))`. Les
   deux appels à `Escouade` désignent le même personnage grâce à la même
-  règle (`indiceProieDuMonstre`). La cible est calculée avant le
+  règle (`indiceProieDuMonstre`). L'armure du personnage touché réduit
+  ensuite le coup (voir plus haut). La cible est calculée avant le
   déplacement du monstre et `origine` relu après, pour que les dégâts
   partent de la position à jour.
 - **Un monstre frappe qu'il soit lui-même attaqué ou non** : sa riposte
