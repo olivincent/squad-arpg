@@ -4,8 +4,8 @@ Depuis l'étape 52, trois acteurs se partagent ce qui tenait dans `main()` :
 
 | Acteur | Rôle | Connaît SFML Window/Event ? |
 |---|---|---|
-| `main.cpp` (88 lignes) | Fenêtre, police, horloge, caméra, traduction des événements SFML en appels au `Controleur`, conversion du curseur en coordonnées du monde, enchaînement du dessin | Oui, seul |
-| `Controleur` | État d'interface : mode visée (`m_placeEnVisee`) et déplacement continu (`m_deplacementContinu`) ; traduit les actions du joueur en demandes à la `Partie` ; dessine l'aperçu de visée | Non |
+| `main.cpp` | Fenêtre, police, horloge, caméra, traduction des événements SFML en appels au `Controleur`, recommencement de la partie (touche R), conversion du curseur en coordonnées du monde, enchaînement du dessin | Oui, seul |
+| `Controleur` | État d'interface : mode visée (`m_placeEnVisee`) et déplacement continu (`m_deplacementContinu`), sans référence à la `Partie` (reçue à chaque appel) ; traduit les actions du joueur en demandes à la `Partie` ; dessine l'aperçu de visée | Non |
 | `Partie` | Règles de jeu : possède la carte, l'`Escouade` et les `Monstre` ; intermédiaire entre `Escouade` et `Monstre`, qui ne se connaissent pas | Non |
 
 `Niveau` (`Niveau.hpp/.cpp`) est une structure de données (plan, taille de
@@ -19,17 +19,18 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   `Partie::mettreAJour`) :
   0. `main.cpp` : retour à la vue `camera` (l'image précédente a fini sur la
      vue de l'interface : sans cela, `mapPixelToCoords` convertirait les
-     clics avec la vue par défaut) ; `controleur.debutImage()` (sortie de la
+     clics avec la vue par défaut) ; `controleur.debutImage(partie)` (sortie de la
      visée si le lanceur ne peut plus lancer : mort, défaite) ;
   1. événements, traduits en appels au `Controleur` : fermeture ;
-     `appuiGauche(point)`, `appuiDroit()`, `appuiTouche(place)` (1 à 4),
-     `appuiEchap()`. Le `Controleur` les convertit en demandes à la `Partie` :
+     `appuiGauche(partie, point)`, `appuiDroit()`, `appuiTouche(partie,
+     place)` (1 à 4), `appuiEchap()`, et R (voir « Défaite de l'escouade »). Le `Controleur` les convertit en demandes à la `Partie` :
      `cliquer` (appliqué tout de suite : pose ou retire le verrou), et
      `demanderSkill`, `lancerSkillDeZone`, mémorisés ;
-  2. `controleur.mettreAJourDeplacement(boutonTenu, curseur)` : si le bouton
+  2. `controleur.mettreAJourDeplacement(partie, boutonTenu, curseur)` : si le bouton
      est tenu et le déplacement continu armé, `partie.ordonnerDeplacement`
      (mémorisé) ;
-  3. `partie.mettreAJour(dt)`, qui déroule, dans cet ordre exact :
+  3. `partie.mettreAJour(dt)`, qui ne fait rien si la partie est perdue,
+     sinon déroule, dans cet ordre exact :
      a. verrou levé si le monstre verrouillé n'est plus dans le vecteur ;
         liste des `MonstreVu` (une fois pour toute l'image) ;
      b. lancer du skill de zone demandé ;
@@ -45,7 +46,8 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
      h. les demandes sont vidées ;
   4. `main.cpp` : caméra centrée sur l'escouade, `partie.dessiner` (carte,
      monstres avec le contour du verrou, escouade), `controleur.
-     dessinerApercu`, puis barre de skills dans la vue par défaut.
+     dessinerApercu`, puis, dans la vue par défaut, barre de skills et, si la
+     partie est perdue, écran de défaite (par-dessus la barre).
 - **Demandes mémorisées** : à part `cliquer`, les actions du joueur ne sont
   pas exécutées à l'événement mais à leur place dans `mettreAJour`. Un clic
   est appliqué tout de suite parce qu'il ne dépend que de l'état au moment
@@ -113,7 +115,7 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
 ## Entrée clavier : le skill
 
 - **Événement d'appui, pas lecture d'état** : un appui = une tentative.
-  `main.cpp` traduit la touche en `controleur.appuiTouche(place)` ; le
+  `main.cpp` traduit la touche en `controleur.appuiTouche(partie, place)` ; le
   `Controleur` envoie 1 à 3 en `partie.demanderSkill(place)`. Plusieurs
   appuis dans la même image : le dernier gagne (une seule demande
   mémorisée).
@@ -156,7 +158,7 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   le curseur ni pendant la visée ni après le lancer, tant que le bouton n'a
   pas été relâché puis réappuyé. Le drapeau joue le rôle d'un « attendre le
   relâchement » : pas de booléen de plus.
-- **Visuel** : `Controleur::dessinerApercu(rendu, curseur)` (curseur en
+- **Visuel** : `Controleur::dessinerApercu(partie, rendu, curseur)` (curseur en
   coordonnées du monde, converti par `main.cpp` avec la caméra de l'image) :
   un `sf::CircleShape` jaune, sans remplissage, au rayon exact de la zone,
   sous le curseur, et un cercle blanc (portée de lancement) autour du
@@ -169,12 +171,31 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
 ## Défaite de l'escouade
 
 - **`estVivante()` est consultée, jamais mise en cache** : `Partie::cliquer`
-  la lit à chaque clic (`Ignore` si vaincue) ; `Partie::mettreAJour` la lit
-  avant `attaquer` et avant l'ordre de déplacement ; le `Controleur` la lit
-  pour entrer en visée.
-- **Seuls les ordres du joueur sont bloqués** : la boucle continue (mise à
-  jour, caméra, dessin, fermeture). Les monstres rentrent à leur poste sans
-  code propre à la défaite (voir `docs/formation.md`).
+  la lit à chaque clic (`Ignore` si vaincue) ; le `Controleur` la lit pour
+  entrer en visée. `Partie::estPerdue()` (`!estVivante()`) est la règle de
+  défaite, dans le noyau et non dans `main.cpp`.
+- **Le monde se fige (étape 54)** : `Partie::mettreAJour` sort tout de suite
+  si la partie est perdue : plus aucun monstre ne bouge, ne frappe ni ne
+  rentre à son poste. La boucle SFML continue (caméra, dessin, fermeture).
+  Les garde-fous `estVivante()` internes à `mettreAJour` restent, inoffensifs.
+- **Écran de défaite** : `dessinerEcranDeDefaite` (module `EcranDeDefaite`,
+  fonction libre sur le modèle de `BarreDeSkills`) est dessiné dans la vue
+  par défaut, après la barre de skills : le voile semi-transparent la laisse
+  visible dessous. `main.cpp` l'appelle si `partie.estPerdue()`.
+- **Recommencer = remplacer l'objet** : la touche R, seulement si la partie
+  est perdue (ignorée en jeu), fait `partie = Partie(creerNiveau())` et
+  `controleur = Controleur{}`. Pas de `reinitialiser()` : un état remis à
+  zéro membre par membre risque d'oublier un membre. Une visée ou un
+  déplacement continu en cours ne survivent pas. La caméra, recentrée à
+  chaque image, suit l'escouade neuve sans code propre. Pas de touche de
+  recommencement en cours de partie.
+- **Pourquoi `Controleur` reçoit la `Partie` à chaque appel** : une
+  référence membre empêche la réaffectation (C++ Core Guidelines C.12).
+  Avec une référence, `controleur = Controleur{}` était impossible, et
+  remplacer la `Partie` par un `std::optional` aurait aussi demandé de
+  reconstruire le `Controleur`. `Controleur` est maintenant un type valeur ;
+  `Partie` reste une variable ordinaire de `main` et, remplacée par
+  déplacement, garde son adresse.
 
 ## Les monstres dans `Partie::mettreAJour`
 

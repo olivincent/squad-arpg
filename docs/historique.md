@@ -1389,3 +1389,29 @@ ajoutée parce qu'`Escouade` n'accède pas au `Skill` du personnage.
 **Hors de portée** : armure, résurrection, classe de base commune,
 changement de la barre de vie à l'écran ou de l'équilibrage, écran de
 défaite (étape 54).
+
+
+### Étape 54 — Défaite et recommencer la partie ✅ TERMINÉE
+
+1. [x] `Partie::estPerdue()` et 3 tests (enchaînée).
+2. [x] Une partie perdue se fige : `mettreAJour` sort tout de suite (enchaînée).
+3. [x] Test de recommencement : `Partie` réaffectée avec un niveau neuf
+       (enchaînée).
+4. [x] Module `EcranDeDefaite` et son appel dans `main.cpp`.
+5. [x] `Controleur` sans référence à la `Partie` (refactorisation pure,
+       commit séparé), puis la touche R : `partie = Partie(creerNiveau())`
+       et `controleur = Controleur{}` si la partie est perdue.
+6. [x] Test visuel et mise à jour des documents. 381 tests.
+
+**Choix** : la règle de défaite est dans `Partie` (`estPerdue`), pas dans
+`main.cpp`. Le recommencement remplace les objets au lieu de les
+réinitialiser. `Controleur` avait un membre `Partie&`, donc n'était pas
+réaffectable : il reçoit désormais la `Partie` à chaque appel (option
+retenue contre `std::optional<Partie>` + `emplace`, qui aurait aussi
+obligé à reconstruire le `Controleur`). L'écran de défaite recopie
+l'assistant `dessinerTexteCentre` de `BarreDeSkills.cpp` (namespace
+anonyme) plutôt que de toucher à ce module.
+
+**Hors de portée** : écran de victoire, menu, pause, touche de
+recommencement en cours de partie, retrait des personnages morts de la
+formation, changement d'équilibrage.

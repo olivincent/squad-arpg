@@ -504,7 +504,7 @@
 
 ## Partie et Controleur (étape 52)
 
-- **`test_Partie.cpp`** (7 cas) : niveaux construits dans le test
+- **`test_Partie.cpp`** (7 cas, +4 à l'étape 54) : niveaux construits dans le test
   (`niveauDegage`, 15 × 15 cases sans mur, escouade en `(200, 200)`, centre
   en `(210, 210)`). Clic sur un monstre (`Monstre`, verrou posé, identifiant
   2 pour le second) ; clic au sol (`Sol`, verrou levé) ; monstre tué retiré
@@ -527,6 +527,9 @@
   fait sortir de la visée au `debutImage` suivant ; un clic au sol arme le
   déplacement continu, un clic sur un monstre le désarme (le monstre est à
   l'opposé du curseur, l'escouade avance vers lui et non vers le curseur).
+  Depuis l'étape 54, `Controleur` n'a plus de référence à la `Partie` : les
+  tests construisent `Controleur controleur;` et passent `partie` à chaque
+  appel (même contenu).
 - **Non testé** : `dessinerApercu` (dessin, vérifié dans le jeu) et la
   traduction des événements dans `main.cpp`.
 
@@ -543,3 +546,16 @@
 - **`test_Partie.cpp`** (+1 cas) : la double frappe (voir plus haut).
 - Les tests existants de `Personnage`, `Monstre`, provocation et zone n'ont
   pas été modifiés. 377 tests.
+
+## Défaite et recommencement (étape 54)
+
+- **`test_Partie.cpp`** (+4 cas) : `estPerdue` faux au départ ; faux tant
+  qu'un personnage survit (observé avec `cerclesDesVivants().size() == 1`
+  pendant que 30 monstres vainquent l'escouade) puis vrai quand les 4 sont
+  morts ; une partie perdue se fige (3 s de `mettreAJour` ne changent ni la
+  position ni les points de vie des monstres, qui sans cela rentreraient à
+  leur poste) ; une `Partie` réaffectée avec un niveau neuf n'est plus
+  perdue, a 6 monstres à 100 points de vie et l'escouade au départ (vérifie
+  aussi que `Partie` se déplace). Aide `groupeDeMonstres()` (30 monstres).
+- **Non testé** : `dessinerEcranDeDefaite` (dessin, vérifié dans le jeu) et
+  la touche R dans `main.cpp`. 381 tests.

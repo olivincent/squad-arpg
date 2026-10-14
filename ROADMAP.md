@@ -60,10 +60,11 @@ est dans `docs/historique.md`.
 - Étape 51 — Alléger Escouade : Provocations, Agresseurs, découpage (refactorisation pure) ✅
 - Étape 52 — Alléger main.cpp : Niveau, Partie et Controleur (refactorisation pure) ✅
 - Étape 53 — Type PointsDeVie et Skill::declencherSansCible (refactorisation pure) ✅
+- Étape 54 — Défaite et recommencer la partie ✅
 
-## Étape 54 — défaite et recommencer la partie
+## Étape 55
 
-À préciser dans Claude.ai (écran ou texte de défaite, recommencer la partie).
+À préciser dans Claude.ai.
 
 Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes) :
 - Le monstre touché se jette sur l'auteur du coup (mémoire de
@@ -86,8 +87,9 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
 - Patrouille, escouade de monstres, récupération de points de vie au
   retour d'un monstre
 - Retirer un personnage mort de `m_personnages` et resserrer la
-  formation, si l'avoir laissé en place s'avère gênant ; écran ou texte
-  de défaite ; recommencer la partie
+  formation, si l'avoir laissé en place s'avère gênant
+- Écran de victoire
+- Touche de recommencement de débogage (en cours de partie)
 - Collision entre personnages, ou déplacement suivant l'arc de rotation
   plutôt qu'une ligne droite, pour éliminer le chevauchement résiduel
   lors d'un demi-tour rapide
@@ -114,9 +116,9 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   40 px (2360 × 1600 px), plusieurs pièces et couloirs, définie en texte
   dans `Niveau.cpp` (`creerNiveau()`). La caméra (`sf::View`) est centrée
   sur l'escouade ; du noir apparaît au-delà des bords de la carte.
-- **Architecture de la boucle** (étape 52) : `main.cpp` (88 lignes) garde la
+- **Architecture de la boucle** (étapes 52 et 54) : `main.cpp` garde la
   fenêtre, la police, la caméra et traduit les événements SFML en appels au
-  `Controleur` (mode visée, déplacement continu, aperçu de visée) ; la
+  `Controleur` (mode visée, déplacement continu, aperçu de visée ; type valeur, il reçoit la `Partie` à chaque appel) ; la
   `Partie` (carte, escouade, monstres) porte les règles de jeu et
   l'intermédiaire entre `Escouade` et `Monstre`, avec l'ordre d'une image
   conservé ; `Niveau` porte les données. Voir `docs/boucle-et-entrees.md`.
@@ -163,8 +165,10 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
 - **Mort et défaite** : un personnage à 0 point de vie tombe sur place
   (carré gris, sans barre de vie), ne frappe plus, n'est plus ciblé et ne
   bloque plus personne ; il reste dans la formation, sa place est
-  simplement vide. Une fois les 4 morts, plus aucun ordre du joueur n'est
-  accepté, mais le jeu continue de tourner.
+  simplement vide. Une fois les 4 morts (`Partie::estPerdue`), le monde se
+  fige, un écran de défaite (voile sombre, « Défaite », « Appuyez sur R pour
+  recommencer ») s'affiche et la touche R relance le niveau depuis le début
+  (nouvelle `Partie` et nouveau `Controleur`).
 - **Entrées** : un clic sur le sol envoie l'escouade vers ce point ; tant
   que le bouton reste enfoncé (fenêtre ayant le focus, escouade vivante),
   l'ordre est redonné à chaque image vers le curseur. Un clic bref sur un
@@ -254,12 +258,12 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 377 tests : 38 sur `TileMap`, 17 sur `Chemin`, 144
+  (`./build/tests.exe`, 381 tests : 38 sur `TileMap`, 17 sur `Chemin`, 144
   sur `Escouade` en cinq fichiers par thème — 22 déplacement, 17 combat, 61
   skills, 26 agresseurs, 18 vue —, 12 sur `Deplacement`, 34 sur `Monstre`,
   31 sur `Personnage`, 19 sur `Skill`, 14 sur `Mobile`, 4 sur `Cercle`, 13
   sur `Autodefense`, 6 sur `BarreDeSkills`, 4 sur `MonstreVu`, 1 sur
-  `BarreDeVie`, 8 sur `PointsDeVie`, 9 sur `Provocations`, 8 sur `Agresseurs`, 8 sur `Partie`, 7 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
+  `BarreDeVie`, 8 sur `PointsDeVie`, 9 sur `Provocations`, 8 sur `Agresseurs`, 12 sur `Partie`, 7 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
   accents (`./build/tests.exe "*a portee*"` filtre) ; rotation de la
   formation et `provoquer` à une place invalide couverts.
 
@@ -285,7 +289,7 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   brièvement ; l'ancre traversant les monstres, elle (et la caméra) peut
   s'éloigner des personnages bloqués.
 - Un personnage mort n'est jamais retiré et la formation ne se resserre
-  pas ; pas d'écran de défaite.
+  pas.
 - Un monstre qui rentre ignore une proie hors de son territoire ; pas de
   patrouille ni de récupération de points de vie ; pas de coordination
   entre monstres.

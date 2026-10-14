@@ -300,16 +300,12 @@ L'attaque, la portée, le skill et les obstacles sont dans
   `indicePersonnageLePlusProche`) **et ne bloque personne**
   (`cerclesDesVivants`).
 - **`estVivante()` est une simple lecture** (au moins un personnage
-  vivant) : `Escouade` ne décide de rien en cas de défaite, c'est
-  `main.cpp` qui bloque les ordres du joueur (voir
-  `docs/boucle-et-entrees.md`). Les monstres, eux, rentrent à leur poste
-  comme chaque fois qu'ils perdent leur proie
-  (`proieDuMonstre` renvoie vide), sans code propre à la
-  défaite.
+  vivant) : `Escouade` ne décide de rien en cas de défaite. C'est `Partie`
+  qui la décide (`estPerdue`, étape 54), fige le monde et refuse les ordres
+  du joueur (voir `docs/boucle-et-entrees.md`).
 - **Limites connues** : un mort n'est jamais retiré ni remplacé ; pas de
-  résurrection (le soin ne s'applique pas aux morts) ; pas d'écran de défaite ni de moyen de
-  recommencer ; l'ancre ne s'arrête pas à la mort du dernier
-  personnage (si elle avait un trajet en cours, elle le termine).
+  résurrection (le soin ne s'applique pas aux morts). Depuis l'étape 54, la
+  partie perdue est figée : l'ancre n'achève plus son trajet.
 
 ## Hygiène du code (étape 49)
 

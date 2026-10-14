@@ -60,6 +60,7 @@ squad-arpg/
 │   ├── Cercle.hpp / .cpp
 │   ├── EtatSkill.hpp
 │   ├── BarreDeSkills.hpp / .cpp
+│   ├── EcranDeDefaite.hpp / .cpp
 │   ├── BarreDeVie.hpp / .cpp
 │   └── PointsDeVie.hpp / .cpp
 ├── assets/
@@ -103,16 +104,17 @@ Qui possède quoi :
 - `main.cpp` possède la fenêtre, la boucle SFML, la caméra, la police
   (`sf::Font`), une `Partie` et un `Controleur`. Il traduit les événements
   SFML (fermeture, clic, touches 1 à 4, Échap, clic droit) en appels au
-  `Controleur`, convertit le curseur en coordonnées du monde, centre la
-  caméra sur l'escouade et enchaîne le dessin. Il ne connaît ni `Monstre`,
+  `Controleur` (touche R : recommence la partie si elle est perdue),
+  convertit le curseur en coordonnées du monde, centre la caméra sur
+  l'escouade et enchaîne le dessin. Il ne connaît ni `Monstre`,
   ni `Coup`, ni `MonstreVu`, ni `Chemin`, ni `Personnage`.
 - `Partie` possède la `TileMap`, l'`Escouade` et un `std::vector<Monstre>`,
   construits à partir d'un `Niveau`. Elle fait l'intermédiaire entre
   `Escouade` et `Monstre`, qui ne se connaissent pas : elle leur donne la
   liste des monstres (`MonstreVu`) et applique les `Coup` renvoyés.
-- `Controleur` tient une référence à la `Partie` (qui lui survit) et porte
-  l'état d'interface : le mode visée et le déplacement continu. Il ne
-  connaît pas les événements SFML.
+- `Controleur` porte l'état d'interface : le mode visée et le déplacement
+  continu. Il ne garde aucune référence à la `Partie` : celle-ci lui est
+  passée à chaque appel. Il ne connaît pas les événements SFML.
 - `Escouade` possède un `Mobile` (l'ancre), 4 `Personnage`, des `Provocations` et des `Agresseurs`. Ces deux derniers ne connaissent ni `Personnage`, ni `Monstre`, ni `Escouade`.
 - `Personnage` possède un `Mobile`, un `Skill` (son attaque de base) et, en option, un second `Skill` ; `Monstre` possède un `Mobile` et un
   `Skill` (son attaque).
@@ -164,6 +166,8 @@ seulement : les règles propres à `Escouade` ou à `Monstre` y restent. Le
 joueur agit par des demandes, mémorisées puis exécutées par `mettreAJour` à
 leur place dans l'image ; l'ordre est décrit dans `docs/boucle-et-entrees.md`.
 Invariant : entre deux appels, tout monstre du vecteur est vivant.
+Une partie perdue est figée. Elle se recommence en la remplaçant par une
+`Partie` neuve (réaffectation par déplacement : règle du zéro).
 
 Données membres : `m_carte` (`TileMap`), `m_escouade` (`Escouade`),
 `m_monstres` (`std::vector<Monstre>`), `m_lancerDeZoneDemande`
@@ -178,7 +182,8 @@ Données membres : `m_carte` (`TileMap`), `m_escouade` (`Escouade`),
 | `void demanderSkill(std::size_t place)` | Mémorise la demande de skill (touches 1 à 3) ; la dernière demande de l'image gagne |
 | `void lancerSkillDeZone(std::size_t place, sf::Vector2f point)` | Mémorise le lancer du skill de zone |
 | `void ordonnerDeplacement(sf::Vector2f point)` | Mémorise l'ordre de déplacement ; exécuté seulement si l'escouade est vivante |
-| `void mettreAJour(float dt)` | Exécute, dans l'ordre : lancer de zone, skill demandé, `attaquer` et application des coups, déverrouillage si la cible est morte, retrait des monstres morts, ordre de déplacement, mise à jour (obstacles, escouade, tour de chaque monstre) ; vide les demandes |
+| `bool estPerdue() const` | Vrai quand tous les personnages sont morts (`!m_escouade.estVivante()`) ; `[[nodiscard]]` |
+| `void mettreAJour(float dt)` | Sans effet si la partie est perdue (le monde est figé). Sinon exécute, dans l'ordre : lancer de zone, skill demandé, `attaquer` et application des coups, déverrouillage si la cible est morte, retrait des monstres morts, ordre de déplacement, mise à jour (obstacles, escouade, tour de chaque monstre) ; vide les demandes |
 | `void dessiner(sf::RenderTarget& rendu) const` | Carte, monstres (contour jaune sur le monstre verrouillé), escouade |
 | `const Escouade& getEscouade() const` | Lecture seule : caméra, barre de skills, requêtes du `Controleur` |
 | `const std::vector<Monstre>& getMonstres() const` | Lecture seule (utilisée par les tests) |
@@ -188,18 +193,22 @@ Données membres : `m_carte` (`TileMap`), `m_escouade` (`Escouade`),
 Ne connaît pas les événements SFML : `main.cpp` les traduit en appels
 simples. Points en pixels du monde.
 
-Données membres : `m_partie` (`Partie&`), `m_deplacementContinu` (`bool`),
-`m_placeEnVisee` (`std::optional<std::size_t>`, vide = mode normal).
+Type valeur, constructible par défaut et réaffectable (règle du zéro) : aucune
+référence membre (C++ Core Guidelines C.12), la `Partie` est reçue à chaque
+appel (`const Partie&` si la fonction ne fait que lire).
+
+Données membres : `m_deplacementContinu` (`bool`), `m_placeEnVisee`
+(`std::optional<std::size_t>`, vide = mode normal).
 
 | Fonction | Rôle |
 |---|---|
-| `explicit Controleur(Partie& partie)` | Se lie à la partie ; mode normal, déplacement continu désarmé |
-| `void debutImage()` | Sort de la visée si le lanceur ne peut plus lancer (`!skillEstPret`) |
-| `void appuiGauche(sf::Vector2f point)` | En visée : `lancerSkillDeZone` puis sortie de la visée (sans verrouiller ni déplacer). Sinon `cliquer` : `Monstre` désarme le déplacement continu, `Sol` l'arme, `Ignore` ne change rien |
+| `Controleur()` (par défaut) | Mode normal, déplacement continu désarmé ; `controleur = Controleur{}` remet l'état d'interface à zéro |
+| `void debutImage(const Partie& partie)` | Sort de la visée si le lanceur ne peut plus lancer (`!skillEstPret`) |
+| `void appuiGauche(Partie& partie, sf::Vector2f point)` | En visée : `lancerSkillDeZone` puis sortie de la visée (sans verrouiller ni déplacer). Sinon `cliquer` : `Monstre` désarme le déplacement continu, `Sol` l'arme, `Ignore` ne change rien |
 | `void appuiDroit()` / `void appuiEchap()` | Annulent la visée sans recharge |
-| `void appuiTouche(std::size_t place)` | 1 à 3 : `demanderSkill`. 4 : sort de la visée si on y est ; sinon y entre si l'escouade est vivante et le skill prêt, et désarme le déplacement continu. Autre place : ignorée |
-| `void mettreAJourDeplacement(bool boutonTenu, sf::Vector2f curseur)` | Si `boutonTenu` (bouton gauche enfoncé ET focus, calculé par `main.cpp`) et déplacement armé : `ordonnerDeplacement(curseur)` |
-| `void dessinerApercu(sf::RenderTarget& rendu, sf::Vector2f curseur) const` | En visée seulement : cercle jaune de la zone sous le curseur, cercle blanc de la portée autour du lanceur |
+| `void appuiTouche(Partie& partie, std::size_t place)` | 1 à 3 : `demanderSkill`. 4 : sort de la visée si on y est ; sinon y entre si l'escouade est vivante et le skill prêt, et désarme le déplacement continu. Autre place : ignorée |
+| `void mettreAJourDeplacement(Partie& partie, bool boutonTenu, sf::Vector2f curseur)` | Si `boutonTenu` (bouton gauche enfoncé ET focus, calculé par `main.cpp`) et déplacement armé : `ordonnerDeplacement(curseur)` |
+| `void dessinerApercu(const Partie& partie, sf::RenderTarget& rendu, sf::Vector2f curseur) const` | En visée seulement : cercle jaune de la zone sous le curseur, cercle blanc de la portée autour du lanceur |
 | `std::optional<std::size_t> getPlaceEnVisee() const` | Place en visée (pour la barre de skills) |
 
 ### `Escouade` — le point de contrôle (l'ancre)
@@ -470,6 +479,14 @@ Fonctions libres, sans état : tout est recalculé à chaque image. Ne connaît 
 | `int secondesAffichees(float tempsRestant)` | Secondes entières, arrondies vers le haut |
 | `std::vector<sf::Vector2f> pointsDuQuartier(sf::Vector2f centre, float cote, float fractionSombre)` | Sommets d'un `TriangleFan` : centre, aiguille, coins du carré dans l'intervalle, midi ; vide si la fraction est nulle |
 | `void dessinerBarreDeSkills(sf::RenderTarget& rendu, const sf::Font& police, const std::array<std::optional<EtatSkill>, 4>& etats, std::optional<std::size_t> placeEnVisee)` | Dessine 4 icônes de 56 px en bas de la vue par défaut (à appeler avec elle) : fond, lettre, numéro de touche, quartier sombre et chiffre en recharge, grisée si le lanceur est mort, contour jaune si `placeEnVisee` |
+
+### `EcranDeDefaite` — l'écran de défaite
+
+Une fonction libre, sans état, sur le modèle de `BarreDeSkills`. Ne connaît ni `Partie` ni `Escouade`.
+
+| Fonction | Rôle |
+|---|---|
+| `void dessinerEcranDeDefaite(sf::RenderTarget& rendu, const sf::Font& police)` | Voile noir semi-transparent sur toute la vue par défaut, puis « Défaite » et « Appuyez sur R pour recommencer » au centre ; à appeler avec la vue par défaut, après la barre de skills |
 
 ### `BarreDeVie` — la barre de vie d'une entité
 
