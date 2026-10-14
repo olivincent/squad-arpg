@@ -62,6 +62,11 @@ int main() {
                     controleur.appuiTouche(partie, 4);
                 } else if (data->scancode == sf::Keyboard::Scan::Escape) {
                     controleur.appuiEchap();
+                } else if (data->scancode == sf::Keyboard::Scan::R && partie.estPerdue()) {
+                    // Réaffectation : la Partie garde son adresse, et le
+                    // Controleur repart sans visée ni déplacement continu.
+                    partie = Partie(creerNiveau());
+                    controleur = Controleur{};
                 }
             }
         }
