@@ -250,7 +250,7 @@ TEST_CASE("Un soin hors de portee est mis en attente : le soigneur marche, soign
     const TileMap carte = carteDegagee10x10();
     Escouade escouade({50.0f, 50.0f});
     escouade.recevoirDegats(1, {85.0f, 85.0f}, 20);
-    static_cast<void>(escouade.attaquer({}, carte, generateur)); // le monstre fantôme n'existe pas : il n'est pas un agresseur
+    static_cast<void>(escouade.attaquer(s_dureeTic, {}, carte, generateur)); // le monstre fantôme n'existe pas : il n'est pas un agresseur
 
     declencher(escouade, 3, {});
     REQUIRE(placeAlliePourSoin(escouade) == 2);   // pas encore soigné
@@ -272,7 +272,7 @@ TEST_CASE("Le soin en attente est annule si la cible meurt, sans recharge") {
     declencher(escouade, 3, {});
 
     escouade.recevoirDegats(1, {85.0f, 85.0f}, 200);
-    static_cast<void>(escouade.attaquer({}, carte, generateur)); // le monstre fantôme n'existe pas : il n'est pas un agresseur
+    static_cast<void>(escouade.attaquer(s_dureeTic, {}, carte, generateur)); // le monstre fantôme n'existe pas : il n'est pas un agresseur
     simuler(escouade, carte, 2.0f);
 
     // Le soigneur est revenu à sa place et son skill est prêt : un nouveau
@@ -592,7 +592,7 @@ TEST_CASE("Zone en attente : le lanceur se rapproche, puis le sort part au point
     std::vector<Coup> coupsDeZone;
     int tics = 0;
     while (coupsDeZone.empty() && tics < 300) {
-        for (const Coup& coup : escouade.attaquer(monstres, carte, generateur)) {
+        for (const Coup& coup : escouade.attaquer(s_dureeTic, monstres, carte, generateur)) {
             if (coup.degats == 15) {
                 coupsDeZone.push_back(coup);
             }
@@ -622,7 +622,7 @@ TEST_CASE("Zone en attente : elle touche les monstres presents au depart, pas ce
     };
     std::vector<Coup> coupsDeZone;
     for (int i = 0; i < 300 && coupsDeZone.empty(); ++i) {
-        for (const Coup& coup : escouade.attaquer(ailleurs, carte, generateur)) {
+        for (const Coup& coup : escouade.attaquer(s_dureeTic, ailleurs, carte, generateur)) {
             if (coup.degats == 15) {
                 coupsDeZone.push_back(coup);
             }
@@ -643,7 +643,7 @@ TEST_CASE("Zone en attente : la mort du lanceur l'annule sans recharge") {
     escouade.recevoirDegats(1, {185.0f, 235.0f}, 200);  // tue la place 4
 
     for (int i = 0; i < 300; ++i) {
-        REQUIRE(escouade.attaquer(monstres, carte, generateur).empty());
+        REQUIRE(escouade.attaquer(s_dureeTic, monstres, carte, generateur).empty());
         escouade.mettreAJour(0.016f, carte, {}, generateur);
     }
 
@@ -669,7 +669,7 @@ TEST_CASE("Zone en attente : verrouiller, deverrouiller et un ordre de deplaceme
 
     std::vector<Coup> coupsDeZone;
     for (int i = 0; i < 300 && coupsDeZone.empty(); ++i) {
-        for (const Coup& coup : escouade.attaquer(monstres, carte, generateur)) {
+        for (const Coup& coup : escouade.attaquer(s_dureeTic, monstres, carte, generateur)) {
             if (coup.degats == 15) {
                 coupsDeZone.push_back(coup);
             }
@@ -748,7 +748,7 @@ TEST_CASE("Zone : relance la recharge de l'attaque de base du lanceur") {
     const std::vector<MonstreVu> monstres = {MonstreVu{1, cibleMonstre({285.0f, 235.0f})}};
     REQUIRE(escouade.declencherSkillDeZone(4, {300.0f, 300.0f}, {}, carte, generateur).empty());
 
-    const std::vector<Coup> coups = escouade.attaquer(monstres, carte, generateur);
+    const std::vector<Coup> coups = attaquerJusquAuDepart(escouade, monstres, carte, generateur);
 
     REQUIRE(coups.size() == 1);
     REQUIRE(coups[0].degats == 5);

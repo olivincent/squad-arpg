@@ -58,7 +58,7 @@ private:
     Monstre* trouverMonstre(int id);
     void appliquer(const std::vector<Coup>& coups);
     // Étapes de mettreAJour(), dans l'ordre où elles sont appelées.
-    void resoudreLesCoups();
+    void resoudreLesCoups(float dt);
     void faireTournerLesMonstres(float dt);
 
     TileMap m_carte;

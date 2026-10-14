@@ -21,7 +21,8 @@ Personnage::Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBa
       m_skill(skill),
       m_cibleChemin(),
       m_pointsDeVie(s_pointsDeVieMax),
-      m_armure(armure)
+      m_armure(armure),
+      m_idCibleEngagee()
 {
 }
 
@@ -93,12 +94,32 @@ bool Personnage::estAPortee(Cercle cible) const {
     return m_attaqueDeBase.estAPortee(getCercle(), cible);
 }
 
-int Personnage::frapper(Cercle cible, Generateur& generateur) {
-    if (!estVivant()) {
+bool Personnage::engagerAttaque(int idCible) {
+    if (!estVivant() || m_mobile.estEnMouvement() || !m_attaqueDeBase.commencer()) {
+        return false;
+    }
+    m_idCibleEngagee = idCible;
+    return true;
+}
+
+std::optional<int> Personnage::cibleEngagee() const {
+    if (m_attaqueDeBase.getPhase() != PhaseSkill::EnExecution) {
+        return std::nullopt;
+    }
+    return m_idCibleEngagee;
+}
+
+int Personnage::avancerAttaque(float dt, Generateur& generateur) {
+    if (!cibleEngagee().has_value() || !m_attaqueDeBase.avancer(dt, generateur)) {
         return 0;
     }
+    m_idCibleEngagee.reset();
+    return m_attaqueDeBase.getPuissance();
+}
 
-    return m_attaqueDeBase.declencher(getCercle(), cible, generateur);
+void Personnage::annulerAttaque() {
+    m_attaqueDeBase.annuler();
+    m_idCibleEngagee.reset();
 }
 
 std::optional<TypeSkill> Personnage::typeSkill() const {
@@ -140,7 +161,8 @@ int Personnage::declencherSkill(Cercle cible, Generateur& generateur) {
     const int degats = m_skill->declencher(getCercle(), cible, generateur);
     if (degats > 0) {
         // Le skill remplace l'attaque de base à ce moment : elle repart
-        // pour une recharge complète.
+        // pour une recharge complète (un coup en exécution est annulé).
+        annulerAttaque();
         m_attaqueDeBase.relancerRecharge(generateur);
     }
     return degats;
@@ -153,6 +175,7 @@ int Personnage::declencherSkillSansCible(Generateur& generateur) {
 
     const int puissance = m_skill->declencherSansCible(generateur);
     if (puissance > 0) {
+        annulerAttaque();
         m_attaqueDeBase.relancerRecharge(generateur);
     }
     return puissance;

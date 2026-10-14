@@ -5,12 +5,17 @@
 #include "TileMap.hpp"
 #include <SFML/Graphics/Rect.hpp>
 
+namespace {
+constexpr float s_seuilMouvement = 0.01f;  // en pixels : en dessous, c'est de l'arrondi, pas un déplacement voulu
+}  // namespace
+
 Mobile::Mobile(sf::Vector2f centre, sf::Vector2f taille, float vitesse)
     : m_position(centre - taille / 2.0f),
       m_taille(taille),
       m_chemin({centre}),
       m_indexChemin(0),
-      m_vitesse(vitesse)
+      m_vitesse(vitesse),
+      m_enMouvement(false)
 {
 }
 
@@ -53,15 +58,18 @@ void Mobile::allerToutDroit(sf::Vector2f destination) {
 void Mobile::arreter() {
     m_chemin = {getCentre()};
     m_indexChemin = 0;
+    m_enMouvement = false;
 }
 
 void Mobile::mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles) {
     sf::Vector2f deplacement(0.0f, 0.0f);
+    m_enMouvement = false;
 
     if (m_indexChemin < m_chemin.size()) {
         const sf::Vector2f pointCourant = m_chemin[m_indexChemin];
         const sf::Vector2f direction = pointCourant - getCentre();
         const float distance = direction.length();
+        m_enMouvement = distance > s_seuilMouvement;
         const float pasDuTic = m_vitesse * dt;
 
         if (distance <= pasDuTic) {
@@ -89,5 +97,5 @@ std::optional<sf::Vector2f> Mobile::directionVoulue() const {
 }
 
 bool Mobile::estEnMouvement() const {
-    return directionVoulue().has_value();
+    return m_enMouvement;
 }

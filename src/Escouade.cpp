@@ -25,6 +25,7 @@ constexpr float s_porteeTireur = 120.0f;  // bord à bord
 constexpr int s_armureMelee = 50;
 constexpr int s_armureTireur = 0;
 constexpr int s_degatsAttaqueDeBase = 5;
+constexpr float s_executionAttaqueDeBase = 0.15f;  // en secondes, immobile avant que le coup parte
 constexpr float s_rechargeMeleeMin = 0.3f;   // attaque de base des mêlées, en secondes
 constexpr float s_rechargeMeleeMax = 0.7f;
 constexpr float s_rechargeTireurMin = 0.4f;  // attaque de base des tireurs, en secondes
@@ -45,7 +46,8 @@ constexpr float s_laisseAgresseur = 100.0f;      // en pixels, centre à centre,
 
 // Attaque de base d'un personnage, mêlée ou tireur : la portée et l'intervalle de recharge changent.
 Skill attaqueDeBase(float portee, float rechargeMin, float rechargeMax) {
-    return Skill(TypeSkill::Degats, portee, s_degatsAttaqueDeBase, rechargeMin, rechargeMax, 0.0f);
+    return Skill(TypeSkill::Degats, portee, s_degatsAttaqueDeBase, rechargeMin, rechargeMax, 0.0f,
+                 s_executionAttaqueDeBase);
 }
 
 // Seule conversion d'une place (de 1 à 4, comme la touche du skill) vers l'indice (de 0 à 3).
@@ -119,11 +121,19 @@ void Escouade::dessiner(sf::RenderTarget& rendu) const {
     }
 }
 
+// Ordre du joueur : les coups en exécution sont annulés, sans recharge consommée.
 void Escouade::allerVers(sf::Vector2f destination, const TileMap& carte) {
+    annulerAttaquesEngagees();
     m_mobile.allerVers(destination, carte);
 }
 
-std::vector<Coup> Escouade::attaquer(const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur) {
+void Escouade::annulerAttaquesEngagees() {
+    for (Personnage& personnage : m_personnages) {
+        personnage.annulerAttaque();
+    }
+}
+
+std::vector<Coup> Escouade::attaquer(float dt, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur) {
     actualiserMemoires(monstres);
     std::vector<Coup> coups = departSkillDeZoneEnAttente(monstres, carte, generateur);
 
@@ -133,7 +143,7 @@ std::vector<Coup> Escouade::attaquer(const std::vector<MonstreVu>& monstres, con
         }
     }
 
-    const std::vector<Coup> coupsDAutodefense = autodefense(monstres, carte, generateur);
+    const std::vector<Coup> coupsDAutodefense = autodefense(dt, monstres, carte, generateur);
     coups.insert(coups.end(), coupsDAutodefense.begin(), coupsDAutodefense.end());
     return coups;
 }
@@ -189,7 +199,7 @@ std::optional<Cercle> Escouade::approcherVerrou(const std::vector<MonstreVu>& mo
     if (tousLesVivantsAtteignent(cible, carte)) {
         m_mobile.arreter();
     } else {
-        allerVers(cible.centre, carte);
+        m_mobile.allerVers(cible.centre, carte);  // pas allerVers : ce n'est pas un ordre du joueur
     }
     return cible;
 }
@@ -215,24 +225,28 @@ std::optional<Coup> Escouade::departSkillDeDegatsEnAttente(Cercle cible, const T
 }
 
 // Chaque personnage choisit pour lui-même le monstre qu'il frappe, parmi
-// ceux qu'il atteint (à portée et en vue).
-std::vector<Coup> Escouade::autodefense(const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur) {
+// ceux qu'il atteint (à portée et en vue). Frapper se fait en deux temps : un
+// personnage immobile engage son coup, qui part à la fin de son temps
+// d'exécution, même si la cible a bougé entre-temps. Le coup engagé n'est
+// annulé que par la mort de son auteur ou la disparition de sa cible (et par
+// un ordre du joueur ou un skill, voir allerVers et Personnage).
+std::vector<Coup> Escouade::autodefense(float dt, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur) {
     std::vector<Coup> coups;
     for (std::size_t i = 0; i < m_personnages.size(); ++i) {
         Personnage& personnage = m_personnages[i];
         const std::optional<int> id = choisirMonstreAFrapper(
             personnage.getCercle(), [&](Cercle c) { return peutAtteindre(personnage, Arme::AttaqueDeBase, c, carte); }, monstres, m_cibleVerrouillee);
         m_monstreAPortee[i] = id.has_value();
-        if (!id.has_value()) {
+        if (const std::optional<int> idEngage = personnage.cibleEngagee()) {
+            if (!personnage.estVivant() || trouverMonstre(monstres, *idEngage) == nullptr) {
+                personnage.annulerAttaque();
+            } else if (const int degats = personnage.avancerAttaque(dt, generateur); degats > 0) {
+                coups.push_back({*idEngage, degats});
+            }
             continue;
         }
-        const MonstreVu* cible = trouverMonstre(monstres, *id);
-        if (cible == nullptr) {
-            continue;
-        }
-        const int degats = personnage.frapper(cible->cercle, generateur);
-        if (degats > 0) {
-            coups.push_back({*id, degats});
+        if (id.has_value()) {
+            personnage.engagerAttaque(*id);
         }
     }
     return coups;
@@ -459,6 +473,7 @@ std::optional<sf::Vector2f> Escouade::pointVersAgresseur(std::size_t indice, con
 }
 
 // Point que vise un personnage : la première règle qui s'applique gagne.
+// 0. un personnage qui exécute un coup reste sur place ;
 // 1. le lanceur d'un skill en attente vise sa cible ;
 // 2. en combat, un vivant déjà à portée de la cible reste sur place (les
 //    tireurs s'arrêtent à distance pendant que les mêlées vont jusqu'au contact) ;
@@ -468,6 +483,9 @@ std::optional<sf::Vector2f> Escouade::pointVersAgresseur(std::size_t indice, con
 sf::Vector2f Escouade::pointVoulu(std::size_t indice, const std::optional<sf::Vector2f>& pointSkill, bool ancreArretee,
                                   const std::vector<MonstreVu>& agresseurs, const TileMap& carte) const {
     const Personnage& personnage = m_personnages[indice];
+    if (personnage.cibleEngagee().has_value()) {
+        return personnage.getCentre();  // un coup en exécution : il reste sur place
+    }
     if (pointSkill.has_value() && indice == indiceDeLaPlace(m_skillEnAttente->place)) {
         return *pointSkill;
     }
@@ -686,9 +704,11 @@ std::optional<Cible> Escouade::choisirCible(TypeSkill type, std::size_t place, c
 }
 
 void Escouade::verrouiller(int idCible) {
-    // Un skill de dégâts en attente ne survit pas à un changement de cible.
+    // Un skill de dégâts en attente et les coups en exécution ne survivent
+    // pas à un changement de cible.
     if (m_cibleVerrouillee != idCible) {
         annulerSkillDeDegatsEnAttente();
+        annulerAttaquesEngagees();
     }
     m_cibleVerrouillee = idCible;
 }

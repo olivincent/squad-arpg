@@ -35,6 +35,22 @@ void ecoulerTemps(Personnage& personnage, const TileMap& carte, sf::Vector2f cen
     }
 }
 
+// Frappe en un seul appel, comme le faisait l'ancien frapper() : refuse une
+// cible hors de portée (règle d'Escouade), engage le coup, puis avance
+// l'exécution jusqu'à son départ. Les personnages de ce fichier ont une
+// attaque à exécution nulle (sauf mention) : le coup part au premier tic.
+int frapperEnEntier(Personnage& personnage, Cercle cible, Generateur& generateur) {
+    if (!personnage.estAPortee(cible) || !personnage.engagerAttaque(1)) {
+        return 0;
+    }
+    for (int i = 0; i < nombreDeTics(1.0f); ++i) {
+        if (const int degats = personnage.avancerAttaque(s_dureeTic, generateur); degats > 0) {
+            return degats;
+        }
+    }
+    return 0;
+}
+
 }  // namespace
 
 // Personnage centré en (100, 100), portée 80 px.
@@ -55,14 +71,14 @@ TEST_CASE("frapper renvoie les degats pour une cible a portee") {
     Generateur generateur = generateurDeTest();
     Personnage personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f), std::nullopt, 0);
 
-    REQUIRE(personnage.frapper(pointCible({150.0f, 100.0f}), generateur) == 5);
+    REQUIRE(frapperEnEntier(personnage, pointCible({150.0f, 100.0f}), generateur) == 5);
 }
 
 TEST_CASE("frapper renvoie 0 pour une cible hors de portee") {
     Generateur generateur = generateurDeTest();
     Personnage personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f), std::nullopt, 0);
 
-    REQUIRE(personnage.frapper(pointCible({300.0f, 100.0f}), generateur) == 0);
+    REQUIRE(frapperEnEntier(personnage, pointCible({300.0f, 100.0f}), generateur) == 0);
 }
 
 TEST_CASE("frapper renvoie de nouveau les degats apres une duree simulee genereuse") {
@@ -71,9 +87,9 @@ TEST_CASE("frapper renvoie de nouveau les degats apres une duree simulee genereu
     const TileMap carte = carteDegagee5x5();
     const Cercle cible = pointCible({150.0f, 100.0f});
 
-    REQUIRE(personnage.frapper(cible, generateur) == 5);
+    REQUIRE(frapperEnEntier(personnage, cible, generateur) == 5);
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.6f);
-    REQUIRE(personnage.frapper(cible, generateur) == 5);
+    REQUIRE(frapperEnEntier(personnage, cible, generateur) == 5);
 }
 
 TEST_CASE("Un personnage est vivant a la creation") {
@@ -128,7 +144,7 @@ TEST_CASE("Un personnage mort ne frappe plus") {
 
     personnage.recevoirDegats(100);
 
-    REQUIRE(personnage.frapper(cible, generateur) == 0);
+    REQUIRE(frapperEnEntier(personnage, cible, generateur) == 0);
 }
 
 TEST_CASE("Un personnage mort ne bouge plus") {
@@ -176,7 +192,7 @@ TEST_CASE("declencherSkill renvoie 0 pour un personnage sans skill, sans toucher
     const Cercle cible = pointCible({150.0f, 100.0f});
 
     REQUIRE(personnage.declencherSkill(cible, generateur) == 0);
-    REQUIRE(personnage.frapper(cible, generateur) == 5);
+    REQUIRE(frapperEnEntier(personnage, cible, generateur) == 5);
 }
 
 TEST_CASE("declencherSkill renvoie 0 pour un personnage mort") {
@@ -193,7 +209,7 @@ TEST_CASE("declencherSkill renvoie 0 hors de portee, sans toucher a l'attaque de
     Personnage personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f), Skill(TypeSkill::Degats, 80.0f, 25, 5.0f, 5.0f, 0.0f), 0);
 
     REQUIRE(personnage.declencherSkill(pointCible({300.0f, 100.0f}), generateur) == 0);
-    REQUIRE(personnage.frapper(pointCible({150.0f, 100.0f}), generateur) == 5);
+    REQUIRE(frapperEnEntier(personnage, pointCible({150.0f, 100.0f}), generateur) == 5);
 }
 
 TEST_CASE("declencherSkill renvoie 0 pendant sa recharge, puis de nouveau les degats une fois ecoulee") {
@@ -220,13 +236,13 @@ TEST_CASE("Apres un skill reussi, l'attaque de base attend une recharge complete
     // 0,2 s de recharge. Le skill la relance au complet (0,5 s) : 0,3 s
     // plus tard, elle ne doit toujours pas partir, alors qu'elle l'aurait
     // fait sans le skill.
-    REQUIRE(personnage.frapper(cible, generateur) == 5);
+    REQUIRE(frapperEnEntier(personnage, cible, generateur) == 5);
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.3f);
     REQUIRE(personnage.declencherSkill(cible, generateur) == 25);
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.3f);
-    REQUIRE(personnage.frapper(cible, generateur) == 0);
+    REQUIRE(frapperEnEntier(personnage, cible, generateur) == 0);
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.3f);
-    REQUIRE(personnage.frapper(cible, generateur) == 5);
+    REQUIRE(frapperEnEntier(personnage, cible, generateur) == 5);
 }
 
 TEST_CASE("mettreAJour s'arrete avant d'entrer dans un obstacle") {
@@ -382,4 +398,97 @@ TEST_CASE("Quand le trajet direct redevient libre, le chemin en cours est abando
 
     REQUIRE_THAT(personnage.getCentre().x, Catch::Matchers::WithinAbs(60.0f, 1.0f));
     REQUIRE_THAT(personnage.getCentre().y, Catch::Matchers::WithinAbs(100.0f, 1.0f));
+}
+
+// Coup à temps d'exécution : engager, avancer, annuler. Attaque de 5 dégâts,
+// recharge 0,5 s, exécution 0,15 s.
+
+namespace {
+
+Personnage personnageAvecExecution() {
+    return Personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f, 0.15f),
+                      Skill(TypeSkill::Degats, 80.0f, 25, 5.0f, 5.0f, 0.0f), 0);
+}
+
+}  // namespace
+
+TEST_CASE("engagerAttaque exige un personnage immobile") {
+    const TileMap carte = carteDegagee5x5();
+    Personnage personnage = personnageAvecExecution();
+
+    // 80 px à parcourir : il est en marche après quelques tics.
+    ecoulerTemps(personnage, carte, {180.0f, 100.0f}, 0.1f);
+    REQUIRE_FALSE(personnage.engagerAttaque(1));
+    REQUIRE_FALSE(personnage.cibleEngagee().has_value());
+
+    ecoulerTemps(personnage, carte, {180.0f, 100.0f}, 1.0f);
+    REQUIRE(personnage.engagerAttaque(1));
+    REQUIRE(personnage.cibleEngagee() == 1);
+}
+
+TEST_CASE("engagerAttaque refuse un personnage mort ou deja en execution") {
+    Personnage mort = personnageAvecExecution();
+    mort.recevoirDegats(100);
+    REQUIRE_FALSE(mort.engagerAttaque(1));
+
+    Personnage personnage = personnageAvecExecution();
+    REQUIRE(personnage.engagerAttaque(1));
+    REQUIRE_FALSE(personnage.engagerAttaque(2));
+    REQUIRE(personnage.cibleEngagee() == 1);
+}
+
+TEST_CASE("avancerAttaque rend les degats une seule fois, a la fin de l'execution") {
+    Generateur generateur = generateurDeTest();
+    Personnage personnage = personnageAvecExecution();
+    REQUIRE(personnage.engagerAttaque(1));
+
+    int total = 0;
+    for (int i = 0; i < nombreDeTics(0.1f); ++i) {
+        total += personnage.avancerAttaque(s_dureeTic, generateur);
+    }
+    REQUIRE(total == 0);
+    REQUIRE(personnage.cibleEngagee().has_value());
+
+    for (int i = 0; i < nombreDeTics(0.2f); ++i) {
+        total += personnage.avancerAttaque(s_dureeTic, generateur);
+    }
+    REQUIRE(total == 5);
+    REQUIRE_FALSE(personnage.cibleEngagee().has_value());
+}
+
+TEST_CASE("annulerAttaque ne consomme pas de recharge") {
+    Generateur generateur = generateurDeTest();
+    Personnage personnage = personnageAvecExecution();
+    REQUIRE(personnage.engagerAttaque(1));
+    REQUIRE(personnage.avancerAttaque(0.05f, generateur) == 0);
+
+    personnage.annulerAttaque();
+
+    REQUIRE_FALSE(personnage.cibleEngagee().has_value());
+    REQUIRE(personnage.engagerAttaque(1));  // aussitôt prête de nouveau
+}
+
+TEST_CASE("Apres le depart du coup, la recharge court avant le coup suivant") {
+    Generateur generateur = generateurDeTest();
+    const TileMap carte = carteDegagee5x5();
+    Personnage personnage = personnageAvecExecution();
+    REQUIRE(personnage.engagerAttaque(1));
+    REQUIRE(personnage.avancerAttaque(0.2f, generateur) == 5);
+
+    REQUIRE_FALSE(personnage.engagerAttaque(1));
+    ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.4f);
+    REQUIRE_FALSE(personnage.engagerAttaque(1));
+    ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.2f);
+    REQUIRE(personnage.engagerAttaque(1));
+}
+
+TEST_CASE("Un skill qui part annule le coup en execution") {
+    Generateur generateur = generateurDeTest();
+    Personnage personnage = personnageAvecExecution();
+    REQUIRE(personnage.engagerAttaque(1));
+
+    REQUIRE(personnage.declencherSkill(pointCible({150.0f, 100.0f}), generateur) == 25);
+
+    REQUIRE_FALSE(personnage.cibleEngagee().has_value());
+    REQUIRE(personnage.avancerAttaque(1.0f, generateur) == 0);
 }

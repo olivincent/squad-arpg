@@ -121,6 +121,10 @@ float Skill::getPortee() const {
     return m_portee;
 }
 
+int Skill::getPuissance() const {
+    return m_puissance;
+}
+
 float Skill::getRayonZone() const {
     return m_rayonZone;
 }

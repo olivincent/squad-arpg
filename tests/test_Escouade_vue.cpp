@@ -84,7 +84,7 @@ TEST_CASE("Zone en attente : le lanceur contourne le mur, puis le sort part des 
     std::vector<Coup> coupsDeZone;
     int tics = 0;
     while (coupsDeZone.empty() && tics < 600) {
-        for (const Coup& coup : escouade.attaquer(monstres, carte, generateur)) {
+        for (const Coup& coup : escouade.attaquer(s_dureeTic, monstres, carte, generateur)) {
             if (coup.degats == 15) {
                 coupsDeZone.push_back(coup);
             }
@@ -135,7 +135,7 @@ TEST_CASE("Autodefense : un monstre a portee mais derriere un mur n'est pas frap
     // Place 4 en (185, 235) : portée de tir 120 px, monstre à 110 px bord à bord, mur entre les deux.
     const std::vector<MonstreVu> monstres = {MonstreVu{1, cibleMonstre({320.0f, 235.0f})}};
 
-    REQUIRE(escouade.attaquer(monstres, carte, generateur).empty());
+    REQUIRE(escouade.attaquer(s_dureeTic, monstres, carte, generateur).empty());
 }
 
 TEST_CASE("Autodefense : un monstre a portee et en vue est frappe") {
@@ -144,7 +144,7 @@ TEST_CASE("Autodefense : un monstre a portee et en vue est frappe") {
     Escouade escouade({200.0f, 200.0f});
     const std::vector<MonstreVu> monstres = {MonstreVu{1, cibleMonstre({100.0f, 235.0f})}};
 
-    const std::vector<Coup> coups = escouade.attaquer(monstres, carte, generateur);
+    const std::vector<Coup> coups = attaquerJusquAuDepart(escouade, monstres, carte, generateur);
 
     REQUIRE_FALSE(coups.empty());
     REQUIRE(coups[0].idMonstre == 1);
@@ -159,7 +159,7 @@ TEST_CASE("Autodefense : le monstre le plus proche est cache, l'autre est frappe
         MonstreVu{2, cibleMonstre({185.0f, 130.0f})},  // plus loin, en vue
     };
 
-    const std::vector<Coup> coups = escouade.attaquer(monstres, carte, generateur);
+    const std::vector<Coup> coups = attaquerJusquAuDepart(escouade, monstres, carte, generateur);
 
     REQUIRE_FALSE(coups.empty());
     for (const Coup& coup : coups) {
@@ -186,7 +186,7 @@ TEST_CASE("Combat verrouille : une cible a portee mais cachee ne fait pas arrete
     const std::vector<MonstreVu> monstres = {MonstreVu{1, cibleMonstre({320.0f, 235.0f})}};
 
     for (int i = 0; i < 20; ++i) {
-        static_cast<void>(escouade.attaquer(monstres, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
+        static_cast<void>(escouade.attaquer(s_dureeTic, monstres, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
         escouade.mettreAJour(0.016f, carte, {}, generateur);
     }
 
@@ -203,7 +203,7 @@ TEST_CASE("Combat verrouille : une cible a portee et en vue fait arreter l'ancre
     const std::vector<MonstreVu> monstres = {MonstreVu{1, cibleMonstre({100.0f, 235.0f})}};
 
     for (int i = 0; i < 20; ++i) {
-        static_cast<void>(escouade.attaquer(monstres, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
+        static_cast<void>(escouade.attaquer(s_dureeTic, monstres, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
         escouade.mettreAJour(0.016f, carte, {}, generateur);
     }
 
@@ -217,10 +217,10 @@ TEST_CASE("Agresseur a portee mais cache : le personnage va vers lui") {
     const std::vector<MonstreVu> monstres = {MonstreVu{1, cibleMonstre({283.0f, 235.0f})}};
     escouade.recevoirDegats(1, {283.0f, 235.0f}, 1);  // enregistre l'agresseur (touche le plus proche)
     const sf::Vector2f depart = escouade.cerclesDesVivants()[3].centre;
-    static_cast<void>(escouade.attaquer(monstres, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
+    static_cast<void>(escouade.attaquer(s_dureeTic, monstres, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
 
     for (int i = 0; i < 20; ++i) {
-        static_cast<void>(escouade.attaquer(monstres, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
+        static_cast<void>(escouade.attaquer(s_dureeTic, monstres, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
         escouade.mettreAJour(0.016f, carte, {}, generateur);
     }
 
@@ -273,11 +273,11 @@ TEST_CASE("Skill de degats en attente derriere un mur : il part des que la vue e
     REQUIRE(escouade.declencherSkill(1, monstres, carte, generateur).empty());
 
     // Tant que le mur est là, le skill reste en attente : seule l'attaque de base du mêlée (5) pourrait partir, et elle ne part pas non plus.
-    REQUIRE(escouade.attaquer(monstres, carte, generateur).empty());
+    REQUIRE(escouade.attaquer(s_dureeTic, monstres, carte, generateur).empty());
     REQUIRE(escouade.skillEstPret(1));
 
     // La vue est obtenue (la carte n'a plus de mur) : le skill part avec ses 25 dégâts.
-    const std::vector<Coup> coups = escouade.attaquer(monstres, carteOuverte(), generateur);
+    const std::vector<Coup> coups = escouade.attaquer(s_dureeTic, monstres, carteOuverte(), generateur);
     REQUIRE_FALSE(coups.empty());
     REQUIRE(coups[0].idMonstre == 1);
     REQUIRE(coups[0].degats == 25);

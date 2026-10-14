@@ -18,8 +18,11 @@ public:
     sf::Vector2f getCentre() const;
     sf::Vector2f getTaille() const;
     std::optional<sf::Vector2f> directionVoulue() const;
-    // Vrai tant qu'un point du chemin reste à atteindre : un mobile bloqué qui
-    // essaie d'avancer est donc en mouvement.
+    // Vrai si, au dernier tic, le mobile avait un point à atteindre à plus de
+    // quelques centièmes de pixel, qu'il ait pu avancer ou non : un mobile
+    // bloqué qui essaie d'avancer est en mouvement, un mobile qui vient
+    // d'arriver l'est encore pour ce tic. Faux avant le premier tic et après
+    // arreter().
     [[nodiscard]] bool estEnMouvement() const;
 
 private:
@@ -28,4 +31,5 @@ private:
     std::vector<sf::Vector2f> m_chemin; // points (centre) à atteindre, en pixels du monde
     std::size_t m_indexChemin;          // indice du prochain point de m_chemin à atteindre
     float m_vitesse;                    // en pixels par seconde
+    bool m_enMouvement;                 // voir estEnMouvement()
 };

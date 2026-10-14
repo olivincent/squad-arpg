@@ -20,7 +20,13 @@ public:
     void dessiner(sf::RenderTarget& rendu) const;
     void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte, const std::vector<Cercle>& obstacles);
     [[nodiscard]] bool estAPortee(Cercle cible) const;
-    [[nodiscard]] int frapper(Cercle cible, Generateur& generateur);
+    // Attaque de base en trois temps : engager (vivant, immobile, attaque
+    // prête) ; avancer l'exécution, qui rend les dégâts au moment où le coup
+    // part ; annuler, sans recharge consommée.
+    bool engagerAttaque(int idCible);
+    std::optional<int> cibleEngagee() const;
+    [[nodiscard]] int avancerAttaque(float dt, Generateur& generateur);
+    void annulerAttaque();
     std::optional<TypeSkill> typeSkill() const;
     bool skillEstPret() const;
     std::optional<EtatSkill> etatDuSkill() const;
@@ -45,4 +51,5 @@ private:
     std::optional<sf::Vector2f> m_cibleChemin; // cible du dernier A* ; vide = pas de chemin en cours
     PointsDeVie m_pointsDeVie;
     int m_armure;
+    std::optional<int> m_idCibleEngagee; // monstre visé par le coup en exécution ; lu seulement pendant l'exécution
 };

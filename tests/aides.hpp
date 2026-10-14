@@ -114,12 +114,27 @@ inline void simuler(Escouade& escouade, const TileMap& carte, float dureeSeconde
     }
 }
 
-// Appelle attaquer() avec un seul monstre (identifiant 1) et renvoie le
-// total des dégâts de la liste de coups.
+// Appelle attaquer() par tics de 1/60 s pendant 0,2 s : un peu plus que
+// l'exécution de l'attaque de base (0,15 s), moins que sa plus petite recharge
+// (0,3 s). Chaque personnage qui atteint un monstre l'engage au premier tic et
+// le frappe une fois, au plus ; renvoie tous les coups partis. Aucun
+// mettreAJour : personne ne bouge, personne n'est donc « en mouvement ».
+inline std::vector<Coup> attaquerJusquAuDepart(Escouade& escouade, const std::vector<MonstreVu>& monstres, const TileMap& carte,
+                                               Generateur& generateur) {
+    std::vector<Coup> coups;
+    for (int i = 0; i < nombreDeTics(0.2f); ++i) {
+        const std::vector<Coup> coupsDuTic = escouade.attaquer(s_dureeTic, monstres, carte, generateur);
+        coups.insert(coups.end(), coupsDuTic.begin(), coupsDuTic.end());
+    }
+    return coups;
+}
+
+// Comme attaquerJusquAuDepart() avec un seul monstre (identifiant 1) ; renvoie
+// le total des dégâts de la liste de coups.
 inline int attaquerCible(Escouade& escouade, const TileMap& carte, Cercle cible) {
     int total = 0;
     Generateur generateur = generateurDeTest();
-    for (const Coup& coup : escouade.attaquer({MonstreVu{1, cible}}, carte, generateur)) {
+    for (const Coup& coup : attaquerJusquAuDepart(escouade, {MonstreVu{1, cible}}, carte, generateur)) {
         total += coup.degats;
     }
     return total;

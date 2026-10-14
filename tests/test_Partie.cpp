@@ -126,8 +126,10 @@ TEST_CASE("un skill et attaquer dans la meme image ne frappent pas deux fois le 
     // frappe pas avec son attaque de base dans la même image.
     Partie partie(niveauDegage({{235.0f, 150.0f}}), s_graineDeTest);
 
+    // 0,25 s : les tireurs ont eu le temps d'exécuter leur coup (0,15 s),
+    // pas le mêlée, dont la recharge a été relancée au complet (au moins 0,3 s).
     partie.demanderSkill(1);
-    partie.mettreAJour(s_dureeTic);
+    avancer(partie, nombreDeTics(0.25f));
 
     REQUIRE(partie.getMonstres().front().getPointsDeVie() == 100 - 25 - 5 - 5);
 }

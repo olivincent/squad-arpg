@@ -48,6 +48,7 @@ public:
     TypeSkill getType() const;
     float getRayonZone() const;
     float getPortee() const;
+    int getPuissance() const;
 
 private:
     TypeSkill m_type;

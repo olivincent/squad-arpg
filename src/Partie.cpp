@@ -25,6 +25,7 @@ ResultatClic Partie::cliquer(sf::Vector2f point) {
         return ResultatClic::Monstre;
     }
     m_escouade.deverrouiller();
+    m_escouade.annulerAttaquesEngagees();
     return ResultatClic::Sol;
 }
 
@@ -55,7 +56,7 @@ void Partie::appliquer(const std::vector<Coup>& coups) {
     }
 }
 
-void Partie::resoudreLesCoups() {
+void Partie::resoudreLesCoups(float dt) {
     // Monstre verrouillé : vide s'il n'y en a pas, ou s'il a disparu.
     std::optional<int> idVerrouille = m_escouade.getCibleVerrouillee();
     if (idVerrouille.has_value() && trouverMonstre(*idVerrouille) == nullptr) {
@@ -83,7 +84,7 @@ void Partie::resoudreLesCoups() {
     // Les coups sont demandés à chaque image, verrou ou non : chaque
     // personnage vivant frappe de lui-même un monstre à sa portée.
     if (m_escouade.estVivante()) {
-        appliquer(m_escouade.attaquer(monstresVus, m_carte, m_generateur));
+        appliquer(m_escouade.attaquer(dt, monstresVus, m_carte, m_generateur));
         if (idVerrouille.has_value()) {
             const Monstre* verrouille = trouverMonstre(*idVerrouille);
             if (verrouille != nullptr && !verrouille->estVivant()) {
@@ -124,7 +125,7 @@ void Partie::mettreAJour(float dt) {
     if (estPerdue()) {
         return;
     }
-    resoudreLesCoups();
+    resoudreLesCoups(dt);
 
     if (m_deplacementOrdonne.has_value() && m_escouade.estVivante()) {
         m_escouade.allerVers(*m_deplacementOrdonne, m_carte);

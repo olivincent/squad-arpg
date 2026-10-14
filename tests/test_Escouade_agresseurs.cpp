@@ -141,7 +141,7 @@ TEST_CASE("attaquer retire l'agresseur absent de la liste et met a jour le cercl
     escouade.recevoirDegats(7, {300.0f, 60.0f}, 10);
     escouade.recevoirDegats(8, {310.0f, 60.0f}, 10);
 
-    static_cast<void>(escouade.attaquer({MonstreVu{8, cibleMonstre({320.0f, 70.0f})}}, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
+    static_cast<void>(escouade.attaquer(s_dureeTic, {MonstreVu{8, cibleMonstre({320.0f, 70.0f})}}, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
 
     const auto& agresseurs = escouade.getAgresseurs();
     REQUIRE(agresseurs.size() == 1);
@@ -157,7 +157,7 @@ namespace {
 void simulerAvecMonstre(Escouade& escouade, const TileMap& carte, Cercle monstre, int tics) {
     Generateur generateur = generateurDeTest();
     for (int i = 0; i < tics; ++i) {
-        static_cast<void>(escouade.attaquer({MonstreVu{1, monstre}}, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
+        static_cast<void>(escouade.attaquer(s_dureeTic, {MonstreVu{1, monstre}}, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
         escouade.mettreAJour(1.0f / 60.0f, carte, {monstre}, generateur);
     }
 }
@@ -294,7 +294,7 @@ TEST_CASE("attaquer retire la provocation d'un monstre absent de la liste") {
     escouade.provoquer(7, 2, 4.0f);
     escouade.provoquer(8, 2, 4.0f);
 
-    static_cast<void>(escouade.attaquer({MonstreVu{8, cibleMonstre({300.0f, 60.0f})}}, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
+    static_cast<void>(escouade.attaquer(s_dureeTic, {MonstreVu{8, cibleMonstre({300.0f, 60.0f})}}, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
 
     const auto& provocations = escouade.getProvocations();
     REQUIRE(provocations.size() == 1);
