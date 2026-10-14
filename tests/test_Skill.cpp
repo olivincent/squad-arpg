@@ -268,3 +268,99 @@ TEST_CASE("Skill.relancerRecharge tire aussi dans l'intervalle") {
     REQUIRE(skill.getRechargeRestante() <= 0.7f);
     REQUIRE(skill.getProgressionRecharge() == 0.0f);
 }
+
+// Machine à états : prêt, en exécution, en recharge.
+
+TEST_CASE("Skill.commencer passe en execution depuis pret seulement") {
+    Skill skill(TypeSkill::Degats, 80.0f, 25, 1.0f, 1.0f, 0.0f, 0.5f);
+
+    REQUIRE(skill.getPhase() == PhaseSkill::Pret);
+    REQUIRE(skill.commencer());
+    REQUIRE(skill.getPhase() == PhaseSkill::EnExecution);
+    REQUIRE_FALSE(skill.commencer());
+    REQUIRE(skill.getPhase() == PhaseSkill::EnExecution);
+}
+
+TEST_CASE("Skill.avancer fait partir le coup une seule fois a la fin de l'execution") {
+    Generateur generateur = generateurDeTest();
+    Skill skill(TypeSkill::Degats, 80.0f, 25, 1.0f, 1.0f, 0.0f, 0.5f);
+    REQUIRE(skill.commencer());
+
+    int departs = 0;
+    for (int i = 0; i < nombreDeTics(0.4f); ++i) {
+        departs += skill.avancer(s_dureeTic, generateur) ? 1 : 0;
+    }
+    REQUIRE(departs == 0);
+    REQUIRE(skill.getPhase() == PhaseSkill::EnExecution);
+
+    for (int i = 0; i < nombreDeTics(0.4f); ++i) {
+        departs += skill.avancer(s_dureeTic, generateur) ? 1 : 0;
+    }
+    REQUIRE(departs == 1);
+    REQUIRE(skill.getPhase() == PhaseSkill::EnRecharge);
+}
+
+TEST_CASE("Skill.avancer tire la recharge au depart du coup puis revient a pret") {
+    Generateur generateur = generateurDeTest();
+    Skill skill(TypeSkill::Degats, 80.0f, 25, 1.0f, 1.0f, 0.0f, 0.5f);
+    REQUIRE(skill.commencer());
+    REQUIRE_FALSE(skill.avancer(0.4f, generateur));
+    REQUIRE(skill.getRechargeRestante() == 0.0f);
+
+    REQUIRE(skill.avancer(0.2f, generateur));
+    REQUIRE(skill.getRechargeRestante() == 1.0f);
+
+    REQUIRE_FALSE(skill.avancer(0.6f, generateur));
+    REQUIRE(skill.getPhase() == PhaseSkill::EnRecharge);
+    REQUIRE_FALSE(skill.commencer());
+
+    REQUIRE_FALSE(skill.avancer(0.6f, generateur));
+    REQUIRE(skill.getPhase() == PhaseSkill::Pret);
+    REQUIRE(skill.commencer());
+}
+
+TEST_CASE("Skill.annuler revient a pret sans consommer de recharge") {
+    Generateur generateur = generateurDeTest();
+    Skill skill(TypeSkill::Degats, 80.0f, 25, 1.0f, 1.0f, 0.0f, 0.5f);
+    REQUIRE(skill.commencer());
+    REQUIRE_FALSE(skill.avancer(0.2f, generateur));
+
+    skill.annuler();
+
+    REQUIRE(skill.getPhase() == PhaseSkill::Pret);
+    REQUIRE(skill.getRechargeRestante() == 0.0f);
+    REQUIRE(skill.commencer());
+}
+
+TEST_CASE("Skill.annuler ne touche pas une recharge en cours") {
+    Generateur generateur = generateurDeTest();
+    Skill skill(TypeSkill::Degats, 80.0f, 25, 1.0f, 1.0f, 0.0f, 0.0f);
+    REQUIRE(skill.commencer());
+    REQUIRE(skill.avancer(0.0f, generateur));
+
+    skill.annuler();
+
+    REQUIRE(skill.getPhase() == PhaseSkill::EnRecharge);
+    REQUIRE(skill.getRechargeRestante() == 1.0f);
+}
+
+TEST_CASE("Skill a execution nulle : le coup part des le premier avancer") {
+    Generateur generateur = generateurDeTest();
+    Skill skill(TypeSkill::Degats, 80.0f, 25, 1.0f, 1.0f, 0.0f, 0.0f);
+    REQUIRE(skill.commencer());
+
+    REQUIRE(skill.avancer(s_dureeTic, generateur));
+    REQUIRE(skill.getPhase() == PhaseSkill::EnRecharge);
+}
+
+TEST_CASE("Skill.declencher n'est possible que depuis pret") {
+    Generateur generateur = generateurDeTest();
+    Skill skill(TypeSkill::Degats, 80.0f, 25, 1.0f, 1.0f, 0.0f, 0.5f);
+    const Cercle origine = pointCible({100.0f, 100.0f});
+    const Cercle cible = pointCible({150.0f, 100.0f});
+    REQUIRE(skill.commencer());
+
+    REQUIRE(skill.declencher(origine, cible, generateur) == 0);
+    REQUIRE(skill.declencherSansCible(generateur) == 0);
+    REQUIRE(skill.getPhase() == PhaseSkill::EnExecution);
+}

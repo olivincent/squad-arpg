@@ -3,7 +3,8 @@
 #include <cassert>
 #include <random>
 
-Skill::Skill(TypeSkill type, float portee, int puissance, float rechargeMin, float rechargeMax, float rayonZone)
+Skill::Skill(TypeSkill type, float portee, int puissance, float rechargeMin, float rechargeMax, float rayonZone,
+             float tempsExecution)
     : m_type(type),
       m_portee(portee),
       m_puissance(puissance),
@@ -11,9 +12,13 @@ Skill::Skill(TypeSkill type, float portee, int puissance, float rechargeMin, flo
       m_rechargeMax(rechargeMax),
       m_tempsRecharge(rechargeMax),
       m_recharge(0.0f),
-      m_rayonZone(rayonZone)
+      m_rayonZone(rayonZone),
+      m_tempsExecution(tempsExecution),
+      m_executionRestante(0.0f),
+      m_phase(PhaseSkill::Pret)
 {
     assert(rechargeMin >= 0.0f && rechargeMin <= rechargeMax);
+    assert(tempsExecution >= 0.0f);
 }
 
 // Recharge fixe (aucun tirage) si les deux bornes sont égales ; sinon tirage
@@ -30,6 +35,43 @@ void Skill::mettreAJour(float dt) {
     if (m_recharge < 0.0f) {
         m_recharge = 0.0f;
     }
+    if (m_phase == PhaseSkill::EnRecharge && m_recharge <= 0.0f) {
+        m_phase = PhaseSkill::Pret;
+    }
+}
+
+bool Skill::commencer() {
+    if (m_phase != PhaseSkill::Pret) {
+        return false;
+    }
+    m_phase = PhaseSkill::EnExecution;
+    m_executionRestante = m_tempsExecution;
+    return true;
+}
+
+bool Skill::avancer(float dt, Generateur& generateur) {
+    if (m_phase != PhaseSkill::EnExecution) {
+        mettreAJour(dt);
+        return false;
+    }
+
+    m_executionRestante -= dt;
+    if (m_executionRestante > 0.0f) {
+        return false;
+    }
+
+    relancerRecharge(generateur);
+    return true;
+}
+
+void Skill::annuler() {
+    if (m_phase == PhaseSkill::EnExecution) {
+        m_phase = PhaseSkill::Pret;
+    }
+}
+
+PhaseSkill Skill::getPhase() const {
+    return m_phase;
 }
 
 bool Skill::estAPortee(Cercle origine, Cercle cible) const {
@@ -37,7 +79,7 @@ bool Skill::estAPortee(Cercle origine, Cercle cible) const {
 }
 
 int Skill::declencher(Cercle origine, Cercle cible, Generateur& generateur) {
-    if (!estAPortee(origine, cible) || m_recharge > 0.0f) {
+    if (!estAPortee(origine, cible) || m_phase != PhaseSkill::Pret) {
         return 0;
     }
 
@@ -46,7 +88,7 @@ int Skill::declencher(Cercle origine, Cercle cible, Generateur& generateur) {
 }
 
 int Skill::declencherSansCible(Generateur& generateur) {
-    if (m_recharge > 0.0f) {
+    if (m_phase != PhaseSkill::Pret) {
         return 0;
     }
 
@@ -57,6 +99,7 @@ int Skill::declencherSansCible(Generateur& generateur) {
 void Skill::relancerRecharge(Generateur& generateur) {
     m_tempsRecharge = tirerRecharge(generateur);
     m_recharge = m_tempsRecharge;
+    m_phase = m_recharge > 0.0f ? PhaseSkill::EnRecharge : PhaseSkill::Pret;
 }
 
 float Skill::getProgressionRecharge() const {
