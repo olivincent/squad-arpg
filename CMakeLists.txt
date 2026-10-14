@@ -33,6 +33,7 @@ add_library(squad_core STATIC
     src/Cercle.cpp
     src/Autodefense.cpp
     src/BarreDeSkills.cpp
+    src/EcranDeDefaite.cpp
     src/MonstreVu.cpp
     src/BarreDeVie.cpp
     src/PointsDeVie.cpp

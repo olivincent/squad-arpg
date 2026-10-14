@@ -8,6 +8,7 @@
 #include <optional>
 #include "BarreDeSkills.hpp"
 #include "Controleur.hpp"
+#include "EcranDeDefaite.hpp"
 #include "EtatSkill.hpp"
 #include "Niveau.hpp"
 #include "Partie.hpp"
@@ -82,6 +83,9 @@ int main() {
             etatsDesSkills[i] = partie.getEscouade().etatDuSkill(i + 1);
         }
         dessinerBarreDeSkills(window, police, etatsDesSkills, controleur.getPlaceEnVisee());
+        if (partie.estPerdue()) {
+            dessinerEcranDeDefaite(window, police);
+        }
         window.display();
     }
     return 0;
