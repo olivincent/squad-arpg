@@ -129,6 +129,14 @@
     d'aide `amenerEnRetourHorsTerritoire` fait sortir le monstre du
     territoire. Piège : une cible à `(400, 100)` est dans un mur sur
     `carteDegagee10x10` (10 cases de 40 px), le A* échoue.
+  - **Groupe et alerte** (étape 64) : `getGroupe`, et trois cas
+    `alerter` (en garde dans le territoire, hors territoire, en
+    poursuite) sur le même modèle que « Coup reçu ». Côté `Partie`
+    (`test_Partie.cpp`, aide `niveauDegageEnGroupes`) : voisin de groupe
+    alerté hors détection, autre groupe non alerté, monstre seul,
+    personne alerté sans poursuite, skill de zone sur un monstre. Côté
+    générateur : groupe commun dans une salle, groupes distincts entre
+    salles, pas de numéro sauté.
   - **`mettreAJour` : détection, arrêt à portée** : depuis
     que `Monstre` se déplace par son propre `Mobile`, la fonction
     d'aide `ecoulerTemps(monstre, duree, cible, carte)` prend en plus une

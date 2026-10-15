@@ -250,6 +250,10 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
      au bout de 0,3 s sur la place retenue (`escouade.recevoirCoup`), annulé
      si ce personnage est mort ; sinon, un monstre immobile avec une proie à
      portée engage un coup (voir `docs/combat.md`).
+- **Alerte du groupe** (étape 64) : avant la boucle, le statut « en poursuite »
+  de chaque monstre est noté ; après, `alerterLesGroupes` alerte les membres
+  des groupes dont un monstre vient d'entrer en poursuite (voir
+  `docs/monstre.md`).
 - **Indépendant du verrou** : un monstre poursuit et riposte dès qu'un
   personnage vivant est à sa portée.
 

@@ -163,7 +163,7 @@ Données membres : `m_largeur`, `m_hauteur` (cases), `m_tailleCase`
 
 Données membres : `struct Niveau { std::vector<std::string> plan; float
 tailleCase; sf::Vector2f departEscouade; std::vector<sf::Vector2f>
-positionsMonstres; int armureMonstres; }`, et la constante
+monstres; int armureMonstres; }`, où `monstres` est un `std::vector<MonstreDuNiveau>` (`struct MonstreDuNiveau { sf::Vector2f position; int groupe; }`, groupe : identifiant opaque, même valeur = « vont ensemble »), et la constante
 `s_armureMonstresParDefaut` (20), partagée par `creerNiveau()` et
 `genererNiveau()`.
 
@@ -193,7 +193,7 @@ VerticalPuisHorizontal }`.
 | `void creuserSalle(std::vector<std::string>& plan, const Salle&)` | Transforme l'emprise en sol (aujourd'hui tout le rectangle) |
 | `std::vector<Liaison> choisirLiaisons(const std::vector<Salle>&)` | Sans aléatoire : chaque salle i ≥ 1 est reliée à la plus proche (distance au carré entre centres) parmi les salles 0 à i−1 ; égalité : le plus petit indice ; n−1 liaisons |
 | `void creuserCouloir(std::vector<std::string>& plan, sf::Vector2i depart, sf::Vector2i arrivee, SensCouloir, int largeur)` | Couloir en L de `largeur` cases (étendue vers le bas et la droite), coude plein, départ et arrivée en sol |
-| `std::vector<sf::Vector2f> placerMonstres(Generateur&, const std::vector<Salle>&, sf::Vector2f depart, const ParametresDonjon&)` | Aucun monstre dans la salle 0 ; dans chaque autre, un nombre tiré dans [min, max] de monstres, au centre d'une case intérieure (une case de marge). Rejet, `tentativesParMonstre` essais, monstre abandonné sinon : position à moins de 2 cases (Tchebychev) d'un monstre placé, ou à moins de `distanceMinDepart` px de `depart` |
+| `std::vector<MonstreDuNiveau> placerMonstres(Generateur&, const std::vector<Salle>&, sf::Vector2f depart, const ParametresDonjon&)` | Groupe : compteur qui augmente de 1 pour chaque salle qui reçoit au moins un monstre, partagé par les monstres de la salle. Aucun monstre dans la salle 0 ; dans chaque autre, un nombre tiré dans [min, max] de monstres, au centre d'une case intérieure (une case de marge). Rejet, `tentativesParMonstre` essais, monstre abandonné sinon : position à moins de 2 cases (Tchebychev) d'un monstre placé, ou à moins de `distanceMinDepart` px de `depart` |
 | `Niveau genererNiveau(Generateur&, const ParametresDonjon&)` | Plan tout en mur, salles creusées, puis un couloir par liaison (sens tiré au hasard, un tirage par liaison) entre les centres ; départ de l'escouade au centre en pixels de la première salle, monstres de `placerMonstres` (appelée en dernier), `armureMonstres` = `s_armureMonstresParDefaut` |
 
 ### `Partie` — les règles de jeu
@@ -424,12 +424,15 @@ paramètres.
 Données membres : `m_mobile`, `m_pointsDeVie` (`PointsDeVie`), `m_armure` (`int`), `m_id`,
 `m_attaque`, `m_rayonDetection`, `m_rayonTerritoire`, `m_etat` (`Etat`,
 `enum class` privé : `EnGarde`, `Poursuite`, `Retour`), `m_poste`,
-`m_vientDEtreTouche` (`bool`, posé par `recevoirDegats` si dégâts `> 0`,
+`m_groupe` (`int`, opaque), `m_alerte` (`bool`, posé par `alerter`,
 consommé par `mettreAJour`), `m_idProieEngagee` (`std::optional<int>`, place du personnage visé par le coup en exécution).
 
 | Fonction | Rôle |
 |---|---|
-| `Monstre(sf::Vector2f centre, int id, int armure)` | Crée le monstre à ce centre, avec cet identifiant, cette armure (20, donnée par `Niveau`) et 100 points de vie ; son poste est ce centre |
+| `Monstre(sf::Vector2f centre, int id, int armure, int groupe)` | Crée le monstre à ce centre, avec cet identifiant, cette armure (20, donnée par `Niveau`), ce groupe (donné par `Niveau`) et 100 points de vie ; son poste est ce centre |
+| `int getGroupe() const` | Identifiant de groupe ; `[[nodiscard]]` |
+| `void alerter()` | Demande d'entrer en poursuite de sa proie habituelle, même hors de la détection, si le monstre est dans son territoire ; prise en compte au prochain `mettreAJour`, sans effet en poursuite. `recevoirDegats` (dégâts `> 0`) l'appelle |
+| `bool estEnPoursuite() const` | Statut « attaque » (`Etat::Poursuite`), lu par `Partie` ; `[[nodiscard]]` |
 | `void dessiner(sf::RenderTarget& rendu, bool estCible) const` | Dessine le monstre (éclairci de 50 % pendant l'exécution d'un coup) et sa barre de vie ; ajoute un contour jaune si `estCible` |
 | `void mettreAJour(float dt, std::optional<Cercle> cible, const TileMap& carte, const std::vector<Cercle>& obstacles)` | Décrémente la recharge. Pendant l'exécution d'un coup : arrête le monstre et le déplace (immobile), sans toucher à l'état. Sinon met à jour l'état (détection soumise à la ligne de vue, `proieDetectee` ; la poursuite ne dépend pas de la vue) et donne ses ordres à `m_mobile` (poursuite, arrêt dès que `peutAtteindre`, retour au poste), puis le déplace ; `obstacles` lui est transmis |
 | `bool peutAtteindre(Cercle proie, const TileMap& carte) const` | La proie est-elle à portée d'attaque (bord à bord) ET en vue (`ligneDeVue`, centre à centre) ? Même règle que `Escouade::peutAtteindre` ; `[[nodiscard]]` |

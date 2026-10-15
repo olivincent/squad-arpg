@@ -88,6 +88,15 @@ le départ. La règle ne fait pas disparaître le cas : en explorant, un monstre
 peut encore détecter l'escouade à travers un mur et faire le tour par le
 couloir (limite connue, voir `ROADMAP.md`).
 
+**Groupes** (étape 64) : `placerMonstres` renvoie des `MonstreDuNiveau`
+(position, groupe). Le groupe vient d'un compteur qui augmente de 1 pour chaque
+salle qui reçoit au moins un monstre ; tous les monstres d'une salle le
+partagent. On n'utilise PAS l'indice de la salle : l'identifiant doit rester
+opaque (« ces monstres vont ensemble »), et un lecteur croirait sinon que
+groupe = salle ; une salle restée vide ne laisse pas de trou dans la
+numérotation. Le compteur ne tire rien : les graines donnent les mêmes
+positions qu'avant.
+
 **Armure** : `s_armureMonstresParDefaut` (20, `Niveau.hpp`) est partagée par
 `creerNiveau()` et `genererNiveau()`. Elle n'est pas dans `ParametresDonjon`.
 

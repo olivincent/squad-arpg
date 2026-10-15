@@ -71,24 +71,25 @@ est dans `docs/historique.md`.
 - Étape 61 — Génération procédurale : monstres, touche R et F5 ✅
 - Étape 62 — Ligne de vue des monstres et nettoyage de Skill ✅
 - Étape 63 — Objectif et victoire ✅
+- Étape 64 — Groupes de monstres : alerte du groupe ✅
 
-## Étape 64 (à définir)
+## Étape 65 (prévue)
 
-Prochaine étape à choisir avec Claude.ai (voir les pistes ci-dessous et
-`docs/brainstorm.md`).
+Séparer la proie d'un monstre (celle qu'il poursuit, sans dépendre de la
+vue) de sa cible de frappe (celle qui est à portée ET en vue). À préciser
+avec Claude.ai (voir aussi `docs/brainstorm.md`).
 
 Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes) :
 - Skill en attente par personnage (aujourd'hui un seul pour l'escouade)
 - Interruption de l'activation d'un skill par les dégâts reçus
-- Séparer la proie d'un monstre (poursuite, sans vue) de sa cible de
-  frappe (à portée et en vue)
 - Vitesse relative escouade/monstres comme levier contre le kiting
 - Ralentissement de l'escouade engagée
 - Attaque d'opportunité au désengagement
 - Classe `Arme` qui fournit l'intervalle de recharge de l'attaque de base
   (aujourd'hui écrit dans `Escouade.cpp` et `Monstre.cpp`)
 - Le monstre touché se jette sur l'auteur du coup (mémoire de
-  l'attaquant), aggro sociale des voisins, effet visuel d'alerte
+  l'attaquant), effet visuel d'alerte, alerte par proximité ou par le bruit
+  d'un groupe à l'autre, chef de groupe, retour au poste en groupe
 - Effet visuel à l'impact du skill de zone
 - Indicateur visuel du monstre provoqué
 - L'escouade poursuit d'elle-même un monstre qui l'attaque (écartée pour
@@ -338,17 +339,28 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   territoire relance la poursuite. Il frappe sa proie (le personnage vivant le plus
   proche, ou le provocateur) dès qu'elle est à portée ET en vue, attaqué ou non ; un monstre touché
   s'active même sans voir son agresseur. Un monstre mort est
-  retiré.
+  retiré. **Groupes** (étape 64) : chaque monstre a un identifiant de
+  groupe opaque (`Monstre::getGroupe()`), fixé à la construction : sur la
+  carte générée, un groupe par salle peuplée ; sur la carte à la main, un
+  groupe par monstre sauf les deux de `(1500, 540)` et `(1620, 540)`, qui
+  partagent le leur. Quand un monstre passe en poursuite (depuis « en garde »
+  ou « retour »), `Partie` appelle `Monstre::alerter()` sur les autres
+  membres de son groupe : même règle que le réveil par les dégâts (proie
+  existante ET monstre dans son territoire, sinon rien). Les alertés
+  commencent à bouger à l'image suivante, et sont tous alertés d'un coup
+  (pas de chaîne vers un autre groupe) ; le retour au poste reste
+  individuel. Un monstre touché par un skill de zone de loin alerte donc
+  toute sa salle.
 - **Blocage mutuel** : les monstres se bloquent entre eux et sont bloqués
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 503 tests : 47 sur `GenerateurDonjon`, 38 sur `TileMap`, 17 sur `Chemin`, 163
+  (`./build/tests.exe`, 515 tests : 50 sur `GenerateurDonjon`, 38 sur `TileMap`, 17 sur `Chemin`, 163
   sur `Escouade` en cinq fichiers par thème — 22 déplacement, 27 combat, 70
-  skills, 26 agresseurs, 18 vue —, 12 sur `Deplacement`, 50 sur `Monstre`,
+  skills, 26 agresseurs, 18 vue —, 12 sur `Deplacement`, 54 sur `Monstre`,
   46 sur `Personnage`, 24 sur `Skill`, 17 sur `Mobile`, 2 sur `Eclaircir`, 4 sur `Cercle`, 13
   sur `Autodefense`, 7 sur `BarreDeSkills`, 4 sur `MonstreVu`, 1 sur
-  `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 20 sur `Partie`, 7 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
+  `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 25 sur `Partie`, 7 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
   accents (`./build/tests.exe "*a portee*"` filtre) ; rotation de la
   formation et `provoquer` à une place invalide couverts.
 

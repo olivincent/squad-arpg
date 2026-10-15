@@ -116,9 +116,9 @@ déplacement par chemin dans `docs/chemin.md`.
 
 ## Coup reçu
 
-- **`m_vientDEtreTouche`**, posé par `recevoirDegats` si les dégâts sont
-  `> 0` (un coup de 0 ne réveille personne). `mettreAJour` calcule
-  `reveilleParCoup` : touché ET proie existante ET monstre à
+- **`m_alerte`**, posé par `alerter()`, que `recevoirDegats` appelle si les
+  dégâts sont `> 0` (un coup de 0 ne réveille personne). `mettreAJour`
+  calcule `alerte` : alerté ET proie existante ET monstre à
   `<= m_rayonTerritoire` de son poste. Il s'ajoute à `proieDetectee` en
   `EnGarde` et en `Retour` (même priorité, donc avant le test d'arrivée
   au poste). En `Poursuite`, être touché ne change rien.
@@ -135,6 +135,35 @@ déplacement par chemin dans `docs/chemin.md`.
 - **La proie reste la proie habituelle** (provocateur, sinon personnage
   le plus proche) : le monstre ne se jette pas sur l'auteur du coup.
   `Coup`, `Escouade` et `main.cpp` n'ont pas changé.
+
+## Groupe et alerte (étape 64)
+
+- **`m_groupe` est un identifiant opaque** : il dit seulement « ces monstres
+  vont ensemble ». `Monstre` ne sait pas que c'est une salle et ne connaît pas
+  les autres monstres ; le champ n'est jamais nommé d'après une salle.
+- **`alerter()` est la seule règle de réveil hors détection** : le réveil par
+  les dégâts (étape 47) et l'alerte du groupe passent par elle, donc par la
+  même condition (proie existante, monstre dans son territoire). Alerter un
+  monstre déjà en poursuite ne fait rien (l'indicateur est consommé à chaque
+  `mettreAJour`). Un monstre en exécution de coup garde l'alerte jusqu'à la
+  fin du coup.
+- **`Partie` est le médiateur** : elle note `estEnPoursuite()` de chaque
+  monstre avant leur mise à jour, puis repère ceux qui viennent de passer en
+  poursuite (depuis « en garde » ou « retour ») et alerte les autres membres
+  de leur groupe. `Monstre` ne retient rien pour détecter la transition :
+  `Partie` compare avant et après.
+- **Pas de chaîne** : tous les groupes à alerter sont collectés avant le
+  premier `alerter()`, donc un alerté ne relance pas d'alerte dans la même
+  image. À l'image suivante, il passe en poursuite et `Partie` ré-alerte son
+  groupe, mais le groupe est un ensemble fermé : rien ne passe à un autre
+  groupe, et seul un membre revenu en `Retour` peut être relancé.
+- **L'alerté commence à bouger à l'image suivante** : l'alerte est posée
+  après la mise à jour des monstres (accepté).
+- **Le retour au poste reste individuel** : chacun abandonne selon sa propre
+  distance à son poste.
+- **Limite de test** : « alerté hors de son territoire » est testé sur
+  `Monstre` ; un monstre en retour hors territoire au début d'une image est
+  trop fugace pour un test de `Partie`.
 
 ## Ordres donnés à `Mobile`
 
@@ -194,8 +223,9 @@ déplacement par chemin dans `docs/chemin.md`.
 
 ## Limites connues
 
-- Un monstre touché ne se jette pas sur l'auteur du coup et ses voisins
-  ne s'activent pas.
+- Un monstre touché ne se jette pas sur l'auteur du coup. L'alerte ne
+  se propage qu'au sein d'un groupe : ni par proximité ni par le bruit d'un
+  groupe à l'autre, pas de chef, pas d'effet visuel.
 - Un monstre qui rentre ignore une proie dès qu'elle sort du territoire,
   même si elle reste proche de lui (le filtre `proieDetectee` l'exige par
   construction).
