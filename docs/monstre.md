@@ -17,9 +17,10 @@ déplacement par chemin dans `docs/chemin.md`.
   vivant), ses candidats de frappe (`std::vector<EntiteVue>`) et les
   obstacles en paramètres de `mettreAJour`. C'est `main.cpp` qui fait l'intermédiaire (voir
   `docs/boucle-et-entrees.md` et `docs/combat.md`).
-- **Position et taille portées par `m_mobile`** (30 × 30, 120 px/s — plus
-  lent que les personnages à 240 px/s, pour qu'un groupe reste
-  rattrapable) : une seule copie de ces données. `getCentre`, `contient`,
+- **Position et taille portées par `m_mobile`** (30 × 30, 160 px/s depuis
+  l'étape 69 — plus lent que l'ancre à 180 px/s et que les personnages à
+  240 px/s, pour que la fuite reste possible : l'écart se creuse lentement) :
+  une seule copie de ces données. `getCentre`, `contient`,
   `dessiner` et `getCercle` les lisent via `m_mobile`.
 - **Possédé par `main.cpp`**, pas par `Escouade` : un
   `std::vector<Monstre>` (les monstres du `Niveau`, répartis sur la carte), sans
@@ -79,34 +80,32 @@ déplacement par chemin dans `docs/chemin.md`.
   - `EnGarde` → `Poursuite` si `proieDetectee` ;
   - `Poursuite` → `Retour` si plus de proie, ou si le monstre lui-même
     est à `>` `m_rayonTerritoire` de son poste ;
-  - `Retour` → `Poursuite` si `proieDetectee` (vérifié avant l'arrivée,
-    pour qu'une proie qui redevient pertinente au moment même où le
-    monstre atteint son poste reprenne le dessus) ;
-  - `EnGarde` et `Retour` → `Poursuite` aussi si le monstre vient d'être
-    touché (voir « Coup reçu ») ;
-  - `Retour` → `EnGarde` sinon, une fois arrivé
-    (`m_mobile.directionVoulue()` vide).
+  - `EnGarde` → `Poursuite` aussi si le monstre vient d'être touché (voir
+    « Coup reçu ») ;
+  - `Retour` → `EnGarde` une fois arrivé (`m_mobile.directionVoulue()` vide),
+    et **seulement** alors : depuis l'étape 69, aucune transition de `Retour` vers
+    `Poursuite` (voir « Retour au poste » plus bas).
 
 ## Détection et territoire
 
 - **Le territoire se mesure sur le monstre, pas sur la proie** :
-  `m_rayonTerritoire` (400 px) est la distance maximale entre le
-  **monstre** et son **poste**. Un monstre peut donc poursuivre une proie
-  arbitrairement loin de son point de départ, tant que lui-même ne
-  s'éloigne pas de plus de 400 px de son poste.
+  `m_rayonTerritoire` (`Monstre::s_rayonTerritoire`, 600 px depuis l'étape 69,
+  400 avant) est la distance maximale entre le **monstre** et son **poste**. Un
+  monstre peut donc poursuivre une proie arbitrairement loin de son point de
+  départ, tant que lui-même ne s'éloigne pas de plus de 600 px de son poste.
+  La constante est publique pour que les tests ne recodent pas la valeur.
 - **Détection unique, dans la fonction privée `const`
   `proieDetectee(cible, carte)`** : une proie est détectée si elle existe, si
   elle est à `<=` `m_rayonDetection` (200 px) **du monstre**, à `<=`
   `m_rayonTerritoire` **du poste** ET en vue du monstre
-  (`TileMap::ligneDeVue`, centre à centre, étape 62). La seconde condition est nécessaire :
-  sans elle, un monstre qui vient de rentrer au bord de son territoire
-  redétecterait aussitôt une proie restée à la frontière et tremblerait
-  entre `Poursuite` et `Retour` au lieu de rentrer franchement. La même
-  fonction est appelée en `EnGarde` et en `Retour`, pour que les deux
-  appliquent exactement la même règle.
+  (`TileMap::ligneDeVue`, centre à centre, étape 62). La seconde condition est
+  nécessaire : sans elle, un monstre au bord de son territoire détecterait une
+  proie restée à la frontière et la poursuivrait pour la perdre aussitôt. Elle
+  n'est appelée qu'en `EnGarde` : en `Retour`, le monstre ne détecte plus rien
+  (étape 69).
 - **La vue ne sert qu'à détecter** (étape 62) : en `Poursuite`, le monstre
   ne perd pas sa proie en la perdant de vue ; il la suit par le A* jusqu'à
-  l'abandon habituel (plus de 400 px du poste, ou proie morte). Sinon,
+  l'abandon habituel (plus de 600 px du poste, ou proie morte). Sinon,
   tourner un coin suffirait à semer n'importe quel monstre. Le territoire
   reste une distance pure, et un monstre touché s'active sans vue
   (`reveilleParCoup` ne la regarde pas).
@@ -120,21 +119,61 @@ déplacement par chemin dans `docs/chemin.md`.
   dégâts sont `> 0` (un coup de 0 ne réveille personne). `mettreAJour`
   calcule `alerte` : alerté ET proie existante ET monstre à
   `<= m_rayonTerritoire` de son poste. Il s'ajoute à `proieDetectee` en
-  `EnGarde` et en `Retour` (même priorité, donc avant le test d'arrivée
-  au poste). En `Poursuite`, être touché ne change rien.
+  `EnGarde`. En `Poursuite`, être touché ne change rien ; en `Retour`, le
+  monstre est invulnérable et `alerter()` est sans effet (voir « Retour au
+  poste »).
 - **L'armure ne change pas le réveil** : il dépend du montant reçu `> 0`,
   pas du montant retiré. Grâce au plancher à 1 de `appliquerArmure`, un
   coup de 1 retire 1 point et réveille le monstre (testé).
 - **L'indicateur est remis à faux à chaque `mettreAJour`**, qu'il ait
   servi ou non : un coup ne sert qu'une fois, pas de mémoire durable
   (touché sans proie = coup perdu).
-- **Pourquoi la règle du territoire** : sans elle, un monstre en `Retour`
-  hors de son territoire, touché, passerait en `Poursuite` puis serait
-  renvoyé en `Retour` à l'image suivante (la poursuite le vérifie), en
-  boucle, avec un A* à chaque coup.
+- **Pourquoi la règle du territoire** : sans elle, un monstre hors de son
+  territoire, touché, passerait en `Poursuite` puis serait renvoyé en `Retour`
+  à l'image suivante (la poursuite le vérifie), en boucle, avec un A* à chaque
+  coup.
 - **La proie reste la proie habituelle** (provocateur, sinon personnage
   le plus proche) : le monstre ne se jette pas sur l'auteur du coup.
   `Coup`, `Escouade` et `main.cpp` n'ont pas changé.
+
+## Retour au poste (étape 69)
+
+- **L'exploit de la laisse** : des tireurs (portée 120 px) placés juste au-delà du
+  territoire d'un monstre le touchaient quand il atteignait la frontière. Il
+  abandonnait, rentrait, repassait dans son territoire, était réveillé par le coup
+  suivant (étape 47), revenait… Il ne frappait jamais (portée 15 px) et ses dégâts
+  s'accumulaient : on le tuait sans risque. Cause : pas d'hystérésis entre le
+  seuil d'abandon et le réveil, et aucun coût à abandonner (le monstre gardait
+  ses blessures).
+- **Hystérésis** : en `Retour`, le monstre ne réagit à rien jusqu'à son arrivée
+  au poste. Plus de transition `Retour` → `Poursuite` (ni par la détection, ni par
+  `alerter()`, ni par les dégâts) ; `alerter()` n'a aucun effet en retour, donc un
+  monstre en retour ne relance pas non plus d'alerte de groupe. Il n'engage aucun
+  coup (`engagerAttaque` renvoie faux). Arrivé (passage en `EnGarde`), il
+  redevient normal. Aucun coup engagé ne peut exister à l'entrée en `Retour` : l'état
+  ne change pas pendant l'exécution.
+- **Invulnérable** : `recevoirDegats` n'a aucun effet en `Retour` (ni dégâts ni
+  alerte). Un monstre qui abandonne n'est donc plus une cible rentable, même pour
+  un coup déjà parti.
+- **Régénération** : 50 % des points de vie maximum par seconde
+  (`s_regenerationRetour`, une fraction par seconde). `PointsDeVie::soigner` prend
+  un `int` et un `int` à 0,83 point par image à 60 images par seconde serait tronqué
+  à 0 : `m_soinAccumule` (un `float`) cumule maximum × fraction × `dt`, seule la
+  partie entière est soignée et le reste est conservé. Il est remis à 0 hors
+  retour et à pleine vie ; le plafond est celui de `PointsDeVie`. Un retour de
+  plusieurs secondes (600 px à 160 px/s : 3,75 s) ramène toujours le monstre
+  plein ; un retour très court (tout juste sorti de son territoire) ne soigne
+  presque rien.
+- **Un monstre en retour n'est pas une cible** : `estCiblable()` (faux en `Retour`).
+  `Partie` en tire deux listes d'`EntiteVue` : les **cibles** (ciblables, pour tout
+  ce qui choisit un monstre à frapper, provoquer, viser ou verrouiller) et les
+  **physiques** (tous, pour les obstacles bloquants et à contourner). Voir
+  `docs/boucle-et-entrees.md`.
+- **Indice visuel** : sous F3 seulement, un monstre en retour est dessiné semi-transparent
+  (alpha 128 sur 255). Le paramètre `marquerLeRetour` descend de `EcranJeu` par
+  `Partie::dessiner` ; `Monstre` ne retient rien (comme `estCible`).
+- **Valeurs** : territoire 600 px (400 avant), vitesse 160 px/s (120 avant) : la
+  fuite était trop facile. Détection (200 px) inchangée. Deux constantes à ajuster.
 
 ## Groupe et alerte (étape 64)
 
@@ -232,9 +271,9 @@ déplacement par chemin dans `docs/chemin.md`.
   s'annule jamais lui-même.
 - **Indice visuel** : pendant l'exécution, le carré est éclairci de 50 %
   (`eclaircir`), le contour jaune du monstre verrouillé est inchangé.
-- **La riposte ne dépend pas du statut** : un monstre en retour frappe
-  aussi ce qui passe à sa portée. Elle ne dépend pas non plus du verrou
-  de cible.
+- **La riposte dépend du statut** (étape 69, elle n'en dépendait pas avant) : un
+  monstre en `Retour` n'engage aucun coup, même sur ce qui passe à sa portée.
+  Elle ne dépend pas du verrou de cible.
 - **`avancerAttaque(dt, generateur)`** reçoit le `Generateur` de la `Partie` par
   référence et le transmet à `Skill` : la recharge de l'attaque est tirée
   dans [0,7 s ; 1,3 s] à chaque départ de coup (moyenne 1 s, comme avant l'étape 56).
@@ -247,11 +286,12 @@ déplacement par chemin dans `docs/chemin.md`.
 - Un monstre touché ne se jette pas sur l'auteur du coup. L'alerte ne
   se propage qu'au sein d'un groupe : ni par proximité ni par le bruit d'un
   groupe à l'autre, pas de chef, pas d'effet visuel.
-- Un monstre qui rentre ignore une proie dès qu'elle sort du territoire,
-  même si elle reste proche de lui (le filtre `proieDetectee` l'exige par
-  construction).
-- Pas de patrouille ni de récupération de points de vie pendant le
-  retour.
+- Un monstre qui rentre ignore tout jusqu'à son poste, même une proie collée à
+  lui (étape 69, voulu).
+- Un monstre touché au-delà de son territoire (juste avant d'abandonner) ne
+  prolonge pas sa laisse : il abandonne quand même. Piste : laisse prolongée par
+  les dégâts.
+- Pas de patrouille ; pas de retour au poste en groupe.
 - Chaque monstre garde son propre poste et territoire, sans les partager
   ni se coordonner avec les autres.
 - Le territoire ignore les murs (distance pure) ; un monstre contourne les

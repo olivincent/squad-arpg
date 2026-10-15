@@ -364,7 +364,8 @@ personnages sont dans `docs/formation.md`, le monstre dans
 - **Le reste du monstre ne change pas** : détection, territoire, abandon
   et retour au poste suivent leurs règles, même provoqué. Un monstre
   provoqué dont le provocateur est hors de son territoire ou de sa
-  détection abandonne donc comme avant.
+  détection abandonne donc comme avant ; en retour (étape 69), il n'est plus
+  ciblable et sa provocation est oubliée au prochain `attaquer`.
 - **Limites connues** : pas d'indicateur visuel du monstre provoqué ni
   d'effet au déclenchement ; pas de système d'effets général ;
   `provoquer` n'est pas protégée contre un appel direct sans recharge.
@@ -693,7 +694,8 @@ image).
 
 - **Les personnages frappent un monstre** : à chaque image, `main.cpp`
   construit la liste `monstresVus` (identifiant et cercle de chaque
-  monstre), puis applique, avec une petite lambda `appliquer`, les coups
+  monstre ciblable : depuis l'étape 69, `Partie::entitesCiblables`, sans ceux qui
+  rentrent à leur poste), puis applique, avec une petite lambda `appliquer`, les coups
   renvoyés par `escouade.declencherSkillDeZone(...)` (clic de lancer en
   visée), par `escouade.declencherSkill(...)` (si une touche est
   appuyée) puis par `escouade.attaquer(...)`, chacun au monstre dont
@@ -740,6 +742,10 @@ l'enfoncerait dans un obstacle.
   toujours une liste vide.
 - **Les morts ne bloquent pas** : un cadavre est franchissable,
   cohérent avec le fait qu'il n'est plus ciblé ni dangereux.
+- **Un monstre qui rentre à son poste bloque, mais n'est plus une cible** (étape 69) :
+  il reste dans la liste physique (obstacle et à contourner) et sort de la liste des
+  cibles (autodéfense, verrou, provocation, skills). Ses coups reçus ne comptent de
+  toute façon pas : il est invulnérable (`docs/monstre.md`).
 - **`Escouade` et `Monstre` ne connaissent pas les cercles des autres** :
   `Escouade` expose `cerclesDesVivants` plutôt que de laisser `main.cpp`
   parcourir les personnages, et reste seule à connaître `m_personnages`.

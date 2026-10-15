@@ -76,6 +76,7 @@ est dans `docs/historique.md`.
 - Étape 66 — Proie et cible de frappe des monstres ✅
 - Étape 67 — Places d'attaque autour de la cible et séparation des personnages ✅
 - Étape 68 — A* qui contourne les obstacles mobiles ✅
+- Étape 69 — Retour au poste : invulnérabilité, régénération et territoire élargi ✅
 
 ## Prochaine étape (à choisir)
 
@@ -86,6 +87,9 @@ de cercles passée changera selon le type d'entité).
 Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes) :
 - Skill en attente par personnage (aujourd'hui un seul pour l'escouade)
 - Interruption de l'activation d'un skill par les dégâts reçus
+- Laisse prolongée par les dégâts (un monstre touché qui dépasse son
+  territoire ne rentre pas aussitôt) : à étudier avec les autres leviers contre
+  le kiting, voir `docs/monstre.md`
 - Vitesse relative escouade/monstres comme levier contre le kiting
 - Ralentissement de l'escouade engagée
 - Attaque d'opportunité au désengagement
@@ -107,8 +111,7 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   dans le temps ou aux alliés), soin de zone, résurrection
 - Choix manuel de la cible d'un skill par le joueur
 - Plusieurs skills en attente à la fois
-- Patrouille, escouade de monstres, récupération de points de vie au
-  retour d'un monstre
+- Patrouille, escouade de monstres, retour au poste en groupe
 - Retirer un personnage mort de `m_personnages` et resserrer la
   formation, si l'avoir laissé en place s'avère gênant
 - Sortie ou escalier comme objectif, étages
@@ -246,7 +249,8 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   que la marche) écarte les personnages à moins de 34 px ; elle ne pousse pas un
   personnage en exécution. Chaque personnage a un contour sombre de 1 px. Débogage :
   F3 affiche le point visé et le chemin restant de chaque personnage (cyan) et le
-  chemin restant de chaque monstre (rouge), F4 cache le carré vert de l'ancre.
+  chemin restant de chaque monstre (rouge) et rend semi-transparent tout monstre
+  qui rentre à son poste (étape 69), F4 cache le carré vert de l'ancre.
   Voir `docs/formation.md`.
 - **Chemins qui contournent les entités** (étape 68) : le A* ajoute un coût
   (8) aux cases touchées par un obstacle agrandi du rayon du mobile, le lissage
@@ -357,7 +361,7 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   l'annulent, sans recharge ; un ordre de déplacement, un clic au sol ou un
   verrouillage ne l'annulent pas. Pas de revérification de portée ni de vue
   au départ. Voir `docs/combat.md`.
-- **Monstres** : des carrés rouges de 30 × 30 (120 px/s, 100 points de
+- **Monstres** : des carrés rouges de 30 × 30 (160 px/s, 100 points de
   vie, armure 20, barre de vie). Sur la carte générée : 1 à 3 par salle sauf
   la première, au centre d'une case intérieure (une case de marge contre
   les murs), à au moins 2 cases les uns des autres et à 400 px ou plus du
@@ -366,7 +370,7 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   `(660, 380)`, `(500, 580)`, `(900, 220)`,
   `(1940, 180)`, `(1500, 540)` et `(1620, 540)`. Possédés par
   `Partie` dans un `std::vector<Monstre>`. Un monstre détecte un
-  personnage vivant à moins de 200 px de lui et de 400 px de son poste (sa
+  personnage vivant à moins de 200 px de lui et de 600 px de son poste (sa
   position de départ) ET en vue (`TileMap::ligneDeVue`, centre à centre) ;
   il le poursuit (A* + lissage) sans que la perte de vue y mette fin, et
   s'arrête dès qu'il peut l'atteindre : à portée d'attaque (15 px bord à
@@ -374,9 +378,15 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   proie habituelle (provocateur, sinon le plus proche) même hors de sa
   détection, s'il est lui-même dans son territoire ; un coup reçu hors
   du territoire ne le réveille pas, et ne sert qu'une fois. Il abandonne
-  quand lui-même s'éloigne de plus de 400 px de son poste, ou si la proie
-  meurt, et rentre alors à son poste ; une proie qui revient dans le
-  territoire relance la poursuite. Sa proie (le personnage vivant le plus
+  quand lui-même s'éloigne de plus de 600 px de son poste, ou si la proie
+  meurt, et rentre alors à son poste. **Retour au poste** (étape 69) : jusqu'à
+  son arrivée, il ne réagit à rien (ni détection, ni alerte, ni dégâts, ni
+  alerte de groupe), n'engage aucun coup, est **invulnérable**, **regagne la moitié de
+  ses points de vie maximum par seconde** et n'est plus une cible (ni autodéfense,
+  ni verrou, ni provocation, ni skill ; un clic sur lui compte comme un clic au
+  sol), tout en continuant de bloquer et d'être contourné. Cela supprime
+  l'exploit où des tireurs touchaient un monstre qui faisait des allers-retours
+  à la frontière de son territoire. Sa proie (le personnage vivant le plus
   proche, ou le provocateur) est celle qu'il poursuit ; il frappe sa **cible de
   frappe** (étape 66) : la proie si elle est à portée ET en vue, sinon le
   personnage atteignable le plus proche (un monstre provoqué ne frappe que son
@@ -386,8 +396,8 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   groupe opaque (`Monstre::getGroupe()`), fixé à la construction : sur la
   carte générée, un groupe par salle peuplée ; sur la carte à la main, un
   groupe par monstre sauf les deux de `(1500, 540)` et `(1620, 540)`, qui
-  partagent le leur. Quand un monstre passe en poursuite (depuis « en garde »
-  ou « retour »), `Partie` appelle `Monstre::alerter()` sur les autres
+  partagent le leur. Quand un monstre passe en poursuite (depuis « en garde »),
+  `Partie` appelle `Monstre::alerter()` sur les autres
   membres de son groupe : même règle que le réveil par les dégâts (proie
   existante ET monstre dans son territoire, sinon rien). Les alertés
   commencent à bouger à l'image suivante, et sont tous alertés d'un coup
@@ -398,12 +408,12 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 625 tests : 13 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 50 sur `GenerateurDonjon`, 38 sur `TileMap`, 27 sur `Chemin`, 184
+  (`./build/tests.exe`, 638 tests : 13 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 50 sur `GenerateurDonjon`, 38 sur `TileMap`, 27 sur `Chemin`, 184
   sur `Escouade` en six fichiers par thème — 30 déplacement, 32 combat, 70
-  skills, 26 agresseurs, 18 vue, 8 places —, 11 sur `Encerclement`, 16 sur `Deplacement`, 65 sur `Monstre`,
+  skills, 26 agresseurs, 18 vue, 8 places —, 11 sur `Encerclement`, 16 sur `Deplacement`, 73 sur `Monstre`,
   50 sur `Personnage`, 24 sur `Skill`, 24 sur `Mobile`, 2 sur `Eclaircir`, 7 sur `Cercle`, 13
   sur `Autodefense`, 7 sur `BarreDeSkills`, 4 sur `EntiteVue`, 1 sur
-  `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 26 sur `Partie`, 7 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
+  `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 31 sur `Partie`, 7 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
   accents (`./build/tests.exe "*a portee*"` filtre) ; rotation de la
   formation et `provoquer` à une place invalide couverts.
 
@@ -450,9 +460,10 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   les monstres, elle (et la caméra) peut s'éloigner des personnages bloqués.
 - Un personnage mort n'est jamais retiré et la formation ne se resserre
   pas.
-- Un monstre qui rentre ignore une proie hors de son territoire ; pas de
-  patrouille ni de récupération de points de vie ; pas de coordination
-  entre monstres.
+- Un monstre qui rentre ignore tout jusqu'à son poste, même une proie collée à
+  lui (voulu, étape 69) ; un monstre touché juste avant d'abandonner ne prolonge
+  pas sa laisse ; la régénération ne soigne presque rien si le retour est très
+  court ; pas de patrouille ; pas de coordination entre monstres.
 - En combat, un personnage s'arrête où il se trouve en entrant à portée,
   sans placement « intelligent ».
 - Les entités sont dessinées en carrés mais mesurées en cercles : en

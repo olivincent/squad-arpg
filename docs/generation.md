@@ -82,7 +82,7 @@ tirage du nombre voulu a toujours lieu, ce qui garde la suite des tirages
 simple.
 
 **Pourquoi 400 px** : la détection des monstres ignore les murs (200 px de
-rayon de détection autour du monstre, 400 px autour de son poste). Sans cette
+rayon de détection autour du monstre, 600 px autour de son poste depuis l'étape 69, 400 avant ; la distance minimale n'a pas été changée). Sans cette
 distance minimale, un monstre d'une salle voisine détecterait l'escouade dès
 le départ. La règle ne fait pas disparaître le cas : en explorant, un monstre
 peut encore détecter l'escouade à travers un mur et faire le tour par le

@@ -1678,3 +1678,31 @@ personnages, personnages qui contournent les autres personnages, stratégie
 d'attaque, funnel algorithm / Theta*, limitation de fréquence du A*, places
 d'attaque pour les monstres, recul des tireurs.
 
+
+## Étape 69 — Retour au poste : invulnérabilité, régénération et territoire élargi ✅
+
+1. [x] Territoire 400 → 600 px (`Monstre::s_rayonTerritoire`, publique) et vitesse
+       des monstres 120 → 160 px/s ; tests adaptés.
+2. [x] `Monstre` : retour sans réveil (plus de transition `Retour` → `Poursuite`,
+       `alerter()` sans effet), pas de coup engagé en retour, invulnérabilité,
+       `estCiblable()` (enchaînée).
+3. [x] Régénération en retour : 50 % des points de vie maximum par seconde, avec un
+       accumulateur `float` `m_soinAccumule` (enchaînée).
+4. [x] `Partie` : liste des cibles et liste physique, verrou levé, clic sur un monstre
+       qui rentre = clic au sol. Mutations vérifiées ; test de l'exploit.
+5. [x] Indice visuel : un monstre en retour est semi-transparent quand F3 est actif
+       (`marquerLeRetour`, paramètre de `Partie::dessiner` puis `Monstre::dessiner`).
+6. [x] Documentation (enchaînée). 638 tests.
+
+**Choix** : le problème de l'exploit est un manque d'hystérésis (le seuil d'abandon et
+le réveil étaient au même endroit) et l'absence de coût à abandonner ; la solution
+agit sur les deux (le retour ne réagit à rien, le monstre est invulnérable et se
+soigne). Deux listes d'`EntiteVue` dans `Partie` plutôt qu'un test dans chaque
+consommateur : ce que le monstre est pour les règles (cible ou non) et pour la physique
+(obstacle) ne se mélangent plus. L'accumulateur `float` parce que `PointsDeVie::soigner`
+prend un `int` : à 60 images par seconde, 0,83 point par image serait tronqué à 0. L'indice
+visuel passe en paramètre, comme `estCible` : `Monstre` ne retient rien.
+
+**Hors de portée** : laisse prolongée par les dégâts, retour au poste en groupe,
+patrouille, indice visuel permanent du retour (hors F3), effet de soin visible, autres
+leviers contre le kiting (attaque d'opportunité, ralentissement de l'escouade engagée).

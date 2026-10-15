@@ -154,7 +154,7 @@
     étant un point).
   - **Territoire et retour au poste** : `carteLongue()`,
     une carte dégagée plus large que `carteDegagee10x10()`, dédiée aux cas
-    où une cible ou un trajet de retour dépasse les 400 px du
+    où une cible ou un trajet de retour dépasse les 600 px du
     territoire. Toujours des résultats (le centre du monstre, comparé
     au poste `{100.0f, 100.0f}` donné au constructeur dans tous ces
     tests), jamais une trajectoire exacte. Cas couverts : une cible
@@ -833,3 +833,35 @@
   mobile est bloque…` compare maintenant la position à 0,5 px près, car poussé
   droit contre un cercle le mobile fait des corrections minuscules au lieu
   d'être figé.
+
+## Étape 69 : retour au poste
+
+- **`test_Monstre.cpp`** (8 tests de plus) : en retour, une proie détectable ou revenue
+  dans le territoire ne relance pas la poursuite (`distanceApres > distanceAvant`) ; un
+  monstre touché ou alerté en retour ne perd rien et ne se réveille pas ;
+  `engagerAttaque` renvoie faux en retour ; redétection normale une fois arrivé au
+  poste ; `estCiblable` (vrai en garde et en poursuite, faux en retour) ; régénération
+  (de 10 % à 100 % en 2 s, plafonnée au maximum, présente à 60 images par seconde,
+  absente hors retour). Les valeurs codées en dur de l'étape 68 (400 px, 120 px/s) sont
+  remplacées par `Monstre::s_rayonTerritoire` (publique pour cela).
+- **`amenerEnRetourHorsTerritoire(monstre, carte, degats)`** : l'aide accepte des dégâts
+  à infliger *avant* le retour, puisqu'en retour le monstre est invulnérable.
+- **`test_Partie.cpp`** (5 tests de plus) : un couloir de 2400 × 600 px où l'escouade
+  fuit vers l'est (`niveauDeLaFuite`, `attirerHorsDuTerritoire`) : le monstre la suit
+  jusqu'à 600 px de son poste, abandonne et rentre. Un clic sur lui donne `Sol` ; une
+  provocation ne l'enregistre pas ; les personnages le touchent sans le traverser (le test
+  exige un vrai contact : écart minimal égal à la somme des rayons, à 1 px près) ; le
+  verrou posé juste avant l'abandon est levé ; l'exploit de la laisse (escouade immobile
+  juste au-delà du territoire pendant 25 s) : la vie ne baisse jamais pendant le retour,
+  jamais en poursuite pendant le retour, et le monstre arrive plein à son poste.
+- **Mutations vérifiées à la main** (le test échoue si on casse la règle) : clic sans
+  `estCiblable`, liste physique à la place de la liste des cibles dans `resoudreLesCoups`,
+  liste des cibles à la place de la liste physique dans `escouade.mettreAJour`, verrou non
+  levé. La dernière a obligé à renforcer le test de blocage (5 s et destination plus
+  loin, sinon aucun personnage n'atteignait le monstre).
+- **Pas de test automatique de l'autodéfense contre un monstre qui rentre** : ses coups
+  seraient de toute façon sans effet (invulnérabilité), la liste des cibles est vérifiée
+  par la provocation (liste observable). Pas de test du dessin (alpha sous F3).
+- **Limite du test d'`engagerAttaque` en retour** : un monstre en retour est presque
+  toujours en mouvement, donc `engagerAttaque` renverrait faux même sans la garde ; le
+  test vérifie la règle, pas sa seule cause.

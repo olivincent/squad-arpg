@@ -12,7 +12,7 @@ la fenêtre, la police, l'horloge et `setKeyRepeatEnabled`, qui sont à
 
 | Acteur | Rôle | Connaît SFML Window/Event ? |
 |---|---|---|
-| `EcranJeu` (et `Application` pour la fenêtre, la police et l'horloge) | Caméra, traduction des événements SFML en appels au `Controleur`, retour au menu (touche R après une défaite ou une victoire), nouvelle carte (F5), bascules de débogage (F3 points visés, F4 ancre ; `OptionsDeDebogage`), compteur de monstres, conversion du curseur en coordonnées du monde, enchaînement du dessin | Oui, seuls |
+| `EcranJeu` (et `Application` pour la fenêtre, la police et l'horloge) | Caméra, traduction des événements SFML en appels au `Controleur`, retour au menu (touche R après une défaite ou une victoire), nouvelle carte (F5), bascules de débogage (F3 points visés, chemins et monstres qui rentrent semi-transparents, F4 ancre ; `OptionsDeDebogage`), compteur de monstres, conversion du curseur en coordonnées du monde, enchaînement du dessin | Oui, seuls |
 | `Controleur` | État d'interface : mode visée (`m_placeEnVisee`) et déplacement continu (`m_deplacementContinu`), sans référence à la `Partie` (reçue à chaque appel) ; traduit les actions du joueur en demandes à la `Partie` ; dessine l'aperçu de visée | Non |
 | `Partie` | Règles de jeu : possède la carte, l'`Escouade` et les `Monstre` ; intermédiaire entre `Escouade` et `Monstre`, qui ne se connaissent pas | Non |
 
@@ -42,8 +42,9 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
      (mémorisé) ;
   3. `partie.mettreAJour(dt)`, qui ne fait rien si la partie est perdue ou gagnée,
      sinon déroule, dans cet ordre exact :
-     a. verrou levé si le monstre verrouillé n'est plus dans le vecteur ;
-        liste des `EntiteVue` (une fois pour toute l'image) ;
+     a. verrou levé si le monstre verrouillé n'est plus dans le vecteur ou n'est
+        plus ciblable (il rentre à son poste, étape 69) ; liste des `EntiteVue`
+        des **cibles** (monstres ciblables, une fois pour toute l'image) ;
      b. lancer du skill de zone demandé ;
      c. skill demandé (avant `attaquer` : un skill qui part relance la
         recharge de base de son lanceur, qui ne frappe donc pas deux fois) ;
@@ -51,13 +52,15 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
         verrou levé si le monstre verrouillé est mort ;
      e. retrait des monstres morts ;
      f. ordre de déplacement, si l'escouade est vivante ;
-     g. `EntiteVue` des monstres (obstacles bloquants des personnages, dont
-        chacun contourne ceux qu'il n'approche pas), `escouade.mettreAJour`, puis
+     g. `EntiteVue` de **tous** les monstres, liste physique (obstacles bloquants
+        des personnages, dont chacun contourne ceux qu'il n'approche pas),
+        `escouade.mettreAJour`, puis
         `cerclesDesVivants` et le tour de chaque monstre (proie, mise à jour
         avec ses obstacles bloquants et ses cercles à contourner, riposte) ;
      h. les demandes sont vidées ;
   4. `main.cpp` : caméra centrée sur l'escouade, `partie.dessiner` (carte,
-     monstres avec le contour du verrou, escouade), `controleur.
+     monstres avec le contour du verrou, semi-transparents s'ils rentrent à leur
+     poste et que F3 est actif, escouade), `controleur.
      dessinerApercu`, puis, dans la vue par défaut, barre de skills, compteur
      « Monstres : N » (haut gauche) et, si la partie est perdue ou gagnée,
      écran de fin (par-dessus la barre et le compteur), le tout avec la vue de
@@ -120,10 +123,12 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
 - **Le verrou vit dans `Escouade`** (voir `docs/formation.md`) ; il stocke
   l'identifiant du monstre visé. `Partie` le retrouve par identifiant à
   chaque image, car un monstre peut être retiré du vecteur entre deux images.
-- **Le verrou ne se rompt que dans trois cas** : mort de la cible (monstre
-  introuvable ou qui vient de mourir), clic sur le sol, clic sur un autre
-  monstre. Relâcher le bouton ou perdre le focus ne rompt pas le combat.
-  Aucune zone de tolérance autour du monstre.
+- **Le verrou ne se rompt que dans quatre cas** : mort de la cible (monstre
+  introuvable ou qui vient de mourir), abandon de la cible (elle n'est plus
+  ciblable : elle rentre à son poste, étape 69), clic sur le sol, clic sur un
+  autre monstre. Relâcher le bouton ou perdre le focus ne rompt pas le combat.
+  Aucune zone de tolérance autour du monstre. Un clic sur un monstre qui rentre
+  à son poste compte comme un clic au sol (`Sol`, déplacement continu armé).
 - **L'attaque est dans `Escouade`** : ni `main.cpp` ni `Controleur` n'ont de
   recharge ni de dégât. `Partie` passe la liste des `EntiteVue` à
   `escouade.attaquer` et applique chaque `Coup` renvoyé au monstre qui porte
@@ -249,8 +254,17 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
 
 ## Les monstres dans `Partie::mettreAJour`
 
+- **Deux listes d'`EntiteVue`** (étape 69) : `entitesCiblables()` (les monstres pour
+  lesquels `estCiblable()` est vrai : pas ceux qui rentrent à leur poste) et
+  `entitesPhysiques()` (tous). Les **cibles** vont à tout ce qui choisit un monstre
+  à frapper, provoquer, viser ou verrouiller (`attaquer`, `declencherSkill`,
+  `declencherSkillDeZone` : autodéfense, agresseurs, provocations et skills
+  l'ignorent sans code propre ; les agresseurs et provocations déjà enregistrés
+  sont oubliés par `attaquer`, un coup engagé sur lui est annulé). Les
+  **physiques** vont aux obstacles : un monstre qui rentre bloque et est contourné
+  comme avant. Les listes sont recalculées à chaque usage, jamais stockées.
 - **Obstacles pour les personnages** : avant `escouade.mettreAJour`, la liste
-  des `EntiteVue` de tous les monstres (à leur position de l'image précédente) ;
+  physique des `EntiteVue` de tous les monstres (à leur position de l'image précédente) ;
   `Escouade` en tire les obstacles bloquants et, par personnage, les cercles à
   contourner (tous sauf le monstre approché, voir `docs/formation.md`).
 - **Obstacles pour les monstres** : après `escouade.mettreAJour`, les cercles
