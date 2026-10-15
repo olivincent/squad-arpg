@@ -66,9 +66,17 @@ est dans `docs/historique.md`.
 - Étape 57 — Temps d'exécution des attaques : on s'immobilise pour frapper ✅
 - Étape 58 — Temps d'activation des skills (touches 1 à 4) et action engagée par personnage ✅
 
-## Étape 59
+- Étape 59 — Génération procédurale : les salles ✅
 
-À définir dans Claude.ai.
+## Étape 60
+
+Couloirs en L de 2 cases de large reliant chaque salle à la précédente
+(à préciser dans Claude.ai).
+
+## Étape 61 (prévue)
+
+Placement de l'escouade et des monstres sur la carte générée ; la touche R
+génère une nouvelle carte.
 
 Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes) :
 - Skill en attente par personnage (aujourd'hui un seul pour l'escouade)
@@ -126,8 +134,11 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   dans VSCode (règles dans `CLAUDE.md`) ; dépôt Git `squad-arpg`, poussé
   sur GitHub ; SFML 3.0.2 intégrée à CMake.
 - **Fenêtre et carte** : fenêtre 1200 × 800 ; carte de 59 × 40 cases de
-  40 px (2360 × 1600 px), plusieurs pièces et couloirs, définie en texte
-  dans `Niveau.cpp` (`creerNiveau()`). La caméra (`sf::View`) est centrée
+  40 px (2360 × 1600 px). Depuis l'étape 59, `main.cpp` joue sur un niveau
+  généré (`genererNiveau` : salles rectangulaires isolées, sans couloir ni
+  monstre, escouade au centre de la première salle, même graine que la
+  partie, voir `docs/generation.md`) ; la carte faite à la main
+  (`creerNiveau()` dans `Niveau.cpp`) reste le terrain des tests. La caméra (`sf::View`) est centrée
   sur l'escouade ; du noir apparaît au-delà des bords de la carte.
 - **Architecture de la boucle** (étapes 52 et 54) : `main.cpp` garde la
   fenêtre, la police, la caméra et traduit les événements SFML en appels au
@@ -312,7 +323,7 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 449 tests : 38 sur `TileMap`, 17 sur `Chemin`, 163
+  (`./build/tests.exe`, 469 tests : 20 sur `GenerateurDonjon`, 38 sur `TileMap`, 17 sur `Chemin`, 163
   sur `Escouade` en cinq fichiers par thème — 22 déplacement, 27 combat, 70
   skills, 26 agresseurs, 18 vue —, 12 sur `Deplacement`, 43 sur `Monstre`,
   46 sur `Personnage`, 30 sur `Skill`, 17 sur `Mobile`, 2 sur `Eclaircir`, 4 sur `Cercle`, 13

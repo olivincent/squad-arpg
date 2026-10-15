@@ -1524,3 +1524,27 @@ part au `attaquer` de l'image suivante) ; `Personnage::declencherSkill` et
 attente ou skill en attente par personnage, verrou par personnage, barre de
 progression d'incantation, animation, revérification de portée ou de vue au
 départ, classe `Arme`.
+
+
+### Étape 59 — Génération procédurale : les salles ✅ TERMINÉE
+
+1. [x] `GenerateurDonjon.hpp` / `.cpp` : `Salle` (emprise en cases, `centre`,
+       `chevauche` avec marge) et `ParametresDonjon` (enchaînée).
+2. [x] `placerSalles` : placement au hasard avec rejet (enchaînée).
+3. [x] `creuserSalle` et `genererNiveau` (enchaînée).
+4. [x] `main.cpp` joue sur le niveau généré, avec une seule graine pour la
+       carte et la partie.
+5. [x] Documentation (`docs/generation.md`). 469 tests.
+
+**Choix** : fonctions libres sans état, le `Generateur` est reçu en
+paramètre ; l'emprise (placement, chevauchement, centre) est séparée de la
+forme creusée (`creuserSalle`), pour que des salles non rectangulaires ne
+changent qu'une fonction ; bornes inclusives de `uniform_int_distribution` ;
+bord de la carte toujours en mur ; `tailleCase` ajoutée à `ParametresDonjon`
+car `Niveau` la contient ; `armureMonstres` à 0 dans le niveau généré (sans
+monstre) ; `creerNiveau()` inchangée, terrain fixe des tests ; la touche R
+reconstruit la partie avec le même niveau généré.
+
+**Hors de portée** : couloirs (étape 60), monstres et nouveau comportement de
+R (étape 61), salles non rectangulaires, découpage BSP, piliers, taille de
+carte, optimisation du dessin, touche de débogage.

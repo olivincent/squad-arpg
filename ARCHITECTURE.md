@@ -40,6 +40,7 @@ squad-arpg/
 ├── src/
 │   ├── main.cpp
 │   ├── Niveau.hpp / .cpp
+│   ├── GenerateurDonjon.hpp / .cpp
 │   ├── Partie.hpp / .cpp
 │   ├── Controleur.hpp / .cpp
 │   ├── TileMap.hpp / .cpp
@@ -77,7 +78,7 @@ squad-arpg/
 │   │   test_Escouade_vue.cpp
 │   ├── test_Provocations.cpp, test_Agresseurs.cpp
 │   ├── test_Deplacement.cpp, test_Monstre.cpp, test_Personnage.cpp
-│   ├── test_Partie.cpp, test_Controleur.cpp
+│   ├── test_Partie.cpp, test_Controleur.cpp, test_GenerateurDonjon.cpp
 │   └── test_Skill.cpp, test_Mobile.cpp, test_Cercle.cpp,
 │       test_Autodefense.cpp, test_BarreDeSkills.cpp,
 │       test_MonstreVu.cpp, test_BarreDeVie.cpp,
@@ -88,6 +89,7 @@ squad-arpg/
 │   ├── carte-et-collision.md
 │   ├── chemin.md
 │   ├── formation.md
+│   ├── generation.md
 │   ├── combat.md
 │   ├── monstre.md
 │   ├── tests.md
@@ -164,6 +166,24 @@ positionsMonstres; int armureMonstres; }`.
 | Fonction | Rôle |
 |---|---|
 | `Niveau creerNiveau()` | Le niveau du jeu (carte de 59 × 40 cases de 40 px, départ en `(100, 100)`, six monstres d'armure 20) ; pas de lecture de fichier |
+
+### `GenerateurDonjon` — la carte générée
+
+`GenerateurDonjon.hpp` / `.cpp` : logique pure (sans SFML), fonctions libres
+sans état, plus deux structures. Le générateur aléatoire est reçu en
+paramètre (`Generateur&`).
+
+`struct Salle { int x, y, largeur, hauteur; }` : l'emprise d'une salle, en
+cases. `struct ParametresDonjon` : `largeurCarte` 59, `hauteurCarte` 40,
+`tailleCase` 40 px, `tentatives` 30, `coteMin` 6, `coteMax` 12, `marge` 1.
+
+| Fonction | Rôle |
+|---|---|
+| `sf::Vector2i Salle::centre() const` | Case au centre de l'emprise (`x + largeur / 2`, `y + hauteur / 2`) |
+| `bool Salle::chevauche(const Salle& autre, int marge) const` | Les emprises sont-elles à moins de `marge` cases l'une de l'autre, ou se recouvrent-elles ? Deux salles qui se touchent ne se chevauchent pas avec une marge de 0 |
+| `std::vector<Salle> placerSalles(Generateur&, const ParametresDonjon&)` | Placement au hasard avec rejet ; au moins une salle ; emprises à l'intérieur de la bordure de mur |
+| `void creuserSalle(std::vector<std::string>& plan, const Salle&)` | Transforme l'emprise en sol (aujourd'hui tout le rectangle) |
+| `Niveau genererNiveau(Generateur&, const ParametresDonjon&)` | Plan tout en mur, salles creusées, départ de l'escouade au centre en pixels de la première salle, aucun monstre, `armureMonstres` 0 |
 
 ### `Partie` — les règles de jeu
 
@@ -620,6 +640,7 @@ lire le fichier correspondant :
 | `docs/build.md` | Build (CMake, `squad_core`, exécutables), choix de SFML | Avant de modifier `CMakeLists.txt` ou d'ajouter un fichier source |
 | `docs/boucle-et-entrees.md` | Qui fait quoi entre `main.cpp`, `Controleur` et `Partie`, ordre d'une image, entrée souris et clavier, mode visée, combat engagé, défaite, caméra | Avant de modifier `main.cpp`, `Partie`, `Controleur` ou `Niveau` |
 | `docs/carte-et-collision.md` | Carte, collision et dessin, déplacement avec glissement et obstacles, plan texte et validation | Avant de modifier `TileMap` ou `Deplacement` |
+| `docs/generation.md` | Génération de donjon : placement avec rejet, emprise / forme creusée, paramètres, graine unique | Avant de modifier `GenerateurDonjon` |
 | `docs/chemin.md` | Recherche de chemin (A*), suivi de chemin (`Mobile`), lissage de chemin | Avant de modifier `Chemin` ou `Mobile` |
 | `docs/formation.md` | `Escouade` et `Personnage` : ancre, formation, orientation, verrou de cible, placement en combat, mort et défaite | Avant de modifier `Escouade` ou `Personnage` |
 | `docs/combat.md` | `Skill` (dont l'attaque de base), `Cercle`, portée bord à bord, autodéfense, `Cible`, skill en attente, circuit des dégâts, qui bloque qui | Avant de modifier `Cercle`, `Autodefense`, `Coup`, `Skill`, `Cible`, le skill ou les listes d'obstacles |
