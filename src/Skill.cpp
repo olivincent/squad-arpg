@@ -78,24 +78,6 @@ bool Skill::estAPortee(Cercle origine, Cercle cible) const {
     return distanceBordABord(origine, cible) <= m_portee;
 }
 
-int Skill::declencher(Cercle origine, Cercle cible, Generateur& generateur) {
-    if (!estAPortee(origine, cible) || m_phase != PhaseSkill::Pret) {
-        return 0;
-    }
-
-    relancerRecharge(generateur);
-    return m_puissance;
-}
-
-int Skill::declencherSansCible(Generateur& generateur) {
-    if (m_phase != PhaseSkill::Pret) {
-        return 0;
-    }
-
-    relancerRecharge(generateur);
-    return m_puissance;
-}
-
 void Skill::relancerRecharge(Generateur& generateur) {
     m_tempsRecharge = tirerRecharge(generateur);
     m_recharge = m_tempsRecharge;

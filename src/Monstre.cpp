@@ -80,13 +80,17 @@ int Monstre::getPointsDeVie() const {
     return m_pointsDeVie.getValeur();
 }
 
-bool Monstre::proieDetectee(std::optional<Cercle> cible) const {
+// Détecte la proie si elle est dans le rayon de détection, dans le territoire
+// et en vue (ligne de vue centre à centre). Seule la détection exige la vue :
+// une fois en poursuite, le monstre ne perd pas sa proie en la perdant de vue.
+bool Monstre::proieDetectee(std::optional<Cercle> cible, const TileMap& carte) const {
     if (!cible) {
         return false;
     }
     const float distanceMonstre = (cible->centre - m_mobile.getCentre()).length();
     const float distancePoste = (cible->centre - m_poste).length();
-    return distanceMonstre <= m_rayonDetection && distancePoste <= m_rayonTerritoire;
+    return distanceMonstre <= m_rayonDetection && distancePoste <= m_rayonTerritoire
+        && carte.ligneDeVue(m_mobile.getCentre(), cible->centre);
 }
 
 void Monstre::mettreAJour(float dt, std::optional<Cercle> cible, const TileMap& carte, const std::vector<Cercle>& obstacles) {
@@ -110,7 +114,7 @@ void Monstre::mettreAJour(float dt, std::optional<Cercle> cible, const TileMap& 
 
     switch (m_etat) {
         case Etat::EnGarde:
-            if (proieDetectee(cible) || reveilleParCoup) {
+            if (proieDetectee(cible, carte) || reveilleParCoup) {
                 m_etat = Etat::Poursuite;
             }
             break;
@@ -120,7 +124,7 @@ void Monstre::mettreAJour(float dt, std::optional<Cercle> cible, const TileMap& 
             }
             break;
         case Etat::Retour:
-            if (proieDetectee(cible) || reveilleParCoup) {
+            if (proieDetectee(cible, carte) || reveilleParCoup) {
                 m_etat = Etat::Poursuite;
             } else if (!m_mobile.directionVoulue()) {
                 m_etat = Etat::EnGarde;
@@ -134,7 +138,7 @@ void Monstre::mettreAJour(float dt, std::optional<Cercle> cible, const TileMap& 
     }
 
     if (m_etat == Etat::Poursuite) {
-        if (m_attaque.estAPortee(getCercle(), *cible)) {
+        if (peutAtteindre(*cible, carte)) {
             m_mobile.arreter();
         } else {
             m_mobile.allerVers(cible->centre, carte);
@@ -144,8 +148,12 @@ void Monstre::mettreAJour(float dt, std::optional<Cercle> cible, const TileMap& 
     m_mobile.mettreAJour(dt, carte, obstacles);
 }
 
-bool Monstre::engagerAttaque(Cercle proie, int idProie) {
-    if (!m_attaque.estAPortee(getCercle(), proie) || m_mobile.estEnMouvement() || !m_attaque.commencer()) {
+bool Monstre::peutAtteindre(Cercle proie, const TileMap& carte) const {
+    return m_attaque.estAPortee(getCercle(), proie) && carte.ligneDeVue(m_mobile.getCentre(), proie.centre);
+}
+
+bool Monstre::engagerAttaque(Cercle proie, int idProie, const TileMap& carte) {
+    if (!peutAtteindre(proie, carte) || m_mobile.estEnMouvement() || !m_attaque.commencer()) {
         return false;
     }
     m_idProieEngagee = idProie;

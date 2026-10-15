@@ -132,7 +132,7 @@ void Partie::faireFrapperLeMonstre(Monstre& monstre, std::optional<Cercle> proie
         return;
     }
     if (const std::optional<std::size_t> place = m_escouade.placeDeLaProie(monstre.getId(), monstre.getCentre())) {
-        monstre.engagerAttaque(*proie, static_cast<int>(*place));
+        monstre.engagerAttaque(*proie, static_cast<int>(*place), m_carte);
     }
 }
 

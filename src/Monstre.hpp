@@ -18,11 +18,14 @@ public:
     void dessiner(sf::RenderTarget& rendu, bool estCible) const;
     void mettreAJour(float dt, std::optional<Cercle> cible, const TileMap& carte, const std::vector<Cercle>& obstacles);
     // Attaque en trois temps, comme celle d'un personnage : engager (cible à
-    // portée, monstre immobile, attaque prête) ; avancer l'exécution, qui rend
+    // portée et en vue, monstre immobile, attaque prête) ; avancer l'exécution, qui rend
     // les dégâts au départ du coup ; annuler, sans recharge consommée.
     // `idProie` est l'identification de la cible chez l'appelant (la place du
     // personnage) ; le monstre la retient jusqu'au départ du coup.
-    bool engagerAttaque(Cercle proie, int idProie);
+    // La proie est atteignable à portée ET en vue (ligne de vue centre à centre) ;
+    // `engagerAttaque` l'exige. Même règle que `Escouade::peutAtteindre`.
+    [[nodiscard]] bool peutAtteindre(Cercle proie, const TileMap& carte) const;
+    bool engagerAttaque(Cercle proie, int idProie, const TileMap& carte);
     std::optional<int> proieEngagee() const;
     [[nodiscard]] int avancerAttaque(float dt, Generateur& generateur);
     void annulerAttaque();
@@ -37,7 +40,7 @@ public:
 private:
     enum class Etat { EnGarde, Poursuite, Retour };
 
-    bool proieDetectee(std::optional<Cercle> cible) const;
+    bool proieDetectee(std::optional<Cercle> cible, const TileMap& carte) const;
 
     Mobile m_mobile;
     PointsDeVie m_pointsDeVie;

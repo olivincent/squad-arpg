@@ -19,8 +19,8 @@
 //   EnRecharge --mettreAJour/avancer (recharge écoulée)--> Pret
 //   EnExecution --annuler--> Pret   (aucune recharge consommée)
 // Le coup part à la fin de l'exécution : c'est à ce moment seulement que la
-// recharge est tirée. Avec un temps d'exécution nul, `declencher` et
-// `declencherSansCible` font partir le coup tout de suite (Pret -> EnRecharge).
+// recharge est tirée. Avec un temps d'exécution nul, le coup part dès le
+// premier `avancer` (Pret -> EnExecution -> EnRecharge).
 // Le skill ne sait pas sur qui porte le coup engagé : c'est son propriétaire
 // qui le retient.
 enum class PhaseSkill { Pret, EnExecution, EnRecharge };
@@ -40,8 +40,6 @@ public:
     void annuler();
     PhaseSkill getPhase() const;
     [[nodiscard]] bool estAPortee(Cercle origine, Cercle cible) const;
-    [[nodiscard]] int declencher(Cercle origine, Cercle cible, Generateur& generateur);
-    [[nodiscard]] int declencherSansCible(Generateur& generateur);
     void relancerRecharge(Generateur& generateur);
     float getProgressionRecharge() const;
     float getRechargeRestante() const;
