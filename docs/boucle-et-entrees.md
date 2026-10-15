@@ -4,7 +4,7 @@ Depuis l'étape 52, trois acteurs se partagent ce qui tenait dans `main()` :
 
 | Acteur | Rôle | Connaît SFML Window/Event ? |
 |---|---|---|
-| `main.cpp` | Fenêtre, police, horloge, caméra, traduction des événements SFML en appels au `Controleur`, recommencement de la partie (touche R), conversion du curseur en coordonnées du monde, enchaînement du dessin | Oui, seul |
+| `main.cpp` | Fenêtre, police, horloge, caméra, traduction des événements SFML en appels au `Controleur`, nouvelle carte (touches R après une défaite, F5), conversion du curseur en coordonnées du monde, enchaînement du dessin | Oui, seul |
 | `Controleur` | État d'interface : mode visée (`m_placeEnVisee`) et déplacement continu (`m_deplacementContinu`), sans référence à la `Partie` (reçue à chaque appel) ; traduit les actions du joueur en demandes à la `Partie` ; dessine l'aperçu de visée | Non |
 | `Partie` | Règles de jeu : possède la carte, l'`Escouade` et les `Monstre` ; intermédiaire entre `Escouade` et `Monstre`, qui ne se connaissent pas | Non |
 
@@ -191,12 +191,15 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   par défaut, après la barre de skills : le voile semi-transparent la laisse
   visible dessous. `main.cpp` l'appelle si `partie.estPerdue()`.
 - **Recommencer = remplacer l'objet** : la touche R, seulement si la partie
-  est perdue (ignorée en jeu), fait `partie = Partie(creerNiveau(), graine)`
-  (nouvelle graine tirée et affichée) et `controleur = Controleur{}`. Pas de `reinitialiser()` : un état remis à
+  est perdue (ignorée en jeu), et F5 (touche de débogage, à tout moment, y
+  compris en visée) appellent la lambda `nouvelleCarte` de `main.cpp`, qui
+  fait `partie = nouvellePartie(tirage)` (nouvelle graine tirée et affichée,
+  nouvelle carte générée) et `controleur = Controleur{}`. Le lancement
+  utilise la même `nouvellePartie`. Pas de `reinitialiser()` : un état remis à
   zéro membre par membre risque d'oublier un membre. Une visée ou un
   déplacement continu en cours ne survivent pas. La caméra, recentrée à
-  chaque image, suit l'escouade neuve sans code propre. Pas de touche de
-  recommencement en cours de partie.
+  chaque image, suit l'escouade neuve sans code propre. R reste réservée à
+  l'écran de défaite.
 - **Pourquoi `Controleur` reçoit la `Partie` à chaque appel** : une
   référence membre empêche la réaffectation (C++ Core Guidelines C.12).
   Avec une référence, `controleur = Controleur{}` était impossible, et

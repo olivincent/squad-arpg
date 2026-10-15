@@ -115,7 +115,7 @@ Les salles non rectangulaires (rondes, en L, grottes) ne changeraient que `creus
 
 ### 4.3 Ce que le générateur doit aussi décider
 
-- Placement des monstres et de leurs territoires, aucun dans la salle de départ (étape 61).
+- Placement des monstres, aucun dans la salle de départ (fait à l'étape 61, voir `docs/generation.md`). Reste à explorer : nombre selon la superficie, territoires, types de monstres, escouades, patrouilles.
 - Validité : toutes les salles reliées, vérifiable avec le A\*.
 - Taille de carte raisonnable pour garder le A\* rapide.
 

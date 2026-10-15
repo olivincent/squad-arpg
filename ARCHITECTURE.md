@@ -111,7 +111,9 @@ Qui possède quoi :
 - `main.cpp` possède la fenêtre, la boucle SFML, la caméra, la police
   (`sf::Font`), une `Partie` et un `Controleur`. Il traduit les événements
   SFML (fermeture, clic, touches 1 à 4, Échap, clic droit) en appels au
-  `Controleur` (touche R : recommence la partie si elle est perdue),
+  `Controleur` (touche R : nouvelle carte si la partie est perdue ; F5 :
+  nouvelle carte à tout moment ; les deux, comme le lancement, passent par
+  `nouvellePartie`, qui tire la graine et génère le niveau),
   convertit le curseur en coordonnées du monde, centre la caméra sur
   l'escouade et enchaîne le dessin. Il ne connaît ni `Monstre`,
   ni `Coup`, ni `MonstreVu`, ni `Chemin`, ni `Personnage`.
@@ -161,11 +163,13 @@ Données membres : `m_largeur`, `m_hauteur` (cases), `m_tailleCase`
 
 Données membres : `struct Niveau { std::vector<std::string> plan; float
 tailleCase; sf::Vector2f departEscouade; std::vector<sf::Vector2f>
-positionsMonstres; int armureMonstres; }`.
+positionsMonstres; int armureMonstres; }`, et la constante
+`s_armureMonstresParDefaut` (20), partagée par `creerNiveau()` et
+`genererNiveau()`.
 
 | Fonction | Rôle |
 |---|---|
-| `Niveau creerNiveau()` | Le niveau du jeu (carte de 59 × 40 cases de 40 px, départ en `(100, 100)`, six monstres d'armure 20) ; pas de lecture de fichier |
+| `Niveau creerNiveau()` | Le niveau des tests (carte de 59 × 40 cases de 40 px, départ en `(100, 100)`, six monstres d'armure `s_armureMonstresParDefaut`) ; pas de lecture de fichier |
 
 ### `GenerateurDonjon` — la carte générée
 
@@ -176,7 +180,8 @@ paramètre (`Generateur&`).
 `struct Salle { int x, y, largeur, hauteur; }` : l'emprise d'une salle, en
 cases. `struct ParametresDonjon` : `largeurCarte` 59, `hauteurCarte` 40,
 `tailleCase` 40 px, `tentatives` 30, `coteMin` 6, `coteMax` 12, `marge` 1,
-`largeurCouloir` 2. `struct Liaison { std::size_t de, vers; }` (indices de
+`largeurCouloir` 2, `monstresParSalleMin` 1, `monstresParSalleMax` 3,
+`distanceMinDepart` 400 px, `tentativesParMonstre` 10. `struct Liaison { std::size_t de, vers; }` (indices de
 salles) et `enum class SensCouloir { HorizontalPuisVertical,
 VerticalPuisHorizontal }`.
 
@@ -188,7 +193,8 @@ VerticalPuisHorizontal }`.
 | `void creuserSalle(std::vector<std::string>& plan, const Salle&)` | Transforme l'emprise en sol (aujourd'hui tout le rectangle) |
 | `std::vector<Liaison> choisirLiaisons(const std::vector<Salle>&)` | Sans aléatoire : chaque salle i ≥ 1 est reliée à la plus proche (distance au carré entre centres) parmi les salles 0 à i−1 ; égalité : le plus petit indice ; n−1 liaisons |
 | `void creuserCouloir(std::vector<std::string>& plan, sf::Vector2i depart, sf::Vector2i arrivee, SensCouloir, int largeur)` | Couloir en L de `largeur` cases (étendue vers le bas et la droite), coude plein, départ et arrivée en sol |
-| `Niveau genererNiveau(Generateur&, const ParametresDonjon&)` | Plan tout en mur, salles creusées, puis un couloir par liaison (sens tiré au hasard, un tirage par liaison) entre les centres ; départ de l'escouade au centre en pixels de la première salle, aucun monstre, `armureMonstres` 0 |
+| `std::vector<sf::Vector2f> placerMonstres(Generateur&, const std::vector<Salle>&, sf::Vector2f depart, const ParametresDonjon&)` | Aucun monstre dans la salle 0 ; dans chaque autre, un nombre tiré dans [min, max] de monstres, au centre d'une case intérieure (une case de marge). Rejet, `tentativesParMonstre` essais, monstre abandonné sinon : position à moins de 2 cases (Tchebychev) d'un monstre placé, ou à moins de `distanceMinDepart` px de `depart` |
+| `Niveau genererNiveau(Generateur&, const ParametresDonjon&)` | Plan tout en mur, salles creusées, puis un couloir par liaison (sens tiré au hasard, un tirage par liaison) entre les centres ; départ de l'escouade au centre en pixels de la première salle, monstres de `placerMonstres` (appelée en dernier), `armureMonstres` = `s_armureMonstresParDefaut` |
 
 ### `Partie` — les règles de jeu
 

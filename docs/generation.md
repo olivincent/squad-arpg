@@ -59,33 +59,73 @@ pourront demander d'ajuster ce point.
 5 graines, le A* (`trouverChemin`) trouve un chemin du départ au centre de
 chaque salle.
 
+## Monstres (étape 61)
+
+**Qui** : `placerMonstres`, fonction pure séparée (reçoit le `Generateur`, les
+salles, le départ et les paramètres ; renvoie des positions en pixels), donc
+testable avec des salles écrites à la main. `genererNiveau` l'appelle en
+dernier, après les salles et les couloirs : ses tirages ne changent ni les
+salles ni les couloirs d'une graine donnée.
+
+**Combien et où** : aucun dans la salle 0 (le départ). Dans chaque autre
+salle, un nombre voulu tiré dans [1, 3] (bornes incluses), puis pour chaque
+monstre une case tirée à l'intérieur de l'emprise avec une case de marge
+contre les murs ; le monstre est au centre de la case.
+
+**Rejet** : comme pour les salles, au plus 10 tentatives par monstre. Une
+position est rejetée si elle est à moins de 2 cases d'un monstre déjà placé
+(Tchebychev : au moins une case libre entre deux monstres, diagonale
+comprise) ou à moins de 400 px du départ. Si les 10 tentatives échouent, le
+monstre est abandonné : une salle peut avoir moins de monstres que voulu,
+ou aucun. Les monstres abandonnés ne sont pas retirés du nombre tiré : le
+tirage du nombre voulu a toujours lieu, ce qui garde la suite des tirages
+simple.
+
+**Pourquoi 400 px** : la détection des monstres ignore les murs (200 px de
+rayon de détection autour du monstre, 400 px autour de son poste). Sans cette
+distance minimale, un monstre d'une salle voisine détecterait l'escouade dès
+le départ. La règle ne fait pas disparaître le cas : en explorant, un monstre
+peut encore détecter l'escouade à travers un mur et faire le tour par le
+couloir (limite connue, voir `ROADMAP.md`).
+
+**Armure** : `s_armureMonstresParDefaut` (20, `Niveau.hpp`) est partagée par
+`creerNiveau()` et `genererNiveau()`. Elle n'est pas dans `ParametresDonjon`.
+
 ## Paramètres
 
 `ParametresDonjon` : carte 59 × 40 cases de 40 px, 30 tentatives, côtés de 6 à
-12 cases, marge d'une case de mur entre deux salles, couloirs de 2 cases.
-`tailleCase` y figure parce que `Niveau` la contient.
+12 cases, marge d'une case de mur entre deux salles, couloirs de 2 cases,
+1 à 3 monstres par salle, 400 px de distance minimale au départ, 10 tentatives
+par monstre. `tailleCase` y figure parce que `Niveau` la contient.
 
 ## Niveau produit
 
 Le plan utilise les mêmes caractères que `creerNiveau()` (`#` mur, `.` sol).
 Le départ de l'escouade est le centre (en pixels) de la case centrale de la
-première salle placée, donc toujours sur du sol. Aucun monstre.
+première salle placée, donc toujours sur du sol. Les monstres sont ceux de
+`placerMonstres`, avec l'armure par défaut.
 
-## Graine unique
+## Graine unique et nouvelle carte
 
-`main.cpp` tire une graine, génère le niveau avec un `Generateur` initialisé
-par elle, puis construit la `Partie` avec la même graine : la même graine
-redonne la même carte et le même combat. La touche R reconstruit la partie
-avec le même niveau et une nouvelle graine de combat ; son comportement
-définitif (nouvelle carte) viendra à l'étape 61.
+Une seule fonction de `main.cpp`, `nouvellePartie`, tire une graine avec
+`std::random_device`, l'affiche dans la console, génère le niveau avec un
+`Generateur` initialisé par elle, puis construit la `Partie` avec la même
+graine : la même graine redonne la même carte et le même combat. Le
+lancement, R et F5 passent tous par elle. R (seulement après une défaite) et
+F5 (touche de débogage, à tout moment, y compris en visée) l'appellent par
+une lambda qui réaffecte aussi le `Controleur`. Le `Niveau` n'est plus gardé
+dans `main` : chaque carte est neuve, avec une nouvelle graine.
 
 ## Limites connues
 
-- Pas de monstres (étape 61).
 - Pas de boucles (arbre seulement), pas de portes ; un couloir peut traverser
-  une salle ou longer un mur.
-- Les problèmes de déplacement dans les couloirs de 2 cases sont à noter
-  après les essais visuels (voir `ROADMAP.md`) ; non corrigés à l'étape 60.
+  une salle ou longer un mur. Aucun problème de déplacement observé dans les
+  couloirs de 2 cases.
+- Nombre de monstres indépendant de la superficie de la salle ; un seul type
+  de monstre ; pas de patrouille ni d'escouade de monstres.
+- La détection des monstres ignore les murs : un monstre peut détecter
+  l'escouade à travers un mur (observé).
+- Pas de sortie du donjon ni d'objectif de niveau.
 - Si la carte est trop petite pour `coteMax`, c'est une `assert`, pas une
   erreur gérée.
 - `creerNiveau()` reste le terrain fixe des tests.

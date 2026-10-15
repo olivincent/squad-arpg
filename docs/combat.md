@@ -565,7 +565,8 @@ personnages sont dans `docs/formation.md`, le monstre dans
   `PointsDeVie` ne connaît pas l'armure. Chaque entité a un `m_armure`
   (`int`) reçu par son constructeur ; pas d'accesseur.
 - **Valeurs** : mêlées (places 1 et 2) 50, tireurs (places 3 et 4) 0, les
-  six monstres 20 (`Niveau::armureMonstres`).
+  monstres 20 (`Niveau::armureMonstres`, valeur `s_armureMonstresParDefaut`
+  commune à la carte à la main et aux cartes générées).
 - **Le soin n'est pas touché** par l'armure. Les dégâts de zone, de skill
   et d'attaque de base passent tous par `recevoirDegats`, donc par l'armure.
 - **Limites** : pas d'affichage de l'armure, pas d'esquive ni de blocage,

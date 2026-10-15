@@ -68,11 +68,12 @@ est dans `docs/historique.md`.
 
 - Étape 59 — Génération procédurale : les salles ✅
 - Étape 60 — Génération procédurale : les couloirs ✅
+- Étape 61 — Génération procédurale : monstres, touche R et F5 ✅
 
-## Étape 61 (prévue)
+## Étape 62 (à définir)
 
-Placement de l'escouade et des monstres sur la carte générée ; la touche R
-génère une nouvelle carte.
+Prochaine étape à choisir avec Claude.ai (voir les pistes ci-dessous et
+`docs/brainstorm.md`).
 
 Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes) :
 - Skill en attente par personnage (aujourd'hui un seul pour l'escouade)
@@ -106,7 +107,6 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
 - Retirer un personnage mort de `m_personnages` et resserrer la
   formation, si l'avoir laissé en place s'avère gênant
 - Écran de victoire
-- Touche de recommencement de débogage (en cours de partie)
 - Collision entre personnages, ou déplacement suivant l'arc de rotation
   plutôt qu'une ligne droite, pour éliminer le chevauchement résiduel
   lors d'un demi-tour rapide
@@ -132,8 +132,11 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
 - **Fenêtre et carte** : fenêtre 1200 × 800 ; carte de 59 × 40 cases de
   40 px (2360 × 1600 px). Depuis l'étape 59, `main.cpp` joue sur un niveau
   généré (`genererNiveau` : salles rectangulaires reliées par des couloirs en L de
-  2 cases de large, sans monstre, escouade au centre de la première salle,
-  même graine que la partie, voir `docs/generation.md`) ; la carte faite à la main
+  2 cases de large, escouade au centre de la première salle, 1 à 3
+  monstres par autre salle, même graine que la partie, voir
+  `docs/generation.md`). R (après une défaite) et F5 (à tout moment, touche
+  de débogage) génèrent une nouvelle carte avec une nouvelle graine,
+  affichée dans la console ; la carte faite à la main
   (`creerNiveau()` dans `Niveau.cpp`) reste le terrain des tests. La caméra (`sf::View`) est centrée
   sur l'escouade ; du noir apparaît au-delà des bords de la carte.
 - **Architecture de la boucle** (étapes 52 et 54) : `main.cpp` garde la
@@ -215,8 +218,8 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   bloque plus personne ; il reste dans la formation, sa place est
   simplement vide. Une fois les 4 morts (`Partie::estPerdue`), le monde se
   fige, un écran de défaite (voile sombre, « Défaite », « Appuyez sur R pour
-  recommencer ») s'affiche et la touche R relance le niveau depuis le début
-  (nouvelle `Partie` et nouveau `Controleur`).
+  recommencer ») s'affiche et la touche R génère une nouvelle carte
+  (nouvelle `Partie` et nouveau `Controleur`, nouvelle graine).
 - **Entrées** : un clic sur le sol envoie l'escouade vers ce point ; tant
   que le bouton reste enfoncé (fenêtre ayant le focus, escouade vivante),
   l'ordre est redonné à chaque image vers le curseur. Un clic bref sur un
@@ -300,9 +303,14 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   l'annulent, sans recharge ; un ordre de déplacement, un clic au sol ou un
   verrouillage ne l'annulent pas. Pas de revérification de portée ni de vue
   au départ. Voir `docs/combat.md`.
-- **Monstres** : six carrés rouges de 30 × 30 (120 px/s, 100 points de
-  vie, barre de vie), à `(660, 380)`, `(500, 580)`, `(900, 220)`,
-  `(1940, 180)`, `(1500, 540)` et `(1620, 540)`, possédés par
+- **Monstres** : des carrés rouges de 30 × 30 (120 px/s, 100 points de
+  vie, armure 20, barre de vie). Sur la carte générée : 1 à 3 par salle sauf
+  la première, au centre d'une case intérieure (une case de marge contre
+  les murs), à au moins 2 cases les uns des autres et à 400 px ou plus du
+  départ (rejet, 10 tentatives par monstre, abandonné sinon : une salle
+  peut en avoir moins ou aucun). Sur la carte à la main (tests) : six, à
+  `(660, 380)`, `(500, 580)`, `(900, 220)`,
+  `(1940, 180)`, `(1500, 540)` et `(1620, 540)`. Possédés par
   `Partie` dans un `std::vector<Monstre>`. Un monstre détecte un
   personnage vivant à moins de 200 px de lui et de 400 px de son poste (sa
   position de départ), le poursuit (A* + lissage) et s'arrête à portée
@@ -319,7 +327,7 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 485 tests : 36 sur `GenerateurDonjon`, 38 sur `TileMap`, 17 sur `Chemin`, 163
+  (`./build/tests.exe`, 496 tests : 47 sur `GenerateurDonjon`, 38 sur `TileMap`, 17 sur `Chemin`, 163
   sur `Escouade` en cinq fichiers par thème — 22 déplacement, 27 combat, 70
   skills, 26 agresseurs, 18 vue —, 12 sur `Deplacement`, 43 sur `Monstre`,
   46 sur `Personnage`, 30 sur `Skill`, 17 sur `Mobile`, 2 sur `Eclaircir`, 4 sur `Cercle`, 13
@@ -330,10 +338,8 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
 
 **Limites connues** (acceptées pour l'instant) :
 - Couloirs générés (étape 60) : un couloir peut traverser une autre salle
-  ou longer un mur, et les couloirs ne forment pas de boucle (arbre). Les
-  problèmes de déplacement observés dans les couloirs étroits (2 cases) :
-  à compléter après les essais visuels d'Olivier ; aucune correction à
-  l'étape 60.
+  ou longer un mur, et les couloirs ne forment pas de boucle (arbre).
+  Aucun problème de déplacement observé dans les couloirs de 2 cases.
 - Pas d'interruption de l'activation d'un skill par les dégâts reçus ; un
   seul skill en attente pour toute l'escouade ; pas de barre de progression
   d'incantation ; pas de revérification de portée ni de vue au départ du
@@ -354,7 +360,8 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   contourne pas, elle glisse ou attend. Près des piliers, le contournement
   n'est pas toujours le plus court.
 - La détection, le territoire et la riposte des monstres ignorent les
-  murs ; la ligne de vue des personnages est mesurée centre à centre.
+  murs (observé sur la carte générée : un monstre peut détecter l'escouade
+  à travers un mur et faire le tour par le couloir) ; la ligne de vue des personnages est mesurée centre à centre.
 - Un coup engagé part sans revérifier portée ni vue ; seule la marche
   empêche d'engager (pas de ralentissement de l'escouade engagée).
 - Lors d'un demi-tour rapide, deux personnages peuvent se chevaucher

@@ -22,7 +22,7 @@ déplacement par chemin dans `docs/chemin.md`.
   rattrapable) : une seule copie de ces données. `getCentre`, `contient`,
   `dessiner` et `getCercle` les lisent via `m_mobile`.
 - **Possédé par `main.cpp`**, pas par `Escouade` : un
-  `std::vector<Monstre>` (six monstres répartis sur la carte), sans
+  `std::vector<Monstre>` (les monstres du `Niveau`, répartis sur la carte), sans
   classe dédiée (`Horde`, `Monstres`…) pour le porter. Un monstre mort
   est retiré du vecteur (`std::erase_if`, à chaque image) : l'objet
   cesse d'exister.
@@ -38,7 +38,8 @@ déplacement par chemin dans `docs/chemin.md`.
   réimplémenter sa convention (bords gauche/haut inclus, droit/bas
   exclus).
 - **Armure** (étape 55) : le constructeur prend aussi l'armure (`int`, 20
-  pour les six monstres, donnée par `Niveau::armureMonstres` via `Partie`).
+  pour tous les monstres, `s_armureMonstresParDefaut` donnée par
+  `Niveau::armureMonstres` via `Partie`).
   `recevoirDegats` retire `appliquerArmure(quantite, m_armure)`. Voir
   `docs/combat.md`.
 - **`recevoirDegats` ne descend jamais sous zéro** : un coup qui dépasse
