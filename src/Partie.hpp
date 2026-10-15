@@ -66,6 +66,8 @@ private:
     void resoudreLesCoups(float dt);
     void faireTournerLesMonstres(float dt);
     void faireFrapperLeMonstre(Monstre& monstre, std::optional<Cercle> proie, float dt);
+    // `enPoursuiteAvant` : statut de chaque monstre de `m_monstres` avant leur mise à jour.
+    void alerterLesGroupes(const std::vector<bool>& enPoursuiteAvant);
 
     TileMap m_carte;
     Escouade m_escouade;

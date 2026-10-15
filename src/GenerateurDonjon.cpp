@@ -122,14 +122,16 @@ void creuserCouloir(std::vector<std::string>& plan, sf::Vector2i depart, sf::Vec
     }
 }
 
-std::vector<sf::Vector2f> placerMonstres(Generateur& generateur, const std::vector<Salle>& salles,
-                                         sf::Vector2f depart, const ParametresDonjon& parametres) {
+std::vector<MonstreDuNiveau> placerMonstres(Generateur& generateur, const std::vector<Salle>& salles,
+                                            sf::Vector2f depart, const ParametresDonjon& parametres) {
     assert(parametres.monstresParSalleMin >= 0 && parametres.monstresParSalleMin <= parametres.monstresParSalleMax);
     assert(parametres.tentativesParMonstre >= 1);
 
     std::vector<sf::Vector2i> casesPlacees;
-    std::vector<sf::Vector2f> positions;
+    std::vector<MonstreDuNiveau> monstres;
+    int prochainGroupe = 0;  // pas l'indice de la salle : seules les salles peuplées comptent
     for (std::size_t i = 1; i < salles.size(); ++i) {
+        const std::size_t dejaPlaces = monstres.size();
         const Salle& salle = salles[i];
         // Une case de marge contre les murs de l'emprise.
         assert(salle.largeur >= 3 && salle.hauteur >= 3);
@@ -150,13 +152,16 @@ std::vector<sf::Vector2f> placerMonstres(Generateur& generateur, const std::vect
                     });
                 if (!tropPresDuDepart && !tropPresDUnMonstre) {
                     casesPlacees.push_back(candidate);
-                    positions.push_back(centre);
+                    monstres.push_back({centre, prochainGroupe});
                     break;
                 }
             }
         }
+        if (monstres.size() > dejaPlaces) {
+            ++prochainGroupe;
+        }
     }
-    return positions;
+    return monstres;
 }
 
 Niveau genererNiveau(Generateur& generateur, const ParametresDonjon& parametres) {

@@ -15,7 +15,11 @@ namespace {
 // son centre est en (210, 210). Le lanceur du skill de zone (place 4) est
 // le tireur en (185, 235).
 Niveau niveauDegage(const std::vector<sf::Vector2f>& monstres) {
-    return {std::vector<std::string>(15, std::string(15, '.')), 40.0f, {200.0f, 200.0f}, monstres};
+    std::vector<MonstreDuNiveau> deLaPartie;
+    for (const sf::Vector2f position : monstres) {
+        deLaPartie.push_back({position, static_cast<int>(deLaPartie.size())});  // chacun son groupe
+    }
+    return {std::vector<std::string>(15, std::string(15, '.')), 40.0f, {200.0f, 200.0f}, deLaPartie};
 }
 
 constexpr sf::Vector2f s_pointDeLancer{250.0f, 250.0f};  // à portée du lanceur

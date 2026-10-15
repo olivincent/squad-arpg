@@ -71,7 +71,9 @@ void creuserSalle(std::vector<std::string>& plan, const Salle& salle);
 void creuserCouloir(std::vector<std::string>& plan, sf::Vector2i depart, sf::Vector2i arrivee, SensCouloir sens,
                     int largeur);
 
-// Tire les positions des monstres (centres de case, en pixels du monde). Aucun
+// Tire les monstres : position (centre de case, en pixels du monde) et groupe.
+// Le groupe est un compteur qui augmente de 1 pour chaque salle qui reçoit au
+// moins un monstre ; tous les monstres d'une salle le partagent. Aucun
 // dans la salle 0 ; dans chaque autre salle, un nombre voulu tiré dans
 // [monstresParSalleMin, monstresParSalleMax], chacun sur une case intérieure
 // (une case de marge contre les murs de l'emprise). Placement par rejet : au
@@ -79,8 +81,8 @@ void creuserCouloir(std::vector<std::string>& plan, sf::Vector2i depart, sf::Vec
 // échouent tous. Une position est rejetée si elle est à moins de 2 cases d'un
 // monstre déjà placé (distance de Tchebychev) ou à moins de
 // `distanceMinDepart` pixels de `depart`.
-[[nodiscard]] std::vector<sf::Vector2f> placerMonstres(Generateur& generateur, const std::vector<Salle>& salles,
-                                                       sf::Vector2f depart, const ParametresDonjon& parametres);
+[[nodiscard]] std::vector<MonstreDuNiveau> placerMonstres(Generateur& generateur, const std::vector<Salle>& salles,
+                                                          sf::Vector2f depart, const ParametresDonjon& parametres);
 
 // Niveau fait de salles reliées par des couloirs en L et peuplé de monstres
 // (`placerMonstres`) ; l'escouade part au centre de la première salle placée.

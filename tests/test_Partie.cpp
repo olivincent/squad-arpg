@@ -13,8 +13,17 @@ namespace {
 // Niveau dégagé de 15 × 15 cases de 40 px (600 × 600 px), sans mur
 // intérieur ; l'escouade part de (200, 200), son centre est donc en (210, 210).
 // Mêlées en (235, 185) et (235, 235), tireurs en (185, 185) et (185, 235).
-Niveau niveauDegage(const std::vector<sf::Vector2f>& monstres) {
+Niveau niveauDegageEnGroupes(const std::vector<MonstreDuNiveau>& monstres) {
     return {std::vector<std::string>(15, std::string(15, '.')), 40.0f, {200.0f, 200.0f}, monstres};
+}
+
+// Chaque monstre a son propre groupe.
+Niveau niveauDegage(const std::vector<sf::Vector2f>& monstres) {
+    std::vector<MonstreDuNiveau> deLaPartie;
+    for (const sf::Vector2f position : monstres) {
+        deLaPartie.push_back({position, static_cast<int>(deLaPartie.size())});
+    }
+    return niveauDegageEnGroupes(deLaPartie);
 }
 
 // Fait avancer la partie de ce nombre de tics de 1/60 s.
@@ -282,4 +291,73 @@ TEST_CASE("un monstre reprend la poursuite une fois son coup parti") {
     avancer(partie, nombreDeTics(1.0f));
 
     REQUIRE((partie.getMonstres().front().getCentre() - sf::Vector2f(270.0f, 235.0f)).length() > 5.0f);
+}
+
+// Alerte du groupe. Le monstre proche (360, 210) voit l'escouade (150 px) ; le
+// monstre lointain (560, 560) est à plus de 300 px de tout personnage : seule
+// une alerte le fait bouger.
+
+namespace {
+
+const sf::Vector2f s_monstreProche{360.0f, 210.0f};
+const sf::Vector2f s_monstreLoinPoste{560.0f, 560.0f};
+
+bool aBouge(const Partie& partie, std::size_t indice, sf::Vector2f depart) {
+    return partie.getMonstres()[indice].getCentre() != depart;
+}
+
+}  // namespace
+
+TEST_CASE("un monstre qui detecte l'escouade alerte son groupe meme hors de sa detection") {
+    Partie partie(niveauDegageEnGroupes({{s_monstreProche, 0}, {s_monstreLoinPoste, 0}}), s_graineDeTest);
+
+    avancer(partie, 5);
+
+    REQUIRE(aBouge(partie, 0, s_monstreProche));
+    REQUIRE(aBouge(partie, 1, s_monstreLoinPoste));
+}
+
+TEST_CASE("un monstre d'un autre groupe n'est pas alerte") {
+    Partie partie(niveauDegageEnGroupes({{s_monstreProche, 0}, {s_monstreLoinPoste, 1}}), s_graineDeTest);
+
+    avancer(partie, 5);
+
+    REQUIRE(aBouge(partie, 0, s_monstreProche));
+    REQUIRE_FALSE(aBouge(partie, 1, s_monstreLoinPoste));
+}
+
+TEST_CASE("un monstre seul dans son groupe ne change rien pour les autres") {
+    Partie partie(niveauDegageEnGroupes({{s_monstreProche, 0}}), s_graineDeTest);
+
+    avancer(partie, 5);
+
+    REQUIRE(aBouge(partie, 0, s_monstreProche));
+    REQUIRE(partie.getMonstres().size() == 1);
+}
+
+TEST_CASE("sans monstre en poursuite personne n'est alerte") {
+    Partie partie(niveauDegageEnGroupes({{s_monstreLoinPoste, 0}, {{560.0f, 480.0f}, 0}}), s_graineDeTest);
+
+    avancer(partie, 30);
+
+    REQUIRE_FALSE(aBouge(partie, 0, s_monstreLoinPoste));
+    REQUIRE_FALSE(aBouge(partie, 1, {560.0f, 480.0f}));
+}
+
+TEST_CASE("un monstre touche par un skill de zone alerte son groupe") {
+    // Le monstre touché (420, 350) est hors de la détection (plus de 200 px de
+    // tout personnage) mais à portée du skill de zone (place 4) ; il passe en
+    // poursuite au départ du sort, et son voisin de groupe le suit.
+    const sf::Vector2f touche{420.0f, 350.0f};
+    Partie partie(niveauDegageEnGroupes({{touche, 0}, {s_monstreLoinPoste, 0}}), s_graineDeTest);
+    partie.lancerSkillDeZone(4, touche);
+
+    avancer(partie, nombreDeTics(0.7f)); // activation de 0,8 s : rien n'est encore parti
+    REQUIRE_FALSE(aBouge(partie, 0, touche));
+    REQUIRE_FALSE(aBouge(partie, 1, s_monstreLoinPoste));
+
+    avancer(partie, nombreDeTics(0.5f));
+
+    REQUIRE(aBouge(partie, 0, touche));
+    REQUIRE(aBouge(partie, 1, s_monstreLoinPoste));
 }

@@ -8,8 +8,8 @@
 Partie::Partie(const Niveau& niveau, Generateur::result_type graine)
     : m_carte(niveau.plan, niveau.tailleCase), m_escouade(niveau.departEscouade), m_generateur(graine) {
     int prochainId = 1;
-    for (const sf::Vector2f position : niveau.positionsMonstres) {
-        m_monstres.emplace_back(position, prochainId++, niveau.armureMonstres);
+    for (const MonstreDuNiveau& monstre : niveau.monstres) {
+        m_monstres.emplace_back(monstre.position, prochainId++, niveau.armureMonstres, monstre.groupe);
     }
 }
 
@@ -100,6 +100,13 @@ void Partie::faireTournerLesMonstres(float dt) {
     // Les personnages vivants (à leur position à jour) sont des obstacles pour tous les monstres.
     const std::vector<Cercle> cerclesPersonnages = m_escouade.cerclesDesVivants();
 
+    // Le statut de chaque monstre avant leur mise à jour, pour repérer ceux
+    // qui passent en poursuite pendant celle-ci.
+    std::vector<bool> enPoursuiteAvant;
+    for (const Monstre& m : m_monstres) {
+        enPoursuiteAvant.push_back(m.estEnPoursuite());
+    }
+
     for (Monstre& m : m_monstres) {
         // Les autres monstres, à leur position courante, sont aussi des obstacles.
         std::vector<Cercle> obstacles = cerclesPersonnages;
@@ -111,6 +118,25 @@ void Partie::faireTournerLesMonstres(float dt) {
         const auto cible = m_escouade.proieDuMonstre(m.getId(), m.getCentre());
         m.mettreAJour(dt, cible, m_carte, obstacles);
         faireFrapperLeMonstre(m, cible, dt);
+    }
+
+    alerterLesGroupes(enPoursuiteAvant);
+}
+
+// Les groupes à alerter sont tous collectés avant le premier `alerter()` : un
+// monstre alerté ici ne relance pas d'alerte dans la même image, le groupe est
+// un ensemble fermé. L'alerté commence à bouger à l'image suivante.
+void Partie::alerterLesGroupes(const std::vector<bool>& enPoursuiteAvant) {
+    std::vector<int> groupesAAlerter;
+    for (std::size_t i = 0; i < m_monstres.size(); ++i) {
+        if (!enPoursuiteAvant[i] && m_monstres[i].estEnPoursuite()) {
+            groupesAAlerter.push_back(m_monstres[i].getGroupe());
+        }
+    }
+    for (Monstre& m : m_monstres) {
+        if (std::ranges::find(groupesAAlerter, m.getGroupe()) != groupesAAlerter.end()) {
+            m.alerter();
+        }
     }
 }
 

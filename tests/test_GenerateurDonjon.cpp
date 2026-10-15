@@ -415,7 +415,7 @@ TEST_CASE("genererNiveau place des monstres") {
     bool auMoinsUn = false;
     for (Generateur::result_type graine = 1; graine <= 5; ++graine) {
         Generateur generateur(graine);
-        auMoinsUn = auMoinsUn || !genererNiveau(generateur, ParametresDonjon{}).positionsMonstres.empty();
+        auMoinsUn = auMoinsUn || !genererNiveau(generateur, ParametresDonjon{}).monstres.empty();
     }
 
     REQUIRE(auMoinsUn);
@@ -431,7 +431,8 @@ TEST_CASE("genererNiveau place chaque monstre sur du sol, hors de la premiere sa
 
         const TileMap carte(niveau.plan, niveau.tailleCase);
         const Salle premiere = placerSalles(copie, parametres).front();
-        for (const sf::Vector2f position : niveau.positionsMonstres) {
+        for (const MonstreDuNiveau& monstre : niveau.monstres) {
+            const sf::Vector2f position = monstre.position;
             const sf::Vector2i coord = carte.caseContenant(position);
             REQUIRE(carte.getTile(coord.x, coord.y) == Tile::Floor);
             REQUIRE(carte.centreDeCase(coord) == position);
@@ -455,8 +456,8 @@ TEST_CASE("genererNiveau donne les memes monstres pour la meme graine") {
     Generateur premier(s_graine);
     Generateur second(s_graine);
 
-    REQUIRE(genererNiveau(premier, ParametresDonjon{}).positionsMonstres ==
-            genererNiveau(second, ParametresDonjon{}).positionsMonstres);
+    REQUIRE(genererNiveau(premier, ParametresDonjon{}).monstres ==
+            genererNiveau(second, ParametresDonjon{}).monstres);
 }
 
 TEST_CASE("placerMonstres ne place aucun monstre dans la salle 0") {
@@ -472,7 +473,8 @@ TEST_CASE("placerMonstres place chaque monstre au centre d'une case interieure d
     for (Generateur::result_type graine = 0; graine < 50; ++graine) {
         Generateur generateur(graine);
 
-        for (const sf::Vector2f position : placerMonstres(generateur, salles, {100.0f, 100.0f}, parametres)) {
+        for (const MonstreDuNiveau& monstre : placerMonstres(generateur, salles, {100.0f, 100.0f}, parametres)) {
+            const sf::Vector2f position = monstre.position;
             const float colonne = position.x / parametres.tailleCase - 0.5f;
             const float ligne = position.y / parametres.tailleCase - 0.5f;
             REQUIRE(colonne == std::floor(colonne));
@@ -512,12 +514,12 @@ TEST_CASE("placerMonstres laisse au moins une case libre entre deux monstres") {
     for (Generateur::result_type graine = 0; graine < 50; ++graine) {
         Generateur generateur(graine);
 
-        const std::vector<sf::Vector2f> positions = placerMonstres(generateur, salles, {0.0f, 0.0f}, parametres);
+        const std::vector<MonstreDuNiveau> monstres = placerMonstres(generateur, salles, {0.0f, 0.0f}, parametres);
 
-        for (std::size_t i = 0; i < positions.size(); ++i) {
-            for (std::size_t j = i + 1; j < positions.size(); ++j) {
-                const float ecartX = std::abs(positions[i].x - positions[j].x);
-                const float ecartY = std::abs(positions[i].y - positions[j].y);
+        for (std::size_t i = 0; i < monstres.size(); ++i) {
+            for (std::size_t j = i + 1; j < monstres.size(); ++j) {
+                const float ecartX = std::abs(monstres[i].position.x - monstres[j].position.x);
+                const float ecartY = std::abs(monstres[i].position.y - monstres[j].position.y);
                 REQUIRE(std::max(ecartX, ecartY) >= 2.0f * parametres.tailleCase);
             }
         }
@@ -532,9 +534,9 @@ TEST_CASE("placerMonstres abandonne les monstres qui ne tiennent pas") {
     const std::vector<Salle> salles{{1, 1, 6, 6}, {20, 20, 6, 6}};
     Generateur generateur(s_graine);
 
-    const std::vector<sf::Vector2f> positions = placerMonstres(generateur, salles, {0.0f, 0.0f}, parametres);
+    const std::vector<MonstreDuNiveau> monstres = placerMonstres(generateur, salles, {0.0f, 0.0f}, parametres);
 
-    REQUIRE(positions.size() <= 4);
+    REQUIRE(monstres.size() <= 4);
 }
 
 TEST_CASE("placerMonstres tient les monstres a la distance minimale du depart") {
@@ -544,7 +546,8 @@ TEST_CASE("placerMonstres tient les monstres a la distance minimale du depart") 
     for (Generateur::result_type graine = 0; graine < 50; ++graine) {
         Generateur generateur(graine);
 
-        for (const sf::Vector2f position : placerMonstres(generateur, salles, depart, parametres)) {
+        for (const MonstreDuNiveau& monstre : placerMonstres(generateur, salles, depart, parametres)) {
+            const sf::Vector2f position = monstre.position;
             const sf::Vector2f ecart = position - depart;
             REQUIRE(ecart.x * ecart.x + ecart.y * ecart.y >=
                     parametres.distanceMinDepart * parametres.distanceMinDepart);
@@ -585,5 +588,55 @@ TEST_CASE("genererNiveau produit un plan que TileMap accepte") {
         const Niveau niveau = genererNiveau(generateur, ParametresDonjon{});
 
         REQUIRE_NOTHROW(TileMap(niveau.plan, niveau.tailleCase));
+    }
+}
+
+TEST_CASE("placerMonstres donne le meme groupe aux monstres d'une meme salle") {
+    ParametresDonjon parametres;
+    parametres.monstresParSalleMin = 3;
+    parametres.monstresParSalleMax = 3;
+    parametres.tentativesParMonstre = 50;
+    const std::vector<Salle> salles{{1, 1, 6, 6}, {20, 20, 12, 12}};
+    for (Generateur::result_type graine = 0; graine < 50; ++graine) {
+        Generateur generateur(graine);
+
+        const std::vector<MonstreDuNiveau> monstres = placerMonstres(generateur, salles, {0.0f, 0.0f}, parametres);
+
+        REQUIRE(monstres.size() >= 2);
+        for (const MonstreDuNiveau& monstre : monstres) {
+            REQUIRE(monstre.groupe == monstres.front().groupe);
+        }
+    }
+}
+
+TEST_CASE("placerMonstres donne des groupes differents aux monstres de salles differentes") {
+    ParametresDonjon parametres;
+    parametres.monstresParSalleMin = 2;
+    parametres.monstresParSalleMax = 2;
+    parametres.tentativesParMonstre = 50;
+    const std::vector<Salle> salles{{1, 1, 6, 6}, {20, 20, 12, 12}, {40, 5, 10, 10}};
+    for (Generateur::result_type graine = 0; graine < 50; ++graine) {
+        Generateur generateur(graine);
+
+        const std::vector<MonstreDuNiveau> monstres = placerMonstres(generateur, salles, {0.0f, 0.0f}, parametres);
+
+        // Deux monstres par salle, deux salles : les deux premiers vont ensemble, pas avec les deux suivants.
+        REQUIRE(monstres.size() == 4);
+        REQUIRE(monstres[0].groupe == monstres[1].groupe);
+        REQUIRE(monstres[2].groupe == monstres[3].groupe);
+        REQUIRE(monstres[0].groupe != monstres[2].groupe);
+    }
+}
+
+TEST_CASE("placerMonstres ne saute aucun numero de groupe quand une salle reste vide") {
+    // La salle 1 est entierement proche du depart : elle n'a aucun monstre, la salle 2 reçoit le groupe 0.
+    const std::vector<Salle> salles{{1, 1, 6, 6}, {18, 8, 6, 6}, {40, 20, 12, 12}};
+    const sf::Vector2f depart{840.0f, 440.0f};
+    for (Generateur::result_type graine = 0; graine < 50; ++graine) {
+        Generateur generateur(graine);
+
+        for (const MonstreDuNiveau& monstre : placerMonstres(generateur, salles, depart, ParametresDonjon{})) {
+            REQUIRE(monstre.groupe == 0);
+        }
     }
 }
