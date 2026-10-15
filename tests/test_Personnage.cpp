@@ -51,6 +51,22 @@ int frapperEnEntier(Personnage& personnage, Cercle cible, Generateur& generateur
     return 0;
 }
 
+// Lance le skill en un seul appel : engage, puis avance l'activation jusqu'au
+// départ de l'effet. Rend la puissance du skill, 0 s'il ne peut pas être engagé.
+// La portée est vérifiée par Escouade, pas ici. Les skills de ce fichier ont
+// une activation nulle (sauf mention) : l'effet part au premier tic.
+int lancerSkillEnEntier(Personnage& personnage, std::optional<Cible> cible, Generateur& generateur) {
+    if (!personnage.engagerSkill(cible)) {
+        return 0;
+    }
+    for (int i = 0; i < nombreDeTics(1.0f); ++i) {
+        if (const int puissance = personnage.avancerSkill(s_dureeTic, generateur); puissance > 0) {
+            return puissance;
+        }
+    }
+    return 0;
+}
+
 }  // namespace
 
 // Personnage centré en (100, 100), portée 80 px.
@@ -160,20 +176,20 @@ TEST_CASE("Un personnage mort ne bouge plus") {
 
 // Skill : portée 80 px comme l'attaque de base, 25 dégâts, 5 s de recharge.
 
-TEST_CASE("declencherSkill renvoie les degats du skill pour une cible a portee") {
+TEST_CASE("Lancer un skill rend sa puissance") {
     Generateur generateur = generateurDeTest();
     Personnage personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f), Skill(TypeSkill::Degats, 80.0f, 25, 5.0f, 5.0f, 0.0f), 0);
 
-    REQUIRE(personnage.declencherSkill(pointCible({150.0f, 100.0f}), generateur) == 25);
+    REQUIRE(lancerSkillEnEntier(personnage, Cible(CibleMonstre{1, pointCible({150.0f, 100.0f})}), generateur) == 25);
 }
 
-TEST_CASE("Un personnage avec un skill de provocation en expose le type et le declenche") {
+TEST_CASE("Un personnage avec un skill de provocation en expose le type et le lance") {
     Generateur generateur = generateurDeTest();
     Personnage personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 20.0f, 5, 0.5f, 0.5f, 0.0f), Skill(TypeSkill::Provocation, 0.0f, 4, 10.0f, 10.0f, 150.0f), 0);
 
     REQUIRE(personnage.typeSkill() == TypeSkill::Provocation);
     REQUIRE(personnage.skillEstPret());
-    REQUIRE(personnage.declencherSkill(personnage.getCercle(), generateur) == 4);
+    REQUIRE(lancerSkillEnEntier(personnage, std::nullopt, generateur) == 4);
     REQUIRE_FALSE(personnage.skillEstPret());
 }
 
@@ -186,44 +202,44 @@ TEST_CASE("zoneDuSkill est centree sur le personnage, au rayon de zone du skill"
     REQUIRE(sansSkill.zoneDuSkill().rayon == 0.0f);
 }
 
-TEST_CASE("declencherSkill renvoie 0 pour un personnage sans skill, sans toucher a l'attaque de base") {
+TEST_CASE("engagerSkill refuse un personnage sans skill, sans toucher a l'attaque de base") {
     Generateur generateur = generateurDeTest();
     Personnage personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f), std::nullopt, 0);
     const Cercle cible = pointCible({150.0f, 100.0f});
 
-    REQUIRE(personnage.declencherSkill(cible, generateur) == 0);
+    REQUIRE_FALSE(personnage.engagerSkill(Cible(CibleMonstre{1, cible})));
     REQUIRE(frapperEnEntier(personnage, cible, generateur) == 5);
 }
 
-TEST_CASE("declencherSkill renvoie 0 pour un personnage mort") {
-    Generateur generateur = generateurDeTest();
+TEST_CASE("engagerSkill refuse un personnage mort") {
     Personnage personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f), Skill(TypeSkill::Degats, 80.0f, 25, 5.0f, 5.0f, 0.0f), 0);
 
     personnage.recevoirDegats(100);
 
-    REQUIRE(personnage.declencherSkill(pointCible({150.0f, 100.0f}), generateur) == 0);
+    REQUIRE_FALSE(personnage.engagerSkill(Cible(CibleMonstre{1, pointCible({150.0f, 100.0f})})));
 }
 
-TEST_CASE("declencherSkill renvoie 0 hors de portee, sans toucher a l'attaque de base") {
+TEST_CASE("skillEstAPortee mesure la portee du skill, sans toucher a l'attaque de base") {
     Generateur generateur = generateurDeTest();
     Personnage personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f), Skill(TypeSkill::Degats, 80.0f, 25, 5.0f, 5.0f, 0.0f), 0);
 
-    REQUIRE(personnage.declencherSkill(pointCible({300.0f, 100.0f}), generateur) == 0);
+    REQUIRE(personnage.skillEstAPortee(pointCible({150.0f, 100.0f})));
+    REQUIRE_FALSE(personnage.skillEstAPortee(pointCible({300.0f, 100.0f})));
     REQUIRE(frapperEnEntier(personnage, pointCible({150.0f, 100.0f}), generateur) == 5);
 }
 
-TEST_CASE("declencherSkill renvoie 0 pendant sa recharge, puis de nouveau les degats une fois ecoulee") {
+TEST_CASE("Un skill ne peut pas etre relance pendant sa recharge, puis le peut une fois ecoulee") {
     Generateur generateur = generateurDeTest();
     Personnage personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f), Skill(TypeSkill::Degats, 80.0f, 25, 5.0f, 5.0f, 0.0f), 0);
     const TileMap carte = carteDegagee5x5();
-    const Cercle cible = pointCible({150.0f, 100.0f});
+    const Cible cible = CibleMonstre{1, pointCible({150.0f, 100.0f})};
 
-    REQUIRE(personnage.declencherSkill(cible, generateur) == 25);
-    REQUIRE(personnage.declencherSkill(cible, generateur) == 0);
+    REQUIRE(lancerSkillEnEntier(personnage, cible, generateur) == 25);
+    REQUIRE(lancerSkillEnEntier(personnage, cible, generateur) == 0);
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 4.8f);
-    REQUIRE(personnage.declencherSkill(cible, generateur) == 0);
+    REQUIRE(lancerSkillEnEntier(personnage, cible, generateur) == 0);
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.4f);
-    REQUIRE(personnage.declencherSkill(cible, generateur) == 25);
+    REQUIRE(lancerSkillEnEntier(personnage, cible, generateur) == 25);
 }
 
 TEST_CASE("Apres un skill reussi, l'attaque de base attend une recharge complete") {
@@ -238,7 +254,7 @@ TEST_CASE("Apres un skill reussi, l'attaque de base attend une recharge complete
     // fait sans le skill.
     REQUIRE(frapperEnEntier(personnage, cible, generateur) == 5);
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.3f);
-    REQUIRE(personnage.declencherSkill(cible, generateur) == 25);
+    REQUIRE(lancerSkillEnEntier(personnage, Cible(CibleMonstre{1, cible}), generateur) == 25);
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.3f);
     REQUIRE(frapperEnEntier(personnage, cible, generateur) == 0);
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.3f);
@@ -482,13 +498,104 @@ TEST_CASE("Apres le depart du coup, la recharge court avant le coup suivant") {
     REQUIRE(personnage.engagerAttaque(1));
 }
 
-TEST_CASE("Un skill qui part annule le coup en execution") {
-    Generateur generateur = generateurDeTest();
+TEST_CASE("Engager un skill annule le coup en execution") {
     Personnage personnage = personnageAvecExecution();
     REQUIRE(personnage.engagerAttaque(1));
 
-    REQUIRE(personnage.declencherSkill(pointCible({150.0f, 100.0f}), generateur) == 25);
+    REQUIRE(personnage.engagerSkill(Cible(CibleMonstre{1, pointCible({150.0f, 100.0f})})));
 
     REQUIRE_FALSE(personnage.cibleEngagee().has_value());
-    REQUIRE(personnage.avancerAttaque(1.0f, generateur) == 0);
+    REQUIRE(personnage.skillEngage().has_value());
+}
+
+// Skill dont l'activation dure 0,3 s ; l'attaque de base n'a pas d'exécution.
+namespace {
+
+Personnage personnageAvecActivation() {
+    return Personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f, 0.15f),
+                      Skill(TypeSkill::Degats, 80.0f, 25, 5.0f, 5.0f, 0.0f, 0.3f), 0);
+}
+
+const Cible s_cibleDuSkill = CibleMonstre{1, {{150.0f, 100.0f}, 0.0f}};
+
+}  // namespace
+
+TEST_CASE("avancerSkill rend la puissance une seule fois, a la fin de l'activation") {
+    Generateur generateur = generateurDeTest();
+    Personnage personnage = personnageAvecActivation();
+    REQUIRE(personnage.engagerSkill(s_cibleDuSkill));
+
+    int total = 0;
+    for (int i = 0; i < nombreDeTics(0.2f); ++i) {
+        total += personnage.avancerSkill(s_dureeTic, generateur);
+    }
+    REQUIRE(total == 0);
+    REQUIRE(personnage.skillEngage().has_value());
+
+    for (int i = 0; i < nombreDeTics(0.2f); ++i) {
+        total += personnage.avancerSkill(s_dureeTic, generateur);
+    }
+    REQUIRE(total == 25);
+    REQUIRE_FALSE(personnage.skillEngage().has_value());
+    REQUIRE_FALSE(personnage.estEnExecution());
+}
+
+TEST_CASE("Un skill en activation n'est pas pret et ne peut pas etre engage de nouveau") {
+    Personnage personnage = personnageAvecActivation();
+    REQUIRE(personnage.skillEstPret());
+
+    REQUIRE(personnage.engagerSkill(s_cibleDuSkill));
+
+    REQUIRE_FALSE(personnage.skillEstPret());
+    REQUIRE_FALSE(personnage.engagerSkill(s_cibleDuSkill));
+    REQUIRE(personnage.estEnExecution());
+}
+
+TEST_CASE("engagerSkill n'exige pas un personnage immobile") {
+    const TileMap carte = carteDegagee5x5();
+    Personnage personnage = personnageAvecActivation();
+    ecoulerTemps(personnage, carte, {180.0f, 100.0f}, 0.1f);  // en marche
+
+    REQUIRE(personnage.engagerSkill(s_cibleDuSkill));
+}
+
+TEST_CASE("annulerSkill ne consomme pas de recharge") {
+    Generateur generateur = generateurDeTest();
+    Personnage personnage = personnageAvecActivation();
+    REQUIRE(personnage.engagerSkill(s_cibleDuSkill));
+    REQUIRE(personnage.avancerSkill(0.1f, generateur) == 0);
+
+    personnage.annulerSkill();
+
+    REQUIRE_FALSE(personnage.skillEngage().has_value());
+    REQUIRE(personnage.skillEstPret());
+    REQUIRE(personnage.engagerSkill(s_cibleDuSkill));
+}
+
+TEST_CASE("annulerAttaque n'annule pas l'activation d'un skill") {
+    Personnage personnage = personnageAvecActivation();
+    REQUIRE(personnage.engagerSkill(s_cibleDuSkill));
+
+    personnage.annulerAttaque();
+
+    REQUIRE(personnage.skillEngage().has_value());
+}
+
+TEST_CASE("Aucune attaque de base ne s'engage pendant l'activation d'un skill") {
+    Personnage personnage = personnageAvecActivation();
+    REQUIRE(personnage.engagerSkill(s_cibleDuSkill));
+
+    REQUIRE_FALSE(personnage.engagerAttaque(1));
+}
+
+TEST_CASE("Au depart du skill, l'attaque de base repart pour une recharge complete") {
+    Generateur generateur = generateurDeTest();
+    const TileMap carte = carteDegagee5x5();
+    Personnage personnage = personnageAvecActivation();
+    REQUIRE(personnage.engagerSkill(s_cibleDuSkill));
+    REQUIRE(personnage.avancerSkill(0.4f, generateur) == 25);
+
+    REQUIRE_FALSE(personnage.engagerAttaque(1));
+    ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.6f);
+    REQUIRE(personnage.engagerAttaque(1));
 }

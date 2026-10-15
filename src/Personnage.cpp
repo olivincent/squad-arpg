@@ -24,7 +24,7 @@ Personnage::Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBa
       m_cibleChemin(),
       m_pointsDeVie(s_pointsDeVieMax),
       m_armure(armure),
-      m_idCibleEngagee()
+      m_actionEngagee()
 {
 }
 
@@ -33,7 +33,7 @@ void Personnage::dessiner(sf::RenderTarget& rendu) const {
     sf::RectangleShape forme(taille);
     forme.setPosition(getCentre() - taille / 2.0f);
     // Un coup en préparation éclaircit le carré.
-    const sf::Color couleur = cibleEngagee().has_value() ? eclaircir(m_couleur, s_eclaircissementExecution) : m_couleur;
+    const sf::Color couleur = estEnExecution() ? eclaircir(m_couleur, s_eclaircissementExecution) : m_couleur;
     forme.setFillColor(estVivant() ? couleur : sf::Color(100, 100, 100));
     rendu.draw(forme);
 
@@ -99,31 +99,39 @@ bool Personnage::estAPortee(Cercle cible) const {
 }
 
 bool Personnage::engagerAttaque(int idCible) {
-    if (!estVivant() || m_mobile.estEnMouvement() || !m_attaqueDeBase.commencer()) {
+    if (!estVivant() || m_mobile.estEnMouvement() || m_actionEngagee.has_value() || !m_attaqueDeBase.commencer()) {
         return false;
     }
-    m_idCibleEngagee = idCible;
+    // Seul l'identifiant sert à l'attaque de base : le cercle n'est pas renseigné.
+    m_actionEngagee = ActionEngagee{TypeAction::AttaqueDeBase, CibleMonstre{idCible, Cercle{}}};
     return true;
 }
 
 std::optional<int> Personnage::cibleEngagee() const {
-    if (m_attaqueDeBase.getPhase() != PhaseSkill::EnExecution) {
+    if (!m_actionEngagee.has_value() || m_actionEngagee->action != TypeAction::AttaqueDeBase ||
+        m_attaqueDeBase.getPhase() != PhaseSkill::EnExecution) {
         return std::nullopt;
     }
-    return m_idCibleEngagee;
+    return std::get<CibleMonstre>(*m_actionEngagee->cible).id;
 }
 
 int Personnage::avancerAttaque(float dt, Generateur& generateur) {
     if (!cibleEngagee().has_value() || !m_attaqueDeBase.avancer(dt, generateur)) {
         return 0;
     }
-    m_idCibleEngagee.reset();
+    m_actionEngagee.reset();
     return m_attaqueDeBase.getPuissance();
 }
 
 void Personnage::annulerAttaque() {
     m_attaqueDeBase.annuler();
-    m_idCibleEngagee.reset();
+    if (m_actionEngagee.has_value() && m_actionEngagee->action == TypeAction::AttaqueDeBase) {
+        m_actionEngagee.reset();
+    }
+}
+
+bool Personnage::estEnExecution() const {
+    return m_actionEngagee.has_value();
 }
 
 std::optional<TypeSkill> Personnage::typeSkill() const {
@@ -134,7 +142,7 @@ std::optional<TypeSkill> Personnage::typeSkill() const {
 }
 
 bool Personnage::skillEstPret() const {
-    return estVivant() && m_skill.has_value() && m_skill->getProgressionRecharge() >= 1.0f;
+    return estVivant() && m_skill.has_value() && m_skill->getPhase() == PhaseSkill::Pret;
 }
 
 std::optional<EtatSkill> Personnage::etatDuSkill() const {
@@ -157,32 +165,40 @@ Cercle Personnage::zoneDuSkill() const {
     return {getCentre(), m_skill.has_value() ? m_skill->getRayonZone() : 0.0f};
 }
 
-int Personnage::declencherSkill(Cercle cible, Generateur& generateur) {
-    if (!m_skill.has_value() || !estVivant()) {
-        return 0;
+bool Personnage::engagerSkill(std::optional<Cible> cible) {
+    if (!estVivant() || !m_skill.has_value() || !m_skill->commencer()) {
+        return false;
     }
-
-    const int degats = m_skill->declencher(getCercle(), cible, generateur);
-    if (degats > 0) {
-        // Le skill remplace l'attaque de base à ce moment : elle repart
-        // pour une recharge complète (un coup en exécution est annulé).
-        annulerAttaque();
-        m_attaqueDeBase.relancerRecharge(generateur);
-    }
-    return degats;
+    // Le skill remplace l'attaque de base à ce moment : un coup en exécution est annulé.
+    annulerAttaque();
+    m_actionEngagee = ActionEngagee{TypeAction::Skill, cible};
+    return true;
 }
 
-int Personnage::declencherSkillSansCible(Generateur& generateur) {
-    if (!m_skill.has_value() || !estVivant()) {
+std::optional<ActionEngagee> Personnage::skillEngage() const {
+    if (!m_actionEngagee.has_value() || m_actionEngagee->action != TypeAction::Skill) {
+        return std::nullopt;
+    }
+    return m_actionEngagee;
+}
+
+int Personnage::avancerSkill(float dt, Generateur& generateur) {
+    if (!skillEngage().has_value() || !m_skill->avancer(dt, generateur)) {
         return 0;
     }
+    m_actionEngagee.reset();
+    // Le skill est parti : l'attaque de base repart pour une recharge complète.
+    m_attaqueDeBase.relancerRecharge(generateur);
+    return m_skill->getPuissance();
+}
 
-    const int puissance = m_skill->declencherSansCible(generateur);
-    if (puissance > 0) {
-        annulerAttaque();
-        m_attaqueDeBase.relancerRecharge(generateur);
+void Personnage::annulerSkill() {
+    if (m_skill.has_value()) {
+        m_skill->annuler();
     }
-    return puissance;
+    if (skillEngage().has_value()) {
+        m_actionEngagee.reset();
+    }
 }
 
 void Personnage::recevoirDegats(int quantite) {

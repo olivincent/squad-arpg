@@ -1,5 +1,6 @@
 // ./src/Personnage.hpp
 #pragma once
+#include "ActionEngagee.hpp"
 #include "Aleatoire.hpp"
 #include "Cercle.hpp"
 #include "EtatSkill.hpp"
@@ -26,15 +27,26 @@ public:
     bool engagerAttaque(int idCible);
     std::optional<int> cibleEngagee() const;
     [[nodiscard]] int avancerAttaque(float dt, Generateur& generateur);
+    // Sans effet sur une activation de skill : seul annulerSkill l'annule.
     void annulerAttaque();
+    // Un coup de base en exécution ou un skill en activation : le personnage reste sur place.
+    bool estEnExecution() const;
     std::optional<TypeSkill> typeSkill() const;
     bool skillEstPret() const;
     std::optional<EtatSkill> etatDuSkill() const;
     [[nodiscard]] bool skillEstAPortee(Cercle cible) const;
     [[nodiscard]] Cercle zoneDuSkill() const;
     [[nodiscard]] Cercle cercleDePorteeDuSkill() const;
-    [[nodiscard]] int declencherSkill(Cercle cible, Generateur& generateur);
-    [[nodiscard]] int declencherSkillSansCible(Generateur& generateur);
+    // Skill en trois temps, comme l'attaque de base : engager (vivant, skill
+    // prêt ; annule le coup de base en exécution, mais ne demande pas
+    // d'immobilité) ; avancer l'activation, qui rend la puissance au moment
+    // où l'effet part (et relance la recharge de l'attaque de base) ;
+    // annuler, sans recharge consommée. La portée et la vue sont vérifiées
+    // par Escouade ; la cible est stockée sans être interprétée.
+    bool engagerSkill(std::optional<Cible> cible);
+    std::optional<ActionEngagee> skillEngage() const;
+    [[nodiscard]] int avancerSkill(float dt, Generateur& generateur);
+    void annulerSkill();
     void recevoirDegats(int quantite);
     void recevoirSoin(int quantite);
     bool estVivant() const;
@@ -51,5 +63,5 @@ private:
     std::optional<sf::Vector2f> m_cibleChemin; // cible du dernier A* ; vide = pas de chemin en cours
     PointsDeVie m_pointsDeVie;
     int m_armure;
-    std::optional<int> m_idCibleEngagee; // monstre visé par le coup en exécution ; lu seulement pendant l'exécution
+    std::optional<ActionEngagee> m_actionEngagee; // action en exécution et sa cible ; lue seulement pendant l'exécution
 };

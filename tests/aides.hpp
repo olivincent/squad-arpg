@@ -107,10 +107,20 @@ inline int nombreDeTics(float dureeSecondes) {
 // vérifient que l'état final.
 inline void simuler(Escouade& escouade, const TileMap& carte, float dureeSecondes) {
     constexpr float dt = s_dureeTic;
-    Generateur generateur = generateurDeTest();
     const int nombreTics = nombreDeTics(dureeSecondes);
     for (int i = 0; i < nombreTics; ++i) {
-        escouade.mettreAJour(dt, carte, {}, generateur);
+        escouade.mettreAJour(dt, carte, {});
+    }
+}
+
+// Comme simuler, avec attaquer() avant mettreAJour() à chaque tic (sans
+// monstre), dans l'ordre d'une image de Partie : les skills engagés
+// avancent et partent dans attaquer().
+inline void simulerAvecAttaque(Escouade& escouade, const TileMap& carte, float dureeSecondes, Generateur& generateur) {
+    const int nombreTics = nombreDeTics(dureeSecondes);
+    for (int i = 0; i < nombreTics; ++i) {
+        static_cast<void>(escouade.attaquer(s_dureeTic, {}, carte, generateur));
+        escouade.mettreAJour(s_dureeTic, carte, {});
     }
 }
 

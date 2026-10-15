@@ -40,7 +40,7 @@ TEST_CASE("Un seul tic avance le centre de vitesse * dt") {
 
     const sf::Vector2f centreInitial = escouade.getCentre();
     escouade.allerVers({300.0f, 300.0f}, carte);
-    escouade.mettreAJour(0.1f, carte, {}, generateur);
+    escouade.mettreAJour(0.1f, carte, {});
 
     const float distanceParcourue = (escouade.getCentre() - centreInitial).length();
     REQUIRE_THAT(distanceParcourue, Catch::Matchers::WithinAbs(18.0f, 0.5f));
@@ -107,7 +107,7 @@ TEST_CASE("Sans ordre, l'escouade ne bouge pas") {
     Escouade escouade({50.0f, 50.0f});
 
     for (int i = 0; i < 60; ++i) {
-        escouade.mettreAJour(1.0f / 60.0f, carte, {}, generateur);
+        escouade.mettreAJour(1.0f / 60.0f, carte, {});
     }
 
     verifierPointProche(escouade.getCentre(), {60.0f, 60.0f});
@@ -291,7 +291,7 @@ TEST_CASE("Les obstacles bloquent les personnages mais pas l'ancre") {
 
     escouade.allerVers({400.0f, 60.0f}, carte);
     for (int i = 0; i < 300; ++i) {
-        escouade.mettreAJour(1.0f / 60.0f, carte, obstacles, generateur);
+        escouade.mettreAJour(1.0f / 60.0f, carte, obstacles);
     }
 
     // L'ancre a traversé l'obstacle (bord droit en x = 230)...
@@ -315,7 +315,7 @@ TEST_CASE("En terrain degage, les places de formation ne sont pas modifiees") {
                          "##########"},
                         40.0f);
     Escouade escouade({150.0f, 110.0f});
-    escouade.mettreAJour(0.016f, carte, {}, generateur);
+    escouade.mettreAJour(0.016f, carte, {});
 
     const sf::Vector2f centre = escouade.getCentre();
     const std::vector<sf::Vector2f> attendues = {centre + sf::Vector2f(25.0f, -25.0f),
@@ -341,7 +341,7 @@ TEST_CASE("Ancre collee a un mur, aucune place de formation n'est dans un mur") 
                          "##########"},
                         40.0f);
     Escouade escouade({40.0f, 80.0f}); // centre (50, 90) : le bord gauche de l'ancre touche le mur
-    escouade.mettreAJour(0.016f, carte, {}, generateur);
+    escouade.mettreAJour(0.016f, carte, {});
 
     const sf::Vector2f taille{20.0f, 20.0f};
     const std::vector<sf::Vector2f>& places = escouade.getPlacesDeFormation();

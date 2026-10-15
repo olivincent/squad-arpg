@@ -89,7 +89,7 @@ TEST_CASE("Zone en attente : le lanceur contourne le mur, puis le sort part des 
                 coupsDeZone.push_back(coup);
             }
         }
-        escouade.mettreAJour(0.016f, carte, {}, generateur);
+        escouade.mettreAJour(0.016f, carte, {});
         ++tics;
     }
 
@@ -187,7 +187,7 @@ TEST_CASE("Combat verrouille : une cible a portee mais cachee ne fait pas arrete
 
     for (int i = 0; i < 20; ++i) {
         static_cast<void>(escouade.attaquer(s_dureeTic, monstres, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
-        escouade.mettreAJour(0.016f, carte, {}, generateur);
+        escouade.mettreAJour(0.016f, carte, {});
     }
 
     REQUIRE((escouade.getCentre() - depart).length() > 5.0f);
@@ -204,7 +204,7 @@ TEST_CASE("Combat verrouille : une cible a portee et en vue fait arreter l'ancre
 
     for (int i = 0; i < 20; ++i) {
         static_cast<void>(escouade.attaquer(s_dureeTic, monstres, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
-        escouade.mettreAJour(0.016f, carte, {}, generateur);
+        escouade.mettreAJour(0.016f, carte, {});
     }
 
     REQUIRE((escouade.getCentre() - depart).length() < 1.0f);
@@ -221,7 +221,7 @@ TEST_CASE("Agresseur a portee mais cache : le personnage va vers lui") {
 
     for (int i = 0; i < 20; ++i) {
         static_cast<void>(escouade.attaquer(s_dureeTic, monstres, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
-        escouade.mettreAJour(0.016f, carte, {}, generateur);
+        escouade.mettreAJour(0.016f, carte, {});
     }
 
     REQUIRE((escouade.cerclesDesVivants()[3].centre - depart).length() > 10.0f);
@@ -311,9 +311,10 @@ TEST_CASE("Soin d'un allie a portee mais cache : le soin est mis en attente, pui
     REQUIRE(placeAlliePourSoin(escouade) == 1);     // pas encore soigné
 
     // Le mur est là : rien ne part. La vue est obtenue (carte sans mur) : le soin part.
-    escouade.mettreAJour(0.016f, carte, {}, generateur);
+    escouade.mettreAJour(0.016f, carte, {});
     REQUIRE(placeAlliePourSoin(escouade) == 1);
-    escouade.mettreAJour(0.016f, carteOuverte(), {}, generateur);
+    escouade.mettreAJour(0.016f, carteOuverte(), {});
+    static_cast<void>(escouade.attaquer(0.016f, {}, carteOuverte(), generateur));  // l'activation avance et le soin part
 
     REQUIRE_FALSE(placeAlliePourSoin(escouade).has_value());
     REQUIRE_FALSE(escouade.skillEstPret(3));

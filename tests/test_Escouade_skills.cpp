@@ -255,7 +255,7 @@ TEST_CASE("Un soin hors de portee est mis en attente : le soigneur marche, soign
     declencher(escouade, 3, {});
     REQUIRE(placeAlliePourSoin(escouade) == 2);   // pas encore soigné
 
-    simuler(escouade, carte, 0.5f);
+    simulerAvecAttaque(escouade, carte, 0.5f, generateur);
     REQUIRE_FALSE(placeAlliePourSoin(escouade).has_value());  // soigné en route
 
     simuler(escouade, carte, 2.0f);
@@ -297,13 +297,14 @@ TEST_CASE("Le soin en attente est annule si le soigneur meurt") {
 }
 
 TEST_CASE("Un ordre de deplacement n'annule pas un soin en attente") {
+    Generateur generateur = generateurDeTest();
     const TileMap carte = carteDegagee10x10();
     Escouade escouade({50.0f, 50.0f});
     escouade.recevoirDegats(1, {85.0f, 85.0f}, 20);
     declencher(escouade, 3, {});
 
     escouade.allerVers({300.0f, 300.0f}, carte);
-    simuler(escouade, carte, 5.0f);
+    simulerAvecAttaque(escouade, carte, 5.0f, generateur);
 
     REQUIRE_FALSE(placeAlliePourSoin(escouade).has_value());
 }
@@ -337,7 +338,7 @@ TEST_CASE("Un skill de degats hors de portee est mis en attente, puis part a l'a
     for (int i = 0; i < 600; ++i) {
         const int degats = attaquerCible(escouade, carte, cible);
         degatsMax = std::max(degatsMax, degats);
-        escouade.mettreAJour(1.0f / 60.0f, carte, {}, generateur);
+        escouade.mettreAJour(1.0f / 60.0f, carte, {});
     }
     REQUIRE(degatsMax >= 25);
 }
@@ -442,11 +443,11 @@ TEST_CASE("Provocation : un nouvel appui pendant la recharge est ignore, puis ac
     const std::vector<MonstreVu> monstres = {MonstreVu{1, cibleMonstre({335.0f, 235.0f})}};
 
     REQUIRE(escouade.declencherSkill(2, monstres, carteOuverte(), generateur).empty());
-    escouade.mettreAJour(3.0f, carte, {}, generateur);
+    escouade.mettreAJour(3.0f, carte, {});
     REQUIRE(escouade.declencherSkill(2, monstres, carteOuverte(), generateur).empty());
     REQUIRE(escouade.getProvocations()[0].tempsRestant < 1.5f);  // pas remis à 4
 
-    escouade.mettreAJour(7.1f, carte, {}, generateur);
+    escouade.mettreAJour(7.1f, carte, {});
     REQUIRE(escouade.declencherSkill(2, monstres, carteOuverte(), generateur).empty());
     REQUIRE(escouade.getProvocations()[0].tempsRestant == 4.0f);
 }
@@ -505,7 +506,7 @@ TEST_CASE("skillEstPret : faux pendant la recharge, vrai apres 8 s") {
 
     REQUIRE_FALSE(escouade.skillEstPret(4));
 
-    escouade.mettreAJour(8.1f, carte, {}, generateur);
+    escouade.mettreAJour(8.1f, carte, {});
     REQUIRE(escouade.skillEstPret(4));
 }
 
@@ -597,7 +598,7 @@ TEST_CASE("Zone en attente : le lanceur se rapproche, puis le sort part au point
                 coupsDeZone.push_back(coup);
             }
         }
-        escouade.mettreAJour(0.016f, carte, {}, generateur);
+        escouade.mettreAJour(0.016f, carte, {});
         ++tics;
     }
 
@@ -627,7 +628,7 @@ TEST_CASE("Zone en attente : elle touche les monstres presents au depart, pas ce
                 coupsDeZone.push_back(coup);
             }
         }
-        escouade.mettreAJour(0.016f, carte, {}, generateur);
+        escouade.mettreAJour(0.016f, carte, {});
     }
 
     REQUIRE(coupsDeZone.size() == 1);
@@ -644,7 +645,7 @@ TEST_CASE("Zone en attente : la mort du lanceur l'annule sans recharge") {
 
     for (int i = 0; i < 300; ++i) {
         REQUIRE(escouade.attaquer(s_dureeTic, monstres, carte, generateur).empty());
-        escouade.mettreAJour(0.016f, carte, {}, generateur);
+        escouade.mettreAJour(0.016f, carte, {});
     }
 
     // Plus rien en attente : une provocation (place 2) est acceptée.
@@ -674,7 +675,7 @@ TEST_CASE("Zone en attente : verrouiller, deverrouiller et un ordre de deplaceme
                 coupsDeZone.push_back(coup);
             }
         }
-        escouade.mettreAJour(0.016f, carte, {}, generateur);
+        escouade.mettreAJour(0.016f, carte, {});
     }
 
     REQUIRE(coupsDeZone.size() == 1);

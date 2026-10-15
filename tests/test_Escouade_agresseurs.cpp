@@ -116,9 +116,9 @@ TEST_CASE("Un agresseur est oublie 3 s apres son dernier coup") {
     Escouade escouade({50.0f, 50.0f});
     escouade.recevoirDegats(7, {300.0f, 60.0f}, 10);
 
-    escouade.mettreAJour(2.9f, carte, {}, generateur);
+    escouade.mettreAJour(2.9f, carte, {});
     REQUIRE(escouade.getAgresseurs().size() == 1);
-    escouade.mettreAJour(0.2f, carte, {}, generateur);
+    escouade.mettreAJour(0.2f, carte, {});
     REQUIRE(escouade.getAgresseurs().empty());
 }
 
@@ -127,9 +127,9 @@ TEST_CASE("Un nouveau coup repousse l'oubli de l'agresseur") {
     const TileMap carte({"..........", "..........", ".........."}, 40.0f);
     Escouade escouade({50.0f, 50.0f});
     escouade.recevoirDegats(7, {300.0f, 60.0f}, 10);
-    escouade.mettreAJour(2.0f, carte, {}, generateur);
+    escouade.mettreAJour(2.0f, carte, {});
     escouade.recevoirDegats(7, {300.0f, 60.0f}, 10);
-    escouade.mettreAJour(2.0f, carte, {}, generateur);
+    escouade.mettreAJour(2.0f, carte, {});
 
     REQUIRE(escouade.getAgresseurs().size() == 1);
 }
@@ -158,7 +158,7 @@ void simulerAvecMonstre(Escouade& escouade, const TileMap& carte, Cercle monstre
     Generateur generateur = generateurDeTest();
     for (int i = 0; i < tics; ++i) {
         static_cast<void>(escouade.attaquer(s_dureeTic, {MonstreVu{1, monstre}}, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
-        escouade.mettreAJour(1.0f / 60.0f, carte, {monstre}, generateur);
+        escouade.mettreAJour(1.0f / 60.0f, carte, {monstre});
     }
 }
 
@@ -239,7 +239,7 @@ TEST_CASE("provoquer ignore une place invalide (0 et 5) : aucune provocation, au
     escouade.provoquer(8, 5, 4.0f);
 
     REQUIRE(escouade.getProvocations().empty());
-    escouade.mettreAJour(1.0f / 60.0f, carte, {}, generateur);
+    escouade.mettreAJour(1.0f / 60.0f, carte, {});
     REQUIRE(escouade.getProvocations().empty());
     REQUIRE(escouade.proieDuMonstre(7, {300.0f, 60.0f}).has_value());
 }
@@ -250,7 +250,7 @@ TEST_CASE("Provoquer de nouveau un monstre deja provoque ne le duplique pas et r
     Escouade escouade({50.0f, 50.0f});
     escouade.provoquer(7, 2, 4.0f);
     escouade.provoquer(8, 2, 4.0f);
-    escouade.mettreAJour(3.0f, carte, {}, generateur);
+    escouade.mettreAJour(3.0f, carte, {});
     escouade.provoquer(7, 2, 4.0f);
 
     const auto& provocations = escouade.getProvocations();
@@ -266,9 +266,9 @@ TEST_CASE("Une provocation prend fin apres sa duree") {
     Escouade escouade({50.0f, 50.0f});
     escouade.provoquer(7, 2, 4.0f);
 
-    escouade.mettreAJour(3.9f, carte, {}, generateur);
+    escouade.mettreAJour(3.9f, carte, {});
     REQUIRE(escouade.getProvocations().size() == 1);
-    escouade.mettreAJour(0.2f, carte, {}, generateur);
+    escouade.mettreAJour(0.2f, carte, {});
     REQUIRE(escouade.getProvocations().empty());
 }
 
@@ -280,7 +280,7 @@ TEST_CASE("Une provocation prend fin a la mort du provocateur") {
     escouade.provoquer(8, 1, 4.0f);
 
     escouade.recevoirDegats(1, {235.0f, 235.0f}, 200);  // tue la place 2
-    escouade.mettreAJour(0.016f, carte, {}, generateur);
+    escouade.mettreAJour(0.016f, carte, {});
 
     const auto& provocations = escouade.getProvocations();
     REQUIRE(provocations.size() == 1);

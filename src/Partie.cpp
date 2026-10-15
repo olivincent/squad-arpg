@@ -155,7 +155,7 @@ void Partie::mettreAJour(float dt) {
     for (const Monstre& m : m_monstres) {
         cerclesMonstres.push_back(m.getCercle());
     }
-    m_escouade.mettreAJour(dt, m_carte, cerclesMonstres, m_generateur);
+    m_escouade.mettreAJour(dt, m_carte, cerclesMonstres);
     faireTournerLesMonstres(dt);
 
     m_lancerDeZoneDemande.reset();
