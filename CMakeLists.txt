@@ -31,6 +31,7 @@ add_library(squad_core STATIC
     src/Skill.cpp
     src/Mobile.cpp
     src/Cercle.cpp
+    src/TraceDeChemin.cpp
     src/Autodefense.cpp
     src/Encerclement.cpp
     src/BarreDeSkills.cpp

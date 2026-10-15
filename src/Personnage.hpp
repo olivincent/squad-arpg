@@ -36,6 +36,8 @@ public:
     void annulerAttaque();
     // Voir Mobile::estEnMouvement.
     [[nodiscard]] bool estEnMouvement() const;
+    // Façade de Mobile::cheminRestant, pour le débogage.
+    [[nodiscard]] std::vector<sf::Vector2f> cheminRestant() const;
     // Un coup de base en exécution ou un skill en activation : le personnage reste sur place.
     bool estEnExecution() const;
     std::optional<TypeSkill> typeSkill() const;

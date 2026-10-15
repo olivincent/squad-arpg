@@ -5,6 +5,7 @@
 #include "Defense.hpp"
 #include "Eclaircir.hpp"
 #include "TileMap.hpp"
+#include "TraceDeChemin.hpp"
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Rect.hpp>
@@ -47,6 +48,10 @@ void Monstre::dessiner(sf::RenderTarget& rendu, bool estCible) const {
     rendu.draw(forme);
 
     dessinerBarreDeVie(rendu, positionBarreDeVie(centre, taille), taille.x, m_pointsDeVie.getRatio());
+}
+
+void Monstre::dessinerChemin(sf::RenderTarget& rendu) const {
+    dessinerTraceDeChemin(rendu, m_mobile.getCentre(), m_mobile.cheminRestant(), sf::Color::Red);
 }
 
 sf::Vector2f Monstre::getCentre() const {

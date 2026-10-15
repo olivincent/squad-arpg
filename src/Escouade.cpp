@@ -17,6 +17,7 @@
 #include "Chemin.hpp"
 #include "Encerclement.hpp"
 #include "TileMap.hpp"
+#include "TraceDeChemin.hpp"
 
 namespace {
 const sf::Color s_couleurMelee = sf::Color::Red;
@@ -819,6 +820,7 @@ void Escouade::dessinerPointsVises(sf::RenderTarget& rendu) const {
         const sf::Vector2f centre = m_personnages[i].getCentre();
         const std::array<sf::Vertex, 2> trait = {sf::Vertex{centre, sf::Color::Yellow}, sf::Vertex{m_pointsVises[i], sf::Color::Yellow}};
         rendu.draw(trait.data(), trait.size(), sf::PrimitiveType::Lines);
+        dessinerTraceDeChemin(rendu, centre, m_personnages[i].cheminRestant(), sf::Color::Cyan);
 
         sf::CircleShape repere(s_rayonDuRepere);
         repere.setOrigin({s_rayonDuRepere, s_rayonDuRepere});

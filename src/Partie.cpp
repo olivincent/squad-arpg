@@ -202,6 +202,12 @@ void Partie::dessiner(sf::RenderTarget& rendu, bool afficherAncre) const {
     m_escouade.dessiner(rendu, afficherAncre);
 }
 
+void Partie::dessinerCheminsDesMonstres(sf::RenderTarget& rendu) const {
+    for (const Monstre& m : m_monstres) {
+        m.dessinerChemin(rendu);
+    }
+}
+
 const Escouade& Partie::getEscouade() const {
     return m_escouade;
 }

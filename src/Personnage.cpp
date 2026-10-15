@@ -108,6 +108,10 @@ bool Personnage::estEnMouvement() const {
     return m_mobile.estEnMouvement();
 }
 
+std::vector<sf::Vector2f> Personnage::cheminRestant() const {
+    return m_mobile.cheminRestant();
+}
+
 float Personnage::getPorteeAttaqueDeBase() const {
     return m_attaqueDeBase.getPortee();
 }

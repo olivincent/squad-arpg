@@ -19,6 +19,8 @@ public:
     // ensemble ». Le monstre ne sait pas ce qu'il désigne.
     Monstre(sf::Vector2f centre, int id, int armure, int groupe);
     void dessiner(sf::RenderTarget& rendu, bool estCible) const;
+    // Débogage (F3) : trait fin du centre du monstre à travers le chemin restant de son Mobile.
+    void dessinerChemin(sf::RenderTarget& rendu) const;
     // `proie` est le personnage que le monstre poursuit (sans dépendre de la vue) ;
     // `candidats` sont ceux qu'il peut frapper (identifiant = place du personnage).
     // Il s'arrête dès qu'il a une cible de frappe (voir `engagerAttaque`).

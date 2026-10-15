@@ -44,6 +44,8 @@ public:
     void mettreAJour(float dt);
     // `afficherAncre` est transmis à Escouade::dessiner.
     void dessiner(sf::RenderTarget& rendu, bool afficherAncre) const;
+    // Débogage (F3) : chemin restant de chaque monstre.
+    void dessinerCheminsDesMonstres(sf::RenderTarget& rendu) const;
 
     // Vrai quand tous les personnages sont morts.
     [[nodiscard]] bool estPerdue() const;

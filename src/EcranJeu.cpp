@@ -125,6 +125,7 @@ void EcranJeu::dessiner(const Contexte& contexte) const {
     m_controleur.dessinerApercu(m_partie, fenetre, fenetre.mapPixelToCoords(sf::Mouse::getPosition(fenetre)));
     if (m_debogage.pointsVises) {
         m_partie.getEscouade().dessinerPointsVises(fenetre);
+        m_partie.dessinerCheminsDesMonstres(fenetre);
     }
 
     // Interface fixe à l'écran : vue de l'interface, dessinée en dernier.
