@@ -12,6 +12,7 @@
 #include "Controleur.hpp"
 #include "EcranDeDefaite.hpp"
 #include "EtatSkill.hpp"
+#include "GenerateurDonjon.hpp"
 #include "Niveau.hpp"
 #include "Partie.hpp"
 
@@ -40,7 +41,12 @@ int main() {
         return 1;
     }
     std::random_device tirageDeGraine;
-    Partie partie(creerNiveau(), tirerGraine(tirageDeGraine));
+    // Une seule graine : la même sert à générer la carte et à construire la
+    // partie, donc la même graine redonne la même carte et le même combat.
+    const Generateur::result_type graine = tirerGraine(tirageDeGraine);
+    Generateur generateurDeNiveau(graine);
+    const Niveau niveau = genererNiveau(generateurDeNiveau, ParametresDonjon{});
+    Partie partie(niveau, graine);
     Controleur controleur;
 
     sf::Clock horloge;
@@ -80,7 +86,7 @@ int main() {
                 } else if (data->scancode == sf::Keyboard::Scan::R && partie.estPerdue()) {
                     // Réaffectation : la Partie garde son adresse, et le
                     // Controleur repart sans visée ni déplacement continu.
-                    partie = Partie(creerNiveau(), tirerGraine(tirageDeGraine));
+                    partie = Partie(niveau, tirerGraine(tirageDeGraine));
                     controleur = Controleur{};
                 }
             }
