@@ -430,12 +430,12 @@ float ecartMinimalEntrePersonnages(const Escouade& escouade) {
     return minimum;
 }
 
-// Deux cercles de rayon 10 qui se touchent : centres à 20 px.
-constexpr float s_ecartSansChevauchement = 20.0f;
+// Écart voulu entre deux centres de personnages (s_ecartEntrePersonnages d'Escouade).
+constexpr float s_ecartSansChevauchement = 34.0f;
 
 }  // namespace
 
-TEST_CASE("Separation : des personnages qui se chevauchent s'ecartent en moins de 0,5 s") {
+TEST_CASE("Separation : des personnages trop proches s'ecartent en moins de 1 s") {
     Generateur generateur = generateurDeTest();
     Escouade escouade({500.0f, 500.0f});  // place 4 en (485, 535)
     const TileMap& carte = carteOuverte();
@@ -458,7 +458,7 @@ TEST_CASE("Separation : des personnages qui se chevauchent s'ecartent en moins d
     }
 
     REQUIRE(chevauchement);  // sinon le test ne prouve rien
-    REQUIRE(plusLong < nombreDeTics(0.5f));
+    REQUIRE(plusLong < nombreDeTics(1.0f));  // le croisement d'un personnage cloué dure ~0,5 s à 34 px
 }
 
 TEST_CASE("Separation : apres un demi-tour, les quatre personnages rejoignent leurs places") {
@@ -548,7 +548,7 @@ TEST_CASE("Ancre collee a un mur, les quatre places de formation sont distinctes
     REQUIRE(places.size() == 4);
     for (std::size_t i = 0; i < places.size(); ++i) {
         for (std::size_t j = i + 1; j < places.size(); ++j) {
-            REQUIRE((places[i] - places[j]).length() >= 26.0f - 0.001f);
+            REQUIRE((places[i] - places[j]).length() >= 34.0f - 0.001f);
         }
         REQUIRE_FALSE(carte.chevaucheUnMur(sf::FloatRect(places[i] - sf::Vector2f(10.0f, 10.0f), {20.0f, 20.0f})));
     }

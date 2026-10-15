@@ -8,6 +8,13 @@
 #include "Ecran.hpp"
 #include "Partie.hpp"
 
+// Bascules de débogage (état d'interface de l'écran de jeu, remises à leur valeur de départ
+// à chaque nouvelle partie) : F3 les points visés des personnages, F4 le carré de l'ancre.
+struct OptionsDeDebogage {
+    bool pointsVises = false;
+    bool ancre = true;
+};
+
 // L'écran de la partie : ce que faisait `main()` pour le jeu (partie,
 // contrôleur, caméra, interface, nouvelle carte).
 class EcranJeu : public Ecran {
@@ -31,5 +38,5 @@ private:
     Partie m_partie;
     Controleur m_controleur;
     sf::View m_camera;
-    bool m_debogage = false;  // F3 : points visés des personnages
+    OptionsDeDebogage m_debogage;
 };

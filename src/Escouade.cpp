@@ -52,9 +52,9 @@ constexpr float s_activationZone = 0.8f;      // en secondes
 constexpr float s_rayonZone = 60.0f;          // rayon de zone, depuis le point visé
 constexpr float s_laisseAgresseur = 100.0f;      // en pixels, centre à centre, mesurée depuis la place de formation
 constexpr float s_fractionPorteeAnneau = 0.9f;    // anneau d'attaque : part de la portée, pour que la place soit à portée
-constexpr float s_vitesseSeparation = 300.0f;    // poussée maximale entre deux personnages qui se chevauchent, en pixels par seconde (au-dessus de la marche, 240)
-constexpr float s_ecartEntrePlaces = 26.0f;      // entre deux places (de formation ou d'attaque), ou d'une place et d'un personnage immobile : diamètre d'un personnage + 6 px
-constexpr std::array<float, 3> s_rayonsDeSecoursPlaces = {26.0f, 52.0f, 78.0f};  // anneaux autour de l'ancre pour une place repliée sur une autre
+constexpr float s_vitesseSeparation = 120.0f;    // poussée maximale entre deux personnages trop proches, en pixels par seconde (plus lente que la marche, 240 : voir docs/formation.md)
+constexpr float s_ecartEntrePersonnages = 34.0f;  // distance minimale voulue entre deux centres (≈ (20 + 4) × √2 : 4 px visibles même en diagonale) ; aussi entre deux places, ou une place et un personnage immobile
+constexpr std::array<float, 3> s_rayonsDeSecoursPlaces = {34.0f, 68.0f, 102.0f};  // anneaux autour de l'ancre pour une place repliée sur une autre
 
 // Attaque de base d'un personnage, mêlée ou tireur : la portée et l'intervalle de recharge changent.
 Skill attaqueDeBase(float portee, float rechargeMin, float rechargeMax) {
@@ -123,12 +123,14 @@ void Escouade::annulerSkillDeDegatsEnAttente() {
     }
 }
 
-void Escouade::dessiner(sf::RenderTarget& rendu) const {
-    const sf::Vector2f taille = m_mobile.getTaille();
-    sf::RectangleShape forme(taille);
-    forme.setPosition(getCentre() - taille / 2.0f);
-    forme.setFillColor(sf::Color::Green);
-    rendu.draw(forme);
+void Escouade::dessiner(sf::RenderTarget& rendu, bool afficherAncre) const {
+    if (afficherAncre) {
+        const sf::Vector2f taille = m_mobile.getTaille();
+        sf::RectangleShape forme(taille);
+        forme.setPosition(getCentre() - taille / 2.0f);
+        forme.setFillColor(sf::Color::Green);
+        rendu.draw(forme);
+    }
 
     for (const Personnage& personnage : m_personnages) {
         personnage.dessiner(rendu);
@@ -519,8 +521,8 @@ float Escouade::porteeDe(const Personnage& personnage, TypeAction action) const 
 // le monstre est à portée et en vue. L'angle est gardé (`ancienne`) tant que le
 // personnage approche ce même monstre et que la place reste valide ; seule la
 // position suit le monstre. Sinon, nouvelle attribution : la place valide (hors
-// mur, en vue du centre du monstre) et libre (à plus de 26 px de celle des
-// autres pour ce monstre, et à plus de 26 px d'un personnage immobile) la plus proche de l'angle actuel du personnage, les
+// mur, en vue du centre du monstre) et libre (à plus de 34 px de celle des
+// autres pour ce monstre, et à plus de 34 px d'un personnage immobile) la plus proche de l'angle actuel du personnage, les
 // candidates partant de la direction du monstre vers l'ancre. Aucune place :
 // le centre du monstre.
 sf::Vector2f Escouade::pointVersMonstre(std::size_t indice, int idMonstre, Cercle monstre, TypeAction action,
@@ -544,7 +546,7 @@ sf::Vector2f Escouade::pointVersMonstre(std::size_t indice, int idMonstre, Cercl
     const auto estOccupee = [&](sf::Vector2f place) {
         for (std::size_t autre = 0; autre < m_personnages.size(); ++autre) {
             if (autre != indice && m_personnages[autre].estVivant() && !m_personnages[autre].estEnMouvement() &&
-                (m_personnages[autre].getCentre() - place).length() <= s_ecartEntrePlaces) {
+                (m_personnages[autre].getCentre() - place).length() <= s_ecartEntrePersonnages) {
                 return true;
             }
         }
@@ -570,13 +572,13 @@ sf::Vector2f Escouade::pointVersMonstre(std::size_t indice, int idMonstre, Cercl
                 }
                 const sf::Vector2f placeDeLAutre =
                     positionDePlace(monstre.centre, m_placesDAttaque[autre]->rayon, m_placesDAttaque[autre]->angle);
-                if ((place - placeDeLAutre).length() <= s_ecartEntrePlaces) {
+                if ((place - placeDeLAutre).length() <= s_ecartEntrePersonnages) {
                     return false;
                 }
             }
             return true;
         };
-        angle = choisirAngleLibre(anglesCandidats(angleVers(m_mobile.getCentre()), rayonAnneau, s_ecartEntrePlaces),
+        angle = choisirAngleLibre(anglesCandidats(angleVers(m_mobile.getCentre()), rayonAnneau, s_ecartEntrePersonnages),
                                   angleVers(personnage.getCentre()), estLibreEtValide);
     }
 
@@ -681,7 +683,7 @@ void Escouade::tournerFormation(float dt) {
 
 // Une place théorique dans un mur ou derrière un coin est ramenée
 // vers l'ancre jusqu'à un point libre. Si la place ramenée tombe à moins de
-// `s_ecartEntrePlaces` d'une place déjà calculée, elle est remplacée par le
+// `s_ecartEntrePersonnages` d'une place déjà calculée, elle est remplacée par le
 // premier point valide (trajet libre depuis l'ancre, hors mur) et libre sur des
 // anneaux autour de l'ancre, les candidates partant de la direction de la place
 // théorique ; sans point, elle est au centre de l'ancre.
@@ -694,7 +696,7 @@ void Escouade::calculerPlaces(const TileMap& carte) {
 
         const auto estLibre = [&](sf::Vector2f point) {
             for (std::size_t autre = 0; autre < i; ++autre) {
-                if ((point - m_places[autre]).length() < s_ecartEntrePlaces) {
+                if ((point - m_places[autre]).length() < s_ecartEntrePersonnages) {
                     return false;
                 }
             }
@@ -713,7 +715,7 @@ void Escouade::calculerPlaces(const TileMap& carte) {
         bool trouve = false;
         m_places[i] = getCentre();
         for (const float rayon : s_rayonsDeSecoursPlaces) {
-            for (const sf::Angle angle : anglesCandidats(depart, rayon, s_ecartEntrePlaces)) {
+            for (const sf::Angle angle : anglesCandidats(depart, rayon, s_ecartEntrePersonnages)) {
                 const sf::Vector2f point = positionDePlace(getCentre(), rayon, angle);
                 if (estValide(point)) {
                     m_places[i] = point;
@@ -751,8 +753,8 @@ void Escouade::mettreAJour(float dt, const TileMap& carte, const std::vector<Cer
     separerPersonnages(dt, carte, obstacles);
 }
 
-// Séparation douce : chaque paire de vivants qui se chevauchent est écartée le
-// long de la droite de leurs centres, chacun de la moitié du chevauchement. Un
+// Séparation douce : chaque paire de vivants à moins de s_ecartEntrePersonnages est écartée le
+// long de la droite de leurs centres, chacun de la moitié du manque. Un
 // personnage en exécution n'est pas poussé (l'autre prend toute la poussée ;
 // si les deux le sont, rien). La poussée de chacun est plafonnée à
 // s_vitesseSeparation * dt, et passe par la collision habituelle (murs, monstres).
@@ -768,7 +770,7 @@ void Escouade::separerPersonnages(float dt, const TileMap& carte, const std::vec
             }
             const sf::Vector2f ecart = b.getCentre() - a.getCentre();
             const float distance = ecart.length();
-            const float chevauchement = a.getCercle().rayon + b.getCercle().rayon - distance;
+            const float chevauchement = s_ecartEntrePersonnages - distance;
             if (chevauchement <= 0.0f) {
                 continue;
             }

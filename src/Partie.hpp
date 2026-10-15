@@ -42,7 +42,8 @@ public:
 
     // Fige le monde (rien ne bouge) une fois la partie perdue ou gagnée.
     void mettreAJour(float dt);
-    void dessiner(sf::RenderTarget& rendu) const;
+    // `afficherAncre` est transmis à Escouade::dessiner.
+    void dessiner(sf::RenderTarget& rendu, bool afficherAncre) const;
 
     // Vrai quand tous les personnages sont morts.
     [[nodiscard]] bool estPerdue() const;

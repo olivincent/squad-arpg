@@ -60,6 +60,7 @@ void EcranJeu::ajusterCamera(const Contexte& contexte) {
 void EcranJeu::nouvelleCarte() {
     m_partie = nouvellePartie(m_tirageDeGraine);
     m_controleur = Controleur{};
+    m_debogage = OptionsDeDebogage{};
 }
 
 Transition EcranJeu::traiterEvenement(const sf::Event& evenement, const Contexte& contexte) {
@@ -95,7 +96,9 @@ Transition EcranJeu::traiterEvenement(const sf::Event& evenement, const Contexte
             // Touche de débogage : à tout moment, même effet que R.
             nouvelleCarte();
         } else if (data->scancode == sf::Keyboard::Scan::F3) {
-            m_debogage = !m_debogage;  // touche de débogage : bascule l'affichage des points visés
+            m_debogage.pointsVises = !m_debogage.pointsVises;  // touche de débogage : points visés des personnages
+        } else if (data->scancode == sf::Keyboard::Scan::F4) {
+            m_debogage.ancre = !m_debogage.ancre;  // touche de débogage : carré vert de l'ancre
         }
     }
     return Aucune{};
@@ -118,9 +121,9 @@ void EcranJeu::dessiner(const Contexte& contexte) const {
     sf::RenderWindow& fenetre = contexte.fenetre;
     fenetre.setView(m_camera);
     fenetre.clear();
-    m_partie.dessiner(fenetre);
+    m_partie.dessiner(fenetre, m_debogage.ancre);
     m_controleur.dessinerApercu(m_partie, fenetre, fenetre.mapPixelToCoords(sf::Mouse::getPosition(fenetre)));
-    if (m_debogage) {
+    if (m_debogage.pointsVises) {
         m_partie.getEscouade().dessinerPointsVises(fenetre);
     }
 

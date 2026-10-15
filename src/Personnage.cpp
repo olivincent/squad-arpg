@@ -14,6 +14,8 @@ constexpr float s_vitesse = 240.0f;       // en pixels par seconde
 constexpr int s_pointsDeVieMax = 100;
 constexpr float s_hauteurBarreSkill = 3.0f;
 constexpr float s_eclaircissementExecution = 0.5f;  // part de blanc pendant l'exécution d'un coup
+const sf::Color s_couleurContour(40, 40, 40);       // contour de 1 px vers l'intérieur, pour distinguer deux personnages collés
+constexpr float s_epaisseurContour = -1.0f;         // négative : vers l'intérieur
 }  // namespace
 
 Personnage::Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::optional<Skill> skill, int armure)
@@ -35,6 +37,8 @@ void Personnage::dessiner(sf::RenderTarget& rendu) const {
     // Un coup en préparation éclaircit le carré.
     const sf::Color couleur = estEnExecution() ? eclaircir(m_couleur, s_eclaircissementExecution) : m_couleur;
     forme.setFillColor(estVivant() ? couleur : sf::Color(100, 100, 100));
+    forme.setOutlineColor(s_couleurContour);
+    forme.setOutlineThickness(s_epaisseurContour);
     rendu.draw(forme);
 
     if (!estVivant()) {

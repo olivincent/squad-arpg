@@ -78,7 +78,7 @@ TEST_CASE("Places d'attaque : deux melees en combat verrouille arrivent de cotes
     REQUIRE(estAPorteeDe(cercles[s_melee1], monstre.cercle, s_porteeMelee));
     REQUIRE(estAPorteeDe(cercles[s_melee2], monstre.cercle, s_porteeMelee));
     REQUIRE(std::abs(ecartAngulaire(cercles[s_melee1], cercles[s_melee2], monstre.cercle)) >= 30.0f);
-    REQUIRE((cercles[s_melee1].centre - cercles[s_melee2].centre).length() >= 20.0f - s_tolerance);
+    REQUIRE((cercles[s_melee1].centre - cercles[s_melee2].centre).length() >= 34.0f - s_tolerance);
 }
 
 TEST_CASE("Places d'attaque : un tireur s'arrete des qu'il est a portee, sur un angle different") {
@@ -178,7 +178,7 @@ TEST_CASE("Places d'attaque : un agresseur sans verrou, le melee a portee frappe
     const std::vector<Cercle> cercles = escouade.cerclesDesVivants();
     REQUIRE(estAPorteeDe(cercles[s_melee1], monstre.cercle, s_porteeMelee));
     REQUIRE(estAPorteeDe(cercles[s_melee2], monstre.cercle, s_porteeMelee));
-    REQUIRE((cercles[s_melee1].centre - cercles[s_melee2].centre).length() >= 20.0f - s_tolerance);
+    REQUIRE((cercles[s_melee1].centre - cercles[s_melee2].centre).length() >= 34.0f - s_tolerance);
 }
 
 TEST_CASE("Places d'attaque : sans place valide, le personnage vise le centre du monstre") {

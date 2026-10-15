@@ -28,7 +28,8 @@ class TileMap;
 class Escouade {
 public:
     explicit Escouade(sf::Vector2f positionDepart);
-    void dessiner(sf::RenderTarget& rendu) const;
+    // `afficherAncre` faux : le carré vert de l'ancre n'est pas dessiné (débogage).
+    void dessiner(sf::RenderTarget& rendu, bool afficherAncre) const;
     void allerVers(sf::Vector2f destination, const TileMap& carte);
     void annulerAttaquesEngagees();
     [[nodiscard]] std::vector<Coup> attaquer(float dt, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
