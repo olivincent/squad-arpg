@@ -18,12 +18,16 @@
 
 namespace {
 
-// Tire une graine et l'affiche dans la console, pour pouvoir rejouer une
-// partie à l'identique.
-Generateur::result_type tirerGraine(std::random_device& tirage) {
+// Une nouvelle carte : tire une graine (affichée dans la console, pour pouvoir
+// rejouer à l'identique), génère le niveau avec elle, puis construit la
+// partie avec la même graine : la même graine redonne la même carte et le
+// même combat.
+Partie nouvellePartie(std::random_device& tirage) {
     const Generateur::result_type graine = tirage();
     std::cout << "Graine : " << graine << '\n';
-    return graine;
+    Generateur generateurDeNiveau(graine);
+    const Niveau niveau = genererNiveau(generateurDeNiveau, ParametresDonjon{});
+    return Partie(niveau, graine);
 }
 
 }  // namespace
@@ -41,13 +45,14 @@ int main() {
         return 1;
     }
     std::random_device tirageDeGraine;
-    // Une seule graine : la même sert à générer la carte et à construire la
-    // partie, donc la même graine redonne la même carte et le même combat.
-    const Generateur::result_type graine = tirerGraine(tirageDeGraine);
-    Generateur generateurDeNiveau(graine);
-    const Niveau niveau = genererNiveau(generateurDeNiveau, ParametresDonjon{});
-    Partie partie(niveau, graine);
+    Partie partie = nouvellePartie(tirageDeGraine);
     Controleur controleur;
+    // Réaffectation : la Partie garde son adresse, et le Controleur repart
+    // sans visée ni déplacement continu.
+    const auto nouvelleCarte = [&] {
+        partie = nouvellePartie(tirageDeGraine);
+        controleur = Controleur{};
+    };
 
     sf::Clock horloge;
     sf::View camera = window.getDefaultView();
@@ -84,10 +89,10 @@ int main() {
                 } else if (data->scancode == sf::Keyboard::Scan::Escape) {
                     controleur.appuiEchap();
                 } else if (data->scancode == sf::Keyboard::Scan::R && partie.estPerdue()) {
-                    // Réaffectation : la Partie garde son adresse, et le
-                    // Controleur repart sans visée ni déplacement continu.
-                    partie = Partie(niveau, tirerGraine(tirageDeGraine));
-                    controleur = Controleur{};
+                    nouvelleCarte();
+                } else if (data->scancode == sf::Keyboard::Scan::F5) {
+                    // Touche de débogage : à tout moment, même effet que R.
+                    nouvelleCarte();
                 }
             }
         }
