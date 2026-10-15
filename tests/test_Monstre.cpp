@@ -255,7 +255,7 @@ TEST_CASE("Monstre.mettreAJour s'arrete a portee d'attaque sans atteindre la cib
 }
 
 // Territoire : une fois détectée (<= 200 px), une cible reste poursuivie
-// tant que le MONSTRE lui-même ne s'éloigne pas de plus de 400 px de son
+// tant que le MONSTRE lui-même ne s'éloigne pas de plus de 600 px de son
 // poste (m_rayonTerritoire) ; peu importe à quelle distance la cible est.
 
 TEST_CASE("Monstre.mettreAJour continue de poursuivre une cible qui s'eloigne, tant que le territoire n'est pas franchi") {
@@ -279,7 +279,7 @@ TEST_CASE("Monstre.mettreAJour rejoint a portee une proie a 300 px de son poste,
 
     ecoulerTemps(monstre, 0.2f, pointCible({250.0f, 100.0f}), carte); // déclenche la détection
 
-    const sf::Vector2f cible(400.0f, 100.0f); // 300 px du poste, dans le territoire (400 px)
+    const sf::Vector2f cible(400.0f, 100.0f); // 300 px du poste, dans le territoire (600 px)
     ecoulerTemps(monstre, 10.0f, pointCible(cible), carte); // durée généreuse
 
     const float distance = (cible - monstre.getCentre()).length();
@@ -305,12 +305,12 @@ TEST_CASE("Monstre.mettreAJour ignore une proie hors de son territoire meme proc
 
     ecoulerTemps(monstre, 0.2f, pointCible({250.0f, 100.0f}), carte); // détection
 
-    // Proie à 600 px du poste : pousse le monstre hors de son territoire
+    // Proie à 700 px du poste : pousse le monstre hors de son territoire
     // (déclenchant le retour), puis reste assez proche de lui en tout début
     // de retour (moins de 200 px) sans jamais être elle-même dans le
-    // territoire (toujours à plus de 400 px du poste) — elle ne doit donc
+    // territoire (toujours à plus de 600 px du poste) — elle ne doit donc
     // jamais être redétectée.
-    ecoulerTemps(monstre, 20.0f, pointCible({700.0f, 100.0f}), carte); // durée généreuse
+    ecoulerTemps(monstre, 20.0f, pointCible({800.0f, 100.0f}), carte); // durée généreuse
 
     verifierPointProche(monstre.getCentre(), {100.0f, 100.0f});
 }
@@ -321,9 +321,13 @@ TEST_CASE("Monstre.mettreAJour redetecte une proie revenue dans son territoire p
 
     ecoulerTemps(monstre, 0.2f, pointCible({250.0f, 100.0f}), carte); // détection
     ecoulerTemps(monstre, 4.0f, pointCible({900.0f, 100.0f}), carte); // franchit le territoire : début du retour
+    // Laisse le retour ramener le monstre assez loin de la frontière pour que la proie, 100 px plus loin, soit dans le territoire.
+    while ((monstre.getCentre() - sf::Vector2f(100.0f, 100.0f)).length() > Monstre::s_rayonTerritoire - 150.0f) {
+        ecoulerTemps(monstre, 1.0f / 60.0f, pointCible({900.0f, 100.0f}), carte);
+    }
     const sf::Vector2f centrePendantLeRetour = monstre.getCentre();
 
-    // Proie replacée dans le territoire (< 400 px du poste) et à moins de
+    // Proie replacée dans le territoire (< 600 px du poste) et à moins de
     // 200 px du monstre : la poursuite doit reprendre.
     const sf::Vector2f cibleProche(centrePendantLeRetour.x + 100.0f, centrePendantLeRetour.y);
     const float distanceAvant = (cibleProche - centrePendantLeRetour).length();
@@ -349,11 +353,11 @@ TEST_CASE("Monstre.mettreAJour retourne a son poste si la cible disparait apres 
 
 namespace {
 
-// Amène le monstre en retour, sorti du territoire (plus de 400 px de son
-// poste) : la proie lointaine à 800 px de son poste n'est jamais détectée.
+// Amène le monstre en retour, sorti du territoire (plus de `Monstre::s_rayonTerritoire`
+// de son poste) : la proie lointaine à 800 px de son poste n'est jamais détectée.
 void amenerEnRetourHorsTerritoire(Monstre& monstre, const TileMap& carte) {
     ecoulerTemps(monstre, 0.2f, pointCible({250.0f, 100.0f}), carte); // détection
-    while ((monstre.getCentre() - sf::Vector2f(100.0f, 100.0f)).length() <= 400.0f) {
+    while ((monstre.getCentre() - sf::Vector2f(100.0f, 100.0f)).length() <= Monstre::s_rayonTerritoire) {
         ecoulerTemps(monstre, 1.0f / 60.0f, pointCible({900.0f, 100.0f}), carte);
     }
     ecoulerTemps(monstre, 1.0f / 60.0f, pointCible({900.0f, 100.0f}), carte); // bascule en retour

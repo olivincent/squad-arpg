@@ -12,7 +12,7 @@
 
 namespace {
 constexpr float s_cote = 30.0f;      // côté du carré, en pixels
-constexpr float s_vitesse = 120.0f;  // en pixels par seconde
+constexpr float s_vitesse = 160.0f;  // en pixels par seconde
 constexpr int s_pointsDeVieMax = 100;
 constexpr float s_eclaircissementExecution = 0.5f;  // part de blanc pendant l'exécution d'un coup
 constexpr float s_executionAttaque = 0.3f;  // en secondes, immobile avant que le coup parte
@@ -26,7 +26,7 @@ Monstre::Monstre(sf::Vector2f centre, int id, int armure, int groupe)
       m_groupe(groupe),
       m_attaque(TypeSkill::Degats, 15.0f, 10, 0.7f, 1.3f, 0.0f, s_executionAttaque),  // portée de 15 px, bord à bord
       m_rayonDetection(200.0f),
-      m_rayonTerritoire(400.0f),
+      m_rayonTerritoire(s_rayonTerritoire),
       m_etat(Etat::EnGarde),
       m_poste(centre),
       m_alerte(false),

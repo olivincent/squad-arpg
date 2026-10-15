@@ -15,6 +15,9 @@ class TileMap;
 
 class Monstre {
 public:
+    // Distance maximale au poste (en pixels) au-delà de laquelle un monstre abandonne.
+    static constexpr float s_rayonTerritoire = 600.0f;
+
     // `groupe` est un identifiant opaque : des monstres de même groupe « vont
     // ensemble ». Le monstre ne sait pas ce qu'il désigne.
     Monstre(sf::Vector2f centre, int id, int armure, int groupe);
