@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "Aleatoire.hpp"
+#include "Chemin.hpp"
 #include "GenerateurDonjon.hpp"
 #include "TileMap.hpp"
 
@@ -155,6 +156,195 @@ TEST_CASE("creuserSalle transforme l'emprise en sol et laisse le reste") {
     REQUIRE(plan[2] == "#..##");
     REQUIRE(plan[3] == "#..##");
     REQUIRE(plan[4] == "#####");
+}
+
+TEST_CASE("choisirLiaisons ne donne aucune liaison pour une seule salle") {
+    REQUIRE(choisirLiaisons({Salle{1, 1, 6, 6}}).empty());
+    REQUIRE(choisirLiaisons({}).empty());
+}
+
+TEST_CASE("choisirLiaisons donne n moins 1 liaisons, une par salle sauf la racine") {
+    const std::vector<Salle> salles{{1, 1, 6, 6}, {20, 1, 6, 6}, {9, 1, 6, 6}, {1, 20, 6, 6}};
+
+    const std::vector<Liaison> liaisons = choisirLiaisons(salles);
+
+    REQUIRE(liaisons.size() == 3);
+    for (std::size_t i = 0; i < liaisons.size(); ++i) {
+        REQUIRE(liaisons[i].vers == i + 1);
+        REQUIRE(liaisons[i].de < liaisons[i].vers);
+    }
+}
+
+TEST_CASE("choisirLiaisons relie chaque salle a la plus proche parmi les precedentes") {
+    // Centres (4, 4), (23, 4), (12, 4) : la salle 2 est plus proche de la 0 que de la 1.
+    const std::vector<Salle> salles{{1, 1, 6, 6}, {20, 1, 6, 6}, {9, 1, 6, 6}};
+
+    const std::vector<Liaison> liaisons = choisirLiaisons(salles);
+
+    REQUIRE(liaisons[0].de == 0);
+    REQUIRE(liaisons[1].de == 0);
+}
+
+TEST_CASE("choisirLiaisons garde la racine quand elle est la plus proche") {
+    // Centres (4, 4), (44, 4), (14, 4) : la salle 2 est a 100 de la 0 et à 900 de la 1.
+    const std::vector<Salle> salles{{1, 1, 6, 6}, {41, 1, 6, 6}, {11, 1, 6, 6}};
+
+    const std::vector<Liaison> liaisons = choisirLiaisons(salles);
+
+    REQUIRE(liaisons[0].de == 0);
+    REQUIRE(liaisons[1].de == 0);
+}
+
+TEST_CASE("choisirLiaisons prefere la precedente la plus proche a la racine") {
+    // Centres (4, 4), (14, 4), (24, 4) : la salle 2 est reliee a la 1, pas a la 0.
+    const std::vector<Salle> salles{{1, 1, 6, 6}, {11, 1, 6, 6}, {21, 1, 6, 6}};
+
+    REQUIRE(choisirLiaisons(salles)[1].de == 1);
+}
+
+TEST_CASE("choisirLiaisons choisit le plus petit indice a egalite") {
+    // Centres (4, 4), (24, 4), (14, 4) : la salle 2 est a 10 des salles 0 et 1.
+    const std::vector<Salle> salles{{1, 1, 6, 6}, {21, 1, 6, 6}, {11, 1, 6, 6}};
+
+    REQUIRE(choisirLiaisons(salles)[1].de == 0);
+}
+
+TEST_CASE("creuserCouloir horizontal puis vertical dessine un L de deux cases") {
+    std::vector<std::string> plan(10, std::string(10, '#'));
+
+    creuserCouloir(plan, {2, 2}, {6, 6}, SensCouloir::HorizontalPuisVertical, 2);
+
+    REQUIRE(plan[1] == "##########");
+    REQUIRE(plan[2] == "##......##");
+    REQUIRE(plan[3] == "##......##");
+    REQUIRE(plan[4] == "######..##");
+    REQUIRE(plan[5] == "######..##");
+    REQUIRE(plan[6] == "######..##");
+    REQUIRE(plan[7] == "######..##");
+    REQUIRE(plan[8] == "##########");
+}
+
+TEST_CASE("creuserCouloir vertical puis horizontal dessine le L inverse") {
+    std::vector<std::string> plan(10, std::string(10, '#'));
+
+    creuserCouloir(plan, {2, 2}, {6, 6}, SensCouloir::VerticalPuisHorizontal, 2);
+
+    REQUIRE(plan[1] == "##########");
+    REQUIRE(plan[2] == "##..######");
+    REQUIRE(plan[3] == "##..######");
+    REQUIRE(plan[4] == "##..######");
+    REQUIRE(plan[5] == "##..######");
+    REQUIRE(plan[6] == "##......##");
+    REQUIRE(plan[7] == "##......##");
+    REQUIRE(plan[8] == "##########");
+}
+
+TEST_CASE("creuserCouloir va aussi vers la gauche et vers le haut") {
+    std::vector<std::string> plan(10, std::string(10, '#'));
+
+    creuserCouloir(plan, {6, 6}, {2, 2}, SensCouloir::HorizontalPuisVertical, 2);
+
+    REQUIRE(plan[2] == "##..######");
+    REQUIRE(plan[5] == "##..######");
+    REQUIRE(plan[6] == "##......##");
+    REQUIRE(plan[7] == "##......##");
+    REQUIRE(plan[8] == "##########");
+    REQUIRE(plan[1] == "##########");
+}
+
+TEST_CASE("creuserCouloir laisse du sol au depart et a l'arrivee, dans les deux sens") {
+    for (const SensCouloir sens : {SensCouloir::HorizontalPuisVertical, SensCouloir::VerticalPuisHorizontal}) {
+        std::vector<std::string> plan(10, std::string(10, '#'));
+
+        creuserCouloir(plan, {2, 6}, {7, 1}, sens, 2);
+
+        REQUIRE(plan[6][2] == '.');
+        REQUIRE(plan[1][7] == '.');
+    }
+}
+
+TEST_CASE("creuserCouloir a un coude plein") {
+    std::vector<std::string> plan(10, std::string(10, '#'));
+
+    creuserCouloir(plan, {2, 2}, {6, 6}, SensCouloir::HorizontalPuisVertical, 2);
+
+    // Le coude est le carre de 2 x 2 en (6, 2).
+    REQUIRE(plan[2][6] == '.');
+    REQUIRE(plan[2][7] == '.');
+    REQUIRE(plan[3][6] == '.');
+    REQUIRE(plan[3][7] == '.');
+}
+
+TEST_CASE("creuserCouloir horizontal quand les centres sont alignes") {
+    for (const SensCouloir sens : {SensCouloir::HorizontalPuisVertical, SensCouloir::VerticalPuisHorizontal}) {
+        std::vector<std::string> plan(6, std::string(10, '#'));
+
+        creuserCouloir(plan, {2, 2}, {6, 2}, sens, 2);
+
+        REQUIRE(plan[1] == "##########");
+        REQUIRE(plan[2] == "##......##");
+        REQUIRE(plan[3] == "##......##");
+        REQUIRE(plan[4] == "##########");
+    }
+}
+
+TEST_CASE("creuserCouloir vertical quand les centres sont alignes") {
+    for (const SensCouloir sens : {SensCouloir::HorizontalPuisVertical, SensCouloir::VerticalPuisHorizontal}) {
+        std::vector<std::string> plan(8, std::string(6, '#'));
+
+        creuserCouloir(plan, {2, 1}, {2, 5}, sens, 2);
+
+        REQUIRE(plan[0] == "######");
+        for (std::size_t ligne = 1; ligne <= 6; ++ligne) {
+            REQUIRE(plan[ligne] == "##..##");
+        }
+        REQUIRE(plan[7] == "######");
+    }
+}
+
+TEST_CASE("creuserCouloir respecte la largeur demandee") {
+    std::vector<std::string> plan(8, std::string(8, '#'));
+
+    creuserCouloir(plan, {1, 1}, {5, 1}, SensCouloir::HorizontalPuisVertical, 3);
+
+    REQUIRE(plan[0] == "########");
+    REQUIRE(plan[1] == "#.......");
+    REQUIRE(plan[2] == "#.......");
+    REQUIRE(plan[3] == "#.......");
+    REQUIRE(plan[4] == "########");
+}
+
+TEST_CASE("genererNiveau relie le depart au centre de chaque salle") {
+    const ParametresDonjon parametres;
+    for (Generateur::result_type graine = 1; graine <= 5; ++graine) {
+        Generateur generateur(graine);
+        Generateur copie = generateur;
+
+        const Niveau niveau = genererNiveau(generateur, parametres);
+
+        const TileMap carte(niveau.plan, niveau.tailleCase);
+        const sf::Vector2i depart = carte.caseContenant(niveau.departEscouade);
+        for (const Salle& salle : placerSalles(copie, parametres)) {
+            REQUIRE_FALSE(trouverChemin(carte, depart, salle.centre()).empty());
+        }
+    }
+}
+
+TEST_CASE("genererNiveau a des couloirs : plus de sol que les seules salles") {
+    const ParametresDonjon parametres;
+    Generateur generateur(s_graine);
+    Generateur copie = generateur;
+
+    const Niveau niveau = genererNiveau(generateur, parametres);
+
+    std::vector<std::string> sallesSeules(static_cast<std::size_t>(parametres.hauteurCarte),
+                                          std::string(static_cast<std::size_t>(parametres.largeurCarte), '#'));
+    const std::vector<Salle> salles = placerSalles(copie, parametres);
+    for (const Salle& salle : salles) {
+        creuserSalle(sallesSeules, salle);
+    }
+    REQUIRE(salles.size() > 1);
+    REQUIRE(niveau.plan != sallesSeules);
 }
 
 TEST_CASE("genererNiveau produit un plan aux bonnes dimensions") {

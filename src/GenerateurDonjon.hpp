@@ -1,6 +1,7 @@
 // ./src/GenerateurDonjon.hpp
 #pragma once
 #include <SFML/System/Vector2.hpp>
+#include <cstddef>
 #include <string>
 #include <vector>
 #include "Aleatoire.hpp"
@@ -32,7 +33,18 @@ struct ParametresDonjon {
     int coteMin = 6;        // côté minimal d'une salle, en cases
     int coteMax = 12;       // côté maximal d'une salle, en cases
     int marge = 1;          // cases de mur exigées entre deux salles
+    int largeurCouloir = 2; // en cases
 };
+
+// Une liaison entre deux salles, désignées par leur indice dans la liste des
+// salles : `de` est une salle déjà reliée, `vers` la salle qu'on y rattache.
+struct Liaison {
+    std::size_t de;
+    std::size_t vers;
+};
+
+// Par où commence un couloir en L : par le tronçon horizontal ou par le vertical.
+enum class SensCouloir { HorizontalPuisVertical, VerticalPuisHorizontal };
 
 // Tire des salles au hasard et rejette celles qui chevauchent une salle déjà
 // gardée. Les emprises ne touchent jamais le bord de la carte. La première
@@ -42,6 +54,19 @@ struct ParametresDonjon {
 // Creuse la salle dans le plan : ici, toute l'emprise devient du sol.
 void creuserSalle(std::vector<std::string>& plan, const Salle& salle);
 
-// Niveau fait de salles isolées, sans monstre ; l'escouade part au centre de
-// la première salle placée.
+// Choisit quelles salles relier : la salle 0 est la racine, et chaque salle
+// i >= 1 est reliée à la plus proche (distance entre centres) parmi les salles
+// 0 à i - 1 ; égalité : le plus petit indice. Renvoie n - 1 liaisons, sans
+// aléatoire, dans l'ordre de `vers` croissant.
+[[nodiscard]] std::vector<Liaison> choisirLiaisons(const std::vector<Salle>& salles);
+
+// Creuse dans le plan un couloir en L de `largeur` cases entre deux cases :
+// le tronçon de départ longe la ligne (ou la colonne) de `depart`, l'autre
+// celle d'`arrivee`, et la largeur s'étend vers le bas et vers la droite.
+// Le coude est plein ; `depart` et `arrivee` deviennent du sol.
+void creuserCouloir(std::vector<std::string>& plan, sf::Vector2i depart, sf::Vector2i arrivee, SensCouloir sens,
+                    int largeur);
+
+// Niveau fait de salles reliées par des couloirs en L, sans monstre ;
+// l'escouade part au centre de la première salle placée.
 [[nodiscard]] Niveau genererNiveau(Generateur& generateur, const ParametresDonjon& parametres);
