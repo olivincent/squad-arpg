@@ -30,7 +30,13 @@ Application::Application() {
 }
 
 void Application::ouvrirFenetre() {
-    m_fenetre.create(sf::VideoMode({m_reglages.largeur, m_reglages.hauteur}), "Squad-ARPG", sf::Style::Titlebar | sf::Style::Close);
+    if (m_reglages.mode == ModeAffichage::PleinEcran) {
+        // Toujours la résolution du bureau ; celle des réglages ne sert qu'en fenêtré.
+        m_fenetre.create(sf::VideoMode::getDesktopMode(), "Squad-ARPG", sf::State::Fullscreen);
+    } else {
+        m_fenetre.create(sf::VideoMode({m_reglages.largeur, m_reglages.hauteur}), "Squad-ARPG",
+                         sf::Style::Titlebar | sf::Style::Close, sf::State::Windowed);
+    }
     m_fenetre.setFramerateLimit(s_imagesParSeconde);
     // Une touche maintenue ne produit qu'un seul événement d'appui.
     m_fenetre.setKeyRepeatEnabled(false);
@@ -47,6 +53,10 @@ void Application::appliquer(Transition transition) {
             [this](Empiler& empiler) { m_pile.push_back(std::move(empiler.ecran)); },
             [this](Depiler) { m_pile.pop_back(); },
             [this](Quitter) { m_fenetre.close(); },
+            [this](const AppliquerReglages& appliquer) {
+                m_reglages = appliquer.reglages;
+                ouvrirFenetre();
+            },
         },
         transition);
 }

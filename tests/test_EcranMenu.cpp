@@ -22,26 +22,29 @@ sf::Vector2f centreDuBouton(std::size_t indice) {
 TEST_CASE("menu : Commencer partie empile un ecran") {
     const EcranMenu menu;
 
-    const Transition transition = menu.cliquer(centreDuBouton(0), s_centre);
+    const Transition transition = menu.cliquer(centreDuBouton(0), s_centre, Reglages{});
 
     REQUIRE(std::holds_alternative<Empiler>(transition));
     REQUIRE(std::get<Empiler>(transition).ecran != nullptr);
 }
 
-TEST_CASE("menu : Options ne fait rien pour l'instant") {
+TEST_CASE("menu : Options empile l'ecran des options") {
     const EcranMenu menu;
 
-    REQUIRE(std::holds_alternative<Aucune>(menu.cliquer(centreDuBouton(1), s_centre)));
+    const Transition transition = menu.cliquer(centreDuBouton(1), s_centre, Reglages{});
+
+    REQUIRE(std::holds_alternative<Empiler>(transition));
+    REQUIRE(std::get<Empiler>(transition).ecran != nullptr);
 }
 
 TEST_CASE("menu : Quitter quitte") {
     const EcranMenu menu;
 
-    REQUIRE(std::holds_alternative<Quitter>(menu.cliquer(centreDuBouton(2), s_centre)));
+    REQUIRE(std::holds_alternative<Quitter>(menu.cliquer(centreDuBouton(2), s_centre, Reglages{})));
 }
 
 TEST_CASE("menu : un clic hors des boutons ne fait rien") {
     const EcranMenu menu;
 
-    REQUIRE(std::holds_alternative<Aucune>(menu.cliquer({5.0f, 5.0f}, s_centre)));
+    REQUIRE(std::holds_alternative<Aucune>(menu.cliquer({5.0f, 5.0f}, s_centre, Reglages{})));
 }

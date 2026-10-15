@@ -22,7 +22,11 @@ public:
     // de la vue de l'interface ; `indice` doit être valide.
     [[nodiscard]] sf::FloatRect rectangleDuBouton(std::size_t indice, sf::Vector2f centre) const;
 
-    // Indice du bouton qui contient `point`, vide si aucun.
+    // Un bouton inactif est grisé et n'est jamais sous le curseur : ni survol,
+    // ni clic. Tous les boutons sont actifs à la construction.
+    void definirActif(std::size_t indice, bool actif);
+
+    // Indice du bouton actif qui contient `point`, vide si aucun.
     [[nodiscard]] std::optional<std::size_t> boutonSous(sf::Vector2f point, sf::Vector2f centre) const;
 
     // Dessine les boutons ; `survole` (le résultat de `boutonSous` sous le
@@ -31,4 +35,5 @@ public:
 
 private:
     std::vector<std::string> m_libelles;
+    std::vector<bool> m_actifs;
 };
