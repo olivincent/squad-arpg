@@ -45,6 +45,7 @@ add_library(squad_core STATIC
     src/Controleur.cpp
     src/Reglages.cpp
     src/TailleDeVue.cpp
+    src/EcranJeu.cpp
 )
 target_include_directories(squad_core PUBLIC src)
 target_link_libraries(squad_core PUBLIC SFML::Graphics)
@@ -52,6 +53,7 @@ target_compile_options(squad_core PRIVATE ${AVERTISSEMENTS})
 
 add_executable(main
     src/main.cpp
+    src/Application.cpp
 )
 target_link_libraries(main PRIVATE squad_core)
 target_compile_options(main PRIVATE ${AVERTISSEMENTS})
