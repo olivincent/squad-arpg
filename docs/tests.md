@@ -666,3 +666,23 @@
   Non couvert : un soin dont la cible remonte à pleine vie pendant l'activation
   (`Escouade` n'expose aucun moyen de soigner de l'extérieur) ; à vérifier en jeu.
 - **`test_BarreDeSkills.cpp`** (+1) : `couleurDuContour`. 449 tests.
+
+## Ligne de vue des monstres et nettoyage de Skill (étape 62)
+
+- **`test_Skill.cpp`** (−6 cas) : `declencher` et `declencherSansCible`
+  n'existent plus. L'aide locale `lancer(skill, generateur)` fait
+  `commencer` + `avancer(0)` (temps d'exécution nul) ; les cas de recharge
+  (refus pendant la recharge, progression, recharge fixe sans tirage,
+  intervalle, même graine) l'utilisent. Retirés : les cas qui ne vérifiaient
+  que la portée dans `declencher` (couverte par `estAPortee`) et les doublons.
+- **`test_Monstre.cpp`** (+7 cas), avec `carteAvecMur` (mur de 4 cases : un
+  monstre en (100, 100) ne voit pas (250, 100), voit (200, 260)) et
+  `carteAvecPilier` (mur en case (1, 1) ; monstre en (30, 60) ou (25, 65)) :
+  proie derrière un mur non détectée, même distance en vue détectée,
+  poursuite qui continue sans la vue, monstre touché actif sans vue,
+  `peutAtteindre` (portée ET vue), `engagerAttaque` refusée si cachée et
+  acceptée en vue, poursuite qui ne s'arrête pas à portée mais cachée. Les
+  appels existants à `engagerAttaque` reçoivent `carteOuverte()`. Pas de
+  test du choix entre deux personnages : la cible de frappe est la proie
+  (limite acceptée, voir `docs/monstre.md`).
+

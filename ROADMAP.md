@@ -69,8 +69,9 @@ est dans `docs/historique.md`.
 - Étape 59 — Génération procédurale : les salles ✅
 - Étape 60 — Génération procédurale : les couloirs ✅
 - Étape 61 — Génération procédurale : monstres, touche R et F5 ✅
+- Étape 62 — Ligne de vue des monstres et nettoyage de Skill ✅
 
-## Étape 62 (à définir)
+## Étape 63 (à définir)
 
 Prochaine étape à choisir avec Claude.ai (voir les pistes ci-dessous et
 `docs/brainstorm.md`).
@@ -78,8 +79,8 @@ Prochaine étape à choisir avec Claude.ai (voir les pistes ci-dessous et
 Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes) :
 - Skill en attente par personnage (aujourd'hui un seul pour l'escouade)
 - Interruption de l'activation d'un skill par les dégâts reçus
-- Supprimer `Skill::declencher` et `Skill::declencherSansCible`, plus
-  utilisées par le jeu depuis l'étape 58 (refactorisation pure)
+- Séparer la proie d'un monstre (poursuite, sans vue) de sa cible de
+  frappe (à portée et en vue)
 - Vitesse relative escouade/monstres comme levier contre le kiting
 - Ralentissement de l'escouade engagée
 - Attaque d'opportunité au désengagement
@@ -116,7 +117,6 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
 - Finitions : caméra bloquée aux bords de la carte
 - Limitation de fréquence des appels à `allerVers`/A*, si un problème de
   performance est mesuré sur une carte plus grande
-- Ligne de vue pour la détection des monstres et leur riposte
 - Types de personnages, statistiques, armes, capacités, au-delà de la
   simple portée différenciée
 - Placement « intelligent » en combat (encerclement, écartement, ligne
@@ -161,9 +161,11 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   pas ignorer ; `Cercle` passé par valeur ; constantes en `s_`. Barre de vie
   des personnages et des monstres dessinée par le module `BarreDeVie`.
   Points de vie portés par la classe `PointsDeVie` (étape 53), possédée par
-  `Personnage` et `Monstre` ; provocation et zone par
-  `Skill::declencherSansCible`.
-- **Escouade** : l'ancre (carré vert de 20 × 20, démarre en `(100, 100)`,
+  `Personnage` et `Monstre`. `Skill` n'a plus que la machine à états
+  (`commencer` / `avancer` / `annuler`) : `declencher` et
+  `declencherSansCible` ont été supprimées à l'étape 62.
+- **Escouade** : l'ancre (carré vert de 20 × 20, démarre au centre de la première salle
+  sur la carte générée, en `(100, 100)` seulement avec `creerNiveau()`,
   180 px/s) suit le chemin calculé par le A* puis lissé (trajets directs en
   terrain dégagé, coins contournés au plus court), s'arrête exactement sur
   le point cliqué, est bloquée par les murs et glisse le long d'eux. Son
@@ -313,24 +315,27 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   `(1940, 180)`, `(1500, 540)` et `(1620, 540)`. Possédés par
   `Partie` dans un `std::vector<Monstre>`. Un monstre détecte un
   personnage vivant à moins de 200 px de lui et de 400 px de son poste (sa
-  position de départ), le poursuit (A* + lissage) et s'arrête à portée
-  d'attaque (15 px bord à bord, 10 dégâts, recharge 0,7–1,3 s). Un monstre qui reçoit des dégâts (> 0) entre en poursuite de sa
+  position de départ) ET en vue (`TileMap::ligneDeVue`, centre à centre) ;
+  il le poursuit (A* + lissage) sans que la perte de vue y mette fin, et
+  s'arrête dès qu'il peut l'atteindre : à portée d'attaque (15 px bord à
+  bord, 10 dégâts, recharge 0,7–1,3 s) ET en vue (`Monstre::peutAtteindre`). Un monstre qui reçoit des dégâts (> 0) entre en poursuite de sa
   proie habituelle (provocateur, sinon le plus proche) même hors de sa
   détection, s'il est lui-même dans son territoire ; un coup reçu hors
   du territoire ne le réveille pas, et ne sert qu'une fois. Il abandonne
   quand lui-même s'éloigne de plus de 400 px de son poste, ou si la proie
   meurt, et rentre alors à son poste ; une proie qui revient dans le
-  territoire relance la poursuite. Il frappe le personnage vivant le plus
-  proche dès qu'il est à portée, attaqué ou non. Un monstre mort est
+  territoire relance la poursuite. Il frappe sa proie (le personnage vivant le plus
+  proche, ou le provocateur) dès qu'elle est à portée ET en vue, attaqué ou non ; un monstre touché
+  s'active même sans voir son agresseur. Un monstre mort est
   retiré.
 - **Blocage mutuel** : les monstres se bloquent entre eux et sont bloqués
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 496 tests : 47 sur `GenerateurDonjon`, 38 sur `TileMap`, 17 sur `Chemin`, 163
+  (`./build/tests.exe`, 497 tests : 47 sur `GenerateurDonjon`, 38 sur `TileMap`, 17 sur `Chemin`, 163
   sur `Escouade` en cinq fichiers par thème — 22 déplacement, 27 combat, 70
-  skills, 26 agresseurs, 18 vue —, 12 sur `Deplacement`, 43 sur `Monstre`,
-  46 sur `Personnage`, 30 sur `Skill`, 17 sur `Mobile`, 2 sur `Eclaircir`, 4 sur `Cercle`, 13
+  skills, 26 agresseurs, 18 vue —, 12 sur `Deplacement`, 50 sur `Monstre`,
+  46 sur `Personnage`, 24 sur `Skill`, 17 sur `Mobile`, 2 sur `Eclaircir`, 4 sur `Cercle`, 13
   sur `Autodefense`, 7 sur `BarreDeSkills`, 4 sur `MonstreVu`, 1 sur
   `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 14 sur `Partie`, 7 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
   accents (`./build/tests.exe "*a portee*"` filtre) ; rotation de la
@@ -359,9 +364,13 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
 - Le A* et le lissage ignorent les entités : une entité bloquée ne
   contourne pas, elle glisse ou attend. Près des piliers, le contournement
   n'est pas toujours le plus court.
-- La détection, le territoire et la riposte des monstres ignorent les
-  murs (observé sur la carte générée : un monstre peut détecter l'escouade
-  à travers un mur et faire le tour par le couloir) ; la ligne de vue des personnages est mesurée centre à centre.
+- Le territoire des monstres reste une distance pure (il ignore les
+  murs) ; une fois en poursuite, un monstre ne perd pas sa proie en la
+  perdant de vue (il la suit par le A* jusqu'à l'abandon habituel) ; la
+  ligne de vue est mesurée centre à centre.
+- La cible de frappe d'un monstre est sa proie (`Escouade::proieDuMonstre`) :
+  si elle est cachée, il ne frappe pas, même si un autre personnage est à
+  portée et en vue.
 - Un coup engagé part sans revérifier portée ni vue ; seule la marche
   empêche d'engager (pas de ralentissement de l'escouade engagée).
 - Lors d'un demi-tour rapide, deux personnages peuvent se chevaucher

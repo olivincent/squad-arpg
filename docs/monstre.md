@@ -95,19 +95,24 @@ déplacement par chemin dans `docs/chemin.md`.
   arbitrairement loin de son point de départ, tant que lui-même ne
   s'éloigne pas de plus de 400 px de son poste.
 - **Détection unique, dans la fonction privée `const`
-  `proieDetectee(cible)`** : une proie est détectée si elle existe, si
-  elle est à `<=` `m_rayonDetection` (200 px) **du monstre** ET à `<=`
-  `m_rayonTerritoire` **du poste**. La seconde condition est nécessaire :
+  `proieDetectee(cible, carte)`** : une proie est détectée si elle existe, si
+  elle est à `<=` `m_rayonDetection` (200 px) **du monstre**, à `<=`
+  `m_rayonTerritoire` **du poste** ET en vue du monstre
+  (`TileMap::ligneDeVue`, centre à centre, étape 62). La seconde condition est nécessaire :
   sans elle, un monstre qui vient de rentrer au bord de son territoire
   redétecterait aussitôt une proie restée à la frontière et tremblerait
   entre `Poursuite` et `Retour` au lieu de rentrer franchement. La même
   fonction est appelée en `EnGarde` et en `Retour`, pour que les deux
   appliquent exactement la même règle.
-- **Les distances sont mesurées à vol d'oiseau** et ignorent les murs :
-  un monstre peut détecter et poursuivre une proie à travers un mur,
-  sans ligne de vue. Détection et territoire : centre à centre
-  (`proieDetectee` ne lit que `cible->centre`) ; portée d'attaque : bord
-  à bord.
+- **La vue ne sert qu'à détecter** (étape 62) : en `Poursuite`, le monstre
+  ne perd pas sa proie en la perdant de vue ; il la suit par le A* jusqu'à
+  l'abandon habituel (plus de 400 px du poste, ou proie morte). Sinon,
+  tourner un coin suffirait à semer n'importe quel monstre. Le territoire
+  reste une distance pure, et un monstre touché s'active sans vue
+  (`reveilleParCoup` ne la regarde pas).
+- **Les distances sont mesurées à vol d'oiseau** : détection et territoire
+  centre à centre ; portée d'attaque : bord à bord. La vue est aussi centre
+  à centre.
 
 ## Coup reçu
 
@@ -138,8 +143,9 @@ déplacement par chemin dans `docs/chemin.md`.
   avant et après le `switch` (`etatPrecedent != m_etat`) : redonner
   l'ordre à chaque image écraserait inutilement le chemin déjà calculé
   et refairait un A* identique à chaque tic.
-- **En `Poursuite`, à chaque image** : `arreter()` si la proie est à
-  portée de `m_attaque`, sinon `allerVers(proie.centre, carte)`. Ici
+- **En `Poursuite`, à chaque image** : `arreter()` si le monstre peut
+  atteindre la proie (`peutAtteindre` : à portée de `m_attaque` ET en vue),
+  sinon `allerVers(proie.centre, carte)`. Ici
   l'ordre est redonné à chaque image parce que la proie, un personnage,
   bouge ; le poste, lui, est fixe. Le but du monstre est de se mettre à
   portée pour frapper, pas de rejoindre sa proie.
@@ -151,9 +157,18 @@ déplacement par chemin dans `docs/chemin.md`.
 ## Riposte
 
 - **Frapper se fait en deux temps** (étape 57, voir `docs/combat.md`) :
-  `engagerAttaque(proie, idProie)` (proie à portée, monstre immobile,
-  attaque prête) puis `avancerAttaque(dt, generateur)`, qui rend les dégâts
+  `engagerAttaque(proie, idProie, carte)` (proie à portée ET en vue,
+  monstre immobile, attaque prête) puis `avancerAttaque(dt, generateur)`, qui rend les dégâts
   0,3 s plus tard. `Monstre::frapper` n'existe plus.
+- **`peutAtteindre(proie, carte)`** (étape 62) : règle unique, à portée
+  (bord à bord) ET `ligneDeVue` centre à centre, sur le modèle de
+  `Escouade::peutAtteindre` sans dépendance entre les deux classes. Un
+  monstre à portée mais caché derrière un coin ne s'arrête donc pas : il
+  continue vers sa proie jusqu'à la voir. Un coup déjà engagé part sans
+  revérifier portée ni vue.
+- **La cible de frappe est la proie** (`Escouade::proieDuMonstre`) : si elle
+  est cachée, le monstre ne frappe pas, même si un autre personnage est à
+  portée et en vue.
 - **Exécution** : pendant ces 0,3 s, `mettreAJour` arrête le monstre et le
   déplace sans rien changer d'autre : ni poursuite, ni retour, ni changement
   d'état (l'état et le « coup reçu » sont traités après le coup). Un monstre
@@ -188,5 +203,9 @@ déplacement par chemin dans `docs/chemin.md`.
   retour.
 - Chaque monstre garde son propre poste et territoire, sans les partager
   ni se coordonner avec les autres.
-- Détection et poursuite ignorent les murs (pas de ligne de vue) ; un
-  monstre bloqué ne contourne pas (le A* ignore les entités).
+- Le territoire ignore les murs (distance pure) ; un monstre bloqué ne
+  contourne pas (le A* ignore les entités).
+- Proie cachée = pas de frappe, même si un autre personnage est à portée et
+  en vue (la proie et la cible de frappe sont la même chose).
+- Pas de mémoire de la dernière position vue, de recherche du joueur ni de
+  cône de vision.

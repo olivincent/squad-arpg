@@ -414,7 +414,7 @@ Deux fonctions libres, sans état, utilisées par `Mobile::mettreAJour`.
 
 ### `Monstre` — un ennemi
 
-Un carré rouge de 30 × 30 qui détecte un personnage, le poursuit, riposte
+Un carré rouge de 30 × 30 qui détecte un personnage (à moins de 200 px, dans son territoire et en vue), le poursuit sans dépendre de la vue, riposte
 à portée et retourne à son poste. Possédé par `main.cpp`. Ne connaît ni
 `Escouade` ni `Personnage` : il reçoit sa proie et ses obstacles en
 paramètres.
@@ -429,8 +429,9 @@ consommé par `mettreAJour`), `m_idProieEngagee` (`std::optional<int>`, place du
 |---|---|
 | `Monstre(sf::Vector2f centre, int id, int armure)` | Crée le monstre à ce centre, avec cet identifiant, cette armure (20, donnée par `Niveau`) et 100 points de vie ; son poste est ce centre |
 | `void dessiner(sf::RenderTarget& rendu, bool estCible) const` | Dessine le monstre (éclairci de 50 % pendant l'exécution d'un coup) et sa barre de vie ; ajoute un contour jaune si `estCible` |
-| `void mettreAJour(float dt, std::optional<Cercle> cible, const TileMap& carte, const std::vector<Cercle>& obstacles)` | Décrémente la recharge. Pendant l'exécution d'un coup : arrête le monstre et le déplace (immobile), sans toucher à l'état. Sinon met à jour l'état et donne ses ordres à `m_mobile` (poursuite, arrêt à portée, retour au poste), puis le déplace ; `obstacles` lui est transmis |
-| `bool engagerAttaque(Cercle proie, int idProie)` | Engage un coup (0,3 s d'exécution) : faux si la proie n'est pas à portée, si le monstre est en mouvement ou si l'attaque n'est pas prête. `idProie` (la place du personnage) est retenu jusqu'au départ |
+| `void mettreAJour(float dt, std::optional<Cercle> cible, const TileMap& carte, const std::vector<Cercle>& obstacles)` | Décrémente la recharge. Pendant l'exécution d'un coup : arrête le monstre et le déplace (immobile), sans toucher à l'état. Sinon met à jour l'état (détection soumise à la ligne de vue, `proieDetectee` ; la poursuite ne dépend pas de la vue) et donne ses ordres à `m_mobile` (poursuite, arrêt dès que `peutAtteindre`, retour au poste), puis le déplace ; `obstacles` lui est transmis |
+| `bool peutAtteindre(Cercle proie, const TileMap& carte) const` | La proie est-elle à portée d'attaque (bord à bord) ET en vue (`ligneDeVue`, centre à centre) ? Même règle que `Escouade::peutAtteindre` ; `[[nodiscard]]` |
+| `bool engagerAttaque(Cercle proie, int idProie, const TileMap& carte)` | Engage un coup (0,3 s d'exécution) : faux si la proie n'est pas atteignable (`peutAtteindre`), si le monstre est en mouvement ou si l'attaque n'est pas prête. `idProie` (la place du personnage) est retenu jusqu'au départ |
 | `std::optional<int> proieEngagee() const` | `idProie` du coup en exécution ; vide hors exécution |
 | `int avancerAttaque(float dt, Generateur& generateur)` | Fait avancer l'exécution ; rend les dégâts au départ du coup, 0 sinon ; `[[nodiscard]]` |
 | `void annulerAttaque()` | Annule le coup en exécution, sans recharge consommée (appelée par `Partie` quand la proie engagée meurt) |
@@ -450,7 +451,7 @@ dégâts d'un skill de zone), une recharge, ainsi qu'un rayon de zone (la
 taille de la zone touchée par un skill de zone ; 0, non lu, pour un skill
 à cible unique). Sert aussi d'attaque de base : un `Skill` de type
 `Degats`, de rayon de zone 0.
-Il suit une machine à états (`enum class PhaseSkill { Pret, EnExecution, EnRecharge }`) : `commencer` (prêt → en exécution), `avancer` (fin de l'exécution : le coup part, la recharge est tirée, → en recharge), `annuler` (en exécution → prêt, sans recharge). Les skills des touches 1 à 4 passent par la même machine à états (étape 58 : activation de 0,3 s, 0,2 s, 0,6 s et 0,8 s pour dégâts, provocation, soin et zone) ; avec un temps nul, l'effet part dans l'image de l'engagement. `declencher` et `declencherSansCible` ne sont plus utilisées par le jeu ; il ne connaît pas la cible du coup engagé, c'est son propriétaire qui la retient.
+Il suit une machine à états (`enum class PhaseSkill { Pret, EnExecution, EnRecharge }`) : `commencer` (prêt → en exécution), `avancer` (fin de l'exécution : le coup part, la recharge est tirée, → en recharge), `annuler` (en exécution → prêt, sans recharge). Les skills des touches 1 à 4 passent par la même machine à états (étape 58 : activation de 0,3 s, 0,2 s, 0,6 s et 0,8 s pour dégâts, provocation, soin et zone) ; avec un temps nul, l'effet part dans l'image de l'engagement. Il ne connaît pas la cible du coup engagé, c'est son propriétaire qui la retient.
 Possédé par valeur par `Personnage` (attaque de base, plus un skill en
 option) et par `Monstre` (son attaque). Ne connaît ni la position de son
 propriétaire ni sa cible : il reçoit deux `Cercle`. Ne dessine rien.
@@ -470,8 +471,6 @@ tirage), `m_recharge`, `m_rayonZone` (`float`, en pixels), `m_tempsExecution`, `
 | `int getPuissance() const` | Puissance du skill |
 | `void mettreAJour(float dt)` | Décrémente la recharge, sans descendre sous zéro ; en recharge écoulée, repasse à prêt |
 | `bool estAPortee(Cercle origine, Cercle cible) const` | `distanceBordABord(origine, cible)` est-elle `<=` `m_portee` ? |
-| `int declencher(Cercle origine, Cercle cible, Generateur& generateur)` | Puissance si la cible est à portée et le skill prêt (relance alors la recharge, tirée dans l'intervalle), sinon 0 sans toucher la recharge ni le générateur |
-| `int declencherSansCible(Generateur& generateur)` | Comme `declencher`, sans vérifier la portée ni prendre de cible : puissance si la recharge est écoulée (relance alors la recharge), sinon 0. Pour la provocation et la zone |
 | `void relancerRecharge(Generateur& generateur)` | Remet la recharge au complet, sans déclencher : `min` si `min == max` (aucun tirage), sinon un tirage uniforme (`std::uniform_real_distribution<float>`) dans `[min, max]` |
 | `float getProgressionRecharge() const` | De 0 (juste après le déclenchement) à 1 (prêt) ; 1 si le temps de recharge est nul |
 | `float getRechargeRestante() const` | Temps de recharge restant, en secondes (0 si prêt) |

@@ -160,7 +160,7 @@ personnages sont dans `docs/formation.md`, le monstre dans
   `Monstre` (`m_attaque`). Aucune classe de base commune, aucune fonction
   virtuelle. Il ne connaît pas la position de son propriétaire : `origine`
   et `cible` (deux `Cercle`) sont reçus en paramètre de `estAPortee` et
-  `declencher`, plutôt que stockés. Il ne connaît ni `TileMap`, ni
+  `estAPortee`, plutôt que stockés. Il ne connaît ni `TileMap`, ni
   `Personnage`, ni `Monstre`, ni `Escouade`, et ne dessine rien ; il
   connaît `Cercle`.
 - **L'attaque de base est un `Skill` comme un autre**, de type `Degats`,
@@ -175,16 +175,14 @@ personnages sont dans `docs/formation.md`, le monstre dans
   est un intervalle `[rechargeMin, rechargeMax]` (voir « Recharge aléatoire »).
   `m_recharge` vaut 0 à la création : le premier déclenchement part tout de
   suite.
-- **`declencher`** renvoie la puissance et relance la recharge si la cible
-  est à portée et la recharge écoulée ; sinon renvoie 0 sans toucher la
-  recharge (un essai hors de portée ne la déclenche pas).
-  **`mettreAJour(dt)`** décrémente la recharge, sans descendre sous zéro :
+- **`mettreAJour(dt)`** décrémente la recharge, sans descendre sous zéro :
   le temps passe même quand le propriétaire n'agit pas.
   **`relancerRecharge`** la remet au complet (nouveau tirage) sans déclencher.
-  Depuis l'étape 58, le jeu n'appelle plus `declencher` ni
-  `declencherSansCible` : les attaques de base et les skills passent par
-  `commencer` / `avancer` / `annuler`. Elles ne servent plus que dans
-  `test_Skill.cpp` (à supprimer dans un commit séparé).
+  `declencher` et `declencherSansCible` ont été supprimées à l'étape 62 (le
+  jeu ne les appelait plus depuis l'étape 58) : les attaques de base et les
+  skills passent par `commencer` / `avancer` / `annuler`. Les tests de
+  recharge lancent un skill à temps d'exécution nul par `commencer` +
+  `avancer(0)`.
 - **Valeurs des attaques de base** : personnages 5 dégâts, recharge de
   0,3 à 0,7 s (mêlées, portée 20 px) ou de 0,4 à 0,6 s (tireurs, portée
   120 px) ; monstre 10 dégâts (de quoi rester dangereux seul face à 4
@@ -505,8 +503,9 @@ personnages sont dans `docs/formation.md`, le monstre dans
   cas.
 - **Cartes en paramètre** : `declencherSkill`, `choisirCible` et
   `avancerSkillEnAttente` reçoivent la carte, jamais en membre.
-- **Hors de portée de l'étape** : la riposte et la détection des monstres
-  ignorent toujours les murs ; pas de placement pour obtenir la vue (le
+- **Monstres** (étape 62) : la détection et la frappe des monstres exigent
+  maintenant la vue (voir `docs/monstre.md`). Hors de portée de l'étape 46 : la
+  riposte et la détection des monstres ignoraient alors les murs ; pas de placement pour obtenir la vue (le
   personnage avance simplement vers sa cible) ; pas d'indicateur d'une
   cible non visible ; la vue est centre à centre, pas bord à bord.
 
@@ -762,10 +761,6 @@ l'enfoncerait dans un obstacle.
 - **`TypeSkill.hpp` et `MonstreVu.hpp` séparés** : un module d'affichage
   ou de décision n'a plus besoin de la classe `Skill` ni de `Coup` pour un
   enum ou une entrée.
-- **`Skill::declencherSansCible`** (étape 53, audit R4) : la provocation et
-  la zone n'ont pas de cible ; elles ne passent plus le cercle du lanceur
-  comme « cible » pour contourner la vérification de portée. Mêmes
-  conditions que `declencher` (refusé tant que la recharge court), sans
-  portée. `Personnage::declencherSkillSansCible` ajoute les règles du
-  personnage (mort, pas de skill, recharge de l'attaque de base).
-  `declencher` reste pour les dégâts et le soin, qui ont une cible.
+- **`Skill::declencherSansCible`** (étape 53, audit R4), supprimée à
+  l'étape 62 avec `declencher` : depuis l'étape 58, tout passe par la machine
+  à états.
