@@ -74,11 +74,24 @@ est dans `docs/historique.md`.
 - Étape 64 — Groupes de monstres : alerte du groupe ✅
 - Étape 65 — Menu de départ, options d'affichage et sauvegarde des réglages ✅
 - Étape 66 — Proie et cible de frappe des monstres ✅
+- Étape 67 — Places d'attaque autour de la cible et séparation des personnages ✅
 
-## Étape 67 (à choisir)
+## Étape 68 (prévue) — A* qui contourne les obstacles mobiles
 
-À préciser avec Claude.ai parmi les pistes ci-dessous (voir aussi
-`docs/brainstorm.md`).
+Décisions déjà prises :
+- **Coût ajouté, pas interdiction**, pour les cases occupées par une entité,
+  passé à `trouverChemin` sous forme de fonction de coût
+  `std::function<int(sf::Vector2i)>`.
+- **Lissage** qui refuse un raccourci traversant un cercle d'obstacle.
+- **Recalcul du chemin par `Mobile`** quand il est bloqué depuis un court moment.
+- **Qui contourne quoi** : les monstres contournent les autres monstres mais pas
+  les personnages ; les personnages contournent les monstres sauf leur cible
+  mais pas les autres personnages ; l'ancre est inchangée.
+
+Voir aussi, dans `docs/brainstorm.md`, l'idée de « stratégie d'attaque » par type
+de monstre, qui se branchera sur cette fonction de coût.
+
+À préciser avec Claude.ai (voir aussi `docs/brainstorm.md`).
 
 Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes) :
 - Skill en attente par personnage (aujourd'hui un seul pour l'escouade)
@@ -111,9 +124,8 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
 - Retirer un personnage mort de `m_personnages` et resserrer la
   formation, si l'avoir laissé en place s'avère gênant
 - Sortie ou escalier comme objectif, étages
-- Collision entre personnages, ou déplacement suivant l'arc de rotation
-  plutôt qu'une ligne droite, pour éliminer le chevauchement résiduel
-  lors d'un demi-tour rapide
+- Déplacement suivant l'arc de rotation plutôt qu'une ligne droite
+  (la séparation douce de l'étape 67 écarte déjà les chevauchements)
 - Effet visuel au coup ou à la mort d'un monstre ou d'un personnage
 - Un lissage plus serré autour des coins (*funnel algorithm* ou Theta*),
   si le contournement actuel des piliers s'avère insuffisant
@@ -122,8 +134,8 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   performance est mesuré sur une carte plus grande
 - Types de personnages, statistiques, armes, capacités, au-delà de la
   simple portée différenciée
-- Placement « intelligent » en combat (encerclement, écartement, ligne
-  de tir), recul des tireurs si un monstre s'approche d'eux
+- Ligne de tir dégagée, recul des tireurs si un monstre s'approche d'eux ;
+  places d'attaque pour les monstres qui encerclent un personnage
 - Forme plus fidèle que le cercle unique (plusieurs cercles, rectangle
   orienté), orientation des entités
 
@@ -234,6 +246,19 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   droite de l'ancre à cette place n'est pas libre (`replierVersOrigine`) :
   près d'un mur, d'un coin ou d'un pilier, la formation se resserre
   d'elle-même.
+- **Places d'attaque et séparation** (étape 67) : un personnage qui approche un
+  monstre (combat verrouillé, agresseur, skill de dégâts en attente) marche vers
+  une **place d'attaque** sur un anneau autour du monstre (rayon du monstre + rayon
+  du personnage + 90 % de la portée), distincte de celle des autres : la première
+  face à l'escouade, puis alternance gauche/droite, hors mur, en vue du monstre,
+  à plus de 34 px des places retenues et des personnages immobiles ; l'angle est
+  gardé tant qu'il vise le même monstre. Il s'arrête toujours dès que le monstre
+  est à portée et en vue. Les places de formation sont elles aussi distinctes
+  (écartées à 34 px près d'un mur). Une **séparation douce** (120 px/s, plus lente
+  que la marche) écarte les personnages à moins de 34 px ; elle ne pousse pas un
+  personnage en exécution. Chaque personnage a un contour sombre de 1 px. Débogage :
+  F3 affiche le point visé de chaque personnage, F4 cache le carré vert de l'ancre.
+  Voir `docs/formation.md`.
 - **Mort et défaite** : un personnage à 0 point de vie tombe sur place
   (carré gris, sans barre de vie), ne frappe plus, n'est plus ciblé et ne
   bloque plus personne ; il reste dans la formation, sa place est
@@ -374,9 +399,9 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 566 tests : 13 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 50 sur `GenerateurDonjon`, 38 sur `TileMap`, 17 sur `Chemin`, 168
-  sur `Escouade` en cinq fichiers par thème — 22 déplacement, 32 combat, 70
-  skills, 26 agresseurs, 18 vue —, 12 sur `Deplacement`, 61 sur `Monstre`,
+  (`./build/tests.exe`, 591 tests : 13 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 50 sur `GenerateurDonjon`, 38 sur `TileMap`, 17 sur `Chemin`, 182
+  sur `Escouade` en six fichiers par thème — 28 déplacement, 32 combat, 70
+  skills, 26 agresseurs, 18 vue, 8 places —, 11 sur `Encerclement`, 12 sur `Deplacement`, 61 sur `Monstre`,
   46 sur `Personnage`, 24 sur `Skill`, 17 sur `Mobile`, 2 sur `Eclaircir`, 4 sur `Cercle`, 13
   sur `Autodefense`, 7 sur `BarreDeSkills`, 4 sur `EntiteVue`, 1 sur
   `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 26 sur `Partie`, 7 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
@@ -423,9 +448,9 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   est caché, il ne frappe personne.
 - Un coup engagé part sans revérifier portée ni vue ; seule la marche
   empêche d'engager (pas de ralentissement de l'escouade engagée).
-- Lors d'un demi-tour rapide, deux personnages peuvent se chevaucher
-  brièvement ; l'ancre traversant les monstres, elle (et la caméra) peut
-  s'éloigner des personnages bloqués.
+- Lors d'un demi-tour rapide, deux personnages peuvent se croiser brièvement
+  (la séparation douce les écarte en moins d'une seconde) ; l'ancre traversant
+  les monstres, elle (et la caméra) peut s'éloigner des personnages bloqués.
 - Un personnage mort n'est jamais retiré et la formation ne se resserre
   pas.
 - Un monstre qui rentre ignore une proie hors de son territoire ; pas de

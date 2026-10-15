@@ -68,6 +68,18 @@ L'armure existe déjà. D'autres façons de réduire ou d'éviter un coup :
 
 **Questions ouvertes.** Un ordre du joueur suspend-il les règles ? Les règles appartiennent-elles au personnage ou à sa classe ?
 
+## 4 bis. Stratégie d'attaque par type de monstre
+
+**L'idée.** Donner à chaque type de monstre sa manière d'attaquer : un monstre agile qui traverse les lignes pour atteindre l'arrière, un skill de type voleur pour passer à travers les entités. Une stratégie d'attaque pourrait aussi servir aux gambits du joueur (section 4).
+
+**Trois points de branchement déjà identifiés.**
+
+- Le choix de la proie : `Escouade::proieDuMonstre`.
+- Le coût du A* : la fonction de coût de l'étape 68 (`std::function<int(sf::Vector2i)>`).
+- Les entités qui bloquent le déplacement : la liste d'obstacles construite par `Partie` / `Escouade`.
+
+**Prérequis.** L'étape 68 (A* qui contourne les obstacles mobiles). Rien n'est décidé.
+
 ## 5. Génération procédurale, la suite
 
 **Carte extérieure.** Comme *Diablo 3* : une carte extérieure avec des entrées de donjons. Fixe avec des entrées tirées au hasard, terrain généré (plaines, forêts, rivières), ou assemblage de grands morceaux faits à la main.

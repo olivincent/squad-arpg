@@ -10,10 +10,10 @@
   (`test_TileMap.cpp`, `test_Chemin.cpp`, `test_Deplacement.cpp`,
   `test_Monstre.cpp`, `test_Personnage.cpp`, `test_Skill.cpp`,
   `test_Mobile.cpp`, `test_Cercle.cpp`, `test_Autodefense.cpp`,
-  `test_BarreDeSkills.cpp`, `test_EntiteVue.cpp`, `test_BarreDeVie.cpp`,
+  `test_Encerclement.cpp`, `test_BarreDeSkills.cpp`, `test_EntiteVue.cpp`, `test_BarreDeVie.cpp`,
   `test_PointsDeVie.cpp`, `test_Provocations.cpp`, `test_Agresseurs.cpp`, `test_Partie.cpp`,
   `test_Controleur.cpp`),
-  sauf `Escouade`, coupée par thème en cinq fichiers à plat (pas de
+  sauf `Escouade`, coupée par thème en six fichiers à plat (pas de
   sous-dossier) :
   - `test_Escouade_deplacement.cpp` : ancre, chemin, formation, places,
     vivants, rotation de la formation ;
@@ -24,7 +24,8 @@
   - `test_Escouade_agresseurs.cpp` : agresseurs, laisse, provocations,
     `proieDuMonstre` (filet d'intégration ; les fonctions de `Provocations`
     et d'`Agresseurs` sont testées seules dans leurs fichiers, étape 51) ;
-  - `test_Escouade_vue.cpp` : la ligne de vue (étapes 44 et 46).
+  - `test_Escouade_vue.cpp` : la ligne de vue (étapes 44 et 46) ;
+  - `test_Escouade_places.cpp` : les places d'attaque et `pointVise` (étape 67).
   Un cas qui touche plusieurs thèmes est dans le fichier de son sujet
   principal. Le plus gros (`test_Escouade_skills.cpp`) fait environ 790
   lignes.
@@ -760,3 +761,40 @@
   personnage en vue » n'est pas testé au niveau de `Partie` : avec la formation
   fixe (personnages à 50 px) et la portée de 15 px, aucun mur ne cache le plus
   proche en laissant un autre à portée ; il est couvert dans `test_Monstre.cpp`.
+
+## Places d'attaque et séparation (étape 67)
+
+- **`test_Encerclement.cpp`** : nombre de places selon le rayon (au moins 1),
+  première candidate dans la direction donnée, alternance gauche/droite, corde
+  entre voisines `>=` l'écart minimal (rayons de 13 à 140 px), position sur
+  l'anneau, angle libre le plus proche de l'angle actuel (par le plus court
+  côté), angles refusés sautés, égalité départagée par l'ordre, aucun angle libre.
+- **Séparation** (`test_Escouade_deplacement.cpp`) : un personnage cloué (activation
+  jamais terminée, car on n'appelle pas `attaquer`) est croisé par les autres lors
+  d'un demi-tour : le chevauchement dure moins d'une seconde (le test vérifie qu'il y
+  en a un, sinon il ne prouve rien) ; après un demi-tour, les quatre rejoignent leurs
+  places à 2 px et restent à 34 px ; un mort ne pousse pas (la place du personnage
+  suivant est atteinte à 0,05 px, ce qu'un mort qui poussait empêcherait) ; un
+  personnage en activation n'est pas poussé ; la poussée ne fait entrer personne dans
+  un mur (allers-retours collés au mur). Piège : tuer un personnage avec
+  `recevoirDegats(1, origine, 200)` enregistre `origine` comme agresseur, et les
+  autres personnages vont vers lui ; il faut une origine lointaine.
+- **Places de formation distinctes** (`test_Escouade_deplacement.cpp`) : ancre collée
+  à un mur, les quatre places sont à 34 px ou plus les unes des autres et hors mur ;
+  après 2 s les personnages ne se chevauchent pas.
+- **Places d'attaque** (`test_Escouade_places.cpp`, carte ouverte, les monstres sont
+  passés comme obstacles) : deux mêlées en combat verrouillé arrivent de côtés
+  différents (angle d'au moins 30°), à portée et à 34 px l'un de l'autre ; les tireurs
+  s'arrêtent dès qu'ils sont à portée (pas au contact) sur des angles différents ;
+  l'ordre autour du monstre est gardé quand il s'éloigne ; au changement de cible
+  chacun prend sa place autour du nouveau monstre ; près d'un mur personne n'entre
+  dedans ; un agresseur sans verrou, un mêlée déjà à portée qui frappe et l'autre qui
+  le rejoint : après 2 s les deux sont à portée sans se superposer, et le point visé
+  du second est sa place d'attaque (à environ 43 px du centre), pas le centre ;
+  monstre dans une case fermée : tous les points visés sont son centre.
+  `pointVise` : place de formation hors combat, vide pour une place invalide.
+- **Pas de test automatique** de l'oubli de la place d'attaque (elle n'a pas d'accès
+  public) : seul le comportement visible (côtés conservés, réattribution au
+  changement de cible) est vérifié.
+- **`choisirAgresseurAViser`** renvoie une `EntiteVue` (identifiant et cercle) pour
+  que la mémoire des places connaisse le monstre : ses tests lisent `cercle.centre`.

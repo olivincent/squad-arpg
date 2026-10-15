@@ -91,8 +91,9 @@ L'attaque, la portée, le skill et les obstacles sont dans
   prend exactement la valeur voulue (même logique que le déplacement à
   pas fixe).
 - **Limites connues** :
-  - pas de collision entre personnages, ni entre un personnage et
-    l'ancre ;
+  - pas de collision dure entre personnages, ni entre un personnage et
+    l'ancre : une séparation douce (étape 67, voir plus bas) écarte les
+    personnages trop proches ;
   - l'ancre traverse les monstres alors que les personnages sont
     bloqués par eux : elle (et la caméra) peut donc s'éloigner des
     personnages bloqués ;
@@ -107,8 +108,9 @@ L'attaque, la portée, le skill et les obstacles sont dans
     ligne droite, pas en suivant l'arc : lors d'un demi-tour très
     rapide, il coupe à travers le centre de la formation pendant qu'un
     autre fait le trajet inverse. La rotation progressive réduit
-    nettement le phénomène sans l'éliminer ; le corriger demanderait une
-    collision personnage-personnage ou un déplacement qui suit l'arc.
+    nettement le phénomène sans l'éliminer ; depuis l'étape 67, la
+    séparation douce écarte les personnages trop proches (« Séparation
+    douce »). Un déplacement qui suit l'arc reste possible.
 
 ## Le personnage
 
@@ -267,15 +269,157 @@ L'attaque, la portée, le skill et les obstacles sont dans
 
 ## Déplacement vers un agresseur (étape 40)
 
-- **Priorité du point visé** dans `Escouade::mettreAJour`, du plus faible
-  au plus fort : la place en formation ; le point de l'agresseur (ou le
-  centre du personnage s'il a déjà un monstre à portée), seulement si
-  l'ancre est à l'arrêt ; le centre du personnage s'il est à portée du
-  monstre verrouillé ; la cible du skill en attente. Le détail et le
+- **Priorité du point visé** dans `Escouade::mettreAJour` (`pointVoulu`), du plus
+  faible au plus fort : la place en formation ; la place d'attaque autour de
+  l'agresseur (ou le centre du personnage s'il a déjà un monstre à portée),
+  seulement si l'ancre est à l'arrêt ; en combat verrouillé, le centre du
+  personnage s'il est à portée du monstre verrouillé, sinon sa place d'attaque
+  autour de ce monstre ; la cible du skill en attente (pour des dégâts, sa
+  place d'attaque). Un coup ou un skill en exécution garde le personnage sur place. Le détail et le
   pourquoi sont dans `docs/combat.md` (« Agresseurs »).
 - **« Ancre à l'arrêt »** = `m_mobile.directionVoulue()` vide, lu après le
   déplacement de l'ancre dans la même image.
 - **`Personnage` n'en sait rien** : il reçoit toujours un simple point.
+
+## Places d'attaque (étape 67)
+
+**Le problème.** Plusieurs personnages qui marchent vers le même monstre
+visaient son centre : ils convergeaient vers le même point de contact et
+finissaient l'un par-dessus l'autre.
+
+- **Une place d'attaque par personnage et par monstre**, sur un anneau
+  centré sur le monstre : rayon du monstre + rayon du personnage + 90 % de la
+  portée de l'action avec laquelle il s'approche (attaque de base ou skill de
+  dégâts en attente), pour que la place soit à portée. Mêlées et tireurs sont
+  donc sur des anneaux différents.
+- **C'est un point où l'on marche, pas une destination obligatoire** : les
+  règles d'arrêt, de portée et de vue ne changent pas (`peutAtteindre`). Un
+  personnage s'arrête dès que le monstre est à portée ET en vue, éventuellement
+  avant d'atteindre sa place.
+- **Concernés** : les personnages qui visaient le centre d'un monstre. Le
+  combat verrouillé (avant, seule l'ancre allait vers le monstre, les
+  personnages suivant leur place de formation : un personnage pas encore à
+  portée marche maintenant vers sa place d'attaque), l'agresseur et le skill de
+  dégâts en attente. Le skill de zone en attente (un point au sol), le soin (un
+  allié) et la formation ne changent pas.
+- **Géométrie dans `Encerclement`**, sans lien avec `Escouade`. Nombre de
+  places = plus grand n tel que la **corde** entre deux places voisines soit
+  `>= s_ecartEntrePersonnages` (34 px) ; première candidate face à l'ancre,
+  puis alternance gauche/droite. L'énoncé de départ donnait `⌊2πr / 26⌋`
+  (longueur d'arc) *et* une corde de 26 px minimum : les deux ne vont pas
+  ensemble (la corde est un peu plus courte que l'arc). On a gardé la corde
+  (décision d'Olivier) : jamais deux places plus proches que prévu, parfois une
+  place de moins.
+- **Une candidate est valide** si le rectangle du personnage centré dessus ne
+  chevauche aucun mur et si elle voit le centre du monstre (`ligneDeVue`).
+  **Elle est libre** si elle est à plus de 34 px de la place retenue par un
+  autre personnage pour ce monstre (quel que soit l'anneau) ET à plus de 34 px
+  du centre de tout autre personnage vivant immobile (occupation réelle : un
+  mêlée qui frappe en autodéfense sur place n'a pas de place retenue, mais il
+  occupe l'endroit où il se tient).
+- **Attribution** : la place valide et libre la plus proche de l'angle actuel
+  du personnage autour du monstre (`choisirAngleLibre`), égalité : l'ordre des
+  candidates. Aucune place : le personnage vise le centre du monstre
+  (comportement d'avant).
+- **Stabilité** : `Escouade` retient par personnage `{ idMonstre, rayon,
+  angle }` (`m_placesDAttaque`). L'angle est gardé tant que le personnage
+  approche ce même monstre ; seule la position est recalculée à chaque image
+  depuis le centre actuel du monstre. Le rayon est gardé aussi, parce que le
+  test « libre » doit connaître l'anneau de chaque autre personnage (mêlées et
+  tireurs n'ont pas le même). La place est réattribuée si elle devient
+  invalide (mur, plus de vue) ou occupée. Elle est oubliée dès qu'aucune règle
+  de `pointVoulu` ne la renouvelle : autre monstre, plus de monstre, mort du
+  personnage, disparition du monstre. Un coup en cours ou l'arrêt à portée sur
+  le même monstre ne la font pas oublier.
+- **Limites** : la place est calculée avec la direction de l'ancre au moment
+  de l'attribution ; deux personnages qui s'approchent depuis des côtés
+  opposés se gênent encore parfois ; pas de places d'attaque pour les monstres.
+
+## Séparation douce (étape 67)
+
+**Pourquoi pas un blocage entre personnages.** Le choix de l'étape 32 (les
+personnages ne se bloquent pas entre eux) a été remis en question à l'étape 67.
+Un essai de blocage (chaque personnage reçoit les cercles des autres vivants
+comme obstacles) a été abandonné : c'est une contrainte **dure et symétrique**,
+qui crée des **interblocages** lors des croisements frontaux. Un demi-tour de
+la formation laissait trois personnages en grappe près de l'ancre, et un
+lanceur de zone qui marchait derrière un coéquipier aligné ne passait plus.
+
+**La séparation douce** (`Escouade::separerPersonnages`, à la fin de
+`mettreAJour`, après le déplacement des personnages) n'empêche jamais
+d'avancer :
+
+- deux vivants dont les centres sont à moins de `s_ecartEntrePersonnages`
+  (34 px) sont écartés le long de la droite qui joint leurs centres, chacun de
+  la moitié du manque (le cercle de collision de 10 px ne change pas) ;
+- la poussée de chacun est plafonnée à `s_vitesseSeparation` (120 px/s) × `dt` :
+  indépendante de la fréquence d'images ;
+- un personnage en exécution d'un coup ou en activation d'un skill n'est pas
+  poussé (l'autre prend toute la poussée ; si les deux le sont, rien) ; les
+  morts ne poussent pas et ne sont pas poussés ; centres confondus : repli sur
+  l'axe des x, le plus petit indice vers la gauche ;
+- la poussée passe par `Personnage::decaler` / `Mobile::decaler` : murs et
+  monstres respectés, avec glissement, sans toucher au chemin ni à
+  `estEnMouvement`. Ni l'ancre ni les monstres ne sont poussés.
+
+**Pourquoi 120 px/s, plus lent que la marche (240 px/s).** Un essai à 300 px/s
+(« pour qu'aucune marche ne maintienne un chevauchement ») recréait un
+interblocage : une poussée plus forte que la marche devient une contrainte
+dure. Un personnage qui marche droit vers un coéquipier immobile aligné sur sa
+ligne (par exemple le tireur arrière-droit derrière le mêlée avant-droit
+quand la formation regarde vers +x) était repoussé aussi vite qu'il avançait,
+alors que le coéquipier regagnait sa place : il restait bloqué, et les tests
+du skill de zone ne passaient plus. À 120 px/s, la poussée corrige un
+chevauchement sans jamais empêcher de passer.
+
+**Ce qui empêche les superpositions durables, ce sont les cibles distinctes** :
+les places d'attaque (« Places d'attaque ») et les places de formation
+(ci-dessous). Si deux personnages ne visent jamais de points à moins de 34 px
+l'un de l'autre, aucune marche ne maintient un chevauchement. La séparation ne
+fait que corriger les croisements en route. Limite : si deux personnages ont
+malgré tout la même cible, ils restent à environ 2 px (la marche gagne sur la
+poussée) ; elle ne devrait plus arriver.
+
+**Pourquoi 34 px et non un chevauchement des cercles.** Les personnages sont
+dessinés en carrés de 20 px mais mesurés en cercles de rayon 10 : en diagonale,
+deux carrés qui se touchent ont leurs centres à environ 28 px. 34 ≈ (20 + 4) ×
+√2 garde un écart visible de 4 px même en diagonale. Cette valeur est la
+constante unique `s_ecartEntrePersonnages` (séparation, places d'attaque,
+places de formation). Chaque personnage a aussi un contour sombre de 1 px
+(vers l'intérieur) pour distinguer deux personnages collés.
+
+## Places de formation distinctes (étape 67)
+
+Près d'un mur, `replierVersOrigine` ramenait plusieurs places au même point
+(souvent le centre de l'ancre). `calculerPlaces` traite maintenant les
+personnages dans l'ordre : si la place ramenée est à moins de 34 px d'une place
+déjà calculée, elle est remplacée par le premier point valide (trajet libre
+depuis l'ancre, rectangle hors mur) et libre (34 px ou plus des places déjà
+calculées) sur des anneaux de 34, 68 et 102 px autour de l'ancre, les candidates
+(`Encerclement`) partant de la direction de la place théorique. Aucun point :
+le centre de l'ancre. En terrain dégagé, les places sont à 50 px les unes des
+autres : rien ne change. La limite « deux places peuvent se replier presque au
+même endroit dans un passage étroit » a disparu de la liste des limites.
+
+## Débogage : points visés et ancre (étape 67)
+
+- **`Escouade::pointVise(place)`** (`const`) renvoie le point vers lequel le
+  personnage marche à cette image, tel que `mettreAJour` l'a calculé
+  (`m_pointsVises`) : place de formation, place d'attaque, cible du skill en
+  attente, ou sa propre position s'il reste sur place. Elle sert aux tests
+  (un agresseur : point visé = place d'attaque, pas le centre du monstre ; sans
+  place valide : le centre du monstre) et à l'affichage.
+- **F3** bascule l'affichage : un trait fin jaune du centre de chaque
+  personnage vivant à son point visé, et un petit cercle à ce point
+  (`Escouade::dessinerPointsVises`). Il remplace les points jaunes de formation
+  provisoires. **F4** cache ou réaffiche le carré vert de l'ancre
+  (`Escouade::dessiner(rendu, afficherAncre)` ; paramètre, pas membre, comme
+  `estCible` de `Monstre::dessiner`).
+- **État d'interface dans `EcranJeu`**, pas dans `Partie` ni `Escouade` :
+  `OptionsDeDebogage { pointsVises = false; ancre = true; }`, remise à sa valeur
+  de départ à chaque nouvelle partie. Actives à tout moment en jeu, y compris
+  en visée ; les menus les ignorent. Sur certains portables, les touches F
+  peuvent exiger Fn.
 
 ## Mort d'un personnage et défaite
 

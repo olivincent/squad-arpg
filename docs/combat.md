@@ -731,7 +731,10 @@ l'enfoncerait dans un obstacle.
 - **Les personnages** reçoivent les cercles de tous les monstres, calculés
   une fois par image avant `escouade.mettreAJour` (donc à leur position
   de l'image précédente). `Escouade::mettreAJour` les transmet à chaque
-  personnage. Les personnages ne se bloquent pas entre eux.
+  personnage. Les personnages ne se bloquent pas entre eux : une séparation
+  douce (étape 67, plus lente que la marche) écarte ceux qui sont à moins de
+  34 px, et des places d'attaque distinctes autour du monstre évitent qu'ils
+  visent le même point (`docs/formation.md`).
 - **L'ancre ne bloque personne et n'est pas bloquée** : c'est un point
   de contrôle abstrait, pas une entité de combat. `m_mobile` reçoit
   toujours une liste vide.

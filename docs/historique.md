@@ -1614,3 +1614,31 @@ cible mais ne connaît toujours ni `Escouade` ni `Personnage`.
 compte des entités, revérification de portée ou de vue au départ du coup. Pas
 de test de `Partie` pour « proie cachée » (géométrie impossible, voir
 `docs/tests.md`).
+
+## Étape 67 — Places d'attaque autour de la cible et séparation des personnages ✅
+
+1. [x] Module `Encerclement` (angles candidats d'un anneau, position d'une
+       place, choix de l'angle libre le plus proche) et ses tests
+       (enchaînée). Règle de la corde retenue pour le nombre de places.
+2. [x] Séparation douce des personnages qui se chevauchent (remplace un blocage
+       entre personnages, abandonné : interblocages) : `Mobile::decaler`,
+       `Personnage::decaler`, `Escouade::separerPersonnages`.
+3. [x] Places d'attaque dans `Escouade` : mémoire par personnage, attribution,
+       oubli, combat verrouillé / agresseur / skill de dégâts en attente
+       (`choisirAgresseurAViser` renvoie une `EntiteVue`).
+4. [x] Correctifs après test en jeu : occupation réelle des places d'attaque
+       (personnages immobiles), places de formation distinctes, écart de 34 px
+       (`s_ecartEntrePersonnages`), contour sombre des personnages,
+       `Escouade::pointVise`, F3 (points visés) et F4 (ancre) avec
+       `OptionsDeDebogage` dans `EcranJeu`. Séparation à 120 px/s (un essai à
+       300 px/s a recréé un interblocage). 591 tests.
+5. [x] Documentation.
+
+**Choix** : une place d'attaque est un point où l'on marche, pas une
+destination ; la géométrie est dans `Encerclement`, l'attribution et la mémoire
+dans `Escouade` ; la séparation est douce (plus lente que la marche) parce
+qu'une contrainte dure, symétrique, bloque les croisements frontaux ; ce sont
+les cibles distinctes qui évitent les superpositions durables.
+
+**Hors de portée** : A* qui contourne les entités (étape 68), places
+d'attaque pour les monstres, recul des tireurs, ligne de tir dégagée.
