@@ -17,7 +17,7 @@
   - `target_include_directories(squad_core PUBLIC src)` : même raison,
     pour que `tests/` puisse faire `#include "TileMap.hpp"` sans connaître
     le chemin relatif vers `src/`.
-- **`main`** (`add_executable(main src/main.cpp)`) se lie à `squad_core`
+- **`main`** (`add_executable(main src/main.cpp src/Application.cpp)`) se lie à `squad_core`
   en `PRIVATE` (`target_link_libraries(main PRIVATE squad_core)`) :
   `PRIVATE` parce que rien d'autre ne relie jamais `main`, un exécutable
   final.

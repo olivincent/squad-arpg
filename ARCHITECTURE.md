@@ -39,6 +39,16 @@ squad-arpg/
 ├── CMakeLists.txt
 ├── src/
 │   ├── main.cpp
+│   ├── Application.hpp / .cpp
+│   ├── Ecran.hpp
+│   ├── Transition.hpp
+│   ├── Contexte.hpp
+│   ├── EcranMenu.hpp / .cpp
+│   ├── EcranOptions.hpp / .cpp
+│   ├── EcranJeu.hpp / .cpp
+│   ├── ListeDeBoutons.hpp / .cpp
+│   ├── Reglages.hpp / .cpp
+│   ├── TailleDeVue.hpp / .cpp
 │   ├── Niveau.hpp / .cpp
 │   ├── GenerateurDonjon.hpp / .cpp
 │   ├── Partie.hpp / .cpp
@@ -82,10 +92,14 @@ squad-arpg/
 │   └── test_Skill.cpp, test_Mobile.cpp, test_Cercle.cpp,
 │       test_Autodefense.cpp, test_BarreDeSkills.cpp,
 │       test_MonstreVu.cpp, test_BarreDeVie.cpp,
-│       test_PointsDeVie.cpp, test_Defense.cpp, test_Eclaircir.cpp
+│       test_PointsDeVie.cpp, test_Defense.cpp, test_Eclaircir.cpp,
+│       test_Reglages.cpp, test_TailleDeVue.cpp,
+│       test_ListeDeBoutons.cpp, test_EcranMenu.cpp,
+│       test_EcranOptions.cpp
 ├── docs/
 │   ├── build.md
 │   ├── boucle-et-entrees.md
+│   ├── ecrans.md
 │   ├── carte-et-collision.md
 │   ├── chemin.md
 │   ├── formation.md
@@ -96,6 +110,7 @@ squad-arpg/
 │   ├── audit.md
 │   ├── brainstorm.md
 │   └── historique.md
+├── reglages.ini (créé par le jeu à côté de main.exe, ignoré par Git)
 ├── .gitignore
 ├── CLAUDE.md
 ├── ARCHITECTURE.md
@@ -104,16 +119,28 @@ squad-arpg/
 
 Deux exécutables : `main` (le jeu) et `tests` (les tests Catch2). Les deux
 se lient à la bibliothèque statique `squad_core`, qui contient toute la
-logique de jeu (les modules ci-dessous) indépendamment de la fenêtre
-et de la boucle de jeu.
+logique de jeu et les écrans (les modules ci-dessous) indépendamment de la
+fenêtre et de la boucle. Seuls `main.cpp` et `Application` restent dans
+l'exécutable `main`.
 
 Qui possède quoi :
-- `main.cpp` possède la fenêtre, la boucle SFML, la caméra, la police
-  (`sf::Font`), une `Partie` et un `Controleur`. Il traduit les événements
-  SFML (fermeture, clic, touches 1 à 4, Échap, clic droit) en appels au
-  `Controleur` (touche R : nouvelle carte si la partie est perdue ou gagnée ; F5 :
-  nouvelle carte à tout moment ; les deux, comme le lancement, passent par
-  `nouvellePartie`, qui tire la graine et génère le niveau),
+- `main.cpp` construit une `Application`, appelle `executer()` et affiche
+  l'erreur (code 1) si la police manque.
+- `Application` possède la fenêtre (`sf::RenderWindow`), la police
+  (`sf::Font`), les `Reglages` et la pile d'écrans
+  (`std::vector<std::unique_ptr<Ecran>>`). Elle charge `reglages.ini`, ouvre
+  la fenêtre, fait tourner la boucle SFML (horloge, événements, mise à jour,
+  dessin, `display`) et applique les `Transition` que renvoient les écrans.
+  La fermeture de la fenêtre quitte, quel que soit l'écran. Seul l'écran du
+  dessus reçoit les événements, est mis à jour et est dessiné.
+- `EcranMenu`, `EcranOptions` et `EcranJeu` sont les trois `Ecran`. Ils
+  reçoivent la fenêtre, la police et les réglages dans un `Contexte` à chaque
+  appel et ne les gardent pas. `EcranJeu` possède une `Partie`, un
+  `Controleur`, la caméra et le `std::random_device` ; il traduit les
+  événements SFML (clic, touches 1 à 4, Échap, clic droit) en appels au
+  `Controleur` (touche R : retour au menu si la partie est perdue ou gagnée ;
+  F5 : nouvelle carte à tout moment ; F5, comme l'entrée dans l'écran,
+  passe par `nouvellePartie`, qui tire la graine et génère le niveau),
   convertit le curseur en coordonnées du monde, centre la caméra sur
   l'escouade et enchaîne le dessin. Il ne connaît ni `Monstre`,
   ni `Coup`, ni `MonstreVu`, ni `Chemin`, ni `Personnage`.
@@ -134,6 +161,111 @@ Qui possède quoi :
 `replierVersOrigine` (`Chemin`).
 
 ## Modules
+
+### `Application` — la boucle et la pile d'écrans
+
+`Application.hpp` / `.cpp`, dans l'exécutable `main` (pas dans `squad_core` :
+elle possède la fenêtre). Voir `docs/ecrans.md`.
+
+Données membres : `m_fenetre` (`sf::RenderWindow`), `m_police` (`sf::Font`),
+`m_reglages` (`Reglages`), `m_pile` (`std::vector<std::unique_ptr<Ecran>>`).
+
+| Fonction | Rôle |
+|---|---|
+| `Application()` | Charge `reglages.ini` (absent ou illisible = réglages par défaut), ouvre la fenêtre, charge la police (`std::runtime_error` si elle manque), empile `EcranMenu` |
+| `int executer()` | Boucle : `dt`, événements (la croix ferme ; sinon `traiterEvenement` de l'écran du dessus puis `appliquer` de sa `Transition`), `mettreAJour`, `dessiner`, `display`. S'arrête quand la fenêtre est fermée ou la pile vide |
+| `void ouvrirFenetre()` (privée) | Crée ou recrée la fenêtre à partir des réglages : plein écran à la résolution du bureau, ou fenêtré (`Titlebar` et `Close`) à celle des réglages ; réapplique 60 images par seconde et `setKeyRepeatEnabled(false)` |
+| `void appliquer(Transition)` (privée) | `std::visit` : `Empiler` pousse l'écran, `Depiler` retire celui du dessus, `Quitter` ferme la fenêtre, `AppliquerReglages` copie les réglages, rouvre la fenêtre puis écrit `reglages.ini` |
+
+### `Ecran`, `Transition`, `Contexte` — le patron State
+
+`Ecran.hpp`, `Transition.hpp` et `Contexte.hpp`, sans `.cpp`.
+
+`class Ecran` : base abstraite (copie interdite, destructeur virtuel) ;
+fonctions virtuelles pures `Transition traiterEvenement(const sf::Event&,
+const Contexte&)`, `void mettreAJour(float dt, const Contexte&)` et `void
+dessiner(const Contexte&) const`. Les écrans ne sont manipulés que par
+`std::unique_ptr<Ecran>`.
+
+`Transition` : `std::variant<Aucune, Empiler, Depiler, Quitter,
+AppliquerReglages>` ; `Empiler` porte un `std::unique_ptr<Ecran>`,
+`AppliquerReglages` des `Reglages`. Un écran ne modifie jamais la pile lui-même :
+l'`Application` applique la transition une fois l'appel terminé.
+
+`struct Contexte { sf::RenderWindow& fenetre; const sf::Font& police; const
+Reglages& reglages; }` : construit par l'`Application` à chaque appel, jamais
+stocké par un écran.
+
+### `EcranJeu` — la partie
+
+`EcranJeu.hpp` / `.cpp`. Reprend ce que faisait `main()` pour le jeu.
+
+Données membres : `m_tirageDeGraine` (`std::random_device`), `m_partie`
+(`Partie`), `m_controleur` (`Controleur`), `m_camera` (`sf::View`).
+
+| Fonction | Rôle |
+|---|---|
+| `EcranJeu()` | Tire une graine, la génère et construit la partie (`nouvellePartie`) |
+| `Transition traiterEvenement(...)` | Clics, touches 1 à 4, Échap, F5 (nouvelle carte) ; R sur l'écran de fin (partie perdue ou gagnée) renvoie `Depiler` ; sinon `Aucune` |
+| `void mettreAJour(float, const Contexte&)` | Taille de la caméra (`tailleDeVue`), déplacement continu, `Partie::mettreAJour`, `Controleur::debutImage` (sortie de la visée), caméra centrée sur l'escouade |
+| `void dessiner(const Contexte&) const` | Monde avec la caméra, aperçu de visée, puis, avec `vueDInterface` : barre de skills, compteur « Monstres : N » et écran de fin |
+
+### `EcranMenu` — le menu de départ
+
+`EcranMenu.hpp` / `.cpp`. Donnée membre : `m_boutons` (`ListeDeBoutons`) :
+« Commencer partie », « Options », « Quitter ».
+
+| Fonction | Rôle |
+|---|---|
+| `Transition cliquer(sf::Vector2f point, sf::Vector2f centre, const Reglages&) const` | Point en coordonnées de la vue d'interface. Commencer : `Empiler(EcranJeu)` ; Options : `Empiler(EcranOptions)` avec les réglages en cours et `resolutionsDisponibles` du bureau ; Quitter : `Quitter` ; ailleurs : `Aucune` |
+
+### `EcranOptions` — les options d'affichage
+
+`EcranOptions.hpp` / `.cpp`. Données membres : `m_reglages` (copie), `m_resolutions`
+(`std::vector<Resolution>` disponibles), `m_indiceResolution`, `m_boutons`
+(trois lignes : mode, résolution, Retour).
+
+| Fonction | Rôle |
+|---|---|
+| `EcranOptions(const Reglages&, std::vector<Resolution>)` | Part des réglages en cours ; l'indice est celui de la résolution courante dans la liste (0 si absente) |
+| `Transition cliquer(sf::Vector2f point, sf::Vector2f centre)` | Mode : bascule, `AppliquerReglages`. Résolution : tiers gauche = précédente, tiers droit = suivante, `AppliquerReglages` (`Aucune` aux bouts de la liste, au milieu, ou ligne inactive : plein écran ou liste vide). Retour : `Depiler` |
+
+### `ListeDeBoutons` — une colonne de boutons
+
+`ListeDeBoutons.hpp` / `.cpp`. Données membres : `m_libelles`, `m_actifs`. Aucune
+position stockée : la colonne (boutons de 520 × 60 px, 20 px d'écart) est
+recalculée à partir du `centre` reçu.
+
+| Fonction | Rôle |
+|---|---|
+| `explicit ListeDeBoutons(std::vector<std::string> libelles)` | Tous les boutons sont actifs |
+| `sf::FloatRect rectangleDuBouton(std::size_t indice, sf::Vector2f centre) const` | Rectangle du bouton, la colonne centrée sur `centre` |
+| `void definirActif(std::size_t indice, bool actif)` | Un bouton inactif est grisé et jamais « sous » le curseur |
+| `std::optional<std::size_t> boutonSous(sf::Vector2f point, sf::Vector2f centre) const` | Indice du bouton actif qui contient le point |
+| `void dessiner(sf::RenderTarget&, const sf::Font&, sf::Vector2f centre, std::optional<std::size_t> survole) const` | Dessine fond, contour et libellé (UTF-8) ; le bouton survolé est plus clair |
+
+### `Reglages` — les réglages d'affichage
+
+`Reglages.hpp` / `.cpp` : logique pure, fonctions libres sans état.
+`enum class ModeAffichage { Fenetre, PleinEcran }`, `struct Resolution {
+unsigned largeur, hauteur; }` (comparable), `struct Reglages { unsigned largeur =
+1200; unsigned hauteur = 800; ModeAffichage mode = Fenetre; }`.
+
+| Fonction | Rôle |
+|---|---|
+| `const std::vector<Resolution>& resolutionsProposees()` | 1200 × 800, 1280 × 720, 1600 × 900, 1920 × 1080 |
+| `std::vector<Resolution> resolutionsDisponibles(sf::Vector2u tailleBureau)` | Celles qui tiennent dans le bureau |
+| `Reglages lireReglages(std::istream&)` | Format `cle=valeur` (`largeur`, `hauteur`, `mode` = `fenetre` ou `plein_ecran`). Jamais d'exception : clé inconnue ou ligne mal formée ignorée, valeur invalide = défaut, résolution hors liste = 1200 × 800 |
+| `void ecrireReglages(std::ostream&, const Reglages&)` | Écrit les trois lignes lues par `lireReglages` |
+
+### `TailleDeVue` — la vue à hauteur fixe
+
+`TailleDeVue.hpp` / `.cpp`, constante `s_hauteurDeVue` (800 px).
+
+| Fonction | Rôle |
+|---|---|
+| `sf::Vector2f tailleDeVue(sf::Vector2u tailleFenetre, float hauteur)` | `hauteur` en hauteur, largeur = `hauteur × largeur / hauteur de la fenêtre` |
+| `sf::View vueDInterface(sf::Vector2u tailleFenetre)` | Vue de 800 px de haut, coin haut gauche en (0, 0) : barre de skills, compteur, écran de fin, menus |
 
 ### `TileMap` — l'environnement de jeu
 
@@ -216,14 +348,14 @@ personne ne copie ni ne garde).
 
 | Fonction | Rôle |
 |---|---|
-| `Partie(const Niveau& niveau, Generateur::result_type graine)` | Construit la carte, l'escouade et les monstres (identifiants 1, 2, 3…, armure `niveau.armureMonstres`) et initialise le générateur avec `graine` (`main.cpp` la tire avec `std::random_device` et l'affiche ; les tests passent une graine fixe) |
+| `Partie(const Niveau& niveau, Generateur::result_type graine)` | Construit la carte, l'escouade et les monstres (identifiants 1, 2, 3…, armure `niveau.armureMonstres`) et initialise le générateur avec `graine` (`EcranJeu` la tire avec `std::random_device` et l'affiche ; les tests passent une graine fixe) |
 | `ResultatClic cliquer(sf::Vector2f point)` | Appliqué tout de suite. `Monstre` : verrouille le monstre qui contient le point ; `Sol` : lève le verrou et annule les coups en exécution des personnages ; `Ignore` si l'escouade est vaincue, sans rien changer. `enum class ResultatClic { Monstre, Sol, Ignore }` |
 | `void demanderSkill(std::size_t place)` | Mémorise la demande de skill (touches 1 à 3) ; la dernière demande de l'image gagne |
 | `void lancerSkillDeZone(std::size_t place, sf::Vector2f point)` | Mémorise le lancer du skill de zone |
 | `void ordonnerDeplacement(sf::Vector2f point)` | Mémorise l'ordre de déplacement ; exécuté seulement si l'escouade est vivante |
 | `bool estPerdue() const` | Vrai quand tous les personnages sont morts (`!m_escouade.estVivante()`) ; `[[nodiscard]]` |
 | `bool estGagnee() const` | Vrai quand `m_monstres` est vide ET que la partie n'est pas perdue (la défaite l'emporte) ; `[[nodiscard]]` |
-| `int monstresRestants() const` | Nombre de monstres vivants (`m_monstres.size()`), pour le compteur de `main.cpp` ; `[[nodiscard]]` |
+| `int monstresRestants() const` | Nombre de monstres vivants (`m_monstres.size()`), pour le compteur d'`EcranJeu` ; `[[nodiscard]]` |
 | `void mettreAJour(float dt)` | Sans effet si la partie est perdue ou gagnée (le monde est figé). Sinon exécute, dans l'ordre : lancer de zone, skill demandé, `attaquer(dt, …)` et application des coups, déverrouillage si la cible est morte, retrait des monstres morts, ordre de déplacement, mise à jour (obstacles, escouade, tour de chaque monstre, avec l'engagement et le départ de son coup) ; vide les demandes |
 | `void dessiner(sf::RenderTarget& rendu) const` | Carte, monstres (contour jaune sur le monstre verrouillé), escouade |
 | `const Escouade& getEscouade() const` | Lecture seule : caméra, barre de skills, requêtes du `Controleur` |
@@ -231,7 +363,7 @@ personne ne copie ni ne garde).
 
 ### `Controleur` — l'état d'interface
 
-Ne connaît pas les événements SFML : `main.cpp` les traduit en appels
+Ne connaît pas les événements SFML : `EcranJeu` les traduit en appels
 simples. Points en pixels du monde.
 
 Type valeur, constructible par défaut et réaffectable (règle du zéro) : aucune
@@ -248,7 +380,7 @@ Données membres : `m_deplacementContinu` (`bool`), `m_placeEnVisee`
 | `void appuiGauche(Partie& partie, sf::Vector2f point)` | En visée : `lancerSkillDeZone` puis sortie de la visée (sans verrouiller ni déplacer). Sinon `cliquer` : `Monstre` désarme le déplacement continu, `Sol` l'arme, `Ignore` ne change rien |
 | `void appuiDroit()` / `void appuiEchap()` | Annulent la visée sans recharge |
 | `void appuiTouche(Partie& partie, std::size_t place)` | 1 à 3 : `demanderSkill`. 4 : sort de la visée si on y est ; sinon y entre si l'escouade est vivante et le skill prêt, et désarme le déplacement continu. Autre place : ignorée |
-| `void mettreAJourDeplacement(Partie& partie, bool boutonTenu, sf::Vector2f curseur)` | Si `boutonTenu` (bouton gauche enfoncé ET focus, calculé par `main.cpp`) et déplacement armé : `ordonnerDeplacement(curseur)` |
+| `void mettreAJourDeplacement(Partie& partie, bool boutonTenu, sf::Vector2f curseur)` | Si `boutonTenu` (bouton gauche enfoncé ET focus, calculé par `EcranJeu`) et déplacement armé : `ordonnerDeplacement(curseur)` |
 | `void dessinerApercu(const Partie& partie, sf::RenderTarget& rendu, sf::Vector2f curseur) const` | En visée seulement : cercle jaune de la zone sous le curseur, cercle blanc de la portée autour du lanceur |
 | `std::optional<std::size_t> getPlaceEnVisee() const` | Place en visée (pour la barre de skills) |
 
@@ -658,7 +790,8 @@ lire le fichier correspondant :
 | Fichier | Contenu | Quand le lire |
 |---|---|---|
 | `docs/build.md` | Build (CMake, `squad_core`, exécutables), choix de SFML | Avant de modifier `CMakeLists.txt` ou d'ajouter un fichier source |
-| `docs/boucle-et-entrees.md` | Qui fait quoi entre `main.cpp`, `Controleur` et `Partie`, ordre d'une image, entrée souris et clavier, mode visée, combat engagé, défaite, caméra | Avant de modifier `main.cpp`, `Partie`, `Controleur` ou `Niveau` |
+| `docs/ecrans.md` | `Application`, pile d'écrans (patron State), `Transition`, `Contexte`, vues à hauteur fixe, `Reglages` et `reglages.ini`, menu et options | Avant de modifier `Application`, un `Ecran`, `ListeDeBoutons`, `Reglages` ou `TailleDeVue` |
+| `docs/boucle-et-entrees.md` | Qui fait quoi entre `EcranJeu`, `Controleur` et `Partie`, ordre d'une image, entrée souris et clavier, mode visée, combat engagé, défaite, caméra | Avant de modifier `main.cpp`, `Partie`, `Controleur` ou `Niveau` |
 | `docs/carte-et-collision.md` | Carte, collision et dessin, déplacement avec glissement et obstacles, plan texte et validation | Avant de modifier `TileMap` ou `Deplacement` |
 | `docs/generation.md` | Génération de donjon : placement avec rejet, emprise / forme creusée, paramètres, graine unique | Avant de modifier `GenerateurDonjon` |
 | `docs/chemin.md` | Recherche de chemin (A*), suivi de chemin (`Mobile`), lissage de chemin | Avant de modifier `Chemin` ou `Mobile` |

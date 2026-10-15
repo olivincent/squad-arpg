@@ -72,13 +72,7 @@ est dans `docs/historique.md`.
 - Étape 62 — Ligne de vue des monstres et nettoyage de Skill ✅
 - Étape 63 — Objectif et victoire ✅
 - Étape 64 — Groupes de monstres : alerte du groupe ✅
-
-## Étape 65 (en cours)
-
-Menu de départ, options d'affichage et sauvegarde des réglages. Au
-lancement, un menu (« Commencer partie », « Options », « Quitter ») ; les
-options choisissent le mode (fenêtré ou plein écran) et la résolution en
-mode fenêtré, appliqués tout de suite et sauvegardés dans `reglages.ini`.
+- Étape 65 — Menu de départ, options d'affichage et sauvegarde des réglages ✅
 
 ## Étape 66 (prévue)
 
@@ -138,24 +132,40 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
 - **Outils** : conception dans Claude.ai, implémentation avec Claude Code
   dans VSCode (règles dans `CLAUDE.md`) ; dépôt Git `squad-arpg`, poussé
   sur GitHub ; SFML 3.0.2 intégrée à CMake.
-- **Fenêtre et carte** : fenêtre 1200 × 800 ; carte de 59 × 40 cases de
-  40 px (2360 × 1600 px). Depuis l'étape 59, `main.cpp` joue sur un niveau
+- **Menu et réglages** (étape 65) : au lancement, un menu à la souris
+  (« Commencer partie », « Options », « Quitter ») ; « Commencer partie »
+  lance une partie (nouvelle carte, graine dans la console). « Options » :
+  mode fenêtré ou plein écran (à la résolution du bureau) et, en fenêtré,
+  résolution parmi 1200 × 800, 1280 × 720, 1600 × 900 et 1920 × 1080 (celles
+  qui tiennent dans le bureau) ; chaque changement s'applique tout de suite
+  (la fenêtre est recréée) et est écrit dans `reglages.ini` à côté de
+  `main.exe` (ignoré par Git ; absent ou invalide = 1200 × 800 fenêtré). Le
+  monde visible fait toujours 800 px de haut (la largeur suit le format de la
+  fenêtre) ; la barre de skills, le compteur, l'écran de fin et les menus
+  suivent la même règle. Fenêtre sans redimensionnement à la main. Voir
+  `docs/ecrans.md`.
+- **Fenêtre et carte** : fenêtre 1200 × 800 par défaut ; carte de 59 × 40 cases de
+  40 px (2360 × 1600 px). Depuis l'étape 59, `EcranJeu` joue sur un niveau
   généré (`genererNiveau` : salles rectangulaires reliées par des couloirs en L de
   2 cases de large, escouade au centre de la première salle, 1 à 3
   monstres par autre salle, même graine que la partie, voir
-  `docs/generation.md`). R (après une défaite ou une victoire) et F5 (à tout moment, touche
-  de débogage) génèrent une nouvelle carte avec une nouvelle graine,
-  affichée dans la console ; la carte faite à la main
+  `docs/generation.md`). F5 (à tout moment, touche
+  de débogage) et « Commencer partie » génèrent une nouvelle carte avec une
+  nouvelle graine, affichée dans la console ; R (après une défaite ou une
+  victoire) ramène au menu ; la carte faite à la main
   (`creerNiveau()` dans `Niveau.cpp`) reste le terrain des tests. La caméra (`sf::View`) est centrée
   sur l'escouade ; du noir apparaît au-delà des bords de la carte.
-- **Architecture de la boucle** (étapes 52 et 54) : `main.cpp` garde la
-  fenêtre, la police, la caméra et traduit les événements SFML en appels au
+- **Architecture de la boucle** (étapes 52, 54 et 65) : `main.cpp` ne fait
+  que lancer l'`Application`, qui possède la fenêtre, la police, les
+  `Reglages` et une pile d'écrans (`EcranMenu`, `EcranOptions`, `EcranJeu`,
+  patron State ; un écran renvoie une `Transition` que l'`Application`
+  applique). `EcranJeu` garde la caméra et traduit les événements SFML en appels au
   `Controleur` (mode visée, déplacement continu, aperçu de visée ; type valeur, il reçoit la `Partie` à chaque appel) ; la
   `Partie` (carte, escouade, monstres) porte les règles de jeu et
   l'intermédiaire entre `Escouade` et `Monstre`, avec l'ordre d'une image
   conservé ; `Niveau` porte les données. Voir `docs/boucle-et-entrees.md`.
-- **Barre de skills** : en bas de la fenêtre, fixe à l'écran (vue par
-  défaut, dessinée en dernier), 4 icônes carrées de 56 px dans l'ordre des
+- **Barre de skills** : en bas de la fenêtre, fixe à l'écran (vue de
+  l'interface, dessinée en dernier), 4 icônes carrées de 56 px dans l'ordre des
   touches 1 à 4, avec la lettre du skill (D, P, S, Z) et le numéro de
   touche. Pendant la recharge, un quartier noir semi-transparent suit les
   bords du carré (zone claire grandissante depuis midi, sens horaire) et
@@ -229,18 +239,17 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   bloque plus personne ; il reste dans la formation, sa place est
   simplement vide. Une fois les 4 morts (`Partie::estPerdue`), le monde se
   fige, un écran de défaite (voile sombre, « Défaite », « Appuyez sur R pour
-  recommencer ») s'affiche et la touche R génère une nouvelle carte
-  (nouvelle `Partie` et nouveau `Controleur`, nouvelle graine).
+  revenir au menu ») s'affiche et la touche R ramène au menu (étape 65) ;
+  « Commencer partie » crée alors une nouvelle `Partie` (nouvelle graine).
 - **Objectif et victoire** (étape 63) : la partie est gagnée quand il ne
   reste aucun monstre (`Partie::estGagnee`, faux si la partie est perdue : la
   défaite l'emporte si les derniers monstres et personnages meurent dans la
   même image). Le monde se fige comme après la défaite (même sortie
   anticipée de `mettreAJour`), l'écran de fin affiche « Victoire » (module
-  `EcranDeFin`, titre en paramètre, partagé avec « Défaite ») et R génère la
-  carte suivante, après une victoire comme après une défaite (F5
-  inchangée). Un compteur « Monstres : N » (`Partie::monstresRestants`),
-  blanc à contour noir, est fixe en haut à gauche de l'écran (vue par
-  défaut).
+  `EcranDeFin`, titre en paramètre, partagé avec « Défaite ») et R ramène au
+  menu, après une victoire comme après une défaite (F5 inchangée). Un
+  compteur « Monstres : N » (`Partie::monstresRestants`), blanc à contour
+  noir, est fixe en haut à gauche de l'écran (vue de l'interface).
 - **Entrées** : un clic sur le sol envoie l'escouade vers ce point ; tant
   que le bouton reste enfoncé (fenêtre ayant le focus, escouade vivante),
   l'ordre est redonné à chaque image vers le curseur. Un clic bref sur un
@@ -362,7 +371,7 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 515 tests : 50 sur `GenerateurDonjon`, 38 sur `TileMap`, 17 sur `Chemin`, 163
+  (`./build/tests.exe`, 553 tests : 13 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 50 sur `GenerateurDonjon`, 38 sur `TileMap`, 17 sur `Chemin`, 163
   sur `Escouade` en cinq fichiers par thème — 22 déplacement, 27 combat, 70
   skills, 26 agresseurs, 18 vue —, 12 sur `Deplacement`, 54 sur `Monstre`,
   46 sur `Personnage`, 24 sur `Skill`, 17 sur `Mobile`, 2 sur `Eclaircir`, 4 sur `Cercle`, 13
@@ -372,6 +381,11 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   formation et `provoquer` à une place invalide couverts.
 
 **Limites connues** (acceptées pour l'instant) :
+- Menus (étape 65) : souris seulement ; « Options » et « Commencer partie »
+  n'existent qu'au menu de départ (pas de pause ni de retour au menu en
+  cours de partie) ; une résolution enregistrée plus grande que le bureau
+  ouvre une fenêtre trop grande (les options la corrigent) ; `reglages.ini`
+  est cherché dans le dossier courant, comme la police. Voir `docs/ecrans.md`.
 - Si le générateur ne place aucun monstre (très rare), la partie est gagnée
   dès le départ ; F5 génère une autre carte (le générateur n'est pas
   modifié).

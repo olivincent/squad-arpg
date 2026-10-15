@@ -712,3 +712,30 @@
   personnages morts dans la même image » n'est pas reproduit à coup sûr ; la
   règle `estGagnee = vide && !estPerdue` le garantit par construction. 503
   tests.
+
+## Écrans, boutons, réglages et vues (étape 65)
+
+- **`test_Reglages.cpp`** (13 cas) : aller-retour écriture puis lecture, format
+  exact (`largeur=1200\nhauteur=800\nmode=fenetre\n`), flux vide, clé inconnue
+  et ligne mal formée ignorées, espaces et fins de ligne Windows tolérés,
+  valeur invalide ou suivie de texte (`1600px`) = défaut, résolution hors
+  liste ou mélange de deux résolutions = 1200 × 800, et le filtrage par la
+  taille du bureau (largeur ET hauteur). Les flux sont des `std::istringstream`
+  et `std::ostringstream` : aucun fichier sur le disque.
+- **`test_TailleDeVue.cpp`** (3 cas) : 1200 × 800 donne 1200 × 800, 1920 × 1080
+  donne environ 1422,2 × 800 ; `vueDInterface` a son coin haut gauche en (0, 0).
+- **`test_ListeDeBoutons.cpp`** (6 cas) : le centre de chaque bouton le désigne,
+  la colonne est centrée, l'espace entre deux boutons et les points hors de la
+  colonne ne désignent rien, la disposition suit le `centre` reçu. Les tests
+  placent leurs points avec `rectangleDuBouton`, sans recopier la géométrie.
+- **`test_EcranMenu.cpp`** (4 cas) et **`test_EcranOptions.cpp`** (12 cas) :
+  la fonction `cliquer` de chaque écran, sans fenêtre : Commencer et Options
+  empilent un écran, Quitter quitte, un clic hors des boutons ne fait rien ;
+  options : bascule du mode (et retour à la résolution choisie), flèches de
+  résolution (suivante, précédente, bouts de liste, clics successifs), milieu
+  de ligne sans effet, ligne inactive en plein écran (puis réactivée) ou sans
+  résolution disponible, Retour. Le menu appelle `sf::VideoMode::getDesktopMode()`
+  pour le bouton Options : le test suppose un bureau (Windows).
+- **Non testé** : `Application` (fenêtre, boucle, `ouvrirFenetre`, lecture et
+  écriture du fichier `reglages.ini`), la conversion des événements SFML des
+  écrans et leur dessin (vérifiés dans le jeu). 553 tests.

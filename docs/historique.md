@@ -1548,3 +1548,47 @@ reconstruit la partie avec le même niveau généré.
 **Hors de portée** : couloirs (étape 60), monstres et nouveau comportement de
 R (étape 61), salles non rectangulaires, découpage BSP, piliers, taille de
 carte, optimisation du dessin, touche de débogage.
+
+
+### Étape 65 — Menu de départ, options d'affichage et sauvegarde des réglages ✅ TERMINÉE
+
+1. [x] Documentation de départ : principe 1 d'`ARCHITECTURE.md` remplacé
+       par « Anticiper la structure, pas les fonctionnalités », règle 5 de
+       `CLAUDE.md` alignée ; l'étape 65 devient le menu, la séparation proie /
+       cible devient l'étape 66 (enchaînée).
+2. [x] `Reglages` : `ModeAffichage`, `Resolution`, `Reglages`, liste des
+       résolutions et filtrage par le bureau, `lireReglages`, `ecrireReglages`
+       (enchaînée).
+3. [x] `tailleDeVue` (enchaînée).
+4. [x] Refactorisation pure : `Ecran`, `Transition`, `Contexte`, `Application`
+       et `EcranJeu` ; `main.cpp` se réduit à lancer l'application.
+5. [x] `ListeDeBoutons`, `EcranMenu`, vue d'interface à hauteur fixe (800 px),
+       caméra à hauteur fixe, R sur l'écran de fin = retour au menu.
+6. [x] `EcranOptions`, bouton « Options » actif, `AppliquerReglages` qui
+       recrée la fenêtre (`ouvrirFenetre`), boutons inactifs.
+7. [x] Lecture de `reglages.ini` au lancement, écriture à chaque changement,
+       `.gitignore`.
+8. [x] Documentation (`docs/ecrans.md`, `ARCHITECTURE.md`, `docs/tests.md`,
+       `docs/boucle-et-entrees.md`, `docs/build.md`). 553 tests.
+
+**Choix** : patron State avec une pile (un futur menu de pause s'y empilera) ;
+un écran ne modifie jamais la pile, il renvoie une `Transition` que
+l'`Application` applique ; `Contexte` construit à chaque appel et jamais
+stocké ; logique des écrans dans une fonction `cliquer` testable sans
+fenêtre ; `ListeDeBoutons` sans position stockée (disposition recalculée
+depuis le centre de la vue, car la fenêtre est recréée sous un écran) ;
+hauteur de monde fixe (800 px) pour la caméra et l'interface ; plein écran
+toujours à la résolution du bureau ; une seule fonction `ouvrirFenetre` qui
+réapplique la limite d'images et la répétition des touches ; réglages
+tolérants à toute entrée (jamais d'exception) ; `AppliquerReglages` n'est
+ajoutée à `Transition` qu'à la sous-étape 6, quand l'`Application` sait la
+traiter. Seul écart au « code déplacé sans modification » de la sous-étape 4 :
+`Controleur::debutImage` s'exécute à la fin de `mettreAJour`. Largeur des
+boutons portée à 520 px pour la ligne de résolution.
+
+**Hors de portée** : menu de pause, retour au menu en cours de partie,
+navigation au clavier ou à la manette, `Remplacer` dans `Transition`,
+`mettreAJour` qui renvoie une `Transition`, dessin des écrans du dessous,
+plein écran à une autre résolution que celle du bureau, redimensionnement
+libre, zoom de caméra, autres réglages (son, touches), dossier de réglages
+dans `%APPDATA%`, changement des règles de jeu.

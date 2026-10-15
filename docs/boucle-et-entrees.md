@@ -1,10 +1,18 @@
 # Squad-ARPG — Boucle de jeu et entrées
 
-Depuis l'étape 52, trois acteurs se partagent ce qui tenait dans `main()` :
+Depuis l'étape 52, trois acteurs se partagent ce qui tenait dans `main()`.
+Depuis l'étape 65, le rôle de `main.cpp` décrit ci-dessous est tenu par
+`EcranJeu` (partie, `Controleur`, caméra, traduction des événements,
+compteur, dessin) et par `Application` (fenêtre, police, horloge, boucle
+SFML) : partout où ce fichier écrit « `main.cpp` », lire `EcranJeu`, sauf pour
+la fenêtre, la police, l'horloge et `setKeyRepeatEnabled`, qui sont à
+`Application`. La pile d'écrans, les vues et les réglages sont dans
+`docs/ecrans.md`.
+
 
 | Acteur | Rôle | Connaît SFML Window/Event ? |
 |---|---|---|
-| `main.cpp` | Fenêtre, police, horloge, caméra, traduction des événements SFML en appels au `Controleur`, nouvelle carte (touches R après une défaite ou une victoire, F5), compteur de monstres, conversion du curseur en coordonnées du monde, enchaînement du dessin | Oui, seul |
+| `EcranJeu` (et `Application` pour la fenêtre, la police et l'horloge) | Caméra, traduction des événements SFML en appels au `Controleur`, retour au menu (touche R après une défaite ou une victoire), nouvelle carte (F5), compteur de monstres, conversion du curseur en coordonnées du monde, enchaînement du dessin | Oui, seuls |
 | `Controleur` | État d'interface : mode visée (`m_placeEnVisee`) et déplacement continu (`m_deplacementContinu`), sans référence à la `Partie` (reçue à chaque appel) ; traduit les actions du joueur en demandes à la `Partie` ; dessine l'aperçu de visée | Non |
 | `Partie` | Règles de jeu : possède la carte, l'`Escouade` et les `Monstre` ; intermédiaire entre `Escouade` et `Monstre`, qui ne se connaissent pas | Non |
 
@@ -17,10 +25,13 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
 
 - **Ordre d'une image** (tel que l'exécutent `main.cpp` et
   `Partie::mettreAJour`) :
-  0. `main.cpp` : retour à la vue `camera` (l'image précédente a fini sur la
-     vue de l'interface : sans cela, `mapPixelToCoords` convertirait les
-     clics avec la vue par défaut) ; `controleur.debutImage(partie)` (sortie de la
-     visée si le lanceur ne peut plus lancer : mort, défaite) ;
+  0. `EcranJeu::traiterEvenement` et `mettreAJour` : retour à la vue `m_camera`
+     (l'image précédente a fini sur la vue de l'interface : sans cela,
+     `mapPixelToCoords` convertirait les clics avec la mauvaise vue), taille de
+     la caméra recalculée (`tailleDeVue`). `controleur.debutImage(partie)` (sortie
+     de la visée si le lanceur ne peut plus lancer : mort, défaite) s'exécute
+     depuis l'étape 65 à la fin de `mettreAJour`, donc avant les événements de
+     l'image suivante ;
   1. événements, traduits en appels au `Controleur` : fermeture ;
      `appuiGauche(partie, point)`, `appuiDroit()`, `appuiTouche(partie,
      place)` (1 à 4), `appuiEchap()`, et R (voir « Défaite de l'escouade »). Le `Controleur` les convertit en demandes à la `Partie` :
@@ -48,7 +59,8 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
      monstres avec le contour du verrou, escouade), `controleur.
      dessinerApercu`, puis, dans la vue par défaut, barre de skills, compteur
      « Monstres : N » (haut gauche) et, si la partie est perdue ou gagnée,
-     écran de fin (par-dessus la barre et le compteur).
+     écran de fin (par-dessus la barre et le compteur), le tout avec la vue de
+     l'interface (800 px de haut, voir `docs/ecrans.md`).
 - **Demandes mémorisées** : à part `cliquer`, les actions du joueur ne sont
   pas exécutées à l'événement mais à leur place dans `mettreAJour`. Un clic
   est appliqué tout de suite parce qu'il ne dépend que de l'état au moment
@@ -193,9 +205,11 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   semi-transparent la laisse visible dessous. `main.cpp` l'appelle avec
   « Défaite » si `partie.estPerdue()`, sinon avec « Victoire » si
   `partie.estGagnee()`.
-- **Recommencer = remplacer l'objet** : la touche R, seulement si la partie
-  est perdue ou gagnée (ignorée en jeu), et F5 (touche de débogage, à tout moment, y
-  compris en visée) appellent la lambda `nouvelleCarte` de `main.cpp`, qui
+- **Recommencer = remplacer l'objet** : depuis l'étape 65, R (seulement si la
+  partie est perdue ou gagnée, ignorée en jeu) ramène au menu (`Depiler`),
+  et « Commencer partie » crée un `EcranJeu` neuf, donc une nouvelle `Partie`.
+  F5 (touche de débogage, à tout moment, y compris en visée) appelle
+  `EcranJeu::nouvelleCarte`, qui, comme l'ancienne lambda de `main.cpp`,
   fait `partie = nouvellePartie(tirage)` (nouvelle graine tirée et affichée,
   nouvelle carte générée) et `controleur = Controleur{}`. Le lancement
   utilise la même `nouvellePartie`. Pas de `reinitialiser()` : un état remis à
