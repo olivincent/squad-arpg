@@ -6,6 +6,8 @@
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/VideoMode.hpp>
 #include <SFML/Window/WindowEnums.hpp>
+#include <fstream>
+#include <iostream>
 #include <optional>
 #include <stdexcept>
 #include <utility>
@@ -16,10 +18,31 @@
 namespace {
 
 constexpr unsigned s_imagesParSeconde = 60;
+constexpr const char* s_fichierReglages = "reglages.ini";
+
+// Fichier absent ou illisible : réglages par défaut (lireReglages ne lève
+// jamais d'exception et corrige les valeurs invalides).
+Reglages chargerReglages() {
+    std::ifstream fichier(s_fichierReglages);
+    if (!fichier) {
+        return Reglages{};
+    }
+    return lireReglages(fichier);
+}
+
+// Échec d'écriture : simple message, le jeu continue avec ses réglages en mémoire.
+void sauvegarderReglages(const Reglages& reglages) {
+    std::ofstream fichier(s_fichierReglages);
+    if (!fichier) {
+        std::cerr << "Impossible d'écrire " << s_fichierReglages << '\n';
+        return;
+    }
+    ecrireReglages(fichier, reglages);
+}
 
 }  // namespace
 
-Application::Application() {
+Application::Application() : m_reglages(chargerReglages()) {
     ouvrirFenetre();
     if (!m_police.openFromFile("assets/fonts/DejaVuSans.ttf")) {
         throw std::runtime_error(
@@ -56,6 +79,7 @@ void Application::appliquer(Transition transition) {
             [this](const AppliquerReglages& appliquer) {
                 m_reglages = appliquer.reglages;
                 ouvrirFenetre();
+                sauvegarderReglages(m_reglages);
             },
         },
         transition);
