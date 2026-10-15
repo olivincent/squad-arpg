@@ -315,7 +315,7 @@ TEST_CASE("Monstre.mettreAJour ignore une proie hors de son territoire meme proc
     verifierPointProche(monstre.getCentre(), {100.0f, 100.0f});
 }
 
-TEST_CASE("Monstre.mettreAJour redetecte une proie revenue dans son territoire pendant le retour") {
+TEST_CASE("Monstre.mettreAJour ne redetecte pas une proie revenue dans son territoire pendant le retour") {
     const TileMap carte = carteLongue();
     Monstre monstre({100.0f, 100.0f}, 1, 0, 0);
 
@@ -328,13 +328,25 @@ TEST_CASE("Monstre.mettreAJour redetecte une proie revenue dans son territoire p
     const sf::Vector2f centrePendantLeRetour = monstre.getCentre();
 
     // Proie replacée dans le territoire (< 600 px du poste) et à moins de
-    // 200 px du monstre : la poursuite doit reprendre.
+    // 200 px du monstre : en retour, il l'ignore et continue de rentrer.
     const sf::Vector2f cibleProche(centrePendantLeRetour.x + 100.0f, centrePendantLeRetour.y);
     const float distanceAvant = (cibleProche - centrePendantLeRetour).length();
     ecoulerTemps(monstre, 0.3f, pointCible(cibleProche), carte);
     const float distanceApres = (cibleProche - monstre.getCentre()).length();
 
-    REQUIRE(distanceApres < distanceAvant);
+    REQUIRE(distanceApres > distanceAvant);
+}
+
+TEST_CASE("Monstre.mettreAJour redetecte normalement une proie une fois arrive a son poste") {
+    const TileMap carte = carteLongue();
+    Monstre monstre({100.0f, 100.0f}, 1, 0, 0);
+    ecoulerTemps(monstre, 0.2f, pointCible({250.0f, 100.0f}), carte); // détection
+    ecoulerTemps(monstre, 20.0f, std::nullopt, carte);                // la proie disparaît : retour, puis arrivée
+    verifierPointProche(monstre.getCentre(), {100.0f, 100.0f});
+
+    ecoulerTemps(monstre, 0.5f, pointCible({250.0f, 100.0f}), carte);
+
+    REQUIRE(monstre.getCentre().x > 100.0f);
 }
 
 TEST_CASE("Monstre.mettreAJour retourne a son poste si la cible disparait apres detection") {
@@ -355,8 +367,10 @@ namespace {
 
 // Amène le monstre en retour, sorti du territoire (plus de `Monstre::s_rayonTerritoire`
 // de son poste) : la proie lointaine à 800 px de son poste n'est jamais détectée.
-void amenerEnRetourHorsTerritoire(Monstre& monstre, const TileMap& carte) {
+// `degatsEnPoursuite` est infligé avant le retour (en retour, le monstre est invulnérable).
+void amenerEnRetourHorsTerritoire(Monstre& monstre, const TileMap& carte, int degatsEnPoursuite = 0) {
     ecoulerTemps(monstre, 0.2f, pointCible({250.0f, 100.0f}), carte); // détection
+    monstre.recevoirDegats(degatsEnPoursuite);
     while ((monstre.getCentre() - sf::Vector2f(100.0f, 100.0f)).length() <= Monstre::s_rayonTerritoire) {
         ecoulerTemps(monstre, 1.0f / 60.0f, pointCible({900.0f, 100.0f}), carte);
     }
@@ -406,20 +420,112 @@ TEST_CASE("Monstre touche sans proie reste en garde et le coup est consomme") {
     REQUIRE(monstre.getCentre() == sf::Vector2f(100.0f, 100.0f));
 }
 
-TEST_CASE("Monstre touche en retour dans son territoire poursuit") {
+TEST_CASE("Monstre touche en retour dans son territoire ne se reveille pas et ne perd rien") {
     const TileMap carte = carteLongue();
     Monstre monstre({100.0f, 100.0f}, 1, 0, 0);
-    amenerEnRetourHorsTerritoire(monstre, carte);
+    amenerEnRetourHorsTerritoire(monstre, carte, 50);
     // Laisse le retour ramener le monstre dans son territoire.
     while ((monstre.getCentre() - sf::Vector2f(100.0f, 100.0f)).length() > 300.0f) {
         ecoulerTemps(monstre, 1.0f / 60.0f, pointCible({900.0f, 100.0f}), carte);
     }
     const float xAvant = monstre.getCentre().x;
+    const int vieAvant = monstre.getPointsDeVie();
 
     monstre.recevoirDegats(10);
+    REQUIRE(monstre.getPointsDeVie() == vieAvant); // invulnérable
     ecoulerTemps(monstre, 0.3f, pointCible({900.0f, 100.0f}), carte);
 
-    REQUIRE(monstre.getCentre().x > xAvant); // va vers la proie, à l'est
+    REQUIRE(monstre.getCentre().x < xAvant); // continue de rentrer, à l'ouest
+}
+
+TEST_CASE("Monstre.alerter en retour dans son territoire ne reveille pas le monstre") {
+    const TileMap carte = carteLongue();
+    Monstre monstre({100.0f, 100.0f}, 1, 0, 0);
+    amenerEnRetourHorsTerritoire(monstre, carte);
+    while ((monstre.getCentre() - sf::Vector2f(100.0f, 100.0f)).length() > 300.0f) {
+        ecoulerTemps(monstre, 1.0f / 60.0f, pointCible({900.0f, 100.0f}), carte);
+    }
+    const float xAvant = monstre.getCentre().x;
+
+    monstre.alerter();
+    ecoulerTemps(monstre, 0.3f, pointCible({900.0f, 100.0f}), carte);
+
+    REQUIRE(monstre.getCentre().x < xAvant);
+    REQUIRE_FALSE(monstre.estEnPoursuite());
+}
+
+TEST_CASE("Monstre.engagerAttaque en retour n'engage aucun coup meme avec une proie a portee") {
+    const TileMap carte = carteLongue();
+    Monstre monstre({100.0f, 100.0f}, 1, 0, 0);
+    amenerEnRetourHorsTerritoire(monstre, carte);
+    const Cercle proche{monstre.getCentre() + sf::Vector2f(20.0f, 0.0f), 10.0f};
+
+    REQUIRE_FALSE(engager(monstre, proche, 1, carte));
+    REQUIRE_FALSE(monstre.cibleEngagee().has_value());
+}
+
+TEST_CASE("Monstre.estCiblable est vrai en garde et en poursuite, faux en retour") {
+    const TileMap carte = carteLongue();
+    Monstre monstre({100.0f, 100.0f}, 1, 0, 0);
+    REQUIRE(monstre.estCiblable());
+
+    ecoulerTemps(monstre, 0.2f, pointCible({250.0f, 100.0f}), carte); // poursuite
+    REQUIRE(monstre.estEnPoursuite());
+    REQUIRE(monstre.estCiblable());
+
+    amenerEnRetourHorsTerritoire(monstre, carte);
+    REQUIRE_FALSE(monstre.estCiblable());
+}
+
+// Régénération en retour : 50 % des points de vie maximum par seconde.
+
+TEST_CASE("Monstre en retour regagne tous ses points de vie en deux secondes environ") {
+    const TileMap carte = carteLongue();
+    Monstre monstre({100.0f, 100.0f}, 1, 0, 0);
+    amenerEnRetourHorsTerritoire(monstre, carte, 90);
+    REQUIRE(monstre.getPointsDeVie() == 10);
+
+    ecoulerTemps(monstre, 1.0f, pointCible({900.0f, 100.0f}), carte);
+    REQUIRE(monstre.getPointsDeVie() >= 55);
+    REQUIRE(monstre.getPointsDeVie() <= 65);
+
+    ecoulerTemps(monstre, 1.0f, pointCible({900.0f, 100.0f}), carte);
+    REQUIRE(monstre.getPointsDeVie() == 100);
+}
+
+TEST_CASE("Monstre en retour ne depasse jamais son maximum") {
+    const TileMap carte = carteLongue();
+    Monstre monstre({100.0f, 100.0f}, 1, 0, 0);
+    amenerEnRetourHorsTerritoire(monstre, carte, 10);
+
+    ecoulerTemps(monstre, 3.0f, pointCible({900.0f, 100.0f}), carte);
+
+    REQUIRE(monstre.getPointsDeVie() == 100);
+}
+
+TEST_CASE("Monstre en retour regagne des points de vie a 60 images par seconde") {
+    const TileMap carte = carteLongue();
+    Monstre monstre({100.0f, 100.0f}, 1, 0, 0);
+    amenerEnRetourHorsTerritoire(monstre, carte, 90);
+
+    ecoulerTemps(monstre, 0.1f, pointCible({900.0f, 100.0f}), carte); // 6 images, 0,83 point chacune
+
+    REQUIRE(monstre.getPointsDeVie() >= 14); // la partie entière cumulée, pas 0 à chaque image
+}
+
+TEST_CASE("Monstre ne regagne aucun point de vie hors retour") {
+    const TileMap carte = carteLongue();
+    Monstre enGarde({100.0f, 100.0f}, 1, 0, 0);
+    enGarde.recevoirDegats(50);
+    ecoulerTemps(enGarde, 2.0f, std::nullopt, carte);
+    REQUIRE(enGarde.getPointsDeVie() == 50);
+
+    Monstre enPoursuite({100.0f, 100.0f}, 2, 0, 0);
+    ecoulerTemps(enPoursuite, 0.2f, pointCible({250.0f, 100.0f}), carte); // détection
+    enPoursuite.recevoirDegats(50);
+    ecoulerTemps(enPoursuite, 1.0f, pointCible({250.0f, 100.0f}), carte);
+    REQUIRE(enPoursuite.estEnPoursuite());
+    REQUIRE(enPoursuite.getPointsDeVie() == 50);
 }
 
 TEST_CASE("Monstre touche en retour hors de son territoire continue de rentrer") {

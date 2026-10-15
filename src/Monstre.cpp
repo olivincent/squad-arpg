@@ -16,6 +16,7 @@ constexpr float s_vitesse = 160.0f;  // en pixels par seconde
 constexpr int s_pointsDeVieMax = 100;
 constexpr float s_eclaircissementExecution = 0.5f;  // part de blanc pendant l'exécution d'un coup
 constexpr float s_executionAttaque = 0.3f;  // en secondes, immobile avant que le coup parte
+constexpr float s_regenerationRetour = 0.5f;  // fraction des points de vie maximum rendue par seconde en retour
 }  // namespace
 
 Monstre::Monstre(sf::Vector2f centre, int id, int armure, int groupe)
@@ -30,6 +31,7 @@ Monstre::Monstre(sf::Vector2f centre, int id, int armure, int groupe)
       m_etat(Etat::EnGarde),
       m_poste(centre),
       m_alerte(false),
+      m_soinAccumule(0.0f),
       m_idCibleEngagee()
 {
 }
@@ -77,6 +79,9 @@ bool Monstre::contient(sf::Vector2f point) const {
 }
 
 void Monstre::recevoirDegats(int quantite) {
+    if (m_etat == Etat::Retour) {
+        return;
+    }
     m_pointsDeVie.subirDegats(appliquerArmure(quantite, m_armure));
     if (quantite > 0) {
         alerter();
@@ -84,11 +89,18 @@ void Monstre::recevoirDegats(int quantite) {
 }
 
 void Monstre::alerter() {
+    if (m_etat == Etat::Retour) {
+        return;
+    }
     m_alerte = true;
 }
 
 bool Monstre::estEnPoursuite() const {
     return m_etat == Etat::Poursuite;
+}
+
+bool Monstre::estCiblable() const {
+    return m_etat != Etat::Retour;
 }
 
 bool Monstre::estVivant() const {
@@ -158,9 +170,8 @@ void Monstre::mettreAJour(float dt, std::optional<EntiteVue> proie, const std::v
             }
             break;
         case Etat::Retour:
-            if (proieDetectee(proie, carte) || alerte) {
-                m_etat = Etat::Poursuite;
-            } else if (!m_mobile.directionVoulue()) {
+            // Le monstre ne réagit à rien jusqu'à son arrivée au poste (hystérésis).
+            if (!m_mobile.directionVoulue()) {
                 m_etat = Etat::EnGarde;
             }
             break;
@@ -173,6 +184,19 @@ void Monstre::mettreAJour(float dt, std::optional<EntiteVue> proie, const std::v
         // Bloqué en rentrant : le chemin choisi à l'entrée en retour ignorait l'obstacle qui gêne
         // maintenant. allerVers remet le compteur à zéro : au plus un recalcul toutes les 0,3 s.
         m_mobile.allerVers(m_poste, carte, aContourner);
+    }
+
+    if (m_etat == Etat::Retour) {
+        // Seule la partie entière est soignée : un entier à 0,83 point par image serait tronqué à 0.
+        m_soinAccumule += static_cast<float>(m_pointsDeVie.getMaximum()) * s_regenerationRetour * dt;
+        const int entier = static_cast<int>(m_soinAccumule);
+        m_pointsDeVie.soigner(entier);
+        m_soinAccumule -= static_cast<float>(entier);
+        if (m_pointsDeVie.getValeur() == m_pointsDeVie.getMaximum()) {
+            m_soinAccumule = 0.0f;
+        }
+    } else {
+        m_soinAccumule = 0.0f;
     }
 
     if (m_etat == Etat::Poursuite) {
@@ -191,6 +215,9 @@ bool Monstre::peutAtteindre(Cercle cible, const TileMap& carte) const {
 }
 
 bool Monstre::engagerAttaque(std::optional<EntiteVue> proie, const std::vector<EntiteVue>& candidats, const TileMap& carte) {
+    if (m_etat == Etat::Retour) {
+        return false;
+    }
     const std::optional<EntiteVue> cible = cibleDeFrappe(proie, candidats, carte);
     if (!cible || m_mobile.estEnMouvement() || !m_attaque.commencer()) {
         return false;

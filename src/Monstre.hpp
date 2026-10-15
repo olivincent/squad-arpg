@@ -51,13 +51,18 @@ public:
     int getId() const;
     [[nodiscard]] int getGroupe() const;
     bool contient(sf::Vector2f point) const;
+    // Sans aucun effet (ni dégâts, ni alerte) pendant le retour au poste : le monstre est invulnérable.
     void recevoirDegats(int quantite);
     // Demande au monstre d'entrer en poursuite de sa proie habituelle, même
     // hors de la détection, s'il est dans son territoire. Prise en compte au
-    // prochain `mettreAJour` ; sans effet sur un monstre déjà en poursuite.
+    // prochain `mettreAJour` ; sans effet sur un monstre déjà en poursuite
+    // ou en retour au poste.
     void alerter();
     // Vrai quand le monstre est en poursuite de sa proie (le statut « attaque »).
     [[nodiscard]] bool estEnPoursuite() const;
+    // Faux pendant le retour au poste : le monstre n'est alors la cible de personne
+    // (il reste un obstacle physique).
+    [[nodiscard]] bool estCiblable() const;
     bool estVivant() const;
     int getPointsDeVie() const;
 
@@ -80,5 +85,6 @@ private:
     Etat m_etat;
     sf::Vector2f m_poste;
     bool m_alerte; // posée par `alerter`, consommée par `mettreAJour`
+    float m_soinAccumule; // points de vie rendus pas encore entiers, pendant le retour ; 0 ailleurs
     std::optional<int> m_idCibleEngagee; // lu seulement pendant l'exécution
 };
