@@ -1,6 +1,7 @@
 // ./tests/test_Partie.cpp
 #include <catch2/catch_test_macros.hpp>
 #include <SFML/System/Vector2.hpp>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -360,4 +361,23 @@ TEST_CASE("un monstre touche par un skill de zone alerte son groupe") {
 
     REQUIRE(aBouge(partie, 0, touche));
     REQUIRE(aBouge(partie, 1, s_monstreLoinPoste));
+}
+
+// Cible de frappe d'un monstre : un monstre provoqué ne frappe que son
+// provocateur, même collé à un autre personnage.
+TEST_CASE("un monstre provoque ne frappe que son provocateur") {
+    Partie partie(niveauDegage({{300.0f, 235.0f}}), s_graineDeTest);
+    partie.demanderSkill(2);  // provocation du mêlée avant-droit (place 2)
+
+    bool aFrappeLeProvocateur = false;
+    for (int i = 0; i < nombreDeTics(3.0f); ++i) {
+        partie.mettreAJour(s_dureeTic);
+        for (const Monstre& monstre : partie.getMonstres()) {
+            if (const std::optional<int> cible = monstre.cibleEngagee(); cible && i > nombreDeTics(0.3f)) {
+                REQUIRE(*cible == 2);
+                aFrappeLeProvocateur = true;
+            }
+        }
+    }
+    REQUIRE(aFrappeLeProvocateur);
 }

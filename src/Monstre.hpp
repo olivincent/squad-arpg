@@ -3,6 +3,7 @@
 #include "Aleatoire.hpp"
 #include "Skill.hpp"
 #include "Cercle.hpp"
+#include "EntiteVue.hpp"
 #include "Mobile.hpp"
 #include "PointsDeVie.hpp"
 #include <SFML/Graphics/RenderTarget.hpp>
@@ -18,17 +19,23 @@ public:
     // ensemble ». Le monstre ne sait pas ce qu'il désigne.
     Monstre(sf::Vector2f centre, int id, int armure, int groupe);
     void dessiner(sf::RenderTarget& rendu, bool estCible) const;
-    void mettreAJour(float dt, std::optional<Cercle> cible, const TileMap& carte, const std::vector<Cercle>& obstacles);
+    // `proie` est le personnage que le monstre poursuit (sans dépendre de la vue) ;
+    // `candidats` sont ceux qu'il peut frapper (identifiant = place du personnage).
+    // Il s'arrête dès qu'il a une cible de frappe (voir `engagerAttaque`).
+    void mettreAJour(float dt, std::optional<EntiteVue> proie, const std::vector<EntiteVue>& candidats,
+                     const TileMap& carte, const std::vector<Cercle>& obstacles);
     // Attaque en trois temps, comme celle d'un personnage : engager (cible à
     // portée et en vue, monstre immobile, attaque prête) ; avancer l'exécution, qui rend
     // les dégâts au départ du coup ; annuler, sans recharge consommée.
-    // `idProie` est l'identification de la cible chez l'appelant (la place du
-    // personnage) ; le monstre la retient jusqu'au départ du coup.
-    // La proie est atteignable à portée ET en vue (ligne de vue centre à centre) ;
-    // `engagerAttaque` l'exige. Même règle que `Escouade::peutAtteindre`.
-    [[nodiscard]] bool peutAtteindre(Cercle proie, const TileMap& carte) const;
-    bool engagerAttaque(Cercle proie, int idProie, const TileMap& carte);
-    std::optional<int> proieEngagee() const;
+    // Une cible est atteignable à portée ET en vue (ligne de vue centre à centre).
+    // Même règle que `Escouade::peutAtteindre`.
+    [[nodiscard]] bool peutAtteindre(Cercle cible, const TileMap& carte) const;
+    // Engage sur la cible de frappe : la proie si elle est atteignable, sinon le
+    // candidat atteignable le plus proche. Le monstre retient l'identifiant (la
+    // place du personnage) jusqu'au départ du coup.
+    bool engagerAttaque(std::optional<EntiteVue> proie, const std::vector<EntiteVue>& candidats, const TileMap& carte);
+    // Identifiant (place) du personnage visé par le coup en exécution ; vide hors exécution.
+    std::optional<int> cibleEngagee() const;
     [[nodiscard]] int avancerAttaque(float dt, Generateur& generateur);
     void annulerAttaque();
     sf::Vector2f getCentre() const;
@@ -49,7 +56,10 @@ public:
 private:
     enum class Etat { EnGarde, Poursuite, Retour };
 
-    bool proieDetectee(std::optional<Cercle> cible, const TileMap& carte) const;
+    bool proieDetectee(const std::optional<EntiteVue>& proie, const TileMap& carte) const;
+    // Règle propre au monstre : `choisirCibleAFrapper` avec `peutAtteindre`, la proie préférée.
+    std::optional<EntiteVue> cibleDeFrappe(const std::optional<EntiteVue>& proie,
+                                           const std::vector<EntiteVue>& candidats, const TileMap& carte) const;
 
     Mobile m_mobile;
     PointsDeVie m_pointsDeVie;
@@ -62,5 +72,5 @@ private:
     Etat m_etat;
     sf::Vector2f m_poste;
     bool m_alerte; // posée par `alerter`, consommée par `mettreAJour`
-    std::optional<int> m_idProieEngagee; // lu seulement pendant l'exécution
+    std::optional<int> m_idCibleEngagee; // lu seulement pendant l'exécution
 };

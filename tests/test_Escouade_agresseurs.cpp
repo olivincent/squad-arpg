@@ -8,7 +8,7 @@
 #include "Agresseurs.hpp"
 #include "Cercle.hpp"
 #include "Escouade.hpp"
-#include "MonstreVu.hpp"
+#include "EntiteVue.hpp"
 #include "TileMap.hpp"
 
 
@@ -16,10 +16,10 @@ TEST_CASE("proieDuMonstre renvoie un centre plus proche du point que le centre d
     const Escouade escouade({50.0f, 50.0f});
 
     const sf::Vector2f pointLointain{1000.0f, 1000.0f};
-    const std::optional<Cercle> cerclePersonnage = escouade.proieDuMonstre(1, pointLointain);
+    const std::optional<EntiteVue> cerclePersonnage = escouade.proieDuMonstre(1, pointLointain);
     REQUIRE(cerclePersonnage.has_value());
 
-    const float distancePersonnage = (cerclePersonnage->centre - pointLointain).length();
+    const float distancePersonnage = (cerclePersonnage->cercle.centre - pointLointain).length();
     const float distanceEscouade = (escouade.getCentre() - pointLointain).length();
 
     REQUIRE(distancePersonnage < distanceEscouade);
@@ -29,28 +29,28 @@ TEST_CASE("proieDuMonstre ignore les degats insuffisants pour tuer") {
     Escouade escouade({50.0f, 50.0f});
     const sf::Vector2f point{1000.0f, 1000.0f};
 
-    const std::optional<Cercle> avant = escouade.proieDuMonstre(1, point);
+    const std::optional<EntiteVue> avant = escouade.proieDuMonstre(1, point);
     REQUIRE(avant.has_value());
 
     escouade.recevoirDegats(1, point, 50);
-    const std::optional<Cercle> apres = escouade.proieDuMonstre(1, point);
+    const std::optional<EntiteVue> apres = escouade.proieDuMonstre(1, point);
     REQUIRE(apres.has_value());
 
-    REQUIRE(apres->centre == avant->centre);
+    REQUIRE(apres->cercle.centre == avant->cercle.centre);
 }
 
 TEST_CASE("proieDuMonstre change de cible une fois le plus proche mort") {
     Escouade escouade({50.0f, 50.0f});
     const sf::Vector2f point{1000.0f, 1000.0f};
 
-    const std::optional<Cercle> avant = escouade.proieDuMonstre(1, point);
+    const std::optional<EntiteVue> avant = escouade.proieDuMonstre(1, point);
     REQUIRE(avant.has_value());
 
     escouade.recevoirDegats(1, point, 200);
-    const std::optional<Cercle> apres = escouade.proieDuMonstre(1, point);
+    const std::optional<EntiteVue> apres = escouade.proieDuMonstre(1, point);
     REQUIRE(apres.has_value());
 
-    REQUIRE_FALSE(apres->centre == avant->centre);
+    REQUIRE_FALSE(apres->cercle.centre == avant->cercle.centre);
 }
 
 TEST_CASE("proieDuMonstre est vide une fois tous les personnages morts") {
@@ -141,7 +141,7 @@ TEST_CASE("attaquer retire l'agresseur absent de la liste et met a jour le cercl
     escouade.recevoirDegats(7, {300.0f, 60.0f}, 10);
     escouade.recevoirDegats(8, {310.0f, 60.0f}, 10);
 
-    static_cast<void>(escouade.attaquer(s_dureeTic, {MonstreVu{8, cibleMonstre({320.0f, 70.0f})}}, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
+    static_cast<void>(escouade.attaquer(s_dureeTic, {EntiteVue{8, cibleMonstre({320.0f, 70.0f})}}, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
 
     const auto& agresseurs = escouade.getAgresseurs();
     REQUIRE(agresseurs.size() == 1);
@@ -157,13 +157,13 @@ namespace {
 void simulerAvecMonstre(Escouade& escouade, const TileMap& carte, Cercle monstre, int tics) {
     Generateur generateur = generateurDeTest();
     for (int i = 0; i < tics; ++i) {
-        static_cast<void>(escouade.attaquer(s_dureeTic, {MonstreVu{1, monstre}}, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
+        static_cast<void>(escouade.attaquer(s_dureeTic, {EntiteVue{1, monstre}}, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
         escouade.mettreAJour(1.0f / 60.0f, carte, {monstre});
     }
 }
 
 float distanceDuPlusProche(const Escouade& escouade, Cercle monstre) {
-    return (escouade.proieDuMonstre(1, monstre.centre)->centre - monstre.centre).length();
+    return (escouade.proieDuMonstre(1, monstre.centre)->cercle.centre - monstre.centre).length();
 }
 
 }  // namespace
@@ -294,7 +294,7 @@ TEST_CASE("attaquer retire la provocation d'un monstre absent de la liste") {
     escouade.provoquer(7, 2, 4.0f);
     escouade.provoquer(8, 2, 4.0f);
 
-    static_cast<void>(escouade.attaquer(s_dureeTic, {MonstreVu{8, cibleMonstre({300.0f, 60.0f})}}, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
+    static_cast<void>(escouade.attaquer(s_dureeTic, {EntiteVue{8, cibleMonstre({300.0f, 60.0f})}}, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
 
     const auto& provocations = escouade.getProvocations();
     REQUIRE(provocations.size() == 1);
@@ -308,21 +308,21 @@ TEST_CASE("attaquer retire la provocation d'un monstre absent de la liste") {
 TEST_CASE("Sans provocation, la proie d'un monstre est le personnage vivant le plus proche") {
     Escouade escouade({200.0f, 200.0f});
 
-    verifierPointProche(escouade.proieDuMonstre(7, {170.0f, 170.0f})->centre, {185.0f, 185.0f});
+    verifierPointProche(escouade.proieDuMonstre(7, {170.0f, 170.0f})->cercle.centre, {185.0f, 185.0f});
 }
 
 TEST_CASE("Un monstre provoque vise le provocateur, pas le plus proche") {
     Escouade escouade({200.0f, 200.0f});
     escouade.provoquer(7, 2, 4.0f);
 
-    verifierPointProche(escouade.proieDuMonstre(7, {170.0f, 170.0f})->centre, {235.0f, 235.0f});
+    verifierPointProche(escouade.proieDuMonstre(7, {170.0f, 170.0f})->cercle.centre, {235.0f, 235.0f});
 }
 
 TEST_CASE("La provocation d'un monstre ne change pas la proie des autres") {
     Escouade escouade({200.0f, 200.0f});
     escouade.provoquer(7, 2, 4.0f);
 
-    verifierPointProche(escouade.proieDuMonstre(8, {170.0f, 170.0f})->centre, {185.0f, 185.0f});
+    verifierPointProche(escouade.proieDuMonstre(8, {170.0f, 170.0f})->cercle.centre, {185.0f, 185.0f});
 }
 
 TEST_CASE("Un monstre provoque dont le provocateur est mort reprend le plus proche") {
@@ -330,14 +330,14 @@ TEST_CASE("Un monstre provoque dont le provocateur est mort reprend le plus proc
     escouade.provoquer(7, 2, 4.0f);
     escouade.recevoirDegats(1, {235.0f, 235.0f}, 200);  // tue la place 2
 
-    verifierPointProche(escouade.proieDuMonstre(7, {170.0f, 170.0f})->centre, {185.0f, 185.0f});
+    verifierPointProche(escouade.proieDuMonstre(7, {170.0f, 170.0f})->cercle.centre, {185.0f, 185.0f});
 }
 
 TEST_CASE("recevoirDegats frappe le meme personnage que proieDuMonstre") {
     Escouade escouade({200.0f, 200.0f});
     escouade.provoquer(7, 2, 4.0f);
     const sf::Vector2f monstre{170.0f, 170.0f};
-    const Cercle proie = *escouade.proieDuMonstre(7, monstre);
+    const Cercle proie = escouade.proieDuMonstre(7, monstre)->cercle;
 
     escouade.recevoirDegats(7, monstre, 200);
 

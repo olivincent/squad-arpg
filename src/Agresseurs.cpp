@@ -25,17 +25,17 @@ void Agresseurs::mettreAJour(float dt) {
     std::erase_if(m_agresseurs, [](const Agresseur& a) { return a.tempsRestant <= 0.0f; });
 }
 
-void Agresseurs::actualiser(const std::vector<MonstreVu>& monstres) {
-    std::erase_if(m_agresseurs, [&](const Agresseur& a) { return trouverMonstre(monstres, a.monstre.id) == nullptr; });
+void Agresseurs::actualiser(const std::vector<EntiteVue>& monstres) {
+    std::erase_if(m_agresseurs, [&](const Agresseur& a) { return trouverEntite(monstres, a.monstre.id) == nullptr; });
     for (Agresseur& agresseur : m_agresseurs) {
-        if (const MonstreVu* vu = trouverMonstre(monstres, agresseur.monstre.id)) {
+        if (const EntiteVue* vu = trouverEntite(monstres, agresseur.monstre.id)) {
             agresseur.monstre.cercle = vu->cercle;
         }
     }
 }
 
-std::vector<MonstreVu> Agresseurs::monstresVus() const {
-    std::vector<MonstreVu> vus;
+std::vector<EntiteVue> Agresseurs::monstresVus() const {
+    std::vector<EntiteVue> vus;
     vus.reserve(m_agresseurs.size());
     for (const Agresseur& agresseur : m_agresseurs) {
         vus.push_back(agresseur.monstre);

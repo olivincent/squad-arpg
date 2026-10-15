@@ -8,6 +8,7 @@
 
 #include "aides.hpp"
 #include "Cercle.hpp"
+#include "EntiteVue.hpp"
 #include "Monstre.hpp"
 #include "TileMap.hpp"
 
@@ -37,18 +38,31 @@ TileMap carteAvecMur() {
 }
 
 // Simule le temps qui passe par tics de 1/60 s, comme dans main.cpp.
+// La cible est à la fois la proie (place 1) et l'unique candidat de frappe.
 void ecoulerTemps(Monstre& monstre, float duree, std::optional<Cercle> cible, const TileMap& carte) {
+    std::optional<EntiteVue> proie;
+    std::vector<EntiteVue> candidats;
+    if (cible) {
+        proie = EntiteVue{1, *cible};
+        candidats.push_back(*proie);
+    }
     const int nombreTics = nombreDeTics(duree);
     for (int i = 0; i < nombreTics; ++i) {
-        monstre.mettreAJour(s_dureeTic, cible, carte, {});
+        monstre.mettreAJour(s_dureeTic, proie, candidats, carte, {});
     }
+}
+
+// Engage un coup sur cette cible, à la fois proie et unique candidat.
+bool engager(Monstre& monstre, Cercle cible, int id, const TileMap& carte) {
+    const EntiteVue entite{id, cible};
+    return monstre.engagerAttaque(entite, {entite}, carte);
 }
 
 // Frappe en un seul appel, comme l'ancien frapper() : engage le coup sur la
 // cible (refusée hors de portée), puis avance l'exécution (0,3 s) jusqu'au
 // départ. Renvoie les dégâts, 0 si rien ne part.
 int frapperEnEntier(Monstre& monstre, Cercle cible, Generateur& generateur) {
-    if (!monstre.engagerAttaque(cible, 1, carteOuverte())) {
+    if (!engager(monstre, cible, 1, carteOuverte())) {
         return 0;
     }
     for (int i = 0; i < nombreDeTics(1.0f); ++i) {
@@ -501,10 +515,10 @@ TEST_CASE("Monstre.getGroupe rend le groupe recu a la construction") {
 TEST_CASE("Monstre.engagerAttaque exige une cible a portee") {
     Monstre monstre({100.0f, 100.0f}, 1, 0, 0);
 
-    REQUIRE_FALSE(monstre.engagerAttaque(pointCible({300.0f, 100.0f}), 3, carteOuverte()));
-    REQUIRE_FALSE(monstre.proieEngagee().has_value());
-    REQUIRE(monstre.engagerAttaque(pointCible({110.0f, 100.0f}), 3, carteOuverte()));
-    REQUIRE(monstre.proieEngagee() == 3);
+    REQUIRE_FALSE(engager(monstre, pointCible({300.0f, 100.0f}), 3, carteOuverte()));
+    REQUIRE_FALSE(monstre.cibleEngagee().has_value());
+    REQUIRE(engager(monstre, pointCible({110.0f, 100.0f}), 3, carteOuverte()));
+    REQUIRE(monstre.cibleEngagee() == 3);
 }
 
 TEST_CASE("Monstre.engagerAttaque refuse un monstre en marche") {
@@ -513,13 +527,13 @@ TEST_CASE("Monstre.engagerAttaque refuse un monstre en marche") {
 
     ecoulerTemps(monstre, 0.1f, pointCible({180.0f, 100.0f}), carte);  // en poursuite, pas encore à portée
 
-    REQUIRE_FALSE(monstre.engagerAttaque(pointCible({110.0f, 100.0f}), 1, carteOuverte()));
+    REQUIRE_FALSE(engager(monstre, pointCible({110.0f, 100.0f}), 1, carteOuverte()));
 }
 
 TEST_CASE("Monstre.avancerAttaque rend les degats une seule fois, a la fin de l'execution") {
     Generateur generateur = generateurDeTest();
     Monstre monstre({100.0f, 100.0f}, 1, 0, 0);
-    REQUIRE(monstre.engagerAttaque(pointCible({110.0f, 100.0f}), 1, carteOuverte()));
+    REQUIRE(engager(monstre, pointCible({110.0f, 100.0f}), 1, carteOuverte()));
 
     int total = 0;
     for (int i = 0; i < nombreDeTics(0.25f); ++i) {
@@ -531,13 +545,13 @@ TEST_CASE("Monstre.avancerAttaque rend les degats une seule fois, a la fin de l'
         total += monstre.avancerAttaque(s_dureeTic, generateur);
     }
     REQUIRE(total == 10);
-    REQUIRE_FALSE(monstre.proieEngagee().has_value());
+    REQUIRE_FALSE(monstre.cibleEngagee().has_value());
 }
 
 TEST_CASE("Monstre.mettreAJour ne bouge pas pendant l'execution, meme si la cible s'eloigne") {
     const TileMap carte = carteLongue();
     Monstre monstre({100.0f, 100.0f}, 1, 0, 0);
-    REQUIRE(monstre.engagerAttaque(pointCible({110.0f, 100.0f}), 1, carteOuverte()));
+    REQUIRE(engager(monstre, pointCible({110.0f, 100.0f}), 1, carteOuverte()));
 
     ecoulerTemps(monstre, 0.25f, pointCible({300.0f, 100.0f}), carte);
 
@@ -547,25 +561,25 @@ TEST_CASE("Monstre.mettreAJour ne bouge pas pendant l'execution, meme si la cibl
 TEST_CASE("Monstre.annulerAttaque ne consomme pas de recharge") {
     Generateur generateur = generateurDeTest();
     Monstre monstre({100.0f, 100.0f}, 1, 0, 0);
-    REQUIRE(monstre.engagerAttaque(pointCible({110.0f, 100.0f}), 1, carteOuverte()));
+    REQUIRE(engager(monstre, pointCible({110.0f, 100.0f}), 1, carteOuverte()));
     REQUIRE(monstre.avancerAttaque(0.1f, generateur) == 0);
 
     monstre.annulerAttaque();
 
-    REQUIRE_FALSE(monstre.proieEngagee().has_value());
-    REQUIRE(monstre.engagerAttaque(pointCible({110.0f, 100.0f}), 1, carteOuverte()));
+    REQUIRE_FALSE(monstre.cibleEngagee().has_value());
+    REQUIRE(engager(monstre, pointCible({110.0f, 100.0f}), 1, carteOuverte()));
 }
 
 TEST_CASE("Monstre : apres le depart du coup, la recharge court avant le suivant") {
     Generateur generateur = generateurDeTest();
     const TileMap carte = carteLongue();
     Monstre monstre({100.0f, 100.0f}, 1, 0, 0);
-    REQUIRE(monstre.engagerAttaque(pointCible({110.0f, 100.0f}), 1, carteOuverte()));
+    REQUIRE(engager(monstre, pointCible({110.0f, 100.0f}), 1, carteOuverte()));
     REQUIRE(monstre.avancerAttaque(0.4f, generateur) == 10);
 
-    REQUIRE_FALSE(monstre.engagerAttaque(pointCible({110.0f, 100.0f}), 1, carteOuverte()));
+    REQUIRE_FALSE(engager(monstre, pointCible({110.0f, 100.0f}), 1, carteOuverte()));
     ecoulerTemps(monstre, 1.4f, std::nullopt, carte);  // recharge de 0,7 à 1,3 s écoulée
-    REQUIRE(monstre.engagerAttaque(pointCible({110.0f, 100.0f}), 1, carteOuverte()));
+    REQUIRE(engager(monstre, pointCible({110.0f, 100.0f}), 1, carteOuverte()));
 }
 
 // Ligne de vue : la détection et la frappe exigent la vue ; la poursuite non.
@@ -636,10 +650,10 @@ TEST_CASE("Monstre.engagerAttaque refuse une proie a portee mais cachee, l'accep
     const TileMap carte = carteAvecPilier();
     Monstre monstre({30.0f, 60.0f}, 1, 0, 0);
 
-    REQUIRE_FALSE(monstre.engagerAttaque(pointCible({45.0f, 35.0f}), 1, carte));
-    REQUIRE_FALSE(monstre.proieEngagee().has_value());
-    REQUIRE(monstre.engagerAttaque(pointCible({30.0f, 35.0f}), 1, carte));
-    REQUIRE(monstre.proieEngagee() == 1);
+    REQUIRE_FALSE(engager(monstre, pointCible({45.0f, 35.0f}), 1, carte));
+    REQUIRE_FALSE(monstre.cibleEngagee().has_value());
+    REQUIRE(engager(monstre, pointCible({30.0f, 35.0f}), 1, carte));
+    REQUIRE(monstre.cibleEngagee() == 1);
 }
 
 TEST_CASE("Monstre en poursuite ne s'arrete pas a portee mais cachee derriere un coin") {
@@ -652,4 +666,101 @@ TEST_CASE("Monstre en poursuite ne s'arrete pas a portee mais cachee derriere un
     ecoulerTemps(monstre, 0.3f, proie, carte);
 
     REQUIRE(monstre.getCentre() != sf::Vector2f(25.0f, 65.0f));
+}
+
+// Cible de frappe : la proie (place 1) si elle est atteignable, sinon le
+// candidat atteignable le plus proche. Les identifiants sont des places.
+
+namespace {
+
+void ecoulerTempsAvecCandidats(Monstre& monstre, float duree, std::optional<EntiteVue> proie,
+                               const std::vector<EntiteVue>& candidats, const TileMap& carte) {
+    const int nombreTics = nombreDeTics(duree);
+    for (int i = 0; i < nombreTics; ++i) {
+        monstre.mettreAJour(s_dureeTic, proie, candidats, carte, {});
+    }
+}
+
+}  // namespace
+
+TEST_CASE("Monstre.engagerAttaque prefere la proie atteignable a un candidat plus proche") {
+    Monstre monstre({30.0f, 60.0f}, 1, 0, 0);
+    const EntiteVue proie{1, pointCible({55.0f, 60.0f})};
+    const EntiteVue plusProche{2, pointCible({40.0f, 60.0f})};
+
+    REQUIRE(monstre.engagerAttaque(proie, {plusProche, proie}, carteOuverte()));
+
+    REQUIRE(monstre.cibleEngagee() == 1);
+}
+
+TEST_CASE("Monstre.engagerAttaque frappe un autre candidat si la proie est cachee") {
+    const TileMap carte = carteAvecPilier();
+    Monstre monstre({30.0f, 60.0f}, 1, 0, 0);
+    const EntiteVue proieCachee{1, pointCible({45.0f, 35.0f})};
+    const EntiteVue enVue{2, pointCible({30.0f, 35.0f})};
+
+    REQUIRE(monstre.engagerAttaque(proieCachee, {proieCachee, enVue}, carte));
+
+    REQUIRE(monstre.cibleEngagee() == 2);
+}
+
+TEST_CASE("Monstre.engagerAttaque choisit le candidat atteignable le plus proche") {
+    Monstre monstre({30.0f, 60.0f}, 1, 0, 0);
+    const EntiteVue proieLointaine{1, pointCible({30.0f, 300.0f})};
+    const EntiteVue moinsProche{2, pointCible({55.0f, 60.0f})};
+    const EntiteVue plusProche{3, pointCible({40.0f, 60.0f})};
+
+    REQUIRE(monstre.engagerAttaque(proieLointaine, {proieLointaine, moinsProche, plusProche}, carteOuverte()));
+
+    REQUIRE(monstre.cibleEngagee() == 3);
+}
+
+TEST_CASE("Monstre.engagerAttaque est refuse sans aucun candidat atteignable") {
+    Monstre monstre({30.0f, 60.0f}, 1, 0, 0);
+    const EntiteVue loin{1, pointCible({300.0f, 60.0f})};
+
+    REQUIRE_FALSE(monstre.engagerAttaque(loin, {loin}, carteOuverte()));
+    REQUIRE_FALSE(monstre.engagerAttaque(std::nullopt, {}, carteOuverte()));
+}
+
+TEST_CASE("Monstre.mettreAJour s'arrete en poursuite quand un autre candidat devient atteignable") {
+    const TileMap carte = carteAvecPilier();
+    Monstre monstre({25.0f, 65.0f}, 1, 0, 0);
+    const EntiteVue proieCachee{1, {{45.0f, 35.0f}, 10.0f}};
+    const EntiteVue enVue{2, {{25.0f, 45.0f}, 10.0f}};
+    REQUIRE(monstre.peutAtteindre(enVue.cercle, carte));
+    monstre.recevoirDegats(1);  // actif sans dépendre de la vue
+
+    ecoulerTempsAvecCandidats(monstre, 0.3f, proieCachee, {proieCachee, enVue}, carte);
+
+    REQUIRE(monstre.getCentre() == sf::Vector2f(25.0f, 65.0f));
+}
+
+TEST_CASE("Monstre.mettreAJour continue vers sa proie si aucun candidat n'est atteignable") {
+    const TileMap carte = carteAvecPilier();
+    Monstre monstre({25.0f, 65.0f}, 1, 0, 0);
+    const EntiteVue proieCachee{1, {{45.0f, 35.0f}, 10.0f}};
+    const EntiteVue tropLoin{2, {{25.0f, 150.0f}, 10.0f}};
+    monstre.recevoirDegats(1);
+
+    ecoulerTempsAvecCandidats(monstre, 0.3f, proieCachee, {proieCachee, tropLoin}, carte);
+
+    REQUIRE(monstre.getCentre() != sf::Vector2f(25.0f, 65.0f));
+}
+
+TEST_CASE("Monstre le coup engage touche la place choisie et rend les degats") {
+    const TileMap carte = carteAvecPilier();
+    Monstre monstre({30.0f, 60.0f}, 1, 0, 0);
+    const EntiteVue proieCachee{1, pointCible({45.0f, 35.0f})};
+    const EntiteVue enVue{2, pointCible({30.0f, 35.0f})};
+    REQUIRE(monstre.engagerAttaque(proieCachee, {proieCachee, enVue}, carte));
+    Generateur generateur(s_graineDeTest);
+
+    int degats = 0;
+    for (int i = 0; i < nombreDeTics(1.0f) && degats == 0; ++i) {
+        REQUIRE(monstre.cibleEngagee() == 2);
+        degats = monstre.avancerAttaque(s_dureeTic, generateur);
+    }
+
+    REQUIRE(degats == 10);
 }

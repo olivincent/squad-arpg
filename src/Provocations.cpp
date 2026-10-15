@@ -21,8 +21,8 @@ void Provocations::mettreAJour(float dt) {
     std::erase_if(m_provocations, [](const Provocation& p) { return p.tempsRestant <= 0.0f; });
 }
 
-void Provocations::retirerMonstresAbsents(const std::vector<MonstreVu>& monstres) {
-    std::erase_if(m_provocations, [&](const Provocation& p) { return trouverMonstre(monstres, p.id) == nullptr; });
+void Provocations::retirerMonstresAbsents(const std::vector<EntiteVue>& monstres) {
+    std::erase_if(m_provocations, [&](const Provocation& p) { return trouverEntite(monstres, p.id) == nullptr; });
 }
 
 void Provocations::retirerProvocateur(std::size_t place) {

@@ -7,6 +7,7 @@
 #include <vector>
 #include "Aleatoire.hpp"
 #include "Coup.hpp"
+#include "EntiteVue.hpp"
 #include "Escouade.hpp"
 #include "Monstre.hpp"
 #include "Niveau.hpp"
@@ -65,7 +66,8 @@ private:
     // Étapes de mettreAJour(), dans l'ordre où elles sont appelées.
     void resoudreLesCoups(float dt);
     void faireTournerLesMonstres(float dt);
-    void faireFrapperLeMonstre(Monstre& monstre, std::optional<Cercle> proie, float dt);
+    void faireFrapperLeMonstre(Monstre& monstre, std::optional<EntiteVue> proie,
+                               const std::vector<EntiteVue>& candidats, float dt);
     // `enPoursuiteAvant` : statut de chaque monstre de `m_monstres` avant leur mise à jour.
     void alerterLesGroupes(const std::vector<bool>& enPoursuiteAvant);
 

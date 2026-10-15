@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "Autodefense.hpp"
-#include "MonstreVu.hpp"
+#include "EntiteVue.hpp"
 #include "Personnage.hpp"
 
 namespace {
@@ -17,63 +17,63 @@ Personnage personnageDePortee20() {
     return Personnage({0.0f, 0.0f}, sf::Color::Red, Skill(TypeSkill::Degats, 20.0f, 5, 0.5f, 0.5f, 0.0f), std::nullopt, 0);
 }
 
-MonstreVu monstreEn(int id, float x) {
+EntiteVue monstreEn(int id, float x) {
     return {id, {{x, 0.0f}, 15.0f}};
 }
 
 std::optional<int> choisir(const Personnage& personnage,
-                           const std::vector<MonstreVu>& monstres,
-                           std::optional<int> idVerrouille) {
-    return choisirMonstreAFrapper(
-        personnage.getCercle(), [&](Cercle c) { return personnage.estAPortee(c); }, monstres, idVerrouille);
+                           const std::vector<EntiteVue>& monstres,
+                           std::optional<int> idPrefere) {
+    return choisirCibleAFrapper(
+        personnage.getCercle(), [&](Cercle c) { return personnage.estAPortee(c); }, monstres, idPrefere);
 }
 
 }  // namespace
 
-TEST_CASE("choisirMonstreAFrapper : aucun monstre a portee, aucun choix") {
+TEST_CASE("choisirCibleAFrapper : aucun monstre a portee, aucun choix") {
     const Personnage personnage = personnageDePortee20();
 
     REQUIRE_FALSE(choisir(personnage, {}, std::nullopt).has_value());
     REQUIRE_FALSE(choisir(personnage, {monstreEn(1, 100.0f)}, std::nullopt).has_value());
 }
 
-TEST_CASE("choisirMonstreAFrapper : un seul monstre a portee est choisi, sans verrou") {
+TEST_CASE("choisirCibleAFrapper : un seul monstre a portee est choisi, sans verrou") {
     const Personnage personnage = personnageDePortee20();
 
     REQUIRE(choisir(personnage, {monstreEn(7, 40.0f)}, std::nullopt) == 7);
 }
 
-TEST_CASE("choisirMonstreAFrapper : le verrou a portee passe avant un monstre plus proche") {
+TEST_CASE("choisirCibleAFrapper : le verrou a portee passe avant un monstre plus proche") {
     const Personnage personnage = personnageDePortee20();
-    const std::vector<MonstreVu> monstres = {monstreEn(1, 30.0f), monstreEn(2, 44.0f)};
+    const std::vector<EntiteVue> monstres = {monstreEn(1, 30.0f), monstreEn(2, 44.0f)};
 
     REQUIRE(choisir(personnage, monstres, 2) == 2);
 }
 
-TEST_CASE("choisirMonstreAFrapper : verrou hors de portee, le plus proche a portee est choisi") {
+TEST_CASE("choisirCibleAFrapper : verrou hors de portee, le plus proche a portee est choisi") {
     const Personnage personnage = personnageDePortee20();
-    const std::vector<MonstreVu> monstres = {monstreEn(1, 100.0f), monstreEn(2, 44.0f), monstreEn(3, 35.0f)};
+    const std::vector<EntiteVue> monstres = {monstreEn(1, 100.0f), monstreEn(2, 44.0f), monstreEn(3, 35.0f)};
 
     REQUIRE(choisir(personnage, monstres, 1) == 3);
 }
 
-TEST_CASE("choisirMonstreAFrapper : verrou absent de la liste, le plus proche a portee est choisi") {
+TEST_CASE("choisirCibleAFrapper : verrou absent de la liste, le plus proche a portee est choisi") {
     const Personnage personnage = personnageDePortee20();
-    const std::vector<MonstreVu> monstres = {monstreEn(2, 44.0f), monstreEn(3, 35.0f)};
+    const std::vector<EntiteVue> monstres = {monstreEn(2, 44.0f), monstreEn(3, 35.0f)};
 
     REQUIRE(choisir(personnage, monstres, 99) == 3);
 }
 
-TEST_CASE("choisirMonstreAFrapper : plusieurs monstres a portee, le plus proche est choisi") {
+TEST_CASE("choisirCibleAFrapper : plusieurs monstres a portee, le plus proche est choisi") {
     const Personnage personnage = personnageDePortee20();
-    const std::vector<MonstreVu> monstres = {monstreEn(1, 44.0f), monstreEn(2, 30.0f), monstreEn(3, 40.0f)};
+    const std::vector<EntiteVue> monstres = {monstreEn(1, 44.0f), monstreEn(2, 30.0f), monstreEn(3, 40.0f)};
 
     REQUIRE(choisir(personnage, monstres, std::nullopt) == 2);
 }
 
-TEST_CASE("choisirMonstreAFrapper : a egalite, le premier de la liste est choisi") {
+TEST_CASE("choisirCibleAFrapper : a egalite, le premier de la liste est choisi") {
     const Personnage personnage = personnageDePortee20();
-    const std::vector<MonstreVu> monstres = {
+    const std::vector<EntiteVue> monstres = {
         {5, {{30.0f, 0.0f}, 15.0f}},
         {6, {{-30.0f, 0.0f}, 15.0f}},
     };
@@ -86,13 +86,13 @@ TEST_CASE("choisirAgresseurAViser : aucun agresseur, aucun choix") {
 }
 
 TEST_CASE("choisirAgresseurAViser : un agresseur hors de la laisse est ignore") {
-    const std::vector<MonstreVu> agresseurs = {monstreEn(1, 101.0f)};
+    const std::vector<EntiteVue> agresseurs = {monstreEn(1, 101.0f)};
 
     REQUIRE_FALSE(choisirAgresseurAViser({{0.0f, 0.0f}, 10.0f}, {0.0f, 0.0f}, 100.0f, agresseurs).has_value());
 }
 
 TEST_CASE("choisirAgresseurAViser : la laisse se mesure depuis la place, pas depuis le personnage") {
-    const std::vector<MonstreVu> agresseurs = {monstreEn(1, 150.0f)};
+    const std::vector<EntiteVue> agresseurs = {monstreEn(1, 150.0f)};
     const Cercle personnage{{120.0f, 0.0f}, 10.0f};  // loin de sa place, mais proche de l'agresseur
 
     REQUIRE_FALSE(choisirAgresseurAViser(personnage, {0.0f, 0.0f}, 100.0f, agresseurs).has_value());
@@ -100,13 +100,13 @@ TEST_CASE("choisirAgresseurAViser : la laisse se mesure depuis la place, pas dep
 }
 
 TEST_CASE("choisirAgresseurAViser : un agresseur pile a la laisse compte") {
-    const std::vector<MonstreVu> agresseurs = {monstreEn(1, 100.0f)};
+    const std::vector<EntiteVue> agresseurs = {monstreEn(1, 100.0f)};
 
     REQUIRE(choisirAgresseurAViser({{0.0f, 0.0f}, 10.0f}, {0.0f, 0.0f}, 100.0f, agresseurs).has_value());
 }
 
 TEST_CASE("choisirAgresseurAViser : le plus proche du personnage est choisi parmi ceux de la laisse") {
-    const std::vector<MonstreVu> agresseurs = {monstreEn(1, 90.0f), monstreEn(2, 40.0f), monstreEn(3, 150.0f)};
+    const std::vector<EntiteVue> agresseurs = {monstreEn(1, 90.0f), monstreEn(2, 40.0f), monstreEn(3, 150.0f)};
     const auto choix = choisirAgresseurAViser({{0.0f, 0.0f}, 10.0f}, {0.0f, 0.0f}, 100.0f, agresseurs);
 
     REQUIRE(choix.has_value());
@@ -114,7 +114,7 @@ TEST_CASE("choisirAgresseurAViser : le plus proche du personnage est choisi parm
 }
 
 TEST_CASE("choisirAgresseurAViser : a egalite, le premier de la liste est choisi") {
-    const std::vector<MonstreVu> agresseurs = {
+    const std::vector<EntiteVue> agresseurs = {
         {5, {{30.0f, 0.0f}, 15.0f}},
         {6, {{-30.0f, 0.0f}, 15.0f}},
     };

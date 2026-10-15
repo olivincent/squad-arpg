@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <optional>
 #include <vector>
-#include "MonstreVu.hpp"
+#include "EntiteVue.hpp"
 
 // Les monstres provoqués : chacun prend le personnage d'une place pour proie
 // jusqu'à ce que son temps restant tombe à zéro. Ne connaît ni Personnage,
@@ -22,7 +22,7 @@ public:
     // Fait écouler le temps ; retire les provocations échues.
     void mettreAJour(float dt);
     // Retire les monstres absents de la liste (morts).
-    void retirerMonstresAbsents(const std::vector<MonstreVu>& monstres);
+    void retirerMonstresAbsents(const std::vector<EntiteVue>& monstres);
     // Retire toutes les provocations de ce provocateur (mort).
     void retirerProvocateur(std::size_t place);
     // Place du provocateur de ce monstre, vide s'il n'est pas provoqué.

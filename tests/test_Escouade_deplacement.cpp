@@ -248,7 +248,7 @@ TEST_CASE("cerclesDesVivants n'inclut plus le cercle d'un personnage mort") {
     Escouade escouade({50.0f, 50.0f});
     const sf::Vector2f point{1000.0f, 1000.0f};
 
-    const std::optional<Cercle> futurMort = escouade.proieDuMonstre(1, point);
+    const std::optional<EntiteVue> futurMort = escouade.proieDuMonstre(1, point);
     REQUIRE(futurMort.has_value());
 
     escouade.recevoirDegats(1, point, 200);
@@ -256,7 +256,7 @@ TEST_CASE("cerclesDesVivants n'inclut plus le cercle d'un personnage mort") {
 
     REQUIRE(cercles.size() == 3);
     for (const Cercle& cercle : cercles) {
-        REQUIRE_FALSE(cercle.centre == futurMort->centre);
+        REQUIRE_FALSE(cercle.centre == futurMort->cercle.centre);
     }
 }
 

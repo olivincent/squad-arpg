@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include <variant>
-#include "MonstreVu.hpp"
+#include "EntiteVue.hpp"
 #include "Agresseurs.hpp"
 #include "Personnage.hpp"
 #include "Provocations.hpp"
@@ -137,7 +137,7 @@ void Escouade::annulerAttaquesEngagees() {
     }
 }
 
-std::vector<Coup> Escouade::attaquer(float dt, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur) {
+std::vector<Coup> Escouade::attaquer(float dt, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur) {
     actualiserMemoires(monstres);
     engagerSkillDeZoneEnAttente(carte);
 
@@ -153,7 +153,7 @@ std::vector<Coup> Escouade::attaquer(float dt, const std::vector<MonstreVu>& mon
 
 // Un agresseur ou un monstre provoqué absent de la liste est mort : on
 // l'oublie ; le cercle des agresseurs restants est mis à jour.
-void Escouade::actualiserMemoires(const std::vector<MonstreVu>& monstres) {
+void Escouade::actualiserMemoires(const std::vector<EntiteVue>& monstres) {
     m_agresseurs.actualiser(monstres);
     m_provocations.retirerMonstresAbsents(monstres);
 }
@@ -183,11 +183,11 @@ bool Escouade::tousLesVivantsAtteignent(Cercle cible, const TileMap& carte) cons
 // Approche du monstre verrouillé, s'il y en a un dans la liste : mémorise son
 // cercle, et l'ancre avance tant qu'un vivant ne l'atteint pas. Renvoie ce
 // cercle ; vide sans verrou ou si le monstre est absent de la liste.
-std::optional<Cercle> Escouade::approcherVerrou(const std::vector<MonstreVu>& monstres, const TileMap& carte) {
+std::optional<Cercle> Escouade::approcherVerrou(const std::vector<EntiteVue>& monstres, const TileMap& carte) {
     if (!m_cibleVerrouillee.has_value()) {
         return std::nullopt;
     }
-    const MonstreVu* verrou = trouverMonstre(monstres, *m_cibleVerrouillee);
+    const EntiteVue* verrou = trouverEntite(monstres, *m_cibleVerrouillee);
     if (verrou == nullptr) {
         return std::nullopt;
     }
@@ -218,7 +218,7 @@ void Escouade::engagerSkillDeDegatsEnAttente(Cercle cible, const TileMap& carte)
 
 // Fait avancer l'activation de chaque skill engagé ; les coups de ceux qui
 // partent à cet appel sont renvoyés.
-std::vector<Coup> Escouade::avancerSkills(float dt, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur) {
+std::vector<Coup> Escouade::avancerSkills(float dt, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur) {
     std::vector<Coup> coups;
     for (std::size_t i = 0; i < m_personnages.size(); ++i) {
         const std::vector<Coup> coupsDuSkill = avancerSkillDe(i, dt, monstres, carte, generateur);
@@ -231,7 +231,7 @@ std::vector<Coup> Escouade::avancerSkills(float dt, const std::vector<MonstreVu>
 // lanceur ou la disparition de sa cible (monstre ou allié mort). Au départ,
 // l'effet est évalué à ce moment (effetDuSkill). Les ordres du joueur ne
 // l'annulent pas.
-std::vector<Coup> Escouade::avancerSkillDe(std::size_t indice, float dt, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur) {
+std::vector<Coup> Escouade::avancerSkillDe(std::size_t indice, float dt, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur) {
     Personnage& lanceur = m_personnages[indice];
     const std::optional<ActionEngagee> action = lanceur.skillEngage();
     if (!action.has_value()) {
@@ -240,7 +240,7 @@ std::vector<Coup> Escouade::avancerSkillDe(std::size_t indice, float dt, const s
 
     const bool cibleDisparue = action->cible.has_value() && std::visit(
         Surcharges{
-            [&](const CibleMonstre& monstre) { return trouverMonstre(monstres, monstre.id) == nullptr; },
+            [&](const CibleMonstre& monstre) { return trouverEntite(monstres, monstre.id) == nullptr; },
             [&](const CibleAllie& allie) { return !placeEstVivante(allie.place); },
             [](const CiblePoint&) { return false; },
         },
@@ -259,7 +259,7 @@ std::vector<Coup> Escouade::avancerSkillDe(std::size_t indice, float dt, const s
 
 // Effet d'un skill qui part, évalué au moment du départ. La provocation et le
 // soin sont appliqués ici ; les dégâts et la zone sortent en `Coup`.
-std::vector<Coup> Escouade::effetDuSkill(std::size_t place, const std::optional<Cible>& cible, int puissance, const std::vector<MonstreVu>& monstres, const TileMap& carte) {
+std::vector<Coup> Escouade::effetDuSkill(std::size_t place, const std::optional<Cible>& cible, int puissance, const std::vector<EntiteVue>& monstres, const TileMap& carte) {
     const Personnage& lanceur = personnageDeLaPlace(place);
 
     // Provocation (sans cible) : zone centrée sur le lanceur ; touche les
@@ -267,7 +267,7 @@ std::vector<Coup> Escouade::effetDuSkill(std::size_t place, const std::optional<
     // est la durée.
     if (!cible.has_value()) {
         const Cercle zone = lanceur.zoneDuSkill();
-        for (const MonstreVu& monstre : monstres) {
+        for (const EntiteVue& monstre : monstres) {
             if (distanceBordABord(zone, monstre.cercle) == 0.0f && carte.ligneDeVue(lanceur.getCentre(), monstre.cercle.centre)) {
                 provoquer(monstre.id, place, static_cast<float>(puissance));
             }
@@ -287,7 +287,7 @@ std::vector<Coup> Escouade::effetDuSkill(std::size_t place, const std::optional<
             [&](const CiblePoint& point) -> std::vector<Coup> {
                 const Cercle zone{point.point, lanceur.zoneDuSkill().rayon};
                 std::vector<Coup> coups;
-                for (const MonstreVu& monstre : monstres) {
+                for (const EntiteVue& monstre : monstres) {
                     if (distanceBordABord(zone, monstre.cercle) == 0.0f && carte.ligneDeVue(point.point, monstre.cercle.centre)) {
                         coups.push_back({monstre.id, puissance});
                     }
@@ -304,15 +304,15 @@ std::vector<Coup> Escouade::effetDuSkill(std::size_t place, const std::optional<
 // d'exécution, même si la cible a bougé entre-temps. Le coup engagé n'est
 // annulé que par la mort de son auteur ou la disparition de sa cible (et par
 // un ordre du joueur ou un skill, voir allerVers et Personnage).
-std::vector<Coup> Escouade::autodefense(float dt, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur) {
+std::vector<Coup> Escouade::autodefense(float dt, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur) {
     std::vector<Coup> coups;
     for (std::size_t i = 0; i < m_personnages.size(); ++i) {
         Personnage& personnage = m_personnages[i];
-        const std::optional<int> id = choisirMonstreAFrapper(
+        const std::optional<int> id = choisirCibleAFrapper(
             personnage.getCercle(), [&](Cercle c) { return peutAtteindre(personnage, TypeAction::AttaqueDeBase, c, carte); }, monstres, m_cibleVerrouillee);
         m_monstreAPortee[i] = id.has_value();
         if (const std::optional<int> idEngage = personnage.cibleEngagee()) {
-            if (!personnage.estVivant() || trouverMonstre(monstres, *idEngage) == nullptr) {
+            if (!personnage.estVivant() || trouverEntite(monstres, *idEngage) == nullptr) {
                 personnage.annulerAttaque();
             } else if (const int degats = personnage.avancerAttaque(dt, generateur); degats > 0) {
                 coups.push_back({*idEngage, degats});
@@ -326,7 +326,7 @@ std::vector<Coup> Escouade::autodefense(float dt, const std::vector<MonstreVu>& 
     return coups;
 }
 
-std::vector<Coup> Escouade::declencherSkill(std::size_t place, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur) {
+std::vector<Coup> Escouade::declencherSkill(std::size_t place, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur) {
     if (!placeValide(place)) {
         return {};
     }
@@ -421,7 +421,7 @@ bool Escouade::peutLancerAuPoint(std::size_t place, sf::Vector2f point, const Ti
     return peutAtteindre(personnageDeLaPlace(place), TypeAction::Skill, Cercle{point, 0.0f}, carte);
 }
 
-std::vector<Coup> Escouade::declencherSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur) {
+std::vector<Coup> Escouade::declencherSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur) {
     if (!placeValide(place) || !skillEstPret(place) || m_skillEnAttente.has_value()) {
         return {};
     }
@@ -498,7 +498,7 @@ std::optional<sf::Vector2f> Escouade::avancerSkillEnAttente(const TileMap& carte
 // Point à viser pour un personnage vivant qui a un agresseur dans sa laisse :
 // son propre centre s'il a déjà un monstre à portée (il reste sur place),
 // sinon le centre de l'agresseur le plus proche. Vide : il vise sa place.
-std::optional<sf::Vector2f> Escouade::pointVersAgresseur(std::size_t indice, const std::vector<MonstreVu>& agresseurs) const {
+std::optional<sf::Vector2f> Escouade::pointVersAgresseur(std::size_t indice, const std::vector<EntiteVue>& agresseurs) const {
     const std::optional<Cercle> cible = choisirAgresseurAViser(
         m_personnages[indice].getCercle(), m_places[indice], s_laisseAgresseur, agresseurs);
     if (!cible.has_value()) {
@@ -519,7 +519,7 @@ std::optional<sf::Vector2f> Escouade::pointVersAgresseur(std::size_t indice, con
 //    (l'ordre du joueur gagne : ancre en mouvement, il garde sa place) ;
 // 4. sinon sa place en formation.
 sf::Vector2f Escouade::pointVoulu(std::size_t indice, const std::optional<sf::Vector2f>& pointSkill, bool ancreArretee,
-                                  const std::vector<MonstreVu>& agresseurs, const TileMap& carte) const {
+                                  const std::vector<EntiteVue>& agresseurs, const TileMap& carte) const {
     const Personnage& personnage = m_personnages[indice];
     if (personnage.estEnExecution()) {
         return personnage.getCentre();  // un coup ou un skill en exécution : il reste sur place
@@ -581,7 +581,7 @@ void Escouade::mettreAJour(float dt, const TileMap& carte, const std::vector<Cer
     }
 
     ecoulerMemoires(dt);
-    const std::vector<MonstreVu> agresseurs = m_agresseurs.monstresVus();  // une fois par image, pour tous les personnages
+    const std::vector<EntiteVue> agresseurs = m_agresseurs.monstresVus();  // une fois par image, pour tous les personnages
 
     // L'ancre n'est pas bloquée par les obstacles : seuls les personnages le sont.
     m_mobile.mettreAJour(dt, carte, {});
@@ -632,20 +632,26 @@ std::optional<std::size_t> Escouade::indiceProieDuMonstre(int idMonstre, sf::Vec
     return indicePersonnageLePlusProche(positionMonstre);
 }
 
-std::optional<Cercle> Escouade::proieDuMonstre(int idMonstre, sf::Vector2f positionMonstre) const {
+std::optional<EntiteVue> Escouade::proieDuMonstre(int idMonstre, sf::Vector2f positionMonstre) const {
     const std::optional<std::size_t> indice = indiceProieDuMonstre(idMonstre, positionMonstre);
     if (!indice.has_value()) {
         return std::nullopt;
     }
-    return m_personnages[*indice].getCercle();
+    return EntiteVue{static_cast<int>(*indice + 1), m_personnages[*indice].getCercle()};
 }
 
-std::optional<std::size_t> Escouade::placeDeLaProie(int idMonstre, sf::Vector2f positionMonstre) const {
-    const std::optional<std::size_t> indice = indiceProieDuMonstre(idMonstre, positionMonstre);
-    if (!indice.has_value()) {
-        return std::nullopt;
+std::vector<EntiteVue> Escouade::candidatsDeFrappe(int idMonstre) const {
+    const std::optional<std::size_t> provocateur = m_provocations.provocateurDe(idMonstre);
+    if (provocateur.has_value() && personnageDeLaPlace(*provocateur).estVivant()) {
+        return {EntiteVue{static_cast<int>(*provocateur), personnageDeLaPlace(*provocateur).getCercle()}};
     }
-    return *indice + 1;
+    std::vector<EntiteVue> candidats;
+    for (std::size_t i = 0; i < m_personnages.size(); ++i) {
+        if (m_personnages[i].estVivant()) {
+            candidats.push_back(EntiteVue{static_cast<int>(i + 1), m_personnages[i].getCercle()});
+        }
+    }
+    return candidats;
 }
 
 bool Escouade::placeEstVivante(std::size_t place) const {
@@ -653,11 +659,11 @@ bool Escouade::placeEstVivante(std::size_t place) const {
 }
 
 void Escouade::recevoirDegats(int idMonstre, sf::Vector2f origine, int quantite) {
-    const std::optional<std::size_t> place = placeDeLaProie(idMonstre, origine);
-    if (!place.has_value()) {
+    const std::optional<EntiteVue> proie = proieDuMonstre(idMonstre, origine);
+    if (!proie.has_value()) {
         return;
     }
-    recevoirCoup(idMonstre, *place, origine, quantite);
+    recevoirCoup(idMonstre, static_cast<std::size_t>(proie->id), origine, quantite);
 }
 
 void Escouade::recevoirCoup(int idMonstre, std::size_t place, sf::Vector2f origine, int quantite) {
@@ -707,7 +713,7 @@ std::vector<Cercle> Escouade::cerclesDesVivants() const {
     return cercles;
 }
 
-std::optional<Cible> Escouade::choisirCible(TypeSkill type, std::size_t place, const std::vector<MonstreVu>& monstres, const TileMap& carte) const {
+std::optional<Cible> Escouade::choisirCible(TypeSkill type, std::size_t place, const std::vector<EntiteVue>& monstres, const TileMap& carte) const {
     // Skills de zone, sans cible.
     if (type == TypeSkill::Provocation || type == TypeSkill::Zone) {
         return std::nullopt;
@@ -715,7 +721,7 @@ std::optional<Cible> Escouade::choisirCible(TypeSkill type, std::size_t place, c
     if (type == TypeSkill::Degats) {
         // Avec un verrou : le monstre verrouillé, à portée ou non.
         if (m_cibleVerrouillee.has_value()) {
-            const MonstreVu* verrou = trouverMonstre(monstres, *m_cibleVerrouillee);
+            const EntiteVue* verrou = trouverEntite(monstres, *m_cibleVerrouillee);
             if (verrou == nullptr) {
                 return std::nullopt;
             }
@@ -728,12 +734,12 @@ std::optional<Cible> Escouade::choisirCible(TypeSkill type, std::size_t place, c
             return std::nullopt;
         }
         const Personnage& lanceur = personnageDeLaPlace(place);
-        const std::optional<int> id = choisirMonstreAFrapper(
+        const std::optional<int> id = choisirCibleAFrapper(
             lanceur.getCercle(), [&](Cercle c) { return peutAtteindre(lanceur, TypeAction::Skill, c, carte); }, monstres, std::nullopt);
         if (!id.has_value()) {
             return std::nullopt;
         }
-        const MonstreVu* cible = trouverMonstre(monstres, *id);
+        const EntiteVue* cible = trouverEntite(monstres, *id);
         if (cible == nullptr) {
             return std::nullopt;
         }

@@ -4,7 +4,7 @@
 
 #include "aides.hpp"
 #include "Agresseurs.hpp"
-#include "MonstreVu.hpp"
+#include "EntiteVue.hpp"
 
 TEST_CASE("Agresseurs vide : aucun agresseur") {
     const Agresseurs agresseurs;
@@ -59,7 +59,7 @@ TEST_CASE("Agresseurs.actualiser oublie les absents et met a jour le cercle des 
     agresseurs.enregistrer(7, {300.0f, 60.0f});
     agresseurs.enregistrer(8, {310.0f, 60.0f});
 
-    agresseurs.actualiser({MonstreVu{8, cibleMonstre({320.0f, 70.0f})}});
+    agresseurs.actualiser({EntiteVue{8, cibleMonstre({320.0f, 70.0f})}});
 
     REQUIRE(agresseurs.liste().size() == 1);
     REQUIRE(agresseurs.liste()[0].monstre.id == 8);
@@ -81,7 +81,7 @@ TEST_CASE("Agresseurs.monstresVus renvoie les agresseurs dans l'ordre d'enregist
     agresseurs.enregistrer(7, {300.0f, 60.0f});
     agresseurs.enregistrer(8, {310.0f, 60.0f});
 
-    const std::vector<MonstreVu> vus = agresseurs.monstresVus();
+    const std::vector<EntiteVue> vus = agresseurs.monstresVus();
 
     REQUIRE(vus.size() == 2);
     REQUIRE(vus[0].id == 7);

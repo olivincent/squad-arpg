@@ -4,7 +4,7 @@
 #include <optional>
 #include <vector>
 
-#include "MonstreVu.hpp"
+#include "EntiteVue.hpp"
 #include "Provocations.hpp"
 
 TEST_CASE("Provocations vide : aucune provocation, aucun provocateur") {
@@ -61,7 +61,7 @@ TEST_CASE("Provocations.retirerMonstresAbsents ne garde que les monstres present
     provocations.provoquer(7, 2, 4.0f);
     provocations.provoquer(8, 2, 4.0f);
 
-    provocations.retirerMonstresAbsents({MonstreVu{8, {{0.0f, 0.0f}, 15.0f}}});
+    provocations.retirerMonstresAbsents({EntiteVue{8, {{0.0f, 0.0f}, 15.0f}}});
 
     REQUIRE(provocations.liste().size() == 1);
     REQUIRE(provocations.liste()[0].id == 8);

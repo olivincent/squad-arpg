@@ -3,7 +3,7 @@
 #include <algorithm>
 #include "Cercle.hpp"
 #include "Coup.hpp"
-#include "MonstreVu.hpp"
+#include "EntiteVue.hpp"
 
 Partie::Partie(const Niveau& niveau, Generateur::result_type graine)
     : m_carte(niveau.plan, niveau.tailleCase), m_escouade(niveau.departEscouade), m_generateur(graine) {
@@ -64,7 +64,7 @@ void Partie::resoudreLesCoups(float dt) {
         idVerrouille.reset();
     }
 
-    std::vector<MonstreVu> monstresVus;
+    std::vector<EntiteVue> monstresVus;
     for (const Monstre& m : m_monstres) {
         monstresVus.push_back({m.getId(), m.getCercle()});
     }
@@ -115,9 +115,10 @@ void Partie::faireTournerLesMonstres(float dt) {
                 obstacles.push_back(autre.getCercle());
             }
         }
-        const auto cible = m_escouade.proieDuMonstre(m.getId(), m.getCentre());
-        m.mettreAJour(dt, cible, m_carte, obstacles);
-        faireFrapperLeMonstre(m, cible, dt);
+        const std::optional<EntiteVue> proie = m_escouade.proieDuMonstre(m.getId(), m.getCentre());
+        const std::vector<EntiteVue> candidats = m_escouade.candidatsDeFrappe(m.getId());
+        m.mettreAJour(dt, proie, candidats, m_carte, obstacles);
+        faireFrapperLeMonstre(m, proie, candidats, dt);
     }
 
     alerterLesGroupes(enPoursuiteAvant);
@@ -143,9 +144,10 @@ void Partie::alerterLesGroupes(const std::vector<bool>& enPoursuiteAvant) {
 // Un coup engagé part toujours à la fin de son exécution, sur le personnage
 // visé à l'engagement (même si une provocation a changé la proie entre-temps).
 // Seule la mort de ce personnage l'annule. Sinon, un monstre immobile avec une
-// proie à portée engage un coup.
-void Partie::faireFrapperLeMonstre(Monstre& monstre, std::optional<Cercle> proie, float dt) {
-    if (const std::optional<int> place = monstre.proieEngagee()) {
+// cible de frappe (proie ou autre candidat) engage un coup.
+void Partie::faireFrapperLeMonstre(Monstre& monstre, std::optional<EntiteVue> proie,
+                                   const std::vector<EntiteVue>& candidats, float dt) {
+    if (const std::optional<int> place = monstre.cibleEngagee()) {
         const std::size_t placeVisee = static_cast<std::size_t>(*place);
         if (!m_escouade.placeEstVivante(placeVisee)) {
             monstre.annulerAttaque();
@@ -154,12 +156,7 @@ void Partie::faireFrapperLeMonstre(Monstre& monstre, std::optional<Cercle> proie
         }
         return;
     }
-    if (!proie) {
-        return;
-    }
-    if (const std::optional<std::size_t> place = m_escouade.placeDeLaProie(monstre.getId(), monstre.getCentre())) {
-        monstre.engagerAttaque(*proie, static_cast<int>(*place), m_carte);
-    }
+    monstre.engagerAttaque(proie, candidats, m_carte);
 }
 
 bool Partie::estPerdue() const {

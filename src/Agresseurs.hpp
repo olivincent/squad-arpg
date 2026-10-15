@@ -2,7 +2,7 @@
 #pragma once
 #include <SFML/System/Vector2.hpp>
 #include <vector>
-#include "MonstreVu.hpp"
+#include "EntiteVue.hpp"
 
 // Les monstres qui viennent de frapper l'escouade, retenus jusqu'à ce que
 // leur temps restant tombe à zéro. Ne connaît ni Personnage, ni Monstre, ni
@@ -10,7 +10,7 @@
 class Agresseurs {
 public:
     struct Agresseur {
-        MonstreVu monstre;   // cercle à jour à chaque actualiser() ; centre seul (rayon nul) à l'enregistrement
+        EntiteVue monstre;   // cercle à jour à chaque actualiser() ; centre seul (rayon nul) à l'enregistrement
         float tempsRestant;  // en secondes, remis au maximum à chaque coup reçu
     };
 
@@ -20,9 +20,9 @@ public:
     // Fait écouler le temps ; oublie les agresseurs échus.
     void mettreAJour(float dt);
     // Oublie les agresseurs absents de la liste (morts) et met à jour le cercle des autres.
-    void actualiser(const std::vector<MonstreVu>& monstres);
+    void actualiser(const std::vector<EntiteVue>& monstres);
     // Les agresseurs sous la forme où l'escouade voit un monstre.
-    [[nodiscard]] std::vector<MonstreVu> monstresVus() const;
+    [[nodiscard]] std::vector<EntiteVue> monstresVus() const;
     [[nodiscard]] const std::vector<Agresseur>& liste() const;
 
 private:

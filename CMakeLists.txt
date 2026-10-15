@@ -34,7 +34,7 @@ add_library(squad_core STATIC
     src/Autodefense.cpp
     src/BarreDeSkills.cpp
     src/EcranDeFin.cpp
-    src/MonstreVu.cpp
+    src/EntiteVue.cpp
     src/BarreDeVie.cpp
     src/Eclaircir.cpp
     src/PointsDeVie.cpp
@@ -83,7 +83,7 @@ add_executable(tests
     tests/test_Cercle.cpp
     tests/test_Autodefense.cpp
     tests/test_BarreDeSkills.cpp
-    tests/test_MonstreVu.cpp
+    tests/test_EntiteVue.cpp
     tests/test_BarreDeVie.cpp
     tests/test_Eclaircir.cpp
     tests/test_PointsDeVie.cpp

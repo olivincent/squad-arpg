@@ -1,23 +1,23 @@
 // ./src/Autodefense.cpp
 #include "Autodefense.hpp"
 
-std::optional<int> choisirMonstreAFrapper(Cercle origine,
+std::optional<int> choisirCibleAFrapper(Cercle origine,
                                           const std::function<bool(Cercle)>& estAPortee,
-                                          const std::vector<MonstreVu>& monstres,
-                                          std::optional<int> idVerrouille) {
+                                          const std::vector<EntiteVue>& entites,
+                                          std::optional<int> idPrefere) {
     std::optional<int> meilleur;
     float meilleurEcart = 0.0f;
 
-    for (const MonstreVu& monstre : monstres) {
-        if (!estAPortee(monstre.cercle)) {
+    for (const EntiteVue& entite : entites) {
+        if (!estAPortee(entite.cercle)) {
             continue;
         }
-        if (idVerrouille && monstre.id == *idVerrouille) {
-            return monstre.id;
+        if (idPrefere && entite.id == *idPrefere) {
+            return entite.id;
         }
-        const float ecart = distanceBordABord(origine, monstre.cercle);
+        const float ecart = distanceBordABord(origine, entite.cercle);
         if (!meilleur || ecart < meilleurEcart) {
-            meilleur = monstre.id;
+            meilleur = entite.id;
             meilleurEcart = ecart;
         }
     }
@@ -27,11 +27,11 @@ std::optional<int> choisirMonstreAFrapper(Cercle origine,
 std::optional<Cercle> choisirAgresseurAViser(Cercle personnage,
                                              sf::Vector2f place,
                                              float laisse,
-                                             const std::vector<MonstreVu>& agresseurs) {
+                                             const std::vector<EntiteVue>& agresseurs) {
     std::optional<Cercle> meilleur;
     float meilleurEcart = 0.0f;
 
-    for (const MonstreVu& agresseur : agresseurs) {
+    for (const EntiteVue& agresseur : agresseurs) {
         if ((agresseur.cercle.centre - place).length() > laisse) {
             continue;
         }
