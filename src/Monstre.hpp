@@ -24,8 +24,11 @@ public:
     // `proie` est le personnage que le monstre poursuit (sans dépendre de la vue) ;
     // `candidats` sont ceux qu'il peut frapper (identifiant = place du personnage).
     // Il s'arrête dès qu'il a une cible de frappe (voir `engagerAttaque`).
+    // `obstacles` le bloquent (collision) ; `aContourner` est ce que son chemin évite (voir `Mobile::allerVers`) :
+    // les autres monstres, pas les personnages (un personnage sur le chemin est quelqu'un à frapper).
     void mettreAJour(float dt, std::optional<EntiteVue> proie, const std::vector<EntiteVue>& candidats,
-                     const TileMap& carte, const std::vector<Cercle>& obstacles);
+                     const TileMap& carte, const std::vector<Cercle>& obstacles,
+                     const std::vector<Cercle>& aContourner);
     // Attaque en trois temps, comme celle d'un personnage : engager (cible à
     // portée et en vue, monstre immobile, attaque prête) ; avancer l'exécution, qui rend
     // les dégâts au départ du coup ; annuler, sans recharge consommée.

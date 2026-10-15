@@ -109,15 +109,18 @@ void Partie::faireTournerLesMonstres(float dt) {
 
     for (Monstre& m : m_monstres) {
         // Les autres monstres, à leur position courante, sont aussi des obstacles.
+        // Ils sont aussi à contourner par le chemin, contrairement aux personnages.
         std::vector<Cercle> obstacles = cerclesPersonnages;
+        std::vector<Cercle> autresMonstres;
         for (const Monstre& autre : m_monstres) {
             if (autre.getId() != m.getId()) {
-                obstacles.push_back(autre.getCercle());
+                autresMonstres.push_back(autre.getCercle());
             }
         }
+        obstacles.insert(obstacles.end(), autresMonstres.begin(), autresMonstres.end());
         const std::optional<EntiteVue> proie = m_escouade.proieDuMonstre(m.getId(), m.getCentre());
         const std::vector<EntiteVue> candidats = m_escouade.candidatsDeFrappe(m.getId());
-        m.mettreAJour(dt, proie, candidats, m_carte, obstacles);
+        m.mettreAJour(dt, proie, candidats, m_carte, obstacles, autresMonstres);
         faireFrapperLeMonstre(m, proie, candidats, dt);
     }
 

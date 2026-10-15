@@ -126,7 +126,8 @@ std::optional<EntiteVue> Monstre::cibleDeFrappe(const std::optional<EntiteVue>& 
 }
 
 void Monstre::mettreAJour(float dt, std::optional<EntiteVue> proie, const std::vector<EntiteVue>& candidats,
-                          const TileMap& carte, const std::vector<Cercle>& obstacles) {
+                          const TileMap& carte, const std::vector<Cercle>& obstacles,
+                          const std::vector<Cercle>& aContourner) {
     m_attaque.mettreAJour(dt);
 
     // Un coup en exécution : le monstre reste sur place, ni poursuite ni
@@ -167,14 +168,18 @@ void Monstre::mettreAJour(float dt, std::optional<EntiteVue> proie, const std::v
 
     if (m_etat == Etat::Retour && etatPrecedent != Etat::Retour) {
         m_mobile.arreter();
-        m_mobile.allerVers(m_poste, carte);
+        m_mobile.allerVers(m_poste, carte, aContourner);
+    } else if (m_etat == Etat::Retour && m_mobile.estBloque()) {
+        // Bloqué en rentrant : le chemin choisi à l'entrée en retour ignorait l'obstacle qui gêne
+        // maintenant. allerVers remet le compteur à zéro : au plus un recalcul toutes les 0,3 s.
+        m_mobile.allerVers(m_poste, carte, aContourner);
     }
 
     if (m_etat == Etat::Poursuite) {
         if (cibleDeFrappe(proie, candidats, carte)) {
             m_mobile.arreter();
         } else {
-            m_mobile.allerVers(proie->cercle.centre, carte);
+            m_mobile.allerVers(proie->cercle.centre, carte, aContourner);
         }
     }
 

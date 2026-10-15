@@ -39,7 +39,8 @@ TileMap carteAvecMur() {
 
 // Simule le temps qui passe par tics de 1/60 s, comme dans main.cpp.
 // La cible est à la fois la proie (place 1) et l'unique candidat de frappe.
-void ecoulerTemps(Monstre& monstre, float duree, std::optional<Cercle> cible, const TileMap& carte) {
+void ecoulerTemps(Monstre& monstre, float duree, std::optional<Cercle> cible, const TileMap& carte,
+                  const std::vector<Cercle>& obstacles = {}, const std::vector<Cercle>& aContourner = {}) {
     std::optional<EntiteVue> proie;
     std::vector<EntiteVue> candidats;
     if (cible) {
@@ -48,7 +49,7 @@ void ecoulerTemps(Monstre& monstre, float duree, std::optional<Cercle> cible, co
     }
     const int nombreTics = nombreDeTics(duree);
     for (int i = 0; i < nombreTics; ++i) {
-        monstre.mettreAJour(s_dureeTic, proie, candidats, carte, {});
+        monstre.mettreAJour(s_dureeTic, proie, candidats, carte, obstacles, aContourner);
     }
 }
 
@@ -677,7 +678,7 @@ void ecoulerTempsAvecCandidats(Monstre& monstre, float duree, std::optional<Enti
                                const std::vector<EntiteVue>& candidats, const TileMap& carte) {
     const int nombreTics = nombreDeTics(duree);
     for (int i = 0; i < nombreTics; ++i) {
-        monstre.mettreAJour(s_dureeTic, proie, candidats, carte, {});
+        monstre.mettreAJour(s_dureeTic, proie, candidats, carte, {}, {});
     }
 }
 
@@ -763,4 +764,53 @@ TEST_CASE("Monstre le coup engage touche la place choisie et rend les degats") {
     }
 
     REQUIRE(degats == 10);
+}
+
+TEST_CASE("Monstre en poursuite contourne un autre monstre immobile") {
+    const TileMap carte = carteDegagee10x10();
+    const std::vector<Cercle> autre = {{{150.0f, 200.0f}, 15.0f}};
+    Monstre monstre({60.0f, 200.0f}, 1, 0, 0);
+
+    ecoulerTemps(monstre, 6.0f, pointCible({240.0f, 200.0f}), carte, autre, autre);
+
+    REQUIRE(monstre.getCentre().x > 150.0f); // passé de l'autre côté de l'autre monstre
+}
+
+TEST_CASE("Monstre en poursuite sans cercle a contourner reste bloque derriere un autre monstre") {
+    const TileMap carte = carteDegagee10x10();
+    const std::vector<Cercle> autre = {{{150.0f, 200.0f}, 15.0f}};
+    Monstre monstre({60.0f, 200.0f}, 1, 0, 0);
+
+    ecoulerTemps(monstre, 6.0f, pointCible({240.0f, 200.0f}), carte, autre, {});
+
+    REQUIRE(monstre.getCentre().x <= 120.0f);
+}
+
+TEST_CASE("Monstre ne contourne pas un personnage entre lui et sa proie : il s'arrete pour le frapper") {
+    const TileMap carte = carteDegagee10x10();
+    Monstre monstre({60.0f, 200.0f}, 1, 0, 0);
+    const EntiteVue proie{1, pointCible({240.0f, 200.0f})};
+    const EntiteVue devant{2, {{110.0f, 200.0f}, 10.0f}};
+    const std::vector<EntiteVue> candidats = {proie, devant};
+    const std::vector<Cercle> obstacles = {proie.cercle, devant.cercle};
+
+    for (int i = 0; i < nombreDeTics(3.0f); ++i) {
+        monstre.mettreAJour(s_dureeTic, proie, candidats, carte, obstacles, {});
+    }
+
+    REQUIRE(monstre.getCentre().x < 110.0f);
+    REQUIRE(monstre.engagerAttaque(proie, candidats, carte));
+    REQUIRE(monstre.cibleEngagee() == 2);
+}
+
+TEST_CASE("Monstre en retour bloque par un autre monstre recalcule et rentre a son poste") {
+    const TileMap carte = carteLongue();
+    Monstre monstre({100.0f, 100.0f}, 1, 0, 0);
+    amenerEnRetourHorsTerritoire(monstre, carte);
+
+    // Un autre monstre se place en travers du retour, après le choix du chemin.
+    const std::vector<Cercle> autre = {{{monstre.getCentre().x - 80.0f, 100.0f}, 15.0f}};
+    ecoulerTemps(monstre, 10.0f, std::nullopt, carte, autre, autre);
+
+    verifierPointProche(monstre.getCentre(), {100.0f, 100.0f});
 }
