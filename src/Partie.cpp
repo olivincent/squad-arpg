@@ -18,7 +18,7 @@ ResultatClic Partie::cliquer(sf::Vector2f point) {
         return ResultatClic::Ignore;
     }
     const auto it = std::find_if(m_monstres.begin(), m_monstres.end(), [&](const Monstre& m) {
-        return m.contient(point);
+        return m.estCiblable() && m.contient(point);
     });
     if (it != m_monstres.end()) {
         m_escouade.verrouiller(it->getId());
@@ -48,6 +48,24 @@ Monstre* Partie::trouverMonstre(int id) {
     return it == m_monstres.end() ? nullptr : &*it;
 }
 
+std::vector<EntiteVue> Partie::entitesCiblables() const {
+    std::vector<EntiteVue> entites;
+    for (const Monstre& m : m_monstres) {
+        if (m.estCiblable()) {
+            entites.push_back({m.getId(), m.getCercle()});
+        }
+    }
+    return entites;
+}
+
+std::vector<EntiteVue> Partie::entitesPhysiques() const {
+    std::vector<EntiteVue> entites;
+    for (const Monstre& m : m_monstres) {
+        entites.push_back({m.getId(), m.getCercle()});
+    }
+    return entites;
+}
+
 void Partie::appliquer(const std::vector<Coup>& coups) {
     for (const Coup& coup : coups) {
         if (Monstre* touche = trouverMonstre(coup.idMonstre)) {
@@ -57,17 +75,17 @@ void Partie::appliquer(const std::vector<Coup>& coups) {
 }
 
 void Partie::resoudreLesCoups(float dt) {
-    // Monstre verrouillé : vide s'il n'y en a pas, ou s'il a disparu.
+    // Monstre verrouillé : vide s'il n'y en a pas, s'il a disparu ou s'il rentre à son poste.
     std::optional<int> idVerrouille = m_escouade.getCibleVerrouillee();
-    if (idVerrouille.has_value() && trouverMonstre(*idVerrouille) == nullptr) {
-        m_escouade.deverrouiller();
-        idVerrouille.reset();
+    if (idVerrouille.has_value()) {
+        const Monstre* verrouille = trouverMonstre(*idVerrouille);
+        if (verrouille == nullptr || !verrouille->estCiblable()) {
+            m_escouade.deverrouiller();
+            idVerrouille.reset();
+        }
     }
 
-    std::vector<EntiteVue> monstresVus;
-    for (const Monstre& m : m_monstres) {
-        monstresVus.push_back({m.getId(), m.getCercle()});
-    }
+    const std::vector<EntiteVue> monstresVus = entitesCiblables();
 
     // Lancer du skill de zone : réussi ou refusé, la demande est consommée.
     if (m_lancerDeZoneDemande.has_value()) {
@@ -184,12 +202,9 @@ void Partie::mettreAJour(float dt) {
         m_escouade.allerVers(*m_deplacementOrdonne, m_carte);
     }
 
-    // Les monstres (à leur position de l'image précédente) sont des obstacles pour les personnages.
-    std::vector<EntiteVue> monstresVus;
-    for (const Monstre& m : m_monstres) {
-        monstresVus.push_back({m.getId(), m.getCercle()});
-    }
-    m_escouade.mettreAJour(dt, m_carte, monstresVus);
+    // Tous les monstres (à leur position de l'image précédente), même ceux qui rentrent à leur
+    // poste, sont des obstacles pour les personnages.
+    m_escouade.mettreAJour(dt, m_carte, entitesPhysiques());
     faireTournerLesMonstres(dt);
 
     m_lancerDeZoneDemande.reset();

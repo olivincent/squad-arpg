@@ -1,11 +1,14 @@
 // ./tests/test_Partie.cpp
 #include <catch2/catch_test_macros.hpp>
 #include <SFML/System/Vector2.hpp>
+#include <algorithm>
 #include <optional>
 #include <string>
 #include <vector>
 
 #include "aides.hpp"
+#include "Cercle.hpp"
+#include "Monstre.hpp"
 #include "Niveau.hpp"
 #include "Partie.hpp"
 
@@ -380,4 +383,116 @@ TEST_CASE("un monstre provoque ne frappe que son provocateur") {
         }
     }
     REQUIRE(aFrappeLeProvocateur);
+}
+
+// Retour au poste (étape 69). Couloir dégagé de 60 × 15 cases de 40 px (2400 × 600) : le
+// monstre est à son poste (400, 300), l'escouade en (560, 300), à 160 px de lui. L'escouade
+// s'enfuit vers l'est : le monstre la poursuit jusqu'à 600 px de son poste (x = 1000), puis
+// abandonne et rentre.
+
+namespace {
+
+const sf::Vector2f s_posteDuFuyard{400.0f, 300.0f};
+
+Niveau niveauDeLaFuite() {
+    return {std::vector<std::string>(15, std::string(60, '.')), 40.0f, {550.0f, 290.0f}, {{s_posteDuFuyard, 0}}};
+}
+
+const Monstre& fuyard(const Partie& partie) {
+    return partie.getMonstres().front();
+}
+
+// Envoie l'escouade au point d'arrivée et avance jusqu'à ce que le monstre abandonne (retour au poste).
+void attirerHorsDuTerritoire(Partie& partie, sf::Vector2f arrivee) {
+    partie.ordonnerDeplacement(arrivee);
+    for (int i = 0; i < nombreDeTics(15.0f) && fuyard(partie).estCiblable(); ++i) {
+        partie.mettreAJour(s_dureeTic);
+    }
+    REQUIRE_FALSE(fuyard(partie).estCiblable());
+}
+
+}  // namespace
+
+TEST_CASE("un clic sur un monstre qui rentre a son poste compte comme un clic au sol") {
+    Partie partie(niveauDeLaFuite(), s_graineDeTest);
+    attirerHorsDuTerritoire(partie, {1080.0f, 300.0f});
+
+    REQUIRE(partie.cliquer(fuyard(partie).getCentre()) == ResultatClic::Sol);
+    REQUIRE_FALSE(partie.getEscouade().getCibleVerrouillee().has_value());
+}
+
+TEST_CASE("un monstre qui abandonne n'est plus provoque par une provocation") {
+    Partie partie(niveauDeLaFuite(), s_graineDeTest);
+    attirerHorsDuTerritoire(partie, {1080.0f, 300.0f});
+
+    partie.demanderSkill(2);  // provocation du mêlée avant-droit : zone de 150 px
+    for (int i = 0; i < nombreDeTics(0.5f); ++i) {
+        partie.mettreAJour(s_dureeTic);
+        REQUIRE(partie.getEscouade().getProvocations().empty());
+    }
+    REQUIRE_FALSE(fuyard(partie).estCiblable());
+}
+
+TEST_CASE("un monstre qui rentre a son poste bloque toujours les personnages") {
+    Partie partie(niveauDeLaFuite(), s_graineDeTest);
+    attirerHorsDuTerritoire(partie, {1080.0f, 300.0f});
+
+    partie.ordonnerDeplacement({300.0f, 300.0f});  // l'escouade rentre plus vite que lui, à travers lui
+    float ecartMin = 1e9f;
+    float rayons = 0.0f;
+    for (int i = 0; i < nombreDeTics(5.0f) && !fuyard(partie).estCiblable(); ++i) {
+        partie.mettreAJour(s_dureeTic);
+        for (const Cercle& personnage : partie.getEscouade().cerclesDesVivants()) {
+            const float ecart = (personnage.centre - fuyard(partie).getCentre()).length();
+            ecartMin = std::min(ecartMin, ecart);
+            rayons = personnage.rayon + fuyard(partie).getCercle().rayon;
+            REQUIRE(ecart >= rayons - 0.5f);
+        }
+    }
+    REQUIRE(ecartMin <= rayons + 1.0f);  // un personnage a bien touché le monstre sans le traverser
+}
+
+TEST_CASE("le verrou posé sur un monstre est leve quand il abandonne") {
+    Partie partie(niveauDeLaFuite(), s_graineDeTest);
+    partie.ordonnerDeplacement({1150.0f, 300.0f});
+    bool verrouille = false;
+    for (int i = 0; i < nombreDeTics(15.0f) && fuyard(partie).estCiblable(); ++i) {
+        partie.mettreAJour(s_dureeTic);
+        if (!verrouille && fuyard(partie).getCentre().x > 985.0f) { // la frontière est à x = 1000
+            REQUIRE(partie.cliquer(fuyard(partie).getCentre()) == ResultatClic::Monstre);
+            verrouille = true;
+        }
+    }
+    REQUIRE(verrouille);
+    REQUIRE_FALSE(fuyard(partie).estCiblable());
+
+    partie.mettreAJour(s_dureeTic);
+
+    REQUIRE_FALSE(partie.getEscouade().getCibleVerrouillee().has_value());
+}
+
+// L'exploit de la laisse : des tireurs immobiles juste au-delà du territoire touchaient le
+// monstre à chaque aller-retour sans jamais être frappés. Maintenant, il rentre sans réagir et
+// arrive plein à son poste.
+TEST_CASE("un monstre qui abandonne rentre a son poste sans perdre de vie et sans revenir") {
+    Partie partie(niveauDeLaFuite(), s_graineDeTest);
+    partie.ordonnerDeplacement({1150.0f, 300.0f});
+
+    bool aAbandonne = false;
+    int vieAvant = fuyard(partie).getPointsDeVie();
+    for (int i = 0; i < nombreDeTics(25.0f); ++i) {
+        partie.mettreAJour(s_dureeTic);
+        const Monstre& monstre = fuyard(partie);
+        if (!monstre.estCiblable()) {
+            aAbandonne = true;
+            REQUIRE(monstre.getPointsDeVie() >= vieAvant);
+            REQUIRE_FALSE(monstre.estEnPoursuite());
+        }
+        vieAvant = monstre.getPointsDeVie();
+    }
+
+    REQUIRE(aAbandonne);
+    REQUIRE(fuyard(partie).estCiblable());
+    verifierPointProche(fuyard(partie).getCentre(), s_posteDuFuyard);
+    REQUIRE(fuyard(partie).getPointsDeVie() == 100);
 }

@@ -30,8 +30,9 @@ public:
     // La graine initialise le générateur aléatoire de la partie, qui est à elle seule.
     Partie(const Niveau& niveau, Generateur::result_type graine);
 
-    // Verrouille le monstre qui contient ce point (Monstre), sinon lève le
-    // verrou (Sol). Ignore si l'escouade est vaincue : rien ne change.
+    // Verrouille le monstre ciblable qui contient ce point (Monstre), sinon lève le
+    // verrou (Sol) : un monstre qui rentre à son poste compte comme le sol.
+    // Ignore si l'escouade est vaincue : rien ne change.
     ResultatClic cliquer(sf::Vector2f point);
     // Skill du personnage de cette place (de 1 à 3), tenté dans mettreAJour.
     void demanderSkill(std::size_t place);
@@ -65,6 +66,11 @@ private:
     };
 
     Monstre* trouverMonstre(int id);
+    // Deux vues des monstres pour l'escouade : les CIBLES (ceux qu'on peut frapper, provoquer,
+    // viser ou verrouiller : pas ceux qui rentrent à leur poste) et les PHYSIQUES (tous :
+    // obstacles bloquants et à contourner).
+    std::vector<EntiteVue> entitesCiblables() const;
+    std::vector<EntiteVue> entitesPhysiques() const;
     void appliquer(const std::vector<Coup>& coups);
     // Étapes de mettreAJour(), dans l'ordre où elles sont appelées.
     void resoudreLesCoups(float dt);
