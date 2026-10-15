@@ -73,12 +73,12 @@ est dans `docs/historique.md`.
 - Étape 63 — Objectif et victoire ✅
 - Étape 64 — Groupes de monstres : alerte du groupe ✅
 - Étape 65 — Menu de départ, options d'affichage et sauvegarde des réglages ✅
+- Étape 66 — Proie et cible de frappe des monstres ✅
 
-## Étape 66 (prévue)
+## Étape 67 (à choisir)
 
-Séparer la proie d'un monstre (celle qu'il poursuit, sans dépendre de la
-vue) de sa cible de frappe (celle qui est à portée ET en vue). À préciser
-avec Claude.ai (voir aussi `docs/brainstorm.md`).
+À préciser avec Claude.ai parmi les pistes ci-dessous (voir aussi
+`docs/brainstorm.md`).
 
 Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes) :
 - Skill en attente par personnage (aujourd'hui un seul pour l'escouade)
@@ -352,8 +352,11 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   du territoire ne le réveille pas, et ne sert qu'une fois. Il abandonne
   quand lui-même s'éloigne de plus de 400 px de son poste, ou si la proie
   meurt, et rentre alors à son poste ; une proie qui revient dans le
-  territoire relance la poursuite. Il frappe sa proie (le personnage vivant le plus
-  proche, ou le provocateur) dès qu'elle est à portée ET en vue, attaqué ou non ; un monstre touché
+  territoire relance la poursuite. Sa proie (le personnage vivant le plus
+  proche, ou le provocateur) est celle qu'il poursuit ; il frappe sa **cible de
+  frappe** (étape 66) : la proie si elle est à portée ET en vue, sinon le
+  personnage atteignable le plus proche (un monstre provoqué ne frappe que son
+  provocateur), attaqué ou non, et s'arrête dès qu'il en a une ; un monstre touché
   s'active même sans voir son agresseur. Un monstre mort est
   retiré. **Groupes** (étape 64) : chaque monstre a un identifiant de
   groupe opaque (`Monstre::getGroupe()`), fixé à la construction : sur la
@@ -371,12 +374,12 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 553 tests : 13 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 50 sur `GenerateurDonjon`, 38 sur `TileMap`, 17 sur `Chemin`, 163
-  sur `Escouade` en cinq fichiers par thème — 22 déplacement, 27 combat, 70
-  skills, 26 agresseurs, 18 vue —, 12 sur `Deplacement`, 54 sur `Monstre`,
+  (`./build/tests.exe`, 566 tests : 13 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 50 sur `GenerateurDonjon`, 38 sur `TileMap`, 17 sur `Chemin`, 168
+  sur `Escouade` en cinq fichiers par thème — 22 déplacement, 32 combat, 70
+  skills, 26 agresseurs, 18 vue —, 12 sur `Deplacement`, 61 sur `Monstre`,
   46 sur `Personnage`, 24 sur `Skill`, 17 sur `Mobile`, 2 sur `Eclaircir`, 4 sur `Cercle`, 13
-  sur `Autodefense`, 7 sur `BarreDeSkills`, 4 sur `MonstreVu`, 1 sur
-  `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 25 sur `Partie`, 7 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
+  sur `Autodefense`, 7 sur `BarreDeSkills`, 4 sur `EntiteVue`, 1 sur
+  `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 26 sur `Partie`, 7 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
   accents (`./build/tests.exe "*a portee*"` filtre) ; rotation de la
   formation et `provoquer` à une place invalide couverts.
 
@@ -415,9 +418,9 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   murs) ; une fois en poursuite, un monstre ne perd pas sa proie en la
   perdant de vue (il la suit par le A* jusqu'à l'abandon habituel) ; la
   ligne de vue est mesurée centre à centre.
-- La cible de frappe d'un monstre est sa proie (`Escouade::proieDuMonstre`) :
-  si elle est cachée, il ne frappe pas, même si un autre personnage est à
-  portée et en vue.
+- Provocation stricte (étape 66) : un monstre provoqué ne frappe que son
+  provocateur, même s'il est collé à un autre personnage ; si le provocateur
+  est caché, il ne frappe personne.
 - Un coup engagé part sans revérifier portée ni vue ; seule la marche
   empêche d'engager (pas de ralentissement de l'escouade engagée).
 - Lors d'un demi-tour rapide, deux personnages peuvent se chevaucher

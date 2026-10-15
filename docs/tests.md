@@ -10,7 +10,7 @@
   (`test_TileMap.cpp`, `test_Chemin.cpp`, `test_Deplacement.cpp`,
   `test_Monstre.cpp`, `test_Personnage.cpp`, `test_Skill.cpp`,
   `test_Mobile.cpp`, `test_Cercle.cpp`, `test_Autodefense.cpp`,
-  `test_BarreDeSkills.cpp`, `test_MonstreVu.cpp`, `test_BarreDeVie.cpp`,
+  `test_BarreDeSkills.cpp`, `test_EntiteVue.cpp`, `test_BarreDeVie.cpp`,
   `test_PointsDeVie.cpp`, `test_Provocations.cpp`, `test_Agresseurs.cpp`, `test_Partie.cpp`,
   `test_Controleur.cpp`),
   sauf `Escouade`, coupée par thème en cinq fichiers à plat (pas de
@@ -212,7 +212,7 @@
     hasard.
 - **`Escouade::attaquer` (`test_Escouade_combat.cpp`)** : comme pour les autres
   fonctions d'`Escouade`, des résultats plutôt que des trajectoires
-  exactes. `attaquer` reçoit une liste de `MonstreVu` et renvoie des
+  exactes. `attaquer` reçoit une liste de `EntiteVue` et renvoie des
   `Coup`.
   - Fonction d'aide `attaquerCible` : appelle `attaquer` avec un seul
     monstre (identifiant 1) et renvoie le total des dégâts de la liste.
@@ -246,7 +246,7 @@
     portée ; un verrou à portée passe avant un monstre plus proche ; deux
     personnages frappent deux monstres différents dans la même image ;
     une escouade entièrement morte ne frappe plus.
-  - `test_Autodefense.cpp` : `choisirMonstreAFrapper` seule, via la
+  - `test_Autodefense.cpp` : `choisirCibleAFrapper` seule, via la
     fonction d'aide `choisir(personnage, ...)` qui lui passe le cercle et
     la portée d'un `Personnage` de portée 20 : aucun monstre à portée,
     un seul, verrou à portée avant un monstre plus proche, verrou hors de
@@ -475,7 +475,7 @@
 
 ## Hygiène du code (étape 49)
 
-- **`test_MonstreVu.cpp`** : `trouverMonstre` (monstre trouvé, premier de la
+- **`test_EntiteVue.cpp`** : `trouverEntite` (monstre trouvé, premier de la
   liste, identifiant absent, liste vide).
 - **`test_BarreDeVie.cpp`** : `positionBarreDeVie` seule. `dessinerBarreDeVie`
   n'est pas testée (dessin, vérifié dans le jeu).
@@ -739,3 +739,24 @@
 - **Non testé** : `Application` (fenêtre, boucle, `ouvrirFenetre`, lecture et
   écriture du fichier `reglages.ini`), la conversion des événements SFML des
   écrans et leur dessin (vérifiés dans le jeu). 553 tests.
+
+## Cible de frappe des monstres (étape 66)
+
+- **`Escouade::candidatsDeFrappe`** (`test_Escouade_combat.cpp`) : sans
+  provocation tous les vivants avec leur place ; morts exclus ; provoqué,
+  seulement le provocateur ; provocateur mort, tous les vivants ; personne de
+  vivant, liste vide. `proieDuMonstre` renvoie la place dans `id`
+  (`placeDeLaProie` n'existe plus).
+- **`Monstre`** (`test_Monstre.cpp`) : les anciens tests passent par des aides
+  (`ecoulerTemps`, `engager`) où la cible est à la fois la proie et l'unique
+  candidat ; les nouveaux passent proie et candidats : proie atteignable
+  préférée à un candidat plus proche, proie cachée et autre candidat en vue
+  frappé, candidat atteignable le plus proche, aucun atteignable (refus et
+  poursuite), arrêt en poursuite à cause d'un autre candidat, coup engagé sur
+  la place choisie. Piège : `pointCible` a un rayon nul, la portée de 15 px
+  devient alors une distance de centres de 30 px.
+- **`Partie`** : un monstre provoqué n'engage que sur le provocateur (cible
+  engagée lue par `Monstre::cibleEngagee`). Le cas « proie cachée, autre
+  personnage en vue » n'est pas testé au niveau de `Partie` : avec la formation
+  fixe (personnages à 50 px) et la portée de 15 px, aucun mur ne cache le plus
+  proche en laissant un autre à portée ; il est couvert dans `test_Monstre.cpp`.

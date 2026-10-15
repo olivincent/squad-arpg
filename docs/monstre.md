@@ -13,9 +13,9 @@ déplacement par chemin dans `docs/chemin.md`.
   comportement partagé ne le justifie. Les points de vie et la barre de
   vie sont dupliqués volontairement.
 - **`Monstre` ne connaît ni `Escouade` ni `Personnage`** : il reçoit sa
-  proie (un `std::optional<Cercle>`, vide quand aucun personnage n'est
-  vivant) et les obstacles en paramètres de `mettreAJour`, et frappe un
-  simple `Cercle`. C'est `main.cpp` qui fait l'intermédiaire (voir
+  proie (un `std::optional<EntiteVue>`, vide quand aucun personnage n'est
+  vivant), ses candidats de frappe (`std::vector<EntiteVue>`) et les
+  obstacles en paramètres de `mettreAJour`. C'est `main.cpp` qui fait l'intermédiaire (voir
   `docs/boucle-et-entrees.md` et `docs/combat.md`).
 - **Position et taille portées par `m_mobile`** (30 × 30, 120 px/s — plus
   lent que les personnages à 240 px/s, pour qu'un groupe reste
@@ -172,8 +172,8 @@ déplacement par chemin dans `docs/chemin.md`.
   avant et après le `switch` (`etatPrecedent != m_etat`) : redonner
   l'ordre à chaque image écraserait inutilement le chemin déjà calculé
   et refairait un A* identique à chaque tic.
-- **En `Poursuite`, à chaque image** : `arreter()` si le monstre peut
-  atteindre la proie (`peutAtteindre` : à portée de `m_attaque` ET en vue),
+- **En `Poursuite`, à chaque image** : `arreter()` si le monstre a une
+  cible de frappe (voir « Proie et cible de frappe » plus bas),
   sinon `allerVers(proie.centre, carte)`. Ici
   l'ordre est redonné à chaque image parce que la proie, un personnage,
   bouge ; le poste, lui, est fixe. Le but du monstre est de se mettre à
@@ -186,7 +186,7 @@ déplacement par chemin dans `docs/chemin.md`.
 ## Riposte
 
 - **Frapper se fait en deux temps** (étape 57, voir `docs/combat.md`) :
-  `engagerAttaque(proie, idProie, carte)` (proie à portée ET en vue,
+  `engagerAttaque(proie, candidats, carte)` (cible de frappe à portée ET en vue,
   monstre immobile, attaque prête) puis `avancerAttaque(dt, generateur)`, qui rend les dégâts
   0,3 s plus tard. `Monstre::frapper` n'existe plus.
 - **`peutAtteindre(proie, carte)`** (étape 62) : règle unique, à portée
@@ -195,15 +195,27 @@ déplacement par chemin dans `docs/chemin.md`.
   monstre à portée mais caché derrière un coin ne s'arrête donc pas : il
   continue vers sa proie jusqu'à la voir. Un coup déjà engagé part sans
   revérifier portée ni vue.
-- **La cible de frappe est la proie** (`Escouade::proieDuMonstre`) : si elle
-  est cachée, le monstre ne frappe pas, même si un autre personnage est à
-  portée et en vue.
+- **Proie et cible de frappe** (étape 66) : la proie est celle que le monstre
+  poursuit (`Escouade::proieDuMonstre` : provocateur vivant, sinon vivant le
+  plus proche), sans dépendre de la vue. La cible de frappe est celle qu'il
+  peut frapper : `choisirCibleAFrapper` avec `peutAtteindre` comme prédicat et
+  la proie comme préférée, sur les candidats de `Escouade::candidatsDeFrappe`.
+  Donc la proie si elle est atteignable, sinon le candidat atteignable le plus
+  proche (bord à bord ; égalité : le premier). Un monstre provoqué n'a que son
+  provocateur comme candidat (provocation stricte). Le monstre choisit seul
+  (règle propre au monstre) ; `Partie` lui passe proie et candidats, calculés
+  sur sa position avant qu'il bouge.
+- **Arrêt** : en poursuite, le monstre s'arrête dès qu'il a une cible de frappe
+  (la proie ou un autre candidat) ; sinon il continue vers sa proie. Un monstre
+  bloqué par un mêlée qui n'est pas sa proie le frappe donc au lieu de rester
+  sans frapper. Détection, territoire, abandon, alerte de groupe et retour au
+  poste restent basés sur la proie.
 - **Exécution** : pendant ces 0,3 s, `mettreAJour` arrête le monstre et le
   déplace sans rien changer d'autre : ni poursuite, ni retour, ni changement
   d'état (l'état et le « coup reçu » sont traités après le coup). Un monstre
   arrivé au contact s'arrête donc un instant avant chaque coup.
-- **Coup engagé** : `Monstre` retient seulement un entier (`idProie`, la place
-  du personnage donnée par `Escouade::placeDeLaProie`). Le coup part toujours,
+- **Coup engagé** : `Monstre` retient seulement un entier (`m_idCibleEngagee`,
+  la place du personnage choisi, lue par `cibleEngagee`). Le coup part toujours,
   même si la cible s'est éloignée, et touche ce personnage (`Escouade::recevoirCoup`).
   Une provocation survenue pendant l'exécution ne change pas la cible du coup
   en cours. Seule la mort du personnage visé l'annule, sans recharge
@@ -235,7 +247,5 @@ déplacement par chemin dans `docs/chemin.md`.
   ni se coordonner avec les autres.
 - Le territoire ignore les murs (distance pure) ; un monstre bloqué ne
   contourne pas (le A* ignore les entités).
-- Proie cachée = pas de frappe, même si un autre personnage est à portée et
-  en vue (la proie et la cible de frappe sont la même chose).
 - Pas de mémoire de la dernière position vue, de recherche du joueur ni de
   cône de vision.

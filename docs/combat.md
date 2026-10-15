@@ -55,8 +55,8 @@ personnages sont dans `docs/formation.md`, le monstre dans
 ## Attaque de l'escouade
 
 - **`Escouade::attaquer(monstres, carte)`** reçoit la liste des monstres
-  tels que l'escouade les voit (`MonstreVu` : identifiant et cercle,
-  dans `MonstreVu.hpp`) et renvoie une liste de `Coup` (identifiant du
+  tels que l'escouade les voit (`EntiteVue` : identifiant et cercle,
+  dans `EntiteVue.hpp`) et renvoie une liste de `Coup` (identifiant du
   monstre, dégâts) que `main.cpp` applique. Elle ne connaît toujours pas
   `Monstre`. Deux parties indépendantes :
   - **l'approche, seulement avec un verrou** : si le monstre verrouillé
@@ -82,8 +82,8 @@ personnages sont dans `docs/formation.md`, le monstre dans
   la liste), sinon aucun. Deux personnages peuvent donc frapper deux
   monstres différents dans la même image. Un mort ne frappe pas
   (`Personnage::frapper` renvoie 0), la recharge est celle de chacun.
-- **Une fonction libre isolée**, `choisirMonstreAFrapper(origine,
-  estAPortee, monstres, idVerrouille)` (module `Autodefense`), sans état
+- **Une fonction libre isolée**, `choisirCibleAFrapper(origine,
+  estAPortee, monstres, idPrefere)` (module `Autodefense`), sans état
   et testée seule. Elle reçoit une origine et un test de portée
   (`std::function<bool(Cercle)>`) plutôt qu'un `Personnage`, pour que le
   choix de la cible d'un skill sans verrou réutilise la même règle avec
@@ -110,7 +110,7 @@ personnages sont dans `docs/formation.md`, le monstre dans
   un tireur à l'arrière laissait les mêlées plantées à leur place. Les
   personnages vont maintenant vers ceux qui les frappent.
 - **`Escouade` retient ses agresseurs** dans un `Agresseurs` (étape 51,
-  `m_agresseurs`, fichiers à part : par agresseur un `MonstreVu` et le
+  `m_agresseurs`, fichiers à part : par agresseur un `EntiteVue` et le
   temps restant) sans connaître `Monstre` : `recevoirDegats`
   reçoit l'identifiant du monstre, `main.cpp` reste l'intermédiaire. Un
   coup de dégâts `> 0` ajoute l'agresseur ou remet son temps à 3 s
@@ -119,7 +119,7 @@ personnages sont dans `docs/formation.md`, le monstre dans
   n'a que l'origine) ; `attaquer` le met à jour à l'image suivante.
 - **Oubli** : le temps s'écoule dans `mettreAJour` ; un agresseur absent
   de `monstresVus` (monstre mort) est retiré dans `attaquer`
-  (`Agresseurs::actualiser`). Depuis l'étape 51, la liste de `MonstreVu`
+  (`Agresseurs::actualiser`). Depuis l'étape 51, la liste de `EntiteVue`
   que lit `choisirAgresseurAViser` est construite une fois par image
   (`Agresseurs::monstresVus`, dans `mettreAJour`), non plus une fois par
   personnage.
@@ -283,7 +283,7 @@ personnages sont dans `docs/formation.md`, le monstre dans
      portée ou non (mise en attente et marche s'il est hors de portée) ;
      s'il n'est pas dans la liste, pas de cible ;
   2. sans verrou, le monstre que le lanceur frapperait en autodéfense
-     (`choisirMonstreAFrapper`), mais avec la portée de son skill ;
+     (`choisirCibleAFrapper`), mais avec la portée de son skill ;
   3. sinon aucune cible : l'appui est refusé, sans recharge.
 
   `CibleMonstre` porte l'identifiant du monstre : c'est lui qui attribue
@@ -479,7 +479,7 @@ personnages sont dans `docs/formation.md`, le monstre dans
   appel à `estAPortee` ne reste dans `Escouade` ; la condition « peut
   lancer au point » du skill de zone (`peutLancerAuPoint`) s'appuie aussi
   dessus (cible : cercle de rayon 0).
-- **Autodéfense** : la lambda passée à `choisirMonstreAFrapper` appelle
+- **Autodéfense** : la lambda passée à `choisirCibleAFrapper` appelle
   `peutAtteindre` ; le module `Autodefense` n'a pas changé. Un monstre
   caché n'est pas candidat, le suivant (même plus loin) peut l'être.
 - **Combat verrouillé** : l'ancre s'arrête quand tous les vivants
@@ -702,14 +702,14 @@ image).
   la recharge de base du lanceur est relancée, et pendant l'activation il ne
   peut engager aucune attaque de base.
 - **Un monstre frappe un personnage** (étape 57) : pour chaque monstre,
-  `Partie` demande `escouade.proieDuMonstre(...)` (le cercle du provocateur
-  si ce monstre est provoqué, sinon du vivant le plus proche) et met le
-  monstre à jour. Puis `faireFrapperLeMonstre` : si un coup est engagé, il
+  `Partie` demande `escouade.proieDuMonstre(...)` (l'entité du provocateur
+  si ce monstre est provoqué, sinon du vivant le plus proche) et
+  `escouade.candidatsDeFrappe(...)`, puis met le monstre à jour. Puis `faireFrapperLeMonstre` : si un coup est engagé, il
   avance (annulé si le personnage visé est mort) et, au départ, `Partie`
   appelle `escouade.recevoirCoup(id, place, origine, dégâts)` sur la place
-  retenue à l'engagement ; sinon, un monstre immobile avec une proie à
-  portée engage un coup, avec la place donnée par
-  `escouade.placeDeLaProie(...)` (même règle `indiceProieDuMonstre`).
+  retenue à l'engagement ; sinon, un monstre immobile avec une cible de
+  frappe à portée et en vue engage un coup sur la place choisie par
+  `Monstre` (`choisirCibleAFrapper`).
   L'armure du personnage touché réduit ensuite le coup (voir plus haut).
 - **Un monstre frappe qu'il soit lui-même attaqué ou non** : sa riposte
   ne dépend ni du verrou, ni de son statut — uniquement de la distance
@@ -749,18 +749,34 @@ l'enfoncerait dans un obstacle.
 
 ## Hygiène du code (étape 49)
 
-- **`trouverMonstre`** (`MonstreVu.hpp`) remplace les sept `find_if` par
+- **`trouverEntite`** (`EntiteVue.hpp`) remplace les sept `find_if` par
   identifiant : renvoie un pointeur, `nullptr` si absent, et chaque appelant
   teste avant de déréférencer. `main.cpp` a `trouverMonstreParId` pour ses
   `Monstre`.
 - **`[[nodiscard]]`** sur ce dont ignorer le retour est forcément un
   bogue : listes de `Coup`, `Skill::declencher`, `frapper`, les `choisir*`,
-  `trouverChemin`, `trouverMonstre`, ainsi que les fonctions pures
+  `trouverChemin`, `trouverEntite`, ainsi que les fonctions pures
   (`distanceBordABord`, requêtes de `TileMap`, etc.). Un test qui n'a
   besoin que de l'effet de bord écrit `static_cast<void>(...)`.
-- **`TypeSkill.hpp` et `MonstreVu.hpp` séparés** : un module d'affichage
+- **`TypeSkill.hpp` et `EntiteVue.hpp` séparés** : un module d'affichage
   ou de décision n'a plus besoin de la classe `Skill` ni de `Coup` pour un
   enum ou une entrée.
 - **`Skill::declencherSansCible`** (étape 53, audit R4), supprimée à
   l'étape 62 avec `declencher` : depuis l'étape 58, tout passe par la machine
   à états.
+
+## Règle commune aux deux camps et provocation stricte (étape 66)
+
+- **Une seule règle de choix** : `choisirCibleAFrapper(origine, estAPortee,
+  entites, idPrefere)` sert aux personnages (préféré = monstre verrouillé) et
+  aux monstres (préférée = la proie). `EntiteVue` porte l'identifiant d'un
+  monstre ou la place 1 à 4 d'un personnage : le même type circule dans les
+  deux sens, prêt pour une escouade de monstres.
+- **Candidats fournis par `Escouade`**, là où vivent les provocations :
+  `candidatsDeFrappe(idMonstre)`. Provocation **stricte** : un monstre
+  provoqué dont le provocateur est vivant n'a que lui comme candidat et ne
+  frappe donc personne d'autre, même collé à un autre personnage ; provocateur
+  mort ou provocation finie, tous les vivants. Le monstre reste ignorant
+  d'`Escouade` : `Partie` lui passe les listes.
+- **Provocation souple** (un provoqué qui frappe aussi d'autres personnages) :
+  hors de portée, non faite.

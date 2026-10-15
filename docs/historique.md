@@ -1592,3 +1592,25 @@ navigation au clavier ou à la manette, `Remplacer` dans `Transition`,
 plein écran à une autre résolution que celle du bureau, redimensionnement
 libre, zoom de caméra, autres réglages (son, touches), dossier de réglages
 dans `%APPDATA%`, changement des règles de jeu.
+
+## Étape 66 — Proie et cible de frappe des monstres ✅
+
+1. [x] Refactorisation pure : `MonstreVu` → `EntiteVue`, `trouverMonstre` →
+       `trouverEntite`, `choisirMonstreAFrapper` → `choisirCibleAFrapper`
+       (`idVerrouille` → `idPrefere`), fichiers de test renommés (enchaînée).
+2. [x] `Escouade::proieDuMonstre` renvoie une `EntiteVue`, `placeDeLaProie`
+       supprimée, ajout de `candidatsDeFrappe` (enchaînée).
+3. [x] `Monstre::mettreAJour` et `engagerAttaque` reçoivent proie et candidats,
+       cible de frappe par `choisirCibleAFrapper`, arrêt dès qu'une cible
+       existe, `proieEngagee` → `cibleEngagee`. 566 tests.
+4. [x] Documentation (enchaînée).
+
+**Choix** : la proie (poursuite, détection, territoire, abandon, alerte,
+retour) est séparée de la cible de frappe (à portée ET en vue) ; même règle de
+choix pour les deux camps ; provocation stricte ; le monstre choisit seul sa
+cible mais ne connaît toujours ni `Escouade` ni `Personnage`.
+
+**Hors de portée** : provocation souple, mémoire de l'attaquant, A* tenant
+compte des entités, revérification de portée ou de vue au départ du coup. Pas
+de test de `Partie` pour « proie cachée » (géométrie impossible, voir
+`docs/tests.md`).

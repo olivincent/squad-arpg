@@ -43,7 +43,7 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   3. `partie.mettreAJour(dt)`, qui ne fait rien si la partie est perdue ou gagnée,
      sinon déroule, dans cet ordre exact :
      a. verrou levé si le monstre verrouillé n'est plus dans le vecteur ;
-        liste des `MonstreVu` (une fois pour toute l'image) ;
+        liste des `EntiteVue` (une fois pour toute l'image) ;
      b. lancer du skill de zone demandé ;
      c. skill demandé (avant `attaquer` : un skill qui part relance la
         recharge de base de son lanceur, qui ne frappe donc pas deux fois) ;
@@ -124,7 +124,7 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   monstre. Relâcher le bouton ou perdre le focus ne rompt pas le combat.
   Aucune zone de tolérance autour du monstre.
 - **L'attaque est dans `Escouade`** : ni `main.cpp` ni `Controleur` n'ont de
-  recharge ni de dégât. `Partie` passe la liste des `MonstreVu` à
+  recharge ni de dégât. `Partie` passe la liste des `EntiteVue` à
   `escouade.attaquer` et applique chaque `Coup` renvoyé au monstre qui porte
   l'identifiant. `attaquer` est appelé à chaque image, **verrou ou non** :
   avec un verrou elle décide si l'escouade s'approche ou s'arrête ; dans tous
@@ -257,13 +257,16 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
 - **Pour chaque monstre, dans l'ordre** :
   1. `proieDuMonstre(id, centre)` : le provocateur si le monstre est
      provoqué, sinon le personnage **vivant** le plus proche, sur la position
-     du monstre *avant* qu'il ne bouge (vide si aucun n'est vivant) ;
-  2. `m.mettreAJour(dt, cible, carte, obstacles)` : le monstre décide seul de
-     poursuivre, s'arrêter à portée ou rentrer (voir `docs/monstre.md`) ;
+     du monstre *avant* qu'il ne bouge (vide si aucun n'est vivant) ; et
+     `candidatsDeFrappe(id)` : le provocateur seul s'il est provoqué, sinon
+     tous les vivants (étape 66) ;
+  2. `m.mettreAJour(dt, proie, candidats, carte, obstacles)` : le monstre décide
+     seul de poursuivre, s'arrêter dès qu'il a une cible de frappe ou rentrer
+     (voir `docs/monstre.md`) ;
   3. `faireFrapperLeMonstre` (étape 57) : un coup engagé avance, et part
      au bout de 0,3 s sur la place retenue (`escouade.recevoirCoup`), annulé
-     si ce personnage est mort ; sinon, un monstre immobile avec une proie à
-     portée engage un coup (voir `docs/combat.md`).
+     si ce personnage est mort ; sinon, un monstre immobile avec une cible de
+     frappe engage un coup (voir `docs/combat.md`).
 - **Alerte du groupe** (étape 64) : avant la boucle, le statut « en poursuite »
   de chaque monstre est noté ; après, `alerterLesGroupes` alerte les membres
   des groupes dont un monstre vient d'entrer en poursuite (voir
