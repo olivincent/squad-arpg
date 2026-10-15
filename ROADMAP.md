@@ -73,7 +73,14 @@ est dans `docs/historique.md`.
 - Étape 63 — Objectif et victoire ✅
 - Étape 64 — Groupes de monstres : alerte du groupe ✅
 
-## Étape 65 (prévue)
+## Étape 65 (en cours)
+
+Menu de départ, options d'affichage et sauvegarde des réglages. Au
+lancement, un menu (« Commencer partie », « Options », « Quitter ») ; les
+options choisissent le mode (fenêtré ou plein écran) et la résolution en
+mode fenêtré, appliqués tout de suite et sauvegardés dans `reglages.ini`.
+
+## Étape 66 (prévue)
 
 Séparer la proie d'un monstre (celle qu'il poursuit, sans dépendre de la
 vue) de sa cible de frappe (celle qui est à portée ET en vue). À préciser

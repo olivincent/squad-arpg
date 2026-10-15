@@ -622,10 +622,15 @@ Données membres : `struct Cercle { sf::Vector2f centre; float rayon; }`.
 
 ## Principes de conception à respecter
 
-1. **Ne jamais anticiper.** On ne construit que ce qui est nécessaire pour
-   le travail en cours. Pas de fonction ou dépendance "pour plus tard" — on y
-   revient explicitement quand le besoin devient réel. À l'inverse, le
-   code devenu inutile est supprimé (Git le conserve dans l'historique).
+1. **Anticiper la structure, pas les fonctionnalités.** On ne code que
+   les fonctionnalités nécessaires à l'étape en cours : pas de fonction,
+   d'option ni de paramètre inutilisés "pour plus tard". En revanche, quand
+   une extension est connue (annoncée dans la discussion, ROADMAP.md ou
+   docs/brainstorm.md), on choisit dès maintenant une structure qui
+   l'accueillera sans réécriture (classe de base, conteneur, point
+   d'extension), même si elle n'a qu'un seul utilisateur aujourd'hui. Toute
+   structure ajoutée doit servir dès l'étape présente. Le code devenu inutile
+   est supprimé (Git le conserve dans l'historique).
 2. **Avancer par petits pas.** D'abord la structure de données (les
    paramètres/membres d'une classe), puis les fonctions une par une.
    Déclaration dans le `.hpp` avant implémentation dans le `.cpp`.

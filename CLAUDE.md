@@ -46,9 +46,13 @@ Documents de référence (à lire avant toute modification) :
    cette mention, la règle précédente (un arrêt par sous-étape)
    s'applique. Ne jamais décider soi-même qu'une sous-étape est
    enchaînable : seule la mention dans le prompt compte.
-5. **Ne jamais anticiper.** Rien « pour plus tard » : pas de fonction,
-   paramètre, membre ou dépendance dont l'étape en cours n'a pas besoin.
-   Le code devenu inutile est supprimé (Git le garde).
+5. **Anticiper la structure, pas les fonctionnalités.** Rien « pour plus
+   tard » côté fonctionnalités : pas de fonction, paramètre, membre ou
+   dépendance dont l'étape en cours n'a pas besoin. Mais quand une extension
+   est connue (prompt, ROADMAP.md, `docs/brainstorm.md`), on utilise la
+   structure qui l'accueillera sans réécriture (voir le principe 1 d'
+   `ARCHITECTURE.md`), à condition qu'elle serve dès l'étape présente. Le
+   code devenu inutile est supprimé (Git le garde).
 6. **Migrations sans casse** : quand on déplace du code, on le déplace sans
    le modifier, et les améliorations se font dans un commit séparé.
 7. **Git** : ne pas faire de commit soi-même. Proposer la commande

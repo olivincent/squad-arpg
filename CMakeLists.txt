@@ -43,6 +43,8 @@ add_library(squad_core STATIC
     src/GenerateurDonjon.cpp
     src/Partie.cpp
     src/Controleur.cpp
+    src/Reglages.cpp
+    src/TailleDeVue.cpp
 )
 target_include_directories(squad_core PUBLIC src)
 target_link_libraries(squad_core PUBLIC SFML::Graphics)
@@ -84,5 +86,7 @@ add_executable(tests
     tests/test_GenerateurDonjon.cpp
     tests/test_Partie.cpp
     tests/test_Controleur.cpp
+    tests/test_Reglages.cpp
+    tests/test_TailleDeVue.cpp
 )
 target_link_libraries(tests PRIVATE squad_core Catch2::Catch2WithMain)
