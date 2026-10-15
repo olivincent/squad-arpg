@@ -4,6 +4,9 @@
 #include <string>
 #include <vector>
 
+// Armure des monstres, commune à la carte faite à la main et aux cartes générées.
+inline constexpr int s_armureMonstresParDefaut = 20;
+
 // Les données d'un niveau, sans comportement : de quoi construire une Partie.
 struct Niveau {
     std::vector<std::string> plan;               // '#' = mur, tout autre caractère = sol

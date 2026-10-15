@@ -8,6 +8,7 @@
 #include "Aleatoire.hpp"
 #include "Chemin.hpp"
 #include "GenerateurDonjon.hpp"
+#include "Niveau.hpp"
 #include "TileMap.hpp"
 
 namespace {
@@ -442,6 +443,12 @@ TEST_CASE("genererNiveau place chaque monstre sur du sol, hors de la premiere sa
                     parametres.distanceMinDepart * parametres.distanceMinDepart);
         }
     }
+}
+
+TEST_CASE("genererNiveau donne aux monstres la meme armure que creerNiveau") {
+    Generateur generateur(s_graine);
+
+    REQUIRE(genererNiveau(generateur, ParametresDonjon{}).armureMonstres == creerNiveau().armureMonstres);
 }
 
 TEST_CASE("genererNiveau donne les memes monstres pour la meme graine") {

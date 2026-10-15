@@ -178,5 +178,6 @@ Niveau genererNiveau(Generateur& generateur, const ParametresDonjon& parametres)
     // Centre en pixels de la case centrale de la première salle.
     const sf::Vector2f depart = centreEnPixels(salles.front().centre(), parametres.tailleCase);
     // Les monstres en dernier : leurs tirages ne changent ni les salles ni les couloirs.
-    return {plan, parametres.tailleCase, depart, placerMonstres(generateur, salles, depart, parametres), 0};
+    return {plan, parametres.tailleCase, depart, placerMonstres(generateur, salles, depart, parametres),
+            s_armureMonstresParDefaut};
 }

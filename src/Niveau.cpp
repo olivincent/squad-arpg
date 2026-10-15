@@ -55,6 +55,6 @@ Niveau creerNiveau() {
             {1500.0f, 540.0f},
             {1620.0f, 540.0f},
         },
-        20,
+        s_armureMonstresParDefaut,
     };
 }
