@@ -3,6 +3,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <SFML/System/Angle.hpp>
 #include <SFML/System/Vector2.hpp>
+#include <algorithm>
 #include <cstddef>
 #include <optional>
 #include <string>
@@ -413,4 +414,147 @@ TEST_CASE("Rotation : elle se termine meme quand l'ancre s'est arretee") {
 
     simuler(escouade, carte, 1.0f);
     REQUIRE_THAT(orientationDeLaFormation(escouade), Catch::Matchers::WithinAbs(90.0f, 0.5f));
+}
+
+namespace {
+
+// Plus petit écart entre les centres de deux personnages vivants.
+float ecartMinimalEntrePersonnages(const Escouade& escouade) {
+    const std::vector<Cercle> cercles = escouade.cerclesDesVivants();
+    float minimum = 1.0e9f;
+    for (std::size_t i = 0; i < cercles.size(); ++i) {
+        for (std::size_t j = i + 1; j < cercles.size(); ++j) {
+            minimum = std::min(minimum, (cercles[i].centre - cercles[j].centre).length());
+        }
+    }
+    return minimum;
+}
+
+// Deux cercles de rayon 10 qui se touchent : centres à 20 px.
+constexpr float s_ecartSansChevauchement = 20.0f;
+
+}  // namespace
+
+TEST_CASE("Separation : des personnages qui se chevauchent s'ecartent en moins de 0,5 s") {
+    Generateur generateur = generateurDeTest();
+    Escouade escouade({500.0f, 500.0f});  // place 4 en (485, 535)
+    const TileMap& carte = carteOuverte();
+    // La place 4 reste clouee sur place (activation jamais terminee, car pas d'attaquer) :
+    // les autres, qui suivent leur place sur l'arc du demi-tour, la croisent.
+    REQUIRE(escouade.declencherSkillDeZone(4, {485.0f, 560.0f}, {}, carte, generateur).empty());
+
+    escouade.allerVers({360.0f, 570.0f}, carte);
+    bool chevauchement = false;
+    int ticsDeSuite = 0;
+    int plusLong = 0;
+    for (int i = 0; i < nombreDeTics(3.0f); ++i) {
+        escouade.mettreAJour(s_dureeTic, carte, {});
+        if (ecartMinimalEntrePersonnages(escouade) < s_ecartSansChevauchement - 0.5f) {
+            chevauchement = true;
+            plusLong = std::max(plusLong, ++ticsDeSuite);
+        } else {
+            ticsDeSuite = 0;
+        }
+    }
+
+    REQUIRE(chevauchement);  // sinon le test ne prouve rien
+    REQUIRE(plusLong < nombreDeTics(0.5f));
+}
+
+TEST_CASE("Separation : apres un demi-tour, les quatre personnages rejoignent leurs places") {
+    Escouade escouade({500.0f, 500.0f});
+    const TileMap& carte = carteOuverte();
+
+    escouade.allerVers({400.0f, 510.0f}, carte);
+    for (int i = 0; i < nombreDeTics(3.0f); ++i) {
+        escouade.mettreAJour(s_dureeTic, carte, {});
+    }
+
+    const std::vector<Cercle> cercles = escouade.cerclesDesVivants();
+    REQUIRE(cercles.size() == 4);
+    for (std::size_t i = 0; i < cercles.size(); ++i) {
+        verifierPointProche(cercles[i].centre, escouade.getPlacesDeFormation()[i], 2.0f);
+    }
+    REQUIRE(ecartMinimalEntrePersonnages(escouade) >= s_ecartSansChevauchement);
+}
+
+TEST_CASE("Separation : un mort ne pousse pas et n'est pas pousse") {
+    Escouade escouade({500.0f, 500.0f});  // centre (510, 510), personnage de la place 4 en (485, 535)
+    const TileMap& carte = carteOuverte();
+    escouade.recevoirDegats(1, {-1000.0f, 1000.0f}, 200);  // tue la place 4 (la plus proche de ce point, trop loin pour devenir un agresseur gênant)
+    REQUIRE(escouade.cerclesDesVivants().size() == 3);
+
+    // Demi-tour de 50 px vers la gauche : la place finale de la place 3 est
+    // exactement celle ou gît le mort. Un mort qui poussait l'en écarterait.
+    escouade.allerVers({460.0f, 510.0f}, carte);
+    for (int i = 0; i < nombreDeTics(3.0f); ++i) {
+        escouade.mettreAJour(s_dureeTic, carte, {});
+    }
+
+    const std::vector<Cercle> vivants = escouade.cerclesDesVivants();
+    REQUIRE(vivants.size() == 3);
+    verifierPointProche(vivants[2].centre, {485.0f, 535.0f}, 0.05f);
+}
+
+TEST_CASE("Separation : un personnage en activation n'est pas pousse") {
+    Generateur generateur = generateurDeTest();
+    Escouade escouade({500.0f, 500.0f});  // place 4 en (485, 535)
+    const TileMap& carte = carteOuverte();
+    REQUIRE(escouade.declencherSkillDeZone(4, {485.0f, 560.0f}, {}, carte, generateur).empty());  // activation en cours
+    REQUIRE(escouade.etatDuSkill(4)->enActivation);
+
+    // Demi-tour : la place 3 vient se poser sur celle de la place 4. Sans
+    // attaquer(), l'activation ne se termine jamais : la place 4 reste en exécution.
+    escouade.allerVers({460.0f, 510.0f}, carte);
+    for (int i = 0; i < nombreDeTics(3.0f); ++i) {
+        escouade.mettreAJour(s_dureeTic, carte, {});
+    }
+
+    const std::vector<Cercle> cercles = escouade.cerclesDesVivants();
+    verifierPointProche(cercles[3].centre, {485.0f, 535.0f}, 0.01f);
+}
+
+TEST_CASE("Separation : la poussee ne fait pas entrer dans un mur") {
+    const TileMap carte = carteDegageeEntouree();  // murs sur la bordure de 40 px
+    Escouade escouade({300.0f, 300.0f});
+
+    // Allers-retours collés au mur de gauche : demi-tours et croisements.
+    for (const sf::Vector2f destination : {sf::Vector2f(600.0f, 300.0f), sf::Vector2f(60.0f, 300.0f),
+                                           sf::Vector2f(600.0f, 300.0f), sf::Vector2f(60.0f, 300.0f)}) {
+        escouade.allerVers(destination, carte);
+        for (int i = 0; i < nombreDeTics(2.5f); ++i) {
+            escouade.mettreAJour(s_dureeTic, carte, {});
+            for (const Cercle& cercle : escouade.cerclesDesVivants()) {
+                const sf::FloatRect rectangle(cercle.centre - sf::Vector2f(10.0f, 10.0f), {20.0f, 20.0f});
+                REQUIRE_FALSE(carte.chevaucheUnMur(rectangle));
+            }
+        }
+    }
+}
+
+TEST_CASE("Ancre collee a un mur, les quatre places de formation sont distinctes et les personnages ne se chevauchent pas") {
+    const TileMap carte({"##########",
+                         "#........#",
+                         "#........#",
+                         "#........#",
+                         "#........#",
+                         "#........#",
+                         "##########"},
+                        40.0f);
+    Escouade escouade({40.0f, 80.0f});  // centre (50, 90) : le bord gauche de l'ancre touche le mur
+    escouade.mettreAJour(s_dureeTic, carte, {});
+
+    const std::vector<sf::Vector2f>& places = escouade.getPlacesDeFormation();
+    REQUIRE(places.size() == 4);
+    for (std::size_t i = 0; i < places.size(); ++i) {
+        for (std::size_t j = i + 1; j < places.size(); ++j) {
+            REQUIRE((places[i] - places[j]).length() >= 26.0f - 0.001f);
+        }
+        REQUIRE_FALSE(carte.chevaucheUnMur(sf::FloatRect(places[i] - sf::Vector2f(10.0f, 10.0f), {20.0f, 20.0f})));
+    }
+
+    for (int i = 0; i < nombreDeTics(2.0f); ++i) {
+        escouade.mettreAJour(s_dureeTic, carte, {});
+    }
+    REQUIRE(ecartMinimalEntrePersonnages(escouade) >= s_ecartSansChevauchement - 0.5f);
 }

@@ -94,6 +94,8 @@ Transition EcranJeu::traiterEvenement(const sf::Event& evenement, const Contexte
         } else if (data->scancode == sf::Keyboard::Scan::F5) {
             // Touche de débogage : à tout moment, même effet que R.
             nouvelleCarte();
+        } else if (data->scancode == sf::Keyboard::Scan::F3) {
+            m_debogage = !m_debogage;  // touche de débogage : bascule l'affichage des points visés
         }
     }
     return Aucune{};
@@ -118,6 +120,9 @@ void EcranJeu::dessiner(const Contexte& contexte) const {
     fenetre.clear();
     m_partie.dessiner(fenetre);
     m_controleur.dessinerApercu(m_partie, fenetre, fenetre.mapPixelToCoords(sf::Mouse::getPosition(fenetre)));
+    if (m_debogage) {
+        m_partie.getEscouade().dessinerPointsVises(fenetre);
+    }
 
     // Interface fixe à l'écran : vue de l'interface, dessinée en dernier.
     fenetre.setView(vueDInterface(fenetre.getSize()));

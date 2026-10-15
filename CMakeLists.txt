@@ -32,6 +32,7 @@ add_library(squad_core STATIC
     src/Mobile.cpp
     src/Cercle.cpp
     src/Autodefense.cpp
+    src/Encerclement.cpp
     src/BarreDeSkills.cpp
     src/EcranDeFin.cpp
     src/EntiteVue.cpp
@@ -73,6 +74,7 @@ add_executable(tests
     tests/test_Escouade_skills.cpp
     tests/test_Escouade_agresseurs.cpp
     tests/test_Escouade_vue.cpp
+    tests/test_Escouade_places.cpp
     tests/test_Provocations.cpp
     tests/test_Agresseurs.cpp
     tests/test_Deplacement.cpp
@@ -82,6 +84,7 @@ add_executable(tests
     tests/test_Mobile.cpp
     tests/test_Cercle.cpp
     tests/test_Autodefense.cpp
+    tests/test_Encerclement.cpp
     tests/test_BarreDeSkills.cpp
     tests/test_EntiteVue.cpp
     tests/test_BarreDeVie.cpp

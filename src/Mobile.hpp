@@ -15,6 +15,9 @@ public:
     void allerToutDroit(sf::Vector2f destination);
     void arreter();
     void mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles);
+    // Pousse le mobile de `decalage` (murs et obstacles respectés, avec glissement),
+    // sans toucher au chemin ni à estEnMouvement().
+    void decaler(sf::Vector2f decalage, const TileMap& carte, const std::vector<Cercle>& obstacles);
     sf::Vector2f getCentre() const;
     sf::Vector2f getTaille() const;
     std::optional<sf::Vector2f> directionVoulue() const;

@@ -31,4 +31,5 @@ private:
     Partie m_partie;
     Controleur m_controleur;
     sf::View m_camera;
+    bool m_debogage = false;  // F3 : points visés des personnages
 };

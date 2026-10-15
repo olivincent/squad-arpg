@@ -94,6 +94,20 @@ void Personnage::mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte,
     }
 }
 
+void Personnage::decaler(sf::Vector2f decalage, const TileMap& carte, const std::vector<Cercle>& obstacles) {
+    if (estVivant()) {
+        m_mobile.decaler(decalage, carte, obstacles);
+    }
+}
+
+bool Personnage::estEnMouvement() const {
+    return m_mobile.estEnMouvement();
+}
+
+float Personnage::getPorteeAttaqueDeBase() const {
+    return m_attaqueDeBase.getPortee();
+}
+
 bool Personnage::estAPortee(Cercle cible) const {
     return m_attaqueDeBase.estAPortee(getCercle(), cible);
 }

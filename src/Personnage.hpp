@@ -20,7 +20,12 @@ public:
     Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::optional<Skill> skill, int armure);
     void dessiner(sf::RenderTarget& rendu) const;
     void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte, const std::vector<Cercle>& obstacles);
+    // Pousse le personnage vivant de `decalage` (murs et obstacles respectés), sans
+    // changer son chemin ; sans effet s'il est mort.
+    void decaler(sf::Vector2f decalage, const TileMap& carte, const std::vector<Cercle>& obstacles);
     [[nodiscard]] bool estAPortee(Cercle cible) const;
+    // Portée de l'attaque de base, bord à bord.
+    [[nodiscard]] float getPorteeAttaqueDeBase() const;
     // Attaque de base en trois temps : engager (vivant, immobile, attaque
     // prête) ; avancer l'exécution, qui rend les dégâts au moment où le coup
     // part ; annuler, sans recharge consommée.
@@ -29,6 +34,8 @@ public:
     [[nodiscard]] int avancerAttaque(float dt, Generateur& generateur);
     // Sans effet sur une activation de skill : seul annulerSkill l'annule.
     void annulerAttaque();
+    // Voir Mobile::estEnMouvement.
+    [[nodiscard]] bool estEnMouvement() const;
     // Un coup de base en exécution ou un skill en activation : le personnage reste sur place.
     bool estEnExecution() const;
     std::optional<TypeSkill> typeSkill() const;

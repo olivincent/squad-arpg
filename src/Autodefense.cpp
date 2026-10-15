@@ -24,11 +24,11 @@ std::optional<int> choisirCibleAFrapper(Cercle origine,
     return meilleur;
 }
 
-std::optional<Cercle> choisirAgresseurAViser(Cercle personnage,
+std::optional<EntiteVue> choisirAgresseurAViser(Cercle personnage,
                                              sf::Vector2f place,
                                              float laisse,
                                              const std::vector<EntiteVue>& agresseurs) {
-    std::optional<Cercle> meilleur;
+    std::optional<EntiteVue> meilleur;
     float meilleurEcart = 0.0f;
 
     for (const EntiteVue& agresseur : agresseurs) {
@@ -37,7 +37,7 @@ std::optional<Cercle> choisirAgresseurAViser(Cercle personnage,
         }
         const float ecart = distanceBordABord(personnage, agresseur.cercle);
         if (!meilleur || ecart < meilleurEcart) {
-            meilleur = agresseur.cercle;
+            meilleur = agresseur;
             meilleurEcart = ecart;
         }
     }

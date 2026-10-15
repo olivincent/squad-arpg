@@ -110,7 +110,7 @@ TEST_CASE("choisirAgresseurAViser : le plus proche du personnage est choisi parm
     const auto choix = choisirAgresseurAViser({{0.0f, 0.0f}, 10.0f}, {0.0f, 0.0f}, 100.0f, agresseurs);
 
     REQUIRE(choix.has_value());
-    REQUIRE(choix->centre.x == 40.0f);
+    REQUIRE(choix->cercle.centre.x == 40.0f);
 }
 
 TEST_CASE("choisirAgresseurAViser : a egalite, le premier de la liste est choisi") {
@@ -121,5 +121,5 @@ TEST_CASE("choisirAgresseurAViser : a egalite, le premier de la liste est choisi
     const auto choix = choisirAgresseurAViser({{0.0f, 0.0f}, 10.0f}, {0.0f, 0.0f}, 100.0f, agresseurs);
 
     REQUIRE(choix.has_value());
-    REQUIRE(choix->centre.x == 30.0f);
+    REQUIRE(choix->cercle.centre.x == 30.0f);
 }

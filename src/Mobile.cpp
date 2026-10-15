@@ -83,6 +83,10 @@ void Mobile::mettreAJour(float dt, const TileMap& carte, const std::vector<Cercl
     m_position = deplacerAvecGlissement(carte, sf::FloatRect(m_position, m_taille), deplacement, obstacles);
 }
 
+void Mobile::decaler(sf::Vector2f decalage, const TileMap& carte, const std::vector<Cercle>& obstacles) {
+    m_position = deplacerAvecGlissement(carte, sf::FloatRect(m_position, m_taille), decalage, obstacles);
+}
+
 std::optional<sf::Vector2f> Mobile::directionVoulue() const {
     if (m_indexChemin >= m_chemin.size()) {
         return std::nullopt;

@@ -56,6 +56,13 @@ public:
     void deverrouiller();
     std::optional<int> getCibleVerrouillee() const;
     const std::vector<sf::Vector2f>& getPlacesDeFormation() const;
+    // Point vers lequel le personnage de cette place (1 à 4) marche, calculé par le dernier
+    // mettreAJour : place de formation, place d'attaque, cible du skill en attente, ou sa
+    // propre position s'il reste sur place. Vide si la place est invalide.
+    [[nodiscard]] std::optional<sf::Vector2f> pointVise(std::size_t place) const;
+    // Débogage : un trait fin du centre de chaque personnage vivant à son point visé, et un petit
+    // cercle à ce point.
+    void dessinerPointsVises(sf::RenderTarget& rendu) const;
     const std::vector<Agresseurs::Agresseur>& getAgresseurs() const;
     void provoquer(int idMonstre, std::size_t place, float duree);
     const std::vector<Provocations::Provocation>& getProvocations() const;
@@ -84,13 +91,24 @@ private:
     void engagerSkillDeDegatsEnAttente(Cercle cible, const TileMap& carte);
     std::vector<Coup> avancerSkills(float dt, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
     std::vector<Coup> autodefense(float dt, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
-    std::optional<sf::Vector2f> pointVersAgresseur(std::size_t indice, const std::vector<EntiteVue>& agresseurs) const;
+    // Place d'attaque : voir la définition de pointVersMonstre.
+    struct PlaceDAttaque {
+        int idMonstre;
+        float rayon;     // de l'anneau, en pixels
+        sf::Angle angle; // autour du centre du monstre
+    };
+    float porteeDe(const Personnage& personnage, TypeAction action) const;
+    sf::Vector2f pointVersMonstre(std::size_t indice, int idMonstre, Cercle monstre, TypeAction action,
+                                  const std::optional<PlaceDAttaque>& ancienne, const TileMap& carte);
+    std::optional<sf::Vector2f> pointVersAgresseur(std::size_t indice, const std::vector<EntiteVue>& agresseurs,
+                                                   const std::optional<PlaceDAttaque>& ancienne, const TileMap& carte);
     // Étapes de mettreAJour().
     void ecoulerMemoires(float dt);
     void tournerFormation(float dt);
     void calculerPlaces(const TileMap& carte);
+    void separerPersonnages(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles);
     sf::Vector2f pointVoulu(std::size_t indice, const std::optional<sf::Vector2f>& pointSkill, bool ancreArretee,
-                            const std::vector<EntiteVue>& agresseurs, const TileMap& carte) const;
+                            const std::vector<EntiteVue>& agresseurs, const TileMap& carte);
 
     struct SkillEnAttente {
         std::size_t place;  // du lanceur, de 1 à 4
@@ -109,6 +127,9 @@ private:
     std::optional<Cercle> m_cibleCombat; // dernière cible donnée à attaquer(), pour figer les personnages déjà à portée
     std::vector<sf::Vector2f> m_places;  // place de formation de chaque personnage, repliée si besoin (recalculée par mettreAJour)
     std::array<bool, s_nombrePersonnages> m_monstreAPortee;  // par personnage : a-t-il un monstre à portée de son attaque (calculé par attaquer, lu par mettreAJour)
+    // Par personnage : place d'attaque retenue autour du monstre qu'il approche (vide = il n'en approche aucun).
+    std::array<std::optional<PlaceDAttaque>, s_nombrePersonnages> m_placesDAttaque;
+    std::array<sf::Vector2f, s_nombrePersonnages> m_pointsVises;  // par personnage, calculé par mettreAJour
     Agresseurs m_agresseurs; // monstres qui ont frappé l'escouade récemment
     Provocations m_provocations; // monstres provoqués par un personnage
 };

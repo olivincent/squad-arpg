@@ -21,8 +21,8 @@
 // Agresseur vers lequel va un combattant (en `personnage`) dont la place en
 // formation est `place` : le plus proche de lui (bord à bord ; égalité : le
 // premier de la liste) parmi ceux dont le centre est à `laisse` ou moins de
-// `place`, sinon aucun. Renvoie le cercle de l'agresseur.
-[[nodiscard]] std::optional<Cercle> choisirAgresseurAViser(Cercle personnage,
+// `place`, sinon aucun. Renvoie l'agresseur (identifiant et cercle).
+[[nodiscard]] std::optional<EntiteVue> choisirAgresseurAViser(Cercle personnage,
                                              sf::Vector2f place,
                                              float laisse,
                                              const std::vector<EntiteVue>& agresseurs);
