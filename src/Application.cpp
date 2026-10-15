@@ -11,7 +11,7 @@
 #include <utility>
 
 #include "Cible.hpp"
-#include "EcranJeu.hpp"
+#include "EcranMenu.hpp"
 
 namespace {
 
@@ -26,7 +26,7 @@ Application::Application() {
             "Impossible de charger la police assets/fonts/DejaVuSans.ttf "
             "(lancer le jeu depuis le dossier de main.exe)");
     }
-    m_pile.push_back(std::make_unique<EcranJeu>(contexte()));
+    m_pile.push_back(std::make_unique<EcranMenu>());
 }
 
 void Application::ouvrirFenetre() {

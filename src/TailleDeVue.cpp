@@ -9,3 +9,8 @@ sf::Vector2f tailleDeVue(sf::Vector2u tailleFenetre, float hauteur) {
     const float hauteurFenetre = static_cast<float>(tailleFenetre.y);
     return {hauteur * largeurFenetre / hauteurFenetre, hauteur};
 }
+
+sf::View vueDInterface(sf::Vector2u tailleFenetre) {
+    const sf::Vector2f taille = tailleDeVue(tailleFenetre, s_hauteurDeVue);
+    return sf::View(taille / 2.0f, taille);
+}

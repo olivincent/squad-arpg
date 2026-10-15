@@ -27,7 +27,7 @@ void dessinerTexteCentre(sf::RenderTarget& rendu, const sf::Font& police, const 
 }  // namespace
 
 void dessinerEcranDeFin(sf::RenderTarget& rendu, const sf::Font& police, const std::string& titre) {
-    const sf::Vector2f tailleVue = rendu.getDefaultView().getSize();
+    const sf::Vector2f tailleVue = rendu.getView().getSize();
 
     sf::RectangleShape voile(tailleVue);
     voile.setFillColor(sf::Color(0, 0, 0, s_opaciteVoile));
@@ -35,6 +35,6 @@ void dessinerEcranDeFin(sf::RenderTarget& rendu, const sf::Font& police, const s
 
     const sf::Vector2f centre = tailleVue / 2.0f;
     dessinerTexteCentre(rendu, police, titre, s_tailleTitre, centre, sf::Color::White);
-    dessinerTexteCentre(rendu, police, "Appuyez sur R pour recommencer", s_tailleConsigne,
+    dessinerTexteCentre(rendu, police, "Appuyez sur R pour revenir au menu", s_tailleConsigne,
                         centre + sf::Vector2f{0.0f, s_ecartTitreConsigne}, sf::Color::White);
 }

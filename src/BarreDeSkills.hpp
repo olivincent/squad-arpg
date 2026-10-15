@@ -26,8 +26,8 @@
 // du skill, gris sinon. La visée l'emporte.
 [[nodiscard]] sf::Color couleurDuContour(bool enVisee, bool enActivation);
 
-// Dessine la barre des 4 skills en bas de la cible, en coordonnées de la
-// fenêtre : à appeler avec la vue par défaut. `etats[i]` est la place i + 1 ;
+// Dessine la barre des 4 skills en bas de la cible, en coordonnées de la vue
+// active : à appeler avec la vue de l'interface (`vueDInterface`). `etats[i]` est la place i + 1 ;
 // vide = pas de skill (cadre vide). `placeEnVisee` : place dont le skill est
 // en cours de visée (contour jaune), vide sinon. Une icône dont le skill est
 // en activation a un contour blanc.

@@ -12,13 +12,17 @@
 // contrôleur, caméra, interface, nouvelle carte).
 class EcranJeu : public Ecran {
 public:
-    explicit EcranJeu(const Contexte& contexte);
+    EcranJeu();
 
     Transition traiterEvenement(const sf::Event& evenement, const Contexte& contexte) override;
     void mettreAJour(float dt, const Contexte& contexte) override;
     void dessiner(const Contexte& contexte) const override;
 
 private:
+    // La caméra montre toujours `s_hauteurDeVue` pixels de monde en hauteur :
+    // sa taille suit le format de la fenêtre, lue à chaque image.
+    void ajusterCamera(const Contexte& contexte);
+
     // Remplace la partie par une neuve (nouvelle graine) et remet l'état
     // d'interface à zéro.
     void nouvelleCarte();

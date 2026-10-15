@@ -46,6 +46,8 @@ add_library(squad_core STATIC
     src/Reglages.cpp
     src/TailleDeVue.cpp
     src/EcranJeu.cpp
+    src/ListeDeBoutons.cpp
+    src/EcranMenu.cpp
 )
 target_include_directories(squad_core PUBLIC src)
 target_link_libraries(squad_core PUBLIC SFML::Graphics)
@@ -90,5 +92,7 @@ add_executable(tests
     tests/test_Controleur.cpp
     tests/test_Reglages.cpp
     tests/test_TailleDeVue.cpp
+    tests/test_ListeDeBoutons.cpp
+    tests/test_EcranMenu.cpp
 )
 target_link_libraries(tests PRIVATE squad_core Catch2::Catch2WithMain)

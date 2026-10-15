@@ -86,7 +86,7 @@ sf::Color couleurDuContour(bool enVisee, bool enActivation) {
 void dessinerBarreDeSkills(sf::RenderTarget& rendu, const sf::Font& police,
                            const std::array<std::optional<EtatSkill>, 4>& etats,
                            std::optional<std::size_t> placeEnVisee) {
-    const sf::Vector2f tailleVue = rendu.getDefaultView().getSize();
+    const sf::Vector2f tailleVue = rendu.getView().getSize();
     const float largeurBarre = 4.0f * s_coteIcone + 3.0f * s_espacement;
     const float gauche = (tailleVue.x - largeurBarre) / 2.0f;
     const float haut = tailleVue.y - s_margeBas - s_coteIcone;

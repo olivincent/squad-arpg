@@ -17,6 +17,7 @@
 #include "EtatSkill.hpp"
 #include "GenerateurDonjon.hpp"
 #include "Niveau.hpp"
+#include "TailleDeVue.hpp"
 
 namespace {
 
@@ -48,8 +49,11 @@ void dessinerCompteurDeMonstres(sf::RenderTarget& rendu, const sf::Font& police,
 
 }  // namespace
 
-EcranJeu::EcranJeu(const Contexte& contexte)
-    : m_partie(nouvellePartie(m_tirageDeGraine)), m_camera(contexte.fenetre.getDefaultView()) {}
+EcranJeu::EcranJeu() : m_partie(nouvellePartie(m_tirageDeGraine)) {}
+
+void EcranJeu::ajusterCamera(const Contexte& contexte) {
+    m_camera.setSize(tailleDeVue(contexte.fenetre.getSize(), s_hauteurDeVue));
+}
 
 // Réaffectation : la Partie garde son adresse, et le Controleur repart
 // sans visée ni déplacement continu.
@@ -62,6 +66,7 @@ Transition EcranJeu::traiterEvenement(const sf::Event& evenement, const Contexte
     sf::RenderWindow& fenetre = contexte.fenetre;
     // L'image précédente a fini sur la vue de l'interface : les clics
     // doivent être convertis avec la caméra du monde.
+    ajusterCamera(contexte);
     fenetre.setView(m_camera);
     if (const auto* data = evenement.getIf<sf::Event::MouseButtonPressed>()) {
         if (data->button == sf::Mouse::Button::Left) {
@@ -85,7 +90,7 @@ Transition EcranJeu::traiterEvenement(const sf::Event& evenement, const Contexte
         } else if (data->scancode == sf::Keyboard::Scan::Escape) {
             m_controleur.appuiEchap();
         } else if (data->scancode == sf::Keyboard::Scan::R && (m_partie.estPerdue() || m_partie.estGagnee())) {
-            nouvelleCarte();
+            return Depiler{};  // retour au menu
         } else if (data->scancode == sf::Keyboard::Scan::F5) {
             // Touche de débogage : à tout moment, même effet que R.
             nouvelleCarte();
@@ -96,6 +101,7 @@ Transition EcranJeu::traiterEvenement(const sf::Event& evenement, const Contexte
 
 void EcranJeu::mettreAJour(float dt, const Contexte& contexte) {
     sf::RenderWindow& fenetre = contexte.fenetre;
+    ajusterCamera(contexte);
     fenetre.setView(m_camera);
     const bool boutonTenu = fenetre.hasFocus() && sf::Mouse::isButtonPressed(sf::Mouse::Button::Left);
     m_controleur.mettreAJourDeplacement(m_partie, boutonTenu, fenetre.mapPixelToCoords(sf::Mouse::getPosition(fenetre)));
@@ -113,8 +119,8 @@ void EcranJeu::dessiner(const Contexte& contexte) const {
     m_partie.dessiner(fenetre);
     m_controleur.dessinerApercu(m_partie, fenetre, fenetre.mapPixelToCoords(sf::Mouse::getPosition(fenetre)));
 
-    // Interface fixe à l'écran : vue par défaut, dessinée en dernier.
-    fenetre.setView(fenetre.getDefaultView());
+    // Interface fixe à l'écran : vue de l'interface, dessinée en dernier.
+    fenetre.setView(vueDInterface(fenetre.getSize()));
     std::array<std::optional<EtatSkill>, 4> etatsDesSkills;
     for (std::size_t i = 0; i < etatsDesSkills.size(); ++i) {
         etatsDesSkills[i] = m_partie.getEscouade().etatDuSkill(i + 1);

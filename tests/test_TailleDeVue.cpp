@@ -12,3 +12,10 @@ TEST_CASE("tailleDeVue : 1920 x 1080 garde la hauteur et elargit la vue") {
     const sf::Vector2f taille = tailleDeVue({1920, 1080}, 800.0f);
     verifierPointProche(taille, {1422.2f, 800.0f}, 0.1f);
 }
+
+TEST_CASE("vueDInterface : coin haut gauche en (0, 0), hauteur fixe") {
+    const sf::View vue = vueDInterface({1920, 1080});
+
+    verifierPointProche(vue.getSize(), {1422.2f, 800.0f}, 0.1f);
+    verifierPointProche(vue.getCenter() - vue.getSize() / 2.0f, {0.0f, 0.0f});
+}
