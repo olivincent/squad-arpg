@@ -62,7 +62,7 @@ squad-arpg/
 │   ├── Cercle.hpp / .cpp
 │   ├── EtatSkill.hpp
 │   ├── BarreDeSkills.hpp / .cpp
-│   ├── EcranDeDefaite.hpp / .cpp
+│   ├── EcranDeFin.hpp / .cpp
 │   ├── BarreDeVie.hpp / .cpp
 │   ├── Defense.hpp / .cpp
 │   ├── Eclaircir.hpp / .cpp
@@ -111,7 +111,7 @@ Qui possède quoi :
 - `main.cpp` possède la fenêtre, la boucle SFML, la caméra, la police
   (`sf::Font`), une `Partie` et un `Controleur`. Il traduit les événements
   SFML (fermeture, clic, touches 1 à 4, Échap, clic droit) en appels au
-  `Controleur` (touche R : nouvelle carte si la partie est perdue ; F5 :
+  `Controleur` (touche R : nouvelle carte si la partie est perdue ou gagnée ; F5 :
   nouvelle carte à tout moment ; les deux, comme le lancement, passent par
   `nouvellePartie`, qui tire la graine et génère le niveau),
   convertit le curseur en coordonnées du monde, centre la caméra sur
@@ -203,7 +203,7 @@ seulement : les règles propres à `Escouade` ou à `Monstre` y restent. Le
 joueur agit par des demandes, mémorisées puis exécutées par `mettreAJour` à
 leur place dans l'image ; l'ordre est décrit dans `docs/boucle-et-entrees.md`.
 Invariant : entre deux appels, tout monstre du vecteur est vivant.
-Une partie perdue est figée. Elle se recommence en la remplaçant par une
+Une partie perdue ou gagnée est figée. Elle se recommence en la remplaçant par une
 `Partie` neuve (réaffectation par déplacement : règle du zéro).
 
 Données membres : `m_carte` (`TileMap`), `m_escouade` (`Escouade`),
@@ -222,7 +222,9 @@ personne ne copie ni ne garde).
 | `void lancerSkillDeZone(std::size_t place, sf::Vector2f point)` | Mémorise le lancer du skill de zone |
 | `void ordonnerDeplacement(sf::Vector2f point)` | Mémorise l'ordre de déplacement ; exécuté seulement si l'escouade est vivante |
 | `bool estPerdue() const` | Vrai quand tous les personnages sont morts (`!m_escouade.estVivante()`) ; `[[nodiscard]]` |
-| `void mettreAJour(float dt)` | Sans effet si la partie est perdue (le monde est figé). Sinon exécute, dans l'ordre : lancer de zone, skill demandé, `attaquer(dt, …)` et application des coups, déverrouillage si la cible est morte, retrait des monstres morts, ordre de déplacement, mise à jour (obstacles, escouade, tour de chaque monstre, avec l'engagement et le départ de son coup) ; vide les demandes |
+| `bool estGagnee() const` | Vrai quand `m_monstres` est vide ET que la partie n'est pas perdue (la défaite l'emporte) ; `[[nodiscard]]` |
+| `int monstresRestants() const` | Nombre de monstres vivants (`m_monstres.size()`), pour le compteur de `main.cpp` ; `[[nodiscard]]` |
+| `void mettreAJour(float dt)` | Sans effet si la partie est perdue ou gagnée (le monde est figé). Sinon exécute, dans l'ordre : lancer de zone, skill demandé, `attaquer(dt, …)` et application des coups, déverrouillage si la cible est morte, retrait des monstres morts, ordre de déplacement, mise à jour (obstacles, escouade, tour de chaque monstre, avec l'engagement et le départ de son coup) ; vide les demandes |
 | `void dessiner(sf::RenderTarget& rendu) const` | Carte, monstres (contour jaune sur le monstre verrouillé), escouade |
 | `const Escouade& getEscouade() const` | Lecture seule : caméra, barre de skills, requêtes du `Controleur` |
 | `const std::vector<Monstre>& getMonstres() const` | Lecture seule (utilisée par les tests) |
@@ -544,13 +546,13 @@ Fonctions libres, sans état : tout est recalculé à chaque image. Ne connaît 
 | `std::vector<sf::Vector2f> pointsDuQuartier(sf::Vector2f centre, float cote, float fractionSombre)` | Sommets d'un `TriangleFan` : centre, aiguille, coins du carré dans l'intervalle, midi ; vide si la fraction est nulle |
 | `void dessinerBarreDeSkills(sf::RenderTarget& rendu, const sf::Font& police, const std::array<std::optional<EtatSkill>, 4>& etats, std::optional<std::size_t> placeEnVisee)` | Dessine 4 icônes de 56 px en bas de la vue par défaut (à appeler avec elle) : fond, lettre, numéro de touche, quartier sombre et chiffre en recharge, grisée si le lanceur est mort, contour jaune si `placeEnVisee`, blanc si `enActivation` |
 
-### `EcranDeDefaite` — l'écran de défaite
+### `EcranDeFin` — l'écran de fin de partie
 
-Une fonction libre, sans état, sur le modèle de `BarreDeSkills`. Ne connaît ni `Partie` ni `Escouade`.
+Une fonction libre, sans état, sur le modèle de `BarreDeSkills`. Ne connaît ni `Partie` ni `Escouade`. Sert à la défaite et à la victoire.
 
 | Fonction | Rôle |
 |---|---|
-| `void dessinerEcranDeDefaite(sf::RenderTarget& rendu, const sf::Font& police)` | Voile noir semi-transparent sur toute la vue par défaut, puis « Défaite » et « Appuyez sur R pour recommencer » au centre ; à appeler avec la vue par défaut, après la barre de skills |
+| `void dessinerEcranDeFin(sf::RenderTarget& rendu, const sf::Font& police, const std::string& titre)` | Voile noir semi-transparent sur toute la vue par défaut, puis `titre` (« Victoire » ou « Défaite ») et « Appuyez sur R pour recommencer » au centre ; à appeler avec la vue par défaut, après la barre de skills |
 
 ### `BarreDeVie` — la barre de vie d'une entité
 

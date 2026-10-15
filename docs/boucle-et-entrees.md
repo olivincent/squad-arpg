@@ -4,7 +4,7 @@ Depuis l'étape 52, trois acteurs se partagent ce qui tenait dans `main()` :
 
 | Acteur | Rôle | Connaît SFML Window/Event ? |
 |---|---|---|
-| `main.cpp` | Fenêtre, police, horloge, caméra, traduction des événements SFML en appels au `Controleur`, nouvelle carte (touches R après une défaite, F5), conversion du curseur en coordonnées du monde, enchaînement du dessin | Oui, seul |
+| `main.cpp` | Fenêtre, police, horloge, caméra, traduction des événements SFML en appels au `Controleur`, nouvelle carte (touches R après une défaite ou une victoire, F5), compteur de monstres, conversion du curseur en coordonnées du monde, enchaînement du dessin | Oui, seul |
 | `Controleur` | État d'interface : mode visée (`m_placeEnVisee`) et déplacement continu (`m_deplacementContinu`), sans référence à la `Partie` (reçue à chaque appel) ; traduit les actions du joueur en demandes à la `Partie` ; dessine l'aperçu de visée | Non |
 | `Partie` | Règles de jeu : possède la carte, l'`Escouade` et les `Monstre` ; intermédiaire entre `Escouade` et `Monstre`, qui ne se connaissent pas | Non |
 
@@ -29,7 +29,7 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   2. `controleur.mettreAJourDeplacement(partie, boutonTenu, curseur)` : si le bouton
      est tenu et le déplacement continu armé, `partie.ordonnerDeplacement`
      (mémorisé) ;
-  3. `partie.mettreAJour(dt)`, qui ne fait rien si la partie est perdue,
+  3. `partie.mettreAJour(dt)`, qui ne fait rien si la partie est perdue ou gagnée,
      sinon déroule, dans cet ordre exact :
      a. verrou levé si le monstre verrouillé n'est plus dans le vecteur ;
         liste des `MonstreVu` (une fois pour toute l'image) ;
@@ -46,8 +46,9 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
      h. les demandes sont vidées ;
   4. `main.cpp` : caméra centrée sur l'escouade, `partie.dessiner` (carte,
      monstres avec le contour du verrou, escouade), `controleur.
-     dessinerApercu`, puis, dans la vue par défaut, barre de skills et, si la
-     partie est perdue, écran de défaite (par-dessus la barre).
+     dessinerApercu`, puis, dans la vue par défaut, barre de skills, compteur
+     « Monstres : N » (haut gauche) et, si la partie est perdue ou gagnée,
+     écran de fin (par-dessus la barre et le compteur).
 - **Demandes mémorisées** : à part `cliquer`, les actions du joueur ne sont
   pas exécutées à l'événement mais à leur place dans `mettreAJour`. Un clic
   est appliqué tout de suite parce qu'il ne dépend que de l'état au moment
@@ -186,20 +187,22 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   si la partie est perdue : plus aucun monstre ne bouge, ne frappe ni ne
   rentre à son poste. La boucle SFML continue (caméra, dessin, fermeture).
   Les garde-fous `estVivante()` internes à `mettreAJour` restent, inoffensifs.
-- **Écran de défaite** : `dessinerEcranDeDefaite` (module `EcranDeDefaite`,
-  fonction libre sur le modèle de `BarreDeSkills`) est dessiné dans la vue
-  par défaut, après la barre de skills : le voile semi-transparent la laisse
-  visible dessous. `main.cpp` l'appelle si `partie.estPerdue()`.
+- **Écran de fin** : `dessinerEcranDeFin` (module `EcranDeFin`, fonction
+  libre sur le modèle de `BarreDeSkills`, titre en paramètre) est dessiné
+  dans la vue par défaut, après la barre de skills : le voile
+  semi-transparent la laisse visible dessous. `main.cpp` l'appelle avec
+  « Défaite » si `partie.estPerdue()`, sinon avec « Victoire » si
+  `partie.estGagnee()`.
 - **Recommencer = remplacer l'objet** : la touche R, seulement si la partie
-  est perdue (ignorée en jeu), et F5 (touche de débogage, à tout moment, y
+  est perdue ou gagnée (ignorée en jeu), et F5 (touche de débogage, à tout moment, y
   compris en visée) appellent la lambda `nouvelleCarte` de `main.cpp`, qui
   fait `partie = nouvellePartie(tirage)` (nouvelle graine tirée et affichée,
   nouvelle carte générée) et `controleur = Controleur{}`. Le lancement
   utilise la même `nouvellePartie`. Pas de `reinitialiser()` : un état remis à
   zéro membre par membre risque d'oublier un membre. Une visée ou un
   déplacement continu en cours ne survivent pas. La caméra, recentrée à
-  chaque image, suit l'escouade neuve sans code propre. R reste réservée à
-  l'écran de défaite.
+  chaque image, suit l'escouade neuve sans code propre. R reste réservée aux
+  écrans de fin.
 - **Pourquoi `Controleur` reçoit la `Partie` à chaque appel** : une
   référence membre empêche la réaffectation (C++ Core Guidelines C.12).
   Avec une référence, `controleur = Controleur{}` était impossible, et
@@ -207,6 +210,27 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   reconstruire le `Controleur`. `Controleur` est maintenant un type valeur ;
   `Partie` reste une variable ordinaire de `main` et, remplacée par
   déplacement, garde son adresse.
+
+## Victoire (étape 63)
+
+- **Règle** : `Partie::estGagnee()` = aucun monstre dans le vecteur ET
+  `!estPerdue()`. La défaite l'emporte : si le dernier monstre et le dernier
+  personnage meurent dans la même image, la partie est perdue (gagner exige
+  un survivant). La règle vit dans le noyau, comme `estPerdue`.
+- **Même figement que la défaite** : `mettreAJour` sort tout de suite si
+  `estPerdue() || estGagnee()`, un seul chemin de code. `cliquer` n'est pas
+  bloqué après une victoire (il ne change rien d'utile : le monde est figé).
+- **Compteur** : `Partie::monstresRestants()` plutôt qu'un comptage dans
+  `main.cpp`, qui ne connaît pas `Monstre`. Dessiné par une fonction du
+  namespace anonyme de `main.cpp` (un simple `sf::Text`, pas un module : une
+  seule utilisation), en haut à gauche pour ne pas gêner la barre de skills
+  en bas.
+- **Carte sans monstre** : si le générateur n'en place aucun (très rare), la
+  partie est gagnée dès le départ. Acceptée : F5 suffit, le générateur n'est
+  pas modifié.
+- **Tests** : les tests de `Controleur` qui font avancer la partie ont un
+  monstre lointain (`s_monstreLointain`), sinon une partie sans monstre est
+  gagnée donc figée.
 
 ## Les monstres dans `Partie::mettreAJour`
 

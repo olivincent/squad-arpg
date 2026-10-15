@@ -70,8 +70,9 @@ est dans `docs/historique.md`.
 - Étape 60 — Génération procédurale : les couloirs ✅
 - Étape 61 — Génération procédurale : monstres, touche R et F5 ✅
 - Étape 62 — Ligne de vue des monstres et nettoyage de Skill ✅
+- Étape 63 — Objectif et victoire ✅
 
-## Étape 63 (à définir)
+## Étape 64 (à définir)
 
 Prochaine étape à choisir avec Claude.ai (voir les pistes ci-dessous et
 `docs/brainstorm.md`).
@@ -107,7 +108,7 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   retour d'un monstre
 - Retirer un personnage mort de `m_personnages` et resserrer la
   formation, si l'avoir laissé en place s'avère gênant
-- Écran de victoire
+- Sortie ou escalier comme objectif, étages
 - Collision entre personnages, ou déplacement suivant l'arc de rotation
   plutôt qu'une ligne droite, pour éliminer le chevauchement résiduel
   lors d'un demi-tour rapide
@@ -134,7 +135,7 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   généré (`genererNiveau` : salles rectangulaires reliées par des couloirs en L de
   2 cases de large, escouade au centre de la première salle, 1 à 3
   monstres par autre salle, même graine que la partie, voir
-  `docs/generation.md`). R (après une défaite) et F5 (à tout moment, touche
+  `docs/generation.md`). R (après une défaite ou une victoire) et F5 (à tout moment, touche
   de débogage) génèrent une nouvelle carte avec une nouvelle graine,
   affichée dans la console ; la carte faite à la main
   (`creerNiveau()` dans `Niveau.cpp`) reste le terrain des tests. La caméra (`sf::View`) est centrée
@@ -222,6 +223,16 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   fige, un écran de défaite (voile sombre, « Défaite », « Appuyez sur R pour
   recommencer ») s'affiche et la touche R génère une nouvelle carte
   (nouvelle `Partie` et nouveau `Controleur`, nouvelle graine).
+- **Objectif et victoire** (étape 63) : la partie est gagnée quand il ne
+  reste aucun monstre (`Partie::estGagnee`, faux si la partie est perdue : la
+  défaite l'emporte si les derniers monstres et personnages meurent dans la
+  même image). Le monde se fige comme après la défaite (même sortie
+  anticipée de `mettreAJour`), l'écran de fin affiche « Victoire » (module
+  `EcranDeFin`, titre en paramètre, partagé avec « Défaite ») et R génère la
+  carte suivante, après une victoire comme après une défaite (F5
+  inchangée). Un compteur « Monstres : N » (`Partie::monstresRestants`),
+  blanc à contour noir, est fixe en haut à gauche de l'écran (vue par
+  défaut).
 - **Entrées** : un clic sur le sol envoie l'escouade vers ce point ; tant
   que le bouton reste enfoncé (fenêtre ayant le focus, escouade vivante),
   l'ordre est redonné à chaque image vers le curseur. Un clic bref sur un
@@ -332,16 +343,19 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 497 tests : 47 sur `GenerateurDonjon`, 38 sur `TileMap`, 17 sur `Chemin`, 163
+  (`./build/tests.exe`, 503 tests : 47 sur `GenerateurDonjon`, 38 sur `TileMap`, 17 sur `Chemin`, 163
   sur `Escouade` en cinq fichiers par thème — 22 déplacement, 27 combat, 70
   skills, 26 agresseurs, 18 vue —, 12 sur `Deplacement`, 50 sur `Monstre`,
   46 sur `Personnage`, 24 sur `Skill`, 17 sur `Mobile`, 2 sur `Eclaircir`, 4 sur `Cercle`, 13
   sur `Autodefense`, 7 sur `BarreDeSkills`, 4 sur `MonstreVu`, 1 sur
-  `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 14 sur `Partie`, 7 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
+  `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 20 sur `Partie`, 7 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
   accents (`./build/tests.exe "*a portee*"` filtre) ; rotation de la
   formation et `provoquer` à une place invalide couverts.
 
 **Limites connues** (acceptées pour l'instant) :
+- Si le générateur ne place aucun monstre (très rare), la partie est gagnée
+  dès le départ ; F5 génère une autre carte (le générateur n'est pas
+  modifié).
 - Couloirs générés (étape 60) : un couloir peut traverser une autre salle
   ou longer un mur, et les couloirs ne forment pas de boucle (arbre).
   Aucun problème de déplacement observé dans les couloirs de 2 cases.

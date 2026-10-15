@@ -599,7 +599,7 @@
   leur poste) ; une `Partie` réaffectée avec un niveau neuf n'est plus
   perdue, a 6 monstres à 100 points de vie et l'escouade au départ (vérifie
   aussi que `Partie` se déplace). Aide `groupeDeMonstres()` (30 monstres).
-- **Non testé** : `dessinerEcranDeDefaite` (dessin, vérifié dans le jeu) et
+- **Non testé** : `dessinerEcranDeFin` (dessin, vérifié dans le jeu) et
   la touche R dans `main.cpp`. 381 tests.
 
 ## Temps d'exécution des attaques (étape 57)
@@ -686,3 +686,21 @@
   test du choix entre deux personnages : la cible de frappe est la proie
   (limite acceptée, voir `docs/monstre.md`).
 
+
+## Victoire (étape 63)
+
+- **`test_Partie.cpp`** (+6 cas) : `estGagnee` faux avec un monstre (et
+  `monstresRestants` à 1) ; vrai quand le seul monstre est tué (et pas
+  perdue, compteur à 0) ; une partie perdue n'est pas gagnée (monstres
+  restants) ; sans monstre au départ la partie est gagnée ; le compteur baisse
+  quand un monstre meurt (deux monstres, un hors de portée) ; une partie
+  gagnée se fige (un ordre de déplacement n'a aucun effet).
+- **`test_Controleur.cpp`** : `niveauDegage({})` devient
+  `niveauDegage({s_monstreLointain})`, un monstre hors de détection : une
+  partie sans monstre est gagnée donc figée, ce qui bloquait les cas qui
+  font avancer la partie.
+- **Non testé** : `dessinerEcranDeFin`, le compteur et la touche R dans
+  `main.cpp` (vérifiés dans le jeu). Le cas « derniers monstres et derniers
+  personnages morts dans la même image » n'est pas reproduit à coup sûr ; la
+  règle `estGagnee = vide && !estPerdue` le garantit par construction. 503
+  tests.
