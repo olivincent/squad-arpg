@@ -64,14 +64,17 @@ est dans `docs/historique.md`.
 - Étape 55 — Armure à rendement décroissant ✅
 - Étape 56 — Générateur aléatoire injecté et recharge aléatoire ✅
 - Étape 57 — Temps d'exécution des attaques : on s'immobilise pour frapper ✅
+- Étape 58 — Temps d'activation des skills (touches 1 à 4) et action engagée par personnage ✅
 
-## Étape 58
+## Étape 59
 
-Temps d'activation des skills des touches 1 à 4, avec la même machine à
-états que l'attaque de base (`Skill`), et leur rapport au mouvement (à
-préciser dans Claude.ai).
+À définir dans Claude.ai.
 
 Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes) :
+- Skill en attente par personnage (aujourd'hui un seul pour l'escouade)
+- Interruption de l'activation d'un skill par les dégâts reçus
+- Supprimer `Skill::declencher` et `Skill::declencherSansCible`, plus
+  utilisées par le jeu depuis l'étape 58 (refactorisation pure)
 - Vitesse relative escouade/monstres comme levier contre le kiting
 - Ralentissement de l'escouade engagée
 - Attaque d'opportunité au désengagement
@@ -139,7 +142,7 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   bords du carré (zone claire grandissante depuis midi, sens horaire) et
   le temps restant en secondes entières s'affiche au centre. Icône grisée,
   sans quartier ni chiffre, quand le lanceur est mort ; contour jaune sur
-  l'icône du skill en cours de visée. Police DejaVu Sans dans
+  l'icône du skill en cours de visée, contour blanc pendant son activation. Police DejaVu Sans dans
   `assets/fonts/`, copiée à côté de `main.exe` par CMake ; le jeu refuse
   de démarrer si elle manque.
 - **Qualité du code** (étape 49) : `squad_core` et `main` se compilent avec
@@ -168,8 +171,8 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   bout de son coup, même si une provocation change sa proie. La recharge
   démarre au départ du coup. Le carré de l'entité s'éclaircit de 50 % pendant
   l'exécution (le contour jaune du monstre verrouillé est inchangé). Les
-  skills des touches 1 à 4 ont une exécution nulle et ne sont pas soumis à
-  l'immobilité. Voir `docs/combat.md`.
+  skills des touches 1 à 4 ont leur propre temps d'activation (voir
+  « Skills »). Voir `docs/combat.md`.
 - **Aléatoire** (étape 56) : `Partie` possède un `Generateur`
   (`std::mt19937`, `Aleatoire.hpp`) initialisé par une graine que `main.cpp`
   tire avec `std::random_device` et affiche dans la console (au démarrage
@@ -244,7 +247,7 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   reste sur place. L'ordre du joueur (ancre en mouvement), le skill en
   attente et le verrou (personnage à portée du monstre verrouillé) passent
   avant.
-- **Skills** : trois, de classe `Skill` (exécution nulle) (type, portée, puissance, recharge, rayon de zone). Touche 1 :
+- **Skills** : quatre, de classe `Skill` (type, portée, puissance, recharge, rayon de zone, temps d'activation). Touche 1 :
   skill de dégâts du mêlée avant-gauche (25 dégâts, recharge 5 s, portée
   de mêlée, 20 px), sur le monstre verrouillé ou, sans verrou, sur le
   monstre à portée que ce mêlée frapperait en autodéfense (alors sans
@@ -262,21 +265,34 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   montre la portée autour du lanceur), puis un clic gauche lance le sort
   au point visé (même sur un monstre : pas de verrou). À portée (bord à
   bord) et en vue (ligne de vue entre le lanceur et le point, sans mur),
-  il part tout de suite ; hors portée ou derrière un mur, le lanceur
-  quitte sa place, marche vers le point (contournant le mur) et lance le
-  sort au point fixé au clic dès qu'il est à portée et en vue (un point
+  son activation commence tout de suite ; hors portée ou derrière un mur, le lanceur
+  quitte sa place, marche vers le point (contournant le mur) et commence
+  l'activation au point fixé au clic dès qu'il est à portée et en vue (un point
   dans un mur est refusé, sans recharge ; seule sa mort l'annule : ni verrou, ni clic, ni ordre de
   déplacement). Le sort touche tous les monstres dont le bord est dans le
   cercle au moment du départ et qui sont en vue du point d'impact (centre
   à centre, il ne traverse pas les murs), et coûte sa recharge même si la zone est vide. Clic
   droit, Échap ou 4 annulent sans recharge ; le déplacement continu est
   suspendu pendant la visée. Un skill de dégâts ou de soin hors de portée met son lanceur en marche vers la
-  cible et part à l'arrivée (un seul skill en attente à la fois ; annulé
-  par la mort du lanceur, celle de la cible ou son retour à pleine vie
-  pour un soin, la rupture du combat pour des dégâts). Un skill remplace
-  l'attaque de base à ce moment (il en relance la recharge). Une barre
-  orange sous la barre de vie montre la recharge (pleine = prêt), qui ne
-  démarre qu'au départ du skill.
+  cible et commence son activation à l'arrivée (un seul skill en attente à
+  la fois ; annulé par la mort du lanceur, celle de la cible ou son retour
+  à pleine vie pour un soin, la rupture du combat pour des dégâts). Une
+  barre orange sous la barre de vie montre la recharge (pleine = prêt), qui
+  ne démarre qu'au départ du skill.
+  **Temps d'activation** (étape 58) : chaque skill passe par la même machine
+  à états que l'attaque de base : dégâts 0,3 s, provocation 0,2 s, soin
+  0,6 s, zone 0,8 s. L'appui est un ordre : il n'exige pas d'être immobile,
+  mais le lanceur s'arrête sur place pendant toute l'activation (son carré
+  s'éclaircit, l'icône a un contour blanc), puis l'effet part, évalué à ce
+  moment (monstres dans la zone, cible du coup ou du soin). Le coup de base
+  engagé est annulé au début et sa recharge est relancée au départ.
+  Pendant l'activation le skill n'est pas prêt : un nouvel appui est refusé
+  et la touche 4 n'entre pas en visée ; les skills d'autres personnages
+  restent permis (plusieurs activations simultanées). Seuls la mort du
+  lanceur, celle du monstre visé (dégâts) ou celle de l'allié visé (soin)
+  l'annulent, sans recharge ; un ordre de déplacement, un clic au sol ou un
+  verrouillage ne l'annulent pas. Pas de revérification de portée ni de vue
+  au départ. Voir `docs/combat.md`.
 - **Monstres** : six carrés rouges de 30 × 30 (120 px/s, 100 points de
   vie, barre de vie), à `(660, 380)`, `(500, 580)`, `(900, 220)`,
   `(1940, 180)`, `(1500, 540)` et `(1620, 540)`, possédés par
@@ -296,16 +312,20 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 432 tests : 38 sur `TileMap`, 17 sur `Chemin`, 154
-  sur `Escouade` en cinq fichiers par thème — 22 déplacement, 27 combat, 61
+  (`./build/tests.exe`, 449 tests : 38 sur `TileMap`, 17 sur `Chemin`, 163
+  sur `Escouade` en cinq fichiers par thème — 22 déplacement, 27 combat, 70
   skills, 26 agresseurs, 18 vue —, 12 sur `Deplacement`, 43 sur `Monstre`,
-  39 sur `Personnage`, 30 sur `Skill`, 17 sur `Mobile`, 2 sur `Eclaircir`, 4 sur `Cercle`, 13
-  sur `Autodefense`, 6 sur `BarreDeSkills`, 4 sur `MonstreVu`, 1 sur
+  46 sur `Personnage`, 30 sur `Skill`, 17 sur `Mobile`, 2 sur `Eclaircir`, 4 sur `Cercle`, 13
+  sur `Autodefense`, 7 sur `BarreDeSkills`, 4 sur `MonstreVu`, 1 sur
   `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 14 sur `Partie`, 7 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
   accents (`./build/tests.exe "*a portee*"` filtre) ; rotation de la
   formation et `provoquer` à une place invalide couverts.
 
 **Limites connues** (acceptées pour l'instant) :
+- Pas d'interruption de l'activation d'un skill par les dégâts reçus ; un
+  seul skill en attente pour toute l'escouade ; pas de barre de progression
+  d'incantation ; pas de revérification de portée ni de vue au départ du
+  skill.
 - La barre de skills ne montre pas le skill en attente et n'est pas
   cliquable ; sa position suit la taille initiale de la fenêtre (pas de
   gestion du redimensionnement). La police se charge par chemin relatif :

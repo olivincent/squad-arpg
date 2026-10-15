@@ -637,3 +637,32 @@
   pas exposés) ; couverts dans `test_Monstre.cpp` et `test_Escouade_combat.cpp`.
 - **`test_Eclaircir.cpp`** (2) : mélange au blanc, opacité conservée.
   432 tests.
+
+## Temps d'activation des skills (étape 58)
+
+- **`aides.hpp`** : `attendreLeDepartDesSkills` appelle `attaquer` par tics
+  pendant 1 s (plus que la plus longue activation, 0,8 s), sans `mettreAJour`
+  (les recharges ne courent pas), et écarte les coups de 5 dégâts (attaques de
+  base) pour ne garder que ceux des skills. `declencherEtAttendre` et
+  `declencherZoneEtAttendre` déclenchent puis attendent le départ ;
+  `simulerAvecAttaque` fait `attaquer` puis `mettreAJour` à chaque tic, dans
+  l'ordre d'une image de `Partie`.
+- **Tests adaptés, pas supprimés** : les tests d'`Escouade` qui comptaient les
+  coups de skill à l'appui passent par ces aides ; quelques tests ont été
+  retouchés à la main (skill en attente derrière un mur, soin en attente,
+  changement de cible, coup de base annulé par un skill, `Partie`).
+  `Escouade::mettreAJour` n'a plus de paramètre `Generateur&`.
+- **`test_Personnage.cpp`** : les tests de `declencherSkill` deviennent
+  `lancerSkillEnEntier` (engager puis avancer jusqu'au départ) ; nouveaux
+  tests avec un skill d'activation construit dans le test : puissance rendue
+  une seule fois, skill non prêt et non réengageable pendant l'activation,
+  engagement sans immobilité, `annulerSkill` sans recharge, `annulerAttaque`
+  qui n'annule pas un skill, aucune attaque de base pendant l'activation,
+  recharge de base relancée au départ.
+- **`test_Escouade_skills.cpp`** (+9) : avec les vraies valeurs ; départ à
+  0,3 s, second appui refusé, lanceur immobile et ordre de déplacement qui
+  n'annule pas, mort du lanceur ou de la cible (monstre, allié) sans recharge,
+  zone et provocation évaluées au départ, deux lanceurs simultanés.
+  Non couvert : un soin dont la cible remonte à pleine vie pendant l'activation
+  (`Escouade` n'expose aucun moyen de soigner de l'extérieur) ; à vérifier en jeu.
+- **`test_BarreDeSkills.cpp`** (+1) : `couleurDuContour`. 449 tests.

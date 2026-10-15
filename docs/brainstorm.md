@@ -42,7 +42,13 @@ Objectif commun : casser la « rotation de skills » à la WoW pour que le comba
 
 Chaque attaque de base a un temps d'exécution pendant lequel l'attaquant est immobile : pour engager un coup il faut être immobile, et le coup engagé part à la fin de l'exécution (0,15 s pour un personnage, 0,3 s pour un monstre), même si la cible a bougé. Annulation sans recharge par la mort de la cible ou de l'attaquant, et, pour un personnage, par un ordre du joueur ou un skill. Indice visuel : le carré s'éclaircit. Voir `docs/combat.md`.
 
-*Pistes liées, non retenues pour l'instant* : vitesse relative escouade/monstres comme levier contre le kiting, ralentissement de l'escouade engagée, attaque d'opportunité au désengagement, temps d'activation des skills 1 à 4 (étape 58).
+*Pistes liées, non retenues pour l'instant* : vitesse relative escouade/monstres comme levier contre le kiting, ralentissement de l'escouade engagée, attaque d'opportunité au désengagement, temps d'activation des skills 1 à 4 (retenu, voir 1.1 ter).
+
+### 1.1 ter Temps d'activation des skills (étape 58, retenue)
+
+Les skills des touches 1 à 4 passent par la même machine à états que l'attaque de base : engagés, ils s'activent (dégâts 0,3 s, provocation 0,2 s, soin 0,6 s, zone 0,8 s) pendant que le lanceur reste sur place, puis l'effet part, évalué à ce moment. L'appui est un ordre (il n'exige pas d'être immobile) ; seuls la mort du lanceur ou de la cible annulent l'activation, sans recharge. Un ordre de déplacement, un clic au sol ou un verrouillage ne l'annulent pas : le skill est l'ordre le plus récent. Indices visuels : le carré s'éclaircit, l'icône a un contour blanc. Voir `docs/combat.md`.
+
+*Pistes liées, non retenues pour l'instant* : interruption de l'activation par les dégâts reçus, skill en attente par personnage, barre de progression d'incantation.
 
 ### 1.2 Coup double
 

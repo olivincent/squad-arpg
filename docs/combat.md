@@ -69,7 +69,6 @@ personnages sont dans `docs/formation.md`, le monstre dans
   - **les frappes, verrou ou non** : voir « Autodéfense ».
 - **Les morts sont ignorés pour l'arrêt** (voir `docs/formation.md`).
 - **Frapper se fait en deux temps** depuis l'étape 57 (voir « Temps d'exécution et coup engagé »).
-- **Frapper se fait en deux temps** depuis l'étape 57 (voir « Temps d'exécution et coup engagé »).
 - **La formation tient pendant l'attaque** : les personnages continuent
   de viser leur place (`placePersonnage`), sauf ceux déjà à portée du
   monstre verrouillé, qui restent sur place.
@@ -182,6 +181,10 @@ personnages sont dans `docs/formation.md`, le monstre dans
   **`mettreAJour(dt)`** décrémente la recharge, sans descendre sous zéro :
   le temps passe même quand le propriétaire n'agit pas.
   **`relancerRecharge`** la remet au complet (nouveau tirage) sans déclencher.
+  Depuis l'étape 58, le jeu n'appelle plus `declencher` ni
+  `declencherSansCible` : les attaques de base et les skills passent par
+  `commencer` / `avancer` / `annuler`. Elles ne servent plus que dans
+  `test_Skill.cpp` (à supprimer dans un commit séparé).
 - **Valeurs des attaques de base** : personnages 5 dégâts, recharge de
   0,3 à 0,7 s (mêlées, portée 20 px) ou de 0,4 à 0,6 s (tireurs, portée
   120 px) ; monstre 10 dégâts (de quoi rester dangereux seul face à 4
@@ -201,20 +204,21 @@ personnages sont dans `docs/formation.md`, le monstre dans
   et « Skill de zone ciblé »), aux
   valeurs écrites dans `Escouade.cpp` :
   - dégâts : personnage 0 (mêlée avant-gauche), 25 dégâts, recharge 5 s,
-    portée de mêlée (20 px) ;
+    portée de mêlée (20 px), activation 0,3 s ;
   - soin : personnage 2 (tireur arrière-gauche), 30 points de vie,
-    recharge 8 s, portée 40 px bord à bord.
+    recharge 8 s, portée 40 px bord à bord, activation 0,6 s.
+  Provocation (0,2 s) et zone (0,8 s) : voir leurs sections.
 - **Le lanceur est désigné par sa place** : la touche N déclenche le skill
   du personnage à la place N (1 à 4) de la formation, par
   `Escouade::declencherSkill(place, ...)`. Sans champ « type de
   personnage » ni indice mémorisé.
-- **Le skill remplace l'attaque de base, pas l'inverse** : quand il part,
-  `Personnage::declencherSkill` relance au complet la recharge de
-  `m_attaqueDeBase`, pour les deux types. La relance n'a lieu que si le skill
-  part réellement (puissance `> 0`). Une attaque de base ne touche pas la
-  recharge du skill.
+- **Le skill remplace l'attaque de base, pas l'inverse** : quand il
+  s'engage, `Personnage::engagerSkill` annule le coup de base en exécution ;
+  quand il part, `Personnage::avancerSkill` relance au complet la recharge de
+  `m_attaqueDeBase`. Une attaque de base ne touche pas la recharge du skill.
 - **Les refus sont répartis selon qui connaît l'information** : « pas de
-  skill », « mort » et « en recharge » (`Personnage::skillEstPret`) ;
+  skill », « mort », « en recharge » et « en activation »
+  (`Personnage::skillEstPret`, vrai seulement en phase prête) ;
   « skill déjà en attente » et « aucune cible » par `Escouade`, qui seule
   porte le verrou, le skill en attente et la liste des alliés. Un appui
   refusé est perdu (pas de file d'attente).
@@ -235,7 +239,8 @@ personnages sont dans `docs/formation.md`, le monstre dans
 - **`EtatSkill`** (`EtatSkill.hpp`, sans comportement, sur le modèle de
   `Coup.hpp`) : `type`, `progression` (0 juste lancé, 1 prêt : même sens que
   la barre orange sous les personnages), `tempsRestant` (secondes),
-  `lanceurVivant`. `Escouade::etatDuSkill(place)` le renvoie, vide si la
+  `lanceurVivant`, `enActivation` (étape 58 : le lanceur prépare le skill).
+  `Escouade::etatDuSkill(place)` le renvoie, vide si la
   place est invalide ou sans skill ; la progression d'un mort est celle
   qu'il avait en mourant.
 - **Pourquoi une structure plutôt que des getters** : `main.cpp` ne connaît
@@ -244,6 +249,9 @@ personnages sont dans `docs/formation.md`, le monstre dans
 - **Présentation séparée de la logique** : `Skill` ne sait pas comment il
   est dessiné ; la lettre (D, P, S, Z) vient d'un `switch` sans `default`
   dans `BarreDeSkills`, que le compilateur signale si un type est oublié.
+- **Contour** : `couleurDuContour(enVisee, enActivation)`, pure et testée :
+  jaune en visée (prioritaire), blanc pendant l'activation, gris sinon ; 3 px
+  d'épaisseur dans les deux premiers cas, 1 px sinon.
 - **Quartier** : la zone sombre couvre la fraction `1 − progression`, de
   l'aiguille jusqu'à midi, avec des sommets sur le bord du carré
   (projection `demiCote / max(|dx|, |dy|)`), pas sur un cercle.
@@ -283,29 +291,29 @@ personnages sont dans `docs/formation.md`, le monstre dans
   `CibleMonstre` porte l'identifiant du monstre : c'est lui qui attribue
   les dégâts dans la liste des coups. Un futur choix manuel par le
   joueur ne devra remplacer que `choisirCible`.
-- **Sans verrou, le skill part toujours dans l'image de l'appui** (la
-  cible est à portée par construction) : jamais de mise en attente dans
+- **Sans verrou, l'activation commence toujours dans l'image de l'appui**
+  (la cible est à portée par construction) : jamais de mise en attente dans
   ce cas. Il ne crée pas de verrou et ne déplace personne.
 - **À l'appui** : `declencherSkill` refuse si le lanceur n'a pas de skill,
   est mort ou est en recharge, si un skill est déjà en attente, ou si
-  `choisirCible` ne trouve rien. Sinon, cible à portée : le skill part
-  tout de suite ; hors de portée : il est mis en attente
-  (`m_skillEnAttente`, un seul pour toute l'escouade).
+  `choisirCible` ne trouve rien. Sinon, cible à portée : son activation
+  commence tout de suite (`Personnage::engagerSkill`) ; hors de portée : il
+  est mis en attente (`m_skillEnAttente`, un seul pour toute l'escouade).
 - **Pendant l'attente, le lanceur vise le centre de sa cible** au lieu de
   sa place en formation (même déplacement et mêmes blocages que les
   autres personnages), puis reprend sa place une fois le skill parti ou
   annulé. La cible est fixée à l'appui. Pour un monstre, le cercle lu en
   route est `m_cibleCombat`, mis à jour à chaque `attaquer`, pas la copie
   de l'appui.
-- **Où le skill part** : un soin, dans `Escouade::mettreAJour` (début de
-  l'image, avant les déplacements) ; un skill de dégâts à portée, tout de
-  suite, dans `declencherSkill`, qui renvoie un `std::vector<Coup>` (vide
-  ou un coup) ; un skill de dégâts mis en attente, dans `attaquer`, avant
-  les attaques de base, qui reçoit le cercle à jour du monstre : son coup
-  s'ajoute alors à la liste renvoyée à `main.cpp`, attribué à
-  l'identifiant de sa cible.
-- **Annulations** : lanceur mort (les deux types) ; soin : cible morte ou
-  remontée à pleine vie ; dégâts : `deverrouiller()` (mort de la cible,
+- **Où l'activation commence** : à l'appui, dans `declencherSkill` ; pour un
+  skill en attente, à l'arrivée du lanceur (à portée et en vue) : un soin dans
+  `Escouade::mettreAJour` (`avancerSkillEnAttente`), un skill de dégâts ou de
+  zone dans `attaquer` (`engagerSkillDeDegatsEnAttente`, qui reçoit le cercle
+  à jour du monstre, et `engagerSkillDeZoneEnAttente`). Le skill quitte alors
+  `m_skillEnAttente`. **Où l'effet part** : voir « Temps d'activation des
+  skills (étape 58) ».
+- **Annulations du skill en attente** (avant l'activation) : lanceur mort
+  (les deux types) ; soin : cible morte ou remontée à pleine vie ; dégâts : `deverrouiller()` (mort de la cible,
   clic au sol) ou `verrouiller` avec un autre identifiant (changement de
   cible). Re-cliquer sur le même monstre ne l'annule pas. Un ordre de
   déplacement de l'escouade n'annule rien. Une annulation ne coûte aucune
@@ -328,8 +336,8 @@ personnages sont dans `docs/formation.md`, le monstre dans
   vide pour une provocation, qui ne passe pas par elle).
 - **Skill de zone, sans cible** : pas de cas ajouté à `Cible`.
   `declencherSkill` le traite avant `choisirCible` : tous les monstres de
-  `monstresVus` touchés par la zone (bord à bord 0) sont provoqués, dans l'image de
-  l'appui (jamais de mise en attente ni de marche). Aucun monstre dans le
+  `monstresVus` touchés par la zone (bord à bord 0) sont provoqués, au départ de
+  l'activation de 0,2 s (jamais de mise en attente ni de marche). Aucun monstre dans le
   rayon : elle part quand même et consomme sa recharge (étape 43, comme
   le skill de zone). Un seul déclenchement du `Skill`
   pour la recharge, quel que soit le nombre de monstres. Aucun dégât :
@@ -414,15 +422,15 @@ personnages sont dans `docs/formation.md`, le monstre dans
 - **Mesure** : distance bord à bord entre le cercle du lanceur et un
   `Cercle` de rayon 0 centré sur le point (`Personnage::skillEstAPortee`,
   donc `Skill::estAPortee`), comme les autres skills.
-- **À portée** : le sort part dans l'image du clic. **Hors portée** :
+- **À portée** : l'activation (0,8 s) commence dans l'image du clic. **Hors portée** :
   `m_skillEnAttente` reçoit `CiblePoint { point }` (point fixé au clic),
   sans coup ni recharge, et le lanceur marche vers le point (même
   déplacement que les autres skills en attente, `avancerSkillEnAttente`).
-- **Départ** : au début de `attaquer`, avant l'approche du verrou et les
-  attaques de base : dès que le lanceur vivant est à portée du point, le
-  sort part (`lancerSkillDeZone`, partagée avec le départ immédiat) et ses
-  coups s'ajoutent à la liste renvoyée. La zone est évaluée à ce moment,
-  sur `monstres` à jour, pas au moment du clic.
+- **Engagement** : au début de `attaquer`, avant l'approche du verrou et les
+  attaques de base : dès que le lanceur vivant est à portée et en vue du
+  point, son activation commence (`engagerSkillDeZoneEnAttente`). La zone est
+  évaluée au départ de l'activation, sur `monstres` à jour, pas au moment du
+  clic.
 - **Annulation** : seulement par la mort du lanceur, sans recharge. Ni le
   verrou, ni un clic, ni un ordre de déplacement n'annulent un
   `CiblePoint` : `verrouiller`/`deverrouiller` n'annulent que les
@@ -575,8 +583,9 @@ personnages sont dans `docs/formation.md`, le monstre dans
 - **Machine à états dans `Skill`** (`PhaseSkill`, voir `ARCHITECTURE.md`) :
   une phase explicite plutôt que des booléens qui pourraient se contredire.
   `Skill` ne connaît pas la cible : l'entité retient sur qui porte le coup
-  (`Personnage::m_idCibleEngagee` : id du monstre ; `Monstre::m_idProieEngagee` :
-  place du personnage).
+  (`Personnage::m_actionEngagee`, une `ActionEngagee` dont la cible est un
+  `CibleMonstre` pour l'attaque de base ; `Monstre::m_idProieEngagee` : place du
+  personnage).
 - **« Immobile »** : défini une seule fois, `Mobile::estEnMouvement()` :
   au dernier tic, le point à atteindre était à plus de 0,01 px. Un mobile
   bloqué qui essaie d'avancer est en mouvement. Une définition « il reste un
@@ -594,65 +603,87 @@ personnages sont dans `docs/formation.md`, le monstre dans
   - personnage seulement : un ordre de déplacement (`Escouade::allerVers`,
     donc aussi le déplacement continu), un verrouillage sur un autre monstre,
     un clic au sol (`Escouade::annulerAttaquesEngagees`) ;
-  - personnage seulement : un skill de ce personnage qui part. Il annule le
-    coup **et** relance la recharge de l'attaque de base (règle « un skill
-    remplace l'attaque de base », inchangée).
+  - personnage seulement : un skill de ce personnage qui s'engage (étape 58).
+    Il annule le coup ; la recharge de l'attaque de base est relancée au
+    départ du skill (règle « un skill remplace l'attaque de base »).
+    `Personnage::annulerAttaque` n'annule que l'attaque de base : un ordre du
+    joueur n'annule pas l'activation d'un skill.
   Un monstre ne s'annule jamais : même si une provocation change sa proie
   entre-temps, le coup en cours touche le personnage retenu à l'engagement ;
   la nouvelle proie compte pour le coup suivant.
 - **La recharge court pendant la marche** : elle démarre au départ du coup.
-- **Skills des touches 1 à 4** : exécution 0, pas soumis à l'immobilité
-  (étape 58 pour leurs temps d'activation).
+- **Skills des touches 1 à 4** : pas soumis à l'immobilité pour s'engager,
+  mais ils ont leur propre temps d'activation (voir « Temps d'activation des
+  skills (étape 58) »).
 - **`Escouade::attaquer` reçoit `dt`** : c'est elle qui fait avancer les
   exécutions des personnages, avant `mettreAJour`.
 - **Limites** : un coup part sans revérifier portée ni vue ; un personnage
   en mouvement ne peut pas engager (kiting possible tant que les vitesses
   le permettent) ; pas de barre de progression ni d'animation.
 
-## Temps d'exécution et coup engagé (étape 57)
+## Temps d'activation des skills (étape 58)
 
-- **Cycle** : une attaque de base n'est plus instantanée. Prête → **engagée**
-  (l'attaquant doit être vivant, immobile, avec une cible à portée et en vue :
-  règles d'atteinte inchangées) → **en exécution** (0,15 s pour un personnage,
-  0,3 s pour un monstre) → le **coup part** (la recharge est tirée à ce
-  moment, comme à l'étape 56) → **en recharge** → prête. Le joueur voit chaque
-  coup se préparer et on ne frappe plus en marchant.
-- **Machine à états dans `Skill`** (`PhaseSkill`, voir `ARCHITECTURE.md`) :
-  une phase explicite plutôt que des booléens qui pourraient se contredire.
-  `Skill` ne connaît pas la cible : l'entité retient sur qui porte le coup
-  (`Personnage::m_idCibleEngagee` : id du monstre ; `Monstre::m_idProieEngagee` :
-  place du personnage).
-- **« Immobile »** : défini une seule fois, `Mobile::estEnMouvement()` :
-  au dernier tic, le point à atteindre était à plus de 0,01 px. Un mobile
-  bloqué qui essaie d'avancer est en mouvement. Une définition « il reste un
-  point dans le chemin » ne convenait pas : un personnage qui rattrape sa
-  place à chaque image aurait paru immobile pendant que l'ancre marche.
-- **Pendant l'exécution**, l'attaquant reste sur place : un personnage ne
-  suit ni sa place de formation, ni un agresseur ni un skill en attente
-  (`Escouade::pointVoulu`, règle 0) ; un monstre ne poursuit ni ne rentre.
-- **Le coup engagé part toujours**, même si la cible a bougé hors de portée
-  ou de vue (pas de revérification à la fin). Annulation, sans recharge
-  consommée :
-  - mort de l'attaquant, disparition ou mort de la cible (`Escouade::attaquer`
-    pour un personnage ; `Partie::faireFrapperLeMonstre` pour un monstre,
-    qui annule si le personnage visé est mort) ;
-  - personnage seulement : un ordre de déplacement (`Escouade::allerVers`,
-    donc aussi le déplacement continu), un verrouillage sur un autre monstre,
-    un clic au sol (`Escouade::annulerAttaquesEngagees`) ;
-  - personnage seulement : un skill de ce personnage qui part. Il annule le
-    coup **et** relance la recharge de l'attaque de base (règle « un skill
-    remplace l'attaque de base », inchangée).
-  Un monstre ne s'annule jamais : même si une provocation change sa proie
-  entre-temps, le coup en cours touche le personnage retenu à l'engagement ;
-  la nouvelle proie compte pour le coup suivant.
-- **La recharge court pendant la marche** : elle démarre au départ du coup.
-- **Skills des touches 1 à 4** : exécution 0, pas soumis à l'immobilité
-  (étape 58 pour leurs temps d'activation).
-- **`Escouade::attaquer` reçoit `dt`** : c'est elle qui fait avancer les
-  exécutions des personnages, avant `mettreAJour`.
-- **Limites** : un coup part sans revérifier portée ni vue ; un personnage
-  en mouvement ne peut pas engager (kiting possible tant que les vitesses
-  le permettent) ; pas de barre de progression ni d'animation.
+- **Même machine à états que l'attaque de base** : les skills des touches 1 à 4
+  passent par `Skill::commencer` / `avancer` / `annuler`. Engagé → **en
+  activation** (le temps d'exécution du `Skill`) → l'effet part, la recharge
+  est tirée → en recharge. Valeurs dans `Escouade.cpp` : dégâts 0,3 s,
+  provocation 0,2 s, soin 0,6 s, zone 0,8 s. Le code est général : un skill
+  d'activation 0 part dans l'image de l'appui (`avancerSkillDe` avec `dt = 0`
+  juste après l'engagement).
+- **Action engagée par personnage** (`ActionEngagee.hpp`) :
+  `ActionEngagee { TypeAction action; std::optional<Cible> cible; }`, où
+  `TypeAction` est `AttaqueDeBase` ou `Skill`. `Personnage::m_actionEngagee`
+  remplace l'ancien identifiant de monstre : un personnage n'a qu'une action
+  engagée à la fois, par construction, et plusieurs personnages peuvent
+  activer en même temps. `Personnage` stocke la cible sans l'interpréter ;
+  c'est `Escouade` qui la résout (place d'un allié, identifiant d'un monstre,
+  point). La cible est vide pour la provocation. Pour l'attaque de base, le
+  `cercle` de la `CibleMonstre` n'est pas renseigné (seul l'identifiant sert).
+  Le verrou et `m_skillEnAttente` restent dans `Escouade`.
+- **L'appui est un ordre** : il n'exige pas que le lanceur soit immobile.
+  L'activation commence et le lanceur s'arrête sur place pendant toute sa
+  durée (`Personnage::estEnExecution`, règle 0 de `pointVoulu`) ; le reste de
+  l'escouade continue, puis le lanceur rattrape sa place.
+- **Au début de l'activation**, le coup de base engagé du lanceur est annulé
+  (`engagerSkill`). Aucune attaque de base ne s'engage pendant l'activation
+  (`engagerAttaque` refuse). Au départ, la recharge de l'attaque de base est
+  relancée.
+- **Pendant l'activation le skill n'est pas prêt** (`skillEstPret` repose sur
+  la phase) : un nouvel appui sur la même touche est refusé et la touche 4
+  n'entre pas en visée. Les skills d'autres personnages restent permis.
+- **Interruptions, sans recharge consommée** (`Escouade::avancerSkillDe`) :
+  mort du lanceur (tous les types) ; skill de dégâts : mort ou disparition du
+  monstre engagé ; soin : mort de l'allié visé. N'annulent **pas** une
+  activation : un ordre de déplacement (clic, déplacement continu), un clic au
+  sol, un verrouillage sur un autre monstre. Le skill est l'ordre le plus
+  récent, il va au bout. Un soin dont la cible est remontée à pleine vie part
+  quand même (plafonné par `recevoirSoin`). Pas de revérification de portée
+  ni de vue au départ (même règle qu'à l'étape 57).
+- **Effet évalué au départ** (`Escouade::effetDuSkill`) : dégâts : le coup va
+  au monstre engagé ; soin : à l'allié engagé ; zone : monstres dans la zone au
+  moment du départ, autour du point fixé, en vue du point d'impact ;
+  provocation : monstres dans la zone autour du provocateur au moment du
+  départ, en vue. Tous les départs ont lieu dans `Escouade::attaquer`
+  (`avancerSkills`, après les engagements de skills en attente et avant
+  l'autodéfense), qui reçoit `dt`. Le soin et la provocation sont appliqués
+  dans `Escouade` ; les dégâts et la zone sortent en liste de `Coup`.
+- **Skill en attente** : à l'arrivée du lanceur (à portée et en vue) il entre
+  en activation au lieu de partir, et quitte `m_skillEnAttente`, ce qui libère
+  la place pour un autre skill en attente. Un soin en attente est engagé dans
+  `mettreAJour` et ne part donc qu'au `attaquer` de l'image suivante
+  (`Partie` appelle les deux à chaque image).
+- **Indices visuels** : le carré du lanceur s'éclaircit (même indice qu'à
+  l'étape 57) ; l'icône de la barre de skills a un contour blanc
+  (`EtatSkill::enActivation`).
+- **Tests** : `Personnage` avec des skills d'activation construits dans les
+  tests ; `Escouade` avec les vraies valeurs. Aides de `tests/aides.hpp` :
+  `declencherEtAttendre`, `declencherZoneEtAttendre` et
+  `attendreLeDepartDesSkills` (attaquer par tics ; elles écartent les coups de
+  base de 5 dégâts), `simulerAvecAttaque`.
+- **Limites** : pas d'interruption de l'activation par les dégâts reçus ; un
+  seul skill en attente pour toute l'escouade ; pas de barre de progression
+  d'incantation ni d'animation ; pas de revérification de portée ou de vue au
+  départ ; un lanceur en mouvement s'arrête sur place sans transition.
 
 ## Circuit des dégâts
 
@@ -666,10 +697,10 @@ image).
   renvoyés par `escouade.declencherSkillDeZone(...)` (clic de lancer en
   visée), par `escouade.declencherSkill(...)` (si une touche est
   appuyée) puis par `escouade.attaquer(...)`, chacun au monstre dont
-  l'identifiant figure dans le `Coup`. Un soin ne rend aucun coup. Le
-  skill passe avant l'attaque de base : s'il part, il relance la
-  recharge de base de ce personnage, qui ne frappe donc pas deux fois
-  dans la même image.
+  l'identifiant figure dans le `Coup`. Un soin ne rend aucun coup. Les skills
+  partent dans `attaquer` (`avancerSkills`), avant l'autodéfense : au départ,
+  la recharge de base du lanceur est relancée, et pendant l'activation il ne
+  peut engager aucune attaque de base.
 - **Un monstre frappe un personnage** (étape 57) : pour chaque monstre,
   `Partie` demande `escouade.proieDuMonstre(...)` (le cercle du provocateur
   si ce monstre est provoqué, sinon du vivant le plus proche) et met le

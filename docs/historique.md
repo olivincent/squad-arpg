@@ -1492,3 +1492,35 @@ contour, pour ne pas masquer le contour jaune du monstre verrouillé.
 attaque d'opportunité, ralentissement de l'escouade engagée, changement de
 vitesse, recul des tireurs, revérification de portée ou de vue au départ du
 coup, barre de progression, animation.
+
+
+### Étape 58 — Temps d'activation des skills et action engagée par personnage ✅ TERMINÉE
+
+1. [x] Refactorisation pure : `Arme` devient `TypeAction` (partagé),
+       `ActionEngagee.hpp`, `Personnage::m_actionEngagee` à la place de
+       `m_idCibleEngagee` (enchaînée).
+2. [x] Les skills des touches 1 à 4 passent par la machine à états de `Skill` :
+       `engagerSkill` / `avancerSkill` / `annulerSkill`, départs dans
+       `Escouade::attaquer` (enchaînée).
+3. [x] Valeurs d'activation : dégâts 0,3 s, provocation 0,2 s, soin 0,6 s,
+       zone 0,8 s, et tests d'`Escouade` correspondants.
+4. [x] Contour blanc de l'icône pendant l'activation
+       (`EtatSkill::enActivation`, `couleurDuContour`).
+5. [x] Documentation (doublons de `docs/combat.md` supprimés). 449 tests.
+
+**Choix** : l'action engagée (attaque de base ou skill) et sa cible sont une
+donnée de chaque personnage, pour que plusieurs puissent activer en même
+temps ; le verrou et le skill en attente restent dans `Escouade` ; l'appui est
+un ordre (pas d'immobilité exigée, le lanceur s'arrête pendant l'activation) ;
+un ordre de déplacement, un clic au sol ou un verrouillage n'annulent pas
+l'activation (le skill est l'ordre le plus récent) ; l'effet est évalué au
+départ, tous les départs sont dans `attaquer` ; `Escouade::mettreAJour` perd
+son paramètre `Generateur&` (le soin en attente s'engage sans aléatoire, il
+part au `attaquer` de l'image suivante) ; `Personnage::declencherSkill` et
+`declencherSkillSansCible` supprimées, `Skill::declencher` et
+`declencherSansCible` laissées (plus utilisées que par leurs tests).
+
+**Hors de portée** : interruption par les dégâts reçus, plusieurs skills en
+attente ou skill en attente par personnage, verrou par personnage, barre de
+progression d'incantation, animation, revérification de portée ou de vue au
+départ, classe `Arme`.
