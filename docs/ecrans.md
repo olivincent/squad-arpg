@@ -88,7 +88,10 @@ empile. Ce fichier explique les décisions ; le détail des interfaces est dans
   survol ni clic (ligne de résolution en plein écran ou sans résolution
   disponible).
 - Libellés écrits en UTF-8 dans le source, convertis par `sf::String::fromUtf8`
-  (un `std::string` donné tel quel à `sf::Text` serait lu comme de l'ANSI).
+  (un `std::string` donné tel quel à `sf::Text` serait lu comme de l'ANSI :
+  c'était le cas de « Défaite » dans `EcranDeFin`, dont les accents ne
+  s'affichaient pas, corrigé après l'étape 65). Tout texte accentué passé à
+  `sf::Text` doit passer par `fromUtf8`.
 - Souris seulement : pas de navigation au clavier.
 
 ## Réglages et `reglages.ini`
@@ -130,8 +133,6 @@ empile. Ce fichier explique les décisions ; le détail des interfaces est dans
 - `reglages.ini` est cherché dans le dossier courant, comme la police.
 - Pas de menu de pause ni de retour au menu en cours de partie (R n'agit
   qu'après une défaite ou une victoire).
-- Le texte « Défaite » / « Victoire » de l'écran de fin est passé à `sf::Text`
-  sans `fromUtf8` : à vérifier si les accents s'affichent mal.
 - Les boutons de `ListeDeBoutons` recopient le centrage de texte de
   `EcranDeFin.cpp` (à extraire dans un module commun, dans un commit à part).
 - Le menu reste sous les options et n'est pas redessiné pendant le changement

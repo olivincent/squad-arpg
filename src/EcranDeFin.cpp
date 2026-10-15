@@ -3,6 +3,7 @@
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Text.hpp>
+#include <SFML/System/String.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <string>
 
@@ -16,7 +17,8 @@ constexpr float s_ecartTitreConsigne = 60.0f;
 // Écrit `texte` centré sur `centre`.
 void dessinerTexteCentre(sf::RenderTarget& rendu, const sf::Font& police, const std::string& texte,
                          unsigned int taille, sf::Vector2f centre, sf::Color couleur) {
-    sf::Text objet(police, texte, taille);
+    // Texte écrit en UTF-8 (« Défaite ») : sans fromUtf8, sf::String le lirait comme de l'ANSI.
+    sf::Text objet(police, sf::String::fromUtf8(texte.begin(), texte.end()), taille);
     objet.setFillColor(couleur);
     const sf::FloatRect zone = objet.getLocalBounds();
     objet.setOrigin(zone.position + zone.size / 2.0f);
