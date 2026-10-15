@@ -34,6 +34,10 @@ struct ParametresDonjon {
     int coteMax = 12;       // côté maximal d'une salle, en cases
     int marge = 1;          // cases de mur exigées entre deux salles
     int largeurCouloir = 2; // en cases
+    int monstresParSalleMin = 1;      // monstres voulus par salle (hors première), bornes incluses
+    int monstresParSalleMax = 3;
+    float distanceMinDepart = 400.0f; // en pixels : aucun monstre plus près du départ de l'escouade
+    int tentativesParMonstre = 10;    // essais avant d'abandonner un monstre
 };
 
 // Une liaison entre deux salles, désignées par leur indice dans la liste des
@@ -67,6 +71,17 @@ void creuserSalle(std::vector<std::string>& plan, const Salle& salle);
 void creuserCouloir(std::vector<std::string>& plan, sf::Vector2i depart, sf::Vector2i arrivee, SensCouloir sens,
                     int largeur);
 
-// Niveau fait de salles reliées par des couloirs en L, sans monstre ;
-// l'escouade part au centre de la première salle placée.
+// Tire les positions des monstres (centres de case, en pixels du monde). Aucun
+// dans la salle 0 ; dans chaque autre salle, un nombre voulu tiré dans
+// [monstresParSalleMin, monstresParSalleMax], chacun sur une case intérieure
+// (une case de marge contre les murs de l'emprise). Placement par rejet : au
+// plus `tentativesParMonstre` essais par monstre, qui est abandonné s'ils
+// échouent tous. Une position est rejetée si elle est à moins de 2 cases d'un
+// monstre déjà placé (distance de Tchebychev) ou à moins de
+// `distanceMinDepart` pixels de `depart`.
+[[nodiscard]] std::vector<sf::Vector2f> placerMonstres(Generateur& generateur, const std::vector<Salle>& salles,
+                                                       sf::Vector2f depart, const ParametresDonjon& parametres);
+
+// Niveau fait de salles reliées par des couloirs en L et peuplé de monstres
+// (`placerMonstres`) ; l'escouade part au centre de la première salle placée.
 [[nodiscard]] Niveau genererNiveau(Generateur& generateur, const ParametresDonjon& parametres);

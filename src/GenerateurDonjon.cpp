@@ -2,12 +2,19 @@
 #include "GenerateurDonjon.hpp"
 #include <algorithm>
 #include <cassert>
+#include <cstdlib>
 #include <random>
 
 namespace {
 
 constexpr char s_mur = '#';
 constexpr char s_sol = '.';
+constexpr int s_ecartMinEntreMonstres = 2; // en cases (Tchebychev) : une case libre entre deux monstres
+
+// Centre en pixels du monde d'une case de la grille.
+sf::Vector2f centreEnPixels(sf::Vector2i coordCase, float tailleCase) {
+    return {(static_cast<float>(coordCase.x) + 0.5f) * tailleCase, (static_cast<float>(coordCase.y) + 0.5f) * tailleCase};
+}
 
 // Tirage dans [min, max], bornes INCLUSES (comme std::uniform_int_distribution).
 int tirerEntre(Generateur& generateur, int min, int max) {
@@ -115,6 +122,43 @@ void creuserCouloir(std::vector<std::string>& plan, sf::Vector2i depart, sf::Vec
     }
 }
 
+std::vector<sf::Vector2f> placerMonstres(Generateur& generateur, const std::vector<Salle>& salles,
+                                         sf::Vector2f depart, const ParametresDonjon& parametres) {
+    assert(parametres.monstresParSalleMin >= 0 && parametres.monstresParSalleMin <= parametres.monstresParSalleMax);
+    assert(parametres.tentativesParMonstre >= 1);
+
+    std::vector<sf::Vector2i> casesPlacees;
+    std::vector<sf::Vector2f> positions;
+    for (std::size_t i = 1; i < salles.size(); ++i) {
+        const Salle& salle = salles[i];
+        // Une case de marge contre les murs de l'emprise.
+        assert(salle.largeur >= 3 && salle.hauteur >= 3);
+        const int voulus = tirerEntre(generateur, parametres.monstresParSalleMin, parametres.monstresParSalleMax);
+        for (int k = 0; k < voulus; ++k) {
+            for (int tentative = 0; tentative < parametres.tentativesParMonstre; ++tentative) {
+                const sf::Vector2i candidate{tirerEntre(generateur, salle.x + 1, salle.x + salle.largeur - 2),
+                                             tirerEntre(generateur, salle.y + 1, salle.y + salle.hauteur - 2)};
+                const sf::Vector2f centre = centreEnPixels(candidate, parametres.tailleCase);
+                const sf::Vector2f versDepart = centre - depart;
+                const bool tropPresDuDepart =
+                    versDepart.x * versDepart.x + versDepart.y * versDepart.y <
+                    parametres.distanceMinDepart * parametres.distanceMinDepart;
+                const bool tropPresDUnMonstre =
+                    std::any_of(casesPlacees.begin(), casesPlacees.end(), [&](sf::Vector2i placee) {
+                        return std::max(std::abs(placee.x - candidate.x), std::abs(placee.y - candidate.y)) <
+                               s_ecartMinEntreMonstres;
+                    });
+                if (!tropPresDuDepart && !tropPresDUnMonstre) {
+                    casesPlacees.push_back(candidate);
+                    positions.push_back(centre);
+                    break;
+                }
+            }
+        }
+    }
+    return positions;
+}
+
 Niveau genererNiveau(Generateur& generateur, const ParametresDonjon& parametres) {
     const std::vector<Salle> salles = placerSalles(generateur, parametres);
 
@@ -132,8 +176,7 @@ Niveau genererNiveau(Generateur& generateur, const ParametresDonjon& parametres)
     }
 
     // Centre en pixels de la case centrale de la première salle.
-    const sf::Vector2i caseDepart = salles.front().centre();
-    const sf::Vector2f depart{(static_cast<float>(caseDepart.x) + 0.5f) * parametres.tailleCase,
-                              (static_cast<float>(caseDepart.y) + 0.5f) * parametres.tailleCase};
-    return {plan, parametres.tailleCase, depart, {}, 0};
+    const sf::Vector2f depart = centreEnPixels(salles.front().centre(), parametres.tailleCase);
+    // Les monstres en dernier : leurs tirages ne changent ni les salles ni les couloirs.
+    return {plan, parametres.tailleCase, depart, placerMonstres(generateur, salles, depart, parametres), 0};
 }
