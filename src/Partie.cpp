@@ -140,8 +140,16 @@ bool Partie::estPerdue() const {
     return !m_escouade.estVivante();
 }
 
+bool Partie::estGagnee() const {
+    return m_monstres.empty() && !estPerdue();
+}
+
+int Partie::monstresRestants() const {
+    return static_cast<int>(m_monstres.size());
+}
+
 void Partie::mettreAJour(float dt) {
-    if (estPerdue()) {
+    if (estPerdue() || estGagnee()) {
         return;
     }
     resoudreLesCoups(dt);

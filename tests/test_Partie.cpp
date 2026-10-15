@@ -181,6 +181,70 @@ TEST_CASE("une partie perdue se fige") {
     }
 }
 
+TEST_CASE("estGagnee est faux tant qu'il reste des monstres") {
+    Partie partie(niveauDegage({{400.0f, 400.0f}}), s_graineDeTest);
+
+    REQUIRE_FALSE(partie.estGagnee());
+    REQUIRE(partie.monstresRestants() == 1);
+}
+
+TEST_CASE("estGagnee est vrai quand tous les monstres sont tues") {
+    Partie partie(niveauDegage({{235.0f, 210.0f}}), s_graineDeTest);
+    REQUIRE(partie.cliquer({235.0f, 210.0f}) == ResultatClic::Monstre);
+
+    for (int i = 0; i < 600 && !partie.estGagnee(); ++i) {
+        partie.mettreAJour(s_dureeTic);
+    }
+
+    REQUIRE(partie.estGagnee());
+    REQUIRE_FALSE(partie.estPerdue());
+    REQUIRE(partie.monstresRestants() == 0);
+}
+
+TEST_CASE("une partie perdue n'est pas gagnee") {
+    Partie partie(niveauDegage(groupeDeMonstres()), s_graineDeTest);
+    for (int i = 0; i < 5400 && !partie.estPerdue(); ++i) {
+        partie.mettreAJour(s_dureeTic);
+    }
+
+    REQUIRE(partie.estPerdue());
+    REQUIRE_FALSE(partie.estGagnee());
+}
+
+TEST_CASE("sans monstre au depart la partie est gagnee") {
+    Partie partie(niveauDegage({}), s_graineDeTest);
+
+    REQUIRE(partie.estGagnee());
+    REQUIRE(partie.monstresRestants() == 0);
+}
+
+TEST_CASE("le compteur de monstres baisse quand un monstre meurt") {
+    Partie partie(niveauDegage({{235.0f, 210.0f}, {550.0f, 550.0f}}), s_graineDeTest);
+    REQUIRE(partie.monstresRestants() == 2);
+
+    for (int i = 0; i < 600 && partie.monstresRestants() == 2; ++i) {
+        partie.mettreAJour(s_dureeTic);
+    }
+
+    REQUIRE(partie.monstresRestants() == 1);
+    REQUIRE_FALSE(partie.estGagnee());
+}
+
+TEST_CASE("une partie gagnee se fige") {
+    Partie partie(niveauDegage({{235.0f, 210.0f}}), s_graineDeTest);
+    for (int i = 0; i < 600 && !partie.estGagnee(); ++i) {
+        partie.mettreAJour(s_dureeTic);
+    }
+    REQUIRE(partie.estGagnee());
+
+    const sf::Vector2f centre = partie.getEscouade().getCentre();
+    partie.ordonnerDeplacement({500.0f, 500.0f});
+    avancer(partie, nombreDeTics(2.0f));
+
+    verifierPointProche(partie.getEscouade().getCentre(), centre);
+    REQUIRE(partie.estGagnee());
+}
+
 TEST_CASE("une partie reaffectee avec un niveau neuf recommence") {
     Partie partie(niveauDegage(groupeDeMonstres()), s_graineDeTest);
     for (int i = 0; i < 5400 && !partie.estPerdue(); ++i) {

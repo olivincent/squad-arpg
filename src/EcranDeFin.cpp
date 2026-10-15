@@ -1,5 +1,5 @@
-// ./src/EcranDeDefaite.cpp
-#include "EcranDeDefaite.hpp"
+// ./src/EcranDeFin.cpp
+#include "EcranDeFin.hpp"
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Text.hpp>
@@ -26,7 +26,7 @@ void dessinerTexteCentre(sf::RenderTarget& rendu, const sf::Font& police, const 
 
 }  // namespace
 
-void dessinerEcranDeDefaite(sf::RenderTarget& rendu, const sf::Font& police) {
+void dessinerEcranDeFin(sf::RenderTarget& rendu, const sf::Font& police, const std::string& titre) {
     const sf::Vector2f tailleVue = rendu.getDefaultView().getSize();
 
     sf::RectangleShape voile(tailleVue);
@@ -34,7 +34,7 @@ void dessinerEcranDeDefaite(sf::RenderTarget& rendu, const sf::Font& police) {
     rendu.draw(voile);
 
     const sf::Vector2f centre = tailleVue / 2.0f;
-    dessinerTexteCentre(rendu, police, "Défaite", s_tailleTitre, centre, sf::Color::White);
+    dessinerTexteCentre(rendu, police, titre, s_tailleTitre, centre, sf::Color::White);
     dessinerTexteCentre(rendu, police, "Appuyez sur R pour recommencer", s_tailleConsigne,
                         centre + sf::Vector2f{0.0f, s_ecartTitreConsigne}, sf::Color::White);
 }

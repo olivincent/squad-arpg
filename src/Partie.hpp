@@ -39,12 +39,17 @@ public:
     // Envoie l'escouade vers ce point, dans mettreAJour, si elle est vivante.
     void ordonnerDeplacement(sf::Vector2f point);
 
-    // Fige le monde (rien ne bouge) une fois la partie perdue.
+    // Fige le monde (rien ne bouge) une fois la partie perdue ou gagnée.
     void mettreAJour(float dt);
     void dessiner(sf::RenderTarget& rendu) const;
 
     // Vrai quand tous les personnages sont morts.
     [[nodiscard]] bool estPerdue() const;
+    // Vrai quand il ne reste aucun monstre ET que la partie n'est pas perdue
+    // (la défaite l'emporte si les derniers meurent dans la même image).
+    [[nodiscard]] bool estGagnee() const;
+    // Nombre de monstres vivants.
+    [[nodiscard]] int monstresRestants() const;
 
     const Escouade& getEscouade() const;
     const std::vector<Monstre>& getMonstres() const;

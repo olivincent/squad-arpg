@@ -10,7 +10,7 @@
 #include "Aleatoire.hpp"
 #include "BarreDeSkills.hpp"
 #include "Controleur.hpp"
-#include "EcranDeDefaite.hpp"
+#include "EcranDeFin.hpp"
 #include "EtatSkill.hpp"
 #include "GenerateurDonjon.hpp"
 #include "Niveau.hpp"
@@ -115,7 +115,7 @@ int main() {
         }
         dessinerBarreDeSkills(window, police, etatsDesSkills, controleur.getPlaceEnVisee());
         if (partie.estPerdue()) {
-            dessinerEcranDeDefaite(window, police);
+            dessinerEcranDeFin(window, police, "Défaite");
         }
         window.display();
     }
