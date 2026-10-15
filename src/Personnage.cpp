@@ -2,6 +2,7 @@
 #include "Personnage.hpp"
 #include "BarreDeVie.hpp"
 #include "Defense.hpp"
+#include "Chemin.hpp"
 #include "Eclaircir.hpp"
 #include "TileMap.hpp"
 #include <SFML/Graphics/RectangleShape.hpp>
@@ -66,28 +67,31 @@ void Personnage::dessiner(sf::RenderTarget& rendu) const {
     rendu.draw(recharge);
 }
 
-void Personnage::mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte, const std::vector<Cercle>& obstacles) {
+void Personnage::mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte, const std::vector<Cercle>& obstacles,
+                             const std::vector<Cercle>& aContourner) {
     if (!estVivant()) {
         return;
     }
 
-    // Règle hybride : en ligne droite quand le trajet est libre (tout
-    // chemin en cours est alors abandonné), par un chemin A* sinon.
+    // Règle hybride : en ligne droite quand le trajet est libre de murs et loin des obstacles à
+    // contourner (tout chemin en cours est alors abandonné), par un chemin A* sinon.
     const sf::Vector2f centre = getCentre();
     const sf::Vector2f taille = m_mobile.getTaille();
-    if (carte.trajetLibre(sf::FloatRect(centre - taille / 2.0f, taille), cible - centre)) {
+    if (carte.trajetLibre(sf::FloatRect(centre - taille / 2.0f, taille), cible - centre) &&
+        !traverseUnObstacle(centre, cible, aContourner, taille.x / 2.0f)) {
         m_mobile.allerToutDroit(cible);
         m_cibleChemin.reset();
     } else if (!m_cibleChemin.has_value() || !m_mobile.directionVoulue().has_value() ||
-               (cible - *m_cibleChemin).length() > s_seuilRecalcul) {
+               (cible - *m_cibleChemin).length() > s_seuilRecalcul || m_mobile.estBloque()) {
         // Chemin à (re)calculer : aucun en cours, ou fini, ou la cible
-        // s'est éloignée de sa fin de plus d'une case. allerToutDroit passe
+        // s'est éloignée de sa fin de plus d'une case, ou le personnage est bloqué (allerVers
+        // remet le compteur à zéro : au plus un recalcul toutes les 0,3 s). allerToutDroit passe
         // d'abord, pour que le personnage garde la ligne droite si le A*
         // ne trouve aucun chemin (allerVers laisse alors le chemin
         // intact). Même sans chemin trouvé, la cible est mémorisée : on
         // ne relance pas un A* voué à l'échec à chaque image.
         m_mobile.allerToutDroit(cible);
-        m_mobile.allerVers(cible, carte);
+        m_mobile.allerVers(cible, carte, aContourner);
         m_cibleChemin = cible;
     }
     m_mobile.mettreAJour(dt, carte, obstacles);

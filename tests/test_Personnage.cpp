@@ -31,7 +31,7 @@ TileMap carteDegagee5x5() {
 void ecoulerTemps(Personnage& personnage, const TileMap& carte, sf::Vector2f centre, float duree) {
     const int nombreTics = nombreDeTics(duree);
     for (int i = 0; i < nombreTics; ++i) {
-        personnage.mettreAJour(s_dureeTic, centre, carte, {});
+        personnage.mettreAJour(s_dureeTic, centre, carte, {}, {});
     }
 }
 
@@ -267,7 +267,7 @@ TEST_CASE("mettreAJour s'arrete avant d'entrer dans un obstacle") {
     const std::vector<Cercle> obstacles = {{{140.0f, 100.0f}, 15.0f}};
 
     for (int i = 0; i < 60; ++i) {
-        personnage.mettreAJour(1.0f / 60.0f, {170.0f, 100.0f}, carte, obstacles);
+        personnage.mettreAJour(1.0f / 60.0f, {170.0f, 100.0f}, carte, obstacles, {});
     }
 
     // distanceBordABord est bornée à 0 : on compare donc les distances
@@ -331,7 +331,7 @@ TEST_CASE("En terrain degage, le personnage avance en ligne droite de vitesse * 
     Personnage personnage({60.0f, 60.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f), std::nullopt, 0);
 
     for (int i = 0; i < 10; ++i) {
-        personnage.mettreAJour(1.0f / 60.0f, {180.0f, 60.0f}, carte, {});
+        personnage.mettreAJour(1.0f / 60.0f, {180.0f, 60.0f}, carte, {}, {});
     }
 
     // 240 px/s * (1/60) s = 4 px par tic.
@@ -598,4 +598,41 @@ TEST_CASE("Au depart du skill, l'attaque de base repart pour une recharge comple
     REQUIRE_FALSE(personnage.engagerAttaque(1));
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.6f);
     REQUIRE(personnage.engagerAttaque(1));
+}
+
+TEST_CASE("mettreAJour garde la ligne droite en terrain degage meme avec un obstacle a contourner loin du trajet") {
+    const TileMap carte = carteDegagee10x10();
+    Personnage personnage({60.0f, 60.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f), std::nullopt, 0);
+    const std::vector<Cercle> loin = {{{180.0f, 200.0f}, 15.0f}};
+
+    personnage.mettreAJour(s_dureeTic, {300.0f, 60.0f}, carte, loin, loin);
+
+    REQUIRE(personnage.cheminRestant() == std::vector<sf::Vector2f>{{300.0f, 60.0f}});
+}
+
+TEST_CASE("mettreAJour contourne un obstacle a contourner place sur la ligne droite") {
+    const TileMap carte = carteDegagee10x10();
+    Personnage personnage({60.0f, 60.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f), std::nullopt, 0);
+    const std::vector<Cercle> obstacle = {{{180.0f, 60.0f}, 15.0f}};
+
+    for (int i = 0; i < nombreDeTics(5.0f); ++i) {
+        personnage.mettreAJour(s_dureeTic, {300.0f, 60.0f}, carte, obstacle, obstacle);
+        if (i == 0) {
+            REQUIRE(personnage.cheminRestant().size() > 1); // un A* lissé, pas la ligne droite
+        }
+    }
+
+    verifierPointProche(personnage.getCentre(), {300.0f, 60.0f});
+}
+
+TEST_CASE("mettreAJour sans obstacle a contourner reste bloque contre un obstacle bloquant") {
+    const TileMap carte = carteDegagee10x10();
+    Personnage personnage({60.0f, 60.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f), std::nullopt, 0);
+    const std::vector<Cercle> obstacle = {{{180.0f, 60.0f}, 15.0f}};
+
+    for (int i = 0; i < nombreDeTics(5.0f); ++i) {
+        personnage.mettreAJour(s_dureeTic, {300.0f, 60.0f}, carte, obstacle, {});
+    }
+
+    REQUIRE(personnage.getCentre().x < 180.0f);
 }

@@ -22,6 +22,11 @@ using FonctionDeCout = std::function<int(sf::Vector2i)>;
 [[nodiscard]] FonctionDeCout coutDesObstacles(const TileMap& carte, const std::vector<Cercle>& obstacles,
                                               float rayonMobile, int penalite);
 
+// Le segment [a, b] passe-t-il à moins de (rayon de l'obstacle + rayonMobile) du centre d'un des
+// obstacles ? Le test des raccourcis du lissage, et de la ligne droite d'un personnage.
+[[nodiscard]] bool traverseUnObstacle(sf::Vector2f a, sf::Vector2f b, const std::vector<Cercle>& obstacles,
+                                      float rayonMobile);
+
 // Un raccourci est refusé s'il passe à moins de (rayon de l'obstacle + rayon du mobile,
 // moitié de `taille`) du centre d'un des `aContourner`.
 [[nodiscard]] std::vector<sf::Vector2f> lisserChemin(const TileMap& carte, sf::Vector2f depart,

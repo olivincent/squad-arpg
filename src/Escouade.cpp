@@ -731,7 +731,28 @@ void Escouade::calculerPlaces(const TileMap& carte) {
     }
 }
 
-void Escouade::mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles) {
+std::vector<Cercle> Escouade::monstresAContourner(std::size_t indice, const std::vector<EntiteVue>& monstres) const {
+    std::optional<int> approche;
+    if (m_placesDAttaque[indice].has_value()) {
+        approche = m_placesDAttaque[indice]->idMonstre;
+    } else if (m_cibleVerrouillee.has_value() && m_cibleCombat.has_value()) {
+        approche = m_cibleVerrouillee;
+    }
+    std::vector<Cercle> aContourner;
+    for (const EntiteVue& monstre : monstres) {
+        if (monstre.id != approche) {
+            aContourner.push_back(monstre.cercle);
+        }
+    }
+    return aContourner;
+}
+
+void Escouade::mettreAJour(float dt, const TileMap& carte, const std::vector<EntiteVue>& monstres) {
+    std::vector<Cercle> obstacles;
+    for (const EntiteVue& monstre : monstres) {
+        obstacles.push_back(monstre.cercle);
+    }
+
     if (const std::optional<sf::Vector2f> direction = m_mobile.directionVoulue()) {
         m_orientationVoulue = direction->angle();
     }
@@ -749,7 +770,7 @@ void Escouade::mettreAJour(float dt, const TileMap& carte, const std::vector<Cer
     const std::optional<sf::Vector2f> pointSkill = avancerSkillEnAttente(carte);
     for (std::size_t i = 0; i < m_personnages.size(); ++i) {
         m_pointsVises[i] = pointVoulu(i, pointSkill, ancreArretee, agresseurs, carte);
-        m_personnages[i].mettreAJour(dt, m_pointsVises[i], carte, obstacles);
+        m_personnages[i].mettreAJour(dt, m_pointsVises[i], carte, obstacles, monstresAContourner(i, monstres));
     }
     separerPersonnages(dt, carte, obstacles);
 }

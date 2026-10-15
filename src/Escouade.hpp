@@ -39,7 +39,9 @@ public:
     [[nodiscard]] float rayonZoneDuSkill(std::size_t place) const;
     [[nodiscard]] Cercle cercleDePorteeDuSkill(std::size_t place) const;
     [[nodiscard]] std::vector<Coup> declencherSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
-    void mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles);
+    // `monstres` bloquent les personnages ; chaque personnage contourne en plus tous ceux
+    // qu'il n'approche pas (voir monstresAContourner).
+    void mettreAJour(float dt, const TileMap& carte, const std::vector<EntiteVue>& monstres);
     sf::Vector2f getCentre() const;
     // Personnage que ce monstre poursuit : l'identifiant est sa place (1 à 4), le cercle le sien.
     [[nodiscard]] std::optional<EntiteVue> proieDuMonstre(int idMonstre, sf::Vector2f positionMonstre) const;
@@ -103,6 +105,9 @@ private:
                                   const std::optional<PlaceDAttaque>& ancienne, const TileMap& carte);
     std::optional<sf::Vector2f> pointVersAgresseur(std::size_t indice, const std::vector<EntiteVue>& agresseurs,
                                                    const std::optional<PlaceDAttaque>& ancienne, const TileMap& carte);
+    // Cercles des monstres sauf celui que ce personnage approche (sa place d'attaque, ou le
+    // verrou en combat) ; tous s'il n'en approche aucun.
+    std::vector<Cercle> monstresAContourner(std::size_t indice, const std::vector<EntiteVue>& monstres) const;
     // Étapes de mettreAJour().
     void ecoulerMemoires(float dt);
     void tournerFormation(float dt);

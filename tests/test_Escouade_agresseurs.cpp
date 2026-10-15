@@ -158,7 +158,7 @@ void simulerAvecMonstre(Escouade& escouade, const TileMap& carte, Cercle monstre
     Generateur generateur = generateurDeTest();
     for (int i = 0; i < tics; ++i) {
         static_cast<void>(escouade.attaquer(s_dureeTic, {EntiteVue{1, monstre}}, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
-        escouade.mettreAJour(1.0f / 60.0f, carte, {monstre});
+        escouade.mettreAJour(1.0f / 60.0f, carte, {EntiteVue{1, monstre}});
     }
 }
 

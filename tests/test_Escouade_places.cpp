@@ -31,13 +31,9 @@ constexpr float s_tolerance = 0.5f;
 template <typename Fonction>
 void combattre(Escouade& escouade, const TileMap& carte, const std::vector<EntiteVue>& monstres, float duree,
                Generateur& generateur, Fonction apres) {
-    std::vector<Cercle> obstacles;
-    for (const EntiteVue& monstre : monstres) {
-        obstacles.push_back(monstre.cercle);
-    }
     for (int i = 0; i < nombreDeTics(duree); ++i) {
         static_cast<void>(escouade.attaquer(s_dureeTic, monstres, carte, generateur));
-        escouade.mettreAJour(s_dureeTic, carte, obstacles);
+        escouade.mettreAJour(s_dureeTic, carte, monstres);
         apres();
     }
 }

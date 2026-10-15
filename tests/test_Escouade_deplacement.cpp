@@ -288,7 +288,7 @@ TEST_CASE("Les obstacles bloquent les personnages mais pas l'ancre") {
     };
     TileMap carte(plan, 40.0f);
     Escouade escouade({50.0f, 50.0f}); // centre (60, 60), personnages en (35|85, 35|85)
-    const std::vector<Cercle> obstacles = {{{200.0f, 60.0f}, 30.0f}};
+    const std::vector<EntiteVue> obstacles = {{1, {{200.0f, 60.0f}, 30.0f}}};
 
     escouade.allerVers({400.0f, 60.0f}, carte);
     for (int i = 0; i < 300; ++i) {
@@ -300,8 +300,8 @@ TEST_CASE("Les obstacles bloquent les personnages mais pas l'ancre") {
 
     // ... mais aucun personnage n'y est entré.
     for (const Cercle& cercle : escouade.cerclesDesVivants()) {
-        const float ecartCentres = (cercle.centre - obstacles[0].centre).length();
-        REQUIRE(ecartCentres >= cercle.rayon + obstacles[0].rayon - 0.001f);
+        const float ecartCentres = (cercle.centre - obstacles[0].cercle.centre).length();
+        REQUIRE(ecartCentres >= cercle.rayon + obstacles[0].cercle.rayon - 0.001f);
     }
 }
 
@@ -557,4 +557,21 @@ TEST_CASE("Ancre collee a un mur, les quatre places de formation sont distinctes
         escouade.mettreAJour(s_dureeTic, carte, {});
     }
     REQUIRE(ecartMinimalEntrePersonnages(escouade) >= s_ecartSansChevauchement - 0.5f);
+}
+
+TEST_CASE("un personnage dont la place est derriere un monstre non vise le contourne") {
+    const TileMap carte = carteDegagee10x10();
+    Escouade escouade({50.0f, 50.0f}); // centre (60, 60), personnages en (35|85, 35|85)
+    // Sur la route du personnage de (85, 85) quand l'escouade part vers l'est ; hors de celle de l'ancre.
+    const std::vector<EntiteVue> monstres = {{1, {{160.0f, 85.0f}, 15.0f}}};
+
+    escouade.allerVers({340.0f, 60.0f}, carte);
+    for (int i = 0; i < nombreDeTics(6.0f); ++i) {
+        escouade.mettreAJour(s_dureeTic, carte, monstres);
+    }
+
+    // Le mêlée de devant (indice 1) avait le monstre sur sa route : il l'a contourné. Le tireur
+    // de derrière sur la même ligne (indice 3) arrive au contact en même temps que sa place
+    // entre dans le monstre et reste calé contre lui : limite connue, voir docs/chemin.md.
+    REQUIRE(escouade.cerclesDesVivants()[1].centre.x > 200.0f);
 }

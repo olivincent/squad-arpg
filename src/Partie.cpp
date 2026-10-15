@@ -185,11 +185,11 @@ void Partie::mettreAJour(float dt) {
     }
 
     // Les monstres (à leur position de l'image précédente) sont des obstacles pour les personnages.
-    std::vector<Cercle> cerclesMonstres;
+    std::vector<EntiteVue> monstresVus;
     for (const Monstre& m : m_monstres) {
-        cerclesMonstres.push_back(m.getCercle());
+        monstresVus.push_back({m.getId(), m.getCercle()});
     }
-    m_escouade.mettreAJour(dt, m_carte, cerclesMonstres);
+    m_escouade.mettreAJour(dt, m_carte, monstresVus);
     faireTournerLesMonstres(dt);
 
     m_lancerDeZoneDemande.reset();

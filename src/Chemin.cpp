@@ -40,13 +40,6 @@ int heuristique(sf::Vector2i a, sf::Vector2i b) {
 // le point trouvé est précis à 1/2^6 de la longueur du segment.
 constexpr int s_iterationsRepli = 6;
 
-// Le segment [a, b] passe-t-il à moins de (rayon de l'obstacle + rayonMobile) du centre d'un obstacle ?
-bool traverseUnObstacle(sf::Vector2f a, sf::Vector2f b, const std::vector<Cercle>& obstacles, float rayonMobile) {
-    return std::any_of(obstacles.begin(), obstacles.end(), [&](const Cercle& obstacle) {
-        return distancePointSegment(obstacle.centre, a, b) < obstacle.rayon + rayonMobile;
-    });
-}
-
 } // namespace
 
 std::vector<sf::Vector2i> trouverChemin(const TileMap& carte, sf::Vector2i depart, sf::Vector2i arrivee,
@@ -124,6 +117,13 @@ std::vector<sf::Vector2i> trouverChemin(const TileMap& carte, sf::Vector2i depar
 
     std::reverse(chemin.begin(), chemin.end());
     return chemin;
+}
+
+// Le segment [a, b] passe-t-il à moins de (rayon de l'obstacle + rayonMobile) du centre d'un obstacle ?
+bool traverseUnObstacle(sf::Vector2f a, sf::Vector2f b, const std::vector<Cercle>& obstacles, float rayonMobile) {
+    return std::any_of(obstacles.begin(), obstacles.end(), [&](const Cercle& obstacle) {
+        return distancePointSegment(obstacle.centre, a, b) < obstacle.rayon + rayonMobile;
+    });
 }
 
 FonctionDeCout coutDesObstacles(const TileMap& carte, const std::vector<Cercle>& obstacles, float rayonMobile,

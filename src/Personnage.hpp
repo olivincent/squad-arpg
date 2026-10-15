@@ -19,7 +19,10 @@ class Personnage {
 public:
     Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::optional<Skill> skill, int armure);
     void dessiner(sf::RenderTarget& rendu) const;
-    void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte, const std::vector<Cercle>& obstacles);
+    // `obstacles` le bloquent ; `aContourner` est ce que son chemin évite : la ligne droite n'est
+    // prise que si elle passe loin d'eux, sinon A* avec coût (voir Mobile::allerVers).
+    void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte, const std::vector<Cercle>& obstacles,
+                     const std::vector<Cercle>& aContourner);
     // Pousse le personnage vivant de `decalage` (murs et obstacles respectés), sans
     // changer son chemin ; sans effet s'il est mort.
     void decaler(sf::Vector2f decalage, const TileMap& carte, const std::vector<Cercle>& obstacles);
