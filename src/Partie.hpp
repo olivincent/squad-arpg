@@ -43,8 +43,8 @@ public:
 
     // Fige le monde (rien ne bouge) une fois la partie perdue ou gagnée.
     void mettreAJour(float dt);
-    // `afficherAncre` est transmis à Escouade::dessiner.
-    void dessiner(sf::RenderTarget& rendu, bool afficherAncre) const;
+    // `afficherAncre` est transmis à Escouade::dessiner, `marquerLeRetour` (débogage F3) à Monstre::dessiner.
+    void dessiner(sf::RenderTarget& rendu, bool afficherAncre, bool marquerLeRetour) const;
     // Débogage (F3) : chemin restant de chaque monstre.
     void dessinerCheminsDesMonstres(sf::RenderTarget& rendu) const;
 

@@ -9,6 +9,7 @@
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Rect.hpp>
+#include <cstdint>
 
 namespace {
 constexpr float s_cote = 30.0f;      // côté du carré, en pixels
@@ -16,6 +17,7 @@ constexpr float s_vitesse = 160.0f;  // en pixels par seconde
 constexpr int s_pointsDeVieMax = 100;
 constexpr float s_eclaircissementExecution = 0.5f;  // part de blanc pendant l'exécution d'un coup
 constexpr float s_executionAttaque = 0.3f;  // en secondes, immobile avant que le coup parte
+constexpr std::uint8_t s_opaciteRetour = 128;  // sur 255 : environ 50 %, pour marquer le retour (débogage F3)
 constexpr float s_regenerationRetour = 0.5f;  // fraction des points de vie maximum rendue par seconde en retour
 }  // namespace
 
@@ -36,13 +38,17 @@ Monstre::Monstre(sf::Vector2f centre, int id, int armure, int groupe)
 {
 }
 
-void Monstre::dessiner(sf::RenderTarget& rendu, bool estCible) const {
+void Monstre::dessiner(sf::RenderTarget& rendu, bool estCible, bool marquerLeRetour) const {
     const sf::Vector2f centre = m_mobile.getCentre();
     const sf::Vector2f taille = m_mobile.getTaille();
 
     sf::RectangleShape forme(taille);
     forme.setPosition(centre - taille / 2.0f);
-    forme.setFillColor(cibleEngagee().has_value() ? eclaircir(sf::Color::Red, s_eclaircissementExecution) : sf::Color::Red);
+    sf::Color couleur = cibleEngagee().has_value() ? eclaircir(sf::Color::Red, s_eclaircissementExecution) : sf::Color::Red;
+    if (marquerLeRetour && m_etat == Etat::Retour) {
+        couleur.a = s_opaciteRetour;
+    }
+    forme.setFillColor(couleur);
     if (estCible) {
         forme.setOutlineColor(sf::Color::Yellow);
         forme.setOutlineThickness(-3.0f);

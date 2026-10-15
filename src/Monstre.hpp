@@ -21,7 +21,8 @@ public:
     // `groupe` est un identifiant opaque : des monstres de même groupe « vont
     // ensemble ». Le monstre ne sait pas ce qu'il désigne.
     Monstre(sf::Vector2f centre, int id, int armure, int groupe);
-    void dessiner(sf::RenderTarget& rendu, bool estCible) const;
+    // `marquerLeRetour` (débogage F3) : le carré d'un monstre qui rentre à son poste est semi-transparent.
+    void dessiner(sf::RenderTarget& rendu, bool estCible, bool marquerLeRetour) const;
     // Débogage (F3) : trait fin du centre du monstre à travers le chemin restant de son Mobile.
     void dessinerChemin(sf::RenderTarget& rendu) const;
     // `proie` est le personnage que le monstre poursuit (sans dépendre de la vue) ;

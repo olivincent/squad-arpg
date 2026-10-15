@@ -121,7 +121,7 @@ void EcranJeu::dessiner(const Contexte& contexte) const {
     sf::RenderWindow& fenetre = contexte.fenetre;
     fenetre.setView(m_camera);
     fenetre.clear();
-    m_partie.dessiner(fenetre, m_debogage.ancre);
+    m_partie.dessiner(fenetre, m_debogage.ancre, m_debogage.pointsVises);
     m_controleur.dessinerApercu(m_partie, fenetre, fenetre.mapPixelToCoords(sf::Mouse::getPosition(fenetre)));
     if (m_debogage.pointsVises) {
         m_partie.getEscouade().dessinerPointsVises(fenetre);

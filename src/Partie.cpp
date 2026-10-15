@@ -212,10 +212,10 @@ void Partie::mettreAJour(float dt) {
     m_deplacementOrdonne.reset();
 }
 
-void Partie::dessiner(sf::RenderTarget& rendu, bool afficherAncre) const {
+void Partie::dessiner(sf::RenderTarget& rendu, bool afficherAncre, bool marquerLeRetour) const {
     m_carte.dessiner(rendu);
     for (const Monstre& m : m_monstres) {
-        m.dessiner(rendu, m_escouade.getCibleVerrouillee() == m.getId());
+        m.dessiner(rendu, m_escouade.getCibleVerrouillee() == m.getId(), marquerLeRetour);
     }
     m_escouade.dessiner(rendu, afficherAncre);
 }
