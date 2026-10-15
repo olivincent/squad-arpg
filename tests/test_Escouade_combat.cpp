@@ -498,8 +498,9 @@ TEST_CASE("Un skill qui part annule le coup en execution de son lanceur") {
     const std::vector<MonstreVu> monstres = {MonstreVu{1, cibleMonstre({85.0f, 60.0f})}};
     REQUIRE(attaquerCibleUnTic(escouade, monstres, carte, generateur) == 0);
 
-    const std::vector<Coup> skill = escouade.declencherSkill(1, monstres, carte, generateur);  // mêlée avant-gauche : 25 dégâts
-    REQUIRE(skill.size() == 1);
+    // Mêlée avant-gauche : le skill commence son activation (il part à 0,3 s, après la fenêtre ci-dessous).
+    REQUIRE(escouade.declencherSkill(1, monstres, carte, generateur).empty());
+    REQUIRE_FALSE(escouade.skillEstPret(1));
 
     int total = 0;
     for (int i = 0; i < nombreDeTics(0.2f); ++i) {

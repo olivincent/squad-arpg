@@ -150,6 +150,45 @@ inline int attaquerCible(Escouade& escouade, const TileMap& carte, Cercle cible)
     return total;
 }
 
+// Le plus long temps d'activation d'un skill (la zone, 0,8 s) avec une marge.
+inline constexpr float s_dureeAttenteSkill = 1.0f;
+
+// Fait avancer par attaquer() (sans mettreAJour : personne ne bouge, les
+// recharges ne courent pas) pendant `s_dureeAttenteSkill`, et renvoie les coups
+// de skill partis. Les coups de l'attaque de base (5 dégâts) que les autres
+// personnages portent entre-temps sont écartés : seuls les skills comptent.
+inline std::vector<Coup> attendreLeDepartDesSkills(Escouade& escouade, const std::vector<MonstreVu>& monstres, const TileMap& carte,
+                                                   Generateur& generateur) {
+    std::vector<Coup> coups;
+    for (int i = 0; i < nombreDeTics(s_dureeAttenteSkill); ++i) {
+        for (const Coup& coup : escouade.attaquer(s_dureeTic, monstres, carte, generateur)) {
+            if (coup.degats != 5) {
+                coups.push_back(coup);
+            }
+        }
+    }
+    return coups;
+}
+
+// Déclenche le skill de cette place (touches 1 à 4), puis attend son départ :
+// les coups de skill sont ceux de l'appel et ceux de l'attente.
+inline std::vector<Coup> declencherEtAttendre(Escouade& escouade, std::size_t place, const std::vector<MonstreVu>& monstres, const TileMap& carte,
+                                              Generateur& generateur) {
+    std::vector<Coup> coups = escouade.declencherSkill(place, monstres, carte, generateur);
+    const std::vector<Coup> suite = attendreLeDepartDesSkills(escouade, monstres, carte, generateur);
+    coups.insert(coups.end(), suite.begin(), suite.end());
+    return coups;
+}
+
+// Comme declencherEtAttendre, pour le skill de zone lancé en un point.
+inline std::vector<Coup> declencherZoneEtAttendre(Escouade& escouade, std::size_t place, sf::Vector2f point, const std::vector<MonstreVu>& monstres,
+                                                  const TileMap& carte, Generateur& generateur) {
+    std::vector<Coup> coups = escouade.declencherSkillDeZone(place, point, monstres, carte, generateur);
+    const std::vector<Coup> suite = attendreLeDepartDesSkills(escouade, monstres, carte, generateur);
+    coups.insert(coups.end(), suite.begin(), suite.end());
+    return coups;
+}
+
 // Place de l'allié désigné par choisirCible, vide si aucune cible.
 inline std::optional<std::size_t> placeAlliePourSoin(const Escouade& escouade) {
     const std::optional<Cible> cible = escouade.choisirCible(TypeSkill::Soin, 3, {}, carteOuverte());

@@ -123,13 +123,14 @@ TEST_CASE("une fois l'escouade vaincue, les clics et les demandes sont sans effe
 TEST_CASE("un skill et attaquer dans la meme image ne frappent pas deux fois le meme lanceur") {
     // Monstre à portée du mêlée avant-gauche (skill de 25) et des deux
     // tireurs (attaques de base de 5). Le mêlée qui lance son skill ne
-    // frappe pas avec son attaque de base dans la même image.
+    // frappe pas avec son attaque de base pendant l'activation ni juste après.
     Partie partie(niveauDegage({{235.0f, 150.0f}}), s_graineDeTest);
 
-    // 0,25 s : les tireurs ont eu le temps d'exécuter leur coup (0,15 s),
-    // pas le mêlée, dont la recharge a été relancée au complet (au moins 0,3 s).
+    // 0,35 s : le skill est parti (activation de 0,3 s) et les tireurs ont eu
+    // le temps d'exécuter leur coup (0,15 s), pas le mêlée, dont la recharge
+    // de l'attaque de base a été relancée au complet (au moins 0,3 s) au départ.
     partie.demanderSkill(1);
-    avancer(partie, nombreDeTics(0.25f));
+    avancer(partie, nombreDeTics(0.35f));
 
     REQUIRE(partie.getMonstres().front().getPointsDeVie() == 100 - 25 - 5 - 5);
 }

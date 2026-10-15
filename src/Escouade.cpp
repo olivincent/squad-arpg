@@ -32,15 +32,19 @@ constexpr float s_rechargeTireurMin = 0.4f;  // attaque de base des tireurs, en 
 constexpr float s_rechargeTireurMax = 0.6f;
 constexpr int s_degatsSkill = 25;
 constexpr float s_rechargeSkill = 5.0f;   // en secondes
+constexpr float s_activationSkill = 0.3f; // en secondes, immobile avant que l'effet parte
 constexpr float s_porteeSoin = 40.0f;     // bord à bord
 constexpr int s_puissanceSoin = 30;
 constexpr float s_rechargeSoin = 8.0f;    // en secondes
+constexpr float s_activationSoin = 0.6f;  // en secondes
 constexpr float s_rayonProvocation = 150.0f;  // rayon de zone, depuis le centre du provocateur
 constexpr int s_dureeProvocation = 4;         // en secondes (la puissance de ce skill)
 constexpr float s_rechargeProvocation = 10.0f;  // en secondes
+constexpr float s_activationProvocation = 0.2f;  // en secondes
 constexpr float s_porteeZone = 250.0f;        // portée de lancement du skill de zone, bord à bord
 constexpr int s_degatsZone = 15;
 constexpr float s_rechargeZone = 8.0f;        // en secondes
+constexpr float s_activationZone = 0.8f;      // en secondes
 constexpr float s_rayonZone = 60.0f;          // rayon de zone, depuis le point visé
 constexpr float s_laisseAgresseur = 100.0f;      // en pixels, centre à centre, mesurée depuis la place de formation
 
@@ -64,14 +68,14 @@ Escouade::Escouade(sf::Vector2f positionDepart)
       m_vitesseRotation(s_vitesseRotation),
       m_personnages({
           Personnage(placePersonnage(0), s_couleurMelee, attaqueDeBase(s_porteeMelee, s_rechargeMeleeMin, s_rechargeMeleeMax),
-                     Skill(TypeSkill::Degats, s_porteeMelee, s_degatsSkill, s_rechargeSkill, s_rechargeSkill, 0.0f), s_armureMelee),
+                     Skill(TypeSkill::Degats, s_porteeMelee, s_degatsSkill, s_rechargeSkill, s_rechargeSkill, 0.0f, s_activationSkill), s_armureMelee),
           Personnage(placePersonnage(1), s_couleurMelee, attaqueDeBase(s_porteeMelee, s_rechargeMeleeMin, s_rechargeMeleeMax),
-                     Skill(TypeSkill::Provocation, 0.0f, s_dureeProvocation, s_rechargeProvocation, s_rechargeProvocation, s_rayonProvocation),
+                     Skill(TypeSkill::Provocation, 0.0f, s_dureeProvocation, s_rechargeProvocation, s_rechargeProvocation, s_rayonProvocation, s_activationProvocation),
                      s_armureMelee),
           Personnage(placePersonnage(2), s_couleurTireur, attaqueDeBase(s_porteeTireur, s_rechargeTireurMin, s_rechargeTireurMax),
-                     Skill(TypeSkill::Soin, s_porteeSoin, s_puissanceSoin, s_rechargeSoin, s_rechargeSoin, 0.0f), s_armureTireur),
+                     Skill(TypeSkill::Soin, s_porteeSoin, s_puissanceSoin, s_rechargeSoin, s_rechargeSoin, 0.0f, s_activationSoin), s_armureTireur),
           Personnage(placePersonnage(3), s_couleurTireur, attaqueDeBase(s_porteeTireur, s_rechargeTireurMin, s_rechargeTireurMax),
-                     Skill(TypeSkill::Zone, s_porteeZone, s_degatsZone, s_rechargeZone, s_rechargeZone, s_rayonZone), s_armureTireur),
+                     Skill(TypeSkill::Zone, s_porteeZone, s_degatsZone, s_rechargeZone, s_rechargeZone, s_rayonZone, s_activationZone), s_armureTireur),
       }),
       m_cibleVerrouillee(),
       m_skillEnAttente(),
