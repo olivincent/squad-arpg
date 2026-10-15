@@ -88,7 +88,7 @@ int main() {
                     controleur.appuiTouche(partie, 4);
                 } else if (data->scancode == sf::Keyboard::Scan::Escape) {
                     controleur.appuiEchap();
-                } else if (data->scancode == sf::Keyboard::Scan::R && partie.estPerdue()) {
+                } else if (data->scancode == sf::Keyboard::Scan::R && (partie.estPerdue() || partie.estGagnee())) {
                     nouvelleCarte();
                 } else if (data->scancode == sf::Keyboard::Scan::F5) {
                     // Touche de débogage : à tout moment, même effet que R.
@@ -116,6 +116,8 @@ int main() {
         dessinerBarreDeSkills(window, police, etatsDesSkills, controleur.getPlaceEnVisee());
         if (partie.estPerdue()) {
             dessinerEcranDeFin(window, police, "Défaite");
+        } else if (partie.estGagnee()) {
+            dessinerEcranDeFin(window, police, "Victoire");
         }
         window.display();
     }
