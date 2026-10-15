@@ -67,11 +67,7 @@ est dans `docs/historique.md`.
 - Étape 58 — Temps d'activation des skills (touches 1 à 4) et action engagée par personnage ✅
 
 - Étape 59 — Génération procédurale : les salles ✅
-
-## Étape 60
-
-Couloirs en L de 2 cases de large reliant chaque salle à la précédente
-(à préciser dans Claude.ai).
+- Étape 60 — Génération procédurale : les couloirs ✅
 
 ## Étape 61 (prévue)
 
@@ -135,9 +131,9 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   sur GitHub ; SFML 3.0.2 intégrée à CMake.
 - **Fenêtre et carte** : fenêtre 1200 × 800 ; carte de 59 × 40 cases de
   40 px (2360 × 1600 px). Depuis l'étape 59, `main.cpp` joue sur un niveau
-  généré (`genererNiveau` : salles rectangulaires isolées, sans couloir ni
-  monstre, escouade au centre de la première salle, même graine que la
-  partie, voir `docs/generation.md`) ; la carte faite à la main
+  généré (`genererNiveau` : salles rectangulaires reliées par des couloirs en L de
+  2 cases de large, sans monstre, escouade au centre de la première salle,
+  même graine que la partie, voir `docs/generation.md`) ; la carte faite à la main
   (`creerNiveau()` dans `Niveau.cpp`) reste le terrain des tests. La caméra (`sf::View`) est centrée
   sur l'escouade ; du noir apparaît au-delà des bords de la carte.
 - **Architecture de la boucle** (étapes 52 et 54) : `main.cpp` garde la
@@ -323,7 +319,7 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 469 tests : 20 sur `GenerateurDonjon`, 38 sur `TileMap`, 17 sur `Chemin`, 163
+  (`./build/tests.exe`, 485 tests : 36 sur `GenerateurDonjon`, 38 sur `TileMap`, 17 sur `Chemin`, 163
   sur `Escouade` en cinq fichiers par thème — 22 déplacement, 27 combat, 70
   skills, 26 agresseurs, 18 vue —, 12 sur `Deplacement`, 43 sur `Monstre`,
   46 sur `Personnage`, 30 sur `Skill`, 17 sur `Mobile`, 2 sur `Eclaircir`, 4 sur `Cercle`, 13
@@ -333,6 +329,11 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   formation et `provoquer` à une place invalide couverts.
 
 **Limites connues** (acceptées pour l'instant) :
+- Couloirs générés (étape 60) : un couloir peut traverser une autre salle
+  ou longer un mur, et les couloirs ne forment pas de boucle (arbre). Les
+  problèmes de déplacement observés dans les couloirs étroits (2 cases) :
+  à compléter après les essais visuels d'Olivier ; aucune correction à
+  l'étape 60.
 - Pas d'interruption de l'activation d'un skill par les dégâts reçus ; un
   seul skill en attente pour toute l'escouade ; pas de barre de progression
   d'incantation ; pas de revérification de portée ni de vue au départ du

@@ -175,7 +175,10 @@ paramètre (`Generateur&`).
 
 `struct Salle { int x, y, largeur, hauteur; }` : l'emprise d'une salle, en
 cases. `struct ParametresDonjon` : `largeurCarte` 59, `hauteurCarte` 40,
-`tailleCase` 40 px, `tentatives` 30, `coteMin` 6, `coteMax` 12, `marge` 1.
+`tailleCase` 40 px, `tentatives` 30, `coteMin` 6, `coteMax` 12, `marge` 1,
+`largeurCouloir` 2. `struct Liaison { std::size_t de, vers; }` (indices de
+salles) et `enum class SensCouloir { HorizontalPuisVertical,
+VerticalPuisHorizontal }`.
 
 | Fonction | Rôle |
 |---|---|
@@ -183,7 +186,9 @@ cases. `struct ParametresDonjon` : `largeurCarte` 59, `hauteurCarte` 40,
 | `bool Salle::chevauche(const Salle& autre, int marge) const` | Les emprises sont-elles à moins de `marge` cases l'une de l'autre, ou se recouvrent-elles ? Deux salles qui se touchent ne se chevauchent pas avec une marge de 0 |
 | `std::vector<Salle> placerSalles(Generateur&, const ParametresDonjon&)` | Placement au hasard avec rejet ; au moins une salle ; emprises à l'intérieur de la bordure de mur |
 | `void creuserSalle(std::vector<std::string>& plan, const Salle&)` | Transforme l'emprise en sol (aujourd'hui tout le rectangle) |
-| `Niveau genererNiveau(Generateur&, const ParametresDonjon&)` | Plan tout en mur, salles creusées, départ de l'escouade au centre en pixels de la première salle, aucun monstre, `armureMonstres` 0 |
+| `std::vector<Liaison> choisirLiaisons(const std::vector<Salle>&)` | Sans aléatoire : chaque salle i ≥ 1 est reliée à la plus proche (distance au carré entre centres) parmi les salles 0 à i−1 ; égalité : le plus petit indice ; n−1 liaisons |
+| `void creuserCouloir(std::vector<std::string>& plan, sf::Vector2i depart, sf::Vector2i arrivee, SensCouloir, int largeur)` | Couloir en L de `largeur` cases (étendue vers le bas et la droite), coude plein, départ et arrivée en sol |
+| `Niveau genererNiveau(Generateur&, const ParametresDonjon&)` | Plan tout en mur, salles creusées, puis un couloir par liaison (sens tiré au hasard, un tirage par liaison) entre les centres ; départ de l'escouade au centre en pixels de la première salle, aucun monstre, `armureMonstres` 0 |
 
 ### `Partie` — les règles de jeu
 
