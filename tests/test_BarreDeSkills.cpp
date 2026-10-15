@@ -1,6 +1,7 @@
 // ./tests/test_BarreDeSkills.cpp
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <SFML/Graphics/Color.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <cmath>
 #include <cstddef>
@@ -29,6 +30,13 @@ TEST_CASE("lettreDuSkill donne une lettre par type") {
     REQUIRE(lettreDuSkill(TypeSkill::Provocation) == 'P');
     REQUIRE(lettreDuSkill(TypeSkill::Soin) == 'S');
     REQUIRE(lettreDuSkill(TypeSkill::Zone) == 'Z');
+}
+
+TEST_CASE("couleurDuContour : blanc en activation, jaune en visee, gris sinon") {
+    REQUIRE(couleurDuContour(false, true) == sf::Color::White);
+    REQUIRE(couleurDuContour(true, false) == sf::Color::Yellow);
+    REQUIRE(couleurDuContour(true, true) == sf::Color::Yellow);
+    REQUIRE(couleurDuContour(false, false) == sf::Color(140, 140, 140));
 }
 
 TEST_CASE("secondesAffichees arrondit vers le haut") {

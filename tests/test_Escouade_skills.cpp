@@ -854,9 +854,11 @@ TEST_CASE("Un skill de degats part a la fin de son activation de 0,3 s, pas avan
 
     REQUIRE(escouade.declencherSkill(1, monstres, carteOuverte(), generateur).empty());
     REQUIRE_FALSE(escouade.skillEstPret(1));
+    REQUIRE(escouade.etatDuSkill(1)->enActivation);
 
     REQUIRE(compter(attaquerPendant(escouade, monstres, 0.25f, generateur), 25) == 0);
     REQUIRE(compter(attaquerPendant(escouade, monstres, 0.1f, generateur), 25) == 1);
+    REQUIRE_FALSE(escouade.etatDuSkill(1)->enActivation);
     REQUIRE(escouade.etatDuSkill(1)->progression < 1.0f);  // la recharge a démarré au départ
 }
 

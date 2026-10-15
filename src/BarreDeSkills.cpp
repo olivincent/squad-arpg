@@ -76,6 +76,13 @@ std::vector<sf::Vector2f> pointsDuQuartier(sf::Vector2f centre, float cote, floa
     return points;
 }
 
+sf::Color couleurDuContour(bool enVisee, bool enActivation) {
+    if (enVisee) {
+        return sf::Color::Yellow;
+    }
+    return enActivation ? sf::Color::White : sf::Color(140, 140, 140);
+}
+
 void dessinerBarreDeSkills(sf::RenderTarget& rendu, const sf::Font& police,
                            const std::array<std::optional<EtatSkill>, 4>& etats,
                            std::optional<std::size_t> placeEnVisee) {
@@ -90,12 +97,10 @@ void dessinerBarreDeSkills(sf::RenderTarget& rendu, const sf::Font& police,
         sf::RectangleShape fond({s_coteIcone, s_coteIcone});
         fond.setPosition(coin);
         fond.setFillColor(sf::Color(50, 50, 50));
-        fond.setOutlineColor(sf::Color(140, 140, 140));
-        fond.setOutlineThickness(1.0f);
-        if (placeEnVisee == i + 1) {
-            fond.setOutlineColor(sf::Color::Yellow);
-            fond.setOutlineThickness(3.0f);
-        }
+        const bool enVisee = placeEnVisee == i + 1;
+        const bool enActivation = etats[i].has_value() && etats[i]->enActivation;
+        fond.setOutlineColor(couleurDuContour(enVisee, enActivation));
+        fond.setOutlineThickness(enVisee || enActivation ? 3.0f : 1.0f);
         rendu.draw(fond);
 
         if (!etats[i].has_value()) {

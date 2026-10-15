@@ -8,4 +8,5 @@ struct EtatSkill {
     float progression;    // de 0 (juste lancé) à 1 (prêt)
     float tempsRestant;   // en secondes
     bool lanceurVivant;
+    bool enActivation;    // le lanceur prépare le skill (il n'est pas encore parti)
 };

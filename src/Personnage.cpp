@@ -149,7 +149,7 @@ std::optional<EtatSkill> Personnage::etatDuSkill() const {
     if (!m_skill.has_value()) {
         return std::nullopt;
     }
-    return EtatSkill{m_skill->getType(), m_skill->getProgressionRecharge(), m_skill->getRechargeRestante(), estVivant()};
+    return EtatSkill{m_skill->getType(), m_skill->getProgressionRecharge(), m_skill->getRechargeRestante(), estVivant(), skillEngage().has_value()};
 }
 
 bool Personnage::skillEstAPortee(Cercle cible) const {
