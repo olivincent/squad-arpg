@@ -7,6 +7,7 @@
 #include <iostream>
 #include <optional>
 #include <random>
+#include <string>
 #include "Aleatoire.hpp"
 #include "BarreDeSkills.hpp"
 #include "Controleur.hpp"
@@ -28,6 +29,20 @@ Partie nouvellePartie(std::random_device& tirage) {
     Generateur generateurDeNiveau(graine);
     const Niveau niveau = genererNiveau(generateurDeNiveau, ParametresDonjon{});
     return Partie(niveau, graine);
+}
+
+constexpr unsigned int s_tailleCompteur = 22;
+constexpr float s_margeCompteur = 16.0f;
+
+// « Monstres : N » dans le coin haut gauche, en coordonnées de la fenêtre
+// (à appeler avec la vue par défaut). Contour noir pour rester lisible sur la carte.
+void dessinerCompteurDeMonstres(sf::RenderTarget& rendu, const sf::Font& police, int restants) {
+    sf::Text texte(police, "Monstres : " + std::to_string(restants), s_tailleCompteur);
+    texte.setFillColor(sf::Color::White);
+    texte.setOutlineColor(sf::Color::Black);
+    texte.setOutlineThickness(2.0f);
+    texte.setPosition({s_margeCompteur, s_margeCompteur});
+    rendu.draw(texte);
 }
 
 }  // namespace
@@ -114,6 +129,7 @@ int main() {
             etatsDesSkills[i] = partie.getEscouade().etatDuSkill(i + 1);
         }
         dessinerBarreDeSkills(window, police, etatsDesSkills, controleur.getPlaceEnVisee());
+        dessinerCompteurDeMonstres(window, police, partie.monstresRestants());
         if (partie.estPerdue()) {
             dessinerEcranDeFin(window, police, "Défaite");
         } else if (partie.estGagnee()) {
