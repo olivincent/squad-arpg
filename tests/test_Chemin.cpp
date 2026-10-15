@@ -296,3 +296,127 @@ TEST_CASE("replierVersOrigine avec origine et cible identiques renvoie l'origine
 
     REQUIRE(replierVersOrigine(carte, origine, origine, {20.0f, 20.0f}) == origine);
 }
+
+namespace {
+// Salle de 9 x 5 cases de 40 px, sans mur ; un obstacle de rayon 10 centré dans la case (4, 2)
+// (centre en pixels : (180, 100)) occupe cette seule case pour un mobile de rayon 10.
+TileMap salleLarge() {
+    return TileMap({".........", ".........", ".........", ".........", "........."}, 40.0f);
+}
+const std::vector<Cercle> s_obstacleAuCentre = {{{180.0f, 100.0f}, 10.0f}};
+constexpr int s_penalite = 8;
+} // namespace
+
+TEST_CASE("trouverChemin sans cout donne le meme chemin qu'un cout nul") {
+    const TileMap carte = salleAvecPilier();
+
+    const std::vector<sf::Vector2i> sans = trouverChemin(carte, {1, 1}, {5, 4});
+    const std::vector<sf::Vector2i> videExplicite = trouverChemin(carte, {1, 1}, {5, 4}, FonctionDeCout{});
+    const std::vector<sf::Vector2i> nul = trouverChemin(carte, {1, 1}, {5, 4}, [](sf::Vector2i) { return 0; });
+
+    REQUIRE_FALSE(sans.empty());
+    REQUIRE(videExplicite == sans);
+    REQUIRE(nul == sans);
+}
+
+TEST_CASE("coutDesObstacles penalise les cases touchees par le cercle agrandi") {
+    const TileMap carte = salleLarge();
+    // Rayon agrandi : 10 + 10 = 20. Le bord droit de la case (3, 2) est à x = 160.
+    const FonctionDeCout proche = coutDesObstacles(carte, {{{179.0f, 100.0f}, 10.0f}}, 10.0f, s_penalite);
+    const FonctionDeCout loin = coutDesObstacles(carte, {{{181.0f, 100.0f}, 10.0f}}, 10.0f, s_penalite);
+
+    REQUIRE(proche({3, 2}) == s_penalite); // à 19 px de la case : touchée
+    REQUIRE(proche({4, 2}) == s_penalite);
+    REQUIRE(loin({3, 2}) == 0);            // à 21 px : juste hors de portée
+    REQUIRE(loin({4, 2}) == s_penalite);
+    REQUIRE(loin({0, 0}) == 0);
+    REQUIRE(loin({-1, 2}) == 0);           // hors de la carte
+    REQUIRE(loin({9, 2}) == 0);
+}
+
+TEST_CASE("coutDesObstacles sans obstacle donne une fonction vide") {
+    REQUIRE_FALSE(static_cast<bool>(coutDesObstacles(salleLarge(), {}, 10.0f, s_penalite)));
+}
+
+TEST_CASE("La fonction de cout survit a la liste de cercles dont elle vient") {
+    const TileMap carte = salleLarge();
+    FonctionDeCout cout;
+    {
+        const std::vector<Cercle> temporaire = {{{180.0f, 100.0f}, 10.0f}};
+        cout = coutDesObstacles(carte, temporaire, 10.0f, s_penalite);
+    }
+
+    REQUIRE(cout({4, 2}) == s_penalite);
+}
+
+TEST_CASE("trouverChemin contourne un obstacle dans un passage large") {
+    const TileMap carte = salleLarge();
+    const FonctionDeCout cout = coutDesObstacles(carte, s_obstacleAuCentre, 10.0f, s_penalite);
+
+    const std::vector<sf::Vector2i> chemin = trouverChemin(carte, {0, 2}, {8, 2}, cout);
+
+    // 8 pas droit + 2 pour le détour = 10 pas, donc 11 cases, sans la case occupée.
+    verifierCheminValide(chemin, carte, {0, 2}, {8, 2}, 11);
+    for (const sf::Vector2i& c : chemin) {
+        REQUIRE(c != sf::Vector2i(4, 2));
+    }
+}
+
+TEST_CASE("trouverChemin traverse un obstacle qui bouche le seul passage") {
+    const TileMap carte({"#####", ".....", "#####"}, 40.0f);
+    const FonctionDeCout cout = coutDesObstacles(carte, {{{100.0f, 60.0f}, 10.0f}}, 10.0f, s_penalite);
+
+    const std::vector<sf::Vector2i> chemin = trouverChemin(carte, {0, 1}, {4, 1}, cout);
+
+    verifierCheminValide(chemin, carte, {0, 1}, {4, 1}, 5);
+}
+
+TEST_CASE("trouverChemin ne penalise ni le depart ni l'arrivee") {
+    const TileMap carte = salleLarge();
+    std::vector<sf::Vector2i> interrogees;
+    const FonctionDeCout espion = [&interrogees](sf::Vector2i c) {
+        interrogees.push_back(c);
+        return 0;
+    };
+
+    const std::vector<sf::Vector2i> chemin = trouverChemin(carte, {1, 1}, {3, 2}, espion);
+
+    REQUIRE_FALSE(chemin.empty());
+    REQUIRE_FALSE(interrogees.empty());
+    for (const sf::Vector2i& c : interrogees) {
+        REQUIRE(c != sf::Vector2i(1, 1));
+        REQUIRE(c != sf::Vector2i(3, 2));
+    }
+}
+
+TEST_CASE("lisserChemin sans cercle a contourner ne change pas le resultat") {
+    const TileMap carte = salleLarge();
+    const std::vector<sf::Vector2f> points = {{140.0f, 100.0f}, {300.0f, 60.0f}};
+
+    const std::vector<sf::Vector2f> sans = lisserChemin(carte, {20.0f, 60.0f}, points, {20.0f, 20.0f});
+    const std::vector<sf::Vector2f> vide = lisserChemin(carte, {20.0f, 60.0f}, points, {20.0f, 20.0f}, {});
+
+    REQUIRE(sans.size() == 1);
+    REQUIRE(vide == sans);
+}
+
+TEST_CASE("lisserChemin refuse un raccourci qui traverse un obstacle") {
+    const TileMap carte = salleLarge();
+    const std::vector<sf::Vector2f> points = {{140.0f, 100.0f}, {300.0f, 60.0f}};
+    const std::vector<Cercle> obstacle = {{{160.0f, 60.0f}, 10.0f}};
+
+    const std::vector<sf::Vector2f> resultat = lisserChemin(carte, {20.0f, 60.0f}, points, {20.0f, 20.0f}, obstacle);
+
+    REQUIRE(resultat == points);
+}
+
+TEST_CASE("lisserChemin accepte un raccourci qui passe a plus de la somme des rayons") {
+    const TileMap carte = salleLarge();
+    const std::vector<Cercle> obstacle = {{{160.0f, 60.0f}, 10.0f}};
+
+    // Segment horizontal à y = 81 : à 21 px du centre de l'obstacle (somme des rayons = 20).
+    const std::vector<sf::Vector2f> resultat =
+        lisserChemin(carte, {20.0f, 81.0f}, {{140.0f, 81.0f}, {300.0f, 81.0f}}, {20.0f, 20.0f}, obstacle);
+
+    REQUIRE(resultat.size() == 1);
+}

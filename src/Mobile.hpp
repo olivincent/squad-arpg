@@ -11,7 +11,9 @@ class TileMap;
 class Mobile {
 public:
     Mobile(sf::Vector2f centre, sf::Vector2f taille, float vitesse);
-    void allerVers(sf::Vector2f destination, const TileMap& carte);
+    // `aContourner` : cercles que le chemin évite (coût ajouté dans le A*, lissage qui ne les
+    // traverse pas). Distinct des obstacles bloquants de mettreAJour. Vide = murs seulement.
+    void allerVers(sf::Vector2f destination, const TileMap& carte, const std::vector<Cercle>& aContourner = {});
     void allerToutDroit(sf::Vector2f destination);
     void arreter();
     void mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles);
@@ -27,6 +29,12 @@ public:
     // d'arriver l'est encore pour ce tic. Faux avant le premier tic et après
     // arreter().
     [[nodiscard]] bool estEnMouvement() const;
+    // Vrai quand, depuis au moins 0,3 s, le mobile a un point à atteindre mais avance de moins de
+    // 10 % de son pas. Remis à zéro par allerVers, allerToutDroit et arreter ; faux à l'arrêt.
+    // C'est au propriétaire de recalculer le chemin (il connaît les obstacles à contourner).
+    [[nodiscard]] bool estBloque() const;
+    // Points du chemin restant à parcourir (le prochain en premier), pour le débogage et les tests.
+    [[nodiscard]] std::vector<sf::Vector2f> cheminRestant() const;
 
 private:
     sf::Vector2f m_position;            // coin haut-gauche, en pixels du monde
@@ -35,4 +43,5 @@ private:
     std::size_t m_indexChemin;          // indice du prochain point de m_chemin à atteindre
     float m_vitesse;                    // en pixels par seconde
     bool m_enMouvement;                 // voir estEnMouvement()
+    float m_tempsBloque;                // secondes consécutives sans avancer vraiment, voir estBloque()
 };

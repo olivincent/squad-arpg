@@ -40,9 +40,17 @@ int heuristique(sf::Vector2i a, sf::Vector2i b) {
 // le point trouvé est précis à 1/2^6 de la longueur du segment.
 constexpr int s_iterationsRepli = 6;
 
+// Le segment [a, b] passe-t-il à moins de (rayon de l'obstacle + rayonMobile) du centre d'un obstacle ?
+bool traverseUnObstacle(sf::Vector2f a, sf::Vector2f b, const std::vector<Cercle>& obstacles, float rayonMobile) {
+    return std::any_of(obstacles.begin(), obstacles.end(), [&](const Cercle& obstacle) {
+        return distancePointSegment(obstacle.centre, a, b) < obstacle.rayon + rayonMobile;
+    });
+}
+
 } // namespace
 
-std::vector<sf::Vector2i> trouverChemin(const TileMap& carte, sf::Vector2i depart, sf::Vector2i arrivee) {
+std::vector<sf::Vector2i> trouverChemin(const TileMap& carte, sf::Vector2i depart, sf::Vector2i arrivee,
+                                        const FonctionDeCout& cout) {
     if (carte.getTile(depart.x, depart.y) == Tile::Wall || carte.getTile(arrivee.x, arrivee.y) == Tile::Wall) {
         return {};
     }
@@ -56,12 +64,12 @@ std::vector<sf::Vector2i> trouverChemin(const TileMap& carte, sf::Vector2i depar
 
     // Coût parcouru depuis le départ pour chaque case ; -1 = pas encore
     // atteinte. Case de départ et d'arrivée : voir validation plus haut.
-    std::vector<int> cout(largeur * hauteur, -1);
+    std::vector<int> coutConnu(largeur * hauteur, -1);
     std::vector<sf::Vector2i> parent(largeur * hauteur);
 
     std::priority_queue<Noeud, std::vector<Noeud>, ComparateurNoeud> aExplorer;
 
-    cout[indice(depart)] = 0;
+    coutConnu[indice(depart)] = 0;
     aExplorer.push({depart, 0, heuristique(depart, arrivee)});
 
     const sf::Vector2i directions[] = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}};
@@ -74,7 +82,7 @@ std::vector<sf::Vector2i> trouverChemin(const TileMap& carte, sf::Vector2i depar
         // case depuis que celle-ci a été mise dans la file (la file ne
         // sait pas retirer ou mettre à jour une entrée existante, donc on
         // en pousse une nouvelle et on ignore les anciennes à la sortie).
-        if (actuel.coutParcouru > cout[indice(actuel.position)]) {
+        if (actuel.coutParcouru > coutConnu[indice(actuel.position)]) {
             continue;
         }
 
@@ -89,18 +97,20 @@ std::vector<sf::Vector2i> trouverChemin(const TileMap& carte, sf::Vector2i depar
                 continue;
             }
 
-            const int nouveauCout = actuel.coutParcouru + 1;
+            // Départ et arrivée ne sont jamais pénalisés.
+            const bool penalisable = cout && voisin != depart && voisin != arrivee;
+            const int nouveauCout = actuel.coutParcouru + 1 + (penalisable ? cout(voisin) : 0);
             const int indiceVoisin = indice(voisin);
 
-            if (cout[indiceVoisin] == -1 || nouveauCout < cout[indiceVoisin]) {
-                cout[indiceVoisin] = nouveauCout;
+            if (coutConnu[indiceVoisin] == -1 || nouveauCout < coutConnu[indiceVoisin]) {
+                coutConnu[indiceVoisin] = nouveauCout;
                 parent[indiceVoisin] = actuel.position;
                 aExplorer.push({voisin, nouveauCout, nouveauCout + heuristique(voisin, arrivee)});
             }
         }
     }
 
-    if (cout[indice(arrivee)] == -1) {
+    if (coutConnu[indice(arrivee)] == -1) {
         return {};
     }
 
@@ -116,8 +126,45 @@ std::vector<sf::Vector2i> trouverChemin(const TileMap& carte, sf::Vector2i depar
     return chemin;
 }
 
+FonctionDeCout coutDesObstacles(const TileMap& carte, const std::vector<Cercle>& obstacles, float rayonMobile,
+                                int penalite) {
+    if (obstacles.empty()) {
+        return {};
+    }
+
+    const int largeur = carte.getLargeur();
+    const int hauteur = carte.getHauteur();
+    const float tailleCase = carte.getTailleCase();
+    std::vector<bool> occupees(static_cast<std::size_t>(largeur * hauteur), false);
+
+    for (int y = 0; y < hauteur; ++y) {
+        for (int x = 0; x < largeur; ++x) {
+            const sf::Vector2f coin(static_cast<float>(x) * tailleCase, static_cast<float>(y) * tailleCase);
+            for (const Cercle& obstacle : obstacles) {
+                // Point de la case le plus proche du centre de l'obstacle.
+                const sf::Vector2f proche(std::clamp(obstacle.centre.x, coin.x, coin.x + tailleCase),
+                                          std::clamp(obstacle.centre.y, coin.y, coin.y + tailleCase));
+                const float rayon = obstacle.rayon + rayonMobile;
+                if ((proche - obstacle.centre).lengthSquared() < rayon * rayon) {
+                    occupees[static_cast<std::size_t>(y * largeur + x)] = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    // Capture par valeur : la fonction renvoyée survit à `obstacles` et à cette fonction.
+    return [occupees, largeur, hauteur, penalite](sf::Vector2i c) {
+        if (c.x < 0 || c.y < 0 || c.x >= largeur || c.y >= hauteur) {
+            return 0;
+        }
+        return occupees[static_cast<std::size_t>(c.y * largeur + c.x)] ? penalite : 0;
+    };
+}
+
 std::vector<sf::Vector2f> lisserChemin(const TileMap& carte, sf::Vector2f depart,
-                                        const std::vector<sf::Vector2f>& points, sf::Vector2f taille) {
+                                        const std::vector<sf::Vector2f>& points, sf::Vector2f taille,
+                                        const std::vector<Cercle>& aContourner) {
     std::vector<sf::Vector2f> resultat;
     sf::Vector2f ancre = depart;
     std::size_t indice = 0;
@@ -130,7 +177,8 @@ std::vector<sf::Vector2f> lisserChemin(const TileMap& carte, sf::Vector2f depart
         // trouvé (donc le plus lointain, puisqu'on part de la fin).
         std::size_t loin = indice;
         for (std::size_t i = points.size() - 1; i > indice; --i) {
-            if (carte.trajetLibre(rectAncre, points[i] - ancre)) {
+            if (carte.trajetLibre(rectAncre, points[i] - ancre) &&
+                !traverseUnObstacle(ancre, points[i], aContourner, taille.x / 2.0f)) {
                 loin = i;
                 break;
             }

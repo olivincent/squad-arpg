@@ -17,6 +17,7 @@ public:
     Tile getTile(int x, int y) const;
     int getLargeur() const;
     int getHauteur() const;
+    [[nodiscard]] float getTailleCase() const;
     [[nodiscard]] sf::Vector2i caseContenant(sf::Vector2f point) const;
     [[nodiscard]] sf::Vector2f centreDeCase(sf::Vector2i coordCase) const;
     void dessiner(sf::RenderTarget& rendu) const;

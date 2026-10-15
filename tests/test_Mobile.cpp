@@ -220,3 +220,110 @@ TEST_CASE("Mobile.estEnMouvement reste vrai quand le mobile est bloque en essaya
     REQUIRE(mobile.getCentre() == centreBloque);
     REQUIRE(mobile.estEnMouvement());
 }
+
+TEST_CASE("Mobile.allerVers contourne un cercle a contourner et atteint la destination") {
+    const TileMap carte = carteDegagee10x10();
+    Mobile mobile({60.0f, 60.0f}, {20.0f, 20.0f}, 180.0f);
+    const std::vector<Cercle> obstacle = {{{180.0f, 60.0f}, 10.0f}};
+
+    mobile.allerVers({300.0f, 60.0f}, carte, obstacle);
+
+    // Aucun segment du chemin ne passe à moins de 10 + 10 px du centre de l'obstacle.
+    sf::Vector2f precedent = mobile.getCentre();
+    for (const sf::Vector2f& point : mobile.cheminRestant()) {
+        REQUIRE(distancePointSegment(obstacle[0].centre, precedent, point) >= 20.0f);
+        precedent = point;
+    }
+
+    // Le même cercle bloque aussi : sans contournement, le mobile resterait collé contre lui.
+    simuler(mobile, carte, 10.0f, obstacle);
+    verifierPointProche(mobile.getCentre(), {300.0f, 60.0f});
+}
+
+TEST_CASE("Mobile.allerVers sans cercle a contourner garde la ligne droite") {
+    const TileMap carte = carteDegagee10x10();
+    Mobile mobile({60.0f, 60.0f}, {20.0f, 20.0f}, 180.0f);
+
+    mobile.allerVers({300.0f, 60.0f}, carte);
+
+    REQUIRE(mobile.cheminRestant() == std::vector<sf::Vector2f>{{300.0f, 60.0f}});
+}
+
+TEST_CASE("Mobile.cheminRestant se vide au fil du trajet") {
+    const TileMap carte = carteDegagee10x10();
+    Mobile mobile({60.0f, 60.0f}, {20.0f, 20.0f}, 180.0f);
+    REQUIRE(mobile.cheminRestant().size() == 1); // le centre de départ, point initial
+
+    mobile.allerVers({137.0f, 251.0f}, carte);
+    REQUIRE_FALSE(mobile.cheminRestant().empty());
+    REQUIRE(mobile.cheminRestant().back() == sf::Vector2f(137.0f, 251.0f));
+
+    simuler(mobile, carte, 10.0f);
+    REQUIRE(mobile.cheminRestant().empty());
+}
+
+namespace {
+// Mobile lancé en ligne droite vers un cercle qui le bloque (contact en x = 160 vers t = 0,55 s).
+struct MobileContreObstacle {
+    TileMap carte = carteDegagee10x10();
+    Mobile mobile{{60.0f, 60.0f}, {20.0f, 20.0f}, 180.0f};
+    std::vector<Cercle> obstacles = {{{180.0f, 60.0f}, 10.0f}};
+
+    MobileContreObstacle() { mobile.allerToutDroit({300.0f, 60.0f}); }
+};
+} // namespace
+
+TEST_CASE("Mobile.estBloque devient vrai apres 0,3 s contre un obstacle, pas avant") {
+    MobileContreObstacle m;
+
+    simuler(m.mobile, m.carte, 0.4f, m.obstacles);
+    REQUIRE_FALSE(m.mobile.estBloque()); // encore en marche
+
+    simuler(m.mobile, m.carte, 0.3f, m.obstacles); // contact vers 0,55 s : bloqué depuis ~0,15 s
+    REQUIRE_FALSE(m.mobile.estBloque());
+
+    simuler(m.mobile, m.carte, 0.3f, m.obstacles); // bloqué depuis ~0,45 s
+    REQUIRE(m.mobile.estBloque());
+}
+
+TEST_CASE("Mobile.estBloque est faux pour un mobile arrete") {
+    const TileMap carte = carteDegagee10x10();
+    Mobile mobile({60.0f, 60.0f}, {20.0f, 20.0f}, 180.0f);
+
+    simuler(mobile, carte, 1.0f);
+    REQUIRE_FALSE(mobile.estBloque());
+
+    MobileContreObstacle m;
+    simuler(m.mobile, m.carte, 1.5f, m.obstacles);
+    REQUIRE(m.mobile.estBloque());
+    m.mobile.arreter();
+    REQUIRE_FALSE(m.mobile.estBloque());
+    simuler(m.mobile, m.carte, 1.0f, m.obstacles);
+    REQUIRE_FALSE(m.mobile.estBloque());
+}
+
+TEST_CASE("Mobile.estBloque reste faux pour un mobile qui avance normalement jusqu'a l'arrivee") {
+    const TileMap carte = carteDegagee10x10();
+    Mobile mobile({60.0f, 60.0f}, {20.0f, 20.0f}, 180.0f);
+
+    mobile.allerVers({137.0f, 251.0f}, carte);
+    for (int i = 0; i < nombreDeTics(5.0f); ++i) {
+        mobile.mettreAJour(s_dureeTic, carte, {});
+        REQUIRE_FALSE(mobile.estBloque());
+    }
+}
+
+TEST_CASE("Mobile.allerVers et allerToutDroit remettent le blocage a zero") {
+    MobileContreObstacle m;
+    simuler(m.mobile, m.carte, 1.5f, m.obstacles);
+    REQUIRE(m.mobile.estBloque());
+
+    m.mobile.allerVers({300.0f, 60.0f}, m.carte);
+    REQUIRE_FALSE(m.mobile.estBloque());
+
+    simuler(m.mobile, m.carte, 1.0f, m.obstacles);
+    REQUIRE(m.mobile.estBloque());
+
+    m.mobile.allerToutDroit({300.0f, 60.0f});
+    REQUIRE_FALSE(m.mobile.estBloque());
+}

@@ -44,6 +44,10 @@ int TileMap::getHauteur() const {
     return m_hauteur;
 }
 
+float TileMap::getTailleCase() const {
+    return m_tailleCase;
+}
+
 sf::Vector2i TileMap::caseContenant(sf::Vector2f point) const {
     return {static_cast<int>(std::floor(point.x / m_tailleCase)), static_cast<int>(std::floor(point.y / m_tailleCase))};
 }

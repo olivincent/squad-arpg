@@ -30,3 +30,16 @@ TEST_CASE("distanceBordABord tient compte de rayons differents") {
 
     REQUIRE(distanceBordABord(a, b) == 75.0f);
 }
+
+TEST_CASE("distancePointSegment mesure la perpendiculaire au milieu du segment") {
+    REQUIRE(distancePointSegment({5.0f, 3.0f}, {0.0f, 0.0f}, {10.0f, 0.0f}) == 3.0f);
+}
+
+TEST_CASE("distancePointSegment mesure la distance a l'extremite la plus proche hors du segment") {
+    REQUIRE(distancePointSegment({13.0f, 4.0f}, {0.0f, 0.0f}, {10.0f, 0.0f}) == 5.0f);
+    REQUIRE(distancePointSegment({-3.0f, 4.0f}, {0.0f, 0.0f}, {10.0f, 0.0f}) == 5.0f);
+}
+
+TEST_CASE("distancePointSegment avec un segment reduit a un point") {
+    REQUIRE(distancePointSegment({3.0f, 4.0f}, {0.0f, 0.0f}, {0.0f, 0.0f}) == 5.0f);
+}

@@ -8,3 +8,6 @@ struct Cercle {
 };
 
 [[nodiscard]] float distanceBordABord(Cercle a, Cercle b);
+
+// Distance du point `p` au segment [a, b] (au point le plus proche du segment, extrémités comprises).
+[[nodiscard]] float distancePointSegment(sf::Vector2f p, sf::Vector2f a, sf::Vector2f b);
