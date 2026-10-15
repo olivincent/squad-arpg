@@ -217,7 +217,9 @@ TEST_CASE("Mobile.estEnMouvement reste vrai quand le mobile est bloque en essaya
     const sf::Vector2f centreBloque = mobile.getCentre();
     simuler(mobile, carte, 0.5f, obstacles);
 
-    REQUIRE(mobile.getCentre() == centreBloque);
+    // À quelques centièmes de pixel près : poussé droit contre le cercle, le mobile ne fait plus
+    // que des corrections minuscules.
+    verifierPointProche(mobile.getCentre(), centreBloque, 0.5f);
     REQUIRE(mobile.estEnMouvement());
 }
 

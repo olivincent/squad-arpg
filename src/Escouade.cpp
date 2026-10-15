@@ -684,13 +684,15 @@ void Escouade::tournerFormation(float dt) {
 
 // Une place théorique dans un mur ou derrière un coin est ramenée
 // vers l'ancre jusqu'à un point libre. Si la place ramenée tombe à moins de
-// `s_ecartEntrePersonnages` d'une place déjà calculée, elle est remplacée par le
-// premier point valide (trajet libre depuis l'ancre, hors mur) et libre sur des
+// `s_ecartEntrePersonnages` d'une place déjà calculée, ou dans un monstre (centre à moins de
+// rayon du monstre + rayon du personnage), elle est remplacée par le
+// premier point valide (trajet libre depuis l'ancre, hors mur, hors monstre) et libre sur des
 // anneaux autour de l'ancre, les candidates partant de la direction de la place
-// théorique ; sans point, elle est au centre de l'ancre.
-void Escouade::calculerPlaces(const TileMap& carte) {
+// théorique ; sans point, elle est au centre de l'ancre (ou, si seul un monstre la gênait, reste où le repli l'a mise).
+void Escouade::calculerPlaces(const TileMap& carte, const std::vector<EntiteVue>& monstres) {
     for (std::size_t i = 0; i < m_personnages.size(); ++i) {
-        const float diametre = 2.0f * m_personnages[i].getCercle().rayon;
+        const float rayonPersonnage = m_personnages[i].getCercle().rayon;
+        const float diametre = 2.0f * rayonPersonnage;
         const sf::Vector2f taille(diametre, diametre);
         const sf::Vector2f theorique = placePersonnage(i);
         m_places[i] = replierVersOrigine(carte, getCentre(), theorique, taille);
@@ -703,18 +705,26 @@ void Escouade::calculerPlaces(const TileMap& carte) {
             }
             return true;
         };
-        if (estLibre(m_places[i])) {
+        const auto estDansUnMonstre = [&](sf::Vector2f point) {
+            return std::ranges::any_of(monstres, [&](const EntiteVue& monstre) {
+                return (point - monstre.cercle.centre).length() < monstre.cercle.rayon + rayonPersonnage;
+            });
+        };
+        const sf::Vector2f replie = m_places[i];
+        const bool replieEstLibre = estLibre(replie);
+        if (replieEstLibre && !estDansUnMonstre(replie)) {
             continue;
         }
 
         const sf::Vector2f direction = theorique - getCentre();
         const sf::Angle depart = direction.length() > 0.0f ? direction.angle() : sf::degrees(0.0f);
         const auto estValide = [&](sf::Vector2f point) {
-            return estLibre(point) && !carte.chevaucheUnMur(sf::FloatRect(point - taille / 2.0f, taille)) &&
+            return estLibre(point) && !estDansUnMonstre(point) &&
+                   !carte.chevaucheUnMur(sf::FloatRect(point - taille / 2.0f, taille)) &&
                    carte.trajetLibre(sf::FloatRect(getCentre() - taille / 2.0f, taille), point - getCentre());
         };
         bool trouve = false;
-        m_places[i] = getCentre();
+        m_places[i] = replieEstLibre ? replie : getCentre();
         for (const float rayon : s_rayonsDeSecoursPlaces) {
             for (const sf::Angle angle : anglesCandidats(depart, rayon, s_ecartEntrePersonnages)) {
                 const sf::Vector2f point = positionDePlace(getCentre(), rayon, angle);
@@ -765,7 +775,7 @@ void Escouade::mettreAJour(float dt, const TileMap& carte, const std::vector<Ent
     const bool ancreArretee = !m_mobile.directionVoulue().has_value();
 
     tournerFormation(dt);
-    calculerPlaces(carte);
+    calculerPlaces(carte, monstres);
 
     const std::optional<sf::Vector2f> pointSkill = avancerSkillEnAttente(carte);
     for (std::size_t i = 0; i < m_personnages.size(); ++i) {

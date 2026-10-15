@@ -625,6 +625,27 @@ TEST_CASE("mettreAJour contourne un obstacle a contourner place sur la ligne dro
     verifierPointProche(personnage.getCentre(), {300.0f, 60.0f});
 }
 
+TEST_CASE("mettreAJour recalcule son chemin quand il est bloque") {
+    // Mur sur la colonne 5, avec deux ouvertures d'une case : lignes 2 (y de 80 à 120) et 8.
+    const TileMap carte({".....#....", ".....#....", "..........", ".....#....", ".....#....",
+                         ".....#....", ".....#....", ".....#....", "..........", ".....#...."}, 40.0f);
+    Personnage personnage({60.0f, 200.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f), std::nullopt, 0);
+    const sf::Vector2f cible{340.0f, 100.0f};
+    // Un obstacle qui bouche l'ouverture de la ligne 2, que le premier chemin ignore (aContourner vide au départ).
+    const std::vector<Cercle> bouchon = {{{220.0f, 100.0f}, 15.0f}};
+
+    for (int i = 0; i < nombreDeTics(0.2f); ++i) {
+        personnage.mettreAJour(s_dureeTic, cible, carte, bouchon, {});
+    }
+    // Il connaît maintenant le bouchon : la cible n'a pas bougé et le chemin n'est pas fini,
+    // seul le blocage déclenche un recalcul, qui passe par l'autre ouverture (plus coûteux de la traverser).
+    for (int i = 0; i < nombreDeTics(20.0f); ++i) {
+        personnage.mettreAJour(s_dureeTic, cible, carte, bouchon, bouchon);
+    }
+
+    verifierPointProche(personnage.getCentre(), cible);
+}
+
 TEST_CASE("mettreAJour sans obstacle a contourner reste bloque contre un obstacle bloquant") {
     const TileMap carte = carteDegagee10x10();
     Personnage personnage({60.0f, 60.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f), std::nullopt, 0);

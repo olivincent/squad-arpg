@@ -40,6 +40,82 @@
   pixels. `main.cpp` ne connaît pas ce module : seul `Mobile::allerVers`
   l'utilise.
 
+## Contourner les obstacles mobiles (étape 68)
+
+Jusqu'à l'étape 67, le A* et le lissage ne voyaient que les murs : une entité
+bloquée par une autre glissait ou attendait. Depuis l'étape 68, un chemin peut
+contourner une **liste de cercles** (`aContourner`). Ce n'est pas la liste des
+obstacles **bloquants** de `Mobile::mettreAJour` (collision, inchangée) : un
+monstre est bloqué par les personnages mais ne les contourne pas (un
+personnage sur son chemin est quelqu'un à frapper).
+
+- **Coût ajouté, pas interdiction** : `trouverChemin` reçoit une
+  `FonctionDeCout` (`std::function<int(sf::Vector2i)>`, vide par défaut = aucun
+  coût, comportement d'avant). Entrer dans une case coûte `1 + cout(case)`.
+  Une case occupée coûte `s_penaliteCaseOccupee` = 8 de plus (constante de
+  `Mobile.cpp`) : un détour d'environ 8 cases est préféré à la traversée,
+  au-delà le chemin passe quand même, au lieu de ne pas exister (un couloir
+  bouché par un monstre reste franchissable). L'heuristique de Manhattan reste
+  admissible : le coût ajouté n'est jamais négatif.
+- **Case occupée = somme de Minkowski** : le rectangle de la case chevauche
+  (distance strictement inférieure) le cercle de l'obstacle **agrandi du rayon
+  du mobile** qui cherche son chemin (demi-taille : 10 px pour un personnage,
+  15 px pour un monstre). On raisonne ainsi sur un mobile réduit à un point
+  qui évite des disques plus gros, ce qui revient au même qu'un mobile de
+  taille réelle évitant les disques d'origine. Toucher sans chevaucher n'est
+  pas occuper (même convention que partout).
+- **Départ et arrivée jamais pénalisés** : `cout` n'est pas appelée pour eux.
+  Un mobile déjà collé à un obstacle doit pouvoir en partir, et un but à côté
+  d'un obstacle (la place d'attaque, la place de formation) doit rester
+  atteignable.
+- **`coutDesObstacles(carte, obstacles, rayonMobile, penalite)`** construit
+  cette fonction : elle précalcule une fois les cases occupées
+  (`std::vector<bool>` de la taille de la carte, une case par obstacle
+  testée à la fois) et renvoie une lambda qui **capture le tableau par
+  valeur**. Capturer par référence aurait laissé une référence pendante dès
+  que la fonction de construction est quittée ; capturer par valeur copie le
+  tableau (quelques milliers de booléens) et rend la fonction autonome. C'est
+  le point de branchement de la future « stratégie d'attaque » de
+  `docs/brainstorm.md` : la liste de cercles passée changera selon le type
+  d'entité.
+- **Lissage** : `lisserChemin` reçoit la même liste ; un raccourci est refusé
+  si le segment passe à moins de (rayon de l'obstacle + rayon du mobile) du
+  centre d'un obstacle. Distance point-segment : `distancePointSegment`
+  (module `Cercle`, projection sur le segment ramenée dans `[0, 1]`).
+  `traverseUnObstacle` (module `Chemin`) en fait un test réutilisable. Liste
+  vide = comportement d'avant.
+- **Ligne droite d'un personnage** : seulement si le trajet est libre de murs
+  (règle d'avant) ET ne passe pas près d'un obstacle à contourner (même test
+  que le lissage) ; sinon A* lissé avec le coût.
+- **Détection du blocage** (`Mobile::estBloque`, définition unique comme
+  `estEnMouvement`) : à chaque `mettreAJour`, s'il a un point à atteindre
+  (`estEnMouvement`) et a parcouru moins de 10 % de `vitesse × dt`
+  (`s_fractionDePasBloque`), un compteur augmente de `dt`, sinon il revient à
+  0. Bloqué à partir de 0,3 s (`s_tempsAvantBlocage`). `allerVers`,
+  `allerToutDroit` et `arreter` remettent le compteur à 0 ; `allerVers` le fait
+  même quand le A* ne trouve rien, pour qu'un mobile coincé ne relance pas le
+  A* à chaque image. Un mobile arrêté n'est jamais bloqué.
+- **Recalcul par le propriétaire, pas par `Mobile`** (correction de la décision
+  notée dans `ROADMAP.md`) : `Mobile` ne connaît que ses obstacles bloquants,
+  pas ceux à contourner ; seul le propriétaire sait quelle liste passer.
+  `Personnage` recalcule quand `estBloque()` (en plus de la règle « cible
+  éloignée de plus d'une case »), `Monstre` aussi en retour au poste (en
+  poursuite, il recalcule déjà à chaque image). Le compteur étant remis à 0,
+  un mobile durablement coincé recalcule toutes les 0,3 s, pas à chaque image.
+- **Qui contourne quoi** : voir `docs/monstre.md` (les monstres : les autres
+  monstres) et `docs/formation.md` (les personnages : les monstres qu'ils
+  n'approchent pas). L'ancre ne contourne rien. Les listes sont construites par
+  `Partie` et `Escouade` (`docs/boucle-et-entrees.md`).
+- **Débogage** : F3 trace le chemin restant (`Mobile::cheminRestant`,
+  `dessinerTraceDeChemin`) : cyan pour les personnages, rouge pour les monstres.
+- **Limites connues** : le lissage ne fait que retirer des points (voir
+  « Lissage de chemin ») et le coût est en cases : un point de passage au
+  centre d'une case peut rogner un peu le disque d'un obstacle quand le
+  mobile part de sa frontière ; c'est le glissement tangent
+  (`docs/carte-et-collision.md`) qui le sort de là. Le A* est recalculé en
+  entier avec les cases occupées de toute la carte ; aucune limitation de
+  fréquence (inutile à cette taille de carte).
+
 ## Suivi de chemin par `Mobile`
 
 `Mobile` porte le déplacement par chemin : position, chemin, vitesse,
@@ -78,6 +154,8 @@ rien ; elle connaît `TileMap`, `Chemin` et `Deplacement`.
   comme point de départ et la taille du mobile comme taille de rectangle.
   Ce lissage évite le zigzag qu'on aurait en visant des centres de case
   presque alignés sur un seul axe.
+- **`allerVers(destination, carte, aContourner = {})`** : le coût du A* est `coutDesObstacles(carte, aContourner, m_taille.x / 2, s_penaliteCaseOccupee)` et le lissage reçoit la même liste (voir « Contourner les obstacles mobiles »).
+- **`estBloque()` et `cheminRestant()`** : voir « Contourner les obstacles mobiles ». `cheminRestant()` renvoie une copie des points de `m_indexChemin` à la fin.
 - **Chemin vide = ordre ignoré** : `allerVers` ne touche à `m_chemin`
   qu'après avoir confirmé que `trouverChemin` a renvoyé un résultat non
   vide ; un clic sur un mur ou une zone inaccessible n'interrompt donc

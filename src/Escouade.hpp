@@ -111,7 +111,7 @@ private:
     // Étapes de mettreAJour().
     void ecoulerMemoires(float dt);
     void tournerFormation(float dt);
-    void calculerPlaces(const TileMap& carte);
+    void calculerPlaces(const TileMap& carte, const std::vector<EntiteVue>& monstres);
     void separerPersonnages(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles);
     sf::Vector2f pointVoulu(std::size_t indice, const std::optional<sf::Vector2f>& pointSkill, bool ancreArretee,
                             const std::vector<EntiteVue>& agresseurs, const TileMap& carte);

@@ -568,10 +568,28 @@ TEST_CASE("un personnage dont la place est derriere un monstre non vise le conto
     escouade.allerVers({340.0f, 60.0f}, carte);
     for (int i = 0; i < nombreDeTics(6.0f); ++i) {
         escouade.mettreAJour(s_dureeTic, carte, monstres);
+        // Aucune place de formation n'est dans le monstre (centre à moins de 15 + 10 px).
+        for (const sf::Vector2f& place : escouade.getPlacesDeFormation()) {
+            REQUIRE((place - monstres[0].cercle.centre).length() >= 25.0f);
+        }
     }
 
-    // Le mêlée de devant (indice 1) avait le monstre sur sa route : il l'a contourné. Le tireur
-    // de derrière sur la même ligne (indice 3) arrive au contact en même temps que sa place
-    // entre dans le monstre et reste calé contre lui : limite connue, voir docs/chemin.md.
-    REQUIRE(escouade.cerclesDesVivants()[1].centre.x > 200.0f);
+    // Les quatre sont passés de l'autre côté, y compris le tireur arrière aligné avec le monstre
+    // (indice 3), que sa place entrant dans le monstre calait contre lui.
+    for (const Cercle& cercle : escouade.cerclesDesVivants()) {
+        REQUIRE(cercle.centre.x > 200.0f);
+    }
+}
+
+TEST_CASE("une place de formation dans un monstre est deplacee vers un point libre autour de l'ancre") {
+    const TileMap carte = carteDegagee10x10();
+    Escouade escouade({150.0f, 150.0f}); // centre (160, 160)
+    // Sur la place du mêlée avant-droit : place théorique (185, 185) pour une formation vers l'est.
+    const std::vector<EntiteVue> monstres = {{1, {{185.0f, 185.0f}, 15.0f}}};
+
+    escouade.mettreAJour(s_dureeTic, carte, monstres);
+
+    for (const sf::Vector2f& place : escouade.getPlacesDeFormation()) {
+        REQUIRE((place - monstres[0].cercle.centre).length() >= 25.0f);
+    }
 }

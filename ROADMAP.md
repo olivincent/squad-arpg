@@ -75,23 +75,13 @@ est dans `docs/historique.md`.
 - Étape 65 — Menu de départ, options d'affichage et sauvegarde des réglages ✅
 - Étape 66 — Proie et cible de frappe des monstres ✅
 - Étape 67 — Places d'attaque autour de la cible et séparation des personnages ✅
+- Étape 68 — A* qui contourne les obstacles mobiles ✅
 
-## Étape 68 (prévue) — A* qui contourne les obstacles mobiles
+## Prochaine étape (à choisir)
 
-Décisions déjà prises :
-- **Coût ajouté, pas interdiction**, pour les cases occupées par une entité,
-  passé à `trouverChemin` sous forme de fonction de coût
-  `std::function<int(sf::Vector2i)>`.
-- **Lissage** qui refuse un raccourci traversant un cercle d'obstacle.
-- **Recalcul du chemin par `Mobile`** quand il est bloqué depuis un court moment.
-- **Qui contourne quoi** : les monstres contournent les autres monstres mais pas
-  les personnages ; les personnages contournent les monstres sauf leur cible
-  mais pas les autres personnages ; l'ancre est inchangée.
-
-Voir aussi, dans `docs/brainstorm.md`, l'idée de « stratégie d'attaque » par type
-de monstre, qui se branchera sur cette fonction de coût.
-
-À préciser avec Claude.ai (voir aussi `docs/brainstorm.md`).
+À préciser avec Claude.ai (voir `docs/brainstorm.md`, dont l'idée de « stratégie
+d'attaque » par type de monstre, qui se branchera sur `coutDesObstacles` : la liste
+de cercles passée changera selon le type d'entité).
 
 Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes) :
 - Skill en attente par personnage (aujourd'hui un seul pour l'escouade)
@@ -110,8 +100,6 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   l'instant)
 - Indicateur visuel de la cible de chaque personnage
 - Choisir sans verrou lequel de deux monstres à portée reçoit le skill
-- Améliorer le A* pour qu'il tienne compte des entités (contournement
-  d'un obstacle mobile)
 - Blocage de l'ancre par les monstres, si le décalage ancre/personnages
   s'avère gênant
 - Skills qui bousculent un adversaire ou permettent de se faufiler
@@ -257,8 +245,19 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   (écartées à 34 px près d'un mur). Une **séparation douce** (120 px/s, plus lente
   que la marche) écarte les personnages à moins de 34 px ; elle ne pousse pas un
   personnage en exécution. Chaque personnage a un contour sombre de 1 px. Débogage :
-  F3 affiche le point visé de chaque personnage, F4 cache le carré vert de l'ancre.
+  F3 affiche le point visé et le chemin restant de chaque personnage (cyan) et le
+  chemin restant de chaque monstre (rouge), F4 cache le carré vert de l'ancre.
   Voir `docs/formation.md`.
+- **Chemins qui contournent les entités** (étape 68) : le A* ajoute un coût
+  (8) aux cases touchées par un obstacle agrandi du rayon du mobile, le lissage
+  et la ligne droite d'un personnage évitent les mêmes cercles ; un passage sans
+  autre issue reste franchissable. Les monstres contournent les autres monstres
+  (pas les personnages : on les frappe) ; chaque personnage contourne les monstres
+  qu'il n'approche pas (pas les autres personnages, pas l'ancre). Un mobile
+  bloqué depuis 0,3 s recalcule son chemin (le propriétaire, pas `Mobile`). Les
+  places de formation ne sont plus dans un monstre. Contre un cercle, le glissement
+  essaie aussi la tangente (un pas de côté ; la règle de blocage est inchangée).
+  Voir `docs/chemin.md` et `docs/carte-et-collision.md`.
 - **Mort et défaite** : un personnage à 0 point de vie tombe sur place
   (carré gris, sans barre de vie), ne frappe plus, n'est plus ciblé et ne
   bloque plus personne ; il reste dans la formation, sa place est
@@ -399,10 +398,10 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 591 tests : 13 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 50 sur `GenerateurDonjon`, 38 sur `TileMap`, 17 sur `Chemin`, 182
-  sur `Escouade` en six fichiers par thème — 28 déplacement, 32 combat, 70
-  skills, 26 agresseurs, 18 vue, 8 places —, 11 sur `Encerclement`, 12 sur `Deplacement`, 61 sur `Monstre`,
-  46 sur `Personnage`, 24 sur `Skill`, 17 sur `Mobile`, 2 sur `Eclaircir`, 4 sur `Cercle`, 13
+  (`./build/tests.exe`, 625 tests : 13 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 50 sur `GenerateurDonjon`, 38 sur `TileMap`, 27 sur `Chemin`, 184
+  sur `Escouade` en six fichiers par thème — 30 déplacement, 32 combat, 70
+  skills, 26 agresseurs, 18 vue, 8 places —, 11 sur `Encerclement`, 16 sur `Deplacement`, 65 sur `Monstre`,
+  50 sur `Personnage`, 24 sur `Skill`, 24 sur `Mobile`, 2 sur `Eclaircir`, 7 sur `Cercle`, 13
   sur `Autodefense`, 7 sur `BarreDeSkills`, 4 sur `EntiteVue`, 1 sur
   `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 26 sur `Partie`, 7 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
   accents (`./build/tests.exe "*a portee*"` filtre) ; rotation de la
@@ -431,13 +430,11 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
 - Le skill de zone n'a pas d'effet visuel à
   l'impact et ne touche pas les alliés ; son lanceur, bloqué par un
   monstre ou face à un point inaccessible, peut rester en attente.
-- Deux places peuvent se replier presque au même endroit dans un passage
-  étroit.
-- Le chemin d'un personnage ignore les monstres : bloqué par un monstre,
-  il glisse ou attend. Un personnage dont le A* ne trouve aucun chemin
-  garde la ligne droite.
-- Le A* et le lissage ignorent les entités : une entité bloquée ne
-  contourne pas, elle glisse ou attend. Près des piliers, le contournement
+- Un personnage dont le A* ne trouve aucun chemin garde la ligne droite.
+  Les chemins contournent les monstres (étape 68), mais pas les autres
+  personnages ni l'ancre ; un passage sans autre issue est traversé au prix du
+  coût ajouté, l'entité attend alors derrière le monstre ; contre un cercle le
+  glissement tangent n'est qu'un pas de côté. Près des piliers, le contournement
   n'est pas toujours le plus court.
 - Le territoire des monstres reste une distance pure (il ignore les
   murs) ; une fois en poursuite, un monstre ne perd pas sa proie en la

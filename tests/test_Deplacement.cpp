@@ -9,6 +9,49 @@
 #include "Deplacement.hpp"
 #include "TileMap.hpp"
 
+TEST_CASE("deplacerAvecGlissement : poussee droit contre un cercle, glisse le long de la tangente") {
+    // Centre (110, 110), rayon 10, au contact d'un cercle de rayon 10 en (130, 110). Poussée de
+    // (10, 0) : X refusé, Y ne change rien ; tangente verticale, côté gauche du déplacement : vers le haut.
+    const TileMap carte({".....", ".....", ".....", ".....", "....."}, 40.0f);
+    const sf::FloatRect rect({100.0f, 100.0f}, {20.0f, 20.0f});
+    const std::vector<Cercle> obstacles = {{{130.0f, 110.0f}, 10.0f}};
+
+    const sf::Vector2f position = deplacerAvecGlissement(carte, rect, {10.0f, 0.0f}, obstacles);
+
+    REQUIRE(position == sf::Vector2f(100.0f, 90.0f));
+    // La règle de blocage est respectée : on ne s'est pas rapproché du cercle.
+    const Cercle avant{{110.0f, 110.0f}, 10.0f};
+    const Cercle apres{position + sf::Vector2f(10.0f, 10.0f), 10.0f};
+    REQUIRE_FALSE(deplacementBloque(avant, apres, obstacles));
+}
+
+TEST_CASE("deplacerAvecGlissement : le mouvement tangent vers un mur est refuse") {
+    // Même situation, poussée de 30 : la tangente vers le haut mène à y = 70..90, dans le mur de la ligne 1.
+    const TileMap carte({".....", "#####", ".....", ".....", "....."}, 40.0f);
+    const sf::FloatRect rect({100.0f, 100.0f}, {20.0f, 20.0f});
+    const std::vector<Cercle> obstacles = {{{130.0f, 110.0f}, 10.0f}};
+
+    REQUIRE(deplacerAvecGlissement(carte, rect, {30.0f, 0.0f}, obstacles) == sf::Vector2f(100.0f, 100.0f));
+}
+
+TEST_CASE("deplacerAvecGlissement : le mouvement tangent qui chevauche un autre cercle est refuse") {
+    // Un second cercle en (110, 90) occuperait le point d'arrivée de la tangente (110, 100) en se rapprochant de lui.
+    const TileMap carte({".....", ".....", ".....", ".....", "....."}, 40.0f);
+    const sf::FloatRect rect({100.0f, 100.0f}, {20.0f, 20.0f});
+    const std::vector<Cercle> obstacles = {{{130.0f, 110.0f}, 10.0f}, {{110.0f, 90.0f}, 10.0f}};
+
+    REQUIRE(deplacerAvecGlissement(carte, rect, {10.0f, 0.0f}, obstacles) == sf::Vector2f(100.0f, 100.0f));
+}
+
+TEST_CASE("deplacerAvecGlissement : pas de tangente quand un axe a passe") {
+    const TileMap carte({".....", ".....", ".....", ".....", "....."}, 40.0f);
+    const sf::FloatRect rect({0.0f, 0.0f}, {20.0f, 20.0f});
+    const std::vector<Cercle> obstacles = {{{50.0f, 10.0f}, 10.0f}};
+
+    // Comme « un deplacement oblique contre un obstacle laisse passer l'axe libre » : Y passe, la tangente n'est pas essayée.
+    REQUIRE(deplacerAvecGlissement(carte, rect, {30.0f, 30.0f}, obstacles) == sf::Vector2f(0.0f, 30.0f));
+}
+
 TEST_CASE("deplacementBloque : aucun obstacle ne bloque rien") {
     const Cercle avant{{0.0f, 0.0f}, 10.0f};
     const Cercle apres{{50.0f, 0.0f}, 10.0f};

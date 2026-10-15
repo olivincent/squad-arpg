@@ -798,3 +798,38 @@
   changement de cible) est vérifié.
 - **`choisirAgresseurAViser`** renvoie une `EntiteVue` (identifiant et cercle) pour
   que la mémoire des places connaisse le monstre : ses tests lisent `cercle.centre`.
+
+## Étape 68 : chemins qui contournent les obstacles
+
+- **`test_Chemin.cpp`** : `trouverChemin` sans coût identique à avant, un coût
+  vide ou nul ; `coutDesObstacles` (case touchée à 19 px, case juste hors de
+  portée à 21 px, hors carte, liste vide, lambda qui survit à la liste d'origine) ;
+  contournement dans un passage large, traversée d'un passage bouché, départ et
+  arrivée jamais interrogés (fonction « espion ») ; `lisserChemin` sans cercle,
+  raccourci refusé, raccourci accepté à plus de la somme des rayons.
+- **`test_Cercle.cpp`** : `distancePointSegment` (perpendiculaire, extrémité la
+  plus proche, segment réduit à un point).
+- **`test_Mobile.cpp`** : contournement par `allerVers` (aucun segment à moins de
+  la somme des rayons, destination atteinte), `cheminRestant`, `estBloque`
+  (0,3 s, pas avant ; jamais arrêté ; jamais en marche normale ; remise à 0 par
+  `allerVers` et `allerToutDroit`).
+- **`test_Deplacement.cpp`** : glissement tangent (poussée droit contre un
+  cercle, mur qui refuse la tangente, autre cercle qui la refuse, pas de
+  tangente si un axe a passé). `deplacementBloque` n'est pas modifié.
+- **`test_Monstre.cpp`** : contournement d'un autre monstre, blocage sans liste à
+  contourner, personnage entre le monstre et sa proie non contourné (le monstre
+  le frappe), retour bloqué qui recalcule. `ecoulerTemps` reçoit `obstacles` et
+  `aContourner` (vides par défaut).
+- **`test_Personnage.cpp`** : ligne droite gardée loin d'un obstacle, contournement
+  sur la ligne droite, blocage sans liste à contourner, recalcul sur blocage
+  (deux ouvertures dans un mur, l'une bouchée après le premier chemin : sans le
+  recalcul, le personnage reste devant le bouchon).
+- **`test_Escouade_deplacement.cpp`** : un personnage contourne un monstre non
+  visé (les quatre passent, y compris le tireur arrière aligné), aucune place de
+  formation dans un monstre.
+- **Mutations vérifiées à la main** (le test échoue si on retire la règle) :
+  recalcul sur blocage, test « place dans un monstre », glissement tangent.
+- Un test existant a dû changer : `Mobile.estEnMouvement reste vrai quand le
+  mobile est bloque…` compare maintenant la position à 0,5 px près, car poussé
+  droit contre un cercle le mobile fait des corrections minuscules au lieu
+  d'être figé.

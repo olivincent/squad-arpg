@@ -1642,3 +1642,39 @@ les cibles distinctes qui évitent les superpositions durables.
 
 **Hors de portée** : A* qui contourne les entités (étape 68), places
 d'attaque pour les monstres, recul des tireurs, ligne de tir dégagée.
+
+## Étape 68 — A* qui contourne les obstacles mobiles ✅
+
+1. [x] `trouverChemin` reçoit une fonction de coût (vide par défaut) ; départ
+       et arrivée exemptés ; `coutDesObstacles` construit la fonction (cases
+       occupées précalculées, lambda capturée par valeur) ; `TileMap::getTailleCase`
+       (enchaînée).
+2. [x] `distancePointSegment`, `lisserChemin` et `Mobile::allerVers` reçoivent la
+       liste des cercles à contourner (enchaînée).
+3. [x] `Mobile::estBloque` (0,3 s) et `cheminRestant` (enchaînée).
+4. [x] F3 trace aussi le chemin restant des personnages (cyan) et des monstres
+       (rouge) : module `TraceDeChemin`.
+5. [x] Monstres : `Partie` passe les cercles des autres monstres comme `aContourner` ;
+       recalcul du retour quand `estBloque()`.
+6. [x] Personnages : `Escouade::mettreAJour` reçoit des `EntiteVue`, construit par
+       personnage la liste des monstres à contourner (sauf celui approché) ;
+       ligne droite refusée près d'un tel monstre ; recalcul sur blocage.
+6 bis. [x] Correctifs après test en jeu : places de formation hors des monstres
+       (cause d'un tireur calé contre un monstre), glissement tangent contre les
+       cercles dans `deplacerAvecGlissement` (la mécanique : l'axe par axe ne
+       suffit pas contre un cercle), test du recalcul sur blocage de `Personnage`.
+       625 tests.
+7. [x] Documentation.
+
+**Choix** : coût ajouté plutôt qu'interdiction (un passage bouché reste
+franchissable) ; case occupée par somme de Minkowski ; obstacles à contourner et
+obstacles bloquants sont deux listes distinctes ; le recalcul sur blocage est
+fait par le propriétaire (`Mobile` ne connaît pas les obstacles à contourner,
+correction de la décision notée dans `ROADMAP.md`) ; la règle de blocage ne
+change pas, le glissement tangent n'essaie qu'un mouvement permis de plus.
+
+**Hors de portée** : contournement de l'ancre, monstres qui contournent les
+personnages, personnages qui contournent les autres personnages, stratégie
+d'attaque, funnel algorithm / Theta*, limitation de fréquence du A*, places
+d'attaque pour les monstres, recul des tireurs.
+

@@ -79,9 +79,34 @@ mène à un chevauchement avec un cercle obstacle (`deplacementBloque`).
   obstacles en paramètre ; `Deplacement` ne sait pas d'où ils viennent
   (monstres ou personnages). Aucune dépendance entre modules. Qui reçoit
   quelle liste est décrit dans `docs/combat.md`.
+- **Glissement tangent (étape 68 bis)** : l'essai axe par axe ne suffit pas
+  contre un cercle. La surface d'un mur est parallèle à un axe, donc l'autre axe
+  passe toujours ; celle d'un cercle ne l'est pas : un mobile calé contre lui,
+  poussé droit dessus (ou presque), voit les essais X et Y se rapprocher de ses
+  centres l'un comme l'autre, et reste coincé pour toujours (constaté : un
+  tireur dont la place entrait dans un monstre). Si **ni X ni Y n'ont
+  passé** et qu'**au moins un cercle a refusé** un essai, `deplacerAvecGlissement`
+  essaie donc un déplacement **de même longueur que le déplacement voulu** le
+  long de la **tangente du cercle refusant le plus proche** (perpendiculaire à
+  la droite des centres). Côté : celui où la projection du déplacement voulu
+  sur la tangente est positive ; projection nulle (poussée exactement droit
+  contre le cercle) : à gauche du déplacement voulu, ce qui est déterministe.
+  Il n'est accepté que s'il ne chevauche pas un mur et si `deplacementBloque`
+  est faux : **la règle de blocage ne change pas** (jamais rapprocher les
+  centres d'un obstacle chevauché), on essaie seulement un mouvement permis de
+  plus. S'éloigner étant toujours permis, la tangente (qui éloigne du cercle
+  considéré) ne peut être refusée que par un mur ou un autre cercle. Un mobile
+  poussé exactement droit contre un cercle fait un pas de côté, puis les essais
+  d'axe le ramènent vers sa cible : seul un chemin A* qui contourne le cercle
+  (`docs/chemin.md`) le fait passer de l'autre côté ; la tangente le décale
+  surtout hors du coin où il était calé. Les tests de collision existants
+  passent sans modification (`Un obstacle droit devant bloque…` : la tangente à
+  gauche y sort de la carte, donc d'un mur) ; seul un test de `Mobile`, qui
+  comparait la position à l'identique après une longue poussée, compare
+  maintenant à 0,5 px près.
 - **Limites connues** : parcours de toutes les paires sans structure
-  d'accélération ; le A* ignore les entités, donc une entité bloquée ne
-  contourne pas, elle glisse si l'angle le permet, sinon elle attend.
+  d'accélération ; contre un cercle, le glissement tangent est un pas de côté,
+  pas un contournement : c'est le A* qui contourne (`docs/chemin.md`).
 
 ## Plan texte et validation
 

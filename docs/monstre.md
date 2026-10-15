@@ -167,19 +167,28 @@ déplacement par chemin dans `docs/chemin.md`.
 
 ## Ordres donnés à `Mobile`
 
-- **À l'entrée en `Retour` seulement**, `arreter()` puis
-  `allerVers(m_poste, carte)`. L'entrée est détectée en comparant l'état
+- **À l'entrée en `Retour`**, `arreter()` puis
+  `allerVers(m_poste, carte, aContourner)`. L'entrée est détectée en comparant l'état
   avant et après le `switch` (`etatPrecedent != m_etat`) : redonner
   l'ordre à chaque image écraserait inutilement le chemin déjà calculé
   et refairait un A* identique à chaque tic.
 - **En `Poursuite`, à chaque image** : `arreter()` si le monstre a une
   cible de frappe (voir « Proie et cible de frappe » plus bas),
-  sinon `allerVers(proie.centre, carte)`. Ici
+  sinon `allerVers(proie.centre, carte, aContourner)`. Ici
   l'ordre est redonné à chaque image parce que la proie, un personnage,
   bouge ; le poste, lui, est fixe. Le but du monstre est de se mettre à
   portée pour frapper, pas de rejoindre sa proie.
-- **En `EnGarde` et pendant le reste du `Retour`**, aucun ordre : le
-  chemin donné à l'entrée suffit à `Mobile`.
+- **Pendant le reste du `Retour`**, le chemin donné à l'entrée suffit, sauf si
+  `m_mobile.estBloque()` (0,3 s sans avancer, par exemple derrière un autre
+  monstre arrivé après) : `allerVers` est alors rappelé, ce qui remet le
+  compteur à 0 (un recalcul toutes les 0,3 s au plus). En `EnGarde`, aucun ordre.
+- **Obstacles bloquants et à contourner** (étape 68) : `mettreAJour` reçoit
+  `obstacles` (personnages vivants et autres monstres, qui le bloquent) et
+  `aContourner` (les **autres monstres seulement**, construits par `Partie`).
+  Un personnage sur le chemin d'un monstre n'est pas contourné : c'est quelqu'un
+  à frapper (règle de l'étape 66), le monstre s'arrête dès qu'il a une cible de
+  frappe. Un couloir bouché par un autre monstre reste franchissable (coût
+  ajouté, pas interdiction) ; voir `docs/chemin.md`.
 - **`m_mobile.mettreAJour(dt, carte, obstacles)`** est appelé à chaque
   image, quel que soit l'état ; `obstacles` est transmis tel quel.
 
@@ -245,7 +254,8 @@ déplacement par chemin dans `docs/chemin.md`.
   retour.
 - Chaque monstre garde son propre poste et territoire, sans les partager
   ni se coordonner avec les autres.
-- Le territoire ignore les murs (distance pure) ; un monstre bloqué ne
-  contourne pas (le A* ignore les entités).
+- Le territoire ignore les murs (distance pure) ; un monstre contourne les
+  autres monstres (étape 68) mais pas les personnages, et un monstre qui en
+  bloque un autre dans un passage étroit est traversé au prix du coût ajouté.
 - Pas de mémoire de la dernière position vue, de recherche du joueur ni de
   cône de vision.

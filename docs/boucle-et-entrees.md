@@ -51,9 +51,10 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
         verrou levé si le monstre verrouillé est mort ;
      e. retrait des monstres morts ;
      f. ordre de déplacement, si l'escouade est vivante ;
-     g. cercles des monstres comme obstacles, `escouade.mettreAJour`, puis
-        `cerclesDesVivants` et le tour de chaque monstre (proie, mise à jour,
-        riposte) ;
+     g. `EntiteVue` des monstres (obstacles bloquants des personnages, dont
+        chacun contourne ceux qu'il n'approche pas), `escouade.mettreAJour`, puis
+        `cerclesDesVivants` et le tour de chaque monstre (proie, mise à jour
+        avec ses obstacles bloquants et ses cercles à contourner, riposte) ;
      h. les demandes sont vidées ;
   4. `main.cpp` : caméra centrée sur l'escouade, `partie.dessiner` (carte,
      monstres avec le contour du verrou, escouade), `controleur.
@@ -249,18 +250,22 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
 ## Les monstres dans `Partie::mettreAJour`
 
 - **Obstacles pour les personnages** : avant `escouade.mettreAJour`, la liste
-  des cercles de tous les monstres (à leur position de l'image précédente).
+  des `EntiteVue` de tous les monstres (à leur position de l'image précédente) ;
+  `Escouade` en tire les obstacles bloquants et, par personnage, les cercles à
+  contourner (tous sauf le monstre approché, voir `docs/formation.md`).
 - **Obstacles pour les monstres** : après `escouade.mettreAJour`, les cercles
   des personnages vivants sont calculés une fois ; chaque monstre en part et y
-  ajoute les cercles des autres monstres (identifiant différent). Voir « Qui
-  bloque qui » dans `docs/combat.md`.
+  ajoute les cercles des autres monstres (identifiant différent). Ces derniers
+  forment aussi, seuls, la liste `aContourner` du monstre (`autresMonstres`) :
+  les monstres contournent les monstres, pas les personnages. Voir « Qui bloque
+  qui » dans `docs/combat.md`.
 - **Pour chaque monstre, dans l'ordre** :
   1. `proieDuMonstre(id, centre)` : le provocateur si le monstre est
      provoqué, sinon le personnage **vivant** le plus proche, sur la position
      du monstre *avant* qu'il ne bouge (vide si aucun n'est vivant) ; et
      `candidatsDeFrappe(id)` : le provocateur seul s'il est provoqué, sinon
      tous les vivants (étape 66) ;
-  2. `m.mettreAJour(dt, proie, candidats, carte, obstacles)` : le monstre décide
+  2. `m.mettreAJour(dt, proie, candidats, carte, obstacles, autresMonstres)` : le monstre décide
      seul de poursuivre, s'arrêter dès qu'il a une cible de frappe ou rentrer
      (voir `docs/monstre.md`) ;
   3. `faireFrapperLeMonstre` (étape 57) : un coup engagé avance, et part

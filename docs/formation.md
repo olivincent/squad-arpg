@@ -97,8 +97,10 @@ L'attaque, la portée, le skill et les obstacles sont dans
   - l'ancre traverse les monstres alors que les personnages sont
     bloqués par eux : elle (et la caméra) peut donc s'éloigner des
     personnages bloqués ;
-  - le chemin d'un personnage ignore les monstres : bloqué par un
-    monstre, il glisse ou attend ;
+  - un personnage contourne les monstres qu'il n'approche pas (étape 68),
+    mais pas les autres personnages (la séparation douce s'en charge) ;
+    un monstre qui gêne un passage étroit sans autre issue est traversé au
+    prix du coût ajouté, et le personnage attend alors derrière lui ;
   - deux places peuvent se replier presque au même endroit dans un
     passage étroit (les personnages ne se bloquent pas entre eux) ;
   - **chevauchement résiduel lors d'un demi-tour rapide** : les 4
@@ -128,13 +130,16 @@ L'attaque, la portée, le skill et les obstacles sont dans
   avance en ligne droite (`allerToutDroit`) et tout chemin en cours est
   abandonné. Sinon il suit un chemin A* lissé (`allerVers`). Même règle
   pour toutes les cibles (place de formation, placement en combat,
-  marche vers un skill) : aucun cas particulier.
+  marche vers un skill) : aucun cas particulier. Depuis l'étape 68, « libre »
+  veut dire aussi : le trajet ne passe pas près d'un monstre à contourner
+  (`traverseUnObstacle`, voir plus bas) ; sinon, A* avec coût.
 - **Recalcul limité** : tant que le trajet direct est bloqué, le chemin
   n'est recalculé que s'il n'y en a pas (`m_cibleChemin` vide), s'il est
   fini (`directionVoulue()` vide), ou si la cible est à plus d'une case
   (`s_seuilRecalcul`, 40 px) de la cible du dernier A*. `m_cibleChemin`
   mémorise la cible donnée à `allerVers`, ce qui évite d'ajouter un
-  accesseur à `Mobile` pour lire la fin du chemin. Une cible qui bouge de
+  accesseur à `Mobile` pour lire la fin du chemin. Depuis l'étape 68, un
+  personnage `estBloque()` (0,3 s sans avancer) recalcule aussi son chemin. Une cible qui bouge de
   moins d'une case laisse donc le personnage finir son chemin ; s'il
   l'a fini sans que le trajet soit libre, il recalcule.
 - **Repli en ligne droite** : `allerToutDroit` passe avant `allerVers`
@@ -142,9 +147,10 @@ L'attaque, la portée, le skill et les obstacles sont dans
   zone fermée), `allerVers` laisse le chemin intact et le personnage
   garde la ligne droite. La cible est quand même mémorisée : sans cela,
   un A* voué à l'échec relancerait à chaque image toute la recherche.
-- **Obstacles inchangés** : les cercles des monstres bloquent le
-  personnage dans les deux modes (`Mobile::mettreAJour`) ; le A* les
-  ignore.
+- **Obstacles bloquants et obstacles à contourner** : les cercles des monstres
+  bloquent le personnage dans les deux modes (`Mobile::mettreAJour`). Depuis
+  l'étape 68, `Personnage::mettreAJour` reçoit en plus `aContourner`, que le A*
+  (coût) et le lissage évitent (voir « Contourner les monstres »).
 - **240 px/s** (contre 180 px/s pour l'ancre), en ligne droite comme sur
   un chemin : un personnage retardé par un mur peut rattraper sa place.
 - **`Personnage.hpp` ne contient que `class TileMap;`** : la carte est
@@ -388,6 +394,39 @@ constante unique `s_ecartEntrePersonnages` (séparation, places d'attaque,
 places de formation). Chaque personnage a aussi un contour sombre de 1 px
 (vers l'intérieur) pour distinguer deux personnages collés.
 
+## Contourner les monstres (étape 68)
+
+- **`Escouade::mettreAJour` reçoit les monstres en `EntiteVue`** (identifiant et
+  cercle), pas seulement des cercles : il lui faut l'identifiant pour savoir
+  quel monstre un personnage approche. Elle en tire les obstacles bloquants
+  (tous les cercles) et, par personnage, la liste à contourner
+  (`monstresAContourner`, privée).
+- **Qui contourne quoi** : chaque personnage contourne tous les monstres **sauf
+  celui qu'il approche** : le monstre de sa place d'attaque (`m_placesDAttaque` :
+  combat verrouillé, agresseur, skill de dégâts en attente) ou, en combat sans
+  place retenue, le monstre verrouillé. Sans monstre approché, tous. Il ne
+  contourne pas les autres personnages (séparation douce, étape 67) ni l'ancre,
+  qui ne contourne rien. Le monstre approché est exclu, sinon le personnage se
+  détournerait de la cible qu'il veut atteindre : sa place d'attaque est au
+  contact du monstre, donc dans la zone occupée.
+- **Ligne droite ou A*** : voir « Règle hybride » ci-dessus.
+
+## Places de formation hors des monstres (étape 68 bis)
+
+Une place de formation dont le centre est à moins de (rayon du monstre + rayon
+du personnage) d'un monstre est **invalide**, comme une place dans un mur.
+Cause d'un blocage constaté : la formation traverse un monstre (l'ancre n'est
+pas bloquée), la place d'un personnage entre dans le monstre au moment où le
+personnage arrive à son contact, et il reste calé contre lui. `calculerPlaces`
+(qui reçoit les monstres) déplace donc une telle place avec la **même
+recherche que l'étape 67** : premier point valide (trajet libre depuis l'ancre,
+hors mur, hors monstre) et libre (34 px des places déjà calculées) sur les
+anneaux de 34, 68 et 102 px autour de l'ancre. Aucun point : si seul un monstre
+gênait, la place ramenée par le repli est gardée (comportement d'avant) ; si
+une autre place la gênait aussi, le centre de l'ancre. Ne concerne que les
+places de formation : les places d'attaque sont déjà hors du monstre. Sans
+monstre proche, rien ne change.
+
 ## Places de formation distinctes (étape 67)
 
 Près d'un mur, `replierVersOrigine` ramenait plusieurs places au même point
@@ -410,8 +449,10 @@ même endroit dans un passage étroit » a disparu de la liste des limites.
   (un agresseur : point visé = place d'attaque, pas le centre du monstre ; sans
   place valide : le centre du monstre) et à l'affichage.
 - **F3** bascule l'affichage : un trait fin jaune du centre de chaque
-  personnage vivant à son point visé, et un petit cercle à ce point
-  (`Escouade::dessinerPointsVises`). Il remplace les points jaunes de formation
+  personnage vivant à son point visé, un petit cercle à ce point
+  (`Escouade::dessinerPointsVises`) et, depuis l'étape 68, son chemin restant
+  en cyan ; `Partie::dessinerCheminsDesMonstres` y ajoute celui de chaque monstre
+  en rouge. Il remplace les points jaunes de formation
   provisoires. **F4** cache ou réaffiche le carré vert de l'ancre
   (`Escouade::dessiner(rendu, afficherAncre)` ; paramètre, pas membre, comme
   `estCible` de `Monstre::dessiner`).

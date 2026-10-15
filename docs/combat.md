@@ -731,7 +731,7 @@ l'enfoncerait dans un obstacle.
 - **Les personnages** reçoivent les cercles de tous les monstres, calculés
   une fois par image avant `escouade.mettreAJour` (donc à leur position
   de l'image précédente). `Escouade::mettreAJour` les transmet à chaque
-  personnage. Les personnages ne se bloquent pas entre eux : une séparation
+  personnage (depuis l'étape 68, sous forme d'`EntiteVue`). Les personnages ne se bloquent pas entre eux : une séparation
   douce (étape 67, plus lente que la marche) écarte ceux qui sont à moins de
   34 px, et des places d'attaque distinctes autour du monstre évitent qu'ils
   visent le même point (`docs/formation.md`).
@@ -743,8 +743,14 @@ l'enfoncerait dans un obstacle.
 - **`Escouade` et `Monstre` ne connaissent pas les cercles des autres** :
   `Escouade` expose `cerclesDesVivants` plutôt que de laisser `main.cpp`
   parcourir les personnages, et reste seule à connaître `m_personnages`.
-- **Limites connues** : une entité bloquée ne contourne pas (le A* ignore
-  les entités), elle glisse si l'angle le permet, sinon elle attend ; la
+- **Bloquer et contourner** (étape 68) : ces listes sont les obstacles
+  **bloquants**. Les chemins évitent, eux, une liste distincte (`aContourner`) :
+  les monstres contournent les autres monstres, les personnages contournent les
+  monstres sauf celui qu'ils approchent (voir `docs/chemin.md`). Contre un
+  cercle, le glissement essaie aussi la tangente (`docs/carte-et-collision.md`).
+- **Limites connues** : une entité bloquée contourne ce qu'on lui a fait
+  contourner (coût ajouté : un passage sans autre issue est traversé, elle attend
+  alors) ; la
   formation n'est pas resserrée quand un personnage est bloqué ; un
   chevauchement déjà existant
   peut subsister, la règle de blocage permettant seulement de s'en
