@@ -8,8 +8,13 @@
 
 enum class Tile {
     Floor,
-    Wall
+    Wall,
+    PorteFermee,
+    PorteOuverte
 };
+
+// Une case bloquante arrête le déplacement et la vue (mur ou porte fermée).
+[[nodiscard]] bool estBloquante(Tile tile);
 
 class TileMap {
 public:
@@ -21,6 +26,8 @@ public:
     [[nodiscard]] sf::Vector2i caseContenant(sf::Vector2f point) const;
     [[nodiscard]] sf::Vector2f centreDeCase(sf::Vector2i coordCase) const;
     void dessiner(sf::RenderTarget& rendu) const;
+    void placerPorte(sf::Vector2i coordCase);   // Floor -> PorteFermee
+    void ouvrirPorte(sf::Vector2i coordCase);   // PorteFermee -> PorteOuverte
     [[nodiscard]] bool chevaucheUnMur(const sf::FloatRect& rect) const;
     [[nodiscard]] bool trajetLibre(const sf::FloatRect& rect, sf::Vector2f deplacement) const;
     [[nodiscard]] bool ligneDeVue(sf::Vector2f a, sf::Vector2f b) const;

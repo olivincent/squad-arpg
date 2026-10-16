@@ -4,12 +4,26 @@
 #include "Cercle.hpp"
 #include "Coup.hpp"
 #include "EntiteVue.hpp"
+#include "Cible.hpp"
+#include "ObjetInteractif.hpp"
+
+namespace {
+// Écart bord à bord (cercle d'un personnage, zone de la porte) à partir duquel la porte s'ouvre.
+constexpr float s_porteeInteraction = 20.0f;
+}
 
 Partie::Partie(const Niveau& niveau, Generateur::result_type graine)
     : m_carte(niveau.plan, niveau.tailleCase), m_escouade(niveau.departEscouade), m_generateur(graine) {
     int prochainId = 1;
     for (const MonstreDuNiveau& monstre : niveau.monstres) {
         m_monstres.emplace_back(monstre.position, prochainId++, niveau.armureMonstres, monstre.groupe);
+    }
+    int prochainIdObjet = 1;
+    for (const PorteDuNiveau& porte : niveau.portes) {
+        for (sf::Vector2i coordCase : porte.cases) {
+            m_carte.placerPorte(coordCase);
+        }
+        m_objets.emplace_back(prochainIdObjet++, Porte{porte.cases}, niveau.tailleCase);
     }
 }
 
@@ -22,7 +36,21 @@ ResultatClic Partie::cliquer(sf::Vector2f point) {
     });
     if (it != m_monstres.end()) {
         m_escouade.verrouiller(it->getId());
+        m_interactionEnCours.reset();
         return ResultatClic::Monstre;
+    }
+    m_interactionEnCours.reset();
+    if (const ObjetInteractif* objet = trouverObjetActif(point)) {
+        const std::optional<sf::Vector2f> approche = std::visit(
+            Surcharges{[&](const Porte& porte) { return pointDApproche(porte, m_carte, m_escouade.getCentre()); }},
+            objet->nature);
+        if (approche.has_value()) {
+            m_escouade.deverrouiller();
+            m_escouade.annulerAttaquesEngagees();
+            m_interactionEnCours = objet->id;
+            m_deplacementOrdonne = approche;
+            return ResultatClic::Objet;
+        }
     }
     m_escouade.deverrouiller();
     m_escouade.annulerAttaquesEngagees();
@@ -38,6 +66,7 @@ void Partie::lancerSkillDeZone(std::size_t place, sf::Vector2f point) {
 }
 
 void Partie::ordonnerDeplacement(sf::Vector2f point) {
+    m_interactionEnCours.reset();
     m_deplacementOrdonne = point;
 }
 
@@ -46,6 +75,34 @@ Monstre* Partie::trouverMonstre(int id) {
         return m.getId() == id;
     });
     return it == m_monstres.end() ? nullptr : &*it;
+}
+
+const ObjetInteractif* Partie::trouverObjetActif(sf::Vector2f point) const {
+    for (const ObjetInteractif& objet : m_objets) {
+        const bool fermee = std::visit(
+            Surcharges{[&](const Porte& porte) { return m_carte.getTile(porte.cases.front().x, porte.cases.front().y) == Tile::PorteFermee; }},
+            objet.nature);
+        if (fermee && objet.zone.contains(point)) {
+            return &objet;
+        }
+    }
+    return nullptr;
+}
+
+void Partie::interagirSiAPortee() {
+    if (!m_interactionEnCours.has_value()) {
+        return;
+    }
+    const auto it = std::ranges::find(m_objets, *m_interactionEnCours, &ObjetInteractif::id);
+    if (it != m_objets.end() && m_escouade.unVivantPresDe(it->zone, s_porteeInteraction)) {
+        std::visit(Surcharges{[&](const Porte& porte) {
+                       for (sf::Vector2i coordCase : porte.cases) {
+                           m_carte.ouvrirPorte(coordCase);
+                       }
+                   }},
+                   it->nature);
+        m_interactionEnCours.reset();
+    }
 }
 
 std::vector<EntiteVue> Partie::entitesCiblables() const {
@@ -205,6 +262,7 @@ void Partie::mettreAJour(float dt) {
     // Tous les monstres (à leur position de l'image précédente), même ceux qui rentrent à leur
     // poste, sont des obstacles pour les personnages.
     m_escouade.mettreAJour(dt, m_carte, entitesPhysiques());
+    interagirSiAPortee();
     faireTournerLesMonstres(dt);
 
     m_lancerDeZoneDemande.reset();

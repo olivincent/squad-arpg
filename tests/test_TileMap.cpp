@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "Chemin.hpp"
 #include "TileMap.hpp"
 
 TEST_CASE("getTile distingue une case de sol d'une case de mur") {
@@ -549,4 +550,43 @@ TEST_CASE("ligneDeVue : un point d'arrivee dans un mur n'est pas visible") {
     TileMap carte(plan, 40.0f);
 
     REQUIRE_FALSE(carte.ligneDeVue({10.0f, 60.0f}, {100.0f, 60.0f}));
+}
+
+TEST_CASE("placerPorte : une porte fermee est bloquante, une porte ouverte non") {
+    TileMap carte({"...", "...", "..."}, 40.0f);
+    carte.placerPorte({1, 1});
+    REQUIRE(carte.getTile(1, 1) == Tile::PorteFermee);
+    REQUIRE(estBloquante(Tile::PorteFermee));
+    carte.ouvrirPorte({1, 1});
+    REQUIRE(carte.getTile(1, 1) == Tile::PorteOuverte);
+    REQUIRE_FALSE(estBloquante(Tile::PorteOuverte));
+    REQUIRE_FALSE(estBloquante(Tile::Floor));
+    REQUIRE(estBloquante(Tile::Wall));
+}
+
+TEST_CASE("porte fermee : bloque chevaucheUnMur, trajetLibre et ligneDeVue") {
+    TileMap carte({".....", ".....", "....."}, 40.0f);
+    carte.placerPorte({2, 1});
+    const sf::FloatRect surLaPorte({85.0f, 45.0f}, {10.0f, 10.0f});
+    REQUIRE(carte.chevaucheUnMur(surLaPorte));
+    REQUIRE_FALSE(carte.trajetLibre(sf::FloatRect({25.0f, 55.0f}, {10.0f, 10.0f}), {100.0f, 0.0f}));
+    REQUIRE_FALSE(carte.trajetLibre(sf::FloatRect({25.0f, 45.0f}, {10.0f, 10.0f}), {100.0f, 20.0f}));
+    REQUIRE_FALSE(carte.ligneDeVue(carte.centreDeCase({1, 1}), carte.centreDeCase({3, 1})));
+}
+
+TEST_CASE("porte ouverte : ne bloque ni le mouvement ni la vue") {
+    TileMap carte({".....", ".....", "....."}, 40.0f);
+    carte.placerPorte({2, 1});
+    carte.ouvrirPorte({2, 1});
+    REQUIRE_FALSE(carte.chevaucheUnMur(sf::FloatRect({85.0f, 45.0f}, {10.0f, 10.0f})));
+    REQUIRE(carte.trajetLibre(sf::FloatRect({25.0f, 55.0f}, {10.0f, 10.0f}), {100.0f, 0.0f}));
+    REQUIRE(carte.ligneDeVue(carte.centreDeCase({1, 1}), carte.centreDeCase({3, 1})));
+}
+
+TEST_CASE("porte fermee : trouverChemin la traite comme un mur") {
+    TileMap carte({"#####", "#...#", "#####"}, 40.0f);
+    carte.placerPorte({2, 1});
+    REQUIRE(trouverChemin(carte, {1, 1}, {3, 1}).empty());
+    carte.ouvrirPorte({2, 1});
+    REQUIRE(trouverChemin(carte, {1, 1}, {3, 1}).size() == 3);
 }

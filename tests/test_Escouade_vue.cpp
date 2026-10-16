@@ -348,3 +348,21 @@ TEST_CASE("Provocation : seuls les monstres dans la zone et en vue sont provoque
     REQUIRE(escouade.getProvocations()[0].id == 2);
     REQUIRE_FALSE(escouade.skillEstPret(2));
 }
+
+// Escouade en (200, 200) : le personnage de la place 1 est en (235, 185), rayon 10.
+// La zone ci-dessous est à 30 px de son centre, donc à 20 px bord à bord.
+TEST_CASE("unVivantPresDe : vrai quand un vivant est a l'ecart voulu ou moins") {
+    Escouade escouade({200.0f, 200.0f});
+    const sf::FloatRect zone({265.0f, 170.0f}, {40.0f, 30.0f});
+
+    REQUIRE(escouade.unVivantPresDe(zone, 20.0f));
+    REQUIRE_FALSE(escouade.unVivantPresDe(zone, 19.0f));
+}
+
+TEST_CASE("unVivantPresDe : un mort pres de la zone ne compte pas") {
+    Escouade escouade({200.0f, 200.0f});
+    const sf::FloatRect zone({265.0f, 170.0f}, {40.0f, 30.0f});
+    escouade.recevoirDegats(1, {235.0f, 185.0f}, 200);
+
+    REQUIRE_FALSE(escouade.unVivantPresDe(zone, 20.0f));
+}

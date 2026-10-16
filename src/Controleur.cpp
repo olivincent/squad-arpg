@@ -26,7 +26,7 @@ void Controleur::appuiGauche(Partie& partie, sf::Vector2f point) {
         return;
     }
     const ResultatClic resultat = partie.cliquer(point);
-    if (resultat == ResultatClic::Monstre) {
+    if (resultat == ResultatClic::Monstre || resultat == ResultatClic::Objet) {
         m_deplacementContinu = false;
     } else if (resultat == ResultatClic::Sol) {
         m_deplacementContinu = true;

@@ -84,6 +84,16 @@ void creuserCouloir(std::vector<std::string>& plan, sf::Vector2i depart, sf::Vec
 [[nodiscard]] std::vector<MonstreDuNiveau> placerMonstres(Generateur& generateur, const std::vector<Salle>& salles,
                                                           sf::Vector2f depart, const ParametresDonjon& parametres);
 
-// Niveau fait de salles reliées par des couloirs en L et peuplé de monstres
-// (`placerMonstres`) ; l'escouade part au centre de la première salle placée.
+// Place les portes : sans aléatoire, sur le plan déjà creusé. Pour chaque salle, on
+// parcourt l'anneau de cases juste à l'extérieur de son emprise, côté par côté, sans
+// les coins. Une porte est une suite maximale de cases de sol sur un côté de l'anneau
+// qui fait EXACTEMENT `largeurCouloir` cases, dont les deux cases qui la prolongent
+// sur la même ligne (coins compris) sont des murs, et dont les cases juste au-delà
+// de l'anneau (côté extérieur à la salle) sont toutes du sol. Les ouvertures d'une
+// autre largeur n'ont pas de porte. Une porte vue de deux salles n'est donnée qu'une fois.
+[[nodiscard]] std::vector<PorteDuNiveau> placerPortes(const std::vector<std::string>& plan,
+                                                      const std::vector<Salle>& salles, int largeurCouloir);
+
+// Niveau fait de salles reliées par des couloirs en L, fermé par des portes
+// (`placerPortes`) et peuplé de monstres (`placerMonstres`) ; l'escouade part au centre de la première salle placée.
 [[nodiscard]] Niveau genererNiveau(Generateur& generateur, const ParametresDonjon& parametres);

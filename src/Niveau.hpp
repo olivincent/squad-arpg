@@ -15,6 +15,14 @@ struct MonstreDuNiveau {
     bool operator==(const MonstreDuNiveau&) const = default;
 };
 
+// Une porte du niveau : les cases du plan (du sol) qu'elle ferme, alignées. Le plan
+// reste de la géométrie pure : la Partie ferme ces cases à la construction.
+struct PorteDuNiveau {
+    std::vector<sf::Vector2i> cases;
+
+    bool operator==(const PorteDuNiveau&) const = default;
+};
+
 // Les données d'un niveau, sans comportement : de quoi construire une Partie.
 struct Niveau {
     std::vector<std::string> plan;       // '#' = mur, tout autre caractère = sol
@@ -22,6 +30,7 @@ struct Niveau {
     sf::Vector2f departEscouade;         // centre de l'ancre, en pixels du monde
     std::vector<MonstreDuNiveau> monstres;
     int armureMonstres;                  // armure de chaque monstre
+    std::vector<PorteDuNiveau> portes = {};
 };
 
 // Le niveau du jeu.

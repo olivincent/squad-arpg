@@ -3,8 +3,21 @@
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <stdexcept>
+
+namespace {
+const sf::Color s_couleurSol(60, 45, 35);
+const sf::Color s_couleurPorte(139, 90, 43);
+const sf::Color s_couleurContourCase(20, 20, 20);
+constexpr float s_epaisseurContourCase = 1.0f;
+constexpr float s_epaisseurCadrePorte = 4.0f;
+}
+
+bool estBloquante(Tile tile) {
+    return tile == Tile::Wall || tile == Tile::PorteFermee;
+}
 
 TileMap::TileMap(const std::vector<std::string>& plan, float tailleCase)
     : m_largeur(static_cast<int>(plan.at(0).size())),
@@ -58,20 +71,38 @@ sf::Vector2f TileMap::centreDeCase(sf::Vector2i coordCase) const {
 
 void TileMap::dessiner(sf::RenderTarget& rendu) const {
     sf::RectangleShape forme({m_tailleCase, m_tailleCase});
-    forme.setOutlineThickness(-1.0f);
-    forme.setOutlineColor(sf::Color(20, 20, 20));
 
     for (int y = 0; y < m_hauteur; ++y) {
         for (int x = 0; x < m_largeur; ++x) {
             forme.setPosition({static_cast<float>(x) * m_tailleCase, static_cast<float>(y) * m_tailleCase});
-            if (m_cases[indice(x, y)] == Tile::Wall) {
+            const Tile tile = m_cases[indice(x, y)];
+            forme.setOutlineThickness(tile == Tile::PorteOuverte ? -s_epaisseurCadrePorte : -s_epaisseurContourCase);
+            if (tile == Tile::Wall) {
                 forme.setFillColor(sf::Color(128, 128, 128));
+                forme.setOutlineColor(s_couleurContourCase);
+            } else if (tile == Tile::PorteFermee) {
+                forme.setFillColor(s_couleurPorte);
+                forme.setOutlineColor(s_couleurContourCase);
+            } else if (tile == Tile::PorteOuverte) {
+                forme.setFillColor(s_couleurSol);
+                forme.setOutlineColor(s_couleurPorte);
             } else {
-                forme.setFillColor(sf::Color(60, 45, 35));
+                forme.setFillColor(s_couleurSol);
+                forme.setOutlineColor(s_couleurContourCase);
             }
             rendu.draw(forme);
         }
     }
+}
+
+void TileMap::placerPorte(sf::Vector2i coordCase) {
+    assert(getTile(coordCase.x, coordCase.y) == Tile::Floor);
+    m_cases[indice(coordCase.x, coordCase.y)] = Tile::PorteFermee;
+}
+
+void TileMap::ouvrirPorte(sf::Vector2i coordCase) {
+    assert(getTile(coordCase.x, coordCase.y) == Tile::PorteFermee);
+    m_cases[indice(coordCase.x, coordCase.y)] = Tile::PorteOuverte;
 }
 
 bool TileMap::chevaucheUnMur(const sf::FloatRect& rect) const {
@@ -82,7 +113,7 @@ bool TileMap::chevaucheUnMur(const sf::FloatRect& rect) const {
 
     for (int y = yMin; y <= yMax; ++y) {
         for (int x = xMin; x <= xMax; ++x) {
-            if (getTile(x, y) == Tile::Wall) {
+            if (estBloquante(getTile(x, y))) {
                 return true;
             }
         }
@@ -135,7 +166,7 @@ bool TileMap::trajetLibre(const sf::FloatRect& rect, sf::Vector2f deplacement) c
         const int ligneBas = static_cast<int>(std::ceil(bas / m_tailleCase)) - 1;
 
         for (int ligne = ligneHaut; ligne <= ligneBas; ++ligne) {
-            if (getTile(colonne, ligne) == Tile::Wall) {
+            if (estBloquante(getTile(colonne, ligne))) {
                 return false;
             }
         }

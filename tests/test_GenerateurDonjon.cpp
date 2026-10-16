@@ -640,3 +640,99 @@ TEST_CASE("placerMonstres ne saute aucun numero de groupe quand une salle reste 
         }
     }
 }
+TEST_CASE("placerPortes : un couloir perpendiculaire a une salle recoit une porte") {
+    const std::vector<std::string> plan = {
+        "############",
+        "#...########",
+        "#.........##",
+        "#.........##",
+        "############",
+    };
+
+    const std::vector<PorteDuNiveau> portes = placerPortes(plan, {Salle{1, 1, 3, 3}}, 2);
+
+    REQUIRE(portes == std::vector<PorteDuNiveau>{PorteDuNiveau{{{4, 2}, {4, 3}}}});
+}
+
+TEST_CASE("placerPortes : une ouverture de 3 cases n'a pas de porte") {
+    const std::vector<std::string> plan = {
+        "############",
+        "#..........#",
+        "#..........#",
+        "#..........#",
+        "############",
+    };
+
+    REQUIRE(placerPortes(plan, {Salle{1, 1, 3, 3}}, 2).empty());
+}
+
+TEST_CASE("placerPortes : un couloir qui traverse une salle a une porte a l'entree et une a la sortie") {
+    const std::vector<std::string> plan = {
+        "############",
+        "####...#####",
+        "#..........#",
+        "#..........#",
+        "####...#####",
+        "############",
+    };
+
+    const std::vector<PorteDuNiveau> portes = placerPortes(plan, {Salle{4, 1, 3, 4}}, 2);
+
+    REQUIRE(portes == std::vector<PorteDuNiveau>{PorteDuNiveau{{{3, 2}, {3, 3}}}, PorteDuNiveau{{{7, 2}, {7, 3}}}});
+}
+
+TEST_CASE("placerPortes : une porte vue des deux salles n'est donnee qu'une fois") {
+    const std::vector<std::string> plan = {
+        "#########",
+        "#...#...#",
+        "#.......#",
+        "#.......#",
+        "#########",
+    };
+
+    const std::vector<PorteDuNiveau> portes = placerPortes(plan, {Salle{1, 1, 3, 3}, Salle{5, 1, 3, 3}}, 2);
+
+    REQUIRE(portes == std::vector<PorteDuNiveau>{PorteDuNiveau{{{4, 2}, {4, 3}}}});
+}
+
+TEST_CASE("genererNiveau : portes sur du sol, alignees, et salles toutes reliees portes ouvertes") {
+    const ParametresDonjon parametres;
+    for (Generateur::result_type graine = 1; graine <= 5; ++graine) {
+        Generateur generateur(graine);
+        Generateur copie = generateur;
+
+        const Niveau niveau = genererNiveau(generateur, parametres);
+
+        TileMap carte(niveau.plan, niveau.tailleCase);
+        for (const PorteDuNiveau& porte : niveau.portes) {
+            REQUIRE(static_cast<int>(porte.cases.size()) == parametres.largeurCouloir);
+            for (const sf::Vector2i coordCase : porte.cases) {
+                REQUIRE(carte.getTile(coordCase.x, coordCase.y) == Tile::Floor);
+                carte.placerPorte(coordCase);
+                carte.ouvrirPorte(coordCase);
+            }
+        }
+        const sf::Vector2i depart = carte.caseContenant(niveau.departEscouade);
+        for (const Salle& salle : placerSalles(copie, parametres)) {
+            REQUIRE_FALSE(trouverChemin(carte, depart, salle.centre()).empty());
+        }
+    }
+}
+
+TEST_CASE("genererNiveau : une graine redonne les memes portes") {
+    const ParametresDonjon parametres;
+    Generateur premier(s_graine);
+    Generateur second(s_graine);
+
+    REQUIRE(genererNiveau(premier, parametres).portes == genererNiveau(second, parametres).portes);
+}
+
+TEST_CASE("genererNiveau : place des portes") {
+    bool auMoinsUne = false;
+    for (Generateur::result_type graine = 1; graine <= 5; ++graine) {
+        Generateur generateur(graine);
+        auMoinsUne = auMoinsUne || !genererNiveau(generateur, ParametresDonjon{}).portes.empty();
+    }
+
+    REQUIRE(auMoinsUne);
+}

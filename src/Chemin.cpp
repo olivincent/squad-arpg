@@ -44,7 +44,7 @@ constexpr int s_iterationsRepli = 6;
 
 std::vector<sf::Vector2i> trouverChemin(const TileMap& carte, sf::Vector2i depart, sf::Vector2i arrivee,
                                         const FonctionDeCout& cout) {
-    if (carte.getTile(depart.x, depart.y) == Tile::Wall || carte.getTile(arrivee.x, arrivee.y) == Tile::Wall) {
+    if (estBloquante(carte.getTile(depart.x, depart.y)) || estBloquante(carte.getTile(arrivee.x, arrivee.y))) {
         return {};
     }
     if (depart == arrivee) {
@@ -86,7 +86,7 @@ std::vector<sf::Vector2i> trouverChemin(const TileMap& carte, sf::Vector2i depar
         for (const sf::Vector2i& direction : directions) {
             const sf::Vector2i voisin = actuel.position + direction;
 
-            if (carte.getTile(voisin.x, voisin.y) == Tile::Wall) {
+            if (estBloquante(carte.getTile(voisin.x, voisin.y))) {
                 continue;
             }
 

@@ -446,7 +446,7 @@ std::vector<Coup> Escouade::declencherSkillDeZone(std::size_t place, sf::Vector2
 
     // Un point dans un mur est refusé : ni départ, ni attente, ni recharge.
     const sf::Vector2i coordCase = carte.caseContenant(point);
-    if (carte.getTile(coordCase.x, coordCase.y) == Tile::Wall) {
+    if (estBloquante(carte.getTile(coordCase.x, coordCase.y))) {
         return {};
     }
 
@@ -978,6 +978,15 @@ std::vector<Cercle> Escouade::cerclesDesVivants() const {
         }
     }
     return cercles;
+}
+
+bool Escouade::unVivantPresDe(sf::FloatRect zone, float ecart) const {
+    for (const Cercle& cercle : cerclesDesVivants()) {
+        if (distanceCercleRectangle(cercle, zone) <= ecart) {
+            return true;
+        }
+    }
+    return false;
 }
 
 std::optional<Cible> Escouade::choisirCible(TypeSkill type, std::size_t place, const std::vector<EntiteVue>& monstres, const TileMap& carte) const {

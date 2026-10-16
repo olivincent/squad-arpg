@@ -153,3 +153,26 @@ TEST_CASE("un clic au sol arme le deplacement continu, un clic sur un monstre no
     avancer(partie, 30);
     REQUIRE(partie.getEscouade().getCentre().x > xAvant);
 }
+
+TEST_CASE("un clic sur une porte desarme le deplacement continu") {
+    std::vector<std::string> plan(11, std::string(15, '.'));
+    for (int y = 0; y < 11; ++y) {
+        plan[static_cast<std::size_t>(y)][7] = '#';
+    }
+    plan[4][7] = '.';
+    plan[5][7] = '.';
+    Niveau niveau{plan, 40.0f, {200.0f, 200.0f}, {{{60.0f, 60.0f}, 0}}};
+    niveau.portes = {PorteDuNiveau{{{7, 4}, {7, 5}}}};
+    Partie partie(niveau, s_graineDeTest);
+    Controleur controleur;
+    controleur.appuiGauche(partie, {100.0f, 200.0f});  // sol : déplacement continu armé
+    controleur.appuiGauche(partie, {300.0f, 200.0f});  // porte : désarmé
+
+    for (int i = 0; i < 120; ++i) {
+        // Bouton tenu, curseur loin de la porte : sans désarmement, l'ordre écraserait l'approche.
+        controleur.mettreAJourDeplacement(partie, true, {100.0f, 200.0f});
+        partie.mettreAJour(s_dureeTic);
+    }
+
+    REQUIRE(partie.cliquer({300.0f, 200.0f}) == ResultatClic::Sol);  // la porte s'est ouverte
+}

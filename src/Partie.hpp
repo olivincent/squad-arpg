@@ -11,10 +11,11 @@
 #include "Escouade.hpp"
 #include "Monstre.hpp"
 #include "Niveau.hpp"
+#include "ObjetInteractif.hpp"
 #include "TileMap.hpp"
 
 // Ce que le clic du joueur a désigné.
-enum class ResultatClic { Monstre, Sol, Ignore };
+enum class ResultatClic { Monstre, Objet, Sol, Ignore };
 
 // Les règles de jeu : possède la carte, l'escouade et les monstres, et sert
 // d'intermédiaire entre Escouade et Monstre, qui ne se connaissent pas.
@@ -30,15 +31,16 @@ public:
     // La graine initialise le générateur aléatoire de la partie, qui est à elle seule.
     Partie(const Niveau& niveau, Generateur::result_type graine);
 
-    // Verrouille le monstre ciblable qui contient ce point (Monstre), sinon lève le
-    // verrou (Sol) : un monstre qui rentre à son poste compte comme le sol.
+    // Verrouille le monstre ciblable qui contient ce point (Monstre) ; sinon, sur une porte
+    // fermée (Objet), lève le verrou, mémorise l'interaction et envoie l'escouade devant elle
+    // (Sol si aucun côté n'est libre) ; sinon lève le verrou (Sol) : un monstre qui rentre à son poste compte comme le sol.
     // Ignore si l'escouade est vaincue : rien ne change.
     ResultatClic cliquer(sf::Vector2f point);
     // Skill du personnage de cette place (de 1 à 3), tenté dans mettreAJour.
     void demanderSkill(std::size_t place);
     // Skill de zone de cette place lancé au point (monde), dans mettreAJour.
     void lancerSkillDeZone(std::size_t place, sf::Vector2f point);
-    // Envoie l'escouade vers ce point, dans mettreAJour, si elle est vivante.
+    // Envoie l'escouade vers ce point, dans mettreAJour, si elle est vivante. Annule l'interaction en cours.
     void ordonnerDeplacement(sf::Vector2f point);
 
     // Fige le monde (rien ne bouge) une fois la partie perdue ou gagnée.
@@ -66,6 +68,10 @@ private:
     };
 
     Monstre* trouverMonstre(int id);
+    // Objet interactif encore actif qui contient ce point (une porte fermée), nullptr sinon.
+    const ObjetInteractif* trouverObjetActif(sf::Vector2f point) const;
+    // Ouvre l'objet en cours d'interaction si un personnage vivant est assez près.
+    void interagirSiAPortee();
     // Deux vues des monstres pour l'escouade : les CIBLES (ceux qu'on peut frapper, provoquer,
     // viser ou verrouiller : pas ceux qui rentrent à leur poste) et les PHYSIQUES (tous :
     // obstacles bloquants et à contourner).
@@ -83,6 +89,8 @@ private:
     TileMap m_carte;
     Escouade m_escouade;
     std::vector<Monstre> m_monstres;
+    std::vector<ObjetInteractif> m_objets;
+    std::optional<int> m_interactionEnCours;  // identifiant de l'objet que l'escouade va activer
     std::optional<LancerDeZone> m_lancerDeZoneDemande;
     std::optional<std::size_t> m_skillDemande;
     std::optional<sf::Vector2f> m_deplacementOrdonne;

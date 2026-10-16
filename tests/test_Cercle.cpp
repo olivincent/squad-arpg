@@ -43,3 +43,22 @@ TEST_CASE("distancePointSegment mesure la distance a l'extremite la plus proche 
 TEST_CASE("distancePointSegment avec un segment reduit a un point") {
     REQUIRE(distancePointSegment({3.0f, 4.0f}, {0.0f, 0.0f}, {0.0f, 0.0f}) == 5.0f);
 }
+
+TEST_CASE("distanceCercleRectangle : cercle a cote du rectangle") {
+    const sf::FloatRect rectangle({0.0f, 0.0f}, {40.0f, 20.0f});
+    REQUIRE(distanceCercleRectangle({{60.0f, 10.0f}, 5.0f}, rectangle) == 15.0f);
+    REQUIRE(distanceCercleRectangle({{20.0f, -30.0f}, 10.0f}, rectangle) == 20.0f);
+}
+
+TEST_CASE("distanceCercleRectangle : contact, chevauchement et centre dedans valent 0") {
+    const sf::FloatRect rectangle({0.0f, 0.0f}, {40.0f, 20.0f});
+    REQUIRE(distanceCercleRectangle({{50.0f, 10.0f}, 10.0f}, rectangle) == 0.0f);
+    REQUIRE(distanceCercleRectangle({{45.0f, 10.0f}, 10.0f}, rectangle) == 0.0f);
+    REQUIRE(distanceCercleRectangle({{20.0f, 10.0f}, 1.0f}, rectangle) == 0.0f);
+}
+
+TEST_CASE("distanceCercleRectangle : en diagonale, mesure depuis le coin") {
+    const sf::FloatRect rectangle({0.0f, 0.0f}, {40.0f, 20.0f});
+    // Coin (40, 20) ; centre en (43, 24) : distance 5, rayon 2.
+    REQUIRE(distanceCercleRectangle({{43.0f, 24.0f}, 2.0f}, rectangle) == 3.0f);
+}

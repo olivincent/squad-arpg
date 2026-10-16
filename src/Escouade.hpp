@@ -1,6 +1,7 @@
 // ./src/Escouade.hpp
 #pragma once
 #include <SFML/System/Angle.hpp>
+#include <SFML/Graphics/Rect.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <array>
@@ -54,6 +55,8 @@ public:
     void recevoirCoup(int idMonstre, std::size_t place, sf::Vector2f origine, int quantite);
     bool estVivante() const;
     std::vector<Cercle> cerclesDesVivants() const;
+    // Un personnage vivant est-il à `ecart` ou moins (bord à bord) de cette zone ?
+    [[nodiscard]] bool unVivantPresDe(sf::FloatRect zone, float ecart) const;
     [[nodiscard]] std::optional<Cible> choisirCible(TypeSkill type, std::size_t place, const std::vector<EntiteVue>& monstres, const TileMap& carte) const;
     void verrouiller(int idCible);
     void deverrouiller();

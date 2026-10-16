@@ -1,9 +1,11 @@
 // ./src/GenerateurDonjon.cpp
 #include "GenerateurDonjon.hpp"
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cstdlib>
 #include <random>
+#include <utility>
 
 namespace {
 
@@ -36,6 +38,21 @@ void creuserRectangle(std::vector<std::string>& plan, int colonneMin, int colonn
             plan[static_cast<std::size_t>(ligne)][static_cast<std::size_t>(colonne)] = s_sol;
         }
     }
+}
+
+// Un côté de l'anneau de cases qui entoure une salle, sans les coins.
+struct CoteDAnneau {
+    sf::Vector2i debut;    // première case du côté
+    sf::Vector2i pas;      // d'une case à la suivante
+    int longueur;          // nombre de cases
+    sf::Vector2i sortant;  // direction qui s'éloigne de la salle
+};
+
+// Vrai pour une case de sol du plan ; hors du plan, ce n'est pas du sol.
+bool estSol(const std::vector<std::string>& plan, sf::Vector2i coordCase) {
+    return coordCase.y >= 0 && coordCase.y < static_cast<int>(plan.size()) && coordCase.x >= 0 &&
+           coordCase.x < static_cast<int>(plan[static_cast<std::size_t>(coordCase.y)].size()) &&
+           plan[static_cast<std::size_t>(coordCase.y)][static_cast<std::size_t>(coordCase.x)] == s_sol;
 }
 
 }  // namespace
@@ -164,6 +181,47 @@ std::vector<MonstreDuNiveau> placerMonstres(Generateur& generateur, const std::v
     return monstres;
 }
 
+std::vector<PorteDuNiveau> placerPortes(const std::vector<std::string>& plan, const std::vector<Salle>& salles,
+                                        int largeurCouloir) {
+    assert(largeurCouloir >= 1);
+    std::vector<PorteDuNiveau> portes;
+    for (const Salle& salle : salles) {
+        const std::array<CoteDAnneau, 4> cotes = {{
+            {{salle.x, salle.y - 1}, {1, 0}, salle.largeur, {0, -1}},
+            {{salle.x, salle.y + salle.hauteur}, {1, 0}, salle.largeur, {0, 1}},
+            {{salle.x - 1, salle.y}, {0, 1}, salle.hauteur, {-1, 0}},
+            {{salle.x + salle.largeur, salle.y}, {0, 1}, salle.hauteur, {1, 0}},
+        }};
+        for (const CoteDAnneau& cote : cotes) {
+            int i = 0;
+            while (i < cote.longueur) {
+                if (!estSol(plan, cote.debut + cote.pas * i)) {
+                    ++i;
+                    continue;
+                }
+                int fin = i;  // première case après la suite de sol
+                while (fin < cote.longueur && estSol(plan, cote.debut + cote.pas * fin)) {
+                    ++fin;
+                }
+                PorteDuNiveau porte;
+                bool couloirContinue = true;
+                for (int k = i; k < fin; ++k) {
+                    const sf::Vector2i coordCase = cote.debut + cote.pas * k;
+                    porte.cases.push_back(coordCase);
+                    couloirContinue = couloirContinue && estSol(plan, coordCase + cote.sortant);
+                }
+                const bool bonneLargeur = fin - i == largeurCouloir;
+                const bool encadree = !estSol(plan, cote.debut + cote.pas * (i - 1)) && !estSol(plan, cote.debut + cote.pas * fin);
+                if (bonneLargeur && encadree && couloirContinue && std::ranges::find(portes, porte) == portes.end()) {
+                    portes.push_back(porte);
+                }
+                i = fin;
+            }
+        }
+    }
+    return portes;
+}
+
 Niveau genererNiveau(Generateur& generateur, const ParametresDonjon& parametres) {
     const std::vector<Salle> salles = placerSalles(generateur, parametres);
 
@@ -182,7 +240,8 @@ Niveau genererNiveau(Generateur& generateur, const ParametresDonjon& parametres)
 
     // Centre en pixels de la case centrale de la première salle.
     const sf::Vector2f depart = centreEnPixels(salles.front().centre(), parametres.tailleCase);
-    // Les monstres en dernier : leurs tirages ne changent ni les salles ni les couloirs.
+    // Les portes ne tirent rien. Les monstres en dernier : leurs tirages ne changent ni les salles ni les couloirs.
+    std::vector<PorteDuNiveau> portes = placerPortes(plan, salles, parametres.largeurCouloir);
     return {plan, parametres.tailleCase, depart, placerMonstres(generateur, salles, depart, parametres),
-            s_armureMonstresParDefaut};
+            s_armureMonstresParDefaut, std::move(portes)};
 }

@@ -496,3 +496,107 @@ TEST_CASE("un monstre qui abandonne rentre a son poste sans perdre de vie et san
     verifierPointProche(fuyard(partie).getCentre(), s_posteDuFuyard);
     REQUIRE(fuyard(partie).getPointsDeVie() == 100);
 }
+
+namespace {
+
+// Deux pièces de 15 × 11 cases (40 px) séparées par un mur en colonne 7
+// (x: [280, 320)) percé d'une porte de 2 cases en (7, 4) et (7, 5), soit la zone
+// [280, 320] × [160, 240]. L'escouade part de (200, 200), côté ouest.
+Niveau niveauAvecPorte(const std::vector<MonstreDuNiveau>& monstres = {{{60.0f, 60.0f}, 0}}) {
+    std::vector<std::string> plan(11, std::string(15, '.'));
+    for (int y = 0; y < 11; ++y) {
+        plan[static_cast<std::size_t>(y)][7] = '#';
+    }
+    plan[4][7] = '.';
+    plan[5][7] = '.';
+    Niveau niveau{plan, 40.0f, {200.0f, 200.0f}, monstres};
+    niveau.portes = {PorteDuNiveau{{{7, 4}, {7, 5}}}};
+    return niveau;
+}
+
+constexpr sf::Vector2f s_surLaPorte{300.0f, 200.0f};
+constexpr sf::Vector2f s_coteEst{420.0f, 200.0f};
+
+}  // namespace
+
+TEST_CASE("porte : fermee a la construction, l'escouade ne la traverse pas") {
+    Partie partie(niveauAvecPorte(), s_graineDeTest);
+
+    partie.ordonnerDeplacement(s_coteEst);
+    avancer(partie, 300);
+
+    REQUIRE(partie.getEscouade().getCentre().x < 280.0f);
+}
+
+TEST_CASE("porte : un clic dessus renvoie Objet et leve le verrou") {
+    Partie partie(niveauAvecPorte(), s_graineDeTest);
+    REQUIRE(partie.cliquer({60.0f, 60.0f}) == ResultatClic::Monstre);
+    REQUIRE(partie.getEscouade().getCibleVerrouillee().has_value());
+
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);
+
+    REQUIRE_FALSE(partie.getEscouade().getCibleVerrouillee().has_value());
+}
+
+TEST_CASE("porte : l'escouade s'avance, la porte s'ouvre et le chemin passe") {
+    Partie partie(niveauAvecPorte(), s_graineDeTest);
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);
+
+    avancer(partie, 120);
+
+    // Ouverte : un clic dessus compte comme un clic au sol.
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Sol);
+    // L'escouade s'est arrêtée devant, sans franchir la porte.
+    REQUIRE(partie.getEscouade().getCentre().x < 300.0f);
+
+    partie.ordonnerDeplacement(s_coteEst);
+    avancer(partie, 300);
+    REQUIRE(partie.getEscouade().getCentre().x > 400.0f);
+}
+
+TEST_CASE("porte : un ordre de deplacement annule l'interaction") {
+    Partie partie(niveauAvecPorte(), s_graineDeTest);
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);
+
+    partie.ordonnerDeplacement({100.0f, 200.0f});
+    avancer(partie, 120);
+
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);  // toujours fermée
+}
+
+TEST_CASE("porte : un clic au sol annule l'interaction") {
+    Partie partie(niveauAvecPorte(), s_graineDeTest);
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);
+
+    REQUIRE(partie.cliquer({100.0f, 200.0f}) == ResultatClic::Sol);
+    avancer(partie, 120);
+
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);
+}
+
+TEST_CASE("porte : un monstre ciblable sur la porte a la priorite") {
+    Partie partie(niveauAvecPorte({{s_surLaPorte, 0}}), s_graineDeTest);
+
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Monstre);
+}
+
+TEST_CASE("porte : sans cote libre, le clic compte comme un clic au sol") {
+    Niveau niveau = niveauAvecPorte();
+    for (const int y : {4, 5}) {
+        niveau.plan[static_cast<std::size_t>(y)][6] = '#';
+        niveau.plan[static_cast<std::size_t>(y)][8] = '#';
+    }
+    Partie partie(niveau, s_graineDeTest);
+
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Sol);
+}
+
+TEST_CASE("porte : une partie figee n'ouvre rien") {
+    Partie partie(niveauAvecPorte({}), s_graineDeTest);  // aucun monstre : gagnée
+    REQUIRE(partie.estGagnee());
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);
+
+    avancer(partie, 120);
+
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);
+}
