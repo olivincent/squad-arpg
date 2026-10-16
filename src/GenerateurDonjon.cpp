@@ -222,6 +222,23 @@ std::vector<PorteDuNiveau> placerPortes(const std::vector<std::string>& plan, co
     return portes;
 }
 
+bool contientUnCoinDiagonal(const std::vector<std::string>& plan) {
+    for (std::size_t ligne = 0; ligne + 1 < plan.size(); ++ligne) {
+        const std::size_t largeur = std::min(plan[ligne].size(), plan[ligne + 1].size());
+        for (std::size_t colonne = 0; colonne + 1 < largeur; ++colonne) {
+            const bool hautGaucheMur = plan[ligne][colonne] == s_mur;
+            const bool hautDroiteMur = plan[ligne][colonne + 1] == s_mur;
+            const bool basGaucheMur = plan[ligne + 1][colonne] == s_mur;
+            const bool basDroiteMur = plan[ligne + 1][colonne + 1] == s_mur;
+            // Damier : chaque case a la nature opposée de ses deux voisines orthogonales du carré.
+            if (hautGaucheMur == basDroiteMur && hautDroiteMur == basGaucheMur && hautGaucheMur != hautDroiteMur) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 Niveau genererNiveau(Generateur& generateur, const ParametresDonjon& parametres) {
     const std::vector<Salle> salles = placerSalles(generateur, parametres);
 

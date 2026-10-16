@@ -94,6 +94,12 @@ void creuserCouloir(std::vector<std::string>& plan, sf::Vector2i depart, sf::Vec
 [[nodiscard]] std::vector<PorteDuNiveau> placerPortes(const std::vector<std::string>& plan,
                                                       const std::vector<Salle>& salles, int largeurCouloir);
 
+// Le plan contient-il un « coin diagonal » ? C'est un carré de 2 x 2 cases dont deux cases
+// en diagonale sont du sol et les deux autres des murs (un damier) : on ne peut pas y passer,
+// mais l'algorithme de vision y voit à travers (docs/vision.md). Les 2 x 2 se cherchent sur
+// tout le plan, bords compris ; les deux orientations de la diagonale comptent.
+[[nodiscard]] bool contientUnCoinDiagonal(const std::vector<std::string>& plan);
+
 // Niveau fait de salles reliées par des couloirs en L, fermé par des portes
 // (`placerPortes`) et peuplé de monstres (`placerMonstres`) ; l'escouade part au centre de la première salle placée.
 [[nodiscard]] Niveau genererNiveau(Generateur& generateur, const ParametresDonjon& parametres);

@@ -736,3 +736,75 @@ TEST_CASE("genererNiveau : place des portes") {
 
     REQUIRE(auMoinsUne);
 }
+
+TEST_CASE("contientUnCoinDiagonal detecte le damier dans les deux orientations") {
+    REQUIRE(contientUnCoinDiagonal({
+        "....",
+        ".#..",
+        "..#.",
+        "....",
+    }));
+    REQUIRE(contientUnCoinDiagonal({
+        "....",
+        "..#.",
+        ".#..",
+        "....",
+    }));
+}
+
+TEST_CASE("contientUnCoinDiagonal ne detecte rien dans un plan sans damier") {
+    // Mur plein, mur en L, couloir : aucun carré de 2 x 2 n'est un damier.
+    REQUIRE_FALSE(contientUnCoinDiagonal({
+        "#####",
+        "#...#",
+        "#.#.#",
+        "#...#",
+        "#####",
+    }));
+    REQUIRE_FALSE(contientUnCoinDiagonal({
+        "###.",
+        "##..",
+        "#...",
+        "....",
+    }));
+    REQUIRE_FALSE(contientUnCoinDiagonal({"..", ".."}));
+    REQUIRE_FALSE(contientUnCoinDiagonal({"##", "##"}));
+    REQUIRE_FALSE(contientUnCoinDiagonal({}));
+    REQUIRE_FALSE(contientUnCoinDiagonal({"#.#."}));  // une seule ligne : aucun carré
+}
+
+TEST_CASE("contientUnCoinDiagonal detecte le damier sur le bord du plan") {
+    REQUIRE(contientUnCoinDiagonal({
+        "#.",
+        ".#",
+    }));
+    REQUIRE(contientUnCoinDiagonal({
+        "...",
+        ".#.",
+        "#.#",
+    }));  // coin bas-gauche : le carré (0,1)-(1,2) est un damier
+    REQUIRE(contientUnCoinDiagonal({
+        "..#.",
+        "...#",
+    }));  // coin haut-droit
+}
+
+// Échantillon, pas garantie : un sondage de 20 000 graines (hors tests) en trouve 145 qui contiennent
+// le motif, la première étant la 391. Les graines 1 à 50 n'en ont pas ; voir docs/vision.md.
+TEST_CASE("genererNiveau ne contient aucun coin diagonal pour les graines 1 a 50") {
+    int avecCoin = 0;
+    Generateur::result_type premiere = 0;
+    for (Generateur::result_type graine = 1; graine <= 50; ++graine) {
+        Generateur generateur(graine);
+        const Niveau niveau = genererNiveau(generateur, ParametresDonjon{});
+        if (contientUnCoinDiagonal(niveau.plan)) {
+            if (avecCoin == 0) {
+                premiere = graine;
+            }
+            ++avecCoin;
+        }
+    }
+
+    INFO(avecCoin << " graines sur 50 contiennent un coin diagonal, la premiere est " << premiere);
+    REQUIRE(avecCoin == 0);
+}
