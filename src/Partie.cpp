@@ -41,6 +41,15 @@ ResultatClic Partie::cliquer(sf::Vector2f point) {
     }
     m_interactionEnCours.reset();
     if (const ObjetInteractif* objet = trouverObjetActif(point)) {
+        if (m_escouade.unVivantPresDe(objet->zone, s_porteeInteraction)) {
+            // Déjà à portée : ouverture sur place, sans ordre ni interaction mémorisée.
+            m_escouade.deverrouiller();
+            m_escouade.annulerAttaquesEngagees();
+            m_deplacementOrdonne.reset();
+            ouvrir(*objet);
+            m_escouade.regarderVers(objet->zone.getCenter());
+            return ResultatClic::Objet;
+        }
         const std::optional<sf::Vector2f> approche = std::visit(
             Surcharges{[&](const Porte& porte) { return pointDApproche(porte, m_carte, m_escouade.getCentre()); }},
             objet->nature);
@@ -89,18 +98,27 @@ const ObjetInteractif* Partie::trouverObjetActif(sf::Vector2f point) const {
     return nullptr;
 }
 
-void Partie::interagirSiAPortee() {
+const ObjetInteractif* Partie::objetEnCours() const {
     if (!m_interactionEnCours.has_value()) {
-        return;
+        return nullptr;
     }
     const auto it = std::ranges::find(m_objets, *m_interactionEnCours, &ObjetInteractif::id);
-    if (it != m_objets.end() && m_escouade.unVivantPresDe(it->zone, s_porteeInteraction)) {
-        std::visit(Surcharges{[&](const Porte& porte) {
-                       for (sf::Vector2i coordCase : porte.cases) {
-                           m_carte.ouvrirPorte(coordCase);
-                       }
-                   }},
-                   it->nature);
+    return it == m_objets.end() ? nullptr : &*it;
+}
+
+void Partie::ouvrir(const ObjetInteractif& objet) {
+    std::visit(Surcharges{[&](const Porte& porte) {
+                   for (sf::Vector2i coordCase : porte.cases) {
+                       m_carte.ouvrirPorte(coordCase);
+                   }
+               }},
+               objet.nature);
+}
+
+void Partie::interagirSiAPortee() {
+    const ObjetInteractif* objet = objetEnCours();
+    if (objet != nullptr && m_escouade.unVivantPresDe(objet->zone, s_porteeInteraction)) {
+        ouvrir(*objet);
         m_interactionEnCours.reset();
     }
 }
@@ -257,6 +275,10 @@ void Partie::mettreAJour(float dt) {
 
     if (m_deplacementOrdonne.has_value() && m_escouade.estVivante()) {
         m_escouade.allerVers(*m_deplacementOrdonne, m_carte);
+        // Approche d'un objet : allerVers a effacé le point à regarder, on le redonne après lui.
+        if (const ObjetInteractif* objet = objetEnCours()) {
+            m_escouade.regarderVers(objet->zone.getCenter());
+        }
     }
 
     // Tous les monstres (à leur position de l'image précédente), même ceux qui rentrent à leur

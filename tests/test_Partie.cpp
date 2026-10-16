@@ -600,3 +600,70 @@ TEST_CASE("porte : une partie figee n'ouvre rien") {
 
     REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);
 }
+
+namespace {
+
+// Les deux places avant de la formation (mêlées) sont-elles plus proches du point que les deux arrière ?
+bool formationFaitFace(const Partie& partie, sf::Vector2f point) {
+    const std::vector<sf::Vector2f>& places = partie.getEscouade().getPlacesDeFormation();
+    const float avantMax = std::max((places[0] - point).length(), (places[1] - point).length());
+    const float arriereMin = std::min((places[2] - point).length(), (places[3] - point).length());
+    return avantMax < arriereMin;
+}
+
+// Monstre loin de la porte et de l'escouade, pour que la partie ne soit pas gagnée.
+const std::vector<MonstreDuNiveau> s_monstreLointain = {{{560.0f, 400.0f}, 0}};
+
+// Escouade à l'est de la porte (centre (360, 200)), tournée vers l'est : ses tireurs sont
+// collés à la porte, qu'elle a dans le dos.
+Niveau niveauCollePorteDeDos() {
+    Niveau niveau = niveauAvecPorte(s_monstreLointain);
+    niveau.departEscouade = {350.0f, 190.0f};
+    return niveau;
+}
+
+}  // namespace
+
+TEST_CASE("porte : un personnage deja a portee ouvre la porte sur place, sans deplacement") {
+    Partie partie(niveauCollePorteDeDos(), s_graineDeTest);
+    const sf::Vector2f centreAvant = partie.getEscouade().getCentre();
+
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);
+
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Sol);  // déjà ouverte, avant tout mettreAJour
+    avancer(partie, 30);
+    verifierPointProche(partie.getEscouade().getCentre(), centreAvant, 0.01f);
+}
+
+TEST_CASE("porte : de dos et collee a la porte, la formation fait face a la porte apres l'ouverture sur place") {
+    Partie partie(niveauCollePorteDeDos(), s_graineDeTest);
+    partie.mettreAJour(s_dureeTic);
+    REQUIRE_FALSE(formationFaitFace(partie, s_surLaPorte));
+
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);
+    avancer(partie, 60);
+
+    REQUIRE(formationFaitFace(partie, s_surLaPorte));
+}
+
+TEST_CASE("porte : apres l'ouverture par approche, la formation est tournee vers la porte") {
+    Niveau niveau = niveauAvecPorte(s_monstreLointain);
+    niveau.departEscouade = {250.0f, 80.0f};  // au nord-ouest : l'approche se fait vers le sud
+    Partie partie(niveau, s_graineDeTest);
+
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);
+    avancer(partie, 200);
+
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Sol);  // ouverte
+    REQUIRE(formationFaitFace(partie, s_surLaPorte));
+}
+
+TEST_CASE("porte : loin de la porte, la porte reste fermee tant que l'escouade n'est pas arrivee") {
+    Partie partie(niveauAvecPorte(s_monstreLointain), s_graineDeTest);  // départ (210, 210), à 70 px
+
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);
+
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);  // pas encore ouverte
+    avancer(partie, 120);
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Sol);
+}

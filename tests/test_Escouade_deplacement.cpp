@@ -593,3 +593,81 @@ TEST_CASE("une place de formation dans un monstre est deplacee vers un point lib
         REQUIRE((place - monstres[0].cercle.centre).length() >= 25.0f);
     }
 }
+
+namespace {
+// Les deux places avant (mêlées, indices 0 et 1) sont-elles toutes deux plus proches du point que les deux arrière ?
+bool avantPlusProche(const Escouade& escouade, sf::Vector2f point) {
+    const std::vector<sf::Vector2f>& places = escouade.getPlacesDeFormation();
+    const float avantMax = std::max((places[0] - point).length(), (places[1] - point).length());
+    const float arriereMin = std::min((places[2] - point).length(), (places[3] - point).length());
+    return avantMax < arriereMin;
+}
+}
+
+TEST_CASE("regarderVers fait pivoter la formation a l'arret") {
+    const TileMap& carte = carteOuverte();
+    Escouade escouade({2000.0f, 2000.0f});  // centre (2010, 2010), formation vers l'est
+    const sf::Vector2f point{2010.0f, 2500.0f};
+
+    escouade.regarderVers(point);
+    simuler(escouade, carte, 2.0f);
+
+    REQUIRE(avantPlusProche(escouade, point));
+}
+
+TEST_CASE("regarderVers suit la marche pendant le trajet puis se tourne vers le point a l'arrivee") {
+    const TileMap& carte = carteOuverte();
+    Escouade escouade({2000.0f, 2000.0f});
+    const sf::Vector2f destination{1810.0f, 2010.0f};  // vers l'ouest : demi-tour de la formation
+    const sf::Vector2f point{2010.0f, 2500.0f};
+
+    escouade.allerVers(destination, carte);
+    escouade.regarderVers(point);
+    simuler(escouade, carte, 0.9f);  // trajet de 200 px à 180 px/s : encore en marche
+
+    REQUIRE(avantPlusProche(escouade, destination));
+
+    simuler(escouade, carte, 3.0f);
+
+    REQUIRE(avantPlusProche(escouade, point));
+}
+
+TEST_CASE("un nouvel allerVers efface le point a regarder") {
+    const TileMap& carte = carteOuverte();
+    Escouade escouade({2000.0f, 2000.0f});
+    const sf::Vector2f loinAOuest{1000.0f, 2010.0f};
+
+    escouade.regarderVers({2010.0f, 2500.0f});
+    escouade.allerVers({1810.0f, 2010.0f}, carte);
+    simuler(escouade, carte, 4.0f);
+
+    REQUIRE(avantPlusProche(escouade, loinAOuest));
+}
+
+TEST_CASE("verrouiller efface le point a regarder") {
+    const TileMap& carte = carteOuverte();
+    Escouade escouade({2000.0f, 2000.0f});
+    const sf::Vector2f loinAEst{3000.0f, 2010.0f};
+
+    escouade.regarderVers({2010.0f, 2500.0f});
+    escouade.verrouiller(1);  // monstre absent de la liste : l'ancre reste à l'arrêt
+    simuler(escouade, carte, 2.0f);
+
+    REQUIRE(avantPlusProche(escouade, loinAEst));
+}
+
+TEST_CASE("l'approche du verrou efface le point a regarder") {
+    const TileMap& carte = carteOuverte();
+    Generateur generateur = generateurDeTest();
+    Escouade escouade({2000.0f, 2000.0f});
+    const std::vector<EntiteVue> monstres = {{1, cibleMonstre({1700.0f, 2010.0f})}};
+
+    escouade.verrouiller(1);
+    escouade.regarderVers({2010.0f, 2500.0f});  // après verrouiller : seule l'approche peut l'effacer
+    for (int i = 0; i < nombreDeTics(4.0f); ++i) {
+        static_cast<void>(escouade.attaquer(s_dureeTic, monstres, carte, generateur));
+        escouade.mettreAJour(s_dureeTic, carte, monstres);
+    }
+
+    REQUIRE(avantPlusProche(escouade, monstres[0].cercle.centre));
+}

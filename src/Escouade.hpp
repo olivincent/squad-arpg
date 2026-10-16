@@ -32,6 +32,9 @@ public:
     // `afficherAncre` faux : le carré vert de l'ancre n'est pas dessiné (débogage).
     void dessiner(sf::RenderTarget& rendu, bool afficherAncre) const;
     void allerVers(sf::Vector2f destination, const TileMap& carte);
+    // Une fois l'ancre arrêtée, la formation se tourne vers ce point. Tout nouvel ordre à
+    // l'ancre (allerVers, approche du verrou, verrouiller) l'efface.
+    void regarderVers(sf::Vector2f point);
     void annulerAttaquesEngagees();
     [[nodiscard]] std::vector<Coup> attaquer(float dt, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
     [[nodiscard]] std::vector<Coup> declencherSkill(std::size_t place, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
@@ -128,6 +131,7 @@ private:
     std::vector<sf::Vector2f> m_decalages; // décalages de formation, pour une escouade orientée vers +x
     sf::Angle m_orientation;               // 0 = orientée vers +x
     sf::Angle m_orientationVoulue;         // direction voulue de l'ancre, vers laquelle m_orientation tourne
+    std::optional<sf::Vector2f> m_pointARegarder; // orientation voulue de l'ancre à l'arrêt (voir regarderVers)
     float m_vitesseRotation;               // en degrés par seconde
     static constexpr std::size_t s_nombrePersonnages = 4;
     std::vector<Personnage> m_personnages;

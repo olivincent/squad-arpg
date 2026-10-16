@@ -141,7 +141,12 @@ void Escouade::dessiner(sf::RenderTarget& rendu, bool afficherAncre) const {
 // Ordre du joueur : les coups en exécution sont annulés, sans recharge consommée.
 void Escouade::allerVers(sf::Vector2f destination, const TileMap& carte) {
     annulerAttaquesEngagees();
+    m_pointARegarder.reset();
     m_mobile.allerVers(destination, carte);
+}
+
+void Escouade::regarderVers(sf::Vector2f point) {
+    m_pointARegarder = point;
 }
 
 void Escouade::annulerAttaquesEngagees() {
@@ -210,6 +215,7 @@ std::optional<Cercle> Escouade::approcherVerrou(const std::vector<EntiteVue>& mo
     if (tousLesVivantsAtteignent(cible, carte)) {
         m_mobile.arreter();
     } else {
+        m_pointARegarder.reset();
         m_mobile.allerVers(cible.centre, carte);  // pas allerVers : ce n'est pas un ordre du joueur
     }
     return cible;
@@ -765,6 +771,11 @@ void Escouade::mettreAJour(float dt, const TileMap& carte, const std::vector<Ent
 
     if (const std::optional<sf::Vector2f> direction = m_mobile.directionVoulue()) {
         m_orientationVoulue = direction->angle();
+    } else if (m_pointARegarder.has_value()) {
+        const sf::Vector2f vers = *m_pointARegarder - getCentre();
+        if (vers.length() > 0.0f) {
+            m_orientationVoulue = vers.angle();
+        }
     }
 
     ecoulerMemoires(dt);
@@ -1050,6 +1061,7 @@ void Escouade::verrouiller(int idCible) {
         annulerAttaquesEngagees();
     }
     m_cibleVerrouillee = idCible;
+    m_pointARegarder.reset();
 }
 
 void Escouade::deverrouiller() {

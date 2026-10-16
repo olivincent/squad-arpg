@@ -70,6 +70,10 @@ private:
     Monstre* trouverMonstre(int id);
     // Objet interactif encore actif qui contient ce point (une porte fermée), nullptr sinon.
     const ObjetInteractif* trouverObjetActif(sf::Vector2f point) const;
+    // Objet dont l'interaction est en cours (vide : nullptr).
+    const ObjetInteractif* objetEnCours() const;
+    // Effet d'une interaction : ouvre la porte.
+    void ouvrir(const ObjetInteractif& objet);
     // Ouvre l'objet en cours d'interaction si un personnage vivant est assez près.
     void interagirSiAPortee();
     // Deux vues des monstres pour l'escouade : les CIBLES (ceux qu'on peut frapper, provoquer,
