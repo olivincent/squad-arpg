@@ -9,10 +9,12 @@
 #include "Partie.hpp"
 
 // Bascules de débogage (état d'interface de l'écran de jeu, remises à leur valeur de départ
-// à chaque nouvelle partie) : F3 les points visés des personnages, F4 le carré de l'ancre.
+// à chaque nouvelle partie) : F3 les points visés des personnages, F4 le carré de l'ancre,
+// F6 le brouillard de guerre (visuel seulement).
 struct OptionsDeDebogage {
     bool pointsVises = false;
     bool ancre = true;
+    bool brouillard = true;
 };
 
 // L'écran de la partie : ce que faisait `main()` pour le jeu (partie,

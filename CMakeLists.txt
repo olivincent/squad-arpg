@@ -43,6 +43,8 @@ add_library(squad_core STATIC
     src/Defense.cpp
     src/Niveau.cpp
     src/ObjetInteractif.cpp
+    src/ChampDeVision.cpp
+    src/Vision.cpp
     src/GenerateurDonjon.cpp
     src/Partie.cpp
     src/Controleur.cpp
@@ -96,6 +98,8 @@ add_executable(tests
     tests/test_GenerateurDonjon.cpp
     tests/test_Partie.cpp
     tests/test_ObjetInteractif.cpp
+    tests/test_ChampDeVision.cpp
+    tests/test_Vision.cpp
     tests/test_Controleur.cpp
     tests/test_Reglages.cpp
     tests/test_TailleDeVue.cpp

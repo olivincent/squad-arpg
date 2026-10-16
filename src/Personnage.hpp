@@ -17,7 +17,8 @@ class TileMap;
 
 class Personnage {
 public:
-    Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::optional<Skill> skill, int armure);
+    // `rayonVision` : jusqu'où il voit, en pixels (l'union des champs des vivants est la vision de l'escouade).
+    Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::optional<Skill> skill, int armure, float rayonVision);
     void dessiner(sf::RenderTarget& rendu) const;
     // `obstacles` le bloquent ; `aContourner` est ce que son chemin évite : la ligne droite n'est
     // prise que si elle passe loin d'eux, sinon A* avec coût (voir Mobile::allerVers).
@@ -66,6 +67,8 @@ public:
     int getPointsDeVieMax() const;
     sf::Vector2f getCentre() const;
     Cercle getCercle() const;
+    // Rayon de vision, en pixels.
+    [[nodiscard]] float getRayonVision() const;
 
 private:
     Mobile m_mobile;        // position (centre en pixels du monde) et déplacement
@@ -75,5 +78,6 @@ private:
     std::optional<sf::Vector2f> m_cibleChemin; // cible du dernier A* ; vide = pas de chemin en cours
     PointsDeVie m_pointsDeVie;
     int m_armure;
+    float m_rayonVision;    // en pixels
     std::optional<ActionEngagee> m_actionEngagee; // action en exécution et sa cible ; lue seulement pendant l'exécution
 };

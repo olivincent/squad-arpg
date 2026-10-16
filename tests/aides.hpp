@@ -27,6 +27,9 @@
 // Graine fixe des tests : la même suite de nombres à chaque exécution.
 inline constexpr Generateur::result_type s_graineDeTest = 12345;
 
+// Rayon de vision des personnages construits à la main dans les tests (celui de l'escouade).
+inline constexpr float s_rayonVisionDeTest = 320.0f;
+
 // Un générateur neuf à graine fixe. Chaque test en crée un à lui
 // (`Generateur generateur = generateurDeTest();`) et le passe par référence :
 // jamais de générateur partagé entre deux tests.

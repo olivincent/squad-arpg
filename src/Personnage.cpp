@@ -19,7 +19,7 @@ const sf::Color s_couleurContour(40, 40, 40);       // contour de 1 px vers l'in
 constexpr float s_epaisseurContour = -1.0f;         // négative : vers l'intérieur
 }  // namespace
 
-Personnage::Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::optional<Skill> skill, int armure)
+Personnage::Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::optional<Skill> skill, int armure, float rayonVision)
     : m_mobile(centre, {s_cote, s_cote}, s_vitesse),
       m_couleur(couleur),
       m_attaqueDeBase(attaqueDeBase),
@@ -27,6 +27,7 @@ Personnage::Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBa
       m_cibleChemin(),
       m_pointsDeVie(s_pointsDeVieMax),
       m_armure(armure),
+      m_rayonVision(rayonVision),
       m_actionEngagee()
 {
 }
@@ -253,4 +254,8 @@ sf::Vector2f Personnage::getCentre() const {
 
 Cercle Personnage::getCercle() const {
     return {getCentre(), m_mobile.getTaille().x / 2.0f};
+}
+
+float Personnage::getRayonVision() const {
+    return m_rayonVision;
 }

@@ -13,7 +13,7 @@ constexpr float s_porteeInteraction = 20.0f;
 }
 
 Partie::Partie(const Niveau& niveau, Generateur::result_type graine)
-    : m_carte(niveau.plan, niveau.tailleCase), m_escouade(niveau.departEscouade), m_generateur(graine) {
+    : m_carte(niveau.plan, niveau.tailleCase), m_escouade(niveau.departEscouade), m_generateur(graine), m_vision(m_carte) {
     int prochainId = 1;
     for (const MonstreDuNiveau& monstre : niveau.monstres) {
         m_monstres.emplace_back(monstre.position, prochainId++, niveau.armureMonstres, monstre.groupe);
@@ -25,6 +25,7 @@ Partie::Partie(const Niveau& niveau, Generateur::result_type graine)
         }
         m_objets.emplace_back(prochainIdObjet++, Porte{porte.cases}, niveau.tailleCase);
     }
+    mettreAJourLaVision();  // la salle de départ est visible dès la première image
 }
 
 ResultatClic Partie::cliquer(sf::Vector2f point) {
@@ -32,7 +33,7 @@ ResultatClic Partie::cliquer(sf::Vector2f point) {
         return ResultatClic::Ignore;
     }
     const auto it = std::find_if(m_monstres.begin(), m_monstres.end(), [&](const Monstre& m) {
-        return m.estCiblable() && m.contient(point);
+        return m.estCiblable() && m_vision.estVisible(m.getCentre()) && m.contient(point);
     });
     if (it != m_monstres.end()) {
         m_escouade.verrouiller(it->getId());
@@ -91,11 +92,21 @@ const ObjetInteractif* Partie::trouverObjetActif(sf::Vector2f point) const {
         const bool fermee = std::visit(
             Surcharges{[&](const Porte& porte) { return m_carte.getTile(porte.cases.front().x, porte.cases.front().y) == Tile::PorteFermee; }},
             objet.nature);
-        if (fermee && objet.zone.contains(point)) {
+        // Une porte que le joueur n'a jamais vue (aucune de ses cases) n'est pas cliquable.
+        const bool connue = std::visit(
+            Surcharges{[&](const Porte& porte) {
+                return std::ranges::any_of(porte.cases, [&](sf::Vector2i coordCase) { return m_vision.etat(coordCase) != EtatCase::Inconnue; });
+            }},
+            objet.nature);
+        if (fermee && connue && objet.zone.contains(point)) {
             return &objet;
         }
     }
     return nullptr;
+}
+
+void Partie::mettreAJourLaVision() {
+    m_vision.mettreAJour(m_carte, m_escouade.cerclesDeVision());
 }
 
 const ObjetInteractif* Partie::objetEnCours() const {
@@ -286,18 +297,26 @@ void Partie::mettreAJour(float dt) {
     m_escouade.mettreAJour(dt, m_carte, entitesPhysiques());
     interagirSiAPortee();
     faireTournerLesMonstres(dt);
+    // En dernier, pour que ce que le joueur voit corresponde aux positions de la fin de l'image.
+    mettreAJourLaVision();
 
     m_lancerDeZoneDemande.reset();
     m_skillDemande.reset();
     m_deplacementOrdonne.reset();
 }
 
-void Partie::dessiner(sf::RenderTarget& rendu, bool afficherAncre, bool marquerLeRetour) const {
+void Partie::dessiner(sf::RenderTarget& rendu, bool afficherAncre, bool marquerLeRetour, bool brouillard) const {
     m_carte.dessiner(rendu);
     for (const Monstre& m : m_monstres) {
-        m.dessiner(rendu, m_escouade.getCibleVerrouillee() == m.getId(), marquerLeRetour);
+        // Un monstre hors de vue n'est pas dessiné du tout (ni carré, ni barre de vie, ni contour).
+        if (!brouillard || m_vision.estVisible(m.getCentre())) {
+            m.dessiner(rendu, m_escouade.getCibleVerrouillee() == m.getId(), marquerLeRetour);
+        }
     }
     m_escouade.dessiner(rendu, afficherAncre);
+    if (brouillard) {
+        m_vision.dessiner(rendu);
+    }
 }
 
 void Partie::dessinerCheminsDesMonstres(sf::RenderTarget& rendu) const {

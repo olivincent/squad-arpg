@@ -13,6 +13,7 @@
 #include "Niveau.hpp"
 #include "ObjetInteractif.hpp"
 #include "TileMap.hpp"
+#include "Vision.hpp"
 
 // Ce que le clic du joueur a désigné.
 enum class ResultatClic { Monstre, Objet, Sol, Ignore };
@@ -46,7 +47,10 @@ public:
     // Fige le monde (rien ne bouge) une fois la partie perdue ou gagnée.
     void mettreAJour(float dt);
     // `afficherAncre` est transmis à Escouade::dessiner, `marquerLeRetour` (débogage F3) à Monstre::dessiner.
-    void dessiner(sf::RenderTarget& rendu, bool afficherAncre, bool marquerLeRetour) const;
+    // `brouillard` (débogage F6) : vrai, seuls les monstres visibles sont dessinés et le voile de la
+    // vision couvre l'inconnu et l'exploré ; faux, ni voile ni monstre caché. Visuel seulement : la
+    // règle de clic (monstre hors de vue, porte inconnue) n'en dépend pas.
+    void dessiner(sf::RenderTarget& rendu, bool afficherAncre, bool marquerLeRetour, bool brouillard) const;
     // Débogage (F3) : chemin restant de chaque monstre.
     void dessinerCheminsDesMonstres(sf::RenderTarget& rendu) const;
 
@@ -70,6 +74,8 @@ private:
     Monstre* trouverMonstre(int id);
     // Objet interactif encore actif qui contient ce point (une porte fermée), nullptr sinon.
     const ObjetInteractif* trouverObjetActif(sf::Vector2f point) const;
+    // Recalcule la vision à partir des personnages vivants, à leur position actuelle.
+    void mettreAJourLaVision();
     // Objet dont l'interaction est en cours (vide : nullptr).
     const ObjetInteractif* objetEnCours() const;
     // Effet d'une interaction : ouvre la porte.
@@ -99,4 +105,5 @@ private:
     std::optional<std::size_t> m_skillDemande;
     std::optional<sf::Vector2f> m_deplacementOrdonne;
     Generateur m_generateur;  // passé par référence jusqu'au tirage, jamais copié
+    Vision m_vision;          // ce que le joueur sait de la carte (l'union de ce que voient les personnages vivants)
 };

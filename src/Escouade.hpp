@@ -58,6 +58,9 @@ public:
     void recevoirCoup(int idMonstre, std::size_t place, sf::Vector2f origine, int quantite);
     bool estVivante() const;
     std::vector<Cercle> cerclesDesVivants() const;
+    // Un cercle (centre du personnage, rayon de vision) par personnage vivant : la vision de
+    // l'escouade est l'union de leurs champs.
+    [[nodiscard]] std::vector<Cercle> cerclesDeVision() const;
     // Un personnage vivant est-il à `ecart` ou moins (bord à bord) de cette zone ?
     [[nodiscard]] bool unVivantPresDe(sf::FloatRect zone, float ecart) const;
     [[nodiscard]] std::optional<Cible> choisirCible(TypeSkill type, std::size_t place, const std::vector<EntiteVue>& monstres, const TileMap& carte) const;

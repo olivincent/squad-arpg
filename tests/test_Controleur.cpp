@@ -142,7 +142,7 @@ TEST_CASE("un clic au sol arme le deplacement continu, un clic sur un monstre no
 
     controleur.appuiGauche(partie, curseur);
     controleur.mettreAJourDeplacement(partie, true, curseur);
-    avancer(partie, 30);
+    avancer(partie, 10);  // court : le monstre doit rester dans la vision (320 px) pour être cliqué
     REQUIRE(partie.getEscouade().getCentre().x < depart.x);
 
     // Le combat engagé fait avancer l'escouade vers le monstre ; l'ordre du

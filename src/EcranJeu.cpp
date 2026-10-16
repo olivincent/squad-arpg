@@ -99,6 +99,8 @@ Transition EcranJeu::traiterEvenement(const sf::Event& evenement, const Contexte
             m_debogage.pointsVises = !m_debogage.pointsVises;  // touche de débogage : points visés des personnages
         } else if (data->scancode == sf::Keyboard::Scan::F4) {
             m_debogage.ancre = !m_debogage.ancre;  // touche de débogage : carré vert de l'ancre
+        } else if (data->scancode == sf::Keyboard::Scan::F6) {
+            m_debogage.brouillard = !m_debogage.brouillard;  // touche de débogage : brouillard de guerre (visuel seulement)
         }
     }
     return Aucune{};
@@ -121,7 +123,7 @@ void EcranJeu::dessiner(const Contexte& contexte) const {
     sf::RenderWindow& fenetre = contexte.fenetre;
     fenetre.setView(m_camera);
     fenetre.clear();
-    m_partie.dessiner(fenetre, m_debogage.ancre, m_debogage.pointsVises);
+    m_partie.dessiner(fenetre, m_debogage.ancre, m_debogage.pointsVises, m_debogage.brouillard);
     m_controleur.dessinerApercu(m_partie, fenetre, fenetre.mapPixelToCoords(sf::Mouse::getPosition(fenetre)));
     if (m_debogage.pointsVises) {
         m_partie.getEscouade().dessinerPointsVises(fenetre);

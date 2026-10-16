@@ -272,6 +272,46 @@ TEST_CASE("cerclesDesVivants est vide une fois tous les personnages morts") {
     REQUIRE(escouade.cerclesDesVivants().empty());
 }
 
+TEST_CASE("cerclesDeVision renvoie le centre et le rayon de vision de chacun des 4 personnages") {
+    const Escouade escouade({50.0f, 50.0f});
+
+    const std::vector<Cercle> vision = escouade.cerclesDeVision();
+    const std::vector<Cercle> corps = escouade.cerclesDesVivants();
+
+    REQUIRE(vision.size() == 4);
+    REQUIRE(corps.size() == 4);
+    for (std::size_t i = 0; i < vision.size(); ++i) {
+        REQUIRE(vision[i].centre == corps[i].centre);
+        REQUIRE(vision[i].rayon == 320.0f);
+    }
+}
+
+TEST_CASE("cerclesDeVision n'inclut pas un personnage mort") {
+    Escouade escouade({50.0f, 50.0f});
+    const sf::Vector2f point{1000.0f, 1000.0f};
+    const std::optional<EntiteVue> futurMort = escouade.proieDuMonstre(1, point);
+    REQUIRE(futurMort.has_value());
+
+    escouade.recevoirDegats(1, point, 200);
+    const std::vector<Cercle> vision = escouade.cerclesDeVision();
+
+    REQUIRE(vision.size() == 3);
+    for (const Cercle& cercle : vision) {
+        REQUIRE_FALSE(cercle.centre == futurMort->cercle.centre);
+    }
+}
+
+TEST_CASE("cerclesDeVision est vide une fois tous les personnages morts") {
+    Escouade escouade({50.0f, 50.0f});
+    const sf::Vector2f point{1000.0f, 1000.0f};
+
+    for (int i = 0; i < 4; ++i) {
+        escouade.recevoirDegats(1, point, 200);
+    }
+
+    REQUIRE(escouade.cerclesDeVision().empty());
+}
+
 TEST_CASE("Les obstacles bloquent les personnages mais pas l'ancre") {
     Generateur generateur = generateurDeTest();
     const std::vector<std::string> plan = {

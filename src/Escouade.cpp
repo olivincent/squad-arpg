@@ -29,6 +29,7 @@ constexpr float s_porteeMelee = 20.0f;    // bord à bord
 constexpr float s_porteeTireur = 120.0f;  // bord à bord
 constexpr int s_armureMelee = 50;
 constexpr int s_armureTireur = 0;
+constexpr float s_rayonVision = 320.0f;  // en pixels (8 cases), le même pour les quatre
 constexpr int s_degatsAttaqueDeBase = 5;
 constexpr float s_executionAttaqueDeBase = 0.15f;  // en secondes, immobile avant que le coup parte
 constexpr float s_rechargeMeleeMin = 0.3f;   // attaque de base des mêlées, en secondes
@@ -77,14 +78,14 @@ Escouade::Escouade(sf::Vector2f positionDepart)
       m_vitesseRotation(s_vitesseRotation),
       m_personnages({
           Personnage(placePersonnage(0), s_couleurMelee, attaqueDeBase(s_porteeMelee, s_rechargeMeleeMin, s_rechargeMeleeMax),
-                     Skill(TypeSkill::Degats, s_porteeMelee, s_degatsSkill, s_rechargeSkill, s_rechargeSkill, 0.0f, s_activationSkill), s_armureMelee),
+                     Skill(TypeSkill::Degats, s_porteeMelee, s_degatsSkill, s_rechargeSkill, s_rechargeSkill, 0.0f, s_activationSkill), s_armureMelee, s_rayonVision),
           Personnage(placePersonnage(1), s_couleurMelee, attaqueDeBase(s_porteeMelee, s_rechargeMeleeMin, s_rechargeMeleeMax),
                      Skill(TypeSkill::Provocation, 0.0f, s_dureeProvocation, s_rechargeProvocation, s_rechargeProvocation, s_rayonProvocation, s_activationProvocation),
-                     s_armureMelee),
+                     s_armureMelee, s_rayonVision),
           Personnage(placePersonnage(2), s_couleurTireur, attaqueDeBase(s_porteeTireur, s_rechargeTireurMin, s_rechargeTireurMax),
-                     Skill(TypeSkill::Soin, s_porteeSoin, s_puissanceSoin, s_rechargeSoin, s_rechargeSoin, 0.0f, s_activationSoin), s_armureTireur),
+                     Skill(TypeSkill::Soin, s_porteeSoin, s_puissanceSoin, s_rechargeSoin, s_rechargeSoin, 0.0f, s_activationSoin), s_armureTireur, s_rayonVision),
           Personnage(placePersonnage(3), s_couleurTireur, attaqueDeBase(s_porteeTireur, s_rechargeTireurMin, s_rechargeTireurMax),
-                     Skill(TypeSkill::Zone, s_porteeZone, s_degatsZone, s_rechargeZone, s_rechargeZone, s_rayonZone, s_activationZone), s_armureTireur),
+                     Skill(TypeSkill::Zone, s_porteeZone, s_degatsZone, s_rechargeZone, s_rechargeZone, s_rayonZone, s_activationZone), s_armureTireur, s_rayonVision),
       }),
       m_cibleVerrouillee(),
       m_skillEnAttente(),
@@ -986,6 +987,16 @@ std::vector<Cercle> Escouade::cerclesDesVivants() const {
     for (const Personnage& personnage : m_personnages) {
         if (personnage.estVivant()) {
             cercles.push_back(personnage.getCercle());
+        }
+    }
+    return cercles;
+}
+
+std::vector<Cercle> Escouade::cerclesDeVision() const {
+    std::vector<Cercle> cercles;
+    for (const Personnage& personnage : m_personnages) {
+        if (personnage.estVivant()) {
+            cercles.push_back({personnage.getCentre(), personnage.getRayonVision()});
         }
     }
     return cercles;
