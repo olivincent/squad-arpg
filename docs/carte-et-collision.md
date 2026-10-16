@@ -78,23 +78,18 @@
   monstres n'ouvrent pas les portes ; une porte reste ouverte ; une
   porte d'une seule case est supposée horizontale ; pas de surbrillance au survol.
 
-## Ligne de vue (étape 44)
+## Ligne de vue (étapes 44 puis 73)
 
-- **`TileMap::ligneDeVue(a, b)`** : vrai si le segment de `a` à `b` ne
-  traverse aucun mur. C'est une question posée à la carte, à côté de
-  `trajetLibre`.
-- **Implémentation** : `trajetLibre` avec un carré de 2 × 2 px centré sur
-  `a` et déplacé de `b - a` (constante `COTE_LIGNE_DE_VUE` dans
-  `TileMap.cpp`). Le carré n'est pas de taille nulle : avec la convention
-  « toucher n'est pas chevaucher », un rectangle vide ne chevauche jamais
-  rien. Le nom cache le « comment » : un parcours de grille (DDA) pourra le
-  remplacer sans toucher aux appelants.
-- **Conséquences** : un point d'arrivée dans un mur donne faux ; un segment
-  qui passe par le coin où deux murs se touchent en diagonale est bloqué ;
-  un segment à 1 px d'un mur est libre. Si `a` est à moins de 1 px d'un
-  mur, le carré le touche et la vue est refusée (limite acceptée).
-- **Utilisée** pour l'instant seulement par le skill de zone (voir
-  `docs/combat.md`).
+- **Étape 44** : `TileMap::ligneDeVue(a, b)` répondait par `trajetLibre` avec un carré
+  de 2 × 2 px balayé de `a` à `b` (segment centre à centre).
+- **Étape 73** : elle a **quitté `TileMap`** pour devenir la fonction libre
+  `ligneDeVue(carte, a, b)` de `ChampDeVision` (voir `docs/vision.md`). `TileMap` est la
+  couche de base : elle ne doit pas dépendre d'un algorithme qui dépend d'elle.
+  `trajetLibre` reste ici : il sert au déplacement, pas à la vue. La constante
+  `s_coteLigneDeVue` a disparu avec l'ancienne implémentation.
+- **Conséquences du passage aux cases** : la vue se décide d'une case à l'autre ; le
+  comportement fin près d'un mur (1 px de marge, coin traversé en diagonale) n'existe plus.
+  Un point dans un mur donne toujours faux.
 
 ## Déplacement avec glissement et obstacles
 

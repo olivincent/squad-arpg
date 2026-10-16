@@ -448,9 +448,11 @@ personnages sont dans `docs/formation.md`, le monstre dans
 
 ## Ligne de vue du skill de zone (étape 44)
 
+*(Depuis l'étape 73, `ligneDeVue` est la fonction libre de `ChampDeVision`, qui décide en cases ; voir la section « Une seule ligne de vue » plus bas.)*
+
 - **Condition unique « peut lancer au point »** :
   `Escouade::peutLancerAuPoint(place, point, carte)` = point à portée
-  (bord à bord) ET `TileMap::ligneDeVue(centre du lanceur, point)`. Elle
+  (bord à bord) ET `ligneDeVue(carte, centre du lanceur, point)`. Elle
   sert au clic (`declencherSkillDeZone`) et pendant l'attente
   (`attaquer`), pour que les deux chemins ne divergent pas.
 - **À portée mais pas en vue** : même traitement que hors de portée,
@@ -460,9 +462,9 @@ personnages sont dans `docs/formation.md`, le monstre dans
 - **Point dans un mur** : refusé (liste vide, ni attente ni recharge) ;
   `main.cpp` sort de la visée comme pour les autres refus.
 - **Explosion** : un monstre est touché s'il est dans la zone (règle
-  inchangée) ET si `ligneDeVue(point d'impact, centre du monstre)`.
-  Centre à centre, sans test sur les bords : un monstre dont le centre est
-  derrière un mur mince est épargné même si son bord dépasse. La carte est
+  inchangée) ET si `ligneDeVue(carte, point d'impact, centre du monstre)`.
+  Sans test sur les bords : un monstre dont le centre est (dans sa case)
+  derrière un mur est épargné même si son bord dépasse. La carte est
   un paramètre de `declencherSkillDeZone`, `lancerSkillDeZone` et
   `attaquer`, jamais un membre.
 - **Limites** : la prévisualisation de la visée n'indique pas si le point
@@ -473,7 +475,7 @@ personnages sont dans `docs/formation.md`, le monstre dans
 
 - **Une seule règle, dans `Escouade`** : `peutAtteindre(personnage, arme,
   cible, carte)` = `Skill::estAPortee` (bord à bord) ET
-  `TileMap::ligneDeVue(centre du personnage, centre de la cible)`.
+  `ligneDeVue(carte, centre du personnage, centre de la cible)`.
   `Skill` reste pur (il ne connaît pas `TileMap`). Comme `Escouade` ne voit
   pas le `Skill` d'un `Personnage`, une `enum class Arme { AttaqueDeBase,
   Skill }` privée dit laquelle des deux portées utiliser. Aucun autre
@@ -499,7 +501,7 @@ personnages sont dans `docs/formation.md`, le monstre dans
   (`avancerSkillEnAttente`) ; sinon mise en attente et marche. Le choix du
   plus blessé ne change pas (vu ou non).
 - **Provocation** : un monstre est provoqué s'il est dans la zone ET si
-  `ligneDeVue(centre du provocateur, centre du monstre)`, même règle que
+  `ligneDeVue(carte, centre du provocateur, centre du monstre)`, même règle que
   l'explosion du skill de zone. La recharge est consommée dans tous les
   cas.
 - **Cartes en paramètre** : `declencherSkill`, `choisirCible` et
@@ -508,7 +510,31 @@ personnages sont dans `docs/formation.md`, le monstre dans
   maintenant la vue (voir `docs/monstre.md`). Hors de portée de l'étape 46 : la
   riposte et la détection des monstres ignoraient alors les murs ; pas de placement pour obtenir la vue (le
   personnage avance simplement vers sa cible) ; pas d'indicateur d'une
-  cible non visible ; la vue est centre à centre, pas bord à bord.
+  cible non visible ; la vue est mesurée entre les centres, pas bord à bord (la case
+  de chacun est celle qui contient son centre).
+
+## Une seule ligne de vue (étape 73)
+
+- **Un seul algorithme de vue dans tout le jeu** : `ligneDeVue(carte, a, b)`, fonction libre
+  de `ChampDeVision`, répond par le shadowcasting symétrique de la vision du joueur
+  (`docs/vision.md`). Ce qu'un personnage voit est exactement ce qu'il peut viser, et « A
+  voit B » équivaut à « B voit A », pour les personnages comme pour les monstres. Avant,
+  près d'un coin, le joueur pouvait voir un monstre que ses personnages ne pouvaient pas
+  frapper, ou l'inverse.
+- **Tous les usages changent d'un coup, sans règle particulière** : `Escouade::peutAtteindre`
+  (autodéfense, combat verrouillé, agresseurs, skills de dégâts et de soin), provocation,
+  skill de zone (lanceur → point, point d'impact → monstres), places d'attaque (« en vue du
+  monstre »), `Monstre::peutAtteindre` et détection des monstres. Les portées et la logique
+  autour ne changent pas.
+- **Granularité** : la vue se décide d'une case à l'autre. Deux points d'une même case se
+  voient toujours ; un point dans un mur ou une porte fermée ne voit rien et n'est vu de
+  personne. Le détail fin près d'un mur (1 px de marge) n'existe plus.
+- **Deux murs en diagonale** : deux cases libres en diagonale entre deux murs qui se touchent
+  **se voient** (la lumière passe par le coin commun). C'est ce que donne l'algorithme de
+  Ford, conservé tel quel ; l'ancien segment centre à centre était bloqué. Épinglé par un test.
+- **Pas de cache** : `ligneDeVue` est recalculée à chaque appel. Mesuré : aucun
+  ralentissement dans la suite de tests (12,3 s avant, 13,3 s après, l'écart venant des
+  nouveaux tests d'équivalence). À reprendre seulement si un problème est mesuré en jeu.
 
 ## Recharge aléatoire (étape 56)
 

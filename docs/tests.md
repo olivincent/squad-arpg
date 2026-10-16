@@ -59,7 +59,7 @@
 - **Teste uniquement l'interface publique** de `TileMap`, `Chemin`,
   `Escouade`, `Personnage`, `Monstre`, `Skill`, `Mobile` et `Cercle`
   (`distanceBordABord`, `getCercle`, `getTile`,
-  `chevaucheUnMur`, `trajetLibre`, `ligneDeVue`, `getLargeur`/`getHauteur`,
+  `chevaucheUnMur`, `trajetLibre`, `getLargeur`/`getHauteur`,
   `caseContenant`/`centreDeCase`, le constructeur, `trouverChemin`,
   `lisserChemin`, `allerVers`, `arreter`, `attaquer`, `mettreAJour`,
   `getCentre`, `getTaille`, `directionVoulue`, `estAPortee`, `frapper`,
@@ -468,9 +468,10 @@
   un mur de 2 px : son A* ignore sa taille). Un test existant (deux
   personnages, deux monstres) a été décalé pour que les monstres soient
   dans la carte : hors carte = mur, donc jamais en vue.
-- **`test_TileMap.cpp`, `ligneDeVue`** : terrain dégagé, mur entre les
-  points, points identiques, coin de deux murs en diagonale (bloqué),
-  segment à 1 px d'un mur (libre), arrivée dans un mur.
+- **`test_TileMap.cpp`, `ligneDeVue`** *(supprimés à l'étape 73 : la fonction est sortie de
+  `TileMap`, voir « Une seule ligne de vue (étape 73) » plus bas)* : terrain dégagé, mur
+  entre les points, points identiques, coin de deux murs en diagonale (bloqué), segment à 1
+  px d'un mur (libre), arrivée dans un mur.
 - **Non testé** : le mode visée et le cercle, qui vivent dans `main.cpp`
   (vérifiés à la main dans le jeu).
 
@@ -899,3 +900,48 @@
   monstre, qui n'était plus cliquable. La règle n'a pas été affaiblie.
 - **Non testé** : `Vision::dessiner`, le dessin conditionnel de `Partie::dessiner` et la touche
   F6 (vérifiés dans le jeu). 704 tests.
+
+## Une seule ligne de vue (étape 73)
+
+- **`test_ChampDeVision.cpp`** (9 cas de l'étape 72 inchangés, **+14** : 23 en tout).
+  - `estVisibleDepuis` (7 cas) : une case se voit elle-même, même dans un mur ; cible sur un axe
+    ou une diagonale en terrain dégagé ; un mur cache la cible derrière lui sur un axe comme sur
+    une diagonale (cible d'une diagonale dans deux quadrants : les deux doivent échouer) ; porte
+    fermée (révélée mais cache la salle) et ouverte, dans les deux sens ; cible hors carte ;
+    **équivalence** avec `champDeVision` et **symétrie**, sur le plan à piliers et sur les
+    cartes générées 1, 2 et 3 (rayon 10). L'aide `verifierEquivalence` compare, pour chaque case
+    libre A, `estVisibleDepuis(A, B)` à l'appartenance de B à `champDeVision(A, 10)` pour toutes
+    les cases B à distance euclidienne `<= 10` (B quelconque), et la symétrie pour B libre. Elle
+    compte les paires cachées (`cachees > 0`) et collecte les divergences dans un vecteur,
+    comme `verifierSymetrie`.
+  - `ligneDeVue` libre (6 cas, préfixe « ligneDeVue libre », pour ne pas heurter les anciens
+    noms) : faux si un point est dans un mur, une porte fermée ou hors carte ; vrai dans la
+    même case ; terrain dégagé ; mur entre deux salles ; porte fermée puis ouverte ; symétrie
+    sur 2000 paires de points tirés au hasard (graine 42) dans les cases libres d'une carte
+    générée.
+  - **+1** : deux cases libres en diagonale entre deux murs qui se touchent **se voient**
+    (comportement de Ford conservé et épinglé ; l'ancien segment était bloqué).
+- **`test_TileMap.cpp`** (−6) : les six cas `ligneDeVue` ont disparu, plus les assertions
+  `ligneDeVue` de deux cas de portes (la porte est couverte par `test_ChampDeVision.cpp`).
+- **`test_Monstre.cpp`, fixtures adaptés à la vue en cases** (aucune assertion affaiblie). Le
+  pilier de 40 px mettait le monstre en case (0, 1) et la cible en case (1, 0), des cases
+  diagonales que le pilier ne sépare plus ; avec des cases de 40 px, aucune paire cachée n'est
+  à portée de 40 px. Deux fixtures :
+  - `carteAvecMurMince` (20 × 20 cases de 10 px, un mur en case (4, 4)) pour les tests qui ne
+    déplacent pas le monstre : `peutAtteindre`, `engagerAttaque` (refus si cachée, autre
+    candidat), coup engagé. Monstre en (25, 45), cible cachée en (60, 45), visible en (25, 15).
+  - `carteAvecPilier` (inchangée : 5 × 5 cases de 40 px, mur en case (1, 1)) pour les tests où
+    le monstre doit marcher. Sur des cases de 10 px le A* le coincerait (son carré de 30 px ne
+    passe pas entre les centres de cases) et « il ne bouge pas » ne distinguerait plus « arrêté »
+    de « coincé ». La proie cachée est un cercle de rayon 55 centré en (100, 60), à portée
+    malgré le mur de 40 px.
+  - Le cas « …derriere un coin » devient « …derriere un mur ».
+- **Durée** : la suite passe de 12,3 s à 13,3 s, l'écart venant des tests d'équivalence
+  (~1,4 s). Les tests de `Partie` qui durent ~1,7 s le faisaient déjà.
+- **`test_GenerateurDonjon.cpp`** (+4, 61 en tout) : `contientUnCoinDiagonal` détecte le damier
+  dans les deux orientations, ne détecte rien dans un plan sans damier (mur plein, escalier,
+  plan vide, une seule ligne), le détecte sur le bord du plan (coins haut-gauche, bas-gauche et
+  haut-droit) ; et un **test de propriété** : aucun coin diagonal pour les graines 1 à 50. Ce
+  dernier est un échantillon : un sondage de 20 000 graines (programme jetable, hors tests) en
+  trouve 145 (0,7 %, première graine 391). Voir `docs/generation.md`.
+- 716 tests.

@@ -80,6 +80,7 @@ est dans `docs/historique.md`.
 - Étape 70 — Portes et premier objet interactif ✅
 - Étape 71 — Correction des portes : ouvrir sur place et faire face à la porte ✅
 - Étape 72 — Vision des personnages et brouillard de guerre ✅
+- Étape 73 — La ligne de vue passe par le shadowcasting symétrique ✅ (avec le garde-fou `contientUnCoinDiagonal`)
 
 ## Prochaine étape (à choisir)
 
@@ -87,10 +88,11 @@ est dans `docs/historique.md`.
 d'attaque » par type de monstre, qui se branchera sur `coutDesObstacles` : la liste
 de cercles passée changera selon le type d'entité).
 
-Étape 73 envisagée : faire passer `TileMap::ligneDeVue` (attaques, skills, détection des
-monstres) par `champDeVision`, désormais symétrique (voir `docs/vision.md`).
-
 Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes) :
+- Passe de nettoyage des coins diagonaux dans `genererNiveau` (creuser en sol le mur du haut ou
+  de gauche de chaque damier de 2 × 2 cases, après les couloirs et avant `placerPortes`, puis
+  revérifier la connexité) : non écrite parce que le test sur les graines 1 à 50 passe, mais
+  145 graines sur 20 000 (0,7 %) contiennent le motif ; à décider (voir `docs/vision.md`)
 - Skill en attente par personnage (aujourd'hui un seul pour l'escouade)
 - Interruption de l'activation d'un skill par les dégâts reçus
 - Laisse prolongée par les dégâts (un monstre touché qui dépasse son
@@ -175,7 +177,8 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   l'exploré (les zones visitées restent affichées). Un monstre hors de vue n'est pas dessiné
   (ni barre de vie, ni contour) et n'est pas cliquable (le clic déplace l'escouade) ; une
   porte dont aucune case n'est connue non plus. Le combat (autodéfense, skills, détection des
-  monstres, verrou posé) ne change pas : il utilise toujours `ligneDeVue`. F6 (débogage) coupe
+  monstres, verrou posé) utilise `ligneDeVue`, qui passe depuis l'étape 73 par le même
+  shadowcasting (voir « Ligne de vue »). F6 (débogage) coupe
   le brouillard (visuel seulement : la règle de clic reste) ; F5 le remet. Voir `docs/vision.md`.
 - **Fenêtre et carte** : fenêtre 1200 × 800 par défaut ; carte de 59 × 40 cases de
   40 px (2360 × 1600 px). Depuis l'étape 59, `EcranJeu` joue sur un niveau
@@ -315,14 +318,21 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   touches 1 à 3 déclenchent le skill du personnage de la même place ; la
   touche 4 entre en mode visée (voir « Skills »).
 - **Ligne de vue** : un personnage ne frappe, ne soigne et ne provoque
-  que ce qu'il voit (à portée ET `TileMap::ligneDeVue` centre à centre,
+  que ce qu'il voit (à portée ET `ligneDeVue`, étape 73, en cases,
   règle unique `Escouade::peutAtteindre`) : autodéfense, combat verrouillé
   (l'ancre continue d'avancer tant que tous les vivants ne voient pas la
   cible), agresseurs (qui ne voit pas son agresseur va vers lui), skills
   de dégâts, soin et zone. Un skill de dégâts ou de soin à portée mais
   sans vue est mis en attente et le lanceur marche ; sans verrou, un
   monstre caché n'est pas candidat. La provocation ne touche que les
-  monstres en vue (recharge consommée dans tous les cas).
+  monstres en vue (recharge consommée dans tous les cas). **Étape 73** :
+  `ligneDeVue(carte, a, b)`, fonction libre de `ChampDeVision` (elle a quitté
+  `TileMap`), répond par le même shadowcasting symétrique que le brouillard :
+  ce qu'un personnage voit est exactement ce qu'il peut viser, et « A voit B »
+  équivaut à « B voit A », monstres compris (détection, frappe, places
+  d'attaque, provocation, skill de zone). La vue se décide d'une case à
+  l'autre : deux points d'une même case se voient, un point dans un mur ne
+  voit rien. Voir `docs/vision.md` et `docs/combat.md`.
 - **Combat** : le monstre verrouillé est entouré d'un contour jaune.
   L'escouade s'approche en formation jusqu'à ce que tous ses personnages
   vivants soient à portée, puis s'arrête et chacun frappe selon sa propre
@@ -401,7 +411,7 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   `(1940, 180)`, `(1500, 540)` et `(1620, 540)`. Possédés par
   `Partie` dans un `std::vector<Monstre>`. Un monstre détecte un
   personnage vivant à moins de 200 px de lui et de 600 px de son poste (sa
-  position de départ) ET en vue (`TileMap::ligneDeVue`, centre à centre) ;
+  position de départ) ET en vue (`ligneDeVue`, en cases) ;
   il le poursuit (A* + lissage) sans que la perte de vue y mette fin, et
   s'arrête dès qu'il peut l'atteindre : à portée d'attaque (15 px bord à
   bord, 10 dégâts, recharge 0,7–1,3 s) ET en vue (`Monstre::peutAtteindre`). Un monstre qui reçoit des dégâts (> 0) entre en poursuite de sa
@@ -438,7 +448,7 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 704 tests : 9 sur `ChampDeVision`, 8 sur `Vision`, 5 sur `ObjetInteractif`, 13 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 57 sur `GenerateurDonjon`, 42 sur `TileMap`, 27 sur `Chemin`, 194
+  (`./build/tests.exe`, 716 tests : 23 sur `ChampDeVision`, 8 sur `Vision`, 5 sur `ObjetInteractif`, 13 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 61 sur `GenerateurDonjon`, 36 sur `TileMap`, 27 sur `Chemin`, 194
   sur `Escouade` en six fichiers par thème — 38 déplacement, 32 combat, 70
   skills, 26 agresseurs, 20 vue, 8 places —, 11 sur `Encerclement`, 16 sur `Deplacement`, 73 sur `Monstre`,
   51 sur `Personnage`, 24 sur `Skill`, 24 sur `Mobile`, 2 sur `Eclaircir`, 10 sur `Cercle`, 13
@@ -448,11 +458,14 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   formation et `provoquer` à une place invalide couverts.
 
 **Limites connues** (acceptées pour l'instant) :
-- Vision (étape 72) : un monstre verrouillé qui sort de la vision garde le verrou ; les
-  attaques, skills et détections des monstres utilisent encore `ligneDeVue`, pas le champ
-  de vision (étape 73) ; le skill de zone peut être visé dans l'inconnu ; pas de mémoire
-  des monstres vus ; le compteur « Monstres : N » compte aussi les monstres cachés. Voir
-  `docs/vision.md`.
+- Vision (étapes 72 et 73) : un monstre verrouillé qui sort de la vision garde le verrou ; la
+  ligne de vue ne regarde pas le rayon de vision (320 px) : un monstre voilé peut détecter et
+  frapper, et le skill de zone peut toucher des monstres voilés ; le skill de zone peut être
+  visé dans l'inconnu ; pas de mémoire des monstres vus ; le compteur « Monstres : N » compte
+  aussi les monstres cachés ; deux cases libres en diagonale entre deux murs qui se touchent se
+  voient (algorithme de Ford), ce que le générateur n'empêche pas (145 graines sur 20 000, soit
+  0,7 %, contiennent un tel coin ; le test sur les graines 1 à 50 n'en trouve aucun) ;
+  `ligneDeVue` n'a pas de cache (aucun ralentissement mesuré). Voir `docs/vision.md`.
 - Menus (étape 65) : souris seulement ; « Options » et « Commencer partie »
   n'existent qu'au menu de départ (pas de pause ni de retour au menu en
   cours de partie) ; une résolution enregistrée plus grande que le bureau
@@ -489,7 +502,7 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
 - Le territoire des monstres reste une distance pure (il ignore les
   murs) ; une fois en poursuite, un monstre ne perd pas sa proie en la
   perdant de vue (il la suit par le A* jusqu'à l'abandon habituel) ; la
-  ligne de vue est mesurée centre à centre.
+  ligne de vue se décide en cases (étape 73), d'un centre à l'autre.
 - Provocation stricte (étape 66) : un monstre provoqué ne frappe que son
   provocateur, même s'il est collé à un autre personnage ; si le provocateur
   est caché, il ne frappe personne.

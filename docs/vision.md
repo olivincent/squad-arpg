@@ -10,10 +10,9 @@ modules : `ChampDeVision` (l'algorithme), `Vision` (la connaissance du joueur) e
   de cases de plus en plus loin de l'origine, un intervalle de pentes [début, fin] qui
   se rétrécit quand un mur coupe la lumière. Le principe est commenté en tête de
   `ChampDeVision.cpp`.
-- **Pourquoi symétrique** : à l'étape 73, `TileMap::ligneDeVue` (attaques, skills,
-  détection des monstres) passera par ce module. « A voit B » doit alors valoir « B voit
-  A », sinon un monstre pourrait frapper un personnage qu'il ne voit pas, ou
-  l'inverse. Le shadowcasting classique n'est pas symétrique ; la variante de Ford l'est
+- **Pourquoi symétrique** : depuis l'étape 73, `ligneDeVue` (attaques, skills, détection des
+  monstres) passe par ce module. « A voit B » doit valoir « B voit A », sinon un monstre
+  pourrait frapper un personnage qu'il ne voit pas, ou l'inverse. Le shadowcasting classique n'est pas symétrique ; la variante de Ford l'est
   en n'acceptant une case libre que si son **centre** est dans l'intervalle.
 - **Mur et porte fermée** : une case bloquante (`estBloquante`) qui reçoit la lumière est
   révélée et l'arrête. On voit la face d'un mur ou d'une porte fermée, jamais ce qui est
@@ -32,6 +31,61 @@ modules : `ChampDeVision` (l'algorithme), `Vision` (la connaissance du joueur) e
   sur un plan à piliers et sur trois cartes générées (portes une sur deux ouvertes). Le test
   compte aussi les paires qui ne se voient pas, pour prouver qu'il éprouve quelque chose.
   Vérifié par mutation : sans le critère du centre, il échoue.
+
+## Une seule ligne de vue (étape 73)
+
+- **Un seul balayage** : la classe `Balayage` (patron `template <typename Visiteur>`) contient
+  les quadrants, les rangées, les pentes et le critère du centre, **en un seul exemplaire**. Elle
+  appelle un visiteur pour chaque case révélée dans la carte ; si le visiteur renvoie vrai, le
+  balayage s'arrête. Les trois fonctions publiques ne diffèrent que par le visiteur et la
+  profondeur maximale :
+  - `champDeVision(carte, origine, rayon)` : visiteur qui collecte les cases à distance
+    `<= rayon` (entiers) ; profondeur max = `rayon` ; comportement et tests de l'étape 72
+    inchangés ;
+  - `estVisibleDepuis(carte, origine, cible)` : visiteur qui cherche la `cible` et arrête
+    dès qu'il la trouve ; profondeur max = profondeur de la cible dans le quadrant ; seuls
+    les quadrants qui la contiennent sont balayés. Une cible sur une diagonale (|colonne| =
+    profondeur) est dans deux quadrants : vrai si l'un des deux la révèle, ce qui donne
+    exactement l'union de `champDeVision` ;
+  - `ligneDeVue(carte, a, b)` (pixels du monde) : faux si la case de `a` ou de `b` est
+    bloquante (hors carte = mur) ; sinon `estVisibleDepuis(caseContenant(a), caseContenant(b))`.
+- **Visiteur plutôt que copier le balayage** : une seconde copie du critère de révélation
+  pourrait diverger de la première, et c'est justement l'équivalence entre vision du joueur
+  et ligne de vue des combattants qu'on veut garantir. Un patron plutôt que `std::function` :
+  l'appel est inlinable, et `ligneDeVue` est appelée plusieurs fois par image et par monstre.
+- **Pourquoi hors de `TileMap`** : `TileMap` est la couche de base ; elle ne doit pas dépendre
+  d'un algorithme qui dépend d'elle. `TileMap::ligneDeVue` et sa constante ont été supprimées.
+- **Pas de limite de rayon dans `estVisibleDepuis`** : la portée est vérifiée ailleurs (bord à
+  bord). Le rayon de vision des personnages (320 px) n'intervient donc pas dans le combat.
+- **Granularité** : la vue se décide en cases. Deux points d'une même case se voient toujours ;
+  un point dans un mur ou une porte fermée ne voit rien et n'est vu de personne (règle
+  d'avant, conservée). Le comportement fin près d'un mur (1 px de marge, coin traversé en
+  diagonale) change.
+- **Deux murs en diagonale** : deux cases libres en diagonale entre deux murs qui se touchent
+  **se voient**. Le sol en diagonale est à la pente exactement 1 (ou −1), son centre est dans
+  l'intervalle (bornes incluses), et le mur qui précède n'a pas encore rétréci l'intervalle de
+  ce côté. C'est ce que donne l'algorithme de Ford, conservé sans retouche ; l'ancien segment
+  centre à centre était bloqué. Épinglé par un test. Effet visible en jeu : on peut viser en
+  biais à travers un coin « en escalier ».
+- **Coins diagonaux : réglés dans la carte, pas dans l'algorithme** (décision d'après l'étape 73).
+  Le motif qui pose problème est un *damier* : un carré de 2 × 2 cases dont deux cases en
+  diagonale sont du sol et les deux autres des murs. On n'y passe pas (deux murs qui se
+  touchent par un coin arrêtent le déplacement), mais on y voit. Corriger `ChampDeVision` pour
+  que la lumière ne passe pas serait possible, mais risquerait la symétrie « A voit B ⇔ B voit
+  A », qui est ce que l'étape 73 garantit ; mieux vaut empêcher le motif d'exister. La fonction
+  pure `contientUnCoinDiagonal(plan)` de `GenerateurDonjon` le détecte (voir
+  `docs/generation.md`).
+- **Le motif apparaît-il ? Oui, rarement** : le test de propriété sur les graines 1 à 50 passe
+  (aucun coin diagonal), donc **aucune passe de nettoyage n'a été écrite**, comme convenu. Mais un
+  sondage de 20 000 graines, hors des tests, en trouve **145 (0,7 %)**, la première étant la 391,
+  chacune avec exactement un motif : deux masses de mur qui se touchent par un coin, avec du sol
+  sur l'autre diagonale. Le test 1 à 50 est donc un échantillon, pas une garantie ; si le motif
+  doit être exclu pour de bon, il faut soit étendre le test, soit écrire la passe de nettoyage
+  (creuser en sol le mur du haut ou de gauche de chaque motif, après les couloirs et avant
+  `placerPortes`, jusqu'à ce qu'il n'y en ait plus, puis revérifier la connexité).
+- **Pas de cache** : voir `docs/combat.md`.
+- **Tests** : équivalence `estVisibleDepuis` ⇔ `champDeVision` et symétrie, sur le plan à
+  piliers et trois cartes générées ; voir `docs/tests.md`.
 
 ## `Vision` : la connaissance, pas le monde
 
@@ -72,9 +126,9 @@ modules : `ChampDeVision` (l'algorithme), `Vision` (la connaissance du joueur) e
   - une porte n'est cliquable que si au moins une de ses cases n'est pas `Inconnue` ; sinon
     le clic compte comme un clic au sol ;
   - un clic au sol dans l'inconnu reste permis.
-- **Inchangés, volontairement** : autodéfense, skills (le skill de zone peut être visé dans
-  l'inconnu), détection et frappe des monstres, verrou déjà posé. Ils continuent d'utiliser
-  `ligneDeVue`. C'est l'étape 73.
+- **Combat** : autodéfense, skills, détection et frappe des monstres utilisent `ligneDeVue`,
+  donc le même shadowcasting que le dessin du brouillard (étape 73, voir plus bas). Le skill de
+  zone peut encore être visé dans l'inconnu, et le verrou déjà posé n'est pas rompu.
 - **Dessin** : carte, monstres visibles, escouade, voile de la `Vision` ; puis, dans
   `EcranJeu`, l'aperçu de visée, les traces de débogage (F3) et l'interface. Un monstre non
   visible n'est pas dessiné du tout (ni carré, ni barre de vie, ni contour jaune).
@@ -92,8 +146,9 @@ modules : `ChampDeVision` (l'algorithme), `Vision` (la connaissance du joueur) e
   le voir.
 - Les monstres n'ont ni vision ni mémoire propres ; pas de « fantôme » de la dernière
   position vue d'un monstre.
-- La vision n'intervient pas dans les attaques, skills et détections (étape 73) : le skill
-  de zone peut toucher des monstres voilés, un monstre voilé peut détecter et frapper, et
-  la ligne de vue centre à centre ne coïncide pas exactement avec le champ de vision.
+- Le skill de zone peut toucher des monstres voilés (hors du rayon de vision, mais en vue
+  du point d'impact), et un monstre voilé peut détecter et frapper : la ligne de vue ne
+  regarde pas le rayon de vision (320 px), seulement les murs ; la portée est vérifiée à
+  part.
 - Le compteur « Monstres : N » révèle le nombre total de monstres, vus ou non.
 - Bords durs, pas de dégradé ni de lumière ; pas de mini-carte ; la caméra ne dézoome pas.

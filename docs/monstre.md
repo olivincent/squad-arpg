@@ -98,7 +98,7 @@ déplacement par chemin dans `docs/chemin.md`.
   `proieDetectee(cible, carte)`** : une proie est détectée si elle existe, si
   elle est à `<=` `m_rayonDetection` (200 px) **du monstre**, à `<=`
   `m_rayonTerritoire` **du poste** ET en vue du monstre
-  (`TileMap::ligneDeVue`, centre à centre, étape 62). La seconde condition est
+  (`ligneDeVue` de `ChampDeVision`, en cases depuis l'étape 73 ; étape 62). La seconde condition est
   nécessaire : sans elle, un monstre au bord de son territoire détecterait une
   proie restée à la frontière et la poursuivrait pour la perdre aussitôt. Elle
   n'est appelée qu'en `EnGarde` : en `Retour`, le monstre ne détecte plus rien
@@ -110,8 +110,9 @@ déplacement par chemin dans `docs/chemin.md`.
   reste une distance pure, et un monstre touché s'active sans vue
   (`reveilleParCoup` ne la regarde pas).
 - **Les distances sont mesurées à vol d'oiseau** : détection et territoire
-  centre à centre ; portée d'attaque : bord à bord. La vue est aussi centre
-  à centre.
+  centre à centre ; portée d'attaque : bord à bord. La vue se décide en
+  cases (`ligneDeVue`, étape 73) : le monstre et le personnage se voient
+  si et seulement si le personnage voit le monstre.
 
 ## Coup reçu
 
@@ -238,7 +239,7 @@ déplacement par chemin dans `docs/chemin.md`.
   monstre immobile, attaque prête) puis `avancerAttaque(dt, generateur)`, qui rend les dégâts
   0,3 s plus tard. `Monstre::frapper` n'existe plus.
 - **`peutAtteindre(proie, carte)`** (étape 62) : règle unique, à portée
-  (bord à bord) ET `ligneDeVue` centre à centre, sur le modèle de
+  (bord à bord) ET `ligneDeVue` (en cases, étape 73), sur le modèle de
   `Escouade::peutAtteindre` sans dépendance entre les deux classes. Un
   monstre à portée mais caché derrière un coin ne s'arrête donc pas : il
   continue vers sa proie jusqu'à la voir. Un coup déjà engagé part sans

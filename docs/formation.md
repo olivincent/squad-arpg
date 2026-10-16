@@ -332,7 +332,7 @@ finissaient l'un par-dessus l'autre.
   (décision d'Olivier) : jamais deux places plus proches que prévu, parfois une
   place de moins.
 - **Une candidate est valide** si le rectangle du personnage centré dessus ne
-  chevauche aucun mur et si elle voit le centre du monstre (`ligneDeVue`).
+  chevauche aucun mur et si elle voit le centre du monstre (`ligneDeVue`, en cases depuis l'étape 73).
   **Elle est libre** si elle est à plus de 34 px de la place retenue par un
   autre personnage pour ce monstre (quel que soit l'anneau) ET à plus de 34 px
   du centre de tout autre personnage vivant immobile (occupation réelle : un

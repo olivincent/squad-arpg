@@ -1763,3 +1763,35 @@ seulement. Pas d'accesseur `getVision()` : les tests passent par `cliquer`.
 aux monstres, fantôme de la dernière position, rupture du verrou hors de vue, interdire de viser
 le skill de zone dans l'inconnu, bords adoucis, lumière, rayons différents par personnage,
 mini-carte, caméra qui dézoome, recalcul seulement au changement de case.
+
+## Étape 73 — La ligne de vue passe par le shadowcasting symétrique ✅
+
+1. [x] Balayage factorisé en un patron à visiteur (`Balayage`) et `estVisibleDepuis(carte,
+       origine, cible)` (enchaînée). Les 9 tests de `champDeVision` passent sans modification ;
+       +7 tests (équivalence avec `champDeVision` et symétrie sur le plan à piliers et trois
+       cartes générées, axes, même case, portes, hors carte).
+2. [x] Fonction libre `ligneDeVue(carte, a, b)` dans `ChampDeVision`, à côté de
+       `TileMap::ligneDeVue` (enchaînée). +6 tests (murs, portes, même case, symétrie sur 2000
+       paires de points au hasard).
+3. [x] Bascule : les 7 appels d'`Escouade` et de `Monstre` passent à la fonction libre ;
+       `TileMap::ligneDeVue` et `s_coteLigneDeVue` supprimés, avec leurs 6 tests. 6 tests de
+       `test_Monstre.cpp` adaptés (fixtures `carteAvecMurMince` et `carteAvecPilier`, voir
+       `docs/tests.md`). +1 test sur les murs en diagonale. 712 tests.
+
+**Choix** : un seul exemplaire du critère de révélation (visiteur), pour que la vision du joueur
+et la ligne de vue des combattants ne puissent pas diverger ; fonction sortie de `TileMap`
+(couche de base, pas de dépendance circulaire) ; décision en cases, sans règle particulière par
+usage ; algorithme de Ford conservé tel quel pour les murs en diagonale (les deux cases libres
+se voient) ; pas de cache (aucun ralentissement mesuré : 12,3 s avant, 13,3 s après, l'écart
+venant des nouveaux tests).
+
+**Hors de portée** : cache des champs de vision, vision ou connaissance propres aux monstres
+(cône, mémoire), changer les portées, rayons ou territoire, rupture du verrou quand la cible sort
+de la vue, toucher à `trajetLibre`.
+
+**Ajout à l'étape 73 — garde-fou contre les coins diagonaux** : `contientUnCoinDiagonal(plan)`
+dans `GenerateurDonjon` (+3 tests) et un test de propriété sur les graines 1 à 50 (+1) : aucun
+coin diagonal, donc aucune passe de nettoyage écrite. Un sondage de 20 000 graines hors tests
+trouve pourtant le motif sur 145 (0,7 %, première graine 391) : le test est un échantillon, pas
+une garantie. Choix : régler le cas dans la carte plutôt que dans l'algorithme de Ford, pour
+garder la symétrie. 716 tests.

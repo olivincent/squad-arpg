@@ -140,7 +140,25 @@ F5 (touche de débogage, à tout moment, y compris en visée) l'appellent par
 une lambda qui réaffecte aussi le `Controleur`. Le `Niveau` n'est plus gardé
 dans `main` : chaque carte est neuve, avec une nouvelle graine.
 
+## Pas de coin diagonal (étape 73)
+
+- **Règle** : le plan généré ne doit pas contenir de *coin diagonal*, un carré de 2 × 2 cases
+  dont deux cases en diagonale sont du sol et les deux autres des murs (un damier). On ne peut
+  pas y passer, mais la vision y voit à travers (`docs/vision.md`) : mieux vaut l'interdire dans
+  la carte que de toucher à l'algorithme de vision.
+- **`contientUnCoinDiagonal(plan)`** : fonction libre pure de `GenerateurDonjon`, sans état ; teste
+  tous les 2 × 2 du plan, bords compris, dans les deux orientations (`#` mur, tout autre
+  caractère sol, comme `TileMap`). Elle ne modifie rien ; `genererNiveau` ne l'appelle pas.
+- **État** : le test de propriété (graines 1 à 50) passe, donc il n'y a **pas de passe de
+  nettoyage** dans `genererNiveau`. Mais le motif existe : 145 graines sur 20 000 (0,7 %, première
+  graine 391), une fois par graine, là où deux masses de mur se touchent par un coin. La règle est
+  donc vérifiée sur un échantillon, pas garantie. Voir `docs/vision.md` pour la passe de nettoyage
+  envisagée.
+
 ## Limites connues
+
+- Des coins diagonaux (damier de 2 × 2 cases) apparaissent sur environ 0,7 % des graines (voir
+  « Pas de coin diagonal ») : on y voit à travers sans pouvoir y passer.
 
 - Pas de boucles (arbre seulement) ; portes seulement sur les ouvertures de la
   largeur du couloir ; un couloir peut traverser
