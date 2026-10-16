@@ -14,6 +14,7 @@
 #include "Provocations.hpp"
 #include "Skill.hpp"
 #include "Autodefense.hpp"
+#include "ChampDeVision.hpp"
 #include "Chemin.hpp"
 #include "Encerclement.hpp"
 #include "TileMap.hpp"
@@ -283,12 +284,12 @@ std::vector<Coup> Escouade::effetDuSkill(std::size_t place, const std::optional<
     const Personnage& lanceur = personnageDeLaPlace(place);
 
     // Provocation (sans cible) : zone centrée sur le lanceur ; touche les
-    // monstres de la zone et en vue du lanceur (centre à centre). La puissance
+    // monstres de la zone et en vue du lanceur (`ligneDeVue`). La puissance
     // est la durée.
     if (!cible.has_value()) {
         const Cercle zone = lanceur.zoneDuSkill();
         for (const EntiteVue& monstre : monstres) {
-            if (distanceBordABord(zone, monstre.cercle) == 0.0f && carte.ligneDeVue(lanceur.getCentre(), monstre.cercle.centre)) {
+            if (distanceBordABord(zone, monstre.cercle) == 0.0f && ligneDeVue(carte, lanceur.getCentre(), monstre.cercle.centre)) {
                 provoquer(monstre.id, place, static_cast<float>(puissance));
             }
         }
@@ -303,12 +304,12 @@ std::vector<Coup> Escouade::effetDuSkill(std::size_t place, const std::optional<
                 return {};
             },
             // Zone : tous les monstres dont le bord est dans la zone autour du
-            // point, et en vue du point d'impact (centre à centre) : le sort ne traverse pas les murs.
+            // point, et en vue du point d'impact (`ligneDeVue`) : le sort ne traverse pas les murs.
             [&](const CiblePoint& point) -> std::vector<Coup> {
                 const Cercle zone{point.point, lanceur.zoneDuSkill().rayon};
                 std::vector<Coup> coups;
                 for (const EntiteVue& monstre : monstres) {
-                    if (distanceBordABord(zone, monstre.cercle) == 0.0f && carte.ligneDeVue(point.point, monstre.cercle.centre)) {
+                    if (distanceBordABord(zone, monstre.cercle) == 0.0f && ligneDeVue(carte, point.point, monstre.cercle.centre)) {
                         coups.push_back({monstre.id, puissance});
                     }
                 }
@@ -431,9 +432,9 @@ Cercle Escouade::cercleDePorteeDuSkill(std::size_t place) const {
 }
 
 bool Escouade::peutAtteindre(const Personnage& personnage, TypeAction action, Cercle cible, const TileMap& carte) const {
-    // À portée (bord à bord) ET en vue (centre à centre) : la seule règle d'atteinte d'Escouade.
+    // À portée (bord à bord) ET en vue (`ligneDeVue`) : la seule règle d'atteinte d'Escouade.
     const bool aPortee = (action == TypeAction::Skill) ? personnage.skillEstAPortee(cible) : personnage.estAPortee(cible);
-    return aPortee && carte.ligneDeVue(personnage.getCentre(), cible.centre);
+    return aPortee && ligneDeVue(carte, personnage.getCentre(), cible.centre);
 }
 
 bool Escouade::peutLancerAuPoint(std::size_t place, sf::Vector2f point, const TileMap& carte) const {
@@ -547,7 +548,7 @@ sf::Vector2f Escouade::pointVersMonstre(std::size_t indice, int idMonstre, Cercl
         const sf::Vector2f place = positionDePlace(monstre.centre, rayonAnneau, angle);
         const sf::Vector2f demiCote(rayonPersonnage, rayonPersonnage);
         return !carte.chevaucheUnMur(sf::FloatRect(place - demiCote, 2.0f * demiCote)) &&
-               carte.ligneDeVue(place, monstre.centre);
+               ligneDeVue(carte, place, monstre.centre);
     };
 
     // Occupée : un autre personnage vivant et immobile se tient déjà à cet endroit.

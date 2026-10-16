@@ -30,7 +30,6 @@ public:
     void ouvrirPorte(sf::Vector2i coordCase);   // PorteFermee -> PorteOuverte
     [[nodiscard]] bool chevaucheUnMur(const sf::FloatRect& rect) const;
     [[nodiscard]] bool trajetLibre(const sf::FloatRect& rect, sf::Vector2f deplacement) const;
-    [[nodiscard]] bool ligneDeVue(sf::Vector2f a, sf::Vector2f b) const;
 
 private:
     int indice(int x, int y) const;

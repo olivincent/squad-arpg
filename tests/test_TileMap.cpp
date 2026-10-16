@@ -483,75 +483,6 @@ TEST_CASE("trajetLibre renvoie faux quand le depart est dans un mur") {
     REQUIRE_FALSE(carte.trajetLibre(rect, {40.0f, 40.0f}));
 }
 
-TEST_CASE("ligneDeVue : terrain degage") {
-    const std::vector<std::string> plan = {
-        ".....",
-        ".....",
-        ".....",
-    };
-    TileMap carte(plan, 40.0f);
-
-    REQUIRE(carte.ligneDeVue({10.0f, 10.0f}, {190.0f, 110.0f}));
-}
-
-TEST_CASE("ligneDeVue : un mur entre les deux points bloque la vue") {
-    const std::vector<std::string> plan = {
-        ".....",
-        "..#..",
-        ".....",
-    };
-    TileMap carte(plan, 40.0f);
-
-    REQUIRE_FALSE(carte.ligneDeVue({10.0f, 60.0f}, {190.0f, 60.0f}));
-}
-
-TEST_CASE("ligneDeVue : deux points identiques en terrain libre") {
-    const std::vector<std::string> plan = {
-        "...",
-        "...",
-    };
-    TileMap carte(plan, 40.0f);
-
-    REQUIRE(carte.ligneDeVue({50.0f, 50.0f}, {50.0f, 50.0f}));
-}
-
-TEST_CASE("ligneDeVue : le segment par le coin de deux murs en diagonale est bloque") {
-    // Murs en (2, 1) et (1, 2), qui se touchent au point (80, 80).
-    const std::vector<std::string> plan = {
-        "....",
-        "..#.",
-        ".#..",
-        "....",
-    };
-    TileMap carte(plan, 40.0f);
-
-    REQUIRE_FALSE(carte.ligneDeVue({60.0f, 60.0f}, {100.0f, 100.0f}));
-}
-
-TEST_CASE("ligneDeVue : un segment qui longe un mur sans le traverser est libre") {
-    // Mur en (2, 1) : y dans [40, 80). Le segment horizontal y = 39 passe
-    // 1 px au-dessus du mur.
-    const std::vector<std::string> plan = {
-        ".....",
-        "..#..",
-        ".....",
-    };
-    TileMap carte(plan, 40.0f);
-
-    REQUIRE(carte.ligneDeVue({10.0f, 39.0f}, {190.0f, 39.0f}));
-}
-
-TEST_CASE("ligneDeVue : un point d'arrivee dans un mur n'est pas visible") {
-    const std::vector<std::string> plan = {
-        ".....",
-        "..#..",
-        ".....",
-    };
-    TileMap carte(plan, 40.0f);
-
-    REQUIRE_FALSE(carte.ligneDeVue({10.0f, 60.0f}, {100.0f, 60.0f}));
-}
-
 TEST_CASE("placerPorte : une porte fermee est bloquante, une porte ouverte non") {
     TileMap carte({"...", "...", "..."}, 40.0f);
     carte.placerPorte({1, 1});
@@ -564,23 +495,21 @@ TEST_CASE("placerPorte : une porte fermee est bloquante, une porte ouverte non")
     REQUIRE(estBloquante(Tile::Wall));
 }
 
-TEST_CASE("porte fermee : bloque chevaucheUnMur, trajetLibre et ligneDeVue") {
+TEST_CASE("porte fermee : bloque chevaucheUnMur et trajetLibre") {
     TileMap carte({".....", ".....", "....."}, 40.0f);
     carte.placerPorte({2, 1});
     const sf::FloatRect surLaPorte({85.0f, 45.0f}, {10.0f, 10.0f});
     REQUIRE(carte.chevaucheUnMur(surLaPorte));
     REQUIRE_FALSE(carte.trajetLibre(sf::FloatRect({25.0f, 55.0f}, {10.0f, 10.0f}), {100.0f, 0.0f}));
     REQUIRE_FALSE(carte.trajetLibre(sf::FloatRect({25.0f, 45.0f}, {10.0f, 10.0f}), {100.0f, 20.0f}));
-    REQUIRE_FALSE(carte.ligneDeVue(carte.centreDeCase({1, 1}), carte.centreDeCase({3, 1})));
 }
 
-TEST_CASE("porte ouverte : ne bloque ni le mouvement ni la vue") {
+TEST_CASE("porte ouverte : ne bloque pas le mouvement") {
     TileMap carte({".....", ".....", "....."}, 40.0f);
     carte.placerPorte({2, 1});
     carte.ouvrirPorte({2, 1});
     REQUIRE_FALSE(carte.chevaucheUnMur(sf::FloatRect({85.0f, 45.0f}, {10.0f, 10.0f})));
     REQUIRE(carte.trajetLibre(sf::FloatRect({25.0f, 55.0f}, {10.0f, 10.0f}), {100.0f, 0.0f}));
-    REQUIRE(carte.ligneDeVue(carte.centreDeCase({1, 1}), carte.centreDeCase({3, 1})));
 }
 
 TEST_CASE("porte fermee : trouverChemin la traite comme un mur") {

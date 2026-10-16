@@ -1,6 +1,8 @@
 // ./src/ChampDeVision.cpp
 #include "ChampDeVision.hpp"
 #include <array>
+#include <cstdlib>
+#include <optional>
 #include "TileMap.hpp"
 
 // Principe (« symmetric shadowcasting » d'Albert Ford) : on regarde le monde par
@@ -24,6 +26,10 @@
 //
 // Les pentes sont des fractions d'entiers, comparées par produits croisés : aucun
 // flottant, donc aucun arrondi qui casserait la symétrie.
+//
+// Ce balayage n'existe qu'en UN exemplaire (la classe Balayage) : il appelle un visiteur
+// pour chaque case révélée. champDeVision collecte les cases jusqu'à un rayon ;
+// estVisibleDepuis cherche une seule case et arrête le balayage dès qu'il la trouve.
 
 namespace {
 
@@ -87,14 +93,49 @@ bool dansLaCarte(const TileMap& carte, sf::Vector2i coordCase) {
     return coordCase.x >= 0 && coordCase.y >= 0 && coordCase.x < carte.getLargeur() && coordCase.y < carte.getHauteur();
 }
 
-// Le balayage d'un quadrant.
+// (profondeur, colonne) d'une case dans un quadrant.
+struct Position {
+    int profondeur;
+    int colonne;
+};
+
+// Position de la case située à `decalage` de l'origine, dans ce quadrant ; vide si elle
+// n'est pas dans le quadrant (profondeur >= 1 et |colonne| <= profondeur, la diagonale
+// appartient donc à deux quadrants). Inverse de Balayage::coordonnees.
+std::optional<Position> positionDansLeQuadrant(Quadrant quadrant, sf::Vector2i decalage) {
+    Position position{0, 0};
+    switch (quadrant) {
+        case Quadrant::Nord:
+            position = {-decalage.y, decalage.x};
+            break;
+        case Quadrant::Sud:
+            position = {decalage.y, decalage.x};
+            break;
+        case Quadrant::Est:
+            position = {decalage.x, decalage.y};
+            break;
+        case Quadrant::Ouest:
+            position = {-decalage.x, decalage.y};
+            break;
+    }
+    if (position.profondeur < 1 || std::abs(position.colonne) > position.profondeur) {
+        return std::nullopt;
+    }
+    return position;
+}
+
+// Le balayage d'un quadrant, jusqu'à la profondeur `profondeurMax`. `visiteur(profondeur,
+// colonne, case)` est appelé pour chaque case révélée DANS LA CARTE ; s'il renvoie vrai,
+// le balayage s'arrête aussitôt. C'est ici, et seulement ici, que se décide si une case
+// est révélée.
+template <typename Visiteur>
 class Balayage {
 public:
-    Balayage(const TileMap& carte, sf::Vector2i origine, Quadrant quadrant, int rayon, std::vector<sf::Vector2i>& visibles)
-        : m_carte(carte), m_origine(origine), m_quadrant(quadrant), m_rayon(rayon), m_visibles(visibles) {}
+    Balayage(const TileMap& carte, sf::Vector2i origine, Quadrant quadrant, int profondeurMax, Visiteur visiteur)
+        : m_carte(carte), m_origine(origine), m_quadrant(quadrant), m_profondeurMax(profondeurMax), m_visiteur(visiteur) {}
 
     void balayer(Rangee rangee) {
-        if (rangee.profondeur > m_rayon) {
+        if (m_arrete || rangee.profondeur > m_profondeurMax) {
             return;
         }
         CasePrecedente precedente = CasePrecedente::Aucune;
@@ -104,6 +145,9 @@ public:
             const bool mur = estBloquante(m_carte.getTile(coordCase.x, coordCase.y));
             if (mur || centreDansLIntervalle(rangee, colonne)) {
                 reveler(rangee.profondeur, colonne);
+                if (m_arrete) {
+                    return;
+                }
             }
             if (precedente == CasePrecedente::Mur && !mur) {
                 // Le sol qui suit un mur : la lumière recommence au bord du mur.
@@ -112,6 +156,9 @@ public:
             if (precedente == CasePrecedente::Sol && mur) {
                 // Le mur qui suit du sol : la lumière d'avant le mur continue plus loin.
                 balayer({rangee.profondeur + 1, rangee.debut, penteDuBord(rangee.profondeur, colonne)});
+                if (m_arrete) {
+                    return;
+                }
             }
             precedente = mur ? CasePrecedente::Mur : CasePrecedente::Sol;
         }
@@ -136,20 +183,25 @@ private:
         return {m_origine.x - profondeur, m_origine.y + colonne};
     }
 
-    // Distance au centre de l'origine comparée au carré, en entiers : pas de racine.
     void reveler(int profondeur, int colonne) {
         const sf::Vector2i coordCase = coordonnees(profondeur, colonne);
-        if (profondeur * profondeur + colonne * colonne <= m_rayon * m_rayon && dansLaCarte(m_carte, coordCase)) {
-            m_visibles.push_back(coordCase);
+        if (dansLaCarte(m_carte, coordCase)) {
+            m_arrete = m_visiteur(profondeur, colonne, coordCase);
         }
     }
 
     const TileMap& m_carte;
     sf::Vector2i m_origine;
     Quadrant m_quadrant;
-    int m_rayon;
-    std::vector<sf::Vector2i>& m_visibles;
+    int m_profondeurMax;
+    Visiteur m_visiteur;
+    bool m_arrete = false;
 };
+
+// Au départ, toute la largeur du quadrant est éclairée : pentes de -1 à 1.
+constexpr Rangee s_premiereRangee{1, {-1, 1}, {1, 1}};
+
+constexpr std::array<Quadrant, 4> s_quadrants = {Quadrant::Nord, Quadrant::Est, Quadrant::Sud, Quadrant::Ouest};
 
 }  // namespace
 
@@ -158,10 +210,48 @@ std::vector<sf::Vector2i> champDeVision(const TileMap& carte, sf::Vector2i origi
     if (dansLaCarte(carte, origine)) {
         visibles.push_back(origine);
     }
-    const std::array<Quadrant, 4> quadrants = {Quadrant::Nord, Quadrant::Est, Quadrant::Sud, Quadrant::Ouest};
-    for (const Quadrant quadrant : quadrants) {
-        // Au départ, toute la largeur du quadrant est éclairée : pentes de -1 à 1.
-        Balayage(carte, origine, quadrant, rayon, visibles).balayer({1, {-1, 1}, {1, 1}});
+    // Distance au centre de l'origine comparée au carré, en entiers : pas de racine.
+    const auto collecter = [&](int profondeur, int colonne, sf::Vector2i coordCase) {
+        if (profondeur * profondeur + colonne * colonne <= rayon * rayon) {
+            visibles.push_back(coordCase);
+        }
+        return false;
+    };
+    for (const Quadrant quadrant : s_quadrants) {
+        Balayage(carte, origine, quadrant, rayon, collecter).balayer(s_premiereRangee);
     }
     return visibles;
+}
+
+bool estVisibleDepuis(const TileMap& carte, sf::Vector2i origine, sf::Vector2i cible) {
+    if (origine == cible) {
+        return true;
+    }
+    bool trouvee = false;
+    const auto chercher = [&](int, int, sf::Vector2i coordCase) {
+        trouvee = (coordCase == cible);
+        return trouvee;
+    };
+    for (const Quadrant quadrant : s_quadrants) {
+        // Un quadrant qui ne contient pas la cible ne peut pas la révéler ; la cible d'une
+        // diagonale est dans deux quadrants, il suffit qu'un des deux la révèle.
+        const std::optional<Position> position = positionDansLeQuadrant(quadrant, cible - origine);
+        if (!position) {
+            continue;
+        }
+        Balayage(carte, origine, quadrant, position->profondeur, chercher).balayer(s_premiereRangee);
+        if (trouvee) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool ligneDeVue(const TileMap& carte, sf::Vector2f a, sf::Vector2f b) {
+    const sf::Vector2i caseA = carte.caseContenant(a);
+    const sf::Vector2i caseB = carte.caseContenant(b);
+    if (estBloquante(carte.getTile(caseA.x, caseA.y)) || estBloquante(carte.getTile(caseB.x, caseB.y))) {
+        return false;
+    }
+    return estVisibleDepuis(carte, caseA, caseB);
 }

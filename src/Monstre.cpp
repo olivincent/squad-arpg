@@ -2,6 +2,7 @@
 #include "Monstre.hpp"
 #include "Autodefense.hpp"
 #include "BarreDeVie.hpp"
+#include "ChampDeVision.hpp"
 #include "Defense.hpp"
 #include "Eclaircir.hpp"
 #include "TileMap.hpp"
@@ -118,7 +119,7 @@ int Monstre::getPointsDeVie() const {
 }
 
 // Détecte la proie si elle est dans le rayon de détection, dans le territoire
-// et en vue (ligne de vue centre à centre). Seule la détection exige la vue :
+// et en vue (`ligneDeVue`, en cases). Seule la détection exige la vue :
 // une fois en poursuite, le monstre ne perd pas sa proie en la perdant de vue.
 bool Monstre::proieDetectee(const std::optional<EntiteVue>& proie, const TileMap& carte) const {
     if (!proie) {
@@ -128,7 +129,7 @@ bool Monstre::proieDetectee(const std::optional<EntiteVue>& proie, const TileMap
     const float distanceMonstre = (centreProie - m_mobile.getCentre()).length();
     const float distancePoste = (centreProie - m_poste).length();
     return distanceMonstre <= m_rayonDetection && distancePoste <= m_rayonTerritoire
-        && carte.ligneDeVue(m_mobile.getCentre(), centreProie);
+        && ligneDeVue(carte, m_mobile.getCentre(), centreProie);
 }
 
 std::optional<EntiteVue> Monstre::cibleDeFrappe(const std::optional<EntiteVue>& proie,
@@ -217,7 +218,7 @@ void Monstre::mettreAJour(float dt, std::optional<EntiteVue> proie, const std::v
 }
 
 bool Monstre::peutAtteindre(Cercle cible, const TileMap& carte) const {
-    return m_attaque.estAPortee(getCercle(), cible) && carte.ligneDeVue(m_mobile.getCentre(), cible.centre);
+    return m_attaque.estAPortee(getCercle(), cible) && ligneDeVue(carte, m_mobile.getCentre(), cible.centre);
 }
 
 bool Monstre::engagerAttaque(std::optional<EntiteVue> proie, const std::vector<EntiteVue>& candidats, const TileMap& carte) {

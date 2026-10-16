@@ -36,7 +36,7 @@ public:
     // Attaque en trois temps, comme celle d'un personnage : engager (cible à
     // portée et en vue, monstre immobile, attaque prête) ; avancer l'exécution, qui rend
     // les dégâts au départ du coup ; annuler, sans recharge consommée.
-    // Une cible est atteignable à portée ET en vue (ligne de vue centre à centre).
+    // Une cible est atteignable à portée ET en vue (`ligneDeVue`, en cases).
     // Même règle que `Escouade::peutAtteindre`.
     [[nodiscard]] bool peutAtteindre(Cercle cible, const TileMap& carte) const;
     // Engage sur la cible de frappe : la proie si elle est atteignable, sinon le

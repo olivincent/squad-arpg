@@ -736,10 +736,27 @@ TEST_CASE("Monstre touche s'active meme sans voir son agresseur") {
 
 namespace {
 
-// 5 × 5 cases de 40 px, un mur en case (1, 1) (x et y de 40 à 80). Un monstre en
-// (30, 60) a (45, 35) à 29 px : à portée (15 px bord à bord, rayon du monstre
-// 15 px), mais le segment passe par le coin du mur. (30, 35) est à portée et
-// en vue ; (30, 150) est en vue mais trop loin.
+// Depuis l'étape 73 la vue se décide en cases : deux points voisins ne sont cachés l'un à
+// l'autre que si un mur d'une case se trouve entre eux. Deux fixtures :
+//
+// carteAvecMurMince : 20 × 20 cases de 10 px, un mur en case (4, 4) (x et y de 40 à 50).
+// Un monstre en (25, 45), dont le carré touche le mur sans le chevaucher, a (60, 45) à
+// 35 px : à portée (15 px bord à bord, rayon du monstre 15 px, cible ponctuelle), mais le
+// mur est entre les deux. (25, 15) est à portée et en vue ; (25, 150) est en vue mais
+// trop loin. Pour les tests qui ne déplacent pas le monstre : sur des cases aussi petites
+// le A* le coincerait, son carré de 30 px ne passant pas entre les centres de cases.
+TileMap carteAvecMurMince() {
+    std::vector<std::string> plan(20, std::string(20, '.'));
+    plan[4][4] = '#';
+    return TileMap(plan, 10.0f);
+}
+
+// carteAvecPilier : 5 × 5 cases de 40 px, un mur en case (1, 1) (x et y de 40 à 80), pour
+// les tests où le monstre doit pouvoir se déplacer. Un monstre en (25, 65) est dans la case
+// (0, 1) ; une cible de rayon 55 centrée en (100, 60), dans la case (2, 1), est à 75 px :
+// à portée (5 px bord à bord), mais cachée par le mur. Le rayon est grand parce que le mur
+// fait 40 px d'épaisseur. (25, 45) est dans la case du monstre : à portée et en vue ;
+// (25, 150) est en vue mais trop loin.
 TileMap carteAvecPilier() {
     std::vector<std::string> plan(5, ".....");
     plan[1][1] = '#';
@@ -749,28 +766,28 @@ TileMap carteAvecPilier() {
 }  // namespace
 
 TEST_CASE("Monstre.peutAtteindre exige la portee ET la vue") {
-    const TileMap carte = carteAvecPilier();
-    const Monstre monstre({30.0f, 60.0f}, 1, 0, 0);
+    const TileMap carte = carteAvecMurMince();
+    const Monstre monstre({25.0f, 45.0f}, 1, 0, 0);
 
-    REQUIRE_FALSE(monstre.peutAtteindre(pointCible({45.0f, 35.0f}), carte));   // à portée, caché
-    REQUIRE_FALSE(monstre.peutAtteindre(pointCible({30.0f, 150.0f}), carte));  // en vue, trop loin
-    REQUIRE(monstre.peutAtteindre(pointCible({30.0f, 35.0f}), carte));         // à portée et en vue
+    REQUIRE_FALSE(monstre.peutAtteindre(pointCible({60.0f, 45.0f}), carte));   // à portée, caché
+    REQUIRE_FALSE(monstre.peutAtteindre(pointCible({25.0f, 150.0f}), carte));  // en vue, trop loin
+    REQUIRE(monstre.peutAtteindre(pointCible({25.0f, 15.0f}), carte));         // à portée et en vue
 }
 
 TEST_CASE("Monstre.engagerAttaque refuse une proie a portee mais cachee, l'accepte en vue") {
-    const TileMap carte = carteAvecPilier();
-    Monstre monstre({30.0f, 60.0f}, 1, 0, 0);
+    const TileMap carte = carteAvecMurMince();
+    Monstre monstre({25.0f, 45.0f}, 1, 0, 0);
 
-    REQUIRE_FALSE(engager(monstre, pointCible({45.0f, 35.0f}), 1, carte));
+    REQUIRE_FALSE(engager(monstre, pointCible({60.0f, 45.0f}), 1, carte));
     REQUIRE_FALSE(monstre.cibleEngagee().has_value());
-    REQUIRE(engager(monstre, pointCible({30.0f, 35.0f}), 1, carte));
+    REQUIRE(engager(monstre, pointCible({25.0f, 15.0f}), 1, carte));
     REQUIRE(monstre.cibleEngagee() == 1);
 }
 
-TEST_CASE("Monstre en poursuite ne s'arrete pas a portee mais cachee derriere un coin") {
+TEST_CASE("Monstre en poursuite ne s'arrete pas a portee mais cachee derriere un mur") {
     const TileMap carte = carteAvecPilier();
     Monstre monstre({25.0f, 65.0f}, 1, 0, 0);  // son carré touche le mur sans le chevaucher
-    const Cercle proie{{45.0f, 35.0f}, 10.0f};  // à 36 px : à portée (bord à bord), mais cachée
+    const Cercle proie{{100.0f, 60.0f}, 55.0f};  // à 75 px : à portée (bord à bord), mais cachée
     REQUIRE_FALSE(monstre.peutAtteindre(proie, carte));
     monstre.recevoirDegats(1);  // actif sans dépendre de la vue
 
@@ -805,10 +822,10 @@ TEST_CASE("Monstre.engagerAttaque prefere la proie atteignable a un candidat plu
 }
 
 TEST_CASE("Monstre.engagerAttaque frappe un autre candidat si la proie est cachee") {
-    const TileMap carte = carteAvecPilier();
-    Monstre monstre({30.0f, 60.0f}, 1, 0, 0);
-    const EntiteVue proieCachee{1, pointCible({45.0f, 35.0f})};
-    const EntiteVue enVue{2, pointCible({30.0f, 35.0f})};
+    const TileMap carte = carteAvecMurMince();
+    Monstre monstre({25.0f, 45.0f}, 1, 0, 0);
+    const EntiteVue proieCachee{1, pointCible({60.0f, 45.0f})};
+    const EntiteVue enVue{2, pointCible({25.0f, 15.0f})};
 
     REQUIRE(monstre.engagerAttaque(proieCachee, {proieCachee, enVue}, carte));
 
@@ -837,7 +854,7 @@ TEST_CASE("Monstre.engagerAttaque est refuse sans aucun candidat atteignable") {
 TEST_CASE("Monstre.mettreAJour s'arrete en poursuite quand un autre candidat devient atteignable") {
     const TileMap carte = carteAvecPilier();
     Monstre monstre({25.0f, 65.0f}, 1, 0, 0);
-    const EntiteVue proieCachee{1, {{45.0f, 35.0f}, 10.0f}};
+    const EntiteVue proieCachee{1, {{100.0f, 60.0f}, 55.0f}};
     const EntiteVue enVue{2, {{25.0f, 45.0f}, 10.0f}};
     REQUIRE(monstre.peutAtteindre(enVue.cercle, carte));
     monstre.recevoirDegats(1);  // actif sans dépendre de la vue
@@ -850,7 +867,7 @@ TEST_CASE("Monstre.mettreAJour s'arrete en poursuite quand un autre candidat dev
 TEST_CASE("Monstre.mettreAJour continue vers sa proie si aucun candidat n'est atteignable") {
     const TileMap carte = carteAvecPilier();
     Monstre monstre({25.0f, 65.0f}, 1, 0, 0);
-    const EntiteVue proieCachee{1, {{45.0f, 35.0f}, 10.0f}};
+    const EntiteVue proieCachee{1, {{100.0f, 60.0f}, 55.0f}};
     const EntiteVue tropLoin{2, {{25.0f, 150.0f}, 10.0f}};
     monstre.recevoirDegats(1);
 
@@ -860,10 +877,10 @@ TEST_CASE("Monstre.mettreAJour continue vers sa proie si aucun candidat n'est at
 }
 
 TEST_CASE("Monstre le coup engage touche la place choisie et rend les degats") {
-    const TileMap carte = carteAvecPilier();
-    Monstre monstre({30.0f, 60.0f}, 1, 0, 0);
-    const EntiteVue proieCachee{1, pointCible({45.0f, 35.0f})};
-    const EntiteVue enVue{2, pointCible({30.0f, 35.0f})};
+    const TileMap carte = carteAvecMurMince();
+    Monstre monstre({25.0f, 45.0f}, 1, 0, 0);
+    const EntiteVue proieCachee{1, pointCible({60.0f, 45.0f})};
+    const EntiteVue enVue{2, pointCible({25.0f, 15.0f})};
     REQUIRE(monstre.engagerAttaque(proieCachee, {proieCachee, enVue}, carte));
     Generateur generateur(s_graineDeTest);
 
