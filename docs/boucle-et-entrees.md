@@ -99,7 +99,8 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   (bouton gauche) décide, à l'instant du clic, ce que fait ce clic, peu
   importe où le curseur va ensuite. `Controleur::appuiGauche` : hors visée,
   `Partie::cliquer` renvoie `Monstre` (verrou posé, déplacement continu
-  désarmé), `Sol` (verrou levé, déplacement continu armé) ou `Ignore`
+  désarmé), `Objet` (porte fermée cliquée : verrou levé, interaction mémorisée,
+  déplacement continu désarmé ; voir `docs/carte-et-collision.md`), `Sol` (verrou levé, déplacement continu armé) ou `Ignore`
   (escouade vaincue : rien ne change, y compris le déplacement continu).
 - **Déplacement continu : lecture d'état, armée par l'événement d'appui** :
   `main.cpp` calcule `boutonTenu` = fenêtre avec le focus ET

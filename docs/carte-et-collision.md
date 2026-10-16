@@ -5,9 +5,9 @@
 - **Coordonnées du monde** : la carte et les entités sont positionnées en
   pixels de la carte, jamais en pixels de l'écran. C'est ce qui a permis
   d'ajouter la caméra sans modifier `TileMap`.
-- **`enum class Tile { Floor, Wall }`** : `enum class` plutôt que `enum`
-  pour la portée (`Tile::Wall`) et l'absence de conversion implicite en
-  `int`.
+- **`enum class Tile { Floor, Wall, PorteFermee, PorteOuverte }`** : `enum class`
+  plutôt que `enum` pour la portée (`Tile::Wall`) et l'absence de conversion
+  implicite en `int`.
 - **Stockage 1D** : la case `(x, y)` est à l'indice `y * largeur + x`,
   calculé par la fonction privée `indice(x, y)`. Plus simple et contigu en
   mémoire qu'un vecteur de vecteurs.
@@ -34,6 +34,37 @@
   actuelle (`sf::VertexArray` envisageable si ça devient un problème).
   Les fonctions `dessiner` prennent un `sf::RenderTarget&` (classe de base
   de `sf::RenderWindow`) pour ne pas être couplées à la fenêtre.
+
+## Portes et objets interactifs (étape 70)
+
+- **La carte est la seule source de vérité** pour « passe-t-on, voit-on » : une
+  porte est un type de case, pas une entité à part. `estBloquante(Tile)` (vrai pour
+  `Wall` et `PorteFermee`) remplace tous les tests `== Tile::Wall` ; collision, A*,
+  lissage, repli, ligne de vue, détection des monstres et refus d'un point de skill
+  de zone traitent donc une porte fermée comme un mur sans rien savoir des portes
+  (la refactorisation a précédé l'ajout, sans changer de comportement).
+- **Mutateurs nommés par l'intention**, pas de `setTile` : `placerPorte`
+  (`Floor` → `PorteFermee`) et `ouvrirPorte` (`PorteFermee` → `PorteOuverte`), chacun
+  avec une `assert`. Le plan texte reste de la géométrie pure : `Partie` ferme les
+  cases de `Niveau::portes` à sa construction.
+- **`ObjetInteractif`** = partie commune (`id`, `zone`) + `std::variant` de natures
+  (une seule, `Porte`). Pas de classe de base virtuelle : l'effet a besoin du
+  contexte de la `Partie`, l'objet n'est que des données et `Partie` fait le
+  `std::visit` ; un coffre plus tard devra être traité à chaque `visit` (erreur de
+  compilation sinon).
+- **Point d'approche** : on ne vise jamais la porte elle-même, elle bloque et le A*
+  refuserait l'ordre. Côté libre le plus proche de l'escouade, milieu des centres des
+  cases du côté. Aucun côté libre : le clic compte comme un clic au sol.
+- **Le groupe s'avance** : l'ancre va au point d'approche, les personnages suivent en
+  formation ; la porte s'ouvre dès qu'**un** personnage vivant en est à 20 px bord à
+  bord (`distanceCercleRectangle`, `Escouade::unVivantPresDe`), instantanément.
+  `Escouade` ne connaît ni les portes ni les objets.
+- **Interaction en cours** (`Partie::m_interactionEnCours`) : annulée par tout ordre
+  de déplacement, clic au sol ou clic sur un monstre ; `Controleur` désarme le
+  déplacement continu sur `Objet` (sinon le bouton tenu écraserait l'approche).
+  Priorité au clic : monstre ciblable, puis porte fermée, puis sol.
+- **Limites** : les monstres n'ouvrent pas les portes ; une porte reste ouverte ; une
+  porte d'une seule case est supposée horizontale ; pas de surbrillance au survol.
 
 ## Ligne de vue (étape 44)
 

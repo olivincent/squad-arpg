@@ -77,6 +77,7 @@ est dans `docs/historique.md`.
 - Étape 67 — Places d'attaque autour de la cible et séparation des personnages ✅
 - Étape 68 — A* qui contourne les obstacles mobiles ✅
 - Étape 69 — Retour au poste : invulnérabilité, régénération et territoire élargi ✅
+- Étape 70 — Portes et premier objet interactif ✅
 
 ## Prochaine étape (à choisir)
 
@@ -147,6 +148,17 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   fenêtre) ; la barre de skills, le compteur, l'écran de fin et les menus
   suivent la même règle. Fenêtre sans redimensionnement à la main. Voir
   `docs/ecrans.md`.
+- **Portes** (étape 70) : les couloirs de 2 cases sont fermés, à chaque jonction
+  avec une salle (y compris la salle de départ), par une porte brune. Une porte
+  fermée bloque comme un mur (déplacement, chemins, ligne de vue, détection des
+  monstres, skill de zone). Un clic dessus (si aucun monstre ciblable ne s'y
+  trouve) lève le verrou et envoie l'escouade devant elle, du côté libre le plus
+  proche ; la porte s'ouvre dès qu'un personnage vivant est à 20 px (bord à bord)
+  d'elle, s'affiche en sol avec un cadre brun et reste ouverte (un clic dessus
+  vaut un clic au sol). Un ordre de déplacement (bouton tenu compris), un clic au
+  sol ou sur un monstre annule l'approche ; les skills non. Les monstres
+  n'ouvrent pas les portes. Voir `docs/carte-et-collision.md` et
+  `docs/generation.md`.
 - **Fenêtre et carte** : fenêtre 1200 × 800 par défaut ; carte de 59 × 40 cases de
   40 px (2360 × 1600 px). Depuis l'étape 59, `EcranJeu` joue sur un niveau
   généré (`genererNiveau` : salles rectangulaires reliées par des couloirs en L de
@@ -408,12 +420,12 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 638 tests : 13 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 50 sur `GenerateurDonjon`, 38 sur `TileMap`, 27 sur `Chemin`, 184
+  (`./build/tests.exe`, 668 tests : 5 sur `ObjetInteractif`, 13 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 57 sur `GenerateurDonjon`, 42 sur `TileMap`, 27 sur `Chemin`, 186
   sur `Escouade` en six fichiers par thème — 30 déplacement, 32 combat, 70
-  skills, 26 agresseurs, 18 vue, 8 places —, 11 sur `Encerclement`, 16 sur `Deplacement`, 73 sur `Monstre`,
-  50 sur `Personnage`, 24 sur `Skill`, 24 sur `Mobile`, 2 sur `Eclaircir`, 7 sur `Cercle`, 13
+  skills, 26 agresseurs, 20 vue, 8 places —, 11 sur `Encerclement`, 16 sur `Deplacement`, 73 sur `Monstre`,
+  50 sur `Personnage`, 24 sur `Skill`, 24 sur `Mobile`, 2 sur `Eclaircir`, 10 sur `Cercle`, 13
   sur `Autodefense`, 7 sur `BarreDeSkills`, 4 sur `EntiteVue`, 1 sur
-  `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 31 sur `Partie`, 7 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
+  `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 39 sur `Partie`, 8 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
   accents (`./build/tests.exe "*a portee*"` filtre) ; rotation de la
   formation et `provoquer` à une place invalide couverts.
 
@@ -423,6 +435,11 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   cours de partie) ; une résolution enregistrée plus grande que le bureau
   ouvre une fenêtre trop grande (les options la corrigent) ; `reglages.ini`
   est cherché dans le dossier courant, comme la police. Voir `docs/ecrans.md`.
+- Portes (étape 70) : seulement sur les ouvertures de la largeur du couloir
+  (2 cases) ; pas de refermeture, de clé ni de porte verrouillée ; les monstres ne
+  les ouvrent pas et ne contournent pas par un autre chemin ; un seul personnage
+  n'ira pas ouvrir pendant que les autres attendent ; pas de surbrillance au
+  survol ; une porte d'une seule case est supposée horizontale.
 - Si le générateur ne place aucun monstre (très rare), la partie est gagnée
   dès le départ ; F5 génère une autre carte (le générateur n'est pas
   modifié).

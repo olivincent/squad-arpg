@@ -50,6 +50,7 @@ squad-arpg/
 │   ├── Reglages.hpp / .cpp
 │   ├── TailleDeVue.hpp / .cpp
 │   ├── Niveau.hpp / .cpp
+│   ├── ObjetInteractif.hpp / .cpp
 │   ├── GenerateurDonjon.hpp / .cpp
 │   ├── Partie.hpp / .cpp
 │   ├── Controleur.hpp / .cpp
@@ -90,7 +91,8 @@ squad-arpg/
 │   │   test_Escouade_vue.cpp, test_Escouade_places.cpp
 │   ├── test_Provocations.cpp, test_Agresseurs.cpp
 │   ├── test_Deplacement.cpp, test_Monstre.cpp, test_Personnage.cpp
-│   ├── test_Partie.cpp, test_Controleur.cpp, test_GenerateurDonjon.cpp
+│   ├── test_Partie.cpp, test_Controleur.cpp, test_GenerateurDonjon.cpp,
+│   │   test_ObjetInteractif.cpp
 │   └── test_Skill.cpp, test_Mobile.cpp, test_Cercle.cpp,
 │       test_Autodefense.cpp, test_Encerclement.cpp, test_BarreDeSkills.cpp,
 │       test_EntiteVue.cpp, test_BarreDeVie.cpp,
@@ -148,7 +150,7 @@ Qui possède quoi :
   ni `Coup`, ni `EntiteVue`, ni `Chemin`, ni `Personnage`.
 - `Partie` possède la `TileMap`, l'`Escouade`, un `std::vector<Monstre>` et le
   `Generateur` aléatoire (graine reçue au constructeur),
-  construits à partir d'un `Niveau`. Elle fait l'intermédiaire entre
+  construits à partir d'un `Niveau`, ainsi que les `ObjetInteractif` (les portes). Elle fait l'intermédiaire entre
   `Escouade` et `Monstre`, qui ne se connaissent pas : elle leur donne la
   liste des monstres (`EntiteVue`, deux listes : les cibles, sans ceux qui rentrent à leur poste, et tous les monstres comme obstacles) ; pour chaque monstre, elle lui donne aussi sa proie et ses candidats de frappe (`EntiteVue` de personnages) et applique les `Coup` renvoyés.
 - `Controleur` porte l'état d'interface : le mode visée et le déplacement
@@ -278,7 +280,7 @@ point hors de la carte est un mur. Construite à partir d'un plan texte
 (`'#'` = mur, tout autre caractère = sol).
 
 Données membres : `m_largeur`, `m_hauteur` (cases), `m_tailleCase`
-(pixels), `m_cases` (`std::vector<Tile>`, `enum class Tile { Floor, Wall }`).
+(pixels), `m_cases` (`std::vector<Tile>`, `enum class Tile { Floor, Wall, PorteFermee, PorteOuverte }`). `bool estBloquante(Tile)` (fonction libre, vrai pour `Wall` et `PorteFermee`) est la seule façon de demander « passe-t-on, voit-on » : collision, A*, lissage, repli, ligne de vue et skill de zone l'utilisent, aucun ne teste `Tile::Wall` directement.
 
 | Fonction | Rôle |
 |---|---|
@@ -289,8 +291,10 @@ Données membres : `m_largeur`, `m_hauteur` (cases), `m_tailleCase`
 | `float getTailleCase() const` | Côté d'une case, en pixels (`coutDesObstacles` construit les rectangles des cases) ; `[[nodiscard]]` |
 | `sf::Vector2i caseContenant(sf::Vector2f point) const` | Case (coordonnées de grille) contenant ce point, en pixels du monde |
 | `sf::Vector2f centreDeCase(sf::Vector2i coordCase) const` | Centre de cette case, en pixels du monde |
-| `void dessiner(sf::RenderTarget& rendu) const` | Dessine toutes les cases |
-| `bool chevaucheUnMur(const sf::FloatRect& rect) const` | Le rectangle (en pixels du monde) chevauche-t-il un mur ? |
+| `void dessiner(sf::RenderTarget& rendu) const` | Dessine toutes les cases (porte fermée : case brune pleine ; porte ouverte : sol avec un cadre brun de 4 px) |
+| `void placerPorte(sf::Vector2i coordCase)` | `Floor` → `PorteFermee` (`assert`) |
+| `void ouvrirPorte(sf::Vector2i coordCase)` | `PorteFermee` → `PorteOuverte` (`assert`) ; une porte ouverte le reste |
+| `bool chevaucheUnMur(const sf::FloatRect& rect) const` | Le rectangle (en pixels du monde) chevauche-t-il une case bloquante (mur ou porte fermée) ? |
 | `bool trajetLibre(const sf::FloatRect& rect, sf::Vector2f deplacement) const` | Le rectangle, translaté de sa position jusqu'à `position + deplacement`, ne chevauche-t-il un mur à aucun moment du trajet ? |
 | `bool ligneDeVue(sf::Vector2f a, sf::Vector2f b) const` | Le segment de `a` à `b` (pixels du monde) ne traverse-t-il aucun mur ? Faux si `a` ou `b` est dans un mur |
 
@@ -300,7 +304,7 @@ Données membres : `m_largeur`, `m_hauteur` (cases), `m_tailleCase`
 
 Données membres : `struct Niveau { std::vector<std::string> plan; float
 tailleCase; sf::Vector2f departEscouade; std::vector<sf::Vector2f>
-monstres; int armureMonstres; }`, où `monstres` est un `std::vector<MonstreDuNiveau>` (`struct MonstreDuNiveau { sf::Vector2f position; int groupe; }`, groupe : identifiant opaque, même valeur = « vont ensemble »), et la constante
+monstres; int armureMonstres; }`, où `monstres` est un `std::vector<MonstreDuNiveau>` (`struct MonstreDuNiveau { sf::Vector2f position; int groupe; }`, groupe : identifiant opaque, même valeur = « vont ensemble »), et `struct PorteDuNiveau { std::vector<sf::Vector2i> cases; }` (cases du plan, du sol, qu'une porte ferme ; `Niveau::portes`, vide par défaut, vide dans `creerNiveau()`), et la constante
 `s_armureMonstresParDefaut` (20), partagée par `creerNiveau()` et
 `genererNiveau()`.
 
@@ -331,7 +335,8 @@ VerticalPuisHorizontal }`.
 | `std::vector<Liaison> choisirLiaisons(const std::vector<Salle>&)` | Sans aléatoire : chaque salle i ≥ 1 est reliée à la plus proche (distance au carré entre centres) parmi les salles 0 à i−1 ; égalité : le plus petit indice ; n−1 liaisons |
 | `void creuserCouloir(std::vector<std::string>& plan, sf::Vector2i depart, sf::Vector2i arrivee, SensCouloir, int largeur)` | Couloir en L de `largeur` cases (étendue vers le bas et la droite), coude plein, départ et arrivée en sol |
 | `std::vector<MonstreDuNiveau> placerMonstres(Generateur&, const std::vector<Salle>&, sf::Vector2f depart, const ParametresDonjon&)` | Groupe : compteur qui augmente de 1 pour chaque salle qui reçoit au moins un monstre, partagé par les monstres de la salle. Aucun monstre dans la salle 0 ; dans chaque autre, un nombre tiré dans [min, max] de monstres, au centre d'une case intérieure (une case de marge). Rejet, `tentativesParMonstre` essais, monstre abandonné sinon : position à moins de 2 cases (Tchebychev) d'un monstre placé, ou à moins de `distanceMinDepart` px de `depart` |
-| `Niveau genererNiveau(Generateur&, const ParametresDonjon&)` | Plan tout en mur, salles creusées, puis un couloir par liaison (sens tiré au hasard, un tirage par liaison) entre les centres ; départ de l'escouade au centre en pixels de la première salle, monstres de `placerMonstres` (appelée en dernier), `armureMonstres` = `s_armureMonstresParDefaut` |
+| `std::vector<PorteDuNiveau> placerPortes(const std::vector<std::string>& plan, const std::vector<Salle>&, int largeurCouloir)` | Sans aléatoire, sur le plan creusé. Pour chaque salle, l'anneau de cases juste à l'extérieur de l'emprise, côté par côté, sans les coins : une porte est une suite maximale de cases de sol qui fait exactement `largeurCouloir` cases, dont les deux cases qui la prolongent (coins compris) sont des murs et dont les cases au-delà de l'anneau sont du sol. Autre largeur : pas de porte. Doublons supprimés |
+| `Niveau genererNiveau(Generateur&, const ParametresDonjon&)` | Plan tout en mur, salles creusées, puis un couloir par liaison (sens tiré au hasard, un tirage par liaison) entre les centres ; `portes` de `placerPortes` (après les couloirs, sans tirage) ; départ de l'escouade au centre en pixels de la première salle, monstres de `placerMonstres` (appelée en dernier), `armureMonstres` = `s_armureMonstresParDefaut` |
 
 ### `Partie` — les règles de jeu
 
@@ -344,7 +349,7 @@ Une partie perdue ou gagnée est figée. Elle se recommence en la remplaçant pa
 `Partie` neuve (réaffectation par déplacement : règle du zéro).
 
 Données membres : `m_carte` (`TileMap`), `m_escouade` (`Escouade`),
-`m_monstres` (`std::vector<Monstre>`), `m_lancerDeZoneDemande`
+`m_monstres` (`std::vector<Monstre>`), `m_objets` (`std::vector<ObjetInteractif>`), `m_interactionEnCours` (`std::optional<int>`, identifiant de l'objet que l'escouade va activer), `m_lancerDeZoneDemande`
 (`std::optional<LancerDeZone>`, structure privée : `place`, `point`),
 `m_skillDemande` (`std::optional<std::size_t>`), `m_deplacementOrdonne`
 (`std::optional<sf::Vector2f>`), `m_generateur` (`Generateur`, le seul de
@@ -359,15 +364,15 @@ bloque donc comme avant mais n'est plus une cible, et le verrou posé sur lui es
 
 | Fonction | Rôle |
 |---|---|
-| `Partie(const Niveau& niveau, Generateur::result_type graine)` | Construit la carte, l'escouade et les monstres (identifiants 1, 2, 3…, armure `niveau.armureMonstres`) et initialise le générateur avec `graine` (`EcranJeu` la tire avec `std::random_device` et l'affiche ; les tests passent une graine fixe) |
-| `ResultatClic cliquer(sf::Vector2f point)` | Appliqué tout de suite. `Monstre` : verrouille le monstre ciblable qui contient le point (un monstre qui rentre à son poste compte comme le sol) ; `Sol` : lève le verrou et annule les coups en exécution des personnages ; `Ignore` si l'escouade est vaincue, sans rien changer. `enum class ResultatClic { Monstre, Sol, Ignore }` |
+| `Partie(const Niveau& niveau, Generateur::result_type graine)` | Construit la carte, l'escouade et les monstres (identifiants 1, 2, 3…, armure `niveau.armureMonstres`), ferme chaque case de `niveau.portes` (`placerPorte`) et crée un `ObjetInteractif` par porte (identifiants 1, 2, 3…, compteur distinct de celui des monstres) et initialise le générateur avec `graine` (`EcranJeu` la tire avec `std::random_device` et l'affiche ; les tests passent une graine fixe) |
+| `ResultatClic cliquer(sf::Vector2f point)` | Appliqué tout de suite. `Monstre` : verrouille le monstre ciblable qui contient le point (un monstre qui rentre à son poste compte comme le sol) ; `Objet` : un point dans la zone d'une porte fermée (et pas sur un monstre ciblable) lève le verrou, annule les coups en exécution, mémorise l'interaction et mémorise l'ordre d'aller au `pointDApproche` ; sans point d'approche, c'est `Sol`. `Sol` : lève le verrou et annule les coups en exécution des personnages ; `Ignore` si l'escouade est vaincue, sans rien changer. Tout clic (sauf `Ignore`) annule l'interaction en cours. `enum class ResultatClic { Monstre, Objet, Sol, Ignore }` |
 | `void demanderSkill(std::size_t place)` | Mémorise la demande de skill (touches 1 à 3) ; la dernière demande de l'image gagne |
 | `void lancerSkillDeZone(std::size_t place, sf::Vector2f point)` | Mémorise le lancer du skill de zone |
-| `void ordonnerDeplacement(sf::Vector2f point)` | Mémorise l'ordre de déplacement ; exécuté seulement si l'escouade est vivante |
+| `void ordonnerDeplacement(sf::Vector2f point)` | Mémorise l'ordre de déplacement ; exécuté seulement si l'escouade est vivante ; annule l'interaction en cours |
 | `bool estPerdue() const` | Vrai quand tous les personnages sont morts (`!m_escouade.estVivante()`) ; `[[nodiscard]]` |
 | `bool estGagnee() const` | Vrai quand `m_monstres` est vide ET que la partie n'est pas perdue (la défaite l'emporte) ; `[[nodiscard]]` |
 | `int monstresRestants() const` | Nombre de monstres vivants (`m_monstres.size()`), pour le compteur d'`EcranJeu` ; `[[nodiscard]]` |
-| `void mettreAJour(float dt)` | Sans effet si la partie est perdue ou gagnée (le monde est figé). Sinon exécute, dans l'ordre : lancer de zone, skill demandé, `attaquer(dt, …)` et application des coups, déverrouillage si la cible est morte, retrait des monstres morts, ordre de déplacement, mise à jour (`EntiteVue` de tous les monstres, escouade, tour de chaque monstre avec ses obstacles bloquants — personnages vivants et autres monstres — et ses cercles à contourner — les autres monstres seulement —, avec l'engagement et le départ de son coup) ; vide les demandes |
+| `void mettreAJour(float dt)` | Sans effet si la partie est perdue ou gagnée (le monde est figé). Sinon exécute, dans l'ordre : lancer de zone, skill demandé, `attaquer(dt, …)` et application des coups, déverrouillage si la cible est morte, retrait des monstres morts, ordre de déplacement, mise à jour (`EntiteVue` de tous les monstres, escouade, puis ouverture de la porte en cours d'interaction si `unVivantPresDe(zone, 20 px)`, tour de chaque monstre avec ses obstacles bloquants — personnages vivants et autres monstres — et ses cercles à contourner — les autres monstres seulement —, avec l'engagement et le départ de son coup) ; vide les demandes |
 | `void dessiner(sf::RenderTarget& rendu, bool afficherAncre, bool marquerLeRetour) const` | Carte, monstres (contour jaune sur le monstre verrouillé ; `marquerLeRetour` est transmis à `Monstre::dessiner`), escouade (`afficherAncre` est transmis à `Escouade::dessiner`) |
 | `void dessinerCheminsDesMonstres(sf::RenderTarget& rendu) const` | Débogage (F3) : le chemin restant de chaque monstre (`Monstre::dessinerChemin`) |
 | `const Escouade& getEscouade() const` | Lecture seule : caméra, barre de skills, requêtes du `Controleur` |
@@ -389,7 +394,7 @@ Données membres : `m_deplacementContinu` (`bool`), `m_placeEnVisee`
 |---|---|
 | `Controleur()` (par défaut) | Mode normal, déplacement continu désarmé ; `controleur = Controleur{}` remet l'état d'interface à zéro |
 | `void debutImage(const Partie& partie)` | Sort de la visée si le lanceur ne peut plus lancer (`!skillEstPret`) |
-| `void appuiGauche(Partie& partie, sf::Vector2f point)` | En visée : `lancerSkillDeZone` puis sortie de la visée (sans verrouiller ni déplacer). Sinon `cliquer` : `Monstre` désarme le déplacement continu, `Sol` l'arme, `Ignore` ne change rien |
+| `void appuiGauche(Partie& partie, sf::Vector2f point)` | En visée : `lancerSkillDeZone` puis sortie de la visée (sans verrouiller ni déplacer). Sinon `cliquer` : `Monstre` et `Objet` désarment le déplacement continu, `Sol` l'arme, `Ignore` ne change rien |
 | `void appuiDroit()` / `void appuiEchap()` | Annulent la visée sans recharge |
 | `void appuiTouche(Partie& partie, std::size_t place)` | 1 à 3 : `demanderSkill`. 4 : sort de la visée si on y est ; sinon y entre si l'escouade est vivante et le skill prêt, et désarme le déplacement continu. Autre place : ignorée |
 | `void mettreAJourDeplacement(Partie& partie, bool boutonTenu, sf::Vector2f curseur)` | Si `boutonTenu` (bouton gauche enfoncé ET focus, calculé par `EcranJeu`) et déplacement armé : `ordonnerDeplacement(curseur)` |
@@ -443,6 +448,7 @@ monstre à portée de son attaque et en vue, calculé par `attaquer`, lu par `me
 | `void recevoirDegats(int idMonstre, sf::Vector2f origine, int quantite)` | Applique les dégâts au personnage que `idMonstre` vise (même règle que `proieDuMonstre`) ; ne fait rien si aucun n'est vivant. Délègue à `recevoirCoup` |
 | `void recevoirCoup(int idMonstre, std::size_t place, sf::Vector2f origine, int quantite)` | Applique les dégâts au personnage de cette place (le coup engagé d'un monstre) ; sans effet s'il est mort. Si `quantite > 0`, enregistre le monstre comme agresseur (ou remet son temps à 3 s) |
 | `bool estVivante() const` | Vrai si au moins un personnage est vivant |
+| `bool unVivantPresDe(sf::FloatRect zone, float ecart) const` | Un personnage vivant est-il à `ecart` ou moins (bord à bord, `distanceCercleRectangle`) de cette zone ? Escouade ne connaît ni les portes ni les objets ; `[[nodiscard]]` |
 | `std::vector<Cercle> cerclesDesVivants() const` | Cercles des personnages vivants |
 | `void verrouiller(int idCible)` | Pose le verrou de combat sur ce monstre, en remplaçant la cible précédente ; annule un skill de dégâts en attente si l'identifiant change |
 | `void deverrouiller()` | Retire le verrou de combat et annule un skill de dégâts en attente |
@@ -451,6 +457,17 @@ monstre à portée de son attaque et en vue, calculé par `attaquer`, lu par `me
 | `void provoquer(int idMonstre, std::size_t place, float duree)` | Enregistre ce monstre comme provoqué par le personnage de la place `place` (1 à 4) pour `duree` secondes, ou remet sa durée au maximum s'il l'est déjà. Fin : durée écoulée ou provocateur mort (`mettreAJour`), monstre absent de `monstres` (`attaquer`) |
 | `const std::vector<Provocation>& getProvocations() const` | Monstres actuellement provoqués |
 | `const std::vector<Agresseur>& getAgresseurs() const` | Monstres qui ont frappé l'escouade récemment (oubliés après 3 s sans coup, ou absents de `monstres` dans `attaquer`) |
+
+### `ObjetInteractif` — les objets avec lesquels on interagit
+
+`ObjetInteractif.hpp` / `.cpp` : des données et une fonction libre, sans état. Pas de classe de base virtuelle : l'effet d'une interaction a besoin du contexte de la `Partie`, qui visite `nature` avec `std::visit` et `Surcharges` (`Cible.hpp`). Voir `docs/carte-et-collision.md`.
+
+`struct Porte { std::vector<sf::Vector2i> cases; }` ; `struct ObjetInteractif { int id; sf::FloatRect zone; std::variant<Porte> nature; }`.
+
+| Fonction | Rôle |
+|---|---|
+| `ObjetInteractif(int identifiant, Porte porte, float tailleCase)` | Calcule `zone`, rectangle en pixels du monde qui couvre toutes les cases ; `assert` : au moins une case, toutes sur une même ligne ou une même colonne |
+| `std::optional<sf::Vector2f> pointDApproche(const Porte&, const TileMap&, sf::Vector2f depuis)` | Porte horizontale (cases de même y) : côtés y−1 et y+1 ; verticale : x−1 et x+1. Le point d'un côté est le milieu des centres de ses cases ; seuls les côtés sans case bloquante sont gardés, le plus proche de `depuis` l'emporte ; vide si aucun. Une porte d'une seule case est traitée comme horizontale ; `[[nodiscard]]` |
 
 ### `Provocations` — les monstres provoqués
 
@@ -798,6 +815,7 @@ Données membres : `struct Cercle { sf::Vector2f centre; float rayon; }`.
 | Fonction | Rôle |
 |---|---|
 | `float distanceBordABord(const Cercle& a, const Cercle& b)` | Distance entre les centres moins les deux rayons ; 0 si les cercles se touchent ou se chevauchent (jamais négative) |
+| `float distanceCercleRectangle(Cercle cercle, sf::FloatRect rectangle)` | Écart bord à bord entre le cercle et le rectangle plein ; 0 en cas de contact, de chevauchement ou de centre dedans, jamais négatif ; `[[nodiscard]]` |
 | `float distancePointSegment(sf::Vector2f p, sf::Vector2f a, sf::Vector2f b)` | Distance du point au segment `[a, b]` (extrémités comprises, segment réduit à un point permis) ; `[[nodiscard]]` |
 
 ## Principes de conception à respecter
@@ -840,7 +858,7 @@ lire le fichier correspondant :
 | `docs/build.md` | Build (CMake, `squad_core`, exécutables), choix de SFML | Avant de modifier `CMakeLists.txt` ou d'ajouter un fichier source |
 | `docs/ecrans.md` | `Application`, pile d'écrans (patron State), `Transition`, `Contexte`, vues à hauteur fixe, `Reglages` et `reglages.ini`, menu et options | Avant de modifier `Application`, un `Ecran`, `ListeDeBoutons`, `Reglages` ou `TailleDeVue` |
 | `docs/boucle-et-entrees.md` | Qui fait quoi entre `EcranJeu`, `Controleur` et `Partie`, ordre d'une image, entrée souris et clavier, mode visée, combat engagé, défaite, caméra | Avant de modifier `main.cpp`, `Partie`, `Controleur` ou `Niveau` |
-| `docs/carte-et-collision.md` | Carte, collision et dessin, déplacement avec glissement et obstacles, plan texte et validation | Avant de modifier `TileMap` ou `Deplacement` |
+| `docs/carte-et-collision.md` | Carte, collision et dessin, portes et objets interactifs, déplacement avec glissement et obstacles, plan texte et validation | Avant de modifier `TileMap`, `Deplacement` ou `ObjetInteractif` |
 | `docs/generation.md` | Génération de donjon : placement avec rejet, emprise / forme creusée, paramètres, graine unique | Avant de modifier `GenerateurDonjon` |
 | `docs/chemin.md` | Recherche de chemin (A*), suivi de chemin (`Mobile`), lissage de chemin | Avant de modifier `Chemin` ou `Mobile` |
 | `docs/formation.md` | `Escouade` et `Personnage` : ancre, formation, orientation, verrou de cible, placement en combat, mort et défaite | Avant de modifier `Escouade` ou `Personnage` |

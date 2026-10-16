@@ -1706,3 +1706,23 @@ visuel passe en paramètre, comme `estCible` : `Monstre` ne retient rien.
 **Hors de portée** : laisse prolongée par les dégâts, retour au poste en groupe,
 patrouille, indice visuel permanent du retour (hors F3), effet de soin visible, autres
 leviers contre le kiting (attaque d'opportunité, ralentissement de l'escouade engagée).
+
+## Étape 70 — Portes et premier objet interactif ✅
+
+1. [x] `estBloquante(Tile)` et remplacement de tous les tests directs sur `Tile::Wall`
+       (refactorisation pure, enchaînée).
+2. [x] `PorteFermee` / `PorteOuverte`, `placerPorte`, `ouvrirPorte`, dessin (enchaînée).
+3. [x] `distanceCercleRectangle` et `Escouade::unVivantPresDe` (enchaînée).
+4. [x] `ObjetInteractif` (`Porte`, zone, `pointDApproche`), `PorteDuNiveau`, `Niveau::portes`,
+       `ResultatClic::Objet`, interaction en cours dans `Partie`, `Controleur` (enchaînée).
+5. [x] `placerPortes` et son appel dans `genererNiveau`. 668 tests.
+
+**Choix** : représentation hybride, la carte décidant seule de ce qui bloque (la vision et le
+brouillard de guerre futurs n'auront qu'à lire `estBloquante`), l'objet interactif n'étant que
+des données (variant visité par `Partie`) pour accueillir d'autres objets (coffres). Le groupe
+entier s'avance et la porte s'ouvre quand le premier personnage est près, plutôt qu'un seul
+membre qui irait ouvrir. Placement des portes par l'anneau extérieur des salles, sans tirage.
+
+**Hors de portée** : refermer, portes verrouillées et clés, monstres qui ouvrent, temps
+d'interaction, coffres, survol, portes sur les ouvertures d'une autre largeur, portes dans
+`creerNiveau()`, vision et brouillard de guerre.

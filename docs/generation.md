@@ -100,6 +100,21 @@ positions qu'avant.
 **Armure** : `s_armureMonstresParDefaut` (20, `Niveau.hpp`) est partagée par
 `creerNiveau()` et `genererNiveau()`. Elle n'est pas dans `ParametresDonjon`.
 
+## Portes (étape 70)
+
+`placerPortes` est une fonction pure et sans aléatoire, appelée par `genererNiveau`
+après le creusage des couloirs et avant `placerMonstres` : une graine redonne les
+mêmes salles, couloirs et monstres qu'avant l'étape. On cherche les ouvertures par
+l'extérieur de chaque salle (l'anneau de cases juste hors de l'emprise), pas en
+suivant les couloirs : une porte est une suite maximale de sol de **exactement**
+`largeurCouloir` cases, encadrée de murs (coins compris), avec du sol juste au-delà.
+Un couloir qui traverse une salle reçoit ainsi une porte à l'entrée et une à la
+sortie ; deux salles séparées d'un seul mur donnent la même porte, supprimée en
+doublon. Compromis : un couloir qui longe une salle, des couloirs qui se touchent ou
+toute ouverture d'une autre largeur n'ont pas de porte. La salle de départ a ses
+portes fermées. Les portes sont des cases de sol du plan : ouvertes, la carte est
+exactement celle d'avant (reliée, testé sur 5 graines).
+
 ## Paramètres
 
 `ParametresDonjon` : carte 59 × 40 cases de 40 px, 30 tentatives, côtés de 6 à
@@ -111,8 +126,8 @@ par monstre. `tailleCase` y figure parce que `Niveau` la contient.
 
 Le plan utilise les mêmes caractères que `creerNiveau()` (`#` mur, `.` sol).
 Le départ de l'escouade est le centre (en pixels) de la case centrale de la
-première salle placée, donc toujours sur du sol. Les monstres sont ceux de
-`placerMonstres`, avec l'armure par défaut.
+première salle placée, donc toujours sur du sol. Les portes sont celles de
+`placerPortes`. Les monstres sont ceux de `placerMonstres`, avec l'armure par défaut.
 
 ## Graine unique et nouvelle carte
 
@@ -127,7 +142,8 @@ dans `main` : chaque carte est neuve, avec une nouvelle graine.
 
 ## Limites connues
 
-- Pas de boucles (arbre seulement), pas de portes ; un couloir peut traverser
+- Pas de boucles (arbre seulement) ; portes seulement sur les ouvertures de la
+  largeur du couloir ; un couloir peut traverser
   une salle ou longer un mur. Aucun problème de déplacement observé dans les
   couloirs de 2 cases.
 - Nombre de monstres indépendant de la superficie de la salle ; un seul type
