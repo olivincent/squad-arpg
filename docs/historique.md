@@ -1740,3 +1740,26 @@ changer le comportement des clics au sol. `Escouade` reçoit un point, pas une p
 
 **Hors de portée** : seuil minimal de déplacement pour pivoter, vision et brouillard de
 guerre, refermer une porte, temps d'interaction, survol, coffres.
+
+## Étape 72 — Vision des personnages et brouillard de guerre ✅
+
+1. [x] `ChampDeVision` : shadowcasting symétrique (Albert Ford), pentes en fractions d'entiers
+       (enchaînée). 9 tests, dont la symétrie sur un plan à piliers et sur trois cartes générées.
+2. [x] `Vision` : `Inconnue` / `Exploree` / `Visible`, `mettreAJour`, `etat`, `estVisible`
+       (enchaînée). 8 tests.
+3. [x] `Personnage::m_rayonVision`, `Escouade::cerclesDeVision`, `Vision` dans `Partie`, règles
+       de clic (monstre hors de vue, porte inconnue) (enchaînée). 10 tests. Un test existant
+       adapté (`test_Controleur.cpp` : première marche de 30 à 10 tics).
+4. [x] Dessin : `Vision::dessiner` (`sf::VertexArray`), monstres cachés non dessinés, ordre de
+       dessin, F6. 704 tests.
+
+**Choix** : `Vision` séparée de la `TileMap` (la carte est la vérité, la vision est la
+connaissance) ; algorithme symétrique parce que `ligneDeVue` y passera à l'étape 73 ; pentes
+exactes plutôt qu'en `float` pour ne pas casser la symétrie par un arrondi ; seules les entrées
+du joueur (clics) lisent la vision, tout le reste du combat est inchangé. F6 est visuelle
+seulement. Pas d'accesseur `getVision()` : les tests passent par `cliquer`.
+
+**Hors de portée** : `ligneDeVue` par le shadowcasting (étape 73), vision ou mémoire propres
+aux monstres, fantôme de la dernière position, rupture du verrou hors de vue, interdire de viser
+le skill de zone dans l'inconnu, bords adoucis, lumière, rayons différents par personnage,
+mini-carte, caméra qui dézoome, recalcul seulement au changement de case.

@@ -51,6 +51,8 @@ squad-arpg/
 │   ├── TailleDeVue.hpp / .cpp
 │   ├── Niveau.hpp / .cpp
 │   ├── ObjetInteractif.hpp / .cpp
+│   ├── ChampDeVision.hpp / .cpp
+│   ├── Vision.hpp / .cpp
 │   ├── GenerateurDonjon.hpp / .cpp
 │   ├── Partie.hpp / .cpp
 │   ├── Controleur.hpp / .cpp
@@ -93,6 +95,7 @@ squad-arpg/
 │   ├── test_Deplacement.cpp, test_Monstre.cpp, test_Personnage.cpp
 │   ├── test_Partie.cpp, test_Controleur.cpp, test_GenerateurDonjon.cpp,
 │   │   test_ObjetInteractif.cpp
+│   ├── test_ChampDeVision.cpp, test_Vision.cpp
 │   └── test_Skill.cpp, test_Mobile.cpp, test_Cercle.cpp,
 │       test_Autodefense.cpp, test_Encerclement.cpp, test_BarreDeSkills.cpp,
 │       test_EntiteVue.cpp, test_BarreDeVie.cpp,
@@ -108,6 +111,7 @@ squad-arpg/
 │   ├── chemin.md
 │   ├── formation.md
 │   ├── generation.md
+│   ├── vision.md
 │   ├── combat.md
 │   ├── monstre.md
 │   ├── tests.md
@@ -141,7 +145,7 @@ Qui possède quoi :
   reçoivent la fenêtre, la police et les réglages dans un `Contexte` à chaque
   appel et ne les gardent pas. `EcranJeu` possède une `Partie`, un
   `Controleur`, la caméra et le `std::random_device` ; il traduit les
-  événements SFML (clic, touches 1 à 4, Échap, clic droit, F3 et F4 de débogage) en appels au
+  événements SFML (clic, touches 1 à 4, Échap, clic droit, F3, F4 et F6 de débogage) en appels au
   `Controleur` (touche R : retour au menu si la partie est perdue ou gagnée ;
   F5 : nouvelle carte à tout moment ; F5, comme l'entrée dans l'écran,
   passe par `nouvellePartie`, qui tire la graine et génère le niveau),
@@ -150,7 +154,7 @@ Qui possède quoi :
   ni `Coup`, ni `EntiteVue`, ni `Chemin`, ni `Personnage`.
 - `Partie` possède la `TileMap`, l'`Escouade`, un `std::vector<Monstre>` et le
   `Generateur` aléatoire (graine reçue au constructeur),
-  construits à partir d'un `Niveau`, ainsi que les `ObjetInteractif` (les portes). Elle fait l'intermédiaire entre
+  construits à partir d'un `Niveau`, ainsi que les `ObjetInteractif` (les portes) et la `Vision` (ce que le joueur sait de la carte). Elle fait l'intermédiaire entre
   `Escouade` et `Monstre`, qui ne se connaissent pas : elle leur donne la
   liste des monstres (`EntiteVue`, deux listes : les cibles, sans ceux qui rentrent à leur poste, et tous les monstres comme obstacles) ; pour chaque monstre, elle lui donne aussi sa proie et ses candidats de frappe (`EntiteVue` de personnages) et applique les `Coup` renvoyés.
 - `Controleur` porte l'état d'interface : le mode visée et le déplacement
@@ -206,15 +210,15 @@ stocké par un écran.
 
 Données membres : `m_tirageDeGraine` (`std::random_device`), `m_partie`
 (`Partie`), `m_controleur` (`Controleur`), `m_camera` (`sf::View`),
-`m_debogage` (`OptionsDeDebogage { bool pointsVises = false; bool ancre = true; }`,
+`m_debogage` (`OptionsDeDebogage { bool pointsVises = false; bool ancre = true; bool brouillard = true; }`,
 état d'interface remis à sa valeur de départ par `nouvelleCarte`).
 
 | Fonction | Rôle |
 |---|---|
 | `EcranJeu()` | Tire une graine, la génère et construit la partie (`nouvellePartie`) |
-| `Transition traiterEvenement(...)` | Clics, touches 1 à 4, Échap, F5 (nouvelle carte), F3 (bascule les points visés et les chemins restants des personnages et des monstres, et la semi-transparence des monstres qui rentrent à leur poste), F4 (bascule le carré vert de l'ancre) ; R sur l'écran de fin (partie perdue ou gagnée) renvoie `Depiler` ; sinon `Aucune` |
+| `Transition traiterEvenement(...)` | Clics, touches 1 à 4, Échap, F5 (nouvelle carte), F3 (bascule les points visés et les chemins restants des personnages et des monstres, et la semi-transparence des monstres qui rentrent à leur poste), F4 (bascule le carré vert de l'ancre), F6 (bascule le brouillard de guerre, visuel seulement) ; R sur l'écran de fin (partie perdue ou gagnée) renvoie `Depiler` ; sinon `Aucune` |
 | `void mettreAJour(float, const Contexte&)` | Taille de la caméra (`tailleDeVue`), déplacement continu, `Partie::mettreAJour`, `Controleur::debutImage` (sortie de la visée), caméra centrée sur l'escouade |
-| `void dessiner(const Contexte&) const` | Monde avec la caméra (ancre cachée si `!m_debogage.ancre`), aperçu de visée, points visés et chemins restants si `m_debogage.pointsVises`, puis, avec `vueDInterface` : barre de skills, compteur « Monstres : N » et écran de fin |
+| `void dessiner(const Contexte&) const` | Monde avec la caméra (ancre cachée si `!m_debogage.ancre`, brouillard selon `m_debogage.brouillard`), aperçu de visée, points visés et chemins restants si `m_debogage.pointsVises`, puis, avec `vueDInterface` : barre de skills, compteur « Monstres : N » et écran de fin |
 
 ### `EcranMenu` — le menu de départ
 
@@ -354,7 +358,8 @@ Données membres : `m_carte` (`TileMap`), `m_escouade` (`Escouade`),
 `m_skillDemande` (`std::optional<std::size_t>`), `m_deplacementOrdonne`
 (`std::optional<sf::Vector2f>`), `m_generateur` (`Generateur`, le seul de
 la partie : il descend en paramètre `Generateur&` jusqu'à `Skill`, que
-personne ne copie ni ne garde).
+personne ne copie ni ne garde), `m_vision` (`Vision`, mise à jour à la fin du
+constructeur et de chaque `mettreAJour`, voir `docs/vision.md`).
 
 Deux listes d'`EntiteVue` sont recalculées à chaque usage (fonctions privées, rien de
 stocké) : `entitesCiblables()` (les monstres pour lesquels `estCiblable()` est vrai) pour
@@ -365,7 +370,7 @@ bloque donc comme avant mais n'est plus une cible, et le verrou posé sur lui es
 | Fonction | Rôle |
 |---|---|
 | `Partie(const Niveau& niveau, Generateur::result_type graine)` | Construit la carte, l'escouade et les monstres (identifiants 1, 2, 3…, armure `niveau.armureMonstres`), ferme chaque case de `niveau.portes` (`placerPorte`) et crée un `ObjetInteractif` par porte (identifiants 1, 2, 3…, compteur distinct de celui des monstres) et initialise le générateur avec `graine` (`EcranJeu` la tire avec `std::random_device` et l'affiche ; les tests passent une graine fixe) |
-| `ResultatClic cliquer(sf::Vector2f point)` | Appliqué tout de suite. `Monstre` : verrouille le monstre ciblable qui contient le point (un monstre qui rentre à son poste compte comme le sol) ; `Objet` : un point dans la zone d'une porte fermée (et pas sur un monstre ciblable) lève le verrou et annule les coups en exécution ; si un personnage vivant est déjà à portée (`unVivantPresDe`), la porte s'ouvre tout de suite (`ouvrir`), l'ordre de déplacement en attente est effacé, aucune interaction n'est mémorisée et la formation regarde la porte (`regarderVers`) ; sinon mémorise l'interaction et l'ordre d'aller au `pointDApproche` (`mettreAJour` appelle `regarderVers` juste après l'`allerVers` de cet ordre) ; sans point d'approche, c'est `Sol`. `Sol` : lève le verrou et annule les coups en exécution des personnages ; `Ignore` si l'escouade est vaincue, sans rien changer. Tout clic (sauf `Ignore`) annule l'interaction en cours. `enum class ResultatClic { Monstre, Objet, Sol, Ignore }` |
+| `ResultatClic cliquer(sf::Vector2f point)` | Appliqué tout de suite. `Monstre` : verrouille le monstre ciblable et **visible** (`m_vision.estVisible` de son centre) qui contient le point (un monstre qui rentre à son poste ou hors de vue compte comme le sol) ; `Objet` : un point dans la zone d'une porte fermée dont une case au moins n'est pas `Inconnue` (et pas sur un monstre cliquable) lève le verrou et annule les coups en exécution ; si un personnage vivant est déjà à portée (`unVivantPresDe`), la porte s'ouvre tout de suite (`ouvrir`), l'ordre de déplacement en attente est effacé, aucune interaction n'est mémorisée et la formation regarde la porte (`regarderVers`) ; sinon mémorise l'interaction et l'ordre d'aller au `pointDApproche` (`mettreAJour` appelle `regarderVers` juste après l'`allerVers` de cet ordre) ; sans point d'approche, c'est `Sol`. `Sol` : lève le verrou et annule les coups en exécution des personnages ; `Ignore` si l'escouade est vaincue, sans rien changer. Tout clic (sauf `Ignore`) annule l'interaction en cours. `enum class ResultatClic { Monstre, Objet, Sol, Ignore }` |
 | `void demanderSkill(std::size_t place)` | Mémorise la demande de skill (touches 1 à 3) ; la dernière demande de l'image gagne |
 | `void lancerSkillDeZone(std::size_t place, sf::Vector2f point)` | Mémorise le lancer du skill de zone |
 | `void ordonnerDeplacement(sf::Vector2f point)` | Mémorise l'ordre de déplacement ; exécuté seulement si l'escouade est vivante ; annule l'interaction en cours |
@@ -373,7 +378,7 @@ bloque donc comme avant mais n'est plus une cible, et le verrou posé sur lui es
 | `bool estGagnee() const` | Vrai quand `m_monstres` est vide ET que la partie n'est pas perdue (la défaite l'emporte) ; `[[nodiscard]]` |
 | `int monstresRestants() const` | Nombre de monstres vivants (`m_monstres.size()`), pour le compteur d'`EcranJeu` ; `[[nodiscard]]` |
 | `void mettreAJour(float dt)` | Sans effet si la partie est perdue ou gagnée (le monde est figé). Sinon exécute, dans l'ordre : lancer de zone, skill demandé, `attaquer(dt, …)` et application des coups, déverrouillage si la cible est morte, retrait des monstres morts, ordre de déplacement, mise à jour (`EntiteVue` de tous les monstres, escouade, puis ouverture de la porte en cours d'interaction si `unVivantPresDe(zone, 20 px)`, tour de chaque monstre avec ses obstacles bloquants — personnages vivants et autres monstres — et ses cercles à contourner — les autres monstres seulement —, avec l'engagement et le départ de son coup) ; vide les demandes |
-| `void dessiner(sf::RenderTarget& rendu, bool afficherAncre, bool marquerLeRetour) const` | Carte, monstres (contour jaune sur le monstre verrouillé ; `marquerLeRetour` est transmis à `Monstre::dessiner`), escouade (`afficherAncre` est transmis à `Escouade::dessiner`) |
+| `void dessiner(sf::RenderTarget& rendu, bool afficherAncre, bool marquerLeRetour, bool brouillard) const` | Carte, monstres (contour jaune sur le monstre verrouillé ; `marquerLeRetour` est transmis à `Monstre::dessiner` ; un monstre non visible n'est pas dessiné si `brouillard`), escouade (`afficherAncre` est transmis à `Escouade::dessiner`), puis le voile de la `Vision` si `brouillard` |
 | `void dessinerCheminsDesMonstres(sf::RenderTarget& rendu) const` | Débogage (F3) : le chemin restant de chaque monstre (`Monstre::dessinerChemin`) |
 | `const Escouade& getEscouade() const` | Lecture seule : caméra, barre de skills, requêtes du `Controleur` |
 | `const std::vector<Monstre>& getMonstres() const` | Lecture seule (utilisée par les tests) |
@@ -451,6 +456,7 @@ monstre à portée de son attaque et en vue, calculé par `attaquer`, lu par `me
 | `bool estVivante() const` | Vrai si au moins un personnage est vivant |
 | `bool unVivantPresDe(sf::FloatRect zone, float ecart) const` | Un personnage vivant est-il à `ecart` ou moins (bord à bord, `distanceCercleRectangle`) de cette zone ? Escouade ne connaît ni les portes ni les objets ; `[[nodiscard]]` |
 | `std::vector<Cercle> cerclesDesVivants() const` | Cercles des personnages vivants |
+| `std::vector<Cercle> cerclesDeVision() const` | Un `Cercle` (centre du personnage, rayon de vision, 320 px) par personnage vivant ; `Partie` les donne à `Vision::mettreAJour` ; `[[nodiscard]]` |
 | `void verrouiller(int idCible)` | Pose le verrou de combat sur ce monstre, en remplaçant la cible précédente ; annule un skill de dégâts en attente si l'identifiant change |
 | `void deverrouiller()` | Retire le verrou de combat et annule un skill de dégâts en attente |
 | `std::optional<int> getCibleVerrouillee() const` | Identifiant du monstre engagé en combat, vide si aucun |
@@ -469,6 +475,28 @@ monstre à portée de son attaque et en vue, calculé par `attaquer`, lu par `me
 |---|---|
 | `ObjetInteractif(int identifiant, Porte porte, float tailleCase)` | Calcule `zone`, rectangle en pixels du monde qui couvre toutes les cases ; `assert` : au moins une case, toutes sur une même ligne ou une même colonne |
 | `std::optional<sf::Vector2f> pointDApproche(const Porte&, const TileMap&, sf::Vector2f depuis)` | Porte horizontale (cases de même y) : côtés y−1 et y+1 ; verticale : x−1 et x+1. Le point d'un côté est le milieu des centres de ses cases ; seuls les côtés sans case bloquante sont gardés, le plus proche de `depuis` l'emporte ; vide si aucun. Une porte d'une seule case est traitée comme horizontale ; `[[nodiscard]]` |
+
+### `ChampDeVision` — les cases qu'un observateur voit
+
+`ChampDeVision.hpp` / `.cpp` : une fonction libre pure, sans état, sans SFML graphique. Shadowcasting symétrique (Albert Ford), pentes en fractions d'entiers. Utilisée par `Vision::mettreAJour` ; elle passera aussi par `TileMap::ligneDeVue` à l'étape 73. Voir `docs/vision.md`.
+
+| Fonction | Rôle |
+|---|---|
+| `std::vector<sf::Vector2i> champDeVision(const TileMap& carte, sf::Vector2i origine, int rayon)` | Cases vues depuis la case `origine`, à distance (entre centres) `<= rayon` cases. Une case bloquante (`estBloquante`) qui reçoit la lumière est révélée et l'arrête ; une case libre n'est révélée que si son centre est dans l'intervalle de pentes (symétrie : A voit B ⇔ B voit A pour deux cases libres). Hors carte = mur, jamais renvoyé ; l'origine est renvoyée si elle est dans la carte ; doublons permis ; `[[nodiscard]]` |
+
+### `Vision` — ce que le joueur sait de la carte
+
+`Vision.hpp` / `.cpp`. Possédée par valeur par `Partie`. Ne connaît ni `Personnage`, ni `Escouade`, ni `Monstre` : elle reçoit des `Cercle`. `enum class EtatCase { Inconnue, Exploree, Visible }`.
+
+Données membres : `m_largeur`, `m_hauteur`, `m_tailleCase` (copiées de la carte), `m_cases` (`std::vector<EtatCase>`, même indexage que `TileMap`).
+
+| Fonction | Rôle |
+|---|---|
+| `explicit Vision(const TileMap& carte)` | Tout est `Inconnue` |
+| `void mettreAJour(const TileMap& carte, const std::vector<Cercle>& sources)` | Tout `Visible` devient `Exploree`, puis pour chaque source (centre et rayon en pixels) le `champDeVision` depuis la case du centre, rayon en cases = rayon / taille de case arrondi vers le bas, devient `Visible`. Une case explorée ne redevient jamais inconnue ; `assert` : mêmes dimensions que la carte de la construction |
+| `EtatCase etat(sf::Vector2i coordCase) const` | Hors carte = `Inconnue` ; `[[nodiscard]]` |
+| `bool estVisible(sf::Vector2f point) const` | La case qui contient ce point (pixels du monde) est-elle `Visible` ? ; `[[nodiscard]]` |
+| `void dessiner(sf::RenderTarget& rendu) const` | Un seul `sf::VertexArray` (`Triangles`, 6 sommets par case voilée), reconstruit à chaque appel : noir opaque sur l'inconnu, noir d'alpha 150 sur l'exploré, rien sur le visible ; à dessiner avec la vue du monde |
 
 ### `Provocations` — les monstres provoqués
 
@@ -545,11 +573,12 @@ formation, ni `Escouade`, ni `Monstre`.
 Données membres : `m_mobile` (`Mobile`, porte la position et la vitesse),
 `m_couleur`, `m_attaqueDeBase` (`Skill`), `m_skill`
 (`std::optional<Skill>`), `m_cibleChemin` (`std::optional<sf::Vector2f>`,
-cible du dernier A*), `m_pointsDeVie` (`PointsDeVie`), `m_armure` (`int`), `m_actionEngagee` (`std::optional<ActionEngagee>`, l'action en exécution — attaque de base ou skill — et sa cible ; lue seulement pendant l'exécution).
+cible du dernier A*), `m_pointsDeVie` (`PointsDeVie`), `m_armure` (`int`), `m_rayonVision` (`float`, pixels), `m_actionEngagee` (`std::optional<ActionEngagee>`, l'action en exécution — attaque de base ou skill — et sa cible ; lue seulement pendant l'exécution).
 
 | Fonction | Rôle |
 |---|---|
-| `Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::optional<Skill> skill, int armure)` | Crée le personnage à ce centre, avec cette couleur, cette attaque de base, ce skill éventuel et cette armure (50 pour les mêlées, 0 pour les tireurs, fournie par `Escouade`) |
+| `Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::optional<Skill> skill, int armure, float rayonVision)` | Crée le personnage à ce centre, avec cette couleur, cette attaque de base, ce skill éventuel, cette armure (50 pour les mêlées, 0 pour les tireurs, fournie par `Escouade`) et ce rayon de vision en pixels (320 pour les quatre, fourni par `Escouade`) |
+| `float getRayonVision() const` | Rayon de vision, en pixels ; `[[nodiscard]]` |
 | `void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte, const std::vector<Cercle>& obstacles, const std::vector<Cercle>& aContourner)` | Si vivant, avance vers la cible (en ligne droite si le trajet est libre de murs ET ne passe pas près d'un des `aContourner` — `traverseUnObstacle` —, sinon par un chemin A* lissé qui les contourne, recalculé si la cible s'éloigne de plus d'une case de sa fin ou si `estBloque()` ; collision avec les murs et les cercles `obstacles`, glissement) puis décrémente la recharge de l'attaque et du skill ; sinon ne fait rien |
 | `void decaler(sf::Vector2f decalage, const TileMap&, const std::vector<Cercle>&)` | Pousse le personnage vivant (délègue à `Mobile::decaler`) ; sans effet s'il est mort |
 | `bool estEnMouvement() const` / `float getPorteeAttaqueDeBase() const` | Façades de `Mobile::estEnMouvement` et de la portée de l'attaque de base ; `[[nodiscard]]` |
@@ -861,6 +890,7 @@ lire le fichier correspondant :
 | `docs/boucle-et-entrees.md` | Qui fait quoi entre `EcranJeu`, `Controleur` et `Partie`, ordre d'une image, entrée souris et clavier, mode visée, combat engagé, défaite, caméra | Avant de modifier `main.cpp`, `Partie`, `Controleur` ou `Niveau` |
 | `docs/carte-et-collision.md` | Carte, collision et dessin, portes et objets interactifs, déplacement avec glissement et obstacles, plan texte et validation | Avant de modifier `TileMap`, `Deplacement` ou `ObjetInteractif` |
 | `docs/generation.md` | Génération de donjon : placement avec rejet, emprise / forme creusée, paramètres, graine unique | Avant de modifier `GenerateurDonjon` |
+| `docs/vision.md` | Vision et brouillard de guerre : shadowcasting symétrique, `Vision` (inconnue / explorée / visible), rayon des personnages, règles de clic, dessin, F6, limites | Avant de modifier `ChampDeVision`, `Vision` ou ce que `Partie` en fait |
 | `docs/chemin.md` | Recherche de chemin (A*), suivi de chemin (`Mobile`), lissage de chemin | Avant de modifier `Chemin` ou `Mobile` |
 | `docs/formation.md` | `Escouade` et `Personnage` : ancre, formation, orientation, verrou de cible, placement en combat, mort et défaite | Avant de modifier `Escouade` ou `Personnage` |
 | `docs/combat.md` | `Skill` (dont l'attaque de base), `Cercle`, portée bord à bord, autodéfense, `Cible`, skill en attente, circuit des dégâts, qui bloque qui | Avant de modifier `Cercle`, `Autodefense`, `Coup`, `Skill`, `Cible`, le skill ou les listes d'obstacles |

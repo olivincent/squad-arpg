@@ -79,12 +79,16 @@ est dans `docs/historique.md`.
 - Étape 69 — Retour au poste : invulnérabilité, régénération et territoire élargi ✅
 - Étape 70 — Portes et premier objet interactif ✅
 - Étape 71 — Correction des portes : ouvrir sur place et faire face à la porte ✅
+- Étape 72 — Vision des personnages et brouillard de guerre ✅
 
 ## Prochaine étape (à choisir)
 
 À préciser avec Claude.ai (voir `docs/brainstorm.md`, dont l'idée de « stratégie
 d'attaque » par type de monstre, qui se branchera sur `coutDesObstacles` : la liste
 de cercles passée changera selon le type d'entité).
+
+Étape 73 envisagée : faire passer `TileMap::ligneDeVue` (attaques, skills, détection des
+monstres) par `champDeVision`, désormais symétrique (voir `docs/vision.md`).
 
 Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes) :
 - Skill en attente par personnage (aujourd'hui un seul pour l'escouade)
@@ -163,6 +167,16 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   sol ou sur un monstre annule l'approche ; les skills non. Les monstres
   n'ouvrent pas les portes. Voir `docs/carte-et-collision.md` et
   `docs/generation.md`.
+- **Vision et brouillard de guerre** (étape 72) : chaque case est inconnue, explorée ou
+  visible (`Vision`, possédée par `Partie`). Les personnages vivants voient à 320 px (8 cases)
+  chacun ; la vision de l'escouade est l'union de leurs champs, calculés par un shadowcasting
+  symétrique (`ChampDeVision`) : un mur ou une porte fermée est vu mais arrête la vue, une porte
+  ouverte la laisse passer. Un voile noir opaque couvre l'inconnu, un voile sombre (alpha 150)
+  l'exploré (les zones visitées restent affichées). Un monstre hors de vue n'est pas dessiné
+  (ni barre de vie, ni contour) et n'est pas cliquable (le clic déplace l'escouade) ; une
+  porte dont aucune case n'est connue non plus. Le combat (autodéfense, skills, détection des
+  monstres, verrou posé) ne change pas : il utilise toujours `ligneDeVue`. F6 (débogage) coupe
+  le brouillard (visuel seulement : la règle de clic reste) ; F5 le remet. Voir `docs/vision.md`.
 - **Fenêtre et carte** : fenêtre 1200 × 800 par défaut ; carte de 59 × 40 cases de
   40 px (2360 × 1600 px). Depuis l'étape 59, `EcranJeu` joue sur un niveau
   généré (`genererNiveau` : salles rectangulaires reliées par des couloirs en L de
@@ -424,16 +438,21 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 677 tests : 5 sur `ObjetInteractif`, 13 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 57 sur `GenerateurDonjon`, 42 sur `TileMap`, 27 sur `Chemin`, 191
-  sur `Escouade` en six fichiers par thème — 35 déplacement, 32 combat, 70
+  (`./build/tests.exe`, 704 tests : 9 sur `ChampDeVision`, 8 sur `Vision`, 5 sur `ObjetInteractif`, 13 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 57 sur `GenerateurDonjon`, 42 sur `TileMap`, 27 sur `Chemin`, 194
+  sur `Escouade` en six fichiers par thème — 38 déplacement, 32 combat, 70
   skills, 26 agresseurs, 20 vue, 8 places —, 11 sur `Encerclement`, 16 sur `Deplacement`, 73 sur `Monstre`,
-  50 sur `Personnage`, 24 sur `Skill`, 24 sur `Mobile`, 2 sur `Eclaircir`, 10 sur `Cercle`, 13
+  51 sur `Personnage`, 24 sur `Skill`, 24 sur `Mobile`, 2 sur `Eclaircir`, 10 sur `Cercle`, 13
   sur `Autodefense`, 7 sur `BarreDeSkills`, 4 sur `EntiteVue`, 1 sur
-  `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 43 sur `Partie`, 8 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
+  `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 49 sur `Partie`, 8 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
   accents (`./build/tests.exe "*a portee*"` filtre) ; rotation de la
   formation et `provoquer` à une place invalide couverts.
 
 **Limites connues** (acceptées pour l'instant) :
+- Vision (étape 72) : un monstre verrouillé qui sort de la vision garde le verrou ; les
+  attaques, skills et détections des monstres utilisent encore `ligneDeVue`, pas le champ
+  de vision (étape 73) ; le skill de zone peut être visé dans l'inconnu ; pas de mémoire
+  des monstres vus ; le compteur « Monstres : N » compte aussi les monstres cachés. Voir
+  `docs/vision.md`.
 - Menus (étape 65) : souris seulement ; « Options » et « Commencer partie »
   n'existent qu'au menu de départ (pas de pause ni de retour au menu en
   cours de partie) ; une résolution enregistrée plus grande que le bureau

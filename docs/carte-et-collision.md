@@ -62,7 +62,10 @@
 - **Interaction en cours** (`Partie::m_interactionEnCours`) : annulée par tout ordre
   de déplacement, clic au sol ou clic sur un monstre ; `Controleur` désarme le
   déplacement continu sur `Objet` (sinon le bouton tenu écraserait l'approche).
-  Priorité au clic : monstre ciblable, puis porte fermée, puis sol.
+  Priorité au clic : monstre ciblable et visible, puis porte fermée dont une case au
+  moins n'est pas inconnue (étape 72, `docs/vision.md`), puis sol. La vision et le brouillard
+  n'ont eu qu'à lire `estBloquante`, comme prévu : une porte fermée arrête la vue, une
+  porte ouverte la laisse passer.
 - **Ouverture sur place et regard** (étape 71) : si un personnage vivant est déjà à
   portée au moment du clic, `Partie::cliquer` ouvre la porte tout de suite (comme
   les autres effets du clic), sans ordre de déplacement ni interaction mémorisée ;

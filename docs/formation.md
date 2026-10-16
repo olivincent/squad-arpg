@@ -128,6 +128,9 @@ L'attaque, la portée, le skill et les obstacles sont dans
 
 ## Le personnage
 
+- **Rayon de vision** (étape 72) : `m_rayonVision` (pixels), fourni par `Escouade` à la
+  construction comme l'armure (320 px pour les quatre). `Escouade::cerclesDeVision()` rend
+  un `Cercle` par vivant ; `Personnage` ne sait rien du brouillard. Voir `docs/vision.md`.
 - **Un personnage sait seulement « aller vers un point »** : il reçoit
   sa cible en paramètre de `mettreAJour`, sans connaître la formation,
   son décalage ni l'escouade. C'est `Escouade` qui décide du point, ce

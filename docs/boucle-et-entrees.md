@@ -12,9 +12,9 @@ la fenêtre, la police, l'horloge et `setKeyRepeatEnabled`, qui sont à
 
 | Acteur | Rôle | Connaît SFML Window/Event ? |
 |---|---|---|
-| `EcranJeu` (et `Application` pour la fenêtre, la police et l'horloge) | Caméra, traduction des événements SFML en appels au `Controleur`, retour au menu (touche R après une défaite ou une victoire), nouvelle carte (F5), bascules de débogage (F3 points visés, chemins et monstres qui rentrent semi-transparents, F4 ancre ; `OptionsDeDebogage`), compteur de monstres, conversion du curseur en coordonnées du monde, enchaînement du dessin | Oui, seuls |
+| `EcranJeu` (et `Application` pour la fenêtre, la police et l'horloge) | Caméra, traduction des événements SFML en appels au `Controleur`, retour au menu (touche R après une défaite ou une victoire), nouvelle carte (F5), bascules de débogage (F3 points visés, chemins et monstres qui rentrent semi-transparents, F4 ancre, F6 brouillard de guerre ; `OptionsDeDebogage`), compteur de monstres, conversion du curseur en coordonnées du monde, enchaînement du dessin | Oui, seuls |
 | `Controleur` | État d'interface : mode visée (`m_placeEnVisee`) et déplacement continu (`m_deplacementContinu`), sans référence à la `Partie` (reçue à chaque appel) ; traduit les actions du joueur en demandes à la `Partie` ; dessine l'aperçu de visée | Non |
-| `Partie` | Règles de jeu : possède la carte, l'`Escouade` et les `Monstre` ; intermédiaire entre `Escouade` et `Monstre`, qui ne se connaissent pas | Non |
+| `Partie` | Règles de jeu : possède la carte, l'`Escouade`, les `Monstre` et la `Vision` ; intermédiaire entre `Escouade` et `Monstre`, qui ne se connaissent pas | Non |
 
 `Niveau` (`Niveau.hpp/.cpp`) est une structure de données (plan, taille de
 case, départ de l'escouade, positions des monstres) ; `creerNiveau()` renvoie
@@ -57,10 +57,12 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
         `escouade.mettreAJour`, puis
         `cerclesDesVivants` et le tour de chaque monstre (proie, mise à jour
         avec ses obstacles bloquants et ses cercles à contourner, riposte) ;
-     h. les demandes sont vidées ;
+     h. `Vision` mise à jour (étape 72), en dernier pour que le dessin corresponde aux
+        positions de la fin de l'image ;
+     i. les demandes sont vidées ;
   4. `main.cpp` : caméra centrée sur l'escouade, `partie.dessiner` (carte,
-     monstres avec le contour du verrou, semi-transparents s'ils rentrent à leur
-     poste et que F3 est actif, escouade), `controleur.
+     monstres visibles avec le contour du verrou, semi-transparents s'ils rentrent à leur
+     poste et que F3 est actif, escouade, voile de la `Vision` sauf si F6 l'a coupé), `controleur.
      dessinerApercu`, puis, dans la vue par défaut, barre de skills, compteur
      « Monstres : N » (haut gauche) et, si la partie est perdue ou gagnée,
      écran de fin (par-dessus la barre et le compteur), le tout avec la vue de
@@ -99,7 +101,8 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   (bouton gauche) décide, à l'instant du clic, ce que fait ce clic, peu
   importe où le curseur va ensuite. `Controleur::appuiGauche` : hors visée,
   `Partie::cliquer` renvoie `Monstre` (verrou posé, déplacement continu
-  désarmé), `Objet` (porte fermée cliquée : verrou levé, interaction mémorisée,
+  désarmé ; un monstre hors de vue n'est pas candidat, voir `docs/vision.md`), `Objet`
+  (porte fermée cliquée, dont une case au moins n'est pas inconnue : verrou levé, interaction mémorisée,
   déplacement continu désarmé ; voir `docs/carte-et-collision.md`), `Sol` (verrou levé, déplacement continu armé) ou `Ignore`
   (escouade vaincue : rien ne change, y compris le déplacement continu).
 - **Déplacement continu : lecture d'état, armée par l'événement d'appui** :

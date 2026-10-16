@@ -12,7 +12,7 @@
   `test_Mobile.cpp`, `test_Cercle.cpp`, `test_Autodefense.cpp`,
   `test_Encerclement.cpp`, `test_BarreDeSkills.cpp`, `test_EntiteVue.cpp`, `test_BarreDeVie.cpp`,
   `test_PointsDeVie.cpp`, `test_Provocations.cpp`, `test_Agresseurs.cpp`, `test_Partie.cpp`,
-  `test_Controleur.cpp`),
+  `test_Controleur.cpp`, `test_ChampDeVision.cpp`, `test_Vision.cpp`),
   sauf `Escouade`, coupée par thème en six fichiers à plat (pas de
   sous-dossier) :
   - `test_Escouade_deplacement.cpp` : ancre, chemin, formation, places,
@@ -865,3 +865,37 @@
 - **Limite du test d'`engagerAttaque` en retour** : un monstre en retour est presque
   toujours en mouvement, donc `engagerAttaque` renverrait faux même sans la garde ; le
   test vérifie la règle, pas sa seule cause.
+
+## Vision et brouillard de guerre (étape 72)
+
+- **`test_ChampDeVision.cpp`** (9 cas) : salle vide (toutes les cases à distance `<= rayon`,
+  aucune au-delà) ; rayon 0 (l'origine seule) ; un mur est révélé, la case derrière non ; ombre
+  d'un pilier (4 cases cachées derrière, cases des côtés visibles) ; porte fermée (révélée, salle
+  derrière cachée) et porte ouverte (salle visible) ; origine dans un coin ou sur un bord avec un
+  rayon plus grand que la carte (rien hors carte, toute la carte vue) ; **symétrie** sur un plan
+  13 × 13 à piliers et à coins (rayon 6) et sur trois cartes générées (graines 1, 2 et 3, rayon
+  8, portes une sur deux ouvertes). L'aide `verifierSymetrie` compare toutes les paires de cases
+  libres à distance `<= rayon` et compte aussi les paires cachées (`cachees > 0`), pour prouver
+  que le test éprouve quelque chose. Une assertion par paire coûterait des centaines de milliers
+  d'assertions Catch2 : les asymétries sont collectées dans un vecteur, vérifié vide à la fin.
+  Mutation vérifiée à la main : sans le critère « centre dans l'intervalle », les deux tests de
+  symétrie échouent.
+- **`test_Vision.cpp`** (8 cas) : tout inconnu à la construction ; le champ d'une source est
+  visible ; rayon en cases arrondi vers le bas (2,9 cases = 2) ; une case quittée devient
+  explorée et ne redevient jamais inconnue, même sans source ; union de deux sources ; hors
+  carte = inconnue ; `estVisible` en pixels (coins de case, case voisine, hors carte) ; un mur
+  arrête la vue.
+- **`test_Escouade_deplacement.cpp`** (+3) : `cerclesDeVision` (4 cercles de rayon 320 aux
+  centres de `cerclesDesVivants`, un mort n'y figure pas, vide si tous sont morts).
+  **`test_Personnage.cpp`** (+1) : `getRayonVision`. Les ~45 constructions de `Personnage` des
+  tests reçoivent le nouveau paramètre (`s_rayonVisionDeTest`, dans `aides.hpp`).
+- **`test_Partie.cpp`** (+6) : les niveaux sont des salles de 30 × 11 cases. Un monstre voisin
+  est cliquable avant tout `mettreAJour` (la salle de départ est visible dès la construction) ;
+  un monstre à 610 px ou derrière un mur : `Sol`, pas de verrou ; le même monstre devient
+  `Monstre` après que l'escouade s'est approchée (vue à 280 px, sans détection à 200 px) ; une
+  porte à 800 px : `Sol`, puis `Objet` une fois approchée.
+- **Test adapté** (`test_Controleur.cpp`, « un clic au sol arme le deplacement continu… ») : la
+  première marche passe de 30 à 10 tics, sinon l'escouade s'éloignait à plus de 320 px du
+  monstre, qui n'était plus cliquable. La règle n'a pas été affaiblie.
+- **Non testé** : `Vision::dessiner`, le dessin conditionnel de `Partie::dessiner` et la touche
+  F6 (vérifiés dans le jeu). 704 tests.
