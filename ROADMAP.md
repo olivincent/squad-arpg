@@ -78,6 +78,7 @@ est dans `docs/historique.md`.
 - Étape 68 — A* qui contourne les obstacles mobiles ✅
 - Étape 69 — Retour au poste : invulnérabilité, régénération et territoire élargi ✅
 - Étape 70 — Portes et premier objet interactif ✅
+- Étape 71 — Correction des portes : ouvrir sur place et faire face à la porte ✅
 
 ## Prochaine étape (à choisir)
 
@@ -148,13 +149,16 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   fenêtre) ; la barre de skills, le compteur, l'écran de fin et les menus
   suivent la même règle. Fenêtre sans redimensionnement à la main. Voir
   `docs/ecrans.md`.
-- **Portes** (étape 70) : les couloirs de 2 cases sont fermés, à chaque jonction
+- **Portes** (étapes 70 et 71) : les couloirs de 2 cases sont fermés, à chaque jonction
   avec une salle (y compris la salle de départ), par une porte brune. Une porte
   fermée bloque comme un mur (déplacement, chemins, ligne de vue, détection des
   monstres, skill de zone). Un clic dessus (si aucun monstre ciblable ne s'y
-  trouve) lève le verrou et envoie l'escouade devant elle, du côté libre le plus
-  proche ; la porte s'ouvre dès qu'un personnage vivant est à 20 px (bord à bord)
-  d'elle, s'affiche en sol avec un cadre brun et reste ouverte (un clic dessus
+  trouve) lève le verrou. Si un personnage vivant est déjà à 20 px (bord à bord)
+  d'elle, elle s'ouvre tout de suite, sans déplacement ; sinon l'escouade
+  s'avance devant elle, du côté libre le plus proche, et elle s'ouvre dès qu'un
+  personnage vivant est à 20 px. Dans les deux cas la formation se tourne vers la
+  porte (mêlées devant), jusqu'au prochain ordre ou verrouillage. Ouverte, elle
+  s'affiche en sol avec un cadre brun et reste ouverte (un clic dessus
   vaut un clic au sol). Un ordre de déplacement (bouton tenu compris), un clic au
   sol ou sur un monstre annule l'approche ; les skills non. Les monstres
   n'ouvrent pas les portes. Voir `docs/carte-et-collision.md` et
@@ -420,12 +424,12 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 668 tests : 5 sur `ObjetInteractif`, 13 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 57 sur `GenerateurDonjon`, 42 sur `TileMap`, 27 sur `Chemin`, 186
-  sur `Escouade` en six fichiers par thème — 30 déplacement, 32 combat, 70
+  (`./build/tests.exe`, 677 tests : 5 sur `ObjetInteractif`, 13 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 57 sur `GenerateurDonjon`, 42 sur `TileMap`, 27 sur `Chemin`, 191
+  sur `Escouade` en six fichiers par thème — 35 déplacement, 32 combat, 70
   skills, 26 agresseurs, 20 vue, 8 places —, 11 sur `Encerclement`, 16 sur `Deplacement`, 73 sur `Monstre`,
   50 sur `Personnage`, 24 sur `Skill`, 24 sur `Mobile`, 2 sur `Eclaircir`, 10 sur `Cercle`, 13
   sur `Autodefense`, 7 sur `BarreDeSkills`, 4 sur `EntiteVue`, 1 sur
-  `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 39 sur `Partie`, 8 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
+  `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 43 sur `Partie`, 8 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
   accents (`./build/tests.exe "*a portee*"` filtre) ; rotation de la
   formation et `provoquer` à une place invalide couverts.
 

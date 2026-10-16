@@ -63,7 +63,16 @@
   de déplacement, clic au sol ou clic sur un monstre ; `Controleur` désarme le
   déplacement continu sur `Objet` (sinon le bouton tenu écraserait l'approche).
   Priorité au clic : monstre ciblable, puis porte fermée, puis sol.
-- **Limites** : les monstres n'ouvrent pas les portes ; une porte reste ouverte ; une
+- **Ouverture sur place et regard** (étape 71) : si un personnage vivant est déjà à
+  portée au moment du clic, `Partie::cliquer` ouvre la porte tout de suite (comme
+  les autres effets du clic), sans ordre de déplacement ni interaction mémorisée ;
+  l'ancre ne bouge pas. Dans les deux cas `Partie` donne à `Escouade` le centre de
+  la zone à regarder (`regarderVers`) pour que les mêlées entrent les premiers ;
+  dans le cas de l'approche, l'appel suit l'`allerVers` de l'ordre dans
+  `mettreAJour`, car `allerVers` efface le point. Voir `docs/formation.md`.
+- **Limites** : l'escouade déjà en marche vers une autre destination au moment d'un clic
+  sur une porte à portée la poursuit (la porte s'ouvre, le regard attend l'arrêt) ; les
+  monstres n'ouvrent pas les portes ; une porte reste ouverte ; une
   porte d'une seule case est supposée horizontale ; pas de surbrillance au survol.
 
 ## Ligne de vue (étape 44)

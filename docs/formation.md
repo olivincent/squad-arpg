@@ -80,6 +80,18 @@ L'attaque, la portée, le skill et les obstacles sont dans
   si l'ancre a un point à atteindre et que la distance est `> 0`
   (`angle()` d'un vecteur nul n'a pas de sens), sinon la dernière valeur
   est conservée. `m_orientation` est ce qu'utilise `placePersonnage`.
+- **Point à regarder** (étape 71) : `regarderVers(point)` mémorise un point
+  (`m_pointARegarder`) vers lequel l'orientation voulue se tourne *seulement*
+  quand l'ancre n'a plus de point à atteindre ; en marche, la marche décide.
+  Un seul mécanisme, sans seuil de déplacement : le demi-tour observé aux portes
+  venait d'un point d'approche à quelques pixels (ou derrière) de l'ancre, qui
+  fixait l'orientation voulue sur un déplacement minuscule. Le point est effacé
+  par tout nouvel ordre à l'ancre (`allerVers`, approche du verrou dans
+  `approcherVerrou`, `verrouiller`) : une escouade qui part combattre ne se
+  retourne pas vers l'ancienne porte à l'arrêt. L'appelant doit donc appeler
+  `regarderVers` *après* l'ordre qui l'efface. Un clic au sol près du groupe le
+  fait toujours pivoter vers la direction de marche (seuil gardé en réserve si
+  l'agacement se voit ailleurs qu'aux portes).
 - **Rotation progressive, par le plus court côté** : `m_orientation`
   se rapproche de `m_orientationVoulue` à chaque `mettreAJour`, que
   l'ancre bouge ou non (si elle s'arrête en pleine rotation, la

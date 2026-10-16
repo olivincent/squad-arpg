@@ -1726,3 +1726,17 @@ membre qui irait ouvrir. Placement des portes par l'anneau extérieur des salles
 **Hors de portée** : refermer, portes verrouillées et clés, monstres qui ouvrent, temps
 d'interaction, coffres, survol, portes sur les ouvertures d'une autre largeur, portes dans
 `creerNiveau()`, vision et brouillard de guerre.
+
+## Étape 71 — Correction des portes : ouvrir sur place et faire face ✅
+
+1. [x] `Escouade::regarderVers` et `m_pointARegarder`, effacé par tout nouvel ordre à
+       l'ancre (enchaînée). 5 tests d'`Escouade`.
+2. [x] `Partie` : ouverture sur place dans `cliquer`, `regarderVers` après l'`allerVers`
+       de l'approche (`objetEnCours`, `ouvrir`). 4 tests de `Partie`. 677 tests.
+
+**Choix** : cause confirmée par lecture du code (l'orientation voulue suit tout point du
+chemin, même à 2 px) ; un point à regarder plutôt qu'un seuil de déplacement, pour ne pas
+changer le comportement des clics au sol. `Escouade` reçoit un point, pas une porte.
+
+**Hors de portée** : seuil minimal de déplacement pour pivoter, vision et brouillard de
+guerre, refermer une porte, temps d'interaction, survol, coffres.
