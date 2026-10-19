@@ -334,6 +334,29 @@ TEST_CASE("coutDesObstacles penalise les cases touchees par le cercle agrandi") 
     REQUIRE(loin({9, 2}) == 0);
 }
 
+TEST_CASE("coutDesObstacles avec un obstacle au bord de la carte : seules les cases de la carte comptent") {
+    const TileMap carte = salleLarge();  // 9 x 5 cases de 40 px : 360 x 200 px
+    // Rayon agrandi : 15 + 10 = 25 ; les rectangles englobants débordent de la carte. Le troisième
+    // obstacle a son centre hors de la carte, 10 px au-dessus de son bord haut.
+    const FonctionDeCout cout =
+        coutDesObstacles(carte, {{{10.0f, 10.0f}, 15.0f}, {{350.0f, 190.0f}, 15.0f}, {{180.0f, -10.0f}, 15.0f}}, 10.0f, s_penalite);
+
+    REQUIRE(cout({0, 0}) == s_penalite);  // coin haut gauche : contient le centre
+    REQUIRE(cout({1, 0}) == 0);           // à 30 px du centre : hors de portée
+    REQUIRE(cout({0, 1}) == 0);
+    REQUIRE(cout({8, 4}) == s_penalite);  // coin bas droit
+    REQUIRE(cout({7, 4}) == 0);
+    REQUIRE(cout({8, 3}) == 0);
+    REQUIRE(cout({4, 0}) == s_penalite);  // à 10 px du centre resté hors de la carte
+    REQUIRE(cout({4, 1}) == 0);
+    REQUIRE(cout({-1, 0}) == 0);          // hors de la carte
+    REQUIRE(cout({9, 4}) == 0);
+
+    // Un obstacle tout entier hors de la carte ne touche aucune case.
+    const FonctionDeCout dehors = coutDesObstacles(carte, {{{-40.0f, 100.0f}, 15.0f}}, 10.0f, s_penalite);
+    REQUIRE(dehors({0, 2}) == 0);
+}
+
 TEST_CASE("coutDesObstacles sans obstacle donne une fonction vide") {
     REQUIRE_FALSE(static_cast<bool>(coutDesObstacles(salleLarge(), {}, 10.0f, s_penalite)));
 }

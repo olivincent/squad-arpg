@@ -1042,3 +1042,132 @@ TEST_CASE("couleurDuPersonnage : la couleur de la composition, vide pour une pla
     REQUIRE_FALSE(escouade.couleurDuPersonnage(0).has_value());
     REQUIRE_FALSE(escouade.couleurDuPersonnage(4).has_value());
 }
+
+// Un skill demandé pendant l'activation d'un autre skill du même lanceur (étape 80) : il
+// est mis en attente (ou y reste) et part dès que le lanceur est libre, au lieu d'être perdu.
+// Escouade en (50, 50) : guerrier en (85, 60).
+
+namespace {
+
+// Paladin et rôdeur de test : deux skills chacun, valeurs propres à ces tests (pas le catalogue).
+constexpr int s_degatsFrappeSacreeDeTest = 20;
+constexpr int s_puissanceImpositionDeTest = 25;
+constexpr int s_degatsTirDeTest = 25;
+constexpr int s_degatsPluieDeTest = 12;
+constexpr AdresseSkill s_adresseFrappeSacree{1, IdSkill::FrappeSacree};
+constexpr AdresseSkill s_adresseImposition{1, IdSkill::ImpositionDesMains};
+constexpr AdresseSkill s_adresseTir{1, IdSkill::TirPercant};
+constexpr AdresseSkill s_adressePluie{1, IdSkill::PluieDeFleches};
+
+DefinitionPersonnage paladinDeTest() {
+    DefinitionPersonnage paladin = guerrierDeTest();
+    paladin.skills = {
+        {IdSkill::FrappeSacree, Skill(TypeSkill::Degats, s_porteeMeleeDeTest, s_degatsFrappeSacreeDeTest, 5.0f, 5.0f, 0.0f, 0.3f)},
+        {IdSkill::ImpositionDesMains, Skill(TypeSkill::Soin, s_porteeMeleeDeTest, s_puissanceImpositionDeTest, 10.0f, 10.0f, 0.0f, 0.5f)}};
+    return paladin;
+}
+
+DefinitionPersonnage rodeurDeTest() {
+    DefinitionPersonnage rodeur = mageDeTest();
+    rodeur.skills = {
+        {IdSkill::TirPercant, Skill(TypeSkill::Degats, 200.0f, s_degatsTirDeTest, 6.0f, 6.0f, 0.0f, 0.5f)},
+        {IdSkill::PluieDeFleches, Skill(TypeSkill::Zone, 320.0f, s_degatsPluieDeTest, 8.0f, 8.0f, 45.0f, 0.8f)}};
+    return rodeur;
+}
+
+// Une image d'Escouade comme dans Partie, monstres immobiles : attaquer() puis mettreAJour().
+// Renvoie tous les coups partis.
+std::vector<Coup> combattrePendant(Escouade& escouade, const std::vector<EntiteVue>& monstres, float duree, Generateur& generateur) {
+    std::vector<Coup> coups;
+    for (int i = 0; i < nombreDeTics(duree); ++i) {
+        const std::vector<Coup> coupsDuTic = escouade.attaquer(s_dureeTic, monstres, carteOuverte(), generateur);
+        coups.insert(coups.end(), coupsDuTic.begin(), coupsDuTic.end());
+        escouade.mettreAJour(s_dureeTic, carteOuverte(), monstres);
+    }
+    return coups;
+}
+
+}  // namespace
+
+TEST_CASE("Lanceur occupe : une frappe demandee pendant sa provocation attend, puis part") {
+    Generateur generateur = generateurDeTest();
+    Escouade escouade = uneEscouade({50.0f, 50.0f});
+    const std::vector<EntiteVue> monstres = unSeulMonstre(cibleMonstre({85.0f, 60.0f}));
+    REQUIRE(escouade.declencherSkill(s_adresseProvocation, monstres, carteOuverte(), generateur).empty());
+    REQUIRE(escouade.etatDuSkill(s_adresseProvocation)->enActivation);
+
+    // Monstre au contact, frappe prête : elle attend la fin de la provocation.
+    REQUIRE(escouade.declencherSkill(s_adresseFrappe, monstres, carteOuverte(), generateur).empty());
+    REQUIRE_FALSE(escouade.etatDuSkill(s_adresseFrappe)->enActivation);
+    REQUIRE(escouade.skillEstPret(s_adresseFrappe));
+
+    // La provocation part (0,2 s), puis la frappe s'active et part (0,3 s).
+    REQUIRE(compter(attaquerPendant(escouade, monstres, 0.7f, generateur), s_degatsFrappeDeTest) == 1);
+    REQUIRE_FALSE(escouade.skillEstPret(s_adresseFrappe));  // sa recharge court
+}
+
+TEST_CASE("Lanceur occupe : une frappe en attente ne se perd pas si la cible arrive pendant la provocation") {
+    Generateur generateur = generateurDeTest();
+    Escouade escouade = uneEscouade({50.0f, 50.0f});
+    escouade.verrouiller(1);
+    const std::vector<EntiteVue> loin = unSeulMonstre(cibleMonstre({300.0f, 60.0f}));
+    const std::vector<EntiteVue> pres = unSeulMonstre(cibleMonstre({85.0f, 60.0f}));
+    REQUIRE(escouade.declencherSkill(s_adresseProvocation, loin, carteOuverte(), generateur).empty());
+    REQUIRE(escouade.declencherSkill(s_adresseFrappe, loin, carteOuverte(), generateur).empty());  // hors de portée : en attente
+
+    // Le monstre arrive au contact pendant l'activation de la provocation : la frappe attend encore.
+    static_cast<void>(escouade.attaquer(s_dureeTic, pres, carteOuverte(), generateur));
+    REQUIRE_FALSE(escouade.etatDuSkill(s_adresseFrappe)->enActivation);
+
+    REQUIRE(compter(attaquerPendant(escouade, pres, 1.0f, generateur), s_degatsFrappeDeTest) == 1);
+}
+
+TEST_CASE("Lanceur occupe : sans verrou, une frappe en attente est abandonnee si sa cible n'est plus atteinte") {
+    Generateur generateur = generateurDeTest();
+    Escouade escouade = uneEscouade({50.0f, 50.0f});
+    const std::vector<EntiteVue> pres = unSeulMonstre(cibleMonstre({85.0f, 60.0f}));
+    const std::vector<EntiteVue> loin = unSeulMonstre(cibleMonstre({300.0f, 60.0f}));
+    REQUIRE(escouade.declencherSkill(s_adresseProvocation, pres, carteOuverte(), generateur).empty());
+    REQUIRE(escouade.declencherSkill(s_adresseFrappe, pres, carteOuverte(), generateur).empty());
+
+    // Le monstre s'éloigne avant la fin de la provocation : sans verrou, personne ne le suit.
+    REQUIRE(compter(attaquerPendant(escouade, loin, 1.0f, generateur), s_degatsFrappeDeTest) == 0);
+    REQUIRE(escouade.skillEstPret(s_adresseFrappe));  // sans recharge
+
+    // Plus rien n'attend : un autre skill est de nouveau accepté.
+    escouade.recevoirCoup(1, 1, {85.0f, 60.0f}, 30);
+    REQUIRE(escouade.declencherSkill(s_adresseSoin, {}, carteOuverte(), generateur).empty());
+    REQUIRE(escouade.etatDuSkill(s_adresseSoin)->enActivation);
+}
+
+TEST_CASE("Lanceur occupe : le paladin soigne apres sa frappe sacree") {
+    Generateur generateur = generateurDeTest();
+    Escouade escouade({50.0f, 50.0f}, {paladinDeTest()});  // seul, devant : en (85, 60)
+    const std::vector<EntiteVue> monstres = unSeulMonstre(cibleMonstre({110.0f, 60.0f}));
+    escouade.recevoirCoup(1, 1, {110.0f, 60.0f}, 40);  // blessé : il est la cible de son soin
+    const int vieBlessee = *escouade.pointsDeVieDuPersonnage(1);
+
+    REQUIRE(escouade.declencherSkill(s_adresseFrappeSacree, monstres, carteOuverte(), generateur).empty());
+    REQUIRE(escouade.declencherSkill(s_adresseImposition, monstres, carteOuverte(), generateur).empty());
+    REQUIRE_FALSE(escouade.etatDuSkill(s_adresseImposition)->enActivation);
+
+    // La frappe part (0,3 s), puis le soin s'active et part (0,5 s).
+    REQUIRE(compter(combattrePendant(escouade, monstres, 1.2f, generateur), s_degatsFrappeSacreeDeTest) == 1);
+    REQUIRE(*escouade.pointsDeVieDuPersonnage(1) == vieBlessee + s_puissanceImpositionDeTest);
+}
+
+TEST_CASE("Lanceur occupe : le rodeur lance sa pluie de fleches apres son tir percant") {
+    Generateur generateur = generateurDeTest();
+    Escouade escouade({50.0f, 50.0f}, {rodeurDeTest()});  // seul, derrière : en (35, 60)
+    const std::vector<EntiteVue> monstres = unSeulMonstre(cibleMonstre({135.0f, 60.0f}));
+
+    REQUIRE(escouade.declencherSkill(s_adresseTir, monstres, carteOuverte(), generateur).empty());
+    REQUIRE(escouade.declencherSkillDeZone(s_adressePluie, {135.0f, 60.0f}, monstres, carteOuverte(), generateur).empty());
+    REQUIRE_FALSE(escouade.etatDuSkill(s_adressePluie)->enActivation);
+    REQUIRE(escouade.skillEstPret(s_adressePluie));
+
+    // Le tir part (0,5 s), puis la pluie s'active et part (0,8 s).
+    const std::vector<Coup> coups = attaquerPendant(escouade, monstres, 1.6f, generateur);
+    REQUIRE(compter(coups, s_degatsTirDeTest) == 1);
+    REQUIRE(compter(coups, s_degatsPluieDeTest) == 1);
+}

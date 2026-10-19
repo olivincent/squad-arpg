@@ -14,6 +14,10 @@ endif()
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# Le projet n'utilise pas les modules C++20 : pas de recherche de modules. Elle
+# ajoute des étapes au build et des options propres à GCC (-fmodules-ts…) dans
+# compile_commands.json, que clang-tidy refuse.
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
 find_package(SFML 3.0.2 COMPONENTS Graphics REQUIRED)
 find_package(Catch2 3 REQUIRED)

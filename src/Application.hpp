@@ -28,7 +28,7 @@ private:
     // limite d'images et la répétition des touches : elles sont réappliquées.
     void ouvrirFenetre();
 
-    Contexte contexte();
+    [[nodiscard]] Contexte contexte();
     void appliquer(Transition transition);
 
     sf::RenderWindow m_fenetre;

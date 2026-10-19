@@ -115,18 +115,18 @@ TEST_CASE("Un personnage est vivant a la creation") {
     REQUIRE(personnage.estVivant());
 }
 
-TEST_CASE("Un personnage est encore vivant apres 80 degats") {
+TEST_CASE("Un personnage est encore vivant apres des degats inferieurs a ses points de vie") {
     Personnage personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f), {}, 0, s_rayonVisionDeTest);
 
-    personnage.recevoirDegats(80);
+    personnage.recevoirDegats(personnage.getPointsDeVieMax() - 20);
 
     REQUIRE(personnage.estVivant());
 }
 
-TEST_CASE("Un personnage est mort apres 100 degats") {
+TEST_CASE("Un personnage est mort apres autant de degats que ses points de vie") {
     Personnage personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f), {}, 0, s_rayonVisionDeTest);
 
-    personnage.recevoirDegats(100);
+    personnage.recevoirDegats(personnage.getPointsDeVieMax());
 
     REQUIRE_FALSE(personnage.estVivant());
 }
@@ -181,7 +181,7 @@ TEST_CASE("lire la puissance de l'attaque de base ne change ni le coup engage ni
 TEST_CASE("Un personnage est mort apres un coup qui depasse le reste de ses points de vie") {
     Personnage personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f), {}, 0, s_rayonVisionDeTest);
 
-    personnage.recevoirDegats(80);
+    personnage.recevoirDegats(personnage.getPointsDeVieMax() - 20);  // reste 20 points de vie
     personnage.recevoirDegats(50);
 
     REQUIRE_FALSE(personnage.estVivant());
@@ -192,7 +192,7 @@ TEST_CASE("Un personnage mort ne frappe plus") {
     Personnage personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f), {}, 0, s_rayonVisionDeTest);
     const Cercle cible = pointCible({150.0f, 100.0f});
 
-    personnage.recevoirDegats(100);
+    personnage.recevoirDegats(personnage.getPointsDeVieMax());
 
     REQUIRE(frapperEnEntier(personnage, cible, generateur) == 0);
 }
@@ -202,7 +202,7 @@ TEST_CASE("Un personnage mort ne bouge plus") {
     const TileMap carte = carteDegagee5x5();
     const sf::Vector2f centreInitial = personnage.getCentre();
 
-    personnage.recevoirDegats(100);
+    personnage.recevoirDegats(personnage.getPointsDeVieMax());
     ecoulerTemps(personnage, carte, {500.0f, 500.0f}, 2.0f); // cible lointaine, durée généreuse
 
     REQUIRE(personnage.getCentre() == centreInitial);
@@ -248,7 +248,7 @@ TEST_CASE("engagerSkill refuse un personnage sans skill, sans toucher a l'attaqu
 TEST_CASE("engagerSkill refuse un personnage mort") {
     Personnage personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f), {{IdSkill::FrappePuissante, Skill(TypeSkill::Degats, 80.0f, 25, 5.0f, 5.0f, 0.0f)}}, 0, s_rayonVisionDeTest);
 
-    personnage.recevoirDegats(100);
+    personnage.recevoirDegats(personnage.getPointsDeVieMax());
 
     REQUIRE_FALSE(personnage.engagerSkill(IdSkill::FrappePuissante, Cible(CibleMonstre{1, pointCible({150.0f, 100.0f})})));
 }
@@ -318,7 +318,7 @@ TEST_CASE("recevoirSoin rend des points de vie") {
 
     personnage.recevoirSoin(30);
 
-    REQUIRE(personnage.getPointsDeVie() == 80);
+    REQUIRE(personnage.getPointsDeVie() == personnage.getPointsDeVieMax() - 50 + 30);
 }
 
 TEST_CASE("recevoirDegats applique l'armure du personnage") {
@@ -328,8 +328,8 @@ TEST_CASE("recevoirDegats applique l'armure du personnage") {
     melee.recevoirDegats(10);
     tireur.recevoirDegats(10);
 
-    REQUIRE(melee.getPointsDeVie() == 93);   // 10 x 100 / 150 = 6,67 -> 7
-    REQUIRE(tireur.getPointsDeVie() == 90);
+    REQUIRE(melee.getPointsDeVie() == melee.getPointsDeVieMax() - 7);   // 10 x 100 / 150 = 6,67 -> 7
+    REQUIRE(tireur.getPointsDeVie() == tireur.getPointsDeVieMax() - 10);
 }
 
 TEST_CASE("recevoirSoin n'est pas reduit par l'armure") {
@@ -338,7 +338,7 @@ TEST_CASE("recevoirSoin n'est pas reduit par l'armure") {
 
     personnage.recevoirSoin(30);
 
-    REQUIRE(personnage.getPointsDeVie() == 90);
+    REQUIRE(personnage.getPointsDeVie() == personnage.getPointsDeVieMax() - 40 + 30);
 }
 
 TEST_CASE("recevoirSoin ne depasse pas le maximum") {
@@ -352,7 +352,7 @@ TEST_CASE("recevoirSoin ne depasse pas le maximum") {
 
 TEST_CASE("recevoirSoin est sans effet sur un mort") {
     Personnage personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f), {}, 0, s_rayonVisionDeTest);
-    personnage.recevoirDegats(100);
+    personnage.recevoirDegats(personnage.getPointsDeVieMax());
 
     personnage.recevoirSoin(30);
 
@@ -482,7 +482,7 @@ TEST_CASE("engagerAttaque exige un personnage immobile") {
 
 TEST_CASE("engagerAttaque refuse un personnage mort ou deja en execution") {
     Personnage mort = personnageAvecExecution();
-    mort.recevoirDegats(100);
+    mort.recevoirDegats(mort.getPointsDeVieMax());
     REQUIRE_FALSE(mort.engagerAttaque(1));
 
     Personnage personnage = personnageAvecExecution();
@@ -788,7 +788,7 @@ TEST_CASE("recevoirDegats renvoie les degats subis apres armure") {
 
 TEST_CASE("recevoirDegats sur un mort renvoie zero") {
     Personnage personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f), {}, 0, s_rayonVisionDeTest);
-    personnage.recevoirDegats(100);
+    personnage.recevoirDegats(personnage.getPointsDeVieMax());
 
     REQUIRE(personnage.recevoirDegats(10) == 0);
 }
@@ -803,7 +803,7 @@ TEST_CASE("recevoirSoin renvoie les points reellement rendus") {
 
 TEST_CASE("recevoirSoin sur un mort renvoie zero") {
     Personnage personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f), {}, 0, s_rayonVisionDeTest);
-    personnage.recevoirDegats(100);
+    personnage.recevoirDegats(personnage.getPointsDeVieMax());
 
     REQUIRE(personnage.recevoirSoin(30) == 0);
 }

@@ -44,16 +44,16 @@ public:
     // Engage sur la cible de frappe : la proie si elle est atteignable, sinon le
     // candidat atteignable le plus proche. Le monstre retient l'identifiant (la
     // place du personnage) jusqu'au départ du coup.
-    bool engagerAttaque(std::optional<EntiteVue> proie, const std::vector<EntiteVue>& candidats, const TileMap& carte);
+    [[nodiscard]] bool engagerAttaque(std::optional<EntiteVue> proie, const std::vector<EntiteVue>& candidats, const TileMap& carte);
     // Identifiant (place) du personnage visé par le coup en exécution ; vide hors exécution.
-    std::optional<int> cibleEngagee() const;
+    [[nodiscard]] std::optional<int> cibleEngagee() const;
     [[nodiscard]] int avancerAttaque(float dt, Generateur& generateur);
     void annulerAttaque();
-    sf::Vector2f getCentre() const;
-    Cercle getCercle() const;
-    int getId() const;
+    [[nodiscard]] sf::Vector2f getCentre() const;
+    [[nodiscard]] Cercle getCercle() const;
+    [[nodiscard]] int getId() const;
     [[nodiscard]] int getGroupe() const;
-    bool contient(sf::Vector2f point) const;
+    [[nodiscard]] bool contient(sf::Vector2f point) const;
     // Sans aucun effet (ni dégâts, ni alerte) pendant le retour au poste : le monstre est invulnérable.
     // Renvoie les dégâts réellement appliqués (après armure) ; 0 en retour ou si le monstre est mort.
     int recevoirDegats(int quantite);
@@ -67,8 +67,8 @@ public:
     // Faux pendant le retour au poste : le monstre n'est alors la cible de personne
     // (il reste un obstacle physique).
     [[nodiscard]] bool estCiblable() const;
-    bool estVivant() const;
-    int getPointsDeVie() const;
+    [[nodiscard]] bool estVivant() const;
+    [[nodiscard]] int getPointsDeVie() const;
     // Zone de contrôle du monstre, en pixels, bord à bord.
     [[nodiscard]] float getZoneDeControle() const;
     // Dégâts de son attaque, avant l'armure de la cible.
@@ -77,9 +77,9 @@ public:
 private:
     enum class Etat { EnGarde, Poursuite, Retour };
 
-    bool proieDetectee(const std::optional<EntiteVue>& proie, const TileMap& carte) const;
+    [[nodiscard]] bool proieDetectee(const std::optional<EntiteVue>& proie, const TileMap& carte) const;
     // Règle propre au monstre : `choisirCibleAFrapper` avec `peutAtteindre`, la proie préférée.
-    std::optional<EntiteVue> cibleDeFrappe(const std::optional<EntiteVue>& proie,
+    [[nodiscard]] std::optional<EntiteVue> cibleDeFrappe(const std::optional<EntiteVue>& proie,
                                            const std::vector<EntiteVue>& candidats, const TileMap& carte) const;
 
     Mobile m_mobile;

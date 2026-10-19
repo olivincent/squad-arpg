@@ -442,6 +442,7 @@ TEST_CASE("un monstre qui rentre a son poste bloque toujours les personnages") {
     Partie partie = unePartie(niveauDeLaFuite(), s_graineDeTest);
     attirerHorsDuTerritoire(partie, {1080.0f, 300.0f});
 
+    // Hypothèse : les personnages sont plus rapides que les monstres (l'escouade le rattrape).
     partie.ordonnerDeplacement({300.0f, 300.0f});  // l'escouade rentre plus vite que lui, à travers lui
     float ecartMin = 1e9f;
     float rayons = 0.0f;
@@ -771,11 +772,12 @@ int pointsDeVieApresUnTic(Partie& partie, std::size_t place) {
 // monstre) ; renvoie ses points de vie à ce moment. Le coup lance la recharge du monstre (0,7 s au
 // moins) puis un nouveau coup exige 0,3 s d'exécution : aucun coup normal avant 1 s.
 int jusquAuPremierCoup(Partie& partie, std::size_t place) {
-    int pointsDeVie = 100;
-    for (int i = 0; i < nombreDeTics(2.0f) && pointsDeVie == 100; ++i) {
+    const int avant = *partie.getEscouade().pointsDeVieDuPersonnage(place);
+    int pointsDeVie = avant;
+    for (int i = 0; i < nombreDeTics(2.0f) && pointsDeVie == avant; ++i) {
         pointsDeVie = pointsDeVieApresUnTic(partie, place);
     }
-    REQUIRE(pointsDeVie < 100);
+    REQUIRE(pointsDeVie < avant);
     return pointsDeVie;
 }
 
@@ -785,7 +787,9 @@ constexpr float s_fenetreSansCoupNormal = 0.9f;  // en secondes, après le premi
 
 TEST_CASE("zone de controle : un mage au contact qui s'eloigne recoit un coup gratuit du monstre") {
     // Un mage seul (zone 0) à 40 px du monstre, qui l'engage (zone de 20 px bord à bord).
+    // Hypothèse : les personnages sont plus rapides que les monstres (le mage sort de la zone).
     Partie partie(niveauDegage({{185.0f, 250.0f}}), std::vector<DefinitionPersonnage>{mageDeTest()}, s_graineDeTest);
+    const int puissanceDuMonstre = partie.getMonstres().front().getPuissanceAttaque();
     const int apresLePremierCoup = jusquAuPremierCoup(partie, 1);
 
     partie.ordonnerDeplacement({210.0f, 20.0f});
@@ -794,7 +798,7 @@ TEST_CASE("zone de controle : un mage au contact qui s'eloigne recoit un coup gr
         pointsDeVie = pointsDeVieApresUnTic(partie, 1);
     }
 
-    REQUIRE(pointsDeVie == apresLePremierCoup - 10);  // un seul coup gratuit, de 10 dégâts (armure 0)
+    REQUIRE(pointsDeVie == apresLePremierCoup - puissanceDuMonstre);  // un seul coup gratuit (armure 0)
 }
 
 TEST_CASE("zone de controle : un guerrier qui reste au contact ne recoit aucun coup gratuit") {
@@ -881,6 +885,10 @@ TEST_CASE("zone de controle : un monstre tue par un coup gratuit est retire et l
 TEST_CASE("zone de controle : un monstre qui rentre a son poste ne donne ni ne recoit de coup gratuit") {
     Partie partie = unePartie(niveauDeLaFuite(), s_graineDeTest);
     const int vieDeDepart = fuyard(partie).getPointsDeVie();
+    std::vector<int> vieDesPersonnages;
+    for (std::size_t place = 1; place <= 3; ++place) {
+        vieDesPersonnages.push_back(*partie.getEscouade().pointsDeVieDuPersonnage(place));
+    }
     attirerHorsDuTerritoire(partie, {1080.0f, 300.0f});
 
     // L'escouade rentre à travers le monstre qui rentre et finit par le toucher...
@@ -901,7 +909,7 @@ TEST_CASE("zone de controle : un monstre qui rentre a son poste ne donne ni ne r
     for (int i = 0; i < nombreDeTics(1.0f); ++i) {
         partie.mettreAJour(s_dureeTic);
         for (std::size_t place = 1; place <= 3; ++place) {
-            REQUIRE(partie.getEscouade().pointsDeVieDuPersonnage(place) == 100);
+            REQUIRE(partie.getEscouade().pointsDeVieDuPersonnage(place) == vieDesPersonnages[place - 1]);
         }
     }
     REQUIRE_FALSE(fuyard(partie).estCiblable());
@@ -928,6 +936,7 @@ Partie unGuerrierEtUnMageAuContact() {
 
 TEST_CASE("degagement : le mage quitte le monstre tenu par le guerrier sans coup gratuit, puis tire de loin") {
     Partie partie = unGuerrierEtUnMageAuContact();
+    const std::optional<int> vieDuMage = partie.getEscouade().pointsDeVieDuPersonnage(2);
     const Cercle monstre = partie.getMonstres().front().getCercle();
     REQUIRE(distanceBordABord(partie.getEscouade().cerclesDesVivants()[0], monstre) <= 20.0f);
     REQUIRE(distanceBordABord(partie.getEscouade().cerclesDesVivants()[1], monstre) <= 20.0f);
@@ -936,7 +945,7 @@ TEST_CASE("degagement : le mage quitte le monstre tenu par le guerrier sans coup
     for (int i = 0; i < nombreDeTics(3.0f); ++i) {
         partie.mettreAJour(s_dureeTic);
         const std::vector<Cercle> cercles = partie.getEscouade().cerclesDesVivants();
-        REQUIRE(partie.getEscouade().pointsDeVieDuPersonnage(2) == 100);  // aucun coup, gratuit ou non
+        REQUIRE(partie.getEscouade().pointsDeVieDuPersonnage(2) == vieDuMage);  // aucun coup, gratuit ou non
         REQUIRE(distanceBordABord(cercles[0], monstre) <= 20.0f);          // le guerrier reste au contact
         if (pointsDuMonstreALArrivee == 0 && !partie.getEscouade().degagementDuPersonnage(2).has_value() &&
             distanceBordABord(cercles[1], monstre) > 20.0f) {
@@ -1017,6 +1026,7 @@ TEST_CASE("evenements : un skill de degats donne un evenement sur le monstre, ar
 TEST_CASE("evenements : le coup d'un monstre donne un evenement sur le personnage touche, armure comprise") {
     Partie guerrier(niveauDegage({{270.0f, 210.0f}}), std::vector<DefinitionPersonnage>{guerrierDeTest()}, s_graineDeTest);
     Partie mage(niveauDegage({{185.0f, 250.0f}}), std::vector<DefinitionPersonnage>{mageDeTest()}, s_graineDeTest);
+    const int puissanceDuMonstre = guerrier.getMonstres().front().getPuissanceAttaque();
     static_cast<void>(jusquAuPremierCoup(guerrier, 1));
     static_cast<void>(jusquAuPremierCoup(mage, 1));
 
@@ -1024,12 +1034,12 @@ TEST_CASE("evenements : le coup d'un monstre donne un evenement sur le personnag
     const std::vector<EvenementDeCombat> surLeMage = parmi(mage.prendreEvenements(), TypeEvenement::Degats, Camp::Escouade);
 
     REQUIRE(surLeGuerrier.size() == 1);
-    REQUIRE(surLeGuerrier[0].montant == 7);  // 10 x 100 / 150 = 6,7 -> 7
+    REQUIRE(surLeGuerrier[0].montant == appliquerArmure(puissanceDuMonstre, s_armureMeleeDeTest));
     REQUIRE(surLeGuerrier[0].idCible == 1);
     REQUIRE_FALSE(surLeGuerrier[0].opportunite);
     verifierPointProche(surLeGuerrier[0].position, *guerrier.getEscouade().centreDuPersonnage(1));
     REQUIRE(surLeMage.size() == 1);
-    REQUIRE(surLeMage[0].montant == 10);
+    REQUIRE(surLeMage[0].montant == puissanceDuMonstre);  // armure 0
 }
 
 TEST_CASE("evenements : un skill de zone donne un evenement par monstre touche") {
@@ -1052,7 +1062,9 @@ TEST_CASE("evenements : un skill de zone donne un evenement par monstre touche")
 
 TEST_CASE("evenements : un coup gratuit est marque, dans les deux sens") {
     // Le mage seul recule d'un monstre qui l'engage : coup gratuit du monstre sur le mage.
+    // Hypothèse : les personnages sont plus rapides que les monstres (le mage sort de la zone).
     Partie mage(niveauDegage({{185.0f, 250.0f}}), std::vector<DefinitionPersonnage>{mageDeTest()}, s_graineDeTest);
+    const int puissanceDuMonstre = mage.getMonstres().front().getPuissanceAttaque();
     static_cast<void>(jusquAuPremierCoup(mage, 1));
     static_cast<void>(mage.prendreEvenements());
     mage.ordonnerDeplacement({210.0f, 20.0f});
@@ -1060,7 +1072,7 @@ TEST_CASE("evenements : un coup gratuit est marque, dans les deux sens") {
         parmi(evenementsPendant(mage, s_fenetreSansCoupNormal), TypeEvenement::Degats, Camp::Escouade);
     REQUIRE(surLeMage.size() == 1);
     REQUIRE(surLeMage[0].opportunite);
-    REQUIRE(surLeMage[0].montant == 10);
+    REQUIRE(surLeMage[0].montant == puissanceDuMonstre);  // armure 0
 
     // Trois guerriers ; le premier frappe une fois (30 dégâts, recharge de 100 s). Dès que le monstre est
     // touché, le troisième le provoque : il quitte le premier, qui le frappe gratuitement (30 dégâts).
@@ -1092,6 +1104,7 @@ TEST_CASE("evenements : un coup gratuit est marque, dans les deux sens") {
 TEST_CASE("evenements : un soin donne un evenement Soin sur l'allie soigne, avec les points reellement rendus") {
     // Le monstre blesse le guerrier ; le prêtre le soigne (30) : les points rendus sont ceux qui manquaient.
     Partie partie(niveauDegage({{270.0f, 210.0f}}), std::vector<DefinitionPersonnage>{guerrierDeTest(), pretreDeTest()}, s_graineDeTest);
+    const int vieDeDepart = *partie.getEscouade().pointsDeVieDuPersonnage(1);
     static_cast<void>(jusquAuPremierCoup(partie, 1));
     std::vector<EvenementDeCombat> evenements = partie.prendreEvenements();
     partie.demanderSkill({2, IdSkill::Soin});
@@ -1109,7 +1122,7 @@ TEST_CASE("evenements : un soin donne un evenement Soin sur l'allie soigne, avec
     }
     REQUIRE(soins[0].montant > 0);
     REQUIRE(soins[0].montant <= degats);
-    REQUIRE(*partie.getEscouade().pointsDeVieDuPersonnage(1) == 100 - degats + soins[0].montant);
+    REQUIRE(*partie.getEscouade().pointsDeVieDuPersonnage(1) == vieDeDepart - degats + soins[0].montant);
     verifierPointProche(soins[0].position, *partie.getEscouade().centreDuPersonnage(1));
 }
 

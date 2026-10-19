@@ -137,10 +137,8 @@ void Escouade::annulerAttaquesEngagees() {
 std::vector<Coup> Escouade::attaquer(float dt, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur) {
     actualiserMemoires(monstres);
     engagerSkillDeZoneEnAttente(carte);
-
-    if (const std::optional<Cercle> verrou = approcherVerrou(monstres, carte)) {
-        engagerSkillDeDegatsEnAttente(*verrou, carte);
-    }
+    approcherVerrou(monstres, carte);
+    engagerSkillDeDegatsEnAttente(monstres, carte);
 
     std::vector<Coup> coups = avancerSkills(dt, monstres, carte, generateur);
     const std::vector<Coup> coupsDAutodefense = autodefense(dt, monstres, carte, generateur);
@@ -156,18 +154,19 @@ void Escouade::actualiserMemoires(const std::vector<EntiteVue>& monstres) {
 }
 
 // Skill de zone en attente : son activation commence dès que son lanceur est
-// à portée et en vue du point fixé au clic. Il ne dépend pas du verrou. La
-// mort du lanceur l'annule (avancerSkillEnAttente).
+// libre (aucun skill en activation), à portée et en vue du point fixé au clic.
+// Il ne dépend pas du verrou. La mort du lanceur l'annule (avancerSkillEnAttente).
 void Escouade::engagerSkillDeZoneEnAttente(const TileMap& carte) {
     if (!m_skillEnAttente.has_value() || !std::holds_alternative<CiblePoint>(m_skillEnAttente->cible)) {
         return;
     }
     const CiblePoint point = std::get<CiblePoint>(m_skillEnAttente->cible);
     Personnage& lanceur = personnageDeLaPlace(m_skillEnAttente->adresse.place);
-    if (!lanceur.estVivant() || !peutLancerAuPoint(m_skillEnAttente->adresse, point.point, carte)) {
+    if (!lanceur.peutEngagerSkill(m_skillEnAttente->adresse.id) || !peutLancerAuPoint(m_skillEnAttente->adresse, point.point, carte)) {
         return;
     }
-    static_cast<void>(lanceur.engagerSkill(m_skillEnAttente->adresse.id, m_skillEnAttente->cible));
+    [[maybe_unused]] const bool engage = lanceur.engagerSkill(m_skillEnAttente->adresse.id, m_skillEnAttente->cible);
+    assert(engage);
     m_skillEnAttente = std::nullopt;
 }
 
@@ -178,15 +177,14 @@ bool Escouade::tousLesVivantsAtteignent(Cercle cible, const TileMap& carte) cons
 }
 
 // Approche du monstre verrouillé, s'il y en a un dans la liste : mémorise son
-// cercle, et l'ancre avance tant qu'un vivant ne l'atteint pas. Renvoie ce
-// cercle ; vide sans verrou ou si le monstre est absent de la liste.
-std::optional<Cercle> Escouade::approcherVerrou(const std::vector<EntiteVue>& monstres, const TileMap& carte) {
+// cercle, et l'ancre avance tant qu'un vivant ne l'atteint pas.
+void Escouade::approcherVerrou(const std::vector<EntiteVue>& monstres, const TileMap& carte) {
     if (!m_cibleVerrouillee.has_value()) {
-        return std::nullopt;
+        return;
     }
     const EntiteVue* verrou = trouverEntite(monstres, *m_cibleVerrouillee);
     if (verrou == nullptr) {
-        return std::nullopt;
+        return;
     }
     const Cercle cible = verrou->cercle;
     m_cibleCombat = cible;
@@ -197,21 +195,29 @@ std::optional<Cercle> Escouade::approcherVerrou(const std::vector<EntiteVue>& mo
         m_pointARegarder.reset();
         m_mobile.allerVers(cible.centre, carte);  // pas allerVers : ce n'est pas un ordre du joueur
     }
-    return cible;
 }
 
-// Skill de dégâts en attente : son activation commence dès que son lanceur
-// est à portée du cercle à jour de la cible.
-void Escouade::engagerSkillDeDegatsEnAttente(Cercle cible, const TileMap& carte) {
+// Skill de dégâts en attente : son activation commence dès que son lanceur est
+// libre (aucun skill en activation) et atteint le cercle à jour de sa cible.
+// Avec un verrou, la cible est le monstre verrouillé et le lanceur marche vers
+// lui. Sans verrou (skill demandé pendant l'activation d'un autre skill de son
+// lanceur), personne ne marche : une fois libre, le lanceur qui n'atteint plus
+// sa cible, ou dont la cible a disparu, abandonne le skill, sans recharge.
+void Escouade::engagerSkillDeDegatsEnAttente(const std::vector<EntiteVue>& monstres, const TileMap& carte) {
     if (!skillEnAttenteDeDegats()) {
         return;
     }
-    Personnage& lanceur = personnageDeLaPlace(m_skillEnAttente->adresse.place);
-    if (!peutAtteindre(lanceur, m_skillEnAttente->adresse.id, cible, carte)) {
-        return;
+    const AdresseSkill adresse = m_skillEnAttente->adresse;
+    Personnage& lanceur = personnageDeLaPlace(adresse.place);
+    const EntiteVue* cible = trouverEntite(monstres, std::get<CibleMonstre>(m_skillEnAttente->cible).id);
+    const bool atteinte = cible != nullptr && peutAtteindre(lanceur, adresse.id, cible->cercle, carte);
+    if (atteinte && lanceur.peutEngagerSkill(adresse.id)) {
+        [[maybe_unused]] const bool engage = lanceur.engagerSkill(adresse.id, m_skillEnAttente->cible);
+        assert(engage);
+        m_skillEnAttente = std::nullopt;
+    } else if (!m_cibleVerrouillee.has_value() && lanceur.peutEngagerSkill(adresse.id)) {
+        m_skillEnAttente = std::nullopt;
     }
-    static_cast<void>(lanceur.engagerSkill(m_skillEnAttente->adresse.id, m_skillEnAttente->cible));
-    m_skillEnAttente = std::nullopt;
 }
 
 // Fait avancer l'activation de chaque skill engagé ; les coups de ceux qui
@@ -322,7 +328,8 @@ std::vector<Coup> Escouade::autodefense(float dt, const std::vector<EntiteVue>& 
         }
         // Un personnage qui se dégage ne frappe pas : il va jusqu'à sa place d'attaque.
         if (id.has_value() && !m_degagements[i].has_value()) {
-            personnage.engagerAttaque(*id);
+            // Tentative à chaque image : l'échec est normal (en marche, en recharge, skill en activation…).
+            static_cast<void>(personnage.engagerAttaque(*id));
         }
     }
     return coups;
@@ -363,21 +370,24 @@ std::vector<Coup> Escouade::declencherSkill(AdresseSkill adresse, const std::vec
 
     return std::visit(
         Surcharges{
-            // Dégâts : l'activation commence si la cible est atteinte (les
-            // coups sont renvoyés au départ, ici ou dans attaquer()) ; sinon
-            // le skill est mis en attente.
+            // Dégâts : l'activation commence si la cible est atteinte et le
+            // lanceur libre (les coups sont renvoyés au départ, ici ou dans
+            // attaquer()) ; sinon le skill est mis en attente : le lanceur
+            // marche vers la cible, ou finit d'abord l'activation en cours.
             [&](const CibleMonstre& monstre) -> std::vector<Coup> {
-                if (peutAtteindre(lanceur, id, monstre.cercle, carte)) {
-                    static_cast<void>(lanceur.engagerSkill(id, *cible));
+                if (peutAtteindre(lanceur, id, monstre.cercle, carte) && lanceur.peutEngagerSkill(id)) {
+                    [[maybe_unused]] const bool engage = lanceur.engagerSkill(id, *cible);
+                    assert(engage);
                     return avancerSkillDe(indiceDeLaPlace(place), 0.0f, monstres, carte, generateur);
                 }
                 m_skillEnAttente = SkillEnAttente{adresse, *cible};
                 return {};
             },
-            // Soin : appliqué au départ, il ne sort pas d'Escouade.
+            // Soin : appliqué au départ, il ne sort pas d'Escouade. Même règle d'attente.
             [&](const CibleAllie& allie) -> std::vector<Coup> {
-                if (peutAtteindre(lanceur, id, personnageDeLaPlace(allie.place).getCercle(), carte)) {
-                    static_cast<void>(lanceur.engagerSkill(id, *cible));
+                if (peutAtteindre(lanceur, id, personnageDeLaPlace(allie.place).getCercle(), carte) && lanceur.peutEngagerSkill(id)) {
+                    [[maybe_unused]] const bool engage = lanceur.engagerSkill(id, *cible);
+                    assert(engage);
                     return avancerSkillDe(indiceDeLaPlace(place), 0.0f, monstres, carte, generateur);
                 }
                 m_skillEnAttente = SkillEnAttente{adresse, *cible};
@@ -474,10 +484,12 @@ std::vector<Coup> Escouade::declencherSkillDeZone(AdresseSkill adresse, sf::Vect
         return {};
     }
 
-    // À portée du point et en vue : l'activation commence tout de suite. Sinon il
-    // est mis en attente, et le lanceur marche vers le point.
-    if (peutLancerAuPoint(adresse, point, carte)) {
-        static_cast<void>(lanceur.engagerSkill(id, Cible(CiblePoint{point})));
+    // À portée du point, en vue et lanceur libre : l'activation commence tout de suite.
+    // Sinon il est mis en attente : le lanceur marche vers le point, ou finit d'abord
+    // l'activation en cours.
+    if (peutLancerAuPoint(adresse, point, carte) && lanceur.peutEngagerSkill(id)) {
+        [[maybe_unused]] const bool engage = lanceur.engagerSkill(id, Cible(CiblePoint{point}));
+        assert(engage);
         return avancerSkillDe(indiceDeLaPlace(place), 0.0f, monstres, carte, generateur);
     }
     m_skillEnAttente = SkillEnAttente{adresse, Cible(CiblePoint{point})};
@@ -503,10 +515,11 @@ std::optional<sf::Vector2f> Escouade::avancerSkillEnAttente(const TileMap& carte
     return std::visit(
         Surcharges{
             // Dégâts : le skill part dans attaquer(), qui reçoit le cercle à jour du
-            // monstre. Ici, le lanceur marche vers ce cercle. L'annulation (combat
-            // rompu) se fait dans verrouiller() et deverrouiller().
+            // monstre. Ici, le lanceur marche vers ce cercle, seulement avec un verrou
+            // (sans verrou, m_cibleCombat peut dater d'un ancien combat, et personne ne
+            // marche). L'annulation (combat rompu) se fait dans verrouiller() et deverrouiller().
             [&](const CibleMonstre&) -> std::optional<sf::Vector2f> {
-                if (!m_cibleCombat.has_value()) {
+                if (!m_cibleVerrouillee.has_value() || !m_cibleCombat.has_value()) {
                     return std::nullopt;
                 }
                 return m_cibleCombat->centre;
@@ -521,8 +534,9 @@ std::optional<sf::Vector2f> Escouade::avancerSkillEnAttente(const TileMap& carte
                     return std::nullopt;
                 }
 
-                if (peutAtteindre(lanceur, idSkill, allie.getCercle(), carte)) {
-                    static_cast<void>(personnageDeLaPlace(placeLanceur).engagerSkill(idSkill, cible));
+                if (peutAtteindre(lanceur, idSkill, allie.getCercle(), carte) && lanceur.peutEngagerSkill(idSkill)) {
+                    [[maybe_unused]] const bool engage = personnageDeLaPlace(placeLanceur).engagerSkill(idSkill, cible);
+                    assert(engage);
                     m_skillEnAttente = std::nullopt;
                     return std::nullopt;
                 }
@@ -657,6 +671,8 @@ sf::Vector2f Escouade::pointVoulu(std::size_t indice, const std::optional<sf::Ve
         m_placesDAttaque[indice] = ancienne;  // le coup en cours ne fait pas oublier la place
         return personnage.getCentre();        // un coup ou un skill en exécution : il reste sur place
     }
+    // pointSkill vient d'avancerSkillEnAttente : il n'existe que si un skill attend.
+    assert(!pointSkill.has_value() || m_skillEnAttente.has_value());
     if (pointSkill.has_value() && indice == indiceDeLaPlace(m_skillEnAttente->adresse.place)) {
         if (skillEnAttenteDeDegats()) {
             const CibleMonstre& monstre = std::get<CibleMonstre>(m_skillEnAttente->cible);

@@ -5,9 +5,11 @@
 #   constructeur de Skill, est suivi à part (audit, C2).
 # - cppcoreguidelines-avoid-magic-numbers : signale chaque littéral ; la règle
 #   du projet ne nomme qu'une valeur qui sert deux fois (CLAUDE.md).
-# - cppcoreguidelines-pro-bounds-constant-array-index : demande gsl::at pour
-#   chaque indice calculé ; le projet n'utilise pas la GSL, et le preset debug
-#   vérifie déjà les bornes (_GLIBCXX_ASSERTIONS).
+# - cppcoreguidelines-pro-bounds-constant-array-index et
+#   cppcoreguidelines-pro-bounds-avoid-unchecked-container-access : demandent
+#   gsl::at ou at() pour chaque indice ; le projet n'utilise pas la GSL, et le
+#   preset debug vérifie déjà les bornes (_GLIBCXX_ASSERTIONS). La seconde
+#   faisait à elle seule 148 des 327 avertissements du premier passage.
 # - cppcoreguidelines-narrowing-conversions : alias de
 #   bugprone-narrowing-conversions, gardée (sinon chaque constat sort deux fois).
 # - cppcoreguidelines-noexcept-* : alias des performance-noexcept-*, gardées.
@@ -18,9 +20,11 @@ Checks: >-
   cppcoreguidelines-*,
   -cppcoreguidelines-avoid-magic-numbers,
   -cppcoreguidelines-pro-bounds-constant-array-index,
+  -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access,
   -cppcoreguidelines-narrowing-conversions,
   -cppcoreguidelines-noexcept-*,
   modernize-use-nodiscard,
   performance-*
-# Les en-têtes du projet sont analysés, pas ceux de SFML ni de la bibliothèque standard.
-HeaderFilterRegex: '.*/src/.*'
+# Les en-têtes du projet sont analysés, pas ceux de SFML ni de la bibliothèque standard
+# (séparateur / ou \ : sous Windows, les chemins sont écrits avec \).
+HeaderFilterRegex: '.*[/\\]src[/\\].*'

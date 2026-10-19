@@ -3,6 +3,7 @@
 #include "TileMap.hpp"
 #include <SFML/Graphics/Rect.hpp>
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <queue>
 
@@ -137,17 +138,25 @@ FonctionDeCout coutDesObstacles(const TileMap& carte, const std::vector<Cercle>&
     const float tailleCase = carte.getTailleCase();
     std::vector<bool> occupees(static_cast<std::size_t>(largeur * hauteur), false);
 
-    for (int y = 0; y < hauteur; ++y) {
-        for (int x = 0; x < largeur; ++x) {
-            const sf::Vector2f coin(static_cast<float>(x) * tailleCase, static_cast<float>(y) * tailleCase);
-            for (const Cercle& obstacle : obstacles) {
+    // Pour chaque obstacle, seules les cases de son rectangle englobant (agrandi de
+    // `rayonMobile`, borné à la carte) peuvent le toucher : quelques cases au lieu de toute
+    // la carte. Une case de marge de chaque côté : l'arrondi de la division ne doit écarter
+    // aucune case que le test exact ci-dessous garderait.
+    const auto caseDe = [tailleCase](float pixel) { return static_cast<int>(std::floor(pixel / tailleCase)); };
+    for (const Cercle& obstacle : obstacles) {
+        const float rayon = obstacle.rayon + rayonMobile;
+        const int xMin = std::max(0, caseDe(obstacle.centre.x - rayon) - 1);
+        const int yMin = std::max(0, caseDe(obstacle.centre.y - rayon) - 1);
+        const int xMax = std::min(largeur - 1, caseDe(obstacle.centre.x + rayon) + 1);
+        const int yMax = std::min(hauteur - 1, caseDe(obstacle.centre.y + rayon) + 1);
+        for (int y = yMin; y <= yMax; ++y) {
+            for (int x = xMin; x <= xMax; ++x) {
+                const sf::Vector2f coin(static_cast<float>(x) * tailleCase, static_cast<float>(y) * tailleCase);
                 // Point de la case le plus proche du centre de l'obstacle.
                 const sf::Vector2f proche(std::clamp(obstacle.centre.x, coin.x, coin.x + tailleCase),
                                           std::clamp(obstacle.centre.y, coin.y, coin.y + tailleCase));
-                const float rayon = obstacle.rayon + rayonMobile;
                 if ((proche - obstacle.centre).lengthSquared() < rayon * rayon) {
                     occupees[static_cast<std::size_t>(y * largeur + x)] = true;
-                    break;
                 }
             }
         }

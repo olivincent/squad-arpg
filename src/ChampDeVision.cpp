@@ -169,7 +169,7 @@ public:
 
 private:
     // Case de la carte pour (profondeur, colonne) dans ce quadrant.
-    sf::Vector2i coordonnees(int profondeur, int colonne) const {
+    [[nodiscard]] sf::Vector2i coordonnees(int profondeur, int colonne) const {
         switch (m_quadrant) {
             case Quadrant::Nord:
                 return {m_origine.x + colonne, m_origine.y - profondeur};

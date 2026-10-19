@@ -19,9 +19,9 @@ enum class Tile {
 class TileMap {
 public:
     TileMap(const std::vector<std::string>& plan, float tailleCase);
-    Tile getTile(int x, int y) const;
-    int getLargeur() const;
-    int getHauteur() const;
+    [[nodiscard]] Tile getTile(int x, int y) const;
+    [[nodiscard]] int getLargeur() const;
+    [[nodiscard]] int getHauteur() const;
     [[nodiscard]] float getTailleCase() const;
     [[nodiscard]] sf::Vector2i caseContenant(sf::Vector2f point) const;
     [[nodiscard]] sf::Vector2f centreDeCase(sf::Vector2i coordCase) const;
@@ -32,7 +32,7 @@ public:
     [[nodiscard]] bool trajetLibre(const sf::FloatRect& rect, sf::Vector2f deplacement) const;
 
 private:
-    int indice(int x, int y) const;
+    [[nodiscard]] int indice(int x, int y) const;
     int m_largeur;          // nombre de cases en X
     int m_hauteur;          // nombre de cases en Y
     float m_tailleCase;     // taille d'une case en pixels

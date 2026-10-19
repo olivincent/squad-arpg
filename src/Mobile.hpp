@@ -20,9 +20,9 @@ public:
     // Pousse le mobile de `decalage` (murs et obstacles respectés, avec glissement),
     // sans toucher au chemin ni à estEnMouvement().
     void decaler(sf::Vector2f decalage, const TileMap& carte, const std::vector<Cercle>& obstacles);
-    sf::Vector2f getCentre() const;
-    sf::Vector2f getTaille() const;
-    std::optional<sf::Vector2f> directionVoulue() const;
+    [[nodiscard]] sf::Vector2f getCentre() const;
+    [[nodiscard]] sf::Vector2f getTaille() const;
+    [[nodiscard]] std::optional<sf::Vector2f> directionVoulue() const;
     // Vrai si, au dernier tic, le mobile avait un point à atteindre à plus de
     // quelques centièmes de pixel, qu'il ait pu avancer ou non : un mobile
     // bloqué qui essaie d'avancer est en mouvement, un mobile qui vient

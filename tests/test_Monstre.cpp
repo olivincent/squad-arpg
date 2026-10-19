@@ -180,14 +180,14 @@ TEST_CASE("Le monstre reste mort apres un coup supplementaire") {
     REQUIRE_FALSE(monstre.estVivant());
 }
 
-// Monstre centré en (100, 100), rayon 15 px, portée 15 px (bord à bord),
-// dégâts 10, recharge 1 s.
+// Monstre centré en (100, 100), rayon 15 px, portée 15 px (bord à bord). Ses dégâts ne sont pas
+// injectables : les tests les lisent par getPuissanceAttaque().
 
 TEST_CASE("Monstre.frapper renvoie les degats pour une cible a portee") {
     Generateur generateur = generateurDeTest();
     Monstre monstre({100.0f, 100.0f}, 1, 0, 0);
 
-    REQUIRE(frapperEnEntier(monstre, pointCible({110.0f, 100.0f}), generateur) == 10);
+    REQUIRE(frapperEnEntier(monstre, pointCible({110.0f, 100.0f}), generateur) == monstre.getPuissanceAttaque());
 }
 
 TEST_CASE("Monstre.frapper renvoie 0 pour une cible hors de portee") {
@@ -203,9 +203,9 @@ TEST_CASE("Monstre.frapper renvoie de nouveau les degats apres une duree simulee
     Monstre monstre({100.0f, 100.0f}, 1, 0, 0);
     const Cercle cible = pointCible({110.0f, 100.0f});
 
-    REQUIRE(frapperEnEntier(monstre, cible, generateur) == 10);
+    REQUIRE(frapperEnEntier(monstre, cible, generateur) == monstre.getPuissanceAttaque());
     ecoulerTemps(monstre, 1.5f, std::nullopt, carte);
-    REQUIRE(frapperEnEntier(monstre, cible, generateur) == 10);
+    REQUIRE(frapperEnEntier(monstre, cible, generateur) == monstre.getPuissanceAttaque());
 }
 
 // Monstre centré en (100, 100), rayon de détection 200 px.
@@ -667,7 +667,7 @@ TEST_CASE("Monstre.avancerAttaque rend les degats une seule fois, a la fin de l'
     for (int i = 0; i < nombreDeTics(0.2f); ++i) {
         total += monstre.avancerAttaque(s_dureeTic, generateur);
     }
-    REQUIRE(total == 10);
+    REQUIRE(total == monstre.getPuissanceAttaque());
     REQUIRE_FALSE(monstre.cibleEngagee().has_value());
 }
 
@@ -698,7 +698,7 @@ TEST_CASE("Monstre : apres le depart du coup, la recharge court avant le suivant
     const TileMap carte = carteLongue();
     Monstre monstre({100.0f, 100.0f}, 1, 0, 0);
     REQUIRE(engager(monstre, pointCible({110.0f, 100.0f}), 1, carteOuverte()));
-    REQUIRE(monstre.avancerAttaque(0.4f, generateur) == 10);
+    REQUIRE(monstre.avancerAttaque(0.4f, generateur) == monstre.getPuissanceAttaque());
 
     REQUIRE_FALSE(engager(monstre, pointCible({110.0f, 100.0f}), 1, carteOuverte()));
     ecoulerTemps(monstre, 1.4f, std::nullopt, carte);  // recharge de 0,7 à 1,3 s écoulée
@@ -902,7 +902,7 @@ TEST_CASE("Monstre le coup engage touche la place choisie et rend les degats") {
         degats = monstre.avancerAttaque(s_dureeTic, generateur);
     }
 
-    REQUIRE(degats == 10);
+    REQUIRE(degats == monstre.getPuissanceAttaque());
 }
 
 TEST_CASE("Monstre en poursuite contourne un autre monstre immobile") {
@@ -968,11 +968,11 @@ TEST_CASE("lire la puissance de l'attaque ne change ni le coup engage ni la rech
     Generateur generateur = generateurDeTest();
     REQUIRE(engager(monstre, pointCible({125.0f, 100.0f}), 1, carte));
 
-    REQUIRE(monstre.getPuissanceAttaque() == 10);
+    const int puissance = monstre.getPuissanceAttaque();
 
     REQUIRE(monstre.cibleEngagee() == 1);
-    REQUIRE(monstre.avancerAttaque(0.4f, generateur) == 10);  // le coup engagé part normalement
-    REQUIRE(monstre.getPuissanceAttaque() == 10);
+    REQUIRE(monstre.avancerAttaque(0.4f, generateur) == puissance);  // le coup engagé part normalement
+    REQUIRE(monstre.getPuissanceAttaque() == puissance);
     REQUIRE_FALSE(engager(monstre, pointCible({125.0f, 100.0f}), 1, carte));  // la recharge court toujours
 }
 

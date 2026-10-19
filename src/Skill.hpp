@@ -38,15 +38,15 @@ public:
     [[nodiscard]] bool avancer(float dt, Generateur& generateur);
     // EnExecution -> Pret, sans recharge ; sans effet dans toute autre phase.
     void annuler();
-    PhaseSkill getPhase() const;
+    [[nodiscard]] PhaseSkill getPhase() const;
     [[nodiscard]] bool estAPortee(Cercle origine, Cercle cible) const;
     void relancerRecharge(Generateur& generateur);
-    float getProgressionRecharge() const;
-    float getRechargeRestante() const;
-    TypeSkill getType() const;
-    float getRayonZone() const;
-    float getPortee() const;
-    int getPuissance() const;
+    [[nodiscard]] float getProgressionRecharge() const;
+    [[nodiscard]] float getRechargeRestante() const;
+    [[nodiscard]] TypeSkill getType() const;
+    [[nodiscard]] float getRayonZone() const;
+    [[nodiscard]] float getPortee() const;
+    [[nodiscard]] int getPuissance() const;
 
 private:
     TypeSkill m_type;

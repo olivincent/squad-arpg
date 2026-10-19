@@ -1187,3 +1187,41 @@ c'est pourquoi le commit 1 ne modifie aucun fichier.
 - Cache de lignes de vue : `ligneDeVue` coûte 0,004 ms en `-O0`, aucun besoin.
 - Alias `Vec2` à la place de `sf::Vector2f` pour un futur portage : coût sur tout le code, bénéfice
   hypothétique ; M1 (séparer le dessin) est la partie utile d'un portage et sert déjà.
+
+## clang-tidy, premier passage
+
+Mesure faite à l'étape 80 (sous-étape 3), **sans rien corriger** : LLVM 23.1.3 (paquet MSYS2
+`mingw-w64-ucrt-x86_64-clang-tools-extra`), règles de `.clang-tidy` (`bugprone-*`,
+`cppcoreguidelines-*` sans les règles trop bavardes, `modernize-use-nodiscard`, `performance-*`),
+les 44 fichiers de `src/*.cpp` avec `compile_commands.json` du preset `jeu`, en-têtes de `src/`
+compris. Un avertissement d'en-tête vu par plusieurs sources est compté une fois.
+
+Deux réglages ont été nécessaires pour que l'outil fonctionne avec la chaîne MinGW :
+`CMAKE_CXX_SCAN_FOR_MODULES OFF` dans `CMakeLists.txt` (sinon `compile_commands.json` contient
+`-fmodules-ts`, `-fmodule-mapper=…` et `-fdeps-format=…`, que clang refuse) et un
+`HeaderFilterRegex` qui accepte `\` comme séparateur.
+
+**179 avertissements** (327 avec `cppcoreguidelines-pro-bounds-avoid-unchecked-container-access`,
+exclue après ce passage : 148 avertissements, un par `operator[]`, voir le commentaire de
+`.clang-tidy`).
+
+| Règle | Nombre | Nature |
+|---|---|---|
+| `modernize-use-nodiscard` | 66 | Fonctions membres `const` sans `[[nodiscard]]` (C4) |
+| `bugprone-throwing-static-initialization` | 25 | Constantes globales de type classe (`sf::Color`, `sf::Vector2f`) dont le constructeur n'est pas `noexcept` |
+| `bugprone-unchecked-optional-access` | 19 | `optional` lu sans test visible par l'outil, dont les invariants implicites de C1 (`m_skillEnAttente`) |
+| `performance-enum-size` | 17 | `enum class` qui tiendrait sur `std::uint8_t` ; sans intérêt ici, candidate à l'exclusion |
+| `cppcoreguidelines-use-default-member-init` | 12 | Valeur initiale dans le constructeur plutôt qu'en initialiseur de membre (`Mobile`, `EcranOptions`) |
+| `cppcoreguidelines-pro-type-member-init` | 11 | Agrégats sans valeur par défaut (`Cercle`, `CibleMonstre`, `EntiteDeControle`…) |
+| `bugprone-misplaced-widening-cast` | 5 | `static_cast<std::size_t>(y * largeur + x)` : le produit est fait en `int` (`Chemin`, `Vision`) ; même famille que `-Wsign-conversion` (classe `Grille`, plus tard) |
+| `performance-inefficient-vector-operation` | 5 | `push_back` en boucle sans `reserve` |
+| `cppcoreguidelines-avoid-const-or-ref-data-members` | 4 | `Contexte` (voulu : jamais stocké) et le balayage de `ChampDeVision` |
+| `bugprone-implicit-widening-of-multiplication-result` | 3 | Même cause que `misplaced-widening-cast` (`Chemin`, `TileMap`) |
+| `bugprone-incorrect-roundings` | 2 | `static_cast<…>(x + 0.5)` dans `Eclaircir` ; faux seulement pour des valeurs négatives, exclues ici |
+| `bugprone-integer-division` | 2 | `BarreDeRaccourcis`, `Encerclement` : à vérifier |
+| `bugprone-optional-value-conversion` | 2 | `*cible` repassé en `optional` (`Escouade.cpp`, sites de C1) |
+| Autres (une fois chacune) | 6 | `special-member-functions` (`Ecran`), `pro-bounds-pointer-arithmetic` et `suspicious-stringview-data-usage` (`Reglages.cpp`), `pro-type-const-cast` (`Personnage::trouverSkill`), `avoid-c-arrays` (`Chemin.cpp`), `move-const-arg` (`Escouade.cpp`) |
+
+Fichiers les plus touchés : `Escouade.hpp` (21), `Escouade.cpp` (20), `Monstre.hpp` (15),
+`Personnage.hpp` (12), `Skill.hpp` (11), le reste à 8 ou moins. Commande (depuis la racine, une
+source à la fois) : `clang-tidy -p build/jeu src/Escouade.cpp`.

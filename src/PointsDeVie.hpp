@@ -14,9 +14,9 @@ public:
     // Renvoie les points réellement rendus (plafonnés au maximum ; 0 pour un mort).
     int soigner(int montant);
     [[nodiscard]] bool estVivant() const;
-    int getValeur() const;
-    int getMaximum() const;
-    float getRatio() const;
+    [[nodiscard]] int getValeur() const;
+    [[nodiscard]] int getMaximum() const;
+    [[nodiscard]] float getRatio() const;
 
 private:
     int m_valeur;

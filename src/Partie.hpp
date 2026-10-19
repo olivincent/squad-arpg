@@ -78,8 +78,8 @@ public:
     // ne pas montrer ce qui se passe dans le brouillard.
     [[nodiscard]] bool estVisible(sf::Vector2f point) const;
 
-    const Escouade& getEscouade() const;
-    const std::vector<Monstre>& getMonstres() const;
+    [[nodiscard]] const Escouade& getEscouade() const;
+    [[nodiscard]] const std::vector<Monstre>& getMonstres() const;
 
 private:
     struct LancerDeZone {
@@ -87,13 +87,13 @@ private:
         sf::Vector2f point;
     };
 
-    Monstre* trouverMonstre(int id);
+    [[nodiscard]] Monstre* trouverMonstre(int id);
     // Objet interactif encore actif qui contient ce point (une porte fermée), nullptr sinon.
-    const ObjetInteractif* trouverObjetActif(sf::Vector2f point) const;
+    [[nodiscard]] const ObjetInteractif* trouverObjetActif(sf::Vector2f point) const;
     // Recalcule la vision à partir des personnages vivants, à leur position actuelle.
     void mettreAJourLaVision();
     // Objet dont l'interaction est en cours (vide : nullptr).
-    const ObjetInteractif* objetEnCours() const;
+    [[nodiscard]] const ObjetInteractif* objetEnCours() const;
     // Effet d'une interaction : ouvre la porte.
     void ouvrir(const ObjetInteractif& objet);
     // Ouvre l'objet en cours d'interaction si un personnage vivant est assez près.
@@ -101,8 +101,8 @@ private:
     // Deux vues des monstres pour l'escouade : les CIBLES (ceux qu'on peut frapper, provoquer,
     // viser ou verrouiller : pas ceux qui rentrent à leur poste) et les PHYSIQUES (tous :
     // obstacles bloquants et à contourner).
-    std::vector<EntiteVue> entitesCiblables() const;
-    std::vector<EntiteVue> entitesPhysiques() const;
+    [[nodiscard]] std::vector<EntiteVue> entitesCiblables() const;
+    [[nodiscard]] std::vector<EntiteVue> entitesPhysiques() const;
     // Applique les coups aux monstres et signale chacun (`opportunite` : coups gratuits).
     void appliquer(const std::vector<Coup>& coups, bool opportunite = false);
     // Un coup de monstre sur le personnage de cette place (Escouade::recevoirCoup), signalé.
@@ -123,7 +123,7 @@ private:
         std::vector<EntiteDeControle> monstres;
         std::vector<EntiteDeControle> personnages;
     };
-    CampsDeControle photographierLesCamps() const;
+    [[nodiscard]] CampsDeControle photographierLesCamps() const;
     // Compare la photo du début de l'image à celle de la fin et applique les coups gratuits dans les
     // deux sens (calculés tous deux avant d'en appliquer un) ; retire les monstres tués et lève leur verrou.
     void appliquerLesCoupsDOpportunite(const CampsDeControle& avant);

@@ -34,4 +34,4 @@ struct Niveau {
 };
 
 // Le niveau du jeu.
-Niveau creerNiveau();
+[[nodiscard]] Niveau creerNiveau();

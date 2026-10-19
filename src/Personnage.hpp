@@ -42,8 +42,8 @@ public:
     // Attaque de base en trois temps : engager (vivant, immobile, attaque
     // prête) ; avancer l'exécution, qui rend les dégâts au moment où le coup
     // part ; annuler, sans recharge consommée.
-    bool engagerAttaque(int idCible);
-    std::optional<int> cibleEngagee() const;
+    [[nodiscard]] bool engagerAttaque(int idCible);
+    [[nodiscard]] std::optional<int> cibleEngagee() const;
     [[nodiscard]] int avancerAttaque(float dt, Generateur& generateur);
     // Sans effet sur une activation de skill : seul annulerSkill l'annule.
     void annulerAttaque();
@@ -52,14 +52,14 @@ public:
     // Façade de Mobile::cheminRestant, pour le débogage.
     [[nodiscard]] std::vector<sf::Vector2f> cheminRestant() const;
     // Un coup de base en exécution ou un skill en activation : le personnage reste sur place.
-    bool estEnExecution() const;
+    [[nodiscard]] bool estEnExecution() const;
     // Les questions sur un skill se posent par identifiant. Un identifiant que ce
     // personnage ne connaît pas se comporte comme « pas de skill » : vide, faux ou rayon 0.
-    std::optional<TypeSkill> typeSkill(IdSkill id) const;
+    [[nodiscard]] std::optional<TypeSkill> typeSkill(IdSkill id) const;
     // Identifiants des skills qu'il connaît, dans l'ordre de sa liste.
     [[nodiscard]] std::vector<IdSkill> idsDesSkills() const;
-    bool skillEstPret(IdSkill id) const;
-    std::optional<EtatSkill> etatDuSkill(IdSkill id) const;
+    [[nodiscard]] bool skillEstPret(IdSkill id) const;
+    [[nodiscard]] std::optional<EtatSkill> etatDuSkill(IdSkill id) const;
     [[nodiscard]] bool skillEstAPortee(IdSkill id, Cercle cible) const;
     [[nodiscard]] Cercle zoneDuSkill(IdSkill id) const;
     [[nodiscard]] Cercle cercleDePorteeDuSkill(IdSkill id) const;
@@ -70,19 +70,22 @@ public:
     // l'attaque de base) ; annuler, sans recharge consommée. Une seule action
     // engagée à la fois ; les recharges des skills sont indépendantes. La portée
     // et la vue sont vérifiées par Escouade ; la cible est stockée sans être interprétée.
-    bool engagerSkill(IdSkill id, std::optional<Cible> cible);
-    std::optional<ActionEngagee> skillEngage() const;
+    [[nodiscard]] bool engagerSkill(IdSkill id, std::optional<Cible> cible);
+    // Les conditions d'engagerSkill : vivant, skill connu et prêt, aucun skill en
+    // activation (le lanceur est libre).
+    [[nodiscard]] bool peutEngagerSkill(IdSkill id) const;
+    [[nodiscard]] std::optional<ActionEngagee> skillEngage() const;
     [[nodiscard]] int avancerSkill(float dt, Generateur& generateur);
     void annulerSkill();
     // Renvoient le montant réellement appliqué : dégâts après armure (0 pour un mort), points
     // de vie réellement rendus (plafonnés au maximum, 0 pour un mort).
     int recevoirDegats(int quantite);
     int recevoirSoin(int quantite);
-    bool estVivant() const;
-    int getPointsDeVie() const;
-    int getPointsDeVieMax() const;
-    sf::Vector2f getCentre() const;
-    Cercle getCercle() const;
+    [[nodiscard]] bool estVivant() const;
+    [[nodiscard]] int getPointsDeVie() const;
+    [[nodiscard]] int getPointsDeVieMax() const;
+    [[nodiscard]] sf::Vector2f getCentre() const;
+    [[nodiscard]] Cercle getCercle() const;
     // Rayon de vision, en pixels.
     [[nodiscard]] float getRayonVision() const;
     [[nodiscard]] sf::Color getCouleur() const;
@@ -97,7 +100,7 @@ private:
     int m_armure;
     float m_rayonVision;    // en pixels
     float m_zoneDeControle; // en pixels, bord à bord
-    const Skill* trouverSkill(IdSkill id) const;  // nullptr si le personnage ne connaît pas ce skill
-    Skill* trouverSkill(IdSkill id);
+    [[nodiscard]] const Skill* trouverSkill(IdSkill id) const;  // nullptr si le personnage ne connaît pas ce skill
+    [[nodiscard]] Skill* trouverSkill(IdSkill id);
     std::optional<ActionEngagee> m_actionEngagee; // action en exécution et sa cible ; lue seulement pendant l'exécution
 };

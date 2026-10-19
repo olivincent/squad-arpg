@@ -64,7 +64,7 @@ public:
     // Partie y met la photo du début de l'image. Vide : aucun personnage ne se dégage.
     void mettreAJour(float dt, const TileMap& carte, const std::vector<EntiteVue>& monstres,
                      const std::vector<EntiteDeControle>& monstresDeControle = {});
-    sf::Vector2f getCentre() const;
+    [[nodiscard]] sf::Vector2f getCentre() const;
     // Personnage que ce monstre poursuit : l'identifiant est sa place (1 à N), le cercle le sien.
     [[nodiscard]] std::optional<EntiteVue> proieDuMonstre(int idMonstre, sf::Vector2f positionMonstre) const;
     // Personnages que ce monstre peut frapper (identifiant = place) : seulement son
@@ -75,8 +75,8 @@ public:
     int recevoirDegats(int idMonstre, sf::Vector2f origine, int quantite);
     // Comme recevoirDegats, mais sur le personnage de cette place (un coup engagé).
     int recevoirCoup(int idMonstre, std::size_t place, sf::Vector2f origine, int quantite);
-    bool estVivante() const;
-    std::vector<Cercle> cerclesDesVivants() const;
+    [[nodiscard]] bool estVivante() const;
+    [[nodiscard]] std::vector<Cercle> cerclesDesVivants() const;
     // Une entité de contrôle (identifiant = place de 1 à N, cercle, zone de contrôle) par personnage
     // vivant : les morts n'engagent personne et ne sont pas engagés.
     [[nodiscard]] std::vector<EntiteDeControle> entitesDeControle() const;
@@ -90,8 +90,8 @@ public:
     [[nodiscard]] std::optional<Cible> choisirCible(TypeSkill type, AdresseSkill adresse, const std::vector<EntiteVue>& monstres, const TileMap& carte) const;
     void verrouiller(int idCible);
     void deverrouiller();
-    std::optional<int> getCibleVerrouillee() const;
-    const std::vector<sf::Vector2f>& getPlacesDeFormation() const;
+    [[nodiscard]] std::optional<int> getCibleVerrouillee() const;
+    [[nodiscard]] const std::vector<sf::Vector2f>& getPlacesDeFormation() const;
     // Identifiant du monstre dont le personnage de cette place se dégage (voir degagementVoulu) ;
     // vide s'il ne se dégage pas ou si la place est invalide. Lu par les tests.
     [[nodiscard]] std::optional<int> degagementDuPersonnage(std::size_t place) const;
@@ -114,33 +114,33 @@ public:
     // Débogage : un trait fin du centre de chaque personnage vivant à son point visé, et un petit
     // cercle à ce point.
     void dessinerPointsVises(sf::RenderTarget& rendu) const;
-    const std::vector<Agresseurs::Agresseur>& getAgresseurs() const;
+    [[nodiscard]] const std::vector<Agresseurs::Agresseur>& getAgresseurs() const;
     void provoquer(int idMonstre, std::size_t place, float duree);
-    const std::vector<Provocations::Provocation>& getProvocations() const;
+    [[nodiscard]] const std::vector<Provocations::Provocation>& getProvocations() const;
 
 private:
-    sf::Vector2f placePersonnage(std::size_t indice) const;
+    [[nodiscard]] sf::Vector2f placePersonnage(std::size_t indice) const;
     // Place de 1 à N : seule conversion vers l'indice 0 à N-1.
-    bool placeValide(std::size_t place) const;
-    Personnage& personnageDeLaPlace(std::size_t place);              // place valide exigée
-    const Personnage& personnageDeLaPlace(std::size_t place) const;  // place valide exigée
-    bool skillEnAttenteDeDegats() const;
+    [[nodiscard]] bool placeValide(std::size_t place) const;
+    [[nodiscard]] Personnage& personnageDeLaPlace(std::size_t place);              // place valide exigée
+    [[nodiscard]] const Personnage& personnageDeLaPlace(std::size_t place) const;  // place valide exigée
+    [[nodiscard]] bool skillEnAttenteDeDegats() const;
     void annulerSkillDeDegatsEnAttente();
-    std::optional<std::size_t> indicePersonnageLePlusProche(sf::Vector2f point) const;
-    std::optional<std::size_t> indiceProieDuMonstre(int idMonstre, sf::Vector2f positionMonstre) const;
+    [[nodiscard]] std::optional<std::size_t> indicePersonnageLePlusProche(sf::Vector2f point) const;
+    [[nodiscard]] std::optional<std::size_t> indiceProieDuMonstre(int idMonstre, sf::Vector2f positionMonstre) const;
     // Avec quoi un personnage atteint une cible : son attaque de base ou son skill.
     // `skill` vide : l'attaque de base.
-    bool peutAtteindre(const Personnage& personnage, std::optional<IdSkill> skill, Cercle cible, const TileMap& carte) const;
-    bool peutLancerAuPoint(AdresseSkill adresse, sf::Vector2f point, const TileMap& carte) const;
+    [[nodiscard]] bool peutAtteindre(const Personnage& personnage, std::optional<IdSkill> skill, Cercle cible, const TileMap& carte) const;
+    [[nodiscard]] bool peutLancerAuPoint(AdresseSkill adresse, sf::Vector2f point, const TileMap& carte) const;
     std::vector<Coup> avancerSkillDe(std::size_t indice, float dt, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
     std::vector<Coup> effetDuSkill(std::size_t place, IdSkill id, const std::optional<Cible>& cible, int puissance, const std::vector<EntiteVue>& monstres, const TileMap& carte);
     std::optional<sf::Vector2f> avancerSkillEnAttente(const TileMap& carte);
     // Étapes d'attaquer(), dans l'ordre où elles sont appelées.
     void actualiserMemoires(const std::vector<EntiteVue>& monstres);
     void engagerSkillDeZoneEnAttente(const TileMap& carte);
-    bool tousLesVivantsAtteignent(Cercle cible, const TileMap& carte) const;
-    std::optional<Cercle> approcherVerrou(const std::vector<EntiteVue>& monstres, const TileMap& carte);
-    void engagerSkillDeDegatsEnAttente(Cercle cible, const TileMap& carte);
+    [[nodiscard]] bool tousLesVivantsAtteignent(Cercle cible, const TileMap& carte) const;
+    void approcherVerrou(const std::vector<EntiteVue>& monstres, const TileMap& carte);
+    void engagerSkillDeDegatsEnAttente(const std::vector<EntiteVue>& monstres, const TileMap& carte);
     std::vector<Coup> avancerSkills(float dt, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
     std::vector<Coup> autodefense(float dt, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
     // Place d'attaque : voir la définition de pointVersMonstre.
@@ -149,14 +149,14 @@ private:
         float rayon;     // de l'anneau, en pixels
         sf::Angle angle; // autour du centre du monstre
     };
-    float porteeDe(const Personnage& personnage, std::optional<IdSkill> skill) const;
+    [[nodiscard]] float porteeDe(const Personnage& personnage, std::optional<IdSkill> skill) const;
     sf::Vector2f pointVersMonstre(std::size_t indice, int idMonstre, Cercle monstre, std::optional<IdSkill> skill,
                                   const std::optional<PlaceDAttaque>& ancienne, const TileMap& carte);
     std::optional<sf::Vector2f> pointVersAgresseur(std::size_t indice, const std::vector<EntiteVue>& agresseurs,
                                                    const std::optional<PlaceDAttaque>& ancienne, const TileMap& carte);
     // Cercles des monstres sauf celui que ce personnage approche (sa place d'attaque, ou le
     // verrou en combat) ; tous s'il n'en approche aucun.
-    std::vector<Cercle> monstresAContourner(std::size_t indice, const std::vector<EntiteVue>& monstres) const;
+    [[nodiscard]] std::vector<Cercle> monstresAContourner(std::size_t indice, const std::vector<EntiteVue>& monstres) const;
     // Étapes de mettreAJour().
     void ecoulerMemoires(float dt);
     void tournerFormation(float dt);
@@ -167,7 +167,7 @@ private:
     // Dégagement : les deux fonctions ci-dessous sont, avec m_degagements, tout ce que sait Escouade
     // de cette règle de comportement (le point de remplacement des futurs gambits).
     void mettreAJourDegagements(bool ancreArretee, const std::vector<EntiteDeControle>& monstresDeControle);
-    std::optional<int> degagementVoulu(std::size_t indice, bool ancreArretee, const std::vector<EntiteDeControle>& personnages,
+    [[nodiscard]] std::optional<int> degagementVoulu(std::size_t indice, bool ancreArretee, const std::vector<EntiteDeControle>& personnages,
                                        const std::vector<EntiteDeControle>& monstresDeControle) const;
 
     struct SkillEnAttente {

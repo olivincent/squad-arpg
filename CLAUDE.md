@@ -80,6 +80,12 @@ Documents de référence (à lire avant toute modification) :
 - `#pragma once` dans les en-têtes.
 - Fonctions membres de lecture `const` ; objets lourds en lecture passés
   par `const T&` ; petits types (`sf::Vector2f`, `float`) par valeur.
+- `[[nodiscard]]` : tout retour non `void` d'une fonction sans effet de bord,
+  ou dont le retour signale un échec (`engagerSkill`, `Skill::commencer`), est
+  `[[nodiscard]]`. Un échec normal qu'on ignore exprès s'écrit
+  `static_cast<void>(...)` avec un commentaire qui dit pourquoi ; un échec
+  impossible s'écrit `[[maybe_unused]] const bool ok = ...; assert(ok);`.
+  `clang-tidy` (`modernize-use-nodiscard`) vérifie les fonctions membres.
 - `Cercle` (12 octets) est toujours passé **par valeur**, comme un petit
   type, y compris dans `Cercle.hpp` et `Deplacement.hpp`. Seul un
   `std::vector<Cercle>` se passe par `const&`.

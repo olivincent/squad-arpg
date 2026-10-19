@@ -40,7 +40,7 @@ public:
 
     // Cercle de zone sous le curseur et cercle de portée du lanceur ; rien hors visée.
     void dessinerApercu(const Partie& partie, sf::RenderTarget& rendu, sf::Vector2f curseur) const;
-    std::optional<AdresseSkill> getAdresseEnVisee() const;
+    [[nodiscard]] std::optional<AdresseSkill> getAdresseEnVisee() const;
 
 private:
     bool m_deplacementContinu = false;

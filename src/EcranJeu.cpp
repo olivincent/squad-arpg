@@ -107,7 +107,7 @@ Transition EcranJeu::traiterEvenement(const sf::Event& evenement, const Contexte
         } else if (data->scancode == sf::Keyboard::Scan::R && finDePartie) {
             return Depiler{};  // retour à l'écran de choix de l'escouade
         } else if (data->scancode == sf::Keyboard::Scan::F5) {
-            // Touche de débogage : à tout moment, même effet que R.
+            // Touche de débogage : à tout moment, une nouvelle carte avec les mêmes classes.
             nouvelleCarte();
         } else if (data->scancode == sf::Keyboard::Scan::F3) {
             m_debogage.pointsVises = !m_debogage.pointsVises;  // touche de débogage : points visés des personnages

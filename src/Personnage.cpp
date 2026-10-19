@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cassert>
 #include <utility>
+#include <variant>
 
 namespace {
 constexpr float s_seuilRecalcul = 40.0f;  // une case, en pixels
@@ -139,6 +140,8 @@ std::optional<int> Personnage::cibleEngagee() const {
         m_attaqueDeBase.getPhase() != PhaseSkill::EnExecution) {
         return std::nullopt;
     }
+    // engagerAttaque pose toujours une CibleMonstre.
+    assert(m_actionEngagee->cible.has_value() && std::holds_alternative<CibleMonstre>(*m_actionEngagee->cible));
     return std::get<CibleMonstre>(*m_actionEngagee->cible).id;
 }
 
@@ -218,15 +221,19 @@ Cercle Personnage::zoneDuSkill(IdSkill id) const {
 }
 
 bool Personnage::engagerSkill(IdSkill id, std::optional<Cible> cible) {
-    Skill* skill = trouverSkill(id);
-    // Un seul skill en activation à la fois, même si les recharges sont indépendantes.
-    if (!estVivant() || skill == nullptr || skillEngage().has_value() || !skill->commencer()) {
+    if (!peutEngagerSkill(id) || !trouverSkill(id)->commencer()) {
         return false;
     }
     // Le skill remplace l'attaque de base à ce moment : un coup en exécution est annulé.
     annulerAttaque();
     m_actionEngagee = ActionEngagee{TypeAction::Skill, cible, id};
     return true;
+}
+
+bool Personnage::peutEngagerSkill(IdSkill id) const {
+    const Skill* skill = trouverSkill(id);
+    // Un seul skill en activation à la fois, même si les recharges sont indépendantes.
+    return estVivant() && skill != nullptr && !skillEngage().has_value() && skill->getPhase() == PhaseSkill::Pret;
 }
 
 std::optional<ActionEngagee> Personnage::skillEngage() const {
@@ -240,6 +247,8 @@ int Personnage::avancerSkill(float dt, Generateur& generateur) {
     if (!skillEngage().has_value()) {
         return 0;
     }
+    // engagerSkill n'engage qu'un skill que le personnage connaît.
+    assert(m_actionEngagee->skill.has_value() && trouverSkill(*m_actionEngagee->skill) != nullptr);
     Skill& skill = *trouverSkill(*m_actionEngagee->skill);
     if (!skill.avancer(dt, generateur)) {
         return 0;
@@ -252,6 +261,8 @@ int Personnage::avancerSkill(float dt, Generateur& generateur) {
 
 void Personnage::annulerSkill() {
     if (skillEngage().has_value()) {
+        // engagerSkill n'engage qu'un skill que le personnage connaît.
+        assert(m_actionEngagee->skill.has_value() && trouverSkill(*m_actionEngagee->skill) != nullptr);
         trouverSkill(*m_actionEngagee->skill)->annuler();
         m_actionEngagee.reset();
     }

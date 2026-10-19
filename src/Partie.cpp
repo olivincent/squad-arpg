@@ -340,7 +340,8 @@ void Partie::faireFrapperLeMonstre(Monstre& monstre, std::optional<EntiteVue> pr
         }
         return;
     }
-    monstre.engagerAttaque(proie, candidats, m_carte);
+    // Tentative à chaque image : l'échec est normal (en marche, en recharge, rien à frapper…).
+    static_cast<void>(monstre.engagerAttaque(proie, candidats, m_carte));
 }
 
 bool Partie::estPerdue() const {

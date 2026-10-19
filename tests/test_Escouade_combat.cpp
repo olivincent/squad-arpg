@@ -516,10 +516,12 @@ TEST_CASE("recevoirCoup frappe le personnage de la place donnee, pas le plus pro
 
 TEST_CASE("pointsDeVieDuPersonnage donne les points de vie de la place, vide si la place est invalide") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
+    const std::optional<int> guerrierAvant = escouade.pointsDeVieDuPersonnage(1);
+    const std::optional<int> pretreAvant = escouade.pointsDeVieDuPersonnage(2);
     escouade.recevoirCoup(1, 2, {85.0f, 60.0f}, 10);
 
-    REQUIRE(escouade.pointsDeVieDuPersonnage(1) == 100);
-    REQUIRE(escouade.pointsDeVieDuPersonnage(2) == 90);
+    REQUIRE(escouade.pointsDeVieDuPersonnage(1) == guerrierAvant);
+    REQUIRE(escouade.pointsDeVieDuPersonnage(2) == *pretreAvant - 10);  // le prêtre n'a pas d'armure
     REQUIRE_FALSE(escouade.pointsDeVieDuPersonnage(0).has_value());
     REQUIRE_FALSE(escouade.pointsDeVieDuPersonnage(4).has_value());
 }

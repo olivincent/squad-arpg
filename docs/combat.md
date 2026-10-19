@@ -860,6 +860,8 @@ l'enfoncerait dans un obstacle.
   une attaque de base).
 - **Une seule action engagée à la fois par personnage** : engager un skill pendant
   l'activation d'un autre de ses skills est refusé (sans toucher à la recharge du second).
+  Depuis l'étape 80, `Escouade` met alors l'ordre en attente au lieu de le perdre (voir
+  « Skill demandé pendant l'activation d'un autre »).
   Les recharges des skills sont **indépendantes** et s'écoulent toutes dans
   `Personnage::mettreAJour`. Règle inchangée : un skill qui part relance la recharge de
   l'attaque de base. Un seul skill en attente pour toute l'escouade, comme avant.
@@ -1057,3 +1059,41 @@ l'enfoncerait dans un obstacle.
   - la visibilité est celle de la fin de l'image ;
   - l'empilement ne concerne que les textes d'une même image : deux coups de la même cible à des images
     proches peuvent se recouvrir en partie.
+
+## Skill demandé pendant l'activation d'un autre (étape 80)
+
+- **Le problème.** Un personnage n'a qu'une action engagée à la fois : `Personnage::engagerSkill`
+  refuse un second skill pendant l'activation du premier. Jusqu'à l'étape 79, `Escouade` ignorait ce
+  refus (`static_cast<void>`) : un ordre donné pendant l'activation d'un autre skill du même lanceur
+  était perdu sans trace (ni activation, ni attente, ni recharge), et un skill déjà en attente
+  disparaissait si sa cible devenait atteignable pendant cette activation. Cela concernait les classes
+  à deux skills : guerrier (provocation puis frappe), paladin, rôdeur.
+- **La règle.** L'ordre est **mis en attente** (ou y reste) et part dès que le lanceur est **libre** :
+  `Personnage::peutEngagerSkill` (vivant, skill connu et prêt, aucun skill en activation, les
+  conditions mêmes d'`engagerSkill`). Une seule règle pour les six endroits où un skill s'engage :
+  dégâts et soin dans `declencherSkill`, zone dans `declencherSkillDeZone`, et les trois skills en
+  attente (`engagerSkillDeZoneEnAttente`, `engagerSkillDeDegatsEnAttente`, le soin dans
+  `avancerSkillEnAttente`). `engagerSkill` n'y est appelé que si le lanceur est libre :
+  `[[maybe_unused]] const bool engage = ...; assert(engage);`. Pendant l'activation, le lanceur reste
+  sur place (priorité de `pointVoulu`) ; à la fin, le skill en attente part s'il atteint sa cible,
+  sinon le lanceur marche vers elle comme pour tout skill en attente.
+- **Dégâts sans verrou.** Sans verrou, un skill de dégâts ne se mettait jamais en attente (la cible est
+  choisie à portée). Il peut maintenant attendre que son lanceur soit libre : `engagerSkillDeDegatsEnAttente`
+  retrouve donc la cible par son identifiant dans `monstres`, et non plus par le verrou seulement.
+  Sans verrou, personne ne marche vers elle (règle de l'étape 37) : une fois libre, le lanceur la frappe
+  s'il l'atteint encore ; sinon (hors de portée, hors de vue, disparue) le skill est abandonné, sans
+  recharge. `avancerSkillEnAttente` ne fait marcher vers la cible d'un skill de dégâts qu'avec un
+  verrou : `m_cibleCombat` n'est jamais remis à zéro et peut dater d'un ancien combat.
+- **Ce qui ne change pas.** Un skill en recharge, ou déjà en activation lui-même, est refusé. Un nouvel
+  ordre de skill pendant qu'un skill attend est refusé (un seul skill en attente pour l'escouade). Un clic
+  au sol (`deverrouiller`) ou sur un autre monstre (`verrouiller`) annule un skill de dégâts en attente.
+- **Tests** : `test_Escouade_skills.cpp`, « Lanceur occupe : … » (frappe demandée pendant la provocation,
+  frappe en attente quand le monstre arrive pendant l'activation, abandon sans verrou, paladin, rôdeur).
+- **Limites connues** :
+  - un seul skill en attente pour toute l'escouade : pendant qu'un skill attend que son lanceur soit
+    libre (ou marche vers sa cible), l'ordre de skill d'un **autre** personnage est refusé, donc perdu.
+    La règle de l'étape 80 rend ces attentes plus fréquentes. La limite disparaîtra avec « un skill en
+    attente par personnage » ;
+  - la provocation, sans cible, n'a pas de mise en attente : demandée pendant l'activation d'un autre
+    skill du guerrier, elle est toujours refusée (explicitement, dans `declencherSkill`) ;
+  - rien à l'écran ne montre qu'un skill attend.

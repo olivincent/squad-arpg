@@ -10,6 +10,7 @@
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Rect.hpp>
+#include <cassert>
 #include <cstdint>
 
 namespace {
@@ -151,7 +152,10 @@ std::optional<EntiteVue> Monstre::cibleDeFrappe(const std::optional<EntiteVue>& 
     if (!id) {
         return std::nullopt;
     }
-    return *trouverEntite(candidats, *id);
+    // choisirCibleAFrapper ne choisit que parmi les candidats.
+    const EntiteVue* cible = trouverEntite(candidats, *id);
+    assert(cible != nullptr);
+    return *cible;
 }
 
 void Monstre::mettreAJour(float dt, std::optional<EntiteVue> proie, const std::vector<EntiteVue>& candidats,
@@ -220,6 +224,8 @@ void Monstre::mettreAJour(float dt, std::optional<EntiteVue> proie, const std::v
         if (cibleDeFrappe(proie, candidats, carte)) {
             m_mobile.arreter();
         } else {
+            // Sans proie, la poursuite a basculé en retour juste au-dessus.
+            assert(proie.has_value());
             m_mobile.allerVers(proie->cercle.centre, carte, aContourner);
         }
     }
