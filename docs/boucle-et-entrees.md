@@ -13,7 +13,7 @@ la fenêtre, la police, l'horloge et `setKeyRepeatEnabled`, qui sont à
 | Acteur | Rôle | Connaît SFML Window/Event ? |
 |---|---|---|
 | `EcranJeu` (et `Application` pour la fenêtre, la police et l'horloge) | Caméra, traduction des événements SFML en appels au `Controleur`, retour au menu (touche R après une défaite ou une victoire), nouvelle carte (F5), bascules de débogage (F3 points visés, chemins et monstres qui rentrent semi-transparents, F4 ancre, F6 brouillard de guerre ; `OptionsDeDebogage`), compteur de monstres, conversion du curseur en coordonnées du monde, enchaînement du dessin | Oui, seuls |
-| `Controleur` | État d'interface : mode visée (`m_placeEnVisee`) et déplacement continu (`m_deplacementContinu`), sans référence à la `Partie` (reçue à chaque appel) ; traduit les actions du joueur en demandes à la `Partie` ; dessine l'aperçu de visée | Non |
+| `Controleur` | État d'interface : mode visée (`m_adresseEnVisee`) et déplacement continu (`m_deplacementContinu`), sans référence à la `Partie` (reçue à chaque appel) ; traduit les actions du joueur en demandes à la `Partie` ; dessine l'aperçu de visée | Non |
 | `Partie` | Règles de jeu : possède la carte, l'`Escouade`, les `Monstre` et la `Vision` ; intermédiaire entre `Escouade` et `Monstre`, qui ne se connaissent pas | Non |
 
 `Niveau` (`Niveau.hpp/.cpp`) est une structure de données (plan, taille de
@@ -33,8 +33,10 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
      depuis l'étape 65 à la fin de `mettreAJour`, donc avant les événements de
      l'image suivante ;
   1. événements, traduits en appels au `Controleur` : fermeture ;
-     `appuiGauche(partie, point)`, `appuiDroit()`, `appuiTouche(partie,
-     indiceTouche)` (1 à 4), `appuiEchap()`, et R (voir « Défaite de l'escouade »). Le `Controleur` les convertit en demandes à la `Partie` :
+     `appuiGauche(partie, point)` (ou `appuiInterface` si le clic tombe sur la barre de
+     raccourcis, voir « Barre de raccourcis »), `appuiDroit()`,
+     `activerEmplacement(partie, barre, emplacement)` (touche de la barre), `appuiEchap()`, et R
+     (voir « Défaite de l'escouade »). Le `Controleur` les convertit en demandes à la `Partie` :
      `cliquer` (appliqué tout de suite : pose ou retire le verrou), et
      `demanderSkill`, `lancerSkillDeZone`, mémorisés ;
   2. `controleur.mettreAJourDeplacement(partie, boutonTenu, curseur)` : si le bouton
@@ -63,7 +65,7 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   4. `main.cpp` : caméra centrée sur l'escouade, `partie.dessiner` (carte,
      monstres visibles avec le contour du verrou, semi-transparents s'ils rentrent à leur
      poste et que F3 est actif, escouade, voile de la `Vision` sauf si F6 l'a coupé), `controleur.
-     dessinerApercu`, puis, dans la vue par défaut, barre de skills, compteur
+     dessinerApercu`, puis, dans la vue d'interface, barre de raccourcis, compteur
      « Monstres : N » (haut gauche) et, si la partie est perdue ou gagnée,
      écran de fin (par-dessus la barre et le compteur), le tout avec la vue de
      l'interface (800 px de haut, voir `docs/ecrans.md`).
@@ -146,26 +148,82 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
 ## Entrée clavier : le skill
 
 - **Événement d'appui, pas lecture d'état** : un appui = une tentative.
-  `EcranJeu` traduit la touche en `controleur.appuiTouche(partie, indiceTouche)` ; le
-  `Controleur` lit l'adresse de la touche et envoie les skills qui ne sont pas de type
+  `EcranJeu` traduit la touche en emplacement (`emplacementPourTouche`) puis en
+  `controleur.activerEmplacement(partie, barre, emplacement)` ; le
+  `Controleur` lit l'adresse de l'emplacement et envoie les skills qui ne sont pas de type
   `Zone` en `partie.demanderSkill(adresse)`. Plusieurs
   appuis dans la même image : le dernier gagne (une seule demande
   mémorisée).
 - **`window.setKeyRepeatEnabled(false)`** (dans `main.cpp`) : une touche
   tenue ne produit qu'un appui, sans quoi elle relancerait un skill
   rechargé.
-- **Scancode plutôt que code de touche** : `sf::Keyboard::Scan::Num1`
-  désigne la touche physique « 1 » de la rangée du haut, quelle que soit la
-  disposition (en AZERTY elle donne « & »).
+- **Scancode plutôt que code de touche** : `sf::Keyboard::Scan::Q`
+  désigne la touche physique en haut à gauche de la rangée des lettres, quelle que soit la
+  disposition (en AZERTY elle est étiquetée « A »). L'icône affiche l'étiquette du
+  clavier (`sf::Keyboard::getDescription`).
 - **Skill demandé avant `attaquer`** : voir l'ordre d'une image.
   `declencherSkill` est appelée même sans verrou : le soin marche sans
   combat, et le skill de dégâts vise alors le monstre que son lanceur
   frapperait en autodéfense.
-- **Correspondance des touches** (étape 74) : une table de quatre `AdresseSkill`
-  en donnée dans le `Controleur` (`s_touches`, accessible par `adresseDeLaTouche`) :
-  1 → guerrier/frappe, 2 → guerrier/provocation, 3 → prêtre/soin, 4 → mage/explosion.
-  Provisoire : la barre de raccourcis de l'étape 75 la remplace. La visée est déduite du
-  **type** du skill (`Zone`), plus du numéro de touche.
+- **Correspondance des touches** : voir « Barre de raccourcis » ci-dessous. La table provisoire
+  de quatre adresses de l'étape 74 (touches 1 à 4) a disparu. La visée est déduite du **type** du
+  skill (`Zone`), jamais de la touche.
+
+## Barre de raccourcis (étape 75)
+
+- **Trois notions séparées** : les **emplacements** (le modèle, `BarreDeRaccourcis` : une
+  liste d'`optional<AdresseSkill>`), les **touches** (une table touche → emplacement, une donnée,
+  `Reglages::touchesDesRaccourcis`) et la **disposition** à l'écran (`rectangleDeLEmplacement`,
+  calculée par la vue seulement). L'emplacement i reste l'emplacement i quelles que soient sa
+  touche et sa place à l'écran : changer l'une des deux ne touche ni le modèle ni l'autre. Les
+  futures fonctions (écran de configuration des touches, barre en ligne droite, barre d'auras,
+  interface de placement) se brancheront sur l'une des trois sans réécrire les autres.
+- **Indépendante des personnages** : la barre pointe vers n'importe quel skill de n'importe quel
+  personnage (une `AdresseSkill`). Aucune limite par personnage ; une même adresse peut être
+  placée sur deux emplacements (décision reportée, voir `docs/brainstorm.md`).
+- **Propriétaire : `EcranJeu`** (état d'interface, comme la caméra). Ni `Partie` ni `Escouade`
+  ne savent qu'une barre existe : `Escouade::adressesDesSkills()` fournit la liste ordonnée
+  (place puis liste du personnage), `barreParDefaut` la dispose, `EcranJeu` reconstruit la barre
+  à chaque nouvelle partie (au même endroit que `m_controleur = Controleur{}`). Le `Controleur`
+  reçoit la barre à chaque appel, sans la garder.
+- **Disposition par défaut** : une rangée de 4 emplacements par personnage, dans l'ordre des
+  places. Avec la composition actuelle : Q = frappe puissante, W = provocation, A = soin,
+  Z = explosion, le reste vide. Un 5ᵉ skill d'un personnage n'est pas placé (sans erreur).
+- **Touches** : grille Q W E R / A S D F / Z X C V, scancodes (touches physiques). La table est
+  dans `Reglages` mais n'est ni lue ni écrite dans `reglages.ini` : `EcranJeu` la lit déjà dans
+  le `Contexte`, c'est le chemin que prendra la configuration. R est l'emplacement 3 en jeu ; sur
+  l'écran de fin (perdue ou gagnée), R ramène au menu et les raccourcis sont ignorés. F3 à F6 et
+  Échap ne sont pas des touches de la grille.
+- **Une seule action pour la touche et le clic** : `Controleur::activerEmplacement`. Vide : rien.
+  Skill de type `Zone` : entre en visée de cette adresse, ou en sort si c'est déjà elle (même
+  placée sur deux emplacements) ; un autre skill de zone remplace la visée ; mêmes conditions
+  qu'avant (escouade vivante, skill prêt) et désarme le déplacement continu. Autre type :
+  `demanderSkill` ; en visée, la visée continue.
+- **Règle « l'interface d'abord »** : à l'appui gauche, `EcranJeu` convertit le pixel avec la vue
+  d'interface et teste la barre (`clicSurInterface`, qui s'appuie sur `emplacementSous`)
+  **avant** tout traitement dans le monde. Un clic sur la barre est consommé : il n'atteint
+  jamais `Controleur::appuiGauche` (ni verrou, ni porte, ni déplacement, ni point d'impact de
+  visée) ; il appelle `Controleur::appuiInterface`. Sur l'écran de fin il est consommé sans effet.
+  `ClicInterface { Barre barre; std::size_t emplacement; }` : l'enum `Barre` n'a qu'une valeur
+  (`Raccourcis`) ; la barre d'auras s'y ajoutera, et le `switch` d'`appuiInterface` signalera le
+  cas oublié.
+- **Trois cas limites** : (1) un appui qui commence sur la barre ne lance pas le déplacement
+  continu et désarme un déplacement continu déjà armé (sinon un ancien clic au sol ferait repartir
+  l'escouade tant que le bouton est tenu) ; (2) un déplacement continu commencé au sol continue
+  quand le curseur passe au-dessus de la barre (sa cible est le point du monde sous le curseur ;
+  la décision est prise à l'appui seulement, `mettreAJourDeplacement` n'a pas changé) ; (3) en
+  visée, un clic sur la barre est un clic d'interface, jamais le point d'impact.
+- **Clic droit** inchangé (annule la visée, où qu'il soit). Pas de survol, pas d'infobulle.
+- **Dessin** : `EcranJeu::dessiner` construit une `IconeDeRaccourci` par emplacement (état du
+  skill demandé à l'escouade, nom de la touche, couleur du personnage lanceur par
+  `Escouade::couleurDuPersonnage`, contour de visée) et `dessinerBarreDeSkills` les dessine aux
+  rectangles de `rectangleDeLEmplacement` : grille de 4 colonnes × 3 rangées, icônes de 48 px,
+  4 px d'écart, centrée en bas de la vue d'interface avec 10 px de marge. Le dessin et le clic
+  partagent ce même calcul. Un emplacement vide est un cadre sombre avec seulement le nom de sa
+  touche.
+- **Limites connues** : touches non configurables ni sauvegardées ; une seule barre ; la barre ne
+  montre pas le skill en attente ; pas de survol, d'infobulle ni de clic droit sur la barre ; pas
+  d'interface pour placer les skills. Dans la grille par défaut, une 4ᵉ place n'a pas de rangée.
 
 ## Mode visée : le skill de zone (étape 42)
 
@@ -174,8 +232,9 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   `Controleur`. `Escouade` et `Partie` ne connaissent ni la souris ni le
   mode ; l'`Escouade` expose `skillEstPret`, `rayonZoneDuSkill`,
   `cercleDePorteeDuSkill` et `declencherSkillDeZone`.
-- **Entrée** : appui sur 4 avec l'escouade vivante et le skill prêt ; sinon
-  ignoré. **Sorties sans lancer** : clic droit, Échap, nouvel appui sur 4,
+- **Entrée** : activation de l'emplacement d'un skill de zone (touche ou clic) avec l'escouade
+  vivante et le skill prêt ; sinon ignoré. **Sorties sans lancer** : clic droit, Échap, nouvelle
+  activation de la même adresse,
   mort du lanceur ou défaite (`debutImage`, par `!skillEstPret`). Aucune
   recharge consommée.
 - **Lancer** : uniquement sur l'événement d'appui gauche reçu pendant la
@@ -303,9 +362,9 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
 
 ## Interface fixe à l'écran (étape 48)
 
-- **Deux vues par image** : le monde est dessiné avec `camera`, puis
-  `window.setView(window.getDefaultView())` donne des coordonnées en pixels
-  de la fenêtre pour la barre de skills, dessinée en dernier. La vue active
+- **Deux vues par image** : le monde est dessiné avec `camera`, puis la vue d'interface
+  (`vueDInterface`, depuis l'étape 65) donne des coordonnées fixes pour la barre de skills,
+  dessinée en dernier. La vue active
   en fin d'image n'est donc plus la caméra : l'image suivante commence par
   `window.setView(camera)` (sinon les clics seraient mal convertis).
 - **Police** : DejaVu Sans, libre, committée avec sa licence dans
@@ -313,10 +372,9 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   `const sf::Font&` au dessin. Un `sf::Text` garde un pointeur vers sa
   police : elle doit vivre plus longtemps que lui. Échec de chargement :
   message sur `std::cerr`, `main` rend 1.
-- **`main.cpp` prépare les états** : un `std::array<std::optional<
-  EtatSkill>, 4>` rempli par `escouade.etatDuSkill(place)`, et
-  `controleur.getPlaceEnVisee()` est transmise telle quelle. Pas de classe
-  `Hud` : la barre n'a aucun état propre.
+- **`EcranJeu` prépare les icônes** (depuis l'étape 75) : un `std::array<IconeDeRaccourci, 12>`
+  rempli à partir de la `BarreDeRaccourcis` et de `escouade.etatDuSkill(adresse)` (voir « Barre
+  de raccourcis »). Pas de classe `Hud` : le dessin n'a aucun état propre.
 - **Limites connues** : la position se calcule depuis la taille de la vue par
   défaut (le redimensionnement n'est pas géré) ; le chemin de la police est
   relatif au dossier courant.
@@ -333,11 +391,11 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   noir au-delà des murs. L'ancre traversant les monstres, la caméra peut
   s'éloigner des personnages bloqués.
 
-## Barre de skills et touches (étape 74)
+## Barre de skills et adresses (étapes 74 et 75)
 
-- `EcranJeu` construit toujours 4 icônes pour les touches 1 à 4, chacune à partir de
-  `Controleur::adresseDeLaTouche(i)` et `Escouade::etatDuSkill(adresse)`. Le contour
-  jaune est celui de l'icône dont l'adresse est `Controleur::getAdresseEnVisee()`.
-  `BarreDeSkills` n'a pas changé (elle reçoit des `EtatSkill` et un numéro d'icône).
+- Depuis l'étape 75, `EcranJeu` construit 12 icônes, une par emplacement de la `BarreDeRaccourcis`
+  (voir « Barre de raccourcis »). Le contour jaune est celui de l'icône dont l'adresse est
+  `Controleur::getAdresseEnVisee()`. `BarreDeSkills` ne connaît ni la barre ni `Escouade` :
+  elle reçoit des `IconeDeRaccourci`.
 - `Partie` mémorise une `AdresseSkill` (`m_skillDemande`, `LancerDeZone::adresse`) ;
   la dernière demande de l'image gagne, comme avant.

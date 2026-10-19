@@ -70,12 +70,17 @@ empile. Ce fichier explique les décisions ; le détail des interfaces est dans
 - **Deux vues** : la caméra du jeu (`EcranJeu::m_camera`, centrée sur
   l'escouade, taille recalculée à chaque image) et la vue de l'interface
   (`vueDInterface` : 800 px de haut, coin haut gauche en (0, 0)), qui
-  remplace la vue par défaut de SFML pour la barre de skills, le compteur,
+  remplace la vue par défaut de SFML pour la barre de raccourcis, le compteur,
   l'écran de fin, le menu et les options. `dessinerBarreDeSkills` et
   `dessinerEcranDeFin` lisent la taille de la vue active (`getView`), pas
-  celle de la vue par défaut.
+  celle de la vue par défaut ; la disposition de la barre ne dépend que de cette
+  taille (`rectangleDeLEmplacement`), donc elle reste centrée en bas quel que soit
+  le format de la fenêtre.
 - **Clics** : convertis avec `mapPixelToCoords(pixel, vue)` : avec la caméra
-  dans `EcranJeu`, avec la vue de l'interface dans les menus.
+  dans `EcranJeu`, avec la vue de l'interface dans les menus. Dans `EcranJeu`, le clic gauche
+  est converti **deux fois** : d'abord avec la vue d'interface pour tester la barre de
+  raccourcis (« l'interface d'abord », voir `docs/boucle-et-entrees.md`), puis, s'il n'a pas
+  touché l'interface, avec la caméra pour le monde.
 
 ## Boutons
 
@@ -101,6 +106,13 @@ empile. Ce fichier explique les décisions ; le détail des interfaces est dans
   la résolution du bureau (`sf::VideoMode::getDesktopMode()`) ; la
   résolution des réglages ne sert qu'en fenêtré et est conservée pendant le
   plein écran.
+- **Touches des raccourcis** (étape 75) : `Reglages::touchesDesRaccourcis`
+  (`std::array<sf::Keyboard::Scancode, 12>`, index = emplacement de la barre), par défaut Q W E R /
+  A S D F / Z X C V. Elle vit dans les réglages pour que l'écran de configuration des touches
+  (à venir) la modifie sans toucher au reste, mais elle n'est **ni lue ni écrite** dans
+  `reglages.ini` à cette étape : `lireReglages` la laisse à sa valeur par défaut et
+  `ecrireReglages` ne l'écrit pas. `emplacementPourTouche` est la fonction pure qui traduit un
+  scancode en emplacement.
 - **Liste fixe de résolutions** (`resolutionsProposees` : 1200 × 800,
   1280 × 720, 1600 × 900, 1920 × 1080), filtrée par la taille du bureau
   (`resolutionsDisponibles`). Pas de modes tirés de `getFullscreenModes()`.

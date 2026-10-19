@@ -11,6 +11,7 @@
   `test_Monstre.cpp`, `test_Personnage.cpp`, `test_Skill.cpp`,
   `test_Mobile.cpp`, `test_Cercle.cpp`, `test_Autodefense.cpp`,
   `test_Encerclement.cpp`, `test_BarreDeSkills.cpp`, `test_EntiteVue.cpp`, `test_BarreDeVie.cpp`,
+  `test_BarreDeRaccourcis.cpp`, `test_ClicInterface.cpp`,
   `test_PointsDeVie.cpp`, `test_Provocations.cpp`, `test_Agresseurs.cpp`, `test_Partie.cpp`,
   `test_Controleur.cpp`, `test_ChampDeVision.cpp`, `test_Vision.cpp`, `test_Composition.cpp`),
   sauf `Escouade`, coupée par thème en six fichiers à plat (pas de
@@ -976,3 +977,33 @@
   l'orientation de la formation se déduit maintenant de l'angle du décalage du guerrier (0° à
   l'orientation 0) au lieu de « angle + 45° ». Un test « deux mêlées » a deux versions : une
   avec la composition par défaut (guerrier contre tireurs), une avec `uneEscouadeADeuxGuerriers`.
+
+## Étape 75 : barre de raccourcis
+
+- **759 tests** (735 avant : +11 `BarreDeRaccourcis`, +3 `ClicInterface`, +2 `Reglages`, +2 `Escouade`,
+  +6 `Controleur` net : 2 supprimés, 8 ajoutés).
+- **`test_BarreDeRaccourcis.cpp`** (nouveau, 11) : taille et emplacements vides ; `placer` / `vider`
+  sans toucher les voisins ; même adresse sur deux emplacements ; `barreParDefaut` avec la composition
+  par défaut (Q = 0, W = 1, A = 4, Z = 8, le reste vide) ; un 5ᵉ skill de la rangée non placé, sans
+  toucher la rangée suivante ; une place sans rangée (0 ou 4) ignorée. Disposition (pure, sans
+  fenêtre), sur deux largeurs de vue (1067 et 1422 px) : les 12 icônes dans la vue et sans
+  chevauchement, grille de 4 colonnes (pas de 52 px, marge de 10 px en bas), barre centrée,
+  `emplacementSous` au centre de chaque icône, vide dans un écart ou hors de la barre. Le `assert` hors
+  bornes n'est pas testé.
+- **`test_ClicInterface.cpp`** (nouveau, 3) : `clicSurInterface` sur une icône, sur le monde, dans l'écart.
+- **`test_Reglages.cpp`** (+2) : `emplacementPourTouche` (Q → 0, R → 3, A → 4, Z → 8, V → 11) ; touche
+  hors table (chiffre, Échap) → vide.
+- **`test_Escouade_skills.cpp`** (+2) : `adressesDesSkills` (ordre place puis liste),
+  `couleurDuPersonnage` (couleurs de la composition, vide pour les places 0 et 4).
+- **`test_Controleur.cpp`** : la table provisoire (`adresseDeLaTouche`, `appuiTouche`) et ses 2 tests
+  sont supprimés ; les tests de visée passent par `activerEmplacement` avec `barreParDefaut`
+  (aide locale `barreDe(partie)`, emplacements `s_emplacementExplosion` = 8, etc.). Ajoutés :
+  emplacement vide sans effet ; skill direct demandé à la partie (provocation, qui est consommée même
+  sans monstre) ; skill direct pendant la visée (la visée continue) ; même adresse sur deux
+  emplacements (le second fait sortir de la visée) ; un autre skill de zone remplace la visée (deux
+  mages, le second à la place 4) ; `appuiInterface` active l'emplacement, désarme le déplacement
+  continu même sur un emplacement vide, et n'est jamais le point d'impact de la visée.
+- **Non testé** : `EcranJeu` (conversion du pixel avec la vue d'interface, consommation du clic, R selon
+  l'écran de fin, `IconeDeRaccourci`) et `dessinerBarreDeSkills` (noms de touches, bande de couleur),
+  vérifiés à la main dans le jeu. La logique testable (`clicSurInterface`, `appuiInterface`) est sortie
+  de l'écran pour cette raison.

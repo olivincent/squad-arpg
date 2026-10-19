@@ -229,6 +229,18 @@ personnages sont dans `docs/formation.md`, le monstre dans
   monstre verrouillé, ou, sans verrou, le monstre que son lanceur
   frapperait en autodéfense (voir ci-dessous).
 
+## Adresses des skills pour la barre de raccourcis (étape 75)
+
+- **`Escouade::adressesDesSkills()`** donne les `AdresseSkill` de tous les skills de l'escouade,
+  par place croissante puis dans l'ordre de la liste de chaque personnage
+  (`Personnage::idsDesSkills`). C'est la seule chose que la barre de raccourcis demande à
+  l'escouade pour se remplir (`barreParDefaut`) : l'escouade ne sait pas qu'une barre existe.
+- **`Escouade::couleurDuPersonnage(place)`** (et `Personnage::getCouleur`) : la couleur du lanceur,
+  pour la bande de l'icône. Vide si la place est invalide.
+- **Pourquoi par identifiant et non par position** : une adresse reste valable quel que soit
+  l'emplacement qui la porte (voir `docs/boucle-et-entrees.md`) ; elle ne dépend ni de la touche ni
+  de la place à l'écran.
+
 ## État d'un skill pour l'affichage (étape 48)
 
 - **`EtatSkill`** (`EtatSkill.hpp`, sans comportement, sur le modèle de
@@ -673,8 +685,8 @@ personnages sont dans `docs/formation.md`, le monstre dans
   (`engagerAttaque` refuse). Au départ, la recharge de l'attaque de base est
   relancée.
 - **Pendant l'activation le skill n'est pas prêt** (`skillEstPret` repose sur
-  la phase) : un nouvel appui sur la même touche est refusé et la touche 4
-  n'entre pas en visée. Les skills d'autres personnages restent permis.
+  la phase) : un nouvel appui sur le même emplacement est refusé et un skill
+  de zone n'entre pas en visée. Les skills d'autres personnages restent permis.
 - **Interruptions, sans recharge consommée** (`Escouade::avancerSkillDe`) :
   mort du lanceur (tous les types) ; skill de dégâts : mort ou disparition du
   monstre engagé ; soin : mort de l'allié visé. N'annulent **pas** une

@@ -88,6 +88,17 @@ L'armure existe déjà. D'autres façons de réduire ou d'éviter un coup :
 
 **Peuplement.** Nombre de monstres selon la taille de la salle, types de monstres variés, territoires, patrouilles.
 
+## 5 bis. Barre de raccourcis, la suite (étape 75)
+
+L'étape 75 pose trois notions séparées : les emplacements (`BarreDeRaccourcis`), les touches (table dans `Reglages`) et la disposition à l'écran (calculée par la vue). La suite se branche sur l'une d'elles sans toucher aux autres. Rien n'y est décidé.
+
+- **Écran « Configurer les touches »** dans les options, avec un préréglage classique (1 à 0, - et =, barre en ligne droite) ; sauvegarde des touches dans `reglages.ini` (les touches ne sont pas encore lues ni écrites). Le préréglage classique demandera une disposition en ligne (un enum de disposition, pas écrit à l'étape 75).
+- **Deuxième barre, seulement cliquable**, pour les auras et les buffs : une autre instance de `BarreDeRaccourcis`, une valeur de plus dans `Barre` (`ClicInterface`). Skills à bascule associés.
+- **Interface pour placer ses skills** (glisser-déposer) ; skills appris en montant de niveau.
+- **Survol et infobulles** sur la barre ; clic droit sur une icône.
+- **Doublons dans la barre** : aujourd'hui une même adresse peut être placée sur deux emplacements (par exemple le même soin en Q et en A). Décision reportée : les autoriser (utile si on place la même compétence sur deux touches), ou les interdire (placer un skill déjà placé le déplace). À trancher avec l'interface de placement.
+- **Plus de 4 skills par personnage** : la disposition par défaut ignore les suivants ; à reprendre avec la montée de niveau et l'interface de placement.
+
 ## 6. Idées en vrac
 
 - **État de l'escouade** (en combat, en mouvement, au repos) : utile pour la mana et les gambits.

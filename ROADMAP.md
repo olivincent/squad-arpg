@@ -82,13 +82,17 @@ est dans `docs/historique.md`.
 - Étape 72 — Vision des personnages et brouillard de guerre ✅
 - Étape 73 — La ligne de vue passe par le shadowcasting symétrique ✅ (avec le garde-fou `contientUnCoinDiagonal`)
 - Étape 74 — Escouade de 3 personnages, skills désignés par identifiant ✅
+- Étape 75 — Barre de raccourcis : 12 emplacements, touches et clic ✅
 
 ## Prochaine étape (à choisir)
 
-Prévues, issues de la discussion de l'étape 74 : étape 75, barre de raccourcis de 12 emplacements
-(touches Q-W-E-R / A-S-D-F / Z-X-C-V par défaut) qui pointe vers n'importe quel skill de n'importe quel
-personnage (remplace la table de touches provisoire du `Controleur`) ; étape 76, classes et écran de
-choix de la composition (3 classes parmi un catalogue). Sinon, à préciser avec Claude.ai (voir `docs/brainstorm.md`, dont l'idée de « stratégie
+Prévue, issue de la discussion de l'étape 74 : étape 76, classes et écran de
+choix de la composition (3 classes parmi un catalogue). Autres pistes issues de l'étape 75 (voir
+`docs/brainstorm.md`, section 5 bis) : écran « Configurer les touches » dans les options (préréglage
+classique 1 à 0, - et =, barre en ligne droite ; sauvegarde des touches dans `reglages.ini`), barre
+d'auras seulement cliquable (deuxième instance de `BarreDeRaccourcis`, valeur de plus dans `Barre`), skills
+à bascule, interface pour placer ses skills (glisser-déposer, skills appris en montant de niveau),
+survol et infobulles sur la barre. Sinon, à préciser avec Claude.ai (voir `docs/brainstorm.md`, dont l'idée de « stratégie
 d'attaque » par type de monstre, qui se branchera sur `coutDesObstacles` : la liste
 de cercles passée changera selon le type d'entité).
 
@@ -204,10 +208,25 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   `Partie` (carte, escouade, monstres) porte les règles de jeu et
   l'intermédiaire entre `Escouade` et `Monstre`, avec l'ordre d'une image
   conservé ; `Niveau` porte les données. Voir `docs/boucle-et-entrees.md`.
-- **Barre de skills** : en bas de la fenêtre, fixe à l'écran (vue de
-  l'interface, dessinée en dernier), 4 icônes carrées de 56 px dans l'ordre des
-  touches 1 à 4, avec la lettre du skill (D, P, S, Z) et le numéro de
-  touche. Pendant la recharge, un quartier noir semi-transparent suit les
+- **Barre de raccourcis** (étape 75) : en bas au centre de la fenêtre, fixe à l'écran (vue de
+  l'interface, dessinée en dernier), une grille de 4 × 3 icônes carrées de 48 px (4 px d'écart,
+  10 px de marge), les 12 emplacements de la `BarreDeRaccourcis` (propriété d'`EcranJeu`, ni
+  `Partie` ni `Escouade` ne la connaissent). Chaque emplacement pointe vers un skill de n'importe
+  quel personnage (une `AdresseSkill`) ; disposition par défaut : une rangée par personnage, dans
+  l'ordre des places (rangée du haut : frappe puissante et provocation du guerrier ; milieu : soin
+  du prêtre ; bas : explosion du mage), les autres cadres vides. Touches (scancodes, table dans
+  `Reglages::touchesDesRaccourcis`, ni lue ni écrite dans `reglages.ini`) : Q W E R / A S D F /
+  Z X C V, donc Q = frappe, W = provocation, A = soin, Z = explosion ; les touches 1 à 4 ne font
+  plus rien. Une icône montre la lettre du skill (D, P, S, Z), le nom de sa touche dans un coin
+  et une bande de la couleur du personnage lanceur ; un emplacement vide est un cadre sombre avec
+  le nom de sa touche. **Clic** : cliquer une icône fait la même chose que sa touche
+  (`Controleur::activerEmplacement`), avec la règle « l'interface d'abord » : le clic est testé
+  sur la barre avant le monde et consommé (pas de verrou, de porte, de déplacement ni de point
+  d'impact de visée) ; un appui sur la barre ne lance pas le déplacement continu et désarme
+  celui d'un clic au sol précédent, mais un déplacement commencé au sol continue quand le
+  curseur passe sur la barre. Sur l'écran de fin, R ramène au menu et les raccourcis (touche et
+  clic) sont ignorés ; en jeu, R est l'emplacement 3. Voir `docs/boucle-et-entrees.md`.
+  Pendant la recharge, un quartier noir semi-transparent suit les
   bords du carré (zone claire grandissante depuis midi, sens horaire) et
   le temps restant en secondes entières s'affiche au centre. Icône grisée,
   sans quartier ni chiffre, quand le lanceur est mort ; contour jaune sur
@@ -319,9 +338,9 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
 - **Entrées** : un clic sur le sol envoie l'escouade vers ce point ; tant
   que le bouton reste enfoncé (fenêtre ayant le focus, escouade vivante),
   l'ordre est redonné à chaque image vers le curseur. Un clic bref sur un
-  monstre engage un combat qui continue seul, sans tenir le bouton ; la
-  touches 1 à 3 déclenchent le skill du personnage de la même place ; la
-  touche 4 entre en mode visée (voir « Skills »).
+  monstre engage un combat qui continue seul, sans tenir le bouton ; les
+  raccourcis de la barre (clavier ou clic, voir « Barre de raccourcis ») déclenchent le
+  skill de leur emplacement ; un skill de zone entre en mode visée (voir « Skills »).
 - **Ligne de vue** : un personnage ne frappe, ne soigne et ne provoque
   que ce qu'il voit (à portée ET `ligneDeVue`, étape 73, en cases,
   règle unique `Escouade::peutAtteindre`) : autodéfense, combat verrouillé
@@ -364,9 +383,10 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   **Étape 74** : un skill est désigné par une `AdresseSkill` (place du personnage et `IdSkill`
   stable : `FrappePuissante`, `Provocation`, `Soin`, `Explosion`) ; un personnage connaît une liste de
   skills, une seule action engagée à la fois (engager un second skill pendant l'activation d'un autre est
-  refusé), recharges indépendantes. Touches provisoires, table en donnée dans le `Controleur`
-  (remplacée à l'étape 75) : 1 → frappe du guerrier, 2 → sa provocation, 3 → soin du prêtre, 4 → explosion
-  du mage ; la visée dépend du type `Zone` du skill, plus du numéro de touche. Touche 1 :
+  refusé), recharges indépendantes. **Étape 75** : les skills se lancent par la barre
+  de raccourcis (par défaut Q → frappe du guerrier, W → sa provocation, A → soin du prêtre, Z → explosion
+  du mage, au clavier ou au clic ; ci-dessous, « touche 2 », « touche 3 » et « touche 4 » désignent W, A et Z) ; la
+  visée dépend du type `Zone` du skill. Frappe (Q) :
   skill de dégâts du guerrier (25 dégâts, recharge 5 s, portée
   de mêlée, 20 px), sur le monstre verrouillé ou, sans verrou, sur le
   monstre à portée que ce guerrier frapperait en autodéfense (alors sans
@@ -459,12 +479,12 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 735 tests : 23 sur `ChampDeVision`, 8 sur `Vision`, 5 sur `ObjetInteractif`, 13 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 61 sur `GenerateurDonjon`, 36 sur `TileMap`, 27 sur `Chemin`, 197
+  (`./build/tests.exe`, 759 tests : 23 sur `ChampDeVision`, 8 sur `Vision`, 5 sur `ObjetInteractif`, 15 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 61 sur `GenerateurDonjon`, 36 sur `TileMap`, 27 sur `Chemin`, 199
   sur `Escouade` en six fichiers par thème (déplacement, combat, skills, agresseurs, vue, places),
   8 sur `Composition`, 11 sur `Encerclement`, 16 sur `Deplacement`, 73 sur `Monstre`,
   57 sur `Personnage`, 24 sur `Skill`, 24 sur `Mobile`, 2 sur `Eclaircir`, 10 sur `Cercle`, 13
-  sur `Autodefense`, 7 sur `BarreDeSkills`, 4 sur `EntiteVue`, 1 sur
-  `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 49 sur `Partie`, 10 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
+  sur `Autodefense`, 7 sur `BarreDeSkills`, 11 sur `BarreDeRaccourcis`, 3 sur `ClicInterface`, 4 sur `EntiteVue`, 1 sur
+  `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 49 sur `Partie`, 16 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
   accents (`./build/tests.exe "*a portee*"` filtre) ; rotation de la
   formation et `provoquer` à une place invalide couverts. Les tests d'`Escouade` utilisent la composition
   par défaut (`uneEscouade`, `unePartie`) ; `uneEscouadeADeuxGuerriers` et `uneEscouadeAuSoinCourt` servent
@@ -499,10 +519,12 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   seul skill en attente pour toute l'escouade ; pas de barre de progression
   d'incantation ; pas de revérification de portée ni de vue au départ du
   skill.
-- La barre de skills ne montre pas le skill en attente et n'est pas
-  cliquable ; sa position suit la taille initiale de la fenêtre (pas de
-  gestion du redimensionnement). La police se charge par chemin relatif :
-  le jeu doit être lancé depuis le dossier de `main.exe`.
+- Barre de raccourcis (étape 75) : elle ne montre pas le skill en attente ; les touches ne sont
+  ni configurables ni sauvegardées (table dans `Reglages`, pas dans `reglages.ini`) ; une seule
+  barre, pas de survol, d'infobulle ni de clic droit sur une icône, pas d'interface pour placer
+  les skills ; une 4ᵉ place n'a pas de rangée dans la disposition par défaut, et un 5ᵉ skill d'un
+  personnage n'est pas placé. Sa position se recalcule à chaque image depuis la vue d'interface.
+  La police se charge par chemin relatif : le jeu doit être lancé depuis le dossier de `main.exe`.
 - Le skill de zone n'a pas d'effet visuel à
   l'impact et ne touche pas les alliés ; son lanceur, bloqué par un
   monstre ou face à un point inaccessible, peut rester en attente.
