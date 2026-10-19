@@ -83,11 +83,14 @@ est dans `docs/historique.md`.
 - Étape 73 — La ligne de vue passe par le shadowcasting symétrique ✅ (avec le garde-fou `contientUnCoinDiagonal`)
 - Étape 74 — Escouade de 3 personnages, skills désignés par identifiant ✅
 - Étape 75 — Barre de raccourcis : 12 emplacements, touches et clic ✅
+- Étape 76 — Spécialités, catalogue et choix des 3 classes ✅
 
 ## Prochaine étape (à choisir)
 
-Prévue, issue de la discussion de l'étape 74 : étape 76, classes et écran de
-choix de la composition (3 classes parmi un catalogue). Autres pistes issues de l'étape 75 (voir
+Pistes issues de l'étape 76 : arbres de skills par classe (on ne peut pas tout prendre, pour
+monter une même classe de façons différentes ; c'est ce qui différenciera deux personnages de la
+même classe), niveaux, description des classes et infobulles à l'écran de choix, mémoire de la
+dernière composition entre deux lancements (dans `reglages.ini`). Autres pistes issues de l'étape 75 (voir
 `docs/brainstorm.md`, section 5 bis) : écran « Configurer les touches » dans les options (préréglage
 classique 1 à 0, - et =, barre en ligne droite ; sauvegarde des touches dans `reglages.ini`), barre
 d'auras seulement cliquable (deuxième instance de `BarreDeRaccourcis`, valeur de plus dans `Barre`), skills
@@ -153,7 +156,8 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   sur GitHub ; SFML 3.0.2 intégrée à CMake.
 - **Menu et réglages** (étape 65) : au lancement, un menu à la souris
   (« Commencer partie », « Options », « Quitter ») ; « Commencer partie »
-  lance une partie (nouvelle carte, graine dans la console). « Options » :
+  ouvre le choix de l'escouade (voir « Choix de l'escouade »), puis lance une partie (nouvelle carte,
+  graine dans la console). « Options » :
   mode fenêtré ou plein écran (à la résolution du bureau) et, en fenêtré,
   résolution parmi 1200 × 800, 1280 × 720, 1600 × 900 et 1920 × 1080 (celles
   qui tiennent dans le bureau) ; chaque changement s'applique tout de suite
@@ -163,6 +167,24 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   fenêtre) ; la barre de skills, le compteur, l'écran de fin et les menus
   suivent la même règle. Fenêtre sans redimensionnement à la main. Voir
   `docs/ecrans.md`.
+- **Choix de l'escouade** (étape 76) : « Commencer partie » ouvre un écran à la souris. À gauche, un
+  bouton par classe du catalogue (guerrier, prêtre, mage, paladin, rôdeur) ; à droite, trois cases
+  « 1. Guerrier » / « 1. — » et les boutons « Commencer » (grisé tant que la sélection n'est pas
+  complète) et « Retour » (menu). Cliquer une classe remplit la case suivante (la même classe peut
+  être prise 1 à 3 fois ; une 4ᵉ ne fait rien), cliquer une case remplie la vide et les suivantes
+  remontent. L'ordre de sélection donne les places 1 à 3, donc les rangées de la barre de raccourcis
+  et la formation (selon le rang de chaque classe). La 2ᵉ et la 3ᵉ occurrence d'une même classe ont
+  la couleur de la classe assombrie de 30 % et de 55 % ; la case montre déjà cette couleur. La
+  sélection reste dans l'écran de choix : R après une défaite ou une victoire y revient avec la même
+  sélection ; F5 en jeu garde la composition. **Classes** (`Specialite`, données, pas de
+  hiérarchie) : *paladin* (devant, orange, armure 50, attaque de mêlée ; `FrappeSacree` : 20 dégâts,
+  20 px, recharge 5 s, activation 0,3 s ; `ImpositionDesMains` : soin de 25, 20 px, recharge 10 s,
+  activation 0,5 s) et *rôdeur* (derrière, vert, armure 0, attaque de tireur ; `TirPercant` : 25
+  dégâts, 200 px, recharge 6 s, activation 0,5 s ; `PluieDeFleches` : zone de 12 dégâts, rayon 45 px,
+  portée 320 px, recharge 8 s, activation 0,8 s) ; valeurs provisoires, à ajuster après test. Les
+  icônes de la barre montrent un sigle de deux lettres par skill (FP, PR, SO, EX, FS, IM, TP, PF) et,
+  dans leur bande de couleur, la place du lanceur (1 à 3). Voir `docs/ecrans.md`, `docs/formation.md`
+  et `docs/combat.md`.
 - **Portes** (étapes 70 et 71) : les couloirs de 2 cases sont fermés, à chaque jonction
   avec une salle (y compris la salle de départ), par une porte brune. Une porte
   fermée bloque comme un mur (déplacement, chemins, ligne de vue, détection des
@@ -194,9 +216,9 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   2 cases de large, escouade au centre de la première salle, 1 à 3
   monstres par autre salle, même graine que la partie, voir
   `docs/generation.md`). F5 (à tout moment, touche
-  de débogage) et « Commencer partie » génèrent une nouvelle carte avec une
+  de débogage) et « Commencer » (écran de choix) génèrent une nouvelle carte avec une
   nouvelle graine, affichée dans la console ; R (après une défaite ou une
-  victoire) ramène au menu ; la carte faite à la main
+  victoire) ramène à l'écran de choix de l'escouade ; la carte faite à la main
   (`creerNiveau()` dans `Niveau.cpp`) reste le terrain des tests. La caméra (`sf::View`) est centrée
   sur l'escouade ; du noir apparaît au-delà des bords de la carte.
 - **Architecture de la boucle** (étapes 52, 54 et 65) : `main.cpp` ne fait
@@ -224,7 +246,7 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   sur la barre avant le monde et consommé (pas de verrou, de porte, de déplacement ni de point
   d'impact de visée) ; un appui sur la barre ne lance pas le déplacement continu et désarme
   celui d'un clic au sol précédent, mais un déplacement commencé au sol continue quand le
-  curseur passe sur la barre. Sur l'écran de fin, R ramène au menu et les raccourcis (touche et
+  curseur passe sur la barre. Sur l'écran de fin, R ramène au choix de l'escouade et les raccourcis (touche et
   clic) sont ignorés ; en jeu, R est l'emplacement 3. Voir `docs/boucle-et-entrees.md`.
   Pendant la recharge, un quartier noir semi-transparent suit les
   bords du carré (zone claire grandissante depuis midi, sens horaire) et
@@ -277,7 +299,7 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   (un tiers de moins), tireurs 0, monstres 20 (un sixième de moins). Le
   soin n'est pas réduit. Rien n'est affiché à l'écran.
 - **Personnages** (étape 74 : trois, venus d'une `Composition` injectée à `Escouade` par
-  `Partie`, `compositionParDefaut()` pour le jeu) : 3 carrés de 20 × 20 (240 px/s) tiennent une
+  `Partie`, `composer` des classes choisies) : 3 carrés de 20 × 20 (240 px/s) tiennent une
   formation en triangle autour de l'ancre, bloqués par les murs et par les monstres.
   Chacun possède un `Mobile` : en ligne droite quand le trajet vers son
   point est libre, par un chemin A* lissé quand un mur est dans le chemin
@@ -324,15 +346,15 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   bloque plus personne ; il reste dans la formation, sa place est
   simplement vide. Une fois tous morts (`Partie::estPerdue`), le monde se
   fige, un écran de défaite (voile sombre, « Défaite », « Appuyez sur R pour
-  revenir au menu ») s'affiche et la touche R ramène au menu (étape 65) ;
-  « Commencer partie » crée alors une nouvelle `Partie` (nouvelle graine).
+  revenir au choix de l'escouade ») s'affiche et la touche R ramène à l'écran de choix (étapes 65 et 76) ;
+  « Commencer » crée alors une nouvelle `Partie` (nouvelle graine), avec la même sélection.
 - **Objectif et victoire** (étape 63) : la partie est gagnée quand il ne
   reste aucun monstre (`Partie::estGagnee`, faux si la partie est perdue : la
   défaite l'emporte si les derniers monstres et personnages meurent dans la
   même image). Le monde se fige comme après la défaite (même sortie
   anticipée de `mettreAJour`), l'écran de fin affiche « Victoire » (module
   `EcranDeFin`, titre en paramètre, partagé avec « Défaite ») et R ramène au
-  menu, après une victoire comme après une défaite (F5 inchangée). Un
+  choix de l'escouade, après une victoire comme après une défaite (F5 inchangée). Un
   compteur « Monstres : N » (`Partie::monstresRestants`), blanc à contour
   noir, est fixe en haut à gauche de l'écran (vue de l'interface).
 - **Entrées** : un clic sur le sol envoie l'escouade vers ce point ; tant
@@ -479,15 +501,15 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 759 tests : 23 sur `ChampDeVision`, 8 sur `Vision`, 5 sur `ObjetInteractif`, 15 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 61 sur `GenerateurDonjon`, 36 sur `TileMap`, 27 sur `Chemin`, 199
+  (`./build/tests.exe`, 795 tests : 23 sur `ChampDeVision`, 8 sur `Vision`, 5 sur `ObjetInteractif`, 15 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 61 sur `GenerateurDonjon`, 36 sur `TileMap`, 27 sur `Chemin`, 199
   sur `Escouade` en six fichiers par thème (déplacement, combat, skills, agresseurs, vue, places),
-  8 sur `Composition`, 11 sur `Encerclement`, 16 sur `Deplacement`, 73 sur `Monstre`,
-  57 sur `Personnage`, 24 sur `Skill`, 24 sur `Mobile`, 2 sur `Eclaircir`, 10 sur `Cercle`, 13
-  sur `Autodefense`, 7 sur `BarreDeSkills`, 11 sur `BarreDeRaccourcis`, 3 sur `ClicInterface`, 4 sur `EntiteVue`, 1 sur
+  7 sur `Composition`, 14 sur `Specialite`, 9 sur `SelectionDEscouade`, 11 sur `EcranChoixEscouade`, 11 sur `Encerclement`, 16 sur `Deplacement`, 73 sur `Monstre`,
+  57 sur `Personnage`, 24 sur `Skill`, 24 sur `Mobile`, 4 sur `Eclaircir`, 10 sur `Cercle`, 13
+  sur `Autodefense`, 8 sur `BarreDeSkills`, 11 sur `BarreDeRaccourcis`, 3 sur `ClicInterface`, 4 sur `EntiteVue`, 1 sur
   `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 49 sur `Partie`, 16 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
   accents (`./build/tests.exe "*a portee*"` filtre) ; rotation de la
   formation et `provoquer` à une place invalide couverts. Les tests d'`Escouade` utilisent la composition
-  par défaut (`uneEscouade`, `unePartie`) ; `uneEscouadeADeuxGuerriers` et `uneEscouadeAuSoinCourt` servent
+  par défaut des tests (`compositionDeTest()` : guerrier, prêtre, mage ; `uneEscouade`, `unePartie`) ; `uneEscouadeADeuxGuerriers` et `uneEscouadeAuSoinCourt` servent
   aux cas qui ont besoin de deux mêlées ou d'un allié hors de portée du soin.
 
 **Limites connues** (acceptées pour l'instant) :
@@ -515,6 +537,10 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
 - Couloirs générés (étape 60) : un couloir peut traverser une autre salle
   ou longer un mur, et les couloirs ne forment pas de boucle (arbre).
   Aucun problème de déplacement observé dans les couloirs de 2 cases.
+- Choix de l'escouade (étape 76) : souris seulement ; pas de description des classes ni d'infobulle ;
+  la sélection n'est pas gardée entre deux lancements du jeu ; pas d'arbre de skills ni de niveaux
+  (deux personnages de la même classe ne diffèrent que par leur couleur) ; le paladin et le rôdeur
+  ont des valeurs provisoires ; au plus trois fois la même classe (3 places).
 - Pas d'interruption de l'activation d'un skill par les dégâts reçus ; un
   seul skill en attente pour toute l'escouade ; pas de barre de progression
   d'incantation ; pas de revérification de portée ni de vue au départ du

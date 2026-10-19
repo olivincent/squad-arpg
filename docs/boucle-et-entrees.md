@@ -12,7 +12,7 @@ la fenêtre, la police, l'horloge et `setKeyRepeatEnabled`, qui sont à
 
 | Acteur | Rôle | Connaît SFML Window/Event ? |
 |---|---|---|
-| `EcranJeu` (et `Application` pour la fenêtre, la police et l'horloge) | Caméra, traduction des événements SFML en appels au `Controleur`, retour au menu (touche R après une défaite ou une victoire), nouvelle carte (F5), bascules de débogage (F3 points visés, chemins et monstres qui rentrent semi-transparents, F4 ancre, F6 brouillard de guerre ; `OptionsDeDebogage`), compteur de monstres, conversion du curseur en coordonnées du monde, enchaînement du dessin | Oui, seuls |
+| `EcranJeu` (et `Application` pour la fenêtre, la police et l'horloge) | Caméra, traduction des événements SFML en appels au `Controleur`, retour à l'écran de choix de l'escouade (touche R après une défaite ou une victoire), nouvelle carte (F5), bascules de débogage (F3 points visés, chemins et monstres qui rentrent semi-transparents, F4 ancre, F6 brouillard de guerre ; `OptionsDeDebogage`), compteur de monstres, conversion du curseur en coordonnées du monde, enchaînement du dessin | Oui, seuls |
 | `Controleur` | État d'interface : mode visée (`m_adresseEnVisee`) et déplacement continu (`m_deplacementContinu`), sans référence à la `Partie` (reçue à chaque appel) ; traduit les actions du joueur en demandes à la `Partie` ; dessine l'aperçu de visée | Non |
 | `Partie` | Règles de jeu : possède la carte, l'`Escouade`, les `Monstre` et la `Vision` ; intermédiaire entre `Escouade` et `Monstre`, qui ne se connaissent pas | Non |
 
@@ -192,7 +192,7 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
 - **Touches** : grille Q W E R / A S D F / Z X C V, scancodes (touches physiques). La table est
   dans `Reglages` mais n'est ni lue ni écrite dans `reglages.ini` : `EcranJeu` la lit déjà dans
   le `Contexte`, c'est le chemin que prendra la configuration. R est l'emplacement 3 en jeu ; sur
-  l'écran de fin (perdue ou gagnée), R ramène au menu et les raccourcis sont ignorés. F3 à F6 et
+  l'écran de fin (perdue ou gagnée), R ramène au choix de l'escouade et les raccourcis sont ignorés. F3 à F6 et
   Échap ne sont pas des touches de la grille.
 - **Une seule action pour la touche et le clic** : `Controleur::activerEmplacement`. Vide : rien.
   Skill de type `Zone` : entre en visée de cette adresse, ou en sort si c'est déjà elle (même
@@ -279,8 +279,8 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   « Défaite » si `partie.estPerdue()`, sinon avec « Victoire » si
   `partie.estGagnee()`.
 - **Recommencer = remplacer l'objet** : depuis l'étape 65, R (seulement si la
-  partie est perdue ou gagnée, ignorée en jeu) ramène au menu (`Depiler`),
-  et « Commencer partie » crée un `EcranJeu` neuf, donc une nouvelle `Partie`.
+  partie est perdue ou gagnée, ignorée en jeu) ramène à l'écran de choix de l'escouade (`Depiler`),
+  et « Commencer » crée un `EcranJeu` neuf, donc une nouvelle `Partie` (même sélection de classes).
   F5 (touche de débogage, à tout moment, y compris en visée) appelle
   `EcranJeu::nouvelleCarte`, qui, comme l'ancienne lambda de `main.cpp`,
   fait `partie = nouvellePartie(tirage)` (nouvelle graine tirée et affichée,

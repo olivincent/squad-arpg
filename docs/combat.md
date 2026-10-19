@@ -871,3 +871,31 @@ l'enfoncerait dans un obstacle.
   tester un soin hors de portée. Voir `docs/tests.md`.
 - **Hors portée** : pas de classe de personnages, pas d'`IdSkill` dans `Skill`, aucun
   nouveau skill, aucune valeur d'équilibrage modifiée.
+
+## Paladin, rôdeur et étiquettes des icônes (étape 76)
+
+- **Quatre `IdSkill` de plus** : `FrappeSacree`, `ImpositionDesMains`, `TirPercant`,
+  `PluieDeFleches`. Aucun `TypeSkill` ni mécanique nouveau : chacun est un `Degats`, un `Soin` ou
+  un `Zone` existant, donc passe par exactement les mêmes chemins (engagement, activation, skill en
+  attente, ligne de vue, visée pour la zone). La visée dépend du `TypeSkill::Zone`, pas de
+  l'identifiant : la pluie de flèches entre en visée comme l'explosion.
+- **Valeurs (provisoires, à ajuster après test)** :
+
+  | Skill | Type | Portée | Puissance | Zone | Recharge | Activation |
+  |---|---|---|---|---|---|---|
+  | `FrappeSacree` (paladin) | Degats | 20 px | 20 | — | 5 s | 0,3 s |
+  | `ImpositionDesMains` (paladin) | Soin | 20 px | 25 | — | 10 s | 0,5 s |
+  | `TirPercant` (rôdeur) | Degats | 200 px | 25 | — | 6 s | 0,5 s |
+  | `PluieDeFleches` (rôdeur) | Zone | 320 px | 12 | rayon 45 px | 8 s | 0,8 s |
+
+  Le paladin a l'attaque de base de mêlée et l'armure 50 du guerrier, le rôdeur l'attaque de base
+  de tireur et l'armure 0 du mage. Les portées sont mesurées de bord à bord, comme les autres.
+- **Étiquette par `IdSkill`, plus par `TypeSkill`** : `sigleDuSkill(IdSkill)` (deux lettres : FP,
+  PR, SO, EX, FS, IM, TP, PF) remplace `lettreDuSkill(TypeSkill)`, qui donnait la même lettre à tous
+  les skills de dégâts (le paladin et le rôdeur en ont deux de plus). Le `switch` n'a **pas** de
+  `default` : le compilateur signale un `IdSkill` ajouté sans sigle. `EtatSkill` porte maintenant
+  l'`IdSkill` (champ `id`) ; son champ `type` reste (les tests le lisent).
+- **Place du lanceur dans la bande** : la bande de couleur au bas de l'icône (14 px, contre 4
+  avant) contient le numéro de place du lanceur (1 à 3) ; deux guerriers de nuances proches restent
+  ainsi distinguables. `IconeDeRaccourci` reçoit `place`, remplie par `EcranJeu` depuis l'adresse de
+  l'emplacement.

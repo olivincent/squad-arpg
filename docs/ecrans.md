@@ -1,20 +1,20 @@
 # Squad-ARPG — Écrans, vues et réglages
 
 Depuis l'étape 65, `main()` ne fait que construire une `Application`. Le menu,
-les options et la partie sont trois écrans (`Ecran`) que l'`Application`
-empile. Ce fichier explique les décisions ; le détail des interfaces est dans
+les options, le choix de l'escouade (étape 76) et la partie sont quatre écrans (`Ecran`) que
+l'`Application` empile. Ce fichier explique les décisions ; le détail des interfaces est dans
 `ARCHITECTURE.md`, et celui d'une image de jeu dans `docs/boucle-et-entrees.md`.
 
 ## Pile d'écrans (patron State)
 
 - **Une classe de base abstraite** `Ecran` (`traiterEvenement`, `mettreAJour`,
-  `dessiner`), trois classes concrètes (`EcranMenu`, `EcranOptions`,
-  `EcranJeu`), manipulées seulement par `std::unique_ptr<Ecran>`. Copie
+  `dessiner`), quatre classes concrètes (`EcranMenu`, `EcranOptions`,
+  `EcranChoixEscouade`, `EcranJeu`), manipulées seulement par `std::unique_ptr<Ecran>`. Copie
   interdite, destructeur virtuel.
 - **Une pile** (`std::vector<std::unique_ptr<Ecran>>`) plutôt qu'un écran
   courant : un futur menu de pause s'empilera sur la partie sans réécriture.
-  Aujourd'hui la pile n'a jamais plus de deux écrans (menu, puis options ou
-  jeu). Seul l'écran du dessus reçoit les événements, est mis à jour et est
+  Aujourd'hui la pile n'a jamais plus de trois écrans (menu, choix de l'escouade, jeu ; ou menu
+  et options). Seul l'écran du dessus reçoit les événements, est mis à jour et est
   dessiné ; celui du dessous est conservé, mais figé et invisible.
 - **Un écran ne modifie jamais la pile lui-même** : il pourrait se détruire
   pendant l'exécution de sa propre fonction (`Depiler` dans
@@ -37,16 +37,47 @@ empile. Ce fichier explique les décisions ; le détail des interfaces est dans
   en coordonnées d'interface et renvoie la `Transition`. `traiterEvenement` ne
   fait que convertir l'événement puis l'appeler. La conversion et le dessin ne
   sont pas testés.
-- **Flux** : menu → « Commencer partie » = `Empiler(EcranJeu)` (nouvelle
-  `Partie`, nouvelle graine affichée) ; « Options » = `Empiler(EcranOptions)` ;
-  « Quitter » = `Quitter`. En jeu, R sur l'écran de fin = `Depiler` (retour au
-  menu), ignorée en cours de partie ; F5 génère une nouvelle carte à tout
+- **Flux** : menu → « Commencer partie » = `Empiler(EcranChoixEscouade)` ; choix →
+  « Commencer » = `Empiler(EcranJeu)` (nouvelle `Partie`, nouvelle graine affichée) ;
+  « Retour » = `Depiler` (menu) ; menu → « Options » = `Empiler(EcranOptions)` ;
+  « Quitter » = `Quitter`. En jeu, R sur l'écran de fin = `Depiler` (retour à l'écran de
+  choix, avec sa sélection), ignorée en cours de partie ; F5 génère une nouvelle carte à tout
   moment. Échap en jeu annule seulement la visée.
 - **Principe de conception** : c'est l'application du principe 1 révisé
   (« anticiper la structure, pas les fonctionnalités ») : la pile et la
   `Transition` accueilleront la pause sans réécriture, mais les alternatives
   `Remplacer`, une `mettreAJour` qui renvoie une `Transition` et le dessin des
   écrans du dessous n'existent pas, car rien ne les utilise.
+
+## `EcranChoixEscouade` : le choix des 3 classes (étape 76)
+
+- **Pourquoi un écran entre le menu et le jeu** : le joueur choisit sa composition avant chaque
+  partie. L'écran de choix **reste sous** le jeu dans la pile : c'est la pile qui conserve la
+  sélection, sans sauvegarde ni état global. R après une défaite ou une victoire dépile le jeu et
+  retombe sur le choix, sélection intacte, pour rejouer la même composition ou en changer.
+- **Le modèle est à part** : `SelectionDEscouade` (3 classes au plus, doublons permis, `retirer`
+  fait remonter les suivantes) ne sait rien des écrans ; l'écran n'est que sa vue et sa traduction
+  des clics. `EcranJeu` reçoit la liste d'`IdSpecialite` et la garde pour F5 ; c'est lui qui appelle
+  `composer`, `Partie` ne reçoit toujours que des `DefinitionPersonnage`.
+- **Trois colonnes, aucune position stockée** (même principe que `ListeDeBoutons`) : classes à
+  gauche (`ListeDeBoutons`, un bouton par entrée du catalogue, dans son ordre : le bouton i est
+  `catalogue()[i]`), cases de sélection à droite puis « Commencer » / « Retour »
+  (`ListeDeBoutons`). `centreDesClasses`, `centreDesCases` et `centreDesActions` sont les seules
+  sources des positions : dessin, clic et tests les appellent. La géométrie des cases est une
+  fonction pure (`rectangleDeLaCase`, `caseSous`), comme la barre de raccourcis. À 1200 × 800 (vue de
+  1200 px de large) les colonnes tiennent avec 40 px de marge.
+- **Pas de `ListeDeBoutons` pour les cases** : une case vide n'est pas un bouton grisé mais une
+  position de la sélection ; un clic sur une case remplie la retire, ce qui n'est pas une action de
+  la liste. Les dimensions (520 × 60, 20 px) sont recopiées dans `SelectionDEscouade.cpp` pour que les
+  colonnes s'alignent.
+- **« Commencer » inactif** tant que la sélection n'est pas complète : `ListeDeBoutons::definirActif`,
+  remis à jour après chaque ajout ou retrait ; un bouton inactif n'est jamais renvoyé par
+  `boutonSous`, donc un clic dessus ne fait rien.
+- **La bande de couleur d'une case** utilise `composer(sélection)` : le joueur voit déjà la nuance
+  que le personnage aura en jeu.
+- **Limites** : souris seulement ; pas de description de classe ni d'infobulle ; la sélection n'est
+  pas écrite dans `reglages.ini` (elle repart vide à chaque lancement du jeu) ; au plus trois fois la
+  même classe, parce qu'il n'y a que trois nuances et trois places.
 
 ## `EcranJeu` : le jeu de l'ancien `main.cpp`
 
@@ -56,6 +87,9 @@ empile. Ce fichier explique les décisions ; le détail des interfaces est dans
   n'y a plus de point d'entrée à cet endroit, il s'exécute donc à la fin de
   `mettreAJour`. Les événements de l'image suivante voient le même état ; seul
   l'affichage de la visée disparaît une image plus tôt.
+- `EcranJeu` reçoit les `IdSpecialite` de la composition (étape 76) à sa construction et les garde
+  (`m_specialites`, déclaré avant `m_partie` parce que la construction de la partie les lit) : F5
+  régénère la carte avec la même composition.
 - `EcranJeu` possède le `std::random_device` : la graine d'une nouvelle carte
   (F5) ou d'une nouvelle partie (nouvel `EcranJeu`) est tirée et affichée
   comme avant.
@@ -143,7 +177,7 @@ empile. Ce fichier explique les décisions ; le détail des interfaces est dans
   d'écran) : la fenêtre s'ouvre trop grande ; les options permettent de
   corriger. Si aucune résolution ne tient dans le bureau, la ligne est inactive.
 - `reglages.ini` est cherché dans le dossier courant, comme la police.
-- Pas de menu de pause ni de retour au menu en cours de partie (R n'agit
+- Pas de menu de pause ni de retour au choix de l'escouade en cours de partie (R n'agit
   qu'après une défaite ou une victoire).
 - Les boutons de `ListeDeBoutons` recopient le centrage de texte de
   `EcranDeFin.cpp` (à extraire dans un module commun, dans un commit à part).

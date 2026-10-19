@@ -541,10 +541,11 @@ même endroit dans un passage étroit » a disparu de la liste des limites.
 
 - **`Composition.hpp` / `.cpp`** : `enum class Rang { Avant, Arriere }`, `struct
   DefinitionPersonnage { couleur; attaqueDeBase; skills; armure; rayonVision; rang; }`,
-  `compositionParDefaut()` et `decalagesDeFormation(rangs)`. Pourquoi : `Escouade` ne
-  doit plus choisir de valeurs, pour que le joueur puisse un jour choisir sa composition
+  `compositionParDefaut()` (remplacée à l'étape 76 par `Specialite`, voir plus bas) et
+  `decalagesDeFormation(rangs)`. Pourquoi : `Escouade` ne
+  doit plus choisir de valeurs, pour que le joueur puisse choisir sa composition
   (étape 76) sans toucher à `Escouade`. La composition n'appartient pas au `Niveau` :
-  `Partie(niveau, composition, graine)` la reçoit, `EcranJeu` passe `compositionParDefaut()`.
+  `Partie(niveau, composition, graine)` la reçoit, `EcranJeu` passe `composer(specialites)`.
 - **`decalagesDeFormation`**, fonction pure : pour une escouade orientée vers `+x`, les
   `Avant` sont sur `x = +25`, les `Arriere` sur `x = -25` ; dans un rang de n personnages,
   le k-ième (ordre d'apparition dans la composition) est sur `y = (k - (n-1)/2) × 50`. Avec
@@ -563,3 +564,34 @@ même endroit dans un passage étroit » a disparu de la liste des limites.
   murs. Conséquence acceptée.
 - **Limites** : un mort n'est toujours pas retiré ; la formation ne se resserre pas à la mort
   d'un personnage ; pas de niveaux ni d'apprentissage de skill en cours de partie.
+
+## Spécialités et choix de la composition (étape 76)
+
+- **`Specialite.hpp` / `.cpp`** : `enum class IdSpecialite { Guerrier, Pretre, Mage, Paladin, Rodeur }`,
+  `struct Specialite { id; nom; definition }`, `catalogue()`, `specialite(id)` et `composer(ids)`.
+  `compositionParDefaut()` est supprimée ; les valeurs des trois classes d'origine ont été déplacées
+  de `Composition.cpp` vers `Specialite.cpp` sans changement (`Composition` ne garde que `Rang`,
+  `DefinitionPersonnage` et `decalagesDeFormation`). Une seule source pour les valeurs.
+- **Des données, pas une hiérarchie** : pas de classe de base `Specialite` ni de sous-classes
+  `Guerrier`, `Mage`… Les classes ne diffèrent que par des valeurs (couleur, armure, rang, attaque de
+  base, skills), qu'une `DefinitionPersonnage` porte déjà ; aucun comportement propre à une classe.
+  Une classe est une **recette de départ** : plus tard (arbres de skills, niveaux, hors de portée
+  ici), deux personnages de la même classe deviendront différents ; l'objet qui évoluera est le
+  `Personnage`, pas la classe.
+- **Doublons permis** : une classe peut être prise 1 à 3 fois. Pour qu'on les distingue à l'écran,
+  `composer` donne à la k-ième occurrence d'une même classe sa couleur assombrie de 0 %, 30 % puis 55 %
+  (`assombrir`, à côté d'`eclaircir`). On n'éclaircit pas : l'éclaircissement est déjà l'indice
+  visuel d'un coup ou d'un skill en préparation. Le compte se fait **par classe** (guerrier, mage,
+  guerrier : le second guerrier est la 2ᵉ occurrence), pas sur toute la liste.
+- **L'ordre de la liste donne les places** 1, 2, 3, donc les rangées de la barre par défaut et
+  l'ordre des décalages. La formation dépend du rang de chaque classe : trois guerriers sont tous
+  `Avant` (colonne de x = +25), trois rôdeurs tous `Arriere` (x = −25) ; `decalagesDeFormation`
+  gérait déjà ces cas.
+- **Nouvelles classes, sans nouvelle mécanique** : paladin (`Avant`, armure 50, attaque de mêlée,
+  skills `Degats` et `Soin`, tous deux à 20 px) et rôdeur (`Arriere`, armure 0, attaque de tireur,
+  skills `Degats` à 200 px et `Zone`). Elles n'emploient que des `TypeSkill` existants ; les valeurs des skills sont dans `docs/combat.md`.
+- **Soin au contact** : l'imposition des mains a une portée de 20 px (bord à bord) : le paladin va
+  vers le vivant le plus blessé en skill en attente et commence son activation à l'arrivée, comme
+  tout soin hors de portée. Le choix de la cible reste celui de `choisirCible`.
+- **Limites** : au plus trois fois la même classe (`assert` dans `composer`) ; pas d'arbre de skills,
+  de niveaux ni de points à dépenser ; valeurs du paladin et du rôdeur provisoires.

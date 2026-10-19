@@ -45,6 +45,7 @@ squad-arpg/
 │   ├── Contexte.hpp
 │   ├── EcranMenu.hpp / .cpp
 │   ├── EcranOptions.hpp / .cpp
+│   ├── EcranChoixEscouade.hpp / .cpp
 │   ├── EcranJeu.hpp / .cpp
 │   ├── ListeDeBoutons.hpp / .cpp
 │   ├── Reglages.hpp / .cpp
@@ -71,6 +72,8 @@ squad-arpg/
 │   ├── SkillConnu.hpp
 │   ├── AdresseSkill.hpp
 │   ├── Composition.hpp / .cpp
+│   ├── Specialite.hpp / .cpp
+│   ├── SelectionDEscouade.hpp / .cpp
 │   ├── Coup.hpp
 │   ├── EntiteVue.hpp / .cpp
 │   ├── TypeSkill.hpp
@@ -97,7 +100,8 @@ squad-arpg/
 │   ├── test_Escouade_deplacement.cpp, test_Escouade_combat.cpp,
 │   │   test_Escouade_skills.cpp, test_Escouade_agresseurs.cpp,
 │   │   test_Escouade_vue.cpp, test_Escouade_places.cpp,
-│   │   test_Composition.cpp
+│   │   test_Composition.cpp, test_Specialite.cpp,
+│   │   test_SelectionDEscouade.cpp
 │   ├── test_Provocations.cpp, test_Agresseurs.cpp
 │   ├── test_Deplacement.cpp, test_Monstre.cpp, test_Personnage.cpp
 │   ├── test_Partie.cpp, test_Controleur.cpp, test_GenerateurDonjon.cpp,
@@ -110,7 +114,7 @@ squad-arpg/
 │       test_PointsDeVie.cpp, test_Defense.cpp, test_Eclaircir.cpp,
 │       test_Reglages.cpp, test_TailleDeVue.cpp,
 │       test_ListeDeBoutons.cpp, test_EcranMenu.cpp,
-│       test_EcranOptions.cpp
+│       test_EcranOptions.cpp, test_EcranChoixEscouade.cpp
 ├── docs/
 │   ├── build.md
 │   ├── boucle-et-entrees.md
@@ -149,12 +153,13 @@ Qui possède quoi :
   dessin, `display`) et applique les `Transition` que renvoient les écrans.
   La fermeture de la fenêtre quitte, quel que soit l'écran. Seul l'écran du
   dessus reçoit les événements, est mis à jour et est dessiné.
-- `EcranMenu`, `EcranOptions` et `EcranJeu` sont les trois `Ecran`. Ils
+- `EcranMenu`, `EcranOptions`, `EcranChoixEscouade` et `EcranJeu` sont les quatre `Ecran`. Ils
   reçoivent la fenêtre, la police et les réglages dans un `Contexte` à chaque
-  appel et ne les gardent pas. `EcranJeu` possède une `Partie`, un
-  `Controleur`, une `BarreDeRaccourcis`, la caméra et le `std::random_device` ; il traduit les
+  appel et ne les gardent pas. `EcranChoixEscouade` possède la
+  `SelectionDEscouade` ; `EcranJeu` reçoit la liste des `IdSpecialite` choisies, la garde, et possède une `Partie`, un
+  `Controleur`, une `BarreDeRaccourcis`, la caméra et le `std::random_device` (il appelle `composer` pour construire la `Partie`) ; il traduit les
   événements SFML (clic, touches de la barre de raccourcis, Échap, clic droit, F3, F4 et F6 de débogage) en appels au
-  `Controleur`. Un clic gauche est d'abord testé sur l'interface (`clicSurInterface`, vue d'interface) : s'il touche la barre, il est consommé et n'atteint pas le monde. Une touche est traduite en emplacement par `emplacementPourTouche` (table des `Reglages`). (Touche R : retour au menu si la partie est perdue ou gagnée, sinon c'est un raccourci ;
+  `Controleur`. Un clic gauche est d'abord testé sur l'interface (`clicSurInterface`, vue d'interface) : s'il touche la barre, il est consommé et n'atteint pas le monde. Une touche est traduite en emplacement par `emplacementPourTouche` (table des `Reglages`). (Touche R : retour à l'écran de choix de l'escouade si la partie est perdue ou gagnée, sinon c'est un raccourci ;
   F5 : nouvelle carte à tout moment ; F5, comme l'entrée dans l'écran,
   passe par `nouvellePartie`, qui tire la graine et génère le niveau),
   convertit le curseur en coordonnées du monde, centre la caméra sur
@@ -216,15 +221,15 @@ stocké par un écran.
 
 `EcranJeu.hpp` / `.cpp`. Reprend ce que faisait `main()` pour le jeu.
 
-Données membres : `m_tirageDeGraine` (`std::random_device`), `m_partie`
+Données membres : `m_tirageDeGraine` (`std::random_device`), `m_specialites` (`std::vector<IdSpecialite>`, les classes de l'escouade, dans l'ordre des places), `m_partie`
 (`Partie`), `m_controleur` (`Controleur`), `m_barre` (`BarreDeRaccourcis`, reconstruite par `barreParDefaut` à chaque `nouvelleCarte`), `m_camera` (`sf::View`),
 `m_debogage` (`OptionsDeDebogage { bool pointsVises = false; bool ancre = true; bool brouillard = true; }`,
 état d'interface remis à sa valeur de départ par `nouvelleCarte`).
 
 | Fonction | Rôle |
 |---|---|
-| `EcranJeu()` | Tire une graine, la génère et construit la partie (`nouvellePartie`) |
-| `Transition traiterEvenement(...)` | Clic gauche (d'abord `clicSurInterface` : sur la barre, `Controleur::appuiInterface`, sauf partie perdue ou gagnée ; sinon `appuiGauche`), touches de la barre (`emplacementPourTouche` puis `activerEmplacement`, ignorées sur l'écran de fin), Échap, F5 (nouvelle carte), F3 (bascule les points visés et les chemins restants des personnages et des monstres, et la semi-transparence des monstres qui rentrent à leur poste), F4 (bascule le carré vert de l'ancre), F6 (bascule le brouillard de guerre, visuel seulement) ; R sur l'écran de fin (partie perdue ou gagnée) renvoie `Depiler` ; sinon `Aucune` |
+| `explicit EcranJeu(std::vector<IdSpecialite> specialites)` | Garde les classes (`m_specialites`, déclaré avant `m_partie`), tire une graine, la génère et construit la partie (`nouvellePartie`, qui appelle `composer(specialites)`) ; F5 réutilise les mêmes classes |
+| `Transition traiterEvenement(...)` | Clic gauche (d'abord `clicSurInterface` : sur la barre, `Controleur::appuiInterface`, sauf partie perdue ou gagnée ; sinon `appuiGauche`), touches de la barre (`emplacementPourTouche` puis `activerEmplacement`, ignorées sur l'écran de fin), Échap, F5 (nouvelle carte), F3 (bascule les points visés et les chemins restants des personnages et des monstres, et la semi-transparence des monstres qui rentrent à leur poste), F4 (bascule le carré vert de l'ancre), F6 (bascule le brouillard de guerre, visuel seulement) ; R sur l'écran de fin (partie perdue ou gagnée) renvoie `Depiler` (retour à l'écran de choix) ; sinon `Aucune` |
 | `void mettreAJour(float, const Contexte&)` | Taille de la caméra (`tailleDeVue`), déplacement continu, `Partie::mettreAJour`, `Controleur::debutImage` (sortie de la visée), caméra centrée sur l'escouade |
 | `void dessiner(const Contexte&) const` | Monde avec la caméra (ancre cachée si `!m_debogage.ancre`, brouillard selon `m_debogage.brouillard`), aperçu de visée, points visés et chemins restants si `m_debogage.pointsVises`, puis, avec `vueDInterface` : barre de raccourcis (une `IconeDeRaccourci` par emplacement), compteur « Monstres : N » et écran de fin |
 
@@ -235,7 +240,7 @@ Données membres : `m_tirageDeGraine` (`std::random_device`), `m_partie`
 
 | Fonction | Rôle |
 |---|---|
-| `Transition cliquer(sf::Vector2f point, sf::Vector2f centre, const Reglages&) const` | Point en coordonnées de la vue d'interface. Commencer : `Empiler(EcranJeu)` ; Options : `Empiler(EcranOptions)` avec les réglages en cours et `resolutionsDisponibles` du bureau ; Quitter : `Quitter` ; ailleurs : `Aucune` |
+| `Transition cliquer(sf::Vector2f point, sf::Vector2f centre, const Reglages&) const` | Point en coordonnées de la vue d'interface. Commencer : `Empiler(EcranChoixEscouade)` ; Options : `Empiler(EcranOptions)` avec les réglages en cours et `resolutionsDisponibles` du bureau ; Quitter : `Quitter` ; ailleurs : `Aucune` |
 
 ### `EcranOptions` — les options d'affichage
 
@@ -247,6 +252,31 @@ Données membres : `m_tirageDeGraine` (`std::random_device`), `m_partie`
 |---|---|
 | `EcranOptions(const Reglages&, std::vector<Resolution>)` | Part des réglages en cours ; l'indice est celui de la résolution courante dans la liste (0 si absente) |
 | `Transition cliquer(sf::Vector2f point, sf::Vector2f centre)` | Mode : bascule, `AppliquerReglages`. Résolution : tiers gauche = précédente, tiers droit = suivante, `AppliquerReglages` (`Aucune` aux bouts de la liste, au milieu, ou ligne inactive : plein écran ou liste vide). Retour : `Depiler` |
+
+### `EcranChoixEscouade` — le choix des 3 classes
+
+`EcranChoixEscouade.hpp` / `.cpp`. Entre le menu et la partie. Données membres : `m_selection` (`SelectionDEscouade`), `m_classes` (`ListeDeBoutons`, un bouton par entrée du `catalogue()`, dans son ordre), `m_actions` (`ListeDeBoutons` : « Commencer », « Retour »). Trois colonnes sans position stockée, recalculées à partir du `centre` de la vue d'interface : les classes à gauche, les cases de sélection puis les actions à droite. Voir `docs/ecrans.md`.
+
+| Fonction | Rôle |
+|---|---|
+| `sf::Vector2f centreDesClasses(sf::Vector2f centre)` / `centreDesCases(...)` / `centreDesActions(...)` | Centre de chaque colonne (décalages de −300, +300 et +300 px en x ; 0, −80 et +140 en y) ; une seule source pour le dessin, le clic et les tests ; `[[nodiscard]]` |
+| `EcranChoixEscouade()` | Sélection vide, « Commencer » inactif |
+| `Transition cliquer(sf::Vector2f point, sf::Vector2f centre)` | Classe : l'ajoute à la sélection (sans effet si elle est complète). Case remplie : la retire. « Commencer » (actif seulement si la sélection est complète) : `Empiler(EcranJeu(sélection))`, la sélection restant dans cet écran. « Retour » : `Depiler`. Case vide ou ailleurs : `Aucune` ; `[[nodiscard]]` |
+| `const SelectionDEscouade& getSelection() const` | La sélection en cours (tests) ; `[[nodiscard]]` |
+| `void dessiner(const Contexte&) const` | Titre, boutons des classes, trois cases « 1. Guerrier » ou « 1. — » (bande de la couleur que le personnage aura en jeu, doublons assombris), actions |
+
+### `SelectionDEscouade` — les classes choisies
+
+`SelectionDEscouade.hpp` / `.cpp`. Logique pure : une classe et deux fonctions libres. Donnée membre : `m_specialites` (`std::vector<IdSpecialite>`) ; constante `static constexpr std::size_t s_taille = 3`.
+
+| Fonction | Rôle |
+|---|---|
+| `void ajouter(IdSpecialite id)` | À la fin s'il reste de la place, sans effet sinon ; les doublons sont permis |
+| `void retirer(std::size_t indice)` | Retire cette case, les suivantes remontent ; `assert(indice < liste().size())` |
+| `bool estComplete() const` | Trois classes choisies ; `[[nodiscard]]` |
+| `const std::vector<IdSpecialite>& liste() const` | Dans l'ordre de sélection, c'est l'ordre des places 1 à 3 ; `[[nodiscard]]` |
+| `sf::FloatRect rectangleDeLaCase(std::size_t indice, sf::Vector2f centre)` | Case de sélection `indice` : colonne de 3 cases de 520 × 60 px, 20 px d'écart, centrée sur `centre` ; `assert` ; `[[nodiscard]]` |
+| `std::optional<std::size_t> caseSous(sf::Vector2f point, sf::Vector2f centre)` | Case qui contient le point, vide dans un écart ou hors des cases ; construite sur `rectangleDeLaCase` ; `[[nodiscard]]` |
 
 ### `ListeDeBoutons` — une colonne de boutons
 
@@ -714,7 +744,7 @@ tirage), `m_recharge`, `m_rayonZone` (`float`, en pixels), `m_tempsExecution`, `
 
 `IdSkill.hpp`, `SkillConnu.hpp` et `AdresseSkill.hpp`, sans `.cpp`. Voir `docs/combat.md`.
 
-- `enum class IdSkill { FrappePuissante, Provocation, Soin, Explosion }` : identifiant **stable** d'un skill, indépendant de l'ordre dans la liste d'un personnage et de la touche.
+- `enum class IdSkill { FrappePuissante, Provocation, Soin, Explosion, FrappeSacree, ImpositionDesMains, TirPercant, PluieDeFleches }` : identifiant **stable** d'un skill, indépendant de l'ordre dans la liste d'un personnage et de la touche.
 - `struct SkillConnu { IdSkill id; Skill skill; }` : un skill d'un personnage avec son identifiant (`Skill` ne porte pas d'identifiant : il sert aussi d'attaque de base et d'attaque des monstres).
 - `struct AdresseSkill { std::size_t place; IdSkill id; }` (comparable, `operator==` par défaut) : le personnage (place de 1 à N) et le skill. Une adresse invalide (place invalide ou skill inconnu de ce personnage) est traitée comme une place invalide : refus, liste vide, `optional` vide.
 
@@ -726,8 +756,21 @@ tirage), `m_recharge`, `m_rayonZone` (`float`, en pixels), `m_tempsExecution`, `
 
 | Fonction | Rôle |
 |---|---|
-| `std::vector<DefinitionPersonnage> compositionParDefaut()` | Guerrier (`Avant`, rouge, armure 50, attaque de mêlée, skills `FrappePuissante` et `Provocation`), prêtre (`Arriere`, jaune pâle, armure 0, attaque de tireur, `Soin`), mage (`Arriere`, violet, armure 0, attaque de tireur, `Explosion`) ; rayon de vision 320 px ; valeurs numériques des skills inchangées ; `[[nodiscard]]` |
 | `std::vector<sf::Vector2f> decalagesDeFormation(const std::vector<Rang>& rangs)` | Pure. Pour une escouade orientée vers +x : les `Avant` sur x = +25, les `Arriere` sur x = −25 ; dans un rang de n personnages, le k-ième (ordre d'apparition) est sur y = (k − (n−1)/2) × 50. Dans l'ordre de `rangs` ; `[[nodiscard]]` |
+
+### `Specialite` — les classes du catalogue
+
+`Specialite.hpp` / `.cpp` : des données et trois fonctions libres, sans état, **sans hiérarchie de classes** (pas de sous-classes `Guerrier`, `Mage`…). Une spécialité est une recette de départ. Seule source des valeurs de personnages (tailles de portée, armure, skills, couleurs). Voir `docs/formation.md`.
+
+`enum class IdSpecialite { Guerrier, Pretre, Mage, Paladin, Rodeur }` ; `struct Specialite { IdSpecialite id; std::string nom; DefinitionPersonnage definition; }` (`definition.couleur` : la couleur de la classe, sans nuance).
+
+| Fonction | Rôle |
+|---|---|
+| `const std::vector<Specialite>& catalogue()` | Les 5 classes, dans l'ordre de `IdSpecialite` (guerrier, prêtre, mage, paladin, rôdeur), construites une seule fois (variable `static` locale) ; `[[nodiscard]]` |
+| `const Specialite& specialite(IdSpecialite id)` | L'entrée de cet identifiant (indexée par l'enum, `assert` sur l'identifiant) ; `[[nodiscard]]` |
+| `std::vector<DefinitionPersonnage> composer(const std::vector<IdSpecialite>& identifiants)` | Une définition par identifiant, dans l'ordre reçu (c'est l'ordre des places). La k-ième occurrence d'une même classe (k = 0, 1, 2) a sa couleur assombrie de 0 %, 30 % puis 55 % (`assombrir`) ; `assert` : pas plus de 3 fois la même classe ; `[[nodiscard]]` |
+
+Classes : guerrier (`Avant`, rouge, armure 50, attaque de mêlée, `FrappePuissante` et `Provocation`), prêtre (`Arriere`, jaune pâle, armure 0, attaque de tireur, `Soin`), mage (`Arriere`, violet, armure 0, attaque de tireur, `Explosion`), paladin (`Avant`, orange, armure 50, attaque de mêlée, `FrappeSacree` et `ImpositionDesMains`), rôdeur (`Arriere`, vert, armure 0, attaque de tireur, `TirPercant` et `PluieDeFleches`). Rayon de vision 320 px pour toutes. Valeurs des skills dans `docs/combat.md`.
 
 ### `Coup` — ce qui circule entre `main.cpp` et `Escouade`
 
@@ -791,7 +834,7 @@ erreur de compilation.
 
 ### `EtatSkill` — le skill d'une place, pour l'affichage
 
-`EtatSkill.hpp`, sans `.cpp` : `struct EtatSkill { TypeSkill type; float progression; float tempsRestant; bool lanceurVivant; bool enActivation; }`. `progression` va de 0 (juste lancé) à 1 (prêt), `tempsRestant` est en secondes, `enActivation` est vrai pendant l'activation du skill. Produite par `Escouade::etatDuSkill`, consommée par `BarreDeSkills`.
+`EtatSkill.hpp`, sans `.cpp` : `struct EtatSkill { IdSkill id; TypeSkill type; float progression; float tempsRestant; bool lanceurVivant; bool enActivation; }`. `progression` va de 0 (juste lancé) à 1 (prêt), `tempsRestant` est en secondes, `enActivation` est vrai pendant l'activation du skill. Produite par `Escouade::etatDuSkill`, consommée par `BarreDeSkills`.
 
 ### `BarreDeRaccourcis` — les emplacements de raccourcis
 
@@ -825,15 +868,15 @@ Trois fonctions libres :
 
 ### `BarreDeSkills` — le dessin de la barre de raccourcis
 
-Fonctions libres, sans état : tout est recalculé à chaque image. Ne connaît ni `Escouade` ni `Personnage` ni la barre : elle reçoit des `IconeDeRaccourci`. `struct IconeDeRaccourci { std::optional<EtatSkill> etat; sf::String touche; sf::Color couleurDuLanceur; bool enVisee; }` (`etat` vide = emplacement vide ; construite par `EcranJeu`).
+Fonctions libres, sans état : tout est recalculé à chaque image. Ne connaît ni `Escouade` ni `Personnage` ni la barre : elle reçoit des `IconeDeRaccourci`. `struct IconeDeRaccourci { std::optional<EtatSkill> etat; sf::String touche; sf::Color couleurDuLanceur; std::size_t place; bool enVisee; }` (`place` : place du lanceur, 1 à N ; `etat` vide = emplacement vide ; construite par `EcranJeu`).
 
 | Fonction | Rôle |
 |---|---|
-| `char lettreDuSkill(TypeSkill type)` | D (dégâts), P (provocation), S (soin), Z (zone) |
+| `std::string sigleDuSkill(IdSkill id)` | Étiquette de deux lettres : FP, PR, SO, EX, FS, IM, TP, PF ; `switch` sans `default` (un `IdSkill` oublié est un avertissement du compilateur) ; `[[nodiscard]]` |
 | `sf::Color couleurDuContour(bool enVisee, bool enActivation)` | Jaune en visée (prioritaire), blanc en activation, gris sinon |
 | `int secondesAffichees(float tempsRestant)` | Secondes entières, arrondies vers le haut |
 | `std::vector<sf::Vector2f> pointsDuQuartier(sf::Vector2f centre, float cote, float fractionSombre)` | Sommets d'un `TriangleFan` : centre, aiguille, coins du carré dans l'intervalle, midi ; vide si la fraction est nulle |
-| `void dessinerBarreDeSkills(sf::RenderTarget& rendu, const sf::Font& police, const std::array<IconeDeRaccourci, s_emplacementsPrincipaux>& icones)` | Dessine les 12 icônes à la place de `rectangleDeLEmplacement` (à appeler avec la vue d'interface) : fond, lettre, nom de la touche dans un coin, bande de la couleur du lanceur, quartier sombre et chiffre en recharge, grisée si le lanceur est mort, contour jaune si `enVisee`, blanc si `enActivation`. Un emplacement vide est un cadre sombre avec seulement le nom de sa touche |
+| `void dessinerBarreDeSkills(sf::RenderTarget& rendu, const sf::Font& police, const std::array<IconeDeRaccourci, s_emplacementsPrincipaux>& icones)` | Dessine les 12 icônes à la place de `rectangleDeLEmplacement` (à appeler avec la vue d'interface) : fond, sigle, nom de la touche dans un coin, bande de la couleur du lanceur (14 px) avec la place du lanceur, quartier sombre et chiffre en recharge, grisée si le lanceur est mort, contour jaune si `enVisee`, blanc si `enActivation`. Un emplacement vide est un cadre sombre avec seulement le nom de sa touche |
 
 ### `EcranDeFin` — l'écran de fin de partie
 
@@ -841,7 +884,7 @@ Une fonction libre, sans état, sur le modèle de `BarreDeSkills`. Ne connaît n
 
 | Fonction | Rôle |
 |---|---|
-| `void dessinerEcranDeFin(sf::RenderTarget& rendu, const sf::Font& police, const std::string& titre)` | Voile noir semi-transparent sur toute la vue par défaut, puis `titre` (« Victoire » ou « Défaite ») et « Appuyez sur R pour recommencer » au centre ; à appeler avec la vue par défaut, après la barre de skills |
+| `void dessinerEcranDeFin(sf::RenderTarget& rendu, const sf::Font& police, const std::string& titre)` | Voile noir semi-transparent sur toute la vue par défaut, puis `titre` (« Victoire » ou « Défaite ») et « Appuyez sur R pour revenir au choix de l'escouade » au centre ; à appeler avec la vue par défaut, après la barre de skills |
 
 ### `BarreDeVie` — la barre de vie d'une entité
 
@@ -853,13 +896,14 @@ Deux fonctions libres, sans état, utilisées par `Personnage::dessiner` et
 | `sf::Vector2f positionBarreDeVie(sf::Vector2f centre, sf::Vector2f taille)` | Coin haut-gauche de la barre d'une entité de ce centre et de cette taille : alignée sur son bord gauche, 6 px au-dessus de son carré |
 | `void dessinerBarreDeVie(sf::RenderTarget& rendu, sf::Vector2f position, float largeur, float ratio)` | Fond gris, puis rectangle vert proportionnel à `ratio` (0 à 1) |
 
-### `Eclaircir` — l'indice visuel d'un coup en préparation
+### `Eclaircir` — éclaircir et assombrir une couleur
 
-Une fonction libre, sans état, utilisée par `Personnage::dessiner` et `Monstre::dessiner`.
+Deux fonctions libres, sans état. `eclaircir` est l'indice visuel d'un coup en préparation (`Personnage::dessiner`, `Monstre::dessiner`) ; `assombrir` donne les nuances des doublons de classe (`composer`).
 
 | Fonction | Rôle |
 |---|---|
 | `sf::Color eclaircir(sf::Color couleur, float fraction)` | La couleur mélangée au blanc à raison de `fraction` (0 = inchangée, 1 = blanc) ; l'opacité est conservée ; `[[nodiscard]]` |
+| `sf::Color assombrir(sf::Color couleur, float fraction)` | La couleur mélangée au noir à raison de `fraction` (0 = inchangée, 1 = noir) ; l'opacité est conservée ; `[[nodiscard]]` |
 
 ### `Aleatoire` — le générateur aléatoire
 

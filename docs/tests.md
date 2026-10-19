@@ -1007,3 +1007,41 @@
   l'écran de fin, `IconeDeRaccourci`) et `dessinerBarreDeSkills` (noms de touches, bande de couleur),
   vérifiés à la main dans le jeu. La logique testable (`clicSurInterface`, `appuiInterface`) est sortie
   de l'écran pour cette raison.
+
+## Étape 76 : spécialités, sélection et écran de choix
+
+- **795 tests** (759 avant : +14 `Specialite`, +9 `SelectionDEscouade`, +11 `EcranChoixEscouade`,
+  +2 `Eclaircir`, +1 `BarreDeSkills` net, −1 `Composition`).
+- **`test_Specialite.cpp`** (nouveau, 14) : catalogue (5 classes dans l'ordre de l'énumération ;
+  noms non vides, vision de 320 px, skills sans doublon), `specialite(id)`, `composer` (ordre reçu,
+  liste vide, classes différentes = couleur de classe, même classe = 0, 30 puis 55 %, compte par
+  classe et non sur toute la liste, seule la couleur change entre deux occurrences), valeurs du
+  paladin et du rôdeur (type, puissance, portée, zone), trois rôdeurs (décalages en colonne derrière
+  l'ancre, trois couleurs distinctes, barre par défaut : une rangée par rôdeur), escouade mixte
+  (paladin, rôdeur, guerrier : types de skills par adresse). Les nuances sont comparées à
+  `assombrir(...)` plutôt qu'à des octets écrits en dur.
+- **`test_SelectionDEscouade.cpp`** (nouveau, 9) : vide au départ ; ajouter jusqu'à 3 dans l'ordre ;
+  un 4ᵉ ajout sans effet ; doublons ; retirer au milieu (les suivantes remontent) ; retirer la
+  première puis ajouter (redevient complète) ; `caseSous` au centre de chaque case, dans un écart et
+  hors des cases ; `rectangleDeLaCase` (empilées, centrées). Le `assert` hors bornes n'est pas
+  testé.
+- **`test_EcranChoixEscouade.cpp`** (nouveau, 11) : sélection vide ; un clic sur une classe l'ajoute ;
+  trois fois la même, pas de 4ᵉ ; case remplie retirée ; case vide sans effet ; « Commencer »
+  inactif tant que la sélection est incomplète, `Empiler` quand elle est complète, de nouveau
+  inactif après un retrait, sélection inchangée après « Commencer » ; « Retour » = `Depiler` même
+  avec une sélection complète ; clic hors des boutons. Les positions viennent de `centreDesClasses`,
+  `centreDesCases` et `centreDesActions` (les mêmes que l'écran) ; la liste des classes est reconstruite
+  depuis `catalogue()`, comme l'écran.
+- **`test_Eclaircir.cpp`** (+2) : `assombrir` mélange au noir sans toucher l'opacité ; 0 laisse la
+  couleur, 1 donne du noir.
+- **`test_BarreDeSkills.cpp`** : `lettreDuSkill` est remplacé par `sigleDuSkill` (les huit sigles) et
+  un test que les sigles sont tous différents (+1 net).
+- **`test_Composition.cpp`** : le test de `compositionParDefaut` passe dans `test_Specialite.cpp`
+  (−1) ; il ne reste que `decalagesDeFormation`.
+- **`aides.hpp`** : `compositionDeTest()` (appelle `composer({Guerrier, Pretre, Mage})`) remplace
+  `compositionParDefaut()` ; `uneEscouade`, `unePartie`, `uneEscouadeADeuxGuerriers` et
+  `uneEscouadeAuSoinCourt` s'en servent.
+- **Non testé** : le dessin de l'écran de choix (bande de couleur des cases, titre), la conversion
+  du pixel en coordonnées d'interface de `traiterEvenement`, le numéro de place dans la bande des
+  icônes, et le parcours complet menu → choix → jeu → R (vérifiés à la main). Les constructions
+  d'`EcranJeu` sont couvertes seulement par `Commencer` (le test vérifie que l'écran empilé n'est pas nul).
