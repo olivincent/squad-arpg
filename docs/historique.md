@@ -1,5 +1,107 @@
 # Squad-ARPG — Historique des étapes
 
+Ce fichier n'est jamais nécessaire pour modifier le code. Il contient :
+- la **liste des étapes terminées** (ci-dessous, reprise de `ROADMAP.md` à l'étape 81) ;
+- le **détail** des étapes 0 à 73 (sous-étapes, choix, limites connues, hors de portée), tel qu'il
+  était écrit à la fin de chaque étape. Il manque l'étape 35 (réorganisation de la documentation)
+  et les étapes 60 à 64 : leur détail est dans Git (messages de commit) et dans les sections
+  « (étape N) » des documents de `docs/` ;
+- un **résumé court** des étapes 74 à 80 (fin du fichier), écrit à l'étape 81 (K3) à partir des
+  commits, de l'ancien « État actuel » de `ROADMAP.md` et de `docs/` ; le détail de ces étapes est
+  dans les sections « (étape N) » des documents de `docs/` (`docs/tests.md` pour les tests).
+
+Les chemins de fichiers cités dans ce document sont ceux de l'époque : depuis l'étape 81, les
+sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTURE.md`).
+
+## Liste des étapes terminées
+
+- Étape 0 — Squelette de projet ✅
+- Étape 1 — Carré qui bouge au clic ✅
+- Étape 2 — Déplacement progressif ("tic" par "tic") ✅
+- Étape 3 — Salle avec murs ✅ (remplacée en partie par l'étape 4)
+- Étape 4 — Carte en grille (`TileMap`) ✅
+- Étape 5 — Caméra centrée sur le personnage ✅
+- Étape 6 — Classe `Escouade` ✅
+- Étape 7 — Tests unitaires (Catch2) ✅
+- Étape 8 — Module de recherche de chemin (A*) ✅
+- Étape 9 — L'escouade suit le chemin du A* ✅
+- Étape 10 — Tests unitaires de l'escouade ✅
+- Étape 11 — Lissage du chemin ✅
+- Étape 12 — Membres de l'escouade (`Personnage`, formation en carré) ✅
+- Étape 13 — Déplacement continu tant que le bouton est enfoncé ✅
+- Étape 14 — Rotation progressive de la formation ✅
+- Étape 15 — Un monstre avec des points de vie ✅
+- Étape 16 — Attaque continue et verrouillage de cible ✅
+- Étape 17 — Portée d'attaque : les personnages frappent ✅
+- Étape 18 — Plusieurs monstres, cible désignée par identifiant ✅
+- Étape 19 — Indicateur visuel de la cible verrouillée ✅
+- Étape 20 — Les monstres ripostent ✅
+- Étape 21 — Un monstre change de cible quand un personnage meurt ✅
+- Étape 22 — Classe `Attaque`, partagée par `Personnage` et `Monstre` ✅
+- Étape 23 — Classe `Mobile` : le déplacement par chemin sort d'`Escouade` ✅
+- Étape 24 — Les monstres détectent, poursuivent et abandonnent ✅
+- Étape 25 — Statut du monstre et retour au poste ✅
+- Étape 26 — Mort d'un personnage et défaite de l'escouade ✅
+- Étape 27 — Un clic engage le combat ✅
+- Étape 28 — Portées d'attaque différentes selon le personnage ✅
+- Étape 29 — Placement individuel en combat ✅
+- Étape 30 — Portée mesurée de bord à bord ✅
+- Étape 31 — Premier skill, déclenché au clavier ✅
+- Étape 32 — Les monstres se bloquent entre eux ✅
+- Étape 33 — Les monstres bloqués par les personnages vivants ✅
+- Étape 34 — Les personnages bloqués par les monstres ✅
+- Étape 35 — Réorganisation de la documentation ✅
+- Étape 36 — Classe Skill, skill de soin et cible générale ✅
+- Étape 37 — Autodéfense : les personnages ripostent sans clic ✅
+- Étape 38 — Places de formation toujours valides ✅
+- Étape 39 — Personnages autonomes dans leur chemin ✅
+- Étape 40 — Les personnages vont vers leurs agresseurs ✅
+- Étape 41 — Skill de provocation (touche 2) ✅
+- Étape 42 — Rayon de zone des skills, skill de zone ciblé au sol (touche 4) ✅
+
+- Étape 43 — Portée de lancement du skill de zone, provocation toujours consommée ✅
+- Étape 44 — Ligne de vue pour le skill de zone ✅
+- Étape 45 — Fusion d'`Attaque` dans `Skill` (refactorisation pure) ✅
+- Étape 46 — Ligne de vue pour les attaques de base et les autres skills ✅
+- Étape 47 — Un monstre touché s'active ✅
+- Étape 48 — Barre de skills à l'écran (HUD) ✅
+- Étape 49 — Hygiène et sûreté du code (refactorisation pure) ✅
+- Étape 50 — Réorganisation des tests (refactorisation pure) ✅
+- Étape 51 — Alléger Escouade : Provocations, Agresseurs, découpage (refactorisation pure) ✅
+- Étape 52 — Alléger main.cpp : Niveau, Partie et Controleur (refactorisation pure) ✅
+- Étape 53 — Type PointsDeVie et Skill::declencherSansCible (refactorisation pure) ✅
+- Étape 54 — Défaite et recommencer la partie ✅
+- Étape 55 — Armure à rendement décroissant ✅
+- Étape 56 — Générateur aléatoire injecté et recharge aléatoire ✅
+- Étape 57 — Temps d'exécution des attaques : on s'immobilise pour frapper ✅
+- Étape 58 — Temps d'activation des skills (touches 1 à 4) et action engagée par personnage ✅
+
+- Étape 59 — Génération procédurale : les salles ✅
+- Étape 60 — Génération procédurale : les couloirs ✅
+- Étape 61 — Génération procédurale : monstres, touche R et F5 ✅
+- Étape 62 — Ligne de vue des monstres et nettoyage de Skill ✅
+- Étape 63 — Objectif et victoire ✅
+- Étape 64 — Groupes de monstres : alerte du groupe ✅
+- Étape 65 — Menu de départ, options d'affichage et sauvegarde des réglages ✅
+- Étape 66 — Proie et cible de frappe des monstres ✅
+- Étape 67 — Places d'attaque autour de la cible et séparation des personnages ✅
+- Étape 68 — A* qui contourne les obstacles mobiles ✅
+- Étape 69 — Retour au poste : invulnérabilité, régénération et territoire élargi ✅
+- Étape 70 — Portes et premier objet interactif ✅
+- Étape 71 — Correction des portes : ouvrir sur place et faire face à la porte ✅
+- Étape 72 — Vision des personnages et brouillard de guerre ✅
+- Étape 73 — La ligne de vue passe par le shadowcasting symétrique ✅ (avec le garde-fou `contientUnCoinDiagonal`)
+- Étape 74 — Escouade de 3 personnages, skills désignés par identifiant ✅
+- Étape 75 — Barre de raccourcis : 12 emplacements, touches et clic ✅
+- Étape 76 — Spécialités, catalogue et choix des 3 classes ✅
+- Étape 77 — Zones de contrôle et attaque d'opportunité ✅
+- Étape 78 — Dégagement des tireurs ✅
+- Étape 79 — Dégâts flottants : une file d'événements de combat ✅
+- Étape 80 — Filet de sécurité et corrections locales (suite de l'audit) ✅
+- Étape 81 — Dossiers et documentation ✅
+
+## Détail des étapes 0 à 73
+
 ### Étape 0 — Squelette de projet ✅ TERMINÉE
 
 - [x] `main.cpp` minimal (`std::cout`, compile et s'exécute)
@@ -1838,3 +1940,63 @@ coin diagonal, donc aucune passe de nettoyage écrite. Un sondage de 20 000 grai
 trouve pourtant le motif sur 145 (0,7 %, première graine 391) : le test est un échantillon, pas
 une garantie. Choix : régler le cas dans la carte plutôt que dans l'algorithme de Ford, pour
 garder la symétrie. 716 tests.
+
+## Étapes 74 à 80 (résumé)
+
+### Étape 74 — Escouade de 3 personnages, skills désignés par identifiant ✅
+
+`Escouade` reçoit sa composition (`Composition` : `DefinitionPersonnage`, `Rang`,
+`decalagesDeFormation`) au lieu de choisir ses valeurs, et passe à N personnages (3 : guerrier,
+prêtre, mage, en triangle). Un skill est désigné par une `AdresseSkill` (place et `IdSkill`
+stable) ; un personnage connaît une liste de `SkillConnu`, a une seule action engagée à la fois et
+des recharges indépendantes. La barre orange sous les personnages est supprimée (la barre de skills
+suffit). 735 tests.
+
+### Étape 75 — Barre de raccourcis : 12 emplacements, touches et clic ✅
+
+`BarreDeRaccourcis` (modèle : 12 emplacements, chacun vide ou une `AdresseSkill`), séparée des
+touches (table de scancodes dans `Reglages`, Q W E R / A S D F / Z X C V, non sauvegardée) et de la
+disposition à l'écran (grille de 4 × 3, `rectangleDeLEmplacement`). Disposition par défaut : une
+rangée par personnage. Cliquer une icône fait la même chose que sa touche
+(`Controleur::activerEmplacement`), avec la règle « l'interface d'abord » (`ClicInterface`). Les
+touches 1 à 4 ne font plus rien. 759 tests.
+
+### Étape 76 — Spécialités, catalogue et choix des 3 classes ✅
+
+`Specialite` : un catalogue de 5 classes en données, sans hiérarchie (guerrier, prêtre, mage,
+paladin, rôdeur ; paladin et rôdeur ajoutés avec des valeurs provisoires), et `composer`, qui
+assombrit les doublons (30 % puis 55 %). Écran de choix (`EcranChoixEscouade`, `SelectionDEscouade`)
+entre le menu et la partie ; l'ordre de sélection donne les places, R y revient avec la même
+sélection. Sigles de deux lettres et place du lanceur sur les icônes. 795 tests.
+
+### Étape 77 — Zones de contrôle et attaque d'opportunité ✅
+
+Module pur `Engagement` : une entité qui a une zone de contrôle (20 px pour les mêlées et les
+monstres, 0 pour les tireurs) engage ce qui y entre, et frappe gratuitement (dégâts de son attaque
+de base, sans recharge ni ligne de vue) qui en sort en fuyant, sauf si elle engage encore quelqu'un.
+Dans les deux sens ; `Partie` prend deux photos des camps par image. F3 dessine les zones. 830 tests.
+
+### Étape 78 — Dégagement des tireurs ✅
+
+Un tireur engagé se dégage vers sa place d'attaque, sans coup gratuit, quand chaque monstre qui
+l'engage a un autre personnage dans sa zone (règle pure `monstreDontSeDegager`, état et fin dans
+`Escouade::degagementVoulu`) ; seul face à un monstre, il reste et tire. 853 tests.
+
+### Étape 79 — Dégâts flottants : une file d'événements de combat ✅
+
+`Partie` inscrit chaque dégât et chaque soin réellement appliqué dans une file
+d'`EvenementDeCombat` (données, sans callback) ; `EcranJeu` la prend après chaque image pour nourrir
+`TextesFlottants` (logique pure). Les fonctions qui appliquent dégâts et soins renvoient le montant
+réellement appliqué. Rien pour un montant de 0 ni dans le brouillard. 887 tests.
+
+### Étape 80 — Filet de sécurité et corrections locales (suite de l'audit) ✅
+
+Première étape du plan « hybride » de l'audit (`docs/audit.md`). Build : presets `debug`
+(assertions de la bibliothèque standard, UBSan) et `jeu` (Release), CTest, avertissements sur les
+tests, `.clang-format` et `.clang-tidy` (179 avertissements au premier passage, 59 à la fin). Tests
+indépendants du catalogue (`compositionDeTest` à valeurs figées), gros fichiers de tests découpés,
+aides séparées (`aides_escouade.hpp`, `aides_monstre.hpp`). Corrections : `[[nodiscard]]` et
+`assert` sur les invariants (C1, C4), accès aux `optional` rendus explicites, un skill demandé
+pendant l'activation d'un autre du même personnage est mis en attente (« lanceur occupé »),
+`coutDesObstacles` ne visite que le rectangle englobant de chaque obstacle (V1, partie 1), `dt`
+borné à 1/20 s (L1), restes et écarts de documentation (D6, K2). 893 tests.

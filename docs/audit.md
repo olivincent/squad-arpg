@@ -1250,3 +1250,11 @@ source à la fois) : `clang-tidy -p build/jeu src/Escouade.cpp`.
   `inefficient-vector-operation` 5, `misplaced-widening-cast` 5…), rien n'a été corrigé.
 
 Fichiers les plus touchés : `Escouade.cpp` (8), `Personnage.cpp`, `Monstre.hpp` et `Chemin.cpp` (5).
+
+### Après l'étape 81
+
+**59 avertissements**, même mesure (les 44 sources, maintenant `src/*/*.cpp`), après le rangement en
+dossiers : le décompte et la répartition par règle sont ceux de la fin de l'étape 80, rien n'a été
+corrigé. Le filtre `HeaderFilterRegex` de `.clang-tidy` (`.*[/\\]src[/\\].*`) couvre déjà les
+sous-dossiers : il n'a pas changé, et les en-têtes rangés sont toujours analysés (`src/monstres/Monstre.hpp`, 5).
+Commande : `clang-tidy -p build/jeu src/escouade/Escouade.cpp`.

@@ -7,11 +7,11 @@
 #include <vector>
 
 #include "aides.hpp"
-#include "Aleatoire.hpp"
-#include "Cercle.hpp"
-#include "EntiteVue.hpp"
-#include "Monstre.hpp"
-#include "TileMap.hpp"
+#include "base/Aleatoire.hpp"
+#include "base/Cercle.hpp"
+#include "combat/EntiteVue.hpp"
+#include "monstres/Monstre.hpp"
+#include "monde/TileMap.hpp"
 
 // Aides communes aux tests de Monstre (test_Monstre*.cpp, étape 80). Chaque fonction est
 // `inline` (définie dans un en-tête).

@@ -172,3 +172,79 @@ dans `main` : chaque carte est neuve, avec une nouvelle graine.
 - Si la carte est trop petite pour `coteMax`, c'est une `assert`, pas une
   erreur gérée.
 - `creerNiveau()` reste le terrain fixe des tests.
+
+## État et limites à la fin de l'étape 80
+
+Repris tels quels de la section « État actuel » de `ROADMAP.md` à l'étape 81 (K1), pour ce
+sujet. `ROADMAP.md` n'en garde qu'un résumé. Les sections précédentes de ce document peuvent dire la
+même chose avec plus de détail.
+
+### État
+
+- **Fenêtre et carte** : fenêtre 1200 × 800 par défaut ; carte de 59 × 40 cases de
+  40 px (2360 × 1600 px). Depuis l'étape 59, `EcranJeu` joue sur un niveau
+  généré (`genererNiveau` : salles rectangulaires reliées par des couloirs en L de
+  2 cases de large, escouade au centre de la première salle, 1 à 3
+  monstres par autre salle, même graine que la partie, voir
+  `docs/generation.md`). F5 (à tout moment, touche
+  de débogage) et « Commencer » (écran de choix) génèrent une nouvelle carte avec une
+  nouvelle graine, affichée dans la console ; R (après une défaite ou une
+  victoire) ramène à l'écran de choix de l'escouade ; la carte faite à la main
+  (`creerNiveau()` dans `Niveau.cpp`) reste le terrain des tests. La caméra (`sf::View`) est centrée
+  sur l'escouade ; du noir apparaît au-delà des bords de la carte.
+
+### Limites connues
+
+- Si le générateur ne place aucun monstre (très rare), la partie est gagnée
+  dès le départ ; F5 génère une autre carte (le générateur n'est pas
+  modifié).
+- Couloirs générés (étape 60) : un couloir peut traverser une autre salle
+  ou longer un mur, et les couloirs ne forment pas de boucle (arbre).
+  Aucun problème de déplacement observé dans les couloirs de 2 cases.
+
+## Référence des modules
+
+Repris tel quel d'`ARCHITECTURE.md` à l'étape 81 (K1, « déplacer d'abord ») : données
+membres et interfaces publiques des modules de ce sujet. Le dossier de `src/` de chaque module est
+indiqué dans son titre. `ARCHITECTURE.md` n'en garde qu'une ligne par module.
+
+### `Niveau` (`monde/`) — les données d'un niveau
+
+`Niveau.hpp` / `.cpp` : structure sans comportement et une fonction libre.
+
+Données membres : `struct Niveau { std::vector<std::string> plan; float
+tailleCase; sf::Vector2f departEscouade; std::vector<sf::Vector2f>
+monstres; int armureMonstres = 0; }` (le jeu donne toujours son armure ; 0 est ce que recevaient déjà les niveaux de test qui n'en donnent pas), où `monstres` est un `std::vector<MonstreDuNiveau>` (`struct MonstreDuNiveau { sf::Vector2f position; int groupe; }`, groupe : identifiant opaque, même valeur = « vont ensemble »), et `struct PorteDuNiveau { std::vector<sf::Vector2i> cases; }` (cases du plan, du sol, qu'une porte ferme ; `Niveau::portes`, vide par défaut, vide dans `creerNiveau()`), et la constante
+`s_armureMonstresParDefaut` (20), partagée par `creerNiveau()` et
+`genererNiveau()`.
+
+| Fonction | Rôle |
+|---|---|
+| `Niveau creerNiveau()` | Le niveau des tests (carte de 59 × 40 cases de 40 px, départ en `(100, 100)`, six monstres d'armure `s_armureMonstresParDefaut`) ; pas de lecture de fichier |
+
+### `GenerateurDonjon` (`monde/`) — la carte générée
+
+`GenerateurDonjon.hpp` / `.cpp` : logique pure (sans SFML), fonctions libres
+sans état, plus deux structures. Le générateur aléatoire est reçu en
+paramètre (`Generateur&`).
+
+`struct Salle { int x, y, largeur, hauteur; }` : l'emprise d'une salle, en
+cases. `struct ParametresDonjon` : `largeurCarte` 59, `hauteurCarte` 40,
+`tailleCase` 40 px, `tentatives` 30, `coteMin` 6, `coteMax` 12, `marge` 1,
+`largeurCouloir` 2, `monstresParSalleMin` 1, `monstresParSalleMax` 3,
+`distanceMinDepart` 400 px, `tentativesParMonstre` 10. `struct Liaison { std::size_t de, vers; }` (indices de
+salles) et `enum class SensCouloir { HorizontalPuisVertical,
+VerticalPuisHorizontal }`.
+
+| Fonction | Rôle |
+|---|---|
+| `sf::Vector2i Salle::centre() const` | Case au centre de l'emprise (`x + largeur / 2`, `y + hauteur / 2`) |
+| `bool Salle::chevauche(const Salle& autre, int marge) const` | Les emprises sont-elles à moins de `marge` cases l'une de l'autre, ou se recouvrent-elles ? Deux salles qui se touchent ne se chevauchent pas avec une marge de 0 |
+| `std::vector<Salle> placerSalles(Generateur&, const ParametresDonjon&)` | Placement au hasard avec rejet ; au moins une salle ; emprises à l'intérieur de la bordure de mur |
+| `void creuserSalle(std::vector<std::string>& plan, const Salle&)` | Transforme l'emprise en sol (aujourd'hui tout le rectangle) |
+| `std::vector<Liaison> choisirLiaisons(const std::vector<Salle>&)` | Sans aléatoire : chaque salle i ≥ 1 est reliée à la plus proche (distance au carré entre centres) parmi les salles 0 à i−1 ; égalité : le plus petit indice ; n−1 liaisons |
+| `void creuserCouloir(std::vector<std::string>& plan, sf::Vector2i depart, sf::Vector2i arrivee, SensCouloir, int largeur)` | Couloir en L de `largeur` cases (étendue vers le bas et la droite), coude plein, départ et arrivée en sol |
+| `std::vector<MonstreDuNiveau> placerMonstres(Generateur&, const std::vector<Salle>&, sf::Vector2f depart, const ParametresDonjon&)` | Groupe : compteur qui augmente de 1 pour chaque salle qui reçoit au moins un monstre, partagé par les monstres de la salle. Aucun monstre dans la salle 0 ; dans chaque autre, un nombre tiré dans [min, max] de monstres, au centre d'une case intérieure (une case de marge). Rejet, `tentativesParMonstre` essais, monstre abandonné sinon : position à moins de 2 cases (Tchebychev) d'un monstre placé, ou à moins de `distanceMinDepart` px de `depart` |
+| `std::vector<PorteDuNiveau> placerPortes(const std::vector<std::string>& plan, const std::vector<Salle>&, int largeurCouloir)` | Sans aléatoire, sur le plan creusé. Pour chaque salle, l'anneau de cases juste à l'extérieur de l'emprise, côté par côté, sans les coins : une porte est une suite maximale de cases de sol qui fait exactement `largeurCouloir` cases, dont les deux cases qui la prolongent (coins compris) sont des murs et dont les cases au-delà de l'anneau sont du sol. Autre largeur : pas de porte. Doublons supprimés |
+| `bool contientUnCoinDiagonal(const std::vector<std::string>& plan)` | Le plan contient-il un damier : un carré de 2 × 2 cases (bords compris) dont deux cases en diagonale sont du sol et les deux autres des murs, dans l'une ou l'autre orientation ? Pure, sans aléatoire ; `genererNiveau` ne l'appelle pas, seul un test de propriété (graines 1 à 50) la lit ; `[[nodiscard]]` |
+| `Niveau genererNiveau(Generateur&, const ParametresDonjon&)` | Plan tout en mur, salles creusées, puis un couloir par liaison (sens tiré au hasard, un tirage par liaison) entre les centres ; `portes` de `placerPortes` (après les couloirs, sans tirage) ; départ de l'escouade au centre en pixels de la première salle, monstres de `placerMonstres` (appelée en dernier), `armureMonstres` = `s_armureMonstresParDefaut` |

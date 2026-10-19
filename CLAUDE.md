@@ -3,7 +3,12 @@
 Ce fichier est lu automatiquement par Claude Code au début de chaque
 session. Il décrit comment travailler sur ce projet.
 
-Documents de référence (à lire avant toute modification) :
+Documents de référence (à lire avant toute modification), en version
+courte : dossiers, une ligne par module et règles de dépendance ; état
+résumé et étapes à venir. Le détail d'un module (données membres,
+fonctions publiques, décisions, limites) est dans le fichier de `docs/`
+de son sujet (tableau à la fin d'`ARCHITECTURE.md`), à lire avant de le
+modifier.
 
 @ARCHITECTURE.md
 @ROADMAP.md
@@ -60,14 +65,18 @@ Documents de référence (à lire avant toute modification) :
    `git add` / `git commit -m "..."` ; Olivier la lance après avoir testé.
 8. **Fin d'une étape complète** : quand Olivier le demande, mettre à
    jour :
-   - `ROADMAP.md` : étape cochée, section « État actuel » ;
-   - `ARCHITECTURE.md` : le **quoi** — structure du dépôt, modules,
-     données membres, interfaces publiques ;
+   - `ROADMAP.md` (version courte) : étape cochée, « État actuel » résumé,
+     étapes à venir ;
+   - `ARCHITECTURE.md` (version courte) : arbre des dossiers, une ligne
+     par module, règles de dépendance et leurs exceptions ;
    - les fichiers de `docs/` correspondant aux modules modifiés
      pendant l'étape (tableau à la fin d'`ARCHITECTURE.md`) : le
-     **pourquoi** — décisions, compromis, limites connues.
+     **quoi** détaillé (section « Référence des modules » : données
+     membres, interfaces publiques) et le **pourquoi** — décisions,
+     compromis, limites connues ;
+   - `docs/historique.md` : l'étape dans la liste et son résumé.
    Ne pas dupliquer le détail d'un fichier de `docs/` dans
-   `ARCHITECTURE.md`. Un nouveau fichier dans `docs/` seulement si
+   `ARCHITECTURE.md` ni dans `ROADMAP.md`. Un nouveau fichier dans `docs/` seulement si
    aucun fichier existant ne couvre le sujet ; l'ajouter alors au
    tableau. Terminer en listant les fichiers de documentation
    modifiés.
@@ -77,7 +86,10 @@ Documents de référence (à lire avant toute modification) :
 - C++20, noms en **français** (classes, fonctions, variables), membres
   préfixés par `m_`.
 - Première ligne de chaque fichier : son chemin en commentaire
-  (`// ./src/Escouade.hpp`, `# ./CMakeLists.txt`).
+  (`// ./src/escouade/Escouade.hpp`, `# ./CMakeLists.txt`).
+- `#include` du projet à chemin complet depuis `src/`, même à l'intérieur
+  d'un dossier (`#include "combat/Skill.hpp"`) ; les tests incluent leurs
+  aides depuis la racine de `tests/` (`#include "aides.hpp"`).
 - `#pragma once` dans les en-têtes.
 - Fonctions membres de lecture `const` ; objets lourds en lecture passés
   par `const T&` ; petits types (`sf::Vector2f`, `float`) par valeur.
@@ -104,9 +116,11 @@ Documents de référence (à lire avant toute modification) :
 - État de jeu stocké dans des données (positions, tailles…), pas dans des
   objets graphiques SFML ; les formes SFML sont créées dans `dessiner`.
 - Coordonnées en pixels du **monde**, jamais de l'écran.
-- Tout nouveau `.cpp` de logique de jeu est ajouté à `add_library(squad_core
-  ...)` dans `CMakeLists.txt` ; un nouveau fichier de test est ajouté à
-  `add_executable(tests ...)`.
+- Chaque nouveau fichier naît dans le dossier de sa famille (`src/base/`,
+  `src/monde/`, `src/combat/`… ; règles de dépendance dans
+  `ARCHITECTURE.md`) et s'ajoute à `add_library(squad_core ...)` avec son
+  chemin (`src/combat/Skill.cpp`). Un nouveau fichier de test va dans le
+  dossier miroir de `tests/` et s'ajoute à `add_executable(tests ...)`.
 
 ## Commandes
 
@@ -121,7 +135,7 @@ cmake --preset jeu && cmake --build --preset jeu
 ctest --preset debug                                    # toute la suite, en parallèle
 ./build/debug/tests.exe "*a portee*"                    # quelques tests, par filtre
 ./build/jeu/main.exe                                    # exécution (c'est Olivier qui lance le jeu pour tester)
-clang-tidy -p build/jeu src/Escouade.cpp                # analyse statique d'une source (règles : .clang-tidy)
+clang-tidy -p build/jeu src/escouade/Escouade.cpp       # analyse statique d'une source (règles : .clang-tidy)
 ```
 
 Le dossier `build/` n'est jamais modifié à la main ni commité. Les deux presets

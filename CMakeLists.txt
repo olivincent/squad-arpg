@@ -34,56 +34,58 @@ else()
 endif()
 
 add_library(squad_core STATIC
-    src/TileMap.cpp
-    src/Escouade.cpp
-    src/Composition.cpp
-    src/Specialite.cpp
-    src/SelectionDEscouade.cpp
-    src/Provocations.cpp
-    src/Agresseurs.cpp
-    src/Chemin.cpp
-    src/Personnage.cpp
-    src/Deplacement.cpp
-    src/Monstre.cpp
-    src/Skill.cpp
-    src/Mobile.cpp
-    src/Cercle.cpp
-    src/TraceDeChemin.cpp
-    src/Autodefense.cpp
-    src/Encerclement.cpp
-    src/Engagement.cpp
-    src/BarreDeRaccourcis.cpp
-    src/BarreDeSkills.cpp
-    src/ClicInterface.cpp
-    src/EcranDeFin.cpp
-    src/EntiteVue.cpp
-    src/BarreDeVie.cpp
-    src/Eclaircir.cpp
-    src/PointsDeVie.cpp
-    src/Defense.cpp
-    src/Niveau.cpp
-    src/ObjetInteractif.cpp
-    src/ChampDeVision.cpp
-    src/Vision.cpp
-    src/GenerateurDonjon.cpp
-    src/Partie.cpp
-    src/TextesFlottants.cpp
-    src/Controleur.cpp
-    src/Reglages.cpp
-    src/TailleDeVue.cpp
-    src/EcranJeu.cpp
-    src/ListeDeBoutons.cpp
-    src/EcranChoixEscouade.cpp
-    src/EcranMenu.cpp
-    src/EcranOptions.cpp
+    src/monde/TileMap.cpp
+    src/escouade/Escouade.cpp
+    src/escouade/Composition.cpp
+    src/escouade/Specialite.cpp
+    src/escouade/SelectionDEscouade.cpp
+    src/escouade/Provocations.cpp
+    src/escouade/Agresseurs.cpp
+    src/monde/Chemin.cpp
+    src/escouade/Personnage.cpp
+    src/monde/Deplacement.cpp
+    src/monstres/Monstre.cpp
+    src/combat/Skill.cpp
+    src/monde/Mobile.cpp
+    src/base/Cercle.cpp
+    src/rendu/TraceDeChemin.cpp
+    src/combat/Autodefense.cpp
+    src/monde/Encerclement.cpp
+    src/combat/Engagement.cpp
+    src/interface/BarreDeRaccourcis.cpp
+    src/interface/BarreDeSkills.cpp
+    src/interface/ClicInterface.cpp
+    src/interface/EcranDeFin.cpp
+    src/combat/EntiteVue.cpp
+    src/rendu/BarreDeVie.cpp
+    src/base/Eclaircir.cpp
+    src/combat/PointsDeVie.cpp
+    src/combat/Defense.cpp
+    src/monde/Niveau.cpp
+    src/monde/ObjetInteractif.cpp
+    src/monde/ChampDeVision.cpp
+    src/monde/Vision.cpp
+    src/monde/GenerateurDonjon.cpp
+    src/jeu/Partie.cpp
+    src/interface/TextesFlottants.cpp
+    src/interface/Controleur.cpp
+    src/interface/Reglages.cpp
+    src/interface/TailleDeVue.cpp
+    src/interface/EcranJeu.cpp
+    src/interface/ListeDeBoutons.cpp
+    src/interface/EcranChoixEscouade.cpp
+    src/interface/EcranMenu.cpp
+    src/interface/EcranOptions.cpp
 )
+# Les #include donnent le chemin depuis src/ ("combat/Skill.hpp"), y compris
+# à l'intérieur d'un dossier.
 target_include_directories(squad_core PUBLIC src)
 target_link_libraries(squad_core PUBLIC SFML::Graphics)
 target_compile_options(squad_core PRIVATE ${AVERTISSEMENTS})
 
 add_executable(main
-    src/main.cpp
-    src/Application.cpp
+    src/app/main.cpp
+    src/app/Application.cpp
 )
 target_link_libraries(main PRIVATE squad_core)
 target_compile_options(main PRIVATE ${AVERTISSEMENTS})
@@ -93,64 +95,66 @@ add_custom_command(TARGET main POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:main>/assets)
 
 add_executable(tests
-    tests/test_TileMap.cpp
-    tests/test_Chemin.cpp
-    tests/test_Escouade_deplacement.cpp
-    tests/test_Escouade_combat.cpp
-    tests/test_Escouade_skills.cpp
-    tests/test_Escouade_skills_degats.cpp
-    tests/test_Escouade_skills_soin.cpp
-    tests/test_Escouade_skills_provocation.cpp
-    tests/test_Escouade_skills_zone.cpp
-    tests/test_Escouade_agresseurs.cpp
-    tests/test_Escouade_vue.cpp
-    tests/test_Escouade_places.cpp
-    tests/test_Escouade_degagement.cpp
-    tests/test_Composition.cpp
-    tests/test_Specialite.cpp
-    tests/test_SelectionDEscouade.cpp
-    tests/test_Provocations.cpp
-    tests/test_Agresseurs.cpp
-    tests/test_Deplacement.cpp
-    tests/test_Monstre.cpp
-    tests/test_Monstre_etats.cpp
-    tests/test_Monstre_retour.cpp
-    tests/test_Monstre_engagement.cpp
-    tests/test_Personnage.cpp
-    tests/test_Skill.cpp
-    tests/test_Mobile.cpp
-    tests/test_Cercle.cpp
-    tests/test_Autodefense.cpp
-    tests/test_Encerclement.cpp
-    tests/test_Engagement.cpp
-    tests/test_BarreDeRaccourcis.cpp
-    tests/test_BarreDeSkills.cpp
-    tests/test_ClicInterface.cpp
-    tests/test_EntiteVue.cpp
-    tests/test_BarreDeVie.cpp
-    tests/test_Eclaircir.cpp
-    tests/test_PointsDeVie.cpp
-    tests/test_Defense.cpp
-    tests/test_GenerateurDonjon.cpp
-    tests/test_Partie_clics.cpp
-    tests/test_Partie_skills.cpp
-    tests/test_Partie_monstres.cpp
-    tests/test_Partie_fin.cpp
-    tests/test_Partie_portes.cpp
-    tests/test_Partie_zonesDeControle.cpp
-    tests/test_Partie_evenements.cpp
-    tests/test_TextesFlottants.cpp
-    tests/test_ObjetInteractif.cpp
-    tests/test_ChampDeVision.cpp
-    tests/test_Vision.cpp
-    tests/test_Controleur.cpp
-    tests/test_Reglages.cpp
-    tests/test_TailleDeVue.cpp
-    tests/test_ListeDeBoutons.cpp
-    tests/test_EcranChoixEscouade.cpp
-    tests/test_EcranMenu.cpp
-    tests/test_EcranOptions.cpp
+    tests/monde/test_TileMap.cpp
+    tests/monde/test_Chemin.cpp
+    tests/escouade/test_Escouade_deplacement.cpp
+    tests/escouade/test_Escouade_combat.cpp
+    tests/escouade/test_Escouade_skills.cpp
+    tests/escouade/test_Escouade_skills_degats.cpp
+    tests/escouade/test_Escouade_skills_soin.cpp
+    tests/escouade/test_Escouade_skills_provocation.cpp
+    tests/escouade/test_Escouade_skills_zone.cpp
+    tests/escouade/test_Escouade_agresseurs.cpp
+    tests/escouade/test_Escouade_vue.cpp
+    tests/escouade/test_Escouade_places.cpp
+    tests/escouade/test_Escouade_degagement.cpp
+    tests/escouade/test_Composition.cpp
+    tests/escouade/test_Specialite.cpp
+    tests/escouade/test_SelectionDEscouade.cpp
+    tests/escouade/test_Provocations.cpp
+    tests/escouade/test_Agresseurs.cpp
+    tests/monde/test_Deplacement.cpp
+    tests/monstres/test_Monstre.cpp
+    tests/monstres/test_Monstre_etats.cpp
+    tests/monstres/test_Monstre_retour.cpp
+    tests/monstres/test_Monstre_engagement.cpp
+    tests/escouade/test_Personnage.cpp
+    tests/combat/test_Skill.cpp
+    tests/monde/test_Mobile.cpp
+    tests/base/test_Cercle.cpp
+    tests/combat/test_Autodefense.cpp
+    tests/monde/test_Encerclement.cpp
+    tests/combat/test_Engagement.cpp
+    tests/interface/test_BarreDeRaccourcis.cpp
+    tests/interface/test_BarreDeSkills.cpp
+    tests/interface/test_ClicInterface.cpp
+    tests/combat/test_EntiteVue.cpp
+    tests/rendu/test_BarreDeVie.cpp
+    tests/base/test_Eclaircir.cpp
+    tests/combat/test_PointsDeVie.cpp
+    tests/combat/test_Defense.cpp
+    tests/monde/test_GenerateurDonjon.cpp
+    tests/jeu/test_Partie_clics.cpp
+    tests/jeu/test_Partie_skills.cpp
+    tests/jeu/test_Partie_monstres.cpp
+    tests/jeu/test_Partie_fin.cpp
+    tests/jeu/test_Partie_portes.cpp
+    tests/jeu/test_Partie_zonesDeControle.cpp
+    tests/jeu/test_Partie_evenements.cpp
+    tests/interface/test_TextesFlottants.cpp
+    tests/monde/test_ObjetInteractif.cpp
+    tests/monde/test_ChampDeVision.cpp
+    tests/monde/test_Vision.cpp
+    tests/interface/test_Controleur.cpp
+    tests/interface/test_Reglages.cpp
+    tests/interface/test_TailleDeVue.cpp
+    tests/interface/test_ListeDeBoutons.cpp
+    tests/interface/test_EcranChoixEscouade.cpp
+    tests/interface/test_EcranMenu.cpp
+    tests/interface/test_EcranOptions.cpp
 )
+# Les tests incluent "aides.hpp" (etc.) depuis la racine de tests/.
+target_include_directories(tests PRIVATE tests)
 target_link_libraries(tests PRIVATE squad_core Catch2::Catch2WithMain)
 target_compile_options(tests PRIVATE ${AVERTISSEMENTS})
 

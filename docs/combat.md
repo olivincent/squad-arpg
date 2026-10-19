@@ -616,7 +616,7 @@ personnages sont dans `docs/formation.md`, le monstre dans
   0,3 s pour un monstre) → le **coup part** (la recharge est tirée à ce
   moment, comme à l'étape 56) → **en recharge** → prête. Le joueur voit chaque
   coup se préparer et on ne frappe plus en marchant.
-- **Machine à états dans `Skill`** (`PhaseSkill`, voir `ARCHITECTURE.md`) :
+- **Machine à états dans `Skill`** (`PhaseSkill`, voir « Référence des modules ») :
   une phase explicite plutôt que des booléens qui pourraient se contredire.
   `Skill` ne connaît pas la cible : l'entité retient sur qui porte le coup
   (`Personnage::m_actionEngagee`, une `ActionEngagee` dont la cible est un
@@ -938,7 +938,7 @@ l'enfoncerait dans un obstacle.
   origine, degats)`, donc le monstre devient agresseur comme après un coup normal ; côté monstre :
   `Monstre::recevoirDegats`, qui l'alerte. Les accesseurs de puissance (`getPuissanceAttaqueDeBase`,
   `getPuissanceAttaque`) sont des lectures : la recharge ne peut pas être touchée par construction.
-- **Module pur `Engagement`** (voir `ARCHITECTURE.md`) : une photo (`PhotoDesCamps`) des attaquants et des
+- **Module pur `Engagement`** (voir « Référence des modules ») : une photo (`PhotoDesCamps`) des attaquants et des
   cibles d'un seul sens, au début et à la fin de l'image, et la fonction `coupsDOpportunite`. Il ne connaît
   ni `Escouade`, ni `Monstre`, ni `Personnage`.
 - **Intégration dans `Partie`** : une photo des deux camps (`EntiteDeControle` : monstres ciblables,
@@ -972,7 +972,7 @@ l'enfoncerait dans un obstacle.
   aussi pourquoi il faut que CHAQUE monstre qui engage le tireur ait un autre personnage dans sa zone :
   un seul monstre non tenu suffirait à lui donner son coup gratuit.
 - **La règle de départ** est `monstreDontSeDegager` (`Engagement`, fonction pure, voir
-  `ARCHITECTURE.md`), évaluée une fois par image sur les positions du début de l'image. Elle renvoie
+  « Référence des modules »), évaluée une fois par image sur les positions du début de l'image. Elle renvoie
   l'identifiant du plus proche des monstres qui engagent le personnage : c'est autour de lui que se
   calcule la place d'attaque, et le renvoyer évite de refaire le tri dans `Escouade`. Elle ne connaît ni
   l'ancre ni les skills : ces conditions sont dans `Escouade::degagementVoulu`.
@@ -1097,3 +1097,433 @@ l'enfoncerait dans un obstacle.
   - la provocation, sans cible, n'a pas de mise en attente : demandée pendant l'activation d'un autre
     skill du guerrier, elle est toujours refusée (explicitement, dans `declencherSkill`) ;
   - rien à l'écran ne montre qu'un skill attend.
+
+## État et limites à la fin de l'étape 80
+
+Repris tels quels de la section « État actuel » de `ROADMAP.md` à l'étape 81 (K1), pour ce
+sujet. `ROADMAP.md` n'en garde qu'un résumé. Les sections précédentes de ce document peuvent dire la
+même chose avec plus de détail.
+
+### État
+
+- **Zones de contrôle et attaque d'opportunité** (étape 77) : une entité qui a une zone de contrôle
+  (20 px bord à bord pour le guerrier, le paladin et tout monstre ; 0 pour le prêtre, le mage et le
+  rôdeur, qui peuvent être engagés mais n'engagent personne) engage ce qui est dans sa zone. Quand B
+  sort de la zone de A en s'écartant au moins autant que A s'écarte de B, A le frappe gratuitement :
+  coup instantané, dégâts de son attaque de base (armure de la cible appliquée), sans toucher à sa
+  recharge ni à son coup en cours, sans ligne de vue. Pas de coup si A engage encore quelqu'un à la
+  fin de l'image ; au plus un coup par attaquant et par image (le fuyard le plus proche) ; un monstre
+  qui rentre à son poste n'est ni attaquant ni cible. Dans les deux sens (monstre → personnage,
+  personnage → monstre). Module pur `Engagement`, orchestré par `Partie` (deux photos par image, avant
+  et après le déplacement). F3 dessine un cercle fin magenta autour de chaque entité qui a une zone.
+  Un monstre tué par un coup gratuit est retiré et le verrou levé. Voir `docs/combat.md`,
+  `docs/monstre.md` et `docs/boucle-et-entrees.md`.
+- **Dégagement des tireurs** (étape 78) : un personnage sans zone de contrôle (prêtre, mage, rôdeur)
+  engagé par un ou plusieurs monstres se dégage vers sa place d'attaque (anneau autour du plus proche
+  d'entre eux, à 90 % de la portée de son attaque) dès que CHAQUE monstre qui l'engage a un autre
+  personnage dans sa zone : il part sans coup gratuit, puisque ce monstre engage encore quelqu'un à la
+  fin de l'image. Seul face à un monstre, il reste et tire. Conditions en plus : ancre à l'arrêt, aucun
+  skill en attente pour lui, aucune action en exécution (un coup en cours part d'abord). Pendant le
+  dégagement il ne frappe pas et ne s'arrête pas à portée ; fin à l'arrivée, si le monstre disparaît ou
+  rentre à son poste, si l'ancre bouge, si un skill est mis en attente ou engagé, ou s'il est encore
+  engagé alors que le porteur est parti. Priorité de `pointVoulu` : exécution > skill en attente >
+  dégagement > verrou > agresseur > formation. Règle pure `monstreDontSeDegager` (`Engagement`), état
+  et fin dans `Escouade::degagementVoulu`. Aucun affichage nouveau (F3 montre le point visé). Voir
+  `docs/combat.md` et `docs/formation.md`.
+- **Dégâts flottants** (étape 79) : au-dessus de chaque entité montent, 0,8 s durant, les dégâts réellement
+  subis (après armure) et les soins reçus. Blanc pour les dégâts sur un monstre, rouge sur un personnage,
+  vert précédé de « + » pour un soin, orange plus gros (20 px au lieu de 16) suivi de « ! » pour un coup
+  gratuit ; contour noir ; le texte monte de 30 px et s'efface dans la seconde moitié de sa vie. Plusieurs
+  textes sur la même cible dans la même image s'empilent de 14 px. Rien pour un montant de 0 : monstre qui
+  rentre à son poste (invulnérable), soin sur un allié plein. Dans le brouillard, rien n'est montré (F6 :
+  tout). Les textes finissent leur animation après une défaite ou une victoire. Mécanisme : `Partie`
+  inscrit chaque dégât et chaque soin appliqué dans une file d'`EvenementDeCombat` (données), qu'`EcranJeu`
+  prend après chaque image pour nourrir `TextesFlottants` (logique pure, dessin dans la vue du monde) ;
+  les fonctions qui appliquent dégâts et soins renvoient le montant réellement appliqué. Voir
+  `docs/combat.md`, `docs/boucle-et-entrees.md`.
+- **Temps d'exécution** (étape 57) : toute attaque de base a un temps
+  d'exécution, 0,15 s pour les personnages, 0,3 s pour les monstres,
+  pendant lequel l'attaquant est immobile. Pour engager un coup il faut
+  être vivant, immobile (`Mobile::estEnMouvement` faux), avoir l'attaque
+  prête et une cible à portée et en vue : on ne frappe plus en marchant.
+  Le coup engagé part toujours à la fin de l'exécution, même si la cible a
+  bougé. Il est annulé, sans recharge consommée, par la mort de l'auteur ou
+  de la cible ; pour un personnage aussi par un ordre de déplacement (clic,
+  déplacement continu, clic sur un autre monstre) ou par un de ses skills
+  (qui relance la recharge de l'attaque de base). Un monstre va toujours au
+  bout de son coup, même si une provocation change sa proie. La recharge
+  démarre au départ du coup. Le carré de l'entité s'éclaircit de 50 % pendant
+  l'exécution (le contour jaune du monstre verrouillé est inchangé). Les
+  skills ont leur propre temps d'activation (voir
+  « Skills »). Voir `docs/combat.md`.
+- **Aléatoire** (étape 56) : `Partie` possède un `Generateur`
+  (`std::mt19937`, `Aleatoire.hpp`) initialisé par une graine que `main.cpp`
+  tire avec `std::random_device` et affiche dans la console (au démarrage
+  et à chaque R) ; il est passé par référence jusqu'à `Skill`. La recharge
+  d'un `Skill` est un intervalle `[min, max]` tiré au déclenchement (aucun
+  tirage si `min == max`) : attaques de base des mêlées 0,3–0,7 s, des
+  tireurs 0,4–0,6 s, des monstres 0,7–1,3 s ; skills des personnages
+  fixes. Voir `docs/combat.md`.
+- **Armure** (étape 55) : `appliquerArmure` (module `Defense`) réduit les
+  dégâts reçus, même formule pour tous : réduction = armure / (armure +
+  100), arrondi au plus proche, au moins 1 par coup positif. Mêlées 50
+  (un tiers de moins), tireurs 0, monstres 20 (un sixième de moins). Le
+  soin n'est pas réduit. Rien n'est affiché à l'écran.
+- **Combat** : le monstre verrouillé est entouré d'un contour jaune.
+  L'escouade s'approche en formation jusqu'à ce que tous ses personnages
+  vivants soient à portée, puis s'arrête et chacun frappe selon sa propre
+  recharge. En combat, un personnage déjà à portée reste sur place : les
+  tireurs s'arrêtent à distance pendant que les mêlées vont jusqu'au
+  contact. Le combat ne se rompt que par la mort de la cible, un clic sur
+  le sol ou un clic sur un autre monstre.
+- **Autodéfense** : sans clic, chaque personnage vivant frappe de
+  lui-même un monstre qui se trouve à sa portée, à chaque image (à
+  l'arrêt, en marche, en combat). Il choisit le monstre verrouillé s'il
+  est à sa portée, sinon le plus proche à sa portée (bord à bord ;
+  égalité : le premier de la liste). Deux personnages peuvent frapper
+  deux monstres différents. Elle ne déplace personne : les mêlées ne
+  frappent que ce qui est à 20 px d'eux, les tireurs à 120 px.
+- **Agresseurs** : `Escouade` retient les monstres qui viennent de la
+  frapper (3 s sans nouveau coup, ou mort du monstre). Quand l'ancre est
+  à l'arrêt, un personnage vivant sans monstre à portée quitte sa place
+  pour aller vers l'agresseur le plus proche, à condition que celui-ci
+  soit à 100 px ou moins de sa place ; avec un monstre déjà à portée, il
+  reste sur place. L'ordre du joueur (ancre en mouvement), le skill en
+  attente et le verrou (personnage à portée du monstre verrouillé) passent
+  avant.
+- **Skills** : quatre, de classe `Skill` (type, portée, puissance, recharge, rayon de zone, temps d'activation).
+  **Étape 74** : un skill est désigné par une `AdresseSkill` (place du personnage et `IdSkill`
+  stable : `FrappePuissante`, `Provocation`, `Soin`, `Explosion`) ; un personnage connaît une liste de
+  skills, une seule action engagée à la fois (engager un second skill pendant l'activation d'un autre est
+  refusé), recharges indépendantes. **Étape 75** : les skills se lancent par la barre
+  de raccourcis (par défaut Q → frappe du guerrier, W → sa provocation, A → soin du prêtre, Z → explosion
+  du mage, au clavier ou au clic ; ci-dessous, « touche 2 », « touche 3 » et « touche 4 » désignent W, A et Z) ; la
+  visée dépend du type `Zone` du skill. Frappe (Q) :
+  skill de dégâts du guerrier (25 dégâts, recharge 5 s, portée
+  de mêlée, 20 px), sur le monstre verrouillé ou, sans verrou, sur le
+  monstre à portée que ce guerrier frapperait en autodéfense (alors sans
+  marche ni mise en attente). Touche 3 : soin du prêtre
+  (30 points de vie, recharge 8 s, portée 40 px), sur le
+  vivant le plus blessé (soigneur inclus), permis hors combat. Touche 2 :
+  provocation du guerrier (zone de 150 px depuis son centre,
+  4 s, recharge 10 s) : tous les monstres dans la zone le prennent pour
+  proie au lieu du personnage le plus proche, sans dégâts ni attente
+  (consommée même s'il n'y a aucun monstre dans la zone) ; elle prend fin à
+  l'écoulement de la durée, à la mort du provocateur ou à celle du
+  monstre. Touche 4 : skill de zone du mage (15 dégâts, recharge 8 s,
+  zone de 60 px, portée 250 px) en deux temps : 4 fait entrer en
+  mode visée (un cercle jaune de 60 px suit le curseur, un cercle blanc
+  montre la portée autour du lanceur), puis un clic gauche lance le sort
+  au point visé (même sur un monstre : pas de verrou). À portée (bord à
+  bord) et en vue (ligne de vue entre le lanceur et le point, sans mur),
+  son activation commence tout de suite ; hors portée ou derrière un mur, le lanceur
+  quitte sa place, marche vers le point (contournant le mur) et commence
+  l'activation au point fixé au clic dès qu'il est à portée et en vue (un point
+  dans un mur est refusé, sans recharge ; seule sa mort l'annule : ni verrou, ni clic, ni ordre de
+  déplacement). Le sort touche tous les monstres dont le bord est dans le
+  cercle au moment du départ et qui sont en vue du point d'impact (centre
+  à centre, il ne traverse pas les murs), et coûte sa recharge même si la zone est vide. Clic
+  droit, Échap ou 4 annulent sans recharge ; le déplacement continu est
+  suspendu pendant la visée. Un skill de dégâts ou de soin hors de portée met son lanceur en marche vers la
+  cible et commence son activation à l'arrivée (un seul skill en attente à
+  la fois ; annulé par la mort du lanceur, celle de la cible ou son retour
+  à pleine vie pour un soin, la rupture du combat pour des dégâts). Une
+  recharge, qui ne démarre qu'au départ du skill, est montrée par la barre de skills (la
+  barre orange sous les personnages a été supprimée à l'étape 74).
+  **Temps d'activation** (étape 58) : chaque skill passe par la même machine
+  à états que l'attaque de base : dégâts 0,3 s, provocation 0,2 s, soin
+  0,6 s, zone 0,8 s. L'appui est un ordre : il n'exige pas d'être immobile,
+  mais le lanceur s'arrête sur place pendant toute l'activation (son carré
+  s'éclaircit, l'icône a un contour blanc), puis l'effet part, évalué à ce
+  moment (monstres dans la zone, cible du coup ou du soin). Le coup de base
+  engagé est annulé au début et sa recharge est relancée au départ.
+  Pendant l'activation le skill n'est pas prêt : un nouvel appui est refusé
+  et la touche 4 n'entre pas en visée ; les skills d'autres personnages
+  restent permis (plusieurs activations simultanées). Seuls la mort du
+  lanceur, celle du monstre visé (dégâts) ou celle de l'allié visé (soin)
+  l'annulent, sans recharge ; un ordre de déplacement, un clic au sol ou un
+  verrouillage ne l'annulent pas. Pas de revérification de portée ni de vue
+  au départ. **Lanceur occupé** (étape 80) : un skill demandé pendant l'activation d'un autre skill du
+  même personnage (guerrier : provocation puis frappe ; paladin ; rôdeur) n'est plus perdu : il est mis
+  en attente et part dès que le lanceur est libre ; un skill déjà en attente le reste si sa cible
+  devient atteignable pendant cette activation. Sans verrou, une frappe ainsi en attente part si le
+  monstre est encore atteint quand le lanceur est libre, sinon elle est abandonnée, sans recharge.
+  Voir `docs/combat.md`.
+- **Blocage mutuel** : les monstres se bloquent entre eux et sont bloqués
+  par les personnages vivants ; les personnages sont bloqués par les
+  monstres. L'ancre ne bloque personne et n'est pas bloquée.
+
+### Limites connues
+
+- Pas d'interruption de l'activation d'un skill par les dégâts reçus ; un
+  seul skill en attente pour toute l'escouade (depuis l'étape 80, un skill attend aussi que son
+  lanceur ait fini l'activation d'un autre de ses skills : pendant ce temps, l'ordre de skill d'un
+  autre personnage est refusé) ; la provocation, sans cible, ne peut pas attendre : demandée pendant
+  l'activation d'un autre skill du guerrier, elle est refusée (le mode de cible « Soi » de R4 doit
+  lever cette limite) ; pas de barre de progression d'incantation ; pas de revérification de portée
+  ni de vue au départ du skill.
+- Le skill de zone n'a pas d'effet visuel à
+  l'impact et ne touche pas les alliés ; son lanceur, bloqué par un
+  monstre ou face à un point inaccessible, peut rester en attente.
+- Zones de contrôle (étape 77) : un seul coup gratuit par attaquant et par image, sans délai de
+  réaction (peut sembler généreux) ; un pas de côté de A qui rompt le contact compte comme une fuite
+  de B (égalité des projections : B est le fuyard) ; toute la poussée de la séparation douce compte
+  comme déplacement ; un tireur au contact d'un monstre seul, ou de plusieurs dont un n'est pas tenu,
+  qui recule reçoit le coup gratuit (l'étape 78 ne le dégage que si chaque monstre est tenu) ; pas de
+  skill qui annule la pénalité ; pas d'effet visuel propre au coup gratuit (la barre de vie suffit).
+- Dégagement (étape 78) : un tireur bloqué pendant son recul n'en sort que si la règle change
+  (`Personnage` n'expose pas `estBloque`) ; l'arrivée est mesurée à 0,01 px de la place (une poussée de
+  la séparation douce peut la retarder) ; une fois arrivé, sans verrou ni agresseur connu, les règles
+  habituelles le ramènent vers sa place de formation (en partie réelle le monstre frappe le guerrier et
+  devient agresseur : le tireur reste) ; une action déclenchée par le joueur interrompt le recul, que la
+  règle relance ensuite si le tireur est toujours engagé et tenu ; un monstre qui change de cible peut
+  relancer le dégagement.
+- Dégâts flottants (étape 79) : le nombre est le montant après armure, sans plafond par les points de
+  vie restants (le coup qui tue affiche son plein montant) ; pas d'« Immunisé » sur un monstre qui
+  rentre, pas de critique ni de « raté » ; pas de nom de skill ni de « Provoqué » (étape 83) ; la taille
+  du texte est fixe en pixels du monde, donc elle suit le zoom de la vue ; la visibilité d'un événement
+  est jugée à la fin de l'image où il a lieu ; deux textes de la même cible ajoutés dans des images
+  différentes mais proches dans le temps peuvent se superposer en partie.
+- Provocation stricte (étape 66) : un monstre provoqué ne frappe que son
+  provocateur, même s'il est collé à un autre personnage ; si le provocateur
+  est caché, il ne frappe personne.
+- Un coup engagé part sans revérifier portée ni vue ; seule la marche
+  empêche d'engager (pas de ralentissement de l'escouade engagée).
+- Les entités sont dessinées en carrés mais mesurées en cercles : en
+  diagonale, l'écart visible est plus petit que la portée (d'une dizaine
+  de pixels).
+- L'autodéfense ne déplace personne : un mêlée attaqué par un monstre
+  qui s'arrête à 15 px de lui riposte sur place, mais un tireur ou un
+  mêlée qui n'a rien à portée ne réagit pas ; elle ne regarde que la
+  portée (pas de notion de « qui attaque qui »). Le déplacement vers
+  un agresseur (voir « Agresseurs ») s'y ajoute, mais seulement dans la
+  laisse de 100 px et ancre à l'arrêt.
+
+## Référence des modules
+
+Repris tel quel d'`ARCHITECTURE.md` à l'étape 81 (K1, « déplacer d'abord ») : données
+membres et interfaces publiques des modules de ce sujet. Le dossier de `src/` de chaque module est
+indiqué dans son titre. `ARCHITECTURE.md` n'en garde qu'une ligne par module.
+
+### `Provocations` (`escouade/`) — les monstres provoqués
+
+Possédée par valeur par `Escouade`. Données privées : `m_provocations`
+(`std::vector<Provocation>`, structure publique : `id` du monstre, `place` du
+provocateur de 1 à N, `tempsRestant`).
+
+| Fonction | Rôle |
+|---|---|
+| `void provoquer(int id, std::size_t place, float duree)` | Ajoute la provocation, ou remet la durée au maximum (et change le provocateur) si ce monstre l'est déjà ; pas de doublon. La validation de la place reste dans `Escouade::provoquer` |
+| `void mettreAJour(float dt)` | Fait écouler le temps ; retire les provocations échues |
+| `void retirerMonstresAbsents(const std::vector<EntiteVue>& monstres)` | Retire les monstres absents de la liste (morts) |
+| `void retirerProvocateur(std::size_t place)` | Retire les provocations de ce provocateur (mort) |
+| `std::optional<std::size_t> provocateurDe(int id) const` | Place du provocateur de ce monstre, vide s'il n'est pas provoqué |
+| `const std::vector<Provocation>& liste() const` | Provocations en cours |
+
+### `Agresseurs` (`escouade/`) — les monstres qui ont frappé l'escouade
+
+Possédée par valeur par `Escouade`. Données privées : `m_agresseurs`
+(`std::vector<Agresseur>`, structure publique : `EntiteVue monstre`,
+`tempsRestant`). Mémoire de 3 s sans nouveau coup du même monstre.
+
+| Fonction | Rôle |
+|---|---|
+| `void enregistrer(int id, sf::Vector2f origine)` | Ajoute l'agresseur (cercle de rayon nul centré sur l'origine du coup), ou remet son temps à 3 s et son centre à l'origine s'il est connu. La règle « coup à 0 = rien » reste dans `Escouade::recevoirDegats` |
+| `void mettreAJour(float dt)` | Fait écouler le temps ; oublie les agresseurs échus |
+| `void actualiser(const std::vector<EntiteVue>& monstres)` | Oublie les absents (morts) et met à jour le cercle des autres |
+| `std::vector<EntiteVue> monstresVus() const` | Les agresseurs en `EntiteVue` ; `Escouade::mettreAJour` l'appelle une fois par image |
+| `const std::vector<Agresseur>& liste() const` | Agresseurs retenus |
+
+### `Skill` (`combat/`) — une capacité spéciale
+
+Un `TypeSkill` (`enum class { Degats, Soin, Provocation, Zone }`), une
+portée, une puissance (dégâts, points de vie rendus ou durée en secondes,
+dégâts d'un skill de zone), une recharge, ainsi qu'un rayon de zone (la
+taille de la zone touchée par un skill de zone ; 0, non lu, pour un skill
+à cible unique). Sert aussi d'attaque de base : un `Skill` de type
+`Degats`, de rayon de zone 0.
+Il suit une machine à états (`enum class PhaseSkill { Pret, EnExecution, EnRecharge }`) : `commencer` (prêt → en exécution), `avancer` (fin de l'exécution : le coup part, la recharge est tirée, → en recharge), `annuler` (en exécution → prêt, sans recharge). Les skills des personnages passent par la même machine à états (étape 58 : activation de 0,3 s, 0,2 s, 0,6 s et 0,8 s pour dégâts, provocation, soin et zone) ; avec un temps nul, l'effet part dans l'image de l'engagement. Il ne connaît pas la cible du coup engagé, c'est son propriétaire qui la retient.
+Possédé par valeur par `Personnage` (attaque de base, plus un skill en
+option) et par `Monstre` (son attaque). Ne connaît ni la position de son
+propriétaire ni sa cible : il reçoit deux `Cercle`. Ne dessine rien.
+
+Données membres : `m_type` (`TypeSkill`), `m_portee` (bord à bord),
+`m_puissance`, `m_rechargeMin`, `m_rechargeMax` (intervalle de recharge,
+en secondes), `m_tempsRecharge` (durée de la recharge en cours, dernier
+tirage), `m_recharge`, `m_rayonZone` (`float`, en pixels), `m_tempsExecution`, `m_executionRestante` (secondes), `m_phase` (`PhaseSkill`).
+
+| Fonction | Rôle |
+|---|---|
+| `Skill(TypeSkill type, float portee, int puissance, float rechargeMin, float rechargeMax, float rayonZone, float tempsExecution = 0)` | Crée le skill de ce type, avec cette portée, cette puissance, cet intervalle de recharge (`assert(0 <= min <= max)` ; fixe si `min == max`), ce rayon de zone et ce temps d'exécution (`assert >= 0`) ; prêt à la création |
+| `bool commencer()` | Prêt → en exécution ; faux, sans rien changer, dans toute autre phase ; `[[nodiscard]]` |
+| `bool avancer(float dt, Generateur& generateur)` | En exécution : fait avancer l'exécution ; vrai une seule fois, au départ du coup (la recharge est alors tirée, phase → en recharge). Autres phases : comme `mettreAJour`, faux ; `[[nodiscard]]` |
+| `void annuler()` | En exécution → prêt, sans recharge ; sans effet ailleurs |
+| `PhaseSkill getPhase() const` | Phase actuelle |
+| `int getPuissance() const` | Puissance du skill |
+| `void mettreAJour(float dt)` | Décrémente la recharge, sans descendre sous zéro ; en recharge écoulée, repasse à prêt |
+| `bool estAPortee(Cercle origine, Cercle cible) const` | `distanceBordABord(origine, cible)` est-elle `<=` `m_portee` ? |
+| `void relancerRecharge(Generateur& generateur)` | Remet la recharge au complet, sans déclencher : `min` si `min == max` (aucun tirage), sinon un tirage uniforme (`std::uniform_real_distribution<float>`) dans `[min, max]` |
+| `float getProgressionRecharge() const` | De 0 (juste après le déclenchement) à 1 (prêt) ; 1 si le temps de recharge est nul |
+| `float getRechargeRestante() const` | Temps de recharge restant, en secondes (0 si prêt) |
+| `TypeSkill getType() const` | Type du skill |
+| `float getRayonZone() const` | Rayon de zone du skill |
+| `float getPortee() const` | Portée du skill (bord à bord) |
+
+### `IdSkill`, `SkillConnu`, `AdresseSkill` (`combat/`) — désigner un skill
+
+`IdSkill.hpp`, `SkillConnu.hpp` et `AdresseSkill.hpp`, sans `.cpp`. Voir `docs/combat.md`.
+
+- `enum class IdSkill { FrappePuissante, Provocation, Soin, Explosion, FrappeSacree, ImpositionDesMains, TirPercant, PluieDeFleches }` : identifiant **stable** d'un skill, indépendant de l'ordre dans la liste d'un personnage et de la touche.
+- `struct SkillConnu { IdSkill id; Skill skill; }` : un skill d'un personnage avec son identifiant (`Skill` ne porte pas d'identifiant : il sert aussi d'attaque de base et d'attaque des monstres).
+- `struct AdresseSkill { std::size_t place; IdSkill id; }` (comparable, `operator==` par défaut) : le personnage (place de 1 à N) et le skill. Une adresse invalide (place invalide ou skill inconnu de ce personnage) est traitée comme une place invalide : refus, liste vide, `optional` vide.
+
+### `Coup` (`combat/`) — ce qui circule entre `Escouade` et `Partie`
+
+`Coup.hpp`, sans `.cpp` : `struct Coup { int idMonstre; int degats; }` (des
+dégâts à infliger à ce monstre). Sortie d'`Escouade`.
+
+### `EvenementDeCombat` (`combat/`) — ce qui s'est passé, en données
+
+`EvenementDeCombat.hpp`, sans `.cpp` : `enum class TypeEvenement { Degats, Soin }`, `enum class Camp { Escouade, Monstres }` et `struct EvenementDeCombat { TypeEvenement type; Camp campCible; int idCible; int montant; sf::Vector2f position; bool opportunite; }`. `idCible` : place du personnage (1 à N) ou identifiant du monstre ; `montant` : ce qui a réellement été appliqué (armure comprise, soin plafonné), jamais 0 ; `position` : COPIE du centre de la cible à ce moment (le monstre tué par ce coup est retiré dans la même image, l'événement lui survit) ; `opportunite` : coup gratuit. Patron « file d'événements » : produits par `Partie` (`prendreEvenements`), lus par `EcranJeu`, sans callback ni observateur. Voir `docs/combat.md`.
+
+### `TextesFlottants` (`interface/`) — les dégâts et soins à l'écran
+
+`TextesFlottants.hpp` / `.cpp`. Logique pure (sans fenêtre) ; seul `dessiner` utilise SFML. Possédé par `EcranJeu`. Un `TexteFlottant { EvenementDeCombat evenement; float age; int rang; std::size_t image; }` par événement. Donnée membre : `m_textes` (`std::vector<TexteFlottant>`), `m_image` (`std::size_t`, numéro de l'image courante pour l'empilement) ; constante `static constexpr float s_dureeDeVie = 0.8f`.
+
+| Fonction | Rôle |
+|---|---|
+| `void ajouter(const EvenementDeCombat&)` | Ajoute un texte d'âge 0. Son rang est le nombre de textes déjà ajoutés dans cette image pour la même cible (`campCible` et `idCible`) : empilement déterministe, sans hasard |
+| `void mettreAJour(float dt)` | Fait vieillir tous les textes, retire ceux qui ont atteint 0,8 s, passe à l'image suivante |
+| `const std::vector<TexteFlottant>& actifs() const` | Les textes à l'écran ; `[[nodiscard]]` |
+| `void dessiner(sf::RenderTarget&, const sf::Font&) const` | Un `sf::Text` par texte, centré sur `positionDuTexte`, contour noir de 1 px, opacité de `opaciteDuTexte` (à appeler avec la vue du monde) |
+| `float hauteurDuTexte(float age)` | Fonction libre pure : 20 px au-dessus du centre de la cible à la naissance, 30 px de plus sur toute la durée de vie ; `[[nodiscard]]` |
+| `float opaciteDuTexte(float age)` | Pure : 1 pendant la première moitié de la vie, puis linéaire jusqu'à 0 à 0,8 s ; `[[nodiscard]]` |
+| `sf::Vector2f positionDuTexte(const TexteFlottant&)` | Pure : position de l'événement, relevée de `hauteurDuTexte(age)` et de 14 px par rang ; `[[nodiscard]]` |
+| `std::string libelleDuTexte(const EvenementDeCombat&)` / `sf::Color couleurDuTexte(...)` / `unsigned int tailleDuTexte(...)` | Purs. Dégâts « 12 », coup gratuit « 12! » (orange, 20 px), soin « +12 » (vert) ; dégâts sur un monstre blancs, sur un personnage rouges ; 16 px sinon ; `[[nodiscard]]` |
+
+### `ActionEngagee` (`combat/`) — l'action qu'un personnage prépare
+
+`ActionEngagee.hpp`, sans `.cpp` : `enum class TypeAction { AttaqueDeBase, Skill }` et `struct ActionEngagee { TypeAction action; std::optional<Cible> cible; std::optional<IdSkill> skill; }` (`skill` est vide pour une attaque de base). La cible est vide pour la provocation ; pour une attaque de base, c'est une `CibleMonstre` dont le `cercle` n'est pas renseigné. Stockée par `Personnage` (`m_actionEngagee`), résolue par `Escouade`. `TypeAction` sert aussi à `Escouade::peutAtteindre` (portée de l'attaque de base ou du skill).
+
+### `EntiteVue` (`combat/`) — une entité telle que l'autre camp la voit
+
+`EntiteVue.hpp` / `.cpp` : `struct EntiteVue { int id; Cercle cercle; }` (l'identifiant d'un monstre, ou la place 1 à N d'un personnage)
+(entrée d'`Escouade` et d'`Autodefense`) et une fonction libre.
+
+| Fonction | Rôle |
+|---|---|
+| `const EntiteVue* trouverEntite(const std::vector<EntiteVue>& entites, int id)` | Entité portant cet identifiant, `nullptr` si elle est absente (`[[nodiscard]]`) |
+
+`Partie` a son équivalent pour `std::vector<Monstre>`, `trouverMonstre`
+(fonction privée).
+
+### `TypeSkill` (`combat/`) — le type d'un skill
+
+`TypeSkill.hpp`, sans `.cpp` : `enum class TypeSkill { Degats, Soin,
+Provocation, Zone }`. Inclus par `Skill`, `EtatSkill`, `BarreDeSkills` et
+`Escouade` sans qu'ils dépendent de la classe `Skill`.
+
+### `Autodefense` (`combat/`) — quel monstre un combattant frappe
+
+Deux fonctions libres, sans état. `choisirCibleAFrapper` est utilisée par
+`Escouade::attaquer`, `Escouade::choisirCible` et `Monstre` (cible de frappe), `choisirAgresseurAViser`
+par `Escouade::mettreAJour`.
+
+| Fonction | Rôle |
+|---|---|
+| `std::optional<int> choisirCibleAFrapper(Cercle origine, const std::function<bool(Cercle)>& estAPortee, const std::vector<EntiteVue>& entites, std::optional<int> idPrefere)` | Identifiant de l'entité préférée (verrouillée, ou proie) si elle est à portée ; sinon de la plus proche (bord à bord) parmi celles à portée (égalité : la première de la liste) ; sinon vide. Même règle pour les deux camps. `estAPortee` dit si un cercle est à portée (celle de l'attaque ou celle d'un skill) |
+| `std::optional<EntiteVue> choisirAgresseurAViser(Cercle personnage, sf::Vector2f place, float laisse, const std::vector<EntiteVue>& agresseurs)` | Agresseur (identifiant et cercle) le plus proche du personnage (bord à bord ; égalité : le premier de la liste) parmi ceux dont le centre est à `laisse` ou moins de `place` ; sinon vide |
+
+### `Engagement` (`combat/`) — zones de contrôle et attaque d'opportunité
+
+`Engagement.hpp` / `.cpp` : deux structures de données, une structure de résultat et trois fonctions libres, sans état et sans SFML graphique. Ne connaît ni `Escouade`, ni `Monstre`, ni `Personnage`, ni `Partie` (sur le modèle d'`Autodefense`) : elle reçoit des cercles et des zones. Voir `docs/combat.md`.
+
+`struct EntiteDeControle { int id; Cercle cercle; float zone; }` (id d'un monstre, ou place 1 à N d'un personnage ; zone en pixels, bord à bord ; 0 = n'engage personne). `struct PhotoDesCamps { std::vector<EntiteDeControle> attaquants; std::vector<EntiteDeControle> cibles; }` (les deux camps d'UN sens ; pour l'autre sens, on échange les deux listes). `struct CoupDOpportunite { int idAttaquant; int idCible; }`.
+
+| Fonction | Rôle |
+|---|---|
+| `bool engage(const EntiteDeControle& a, const EntiteDeControle& b)` | A engage B : zone de A > 0 et `distanceBordABord` <= zone de A. Pas symétrique ; `[[nodiscard]]` |
+| `std::vector<CoupDOpportunite> coupsDOpportunite(const PhotoDesCamps& avant, const PhotoDesCamps& apres)` | Coups gratuits d'un sens, d'après les photos du début et de la fin de l'image. Paire (A engage B) présente au début et rompue à la fin, B ayant fui (déplacement projeté sur la droite A→B du début : B s'est écarté au moins autant que A) : A frappe B, sauf si A engage encore quelqu'un à la fin, ou si A ou B est absent de la photo de fin. Au plus un coup par attaquant : le fuyard le plus proche à la fin (bord à bord ; égalité : le premier de `avant.cibles`). Ordre du résultat : celui de `avant.attaquants` ; `[[nodiscard]]` |
+| `std::optional<int> monstreDontSeDegager(const EntiteDeControle& personnage, const std::vector<EntiteDeControle>& personnages, const std::vector<EntiteDeControle>& monstres)` | Règle de départ du dégagement (étape 78). `personnage` sans zone (> 0 : jamais), engagé par au moins un monstre, et CHAQUE monstre qui l'engage engage aussi un AUTRE personnage de `personnages` (identifiant différent ; lui-même y figure sans compter). Renvoie l'identifiant du plus proche des monstres qui l'engagent (bord à bord ; égalité : le premier) ; vide sinon. Ne connaît ni l'ancre, ni les skills, ni l'état de dégagement : c'est l'affaire d'`Escouade::degagementVoulu` ; `[[nodiscard]]` |
+
+### `Cible` (`combat/`) — ce que vise un skill
+
+`Cible.hpp`, sans `.cpp` : `struct CibleAllie { std::size_t place; }`
+(de 1 à N), `struct CibleMonstre { int id; Cercle cercle; }`,
+`struct CiblePoint { sf::Vector2f point; }` (point fixé au clic, pour un
+skill de zone en attente) et
+`using Cible = std::variant<CibleAllie, CibleMonstre, CiblePoint>`. L'absence de
+cible est un `std::optional<Cible>` vide. `Cible.hpp` définit aussi
+`template<class... Ts> struct Surcharges : Ts... { using Ts::operator()...; }`
+pour `std::visit` : une lambda par alternative, et un cas oublié est une
+erreur de compilation.
+
+### `EtatSkill` (`combat/`) — le skill d'une place, pour l'affichage
+
+`EtatSkill.hpp`, sans `.cpp` : `struct EtatSkill { IdSkill id; TypeSkill type; float progression; float tempsRestant; bool lanceurVivant; bool enActivation; }`. `progression` va de 0 (juste lancé) à 1 (prêt), `tempsRestant` est en secondes, `enActivation` est vrai pendant l'activation du skill. Produite par `Escouade::etatDuSkill`, consommée par `BarreDeSkills`.
+
+### `BarreDeVie` (`rendu/`) — la barre de vie d'une entité
+
+Deux fonctions libres, sans état, utilisées par `Personnage::dessiner` et
+`Monstre::dessiner`, et une constante `s_hauteurBarreDeVie` (5 px).
+
+| Fonction | Rôle |
+|---|---|
+| `sf::Vector2f positionBarreDeVie(sf::Vector2f centre, sf::Vector2f taille)` | Coin haut-gauche de la barre d'une entité de ce centre et de cette taille : alignée sur son bord gauche, 6 px au-dessus de son carré |
+| `void dessinerBarreDeVie(sf::RenderTarget& rendu, sf::Vector2f position, float largeur, float ratio)` | Fond gris, puis rectangle vert proportionnel à `ratio` (0 à 1) |
+
+### `Eclaircir` (`base/`) — éclaircir et assombrir une couleur
+
+Deux fonctions libres, sans état. `eclaircir` est l'indice visuel d'un coup en préparation (`Personnage::dessiner`, `Monstre::dessiner`) ; `assombrir` donne les nuances des doublons de classe (`composer`).
+
+| Fonction | Rôle |
+|---|---|
+| `sf::Color eclaircir(sf::Color couleur, float fraction)` | La couleur mélangée au blanc à raison de `fraction` (0 = inchangée, 1 = blanc) ; l'opacité est conservée ; `[[nodiscard]]` |
+| `sf::Color assombrir(sf::Color couleur, float fraction)` | La couleur mélangée au noir à raison de `fraction` (0 = inchangée, 1 = noir) ; l'opacité est conservée ; `[[nodiscard]]` |
+
+### `Aleatoire` (`base/`) — le générateur aléatoire
+
+`Aleatoire.hpp`, sans `.cpp` : `using Generateur = std::mt19937;`. Le reste
+du code écrit `Generateur` et ne dépend pas de l'algorithme. Possédé par
+`Partie` (un seul, initialisé par une graine), passé PAR RÉFÉRENCE le long
+de la chaîne `Partie` → `Escouade` → `Personnage` → `Skill` et `Partie` →
+`Monstre` → `Skill` ; jamais copié, jamais gardé, jamais global.
+
+### `Defense` (`combat/`) — l'armure
+
+Une fonction libre pure, sans état, utilisée par `Personnage::recevoirDegats`
+et `Monstre::recevoirDegats`. Ne dépend d'aucun autre module ni de SFML.
+
+| Fonction | Rôle |
+|---|---|
+| `int appliquerArmure(int montant, int armure)` | Dégâts réellement subis : `montant × K / (armure + K)` avec K = 100 (rendement décroissant, jamais 100 %), arrondi au plus proche, au moins 1 si `montant > 0`, 0 si `montant == 0` ; `assert(montant >= 0)` et `assert(armure >= 0)` ; `[[nodiscard]]` |
+
+### `PointsDeVie` (`combat/`) — les points de vie d'une entité
+
+Classe à sémantique de valeur, possédée par valeur par `Personnage` et
+`Monstre`, qui lui délèguent leurs façades (`recevoirDegats`, `estVivant`…).
+Ne dépend d'aucun autre module ni de SFML. Invariants : `0 <= valeur <=
+maximum`, `maximum > 0`, une valeur à 0 ne remonte plus.
+
+Données membres : `m_valeur`, `m_maximum`.
+
+| Fonction | Rôle |
+|---|---|
+| `explicit PointsDeVie(int maximum)` | Commence plein ; `assert(maximum > 0)` |
+| `void subirDegats(int montant)` | `assert(montant >= 0)` ; valeur bornée à 0 ; un montant de 0 est permis |
+| `int soigner(int montant)` | `assert(montant >= 0)` ; valeur bornée au maximum ; sans effet si la valeur est à 0 ; renvoie les points réellement rendus (0 à pleine vie ou pour un mort) |
+| `bool estVivant() const` | Valeur `> 0` (`[[nodiscard]]`) |
+| `int getValeur() const` / `int getMaximum() const` | Valeur actuelle et maximum |
+| `float getRatio() const` | Valeur / maximum |
+
+### `Cercle` (`base/`) — la forme d'une entité
+
+Une structure et une fonction libre, sans comportement.
+
+Données membres : `struct Cercle { sf::Vector2f centre; float rayon; }`.
+
+| Fonction | Rôle |
+|---|---|
+| `float distanceBordABord(const Cercle& a, const Cercle& b)` | Distance entre les centres moins les deux rayons ; 0 si les cercles se touchent ou se chevauchent (jamais négative) |
+| `float distanceCercleRectangle(Cercle cercle, sf::FloatRect rectangle)` | Écart bord à bord entre le cercle et le rectangle plein ; 0 en cas de contact, de chevauchement ou de centre dedans, jamais négatif ; `[[nodiscard]]` |
+| `float distancePointSegment(sf::Vector2f p, sf::Vector2f a, sf::Vector2f b)` | Distance du point au segment `[a, b]` (extrémités comprises, segment réduit à un point permis) ; `[[nodiscard]]` |

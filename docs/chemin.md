@@ -263,3 +263,82 @@ rien ; elle connaît `TileMap`, `Chemin` et `Deplacement`.
   trajet exact le détecte.
 - **Limites connues** : ne cherche pas la case libre la plus proche, ne
   tient pas compte des entités ; le résultat est toujours sur le segment.
+
+## État et limites à la fin de l'étape 80
+
+Repris tels quels de la section « État actuel » de `ROADMAP.md` à l'étape 81 (K1), pour ce
+sujet. `ROADMAP.md` n'en garde qu'un résumé. Les sections précédentes de ce document peuvent dire la
+même chose avec plus de détail.
+
+### État
+
+- **Chemins qui contournent les entités** (étape 68) : le A* ajoute un coût
+  (8) aux cases touchées par un obstacle agrandi du rayon du mobile, le lissage
+  et la ligne droite d'un personnage évitent les mêmes cercles ; un passage sans
+  autre issue reste franchissable. Les monstres contournent les autres monstres
+  (pas les personnages : on les frappe) ; chaque personnage contourne les monstres
+  qu'il n'approche pas (pas les autres personnages, pas l'ancre). Un mobile
+  bloqué depuis 0,3 s recalcule son chemin (le propriétaire, pas `Mobile`). Les
+  places de formation ne sont plus dans un monstre. Contre un cercle, le glissement
+  essaie aussi la tangente (un pas de côté ; la règle de blocage est inchangée).
+  Voir `docs/chemin.md` et `docs/carte-et-collision.md`.
+
+### Limites connues
+
+- Un personnage dont le A* ne trouve aucun chemin garde la ligne droite.
+  Les chemins contournent les monstres (étape 68), mais pas les autres
+  personnages ni l'ancre ; un passage sans autre issue est traversé au prix du
+  coût ajouté, l'entité attend alors derrière le monstre ; contre un cercle le
+  glissement tangent n'est qu'un pas de côté. Près des piliers, le contournement
+  n'est pas toujours le plus court.
+
+## Référence des modules
+
+Repris tel quel d'`ARCHITECTURE.md` à l'étape 81 (K1, « déplacer d'abord ») : données
+membres et interfaces publiques des modules de ce sujet. Le dossier de `src/` de chaque module est
+indiqué dans son titre. `ARCHITECTURE.md` n'en garde qu'une ligne par module.
+
+### `Mobile` (`monde/`) — déplacement par chemin
+
+Suit un chemin calculé par le A* puis lissé, avec collision contre les
+murs et les cercles obstacles. Possédé par valeur par `Escouade`, `Personnage` et
+`Monstre`. Ne connaît ni `Escouade`, ni `Personnage`, ni `Monstre`, ni
+`Skill`, et ne dessine rien.
+
+Données membres : `m_position` (coin haut-gauche), `m_taille`, `m_chemin`
+(`std::vector<sf::Vector2f>`), `m_indexChemin`, `m_vitesse`, `m_enMouvement` (`bool`), `m_tempsBloque` (`float`, secondes consécutives sans avancer vraiment).
+
+| Fonction | Rôle |
+|---|---|
+| `Mobile(sf::Vector2f centre, sf::Vector2f taille, float vitesse)` | Crée le mobile à ce centre, cette taille, cette vitesse ; immobile |
+| `void allerVers(sf::Vector2f destination, const TileMap& carte, const std::vector<Cercle>& aContourner = {})` | Calcule un chemin vers la destination (A* avec `coutDesObstacles` du rayon du mobile et de `s_penaliteCaseOccupee` = 8, puis lissé en évitant `aContourner`) et le remplace comme trajet à suivre ; ordre ignoré si aucun chemin n'existe. Remet le compteur de blocage à 0 dans tous les cas |
+| `void allerToutDroit(sf::Vector2f destination)` | Remplace le chemin par ce seul point, sans A* : le mobile avance en ligne droite (collision et glissement) ; remet le compteur de blocage à 0 |
+| `void arreter()` | Réduit le chemin au centre actuel, pour cesser d'avancer sans reculer ; `estEnMouvement()` devient faux, le compteur de blocage est remis à 0 |
+| `void mettreAJour(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles)` | Avance vers le point courant du chemin (collision avec les murs et les cercles obstacles, glissement) |
+| `void decaler(sf::Vector2f decalage, const TileMap& carte, const std::vector<Cercle>& obstacles)` | Pousse le mobile (mêmes collisions et même glissement), sans toucher au chemin ni à `estEnMouvement()` ; utilisée par la séparation des personnages |
+| `sf::Vector2f getCentre() const` | Centre du mobile |
+| `sf::Vector2f getTaille() const` | Taille du mobile |
+| `bool estEnMouvement() const` | Définition unique de « en mouvement » : au dernier tic, le point courant du chemin était à plus de 0,01 px, que le mobile ait pu avancer ou non (bloqué = en mouvement ; arrivé à ce tic = encore en mouvement). Faux avant le premier tic et après `arreter()` ; `[[nodiscard]]` |
+| `bool estBloque() const` | Définition unique de « bloqué » : à chaque `mettreAJour`, s'il a un point à atteindre (`estEnMouvement`) et a parcouru moins de 10 % de `vitesse × dt`, un compteur augmente de `dt`, sinon il revient à 0 ; vrai à partir de 0,3 s (`s_tempsAvantBlocage`). Jamais vrai à l'arrêt ; `[[nodiscard]]`. Le recalcul du chemin est l'affaire du propriétaire |
+| `std::vector<sf::Vector2f> cheminRestant() const` | Points du chemin pas encore atteints, le prochain en premier (débogage F3 et tests) ; `[[nodiscard]]` |
+| `std::optional<sf::Vector2f> directionVoulue() const` | Vecteur du centre vers le point courant du chemin ; vide s'il n'y a plus de point à atteindre ou si la distance est nulle |
+
+### `Chemin` (`monde/`) — recherche de chemin (A*)
+
+Fonctions libres, sans état, plus `using FonctionDeCout = std::function<int(sf::Vector2i)>` (coût **ajouté** pour entrer dans une case, en plus de 1 par pas ; fonction vide = aucun coût). `trouverChemin` raisonne en cases, les autres en pixels. `trouverChemin`, `coutDesObstacles` et `lisserChemin` sont utilisées par `Mobile::allerVers`, `traverseUnObstacle` aussi par `Personnage::mettreAJour`, `replierVersOrigine` par `Escouade::mettreAJour`. Voir `docs/chemin.md`.
+
+| Fonction | Rôle |
+|---|---|
+| `std::vector<sf::Vector2i> trouverChemin(const TileMap& carte, sf::Vector2i depart, sf::Vector2i arrivee, const FonctionDeCout& cout = {})` | Plus court chemin entre deux cases (4 directions, coût 1 par pas plus `cout(case)`, jamais appelée pour le départ ni l'arrivée ; heuristique de Manhattan, toujours admissible) ; inclut le départ et l'arrivée ; vecteur vide si départ/arrivée est un mur (ou hors carte) ou si l'arrivée est inaccessible |
+| `FonctionDeCout coutDesObstacles(const TileMap& carte, const std::vector<Cercle>& obstacles, float rayonMobile, int penalite)` | `penalite` pour une case dont le rectangle chevauche (strictement) un obstacle agrandi de `rayonMobile` ; 0 ailleurs et hors carte. Cases occupées précalculées une fois (`std::vector<bool>`), en ne visitant pour chaque obstacle que les cases de son rectangle englobant (agrandi, borné à la carte, une case de marge), copiées dans la lambda renvoyée (aucune référence pendante) ; fonction vide si `obstacles` est vide ; `[[nodiscard]]` |
+| `bool traverseUnObstacle(sf::Vector2f a, sf::Vector2f b, const std::vector<Cercle>& obstacles, float rayonMobile)` | Le segment passe-t-il à moins de (rayon de l'obstacle + `rayonMobile`) du centre d'un obstacle ? ; `[[nodiscard]]` |
+| `std::vector<sf::Vector2f> lisserChemin(const TileMap& carte, sf::Vector2f depart, const std::vector<sf::Vector2f>& points, sf::Vector2f taille, const std::vector<Cercle>& aContourner = {})` | Retire de `points` (positions du centre d'un rectangle `taille`, en pixels) les points de passage inutiles ; un raccourci est refusé s'il traverse un des `aContourner` (`traverseUnObstacle`, rayon du mobile = `taille.x / 2`) ; `depart` n'en fait pas partie dans le résultat |
+| `sf::Vector2f replierVersOrigine(const TileMap& carte, sf::Vector2f origine, sf::Vector2f cible, sf::Vector2f taille)` | `cible` si le rectangle `taille` centré sur `origine` peut aller en ligne droite jusqu'à elle sans toucher un mur ; sinon le point libre le plus éloigné de `origine` sur le segment (dichotomie, 6 itérations) ; `origine` si aucun point n'est libre |
+
+### `TraceDeChemin` (`rendu/`) — le chemin restant, pour le débogage
+
+Une fonction libre, sans état, utilisée par `Escouade::dessinerPointsVises` et `Monstre::dessinerChemin` (F3).
+
+| Fonction | Rôle |
+|---|---|
+| `void dessinerTraceDeChemin(sf::RenderTarget& rendu, sf::Vector2f depart, const std::vector<sf::Vector2f>& points, sf::Color couleur)` | Ligne brisée (`LineStrip`) de `depart` à travers `points`, dans l'ordre |

@@ -16,7 +16,10 @@
   `test_PointsDeVie.cpp`, `test_Provocations.cpp`, `test_Agresseurs.cpp`,
   `test_TextesFlottants.cpp`,
   `test_Controleur.cpp`, `test_ChampDeVision.cpp`, `test_Vision.cpp`, `test_Composition.cpp`…),
-  sauf les gros modules, coupés par thème en fichiers à plat (pas de sous-dossier) :
+  sauf les gros modules, coupés par thème. Depuis l'étape 81, chaque fichier est dans le dossier
+  miroir de son module (`tests/base/`, `tests/rendu/`, `tests/monde/`, `tests/combat/`,
+  `tests/escouade/`, `tests/monstres/`, `tests/jeu/`, `tests/interface/`) ; un fichier coupé par thème
+  reste dans le dossier de son module (`tests/escouade/test_Escouade_*.cpp`) :
   - `Escouade` (étape 50, puis étape 80 pour les skills) :
     - `test_Escouade_deplacement.cpp` : ancre, chemin, formation, places, vivants, rotation ;
     - `test_Escouade_combat.cpp` : verrou, approche, autodéfense, placement en combat ;
@@ -42,7 +45,8 @@
   Un cas qui touche plusieurs thèmes est dans le fichier de son sujet principal. Les découpages sont
   des déplacements purs : aucun test modifié, le nombre de `TEST_CASE` inchangé.
 - **Aides communes** : en-têtes seuls, fonctions `inline`, pour les aides **identiques** utilisées
-  par plusieurs fichiers (l'en-tête est dans le dossier des `.cpp` : `#include "aides.hpp"` suffit).
+  par plusieurs fichiers (les en-têtes sont à la racine de `tests/`, dossier d'inclusion de la cible
+  `tests` depuis l'étape 81 : `#include "aides.hpp"` suffit depuis n'importe quel sous-dossier).
   Depuis l'étape 80, trois en-têtes, et chaque fichier n'inclut que celui dont il se sert :
   - **`aides.hpp`** (étape 50) : la base, sans `Escouade` ni `Partie` : graine (`s_graineDeTest`) et
     `generateurDeTest`, `verifierPointProche` (tolérance), `pointCible`, `cibleMonstre`, cartes
@@ -1239,3 +1243,29 @@
   adaptations nécessaires : les aides partagées passent d'un `namespace {}` à `inline` dans un
   en-tête, et les copies identiques de `niveauDegage` et `avancer` de `test_Controleur.cpp` ont été
   retirées au profit de celles d'`aides_escouade.hpp`.
+
+## État et limites à la fin de l'étape 80
+
+Repris tels quels de la section « État actuel » de `ROADMAP.md` à l'étape 81 (K1), pour ce
+sujet. `ROADMAP.md` n'en garde qu'un résumé. Les sections précédentes de ce document peuvent dire la
+même chose avec plus de détail.
+
+### État
+
+- **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
+  (`ctest --preset debug`, ou `./build/debug/tests.exe`, 893 tests : 27 sur `Engagement`, 23 sur `ChampDeVision`, 8 sur `Vision`, 5 sur `ObjetInteractif`, 15 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 61 sur `GenerateurDonjon`, 36 sur `TileMap`, 28 sur `Chemin`, 226
+  sur `Escouade` en onze fichiers par thème (déplacement, combat, quatre fichiers de skills par type plus un commun, agresseurs, vue, places, dégagement),
+  7 sur `Composition`, 16 sur `Specialite`, 9 sur `SelectionDEscouade`, 11 sur `EcranChoixEscouade`, 11 sur `Encerclement`, 16 sur `Deplacement`, 78 sur `Monstre` en quatre fichiers (base, états, retour, engagement),
+  64 sur `Personnage`, 24 sur `Skill`, 24 sur `Mobile`, 4 sur `Eclaircir`, 10 sur `Cercle`, 13
+  sur `Autodefense`, 8 sur `BarreDeSkills`, 11 sur `BarreDeRaccourcis`, 3 sur `ClicInterface`, 4 sur `EntiteVue`, 1 sur
+  `BarreDeVie`, 11 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 66 sur `Partie` en sept fichiers (clics, skills, monstres, fin, portes, zones de contrôle, événements), 16 sur `Controleur`, 9 sur `TextesFlottants`). Aides communes dans
+  `tests/aides.hpp` (base), `tests/aides_escouade.hpp` (fixtures d'`Escouade` et de `Partie`) et
+  `tests/aides_monstre.hpp` ; noms de tests sans accents (`./build/debug/tests.exe "*a portee*"`
+  filtre ; ctest en dépend) ; rotation de la formation et `provoquer` à une place invalide couverts.
+  **Les tests ne dépendent pas du catalogue** (étape 80) : la composition par défaut des tests
+  (`compositionDeTest()` : guerrier, prêtre, mage de test ; `uneEscouade`, `unePartie`) est construite
+  avec des valeurs figées (`s_degatsBaseDeTest`, `s_porteeMeleeDeTest`…), les valeurs non injectables
+  se lisent par les accesseurs ; changer une valeur d'équilibrage du jeu ne fait plus échouer que les
+  tests dont c'est le sujet (seul `test_Specialite.cpp` lit les valeurs du catalogue).
+  `uneEscouadeADeuxGuerriers` et `uneEscouadeAuSoinCourt` servent aux cas qui ont besoin de deux mêlées
+  ou d'un allié hors de portée du soin. Voir `docs/tests.md`.

@@ -152,3 +152,80 @@ modules : `ChampDeVision` (l'algorithme), `Vision` (la connaissance du joueur) e
   part.
 - Le compteur « Monstres : N » révèle le nombre total de monstres, vus ou non.
 - Bords durs, pas de dégradé ni de lumière ; pas de mini-carte ; la caméra ne dézoome pas.
+
+## État et limites à la fin de l'étape 80
+
+Repris tels quels de la section « État actuel » de `ROADMAP.md` à l'étape 81 (K1), pour ce
+sujet. `ROADMAP.md` n'en garde qu'un résumé. Les sections précédentes de ce document peuvent dire la
+même chose avec plus de détail.
+
+### État
+
+- **Vision et brouillard de guerre** (étape 72) : chaque case est inconnue, explorée ou
+  visible (`Vision`, possédée par `Partie`). Les personnages vivants voient à 320 px (8 cases)
+  chacun ; la vision de l'escouade est l'union de leurs champs, calculés par un shadowcasting
+  symétrique (`ChampDeVision`) : un mur ou une porte fermée est vu mais arrête la vue, une porte
+  ouverte la laisse passer. Un voile noir opaque couvre l'inconnu, un voile sombre (alpha 150)
+  l'exploré (les zones visitées restent affichées). Un monstre hors de vue n'est pas dessiné
+  (ni barre de vie, ni contour) et n'est pas cliquable (le clic déplace l'escouade) ; une
+  porte dont aucune case n'est connue non plus. Le combat (autodéfense, skills, détection des
+  monstres, verrou posé) utilise `ligneDeVue`, qui passe depuis l'étape 73 par le même
+  shadowcasting (voir « Ligne de vue »). F6 (débogage) coupe
+  le brouillard (visuel seulement : la règle de clic reste) ; F5 le remet. Voir `docs/vision.md`.
+- **Ligne de vue** : un personnage ne frappe, ne soigne et ne provoque
+  que ce qu'il voit (à portée ET `ligneDeVue`, étape 73, en cases,
+  règle unique `Escouade::peutAtteindre`) : autodéfense, combat verrouillé
+  (l'ancre continue d'avancer tant que tous les vivants ne voient pas la
+  cible), agresseurs (qui ne voit pas son agresseur va vers lui), skills
+  de dégâts, soin et zone. Un skill de dégâts ou de soin à portée mais
+  sans vue est mis en attente et le lanceur marche ; sans verrou, un
+  monstre caché n'est pas candidat. La provocation ne touche que les
+  monstres en vue (recharge consommée dans tous les cas). **Étape 73** :
+  `ligneDeVue(carte, a, b)`, fonction libre de `ChampDeVision` (elle a quitté
+  `TileMap`), répond par le même shadowcasting symétrique que le brouillard :
+  ce qu'un personnage voit est exactement ce qu'il peut viser, et « A voit B »
+  équivaut à « B voit A », monstres compris (détection, frappe, places
+  d'attaque, provocation, skill de zone). La vue se décide d'une case à
+  l'autre : deux points d'une même case se voient, un point dans un mur ne
+  voit rien. Voir `docs/vision.md` et `docs/combat.md`.
+
+### Limites connues
+
+- Vision (étapes 72 et 73) : un monstre verrouillé qui sort de la vision garde le verrou ; la
+  ligne de vue ne regarde pas le rayon de vision (320 px) : un monstre voilé peut détecter et
+  frapper, et le skill de zone peut toucher des monstres voilés ; le skill de zone peut être
+  visé dans l'inconnu ; pas de mémoire des monstres vus ; le compteur « Monstres : N » compte
+  aussi les monstres cachés ; deux cases libres en diagonale entre deux murs qui se touchent se
+  voient (algorithme de Ford), ce que le générateur n'empêche pas (145 graines sur 20 000, soit
+  0,7 %, contiennent un tel coin ; le test sur les graines 1 à 50 n'en trouve aucun) ;
+  `ligneDeVue` n'a pas de cache (aucun ralentissement mesuré). Voir `docs/vision.md`.
+
+## Référence des modules
+
+Repris tel quel d'`ARCHITECTURE.md` à l'étape 81 (K1, « déplacer d'abord ») : données
+membres et interfaces publiques des modules de ce sujet. Le dossier de `src/` de chaque module est
+indiqué dans son titre. `ARCHITECTURE.md` n'en garde qu'une ligne par module.
+
+### `ChampDeVision` (`monde/`) — les cases qu'un observateur voit
+
+`ChampDeVision.hpp` / `.cpp` : trois fonctions libres pures, sans état, sans SFML graphique. Shadowcasting symétrique (Albert Ford), pentes en fractions d'entiers. Un seul balayage (classe `Balayage`, patron à visiteur) sert `champDeVision`, `estVisibleDepuis` et `ligneDeVue`. Utilisé par `Vision::mettreAJour` et, via `ligneDeVue`, par toutes les règles « en vue » : `Escouade::peutAtteindre`, provocation, skill de zone, places d'attaque, `Monstre::peutAtteindre` et détection des monstres. Voir `docs/vision.md`.
+
+| Fonction | Rôle |
+|---|---|
+| `std::vector<sf::Vector2i> champDeVision(const TileMap& carte, sf::Vector2i origine, int rayon)` | Cases vues depuis la case `origine`, à distance (entre centres) `<= rayon` cases. Une case bloquante (`estBloquante`) qui reçoit la lumière est révélée et l'arrête ; une case libre n'est révélée que si son centre est dans l'intervalle de pentes (symétrie : A voit B ⇔ B voit A pour deux cases libres). Hors carte = mur, jamais renvoyé ; l'origine est renvoyée si elle est dans la carte ; doublons permis ; `[[nodiscard]]` |
+| `bool estVisibleDepuis(const TileMap& carte, sf::Vector2i origine, sf::Vector2i cible)` | La case `cible` serait-elle révélée par `champDeVision` depuis `origine` avec un rayon assez grand ? Même critère, mais ne balaie que les quadrants qui contiennent la cible (une cible sur une diagonale est dans deux quadrants : vrai si l'un la révèle), jusqu'à sa rangée, et s'arrête dès qu'elle est révélée. Pas de limite de rayon (la portée est vérifiée ailleurs). `origine == cible` : vrai ; cible hors carte : faux ; symétrique pour deux cases libres ; `[[nodiscard]]` |
+| `bool ligneDeVue(const TileMap& carte, sf::Vector2f a, sf::Vector2f b)` | Le point `a` voit-il le point `b` (pixels du monde) ? Faux si la case de `a` ou celle de `b` est bloquante (mur, porte fermée, hors carte) ; sinon `estVisibleDepuis` entre leurs cases. Se décide en cases : deux points d'une même case se voient toujours ; symétrique ; `[[nodiscard]]` |
+
+### `Vision` (`monde/`) — ce que le joueur sait de la carte
+
+`Vision.hpp` / `.cpp`. Possédée par valeur par `Partie`. Ne connaît ni `Personnage`, ni `Escouade`, ni `Monstre` : elle reçoit des `Cercle`. `enum class EtatCase { Inconnue, Exploree, Visible }`.
+
+Données membres : `m_largeur`, `m_hauteur`, `m_tailleCase` (copiées de la carte), `m_cases` (`std::vector<EtatCase>`, même indexage que `TileMap`).
+
+| Fonction | Rôle |
+|---|---|
+| `explicit Vision(const TileMap& carte)` | Tout est `Inconnue` |
+| `void mettreAJour(const TileMap& carte, const std::vector<Cercle>& sources)` | Tout `Visible` devient `Exploree`, puis pour chaque source (centre et rayon en pixels) le `champDeVision` depuis la case du centre, rayon en cases = rayon / taille de case arrondi vers le bas, devient `Visible`. Une case explorée ne redevient jamais inconnue ; `assert` : mêmes dimensions que la carte de la construction |
+| `EtatCase etat(sf::Vector2i coordCase) const` | Hors carte = `Inconnue` ; `[[nodiscard]]` |
+| `bool estVisible(sf::Vector2f point) const` | La case qui contient ce point (pixels du monde) est-elle `Visible` ? ; `[[nodiscard]]` |
+| `void dessiner(sf::RenderTarget& rendu) const` | Un seul `sf::VertexArray` (`Triangles`, 6 sommets par case voilée), reconstruit à chaque appel : noir opaque sur l'inconnu, noir d'alpha 150 sur l'exploré, rien sur le visible ; à dessiner avec la vue du monde |

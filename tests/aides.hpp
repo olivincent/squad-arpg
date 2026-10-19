@@ -8,9 +8,9 @@
 #include <string>
 #include <vector>
 
-#include "Aleatoire.hpp"
-#include "Cercle.hpp"
-#include "TileMap.hpp"
+#include "base/Aleatoire.hpp"
+#include "base/Cercle.hpp"
+#include "monde/TileMap.hpp"
 
 // Aides de base communes à plusieurs fichiers de tests : graine et générateur, tolérances, cibles,
 // cartes, temps. Les fixtures d'Escouade et de Partie sont dans aides_escouade.hpp, les aides des

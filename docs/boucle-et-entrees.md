@@ -443,3 +443,237 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   elle reçoit des `IconeDeRaccourci`.
 - `Partie` mémorise une `AdresseSkill` (`m_skillDemande`, `LancerDeZone::adresse`) ;
   la dernière demande de l'image gagne, comme avant.
+
+## Qui possède quoi
+
+Repris tel quel d'`ARCHITECTURE.md` à l'étape 81 (K1) ; `ARCHITECTURE.md` en garde un résumé.
+
+- `main.cpp` construit une `Application`, appelle `executer()` et affiche
+  l'erreur (code 1) si la police manque.
+- `Application` possède la fenêtre (`sf::RenderWindow`), la police
+  (`sf::Font`), les `Reglages` et la pile d'écrans
+  (`std::vector<std::unique_ptr<Ecran>>`). Elle charge `reglages.ini`, ouvre
+  la fenêtre, fait tourner la boucle SFML (horloge, événements, mise à jour,
+  dessin, `display`) et applique les `Transition` que renvoient les écrans.
+  La fermeture de la fenêtre quitte, quel que soit l'écran. Seul l'écran du
+  dessus reçoit les événements, est mis à jour et est dessiné.
+- `EcranMenu`, `EcranOptions`, `EcranChoixEscouade` et `EcranJeu` sont les quatre `Ecran`. Ils
+  reçoivent la fenêtre, la police et les réglages dans un `Contexte` à chaque
+  appel et ne les gardent pas. `EcranChoixEscouade` possède la
+  `SelectionDEscouade` ; `EcranJeu` reçoit la liste des `IdSpecialite` choisies, la garde, et possède une `Partie`, un
+  `Controleur`, une `BarreDeRaccourcis`, des `TextesFlottants`, la caméra et le `std::random_device` (il appelle `composer` pour construire la `Partie`) ; il traduit les
+  événements SFML (clic, touches de la barre de raccourcis, Échap, clic droit, F3, F4 et F6 de débogage) en appels au
+  `Controleur`. Un clic gauche est d'abord testé sur l'interface (`clicSurInterface`, vue d'interface) : s'il touche la barre, il est consommé et n'atteint pas le monde. Une touche est traduite en emplacement par `emplacementPourTouche` (table des `Reglages`). (Touche R : retour à l'écran de choix de l'escouade si la partie est perdue ou gagnée, sinon c'est un raccourci ;
+  F5 : nouvelle carte à tout moment ; F5, comme l'entrée dans l'écran,
+  passe par `nouvellePartie`, qui tire la graine et génère le niveau),
+  convertit le curseur en coordonnées du monde, centre la caméra sur
+  l'escouade et enchaîne le dessin. Après chaque `Partie::mettreAJour`, il prend les `EvenementDeCombat` de la partie (`prendreEvenements`), en fait des textes flottants (sauf hors de vue quand le brouillard est actif) et les fait avancer. Son code n'utilise ni `Monstre`,
+  ni `Coup`, ni `EntiteVue`, ni `Chemin`, ni `Personnage` (il les reçoit seulement par les inclusions de `Partie.hpp`).
+- `Partie` possède la `TileMap`, l'`Escouade`, un `std::vector<Monstre>` et le
+  `Generateur` aléatoire (graine reçue au constructeur),
+  construits à partir d'un `Niveau`, ainsi que les `ObjetInteractif` (les portes) et la `Vision` (ce que le joueur sait de la carte). Elle fait l'intermédiaire entre
+  `Escouade` et `Monstre`, qui ne se connaissent pas : elle leur donne la
+  liste des monstres (`EntiteVue`, deux listes : les cibles, sans ceux qui rentrent à leur poste, et tous les monstres comme obstacles) ; pour chaque monstre, elle lui donne aussi sa proie et ses candidats de frappe (`EntiteVue` de personnages) et applique les `Coup` renvoyés. Elle prend deux photos des camps par image (`EntiteDeControle`) et applique les coups gratuits que `Engagement` en déduit, dans les deux sens. Elle tient la file des `EvenementDeCombat` : chaque dégât et chaque soin réellement appliqué y est inscrit (données seulement : elle ne connaît pas ceux qui la lisent).
+- `Controleur` porte l'état d'interface : le mode visée et le déplacement
+  continu. Il ne garde aucune référence à la `Partie` : celle-ci lui est
+  passée à chaque appel. Il ne connaît pas les événements SFML.
+- `Escouade` possède un `Mobile` (l'ancre), N `Personnage` (un par `DefinitionPersonnage` de la composition reçue ; 3 par défaut), des `Provocations` et des `Agresseurs`, et utilise `Encerclement` (géométrie des places d'attaque et de formation). Ces deux derniers ne connaissent ni `Personnage`, ni `Monstre`, ni `Escouade`.
+- `Personnage` possède un `Mobile`, un `Skill` (son attaque de base) et une liste de `SkillConnu` (ses skills, chacun avec son `IdSkill`) ; `Monstre` possède un `Mobile` et un
+  `Skill` (son attaque).
+- `Mobile` utilise `Chemin` et `Deplacement` ; il reçoit en plus, pour chaque ordre, la liste des cercles que son chemin doit contourner (`aContourner`), distincte de ses obstacles bloquants (`docs/chemin.md`). `Personnage` utilise
+  `Mobile` et le test de trajet de `TileMap`. `Skill`, `Personnage`, `Monstre` et `Escouade` échangent
+  des `Cercle`. `Personnage` et `Monstre` possèdent chacun un `PointsDeVie` et dessinent leur barre de vie avec `BarreDeVie` ; leur `recevoirDegats` passe par `appliquerArmure` (`Defense`). `Escouade` et `Monstre` utilisent `choisirCibleAFrapper` (`Autodefense`) et
+`replierVersOrigine` (`Chemin`).
+
+## État et limites à la fin de l'étape 80
+
+Repris tels quels de la section « État actuel » de `ROADMAP.md` à l'étape 81 (K1), pour ce
+sujet. `ROADMAP.md` n'en garde qu'un résumé. Les sections précédentes de ce document peuvent dire la
+même chose avec plus de détail.
+
+### État
+
+- **Architecture de la boucle** (étapes 52, 54 et 65) : `main.cpp` ne fait
+  que lancer l'`Application`, qui possède la fenêtre, la police, les
+  `Reglages` et une pile d'écrans (`EcranMenu`, `EcranOptions`, `EcranJeu`,
+  patron State ; un écran renvoie une `Transition` que l'`Application`
+  applique). `EcranJeu` garde la caméra et traduit les événements SFML en appels au
+  `Controleur` (mode visée, déplacement continu, aperçu de visée ; type valeur, il reçoit la `Partie` à chaque appel) ; la
+  `Partie` (carte, escouade, monstres) porte les règles de jeu et
+  l'intermédiaire entre `Escouade` et `Monstre`, avec l'ordre d'une image
+  conservé ; `Niveau` porte les données. Voir `docs/boucle-et-entrees.md`.
+- **Barre de raccourcis** (étape 75) : en bas au centre de la fenêtre, fixe à l'écran (vue de
+  l'interface, dessinée en dernier), une grille de 4 × 3 icônes carrées de 48 px (4 px d'écart,
+  10 px de marge), les 12 emplacements de la `BarreDeRaccourcis` (propriété d'`EcranJeu`, ni
+  `Partie` ni `Escouade` ne la connaissent). Chaque emplacement pointe vers un skill de n'importe
+  quel personnage (une `AdresseSkill`) ; disposition par défaut : une rangée par personnage, dans
+  l'ordre des places (rangée du haut : frappe puissante et provocation du guerrier ; milieu : soin
+  du prêtre ; bas : explosion du mage), les autres cadres vides. Touches (scancodes, table dans
+  `Reglages::touchesDesRaccourcis`, ni lue ni écrite dans `reglages.ini`) : Q W E R / A S D F /
+  Z X C V, donc Q = frappe, W = provocation, A = soin, Z = explosion ; les touches 1 à 4 ne font
+  plus rien. Une icône montre le sigle du skill (deux lettres : FP, PR, SO, EX…), le nom de sa touche dans un coin
+  et une bande de la couleur du personnage lanceur ; un emplacement vide est un cadre sombre avec
+  le nom de sa touche. **Clic** : cliquer une icône fait la même chose que sa touche
+  (`Controleur::activerEmplacement`), avec la règle « l'interface d'abord » : le clic est testé
+  sur la barre avant le monde et consommé (pas de verrou, de porte, de déplacement ni de point
+  d'impact de visée) ; un appui sur la barre ne lance pas le déplacement continu et désarme
+  celui d'un clic au sol précédent, mais un déplacement commencé au sol continue quand le
+  curseur passe sur la barre. Sur l'écran de fin, R ramène au choix de l'escouade et les raccourcis (touche et
+  clic) sont ignorés ; en jeu, R est l'emplacement 3. Voir `docs/boucle-et-entrees.md`.
+  Pendant la recharge, un quartier noir semi-transparent suit les
+  bords du carré (zone claire grandissante depuis midi, sens horaire) et
+  le temps restant en secondes entières s'affiche au centre. Icône grisée,
+  sans quartier ni chiffre, quand le lanceur est mort ; contour jaune sur
+  l'icône du skill en cours de visée, contour blanc pendant son activation. Police DejaVu Sans dans
+  `assets/fonts/`, copiée à côté de `main.exe` par CMake ; le jeu refuse
+  de démarrer si elle manque.
+- **Objectif et victoire** (étape 63) : la partie est gagnée quand il ne
+  reste aucun monstre (`Partie::estGagnee`, faux si la partie est perdue : la
+  défaite l'emporte si les derniers monstres et personnages meurent dans la
+  même image). Le monde se fige comme après la défaite (même sortie
+  anticipée de `mettreAJour`), l'écran de fin affiche « Victoire » (module
+  `EcranDeFin`, titre en paramètre, partagé avec « Défaite ») et R ramène au
+  choix de l'escouade, après une victoire comme après une défaite (F5 inchangée). Un
+  compteur « Monstres : N » (`Partie::monstresRestants`), blanc à contour
+  noir, est fixe en haut à gauche de l'écran (vue de l'interface).
+- **Entrées** : un clic sur le sol envoie l'escouade vers ce point ; tant
+  que le bouton reste enfoncé (fenêtre ayant le focus, escouade vivante),
+  l'ordre est redonné à chaque image vers le curseur. Un clic bref sur un
+  monstre engage un combat qui continue seul, sans tenir le bouton ; les
+  raccourcis de la barre (clavier ou clic, voir « Barre de raccourcis ») déclenchent le
+  skill de leur emplacement ; un skill de zone entre en mode visée (voir « Skills »).
+
+### Limites connues
+
+- Barre de raccourcis (étape 75) : elle ne montre pas le skill en attente ; les touches ne sont
+  ni configurables ni sauvegardées (table dans `Reglages`, pas dans `reglages.ini`) ; une seule
+  barre, pas de survol, d'infobulle ni de clic droit sur une icône, pas d'interface pour placer
+  les skills ; une 4ᵉ place n'a pas de rangée dans la disposition par défaut, et un 5ᵉ skill d'un
+  personnage n'est pas placé. Sa position se recalcule à chaque image depuis la vue d'interface.
+  La police se charge par chemin relatif : le jeu doit être lancé depuis le dossier de `main.exe`.
+
+## Référence des modules
+
+Repris tel quel d'`ARCHITECTURE.md` à l'étape 81 (K1, « déplacer d'abord ») : données
+membres et interfaces publiques des modules de ce sujet. Le dossier de `src/` de chaque module est
+indiqué dans son titre. `ARCHITECTURE.md` n'en garde qu'une ligne par module.
+
+### `Partie` (`jeu/`) — les règles de jeu
+
+Possède par valeur la carte, l'escouade et les monstres. Orchestre
+seulement : les règles propres à `Escouade` ou à `Monstre` y restent. Le
+joueur agit par des demandes, mémorisées puis exécutées par `mettreAJour` à
+leur place dans l'image ; l'ordre est décrit dans `docs/boucle-et-entrees.md`.
+Invariant : entre deux appels, tout monstre du vecteur est vivant.
+Une partie perdue ou gagnée est figée. Elle se recommence en la remplaçant par une
+`Partie` neuve (réaffectation par déplacement : règle du zéro).
+
+Données membres : `m_carte` (`TileMap`), `m_escouade` (`Escouade`),
+`m_monstres` (`std::vector<Monstre>`), `m_objets` (`std::vector<ObjetInteractif>`), `m_interactionEnCours` (`std::optional<int>`, identifiant de l'objet que l'escouade va activer), `m_lancerDeZoneDemande`
+(`std::optional<LancerDeZone>`, structure privée : `adresse`, `point`),
+`m_skillDemande` (`std::optional<AdresseSkill>`), `m_deplacementOrdonne`
+(`std::optional<sf::Vector2f>`), `m_generateur` (`Generateur`, le seul de
+la partie : il descend en paramètre `Generateur&` jusqu'à `Skill`, que
+personne ne copie ni ne garde), `m_vision` (`Vision`, mise à jour à la fin du
+constructeur et de chaque `mettreAJour`, voir `docs/vision.md`), `m_evenements` (`std::vector<EvenementDeCombat>`, remplie par `mettreAJour`, vidée par `prendreEvenements`).
+
+Deux listes d'`EntiteVue` sont recalculées à chaque usage (fonctions privées, rien de
+stocké) : `entitesCiblables()` (les monstres pour lesquels `estCiblable()` est vrai) pour
+tout ce qui choisit un monstre à frapper, provoquer, viser ou verrouiller ; `entitesPhysiques()`
+(tous) pour les obstacles bloquants et à contourner. Un monstre qui rentre à son poste
+bloque donc comme avant mais n'est plus une cible, et le verrou posé sur lui est levé.
+
+| Fonction | Rôle |
+|---|---|
+| `Partie(const Niveau& niveau, std::vector<DefinitionPersonnage> composition, Generateur::result_type graine)` | Construit la carte, l'escouade (avec cette composition : elle n'appartient pas au niveau) et les monstres (identifiants 1, 2, 3…, armure `niveau.armureMonstres`), ferme chaque case de `niveau.portes` (`placerPorte`) et crée un `ObjetInteractif` par porte (identifiants 1, 2, 3…, compteur distinct de celui des monstres) et initialise le générateur avec `graine` (`EcranJeu` la tire avec `std::random_device` et l'affiche ; les tests passent une graine fixe) |
+| `ResultatClic cliquer(sf::Vector2f point)` | Appliqué tout de suite. `Monstre` : verrouille le monstre ciblable et **visible** (`m_vision.estVisible` de son centre) qui contient le point (un monstre qui rentre à son poste ou hors de vue compte comme le sol) ; `Objet` : un point dans la zone d'une porte fermée dont une case au moins n'est pas `Inconnue` (et pas sur un monstre cliquable) lève le verrou et annule les coups en exécution ; si un personnage vivant est déjà à portée (`unVivantPresDe`), la porte s'ouvre tout de suite (`ouvrir`), l'ordre de déplacement en attente est effacé, aucune interaction n'est mémorisée et la formation regarde la porte (`regarderVers`) ; sinon mémorise l'interaction et l'ordre d'aller au `pointDApproche` (`mettreAJour` appelle `regarderVers` juste après l'`allerVers` de cet ordre) ; sans point d'approche, c'est `Sol`. `Sol` : lève le verrou et annule les coups en exécution des personnages ; `Ignore` si l'escouade est vaincue, sans rien changer. Tout clic (sauf `Ignore`) annule l'interaction en cours. `enum class ResultatClic { Monstre, Objet, Sol, Ignore }` |
+| `void demanderSkill(AdresseSkill adresse)` | Mémorise la demande de skill ; la dernière demande de l'image gagne |
+| `void lancerSkillDeZone(AdresseSkill adresse, sf::Vector2f point)` | Mémorise le lancer du skill de zone |
+| `void ordonnerDeplacement(sf::Vector2f point)` | Mémorise l'ordre de déplacement ; exécuté seulement si l'escouade est vivante ; annule l'interaction en cours |
+| `bool estPerdue() const` | Vrai quand tous les personnages sont morts (`!m_escouade.estVivante()`) ; `[[nodiscard]]` |
+| `bool estGagnee() const` | Vrai quand `m_monstres` est vide ET que la partie n'est pas perdue (la défaite l'emporte) ; `[[nodiscard]]` |
+| `int monstresRestants() const` | Nombre de monstres vivants (`m_monstres.size()`), pour le compteur d'`EcranJeu` ; `[[nodiscard]]` |
+| `std::vector<EvenementDeCombat> prendreEvenements()` | Les dégâts et soins réellement appliqués depuis le dernier appel, dans l'ordre où ils ont eu lieu ; la file est vidée (`std::exchange`). Un montant de 0 (cible morte, monstre en retour, soin à pleine vie) ne produit aucun événement ; une partie figée n'en produit plus ; `[[nodiscard]]` |
+| `bool estVisible(sf::Vector2f point) const` | La case de ce point (pixels du monde) est-elle `Visible` à la fin de la dernière image ? (`Vision::estVisible`) ; sert à `EcranJeu` à ne pas montrer ce qui se passe dans le brouillard ; `[[nodiscard]]` |
+| `void mettreAJour(float dt)` | Sans effet si la partie est perdue ou gagnée (le monde est figé). Sinon exécute, dans l'ordre : lancer de zone, skill demandé, `attaquer(dt, …)` et application des coups, déverrouillage si la cible est morte, retrait des monstres morts, ordre de déplacement, mise à jour (`EntiteVue` de tous les monstres, **photo des deux camps** pour les zones de contrôle, escouade, puis ouverture de la porte en cours d'interaction si `unVivantPresDe(zone, 20 px)`, tour de chaque monstre avec ses obstacles bloquants — personnages vivants et autres monstres — et ses cercles à contourner — les autres monstres seulement —, avec l'engagement et le départ de son coup, puis **seconde photo** et coups gratuits des deux sens : `coupsDOpportunite` ; dégâts de base de l'attaquant, `Escouade::recevoirCoup` côté personnage, `Monstre::recevoirDegats` côté monstre ; monstres tués retirés, verrou levé) ; vide les demandes. Chaque dégât appliqué (`appliquer`, `infligerAUnPersonnage`) et chaque soin pris à `Escouade::prendreSoins` passe par `signaler`, seul endroit où naît un événement ; les coups gratuits sont marqués `opportunite` |
+| `void dessiner(sf::RenderTarget& rendu, bool afficherAncre, bool marquerLeRetour, bool brouillard) const` | Carte, monstres (contour jaune sur le monstre verrouillé ; `marquerLeRetour` est transmis à `Monstre::dessiner` ; un monstre non visible n'est pas dessiné si `brouillard`), escouade (`afficherAncre` est transmis à `Escouade::dessiner`), puis le voile de la `Vision` si `brouillard` |
+| `void dessinerCheminsDesMonstres(sf::RenderTarget& rendu) const` | Débogage (F3) : le chemin restant de chaque monstre (`Monstre::dessinerChemin`) |
+| `void dessinerZonesDeControle(sf::RenderTarget& rendu) const` | Débogage (F3) : un cercle fin magenta (rayon de l'entité + zone) autour de chaque personnage vivant et de chaque monstre qui ne rentre pas à son poste, qui a une zone > 0 |
+| `const Escouade& getEscouade() const` | Lecture seule : caméra, barre de skills, requêtes du `Controleur` |
+| `const std::vector<Monstre>& getMonstres() const` | Lecture seule (utilisée par les tests) |
+
+### `Controleur` (`interface/`) — l'état d'interface
+
+Ne connaît pas les événements SFML : `EcranJeu` les traduit en appels
+simples. Points en pixels du monde.
+
+Type valeur, constructible par défaut et réaffectable (règle du zéro) : aucune
+référence membre (C++ Core Guidelines C.12), la `Partie` est reçue à chaque
+appel (`const Partie&` si la fonction ne fait que lire).
+
+Données membres : `m_deplacementContinu` (`bool`), `m_adresseEnVisee`
+(`std::optional<AdresseSkill>`, vide = mode normal).
+
+| Fonction | Rôle |
+|---|---|
+| `Controleur()` (par défaut) | Mode normal, déplacement continu désarmé ; `controleur = Controleur{}` remet l'état d'interface à zéro |
+| `void debutImage(const Partie& partie)` | Sort de la visée si le lanceur ne peut plus lancer (`!skillEstPret`) |
+| `void appuiGauche(Partie& partie, sf::Vector2f point)` | En visée : `lancerSkillDeZone` puis sortie de la visée (sans verrouiller ni déplacer). Sinon `cliquer` : `Monstre` et `Objet` désarment le déplacement continu, `Sol` l'arme, `Ignore` ne change rien |
+| `void appuiDroit()` / `void appuiEchap()` | Annulent la visée sans recharge |
+| `void activerEmplacement(Partie& partie, const BarreDeRaccourcis& barre, std::size_t emplacement)` | Une seule action pour la touche et le clic. Emplacement vide : rien. Skill de type `Zone` (`typeDuSkill`) : sort de la visée si cette même adresse y est ; sinon entre en visée de cette adresse (remplaçant la visée d'un autre skill de zone) si l'escouade est vivante et le skill prêt, et désarme le déplacement continu. Autre type : `demanderSkill(adresse)`, la visée en cours continue. `assert(emplacement < barre.taille())` |
+| `void appuiInterface(Partie& partie, const BarreDeRaccourcis& barre, ClicInterface clic)` | Clic gauche consommé par l'interface : désarme le déplacement continu (un appui qui commence sur la barre ne le lance pas, et ne laisse pas un ancien clic au sol le relancer), puis `activerEmplacement` pour la barre `Raccourcis`. Jamais de verrou, de porte, de déplacement ni de point d'impact de visée |
+| `void mettreAJourDeplacement(Partie& partie, bool boutonTenu, sf::Vector2f curseur)` | Si `boutonTenu` (bouton gauche enfoncé ET focus, calculé par `EcranJeu`) et déplacement armé : `ordonnerDeplacement(curseur)` |
+| `void dessinerApercu(const Partie& partie, sf::RenderTarget& rendu, sf::Vector2f curseur) const` | En visée seulement : cercle jaune de la zone sous le curseur, cercle blanc de la portée autour du lanceur |
+| `std::optional<AdresseSkill> getAdresseEnVisee() const` | Adresse en visée (`EcranJeu` en déduit l'icône à entourer de jaune) |
+
+Le `Controleur` ne garde aucune référence à la barre : `EcranJeu` la lui passe à chaque appel, comme la `Partie`.
+
+### `BarreDeRaccourcis` (`interface/`) — les emplacements de raccourcis
+
+`BarreDeRaccourcis.hpp` / `.cpp`, sans SFML graphique. Trois notions séparées : les **emplacements** (le modèle, cette classe), les **touches** (une table touche → emplacement dans `Reglages`) et la **disposition** à l'écran (calculée par la vue seulement). L'emplacement i reste l'emplacement i quelles que soient sa touche et sa place. Voir `docs/boucle-et-entrees.md`. Constante `inline constexpr std::size_t s_emplacementsPrincipaux = 12`, dans l'en-tête neutre `interface/EmplacementsPrincipaux.hpp` depuis l'étape 81 (P1 : `Reglages.hpp` l'inclut sans dépendre du modèle de la barre).
+
+Classe `BarreDeRaccourcis` : donnée membre `m_emplacements` (`std::vector<std::optional<AdresseSkill>>`). Possédée par `EcranJeu` (la barre d'auras à venir sera une autre instance).
+
+| Fonction | Rôle |
+|---|---|
+| `explicit BarreDeRaccourcis(std::size_t taille)` | Tous les emplacements sont vides |
+| `std::size_t taille() const` | Nombre d'emplacements ; `[[nodiscard]]` |
+| `std::optional<AdresseSkill> adresse(std::size_t emplacement) const` | Vide si l'emplacement est vide ; `assert(emplacement < taille())` ; `[[nodiscard]]` |
+| `void placer(std::size_t emplacement, AdresseSkill adresse)` | Aucune limite par personnage ; une même adresse peut être placée deux fois ; `assert` |
+| `void vider(std::size_t emplacement)` | `assert` |
+
+Trois fonctions libres :
+
+| Fonction | Rôle |
+|---|---|
+| `BarreDeRaccourcis barreParDefaut(const std::vector<AdresseSkill>& adresses)` | Barre de `s_emplacementsPrincipaux` emplacements : une rangée de 4 par personnage, dans l'ordre des places (place 1 : emplacements 0 à 3…), ses skills dans l'ordre reçu. Le 5ᵉ skill d'un personnage, ou une place sans rangée, n'est pas placé (sans erreur). Ne connaît pas `Escouade` ; `[[nodiscard]]` |
+| `sf::FloatRect rectangleDeLEmplacement(std::size_t emplacement, sf::Vector2f tailleVue)` | Grille de 4 colonnes × 3 rangées, icônes de 48 px, 4 px d'écart, centrée en bas de la vue d'interface avec 10 px de marge ; l'emplacement 0 en haut à gauche ; `assert` ; `[[nodiscard]]` |
+| `std::optional<std::size_t> emplacementSous(sf::Vector2f point, sf::Vector2f tailleVue)` | Emplacement dont l'icône contient le point ; vide dans un écart ou hors barre. Construite sur `rectangleDeLEmplacement` : une seule source de vérité pour le dessin et le clic ; `[[nodiscard]]` |
+
+### `ClicInterface` (`interface/`) — l'interface d'abord
+
+`ClicInterface.hpp` / `.cpp`. `enum class Barre { Raccourcis }` (la barre d'auras s'y ajoutera), `struct ClicInterface { Barre barre; std::size_t emplacement; }` (comparable) et une fonction libre.
+
+| Fonction | Rôle |
+|---|---|
+| `std::optional<ClicInterface> clicSurInterface(sf::Vector2f point, sf::Vector2f tailleVue)` | Ce que le point (coordonnées de la vue d'interface) touche dans l'interface ; vide s'il tombe sur le monde. Un clic qui touche l'interface est consommé par `EcranJeu` ; `[[nodiscard]]` |
+
+### `BarreDeSkills` (`interface/`) — le dessin de la barre de raccourcis
+
+Fonctions libres, sans état : tout est recalculé à chaque image. Ne connaît ni `Escouade` ni `Personnage` ni la barre : elle reçoit des `IconeDeRaccourci`. `struct IconeDeRaccourci { std::optional<EtatSkill> etat; sf::String touche; sf::Color couleurDuLanceur; std::size_t place; bool enVisee; }` (`place` : place du lanceur, 1 à N ; `etat` vide = emplacement vide ; construite par `EcranJeu`).
+
+| Fonction | Rôle |
+|---|---|
+| `std::string sigleDuSkill(IdSkill id)` | Étiquette de deux lettres : FP, PR, SO, EX, FS, IM, TP, PF ; `switch` sans `default` (un `IdSkill` oublié est un avertissement du compilateur) ; `[[nodiscard]]` |
+| `sf::Color couleurDuContour(bool enVisee, bool enActivation)` | Jaune en visée (prioritaire), blanc en activation, gris sinon |
+| `int secondesAffichees(float tempsRestant)` | Secondes entières, arrondies vers le haut |
+| `std::vector<sf::Vector2f> pointsDuQuartier(sf::Vector2f centre, float cote, float fractionSombre)` | Sommets d'un `TriangleFan` : centre, aiguille, coins du carré dans l'intervalle, midi ; vide si la fraction est nulle |
+| `void dessinerBarreDeSkills(sf::RenderTarget& rendu, const sf::Font& police, const std::array<IconeDeRaccourci, s_emplacementsPrincipaux>& icones)` | Dessine les 12 icônes à la place de `rectangleDeLEmplacement` (à appeler avec la vue d'interface) : fond, sigle, nom de la touche dans un coin, bande de la couleur du lanceur (14 px) avec la place du lanceur, quartier sombre et chiffre en recharge, grisée si le lanceur est mort, contour jaune si `enVisee`, blanc si `enActivation`. Un emplacement vide est un cadre sombre avec seulement le nom de sa touche |
+
+### `EcranDeFin` (`interface/`) — l'écran de fin de partie
+
+Une fonction libre, sans état, sur le modèle de `BarreDeSkills`. Ne connaît ni `Partie` ni `Escouade`. Sert à la défaite et à la victoire.
+
+| Fonction | Rôle |
+|---|---|
+| `void dessinerEcranDeFin(sf::RenderTarget& rendu, const sf::Font& police, const std::string& titre)` | Voile noir semi-transparent sur toute la vue par défaut, puis `titre` (« Victoire » ou « Défaite ») et « Appuyez sur R pour revenir au choix de l'escouade » au centre ; à appeler avec la vue par défaut, après la barre de skills |

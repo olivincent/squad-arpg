@@ -317,3 +317,113 @@ déplacement par chemin dans `docs/chemin.md`.
   cône de vision.
 - Un monstre n'évite pas de quitter la zone d'un personnage (le coup gratuit est subi, pas évité) ; pas
   de monstre qui « tient » son adversaire de lui-même (étape 77).
+
+## État et limites à la fin de l'étape 80
+
+Repris tels quels de la section « État actuel » de `ROADMAP.md` à l'étape 81 (K1), pour ce
+sujet. `ROADMAP.md` n'en garde qu'un résumé. Les sections précédentes de ce document peuvent dire la
+même chose avec plus de détail.
+
+### État
+
+- **Monstres** : des carrés rouges de 30 × 30 (160 px/s, 100 points de
+  vie, armure 20, barre de vie). Sur la carte générée : 1 à 3 par salle sauf
+  la première, au centre d'une case intérieure (une case de marge contre
+  les murs), à au moins 2 cases les uns des autres et à 400 px ou plus du
+  départ (rejet, 10 tentatives par monstre, abandonné sinon : une salle
+  peut en avoir moins ou aucun). Sur la carte à la main (tests) : six, à
+  `(660, 380)`, `(500, 580)`, `(900, 220)`,
+  `(1940, 180)`, `(1500, 540)` et `(1620, 540)`. Possédés par
+  `Partie` dans un `std::vector<Monstre>`. Un monstre détecte un
+  personnage vivant à moins de 200 px de lui et de 600 px de son poste (sa
+  position de départ) ET en vue (`ligneDeVue`, en cases) ;
+  il le poursuit (A* + lissage) sans que la perte de vue y mette fin, et
+  s'arrête dès qu'il peut l'atteindre : à portée d'attaque (15 px bord à
+  bord, 10 dégâts, recharge 0,7–1,3 s) ET en vue (`Monstre::peutAtteindre`). Un monstre qui reçoit des dégâts (> 0) entre en poursuite de sa
+  proie habituelle (provocateur, sinon le plus proche) même hors de sa
+  détection, s'il est lui-même dans son territoire ; un coup reçu hors
+  du territoire ne le réveille pas, et ne sert qu'une fois. Il abandonne
+  quand lui-même s'éloigne de plus de 600 px de son poste, ou si la proie
+  meurt, et rentre alors à son poste. **Retour au poste** (étape 69) : jusqu'à
+  son arrivée, il ne réagit à rien (ni détection, ni alerte, ni dégâts, ni
+  alerte de groupe), n'engage aucun coup, est **invulnérable**, **regagne la moitié de
+  ses points de vie maximum par seconde** et n'est plus une cible (ni autodéfense,
+  ni verrou, ni provocation, ni skill ; un clic sur lui compte comme un clic au
+  sol), tout en continuant de bloquer et d'être contourné. Cela supprime
+  l'exploit où des tireurs touchaient un monstre qui faisait des allers-retours
+  à la frontière de son territoire. Sa proie (le personnage vivant le plus
+  proche, ou le provocateur) est celle qu'il poursuit ; il frappe sa **cible de
+  frappe** (étape 66) : la proie si elle est à portée ET en vue, sinon le
+  personnage atteignable le plus proche (un monstre provoqué ne frappe que son
+  provocateur), attaqué ou non, et s'arrête dès qu'il en a une ; un monstre touché
+  s'active même sans voir son agresseur. Un monstre mort est
+  retiré. **Groupes** (étape 64) : chaque monstre a un identifiant de
+  groupe opaque (`Monstre::getGroupe()`), fixé à la construction : sur la
+  carte générée, un groupe par salle peuplée ; sur la carte à la main, un
+  groupe par monstre sauf les deux de `(1500, 540)` et `(1620, 540)`, qui
+  partagent le leur. Quand un monstre passe en poursuite (depuis « en garde »),
+  `Partie` appelle `Monstre::alerter()` sur les autres
+  membres de son groupe : même règle que le réveil par les dégâts (proie
+  existante ET monstre dans son territoire, sinon rien). Les alertés
+  commencent à bouger à l'image suivante, et sont tous alertés d'un coup
+  (pas de chaîne vers un autre groupe) ; le retour au poste reste
+  individuel. Un monstre touché par un skill de zone de loin alerte donc
+  toute sa salle.
+
+### Limites connues
+
+- Le territoire des monstres reste une distance pure (il ignore les
+  murs) ; une fois en poursuite, un monstre ne perd pas sa proie en la
+  perdant de vue (il la suit par le A* jusqu'à l'abandon habituel) ; la
+  ligne de vue se décide en cases (étape 73), d'un centre à l'autre.
+- Un monstre qui rentre ignore tout jusqu'à son poste, même une proie collée à
+  lui (voulu, étape 69) ; un monstre touché juste avant d'abandonner ne prolonge
+  pas sa laisse ; la régénération ne soigne presque rien si le retour est très
+  court ; pas de patrouille ; pas de coordination entre monstres.
+
+## Référence des modules
+
+Repris tel quel d'`ARCHITECTURE.md` à l'étape 81 (K1, « déplacer d'abord ») : données
+membres et interfaces publiques des modules de ce sujet. Le dossier de `src/` de chaque module est
+indiqué dans son titre. `ARCHITECTURE.md` n'en garde qu'une ligne par module.
+
+### `Monstre` (`monstres/`) — un ennemi
+
+Un carré rouge de 30 × 30 qui détecte un personnage (à moins de 200 px, dans son territoire et en vue), le poursuit sans dépendre de la vue, frappe
+à portée et retourne à son poste (160 px/s ; territoire de 600 px). Au retour, il ne réagit à rien
+jusqu'à son arrivée, il est invulnérable, il n'est plus une cible et il regagne ses points de vie
+(`docs/monstre.md`). Possédé par `Partie`. Ne connaît ni
+`Escouade` ni `Personnage` : il reçoit sa proie, ses candidats de frappe (des
+`EntiteVue`) et ses obstacles en paramètres. La proie est celle qu'il poursuit ;
+la cible de frappe est celle qui est à portée ET en vue.
+
+Données membres : `m_mobile`, `m_pointsDeVie` (`PointsDeVie`), `m_armure` (`int`), `m_id`,
+`m_attaque`, `m_rayonDetection`, `m_rayonTerritoire`, `m_etat` (`Etat`,
+`enum class` privé : `EnGarde`, `Poursuite`, `Retour`), `m_poste`,
+`m_groupe` (`int`, opaque), `m_alerte` (`bool`, posé par `alerter`,
+consommé par `mettreAJour`), `m_soinAccumule` (`float`, points de vie rendus pas encore entiers pendant le retour, 0 ailleurs), `m_idCibleEngagee` (`std::optional<int>`, place du personnage visé par le coup en exécution) ; constantes publiques `static constexpr float s_rayonTerritoire` (600 px) et `s_zoneDeControle` (20 px, bord à bord).
+
+| Fonction | Rôle |
+|---|---|
+| `Monstre(sf::Vector2f centre, int id, int armure, int groupe)` | Crée le monstre à ce centre, avec cet identifiant, cette armure (20, donnée par `Niveau`), ce groupe (donné par `Niveau`) et 100 points de vie ; son poste est ce centre |
+| `int getGroupe() const` | Identifiant de groupe ; `[[nodiscard]]` |
+| `float getZoneDeControle() const` / `int getPuissanceAttaque() const` | Zone de contrôle (`s_zoneDeControle`) et dégâts de son attaque ; de simples lectures, elles ne touchent ni la recharge ni le coup engagé ; `[[nodiscard]]` |
+| `void alerter()` | Demande d'entrer en poursuite de sa proie habituelle, même hors de la détection, si le monstre est dans son territoire ; prise en compte au prochain `mettreAJour`, sans effet en poursuite ni en retour. `recevoirDegats` (dégâts `> 0`) l'appelle |
+| `bool estEnPoursuite() const` | Statut « attaque » (`Etat::Poursuite`), lu par `Partie` ; `[[nodiscard]]` |
+| `bool estCiblable() const` | Faux en `Retour` (le monstre n'est la cible de personne, mais reste un obstacle) ; vrai sinon ; `[[nodiscard]]` |
+| `void dessiner(sf::RenderTarget& rendu, bool estCible, bool marquerLeRetour) const` | Dessine le monstre (éclairci de 50 % pendant l'exécution d'un coup ; semi-transparent, alpha 128, s'il est en retour et que `marquerLeRetour`, c'est-à-dire F3) et sa barre de vie ; ajoute un contour jaune si `estCible` |
+| `void dessinerChemin(sf::RenderTarget& rendu) const` | Débogage (F3) : trait rouge fin du centre du monstre à travers son chemin restant |
+| `void mettreAJour(float dt, std::optional<EntiteVue> proie, const std::vector<EntiteVue>& candidats, const TileMap& carte, const std::vector<Cercle>& obstacles, const std::vector<Cercle>& aContourner)` | Décrémente la recharge. Pendant l'exécution d'un coup : arrête le monstre et le déplace (immobile), sans toucher à l'état. Sinon met à jour l'état (détection de la proie soumise à la ligne de vue, `proieDetectee`, seulement en `EnGarde` ; la poursuite ne dépend pas de la vue ; `Retour` ne se termine qu'à l'arrivée au poste, sans retour possible vers `Poursuite`), regagne des points de vie en `Retour` (50 % du maximum par seconde, par l'accumulateur `m_soinAccumule`) et donne ses ordres à `m_mobile` (poursuite de la proie, arrêt dès qu'une cible de frappe existe, retour au poste — le chemin du retour est aussi recalculé quand `estBloque()`), puis le déplace ; `obstacles` le bloquent, `aContourner` (les autres monstres, pas les personnages) est ce que ses chemins évitent |
+| `bool peutAtteindre(Cercle cible, const TileMap& carte) const` | La cible est-elle à portée d'attaque (bord à bord) ET en vue (`ligneDeVue`, en cases) ? Même règle que `Escouade::peutAtteindre` ; `[[nodiscard]]` |
+| `bool engagerAttaque(std::optional<EntiteVue> proie, const std::vector<EntiteVue>& candidats, const TileMap& carte)` | Engage un coup (0,3 s d'exécution) sur la cible de frappe : faux s'il n'y en a pas, si le monstre est en retour, s'il est en mouvement ou si l'attaque n'est pas prête. La place choisie est retenue jusqu'au départ. `Partie` le tente à chaque image (l'échec est normal) ; `[[nodiscard]]` |
+| `std::optional<int> cibleEngagee() const` | Place du personnage visé par le coup en exécution (pas forcément la proie) ; vide hors exécution |
+| `std::optional<EntiteVue> cibleDeFrappe(...) const` (privée) | `choisirCibleAFrapper` avec `peutAtteindre` comme prédicat et l'id de la proie comme préféré : la proie si atteignable, sinon le candidat atteignable le plus proche (bord à bord ; égalité : le premier) |
+| `int avancerAttaque(float dt, Generateur& generateur)` | Fait avancer l'exécution ; rend les dégâts au départ du coup, 0 sinon ; `[[nodiscard]]` |
+| `void annulerAttaque()` | Annule le coup en exécution, sans recharge consommée (appelée par `Partie` quand la proie engagée meurt) |
+| `sf::Vector2f getCentre() const` | Centre du monstre |
+| `Cercle getCercle() const` | Cercle centré sur le monstre, de rayon 15 |
+| `int getId() const` | Identifiant du monstre |
+| `bool contient(sf::Vector2f point) const` | Le point (pixels du monde) est-il dans le carré du monstre ? |
+| `int recevoirDegats(int quantite)` | Sans aucun effet en `Retour` (invulnérable, pas d'alerte) ni sur un monstre mort : renvoie 0. Sinon retire `appliquerArmure(quantite, m_armure)` points de vie, sans descendre sous zéro (`PointsDeVie::subirDegats`) ; si `quantite > 0`, mémorise que le monstre vient d'être touché ; renvoie les dégâts après armure |
+| `bool estVivant() const` | Points de vie `> 0` |
+| `int getPointsDeVie() const` | Points de vie actuels |

@@ -156,3 +156,84 @@ mène à un chevauchement avec un cercle obstacle (`deplacementBloque`).
   programme s'arrête avec un message clair, ce qui est voulu pour détecter
   une erreur de saisie dans le plan.
 - Le plan est pour l'instant défini directement dans `main.cpp`.
+
+## État et limites à la fin de l'étape 80
+
+Repris tels quels de la section « État actuel » de `ROADMAP.md` à l'étape 81 (K1), pour ce
+sujet. `ROADMAP.md` n'en garde qu'un résumé. Les sections précédentes de ce document peuvent dire la
+même chose avec plus de détail.
+
+### État
+
+- **Portes** (étapes 70 et 71) : les couloirs de 2 cases sont fermés, à chaque jonction
+  avec une salle (y compris la salle de départ), par une porte brune. Une porte
+  fermée bloque comme un mur (déplacement, chemins, ligne de vue, détection des
+  monstres, skill de zone). Un clic dessus (si aucun monstre ciblable ne s'y
+  trouve) lève le verrou. Si un personnage vivant est déjà à 20 px (bord à bord)
+  d'elle, elle s'ouvre tout de suite, sans déplacement ; sinon l'escouade
+  s'avance devant elle, du côté libre le plus proche, et elle s'ouvre dès qu'un
+  personnage vivant est à 20 px. Dans les deux cas la formation se tourne vers la
+  porte (mêlées devant), jusqu'au prochain ordre ou verrouillage. Ouverte, elle
+  s'affiche en sol avec un cadre brun et reste ouverte (un clic dessus
+  vaut un clic au sol). Un ordre de déplacement (bouton tenu compris), un clic au
+  sol ou sur un monstre annule l'approche ; les skills non. Les monstres
+  n'ouvrent pas les portes. Voir `docs/carte-et-collision.md` et
+  `docs/generation.md`.
+
+### Limites connues
+
+- Portes (étape 70) : seulement sur les ouvertures de la largeur du couloir
+  (2 cases) ; pas de refermeture, de clé ni de porte verrouillée ; les monstres ne
+  les ouvrent pas et ne contournent pas par un autre chemin ; un seul personnage
+  n'ira pas ouvrir pendant que les autres attendent ; pas de surbrillance au
+  survol ; une porte d'une seule case est supposée horizontale.
+
+## Référence des modules
+
+Repris tel quel d'`ARCHITECTURE.md` à l'étape 81 (K1, « déplacer d'abord ») : données
+membres et interfaces publiques des modules de ce sujet. Le dossier de `src/` de chaque module est
+indiqué dans son titre. `ARCHITECTURE.md` n'en garde qu'une ligne par module.
+
+### `TileMap` (`monde/`) — l'environnement de jeu
+
+Grille de cases de taille fixe, chaque case étant du sol ou un mur. Un
+point hors de la carte est un mur. Construite à partir d'un plan texte
+(`'#'` = mur, tout autre caractère = sol).
+
+Données membres : `m_largeur`, `m_hauteur` (cases), `m_tailleCase`
+(pixels), `m_cases` (`std::vector<Tile>`, `enum class Tile { Floor, Wall, PorteFermee, PorteOuverte }`). `bool estBloquante(Tile)` (fonction libre, vrai pour `Wall` et `PorteFermee`) est la seule façon de demander « passe-t-on, voit-on » : collision, A*, lissage, repli, champ de vision (`ChampDeVision`, donc aussi `ligneDeVue`) et skill de zone l'utilisent, aucun ne teste `Tile::Wall` directement.
+
+| Fonction | Rôle |
+|---|---|
+| `TileMap(const std::vector<std::string>& plan, float tailleCase)` | Construit la carte à partir d'un plan texte ; `std::out_of_range` si le plan est vide, `std::invalid_argument` si les lignes n'ont pas toutes la même longueur |
+| `Tile getTile(int x, int y) const` | Type de la case `(x, y)` ; hors de la carte = `Wall` |
+| `int getLargeur() const` | Largeur de la carte, en cases |
+| `int getHauteur() const` | Hauteur de la carte, en cases |
+| `float getTailleCase() const` | Côté d'une case, en pixels (`coutDesObstacles` construit les rectangles des cases) ; `[[nodiscard]]` |
+| `sf::Vector2i caseContenant(sf::Vector2f point) const` | Case (coordonnées de grille) contenant ce point, en pixels du monde |
+| `sf::Vector2f centreDeCase(sf::Vector2i coordCase) const` | Centre de cette case, en pixels du monde |
+| `void dessiner(sf::RenderTarget& rendu) const` | Dessine toutes les cases (porte fermée : case brune pleine ; porte ouverte : sol avec un cadre brun de 4 px) |
+| `void placerPorte(sf::Vector2i coordCase)` | `Floor` → `PorteFermee` (`assert`) |
+| `void ouvrirPorte(sf::Vector2i coordCase)` | `PorteFermee` → `PorteOuverte` (`assert`) ; une porte ouverte le reste |
+| `bool chevaucheUnMur(const sf::FloatRect& rect) const` | Le rectangle (en pixels du monde) chevauche-t-il une case bloquante (mur ou porte fermée) ? |
+| `bool trajetLibre(const sf::FloatRect& rect, sf::Vector2f deplacement) const` | Le rectangle, translaté de sa position jusqu'à `position + deplacement`, ne chevauche-t-il un mur à aucun moment du trajet ? |
+
+### `ObjetInteractif` (`monde/`) — les objets avec lesquels on interagit
+
+`ObjetInteractif.hpp` / `.cpp` : des données et une fonction libre, sans état. Pas de classe de base virtuelle : l'effet d'une interaction a besoin du contexte de la `Partie`, qui visite `nature` avec `std::visit` et `Surcharges` (`Cible.hpp`). Voir `docs/carte-et-collision.md`.
+
+`struct Porte { std::vector<sf::Vector2i> cases; }` ; `struct ObjetInteractif { int id; sf::FloatRect zone; std::variant<Porte> nature; }`.
+
+| Fonction | Rôle |
+|---|---|
+| `ObjetInteractif(int identifiant, Porte porte, float tailleCase)` | Calcule `zone`, rectangle en pixels du monde qui couvre toutes les cases ; `assert` : au moins une case, toutes sur une même ligne ou une même colonne |
+| `std::optional<sf::Vector2f> pointDApproche(const Porte&, const TileMap&, sf::Vector2f depuis)` | Porte horizontale (cases de même y) : côtés y−1 et y+1 ; verticale : x−1 et x+1. Le point d'un côté est le milieu des centres de ses cases ; seuls les côtés sans case bloquante sont gardés, le plus proche de `depuis` l'emporte ; vide si aucun. Une porte d'une seule case est traitée comme horizontale ; `[[nodiscard]]` |
+
+### `Deplacement` (`monde/`) — collision et glissement partagés
+
+Deux fonctions libres, sans état, utilisées par `Mobile::mettreAJour`.
+
+| Fonction | Rôle |
+|---|---|
+| `bool deplacementBloque(const Cercle& avant, const Cercle& apres, const std::vector<Cercle>& obstacles)` | Vrai si, pour au moins un obstacle, `apres` chevauche l'obstacle (distance entre centres `<` somme des rayons) ET la distance entre centres a diminué par rapport à `avant` |
+| `sf::Vector2f deplacerAvecGlissement(const TileMap& carte, const sf::FloatRect& rect, sf::Vector2f deplacement, const std::vector<Cercle>& obstacles)` | Essaie le déplacement axe par axe (X puis Y) ; un essai est refusé s'il chevauche un mur ou si `deplacementBloque` est vrai. Si ni X ni Y n'ont passé et qu'un cercle a refusé, essaie un déplacement de même longueur le long de la tangente du cercle refusant le plus proche (côté de la projection du déplacement voulu, à gauche de celui-ci si elle est nulle), accepté seulement hors mur et si `deplacementBloque` est faux. Renvoie la nouvelle position du coin haut-gauche |

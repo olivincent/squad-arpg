@@ -22,14 +22,22 @@
 - **Bibliothèque `squad_core`** (`add_library(squad_core STATIC ...)`,
   une source par ligne pour que chaque ajout ne change qu'une ligne du
   diff) : regroupe la logique de jeu, réutilisée par `main` et par `tests`.
+  Depuis l'étape 81, les sources sont rangées en dossiers par domaine (`src/combat/Skill.cpp`,
+  voir `ARCHITECTURE.md`) et listées avec leur dossier ; il reste **une seule** bibliothèque. Une
+  bibliothèque par dossier, qui rendrait une inclusion montante impossible à compiler, attend la
+  fin des exceptions transitoires de M1 (`docs/audit.md`, « Organisation en dossiers »).
   - `target_link_libraries(squad_core PUBLIC SFML::Graphics)` : `PUBLIC`
-    parce que les en-têtes de `squad_core` (`TileMap.hpp`, `Escouade.hpp`)
+    parce que les en-têtes de `squad_core` (`monde/TileMap.hpp`, `escouade/Escouade.hpp`)
     incluent des en-têtes SFML — cette dépendance fait partie de son
     interface et doit se propager à qui la lie.
   - `target_include_directories(squad_core PUBLIC src)` : même raison,
-    pour que `tests/` puisse faire `#include "TileMap.hpp"` sans connaître
-    le chemin relatif vers `src/`.
-- **`main`** (`add_executable(main src/main.cpp src/Application.cpp)`) se lie à `squad_core`
+    pour que `tests/` puisse faire `#include "monde/TileMap.hpp"` sans connaître
+    le chemin relatif vers `src/`. C'est le seul dossier d'inclusion : chaque `#include` donne le
+    chemin depuis `src/`, y compris à l'intérieur d'un même dossier, pour que le dossier se lise
+    dans le code et que les règles de dépendance se vérifient par `grep`. (Pendant le déplacement
+    de l'étape 81, les sous-dossiers ont été ajoutés un temps à la liste, pour un commit `git mv`
+    sans changement de code, puis retirés.)
+- **`main`** (`add_executable(main src/app/main.cpp src/app/Application.cpp)`) se lie à `squad_core`
   en `PRIVATE` (`target_link_libraries(main PRIVATE squad_core)`) :
   `PRIVATE` parce que rien d'autre ne relie jamais `main`, un exécutable
   final.
@@ -49,7 +57,11 @@
   `/ucrt64/include`, et cibles importées par `find_package`, `SYSTEM` par défaut), sans ligne à
   ajouter. Pas de `-Wsign-conversion` (il viendra avec une classe `Grille`, voir l'audit).
 - **`tests`** (`add_executable(tests ...)`, un fichier par ligne) se lie à `squad_core` et à
-  `Catch2::Catch2WithMain` (qui fournit le `main()` des tests).
+  `Catch2::Catch2WithMain` (qui fournit le `main()` des tests). Les fichiers de tests sont rangés
+  en miroir de `src/` (`tests/escouade/test_Escouade_combat.cpp`) ; les aides (`aides.hpp`,
+  `aides_escouade.hpp`, `aides_monstre.hpp`) restent à la racine de `tests/`, ajoutée par
+  `target_include_directories(tests PRIVATE tests)` : un test de n'importe quel dossier écrit
+  `#include "aides.hpp"`.
 - **Générateur Ninja**, choisi par les presets. Ninja relance la configuration automatiquement
   quand `CMakeLists.txt` change.
 
@@ -110,8 +122,8 @@ Paquet MSYS2 `mingw-w64-ucrt-x86_64-clang-tools-extra` (LLVM 23).
   `performance-*`, moins les règles trop bavardes ou sans objet ici, chacune avec sa raison en
   commentaire (paramètres voisins de même type, nombres magiques, `gsl::at`, alias en double,
   `noexcept`, constantes globales de type classe, taille des `enum`). Les en-têtes de `src/` sont
-  analysés (`HeaderFilterRegex` qui accepte `/` et `\`).
-- **Commande**, une source à la fois, depuis la racine : `clang-tidy -p build/jeu src/Escouade.cpp`
+  analysés (`HeaderFilterRegex` qui accepte `/` et `\`), sous-dossiers compris.
+- **Commande**, une source à la fois, depuis la racine : `clang-tidy -p build/jeu src/escouade/Escouade.cpp`
   (base de compilation du preset `jeu`). Le décompte par règle est dans `docs/audit.md`
   (« clang-tidy, premier passage »).
 - **Limite connue** : l'`assert` de MinGW appelle `_assert`, qui n'est pas déclaré `noreturn` ;
@@ -125,3 +137,29 @@ SFML a été choisie plutôt que raylib parce qu'elle est orientée objet
 correspond à l'objectif d'apprendre le C++ et le génie logiciel (classes,
 encapsulation). raylib est plus proche du C, avec des fonctions libres.
 SFML gère aussi nativement le texte (police + rendu).
+
+## État et limites à la fin de l'étape 80
+
+Repris tels quels de la section « État actuel » de `ROADMAP.md` à l'étape 81 (K1), pour ce
+sujet. `ROADMAP.md` n'en garde qu'un résumé. Les sections précédentes de ce document peuvent dire la
+même chose avec plus de détail.
+
+### État
+
+- **Qualité du code** (étapes 49 et 80) : `squad_core`, `main` et `tests` se compilent avec
+  `-Wall -Wextra -Wpedantic -Wshadow -Wconversion` sans aucun avertissement, dans les deux presets
+  (pas de `-Werror`) ; `[[nodiscard]]` sur tout retour d'une fonction sans effet de bord ou qui
+  signale un échec (règle écrite dans `CLAUDE.md`) ; `assert` devant les déréférencements qui
+  reposent sur un invariant ; `Cercle` passé par valeur ; constantes en `s_`. **Build** (étape 80) :
+  presets `debug` (assertions de la bibliothèque standard, UBSan) et `jeu` (Release), CTest,
+  `.clang-format` (sans reformatage du code existant) et `.clang-tidy` (59 avertissements restants,
+  aucun corrigé hors de `[[nodiscard]]` et des accès à un `optional` ; décompte dans `docs/audit.md`).
+  `dt` borné à 1/20 s dans `Application` : après un gel, le jeu ralentit au lieu de faire traverser
+  les murs. `coutDesObstacles` ne visite plus que le rectangle englobant de chaque obstacle (même
+  résultat ; 24 monstres en poursuite : 50 ms → 3,9 ms par image en debug, 2,35 → 0,34 ms en jeu).
+  Voir `docs/build.md`. Barre de vie
+  des personnages et des monstres dessinée par le module `BarreDeVie`.
+  Points de vie portés par la classe `PointsDeVie` (étape 53), possédée par
+  `Personnage` et `Monstre`. `Skill` n'a plus que la machine à états
+  (`commencer` / `avancer` / `annuler`) : `declencher` et
+  `declencherSansCible` ont été supprimées à l'étape 62.
