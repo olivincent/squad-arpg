@@ -11,6 +11,7 @@
 #include "Monstre.hpp"
 #include "Niveau.hpp"
 #include "Partie.hpp"
+#include "Skill.hpp"
 
 namespace {
 
@@ -901,4 +902,48 @@ TEST_CASE("zone de controle : un monstre qui rentre a son poste ne donne ni ne r
     }
     REQUIRE_FALSE(fuyard(partie).estCiblable());
     REQUIRE(fuyard(partie).getPointsDeVie() == 100);
+}
+
+// Dégagement des tireurs (étape 78). Guerrier (place 1, en (235, 210)) et mage (place 2, en (185, 210)),
+// monstre en (219, 232) : il engage les deux (écarts bord à bord de 2 et 15,5 px pour une zone de 20 px),
+// et sa proie est le guerrier, plus proche. Le guerrier frappe une seule fois (1 dégât, recharge de 100 s) ;
+// le mage tire des coups de 7 dégâts : on reconnaît ainsi qui touche le monstre.
+
+namespace {
+
+constexpr int s_degatsDuMageDansLaPartie = 7;
+
+Partie unGuerrierEtUnMageAuContact() {
+    std::vector<DefinitionPersonnage> composition = composer({IdSpecialite::Guerrier, IdSpecialite::Mage});
+    composition[0].attaqueDeBase = Skill(TypeSkill::Degats, 20.0f, 1, 100.0f, 100.0f, 0.0f, 0.15f);
+    composition[1].attaqueDeBase = Skill(TypeSkill::Degats, 120.0f, s_degatsDuMageDansLaPartie, 0.3f, 0.3f, 0.0f, 0.15f);
+    return Partie(niveauDegage({{219.0f, 232.0f}}), std::move(composition), s_graineDeTest);
+}
+
+}  // namespace
+
+TEST_CASE("degagement : le mage quitte le monstre tenu par le guerrier sans coup gratuit, puis tire de loin") {
+    Partie partie = unGuerrierEtUnMageAuContact();
+    const Cercle monstre = partie.getMonstres().front().getCercle();
+    REQUIRE(distanceBordABord(partie.getEscouade().cerclesDesVivants()[0], monstre) <= 20.0f);
+    REQUIRE(distanceBordABord(partie.getEscouade().cerclesDesVivants()[1], monstre) <= 20.0f);
+
+    int pointsDuMonstreALArrivee = 0;
+    for (int i = 0; i < nombreDeTics(3.0f); ++i) {
+        partie.mettreAJour(s_dureeTic);
+        const std::vector<Cercle> cercles = partie.getEscouade().cerclesDesVivants();
+        REQUIRE(partie.getEscouade().pointsDeVieDuPersonnage(2) == 100);  // aucun coup, gratuit ou non
+        REQUIRE(distanceBordABord(cercles[0], monstre) <= 20.0f);          // le guerrier reste au contact
+        if (pointsDuMonstreALArrivee == 0 && !partie.getEscouade().degagementDuPersonnage(2).has_value() &&
+            distanceBordABord(cercles[1], monstre) > 20.0f) {
+            pointsDuMonstreALArrivee = partie.getMonstres().front().getPointsDeVie();
+        }
+    }
+
+    const std::vector<Cercle> cercles = partie.getEscouade().cerclesDesVivants();
+    REQUIRE_FALSE(partie.getEscouade().degagementDuPersonnage(2).has_value());
+    REQUIRE(distanceBordABord(cercles[1], monstre) > 20.0f);
+    REQUIRE(distanceBordABord(cercles[1], monstre) <= 120.0f);  // à portée de son attaque
+    REQUIRE(pointsDuMonstreALArrivee > 0);
+    REQUIRE(partie.getMonstres().front().getPointsDeVie() <= pointsDuMonstreALArrivee - s_degatsDuMageDansLaPartie);
 }

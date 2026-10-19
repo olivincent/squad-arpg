@@ -1,5 +1,6 @@
 // ./tests/test_Engagement.cpp
 #include <catch2/catch_test_macros.hpp>
+#include <optional>
 #include <vector>
 
 #include "Engagement.hpp"
@@ -211,4 +212,118 @@ TEST_CASE("deux centres confondus : personne n'a de direction, aucun coup") {
     const PhotoDesCamps apres{{attaquant()}, {entite(2, 100.0f, 0.0f)}};
 
     REQUIRE(coupsDOpportunite(avant, apres).empty());
+}
+
+// --- monstreDontSeDegager ---------------------------------------------------------------
+// Monstres de zone 20 px, personnages de rayon 10 : un monstre engage un personnage dont le
+// centre est à 40 px ou moins du sien.
+
+namespace {
+
+EntiteDeControle monstre(int id, float x, float y) {
+    return entite(id, x, y, s_zone);
+}
+
+EntiteDeControle tireur(int place, float x, float y) {
+    return entite(place, x, y, 0.0f);
+}
+
+EntiteDeControle melee(int place, float x, float y) {
+    return entite(place, x, y, s_zone);
+}
+
+}  // namespace
+
+TEST_CASE("degagement : engage par un monstre tenu par un autre personnage") {
+    const EntiteDeControle mage = tireur(3, 30.0f, 0.0f);
+    const EntiteDeControle guerrier = melee(1, -30.0f, 0.0f);
+
+    const std::optional<int> id = monstreDontSeDegager(mage, {guerrier, mage}, {monstre(7, 0.0f, 0.0f)});
+
+    REQUIRE(id == 7);
+}
+
+TEST_CASE("degagement : seul au contact, il reste") {
+    const EntiteDeControle mage = tireur(3, 30.0f, 0.0f);
+    const EntiteDeControle guerrier = melee(1, 500.0f, 0.0f);  // loin du monstre
+
+    REQUIRE_FALSE(monstreDontSeDegager(mage, {guerrier, mage}, {monstre(7, 0.0f, 0.0f)}).has_value());
+}
+
+TEST_CASE("degagement : engage par deux monstres dont un seul est tenu, il reste") {
+    const EntiteDeControle mage = tireur(3, 0.0f, 30.0f);
+    const EntiteDeControle guerrier = melee(1, -30.0f, -10.0f);
+    // Le monstre 7 (en 0,0) touche le guerrier et le mage ; le monstre 8 (en 30,30) touche seulement le mage.
+    const std::vector<EntiteDeControle> monstres{monstre(7, 0.0f, 0.0f), monstre(8, 30.0f, 30.0f)};
+
+    REQUIRE(engage(monstres[0], guerrier));
+    REQUIRE(engage(monstres[0], mage));
+    REQUIRE(engage(monstres[1], mage));
+    REQUIRE_FALSE(engage(monstres[1], guerrier));
+    REQUIRE_FALSE(monstreDontSeDegager(mage, {guerrier, mage}, monstres).has_value());
+}
+
+TEST_CASE("degagement : les deux monstres sont tenus, par le meme personnage ou par deux") {
+    const EntiteDeControle mage = tireur(3, 0.0f, 30.0f);
+    const std::vector<EntiteDeControle> monstres{monstre(7, 0.0f, 0.0f), monstre(8, 30.0f, 30.0f)};
+
+    SECTION("par le meme personnage") {
+        const EntiteDeControle guerrier = melee(1, 30.0f, 0.0f);  // dans la zone des deux monstres
+
+        REQUIRE(engage(monstres[0], guerrier));
+        REQUIRE(engage(monstres[1], guerrier));
+        REQUIRE(monstreDontSeDegager(mage, {guerrier, mage}, monstres).has_value());
+    }
+    SECTION("par deux personnages") {
+        const EntiteDeControle guerrier = melee(1, -30.0f, -10.0f);   // tient le monstre 7
+        const EntiteDeControle paladin = melee(2, 60.0f, 30.0f);      // tient le monstre 8
+
+        REQUIRE_FALSE(engage(monstres[0], paladin));
+        REQUIRE_FALSE(engage(monstres[1], guerrier));
+
+        REQUIRE(monstreDontSeDegager(mage, {guerrier, paladin, mage}, monstres).has_value());
+    }
+}
+
+TEST_CASE("degagement : pas engage, rien") {
+    const EntiteDeControle mage = tireur(3, 300.0f, 0.0f);
+    const EntiteDeControle guerrier = melee(1, -30.0f, 0.0f);
+
+    REQUIRE_FALSE(monstreDontSeDegager(mage, {guerrier, mage}, {monstre(7, 0.0f, 0.0f)}).has_value());
+    REQUIRE_FALSE(monstreDontSeDegager(mage, {guerrier, mage}, {}).has_value());
+}
+
+TEST_CASE("degagement : le personnage lui-meme ne compte pas comme tenant le monstre") {
+    const EntiteDeControle mage = tireur(3, 30.0f, 0.0f);
+
+    SECTION("liste qui le contient") {
+        REQUIRE_FALSE(monstreDontSeDegager(mage, {mage}, {monstre(7, 0.0f, 0.0f)}).has_value());
+    }
+    SECTION("liste vide") {
+        REQUIRE_FALSE(monstreDontSeDegager(mage, {}, {monstre(7, 0.0f, 0.0f)}).has_value());
+    }
+}
+
+TEST_CASE("degagement : un personnage avec une zone de controle ne se degage jamais") {
+    const EntiteDeControle guerrier = melee(1, 30.0f, 0.0f);
+    const EntiteDeControle paladin = melee(2, -30.0f, 0.0f);
+
+    REQUIRE_FALSE(monstreDontSeDegager(guerrier, {guerrier, paladin}, {monstre(7, 0.0f, 0.0f)}).has_value());
+}
+
+TEST_CASE("degagement : le monstre choisi est le plus proche de ceux qui l'engagent") {
+    const EntiteDeControle mage = tireur(3, 0.0f, 30.0f);
+    const EntiteDeControle guerrier = melee(1, 20.0f, 10.0f);  // dans la zone des deux monstres
+    // Écarts bord à bord au mage : monstre 8 (en 40,30) : 40 - 20 = 20 ; monstre 7 (en 0,0) : 30 - 20 = 10.
+    const std::vector<EntiteDeControle> monstres{monstre(8, 40.0f, 30.0f), monstre(7, 0.0f, 0.0f)};
+
+    REQUIRE(monstreDontSeDegager(mage, {guerrier, mage}, monstres) == 7);
+}
+
+TEST_CASE("degagement : a egalite de distance, le premier monstre de la liste") {
+    const EntiteDeControle mage = tireur(3, 0.0f, 0.0f);
+    const EntiteDeControle guerrier = melee(1, 0.0f, 0.0f + 5.0f);
+    const std::vector<EntiteDeControle> monstres{monstre(9, 30.0f, 0.0f), monstre(4, -30.0f, 0.0f)};
+
+    REQUIRE(monstreDontSeDegager(mage, {guerrier, mage}, monstres) == 9);
 }

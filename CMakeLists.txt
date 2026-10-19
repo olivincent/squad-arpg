@@ -86,6 +86,7 @@ add_executable(tests
     tests/test_Escouade_agresseurs.cpp
     tests/test_Escouade_vue.cpp
     tests/test_Escouade_places.cpp
+    tests/test_Escouade_degagement.cpp
     tests/test_Composition.cpp
     tests/test_Specialite.cpp
     tests/test_SelectionDEscouade.cpp

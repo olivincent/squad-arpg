@@ -36,6 +36,16 @@ bool cibleAFui(const EntiteDeControle& attaquantAvant, const EntiteDeControle& a
     const float ecartDeLAttaquant = (attaquantApres.cercle.centre - attaquantAvant.cercle.centre).dot(-direction);
     return ecartDeLaCible >= ecartDeLAttaquant;
 }
+
+// Le monstre engage-t-il un personnage d'identifiant différent de `idExclu` ?
+bool engageUnAutre(const EntiteDeControle& monstre, const std::vector<EntiteDeControle>& personnages, int idExclu) {
+    for (const EntiteDeControle& personnage : personnages) {
+        if (personnage.id != idExclu && engage(monstre, personnage)) {
+            return true;
+        }
+    }
+    return false;
+}
 }  // namespace
 
 bool engage(const EntiteDeControle& a, const EntiteDeControle& b) {
@@ -71,4 +81,32 @@ std::vector<CoupDOpportunite> coupsDOpportunite(const PhotoDesCamps& avant, cons
         }
     }
     return coups;
+}
+
+std::optional<int> monstreDontSeDegager(const EntiteDeControle& personnage,
+                                        const std::vector<EntiteDeControle>& personnages,
+                                        const std::vector<EntiteDeControle>& monstres) {
+    if (personnage.zone > 0.0f) {
+        return std::nullopt;
+    }
+    const EntiteDeControle* plusProche = nullptr;
+    float ecartChoisi = 0.0f;
+    for (const EntiteDeControle& monstre : monstres) {
+        if (!engage(monstre, personnage)) {
+            continue;
+        }
+        // Un seul monstre qui l'engage sans qu'un autre personnage soit dans sa zone suffit à rester.
+        if (!engageUnAutre(monstre, personnages, personnage.id)) {
+            return std::nullopt;
+        }
+        const float ecart = distanceBordABord(monstre.cercle, personnage.cercle);
+        if (plusProche == nullptr || ecart < ecartChoisi) {
+            plusProche = &monstre;
+            ecartChoisi = ecart;
+        }
+    }
+    if (plusProche == nullptr) {
+        return std::nullopt;
+    }
+    return plusProche->id;
 }

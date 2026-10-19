@@ -30,6 +30,7 @@ constexpr float s_laisseAgresseur = 100.0f;      // en pixels, centre à centre,
 constexpr float s_fractionPorteeAnneau = 0.9f;    // anneau d'attaque : part de la portée, pour que la place soit à portée
 constexpr float s_vitesseSeparation = 120.0f;    // poussée maximale entre deux personnages trop proches, en pixels par seconde (plus lente que la marche, 240 : voir docs/formation.md)
 constexpr float s_ecartEntrePersonnages = 34.0f;  // distance minimale voulue entre deux centres (≈ (20 + 4) × √2 : 4 px visibles même en diagonale) ; aussi entre deux places, ou une place et un personnage immobile
+constexpr float s_toleranceArrivee = 0.01f;       // en pixels : comme le seuil de Mobile, un personnage à cette distance de son point y est arrivé
 constexpr std::array<float, 3> s_rayonsDeSecoursPlaces = {34.0f, 68.0f, 102.0f};  // anneaux autour de l'ancre pour une place repliée sur une autre
 
 // Seule conversion d'une place (de 1 à N) vers l'indice (de 0 à N-1).
@@ -62,6 +63,7 @@ Escouade::Escouade(sf::Vector2f positionDepart, std::vector<DefinitionPersonnage
       m_monstreAPortee(composition.size(), false),
       m_placesDAttaque(composition.size()),
       m_pointsVises(),
+      m_degagements(composition.size()),
       m_agresseurs(),
       m_provocations()
 {
@@ -315,7 +317,8 @@ std::vector<Coup> Escouade::autodefense(float dt, const std::vector<EntiteVue>& 
             }
             continue;
         }
-        if (id.has_value()) {
+        // Un personnage qui se dégage ne frappe pas : il va jusqu'à sa place d'attaque.
+        if (id.has_value() && !m_degagements[i].has_value()) {
             personnage.engagerAttaque(*id);
         }
     }
@@ -632,15 +635,17 @@ std::optional<sf::Vector2f> Escouade::pointVersAgresseur(std::size_t indice, con
 // 0. un personnage qui exécute un coup ou active un skill reste sur place ;
 // 1. le lanceur d'un skill en attente vise sa cible (pour un skill de dégâts,
 //    sa place d'attaque autour du monstre) ;
-// 2. en combat, un vivant déjà à portée de la cible reste sur place (les
+// 2. un personnage qui se dégage (degagementVoulu) marche jusqu'à sa place d'attaque autour
+//    du monstre dont il se dégage, sans s'arrêter à portée ;
+// 3. en combat, un vivant déjà à portée de la cible reste sur place (les
 //    tireurs s'arrêtent à distance pendant que les mêlées vont jusqu'au contact) ;
 //    un vivant pas encore à portée marche vers sa place d'attaque ;
-// 3. ancre à l'arrêt, un vivant qui a un agresseur dans sa laisse va vers lui,
+// 4. ancre à l'arrêt, un vivant qui a un agresseur dans sa laisse va vers lui,
 //    à sa place d'attaque (l'ordre du joueur gagne : ancre en mouvement, il garde sa place) ;
-// 4. sinon sa place en formation.
+// 5. sinon sa place en formation.
 // La place d'attaque retenue est oubliée dès qu'aucune règle ne la renouvelle.
 sf::Vector2f Escouade::pointVoulu(std::size_t indice, const std::optional<sf::Vector2f>& pointSkill, bool ancreArretee,
-                                  const std::vector<EntiteVue>& agresseurs, const TileMap& carte) {
+                                  const std::vector<EntiteVue>& agresseurs, const std::vector<EntiteVue>& monstres, const TileMap& carte) {
     const Personnage& personnage = m_personnages[indice];
     const std::optional<PlaceDAttaque> ancienne = m_placesDAttaque[indice];
     m_placesDAttaque[indice].reset();
@@ -655,6 +660,17 @@ sf::Vector2f Escouade::pointVoulu(std::size_t indice, const std::optional<sf::Ve
             return pointVersMonstre(indice, monstre.id, *m_cibleCombat, m_skillEnAttente->adresse.id, ancienne, carte);
         }
         return *pointSkill;
+    }
+    if (m_degagements[indice].has_value()) {
+        // Le monstre est dans `monstres` (physiques : tous les monstres) tant qu'il est vivant.
+        if (const EntiteVue* monstre = trouverEntite(monstres, *m_degagements[indice])) {
+            const sf::Vector2f place = pointVersMonstre(indice, monstre->id, monstre->cercle, std::nullopt, ancienne, carte);
+            if (m_placesDAttaque[indice].has_value()) {
+                return place;
+            }
+        }
+        // Pas de monstre ou aucune place libre : se dégager n'a plus de sens, les règles habituelles reprennent.
+        m_degagements[indice].reset();
     }
     const bool enCombat = m_cibleVerrouillee.has_value() && m_cibleCombat.has_value();
     if (enCombat && personnage.estVivant()) {
@@ -776,7 +792,8 @@ std::vector<Cercle> Escouade::monstresAContourner(std::size_t indice, const std:
     return aContourner;
 }
 
-void Escouade::mettreAJour(float dt, const TileMap& carte, const std::vector<EntiteVue>& monstres) {
+void Escouade::mettreAJour(float dt, const TileMap& carte, const std::vector<EntiteVue>& monstres,
+                           const std::vector<EntiteDeControle>& monstresDeControle) {
     std::vector<Cercle> obstacles;
     for (const EntiteVue& monstre : monstres) {
         obstacles.push_back(monstre.cercle);
@@ -801,12 +818,57 @@ void Escouade::mettreAJour(float dt, const TileMap& carte, const std::vector<Ent
     tournerFormation(dt);
     calculerPlaces(carte, monstres);
 
+    mettreAJourDegagements(ancreArretee, monstresDeControle);
     const std::optional<sf::Vector2f> pointSkill = avancerSkillEnAttente(carte);
     for (std::size_t i = 0; i < m_personnages.size(); ++i) {
-        m_pointsVises[i] = pointVoulu(i, pointSkill, ancreArretee, agresseurs, carte);
+        m_pointsVises[i] = pointVoulu(i, pointSkill, ancreArretee, agresseurs, monstres, carte);
         m_personnages[i].mettreAJour(dt, m_pointsVises[i], carte, obstacles, monstresAContourner(i, monstres));
     }
     separerPersonnages(dt, carte, obstacles);
+}
+
+// Tous les personnages sont jugés d'après les positions du début de l'image (aucun n'a encore bougé
+// dans celle-ci), avant que l'un d'eux ne se déplace.
+void Escouade::mettreAJourDegagements(bool ancreArretee, const std::vector<EntiteDeControle>& monstresDeControle) {
+    const std::vector<EntiteDeControle> personnages = entitesDeControle();
+    for (std::size_t i = 0; i < m_personnages.size(); ++i) {
+        m_degagements[i] = degagementVoulu(i, ancreArretee, personnages, monstresDeControle);
+    }
+}
+
+// LA règle « tenir ou se dégager » : seul endroit qui sait quand un personnage quitte le contact d'un
+// monstre pour sa place d'attaque. Renvoie le monstre dont il se dégage (vide : il ne se dégage pas),
+// d'après l'état actuel (m_degagements[indice]) ; un futur gambit remplacera cette fonction.
+// Départ (voir monstreDontSeDegager) : sans zone de contrôle, engagé, chaque monstre qui l'engage tient
+// un autre personnage. Il faut en plus l'ancre à l'arrêt (l'ordre du joueur gagne), aucun skill en attente
+// pour lui et aucune action en exécution (un coup en cours part d'abord). Fin : arrivé à sa place,
+// monstre disparu (mort, retiré ou qui rentre à son poste : absent de `monstresDeControle`), ou encore
+// engagé alors que la condition n'est plus vraie (le porteur est parti : rester évite le coup gratuit).
+// Une action en exécution, l'ancre en marche ou un skill en attente y mettent fin sans condition.
+std::optional<int> Escouade::degagementVoulu(std::size_t indice, bool ancreArretee, const std::vector<EntiteDeControle>& personnages,
+                                             const std::vector<EntiteDeControle>& monstresDeControle) const {
+    const Personnage& personnage = m_personnages[indice];
+    const bool skillEnAttentePourLui = m_skillEnAttente.has_value() && m_skillEnAttente->adresse.place == indice + 1;
+    if (!personnage.estVivant() || !ancreArretee || skillEnAttentePourLui || personnage.estEnExecution()) {
+        return std::nullopt;
+    }
+    const auto lui = std::ranges::find(personnages, static_cast<int>(indice + 1), &EntiteDeControle::id);
+    if (lui == personnages.end()) {
+        return std::nullopt;
+    }
+    const std::optional<int> candidat = monstreDontSeDegager(*lui, personnages, monstresDeControle);
+
+    const std::optional<int>& enCours = m_degagements[indice];
+    if (!enCours.has_value()) {
+        return candidat;
+    }
+    const bool monstreDisparu = std::ranges::find(monstresDeControle, *enCours, &EntiteDeControle::id) == monstresDeControle.end();
+    const bool arrive = (personnage.getCentre() - m_pointsVises[indice]).length() <= s_toleranceArrivee;
+    const bool engageEncore = std::ranges::any_of(monstresDeControle, [&](const EntiteDeControle& monstre) { return engage(monstre, *lui); });
+    if (monstreDisparu || arrive || (engageEncore && !candidat.has_value())) {
+        return std::nullopt;
+    }
+    return enCours;
 }
 
 // Séparation douce : chaque paire de vivants à moins de s_ecartEntrePersonnages est écartée le
@@ -864,6 +926,13 @@ std::optional<sf::Vector2f> Escouade::pointVise(std::size_t place) const {
         return std::nullopt;
     }
     return m_pointsVises[indiceDeLaPlace(place)];
+}
+
+std::optional<int> Escouade::degagementDuPersonnage(std::size_t place) const {
+    if (!placeValide(place)) {
+        return std::nullopt;
+    }
+    return m_degagements[indiceDeLaPlace(place)];
 }
 
 void Escouade::dessinerPointsVises(sf::RenderTarget& rendu) const {

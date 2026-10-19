@@ -59,8 +59,11 @@ public:
     [[nodiscard]] Cercle cercleDePorteeDuSkill(AdresseSkill adresse) const;
     [[nodiscard]] std::vector<Coup> declencherSkillDeZone(AdresseSkill adresse, sf::Vector2f point, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
     // `monstres` bloquent les personnages ; chaque personnage contourne en plus tous ceux
-    // qu'il n'approche pas (voir monstresAContourner).
-    void mettreAJour(float dt, const TileMap& carte, const std::vector<EntiteVue>& monstres);
+    // qu'il n'approche pas (voir monstresAContourner). `monstresDeControle` : les monstres que la
+    // règle des zones de contrôle voit, avec leur zone (ceux qui rentrent à leur poste n'y sont pas) ;
+    // Partie y met la photo du début de l'image. Vide : aucun personnage ne se dégage.
+    void mettreAJour(float dt, const TileMap& carte, const std::vector<EntiteVue>& monstres,
+                     const std::vector<EntiteDeControle>& monstresDeControle = {});
     sf::Vector2f getCentre() const;
     // Personnage que ce monstre poursuit : l'identifiant est sa place (1 à N), le cercle le sien.
     [[nodiscard]] std::optional<EntiteVue> proieDuMonstre(int idMonstre, sf::Vector2f positionMonstre) const;
@@ -88,6 +91,9 @@ public:
     void deverrouiller();
     std::optional<int> getCibleVerrouillee() const;
     const std::vector<sf::Vector2f>& getPlacesDeFormation() const;
+    // Identifiant du monstre dont le personnage de cette place se dégage (voir degagementVoulu) ;
+    // vide s'il ne se dégage pas ou si la place est invalide. Lu par les tests.
+    [[nodiscard]] std::optional<int> degagementDuPersonnage(std::size_t place) const;
     // Point vers lequel le personnage de cette place (de 1 à N) marche, calculé par le dernier
     // mettreAJour : place de formation, place d'attaque, cible du skill en attente, ou sa
     // propre position s'il reste sur place. Vide si la place est invalide.
@@ -144,7 +150,12 @@ private:
     void calculerPlaces(const TileMap& carte, const std::vector<EntiteVue>& monstres);
     void separerPersonnages(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles);
     sf::Vector2f pointVoulu(std::size_t indice, const std::optional<sf::Vector2f>& pointSkill, bool ancreArretee,
-                            const std::vector<EntiteVue>& agresseurs, const TileMap& carte);
+                            const std::vector<EntiteVue>& agresseurs, const std::vector<EntiteVue>& monstres, const TileMap& carte);
+    // Dégagement : les deux fonctions ci-dessous sont, avec m_degagements, tout ce que sait Escouade
+    // de cette règle de comportement (le point de remplacement des futurs gambits).
+    void mettreAJourDegagements(bool ancreArretee, const std::vector<EntiteDeControle>& monstresDeControle);
+    std::optional<int> degagementVoulu(std::size_t indice, bool ancreArretee, const std::vector<EntiteDeControle>& personnages,
+                                       const std::vector<EntiteDeControle>& monstresDeControle) const;
 
     struct SkillEnAttente {
         AdresseSkill adresse;  // du skill en attente (place du lanceur et identifiant)
@@ -166,6 +177,8 @@ private:
     // Par personnage : place d'attaque retenue autour du monstre qu'il approche (vide = il n'en approche aucun).
     std::vector<std::optional<PlaceDAttaque>> m_placesDAttaque;
     std::vector<sf::Vector2f> m_pointsVises;  // par personnage, calculé par mettreAJour
+    // Par personnage : identifiant du monstre dont il se dégage vers sa place d'attaque (vide = il ne se dégage pas).
+    std::vector<std::optional<int>> m_degagements;
     Agresseurs m_agresseurs; // monstres qui ont frappé l'escouade récemment
     Provocations m_provocations; // monstres provoqués par un personnage
 };

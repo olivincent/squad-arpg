@@ -1,5 +1,6 @@
 // ./src/Engagement.hpp
 #pragma once
+#include <optional>
 #include <vector>
 #include "Cercle.hpp"
 
@@ -41,3 +42,14 @@ struct CoupDOpportunite {
 // coups sortent dans l'ordre de `avant.attaquants`. Le résultat ne dépend d'aucune autre
 // règle (recharge, ligne de vue, dégâts) : c'est à l'appelant de les appliquer.
 [[nodiscard]] std::vector<CoupDOpportunite> coupsDOpportunite(const PhotoDesCamps& avant, const PhotoDesCamps& apres);
+
+// Règle de départ du dégagement d'un personnage sans zone de contrôle : `personnage` est engagé
+// par au moins un des `monstres` ET chacun de ces monstres engage aussi un AUTRE personnage de
+// `personnages` (identifiant différent ; `personnage` peut figurer dans la liste, il ne compte pas).
+// Un personnage qui a une zone (> 0) ne se dégage jamais. Renvoie l'identifiant du plus proche
+// (bord à bord ; égalité : le premier de `monstres`) des monstres qui l'engagent, celui dont il
+// va rejoindre la place d'attaque ; vide si la règle n'est pas remplie. Ne tient compte ni de
+// l'ancre, ni des skills, ni d'un éventuel dégagement déjà en cours : c'est l'affaire de l'appelant.
+[[nodiscard]] std::optional<int> monstreDontSeDegager(const EntiteDeControle& personnage,
+                                                      const std::vector<EntiteDeControle>& personnages,
+                                                      const std::vector<EntiteDeControle>& monstres);
