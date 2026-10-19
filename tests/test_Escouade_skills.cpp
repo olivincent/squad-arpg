@@ -199,6 +199,28 @@ TEST_CASE("Le soin du pretre soigne un allie a portee, sans combat engage") {
     REQUIRE_FALSE(escouade.choisirCible(TypeSkill::Soin, s_adresseSoin, {}, carteOuverte()).has_value());
 }
 
+TEST_CASE("prendreSoins rend le soin applique (place, points reellement rendus, position) puis se vide") {
+    Escouade escouade = uneEscouade({50.0f, 50.0f});
+    escouade.recevoirDegats(1, {35.0f, 85.0f}, 20);  // le mage (place 3) perd 20 points
+
+    declencher(escouade, s_adresseSoin, {});
+    const std::vector<Escouade::SoinApplique> soins = escouade.prendreSoins();
+
+    REQUIRE(soins.size() == 1);
+    REQUIRE(soins[0].place == 3);
+    REQUIRE(soins[0].montant == 20);  // 30 de soin, mais il ne manquait que 20 points
+    verifierPointProche(soins[0].position, *escouade.centreDuPersonnage(3));
+    REQUIRE(escouade.prendreSoins().empty());
+}
+
+TEST_CASE("centreDuPersonnage : le centre de la place, vide si la place est invalide") {
+    const Escouade escouade = uneEscouade({50.0f, 50.0f});
+
+    verifierPointProche(*escouade.centreDuPersonnage(3), {35.0f, 85.0f});
+    REQUIRE_FALSE(escouade.centreDuPersonnage(0).has_value());
+    REQUIRE_FALSE(escouade.centreDuPersonnage(4).has_value());
+}
+
 TEST_CASE("Le soin ne part pas si la cible est hors de portee") {
     Escouade escouade = uneEscouadeAuSoinCourt({50.0f, 50.0f});
     escouade.recevoirDegats(1, {85.0f, 60.0f}, 20);

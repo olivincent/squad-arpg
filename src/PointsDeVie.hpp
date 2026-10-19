@@ -11,7 +11,8 @@ class PointsDeVie {
 public:
     explicit PointsDeVie(int maximum);
     void subirDegats(int montant);
-    void soigner(int montant);
+    // Renvoie les points réellement rendus (plafonnés au maximum ; 0 pour un mort).
+    int soigner(int montant);
     [[nodiscard]] bool estVivant() const;
     int getValeur() const;
     int getMaximum() const;

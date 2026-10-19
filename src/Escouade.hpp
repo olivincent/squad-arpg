@@ -71,9 +71,10 @@ public:
     // provocateur s'il est provoqué et vivant, sinon tous les personnages vivants.
     [[nodiscard]] std::vector<EntiteVue> candidatsDeFrappe(int idMonstre) const;
     [[nodiscard]] bool placeEstVivante(std::size_t place) const;
-    void recevoirDegats(int idMonstre, sf::Vector2f origine, int quantite);
+    // Renvoient les dégâts réellement subis (après armure) ; 0 si personne n'est touché.
+    int recevoirDegats(int idMonstre, sf::Vector2f origine, int quantite);
     // Comme recevoirDegats, mais sur le personnage de cette place (un coup engagé).
-    void recevoirCoup(int idMonstre, std::size_t place, sf::Vector2f origine, int quantite);
+    int recevoirCoup(int idMonstre, std::size_t place, sf::Vector2f origine, int quantite);
     bool estVivante() const;
     std::vector<Cercle> cerclesDesVivants() const;
     // Une entité de contrôle (identifiant = place de 1 à N, cercle, zone de contrôle) par personnage
@@ -94,6 +95,18 @@ public:
     // Identifiant du monstre dont le personnage de cette place se dégage (voir degagementVoulu) ;
     // vide s'il ne se dégage pas ou si la place est invalide. Lu par les tests.
     [[nodiscard]] std::optional<int> degagementDuPersonnage(std::size_t place) const;
+    // Centre du personnage de cette place (de 1 à N), mort ou vivant ; vide si la place est invalide.
+    [[nodiscard]] std::optional<sf::Vector2f> centreDuPersonnage(std::size_t place) const;
+    // Un soin appliqué : le personnage soigné (sa place), les points réellement rendus (jamais 0) et
+    // son centre à ce moment. Données de sortie, comme les `Coup` : Escouade ne sait pas qui les lit.
+    struct SoinApplique {
+        std::size_t place;
+        int montant;
+        sf::Vector2f position;
+    };
+    // Les soins appliqués depuis le dernier appel (par `declencherSkill` et `attaquer`), dans l'ordre ;
+    // la liste est vidée. `Partie` en fait des événements de combat.
+    [[nodiscard]] std::vector<SoinApplique> prendreSoins();
     // Point vers lequel le personnage de cette place (de 1 à N) marche, calculé par le dernier
     // mettreAJour : place de formation, place d'attaque, cible du skill en attente, ou sa
     // propre position s'il reste sur place. Vide si la place est invalide.
@@ -179,6 +192,7 @@ private:
     std::vector<sf::Vector2f> m_pointsVises;  // par personnage, calculé par mettreAJour
     // Par personnage : identifiant du monstre dont il se dégage vers sa place d'attaque (vide = il ne se dégage pas).
     std::vector<std::optional<int>> m_degagements;
+    std::vector<SoinApplique> m_soinsAppliques; // soins pas encore pris par prendreSoins
     Agresseurs m_agresseurs; // monstres qui ont frappé l'escouade récemment
     Provocations m_provocations; // monstres provoqués par un personnage
 };

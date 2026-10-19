@@ -178,8 +178,8 @@ void Partie::appliquerLesCoupsDOpportunite(const CampsDeControle& avant) {
     // Monstre qui frappe un personnage : comme un coup normal (le monstre devient un agresseur).
     for (const CoupDOpportunite& coup : surLesPersonnages) {
         if (const Monstre* attaquant = trouverMonstre(coup.idAttaquant)) {
-            m_escouade.recevoirCoup(attaquant->getId(), static_cast<std::size_t>(coup.idCible), attaquant->getCentre(),
-                                    attaquant->getPuissanceAttaque());
+            infligerAUnPersonnage(attaquant->getId(), static_cast<std::size_t>(coup.idCible), attaquant->getCentre(),
+                                  attaquant->getPuissanceAttaque(), true);
         }
     }
     // Personnage qui frappe un monstre : un Coup comme ceux d'attaquer(), sans toucher à aucune recharge.
@@ -189,7 +189,7 @@ void Partie::appliquerLesCoupsDOpportunite(const CampsDeControle& avant) {
             coupsSurLesMonstres.push_back({coup.idCible, *degats});
         }
     }
-    appliquer(coupsSurLesMonstres);
+    appliquer(coupsSurLesMonstres, true);
 
     const std::optional<int> idVerrouille = m_escouade.getCibleVerrouillee();
     if (idVerrouille.has_value()) {
@@ -201,12 +201,37 @@ void Partie::appliquerLesCoupsDOpportunite(const CampsDeControle& avant) {
     std::erase_if(m_monstres, [](const Monstre& m) { return !m.estVivant(); });
 }
 
-void Partie::appliquer(const std::vector<Coup>& coups) {
+void Partie::appliquer(const std::vector<Coup>& coups, bool opportunite) {
     for (const Coup& coup : coups) {
         if (Monstre* touche = trouverMonstre(coup.idMonstre)) {
-            touche->recevoirDegats(coup.degats);
+            const int subis = touche->recevoirDegats(coup.degats);
+            signaler(TypeEvenement::Degats, Camp::Monstres, touche->getId(), subis, touche->getCentre(), opportunite);
         }
     }
+}
+
+void Partie::infligerAUnPersonnage(int idMonstre, std::size_t place, sf::Vector2f origine, int degats, bool opportunite) {
+    const int subis = m_escouade.recevoirCoup(idMonstre, place, origine, degats);
+    if (const std::optional<sf::Vector2f> centre = m_escouade.centreDuPersonnage(place)) {
+        signaler(TypeEvenement::Degats, Camp::Escouade, static_cast<int>(place), subis, *centre, opportunite);
+    }
+}
+
+void Partie::signalerLesSoins() {
+    for (const Escouade::SoinApplique& soin : m_escouade.prendreSoins()) {
+        signaler(TypeEvenement::Soin, Camp::Escouade, static_cast<int>(soin.place), soin.montant, soin.position, false);
+    }
+}
+
+void Partie::signaler(TypeEvenement type, Camp campCible, int idCible, int montant, sf::Vector2f position, bool opportunite) {
+    if (montant <= 0) {
+        return;
+    }
+    m_evenements.push_back({type, campCible, idCible, montant, position, opportunite});
+}
+
+std::vector<EvenementDeCombat> Partie::prendreEvenements() {
+    return std::exchange(m_evenements, {});
 }
 
 void Partie::resoudreLesCoups(float dt) {
@@ -245,6 +270,9 @@ void Partie::resoudreLesCoups(float dt) {
             }
         }
     }
+
+    // Soins du skill demandé et des skills qui partent dans attaquer().
+    signalerLesSoins();
 
     std::erase_if(m_monstres, [](const Monstre& m) { return !m.estVivant(); });
 }
@@ -308,7 +336,7 @@ void Partie::faireFrapperLeMonstre(Monstre& monstre, std::optional<EntiteVue> pr
         if (!m_escouade.placeEstVivante(placeVisee)) {
             monstre.annulerAttaque();
         } else if (const int degats = monstre.avancerAttaque(dt, m_generateur); degats > 0) {
-            m_escouade.recevoirCoup(monstre.getId(), placeVisee, monstre.getCentre(), degats);
+            infligerAUnPersonnage(monstre.getId(), placeVisee, monstre.getCentre(), degats, false);
         }
         return;
     }
@@ -393,6 +421,10 @@ void Partie::dessinerZonesDeControle(sf::RenderTarget& rendu) const {
             rendu.draw(cercle);
         }
     }
+}
+
+bool Partie::estVisible(sf::Vector2f point) const {
+    return m_vision.estVisible(point);
 }
 
 const Escouade& Partie::getEscouade() const {

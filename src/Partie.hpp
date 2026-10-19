@@ -12,6 +12,7 @@
 #include "EntiteVue.hpp"
 #include "Engagement.hpp"
 #include "Escouade.hpp"
+#include "EvenementDeCombat.hpp"
 #include "Monstre.hpp"
 #include "Niveau.hpp"
 #include "ObjetInteractif.hpp"
@@ -69,6 +70,14 @@ public:
     // Nombre de monstres vivants.
     [[nodiscard]] int monstresRestants() const;
 
+    // Les dégâts et les soins réellement appliqués depuis le dernier appel (voir EvenementDeCombat.hpp),
+    // dans l'ordre où ils ont eu lieu ; la file est vidée. Une partie figée n'en produit plus.
+    [[nodiscard]] std::vector<EvenementDeCombat> prendreEvenements();
+
+    // Ce point (pixels du monde) est-il dans une case actuellement visible ? Sert à l'affichage :
+    // ne pas montrer ce qui se passe dans le brouillard.
+    [[nodiscard]] bool estVisible(sf::Vector2f point) const;
+
     const Escouade& getEscouade() const;
     const std::vector<Monstre>& getMonstres() const;
 
@@ -94,7 +103,14 @@ private:
     // obstacles bloquants et à contourner).
     std::vector<EntiteVue> entitesCiblables() const;
     std::vector<EntiteVue> entitesPhysiques() const;
-    void appliquer(const std::vector<Coup>& coups);
+    // Applique les coups aux monstres et signale chacun (`opportunite` : coups gratuits).
+    void appliquer(const std::vector<Coup>& coups, bool opportunite = false);
+    // Un coup de monstre sur le personnage de cette place (Escouade::recevoirCoup), signalé.
+    void infligerAUnPersonnage(int idMonstre, std::size_t place, sf::Vector2f origine, int degats, bool opportunite);
+    // Les soins qu'Escouade a appliqués depuis le dernier appel, signalés.
+    void signalerLesSoins();
+    // Le seul endroit où un événement naît ; un montant nul ne produit rien.
+    void signaler(TypeEvenement type, Camp campCible, int idCible, int montant, sf::Vector2f position, bool opportunite);
     // Étapes de mettreAJour(), dans l'ordre où elles sont appelées.
     void resoudreLesCoups(float dt);
     void faireTournerLesMonstres(float dt);
@@ -124,4 +140,5 @@ private:
     std::optional<sf::Vector2f> m_deplacementOrdonne;
     Generateur m_generateur;  // passé par référence jusqu'au tirage, jamais copié
     Vision m_vision;          // ce que le joueur sait de la carte (l'union de ce que voient les personnages vivants)
+    std::vector<EvenementDeCombat> m_evenements;  // produits par mettreAJour, vidés par prendreEvenements
 };

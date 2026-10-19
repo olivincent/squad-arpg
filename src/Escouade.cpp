@@ -277,7 +277,10 @@ std::vector<Coup> Escouade::effetDuSkill(std::size_t place, IdSkill id, const st
         Surcharges{
             [&](const CibleMonstre& monstre) -> std::vector<Coup> { return {{monstre.id, puissance}}; },
             [&](const CibleAllie& allie) -> std::vector<Coup> {
-                personnageDeLaPlace(allie.place).recevoirSoin(puissance);
+                Personnage& soigne = personnageDeLaPlace(allie.place);
+                if (const int rendu = soigne.recevoirSoin(puissance); rendu > 0) {
+                    m_soinsAppliques.push_back({allie.place, rendu, soigne.getCentre()});
+                }
                 return {};
             },
             // Zone : tous les monstres dont le bord est dans la zone autour du
@@ -921,6 +924,17 @@ void Escouade::separerPersonnages(float dt, const TileMap& carte, const std::vec
     }
 }
 
+std::optional<sf::Vector2f> Escouade::centreDuPersonnage(std::size_t place) const {
+    if (!placeValide(place)) {
+        return std::nullopt;
+    }
+    return personnageDeLaPlace(place).getCentre();
+}
+
+std::vector<Escouade::SoinApplique> Escouade::prendreSoins() {
+    return std::exchange(m_soinsAppliques, {});
+}
+
 std::optional<sf::Vector2f> Escouade::pointVise(std::size_t place) const {
     if (!placeValide(place)) {
         return std::nullopt;
@@ -1018,25 +1032,25 @@ bool Escouade::placeEstVivante(std::size_t place) const {
     return placeValide(place) && personnageDeLaPlace(place).estVivant();
 }
 
-void Escouade::recevoirDegats(int idMonstre, sf::Vector2f origine, int quantite) {
+int Escouade::recevoirDegats(int idMonstre, sf::Vector2f origine, int quantite) {
     const std::optional<EntiteVue> proie = proieDuMonstre(idMonstre, origine);
     if (!proie.has_value()) {
-        return;
+        return 0;
     }
-    recevoirCoup(idMonstre, static_cast<std::size_t>(proie->id), origine, quantite);
+    return recevoirCoup(idMonstre, static_cast<std::size_t>(proie->id), origine, quantite);
 }
 
-void Escouade::recevoirCoup(int idMonstre, std::size_t place, sf::Vector2f origine, int quantite) {
+int Escouade::recevoirCoup(int idMonstre, std::size_t place, sf::Vector2f origine, int quantite) {
     if (!placeEstVivante(place)) {
-        return;
+        return 0;
     }
-    personnageDeLaPlace(place).recevoirDegats(quantite);
+    const int subis = personnageDeLaPlace(place).recevoirDegats(quantite);
 
     // Un coup qui fait des dégâts désigne son auteur comme agresseur.
-    if (quantite <= 0) {
-        return;
+    if (quantite > 0) {
+        m_agresseurs.enregistrer(idMonstre, origine);
     }
-    m_agresseurs.enregistrer(idMonstre, origine);
+    return subis;
 }
 
 const std::vector<Agresseurs::Agresseur>& Escouade::getAgresseurs() const {

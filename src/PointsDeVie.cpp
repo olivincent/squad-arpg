@@ -17,15 +17,17 @@ void PointsDeVie::subirDegats(int montant) {
     }
 }
 
-void PointsDeVie::soigner(int montant) {
+int PointsDeVie::soigner(int montant) {
     assert(montant >= 0);
     if (!estVivant()) {
-        return;
+        return 0;
     }
+    const int avant = m_valeur;
     m_valeur += montant;
     if (m_valeur > m_maximum) {
         m_valeur = m_maximum;
     }
+    return m_valeur - avant;
 }
 
 bool PointsDeVie::estVivant() const {

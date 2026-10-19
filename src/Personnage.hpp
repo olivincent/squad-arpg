@@ -74,8 +74,10 @@ public:
     std::optional<ActionEngagee> skillEngage() const;
     [[nodiscard]] int avancerSkill(float dt, Generateur& generateur);
     void annulerSkill();
-    void recevoirDegats(int quantite);
-    void recevoirSoin(int quantite);
+    // Renvoient le montant réellement appliqué : dégâts après armure (0 pour un mort), points
+    // de vie réellement rendus (plafonnés au maximum, 0 pour un mort).
+    int recevoirDegats(int quantite);
+    int recevoirSoin(int quantite);
     bool estVivant() const;
     int getPointsDeVie() const;
     int getPointsDeVieMax() const;

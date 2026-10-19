@@ -257,12 +257,17 @@ void Personnage::annulerSkill() {
     }
 }
 
-void Personnage::recevoirDegats(int quantite) {
-    m_pointsDeVie.subirDegats(appliquerArmure(quantite, m_armure));
+int Personnage::recevoirDegats(int quantite) {
+    if (!estVivant()) {
+        return 0;
+    }
+    const int degats = appliquerArmure(quantite, m_armure);
+    m_pointsDeVie.subirDegats(degats);
+    return degats;
 }
 
-void Personnage::recevoirSoin(int quantite) {
-    m_pointsDeVie.soigner(quantite);
+int Personnage::recevoirSoin(int quantite) {
+    return m_pointsDeVie.soigner(quantite);
 }
 
 bool Personnage::estVivant() const {

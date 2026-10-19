@@ -10,6 +10,7 @@
 #include "Ecran.hpp"
 #include "Partie.hpp"
 #include "Specialite.hpp"
+#include "TextesFlottants.hpp"
 
 // Bascules de débogage (état d'interface de l'écran de jeu, remises à leur valeur de départ
 // à chaque nouvelle partie) : F3 les points visés des personnages, F4 le carré de l'ancre,
@@ -48,6 +49,9 @@ private:
     // La barre de raccourcis est de l'état d'interface (comme la caméra) : ni la Partie ni
     // l'Escouade ne savent qu'elle existe. Reconstruite à chaque nouvelle partie.
     BarreDeRaccourcis m_barre;
+    // Les dégâts et les soins qui montent au-dessus des cibles : nourris par les événements de la
+    // Partie, remis à zéro à chaque nouvelle partie.
+    TextesFlottants m_textes;
     sf::View m_camera;
     OptionsDeDebogage m_debogage;
 };

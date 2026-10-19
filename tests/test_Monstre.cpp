@@ -963,3 +963,26 @@ TEST_CASE("lire la puissance de l'attaque ne change ni le coup engage ni la rech
     REQUIRE(monstre.getPuissanceAttaque() == 10);
     REQUIRE_FALSE(engager(monstre, pointCible({125.0f, 100.0f}), 1, carte));  // la recharge court toujours
 }
+
+TEST_CASE("Monstre.recevoirDegats renvoie les degats subis apres armure") {
+    Monstre sansArmure({100.0f, 100.0f}, 1, 0, 0);
+    Monstre arme({100.0f, 100.0f}, 2, 20, 0);
+
+    REQUIRE(sansArmure.recevoirDegats(10) == 10);
+    REQUIRE(arme.recevoirDegats(10) == 8);  // 10 x 100 / 120 = 8,33 -> 8
+}
+
+TEST_CASE("Monstre.recevoirDegats sur un monstre mort renvoie zero") {
+    Monstre monstre({100.0f, 100.0f}, 1, 0, 0);
+    monstre.recevoirDegats(100);
+
+    REQUIRE(monstre.recevoirDegats(10) == 0);
+}
+
+TEST_CASE("Monstre.recevoirDegats en retour renvoie zero") {
+    const TileMap carte = carteLongue();
+    Monstre monstre({100.0f, 100.0f}, 1, 0, 0);
+    amenerEnRetourHorsTerritoire(monstre, carte, 50);
+
+    REQUIRE(monstre.recevoirDegats(10) == 0);
+}

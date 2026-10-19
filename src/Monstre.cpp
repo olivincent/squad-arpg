@@ -85,14 +85,16 @@ bool Monstre::contient(sf::Vector2f point) const {
     return sf::FloatRect(centre - taille / 2.0f, taille).contains(point);
 }
 
-void Monstre::recevoirDegats(int quantite) {
-    if (m_etat == Etat::Retour) {
-        return;
+int Monstre::recevoirDegats(int quantite) {
+    if (m_etat == Etat::Retour || !estVivant()) {
+        return 0;
     }
-    m_pointsDeVie.subirDegats(appliquerArmure(quantite, m_armure));
+    const int degats = appliquerArmure(quantite, m_armure);
+    m_pointsDeVie.subirDegats(degats);
     if (quantite > 0) {
         alerter();
     }
+    return degats;
 }
 
 void Monstre::alerter() {

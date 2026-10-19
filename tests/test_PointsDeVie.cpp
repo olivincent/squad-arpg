@@ -76,3 +76,26 @@ TEST_CASE("PointsDeVie getRatio plein, moitie et mort") {
     vie.subirDegats(50);
     REQUIRE_THAT(vie.getRatio(), Catch::Matchers::WithinAbs(0.0, 1e-6));
 }
+
+TEST_CASE("PointsDeVie soigner renvoie les points reellement rendus") {
+    PointsDeVie vie(100);
+    vie.subirDegats(50);
+
+    REQUIRE(vie.soigner(20) == 20);
+    REQUIRE(vie.getValeur() == 70);
+}
+
+TEST_CASE("PointsDeVie soigner renvoie seulement ce qui tient sous le maximum") {
+    PointsDeVie vie(100);
+    vie.subirDegats(10);
+
+    REQUIRE(vie.soigner(50) == 10);
+    REQUIRE(vie.soigner(50) == 0);  // deja plein
+}
+
+TEST_CASE("PointsDeVie soigner un mort renvoie zero") {
+    PointsDeVie vie(100);
+    vie.subirDegats(100);
+
+    REQUIRE(vie.soigner(50) == 0);
+}

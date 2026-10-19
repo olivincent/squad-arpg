@@ -55,7 +55,8 @@ public:
     [[nodiscard]] int getGroupe() const;
     bool contient(sf::Vector2f point) const;
     // Sans aucun effet (ni dégâts, ni alerte) pendant le retour au poste : le monstre est invulnérable.
-    void recevoirDegats(int quantite);
+    // Renvoie les dégâts réellement appliqués (après armure) ; 0 en retour ou si le monstre est mort.
+    int recevoirDegats(int quantite);
     // Demande au monstre d'entrer en poursuite de sa proie habituelle, même
     // hors de la détection, s'il est dans son territoire. Prise en compte au
     // prochain `mettreAJour` ; sans effet sur un monstre déjà en poursuite

@@ -773,3 +773,33 @@ TEST_CASE("annulerSkill annule le skill engage sans consommer sa recharge, l'aut
     REQUIRE(personnage.skillEstPret(IdSkill::Provocation));
     REQUIRE(personnage.skillEstPret(IdSkill::FrappePuissante));
 }
+
+TEST_CASE("recevoirDegats renvoie les degats subis apres armure") {
+    Personnage melee({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f), {}, 50, s_rayonVisionDeTest);
+    Personnage tireur({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f), {}, 0, s_rayonVisionDeTest);
+
+    REQUIRE(melee.recevoirDegats(10) == 7);   // 10 x 100 / 150 = 6,67 -> 7
+    REQUIRE(tireur.recevoirDegats(10) == 10);
+}
+
+TEST_CASE("recevoirDegats sur un mort renvoie zero") {
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f), {}, 0, s_rayonVisionDeTest);
+    personnage.recevoirDegats(100);
+
+    REQUIRE(personnage.recevoirDegats(10) == 0);
+}
+
+TEST_CASE("recevoirSoin renvoie les points reellement rendus") {
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f), {}, 0, s_rayonVisionDeTest);
+    personnage.recevoirDegats(10);
+
+    REQUIRE(personnage.recevoirSoin(30) == 10);  // plafonne au maximum
+    REQUIRE(personnage.recevoirSoin(30) == 0);   // deja plein
+}
+
+TEST_CASE("recevoirSoin sur un mort renvoie zero") {
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f), {}, 0, s_rayonVisionDeTest);
+    personnage.recevoirDegats(100);
+
+    REQUIRE(personnage.recevoirSoin(30) == 0);
+}

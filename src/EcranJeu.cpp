@@ -71,6 +71,7 @@ void EcranJeu::nouvelleCarte() {
     m_partie = nouvellePartie(m_tirageDeGraine, m_specialites);
     m_controleur = Controleur{};
     m_barre = barreParDefaut(m_partie.getEscouade().adressesDesSkills());
+    m_textes = TextesFlottants{};
     m_debogage = OptionsDeDebogage{};
 }
 
@@ -132,6 +133,14 @@ void EcranJeu::mettreAJour(float dt, const Contexte& contexte) {
     const bool boutonTenu = fenetre.hasFocus() && sf::Mouse::isButtonPressed(sf::Mouse::Button::Left);
     m_controleur.mettreAJourDeplacement(m_partie, boutonTenu, fenetre.mapPixelToCoords(sf::Mouse::getPosition(fenetre)));
     m_partie.mettreAJour(dt);
+    // Les événements de l'image deviennent des textes ; dans le brouillard, on ne montre rien (F6 : tout).
+    // Les textes continuent leur animation après une défaite ou une victoire : le monde est figé, pas eux.
+    for (const EvenementDeCombat& evenement : m_partie.prendreEvenements()) {
+        if (!m_debogage.brouillard || m_partie.estVisible(evenement.position)) {
+            m_textes.ajouter(evenement);
+        }
+    }
+    m_textes.mettreAJour(dt);
     // Sortie de la visée si le lanceur ne peut plus lancer (mort, défaite) :
     // ici, en fin d'image, donc avant les événements de la suivante.
     m_controleur.debutImage(m_partie);
@@ -149,6 +158,7 @@ void EcranJeu::dessiner(const Contexte& contexte) const {
         m_partie.dessinerCheminsDesMonstres(fenetre);
         m_partie.dessinerZonesDeControle(fenetre);
     }
+    m_textes.dessiner(fenetre, contexte.police);
 
     // Interface fixe à l'écran : vue de l'interface, dessinée en dernier.
     fenetre.setView(vueDInterface(fenetre.getSize()));

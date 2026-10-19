@@ -345,3 +345,29 @@ TEST_CASE("recevoirDegats frappe le meme personnage que proieDuMonstre") {
     REQUIRE(vivants.size() == 2);
     REQUIRE(std::none_of(vivants.begin(), vivants.end(), [&](const Cercle& c) { return c.centre == proie.centre; }));
 }
+
+TEST_CASE("recevoirCoup renvoie les degats subis apres l'armure du personnage touche") {
+    Escouade escouade = uneEscouade({50.0f, 50.0f});
+
+    REQUIRE(escouade.recevoirCoup(7, 1, {300.0f, 60.0f}, 10) == 7);   // guerrier, armure 50
+    REQUIRE(escouade.recevoirCoup(7, 3, {300.0f, 60.0f}, 10) == 10);  // mage, armure 0
+}
+
+TEST_CASE("recevoirCoup sur un mort ou sur une place invalide renvoie zero") {
+    Escouade escouade = uneEscouade({50.0f, 50.0f});
+    escouade.recevoirCoup(7, 3, {300.0f, 60.0f}, 200);
+
+    REQUIRE(escouade.recevoirCoup(7, 3, {300.0f, 60.0f}, 10) == 0);
+    REQUIRE(escouade.recevoirCoup(7, 9, {300.0f, 60.0f}, 10) == 0);
+}
+
+TEST_CASE("recevoirDegats renvoie les degats subis, zero si tout le monde est mort") {
+    Escouade escouade = uneEscouade({50.0f, 50.0f});
+    const sf::Vector2f point{1000.0f, 1000.0f};
+
+    REQUIRE(escouade.recevoirDegats(1, point, 10) > 0);
+    for (int i = 0; i < 4; ++i) {
+        escouade.recevoirDegats(1, point, 200);
+    }
+    REQUIRE(escouade.recevoirDegats(1, point, 10) == 0);
+}
