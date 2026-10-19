@@ -254,7 +254,7 @@ personnages sont dans `docs/formation.md`, le monstre dans
   pas `Personnage` ; un seul appel par place donne tout ce que la barre
   montre. `Skill` n'a gagné que `getRechargeRestante`.
 - **Présentation séparée de la logique** : `Skill` ne sait pas comment il
-  est dessiné ; la lettre (D, P, S, Z) vient d'un `switch` sans `default`
+  est dessiné ; l'étiquette (un sigle de deux lettres depuis l'étape 76 : FP, PR, SO, EX…) vient d'un `switch` sans `default`
   dans `BarreDeSkills`, que le compilateur signale si un type est oublié.
 - **Contour** : `couleurDuContour(enVisee, enActivation)`, pure et testée :
   jaune en visée (prioritaire), blanc pendant l'activation, gris sinon ; 3 px
@@ -804,8 +804,8 @@ l'enfoncerait dans un obstacle.
 
 - **`trouverEntite`** (`EntiteVue.hpp`) remplace les sept `find_if` par
   identifiant : renvoie un pointeur, `nullptr` si absent, et chaque appelant
-  teste avant de déréférencer. `main.cpp` a `trouverMonstreParId` pour ses
-  `Monstre`.
+  teste avant de déréférencer. `main.cpp` avait `trouverMonstreParId` pour ses
+  `Monstre` (aujourd'hui `Partie::trouverMonstre`).
 - **`[[nodiscard]]`** sur ce dont ignorer le retour est forcément un
   bogue : listes de `Coup`, `Skill::declencher`, `frapper`, les `choisir*`,
   `trouverChemin`, `trouverEntite`, ainsi que les fonctions pures
@@ -1017,7 +1017,7 @@ l'enfoncerait dans un obstacle.
   (`EvenementDeCombat`), l'affichage les consomme plus tard. `Partie` ne connaît pas l'affichage : pas de
   callback, pas de `std::function` vers `EcranJeu`, pas d'observateur. Le jour où autre chose voudra les
   lire (sons, journal de combat, statistiques), il lira la même file ; un nouveau type d'événement
-  (étape 80 : nom du skill lancé, « Provoqué ») s'ajoute à l'énumération sans réécrire ce qui existe.
+  (étape 83 : nom du skill lancé, « Provoqué ») s'ajoute à l'énumération sans réécrire ce qui existe.
 - **Le montant est ce qui a réellement été appliqué.** Les fonctions qui appliquent dégâts et soins le
   renvoient : dégâts après armure (`appliquerArmure`), soin plafonné aux points de vie maximums
   (`PointsDeVie::soigner` renvoie la différence avant/après). Zéro pour une cible morte (deux coups
@@ -1053,7 +1053,7 @@ l'enfoncerait dans un obstacle.
   ne pas dessiner un monstre caché). F6 coupe le brouillard : tout s'affiche. La file de `Partie`, elle,
   contient tout.
 - **Limites connues** :
-  - pas de nom de skill ni de « Provoqué » (étape 80), pas d'« Immunisé » pour un monstre qui rentre,
+  - pas de nom de skill ni de « Provoqué » (étape 83), pas d'« Immunisé » pour un monstre qui rentre,
     pas de critique ni de « raté » ;
   - la taille du texte est en pixels du monde : elle suit le zoom de la vue ;
   - la visibilité est celle de la fin de l'image ;

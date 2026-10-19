@@ -6,7 +6,7 @@
 #include <cstddef>
 #include <vector>
 
-#include "aides.hpp"
+#include "aides_escouade.hpp"
 #include "BarreDeRaccourcis.hpp"
 
 TEST_CASE("une barre a la taille demandee et tous ses emplacements sont vides") {

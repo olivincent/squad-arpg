@@ -9,6 +9,14 @@ configurables, carte extérieure, peut-être un jour Unreal Engine) n'est faite 
 maintenant. L'audit précédent (avant l'étape 49) est entièrement traité ; son résumé est dans
 `docs/historique.md`.
 
+**Suivi.** L'étape 80 a traité B1, B2 (et le premier passage de `clang-tidy`, à la fin de ce
+fichier), T1, T2, T3, C1, C4, D6, K2 a à f, V1 partie 1 et L1 (voir `ROADMAP.md`, `docs/build.md`,
+`docs/tests.md`, `docs/combat.md`). C1 a montré que les sites d'`engagerSkill` pouvaient réellement
+échouer (lanceur déjà occupé par un autre de ses skills) : nouvelle règle, le skill attend (voir
+`docs/combat.md`, « Skill demandé pendant l'activation d'un autre »). Le plan des étapes suivantes
+(81 : dossiers, P1, K1, K3 ; 82 : alléger `Escouade` ; les autres constats rattachés aux
+fonctionnalités qui en ont besoin) et les décisions reportées sont dans `ROADMAP.md`.
+
 Référentiels : C++ Core Guidelines, SOLID (surtout responsabilité unique et inversion des
 dépendances), cohésion et couplage, DRY, règle du zéro, sémantique de valeur, *Game Programming
 Patterns* (R. Nystrom) pour la boucle de jeu, `ARCHITECTURE.md` et `CLAUDE.md` pour les conventions
@@ -1225,3 +1233,20 @@ exclue après ce passage : 148 avertissements, un par `operator[]`, voir le comm
 Fichiers les plus touchés : `Escouade.hpp` (21), `Escouade.cpp` (20), `Monstre.hpp` (15),
 `Personnage.hpp` (12), `Skill.hpp` (11), le reste à 8 ou moins. Commande (depuis la racine, une
 source à la fois) : `clang-tidy -p build/jeu src/Escouade.cpp`.
+
+### Après l'étape 80
+
+**59 avertissements**, même mesure, à la fin de l'étape 80 :
+- `modernize-use-nodiscard` : 66 → 0 (règle C4, voir `CLAUDE.md`) ;
+- `bugprone-throwing-static-initialization` (25) et `performance-enum-size` (17) : exclues, avec leur
+  raison dans `.clang-tidy` ;
+- `bugprone-unchecked-optional-access` : 19 → 7. Chaque accès a été relu : aucun ne peut échouer en
+  jouant. Là où le test existait mais était caché à l'outil (dans une fonction comme
+  `skillEnAttenteDeDegats`, ou suivi d'un appel non `const` qui « oublie » l'état d'un membre),
+  il est devenu explicite, sur une copie locale (`enAttente`, `action`, `degagement`, `place`). Les
+  7 restants sont des invariants, chacun juste après son `assert` : l'outil ne voit pas l'`assert`
+  de MinGW, dont `_assert` n'est pas déclaré `noreturn` (`/ucrt64/include/assert.h`) ;
+- les autres règles sont inchangées (`use-default-member-init` 12, `pro-type-member-init` 11,
+  `inefficient-vector-operation` 5, `misplaced-widening-cast` 5…), rien n'a été corrigé.
+
+Fichiers les plus touchés : `Escouade.cpp` (8), `Personnage.cpp`, `Monstre.hpp` et `Chemin.cpp` (5).

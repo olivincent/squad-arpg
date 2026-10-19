@@ -114,7 +114,7 @@ L'étape 75 pose trois notions séparées : les emplacements (`BarreDeRaccourcis
 
 L'étape 79 pose une file d'`EvenementDeCombat` produite par `Partie` (dégâts et soins réellement appliqués) et lue par `TextesFlottants`. Elle accueille d'autres types d'événements et d'autres lecteurs sans réécriture. Rien n'y est décidé, sauf l'étape 80 (dans `ROADMAP.md`).
 
-- **Étape 80 (prévue)** : le nom du skill lancé au-dessus du lanceur et « Provoqué » au-dessus des monstres provoqués. Un type d'événement de plus et un style de plus.
+- **Étape 83 (prévue)** : le nom du skill lancé au-dessus du lanceur et « Provoqué » au-dessus des monstres provoqués. Un type d'événement de plus et un style de plus.
 - **« Immunisé »** au-dessus d'un monstre qui rentre à son poste quand on le frappe : aujourd'hui un montant de 0 ne produit rien. Il faudrait un événement distinct (ce n'est pas un montant).
 - **Critiques, « raté », résistances** : si un jour le combat les connaît, un texte et une couleur de plus.
 - **Sons** : un son par type d'événement (coup, soin, coup gratuit), lu dans la même file.

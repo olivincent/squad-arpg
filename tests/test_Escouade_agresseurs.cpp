@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "aides.hpp"
+#include "aides_escouade.hpp"
 #include "Agresseurs.hpp"
 #include "Cercle.hpp"
 #include "Escouade.hpp"

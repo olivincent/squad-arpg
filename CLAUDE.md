@@ -24,8 +24,9 @@ Documents de référence (à lire avant toute modification) :
 1. **Une sous-étape à la fois.** D'abord la structure de données (les
    membres), puis les fonctions une par une. Déclaration dans le `.hpp`
    avant l'implémentation dans le `.cpp`.
-2. **Compiler après chaque sous-étape** (`cmake --build build`) et corriger
-   les erreurs et avertissements avant de continuer.
+2. **Compiler après chaque sous-étape** (les deux presets, `debug` et `jeu`),
+   lancer les tests (`ctest --preset debug`) et corriger les erreurs et
+   avertissements avant de continuer.
 3. **S'arrêter après chaque sous-étape** et donner à Olivier un résumé
    court :
    - ce qui a changé et **pourquoi**, en quelques lignes ;
@@ -109,12 +110,19 @@ Documents de référence (à lire avant toute modification) :
 
 ## Commandes
 
-Environnement : Windows, MSYS2 UCRT64, MinGW-w64, CMake + Ninja, SFML 3.0.2.
+Environnement : Windows, MSYS2 UCRT64, MinGW-w64, CMake + Ninja, SFML 3.0.2,
+clang-tools-extra (clang-tidy, clang-format). Deux presets (`CMakePresets.json`,
+voir `docs/build.md`) : `debug` (tests, `assert`, assertions de la bibliothèque
+standard, UBSan) dans `build/debug`, `jeu` (Release) dans `build/jeu`.
 
 ```bash
-cmake -S . -B build -G Ninja   # configuration (une seule fois, ou si build/ est supprimé)
-cmake --build build            # compilation
-./build/main.exe               # exécution (c'est Olivier qui lance le jeu pour tester)
+cmake --preset debug && cmake --build --preset debug   # configuration (une fois) et compilation
+cmake --preset jeu && cmake --build --preset jeu
+ctest --preset debug                                    # toute la suite, en parallèle
+./build/debug/tests.exe "*a portee*"                    # quelques tests, par filtre
+./build/jeu/main.exe                                    # exécution (c'est Olivier qui lance le jeu pour tester)
+clang-tidy -p build/jeu src/Escouade.cpp                # analyse statique d'une source (règles : .clang-tidy)
 ```
 
-Le dossier `build/` n'est jamais modifié à la main ni commité.
+Le dossier `build/` n'est jamais modifié à la main ni commité. Les deux presets
+doivent compiler sans aucun avertissement, tests compris.

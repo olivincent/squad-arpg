@@ -5,56 +5,86 @@
 - **Catch2 3 adopté**, installé via MSYS2
   (`mingw-w64-ucrt-x86_64-catch`), trouvé par `find_package(Catch2 3
   REQUIRED)` comme SFML (pas de `FetchContent`).
-- **Un seul exécutable `tests`**, lancé directement (`./build/tests.exe`)
-  — pas de CTest ni de `catch_discover_tests`. Un fichier par module
+- **Un seul exécutable `tests`**, lancé par CTest depuis l'étape 80
+  (`ctest --preset debug`, un test CTest par `TEST_CASE`, voir `docs/build.md`) ou directement
+  (`./build/debug/tests.exe`, avec ses filtres). Un fichier par module
   (`test_TileMap.cpp`, `test_Chemin.cpp`, `test_Deplacement.cpp`,
-  `test_Monstre.cpp`, `test_Personnage.cpp`, `test_Skill.cpp`,
+  `test_Personnage.cpp`, `test_Skill.cpp`,
   `test_Mobile.cpp`, `test_Cercle.cpp`, `test_Autodefense.cpp`,
   `test_Encerclement.cpp`, `test_BarreDeSkills.cpp`, `test_EntiteVue.cpp`, `test_BarreDeVie.cpp`,
   `test_BarreDeRaccourcis.cpp`, `test_ClicInterface.cpp`,
-  `test_PointsDeVie.cpp`, `test_Provocations.cpp`, `test_Agresseurs.cpp`, `test_Partie.cpp`,
+  `test_PointsDeVie.cpp`, `test_Provocations.cpp`, `test_Agresseurs.cpp`,
   `test_TextesFlottants.cpp`,
-  `test_Controleur.cpp`, `test_ChampDeVision.cpp`, `test_Vision.cpp`, `test_Composition.cpp`),
-  sauf `Escouade`, coupée par thème en sept fichiers à plat (pas de
-  sous-dossier) :
-  - `test_Escouade_deplacement.cpp` : ancre, chemin, formation, places,
-    vivants, rotation de la formation ;
-  - `test_Escouade_combat.cpp` : verrou, approche, autodéfense, placement
-    en combat ;
-  - `test_Escouade_skills.cpp` : les quatre types de skill, le skill en
-    attente, `etatDuSkill`, la visée et la portée du skill de zone ;
-  - `test_Escouade_agresseurs.cpp` : agresseurs, laisse, provocations,
-    `proieDuMonstre` (filet d'intégration ; les fonctions de `Provocations`
-    et d'`Agresseurs` sont testées seules dans leurs fichiers, étape 51) ;
-  - `test_Escouade_vue.cpp` : la ligne de vue (étapes 44 et 46) ;
-  - `test_Escouade_places.cpp` : les places d'attaque et `pointVise` (étape 67) ;
-  - `test_Escouade_degagement.cpp` : le dégagement des tireurs (étape 78).
-  Un cas qui touche plusieurs thèmes est dans le fichier de son sujet
-  principal. Le plus gros (`test_Escouade_skills.cpp`) fait environ 790
-  lignes.
-- **`tests/aides.hpp`** (étape 50) : en-tête seul, fonctions `inline`, pour
-  les aides **identiques** utilisées par plusieurs fichiers :
-  `verifierPointProche`, `pointCible`, `cibleMonstre`,
-  `carteDegagee10x10`, `carteDegageeEntouree` (800 × 600 px, murs
-  autour), `carteOuverte`, `simuler(escouade, ...)`, `attaquerCible`,
-  `placeAlliePourSoin`, ainsi que `s_dureeTic` et `nombreDeTics(duree)`
-  (étape 51 : le nombre de tics est calculé une fois par `std::lround`, puis
-  les boucles comptent des entiers ; additionner des `float` jusqu'à la
-  durée accumulait des arrondis et faisait 5 tics au lieu de 6 pour 0,1 s). Quand deux copies différaient, elles ont des noms
-  distincts et explicites (`carteDegagee10x10` pour `Mobile`, `Monstre` et
-  `Escouade` ; `carteDegagee5x5` reste dans `test_Personnage.cpp`). Une
-  aide utilisée par un seul fichier y reste, dans un `namespace {}` (plus
-  de `static`) : `ecoulerTemps` (trois signatures différentes, une par
-  fichier : `Skill`, `Monstre`, `Personnage`), `simuler(mobile, ...)`,
-  `declencher`, `unSeulMonstre`, `simulerAttaque`, `simulerAvecMonstre`,
-  `carteAvecMurVertical`, `carteAvecMursFins`, etc. `#include
-  "aides.hpp"` suffit : l'en-tête est dans le dossier des `.cpp`.
+  `test_Controleur.cpp`, `test_ChampDeVision.cpp`, `test_Vision.cpp`, `test_Composition.cpp`…),
+  sauf les gros modules, coupés par thème en fichiers à plat (pas de sous-dossier) :
+  - `Escouade` (étape 50, puis étape 80 pour les skills) :
+    - `test_Escouade_deplacement.cpp` : ancre, chemin, formation, places, vivants, rotation ;
+    - `test_Escouade_combat.cpp` : verrou, approche, autodéfense, placement en combat ;
+    - `test_Escouade_skills_degats.cpp`, `_soin.cpp`, `_provocation.cpp`, `_zone.cpp` : un fichier
+      par type de skill, avec son skill en attente (la zone garde aussi `skillEstPret` et
+      `rayonZoneDuSkill`) ;
+    - `test_Escouade_skills.cpp` : ce qui est commun aux skills : `etatDuSkill`, temps d'activation,
+      adresses, lanceur occupé (étape 80) ;
+    - `test_Escouade_agresseurs.cpp` : agresseurs, laisse, provocations, `proieDuMonstre` (filet
+      d'intégration ; `Provocations` et `Agresseurs` sont testées seules dans leurs fichiers) ;
+    - `test_Escouade_vue.cpp` : la ligne de vue (étapes 44 et 46) ;
+    - `test_Escouade_places.cpp` : les places d'attaque et `pointVise` (étape 67) ;
+    - `test_Escouade_degagement.cpp` : le dégagement des tireurs (étape 78) ;
+  - `Partie` (étape 80) : `test_Partie_clics.cpp` (clics et ce qui est cliquable selon la vision),
+    `_skills.cpp`, `_monstres.cpp` (combat, coup en préparation, alerte de groupe, provocation stricte,
+    retour au poste), `_fin.cpp` (défaite, victoire, partie figée, réaffectation), `_portes.cpp`,
+    `_zonesDeControle.cpp` (avec le dégagement), `_evenements.cpp` ;
+  - `Monstre` (étape 80) : `test_Monstre.cpp` (forme, vie, dégâts, groupe, valeurs),
+    `_etats.cpp` (garde, détection, poursuite, territoire, alerte, vue de la détection, contournement),
+    `_retour.cpp` (retour au poste, invulnérabilité, régénération), `_engagement.cpp` (frappe, temps
+    d'exécution, cible de frappe, coup engagé).
+
+  Un cas qui touche plusieurs thèmes est dans le fichier de son sujet principal. Les découpages sont
+  des déplacements purs : aucun test modifié, le nombre de `TEST_CASE` inchangé.
+- **Aides communes** : en-têtes seuls, fonctions `inline`, pour les aides **identiques** utilisées
+  par plusieurs fichiers (l'en-tête est dans le dossier des `.cpp` : `#include "aides.hpp"` suffit).
+  Depuis l'étape 80, trois en-têtes, et chaque fichier n'inclut que celui dont il se sert :
+  - **`aides.hpp`** (étape 50) : la base, sans `Escouade` ni `Partie` : graine (`s_graineDeTest`) et
+    `generateurDeTest`, `verifierPointProche` (tolérance), `pointCible`, `cibleMonstre`, cartes
+    (`carteDegagee10x10`, `carteDegageeEntouree` de 800 × 600 px avec murs autour, `carteOuverte`),
+    temps (`s_dureeTic`, `nombreDeTics(duree)` : le nombre de tics est calculé une fois par
+    `std::lround`, puis les boucles comptent des entiers ; additionner des `float` faisait 5 tics au
+    lieu de 6 pour 0,1 s), `s_rayonVisionDeTest`. Un fichier comme `test_Mobile.cpp` ne compile plus
+    toute la logique de jeu ;
+  - **`aides_escouade.hpp`** (étape 80) : les fixtures d'`Escouade` et de `Partie` : adresses des
+    skills, personnages de test et leurs constantes, `compositionDeTest`, `uneEscouade`, `unePartie`,
+    `uneEscouadeADeuxGuerriers`, `uneEscouadeAuSoinCourt`, simulations (`simuler(escouade, ...)`,
+    `simulerAvecAttaque`, `attaquerJusquAuDepart`, `attaquerCible`, `declencherEtAttendre`…), niveaux
+    et aides de `Partie` (`niveauDegage`, `avancer`, `niveauDeLaFuite`, `fuyard`,
+    `jusquAuPremierCoup`…), `unSeulMonstre` et `declencher` ;
+  - **`aides_monstre.hpp`** (étape 80) : les aides des `test_Monstre*.cpp` (`carteLongue`,
+    `carteAvecMur`, `ecoulerTemps(monstre, ...)`, `engager`, `frapperEnEntier`,
+    `amenerEnRetourHorsTerritoire`). Un en-tête à part : `test_Skill.cpp` et `test_Personnage.cpp` ont
+    leur propre `ecoulerTemps`, d'une autre signature.
+
+  Quand deux copies différaient, elles ont des noms distincts et explicites (`carteDegagee10x10` pour
+  `Mobile`, `Monstre` et `Escouade` ; `carteDegagee5x5` reste dans `test_Personnage.cpp`). Une aide
+  utilisée par un seul fichier y reste, dans un `namespace {}` : `ecoulerTemps` de `Skill` et de
+  `Personnage`, `simuler(mobile, ...)`, `simulerAttaque`, `simulerAvecMonstre`,
+  `carteAvecMurVertical`, `attaquerPendant`, `compter`, etc.
+- **Les tests ne dépendent pas du catalogue** (étape 80) : les personnages de test
+  (`guerrierDeTest`, `pretreDeTest`, `mageDeTest`, dans `aides_escouade.hpp`) sont construits avec
+  des valeurs figées (`s_degatsBaseDeTest`, `s_porteeMeleeDeTest`, `s_degatsFrappeDeTest`…), recopiées
+  du catalogue à l'étape 80 mais indépendantes de lui. Un test de règle écrit ses nombres avec ces
+  constantes, jamais en littéral (`== s_degatsFrappeDeTest`, pas `== 25`). Les valeurs qui ne sont pas
+  encore injectables (points de vie, vitesse et attaque des monstres, points de vie et vitesse des
+  personnages, armure de `creerNiveau`) se lisent par les accesseurs (`getPointsDeVie()` d'une entité
+  neuve, `getPointsDeVieMax()`, `getPuissanceAttaque()`) ou se mesurent dans le test (la vitesse sur
+  le premier tic). **Seul `test_Specialite.cpp` lit les valeurs du catalogue** ;
+  `test_EcranChoixEscouade.cpp` le lit aussi, mais seulement pour la liste de ses boutons (une par
+  classe). Vérification : changer une valeur d'équilibrage du jeu ne fait échouer que les tests dont
+  le sujet est cette valeur (voir « Étape 80 » plus bas).
 - **Noms de `TEST_CASE` sans accents ni cédilles** (étape 50) : « a
   portee », « degats », « deja ». Les commentaires gardent leurs
   accents. Raison : filtrer en ligne de commande dans n'importe quel
-  terminal, par exemple `./build/tests.exe "*a portee*"` (le filtre est
+  terminal, par exemple `./build/debug/tests.exe "*a portee*"` (le filtre est
   un motif entre guillemets, `*` remplace n'importe quel texte) ; la liste
-  complète : `./build/tests.exe --list-tests`. Les noms restent uniques
+  complète : `./build/debug/tests.exe --list-tests`. Les noms restent uniques
   dans tout l'exécutable.
 - **Petits plans dédiés** : chaque test construit son propre plan texte
   (3×3, 4×4, 5×5…), jamais la carte de `main.cpp`, pour isoler exactement
@@ -1159,3 +1189,53 @@
   libellé (« 12 », « 7! », « +20 »), couleur (blanc, rouge, vert, orange) et taille (16 ou 20).
 - **Non testé** : le dessin des textes (`TextesFlottants::dessiner`, il faut une fenêtre) et le filtre du
   brouillard d'`EcranJeu` (on teste `Partie::estVisible`, qu'il utilise) ; vérifiés à la main.
+
+## Étape 80 : filet de sécurité
+
+- **893 tests** (887 avant : +5 « Lanceur occupe : … » dans `test_Escouade_skills.cpp`, +1 pour
+  `coutDesObstacles` au bord de la carte dans `test_Chemin.cpp`). Lancés par `ctest --preset debug`
+  (un test CTest par `TEST_CASE`, 12 en parallèle, 9 à 10 s) dans le preset `debug` : `assert`
+  actifs, assertions de la bibliothèque standard, UBSan en mode piège. Tous passent aussi dans le
+  preset `jeu` (Release).
+- **Avertissements aussi sur les tests** : 31 avertissements ramenés à zéro : 19 variables
+  `generateur` jamais lues, supprimées ; 12 `-Wmissing-field-initializers` sur `Niveau`, supprimés par
+  `Niveau::armureMonstres = 0` (la valeur que ces niveaux de test recevaient déjà : plusieurs tests de
+  `Partie` comptent sur des monstres sans armure).
+- **Un nom accentué** (« le verrou posé sur un monstre… ») a été trouvé par ctest, qui ne savait pas
+  le lancer : renommé.
+- **Tests indépendants du catalogue (T1)**. Méthode : dans une copie du dépôt hors de `src/`, changer
+  une valeur d'équilibrage, relancer toute la suite, corriger les tests qui échouent sans que la valeur
+  soit leur sujet. Résultats (nombre de tests en échec) :
+
+  | Valeur changée dans le jeu | Avant | Après |
+  |---|---|---|
+  | Dégâts de l'attaque de base 5 → 6 | 30 | 0 |
+  | Portée de mêlée 20 → 25 px | 10 | 1 (*) |
+  | Points de vie des monstres 100 → 120 | 13 | 0 |
+  | Vitesse des personnages 240 → 250 px/s | 1 | 0 |
+  | Armure des monstres de `creerNiveau` 20 → 25 | 0 | 0 |
+  | Points de vie des personnages 100 → 120 | 19 | 0 |
+  | Attaque des monstres 10 → 11 | 10 | 1 (*) |
+
+  (*) Tests dont le sujet est la valeur : « le paladin est une melee qui frappe et soigne au contact »
+  (`test_Specialite.cpp`) et « un monstre a une zone de controle de 20 px et une attaque de 10 degats »
+  (`test_Monstre.cpp`). La même expérience sur les constantes des personnages de test (dégâts de base,
+  frappe, zone, soin, portée de mêlée) donne 0 échec : les tests les écrivent par leur nom.
+- **Vitesse des monstres** (non injectable, sans accesseur) : la sonde 160 → 170 fait échouer 3 tests,
+  sans nombre écrit en dur : ce sont des scénarios de fuite, qui supposent que les personnages vont plus
+  vite que les monstres (le mage sort de la zone du monstre ; l'escouade rattrape le monstre qui rentre).
+  Ces tests nomment leur hypothèse en commentaire.
+- **Choix d'écriture** : une valeur du jeu non injectable se lit sur l'entité neuve (`const int maximum =
+  monstre.getPointsDeVie();`) ; un montant après armure se calcule avec `appliquerArmure`, plutôt
+  qu'un 21 calculé à la main ; une hypothèse entre constantes se vérifie à la compilation
+  (`static_assert(3 * s_degatsBaseDeTest < s_degatsFrappeDeTest)`).
+- **Lanceur occupé** (`test_Escouade_skills.cpp`, 5 tests) : la frappe demandée pendant la provocation
+  attend puis part ; une frappe en attente ne se perd pas si le monstre arrive pendant l'activation ;
+  sans verrou, elle est abandonnée si la cible n'est plus atteinte quand le lanceur est libre ; le
+  paladin (frappe sacrée puis imposition des mains) et le rôdeur (tir perçant puis pluie de flèches),
+  avec un `paladinDeTest` et un `rodeurDeTest` locaux au fichier. Quatre de ces tests échouent avec
+  l'`Escouade` d'avant l'étape 80.
+- **Découpages (T2) et aides (T3)** : voir le début de ce fichier. Déplacements purs, sauf deux
+  adaptations nécessaires : les aides partagées passent d'un `namespace {}` à `inline` dans un
+  en-tête, et les copies identiques de `niveauDegage` et `avancer` de `test_Controleur.cpp` ont été
+  retirées au profit de celles d'`aides_escouade.hpp`.

@@ -6,6 +6,7 @@
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/VideoMode.hpp>
 #include <SFML/Window/WindowEnums.hpp>
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <optional>
@@ -19,6 +20,14 @@ namespace {
 
 constexpr unsigned s_imagesParSeconde = 60;
 constexpr const char* s_fichierReglages = "reglages.ini";
+
+// Pas de temps maximal d'une image, en secondes (trois images à 60 par seconde). Après un gel
+// (fenêtre déplacée par sa barre de titre, point d'arrêt, mise en veille), l'horloge rend
+// plusieurs secondes d'un coup. Un pas aussi grand ferait traverser les murs (le glissement ne
+// teste que la position d'arrivée : à 240 px/s, un personnage saute une case de 40 px dès
+// 0,25 s) et ferait sauter les minuteries (activations, recharges, provocations). Borné, le jeu
+// ralentit pendant le gel au lieu de sauter. Le seul endroit où dt est borné.
+constexpr float s_dtMax = 1.0f / 20.0f;
 
 // Fichier absent ou illisible : réglages par défaut (lireReglages ne lève
 // jamais d'exception et corrige les valeurs invalides).
@@ -88,7 +97,7 @@ void Application::appliquer(Transition transition) {
 int Application::executer() {
     sf::Clock horloge;
     while (m_fenetre.isOpen() && !m_pile.empty()) {
-        const float dt = horloge.restart().asSeconds();
+        const float dt = std::min(horloge.restart().asSeconds(), s_dtMax);
         while (const std::optional evenement = m_fenetre.pollEvent()) {
             if (evenement->is<sf::Event::Closed>()) {
                 // La croix quitte, quel que soit l'écran.

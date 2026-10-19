@@ -93,7 +93,16 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   vitesse constante, comme un personnage d'ARPG.
 - **Delta time** (`sf::Clock::restart()`) : vitesse en pixels par seconde.
   `setFramerateLimit(60)` limite l'usage du CPU, mais la logique n'en dépend
-  pas. L'horloge reste dans `main.cpp` ; `dt` est passé en paramètre.
+  pas. L'horloge est dans `Application::executer` (étape 65) ; `dt` est passé en paramètre.
+- **`dt` borné à `s_dtMax` = 1/20 s** (étape 80, audit L1), à un seul endroit, dans
+  `Application::executer` (`std::min`). Après un gel (fenêtre déplacée par sa barre de titre, point
+  d'arrêt, mise en veille), l'horloge rendait plusieurs secondes d'un coup : le glissement ne teste
+  que la position d'arrivée, donc un personnage à 240 px/s sautait un mur d'une case (40 px) dès
+  `dt` ≈ 0,25 s, et les minuteries (activations, recharges, provocations) sautaient d'autant. Borné,
+  le jeu ralentit pendant le gel au lieu de sauter. À 60 images par seconde, `dt` vaut 1/60 s : la
+  borne n'a aucun effet en temps normal. Pas de pas fixe avec accumulateur : inutile tant que la
+  simulation est déterministe par image (voir `docs/audit.md`, « Pistes écartées »). C'est, avec la
+  règle du lanceur occupé (`docs/combat.md`), un des deux changements de comportement de l'étape 80.
 - **Pas de `Camera`, de bus d'événements ni de hiérarchie d'états pour la
   visée** : la vue `camera` reste une variable de `main.cpp`, la visée est un
   `std::optional<std::size_t>` du `Controleur`.

@@ -160,12 +160,13 @@ void Escouade::engagerSkillDeZoneEnAttente(const TileMap& carte) {
     if (!m_skillEnAttente.has_value() || !std::holds_alternative<CiblePoint>(m_skillEnAttente->cible)) {
         return;
     }
-    const CiblePoint point = std::get<CiblePoint>(m_skillEnAttente->cible);
-    Personnage& lanceur = personnageDeLaPlace(m_skillEnAttente->adresse.place);
-    if (!lanceur.peutEngagerSkill(m_skillEnAttente->adresse.id) || !peutLancerAuPoint(m_skillEnAttente->adresse, point.point, carte)) {
+    const SkillEnAttente enAttente = *m_skillEnAttente;
+    const CiblePoint point = std::get<CiblePoint>(enAttente.cible);
+    Personnage& lanceur = personnageDeLaPlace(enAttente.adresse.place);
+    if (!lanceur.peutEngagerSkill(enAttente.adresse.id) || !peutLancerAuPoint(enAttente.adresse, point.point, carte)) {
         return;
     }
-    [[maybe_unused]] const bool engage = lanceur.engagerSkill(m_skillEnAttente->adresse.id, m_skillEnAttente->cible);
+    [[maybe_unused]] const bool engage = lanceur.engagerSkill(enAttente.adresse.id, enAttente.cible);
     assert(engage);
     m_skillEnAttente = std::nullopt;
 }
@@ -204,15 +205,16 @@ void Escouade::approcherVerrou(const std::vector<EntiteVue>& monstres, const Til
 // lanceur), personne ne marche : une fois libre, le lanceur qui n'atteint plus
 // sa cible, ou dont la cible a disparu, abandonne le skill, sans recharge.
 void Escouade::engagerSkillDeDegatsEnAttente(const std::vector<EntiteVue>& monstres, const TileMap& carte) {
-    if (!skillEnAttenteDeDegats()) {
+    if (!m_skillEnAttente.has_value() || !std::holds_alternative<CibleMonstre>(m_skillEnAttente->cible)) {
         return;
     }
-    const AdresseSkill adresse = m_skillEnAttente->adresse;
+    const SkillEnAttente enAttente = *m_skillEnAttente;
+    const AdresseSkill adresse = enAttente.adresse;
     Personnage& lanceur = personnageDeLaPlace(adresse.place);
-    const EntiteVue* cible = trouverEntite(monstres, std::get<CibleMonstre>(m_skillEnAttente->cible).id);
+    const EntiteVue* cible = trouverEntite(monstres, std::get<CibleMonstre>(enAttente.cible).id);
     const bool atteinte = cible != nullptr && peutAtteindre(lanceur, adresse.id, cible->cercle, carte);
     if (atteinte && lanceur.peutEngagerSkill(adresse.id)) {
-        [[maybe_unused]] const bool engage = lanceur.engagerSkill(adresse.id, m_skillEnAttente->cible);
+        [[maybe_unused]] const bool engage = lanceur.engagerSkill(adresse.id, enAttente.cible);
         assert(engage);
         m_skillEnAttente = std::nullopt;
     } else if (!m_cibleVerrouillee.has_value() && lanceur.peutEngagerSkill(adresse.id)) {
@@ -258,6 +260,7 @@ std::vector<Coup> Escouade::avancerSkillDe(std::size_t indice, float dt, const s
     if (puissance <= 0) {
         return {};
     }
+    assert(action->skill.has_value());  // une action de skill porte toujours son identifiant (engagerSkill)
     return effetDuSkill(indice + 1, *action->skill, action->cible, puissance, monstres, carte);
 }
 
@@ -501,8 +504,11 @@ std::optional<sf::Vector2f> Escouade::avancerSkillEnAttente(const TileMap& carte
         return std::nullopt;
     }
 
-    const std::size_t placeLanceur = m_skillEnAttente->adresse.place;
-    const IdSkill idSkill = m_skillEnAttente->adresse.id;
+    // Copie : la suite (et les lambdas ci-dessous) peuvent vider m_skillEnAttente.
+    const SkillEnAttente enAttente = *m_skillEnAttente;
+    const std::size_t placeLanceur = enAttente.adresse.place;
+    const IdSkill idSkill = enAttente.adresse.id;
+    const Cible& cible = enAttente.cible;
     const Personnage& lanceur = personnageDeLaPlace(placeLanceur);
 
     if (!lanceur.estVivant()) {
@@ -510,8 +516,6 @@ std::optional<sf::Vector2f> Escouade::avancerSkillEnAttente(const TileMap& carte
         return std::nullopt;
     }
 
-    // Copie : les lambdas ci-dessous peuvent vider m_skillEnAttente.
-    const Cible cible = m_skillEnAttente->cible;
     return std::visit(
         Surcharges{
             // Dégâts : le skill part dans attaquer(), qui reçoit le cercle à jour du
@@ -671,18 +675,22 @@ sf::Vector2f Escouade::pointVoulu(std::size_t indice, const std::optional<sf::Ve
         m_placesDAttaque[indice] = ancienne;  // le coup en cours ne fait pas oublier la place
         return personnage.getCentre();        // un coup ou un skill en exécution : il reste sur place
     }
-    // pointSkill vient d'avancerSkillEnAttente : il n'existe que si un skill attend.
-    assert(!pointSkill.has_value() || m_skillEnAttente.has_value());
-    if (pointSkill.has_value() && indice == indiceDeLaPlace(m_skillEnAttente->adresse.place)) {
-        if (skillEnAttenteDeDegats()) {
-            const CibleMonstre& monstre = std::get<CibleMonstre>(m_skillEnAttente->cible);
-            return pointVersMonstre(indice, monstre.id, *m_cibleCombat, m_skillEnAttente->adresse.id, ancienne, carte);
+    if (pointSkill.has_value()) {
+        // pointSkill vient d'avancerSkillEnAttente : il n'existe que si un skill attend.
+        assert(m_skillEnAttente.has_value());
+        const SkillEnAttente enAttente = *m_skillEnAttente;
+        if (indice == indiceDeLaPlace(enAttente.adresse.place)) {
+            if (const CibleMonstre* monstre = std::get_if<CibleMonstre>(&enAttente.cible)) {
+                // Le point d'un skill de dégâts n'existe qu'avec un verrou et son cercle (avancerSkillEnAttente).
+                assert(m_cibleCombat.has_value());
+                return pointVersMonstre(indice, monstre->id, *m_cibleCombat, enAttente.adresse.id, ancienne, carte);
+            }
+            return *pointSkill;
         }
-        return *pointSkill;
     }
-    if (m_degagements[indice].has_value()) {
+    if (const std::optional<int> degagement = m_degagements[indice]; degagement.has_value()) {
         // Le monstre est dans `monstres` (physiques : tous les monstres) tant qu'il est vivant.
-        if (const EntiteVue* monstre = trouverEntite(monstres, *m_degagements[indice])) {
+        if (const EntiteVue* monstre = trouverEntite(monstres, *degagement)) {
             const sf::Vector2f place = pointVersMonstre(indice, monstre->id, monstre->cercle, std::nullopt, ancienne, carte);
             if (m_placesDAttaque[indice].has_value()) {
                 return place;
@@ -797,8 +805,8 @@ void Escouade::calculerPlaces(const TileMap& carte, const std::vector<EntiteVue>
 
 std::vector<Cercle> Escouade::monstresAContourner(std::size_t indice, const std::vector<EntiteVue>& monstres) const {
     std::optional<int> approche;
-    if (m_placesDAttaque[indice].has_value()) {
-        approche = m_placesDAttaque[indice]->idMonstre;
+    if (const std::optional<PlaceDAttaque>& place = m_placesDAttaque[indice]; place.has_value()) {
+        approche = place->idMonstre;
     } else if (m_cibleVerrouillee.has_value() && m_cibleCombat.has_value()) {
         approche = m_cibleVerrouillee;
     }

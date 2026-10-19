@@ -244,12 +244,13 @@ std::optional<ActionEngagee> Personnage::skillEngage() const {
 }
 
 int Personnage::avancerSkill(float dt, Generateur& generateur) {
-    if (!skillEngage().has_value()) {
+    const std::optional<ActionEngagee> action = skillEngage();
+    if (!action.has_value()) {
         return 0;
     }
     // engagerSkill n'engage qu'un skill que le personnage connaît.
-    assert(m_actionEngagee->skill.has_value() && trouverSkill(*m_actionEngagee->skill) != nullptr);
-    Skill& skill = *trouverSkill(*m_actionEngagee->skill);
+    assert(action->skill.has_value() && trouverSkill(*action->skill) != nullptr);
+    Skill& skill = *trouverSkill(*action->skill);
     if (!skill.avancer(dt, generateur)) {
         return 0;
     }
@@ -260,10 +261,10 @@ int Personnage::avancerSkill(float dt, Generateur& generateur) {
 }
 
 void Personnage::annulerSkill() {
-    if (skillEngage().has_value()) {
+    if (const std::optional<ActionEngagee> action = skillEngage()) {
         // engagerSkill n'engage qu'un skill que le personnage connaît.
-        assert(m_actionEngagee->skill.has_value() && trouverSkill(*m_actionEngagee->skill) != nullptr);
-        trouverSkill(*m_actionEngagee->skill)->annuler();
+        assert(action->skill.has_value() && trouverSkill(*action->skill) != nullptr);
+        trouverSkill(*action->skill)->annuler();
         m_actionEngagee.reset();
     }
 }

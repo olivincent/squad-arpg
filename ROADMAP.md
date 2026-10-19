@@ -87,10 +87,43 @@ est dans `docs/historique.md`.
 - Étape 77 — Zones de contrôle et attaque d'opportunité ✅
 - Étape 78 — Dégagement des tireurs ✅
 - Étape 79 — Dégâts flottants : une file d'événements de combat ✅
+- Étape 80 — Filet de sécurité et corrections locales (suite de l'audit) ✅
 
-## Prochaine étape (à choisir)
+## Plan après l'audit (« hybride », décidé à l'étape 80)
 
-Étape 80 envisagée, par la même file d'événements que l'étape 79 : le nom du skill lancé au-dessus du
+L'audit de `docs/audit.md` est traité en trois temps : deux étapes de refactorisation, puis chaque
+refactorisation restante comme **première sous-étape de la fonctionnalité qui en a besoin**. Les
+fonctionnalités prévues sont donc décalées après l'étape 82.
+- **Étape 80** (faite) : build vérifiable (presets, CTest, avertissements partout, clang-format et
+  clang-tidy), tests indépendants du catalogue, corrections locales (C1, C4, D6, K2, V1 partie 1, L1).
+- **Étape 81** : dossiers (option B de l'audit, par domaine), P1 (`Reglages` dépend du modèle de la
+  barre, `Controleur` dans la mauvaise couche), K1 (documentation chargée à chaque session), K3
+  (`docs/historique.md` arrêté à l'étape 73).
+- **Étape 82** : alléger `Escouade` : R1 (six responsabilités) avec R2 (couplage temporel entre
+  `attaquer` et `mettreAJour`), D1 (vitalité répétée dans `Personnage` et `Monstre`), D3 (fonctions
+  publiques appelées seulement par les tests). R2 doit **supprimer `m_cibleCombat` en tant que
+  membre** : il n'est jamais remis à zéro et peut dater d'un ancien combat (à l'étape 80, la marche vers
+  la cible d'un skill de dégâts en attente a dû exiger un verrou pour ne pas le lire à tort). Décision
+  sur R5 (identifiants et places) à la fin de l'étape.
+- **Refactorisations rattachées à une fonctionnalité**, en première sous-étape de celle-ci :
+  - R4 (skills : le type décide partout) et C2 (constructeurs à longues listes) avant les buffs, les
+    soins dans le temps ou le mana. Le mode de cible « Soi » de R4 doit lever une limite de l'étape 80 :
+    la provocation, sans cible, ne peut pas être mise en attente quand son lanceur est occupé ;
+  - E1 (valeurs dispersées, `Monstre` en littéraux) avant les types de monstres ;
+  - R3 (`Partie` accumule plusieurs rôles), D2 (indices de grille à la main), C3 (conversions de
+    signe) et D5 (petites duplications de `Partie`) avant les coffres, les leviers ou la carte
+    extérieure ;
+  - M1 (`dessiner` dans le noyau), R6 (`EcranJeu`), D4 (écrans de menu), P2 (en-tête parapluie des
+    écrans) et T4 (trous de couverture) au premier ajout visuel important.
+
+**Décisions reportées** :
+- V1 partie 2 (recalcul moins fréquent du chemin des monstres) : à réévaluer avec la carte extérieure
+  ou des hordes (la partie 1 a déjà divisé le coût par 7 à 13) ;
+- R5 (identifiants et places) : à la fin de l'étape 82.
+
+## Prochaine étape (à choisir, après l'étape 82)
+
+Étape 83 envisagée, par la même file d'événements que l'étape 79 : le nom du skill lancé au-dessus du
 lanceur et « Provoqué » au-dessus des monstres provoqués (un type d'événement de plus, un style de plus
 dans `TextesFlottants` ; voir `docs/brainstorm.md`, section 5 ter).
 
@@ -284,7 +317,7 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   du prêtre ; bas : explosion du mage), les autres cadres vides. Touches (scancodes, table dans
   `Reglages::touchesDesRaccourcis`, ni lue ni écrite dans `reglages.ini`) : Q W E R / A S D F /
   Z X C V, donc Q = frappe, W = provocation, A = soin, Z = explosion ; les touches 1 à 4 ne font
-  plus rien. Une icône montre la lettre du skill (D, P, S, Z), le nom de sa touche dans un coin
+  plus rien. Une icône montre le sigle du skill (deux lettres : FP, PR, SO, EX…), le nom de sa touche dans un coin
   et une bande de la couleur du personnage lanceur ; un emplacement vide est un cadre sombre avec
   le nom de sa touche. **Clic** : cliquer une icône fait la même chose que sa touche
   (`Controleur::activerEmplacement`), avec la règle « l'interface d'abord » : le clic est testé
@@ -300,10 +333,18 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   l'icône du skill en cours de visée, contour blanc pendant son activation. Police DejaVu Sans dans
   `assets/fonts/`, copiée à côté de `main.exe` par CMake ; le jeu refuse
   de démarrer si elle manque.
-- **Qualité du code** (étape 49) : `squad_core` et `main` se compilent avec
-  `-Wall -Wextra -Wpedantic -Wshadow -Wconversion` sans aucun avertissement
-  (pas de `-Werror`, pas sur `tests`) ; `[[nodiscard]]` sur les retours à ne
-  pas ignorer ; `Cercle` passé par valeur ; constantes en `s_`. Barre de vie
+- **Qualité du code** (étapes 49 et 80) : `squad_core`, `main` et `tests` se compilent avec
+  `-Wall -Wextra -Wpedantic -Wshadow -Wconversion` sans aucun avertissement, dans les deux presets
+  (pas de `-Werror`) ; `[[nodiscard]]` sur tout retour d'une fonction sans effet de bord ou qui
+  signale un échec (règle écrite dans `CLAUDE.md`) ; `assert` devant les déréférencements qui
+  reposent sur un invariant ; `Cercle` passé par valeur ; constantes en `s_`. **Build** (étape 80) :
+  presets `debug` (assertions de la bibliothèque standard, UBSan) et `jeu` (Release), CTest,
+  `.clang-format` (sans reformatage du code existant) et `.clang-tidy` (59 avertissements restants,
+  aucun corrigé hors de `[[nodiscard]]` et des accès à un `optional` ; décompte dans `docs/audit.md`).
+  `dt` borné à 1/20 s dans `Application` : après un gel, le jeu ralentit au lieu de faire traverser
+  les murs. `coutDesObstacles` ne visite plus que le rectangle englobant de chaque obstacle (même
+  résultat ; 24 monstres en poursuite : 50 ms → 3,9 ms par image en debug, 2,35 → 0,34 ms en jeu).
+  Voir `docs/build.md`. Barre de vie
   des personnages et des monstres dessinée par le module `BarreDeVie`.
   Points de vie portés par la classe `PointsDeVie` (étape 53), possédée par
   `Personnage` et `Monstre`. `Skill` n'a plus que la machine à états
@@ -328,7 +369,7 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   bout de son coup, même si une provocation change sa proie. La recharge
   démarre au départ du coup. Le carré de l'entité s'éclaircit de 50 % pendant
   l'exécution (le contour jaune du monstre verrouillé est inchangé). Les
-  skills des touches 1 à 4 ont leur propre temps d'activation (voir
+  skills ont leur propre temps d'activation (voir
   « Skills »). Voir `docs/combat.md`.
 - **Aléatoire** (étape 56) : `Partie` possède un `Generateur`
   (`std::mt19937`, `Aleatoire.hpp`) initialisé par une graine que `main.cpp`
@@ -336,7 +377,7 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   et à chaque R) ; il est passé par référence jusqu'à `Skill`. La recharge
   d'un `Skill` est un intervalle `[min, max]` tiré au déclenchement (aucun
   tirage si `min == max`) : attaques de base des mêlées 0,3–0,7 s, des
-  tireurs 0,4–0,6 s, des monstres 0,7–1,3 s ; skills des touches 1 à 4
+  tireurs 0,4–0,6 s, des monstres 0,7–1,3 s ; skills des personnages
   fixes. Voir `docs/combat.md`.
 - **Armure** (étape 55) : `appliquerArmure` (module `Defense`) réduit les
   dégâts reçus, même formule pour tous : réduction = armure / (armure +
@@ -498,7 +539,12 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   lanceur, celle du monstre visé (dégâts) ou celle de l'allié visé (soin)
   l'annulent, sans recharge ; un ordre de déplacement, un clic au sol ou un
   verrouillage ne l'annulent pas. Pas de revérification de portée ni de vue
-  au départ. Voir `docs/combat.md`.
+  au départ. **Lanceur occupé** (étape 80) : un skill demandé pendant l'activation d'un autre skill du
+  même personnage (guerrier : provocation puis frappe ; paladin ; rôdeur) n'est plus perdu : il est mis
+  en attente et part dès que le lanceur est libre ; un skill déjà en attente le reste si sa cible
+  devient atteignable pendant cette activation. Sans verrou, une frappe ainsi en attente part si le
+  monstre est encore atteint quand le lanceur est libre, sinon elle est abandonnée, sans recharge.
+  Voir `docs/combat.md`.
 - **Monstres** : des carrés rouges de 30 × 30 (160 px/s, 100 points de
   vie, armure 20, barre de vie). Sur la carte générée : 1 à 3 par salle sauf
   la première, au centre d'une case intérieure (une case de marge contre
@@ -546,16 +592,22 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 887 tests : 27 sur `Engagement`, 23 sur `ChampDeVision`, 8 sur `Vision`, 5 sur `ObjetInteractif`, 15 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 61 sur `GenerateurDonjon`, 36 sur `TileMap`, 27 sur `Chemin`, 221
-  sur `Escouade` en sept fichiers par thème (déplacement, combat, skills, agresseurs, vue, places, dégagement),
-  7 sur `Composition`, 16 sur `Specialite`, 9 sur `SelectionDEscouade`, 11 sur `EcranChoixEscouade`, 11 sur `Encerclement`, 16 sur `Deplacement`, 78 sur `Monstre`,
+  (`ctest --preset debug`, ou `./build/debug/tests.exe`, 893 tests : 27 sur `Engagement`, 23 sur `ChampDeVision`, 8 sur `Vision`, 5 sur `ObjetInteractif`, 15 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 61 sur `GenerateurDonjon`, 36 sur `TileMap`, 28 sur `Chemin`, 226
+  sur `Escouade` en onze fichiers par thème (déplacement, combat, quatre fichiers de skills par type plus un commun, agresseurs, vue, places, dégagement),
+  7 sur `Composition`, 16 sur `Specialite`, 9 sur `SelectionDEscouade`, 11 sur `EcranChoixEscouade`, 11 sur `Encerclement`, 16 sur `Deplacement`, 78 sur `Monstre` en quatre fichiers (base, états, retour, engagement),
   64 sur `Personnage`, 24 sur `Skill`, 24 sur `Mobile`, 4 sur `Eclaircir`, 10 sur `Cercle`, 13
   sur `Autodefense`, 8 sur `BarreDeSkills`, 11 sur `BarreDeRaccourcis`, 3 sur `ClicInterface`, 4 sur `EntiteVue`, 1 sur
-  `BarreDeVie`, 11 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 66 sur `Partie`, 16 sur `Controleur`, 9 sur `TextesFlottants`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
-  accents (`./build/tests.exe "*a portee*"` filtre) ; rotation de la
-  formation et `provoquer` à une place invalide couverts. Les tests d'`Escouade` utilisent la composition
-  par défaut des tests (`compositionDeTest()` : guerrier, prêtre, mage ; `uneEscouade`, `unePartie`) ; `uneEscouadeADeuxGuerriers` et `uneEscouadeAuSoinCourt` servent
-  aux cas qui ont besoin de deux mêlées ou d'un allié hors de portée du soin.
+  `BarreDeVie`, 11 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 66 sur `Partie` en sept fichiers (clics, skills, monstres, fin, portes, zones de contrôle, événements), 16 sur `Controleur`, 9 sur `TextesFlottants`). Aides communes dans
+  `tests/aides.hpp` (base), `tests/aides_escouade.hpp` (fixtures d'`Escouade` et de `Partie`) et
+  `tests/aides_monstre.hpp` ; noms de tests sans accents (`./build/debug/tests.exe "*a portee*"`
+  filtre ; ctest en dépend) ; rotation de la formation et `provoquer` à une place invalide couverts.
+  **Les tests ne dépendent pas du catalogue** (étape 80) : la composition par défaut des tests
+  (`compositionDeTest()` : guerrier, prêtre, mage de test ; `uneEscouade`, `unePartie`) est construite
+  avec des valeurs figées (`s_degatsBaseDeTest`, `s_porteeMeleeDeTest`…), les valeurs non injectables
+  se lisent par les accesseurs ; changer une valeur d'équilibrage du jeu ne fait plus échouer que les
+  tests dont c'est le sujet (seul `test_Specialite.cpp` lit les valeurs du catalogue).
+  `uneEscouadeADeuxGuerriers` et `uneEscouadeAuSoinCourt` servent aux cas qui ont besoin de deux mêlées
+  ou d'un allié hors de portée du soin. Voir `docs/tests.md`.
 
 **Limites connues** (acceptées pour l'instant) :
 - Vision (étapes 72 et 73) : un monstre verrouillé qui sort de la vision garde le verrou ; la
@@ -587,9 +639,12 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   (deux personnages de la même classe ne diffèrent que par leur couleur) ; le paladin et le rôdeur
   ont des valeurs provisoires ; au plus trois fois la même classe (3 places).
 - Pas d'interruption de l'activation d'un skill par les dégâts reçus ; un
-  seul skill en attente pour toute l'escouade ; pas de barre de progression
-  d'incantation ; pas de revérification de portée ni de vue au départ du
-  skill.
+  seul skill en attente pour toute l'escouade (depuis l'étape 80, un skill attend aussi que son
+  lanceur ait fini l'activation d'un autre de ses skills : pendant ce temps, l'ordre de skill d'un
+  autre personnage est refusé) ; la provocation, sans cible, ne peut pas attendre : demandée pendant
+  l'activation d'un autre skill du guerrier, elle est refusée (le mode de cible « Soi » de R4 doit
+  lever cette limite) ; pas de barre de progression d'incantation ; pas de revérification de portée
+  ni de vue au départ du skill.
 - Barre de raccourcis (étape 75) : elle ne montre pas le skill en attente ; les touches ne sont
   ni configurables ni sauvegardées (table dans `Reglages`, pas dans `reglages.ini`) ; une seule
   barre, pas de survol, d'infobulle ni de clic droit sur une icône, pas d'interface pour placer
@@ -624,7 +679,7 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   relancer le dégagement.
 - Dégâts flottants (étape 79) : le nombre est le montant après armure, sans plafond par les points de
   vie restants (le coup qui tue affiche son plein montant) ; pas d'« Immunisé » sur un monstre qui
-  rentre, pas de critique ni de « raté » ; pas de nom de skill ni de « Provoqué » (étape 80) ; la taille
+  rentre, pas de critique ni de « raté » ; pas de nom de skill ni de « Provoqué » (étape 83) ; la taille
   du texte est fixe en pixels du monde, donc elle suit le zoom de la vue ; la visibilité d'un événement
   est jugée à la fin de l'image où il a lieu ; deux textes de la même cible ajoutés dans des images
   différentes mais proches dans le temps peuvent se superposer en partie.

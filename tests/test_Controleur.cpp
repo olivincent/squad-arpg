@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "aides.hpp"
+#include "aides_escouade.hpp"
 #include "BarreDeRaccourcis.hpp"
 #include "Controleur.hpp"
 #include "Niveau.hpp"
@@ -12,16 +13,8 @@
 
 namespace {
 
-// Niveau dégagé de 15 × 15 cases de 40 px ; l'escouade part de (200, 200),
-// son centre est en (210, 210). Le lanceur du skill de zone (le mage, place 3)
+// Niveau : niveauDegage (aides.hpp). Le lanceur du skill de zone (le mage, place 3)
 // est le tireur en (185, 235).
-Niveau niveauDegage(const std::vector<sf::Vector2f>& monstres) {
-    std::vector<MonstreDuNiveau> deLaPartie;
-    for (const sf::Vector2f position : monstres) {
-        deLaPartie.push_back({position, static_cast<int>(deLaPartie.size())});  // chacun son groupe
-    }
-    return {std::vector<std::string>(15, std::string(15, '.')), 40.0f, {200.0f, 200.0f}, deLaPartie};
-}
 
 // La barre par défaut de la composition par défaut : Q frappe, W provocation, A soin, Z explosion.
 BarreDeRaccourcis barreDe(const Partie& partie) {
@@ -34,12 +27,6 @@ constexpr std::size_t s_emplacementExplosion = 8;
 constexpr sf::Vector2f s_pointDeLancer{250.0f, 250.0f};  // à portée du lanceur
 // Hors de portée de détection : la partie n'est pas gagnée, donc le monde bouge.
 constexpr sf::Vector2f s_monstreLointain{550.0f, 550.0f};
-
-void avancer(Partie& partie, int nombreDeTicsAFaire) {
-    for (int i = 0; i < nombreDeTicsAFaire; ++i) {
-        partie.mettreAJour(s_dureeTic);
-    }
-}
 
 }  // namespace
 

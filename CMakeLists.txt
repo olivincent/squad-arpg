@@ -98,6 +98,10 @@ add_executable(tests
     tests/test_Escouade_deplacement.cpp
     tests/test_Escouade_combat.cpp
     tests/test_Escouade_skills.cpp
+    tests/test_Escouade_skills_degats.cpp
+    tests/test_Escouade_skills_soin.cpp
+    tests/test_Escouade_skills_provocation.cpp
+    tests/test_Escouade_skills_zone.cpp
     tests/test_Escouade_agresseurs.cpp
     tests/test_Escouade_vue.cpp
     tests/test_Escouade_places.cpp
@@ -109,6 +113,9 @@ add_executable(tests
     tests/test_Agresseurs.cpp
     tests/test_Deplacement.cpp
     tests/test_Monstre.cpp
+    tests/test_Monstre_etats.cpp
+    tests/test_Monstre_retour.cpp
+    tests/test_Monstre_engagement.cpp
     tests/test_Personnage.cpp
     tests/test_Skill.cpp
     tests/test_Mobile.cpp
@@ -125,7 +132,13 @@ add_executable(tests
     tests/test_PointsDeVie.cpp
     tests/test_Defense.cpp
     tests/test_GenerateurDonjon.cpp
-    tests/test_Partie.cpp
+    tests/test_Partie_clics.cpp
+    tests/test_Partie_skills.cpp
+    tests/test_Partie_monstres.cpp
+    tests/test_Partie_fin.cpp
+    tests/test_Partie_portes.cpp
+    tests/test_Partie_zonesDeControle.cpp
+    tests/test_Partie_evenements.cpp
     tests/test_TextesFlottants.cpp
     tests/test_ObjetInteractif.cpp
     tests/test_ChampDeVision.cpp

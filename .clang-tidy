@@ -10,6 +10,11 @@
 #   gsl::at ou at() pour chaque indice ; le projet n'utilise pas la GSL, et le
 #   preset debug vérifie déjà les bornes (_GLIBCXX_ASSERTIONS). La seconde
 #   faisait à elle seule 148 des 327 avertissements du premier passage.
+# - bugprone-throwing-static-initialization : signale chaque constante globale
+#   d'un type dont le constructeur n'est pas noexcept (sf::Color, sf::Vector2f) ;
+#   une telle exception serait un échec au lancement, pas un cas à traiter.
+# - performance-enum-size : propose std::uint8_t comme type de base des enum
+#   class ; quelques octets gagnés, sans intérêt pour le projet.
 # - cppcoreguidelines-narrowing-conversions : alias de
 #   bugprone-narrowing-conversions, gardée (sinon chaque constat sort deux fois).
 # - cppcoreguidelines-noexcept-* : alias des performance-noexcept-*, gardées.
@@ -17,6 +22,7 @@ Checks: >-
   -*,
   bugprone-*,
   -bugprone-easily-swappable-parameters,
+  -bugprone-throwing-static-initialization,
   cppcoreguidelines-*,
   -cppcoreguidelines-avoid-magic-numbers,
   -cppcoreguidelines-pro-bounds-constant-array-index,
@@ -24,7 +30,8 @@ Checks: >-
   -cppcoreguidelines-narrowing-conversions,
   -cppcoreguidelines-noexcept-*,
   modernize-use-nodiscard,
-  performance-*
+  performance-*,
+  -performance-enum-size
 # Les en-têtes du projet sont analysés, pas ceux de SFML ni de la bibliothèque standard
 # (séparateur / ou \ : sous Windows, les chemins sont écrits avec \).
 HeaderFilterRegex: '.*[/\\]src[/\\].*'

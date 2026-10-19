@@ -70,9 +70,16 @@ personnage sur son chemin est quelqu'un à frapper).
   atteignable.
 - **`coutDesObstacles(carte, obstacles, rayonMobile, penalite)`** construit
   cette fonction : elle précalcule une fois les cases occupées
-  (`std::vector<bool>` de la taille de la carte, une case par obstacle
-  testée à la fois) et renvoie une lambda qui **capture le tableau par
-  valeur**. Capturer par référence aurait laissé une référence pendante dès
+  (`std::vector<bool>` de la taille de la carte) et renvoie une lambda qui **capture le tableau par
+  valeur**. Depuis l'étape 80 (audit V1, partie 1), elle ne teste, pour chaque obstacle, que les
+  cases de son **rectangle englobant** (agrandi de `rayonMobile`, borné à la carte, plus une case de
+  marge de chaque côté pour que l'arrondi de la division n'écarte aucune case) : une vingtaine de
+  cases au lieu des 2 360 de la carte. Le test exact de chaque case est inchangé : le résultat est
+  identique (vérifié hors du dépôt contre l'ancien parcours sur 47 millions de cases). Un monstre en
+  poursuite appelle `allerVers` à chaque image, avec les autres monstres à contourner : le coût
+  était en N² sur la carte entière. Mesures (24 monstres en poursuite, une image) : 50 ms → 3,9 ms
+  dans le preset `debug`, 2,35 ms → 0,34 ms dans le preset `jeu` ; `allerVers` seul (23 obstacles) :
+  2,06 ms → 0,15 ms et 0,10 ms → 0,014 ms. Capturer par référence aurait laissé une référence pendante dès
   que la fonction de construction est quittée ; capturer par valeur copie le
   tableau (quelques milliers de booléens) et rend la fonction autonome. C'est
   le point de branchement de la future « stratégie d'attaque » de
@@ -113,8 +120,8 @@ personnage sur son chemin est quelqu'un à frapper).
   centre d'une case peut rogner un peu le disque d'un obstacle quand le
   mobile part de sa frontière ; c'est le glissement tangent
   (`docs/carte-et-collision.md`) qui le sort de là. Le A* est recalculé en
-  entier avec les cases occupées de toute la carte ; aucune limitation de
-  fréquence (inutile à cette taille de carte).
+  entier à chaque appel ; aucune limitation de fréquence pour les monstres (audit V1, partie 2 :
+  décision reportée, à réévaluer avec la carte extérieure ou des hordes).
 
 ## Suivi de chemin par `Mobile`
 
