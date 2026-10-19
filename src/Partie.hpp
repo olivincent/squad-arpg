@@ -10,6 +10,7 @@
 #include "Composition.hpp"
 #include "Coup.hpp"
 #include "EntiteVue.hpp"
+#include "Engagement.hpp"
 #include "Escouade.hpp"
 #include "Monstre.hpp"
 #include "Niveau.hpp"
@@ -56,6 +57,9 @@ public:
     void dessiner(sf::RenderTarget& rendu, bool afficherAncre, bool marquerLeRetour, bool brouillard) const;
     // Débogage (F3) : chemin restant de chaque monstre.
     void dessinerCheminsDesMonstres(sf::RenderTarget& rendu) const;
+    // Débogage (F3) : un cercle fin autour de chaque entité qui a une zone de contrôle (rayon de
+    // l'entité + zone), personnages vivants et monstres qui ne rentrent pas à leur poste.
+    void dessinerZonesDeControle(sf::RenderTarget& rendu) const;
 
     // Vrai quand tous les personnages sont morts.
     [[nodiscard]] bool estPerdue() const;
@@ -96,6 +100,17 @@ private:
     void faireTournerLesMonstres(float dt);
     void faireFrapperLeMonstre(Monstre& monstre, std::optional<EntiteVue> proie,
                                const std::vector<EntiteVue>& candidats, float dt);
+    // Les deux camps tels que la règle des zones de contrôle les voit (Engagement.hpp) : les personnages
+    // vivants et les monstres vivants qui ne rentrent pas à leur poste (invulnérables, ils n'engagent
+    // personne et ne sont engagés par personne).
+    struct CampsDeControle {
+        std::vector<EntiteDeControle> monstres;
+        std::vector<EntiteDeControle> personnages;
+    };
+    CampsDeControle photographierLesCamps() const;
+    // Compare la photo du début de l'image à celle de la fin et applique les coups gratuits dans les
+    // deux sens (calculés tous deux avant d'en appliquer un) ; retire les monstres tués et lève leur verrou.
+    void appliquerLesCoupsDOpportunite(const CampsDeControle& avant);
     // `enPoursuiteAvant` : statut de chaque monstre de `m_monstres` avant leur mise à jour.
     void alerterLesGroupes(const std::vector<bool>& enPoursuiteAvant);
 

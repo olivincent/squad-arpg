@@ -941,3 +941,25 @@ TEST_CASE("Monstre en retour bloque par un autre monstre recalcule et rentre a s
 
     verifierPointProche(monstre.getCentre(), {100.0f, 100.0f});
 }
+
+TEST_CASE("un monstre a une zone de controle de 20 px et une attaque de 10 degats") {
+    const Monstre monstre({100.0f, 100.0f}, 1, 20, 0);
+
+    REQUIRE(monstre.getZoneDeControle() == 20.0f);
+    REQUIRE(Monstre::s_zoneDeControle == 20.0f);
+    REQUIRE(monstre.getPuissanceAttaque() == 10);
+}
+
+TEST_CASE("lire la puissance de l'attaque ne change ni le coup engage ni la recharge") {
+    Monstre monstre({100.0f, 100.0f}, 1, 0, 0);
+    const TileMap carte = carteDegagee10x10();
+    Generateur generateur = generateurDeTest();
+    REQUIRE(engager(monstre, pointCible({125.0f, 100.0f}), 1, carte));
+
+    REQUIRE(monstre.getPuissanceAttaque() == 10);
+
+    REQUIRE(monstre.cibleEngagee() == 1);
+    REQUIRE(monstre.avancerAttaque(0.4f, generateur) == 10);  // le coup engagé part normalement
+    REQUIRE(monstre.getPuissanceAttaque() == 10);
+    REQUIRE_FALSE(engager(monstre, pointCible({125.0f, 100.0f}), 1, carte));  // la recharge court toujours
+}

@@ -151,6 +151,33 @@ TEST_CASE("getRayonVision renvoie le rayon donne au constructeur") {
     REQUIRE(personnage.getRayonVision() == 123.0f);
 }
 
+TEST_CASE("getZoneDeControle renvoie la zone donnee au constructeur, 0 par defaut") {
+    const Personnage engageant({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 20.0f, 5, 0.5f, 0.5f, 0.0f), {}, 0, s_rayonVisionDeTest, 20.0f);
+    const Personnage sansZone({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 20.0f, 5, 0.5f, 0.5f, 0.0f), {}, 0, s_rayonVisionDeTest);
+
+    REQUIRE(engageant.getZoneDeControle() == 20.0f);
+    REQUIRE(sansZone.getZoneDeControle() == 0.0f);
+}
+
+TEST_CASE("getPuissanceAttaqueDeBase renvoie les degats de l'attaque de base") {
+    const Personnage personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 7, 0.5f, 0.5f, 0.0f), {}, 0, s_rayonVisionDeTest);
+
+    REQUIRE(personnage.getPuissanceAttaqueDeBase() == 7);
+}
+
+TEST_CASE("lire la puissance de l'attaque de base ne change ni le coup engage ni la recharge") {
+    Personnage personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f, 0.15f), {}, 0, s_rayonVisionDeTest);
+    Generateur generateur = generateurDeTest();
+    REQUIRE(personnage.engagerAttaque(1));
+
+    REQUIRE(personnage.getPuissanceAttaqueDeBase() == 5);
+
+    REQUIRE(personnage.cibleEngagee() == 1);
+    REQUIRE(personnage.avancerAttaque(0.2f, generateur) == 5);  // le coup engagé part normalement
+    REQUIRE(personnage.getPuissanceAttaqueDeBase() == 5);
+    REQUIRE_FALSE(personnage.engagerAttaque(1));                // la recharge court toujours
+}
+
 TEST_CASE("Un personnage est mort apres un coup qui depasse le reste de ses points de vie") {
     Personnage personnage({100.0f, 100.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f), {}, 0, s_rayonVisionDeTest);
 

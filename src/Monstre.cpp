@@ -118,6 +118,14 @@ int Monstre::getPointsDeVie() const {
     return m_pointsDeVie.getValeur();
 }
 
+float Monstre::getZoneDeControle() const {
+    return s_zoneDeControle;
+}
+
+int Monstre::getPuissanceAttaque() const {
+    return m_attaque.getPuissance();
+}
+
 // Détecte la proie si elle est dans le rayon de détection, dans le territoire
 // et en vue (`ligneDeVue`, en cases). Seule la détection exige la vue :
 // une fois en poursuite, le monstre ne perd pas sa proie en la perdant de vue.

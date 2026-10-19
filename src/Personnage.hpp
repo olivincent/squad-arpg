@@ -21,7 +21,9 @@ class Personnage {
 public:
     // `rayonVision` : jusqu'où il voit, en pixels (l'union des champs des vivants est la vision de l'escouade).
     // `skills` : les skills qu'il connaît (assert : pas deux fois le même identifiant).
-    Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::vector<SkillConnu> skills, int armure, float rayonVision);
+    // `zoneDeControle` : la zone qu'il engage autour de lui, en pixels, bord à bord (0 : il n'engage personne).
+    Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::vector<SkillConnu> skills, int armure, float rayonVision,
+               float zoneDeControle = 0.0f);
     void dessiner(sf::RenderTarget& rendu) const;
     // `obstacles` le bloquent ; `aContourner` est ce que son chemin évite : la ligne droite n'est
     // prise que si elle passe loin d'eux, sinon A* avec coût (voir Mobile::allerVers).
@@ -33,6 +35,10 @@ public:
     [[nodiscard]] bool estAPortee(Cercle cible) const;
     // Portée de l'attaque de base, bord à bord.
     [[nodiscard]] float getPorteeAttaqueDeBase() const;
+    // Dégâts de l'attaque de base, avant l'armure de la cible.
+    [[nodiscard]] int getPuissanceAttaqueDeBase() const;
+    // Zone de contrôle, en pixels, bord à bord ; 0 : il n'engage personne.
+    [[nodiscard]] float getZoneDeControle() const;
     // Attaque de base en trois temps : engager (vivant, immobile, attaque
     // prête) ; avancer l'exécution, qui rend les dégâts au moment où le coup
     // part ; annuler, sans recharge consommée.
@@ -88,6 +94,7 @@ private:
     PointsDeVie m_pointsDeVie;
     int m_armure;
     float m_rayonVision;    // en pixels
+    float m_zoneDeControle; // en pixels, bord à bord
     const Skill* trouverSkill(IdSkill id) const;  // nullptr si le personnage ne connaît pas ce skill
     Skill* trouverSkill(IdSkill id);
     std::optional<ActionEngagee> m_actionEngagee; // action en exécution et sa cible ; lue seulement pendant l'exécution

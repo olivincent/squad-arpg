@@ -17,6 +17,7 @@
 #include "Cercle.hpp"
 #include "Composition.hpp"
 #include "Coup.hpp"
+#include "Engagement.hpp"
 #include "EtatSkill.hpp"
 #include "IdSkill.hpp"
 #include "Mobile.hpp"
@@ -52,6 +53,8 @@ public:
     [[nodiscard]] std::vector<AdresseSkill> adressesDesSkills() const;
     // Couleur du personnage de cette place ; vide si la place est invalide.
     [[nodiscard]] std::optional<sf::Color> couleurDuPersonnage(std::size_t place) const;
+    // Points de vie du personnage de cette place ; vide si la place est invalide.
+    [[nodiscard]] std::optional<int> pointsDeVieDuPersonnage(std::size_t place) const;
     [[nodiscard]] float rayonZoneDuSkill(AdresseSkill adresse) const;
     [[nodiscard]] Cercle cercleDePorteeDuSkill(AdresseSkill adresse) const;
     [[nodiscard]] std::vector<Coup> declencherSkillDeZone(AdresseSkill adresse, sf::Vector2f point, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
@@ -70,6 +73,11 @@ public:
     void recevoirCoup(int idMonstre, std::size_t place, sf::Vector2f origine, int quantite);
     bool estVivante() const;
     std::vector<Cercle> cerclesDesVivants() const;
+    // Une entité de contrôle (identifiant = place de 1 à N, cercle, zone de contrôle) par personnage
+    // vivant : les morts n'engagent personne et ne sont pas engagés.
+    [[nodiscard]] std::vector<EntiteDeControle> entitesDeControle() const;
+    // Dégâts de l'attaque de base du personnage de cette place, avant l'armure de la cible ; vide si la place est invalide.
+    [[nodiscard]] std::optional<int> puissanceDeLAttaqueDeBase(std::size_t place) const;
     // Un cercle (centre du personnage, rayon de vision) par personnage vivant : la vision de
     // l'escouade est l'union de leurs champs.
     [[nodiscard]] std::vector<Cercle> cerclesDeVision() const;

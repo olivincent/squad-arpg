@@ -520,6 +520,53 @@ TEST_CASE("recevoirCoup frappe le personnage de la place donnee, pas le plus pro
     REQUIRE_FALSE(escouade.placeEstVivante(3));
 }
 
+TEST_CASE("pointsDeVieDuPersonnage donne les points de vie de la place, vide si la place est invalide") {
+    Escouade escouade = uneEscouade({50.0f, 50.0f});
+    escouade.recevoirCoup(1, 2, {85.0f, 60.0f}, 10);
+
+    REQUIRE(escouade.pointsDeVieDuPersonnage(1) == 100);
+    REQUIRE(escouade.pointsDeVieDuPersonnage(2) == 90);
+    REQUIRE_FALSE(escouade.pointsDeVieDuPersonnage(0).has_value());
+    REQUIRE_FALSE(escouade.pointsDeVieDuPersonnage(4).has_value());
+}
+
+TEST_CASE("entitesDeControle donne la place, le cercle et la zone de chaque vivant") {
+    const Escouade escouade = uneEscouade({50.0f, 50.0f});
+
+    const std::vector<EntiteDeControle> entites = escouade.entitesDeControle();
+
+    REQUIRE(entites.size() == 3);
+    const std::vector<Cercle> cercles = escouade.cerclesDesVivants();
+    for (std::size_t i = 0; i < entites.size(); ++i) {
+        REQUIRE(entites[i].id == static_cast<int>(i + 1));
+        REQUIRE(entites[i].cercle.centre == cercles[i].centre);
+        REQUIRE(entites[i].cercle.rayon == cercles[i].rayon);
+    }
+    REQUIRE(entites[0].zone == 20.0f);  // le guerrier
+    REQUIRE(entites[1].zone == 0.0f);   // le prêtre
+    REQUIRE(entites[2].zone == 0.0f);   // le mage
+}
+
+TEST_CASE("entitesDeControle exclut les morts mais garde la place des autres") {
+    Escouade escouade = uneEscouade({50.0f, 50.0f});
+    escouade.recevoirCoup(1, 1, {85.0f, 60.0f}, 1000);  // le guerrier meurt
+
+    const std::vector<EntiteDeControle> entites = escouade.entitesDeControle();
+
+    REQUIRE(entites.size() == 2);
+    REQUIRE(entites[0].id == 2);
+    REQUIRE(entites[1].id == 3);
+}
+
+TEST_CASE("puissanceDeLAttaqueDeBase : les degats de la place, vide si la place est invalide") {
+    const Escouade escouade = uneEscouade({50.0f, 50.0f});
+
+    REQUIRE(escouade.puissanceDeLAttaqueDeBase(1) == 5);
+    REQUIRE(escouade.puissanceDeLAttaqueDeBase(3) == 5);
+    REQUIRE_FALSE(escouade.puissanceDeLAttaqueDeBase(0).has_value());
+    REQUIRE_FALSE(escouade.puissanceDeLAttaqueDeBase(4).has_value());
+}
+
 TEST_CASE("proieDuMonstre donne la place du personnage vise") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
 

@@ -21,7 +21,8 @@ const sf::Color s_couleurContour(40, 40, 40);       // contour de 1 px vers l'in
 constexpr float s_epaisseurContour = -1.0f;         // négative : vers l'intérieur
 }  // namespace
 
-Personnage::Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::vector<SkillConnu> skills, int armure, float rayonVision)
+Personnage::Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::vector<SkillConnu> skills, int armure, float rayonVision,
+                         float zoneDeControle)
     : m_mobile(centre, {s_cote, s_cote}, s_vitesse),
       m_couleur(couleur),
       m_attaqueDeBase(attaqueDeBase),
@@ -30,6 +31,7 @@ Personnage::Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBa
       m_pointsDeVie(s_pointsDeVieMax),
       m_armure(armure),
       m_rayonVision(rayonVision),
+      m_zoneDeControle(zoneDeControle),
       m_actionEngagee()
 {
     for (std::size_t i = 0; i < m_skills.size(); ++i) {
@@ -109,6 +111,14 @@ std::vector<sf::Vector2f> Personnage::cheminRestant() const {
 
 float Personnage::getPorteeAttaqueDeBase() const {
     return m_attaqueDeBase.getPortee();
+}
+
+int Personnage::getPuissanceAttaqueDeBase() const {
+    return m_attaqueDeBase.getPuissance();
+}
+
+float Personnage::getZoneDeControle() const {
+    return m_zoneDeControle;
 }
 
 bool Personnage::estAPortee(Cercle cible) const {

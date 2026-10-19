@@ -179,3 +179,20 @@ TEST_CASE("une escouade de paladin, de rodeur et de guerrier connait les skills 
     REQUIRE(escouade.typeDuSkill({3, IdSkill::FrappePuissante}) == TypeSkill::Degats);
     REQUIRE_FALSE(escouade.typeDuSkill({1, IdSkill::TirPercant}).has_value());
 }
+
+TEST_CASE("zone de controle : 20 px pour le guerrier et le paladin, 0 pour les trois autres") {
+    REQUIRE(specialite(IdSpecialite::Guerrier).definition.zoneDeControle == 20.0f);
+    REQUIRE(specialite(IdSpecialite::Paladin).definition.zoneDeControle == 20.0f);
+    REQUIRE(specialite(IdSpecialite::Pretre).definition.zoneDeControle == 0.0f);
+    REQUIRE(specialite(IdSpecialite::Mage).definition.zoneDeControle == 0.0f);
+    REQUIRE(specialite(IdSpecialite::Rodeur).definition.zoneDeControle == 0.0f);
+}
+
+TEST_CASE("composer garde la zone de controle de la classe, quelle que soit la nuance") {
+    const std::vector<DefinitionPersonnage> composition =
+        composer({IdSpecialite::Paladin, IdSpecialite::Paladin, IdSpecialite::Mage});
+
+    REQUIRE(composition[0].zoneDeControle == 20.0f);
+    REQUIRE(composition[1].zoneDeControle == 20.0f);
+    REQUIRE(composition[2].zoneDeControle == 0.0f);
+}

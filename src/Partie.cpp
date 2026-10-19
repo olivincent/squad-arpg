@@ -1,5 +1,7 @@
 // ./src/Partie.cpp
 #include "Partie.hpp"
+#include <SFML/Graphics/CircleShape.hpp>
+#include <SFML/Graphics/Color.hpp>
 #include <algorithm>
 #include <utility>
 #include "Cercle.hpp"
@@ -11,6 +13,8 @@
 namespace {
 // Écart bord à bord (cercle d'un personnage, zone de la porte) à partir duquel la porte s'ouvre.
 constexpr float s_porteeInteraction = 20.0f;
+const sf::Color s_couleurZoneDeControle(255, 0, 255, 180);  // débogage F3 : cercle fin des zones de contrôle
+constexpr float s_epaisseurZoneDeControle = 1.0f;
 }
 
 Partie::Partie(const Niveau& niveau, std::vector<DefinitionPersonnage> composition, Generateur::result_type graine)
@@ -151,6 +155,50 @@ std::vector<EntiteVue> Partie::entitesPhysiques() const {
         entites.push_back({m.getId(), m.getCercle()});
     }
     return entites;
+}
+
+Partie::CampsDeControle Partie::photographierLesCamps() const {
+    CampsDeControle camps;
+    camps.personnages = m_escouade.entitesDeControle();
+    for (const Monstre& m : m_monstres) {
+        if (m.estCiblable()) {
+            camps.monstres.push_back({m.getId(), m.getCercle(), m.getZoneDeControle()});
+        }
+    }
+    return camps;
+}
+
+void Partie::appliquerLesCoupsDOpportunite(const CampsDeControle& avant) {
+    const CampsDeControle apres = photographierLesCamps();
+    const std::vector<CoupDOpportunite> surLesPersonnages =
+        coupsDOpportunite({avant.monstres, avant.personnages}, {apres.monstres, apres.personnages});
+    const std::vector<CoupDOpportunite> surLesMonstres =
+        coupsDOpportunite({avant.personnages, avant.monstres}, {apres.personnages, apres.monstres});
+
+    // Monstre qui frappe un personnage : comme un coup normal (le monstre devient un agresseur).
+    for (const CoupDOpportunite& coup : surLesPersonnages) {
+        if (const Monstre* attaquant = trouverMonstre(coup.idAttaquant)) {
+            m_escouade.recevoirCoup(attaquant->getId(), static_cast<std::size_t>(coup.idCible), attaquant->getCentre(),
+                                    attaquant->getPuissanceAttaque());
+        }
+    }
+    // Personnage qui frappe un monstre : un Coup comme ceux d'attaquer(), sans toucher à aucune recharge.
+    std::vector<Coup> coupsSurLesMonstres;
+    for (const CoupDOpportunite& coup : surLesMonstres) {
+        if (const std::optional<int> degats = m_escouade.puissanceDeLAttaqueDeBase(static_cast<std::size_t>(coup.idAttaquant))) {
+            coupsSurLesMonstres.push_back({coup.idCible, *degats});
+        }
+    }
+    appliquer(coupsSurLesMonstres);
+
+    const std::optional<int> idVerrouille = m_escouade.getCibleVerrouillee();
+    if (idVerrouille.has_value()) {
+        const Monstre* verrouille = trouverMonstre(*idVerrouille);
+        if (verrouille != nullptr && !verrouille->estVivant()) {
+            m_escouade.deverrouiller();
+        }
+    }
+    std::erase_if(m_monstres, [](const Monstre& m) { return !m.estVivant(); });
 }
 
 void Partie::appliquer(const std::vector<Coup>& coups) {
@@ -295,9 +343,11 @@ void Partie::mettreAJour(float dt) {
 
     // Tous les monstres (à leur position de l'image précédente), même ceux qui rentrent à leur
     // poste, sont des obstacles pour les personnages.
+    const CampsDeControle avant = photographierLesCamps();
     m_escouade.mettreAJour(dt, m_carte, entitesPhysiques());
     interagirSiAPortee();
     faireTournerLesMonstres(dt);
+    appliquerLesCoupsDOpportunite(avant);
     // En dernier, pour que ce que le joueur voit corresponde aux positions de la fin de l'image.
     mettreAJourLaVision();
 
@@ -323,6 +373,25 @@ void Partie::dessiner(sf::RenderTarget& rendu, bool afficherAncre, bool marquerL
 void Partie::dessinerCheminsDesMonstres(sf::RenderTarget& rendu) const {
     for (const Monstre& m : m_monstres) {
         m.dessinerChemin(rendu);
+    }
+}
+
+void Partie::dessinerZonesDeControle(sf::RenderTarget& rendu) const {
+    const CampsDeControle camps = photographierLesCamps();
+    for (const std::vector<EntiteDeControle>* camp : {&camps.personnages, &camps.monstres}) {
+        for (const EntiteDeControle& entite : *camp) {
+            if (entite.zone <= 0.0f) {
+                continue;
+            }
+            const float rayon = entite.cercle.rayon + entite.zone;
+            sf::CircleShape cercle(rayon);
+            cercle.setOrigin({rayon, rayon});
+            cercle.setPosition(entite.cercle.centre);
+            cercle.setFillColor(sf::Color::Transparent);
+            cercle.setOutlineColor(s_couleurZoneDeControle);
+            cercle.setOutlineThickness(s_epaisseurZoneDeControle);
+            rendu.draw(cercle);
+        }
     }
 }
 

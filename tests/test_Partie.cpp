@@ -749,3 +749,156 @@ TEST_CASE("vision : une porte vue devient cliquable") {
 
     REQUIRE(partie.cliquer(s_surLaPorteLointaine) == ResultatClic::Objet);
 }
+
+// Zones de contrôle et attaque d'opportunité (étape 77). Le monstre n'a pas d'armure dans ces niveaux
+// (Niveau::armureMonstres vaut 0) : les dégâts lus sur lui sont ceux des attaques de base.
+
+namespace {
+
+// Fait avancer la partie d'un tic et renvoie les points de vie du personnage de cette place.
+int pointsDeVieApresUnTic(Partie& partie, std::size_t place) {
+    partie.mettreAJour(s_dureeTic);
+    return *partie.getEscouade().pointsDeVieDuPersonnage(place);
+}
+
+// Avance jusqu'à ce que le personnage de cette place perde des points de vie (le premier coup du
+// monstre) ; renvoie ses points de vie à ce moment. Le coup lance la recharge du monstre (0,7 s au
+// moins) puis un nouveau coup exige 0,3 s d'exécution : aucun coup normal avant 1 s.
+int jusquAuPremierCoup(Partie& partie, std::size_t place) {
+    int pointsDeVie = 100;
+    for (int i = 0; i < nombreDeTics(2.0f) && pointsDeVie == 100; ++i) {
+        pointsDeVie = pointsDeVieApresUnTic(partie, place);
+    }
+    REQUIRE(pointsDeVie < 100);
+    return pointsDeVie;
+}
+
+constexpr float s_fenetreSansCoupNormal = 0.9f;  // en secondes, après le premier coup du monstre
+
+}  // namespace
+
+TEST_CASE("zone de controle : un mage au contact qui s'eloigne recoit un coup gratuit du monstre") {
+    // Un mage seul (zone 0) à 40 px du monstre, qui l'engage (zone de 20 px bord à bord).
+    Partie partie(niveauDegage({{185.0f, 250.0f}}), composer({IdSpecialite::Mage}), s_graineDeTest);
+    const int apresLePremierCoup = jusquAuPremierCoup(partie, 1);
+
+    partie.ordonnerDeplacement({210.0f, 20.0f});
+    int pointsDeVie = apresLePremierCoup;
+    for (int i = 0; i < nombreDeTics(s_fenetreSansCoupNormal); ++i) {
+        pointsDeVie = pointsDeVieApresUnTic(partie, 1);
+    }
+
+    REQUIRE(pointsDeVie == apresLePremierCoup - 10);  // un seul coup gratuit, de 10 dégâts (armure 0)
+}
+
+TEST_CASE("zone de controle : un guerrier qui reste au contact ne recoit aucun coup gratuit") {
+    Partie partie(niveauDegage({{270.0f, 210.0f}}), composer({IdSpecialite::Guerrier}), s_graineDeTest);
+    const int apresLePremierCoup = jusquAuPremierCoup(partie, 1);
+
+    int pointsDeVie = apresLePremierCoup;
+    for (int i = 0; i < nombreDeTics(s_fenetreSansCoupNormal); ++i) {
+        pointsDeVie = pointsDeVieApresUnTic(partie, 1);
+    }
+
+    REQUIRE(pointsDeVie == apresLePremierCoup);
+}
+
+namespace {
+
+// Trois guerriers (le premier au nord, à (235, 160)) et un monstre à (270, 160), au contact du
+// premier seulement. L'attaque de base du premier est reconnaissable : `degats` dégâts, recharge
+// de 100 s, donc après son premier coup tout nouveau coup de cette force sur le monstre est un coup
+// gratuit. Dès que le monstre est touché, le troisième guerrier (à (235, 260)) le provoque : le
+// monstre quitte le premier pour aller vers lui. Renvoie le nombre d'images où le monstre perd au
+// moins `degats` points de vie, sur 1,2 s.
+int coupsReconnaissables(float zoneDuPremier, int degats) {
+    std::vector<DefinitionPersonnage> composition =
+        composer({IdSpecialite::Guerrier, IdSpecialite::Guerrier, IdSpecialite::Guerrier});
+    composition[0].attaqueDeBase = Skill(TypeSkill::Degats, 20.0f, degats, 100.0f, 100.0f, 0.0f, 0.15f);
+    composition[0].zoneDeControle = zoneDuPremier;
+    Partie partie(niveauDegage({{270.0f, 160.0f}}), std::move(composition), s_graineDeTest);
+
+    int coups = 0;
+    int pointsDeVie = 100;
+    bool provoque = false;
+    for (int i = 0; i < nombreDeTics(1.2f) && !partie.getMonstres().empty(); ++i) {
+        partie.mettreAJour(s_dureeTic);
+        if (partie.getMonstres().empty()) {
+            break;
+        }
+        const int apres = partie.getMonstres().front().getPointsDeVie();
+        if (pointsDeVie - apres >= degats) {
+            ++coups;
+        }
+        pointsDeVie = apres;
+        if (!provoque && apres < 100) {
+            partie.demanderSkill({3, IdSkill::Provocation});
+            provoque = true;
+        }
+    }
+    return coups;
+}
+
+}  // namespace
+
+TEST_CASE("zone de controle : un monstre qui quitte un guerrier pour un provocateur est frappe gratuitement") {
+    // Le premier coup (normal) et le coup gratuit.
+    REQUIRE(coupsReconnaissables(20.0f, 30) == 2);
+}
+
+TEST_CASE("zone de controle : un personnage sans zone ne frappe jamais gratuitement") {
+    // Même scénario, mais le premier guerrier n'engage personne : seul son premier coup (normal) compte.
+    REQUIRE(coupsReconnaissables(0.0f, 30) == 1);
+}
+
+TEST_CASE("zone de controle : un monstre tue par un coup gratuit est retire et le verrou est leve") {
+    // Le premier coup (60) laisse le monstre à 40 points de vie ; le coup gratuit (60) le tue.
+    std::vector<DefinitionPersonnage> composition =
+        composer({IdSpecialite::Guerrier, IdSpecialite::Guerrier, IdSpecialite::Guerrier});
+    composition[0].attaqueDeBase = Skill(TypeSkill::Degats, 20.0f, 60, 100.0f, 100.0f, 0.0f, 0.15f);
+    Partie partie(niveauDegage({{270.0f, 160.0f}}), std::move(composition), s_graineDeTest);
+    REQUIRE(partie.cliquer({270.0f, 160.0f}) == ResultatClic::Monstre);
+
+    // En 1,2 s les autres guerriers ne retirent que quelques points : seul le coup gratuit peut le tuer.
+    bool provoque = false;
+    for (int i = 0; i < nombreDeTics(1.2f) && !partie.getMonstres().empty(); ++i) {
+        partie.mettreAJour(s_dureeTic);
+        if (!provoque && !partie.getMonstres().empty() && partie.getMonstres().front().getPointsDeVie() < 100) {
+            partie.demanderSkill({3, IdSkill::Provocation});
+            provoque = true;
+        }
+    }
+
+    REQUIRE(provoque);
+    REQUIRE(partie.getMonstres().empty());
+    REQUIRE_FALSE(partie.getEscouade().getCibleVerrouillee().has_value());
+}
+
+TEST_CASE("zone de controle : un monstre qui rentre a son poste ne donne ni ne recoit de coup gratuit") {
+    Partie partie = unePartie(niveauDeLaFuite(), s_graineDeTest);
+    attirerHorsDuTerritoire(partie, {1080.0f, 300.0f});
+
+    // L'escouade rentre à travers le monstre qui rentre et finit par le toucher...
+    partie.ordonnerDeplacement({300.0f, 300.0f});
+    bool contact = false;
+    for (int i = 0; i < nombreDeTics(5.0f) && !contact; ++i) {
+        partie.mettreAJour(s_dureeTic);
+        for (const Cercle& personnage : partie.getEscouade().cerclesDesVivants()) {
+            contact = contact || distanceBordABord(personnage, fuyard(partie).getCercle()) <= 10.0f;
+        }
+    }
+    REQUIRE(contact);
+    REQUIRE_FALSE(fuyard(partie).estCiblable());
+
+    // ... puis fait demi-tour : elle s'écarte du monstre (lui, il continue vers son poste). Un monstre
+    // qui rentre n'engage personne : aucun personnage ne perd de points de vie, et lui non plus.
+    partie.ordonnerDeplacement({1080.0f, 300.0f});
+    for (int i = 0; i < nombreDeTics(1.0f); ++i) {
+        partie.mettreAJour(s_dureeTic);
+        for (std::size_t place = 1; place <= 3; ++place) {
+            REQUIRE(partie.getEscouade().pointsDeVieDuPersonnage(place) == 100);
+        }
+    }
+    REQUIRE_FALSE(fuyard(partie).estCiblable());
+    REQUIRE(fuyard(partie).getPointsDeVie() == 100);
+}

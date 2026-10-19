@@ -17,6 +17,8 @@ class Monstre {
 public:
     // Distance maximale au poste (en pixels) au-delà de laquelle un monstre abandonne.
     static constexpr float s_rayonTerritoire = 600.0f;
+    // Zone de contrôle (en pixels, bord à bord) : tout monstre engage ce qui est à cette distance.
+    static constexpr float s_zoneDeControle = 20.0f;
 
     // `groupe` est un identifiant opaque : des monstres de même groupe « vont
     // ensemble ». Le monstre ne sait pas ce qu'il désigne.
@@ -66,6 +68,10 @@ public:
     [[nodiscard]] bool estCiblable() const;
     bool estVivant() const;
     int getPointsDeVie() const;
+    // Zone de contrôle du monstre, en pixels, bord à bord.
+    [[nodiscard]] float getZoneDeControle() const;
+    // Dégâts de son attaque, avant l'armure de la cible.
+    [[nodiscard]] int getPuissanceAttaque() const;
 
 private:
     enum class Etat { EnGarde, Poursuite, Retour };

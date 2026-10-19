@@ -17,6 +17,7 @@ struct DefinitionPersonnage {
     std::vector<SkillConnu> skills;
     int armure;
     float rayonVision;
+    float zoneDeControle;  // en pixels, bord à bord ; 0 = n'engage personne
     Rang rang;
 };
 

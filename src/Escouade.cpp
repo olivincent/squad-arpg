@@ -69,7 +69,7 @@ Escouade::Escouade(sf::Vector2f positionDepart, std::vector<DefinitionPersonnage
     for (std::size_t i = 0; i < composition.size(); ++i) {
         DefinitionPersonnage& definition = composition[i];
         m_personnages.emplace_back(placePersonnage(i), definition.couleur, std::move(definition.attaqueDeBase),
-                                   std::move(definition.skills), definition.armure, definition.rayonVision);
+                                   std::move(definition.skills), definition.armure, definition.rayonVision, definition.zoneDeControle);
         m_places.push_back(placePersonnage(i));
     }
     m_pointsVises = m_places;
@@ -416,6 +416,13 @@ std::optional<sf::Color> Escouade::couleurDuPersonnage(std::size_t place) const 
         return std::nullopt;
     }
     return personnageDeLaPlace(place).getCouleur();
+}
+
+std::optional<int> Escouade::pointsDeVieDuPersonnage(std::size_t place) const {
+    if (!placeValide(place)) {
+        return std::nullopt;
+    }
+    return personnageDeLaPlace(place).getPointsDeVie();
 }
 
 float Escouade::rayonZoneDuSkill(AdresseSkill adresse) const {
@@ -995,6 +1002,24 @@ std::vector<Cercle> Escouade::cerclesDesVivants() const {
         }
     }
     return cercles;
+}
+
+std::vector<EntiteDeControle> Escouade::entitesDeControle() const {
+    std::vector<EntiteDeControle> entites;
+    for (std::size_t indice = 0; indice < m_personnages.size(); ++indice) {
+        const Personnage& personnage = m_personnages[indice];
+        if (personnage.estVivant()) {
+            entites.push_back({static_cast<int>(indice + 1), personnage.getCercle(), personnage.getZoneDeControle()});
+        }
+    }
+    return entites;
+}
+
+std::optional<int> Escouade::puissanceDeLAttaqueDeBase(std::size_t place) const {
+    if (!placeValide(place)) {
+        return std::nullopt;
+    }
+    return personnageDeLaPlace(place).getPuissanceAttaqueDeBase();
 }
 
 std::vector<Cercle> Escouade::cerclesDeVision() const {
