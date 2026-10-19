@@ -4,6 +4,7 @@
 #include <SFML/Graphics/View.hpp>
 #include <random>
 
+#include "BarreDeRaccourcis.hpp"
 #include "Controleur.hpp"
 #include "Ecran.hpp"
 #include "Partie.hpp"
@@ -39,6 +40,9 @@ private:
     std::random_device m_tirageDeGraine;
     Partie m_partie;
     Controleur m_controleur;
+    // La barre de raccourcis est de l'état d'interface (comme la caméra) : ni la Partie ni
+    // l'Escouade ne savent qu'elle existe. Reconstruite à chaque nouvelle partie.
+    BarreDeRaccourcis m_barre;
     sf::View m_camera;
     OptionsDeDebogage m_debogage;
 };

@@ -3,11 +3,13 @@
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Font.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
+#include <SFML/System/String.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <array>
 #include <cstddef>
 #include <optional>
 #include <vector>
+#include "BarreDeRaccourcis.hpp"
 #include "EtatSkill.hpp"
 #include "TypeSkill.hpp"
 
@@ -26,11 +28,17 @@
 // du skill, gris sinon. La visée l'emporte.
 [[nodiscard]] sf::Color couleurDuContour(bool enVisee, bool enActivation);
 
-// Dessine la barre des 4 skills en bas de la cible, en coordonnées de la vue
-// active : à appeler avec la vue de l'interface (`vueDInterface`). `etats[i]` est la place i + 1 ;
-// vide = pas de skill (cadre vide). `placeEnVisee` : place dont le skill est
-// en cours de visée (contour jaune), vide sinon. Une icône dont le skill est
-// en activation a un contour blanc.
+// Ce que l'icône d'un emplacement montre (calculé par l'écran de jeu, à chaque image).
+struct IconeDeRaccourci {
+    std::optional<EtatSkill> etat;  // vide = emplacement vide (cadre sombre, seulement le nom de la touche)
+    sf::String touche;              // nom de la touche, affiché dans un coin
+    sf::Color couleurDuLanceur;     // bande au bas de l'icône : la couleur du personnage
+    bool enVisee = false;           // contour jaune : le skill de cet emplacement est en cours de visée
+};
+
+// Dessine les icônes des emplacements de la barre principale, à la place que donne
+// `rectangleDeLEmplacement` (le même calcul que le clic), en coordonnées de la vue active : à
+// appeler avec la vue de l'interface (`vueDInterface`). Une icône dont le skill est en
+// activation a un contour blanc ; en visée, jaune (la visée l'emporte).
 void dessinerBarreDeSkills(sf::RenderTarget& rendu, const sf::Font& police,
-                           const std::array<std::optional<EtatSkill>, 4>& etats,
-                           std::optional<std::size_t> placeEnVisee);
+                           const std::array<IconeDeRaccourci, s_emplacementsPrincipaux>& icones);

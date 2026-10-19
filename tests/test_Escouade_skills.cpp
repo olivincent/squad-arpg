@@ -1,5 +1,6 @@
 // ./tests/test_Escouade_skills.cpp
 #include <catch2/catch_test_macros.hpp>
+#include <SFML/Graphics/Color.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <algorithm>
 #include <cstddef>
@@ -1001,4 +1002,20 @@ TEST_CASE("typeDuSkill donne le type du skill a l'adresse, vide pour une place i
     REQUIRE(escouade.typeDuSkill(s_adresseFrappe) == TypeSkill::Degats);
     REQUIRE(escouade.typeDuSkill(s_adresseExplosion) == TypeSkill::Zone);
     REQUIRE_FALSE(escouade.typeDuSkill(AdresseSkill{5, IdSkill::FrappePuissante}).has_value());
+}
+
+TEST_CASE("adressesDesSkills : par place, puis dans l'ordre de la liste du personnage") {
+    const Escouade escouade = uneEscouade({200.0f, 200.0f});
+
+    const std::vector<AdresseSkill> attendues = {s_adresseFrappe, s_adresseProvocation, s_adresseSoin, s_adresseExplosion};
+    REQUIRE(escouade.adressesDesSkills() == attendues);
+}
+
+TEST_CASE("couleurDuPersonnage : la couleur de la composition, vide pour une place invalide") {
+    const Escouade escouade = uneEscouade({200.0f, 200.0f});
+
+    REQUIRE(escouade.couleurDuPersonnage(1) == sf::Color::Red);
+    REQUIRE(escouade.couleurDuPersonnage(3) == sf::Color(160, 80, 220));
+    REQUIRE_FALSE(escouade.couleurDuPersonnage(0).has_value());
+    REQUIRE_FALSE(escouade.couleurDuPersonnage(4).has_value());
 }

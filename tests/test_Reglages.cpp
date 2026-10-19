@@ -1,5 +1,6 @@
 // ./tests/test_Reglages.cpp
 #include <catch2/catch_test_macros.hpp>
+#include <SFML/Window/Keyboard.hpp>
 #include <sstream>
 #include <vector>
 
@@ -105,4 +106,21 @@ TEST_CASE("reglages : le filtrage compare la largeur ET la hauteur") {
 
 TEST_CASE("reglages : un grand bureau garde toutes les resolutions") {
     REQUIRE(resolutionsDisponibles({3840, 2160}) == resolutionsProposees());
+}
+
+TEST_CASE("reglages : les touches par defaut sont la grille Q W E R / A S D F / Z X C V") {
+    const Reglages reglages;
+
+    REQUIRE(emplacementPourTouche(reglages.touchesDesRaccourcis, sf::Keyboard::Scan::Q) == 0);
+    REQUIRE(emplacementPourTouche(reglages.touchesDesRaccourcis, sf::Keyboard::Scan::R) == 3);
+    REQUIRE(emplacementPourTouche(reglages.touchesDesRaccourcis, sf::Keyboard::Scan::A) == 4);
+    REQUIRE(emplacementPourTouche(reglages.touchesDesRaccourcis, sf::Keyboard::Scan::Z) == 8);
+    REQUIRE(emplacementPourTouche(reglages.touchesDesRaccourcis, sf::Keyboard::Scan::V) == 11);
+}
+
+TEST_CASE("reglages : une touche hors de la table n'a pas d'emplacement") {
+    const Reglages reglages;
+
+    REQUIRE_FALSE(emplacementPourTouche(reglages.touchesDesRaccourcis, sf::Keyboard::Scan::Num1).has_value());
+    REQUIRE_FALSE(emplacementPourTouche(reglages.touchesDesRaccourcis, sf::Keyboard::Scan::Escape).has_value());
 }

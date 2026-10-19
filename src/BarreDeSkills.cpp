@@ -4,16 +4,20 @@
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Text.hpp>
 #include <SFML/Graphics/VertexArray.hpp>
+#include <array>
 #include <algorithm>
 #include <cmath>
 #include <numbers>
 #include <string>
 
+#include "BarreDeRaccourcis.hpp"
+
 namespace {
 
-constexpr float s_coteIcone = 56.0f;
-constexpr float s_espacement = 8.0f;
-constexpr float s_margeBas = 16.0f;
+constexpr unsigned int s_tailleLettre = 24;
+constexpr unsigned int s_tailleNomDeTouche = 11;
+constexpr unsigned int s_tailleSecondes = 20;
+constexpr float s_hauteurBande = 4.0f;
 
 // Écrit `texte` centré sur `centre`.
 void dessinerTexteCentre(sf::RenderTarget& rendu, const sf::Font& police, const std::string& texte,
@@ -84,46 +88,55 @@ sf::Color couleurDuContour(bool enVisee, bool enActivation) {
 }
 
 void dessinerBarreDeSkills(sf::RenderTarget& rendu, const sf::Font& police,
-                           const std::array<std::optional<EtatSkill>, 4>& etats,
-                           std::optional<std::size_t> placeEnVisee) {
+                           const std::array<IconeDeRaccourci, s_emplacementsPrincipaux>& icones) {
     const sf::Vector2f tailleVue = rendu.getView().getSize();
-    const float largeurBarre = 4.0f * s_coteIcone + 3.0f * s_espacement;
-    const float gauche = (tailleVue.x - largeurBarre) / 2.0f;
-    const float haut = tailleVue.y - s_margeBas - s_coteIcone;
 
-    for (std::size_t i = 0; i < etats.size(); ++i) {
-        const sf::Vector2f coin{gauche + static_cast<float>(i) * (s_coteIcone + s_espacement), haut};
+    for (std::size_t i = 0; i < icones.size(); ++i) {
+        const IconeDeRaccourci& icone = icones[i];
+        const sf::FloatRect rectangle = rectangleDeLEmplacement(i, tailleVue);
+        const sf::Vector2f coin = rectangle.position;
+        const float cote = rectangle.size.x;
+        const sf::Vector2f centre = coin + rectangle.size / 2.0f;
 
-        sf::RectangleShape fond({s_coteIcone, s_coteIcone});
+        sf::RectangleShape fond(rectangle.size);
         fond.setPosition(coin);
-        fond.setFillColor(sf::Color(50, 50, 50));
-        const bool enVisee = placeEnVisee == i + 1;
-        const bool enActivation = etats[i].has_value() && etats[i]->enActivation;
-        fond.setOutlineColor(couleurDuContour(enVisee, enActivation));
-        fond.setOutlineThickness(enVisee || enActivation ? 3.0f : 1.0f);
+        const bool enActivation = icone.etat.has_value() && icone.etat->enActivation;
+        fond.setFillColor(icone.etat.has_value() ? sf::Color(50, 50, 50) : sf::Color(28, 28, 28));
+        fond.setOutlineColor(couleurDuContour(icone.enVisee, enActivation));
+        fond.setOutlineThickness(icone.enVisee || enActivation ? 3.0f : 1.0f);
         rendu.draw(fond);
 
-        if (!etats[i].has_value()) {
+        // Lanceur mort ou emplacement vide : texte atténué, ni quartier ni chiffre.
+        const bool lanceurVivant = icone.etat.has_value() && icone.etat->lanceurVivant;
+        const sf::Color couleurTexte = lanceurVivant ? sf::Color::White : sf::Color(90, 90, 90);
+        sf::Text nomDeLaTouche(police, icone.touche, s_tailleNomDeTouche);
+        nomDeLaTouche.setFillColor(couleurTexte);
+        nomDeLaTouche.setPosition(coin + sf::Vector2f{4.0f, 1.0f});
+        rendu.draw(nomDeLaTouche);
+
+        if (!icone.etat.has_value()) {
             continue;
         }
-        const sf::Vector2f centre = coin + sf::Vector2f{s_coteIcone, s_coteIcone} / 2.0f;
-        // Lanceur mort : lettre et numéro atténués, ni quartier ni chiffre.
-        const sf::Color couleurTexte = etats[i]->lanceurVivant ? sf::Color::White : sf::Color(90, 90, 90);
-        dessinerTexteCentre(rendu, police, std::string(1, lettreDuSkill(etats[i]->type)), 30, centre, couleurTexte);
-        dessinerTexteCentre(rendu, police, std::to_string(i + 1), 12, coin + sf::Vector2f{9.0f, 11.0f}, couleurTexte);
-        if (!etats[i]->lanceurVivant) {
+        dessinerTexteCentre(rendu, police, std::string(1, lettreDuSkill(icone.etat->type)), s_tailleLettre, centre, couleurTexte);
+
+        // Bande de la couleur du personnage lanceur, au bas de l'icône.
+        sf::RectangleShape bande({cote, s_hauteurBande});
+        bande.setPosition({coin.x, coin.y + cote - s_hauteurBande});
+        bande.setFillColor(lanceurVivant ? icone.couleurDuLanceur : sf::Color(90, 90, 90));
+        rendu.draw(bande);
+        if (!lanceurVivant) {
             continue;
         }
 
         // Zone sombre : la fraction de recharge restante, de l'aiguille à midi.
         sf::VertexArray quartier(sf::PrimitiveType::TriangleFan);
-        for (const sf::Vector2f point : pointsDuQuartier(centre, s_coteIcone, 1.0f - etats[i]->progression)) {
+        for (const sf::Vector2f point : pointsDuQuartier(centre, cote, 1.0f - icone.etat->progression)) {
             quartier.append({point, sf::Color(0, 0, 0, 170)});
         }
         rendu.draw(quartier);
 
-        if (etats[i]->tempsRestant > 0.0f) {
-            dessinerTexteCentre(rendu, police, std::to_string(secondesAffichees(etats[i]->tempsRestant)), 24, centre, sf::Color::White);
+        if (icone.etat->tempsRestant > 0.0f) {
+            dessinerTexteCentre(rendu, police, std::to_string(secondesAffichees(icone.etat->tempsRestant)), s_tailleSecondes, centre, sf::Color::White);
         }
     }
 }

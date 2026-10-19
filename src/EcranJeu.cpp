@@ -12,14 +12,15 @@
 
 #include "AdresseSkill.hpp"
 #include "Aleatoire.hpp"
+#include "BarreDeRaccourcis.hpp"
 #include "BarreDeSkills.hpp"
 #include "Composition.hpp"
 #include "Contexte.hpp"
 #include "Controleur.hpp"
 #include "EcranDeFin.hpp"
-#include "EtatSkill.hpp"
 #include "GenerateurDonjon.hpp"
 #include "Niveau.hpp"
+#include "Reglages.hpp"
 #include "TailleDeVue.hpp"
 
 namespace {
@@ -52,17 +53,19 @@ void dessinerCompteurDeMonstres(sf::RenderTarget& rendu, const sf::Font& police,
 
 }  // namespace
 
-EcranJeu::EcranJeu() : m_partie(nouvellePartie(m_tirageDeGraine)) {}
+EcranJeu::EcranJeu()
+    : m_partie(nouvellePartie(m_tirageDeGraine)), m_barre(barreParDefaut(m_partie.getEscouade().adressesDesSkills())) {}
 
 void EcranJeu::ajusterCamera(const Contexte& contexte) {
     m_camera.setSize(tailleDeVue(contexte.fenetre.getSize(), s_hauteurDeVue));
 }
 
-// Réaffectation : la Partie garde son adresse, et le Controleur repart
-// sans visée ni déplacement continu.
+// Réaffectation : la Partie garde son adresse, le Controleur repart
+// sans visée ni déplacement continu et la barre retrouve sa disposition par défaut.
 void EcranJeu::nouvelleCarte() {
     m_partie = nouvellePartie(m_tirageDeGraine);
     m_controleur = Controleur{};
+    m_barre = barreParDefaut(m_partie.getEscouade().adressesDesSkills());
     m_debogage = OptionsDeDebogage{};
 }
 
@@ -80,20 +83,12 @@ Transition EcranJeu::traiterEvenement(const sf::Event& evenement, const Contexte
         }
     }
     if (const auto* data = evenement.getIf<sf::Event::KeyPressed>()) {
-        // Scancode : la touche physique « 1 » de la rangée du haut,
-        // quelle que soit la disposition du clavier (AZERTY : « & »).
-        // Touche N : skill à l'adresse de la touche (table du Controleur).
-        if (data->scancode == sf::Keyboard::Scan::Num1) {
-            m_controleur.appuiTouche(m_partie, 1);
-        } else if (data->scancode == sf::Keyboard::Scan::Num2) {
-            m_controleur.appuiTouche(m_partie, 2);
-        } else if (data->scancode == sf::Keyboard::Scan::Num3) {
-            m_controleur.appuiTouche(m_partie, 3);
-        } else if (data->scancode == sf::Keyboard::Scan::Num4) {
-            m_controleur.appuiTouche(m_partie, 4);
-        } else if (data->scancode == sf::Keyboard::Scan::Escape) {
+        // Scancode : la touche physique, quelle que soit la disposition du clavier
+        // (AZERTY : la touche « Q » du réglage par défaut est étiquetée « A »).
+        const bool finDePartie = m_partie.estPerdue() || m_partie.estGagnee();
+        if (data->scancode == sf::Keyboard::Scan::Escape) {
             m_controleur.appuiEchap();
-        } else if (data->scancode == sf::Keyboard::Scan::R && (m_partie.estPerdue() || m_partie.estGagnee())) {
+        } else if (data->scancode == sf::Keyboard::Scan::R && finDePartie) {
             return Depiler{};  // retour au menu
         } else if (data->scancode == sf::Keyboard::Scan::F5) {
             // Touche de débogage : à tout moment, même effet que R.
@@ -104,6 +99,12 @@ Transition EcranJeu::traiterEvenement(const sf::Event& evenement, const Contexte
             m_debogage.ancre = !m_debogage.ancre;  // touche de débogage : carré vert de l'ancre
         } else if (data->scancode == sf::Keyboard::Scan::F6) {
             m_debogage.brouillard = !m_debogage.brouillard;  // touche de débogage : brouillard de guerre (visuel seulement)
+        } else if (!finDePartie) {
+            // Sur l'écran de fin, seul R compte : les raccourcis sont ignorés.
+            const std::optional<std::size_t> emplacement = emplacementPourTouche(contexte.reglages.touchesDesRaccourcis, data->scancode);
+            if (emplacement.has_value()) {
+                m_controleur.activerEmplacement(m_partie, m_barre, *emplacement);
+            }
         }
     }
     return Aucune{};
@@ -135,20 +136,19 @@ void EcranJeu::dessiner(const Contexte& contexte) const {
 
     // Interface fixe à l'écran : vue de l'interface, dessinée en dernier.
     fenetre.setView(vueDInterface(fenetre.getSize()));
-    // Une icône par touche, construite à partir de l'adresse de la touche.
-    std::array<std::optional<EtatSkill>, Controleur::s_nombreDeTouches> etatsDesSkills;
-    std::optional<std::size_t> toucheEnVisee;
-    for (std::size_t i = 0; i < etatsDesSkills.size(); ++i) {
-        const std::optional<AdresseSkill> adresse = Controleur::adresseDeLaTouche(i + 1);
+    // Une icône par emplacement de la barre, construite à partir de son adresse.
+    std::array<IconeDeRaccourci, s_emplacementsPrincipaux> icones;
+    for (std::size_t i = 0; i < icones.size(); ++i) {
+        icones[i].touche = sf::Keyboard::getDescription(contexte.reglages.touchesDesRaccourcis[i]);
+        const std::optional<AdresseSkill> adresse = m_barre.adresse(i);
         if (!adresse.has_value()) {
             continue;
         }
-        etatsDesSkills[i] = m_partie.getEscouade().etatDuSkill(*adresse);
-        if (adresse == m_controleur.getAdresseEnVisee()) {
-            toucheEnVisee = i + 1;
-        }
+        icones[i].etat = m_partie.getEscouade().etatDuSkill(*adresse);
+        icones[i].couleurDuLanceur = m_partie.getEscouade().couleurDuPersonnage(adresse->place).value_or(sf::Color::White);
+        icones[i].enVisee = adresse == m_controleur.getAdresseEnVisee();
     }
-    dessinerBarreDeSkills(fenetre, contexte.police, etatsDesSkills, toucheEnVisee);
+    dessinerBarreDeSkills(fenetre, contexte.police, icones);
     dessinerCompteurDeMonstres(fenetre, contexte.police, m_partie.monstresRestants());
     if (m_partie.estPerdue()) {
         dessinerEcranDeFin(fenetre, contexte.police, "Défaite");

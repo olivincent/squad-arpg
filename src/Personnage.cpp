@@ -168,6 +168,14 @@ std::optional<TypeSkill> Personnage::typeSkill(IdSkill id) const {
     return skill->getType();
 }
 
+std::vector<IdSkill> Personnage::idsDesSkills() const {
+    std::vector<IdSkill> ids;
+    for (const SkillConnu& connu : m_skills) {
+        ids.push_back(connu.id);
+    }
+    return ids;
+}
+
 bool Personnage::skillEstPret(IdSkill id) const {
     const Skill* skill = trouverSkill(id);
     return estVivant() && skill != nullptr && skill->getPhase() == PhaseSkill::Pret;
@@ -269,4 +277,8 @@ Cercle Personnage::getCercle() const {
 
 float Personnage::getRayonVision() const {
     return m_rayonVision;
+}
+
+sf::Color Personnage::getCouleur() const {
+    return m_couleur;
 }

@@ -35,6 +35,7 @@ add_library(squad_core STATIC
     src/TraceDeChemin.cpp
     src/Autodefense.cpp
     src/Encerclement.cpp
+    src/BarreDeRaccourcis.cpp
     src/BarreDeSkills.cpp
     src/EcranDeFin.cpp
     src/EntiteVue.cpp
@@ -91,6 +92,7 @@ add_executable(tests
     tests/test_Cercle.cpp
     tests/test_Autodefense.cpp
     tests/test_Encerclement.cpp
+    tests/test_BarreDeRaccourcis.cpp
     tests/test_BarreDeSkills.cpp
     tests/test_EntiteVue.cpp
     tests/test_BarreDeVie.cpp

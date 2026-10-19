@@ -1,6 +1,7 @@
 // ./src/Escouade.hpp
 #pragma once
 #include <SFML/System/Angle.hpp>
+#include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Rect.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
@@ -46,6 +47,11 @@ public:
     [[nodiscard]] std::optional<EtatSkill> etatDuSkill(AdresseSkill adresse) const;
     // Type du skill à cette adresse ; vide si la place est invalide ou le skill inconnu de ce personnage.
     [[nodiscard]] std::optional<TypeSkill> typeDuSkill(AdresseSkill adresse) const;
+    // Les adresses de tous les skills de l'escouade : par place croissante, puis dans l'ordre de la
+    // liste de chaque personnage.
+    [[nodiscard]] std::vector<AdresseSkill> adressesDesSkills() const;
+    // Couleur du personnage de cette place ; vide si la place est invalide.
+    [[nodiscard]] std::optional<sf::Color> couleurDuPersonnage(std::size_t place) const;
     [[nodiscard]] float rayonZoneDuSkill(AdresseSkill adresse) const;
     [[nodiscard]] Cercle cercleDePorteeDuSkill(AdresseSkill adresse) const;
     [[nodiscard]] std::vector<Coup> declencherSkillDeZone(AdresseSkill adresse, sf::Vector2f point, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);

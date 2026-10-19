@@ -6,6 +6,7 @@
 #include <optional>
 #include "AdresseSkill.hpp"
 
+class BarreDeRaccourcis;
 class Partie;
 
 // L'état d'interface : le mode visée d'un skill de zone et le déplacement
@@ -23,13 +24,11 @@ public:
     void appuiGauche(Partie& partie, sf::Vector2f point);
     // Clic droit : annule la visée.
     void appuiDroit();
-    // Touche provisoire de 1 à s_nombreDeTouches : le skill à son adresse (voir
-    // adresseDeLaTouche). Un skill de type Zone entre en visée (skill prêt) ou en
-    // sort ; tout autre type est demandé à la partie. Toute autre touche est ignorée.
-    void appuiTouche(Partie& partie, std::size_t indiceTouche);
-    static constexpr std::size_t s_nombreDeTouches = 4;
-    // Adresse du skill de la touche `indiceTouche` (de 1 à s_nombreDeTouches) ; vide sinon.
-    static std::optional<AdresseSkill> adresseDeLaTouche(std::size_t indiceTouche);
+    // Active l'emplacement `emplacement` de la barre (touche ou clic : même action). Vide : rien.
+    // Skill de type Zone : entre en visée de cette adresse (escouade vivante, skill prêt ; remplace
+    // la visée d'un autre skill de zone) ou en sort si cette adresse est déjà en visée. Autre type :
+    // demandé à la partie, la visée en cours continue. `assert(emplacement < barre.taille())`.
+    void activerEmplacement(Partie& partie, const BarreDeRaccourcis& barre, std::size_t emplacement);
     void appuiEchap();
     // `boutonTenu` : bouton gauche enfoncé ET fenêtre avec le focus.
     void mettreAJourDeplacement(Partie& partie, bool boutonTenu, sf::Vector2f curseur);

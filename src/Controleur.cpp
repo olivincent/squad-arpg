@@ -2,27 +2,10 @@
 #include "Controleur.hpp"
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/Color.hpp>
-#include <array>
+#include "BarreDeRaccourcis.hpp"
 #include "Cercle.hpp"
 #include "Partie.hpp"
 #include "TypeSkill.hpp"
-
-namespace {
-// Touches provisoires 1 à 4 (remplacées par la barre de raccourcis) : une adresse par touche, dans l'ordre.
-constexpr std::array<AdresseSkill, Controleur::s_nombreDeTouches> s_touches = {{
-    {1, IdSkill::FrappePuissante},
-    {1, IdSkill::Provocation},
-    {2, IdSkill::Soin},
-    {3, IdSkill::Explosion},
-}};
-}  // namespace
-
-std::optional<AdresseSkill> Controleur::adresseDeLaTouche(std::size_t indiceTouche) {
-    if (indiceTouche < 1 || indiceTouche > s_touches.size()) {
-        return std::nullopt;
-    }
-    return s_touches[indiceTouche - 1];
-}
 
 void Controleur::debutImage(const Partie& partie) {
     // Lanceur mort ou escouade vaincue : on sort de la visée.
@@ -51,14 +34,14 @@ void Controleur::appuiDroit() {
     m_adresseEnVisee.reset();
 }
 
-void Controleur::appuiTouche(Partie& partie, std::size_t indiceTouche) {
-    const std::optional<AdresseSkill> adresse = adresseDeLaTouche(indiceTouche);
+void Controleur::activerEmplacement(Partie& partie, const BarreDeRaccourcis& barre, std::size_t emplacement) {
+    const std::optional<AdresseSkill> adresse = barre.adresse(emplacement);
     if (!adresse.has_value()) {
         return;
     }
-    // La visée dépend du type du skill, pas du numéro de la touche.
+    // La visée dépend du type du skill, pas de l'emplacement.
     if (partie.getEscouade().typeDuSkill(*adresse) == TypeSkill::Zone) {
-        if (m_adresseEnVisee.has_value()) {
+        if (m_adresseEnVisee == adresse) {
             m_adresseEnVisee.reset();
         } else if (partie.getEscouade().estVivante() && partie.getEscouade().skillEstPret(*adresse)) {
             m_adresseEnVisee = adresse;

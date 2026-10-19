@@ -50,6 +50,8 @@ public:
     // Les questions sur un skill se posent par identifiant. Un identifiant que ce
     // personnage ne connaît pas se comporte comme « pas de skill » : vide, faux ou rayon 0.
     std::optional<TypeSkill> typeSkill(IdSkill id) const;
+    // Identifiants des skills qu'il connaît, dans l'ordre de sa liste.
+    [[nodiscard]] std::vector<IdSkill> idsDesSkills() const;
     bool skillEstPret(IdSkill id) const;
     std::optional<EtatSkill> etatDuSkill(IdSkill id) const;
     [[nodiscard]] bool skillEstAPortee(IdSkill id, Cercle cible) const;
@@ -75,6 +77,7 @@ public:
     Cercle getCercle() const;
     // Rayon de vision, en pixels.
     [[nodiscard]] float getRayonVision() const;
+    [[nodiscard]] sf::Color getCouleur() const;
 
 private:
     Mobile m_mobile;        // position (centre en pixels du monde) et déplacement

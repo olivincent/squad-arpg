@@ -401,6 +401,23 @@ std::optional<TypeSkill> Escouade::typeDuSkill(AdresseSkill adresse) const {
     return personnageDeLaPlace(adresse.place).typeSkill(adresse.id);
 }
 
+std::vector<AdresseSkill> Escouade::adressesDesSkills() const {
+    std::vector<AdresseSkill> adresses;
+    for (std::size_t place = 1; place <= m_personnages.size(); ++place) {
+        for (const IdSkill id : personnageDeLaPlace(place).idsDesSkills()) {
+            adresses.push_back({place, id});
+        }
+    }
+    return adresses;
+}
+
+std::optional<sf::Color> Escouade::couleurDuPersonnage(std::size_t place) const {
+    if (!placeValide(place)) {
+        return std::nullopt;
+    }
+    return personnageDeLaPlace(place).getCouleur();
+}
+
 float Escouade::rayonZoneDuSkill(AdresseSkill adresse) const {
     if (!placeValide(adresse.place)) {
         return 0.0f;

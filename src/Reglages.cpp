@@ -61,6 +61,14 @@ std::vector<Resolution> resolutionsDisponibles(sf::Vector2u tailleBureau) {
     return disponibles;
 }
 
+std::optional<std::size_t> emplacementPourTouche(const TouchesDesRaccourcis& touches, sf::Keyboard::Scancode scancode) {
+    const auto trouvee = std::find(touches.begin(), touches.end(), scancode);
+    if (trouvee == touches.end()) {
+        return std::nullopt;
+    }
+    return static_cast<std::size_t>(trouvee - touches.begin());
+}
+
 Reglages lireReglages(std::istream& flux) {
     const Reglages parDefaut;
     Reglages reglages;
