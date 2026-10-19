@@ -2,6 +2,10 @@
 #include "base/Cercle.hpp"
 #include <algorithm>
 
+Cercle cercleDuRectangle(sf::Vector2f coin, sf::Vector2f taille) {
+    return Cercle{coin + taille / 2.0f, taille.x / 2.0f};
+}
+
 float distanceBordABord(Cercle a, Cercle b) {
     const float distanceCentres = (b.centre - a.centre).length();
     const float ecart = distanceCentres - a.rayon - b.rayon;

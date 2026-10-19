@@ -15,7 +15,10 @@ fichier), T1, T2, T3, C1, C4, D6, K2 a à f, V1 partie 1 et L1 (voir `ROADMAP.md
 échouer (lanceur déjà occupé par un autre de ses skills) : nouvelle règle, le skill attend (voir
 `docs/combat.md`, « Skill demandé pendant l'activation d'un autre »). Le plan des étapes suivantes
 (81 : dossiers, P1, K1, K3 ; 82 : alléger `Escouade` ; les autres constats rattachés aux
-fonctionnalités qui en ont besoin) et les décisions reportées sont dans `ROADMAP.md`.
+fonctionnalités qui en ont besoin) et les décisions reportées sont dans `ROADMAP.md`. La partie
+82.1 de l'étape 82 a traité D1 (`Vitalite`, `cercleDuRectangle` et `Mobile::getCercle`,
+`s_eclaircissementExecution` dans `Eclaircir.hpp` ; le trio d'attaque, qui relève de R4, et
+`s_pointsDeVieMax`, deux valeurs d'équilibrage indépendantes, n'ont pas été touchés).
 
 Référentiels : C++ Core Guidelines, SOLID (surtout responsabilité unique et inversion des
 dépendances), cohésion et couplage, DRY, règle du zéro, sémantique de valeur, *Game Programming
@@ -1258,3 +1261,9 @@ dossiers : le décompte et la répartition par règle sont ceux de la fin de l'�
 corrigé. Le filtre `HeaderFilterRegex` de `.clang-tidy` (`.*[/\\]src[/\\].*`) couvre déjà les
 sous-dossiers : il n'a pas changé, et les en-têtes rangés sont toujours analysés (`src/monstres/Monstre.hpp`, 5).
 Commande : `clang-tidy -p build/jeu src/escouade/Escouade.cpp`.
+
+### Après la partie 82.1
+
+**59 avertissements**, même mesure (45 sources : `combat/Vitalite.cpp` en plus). Décompte et
+répartition par règle inchangés ; aucun avertissement dans `Vitalite`, `cercleDuRectangle` ni
+`Mobile::getCercle`. `Personnage.cpp` en garde 5, `Monstre.hpp` 5.

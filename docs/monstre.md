@@ -21,7 +21,8 @@ déplacement par chemin dans `docs/chemin.md`.
   l'étape 69 — plus lent que l'ancre à 180 px/s et que les personnages à
   240 px/s, pour que la fuite reste possible : l'écart se creuse lentement) :
   une seule copie de ces données. `getCentre`, `contient`,
-  `dessiner` et `getCercle` les lisent via `m_mobile`.
+  `dessiner` et `getCercle` les lisent via `m_mobile` (`getCercle` est une façade de
+  `Mobile::getCercle` depuis l'étape 82.1).
 - **Possédé par `main.cpp`**, pas par `Escouade` : un
   `std::vector<Monstre>` (les monstres du `Niveau`, répartis sur la carte), sans
   classe dédiée (`Horde`, `Monstres`…) pour le porter. Un monstre mort
@@ -41,14 +42,21 @@ déplacement par chemin dans `docs/chemin.md`.
 - **Armure** (étape 55) : le constructeur prend aussi l'armure (`int`, 20
   pour tous les monstres, `s_armureMonstresParDefaut` donnée par
   `Niveau::armureMonstres` via `Partie`).
-  `recevoirDegats` retire `appliquerArmure(quantite, m_armure)`. Voir
+  `recevoirDegats` retire `appliquerArmure(quantite, armure)`. Voir
   `docs/combat.md`.
+- **`Vitalite`** (étape 82.1) : les points de vie et l'armure sont dans `m_vitalite`, le même type
+  que dans `Personnage`. `recevoirDegats`, `estVivant` et `getPointsDeVie` lui délèguent. Les règles
+  propres au monstre restent dans `Monstre` : l'invulnérabilité en `Retour` et l'alerte (dans
+  `recevoirDegats`, avant et après la délégation), la régénération (`mettreAJour`, par
+  `Vitalite::soigner`). `s_pointsDeVieMax` (100) reste une constante de `Monstre.cpp`, distincte de
+  celle de `Personnage.cpp` : deux valeurs d'équilibrage égales par hasard (celle des monstres ira
+  dans `ParametresMonstre` avec E1).
 - **`recevoirDegats` ne descend jamais sous zéro** : un coup qui dépasse
   le reste ne laisse pas un nombre négatif stocké.
 - **Pas d'accesseur pour les points de vie** : les tests passent par
   `estVivant()` et la barre de vie est dessinée par la classe elle-même.
 - **Barre de vie** : dessinée par `dessinerBarreDeVie` (module
-  `BarreDeVie`, partagé avec `Personnage` depuis l'étape 49, qui reçoit `getRatio()` du `PointsDeVie` du monstre depuis l'étape 53) : fond sombre
+  `BarreDeVie`, partagé avec `Personnage` depuis l'étape 49, qui reçoit `getRatio()` de la `Vitalite` du monstre) : fond sombre
   de la largeur du monstre, quelques pixels au-dessus de lui, recouvert
   d'un rectangle vert proportionnel aux points de vie restants.
 - **Couleur** : toujours rouge, donc une valeur fixe dans `dessiner`, pas
@@ -157,11 +165,11 @@ déplacement par chemin dans `docs/chemin.md`.
   alerte). Un monstre qui abandonne n'est donc plus une cible rentable, même pour
   un coup déjà parti.
 - **Régénération** : 50 % des points de vie maximum par seconde
-  (`s_regenerationRetour`, une fraction par seconde). `PointsDeVie::soigner` prend
+  (`s_regenerationRetour`, une fraction par seconde). `Vitalite::soigner` prend
   un `int` et un `int` à 0,83 point par image à 60 images par seconde serait tronqué
   à 0 : `m_soinAccumule` (un `float`) cumule maximum × fraction × `dt`, seule la
   partie entière est soignée et le reste est conservé. Il est remis à 0 hors
-  retour et à pleine vie ; le plafond est celui de `PointsDeVie`. Un retour de
+  retour et à pleine vie ; le plafond est celui de `PointsDeVie` (dans `Vitalite`). Un retour de
   plusieurs secondes (600 px à 160 px/s : 3,75 s) ramène toujours le monstre
   plein ; un retour très court (tout juste sorti de son territoire) ne soigne
   presque rien.
@@ -397,7 +405,7 @@ jusqu'à son arrivée, il est invulnérable, il n'est plus une cible et il regag
 `EntiteVue`) et ses obstacles en paramètres. La proie est celle qu'il poursuit ;
 la cible de frappe est celle qui est à portée ET en vue.
 
-Données membres : `m_mobile`, `m_pointsDeVie` (`PointsDeVie`), `m_armure` (`int`), `m_id`,
+Données membres : `m_mobile`, `m_vitalite` (`Vitalite` : points de vie et armure), `m_id`,
 `m_attaque`, `m_rayonDetection`, `m_rayonTerritoire`, `m_etat` (`Etat`,
 `enum class` privé : `EnGarde`, `Poursuite`, `Retour`), `m_poste`,
 `m_groupe` (`int`, opaque), `m_alerte` (`bool`, posé par `alerter`,
@@ -421,9 +429,9 @@ consommé par `mettreAJour`), `m_soinAccumule` (`float`, points de vie rendus pa
 | `int avancerAttaque(float dt, Generateur& generateur)` | Fait avancer l'exécution ; rend les dégâts au départ du coup, 0 sinon ; `[[nodiscard]]` |
 | `void annulerAttaque()` | Annule le coup en exécution, sans recharge consommée (appelée par `Partie` quand la proie engagée meurt) |
 | `sf::Vector2f getCentre() const` | Centre du monstre |
-| `Cercle getCercle() const` | Cercle centré sur le monstre, de rayon 15 |
+| `Cercle getCercle() const` | Cercle centré sur le monstre, de rayon 15 (façade de `Mobile::getCercle`) |
 | `int getId() const` | Identifiant du monstre |
 | `bool contient(sf::Vector2f point) const` | Le point (pixels du monde) est-il dans le carré du monstre ? |
-| `int recevoirDegats(int quantite)` | Sans aucun effet en `Retour` (invulnérable, pas d'alerte) ni sur un monstre mort : renvoie 0. Sinon retire `appliquerArmure(quantite, m_armure)` points de vie, sans descendre sous zéro (`PointsDeVie::subirDegats`) ; si `quantite > 0`, mémorise que le monstre vient d'être touché ; renvoie les dégâts après armure |
+| `int recevoirDegats(int quantite)` | Sans aucun effet en `Retour` (invulnérable, pas d'alerte) ni sur un monstre mort : renvoie 0. Sinon délègue à `Vitalite::recevoirDegats` (dégâts après armure, sans descendre sous zéro) ; si `quantite > 0`, mémorise que le monstre vient d'être touché ; renvoie les dégâts après armure |
 | `bool estVivant() const` | Points de vie `> 0` |
 | `int getPointsDeVie() const` | Points de vie actuels |

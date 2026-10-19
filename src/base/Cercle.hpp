@@ -8,6 +8,11 @@ struct Cercle {
     float rayon;
 };
 
+// Cercle de collision d'une entité rectangulaire de coin haut-gauche `coin` : centré sur le
+// rectangle, de rayon la demi-largeur (les entités sont des carrés). Le seul endroit où cette
+// règle est écrite : Mobile::getCercle et le glissement de Deplacement l'appellent.
+[[nodiscard]] Cercle cercleDuRectangle(sf::Vector2f coin, sf::Vector2f taille);
+
 [[nodiscard]] float distanceBordABord(Cercle a, Cercle b);
 
 // Distance du point `p` au segment [a, b] (au point le plus proche du segment, extrémités comprises).

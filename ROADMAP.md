@@ -59,6 +59,21 @@ fonctionnalités prévues sont donc décalées après l'étape 82.
   verrou pour ne pas le lire à tort). Décision sur R5 (identifiants et places) à la fin de
   l'étape. Les extractions (`Formation`, `PlacesDAttaque`, choix du point visé) naissent dans
   `escouade/`.
+  Découpage en cinq parties, chacune avec son prompt, tests verts à la fin de chacune, interface
+  publique d'`Escouade` inchangée jusqu'à 82.5 :
+  - **82.1** (faite) : D1, `Vitalite` (points de vie et armure, possédée par `Personnage` et
+    `Monstre`) et cercle commun (`cercleDuRectangle`, `Mobile::getCercle`) ;
+  - **82.2** : `Formation`, et la séparation douce en fonction pure à part (`escouade/Separation`),
+    qui reçoit les centres et les drapeaux « poussable » et renvoie une poussée par personnage ;
+    `Formation` ne connaît pas `Personnage` ;
+  - **82.3** : `PlacesDAttaque` ;
+  - **82.4** : choix du point visé par intentions, avec R2. Il renvoie une intention
+    (`std::variant` : rester sur place, aller au point, approcher un monstre avec une portée),
+    calculée par une fonction pure à partir d'une situation ; `Escouade` la traduit en point (place
+    d'attaque par `PlacesDAttaque`) ; `monstresAContourner` se déduit de l'intention ; `Escouade` dit
+    à `PlacesDAttaque` quel monstre chaque personnage approche, les autres places sont oubliées ; le
+    dégagement reçoit un drapeau « dégagement possible » calculé avant ;
+  - **82.5** : D3, bilan, décision sur R5.
 - **Refactorisations rattachées à une fonctionnalité**, en première sous-étape de celle-ci :
   - R4 (skills : le type décide partout) et C2 (constructeurs à longues listes) avant les buffs, les
     soins dans le temps ou le mana. Le mode de cible « Soi » de R4 doit lever une limite de l'étape 80 :

@@ -112,7 +112,8 @@ mène à un chevauchement avec un cercle obstacle (`deplacementBloque`).
 - **Murs en rectangle, entités en cercle** : les murs restent testés
   avec le rectangle de l'entité ; le cercle (centre du rectangle, rayon
   = demi-largeur) ne sert qu'aux obstacles, par cohérence avec
-  `getCercle()`.
+  `getCercle()` : depuis l'étape 82.1, les deux appellent la même fonction,
+  `cercleDuRectangle` (`base/Cercle`).
 - **Une liste de cercles, pas de types** : celui qui bouge reçoit ses
   obstacles en paramètre ; `Deplacement` ne sait pas d'où ils viennent
   (monstres ou personnages). Aucune dépendance entre modules. Qui reçoit

@@ -31,6 +31,10 @@ sf::Vector2f Mobile::getTaille() const {
     return m_taille;
 }
 
+Cercle Mobile::getCercle() const {
+    return cercleDuRectangle(m_position, m_taille);
+}
+
 void Mobile::allerVers(sf::Vector2f destination, const TileMap& carte, const std::vector<Cercle>& aContourner) {
     // Même si aucun chemin n'existe : le propriétaire ne doit pas relancer le A* à chaque image.
     m_tempsBloque = 0.0f;

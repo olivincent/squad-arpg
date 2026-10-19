@@ -6,9 +6,9 @@
 #include "combat/EtatSkill.hpp"
 #include "combat/IdSkill.hpp"
 #include "monde/Mobile.hpp"
-#include "combat/PointsDeVie.hpp"
 #include "combat/Skill.hpp"
 #include "combat/SkillConnu.hpp"
+#include "combat/Vitalite.hpp"
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/System/Vector2.hpp>
@@ -96,8 +96,7 @@ private:
     Skill m_attaqueDeBase;
     std::vector<SkillConnu> m_skills; // sans doublon d'identifiant
     std::optional<sf::Vector2f> m_cibleChemin; // cible du dernier A* ; vide = pas de chemin en cours
-    PointsDeVie m_pointsDeVie;
-    int m_armure;
+    Vitalite m_vitalite;    // points de vie et armure
     float m_rayonVision;    // en pixels
     float m_zoneDeControle; // en pixels, bord à bord
     [[nodiscard]] const Skill* trouverSkill(IdSkill id) const;  // nullptr si le personnage ne connaît pas ce skill

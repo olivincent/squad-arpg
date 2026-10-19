@@ -166,11 +166,12 @@ L'attaque, la portée, le skill et les obstacles sont dans
 - **`Personnage.hpp` ne contient que `class TileMap;`** : la carte est
   seulement transmise au `Mobile` et à `trajetLibre`, jamais gardée en
   membre.
-- **Points de vie et barre de vie** : 100 points, portés par un
-  `PointsDeVie` (étape 53, partagé par valeur avec `Monstre`, sans
-  héritage). `recevoirDegats`, `recevoirSoin` et `estVivant()` sont des
-  façades qui lui délèguent : `Escouade` et les tests n'ont pas changé, et
-  l'objet n'est pas exposé (loi de Déméter). Barre dessinée par la
+- **Points de vie et barre de vie** : 100 points, portés avec l'armure par une
+  `Vitalite` (étape 82.1, qui contient le `PointsDeVie` de l'étape 53 ; possédée par valeur,
+  comme dans `Monstre`, sans héritage). `recevoirDegats`, `recevoirSoin`, `estVivant()`,
+  `getPointsDeVie` et `getPointsDeVieMax` sont des façades d'une ligne qui lui délèguent :
+  `Escouade` et les tests n'ont pas changé, et l'objet n'est pas exposé (loi de Déméter). La
+  duplication supprimée avec `Monstre` est la logique (armure puis points de vie), pas l'interface. Barre dessinée par la
   fonction commune `dessinerBarreDeVie` (module `BarreDeVie`), à qui
   `Personnage` passe `getRatio()`.
 - **Il délègue son attaque à `m_attaqueDeBase`** et ses skills (un
@@ -184,7 +185,8 @@ L'attaque, la portée, le skill et les obstacles sont dans
   fait rien sur un mort ; `getPointsDeVie` et `getPointsDeVieMax`
   permettent à `Escouade` de choisir le plus blessé.
 - **Cercle** : `getCercle()` renvoie un cercle centré sur le personnage,
-  de rayon la moitié du côté (10 px), calculé à la demande.
+  de rayon la moitié du côté (10 px), calculé à la demande ; façade de `Mobile::getCercle`
+  (étape 82.1), la même formule que `Monstre` et `Deplacement` (`cercleDuRectangle`).
 
 ## Choix du personnage le plus proche
 
@@ -774,7 +776,7 @@ formation, ni `Escouade`, ni `Monstre`.
 Données membres : `m_mobile` (`Mobile`, porte la position et la vitesse),
 `m_couleur`, `m_attaqueDeBase` (`Skill`), `m_skills`
 (`std::vector<SkillConnu>`, sans doublon d'identifiant), `m_cibleChemin` (`std::optional<sf::Vector2f>`,
-cible du dernier A*), `m_pointsDeVie` (`PointsDeVie`), `m_armure` (`int`), `m_rayonVision` (`float`, pixels), `m_zoneDeControle` (`float`, pixels, bord à bord), `m_actionEngagee` (`std::optional<ActionEngagee>`, l'action en exécution — attaque de base ou skill, avec son `IdSkill` — et sa cible ; une seule à la fois ; lue seulement pendant l'exécution).
+cible du dernier A*), `m_vitalite` (`Vitalite` : points de vie et armure), `m_rayonVision` (`float`, pixels), `m_zoneDeControle` (`float`, pixels, bord à bord), `m_actionEngagee` (`std::optional<ActionEngagee>`, l'action en exécution — attaque de base ou skill, avec son `IdSkill` — et sa cible ; une seule à la fois ; lue seulement pendant l'exécution).
 
 | Fonction | Rôle |
 |---|---|
@@ -805,12 +807,12 @@ cible du dernier A*), `m_pointsDeVie` (`PointsDeVie`), `m_armure` (`int`), `m_ra
 | `std::optional<ActionEngagee> skillEngage() const` | L'action `Skill` en activation, avec son `IdSkill` et sa cible ; vide sinon |
 | `int avancerSkill(float dt, Generateur& generateur)` | Fait avancer l'activation ; rend la puissance du skill au départ de l'effet (et relance au complet la recharge de `m_attaqueDeBase`), 0 sinon ; `[[nodiscard]]` |
 | `void annulerSkill()` | Annule l'activation, sans recharge consommée |
-| `int recevoirSoin(int quantite)` | Rend des points de vie, sans dépasser le maximum ; sans effet sur un mort (délègue à `PointsDeVie::soigner`) ; renvoie les points réellement rendus |
+| `int recevoirSoin(int quantite)` | Rend des points de vie, sans dépasser le maximum ; sans effet sur un mort (délègue à `Vitalite::soigner`) ; renvoie les points réellement rendus |
 | `int getPointsDeVie() const` / `int getPointsDeVieMax() const` | Points de vie actuels et maximum |
-| `int recevoirDegats(int quantite)` | Retire `appliquerArmure(quantite, m_armure)` points de vie, sans descendre sous zéro (délègue à `PointsDeVie::subirDegats`) ; renvoie ces dégâts après armure (non plafonnés par les points de vie restants), 0 pour un mort |
+| `int recevoirDegats(int quantite)` | Délègue à `Vitalite::recevoirDegats` : retire les dégâts après armure, sans descendre sous zéro ; renvoie ces dégâts après armure (non plafonnés par les points de vie restants), 0 pour un mort |
 | `bool estVivant() const` | Points de vie `> 0` |
 | `sf::Vector2f getCentre() const` | Centre du personnage |
-| `Cercle getCercle() const` | Cercle centré sur le personnage, de rayon 10 |
+| `Cercle getCercle() const` | Cercle centré sur le personnage, de rayon 10 (façade de `Mobile::getCercle`) |
 
 ### `Composition` (`escouade/`) — de quoi est faite l'escouade
 

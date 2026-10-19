@@ -22,6 +22,8 @@ public:
     void decaler(sf::Vector2f decalage, const TileMap& carte, const std::vector<Cercle>& obstacles);
     [[nodiscard]] sf::Vector2f getCentre() const;
     [[nodiscard]] sf::Vector2f getTaille() const;
+    // Cercle de collision, voir cercleDuRectangle.
+    [[nodiscard]] Cercle getCercle() const;
     [[nodiscard]] std::optional<sf::Vector2f> directionVoulue() const;
     // Vrai si, au dernier tic, le mobile avait un point à atteindre à plus de
     // quelques centièmes de pixel, qu'il ait pu avancer ou non : un mobile

@@ -1,7 +1,6 @@
 // ./src/escouade/Personnage.cpp
 #include "escouade/Personnage.hpp"
 #include "rendu/BarreDeVie.hpp"
-#include "combat/Defense.hpp"
 #include "monde/Chemin.hpp"
 #include "base/Eclaircir.hpp"
 #include "monde/TileMap.hpp"
@@ -17,7 +16,6 @@ constexpr float s_seuilRecalcul = 40.0f;  // une case, en pixels
 constexpr float s_cote = 20.0f;           // côté du carré, en pixels
 constexpr float s_vitesse = 240.0f;       // en pixels par seconde
 constexpr int s_pointsDeVieMax = 100;
-constexpr float s_eclaircissementExecution = 0.5f;  // part de blanc pendant l'exécution d'un coup
 const sf::Color s_couleurContour(40, 40, 40);       // contour de 1 px vers l'intérieur, pour distinguer deux personnages collés
 constexpr float s_epaisseurContour = -1.0f;         // négative : vers l'intérieur
 }  // namespace
@@ -29,8 +27,7 @@ Personnage::Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBa
       m_attaqueDeBase(attaqueDeBase),
       m_skills(std::move(skills)),
       m_cibleChemin(),
-      m_pointsDeVie(s_pointsDeVieMax),
-      m_armure(armure),
+      m_vitalite(s_pointsDeVieMax, armure),
       m_rayonVision(rayonVision),
       m_zoneDeControle(zoneDeControle),
       m_actionEngagee()
@@ -58,7 +55,7 @@ void Personnage::dessiner(sf::RenderTarget& rendu) const {
     }
 
     const sf::Vector2f positionBarre = positionBarreDeVie(getCentre(), taille);
-    dessinerBarreDeVie(rendu, positionBarre, taille.x, m_pointsDeVie.getRatio());
+    dessinerBarreDeVie(rendu, positionBarre, taille.x, m_vitalite.getRatio());
 }
 
 void Personnage::mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte, const std::vector<Cercle>& obstacles,
@@ -270,28 +267,23 @@ void Personnage::annulerSkill() {
 }
 
 int Personnage::recevoirDegats(int quantite) {
-    if (!estVivant()) {
-        return 0;
-    }
-    const int degats = appliquerArmure(quantite, m_armure);
-    m_pointsDeVie.subirDegats(degats);
-    return degats;
+    return m_vitalite.recevoirDegats(quantite);
 }
 
 int Personnage::recevoirSoin(int quantite) {
-    return m_pointsDeVie.soigner(quantite);
+    return m_vitalite.soigner(quantite);
 }
 
 bool Personnage::estVivant() const {
-    return m_pointsDeVie.estVivant();
+    return m_vitalite.estVivant();
 }
 
 int Personnage::getPointsDeVie() const {
-    return m_pointsDeVie.getValeur();
+    return m_vitalite.getValeur();
 }
 
 int Personnage::getPointsDeVieMax() const {
-    return m_pointsDeVie.getMaximum();
+    return m_vitalite.getMaximum();
 }
 
 sf::Vector2f Personnage::getCentre() const {
@@ -299,7 +291,7 @@ sf::Vector2f Personnage::getCentre() const {
 }
 
 Cercle Personnage::getCercle() const {
-    return {getCentre(), m_mobile.getTaille().x / 2.0f};
+    return m_mobile.getCercle();
 }
 
 float Personnage::getRayonVision() const {

@@ -44,6 +44,15 @@ TEST_CASE("Mobile.mettreAJour sans ordre ne bouge pas") {
     verifierPointProche(mobile.getCentre(), {60.0f, 60.0f});
 }
 
+TEST_CASE("Mobile.getCercle est centre sur le mobile, de rayon la moitie du cote") {
+    const Mobile mobile({60.0f, 60.0f}, {20.0f, 20.0f}, 180.0f);
+
+    const Cercle cercle = mobile.getCercle();
+
+    REQUIRE(cercle.centre == sf::Vector2f(60.0f, 60.0f));
+    REQUIRE(cercle.rayon == 10.0f);
+}
+
 TEST_CASE("Mobile.mettreAJour avance de vitesse * dt sur un seul tic") {
     const TileMap carte = carteDegagee10x10();
     Mobile mobile({60.0f, 60.0f}, {20.0f, 20.0f}, 180.0f);

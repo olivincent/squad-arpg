@@ -5,7 +5,7 @@
 #include "base/Cercle.hpp"
 #include "combat/EntiteVue.hpp"
 #include "monde/Mobile.hpp"
-#include "combat/PointsDeVie.hpp"
+#include "combat/Vitalite.hpp"
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <optional>
@@ -83,8 +83,7 @@ private:
                                            const std::vector<EntiteVue>& candidats, const TileMap& carte) const;
 
     Mobile m_mobile;
-    PointsDeVie m_pointsDeVie;
-    int m_armure;
+    Vitalite m_vitalite; // points de vie et armure
     int m_id;
     int m_groupe;
     Skill m_attaque;

@@ -3,7 +3,6 @@
 #include "combat/Autodefense.hpp"
 #include "rendu/BarreDeVie.hpp"
 #include "monde/ChampDeVision.hpp"
-#include "combat/Defense.hpp"
 #include "base/Eclaircir.hpp"
 #include "monde/TileMap.hpp"
 #include "rendu/TraceDeChemin.hpp"
@@ -17,7 +16,6 @@ namespace {
 constexpr float s_cote = 30.0f;      // côté du carré, en pixels
 constexpr float s_vitesse = 160.0f;  // en pixels par seconde
 constexpr int s_pointsDeVieMax = 100;
-constexpr float s_eclaircissementExecution = 0.5f;  // part de blanc pendant l'exécution d'un coup
 constexpr float s_executionAttaque = 0.3f;  // en secondes, immobile avant que le coup parte
 constexpr std::uint8_t s_opaciteRetour = 128;  // sur 255 : environ 50 %, pour marquer le retour (débogage F3)
 constexpr float s_regenerationRetour = 0.5f;  // fraction des points de vie maximum rendue par seconde en retour
@@ -25,8 +23,7 @@ constexpr float s_regenerationRetour = 0.5f;  // fraction des points de vie maxi
 
 Monstre::Monstre(sf::Vector2f centre, int id, int armure, int groupe)
     : m_mobile(centre, {s_cote, s_cote}, s_vitesse),
-      m_pointsDeVie(s_pointsDeVieMax),
-      m_armure(armure),
+      m_vitalite(s_pointsDeVieMax, armure),
       m_id(id),
       m_groupe(groupe),
       m_attaque(TypeSkill::Degats, 15.0f, 10, 0.7f, 1.3f, 0.0f, s_executionAttaque),  // portée de 15 px, bord à bord
@@ -57,7 +54,7 @@ void Monstre::dessiner(sf::RenderTarget& rendu, bool estCible, bool marquerLeRet
     }
     rendu.draw(forme);
 
-    dessinerBarreDeVie(rendu, positionBarreDeVie(centre, taille), taille.x, m_pointsDeVie.getRatio());
+    dessinerBarreDeVie(rendu, positionBarreDeVie(centre, taille), taille.x, m_vitalite.getRatio());
 }
 
 void Monstre::dessinerChemin(sf::RenderTarget& rendu) const {
@@ -69,7 +66,7 @@ sf::Vector2f Monstre::getCentre() const {
 }
 
 Cercle Monstre::getCercle() const {
-    return {m_mobile.getCentre(), m_mobile.getTaille().x / 2.0f};
+    return m_mobile.getCercle();
 }
 
 int Monstre::getId() const {
@@ -90,8 +87,7 @@ int Monstre::recevoirDegats(int quantite) {
     if (m_etat == Etat::Retour || !estVivant()) {
         return 0;
     }
-    const int degats = appliquerArmure(quantite, m_armure);
-    m_pointsDeVie.subirDegats(degats);
+    const int degats = m_vitalite.recevoirDegats(quantite);
     if (quantite > 0) {
         alerter();
     }
@@ -114,11 +110,11 @@ bool Monstre::estCiblable() const {
 }
 
 bool Monstre::estVivant() const {
-    return m_pointsDeVie.estVivant();
+    return m_vitalite.estVivant();
 }
 
 int Monstre::getPointsDeVie() const {
-    return m_pointsDeVie.getValeur();
+    return m_vitalite.getValeur();
 }
 
 float Monstre::getZoneDeControle() const {
@@ -209,11 +205,11 @@ void Monstre::mettreAJour(float dt, std::optional<EntiteVue> proie, const std::v
 
     if (m_etat == Etat::Retour) {
         // Seule la partie entière est soignée : un entier à 0,83 point par image serait tronqué à 0.
-        m_soinAccumule += static_cast<float>(m_pointsDeVie.getMaximum()) * s_regenerationRetour * dt;
+        m_soinAccumule += static_cast<float>(m_vitalite.getMaximum()) * s_regenerationRetour * dt;
         const int entier = static_cast<int>(m_soinAccumule);
-        m_pointsDeVie.soigner(entier);
+        m_vitalite.soigner(entier);
         m_soinAccumule -= static_cast<float>(entier);
-        if (m_pointsDeVie.getValeur() == m_pointsDeVie.getMaximum()) {
+        if (m_vitalite.getValeur() == m_vitalite.getMaximum()) {
             m_soinAccumule = 0.0f;
         }
     } else {

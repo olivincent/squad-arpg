@@ -318,6 +318,7 @@ Données membres : `m_position` (coin haut-gauche), `m_taille`, `m_chemin`
 | `void decaler(sf::Vector2f decalage, const TileMap& carte, const std::vector<Cercle>& obstacles)` | Pousse le mobile (mêmes collisions et même glissement), sans toucher au chemin ni à `estEnMouvement()` ; utilisée par la séparation des personnages |
 | `sf::Vector2f getCentre() const` | Centre du mobile |
 | `sf::Vector2f getTaille() const` | Taille du mobile |
+| `Cercle getCercle() const` | Cercle de collision, `cercleDuRectangle(m_position, m_taille)` (étape 82.1) ; `Personnage::getCercle` et `Monstre::getCercle` en sont des façades ; `[[nodiscard]]` |
 | `bool estEnMouvement() const` | Définition unique de « en mouvement » : au dernier tic, le point courant du chemin était à plus de 0,01 px, que le mobile ait pu avancer ou non (bloqué = en mouvement ; arrivé à ce tic = encore en mouvement). Faux avant le premier tic et après `arreter()` ; `[[nodiscard]]` |
 | `bool estBloque() const` | Définition unique de « bloqué » : à chaque `mettreAJour`, s'il a un point à atteindre (`estEnMouvement`) et a parcouru moins de 10 % de `vitesse × dt`, un compteur augmente de `dt`, sinon il revient à 0 ; vrai à partir de 0,3 s (`s_tempsAvantBlocage`). Jamais vrai à l'arrêt ; `[[nodiscard]]`. Le recalcul du chemin est l'affaire du propriétaire |
 | `std::vector<sf::Vector2f> cheminRestant() const` | Points du chemin pas encore atteints, le prochain en premier (débogage F3 et tests) ; `[[nodiscard]]` |

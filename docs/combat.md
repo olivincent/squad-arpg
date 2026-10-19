@@ -29,7 +29,11 @@ personnages sont dans `docs/formation.md`, le monstre dans
 - **Un seul cercle par entité, calculé et non stocké** : `getCercle()`
   de `Personnage` (rayon 10) et de `Monstre` (rayon 15) recalcule le
   rayon (demi-côté) à partir de la taille déjà stockée — une seule
-  source de vérité.
+  source de vérité. Depuis l'étape 82.1, la formule est écrite une fois, dans
+  `cercleDuRectangle` (`base/Cercle`) : `Mobile::getCercle` l'appelle (les deux `getCercle` en sont
+  des façades), et le glissement de `Deplacement` aussi. Elle est dans `base/` et pas seulement dans
+  `Mobile` parce que `Mobile` utilise déjà `Deplacement` : `Deplacement` ne peut pas dépendre de
+  `Mobile` sans dépendance circulaire.
 - **Valeurs de portée** : mêlée 20 px, tireur 120 px, monstre 15 px,
   skill de dégâts = portée de mêlée. La mêlée est passée de 10 à 20 px
   (étape 37) : un monstre s'arrête à 15 px de sa proie, et avec 10 px
@@ -595,10 +599,10 @@ personnages sont dans `docs/formation.md`, le monstre dans
   explicite), avec un plancher à 1 : un coup positif inflige toujours au
   moins 1, un coup de 0 reste 0. Exemples : 10 avec 50 → 7, 5 avec 20 → 4,
   15 avec 20 → 13, 25 avec 20 → 21.
-- **Qui l'applique** : `Personnage::recevoirDegats` et
-  `Monstre::recevoirDegats`, avant `PointsDeVie::subirDegats`.
-  `PointsDeVie` ne connaît pas l'armure. Chaque entité a un `m_armure`
-  (`int`) reçu par son constructeur ; pas d'accesseur.
+- **Qui l'applique** : `Vitalite::recevoirDegats` (étape 82.1), avant
+  `PointsDeVie::subirDegats`, pour `Personnage` et `Monstre` qui lui délèguent.
+  `PointsDeVie` ne connaît pas l'armure. Chaque entité a une `Vitalite` dont l'armure (`int`) vient
+  de son constructeur ; pas d'accesseur.
 - **Valeurs** : mêlées (places 1 et 2) 50, tireurs (places 3 et 4) 0, les
   monstres 20 (`Niveau::armureMonstres`, valeur `s_armureMonstresParDefaut`
   commune à la carte à la main et aux cartes générées).
@@ -1474,7 +1478,7 @@ Deux fonctions libres, sans état, utilisées par `Personnage::dessiner` et
 
 ### `Eclaircir` (`base/`) — éclaircir et assombrir une couleur
 
-Deux fonctions libres, sans état. `eclaircir` est l'indice visuel d'un coup en préparation (`Personnage::dessiner`, `Monstre::dessiner`) ; `assombrir` donne les nuances des doublons de classe (`composer`).
+Deux fonctions libres, sans état, et une constante. `eclaircir` est l'indice visuel d'un coup en préparation (`Personnage::dessiner`, `Monstre::dessiner`) ; `assombrir` donne les nuances des doublons de classe (`composer`). `inline constexpr float s_eclaircissementExecution = 0.5f` : la part de blanc pendant l'exécution d'un coup ou l'activation d'un skill, la même règle visuelle dans les deux camps, écrite une fois depuis l'étape 82.1 (auparavant une constante dans chacun des deux `.cpp`).
 
 | Fonction | Rôle |
 |---|---|
@@ -1491,8 +1495,8 @@ de la chaîne `Partie` → `Escouade` → `Personnage` → `Skill` et `Partie` �
 
 ### `Defense` (`combat/`) — l'armure
 
-Une fonction libre pure, sans état, utilisée par `Personnage::recevoirDegats`
-et `Monstre::recevoirDegats`. Ne dépend d'aucun autre module ni de SFML.
+Une fonction libre pure, sans état, utilisée par `Vitalite::recevoirDegats`. Ne dépend d'aucun
+autre module ni de SFML.
 
 | Fonction | Rôle |
 |---|---|
@@ -1500,8 +1504,8 @@ et `Monstre::recevoirDegats`. Ne dépend d'aucun autre module ni de SFML.
 
 ### `PointsDeVie` (`combat/`) — les points de vie d'une entité
 
-Classe à sémantique de valeur, possédée par valeur par `Personnage` et
-`Monstre`, qui lui délèguent leurs façades (`recevoirDegats`, `estVivant`…).
+Classe à sémantique de valeur, possédée par valeur par `Vitalite` (donc par `Personnage` et
+`Monstre`, qui délèguent leurs façades à `Vitalite`).
 Ne dépend d'aucun autre module ni de SFML. Invariants : `0 <= valeur <=
 maximum`, `maximum > 0`, une valeur à 0 ne remonte plus.
 
@@ -1516,14 +1520,37 @@ Données membres : `m_valeur`, `m_maximum`.
 | `int getValeur() const` / `int getMaximum() const` | Valeur actuelle et maximum |
 | `float getRatio() const` | Valeur / maximum |
 
+### `Vitalite` (`combat/`) — points de vie et armure d'une entité
+
+Classe à sémantique de valeur (étape 82.1, D1 de `docs/audit.md`), possédée par valeur par
+`Personnage` et `Monstre` (composition, pas d'héritage), qui lui délèguent leurs façades
+(`recevoirDegats`, `estVivant`, `getPointsDeVie`…) : la logique commune aux deux camps (l'armure
+puis les points de vie) est écrite une fois, les interfaces des deux classes n'ont pas changé. Les
+règles propres à un camp restent dans sa classe (invulnérabilité et régénération du monstre en
+retour). L'interface ne contient que ce que `Personnage` et `Monstre` utilisent. `PointsDeVie` et
+`Defense` sont inchangés ; `Vitalite` n'absorbera `Defense` que quand les armures varieront. Ne
+dépend que de `PointsDeVie` et `Defense`, ni de SFML.
+
+Données membres : `m_pointsDeVie` (`PointsDeVie`), `m_armure` (`int`).
+
+| Fonction | Rôle |
+|---|---|
+| `Vitalite(int pointsDeVieMax, int armure)` | Commence pleine ; `assert(armure >= 0)` (et `maximum > 0` par `PointsDeVie`) |
+| `int recevoirDegats(int montant)` | `appliquerArmure(montant, armure)`, puis `PointsDeVie::subirDegats` ; renvoie les dégâts après armure, non plafonnés par les points de vie restants ; 0 pour un mort (rien n'est appliqué) |
+| `int soigner(int montant)` | `PointsDeVie::soigner` : plafonné au maximum, 0 pour un mort ; renvoie les points réellement rendus |
+| `bool estVivant() const` | Points de vie `> 0` ; `[[nodiscard]]` |
+| `int getValeur() const` / `int getMaximum() const` | Points de vie actuels et maximum ; `[[nodiscard]]` |
+| `float getRatio() const` | Valeur / maximum, pour la barre de vie ; `[[nodiscard]]` |
+
 ### `Cercle` (`base/`) — la forme d'une entité
 
-Une structure et une fonction libre, sans comportement.
+Une structure et des fonctions libres, sans comportement.
 
 Données membres : `struct Cercle { sf::Vector2f centre; float rayon; }`.
 
 | Fonction | Rôle |
 |---|---|
+| `Cercle cercleDuRectangle(sf::Vector2f coin, sf::Vector2f taille)` | Cercle de collision d'une entité rectangulaire de coin haut-gauche `coin` : centré sur le rectangle, de rayon la demi-largeur (étape 82.1) ; seul endroit où cette formule est écrite (`Mobile::getCercle`, `deplacerAvecGlissement`) ; `[[nodiscard]]` |
 | `float distanceBordABord(const Cercle& a, const Cercle& b)` | Distance entre les centres moins les deux rayons ; 0 si les cercles se touchent ou se chevauchent (jamais négative) |
 | `float distanceCercleRectangle(Cercle cercle, sf::FloatRect rectangle)` | Écart bord à bord entre le cercle et le rectangle plein ; 0 en cas de contact, de chevauchement ou de centre dedans, jamais négatif ; `[[nodiscard]]` |
 | `float distancePointSegment(sf::Vector2f p, sf::Vector2f a, sf::Vector2f b)` | Distance du point au segment `[a, b]` (extrémités comprises, segment réduit à un point permis) ; `[[nodiscard]]` |

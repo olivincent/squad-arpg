@@ -60,6 +60,7 @@ add_library(squad_core STATIC
     src/rendu/BarreDeVie.cpp
     src/base/Eclaircir.cpp
     src/combat/PointsDeVie.cpp
+    src/combat/Vitalite.cpp
     src/combat/Defense.cpp
     src/monde/Niveau.cpp
     src/monde/ObjetInteractif.cpp
@@ -132,6 +133,7 @@ add_executable(tests
     tests/rendu/test_BarreDeVie.cpp
     tests/base/test_Eclaircir.cpp
     tests/combat/test_PointsDeVie.cpp
+    tests/combat/test_Vitalite.cpp
     tests/combat/test_Defense.cpp
     tests/monde/test_GenerateurDonjon.cpp
     tests/jeu/test_Partie_clics.cpp

@@ -48,7 +48,7 @@ squad-arpg/
 │   │               ObjetInteractif, Niveau, GenerateurDonjon, Encerclement
 │   ├── combat/     Skill, SkillConnu, IdSkill, TypeSkill, AdresseSkill, Cible, ActionEngagee,
 │   │               EtatSkill, Coup, EvenementDeCombat, EntiteVue, Autodefense, Engagement,
-│   │               Defense, PointsDeVie
+│   │               Defense, PointsDeVie, Vitalite
 │   ├── escouade/   Escouade, Personnage, Composition, Specialite, SelectionDEscouade,
 │   │               Provocations, Agresseurs
 │   ├── monstres/   Monstre
@@ -87,7 +87,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
   connaissent pas (ils échangent des `EntiteVue`, des `Coup`, des `EntiteDeControle`), et tient la
   file des `EvenementDeCombat`.
 - `Escouade` possède son ancre (`Mobile`), N `Personnage`, des `Provocations` et des `Agresseurs`.
-  `Personnage` et `Monstre` possèdent un `Mobile`, des `Skill` et des `PointsDeVie`.
+  `Personnage` et `Monstre` possèdent un `Mobile`, des `Skill` et une `Vitalite`.
 - `Controleur` porte l'état d'interface (visée, déplacement continu) et reçoit la `Partie` à
   chaque appel.
 
@@ -95,8 +95,9 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 
 `base/` — outils sans règle de jeu (`docs/combat.md`) :
 - `Aleatoire` : `using Generateur = std::mt19937`, passé par référence, jamais copié ni global.
-- `Cercle` : forme d'une entité, `distanceBordABord`, `distanceCercleRectangle`, `distancePointSegment`.
-- `Eclaircir` : `eclaircir` et `assombrir` une couleur.
+- `Cercle` : forme d'une entité, `cercleDuRectangle`, `distanceBordABord`, `distanceCercleRectangle`,
+  `distancePointSegment`.
+- `Eclaircir` : `eclaircir` et `assombrir` une couleur, `s_eclaircissementExecution`.
 
 `rendu/` — primitives de dessin :
 - `BarreDeVie` : position et dessin de la barre de vie d'une entité (`docs/combat.md`).
@@ -128,6 +129,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `Engagement` : zones de contrôle, coups d'opportunité, monstre dont se dégager.
 - `Defense` : `appliquerArmure`, rendement décroissant.
 - `PointsDeVie` : valeur et maximum, invariants de vie et de mort.
+- `Vitalite` : points de vie et armure d'une entité, commune à `Personnage` et `Monstre`.
 
 `escouade/` — le camp du joueur (`docs/formation.md`, sauf mention) :
 - `Escouade` : ancre, formation, verrou, skills en attente, attaque, placement des personnages.

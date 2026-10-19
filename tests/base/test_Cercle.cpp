@@ -1,7 +1,15 @@
 // ./tests/base/test_Cercle.cpp
 #include <catch2/catch_test_macros.hpp>
+#include <SFML/System/Vector2.hpp>
 
 #include "base/Cercle.hpp"
+
+TEST_CASE("cercleDuRectangle est centre sur le rectangle, de rayon la demi-largeur") {
+    const Cercle cercle = cercleDuRectangle({10.0f, 20.0f}, {30.0f, 30.0f});
+
+    REQUIRE(cercle.centre == sf::Vector2f(25.0f, 35.0f));
+    REQUIRE(cercle.rayon == 15.0f);
+}
 
 TEST_CASE("distanceBordABord renvoie l'ecart entre deux cercles separes") {
     Cercle a{{0.0f, 0.0f}, 10.0f};
