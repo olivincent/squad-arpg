@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "BarreDeSkills.hpp"
-#include "TypeSkill.hpp"
+#include "IdSkill.hpp"
 
 namespace {
 
@@ -25,11 +25,26 @@ float aire(const std::vector<sf::Vector2f>& points) {
 
 }  // namespace
 
-TEST_CASE("lettreDuSkill donne une lettre par type") {
-    REQUIRE(lettreDuSkill(TypeSkill::Degats) == 'D');
-    REQUIRE(lettreDuSkill(TypeSkill::Provocation) == 'P');
-    REQUIRE(lettreDuSkill(TypeSkill::Soin) == 'S');
-    REQUIRE(lettreDuSkill(TypeSkill::Zone) == 'Z');
+TEST_CASE("sigleDuSkill donne deux lettres par skill") {
+    REQUIRE(sigleDuSkill(IdSkill::FrappePuissante) == "FP");
+    REQUIRE(sigleDuSkill(IdSkill::Provocation) == "PR");
+    REQUIRE(sigleDuSkill(IdSkill::Soin) == "SO");
+    REQUIRE(sigleDuSkill(IdSkill::Explosion) == "EX");
+    REQUIRE(sigleDuSkill(IdSkill::FrappeSacree) == "FS");
+    REQUIRE(sigleDuSkill(IdSkill::ImpositionDesMains) == "IM");
+    REQUIRE(sigleDuSkill(IdSkill::TirPercant) == "TP");
+    REQUIRE(sigleDuSkill(IdSkill::PluieDeFleches) == "PF");
+}
+
+TEST_CASE("sigleDuSkill : les sigles sont tous differents") {
+    const std::vector<IdSkill> ids = {IdSkill::FrappePuissante, IdSkill::Provocation, IdSkill::Soin,
+                                      IdSkill::Explosion,       IdSkill::FrappeSacree, IdSkill::ImpositionDesMains,
+                                      IdSkill::TirPercant,      IdSkill::PluieDeFleches};
+    for (std::size_t i = 0; i < ids.size(); ++i) {
+        for (std::size_t j = i + 1; j < ids.size(); ++j) {
+            REQUIRE(sigleDuSkill(ids[i]) != sigleDuSkill(ids[j]));
+        }
+    }
 }
 
 TEST_CASE("couleurDuContour : blanc en activation, jaune en visee, gris sinon") {

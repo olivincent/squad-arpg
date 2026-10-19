@@ -2,8 +2,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <vector>
-
-#include "aides.hpp"
 #include "Composition.hpp"
 
 namespace {
@@ -49,18 +47,4 @@ TEST_CASE("decalagesDeFormation : l'ordre de la composition est celui des decala
     const std::vector<Rang> rangs = {Rang::Arriere, Rang::Avant, Rang::Arriere};
 
     REQUIRE(decalagesDeFormation(rangs) == Decalages{{-25.0f, -25.0f}, {25.0f, 0.0f}, {-25.0f, 25.0f}});
-}
-
-TEST_CASE("compositionParDefaut : chaque personnage a un rang, de la vision et des skills sans doublon") {
-    const std::vector<DefinitionPersonnage> composition = compositionParDefaut();
-
-    REQUIRE_FALSE(composition.empty());
-    for (const DefinitionPersonnage& definition : composition) {
-        REQUIRE(definition.rayonVision == s_rayonVisionDeTest);
-        for (std::size_t i = 0; i < definition.skills.size(); ++i) {
-            for (std::size_t j = i + 1; j < definition.skills.size(); ++j) {
-                REQUIRE(definition.skills[i].id != definition.skills[j].id);
-            }
-        }
-    }
 }

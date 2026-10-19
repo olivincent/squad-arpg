@@ -784,6 +784,7 @@ TEST_CASE("etatDuSkill donne le type du skill de chaque place") {
     REQUIRE(escouade.etatDuSkill(s_adresseProvocation)->type == TypeSkill::Provocation);
     REQUIRE(escouade.etatDuSkill(s_adresseSoin)->type == TypeSkill::Soin);
     REQUIRE(escouade.etatDuSkill(s_adresseExplosion)->type == TypeSkill::Zone);
+    REQUIRE(escouade.etatDuSkill(s_adresseExplosion)->id == IdSkill::Explosion);
 }
 
 TEST_CASE("etatDuSkill d'un skill pret : progression 1, temps restant 0") {

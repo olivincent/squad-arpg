@@ -23,6 +23,7 @@ add_library(squad_core STATIC
     src/TileMap.cpp
     src/Escouade.cpp
     src/Composition.cpp
+    src/Specialite.cpp
     src/Provocations.cpp
     src/Agresseurs.cpp
     src/Chemin.cpp
@@ -83,6 +84,7 @@ add_executable(tests
     tests/test_Escouade_vue.cpp
     tests/test_Escouade_places.cpp
     tests/test_Composition.cpp
+    tests/test_Specialite.cpp
     tests/test_Provocations.cpp
     tests/test_Agresseurs.cpp
     tests/test_Deplacement.cpp

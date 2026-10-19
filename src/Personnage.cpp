@@ -188,7 +188,7 @@ std::optional<EtatSkill> Personnage::etatDuSkill(IdSkill id) const {
     }
     const std::optional<ActionEngagee> action = skillEngage();
     const bool enActivation = action.has_value() && action->skill == id;
-    return EtatSkill{skill->getType(), skill->getProgressionRecharge(), skill->getRechargeRestante(), estVivant(), enActivation};
+    return EtatSkill{id, skill->getType(), skill->getProgressionRecharge(), skill->getRechargeRestante(), estVivant(), enActivation};
 }
 
 bool Personnage::skillEstAPortee(IdSkill id, Cercle cible) const {

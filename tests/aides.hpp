@@ -21,6 +21,7 @@
 #include "EntiteVue.hpp"
 #include "Niveau.hpp"
 #include "Partie.hpp"
+#include "Specialite.hpp"
 #include "TileMap.hpp"
 #include "TypeSkill.hpp"
 
@@ -39,19 +40,24 @@ inline constexpr AdresseSkill s_adresseProvocation{1, IdSkill::Provocation};
 inline constexpr AdresseSkill s_adresseSoin{2, IdSkill::Soin};
 inline constexpr AdresseSkill s_adresseExplosion{3, IdSkill::Explosion};
 
-// Une escouade / une partie avec la composition par défaut (celle du jeu).
+// La composition par défaut des tests : guerrier, prêtre, mage (celle du jeu avant l'écran de choix).
+inline std::vector<DefinitionPersonnage> compositionDeTest() {
+    return composer({IdSpecialite::Guerrier, IdSpecialite::Pretre, IdSpecialite::Mage});
+}
+
+// Une escouade / une partie avec la composition par défaut des tests.
 inline Escouade uneEscouade(sf::Vector2f positionDepart) {
-    return Escouade(positionDepart, compositionParDefaut());
+    return Escouade(positionDepart, compositionDeTest());
 }
 
 inline Partie unePartie(const Niveau& niveau, Generateur::result_type graine) {
-    return Partie(niveau, compositionParDefaut(), graine);
+    return Partie(niveau, compositionDeTest(), graine);
 }
 
 // Une escouade de quatre : deux guerriers devant (mêlées), le prêtre et le mage derrière. Pour les tests
 // de places d'attaque et de séparation qui ont besoin de deux mêlées (la composition par défaut n'en a qu'une).
 inline Escouade uneEscouadeADeuxGuerriers(sf::Vector2f positionDepart) {
-    std::vector<DefinitionPersonnage> composition = compositionParDefaut();
+    std::vector<DefinitionPersonnage> composition = compositionDeTest();
     composition.insert(composition.begin(), composition[0]);
     return Escouade(positionDepart, std::move(composition));
 }
@@ -61,7 +67,7 @@ inline Escouade uneEscouadeADeuxGuerriers(sf::Vector2f positionDepart) {
 // à portée. Dans le triangle de la composition par défaut, tous les alliés sont à portée du
 // soin normal (40 px) : il faut ce soin court pour tester un soin hors de portée.
 inline Escouade uneEscouadeAuSoinCourt(sf::Vector2f positionDepart) {
-    std::vector<DefinitionPersonnage> composition = compositionParDefaut();
+    std::vector<DefinitionPersonnage> composition = compositionDeTest();
     composition[1].skills = {{IdSkill::Soin, Skill(TypeSkill::Soin, 33.0f, 30, 8.0f, 8.0f, 0.0f, 0.6f)}};
     return Escouade(positionDepart, std::move(composition));
 }

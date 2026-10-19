@@ -246,7 +246,7 @@ TEST_CASE("la meme adresse sur deux emplacements : le second la fait sortir de l
 
 TEST_CASE("un autre skill de zone remplace la visee") {
     // Deux mages : le second est à la place 4.
-    std::vector<DefinitionPersonnage> composition = compositionParDefaut();
+    std::vector<DefinitionPersonnage> composition = compositionDeTest();
     composition.push_back(composition.back());
     Partie partie(niveauDegage({s_monstreLointain}), composition, s_graineDeTest);
     const AdresseSkill explosionDuSecondMage{4, IdSkill::Explosion};

@@ -20,9 +20,6 @@ struct DefinitionPersonnage {
     Rang rang;
 };
 
-// La composition de départ du jeu.
-[[nodiscard]] std::vector<DefinitionPersonnage> compositionParDefaut();
-
 // Décalage de chaque personnage par rapport à l'ancre, pour une escouade orientée vers +x,
 // dans l'ordre de `rangs`. Les Avant sont sur x = +25, les Arriere sur x = -25 ; dans un
 // rang, n personnages sont espacés de 50 px en y et centrés (y = (k - (n - 1) / 2) × 50,

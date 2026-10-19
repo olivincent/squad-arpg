@@ -14,7 +14,7 @@
 #include "Aleatoire.hpp"
 #include "BarreDeRaccourcis.hpp"
 #include "BarreDeSkills.hpp"
-#include "Composition.hpp"
+#include "Specialite.hpp"
 #include "ClicInterface.hpp"
 #include "Contexte.hpp"
 #include "Controleur.hpp"
@@ -35,7 +35,7 @@ Partie nouvellePartie(std::random_device& tirage) {
     std::cout << "Graine : " << graine << '\n';
     Generateur generateurDeNiveau(graine);
     const Niveau niveau = genererNiveau(generateurDeNiveau, ParametresDonjon{});
-    return Partie(niveau, compositionParDefaut(), graine);
+    return Partie(niveau, composer({IdSpecialite::Guerrier, IdSpecialite::Pretre, IdSpecialite::Mage}), graine);
 }
 
 constexpr unsigned int s_tailleCompteur = 22;
@@ -157,6 +157,7 @@ void EcranJeu::dessiner(const Contexte& contexte) const {
         }
         icones[i].etat = m_partie.getEscouade().etatDuSkill(*adresse);
         icones[i].couleurDuLanceur = m_partie.getEscouade().couleurDuPersonnage(adresse->place).value_or(sf::Color::White);
+        icones[i].place = adresse->place;
         icones[i].enVisee = adresse == m_controleur.getAdresseEnVisee();
     }
     dessinerBarreDeSkills(fenetre, contexte.police, icones);

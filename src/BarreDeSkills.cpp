@@ -14,10 +14,11 @@
 
 namespace {
 
-constexpr unsigned int s_tailleLettre = 24;
+constexpr unsigned int s_tailleSigle = 20;
 constexpr unsigned int s_tailleNomDeTouche = 11;
 constexpr unsigned int s_tailleSecondes = 20;
-constexpr float s_hauteurBande = 4.0f;
+constexpr unsigned int s_taillePlace = 11;
+constexpr float s_hauteurBande = 14.0f;
 
 // Écrit `texte` centré sur `centre`.
 void dessinerTexteCentre(sf::RenderTarget& rendu, const sf::Font& police, const std::string& texte,
@@ -41,18 +42,27 @@ sf::Vector2f pointDuBord(sf::Vector2f centre, float demiCote, float angleDegres)
 
 }  // namespace
 
-char lettreDuSkill(TypeSkill type) {
-    switch (type) {
-        case TypeSkill::Degats:
-            return 'D';
-        case TypeSkill::Provocation:
-            return 'P';
-        case TypeSkill::Soin:
-            return 'S';
-        case TypeSkill::Zone:
-            return 'Z';
+// Pas de `default` : un IdSkill oublié est signalé par le compilateur.
+std::string sigleDuSkill(IdSkill id) {
+    switch (id) {
+        case IdSkill::FrappePuissante:
+            return "FP";
+        case IdSkill::Provocation:
+            return "PR";
+        case IdSkill::Soin:
+            return "SO";
+        case IdSkill::Explosion:
+            return "EX";
+        case IdSkill::FrappeSacree:
+            return "FS";
+        case IdSkill::ImpositionDesMains:
+            return "IM";
+        case IdSkill::TirPercant:
+            return "TP";
+        case IdSkill::PluieDeFleches:
+            return "PF";
     }
-    return '?';
+    return "??";
 }
 
 int secondesAffichees(float tempsRestant) {
@@ -117,13 +127,21 @@ void dessinerBarreDeSkills(sf::RenderTarget& rendu, const sf::Font& police,
         if (!icone.etat.has_value()) {
             continue;
         }
-        dessinerTexteCentre(rendu, police, std::string(1, lettreDuSkill(icone.etat->type)), s_tailleLettre, centre, couleurTexte);
+        dessinerTexteCentre(rendu, police, sigleDuSkill(icone.etat->id), s_tailleSigle, centre, couleurTexte);
 
-        // Bande de la couleur du personnage lanceur, au bas de l'icône.
+        // Bande de la couleur du personnage lanceur, au bas de l'icône, avec sa place.
         sf::RectangleShape bande({cote, s_hauteurBande});
         bande.setPosition({coin.x, coin.y + cote - s_hauteurBande});
         bande.setFillColor(lanceurVivant ? icone.couleurDuLanceur : sf::Color(90, 90, 90));
         rendu.draw(bande);
+        sf::Text numeroDePlace(police, std::to_string(icone.place), s_taillePlace);
+        numeroDePlace.setFillColor(sf::Color::White);
+        numeroDePlace.setOutlineColor(sf::Color::Black);
+        numeroDePlace.setOutlineThickness(1.0f);
+        const sf::FloatRect zoneDuNumero = numeroDePlace.getLocalBounds();
+        numeroDePlace.setOrigin(zoneDuNumero.position + zoneDuNumero.size / 2.0f);
+        numeroDePlace.setPosition(bande.getPosition() + bande.getSize() / 2.0f);
+        rendu.draw(numeroDePlace);
         if (!lanceurVivant) {
             continue;
         }

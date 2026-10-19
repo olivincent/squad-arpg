@@ -8,13 +8,14 @@
 #include <array>
 #include <cstddef>
 #include <optional>
+#include <string>
 #include <vector>
 #include "BarreDeRaccourcis.hpp"
 #include "EtatSkill.hpp"
-#include "TypeSkill.hpp"
+#include "IdSkill.hpp"
 
-// Lettre affichée sur l'icône d'un skill.
-[[nodiscard]] char lettreDuSkill(TypeSkill type);
+// Étiquette de deux lettres affichée sur l'icône d'un skill.
+[[nodiscard]] std::string sigleDuSkill(IdSkill id);
 
 // Secondes entières affichées pour un temps de recharge restant (arrondi vers le haut).
 [[nodiscard]] int secondesAffichees(float tempsRestant);
@@ -33,6 +34,7 @@ struct IconeDeRaccourci {
     std::optional<EtatSkill> etat;  // vide = emplacement vide (cadre sombre, seulement le nom de la touche)
     sf::String touche;              // nom de la touche, affiché dans un coin
     sf::Color couleurDuLanceur;     // bande au bas de l'icône : la couleur du personnage
+    std::size_t place = 0;          // place du lanceur (1 à N), écrite dans la bande
     bool enVisee = false;           // contour jaune : le skill de cet emplacement est en cours de visée
 };
 
