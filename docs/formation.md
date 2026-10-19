@@ -1,6 +1,6 @@
 # Squad-ARPG — Formation
 
-`Escouade` (l'ancre et ses 4 personnages) et `Personnage` (un membre).
+`Escouade` (l'ancre et ses N personnages, 3 par défaut depuis l'étape 74) et `Personnage` (un membre).
 L'attaque, la portée, le skill et les obstacles sont dans
 `docs/combat.md` ; le déplacement par chemin de l'ancre dans
 `docs/chemin.md`.
@@ -58,20 +58,16 @@ L'attaque, la portée, le skill et les obstacles sont dans
   le personnage *comment*. Seules les places de formation sont
   corrigées : les cibles individuelles en combat et la marche vers un
   skill en attente ne le sont pas.
-- **Quatre décalages** `{{25,-25}, {25,25}, {-25,-25}, {-25,25}}` pour
-  une escouade orientée vers `+x` : les indices 0 et 1 sont à l'avant,
-  les indices 2 et 3 à l'arrière.
-- **Le rôle découle de la place** : les deux personnages avant sont des
-  mêlées (rouge, portée de bord à bord 20 px), les deux arrière des
-  tireurs (cyan, 120 px). Aucune énumération ni champ « type » : un
-  personnage est défini par ses données (couleur, attaque de base, skill) et
-  la place dans `m_personnages` suffit à dire qui est quoi, comme elle
-  suffit déjà à l'associer à son décalage.
-- **Injection** : `Escouade` choisit les valeurs (constantes nommées
-  dans un espace de noms anonyme d'`Escouade.cpp`) et les passe au
-  constructeur de chaque `Personnage` (couleur, attaque de base, skill
-  éventuel). Deux personnages ayant la même couleur, la même attaque et
-  le même skill seraient indiscernables, et c'est voulu.
+- **Décalages calculés par `decalagesDeFormation`** (module `Composition`, étape 74) pour
+  une escouade orientée vers `+x` : voir « Composition et escouade à N personnages » plus bas.
+  Avec la composition par défaut (un guerrier devant, un prêtre et un mage derrière) :
+  `{{25,0}, {-25,-25}, {-25,25}}` ; l'indice 0 est le guerrier.
+- **Le rôle découle des données** : couleur, attaque de base, skills et rang d'un personnage
+  sont ceux de sa `DefinitionPersonnage`. Aucune énumération « type de personnage » ; la place
+  dans `m_personnages` suffit à dire qui est quoi, comme elle suffit à l'associer à son décalage.
+- **Injection** : `Escouade` ne choisit plus aucune valeur. Elle reçoit sa composition
+  (`std::vector<DefinitionPersonnage>`) et construit un `Personnage` par définition. Les
+  valeurs d'équilibrage (portées, armures, skills) vivent dans `Composition.cpp`.
 - **Orientation voulue et orientation réelle séparées** :
   `m_orientationVoulue` reçoit la direction voulue de l'ancre
   (`m_mobile.directionVoulue()`, lue *avant* l'essai de collision : si
@@ -115,10 +111,9 @@ L'attaque, la portée, le skill et les obstacles sont dans
     prix du coût ajouté, et le personnage attend alors derrière lui ;
   - deux places peuvent se replier presque au même endroit dans un
     passage étroit (les personnages ne se bloquent pas entre eux) ;
-  - **chevauchement résiduel lors d'un demi-tour rapide** : les 4
-    décalages forment deux paires diagonales exactement opposées, donc
-    les places *idéales* de deux personnages ne se chevauchent jamais
-    pendant la rotation. Mais chaque personnage poursuit sa cible en
+  - **chevauchement résiduel lors d'un demi-tour rapide** : les places *idéales*
+    de deux personnages ne se chevauchent jamais pendant la rotation (c'est une
+    rotation rigide de la formation). Mais chaque personnage poursuit sa cible en
     ligne droite, pas en suivant l'arc : lors d'un demi-tour très
     rapide, il coupe à travers le centre de la formation pendant qu'un
     autre fait le trajet inverse. La rotation progressive réduit
@@ -129,7 +124,7 @@ L'attaque, la portée, le skill et les obstacles sont dans
 ## Le personnage
 
 - **Rayon de vision** (étape 72) : `m_rayonVision` (pixels), fourni par `Escouade` à la
-  construction comme l'armure (320 px pour les quatre). `Escouade::cerclesDeVision()` rend
+  construction comme l'armure (320 px pour tous). `Escouade::cerclesDeVision()` rend
   un `Cercle` par vivant ; `Personnage` ne sait rien du brouillard. Voir `docs/vision.md`.
 - **Un personnage sait seulement « aller vers un point »** : il reçoit
   sa cible en paramètre de `mettreAJour`, sans connaître la formation,
@@ -178,8 +173,8 @@ L'attaque, la portée, le skill et les obstacles sont dans
   l'objet n'est pas exposé (loi de Déméter). Barre dessinée par la
   fonction commune `dessinerBarreDeVie` (module `BarreDeVie`), à qui
   `Personnage` passe `getRatio()`.
-- **Il délègue son attaque à `m_attaqueDeBase`** et son skill (un
-  `std::optional<Skill>`) à `m_skill` (voir `docs/combat.md`). La règle
+- **Il délègue son attaque à `m_attaqueDeBase`** et ses skills (un
+  `std::vector<SkillConnu>`, depuis l'étape 74) à `m_skills` (voir `docs/combat.md`). La règle
   « un mort ne frappe pas » vit dans `Personnage::frapper` et
   `declencherSkill`, avant la délégation : être vivant est l'affaire de
   `Personnage`, pas de l'attaque. Il expose `typeSkill`, `skillEstPret`,
@@ -532,12 +527,39 @@ même endroit dans un passage étroit » a disparu de la liste des limites.
   formation). La formation (R2c) n'est pas extraite.
 - **Ordre d'appel** : `attaquer` avant `mettreAJour` dans une même image,
   documenté au-dessus de la classe : `m_monstreAPortee` et `m_cibleCombat`
-  passent de l'une à l'autre. `m_monstreAPortee` est un
-  `std::array<bool, s_nombrePersonnages>` (et non un `std::vector<bool>`,
-  spécialisation particulière).
+  passent de l'une à l'autre. `m_monstreAPortee` était un
+  `std::array<bool, s_nombrePersonnages>` ; depuis l'étape 74 (nombre de personnages
+  connu à l'exécution) c'est un `std::vector<bool>`.
 - **Constantes** : tailles, vitesses, points de vie et attaque de base
   (`attaqueDeBase(portee)`, un seul endroit) ont des constantes `s_` ;
   `Personnage::m_taille` est supprimé.
 - **Barre de vie** : module `BarreDeVie`, partagé avec `Monstre`. La barre
-  orange de recharge reste dans `Personnage::dessiner`, placée sous la barre
-  de vie grâce à `s_hauteurBarreDeVie`.
+  orange de recharge sous la barre de vie a été supprimée à l'étape 74 (ambiguë avec
+  plusieurs skills : la barre de skills la remplace).
+
+## Composition et escouade à N personnages (étape 74)
+
+- **`Composition.hpp` / `.cpp`** : `enum class Rang { Avant, Arriere }`, `struct
+  DefinitionPersonnage { couleur; attaqueDeBase; skills; armure; rayonVision; rang; }`,
+  `compositionParDefaut()` et `decalagesDeFormation(rangs)`. Pourquoi : `Escouade` ne
+  doit plus choisir de valeurs, pour que le joueur puisse un jour choisir sa composition
+  (étape 76) sans toucher à `Escouade`. La composition n'appartient pas au `Niveau` :
+  `Partie(niveau, composition, graine)` la reçoit, `EcranJeu` passe `compositionParDefaut()`.
+- **`decalagesDeFormation`**, fonction pure : pour une escouade orientée vers `+x`, les
+  `Avant` sont sur `x = +25`, les `Arriere` sur `x = -25` ; dans un rang de n personnages,
+  le k-ième (ordre d'apparition dans la composition) est sur `y = (k - (n-1)/2) × 50`. Avec
+  2 devant et 2 derrière on retrouve exactement l'ancien carré.
+- **Composition par défaut** : guerrier (Avant, rouge, armure 50, attaque de mêlée, skills
+  `FrappePuissante` et `Provocation`), prêtre (Arriere, jaune pâle, armure 0, attaque de
+  tireur, skill `Soin`), mage (Arriere, violet, armure 0, attaque de tireur, skill
+  `Explosion`). Toutes les valeurs numériques des skills sont celles d'avant.
+- **`Escouade(positionDepart, composition)`** : `assert(!composition.empty())`, les places
+  vont de 1 à N (taille de la composition). `m_pointsVises`, `m_placesDAttaque` et
+  `m_monstreAPortee` sont des `std::vector` dimensionnés à la construction ;
+  `s_nombrePersonnages` n'existe plus.
+- **Triangle et soin** : dans le triangle par défaut, tous les alliés sont à moins de 56 px
+  les uns des autres, donc toujours à portée du soin (40 px bord à bord = 60 px entre
+  centres) : un soin « hors de portée » n'arrive plus qu'avec une formation étirée ou des
+  murs. Conséquence acceptée.
+- **Limites** : un mort n'est toujours pas retiré ; la formation ne se resserre pas à la mort
+  d'un personnage ; pas de niveaux ni d'apprentissage de skill en cours de partie.

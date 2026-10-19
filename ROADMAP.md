@@ -81,10 +81,14 @@ est dans `docs/historique.md`.
 - Étape 71 — Correction des portes : ouvrir sur place et faire face à la porte ✅
 - Étape 72 — Vision des personnages et brouillard de guerre ✅
 - Étape 73 — La ligne de vue passe par le shadowcasting symétrique ✅ (avec le garde-fou `contientUnCoinDiagonal`)
+- Étape 74 — Escouade de 3 personnages, skills désignés par identifiant ✅
 
 ## Prochaine étape (à choisir)
 
-À préciser avec Claude.ai (voir `docs/brainstorm.md`, dont l'idée de « stratégie
+Prévues, issues de la discussion de l'étape 74 : étape 75, barre de raccourcis de 12 emplacements
+(touches Q-W-E-R / A-S-D-F / Z-X-C-V par défaut) qui pointe vers n'importe quel skill de n'importe quel
+personnage (remplace la table de touches provisoire du `Controleur`) ; étape 76, classes et écran de
+choix de la composition (3 classes parmi un catalogue). Sinon, à préciser avec Claude.ai (voir `docs/brainstorm.md`, dont l'idée de « stratégie
 d'attaque » par type de monstre, qui se branchera sur `coutDesObstacles` : la liste
 de cercles passée changera selon le type d'entité).
 
@@ -253,16 +257,17 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   100), arrondi au plus proche, au moins 1 par coup positif. Mêlées 50
   (un tiers de moins), tireurs 0, monstres 20 (un sixième de moins). Le
   soin n'est pas réduit. Rien n'est affiché à l'écran.
-- **Personnages** : 4 carrés de 20 × 20 (240 px/s) tiennent une formation
-  en carré autour de l'ancre, bloqués par les murs et par les monstres.
+- **Personnages** (étape 74 : trois, venus d'une `Composition` injectée à `Escouade` par
+  `Partie`, `compositionParDefaut()` pour le jeu) : 3 carrés de 20 × 20 (240 px/s) tiennent une
+  formation en triangle autour de l'ancre, bloqués par les murs et par les monstres.
   Chacun possède un `Mobile` : en ligne droite quand le trajet vers son
   point est libre, par un chemin A* lissé quand un mur est dans le chemin
   (recalculé seulement si la cible s'éloigne de plus d'une case de la fin
   du chemin) ; un personnage resté derrière un coin ou un pilier le
   contourne donc. La
   formation pivote progressivement vers la direction de marche (360°/s,
-  par le plus court côté). Les deux de devant sont des mêlées (rouges,
-  portée 20 px), les deux de derrière des tireurs (cyan, portée 120 px) ;
+  par le plus court côté). Devant, le guerrier (rouge, mêlée, portée 20 px) ; derrière, le prêtre
+  (jaune pâle) et le mage (violet), des tireurs (portée 120 px) ;
   portées mesurées de bord à bord ; 5 dégâts, recharge 0,3–0,7 s (mêlées) ou 0,4–0,6 s (tireurs) ; 100
   points de vie et une barre de vie au-dessus d'eux.
 - **Places de formation** : la place théorique de chaque personnage
@@ -298,7 +303,7 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
 - **Mort et défaite** : un personnage à 0 point de vie tombe sur place
   (carré gris, sans barre de vie), ne frappe plus, n'est plus ciblé et ne
   bloque plus personne ; il reste dans la formation, sa place est
-  simplement vide. Une fois les 4 morts (`Partie::estPerdue`), le monde se
+  simplement vide. Une fois tous morts (`Partie::estPerdue`), le monde se
   fige, un écran de défaite (voile sombre, « Défaite », « Appuyez sur R pour
   revenir au menu ») s'affiche et la touche R ramène au menu (étape 65) ;
   « Commencer partie » crée alors une nouvelle `Partie` (nouvelle graine).
@@ -355,19 +360,25 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   reste sur place. L'ordre du joueur (ancre en mouvement), le skill en
   attente et le verrou (personnage à portée du monstre verrouillé) passent
   avant.
-- **Skills** : quatre, de classe `Skill` (type, portée, puissance, recharge, rayon de zone, temps d'activation). Touche 1 :
-  skill de dégâts du mêlée avant-gauche (25 dégâts, recharge 5 s, portée
+- **Skills** : quatre, de classe `Skill` (type, portée, puissance, recharge, rayon de zone, temps d'activation).
+  **Étape 74** : un skill est désigné par une `AdresseSkill` (place du personnage et `IdSkill`
+  stable : `FrappePuissante`, `Provocation`, `Soin`, `Explosion`) ; un personnage connaît une liste de
+  skills, une seule action engagée à la fois (engager un second skill pendant l'activation d'un autre est
+  refusé), recharges indépendantes. Touches provisoires, table en donnée dans le `Controleur`
+  (remplacée à l'étape 75) : 1 → frappe du guerrier, 2 → sa provocation, 3 → soin du prêtre, 4 → explosion
+  du mage ; la visée dépend du type `Zone` du skill, plus du numéro de touche. Touche 1 :
+  skill de dégâts du guerrier (25 dégâts, recharge 5 s, portée
   de mêlée, 20 px), sur le monstre verrouillé ou, sans verrou, sur le
-  monstre à portée que ce mêlée frapperait en autodéfense (alors sans
-  marche ni mise en attente). Touche 3 : soin du tireur
-  arrière-gauche (30 points de vie, recharge 8 s, portée 40 px), sur le
+  monstre à portée que ce guerrier frapperait en autodéfense (alors sans
+  marche ni mise en attente). Touche 3 : soin du prêtre
+  (30 points de vie, recharge 8 s, portée 40 px), sur le
   vivant le plus blessé (soigneur inclus), permis hors combat. Touche 2 :
-  provocation du mêlée avant-droit (zone de 150 px depuis son centre,
+  provocation du guerrier (zone de 150 px depuis son centre,
   4 s, recharge 10 s) : tous les monstres dans la zone le prennent pour
   proie au lieu du personnage le plus proche, sans dégâts ni attente
   (consommée même s'il n'y a aucun monstre dans la zone) ; elle prend fin à
   l'écoulement de la durée, à la mort du provocateur ou à celle du
-  monstre. Touche 4 : skill de zone du tireur arrière-droit (15 dégâts, recharge 8 s,
+  monstre. Touche 4 : skill de zone du mage (15 dégâts, recharge 8 s,
   zone de 60 px, portée 250 px) en deux temps : 4 fait entrer en
   mode visée (un cercle jaune de 60 px suit le curseur, un cercle blanc
   montre la portée autour du lanceur), puis un clic gauche lance le sort
@@ -385,8 +396,8 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   cible et commence son activation à l'arrivée (un seul skill en attente à
   la fois ; annulé par la mort du lanceur, celle de la cible ou son retour
   à pleine vie pour un soin, la rupture du combat pour des dégâts). Une
-  barre orange sous la barre de vie montre la recharge (pleine = prêt), qui
-  ne démarre qu'au départ du skill.
+  recharge, qui ne démarre qu'au départ du skill, est montrée par la barre de skills (la
+  barre orange sous les personnages a été supprimée à l'étape 74).
   **Temps d'activation** (étape 58) : chaque skill passe par la même machine
   à états que l'attaque de base : dégâts 0,3 s, provocation 0,2 s, soin
   0,6 s, zone 0,8 s. L'appui est un ordre : il n'exige pas d'être immobile,
@@ -448,14 +459,16 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 716 tests : 23 sur `ChampDeVision`, 8 sur `Vision`, 5 sur `ObjetInteractif`, 13 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 61 sur `GenerateurDonjon`, 36 sur `TileMap`, 27 sur `Chemin`, 194
-  sur `Escouade` en six fichiers par thème — 38 déplacement, 32 combat, 70
-  skills, 26 agresseurs, 20 vue, 8 places —, 11 sur `Encerclement`, 16 sur `Deplacement`, 73 sur `Monstre`,
-  51 sur `Personnage`, 24 sur `Skill`, 24 sur `Mobile`, 2 sur `Eclaircir`, 10 sur `Cercle`, 13
+  (`./build/tests.exe`, 735 tests : 23 sur `ChampDeVision`, 8 sur `Vision`, 5 sur `ObjetInteractif`, 13 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 61 sur `GenerateurDonjon`, 36 sur `TileMap`, 27 sur `Chemin`, 197
+  sur `Escouade` en six fichiers par thème (déplacement, combat, skills, agresseurs, vue, places),
+  8 sur `Composition`, 11 sur `Encerclement`, 16 sur `Deplacement`, 73 sur `Monstre`,
+  57 sur `Personnage`, 24 sur `Skill`, 24 sur `Mobile`, 2 sur `Eclaircir`, 10 sur `Cercle`, 13
   sur `Autodefense`, 7 sur `BarreDeSkills`, 4 sur `EntiteVue`, 1 sur
-  `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 49 sur `Partie`, 8 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
+  `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 49 sur `Partie`, 10 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
   accents (`./build/tests.exe "*a portee*"` filtre) ; rotation de la
-  formation et `provoquer` à une place invalide couverts.
+  formation et `provoquer` à une place invalide couverts. Les tests d'`Escouade` utilisent la composition
+  par défaut (`uneEscouade`, `unePartie`) ; `uneEscouadeADeuxGuerriers` et `uneEscouadeAuSoinCourt` servent
+  aux cas qui ont besoin de deux mêlées ou d'un allié hors de portée du soin.
 
 **Limites connues** (acceptées pour l'instant) :
 - Vision (étapes 72 et 73) : un monstre verrouillé qui sort de la vision garde le verrou ; la

@@ -34,7 +34,7 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
      l'image suivante ;
   1. événements, traduits en appels au `Controleur` : fermeture ;
      `appuiGauche(partie, point)`, `appuiDroit()`, `appuiTouche(partie,
-     place)` (1 à 4), `appuiEchap()`, et R (voir « Défaite de l'escouade »). Le `Controleur` les convertit en demandes à la `Partie` :
+     indiceTouche)` (1 à 4), `appuiEchap()`, et R (voir « Défaite de l'escouade »). Le `Controleur` les convertit en demandes à la `Partie` :
      `cliquer` (appliqué tout de suite : pose ou retire le verrou), et
      `demanderSkill`, `lancerSkillDeZone`, mémorisés ;
   2. `controleur.mettreAJourDeplacement(partie, boutonTenu, curseur)` : si le bouton
@@ -146,8 +146,9 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
 ## Entrée clavier : le skill
 
 - **Événement d'appui, pas lecture d'état** : un appui = une tentative.
-  `main.cpp` traduit la touche en `controleur.appuiTouche(partie, place)` ; le
-  `Controleur` envoie 1 à 3 en `partie.demanderSkill(place)`. Plusieurs
+  `EcranJeu` traduit la touche en `controleur.appuiTouche(partie, indiceTouche)` ; le
+  `Controleur` lit l'adresse de la touche et envoie les skills qui ne sont pas de type
+  `Zone` en `partie.demanderSkill(adresse)`. Plusieurs
   appuis dans la même image : le dernier gagne (une seule demande
   mémorisée).
 - **`window.setKeyRepeatEnabled(false)`** (dans `main.cpp`) : une touche
@@ -160,13 +161,16 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   `declencherSkill` est appelée même sans verrou : le soin marche sans
   combat, et le skill de dégâts vise alors le monstre que son lanceur
   frapperait en autodéfense.
-- **Correspondance des touches** : 4 = visée, 1 à 3 = skill direct. Elle est
-  écrite dans le `Controleur` (`s_placeDuSkillDeZone`), pas déduite du type
-  du skill.
+- **Correspondance des touches** (étape 74) : une table de quatre `AdresseSkill`
+  en donnée dans le `Controleur` (`s_touches`, accessible par `adresseDeLaTouche`) :
+  1 → guerrier/frappe, 2 → guerrier/provocation, 3 → prêtre/soin, 4 → mage/explosion.
+  Provisoire : la barre de raccourcis de l'étape 75 la remplace. La visée est déduite du
+  **type** du skill (`Zone`), plus du numéro de touche.
 
 ## Mode visée : le skill de zone (étape 42)
 
-- **État d'interface, pas état de jeu** : `m_placeEnVisee` vit dans le
+- **État d'interface, pas état de jeu** : `m_adresseEnVisee` (`std::optional<AdresseSkill>`)
+  vit dans le
   `Controleur`. `Escouade` et `Partie` ne connaissent ni la souris ni le
   mode ; l'`Escouade` expose `skillEstPret`, `rayonZoneDuSkill`,
   `cercleDePorteeDuSkill` et `declencherSkillDeZone`.
@@ -197,7 +201,7 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
 - **Portée (étape 43)** : le clic lance toujours le sort et sort de la visée ;
   hors portée, `Escouade` met le sort en attente et le lanceur marche (voir
   `docs/combat.md`).
-- **Touches 1 à 3** restent actives pendant la visée.
+- **Les touches des skills qui ne sont pas de zone** restent actives pendant la visée.
 
 ## Défaite de l'escouade
 
@@ -328,3 +332,12 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
 - **Conséquence acceptée** : près des bords de la carte, la caméra montre du
   noir au-delà des murs. L'ancre traversant les monstres, la caméra peut
   s'éloigner des personnages bloqués.
+
+## Barre de skills et touches (étape 74)
+
+- `EcranJeu` construit toujours 4 icônes pour les touches 1 à 4, chacune à partir de
+  `Controleur::adresseDeLaTouche(i)` et `Escouade::etatDuSkill(adresse)`. Le contour
+  jaune est celui de l'icône dont l'adresse est `Controleur::getAdresseEnVisee()`.
+  `BarreDeSkills` n'a pas changé (elle reçoit des `EtatSkill` et un numéro d'icône).
+- `Partie` mémorise une `AdresseSkill` (`m_skillDemande`, `LancerDeZone::adresse`) ;
+  la dernière demande de l'image gagne, comme avant.

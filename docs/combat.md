@@ -194,10 +194,9 @@ personnages sont dans `docs/formation.md`, le monstre dans
 - **Tests** : `test_Skill.cpp` couvre les cas génériques de recharge et de
   portée ; `test_Personnage.cpp` et `test_Monstre.cpp` ne gardent que ce
   qui prouve le branchement et les valeurs propres à chaque classe.
-- **L'absence de skill est un `std::optional<Skill>`**, reçu au
-  constructeur de `Personnage` comme l'attaque de base (injection), plutôt
-  qu'un skill « vide » à 0 de puissance. Pas de valeur par défaut : chaque
-  création de `Personnage` dit explicitement s'il a un skill.
+- **Les skills d'un personnage sont un `std::vector<SkillConnu>`** (étape 74), reçu au
+  constructeur de `Personnage` comme l'attaque de base (injection) ; la liste vide dit
+  « pas de skill ». Voir « Skills désignés par identifiant (étape 74) ».
 - **Quatre skills** (les deux derniers sont décrits dans « Provocation »
   et « Skill de zone ciblé »), aux
   valeurs écrites dans `Escouade.cpp` :
@@ -206,10 +205,9 @@ personnages sont dans `docs/formation.md`, le monstre dans
   - soin : personnage 2 (tireur arrière-gauche), 30 points de vie,
     recharge 8 s, portée 40 px bord à bord, activation 0,6 s.
   Provocation (0,2 s) et zone (0,8 s) : voir leurs sections.
-- **Le lanceur est désigné par sa place** : la touche N déclenche le skill
-  du personnage à la place N (1 à 4) de la formation, par
-  `Escouade::declencherSkill(place, ...)`. Sans champ « type de
-  personnage » ni indice mémorisé.
+- **Le skill est désigné par une adresse** (étape 74) : `Escouade::declencherSkill(
+  AdresseSkill, ...)`, avec `AdresseSkill { place, id }`. Avant l'étape 74 la touche N
+  désignait le personnage de la place N. Sans champ « type de personnage ».
 - **Le skill remplace l'attaque de base, pas l'inverse** : quand il
   s'engage, `Personnage::engagerSkill` annule le coup de base en exécution ;
   quand il part, `Personnage::avancerSkill` relance au complet la recharge de
@@ -222,9 +220,8 @@ personnages sont dans `docs/formation.md`, le monstre dans
   refusé est perdu (pas de file d'attente).
 - **La recharge s'écoule en permanence**, dans `Personnage::mettreAJour`,
   en combat ou non, et ne démarre qu'au moment où le skill part, pas à
-  l'appui. Barre orange dessinée par `Personnage`, 3 px sous la barre de
-  vie, proportionnelle à `getProgressionRecharge()` ; ni pour un mort ni
-  pour un personnage sans skill.
+  l'appui. L'ancienne barre orange sous la barre de vie a été supprimée à l'étape 74 ;
+  la barre de skills affiche la recharge de chaque skill.
 - **Le soin est appliqué dans `Escouade` et n'en sort pas** : `main.cpp`
   ne reçoit aucun dégât pour un soin. `Personnage::recevoirSoin`
   plafonne au maximum et ne soigne pas un mort.
@@ -821,3 +818,44 @@ l'enfoncerait dans un obstacle.
   d'`Escouade` : `Partie` lui passe les listes.
 - **Provocation souple** (un provoqué qui frappe aussi d'autres personnages) :
   hors de portée, non faite.
+
+## Skills désignés par identifiant (étape 74)
+
+- **`IdSkill`** (`IdSkill.hpp`, sans `.cpp`) : `enum class IdSkill { FrappePuissante,
+  Provocation, Soin, Explosion }`. Identifiant **stable** d'un skill : la future barre de
+  raccourcis le stockera, il ne doit donc dépendre ni de l'ordre des skills dans la liste
+  d'un personnage ni de la touche qui les lance.
+- **`Skill` ne porte pas d'identifiant** : il reste générique, il sert aussi d'attaque de
+  base et d'attaque des monstres. `SkillConnu { IdSkill id; Skill skill; }`
+  (`SkillConnu.hpp`) associe les deux pour un personnage. `Personnage` stocke un
+  `std::vector<SkillConnu>` (le nombre de skills grandira avec les niveaux), sans doublon
+  d'identifiant (`assert` à la construction).
+- **`AdresseSkill { std::size_t place; IdSkill id; }`** (`AdresseSkill.hpp`, comparable) :
+  où se trouve un skill. Elle remplace la place partout où la place désignait un skill :
+  `Escouade` (`declencherSkill`, `declencherSkillDeZone`, `etatDuSkill`, `skillEstPret`,
+  `rayonZoneDuSkill`, `cercleDePorteeDuSkill`, `typeDuSkill`, `choisirCible`),
+  `SkillEnAttente`, `Partie` (`demanderSkill`, `lancerSkillDeZone`) et `Controleur`
+  (visée). Une adresse invalide (place invalide ou skill inconnu de ce personnage) est
+  traitée comme une place invalide : refus, liste vide, `optional` vide, rayon 0.
+- **API de `Personnage` par `IdSkill`** : `typeSkill(id)`, `skillEstPret(id)`,
+  `etatDuSkill(id)`, `skillEstAPortee(id, cible)`, `zoneDuSkill(id)`,
+  `cercleDePorteeDuSkill(id)`, `engagerSkill(id, cible)`. Un identifiant inconnu se
+  comporte comme « pas de skill ». `avancerSkill` et `annulerSkill` n'ont pas besoin
+  d'identifiant : `ActionEngagee` porte maintenant `std::optional<IdSkill> skill` (vide pour
+  une attaque de base).
+- **Une seule action engagée à la fois par personnage** : engager un skill pendant
+  l'activation d'un autre de ses skills est refusé (sans toucher à la recharge du second).
+  Les recharges des skills sont **indépendantes** et s'écoulent toutes dans
+  `Personnage::mettreAJour`. Règle inchangée : un skill qui part relance la recharge de
+  l'attaque de base. Un seul skill en attente pour toute l'escouade, comme avant.
+- **`Escouade::peutAtteindre`, `porteeDe` et `pointVersMonstre`** prennent un
+  `std::optional<IdSkill>` à la place de `TypeAction` : vide = attaque de base, sinon le
+  skill. `TypeAction` ne sert plus qu'à `ActionEngagee`.
+- **`effetDuSkill` reçoit l'`IdSkill`** lu dans l'action engagée : la zone de provocation
+  et le rayon de la zone d'explosion sont ceux du skill qui part, plus ceux « du skill du
+  personnage ».
+- **Choix de test** : le triangle par défaut met tous les alliés à portée du soin ;
+  `tests/aides.hpp` a `uneEscouadeAuSoinCourt` (prêtre au soin de 33 px bord à bord) pour
+  tester un soin hors de portée. Voir `docs/tests.md`.
+- **Hors portée** : pas de classe de personnages, pas d'`IdSkill` dans `Skill`, aucun
+  nouveau skill, aucune valeur d'équilibrage modifiée.

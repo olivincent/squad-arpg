@@ -12,7 +12,7 @@
   `test_Mobile.cpp`, `test_Cercle.cpp`, `test_Autodefense.cpp`,
   `test_Encerclement.cpp`, `test_BarreDeSkills.cpp`, `test_EntiteVue.cpp`, `test_BarreDeVie.cpp`,
   `test_PointsDeVie.cpp`, `test_Provocations.cpp`, `test_Agresseurs.cpp`, `test_Partie.cpp`,
-  `test_Controleur.cpp`, `test_ChampDeVision.cpp`, `test_Vision.cpp`),
+  `test_Controleur.cpp`, `test_ChampDeVision.cpp`, `test_Vision.cpp`, `test_Composition.cpp`),
   sauf `Escouade`, coupée par thème en six fichiers à plat (pas de
   sous-dossier) :
   - `test_Escouade_deplacement.cpp` : ancre, chemin, formation, places,
@@ -945,3 +945,34 @@
   dernier est un échantillon : un sondage de 20 000 graines (programme jetable, hors tests) en
   trouve 145 (0,7 %, première graine 391). Voir `docs/generation.md`.
 - 716 tests.
+
+## Étape 74 : escouade de 3 personnages, skills désignés par identifiant
+
+- **735 tests** (716 avant : +6 `Personnage`, +8 `Composition`, +2 `Controleur`, +2 `Escouade`,
+  +1 places d'attaque ; les autres sont réécrits).
+- **`test_Personnage.cpp`** (+6) : plusieurs skills exposés par identifiant, identifiant
+  inconnu traité comme l'absence de skill, second skill refusé pendant l'activation d'un
+  autre (recharge de ce dernier intacte), recharges indépendantes, `etatDuSkill` n'indique
+  l'activation que pour le skill engagé, `annulerSkill` annule le skill engagé seulement.
+  Les constructions passent `{}` (aucun skill) ou `{{IdSkill::..., Skill(...)}}`.
+- **`test_Composition.cpp`** (nouveau) : `decalagesDeFormation` (aucun, un seul par rang,
+  2 + 2 = carré historique, 3 par rang, 1 devant et 2 derrière, rangs entremêlés) et
+  `compositionParDefaut` (sans doublon d'identifiant).
+- **`test_Controleur.cpp`** (+2) : table des touches, touche hors table ignorée.
+  `getPlaceEnVisee` devient `getAdresseEnVisee`.
+- **`test_Escouade_skills.cpp`** (+2) : adresse dont le skill est inconnu du personnage
+  traitée comme une place invalide ; `typeDuSkill`.
+- **Aides de `aides.hpp`** : `uneEscouade(position)` et `unePartie(niveau, graine)`
+  (composition par défaut) ; les constantes `s_adresseFrappe` (1), `s_adresseProvocation` (1),
+  `s_adresseSoin` (2) et `s_adresseExplosion` (3) ; `uneEscouadeADeuxGuerriers` (quatre
+  personnages : deux guerriers, prêtre, mage) pour les tests de places d'attaque et de
+  séparation qui ont besoin de deux mêlées ; `uneEscouadeAuSoinCourt` (prêtre dont le soin
+  porte 33 px bord à bord) parce que, dans le triangle, tous les alliés sont à portée du
+  soin normal.
+- **Réécriture pour 3 personnages** : guerrier en `(centre + (25, 0))`, prêtre en
+  `(-25, -25)`, mage en `(-25, +25)`. Les compteurs (`== 4` → `== 3`), les places (`4` → `3`
+  pour le mage, `2` → `1` pour la provocation) et les positions de monstres ont été
+  recalculés. Les tests de vue (murs fins) ont des monstres en `(275, 210)` face au guerrier ;
+  l'orientation de la formation se déduit maintenant de l'angle du décalage du guerrier (0° à
+  l'orientation 0) au lieu de « angle + 45° ». Un test « deux mêlées » a deux versions : une
+  avec la composition par défaut (guerrier contre tireurs), une avec `uneEscouadeADeuxGuerriers`.
