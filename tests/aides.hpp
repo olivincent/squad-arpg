@@ -11,12 +11,16 @@
 #include <variant>
 #include <vector>
 
+#include "AdresseSkill.hpp"
 #include "Aleatoire.hpp"
 #include "Cercle.hpp"
 #include "Cible.hpp"
+#include "Composition.hpp"
 #include "Coup.hpp"
 #include "Escouade.hpp"
 #include "EntiteVue.hpp"
+#include "Niveau.hpp"
+#include "Partie.hpp"
 #include "TileMap.hpp"
 #include "TypeSkill.hpp"
 
@@ -26,6 +30,41 @@
 
 // Graine fixe des tests : la même suite de nombres à chaque exécution.
 inline constexpr Generateur::result_type s_graineDeTest = 12345;
+
+// Adresses des quatre skills de l'escouade par défaut (touches 1 à 4 du jeu) :
+// le guerrier (place 1) a la frappe et la provocation, le prêtre (place 2) le soin,
+// le mage (place 3) l'explosion.
+inline constexpr AdresseSkill s_adresseFrappe{1, IdSkill::FrappePuissante};
+inline constexpr AdresseSkill s_adresseProvocation{1, IdSkill::Provocation};
+inline constexpr AdresseSkill s_adresseSoin{2, IdSkill::Soin};
+inline constexpr AdresseSkill s_adresseExplosion{3, IdSkill::Explosion};
+
+// Une escouade / une partie avec la composition par défaut (celle du jeu).
+inline Escouade uneEscouade(sf::Vector2f positionDepart) {
+    return Escouade(positionDepart, compositionParDefaut());
+}
+
+inline Partie unePartie(const Niveau& niveau, Generateur::result_type graine) {
+    return Partie(niveau, compositionParDefaut(), graine);
+}
+
+// Une escouade de quatre : deux guerriers devant (mêlées), le prêtre et le mage derrière. Pour les tests
+// de places d'attaque et de séparation qui ont besoin de deux mêlées (la composition par défaut n'en a qu'une).
+inline Escouade uneEscouadeADeuxGuerriers(sf::Vector2f positionDepart) {
+    std::vector<DefinitionPersonnage> composition = compositionParDefaut();
+    composition.insert(composition.begin(), composition[0]);
+    return Escouade(positionDepart, std::move(composition));
+}
+
+// Une escouade par défaut dont le prêtre a un soin de portée plus courte (33 px bord à bord,
+// soit 53 px entre centres) : le guerrier (55,9 px du prêtre) est hors de portée, le mage (50 px)
+// à portée. Dans le triangle de la composition par défaut, tous les alliés sont à portée du
+// soin normal (40 px) : il faut ce soin court pour tester un soin hors de portée.
+inline Escouade uneEscouadeAuSoinCourt(sf::Vector2f positionDepart) {
+    std::vector<DefinitionPersonnage> composition = compositionParDefaut();
+    composition[1].skills = {{IdSkill::Soin, Skill(TypeSkill::Soin, 33.0f, 30, 8.0f, 8.0f, 0.0f, 0.6f)}};
+    return Escouade(positionDepart, std::move(composition));
+}
 
 // Rayon de vision des personnages construits à la main dans les tests (celui de l'escouade).
 inline constexpr float s_rayonVisionDeTest = 320.0f;
@@ -175,18 +214,18 @@ inline std::vector<Coup> attendreLeDepartDesSkills(Escouade& escouade, const std
 
 // Déclenche le skill de cette place (touches 1 à 4), puis attend son départ :
 // les coups de skill sont ceux de l'appel et ceux de l'attente.
-inline std::vector<Coup> declencherEtAttendre(Escouade& escouade, std::size_t place, const std::vector<EntiteVue>& monstres, const TileMap& carte,
+inline std::vector<Coup> declencherEtAttendre(Escouade& escouade, AdresseSkill adresse, const std::vector<EntiteVue>& monstres, const TileMap& carte,
                                               Generateur& generateur) {
-    std::vector<Coup> coups = escouade.declencherSkill(place, monstres, carte, generateur);
+    std::vector<Coup> coups = escouade.declencherSkill(adresse, monstres, carte, generateur);
     const std::vector<Coup> suite = attendreLeDepartDesSkills(escouade, monstres, carte, generateur);
     coups.insert(coups.end(), suite.begin(), suite.end());
     return coups;
 }
 
 // Comme declencherEtAttendre, pour le skill de zone lancé en un point.
-inline std::vector<Coup> declencherZoneEtAttendre(Escouade& escouade, std::size_t place, sf::Vector2f point, const std::vector<EntiteVue>& monstres,
+inline std::vector<Coup> declencherZoneEtAttendre(Escouade& escouade, AdresseSkill adresse, sf::Vector2f point, const std::vector<EntiteVue>& monstres,
                                                   const TileMap& carte, Generateur& generateur) {
-    std::vector<Coup> coups = escouade.declencherSkillDeZone(place, point, monstres, carte, generateur);
+    std::vector<Coup> coups = escouade.declencherSkillDeZone(adresse, point, monstres, carte, generateur);
     const std::vector<Coup> suite = attendreLeDepartDesSkills(escouade, monstres, carte, generateur);
     coups.insert(coups.end(), suite.begin(), suite.end());
     return coups;
@@ -194,7 +233,7 @@ inline std::vector<Coup> declencherZoneEtAttendre(Escouade& escouade, std::size_
 
 // Place de l'allié désigné par choisirCible, vide si aucune cible.
 inline std::optional<std::size_t> placeAlliePourSoin(const Escouade& escouade) {
-    const std::optional<Cible> cible = escouade.choisirCible(TypeSkill::Soin, 3, {}, carteOuverte());
+    const std::optional<Cible> cible = escouade.choisirCible(TypeSkill::Soin, s_adresseSoin, {}, carteOuverte());
     if (!cible.has_value()) {
         return std::nullopt;
     }

@@ -9,12 +9,15 @@
 #include <optional>
 #include <vector>
 #include "ActionEngagee.hpp"
+#include "AdresseSkill.hpp"
 #include "Agresseurs.hpp"
 #include "Aleatoire.hpp"
 #include "Cible.hpp"
 #include "Cercle.hpp"
+#include "Composition.hpp"
 #include "Coup.hpp"
 #include "EtatSkill.hpp"
+#include "IdSkill.hpp"
 #include "Mobile.hpp"
 #include "EntiteVue.hpp"
 #include "Personnage.hpp"
@@ -28,7 +31,8 @@ class TileMap;
 // précédente (les personnages réagiraient avec une image de retard).
 class Escouade {
 public:
-    explicit Escouade(sf::Vector2f positionDepart);
+    // `composition` : un personnage par définition, aux places 1 à N dans l'ordre (assert : non vide).
+    Escouade(sf::Vector2f positionDepart, std::vector<DefinitionPersonnage> composition);
     // `afficherAncre` faux : le carré vert de l'ancre n'est pas dessiné (débogage).
     void dessiner(sf::RenderTarget& rendu, bool afficherAncre) const;
     void allerVers(sf::Vector2f destination, const TileMap& carte);
@@ -37,17 +41,19 @@ public:
     void regarderVers(sf::Vector2f point);
     void annulerAttaquesEngagees();
     [[nodiscard]] std::vector<Coup> attaquer(float dt, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
-    [[nodiscard]] std::vector<Coup> declencherSkill(std::size_t place, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
-    [[nodiscard]] bool skillEstPret(std::size_t place) const;
-    [[nodiscard]] std::optional<EtatSkill> etatDuSkill(std::size_t place) const;
-    [[nodiscard]] float rayonZoneDuSkill(std::size_t place) const;
-    [[nodiscard]] Cercle cercleDePorteeDuSkill(std::size_t place) const;
-    [[nodiscard]] std::vector<Coup> declencherSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
+    [[nodiscard]] std::vector<Coup> declencherSkill(AdresseSkill adresse, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
+    [[nodiscard]] bool skillEstPret(AdresseSkill adresse) const;
+    [[nodiscard]] std::optional<EtatSkill> etatDuSkill(AdresseSkill adresse) const;
+    // Type du skill à cette adresse ; vide si la place est invalide ou le skill inconnu de ce personnage.
+    [[nodiscard]] std::optional<TypeSkill> typeDuSkill(AdresseSkill adresse) const;
+    [[nodiscard]] float rayonZoneDuSkill(AdresseSkill adresse) const;
+    [[nodiscard]] Cercle cercleDePorteeDuSkill(AdresseSkill adresse) const;
+    [[nodiscard]] std::vector<Coup> declencherSkillDeZone(AdresseSkill adresse, sf::Vector2f point, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
     // `monstres` bloquent les personnages ; chaque personnage contourne en plus tous ceux
     // qu'il n'approche pas (voir monstresAContourner).
     void mettreAJour(float dt, const TileMap& carte, const std::vector<EntiteVue>& monstres);
     sf::Vector2f getCentre() const;
-    // Personnage que ce monstre poursuit : l'identifiant est sa place (1 à 4), le cercle le sien.
+    // Personnage que ce monstre poursuit : l'identifiant est sa place (1 à N), le cercle le sien.
     [[nodiscard]] std::optional<EntiteVue> proieDuMonstre(int idMonstre, sf::Vector2f positionMonstre) const;
     // Personnages que ce monstre peut frapper (identifiant = place) : seulement son
     // provocateur s'il est provoqué et vivant, sinon tous les personnages vivants.
@@ -63,12 +69,12 @@ public:
     [[nodiscard]] std::vector<Cercle> cerclesDeVision() const;
     // Un personnage vivant est-il à `ecart` ou moins (bord à bord) de cette zone ?
     [[nodiscard]] bool unVivantPresDe(sf::FloatRect zone, float ecart) const;
-    [[nodiscard]] std::optional<Cible> choisirCible(TypeSkill type, std::size_t place, const std::vector<EntiteVue>& monstres, const TileMap& carte) const;
+    [[nodiscard]] std::optional<Cible> choisirCible(TypeSkill type, AdresseSkill adresse, const std::vector<EntiteVue>& monstres, const TileMap& carte) const;
     void verrouiller(int idCible);
     void deverrouiller();
     std::optional<int> getCibleVerrouillee() const;
     const std::vector<sf::Vector2f>& getPlacesDeFormation() const;
-    // Point vers lequel le personnage de cette place (1 à 4) marche, calculé par le dernier
+    // Point vers lequel le personnage de cette place (de 1 à N) marche, calculé par le dernier
     // mettreAJour : place de formation, place d'attaque, cible du skill en attente, ou sa
     // propre position s'il reste sur place. Vide si la place est invalide.
     [[nodiscard]] std::optional<sf::Vector2f> pointVise(std::size_t place) const;
@@ -81,7 +87,7 @@ public:
 
 private:
     sf::Vector2f placePersonnage(std::size_t indice) const;
-    // Place de 1 à 4 (comme la touche du skill) : seule conversion vers l'indice 0 à 3.
+    // Place de 1 à N : seule conversion vers l'indice 0 à N-1.
     bool placeValide(std::size_t place) const;
     Personnage& personnageDeLaPlace(std::size_t place);              // place valide exigée
     const Personnage& personnageDeLaPlace(std::size_t place) const;  // place valide exigée
@@ -90,10 +96,11 @@ private:
     std::optional<std::size_t> indicePersonnageLePlusProche(sf::Vector2f point) const;
     std::optional<std::size_t> indiceProieDuMonstre(int idMonstre, sf::Vector2f positionMonstre) const;
     // Avec quoi un personnage atteint une cible : son attaque de base ou son skill.
-    bool peutAtteindre(const Personnage& personnage, TypeAction action, Cercle cible, const TileMap& carte) const;
-    bool peutLancerAuPoint(std::size_t place, sf::Vector2f point, const TileMap& carte) const;
+    // `skill` vide : l'attaque de base.
+    bool peutAtteindre(const Personnage& personnage, std::optional<IdSkill> skill, Cercle cible, const TileMap& carte) const;
+    bool peutLancerAuPoint(AdresseSkill adresse, sf::Vector2f point, const TileMap& carte) const;
     std::vector<Coup> avancerSkillDe(std::size_t indice, float dt, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
-    std::vector<Coup> effetDuSkill(std::size_t place, const std::optional<Cible>& cible, int puissance, const std::vector<EntiteVue>& monstres, const TileMap& carte);
+    std::vector<Coup> effetDuSkill(std::size_t place, IdSkill id, const std::optional<Cible>& cible, int puissance, const std::vector<EntiteVue>& monstres, const TileMap& carte);
     std::optional<sf::Vector2f> avancerSkillEnAttente(const TileMap& carte);
     // Étapes d'attaquer(), dans l'ordre où elles sont appelées.
     void actualiserMemoires(const std::vector<EntiteVue>& monstres);
@@ -109,8 +116,8 @@ private:
         float rayon;     // de l'anneau, en pixels
         sf::Angle angle; // autour du centre du monstre
     };
-    float porteeDe(const Personnage& personnage, TypeAction action) const;
-    sf::Vector2f pointVersMonstre(std::size_t indice, int idMonstre, Cercle monstre, TypeAction action,
+    float porteeDe(const Personnage& personnage, std::optional<IdSkill> skill) const;
+    sf::Vector2f pointVersMonstre(std::size_t indice, int idMonstre, Cercle monstre, std::optional<IdSkill> skill,
                                   const std::optional<PlaceDAttaque>& ancienne, const TileMap& carte);
     std::optional<sf::Vector2f> pointVersAgresseur(std::size_t indice, const std::vector<EntiteVue>& agresseurs,
                                                    const std::optional<PlaceDAttaque>& ancienne, const TileMap& carte);
@@ -126,7 +133,7 @@ private:
                             const std::vector<EntiteVue>& agresseurs, const TileMap& carte);
 
     struct SkillEnAttente {
-        std::size_t place;  // du lanceur, de 1 à 4
+        AdresseSkill adresse;  // du skill en attente (place du lanceur et identifiant)
         Cible cible;        // fixée à l'appui (pour un monstre, le cercle lu en route est m_cibleCombat)
     };
 
@@ -136,16 +143,15 @@ private:
     sf::Angle m_orientationVoulue;         // direction voulue de l'ancre, vers laquelle m_orientation tourne
     std::optional<sf::Vector2f> m_pointARegarder; // orientation voulue de l'ancre à l'arrêt (voir regarderVers)
     float m_vitesseRotation;               // en degrés par seconde
-    static constexpr std::size_t s_nombrePersonnages = 4;
     std::vector<Personnage> m_personnages;
     std::optional<int> m_cibleVerrouillee;
     std::optional<SkillEnAttente> m_skillEnAttente; // un seul skill en attente pour toute l'escouade
     std::optional<Cercle> m_cibleCombat; // dernière cible donnée à attaquer(), pour figer les personnages déjà à portée
     std::vector<sf::Vector2f> m_places;  // place de formation de chaque personnage, repliée si besoin (recalculée par mettreAJour)
-    std::array<bool, s_nombrePersonnages> m_monstreAPortee;  // par personnage : a-t-il un monstre à portée de son attaque (calculé par attaquer, lu par mettreAJour)
+    std::vector<bool> m_monstreAPortee;  // par personnage : a-t-il un monstre à portée de son attaque (calculé par attaquer, lu par mettreAJour)
     // Par personnage : place d'attaque retenue autour du monstre qu'il approche (vide = il n'en approche aucun).
-    std::array<std::optional<PlaceDAttaque>, s_nombrePersonnages> m_placesDAttaque;
-    std::array<sf::Vector2f, s_nombrePersonnages> m_pointsVises;  // par personnage, calculé par mettreAJour
+    std::vector<std::optional<PlaceDAttaque>> m_placesDAttaque;
+    std::vector<sf::Vector2f> m_pointsVises;  // par personnage, calculé par mettreAJour
     Agresseurs m_agresseurs; // monstres qui ont frappé l'escouade récemment
     Provocations m_provocations; // monstres provoqués par un personnage
 };

@@ -16,11 +16,15 @@
 
 namespace {
 
-// Indices dans cerclesDesVivants() quand les 4 sont vivants : deux mêlées (0 et 1), deux tireurs (2 et 3).
+// Indices dans cerclesDesVivants() quand tous sont vivants, pour la composition par défaut :
+// le guerrier (0), le prêtre (1) et le mage (2).
+constexpr std::size_t s_guerrier = 0;
+constexpr std::size_t s_pretre = 1;
+constexpr std::size_t s_mage = 2;
+
+// Pour une escouade à deux guerriers (uneEscouadeADeuxGuerriers) : deux mêlées (0 et 1), le prêtre et le mage.
 constexpr std::size_t s_melee1 = 0;
 constexpr std::size_t s_melee2 = 1;
-constexpr std::size_t s_tireur1 = 2;
-constexpr std::size_t s_tireur2 = 3;
 
 constexpr float s_porteeMelee = 20.0f;
 constexpr float s_porteeTireur = 120.0f;
@@ -59,10 +63,31 @@ bool estAPorteeDe(Cercle personnage, Cercle monstre, float portee) {
 
 }  // namespace
 
+TEST_CASE("Places d'attaque : le guerrier arrive au contact, les tireurs s'arretent a portee, sans se superposer") {
+    Generateur generateur = generateurDeTest();
+    const TileMap& carte = carteOuverte();
+    Escouade escouade = uneEscouade({300.0f, 500.0f});
+    const EntiteVue monstre{1, cibleMonstre({700.0f, 510.0f})};
+    escouade.verrouiller(1);
+
+    combattre(escouade, carte, {monstre}, 8.0f, generateur);
+
+    const std::vector<Cercle> cercles = escouade.cerclesDesVivants();
+    REQUIRE(cercles.size() == 3);
+    REQUIRE(estAPorteeDe(cercles[s_guerrier], monstre.cercle, s_porteeMelee));
+    REQUIRE(estAPorteeDe(cercles[s_pretre], monstre.cercle, s_porteeTireur));
+    REQUIRE(estAPorteeDe(cercles[s_mage], monstre.cercle, s_porteeTireur));
+    for (std::size_t i = 0; i < cercles.size(); ++i) {
+        for (std::size_t j = i + 1; j < cercles.size(); ++j) {
+            REQUIRE((cercles[i].centre - cercles[j].centre).length() >= 34.0f - s_tolerance);
+        }
+    }
+}
+
 TEST_CASE("Places d'attaque : deux melees en combat verrouille arrivent de cotes differents") {
     Generateur generateur = generateurDeTest();
     const TileMap& carte = carteOuverte();
-    Escouade escouade({300.0f, 500.0f});
+    Escouade escouade = uneEscouadeADeuxGuerriers({300.0f, 500.0f});
     const EntiteVue monstre{1, cibleMonstre({700.0f, 510.0f})};
     escouade.verrouiller(1);
 
@@ -80,25 +105,25 @@ TEST_CASE("Places d'attaque : deux melees en combat verrouille arrivent de cotes
 TEST_CASE("Places d'attaque : un tireur s'arrete des qu'il est a portee, sur un angle different") {
     Generateur generateur = generateurDeTest();
     const TileMap& carte = carteOuverte();
-    Escouade escouade({300.0f, 500.0f});
+    Escouade escouade = uneEscouade({300.0f, 500.0f});
     const EntiteVue monstre{1, cibleMonstre({700.0f, 510.0f})};
     escouade.verrouiller(1);
 
     combattre(escouade, carte, {monstre}, 8.0f, generateur);
 
     const std::vector<Cercle> cercles = escouade.cerclesDesVivants();
-    for (const std::size_t tireur : {s_tireur1, s_tireur2}) {
+    for (const std::size_t tireur : {s_pretre, s_mage}) {
         REQUIRE(estAPorteeDe(cercles[tireur], monstre.cercle, s_porteeTireur));
-        // Arrêté à distance : bien plus loin que le contact des mêlées.
+        // Arrêté à distance : bien plus loin que le contact du guerrier.
         REQUIRE(distanceBordABord(cercles[tireur], monstre.cercle) > 60.0f);
     }
-    REQUIRE(std::abs(ecartAngulaire(cercles[s_tireur1], cercles[s_tireur2], monstre.cercle)) >= 10.0f);
+    REQUIRE(std::abs(ecartAngulaire(cercles[s_pretre], cercles[s_mage], monstre.cercle)) >= 10.0f);
 }
 
 TEST_CASE("Places d'attaque : l'angle est garde quand le monstre bouge") {
     Generateur generateur = generateurDeTest();
     const TileMap& carte = carteOuverte();
-    Escouade escouade({300.0f, 500.0f});
+    Escouade escouade = uneEscouadeADeuxGuerriers({300.0f, 500.0f});
     EntiteVue monstre{1, cibleMonstre({700.0f, 510.0f})};
     escouade.verrouiller(1);
     combattre(escouade, carte, {monstre}, 6.0f, generateur);
@@ -118,7 +143,7 @@ TEST_CASE("Places d'attaque : l'angle est garde quand le monstre bouge") {
 TEST_CASE("Places d'attaque : au changement de cible, chacun prend sa place autour du nouveau monstre") {
     Generateur generateur = generateurDeTest();
     const TileMap& carte = carteOuverte();
-    Escouade escouade({300.0f, 500.0f});
+    Escouade escouade = uneEscouadeADeuxGuerriers({300.0f, 500.0f});
     const std::vector<EntiteVue> monstres = {EntiteVue{1, cibleMonstre({700.0f, 510.0f})},
                                              EntiteVue{2, cibleMonstre({500.0f, 800.0f})}};
     escouade.verrouiller(1);
@@ -137,7 +162,7 @@ TEST_CASE("Places d'attaque : au changement de cible, chacun prend sa place auto
 TEST_CASE("Places d'attaque : une place dans un mur est sautee") {
     Generateur generateur = generateurDeTest();
     const TileMap carte = carteDegageeEntouree();  // mur de droite : x >= 760
-    Escouade escouade({300.0f, 300.0f});
+    Escouade escouade = uneEscouadeADeuxGuerriers({300.0f, 300.0f});
     // À 25 px du mur : les places du côté du mur (centre à 43 px du monstre) sont dans le mur.
     const EntiteVue monstre{1, cibleMonstre({735.0f, 310.0f})};
     escouade.verrouiller(1);
@@ -156,7 +181,7 @@ TEST_CASE("Places d'attaque : une place dans un mur est sautee") {
 TEST_CASE("Places d'attaque : un agresseur sans verrou, le melee a portee frappe et l'autre le rejoint sans se superposer") {
     Generateur generateur = generateurDeTest();
     const TileMap& carte = carteOuverte();
-    Escouade escouade({300.0f, 500.0f});  // mêlées en (335, 485) et (335, 535)
+    Escouade escouade = uneEscouadeADeuxGuerriers({300.0f, 500.0f});  // mêlées en (335, 485) et (335, 535)
     // À portée du premier mêlée seulement.
     const EntiteVue monstre{1, cibleMonstre({345.0f, 470.0f})};
     escouade.recevoirDegats(1, monstre.cercle.centre, 10);  // le monstre devient agresseur
@@ -187,13 +212,13 @@ TEST_CASE("Places d'attaque : sans place valide, le personnage vise le centre du
                          "#...###..#",
                          "##########"},
                         40.0f);
-    Escouade escouade({50.0f, 50.0f});
+    Escouade escouade = uneEscouade({50.0f, 50.0f});
     const EntiteVue monstre{1, cibleMonstre({220.0f, 140.0f})};
     escouade.verrouiller(1);
 
     combattre(escouade, carte, {monstre}, 0.02f, generateur);
 
-    for (std::size_t place = 1; place <= 4; ++place) {
+    for (std::size_t place = 1; place <= 3; ++place) {
         const std::optional<sf::Vector2f> point = escouade.pointVise(place);
         REQUIRE(point.has_value());
         REQUIRE(point->x == monstre.cercle.centre.x);
@@ -202,14 +227,14 @@ TEST_CASE("Places d'attaque : sans place valide, le personnage vise le centre du
 }
 
 TEST_CASE("pointVise : place de formation hors combat, vide pour une place invalide") {
-    Escouade escouade({300.0f, 500.0f});
+    Escouade escouade = uneEscouade({300.0f, 500.0f});
     escouade.mettreAJour(s_dureeTic, carteOuverte(), {});
 
-    for (std::size_t place = 1; place <= 4; ++place) {
+    for (std::size_t place = 1; place <= 3; ++place) {
         const std::optional<sf::Vector2f> point = escouade.pointVise(place);
         REQUIRE(point.has_value());
         verifierPointProche(*point, escouade.getPlacesDeFormation()[place - 1], 0.01f);
     }
     REQUIRE_FALSE(escouade.pointVise(0).has_value());
-    REQUIRE_FALSE(escouade.pointVise(5).has_value());
+    REQUIRE_FALSE(escouade.pointVise(4).has_value());
 }

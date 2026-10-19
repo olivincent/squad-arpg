@@ -12,7 +12,7 @@ class Provocations {
 public:
     struct Provocation {
         int id;              // du monstre provoqué
-        std::size_t place;   // du provocateur, de 1 à 4
+        std::size_t place;   // du provocateur, de 1 à N
         float tempsRestant;  // en secondes
     };
 

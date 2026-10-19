@@ -6,7 +6,7 @@
 #include "Cercle.hpp"
 
 struct CibleAllie {
-    std::size_t place;  // de 1 à 4, comme la touche du skill
+    std::size_t place;  // de 1 à N, comme la place d'une AdresseSkill
 };
 
 struct CibleMonstre {

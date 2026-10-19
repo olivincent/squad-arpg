@@ -16,7 +16,7 @@ namespace {
 
 // Niveau dégagé de 15 × 15 cases de 40 px (600 × 600 px), sans mur
 // intérieur ; l'escouade part de (200, 200), son centre est donc en (210, 210).
-// Mêlées en (235, 185) et (235, 235), tireurs en (185, 185) et (185, 235).
+// Guerrier en (235, 210), tireurs en (185, 185) et (185, 235).
 Niveau niveauDegageEnGroupes(const std::vector<MonstreDuNiveau>& monstres) {
     return {std::vector<std::string>(15, std::string(15, '.')), 40.0f, {200.0f, 200.0f}, monstres};
 }
@@ -51,14 +51,14 @@ std::vector<sf::Vector2f> groupeDeMonstres() {
 }  // namespace
 
 TEST_CASE("cliquer sur un monstre le verrouille") {
-    Partie partie(niveauDegage({{400.0f, 400.0f}, {300.0f, 400.0f}}), s_graineDeTest);
+    Partie partie = unePartie(niveauDegage({{400.0f, 400.0f}, {300.0f, 400.0f}}), s_graineDeTest);
 
     REQUIRE(partie.cliquer({300.0f, 400.0f}) == ResultatClic::Monstre);
     REQUIRE(partie.getEscouade().getCibleVerrouillee() == 2);
 }
 
 TEST_CASE("cliquer au sol renvoie Sol et leve le verrou") {
-    Partie partie(niveauDegage({{400.0f, 400.0f}}), s_graineDeTest);
+    Partie partie = unePartie(niveauDegage({{400.0f, 400.0f}}), s_graineDeTest);
     REQUIRE(partie.cliquer({400.0f, 400.0f}) == ResultatClic::Monstre);
 
     REQUIRE(partie.cliquer({100.0f, 500.0f}) == ResultatClic::Sol);
@@ -66,7 +66,7 @@ TEST_CASE("cliquer au sol renvoie Sol et leve le verrou") {
 }
 
 TEST_CASE("un monstre tue est retire et le verrou est leve") {
-    Partie partie(niveauDegage({{235.0f, 210.0f}}), s_graineDeTest);
+    Partie partie = unePartie(niveauDegage({{235.0f, 210.0f}}), s_graineDeTest);
     REQUIRE(partie.cliquer({235.0f, 210.0f}) == ResultatClic::Monstre);
 
     for (int i = 0; i < 600 && !partie.getMonstres().empty(); ++i) {
@@ -78,7 +78,7 @@ TEST_CASE("un monstre tue est retire et le verrou est leve") {
 }
 
 TEST_CASE("aucun monstre mort ne reste dans le vecteur apres mettreAJour") {
-    Partie partie(niveauDegage({{235.0f, 210.0f}, {245.0f, 240.0f}}), s_graineDeTest);
+    Partie partie = unePartie(niveauDegage({{235.0f, 210.0f}, {245.0f, 240.0f}}), s_graineDeTest);
 
     for (int i = 0; i < 600; ++i) {
         partie.mettreAJour(s_dureeTic);
@@ -91,18 +91,18 @@ TEST_CASE("aucun monstre mort ne reste dans le vecteur apres mettreAJour") {
 }
 
 TEST_CASE("un skill demande part dans mettreAJour et sa recharge demarre") {
-    Partie partie(niveauDegage({{235.0f, 150.0f}}), s_graineDeTest);
-    REQUIRE(partie.getEscouade().skillEstPret(1));
+    Partie partie = unePartie(niveauDegage({{235.0f, 170.0f}}), s_graineDeTest);
+    REQUIRE(partie.getEscouade().skillEstPret(s_adresseFrappe));
 
-    partie.demanderSkill(1);
-    REQUIRE(partie.getEscouade().skillEstPret(1)); // rien ne part avant mettreAJour
+    partie.demanderSkill(s_adresseFrappe);
+    REQUIRE(partie.getEscouade().skillEstPret(s_adresseFrappe)); // rien ne part avant mettreAJour
     partie.mettreAJour(s_dureeTic);
 
-    REQUIRE_FALSE(partie.getEscouade().skillEstPret(1));
+    REQUIRE_FALSE(partie.getEscouade().skillEstPret(s_adresseFrappe));
 }
 
 TEST_CASE("un monstre approche poursuit et frappe") {
-    Partie partie(niveauDegage({{400.0f, 210.0f}}), s_graineDeTest);
+    Partie partie = unePartie(niveauDegage({{400.0f, 210.0f}}), s_graineDeTest);
 
     for (int i = 0; i < 600 && partie.getEscouade().getAgresseurs().empty(); ++i) {
         partie.mettreAJour(s_dureeTic);
@@ -112,7 +112,7 @@ TEST_CASE("un monstre approche poursuit et frappe") {
 }
 
 TEST_CASE("une fois l'escouade vaincue, les clics et les demandes sont sans effet") {
-    Partie partie(niveauDegage(groupeDeMonstres()), s_graineDeTest);
+    Partie partie = unePartie(niveauDegage(groupeDeMonstres()), s_graineDeTest);
 
     for (int i = 0; i < 5400 && partie.getEscouade().estVivante(); ++i) {
         partie.mettreAJour(s_dureeTic);
@@ -125,7 +125,7 @@ TEST_CASE("une fois l'escouade vaincue, les clics et les demandes sont sans effe
     REQUIRE(partie.cliquer(cible) == ResultatClic::Ignore);
     REQUIRE_FALSE(partie.getEscouade().getCibleVerrouillee().has_value());
 
-    partie.demanderSkill(1);
+    partie.demanderSkill(s_adresseFrappe);
     partie.ordonnerDeplacement({500.0f, 500.0f});
     avancer(partie, nombreDeTics(2.0f));
 
@@ -134,28 +134,28 @@ TEST_CASE("une fois l'escouade vaincue, les clics et les demandes sont sans effe
 }
 
 TEST_CASE("un skill et attaquer dans la meme image ne frappent pas deux fois le meme lanceur") {
-    // Monstre à portée du mêlée avant-gauche (skill de 25) et des deux
-    // tireurs (attaques de base de 5). Le mêlée qui lance son skill ne
+    // Monstre à portée du guerrier (skill de 25) et des deux
+    // tireurs (attaques de base de 5). Le guerrier qui lance son skill ne
     // frappe pas avec son attaque de base pendant l'activation ni juste après.
-    Partie partie(niveauDegage({{235.0f, 150.0f}}), s_graineDeTest);
+    Partie partie = unePartie(niveauDegage({{235.0f, 170.0f}}), s_graineDeTest);
 
     // 0,35 s : le skill est parti (activation de 0,3 s) et les tireurs ont eu
     // le temps d'exécuter leur coup (0,15 s), pas le mêlée, dont la recharge
     // de l'attaque de base a été relancée au complet (au moins 0,3 s) au départ.
-    partie.demanderSkill(1);
+    partie.demanderSkill(s_adresseFrappe);
     avancer(partie, nombreDeTics(0.35f));
 
     REQUIRE(partie.getMonstres().front().getPointsDeVie() == 100 - 25 - 5 - 5);
 }
 
 TEST_CASE("estPerdue est faux au depart") {
-    Partie partie(niveauDegage({{400.0f, 400.0f}}), s_graineDeTest);
+    Partie partie = unePartie(niveauDegage({{400.0f, 400.0f}}), s_graineDeTest);
 
     REQUIRE_FALSE(partie.estPerdue());
 }
 
 TEST_CASE("estPerdue est faux tant qu'un personnage survit et vrai quand les 4 sont morts") {
-    Partie partie(niveauDegage(groupeDeMonstres()), s_graineDeTest);
+    Partie partie = unePartie(niveauDegage(groupeDeMonstres()), s_graineDeTest);
 
     bool survivantUnique = false;
     for (int i = 0; i < 5400 && !partie.estPerdue(); ++i) {
@@ -171,7 +171,7 @@ TEST_CASE("estPerdue est faux tant qu'un personnage survit et vrai quand les 4 s
 }
 
 TEST_CASE("une partie perdue se fige") {
-    Partie partie(niveauDegage(groupeDeMonstres()), s_graineDeTest);
+    Partie partie = unePartie(niveauDegage(groupeDeMonstres()), s_graineDeTest);
     for (int i = 0; i < 5400 && !partie.estPerdue(); ++i) {
         partie.mettreAJour(s_dureeTic);
     }
@@ -195,14 +195,14 @@ TEST_CASE("une partie perdue se fige") {
 }
 
 TEST_CASE("estGagnee est faux tant qu'il reste des monstres") {
-    Partie partie(niveauDegage({{400.0f, 400.0f}}), s_graineDeTest);
+    Partie partie = unePartie(niveauDegage({{400.0f, 400.0f}}), s_graineDeTest);
 
     REQUIRE_FALSE(partie.estGagnee());
     REQUIRE(partie.monstresRestants() == 1);
 }
 
 TEST_CASE("estGagnee est vrai quand tous les monstres sont tues") {
-    Partie partie(niveauDegage({{235.0f, 210.0f}}), s_graineDeTest);
+    Partie partie = unePartie(niveauDegage({{235.0f, 210.0f}}), s_graineDeTest);
     REQUIRE(partie.cliquer({235.0f, 210.0f}) == ResultatClic::Monstre);
 
     for (int i = 0; i < 600 && !partie.estGagnee(); ++i) {
@@ -215,7 +215,7 @@ TEST_CASE("estGagnee est vrai quand tous les monstres sont tues") {
 }
 
 TEST_CASE("une partie perdue n'est pas gagnee") {
-    Partie partie(niveauDegage(groupeDeMonstres()), s_graineDeTest);
+    Partie partie = unePartie(niveauDegage(groupeDeMonstres()), s_graineDeTest);
     for (int i = 0; i < 5400 && !partie.estPerdue(); ++i) {
         partie.mettreAJour(s_dureeTic);
     }
@@ -225,14 +225,14 @@ TEST_CASE("une partie perdue n'est pas gagnee") {
 }
 
 TEST_CASE("sans monstre au depart la partie est gagnee") {
-    Partie partie(niveauDegage({}), s_graineDeTest);
+    Partie partie = unePartie(niveauDegage({}), s_graineDeTest);
 
     REQUIRE(partie.estGagnee());
     REQUIRE(partie.monstresRestants() == 0);
 }
 
 TEST_CASE("le compteur de monstres baisse quand un monstre meurt") {
-    Partie partie(niveauDegage({{235.0f, 210.0f}, {550.0f, 550.0f}}), s_graineDeTest);
+    Partie partie = unePartie(niveauDegage({{235.0f, 210.0f}, {550.0f, 550.0f}}), s_graineDeTest);
     REQUIRE(partie.monstresRestants() == 2);
 
     for (int i = 0; i < 600 && partie.monstresRestants() == 2; ++i) {
@@ -244,7 +244,7 @@ TEST_CASE("le compteur de monstres baisse quand un monstre meurt") {
 }
 
 TEST_CASE("une partie gagnee se fige") {
-    Partie partie(niveauDegage({{235.0f, 210.0f}}), s_graineDeTest);
+    Partie partie = unePartie(niveauDegage({{235.0f, 210.0f}}), s_graineDeTest);
     for (int i = 0; i < 600 && !partie.estGagnee(); ++i) {
         partie.mettreAJour(s_dureeTic);
     }
@@ -259,13 +259,13 @@ TEST_CASE("une partie gagnee se fige") {
 }
 
 TEST_CASE("une partie reaffectee avec un niveau neuf recommence") {
-    Partie partie(niveauDegage(groupeDeMonstres()), s_graineDeTest);
+    Partie partie = unePartie(niveauDegage(groupeDeMonstres()), s_graineDeTest);
     for (int i = 0; i < 5400 && !partie.estPerdue(); ++i) {
         partie.mettreAJour(s_dureeTic);
     }
     REQUIRE(partie.estPerdue());
 
-    partie = Partie(niveauDegage({{400.0f, 400.0f}, {450.0f, 400.0f}, {500.0f, 400.0f},
+    partie = unePartie(niveauDegage({{400.0f, 400.0f}, {450.0f, 400.0f}, {500.0f, 400.0f},
                                   {400.0f, 450.0f}, {450.0f, 450.0f}, {500.0f, 450.0f}}), s_graineDeTest);
 
     REQUIRE_FALSE(partie.estPerdue());
@@ -277,8 +277,8 @@ TEST_CASE("une partie reaffectee avec un niveau neuf recommence") {
 }
 
 TEST_CASE("un monstre qui prepare son coup ne bouge pas, meme si l'escouade s'eloigne") {
-    // Monstre au contact du mêlée arrière-droit (235, 235), à 35 px.
-    Partie partie(niveauDegage({{270.0f, 235.0f}}), s_graineDeTest);
+    // Monstre au contact du guerrier (235, 210), à 35 px.
+    Partie partie = unePartie(niveauDegage({{270.0f, 210.0f}}), s_graineDeTest);
     const sf::Vector2f depart = partie.getMonstres().front().getCentre();
     partie.mettreAJour(s_dureeTic);  // le coup est engagé
 
@@ -289,7 +289,7 @@ TEST_CASE("un monstre qui prepare son coup ne bouge pas, meme si l'escouade s'el
 }
 
 TEST_CASE("un monstre reprend la poursuite une fois son coup parti") {
-    Partie partie(niveauDegage({{270.0f, 235.0f}}), s_graineDeTest);
+    Partie partie = unePartie(niveauDegage({{270.0f, 210.0f}}), s_graineDeTest);
     partie.mettreAJour(s_dureeTic);
     partie.ordonnerDeplacement({100.0f, 500.0f});
     avancer(partie, nombreDeTics(1.0f));
@@ -313,7 +313,7 @@ bool aBouge(const Partie& partie, std::size_t indice, sf::Vector2f depart) {
 }  // namespace
 
 TEST_CASE("un monstre qui detecte l'escouade alerte son groupe meme hors de sa detection") {
-    Partie partie(niveauDegageEnGroupes({{s_monstreProche, 0}, {s_monstreLoinPoste, 0}}), s_graineDeTest);
+    Partie partie = unePartie(niveauDegageEnGroupes({{s_monstreProche, 0}, {s_monstreLoinPoste, 0}}), s_graineDeTest);
 
     avancer(partie, 5);
 
@@ -322,7 +322,7 @@ TEST_CASE("un monstre qui detecte l'escouade alerte son groupe meme hors de sa d
 }
 
 TEST_CASE("un monstre d'un autre groupe n'est pas alerte") {
-    Partie partie(niveauDegageEnGroupes({{s_monstreProche, 0}, {s_monstreLoinPoste, 1}}), s_graineDeTest);
+    Partie partie = unePartie(niveauDegageEnGroupes({{s_monstreProche, 0}, {s_monstreLoinPoste, 1}}), s_graineDeTest);
 
     avancer(partie, 5);
 
@@ -331,7 +331,7 @@ TEST_CASE("un monstre d'un autre groupe n'est pas alerte") {
 }
 
 TEST_CASE("un monstre seul dans son groupe ne change rien pour les autres") {
-    Partie partie(niveauDegageEnGroupes({{s_monstreProche, 0}}), s_graineDeTest);
+    Partie partie = unePartie(niveauDegageEnGroupes({{s_monstreProche, 0}}), s_graineDeTest);
 
     avancer(partie, 5);
 
@@ -340,7 +340,7 @@ TEST_CASE("un monstre seul dans son groupe ne change rien pour les autres") {
 }
 
 TEST_CASE("sans monstre en poursuite personne n'est alerte") {
-    Partie partie(niveauDegageEnGroupes({{s_monstreLoinPoste, 0}, {{560.0f, 480.0f}, 0}}), s_graineDeTest);
+    Partie partie = unePartie(niveauDegageEnGroupes({{s_monstreLoinPoste, 0}, {{560.0f, 480.0f}, 0}}), s_graineDeTest);
 
     avancer(partie, 30);
 
@@ -350,11 +350,11 @@ TEST_CASE("sans monstre en poursuite personne n'est alerte") {
 
 TEST_CASE("un monstre touche par un skill de zone alerte son groupe") {
     // Le monstre touché (420, 350) est hors de la détection (plus de 200 px de
-    // tout personnage) mais à portée du skill de zone (place 4) ; il passe en
+    // tout personnage) mais à portée du skill de zone (mage, place 3) ; il passe en
     // poursuite au départ du sort, et son voisin de groupe le suit.
     const sf::Vector2f touche{420.0f, 350.0f};
-    Partie partie(niveauDegageEnGroupes({{touche, 0}, {s_monstreLoinPoste, 0}}), s_graineDeTest);
-    partie.lancerSkillDeZone(4, touche);
+    Partie partie = unePartie(niveauDegageEnGroupes({{touche, 0}, {s_monstreLoinPoste, 0}}), s_graineDeTest);
+    partie.lancerSkillDeZone(s_adresseExplosion, touche);
 
     avancer(partie, nombreDeTics(0.7f)); // activation de 0,8 s : rien n'est encore parti
     REQUIRE_FALSE(aBouge(partie, 0, touche));
@@ -369,15 +369,15 @@ TEST_CASE("un monstre touche par un skill de zone alerte son groupe") {
 // Cible de frappe d'un monstre : un monstre provoqué ne frappe que son
 // provocateur, même collé à un autre personnage.
 TEST_CASE("un monstre provoque ne frappe que son provocateur") {
-    Partie partie(niveauDegage({{300.0f, 235.0f}}), s_graineDeTest);
-    partie.demanderSkill(2);  // provocation du mêlée avant-droit (place 2)
+    Partie partie = unePartie(niveauDegage({{300.0f, 235.0f}}), s_graineDeTest);
+    partie.demanderSkill(s_adresseProvocation);  // provocation du guerrier (place 1)
 
     bool aFrappeLeProvocateur = false;
     for (int i = 0; i < nombreDeTics(3.0f); ++i) {
         partie.mettreAJour(s_dureeTic);
         for (const Monstre& monstre : partie.getMonstres()) {
             if (const std::optional<int> cible = monstre.cibleEngagee(); cible && i > nombreDeTics(0.3f)) {
-                REQUIRE(*cible == 2);
+                REQUIRE(*cible == 1);
                 aFrappeLeProvocateur = true;
             }
         }
@@ -414,7 +414,7 @@ void attirerHorsDuTerritoire(Partie& partie, sf::Vector2f arrivee) {
 }  // namespace
 
 TEST_CASE("un clic sur un monstre qui rentre a son poste compte comme un clic au sol") {
-    Partie partie(niveauDeLaFuite(), s_graineDeTest);
+    Partie partie = unePartie(niveauDeLaFuite(), s_graineDeTest);
     attirerHorsDuTerritoire(partie, {1080.0f, 300.0f});
 
     REQUIRE(partie.cliquer(fuyard(partie).getCentre()) == ResultatClic::Sol);
@@ -422,10 +422,10 @@ TEST_CASE("un clic sur un monstre qui rentre a son poste compte comme un clic au
 }
 
 TEST_CASE("un monstre qui abandonne n'est plus provoque par une provocation") {
-    Partie partie(niveauDeLaFuite(), s_graineDeTest);
+    Partie partie = unePartie(niveauDeLaFuite(), s_graineDeTest);
     attirerHorsDuTerritoire(partie, {1080.0f, 300.0f});
 
-    partie.demanderSkill(2);  // provocation du mêlée avant-droit : zone de 150 px
+    partie.demanderSkill(s_adresseProvocation);  // provocation du mêlée avant-droit : zone de 150 px
     for (int i = 0; i < nombreDeTics(0.5f); ++i) {
         partie.mettreAJour(s_dureeTic);
         REQUIRE(partie.getEscouade().getProvocations().empty());
@@ -434,7 +434,7 @@ TEST_CASE("un monstre qui abandonne n'est plus provoque par une provocation") {
 }
 
 TEST_CASE("un monstre qui rentre a son poste bloque toujours les personnages") {
-    Partie partie(niveauDeLaFuite(), s_graineDeTest);
+    Partie partie = unePartie(niveauDeLaFuite(), s_graineDeTest);
     attirerHorsDuTerritoire(partie, {1080.0f, 300.0f});
 
     partie.ordonnerDeplacement({300.0f, 300.0f});  // l'escouade rentre plus vite que lui, à travers lui
@@ -453,7 +453,7 @@ TEST_CASE("un monstre qui rentre a son poste bloque toujours les personnages") {
 }
 
 TEST_CASE("le verrou posé sur un monstre est leve quand il abandonne") {
-    Partie partie(niveauDeLaFuite(), s_graineDeTest);
+    Partie partie = unePartie(niveauDeLaFuite(), s_graineDeTest);
     partie.ordonnerDeplacement({1150.0f, 300.0f});
     bool verrouille = false;
     for (int i = 0; i < nombreDeTics(15.0f) && fuyard(partie).estCiblable(); ++i) {
@@ -475,7 +475,7 @@ TEST_CASE("le verrou posé sur un monstre est leve quand il abandonne") {
 // monstre à chaque aller-retour sans jamais être frappés. Maintenant, il rentre sans réagir et
 // arrive plein à son poste.
 TEST_CASE("un monstre qui abandonne rentre a son poste sans perdre de vie et sans revenir") {
-    Partie partie(niveauDeLaFuite(), s_graineDeTest);
+    Partie partie = unePartie(niveauDeLaFuite(), s_graineDeTest);
     partie.ordonnerDeplacement({1150.0f, 300.0f});
 
     bool aAbandonne = false;
@@ -520,7 +520,7 @@ constexpr sf::Vector2f s_coteEst{420.0f, 200.0f};
 }  // namespace
 
 TEST_CASE("porte : fermee a la construction, l'escouade ne la traverse pas") {
-    Partie partie(niveauAvecPorte(), s_graineDeTest);
+    Partie partie = unePartie(niveauAvecPorte(), s_graineDeTest);
 
     partie.ordonnerDeplacement(s_coteEst);
     avancer(partie, 300);
@@ -529,7 +529,7 @@ TEST_CASE("porte : fermee a la construction, l'escouade ne la traverse pas") {
 }
 
 TEST_CASE("porte : un clic dessus renvoie Objet et leve le verrou") {
-    Partie partie(niveauAvecPorte(), s_graineDeTest);
+    Partie partie = unePartie(niveauAvecPorte(), s_graineDeTest);
     REQUIRE(partie.cliquer({60.0f, 60.0f}) == ResultatClic::Monstre);
     REQUIRE(partie.getEscouade().getCibleVerrouillee().has_value());
 
@@ -539,7 +539,7 @@ TEST_CASE("porte : un clic dessus renvoie Objet et leve le verrou") {
 }
 
 TEST_CASE("porte : l'escouade s'avance, la porte s'ouvre et le chemin passe") {
-    Partie partie(niveauAvecPorte(), s_graineDeTest);
+    Partie partie = unePartie(niveauAvecPorte(), s_graineDeTest);
     REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);
 
     avancer(partie, 120);
@@ -555,7 +555,7 @@ TEST_CASE("porte : l'escouade s'avance, la porte s'ouvre et le chemin passe") {
 }
 
 TEST_CASE("porte : un ordre de deplacement annule l'interaction") {
-    Partie partie(niveauAvecPorte(), s_graineDeTest);
+    Partie partie = unePartie(niveauAvecPorte(), s_graineDeTest);
     REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);
 
     partie.ordonnerDeplacement({100.0f, 200.0f});
@@ -565,7 +565,7 @@ TEST_CASE("porte : un ordre de deplacement annule l'interaction") {
 }
 
 TEST_CASE("porte : un clic au sol annule l'interaction") {
-    Partie partie(niveauAvecPorte(), s_graineDeTest);
+    Partie partie = unePartie(niveauAvecPorte(), s_graineDeTest);
     REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);
 
     REQUIRE(partie.cliquer({100.0f, 200.0f}) == ResultatClic::Sol);
@@ -575,7 +575,7 @@ TEST_CASE("porte : un clic au sol annule l'interaction") {
 }
 
 TEST_CASE("porte : un monstre ciblable sur la porte a la priorite") {
-    Partie partie(niveauAvecPorte({{s_surLaPorte, 0}}), s_graineDeTest);
+    Partie partie = unePartie(niveauAvecPorte({{s_surLaPorte, 0}}), s_graineDeTest);
 
     REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Monstre);
 }
@@ -586,13 +586,13 @@ TEST_CASE("porte : sans cote libre, le clic compte comme un clic au sol") {
         niveau.plan[static_cast<std::size_t>(y)][6] = '#';
         niveau.plan[static_cast<std::size_t>(y)][8] = '#';
     }
-    Partie partie(niveau, s_graineDeTest);
+    Partie partie = unePartie(niveau, s_graineDeTest);
 
     REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Sol);
 }
 
 TEST_CASE("porte : une partie figee n'ouvre rien") {
-    Partie partie(niveauAvecPorte({}), s_graineDeTest);  // aucun monstre : gagnée
+    Partie partie = unePartie(niveauAvecPorte({}), s_graineDeTest);  // aucun monstre : gagnée
     REQUIRE(partie.estGagnee());
     REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);
 
@@ -603,12 +603,12 @@ TEST_CASE("porte : une partie figee n'ouvre rien") {
 
 namespace {
 
-// Les deux places avant de la formation (mêlées) sont-elles plus proches du point que les deux arrière ?
+// La place avant de la formation (le guerrier) est-elle plus proche du point que les deux places arrière ?
 bool formationFaitFace(const Partie& partie, sf::Vector2f point) {
     const std::vector<sf::Vector2f>& places = partie.getEscouade().getPlacesDeFormation();
-    const float avantMax = std::max((places[0] - point).length(), (places[1] - point).length());
-    const float arriereMin = std::min((places[2] - point).length(), (places[3] - point).length());
-    return avantMax < arriereMin;
+    const float avant = (places[0] - point).length();
+    const float arriereMin = std::min((places[1] - point).length(), (places[2] - point).length());
+    return avant < arriereMin;
 }
 
 // Monstre loin de la porte et de l'escouade, pour que la partie ne soit pas gagnée.
@@ -625,7 +625,7 @@ Niveau niveauCollePorteDeDos() {
 }  // namespace
 
 TEST_CASE("porte : un personnage deja a portee ouvre la porte sur place, sans deplacement") {
-    Partie partie(niveauCollePorteDeDos(), s_graineDeTest);
+    Partie partie = unePartie(niveauCollePorteDeDos(), s_graineDeTest);
     const sf::Vector2f centreAvant = partie.getEscouade().getCentre();
 
     REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);
@@ -636,7 +636,7 @@ TEST_CASE("porte : un personnage deja a portee ouvre la porte sur place, sans de
 }
 
 TEST_CASE("porte : de dos et collee a la porte, la formation fait face a la porte apres l'ouverture sur place") {
-    Partie partie(niveauCollePorteDeDos(), s_graineDeTest);
+    Partie partie = unePartie(niveauCollePorteDeDos(), s_graineDeTest);
     partie.mettreAJour(s_dureeTic);
     REQUIRE_FALSE(formationFaitFace(partie, s_surLaPorte));
 
@@ -649,7 +649,7 @@ TEST_CASE("porte : de dos et collee a la porte, la formation fait face a la port
 TEST_CASE("porte : apres l'ouverture par approche, la formation est tournee vers la porte") {
     Niveau niveau = niveauAvecPorte(s_monstreLointain);
     niveau.departEscouade = {250.0f, 80.0f};  // au nord-ouest : l'approche se fait vers le sud
-    Partie partie(niveau, s_graineDeTest);
+    Partie partie = unePartie(niveau, s_graineDeTest);
 
     REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);
     avancer(partie, 200);
@@ -659,7 +659,7 @@ TEST_CASE("porte : apres l'ouverture par approche, la formation est tournee vers
 }
 
 TEST_CASE("porte : loin de la porte, la porte reste fermee tant que l'escouade n'est pas arrivee") {
-    Partie partie(niveauAvecPorte(s_monstreLointain), s_graineDeTest);  // départ (210, 210), à 70 px
+    Partie partie = unePartie(niveauAvecPorte(s_monstreLointain), s_graineDeTest);  // départ (210, 210), à 70 px
 
     REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);
 
@@ -681,13 +681,13 @@ const sf::Vector2f s_monstreAuLoin{820.0f, 220.0f};
 }  // namespace
 
 TEST_CASE("vision : un monstre de la salle de depart est cliquable des la construction") {
-    Partie partie(niveauLong({{{300.0f, 210.0f}, 0}}), s_graineDeTest);  // aucun mettreAJour
+    Partie partie = unePartie(niveauLong({{{300.0f, 210.0f}, 0}}), s_graineDeTest);  // aucun mettreAJour
 
     REQUIRE(partie.cliquer({300.0f, 210.0f}) == ResultatClic::Monstre);
 }
 
 TEST_CASE("vision : un monstre hors de vue ne peut pas etre clique, le clic est un clic au sol") {
-    Partie partie(niveauLong({{s_monstreAuLoin, 0}}), s_graineDeTest);
+    Partie partie = unePartie(niveauLong({{s_monstreAuLoin, 0}}), s_graineDeTest);
 
     REQUIRE(partie.cliquer(s_monstreAuLoin) == ResultatClic::Sol);
     REQUIRE_FALSE(partie.getEscouade().getCibleVerrouillee().has_value());
@@ -698,14 +698,14 @@ TEST_CASE("vision : un monstre cache par un mur n'est pas cliquable") {
     for (std::string& ligne : niveau.plan) {
         ligne[8] = '#';
     }
-    Partie partie(niveau, s_graineDeTest);
+    Partie partie = unePartie(niveau, s_graineDeTest);
 
     REQUIRE(partie.cliquer({500.0f, 200.0f}) == ResultatClic::Sol);
     REQUIRE_FALSE(partie.getEscouade().getCibleVerrouillee().has_value());
 }
 
 TEST_CASE("vision : le meme monstre devient cliquable quand l'escouade s'en approche") {
-    Partie partie(niveauLong({{s_monstreAuLoin, 0}}), s_graineDeTest);
+    Partie partie = unePartie(niveauLong({{s_monstreAuLoin, 0}}), s_graineDeTest);
     REQUIRE(partie.cliquer(s_monstreAuLoin) == ResultatClic::Sol);
 
     partie.ordonnerDeplacement({540.0f, 210.0f});  // à 280 px du monstre : vu, mais pas détecté
@@ -735,13 +735,13 @@ constexpr sf::Vector2f s_surLaPorteLointaine{1020.0f, 200.0f};
 }  // namespace
 
 TEST_CASE("vision : une porte dans l'inconnu n'est pas cliquable, le clic est un clic au sol") {
-    Partie partie(niveauPorteLointaine(), s_graineDeTest);
+    Partie partie = unePartie(niveauPorteLointaine(), s_graineDeTest);
 
     REQUIRE(partie.cliquer(s_surLaPorteLointaine) == ResultatClic::Sol);
 }
 
 TEST_CASE("vision : une porte vue devient cliquable") {
-    Partie partie(niveauPorteLointaine(), s_graineDeTest);
+    Partie partie = unePartie(niveauPorteLointaine(), s_graineDeTest);
     REQUIRE(partie.cliquer(s_surLaPorteLointaine) == ResultatClic::Sol);
 
     partie.ordonnerDeplacement({800.0f, 200.0f});  // à 5 cases de la porte

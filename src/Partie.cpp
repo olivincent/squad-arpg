@@ -1,6 +1,7 @@
 // ./src/Partie.cpp
 #include "Partie.hpp"
 #include <algorithm>
+#include <utility>
 #include "Cercle.hpp"
 #include "Coup.hpp"
 #include "EntiteVue.hpp"
@@ -12,8 +13,8 @@ namespace {
 constexpr float s_porteeInteraction = 20.0f;
 }
 
-Partie::Partie(const Niveau& niveau, Generateur::result_type graine)
-    : m_carte(niveau.plan, niveau.tailleCase), m_escouade(niveau.departEscouade), m_generateur(graine), m_vision(m_carte) {
+Partie::Partie(const Niveau& niveau, std::vector<DefinitionPersonnage> composition, Generateur::result_type graine)
+    : m_carte(niveau.plan, niveau.tailleCase), m_escouade(niveau.departEscouade, std::move(composition)), m_generateur(graine), m_vision(m_carte) {
     int prochainId = 1;
     for (const MonstreDuNiveau& monstre : niveau.monstres) {
         m_monstres.emplace_back(monstre.position, prochainId++, niveau.armureMonstres, monstre.groupe);
@@ -67,12 +68,12 @@ ResultatClic Partie::cliquer(sf::Vector2f point) {
     return ResultatClic::Sol;
 }
 
-void Partie::demanderSkill(std::size_t place) {
-    m_skillDemande = place;
+void Partie::demanderSkill(AdresseSkill adresse) {
+    m_skillDemande = adresse;
 }
 
-void Partie::lancerSkillDeZone(std::size_t place, sf::Vector2f point) {
-    m_lancerDeZoneDemande = LancerDeZone{place, point};
+void Partie::lancerSkillDeZone(AdresseSkill adresse, sf::Vector2f point) {
+    m_lancerDeZoneDemande = LancerDeZone{adresse, point};
 }
 
 void Partie::ordonnerDeplacement(sf::Vector2f point) {
@@ -175,7 +176,7 @@ void Partie::resoudreLesCoups(float dt) {
 
     // Lancer du skill de zone : réussi ou refusé, la demande est consommée.
     if (m_lancerDeZoneDemande.has_value()) {
-        appliquer(m_escouade.declencherSkillDeZone(m_lancerDeZoneDemande->place, m_lancerDeZoneDemande->point, monstresVus, m_carte, m_generateur));
+        appliquer(m_escouade.declencherSkillDeZone(m_lancerDeZoneDemande->adresse, m_lancerDeZoneDemande->point, monstresVus, m_carte, m_generateur));
     }
 
     // Le skill passe avant l'attaque de base : s'il part, il relance

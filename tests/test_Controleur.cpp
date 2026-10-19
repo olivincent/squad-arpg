@@ -12,8 +12,8 @@
 namespace {
 
 // Niveau dégagé de 15 × 15 cases de 40 px ; l'escouade part de (200, 200),
-// son centre est en (210, 210). Le lanceur du skill de zone (place 4) est
-// le tireur en (185, 235).
+// son centre est en (210, 210). Le lanceur du skill de zone (le mage, place 3)
+// est le tireur en (185, 235).
 Niveau niveauDegage(const std::vector<sf::Vector2f>& monstres) {
     std::vector<MonstreDuNiveau> deLaPartie;
     for (const sf::Vector2f position : monstres) {
@@ -35,63 +35,63 @@ void avancer(Partie& partie, int nombreDeTicsAFaire) {
 }  // namespace
 
 TEST_CASE("4 entre en visee quand le skill est pret") {
-    Partie partie(niveauDegage({s_monstreLointain}), s_graineDeTest);
+    Partie partie = unePartie(niveauDegage({s_monstreLointain}), s_graineDeTest);
     Controleur controleur;
 
     controleur.appuiTouche(partie, 4);
 
-    REQUIRE(controleur.getPlaceEnVisee() == 4);
+    REQUIRE(controleur.getAdresseEnVisee() == s_adresseExplosion);
 }
 
 TEST_CASE("4 n'entre pas en visee si le skill n'est pas pret") {
-    Partie partie(niveauDegage({s_monstreLointain}), s_graineDeTest);
+    Partie partie = unePartie(niveauDegage({s_monstreLointain}), s_graineDeTest);
     Controleur controleur;
     controleur.appuiTouche(partie, 4);
     controleur.appuiGauche(partie, s_pointDeLancer);
     avancer(partie, 1);
-    REQUIRE_FALSE(partie.getEscouade().skillEstPret(4));
+    REQUIRE_FALSE(partie.getEscouade().skillEstPret(s_adresseExplosion));
 
     controleur.debutImage(partie);
     controleur.appuiTouche(partie, 4);
 
-    REQUIRE_FALSE(controleur.getPlaceEnVisee().has_value());
+    REQUIRE_FALSE(controleur.getAdresseEnVisee().has_value());
 }
 
 TEST_CASE("un clic en visee lance le sort et sort de la visee") {
-    Partie partie(niveauDegage({s_monstreLointain}), s_graineDeTest);
+    Partie partie = unePartie(niveauDegage({s_monstreLointain}), s_graineDeTest);
     Controleur controleur;
     controleur.appuiTouche(partie, 4);
 
     controleur.appuiGauche(partie, s_pointDeLancer);
 
-    REQUIRE_FALSE(controleur.getPlaceEnVisee().has_value());
-    REQUIRE(partie.getEscouade().skillEstPret(4)); // rien ne part avant mettreAJour
+    REQUIRE_FALSE(controleur.getAdresseEnVisee().has_value());
+    REQUIRE(partie.getEscouade().skillEstPret(s_adresseExplosion)); // rien ne part avant mettreAJour
     avancer(partie, 1);
-    REQUIRE_FALSE(partie.getEscouade().skillEstPret(4));
+    REQUIRE_FALSE(partie.getEscouade().skillEstPret(s_adresseExplosion));
 }
 
 TEST_CASE("clic droit, Echap et 4 annulent la visee sans consommer la recharge") {
-    Partie partie(niveauDegage({s_monstreLointain}), s_graineDeTest);
+    Partie partie = unePartie(niveauDegage({s_monstreLointain}), s_graineDeTest);
     Controleur controleur;
 
     controleur.appuiTouche(partie, 4);
     controleur.appuiDroit();
-    REQUIRE_FALSE(controleur.getPlaceEnVisee().has_value());
+    REQUIRE_FALSE(controleur.getAdresseEnVisee().has_value());
 
     controleur.appuiTouche(partie, 4);
     controleur.appuiEchap();
-    REQUIRE_FALSE(controleur.getPlaceEnVisee().has_value());
+    REQUIRE_FALSE(controleur.getAdresseEnVisee().has_value());
 
     controleur.appuiTouche(partie, 4);
     controleur.appuiTouche(partie, 4);
-    REQUIRE_FALSE(controleur.getPlaceEnVisee().has_value());
+    REQUIRE_FALSE(controleur.getAdresseEnVisee().has_value());
 
     avancer(partie, 1);
-    REQUIRE(partie.getEscouade().skillEstPret(4));
+    REQUIRE(partie.getEscouade().skillEstPret(s_adresseExplosion));
 }
 
 TEST_CASE("un bouton tenu a l'entree en visee ne deplace pas l'escouade avant un nouvel appui") {
-    Partie partie(niveauDegage({s_monstreLointain}), s_graineDeTest);
+    Partie partie = unePartie(niveauDegage({s_monstreLointain}), s_graineDeTest);
     Controleur controleur;
     const sf::Vector2f depart = partie.getEscouade().getCentre();
     const sf::Vector2f curseur{500.0f, 500.0f};
@@ -120,22 +120,22 @@ TEST_CASE("la mort du lanceur fait sortir de la visee au debutImage suivant") {
             monstres.push_back({300.0f + 35.0f * static_cast<float>(colonne), 150.0f + 35.0f * static_cast<float>(ligne)});
         }
     }
-    Partie partie(niveauDegage(monstres), s_graineDeTest);
+    Partie partie = unePartie(niveauDegage(monstres), s_graineDeTest);
     Controleur controleur;
     controleur.appuiTouche(partie, 4);
     for (int i = 0; i < 5400 && partie.getEscouade().estVivante(); ++i) {
         partie.mettreAJour(s_dureeTic);
     }
     REQUIRE_FALSE(partie.getEscouade().estVivante());
-    REQUIRE(controleur.getPlaceEnVisee() == 4);
+    REQUIRE(controleur.getAdresseEnVisee() == s_adresseExplosion);
 
     controleur.debutImage(partie);
 
-    REQUIRE_FALSE(controleur.getPlaceEnVisee().has_value());
+    REQUIRE_FALSE(controleur.getAdresseEnVisee().has_value());
 }
 
 TEST_CASE("un clic au sol arme le deplacement continu, un clic sur un monstre non") {
-    Partie partie(niveauDegage({{400.0f, 400.0f}}), s_graineDeTest);
+    Partie partie = unePartie(niveauDegage({{400.0f, 400.0f}}), s_graineDeTest);
     Controleur controleur;
     const sf::Vector2f depart = partie.getEscouade().getCentre();
     const sf::Vector2f curseur{20.0f, 200.0f};  // à l'opposé du monstre
@@ -163,7 +163,7 @@ TEST_CASE("un clic sur une porte desarme le deplacement continu") {
     plan[5][7] = '.';
     Niveau niveau{plan, 40.0f, {200.0f, 200.0f}, {{{60.0f, 60.0f}, 0}}};
     niveau.portes = {PorteDuNiveau{{{7, 4}, {7, 5}}}};
-    Partie partie(niveau, s_graineDeTest);
+    Partie partie = unePartie(niveau, s_graineDeTest);
     Controleur controleur;
     controleur.appuiGauche(partie, {100.0f, 200.0f});  // sol : déplacement continu armé
     controleur.appuiGauche(partie, {300.0f, 200.0f});  // porte : désarmé
@@ -175,4 +175,24 @@ TEST_CASE("un clic sur une porte desarme le deplacement continu") {
     }
 
     REQUIRE(partie.cliquer({300.0f, 200.0f}) == ResultatClic::Sol);  // la porte s'est ouverte
+}
+
+TEST_CASE("La table des touches associe chaque touche de 1 a 4 a une adresse, et rien ailleurs") {
+    REQUIRE(Controleur::adresseDeLaTouche(1) == s_adresseFrappe);
+    REQUIRE(Controleur::adresseDeLaTouche(2) == s_adresseProvocation);
+    REQUIRE(Controleur::adresseDeLaTouche(3) == s_adresseSoin);
+    REQUIRE(Controleur::adresseDeLaTouche(4) == s_adresseExplosion);
+    REQUIRE_FALSE(Controleur::adresseDeLaTouche(0).has_value());
+    REQUIRE_FALSE(Controleur::adresseDeLaTouche(5).has_value());
+}
+
+TEST_CASE("Une touche hors de la table est ignoree") {
+    Partie partie = unePartie(niveauDegage({s_monstreLointain}), s_graineDeTest);
+    Controleur controleur;
+
+    controleur.appuiTouche(partie, 5);
+    avancer(partie, 1);
+
+    REQUIRE_FALSE(controleur.getAdresseEnVisee().has_value());
+    REQUIRE(partie.getEscouade().skillEstPret(s_adresseFrappe));
 }

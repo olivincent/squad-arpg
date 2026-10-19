@@ -4,7 +4,7 @@
 #include "Cercle.hpp"
 
 // Une entité telle que l'autre camp la voit : son identifiant (celui d'un
-// monstre, ou la place 1 à 4 d'un personnage) et sa forme.
+// monstre, ou la place 1 à N d'un personnage) et sa forme.
 struct EntiteVue {
     int id;
     Cercle cercle;

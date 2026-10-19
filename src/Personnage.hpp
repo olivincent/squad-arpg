@@ -4,9 +4,11 @@
 #include "Aleatoire.hpp"
 #include "Cercle.hpp"
 #include "EtatSkill.hpp"
+#include "IdSkill.hpp"
 #include "Mobile.hpp"
 #include "PointsDeVie.hpp"
 #include "Skill.hpp"
+#include "SkillConnu.hpp"
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/System/Vector2.hpp>
@@ -18,7 +20,8 @@ class TileMap;
 class Personnage {
 public:
     // `rayonVision` : jusqu'où il voit, en pixels (l'union des champs des vivants est la vision de l'escouade).
-    Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::optional<Skill> skill, int armure, float rayonVision);
+    // `skills` : les skills qu'il connaît (assert : pas deux fois le même identifiant).
+    Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::vector<SkillConnu> skills, int armure, float rayonVision);
     void dessiner(sf::RenderTarget& rendu) const;
     // `obstacles` le bloquent ; `aContourner` est ce que son chemin évite : la ligne droite n'est
     // prise que si elle passe loin d'eux, sinon A* avec coût (voir Mobile::allerVers).
@@ -44,19 +47,22 @@ public:
     [[nodiscard]] std::vector<sf::Vector2f> cheminRestant() const;
     // Un coup de base en exécution ou un skill en activation : le personnage reste sur place.
     bool estEnExecution() const;
-    std::optional<TypeSkill> typeSkill() const;
-    bool skillEstPret() const;
-    std::optional<EtatSkill> etatDuSkill() const;
-    [[nodiscard]] bool skillEstAPortee(Cercle cible) const;
-    [[nodiscard]] Cercle zoneDuSkill() const;
-    [[nodiscard]] Cercle cercleDePorteeDuSkill() const;
+    // Les questions sur un skill se posent par identifiant. Un identifiant que ce
+    // personnage ne connaît pas se comporte comme « pas de skill » : vide, faux ou rayon 0.
+    std::optional<TypeSkill> typeSkill(IdSkill id) const;
+    bool skillEstPret(IdSkill id) const;
+    std::optional<EtatSkill> etatDuSkill(IdSkill id) const;
+    [[nodiscard]] bool skillEstAPortee(IdSkill id, Cercle cible) const;
+    [[nodiscard]] Cercle zoneDuSkill(IdSkill id) const;
+    [[nodiscard]] Cercle cercleDePorteeDuSkill(IdSkill id) const;
     // Skill en trois temps, comme l'attaque de base : engager (vivant, skill
-    // prêt ; annule le coup de base en exécution, mais ne demande pas
-    // d'immobilité) ; avancer l'activation, qui rend la puissance au moment
-    // où l'effet part (et relance la recharge de l'attaque de base) ;
-    // annuler, sans recharge consommée. La portée et la vue sont vérifiées
-    // par Escouade ; la cible est stockée sans être interprétée.
-    bool engagerSkill(std::optional<Cible> cible);
+    // prêt, aucun autre skill en activation ; annule le coup de base en
+    // exécution, mais ne demande pas d'immobilité) ; avancer l'activation, qui
+    // rend la puissance au moment où l'effet part (et relance la recharge de
+    // l'attaque de base) ; annuler, sans recharge consommée. Une seule action
+    // engagée à la fois ; les recharges des skills sont indépendantes. La portée
+    // et la vue sont vérifiées par Escouade ; la cible est stockée sans être interprétée.
+    bool engagerSkill(IdSkill id, std::optional<Cible> cible);
     std::optional<ActionEngagee> skillEngage() const;
     [[nodiscard]] int avancerSkill(float dt, Generateur& generateur);
     void annulerSkill();
@@ -74,10 +80,12 @@ private:
     Mobile m_mobile;        // position (centre en pixels du monde) et déplacement
     sf::Color m_couleur;
     Skill m_attaqueDeBase;
-    std::optional<Skill> m_skill; // vide = pas de skill
+    std::vector<SkillConnu> m_skills; // sans doublon d'identifiant
     std::optional<sf::Vector2f> m_cibleChemin; // cible du dernier A* ; vide = pas de chemin en cours
     PointsDeVie m_pointsDeVie;
     int m_armure;
     float m_rayonVision;    // en pixels
+    const Skill* trouverSkill(IdSkill id) const;  // nullptr si le personnage ne connaît pas ce skill
+    Skill* trouverSkill(IdSkill id);
     std::optional<ActionEngagee> m_actionEngagee; // action en exécution et sa cible ; lue seulement pendant l'exécution
 };

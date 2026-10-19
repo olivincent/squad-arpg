@@ -6,7 +6,9 @@
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <cmath>
+#include <utility>
 #include <variant>
 #include "EntiteVue.hpp"
 #include "Agresseurs.hpp"
@@ -21,83 +23,56 @@
 #include "TraceDeChemin.hpp"
 
 namespace {
-const sf::Color s_couleurMelee = sf::Color::Red;
-const sf::Color s_couleurTireur = sf::Color::Cyan;
 constexpr float s_coteAncre = 20.0f;         // côté du carré de l'ancre, en pixels
 constexpr float s_vitesseAncre = 180.0f;     // en pixels par seconde
 constexpr float s_vitesseRotation = 360.0f;  // de la formation, en degrés par seconde
-constexpr float s_porteeMelee = 20.0f;    // bord à bord
-constexpr float s_porteeTireur = 120.0f;  // bord à bord
-constexpr int s_armureMelee = 50;
-constexpr int s_armureTireur = 0;
-constexpr float s_rayonVision = 320.0f;  // en pixels (8 cases), le même pour les quatre
-constexpr int s_degatsAttaqueDeBase = 5;
-constexpr float s_executionAttaqueDeBase = 0.15f;  // en secondes, immobile avant que le coup parte
-constexpr float s_rechargeMeleeMin = 0.3f;   // attaque de base des mêlées, en secondes
-constexpr float s_rechargeMeleeMax = 0.7f;
-constexpr float s_rechargeTireurMin = 0.4f;  // attaque de base des tireurs, en secondes
-constexpr float s_rechargeTireurMax = 0.6f;
-constexpr int s_degatsSkill = 25;
-constexpr float s_rechargeSkill = 5.0f;   // en secondes
-constexpr float s_activationSkill = 0.3f; // en secondes, immobile avant que l'effet parte
-constexpr float s_porteeSoin = 40.0f;     // bord à bord
-constexpr int s_puissanceSoin = 30;
-constexpr float s_rechargeSoin = 8.0f;    // en secondes
-constexpr float s_activationSoin = 0.6f;  // en secondes
-constexpr float s_rayonProvocation = 150.0f;  // rayon de zone, depuis le centre du provocateur
-constexpr int s_dureeProvocation = 4;         // en secondes (la puissance de ce skill)
-constexpr float s_rechargeProvocation = 10.0f;  // en secondes
-constexpr float s_activationProvocation = 0.2f;  // en secondes
-constexpr float s_porteeZone = 250.0f;        // portée de lancement du skill de zone, bord à bord
-constexpr int s_degatsZone = 15;
-constexpr float s_rechargeZone = 8.0f;        // en secondes
-constexpr float s_activationZone = 0.8f;      // en secondes
-constexpr float s_rayonZone = 60.0f;          // rayon de zone, depuis le point visé
 constexpr float s_laisseAgresseur = 100.0f;      // en pixels, centre à centre, mesurée depuis la place de formation
 constexpr float s_fractionPorteeAnneau = 0.9f;    // anneau d'attaque : part de la portée, pour que la place soit à portée
 constexpr float s_vitesseSeparation = 120.0f;    // poussée maximale entre deux personnages trop proches, en pixels par seconde (plus lente que la marche, 240 : voir docs/formation.md)
 constexpr float s_ecartEntrePersonnages = 34.0f;  // distance minimale voulue entre deux centres (≈ (20 + 4) × √2 : 4 px visibles même en diagonale) ; aussi entre deux places, ou une place et un personnage immobile
 constexpr std::array<float, 3> s_rayonsDeSecoursPlaces = {34.0f, 68.0f, 102.0f};  // anneaux autour de l'ancre pour une place repliée sur une autre
 
-// Attaque de base d'un personnage, mêlée ou tireur : la portée et l'intervalle de recharge changent.
-Skill attaqueDeBase(float portee, float rechargeMin, float rechargeMax) {
-    return Skill(TypeSkill::Degats, portee, s_degatsAttaqueDeBase, rechargeMin, rechargeMax, 0.0f,
-                 s_executionAttaqueDeBase);
-}
-
-// Seule conversion d'une place (de 1 à 4, comme la touche du skill) vers l'indice (de 0 à 3).
+// Seule conversion d'une place (de 1 à N) vers l'indice (de 0 à N-1).
 std::size_t indiceDeLaPlace(std::size_t place) {
     return place - 1;
 }
 }  // namespace
 
-Escouade::Escouade(sf::Vector2f positionDepart)
+namespace {
+std::vector<Rang> rangsDe(const std::vector<DefinitionPersonnage>& composition) {
+    std::vector<Rang> rangs;
+    for (const DefinitionPersonnage& definition : composition) {
+        rangs.push_back(definition.rang);
+    }
+    return rangs;
+}
+}  // namespace
+
+Escouade::Escouade(sf::Vector2f positionDepart, std::vector<DefinitionPersonnage> composition)
     : m_mobile(positionDepart + sf::Vector2f(s_coteAncre / 2.0f, s_coteAncre / 2.0f), {s_coteAncre, s_coteAncre}, s_vitesseAncre),
-      m_decalages({{25.0f, -25.0f}, {25.0f, 25.0f}, {-25.0f, -25.0f}, {-25.0f, 25.0f}}),
+      m_decalages(decalagesDeFormation(rangsDe(composition))),
       m_orientation(),
       m_orientationVoulue(),
       m_vitesseRotation(s_vitesseRotation),
-      m_personnages({
-          Personnage(placePersonnage(0), s_couleurMelee, attaqueDeBase(s_porteeMelee, s_rechargeMeleeMin, s_rechargeMeleeMax),
-                     Skill(TypeSkill::Degats, s_porteeMelee, s_degatsSkill, s_rechargeSkill, s_rechargeSkill, 0.0f, s_activationSkill), s_armureMelee, s_rayonVision),
-          Personnage(placePersonnage(1), s_couleurMelee, attaqueDeBase(s_porteeMelee, s_rechargeMeleeMin, s_rechargeMeleeMax),
-                     Skill(TypeSkill::Provocation, 0.0f, s_dureeProvocation, s_rechargeProvocation, s_rechargeProvocation, s_rayonProvocation, s_activationProvocation),
-                     s_armureMelee, s_rayonVision),
-          Personnage(placePersonnage(2), s_couleurTireur, attaqueDeBase(s_porteeTireur, s_rechargeTireurMin, s_rechargeTireurMax),
-                     Skill(TypeSkill::Soin, s_porteeSoin, s_puissanceSoin, s_rechargeSoin, s_rechargeSoin, 0.0f, s_activationSoin), s_armureTireur, s_rayonVision),
-          Personnage(placePersonnage(3), s_couleurTireur, attaqueDeBase(s_porteeTireur, s_rechargeTireurMin, s_rechargeTireurMax),
-                     Skill(TypeSkill::Zone, s_porteeZone, s_degatsZone, s_rechargeZone, s_rechargeZone, s_rayonZone, s_activationZone), s_armureTireur, s_rayonVision),
-      }),
+      m_personnages(),
       m_cibleVerrouillee(),
       m_skillEnAttente(),
       m_cibleCombat(),
-      m_places({placePersonnage(0), placePersonnage(1), placePersonnage(2), placePersonnage(3)}),
-      m_monstreAPortee(),
-      m_placesDAttaque(),
-      m_pointsVises({placePersonnage(0), placePersonnage(1), placePersonnage(2), placePersonnage(3)}),
+      m_places(),
+      m_monstreAPortee(composition.size(), false),
+      m_placesDAttaque(composition.size()),
+      m_pointsVises(),
       m_agresseurs(),
       m_provocations()
 {
+    assert(!composition.empty());
+    for (std::size_t i = 0; i < composition.size(); ++i) {
+        DefinitionPersonnage& definition = composition[i];
+        m_personnages.emplace_back(placePersonnage(i), definition.couleur, std::move(definition.attaqueDeBase),
+                                   std::move(definition.skills), definition.armure, definition.rayonVision);
+        m_places.push_back(placePersonnage(i));
+    }
+    m_pointsVises = m_places;
 }
 
 sf::Vector2f Escouade::placePersonnage(std::size_t indice) const {
@@ -186,17 +161,17 @@ void Escouade::engagerSkillDeZoneEnAttente(const TileMap& carte) {
         return;
     }
     const CiblePoint point = std::get<CiblePoint>(m_skillEnAttente->cible);
-    Personnage& lanceur = personnageDeLaPlace(m_skillEnAttente->place);
-    if (!lanceur.estVivant() || !peutLancerAuPoint(m_skillEnAttente->place, point.point, carte)) {
+    Personnage& lanceur = personnageDeLaPlace(m_skillEnAttente->adresse.place);
+    if (!lanceur.estVivant() || !peutLancerAuPoint(m_skillEnAttente->adresse, point.point, carte)) {
         return;
     }
-    static_cast<void>(lanceur.engagerSkill(m_skillEnAttente->cible));
+    static_cast<void>(lanceur.engagerSkill(m_skillEnAttente->adresse.id, m_skillEnAttente->cible));
     m_skillEnAttente = std::nullopt;
 }
 
 bool Escouade::tousLesVivantsAtteignent(Cercle cible, const TileMap& carte) const {
     return std::all_of(m_personnages.begin(), m_personnages.end(), [&](const Personnage& personnage) {
-        return !personnage.estVivant() || peutAtteindre(personnage, TypeAction::AttaqueDeBase, cible, carte);
+        return !personnage.estVivant() || peutAtteindre(personnage, std::nullopt, cible, carte);
     });
 }
 
@@ -229,11 +204,11 @@ void Escouade::engagerSkillDeDegatsEnAttente(Cercle cible, const TileMap& carte)
     if (!skillEnAttenteDeDegats()) {
         return;
     }
-    Personnage& lanceur = personnageDeLaPlace(m_skillEnAttente->place);
-    if (!peutAtteindre(lanceur, TypeAction::Skill, cible, carte)) {
+    Personnage& lanceur = personnageDeLaPlace(m_skillEnAttente->adresse.place);
+    if (!peutAtteindre(lanceur, m_skillEnAttente->adresse.id, cible, carte)) {
         return;
     }
-    static_cast<void>(lanceur.engagerSkill(m_skillEnAttente->cible));
+    static_cast<void>(lanceur.engagerSkill(m_skillEnAttente->adresse.id, m_skillEnAttente->cible));
     m_skillEnAttente = std::nullopt;
 }
 
@@ -275,19 +250,19 @@ std::vector<Coup> Escouade::avancerSkillDe(std::size_t indice, float dt, const s
     if (puissance <= 0) {
         return {};
     }
-    return effetDuSkill(indice + 1, action->cible, puissance, monstres, carte);
+    return effetDuSkill(indice + 1, *action->skill, action->cible, puissance, monstres, carte);
 }
 
 // Effet d'un skill qui part, évalué au moment du départ. La provocation et le
 // soin sont appliqués ici ; les dégâts et la zone sortent en `Coup`.
-std::vector<Coup> Escouade::effetDuSkill(std::size_t place, const std::optional<Cible>& cible, int puissance, const std::vector<EntiteVue>& monstres, const TileMap& carte) {
+std::vector<Coup> Escouade::effetDuSkill(std::size_t place, IdSkill id, const std::optional<Cible>& cible, int puissance, const std::vector<EntiteVue>& monstres, const TileMap& carte) {
     const Personnage& lanceur = personnageDeLaPlace(place);
 
     // Provocation (sans cible) : zone centrée sur le lanceur ; touche les
     // monstres de la zone et en vue du lanceur (`ligneDeVue`). La puissance
     // est la durée.
     if (!cible.has_value()) {
-        const Cercle zone = lanceur.zoneDuSkill();
+        const Cercle zone = lanceur.zoneDuSkill(id);
         for (const EntiteVue& monstre : monstres) {
             if (distanceBordABord(zone, monstre.cercle) == 0.0f && ligneDeVue(carte, lanceur.getCentre(), monstre.cercle.centre)) {
                 provoquer(monstre.id, place, static_cast<float>(puissance));
@@ -306,7 +281,7 @@ std::vector<Coup> Escouade::effetDuSkill(std::size_t place, const std::optional<
             // Zone : tous les monstres dont le bord est dans la zone autour du
             // point, et en vue du point d'impact (`ligneDeVue`) : le sort ne traverse pas les murs.
             [&](const CiblePoint& point) -> std::vector<Coup> {
-                const Cercle zone{point.point, lanceur.zoneDuSkill().rayon};
+                const Cercle zone{point.point, lanceur.zoneDuSkill(id).rayon};
                 std::vector<Coup> coups;
                 for (const EntiteVue& monstre : monstres) {
                     if (distanceBordABord(zone, monstre.cercle) == 0.0f && ligneDeVue(carte, point.point, monstre.cercle.centre)) {
@@ -330,7 +305,7 @@ std::vector<Coup> Escouade::autodefense(float dt, const std::vector<EntiteVue>& 
     for (std::size_t i = 0; i < m_personnages.size(); ++i) {
         Personnage& personnage = m_personnages[i];
         const std::optional<int> id = choisirCibleAFrapper(
-            personnage.getCercle(), [&](Cercle c) { return peutAtteindre(personnage, TypeAction::AttaqueDeBase, c, carte); }, monstres, m_cibleVerrouillee);
+            personnage.getCercle(), [&](Cercle c) { return peutAtteindre(personnage, std::nullopt, c, carte); }, monstres, m_cibleVerrouillee);
         m_monstreAPortee[i] = id.has_value();
         if (const std::optional<int> idEngage = personnage.cibleEngagee()) {
             if (!personnage.estVivant() || trouverEntite(monstres, *idEngage) == nullptr) {
@@ -347,14 +322,16 @@ std::vector<Coup> Escouade::autodefense(float dt, const std::vector<EntiteVue>& 
     return coups;
 }
 
-std::vector<Coup> Escouade::declencherSkill(std::size_t place, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur) {
-    if (!placeValide(place)) {
+std::vector<Coup> Escouade::declencherSkill(AdresseSkill adresse, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur) {
+    if (!placeValide(adresse.place)) {
         return {};
     }
 
+    const std::size_t place = adresse.place;
+    const IdSkill id = adresse.id;
     Personnage& lanceur = personnageDeLaPlace(place);
-    const std::optional<TypeSkill> type = lanceur.typeSkill();
-    if (!type.has_value() || m_skillEnAttente.has_value() || !lanceur.skillEstPret()) {
+    const std::optional<TypeSkill> type = lanceur.typeSkill(id);
+    if (!type.has_value() || m_skillEnAttente.has_value() || !lanceur.skillEstPret(id)) {
         return {};
     }
 
@@ -362,7 +339,7 @@ std::vector<Coup> Escouade::declencherSkill(std::size_t place, const std::vector
     // commence tout de suite ; elle touche les monstres au départ, même s'il
     // n'y en a aucun (la recharge est alors consommée).
     if (*type == TypeSkill::Provocation) {
-        if (!lanceur.engagerSkill(std::nullopt)) {
+        if (!lanceur.engagerSkill(id, std::nullopt)) {
             return {};
         }
         return avancerSkillDe(indiceDeLaPlace(place), 0.0f, monstres, carte, generateur);
@@ -373,7 +350,7 @@ std::vector<Coup> Escouade::declencherSkill(std::size_t place, const std::vector
         return {};
     }
 
-    const std::optional<Cible> cible = choisirCible(*type, place, monstres, carte);
+    const std::optional<Cible> cible = choisirCible(*type, adresse, monstres, carte);
     if (!cible.has_value()) {
         return {};
     }
@@ -384,20 +361,20 @@ std::vector<Coup> Escouade::declencherSkill(std::size_t place, const std::vector
             // coups sont renvoyés au départ, ici ou dans attaquer()) ; sinon
             // le skill est mis en attente.
             [&](const CibleMonstre& monstre) -> std::vector<Coup> {
-                if (peutAtteindre(lanceur, TypeAction::Skill, monstre.cercle, carte)) {
-                    static_cast<void>(lanceur.engagerSkill(*cible));
+                if (peutAtteindre(lanceur, id, monstre.cercle, carte)) {
+                    static_cast<void>(lanceur.engagerSkill(id, *cible));
                     return avancerSkillDe(indiceDeLaPlace(place), 0.0f, monstres, carte, generateur);
                 }
-                m_skillEnAttente = SkillEnAttente{place, *cible};
+                m_skillEnAttente = SkillEnAttente{adresse, *cible};
                 return {};
             },
             // Soin : appliqué au départ, il ne sort pas d'Escouade.
             [&](const CibleAllie& allie) -> std::vector<Coup> {
-                if (peutAtteindre(lanceur, TypeAction::Skill, personnageDeLaPlace(allie.place).getCercle(), carte)) {
-                    static_cast<void>(lanceur.engagerSkill(*cible));
+                if (peutAtteindre(lanceur, id, personnageDeLaPlace(allie.place).getCercle(), carte)) {
+                    static_cast<void>(lanceur.engagerSkill(id, *cible));
                     return avancerSkillDe(indiceDeLaPlace(place), 0.0f, monstres, carte, generateur);
                 }
-                m_skillEnAttente = SkillEnAttente{place, *cible};
+                m_skillEnAttente = SkillEnAttente{adresse, *cible};
                 return {};
             },
             // choisirCible ne renvoie jamais de CiblePoint (réservée au skill de zone).
@@ -406,49 +383,58 @@ std::vector<Coup> Escouade::declencherSkill(std::size_t place, const std::vector
         *cible);
 }
 
-bool Escouade::skillEstPret(std::size_t place) const {
-    return placeValide(place) && personnageDeLaPlace(place).skillEstPret();
+bool Escouade::skillEstPret(AdresseSkill adresse) const {
+    return placeValide(adresse.place) && personnageDeLaPlace(adresse.place).skillEstPret(adresse.id);
 }
 
-std::optional<EtatSkill> Escouade::etatDuSkill(std::size_t place) const {
-    if (!placeValide(place)) {
+std::optional<EtatSkill> Escouade::etatDuSkill(AdresseSkill adresse) const {
+    if (!placeValide(adresse.place)) {
         return std::nullopt;
     }
-    return personnageDeLaPlace(place).etatDuSkill();
+    return personnageDeLaPlace(adresse.place).etatDuSkill(adresse.id);
 }
 
-float Escouade::rayonZoneDuSkill(std::size_t place) const {
-    if (!placeValide(place)) {
+std::optional<TypeSkill> Escouade::typeDuSkill(AdresseSkill adresse) const {
+    if (!placeValide(adresse.place)) {
+        return std::nullopt;
+    }
+    return personnageDeLaPlace(adresse.place).typeSkill(adresse.id);
+}
+
+float Escouade::rayonZoneDuSkill(AdresseSkill adresse) const {
+    if (!placeValide(adresse.place)) {
         return 0.0f;
     }
-    return personnageDeLaPlace(place).zoneDuSkill().rayon;
+    return personnageDeLaPlace(adresse.place).zoneDuSkill(adresse.id).rayon;
 }
 
-Cercle Escouade::cercleDePorteeDuSkill(std::size_t place) const {
-    if (!placeValide(place)) {
+Cercle Escouade::cercleDePorteeDuSkill(AdresseSkill adresse) const {
+    if (!placeValide(adresse.place)) {
         return {{0.0f, 0.0f}, 0.0f};
     }
-    return personnageDeLaPlace(place).cercleDePorteeDuSkill();
+    return personnageDeLaPlace(adresse.place).cercleDePorteeDuSkill(adresse.id);
 }
 
-bool Escouade::peutAtteindre(const Personnage& personnage, TypeAction action, Cercle cible, const TileMap& carte) const {
+bool Escouade::peutAtteindre(const Personnage& personnage, std::optional<IdSkill> skill, Cercle cible, const TileMap& carte) const {
     // À portée (bord à bord) ET en vue (`ligneDeVue`) : la seule règle d'atteinte d'Escouade.
-    const bool aPortee = (action == TypeAction::Skill) ? personnage.skillEstAPortee(cible) : personnage.estAPortee(cible);
+    const bool aPortee = skill.has_value() ? personnage.skillEstAPortee(*skill, cible) : personnage.estAPortee(cible);
     return aPortee && ligneDeVue(carte, personnage.getCentre(), cible.centre);
 }
 
-bool Escouade::peutLancerAuPoint(std::size_t place, sf::Vector2f point, const TileMap& carte) const {
+bool Escouade::peutLancerAuPoint(AdresseSkill adresse, sf::Vector2f point, const TileMap& carte) const {
     // Le point est un cercle de rayon 0 pour la portée (bord à bord).
-    return peutAtteindre(personnageDeLaPlace(place), TypeAction::Skill, Cercle{point, 0.0f}, carte);
+    return peutAtteindre(personnageDeLaPlace(adresse.place), adresse.id, Cercle{point, 0.0f}, carte);
 }
 
-std::vector<Coup> Escouade::declencherSkillDeZone(std::size_t place, sf::Vector2f point, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur) {
-    if (!placeValide(place) || !skillEstPret(place) || m_skillEnAttente.has_value()) {
+std::vector<Coup> Escouade::declencherSkillDeZone(AdresseSkill adresse, sf::Vector2f point, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur) {
+    if (!skillEstPret(adresse) || m_skillEnAttente.has_value()) {
         return {};
     }
 
+    const std::size_t place = adresse.place;
+    const IdSkill id = adresse.id;
     Personnage& lanceur = personnageDeLaPlace(place);
-    if (lanceur.typeSkill() != TypeSkill::Zone) {
+    if (lanceur.typeSkill(id) != TypeSkill::Zone) {
         return {};
     }
 
@@ -460,11 +446,11 @@ std::vector<Coup> Escouade::declencherSkillDeZone(std::size_t place, sf::Vector2
 
     // À portée du point et en vue : l'activation commence tout de suite. Sinon il
     // est mis en attente, et le lanceur marche vers le point.
-    if (peutLancerAuPoint(place, point, carte)) {
-        static_cast<void>(lanceur.engagerSkill(Cible(CiblePoint{point})));
+    if (peutLancerAuPoint(adresse, point, carte)) {
+        static_cast<void>(lanceur.engagerSkill(id, Cible(CiblePoint{point})));
         return avancerSkillDe(indiceDeLaPlace(place), 0.0f, monstres, carte, generateur);
     }
-    m_skillEnAttente = SkillEnAttente{place, Cible(CiblePoint{point})};
+    m_skillEnAttente = SkillEnAttente{adresse, Cible(CiblePoint{point})};
     return {};
 }
 
@@ -473,7 +459,8 @@ std::optional<sf::Vector2f> Escouade::avancerSkillEnAttente(const TileMap& carte
         return std::nullopt;
     }
 
-    const std::size_t placeLanceur = m_skillEnAttente->place;
+    const std::size_t placeLanceur = m_skillEnAttente->adresse.place;
+    const IdSkill idSkill = m_skillEnAttente->adresse.id;
     const Personnage& lanceur = personnageDeLaPlace(placeLanceur);
 
     if (!lanceur.estVivant()) {
@@ -504,8 +491,8 @@ std::optional<sf::Vector2f> Escouade::avancerSkillEnAttente(const TileMap& carte
                     return std::nullopt;
                 }
 
-                if (peutAtteindre(lanceur, TypeAction::Skill, allie.getCercle(), carte)) {
-                    static_cast<void>(personnageDeLaPlace(placeLanceur).engagerSkill(cible));
+                if (peutAtteindre(lanceur, idSkill, allie.getCercle(), carte)) {
+                    static_cast<void>(personnageDeLaPlace(placeLanceur).engagerSkill(idSkill, cible));
                     m_skillEnAttente = std::nullopt;
                     return std::nullopt;
                 }
@@ -516,11 +503,11 @@ std::optional<sf::Vector2f> Escouade::avancerSkillEnAttente(const TileMap& carte
         cible);
 }
 
-float Escouade::porteeDe(const Personnage& personnage, TypeAction action) const {
-    if (action == TypeAction::AttaqueDeBase) {
+float Escouade::porteeDe(const Personnage& personnage, std::optional<IdSkill> skill) const {
+    if (!skill.has_value()) {
         return personnage.getPorteeAttaqueDeBase();
     }
-    return personnage.cercleDePorteeDuSkill().rayon - personnage.getCercle().rayon;
+    return personnage.cercleDePorteeDuSkill(*skill).rayon - personnage.getCercle().rayon;
 }
 
 // Point que vise un personnage pour approcher ce monstre : sa place d'attaque,
@@ -534,11 +521,11 @@ float Escouade::porteeDe(const Personnage& personnage, TypeAction action) const 
 // autres pour ce monstre, et à plus de 34 px d'un personnage immobile) la plus proche de l'angle actuel du personnage, les
 // candidates partant de la direction du monstre vers l'ancre. Aucune place :
 // le centre du monstre.
-sf::Vector2f Escouade::pointVersMonstre(std::size_t indice, int idMonstre, Cercle monstre, TypeAction action,
+sf::Vector2f Escouade::pointVersMonstre(std::size_t indice, int idMonstre, Cercle monstre, std::optional<IdSkill> skill,
                                         const std::optional<PlaceDAttaque>& ancienne, const TileMap& carte) {
     const Personnage& personnage = m_personnages[indice];
     const float rayonPersonnage = personnage.getCercle().rayon;
-    const float rayonAnneau = monstre.rayon + rayonPersonnage + s_fractionPorteeAnneau * porteeDe(personnage, action);
+    const float rayonAnneau = monstre.rayon + rayonPersonnage + s_fractionPorteeAnneau * porteeDe(personnage, skill);
 
     const auto angleVers = [&](sf::Vector2f point) {
         const sf::Vector2f direction = point - monstre.centre;
@@ -614,7 +601,7 @@ std::optional<sf::Vector2f> Escouade::pointVersAgresseur(std::size_t indice, con
         }
         return m_personnages[indice].getCentre();
     }
-    return pointVersMonstre(indice, cible->id, cible->cercle, TypeAction::AttaqueDeBase, ancienne, carte);
+    return pointVersMonstre(indice, cible->id, cible->cercle, std::nullopt, ancienne, carte);
 }
 
 // Point que vise un personnage : la première règle qui s'applique gagne.
@@ -638,22 +625,22 @@ sf::Vector2f Escouade::pointVoulu(std::size_t indice, const std::optional<sf::Ve
         m_placesDAttaque[indice] = ancienne;  // le coup en cours ne fait pas oublier la place
         return personnage.getCentre();        // un coup ou un skill en exécution : il reste sur place
     }
-    if (pointSkill.has_value() && indice == indiceDeLaPlace(m_skillEnAttente->place)) {
+    if (pointSkill.has_value() && indice == indiceDeLaPlace(m_skillEnAttente->adresse.place)) {
         if (skillEnAttenteDeDegats()) {
             const CibleMonstre& monstre = std::get<CibleMonstre>(m_skillEnAttente->cible);
-            return pointVersMonstre(indice, monstre.id, *m_cibleCombat, TypeAction::Skill, ancienne, carte);
+            return pointVersMonstre(indice, monstre.id, *m_cibleCombat, m_skillEnAttente->adresse.id, ancienne, carte);
         }
         return *pointSkill;
     }
     const bool enCombat = m_cibleVerrouillee.has_value() && m_cibleCombat.has_value();
     if (enCombat && personnage.estVivant()) {
-        if (peutAtteindre(personnage, TypeAction::AttaqueDeBase, *m_cibleCombat, carte)) {
+        if (peutAtteindre(personnage, std::nullopt, *m_cibleCombat, carte)) {
             if (ancienne.has_value() && ancienne->idMonstre == *m_cibleVerrouillee) {
                 m_placesDAttaque[indice] = ancienne;
             }
             return personnage.getCentre();
         }
-        return pointVersMonstre(indice, *m_cibleVerrouillee, *m_cibleCombat, TypeAction::AttaqueDeBase, ancienne, carte);
+        return pointVersMonstre(indice, *m_cibleVerrouillee, *m_cibleCombat, std::nullopt, ancienne, carte);
     }
     if (ancreArretee && personnage.estVivant()) {
         if (const std::optional<sf::Vector2f> pointAgresseur = pointVersAgresseur(indice, agresseurs, ancienne, carte)) {
@@ -1012,7 +999,7 @@ bool Escouade::unVivantPresDe(sf::FloatRect zone, float ecart) const {
     return false;
 }
 
-std::optional<Cible> Escouade::choisirCible(TypeSkill type, std::size_t place, const std::vector<EntiteVue>& monstres, const TileMap& carte) const {
+std::optional<Cible> Escouade::choisirCible(TypeSkill type, AdresseSkill adresse, const std::vector<EntiteVue>& monstres, const TileMap& carte) const {
     // Skills de zone, sans cible.
     if (type == TypeSkill::Provocation || type == TypeSkill::Zone) {
         return std::nullopt;
@@ -1029,12 +1016,13 @@ std::optional<Cible> Escouade::choisirCible(TypeSkill type, std::size_t place, c
 
         // Sans verrou : le monstre que le lanceur frapperait en autodéfense,
         // mais avec la portée de son skill.
-        if (!placeValide(place)) {
+        if (!placeValide(adresse.place)) {
             return std::nullopt;
         }
-        const Personnage& lanceur = personnageDeLaPlace(place);
+        const Personnage& lanceur = personnageDeLaPlace(adresse.place);
+        const IdSkill idSkill = adresse.id;
         const std::optional<int> id = choisirCibleAFrapper(
-            lanceur.getCercle(), [&](Cercle c) { return peutAtteindre(lanceur, TypeAction::Skill, c, carte); }, monstres, std::nullopt);
+            lanceur.getCercle(), [&](Cercle c) { return peutAtteindre(lanceur, idSkill, c, carte); }, monstres, std::nullopt);
         if (!id.has_value()) {
             return std::nullopt;
         }
@@ -1062,7 +1050,7 @@ std::optional<Cible> Escouade::choisirCible(TypeSkill type, std::size_t place, c
     if (!indiceChoisi.has_value()) {
         return std::nullopt;
     }
-    return Cible(CibleAllie{*indiceChoisi + 1});  // place de 1 à 4, comme declencherSkill
+    return Cible(CibleAllie{*indiceChoisi + 1});  // place de 1 à N, comme AdresseSkill
 }
 
 void Escouade::verrouiller(int idCible) {

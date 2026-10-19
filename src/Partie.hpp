@@ -5,7 +5,9 @@
 #include <cstddef>
 #include <optional>
 #include <vector>
+#include "AdresseSkill.hpp"
 #include "Aleatoire.hpp"
+#include "Composition.hpp"
 #include "Coup.hpp"
 #include "EntiteVue.hpp"
 #include "Escouade.hpp"
@@ -30,17 +32,18 @@ enum class ResultatClic { Monstre, Objet, Sol, Ignore };
 class Partie {
 public:
     // La graine initialise le générateur aléatoire de la partie, qui est à elle seule.
-    Partie(const Niveau& niveau, Generateur::result_type graine);
+    // `composition` : les personnages de l'escouade (elle n'appartient pas au niveau : c'est le choix du joueur).
+    Partie(const Niveau& niveau, std::vector<DefinitionPersonnage> composition, Generateur::result_type graine);
 
     // Verrouille le monstre ciblable qui contient ce point (Monstre) ; sinon, sur une porte
     // fermée (Objet), lève le verrou, mémorise l'interaction et envoie l'escouade devant elle
     // (Sol si aucun côté n'est libre) ; sinon lève le verrou (Sol) : un monstre qui rentre à son poste compte comme le sol.
     // Ignore si l'escouade est vaincue : rien ne change.
     ResultatClic cliquer(sf::Vector2f point);
-    // Skill du personnage de cette place (de 1 à 3), tenté dans mettreAJour.
-    void demanderSkill(std::size_t place);
-    // Skill de zone de cette place lancé au point (monde), dans mettreAJour.
-    void lancerSkillDeZone(std::size_t place, sf::Vector2f point);
+    // Skill à cette adresse, tenté dans mettreAJour.
+    void demanderSkill(AdresseSkill adresse);
+    // Skill de zone à cette adresse lancé au point (monde), dans mettreAJour.
+    void lancerSkillDeZone(AdresseSkill adresse, sf::Vector2f point);
     // Envoie l'escouade vers ce point, dans mettreAJour, si elle est vivante. Annule l'interaction en cours.
     void ordonnerDeplacement(sf::Vector2f point);
 
@@ -67,7 +70,7 @@ public:
 
 private:
     struct LancerDeZone {
-        std::size_t place;
+        AdresseSkill adresse;
         sf::Vector2f point;
     };
 
@@ -102,7 +105,7 @@ private:
     std::vector<ObjetInteractif> m_objets;
     std::optional<int> m_interactionEnCours;  // identifiant de l'objet que l'escouade va activer
     std::optional<LancerDeZone> m_lancerDeZoneDemande;
-    std::optional<std::size_t> m_skillDemande;
+    std::optional<AdresseSkill> m_skillDemande;
     std::optional<sf::Vector2f> m_deplacementOrdonne;
     Generateur m_generateur;  // passé par référence jusqu'au tirage, jamais copié
     Vision m_vision;          // ce que le joueur sait de la carte (l'union de ce que voient les personnages vivants)

@@ -7,29 +7,36 @@
 #include "TileMap.hpp"
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Rect.hpp>
+#include <algorithm>
+#include <cassert>
+#include <utility>
 
 namespace {
 constexpr float s_seuilRecalcul = 40.0f;  // une case, en pixels
 constexpr float s_cote = 20.0f;           // côté du carré, en pixels
 constexpr float s_vitesse = 240.0f;       // en pixels par seconde
 constexpr int s_pointsDeVieMax = 100;
-constexpr float s_hauteurBarreSkill = 3.0f;
 constexpr float s_eclaircissementExecution = 0.5f;  // part de blanc pendant l'exécution d'un coup
 const sf::Color s_couleurContour(40, 40, 40);       // contour de 1 px vers l'intérieur, pour distinguer deux personnages collés
 constexpr float s_epaisseurContour = -1.0f;         // négative : vers l'intérieur
 }  // namespace
 
-Personnage::Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::optional<Skill> skill, int armure, float rayonVision)
+Personnage::Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::vector<SkillConnu> skills, int armure, float rayonVision)
     : m_mobile(centre, {s_cote, s_cote}, s_vitesse),
       m_couleur(couleur),
       m_attaqueDeBase(attaqueDeBase),
-      m_skill(skill),
+      m_skills(std::move(skills)),
       m_cibleChemin(),
       m_pointsDeVie(s_pointsDeVieMax),
       m_armure(armure),
       m_rayonVision(rayonVision),
       m_actionEngagee()
 {
+    for (std::size_t i = 0; i < m_skills.size(); ++i) {
+        for (std::size_t j = i + 1; j < m_skills.size(); ++j) {
+            assert(m_skills[i].id != m_skills[j].id);
+        }
+    }
 }
 
 void Personnage::dessiner(sf::RenderTarget& rendu) const {
@@ -49,23 +56,6 @@ void Personnage::dessiner(sf::RenderTarget& rendu) const {
 
     const sf::Vector2f positionBarre = positionBarreDeVie(getCentre(), taille);
     dessinerBarreDeVie(rendu, positionBarre, taille.x, m_pointsDeVie.getRatio());
-
-    if (!m_skill.has_value()) {
-        return;
-    }
-
-    // Barre de recharge du skill, juste sous la barre de vie : pleine = prêt.
-    const sf::Vector2f positionBarreSkill(positionBarre.x, positionBarre.y + s_hauteurBarreDeVie + 1.0f);
-
-    sf::RectangleShape fondSkill({taille.x, s_hauteurBarreSkill});
-    fondSkill.setPosition(positionBarreSkill);
-    fondSkill.setFillColor(sf::Color(60, 60, 60));
-    rendu.draw(fondSkill);
-
-    sf::RectangleShape recharge({taille.x * m_skill->getProgressionRecharge(), s_hauteurBarreSkill});
-    recharge.setPosition(positionBarreSkill);
-    recharge.setFillColor(sf::Color(255, 165, 0));
-    rendu.draw(recharge);
 }
 
 void Personnage::mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte, const std::vector<Cercle>& obstacles,
@@ -98,8 +88,8 @@ void Personnage::mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte,
     m_mobile.mettreAJour(dt, carte, obstacles);
 
     m_attaqueDeBase.mettreAJour(dt);
-    if (m_skill.has_value()) {
-        m_skill->mettreAJour(dt);
+    for (SkillConnu& connu : m_skills) {
+        connu.skill.mettreAJour(dt);
     }
 }
 
@@ -130,7 +120,7 @@ bool Personnage::engagerAttaque(int idCible) {
         return false;
     }
     // Seul l'identifiant sert à l'attaque de base : le cercle n'est pas renseigné.
-    m_actionEngagee = ActionEngagee{TypeAction::AttaqueDeBase, CibleMonstre{idCible, Cercle{}}};
+    m_actionEngagee = ActionEngagee{TypeAction::AttaqueDeBase, CibleMonstre{idCible, Cercle{}}, std::nullopt};
     return true;
 }
 
@@ -161,44 +151,63 @@ bool Personnage::estEnExecution() const {
     return m_actionEngagee.has_value();
 }
 
-std::optional<TypeSkill> Personnage::typeSkill() const {
-    if (!m_skill.has_value()) {
+const Skill* Personnage::trouverSkill(IdSkill id) const {
+    const auto it = std::ranges::find(m_skills, id, &SkillConnu::id);
+    return it == m_skills.end() ? nullptr : &it->skill;
+}
+
+Skill* Personnage::trouverSkill(IdSkill id) {
+    return const_cast<Skill*>(std::as_const(*this).trouverSkill(id));
+}
+
+std::optional<TypeSkill> Personnage::typeSkill(IdSkill id) const {
+    const Skill* skill = trouverSkill(id);
+    if (skill == nullptr) {
         return std::nullopt;
     }
-    return m_skill->getType();
+    return skill->getType();
 }
 
-bool Personnage::skillEstPret() const {
-    return estVivant() && m_skill.has_value() && m_skill->getPhase() == PhaseSkill::Pret;
+bool Personnage::skillEstPret(IdSkill id) const {
+    const Skill* skill = trouverSkill(id);
+    return estVivant() && skill != nullptr && skill->getPhase() == PhaseSkill::Pret;
 }
 
-std::optional<EtatSkill> Personnage::etatDuSkill() const {
-    if (!m_skill.has_value()) {
+std::optional<EtatSkill> Personnage::etatDuSkill(IdSkill id) const {
+    const Skill* skill = trouverSkill(id);
+    if (skill == nullptr) {
         return std::nullopt;
     }
-    return EtatSkill{m_skill->getType(), m_skill->getProgressionRecharge(), m_skill->getRechargeRestante(), estVivant(), skillEngage().has_value()};
+    const std::optional<ActionEngagee> action = skillEngage();
+    const bool enActivation = action.has_value() && action->skill == id;
+    return EtatSkill{skill->getType(), skill->getProgressionRecharge(), skill->getRechargeRestante(), estVivant(), enActivation};
 }
 
-bool Personnage::skillEstAPortee(Cercle cible) const {
-    return m_skill.has_value() && m_skill->estAPortee(getCercle(), cible);
+bool Personnage::skillEstAPortee(IdSkill id, Cercle cible) const {
+    const Skill* skill = trouverSkill(id);
+    return skill != nullptr && skill->estAPortee(getCercle(), cible);
 }
 
-Cercle Personnage::cercleDePorteeDuSkill() const {
+Cercle Personnage::cercleDePorteeDuSkill(IdSkill id) const {
     // La portée se mesure depuis le bord du personnage : rayon du personnage + portée.
-    return {getCentre(), getCercle().rayon + (m_skill.has_value() ? m_skill->getPortee() : 0.0f)};
+    const Skill* skill = trouverSkill(id);
+    return {getCentre(), getCercle().rayon + (skill != nullptr ? skill->getPortee() : 0.0f)};
 }
 
-Cercle Personnage::zoneDuSkill() const {
-    return {getCentre(), m_skill.has_value() ? m_skill->getRayonZone() : 0.0f};
+Cercle Personnage::zoneDuSkill(IdSkill id) const {
+    const Skill* skill = trouverSkill(id);
+    return {getCentre(), skill != nullptr ? skill->getRayonZone() : 0.0f};
 }
 
-bool Personnage::engagerSkill(std::optional<Cible> cible) {
-    if (!estVivant() || !m_skill.has_value() || !m_skill->commencer()) {
+bool Personnage::engagerSkill(IdSkill id, std::optional<Cible> cible) {
+    Skill* skill = trouverSkill(id);
+    // Un seul skill en activation à la fois, même si les recharges sont indépendantes.
+    if (!estVivant() || skill == nullptr || skillEngage().has_value() || !skill->commencer()) {
         return false;
     }
     // Le skill remplace l'attaque de base à ce moment : un coup en exécution est annulé.
     annulerAttaque();
-    m_actionEngagee = ActionEngagee{TypeAction::Skill, cible};
+    m_actionEngagee = ActionEngagee{TypeAction::Skill, cible, id};
     return true;
 }
 
@@ -210,20 +219,22 @@ std::optional<ActionEngagee> Personnage::skillEngage() const {
 }
 
 int Personnage::avancerSkill(float dt, Generateur& generateur) {
-    if (!skillEngage().has_value() || !m_skill->avancer(dt, generateur)) {
+    if (!skillEngage().has_value()) {
+        return 0;
+    }
+    Skill& skill = *trouverSkill(*m_actionEngagee->skill);
+    if (!skill.avancer(dt, generateur)) {
         return 0;
     }
     m_actionEngagee.reset();
     // Le skill est parti : l'attaque de base repart pour une recharge complète.
     m_attaqueDeBase.relancerRecharge(generateur);
-    return m_skill->getPuissance();
+    return skill.getPuissance();
 }
 
 void Personnage::annulerSkill() {
-    if (m_skill.has_value()) {
-        m_skill->annuler();
-    }
     if (skillEngage().has_value()) {
+        trouverSkill(*m_actionEngagee->skill)->annuler();
         m_actionEngagee.reset();
     }
 }
