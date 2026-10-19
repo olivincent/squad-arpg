@@ -55,7 +55,7 @@ TEST_CASE("Sans verrou, le skill de degats part sur un monstre a portee, sans cr
 
     REQUIRE(coups.size() == 1);
     REQUIRE(coups[0].idMonstre == 4);
-    REQUIRE(coups[0].degats == 25);
+    REQUIRE(coups[0].degats == s_degatsFrappeDeTest);
     REQUIRE_FALSE(escouade.getCibleVerrouillee().has_value());
 }
 
@@ -77,7 +77,7 @@ TEST_CASE("Sans verrou, le skill de degats est refuse sans monstre a portee, et 
     REQUIRE(declencher(escouade, s_adresseFrappe, unSeulMonstre(cibleMonstre({300.0f, 60.0f}))) == 0);
     REQUIRE(declencher(escouade, s_adresseFrappe, {}) == 0);
     // Pas de mise en attente ni de recharge : un monstre à portée est frappé aussitôt.
-    REQUIRE(declencher(escouade, s_adresseFrappe, unSeulMonstre(cibleMonstre({85.0f, 60.0f}))) == 25);
+    REQUIRE(declencher(escouade, s_adresseFrappe, unSeulMonstre(cibleMonstre({85.0f, 60.0f}))) == s_degatsFrappeDeTest);
 }
 
 TEST_CASE("Avec un verrou, le skill de degats vise le monstre verrouille, pas le plus proche") {
@@ -103,8 +103,8 @@ TEST_CASE("En combat, declencherSkill renvoie les degats du seul lanceur du skil
     Escouade escouade = uneEscouade({50.0f, 50.0f});
     escouade.verrouiller(1);
 
-    // Le guerrier est à portée ; les tireurs n'ont pas de skill de dégâts : 25, pas plus.
-    REQUIRE(declencher(escouade, s_adresseFrappe, unSeulMonstre(cibleMonstre({85.0f, 60.0f}))) == 25);
+    // Le guerrier est à portée ; les tireurs n'ont pas de skill de dégâts : sa frappe, pas plus.
+    REQUIRE(declencher(escouade, s_adresseFrappe, unSeulMonstre(cibleMonstre({85.0f, 60.0f}))) == s_degatsFrappeDeTest);
 }
 
 TEST_CASE("En combat, declencherSkill renvoie 0 pour une cible hors de portee du skill") {
@@ -119,7 +119,7 @@ TEST_CASE("En combat, declencherSkill renvoie 0 au second appel immediat (rechar
     escouade.verrouiller(1);
     const Cercle cible = cibleMonstre({85.0f, 60.0f});
 
-    REQUIRE(declencher(escouade, s_adresseFrappe, unSeulMonstre(cible)) == 25);
+    REQUIRE(declencher(escouade, s_adresseFrappe, unSeulMonstre(cible)) == s_degatsFrappeDeTest);
     REQUIRE(declencher(escouade, s_adresseFrappe, unSeulMonstre(cible)) == 0);
 }
 
@@ -346,12 +346,12 @@ TEST_CASE("Un seul skill en attente a la fois") {
     REQUIRE(declencher(escouade, s_adresseFrappe, unSeulMonstre(cibleMonstre({85.0f, 60.0f}))) == 0);
 }
 
-// Skill de dégâts en attente. Aucune attaque de base ne dépasse 20 dégâts
-// en un tic (3 personnages x 5) : un tic qui rapporte 25 ou plus contient
-// donc forcément le skill.
+// Skill de dégâts en attente. Les attaques de base des 3 personnages réunies
+// restent sous la frappe en un tic : un tic qui rapporte au moins la frappe
+// contient donc forcément le skill.
+static_assert(3 * s_degatsBaseDeTest < s_degatsFrappeDeTest);
 
 TEST_CASE("Un skill de degats hors de portee est mis en attente, puis part a l'arrivee du lanceur") {
-    Generateur generateur = generateurDeTest();
     const TileMap carte = carteDegagee10x10();
     Escouade escouade = uneEscouade({50.0f, 50.0f});
     const Cercle cible = cibleMonstre({300.0f, 60.0f});
@@ -366,7 +366,7 @@ TEST_CASE("Un skill de degats hors de portee est mis en attente, puis part a l'a
         degatsMax = std::max(degatsMax, degats);
         escouade.mettreAJour(1.0f / 60.0f, carte, {});
     }
-    REQUIRE(degatsMax >= 25);
+    REQUIRE(degatsMax >= s_degatsFrappeDeTest);
 }
 
 TEST_CASE("Un skill de degats en attente est annule par deverrouiller, sans recharge") {
@@ -379,7 +379,7 @@ TEST_CASE("Un skill de degats en attente est annule par deverrouiller, sans rech
     escouade.deverrouiller();
     escouade.verrouiller(1);
 
-    REQUIRE(declencher(escouade, s_adresseFrappe, unSeulMonstre(cibleMonstre({85.0f, 60.0f}))) == 25);
+    REQUIRE(declencher(escouade, s_adresseFrappe, unSeulMonstre(cibleMonstre({85.0f, 60.0f}))) == s_degatsFrappeDeTest);
 }
 
 TEST_CASE("Un skill de degats en attente est annule par un changement de cible, pas par la meme cible") {
@@ -394,7 +394,7 @@ TEST_CASE("Un skill de degats en attente est annule par un changement de cible, 
     REQUIRE(escouade.declencherSkill(s_adresseFrappe, unSeulMonstre(cibleMonstre({85.0f, 60.0f})), carteOuverte(), generateur).empty());
 
     escouade.verrouiller(2);   // autre cible : annulé
-    REQUIRE(declencher(escouade, s_adresseFrappe, {EntiteVue{2, cibleMonstre({85.0f, 60.0f})}}) == 25);
+    REQUIRE(declencher(escouade, s_adresseFrappe, {EntiteVue{2, cibleMonstre({85.0f, 60.0f})}}) == s_degatsFrappeDeTest);
 }
 
 TEST_CASE("Un soin est refuse pendant qu'un skill de degats est en attente") {
@@ -551,9 +551,9 @@ TEST_CASE("Zone : les monstres dans la zone sont touches, celui hors zone est ep
 
     REQUIRE(coups.size() == 2);
     REQUIRE(coups[0].idMonstre == 1);
-    REQUIRE(coups[0].degats == 15);
+    REQUIRE(coups[0].degats == s_degatsZoneDeTest);
     REQUIRE(coups[1].idMonstre == 2);
-    REQUIRE(coups[1].degats == 15);
+    REQUIRE(coups[1].degats == s_degatsZoneDeTest);
 }
 
 TEST_CASE("Zone : un monstre qui touche tout juste le bord de la zone est touche") {
@@ -621,7 +621,7 @@ TEST_CASE("Zone en attente : le lanceur se rapproche, puis le sort part au point
     int tics = 0;
     while (coupsDeZone.empty() && tics < 300) {
         for (const Coup& coup : escouade.attaquer(s_dureeTic, monstres, carte, generateur)) {
-            if (coup.degats == 15) {
+            if (coup.degats == s_degatsZoneDeTest) {
                 coupsDeZone.push_back(coup);
             }
         }
@@ -651,7 +651,7 @@ TEST_CASE("Zone en attente : elle touche les monstres presents au depart, pas ce
     std::vector<Coup> coupsDeZone;
     for (int i = 0; i < 300 && coupsDeZone.empty(); ++i) {
         for (const Coup& coup : escouade.attaquer(s_dureeTic, ailleurs, carte, generateur)) {
-            if (coup.degats == 15) {
+            if (coup.degats == s_degatsZoneDeTest) {
                 coupsDeZone.push_back(coup);
             }
         }
@@ -698,7 +698,7 @@ TEST_CASE("Zone en attente : verrouiller, deverrouiller et un ordre de deplaceme
     std::vector<Coup> coupsDeZone;
     for (int i = 0; i < 300 && coupsDeZone.empty(); ++i) {
         for (const Coup& coup : escouade.attaquer(s_dureeTic, monstres, carte, generateur)) {
-            if (coup.degats == 15) {
+            if (coup.degats == s_degatsZoneDeTest) {
                 coupsDeZone.push_back(coup);
             }
         }
@@ -779,14 +779,14 @@ TEST_CASE("Zone : relance la recharge de l'attaque de base du lanceur") {
     const std::vector<Coup> coups = attaquerJusquAuDepart(escouade, monstres, carte, generateur);
 
     REQUIRE(coups.size() == 1);
-    REQUIRE(coups[0].degats == 5);
+    REQUIRE(coups[0].degats == s_degatsBaseDeTest);
 }
 
-TEST_CASE("rayonZoneDuSkill : 60 pour l'explosion, 150 pour la provocation, 0 sans zone ou place invalide") {
+TEST_CASE("rayonZoneDuSkill : celui de l'explosion et de la provocation, 0 sans zone ou place invalide") {
     Escouade escouade = uneEscouade({200.0f, 200.0f});
 
-    REQUIRE(escouade.rayonZoneDuSkill(s_adresseExplosion) == 60.0f);
-    REQUIRE(escouade.rayonZoneDuSkill(s_adresseProvocation) == 150.0f);
+    REQUIRE(escouade.rayonZoneDuSkill(s_adresseExplosion) == s_rayonZoneDeTest);
+    REQUIRE(escouade.rayonZoneDuSkill(s_adresseProvocation) == s_rayonProvocationDeTest);
     REQUIRE(escouade.rayonZoneDuSkill(s_adresseFrappe) == 0.0f);
     REQUIRE(escouade.rayonZoneDuSkill(AdresseSkill{0, IdSkill::FrappePuissante}) == 0.0f);
     REQUIRE(escouade.rayonZoneDuSkill(AdresseSkill{5, IdSkill::FrappePuissante}) == 0.0f);
@@ -861,7 +861,7 @@ std::vector<Coup> attaquerPendant(Escouade& escouade, const std::vector<EntiteVu
     return coups;
 }
 
-// Nombre de coups d'exactement ce montant (écarte les attaques de base, de 5).
+// Nombre de coups d'exactement ce montant (écarte les attaques de base).
 int compter(const std::vector<Coup>& coups, int degats) {
     return static_cast<int>(std::count_if(coups.begin(), coups.end(), [&](const Coup& coup) { return coup.degats == degats; }));
 }
@@ -883,8 +883,8 @@ TEST_CASE("Un skill de degats part a la fin de son activation de 0,3 s, pas avan
     REQUIRE_FALSE(escouade.skillEstPret(s_adresseFrappe));
     REQUIRE(escouade.etatDuSkill(s_adresseFrappe)->enActivation);
 
-    REQUIRE(compter(attaquerPendant(escouade, monstres, 0.25f, generateur), 25) == 0);
-    REQUIRE(compter(attaquerPendant(escouade, monstres, 0.1f, generateur), 25) == 1);
+    REQUIRE(compter(attaquerPendant(escouade, monstres, 0.25f, generateur), s_degatsFrappeDeTest) == 0);
+    REQUIRE(compter(attaquerPendant(escouade, monstres, 0.1f, generateur), s_degatsFrappeDeTest) == 1);
     REQUIRE_FALSE(escouade.etatDuSkill(s_adresseFrappe)->enActivation);
     REQUIRE(escouade.etatDuSkill(s_adresseFrappe)->progression < 1.0f);  // la recharge a démarré au départ
 }
@@ -897,7 +897,7 @@ TEST_CASE("Un skill en activation refuse un nouvel appui sur la meme touche") {
     REQUIRE(escouade.declencherSkill(s_adresseFrappe, monstres, carteOuverte(), generateur).empty());
     REQUIRE(escouade.declencherSkill(s_adresseFrappe, monstres, carteOuverte(), generateur).empty());
 
-    REQUIRE(compter(attaquerPendant(escouade, monstres, 1.0f, generateur), 25) == 1);
+    REQUIRE(compter(attaquerPendant(escouade, monstres, 1.0f, generateur), s_degatsFrappeDeTest) == 1);
 }
 
 TEST_CASE("Le lanceur reste sur place pendant l'activation, un ordre de deplacement ne l'annule pas") {
@@ -939,7 +939,7 @@ TEST_CASE("La disparition du monstre vise annule l'activation d'un skill de dega
 
     const std::vector<Coup> coups = attaquerPendant(escouade, {}, 1.0f, generateur);  // le monstre n'est plus dans la liste
 
-    REQUIRE(compter(coups, 25) == 0);
+    REQUIRE(compter(coups, s_degatsFrappeDeTest) == 0);
     REQUIRE(escouade.skillEstPret(s_adresseFrappe));
 }
 
@@ -967,8 +967,8 @@ TEST_CASE("Zone : l'effet est evalue au depart, un monstre sorti de la zone n'es
     const std::vector<Coup> suite = attaquerPendant(escouade, {EntiteVue{1, dehors}, EntiteVue{2, dedans}}, 0.2f, generateur);
     coups.insert(coups.end(), suite.begin(), suite.end());
 
-    REQUIRE(compter(coups, 15) == 1);
-    REQUIRE(std::any_of(coups.begin(), coups.end(), [](const Coup& coup) { return coup.degats == 15 && coup.idMonstre == 2; }));
+    REQUIRE(compter(coups, s_degatsZoneDeTest) == 1);
+    REQUIRE(std::any_of(coups.begin(), coups.end(), [](const Coup& coup) { return coup.degats == s_degatsZoneDeTest && coup.idMonstre == 2; }));
 }
 
 TEST_CASE("Provocation : l'effet est evalue au depart, apres 0,2 s") {
@@ -998,7 +998,7 @@ TEST_CASE("Deux lanceurs peuvent activer en meme temps") {
     REQUIRE_FALSE(escouade.skillEstPret(s_adresseFrappe));
     REQUIRE_FALSE(escouade.skillEstPret(s_adresseSoin));
 
-    REQUIRE(compter(attaquerPendant(escouade, monstres, 0.4f, generateur), 25) == 1);  // les dégâts sont partis
+    REQUIRE(compter(attaquerPendant(escouade, monstres, 0.4f, generateur), s_degatsFrappeDeTest) == 1);  // les dégâts sont partis
     REQUIRE(placeAlliePourSoin(escouade) == 1);                                         // pas encore le soin
     static_cast<void>(attaquerPendant(escouade, monstres, 0.3f, generateur));
     REQUIRE_FALSE(placeAlliePourSoin(escouade).has_value());
@@ -1037,8 +1037,8 @@ TEST_CASE("adressesDesSkills : par place, puis dans l'ordre de la liste du perso
 TEST_CASE("couleurDuPersonnage : la couleur de la composition, vide pour une place invalide") {
     const Escouade escouade = uneEscouade({200.0f, 200.0f});
 
-    REQUIRE(escouade.couleurDuPersonnage(1) == sf::Color::Red);
-    REQUIRE(escouade.couleurDuPersonnage(3) == sf::Color(160, 80, 220));
+    REQUIRE(escouade.couleurDuPersonnage(1) == guerrierDeTest().couleur);
+    REQUIRE(escouade.couleurDuPersonnage(3) == mageDeTest().couleur);
     REQUIRE_FALSE(escouade.couleurDuPersonnage(0).has_value());
     REQUIRE_FALSE(escouade.couleurDuPersonnage(4).has_value());
 }

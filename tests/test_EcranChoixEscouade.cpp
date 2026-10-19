@@ -6,6 +6,7 @@
 #include "EcranChoixEscouade.hpp"
 #include "ListeDeBoutons.hpp"
 #include "SelectionDEscouade.hpp"
+#include "Specialite.hpp"
 
 namespace {
 

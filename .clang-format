@@ -1,0 +1,13 @@
+# ./.clang-format
+# Mise en forme pour clang-format. Le code existant n'a pas été reformaté :
+# l'outil sert au code nouveau ou retouché (un reformatage complet serait un
+# commit à part, de formatage pur).
+BasedOnStyle: Google
+IndentWidth: 4
+ColumnLimit: 120
+# En-têtes regroupés et triés par bloc : l'en-tête du fichier, puis <...>
+# (bibliothèque standard et SFML), puis "..." (le projet).
+IncludeBlocks: Regroup
+# « public: » et « private: » en colonne 0, comme dans le code existant
+# (Google les décale d'une colonne vers la gauche, prévu pour 2 espaces).
+AccessModifierOffset: -4

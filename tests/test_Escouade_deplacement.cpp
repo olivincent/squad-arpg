@@ -21,7 +21,6 @@ TEST_CASE("Le centre initial est au centre du carre de depart") {
 }
 
 TEST_CASE("Un seul tic avance le centre de vitesse * dt") {
-    Generateur generateur = generateurDeTest();
     // Terrain dégagé, destination à plusieurs cases : le premier point visé
     // est donc loin, bien au-delà de la distance parcourue en un seul tic
     // (180 px/s * 0.1 s = 18 px), quelle que soit sa direction exacte.
@@ -96,7 +95,6 @@ TEST_CASE("Avec un mur entre le depart et la destination, l'escouade le contourn
 }
 
 TEST_CASE("Sans ordre, l'escouade ne bouge pas") {
-    Generateur generateur = generateurDeTest();
     const std::vector<std::string> plan = {
         ".....",
         ".....",
@@ -313,7 +311,6 @@ TEST_CASE("cerclesDeVision est vide une fois tous les personnages morts") {
 }
 
 TEST_CASE("Les obstacles bloquent les personnages mais pas l'ancre") {
-    Generateur generateur = generateurDeTest();
     const std::vector<std::string> plan = {
         "............",
         "............",
@@ -346,7 +343,6 @@ TEST_CASE("Les obstacles bloquent les personnages mais pas l'ancre") {
 }
 
 TEST_CASE("En terrain degage, les places de formation ne sont pas modifiees") {
-    Generateur generateur = generateurDeTest();
     const TileMap carte({"##########",
                          "#........#",
                          "#........#",
@@ -371,7 +367,6 @@ TEST_CASE("En terrain degage, les places de formation ne sont pas modifiees") {
 }
 
 TEST_CASE("Ancre collee a un mur, aucune place de formation n'est dans un mur") {
-    Generateur generateur = generateurDeTest();
     const TileMap carte({"##########",
                          "#........#",
                          "#........#",

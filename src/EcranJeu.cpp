@@ -105,7 +105,7 @@ Transition EcranJeu::traiterEvenement(const sf::Event& evenement, const Contexte
         if (data->scancode == sf::Keyboard::Scan::Escape) {
             m_controleur.appuiEchap();
         } else if (data->scancode == sf::Keyboard::Scan::R && finDePartie) {
-            return Depiler{};  // retour au menu
+            return Depiler{};  // retour à l'écran de choix de l'escouade
         } else if (data->scancode == sf::Keyboard::Scan::F5) {
             // Touche de débogage : à tout moment, même effet que R.
             nouvelleCarte();

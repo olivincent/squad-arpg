@@ -111,7 +111,6 @@ TEST_CASE("Sans personnage vivant, un coup n'enregistre aucun agresseur") {
 }
 
 TEST_CASE("Un agresseur est oublie 3 s apres son dernier coup") {
-    Generateur generateur = generateurDeTest();
     const TileMap carte({"..........", "..........", ".........."}, 40.0f);
     Escouade escouade = uneEscouade({50.0f, 50.0f});
     escouade.recevoirDegats(7, {300.0f, 60.0f}, 10);
@@ -123,7 +122,6 @@ TEST_CASE("Un agresseur est oublie 3 s apres son dernier coup") {
 }
 
 TEST_CASE("Un nouveau coup repousse l'oubli de l'agresseur") {
-    Generateur generateur = generateurDeTest();
     const TileMap carte({"..........", "..........", ".........."}, 40.0f);
     Escouade escouade = uneEscouade({50.0f, 50.0f});
     escouade.recevoirDegats(7, {300.0f, 60.0f}, 10);
@@ -181,7 +179,8 @@ TEST_CASE("Un personnage sans monstre a portee va vers l'agresseur de sa laisse"
 
     simulerAvecMonstre(escouade, carte, monstre, 90);
 
-    REQUIRE(distanceDuPlusProche(escouade, monstre) < 45.0f);
+    // Le guerrier l'a rejoint : à portée de mêlée (rayon du monstre + rayon du personnage, 10, + portée).
+    REQUIRE(distanceDuPlusProche(escouade, monstre) < monstre.rayon + 10.0f + s_porteeMeleeDeTest);
 }
 
 TEST_CASE("Un agresseur hors de la laisse de tous laisse chacun a sa place") {
@@ -231,7 +230,6 @@ TEST_CASE("provoquer enregistre le monstre, le provocateur et la duree") {
 }
 
 TEST_CASE("provoquer ignore une place invalide (0 et 5) : aucune provocation, aucun plantage") {
-    Generateur generateur = generateurDeTest();
     const TileMap carte = carteDegagee10x10();
     Escouade escouade = uneEscouade({50.0f, 50.0f});
 
@@ -245,7 +243,6 @@ TEST_CASE("provoquer ignore une place invalide (0 et 5) : aucune provocation, au
 }
 
 TEST_CASE("Provoquer de nouveau un monstre deja provoque ne le duplique pas et remet sa duree au maximum") {
-    Generateur generateur = generateurDeTest();
     const TileMap carte({"..........", "..........", ".........."}, 40.0f);
     Escouade escouade = uneEscouade({50.0f, 50.0f});
     escouade.provoquer(7, 2, 4.0f);
@@ -261,7 +258,6 @@ TEST_CASE("Provoquer de nouveau un monstre deja provoque ne le duplique pas et r
 }
 
 TEST_CASE("Une provocation prend fin apres sa duree") {
-    Generateur generateur = generateurDeTest();
     const TileMap carte({"..........", "..........", ".........."}, 40.0f);
     Escouade escouade = uneEscouade({50.0f, 50.0f});
     escouade.provoquer(7, 2, 4.0f);
@@ -273,7 +269,6 @@ TEST_CASE("Une provocation prend fin apres sa duree") {
 }
 
 TEST_CASE("Une provocation prend fin a la mort du provocateur") {
-    Generateur generateur = generateurDeTest();
     const TileMap carte = carteDegageeEntouree();
     Escouade escouade = uneEscouade({200.0f, 200.0f});
     escouade.provoquer(7, 2, 4.0f);

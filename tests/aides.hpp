@@ -3,6 +3,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <SFML/Graphics/Color.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <cmath>
 #include <cstddef>
@@ -19,9 +20,10 @@
 #include "Coup.hpp"
 #include "Escouade.hpp"
 #include "EntiteVue.hpp"
+#include "IdSkill.hpp"
 #include "Niveau.hpp"
 #include "Partie.hpp"
-#include "Specialite.hpp"
+#include "Skill.hpp"
 #include "TileMap.hpp"
 #include "TypeSkill.hpp"
 
@@ -40,9 +42,95 @@ inline constexpr AdresseSkill s_adresseProvocation{1, IdSkill::Provocation};
 inline constexpr AdresseSkill s_adresseSoin{2, IdSkill::Soin};
 inline constexpr AdresseSkill s_adresseExplosion{3, IdSkill::Explosion};
 
+// Valeurs des personnages de test, figées : celles du catalogue au moment où elles ont été recopiées
+// (étape 80), mais indépendantes de lui. Rééquilibrer une classe dans Specialite.cpp ne change aucun
+// test de règle ; test_Specialite.cpp est le seul fichier de tests qui lit les valeurs du catalogue.
+// Attaque de base (mêlées et tireurs).
+inline constexpr int s_degatsBaseDeTest = 5;
+inline constexpr float s_executionBaseDeTest = 0.15f;  // en secondes
+inline constexpr float s_porteeMeleeDeTest = 20.0f;    // bord à bord
+inline constexpr float s_porteeTireurDeTest = 120.0f;  // bord à bord
+inline constexpr float s_rechargeMeleeMinDeTest = 0.3f;  // en secondes
+inline constexpr float s_rechargeMeleeMaxDeTest = 0.7f;
+inline constexpr float s_rechargeTireurMinDeTest = 0.4f;
+inline constexpr float s_rechargeTireurMaxDeTest = 0.6f;
+// Défense et contrôle (les tireurs n'ont ni armure ni zone de contrôle).
+inline constexpr int s_armureMeleeDeTest = 50;
+inline constexpr float s_zoneDeControleMeleeDeTest = 20.0f;  // bord à bord
+// Rayon de vision des personnages de test, et de ceux construits à la main dans les tests.
+inline constexpr float s_rayonVisionDeTest = 320.0f;
+// Frappe puissante du guerrier.
+inline constexpr int s_degatsFrappeDeTest = 25;
+inline constexpr float s_rechargeFrappeDeTest = 5.0f;     // en secondes
+inline constexpr float s_activationFrappeDeTest = 0.3f;   // en secondes
+// Provocation du guerrier.
+inline constexpr float s_rayonProvocationDeTest = 150.0f;  // depuis le centre du provocateur
+inline constexpr int s_dureeProvocationDeTest = 4;         // en secondes (la puissance du skill)
+inline constexpr float s_rechargeProvocationDeTest = 10.0f;
+inline constexpr float s_activationProvocationDeTest = 0.2f;
+// Soin du prêtre.
+inline constexpr float s_porteeSoinDeTest = 40.0f;  // bord à bord
+inline constexpr int s_puissanceSoinDeTest = 30;
+inline constexpr float s_rechargeSoinDeTest = 8.0f;
+inline constexpr float s_activationSoinDeTest = 0.6f;
+// Explosion du mage (skill de zone).
+inline constexpr float s_porteeZoneDeTest = 250.0f;  // portée de lancement, bord à bord
+inline constexpr int s_degatsZoneDeTest = 15;
+inline constexpr float s_rechargeZoneDeTest = 8.0f;
+inline constexpr float s_activationZoneDeTest = 0.8f;
+inline constexpr float s_rayonZoneDeTest = 60.0f;   // depuis le point visé
+
+inline Skill attaqueDeMeleeDeTest() {
+    return Skill(TypeSkill::Degats, s_porteeMeleeDeTest, s_degatsBaseDeTest, s_rechargeMeleeMinDeTest,
+                 s_rechargeMeleeMaxDeTest, 0.0f, s_executionBaseDeTest);
+}
+
+inline Skill attaqueDeTireurDeTest() {
+    return Skill(TypeSkill::Degats, s_porteeTireurDeTest, s_degatsBaseDeTest, s_rechargeTireurMinDeTest,
+                 s_rechargeTireurMaxDeTest, 0.0f, s_executionBaseDeTest);
+}
+
+// Guerrier de test : devant, mêlée, frappe puissante et provocation.
+inline DefinitionPersonnage guerrierDeTest() {
+    return {sf::Color::Red,
+            attaqueDeMeleeDeTest(),
+            {{IdSkill::FrappePuissante, Skill(TypeSkill::Degats, s_porteeMeleeDeTest, s_degatsFrappeDeTest, s_rechargeFrappeDeTest,
+                                              s_rechargeFrappeDeTest, 0.0f, s_activationFrappeDeTest)},
+             {IdSkill::Provocation, Skill(TypeSkill::Provocation, 0.0f, s_dureeProvocationDeTest, s_rechargeProvocationDeTest,
+                                          s_rechargeProvocationDeTest, s_rayonProvocationDeTest, s_activationProvocationDeTest)}},
+            s_armureMeleeDeTest,
+            s_rayonVisionDeTest,
+            s_zoneDeControleMeleeDeTest,
+            Rang::Avant};
+}
+
+// Prêtre de test : derrière, tireur, soin.
+inline DefinitionPersonnage pretreDeTest() {
+    return {sf::Color(255, 240, 150),
+            attaqueDeTireurDeTest(),
+            {{IdSkill::Soin, Skill(TypeSkill::Soin, s_porteeSoinDeTest, s_puissanceSoinDeTest, s_rechargeSoinDeTest,
+                                   s_rechargeSoinDeTest, 0.0f, s_activationSoinDeTest)}},
+            0,
+            s_rayonVisionDeTest,
+            0.0f,
+            Rang::Arriere};
+}
+
+// Mage de test : derrière, tireur, explosion (skill de zone).
+inline DefinitionPersonnage mageDeTest() {
+    return {sf::Color(160, 80, 220),
+            attaqueDeTireurDeTest(),
+            {{IdSkill::Explosion, Skill(TypeSkill::Zone, s_porteeZoneDeTest, s_degatsZoneDeTest, s_rechargeZoneDeTest,
+                                        s_rechargeZoneDeTest, s_rayonZoneDeTest, s_activationZoneDeTest)}},
+            0,
+            s_rayonVisionDeTest,
+            0.0f,
+            Rang::Arriere};
+}
+
 // La composition par défaut des tests : guerrier, prêtre, mage (celle du jeu avant l'écran de choix).
 inline std::vector<DefinitionPersonnage> compositionDeTest() {
-    return composer({IdSpecialite::Guerrier, IdSpecialite::Pretre, IdSpecialite::Mage});
+    return {guerrierDeTest(), pretreDeTest(), mageDeTest()};
 }
 
 // Une escouade / une partie avec la composition par défaut des tests.
@@ -68,12 +156,10 @@ inline Escouade uneEscouadeADeuxGuerriers(sf::Vector2f positionDepart) {
 // soin normal (40 px) : il faut ce soin court pour tester un soin hors de portée.
 inline Escouade uneEscouadeAuSoinCourt(sf::Vector2f positionDepart) {
     std::vector<DefinitionPersonnage> composition = compositionDeTest();
-    composition[1].skills = {{IdSkill::Soin, Skill(TypeSkill::Soin, 33.0f, 30, 8.0f, 8.0f, 0.0f, 0.6f)}};
+    composition[1].skills = {{IdSkill::Soin, Skill(TypeSkill::Soin, 33.0f, s_puissanceSoinDeTest, s_rechargeSoinDeTest,
+                                                   s_rechargeSoinDeTest, 0.0f, s_activationSoinDeTest)}};
     return Escouade(positionDepart, std::move(composition));
 }
-
-// Rayon de vision des personnages construits à la main dans les tests (celui de l'escouade).
-inline constexpr float s_rayonVisionDeTest = 320.0f;
 
 // Un générateur neuf à graine fixe. Chaque test en crée un à lui
 // (`Generateur generateur = generateurDeTest();`) et le passe par référence :
@@ -203,14 +289,16 @@ inline constexpr float s_dureeAttenteSkill = 1.0f;
 
 // Fait avancer par attaquer() (sans mettreAJour : personne ne bouge, les
 // recharges ne courent pas) pendant `s_dureeAttenteSkill`, et renvoie les coups
-// de skill partis. Les coups de l'attaque de base (5 dégâts) que les autres
-// personnages portent entre-temps sont écartés : seuls les skills comptent.
+// de skill partis. Les coups de l'attaque de base (s_degatsBaseDeTest) que les
+// autres personnages portent entre-temps sont écartés : seuls les skills comptent
+// (leurs dégâts doivent donc différer de ceux de l'attaque de base).
+static_assert(s_degatsFrappeDeTest != s_degatsBaseDeTest && s_degatsZoneDeTest != s_degatsBaseDeTest);
 inline std::vector<Coup> attendreLeDepartDesSkills(Escouade& escouade, const std::vector<EntiteVue>& monstres, const TileMap& carte,
                                                    Generateur& generateur) {
     std::vector<Coup> coups;
     for (int i = 0; i < nombreDeTics(s_dureeAttenteSkill); ++i) {
         for (const Coup& coup : escouade.attaquer(s_dureeTic, monstres, carte, generateur)) {
-            if (coup.degats != 5) {
+            if (coup.degats != s_degatsBaseDeTest) {
                 coups.push_back(coup);
             }
         }

@@ -20,7 +20,6 @@ int simulerAttaque(Escouade& escouade, const TileMap& carte, Cercle cible, float
     constexpr float dt = s_dureeTic;
     const int nombreTics = nombreDeTics(dureeSecondes);
     int degats = 0;
-    Generateur generateur = generateurDeTest();
     for (int i = 0; i < nombreTics; ++i) {
         degats += attaquerCible(escouade, carte, cible);
         escouade.mettreAJour(dt, carte, {});
@@ -32,7 +31,6 @@ int simulerAttaque(Escouade& escouade, const TileMap& carte, Cercle cible, float
 
 
 TEST_CASE("attaquer renvoie 0 pour une cible lointaine et l'escouade s'en rapproche") {
-    Generateur generateur = generateurDeTest();
     const std::vector<std::string> plan = {
         "..........",
         "..........",
@@ -84,7 +82,6 @@ TEST_CASE("attaquer finit par infliger des degats sans que l'escouade atteigne l
 }
 
 TEST_CASE("attaquer ignore les personnages morts pour decider si l'escouade doit s'arreter") {
-    Generateur generateur = generateurDeTest();
     const std::vector<std::string> plan = {
         "..........",
         "..........",
@@ -111,14 +108,13 @@ TEST_CASE("attaquer ignore les personnages morts pour decider si l'escouade doit
     // en arrière.
     const sf::Vector2f cible = centreAvant + sf::Vector2f(30.0f, 0.0f);
 
-    REQUIRE(attaquerCible(escouade, carte, cibleMonstre(cible)) == 10); // 2 vivants x 5 degats
+    REQUIRE(attaquerCible(escouade, carte, cibleMonstre(cible)) == 2 * s_degatsBaseDeTest); // les 2 vivants
     escouade.mettreAJour(1.0f / 60.0f, carte, {});
 
     verifierPointProche(escouade.getCentre(), centreAvant);
 }
 
 TEST_CASE("attaquer renvoie les degats de tous les personnages pour une cible deja proche") {
-    Generateur generateur = generateurDeTest();
     const std::vector<std::string> plan = {
         ".....",
         ".....",
@@ -137,7 +133,7 @@ TEST_CASE("attaquer renvoie les degats de tous les personnages pour une cible de
     const sf::Vector2f cible{85.0f, 60.0f};
     const sf::Vector2f centreInitial = escouade.getCentre();
 
-    REQUIRE(attaquerCible(escouade, carte, cibleMonstre(cible)) == 15);
+    REQUIRE(attaquerCible(escouade, carte, cibleMonstre(cible)) == 3 * s_degatsBaseDeTest);
     escouade.mettreAJour(1.0f / 60.0f, carte, {});
 
     verifierPointProche(escouade.getCentre(), centreInitial);
@@ -176,7 +172,6 @@ TEST_CASE("deverrouiller vide la cible") {
 }
 
 TEST_CASE("En combat, un personnage a portee de la cible reste immobile pendant que les autres avancent") {
-    Generateur generateur = generateurDeTest();
     const std::vector<std::string> plan = {
         "............",
         "............",
@@ -221,7 +216,6 @@ TEST_CASE("En combat, un personnage a portee de la cible reste immobile pendant 
 }
 
 TEST_CASE("Sans verrou, un personnage deja a portee suit tout de meme son emplacement") {
-    Generateur generateur = generateurDeTest();
     const std::vector<std::string> plan = {
         "............",
         "............",
@@ -267,7 +261,7 @@ TEST_CASE("Sans verrou, tous les personnages frappent un monstre a leur portee, 
     REQUIRE(coups.size() == 3);
     for (const Coup& coup : coups) {
         REQUIRE(coup.idMonstre == 4);
-        REQUIRE(coup.degats == 5);
+        REQUIRE(coup.degats == s_degatsBaseDeTest);
     }
     verifierPointProche(escouade.getCentre(), centreInitial);
 }
@@ -456,7 +450,7 @@ TEST_CASE("Un coup engage part meme si le monstre s'est eloigne") {
         total += attaquerCibleUnTic(escouade, loin, carte, generateur);
     }
 
-    REQUIRE(total == 15);  // 3 personnages x 5 dégâts, sur un monstre devenu hors de portée
+    REQUIRE(total == 3 * s_degatsBaseDeTest);  // les 3 personnages, sur un monstre devenu hors de portée
 }
 
 TEST_CASE("La disparition de la cible annule le coup engage, sans recharge consommee") {
@@ -488,7 +482,7 @@ TEST_CASE("La mort de l'attaquant annule son coup") {
     for (int i = 0; i < nombreDeTics(0.2f); ++i) {
         total += attaquerCibleUnTic(escouade, monstres, carte, generateur);
     }
-    REQUIRE(total == 10);  // les 2 autres personnages seulement
+    REQUIRE(total == 2 * s_degatsBaseDeTest);  // les 2 autres personnages seulement
 }
 
 TEST_CASE("Un skill qui part annule le coup en execution de son lanceur") {
@@ -506,7 +500,7 @@ TEST_CASE("Un skill qui part annule le coup en execution de son lanceur") {
     for (int i = 0; i < nombreDeTics(0.2f); ++i) {
         total += attaquerCibleUnTic(escouade, monstres, carte, generateur);
     }
-    REQUIRE(total == 10);  // le guerrier du skill ne frappe pas : les 2 autres seulement
+    REQUIRE(total == 2 * s_degatsBaseDeTest);  // le guerrier du skill ne frappe pas : les 2 autres seulement
 }
 
 TEST_CASE("recevoirCoup frappe le personnage de la place donnee, pas le plus proche") {
@@ -561,8 +555,8 @@ TEST_CASE("entitesDeControle exclut les morts mais garde la place des autres") {
 TEST_CASE("puissanceDeLAttaqueDeBase : les degats de la place, vide si la place est invalide") {
     const Escouade escouade = uneEscouade({50.0f, 50.0f});
 
-    REQUIRE(escouade.puissanceDeLAttaqueDeBase(1) == 5);
-    REQUIRE(escouade.puissanceDeLAttaqueDeBase(3) == 5);
+    REQUIRE(escouade.puissanceDeLAttaqueDeBase(1) == s_degatsBaseDeTest);
+    REQUIRE(escouade.puissanceDeLAttaqueDeBase(3) == s_degatsBaseDeTest);
     REQUIRE_FALSE(escouade.puissanceDeLAttaqueDeBase(0).has_value());
     REQUIRE_FALSE(escouade.puissanceDeLAttaqueDeBase(4).has_value());
 }

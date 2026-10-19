@@ -26,8 +26,6 @@ constexpr std::size_t s_mage = 2;
 constexpr std::size_t s_melee1 = 0;
 constexpr std::size_t s_melee2 = 1;
 
-constexpr float s_porteeMelee = 20.0f;
-constexpr float s_porteeTireur = 120.0f;
 constexpr float s_tolerance = 0.5f;
 
 // Image de Partie, sans les monstres qui bougent : attaquer() puis mettreAJour(), les
@@ -74,9 +72,9 @@ TEST_CASE("Places d'attaque : le guerrier arrive au contact, les tireurs s'arret
 
     const std::vector<Cercle> cercles = escouade.cerclesDesVivants();
     REQUIRE(cercles.size() == 3);
-    REQUIRE(estAPorteeDe(cercles[s_guerrier], monstre.cercle, s_porteeMelee));
-    REQUIRE(estAPorteeDe(cercles[s_pretre], monstre.cercle, s_porteeTireur));
-    REQUIRE(estAPorteeDe(cercles[s_mage], monstre.cercle, s_porteeTireur));
+    REQUIRE(estAPorteeDe(cercles[s_guerrier], monstre.cercle, s_porteeMeleeDeTest));
+    REQUIRE(estAPorteeDe(cercles[s_pretre], monstre.cercle, s_porteeTireurDeTest));
+    REQUIRE(estAPorteeDe(cercles[s_mage], monstre.cercle, s_porteeTireurDeTest));
     for (std::size_t i = 0; i < cercles.size(); ++i) {
         for (std::size_t j = i + 1; j < cercles.size(); ++j) {
             REQUIRE((cercles[i].centre - cercles[j].centre).length() >= 34.0f - s_tolerance);
@@ -96,8 +94,8 @@ TEST_CASE("Places d'attaque : deux melees en combat verrouille arrivent de cotes
     const std::vector<Cercle> cercles = escouade.cerclesDesVivants();
     REQUIRE(cercles.size() == 4);
     // Les deux mêlées frappent (à portée de leur attaque), chacune de son côté, sans se superposer.
-    REQUIRE(estAPorteeDe(cercles[s_melee1], monstre.cercle, s_porteeMelee));
-    REQUIRE(estAPorteeDe(cercles[s_melee2], monstre.cercle, s_porteeMelee));
+    REQUIRE(estAPorteeDe(cercles[s_melee1], monstre.cercle, s_porteeMeleeDeTest));
+    REQUIRE(estAPorteeDe(cercles[s_melee2], monstre.cercle, s_porteeMeleeDeTest));
     REQUIRE(std::abs(ecartAngulaire(cercles[s_melee1], cercles[s_melee2], monstre.cercle)) >= 30.0f);
     REQUIRE((cercles[s_melee1].centre - cercles[s_melee2].centre).length() >= 34.0f - s_tolerance);
 }
@@ -113,7 +111,7 @@ TEST_CASE("Places d'attaque : un tireur s'arrete des qu'il est a portee, sur un 
 
     const std::vector<Cercle> cercles = escouade.cerclesDesVivants();
     for (const std::size_t tireur : {s_pretre, s_mage}) {
-        REQUIRE(estAPorteeDe(cercles[tireur], monstre.cercle, s_porteeTireur));
+        REQUIRE(estAPorteeDe(cercles[tireur], monstre.cercle, s_porteeTireurDeTest));
         // Arrêté à distance : bien plus loin que le contact du guerrier.
         REQUIRE(distanceBordABord(cercles[tireur], monstre.cercle) > 60.0f);
     }
@@ -135,8 +133,8 @@ TEST_CASE("Places d'attaque : l'angle est garde quand le monstre bouge") {
 
     const std::vector<Cercle> cercles = escouade.cerclesDesVivants();
     const float apres = ecartAngulaire(cercles[s_melee1], cercles[s_melee2], monstre.cercle);
-    REQUIRE(estAPorteeDe(cercles[s_melee1], monstre.cercle, s_porteeMelee));
-    REQUIRE(estAPorteeDe(cercles[s_melee2], monstre.cercle, s_porteeMelee));
+    REQUIRE(estAPorteeDe(cercles[s_melee1], monstre.cercle, s_porteeMeleeDeTest));
+    REQUIRE(estAPorteeDe(cercles[s_melee2], monstre.cercle, s_porteeMeleeDeTest));
     REQUIRE(avant * apres > 0.0f);  // même ordre autour du monstre
 }
 
@@ -154,8 +152,8 @@ TEST_CASE("Places d'attaque : au changement de cible, chacun prend sa place auto
 
     const std::vector<Cercle> cercles = escouade.cerclesDesVivants();
     const Cercle nouveau = monstres[1].cercle;
-    REQUIRE(estAPorteeDe(cercles[s_melee1], nouveau, s_porteeMelee));
-    REQUIRE(estAPorteeDe(cercles[s_melee2], nouveau, s_porteeMelee));
+    REQUIRE(estAPorteeDe(cercles[s_melee1], nouveau, s_porteeMeleeDeTest));
+    REQUIRE(estAPorteeDe(cercles[s_melee2], nouveau, s_porteeMeleeDeTest));
     REQUIRE(std::abs(ecartAngulaire(cercles[s_melee1], cercles[s_melee2], nouveau)) >= 30.0f);
 }
 
@@ -174,8 +172,8 @@ TEST_CASE("Places d'attaque : une place dans un mur est sautee") {
     });
 
     const std::vector<Cercle> cercles = escouade.cerclesDesVivants();
-    REQUIRE(estAPorteeDe(cercles[s_melee1], monstre.cercle, s_porteeMelee));
-    REQUIRE(estAPorteeDe(cercles[s_melee2], monstre.cercle, s_porteeMelee));
+    REQUIRE(estAPorteeDe(cercles[s_melee1], monstre.cercle, s_porteeMeleeDeTest));
+    REQUIRE(estAPorteeDe(cercles[s_melee2], monstre.cercle, s_porteeMeleeDeTest));
 }
 
 TEST_CASE("Places d'attaque : un agresseur sans verrou, le melee a portee frappe et l'autre le rejoint sans se superposer") {
@@ -190,15 +188,17 @@ TEST_CASE("Places d'attaque : un agresseur sans verrou, le melee a portee frappe
     combattre(escouade, carte, {monstre}, 0.02f, generateur);
     const std::optional<sf::Vector2f> pointDuSecond = escouade.pointVise(2);
     REQUIRE(pointDuSecond.has_value());
+    // Sur l'anneau d'attaque : rayon du monstre + rayon du personnage (10) + 90 % de la portée.
+    const float anneau = monstre.cercle.rayon + 10.0f + 0.9f * s_porteeMeleeDeTest;
     const float ecartAuCentre = (*pointDuSecond - monstre.cercle.centre).length();
-    REQUIRE(ecartAuCentre > 40.0f);
-    REQUIRE(ecartAuCentre < 46.0f);
+    REQUIRE(ecartAuCentre > anneau - 3.0f);
+    REQUIRE(ecartAuCentre < anneau + 3.0f);
 
     combattre(escouade, carte, {monstre}, 2.0f, generateur);
 
     const std::vector<Cercle> cercles = escouade.cerclesDesVivants();
-    REQUIRE(estAPorteeDe(cercles[s_melee1], monstre.cercle, s_porteeMelee));
-    REQUIRE(estAPorteeDe(cercles[s_melee2], monstre.cercle, s_porteeMelee));
+    REQUIRE(estAPorteeDe(cercles[s_melee1], monstre.cercle, s_porteeMeleeDeTest));
+    REQUIRE(estAPorteeDe(cercles[s_melee2], monstre.cercle, s_porteeMeleeDeTest));
     REQUIRE((cercles[s_melee1].centre - cercles[s_melee2].centre).length() >= 34.0f - s_tolerance);
 }
 

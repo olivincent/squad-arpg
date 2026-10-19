@@ -364,12 +364,16 @@ TEST_CASE("En terrain degage, le personnage avance en ligne droite de vitesse * 
     const TileMap carte = carteDegagee5x5();
     Personnage personnage({60.0f, 60.0f}, sf::Color::White, Skill(TypeSkill::Degats, 80.0f, 5, 0.5f, 0.5f, 0.0f), {}, 0, s_rayonVisionDeTest);
 
-    for (int i = 0; i < 10; ++i) {
+    // La vitesse n'est pas injectable : le premier tic la mesure (vitesse * dt), les suivants
+    // doivent avancer d'autant, sans dévier (la cible est à 120 px, hors d'atteinte en 10 tics).
+    personnage.mettreAJour(1.0f / 60.0f, {180.0f, 60.0f}, carte, {}, {});
+    const float pasParTic = personnage.getCentre().x - 60.0f;
+    REQUIRE(pasParTic > 0.0f);
+    for (int i = 1; i < 10; ++i) {
         personnage.mettreAJour(1.0f / 60.0f, {180.0f, 60.0f}, carte, {}, {});
     }
 
-    // 240 px/s * (1/60) s = 4 px par tic.
-    REQUIRE_THAT(personnage.getCentre().x, Catch::Matchers::WithinAbs(100.0f, 0.01f));
+    REQUIRE_THAT(personnage.getCentre().x, Catch::Matchers::WithinAbs(60.0f + 10.0f * pasParTic, 0.01f));
     REQUIRE_THAT(personnage.getCentre().y, Catch::Matchers::WithinAbs(60.0f, 0.01f));
 }
 

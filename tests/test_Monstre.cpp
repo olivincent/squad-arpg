@@ -137,7 +137,8 @@ TEST_CASE("getId renvoie l'identifiant de chaque monstre") {
     REQUIRE(second.getId() == 2);
 }
 
-// Le monstre a 100 points de vie à la création.
+// Le monstre a tous ses points de vie à la création. Leur nombre n'est pas injectable : les tests
+// le lisent sur le monstre neuf (getPointsDeVie), sans l'écrire.
 
 TEST_CASE("Le monstre est vivant a la creation") {
     const Monstre monstre({100.0f, 100.0f}, 1, 0, 0);
@@ -145,18 +146,18 @@ TEST_CASE("Le monstre est vivant a la creation") {
     REQUIRE(monstre.estVivant());
 }
 
-TEST_CASE("Le monstre est encore vivant apres 80 points de degats") {
+TEST_CASE("Le monstre est encore vivant apres des degats inferieurs a ses points de vie") {
     Monstre monstre({100.0f, 100.0f}, 1, 0, 0);
 
-    monstre.recevoirDegats(80);
+    monstre.recevoirDegats(monstre.getPointsDeVie() - 20);
 
     REQUIRE(monstre.estVivant());
 }
 
-TEST_CASE("Le monstre est mort apres 100 points de degats") {
+TEST_CASE("Le monstre est mort apres autant de degats que ses points de vie") {
     Monstre monstre({100.0f, 100.0f}, 1, 0, 0);
 
-    monstre.recevoirDegats(100);
+    monstre.recevoirDegats(monstre.getPointsDeVie());
 
     REQUIRE_FALSE(monstre.estVivant());
 }
@@ -164,7 +165,7 @@ TEST_CASE("Le monstre est mort apres 100 points de degats") {
 TEST_CASE("Le monstre est mort apres un coup qui depasse les points de vie restants") {
     Monstre monstre({100.0f, 100.0f}, 1, 0, 0);
 
-    monstre.recevoirDegats(80); // reste 20 points de vie
+    monstre.recevoirDegats(monstre.getPointsDeVie() - 20); // reste 20 points de vie
     monstre.recevoirDegats(50); // dépasse largement le reste
 
     REQUIRE_FALSE(monstre.estVivant());
@@ -173,7 +174,7 @@ TEST_CASE("Le monstre est mort apres un coup qui depasse les points de vie resta
 TEST_CASE("Le monstre reste mort apres un coup supplementaire") {
     Monstre monstre({100.0f, 100.0f}, 1, 0, 0);
 
-    monstre.recevoirDegats(100);
+    monstre.recevoirDegats(monstre.getPointsDeVie());
     monstre.recevoirDegats(1);
 
     REQUIRE_FALSE(monstre.estVivant());
@@ -482,50 +483,58 @@ TEST_CASE("Monstre.estCiblable est vrai en garde et en poursuite, faux en retour
 TEST_CASE("Monstre en retour regagne tous ses points de vie en deux secondes environ") {
     const TileMap carte = carteLongue();
     Monstre monstre({100.0f, 100.0f}, 1, 0, 0);
-    amenerEnRetourHorsTerritoire(monstre, carte, 90);
-    REQUIRE(monstre.getPointsDeVie() == 10);
+    const int maximum = monstre.getPointsDeVie();
+    amenerEnRetourHorsTerritoire(monstre, carte, maximum - 10);
+    // Environ 10 : le premier tic du retour a pu rendre un point.
+    const int vieEnRetour = monstre.getPointsDeVie();
+    REQUIRE(vieEnRetour < maximum / 2);
 
     ecoulerTemps(monstre, 1.0f, pointCible({900.0f, 100.0f}), carte);
-    REQUIRE(monstre.getPointsDeVie() >= 55);
-    REQUIRE(monstre.getPointsDeVie() <= 65);
+    REQUIRE(monstre.getPointsDeVie() >= vieEnRetour + maximum / 2 - 5);
+    REQUIRE(monstre.getPointsDeVie() <= vieEnRetour + maximum / 2 + 5);
 
     ecoulerTemps(monstre, 1.0f, pointCible({900.0f, 100.0f}), carte);
-    REQUIRE(monstre.getPointsDeVie() == 100);
+    REQUIRE(monstre.getPointsDeVie() == maximum);
 }
 
 TEST_CASE("Monstre en retour ne depasse jamais son maximum") {
     const TileMap carte = carteLongue();
     Monstre monstre({100.0f, 100.0f}, 1, 0, 0);
+    const int maximum = monstre.getPointsDeVie();
     amenerEnRetourHorsTerritoire(monstre, carte, 10);
 
     ecoulerTemps(monstre, 3.0f, pointCible({900.0f, 100.0f}), carte);
 
-    REQUIRE(monstre.getPointsDeVie() == 100);
+    REQUIRE(monstre.getPointsDeVie() == maximum);
 }
 
 TEST_CASE("Monstre en retour regagne des points de vie a 60 images par seconde") {
     const TileMap carte = carteLongue();
     Monstre monstre({100.0f, 100.0f}, 1, 0, 0);
-    amenerEnRetourHorsTerritoire(monstre, carte, 90);
+    const int maximum = monstre.getPointsDeVie();
+    amenerEnRetourHorsTerritoire(monstre, carte, maximum - 10);
+    const int vieEnRetour = monstre.getPointsDeVie();
 
-    ecoulerTemps(monstre, 0.1f, pointCible({900.0f, 100.0f}), carte); // 6 images, 0,83 point chacune
+    ecoulerTemps(monstre, 0.1f, pointCible({900.0f, 100.0f}), carte); // 6 images, moins d'un point chacune
 
-    REQUIRE(monstre.getPointsDeVie() >= 14); // la partie entière cumulée, pas 0 à chaque image
+    // 0,1 s à 50 % du maximum par seconde : la partie entière cumulée, pas 0 à chaque image.
+    REQUIRE(monstre.getPointsDeVie() >= vieEnRetour + maximum / 20 - 1);
 }
 
 TEST_CASE("Monstre ne regagne aucun point de vie hors retour") {
     const TileMap carte = carteLongue();
     Monstre enGarde({100.0f, 100.0f}, 1, 0, 0);
+    const int maximum = enGarde.getPointsDeVie();
     enGarde.recevoirDegats(50);
     ecoulerTemps(enGarde, 2.0f, std::nullopt, carte);
-    REQUIRE(enGarde.getPointsDeVie() == 50);
+    REQUIRE(enGarde.getPointsDeVie() == maximum - 50);
 
     Monstre enPoursuite({100.0f, 100.0f}, 2, 0, 0);
     ecoulerTemps(enPoursuite, 0.2f, pointCible({250.0f, 100.0f}), carte); // détection
     enPoursuite.recevoirDegats(50);
     ecoulerTemps(enPoursuite, 1.0f, pointCible({250.0f, 100.0f}), carte);
     REQUIRE(enPoursuite.estEnPoursuite());
-    REQUIRE(enPoursuite.getPointsDeVie() == 50);
+    REQUIRE(enPoursuite.getPointsDeVie() == maximum - 50);
 }
 
 TEST_CASE("Monstre touche en retour hors de son territoire continue de rentrer") {
@@ -554,29 +563,32 @@ TEST_CASE("Monstre touche en poursuite continue de poursuivre") {
 
 TEST_CASE("Monstre.recevoirDegats applique son armure") {
     Monstre monstre({100.0f, 100.0f}, 1, 20, 0);
+    const int maximum = monstre.getPointsDeVie();
 
     monstre.recevoirDegats(5);
 
-    REQUIRE(monstre.getPointsDeVie() == 96);  // 5 x 100 / 120 = 4,17 -> 4
+    REQUIRE(monstre.getPointsDeVie() == maximum - 4);  // 5 x 100 / 120 = 4,17 -> 4
 }
 
 TEST_CASE("Monstre.recevoirDegats sans armure retire le montant entier") {
     Monstre monstre({100.0f, 100.0f}, 1, 0, 0);
+    const int maximum = monstre.getPointsDeVie();
 
     monstre.recevoirDegats(5);
 
-    REQUIRE(monstre.getPointsDeVie() == 95);
+    REQUIRE(monstre.getPointsDeVie() == maximum - 5);
 }
 
 TEST_CASE("Monstre.recevoirDegats d'un coup de 1 retire 1 malgre l'armure et reveille le monstre") {
     const TileMap carte = carteDegagee10x10();
     Monstre monstre({100.0f, 100.0f}, 1, 20, 0);
+    const int maximum = monstre.getPointsDeVie();
     const sf::Vector2f cible(350.0f, 100.0f); // 250 px, hors détection
 
     monstre.recevoirDegats(1);
     ecoulerTemps(monstre, 0.5f, pointCible(cible), carte);
 
-    REQUIRE(monstre.getPointsDeVie() == 99);
+    REQUIRE(monstre.getPointsDeVie() == maximum - 1);
     REQUIRE(monstre.getCentre().x > 100.0f);
 }
 
@@ -974,7 +986,7 @@ TEST_CASE("Monstre.recevoirDegats renvoie les degats subis apres armure") {
 
 TEST_CASE("Monstre.recevoirDegats sur un monstre mort renvoie zero") {
     Monstre monstre({100.0f, 100.0f}, 1, 0, 0);
-    monstre.recevoirDegats(100);
+    monstre.recevoirDegats(monstre.getPointsDeVie());
 
     REQUIRE(monstre.recevoirDegats(10) == 0);
 }

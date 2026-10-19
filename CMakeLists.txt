@@ -18,8 +18,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(SFML 3.0.2 COMPONENTS Graphics REQUIRED)
 find_package(Catch2 3 REQUIRED)
 
-# Avertissements du compilateur (pas -Werror). Non appliqués à la cible
-# tests, pour ne pas hériter des avertissements des macros de Catch2.
+# Avertissements du compilateur (pas -Werror), sur les trois cibles. Ceux des
+# en-têtes de Catch2 et de SFML ne sortent pas : ce sont des en-têtes système
+# (dossier par défaut du compilateur, cibles importées par find_package).
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     set(AVERTISSEMENTS -Wall -Wextra -Wpedantic -Wshadow -Wconversion)
 elseif(MSVC)
@@ -134,6 +135,7 @@ add_executable(tests
     tests/test_EcranOptions.cpp
 )
 target_link_libraries(tests PRIVATE squad_core Catch2::Catch2WithMain)
+target_compile_options(tests PRIVATE ${AVERTISSEMENTS})
 
 # CTest : chaque TEST_CASE devient un test CTest (ctest --preset debug).
 # Découverte au lancement de ctest (PRE_TEST) plutôt qu'à la fin de la

@@ -132,7 +132,6 @@ TEST_CASE("Degagement : seul au contact du monstre, le mage reste et tire") {
 }
 
 TEST_CASE("Degagement : le pretre se degage comme le mage") {
-    Generateur generateur = generateurDeTest();
     Escouade escouade = uneEscouadeAuMageReconnaissable();
     const UnMonstre monstre = unMonstreEn({312.0f, 482.0f});
     REQUIRE(engageLaPlace(escouade, monstre, s_guerrier));

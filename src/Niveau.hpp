@@ -29,7 +29,7 @@ struct Niveau {
     float tailleCase;                    // en pixels
     sf::Vector2f departEscouade;         // centre de l'ancre, en pixels du monde
     std::vector<MonstreDuNiveau> monstres;
-    int armureMonstres;                  // armure de chaque monstre
+    int armureMonstres = 0;              // armure de chaque monstre (le jeu donne la sienne)
     std::vector<PorteDuNiveau> portes = {};
 };
 
