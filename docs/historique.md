@@ -1239,6 +1239,49 @@ début d'image (bug de conversion des clics trouvé en chemin).
 les icônes, images d'icônes, autre texte à l'écran, redimensionnement de la
 fenêtre.
 
+### Audit d'avant l'étape 49 — entièrement traité
+
+Audit en lecture seule réalisé après l'étape 48 (commit `c45eca1`) : 5 avertissements
+`-Wconversion`, 325 tests verts, aucune règle d'architecture violée. Il a produit les étapes 49
+à 53. Le texte complet (mesures, graphe des inclusions, propositions) a été remplacé par l'audit
+d'avant l'étape 80 (`docs/audit.md`) ; Git le garde (commit de l'étape 48 et suivants). Constats
+et étape qui a traité chacun :
+
+| Constat | Sujet | Traité à |
+|---|---|---|
+| R1 | `main()` fait tout (258 lignes, non testable) | étape 52 (`Partie`, `Controleur`, `Niveau`) |
+| R2 | `Escouade` porte six responsabilités | étape 51 pour `Provocations` et `Agresseurs` ; la formation n'a pas été extraite |
+| R3 | `attaquer`, `mettreAJour`, `declencherSkill` mélangent plusieurs niveaux | étape 51 pour les deux premières ; `declencherSkill` non touchée |
+| R4 | `Skill` : l'astuce du cercle du lanceur pour la provocation et la zone | étape 53 (`declencherSansCible`, supprimée depuis à l'étape 62) |
+| D1 | Points de vie et barre de vie copiés entre `Personnage` et `Monstre` | étape 49 (`BarreDeVie`), étape 53 (`PointsDeVie`) |
+| D2 | Validation de la place répétée | étape 49 (`placeValide`, `personnageDeLaPlace`) |
+| D3 | « Monstre par identifiant » écrit 7 fois | étape 49 (`trouverEntite`, `trouverMonstre`) |
+| D4 | Valeurs magiques, trois styles de constantes | étape 49 (`s_` en `constexpr`, `Personnage::m_taille` supprimé) |
+| D5 | `Agresseur` et `MonstreVu` presque identiques | étape 51 |
+| D6 | Annulation du skill de dégâts en attente dupliquée | étape 49 |
+| P1 | `TileMap.hpp` inclut toute l'API graphique de SFML | étape 49 |
+| P2 | `Escouade.hpp` expose `Personnage.hpp` à `main.cpp` | laissé tel quel (couplage de compilation seulement) |
+| P3 | Petits écarts d'inclusion | étape 49 |
+| F1 | `src/` à plat (26 fichiers) | écarté à l'étape 49 (seuil de 40 fichiers) ; repris par l'audit d'avant l'étape 80 |
+| F2 | En-têtes fourre-tout (`Coup.hpp`, `TypeSkill`) | étape 49 |
+| F3 | Frontière `squad_core` / exécutable | étape 52 |
+| F4 | Documentation en retard sur le code | étape 49 |
+| F5 | `CMakeLists.txt` : sources sur une ligne, pas d'avertissements | étape 49 |
+| C1 | Cinq conversions `int` → `float` | étape 49 |
+| C2 | `Cible` lue sans `std::visit` | étape 49 (`Surcharges`) |
+| C3 | Aucun `[[nodiscard]]` | étape 49 |
+| C4 | `Cercle` passé de deux façons | étape 49 (par valeur, règle dans `CLAUDE.md`) |
+| C5 | Divers (`vector<bool>`, couplage `attaquer` / `mettreAJour`, déréférencements) | étape 49 pour b, c, d ; a et e conformes |
+| T1 | `test_Escouade.cpp` : 2135 lignes | étape 50 (cinq fichiers par thème) |
+| T2 | Aides de test copiées | étape 50 (`tests/aides.hpp`) |
+| T3 | Zones non couvertes | étape 50 (rotation, noms sans accents), étape 52 (`Partie`, `Controleur`) ; le dessin reste non testé (assumé) |
+| T4 | Tests dépendants du temps simulé | écarté (à surveiller lors d'un rééquilibrage) |
+
+**Bilan** : 27 constats ; 22 traités, 2 partiellement (R2 : la formation n'est pas extraite ; R3 :
+`declencherSkill` non touchée), 3 écartés ou laissés (P2, F1, T4). Pistes écartées à l'époque :
+héritage `Entite`, système entités-composants, chargeur de niveau, interface `Skill` polymorphe,
+bus d'événements (l'étape 79 a ajouté depuis une file d'événements, sans callback).
+
 ### Étape 49 — Hygiène et sûreté du code (refactorisation pure) ✅ TERMINÉE
 
 1. [x] `static_cast<float>` dans `TileMap.cpp` ; `CMakeLists.txt` à une
