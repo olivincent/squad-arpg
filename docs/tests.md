@@ -14,7 +14,7 @@
   `test_BarreDeRaccourcis.cpp`, `test_ClicInterface.cpp`,
   `test_PointsDeVie.cpp`, `test_Provocations.cpp`, `test_Agresseurs.cpp`, `test_Partie.cpp`,
   `test_Controleur.cpp`, `test_ChampDeVision.cpp`, `test_Vision.cpp`, `test_Composition.cpp`),
-  sauf `Escouade`, coupée par thème en six fichiers à plat (pas de
+  sauf `Escouade`, coupée par thème en sept fichiers à plat (pas de
   sous-dossier) :
   - `test_Escouade_deplacement.cpp` : ancre, chemin, formation, places,
     vivants, rotation de la formation ;
@@ -26,7 +26,8 @@
     `proieDuMonstre` (filet d'intégration ; les fonctions de `Provocations`
     et d'`Agresseurs` sont testées seules dans leurs fichiers, étape 51) ;
   - `test_Escouade_vue.cpp` : la ligne de vue (étapes 44 et 46) ;
-  - `test_Escouade_places.cpp` : les places d'attaque et `pointVise` (étape 67).
+  - `test_Escouade_places.cpp` : les places d'attaque et `pointVise` (étape 67) ;
+  - `test_Escouade_degagement.cpp` : le dégagement des tireurs (étape 78).
   Un cas qui touche plusieurs thèmes est dans le fichier de son sujet
   principal. Le plus gros (`test_Escouade_skills.cpp`) fait environ 790
   lignes.
@@ -1088,3 +1089,32 @@
   `composer` garde la zone quelle que soit la nuance de couleur.
 - **Nouvelle fonction de lecture pour les tests** : `Escouade::pointsDeVieDuPersonnage(place)`.
 - **Non testé** : le dessin des zones de contrôle (F3, vérifié à la main).
+
+## Étape 78 : dégagement des tireurs
+
+- **853 tests** (830 avant : +9 `Engagement`, +13 `Escouade`, +1 `Partie`).
+- **`test_Engagement.cpp`** (+9, `monstreDontSeDegager`) : mêmes cercles de 10 px, monstres de zone 20 px.
+  Engagé par un monstre tenu par un autre personnage : vrai (et renvoie son identifiant) ; seul au
+  contact : faux ; deux monstres dont un seul est tenu : faux ; les deux tenus, par le même personnage
+  ou par deux : vrai ; pas engagé (ou aucun monstre) : faux ; le personnage lui-même (ou une liste
+  vide) ne compte pas comme « autre » ; zone > 0 : jamais ; plus proche des monstres engageants, et
+  égalité : le premier de la liste.
+- **`test_Escouade_degagement.cpp`** (nouveau, 13, composition par défaut, monstre immobile entre le
+  guerrier et le mage) : l'attaque de base du mage fait 7 dégâts, pour reconnaître ses coups parmi les 5
+  des autres. Départ (le mage, pas le guerrier ni le prêtre) ; aucun coup du mage pendant la marche,
+  arrivée à 90 % de sa portée (108 px bord à bord, ±1), hors de la zone, le guerrier toujours au contact,
+  puis le mage tire ; seul au contact : reste et tire ; le prêtre se dégage aussi ; deux monstres dont
+  un seul est tenu : reste ; sans liste de monstres de contrôle : personne ; un coup en exécution part
+  d'abord, le départ vient après ; fin si le monstre disparaît ou rentre à son poste (absent de la liste
+  de contrôle, encore dans celle des obstacles) ; fin si l'ancre bouge, pas de départ si elle bouge déjà ;
+  skill en attente (avant le départ : pas de départ ; pendant : fin) ; skill du joueur à portée : fin et
+  le mage reste sur place ; fin si le porteur s'en va ; place invalide. Un agresseur est enregistré
+  (`recevoirCoup`) comme dans une vraie partie, sinon le mage arrivé retournerait vers sa place de
+  formation.
+- **`test_Partie.cpp`** (+1) : guerrier et mage au contact d'un même monstre. Le mage ne perd **aucun**
+  point de vie en 3 s (ni coup gratuit, ni coup normal : la proie du monstre est le guerrier), le guerrier
+  reste au contact, le mage finit hors de la zone et à portée, puis fait baisser les points de vie du
+  monstre d'au moins 7. **Mutation** : sans la photo des monstres passée à `Escouade::mettreAJour`, le
+  mage ne se dégage pas et le test échoue.
+- **Nouvelle fonction de lecture pour les tests** : `Escouade::degagementDuPersonnage(place)`.
+- **Non testé** : l'enchaînement avec une vraie caméra et le ressenti du recul (vérifiés à la main).

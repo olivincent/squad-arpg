@@ -290,9 +290,11 @@ L'attaque, la portée, le skill et les obstacles sont dans
   l'agresseur (ou le centre du personnage s'il a déjà un monstre à portée),
   seulement si l'ancre est à l'arrêt ; en combat verrouillé, le centre du
   personnage s'il est à portée du monstre verrouillé, sinon sa place d'attaque
-  autour de ce monstre ; la cible du skill en attente (pour des dégâts, sa
-  place d'attaque). Un coup ou un skill en exécution garde le personnage sur place. Le détail et le
-  pourquoi sont dans `docs/combat.md` (« Agresseurs »).
+  autour de ce monstre ; **le dégagement** (étape 78 : la place d'attaque autour
+  du monstre dont le tireur se dégage, jusqu'au bout, sans s'arrêter à portée) ; la cible du
+  skill en attente (pour des dégâts, sa place d'attaque). Un coup ou un skill en exécution garde le
+  personnage sur place. Le détail et le pourquoi sont dans `docs/combat.md` (« Agresseurs » et
+  « Dégagement des tireurs »).
 - **« Ancre à l'arrêt »** = `m_mobile.directionVoulue()` vide, lu après le
   déplacement de l'ancre dans la même image.
 - **`Personnage` n'en sait rien** : il reçoit toujours un simple point.
@@ -605,6 +607,21 @@ même endroit dans un passage étroit » a disparu de la liste des limites.
 - **`Escouade::entitesDeControle()`** donne à `Partie` une `EntiteDeControle` par personnage vivant
   (identifiant = place de 1 à N). `Escouade` ne connaît ni la règle ni les monstres : elle ne décide
   rien, elle lit. Les morts n'y sont pas.
-- **Aucun changement de placement** : `pointVoulu`, les places de formation et d'attaque ne tiennent pas
-  compte de la zone (étape 78 : dégagement des tireurs engagés). Un personnage qui recule d'un monstre
-  au contact subit donc le coup gratuit. Voir `docs/combat.md`.
+- **Aucun changement de placement par la zone elle-même** : les places de formation et d'attaque ne
+  tiennent pas compte de la zone. Un personnage qui recule de lui-même d'un monstre au contact subit donc
+  le coup gratuit. Seul le dégagement des tireurs (étape 78, section suivante) a une priorité propre
+  dans `pointVoulu`.
+
+## Dégagement (étape 78)
+
+- **Une priorité de plus dans `pointVoulu`** : après l'exécution d'une action et le skill en attente,
+  avant le combat verrouillé, l'agresseur et la formation. Un personnage qui se dégage reçoit comme point
+  la place d'attaque autour du monstre dont il se dégage (`pointVersMonstre` avec l'attaque de base :
+  anneau de rayon du monstre + rayon du personnage + 90 % de la portée). L'angle gardé, la séparation et
+  les places libres sont ceux de l'étape 67 ; le monstre approché n'est pas à contourner
+  (`monstresAContourner` lit `m_placesDAttaque`).
+- **La règle d'arrêt « dès que le monstre est à portée et en vue » ne s'applique pas** pendant le
+  dégagement : à portée, le tireur serait encore au contact.
+- **`Personnage` n'en sait rien** : il reçoit un point. L'état (`m_degagements`) et la décision
+  (`degagementVoulu`) sont dans `Escouade`, évalués avant la boucle de déplacement pour que tous
+  soient jugés sur les positions du début de l'image. Voir `docs/combat.md`.

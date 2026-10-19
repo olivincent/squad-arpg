@@ -57,7 +57,8 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
      g. photo des camps pour les zones de contrôle (`photographierLesCamps`, avant tout
         déplacement), puis `EntiteVue` de **tous** les monstres, liste physique (obstacles bloquants
         des personnages, dont chacun contourne ceux qu'il n'approche pas),
-        `escouade.mettreAJour`, puis
+        `escouade.mettreAJour` (qui reçoit aussi les monstres de la première photo, pour le
+        dégagement des tireurs, étape 78), puis
         `cerclesDesVivants` et le tour de chaque monstre (proie, mise à jour
         avec ses obstacles bloquants et ses cercles à contourner, riposte) ;
      h. seconde photo des camps et coups gratuits des deux sens (`appliquerLesCoupsDOpportunite`,

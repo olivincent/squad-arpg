@@ -949,8 +949,56 @@ l'enfoncerait dans un obstacle.
 - **Limites connues** :
   - un pas de côté de A (perpendiculaire à A→B) qui rompt le contact a une contribution de 0, comme B
     immobile : à égalité B est le fuyard, A le frappe ;
-  - un tireur au contact qui recule reçoit le coup gratuit du monstre ; l'étape 78 le fera se dégager
-    vers sa place d'attaque ;
+  - un tireur au contact qui recule de lui-même reçoit le coup gratuit du monstre ; l'étape 78 le fait
+    se dégager sans pénalité, mais seulement quand chaque monstre qui l'engage est tenu par un autre
+    personnage (voir « Dégagement des tireurs » ci-dessous) ;
   - un coup par image et par attaquant peut sembler généreux ;
   - pas de skill qui annule la pénalité (se faufiler), pas de gambit « rester / se dégager » ;
   - pas d'effet visuel propre au coup gratuit (la barre de vie suffit).
+
+## Dégagement des tireurs (étape 78)
+
+- **Le problème** : depuis l'étape 77, un tireur au contact d'un monstre ne pouvait plus reculer sans
+  recevoir un coup gratuit. Quand un guerrier tient ce monstre, le tireur n'a pourtant aucune raison de
+  rester collé à lui : il tirerait aussi bien de sa place d'attaque (90 % de sa portée).
+- **Pourquoi il part sans pénalité** : la règle des zones n'a pas été touchée. Le monstre qui engage le
+  tireur engage aussi le guerrier ; à la fin de l'image il « engage encore quelqu'un », donc l'exemption
+  de `coupsDOpportunite` joue (voir ci-dessus). Le dégagement ne fait que choisir quand partir. C'est
+  aussi pourquoi il faut que CHAQUE monstre qui engage le tireur ait un autre personnage dans sa zone :
+  un seul monstre non tenu suffirait à lui donner son coup gratuit.
+- **La règle de départ** est `monstreDontSeDegager` (`Engagement`, fonction pure, voir
+  `ARCHITECTURE.md`), évaluée une fois par image sur les positions du début de l'image. Elle renvoie
+  l'identifiant du plus proche des monstres qui engagent le personnage : c'est autour de lui que se
+  calcule la place d'attaque, et le renvoyer évite de refaire le tri dans `Escouade`. Elle ne connaît ni
+  l'ancre ni les skills : ces conditions sont dans `Escouade::degagementVoulu`.
+- **Concernés** : les personnages vivants dont la zone de contrôle est 0 (prêtre, mage, rôdeur). Un
+  guerrier ou un paladin ne se dégage jamais de lui-même.
+- **Conditions de départ en plus** : l'ancre est à l'arrêt (l'ordre du joueur gagne), aucun skill en
+  attente pour ce personnage, aucune action en exécution (un coup de base ou une activation de skill en
+  cours part d'abord ; le dégagement commence à l'image suivante), pas déjà en dégagement.
+- **Fin** : arrivée à la place (0,01 px, comme le seuil de `Mobile`) ; monstre absent de la photo des
+  monstres ciblables (mort, retiré, ou qui rentre à son poste) ; ancre en mouvement ; skill mis en
+  attente ou action engagée ; personnage encore engagé alors que la condition n'est plus vraie (le
+  porteur est parti ou un second monstre non tenu est arrivé : rester évite le coup gratuit). Un
+  personnage qui n'est plus engagé mais n'est pas arrivé continue : sortir de la zone est le but.
+- **Pas d'attaque pendant le dégagement** : `autodefense` n'engage pas d'attaque de base (verrou
+  compris) pour un personnage qui se dégage. Les skills déclenchés par le joueur restent permis ;
+  engagés, ils mettent fin au dégagement (action en exécution), que la règle relance ensuite si le
+  personnage est toujours engagé et tenu. Cela vaut aussi pour une explosion lancée pendant le recul :
+  la visée et le lancer sont inchangés.
+- **Où vit l'état** : `Escouade::m_degagements`, un `std::optional<int>` par personnage (le monstre dont
+  il se dégage). `Escouade::degagementVoulu` contient départ et fin : c'est la seule fonction à
+  remplacer le jour où les gambits laisseront le joueur choisir (rester et tirer, se dégager, passer en
+  mêlée). Si le monstre n'a plus de place d'attaque libre, le dégagement est abandonné pour l'image et
+  les règles habituelles reprennent (le personnage n'ira pas vers le centre du monstre).
+- **Données** : `Partie` passe à `Escouade::mettreAJour` la liste d'`EntiteDeControle` de la photo du
+  début de l'image (monstres ciblables, avec leur zone) en paramètre supplémentaire, à la place d'un champ
+  de zone dans `EntiteVue` : celle-ci sert aussi aux obstacles, qui incluent les monstres qui rentrent.
+  Le paramètre est vide par défaut (les tests qui n'en parlent pas ne changent pas).
+- **Limites connues** :
+  - un tireur bloqué pendant son recul n'en sort que si la règle change ;
+  - sans verrou ni agresseur connu, un tireur arrivé retournerait vers sa place de formation (au contact
+    du monstre) puis se dégagerait de nouveau ; en partie réelle le monstre frappe presque tout de suite
+    le guerrier, qui devient un agresseur, et le tireur reste sur place ;
+  - pas de repli quand un monstre approche d'un tireur qui n'est pas encore au contact ;
+  - pas de réglage par personnage (gambits).

@@ -85,14 +85,13 @@ est dans `docs/historique.md`.
 - Étape 75 — Barre de raccourcis : 12 emplacements, touches et clic ✅
 - Étape 76 — Spécialités, catalogue et choix des 3 classes ✅
 - Étape 77 — Zones de contrôle et attaque d'opportunité ✅
+- Étape 78 — Dégagement des tireurs ✅
 
 ## Prochaine étape (à choisir)
 
-**Étape 78 (prévue)** : les tireurs engagés se dégagent d'eux-mêmes vers leur place d'attaque quand
-un autre personnage tient le monstre (aujourd'hui, un tireur au contact d'un monstre reste sur place
-et peut recevoir un coup gratuit s'il recule). Ensuite, des gambits pour choisir ce comportement
-(rester et tirer, se dégager, passer en mêlée) et des skills qui permettent de se faufiler sans
-pénalité (voir `docs/brainstorm.md`).
+Des gambits pour choisir le comportement d'un personnage engagé (rester et tirer, se dégager, passer
+en mêlée : le dégagement de l'étape 78 en est la première règle, écrite à un seul endroit, `degagementVoulu`)
+et des skills qui permettent de se faufiler sans pénalité (voir `docs/brainstorm.md`).
 
 Pistes issues de l'étape 76 : arbres de skills par classe (on ne peut pas tout prendre, pour
 monter une même classe de façons différentes ; c'est ce qui différenciera deux personnages de la
@@ -217,6 +216,18 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   et après le déplacement). F3 dessine un cercle fin magenta autour de chaque entité qui a une zone.
   Un monstre tué par un coup gratuit est retiré et le verrou levé. Voir `docs/combat.md`,
   `docs/monstre.md` et `docs/boucle-et-entrees.md`.
+- **Dégagement des tireurs** (étape 78) : un personnage sans zone de contrôle (prêtre, mage, rôdeur)
+  engagé par un ou plusieurs monstres se dégage vers sa place d'attaque (anneau autour du plus proche
+  d'entre eux, à 90 % de la portée de son attaque) dès que CHAQUE monstre qui l'engage a un autre
+  personnage dans sa zone : il part sans coup gratuit, puisque ce monstre engage encore quelqu'un à la
+  fin de l'image. Seul face à un monstre, il reste et tire. Conditions en plus : ancre à l'arrêt, aucun
+  skill en attente pour lui, aucune action en exécution (un coup en cours part d'abord). Pendant le
+  dégagement il ne frappe pas et ne s'arrête pas à portée ; fin à l'arrivée, si le monstre disparaît ou
+  rentre à son poste, si l'ancre bouge, si un skill est mis en attente ou engagé, ou s'il est encore
+  engagé alors que le porteur est parti. Priorité de `pointVoulu` : exécution > skill en attente >
+  dégagement > verrou > agresseur > formation. Règle pure `monstreDontSeDegager` (`Engagement`), état
+  et fin dans `Escouade::degagementVoulu`. Aucun affichage nouveau (F3 montre le point visé). Voir
+  `docs/combat.md` et `docs/formation.md`.
 - **Vision et brouillard de guerre** (étape 72) : chaque case est inconnue, explorée ou
   visible (`Vision`, possédée par `Partie`). Les personnages vivants voient à 320 px (8 cases)
   chacun ; la vision de l'escouade est l'union de leurs champs, calculés par un shadowcasting
@@ -519,12 +530,12 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 830 tests : 18 sur `Engagement`, 23 sur `ChampDeVision`, 8 sur `Vision`, 5 sur `ObjetInteractif`, 15 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 61 sur `GenerateurDonjon`, 36 sur `TileMap`, 27 sur `Chemin`, 203
-  sur `Escouade` en six fichiers par thème (déplacement, combat, skills, agresseurs, vue, places),
+  (`./build/tests.exe`, 853 tests : 27 sur `Engagement`, 23 sur `ChampDeVision`, 8 sur `Vision`, 5 sur `ObjetInteractif`, 15 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 61 sur `GenerateurDonjon`, 36 sur `TileMap`, 27 sur `Chemin`, 216
+  sur `Escouade` en sept fichiers par thème (déplacement, combat, skills, agresseurs, vue, places, dégagement),
   7 sur `Composition`, 16 sur `Specialite`, 9 sur `SelectionDEscouade`, 11 sur `EcranChoixEscouade`, 11 sur `Encerclement`, 16 sur `Deplacement`, 75 sur `Monstre`,
   60 sur `Personnage`, 24 sur `Skill`, 24 sur `Mobile`, 4 sur `Eclaircir`, 10 sur `Cercle`, 13
   sur `Autodefense`, 8 sur `BarreDeSkills`, 11 sur `BarreDeRaccourcis`, 3 sur `ClicInterface`, 4 sur `EntiteVue`, 1 sur
-  `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 55 sur `Partie`, 16 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
+  `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 56 sur `Partie`, 16 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
   accents (`./build/tests.exe "*a portee*"` filtre) ; rotation de la
   formation et `provoquer` à une place invalide couverts. Les tests d'`Escouade` utilisent la composition
   par défaut des tests (`compositionDeTest()` : guerrier, prêtre, mage ; `uneEscouade`, `unePartie`) ; `uneEscouadeADeuxGuerriers` et `uneEscouadeAuSoinCourt` servent
@@ -585,9 +596,16 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
 - Zones de contrôle (étape 77) : un seul coup gratuit par attaquant et par image, sans délai de
   réaction (peut sembler généreux) ; un pas de côté de A qui rompt le contact compte comme une fuite
   de B (égalité des projections : B est le fuyard) ; toute la poussée de la séparation douce compte
-  comme déplacement ; un tireur au contact d'un monstre qui recule reçoit le coup gratuit (l'étape 78
-  le fera se dégager lui-même) ; pas de skill qui annule la pénalité ; pas d'effet visuel propre au
-  coup gratuit (la barre de vie suffit).
+  comme déplacement ; un tireur au contact d'un monstre seul, ou de plusieurs dont un n'est pas tenu,
+  qui recule reçoit le coup gratuit (l'étape 78 ne le dégage que si chaque monstre est tenu) ; pas de
+  skill qui annule la pénalité ; pas d'effet visuel propre au coup gratuit (la barre de vie suffit).
+- Dégagement (étape 78) : un tireur bloqué pendant son recul n'en sort que si la règle change
+  (`Personnage` n'expose pas `estBloque`) ; l'arrivée est mesurée à 0,01 px de la place (une poussée de
+  la séparation douce peut la retarder) ; une fois arrivé, sans verrou ni agresseur connu, les règles
+  habituelles le ramènent vers sa place de formation (en partie réelle le monstre frappe le guerrier et
+  devient agresseur : le tireur reste) ; une action déclenchée par le joueur interrompt le recul, que la
+  règle relance ensuite si le tireur est toujours engagé et tenu ; un monstre qui change de cible peut
+  relancer le dégagement.
 - Provocation stricte (étape 66) : un monstre provoqué ne frappe que son
   provocateur, même s'il est collé à un autre personnage ; si le provocateur
   est caché, il ne frappe personne.
