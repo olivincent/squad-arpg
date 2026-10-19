@@ -67,11 +67,17 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
         verrou levé ;
      i. `Vision` mise à jour (étape 72), en dernier pour que le dessin corresponde aux
         positions de la fin de l'image ;
-     j. les demandes sont vidées ;
+     j. les demandes sont vidées ; les événements de combat de l'image restent dans la file de la
+        `Partie` jusqu'à ce qu'`EcranJeu` les prenne (étape 79, voir « Événements de combat et
+        textes flottants ») ;
+  3 bis. `EcranJeu::mettreAJour`, juste après : `partie.prendreEvenements()`, chaque événement devient un
+     texte flottant (sauf dans le brouillard), puis `m_textes.mettreAJour(dt)` ; aussi quand la partie est
+     figée ;
   4. `main.cpp` : caméra centrée sur l'escouade, `partie.dessiner` (carte,
      monstres visibles avec le contour du verrou, semi-transparents s'ils rentrent à leur
      poste et que F3 est actif, escouade, voile de la `Vision` sauf si F6 l'a coupé), `controleur.
-     dessinerApercu`, puis, dans la vue d'interface, barre de raccourcis, compteur
+     dessinerApercu`, les débogages de F3, les textes flottants (vue du monde, après le voile du
+     brouillard), puis, dans la vue d'interface, barre de raccourcis, compteur
      « Monstres : N » (haut gauche) et, si la partie est perdue ou gagnée,
      écran de fin (par-dessus la barre et le compteur), le tout avec la vue de
      l'interface (800 px de haut, voir `docs/ecrans.md`).
@@ -370,6 +376,24 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   `docs/monstre.md`).
 - **Indépendant du verrou** : un monstre poursuit et riposte dès qu'un
   personnage vivant est à sa portée.
+
+## Événements de combat et textes flottants (étape 79)
+
+- **Qui fait quoi** : `Partie` produit des `EvenementDeCombat` pendant `mettreAJour` (voir
+  `docs/combat.md`) et les garde dans une file ; `EcranJeu` les lit une fois par image. `Partie` ne sait
+  pas qui les lit : pas de callback.
+- **Ordre dans `EcranJeu::mettreAJour`** : `Partie::mettreAJour(dt)`, puis `prendreEvenements()` (qui
+  vide la file), puis pour chaque événement `TextesFlottants::ajouter` (filtre du brouillard : si
+  `m_debogage.brouillard` et que `Partie::estVisible(position)` est faux, l'événement est ignoré),
+  puis `TextesFlottants::mettreAJour(dt)`. Les textes ajoutés dans cette image ont donc un âge de `dt`
+  au premier dessin, et partagent le même numéro d'image (empilement).
+- **Partie figée** : le monde ne bouge plus, mais les textes continuent leur animation (la mise à jour
+  des textes ne dépend pas de l'état de la partie) : le dernier coup d'une victoire s'efface
+  normalement sous le voile de l'écran de fin.
+- **Dessin** : dans la vue du monde (`m_camera`), après le monde, le voile du brouillard, l'aperçu de
+  visée et les débogages de F3 ; avant la vue d'interface (barre de raccourcis, compteur, écran de fin).
+- **Remise à zéro** : `nouvelleCarte` (F5, et l'entrée dans l'écran) remplace les textes par un
+  `TextesFlottants` neuf, comme la barre et le contrôleur.
 
 ## Interface fixe à l'écran (étape 48)
 

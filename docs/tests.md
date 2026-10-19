@@ -13,6 +13,7 @@
   `test_Encerclement.cpp`, `test_BarreDeSkills.cpp`, `test_EntiteVue.cpp`, `test_BarreDeVie.cpp`,
   `test_BarreDeRaccourcis.cpp`, `test_ClicInterface.cpp`,
   `test_PointsDeVie.cpp`, `test_Provocations.cpp`, `test_Agresseurs.cpp`, `test_Partie.cpp`,
+  `test_TextesFlottants.cpp`,
   `test_Controleur.cpp`, `test_ChampDeVision.cpp`, `test_Vision.cpp`, `test_Composition.cpp`),
   sauf `Escouade`, coupée par thème en sept fichiers à plat (pas de
   sous-dossier) :
@@ -1118,3 +1119,43 @@
   mage ne se dégage pas et le test échoue.
 - **Nouvelle fonction de lecture pour les tests** : `Escouade::degagementDuPersonnage(place)`.
 - **Non testé** : l'enchaînement avec une vraie caméra et le ressenti du recul (vérifiés à la main).
+
+## Étape 79 : dégâts flottants
+
+- **887 tests** (853 avant : +3 `PointsDeVie`, +4 `Personnage`, +3 `Monstre`, +5 `Escouade`, +10 `Partie`,
+  +9 `TextesFlottants`).
+- **Sous-étape 1, montants appliqués** :
+  - `test_PointsDeVie.cpp` (+3) : `soigner` renvoie les points rendus, seulement ce qui tient sous le
+    maximum (puis 0 à pleine vie), 0 pour un mort ;
+  - `test_Personnage.cpp` (+4) : `recevoirDegats` renvoie les dégâts après armure (mêlée : 10 → 7 ; tireur :
+    10) et 0 pour un mort ; `recevoirSoin` renvoie ce qui a été rendu, plafonné, 0 à pleine vie et pour
+    un mort ;
+  - `test_Monstre.cpp` (+3) : `recevoirDegats` renvoie les dégâts après armure (armure 0 : 10 ; armure 20 :
+    10 → 8), 0 pour un monstre mort, 0 en retour au poste (invulnérable) ;
+  - `test_Escouade_agresseurs.cpp` (+3) : `recevoirCoup` renvoie les dégâts du personnage touché (guerrier
+    armure 50 : 7 ; mage : 10), 0 sur un mort ou une place invalide ; `recevoirDegats` renvoie 0 quand tout
+    le monde est mort.
+- **Sous-étape 2, la file d'événements** :
+  - `test_Escouade_skills.cpp` (+2) : `prendreSoins` rend un `SoinApplique` (place 3, 20 points rendus
+    alors que le soin vaut 30, position du soigné) puis se vide ; `centreDuPersonnage` (centre de la place,
+    vide pour une place invalide) ;
+  - `test_Partie.cpp` (+10) : aides `evenementsPendant` (avance tic par tic et rassemble les événements,
+    parce que la file se vide à chaque `prendreEvenements`) et `parmi` (filtre par type et camp).
+    Skill de dégâts sur un monstre d'armure 20 : un événement de 21 (25 × 100 / 120), id et position
+    du monstre ; coup d'un monstre : 7 sur le guerrier et 10 sur le mage, position du personnage ; skill de
+    zone : un événement de 15 par monstre touché (trois monstres hors de la détection, pour qu'ils ne
+    bougent pas avant le départ du sort) ; coup gratuit : `opportunite` vrai dans les deux sens (monstre
+    sur le mage qui recule ; guerrier sur le monstre qui part vers un provocateur), un seul coup normal et
+    un seul coup gratuit ; soin : un événement `Soin` sur le guerrier, dont le montant est borné par les
+    dégâts reçus et qui rend exact le compte de points de vie ; deux guerriers dont les coups de 200
+    partent au même tic : un seul événement, le second coup tombe sur un mort ; ce monstre tué est
+    retiré mais garde son événement, avec sa position ; `prendreEvenements` vide la file ; partie
+    gagnée ou perdue : aucun nouvel événement ; `estVisible` (salle de départ visible, point lointain non).
+- **Sous-étape 3, `test_TextesFlottants.cpp`** (nouveau, 9, sans fenêtre) : opacité à 0, 0,4, 0,6, 0,8 et
+  1,5 s (1, 1, 0,5, 0, 0) ; hauteur à 0, 0,4 et 0,8 s (20, 35, 50) ; position à la naissance (20 px
+  au-dessus) et après 0,4 s ; retrait à 0,8 s et pas avant (0,4 + 0,3 : encore là) ; trois textes de la même
+  image sur la même cible : rangs 0, 1, 2 et 14 px d'écart ; pas d'empilement pour deux cibles différentes
+  ni pour un monstre et un personnage de même identifiant ; pas d'empilement entre deux images ;
+  libellé (« 12 », « 7! », « +20 »), couleur (blanc, rouge, vert, orange) et taille (16 ou 20).
+- **Non testé** : le dessin des textes (`TextesFlottants::dessiner`, il faut une fenêtre) et le filtre du
+  brouillard d'`EcranJeu` (on teste `Partie::estVisible`, qu'il utilise) ; vérifiés à la main.

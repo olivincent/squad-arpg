@@ -75,6 +75,8 @@ squad-arpg/
 │   ├── Specialite.hpp / .cpp
 │   ├── SelectionDEscouade.hpp / .cpp
 │   ├── Coup.hpp
+│   ├── EvenementDeCombat.hpp
+│   ├── TextesFlottants.hpp / .cpp
 │   ├── EntiteVue.hpp / .cpp
 │   ├── TypeSkill.hpp
 │   ├── Autodefense.hpp / .cpp
@@ -112,7 +114,7 @@ squad-arpg/
 │   └── test_Skill.cpp, test_Mobile.cpp, test_Cercle.cpp,
 │       test_Autodefense.cpp, test_Encerclement.cpp, test_Engagement.cpp, test_BarreDeSkills.cpp,
 │       test_BarreDeRaccourcis.cpp, test_ClicInterface.cpp,
-│       test_EntiteVue.cpp, test_BarreDeVie.cpp,
+│       test_EntiteVue.cpp, test_BarreDeVie.cpp, test_TextesFlottants.cpp,
 │       test_PointsDeVie.cpp, test_Defense.cpp, test_Eclaircir.cpp,
 │       test_Reglages.cpp, test_TailleDeVue.cpp,
 │       test_ListeDeBoutons.cpp, test_EcranMenu.cpp,
@@ -159,19 +161,19 @@ Qui possède quoi :
   reçoivent la fenêtre, la police et les réglages dans un `Contexte` à chaque
   appel et ne les gardent pas. `EcranChoixEscouade` possède la
   `SelectionDEscouade` ; `EcranJeu` reçoit la liste des `IdSpecialite` choisies, la garde, et possède une `Partie`, un
-  `Controleur`, une `BarreDeRaccourcis`, la caméra et le `std::random_device` (il appelle `composer` pour construire la `Partie`) ; il traduit les
+  `Controleur`, une `BarreDeRaccourcis`, des `TextesFlottants`, la caméra et le `std::random_device` (il appelle `composer` pour construire la `Partie`) ; il traduit les
   événements SFML (clic, touches de la barre de raccourcis, Échap, clic droit, F3, F4 et F6 de débogage) en appels au
   `Controleur`. Un clic gauche est d'abord testé sur l'interface (`clicSurInterface`, vue d'interface) : s'il touche la barre, il est consommé et n'atteint pas le monde. Une touche est traduite en emplacement par `emplacementPourTouche` (table des `Reglages`). (Touche R : retour à l'écran de choix de l'escouade si la partie est perdue ou gagnée, sinon c'est un raccourci ;
   F5 : nouvelle carte à tout moment ; F5, comme l'entrée dans l'écran,
   passe par `nouvellePartie`, qui tire la graine et génère le niveau),
   convertit le curseur en coordonnées du monde, centre la caméra sur
-  l'escouade et enchaîne le dessin. Il ne connaît ni `Monstre`,
+  l'escouade et enchaîne le dessin. Après chaque `Partie::mettreAJour`, il prend les `EvenementDeCombat` de la partie (`prendreEvenements`), en fait des textes flottants (sauf hors de vue quand le brouillard est actif) et les fait avancer. Il ne connaît ni `Monstre`,
   ni `Coup`, ni `EntiteVue`, ni `Chemin`, ni `Personnage`.
 - `Partie` possède la `TileMap`, l'`Escouade`, un `std::vector<Monstre>` et le
   `Generateur` aléatoire (graine reçue au constructeur),
   construits à partir d'un `Niveau`, ainsi que les `ObjetInteractif` (les portes) et la `Vision` (ce que le joueur sait de la carte). Elle fait l'intermédiaire entre
   `Escouade` et `Monstre`, qui ne se connaissent pas : elle leur donne la
-  liste des monstres (`EntiteVue`, deux listes : les cibles, sans ceux qui rentrent à leur poste, et tous les monstres comme obstacles) ; pour chaque monstre, elle lui donne aussi sa proie et ses candidats de frappe (`EntiteVue` de personnages) et applique les `Coup` renvoyés. Elle prend deux photos des camps par image (`EntiteDeControle`) et applique les coups gratuits que `Engagement` en déduit, dans les deux sens.
+  liste des monstres (`EntiteVue`, deux listes : les cibles, sans ceux qui rentrent à leur poste, et tous les monstres comme obstacles) ; pour chaque monstre, elle lui donne aussi sa proie et ses candidats de frappe (`EntiteVue` de personnages) et applique les `Coup` renvoyés. Elle prend deux photos des camps par image (`EntiteDeControle`) et applique les coups gratuits que `Engagement` en déduit, dans les deux sens. Elle tient la file des `EvenementDeCombat` : chaque dégât et chaque soin réellement appliqué y est inscrit (données seulement : elle ne connaît pas ceux qui la lisent).
 - `Controleur` porte l'état d'interface : le mode visée et le déplacement
   continu. Il ne garde aucune référence à la `Partie` : celle-ci lui est
   passée à chaque appel. Il ne connaît pas les événements SFML.
@@ -224,7 +226,7 @@ stocké par un écran.
 `EcranJeu.hpp` / `.cpp`. Reprend ce que faisait `main()` pour le jeu.
 
 Données membres : `m_tirageDeGraine` (`std::random_device`), `m_specialites` (`std::vector<IdSpecialite>`, les classes de l'escouade, dans l'ordre des places), `m_partie`
-(`Partie`), `m_controleur` (`Controleur`), `m_barre` (`BarreDeRaccourcis`, reconstruite par `barreParDefaut` à chaque `nouvelleCarte`), `m_camera` (`sf::View`),
+(`Partie`), `m_controleur` (`Controleur`), `m_barre` (`BarreDeRaccourcis`, reconstruite par `barreParDefaut` à chaque `nouvelleCarte`), `m_textes` (`TextesFlottants`, remis à zéro par `nouvelleCarte`), `m_camera` (`sf::View`),
 `m_debogage` (`OptionsDeDebogage { bool pointsVises = false; bool ancre = true; bool brouillard = true; }`,
 état d'interface remis à sa valeur de départ par `nouvelleCarte`).
 
@@ -232,8 +234,8 @@ Données membres : `m_tirageDeGraine` (`std::random_device`), `m_specialites` (`
 |---|---|
 | `explicit EcranJeu(std::vector<IdSpecialite> specialites)` | Garde les classes (`m_specialites`, déclaré avant `m_partie`), tire une graine, la génère et construit la partie (`nouvellePartie`, qui appelle `composer(specialites)`) ; F5 réutilise les mêmes classes |
 | `Transition traiterEvenement(...)` | Clic gauche (d'abord `clicSurInterface` : sur la barre, `Controleur::appuiInterface`, sauf partie perdue ou gagnée ; sinon `appuiGauche`), touches de la barre (`emplacementPourTouche` puis `activerEmplacement`, ignorées sur l'écran de fin), Échap, F5 (nouvelle carte), F3 (bascule les points visés et les chemins restants des personnages et des monstres, les zones de contrôle, et la semi-transparence des monstres qui rentrent à leur poste), F4 (bascule le carré vert de l'ancre), F6 (bascule le brouillard de guerre, visuel seulement) ; R sur l'écran de fin (partie perdue ou gagnée) renvoie `Depiler` (retour à l'écran de choix) ; sinon `Aucune` |
-| `void mettreAJour(float, const Contexte&)` | Taille de la caméra (`tailleDeVue`), déplacement continu, `Partie::mettreAJour`, `Controleur::debutImage` (sortie de la visée), caméra centrée sur l'escouade |
-| `void dessiner(const Contexte&) const` | Monde avec la caméra (ancre cachée si `!m_debogage.ancre`, brouillard selon `m_debogage.brouillard`), aperçu de visée, points visés et chemins restants si `m_debogage.pointsVises`, puis, avec `vueDInterface` : barre de raccourcis (une `IconeDeRaccourci` par emplacement), compteur « Monstres : N » et écran de fin |
+| `void mettreAJour(float, const Contexte&)` | Taille de la caméra (`tailleDeVue`), déplacement continu, `Partie::mettreAJour`, puis `prendreEvenements` : chaque événement devient un texte (`TextesFlottants::ajouter`), sauf si le brouillard est actif et que `Partie::estVisible(position)` est faux ; `TextesFlottants::mettreAJour(dt)` (aussi après une défaite ou une victoire : le monde est figé, pas les textes) ; `Controleur::debutImage` (sortie de la visée), caméra centrée sur l'escouade |
+| `void dessiner(const Contexte&) const` | Monde avec la caméra (ancre cachée si `!m_debogage.ancre`, brouillard selon `m_debogage.brouillard`), aperçu de visée, points visés et chemins restants si `m_debogage.pointsVises`, textes flottants (vue du monde, après le brouillard), puis, avec `vueDInterface` : barre de raccourcis (une `IconeDeRaccourci` par emplacement), compteur « Monstres : N » et écran de fin |
 
 ### `EcranMenu` — le menu de départ
 
@@ -400,7 +402,7 @@ Données membres : `m_carte` (`TileMap`), `m_escouade` (`Escouade`),
 (`std::optional<sf::Vector2f>`), `m_generateur` (`Generateur`, le seul de
 la partie : il descend en paramètre `Generateur&` jusqu'à `Skill`, que
 personne ne copie ni ne garde), `m_vision` (`Vision`, mise à jour à la fin du
-constructeur et de chaque `mettreAJour`, voir `docs/vision.md`).
+constructeur et de chaque `mettreAJour`, voir `docs/vision.md`), `m_evenements` (`std::vector<EvenementDeCombat>`, remplie par `mettreAJour`, vidée par `prendreEvenements`).
 
 Deux listes d'`EntiteVue` sont recalculées à chaque usage (fonctions privées, rien de
 stocké) : `entitesCiblables()` (les monstres pour lesquels `estCiblable()` est vrai) pour
@@ -418,7 +420,9 @@ bloque donc comme avant mais n'est plus une cible, et le verrou posé sur lui es
 | `bool estPerdue() const` | Vrai quand tous les personnages sont morts (`!m_escouade.estVivante()`) ; `[[nodiscard]]` |
 | `bool estGagnee() const` | Vrai quand `m_monstres` est vide ET que la partie n'est pas perdue (la défaite l'emporte) ; `[[nodiscard]]` |
 | `int monstresRestants() const` | Nombre de monstres vivants (`m_monstres.size()`), pour le compteur d'`EcranJeu` ; `[[nodiscard]]` |
-| `void mettreAJour(float dt)` | Sans effet si la partie est perdue ou gagnée (le monde est figé). Sinon exécute, dans l'ordre : lancer de zone, skill demandé, `attaquer(dt, …)` et application des coups, déverrouillage si la cible est morte, retrait des monstres morts, ordre de déplacement, mise à jour (`EntiteVue` de tous les monstres, **photo des deux camps** pour les zones de contrôle, escouade, puis ouverture de la porte en cours d'interaction si `unVivantPresDe(zone, 20 px)`, tour de chaque monstre avec ses obstacles bloquants — personnages vivants et autres monstres — et ses cercles à contourner — les autres monstres seulement —, avec l'engagement et le départ de son coup, puis **seconde photo** et coups gratuits des deux sens : `coupsDOpportunite` ; dégâts de base de l'attaquant, `Escouade::recevoirCoup` côté personnage, `Monstre::recevoirDegats` côté monstre ; monstres tués retirés, verrou levé) ; vide les demandes |
+| `std::vector<EvenementDeCombat> prendreEvenements()` | Les dégâts et soins réellement appliqués depuis le dernier appel, dans l'ordre où ils ont eu lieu ; la file est vidée (`std::exchange`). Un montant de 0 (cible morte, monstre en retour, soin à pleine vie) ne produit aucun événement ; une partie figée n'en produit plus ; `[[nodiscard]]` |
+| `bool estVisible(sf::Vector2f point) const` | La case de ce point (pixels du monde) est-elle `Visible` à la fin de la dernière image ? (`Vision::estVisible`) ; sert à `EcranJeu` à ne pas montrer ce qui se passe dans le brouillard ; `[[nodiscard]]` |
+| `void mettreAJour(float dt)` | Sans effet si la partie est perdue ou gagnée (le monde est figé). Sinon exécute, dans l'ordre : lancer de zone, skill demandé, `attaquer(dt, …)` et application des coups, déverrouillage si la cible est morte, retrait des monstres morts, ordre de déplacement, mise à jour (`EntiteVue` de tous les monstres, **photo des deux camps** pour les zones de contrôle, escouade, puis ouverture de la porte en cours d'interaction si `unVivantPresDe(zone, 20 px)`, tour de chaque monstre avec ses obstacles bloquants — personnages vivants et autres monstres — et ses cercles à contourner — les autres monstres seulement —, avec l'engagement et le départ de son coup, puis **seconde photo** et coups gratuits des deux sens : `coupsDOpportunite` ; dégâts de base de l'attaquant, `Escouade::recevoirCoup` côté personnage, `Monstre::recevoirDegats` côté monstre ; monstres tués retirés, verrou levé) ; vide les demandes. Chaque dégât appliqué (`appliquer`, `infligerAUnPersonnage`) et chaque soin pris à `Escouade::prendreSoins` passe par `signaler`, seul endroit où naît un événement ; les coups gratuits sont marqués `opportunite` |
 | `void dessiner(sf::RenderTarget& rendu, bool afficherAncre, bool marquerLeRetour, bool brouillard) const` | Carte, monstres (contour jaune sur le monstre verrouillé ; `marquerLeRetour` est transmis à `Monstre::dessiner` ; un monstre non visible n'est pas dessiné si `brouillard`), escouade (`afficherAncre` est transmis à `Escouade::dessiner`), puis le voile de la `Vision` si `brouillard` |
 | `void dessinerCheminsDesMonstres(sf::RenderTarget& rendu) const` | Débogage (F3) : le chemin restant de chaque monstre (`Monstre::dessinerChemin`) |
 | `void dessinerZonesDeControle(sf::RenderTarget& rendu) const` | Débogage (F3) : un cercle fin magenta (rayon de l'entité + zone) autour de chaque personnage vivant et de chaque monstre qui ne rentre pas à son poste, qui a une zone > 0 |
@@ -472,7 +476,7 @@ personnage marche, calculé par `mettreAJour`), `m_placesDAttaque`
 retenue autour du monstre que le personnage approche), `m_monstreAPortee` (`std::vector<bool>`, par personnage :
 monstre à portée de son attaque et en vue, calculé par `attaquer`, lu par `mettreAJour`), `m_agresseurs`
 (`Agresseurs`, monstres qui ont frappé l'escouade récemment),
-`m_provocations` (`Provocations`, monstres provoqués et leur provocateur).
+`m_provocations` (`Provocations`, monstres provoqués et leur provocateur), `m_soinsAppliques` (`std::vector<SoinApplique>`, soins pas encore pris par `prendreSoins`).
 
 | Fonction | Rôle |
 |---|---|
@@ -494,14 +498,16 @@ monstre à portée de son attaque et en vue, calculé par `attaquer`, lu par `me
 | `void mettreAJour(float dt, const TileMap& carte, const std::vector<EntiteVue>& monstres, const std::vector<EntiteDeControle>& monstresDeControle = {})` | Avance l'ancre, tourne la formation, calcule la place de chaque personnage (place théorique ramenée vers l'ancre par `replierVersOrigine` si elle est dans un mur ou cachée derrière un coin, puis écartée à 34 px des places déjà calculées et sortie des monstres — une place dont le centre est à moins de (rayon du monstre + rayon du personnage) d'un monstre est invalide —, voir `docs/formation.md`), met à jour les dégagements (`mettreAJourDegagements` : une fois par image, d'après les positions du début de l'image, avec `monstresDeControle` — les monstres ciblables de la photo de `Partie`, avec leur zone) ; déplace chaque personnage vers son point visé (`pointVoulu`, mémorisé dans `m_pointsVises`) : sa place de formation ; s'il se dégage, sa place d'attaque autour du monstre dont il se dégage, sans s'arrêter à portée ; en combat verrouillé, sur place s'il atteint la cible (à portée et en vue), sinon vers sa place d'attaque autour du monstre ; ancre à l'arrêt : vers la place d'attaque autour de l'agresseur le plus proche dans une laisse de 100 px autour de sa place, ou sur place s'il a déjà un monstre à portée et en vue ; puis sépare les personnages trop proches (`separerPersonnages`, 34 px, poussée plafonnée à 120 px/s, sans obstacle dur) ; fait écouler le délai d'oubli des agresseurs ; le lanceur d'un skill en attente vise sa cible à la place (un soin entre ici en activation à l'arrivée, annulé si le lanceur ou la cible meurt ou si la cible est à pleine vie ; un personnage en exécution ou en activation reste sur place) ; les cercles des `monstres` sont les obstacles bloquants des personnages, jamais de l'ancre ; chaque personnage reçoit en plus `monstresAContourner` (privée) : les cercles de tous les monstres sauf celui qu'il approche (celui de sa place d'attaque, ou le verrou en combat), tous s'il n'en approche aucun |
 | `void dessiner(sf::RenderTarget& rendu, bool afficherAncre) const` | Dessine l'ancre (si `afficherAncre`) et les N personnages |
 | `std::optional<int> degagementDuPersonnage(std::size_t place) const` | Identifiant du monstre dont le personnage de cette place se dégage ; vide s'il ne se dégage pas ou si la place est invalide (lu par les tests) ; `[[nodiscard]]` |
+| `std::optional<sf::Vector2f> centreDuPersonnage(std::size_t place) const` | Centre du personnage de cette place, mort ou vivant ; vide si la place est invalide (position des événements de combat côté personnages) ; `[[nodiscard]]` |
+| `std::vector<SoinApplique> prendreSoins()` | Les soins appliqués depuis le dernier appel (par `declencherSkill` et `attaquer`), dans l'ordre ; la liste est vidée. `struct SoinApplique { std::size_t place; int montant; sf::Vector2f position; }` (publique : le personnage soigné, les points réellement rendus — jamais 0 —, son centre à ce moment). Même rôle que les `Coup` pour les dégâts, sans changer le type de retour d'`attaquer` ; `Partie` en fait des événements ; `[[nodiscard]]` |
 | `std::optional<sf::Vector2f> pointVise(std::size_t place) const` | Point vers lequel le personnage de cette place (1 à N) marche, tel que le dernier `mettreAJour` l'a calculé ; vide si la place est invalide |
 | `void dessinerPointsVises(sf::RenderTarget& rendu) const` | Débogage (F3) : un trait jaune du centre de chaque personnage vivant à son point visé, un petit cercle à ce point, et le chemin restant en cyan (`dessinerTraceDeChemin`) |
 | `sf::Vector2f getCentre() const` | Centre de l'ancre (utilisé par la caméra) |
 | `std::optional<EntiteVue> proieDuMonstre(int idMonstre, sf::Vector2f positionMonstre) const` | Proie : le provocateur si ce monstre est provoqué et qu'il est vivant ; sinon le personnage vivant le plus proche de `positionMonstre` ; vide si aucun n'est vivant. `id` = place (1 à 4), `cercle` = celui du personnage |
 | `std::vector<EntiteVue> candidatsDeFrappe(int idMonstre) const` | Personnages que ce monstre peut frapper (`id` = place) : seulement son provocateur s'il est provoqué et vivant (provocation stricte), sinon tous les personnages vivants ; vide si aucun n'est vivant |
 | `bool placeEstVivante(std::size_t place) const` | Place valide ET personnage vivant |
-| `void recevoirDegats(int idMonstre, sf::Vector2f origine, int quantite)` | Applique les dégâts au personnage que `idMonstre` vise (même règle que `proieDuMonstre`) ; ne fait rien si aucun n'est vivant. Délègue à `recevoirCoup` |
-| `void recevoirCoup(int idMonstre, std::size_t place, sf::Vector2f origine, int quantite)` | Applique les dégâts au personnage de cette place (le coup engagé d'un monstre) ; sans effet s'il est mort. Si `quantite > 0`, enregistre le monstre comme agresseur (ou remet son temps à 3 s) |
+| `int recevoirDegats(int idMonstre, sf::Vector2f origine, int quantite)` | Applique les dégâts au personnage que `idMonstre` vise (même règle que `proieDuMonstre`) ; ne fait rien (renvoie 0) si aucun n'est vivant. Délègue à `recevoirCoup` ; renvoie les dégâts réellement subis (après armure) |
+| `int recevoirCoup(int idMonstre, std::size_t place, sf::Vector2f origine, int quantite)` | Applique les dégâts au personnage de cette place (le coup engagé d'un monstre) ; sans effet (renvoie 0) s'il est mort. Si `quantite > 0`, enregistre le monstre comme agresseur (ou remet son temps à 3 s). Renvoie les dégâts réellement subis (après armure) |
 | `bool estVivante() const` | Vrai si au moins un personnage est vivant |
 | `bool unVivantPresDe(sf::FloatRect zone, float ecart) const` | Un personnage vivant est-il à `ecart` ou moins (bord à bord, `distanceCercleRectangle`) de cette zone ? Escouade ne connaît ni les portes ni les objets ; `[[nodiscard]]` |
 | `std::vector<Cercle> cerclesDesVivants() const` | Cercles des personnages vivants |
@@ -657,9 +663,9 @@ cible du dernier A*), `m_pointsDeVie` (`PointsDeVie`), `m_armure` (`int`), `m_ra
 | `std::optional<ActionEngagee> skillEngage() const` | L'action `Skill` en activation, avec son `IdSkill` et sa cible ; vide sinon |
 | `int avancerSkill(float dt, Generateur& generateur)` | Fait avancer l'activation ; rend la puissance du skill au départ de l'effet (et relance au complet la recharge de `m_attaqueDeBase`), 0 sinon ; `[[nodiscard]]` |
 | `void annulerSkill()` | Annule l'activation, sans recharge consommée |
-| `void recevoirSoin(int quantite)` | Rend des points de vie, sans dépasser le maximum ; sans effet sur un mort (délègue à `PointsDeVie::soigner`) |
+| `int recevoirSoin(int quantite)` | Rend des points de vie, sans dépasser le maximum ; sans effet sur un mort (délègue à `PointsDeVie::soigner`) ; renvoie les points réellement rendus |
 | `int getPointsDeVie() const` / `int getPointsDeVieMax() const` | Points de vie actuels et maximum |
-| `void recevoirDegats(int quantite)` | Retire `appliquerArmure(quantite, m_armure)` points de vie, sans descendre sous zéro (délègue à `PointsDeVie::subirDegats`) |
+| `int recevoirDegats(int quantite)` | Retire `appliquerArmure(quantite, m_armure)` points de vie, sans descendre sous zéro (délègue à `PointsDeVie::subirDegats`) ; renvoie ces dégâts après armure (non plafonnés par les points de vie restants), 0 pour un mort |
 | `bool estVivant() const` | Points de vie `> 0` |
 | `sf::Vector2f getCentre() const` | Centre du personnage |
 | `Cercle getCercle() const` | Cercle centré sur le personnage, de rayon 10 |
@@ -710,7 +716,7 @@ consommé par `mettreAJour`), `m_soinAccumule` (`float`, points de vie rendus pa
 | `Cercle getCercle() const` | Cercle centré sur le monstre, de rayon 15 |
 | `int getId() const` | Identifiant du monstre |
 | `bool contient(sf::Vector2f point) const` | Le point (pixels du monde) est-il dans le carré du monstre ? |
-| `void recevoirDegats(int quantite)` | Sans aucun effet en `Retour` (invulnérable, pas d'alerte). Sinon retire `appliquerArmure(quantite, m_armure)` points de vie, sans descendre sous zéro (`PointsDeVie::subirDegats`) ; si `quantite > 0`, mémorise que le monstre vient d'être touché |
+| `int recevoirDegats(int quantite)` | Sans aucun effet en `Retour` (invulnérable, pas d'alerte) ni sur un monstre mort : renvoie 0. Sinon retire `appliquerArmure(quantite, m_armure)` points de vie, sans descendre sous zéro (`PointsDeVie::subirDegats`) ; si `quantite > 0`, mémorise que le monstre vient d'être touché ; renvoie les dégâts après armure |
 | `bool estVivant() const` | Points de vie `> 0` |
 | `int getPointsDeVie() const` | Points de vie actuels |
 
@@ -785,6 +791,25 @@ Classes : guerrier (`Avant`, rouge, armure 50, attaque de mêlée, `FrappePuissa
 
 `Coup.hpp`, sans `.cpp` : `struct Coup { int idMonstre; int degats; }` (des
 dégâts à infliger à ce monstre). Sortie d'`Escouade`.
+
+### `EvenementDeCombat` — ce qui s'est passé, en données
+
+`EvenementDeCombat.hpp`, sans `.cpp` : `enum class TypeEvenement { Degats, Soin }`, `enum class Camp { Escouade, Monstres }` et `struct EvenementDeCombat { TypeEvenement type; Camp campCible; int idCible; int montant; sf::Vector2f position; bool opportunite; }`. `idCible` : place du personnage (1 à N) ou identifiant du monstre ; `montant` : ce qui a réellement été appliqué (armure comprise, soin plafonné), jamais 0 ; `position` : COPIE du centre de la cible à ce moment (le monstre tué par ce coup est retiré dans la même image, l'événement lui survit) ; `opportunite` : coup gratuit. Patron « file d'événements » : produits par `Partie` (`prendreEvenements`), lus par `EcranJeu`, sans callback ni observateur. Voir `docs/combat.md`.
+
+### `TextesFlottants` — les dégâts et soins à l'écran
+
+`TextesFlottants.hpp` / `.cpp`. Logique pure (sans fenêtre) ; seul `dessiner` utilise SFML. Possédé par `EcranJeu`. Un `TexteFlottant { EvenementDeCombat evenement; float age; int rang; std::size_t image; }` par événement. Donnée membre : `m_textes` (`std::vector<TexteFlottant>`), `m_image` (`std::size_t`, numéro de l'image courante pour l'empilement) ; constante `static constexpr float s_dureeDeVie = 0.8f`.
+
+| Fonction | Rôle |
+|---|---|
+| `void ajouter(const EvenementDeCombat&)` | Ajoute un texte d'âge 0. Son rang est le nombre de textes déjà ajoutés dans cette image pour la même cible (`campCible` et `idCible`) : empilement déterministe, sans hasard |
+| `void mettreAJour(float dt)` | Fait vieillir tous les textes, retire ceux qui ont atteint 0,8 s, passe à l'image suivante |
+| `const std::vector<TexteFlottant>& actifs() const` | Les textes à l'écran ; `[[nodiscard]]` |
+| `void dessiner(sf::RenderTarget&, const sf::Font&) const` | Un `sf::Text` par texte, centré sur `positionDuTexte`, contour noir de 1 px, opacité de `opaciteDuTexte` (à appeler avec la vue du monde) |
+| `float hauteurDuTexte(float age)` | Fonction libre pure : 20 px au-dessus du centre de la cible à la naissance, 30 px de plus sur toute la durée de vie ; `[[nodiscard]]` |
+| `float opaciteDuTexte(float age)` | Pure : 1 pendant la première moitié de la vie, puis linéaire jusqu'à 0 à 0,8 s ; `[[nodiscard]]` |
+| `sf::Vector2f positionDuTexte(const TexteFlottant&)` | Pure : position de l'événement, relevée de `hauteurDuTexte(age)` et de 14 px par rang ; `[[nodiscard]]` |
+| `std::string libelleDuTexte(const EvenementDeCombat&)` / `sf::Color couleurDuTexte(...)` / `unsigned int tailleDuTexte(...)` | Purs. Dégâts « 12 », coup gratuit « 12! » (orange, 20 px), soin « +12 » (vert) ; dégâts sur un monstre blancs, sur un personnage rouges ; 16 px sinon ; `[[nodiscard]]` |
 
 ### `ActionEngagee` — l'action qu'un personnage prépare
 
@@ -956,7 +981,7 @@ Données membres : `m_valeur`, `m_maximum`.
 |---|---|
 | `explicit PointsDeVie(int maximum)` | Commence plein ; `assert(maximum > 0)` |
 | `void subirDegats(int montant)` | `assert(montant >= 0)` ; valeur bornée à 0 ; un montant de 0 est permis |
-| `void soigner(int montant)` | `assert(montant >= 0)` ; valeur bornée au maximum ; sans effet si la valeur est à 0 |
+| `int soigner(int montant)` | `assert(montant >= 0)` ; valeur bornée au maximum ; sans effet si la valeur est à 0 ; renvoie les points réellement rendus (0 à pleine vie ou pour un mort) |
 | `bool estVivant() const` | Valeur `> 0` (`[[nodiscard]]`) |
 | `int getValeur() const` / `int getMaximum() const` | Valeur actuelle et maximum |
 | `float getRatio() const` | Valeur / maximum |

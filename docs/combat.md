@@ -748,6 +748,9 @@ image).
   frappe à portée et en vue engage un coup sur la place choisie par
   `Monstre` (`choisirCibleAFrapper`).
   L'armure du personnage touché réduit ensuite le coup (voir plus haut).
+- **Ce qui est réellement appliqué** (étape 79) : `Monstre::recevoirDegats`, `Personnage::recevoirDegats`,
+  `recevoirSoin`, `Escouade::recevoirCoup` et `recevoirDegats` renvoient le montant appliqué (voir
+  « Événements de combat »).
 - **Un monstre frappe qu'il soit lui-même attaqué ou non** : sa riposte
   ne dépend ni du verrou, ni de son statut — uniquement de la distance
   et de sa recharge. S'il n'y a aucun personnage vivant, il ne frappe
@@ -1002,3 +1005,55 @@ l'enfoncerait dans un obstacle.
     le guerrier, qui devient un agresseur, et le tireur reste sur place ;
   - pas de repli quand un monstre approche d'un tireur qui n'est pas encore au contact ;
   - pas de réglage par personnage (gambits).
+
+## Événements de combat et dégâts flottants (étape 79)
+
+- **Le problème** : dégâts et soins s'appliquent au fond du noyau (coups des personnages, skill de zone,
+  coups des monstres, attaques d'opportunité, soins), et l'affichage n'en voyait que le résultat, les
+  barres de vie. Un coup gratuit, par exemple, était invisible.
+- **Le patron : une file d'événements (Event Queue).** Le noyau produit des DONNÉES
+  (`EvenementDeCombat`), l'affichage les consomme plus tard. `Partie` ne connaît pas l'affichage : pas de
+  callback, pas de `std::function` vers `EcranJeu`, pas d'observateur. Le jour où autre chose voudra les
+  lire (sons, journal de combat, statistiques), il lira la même file ; un nouveau type d'événement
+  (étape 80 : nom du skill lancé, « Provoqué ») s'ajoute à l'énumération sans réécrire ce qui existe.
+- **Le montant est ce qui a réellement été appliqué.** Les fonctions qui appliquent dégâts et soins le
+  renvoient : dégâts après armure (`appliquerArmure`), soin plafonné aux points de vie maximums
+  (`PointsDeVie::soigner` renvoie la différence avant/après). Zéro pour une cible morte (deux coups
+  partis dans la même image sur le même monstre : le second tombe sur un mort), un monstre en retour au
+  poste (invulnérable) ou un allié déjà plein. **Un montant de 0 ne produit aucun événement** : la règle
+  est dans le seul endroit où un événement naît, `Partie::signaler`.
+- **Pas de plafond par les points de vie restants.** Le coup qui tue affiche son plein montant (après
+  armure), pas ce qui restait au monstre : le nombre dit la force du coup, la barre de vie dit l'état.
+  Le soin, lui, est plafonné : il dit ce qui a vraiment été rendu.
+- **La position est une copie.** `EvenementDeCombat::position` est le centre de la cible au moment de
+  l'événement, jamais une référence ni un pointeur : le monstre tué par ce coup est retiré de
+  `m_monstres` dans la même image, et un pointeur serait pendant. L'événement lui survit.
+- **D'où viennent les événements.** `Partie::appliquer` (coups sur les monstres : skills, attaque de base,
+  zone, coups gratuits des personnages) et `Partie::infligerAUnPersonnage` (coups des monstres, coups
+  gratuits des monstres) appellent `signaler` avec le montant renvoyé ; `opportunite` vaut vrai pour les
+  coups gratuits seulement. **Les soins** se font dans `Escouade::effetDuSkill` : `Escouade` les range
+  dans `m_soinsAppliques` (`SoinApplique` : place, points rendus, position) et `Partie::signalerLesSoins`
+  les prend (`Escouade::prendreSoins`) à la fin de `resoudreLesCoups`, puis en fait des événements.
+  Ce canal (une liste vidée à la demande) plutôt qu'un type de retour de plus pour `attaquer` et
+  `declencherSkill` : ces deux fonctions renvoient des `Coup` et ont environ 200 tests. `Escouade` ne
+  dépend pas de l'affichage ni de `EvenementDeCombat`.
+- **Partie figée** : `mettreAJour` ne fait rien après une défaite ou une victoire, donc aucun nouvel
+  événement ; ceux de l'image qui a décidé la fin sont dans la file.
+- **L'affichage** (`TextesFlottants`, `EcranJeu`) : durée de vie 0,8 s ; le texte naît 20 px au-dessus du
+  centre de la cible et monte de 30 px ; opaque pendant la première moitié, puis linéairement jusqu'à 0.
+  La hauteur et l'opacité sont des fonctions pures de l'âge : rien d'autre n'est stocké. Les textes
+  ajoutés dans la même image pour la même cible (`campCible`, `idCible`) sont décalés de 14 px chacun vers
+  le haut (le rang est fixé à l'ajout, `m_image` compte les images) : déterministe, sans hasard ni
+  `Generateur`. Styles : dégâts sur un monstre en blanc, sur un personnage en rouge ; soin en vert, « +N » ;
+  coup gratuit en orange, 20 px au lieu de 16, « N! » (quel que soit le camp) ; contour noir de 1 px.
+- **Le brouillard est un filtre d'`EcranJeu`**, pas de `Partie` : si le brouillard est actif et que
+  `Partie::estVisible(position)` est faux, l'événement n'est pas transformé en texte (même règle que pour
+  ne pas dessiner un monstre caché). F6 coupe le brouillard : tout s'affiche. La file de `Partie`, elle,
+  contient tout.
+- **Limites connues** :
+  - pas de nom de skill ni de « Provoqué » (étape 80), pas d'« Immunisé » pour un monstre qui rentre,
+    pas de critique ni de « raté » ;
+  - la taille du texte est en pixels du monde : elle suit le zoom de la vue ;
+  - la visibilité est celle de la fin de l'image ;
+  - l'empilement ne concerne que les textes d'une même image : deux coups de la même cible à des images
+    proches peuvent se recouvrir en partie.

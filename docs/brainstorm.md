@@ -110,6 +110,19 @@ L'étape 75 pose trois notions séparées : les emplacements (`BarreDeRaccourcis
 - **Doublons dans la barre** : aujourd'hui une même adresse peut être placée sur deux emplacements (par exemple le même soin en Q et en A). Décision reportée : les autoriser (utile si on place la même compétence sur deux touches), ou les interdire (placer un skill déjà placé le déplace). À trancher avec l'interface de placement.
 - **Plus de 4 skills par personnage** : la disposition par défaut ignore les suivants ; à reprendre avec la montée de niveau et l'interface de placement.
 
+## 5 ter. File d'événements de combat, la suite (étape 79)
+
+L'étape 79 pose une file d'`EvenementDeCombat` produite par `Partie` (dégâts et soins réellement appliqués) et lue par `TextesFlottants`. Elle accueille d'autres types d'événements et d'autres lecteurs sans réécriture. Rien n'y est décidé, sauf l'étape 80 (dans `ROADMAP.md`).
+
+- **Étape 80 (prévue)** : le nom du skill lancé au-dessus du lanceur et « Provoqué » au-dessus des monstres provoqués. Un type d'événement de plus et un style de plus.
+- **« Immunisé »** au-dessus d'un monstre qui rentre à son poste quand on le frappe : aujourd'hui un montant de 0 ne produit rien. Il faudrait un événement distinct (ce n'est pas un montant).
+- **Critiques, « raté », résistances** : si un jour le combat les connaît, un texte et une couleur de plus.
+- **Sons** : un son par type d'événement (coup, soin, coup gratuit), lu dans la même file.
+- **Journal de combat** : une liste défilante des événements, utile pour comprendre ce qui se passe quand l'escouade agit seule (gambits).
+- **Statistiques de fin de partie** : dégâts infligés et subis par personnage, soins rendus, coups gratuits ; une lecture de la file cumulée.
+- **Plafond des dégâts par les points de vie restants** : le coup qui tue affiche aujourd'hui son plein montant. À revoir si le nombre doit refléter la vie réellement retirée.
+- **Cumul** : additionner les textes de la même cible qui se suivent de près plutôt que de les empiler.
+
 ## 6. Idées en vrac
 
 - **État de l'escouade** (en combat, en mouvement, au repos) : utile pour la mana et les gambits.

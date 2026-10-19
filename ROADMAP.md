@@ -86,8 +86,13 @@ est dans `docs/historique.md`.
 - Étape 76 — Spécialités, catalogue et choix des 3 classes ✅
 - Étape 77 — Zones de contrôle et attaque d'opportunité ✅
 - Étape 78 — Dégagement des tireurs ✅
+- Étape 79 — Dégâts flottants : une file d'événements de combat ✅
 
 ## Prochaine étape (à choisir)
+
+Étape 80 envisagée, par la même file d'événements que l'étape 79 : le nom du skill lancé au-dessus du
+lanceur et « Provoqué » au-dessus des monstres provoqués (un type d'événement de plus, un style de plus
+dans `TextesFlottants` ; voir `docs/brainstorm.md`, section 5 ter).
 
 Des gambits pour choisir le comportement d'un personnage engagé (rester et tirer, se dégager, passer
 en mêlée : le dégagement de l'étape 78 en est la première règle, écrite à un seul endroit, `degagementVoulu`)
@@ -228,6 +233,17 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   dégagement > verrou > agresseur > formation. Règle pure `monstreDontSeDegager` (`Engagement`), état
   et fin dans `Escouade::degagementVoulu`. Aucun affichage nouveau (F3 montre le point visé). Voir
   `docs/combat.md` et `docs/formation.md`.
+- **Dégâts flottants** (étape 79) : au-dessus de chaque entité montent, 0,8 s durant, les dégâts réellement
+  subis (après armure) et les soins reçus. Blanc pour les dégâts sur un monstre, rouge sur un personnage,
+  vert précédé de « + » pour un soin, orange plus gros (20 px au lieu de 16) suivi de « ! » pour un coup
+  gratuit ; contour noir ; le texte monte de 30 px et s'efface dans la seconde moitié de sa vie. Plusieurs
+  textes sur la même cible dans la même image s'empilent de 14 px. Rien pour un montant de 0 : monstre qui
+  rentre à son poste (invulnérable), soin sur un allié plein. Dans le brouillard, rien n'est montré (F6 :
+  tout). Les textes finissent leur animation après une défaite ou une victoire. Mécanisme : `Partie`
+  inscrit chaque dégât et chaque soin appliqué dans une file d'`EvenementDeCombat` (données), qu'`EcranJeu`
+  prend après chaque image pour nourrir `TextesFlottants` (logique pure, dessin dans la vue du monde) ;
+  les fonctions qui appliquent dégâts et soins renvoient le montant réellement appliqué. Voir
+  `docs/combat.md`, `docs/boucle-et-entrees.md`.
 - **Vision et brouillard de guerre** (étape 72) : chaque case est inconnue, explorée ou
   visible (`Vision`, possédée par `Partie`). Les personnages vivants voient à 320 px (8 cases)
   chacun ; la vision de l'escouade est l'union de leurs champs, calculés par un shadowcasting
@@ -530,12 +546,12 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 853 tests : 27 sur `Engagement`, 23 sur `ChampDeVision`, 8 sur `Vision`, 5 sur `ObjetInteractif`, 15 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 61 sur `GenerateurDonjon`, 36 sur `TileMap`, 27 sur `Chemin`, 216
+  (`./build/tests.exe`, 887 tests : 27 sur `Engagement`, 23 sur `ChampDeVision`, 8 sur `Vision`, 5 sur `ObjetInteractif`, 15 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 61 sur `GenerateurDonjon`, 36 sur `TileMap`, 27 sur `Chemin`, 221
   sur `Escouade` en sept fichiers par thème (déplacement, combat, skills, agresseurs, vue, places, dégagement),
-  7 sur `Composition`, 16 sur `Specialite`, 9 sur `SelectionDEscouade`, 11 sur `EcranChoixEscouade`, 11 sur `Encerclement`, 16 sur `Deplacement`, 75 sur `Monstre`,
-  60 sur `Personnage`, 24 sur `Skill`, 24 sur `Mobile`, 4 sur `Eclaircir`, 10 sur `Cercle`, 13
+  7 sur `Composition`, 16 sur `Specialite`, 9 sur `SelectionDEscouade`, 11 sur `EcranChoixEscouade`, 11 sur `Encerclement`, 16 sur `Deplacement`, 78 sur `Monstre`,
+  64 sur `Personnage`, 24 sur `Skill`, 24 sur `Mobile`, 4 sur `Eclaircir`, 10 sur `Cercle`, 13
   sur `Autodefense`, 8 sur `BarreDeSkills`, 11 sur `BarreDeRaccourcis`, 3 sur `ClicInterface`, 4 sur `EntiteVue`, 1 sur
-  `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 56 sur `Partie`, 16 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
+  `BarreDeVie`, 11 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 66 sur `Partie`, 16 sur `Controleur`, 9 sur `TextesFlottants`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
   accents (`./build/tests.exe "*a portee*"` filtre) ; rotation de la
   formation et `provoquer` à une place invalide couverts. Les tests d'`Escouade` utilisent la composition
   par défaut des tests (`compositionDeTest()` : guerrier, prêtre, mage ; `uneEscouade`, `unePartie`) ; `uneEscouadeADeuxGuerriers` et `uneEscouadeAuSoinCourt` servent
@@ -606,6 +622,12 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   devient agresseur : le tireur reste) ; une action déclenchée par le joueur interrompt le recul, que la
   règle relance ensuite si le tireur est toujours engagé et tenu ; un monstre qui change de cible peut
   relancer le dégagement.
+- Dégâts flottants (étape 79) : le nombre est le montant après armure, sans plafond par les points de
+  vie restants (le coup qui tue affiche son plein montant) ; pas d'« Immunisé » sur un monstre qui
+  rentre, pas de critique ni de « raté » ; pas de nom de skill ni de « Provoqué » (étape 80) ; la taille
+  du texte est fixe en pixels du monde, donc elle suit le zoom de la vue ; la visibilité d'un événement
+  est jugée à la fin de l'image où il a lieu ; deux textes de la même cible ajoutés dans des images
+  différentes mais proches dans le temps peuvent se superposer en partie.
 - Provocation stricte (étape 66) : un monstre provoqué ne frappe que son
   provocateur, même s'il est collé à un autre personnage ; si le provocateur
   est caché, il ne frappe personne.
