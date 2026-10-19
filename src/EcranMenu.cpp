@@ -8,7 +8,7 @@
 #include <memory>
 
 #include "Contexte.hpp"
-#include "EcranJeu.hpp"
+#include "EcranChoixEscouade.hpp"
 #include "EcranOptions.hpp"
 #include "TailleDeVue.hpp"
 
@@ -25,7 +25,7 @@ EcranMenu::EcranMenu() : m_boutons({"Commencer partie", "Options", "Quitter"}) {
 Transition EcranMenu::cliquer(sf::Vector2f point, sf::Vector2f centre, const Reglages& reglages) const {
     const std::optional<std::size_t> bouton = m_boutons.boutonSous(point, centre);
     if (bouton == s_boutonCommencer) {
-        return Empiler{std::make_unique<EcranJeu>()};
+        return Empiler{std::make_unique<EcranChoixEscouade>()};
     }
     if (bouton == s_boutonOptions) {
         return Empiler{std::make_unique<EcranOptions>(reglages, resolutionsDisponibles(sf::VideoMode::getDesktopMode().size))};

@@ -24,6 +24,7 @@ add_library(squad_core STATIC
     src/Escouade.cpp
     src/Composition.cpp
     src/Specialite.cpp
+    src/SelectionDEscouade.cpp
     src/Provocations.cpp
     src/Agresseurs.cpp
     src/Chemin.cpp
@@ -56,6 +57,7 @@ add_library(squad_core STATIC
     src/TailleDeVue.cpp
     src/EcranJeu.cpp
     src/ListeDeBoutons.cpp
+    src/EcranChoixEscouade.cpp
     src/EcranMenu.cpp
     src/EcranOptions.cpp
 )
@@ -85,6 +87,7 @@ add_executable(tests
     tests/test_Escouade_places.cpp
     tests/test_Composition.cpp
     tests/test_Specialite.cpp
+    tests/test_SelectionDEscouade.cpp
     tests/test_Provocations.cpp
     tests/test_Agresseurs.cpp
     tests/test_Deplacement.cpp
@@ -112,6 +115,7 @@ add_executable(tests
     tests/test_Reglages.cpp
     tests/test_TailleDeVue.cpp
     tests/test_ListeDeBoutons.cpp
+    tests/test_EcranChoixEscouade.cpp
     tests/test_EcranMenu.cpp
     tests/test_EcranOptions.cpp
 )

@@ -3,11 +3,13 @@
 
 #include <SFML/Graphics/View.hpp>
 #include <random>
+#include <vector>
 
 #include "BarreDeRaccourcis.hpp"
 #include "Controleur.hpp"
 #include "Ecran.hpp"
 #include "Partie.hpp"
+#include "Specialite.hpp"
 
 // Bascules de débogage (état d'interface de l'écran de jeu, remises à leur valeur de départ
 // à chaque nouvelle partie) : F3 les points visés des personnages, F4 le carré de l'ancre,
@@ -22,7 +24,9 @@ struct OptionsDeDebogage {
 // contrôleur, caméra, interface, nouvelle carte).
 class EcranJeu : public Ecran {
 public:
-    EcranJeu();
+    // `specialites` : les classes de l'escouade, dans l'ordre des places ; elles servent à
+    // chaque nouvelle carte (F5).
+    explicit EcranJeu(std::vector<IdSpecialite> specialites);
 
     Transition traiterEvenement(const sf::Event& evenement, const Contexte& contexte) override;
     void mettreAJour(float dt, const Contexte& contexte) override;
@@ -38,6 +42,7 @@ private:
     void nouvelleCarte();
 
     std::random_device m_tirageDeGraine;
+    std::vector<IdSpecialite> m_specialites;  // déclarée avant m_partie : la construction la lit
     Partie m_partie;
     Controleur m_controleur;
     // La barre de raccourcis est de l'état d'interface (comme la caméra) : ni la Partie ni

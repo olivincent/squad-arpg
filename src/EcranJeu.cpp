@@ -9,6 +9,8 @@
 #include <iostream>
 #include <optional>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "AdresseSkill.hpp"
 #include "Aleatoire.hpp"
@@ -30,12 +32,12 @@ namespace {
 // rejouer à l'identique), génère le niveau avec elle, puis construit la
 // partie avec la même graine : la même graine redonne la même carte et le
 // même combat.
-Partie nouvellePartie(std::random_device& tirage) {
+Partie nouvellePartie(std::random_device& tirage, const std::vector<IdSpecialite>& specialites) {
     const Generateur::result_type graine = tirage();
     std::cout << "Graine : " << graine << '\n';
     Generateur generateurDeNiveau(graine);
     const Niveau niveau = genererNiveau(generateurDeNiveau, ParametresDonjon{});
-    return Partie(niveau, composer({IdSpecialite::Guerrier, IdSpecialite::Pretre, IdSpecialite::Mage}), graine);
+    return Partie(niveau, composer(specialites), graine);
 }
 
 constexpr unsigned int s_tailleCompteur = 22;
@@ -54,8 +56,10 @@ void dessinerCompteurDeMonstres(sf::RenderTarget& rendu, const sf::Font& police,
 
 }  // namespace
 
-EcranJeu::EcranJeu()
-    : m_partie(nouvellePartie(m_tirageDeGraine)), m_barre(barreParDefaut(m_partie.getEscouade().adressesDesSkills())) {}
+EcranJeu::EcranJeu(std::vector<IdSpecialite> specialites)
+    : m_specialites(std::move(specialites)),
+      m_partie(nouvellePartie(m_tirageDeGraine, m_specialites)),
+      m_barre(barreParDefaut(m_partie.getEscouade().adressesDesSkills())) {}
 
 void EcranJeu::ajusterCamera(const Contexte& contexte) {
     m_camera.setSize(tailleDeVue(contexte.fenetre.getSize(), s_hauteurDeVue));
@@ -64,7 +68,7 @@ void EcranJeu::ajusterCamera(const Contexte& contexte) {
 // Réaffectation : la Partie garde son adresse, le Controleur repart
 // sans visée ni déplacement continu et la barre retrouve sa disposition par défaut.
 void EcranJeu::nouvelleCarte() {
-    m_partie = nouvellePartie(m_tirageDeGraine);
+    m_partie = nouvellePartie(m_tirageDeGraine, m_specialites);
     m_controleur = Controleur{};
     m_barre = barreParDefaut(m_partie.getEscouade().adressesDesSkills());
     m_debogage = OptionsDeDebogage{};
