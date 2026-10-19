@@ -899,3 +899,58 @@ l'enfoncerait dans un obstacle.
   avant) contient le numéro de place du lanceur (1 à 3) ; deux guerriers de nuances proches restent
   ainsi distinguables. `IconeDeRaccourci` reçoit `place`, remplie par `EcranJeu` depuis l'adresse de
   l'emplacement.
+
+## Zones de contrôle et attaque d'opportunité (étape 77)
+
+- **Le problème** : rien ne coûtait de quitter un corps à corps. Un personnage au contact d'un monstre
+  pouvait partir sans risque, un monstre pouvait changer de proie sans être inquiété. La règle donne
+  un prix à la fuite, dans les deux sens, sans nouveau skill.
+- **Zone de contrôle** : un rayon, mesuré **bord à bord** comme la portée (`distanceBordABord`).
+  A **engage** B si la zone de A est > 0 et que l'écart de A à B est `<=` cette zone. La relation n'est
+  pas symétrique : un tireur (zone 0) peut être engagé, il n'engage personne. La zone est une valeur
+  explicite (`DefinitionPersonnage::zoneDeControle`, constante du `Monstre`), pas déduite du rang ni de la
+  portée : 20 px pour le guerrier, le paladin et tout monstre, 0 pour le prêtre, le mage et le rôdeur.
+- **Attaque d'opportunité** : une paire (A engage B) présente au début de l'image et absente à la fin
+  s'est **rompue**. Si c'est B qui a fui, A le frappe gratuitement, sauf si A engage encore un autre
+  adversaire à la fin. Les cas particuliers :
+  - **Qui a fui** : `u` est la direction du centre de A vers celui de B au début. La contribution de B
+    est son déplacement projeté sur `u`, celle de A son déplacement projeté sur `-u`. B a fui si sa
+    contribution est `>=` celle de A. Un monstre qui s'éloigne pour poursuivre quelqu'un d'autre est donc
+    le fuyard ; un attaquant qui recule lui-même ne frappe pas. Comme `u` n'a besoin que de sa direction,
+    on ne le normalise pas ; si les deux centres sont confondus, personne n'a fui.
+  - **Exemption à la fin** : l'exemption se vérifie sur la photo de **fin** : deux fuyards simultanés ne
+    s'exemptent pas l'un l'autre (aucun des deux n'est engagé à la fin).
+  - **Plafond** : au plus un coup gratuit par attaquant et par image, sur le fuyard le plus proche à la
+    fin (égalité : le premier de la liste). C'est le seul « délai de réaction » : un attaquant qui voit
+    deux fuyards ne frappe qu'une fois.
+  - **Entités absentes** : pas de coup si A ou B est absent de la photo de fin (mort, retiré). Un monstre
+    qui rentre à son poste est **exclu des deux photos** : il est invulnérable (étape 69) et l'inclure
+    réintroduirait l'exploitation de la limite du territoire.
+- **Le coup gratuit** : instantané, dégâts = puissance de l'attaque de base de l'attaquant (de l'attaque du
+  monstre), armure de la cible appliquée par le `recevoirDegats` habituel. Il ne touche **ni la recharge
+  ni le coup en cours** de l'attaquant, et n'interrompt pas l'action de la cible. Pas de ligne de vue
+  exigée : les deux étaient au contact. Côté personnage touché : `Escouade::recevoirCoup(idMonstre, place,
+  origine, degats)`, donc le monstre devient agresseur comme après un coup normal ; côté monstre :
+  `Monstre::recevoirDegats`, qui l'alerte. Les accesseurs de puissance (`getPuissanceAttaqueDeBase`,
+  `getPuissanceAttaque`) sont des lectures : la recharge ne peut pas être touchée par construction.
+- **Module pur `Engagement`** (voir `ARCHITECTURE.md`) : une photo (`PhotoDesCamps`) des attaquants et des
+  cibles d'un seul sens, au début et à la fin de l'image, et la fonction `coupsDOpportunite`. Il ne connaît
+  ni `Escouade`, ni `Monstre`, ni `Personnage`.
+- **Intégration dans `Partie`** : une photo des deux camps (`EntiteDeControle` : monstres ciblables,
+  personnages vivants) juste avant le déplacement de l'image (après le retrait des monstres morts),
+  une autre juste après le tour des monstres. Les coups des **deux sens** sont calculés à partir des
+  mêmes photos **avant** d'en appliquer un : les deux sont simultanés, un personnage tué par un coup
+  gratuit frappe quand même celui qui vient de lui échapper. Les monstres tués sont retirés et le
+  verrou levé tout de suite, comme après `attaquer`. Voir `docs/boucle-et-entrees.md`.
+- **Débogage** : F3 dessine aussi un cercle fin magenta (rayon de l'entité + zone) autour de chaque
+  entité qui a une zone, pour voir les engagements.
+- **Toute la poussée compte** : la séparation douce (étape 67) déplace aussi les personnages ; son
+  déplacement entre dans la mesure de la fuite, sans distinction. Accepté.
+- **Limites connues** :
+  - un pas de côté de A (perpendiculaire à A→B) qui rompt le contact a une contribution de 0, comme B
+    immobile : à égalité B est le fuyard, A le frappe ;
+  - un tireur au contact qui recule reçoit le coup gratuit du monstre ; l'étape 78 le fera se dégager
+    vers sa place d'attaque ;
+  - un coup par image et par attaquant peut sembler généreux ;
+  - pas de skill qui annule la pénalité (se faufiler), pas de gambit « rester / se dégager » ;
+  - pas d'effet visuel propre au coup gratuit (la barre de vie suffit).

@@ -1045,3 +1045,46 @@
   du pixel en coordonnées d'interface de `traiterEvenement`, le numéro de place dans la bande des
   icônes, et le parcours complet menu → choix → jeu → R (vérifiés à la main). Les constructions
   d'`EcranJeu` sont couvertes seulement par `Commencer` (le test vérifie que l'écran empilé n'est pas nul).
+
+## Étape 77 : zones de contrôle et attaque d'opportunité
+
+- **830 tests** (795 avant : +18 `Engagement`, +6 `Partie`, +4 `Escouade`, +3 `Personnage`, +2
+  `Monstre`, +2 `Specialite`).
+- **`test_Engagement.cpp`** (nouveau, 18) : tous les cercles ont un rayon de 10 px et une zone de
+  20 px, donc A engage B à 40 px entre centres ou moins. `engage` (limite exacte, chevauchement, zone 0,
+  non symétrique) ; la cible qui sort de la zone en s'éloignant reçoit un coup ; l'attaquant qui recule
+  lui-même ne frappe pas ; les deux s'éloignent (le plus rapide a fui, égalité : la cible) ; la
+  projection sur la droite A→B (pas de côté de la cible, de l'attaquant) ; exemption quand un autre
+  adversaire reste engagé à la fin ; deux fuyards simultanés : un seul coup, sur le plus proche à la
+  fin ; égalité : le premier de la liste ; une cible non engagée au début n'est pas frappée ; zone 0 :
+  jamais de coup ; entité absente de la photo de fin (cible, attaquant, les deux) ; paire qui reste
+  engagée ; entrée dans la zone ; entité absente du début ; chaque attaquant a son propre coup, même sur
+  la même cible ; chaque attaquant est jugé pour lui-même ; centres confondus.
+- **`test_Partie.cpp`** (+6, sur de vraies parties avec la graine de test) :
+  - *mage seul qui s'éloigne* : le monstre le frappe (premier coup, qui lance sa recharge de 0,7 s au
+    moins puis 0,3 s d'exécution), puis un ordre de déplacement ; sur 0,9 s le mage perd **exactement
+    10 PV** de plus, le coup gratuit (aucun coup normal n'est possible avant 1 s) ;
+  - *guerrier qui reste* : mêmes conditions sans ordre, aucun PV perdu après le premier coup ;
+  - *provocateur* : trois guerriers, un monstre au contact du premier seulement ; l'attaque de base du
+    premier est reconnaissable (30 dégâts, recharge de 100 s), donc après son premier coup tout
+    nouveau coup de 30 sur le monstre est un coup gratuit. Le troisième guerrier provoque ; le
+    monstre part, le premier le frappe gratuitement : deux pertes de 30 en 1,2 s ;
+  - *même scénario sans zone* sur le premier (zone mise à 0) : une seule perte de 30 ;
+  - *monstre tué par un coup gratuit* : premier coup de 60, coup gratuit de 60 ; le monstre est retiré
+    en moins de 1,2 s (les autres guerriers ne le tueraient pas si vite) et le verrou est levé ;
+  - *monstre qui rentre à son poste* : l'escouade le rejoint, le touche, puis fait demi-tour ; aucun
+    personnage ne perd de PV et le monstre non plus (invulnérable).
+- **Vérification par mutation** : j'ai neutralisé tour à tour (1) l'application des coups sur les
+  monstres, (2) l'application des coups sur les personnages, (3) l'exclusion des monstres en retour ;
+  chacune fait échouer au moins un test. Le premier test « retour » ne voyait pas la mutation (le
+  guerrier reste collé au monstre jusqu'à l'arrivée au poste) : le demi-tour provoqué dans le test est
+  ce qui rompt la paire.
+- **`test_Escouade_combat.cpp`** (+4) : `entitesDeControle` (places, cercles, zones), sans les morts,
+  `puissanceDeLAttaqueDeBase` (place invalide : vide) et `pointsDeVieDuPersonnage`.
+- **`test_Personnage.cpp`** (+3) et **`test_Monstre.cpp`** (+2) : la zone donnée au constructeur (0 par
+  défaut) ou la constante du monstre, la puissance de l'attaque, et le contrat « lire la puissance ne
+  change ni le coup engagé ni la recharge ».
+- **`test_Specialite.cpp`** (+2) : 20 px pour le guerrier et le paladin, 0 pour les trois autres ;
+  `composer` garde la zone quelle que soit la nuance de couleur.
+- **Nouvelle fonction de lecture pour les tests** : `Escouade::pointsDeVieDuPersonnage(place)`.
+- **Non testé** : le dessin des zones de contrôle (F3, vérifié à la main).

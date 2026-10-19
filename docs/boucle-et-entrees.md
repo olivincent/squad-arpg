@@ -54,14 +54,19 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
         verrou levé si le monstre verrouillé est mort ;
      e. retrait des monstres morts ;
      f. ordre de déplacement, si l'escouade est vivante ;
-     g. `EntiteVue` de **tous** les monstres, liste physique (obstacles bloquants
+     g. photo des camps pour les zones de contrôle (`photographierLesCamps`, avant tout
+        déplacement), puis `EntiteVue` de **tous** les monstres, liste physique (obstacles bloquants
         des personnages, dont chacun contourne ceux qu'il n'approche pas),
         `escouade.mettreAJour`, puis
         `cerclesDesVivants` et le tour de chaque monstre (proie, mise à jour
         avec ses obstacles bloquants et ses cercles à contourner, riposte) ;
-     h. `Vision` mise à jour (étape 72), en dernier pour que le dessin corresponde aux
+     h. seconde photo des camps et coups gratuits des deux sens (`appliquerLesCoupsDOpportunite`,
+        voir `docs/combat.md`) : ce sont les positions de fin de l'image qui comptent, après la mise
+        à jour de l'escouade, la séparation douce et le tour des monstres ; monstres tués retirés,
+        verrou levé ;
+     i. `Vision` mise à jour (étape 72), en dernier pour que le dessin corresponde aux
         positions de la fin de l'image ;
-     i. les demandes sont vidées ;
+     j. les demandes sont vidées ;
   4. `main.cpp` : caméra centrée sur l'escouade, `partie.dessiner` (carte,
      monstres visibles avec le contour du verrou, semi-transparents s'ils rentrent à leur
      poste et que F3 est actif, escouade, voile de la `Vision` sauf si F6 l'a coupé), `controleur.
@@ -353,6 +358,11 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
      au bout de 0,3 s sur la place retenue (`escouade.recevoirCoup`), annulé
      si ce personnage est mort ; sinon, un monstre immobile avec une cible de
      frappe engage un coup (voir `docs/combat.md`).
+- **Zones de contrôle** (étape 77) : deux photos des camps (`CampsDeControle`, privée à `Partie` :
+  `EntiteDeControle` des monstres ciblables et des personnages vivants), l'une avant
+  `escouade.mettreAJour`, l'autre après le tour des monstres. Un monstre qui passe en retour pendant
+  l'image n'est donc pas dans la seconde photo, et un personnage ou un monstre mort pendant l'image non
+  plus : aucun coup gratuit ne le concerne. Les coups des deux sens sont calculés avant d'en appliquer un.
 - **Alerte du groupe** (étape 64) : avant la boucle, le statut « en poursuite »
   de chaque monstre est noté ; après, `alerterLesGroupes` alerte les membres
   des groupes dont un monstre vient d'entrer en poursuite (voir

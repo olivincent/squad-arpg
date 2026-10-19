@@ -84,8 +84,15 @@ est dans `docs/historique.md`.
 - Étape 74 — Escouade de 3 personnages, skills désignés par identifiant ✅
 - Étape 75 — Barre de raccourcis : 12 emplacements, touches et clic ✅
 - Étape 76 — Spécialités, catalogue et choix des 3 classes ✅
+- Étape 77 — Zones de contrôle et attaque d'opportunité ✅
 
 ## Prochaine étape (à choisir)
+
+**Étape 78 (prévue)** : les tireurs engagés se dégagent d'eux-mêmes vers leur place d'attaque quand
+un autre personnage tient le monstre (aujourd'hui, un tireur au contact d'un monstre reste sur place
+et peut recevoir un coup gratuit s'il recule). Ensuite, des gambits pour choisir ce comportement
+(rester et tirer, se dégager, passer en mêlée) et des skills qui permettent de se faufiler sans
+pénalité (voir `docs/brainstorm.md`).
 
 Pistes issues de l'étape 76 : arbres de skills par classe (on ne peut pas tout prendre, pour
 monter une même classe de façons différentes ; c'est ce qui différenciera deux personnages de la
@@ -111,7 +118,6 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   le kiting, voir `docs/monstre.md`
 - Vitesse relative escouade/monstres comme levier contre le kiting
 - Ralentissement de l'escouade engagée
-- Attaque d'opportunité au désengagement
 - Classe `Arme` qui fournit l'intervalle de recharge de l'attaque de base
   (aujourd'hui écrit dans `Escouade.cpp` et `Monstre.cpp`)
 - Le monstre touché se jette sur l'auteur du coup (mémoire de
@@ -199,6 +205,18 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   sol ou sur un monstre annule l'approche ; les skills non. Les monstres
   n'ouvrent pas les portes. Voir `docs/carte-et-collision.md` et
   `docs/generation.md`.
+- **Zones de contrôle et attaque d'opportunité** (étape 77) : une entité qui a une zone de contrôle
+  (20 px bord à bord pour le guerrier, le paladin et tout monstre ; 0 pour le prêtre, le mage et le
+  rôdeur, qui peuvent être engagés mais n'engagent personne) engage ce qui est dans sa zone. Quand B
+  sort de la zone de A en s'écartant au moins autant que A s'écarte de B, A le frappe gratuitement :
+  coup instantané, dégâts de son attaque de base (armure de la cible appliquée), sans toucher à sa
+  recharge ni à son coup en cours, sans ligne de vue. Pas de coup si A engage encore quelqu'un à la
+  fin de l'image ; au plus un coup par attaquant et par image (le fuyard le plus proche) ; un monstre
+  qui rentre à son poste n'est ni attaquant ni cible. Dans les deux sens (monstre → personnage,
+  personnage → monstre). Module pur `Engagement`, orchestré par `Partie` (deux photos par image, avant
+  et après le déplacement). F3 dessine un cercle fin magenta autour de chaque entité qui a une zone.
+  Un monstre tué par un coup gratuit est retiré et le verrou levé. Voir `docs/combat.md`,
+  `docs/monstre.md` et `docs/boucle-et-entrees.md`.
 - **Vision et brouillard de guerre** (étape 72) : chaque case est inconnue, explorée ou
   visible (`Vision`, possédée par `Partie`). Les personnages vivants voient à 320 px (8 cases)
   chacun ; la vision de l'escouade est l'union de leurs champs, calculés par un shadowcasting
@@ -501,12 +519,12 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   par les personnages vivants ; les personnages sont bloqués par les
   monstres. L'ancre ne bloque personne et n'est pas bloquée.
 - **Tests** : logique de jeu dans `squad_core`, testée avec Catch2 3
-  (`./build/tests.exe`, 795 tests : 23 sur `ChampDeVision`, 8 sur `Vision`, 5 sur `ObjetInteractif`, 15 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 61 sur `GenerateurDonjon`, 36 sur `TileMap`, 27 sur `Chemin`, 199
+  (`./build/tests.exe`, 830 tests : 18 sur `Engagement`, 23 sur `ChampDeVision`, 8 sur `Vision`, 5 sur `ObjetInteractif`, 15 sur `Reglages`, 3 sur `TailleDeVue`, 6 sur `ListeDeBoutons`, 4 sur `EcranMenu`, 12 sur `EcranOptions`, 61 sur `GenerateurDonjon`, 36 sur `TileMap`, 27 sur `Chemin`, 203
   sur `Escouade` en six fichiers par thème (déplacement, combat, skills, agresseurs, vue, places),
-  7 sur `Composition`, 14 sur `Specialite`, 9 sur `SelectionDEscouade`, 11 sur `EcranChoixEscouade`, 11 sur `Encerclement`, 16 sur `Deplacement`, 73 sur `Monstre`,
-  57 sur `Personnage`, 24 sur `Skill`, 24 sur `Mobile`, 4 sur `Eclaircir`, 10 sur `Cercle`, 13
+  7 sur `Composition`, 16 sur `Specialite`, 9 sur `SelectionDEscouade`, 11 sur `EcranChoixEscouade`, 11 sur `Encerclement`, 16 sur `Deplacement`, 75 sur `Monstre`,
+  60 sur `Personnage`, 24 sur `Skill`, 24 sur `Mobile`, 4 sur `Eclaircir`, 10 sur `Cercle`, 13
   sur `Autodefense`, 8 sur `BarreDeSkills`, 11 sur `BarreDeRaccourcis`, 3 sur `ClicInterface`, 4 sur `EntiteVue`, 1 sur
-  `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 49 sur `Partie`, 16 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
+  `BarreDeVie`, 8 sur `PointsDeVie`, 6 sur `Defense`, 9 sur `Provocations`, 8 sur `Agresseurs`, 55 sur `Partie`, 16 sur `Controleur`). Aides communes dans `tests/aides.hpp` ; noms de tests sans
   accents (`./build/tests.exe "*a portee*"` filtre) ; rotation de la
   formation et `provoquer` à une place invalide couverts. Les tests d'`Escouade` utilisent la composition
   par défaut des tests (`compositionDeTest()` : guerrier, prêtre, mage ; `uneEscouade`, `unePartie`) ; `uneEscouadeADeuxGuerriers` et `uneEscouadeAuSoinCourt` servent
@@ -564,6 +582,12 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
   murs) ; une fois en poursuite, un monstre ne perd pas sa proie en la
   perdant de vue (il la suit par le A* jusqu'à l'abandon habituel) ; la
   ligne de vue se décide en cases (étape 73), d'un centre à l'autre.
+- Zones de contrôle (étape 77) : un seul coup gratuit par attaquant et par image, sans délai de
+  réaction (peut sembler généreux) ; un pas de côté de A qui rompt le contact compte comme une fuite
+  de B (égalité des projections : B est le fuyard) ; toute la poussée de la séparation douce compte
+  comme déplacement ; un tireur au contact d'un monstre qui recule reçoit le coup gratuit (l'étape 78
+  le fera se dégager lui-même) ; pas de skill qui annule la pénalité ; pas d'effet visuel propre au
+  coup gratuit (la barre de vie suffit).
 - Provocation stricte (étape 66) : un monstre provoqué ne frappe que son
   provocateur, même s'il est collé à un autre personnage ; si le provocateur
   est caché, il ne frappe personne.

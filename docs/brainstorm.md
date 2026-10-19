@@ -80,6 +80,17 @@ L'armure existe déjà. D'autres façons de réduire ou d'éviter un coup :
 
 **Prérequis.** L'étape 68 (A* qui contourne les obstacles mobiles). Rien n'est décidé.
 
+## 4 ter. Zones de contrôle, la suite (étape 77)
+
+L'étape 77 donne un prix à la fuite (attaque d'opportunité). Elle laisse des questions ouvertes, rien n'y est décidé.
+
+- **Dégagement des tireurs** (étape 78, prévue) : un tireur engagé se dégage vers sa place d'attaque quand un autre personnage tient le monstre. Aujourd'hui il reste sur place.
+- **Gambits pour choisir le comportement** (se greffe sur la section 4) : rester et tirer, se dégager, passer en mêlée ; ce serait une condition (« je suis engagé ») et une action au choix du joueur.
+- **Skills pour se faufiler** : un skill qui permet de quitter une zone sans pénalité (esquive, pas de côté, saut), ou de traverser un adversaire (voir 4 bis, monstres qui traversent les lignes).
+- **Délai de réaction** : si un coup par attaquant et par image s'avère trop généreux (le coup partirait toujours à la première image où la paire se rompt), exiger un petit délai avant de frapper, ou plafonner par durée plutôt que par image.
+- **Zone variable** : zone qui dépend de l'arme, d'un skill (bouclier) ou de la classe, plutôt qu'une valeur fixe de 20 px.
+- **Pas de côté** : l'égalité des projections désigne la cible comme fuyard. À revoir si un pas de côté de l'attaquant qui rompt le contact donne un coup qui semble injuste.
+
 ## 5. Génération procédurale, la suite
 
 **Carte extérieure.** Comme *Diablo 3* : une carte extérieure avec des entrées de donjons. Fixe avec des entrées tirées au hasard, terrain généré (plaines, forêts, rivières), ou assemblage de grands morceaux faits à la main.

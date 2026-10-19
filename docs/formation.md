@@ -595,3 +595,16 @@ même endroit dans un passage étroit » a disparu de la liste des limites.
   tout soin hors de portée. Le choix de la cible reste celui de `choisirCible`.
 - **Limites** : au plus trois fois la même classe (`assert` dans `composer`) ; pas d'arbre de skills,
   de niveaux ni de points à dépenser ; valeurs du paladin et du rôdeur provisoires.
+
+## Zone de contrôle (étape 77)
+
+- **Une valeur de plus par classe** : `DefinitionPersonnage::zoneDeControle`, 20 px (bord à bord) pour
+  le guerrier et le paladin, 0 pour le prêtre, le mage et le rôdeur. Valeur explicite, pas déduite du
+  rang (`Rang`) ni de la portée : un jour un tireur pourrait en avoir une, ou une mêlée aucune.
+  `Personnage` la stocke (`getZoneDeControle`) ; `Escouade` ne fait que la transmettre à la construction.
+- **`Escouade::entitesDeControle()`** donne à `Partie` une `EntiteDeControle` par personnage vivant
+  (identifiant = place de 1 à N). `Escouade` ne connaît ni la règle ni les monstres : elle ne décide
+  rien, elle lit. Les morts n'y sont pas.
+- **Aucun changement de placement** : `pointVoulu`, les places de formation et d'attaque ne tiennent pas
+  compte de la zone (étape 78 : dégagement des tireurs engagés). Un personnage qui recule d'un monstre
+  au contact subit donc le coup gratuit. Voir `docs/combat.md`.

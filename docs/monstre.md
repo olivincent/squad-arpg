@@ -282,6 +282,21 @@ déplacement par chemin dans `docs/chemin.md`.
 - **`mettreAJour` décrémente d'abord la recharge** (`m_attaque.mettreAJour`),
   quel que soit l'état.
 
+## Zone de contrôle (étape 77)
+
+- **Une constante** : `Monstre::s_zoneDeControle` (20 px, bord à bord), la même pour tous les
+  monstres ; `getZoneDeControle()` la renvoie, `getPuissanceAttaque()` donne les dégâts de son attaque
+  (de simples lectures). `Monstre` ne sait rien de la règle : c'est `Partie` qui prend les photos et
+  applique les coups gratuits (voir `docs/combat.md`).
+- **Un monstre qui rentre à son poste n'engage personne et n'est engagé par personne** : il est exclu
+  des photos des camps, comme il l'est de la liste des cibles. Il est invulnérable ; sinon un coup
+  gratuit à la frontière du territoire rouvrirait l'exploit de l'étape 69.
+- **Changer de proie a un prix** : un monstre qui quitte un personnage pour en
+  suivre un autre (provocation, mort de la proie) donne un coup gratuit à celui qu'il quitte, s'il a une
+  zone et n'engage plus personne à la fin.
+- **Un monstre qui frappe gratuitement** : le coup n'arrête pas son attaque et ne touche pas sa recharge ;
+  le personnage touché le compte comme agresseur (3 s).
+
 ## Limites connues
 
 - Un monstre touché ne se jette pas sur l'auteur du coup. L'alerte ne
@@ -300,3 +315,5 @@ déplacement par chemin dans `docs/chemin.md`.
   bloque un autre dans un passage étroit est traversé au prix du coût ajouté.
 - Pas de mémoire de la dernière position vue, de recherche du joueur ni de
   cône de vision.
+- Un monstre n'évite pas de quitter la zone d'un personnage (le coup gratuit est subi, pas évité) ; pas
+  de monstre qui « tient » son adversaire de lui-même (étape 77).
