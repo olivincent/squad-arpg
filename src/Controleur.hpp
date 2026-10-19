@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <optional>
 #include "AdresseSkill.hpp"
+#include "ClicInterface.hpp"
 
 class BarreDeRaccourcis;
 class Partie;
@@ -22,6 +23,10 @@ public:
     // Clic gauche : en visée, lance le sort au point ; sinon engage un
     // combat (monstre) ou arme le déplacement continu (sol).
     void appuiGauche(Partie& partie, sf::Vector2f point);
+    // Clic gauche tombé sur l'interface (règle « l'interface d'abord » : il n'atteint jamais
+    // appuiGauche, donc ni verrou, ni porte, ni déplacement, ni point d'impact de visée). Désarme le
+    // déplacement continu, puis active l'emplacement cliqué comme le ferait sa touche.
+    void appuiInterface(Partie& partie, const BarreDeRaccourcis& barre, ClicInterface clic);
     // Clic droit : annule la visée.
     void appuiDroit();
     // Active l'emplacement `emplacement` de la barre (touche ou clic : même action). Vide : rien.

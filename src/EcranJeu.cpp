@@ -15,6 +15,7 @@
 #include "BarreDeRaccourcis.hpp"
 #include "BarreDeSkills.hpp"
 #include "Composition.hpp"
+#include "ClicInterface.hpp"
 #include "Contexte.hpp"
 #include "Controleur.hpp"
 #include "EcranDeFin.hpp"
@@ -77,7 +78,17 @@ Transition EcranJeu::traiterEvenement(const sf::Event& evenement, const Contexte
     fenetre.setView(m_camera);
     if (const auto* data = evenement.getIf<sf::Event::MouseButtonPressed>()) {
         if (data->button == sf::Mouse::Button::Left) {
-            m_controleur.appuiGauche(m_partie, fenetre.mapPixelToCoords(data->position));
+            // L'interface d'abord : le pixel est testé avec la vue d'interface avant tout
+            // traitement dans le monde. Un clic sur la barre est consommé ; sur l'écran de fin,
+            // les raccourcis sont ignorés comme au clavier.
+            const sf::View vueInterface = vueDInterface(fenetre.getSize());
+            const std::optional<ClicInterface> clic =
+                clicSurInterface(fenetre.mapPixelToCoords(data->position, vueInterface), vueInterface.getSize());
+            if (!clic.has_value()) {
+                m_controleur.appuiGauche(m_partie, fenetre.mapPixelToCoords(data->position));
+            } else if (!m_partie.estPerdue() && !m_partie.estGagnee()) {
+                m_controleur.appuiInterface(m_partie, m_barre, *clic);
+            }
         } else if (data->button == sf::Mouse::Button::Right) {
             m_controleur.appuiDroit();
         }

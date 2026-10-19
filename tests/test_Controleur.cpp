@@ -263,3 +263,44 @@ TEST_CASE("un autre skill de zone remplace la visee") {
     controleur.activerEmplacement(partie, barre, 1);  // la même adresse : on sort
     REQUIRE_FALSE(controleur.getAdresseEnVisee().has_value());
 }
+
+TEST_CASE("un clic de barre active l'emplacement comme sa touche") {
+    Partie partie = unePartie(niveauDegage({s_monstreLointain}), s_graineDeTest);
+    Controleur controleur;
+    const BarreDeRaccourcis barre = barreDe(partie);
+
+    controleur.appuiInterface(partie, barre, {Barre::Raccourcis, s_emplacementExplosion});
+    REQUIRE(controleur.getAdresseEnVisee() == s_adresseExplosion);
+
+    controleur.appuiInterface(partie, barre, {Barre::Raccourcis, s_emplacementProvocation});
+    avancer(partie, 1);
+    REQUIRE_FALSE(partie.getEscouade().skillEstPret(s_adresseProvocation));
+}
+
+TEST_CASE("un clic de barre desarme le deplacement continu, meme sur un emplacement vide") {
+    Partie partie = unePartie(niveauDegage({s_monstreLointain}), s_graineDeTest);
+    Controleur controleur;
+    const BarreDeRaccourcis barre = barreDe(partie);
+    const sf::Vector2f depart = partie.getEscouade().getCentre();
+    const sf::Vector2f curseur{500.0f, 500.0f};
+    controleur.appuiGauche(partie, curseur);  // clic au sol : deplacement continu arme
+
+    controleur.appuiInterface(partie, barre, {Barre::Raccourcis, s_emplacementVide});
+    controleur.mettreAJourDeplacement(partie, true, curseur);
+    avancer(partie, 30);
+
+    verifierPointProche(partie.getEscouade().getCentre(), depart);
+}
+
+TEST_CASE("en visee, un clic de barre n'est jamais le point d'impact") {
+    Partie partie = unePartie(niveauDegage({s_monstreLointain}), s_graineDeTest);
+    Controleur controleur;
+    const BarreDeRaccourcis barre = barreDe(partie);
+    controleur.activerEmplacement(partie, barre, s_emplacementExplosion);
+
+    controleur.appuiInterface(partie, barre, {Barre::Raccourcis, s_emplacementVide});
+    avancer(partie, 1);
+
+    REQUIRE(controleur.getAdresseEnVisee() == s_adresseExplosion);    // toujours en visee
+    REQUIRE(partie.getEscouade().skillEstPret(s_adresseExplosion));  // rien n'est lance
+}

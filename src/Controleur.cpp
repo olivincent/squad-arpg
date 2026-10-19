@@ -30,6 +30,17 @@ void Controleur::appuiGauche(Partie& partie, sf::Vector2f point) {
     }
 }
 
+void Controleur::appuiInterface(Partie& partie, const BarreDeRaccourcis& barre, ClicInterface clic) {
+    // Un appui qui commence sur l'interface ne lance pas le déplacement continu, et désarme
+    // celui d'un ancien clic au sol (sinon l'escouade repartirait tant que le bouton est tenu).
+    m_deplacementContinu = false;
+    switch (clic.barre) {
+        case Barre::Raccourcis:
+            activerEmplacement(partie, barre, clic.emplacement);
+            break;
+    }
+}
+
 void Controleur::appuiDroit() {
     m_adresseEnVisee.reset();
 }
