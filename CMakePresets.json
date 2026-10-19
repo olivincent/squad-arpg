@@ -1,0 +1,53 @@
+{
+    "version": 2,
+    "configurePresets": [
+        {
+            "name": "commun",
+            "hidden": true,
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            }
+        },
+        {
+            "name": "debug",
+            "displayName": "debug (tests : assert, assertions de la STL, UBSan)",
+            "inherits": "commun",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_CXX_FLAGS": "-D_GLIBCXX_ASSERTIONS -fsanitize=undefined -fsanitize-undefined-trap-on-error"
+            }
+        },
+        {
+            "name": "jeu",
+            "displayName": "jeu (Release, optimisé)",
+            "inherits": "commun",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "debug",
+            "configurePreset": "debug"
+        },
+        {
+            "name": "jeu",
+            "configurePreset": "jeu"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "debug",
+            "configurePreset": "debug",
+            "output": {
+                "outputOnFailure": true
+            },
+            "execution": {
+                "jobs": 12
+            }
+        }
+    ]
+}

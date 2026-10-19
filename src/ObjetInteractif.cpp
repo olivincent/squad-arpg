@@ -10,7 +10,8 @@ bool sontSurUneMemeLigne(const std::vector<sf::Vector2i>& cases) {
     return std::ranges::all_of(cases, [&](sf::Vector2i c) { return c.y == cases.front().y; });
 }
 
-bool sontSurUneMemeColonne(const std::vector<sf::Vector2i>& cases) {
+// Lue seulement par un assert : inutilisée quand NDEBUG est défini (Release).
+[[maybe_unused]] bool sontSurUneMemeColonne(const std::vector<sf::Vector2i>& cases) {
     return std::ranges::all_of(cases, [&](sf::Vector2i c) { return c.x == cases.front().x; });
 }
 }  // namespace

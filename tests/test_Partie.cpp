@@ -454,7 +454,7 @@ TEST_CASE("un monstre qui rentre a son poste bloque toujours les personnages") {
     REQUIRE(ecartMin <= rayons + 1.0f);  // un personnage a bien touché le monstre sans le traverser
 }
 
-TEST_CASE("le verrou posé sur un monstre est leve quand il abandonne") {
+TEST_CASE("le verrou pose sur un monstre est leve quand il abandonne") {
     Partie partie = unePartie(niveauDeLaFuite(), s_graineDeTest);
     partie.ordonnerDeplacement({1150.0f, 300.0f});
     bool verrouille = false;

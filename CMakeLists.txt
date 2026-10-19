@@ -1,7 +1,16 @@
 # ./CMakeLists.txt
-cmake_minimum_required(VERSION 4.4.3)
+# 3.20 : la plus petite version qui suffit (CMakePresets.json en version 2,
+# pour les presets de build et de test ; catch_discover_tests demande 3.19).
+# 4.4 : la dernière version essayée, dont on garde le comportement (policies).
+cmake_minimum_required(VERSION 3.20...4.4)
 
 project(SquadArpg LANGUAGES CXX)
+
+# Type de build par défaut quand aucun n'est donné (configuration sans
+# preset) : Release. Les presets « debug » et « jeu » le fixent eux-mêmes.
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Type de build" FORCE)
+endif()
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -125,3 +134,10 @@ add_executable(tests
     tests/test_EcranOptions.cpp
 )
 target_link_libraries(tests PRIVATE squad_core Catch2::Catch2WithMain)
+
+# CTest : chaque TEST_CASE devient un test CTest (ctest --preset debug).
+# Découverte au lancement de ctest (PRE_TEST) plutôt qu'à la fin de la
+# compilation : le build ne lance jamais tests.exe.
+enable_testing()
+include(Catch)
+catch_discover_tests(tests DISCOVERY_MODE PRE_TEST)
