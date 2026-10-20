@@ -6,11 +6,13 @@
 #include <cmath>
 #include <cstddef>
 #include <optional>
+#include <utility>
 #include <vector>
 
 #include "aides.hpp"
 #include "aides_escouade.hpp"
 #include "base/Cercle.hpp"
+#include "escouade/Composition.hpp"
 #include "escouade/Escouade.hpp"
 #include "combat/EntiteVue.hpp"
 #include "monde/TileMap.hpp"
@@ -36,7 +38,7 @@ void combattre(Escouade& escouade, const TileMap& carte, const std::vector<Entit
                Generateur& generateur, Fonction apres) {
     for (int i = 0; i < nombreDeTics(duree); ++i) {
         static_cast<void>(escouade.attaquer(s_dureeTic, monstres, carte, generateur));
-        escouade.mettreAJour(s_dureeTic, carte, monstres);
+        escouade.mettreAJour(s_dureeTic, carte, {.physiques = monstres, .ciblables = monstres});
         apres();
     }
 }
@@ -238,4 +240,29 @@ TEST_CASE("pointVise : place de formation hors combat, vide pour une place inval
     }
     REQUIRE_FALSE(escouade.pointVise(0).has_value());
     REQUIRE_FALSE(escouade.pointVise(4).has_value());
+}
+
+// Écart accepté à l'étape 82.4 : le monstre qu'un personnage approche n'est jamais à contourner, même sans
+// place d'attaque libre (avant, il visait son centre tout en le contournant). Composition : un mêlée derrière
+// (place 1, en (285, 510)) et trois devant, en (335, 460), (335, 510) et (335, 560). L'agresseur, tout juste
+// enregistré au centre du dernier (cercle de rayon nul : un anneau de 28 px, quatre places), a ses quatre
+// places occupées par ce personnage immobile.
+TEST_CASE("Places d'attaque : vers un agresseur sans place libre, le personnage marche droit sur son centre, sans le contourner") {
+    std::vector<DefinitionPersonnage> composition(4, guerrierDeTest());
+    composition[0].rang = Rang::Arriere;
+    Escouade escouade({300.0f, 500.0f}, std::move(composition));
+    const sf::Vector2f depart = *escouade.centreDuPersonnage(1);
+    const sf::Vector2f occupant = *escouade.centreDuPersonnage(4);
+    verifierPointProche(depart, {285.0f, 510.0f});
+    verifierPointProche(occupant, {335.0f, 560.0f});
+    escouade.recevoirDegats(1, occupant, 1);  // l'agresseur : rayon nul, au centre de l'occupant
+    const std::vector<EntiteVue> monstres = {EntiteVue{1, cibleMonstre(occupant)}};
+
+    escouade.mettreAJour(s_dureeTic, carteOuverte(), {.physiques = monstres, .ciblables = {}});
+
+    verifierPointProche(*escouade.pointVise(1), occupant, 0.01f);  // aucune place libre : le centre de l'agresseur
+    const sf::Vector2f pas = *escouade.centreDuPersonnage(1) - depart;
+    REQUIRE(pas.length() > 1.0f);
+    // En ligne droite vers le centre (en le contournant, le chemin A* passait d'abord par le centre d'une case).
+    REQUIRE(std::abs((pas.angle() - (occupant - depart).angle()).wrapSigned().asDegrees()) < 0.5f);
 }

@@ -16,6 +16,7 @@
 #include "base/Cercle.hpp"
 #include "escouade/Composition.hpp"
 #include "escouade/Formation.hpp"
+#include "escouade/Intention.hpp"
 #include "combat/Coup.hpp"
 #include "combat/Engagement.hpp"
 #include "combat/EtatSkill.hpp"
@@ -28,10 +29,6 @@
 #include "combat/TypeSkill.hpp"
 
 class TileMap;
-// Ordre d'appel dans une même image : attaquer() AVANT mettreAJour().
-// attaquer() calcule m_monstreAPortee et m_cibleCombat, que mettreAJour()
-// lit ; dans l'ordre inverse, mettreAJour() verrait les valeurs de l'image
-// précédente (les personnages réagiraient avec une image de retard).
 class Escouade {
 public:
     // `composition` : un personnage par définition, aux places 1 à N dans l'ordre (assert : non vide).
@@ -59,12 +56,21 @@ public:
     [[nodiscard]] float rayonZoneDuSkill(AdresseSkill adresse) const;
     [[nodiscard]] Cercle cercleDePorteeDuSkill(AdresseSkill adresse) const;
     [[nodiscard]] std::vector<Coup> declencherSkillDeZone(AdresseSkill adresse, sf::Vector2f point, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
-    // `monstres` bloquent les personnages ; chaque personnage contourne en plus tous ceux
-    // qu'il n'approche pas (voir monstresAContourner). `monstresDeControle` : les monstres que la
-    // règle des zones de contrôle voit, avec leur zone (ceux qui rentrent à leur poste n'y sont pas) ;
-    // Partie y met la photo du début de l'image. Vide : aucun personnage ne se dégage.
-    void mettreAJour(float dt, const TileMap& carte, const std::vector<EntiteVue>& monstres,
-                     const std::vector<EntiteDeControle>& monstresDeControle = {});
+    // Les monstres tels que mettreAJour les reçoit, en trois listes nommées (on ne peut pas en
+    // inverser deux). `ciblables` n'a pas de valeur par défaut : l'omettre dans une initialisation
+    // désignée est signalé par le compilateur (-Wmissing-field-initializers).
+    struct VueDesMonstres {
+        // Tous les monstres, même ceux qui rentrent à leur poste : ils bloquent les personnages, et
+        // chacun contourne en plus tous ceux qu'il n'approche pas.
+        std::vector<EntiteVue> physiques;
+        // Ceux qu'on peut viser (pas ceux qui rentrent à leur poste) : le verrou n'est vu, et un
+        // monstre n'est « à portée », que s'il y est.
+        std::vector<EntiteVue> ciblables;
+        // Ceux que la règle des zones de contrôle voit, avec leur zone ; Partie y met la photo du
+        // début de l'image. Vide : aucun personnage ne se dégage.
+        std::vector<EntiteDeControle> deControle = {};
+    };
+    void mettreAJour(float dt, const TileMap& carte, const VueDesMonstres& monstres);
     [[nodiscard]] sf::Vector2f getCentre() const;
     // Personnage que ce monstre poursuit : l'identifiant est sa place (1 à N), le cercle le sien.
     [[nodiscard]] std::optional<EntiteVue> proieDuMonstre(int idMonstre, sf::Vector2f positionMonstre) const;
@@ -134,7 +140,13 @@ private:
     [[nodiscard]] bool peutLancerAuPoint(AdresseSkill adresse, sf::Vector2f point, const TileMap& carte) const;
     std::vector<Coup> avancerSkillDe(std::size_t indice, float dt, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
     std::vector<Coup> effetDuSkill(std::size_t place, IdSkill id, const std::optional<Cible>& cible, int puissance, const std::vector<EntiteVue>& monstres, const TileMap& carte);
-    std::optional<sf::Vector2f> avancerSkillEnAttente(const TileMap& carte);
+    // L'intention que le skill en attente donne à son lanceur (indice de 0 à N-1).
+    struct IntentionDuSkill {
+        std::size_t lanceur;
+        Intention intention;
+    };
+    // `verrou` : le monstre verrouillé, s'il est ciblable (vide sinon).
+    std::optional<IntentionDuSkill> avancerSkillEnAttente(const TileMap& carte, const std::optional<EntiteVue>& verrou);
     // Étapes d'attaquer(), dans l'ordre où elles sont appelées.
     void actualiserMemoires(const std::vector<EntiteVue>& monstres);
     void engagerSkillDeZoneEnAttente(const TileMap& carte);
@@ -145,29 +157,46 @@ private:
     std::vector<Coup> autodefense(float dt, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
     [[nodiscard]] float porteeDe(const Personnage& personnage, std::optional<IdSkill> skill) const;
     // Places d'attaque (m_placesDAttaque) : ce qu'elles doivent savoir du personnage de cet indice
-    // qui approche ce monstre avec cette action (`skill` vide : l'attaque de base).
-    [[nodiscard]] PlacesDAttaque::Approche approcheDe(std::size_t indice, EntiteVue monstre, std::optional<IdSkill> skill) const;
+    // qui approche ce monstre avec une action de cette portée.
+    [[nodiscard]] PlacesDAttaque::Approche approcheDe(std::size_t indice, EntiteVue monstre, float portee) const;
     // Par personnage : son centre s'il est vivant et immobile (il occupe l'endroit où il se tient), vide sinon.
     [[nodiscard]] std::vector<std::optional<sf::Vector2f>> occupants() const;
-    std::optional<sf::Vector2f> pointVersAgresseur(std::size_t indice, const std::vector<EntiteVue>& agresseurs,
-                                                   const std::optional<PlacesDAttaque::Place>& ancienne, const TileMap& carte);
-    // Cercles des monstres sauf celui que ce personnage approche (sa place d'attaque, ou le
-    // verrou en combat) ; tous s'il n'en approche aucun.
-    [[nodiscard]] std::vector<Cercle> monstresAContourner(std::size_t indice, const std::vector<EntiteVue>& monstres) const;
     // Étapes de mettreAJour().
     void ecoulerMemoires(float dt);
     void separerPersonnages(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles);
-    sf::Vector2f pointVoulu(std::size_t indice, const std::optional<sf::Vector2f>& pointSkill, bool ancreArretee,
-                            const std::vector<EntiteVue>& agresseurs, const std::vector<EntiteVue>& monstres, const TileMap& carte);
-    // Dégagement : les deux fonctions ci-dessous sont, avec m_degagements, tout ce que sait Escouade
-    // de cette règle de comportement (le point de remplacement des futurs gambits).
+    // Ce qui vaut pour tous les personnages dans un mettreAJour, calculé avant la boucle des personnages.
+    struct ContexteDesIntentions {
+        bool ancreArretee;
+        std::optional<EntiteVue> verrou;         // le monstre verrouillé, s'il est ciblable
+        std::vector<EntiteVue> agresseurs;       // la mémoire des agresseurs
+        std::optional<IntentionDuSkill> skill;   // l'intention du lanceur du skill en attente
+    };
+    [[nodiscard]] std::optional<EntiteVue> confirmerDegagement(std::size_t indice,
+                                                               const std::optional<PlacesDAttaque::Place>& ancienne,
+                                                               const std::vector<EntiteVue>& monstres,
+                                                               const TileMap& carte);
+    [[nodiscard]] SituationDuPersonnage situationDe(std::size_t indice,
+                                                    const std::optional<PlacesDAttaque::Place>& ancienne,
+                                                    const std::optional<EntiteVue>& degagement,
+                                                    const ContexteDesIntentions& contexte,
+                                                    const std::vector<EntiteVue>& ciblables,
+                                                    const TileMap& carte) const;
+    // Le point visé par une intention et, pour une approche, si une place d'attaque a été trouvée.
+    struct PointVise {
+        sf::Vector2f point;
+        bool placeTrouvee;
+    };
+    PointVise pointDeLIntention(std::size_t indice, const Intention& intention,
+                                const std::optional<PlacesDAttaque::Place>& ancienne, const TileMap& carte);
+    // Dégagement : ces deux fonctions décident, avec m_degagements, qui se dégage de quel monstre ;
+    // choisirIntention en fait sa règle 2 (le point de branchement des futurs gambits).
     void mettreAJourDegagements(bool ancreArretee, const std::vector<EntiteDeControle>& monstresDeControle);
     [[nodiscard]] std::optional<int> degagementVoulu(std::size_t indice, bool ancreArretee, const std::vector<EntiteDeControle>& personnages,
                                        const std::vector<EntiteDeControle>& monstresDeControle) const;
 
     struct SkillEnAttente {
         AdresseSkill adresse;  // du skill en attente (place du lanceur et identifiant)
-        Cible cible;        // fixée à l'appui (pour un monstre, le cercle lu en route est m_cibleCombat)
+        Cible cible;        // fixée à l'appui (pour un monstre, le cercle lu en route est celui du verrou, à jour)
     };
 
     Mobile m_mobile;
@@ -175,8 +204,6 @@ private:
     std::vector<Personnage> m_personnages;
     std::optional<int> m_cibleVerrouillee;
     std::optional<SkillEnAttente> m_skillEnAttente; // un seul skill en attente pour toute l'escouade
-    std::optional<Cercle> m_cibleCombat; // dernière cible donnée à attaquer(), pour figer les personnages déjà à portée
-    std::vector<bool> m_monstreAPortee;  // par personnage : a-t-il un monstre à portée de son attaque (calculé par attaquer, lu par mettreAJour)
     PlacesDAttaque m_placesDAttaque;  // par personnage : place d'attaque retenue autour du monstre qu'il approche
     std::vector<sf::Vector2f> m_pointsVises;  // par personnage, calculé par mettreAJour
     // Par personnage : identifiant du monstre dont il se dégage vers sa place d'attaque (vide = il ne se dégage pas).

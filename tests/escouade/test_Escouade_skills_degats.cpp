@@ -132,7 +132,7 @@ TEST_CASE("Un skill de degats hors de portee est mis en attente, puis part a l'a
     for (int i = 0; i < 600; ++i) {
         const int degats = attaquerCible(escouade, carte, cible);
         degatsMax = std::max(degatsMax, degats);
-        escouade.mettreAJour(1.0f / 60.0f, carte, {});
+        escouade.mettreAJour(1.0f / 60.0f, carte, {.physiques = {}, .ciblables = unSeulMonstre(cible)});
     }
     REQUIRE(degatsMax >= s_degatsFrappeDeTest);
 }

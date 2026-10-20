@@ -64,10 +64,11 @@ personnages sont dans `docs/formation.md`, le monstre dans
   monstre, dégâts) que `main.cpp` applique. Elle ne connaît toujours pas
   `Monstre`. Deux parties indépendantes :
   - **l'approche, seulement avec un verrou** : si le monstre verrouillé
-    est dans la liste, son cercle est mémorisé (`m_cibleCombat`) ; si au
-    moins un personnage **vivant** n'est pas à portée,
+    est dans la liste et qu'au moins un personnage **vivant** n'est pas à portée,
     `allerVers(cercle.centre, carte)`, sinon l'ancre s'arrête sur place
-    (`m_mobile.arreter()`, pour cesser d'avancer sans reculer). Le skill
+    (`m_mobile.arreter()`, pour cesser d'avancer sans reculer). Son cercle n'est
+    plus mémorisé (`m_cibleCombat`, supprimé à l'étape 82.4) : `mettreAJour` cherche
+    le verrou lui-même dans ses monstres ciblables. Le skill
     de dégâts en attente part aussi ici, dès que son lanceur est à
     portée (voir « Choix de la cible et skill en attente ») ;
   - **les frappes, verrou ou non** : voir « Autodéfense ».
@@ -135,15 +136,17 @@ personnages sont dans `docs/formation.md`, le monstre dans
   personnage (pas de sa position actuelle, sinon la laisse suivrait le
   personnage et il pourrait être entraîné sans limite), puis prend le plus
   proche de lui.
-- **Règle de déplacement** (`pointVersAgresseur`), ancre à l'arrêt
-  seulement : aucun agresseur dans la laisse → la place ; sinon, monstre
-  déjà à portée de l'attaque de base → reste sur place (sans cela il
-  reviendrait à sa place, sortirait de portée et oscillerait) ; sinon
-  centre de l'agresseur. « Monstre à portée » est mémorisé par `attaquer`
-  (`m_monstreAPortee`), comme `m_cibleCombat`.
-- **Priorités** : le lanceur d'un skill en attente vise sa cible ; avec un
-  verrou, un personnage à portée du monstre verrouillé reste sur place ;
-  l'ordre du joueur (ancre en mouvement) fait viser la place à tous.
+- **Règle de déplacement** (règle 4 de `choisirIntention` depuis l'étape 82.4 ; avant,
+  `pointVersAgresseur`), ancre à l'arrêt seulement : aucun agresseur dans la laisse → la place ;
+  sinon, monstre déjà à portée de l'attaque de base → reste sur place (sans cela il reviendrait à sa
+  place, sortirait de portée et oscillerait) ; sinon l'agresseur, à sa place d'attaque autour de lui
+  (étape 67), ou son centre s'il n'y a aucune place libre (sans le contourner depuis 82.4). « Monstre
+  à portée » est calculé par `mettreAJour`, sur ses monstres ciblables (étape 82.4, R2 ; avant,
+  mémorisé par `attaquer` dans `m_monstreAPortee`) : un monstre qui rentre à son poste ne compte
+  jamais, un monstre tué dans l'image non plus.
+- **Priorités** : celles de `choisirIntention` (`docs/formation.md`, « Intentions ») : le lanceur
+  d'un skill en attente vise sa cible ; avec un verrou, un personnage à portée du monstre verrouillé
+  reste sur place ; l'ordre du joueur (ancre en mouvement) fait viser la place à tous.
 - **Règle générique** : aucun type « mêlée / tireur » ; un tireur à 120 px
   ne bouge presque jamais, un mêlée va au contact. Même `Mobile` que les
   autres déplacements (mêmes blocages).
@@ -316,7 +319,8 @@ personnages sont dans `docs/formation.md`, le monstre dans
   sa place en formation (même déplacement et mêmes blocages que les
   autres personnages), puis reprend sa place une fois le skill parti ou
   annulé. La cible est fixée à l'appui. Pour un monstre, le cercle lu en
-  route est `m_cibleCombat`, mis à jour à chaque `attaquer`, pas la copie
+  route est celui du verrou parmi les ciblables de `mettreAJour` (étape 82.4 ;
+  avant, `m_cibleCombat`, mis à jour à chaque `attaquer`), pas la copie
   de l'appui.
 - **Où l'activation commence** : à l'appui, dans `declencherSkill` ; pour un
   skill en attente, à l'arrivée du lanceur (à portée et en vue) : un soin dans
@@ -504,7 +508,7 @@ personnages sont dans `docs/formation.md`, le monstre dans
   atteignent la cible, et un personnage s'arrête individuellement quand
   lui l'atteint. Un tireur à portée sans vue ne s'arrête donc pas, et
   l'ancre continue d'avancer jusqu'à ce que tous voient la cible.
-- **Agresseurs** : `m_monstreAPortee` exige aussi la vue ; un personnage
+- **Agresseurs** : « un monstre à portée » (`m_monstreAPortee` jusqu'à l'étape 82.4) exige aussi la vue ; un personnage
   qui ne voit pas son agresseur va vers lui (dans la laisse de 100 px,
   ancre à l'arrêt, comme avant).
 - **Skill de dégâts** : avec un verrou, départ immédiat ou en attente
@@ -635,7 +639,8 @@ personnages sont dans `docs/formation.md`, le monstre dans
   place à chaque image aurait paru immobile pendant que l'ancre marche.
 - **Pendant l'exécution**, l'attaquant reste sur place : un personnage ne
   suit ni sa place de formation, ni un agresseur ni un skill en attente
-  (`Escouade::pointVoulu`, règle 0) ; un monstre ne poursuit ni ne rentre.
+  (règle 0 de `choisirIntention`, de `Escouade::pointVoulu` avant l'étape 82.4) ; un monstre ne
+  poursuit ni ne rentre.
 - **Le coup engagé part toujours**, même si la cible a bougé hors de portée
   ou de vue (pas de revérification à la fin). Annulation, sans recharge
   consommée :
@@ -684,7 +689,7 @@ personnages sont dans `docs/formation.md`, le monstre dans
   Le verrou et `m_skillEnAttente` restent dans `Escouade`.
 - **L'appui est un ordre** : il n'exige pas que le lanceur soit immobile.
   L'activation commence et le lanceur s'arrête sur place pendant toute sa
-  durée (`Personnage::estEnExecution`, règle 0 de `pointVoulu`) ; le reste de
+  durée (`Personnage::estEnExecution`, règle 0 de `choisirIntention`) ; le reste de
   l'escouade continue, puis le lanceur rattrape sa place.
 - **Au début de l'activation**, le coup de base engagé du lanceur est annulé
   (`engagerSkill`). Aucune attaque de base ne s'engage pendant l'activation
@@ -1000,10 +1005,12 @@ l'enfoncerait dans un obstacle.
   personnage est toujours engagé et tenu. Cela vaut aussi pour une explosion lancée pendant le recul :
   la visée et le lancer sont inchangés.
 - **Où vit l'état** : `Escouade::m_degagements`, un `std::optional<int>` par personnage (le monstre dont
-  il se dégage). `Escouade::degagementVoulu` contient départ et fin : c'est la seule fonction à
-  remplacer le jour où les gambits laisseront le joueur choisir (rester et tirer, se dégager, passer en
-  mêlée). Si le monstre n'a plus de place d'attaque libre, le dégagement est abandonné pour l'image et
-  les règles habituelles reprennent (le personnage n'ira pas vers le centre du monstre).
+  il se dégage). `Escouade::degagementVoulu` contient départ et fin. Depuis l'étape 82.4, le point de
+  branchement des gambits (rester et tirer, se dégager, passer en mêlée) est `choisirIntention`, dont le
+  dégagement est la règle 2 (`docs/formation.md`, « Intentions »). Si le monstre n'a plus de place
+  d'attaque libre, le dégagement est abandonné pour l'image et les règles habituelles reprennent (le
+  personnage n'ira pas vers le centre du monstre) ; depuis 82.4, `confirmerDegagement` le constate avant
+  la décision (`PlacesDAttaque::peutPlacer`, avec les entrées du placement qui suivrait).
 - **Données** : `Partie` passe à `Escouade::mettreAJour` la liste d'`EntiteDeControle` de la photo du
   début de l'image (monstres ciblables, avec leur zone) en paramètre supplémentaire, à la place d'un champ
   de zone dans `EntiteVue` : celle-ci sert aussi aux obstacles, qui incluent les monstres qui rentrent.
@@ -1083,7 +1090,7 @@ l'enfoncerait dans un obstacle.
   attente (`engagerSkillDeZoneEnAttente`, `engagerSkillDeDegatsEnAttente`, le soin dans
   `avancerSkillEnAttente`). `engagerSkill` n'y est appelé que si le lanceur est libre :
   `[[maybe_unused]] const bool engage = ...; assert(engage);`. Pendant l'activation, le lanceur reste
-  sur place (priorité de `pointVoulu`) ; à la fin, le skill en attente part s'il atteint sa cible,
+  sur place (règle 0) ; à la fin, le skill en attente part s'il atteint sa cible,
   sinon le lanceur marche vers elle comme pour tout skill en attente.
 - **Dégâts sans verrou.** Sans verrou, un skill de dégâts ne se mettait jamais en attente (la cible est
   choisie à portée). Il peut maintenant attendre que son lanceur soit libre : `engagerSkillDeDegatsEnAttente`
@@ -1091,7 +1098,11 @@ l'enfoncerait dans un obstacle.
   Sans verrou, personne ne marche vers elle (règle de l'étape 37) : une fois libre, le lanceur la frappe
   s'il l'atteint encore ; sinon (hors de portée, hors de vue, disparue) le skill est abandonné, sans
   recharge. `avancerSkillEnAttente` ne fait marcher vers la cible d'un skill de dégâts qu'avec un
-  verrou : `m_cibleCombat` n'est jamais remis à zéro et peut dater d'un ancien combat.
+  verrou : à cette étape, `m_cibleCombat` n'était jamais remis à zéro et pouvait dater d'un ancien
+  combat. Depuis l'étape 82.4 (R2), ce membre n'existe plus, et l'exigence n'a plus d'effet dans
+  `Partie` : sans verrou, le skill est lancé ou abandonné dans `attaquer` dès que son lanceur est
+  libre, et tant qu'il ne l'est pas, le lanceur est en exécution (règle 0). Elle est gardée ; on
+  décidera en 82.5 si c'est du code mort à supprimer.
 - **Ce qui ne change pas.** Un skill en recharge, ou déjà en activation lui-même, est refusé. Un nouvel
   ordre de skill pendant qu'un skill attend est refusé (un seul skill en attente pour l'escouade). Un clic
   au sol (`deverrouiller`) ou sur un autre monstre (`verrouiller`) annule un skill de dégâts en attente.
@@ -1134,7 +1145,7 @@ même chose avec plus de détail.
   skill en attente pour lui, aucune action en exécution (un coup en cours part d'abord). Pendant le
   dégagement il ne frappe pas et ne s'arrête pas à portée ; fin à l'arrivée, si le monstre disparaît ou
   rentre à son poste, si l'ancre bouge, si un skill est mis en attente ou engagé, ou s'il est encore
-  engagé alors que le porteur est parti. Priorité de `pointVoulu` : exécution > skill en attente >
+  engagé alors que le porteur est parti. Priorité de `pointVoulu` (de `choisirIntention` depuis 82.4) : exécution > skill en attente >
   dégagement > verrou > agresseur > formation. Règle pure `monstreDontSeDegager` (`Engagement`), état
   et fin dans `Escouade::degagementVoulu`. Aucun affichage nouveau (F3 montre le point visé). Voir
   `docs/combat.md` et `docs/formation.md`.

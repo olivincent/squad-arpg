@@ -55,10 +55,11 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
      e. retrait des monstres morts ;
      f. ordre de déplacement, si l'escouade est vivante ;
      g. photo des camps pour les zones de contrôle (`photographierLesCamps`, avant tout
-        déplacement), puis `EntiteVue` de **tous** les monstres, liste physique (obstacles bloquants
-        des personnages, dont chacun contourne ceux qu'il n'approche pas),
-        `escouade.mettreAJour` (qui reçoit aussi les monstres de la première photo, pour le
-        dégagement des tireurs, étape 78), puis
+        déplacement), puis `escouade.mettreAJour`, qui reçoit une `VueDesMonstres` (étape 82.4) :
+        les `EntiteVue` de **tous** les monstres (liste physique : obstacles bloquants des
+        personnages, dont chacun contourne ceux qu'il n'approche pas), celles des monstres
+        **ciblables** (verrou et « monstre à portée », recalculées après le retrait des morts en e)
+        et les monstres de la première photo (dégagement des tireurs, étape 78), puis
         `cerclesDesVivants` et le tour de chaque monstre (proie, mise à jour
         avec ses obstacles bloquants et ses cercles à contourner, riposte) ;
      h. seconde photo des camps et coups gratuits des deux sens (`appliquerLesCoupsDOpportunite`,
@@ -81,6 +82,11 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
      « Monstres : N » (haut gauche) et, si la partie est perdue ou gagnée,
      écran de fin (par-dessus la barre et le compteur), le tout avec la vue de
      l'interface (800 px de haut, voir `docs/ecrans.md`).
+- **`attaquer` (d) et `escouade.mettreAJour` (g) ne se passent plus rien par des membres**
+  (étape 82.4, R2 de `docs/audit.md`) : le verrou et « un monstre à portée » sont calculés par chacune
+  sur les ciblables qu'elle reçoit. Leur ordre n'est donc plus une règle de correction ; `Partie`
+  garde le sien. Seule la mémoire des agresseurs, actualisée par `attaquer`, aurait une image de
+  retard si on les inversait (limite connue, `docs/formation.md`, « Intentions »).
 - **Demandes mémorisées** : à part `cliquer`, les actions du joueur ne sont
   pas exécutées à l'événement mais à leur place dans `mettreAJour`. Un clic
   est appliqué tout de suite parce qu'il ne dépend que de l'état au moment
@@ -348,9 +354,10 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   à frapper, provoquer, viser ou verrouiller (`attaquer`, `declencherSkill`,
   `declencherSkillDeZone` : autodéfense, agresseurs, provocations et skills
   l'ignorent sans code propre ; les agresseurs et provocations déjà enregistrés
-  sont oubliés par `attaquer`, un coup engagé sur lui est annulé). Les
-  **physiques** vont aux obstacles : un monstre qui rentre bloque et est contourné
-  comme avant. Les listes sont recalculées à chaque usage, jamais stockées.
+  sont oubliés par `attaquer`, un coup engagé sur lui est annulé) ; depuis l'étape 82.4,
+  `escouade.mettreAJour` les reçoit aussi (`VueDesMonstres::ciblables`), pour le verrou et
+  « un monstre à portée ». Les **physiques** vont aux obstacles : un monstre qui rentre bloque et
+  est contourné comme avant. Les listes sont recalculées à chaque usage, jamais stockées.
 - **Obstacles pour les personnages** : avant `escouade.mettreAJour`, la liste
   physique des `EntiteVue` de tous les monstres (à leur position de l'image précédente) ;
   `Escouade` en tire les obstacles bloquants et, par personnage, les cercles à
@@ -579,7 +586,8 @@ constructeur et de chaque `mettreAJour`, voir `docs/vision.md`), `m_evenements` 
 
 Deux listes d'`EntiteVue` sont recalculées à chaque usage (fonctions privées, rien de
 stocké) : `entitesCiblables()` (les monstres pour lesquels `estCiblable()` est vrai) pour
-tout ce qui choisit un monstre à frapper, provoquer, viser ou verrouiller ; `entitesPhysiques()`
+tout ce qui choisit un monstre à frapper, provoquer, viser ou verrouiller (et, depuis l'étape 82.4,
+le verrou et « un monstre à portée » de `Escouade::mettreAJour`) ; `entitesPhysiques()`
 (tous) pour les obstacles bloquants et à contourner. Un monstre qui rentre à son poste
 bloque donc comme avant mais n'est plus une cible, et le verrou posé sur lui est levé.
 
@@ -595,7 +603,7 @@ bloque donc comme avant mais n'est plus une cible, et le verrou posé sur lui es
 | `int monstresRestants() const` | Nombre de monstres vivants (`m_monstres.size()`), pour le compteur d'`EcranJeu` ; `[[nodiscard]]` |
 | `std::vector<EvenementDeCombat> prendreEvenements()` | Les dégâts et soins réellement appliqués depuis le dernier appel, dans l'ordre où ils ont eu lieu ; la file est vidée (`std::exchange`). Un montant de 0 (cible morte, monstre en retour, soin à pleine vie) ne produit aucun événement ; une partie figée n'en produit plus ; `[[nodiscard]]` |
 | `bool estVisible(sf::Vector2f point) const` | La case de ce point (pixels du monde) est-elle `Visible` à la fin de la dernière image ? (`Vision::estVisible`) ; sert à `EcranJeu` à ne pas montrer ce qui se passe dans le brouillard ; `[[nodiscard]]` |
-| `void mettreAJour(float dt)` | Sans effet si la partie est perdue ou gagnée (le monde est figé). Sinon exécute, dans l'ordre : lancer de zone, skill demandé, `attaquer(dt, …)` et application des coups, déverrouillage si la cible est morte, retrait des monstres morts, ordre de déplacement, mise à jour (`EntiteVue` de tous les monstres, **photo des deux camps** pour les zones de contrôle, escouade, puis ouverture de la porte en cours d'interaction si `unVivantPresDe(zone, 20 px)`, tour de chaque monstre avec ses obstacles bloquants — personnages vivants et autres monstres — et ses cercles à contourner — les autres monstres seulement —, avec l'engagement et le départ de son coup, puis **seconde photo** et coups gratuits des deux sens : `coupsDOpportunite` ; dégâts de base de l'attaquant, `Escouade::recevoirCoup` côté personnage, `Monstre::recevoirDegats` côté monstre ; monstres tués retirés, verrou levé) ; vide les demandes. Chaque dégât appliqué (`appliquer`, `infligerAUnPersonnage`) et chaque soin pris à `Escouade::prendreSoins` passe par `signaler`, seul endroit où naît un événement ; les coups gratuits sont marqués `opportunite` |
+| `void mettreAJour(float dt)` | Sans effet si la partie est perdue ou gagnée (le monde est figé). Sinon exécute, dans l'ordre : lancer de zone, skill demandé, `attaquer(dt, …)` et application des coups, déverrouillage si la cible est morte, retrait des monstres morts, ordre de déplacement, mise à jour (**photo des deux camps** pour les zones de contrôle, escouade avec sa `VueDesMonstres` — physiques, ciblables et monstres de la photo —, puis ouverture de la porte en cours d'interaction si `unVivantPresDe(zone, 20 px)`, tour de chaque monstre avec ses obstacles bloquants — personnages vivants et autres monstres — et ses cercles à contourner — les autres monstres seulement —, avec l'engagement et le départ de son coup, puis **seconde photo** et coups gratuits des deux sens : `coupsDOpportunite` ; dégâts de base de l'attaquant, `Escouade::recevoirCoup` côté personnage, `Monstre::recevoirDegats` côté monstre ; monstres tués retirés, verrou levé) ; vide les demandes. Chaque dégât appliqué (`appliquer`, `infligerAUnPersonnage`) et chaque soin pris à `Escouade::prendreSoins` passe par `signaler`, seul endroit où naît un événement ; les coups gratuits sont marqués `opportunite` |
 | `void dessiner(sf::RenderTarget& rendu, bool afficherAncre, bool marquerLeRetour, bool brouillard) const` | Carte, monstres (contour jaune sur le monstre verrouillé ; `marquerLeRetour` est transmis à `Monstre::dessiner` ; un monstre non visible n'est pas dessiné si `brouillard`), escouade (`afficherAncre` est transmis à `Escouade::dessiner`), puis le voile de la `Vision` si `brouillard` |
 | `void dessinerCheminsDesMonstres(sf::RenderTarget& rendu) const` | Débogage (F3) : le chemin restant de chaque monstre (`Monstre::dessinerChemin`) |
 | `void dessinerZonesDeControle(sf::RenderTarget& rendu) const` | Débogage (F3) : un cercle fin magenta (rayon de l'entité + zone) autour de chaque personnage vivant et de chaque monstre qui ne rentre pas à son poste, qui a une zone > 0 |

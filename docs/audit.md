@@ -20,7 +20,8 @@ fonctionnalités qui en ont besoin) et les décisions reportées sont dans `ROAD
 `s_eclaircissementExecution` dans `Eclaircir.hpp` ; le trio d'attaque, qui relève de R4, et
 `s_pointsDeVieMax`, deux valeurs d'équilibrage indépendantes, n'ont pas été touchés). La partie
 82.2 a fait le premier pas de R1 : le groupe (a), la formation (voir R1, « Suivi ») ; la partie 82.3
-le deuxième : le groupe (b), les places d'attaque.
+le deuxième : le groupe (b), les places d'attaque ; la partie 82.4 le troisième : le groupe (c), la
+décision, avec R2 (voir R1 et R2, « Suivi »).
 
 Référentiels : C++ Core Guidelines, SOLID (surtout responsabilité unique et inversion des
 dépendances), cohésion et couplage, DRY, règle du zéro, sémantique de valeur, *Game Programming
@@ -352,6 +353,24 @@ font poursuivre 30 monstres durent environ 1,2 s chacun en `-O0`.
     `pointVersAgresseur`, `monstresAContourner` et `porteeDe` restent dans `Escouade`, qui y ajoute
     deux traductions (`approcheDe`, `occupants`). 927 → 940 tests (13 de `PlacesDAttaque`), aucun
     test d'`Escouade` modifié. `Escouade.cpp` : 1 112 → 1 069 lignes.
+  - **82.4, groupe (c) fait, avec R2** : `ChoixDuPointVise` est devenu le module `escouade/Intention` :
+    trois intentions (`std::variant<ResterSurPlace, AllerAuPoint, ApprocherMonstre>`), une
+    `SituationDuPersonnage` calculée avant par `Escouade` (`situationDe`) et une fonction pure
+    `choisirIntention` qui ne fait que classer les règles 0 à 5 ; elle ne renvoie pas « la règle
+    appliquée » proposée plus haut : l'intention suffit. `Escouade` résout l'intention en point
+    (`pointDeLIntention`, avec `PlacesDAttaque`), puis applique la règle d'oubli, écrite une fois
+    (`oublierSaufAutourDe`). `pointVoulu` et `pointVersAgresseur` ont disparu, `monstresAContourner`
+    se déduit de l'intention. `PlacesDAttaque` perd son mécanisme provisoire (`retirer`, `retenir`,
+    `cibleApprochee`) au profit de `placeRetenue`, `peutPlacer` (le dégagement est confirmé avant la
+    décision, sans drapeau « dégagement possible ») et `oublierSaufAutourDe`. `degagementVoulu` reste
+    dans `Escouade` (départ et fin du dégagement) ; c'est `choisirIntention` qui accueillera les
+    gambits. Trois écarts de comportement acceptés, chacun fixé par un test qui échouait avec l'ancien
+    code (`docs/formation.md`, « Intentions »). 940 → 962 tests (16 d'`Intention`, 3 de
+    `PlacesDAttaque`, 3 d'`Escouade`) ; aucune assertion existante modifiée, sauf le test de
+    `retirer`/`retenir`, réécrit pour la nouvelle interface ; 44 appels de `mettreAJour` dans les tests
+    ont changé de forme. `Escouade.cpp` : 1 069 → 1 086 lignes : la décision est partie dans
+    `Intention.cpp` (44 lignes, 62 pour l'en-tête), mais la situation, la résolution et la règle
+    d'oubli sont écrites explicitement, avec leurs commentaires, en lignes de 120 colonnes au plus.
 
 ### R2 — Couplage temporel entre `attaquer` et `mettreAJour`
 - **Constat** : `Escouade.hpp` l. 30–33 impose « `attaquer()` AVANT `mettreAJour()` » parce que
@@ -380,6 +399,19 @@ font poursuivre 30 monstres durent environ 1,2 s chacun en `-O0`.
 - **Risque et tests touchés** : moyen (c'est du comportement de timing) ; les tests d'`Escouade`
   qui appellent `attaquer` sans `mettreAJour` (`attaquerJusquAuDepart`) ne changent pas.
 - **Dépend de** : R1 (plus simple une fois `ChoixDuPointVise` isolé).
+- **Suivi** : **fait en 82.4**, avec le groupe (c) de R1. `m_cibleCombat` et `m_monstreAPortee` sont
+  supprimés : le cercle du verrou et « un monstre à portée » sont calculés là où ils sont lus
+  (`approcherVerrou` et `autodefense` dans `attaquer`, `situationDe` dans `mettreAJour`), sur les
+  monstres **ciblables**. Contrairement à ce que supposait la proposition, `mettreAJour` ne les avait
+  pas : il recevait les physiques, où un monstre qui rentre à son poste aurait compté comme à portée.
+  Il les reçoit maintenant dans une `VueDesMonstres { physiques; ciblables; deControle = {}; }` : trois
+  listes nommées, `ciblables` sans valeur par défaut (son oubli est signalé par
+  `-Wmissing-field-initializers`). `avancerSkillEnAttente` renvoie l'intention du lanceur avec son
+  indice (`IntentionDuSkill`) : l'invariant implicite a disparu. Le commentaire « `attaquer()` AVANT
+  `mettreAJour()` » a été retiré ; `Partie` garde son ordre. Écart accepté : un monstre tué par les
+  coups d'`attaquer` ne compte plus « à portée » dans le `mettreAJour` de la même image. Reste un
+  canal : la mémoire des agresseurs, dont `attaquer` actualise les cercles (une image de retard au
+  plus si l'ordre était inversé ; piste notée dans `docs/formation.md`, « Intentions »).
 
 ### R3 — `Partie` accumule plusieurs rôles
 - **Constat** : `Partie` (436 lignes, 16 fonctions publiques, 18 privées, 11 membres) est à la fois
@@ -1319,3 +1351,15 @@ GCC signale un champ oublié (`-Wmissing-field-initializers`, vérifié) ; une v
 rendrait l'oubli silencieux. Contrairement à `MembreASeparer::etat` (82.2), aucun de ces champs
 n'a de valeur par défaut qui ait un sens. `Escouade.cpp` en garde 8 (les mêmes règles), le reste de
 la répartition est inchangé.
+
+### Après la partie 82.4
+
+**60 avertissements**, même mesure (49 sources : `escouade/Intention.cpp` en plus). Total inchangé,
+répartition changée :
+- `cppcoreguidelines-pro-type-member-init` : 12 → 14, `SituationDuPersonnage` (`Intention.hpp`) et la
+  structure privée `PointVise` d'`Escouade.hpp`, gardées sans valeur par défaut pour la raison
+  d'`Approche` en 82.3 (un champ oublié est signalé par GCC) ;
+- `bugprone-unchecked-optional-access` : 7 → 5, les deux déréférencements qui suivaient un `assert`
+  dans `pointVoulu` (`m_skillEnAttente` et `m_cibleCombat`) ont disparu avec la fonction.
+
+`Escouade.cpp` en garde 6 (8 avant) ; aucun dans `Intention.cpp`. Le reste est inchangé.

@@ -73,13 +73,21 @@ fonctionnalités prévues sont donc décalées après l'étape 82.
     mécanisme d'oubli des places déplacé tel quel (`retirer`, `retenir`, `cibleApprochee` provisoire),
     décrit dans `docs/formation.md` pour 82.4 ; 940 tests, 60 avertissements `clang-tidy`,
     `Escouade.cpp` de 1 112 à 1 069 lignes ;
-  - **82.4** : choix du point visé par intentions, avec R2. Il renvoie une intention
-    (`std::variant` : rester sur place, aller au point, approcher un monstre avec une portée),
-    calculée par une fonction pure à partir d'une situation ; `Escouade` la traduit en point (place
-    d'attaque par `PlacesDAttaque`) ; `monstresAContourner` se déduit de l'intention ; `Escouade` dit
-    à `PlacesDAttaque` quel monstre chaque personnage approche, les autres places sont oubliées ; le
-    dégagement reçoit un drapeau « dégagement possible » calculé avant ;
-  - **82.5** : D3, bilan, décision sur R5.
+  - **82.4** (faite) : choix du point visé par intentions, avec R2. Module `escouade/Intention` :
+    trois intentions (`std::variant` : rester sur place, aller au point, approcher un monstre), une
+    `SituationDuPersonnage` calculée avant par `Escouade`, et `choisirIntention`, fonction pure qui ne
+    fait que classer les règles (l'ordre 0 à 5 n'a pas changé) ; `Escouade` résout l'intention en
+    point (place d'attaque par `PlacesDAttaque`) et applique la règle d'oubli, écrite une fois ;
+    `monstresAContourner` se déduit de l'intention ; `PlacesDAttaque` : `placeRetenue`, `peutPlacer`
+    (le dégagement est confirmé avant la décision, sans drapeau) et `oublierSaufAutourDe`. R2 :
+    `m_cibleCombat` et `m_monstreAPortee` supprimés, calculs locaux sur les monstres ciblables, que
+    `mettreAJour` reçoit dans une `VueDesMonstres` ; l'ordre `attaquer` / `mettreAJour` n'est plus une
+    règle de correction. Trois écarts de comportement acceptés, chacun fixé par un test
+    (`docs/formation.md`, « Intentions ») ; 962 tests, 60 avertissements `clang-tidy`, `Escouade.cpp`
+    de 1 069 à 1 086 lignes ;
+  - **82.5** : D3 (dont la valeur par défaut de `VueDesMonstres::deControle`), bilan, décision sur R5,
+    et sur l'exigence d'un verrou pour marcher vers la cible d'un skill de dégâts en attente (sans
+    effet dans `Partie` depuis 82.4 : code mort à supprimer ou non).
 - **Refactorisations rattachées à une fonctionnalité**, en première sous-étape de celle-ci :
   - R4 (skills : le type décide partout) et C2 (constructeurs à longues listes) avant les buffs, les
     soins dans le temps ou le mana. Le mode de cible « Soi » de R4 doit lever une limite de l'étape 80 :
@@ -91,6 +99,12 @@ fonctionnalités prévues sont donc décalées après l'étape 82.
   - M1 (`dessiner` dans le noyau), R6 (`EcranJeu`), D4 (écrans de menu), P2 (en-tête parapluie des
     écrans) et T4 (trous de couverture) au premier ajout visuel important. M1 lève les exceptions
     transitoires aux règles de dépendance (`ARCHITECTURE.md`) et permet une bibliothèque par dossier.
+
+**Limite connue (étape 82.4)** : la mémoire des agresseurs est le dernier canal entre `attaquer` et
+`mettreAJour` (positions actualisées par `attaquer` : une image de retard au plus si l'ordre était
+inversé). Piste : ne garder que les identifiants et lire les positions dans les ciblables ; elle
+changerait le comportement envers un agresseur caché par le brouillard, donc elle n'est pas faite
+(`docs/formation.md`, « Intentions »).
 
 **Décisions reportées** :
 - V1 partie 2 (recalcul moins fréquent du chemin des monstres) : à réévaluer avec la carte extérieure
@@ -108,8 +122,9 @@ de combat, statistiques…) sont des idées, pas des décisions : `docs/brainsto
 ## Fonctionnalités prévues (à choisir avec Claude.ai)
 
 - Gambits pour choisir le comportement d'un personnage engagé (rester et tirer, se dégager, passer
-  en mêlée ; le dégagement de l'étape 78 en est la première règle, écrite à un seul endroit,
-  `degagementVoulu`) et skills qui permettent de se faufiler sans pénalité (`docs/brainstorm.md`).
+  en mêlée ; ils se brancheront sur `choisirIntention` depuis l'étape 82.4, dont le dégagement de
+  l'étape 78 est la règle 2) et skills qui permettent de se faufiler sans pénalité
+  (`docs/brainstorm.md`).
 - Issues de l'étape 76 : arbres de skills par classe (on ne peut pas tout prendre, pour monter une
   même classe de façons différentes ; c'est ce qui différenciera deux personnages de la même
   classe), niveaux, description des classes et infobulles à l'écran de choix, mémoire de la

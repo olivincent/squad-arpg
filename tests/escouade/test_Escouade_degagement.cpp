@@ -58,8 +58,15 @@ bool engageLaPlace(const Escouade& escouade, const UnMonstre& monstre, std::size
 std::vector<Coup> image(Escouade& escouade, const TileMap& carte, const std::vector<EntiteVue>& vues,
                         const std::vector<EntiteDeControle>& controle, Generateur& generateur) {
     std::vector<Coup> coups = escouade.attaquer(s_dureeTic, vues, carte, generateur);
-    escouade.mettreAJour(s_dureeTic, carte, vues, controle);
+    escouade.mettreAJour(s_dureeTic, carte, {.physiques = vues, .ciblables = vues, .deControle = controle});
     return coups;
+}
+
+// Ce que mettreAJour reçoit pour ce monstre dans une image sans attaquer avant (le premier mettreAJour
+// d'un test) : aucun ciblable, donc personne n'a de monstre « à portée ». C'est ce que voyait l'escouade
+// dans ces tests avant l'étape 82.4, quand seul attaquer le calculait.
+Escouade::VueDesMonstres sansAttaquer(const UnMonstre& monstre) {
+    return {.physiques = monstre.vues, .ciblables = {}, .deControle = monstre.controle};
 }
 
 int coupsDuMage(const std::vector<Coup>& coups) {
@@ -91,7 +98,7 @@ TEST_CASE("Degagement : le mage au contact d'un monstre tenu par le guerrier se 
     REQUIRE_FALSE(engageLaPlace(escouade, monstre, s_pretre));
     lAgresseEstConnu(escouade, monstre);
 
-    escouade.mettreAJour(s_dureeTic, carte, monstre.vues, monstre.controle);
+    escouade.mettreAJour(s_dureeTic, carte, sansAttaquer(monstre));
 
     REQUIRE(escouade.degagementDuPersonnage(s_mage) == 1);
     REQUIRE_FALSE(escouade.degagementDuPersonnage(s_guerrier).has_value());  // la mêlée tient le monstre
@@ -139,7 +146,7 @@ TEST_CASE("Degagement : le pretre se degage comme le mage") {
     REQUIRE(engageLaPlace(escouade, monstre, s_pretre));
     REQUIRE_FALSE(engageLaPlace(escouade, monstre, s_mage));
 
-    escouade.mettreAJour(s_dureeTic, carteOuverte(), monstre.vues, monstre.controle);
+    escouade.mettreAJour(s_dureeTic, carteOuverte(), sansAttaquer(monstre));
 
     REQUIRE(escouade.degagementDuPersonnage(s_pretre) == 1);
     REQUIRE_FALSE(escouade.degagementDuPersonnage(s_mage).has_value());
@@ -155,7 +162,7 @@ TEST_CASE("Degagement : engage par deux monstres dont le guerrier n'en tient qu'
     REQUIRE_FALSE(engage(controle[1], escouade.entitesDeControle()[s_guerrier - 1]));
 
     for (int i = 0; i < nombreDeTics(0.5f); ++i) {
-        escouade.mettreAJour(s_dureeTic, carteOuverte(), vues, controle);
+        escouade.mettreAJour(s_dureeTic, carteOuverte(), {.physiques = vues, .ciblables = {}, .deControle = controle});
         REQUIRE_FALSE(escouade.degagementDuPersonnage(s_mage).has_value());
     }
 }
@@ -164,7 +171,7 @@ TEST_CASE("Degagement : sans liste de monstres de controle, personne ne se degag
     Escouade escouade = uneEscouadeAuMageReconnaissable();
     const UnMonstre monstre = unMonstreEn(s_entreGuerrierEtMage);
 
-    escouade.mettreAJour(s_dureeTic, carteOuverte(), monstre.vues);
+    escouade.mettreAJour(s_dureeTic, carteOuverte(), {.physiques = monstre.vues, .ciblables = {}});
 
     REQUIRE_FALSE(escouade.degagementDuPersonnage(s_mage).has_value());
 }
@@ -197,14 +204,14 @@ TEST_CASE("Degagement : fin si le monstre disparait ou rentre a son poste") {
     const TileMap& carte = carteOuverte();
     Escouade escouade = uneEscouadeAuMageReconnaissable();
     const UnMonstre monstre = unMonstreEn(s_entreGuerrierEtMage);
-    escouade.mettreAJour(s_dureeTic, carte, monstre.vues, monstre.controle);
+    escouade.mettreAJour(s_dureeTic, carte, sansAttaquer(monstre));
     REQUIRE(escouade.degagementDuPersonnage(s_mage) == 1);
 
     SECTION("mort ou retire : absent des deux listes") {
-        escouade.mettreAJour(s_dureeTic, carte, {}, {});
+        escouade.mettreAJour(s_dureeTic, carte, {});
     }
     SECTION("rentre a son poste : encore un obstacle, plus une cible") {
-        escouade.mettreAJour(s_dureeTic, carte, monstre.vues, {});
+        escouade.mettreAJour(s_dureeTic, carte, {.physiques = monstre.vues, .ciblables = {}});
     }
 
     REQUIRE_FALSE(escouade.degagementDuPersonnage(s_mage).has_value());
@@ -214,11 +221,11 @@ TEST_CASE("Degagement : fin si l'ancre se met en mouvement") {
     const TileMap& carte = carteOuverte();
     Escouade escouade = uneEscouadeAuMageReconnaissable();
     const UnMonstre monstre = unMonstreEn(s_entreGuerrierEtMage);
-    escouade.mettreAJour(s_dureeTic, carte, monstre.vues, monstre.controle);
+    escouade.mettreAJour(s_dureeTic, carte, sansAttaquer(monstre));
     REQUIRE(escouade.degagementDuPersonnage(s_mage) == 1);
 
     escouade.allerVers({800.0f, 500.0f}, carte);
-    escouade.mettreAJour(s_dureeTic, carte, monstre.vues, monstre.controle);
+    escouade.mettreAJour(s_dureeTic, carte, sansAttaquer(monstre));
 
     REQUIRE_FALSE(escouade.degagementDuPersonnage(s_mage).has_value());
 }
@@ -229,7 +236,7 @@ TEST_CASE("Degagement : pas de depart quand l'ancre est deja en mouvement") {
     const UnMonstre monstre = unMonstreEn(s_entreGuerrierEtMage);
 
     escouade.allerVers({800.0f, 500.0f}, carte);
-    escouade.mettreAJour(s_dureeTic, carte, monstre.vues, monstre.controle);
+    escouade.mettreAJour(s_dureeTic, carte, sansAttaquer(monstre));
 
     REQUIRE_FALSE(escouade.degagementDuPersonnage(s_mage).has_value());
 }
@@ -244,17 +251,17 @@ TEST_CASE("Degagement : un skill en attente pour le mage empeche le depart et me
         Escouade escouade = uneEscouadeAuMageReconnaissable();
         REQUIRE(escouade.declencherSkillDeZone(s_adresseExplosion, loin, monstre.vues, carte, generateur).empty());
 
-        escouade.mettreAJour(s_dureeTic, carte, monstre.vues, monstre.controle);
+        escouade.mettreAJour(s_dureeTic, carte, sansAttaquer(monstre));
 
         REQUIRE_FALSE(escouade.degagementDuPersonnage(s_mage).has_value());
     }
     SECTION("pendant le degagement") {
         Escouade escouade = uneEscouadeAuMageReconnaissable();
-        escouade.mettreAJour(s_dureeTic, carte, monstre.vues, monstre.controle);
+        escouade.mettreAJour(s_dureeTic, carte, sansAttaquer(monstre));
         REQUIRE(escouade.degagementDuPersonnage(s_mage) == 1);
         REQUIRE(escouade.declencherSkillDeZone(s_adresseExplosion, loin, monstre.vues, carte, generateur).empty());
 
-        escouade.mettreAJour(s_dureeTic, carte, monstre.vues, monstre.controle);
+        escouade.mettreAJour(s_dureeTic, carte, sansAttaquer(monstre));
 
         REQUIRE_FALSE(escouade.degagementDuPersonnage(s_mage).has_value());
     }
@@ -265,12 +272,12 @@ TEST_CASE("Degagement : un skill du joueur a portee met fin au degagement, le ma
     const TileMap& carte = carteOuverte();
     Escouade escouade = uneEscouadeAuMageReconnaissable();
     const UnMonstre monstre = unMonstreEn(s_entreGuerrierEtMage);
-    escouade.mettreAJour(s_dureeTic, carte, monstre.vues, monstre.controle);
+    escouade.mettreAJour(s_dureeTic, carte, sansAttaquer(monstre));
     REQUIRE(escouade.degagementDuPersonnage(s_mage) == 1);
 
     static_cast<void>(escouade.declencherSkillDeZone(s_adresseExplosion, monstre.cercle.centre, monstre.vues, carte, generateur));
     const sf::Vector2f avant = escouade.cerclesDesVivants()[s_mage - 1].centre;
-    escouade.mettreAJour(s_dureeTic, carte, monstre.vues, monstre.controle);
+    escouade.mettreAJour(s_dureeTic, carte, sansAttaquer(monstre));
 
     REQUIRE_FALSE(escouade.degagementDuPersonnage(s_mage).has_value());
     verifierPointProche(*escouade.pointVise(s_mage), avant, 0.01f);
@@ -282,7 +289,7 @@ TEST_CASE("Degagement : fin si le porteur s'en va, le mage est de nouveau seul a
     Escouade escouade = uneEscouadeAuMageReconnaissable();
     UnMonstre monstre = unMonstreEn(s_entreGuerrierEtMage);
     lAgresseEstConnu(escouade, monstre);
-    escouade.mettreAJour(s_dureeTic, carte, monstre.vues, monstre.controle);
+    escouade.mettreAJour(s_dureeTic, carte, sansAttaquer(monstre));
     REQUIRE(escouade.degagementDuPersonnage(s_mage) == 1);
     for (int i = 0; i < nombreDeTics(0.05f); ++i) {  // quelques pas : le mage a commencé à reculer
         static_cast<void>(image(escouade, carte, monstre.vues, monstre.controle, generateur));
@@ -294,7 +301,7 @@ TEST_CASE("Degagement : fin si le porteur s'en va, le mage est de nouveau seul a
     monstre = unMonstreEn(mage + sf::Vector2f(-30.0f, 0.0f));
     REQUIRE(engageLaPlace(escouade, monstre, s_mage));
     REQUIRE_FALSE(engageLaPlace(escouade, monstre, s_guerrier));
-    escouade.mettreAJour(s_dureeTic, carte, monstre.vues, monstre.controle);
+    escouade.mettreAJour(s_dureeTic, carte, {.physiques = monstre.vues, .ciblables = monstre.vues, .deControle = monstre.controle});
 
     REQUIRE_FALSE(escouade.degagementDuPersonnage(s_mage).has_value());
 }

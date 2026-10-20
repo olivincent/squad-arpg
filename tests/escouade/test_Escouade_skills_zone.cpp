@@ -137,7 +137,7 @@ TEST_CASE("Zone en attente : le lanceur se rapproche, puis le sort part au point
                 coupsDeZone.push_back(coup);
             }
         }
-        escouade.mettreAJour(0.016f, carte, {});
+        escouade.mettreAJour(0.016f, carte, {.physiques = {}, .ciblables = monstres});
         ++tics;
     }
 
@@ -167,7 +167,7 @@ TEST_CASE("Zone en attente : elle touche les monstres presents au depart, pas ce
                 coupsDeZone.push_back(coup);
             }
         }
-        escouade.mettreAJour(0.016f, carte, {});
+        escouade.mettreAJour(0.016f, carte, {.physiques = {}, .ciblables = ailleurs});
     }
 
     REQUIRE(coupsDeZone.size() == 1);
@@ -184,7 +184,7 @@ TEST_CASE("Zone en attente : la mort du lanceur l'annule sans recharge") {
 
     for (int i = 0; i < 300; ++i) {
         REQUIRE(escouade.attaquer(s_dureeTic, monstres, carte, generateur).empty());
-        escouade.mettreAJour(0.016f, carte, {});
+        escouade.mettreAJour(0.016f, carte, {.physiques = {}, .ciblables = monstres});
     }
 
     // Plus rien en attente : une provocation est acceptée.
@@ -214,7 +214,7 @@ TEST_CASE("Zone en attente : verrouiller, deverrouiller et un ordre de deplaceme
                 coupsDeZone.push_back(coup);
             }
         }
-        escouade.mettreAJour(0.016f, carte, {});
+        escouade.mettreAJour(0.016f, carte, {.physiques = {}, .ciblables = monstres});
     }
 
     REQUIRE(coupsDeZone.size() == 1);
@@ -302,4 +302,29 @@ TEST_CASE("rayonZoneDuSkill : celui de l'explosion et de la provocation, 0 sans 
     REQUIRE(escouade.rayonZoneDuSkill(s_adresseFrappe) == 0.0f);
     REQUIRE(escouade.rayonZoneDuSkill(AdresseSkill{0, IdSkill::FrappePuissante}) == 0.0f);
     REQUIRE(escouade.rayonZoneDuSkill(AdresseSkill{5, IdSkill::FrappePuissante}) == 0.0f);
+}
+
+// Écart accepté à l'étape 82.4 : le lanceur d'un skill de zone en attente va à un point, il n'approche
+// aucun monstre ; il contourne donc aussi le monstre verrouillé (avant, en combat, personne ne contournait
+// le verrou : marchant droit dessus, il restait calé contre lui). Seul le mage est vivant, en (185, 235) ;
+// le verrou est sur son chemin vers le point, assez près pour que l'ancre reste à l'arrêt (le mage
+// l'atteint déjà).
+TEST_CASE("Zone en attente : en combat verrouille, le lanceur contourne le monstre verrouille") {
+    Generateur generateur = generateurDeTest();
+    const TileMap carte = carteDegageeEntouree();
+    Escouade escouade = uneEscouade({200.0f, 200.0f});
+    escouade.recevoirDegats(9, {235.0f, 210.0f}, 200);  // tue le guerrier
+    escouade.recevoirDegats(9, {185.0f, 185.0f}, 200);  // tue le prêtre
+    const Cercle verrou = cibleMonstre({300.0f, 235.0f});
+    const std::vector<EntiteVue> monstres = {EntiteVue{1, verrou}};
+    escouade.verrouiller(1);
+    REQUIRE(escouade.declencherSkillDeZone(s_adresseExplosion, {600.0f, 235.0f}, monstres, carte, generateur).empty());  // hors de portée : en attente
+
+    for (int i = 0; i < nombreDeTics(5.0f) && escouade.skillEstPret(s_adresseExplosion); ++i) {
+        static_cast<void>(escouade.attaquer(s_dureeTic, monstres, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
+        escouade.mettreAJour(s_dureeTic, carte, {.physiques = monstres, .ciblables = monstres});
+    }
+
+    REQUIRE_FALSE(escouade.skillEstPret(s_adresseExplosion));  // arrivé à portée du point : le sort est lancé
+    REQUIRE(escouade.cerclesDesVivants()[0].centre.x > verrou.centre.x + verrou.rayon);  // passé de l'autre côté du verrou
 }

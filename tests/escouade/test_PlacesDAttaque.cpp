@@ -59,6 +59,25 @@ bool chevaucheUnMur(const TileMap& carte, sf::Vector2f place) {
     return carte.chevaucheUnMur(sf::FloatRect(place - demiCote, 2.0f * demiCote));
 }
 
+// Identifiant de la cible de la place retenue de cet assaillant ; vide s'il n'en a pas.
+std::optional<int> cibleRetenue(const PlacesDAttaque& places, std::size_t assaillant) {
+    const std::optional<PlacesDAttaque::Place> place = places.placeRetenue(assaillant);
+    if (!place.has_value()) {
+        return std::nullopt;
+    }
+    return place->idCible;
+}
+
+// Une cible enfermée dans une case : tout son anneau est dans les murs.
+TileMap carteALaCibleEnfermee() {
+    std::vector<std::string> plan(10, "..........");
+    plan[4] = "....###...";
+    plan[5] = "....#.#...";
+    plan[6] = "....###...";
+    return TileMap(plan, 40.0f);
+}
+const EntiteVue s_cibleEnfermee{s_idCible, {{220.0f, 220.0f}, 15.0f}};
+
 }  // namespace
 
 TEST_CASE("PlacesDAttaque : face a la reference, la place est dans sa direction, a portee") {
@@ -112,12 +131,12 @@ TEST_CASE("PlacesDAttaque : les places retenues autour d'une autre cible ne gene
     verifierPointProche(*seconde, *premiere, s_tolerance);
 }
 
-TEST_CASE("PlacesDAttaque : une place retiree ne gene plus les autres assaillants") {
+TEST_CASE("PlacesDAttaque : une place oubliee ne gene plus les autres assaillants") {
     PlacesDAttaque places(s_nombreDAssaillants, s_ecartDeTest);
     const TileMap carte = carteDegagee10x10();
 
     const auto premiere = places.placer(approche(0, s_ouest), std::nullopt, aucunOccupant(), carte);
-    places.retirer(0);  // la place du premier est oubliée
+    places.oublierSaufAutourDe(0, std::nullopt);  // la place du premier est oubliée
     const auto seconde = places.placer(approche(1, s_ouest), std::nullopt, aucunOccupant(), carte);
 
     REQUIRE(premiere.has_value());
@@ -129,7 +148,7 @@ TEST_CASE("PlacesDAttaque : l'angle de l'ancienne place est garde quand la cible
     PlacesDAttaque places(s_nombreDAssaillants, s_ecartDeTest);
     const TileMap carte = carteDegagee10x10();
     const auto avant = places.placer(approche(0, s_ouest), std::nullopt, aucunOccupant(), carte);
-    const std::optional<PlacesDAttaque::Place> ancienne = places.retirer(0);
+    const std::optional<PlacesDAttaque::Place> ancienne = places.placeRetenue(0);
 
     // La cible part vers le sud-est : sans l'ancienne place, la nouvelle serait dans la direction de
     // la référence, plus au nord.
@@ -147,7 +166,7 @@ TEST_CASE("PlacesDAttaque : une ancienne place autour d'une autre cible n'est pa
     PlacesDAttaque places(s_nombreDAssaillants, s_ecartDeTest);
     // Seule la place retenue compte ici : au sud de la cible, du côté de l'assaillant.
     static_cast<void>(places.placer(approche(0, s_sud), std::nullopt, aucunOccupant(), carte));
-    const std::optional<PlacesDAttaque::Place> ancienne = places.retirer(0);
+    const std::optional<PlacesDAttaque::Place> ancienne = places.placeRetenue(0);
 
     const EntiteVue autreCible{s_idAutreCible, s_cible.cercle};
     const auto place = places.placer(approche(0, s_ouest, autreCible), ancienne, aucunOccupant(), carte);
@@ -158,14 +177,14 @@ TEST_CASE("PlacesDAttaque : une ancienne place autour d'une autre cible n'est pa
     REQUIRE(place.has_value());
     REQUIRE(attendue.has_value());
     verifierPointProche(*place, *attendue, s_tolerance);
-    REQUIRE(places.cibleApprochee(0) == s_idAutreCible);
+    REQUIRE(cibleRetenue(places, 0) == s_idAutreCible);
 }
 
 TEST_CASE("PlacesDAttaque : une ancienne place occupee par un autre est reattribuee") {
     PlacesDAttaque places(s_nombreDAssaillants, s_ecartDeTest);
     const TileMap carte = carteDegagee10x10();
     const auto avant = places.placer(approche(0, s_ouest), std::nullopt, aucunOccupant(), carte);
-    const std::optional<PlacesDAttaque::Place> ancienne = places.retirer(0);
+    const std::optional<PlacesDAttaque::Place> ancienne = places.placeRetenue(0);
     REQUIRE(avant.has_value());
 
     Occupants occupants = aucunOccupant();
@@ -180,7 +199,7 @@ TEST_CASE("PlacesDAttaque : l'assaillant n'occupe pas sa propre place") {
     PlacesDAttaque places(s_nombreDAssaillants, s_ecartDeTest);
     const TileMap carte = carteDegagee10x10();
     const auto avant = places.placer(approche(0, s_ouest), std::nullopt, aucunOccupant(), carte);
-    const std::optional<PlacesDAttaque::Place> ancienne = places.retirer(0);
+    const std::optional<PlacesDAttaque::Place> ancienne = places.placeRetenue(0);
     REQUIRE(avant.has_value());
 
     Occupants occupants = aucunOccupant();
@@ -220,35 +239,74 @@ TEST_CASE("PlacesDAttaque : aucune place sans vue sur la cible") {
 }
 
 TEST_CASE("PlacesDAttaque : sans place libre, rien n'est renvoye et la place retenue ne change pas") {
-    // La cible est enfermée dans une case : tout l'anneau est dans les murs.
-    std::vector<std::string> plan(10, "..........");
-    plan[4] = "....###...";
-    plan[5] = "....#.#...";
-    plan[6] = "....###...";
-    const TileMap carte(plan, 40.0f);
-    const EntiteVue cibleEnfermee{s_idCible, {{220.0f, 220.0f}, 15.0f}};
+    const TileMap carte = carteALaCibleEnfermee();
     PlacesDAttaque places(s_nombreDAssaillants, s_ecartDeTest);
-    places.retenir(0, PlacesDAttaque::Place{s_idAutreCible, 50.0f, sf::degrees(0.0f)});
+    // Une place retenue autour d'une autre cible, dans la partie dégagée de la carte.
+    const EntiteVue autreCible{s_idAutreCible, {{100.0f, 60.0f}, 15.0f}};
+    REQUIRE(places.placer(approche(0, s_ouest, autreCible), std::nullopt, aucunOccupant(), carte).has_value());
 
-    const auto place = places.placer(approche(0, s_ouest, cibleEnfermee), std::nullopt, aucunOccupant(), carte);
+    const auto place = places.placer(approche(0, s_ouest, s_cibleEnfermee), std::nullopt, aucunOccupant(), carte);
 
     REQUIRE_FALSE(place.has_value());
-    REQUIRE(places.cibleApprochee(0) == s_idAutreCible);
+    REQUIRE(cibleRetenue(places, 0) == s_idAutreCible);
 }
 
-TEST_CASE("PlacesDAttaque : retirer renvoie la place retenue et l'oublie, retenir la remet") {
+TEST_CASE("PlacesDAttaque : placeRetenue donne la place retenue, oublierSaufAutourDe la garde autour de sa cible, l'oublie sinon") {
     PlacesDAttaque places(s_nombreDAssaillants, s_ecartDeTest);
-    REQUIRE_FALSE(places.cibleApprochee(0).has_value());
+    REQUIRE_FALSE(places.placeRetenue(0).has_value());
 
     // Seule la place retenue compte ici.
     static_cast<void>(places.placer(approche(0, s_ouest), std::nullopt, aucunOccupant(), carteDegagee10x10()));
-    REQUIRE(places.cibleApprochee(0) == s_idCible);
+    REQUIRE(cibleRetenue(places, 0) == s_idCible);
 
-    const std::optional<PlacesDAttaque::Place> retiree = places.retirer(0);
-    REQUIRE(retiree.has_value());
-    REQUIRE(retiree->idCible == s_idCible);
-    REQUIRE_FALSE(places.cibleApprochee(0).has_value());
+    places.oublierSaufAutourDe(0, s_idCible);
+    REQUIRE(cibleRetenue(places, 0) == s_idCible);
+    places.oublierSaufAutourDe(0, s_idAutreCible);
+    REQUIRE_FALSE(places.placeRetenue(0).has_value());
+}
 
-    places.retenir(0, retiree);
-    REQUIRE(places.cibleApprochee(0) == s_idCible);
+TEST_CASE("PlacesDAttaque : oublierSaufAutourDe sans cible oublie toujours la place") {
+    PlacesDAttaque places(s_nombreDAssaillants, s_ecartDeTest);
+    static_cast<void>(places.placer(approche(0, s_ouest), std::nullopt, aucunOccupant(), carteDegagee10x10()));  // seule la place retenue compte ici
+    REQUIRE(places.placeRetenue(0).has_value());
+
+    places.oublierSaufAutourDe(0, std::nullopt);
+
+    REQUIRE_FALSE(places.placeRetenue(0).has_value());
+}
+
+TEST_CASE("PlacesDAttaque : peutPlacer repond comme placer, sans rien retenir") {
+    PlacesDAttaque places(s_nombreDAssaillants, s_ecartDeTest);
+
+    REQUIRE(places.peutPlacer(approche(0, s_ouest), std::nullopt, aucunOccupant(), carteDegagee10x10()));
+    REQUIRE_FALSE(places.placeRetenue(0).has_value());
+    REQUIRE_FALSE(places.peutPlacer(approche(0, s_ouest, s_cibleEnfermee), std::nullopt, aucunOccupant(), carteALaCibleEnfermee()));
+}
+
+TEST_CASE("PlacesDAttaque : peutPlacer tient compte des places retenues des autres et des occupants") {
+    // Une cible au fond d'une impasse d'une case de large, fermée à l'ouest et ouverte vers l'est : sa
+    // seule place valide est à l'est. Celle du premier assaillant ne laisse rien au second.
+    std::vector<std::string> plan(10, "..........");
+    plan[1] = "#####.....";
+    plan[2] = "#.........";
+    plan[3] = "#####.....";
+    const TileMap carte(plan, 40.0f);
+    const EntiteVue auFond{s_idCible, {{60.0f, 100.0f}, 15.0f}};
+    const sf::Vector2f est(300.0f, 100.0f);
+    const auto approcheEst = [&](std::size_t assaillant) {
+        PlacesDAttaque::Approche a = approche(assaillant, est, auFond);
+        a.reference = est;
+        return a;
+    };
+    PlacesDAttaque places(s_nombreDAssaillants, s_ecartDeTest);
+    REQUIRE(places.peutPlacer(approcheEst(1), std::nullopt, aucunOccupant(), carte));
+
+    const auto premiere = places.placer(approcheEst(0), std::nullopt, aucunOccupant(), carte);
+
+    REQUIRE(premiere.has_value());
+    REQUIRE_FALSE(places.peutPlacer(approcheEst(1), std::nullopt, aucunOccupant(), carte));
+    Occupants occupants = aucunOccupant();
+    occupants[2] = *premiere;  // un occupant sur la seule place : même réponse pour un nouveau venu
+    PlacesDAttaque sansPlaces(s_nombreDAssaillants, s_ecartDeTest);
+    REQUIRE_FALSE(sansPlaces.peutPlacer(approcheEst(1), std::nullopt, occupants, carte));
 }

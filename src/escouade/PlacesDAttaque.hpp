@@ -46,16 +46,23 @@ public:
     [[nodiscard]] std::optional<sf::Vector2f> placer(const Approche& approche, const std::optional<Place>& ancienne,
                                                      const std::vector<std::optional<sf::Vector2f>>& occupants,
                                                      const TileMap& carte);
-    // Oubli des places (mécanisme actuel, remplacé par les intentions en 82.4) : l'appelant retire la
-    // place retenue d'un assaillant (elle est renvoyée), puis la remet avec `retenir` ou en calcule une
-    // nouvelle avec `placer` ; sinon elle reste oubliée.
-    std::optional<Place> retirer(std::size_t assaillant);
-    void retenir(std::size_t assaillant, const std::optional<Place>& place);
-    // Identifiant de la cible de la place retenue de cet assaillant ; vide s'il n'en a pas.
-    // Provisoire, remplacé par les intentions en 82.4.
-    [[nodiscard]] std::optional<int> cibleApprochee(std::size_t assaillant) const;
+    // `placer` trouverait-il une place, avec les mêmes entrées ? Rien n'est retenu.
+    [[nodiscard]] bool peutPlacer(const Approche& approche, const std::optional<Place>& ancienne,
+                                  const std::vector<std::optional<sf::Vector2f>>& occupants,
+                                  const TileMap& carte) const;
+    // La place retenue de cet assaillant ; vide s'il n'en a pas.
+    [[nodiscard]] std::optional<Place> placeRetenue(std::size_t assaillant) const;
+    // Oubli : la place retenue de cet assaillant est gardée si elle est autour de cette cible, oubliée
+    // sinon (vide : toujours oubliée).
+    void oublierSaufAutourDe(std::size_t assaillant, std::optional<int> idCible);
 
 private:
+    // La place que `placer` retiendrait (sa règle est décrite plus haut) ; vide si aucune n'est libre.
+    // Ne retient rien : `peutPlacer` l'interroge, `placer` la complète en retenant le résultat.
+    [[nodiscard]] std::optional<Place> trouverPlace(const Approche& approche, const std::optional<Place>& ancienne,
+                                                    const std::vector<std::optional<sf::Vector2f>>& occupants,
+                                                    const TileMap& carte) const;
+
     std::vector<std::optional<Place>> m_places;  // par assaillant (vide = il n'approche aucune cible)
     float m_ecartMinimal;                        // en pixels
 };

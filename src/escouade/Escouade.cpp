@@ -12,6 +12,7 @@
 #include "combat/EntiteVue.hpp"
 #include "escouade/Agresseurs.hpp"
 #include "escouade/EcartEntrePersonnages.hpp"
+#include "escouade/Intention.hpp"
 #include "escouade/Personnage.hpp"
 #include "escouade/Provocations.hpp"
 #include "escouade/Separation.hpp"
@@ -43,6 +44,29 @@ std::vector<Rang> rangsDe(const std::vector<DefinitionPersonnage>& composition) 
     }
     return rangs;
 }
+
+// Règle d'oubli des places d'attaque, appliquée une fois par personnage, après la résolution : la place
+// retenue n'est gardée qu'autour du monstre de l'intention (aller à un point la fait oublier), et une
+// approche qui n'a pas trouvé de place libre l'oublie aussi.
+std::optional<int> monstreDontLaPlaceEstGardee(const Intention& intention, bool placeTrouvee) {
+    if (std::holds_alternative<ApprocherMonstre>(intention) && !placeTrouvee) {
+        return std::nullopt;
+    }
+    return monstreDeLIntention(intention);
+}
+
+// Cercles des monstres à contourner : tous, sauf le monstre de l'intention (on ne se détourne ni de
+// celui qu'on approche, ni de celui autour duquel on reste).
+std::vector<Cercle> monstresAContourner(const Intention& intention, const std::vector<EntiteVue>& monstres) {
+    const std::optional<int> vise = monstreDeLIntention(intention);
+    std::vector<Cercle> aContourner;
+    for (const EntiteVue& monstre : monstres) {
+        if (monstre.id != vise) {
+            aContourner.push_back(monstre.cercle);
+        }
+    }
+    return aContourner;
+}
 }  // namespace
 
 Escouade::Escouade(sf::Vector2f positionDepart, std::vector<DefinitionPersonnage> composition)
@@ -51,8 +75,6 @@ Escouade::Escouade(sf::Vector2f positionDepart, std::vector<DefinitionPersonnage
       m_personnages(),
       m_cibleVerrouillee(),
       m_skillEnAttente(),
-      m_cibleCombat(),
-      m_monstreAPortee(composition.size(), false),
       m_placesDAttaque(composition.size(), s_ecartEntrePersonnages),
       m_pointsVises(),
       m_degagements(composition.size()),
@@ -164,8 +186,8 @@ bool Escouade::tousLesVivantsAtteignent(Cercle cible, const TileMap& carte) cons
     });
 }
 
-// Approche du monstre verrouillé, s'il y en a un dans la liste : mémorise son
-// cercle, et l'ancre avance tant qu'un vivant ne l'atteint pas.
+// Approche du monstre verrouillé, s'il y en a un dans la liste : l'ancre avance
+// tant qu'un vivant ne l'atteint pas.
 void Escouade::approcherVerrou(const std::vector<EntiteVue>& monstres, const TileMap& carte) {
     if (!m_cibleVerrouillee.has_value()) {
         return;
@@ -175,8 +197,6 @@ void Escouade::approcherVerrou(const std::vector<EntiteVue>& monstres, const Til
         return;
     }
     const Cercle cible = verrou->cercle;
-    m_cibleCombat = cible;
-
     if (tousLesVivantsAtteignent(cible, carte)) {
         m_mobile.arreter();
     } else {
@@ -307,7 +327,6 @@ std::vector<Coup> Escouade::autodefense(float dt, const std::vector<EntiteVue>& 
         Personnage& personnage = m_personnages[i];
         const std::optional<int> id = choisirCibleAFrapper(
             personnage.getCercle(), [&](Cercle c) { return peutAtteindre(personnage, std::nullopt, c, carte); }, monstres, m_cibleVerrouillee);
-        m_monstreAPortee[i] = id.has_value();
         if (const std::optional<int> idEngage = personnage.cibleEngagee()) {
             if (!personnage.estVivant() || trouverEntite(monstres, *idEngage) == nullptr) {
                 personnage.annulerAttaque();
@@ -486,7 +505,8 @@ std::vector<Coup> Escouade::declencherSkillDeZone(AdresseSkill adresse, sf::Vect
     return {};
 }
 
-std::optional<sf::Vector2f> Escouade::avancerSkillEnAttente(const TileMap& carte) {
+std::optional<Escouade::IntentionDuSkill> Escouade::avancerSkillEnAttente(const TileMap& carte,
+                                                                          const std::optional<EntiteVue>& verrou) {
     if (!m_skillEnAttente.has_value()) {
         return std::nullopt;
     }
@@ -503,22 +523,22 @@ std::optional<sf::Vector2f> Escouade::avancerSkillEnAttente(const TileMap& carte
         return std::nullopt;
     }
 
-    return std::visit(
+    const std::optional<Intention> intention = std::visit(
         Surcharges{
             // Dégâts : le skill part dans attaquer(), qui reçoit le cercle à jour du
-            // monstre. Ici, le lanceur marche vers ce cercle, seulement avec un verrou
-            // (sans verrou, m_cibleCombat peut dater d'un ancien combat, et personne ne
-            // marche). L'annulation (combat rompu) se fait dans verrouiller() et deverrouiller().
-            [&](const CibleMonstre&) -> std::optional<sf::Vector2f> {
-                if (!m_cibleVerrouillee.has_value() || !m_cibleCombat.has_value()) {
+            // monstre. Ici, le lanceur approche le verrou, seulement s'il est vu (sans
+            // verrou, personne ne marche). L'annulation (combat rompu) se fait dans
+            // verrouiller() et deverrouiller().
+            [&](const CibleMonstre& monstre) -> std::optional<Intention> {
+                if (!verrou.has_value()) {
                     return std::nullopt;
                 }
-                return m_cibleCombat->centre;
+                return ApprocherMonstre{monstre.id, verrou->cercle, porteeDe(lanceur, idSkill)};
             },
             // Point (skill de zone) : le lanceur marche vers le point fixé au clic.
-            [](const CiblePoint& point) -> std::optional<sf::Vector2f> { return point.point; },
+            [](const CiblePoint& point) -> std::optional<Intention> { return AllerAuPoint{point.point}; },
             // Soin : annulation si la cible est morte ou remontée à pleine vie.
-            [&](const CibleAllie& cibleAllie) -> std::optional<sf::Vector2f> {
+            [&](const CibleAllie& cibleAllie) -> std::optional<Intention> {
                 const Personnage& allie = personnageDeLaPlace(cibleAllie.place);
                 if (!allie.estVivant() || allie.getPointsDeVie() >= allie.getPointsDeVieMax()) {
                     m_skillEnAttente = std::nullopt;
@@ -532,10 +552,14 @@ std::optional<sf::Vector2f> Escouade::avancerSkillEnAttente(const TileMap& carte
                     return std::nullopt;
                 }
 
-                return allie.getCentre();
+                return AllerAuPoint{allie.getCentre()};
             },
         },
         cible);
+    if (!intention.has_value()) {
+        return std::nullopt;
+    }
+    return IntentionDuSkill{indiceDeLaPlace(placeLanceur), *intention};
 }
 
 float Escouade::porteeDe(const Personnage& personnage, std::optional<IdSkill> skill) const {
@@ -547,13 +571,12 @@ float Escouade::porteeDe(const Personnage& personnage, std::optional<IdSkill> sk
 
 // Place d'attaque (PlacesDAttaque::placer) : la référence de la première candidate est l'ancre, la
 // portée celle de l'action avec laquelle le personnage approche.
-PlacesDAttaque::Approche Escouade::approcheDe(std::size_t indice, EntiteVue monstre, std::optional<IdSkill> skill) const {
-    const Personnage& personnage = m_personnages[indice];
+PlacesDAttaque::Approche Escouade::approcheDe(std::size_t indice, EntiteVue monstre, float portee) const {
     return {
         .cible = monstre,
         .assaillant = indice,
-        .cercleAssaillant = personnage.getCercle(),
-        .portee = porteeDe(personnage, skill),
+        .cercleAssaillant = m_personnages[indice].getCercle(),
+        .portee = portee,
         .reference = m_mobile.getCentre(),
     };
 }
@@ -573,94 +596,83 @@ std::vector<std::optional<sf::Vector2f>> Escouade::occupants() const {
     return centres;
 }
 
-// Point à viser pour un personnage vivant qui a un agresseur dans sa laisse :
-// son propre centre s'il a déjà un monstre à portée (il reste sur place),
-// sinon la place d'attaque autour de l'agresseur le plus proche (aucune place libre : son centre).
-// Vide : il vise sa place.
-std::optional<sf::Vector2f> Escouade::pointVersAgresseur(std::size_t indice, const std::vector<EntiteVue>& agresseurs,
-                                                         const std::optional<PlacesDAttaque::Place>& ancienne, const TileMap& carte) {
-    const std::optional<EntiteVue> cible = choisirAgresseurAViser(
-        m_personnages[indice].getCercle(), m_formation.getPlaces()[indice], s_laisseAgresseur, agresseurs);
-    if (!cible.has_value()) {
+// Dégagement : gardé seulement si le monstre est encore là (dans `monstres`, les monstres physiques) et
+// qu'une place libre l'attend autour de lui, question posée avec les entrées du placement qui suivra ;
+// sinon il est effacé et les règles habituelles reprennent. Renvoie le monstre dont il se dégage.
+std::optional<EntiteVue> Escouade::confirmerDegagement(std::size_t indice,
+                                                       const std::optional<PlacesDAttaque::Place>& ancienne,
+                                                       const std::vector<EntiteVue>& monstres, const TileMap& carte) {
+    std::optional<int>& degagement = m_degagements[indice];
+    if (!degagement.has_value()) {
         return std::nullopt;
     }
-    if (m_monstreAPortee[indice]) {
-        if (ancienne.has_value() && ancienne->idCible == cible->id) {
-            m_placesDAttaque.retenir(indice, ancienne);  // il reste sur place : sa place d'attaque est gardée
+    if (const EntiteVue* monstre = trouverEntite(monstres, *degagement)) {
+        const float portee = porteeDe(m_personnages[indice], std::nullopt);
+        if (m_placesDAttaque.peutPlacer(approcheDe(indice, *monstre, portee), ancienne, occupants(), carte)) {
+            return *monstre;
         }
-        return m_personnages[indice].getCentre();
     }
-    return m_placesDAttaque.placer(approcheDe(indice, *cible, std::nullopt), ancienne, occupants(), carte)
-        .value_or(cible->cercle.centre);
+    degagement.reset();
+    return std::nullopt;
 }
 
-// Point que vise un personnage : la première règle qui s'applique gagne.
-// 0. un personnage qui exécute un coup ou active un skill reste sur place ;
-// 1. le lanceur d'un skill en attente vise sa cible (pour un skill de dégâts,
-//    sa place d'attaque autour du monstre) ;
-// 2. un personnage qui se dégage (degagementVoulu) marche jusqu'à sa place d'attaque autour
-//    du monstre dont il se dégage, sans s'arrêter à portée ;
-// 3. en combat, un vivant déjà à portée de la cible reste sur place (les
-//    tireurs s'arrêtent à distance pendant que les mêlées vont jusqu'au contact) ;
-//    un vivant pas encore à portée marche vers sa place d'attaque ;
-// 4. ancre à l'arrêt, un vivant qui a un agresseur dans sa laisse va vers lui,
-//    à sa place d'attaque (l'ordre du joueur gagne : ancre en mouvement, il garde sa place) ;
-// 5. sinon sa place en formation.
-// Une place d'attaque introuvable (aucune place libre) : le centre du monstre, sauf au dégagement.
-// La place d'attaque retenue est oubliée dès qu'aucune règle ne la renouvelle.
-sf::Vector2f Escouade::pointVoulu(std::size_t indice, const std::optional<sf::Vector2f>& pointSkill, bool ancreArretee,
-                                  const std::vector<EntiteVue>& agresseurs, const std::vector<EntiteVue>& monstres, const TileMap& carte) {
+// La situation du personnage de cet indice, au moment de décider : lui n'a pas encore bougé dans cette
+// image, ceux d'indice inférieur si. Chaque monstre nommé porte le cercle de sa source : le verrou celui
+// des monstres ciblables, l'agresseur celui de la mémoire des agresseurs, le dégagement celui des
+// monstres physiques. « Un monstre à portée » : un ciblable que son attaque de base atteint, la règle
+// même de l'autodéfense (choisirCibleAFrapper ne trouve une cible que s'il y en a une).
+SituationDuPersonnage Escouade::situationDe(std::size_t indice, const std::optional<PlacesDAttaque::Place>& ancienne,
+                                            const std::optional<EntiteVue>& degagement,
+                                            const ContexteDesIntentions& contexte,
+                                            const std::vector<EntiteVue>& ciblables, const TileMap& carte) const {
     const Personnage& personnage = m_personnages[indice];
-    const std::optional<PlacesDAttaque::Place> ancienne = m_placesDAttaque.retirer(indice);
+    const sf::Vector2f placeDeFormation = m_formation.getPlaces()[indice];
+    std::optional<Intention> skill;
+    if (contexte.skill.has_value() && contexte.skill->lanceur == indice) {
+        skill = contexte.skill->intention;
+    }
+    std::optional<int> monstreDeLaPlace;
+    if (ancienne.has_value()) {
+        monstreDeLaPlace = ancienne->idCible;
+    }
+    const auto atteint = [&](Cercle cercle) { return peutAtteindre(personnage, std::nullopt, cercle, carte); };
+    const bool verrouAtteint = contexte.verrou.has_value() && atteint(contexte.verrou->cercle);
+    const bool monstreAPortee =
+        std::ranges::any_of(ciblables, [&](const EntiteVue& monstre) { return atteint(monstre.cercle); });
+    return {
+        .vivant = personnage.estVivant(),
+        .enExecution = personnage.estEnExecution(),
+        .monstreDeLaPlace = monstreDeLaPlace,
+        .skillEnAttente = skill,
+        .degagement = degagement,
+        .verrou = contexte.verrou,
+        .verrouAtteint = verrouAtteint,
+        .ancreArretee = contexte.ancreArretee,
+        .agresseur =
+            choisirAgresseurAViser(personnage.getCercle(), placeDeFormation, s_laisseAgresseur, contexte.agresseurs),
+        .monstreAPortee = monstreAPortee,
+        .placeDeFormation = placeDeFormation,
+        .porteeAttaqueDeBase = porteeDe(personnage, std::nullopt),
+    };
+}
 
-    if (personnage.estEnExecution()) {
-        m_placesDAttaque.retenir(indice, ancienne);  // le coup en cours ne fait pas oublier la place
-        return personnage.getCentre();               // un coup ou un skill en exécution : il reste sur place
-    }
-    if (pointSkill.has_value()) {
-        // pointSkill vient d'avancerSkillEnAttente : il n'existe que si un skill attend.
-        assert(m_skillEnAttente.has_value());
-        const SkillEnAttente enAttente = *m_skillEnAttente;
-        if (indice == indiceDeLaPlace(enAttente.adresse.place)) {
-            if (const CibleMonstre* monstre = std::get_if<CibleMonstre>(&enAttente.cible)) {
-                // Le point d'un skill de dégâts n'existe qu'avec un verrou et son cercle (avancerSkillEnAttente).
-                assert(m_cibleCombat.has_value());
-                const EntiteVue cible{monstre->id, *m_cibleCombat};
-                return m_placesDAttaque.placer(approcheDe(indice, cible, enAttente.adresse.id), ancienne, occupants(), carte)
-                    .value_or(cible.cercle.centre);
-            }
-            return *pointSkill;
-        }
-    }
-    if (const std::optional<int> degagement = m_degagements[indice]; degagement.has_value()) {
-        // Le monstre est dans `monstres` (physiques : tous les monstres) tant qu'il est vivant.
-        if (const EntiteVue* monstre = trouverEntite(monstres, *degagement)) {
-            if (const std::optional<sf::Vector2f> place =
-                    m_placesDAttaque.placer(approcheDe(indice, *monstre, std::nullopt), ancienne, occupants(), carte)) {
-                return *place;
-            }
-        }
-        // Pas de monstre ou aucune place libre : se dégager n'a plus de sens, les règles habituelles reprennent.
-        m_degagements[indice].reset();
-    }
-    const bool enCombat = m_cibleVerrouillee.has_value() && m_cibleCombat.has_value();
-    if (enCombat && personnage.estVivant()) {
-        if (peutAtteindre(personnage, std::nullopt, *m_cibleCombat, carte)) {
-            if (ancienne.has_value() && ancienne->idCible == *m_cibleVerrouillee) {
-                m_placesDAttaque.retenir(indice, ancienne);
-            }
-            return personnage.getCentre();
-        }
-        const EntiteVue cible{*m_cibleVerrouillee, *m_cibleCombat};
-        return m_placesDAttaque.placer(approcheDe(indice, cible, std::nullopt), ancienne, occupants(), carte)
-            .value_or(cible.cercle.centre);
-    }
-    if (ancreArretee && personnage.estVivant()) {
-        if (const std::optional<sf::Vector2f> pointAgresseur = pointVersAgresseur(indice, agresseurs, ancienne, carte)) {
-            return *pointAgresseur;
-        }
-    }
-    return m_formation.getPlaces()[indice];
+// Résolution : rester, c'est viser son propre centre ; aller à un point, ce point ; approcher un monstre,
+// sa place d'attaque (placer la retient), ou son centre si aucune place n'est libre.
+Escouade::PointVise Escouade::pointDeLIntention(std::size_t indice, const Intention& intention,
+                                                const std::optional<PlacesDAttaque::Place>& ancienne,
+                                                const TileMap& carte) {
+    return std::visit(
+        Surcharges{
+            [&](const ResterSurPlace&) { return PointVise{m_personnages[indice].getCentre(), false}; },
+            [](const AllerAuPoint& aller) { return PointVise{aller.point, false}; },
+            [&](const ApprocherMonstre& approche) {
+                const EntiteVue monstre{approche.idMonstre, approche.cercle};
+                const std::optional<sf::Vector2f> place =
+                    m_placesDAttaque.placer(approcheDe(indice, monstre, approche.portee), ancienne, occupants(), carte);
+                return PointVise{place.value_or(approche.cercle.centre), place.has_value()};
+            },
+        },
+        intention);
 }
 
 // Un agresseur qui n'a pas frappé depuis assez longtemps est oublié ; une
@@ -676,26 +688,9 @@ void Escouade::ecoulerMemoires(float dt) {
     }
 }
 
-std::vector<Cercle> Escouade::monstresAContourner(std::size_t indice, const std::vector<EntiteVue>& monstres) const {
-    std::optional<int> approche;
-    if (const std::optional<int> cible = m_placesDAttaque.cibleApprochee(indice); cible.has_value()) {
-        approche = cible;
-    } else if (m_cibleVerrouillee.has_value() && m_cibleCombat.has_value()) {
-        approche = m_cibleVerrouillee;
-    }
-    std::vector<Cercle> aContourner;
-    for (const EntiteVue& monstre : monstres) {
-        if (monstre.id != approche) {
-            aContourner.push_back(monstre.cercle);
-        }
-    }
-    return aContourner;
-}
-
-void Escouade::mettreAJour(float dt, const TileMap& carte, const std::vector<EntiteVue>& monstres,
-                           const std::vector<EntiteDeControle>& monstresDeControle) {
+void Escouade::mettreAJour(float dt, const TileMap& carte, const VueDesMonstres& monstres) {
     std::vector<Cercle> obstacles;
-    for (const EntiteVue& monstre : monstres) {
+    for (const EntiteVue& monstre : monstres.physiques) {
         obstacles.push_back(monstre.cercle);
     }
 
@@ -704,7 +699,6 @@ void Escouade::mettreAJour(float dt, const TileMap& carte, const std::vector<Ent
     const std::optional<sf::Vector2f> directionDeMarche = m_mobile.directionVoulue();
 
     ecoulerMemoires(dt);
-    const std::vector<EntiteVue> agresseurs = m_agresseurs.monstresVus();  // une fois par image, pour tous les personnages
 
     // L'ancre n'est pas bloquée par les obstacles : seuls les personnages le sont.
     m_mobile.mettreAJour(dt, carte, {});
@@ -717,11 +711,33 @@ void Escouade::mettreAJour(float dt, const TileMap& carte, const std::vector<Ent
     }
     m_formation.mettreAJour(dt, getCentre(), directionDeMarche, rayons, carte, obstacles);
 
-    mettreAJourDegagements(ancreArretee, monstresDeControle);
-    const std::optional<sf::Vector2f> pointSkill = avancerSkillEnAttente(carte);
+    mettreAJourDegagements(ancreArretee, monstres.deControle);
+    // Le monstre verrouillé, lu ici dans les ciblables comme attaquer le lit dans les siens (approcherVerrou).
+    std::optional<EntiteVue> verrou;
+    if (m_cibleVerrouillee.has_value()) {
+        if (const EntiteVue* vu = trouverEntite(monstres.ciblables, *m_cibleVerrouillee)) {
+            verrou = *vu;
+        }
+    }
+    const ContexteDesIntentions contexte{
+        .ancreArretee = ancreArretee,
+        .verrou = verrou,
+        .agresseurs = m_agresseurs.monstresVus(),
+        .skill = avancerSkillEnAttente(carte, verrou),
+    };
+
+    // Par indice croissant : situation, intention, point, oubli, déplacement. Les places d'attaque et les
+    // occupants qu'un personnage voit dépendent de ceux qui l'ont précédé dans la boucle.
     for (std::size_t i = 0; i < m_personnages.size(); ++i) {
-        m_pointsVises[i] = pointVoulu(i, pointSkill, ancreArretee, agresseurs, monstres, carte);
-        m_personnages[i].mettreAJour(dt, m_pointsVises[i], carte, obstacles, monstresAContourner(i, monstres));
+        const std::optional<PlacesDAttaque::Place> ancienne = m_placesDAttaque.placeRetenue(i);
+        const std::optional<EntiteVue> degagement = confirmerDegagement(i, ancienne, monstres.physiques, carte);
+        const Intention intention =
+            choisirIntention(situationDe(i, ancienne, degagement, contexte, monstres.ciblables, carte));
+        const PointVise vise = pointDeLIntention(i, intention, ancienne, carte);
+        m_pointsVises[i] = vise.point;
+        m_placesDAttaque.oublierSaufAutourDe(i, monstreDontLaPlaceEstGardee(intention, vise.placeTrouvee));
+        const std::vector<Cercle> aContourner = monstresAContourner(intention, monstres.physiques);
+        m_personnages[i].mettreAJour(dt, m_pointsVises[i], carte, obstacles, aContourner);
     }
     separerPersonnages(dt, carte, obstacles);
 }
@@ -737,7 +753,8 @@ void Escouade::mettreAJourDegagements(bool ancreArretee, const std::vector<Entit
 
 // LA règle « tenir ou se dégager » : seul endroit qui sait quand un personnage quitte le contact d'un
 // monstre pour sa place d'attaque. Renvoie le monstre dont il se dégage (vide : il ne se dégage pas),
-// d'après l'état actuel (m_degagements[indice]) ; un futur gambit remplacera cette fonction.
+// d'après l'état actuel (m_degagements[indice]) ; choisirIntention en fait sa règle 2, où se brancheront
+// les futurs gambits.
 // Départ (voir monstreDontSeDegager) : sans zone de contrôle, engagé, chaque monstre qui l'engage tient
 // un autre personnage. Il faut en plus l'ancre à l'arrêt (l'ordre du joueur gagne), aucun skill en attente
 // pour lui et aucune action en exécution (un coup en cours part d'abord). Fin : arrivé à sa place,

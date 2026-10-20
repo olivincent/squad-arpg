@@ -6,6 +6,7 @@
 struct Cercle {
     sf::Vector2f centre;
     float rayon;
+    bool operator==(const Cercle&) const = default;
 };
 
 // Cercle de collision d'une entité rectangulaire de coin haut-gauche `coin` : centré sur le

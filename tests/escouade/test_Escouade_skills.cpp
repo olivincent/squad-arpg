@@ -307,7 +307,7 @@ std::vector<Coup> combattrePendant(Escouade& escouade, const std::vector<EntiteV
     for (int i = 0; i < nombreDeTics(duree); ++i) {
         const std::vector<Coup> coupsDuTic = escouade.attaquer(s_dureeTic, monstres, carteOuverte(), generateur);
         coups.insert(coups.end(), coupsDuTic.begin(), coupsDuTic.end());
-        escouade.mettreAJour(s_dureeTic, carteOuverte(), monstres);
+        escouade.mettreAJour(s_dureeTic, carteOuverte(), {.physiques = monstres, .ciblables = monstres});
     }
     return coups;
 }

@@ -155,9 +155,10 @@ namespace {
 // un obstacle pour les personnages.
 void simulerAvecMonstre(Escouade& escouade, const TileMap& carte, Cercle monstre, int tics) {
     Generateur generateur = generateurDeTest();
+    const std::vector<EntiteVue> monstres = {EntiteVue{1, monstre}};
     for (int i = 0; i < tics; ++i) {
-        static_cast<void>(escouade.attaquer(s_dureeTic, {EntiteVue{1, monstre}}, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
-        escouade.mettreAJour(1.0f / 60.0f, carte, {EntiteVue{1, monstre}});
+        static_cast<void>(escouade.attaquer(s_dureeTic, monstres, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
+        escouade.mettreAJour(1.0f / 60.0f, carte, {.physiques = monstres, .ciblables = monstres});
     }
 }
 
@@ -366,4 +367,24 @@ TEST_CASE("recevoirDegats renvoie les degats subis, zero si tout le monde est mo
         escouade.recevoirDegats(1, point, 200);
     }
     REQUIRE(escouade.recevoirDegats(1, point, 10) == 0);
+}
+
+// Écart accepté à l'étape 82.4 (R2) : « un monstre à portée » est calculé par mettreAJour, sur les monstres
+// ciblables qu'il reçoit. Un monstre tué dans l'image (par les coups d'attaquer) n'y est plus : il ne retient
+// plus sur place celui qui l'avait à portée (avant, attaquer l'avait mémorisé avant les coups). Escouade en
+// (300, 500) : guerrier en (335, 510), monstre au contact en (365, 510), agresseur dans sa laisse.
+TEST_CASE("Agresseurs : apres la mort dans l'image du monstre a portee, mettreAJour ne le compte plus a portee") {
+    Generateur generateur = generateurDeTest();
+    const TileMap& carte = carteOuverte();
+    Escouade escouade = uneEscouade({300.0f, 500.0f});
+    const EntiteVue monstre{1, cibleMonstre({365.0f, 510.0f})};
+    const sf::Vector2f guerrier = *escouade.centreDuPersonnage(1);
+    escouade.recevoirDegats(monstre.id, monstre.cercle.centre, 1);  // il devient agresseur
+    // Chacun frappe une fois ; sans mettreAJour, les recharges ne courent pas : plus personne n'est en exécution.
+    static_cast<void>(attaquerJusquAuDepart(escouade, {monstre}, carte, generateur));
+
+    escouade.mettreAJour(s_dureeTic, carte, {});  // le monstre est mort : il n'est plus dans aucune liste
+
+    // Encore en mémoire, l'agresseur attire le guerrier vers sa place d'attaque : il ne reste plus sur place.
+    REQUIRE((*escouade.pointVise(1) - guerrier).length() > 1.0f);
 }

@@ -90,7 +90,7 @@ TEST_CASE("Zone en attente : le lanceur contourne le mur, puis le sort part des 
                 coupsDeZone.push_back(coup);
             }
         }
-        escouade.mettreAJour(0.016f, carte, {});
+        escouade.mettreAJour(0.016f, carte, {.physiques = {}, .ciblables = monstres});
         ++tics;
     }
 
@@ -187,7 +187,7 @@ TEST_CASE("Combat verrouille : une cible a portee mais cachee ne fait pas arrete
 
     for (int i = 0; i < 20; ++i) {
         static_cast<void>(escouade.attaquer(s_dureeTic, monstres, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
-        escouade.mettreAJour(0.016f, carte, {});
+        escouade.mettreAJour(0.016f, carte, {.physiques = {}, .ciblables = monstres});
     }
 
     REQUIRE((escouade.getCentre() - depart).length() > 5.0f);
@@ -204,7 +204,7 @@ TEST_CASE("Combat verrouille : une cible a portee et en vue fait arreter l'ancre
 
     for (int i = 0; i < 20; ++i) {
         static_cast<void>(escouade.attaquer(s_dureeTic, monstres, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
-        escouade.mettreAJour(0.016f, carte, {});
+        escouade.mettreAJour(0.016f, carte, {.physiques = {}, .ciblables = monstres});
     }
 
     REQUIRE((escouade.getCentre() - depart).length() < 1.0f);
@@ -221,7 +221,7 @@ TEST_CASE("Agresseur a portee mais cache : le personnage va vers lui") {
 
     for (int i = 0; i < 20; ++i) {
         static_cast<void>(escouade.attaquer(s_dureeTic, monstres, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
-        escouade.mettreAJour(0.016f, carte, {});
+        escouade.mettreAJour(0.016f, carte, {.physiques = {}, .ciblables = monstres});
     }
 
     REQUIRE((escouade.cerclesDesVivants()[2].centre - depart).length() > 10.0f);

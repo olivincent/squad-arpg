@@ -49,7 +49,7 @@ squad-arpg/
 │   ├── combat/     Skill, SkillConnu, IdSkill, TypeSkill, AdresseSkill, Cible, ActionEngagee,
 │   │               EtatSkill, Coup, EvenementDeCombat, EntiteVue, Autodefense, Engagement,
 │   │               Defense, PointsDeVie, Vitalite
-│   ├── escouade/   Escouade, Personnage, Formation, PlacesDAttaque, Separation,
+│   ├── escouade/   Escouade, Personnage, Formation, PlacesDAttaque, Intention, Separation,
 │   │               EcartEntrePersonnages, Composition, Specialite, SelectionDEscouade,
 │   │               Provocations, Agresseurs
 │   ├── monstres/   Monstre
@@ -138,6 +138,8 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `Personnage` : un membre : déplacement, attaque de base, skills, vie, armure, vision.
 - `Formation` : décalages, orientation, point à regarder et places de formation, sans `Personnage`.
 - `PlacesDAttaque` : place d'attaque retenue par assaillant autour de sa cible, sans `Personnage`.
+- `Intention` : ce qu'un personnage veut faire, sa situation, et `choisirIntention`, les règles par
+  priorité où se brancheront les gambits (fonction pure, sans carte).
 - `Separation` : `pousseesDeSeparation`, séparation douce en fonction pure (`EtatDeSeparation`).
 - `EcartEntrePersonnages` : `s_ecartEntrePersonnages`, en-tête neutre.
 - `Composition` : `DefinitionPersonnage`, `Rang` et `decalagesDeFormation`.
@@ -258,7 +260,7 @@ de modifier un module, lire le fichier correspondant :
 | `docs/generation.md` | Génération de donjon : placement avec rejet, emprise / forme creusée, paramètres, graine unique ; `Niveau` | Avant de modifier `GenerateurDonjon` ou `Niveau` |
 | `docs/vision.md` | Vision et brouillard de guerre : shadowcasting symétrique, `Vision` (inconnue / explorée / visible), rayon des personnages, règles de clic, dessin, F6, limites | Avant de modifier `ChampDeVision`, `Vision` ou ce que `Partie` en fait |
 | `docs/chemin.md` | Recherche de chemin (A*), suivi de chemin (`Mobile`), lissage de chemin, trace de débogage | Avant de modifier `Chemin`, `Mobile` ou `TraceDeChemin` |
-| `docs/formation.md` | `Escouade` et `Personnage` : ancre, formation, orientation, séparation douce, verrou de cible, placement en combat, places d'attaque, mort et défaite ; `Formation`, `PlacesDAttaque`, `Separation`, `Composition`, `Specialite`, `Encerclement` | Avant de modifier `Escouade`, `Personnage`, `Formation`, `PlacesDAttaque`, `Separation`, `Composition`, `Specialite` ou `Encerclement` |
+| `docs/formation.md` | `Escouade` et `Personnage` : ancre, formation, orientation, séparation douce, verrou de cible, placement en combat, places d'attaque, intentions, mort et défaite ; `Formation`, `PlacesDAttaque`, `Intention`, `Separation`, `Composition`, `Specialite`, `Encerclement` | Avant de modifier `Escouade`, `Personnage`, `Formation`, `PlacesDAttaque`, `Intention`, `Separation`, `Composition`, `Specialite` ou `Encerclement` |
 | `docs/combat.md` | `Skill` (dont l'attaque de base), `Cercle`, portée bord à bord, autodéfense, `Cible`, skill en attente, circuit des dégâts, qui bloque qui, armure, aléatoire, zones de contrôle, événements et textes flottants | Avant de modifier un module de `combat/` ou de `base/`, `Provocations`, `Agresseurs`, `TextesFlottants`, `BarreDeVie` ou les listes d'obstacles |
 | `docs/monstre.md` | `Monstre` : identifiant, états, détection, territoire, poursuite, retour au poste, riposte | Avant de modifier `Monstre` |
 | `docs/tests.md` | Tests (Catch2, conventions, dossiers, aides) | Avant d'ajouter ou de modifier un test |

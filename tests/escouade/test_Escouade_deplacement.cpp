@@ -330,7 +330,7 @@ TEST_CASE("Les obstacles bloquent les personnages mais pas l'ancre") {
 
     escouade.allerVers({400.0f, 60.0f}, carte);
     for (int i = 0; i < 300; ++i) {
-        escouade.mettreAJour(1.0f / 60.0f, carte, obstacles);
+        escouade.mettreAJour(1.0f / 60.0f, carte, {.physiques = obstacles, .ciblables = {}});
     }
 
     // L'ancre a traversé l'obstacle (bord droit en x = 230)...
@@ -602,7 +602,7 @@ TEST_CASE("un personnage dont la place est derriere un monstre non vise le conto
 
     escouade.allerVers({340.0f, 60.0f}, carte);
     for (int i = 0; i < nombreDeTics(6.0f); ++i) {
-        escouade.mettreAJour(s_dureeTic, carte, monstres);
+        escouade.mettreAJour(s_dureeTic, carte, {.physiques = monstres, .ciblables = {}});
         // Aucune place de formation n'est dans le monstre (centre à moins de 15 + 10 px).
         for (const sf::Vector2f& place : escouade.getPlacesDeFormation()) {
             REQUIRE((place - monstres[0].cercle.centre).length() >= 25.0f);
@@ -622,7 +622,7 @@ TEST_CASE("une place de formation dans un monstre est deplacee vers un point lib
     // Sur la place du guerrier : place théorique (185, 160) pour une formation vers l'est.
     const std::vector<EntiteVue> monstres = {{1, {{185.0f, 160.0f}, 15.0f}}};
 
-    escouade.mettreAJour(s_dureeTic, carte, monstres);
+    escouade.mettreAJour(s_dureeTic, carte, {.physiques = monstres, .ciblables = {}});
 
     for (const sf::Vector2f& place : escouade.getPlacesDeFormation()) {
         REQUIRE((place - monstres[0].cercle.centre).length() >= 25.0f);
@@ -701,7 +701,7 @@ TEST_CASE("l'approche du verrou efface le point a regarder") {
     escouade.regarderVers({2010.0f, 2500.0f});  // après verrouiller : seule l'approche peut l'effacer
     for (int i = 0; i < nombreDeTics(4.0f); ++i) {
         static_cast<void>(escouade.attaquer(s_dureeTic, monstres, carte, generateur));
-        escouade.mettreAJour(s_dureeTic, carte, monstres);
+        escouade.mettreAJour(s_dureeTic, carte, {.physiques = monstres, .ciblables = monstres});
     }
 
     REQUIRE(avantPlusProche(escouade, monstres[0].cercle.centre));

@@ -371,9 +371,12 @@ void Partie::mettreAJour(float dt) {
     }
 
     // Tous les monstres (à leur position de l'image précédente), même ceux qui rentrent à leur
-    // poste, sont des obstacles pour les personnages.
+    // poste, sont des obstacles pour les personnages ; seuls les ciblables comptent pour le verrou
+    // et la portée.
     const CampsDeControle avant = photographierLesCamps();
-    m_escouade.mettreAJour(dt, m_carte, entitesPhysiques(), avant.monstres);
+    m_escouade.mettreAJour(dt, m_carte, {.physiques = entitesPhysiques(),
+                                         .ciblables = entitesCiblables(),
+                                         .deControle = avant.monstres});
     interagirSiAPortee();
     faireTournerLesMonstres(dt);
     appliquerLesCoupsDOpportunite(avant);

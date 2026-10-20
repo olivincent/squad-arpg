@@ -23,7 +23,7 @@ int simulerAttaque(Escouade& escouade, const TileMap& carte, Cercle cible, float
     int degats = 0;
     for (int i = 0; i < nombreTics; ++i) {
         degats += attaquerCible(escouade, carte, cible);
-        escouade.mettreAJour(dt, carte, {});
+        escouade.mettreAJour(dt, carte, {.physiques = {}, .ciblables = unSeulMonstre(cible)});
     }
     return degats;
 }
@@ -52,7 +52,7 @@ TEST_CASE("attaquer renvoie 0 pour une cible lointaine et l'escouade s'en rappro
     const float distanceInitiale = (cible - escouade.getCentre()).length();
 
     REQUIRE(attaquerCible(escouade, carte, pointCible(cible)) == 0);
-    escouade.mettreAJour(1.0f / 60.0f, carte, {});
+    escouade.mettreAJour(1.0f / 60.0f, carte, {.physiques = {}, .ciblables = unSeulMonstre(pointCible(cible))});
 
     const float distanceApres = (cible - escouade.getCentre()).length();
     REQUIRE(distanceApres < distanceInitiale);
@@ -110,7 +110,7 @@ TEST_CASE("attaquer ignore les personnages morts pour decider si l'escouade doit
     const sf::Vector2f cible = centreAvant + sf::Vector2f(30.0f, 0.0f);
 
     REQUIRE(attaquerCible(escouade, carte, cibleMonstre(cible)) == 2 * s_degatsBaseDeTest); // les 2 vivants
-    escouade.mettreAJour(1.0f / 60.0f, carte, {});
+    escouade.mettreAJour(1.0f / 60.0f, carte, {.physiques = {}, .ciblables = unSeulMonstre(cibleMonstre(cible))});
 
     verifierPointProche(escouade.getCentre(), centreAvant);
 }
@@ -135,7 +135,7 @@ TEST_CASE("attaquer renvoie les degats de tous les personnages pour une cible de
     const sf::Vector2f centreInitial = escouade.getCentre();
 
     REQUIRE(attaquerCible(escouade, carte, cibleMonstre(cible)) == 3 * s_degatsBaseDeTest);
-    escouade.mettreAJour(1.0f / 60.0f, carte, {});
+    escouade.mettreAJour(1.0f / 60.0f, carte, {.physiques = {}, .ciblables = unSeulMonstre(cibleMonstre(cible))});
 
     verifierPointProche(escouade.getCentre(), centreInitial);
 }
@@ -206,7 +206,7 @@ TEST_CASE("En combat, un personnage a portee de la cible reste immobile pendant 
     for (int i = 0; i < 10; ++i) {
         attaquerCible(escouade, carte, cibleMonstre(cible));
         escouade.allerVers(cible, carte);
-        escouade.mettreAJour(1.0f / 60.0f, carte, {});
+        escouade.mettreAJour(1.0f / 60.0f, carte, {.physiques = {}, .ciblables = unSeulMonstre(cibleMonstre(cible))});
     }
 
     const sf::Vector2f tireurApres = escouade.proieDuMonstre(1, {35.0f, 60.0f})->cercle.centre;
@@ -239,7 +239,7 @@ TEST_CASE("Sans verrou, un personnage deja a portee suit tout de meme son emplac
 
     for (int i = 0; i < 10; ++i) {
         attaquerCible(escouade, carte, cibleMonstre(cible));
-        escouade.mettreAJour(1.0f / 60.0f, carte, {});
+        escouade.mettreAJour(1.0f / 60.0f, carte, {.physiques = {}, .ciblables = unSeulMonstre(cibleMonstre(cible))});
     }
 
     const sf::Vector2f tireurApres = escouade.proieDuMonstre(1, {35.0f, 60.0f})->cercle.centre;
@@ -257,7 +257,7 @@ TEST_CASE("Sans verrou, tous les personnages frappent un monstre a leur portee, 
     const sf::Vector2f centreInitial = escouade.getCentre();
 
     const std::vector<Coup> coups = attaquerJusquAuDepart(escouade, {EntiteVue{4, cibleMonstre({85.0f, 60.0f})}}, carte, generateur);
-    escouade.mettreAJour(1.0f / 60.0f, carte, {});
+    escouade.mettreAJour(1.0f / 60.0f, carte, {.physiques = {}, .ciblables = {EntiteVue{4, cibleMonstre({85.0f, 60.0f})}}});
 
     REQUIRE(coups.size() == 3);
     for (const Coup& coup : coups) {
@@ -366,7 +366,7 @@ int ticDuPremierCoup(Escouade& escouade, const std::vector<EntiteVue>& monstres,
         if (!escouade.attaquer(s_dureeTic, monstres, carte, generateur).empty()) {
             return i;
         }
-        escouade.mettreAJour(s_dureeTic, carte, {});
+        escouade.mettreAJour(s_dureeTic, carte, {.physiques = {}, .ciblables = monstres});
     }
     return -1;
 }
@@ -399,7 +399,7 @@ TEST_CASE("Aucun coup n'est engage pendant que l'ancre marche sous ordre du joue
     int coups = 0;
     for (int i = 0; i < nombreDeTics(1.2f); ++i) {
         coups += static_cast<int>(escouade.attaquer(s_dureeTic, monstres, carte, generateur).size());
-        escouade.mettreAJour(s_dureeTic, carte, {});
+        escouade.mettreAJour(s_dureeTic, carte, {.physiques = {}, .ciblables = monstres});
     }
 
     REQUIRE(coups == 0);

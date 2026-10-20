@@ -2,7 +2,6 @@
 #include "escouade/PlacesDAttaque.hpp"
 #include <SFML/Graphics/Rect.hpp>
 #include <cassert>
-#include <utility>
 #include "monde/ChampDeVision.hpp"
 #include "monde/Encerclement.hpp"
 #include "monde/TileMap.hpp"
@@ -17,12 +16,39 @@ PlacesDAttaque::PlacesDAttaque(std::size_t nombreDAssaillants, float ecartMinima
 {
 }
 
-// La place est un point où l'on marche : l'assaillant s'arrête dès que la cible est à portée et en
-// vue (règle de l'appelant). Seule la position suit la cible ; l'angle est gardé tant que la place
-// reste valide et pas occupée. Les candidates partent de la direction de la cible vers `reference`.
 std::optional<sf::Vector2f> PlacesDAttaque::placer(const Approche& approche, const std::optional<Place>& ancienne,
                                                    const std::vector<std::optional<sf::Vector2f>>& occupants,
                                                    const TileMap& carte) {
+    const std::optional<Place> place = trouverPlace(approche, ancienne, occupants, carte);
+    if (!place.has_value()) {
+        return std::nullopt;
+    }
+    m_places[approche.assaillant] = place;
+    return positionDePlace(approche.cible.cercle.centre, place->rayon, place->angle);
+}
+
+bool PlacesDAttaque::peutPlacer(const Approche& approche, const std::optional<Place>& ancienne,
+                                const std::vector<std::optional<sf::Vector2f>>& occupants, const TileMap& carte) const {
+    return trouverPlace(approche, ancienne, occupants, carte).has_value();
+}
+
+std::optional<PlacesDAttaque::Place> PlacesDAttaque::placeRetenue(std::size_t assaillant) const {
+    return m_places.at(assaillant);
+}
+
+void PlacesDAttaque::oublierSaufAutourDe(std::size_t assaillant, std::optional<int> idCible) {
+    std::optional<Place>& place = m_places.at(assaillant);
+    if (place.has_value() && place->idCible != idCible) {
+        place.reset();
+    }
+}
+
+// La place est un point où l'on marche : l'assaillant s'arrête dès que la cible est à portée et en
+// vue (règle de l'appelant). Seule la position suit la cible ; l'angle est gardé tant que la place
+// reste valide et pas occupée. Les candidates partent de la direction de la cible vers `reference`.
+std::optional<PlacesDAttaque::Place> PlacesDAttaque::trouverPlace(
+    const Approche& approche, const std::optional<Place>& ancienne,
+    const std::vector<std::optional<sf::Vector2f>>& occupants, const TileMap& carte) const {
     assert(approche.assaillant < m_places.size());
     assert(occupants.size() == m_places.size());
     const std::size_t indice = approche.assaillant;
@@ -85,22 +111,5 @@ std::optional<sf::Vector2f> PlacesDAttaque::placer(const Approche& approche, con
     if (!angle.has_value()) {
         return std::nullopt;
     }
-    m_places[indice] = Place{idCible, rayonAnneau, *angle};
-    return positionDePlace(cible.centre, rayonAnneau, *angle);
-}
-
-std::optional<PlacesDAttaque::Place> PlacesDAttaque::retirer(std::size_t assaillant) {
-    return std::exchange(m_places.at(assaillant), std::nullopt);
-}
-
-void PlacesDAttaque::retenir(std::size_t assaillant, const std::optional<Place>& place) {
-    m_places.at(assaillant) = place;
-}
-
-std::optional<int> PlacesDAttaque::cibleApprochee(std::size_t assaillant) const {
-    const std::optional<Place>& place = m_places.at(assaillant);
-    if (!place.has_value()) {
-        return std::nullopt;
-    }
-    return place->idCible;
+    return Place{idCible, rayonAnneau, *angle};
 }
