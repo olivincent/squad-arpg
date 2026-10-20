@@ -51,8 +51,9 @@ void Formation::choisirOrientation(std::optional<sf::Vector2f> directionDeMarche
     }
 }
 
-void Formation::mettreAJour(float dt, sf::Vector2f centre, const std::vector<float>& rayons, const TileMap& carte,
-                            const std::vector<Cercle>& monstres) {
+void Formation::mettreAJour(float dt, sf::Vector2f centre, std::optional<sf::Vector2f> directionDeMarche,
+                            const std::vector<float>& rayons, const TileMap& carte, const std::vector<Cercle>& monstres) {
+    choisirOrientation(directionDeMarche, centre);
     tourner(dt);
     calculerPlaces(centre, rayons, carte, monstres);
 }

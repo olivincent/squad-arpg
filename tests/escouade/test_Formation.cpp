@@ -30,8 +30,9 @@ Formation formationAUnPersonnage() {
     return Formation({s_devant}, s_centre, s_vitesseRotationDeTest);
 }
 
-void avancer(Formation& formation, float dt, sf::Vector2f centre = s_centre) {
-    formation.mettreAJour(dt, centre, std::vector<float>(formation.getPlaces().size(), s_rayonDeTest),
+void avancer(Formation& formation, float dt, sf::Vector2f centre = s_centre,
+             std::optional<sf::Vector2f> directionDeMarche = std::nullopt) {
+    formation.mettreAJour(dt, centre, directionDeMarche, std::vector<float>(formation.getPlaces().size(), s_rayonDeTest),
                           carteDegagee10x10(), {});
 }
 
@@ -67,9 +68,7 @@ TEST_CASE("Formation : en terrain degage, les places suivent le centre") {
 
 TEST_CASE("Formation : pivote progressivement vers la direction de marche") {
     Formation formation = formationAUnPersonnage();
-    formation.choisirOrientation(sf::Vector2f(0.0f, 1.0f), s_centre);  // vers +y : 90°
-
-    avancer(formation, s_demiSeconde);
+    avancer(formation, s_demiSeconde, s_centre, sf::Vector2f(0.0f, 1.0f));  // vers +y : 90°
     verifierPointProche(formation.getPlaces()[0], s_centre + sf::Vector2f(s_diagonale, s_diagonale), s_tolerance);
 
     avancer(formation, s_demiSeconde);
@@ -82,24 +81,20 @@ TEST_CASE("Formation : pivote progressivement vers la direction de marche") {
 
 TEST_CASE("Formation : tourne par le plus court cote") {
     Formation formation = formationAUnPersonnage();
-    formation.choisirOrientation(sf::Vector2f(-1.0f, 1.0f), s_centre);  // 135°
-    avancer(formation, s_longtemps);
+    avancer(formation, s_longtemps, s_centre, sf::Vector2f(-1.0f, 1.0f));  // 135°
 
     // De 135° à -135° : +90° en passant par 180°, pas -270°. En une demi-seconde, +45° : 180°.
-    formation.choisirOrientation(sf::Vector2f(-1.0f, -1.0f), s_centre);
-    avancer(formation, s_demiSeconde);
+    avancer(formation, s_demiSeconde, s_centre, sf::Vector2f(-1.0f, -1.0f));
 
     verifierPointProche(formation.getPlaces()[0], s_centre + sf::Vector2f(-30.0f, 0.0f), s_tolerance);
 }
 
 TEST_CASE("Formation : a l'arret sans point a regarder, l'orientation voulue est gardee") {
     Formation formation = formationAUnPersonnage();
-    formation.choisirOrientation(sf::Vector2f(0.0f, 1.0f), s_centre);
-    avancer(formation, s_demiSeconde);
+    avancer(formation, s_demiSeconde, s_centre, sf::Vector2f(0.0f, 1.0f));
 
     // L'ancre s'arrête en pleine rotation : la formation finit de pivoter sur place.
-    formation.choisirOrientation(std::nullopt, s_centre);
-    avancer(formation, s_demiSeconde);
+    avancer(formation, s_demiSeconde, s_centre, std::nullopt);
 
     verifierPointProche(formation.getPlaces()[0], s_centre + sf::Vector2f(0.0f, 30.0f), s_tolerance);
 }
@@ -108,8 +103,7 @@ TEST_CASE("Formation : a l'arret, se tourne vers le point a regarder") {
     Formation formation = formationAUnPersonnage();
     formation.regarderVers(s_centre + sf::Vector2f(0.0f, 100.0f));
 
-    formation.choisirOrientation(std::nullopt, s_centre);
-    avancer(formation, s_longtemps);
+    avancer(formation, s_longtemps, s_centre, std::nullopt);
 
     verifierPointProche(formation.getPlaces()[0], s_centre + sf::Vector2f(0.0f, 30.0f), s_tolerance);
 }
@@ -118,8 +112,7 @@ TEST_CASE("Formation : en marche, la direction de marche gagne sur le point a re
     Formation formation = formationAUnPersonnage();
     formation.regarderVers(s_centre + sf::Vector2f(0.0f, 100.0f));
 
-    formation.choisirOrientation(sf::Vector2f(-1.0f, 0.0f), s_centre);
-    avancer(formation, s_longtemps);
+    avancer(formation, s_longtemps, s_centre, sf::Vector2f(-1.0f, 0.0f));
 
     verifierPointProche(formation.getPlaces()[0], s_centre + sf::Vector2f(-30.0f, 0.0f), s_tolerance);
 }
@@ -129,8 +122,7 @@ TEST_CASE("Formation : un point a regarder oublie ne tourne plus la formation") 
     formation.regarderVers(s_centre + sf::Vector2f(0.0f, 100.0f));
     formation.oublierPointARegarder();
 
-    formation.choisirOrientation(std::nullopt, s_centre);
-    avancer(formation, s_longtemps);
+    avancer(formation, s_longtemps, s_centre, std::nullopt);
 
     verifierPointProche(formation.getPlaces()[0], s_centre + s_devant, s_tolerance);
 }
@@ -139,8 +131,7 @@ TEST_CASE("Formation : un point a regarder sur le centre ne change pas l'orienta
     Formation formation = formationAUnPersonnage();
     formation.regarderVers(s_centre);
 
-    formation.choisirOrientation(std::nullopt, s_centre);
-    avancer(formation, s_longtemps);
+    avancer(formation, s_longtemps, s_centre, std::nullopt);
 
     verifierPointProche(formation.getPlaces()[0], s_centre + s_devant, s_tolerance);
 }
@@ -152,7 +143,7 @@ TEST_CASE("Formation : une place dans un mur est ramenee vers le centre") {
     const sf::Vector2f centre(150.0f, 200.0f);
     Formation formation({{60.0f, 0.0f}}, centre, s_vitesseRotationDeTest);
 
-    formation.mettreAJour(s_demiSeconde, centre, {s_rayonDeTest}, carte, {});
+    formation.mettreAJour(s_demiSeconde, centre, std::nullopt, {s_rayonDeTest}, carte, {});
 
     const sf::Vector2f place = formation.getPlaces()[0];
     REQUIRE(place.x > 180.0f);
@@ -168,7 +159,7 @@ TEST_CASE("Formation : deux places repliees au meme endroit sont ecartees") {
     const sf::Vector2f centre(150.0f, 200.0f);
     Formation formation({{60.0f, -5.0f}, {60.0f, 5.0f}}, centre, s_vitesseRotationDeTest);
 
-    formation.mettreAJour(s_demiSeconde, centre, {s_rayonDeTest, s_rayonDeTest}, carte, {});
+    formation.mettreAJour(s_demiSeconde, centre, std::nullopt, {s_rayonDeTest, s_rayonDeTest}, carte, {});
 
     const auto& places = formation.getPlaces();
     REQUIRE((places[1] - places[0]).length() >= s_ecartEntrePersonnages);
@@ -180,7 +171,7 @@ TEST_CASE("Formation : une place dans un monstre en est sortie") {
     Formation formation = formationAUnPersonnage();
     const Cercle monstre{s_centre + s_devant, 15.0f};
 
-    formation.mettreAJour(s_demiSeconde, s_centre, {s_rayonDeTest}, carteDegagee10x10(), {monstre});
+    formation.mettreAJour(s_demiSeconde, s_centre, std::nullopt, {s_rayonDeTest}, carteDegagee10x10(), {monstre});
 
     const sf::Vector2f place = formation.getPlaces()[0];
     REQUIRE((place - monstre.centre).length() >= monstre.rayon + s_rayonDeTest);
@@ -190,7 +181,7 @@ TEST_CASE("Formation : un monstre eloigne ne change pas les places") {
     Formation formation = formationAUnPersonnage();
     const Cercle monstre{{50.0f, 50.0f}, 15.0f};
 
-    formation.mettreAJour(s_demiSeconde, s_centre, {s_rayonDeTest}, carteDegagee10x10(), {monstre});
+    formation.mettreAJour(s_demiSeconde, s_centre, std::nullopt, {s_rayonDeTest}, carteDegagee10x10(), {monstre});
 
     verifierPointProche(formation.getPlaces()[0], s_centre + s_devant, s_tolerance);
 }

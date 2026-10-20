@@ -67,7 +67,12 @@ fonctionnalités prévues sont donc décalées après l'étape 82.
     séparation douce en fonction pure (`escouade/Separation`, un état `Absent`/`Fixe`/`Libre` par
     personnage, calcul simultané comme avant) et `s_ecartEntrePersonnages` dans un en-tête neutre ;
     927 tests, 59 avertissements `clang-tidy`, `Escouade.cpp` de 1 223 à 1 112 lignes ;
-  - **82.3** : `PlacesDAttaque` ;
+  - **82.3** (faite) : `Formation` à appel unique (`mettreAJour` reçoit la direction de marche,
+    `choisirOrientation` devient privée) ; `PlacesDAttaque` (possédée par `Escouade`, ne connaît pas
+    `Personnage` ; `Approche` en initialisation désignée, « aucune place libre » en `std::optional`),
+    mécanisme d'oubli des places déplacé tel quel (`retirer`, `retenir`, `cibleApprochee` provisoire),
+    décrit dans `docs/formation.md` pour 82.4 ; 940 tests, 60 avertissements `clang-tidy`,
+    `Escouade.cpp` de 1 112 à 1 069 lignes ;
   - **82.4** : choix du point visé par intentions, avec R2. Il renvoie une intention
     (`std::variant` : rester sur place, aller au point, approcher un monstre avec une portée),
     calculée par une fonction pure à partir d'une situation ; `Escouade` la traduit en point (place

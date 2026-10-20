@@ -1,6 +1,5 @@
 // ./src/escouade/Escouade.hpp
 #pragma once
-#include <SFML/System/Angle.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Rect.hpp>
 #include <SFML/System/Vector2.hpp>
@@ -24,6 +23,7 @@
 #include "monde/Mobile.hpp"
 #include "combat/EntiteVue.hpp"
 #include "escouade/Personnage.hpp"
+#include "escouade/PlacesDAttaque.hpp"
 #include "escouade/Provocations.hpp"
 #include "combat/TypeSkill.hpp"
 
@@ -143,17 +143,14 @@ private:
     void engagerSkillDeDegatsEnAttente(const std::vector<EntiteVue>& monstres, const TileMap& carte);
     std::vector<Coup> avancerSkills(float dt, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
     std::vector<Coup> autodefense(float dt, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
-    // Place d'attaque : voir la définition de pointVersMonstre.
-    struct PlaceDAttaque {
-        int idMonstre;
-        float rayon;     // de l'anneau, en pixels
-        sf::Angle angle; // autour du centre du monstre
-    };
     [[nodiscard]] float porteeDe(const Personnage& personnage, std::optional<IdSkill> skill) const;
-    sf::Vector2f pointVersMonstre(std::size_t indice, int idMonstre, Cercle monstre, std::optional<IdSkill> skill,
-                                  const std::optional<PlaceDAttaque>& ancienne, const TileMap& carte);
+    // Places d'attaque (m_placesDAttaque) : ce qu'elles doivent savoir du personnage de cet indice
+    // qui approche ce monstre avec cette action (`skill` vide : l'attaque de base).
+    [[nodiscard]] PlacesDAttaque::Approche approcheDe(std::size_t indice, EntiteVue monstre, std::optional<IdSkill> skill) const;
+    // Par personnage : son centre s'il est vivant et immobile (il occupe l'endroit où il se tient), vide sinon.
+    [[nodiscard]] std::vector<std::optional<sf::Vector2f>> occupants() const;
     std::optional<sf::Vector2f> pointVersAgresseur(std::size_t indice, const std::vector<EntiteVue>& agresseurs,
-                                                   const std::optional<PlaceDAttaque>& ancienne, const TileMap& carte);
+                                                   const std::optional<PlacesDAttaque::Place>& ancienne, const TileMap& carte);
     // Cercles des monstres sauf celui que ce personnage approche (sa place d'attaque, ou le
     // verrou en combat) ; tous s'il n'en approche aucun.
     [[nodiscard]] std::vector<Cercle> monstresAContourner(std::size_t indice, const std::vector<EntiteVue>& monstres) const;
@@ -180,8 +177,7 @@ private:
     std::optional<SkillEnAttente> m_skillEnAttente; // un seul skill en attente pour toute l'escouade
     std::optional<Cercle> m_cibleCombat; // dernière cible donnée à attaquer(), pour figer les personnages déjà à portée
     std::vector<bool> m_monstreAPortee;  // par personnage : a-t-il un monstre à portée de son attaque (calculé par attaquer, lu par mettreAJour)
-    // Par personnage : place d'attaque retenue autour du monstre qu'il approche (vide = il n'en approche aucun).
-    std::vector<std::optional<PlaceDAttaque>> m_placesDAttaque;
+    PlacesDAttaque m_placesDAttaque;  // par personnage : place d'attaque retenue autour du monstre qu'il approche
     std::vector<sf::Vector2f> m_pointsVises;  // par personnage, calculé par mettreAJour
     // Par personnage : identifiant du monstre dont il se dégage vers sa place d'attaque (vide = il ne se dégage pas).
     std::vector<std::optional<int>> m_degagements;

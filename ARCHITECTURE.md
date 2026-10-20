@@ -49,8 +49,9 @@ squad-arpg/
 │   ├── combat/     Skill, SkillConnu, IdSkill, TypeSkill, AdresseSkill, Cible, ActionEngagee,
 │   │               EtatSkill, Coup, EvenementDeCombat, EntiteVue, Autodefense, Engagement,
 │   │               Defense, PointsDeVie, Vitalite
-│   ├── escouade/   Escouade, Personnage, Formation, Separation, EcartEntrePersonnages,
-│   │               Composition, Specialite, SelectionDEscouade, Provocations, Agresseurs
+│   ├── escouade/   Escouade, Personnage, Formation, PlacesDAttaque, Separation,
+│   │               EcartEntrePersonnages, Composition, Specialite, SelectionDEscouade,
+│   │               Provocations, Agresseurs
 │   ├── monstres/   Monstre
 │   ├── jeu/        Partie
 │   ├── interface/  Ecran, Transition, Contexte, EcranMenu, EcranOptions, EcranChoixEscouade,
@@ -86,8 +87,8 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
   et le seul `Generateur`. Elle fait l'intermédiaire entre `Escouade` et `Monstre`, qui ne se
   connaissent pas (ils échangent des `EntiteVue`, des `Coup`, des `EntiteDeControle`), et tient la
   file des `EvenementDeCombat`.
-- `Escouade` possède son ancre (`Mobile`), sa `Formation`, N `Personnage`, des `Provocations` et
-  des `Agresseurs`.
+- `Escouade` possède son ancre (`Mobile`), sa `Formation`, ses `PlacesDAttaque`, N `Personnage`,
+  des `Provocations` et des `Agresseurs`.
   `Personnage` et `Monstre` possèdent un `Mobile`, des `Skill` et une `Vitalite`.
 - `Controleur` porte l'état d'interface (visée, déplacement continu) et reçoit la `Partie` à
   chaque appel.
@@ -136,6 +137,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `Escouade` : ancre, formation, verrou, skills en attente, attaque, placement des personnages.
 - `Personnage` : un membre : déplacement, attaque de base, skills, vie, armure, vision.
 - `Formation` : décalages, orientation, point à regarder et places de formation, sans `Personnage`.
+- `PlacesDAttaque` : place d'attaque retenue par assaillant autour de sa cible, sans `Personnage`.
 - `Separation` : `pousseesDeSeparation`, séparation douce en fonction pure (`EtatDeSeparation`).
 - `EcartEntrePersonnages` : `s_ecartEntrePersonnages`, en-tête neutre.
 - `Composition` : `DefinitionPersonnage`, `Rang` et `decalagesDeFormation`.
@@ -256,7 +258,7 @@ de modifier un module, lire le fichier correspondant :
 | `docs/generation.md` | Génération de donjon : placement avec rejet, emprise / forme creusée, paramètres, graine unique ; `Niveau` | Avant de modifier `GenerateurDonjon` ou `Niveau` |
 | `docs/vision.md` | Vision et brouillard de guerre : shadowcasting symétrique, `Vision` (inconnue / explorée / visible), rayon des personnages, règles de clic, dessin, F6, limites | Avant de modifier `ChampDeVision`, `Vision` ou ce que `Partie` en fait |
 | `docs/chemin.md` | Recherche de chemin (A*), suivi de chemin (`Mobile`), lissage de chemin, trace de débogage | Avant de modifier `Chemin`, `Mobile` ou `TraceDeChemin` |
-| `docs/formation.md` | `Escouade` et `Personnage` : ancre, formation, orientation, séparation douce, verrou de cible, placement en combat, mort et défaite ; `Formation`, `Separation`, `Composition`, `Specialite`, `Encerclement` | Avant de modifier `Escouade`, `Personnage`, `Formation`, `Separation`, `Composition`, `Specialite` ou `Encerclement` |
+| `docs/formation.md` | `Escouade` et `Personnage` : ancre, formation, orientation, séparation douce, verrou de cible, placement en combat, places d'attaque, mort et défaite ; `Formation`, `PlacesDAttaque`, `Separation`, `Composition`, `Specialite`, `Encerclement` | Avant de modifier `Escouade`, `Personnage`, `Formation`, `PlacesDAttaque`, `Separation`, `Composition`, `Specialite` ou `Encerclement` |
 | `docs/combat.md` | `Skill` (dont l'attaque de base), `Cercle`, portée bord à bord, autodéfense, `Cible`, skill en attente, circuit des dégâts, qui bloque qui, armure, aléatoire, zones de contrôle, événements et textes flottants | Avant de modifier un module de `combat/` ou de `base/`, `Provocations`, `Agresseurs`, `TextesFlottants`, `BarreDeVie` ou les listes d'obstacles |
 | `docs/monstre.md` | `Monstre` : identifiant, états, détection, territoire, poursuite, retour au poste, riposte | Avant de modifier `Monstre` |
 | `docs/tests.md` | Tests (Catch2, conventions, dossiers, aides) | Avant d'ajouter ou de modifier un test |

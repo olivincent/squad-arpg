@@ -18,9 +18,10 @@ L'attaque, la portée, le skill et les obstacles sont dans
   quand il le faudra.
 - **La carte n'est jamais gardée** : elle est reçue en `const TileMap&`
   par `allerVers`, `attaquer` et `mettreAJour`, et transmise à
-  `m_mobile`. `Escouade.hpp` ne contient que `class TileMap;`, et
-  `Escouade.cpp` n'inclut ni `TileMap.hpp`, ni `Chemin.hpp`, ni
-  `Deplacement.hpp` : ces dépendances sont celles de `Mobile`.
+  `m_mobile`. `Escouade.hpp` ne contient que `class TileMap;`. `Escouade.cpp`
+  inclut `TileMap.hpp` (`declencherSkillDeZone` refuse un point dans un mur :
+  `caseContenant`, `getTile`), mais ni `Chemin.hpp` ni `Deplacement.hpp` : ces
+  dépendances sont celles de `Mobile`.
 - **En-têtes SFML précis** dans `Escouade` (`Vector2.hpp`,
   `RenderTarget.hpp`, `RectangleShape.hpp`…), alors que `TileMap.hpp`
   inclut tout `<SFML/Graphics.hpp>`. Non harmonisé pour l'instant.
@@ -30,8 +31,9 @@ L'attaque, la portée, le skill et les obstacles sont dans
   encapsule le calcul « coin haut-gauche + moitié de la taille », pour que
   `main.cpp` ne dépende pas de la convention de position.
 - **`Escouade` possède les personnages** (`std::vector<Personnage>` par
-  valeur, d'où l'include complet de `Personnage.hpp`) et sa `Formation`
-  (décalages, orientation et places, depuis l'étape 82.2) ; l'ancre reste le point de contrôle dessiné (le carré
+  valeur, d'où l'include complet de `Personnage.hpp`), sa `Formation`
+  (décalages, orientation et places, depuis l'étape 82.2) et ses `PlacesDAttaque` (depuis
+  l'étape 82.3) ; l'ancre reste le point de contrôle dessiné (le carré
   vert). Elle est dessinée et mise à jour avant les personnages, qui
   visent la place de l'image *courante*, calculée une fois l'ancre
   déplacée.
@@ -50,11 +52,21 @@ L'attaque, la portée, le skill et les obstacles sont dans
   l'arrêt), les rayons des personnages, la carte et les cercles des monstres. Elle se teste donc
   seule, avec ses propres valeurs (`test_Formation.cpp`). `Escouade` garde l'ancre (`Mobile`) et
   l'orchestration ; aucune règle n'a changé.
-- **Deux appels par image, dans l'ordre d'avant** : `choisirOrientation(direction, centre)`
-  *avant* le déplacement de l'ancre (la direction voulue est lue avant l'essai de collision, voir
-  plus bas), puis `mettreAJour(dt, centre, rayons, carte, monstres)` *après* : rotation, puis places
-  calculées autour du nouveau centre. Rotation et places restent dans une seule fonction publique :
-  elles se suivent toujours, et les séparer exposerait un ordre d'appel de plus sans besoin.
+- **Un seul appel par image (étape 82.3)** : `mettreAJour(dt, centre, directionDeMarche, rayons,
+  carte, monstres)`, *après* le déplacement de l'ancre : orientation voulue, rotation, puis places
+  calculées autour du nouveau centre. `Escouade` lit la direction de marche
+  (`m_mobile.directionVoulue()`) dans une variable locale *avant* de déplacer l'ancre (la direction
+  voulue est lue avant l'essai de collision, voir plus bas). `choisirOrientation` est devenue
+  privée : plus aucun ordre d'appel n'est imposé à qui utilise `Formation`. À l'étape 82.2, il y
+  avait deux appels : `choisirOrientation(direction, centre)` avant le déplacement de l'ancre, puis
+  `mettreAJour` après.
+- **Pourquoi le résultat est identique** : le centre ne compte que quand l'ancre est à l'arrêt
+  (direction vide), et alors il n'a pas bougé. Vérifié dans `Mobile` : `directionVoulue()` est vide
+  quand le chemin est fini ou que le point courant est exactement le centre ; dans les deux cas,
+  `Mobile::mettreAJour` calcule un déplacement nul, et `deplacerAvecGlissement` rend la même
+  position. Toute la suite est restée verte ; les tests de `Formation` ont seulement changé la forme
+  de leurs appels (`choisirOrientation(d, c)` puis `mettreAJour` devient un `mettreAJour` qui reçoit
+  `d`), avec les mêmes scénarios et les mêmes vérifications.
 - **Le point à regarder s'efface par une fonction explicite** (`oublierPointARegarder`), appelée
   par `Escouade` à chaque nouvel ordre à l'ancre (voir « Point à regarder ») ;
   `Escouade::regarderVers` délègue à `Formation::regarderVers`.
@@ -70,8 +82,9 @@ L'attaque, la portée, le skill et les obstacles sont dans
   (ancre comme origine, taille du personnage prise sur son rayon :
   `2 × rayon` ; `Escouade` passe le rayon du cercle de chaque personnage, ce qui évite d'ajouter
   un accesseur à `Personnage`). Le
-  résultat est rangé dans `Formation::m_places`, utilisé comme point voulu, et lu par
-  `dessiner` (qui n'a pas la carte) et par `getPlacesDeFormation` (tests). Le constructeur de `Formation` y met les places non repliées
+  résultat est rangé dans `Formation::m_places`, utilisé comme point voulu (`pointVoulu`), comme
+  centre de la laisse des agresseurs (`pointVersAgresseur`), et lu par `getPlacesDeFormation`
+  (tests) ; `dessiner` ne le lit plus. Le constructeur de `Formation` y met les places non repliées
   (les personnages y naissent), remplacées au premier `mettreAJour`. Répartition inchangée : l'escouade décide *où*,
   le personnage *comment*. Seules les places de formation sont
   corrigées : les cibles individuelles en combat et la marche vers un
@@ -85,10 +98,12 @@ L'attaque, la portée, le skill et les obstacles sont dans
   dans `m_personnages` suffit à dire qui est quoi, comme elle suffit à l'associer à son décalage.
 - **Injection** : `Escouade` ne choisit plus aucune valeur. Elle reçoit sa composition
   (`std::vector<DefinitionPersonnage>`) et construit un `Personnage` par définition. Les
-  valeurs d'équilibrage (portées, armures, skills) vivent dans `Composition.cpp`.
+  valeurs d'équilibrage (portées, armures, skills) vivent dans `Specialite.cpp` (depuis
+  l'étape 76 ; avant, dans `Composition.cpp`).
 - **Orientation voulue et orientation réelle séparées** (membres de `Formation`) :
   `m_orientationVoulue` reçoit la direction voulue de l'ancre
-  (`m_mobile.directionVoulue()`, passée à `choisirOrientation` et lue *avant* l'essai de collision : si
+  (`m_mobile.directionVoulue()`, lue par `Escouade` *avant* l'essai de collision et passée à
+  `Formation::mettreAJour` : si
   l'escouade est bloquée par un mur et glisse, la formation vise quand
   même la direction qu'elle essayait de suivre). Mise à jour seulement
   si l'ancre a un point à atteindre et que la distance est `> 0`
@@ -358,9 +373,10 @@ finissaient l'un par-dessus l'autre.
 - **Attribution** : la place valide et libre la plus proche de l'angle actuel
   du personnage autour du monstre (`choisirAngleLibre`), égalité : l'ordre des
   candidates. Aucune place : le personnage vise le centre du monstre
-  (comportement d'avant).
-- **Stabilité** : `Escouade` retient par personnage `{ idMonstre, rayon,
-  angle }` (`m_placesDAttaque`). L'angle est gardé tant que le personnage
+  (comportement d'avant), sauf au dégagement (étape 78), abandonné pour l'image.
+- **Stabilité** : `PlacesDAttaque` (depuis l'étape 82.3, voir plus bas ; avant,
+  `Escouade::m_placesDAttaque`) retient par personnage `{ idCible, rayon,
+  angle }`. L'angle est gardé tant que le personnage
   approche ce même monstre ; seule la position est recalculée à chaque image
   depuis le centre actuel du monstre. Le rayon est gardé aussi, parce que le
   test « libre » doit connaître l'anneau de chaque autre personnage (mêlées et
@@ -368,10 +384,83 @@ finissaient l'un par-dessus l'autre.
   invalide (mur, plus de vue) ou occupée. Elle est oubliée dès qu'aucune règle
   de `pointVoulu` ne la renouvelle : autre monstre, plus de monstre, mort du
   personnage, disparition du monstre. Un coup en cours ou l'arrêt à portée sur
-  le même monstre ne la font pas oublier.
+  le même monstre ne la font pas oublier (mécanisme détaillé dans « Oubli des places » plus bas).
 - **Limites** : la place est calculée avec la direction de l'ancre au moment
   de l'attribution ; deux personnages qui s'approchent depuis des côtés
   opposés se gênent encore parfois ; pas de places d'attaque pour les monstres.
+
+## Classe `PlacesDAttaque` (étape 82.3)
+
+- **Le placement autour des monstres est sorti d'`Escouade`** (deuxième pas de R1,
+  `docs/audit.md`) : `escouade/PlacesDAttaque`, possédée **par valeur** (`m_placesDAttaque`), sans
+  héritage. Elle possède les places retenues de **tous** les assaillants : le test « libre » compare
+  la place d'un assaillant à celles des autres. Le contenu d'`Escouade::pointVersMonstre` y a été
+  déplacé (`placer`) avec les seules adaptations indispensables ; `pointVersMonstre`, la structure
+  privée `PlaceDAttaque` et `s_fractionPorteeAnneau` ont quitté `Escouade`. Aucune règle n'a changé.
+- **Elle ne connaît ni `Personnage` ni `Escouade`**, et son vocabulaire est neutre (« assaillant »,
+  « cible », « occupant ») : rien ne la lie au camp du joueur. Elle reçoit de la géométrie : la cible
+  (`EntiteVue` : identifiant et cercle), l'indice et le cercle de l'assaillant, la portée de son
+  action, le point de référence de la première candidate (l'ancre), la carte et les occupants. Elle
+  se teste donc seule, avec ses propres valeurs (`test_PlacesDAttaque.cpp`).
+- **Une structure plutôt qu'une longue liste de paramètres** (C2 de l'audit) :
+  `PlacesDAttaque::Approche { cible; assaillant; cercleAssaillant; portee; reference; }`, remplie par
+  `Escouade::approcheDe` en initialisation désignée (`.cible = monstre, .portee = …`). `placer(approche,
+  ancienne, occupants, carte)` reçoit à part la mémoire (l'ancienne place), les occupants et la carte.
+- **Les occupants** : par assaillant, son centre s'il est vivant et immobile, vide sinon
+  (`std::vector<std::optional<sf::Vector2f>>`). `Escouade::occupants()` les construit à chaque appel
+  de `placer`, avec les positions du moment, comme le faisait `pointVersMonstre` : les personnages
+  déjà déplacés dans l'image y sont à leur nouvelle position. L'entrée de l'assaillant lui-même est
+  ignorée. L'audit proposait `struct Occupant { centre; immobile; }` ; l'`optional` suffit, seuls les
+  occupants vivants et immobiles comptant.
+- **L'écart minimal est passé à la construction** (`Escouade` passe `s_ecartEntrePersonnages`,
+  34 px) : les tests de `PlacesDAttaque` utilisent le leur (règle de `docs/tests.md`). La part de la
+  portée qui fixe l'anneau (90 %, `s_fractionPorteeAnneau`) reste une constante de `PlacesDAttaque.cpp` ;
+  les tests ne l'écrivent pas, ils vérifient que la place est à portée sans contact.
+- **« Aucune place libre » est dans le type** : `placer` renvoie un `std::optional<sf::Vector2f>`, et
+  chaque appelant décide comme avant. Le verrou, le skill de dégâts en attente (`pointVoulu`) et
+  l'agresseur (`pointVersAgresseur`) visent le centre du monstre (`value_or`) ; le dégagement
+  (`pointVoulu`) est abandonné pour l'image. Avant, `pointVersMonstre` renvoyait le centre du monstre,
+  et le dégagement repérait l'échec en relisant `m_placesDAttaque[indice]`.
+- **En cas d'échec, `placer` ne touche pas à la place retenue** : comme `pointVersMonstre`, qui
+  n'écrivait qu'en cas de succès. Dans `Escouade`, elle a de toute façon été retirée juste avant.
+- **`cibleApprochee(assaillant)`** : la cible de la place retenue, lue par `monstresAContourner`.
+  Provisoire, remplacée par les intentions en 82.4.
+
+### Oubli des places : le mécanisme tel qu'il est
+
+Déplacé tel quel d'`Escouade` à l'étape 82.3 (seuls les appels ont changé : `retirer`, `retenir`,
+`placer`) ; 82.4 le remplacera par des intentions.
+- **Où et quand** : seulement dans `Escouade::mettreAJour`, dans la boucle des personnages (indice
+  croissant), au début de `pointVoulu(i)`. À ce moment, l'ancre s'est déplacée, les places de
+  formation sont calculées, les dégagements décidés (`mettreAJourDegagements`) et le skill en attente
+  avancé (`avancerSkillEnAttente`) ; les personnages d'indice inférieur à `i` se sont déjà déplacés,
+  pas `i` ni les suivants. Rien d'autre ne touche les places : ni `attaquer`, ni `verrouiller`, ni
+  `deverrouiller`, ni `allerVers`. Entre deux images, elles restent telles quelles.
+- **Qui efface** : `pointVoulu(i)` commence par `m_placesDAttaque.retirer(i)`. La place retenue est
+  effacée de `PlacesDAttaque` et mise de côté dans la variable locale `ancienne`. Elle reste effacée
+  si aucune règle ne la renouvelle avant le `return`.
+- **Qui renouvelle** (la première règle de `pointVoulu` qui s'applique) :
+  - règle 0, action en exécution : `retenir(i, ancienne)`, sans condition ;
+  - règle 1, lanceur d'un skill de dégâts en attente : `placer` autour du verrou (cercle
+    `m_cibleCombat`, portée du skill). Le lanceur d'un skill de zone ou d'un soin ne renouvelle rien ;
+  - règle 2, dégagement : `placer` autour du monstre dont il se dégage (portée de l'attaque de base).
+    Échec : rien n'est retenu, le dégagement est effacé, et les règles 3 à 5 s'appliquent avec la même
+    `ancienne` ;
+  - règle 3, combat verrouillé (personnage vivant) : s'il atteint déjà le verrou, `retenir(i,
+    ancienne)` seulement si `ancienne` est autour du verrou ; sinon `placer` autour du verrou ;
+  - règle 4, ancre à l'arrêt et agresseur dans la laisse (personnage vivant) : s'il a déjà un monstre
+    à portée (`m_monstreAPortee`, calculé par `attaquer`), `retenir(i, ancienne)` seulement si
+    `ancienne` est autour de l'agresseur choisi ; sinon `placer` autour de lui ;
+  - règle 5, formation : rien, la place reste oubliée.
+
+  `placer` reçoit `ancienne` : il en garde l'angle si elle est autour de la même cible, valide et pas
+  occupée (avec le rayon d'anneau du moment, qui change si la portée change) ; sinon il attribue une
+  nouvelle place. Il ne retient la place qu'en cas de succès.
+- **Qui lit** : `placer(j)` lit les places retenues des autres assaillants (test « libre ») : pour
+  `k < j`, celles décidées plus tôt dans la même image ; pour `k > j`, celles de l'image précédente,
+  pas encore retirées. Le résultat dépend donc de l'ordre des personnages. `monstresAContourner(i)`,
+  appelée juste après `pointVoulu(i)`, lit `cibleApprochee(i)`, la décision qui vient d'être prise.
+  `degagementVoulu` ne lit pas les places (il lit `m_pointsVises`, le point visé de l'image d'avant).
 
 ## Séparation douce (étape 67)
 
@@ -444,8 +533,9 @@ deux carrés qui se touchent ont leurs centres à environ 28 px. 34 ≈ (20 + 4)
 √2 garde un écart visible de 4 px même en diagonale. Cette valeur est la
 constante unique `s_ecartEntrePersonnages` (séparation, places d'attaque,
 places de formation), en `inline constexpr` dans un petit en-tête neutre depuis l'étape 82.2
-(`escouade/EcartEntrePersonnages.hpp`, comme `EmplacementsPrincipaux`) : `Escouade`, `Formation`
-et plus tard `PlacesDAttaque` l'incluent sans dépendre l'une de l'autre. Chaque personnage a aussi un contour sombre de 1 px
+(`escouade/EcartEntrePersonnages.hpp`, comme `EmplacementsPrincipaux`) : `Escouade` et `Formation`
+l'incluent sans dépendre l'une de l'autre ; `PlacesDAttaque` (étape 82.3) ne l'inclut pas, elle
+reçoit l'écart à sa construction. Chaque personnage a aussi un contour sombre de 1 px
 (vers l'intérieur) pour distinguer deux personnages collés.
 
 ## Contourner les monstres (étape 68)
@@ -456,8 +546,8 @@ et plus tard `PlacesDAttaque` l'incluent sans dépendre l'une de l'autre. Chaque
   (tous les cercles) et, par personnage, la liste à contourner
   (`monstresAContourner`, privée).
 - **Qui contourne quoi** : chaque personnage contourne tous les monstres **sauf
-  celui qu'il approche** : le monstre de sa place d'attaque (`m_placesDAttaque` :
-  combat verrouillé, agresseur, skill de dégâts en attente) ou, en combat sans
+  celui qu'il approche** : le monstre de sa place d'attaque (`PlacesDAttaque::cibleApprochee`
+  depuis l'étape 82.3 : combat verrouillé, agresseur, skill de dégâts en attente, dégagement) ou, en combat sans
   place retenue, le monstre verrouillé. Sans monstre approché, tous. Il ne
   contourne pas les autres personnages (séparation douce, étape 67) ni l'ancre,
   qui ne contourne rien. Le monstre approché est exclu, sinon le personnage se
@@ -658,10 +748,11 @@ même endroit dans un passage étroit » a disparu de la liste des limites.
 
 - **Une priorité de plus dans `pointVoulu`** : après l'exécution d'une action et le skill en attente,
   avant le combat verrouillé, l'agresseur et la formation. Un personnage qui se dégage reçoit comme point
-  la place d'attaque autour du monstre dont il se dégage (`pointVersMonstre` avec l'attaque de base :
-  anneau de rayon du monstre + rayon du personnage + 90 % de la portée). L'angle gardé, la séparation et
+  la place d'attaque autour du monstre dont il se dégage (`PlacesDAttaque::placer` avec la portée de
+  l'attaque de base, avant l'étape 82.3 `pointVersMonstre` : anneau de rayon du monstre + rayon du
+  personnage + 90 % de la portée). L'angle gardé, la séparation et
   les places libres sont ceux de l'étape 67 ; le monstre approché n'est pas à contourner
-  (`monstresAContourner` lit `m_placesDAttaque`).
+  (`monstresAContourner` lit `PlacesDAttaque::cibleApprochee`).
 - **La règle d'arrêt « dès que le monstre est à portée et en vue » ne s'applique pas** pendant le
   dégagement : à portée, le tireur serait encore au contact.
 - **`Personnage` n'en sait rien** : il reçoit un point. L'état (`m_degagements`) et la décision
@@ -754,8 +845,8 @@ de formation ; voir plus bas), `m_personnages`
 `AdresseSkill adresse` du skill, `Cible cible`, qui peut être un `CiblePoint`), `m_cibleCombat`
 (`std::optional<Cercle>`), `m_degagements` (`std::vector<std::optional<int>>`, par personnage : identifiant du monstre dont il se dégage vers sa place d'attaque, vide = il ne se dégage pas), `m_pointsVises` (`std::vector<sf::Vector2f>`, point vers lequel chaque
 personnage marche, calculé par `mettreAJour`), `m_placesDAttaque`
-(`std::vector<std::optional<PlaceDAttaque>>`, structure privée `{ int idMonstre; float rayon; sf::Angle angle; }` : place d'attaque
-retenue autour du monstre que le personnage approche), `m_monstreAPortee` (`std::vector<bool>`, par personnage :
+(`PlacesDAttaque`, étape 82.3 : place d'attaque retenue de chaque personnage autour du monstre qu'il
+approche ; voir plus bas), `m_monstreAPortee` (`std::vector<bool>`, par personnage :
 monstre à portée de son attaque et en vue, calculé par `attaquer`, lu par `mettreAJour`), `m_agresseurs`
 (`Agresseurs`, monstres qui ont frappé l'escouade récemment),
 `m_provocations` (`Provocations`, monstres provoqués et leur provocateur), `m_soinsAppliques` (`std::vector<SoinApplique>`, soins pas encore pris par `prendreSoins`).
@@ -777,7 +868,7 @@ monstre à portée de son attaque et en vue, calculé par `attaquer`, lu par `me
 | `Cercle cercleDePorteeDuSkill(AdresseSkill adresse) const` | Cercle centré sur le lanceur, de rayon (rayon du personnage + portée du skill) ; rayon 0 si la place est invalide |
 | `std::vector<Coup> declencherSkillDeZone(AdresseSkill adresse, sf::Vector2f point, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur)` | Lance le skill de type `Zone` à cette adresse sur un cercle centré sur `point` (rayon de zone du skill). Point à portée (bord à bord, comme un cercle de rayon 0) et en vue du lanceur : l'activation commence tout de suite ; au départ, un `Coup` (identifiant, dégâts du skill) par monstre touché (bord à bord 0 ET en vue du point d'impact : `ligneDeVue`, en cases), zone évaluée à ce moment. Le sort lance la recharge même si la zone est vide. Hors portée, pas en vue ou lanceur occupé par l'activation d'un autre de ses skills : le skill est mis en attente (`CiblePoint`), liste vide, sans recharge ; le lanceur marche vers le point (`mettreAJour`) et son activation commence dans `attaquer` dès que portée et vue sont réunies et que le lanceur est libre. Liste vide, sans recharge ni attente, si le point est dans un mur, si l'adresse est invalide, si son skill n'est pas de type `Zone`, si le lanceur est mort ou en recharge ou en activation, ou si un skill est déjà en attente |
 | `std::optional<Cible> choisirCible(TypeSkill type, AdresseSkill adresse, const std::vector<EntiteVue>& monstres, const TileMap& carte) const` | `Degats` : avec un verrou, le monstre verrouillé trouvé dans `monstres` (atteint ou non, vide s'il n'y est pas) ; sans verrou, le monstre que le lanceur de l'adresse frapperait en autodéfense, avec la portée de son skill et en vue (vide si aucun). `Soin` : le vivant qui a le moins de points de vie parmi ceux qui ne sont pas à pleine vie (égalité : la plus petite place) |
-| `void mettreAJour(float dt, const TileMap& carte, const std::vector<EntiteVue>& monstres, const std::vector<EntiteDeControle>& monstresDeControle = {})` | Avance l'ancre, tourne la formation et calcule la place de chaque personnage (`m_formation` : `choisirOrientation` avant le déplacement de l'ancre, `mettreAJour` après ; place théorique ramenée vers l'ancre par `replierVersOrigine` si elle est dans un mur ou cachée derrière un coin, puis écartée à 34 px des places déjà calculées et sortie des monstres — une place dont le centre est à moins de (rayon du monstre + rayon du personnage) d'un monstre est invalide —, voir `docs/formation.md`), met à jour les dégagements (`mettreAJourDegagements` : une fois par image, d'après les positions du début de l'image, avec `monstresDeControle` — les monstres ciblables de la photo de `Partie`, avec leur zone) ; déplace chaque personnage vers son point visé (`pointVoulu`, mémorisé dans `m_pointsVises`) : sa place de formation ; s'il se dégage, sa place d'attaque autour du monstre dont il se dégage, sans s'arrêter à portée ; en combat verrouillé, sur place s'il atteint la cible (à portée et en vue), sinon vers sa place d'attaque autour du monstre ; ancre à l'arrêt : vers la place d'attaque autour de l'agresseur le plus proche dans une laisse de 100 px autour de sa place, ou sur place s'il a déjà un monstre à portée et en vue ; puis sépare les personnages trop proches (`separerPersonnages`, qui délègue le calcul à `pousseesDeSeparation` : 34 px, poussée plafonnée à 120 px/s, sans obstacle dur) ; fait écouler le délai d'oubli des agresseurs ; le lanceur d'un skill en attente vise sa cible à la place (un soin entre ici en activation à l'arrivée, annulé si le lanceur ou la cible meurt ou si la cible est à pleine vie ; un personnage en exécution ou en activation reste sur place) ; les cercles des `monstres` sont les obstacles bloquants des personnages, jamais de l'ancre ; chaque personnage reçoit en plus `monstresAContourner` (privée) : les cercles de tous les monstres sauf celui qu'il approche (celui de sa place d'attaque, ou le verrou en combat), tous s'il n'en approche aucun |
+| `void mettreAJour(float dt, const TileMap& carte, const std::vector<EntiteVue>& monstres, const std::vector<EntiteDeControle>& monstresDeControle = {})` | Avance l'ancre, tourne la formation et calcule la place de chaque personnage (`m_formation.mettreAJour`, après le déplacement de l'ancre, avec la direction de marche lue avant ; place théorique ramenée vers l'ancre par `replierVersOrigine` si elle est dans un mur ou cachée derrière un coin, puis écartée à 34 px des places déjà calculées et sortie des monstres — une place dont le centre est à moins de (rayon du monstre + rayon du personnage) d'un monstre est invalide —, voir `docs/formation.md`), met à jour les dégagements (`mettreAJourDegagements` : une fois par image, d'après les positions du début de l'image, avec `monstresDeControle` — les monstres ciblables de la photo de `Partie`, avec leur zone) ; déplace chaque personnage vers son point visé (`pointVoulu`, mémorisé dans `m_pointsVises`) : sa place de formation ; s'il se dégage, sa place d'attaque autour du monstre dont il se dégage, sans s'arrêter à portée ; en combat verrouillé, sur place s'il atteint la cible (à portée et en vue), sinon vers sa place d'attaque autour du monstre ; ancre à l'arrêt : vers la place d'attaque autour de l'agresseur le plus proche dans une laisse de 100 px autour de sa place, ou sur place s'il a déjà un monstre à portée et en vue ; puis sépare les personnages trop proches (`separerPersonnages`, qui délègue le calcul à `pousseesDeSeparation` : 34 px, poussée plafonnée à 120 px/s, sans obstacle dur) ; fait écouler le délai d'oubli des agresseurs ; le lanceur d'un skill en attente vise sa cible à la place (un soin entre ici en activation à l'arrivée, annulé si le lanceur ou la cible meurt ou si la cible est à pleine vie ; un personnage en exécution ou en activation reste sur place) ; les cercles des `monstres` sont les obstacles bloquants des personnages, jamais de l'ancre ; chaque personnage reçoit en plus `monstresAContourner` (privée) : les cercles de tous les monstres sauf celui qu'il approche (celui de sa place d'attaque, ou le verrou en combat), tous s'il n'en approche aucun |
 | `void dessiner(sf::RenderTarget& rendu, bool afficherAncre) const` | Dessine l'ancre (si `afficherAncre`) et les N personnages |
 | `std::optional<int> degagementDuPersonnage(std::size_t place) const` | Identifiant du monstre dont le personnage de cette place se dégage ; vide s'il ne se dégage pas ou si la place est invalide (lu par les tests) ; `[[nodiscard]]` |
 | `std::optional<sf::Vector2f> centreDuPersonnage(std::size_t place) const` | Centre du personnage de cette place, mort ou vivant ; vide si la place est invalide (position des événements de combat côté personnages) ; `[[nodiscard]]` |
@@ -869,12 +960,37 @@ et sortie des monstres).
 | `Formation(std::vector<sf::Vector2f> decalages, sf::Vector2f centre, float vitesseRotation)` | Orientation de départ 0 ; places de départ : les places théoriques autour de `centre`, sans repli (les personnages y naissent) |
 | `void regarderVers(sf::Vector2f point)` | Mémorise le point vers lequel la formation se tourne une fois l'ancre arrêtée |
 | `void oublierPointARegarder()` | Efface ce point ; appelée par `Escouade` à chaque nouvel ordre à l'ancre (`allerVers`, approche du verrou, `verrouiller`) |
-| `void choisirOrientation(std::optional<sf::Vector2f> directionDeMarche, sf::Vector2f centre)` | Avant le déplacement de l'ancre. Orientation voulue = la direction de marche ; à l'arrêt (vide), la direction du point à regarder s'il y en a un et qu'il n'est pas sur `centre` ; sinon inchangée |
-| `void mettreAJour(float dt, sf::Vector2f centre, const std::vector<float>& rayons, const TileMap& carte, const std::vector<Cercle>& monstres)` | Après le déplacement de l'ancre : rotation vers l'orientation voulue (plus court côté, au plus `m_vitesseRotation × dt`), puis places autour de `centre` : place théorique repliée (`replierVersOrigine`), remplacée si elle est à moins de 34 px d'une place déjà calculée ou dans un monstre par le premier point valide et libre des anneaux de 34, 68 et 102 px. `rayons` : un par personnage (`assert` sur la taille) |
+| `void mettreAJour(float dt, sf::Vector2f centre, std::optional<sf::Vector2f> directionDeMarche, const std::vector<float>& rayons, const TileMap& carte, const std::vector<Cercle>& monstres)` | Le seul appel par image, après le déplacement de l'ancre (étape 82.3). Orientation voulue (`choisirOrientation`) : la direction de marche ; à l'arrêt (vide), la direction du point à regarder s'il y en a un et qu'il n'est pas sur `centre` ; sinon inchangée. Puis rotation vers l'orientation voulue (plus court côté, au plus `m_vitesseRotation × dt`), puis places autour de `centre` : place théorique repliée (`replierVersOrigine`), remplacée si elle est à moins de 34 px d'une place déjà calculée ou dans un monstre par le premier point valide et libre des anneaux de 34, 68 et 102 px. `rayons` : un par personnage (`assert` sur la taille) |
 | `const std::vector<sf::Vector2f>& getPlaces() const` | Place de chaque personnage, dans l'ordre des décalages, calculée par le dernier `mettreAJour` ; `[[nodiscard]]` |
 
 Privées : `placeTheorique(indice, centre)` (`centre + m_decalages[indice].rotatedBy(m_orientation)`),
-`tourner(dt)`, `calculerPlaces(centre, rayons, carte, monstres)`.
+`choisirOrientation(directionDeMarche, centre)` (publique à l'étape 82.2), `tourner(dt)`,
+`calculerPlaces(centre, rayons, carte, monstres)`.
+
+### `PlacesDAttaque` (`escouade/`) — les places d'attaque autour des cibles
+
+`PlacesDAttaque.hpp` / `.cpp` (étape 82.3) : possédée par valeur par `Escouade` (`m_placesDAttaque`),
+sans héritage. Ne connaît ni `Personnage` ni `Escouade` ; vocabulaire neutre (assaillant, cible,
+occupant). Voir « Places d'attaque » et « Classe `PlacesDAttaque` » plus haut.
+
+Structures publiques, sans valeur par défaut (une initialisation désignée qui oublie un champ est
+signalée par `-Wmissing-field-initializers`) : `Place { int idCible; float rayon; sf::Angle angle; }`
+(place retenue : l'anneau et l'angle autour de la cible ; la position se recalcule depuis le centre
+actuel de la cible) ; `Approche { EntiteVue cible; std::size_t assaillant; Cercle cercleAssaillant;
+float portee; sf::Vector2f reference; }` (un assaillant, d'indice 0 à N-1, qui approche une cible avec
+une action de cette portée, bord à bord ; la première candidate est dans la direction de la cible
+vers `reference`).
+
+Données membres : `m_places` (`std::vector<std::optional<Place>>`, par assaillant ; vide = il
+n'approche aucune cible), `m_ecartMinimal` (`float`, pixels).
+
+| Fonction | Rôle |
+|---|---|
+| `PlacesDAttaque(std::size_t nombreDAssaillants, float ecartMinimal)` | Aucune place retenue ; `ecartMinimal` : distance en dessous de laquelle une place n'est pas libre (34 px dans le jeu) |
+| `std::optional<sf::Vector2f> placer(const Approche& approche, const std::optional<Place>& ancienne, const std::vector<std::optional<sf::Vector2f>>& occupants, const TileMap& carte)` | Point de la place d'attaque de l'assaillant, sur un anneau de rayon : rayon de la cible + rayon de l'assaillant + 90 % de la portée. L'angle d'`ancienne` est gardé si elle est autour de la même cible, valide et pas occupée ; sinon, la place valide (carré de l'assaillant hors mur, en vue du centre de la cible) et libre (à plus de `ecartMinimal` des places retenues des autres assaillants autour de cette cible, et des autres occupants) la plus proche de l'angle actuel de l'assaillant (`choisirAngleLibre`). `occupants` : par assaillant, son centre s'il occupe sa position, vide sinon ; celui de l'assaillant est ignoré (`assert` sur la taille). Trouvée, la place devient la place retenue de l'assaillant ; vide si aucune n'est libre, la place retenue ne change pas ; `[[nodiscard]]` |
+| `std::optional<Place> retirer(std::size_t assaillant)` | Efface la place retenue de l'assaillant et la renvoie (mécanisme d'oubli actuel, remplacé par les intentions en 82.4) |
+| `void retenir(std::size_t assaillant, const std::optional<Place>& place)` | Remet cette place comme place retenue de l'assaillant (même mécanisme) |
+| `std::optional<int> cibleApprochee(std::size_t assaillant) const` | Identifiant de la cible de sa place retenue, vide s'il n'en a pas ; lue par `Escouade::monstresAContourner`. Provisoire, remplacée par les intentions en 82.4 ; `[[nodiscard]]` |
 
 ### `Separation` (`escouade/`) — la séparation douce
 
@@ -894,7 +1010,8 @@ EtatDeSeparation::Absent; }`.
 
 `EcartEntrePersonnages.hpp` (étape 82.2) : `inline constexpr float s_ecartEntrePersonnages = 34.0f`,
 distance minimale voulue entre deux centres de personnages, entre deux places, ou entre une place et
-un personnage immobile. Inclus par `Escouade` et `Formation` sans qu'elles dépendent l'une de l'autre.
+un personnage immobile. Inclus par `Escouade` et `Formation` sans qu'elles dépendent l'une de l'autre ;
+`Escouade` le passe à la construction de `PlacesDAttaque` (étape 82.3).
 
 ### `Composition` (`escouade/`) — de quoi est faite l'escouade
 
@@ -922,7 +1039,7 @@ Classes : guerrier (`Avant`, rouge, armure 50, attaque de mêlée, `FrappePuissa
 
 ### `Encerclement` (`monde/`) — les places d'un anneau
 
-`Encerclement.hpp` / `.cpp` : trois fonctions libres, sans état, sans dépendance à `Escouade` ni à `Personnage` (réutilisable plus tard par des monstres qui encerclent). Utilisées par `Escouade` pour les places d'attaque autour d'un monstre et les places de formation de secours autour de l'ancre. Voir `docs/formation.md`.
+`Encerclement.hpp` / `.cpp` : trois fonctions libres, sans état, sans dépendance à `Escouade` ni à `Personnage` (réutilisable plus tard par des monstres qui encerclent). Utilisées par `PlacesDAttaque` pour les places d'attaque autour d'une cible (par `Escouade` avant l'étape 82.3) et par `Formation` pour les places de formation de secours autour de l'ancre (depuis l'étape 82.2). Voir `docs/formation.md`.
 
 | Fonction | Rôle |
 |---|---|

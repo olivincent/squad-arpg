@@ -19,7 +19,8 @@ fonctionnalités qui en ont besoin) et les décisions reportées sont dans `ROAD
 82.1 de l'étape 82 a traité D1 (`Vitalite`, `cercleDuRectangle` et `Mobile::getCercle`,
 `s_eclaircissementExecution` dans `Eclaircir.hpp` ; le trio d'attaque, qui relève de R4, et
 `s_pointsDeVieMax`, deux valeurs d'équilibrage indépendantes, n'ont pas été touchés). La partie
-82.2 a fait le premier pas de R1 : le groupe (a), la formation (voir R1, « Suivi »).
+82.2 a fait le premier pas de R1 : le groupe (a), la formation (voir R1, « Suivi ») ; la partie 82.3
+le deuxième : le groupe (b), les places d'attaque.
 
 Référentiels : C++ Core Guidelines, SOLID (surtout responsabilité unique et inversion des
 dépendances), cohésion et couplage, DRY, règle du zéro, sémantique de valeur, *Game Programming
@@ -336,6 +337,21 @@ font poursuivre 30 monstres durent environ 1,2 s chacun en `-O0`.
     (904 → 927 avec les 23 tests de `Formation` et `Separation`). `Escouade.cpp` : 1 223 → 1 112
     lignes. Les tests de rotation et de places d'`Escouade` restent le filet ; les doublons seront
     triés en 82.5.
+  - **82.3, groupe (b) fait** : `Formation` d'abord perd son dernier ordre d'appel (un seul
+    `mettreAJour`, qui reçoit la direction de marche lue par `Escouade` avant le déplacement de
+    l'ancre ; `choisirOrientation` privée ; résultat identique, les tests de `Formation` n'ont changé
+    que la forme de leurs appels). Puis `PlacesDAttaque` (`escouade/PlacesDAttaque`) : les places
+    retenues de tous les assaillants et le contenu de `pointVersMonstre` (`placer`), avec
+    `s_fractionPorteeAnneau`. Elle ne reçoit que de la géométrie : une `Approche` (cible en
+    `EntiteVue`, indice et cercle de l'assaillant, portée, point de référence) en initialisation
+    désignée (C2), l'ancienne place, les occupants (`std::vector<std::optional<sf::Vector2f>>` : centre
+    d'un vivant immobile, plutôt que la `struct Occupant` proposée) et la carte ; l'écart minimal à
+    la construction. « Aucune place libre » est un `std::optional` vide. Le mécanisme d'oubli
+    (`pointVoulu` retire la place puis la renouvelle ou non) est déplacé tel quel (`retirer`,
+    `retenir`, `cibleApprochee` provisoire) ; il est décrit dans `docs/formation.md` pour 82.4.
+    `pointVersAgresseur`, `monstresAContourner` et `porteeDe` restent dans `Escouade`, qui y ajoute
+    deux traductions (`approcheDe`, `occupants`). 927 → 940 tests (13 de `PlacesDAttaque`), aucun
+    test d'`Escouade` modifié. `Escouade.cpp` : 1 112 → 1 069 lignes.
 
 ### R2 — Couplage temporel entre `attaquer` et `mettreAJour`
 - **Constat** : `Escouade.hpp` l. 30–33 impose « `attaquer()` AVANT `mettreAJour()` » parce que
@@ -1291,3 +1307,15 @@ répartition par règle inchangés ; aucun avertissement dans `Vitalite`, `cercl
 avertissement dans `Formation`, `Separation` ni `EcartEntrePersonnages.hpp`. Le premier passage en
 trouvait un dans `Separation.hpp` (`cppcoreguidelines-pro-type-member-init` : `MembreASeparer::etat`
 sans valeur par défaut, comme `Cercle`) : `etat` vaut `Absent` par défaut. `Escouade.cpp` en garde 8.
+
+### Après la partie 82.3
+
+**60 avertissements**, même mesure (48 sources : `escouade/PlacesDAttaque.cpp` en plus). Un de plus,
+tous `cppcoreguidelines-pro-type-member-init` (11 → 12) : la structure privée `PlaceDAttaque`
+d'`Escouade.hpp` (déjà comptée) est devenue `PlacesDAttaque::Place`, avec le même avertissement, et
+la nouvelle `PlacesDAttaque::Approche` en ajoute un (`assaillant` et `portee` sans valeur initiale).
+Gardé exprès : ces structures se remplissent en initialisation désignée, et sans valeur par défaut,
+GCC signale un champ oublié (`-Wmissing-field-initializers`, vérifié) ; une valeur par défaut (0)
+rendrait l'oubli silencieux. Contrairement à `MembreASeparer::etat` (82.2), aucun de ces champs
+n'a de valeur par défaut qui ait un sens. `Escouade.cpp` en garde 8 (les mêmes règles), le reste de
+la répartition est inchangé.

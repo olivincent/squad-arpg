@@ -73,9 +73,11 @@ personnages sont dans `docs/formation.md`, le monstre dans
   - **les frappes, verrou ou non** : voir « Autodéfense ».
 - **Les morts sont ignorés pour l'arrêt** (voir `docs/formation.md`).
 - **Frapper se fait en deux temps** depuis l'étape 57 (voir « Temps d'exécution et coup engagé »).
-- **La formation tient pendant l'attaque** : les personnages continuent
-  de viser leur place (`placePersonnage`), sauf ceux déjà à portée du
-  monstre verrouillé, qui restent sur place.
+- **Placement pendant l'attaque** : un personnage qui atteint déjà le
+  monstre verrouillé (à portée et en vue) reste sur place ; les autres
+  marchent vers leur place d'attaque autour de lui (depuis l'étape 67 ;
+  `PlacesDAttaque` depuis l'étape 82.3), et non plus vers leur place de
+  formation. Voir `docs/formation.md`, « Places d'attaque ».
 
 ## Autodéfense
 
@@ -871,7 +873,9 @@ l'enfoncerait dans un obstacle.
   l'attaque de base. Un seul skill en attente pour toute l'escouade, comme avant.
 - **`Escouade::peutAtteindre`, `porteeDe` et `pointVersMonstre`** prennent un
   `std::optional<IdSkill>` à la place de `TypeAction` : vide = attaque de base, sinon le
-  skill. `TypeAction` ne sert plus qu'à `ActionEngagee`.
+  skill. `TypeAction` ne sert plus qu'à `ActionEngagee`. Depuis l'étape 82.3,
+  `pointVersMonstre` n'existe plus : c'est `Escouade::approcheDe` qui reçoit l'`IdSkill` et
+  passe la portée à `PlacesDAttaque` (`docs/formation.md`).
 - **`effetDuSkill` reçoit l'`IdSkill`** lu dans l'action engagée : la zone de provocation
   et le rayon de la zone d'explosion sont ceux du skill qui part, plus ceux « du skill du
   personnage ».
