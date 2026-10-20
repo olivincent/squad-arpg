@@ -8,7 +8,7 @@
 inline constexpr int s_armureMonstresParDefaut = 20;
 
 // Un monstre du niveau : où il commence et à quel groupe il appartient.
-struct MonstreDuNiveau {
+struct MonstreDuNiveau {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
     sf::Vector2f position; // centre, en pixels du monde
     int groupe;            // identifiant opaque : même valeur = « vont ensemble »
 

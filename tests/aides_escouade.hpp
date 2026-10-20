@@ -157,6 +157,17 @@ inline Escouade uneEscouadeAuSoinCourt(sf::Vector2f positionDepart) {
     return Escouade(positionDepart, std::move(composition));
 }
 
+// Un coup du monstre `idMonstre`, posté en `origine`, sur la proie que l'escouade lui donne
+// (proieDuMonstre : provocateur, sinon le plus proche). Renvoie les dégâts subis ; 0 si personne n'est
+// touchable. Le chemin d'un coup de Partie, sans Partie.
+inline int infliger(Escouade& escouade, int idMonstre, sf::Vector2f origine, int quantite) {
+    const std::optional<EntiteVue> proie = escouade.proieDuMonstre(idMonstre, origine);
+    if (!proie.has_value()) {
+        return 0;
+    }
+    return escouade.recevoirCoup(idMonstre, static_cast<std::size_t>(proie->id), quantite);
+}
+
 // Simule le temps qui passe par tics de 1/60 s, pendant la durée demandée.
 // Les tests passent une durée généreuse par rapport au trajet attendu et ne
 // vérifient que l'état final.

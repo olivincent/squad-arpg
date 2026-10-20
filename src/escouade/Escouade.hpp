@@ -51,14 +51,16 @@ public:
     [[nodiscard]] std::vector<AdresseSkill> adressesDesSkills() const;
     // Couleur du personnage de cette place ; vide si la place est invalide.
     [[nodiscard]] std::optional<sf::Color> couleurDuPersonnage(std::size_t place) const;
-    // Points de vie du personnage de cette place ; vide si la place est invalide.
+    // Points de vie du personnage de cette place ; vide si la place est invalide. Lu par les tests : le
+    // seul accesseur des points de vie (le jeu les montre par la barre de vie dessinée).
     [[nodiscard]] std::optional<int> pointsDeVieDuPersonnage(std::size_t place) const;
     [[nodiscard]] float rayonZoneDuSkill(AdresseSkill adresse) const;
     [[nodiscard]] Cercle cercleDePorteeDuSkill(AdresseSkill adresse) const;
     [[nodiscard]] std::vector<Coup> declencherSkillDeZone(AdresseSkill adresse, sf::Vector2f point, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
     // Les monstres tels que mettreAJour les reçoit, en trois listes nommées (on ne peut pas en
-    // inverser deux). `ciblables` n'a pas de valeur par défaut : l'omettre dans une initialisation
-    // désignée est signalé par le compilateur (-Wmissing-field-initializers).
+    // inverser deux). Aucun champ n'a de valeur par défaut : en omettre un dans une initialisation
+    // désignée est signalé par le compilateur (-Wmissing-field-initializers). Si Partie oubliait
+    // `deControle`, plus aucun personnage ne se dégagerait, sans aucune erreur.
     struct VueDesMonstres {
         // Tous les monstres, même ceux qui rentrent à leur poste : ils bloquent les personnages, et
         // chacun contourne en plus tous ceux qu'il n'approche pas.
@@ -68,7 +70,7 @@ public:
         std::vector<EntiteVue> ciblables;
         // Ceux que la règle des zones de contrôle voit, avec leur zone ; Partie y met la photo du
         // début de l'image. Vide : aucun personnage ne se dégage.
-        std::vector<EntiteDeControle> deControle = {};
+        std::vector<EntiteDeControle> deControle;
     };
     void mettreAJour(float dt, const TileMap& carte, const VueDesMonstres& monstres);
     [[nodiscard]] sf::Vector2f getCentre() const;
@@ -78,10 +80,10 @@ public:
     // provocateur s'il est provoqué et vivant, sinon tous les personnages vivants.
     [[nodiscard]] std::vector<EntiteVue> candidatsDeFrappe(int idMonstre) const;
     [[nodiscard]] bool placeEstVivante(std::size_t place) const;
-    // Renvoient les dégâts réellement subis (après armure) ; 0 si personne n'est touché.
-    int recevoirDegats(int idMonstre, sf::Vector2f origine, int quantite);
-    // Comme recevoirDegats, mais sur le personnage de cette place (un coup engagé).
-    int recevoirCoup(int idMonstre, std::size_t place, sf::Vector2f origine, int quantite);
+    // Un coup du monstre `idMonstre` sur le personnage de cette place. Renvoie les dégâts réellement
+    // subis (après armure) ; 0 si la place est invalide ou morte. Un coup qui fait des dégâts désigne
+    // son auteur comme agresseur.
+    int recevoirCoup(int idMonstre, std::size_t place, int quantite);
     [[nodiscard]] bool estVivante() const;
     [[nodiscard]] std::vector<Cercle> cerclesDesVivants() const;
     // Une entité de contrôle (identifiant = place de 1 à N, cercle, zone de contrôle) par personnage
@@ -94,19 +96,23 @@ public:
     [[nodiscard]] std::vector<Cercle> cerclesDeVision() const;
     // Un personnage vivant est-il à `ecart` ou moins (bord à bord) de cette zone ?
     [[nodiscard]] bool unVivantPresDe(sf::FloatRect zone, float ecart) const;
+    // Lu par les tests : le choix de la cible, avant tout temps d'activation (declencherSkill l'appelle aussi).
     [[nodiscard]] std::optional<Cible> choisirCible(TypeSkill type, AdresseSkill adresse, const std::vector<EntiteVue>& monstres, const TileMap& carte) const;
     void verrouiller(int idCible);
     void deverrouiller();
     [[nodiscard]] std::optional<int> getCibleVerrouillee() const;
+    // Les places de formation du dernier mettreAJour. Lu par les tests : la Formation est extraite, mais
+    // l'assemblage (Escouade la met à jour avec la direction de marche et les obstacles) ne s'observe que là.
     [[nodiscard]] const std::vector<sf::Vector2f>& getPlacesDeFormation() const;
     // Identifiant du monstre dont le personnage de cette place se dégage (voir degagementVoulu) ;
-    // vide s'il ne se dégage pas ou si la place est invalide. Lu par les tests.
+    // vide s'il ne se dégage pas ou si la place est invalide. Lu par les tests : la règle de départ et de
+    // fin du dégagement (degagementVoulu) n'est pas extraite, son résultat ne se voit que là.
     [[nodiscard]] std::optional<int> degagementDuPersonnage(std::size_t place) const;
     // Centre du personnage de cette place (de 1 à N), mort ou vivant ; vide si la place est invalide.
     [[nodiscard]] std::optional<sf::Vector2f> centreDuPersonnage(std::size_t place) const;
     // Un soin appliqué : le personnage soigné (sa place), les points réellement rendus (jamais 0) et
     // son centre à ce moment. Données de sortie, comme les `Coup` : Escouade ne sait pas qui les lit.
-    struct SoinApplique {
+    struct SoinApplique {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
         std::size_t place;
         int montant;
         sf::Vector2f position;
@@ -116,13 +122,17 @@ public:
     [[nodiscard]] std::vector<SoinApplique> prendreSoins();
     // Point vers lequel le personnage de cette place (de 1 à N) marche, calculé par le dernier
     // mettreAJour : place de formation, place d'attaque, cible du skill en attente, ou sa
-    // propre position s'il reste sur place. Vide si la place est invalide.
+    // propre position s'il reste sur place. Vide si la place est invalide. Lu par les tests : la
+    // résolution intention -> point est l'assemblage d'Escouade, que ni Intention ni PlacesDAttaque ne voient.
     [[nodiscard]] std::optional<sf::Vector2f> pointVise(std::size_t place) const;
     // Débogage : un trait fin du centre de chaque personnage vivant à son point visé, et un petit
     // cercle à ce point.
     void dessinerPointsVises(sf::RenderTarget& rendu) const;
+    // Lu par les tests : le contenu de la mémoire (identifiant et minuterie) ; par le comportement, il
+    // exigerait des simulations de plusieurs secondes.
     [[nodiscard]] const std::vector<Agresseurs::Agresseur>& getAgresseurs() const;
     void provoquer(int idMonstre, std::size_t place, float duree);
+    // Lu par les tests : le provocateur, l'identifiant et la durée restante, que candidatsDeFrappe ne montre pas.
     [[nodiscard]] const std::vector<Provocations::Provocation>& getProvocations() const;
 
 private:
@@ -168,7 +178,7 @@ private:
     struct ContexteDesIntentions {
         bool ancreArretee;
         std::optional<EntiteVue> verrou;         // le monstre verrouillé, s'il est ciblable
-        std::vector<EntiteVue> agresseurs;       // la mémoire des agresseurs
+        std::vector<EntiteVue> agresseurs;       // la mémoire des agresseurs qui sont ciblables, avec leur cercle
         std::optional<IntentionDuSkill> skill;   // l'intention du lanceur du skill en attente
     };
     [[nodiscard]] std::optional<EntiteVue> confirmerDegagement(std::size_t indice,
@@ -182,7 +192,7 @@ private:
                                                     const std::vector<EntiteVue>& ciblables,
                                                     const TileMap& carte) const;
     // Le point visé par une intention et, pour une approche, si une place d'attaque a été trouvée.
-    struct PointVise {
+    struct PointVise {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
         sf::Vector2f point;
         bool placeTrouvee;
     };

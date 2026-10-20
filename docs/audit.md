@@ -21,7 +21,9 @@ fonctionnalités qui en ont besoin) et les décisions reportées sont dans `ROAD
 `s_pointsDeVieMax`, deux valeurs d'équilibrage indépendantes, n'ont pas été touchés). La partie
 82.2 a fait le premier pas de R1 : le groupe (a), la formation (voir R1, « Suivi ») ; la partie 82.3
 le deuxième : le groupe (b), les places d'attaque ; la partie 82.4 le troisième : le groupe (c), la
-décision, avec R2 (voir R1 et R2, « Suivi »).
+décision, avec R2 (voir R1 et R2, « Suivi ») ; la partie 82.5 a fermé R2 (la mémoire des agresseurs
+par identifiant), traité D3 et marqué les avertissements voulus de `clang-tidy` (41 restants). R5 est
+rattachée à R4.
 
 Référentiels : C++ Core Guidelines, SOLID (surtout responsabilité unique et inversion des
 dépendances), cohésion et couplage, DRY, règle du zéro, sémantique de valeur, *Game Programming
@@ -404,14 +406,16 @@ font poursuivre 30 monstres durent environ 1,2 s chacun en `-O0`.
   (`approcherVerrou` et `autodefense` dans `attaquer`, `situationDe` dans `mettreAJour`), sur les
   monstres **ciblables**. Contrairement à ce que supposait la proposition, `mettreAJour` ne les avait
   pas : il recevait les physiques, où un monstre qui rentre à son poste aurait compté comme à portée.
-  Il les reçoit maintenant dans une `VueDesMonstres { physiques; ciblables; deControle = {}; }` : trois
-  listes nommées, `ciblables` sans valeur par défaut (son oubli est signalé par
-  `-Wmissing-field-initializers`). `avancerSkillEnAttente` renvoie l'intention du lanceur avec son
+  Il les reçoit maintenant dans une `VueDesMonstres { physiques; ciblables; deControle; }` : trois
+  listes nommées, sans valeur par défaut (l'oubli d'un champ est signalé par
+  `-Wmissing-field-initializers` ; `deControle` a perdu la sienne en 82.5). `avancerSkillEnAttente` renvoie l'intention du lanceur avec son
   indice (`IntentionDuSkill`) : l'invariant implicite a disparu. Le commentaire « `attaquer()` AVANT
   `mettreAJour()` » a été retiré ; `Partie` garde son ordre. Écart accepté : un monstre tué par les
-  coups d'`attaquer` ne compte plus « à portée » dans le `mettreAJour` de la même image. Reste un
-  canal : la mémoire des agresseurs, dont `attaquer` actualise les cercles (une image de retard au
-  plus si l'ordre était inversé ; piste notée dans `docs/formation.md`, « Intentions »).
+  coups d'`attaquer` ne compte plus « à portée » dans le `mettreAJour` de la même image. **Fermé en
+  82.5** : le dernier canal, la mémoire des agresseurs, ne garde plus que l'identifiant et la minuterie
+  (`Agresseurs::enregistrer(id)`) ; la position est lue dans les ciblables que `mettreAJour` reçoit
+  (`vusParmi`). L'argument du brouillard, qui avait fait renoncer en 82.4, était faux : les ciblables ne
+  sont pas filtrés par la vision. Un agresseur absent des ciblables est ignoré pour l'image.
 
 ### R3 — `Partie` accumule plusieurs rôles
 - **Constat** : `Partie` (436 lignes, 16 fonctions publiques, 18 privées, 11 membres) est à la fois
@@ -505,6 +509,9 @@ font poursuivre 30 monstres durent environ 1,2 s chacun en `-O0`.
 - **Risque et tests touchés** : faible mais large : presque tous les tests d'`Escouade` et de
   `Partie` changent d'écriture.
 - **Dépend de** : R1.
+- **Suivi** : **rattachée à R4 (décision de 82.5)** : les deux touchent les mêmes signatures
+  (`AdresseSkill`, `Cible`, `EntiteVue`, identifiants des intentions) ; on ne les modifie qu'une fois,
+  en première sous-étape de la fonctionnalité qui a besoin de R4.
 
 ### R6 — `EcranJeu` mélange décisions pures et appels SFML
 - **Constat** : `EcranJeu::traiterEvenement` (50 lignes) décide en un seul `if` en cascade quelle
@@ -672,6 +679,16 @@ font poursuivre 30 monstres durent environ 1,2 s chacun en `-O0`.
 - **Coût** : moyen (principalement mécanique).
 - **Risque et tests touchés** : touche ~100 appels de tests, sans changer leur logique.
 - **Dépend de** : R1.
+- **Suivi** : **fait en 82.5.** (a) `Escouade::recevoirDegats` est retirée, avec l'aide `infliger`
+  dans `tests/aides_escouade.hpp` (remplacement mécanique des appels). (c) `VueDesMonstres::deControle`
+  n'a plus de valeur par défaut : si `Partie` l'oubliait, le dégagement disparaîtrait sans aucune
+  erreur ; les tests écrivent `.deControle = {}`. (b) Les autres fonctions sont gardées, chacune avec
+  la raison (aucun type extrait ni accesseur du jeu ne permet de vérifier la propriété autrement) et
+  la mention « lu par les tests » dans son commentaire : `getPlacesDeFormation` et `pointVise`
+  (l'assemblage d'`Escouade`), `degagementDuPersonnage` (`degagementVoulu` n'est pas extraite),
+  `pointsDeVieDuPersonnage` (seul accesseur des points de vie), `getAgresseurs` et `getProvocations`
+  (contenu et minuteries), `choisirCible`, `Partie::getMonstres`. Règle pour la suite : `docs/tests.md`,
+  « Étape 82.5 ».
 
 ### D4 — Les trois écrans de menu répètent le même patron
 - **Constat** : `EcranMenu`, `EcranOptions` et `EcranChoixEscouade` ont chacun le même
@@ -1363,3 +1380,22 @@ répartition changée :
   dans `pointVoulu` (`m_skillEnAttente` et `m_cibleCombat`) ont disparu avec la fonction.
 
 `Escouade.cpp` en garde 6 (8 avant) ; aucun dans `Intention.cpp`. Le reste est inchangé.
+
+### Après la partie 82.5
+
+**59 avertissements** avant les marques, **41** après (même mesure, 49 sources). Un de moins qu'en 82.4
+(`pro-type-member-init` 14 → 13) : `Agresseurs::Agresseur` a changé de forme (identifiant et minuterie,
+plus d'`EntiteVue`) ; la cause exacte n'a pas été recherchée. Les 18 retirés sont des avertissements
+**voulus**, marqués un par un par `// NOLINT(règle): raison` sur la ligne même, plutôt que la règle
+exclue pour tout le projet :
+- `cppcoreguidelines-pro-type-member-init`, 13 : les structures laissées sans valeur par défaut exprès
+  (`Cercle`, `CibleMonstre`, `EntiteDeControle`, `EntiteVue`, `EvenementDeCombat`, `SoinApplique`,
+  `PointVise`, `SituationDuPersonnage`, `PlacesDAttaque::Place` et `Approche`, `TexteFlottant`,
+  `MonstreDuNiveau`, `CoteDAnneau`) : une valeur par défaut rendrait l'oubli d'un champ silencieux, alors
+  que GCC le signale (`-Wmissing-field-initializers`) ;
+- `bugprone-unchecked-optional-access`, 5 : l'accès qui suit un `assert` (sous MinGW, `_assert` n'est pas
+  déclaré `noreturn`, l'outil ne voit pas la vérification).
+
+Reste 41 : `use-default-member-init` (12), `misplaced-widening-cast` (5), `inefficient-vector-operation`
+(5), `avoid-const-or-ref-data-members` (4), `implicit-widening-of-multiplication-result` (3), et 12 autres
+(une ou deux de chaque règle).

@@ -117,19 +117,20 @@ personnages sont dans `docs/formation.md`, le monstre dans
   un tireur à l'arrière laissait les mêlées plantées à leur place. Les
   personnages vont maintenant vers ceux qui les frappent.
 - **`Escouade` retient ses agresseurs** dans un `Agresseurs` (étape 51,
-  `m_agresseurs`, fichiers à part : par agresseur un `EntiteVue` et le
-  temps restant) sans connaître `Monstre` : `recevoirDegats`
-  reçoit l'identifiant du monstre, `main.cpp` reste l'intermédiaire. Un
+  `m_agresseurs`, fichiers à part : par agresseur un identifiant et le
+  temps restant) sans connaître `Monstre` : `recevoirCoup`
+  reçoit l'identifiant du monstre, `Partie` reste l'intermédiaire. Un
   coup de dégâts `> 0` ajoute l'agresseur ou remet son temps à 3 s
-  (`s_dureeMemoire`, dans `Agresseurs.cpp`) ; un coup à 0 n'enregistre rien. À
-  l'enregistrement le cercle n'a que le centre (rayon nul, `recevoirDegats`
-  n'a que l'origine) ; `attaquer` le met à jour à l'image suivante.
+  (`s_dureeMemoire`, dans `Agresseurs.cpp`) ; un coup à 0 n'enregistre rien. **Depuis 82.5 la
+  mémoire ne garde aucune position** : elle est lue, au moment de s'en servir, dans les monstres
+  ciblables que `mettreAJour` reçoit.
 - **Oubli** : le temps s'écoule dans `mettreAJour` ; un agresseur absent
-  de `monstresVus` (monstre mort) est retiré dans `attaquer`
-  (`Agresseurs::actualiser`). Depuis l'étape 51, la liste de `EntiteVue`
-  que lit `choisirAgresseurAViser` est construite une fois par image
-  (`Agresseurs::monstresVus`, dans `mettreAJour`), non plus une fois par
-  personnage.
+  des monstres reçus par `attaquer` (monstre mort, ou qui rentre à son poste) est retiré
+  (`Agresseurs::retirerMonstresAbsents`). La liste de `EntiteVue` que lit
+  `choisirAgresseurAViser` est construite une fois par image (`Agresseurs::vusParmi(ciblables)`,
+  dans `mettreAJour`), non plus une fois par personnage ; un agresseur encore en mémoire mais absent
+  des ciblables (mort dans l'image, par les coups d'`attaquer`) est ignoré pour l'image : plus
+  personne ne marche vers sa dernière position.
 - **Choix de la cible** : `choisirAgresseurAViser` (module `Autodefense`,
   fonction libre testée seule) garde les agresseurs dont le centre est à
   100 px ou moins (`s_laisseAgresseur`) de la **place en formation** du
@@ -150,7 +151,9 @@ personnages sont dans `docs/formation.md`, le monstre dans
 - **Règle générique** : aucun type « mêlée / tireur » ; un tireur à 120 px
   ne bouge presque jamais, un mêlée va au contact. Même `Mobile` que les
   autres déplacements (mêmes blocages).
-- **Limites connues** : l'ancre ne bouge pas vers l'agresseur ; pas de
+- **Limites connues** : le contournement des monstres évite leur cercle, pas leur zone de contrôle
+  (un personnage peut la frôler et subir l'attaque d'opportunité ; piste : la « stratégie d'attaque »
+  par type de monstre, `docs/brainstorm.md`, section 4 bis) ; l'ancre ne bouge pas vers l'agresseur ; pas de
   poursuite au-delà de la laisse ; l'ancre est « à l'arrêt » dès que son
   chemin est fini, même un instant ; un agresseur qui frappe depuis plus
   de 100 px de la place d'un personnage n'attire pas celui-ci.
@@ -376,8 +379,9 @@ personnages sont dans `docs/formation.md`, le monstre dans
   retraits sont des fonctions de `Provocations`.
 - **Une seule règle pour la proie** : `indiceProieDuMonstre(id,
   position)` renvoie le provocateur s'il est vivant, sinon le vivant le
-  plus proche. `proieDuMonstre` (demande de `main.cpp`) et
-  `recevoirDegats` s'en servent. Si le provocateur est mort entre-temps,
+  plus proche. `proieDuMonstre` (demande de `Partie`) et
+  `candidatsDeFrappe` s'en servent (`Escouade::recevoirDegats`, retirée en 82.5, aussi : les tests
+  passent par l'aide `infliger`). Si le provocateur est mort entre-temps,
   la règle retombe tout de suite sur le plus proche, même avant le
   retrait de la provocation.
 - **Le reste du monstre ne change pas** : détection, territoire, abandon
@@ -508,7 +512,7 @@ personnages sont dans `docs/formation.md`, le monstre dans
   atteignent la cible, et un personnage s'arrête individuellement quand
   lui l'atteint. Un tireur à portée sans vue ne s'arrête donc pas, et
   l'ancre continue d'avancer jusqu'à ce que tous voient la cible.
-- **Agresseurs** : « un monstre à portée » (`m_monstreAPortee` jusqu'à l'étape 82.4) exige aussi la vue ; un personnage
+- **Agresseurs** : « un monstre à portée » (calculé par `mettreAJour` depuis 82.4) exige aussi la vue ; un personnage
   qui ne voit pas son agresseur va vers lui (dans la laisse de 100 px,
   ancre à l'arrêt, comme avant).
 - **Skill de dégâts** : avec un verrou, départ immédiat ou en attente
@@ -754,13 +758,13 @@ image).
   si ce monstre est provoqué, sinon du vivant le plus proche) et
   `escouade.candidatsDeFrappe(...)`, puis met le monstre à jour. Puis `faireFrapperLeMonstre` : si un coup est engagé, il
   avance (annulé si le personnage visé est mort) et, au départ, `Partie`
-  appelle `escouade.recevoirCoup(id, place, origine, dégâts)` sur la place
+  appelle `escouade.recevoirCoup(id, place, dégâts)` sur la place
   retenue à l'engagement ; sinon, un monstre immobile avec une cible de
   frappe à portée et en vue engage un coup sur la place choisie par
   `Monstre` (`choisirCibleAFrapper`).
   L'armure du personnage touché réduit ensuite le coup (voir plus haut).
 - **Ce qui est réellement appliqué** (étape 79) : `Monstre::recevoirDegats`, `Personnage::recevoirDegats`,
-  `recevoirSoin`, `Escouade::recevoirCoup` et `recevoirDegats` renvoient le montant appliqué (voir
+  `recevoirSoin`, et `Escouade::recevoirCoup` renvoient le montant appliqué (voir
   « Événements de combat »).
 - **Un monstre frappe qu'il soit lui-même attaqué ou non** : sa riposte
   ne dépend ni du verrou, ni de son statut — uniquement de la distance
@@ -948,7 +952,7 @@ l'enfoncerait dans un obstacle.
   monstre), armure de la cible appliquée par le `recevoirDegats` habituel. Il ne touche **ni la recharge
   ni le coup en cours** de l'attaquant, et n'interrompt pas l'action de la cible. Pas de ligne de vue
   exigée : les deux étaient au contact. Côté personnage touché : `Escouade::recevoirCoup(idMonstre, place,
-  origine, degats)`, donc le monstre devient agresseur comme après un coup normal ; côté monstre :
+  degats)`, donc le monstre devient agresseur comme après un coup normal ; côté monstre :
   `Monstre::recevoirDegats`, qui l'alerte. Les accesseurs de puissance (`getPuissanceAttaqueDeBase`,
   `getPuissanceAttaque`) sont des lectures : la recharge ne peut pas être touchée par construction.
 - **Module pur `Engagement`** (voir « Référence des modules ») : une photo (`PhotoDesCamps`) des attaquants et des
@@ -1342,15 +1346,15 @@ provocateur de 1 à N, `tempsRestant`).
 ### `Agresseurs` (`escouade/`) — les monstres qui ont frappé l'escouade
 
 Possédée par valeur par `Escouade`. Données privées : `m_agresseurs`
-(`std::vector<Agresseur>`, structure publique : `EntiteVue monstre`,
-`tempsRestant`). Mémoire de 3 s sans nouveau coup du même monstre.
+(`std::vector<Agresseur>`, structure publique : `int id`, `float tempsRestant`). Mémoire de 3 s
+sans nouveau coup du même monstre. Aucune position (82.5).
 
 | Fonction | Rôle |
 |---|---|
-| `void enregistrer(int id, sf::Vector2f origine)` | Ajoute l'agresseur (cercle de rayon nul centré sur l'origine du coup), ou remet son temps à 3 s et son centre à l'origine s'il est connu. La règle « coup à 0 = rien » reste dans `Escouade::recevoirDegats` |
+| `void enregistrer(int id)` | Ajoute l'agresseur, ou remet son temps à 3 s s'il est connu. La règle « coup à 0 = rien » reste dans `Escouade::recevoirCoup` |
 | `void mettreAJour(float dt)` | Fait écouler le temps ; oublie les agresseurs échus |
-| `void actualiser(const std::vector<EntiteVue>& monstres)` | Oublie les absents (morts) et met à jour le cercle des autres |
-| `std::vector<EntiteVue> monstresVus() const` | Les agresseurs en `EntiteVue` ; `Escouade::mettreAJour` l'appelle une fois par image |
+| `void retirerMonstresAbsents(const std::vector<EntiteVue>& monstres)` | Oublie les agresseurs absents de la liste (morts, ou plus ciblables) |
+| `std::vector<EntiteVue> vusParmi(const std::vector<EntiteVue>& monstres) const` | Les agresseurs sous la forme d'`EntiteVue`, avec le cercle qu'ils ont dans cette liste, dans l'ordre d'enregistrement ; un agresseur absent de la liste est ignoré (et gardé en mémoire) ; `Escouade::mettreAJour` l'appelle une fois par image avec les ciblables ; `[[nodiscard]]` |
 | `const std::vector<Agresseur>& liste() const` | Agresseurs retenus |
 
 ### `Skill` (`combat/`) — une capacité spéciale

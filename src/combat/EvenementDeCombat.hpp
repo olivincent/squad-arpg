@@ -12,7 +12,7 @@ enum class Camp { Escouade, Monstres };
 // `montant` : ce qui a réellement été appliqué (armure comprise, soin plafonné), jamais 0.
 // `position` : COPIE du centre de la cible à ce moment ; aucune référence vers l'entité, qui peut
 // disparaître dans la même image (monstre tué par ce coup). `opportunite` : coup gratuit.
-struct EvenementDeCombat {
+struct EvenementDeCombat {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
     TypeEvenement type;
     Camp campCible;
     int idCible;

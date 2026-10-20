@@ -126,9 +126,17 @@ Paquet MSYS2 `mingw-w64-ucrt-x86_64-clang-tools-extra` (LLVM 23).
 - **Commande**, une source à la fois, depuis la racine : `clang-tidy -p build/jeu src/escouade/Escouade.cpp`
   (base de compilation du preset `jeu`). Le décompte par règle est dans `docs/audit.md`
   (« clang-tidy, premier passage »).
+- **Piège du PATH** : compiler et lancer les tests depuis le shell **MSYS2 UCRT64** (la console du
+  projet), pas depuis Git Bash. Le `/mingw64/bin` de Git, placé en tête du `PATH`, fait charger de
+  mauvaises DLL à `tests.exe` (et à `main.exe`) : Windows affiche « le point d'entrée de la procédure
+  est introuvable » dans une DLL, ou le programme sort en 127. Depuis un autre shell :
+  `C:/msys64/usr/bin/bash.exe -lc 'export MSYSTEM=UCRT64; export PATH=/ucrt64/bin:$PATH; cd <projet> && ctest --preset debug'`.
 - **Limite connue** : l'`assert` de MinGW appelle `_assert`, qui n'est pas déclaré `noreturn` ;
   `bugprone-unchecked-optional-access` ne voit donc pas un `assert` comme une vérification et signale
-  l'accès qui le suit (7 cas, tous des invariants vérifiés par un `assert`).
+  l'accès qui le suit (7 cas, tous des invariants vérifiés par un `assert`). Depuis l'étape 82.5, ces
+  cas, comme les structures laissées sans valeur par défaut exprès (`pro-type-member-init`), sont
+  marqués un par un par `// NOLINT(règle): raison` sur la ligne (59 avertissements avant, 41 après) ;
+  aucune règle n'est exclue pour cela.
 
 ## Choix de SFML plutôt que raylib
 

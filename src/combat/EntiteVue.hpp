@@ -5,7 +5,7 @@
 
 // Une entité telle que l'autre camp la voit : son identifiant (celui d'un
 // monstre, ou la place 1 à N d'un personnage) et sa forme.
-struct EntiteVue {
+struct EntiteVue {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
     int id;
     Cercle cercle;
 };

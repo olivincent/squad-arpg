@@ -3,7 +3,7 @@
 #include <SFML/Graphics/Rect.hpp>
 #include <SFML/System/Vector2.hpp>
 
-struct Cercle {
+struct Cercle {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
     sf::Vector2f centre;
     float rayon;
     bool operator==(const Cercle&) const = default;

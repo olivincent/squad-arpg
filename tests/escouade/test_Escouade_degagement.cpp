@@ -79,8 +79,8 @@ int coupsDuMage(const std::vector<Coup>& coups) {
 
 // Le monstre a frappé le guerrier : il est un agresseur, comme dans une vraie partie. Sans cela, un mage
 // qui a fini de se dégager retournerait vers sa place de formation, au contact.
-void lAgresseEstConnu(Escouade& escouade, const UnMonstre& monstre) {
-    escouade.recevoirCoup(1, s_guerrier, monstre.cercle.centre, 1);
+void lAgresseEstConnu(Escouade& escouade) {
+    escouade.recevoirCoup(1, s_guerrier, 1);
 }
 
 // Le monstre est entre le guerrier et le mage : il engage les deux (pas le prêtre).
@@ -96,7 +96,7 @@ TEST_CASE("Degagement : le mage au contact d'un monstre tenu par le guerrier se 
     REQUIRE(engageLaPlace(escouade, monstre, s_guerrier));
     REQUIRE(engageLaPlace(escouade, monstre, s_mage));
     REQUIRE_FALSE(engageLaPlace(escouade, monstre, s_pretre));
-    lAgresseEstConnu(escouade, monstre);
+    lAgresseEstConnu(escouade);
 
     escouade.mettreAJour(s_dureeTic, carte, sansAttaquer(monstre));
 
@@ -171,7 +171,7 @@ TEST_CASE("Degagement : sans liste de monstres de controle, personne ne se degag
     Escouade escouade = uneEscouadeAuMageReconnaissable();
     const UnMonstre monstre = unMonstreEn(s_entreGuerrierEtMage);
 
-    escouade.mettreAJour(s_dureeTic, carteOuverte(), {.physiques = monstre.vues, .ciblables = {}});
+    escouade.mettreAJour(s_dureeTic, carteOuverte(), {.physiques = monstre.vues, .ciblables = {}, .deControle = {}});
 
     REQUIRE_FALSE(escouade.degagementDuPersonnage(s_mage).has_value());
 }
@@ -181,7 +181,7 @@ TEST_CASE("Degagement : un coup en execution part d'abord, le degagement commenc
     const TileMap& carte = carteOuverte();
     Escouade escouade = uneEscouadeAuMageReconnaissable();
     const UnMonstre monstre = unMonstreEn(s_entreGuerrierEtMage);
-    lAgresseEstConnu(escouade, monstre);
+    lAgresseEstConnu(escouade);
 
     // Première image : le mage, immobile et à portée, engage son coup ; la règle de départ l'attend.
     int coups = coupsDuMage(image(escouade, carte, monstre.vues, monstre.controle, generateur));
@@ -211,7 +211,7 @@ TEST_CASE("Degagement : fin si le monstre disparait ou rentre a son poste") {
         escouade.mettreAJour(s_dureeTic, carte, {});
     }
     SECTION("rentre a son poste : encore un obstacle, plus une cible") {
-        escouade.mettreAJour(s_dureeTic, carte, {.physiques = monstre.vues, .ciblables = {}});
+        escouade.mettreAJour(s_dureeTic, carte, {.physiques = monstre.vues, .ciblables = {}, .deControle = {}});
     }
 
     REQUIRE_FALSE(escouade.degagementDuPersonnage(s_mage).has_value());
@@ -288,7 +288,7 @@ TEST_CASE("Degagement : fin si le porteur s'en va, le mage est de nouveau seul a
     const TileMap& carte = carteOuverte();
     Escouade escouade = uneEscouadeAuMageReconnaissable();
     UnMonstre monstre = unMonstreEn(s_entreGuerrierEtMage);
-    lAgresseEstConnu(escouade, monstre);
+    lAgresseEstConnu(escouade);
     escouade.mettreAJour(s_dureeTic, carte, sansAttaquer(monstre));
     REQUIRE(escouade.degagementDuPersonnage(s_mage) == 1);
     for (int i = 0; i < nombreDeTics(0.05f); ++i) {  // quelques pas : le mage a commencé à reculer

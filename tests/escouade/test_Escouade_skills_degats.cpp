@@ -132,7 +132,7 @@ TEST_CASE("Un skill de degats hors de portee est mis en attente, puis part a l'a
     for (int i = 0; i < 600; ++i) {
         const int degats = attaquerCible(escouade, carte, cible);
         degatsMax = std::max(degatsMax, degats);
-        escouade.mettreAJour(1.0f / 60.0f, carte, {.physiques = {}, .ciblables = unSeulMonstre(cible)});
+        escouade.mettreAJour(1.0f / 60.0f, carte, {.physiques = {}, .ciblables = unSeulMonstre(cible), .deControle = {}});
     }
     REQUIRE(degatsMax >= s_degatsFrappeDeTest);
 }
@@ -171,7 +171,7 @@ TEST_CASE("Un soin est refuse pendant qu'un skill de degats est en attente") {
     escouade.verrouiller(1);
     attaquerCible(escouade, carte, cibleMonstre({300.0f, 60.0f}));
     declencher(escouade, s_adresseFrappe, unSeulMonstre(cibleMonstre({300.0f, 60.0f})));
-    escouade.recevoirDegats(1, {35.0f, 85.0f}, 20);
+    infliger(escouade, 1, {35.0f, 85.0f}, 20);
 
     declencher(escouade, s_adresseSoin, unSeulMonstre(cibleMonstre({300.0f, 60.0f})));
 

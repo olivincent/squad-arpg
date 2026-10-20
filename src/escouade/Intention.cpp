@@ -42,3 +42,14 @@ std::optional<int> monstreDeLIntention(const Intention& intention) {
         },
         intention);
 }
+
+std::vector<Cercle> cerclesAContourner(const std::vector<EntiteVue>& monstres, const Intention& intention) {
+    const std::optional<int> vise = monstreDeLIntention(intention);
+    std::vector<Cercle> aContourner;
+    for (const EntiteVue& monstre : monstres) {
+        if (monstre.id != vise) {
+            aContourner.push_back(monstre.cercle);
+        }
+    }
+    return aContourner;
+}

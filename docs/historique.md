@@ -99,6 +99,7 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 79 — Dégâts flottants : une file d'événements de combat ✅
 - Étape 80 — Filet de sécurité et corrections locales (suite de l'audit) ✅
 - Étape 81 — Dossiers et documentation ✅
+- Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 
 ## Détail des étapes 0 à 73
 
@@ -2000,3 +2001,21 @@ aides séparées (`aides_escouade.hpp`, `aides_monstre.hpp`). Corrections : `[[n
 pendant l'activation d'un autre du même personnage est mis en attente (« lanceur occupé »),
 `coutDesObstacles` ne visite que le rectangle englobant de chaque obstacle (V1, partie 1), `dt`
 borné à 1/20 s (L1), restes et écarts de documentation (D6, K2). 893 tests.
+
+### Étape 82 — `Escouade` allégée (R1, R2, D1, D3 de l'audit) ✅
+
+Cinq parties, chacune avec son prompt et ses tests verts. `Escouade.cpp` passe de 1 223 à 1 067 lignes
+et `Escouade` n'est plus que l'assemblage de modules extraits.
+- **82.1** : `Vitalite` (points de vie et armure), possédée par `Personnage` et `Monstre` (D1), cercle
+  commun (`cercleDuRectangle`, `Mobile::getCercle`).
+- **82.2** : `Formation` (décalages, orientation, places de formation), séparation douce en fonction
+  pure (`Separation`), `s_ecartEntrePersonnages` dans un en-tête neutre.
+- **82.3** : `Formation` à appel unique ; `PlacesDAttaque` (place retenue par assaillant autour de sa
+  cible), sans `Personnage`.
+- **82.4** : `Intention` : trois intentions, une situation calculée avant, `choisirIntention` (fonction
+  pure qui classe les règles) ; `m_cibleCombat` et `m_monstreAPortee` supprimés, `VueDesMonstres`
+  (R2) ; trois écarts de comportement acceptés, chacun fixé par un test.
+- **82.5** : `Agresseurs` par identifiant (la position est lue dans les ciblables : R2 terminé),
+  `cerclesAContourner` (fonction pure d'`Intention`), D3 (`recevoirDegats` retirée, `deControle` sans
+  valeur par défaut, autres accesseurs gardés avec leur raison), 5 tests en double retirés, marques
+  `NOLINT` justifiées (59 → 41 avertissements `clang-tidy`). R5 rattachée à R4. 962 tests.

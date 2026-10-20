@@ -134,19 +134,21 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `Vitalite` : points de vie et armure d'une entité, commune à `Personnage` et `Monstre`.
 
 `escouade/` — le camp du joueur (`docs/formation.md`, sauf mention) :
-- `Escouade` : ancre, formation, verrou, skills en attente, attaque, placement des personnages.
+- `Escouade` : l'assemblage : ancre, verrou, skills en attente, attaque, et la résolution des intentions en
+  points visés ; elle possède `Formation`, `PlacesDAttaque`, `Agresseurs`, `Provocations` et les `Personnage`.
 - `Personnage` : un membre : déplacement, attaque de base, skills, vie, armure, vision.
 - `Formation` : décalages, orientation, point à regarder et places de formation, sans `Personnage`.
 - `PlacesDAttaque` : place d'attaque retenue par assaillant autour de sa cible, sans `Personnage`.
-- `Intention` : ce qu'un personnage veut faire, sa situation, et `choisirIntention`, les règles par
-  priorité où se brancheront les gambits (fonction pure, sans carte).
+- `Intention` : ce qu'un personnage veut faire, sa situation, `choisirIntention`, les règles par
+  priorité où se brancheront les gambits, et `cerclesAContourner` (fonctions pures, sans carte).
 - `Separation` : `pousseesDeSeparation`, séparation douce en fonction pure (`EtatDeSeparation`).
 - `EcartEntrePersonnages` : `s_ecartEntrePersonnages`, en-tête neutre.
 - `Composition` : `DefinitionPersonnage`, `Rang` et `decalagesDeFormation`.
 - `Specialite` : catalogue des 5 classes et `composer`.
 - `SelectionDEscouade` : les 3 classes choisies, cases de l'écran de choix (`docs/ecrans.md`).
 - `Provocations` : monstres provoqués et leur provocateur (`docs/combat.md`).
-- `Agresseurs` : monstres qui ont frappé l'escouade, mémoire de 3 s (`docs/combat.md`).
+- `Agresseurs` : monstres qui ont frappé l'escouade, mémoire de 3 s par identifiant, sans position
+  (`docs/combat.md`).
 
 `monstres/` :
 - `Monstre` : états, détection, territoire, poursuite, retour au poste, frappe (`docs/monstre.md`).

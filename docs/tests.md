@@ -298,8 +298,8 @@
   formation est forcément plus proche d'un point extérieur que le
   centre de l'escouade lui-même, quelle que soit l'orientation exacte
   de la formation).
-- **`Escouade::recevoirDegats`, observé via `proieDuMonstre`
- ** : `recevoirDegats` n'a pas d'accesseur dédié, mais son
+- **Un coup sur l'escouade, observé via `proieDuMonstre`
+ ** (`Escouade::recevoirDegats` jusqu'à 82.5, aujourd'hui l'aide `infliger`) : le coup n'a pas d'accesseur dédié, mais son
   effet devient visible dès que les dégâts tuent un personnage — le
   filtre des morts dans `indicePersonnageLePlusProche` change alors ce
   que `proieDuMonstre` renvoie. Trois cas : des dégâts
@@ -432,14 +432,14 @@
 
 ## Agresseurs (étape 40)
 
-- **`test_Escouade_agresseurs.cpp`** : enregistrement (coup `> 0`, coup à 0, doublon
-  rafraîchi, aucun vivant), oubli (3 s, nouveau coup, `attaquer` retire
-  l'absent et met à jour le cercle), et déplacement vers l'agresseur sur
+- **`test_Escouade_agresseurs.cpp`** : enregistrement (coup `> 0`, coup à 0,
+  aucun vivant), oubli (3 s, `attaquer` retire l'absent ; depuis 82.5 la mémoire n'a plus de
+  cercle, et un agresseur mort dans l'image n'attire plus personne), et déplacement vers l'agresseur sur
   une carte dégagée (`carteDegageeEntouree`, `simulerAvecMonstre` : `attaquer` puis
   `mettreAJour` à chaque tic, le monstre étant obstacle) : mêlée qui
   s'approche, agresseur hors laisse, ancre en mouvement, oubli. Observé par
   `proieDuMonstre` du monstre.
-- **Piège** : `recevoirDegats` enregistre maintenant un agresseur. Les tests
+- **Piège** : un coup (`recevoirCoup`, ou l'aide `infliger`) enregistre un agresseur. Les tests
   qui blessent un personnage avec un monstre « fantôme » puis simulent
   longtemps appellent `escouade.attaquer({}, carte)` pour l'oublier,
   sinon un personnage se met en marche vers ce fantôme.
@@ -831,9 +831,10 @@
   du second est sa place d'attaque (à environ 43 px du centre), pas le centre ;
   monstre dans une case fermée : tous les points visés sont son centre.
   `pointVise` : place de formation hors combat, vide pour une place invalide.
-- **Pas de test automatique** de l'oubli de la place d'attaque (elle n'a pas d'accès
-  public) : seul le comportement visible (côtés conservés, réattribution au
-  changement de cible) est vérifié.
+- **L'oubli de la place d'attaque** est testé là où il vit, depuis 82.3 et 82.4 :
+  `test_PlacesDAttaque.cpp` (`placeRetenue`, `oublierSaufAutourDe`). Côté `Escouade`, qui décide de
+  la cible à garder, seul le comportement visible (côtés conservés, réattribution au changement de
+  cible, point visé = centre sans place valide) est vérifié.
 - **`choisirAgresseurAViser`** renvoie une `EntiteVue` (identifiant et cercle) pour
   que la mémoire des places connaisse le monstre : ses tests lisent `cercle.centre`.
 
@@ -1243,6 +1244,40 @@
   adaptations nécessaires : les aides partagées passent d'un `namespace {}` à `inline` dans un
   en-tête, et les copies identiques de `niveauDegage` et `avancer` de `test_Controleur.cpp` ont été
   retirées au profit de celles d'`aides_escouade.hpp`.
+
+## Étape 82.5 : derniers canaux et accesseurs réservés aux tests
+
+- **`Agresseurs` sans cercle** : `test_Agresseurs.cpp` teste `enregistrer(id)`, `retirerMonstresAbsents`
+  et `vusParmi` (le cercle vient de la liste passée, l'agresseur absent est ignoré sans être oublié).
+  Dans `test_Escouade_agresseurs.cpp`, « un agresseur mort dans l'image n'attire plus personne » remplace
+  le test de l'écart de 82.4 : le montage place le guerrier loin de sa place de formation (il a marché
+  jusqu'au monstre), le `REQUIRE` sur cette distance précède l'assertion, sinon « rester sur place » et
+  « aller à la formation » donneraient le même point.
+- **`infliger(escouade, idMonstre, origine, quantite)`** (`tests/aides_escouade.hpp`) remplace
+  `Escouade::recevoirDegats` : `proieDuMonstre` puis `recevoirCoup`, le chemin d'un coup de `Partie` sans
+  `Partie`. `recevoirCoup` ne prend plus d'origine.
+- **`VueDesMonstres` dans les tests** : aucun champ n'a de valeur par défaut ; une initialisation
+  désignée écrit les trois (`.deControle = {}` si aucun monstre de contrôle), `mettreAJour(dt, carte, {})`
+  reste valable. Sans cela, `-Wmissing-field-initializers` signale l'oubli.
+- **`cerclesAContourner`** (`test_Intention.cpp`) : approcher un monstre, rester autour d'un monstre
+  (tous les autres), rester autour de personne et aller à un point (tous), monstre de l'intention
+  absent, liste vide. Il remplace le test d'`Escouade` « vers un agresseur sans place libre… » : le
+  montage n'existait que pour un agresseur de rayon nul, et la garantie vient maintenant de la
+  signature (la fonction ne reçoit rien du placement). L'assemblage reste couvert par « Places
+  d'attaque : sans place valide, le personnage vise le centre du monstre ».
+- **Tests retirés comme doublons** (même propriété qu'un test d'un type extrait, aucun assemblage de
+  plus) : « Un coup d'un agresseur deja connu ne le duplique pas… » et « Un nouveau coup repousse l'oubli
+  de l'agresseur » (→ `Agresseurs.enregistrer d'un monstre connu ne le duplique pas et remet 3 s`) ;
+  « provoquer enregistre le monstre, le provocateur et la duree » (→ `Provocations.provoquer enregistre
+  le monstre, le provocateur et la duree`) ; « Provoquer de nouveau un monstre deja provoque… » (→
+  `Provocations.provoquer sur un monstre deja provoque…`) ; « Rotation : la formation tourne par le plus
+  court cote » (→ `Formation : tourne par le plus court cote`).
+- **Règle des accesseurs réservés aux tests (D3)** : une fonction publique que seuls les tests appellent
+  est retirée, sauf si aucun type extrait ni accesseur du jeu ne permet de vérifier la propriété
+  autrement ; elle est alors gardée et son commentaire dit « lu par les tests » avec la raison.
+  Gardés en 82.5 : `getPlacesDeFormation`, `pointVise`, `degagementDuPersonnage`,
+  `pointsDeVieDuPersonnage`, `getAgresseurs`, `getProvocations`, `choisirCible`, `Partie::getMonstres`.
+- **Total** : 962 tests.
 
 ## État et limites à la fin de l'étape 80
 

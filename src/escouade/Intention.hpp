@@ -3,6 +3,7 @@
 #include <SFML/System/Vector2.hpp>
 #include <optional>
 #include <variant>
+#include <vector>
 #include "base/Cercle.hpp"
 #include "combat/EntiteVue.hpp"
 
@@ -30,7 +31,7 @@ using Intention = std::variant<ResterSurPlace, AllerAuPoint, ApprocherMonstre>;
 
 // Tout ce que choisirIntention sait d'un personnage, calculé avant par Escouade. Un monstre nommé
 // porte son cercle, pris à sa source (voir Escouade::situationDe).
-struct SituationDuPersonnage {
+struct SituationDuPersonnage {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
     bool vivant;
     bool enExecution;                         // règle 0 : un coup ou un skill en exécution
     std::optional<int> monstreDeLaPlace;      // règle 0 : cible de sa place d'attaque retenue
@@ -60,3 +61,7 @@ struct SituationDuPersonnage {
 // Le monstre de l'intention : celui qu'il approche, ou celui autour duquel il garde sa place ; vide pour
 // un point. Il n'est pas à contourner, et c'est autour de lui que la place d'attaque est gardée.
 [[nodiscard]] std::optional<int> monstreDeLIntention(const Intention& intention);
+// Les cercles à contourner en marchant : tous les monstres, sauf celui de l'intention (on ne se détourne
+// ni de celui qu'on approche, ni de celui autour duquel on reste). Elle ne reçoit rien du placement :
+// l'exclusion ne peut pas dépendre de la réussite de la recherche d'une place d'attaque.
+[[nodiscard]] std::vector<Cercle> cerclesAContourner(const std::vector<EntiteVue>& monstres, const Intention& intention);

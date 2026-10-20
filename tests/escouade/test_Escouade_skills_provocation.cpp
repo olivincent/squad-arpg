@@ -82,7 +82,7 @@ TEST_CASE("Provocation : un nouvel appui pendant la recharge est ignore, puis ac
 TEST_CASE("Provocation : refusee si le lanceur est mort") {
     Generateur generateur = generateurDeTest();
     Escouade escouade = uneEscouade({200.0f, 200.0f});
-    escouade.recevoirDegats(1, {235.0f, 210.0f}, 200);  // tue la place 1
+    infliger(escouade, 1, {235.0f, 210.0f}, 200);  // tue la place 1
 
     REQUIRE(declencherEtAttendre(escouade, s_adresseProvocation, {EntiteVue{1, cibleMonstre({335.0f, 210.0f})}}, carteOuverte(), generateur).empty());
 

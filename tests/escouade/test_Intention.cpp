@@ -2,6 +2,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <optional>
+#include <vector>
 
 #include "base/Cercle.hpp"
 #include "combat/EntiteVue.hpp"
@@ -171,4 +172,40 @@ TEST_CASE("monstreDeLIntention : le monstre approche, celui de la place gardee, 
     REQUIRE(monstreDeLIntention(Intention{ResterSurPlace{s_agresseur.id}}) == s_agresseur.id);
     REQUIRE_FALSE(monstreDeLIntention(Intention{ResterSurPlace{std::nullopt}}).has_value());
     REQUIRE_FALSE(monstreDeLIntention(Intention{AllerAuPoint{s_pointDuSkill}}).has_value());
+}
+
+namespace {
+const EntiteVue s_monstre1{1, {{100.0f, 0.0f}, 15.0f}};
+const EntiteVue s_monstre2{2, {{200.0f, 0.0f}, 12.0f}};
+const EntiteVue s_monstre3{3, {{300.0f, 0.0f}, 18.0f}};
+const std::vector<EntiteVue> s_troisMonstres = {s_monstre1, s_monstre2, s_monstre3};
+}  // namespace
+
+TEST_CASE("cerclesAContourner : approcher un monstre, tous les autres sont a contourner") {
+    const std::vector<Cercle> cercles = cerclesAContourner(s_troisMonstres, approcher(s_monstre2));
+
+    REQUIRE(cercles == std::vector<Cercle>{s_monstre1.cercle, s_monstre3.cercle});
+}
+
+TEST_CASE("cerclesAContourner : rester autour d'un monstre, tous les autres sont a contourner") {
+    const std::vector<Cercle> cercles = cerclesAContourner(s_troisMonstres, Intention{ResterSurPlace{s_monstre3.id}});
+
+    REQUIRE(cercles == std::vector<Cercle>{s_monstre1.cercle, s_monstre2.cercle});
+}
+
+TEST_CASE("cerclesAContourner : rester sur place autour de personne, ou aller a un point, tous sont a contourner") {
+    const std::vector<Cercle> tous = {s_monstre1.cercle, s_monstre2.cercle, s_monstre3.cercle};
+
+    REQUIRE(cerclesAContourner(s_troisMonstres, Intention{ResterSurPlace{std::nullopt}}) == tous);
+    REQUIRE(cerclesAContourner(s_troisMonstres, Intention{AllerAuPoint{s_pointDuSkill}}) == tous);
+}
+
+TEST_CASE("cerclesAContourner : le monstre de l'intention absent de la liste, tous sont a contourner") {
+    const std::vector<Cercle> cercles = cerclesAContourner({s_monstre1, s_monstre3}, approcher(s_monstre2));
+
+    REQUIRE(cercles == std::vector<Cercle>{s_monstre1.cercle, s_monstre3.cercle});
+}
+
+TEST_CASE("cerclesAContourner : sans monstre, rien a contourner") {
+    REQUIRE(cerclesAContourner({}, approcher(s_monstre2)).empty());
 }

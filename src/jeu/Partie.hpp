@@ -106,7 +106,7 @@ private:
     // Applique les coups aux monstres et signale chacun (`opportunite` : coups gratuits).
     void appliquer(const std::vector<Coup>& coups, bool opportunite = false);
     // Un coup de monstre sur le personnage de cette place (Escouade::recevoirCoup), signalé.
-    void infligerAUnPersonnage(int idMonstre, std::size_t place, sf::Vector2f origine, int degats, bool opportunite);
+    void infligerAUnPersonnage(int idMonstre, std::size_t place, int degats, bool opportunite);
     // Les soins qu'Escouade a appliqués depuis le dernier appel, signalés.
     void signalerLesSoins();
     // Le seul endroit où un événement naît ; un montant nul ne produit rien.

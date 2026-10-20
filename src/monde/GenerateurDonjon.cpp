@@ -41,7 +41,7 @@ void creuserRectangle(std::vector<std::string>& plan, int colonneMin, int colonn
 }
 
 // Un côté de l'anneau de cases qui entoure une salle, sans les coins.
-struct CoteDAnneau {
+struct CoteDAnneau {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
     sf::Vector2i debut;    // première case du côté
     sf::Vector2i pas;      // d'une case à la suivante
     int longueur;          // nombre de cases

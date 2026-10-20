@@ -11,7 +11,7 @@
 
 // Un texte qui monte et s'efface au-dessus de sa cible. L'événement porte une COPIE de la
 // position de la cible : le texte survit à un monstre tué par ce coup.
-struct TexteFlottant {
+struct TexteFlottant {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
     EvenementDeCombat evenement;
     float age;          // en secondes, depuis son ajout
     int rang;           // 0 pour le premier texte d'une cible dans une image, puis 1, 2… (empilement)

@@ -222,7 +222,7 @@ void Monstre::mettreAJour(float dt, std::optional<EntiteVue> proie, const std::v
         } else {
             // Sans proie, la poursuite a basculé en retour juste au-dessus.
             assert(proie.has_value());
-            m_mobile.allerVers(proie->cercle.centre, carte, aContourner);
+            m_mobile.allerVers(proie->cercle.centre, carte, aContourner);  // NOLINT(bugprone-unchecked-optional-access): vérifié par l'assert au-dessus (_assert de MinGW n'est pas noreturn)
         }
     }
 

@@ -139,7 +139,7 @@ std::optional<int> Personnage::cibleEngagee() const {
     }
     // engagerAttaque pose toujours une CibleMonstre.
     assert(m_actionEngagee->cible.has_value() && std::holds_alternative<CibleMonstre>(*m_actionEngagee->cible));
-    return std::get<CibleMonstre>(*m_actionEngagee->cible).id;
+    return std::get<CibleMonstre>(*m_actionEngagee->cible).id;  // NOLINT(bugprone-unchecked-optional-access): vérifié par l'assert au-dessus (_assert de MinGW n'est pas noreturn)
 }
 
 int Personnage::avancerAttaque(float dt, Generateur& generateur) {
@@ -247,7 +247,7 @@ int Personnage::avancerSkill(float dt, Generateur& generateur) {
     }
     // engagerSkill n'engage qu'un skill que le personnage connaît.
     assert(action->skill.has_value() && trouverSkill(*action->skill) != nullptr);
-    Skill& skill = *trouverSkill(*action->skill);
+    Skill& skill = *trouverSkill(*action->skill);  // NOLINT(bugprone-unchecked-optional-access): vérifié par l'assert au-dessus (_assert de MinGW n'est pas noreturn)
     if (!skill.avancer(dt, generateur)) {
         return 0;
     }
@@ -261,7 +261,7 @@ void Personnage::annulerSkill() {
     if (const std::optional<ActionEngagee> action = skillEngage()) {
         // engagerSkill n'engage qu'un skill que le personnage connaît.
         assert(action->skill.has_value() && trouverSkill(*action->skill) != nullptr);
-        trouverSkill(*action->skill)->annuler();
+        trouverSkill(*action->skill)->annuler();  // NOLINT(bugprone-unchecked-optional-access): vérifié par l'assert au-dessus (_assert de MinGW n'est pas noreturn)
         m_actionEngagee.reset();
     }
 }

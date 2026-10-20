@@ -8,10 +8,10 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 ## Étapes terminées
 
-Étapes 0 à 81 ✅. Les dernières :
-- Étape 79 — Dégâts flottants : une file d'événements de combat ✅
+Étapes 0 à 82 ✅. Les dernières :
 - Étape 80 — Filet de sécurité et corrections locales (suite de l'audit) ✅
 - Étape 81 — Dossiers et documentation ✅
+- Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 
 ## État actuel (résumé)
 
@@ -20,8 +20,8 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - **Code** (étape 81) : 57 modules rangés en 9 dossiers par domaine (`base`, `rendu`, `monde`,
   `combat`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
   de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug` et `jeu`, 0
-  avertissement, 893 tests verts sous CTest, 59 avertissements `clang-tidy` (`docs/build.md`,
-  `docs/audit.md`). Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`).
+  avertissement, 962 tests verts sous CTest, 41 avertissements `clang-tidy` (`docs/build.md`,
+  `docs/audit.md`). `Escouade` n'est plus que l'assemblage : `Escouade.cpp` de 1 223 à 1 067 lignes. Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`).
 - **Écrans** : menu à la souris, options d'affichage (fenêtré ou plein écran, résolutions,
   `reglages.ini`), choix de 3 classes parmi 5 (guerrier, prêtre, mage, paladin, rôdeur ; doublons
   permis), puis la partie ; R après une victoire ou une défaite ramène au choix (`docs/ecrans.md`).
@@ -51,16 +51,11 @@ fonctionnalités prévues sont donc décalées après l'étape 82.
 - **Étape 80** (faite) : build vérifiable, tests indépendants du catalogue, corrections locales
   (C1, C4, D6, K2, V1 partie 1, L1).
 - **Étape 81** (faite) : dossiers (option B de l'audit), P1, K1, K3.
-- **Étape 82** (prochaine) : alléger `Escouade` : R1 (six responsabilités) avec R2 (couplage
+- **Étape 82** (faite) : alléger `Escouade` : R1 (six responsabilités) avec R2 (couplage
   temporel entre `attaquer` et `mettreAJour`), D1 (vitalité répétée dans `Personnage` et
-  `Monstre`), D3 (fonctions publiques appelées seulement par les tests). R2 doit **supprimer
-  `m_cibleCombat` en tant que membre** : il n'est jamais remis à zéro et peut dater d'un ancien
-  combat (à l'étape 80, la marche vers la cible d'un skill de dégâts en attente a dû exiger un
-  verrou pour ne pas le lire à tort). Décision sur R5 (identifiants et places) à la fin de
-  l'étape. Les extractions (`Formation`, `PlacesDAttaque`, choix du point visé) naissent dans
-  `escouade/`.
-  Découpage en cinq parties, chacune avec son prompt, tests verts à la fin de chacune, interface
-  publique d'`Escouade` inchangée jusqu'à 82.5 :
+  `Monstre`), D3 (fonctions publiques appelées seulement par les tests). Les extractions
+  (`Formation`, `PlacesDAttaque`, choix du point visé) sont nées dans `escouade/`. Cinq parties,
+  chacune avec son prompt et ses tests verts :
   - **82.1** (faite) : D1, `Vitalite` (points de vie et armure, possédée par `Personnage` et
     `Monstre`) et cercle commun (`cercleDuRectangle`, `Mobile::getCercle`) ;
   - **82.2** (faite) : `Formation` (possédée par `Escouade`, ne connaît pas `Personnage`), la
@@ -85,11 +80,20 @@ fonctionnalités prévues sont donc décalées après l'étape 82.
     règle de correction. Trois écarts de comportement acceptés, chacun fixé par un test
     (`docs/formation.md`, « Intentions ») ; 962 tests, 60 avertissements `clang-tidy`, `Escouade.cpp`
     de 1 069 à 1 086 lignes ;
-  - **82.5** : D3 (dont la valeur par défaut de `VueDesMonstres::deControle`), bilan, décision sur R5,
-    et sur l'exigence d'un verrou pour marcher vers la cible d'un skill de dégâts en attente (sans
-    effet dans `Partie` depuis 82.4 : code mort à supprimer ou non).
+  - **82.5** (faite) : R2 terminé : `Agresseurs` ne garde que l'identifiant et la minuterie, la
+    position est lue dans les ciblables (plus aucun canal entre `attaquer` et `mettreAJour`) ;
+    `cerclesAContourner`, fonction pure d'`Intention`, dont la signature garantit que le monstre
+    approché n'est jamais à contourner ; D3 : `Escouade::recevoirDegats` retirée (aide `infliger`),
+    `VueDesMonstres::deControle` sans valeur par défaut, les autres accesseurs réservés aux tests
+    gardés avec leur raison (`docs/formation.md`, « Bilan de l'étape 82 ») ; 5 tests en double
+    retirés ; marques `NOLINT` justifiées (59 → 41 avertissements `clang-tidy`) ; l'exigence d'un
+    verrou pour marcher vers la cible d'un skill de dégâts en attente est gardée comme règle de jeu
+    (étape 37) ; R5 rattachée à R4 ; 962 tests, `Escouade.cpp` de 1 223 à 1 067 lignes au total de
+    l'étape (42 fonctions publiques au départ, 41 à la fin).
 - **Refactorisations rattachées à une fonctionnalité**, en première sous-étape de celle-ci :
-  - R4 (skills : le type décide partout) et C2 (constructeurs à longues listes) avant les buffs, les
+  - R4 (skills : le type décide partout), **avec R5** (types forts pour les places et les identifiants :
+    les deux touchent `AdresseSkill`, `Cible`, `EntiteVue` et les identifiants des intentions, on ne les
+    modifie qu'une fois) et C2 (constructeurs à longues listes) avant les buffs, les
     soins dans le temps ou le mana. Le mode de cible « Soi » de R4 doit lever une limite de l'étape 80 :
     la provocation, sans cible, ne peut pas être mise en attente quand son lanceur est occupé ;
   - E1 (valeurs dispersées, `Monstre` en littéraux) avant les types de monstres ;
@@ -100,18 +104,17 @@ fonctionnalités prévues sont donc décalées après l'étape 82.
     écrans) et T4 (trous de couverture) au premier ajout visuel important. M1 lève les exceptions
     transitoires aux règles de dépendance (`ARCHITECTURE.md`) et permet une bibliothèque par dossier.
 
-**Limite connue (étape 82.4)** : la mémoire des agresseurs est le dernier canal entre `attaquer` et
-`mettreAJour` (positions actualisées par `attaquer` : une image de retard au plus si l'ordre était
-inversé). Piste : ne garder que les identifiants et lire les positions dans les ciblables ; elle
-changerait le comportement envers un agresseur caché par le brouillard, donc elle n'est pas faite
-(`docs/formation.md`, « Intentions »).
+**Limite connue (étape 82.5)** : le contournement des monstres évite leur cercle, pas leur zone de
+contrôle : un personnage peut la frôler et subir l'attaque d'opportunité. Piste : la « stratégie
+d'attaque » par type de monstre (`docs/brainstorm.md`, section 4 bis), qui se branchera sur
+`coutDesObstacles` (`docs/formation.md`, « Intentions »).
 
 **Décisions reportées** :
 - V1 partie 2 (recalcul moins fréquent du chemin des monstres) : à réévaluer avec la carte extérieure
   ou des hordes (la partie 1 a déjà divisé le coût par 7 à 13) ;
-- R5 (identifiants et places) : à la fin de l'étape 82.
+- R5 (identifiants et places) : décidé en 82.5, rattachée à R4 (voir ci-dessus).
 
-## Étape 83 (envisagée, après l'étape 82)
+## Étape 83 (prochaine)
 
 Le nom du skill lancé au-dessus du lanceur et « Provoqué » au-dessus des monstres provoqués, par la
 même file d'événements que l'étape 79 : un type d'événement de plus (`EvenementDeCombat`, produit

@@ -18,13 +18,13 @@ class PlacesDAttaque {
 public:
     // Une place retenue : l'anneau et l'angle autour de la cible. La position se recalcule depuis le
     // centre actuel de la cible.
-    struct Place {
+    struct Place {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
         int idCible;
         float rayon;      // de l'anneau, en pixels
         sf::Angle angle;  // autour du centre de la cible
     };
     // Un assaillant qui approche une cible.
-    struct Approche {
+    struct Approche {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
         EntiteVue cible;
         std::size_t assaillant;   // indice, de 0 au nombre d'assaillants - 1
         Cercle cercleAssaillant;

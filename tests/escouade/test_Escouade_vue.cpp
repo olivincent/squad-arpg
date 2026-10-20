@@ -90,7 +90,7 @@ TEST_CASE("Zone en attente : le lanceur contourne le mur, puis le sort part des 
                 coupsDeZone.push_back(coup);
             }
         }
-        escouade.mettreAJour(0.016f, carte, {.physiques = {}, .ciblables = monstres});
+        escouade.mettreAJour(0.016f, carte, {.physiques = {}, .ciblables = monstres, .deControle = {}});
         ++tics;
     }
 
@@ -171,8 +171,8 @@ TEST_CASE("Autodefense : le monstre le plus proche est cache, l'autre est frappe
 // Ne laisse en vie que le mage (en (185, 235)) : seules sa portée et sa vue comptent.
 namespace {
 void garderSeulementLeMage(Escouade& escouade) {
-    escouade.recevoirDegats(1, {235.0f, 210.0f}, 200);
-    escouade.recevoirDegats(1, {185.0f, 185.0f}, 200);
+    infliger(escouade, 1, {235.0f, 210.0f}, 200);
+    infliger(escouade, 1, {185.0f, 185.0f}, 200);
 }
 }  // namespace
 
@@ -187,7 +187,7 @@ TEST_CASE("Combat verrouille : une cible a portee mais cachee ne fait pas arrete
 
     for (int i = 0; i < 20; ++i) {
         static_cast<void>(escouade.attaquer(s_dureeTic, monstres, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
-        escouade.mettreAJour(0.016f, carte, {.physiques = {}, .ciblables = monstres});
+        escouade.mettreAJour(0.016f, carte, {.physiques = {}, .ciblables = monstres, .deControle = {}});
     }
 
     REQUIRE((escouade.getCentre() - depart).length() > 5.0f);
@@ -204,7 +204,7 @@ TEST_CASE("Combat verrouille : une cible a portee et en vue fait arreter l'ancre
 
     for (int i = 0; i < 20; ++i) {
         static_cast<void>(escouade.attaquer(s_dureeTic, monstres, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
-        escouade.mettreAJour(0.016f, carte, {.physiques = {}, .ciblables = monstres});
+        escouade.mettreAJour(0.016f, carte, {.physiques = {}, .ciblables = monstres, .deControle = {}});
     }
 
     REQUIRE((escouade.getCentre() - depart).length() < 1.0f);
@@ -215,13 +215,13 @@ TEST_CASE("Agresseur a portee mais cache : le personnage va vers lui") {
     const TileMap carte = carteAvecMurVertical();
     Escouade escouade = uneEscouade({200.0f, 200.0f});
     const std::vector<EntiteVue> monstres = {EntiteVue{1, cibleMonstre({283.0f, 235.0f})}};
-    escouade.recevoirDegats(1, {283.0f, 235.0f}, 1);  // enregistre l'agresseur (touche le plus proche)
+    infliger(escouade, 1, {283.0f, 235.0f}, 1);  // enregistre l'agresseur (touche le plus proche)
     const sf::Vector2f depart = escouade.cerclesDesVivants()[2].centre;
     static_cast<void>(escouade.attaquer(s_dureeTic, monstres, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
 
     for (int i = 0; i < 20; ++i) {
         static_cast<void>(escouade.attaquer(s_dureeTic, monstres, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
-        escouade.mettreAJour(0.016f, carte, {.physiques = {}, .ciblables = monstres});
+        escouade.mettreAJour(0.016f, carte, {.physiques = {}, .ciblables = monstres, .deControle = {}});
     }
 
     REQUIRE((escouade.cerclesDesVivants()[2].centre - depart).length() > 10.0f);
@@ -303,7 +303,7 @@ TEST_CASE("Soin d'un allie a portee mais cache : le soin est mis en attente, pui
     const TileMap carte = carteAvecMursFins();
     Escouade escouade = uneEscouade({200.0f, 200.0f});
     // Soigneur (prêtre) en (185, 185), allié (guerrier) en (235, 210) : 36 px bord à bord, mur entre les deux.
-    escouade.recevoirDegats(1, {235.0f, 210.0f}, 20);
+    infliger(escouade, 1, {235.0f, 210.0f}, 20);
 
     REQUIRE(declencherEtAttendre(escouade, s_adresseSoin, {}, carte, generateur).empty());
 
@@ -362,7 +362,7 @@ TEST_CASE("unVivantPresDe : vrai quand un vivant est a l'ecart voulu ou moins") 
 TEST_CASE("unVivantPresDe : un mort pres de la zone ne compte pas") {
     Escouade escouade = uneEscouade({200.0f, 200.0f});
     const sf::FloatRect zone({265.0f, 195.0f}, {40.0f, 30.0f});
-    escouade.recevoirDegats(1, {235.0f, 210.0f}, 200);
+    infliger(escouade, 1, {235.0f, 210.0f}, 200);
 
     REQUIRE_FALSE(escouade.unVivantPresDe(zone, 20.0f));
 }

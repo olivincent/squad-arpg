@@ -54,19 +54,6 @@ std::optional<int> monstreDontLaPlaceEstGardee(const Intention& intention, bool 
     }
     return monstreDeLIntention(intention);
 }
-
-// Cercles des monstres à contourner : tous, sauf le monstre de l'intention (on ne se détourne ni de
-// celui qu'on approche, ni de celui autour duquel on reste).
-std::vector<Cercle> monstresAContourner(const Intention& intention, const std::vector<EntiteVue>& monstres) {
-    const std::optional<int> vise = monstreDeLIntention(intention);
-    std::vector<Cercle> aContourner;
-    for (const EntiteVue& monstre : monstres) {
-        if (monstre.id != vise) {
-            aContourner.push_back(monstre.cercle);
-        }
-    }
-    return aContourner;
-}
 }  // namespace
 
 Escouade::Escouade(sf::Vector2f positionDepart, std::vector<DefinitionPersonnage> composition)
@@ -155,10 +142,9 @@ std::vector<Coup> Escouade::attaquer(float dt, const std::vector<EntiteVue>& mon
     return coups;
 }
 
-// Un agresseur ou un monstre provoqué absent de la liste est mort : on
-// l'oublie ; le cercle des agresseurs restants est mis à jour.
+// Un agresseur ou un monstre provoqué absent de la liste est mort : on l'oublie.
 void Escouade::actualiserMemoires(const std::vector<EntiteVue>& monstres) {
-    m_agresseurs.actualiser(monstres);
+    m_agresseurs.retirerMonstresAbsents(monstres);
     m_provocations.retirerMonstresAbsents(monstres);
 }
 
@@ -268,7 +254,7 @@ std::vector<Coup> Escouade::avancerSkillDe(std::size_t indice, float dt, const s
         return {};
     }
     assert(action->skill.has_value());  // une action de skill porte toujours son identifiant (engagerSkill)
-    return effetDuSkill(indice + 1, *action->skill, action->cible, puissance, monstres, carte);
+    return effetDuSkill(indice + 1, *action->skill, action->cible, puissance, monstres, carte);  // NOLINT(bugprone-unchecked-optional-access): vérifié par l'assert au-dessus (_assert de MinGW n'est pas noreturn)
 }
 
 // Effet d'un skill qui part, évalué au moment du départ. La provocation et le
@@ -526,9 +512,12 @@ std::optional<Escouade::IntentionDuSkill> Escouade::avancerSkillEnAttente(const 
     const std::optional<Intention> intention = std::visit(
         Surcharges{
             // Dégâts : le skill part dans attaquer(), qui reçoit le cercle à jour du
-            // monstre. Ici, le lanceur approche le verrou, seulement s'il est vu (sans
-            // verrou, personne ne marche). L'annulation (combat rompu) se fait dans
-            // verrouiller() et deverrouiller().
+            // monstre. Ici, le lanceur approche le verrou, seulement s'il est vu. L'exigence
+            // d'un verrou est la règle de l'étape 37 : sans verrou, personne ne marche vers la
+            // cible d'un skill de dégâts. Elle ne sert plus à lire un état périmé (R2 a supprimé
+            // ce risque, quel que soit l'ordre d'attaquer et de mettreAJour) : elle garde la
+            // règle de jeu. L'annulation (combat rompu) se fait dans verrouiller() et
+            // deverrouiller().
             [&](const CibleMonstre& monstre) -> std::optional<Intention> {
                 if (!verrou.has_value()) {
                     return std::nullopt;
@@ -618,8 +607,8 @@ std::optional<EntiteVue> Escouade::confirmerDegagement(std::size_t indice,
 
 // La situation du personnage de cet indice, au moment de décider : lui n'a pas encore bougé dans cette
 // image, ceux d'indice inférieur si. Chaque monstre nommé porte le cercle de sa source : le verrou celui
-// des monstres ciblables, l'agresseur celui de la mémoire des agresseurs, le dégagement celui des
-// monstres physiques. « Un monstre à portée » : un ciblable que son attaque de base atteint, la règle
+// des monstres ciblables, l'agresseur celui qu'il a dans les ciblables (un agresseur qui n'y est pas est
+// ignoré pour l'image), le dégagement celui des monstres physiques. « Un monstre à portée » : un ciblable que son attaque de base atteint, la règle
 // même de l'autodéfense (choisirCibleAFrapper ne trouve une cible que s'il y en a une).
 SituationDuPersonnage Escouade::situationDe(std::size_t indice, const std::optional<PlacesDAttaque::Place>& ancienne,
                                             const std::optional<EntiteVue>& degagement,
@@ -722,7 +711,7 @@ void Escouade::mettreAJour(float dt, const TileMap& carte, const VueDesMonstres&
     const ContexteDesIntentions contexte{
         .ancreArretee = ancreArretee,
         .verrou = verrou,
-        .agresseurs = m_agresseurs.monstresVus(),
+        .agresseurs = m_agresseurs.vusParmi(monstres.ciblables),
         .skill = avancerSkillEnAttente(carte, verrou),
     };
 
@@ -736,7 +725,7 @@ void Escouade::mettreAJour(float dt, const TileMap& carte, const VueDesMonstres&
         const PointVise vise = pointDeLIntention(i, intention, ancienne, carte);
         m_pointsVises[i] = vise.point;
         m_placesDAttaque.oublierSaufAutourDe(i, monstreDontLaPlaceEstGardee(intention, vise.placeTrouvee));
-        const std::vector<Cercle> aContourner = monstresAContourner(intention, monstres.physiques);
+        const std::vector<Cercle> aContourner = cerclesAContourner(monstres.physiques, intention);
         m_personnages[i].mettreAJour(dt, m_pointsVises[i], carte, obstacles, aContourner);
     }
     separerPersonnages(dt, carte, obstacles);
@@ -919,15 +908,7 @@ bool Escouade::placeEstVivante(std::size_t place) const {
     return placeValide(place) && personnageDeLaPlace(place).estVivant();
 }
 
-int Escouade::recevoirDegats(int idMonstre, sf::Vector2f origine, int quantite) {
-    const std::optional<EntiteVue> proie = proieDuMonstre(idMonstre, origine);
-    if (!proie.has_value()) {
-        return 0;
-    }
-    return recevoirCoup(idMonstre, static_cast<std::size_t>(proie->id), origine, quantite);
-}
-
-int Escouade::recevoirCoup(int idMonstre, std::size_t place, sf::Vector2f origine, int quantite) {
+int Escouade::recevoirCoup(int idMonstre, std::size_t place, int quantite) {
     if (!placeEstVivante(place)) {
         return 0;
     }
@@ -935,7 +916,7 @@ int Escouade::recevoirCoup(int idMonstre, std::size_t place, sf::Vector2f origin
 
     // Un coup qui fait des dégâts désigne son auteur comme agresseur.
     if (quantite > 0) {
-        m_agresseurs.enregistrer(idMonstre, origine);
+        m_agresseurs.enregistrer(idMonstre);
     }
     return subis;
 }

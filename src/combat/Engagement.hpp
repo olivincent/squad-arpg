@@ -7,7 +7,7 @@
 // Une entité telle que la règle des zones de contrôle la voit : son identifiant
 // (monstre, ou place 1 à N d'un personnage), son cercle et sa zone de contrôle, en
 // pixels, mesurée bord à bord. Une zone de 0 n'engage personne.
-struct EntiteDeControle {
+struct EntiteDeControle {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
     int id;
     Cercle cercle;
     float zone;
