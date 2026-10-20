@@ -41,6 +41,8 @@ add_library(squad_core STATIC
     src/escouade/SelectionDEscouade.cpp
     src/escouade/Provocations.cpp
     src/escouade/Agresseurs.cpp
+    src/escouade/Separation.cpp
+    src/escouade/Formation.cpp
     src/monde/Chemin.cpp
     src/escouade/Personnage.cpp
     src/monde/Deplacement.cpp
@@ -114,6 +116,8 @@ add_executable(tests
     tests/escouade/test_SelectionDEscouade.cpp
     tests/escouade/test_Provocations.cpp
     tests/escouade/test_Agresseurs.cpp
+    tests/escouade/test_Separation.cpp
+    tests/escouade/test_Formation.cpp
     tests/monde/test_Deplacement.cpp
     tests/monstres/test_Monstre.cpp
     tests/monstres/test_Monstre_etats.cpp

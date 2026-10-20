@@ -63,9 +63,10 @@ fonctionnalités prévues sont donc décalées après l'étape 82.
   publique d'`Escouade` inchangée jusqu'à 82.5 :
   - **82.1** (faite) : D1, `Vitalite` (points de vie et armure, possédée par `Personnage` et
     `Monstre`) et cercle commun (`cercleDuRectangle`, `Mobile::getCercle`) ;
-  - **82.2** : `Formation`, et la séparation douce en fonction pure à part (`escouade/Separation`),
-    qui reçoit les centres et les drapeaux « poussable » et renvoie une poussée par personnage ;
-    `Formation` ne connaît pas `Personnage` ;
+  - **82.2** (faite) : `Formation` (possédée par `Escouade`, ne connaît pas `Personnage`), la
+    séparation douce en fonction pure (`escouade/Separation`, un état `Absent`/`Fixe`/`Libre` par
+    personnage, calcul simultané comme avant) et `s_ecartEntrePersonnages` dans un en-tête neutre ;
+    927 tests, 59 avertissements `clang-tidy`, `Escouade.cpp` de 1 223 à 1 112 lignes ;
   - **82.3** : `PlacesDAttaque` ;
   - **82.4** : choix du point visé par intentions, avec R2. Il renvoie une intention
     (`std::variant` : rester sur place, aller au point, approcher un monstre avec une portée),

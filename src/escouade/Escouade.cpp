@@ -7,17 +7,17 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <cmath>
 #include <utility>
 #include <variant>
 #include "combat/EntiteVue.hpp"
 #include "escouade/Agresseurs.hpp"
+#include "escouade/EcartEntrePersonnages.hpp"
 #include "escouade/Personnage.hpp"
 #include "escouade/Provocations.hpp"
+#include "escouade/Separation.hpp"
 #include "combat/Skill.hpp"
 #include "combat/Autodefense.hpp"
 #include "monde/ChampDeVision.hpp"
-#include "monde/Chemin.hpp"
 #include "monde/Encerclement.hpp"
 #include "monde/TileMap.hpp"
 #include "rendu/TraceDeChemin.hpp"
@@ -29,9 +29,7 @@ constexpr float s_vitesseRotation = 360.0f;  // de la formation, en degrés par 
 constexpr float s_laisseAgresseur = 100.0f;      // en pixels, centre à centre, mesurée depuis la place de formation
 constexpr float s_fractionPorteeAnneau = 0.9f;    // anneau d'attaque : part de la portée, pour que la place soit à portée
 constexpr float s_vitesseSeparation = 120.0f;    // poussée maximale entre deux personnages trop proches, en pixels par seconde (plus lente que la marche, 240 : voir docs/formation.md)
-constexpr float s_ecartEntrePersonnages = 34.0f;  // distance minimale voulue entre deux centres (≈ (20 + 4) × √2 : 4 px visibles même en diagonale) ; aussi entre deux places, ou une place et un personnage immobile
 constexpr float s_toleranceArrivee = 0.01f;       // en pixels : comme le seuil de Mobile, un personnage à cette distance de son point y est arrivé
-constexpr std::array<float, 3> s_rayonsDeSecoursPlaces = {34.0f, 68.0f, 102.0f};  // anneaux autour de l'ancre pour une place repliée sur une autre
 
 // Seule conversion d'une place (de 1 à N) vers l'indice (de 0 à N-1).
 std::size_t indiceDeLaPlace(std::size_t place) {
@@ -51,15 +49,11 @@ std::vector<Rang> rangsDe(const std::vector<DefinitionPersonnage>& composition) 
 
 Escouade::Escouade(sf::Vector2f positionDepart, std::vector<DefinitionPersonnage> composition)
     : m_mobile(positionDepart + sf::Vector2f(s_coteAncre / 2.0f, s_coteAncre / 2.0f), {s_coteAncre, s_coteAncre}, s_vitesseAncre),
-      m_decalages(decalagesDeFormation(rangsDe(composition))),
-      m_orientation(),
-      m_orientationVoulue(),
-      m_vitesseRotation(s_vitesseRotation),
+      m_formation(decalagesDeFormation(rangsDe(composition)), m_mobile.getCentre(), s_vitesseRotation),
       m_personnages(),
       m_cibleVerrouillee(),
       m_skillEnAttente(),
       m_cibleCombat(),
-      m_places(),
       m_monstreAPortee(composition.size(), false),
       m_placesDAttaque(composition.size()),
       m_pointsVises(),
@@ -70,15 +64,10 @@ Escouade::Escouade(sf::Vector2f positionDepart, std::vector<DefinitionPersonnage
     assert(!composition.empty());
     for (std::size_t i = 0; i < composition.size(); ++i) {
         DefinitionPersonnage& definition = composition[i];
-        m_personnages.emplace_back(placePersonnage(i), definition.couleur, std::move(definition.attaqueDeBase),
+        m_personnages.emplace_back(m_formation.getPlaces()[i], definition.couleur, std::move(definition.attaqueDeBase),
                                    std::move(definition.skills), definition.armure, definition.rayonVision, definition.zoneDeControle);
-        m_places.push_back(placePersonnage(i));
     }
-    m_pointsVises = m_places;
-}
-
-sf::Vector2f Escouade::placePersonnage(std::size_t indice) const {
-    return getCentre() + m_decalages[indice].rotatedBy(m_orientation);
+    m_pointsVises = m_formation.getPlaces();
 }
 
 bool Escouade::placeValide(std::size_t place) const {
@@ -120,12 +109,12 @@ void Escouade::dessiner(sf::RenderTarget& rendu, bool afficherAncre) const {
 // Ordre du joueur : les coups en exécution sont annulés, sans recharge consommée.
 void Escouade::allerVers(sf::Vector2f destination, const TileMap& carte) {
     annulerAttaquesEngagees();
-    m_pointARegarder.reset();
+    m_formation.oublierPointARegarder();
     m_mobile.allerVers(destination, carte);
 }
 
 void Escouade::regarderVers(sf::Vector2f point) {
-    m_pointARegarder = point;
+    m_formation.regarderVers(point);
 }
 
 void Escouade::annulerAttaquesEngagees() {
@@ -193,7 +182,7 @@ void Escouade::approcherVerrou(const std::vector<EntiteVue>& monstres, const Til
     if (tousLesVivantsAtteignent(cible, carte)) {
         m_mobile.arreter();
     } else {
-        m_pointARegarder.reset();
+        m_formation.oublierPointARegarder();
         m_mobile.allerVers(cible.centre, carte);  // pas allerVers : ce n'est pas un ordre du joueur
     }
 }
@@ -639,7 +628,7 @@ sf::Vector2f Escouade::pointVersMonstre(std::size_t indice, int idMonstre, Cercl
 std::optional<sf::Vector2f> Escouade::pointVersAgresseur(std::size_t indice, const std::vector<EntiteVue>& agresseurs,
                                                          const std::optional<PlaceDAttaque>& ancienne, const TileMap& carte) {
     const std::optional<EntiteVue> cible = choisirAgresseurAViser(
-        m_personnages[indice].getCercle(), m_places[indice], s_laisseAgresseur, agresseurs);
+        m_personnages[indice].getCercle(), m_formation.getPlaces()[indice], s_laisseAgresseur, agresseurs);
     if (!cible.has_value()) {
         return std::nullopt;
     }
@@ -714,7 +703,7 @@ sf::Vector2f Escouade::pointVoulu(std::size_t indice, const std::optional<sf::Ve
             return *pointAgresseur;
         }
     }
-    return m_places[indice];
+    return m_formation.getPlaces()[indice];
 }
 
 // Un agresseur qui n'a pas frappé depuis assez longtemps est oublié ; une
@@ -726,79 +715,6 @@ void Escouade::ecoulerMemoires(float dt) {
     for (std::size_t place = 1; place <= m_personnages.size(); ++place) {
         if (!personnageDeLaPlace(place).estVivant()) {
             m_provocations.retirerProvocateur(place);
-        }
-    }
-}
-
-// Rotation progressive vers l'orientation voulue, par le plus court
-// côté (wrapSigned ramène l'écart entre -180° et 180°), à vitesse
-// angulaire bornée, que l'ancre bouge ou non.
-void Escouade::tournerFormation(float dt) {
-    const sf::Angle ecart = (m_orientationVoulue - m_orientation).wrapSigned();
-    const float pasRotation = m_vitesseRotation * dt;
-    if (std::abs(ecart.asDegrees()) <= pasRotation) {
-        m_orientation = m_orientationVoulue;
-    } else {
-        const float signe = (ecart.asDegrees() > 0.0f) ? 1.0f : -1.0f;
-        m_orientation += sf::degrees(pasRotation * signe);
-    }
-}
-
-// Une place théorique dans un mur ou derrière un coin est ramenée
-// vers l'ancre jusqu'à un point libre. Si la place ramenée tombe à moins de
-// `s_ecartEntrePersonnages` d'une place déjà calculée, ou dans un monstre (centre à moins de
-// rayon du monstre + rayon du personnage), elle est remplacée par le
-// premier point valide (trajet libre depuis l'ancre, hors mur, hors monstre) et libre sur des
-// anneaux autour de l'ancre, les candidates partant de la direction de la place
-// théorique ; sans point, elle est au centre de l'ancre (ou, si seul un monstre la gênait, reste où le repli l'a mise).
-void Escouade::calculerPlaces(const TileMap& carte, const std::vector<EntiteVue>& monstres) {
-    for (std::size_t i = 0; i < m_personnages.size(); ++i) {
-        const float rayonPersonnage = m_personnages[i].getCercle().rayon;
-        const float diametre = 2.0f * rayonPersonnage;
-        const sf::Vector2f taille(diametre, diametre);
-        const sf::Vector2f theorique = placePersonnage(i);
-        m_places[i] = replierVersOrigine(carte, getCentre(), theorique, taille);
-
-        const auto estLibre = [&](sf::Vector2f point) {
-            for (std::size_t autre = 0; autre < i; ++autre) {
-                if ((point - m_places[autre]).length() < s_ecartEntrePersonnages) {
-                    return false;
-                }
-            }
-            return true;
-        };
-        const auto estDansUnMonstre = [&](sf::Vector2f point) {
-            return std::ranges::any_of(monstres, [&](const EntiteVue& monstre) {
-                return (point - monstre.cercle.centre).length() < monstre.cercle.rayon + rayonPersonnage;
-            });
-        };
-        const sf::Vector2f replie = m_places[i];
-        const bool replieEstLibre = estLibre(replie);
-        if (replieEstLibre && !estDansUnMonstre(replie)) {
-            continue;
-        }
-
-        const sf::Vector2f direction = theorique - getCentre();
-        const sf::Angle depart = direction.length() > 0.0f ? direction.angle() : sf::degrees(0.0f);
-        const auto estValide = [&](sf::Vector2f point) {
-            return estLibre(point) && !estDansUnMonstre(point) &&
-                   !carte.chevaucheUnMur(sf::FloatRect(point - taille / 2.0f, taille)) &&
-                   carte.trajetLibre(sf::FloatRect(getCentre() - taille / 2.0f, taille), point - getCentre());
-        };
-        bool trouve = false;
-        m_places[i] = replieEstLibre ? replie : getCentre();
-        for (const float rayon : s_rayonsDeSecoursPlaces) {
-            for (const sf::Angle angle : anglesCandidats(depart, rayon, s_ecartEntrePersonnages)) {
-                const sf::Vector2f point = positionDePlace(getCentre(), rayon, angle);
-                if (estValide(point)) {
-                    m_places[i] = point;
-                    trouve = true;
-                    break;
-                }
-            }
-            if (trouve) {
-                break;
-            }
         }
     }
 }
@@ -826,14 +742,9 @@ void Escouade::mettreAJour(float dt, const TileMap& carte, const std::vector<Ent
         obstacles.push_back(monstre.cercle);
     }
 
-    if (const std::optional<sf::Vector2f> direction = m_mobile.directionVoulue()) {
-        m_orientationVoulue = direction->angle();
-    } else if (m_pointARegarder.has_value()) {
-        const sf::Vector2f vers = *m_pointARegarder - getCentre();
-        if (vers.length() > 0.0f) {
-            m_orientationVoulue = vers.angle();
-        }
-    }
+    // Direction voulue lue avant l'essai de collision : une ancre qui glisse contre un mur oriente
+    // quand même la formation vers la direction qu'elle essayait de suivre.
+    m_formation.choisirOrientation(m_mobile.directionVoulue(), getCentre());
 
     ecoulerMemoires(dt);
     const std::vector<EntiteVue> agresseurs = m_agresseurs.monstresVus();  // une fois par image, pour tous les personnages
@@ -842,8 +753,12 @@ void Escouade::mettreAJour(float dt, const TileMap& carte, const std::vector<Ent
     m_mobile.mettreAJour(dt, carte, {});
     const bool ancreArretee = !m_mobile.directionVoulue().has_value();
 
-    tournerFormation(dt);
-    calculerPlaces(carte, monstres);
+    std::vector<float> rayons;
+    rayons.reserve(m_personnages.size());
+    for (const Personnage& personnage : m_personnages) {
+        rayons.push_back(personnage.getCercle().rayon);
+    }
+    m_formation.mettreAJour(dt, getCentre(), rayons, carte, obstacles);
 
     mettreAJourDegagements(ancreArretee, monstresDeControle);
     const std::optional<sf::Vector2f> pointSkill = avancerSkillEnAttente(carte);
@@ -898,53 +813,27 @@ std::optional<int> Escouade::degagementVoulu(std::size_t indice, bool ancreArret
     return enCours;
 }
 
-// Séparation douce : chaque paire de vivants à moins de s_ecartEntrePersonnages est écartée le
-// long de la droite de leurs centres, chacun de la moitié du manque. Un
-// personnage en exécution n'est pas poussé (l'autre prend toute la poussée ;
-// si les deux le sont, rien). La poussée de chacun est plafonnée à
-// s_vitesseSeparation * dt, et passe par la collision habituelle (murs, monstres).
+// Séparation douce (pousseesDeSeparation) : un mort est absent, un personnage en exécution
+// est fixe. Chaque poussée passe par la collision habituelle (murs, monstres).
 void Escouade::separerPersonnages(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles) {
-    std::vector<sf::Vector2f> poussees(m_personnages.size(), sf::Vector2f(0.0f, 0.0f));
-
-    for (std::size_t i = 0; i < m_personnages.size(); ++i) {
-        for (std::size_t j = i + 1; j < m_personnages.size(); ++j) {
-            const Personnage& a = m_personnages[i];
-            const Personnage& b = m_personnages[j];
-            if (!a.estVivant() || !b.estVivant()) {
-                continue;
-            }
-            const sf::Vector2f ecart = b.getCentre() - a.getCentre();
-            const float distance = ecart.length();
-            const float chevauchement = s_ecartEntrePersonnages - distance;
-            if (chevauchement <= 0.0f) {
-                continue;
-            }
-            // Centres confondus : repli fixe sur l'axe des x, le plus petit indice vers la gauche.
-            const sf::Vector2f direction = distance > 0.0f ? ecart / distance : sf::Vector2f(1.0f, 0.0f);
-            const bool aBouge = !a.estEnExecution();
-            const bool bBouge = !b.estEnExecution();
-            if (!aBouge && !bBouge) {
-                continue;
-            }
-            const float partA = bBouge ? 0.5f : 1.0f;  // si l'autre est immobile, on prend tout
-            const float partB = aBouge ? 0.5f : 1.0f;
-            if (aBouge) {
-                poussees[i] -= direction * (chevauchement * partA);
-            }
-            if (bBouge) {
-                poussees[j] += direction * (chevauchement * partB);
-            }
+    std::vector<MembreASeparer> membres;
+    membres.reserve(m_personnages.size());
+    for (const Personnage& personnage : m_personnages) {
+        EtatDeSeparation etat = EtatDeSeparation::Libre;
+        if (!personnage.estVivant()) {
+            etat = EtatDeSeparation::Absent;
+        } else if (personnage.estEnExecution()) {
+            etat = EtatDeSeparation::Fixe;
         }
+        membres.push_back({personnage.getCentre(), etat});
     }
 
-    const float pousseeMax = s_vitesseSeparation * dt;
+    const std::vector<sf::Vector2f> poussees =
+        pousseesDeSeparation(membres, s_ecartEntrePersonnages, s_vitesseSeparation, dt);
     for (std::size_t i = 0; i < m_personnages.size(); ++i) {
-        const float longueur = poussees[i].length();
-        if (longueur <= 0.0f) {
-            continue;
+        if (poussees[i] != sf::Vector2f(0.0f, 0.0f)) {
+            m_personnages[i].decaler(poussees[i], carte, obstacles);
         }
-        const sf::Vector2f poussee = longueur > pousseeMax ? poussees[i] * (pousseeMax / longueur) : poussees[i];
-        m_personnages[i].decaler(poussee, carte, obstacles);
     }
 }
 
@@ -995,7 +884,7 @@ void Escouade::dessinerPointsVises(sf::RenderTarget& rendu) const {
 }
 
 const std::vector<sf::Vector2f>& Escouade::getPlacesDeFormation() const {
-    return m_places;
+    return m_formation.getPlaces();
 }
 
 sf::Vector2f Escouade::getCentre() const {
@@ -1210,7 +1099,7 @@ void Escouade::verrouiller(int idCible) {
         annulerAttaquesEngagees();
     }
     m_cibleVerrouillee = idCible;
-    m_pointARegarder.reset();
+    m_formation.oublierPointARegarder();
 }
 
 void Escouade::deverrouiller() {

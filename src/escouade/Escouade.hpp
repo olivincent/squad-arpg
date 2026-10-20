@@ -16,6 +16,7 @@
 #include "combat/Cible.hpp"
 #include "base/Cercle.hpp"
 #include "escouade/Composition.hpp"
+#include "escouade/Formation.hpp"
 #include "combat/Coup.hpp"
 #include "combat/Engagement.hpp"
 #include "combat/EtatSkill.hpp"
@@ -119,7 +120,6 @@ public:
     [[nodiscard]] const std::vector<Provocations::Provocation>& getProvocations() const;
 
 private:
-    [[nodiscard]] sf::Vector2f placePersonnage(std::size_t indice) const;
     // Place de 1 à N : seule conversion vers l'indice 0 à N-1.
     [[nodiscard]] bool placeValide(std::size_t place) const;
     [[nodiscard]] Personnage& personnageDeLaPlace(std::size_t place);              // place valide exigée
@@ -159,8 +159,6 @@ private:
     [[nodiscard]] std::vector<Cercle> monstresAContourner(std::size_t indice, const std::vector<EntiteVue>& monstres) const;
     // Étapes de mettreAJour().
     void ecoulerMemoires(float dt);
-    void tournerFormation(float dt);
-    void calculerPlaces(const TileMap& carte, const std::vector<EntiteVue>& monstres);
     void separerPersonnages(float dt, const TileMap& carte, const std::vector<Cercle>& obstacles);
     sf::Vector2f pointVoulu(std::size_t indice, const std::optional<sf::Vector2f>& pointSkill, bool ancreArretee,
                             const std::vector<EntiteVue>& agresseurs, const std::vector<EntiteVue>& monstres, const TileMap& carte);
@@ -176,16 +174,11 @@ private:
     };
 
     Mobile m_mobile;
-    std::vector<sf::Vector2f> m_decalages; // décalages de formation, pour une escouade orientée vers +x
-    sf::Angle m_orientation;               // 0 = orientée vers +x
-    sf::Angle m_orientationVoulue;         // direction voulue de l'ancre, vers laquelle m_orientation tourne
-    std::optional<sf::Vector2f> m_pointARegarder; // orientation voulue de l'ancre à l'arrêt (voir regarderVers)
-    float m_vitesseRotation;               // en degrés par seconde
+    Formation m_formation;  // décalages, orientation et places de formation autour de l'ancre
     std::vector<Personnage> m_personnages;
     std::optional<int> m_cibleVerrouillee;
     std::optional<SkillEnAttente> m_skillEnAttente; // un seul skill en attente pour toute l'escouade
     std::optional<Cercle> m_cibleCombat; // dernière cible donnée à attaquer(), pour figer les personnages déjà à portée
-    std::vector<sf::Vector2f> m_places;  // place de formation de chaque personnage, repliée si besoin (recalculée par mettreAJour)
     std::vector<bool> m_monstreAPortee;  // par personnage : a-t-il un monstre à portée de son attaque (calculé par attaquer, lu par mettreAJour)
     // Par personnage : place d'attaque retenue autour du monstre qu'il approche (vide = il n'en approche aucun).
     std::vector<std::optional<PlaceDAttaque>> m_placesDAttaque;

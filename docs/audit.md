@@ -18,7 +18,8 @@ fichier), T1, T2, T3, C1, C4, D6, K2 a à f, V1 partie 1 et L1 (voir `ROADMAP.md
 fonctionnalités qui en ont besoin) et les décisions reportées sont dans `ROADMAP.md`. La partie
 82.1 de l'étape 82 a traité D1 (`Vitalite`, `cercleDuRectangle` et `Mobile::getCercle`,
 `s_eclaircissementExecution` dans `Eclaircir.hpp` ; le trio d'attaque, qui relève de R4, et
-`s_pointsDeVieMax`, deux valeurs d'équilibrage indépendantes, n'ont pas été touchés).
+`s_pointsDeVieMax`, deux valeurs d'équilibrage indépendantes, n'ont pas été touchés). La partie
+82.2 a fait le premier pas de R1 : le groupe (a), la formation (voir R1, « Suivi »).
 
 Référentiels : C++ Core Guidelines, SOLID (surtout responsabilité unique et inversion des
 dépendances), cohésion et couplage, DRY, règle du zéro, sémantique de valeur, *Game Programming
@@ -320,6 +321,21 @@ font poursuivre 30 monstres durent environ 1,2 s chacun en `-O0`.
   de `test_Escouade_places.cpp` et `test_Escouade_degagement.cpp` s'y prêtent). L'ordre d'appel
   à l'intérieur de `mettreAJour` doit rester celui d'aujourd'hui (voir R2).
 - **Dépend de** : étape 2 (dossiers) ; T1 (filet) ; R2 en même temps.
+- **Suivi** :
+  - **82.2, groupe (a) fait** : `Formation` (`escouade/Formation`) possède les décalages,
+    l'orientation voulue et courante, le point à regarder, la vitesse de rotation et les places ;
+    `tournerFormation`, `calculerPlaces`, `placePersonnage` et les six membres de formation ont
+    quitté `Escouade`, remplacés par `m_formation`. Interface plus courte que la proposition :
+    `regarderVers`, `oublierPointARegarder`, `choisirOrientation` (avant le déplacement de
+    l'ancre), `mettreAJour` (rotation puis places, après) et `getPlaces` ; `placeTheorique` et
+    `tourner` sont privées. La séparation n'est pas dans `Formation` mais dans une fonction pure à
+    part (`escouade/Separation`, `pousseesDeSeparation`), qui reçoit un centre et un état
+    `Absent`/`Fixe`/`Libre` par personnage ; `separerPersonnages` ne fait plus que traduire et
+    appliquer. `s_ecartEntrePersonnages` est dans l'en-tête neutre `escouade/EcartEntrePersonnages.hpp`.
+    Aucun comportement changé : calcul de la séparation déjà simultané, aucun test existant modifié
+    (904 → 927 avec les 23 tests de `Formation` et `Separation`). `Escouade.cpp` : 1 223 → 1 112
+    lignes. Les tests de rotation et de places d'`Escouade` restent le filet ; les doublons seront
+    triés en 82.5.
 
 ### R2 — Couplage temporel entre `attaquer` et `mettreAJour`
 - **Constat** : `Escouade.hpp` l. 30–33 impose « `attaquer()` AVANT `mettreAJour()` » parce que
@@ -1267,3 +1283,11 @@ Commande : `clang-tidy -p build/jeu src/escouade/Escouade.cpp`.
 **59 avertissements**, même mesure (45 sources : `combat/Vitalite.cpp` en plus). Décompte et
 répartition par règle inchangés ; aucun avertissement dans `Vitalite`, `cercleDuRectangle` ni
 `Mobile::getCercle`. `Personnage.cpp` en garde 5, `Monstre.hpp` 5.
+
+### Après la partie 82.2
+
+**59 avertissements**, même mesure (47 sources : `escouade/Separation.cpp` et
+`escouade/Formation.cpp` en plus). Décompte et répartition par règle inchangés ; aucun
+avertissement dans `Formation`, `Separation` ni `EcartEntrePersonnages.hpp`. Le premier passage en
+trouvait un dans `Separation.hpp` (`cppcoreguidelines-pro-type-member-init` : `MembreASeparer::etat`
+sans valeur par défaut, comme `Cercle`) : `etat` vaut `Absent` par défaut. `Escouade.cpp` en garde 8.
