@@ -4,6 +4,8 @@
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Text.hpp>
 #include <SFML/Graphics/VertexArray.hpp>
+#include <SFML/Window/Keyboard.hpp>
+#include <optional>
 #include <array>
 #include <algorithm>
 #include <cmath>
@@ -11,6 +13,7 @@
 #include <string>
 
 #include "interface/BarreDeRaccourcis.hpp"
+#include "escouade/Escouade.hpp"
 
 namespace {
 
@@ -95,6 +98,24 @@ sf::Color couleurDuContour(bool enVisee, bool enActivation) {
         return sf::Color::Yellow;
     }
     return enActivation ? sf::Color::White : sf::Color(140, 140, 140);
+}
+
+std::array<IconeDeRaccourci, s_emplacementsPrincipaux> iconesDeLaBarre(
+    const BarreDeRaccourcis& barre, const Escouade& escouade, const TouchesDesRaccourcis& touches,
+    std::optional<AdresseSkill> enVisee) {
+    std::array<IconeDeRaccourci, s_emplacementsPrincipaux> icones;
+    for (std::size_t i = 0; i < icones.size(); ++i) {
+        icones[i].touche = sf::Keyboard::getDescription(touches[i]);
+        const std::optional<AdresseSkill> adresse = barre.adresse(i);
+        if (!adresse.has_value()) {
+            continue;
+        }
+        icones[i].etat = escouade.etatDuSkill(*adresse);
+        icones[i].couleurDuLanceur = escouade.couleurDuPersonnage(adresse->place).value_or(sf::Color::White);
+        icones[i].place = adresse->place;
+        icones[i].enVisee = adresse == enVisee;
+    }
+    return icones;
 }
 
 void dessinerBarreDeSkills(sf::RenderTarget& rendu, const sf::Font& police,

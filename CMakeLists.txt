@@ -60,6 +60,7 @@ add_library(squad_core STATIC
     src/interface/BarreDeSkills.cpp
     src/interface/ClicInterface.cpp
     src/interface/EcranDeFin.cpp
+    src/interface/CommandeDeTouche.cpp
     src/interface/EntreeDInterface.cpp
     src/combat/EntiteVue.cpp
     src/rendu/BarreDeVie.cpp
@@ -143,6 +144,7 @@ add_executable(tests
     tests/interface/test_BarreDeRaccourcis.cpp
     tests/interface/test_BarreDeSkills.cpp
     tests/interface/test_ClicInterface.cpp
+    tests/interface/test_CommandeDeTouche.cpp
     tests/combat/test_EntiteVue.cpp
     tests/rendu/test_BarreDeVie.cpp
     tests/base/test_Eclaircir.cpp

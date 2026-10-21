@@ -7,7 +7,11 @@
 #include <cstddef>
 #include <vector>
 
+#include <optional>
+
+#include "aides_escouade.hpp"
 #include "interface/BarreDeSkills.hpp"
+#include "interface/Reglages.hpp"
 #include "combat/IdSkill.hpp"
 
 namespace {
@@ -94,5 +98,33 @@ TEST_CASE("pointsDuQuartier reste dans le carre") {
     for (const sf::Vector2f point : pointsDuQuartier(centre, 56.0f, 0.6f)) {
         REQUIRE(std::abs(point.x - centre.x) <= 28.001f);
         REQUIRE(std::abs(point.y - centre.y) <= 28.001f);
+    }
+}
+
+TEST_CASE("iconesDeLaBarre : un emplacement garni montre son skill, un vide seulement sa touche") {
+    const Escouade escouade = uneEscouade({100.0f, 100.0f});
+    const BarreDeRaccourcis barre = barreParDefaut(escouade.adressesDesSkills());
+    const TouchesDesRaccourcis touches = Reglages{}.touchesDesRaccourcis;
+
+    const auto icones = iconesDeLaBarre(barre, escouade, touches, std::nullopt);
+
+    REQUIRE(icones[0].etat.has_value());
+    REQUIRE(icones[0].place == barre.adresse(0)->place);
+    REQUIRE(icones[0].couleurDuLanceur == *escouade.couleurDuPersonnage(icones[0].place));
+    for (std::size_t i = 0; i < icones.size(); ++i) {
+        REQUIRE(icones[i].etat.has_value() == barre.adresse(i).has_value());
+        REQUIRE_FALSE(icones[i].enVisee);
+    }
+}
+
+TEST_CASE("iconesDeLaBarre : seul l'emplacement du skill vise est en visee") {
+    const Escouade escouade = uneEscouade({100.0f, 100.0f});
+    const BarreDeRaccourcis barre = barreParDefaut(escouade.adressesDesSkills());
+    const TouchesDesRaccourcis touches = Reglages{}.touchesDesRaccourcis;
+
+    const auto icones = iconesDeLaBarre(barre, escouade, touches, s_adresseSoin);
+
+    for (std::size_t i = 0; i < icones.size(); ++i) {
+        REQUIRE(icones[i].enVisee == (barre.adresse(i) == s_adresseSoin));
     }
 }

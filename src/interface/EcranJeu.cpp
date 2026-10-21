@@ -23,6 +23,8 @@
 #include "interface/BarreDeSkills.hpp"
 #include "escouade/Specialite.hpp"
 #include "interface/ClicInterface.hpp"
+#include "combat/Cible.hpp"
+#include "interface/CommandeDeTouche.hpp"
 #include "interface/Contexte.hpp"
 #include "interface/Controleur.hpp"
 #include "interface/EcranDeFin.hpp"
@@ -107,28 +109,42 @@ Transition EcranJeu::traiterEvenement(const sf::Event& evenement, const Contexte
         // Scancode : la touche physique, quelle que soit la disposition du clavier
         // (AZERTY : la touche « Q » du réglage par défaut est étiquetée « A »).
         const bool finDePartie = m_partie.estPerdue() || m_partie.estGagnee();
-        if (data->scancode == sf::Keyboard::Scan::Escape) {
-            m_controleur.appuiEchap();
-        } else if (data->scancode == sf::Keyboard::Scan::R && finDePartie) {
-            return Depiler{};  // retour à l'écran de choix de l'escouade
-        } else if (data->scancode == sf::Keyboard::Scan::F5) {
-            // Touche de débogage : à tout moment, une nouvelle carte avec les mêmes classes.
-            nouvelleCarte();
-        } else if (data->scancode == sf::Keyboard::Scan::F3) {
-            m_debogage.pointsVises = !m_debogage.pointsVises;  // touche de débogage : points visés des personnages
-        } else if (data->scancode == sf::Keyboard::Scan::F4) {
-            m_debogage.ancre = !m_debogage.ancre;  // touche de débogage : carré vert de l'ancre
-        } else if (data->scancode == sf::Keyboard::Scan::F6) {
-            m_debogage.brouillard = !m_debogage.brouillard;  // touche de débogage : brouillard de guerre (visuel seulement)
-        } else if (!finDePartie) {
-            // Sur l'écran de fin, seul R compte : les raccourcis sont ignorés.
-            const std::optional<std::size_t> emplacement = emplacementPourTouche(contexte.reglages.touchesDesRaccourcis, data->scancode);
-            if (emplacement.has_value()) {
-                m_controleur.activerEmplacement(m_partie, m_barre, *emplacement);
-            }
-        }
+        return executer(commandePourTouche(data->scancode, finDePartie, contexte.reglages.touchesDesRaccourcis));
     }
     return Aucune{};
+}
+
+Transition EcranJeu::executer(const CommandeDeTouche& commande) {
+    return std::visit(
+        Surcharges{
+            [](commande::Rien) -> Transition { return Aucune{}; },
+            [this](commande::Annuler) -> Transition {
+                m_controleur.appuiEchap();
+                return Aucune{};
+            },
+            [](commande::RetourAuChoix) -> Transition { return Depiler{}; },  // retour à l'écran de choix
+            [this](commande::NouvelleCarte) -> Transition {
+                nouvelleCarte();
+                return Aucune{};
+            },
+            [this](commande::BasculerPointsVises) -> Transition {
+                m_debogage.pointsVises = !m_debogage.pointsVises;
+                return Aucune{};
+            },
+            [this](commande::BasculerAncre) -> Transition {
+                m_debogage.ancre = !m_debogage.ancre;
+                return Aucune{};
+            },
+            [this](commande::BasculerBrouillard) -> Transition {
+                m_debogage.brouillard = !m_debogage.brouillard;
+                return Aucune{};
+            },
+            [this](commande::ActiverEmplacement activer) -> Transition {
+                m_controleur.activerEmplacement(m_partie, m_barre, activer.emplacement);
+                return Aucune{};
+            },
+        },
+        commande);
 }
 
 void EcranJeu::mettreAJour(float dt, const Contexte& contexte) {
@@ -166,20 +182,9 @@ void EcranJeu::dessiner(const Contexte& contexte) const {
 
     // Interface fixe à l'écran : vue de l'interface, dessinée en dernier.
     fenetre.setView(vueDInterface(fenetre.getSize()));
-    // Une icône par emplacement de la barre, construite à partir de son adresse.
-    std::array<IconeDeRaccourci, s_emplacementsPrincipaux> icones;
-    for (std::size_t i = 0; i < icones.size(); ++i) {
-        icones[i].touche = sf::Keyboard::getDescription(contexte.reglages.touchesDesRaccourcis[i]);
-        const std::optional<AdresseSkill> adresse = m_barre.adresse(i);
-        if (!adresse.has_value()) {
-            continue;
-        }
-        icones[i].etat = m_partie.getEscouade().etatDuSkill(*adresse);
-        icones[i].couleurDuLanceur = m_partie.getEscouade().couleurDuPersonnage(adresse->place).value_or(sf::Color::White);
-        icones[i].place = adresse->place;
-        icones[i].enVisee = adresse == m_controleur.getAdresseEnVisee();
-    }
-    dessinerBarreDeSkills(fenetre, contexte.police, icones);
+    dessinerBarreDeSkills(fenetre, contexte.police,
+                          iconesDeLaBarre(m_barre, m_partie.getEscouade(), contexte.reglages.touchesDesRaccourcis,
+                                          m_controleur.getAdresseEnVisee()));
     dessinerCompteurDeMonstres(fenetre, contexte.police, m_partie.monstresRestants());
     if (m_partie.estPerdue()) {
         dessinerEcranDeFin(fenetre, contexte.police, "Défaite");

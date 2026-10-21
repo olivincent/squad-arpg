@@ -11,8 +11,12 @@
 #include <string>
 #include <vector>
 #include "interface/BarreDeRaccourcis.hpp"
+#include "combat/AdresseSkill.hpp"
 #include "combat/EtatSkill.hpp"
 #include "combat/IdSkill.hpp"
+#include "interface/Reglages.hpp"
+
+class Escouade;
 
 // Étiquette de deux lettres affichée sur l'icône d'un skill.
 [[nodiscard]] std::string sigleDuSkill(IdSkill id);
@@ -37,6 +41,14 @@ struct IconeDeRaccourci {
     std::size_t place = 0;          // place du lanceur (1 à N), écrite dans la bande
     bool enVisee = false;           // contour jaune : le skill de cet emplacement est en cours de visée
 };
+
+// Les icônes des emplacements de `barre`, telles que l'escouade les montre à cet instant : pour
+// chaque emplacement, le nom de sa touche (`touches`), et s'il pointe vers un skill, son état,
+// la couleur et la place de son lanceur ; `enVisee` (vide hors visée) marque l'emplacement dont
+// l'adresse est visée. Un emplacement vide ne garde que le nom de sa touche.
+[[nodiscard]] std::array<IconeDeRaccourci, s_emplacementsPrincipaux> iconesDeLaBarre(
+    const BarreDeRaccourcis& barre, const Escouade& escouade, const TouchesDesRaccourcis& touches,
+    std::optional<AdresseSkill> enVisee);
 
 // Dessine les icônes des emplacements de la barre principale, à la place que donne
 // `rectangleDeLEmplacement` (le même calcul que le clic), en coordonnées de la vue active : à

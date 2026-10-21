@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "interface/BarreDeRaccourcis.hpp"
+#include "interface/CommandeDeTouche.hpp"
 #include "interface/Controleur.hpp"
 #include "interface/Ecran.hpp"
 #include "jeu/Partie.hpp"
@@ -37,6 +38,9 @@ private:
     // La caméra montre toujours `s_hauteurDeVue` pixels de monde en hauteur :
     // sa taille suit le format de la fenêtre, lue à chaque image.
     void ajusterCamera(const Contexte& contexte);
+
+    // Exécute la commande d'une touche ; `Depiler` pour le retour au choix, sinon `Aucune`.
+    [[nodiscard]] Transition executer(const CommandeDeTouche& commande);
 
     // Remplace la partie par une neuve (nouvelle graine) et remet l'état
     // d'interface à zéro.
