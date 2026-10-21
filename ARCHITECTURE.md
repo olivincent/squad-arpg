@@ -57,7 +57,7 @@ squad-arpg/
 │   ├── jeu/        Partie
 │   ├── interface/  Ecran, Transition, Contexte, PileDEcrans, EntreeDInterface, EcranMenu,
 │   │               EcranOptions, EcranChoixEscouade, EcranJeu, EcranInventaire,
-│   │               DispositionInventaire, AffichageObjets, ListeDeBoutons, Reglages, TailleDeVue,
+│   │               DispositionInventaire, AffichageObjets, AffichageSkills, ListeDeBoutons, Reglages, TailleDeVue,
 │   │               EmplacementsPrincipaux, BarreDeRaccourcis, CommandeDeTouche, ClicInterface,
 │   │               BarreDeSkills, EcranDeFin, TextesFlottants, Controleur
 │   └── app/        main.cpp, Application
@@ -131,7 +131,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `ActionEngagee` : l'action (attaque de base ou skill) qu'un personnage prépare, et sa cible.
 - `EtatSkill` : le skill d'une place, tel que l'affichage en a besoin.
 - `Coup` : dégâts à infliger à un monstre, sortie d'`Escouade`.
-- `EvenementDeCombat` : dégât ou soin réellement appliqué, en données (file de `Partie`).
+- `EvenementDeCombat` : champs communs + détail en variant (dégâts, soin, skill lancé, monstre provoqué), en données (file de `Partie`).
 - `EntiteVue` : une entité telle que l'autre camp la voit, et `trouverEntite`.
 - `Autodefense` : quel ennemi frapper, quel agresseur viser.
 - `Engagement` : zones de contrôle, coups d'opportunité, monstre dont se dégager.
@@ -183,6 +183,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `EcranInventaire` : le sac et l'équipement, déplacement des objets par glisser-déposer, par-dessus la partie figée, touche I (`docs/ecrans.md`).
 - `DispositionInventaire` : rectangles de l'inventaire, `elementSous` (une `PositionDObjet`), placement de l'infobulle (`docs/ecrans.md`).
 - `AffichageObjets` : noms des emplacements et des catégories, sigles, lignes de l'infobulle (`docs/objets.md`).
+- `AffichageSkills` : `nomDuSkill`, le nom affiché d'un skill (`docs/combat.md`).
 - `ListeDeBoutons` : colonne de boutons sans position stockée (`docs/ecrans.md`).
 - `Reglages` : réglages d'affichage, `reglages.ini`, table des touches des raccourcis (`docs/ecrans.md`).
 - `TailleDeVue` : vue à hauteur fixe et vue d'interface (`docs/ecrans.md`).

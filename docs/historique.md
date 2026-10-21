@@ -2071,3 +2071,14 @@ l'origine est voilée, l'objet suit le curseur, l'infobulle est masquée, et les
 contour doré (`peutDeplacerObjet`, la même requête que le relâchement). `relachementGaucheDInterface`
 complète `EntreeDInterface`. 1 069 tests. Détail : `docs/objets.md`, `docs/ecrans.md`,
 `docs/formation.md`, `docs/tests.md`.
+
+### Étape 86 — Nom du skill lancé et « Provoqué » ✅
+
+Quatre sous-étapes de code. `EvenementDeCombat` devient des champs communs (`campCible`, `idCible`,
+`position`) et un `detail` en variant (`Degats`, `Soin`, `SkillLance`, `Provoque`) ; `TypeEvenement`
+disparaît. Le canal des soins d'`Escouade` devient un canal unique de faits en variant
+(`FaitDEscouade` : `SoinApplique`, `SkillPart`, `MonstreProvoque`), vidé par `prendreFaits` ; `Partie`
+les convertit (`signalerLesFaits`). Un skill de la barre signale son nom au départ de l'effet (jamais
+l'attaque de base), au-dessus du lanceur, en jaune doré 14 px (`interface/AffichageSkills`) ; chaque
+monstre provoqué affiche « Provoqué » en rouge orangé. Libellés en UTF-8 (`fromUtf8`). 1 079 tests.
+Détail : `docs/combat.md`, `docs/formation.md`, `docs/tests.md`.

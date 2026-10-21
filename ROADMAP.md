@@ -8,21 +8,22 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 ## Étapes terminées
 
-Étapes 0 à 85 ✅. Les dernières :
+Étapes 0 à 86 ✅. Les dernières :
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 - Étape 83 — Inventaire et équipement : le modèle, sans interface ✅
 - Étape 84 — Inventaire : l'écran en lecture (avec R6, D4, P2) ✅
 - Étape 85 — Inventaire : le glisser-déposer ✅
+- Étape 86 — Nom du skill lancé et « Provoqué » ✅
 
 ## État actuel (résumé)
 
 - **Outils** : conception dans Claude.ai, implémentation avec Claude Code dans VSCode (règles dans
   `CLAUDE.md`) ; dépôt Git `squad-arpg`, poussé sur GitHub ; SFML 3.0.2 intégrée à CMake.
-- **Code** (étape 85) : 69 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
+- **Code** (étape 86) : 70 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
   `combat`, `objets`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
   de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug` et `jeu`, 0
-  avertissement, 1 069 tests verts sous CTest, 41 avertissements `clang-tidy` (`docs/build.md`,
+  avertissement, 1 079 tests verts sous CTest, 41 avertissements `clang-tidy` (`docs/build.md`,
   `docs/audit.md`). `Escouade` n'est plus que l'assemblage : `Escouade.cpp` de 1 223 à 1 067 lignes. Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`).
 - **Écrans** : menu à la souris, options d'affichage (fenêtré ou plein écran, résolutions,
   `reglages.ini`), choix de 3 classes parmi 5 (guerrier, prêtre, mage, paladin, rôdeur ; doublons
@@ -47,7 +48,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - **Combat** : verrou par clic, autodéfense, agresseurs, temps d'exécution des coups, armure à
   rendement décroissant, recharges aléatoires, zones de contrôle et attaques d'opportunité ; skills
   (dégâts, soin, provocation, zone avec visée) avec temps d'activation et un skill en attente pour
-  l'escouade ; dégâts et soins flottants (`docs/combat.md`).
+  l'escouade ; dégâts, soins, nom du skill lancé et « Provoqué » flottants (`docs/combat.md`).
 - **Monstres** : détection en vue, poursuite, frappe de la proie ou du plus proche atteignable,
   alerte du groupe, retour au poste invulnérable avec régénération (`docs/monstre.md`).
 - **Interface** : barre de raccourcis de 12 emplacements (Q W E R / A S D F / Z X C V, ou clic ;
@@ -127,14 +128,10 @@ d'attaque » par type de monstre (`docs/brainstorm.md`, section 4 bis), qui se b
   ou des hordes (la partie 1 a déjà divisé le coût par 7 à 13) ;
 - R5 (identifiants et places) : décidé en 82.5, rattachée à R4 (voir ci-dessus).
 
-## Étape 86 (prochaine) : nom du skill lancé et « Provoqué »
+## Étape 87 (prochaine) : à choisir avec Claude.ai
 
-(Anciennement étape 83.) Le nom du skill lancé au-dessus du lanceur et « Provoqué » au-dessus des
-monstres provoqués, par la même file d'événements que l'étape 79 : un type d'événement de plus
-(`EvenementDeCombat`, produit par `Partie`) et un style de plus dans `TextesFlottants`. Aujourd'hui la
-file ne porte que les dégâts et les soins réellement appliqués. Les autres usages de la file
-(« Immunisé », sons, journal de combat, statistiques…) sont des idées, pas des décisions :
-`docs/brainstorm.md`, section 5 ter.
+L'étape 86 est faite. Les autres usages de la file d'événements (« Immunisé », sons, journal de combat,
+statistiques…) sont des idées, pas des décisions : `docs/brainstorm.md`, section 5 ter.
 
 ## Fonctionnalités prévues (à choisir avec Claude.ai)
 

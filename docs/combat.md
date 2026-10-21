@@ -1040,13 +1040,22 @@ l'enfoncerait dans un obstacle.
   (`EvenementDeCombat`), l'affichage les consomme plus tard. `Partie` ne connaît pas l'affichage : pas de
   callback, pas de `std::function` vers `EcranJeu`, pas d'observateur. Le jour où autre chose voudra les
   lire (sons, journal de combat, statistiques), il lira la même file ; un nouveau type d'événement
-  (étape 83 : nom du skill lancé, « Provoqué ») s'ajoute à l'énumération sans réécrire ce qui existe.
+  (étape 86 : nom du skill lancé, « Provoqué ») s'ajoute au variant `DetailEvenement` sans réécrire ce
+  qui existe.
+- **La forme (étape 86).** Champs communs (`campCible`, `idCible`, `position`) et un `detail` en
+  `std::variant<Degats, Soin, SkillLance, Provoque>` : `Degats { montant, opportunite }`,
+  `Soin { montant }`, `SkillLance { IdSkill }`, `Provoque {}`. `TypeEvenement` n'existe plus, le
+  variant dit le type. Raison : un skill lancé n'a pas de montant et « Provoqué » n'a ni montant ni coup
+  gratuit ; on ne représente pas des champs qui n'ont pas de sens. Les lecteurs (`TextesFlottants`)
+  utilisent `std::visit` avec `Surcharges` : un détail ajouté sans son texte, sa couleur et sa taille ne
+  compile pas.
 - **Le montant est ce qui a réellement été appliqué.** Les fonctions qui appliquent dégâts et soins le
   renvoient : dégâts après armure (`appliquerArmure`), soin plafonné aux points de vie maximums
   (`PointsDeVie::soigner` renvoie la différence avant/après). Zéro pour une cible morte (deux coups
   partis dans la même image sur le même monstre : le second tombe sur un mort), un monstre en retour au
-  poste (invulnérable) ou un allié déjà plein. **Un montant de 0 ne produit aucun événement** : la règle
-  est dans le seul endroit où un événement naît, `Partie::signaler`.
+  poste (invulnérable) ou un allié déjà plein. **Un montant de 0 ne produit aucun événement** (pour
+  `Degats` et `Soin`, les seuls à avoir un montant) : la règle est dans le seul endroit où un événement
+  naît, `Partie::signaler`.
 - **Pas de plafond par les points de vie restants.** Le coup qui tue affiche son plein montant (après
   armure), pas ce qui restait au monstre : le nombre dit la force du coup, la barre de vie dit l'état.
   Le soin, lui, est plafonné : il dit ce qui a vraiment été rendu.
@@ -1056,12 +1065,22 @@ l'enfoncerait dans un obstacle.
 - **D'où viennent les événements.** `Partie::appliquer` (coups sur les monstres : skills, attaque de base,
   zone, coups gratuits des personnages) et `Partie::infligerAUnPersonnage` (coups des monstres, coups
   gratuits des monstres) appellent `signaler` avec le montant renvoyé ; `opportunite` vaut vrai pour les
-  coups gratuits seulement. **Les soins** se font dans `Escouade::effetDuSkill` : `Escouade` les range
-  dans `m_soinsAppliques` (`SoinApplique` : place, points rendus, position) et `Partie::signalerLesSoins`
-  les prend (`Escouade::prendreSoins`) à la fin de `resoudreLesCoups`, puis en fait des événements.
-  Ce canal (une liste vidée à la demande) plutôt qu'un type de retour de plus pour `attaquer` et
-  `declencherSkill` : ces deux fonctions renvoient des `Coup` et ont environ 200 tests. `Escouade` ne
-  dépend pas de l'affichage ni de `EvenementDeCombat`.
+  coups gratuits seulement. **Le reste vient d'`Escouade::effetDuSkill`**, par un canal unique : une
+  liste de faits en variant, `m_faits` (`FaitDEscouade = std::variant<SoinApplique, SkillPart,
+  MonstreProvoque>`), vidée par `Escouade::prendreFaits`. `Partie::signalerLesFaits` la prend à la fin de
+  `resoudreLesCoups` et convertit chaque fait en événement (`std::visit`). Ce canal plutôt qu'un type de
+  retour de plus pour `attaquer` et `declencherSkill` : ces deux fonctions renvoient des `Coup` et ont
+  environ 200 tests. `Escouade` ne dépend pas de l'affichage ni d'`EvenementDeCombat`.
+  - `SoinApplique { place, montant, position }` devient `Soin` sur le soigné.
+  - `SkillPart { place, skill, position }` (étape 86) : ajouté en tête de `effetDuSkill`, donc au départ
+    de l'effet (fin de l'activation), pas au début ; tous les skills de la barre (dégâts, soin,
+    provocation, zone, même sans cible touchée), jamais l'attaque de base. Devient `SkillLance` sur le
+    lanceur. Le nom et un soin reçu par le lanceur dans la même image s'empilent (même cible, même
+    image).
+  - `MonstreProvoque { idMonstre }` (étape 86) : un par monstre que la provocation touche, dans la boucle
+    de `effetDuSkill` (pas dans `Escouade::provoquer`, que les tests appellent directement). Pas de
+    position : `Partie` la lit sur le monstre (`trouverMonstre`) et n'émet rien s'il a disparu. Un monstre
+    déjà provoqué qui l'est de nouveau a de nouveau son texte. Devient `Provoque`, `Camp::Monstres`.
 - **Partie figée** : `mettreAJour` ne fait rien après une défaite ou une victoire, donc aucun nouvel
   événement ; ceux de l'image qui a décidé la fin sont dans la file.
 - **L'affichage** (`TextesFlottants`, `EcranJeu`) : durée de vie 0,8 s ; le texte naît 20 px au-dessus du
@@ -1070,14 +1089,16 @@ l'enfoncerait dans un obstacle.
   ajoutés dans la même image pour la même cible (`campCible`, `idCible`) sont décalés de 14 px chacun vers
   le haut (le rang est fixé à l'ajout, `m_image` compte les images) : déterministe, sans hasard ni
   `Generateur`. Styles : dégâts sur un monstre en blanc, sur un personnage en rouge ; soin en vert, « +N » ;
-  coup gratuit en orange, 20 px au lieu de 16, « N! » (quel que soit le camp) ; contour noir de 1 px.
+  coup gratuit en orange, 20 px au lieu de 16, « N! » (quel que soit le camp) ; nom du skill lancé
+  (`nomDuSkill`, `interface/AffichageSkills`) en jaune doré, 14 px ; « Provoqué » en rouge orangé, 14 px ;
+  contour noir de 1 px. Les libellés sont en UTF-8 (`sf::String::fromUtf8` dans `dessiner`).
 - **Le brouillard est un filtre d'`EcranJeu`**, pas de `Partie` : si le brouillard est actif et que
   `Partie::estVisible(position)` est faux, l'événement n'est pas transformé en texte (même règle que pour
   ne pas dessiner un monstre caché). F6 coupe le brouillard : tout s'affiche. La file de `Partie`, elle,
   contient tout.
 - **Limites connues** :
-  - pas de nom de skill ni de « Provoqué » (étape 83), pas d'« Immunisé » pour un monstre qui rentre,
-    pas de critique ni de « raté » ;
+  - pas d'« Immunisé » pour un monstre qui rentre, pas de critique ni de « raté » ; le nom du skill
+    n'apparaît qu'au départ de l'effet, pas au début de l'activation (pas de barre d'incantation) ;
   - la taille du texte est en pixels du monde : elle suit le zoom de la vue ;
   - la visibilité est celle de la fin de l'image ;
   - l'empilement ne concerne que les textes d'une même image : deux coups de la même cible à des images
@@ -1307,7 +1328,7 @@ même chose avec plus de détail.
   relancer le dégagement.
 - Dégâts flottants (étape 79) : le nombre est le montant après armure, sans plafond par les points de
   vie restants (le coup qui tue affiche son plein montant) ; pas d'« Immunisé » sur un monstre qui
-  rentre, pas de critique ni de « raté » ; pas de nom de skill ni de « Provoqué » (étape 83) ; la taille
+  rentre, pas de critique ni de « raté » ; la taille
   du texte est fixe en pixels du monde, donc elle suit le zoom de la vue ; la visibilité d'un événement
   est jugée à la fin de l'image où il a lieu ; deux textes de la même cible ajoutés dans des images
   différentes mais proches dans le temps peuvent se superposer en partie.
@@ -1411,7 +1432,7 @@ dégâts à infliger à ce monstre). Sortie d'`Escouade`.
 
 ### `EvenementDeCombat` (`combat/`) — ce qui s'est passé, en données
 
-`EvenementDeCombat.hpp`, sans `.cpp` : `enum class TypeEvenement { Degats, Soin }`, `enum class Camp { Escouade, Monstres }` et `struct EvenementDeCombat { TypeEvenement type; Camp campCible; int idCible; int montant; sf::Vector2f position; bool opportunite; }`. `idCible` : place du personnage (1 à N) ou identifiant du monstre ; `montant` : ce qui a réellement été appliqué (armure comprise, soin plafonné), jamais 0 ; `position` : COPIE du centre de la cible à ce moment (le monstre tué par ce coup est retiré dans la même image, l'événement lui survit) ; `opportunite` : coup gratuit. Patron « file d'événements » : produits par `Partie` (`prendreEvenements`), lus par `EcranJeu`, sans callback ni observateur. Voir `docs/combat.md`.
+`EvenementDeCombat.hpp`, sans `.cpp` : `enum class Camp { Escouade, Monstres }`, les détails `Degats { int montant; bool opportunite; }`, `Soin { int montant; }`, `SkillLance { IdSkill skill; }`, `Provoque {}`, `using DetailEvenement = std::variant<Degats, Soin, SkillLance, Provoque>` et `struct EvenementDeCombat { Camp campCible; int idCible; sf::Vector2f position; DetailEvenement detail; }`. `idCible` : place du personnage (1 à N) ou identifiant du monstre ; `montant` : ce qui a réellement été appliqué (armure comprise, soin plafonné), jamais 0 ; `position` : COPIE du centre de la cible à ce moment (le monstre tué par ce coup est retiré dans la même image, l'événement lui survit) ; `opportunite` : coup gratuit ; `SkillLance` : cible = le lanceur ; `Provoque` : cible = le monstre provoqué. Patron « file d'événements » : produits par `Partie` (`prendreEvenements`), lus par `EcranJeu`, sans callback ni observateur. Voir `docs/combat.md`.
 
 ### `TextesFlottants` (`interface/`) — les dégâts et soins à l'écran
 
@@ -1426,7 +1447,7 @@ dégâts à infliger à ce monstre). Sortie d'`Escouade`.
 | `float hauteurDuTexte(float age)` | Fonction libre pure : 20 px au-dessus du centre de la cible à la naissance, 30 px de plus sur toute la durée de vie ; `[[nodiscard]]` |
 | `float opaciteDuTexte(float age)` | Pure : 1 pendant la première moitié de la vie, puis linéaire jusqu'à 0 à 0,8 s ; `[[nodiscard]]` |
 | `sf::Vector2f positionDuTexte(const TexteFlottant&)` | Pure : position de l'événement, relevée de `hauteurDuTexte(age)` et de 14 px par rang ; `[[nodiscard]]` |
-| `std::string libelleDuTexte(const EvenementDeCombat&)` / `sf::Color couleurDuTexte(...)` / `unsigned int tailleDuTexte(...)` | Purs. Dégâts « 12 », coup gratuit « 12! » (orange, 20 px), soin « +12 » (vert) ; dégâts sur un monstre blancs, sur un personnage rouges ; 16 px sinon ; `[[nodiscard]]` |
+| `std::string libelleDuTexte(const EvenementDeCombat&)` / `sf::Color couleurDuTexte(...)` / `unsigned int tailleDuTexte(...)` | Purs. Dégâts « 12 », coup gratuit « 12! » (orange, 20 px), soin « +12 » (vert) ; nom du skill lancé (jaune doré, 14 px) ; « Provoqué » (rouge orangé, 14 px) ; dégâts sur un monstre blancs, sur un personnage rouges ; 16 px sinon ; `std::visit` sur le détail ; `[[nodiscard]]` |
 
 ### `ActionEngagee` (`combat/`) — l'action qu'un personnage prépare
 
@@ -1577,3 +1598,7 @@ Données membres : `struct Cercle { sf::Vector2f centre; float rayon; }`.
 | `float distanceBordABord(const Cercle& a, const Cercle& b)` | Distance entre les centres moins les deux rayons ; 0 si les cercles se touchent ou se chevauchent (jamais négative) |
 | `float distanceCercleRectangle(Cercle cercle, sf::FloatRect rectangle)` | Écart bord à bord entre le cercle et le rectangle plein ; 0 en cas de contact, de chevauchement ou de centre dedans, jamais négatif ; `[[nodiscard]]` |
 | `float distancePointSegment(sf::Vector2f p, sf::Vector2f a, sf::Vector2f b)` | Distance du point au segment `[a, b]` (extrémités comprises, segment réduit à un point permis) ; `[[nodiscard]]` |
+
+### `AffichageSkills` (`interface/`) — les noms des skills
+
+`AffichageSkills.hpp` / `.cpp` : `std::string nomDuSkill(IdSkill)` (`[[nodiscard]]`), `switch` sans `default` (un skill ajouté sans nom fait avertir le compilateur), UTF-8 : « Frappe puissante », « Provocation », « Soin », « Explosion », « Frappe sacrée », « Imposition des mains », « Tir perçant », « Pluie de flèches ». Le noyau ne connaît que `IdSkill` ; comme `AffichageObjets`, les mots sont dans l'interface.

@@ -1171,7 +1171,7 @@
     armure 50 : 7 ; mage : 10), 0 sur un mort ou une place invalide ; `recevoirDegats` renvoie 0 quand tout
     le monde est mort.
 - **Sous-étape 2, la file d'événements** :
-  - `test_Escouade_skills.cpp` (+2) : `prendreSoins` rend un `SoinApplique` (place 3, 20 points rendus
+  - `test_Escouade_skills.cpp` (+2) : `prendreFaits` rend un `SoinApplique` (place 3, 20 points rendus
     alors que le soin vaut 30, position du soigné) puis se vide ; `centreDuPersonnage` (centre de la place,
     vide pour une place invalide) ;
   - `test_Partie.cpp` (+10) : aides `evenementsPendant` (avance tic par tic et rassemble les événements,
@@ -1369,3 +1369,20 @@ même chose avec plus de détail.
   surbrillance) ne sont pas testés : ils se vérifient à l'écran.
 - **`tests/interface/test_DispositionInventaire.cpp`** : `elementSous` compare maintenant des
   `PositionDObjet`.
+
+## Étape 86 : nom du skill lancé et « Provoqué » (+10 cas, 1 069 → 1 079)
+
+- Sous-étapes 1 et 2 (refactorisations) : aucun cas ajouté. `test_Partie_evenements.cpp` : `parmi<Detail>`
+  filtre par sorte de détail (`std::holds_alternative`), `degats(e)` et `soin(e)` lisent le détail
+  (`std::get`) ; `test_TextesFlottants.cpp` construit les événements avec `Degats{…}` / `Soin{…}` ;
+  `test_Escouade_skills_soin.cpp` lit `prendreFaits`.
+- **`tests/escouade/test_Escouade_skills.cpp`** (+4) : aide `skillsPartis` ; un fait `SkillPart` à la fin de
+  l'activation du skill de dégâts, pas avant (place, skill, position du lanceur) ; provocation, soin et
+  zone vide en signalent un ; l'attaque de base n'en signale aucun ; provocation : un `MonstreProvoque`
+  par monstre dans la zone, aucun pour celui hors zone, de nouveaux après la recharge.
+  `test_Escouade_skills_soin.cpp` : le soin donne maintenant deux faits (skill parti, puis soin).
+- **`tests/jeu/test_Partie_evenements.cpp`** (+2) : un `SkillLance` sur le lanceur à la fin de
+  l'activation, pas au début ; un `Provoque` sur le monstre provoqué, à sa position.
+- **`tests/interface/test_TextesFlottants.cpp`** (+2) : libellé, couleur et taille d'un skill lancé et de
+  « Provoqué ».
+- **`tests/interface/test_AffichageSkills.cpp`** (+2) : un nom par skill, tous différents ; UTF-8.

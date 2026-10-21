@@ -964,7 +964,7 @@ personnage marche, calculé par `mettreAJour`), `m_placesDAttaque`
 (`PlacesDAttaque`, étape 82.3 : place d'attaque retenue de chaque personnage autour du monstre qu'il
 approche ; voir plus bas), `m_agresseurs`
 (`Agresseurs`, monstres qui ont frappé l'escouade récemment, par identifiant),
-`m_provocations` (`Provocations`, monstres provoqués et leur provocateur), `m_soinsAppliques` (`std::vector<SoinApplique>`, soins pas encore pris par `prendreSoins`). `m_cibleCombat` et
+`m_provocations` (`Provocations`, monstres provoqués et leur provocateur), `m_faits` (`std::vector<FaitDEscouade>`, faits pas encore pris par `prendreFaits`). `m_cibleCombat` et
 `m_monstreAPortee` ont été supprimés à l'étape 82.4 (R2, voir « Intentions »).
 
 Structure publique `VueDesMonstres { std::vector<EntiteVue> physiques; std::vector<EntiteVue>
@@ -996,7 +996,7 @@ personne ne se dégage), sans valeur par défaut depuis 82.5. Privées : `Intent
 | `void dessiner(sf::RenderTarget& rendu, bool afficherAncre) const` | Dessine l'ancre (si `afficherAncre`) et les N personnages |
 | `std::optional<int> degagementDuPersonnage(std::size_t place) const` | Identifiant du monstre dont le personnage de cette place se dégage ; vide s'il ne se dégage pas ou si la place est invalide (lu par les tests) ; `[[nodiscard]]` |
 | `std::optional<sf::Vector2f> centreDuPersonnage(std::size_t place) const` | Centre du personnage de cette place, mort ou vivant ; vide si la place est invalide (position des événements de combat côté personnages) ; `[[nodiscard]]` |
-| `std::vector<SoinApplique> prendreSoins()` | Les soins appliqués depuis le dernier appel (par `declencherSkill` et `attaquer`), dans l'ordre ; la liste est vidée. `struct SoinApplique { std::size_t place; int montant; sf::Vector2f position; }` (publique : le personnage soigné, les points réellement rendus — jamais 0 —, son centre à ce moment). Même rôle que les `Coup` pour les dégâts, sans changer le type de retour d'`attaquer` ; `Partie` en fait des événements ; `[[nodiscard]]` |
+| `std::vector<FaitDEscouade> prendreFaits()` | Les faits survenus depuis le dernier appel (par `declencherSkill` et `attaquer`), dans l'ordre ; la liste est vidée. `FaitDEscouade = std::variant<SoinApplique, SkillPart, MonstreProvoque>` (publics) : `SoinApplique { std::size_t place; int montant; sf::Vector2f position; }` (le personnage soigné, les points réellement rendus — jamais 0 —, son centre à ce moment), `SkillPart { std::size_t place; IdSkill skill; sf::Vector2f position; }` (un skill qui part, à la fin de son activation ; jamais l'attaque de base), `MonstreProvoque { int idMonstre; }` (un par monstre provoqué). Même rôle que les `Coup` pour les dégâts, sans changer le type de retour d'`attaquer` ; `Partie` en fait des événements ; `[[nodiscard]]` |
 | `std::optional<sf::Vector2f> pointVise(std::size_t place) const` | Point vers lequel le personnage de cette place (1 à N) marche, tel que le dernier `mettreAJour` l'a calculé ; vide si la place est invalide ; lu par les tests (la résolution intention → point est l'assemblage d'`Escouade`) |
 | `void dessinerPointsVises(sf::RenderTarget& rendu) const` | Débogage (F3) : un trait jaune du centre de chaque personnage vivant à son point visé, un petit cercle à ce point, et le chemin restant en cyan (`dessinerTraceDeChemin`) |
 | `sf::Vector2f getCentre() const` | Centre de l'ancre (utilisé par la caméra) |
