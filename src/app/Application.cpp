@@ -15,6 +15,7 @@
 
 #include "combat/Cible.hpp"
 #include "interface/EcranMenu.hpp"
+#include "interface/Reglages.hpp"
 
 namespace {
 
@@ -58,7 +59,7 @@ Application::Application() : m_reglages(chargerReglages()) {
             "Impossible de charger la police assets/fonts/DejaVuSans.ttf "
             "(lancer le jeu depuis le dossier de main.exe)");
     }
-    m_pile.push_back(std::make_unique<EcranMenu>());
+    m_pile.push_back(std::make_unique<EcranMenu>(resolutionsDisponibles(sf::VideoMode::getDesktopMode().size)));
 }
 
 void Application::ouvrirFenetre() {
@@ -113,6 +114,8 @@ int Application::executer() {
             break;
         }
         m_pile.back()->mettreAJour(dt, contexte());
+        // Le seul clear de l'image : aucun écran n'efface la fenêtre.
+        m_fenetre.clear();
         m_pile.back()->dessiner(contexte());
         m_fenetre.display();
     }

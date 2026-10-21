@@ -2,13 +2,16 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <variant>
+#include <vector>
 
 #include "interface/EcranMenu.hpp"
+#include "interface/EcranOptions.hpp"
 #include "interface/ListeDeBoutons.hpp"
 
 namespace {
 
 const sf::Vector2f s_centre{600.0f, 400.0f};
+const std::vector<Resolution> s_resolutions = {{1200, 800}, {1600, 900}};
 
 // Centre du bouton `indice` du menu (même liste de libellés que EcranMenu).
 sf::Vector2f centreDuBouton(std::size_t indice) {
@@ -20,7 +23,7 @@ sf::Vector2f centreDuBouton(std::size_t indice) {
 }  // namespace
 
 TEST_CASE("menu : Commencer partie empile un ecran") {
-    const EcranMenu menu;
+    const EcranMenu menu(s_resolutions);
 
     const Transition transition = menu.cliquer(centreDuBouton(0), s_centre, Reglages{});
 
@@ -29,22 +32,22 @@ TEST_CASE("menu : Commencer partie empile un ecran") {
 }
 
 TEST_CASE("menu : Options empile l'ecran des options") {
-    const EcranMenu menu;
+    const EcranMenu menu(s_resolutions);
 
     const Transition transition = menu.cliquer(centreDuBouton(1), s_centre, Reglages{});
 
     REQUIRE(std::holds_alternative<Empiler>(transition));
-    REQUIRE(std::get<Empiler>(transition).ecran != nullptr);
+    REQUIRE(dynamic_cast<EcranOptions*>(std::get<Empiler>(transition).ecran.get()) != nullptr);
 }
 
 TEST_CASE("menu : Quitter quitte") {
-    const EcranMenu menu;
+    const EcranMenu menu(s_resolutions);
 
     REQUIRE(std::holds_alternative<Quitter>(menu.cliquer(centreDuBouton(2), s_centre, Reglages{})));
 }
 
 TEST_CASE("menu : un clic hors des boutons ne fait rien") {
-    const EcranMenu menu;
+    const EcranMenu menu(s_resolutions);
 
     REQUIRE(std::holds_alternative<Aucune>(menu.cliquer({5.0f, 5.0f}, s_centre, Reglages{})));
 }

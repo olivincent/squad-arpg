@@ -60,6 +60,7 @@ add_library(squad_core STATIC
     src/interface/BarreDeSkills.cpp
     src/interface/ClicInterface.cpp
     src/interface/EcranDeFin.cpp
+    src/interface/EntreeDInterface.cpp
     src/combat/EntiteVue.cpp
     src/rendu/BarreDeVie.cpp
     src/base/Eclaircir.cpp

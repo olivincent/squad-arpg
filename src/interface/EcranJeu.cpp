@@ -1,7 +1,12 @@
 // ./src/interface/EcranJeu.cpp
 #include "interface/EcranJeu.hpp"
 
-#include <SFML/Graphics.hpp>
+#include <SFML/Graphics/Color.hpp>
+#include <SFML/Graphics/Font.hpp>
+#include <SFML/Graphics/RenderTarget.hpp>
+#include <SFML/Graphics/RenderWindow.hpp>
+#include <SFML/Graphics/Text.hpp>
+#include <SFML/Graphics/View.hpp>
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Mouse.hpp>
@@ -150,7 +155,6 @@ void EcranJeu::mettreAJour(float dt, const Contexte& contexte) {
 void EcranJeu::dessiner(const Contexte& contexte) const {
     sf::RenderWindow& fenetre = contexte.fenetre;
     fenetre.setView(m_camera);
-    fenetre.clear();
     m_partie.dessiner(fenetre, m_debogage.ancre, m_debogage.pointsVises, m_debogage.brouillard);
     m_controleur.dessinerApercu(m_partie, fenetre, fenetre.mapPixelToCoords(sf::Mouse::getPosition(fenetre)));
     if (m_debogage.pointsVises) {

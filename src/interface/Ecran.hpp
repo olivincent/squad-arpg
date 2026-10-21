@@ -11,7 +11,8 @@ struct Contexte;
 
 // Un écran de l'application (menu, options, jeu) : patron State. L'Application
 // en garde une pile de std::unique_ptr<Ecran> ; seul l'écran du dessus reçoit
-// les événements, est mis à jour et est dessiné.
+// les événements, est mis à jour et est dessiné. L'Application vide la fenêtre avant de
+// dessiner : un écran ne le fait jamais.
 class Ecran {
 public:
     Ecran() = default;

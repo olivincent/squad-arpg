@@ -7,7 +7,6 @@
 #include <SFML/Graphics/Text.hpp>
 #include <SFML/System/String.hpp>
 #include <SFML/Window/Event.hpp>
-#include <SFML/Window/Mouse.hpp>
 #include <memory>
 #include <optional>
 #include <string>
@@ -17,7 +16,7 @@
 #include "interface/Contexte.hpp"
 #include "interface/EcranJeu.hpp"
 #include "escouade/Specialite.hpp"
-#include "interface/TailleDeVue.hpp"
+#include "interface/EntreeDInterface.hpp"
 
 namespace {
 
@@ -137,23 +136,20 @@ Transition EcranChoixEscouade::cliquer(sf::Vector2f point, sf::Vector2f centre) 
 }
 
 Transition EcranChoixEscouade::traiterEvenement(const sf::Event& evenement, const Contexte& contexte) {
-    const auto* data = evenement.getIf<sf::Event::MouseButtonPressed>();
-    if (data == nullptr || data->button != sf::Mouse::Button::Left) {
+    const std::optional<PointDInterface> clic = clicGaucheDInterface(evenement, contexte);
+    if (!clic.has_value()) {
         return Aucune{};
     }
-    const sf::View vue = vueDInterface(contexte.fenetre.getSize());
-    return cliquer(contexte.fenetre.mapPixelToCoords(data->position, vue), vue.getCenter());
+    return cliquer(clic->point, clic->centre);
 }
 
 void EcranChoixEscouade::mettreAJour(float, const Contexte&) {}
 
 void EcranChoixEscouade::dessiner(const Contexte& contexte) const {
     sf::RenderWindow& fenetre = contexte.fenetre;
-    const sf::View vue = vueDInterface(fenetre.getSize());
-    fenetre.setView(vue);
-    fenetre.clear();
-    const sf::Vector2f centre = vue.getCenter();
-    const sf::Vector2f curseur = fenetre.mapPixelToCoords(sf::Mouse::getPosition(fenetre), vue);
+    const PointDInterface pointeur = preparerLInterface(contexte);
+    const sf::Vector2f centre = pointeur.centre;
+    const sf::Vector2f curseur = pointeur.point;
 
     const std::string titre = "Choisissez " + std::to_string(SelectionDEscouade::s_taille) + " classes";
     fenetre.draw(texteCentre(contexte.police, titre, s_tailleTitre, centre + sf::Vector2f{0.0f, s_hauteurDuTitre}, sf::Color::White));

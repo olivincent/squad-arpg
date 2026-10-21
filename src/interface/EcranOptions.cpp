@@ -3,13 +3,13 @@
 
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Window/Event.hpp>
-#include <SFML/Window/Mouse.hpp>
 #include <algorithm>
+#include <optional>
 #include <string>
 #include <utility>
 
 #include "interface/Contexte.hpp"
-#include "interface/TailleDeVue.hpp"
+#include "interface/EntreeDInterface.hpp"
 
 namespace {
 
@@ -79,21 +79,16 @@ Transition EcranOptions::cliquer(sf::Vector2f point, sf::Vector2f centre) {
 }
 
 Transition EcranOptions::traiterEvenement(const sf::Event& evenement, const Contexte& contexte) {
-    const auto* data = evenement.getIf<sf::Event::MouseButtonPressed>();
-    if (data == nullptr || data->button != sf::Mouse::Button::Left) {
+    const std::optional<PointDInterface> clic = clicGaucheDInterface(evenement, contexte);
+    if (!clic.has_value()) {
         return Aucune{};
     }
-    const sf::View vue = vueDInterface(contexte.fenetre.getSize());
-    return cliquer(contexte.fenetre.mapPixelToCoords(data->position, vue), vue.getCenter());
+    return cliquer(clic->point, clic->centre);
 }
 
 void EcranOptions::mettreAJour(float, const Contexte&) {}
 
 void EcranOptions::dessiner(const Contexte& contexte) const {
-    sf::RenderWindow& fenetre = contexte.fenetre;
-    const sf::View vue = vueDInterface(fenetre.getSize());
-    fenetre.setView(vue);
-    fenetre.clear();
-    const sf::Vector2f curseur = fenetre.mapPixelToCoords(sf::Mouse::getPosition(fenetre), vue);
-    m_boutons.dessiner(fenetre, contexte.police, vue.getCenter(), m_boutons.boutonSous(curseur, vue.getCenter()));
+    const PointDInterface curseur = preparerLInterface(contexte);
+    m_boutons.dessiner(contexte.fenetre, contexte.police, curseur.centre, m_boutons.boutonSous(curseur.point, curseur.centre));
 }

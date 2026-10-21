@@ -3,14 +3,14 @@
 
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Window/Event.hpp>
-#include <SFML/Window/Mouse.hpp>
-#include <SFML/Window/VideoMode.hpp>
 #include <memory>
+#include <optional>
+#include <utility>
 
 #include "interface/Contexte.hpp"
 #include "interface/EcranChoixEscouade.hpp"
 #include "interface/EcranOptions.hpp"
-#include "interface/TailleDeVue.hpp"
+#include "interface/EntreeDInterface.hpp"
 
 namespace {
 
@@ -20,7 +20,8 @@ constexpr std::size_t s_boutonQuitter = 2;
 
 }  // namespace
 
-EcranMenu::EcranMenu() : m_boutons({"Commencer partie", "Options", "Quitter"}) {}
+EcranMenu::EcranMenu(std::vector<Resolution> resolutions)
+    : m_resolutions(std::move(resolutions)), m_boutons({"Commencer partie", "Options", "Quitter"}) {}
 
 Transition EcranMenu::cliquer(sf::Vector2f point, sf::Vector2f centre, const Reglages& reglages) const {
     const std::optional<std::size_t> bouton = m_boutons.boutonSous(point, centre);
@@ -28,7 +29,7 @@ Transition EcranMenu::cliquer(sf::Vector2f point, sf::Vector2f centre, const Reg
         return Empiler{std::make_unique<EcranChoixEscouade>()};
     }
     if (bouton == s_boutonOptions) {
-        return Empiler{std::make_unique<EcranOptions>(reglages, resolutionsDisponibles(sf::VideoMode::getDesktopMode().size))};
+        return Empiler{std::make_unique<EcranOptions>(reglages, m_resolutions)};
     }
     if (bouton == s_boutonQuitter) {
         return Quitter{};
@@ -37,21 +38,16 @@ Transition EcranMenu::cliquer(sf::Vector2f point, sf::Vector2f centre, const Reg
 }
 
 Transition EcranMenu::traiterEvenement(const sf::Event& evenement, const Contexte& contexte) {
-    const auto* data = evenement.getIf<sf::Event::MouseButtonPressed>();
-    if (data == nullptr || data->button != sf::Mouse::Button::Left) {
+    const std::optional<PointDInterface> clic = clicGaucheDInterface(evenement, contexte);
+    if (!clic.has_value()) {
         return Aucune{};
     }
-    const sf::View vue = vueDInterface(contexte.fenetre.getSize());
-    return cliquer(contexte.fenetre.mapPixelToCoords(data->position, vue), vue.getCenter(), contexte.reglages);
+    return cliquer(clic->point, clic->centre, contexte.reglages);
 }
 
 void EcranMenu::mettreAJour(float, const Contexte&) {}
 
 void EcranMenu::dessiner(const Contexte& contexte) const {
-    sf::RenderWindow& fenetre = contexte.fenetre;
-    const sf::View vue = vueDInterface(fenetre.getSize());
-    fenetre.setView(vue);
-    fenetre.clear();
-    const sf::Vector2f curseur = fenetre.mapPixelToCoords(sf::Mouse::getPosition(fenetre), vue);
-    m_boutons.dessiner(fenetre, contexte.police, vue.getCenter(), m_boutons.boutonSous(curseur, vue.getCenter()));
+    const PointDInterface curseur = preparerLInterface(contexte);
+    m_boutons.dessiner(contexte.fenetre, contexte.police, curseur.centre, m_boutons.boutonSous(curseur.point, curseur.centre));
 }

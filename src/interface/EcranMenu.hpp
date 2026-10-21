@@ -3,6 +3,8 @@
 
 #include <SFML/System/Vector2.hpp>
 
+#include <vector>
+
 #include "interface/Ecran.hpp"
 #include "interface/ListeDeBoutons.hpp"
 #include "interface/Reglages.hpp"
@@ -10,7 +12,9 @@
 // Le menu de départ : « Commencer partie », « Options » et « Quitter ».
 class EcranMenu : public Ecran {
 public:
-    EcranMenu();
+    // `resolutions` : celles que le bureau permet (`resolutionsDisponibles`), transmises à l'écran
+    // des options ; l'`Application` les connaît, le menu ne les demande pas à la fenêtre.
+    explicit EcranMenu(std::vector<Resolution> resolutions);
 
     // Un clic gauche en `point` (coordonnées de la vue de l'interface), les
     // boutons étant centrés sur `centre`. Sépare la logique de la fenêtre :
@@ -25,5 +29,6 @@ public:
     void dessiner(const Contexte& contexte) const override;
 
 private:
+    std::vector<Resolution> m_resolutions;
     ListeDeBoutons m_boutons;
 };
