@@ -8,19 +8,20 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 ## Étapes terminées
 
-Étapes 0 à 82 ✅. Les dernières :
+Étapes 0 à 83 ✅. Les dernières :
 - Étape 80 — Filet de sécurité et corrections locales (suite de l'audit) ✅
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
+- Étape 83 — Inventaire et équipement : le modèle, sans interface ✅
 
 ## État actuel (résumé)
 
 - **Outils** : conception dans Claude.ai, implémentation avec Claude Code dans VSCode (règles dans
   `CLAUDE.md`) ; dépôt Git `squad-arpg`, poussé sur GitHub ; SFML 3.0.2 intégrée à CMake.
-- **Code** (étape 81) : 57 modules rangés en 9 dossiers par domaine (`base`, `rendu`, `monde`,
-  `combat`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
+- **Code** (étape 83) : 62 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
+  `combat`, `objets`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
   de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug` et `jeu`, 0
-  avertissement, 962 tests verts sous CTest, 41 avertissements `clang-tidy` (`docs/build.md`,
+  avertissement, 1 011 tests verts sous CTest, 41 avertissements `clang-tidy` (`docs/build.md`,
   `docs/audit.md`). `Escouade` n'est plus que l'assemblage : `Escouade.cpp` de 1 223 à 1 067 lignes. Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`).
 - **Écrans** : menu à la souris, options d'affichage (fenêtré ou plein écran, résolutions,
   `reglages.ini`), choix de 3 classes parmi 5 (guerrier, prêtre, mage, paladin, rôdeur ; doublons
@@ -30,6 +31,10 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   carte à la main pour les tests (`docs/generation.md`, `docs/carte-et-collision.md`).
 - **Vision** : brouillard de guerre (inconnu, exploré, visible) par shadowcasting symétrique, la
   même règle que la ligne de vue du combat ; F6 le coupe à l'affichage (`docs/vision.md`).
+- **Objets** : 10 emplacements par personnage, un sac de 40 cases pour l'escouade, un catalogue de
+  10 objets ; l'armure d'un personnage est la somme de son équipement (guerrier et paladin partent
+  équipés : 50 ; les autres : 0) ; `ramasser`, `equiper` et `desequiper` sont transactionnelles. Aucune
+  interface encore (`docs/objets.md`).
 - **Escouade** : une ancre suivie par 3 personnages en formation (rangs avant et arrière), qui
   pivote et se resserre près des murs ; places d'attaque autour des monstres, séparation douce,
   chemins qui contournent les monstres, dégagement des tireurs (`docs/formation.md`, `docs/chemin.md`).
@@ -100,9 +105,11 @@ fonctionnalités prévues sont donc décalées après l'étape 82.
   - R3 (`Partie` accumule plusieurs rôles), D2 (indices de grille à la main), C3 (conversions de
     signe) et D5 (petites duplications de `Partie`) avant les coffres, les leviers ou la carte
     extérieure ;
-  - M1 (`dessiner` dans le noyau), R6 (`EcranJeu`), D4 (écrans de menu), P2 (en-tête parapluie des
-    écrans) et T4 (trous de couverture) au premier ajout visuel important. M1 lève les exceptions
-    transitoires aux règles de dépendance (`ARCHITECTURE.md`) et permet une bibliothèque par dossier.
+  - R6 (`EcranJeu`), D4 (écrans de menu) et P2 (en-tête parapluie des écrans) en première sous-étape
+    de l'étape 84 (l'écran d'inventaire est le premier écran ajouté depuis l'audit) ;
+  - M1 (`dessiner` dans le noyau) et T4 (trous de couverture) au premier ajout visuel important dans
+    le monde, après R4. M1 lève les exceptions transitoires aux règles de dépendance
+    (`ARCHITECTURE.md`) et permet une bibliothèque par dossier.
 
 **Limite connue (étape 82.5)** : le contournement des monstres évite leur cercle, pas leur zone de
 contrôle : un personnage peut la frôler et subir l'attaque d'opportunité. Piste : la « stratégie
@@ -114,13 +121,27 @@ d'attaque » par type de monstre (`docs/brainstorm.md`, section 4 bis), qui se b
   ou des hordes (la partie 1 a déjà divisé le coût par 7 à 13) ;
 - R5 (identifiants et places) : décidé en 82.5, rattachée à R4 (voir ci-dessus).
 
-## Étape 83 (prochaine)
+## Étape 84 (prochaine) : écran d'inventaire en lecture
 
-Le nom du skill lancé au-dessus du lanceur et « Provoqué » au-dessus des monstres provoqués, par la
-même file d'événements que l'étape 79 : un type d'événement de plus (`EvenementDeCombat`, produit
-par `Partie`) et un style de plus dans `TextesFlottants`. Aujourd'hui la file ne porte que les
-dégâts et les soins réellement appliqués. Les autres usages de la file (« Immunisé », sons, journal
-de combat, statistiques…) sont des idées, pas des décisions : `docs/brainstorm.md`, section 5 ter.
+Série inventaire : 83 = modèle (faite), 84 = écran en lecture, 85 = glisser-déposer. L'étape 84
+commence par R6, D4 et P2 (voir ci-dessus), puis ajoute un écran, ouvert par la touche I, qui met la
+partie en pause et montre sans rien modifier le sac de l'escouade (`Escouade::sac()`) et l'équipement
+de chaque personnage (`equipementDuPersonnage`) : le tout se lit, rien ne se déplace encore.
+
+## Étape 85 : glisser-déposer
+
+Déplacer un objet du sac vers un emplacement et inversement à la souris, avec
+`Escouade::equiper` et `desequiper` (déjà transactionnelles et testées) ; rangement du sac ; échange
+d'un objet entre deux personnages. Idées écartées : `docs/brainstorm.md`, section 5 quater.
+
+## Étape 86 : nom du skill lancé et « Provoqué »
+
+(Anciennement étape 83.) Le nom du skill lancé au-dessus du lanceur et « Provoqué » au-dessus des
+monstres provoqués, par la même file d'événements que l'étape 79 : un type d'événement de plus
+(`EvenementDeCombat`, produit par `Partie`) et un style de plus dans `TextesFlottants`. Aujourd'hui la
+file ne porte que les dégâts et les soins réellement appliqués. Les autres usages de la file
+(« Immunisé », sons, journal de combat, statistiques…) sont des idées, pas des décisions :
+`docs/brainstorm.md`, section 5 ter.
 
 ## Fonctionnalités prévues (à choisir avec Claude.ai)
 

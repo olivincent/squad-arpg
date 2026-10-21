@@ -49,6 +49,7 @@ squad-arpg/
 │   ├── combat/     Skill, SkillConnu, IdSkill, TypeSkill, AdresseSkill, Cible, ActionEngagee,
 │   │               EtatSkill, Coup, EvenementDeCombat, EntiteVue, Autodefense, Engagement,
 │   │               Defense, PointsDeVie, Vitalite
+│   ├── objets/     Emplacement, Objet, CatalogueObjets, Equipement, Inventaire
 │   ├── escouade/   Escouade, Personnage, Formation, PlacesDAttaque, Intention, Separation,
 │   │               EcartEntrePersonnages, Composition, Specialite, SelectionDEscouade,
 │   │               Provocations, Agresseurs
@@ -61,7 +62,7 @@ squad-arpg/
 │   └── app/        main.cpp, Application
 ├── tests/
 │   ├── aides.hpp, aides_escouade.hpp, aides_monstre.hpp   (aides communes, à la racine)
-│   └── base/, rendu/, monde/, combat/, escouade/, monstres/, jeu/, interface/
+│   └── base/, rendu/, monde/, combat/, objets/, escouade/, monstres/, jeu/, interface/
 │                   (miroir de src/ : test_<Module>.cpp, ou test_<Module>_<thème>.cpp)
 ├── assets/fonts/   DejaVuSans.ttf, LICENSE-DejaVu.txt (copiés à côté de main.exe)
 ├── docs/           un fichier par sujet (tableau à la fin)
@@ -88,8 +89,9 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
   connaissent pas (ils échangent des `EntiteVue`, des `Coup`, des `EntiteDeControle`), et tient la
   file des `EvenementDeCombat`.
 - `Escouade` possède son ancre (`Mobile`), sa `Formation`, ses `PlacesDAttaque`, N `Personnage`,
-  des `Provocations` et des `Agresseurs`.
-  `Personnage` et `Monstre` possèdent un `Mobile`, des `Skill` et une `Vitalite`.
+  des `Provocations`, des `Agresseurs` et le sac de l'escouade (`Inventaire`, 40 cases).
+  `Personnage` et `Monstre` possèdent un `Mobile`, des `Skill` et une `Vitalite` ; `Personnage`
+  possède aussi un `Equipement`, d'où vient son armure (`docs/objets.md`).
 - `Controleur` porte l'état d'interface (visée, déplacement continu) et reçoit la `Partie` à
   chaque appel.
 
@@ -133,17 +135,27 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `PointsDeVie` : valeur et maximum, invariants de vie et de mort.
 - `Vitalite` : points de vie et armure d'une entité, commune à `Personnage` et `Monstre`.
 
+`objets/` — les objets, ce qu'on porte et le sac (`docs/objets.md`) :
+- `Emplacement` : les 10 emplacements, les 8 catégories d'objet et `peutAller`, seule source de la règle.
+- `Objet` : `IdObjet` et `Objet`, l'instance (un identifiant), distincte de son modèle.
+- `CatalogueObjets` : `DefinitionObjet` (nom, catégorie, armure), `catalogueObjets()`, `definitionObjet()`
+  et `sacDeDepart()`.
+- `Equipement` : un objet au plus par emplacement, `armureTotale()` ; possédé par chaque `Personnage`.
+- `Inventaire` : le sac, des cases à position fixe ; possédé par l'`Escouade`.
+
 `escouade/` — le camp du joueur (`docs/formation.md`, sauf mention) :
 - `Escouade` : l'assemblage : ancre, verrou, skills en attente, attaque, et la résolution des intentions en
-  points visés ; elle possède `Formation`, `PlacesDAttaque`, `Agresseurs`, `Provocations` et les `Personnage`.
-- `Personnage` : un membre : déplacement, attaque de base, skills, vie, armure, vision.
+  points visés ; elle possède `Formation`, `PlacesDAttaque`, `Agresseurs`, `Provocations`, le sac
+  (`Inventaire`) et les `Personnage` ; `ramasser`, `equiper` et `desequiper` déplacent les objets.
+- `Personnage` : un membre : déplacement, attaque de base, skills, vie, vision, équipement (son armure
+  en est la somme).
 - `Formation` : décalages, orientation, point à regarder et places de formation, sans `Personnage`.
 - `PlacesDAttaque` : place d'attaque retenue par assaillant autour de sa cible, sans `Personnage`.
 - `Intention` : ce qu'un personnage veut faire, sa situation, `choisirIntention`, les règles par
   priorité où se brancheront les gambits, et `cerclesAContourner` (fonctions pures, sans carte).
 - `Separation` : `pousseesDeSeparation`, séparation douce en fonction pure (`EtatDeSeparation`).
 - `EcartEntrePersonnages` : `s_ecartEntrePersonnages`, en-tête neutre.
-- `Composition` : `DefinitionPersonnage`, `Rang` et `decalagesDeFormation`.
+- `Composition` : `DefinitionPersonnage` (dont l'équipement de départ), `Rang` et `decalagesDeFormation`.
 - `Specialite` : catalogue des 5 classes et `composer`.
 - `SelectionDEscouade` : les 3 classes choisies, cases de l'écran de choix (`docs/ecrans.md`).
 - `Provocations` : monstres provoqués et leur provocateur (`docs/combat.md`).
@@ -266,6 +278,7 @@ de modifier un module, lire le fichier correspondant :
 | `docs/formation.md` | `Escouade` et `Personnage` : ancre, formation, orientation, séparation douce, verrou de cible, placement en combat, places d'attaque, intentions, mort et défaite ; `Formation`, `PlacesDAttaque`, `Intention`, `Separation`, `Composition`, `Specialite`, `Encerclement` | Avant de modifier `Escouade`, `Personnage`, `Formation`, `PlacesDAttaque`, `Intention`, `Separation`, `Composition`, `Specialite` ou `Encerclement` |
 | `docs/combat.md` | `Skill` (dont l'attaque de base), `Cercle`, portée bord à bord, autodéfense, `Cible`, skill en attente, circuit des dégâts, qui bloque qui, armure, aléatoire, zones de contrôle, événements et textes flottants | Avant de modifier un module de `combat/` ou de `base/`, `Provocations`, `Agresseurs`, `TextesFlottants`, `BarreDeVie` ou les listes d'obstacles |
 | `docs/monstre.md` | `Monstre` : identifiant, états, détection, territoire, poursuite, retour au poste, riposte | Avant de modifier `Monstre` |
+| `docs/objets.md` | Objets : emplacements et catégories, catalogue, `Equipement`, `Inventaire`, armure calculée depuis l'équipement, opérations `ramasser` / `equiper` / `desequiper` de l'`Escouade` ; référence des modules d'`objets/` | Avant de modifier un module d'`objets/` ou l'équipement d'un `Personnage` |
 | `docs/tests.md` | Tests (Catch2, conventions, dossiers, aides) | Avant d'ajouter ou de modifier un test |
 | `docs/audit.md` | Audit du code avant l'étape 80 : constats par famille (R, M, P, D, C, E, L, V, T, B, K), organisation en dossiers, passages de `clang-tidy` | Avant de planifier une refactorisation |
 | `docs/brainstorm.md` | Idées à explorer par thème (rythme du combat, défense, gambits, génération procédurale), leur statut et leurs prérequis ; rien n'y est une décision | Avant de proposer une nouvelle étape |

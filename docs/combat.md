@@ -613,7 +613,11 @@ personnages sont dans `docs/formation.md`, le monstre dans
   `PointsDeVie::subirDegats`, pour `Personnage` et `Monstre` qui lui délèguent.
   `PointsDeVie` ne connaît pas l'armure. Chaque entité a une `Vitalite` dont l'armure (`int`) vient
   de son constructeur ; pas d'accesseur.
-- **Valeurs** : mêlées (places 1 et 2) 50, tireurs (places 3 et 4) 0, les
+- **Origine de l'armure (étape 83)** : celle d'un personnage est la somme de l'armure des objets de son
+  `Equipement`, recalculée en entier à chaque changement (`Vitalite::definirArmure`) ; il n'y a plus
+  d'armure de classe (`docs/objets.md`). Celle d'un monstre reste fixe, donnée par le niveau.
+- **Valeurs** : guerrier et paladin 50 (casque de fer, cuirasse de mailles, jambières de fer et
+  bouclier rond de départ), prêtre, mage et rôdeur 0, les
   monstres 20 (`Niveau::armureMonstres`, valeur `s_armureMonstresParDefaut`
   commune à la carte à la main et aux cartes générées).
 - **Le soin n'est pas touché** par l'armure. Les dégâts de zone, de skill
@@ -910,8 +914,8 @@ l'enfoncerait dans un obstacle.
   | `TirPercant` (rôdeur) | Degats | 200 px | 25 | — | 6 s | 0,5 s |
   | `PluieDeFleches` (rôdeur) | Zone | 320 px | 12 | rayon 45 px | 8 s | 0,8 s |
 
-  Le paladin a l'attaque de base de mêlée et l'armure 50 du guerrier, le rôdeur l'attaque de base
-  de tireur et l'armure 0 du mage. Les portées sont mesurées de bord à bord, comme les autres.
+  Le paladin a l'attaque de base de mêlée et l'équipement de départ (armure 50) du guerrier, le rôdeur l'attaque de base
+  de tireur et l'absence d'équipement (armure 0) du mage. Les portées sont mesurées de bord à bord, comme les autres.
 - **Étiquette par `IdSkill`, plus par `TypeSkill`** : `sigleDuSkill(IdSkill)` (deux lettres : FP,
   PR, SO, EX, FS, IM, TP, PF) remplace `lettreDuSkill(TypeSkill)`, qui donnait la même lettre à tous
   les skills de dégâts (le paladin et le rôdeur en ont deux de plus). Le `switch` n'a **pas** de

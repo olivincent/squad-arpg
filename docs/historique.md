@@ -100,6 +100,7 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 80 — Filet de sécurité et corrections locales (suite de l'audit) ✅
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
+- Étape 83 — Inventaire et équipement : le modèle (sans interface) ✅
 
 ## Détail des étapes 0 à 73
 
@@ -2019,3 +2020,15 @@ et `Escouade` n'est plus que l'assemblage de modules extraits.
   `cerclesAContourner` (fonction pure d'`Intention`), D3 (`recevoirDegats` retirée, `deControle` sans
   valeur par défaut, autres accesseurs gardés avec leur raison), 5 tests en double retirés, marques
   `NOLINT` justifiées (59 → 41 avertissements `clang-tidy`). R5 rattachée à R4. 962 tests.
+
+### Étape 83 — Inventaire et équipement : le modèle (sans interface) ✅
+
+Première étape de la série inventaire (84 : écran en lecture, 85 : glisser-déposer). Nouveau dossier
+`objets/` entre `combat` et `escouade` : `Emplacement` (10 emplacements, 8 catégories, `peutAller`),
+`Objet` et `CatalogueObjets` (modèles, `sacDeDepart`), `Equipement` (possédé par chaque
+`Personnage`) et `Inventaire` (le sac de 40 cases, possédé par `Escouade`). L'armure d'un personnage
+est la somme de son équipement, recalculée en entier à chaque changement ; `DefinitionPersonnage::armure`
+devient `equipementDeDepart` (guerrier et paladin : 50 comme avant, les trois autres : 0).
+`Escouade::ramasser`, `equiper` et `desequiper` sont transactionnelles ; `Partie` remplit le sac de
+départ. Rien ne s'affiche. 1 011 tests, 41 avertissements `clang-tidy`. Détail : `docs/objets.md`.
+L'ancienne « étape 83 » (nom du skill lancé, « Provoqué ») devient l'étape 86.

@@ -123,6 +123,18 @@ L'étape 79 pose une file d'`EvenementDeCombat` produite par `Partie` (dégâts 
 - **Plafond des dégâts par les points de vie restants** : le coup qui tue affiche aujourd'hui son plein montant. À revoir si le nombre doit refléter la vie réellement retirée.
 - **Cumul** : additionner les textes de la même cible qui se suivent de près plutôt que de les empiler.
 
+## 5 quater. Inventaire et équipement, la suite (étape 83)
+
+Le modèle existe (`docs/objets.md`) ; ces idées ont été écartées de l'étape 83.
+
+- **Ceinture et cape** : deux emplacements de plus ; il suffit d'ajouter des valeurs à `Emplacement` et à `CategorieObjet`, et une règle à `peutAller`.
+- **Grille d'inventaire à la Diablo** : des objets qui occupent plusieurs cases. Écartée : le sac à cases fixes suffit au glisser-déposer simple (étape 85), et la grille demande une forme par objet.
+- **Clic droit pour équiper** : équiper un objet du sac vers son emplacement évident, sans glisser. À reconsidérer après l'étape 85 ; avec deux anneaux et trois personnages, « l'emplacement évident » n'existe pas toujours.
+- **Restrictions d'équipement par classe** : un mage sans cuirasse de mailles. Cela donnerait un sens aux classes, mais fixerait aussi le rôle des futurs arbres de skills ; à décider avec eux.
+- **Affixes aléatoires et rareté** : l'`Objet` ne porte aujourd'hui que son identifiant. Des affixes demanderaient d'y ajouter des données, et de ne plus supposer que deux objets du même modèle sont égaux.
+- **Armes et deux mains** : classe `Arme` (intervalle de recharge de l'attaque de base), catégorie d'arme dans `peutAller`, règle d'occupation de la main gauche pour une arme à deux mains.
+- **Sauvegarde de l'équipement** entre deux parties, **butin au sol** et tables de butin des monstres.
+
 ## 6. Idées en vrac
 
 - **État de l'escouade** (en combat, en mouvement, au repos) : utile pour la mana et les gambits.

@@ -1304,3 +1304,20 @@ même chose avec plus de détail.
   tests dont c'est le sujet (seul `test_Specialite.cpp` lit les valeurs du catalogue).
   `uneEscouadeADeuxGuerriers` et `uneEscouadeAuSoinCourt` servent aux cas qui ont besoin de deux mêlées
   ou d'un allié hors de portée du soin. Voir `docs/tests.md`.
+
+## Objets et équipement (étape 83)
+
+- **`tests/objets/`** (30 cas) : `test_Emplacement.cpp` (`peutAller` : chaque catégorie, les deux
+  anneaux, le bouclier refusé en main droite, aucune catégorie en main droite),
+  `test_CatalogueObjets.cpp` (ordre de l'enum, chaque catégorie va quelque part, sac de départ),
+  `test_Equipement.cpp` (pose, ancien objet rendu, retrait, `armureTotale` vide, partielle, complète),
+  `test_Inventaire.cpp` (première case libre, sac plein, positions stables après une prise).
+- **`tests/escouade/test_Escouade_equipement.cpp`** (13 cas) : `ramasser`, `equiper`, `desequiper`
+  (réussites et échecs, échange, mort équipé), compteur d'exemplaires par modèle avant et après
+  chaque opération (un objet n'est qu'à un endroit), armure lue par `recevoirCoup`, sac de départ
+  d'une `Partie`.
+- **Aucun littéral d'armure** : les attentes sont calculées avec `definitionObjet(id).armure` et
+  `armureDe(equipement)` (`aides.hpp`, avec `s_equipementMeleeDeTest` et `s_armureMeleeDeTest`), pour
+  que rééquilibrer le catalogue d'objets ne casse aucun test de règle. `test_Specialite.cpp` lit
+  l'équipement de départ du catalogue des classes ; `test_Personnage.cpp` et `test_Vitalite.cpp`
+  couvrent l'armure de départ et `definirArmure`.
