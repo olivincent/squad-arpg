@@ -12,6 +12,7 @@
 #include <SFML/Window/Mouse.hpp>
 #include <array>
 #include <memory>
+#include <string>
 #include <iostream>
 #include <optional>
 #include <string>
@@ -127,7 +128,11 @@ Transition EcranJeu::executer(const CommandeDeTouche& commande) {
             [this](commande::OuvrirInventaire) -> Transition {
                 // Le relâchement du bouton sera reçu par l'inventaire, pas par le Controleur.
                 m_controleur.interrompre();
-                return Empiler{std::make_unique<EcranInventaire>()};
+                std::vector<std::string> noms;
+                for (const IdSpecialite id : m_specialites) {
+                    noms.push_back(specialite(id).nom);
+                }
+                return Empiler{std::make_unique<EcranInventaire>(m_partie.getEscouade(), std::move(noms))};
             },
             [](commande::RetourAuChoix) -> Transition { return Depiler{}; },  // retour à l'écran de choix
             [this](commande::NouvelleCarte) -> Transition {
