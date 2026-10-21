@@ -5,12 +5,13 @@
 #include <SFML/System/Vector2.hpp>
 
 #include "combat/EvenementDeCombat.hpp"
+#include "combat/IdSkill.hpp"
 #include "interface/TextesFlottants.hpp"
 
 namespace {
 
 EvenementDeCombat degatsSurUnMonstre(int id, int montant = 10, sf::Vector2f position = {100.0f, 100.0f}) {
-    return {TypeEvenement::Degats, Camp::Monstres, id, montant, position, false};
+    return {Camp::Monstres, id, position, Degats{montant, false}};
 }
 
 }  // namespace
@@ -73,7 +74,7 @@ TEST_CASE("l'empilement ne touche pas deux cibles differentes dans la meme image
     textes.ajouter(degatsSurUnMonstre(1));
     textes.ajouter(degatsSurUnMonstre(2));
     // Même identifiant, mais un personnage : une autre cible.
-    textes.ajouter({TypeEvenement::Degats, Camp::Escouade, 1, 10, {100.0f, 100.0f}, false});
+    textes.ajouter({Camp::Escouade, 1, {100.0f, 100.0f}, Degats{10, false}});
 
     for (const TexteFlottant& texte : textes.actifs()) {
         REQUIRE(texte.rang == 0);
@@ -93,16 +94,16 @@ TEST_CASE("l'empilement ne touche pas deux images differentes") {
 
 TEST_CASE("le libelle : degats, coup gratuit et soin") {
     REQUIRE(libelleDuTexte(degatsSurUnMonstre(1, 12)) == "12");
-    REQUIRE(libelleDuTexte({TypeEvenement::Degats, Camp::Escouade, 1, 7, {}, true}) == "7!");
-    REQUIRE(libelleDuTexte({TypeEvenement::Soin, Camp::Escouade, 2, 20, {}, false}) == "+20");
+    REQUIRE(libelleDuTexte({Camp::Escouade, 1, {}, Degats{7, true}}) == "7!");
+    REQUIRE(libelleDuTexte({Camp::Escouade, 2, {}, Soin{20}}) == "+20");
 }
 
 TEST_CASE("la couleur et la taille : blanc sur un monstre, rouge sur un personnage, vert pour un soin, orange et plus gros pour un coup gratuit") {
     const EvenementDeCombat surUnMonstre = degatsSurUnMonstre(1);
-    const EvenementDeCombat surUnPersonnage{TypeEvenement::Degats, Camp::Escouade, 1, 10, {}, false};
-    const EvenementDeCombat soin{TypeEvenement::Soin, Camp::Escouade, 2, 10, {}, false};
-    const EvenementDeCombat gratuitSurUnMonstre{TypeEvenement::Degats, Camp::Monstres, 1, 10, {}, true};
-    const EvenementDeCombat gratuitSurUnPersonnage{TypeEvenement::Degats, Camp::Escouade, 1, 10, {}, true};
+    const EvenementDeCombat surUnPersonnage{Camp::Escouade, 1, {}, Degats{10, false}};
+    const EvenementDeCombat soin{Camp::Escouade, 2, {}, Soin{10}};
+    const EvenementDeCombat gratuitSurUnMonstre{Camp::Monstres, 1, {}, Degats{10, true}};
+    const EvenementDeCombat gratuitSurUnPersonnage{Camp::Escouade, 1, {}, Degats{10, true}};
 
     REQUIRE(couleurDuTexte(surUnMonstre) == sf::Color::White);
     REQUIRE(couleurDuTexte(surUnPersonnage).r == 255);
@@ -113,4 +114,16 @@ TEST_CASE("la couleur et la taille : blanc sur un monstre, rouge sur un personna
     REQUIRE(tailleDuTexte(surUnMonstre) == 16);
     REQUIRE(tailleDuTexte(soin) == 16);
     REQUIRE(tailleDuTexte(gratuitSurUnMonstre) == 20);
+}
+
+TEST_CASE("un skill lance : son nom en jaune dore, 14 px") {
+    const EvenementDeCombat lance{Camp::Escouade, 1, {}, SkillLance{IdSkill::ImpositionDesMains}};
+    const EvenementDeCombat autre{Camp::Escouade, 1, {}, SkillLance{IdSkill::FrappeSacree}};
+
+    REQUIRE(libelleDuTexte(lance) == "Imposition des mains");
+    REQUIRE(libelleDuTexte(autre) == "Frappe sacrée");
+    REQUIRE(couleurDuTexte(lance).r == 255);
+    REQUIRE(couleurDuTexte(lance).g > 150);
+    REQUIRE(couleurDuTexte(lance).b < 100);
+    REQUIRE(tailleDuTexte(lance) == 14);
 }

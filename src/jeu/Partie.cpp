@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cassert>
 #include <utility>
+#include <variant>
 #include "base/Cercle.hpp"
 #include "combat/Coup.hpp"
 #include "combat/EntiteVue.hpp"
@@ -211,7 +212,7 @@ void Partie::appliquer(const std::vector<Coup>& coups, bool opportunite) {
     for (const Coup& coup : coups) {
         if (Monstre* touche = trouverMonstre(coup.idMonstre)) {
             const int subis = touche->recevoirDegats(coup.degats);
-            signaler(TypeEvenement::Degats, Camp::Monstres, touche->getId(), subis, touche->getCentre(), opportunite);
+            signaler(Camp::Monstres, touche->getId(), touche->getCentre(), Degats{subis, opportunite});
         }
     }
 }
@@ -219,21 +220,31 @@ void Partie::appliquer(const std::vector<Coup>& coups, bool opportunite) {
 void Partie::infligerAUnPersonnage(int idMonstre, std::size_t place, int degats, bool opportunite) {
     const int subis = m_escouade.recevoirCoup(idMonstre, place, degats);
     if (const std::optional<sf::Vector2f> centre = m_escouade.centreDuPersonnage(place)) {
-        signaler(TypeEvenement::Degats, Camp::Escouade, static_cast<int>(place), subis, *centre, opportunite);
+        signaler(Camp::Escouade, static_cast<int>(place), *centre, Degats{subis, opportunite});
     }
 }
 
-void Partie::signalerLesSoins() {
-    for (const Escouade::SoinApplique& soin : m_escouade.prendreSoins()) {
-        signaler(TypeEvenement::Soin, Camp::Escouade, static_cast<int>(soin.place), soin.montant, soin.position, false);
+void Partie::signalerLesFaits() {
+    for (const Escouade::FaitDEscouade& fait : m_escouade.prendreFaits()) {
+        std::visit(Surcharges{[&](const Escouade::SoinApplique& soin) {
+                       signaler(Camp::Escouade, static_cast<int>(soin.place), soin.position, Soin{soin.montant});
+                   },
+                   [&](const Escouade::SkillPart& part) {
+                       signaler(Camp::Escouade, static_cast<int>(part.place), part.position, SkillLance{part.skill});
+                   }},
+                   fait);
     }
 }
 
-void Partie::signaler(TypeEvenement type, Camp campCible, int idCible, int montant, sf::Vector2f position, bool opportunite) {
-    if (montant <= 0) {
+void Partie::signaler(Camp campCible, int idCible, sf::Vector2f position, DetailEvenement detail) {
+    const bool montantNul = std::visit(Surcharges{[](const Degats& degats) { return degats.montant <= 0; },
+                                                  [](const Soin& soin) { return soin.montant <= 0; },
+                                                  [](const SkillLance&) { return false; }},
+                                       detail);
+    if (montantNul) {
         return;
     }
-    m_evenements.push_back({type, campCible, idCible, montant, position, opportunite});
+    m_evenements.push_back({campCible, idCible, position, detail});
 }
 
 std::vector<EvenementDeCombat> Partie::prendreEvenements() {
@@ -278,7 +289,7 @@ void Partie::resoudreLesCoups(float dt) {
     }
 
     // Soins du skill demandé et des skills qui partent dans attaquer().
-    signalerLesSoins();
+    signalerLesFaits();
 
     std::erase_if(m_monstres, [](const Monstre& m) { return !m.estVivant(); });
 }

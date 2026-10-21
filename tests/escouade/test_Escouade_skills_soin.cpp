@@ -2,6 +2,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <optional>
+#include <variant>
 #include <vector>
 
 #include "aides.hpp"
@@ -78,18 +79,19 @@ TEST_CASE("Le soin du pretre soigne un allie a portee, sans combat engage") {
     REQUIRE_FALSE(escouade.choisirCible(TypeSkill::Soin, s_adresseSoin, {}, carteOuverte()).has_value());
 }
 
-TEST_CASE("prendreSoins rend le soin applique (place, points reellement rendus, position) puis se vide") {
+TEST_CASE("prendreFaits rend le soin applique (place, points reellement rendus, position) puis se vide") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
     infliger(escouade, 1, {35.0f, 85.0f}, 20);  // le mage (place 3) perd 20 points
 
     declencher(escouade, s_adresseSoin, {});
-    const std::vector<Escouade::SoinApplique> soins = escouade.prendreSoins();
+    const std::vector<Escouade::FaitDEscouade> faits = escouade.prendreFaits();
 
-    REQUIRE(soins.size() == 1);
-    REQUIRE(soins[0].place == 3);
-    REQUIRE(soins[0].montant == 20);  // 30 de soin, mais il ne manquait que 20 points
-    verifierPointProche(soins[0].position, *escouade.centreDuPersonnage(3));
-    REQUIRE(escouade.prendreSoins().empty());
+    REQUIRE(faits.size() == 2);  // le skill qui part, puis le soin qu'il applique
+    const auto& soin = std::get<Escouade::SoinApplique>(faits[1]);
+    REQUIRE(soin.place == 3);
+    REQUIRE(soin.montant == 20);  // 30 de soin, mais il ne manquait que 20 points
+    verifierPointProche(soin.position, *escouade.centreDuPersonnage(3));
+    REQUIRE(escouade.prendreFaits().empty());
 }
 
 TEST_CASE("centreDuPersonnage : le centre de la place, vide si la place est invalide") {

@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <optional>
+#include <variant>
 #include <vector>
 
 #include "aides.hpp"
@@ -95,6 +96,17 @@ int compter(const std::vector<Coup>& coups, int degats) {
 sf::Vector2f positionDeLaPlace(Escouade& escouade, std::size_t place) {
     escouade.provoquer(99, place, 1000.0f);
     return escouade.proieDuMonstre(99, {0.0f, 0.0f})->cercle.centre;
+}
+
+// Les skills partis (prendreFaits), dans l'ordre ; les autres faits sont écartés.
+std::vector<Escouade::SkillPart> skillsPartis(Escouade& escouade) {
+    std::vector<Escouade::SkillPart> partis;
+    for (const Escouade::FaitDEscouade& fait : escouade.prendreFaits()) {
+        if (const auto* part = std::get_if<Escouade::SkillPart>(&fait)) {
+            partis.push_back(*part);
+        }
+    }
+    return partis;
 }
 
 }  // namespace
@@ -395,4 +407,57 @@ TEST_CASE("Lanceur occupe : le rodeur lance sa pluie de fleches apres son tir pe
     const std::vector<Coup> coups = attaquerPendant(escouade, monstres, 1.6f, generateur);
     REQUIRE(compter(coups, s_degatsTirDeTest) == 1);
     REQUIRE(compter(coups, s_degatsPluieDeTest) == 1);
+}
+
+// Faits « skill parti » (étape 86) : un par skill de la barre, au départ de l'effet.
+
+TEST_CASE("Un skill de degats signale son depart a la fin de l'activation, pas avant") {
+    Generateur generateur = generateurDeTest();
+    Escouade escouade = uneEscouade({50.0f, 50.0f});
+    const std::vector<EntiteVue> monstres = unSeulMonstre(cibleMonstre({85.0f, 60.0f}));
+
+    static_cast<void>(escouade.declencherSkill(s_adresseFrappe, monstres, carteOuverte(), generateur));
+    static_cast<void>(attaquerPendant(escouade, monstres, 0.25f, generateur));
+    REQUIRE(skillsPartis(escouade).empty());
+
+    static_cast<void>(attaquerPendant(escouade, monstres, 0.1f, generateur));
+    const std::vector<Escouade::SkillPart> partis = skillsPartis(escouade);
+    REQUIRE(partis.size() == 1);
+    REQUIRE(partis[0].place == 1);
+    REQUIRE(partis[0].skill == IdSkill::FrappePuissante);
+    verifierPointProche(partis[0].position, *escouade.centreDuPersonnage(1));
+}
+
+TEST_CASE("Provocation, soin et zone signalent leur depart, meme sans monstre touche") {
+    Generateur generateur = generateurDeTest();
+    const TileMap carte = carteDegageeEntouree();
+    Escouade escouade = uneEscouade({200.0f, 200.0f});
+    infliger(escouade, 1, {185.0f, 235.0f}, 20);  // le mage est blessé
+
+    static_cast<void>(declencherEtAttendre(escouade, s_adresseProvocation, {}, carteOuverte(), generateur));
+    std::vector<Escouade::SkillPart> partis = skillsPartis(escouade);
+    REQUIRE(partis.size() == 1);
+    REQUIRE(partis[0].skill == IdSkill::Provocation);
+
+    static_cast<void>(declencherEtAttendre(escouade, s_adresseSoin, {}, carteOuverte(), generateur));
+    partis = skillsPartis(escouade);
+    REQUIRE(partis.size() == 1);
+    REQUIRE(partis[0].skill == IdSkill::Soin);
+    REQUIRE(partis[0].place == 2);
+
+    // Zone vide : le sort part quand même.
+    static_cast<void>(declencherZoneEtAttendre(escouade, s_adresseExplosion, {300.0f, 300.0f}, {}, carte, generateur));
+    partis = skillsPartis(escouade);
+    REQUIRE(partis.size() == 1);
+    REQUIRE(partis[0].skill == IdSkill::Explosion);
+    REQUIRE(partis[0].place == 3);
+}
+
+TEST_CASE("L'attaque de base ne signale aucun skill parti") {
+    Generateur generateur = generateurDeTest();
+    Escouade escouade = uneEscouade({50.0f, 50.0f});
+    const std::vector<EntiteVue> monstres = unSeulMonstre(cibleMonstre({85.0f, 60.0f}));
+
+    REQUIRE_FALSE(attaquerPendant(escouade, monstres, 1.0f, generateur).empty());  // l'attaque de base a frappé
+    REQUIRE(skillsPartis(escouade).empty());
 }

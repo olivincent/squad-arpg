@@ -62,6 +62,7 @@ add_library(squad_core STATIC
     src/interface/EcranDeFin.cpp
     src/interface/CommandeDeTouche.cpp
     src/interface/AffichageObjets.cpp
+    src/interface/AffichageSkills.cpp
     src/interface/DispositionInventaire.cpp
     src/interface/EcranInventaire.cpp
     src/interface/EntreeDInterface.cpp
@@ -147,6 +148,7 @@ add_executable(tests
     tests/monde/test_Encerclement.cpp
     tests/combat/test_Engagement.cpp
     tests/interface/test_AffichageObjets.cpp
+    tests/interface/test_AffichageSkills.cpp
     tests/interface/test_BarreDeRaccourcis.cpp
     tests/interface/test_BarreDeSkills.cpp
     tests/interface/test_ClicInterface.cpp

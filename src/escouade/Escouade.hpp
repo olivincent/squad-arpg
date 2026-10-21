@@ -7,6 +7,7 @@
 #include <array>
 #include <cstddef>
 #include <optional>
+#include <variant>
 #include <vector>
 #include "combat/ActionEngagee.hpp"
 #include "combat/AdresseSkill.hpp"
@@ -122,9 +123,18 @@ public:
         int montant;
         sf::Vector2f position;
     };
-    // Les soins appliqués depuis le dernier appel (par `declencherSkill` et `attaquer`), dans l'ordre ;
-    // la liste est vidée. `Partie` en fait des événements de combat.
-    [[nodiscard]] std::vector<SoinApplique> prendreSoins();
+    // Ce qui s'est passé dans l'escouade et que l'affichage doit savoir : un seul canal, un variant
+    // par sorte de fait. `Partie` en fait des événements de combat.
+    // Un skill qui part (fin de son activation) : la place du lanceur, le skill et son centre à ce moment.
+    struct SkillPart {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
+        std::size_t place;
+        IdSkill skill;
+        sf::Vector2f position;
+    };
+    using FaitDEscouade = std::variant<SoinApplique, SkillPart>;
+    // Les faits survenus depuis le dernier appel (par `declencherSkill` et `attaquer`), dans l'ordre ;
+    // la liste est vidée.
+    [[nodiscard]] std::vector<FaitDEscouade> prendreFaits();
     // Point vers lequel le personnage de cette place (de 1 à N) marche, calculé par le dernier
     // mettreAJour : place de formation, place d'attaque, cible du skill en attente, ou sa
     // propre position s'il reste sur place. Vide si la place est invalide. Lu par les tests : la
@@ -244,7 +254,7 @@ private:
     std::vector<sf::Vector2f> m_pointsVises;  // par personnage, calculé par mettreAJour
     // Par personnage : identifiant du monstre dont il se dégage vers sa place d'attaque (vide = il ne se dégage pas).
     std::vector<std::optional<int>> m_degagements;
-    std::vector<SoinApplique> m_soinsAppliques; // soins pas encore pris par prendreSoins
+    std::vector<FaitDEscouade> m_faits; // faits pas encore pris par prendreFaits
     Agresseurs m_agresseurs; // monstres qui ont frappé l'escouade récemment
     Provocations m_provocations; // monstres provoqués par un personnage
     Inventaire m_sac;            // les objets que personne ne porte

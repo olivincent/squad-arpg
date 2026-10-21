@@ -3,6 +3,7 @@
 #include <SFML/System/Vector2.hpp>
 #include <algorithm>
 #include <optional>
+#include <variant>
 #include <vector>
 
 #include "aides.hpp"
@@ -30,10 +31,20 @@ std::vector<EvenementDeCombat> evenementsPendant(Partie& partie, float duree) {
     return tous;
 }
 
-std::vector<EvenementDeCombat> parmi(const std::vector<EvenementDeCombat>& evenements, TypeEvenement type, Camp camp) {
+const Degats& degats(const EvenementDeCombat& evenement) {
+    return std::get<Degats>(evenement.detail);
+}
+
+const Soin& soin(const EvenementDeCombat& evenement) {
+    return std::get<Soin>(evenement.detail);
+}
+
+// Les événements d'une sorte de détail (Degats, Soin…) sur un camp.
+template <class Detail>
+std::vector<EvenementDeCombat> parmi(const std::vector<EvenementDeCombat>& evenements, Camp camp) {
     std::vector<EvenementDeCombat> choisis;
     for (const EvenementDeCombat& evenement : evenements) {
-        if (evenement.type == type && evenement.campCible == camp) {
+        if (std::holds_alternative<Detail>(evenement.detail) && evenement.campCible == camp) {
             choisis.push_back(evenement);
         }
     }
@@ -65,11 +76,11 @@ TEST_CASE("evenements : un skill de degats donne un evenement sur le monstre, ar
     const int frappeApresArmure = appliquerArmure(s_degatsFrappeDeTest, armure);
     REQUIRE(frappeApresArmure != appliquerArmure(s_degatsBaseDeTest, armure));
     int frappes = 0;
-    for (const EvenementDeCombat& evenement : parmi(evenements, TypeEvenement::Degats, Camp::Monstres)) {
-        if (evenement.montant == frappeApresArmure) {
+    for (const EvenementDeCombat& evenement : parmi<Degats>(evenements, Camp::Monstres)) {
+        if (degats(evenement).montant == frappeApresArmure) {
             ++frappes;
             REQUIRE(evenement.idCible == 1);
-            REQUIRE_FALSE(evenement.opportunite);
+            REQUIRE_FALSE(degats(evenement).opportunite);
             verifierPointProche(evenement.position, {235.0f, 170.0f});
         }
     }
@@ -83,16 +94,16 @@ TEST_CASE("evenements : le coup d'un monstre donne un evenement sur le personnag
     static_cast<void>(jusquAuPremierCoup(guerrier, 1));
     static_cast<void>(jusquAuPremierCoup(mage, 1));
 
-    const std::vector<EvenementDeCombat> surLeGuerrier = parmi(guerrier.prendreEvenements(), TypeEvenement::Degats, Camp::Escouade);
-    const std::vector<EvenementDeCombat> surLeMage = parmi(mage.prendreEvenements(), TypeEvenement::Degats, Camp::Escouade);
+    const std::vector<EvenementDeCombat> surLeGuerrier = parmi<Degats>(guerrier.prendreEvenements(), Camp::Escouade);
+    const std::vector<EvenementDeCombat> surLeMage = parmi<Degats>(mage.prendreEvenements(), Camp::Escouade);
 
     REQUIRE(surLeGuerrier.size() == 1);
-    REQUIRE(surLeGuerrier[0].montant == appliquerArmure(puissanceDuMonstre, s_armureMeleeDeTest));
+    REQUIRE(degats(surLeGuerrier[0]).montant == appliquerArmure(puissanceDuMonstre, s_armureMeleeDeTest));
     REQUIRE(surLeGuerrier[0].idCible == 1);
-    REQUIRE_FALSE(surLeGuerrier[0].opportunite);
+    REQUIRE_FALSE(degats(surLeGuerrier[0]).opportunite);
     verifierPointProche(surLeGuerrier[0].position, *guerrier.getEscouade().centreDuPersonnage(1));
     REQUIRE(surLeMage.size() == 1);
-    REQUIRE(surLeMage[0].montant == puissanceDuMonstre);  // armure 0
+    REQUIRE(degats(surLeMage[0]).montant == puissanceDuMonstre);  // armure 0
 }
 
 TEST_CASE("evenements : un skill de zone donne un evenement par monstre touche") {
@@ -104,8 +115,8 @@ TEST_CASE("evenements : un skill de zone donne un evenement par monstre touche")
     const std::vector<EvenementDeCombat> evenements = evenementsPendant(partie, 1.0f);
 
     std::vector<int> touches;
-    for (const EvenementDeCombat& evenement : parmi(evenements, TypeEvenement::Degats, Camp::Monstres)) {
-        if (evenement.montant == s_degatsZoneDeTest) {
+    for (const EvenementDeCombat& evenement : parmi<Degats>(evenements, Camp::Monstres)) {
+        if (degats(evenement).montant == s_degatsZoneDeTest) {
             touches.push_back(evenement.idCible);
         }
     }
@@ -122,10 +133,10 @@ TEST_CASE("evenements : un coup gratuit est marque, dans les deux sens") {
     static_cast<void>(mage.prendreEvenements());
     mage.ordonnerDeplacement({210.0f, 20.0f});
     const std::vector<EvenementDeCombat> surLeMage =
-        parmi(evenementsPendant(mage, s_fenetreSansCoupNormal), TypeEvenement::Degats, Camp::Escouade);
+        parmi<Degats>(evenementsPendant(mage, s_fenetreSansCoupNormal), Camp::Escouade);
     REQUIRE(surLeMage.size() == 1);
-    REQUIRE(surLeMage[0].opportunite);
-    REQUIRE(surLeMage[0].montant == puissanceDuMonstre);  // armure 0
+    REQUIRE(degats(surLeMage[0]).opportunite);
+    REQUIRE(degats(surLeMage[0]).montant == puissanceDuMonstre);  // armure 0
 
     // Trois guerriers ; le premier frappe une fois (30 dégâts, recharge de 100 s). Dès que le monstre est
     // touché, le troisième le provoque : il quitte le premier, qui le frappe gratuitement (30 dégâts).
@@ -145,9 +156,9 @@ TEST_CASE("evenements : un coup gratuit est marque, dans les deux sens") {
     }
     int normaux = 0;
     int gratuits = 0;
-    for (const EvenementDeCombat& evenement : parmi(evenements, TypeEvenement::Degats, Camp::Monstres)) {
-        if (evenement.montant == 30) {
-            ++(evenement.opportunite ? gratuits : normaux);
+    for (const EvenementDeCombat& evenement : parmi<Degats>(evenements, Camp::Monstres)) {
+        if (degats(evenement).montant == 30) {
+            ++(degats(evenement).opportunite ? gratuits : normaux);
         }
     }
     REQUIRE(normaux == 1);
@@ -165,17 +176,16 @@ TEST_CASE("evenements : un soin donne un evenement Soin sur l'allie soigne, avec
     const std::vector<EvenementDeCombat> suite = evenementsPendant(partie, 0.8f);  // activation de 0,6 s
     evenements.insert(evenements.end(), suite.begin(), suite.end());
 
-    const std::vector<EvenementDeCombat> soins = parmi(evenements, TypeEvenement::Soin, Camp::Escouade);
+    const std::vector<EvenementDeCombat> soins = parmi<Soin>(evenements, Camp::Escouade);
     REQUIRE(soins.size() == 1);
     REQUIRE(soins[0].idCible == 1);
-    REQUIRE_FALSE(soins[0].opportunite);
-    int degats = 0;
-    for (const EvenementDeCombat& evenement : parmi(evenements, TypeEvenement::Degats, Camp::Escouade)) {
-        degats += evenement.montant;
+    int totalDegats = 0;
+    for (const EvenementDeCombat& evenement : parmi<Degats>(evenements, Camp::Escouade)) {
+        totalDegats += degats(evenement).montant;
     }
-    REQUIRE(soins[0].montant > 0);
-    REQUIRE(soins[0].montant <= degats);
-    REQUIRE(*partie.getEscouade().pointsDeVieDuPersonnage(1) == vieDeDepart - degats + soins[0].montant);
+    REQUIRE(soin(soins[0]).montant > 0);
+    REQUIRE(soin(soins[0]).montant <= totalDegats);
+    REQUIRE(*partie.getEscouade().pointsDeVieDuPersonnage(1) == vieDeDepart - totalDegats + soin(soins[0]).montant);
     verifierPointProche(soins[0].position, *partie.getEscouade().centreDuPersonnage(1));
 }
 
@@ -183,11 +193,11 @@ TEST_CASE("evenements : un coup sur un monstre deja mort dans l'image ne produit
     // Les deux coups (200 dégâts) partent au même tic : le premier tue, le second tombe sur un mort (0).
     Partie partie = deuxGuerriersQuiTuentLeMemeMonstre();
 
-    const std::vector<EvenementDeCombat> evenements = parmi(evenementsPendant(partie, 0.5f), TypeEvenement::Degats, Camp::Monstres);
+    const std::vector<EvenementDeCombat> evenements = parmi<Degats>(evenementsPendant(partie, 0.5f), Camp::Monstres);
 
     REQUIRE(partie.getMonstres().empty());
     REQUIRE(evenements.size() == 1);
-    REQUIRE(evenements[0].montant == 200);
+    REQUIRE(degats(evenements[0]).montant == 200);
 }
 
 TEST_CASE("evenements : le monstre tue garde son evenement et sa position") {
@@ -196,7 +206,7 @@ TEST_CASE("evenements : le monstre tue garde son evenement et sa position") {
     const std::vector<EvenementDeCombat> evenements = evenementsPendant(partie, 0.5f);
 
     REQUIRE(partie.getMonstres().empty());
-    const std::vector<EvenementDeCombat> surLeMonstre = parmi(evenements, TypeEvenement::Degats, Camp::Monstres);
+    const std::vector<EvenementDeCombat> surLeMonstre = parmi<Degats>(evenements, Camp::Monstres);
     REQUIRE(surLeMonstre.size() == 1);
     REQUIRE(surLeMonstre[0].idCible == 1);
     verifierPointProche(surLeMonstre[0].position, {260.0f, 210.0f});
@@ -226,4 +236,17 @@ TEST_CASE("evenements : une partie gagnee ou perdue n'en produit plus") {
     static_cast<void>(perdue.prendreEvenements());
     avancer(perdue, nombreDeTics(1.0f));
     REQUIRE(perdue.prendreEvenements().empty());
+}
+
+TEST_CASE("evenements : un skill lance donne un evenement SkillLance au-dessus du lanceur, a la fin de l'activation") {
+    Partie partie(niveauDegage({{270.0f, 210.0f}}), std::vector<DefinitionPersonnage>{guerrierDeTest(), pretreDeTest()}, s_graineDeTest);
+    partie.demanderSkill({1, IdSkill::Provocation});
+
+    REQUIRE(parmi<SkillLance>(partie.prendreEvenements(), Camp::Escouade).empty());  // l'activation commence seulement
+
+    const std::vector<EvenementDeCombat> lances = parmi<SkillLance>(evenementsPendant(partie, 0.5f), Camp::Escouade);
+    REQUIRE(lances.size() == 1);
+    REQUIRE(lances[0].idCible == 1);
+    REQUIRE(std::get<SkillLance>(lances[0].detail).skill == IdSkill::Provocation);
+    verifierPointProche(lances[0].position, *partie.getEscouade().centreDuPersonnage(1));
 }

@@ -1,9 +1,13 @@
 // ./src/interface/TextesFlottants.cpp
 #include "interface/TextesFlottants.hpp"
 #include <SFML/Graphics/Text.hpp>
+#include <SFML/System/String.hpp>
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <variant>
+#include "combat/Cible.hpp"
+#include "interface/AffichageSkills.hpp"
 
 namespace {
 constexpr float s_departAuDessus = 20.0f;  // px au-dessus du centre de la cible, à la naissance
@@ -12,11 +16,13 @@ constexpr float s_ecartEmpilement = 14.0f; // px entre deux textes de la même c
 constexpr float s_finDeLaOpacitePleine = 0.5f;  // fraction de la vie pendant laquelle le texte est opaque
 constexpr unsigned int s_tailleNormale = 16;
 constexpr unsigned int s_tailleCoupGratuit = 20;
+constexpr unsigned int s_tailleNomDeSkill = 14;
 constexpr float s_epaisseurContour = 1.0f;
 const sf::Color s_couleurDegatsSurUnMonstre = sf::Color::White;
 const sf::Color s_couleurDegatsSurUnPersonnage(255, 60, 60);
 const sf::Color s_couleurSoin(80, 230, 80);
 const sf::Color s_couleurCoupGratuit(255, 150, 0);
+const sf::Color s_couleurNomDeSkill(255, 210, 60);  // jaune doré
 }  // namespace
 
 float hauteurDuTexte(float age) {
@@ -38,25 +44,33 @@ sf::Vector2f positionDuTexte(const TexteFlottant& texte) {
 }
 
 std::string libelleDuTexte(const EvenementDeCombat& evenement) {
-    const std::string montant = std::to_string(evenement.montant);
-    if (evenement.type == TypeEvenement::Soin) {
-        return "+" + montant;
-    }
-    return evenement.opportunite ? montant + "!" : montant;
+    return std::visit(Surcharges{[](const Degats& degats) {
+                                     const std::string montant = std::to_string(degats.montant);
+                                     return degats.opportunite ? montant + "!" : montant;
+                                 },
+                                 [](const Soin& soin) { return "+" + std::to_string(soin.montant); },
+                                 [](const SkillLance& lance) { return nomDuSkill(lance.skill); }},
+                      evenement.detail);
 }
 
 sf::Color couleurDuTexte(const EvenementDeCombat& evenement) {
-    if (evenement.opportunite) {
-        return s_couleurCoupGratuit;
-    }
-    if (evenement.type == TypeEvenement::Soin) {
-        return s_couleurSoin;
-    }
-    return evenement.campCible == Camp::Monstres ? s_couleurDegatsSurUnMonstre : s_couleurDegatsSurUnPersonnage;
+    return std::visit(Surcharges{[&](const Degats& degats) {
+                                     if (degats.opportunite) {
+                                         return s_couleurCoupGratuit;
+                                     }
+                                     return evenement.campCible == Camp::Monstres ? s_couleurDegatsSurUnMonstre
+                                                                                  : s_couleurDegatsSurUnPersonnage;
+                                 },
+                                 [](const Soin&) { return s_couleurSoin; },
+                                 [](const SkillLance&) { return s_couleurNomDeSkill; }},
+                      evenement.detail);
 }
 
 unsigned int tailleDuTexte(const EvenementDeCombat& evenement) {
-    return evenement.opportunite ? s_tailleCoupGratuit : s_tailleNormale;
+    return std::visit(Surcharges{[](const Degats& degats) { return degats.opportunite ? s_tailleCoupGratuit : s_tailleNormale; },
+                                 [](const Soin&) { return s_tailleNormale; },
+                                 [](const SkillLance&) { return s_tailleNomDeSkill; }},
+                      evenement.detail);
 }
 
 void TextesFlottants::ajouter(const EvenementDeCombat& evenement) {
@@ -88,7 +102,9 @@ void TextesFlottants::dessiner(sf::RenderTarget& rendu, const sf::Font& police) 
         sf::Color contour = sf::Color::Black;
         contour.a = alpha;
 
-        sf::Text objet(police, libelleDuTexte(texte.evenement), tailleDuTexte(texte.evenement));
+        // Les libellés sont en UTF-8 (noms de skills accentués).
+        const std::string libelle = libelleDuTexte(texte.evenement);
+        sf::Text objet(police, sf::String::fromUtf8(libelle.begin(), libelle.end()), tailleDuTexte(texte.evenement));
         objet.setFillColor(remplissage);
         objet.setOutlineColor(contour);
         objet.setOutlineThickness(s_epaisseurContour);

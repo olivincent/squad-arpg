@@ -109,10 +109,10 @@ private:
     void appliquer(const std::vector<Coup>& coups, bool opportunite = false);
     // Un coup de monstre sur le personnage de cette place (Escouade::recevoirCoup), signalé.
     void infligerAUnPersonnage(int idMonstre, std::size_t place, int degats, bool opportunite);
-    // Les soins qu'Escouade a appliqués depuis le dernier appel, signalés.
-    void signalerLesSoins();
-    // Le seul endroit où un événement naît ; un montant nul ne produit rien.
-    void signaler(TypeEvenement type, Camp campCible, int idCible, int montant, sf::Vector2f position, bool opportunite);
+    // Les faits qu'Escouade a produits depuis le dernier appel, signalés.
+    void signalerLesFaits();
+    // Le seul endroit où un événement naît ; des dégâts ou un soin de montant nul ne produisent rien.
+    void signaler(Camp campCible, int idCible, sf::Vector2f position, DetailEvenement detail);
     // Étapes de mettreAJour(), dans l'ordre où elles sont appelées.
     void resoudreLesCoups(float dt);
     void faireTournerLesMonstres(float dt);

@@ -264,6 +264,7 @@ std::vector<Coup> Escouade::avancerSkillDe(std::size_t indice, float dt, const s
 // soin sont appliqués ici ; les dégâts et la zone sortent en `Coup`.
 std::vector<Coup> Escouade::effetDuSkill(std::size_t place, IdSkill id, const std::optional<Cible>& cible, int puissance, const std::vector<EntiteVue>& monstres, const TileMap& carte) {
     const Personnage& lanceur = personnageDeLaPlace(place);
+    m_faits.push_back(SkillPart{place, id, lanceur.getCentre()});
 
     // Provocation (sans cible) : zone centrée sur le lanceur ; touche les
     // monstres de la zone et en vue du lanceur (`ligneDeVue`). La puissance
@@ -284,7 +285,7 @@ std::vector<Coup> Escouade::effetDuSkill(std::size_t place, IdSkill id, const st
             [&](const CibleAllie& allie) -> std::vector<Coup> {
                 Personnage& soigne = personnageDeLaPlace(allie.place);
                 if (const int rendu = soigne.recevoirSoin(puissance); rendu > 0) {
-                    m_soinsAppliques.push_back({allie.place, rendu, soigne.getCentre()});
+                    m_faits.push_back(SoinApplique{allie.place, rendu, soigne.getCentre()});
                 }
                 return {};
             },
@@ -810,8 +811,8 @@ std::optional<sf::Vector2f> Escouade::centreDuPersonnage(std::size_t place) cons
     return personnageDeLaPlace(place).getCentre();
 }
 
-std::vector<Escouade::SoinApplique> Escouade::prendreSoins() {
-    return std::exchange(m_soinsAppliques, {});
+std::vector<Escouade::FaitDEscouade> Escouade::prendreFaits() {
+    return std::exchange(m_faits, {});
 }
 
 std::optional<sf::Vector2f> Escouade::pointVise(std::size_t place) const {
