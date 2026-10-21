@@ -9,6 +9,7 @@
 #include "combat/Skill.hpp"
 #include "combat/SkillConnu.hpp"
 #include "combat/Vitalite.hpp"
+#include "objets/Equipement.hpp"
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/System/Vector2.hpp>
@@ -21,9 +22,10 @@ class Personnage {
 public:
     // `rayonVision` : jusqu'où il voit, en pixels (l'union des champs des vivants est la vision de l'escouade).
     // `skills` : les skills qu'il connaît (assert : pas deux fois le même identifiant).
+    // `equipementDeDepart` : ce qu'il porte à sa création ; son armure est celle de cet équipement.
     // `zoneDeControle` : la zone qu'il engage autour de lui, en pixels, bord à bord (0 : il n'engage personne).
-    Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::vector<SkillConnu> skills, int armure, float rayonVision,
-               float zoneDeControle = 0.0f);
+    Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::vector<SkillConnu> skills,
+               const std::vector<ObjetDeDepart>& equipementDeDepart, float rayonVision, float zoneDeControle = 0.0f);
     void dessiner(sf::RenderTarget& rendu) const;
     // `obstacles` le bloquent ; `aContourner` est ce que son chemin évite : la ligne droite n'est
     // prise que si elle passe loin d'eux, sinon A* avec coût (voir Mobile::allerVers).
@@ -96,6 +98,7 @@ private:
     Skill m_attaqueDeBase;
     std::vector<SkillConnu> m_skills; // sans doublon d'identifiant
     std::optional<sf::Vector2f> m_cibleChemin; // cible du dernier A* ; vide = pas de chemin en cours
+    Equipement m_equipement;  // déclaré avant m_vitalite : l'armure en est tirée à la construction
     Vitalite m_vitalite;    // points de vie et armure
     float m_rayonVision;    // en pixels
     float m_zoneDeControle; // en pixels, bord à bord

@@ -52,8 +52,7 @@ inline constexpr float s_rechargeMeleeMinDeTest = 0.3f;  // en secondes
 inline constexpr float s_rechargeMeleeMaxDeTest = 0.7f;
 inline constexpr float s_rechargeTireurMinDeTest = 0.4f;
 inline constexpr float s_rechargeTireurMaxDeTest = 0.6f;
-// Défense et contrôle (les tireurs n'ont ni armure ni zone de contrôle).
-inline constexpr int s_armureMeleeDeTest = 50;
+// Contrôle (les tireurs n'ont ni équipement ni zone de contrôle). L'armure d'une mêlée est dans aides.hpp.
 inline constexpr float s_zoneDeControleMeleeDeTest = 20.0f;  // bord à bord
 // Frappe puissante du guerrier.
 inline constexpr int s_degatsFrappeDeTest = 25;
@@ -94,7 +93,7 @@ inline DefinitionPersonnage guerrierDeTest() {
                                               s_rechargeFrappeDeTest, 0.0f, s_activationFrappeDeTest)},
              {IdSkill::Provocation, Skill(TypeSkill::Provocation, 0.0f, s_dureeProvocationDeTest, s_rechargeProvocationDeTest,
                                           s_rechargeProvocationDeTest, s_rayonProvocationDeTest, s_activationProvocationDeTest)}},
-            s_armureMeleeDeTest,
+            s_equipementMeleeDeTest,
             s_rayonVisionDeTest,
             s_zoneDeControleMeleeDeTest,
             Rang::Avant};
@@ -106,7 +105,7 @@ inline DefinitionPersonnage pretreDeTest() {
             attaqueDeTireurDeTest(),
             {{IdSkill::Soin, Skill(TypeSkill::Soin, s_porteeSoinDeTest, s_puissanceSoinDeTest, s_rechargeSoinDeTest,
                                    s_rechargeSoinDeTest, 0.0f, s_activationSoinDeTest)}},
-            0,
+            {},
             s_rayonVisionDeTest,
             0.0f,
             Rang::Arriere};
@@ -118,7 +117,7 @@ inline DefinitionPersonnage mageDeTest() {
             attaqueDeTireurDeTest(),
             {{IdSkill::Explosion, Skill(TypeSkill::Zone, s_porteeZoneDeTest, s_degatsZoneDeTest, s_rechargeZoneDeTest,
                                         s_rechargeZoneDeTest, s_rayonZoneDeTest, s_activationZoneDeTest)}},
-            0,
+            {},
             s_rayonVisionDeTest,
             0.0f,
             Rang::Arriere};

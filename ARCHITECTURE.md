@@ -179,8 +179,9 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 Un dossier n'inclut que lui-même et ceux qui le **précèdent** dans cet ordre :
 
 ```
-base → monde → combat → escouade, monstres → jeu → interface → app
+base → monde → combat → objets → escouade, monstres → jeu → interface → app
 rendu : ne dépend que de base
+objets : ne dépend que de base
 ```
 
 - `escouade/` et `monstres/` ne s'incluent pas entre eux : ils communiquent par `combat/`

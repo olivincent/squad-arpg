@@ -66,6 +66,10 @@ add_library(squad_core STATIC
     src/combat/PointsDeVie.cpp
     src/combat/Vitalite.cpp
     src/combat/Defense.cpp
+    src/objets/Emplacement.cpp
+    src/objets/CatalogueObjets.cpp
+    src/objets/Equipement.cpp
+    src/objets/Inventaire.cpp
     src/monde/Niveau.cpp
     src/monde/ObjetInteractif.cpp
     src/monde/ChampDeVision.cpp
@@ -143,6 +147,10 @@ add_executable(tests
     tests/combat/test_PointsDeVie.cpp
     tests/combat/test_Vitalite.cpp
     tests/combat/test_Defense.cpp
+    tests/objets/test_Emplacement.cpp
+    tests/objets/test_CatalogueObjets.cpp
+    tests/objets/test_Equipement.cpp
+    tests/objets/test_Inventaire.cpp
     tests/monde/test_GenerateurDonjon.cpp
     tests/jeu/test_Partie_clics.cpp
     tests/jeu/test_Partie_skills.cpp

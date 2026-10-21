@@ -5,6 +5,7 @@
 #include <vector>
 #include "combat/Skill.hpp"
 #include "combat/SkillConnu.hpp"
+#include "objets/Equipement.hpp"
 
 // Rang d'un personnage dans la formation : devant ou derrière l'ancre.
 enum class Rang { Avant, Arriere };
@@ -15,7 +16,7 @@ struct DefinitionPersonnage {
     sf::Color couleur;
     Skill attaqueDeBase;
     std::vector<SkillConnu> skills;
-    int armure;
+    std::vector<ObjetDeDepart> equipementDeDepart;  // l'armure du personnage vient de lui seul
     float rayonVision;
     float zoneDeControle;  // en pixels, bord à bord ; 0 = n'engage personne
     Rang rang;

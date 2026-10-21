@@ -11,6 +11,8 @@
 #include "base/Aleatoire.hpp"
 #include "base/Cercle.hpp"
 #include "monde/TileMap.hpp"
+#include "objets/CatalogueObjets.hpp"
+#include "objets/Equipement.hpp"
 
 // Aides de base communes à plusieurs fichiers de tests : graine et générateur, tolérances, cibles,
 // cartes, temps. Les fixtures d'Escouade et de Partie sont dans aides_escouade.hpp, les aides des
@@ -22,6 +24,25 @@ inline constexpr Generateur::result_type s_graineDeTest = 12345;
 
 // Rayon de vision des personnages de test, et de ceux construits à la main dans les tests.
 inline constexpr float s_rayonVisionDeTest = 320.0f;
+
+// Équipement de départ des mêlées de test : les mêmes objets que le catalogue des classes, mais
+// l'armure qui en résulte est toujours lue dans le catalogue d'objets, jamais écrite en littéral.
+inline const std::vector<ObjetDeDepart> s_equipementMeleeDeTest = {{Emplacement::Tete, IdObjet::CasqueDeFer},
+                                                                   {Emplacement::Torse, IdObjet::CuirasseDeMailles},
+                                                                   {Emplacement::Jambes, IdObjet::JambieresDeFer},
+                                                                   {Emplacement::MainGauche, IdObjet::BouclierRond}};
+
+// Somme de l'armure des objets de départ.
+inline int armureDe(const std::vector<ObjetDeDepart>& equipement) {
+    int total = 0;
+    for (const ObjetDeDepart& entree : equipement) {
+        total += definitionObjet(entree.objet).armure;
+    }
+    return total;
+}
+
+// Armure d'une mêlée de test.
+inline const int s_armureMeleeDeTest = armureDe(s_equipementMeleeDeTest);
 
 // Un générateur neuf à graine fixe. Chaque test en crée un à lui
 // (`Generateur generateur = generateurDeTest();`) et le passe par référence :

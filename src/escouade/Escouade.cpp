@@ -72,7 +72,7 @@ Escouade::Escouade(sf::Vector2f positionDepart, std::vector<DefinitionPersonnage
     for (std::size_t i = 0; i < composition.size(); ++i) {
         DefinitionPersonnage& definition = composition[i];
         m_personnages.emplace_back(m_formation.getPlaces()[i], definition.couleur, std::move(definition.attaqueDeBase),
-                                   std::move(definition.skills), definition.armure, definition.rayonVision, definition.zoneDeControle);
+                                   std::move(definition.skills), definition.equipementDeDepart, definition.rayonVision, definition.zoneDeControle);
     }
     m_pointsVises = m_formation.getPlaces();
 }

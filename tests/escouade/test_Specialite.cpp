@@ -4,7 +4,10 @@
 #include <vector>
 
 #include "interface/BarreDeRaccourcis.hpp"
+#include "aides.hpp"
+#include "combat/Defense.hpp"
 #include "escouade/Composition.hpp"
+#include "objets/CatalogueObjets.hpp"
 #include "base/Eclaircir.hpp"
 #include "escouade/Escouade.hpp"
 #include "escouade/Specialite.hpp"
@@ -92,7 +95,7 @@ TEST_CASE("composer : seule la couleur change entre deux occurrences d'une class
     const std::vector<DefinitionPersonnage> composition =
         composer({IdSpecialite::Pretre, IdSpecialite::Pretre});
 
-    REQUIRE(composition[1].armure == composition[0].armure);
+    REQUIRE(composition[1].equipementDeDepart == composition[0].equipementDeDepart);
     REQUIRE(composition[1].rang == composition[0].rang);
     REQUIRE(composition[1].skills.size() == composition[0].skills.size());
 }
@@ -103,7 +106,7 @@ TEST_CASE("le paladin est une melee qui frappe et soigne au contact") {
 
     REQUIRE(specialite(IdSpecialite::Paladin).nom == "Paladin");
     REQUIRE(paladin.rang == Rang::Avant);
-    REQUIRE(paladin.armure == guerrier.armure);
+    REQUIRE(paladin.equipementDeDepart == guerrier.equipementDeDepart);
     REQUIRE(paladin.attaqueDeBase.getPortee() == guerrier.attaqueDeBase.getPortee());
     REQUIRE(paladin.skills.size() == 2);
 
@@ -124,7 +127,7 @@ TEST_CASE("le rodeur est un tireur avec un tir de loin et un skill de zone") {
 
     REQUIRE(specialite(IdSpecialite::Rodeur).nom == "Rôdeur");
     REQUIRE(rodeur.rang == Rang::Arriere);
-    REQUIRE(rodeur.armure == 0);
+    REQUIRE(rodeur.equipementDeDepart.empty());
     REQUIRE(rodeur.attaqueDeBase.getPortee() == mage.attaqueDeBase.getPortee());
     REQUIRE(rodeur.skills.size() == 2);
 
@@ -195,4 +198,32 @@ TEST_CASE("composer garde la zone de controle de la classe, quelle que soit la n
     REQUIRE(composition[0].zoneDeControle == 20.0f);
     REQUIRE(composition[1].zoneDeControle == 20.0f);
     REQUIRE(composition[2].zoneDeControle == 0.0f);
+}
+
+TEST_CASE("equipement de depart : les melees sont equipees, les tireurs non") {
+    REQUIRE_FALSE(specialite(IdSpecialite::Guerrier).definition.equipementDeDepart.empty());
+    REQUIRE_FALSE(specialite(IdSpecialite::Paladin).definition.equipementDeDepart.empty());
+    REQUIRE(specialite(IdSpecialite::Pretre).definition.equipementDeDepart.empty());
+    REQUIRE(specialite(IdSpecialite::Mage).definition.equipementDeDepart.empty());
+    REQUIRE(specialite(IdSpecialite::Rodeur).definition.equipementDeDepart.empty());
+}
+
+TEST_CASE("equipement de depart : chaque objet va a son emplacement, sans emplacement en double") {
+    for (const Specialite& specialite : catalogue()) {
+        const std::vector<ObjetDeDepart>& depart = specialite.definition.equipementDeDepart;
+        for (std::size_t i = 0; i < depart.size(); ++i) {
+            REQUIRE(peutAller(definitionObjet(depart[i].objet).categorie, depart[i].emplacement));
+            for (std::size_t j = i + 1; j < depart.size(); ++j) {
+                REQUIRE(depart[i].emplacement != depart[j].emplacement);
+            }
+        }
+    }
+}
+
+TEST_CASE("armure des classes : une escouade du catalogue encaisse selon l'equipement de sa classe") {
+    Escouade escouade({100.0f, 100.0f}, composer({IdSpecialite::Guerrier, IdSpecialite::Mage}));
+    const int armureDuGuerrier = armureDe(specialite(IdSpecialite::Guerrier).definition.equipementDeDepart);
+
+    REQUIRE(escouade.recevoirCoup(7, 1, 40) == appliquerArmure(40, armureDuGuerrier));
+    REQUIRE(escouade.recevoirCoup(7, 2, 40) == 40);
 }

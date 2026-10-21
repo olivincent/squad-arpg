@@ -6,6 +6,7 @@
 
 #include "aides.hpp"
 #include "aides_escouade.hpp"
+#include "combat/Defense.hpp"
 #include "escouade/Agresseurs.hpp"
 #include "base/Cercle.hpp"
 #include "escouade/Escouade.hpp"
@@ -293,8 +294,8 @@ TEST_CASE("recevoirDegats frappe le meme personnage que proieDuMonstre") {
 TEST_CASE("recevoirCoup renvoie les degats subis apres l'armure du personnage touche") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
 
-    REQUIRE(escouade.recevoirCoup(7, 1, 10) == 7);   // guerrier, armure 50
-    REQUIRE(escouade.recevoirCoup(7, 3, 10) == 10);  // mage, armure 0
+    REQUIRE(escouade.recevoirCoup(7, 1, 10) == appliquerArmure(10, s_armureMeleeDeTest));  // guerrier
+    REQUIRE(escouade.recevoirCoup(7, 3, 10) == 10);                                         // mage, armure 0
 }
 
 TEST_CASE("recevoirCoup sur un mort ou sur une place invalide renvoie zero") {

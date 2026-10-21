@@ -1,0 +1,108 @@
+// ./tests/objets/test_Equipement.cpp
+#include <catch2/catch_test_macros.hpp>
+#include <cstddef>
+#include <optional>
+
+#include "objets/CatalogueObjets.hpp"
+#include "objets/Equipement.hpp"
+
+namespace {
+int armureDe(IdObjet id) {
+    return definitionObjet(id).armure;
+}
+}  // namespace
+
+TEST_CASE("equipement : vide au depart, armure nulle") {
+    const Equipement equipement;
+
+    for (std::size_t i = 0; i < s_nombreEmplacements; ++i) {
+        REQUIRE_FALSE(equipement.a(static_cast<Emplacement>(i)).has_value());
+    }
+    REQUIRE(equipement.armureTotale() == 0);
+}
+
+TEST_CASE("equipement : poser sur un emplacement vide ne rend rien") {
+    Equipement equipement;
+
+    const std::optional<Objet> ancien = equipement.poser(Emplacement::Tete, {IdObjet::CasqueDeFer});
+
+    REQUIRE_FALSE(ancien.has_value());
+    REQUIRE(equipement.a(Emplacement::Tete) == Objet{IdObjet::CasqueDeFer});
+    REQUIRE_FALSE(equipement.a(Emplacement::Torse).has_value());
+}
+
+TEST_CASE("equipement : poser sur un emplacement occupe rend l'ancien objet") {
+    Equipement equipement;
+    REQUIRE_FALSE(equipement.poser(Emplacement::Tete, {IdObjet::CasqueDeFer}).has_value());
+
+    const std::optional<Objet> ancien = equipement.poser(Emplacement::Tete, {IdObjet::CasqueDeCuir});
+
+    REQUIRE(ancien == Objet{IdObjet::CasqueDeFer});
+    REQUIRE(equipement.a(Emplacement::Tete) == Objet{IdObjet::CasqueDeCuir});
+}
+
+TEST_CASE("equipement : retirer rend l'objet et vide l'emplacement") {
+    Equipement equipement;
+    REQUIRE_FALSE(equipement.poser(Emplacement::Torse, {IdObjet::CuirasseDeMailles}).has_value());
+
+    const std::optional<Objet> retire = equipement.retirer(Emplacement::Torse);
+
+    REQUIRE(retire == Objet{IdObjet::CuirasseDeMailles});
+    REQUIRE_FALSE(equipement.a(Emplacement::Torse).has_value());
+}
+
+TEST_CASE("equipement : retirer d'un emplacement vide ne rend rien") {
+    Equipement equipement;
+
+    REQUIRE_FALSE(equipement.retirer(Emplacement::Bottes).has_value());
+}
+
+TEST_CASE("equipement : les deux anneaux sont deux emplacements distincts") {
+    Equipement equipement;
+
+    REQUIRE_FALSE(equipement.poser(Emplacement::Anneau1, {IdObjet::AnneauDeProtection}).has_value());
+    REQUIRE_FALSE(equipement.poser(Emplacement::Anneau2, {IdObjet::AnneauDeProtection}).has_value());
+
+    REQUIRE(equipement.armureTotale() == 2 * armureDe(IdObjet::AnneauDeProtection));
+}
+
+TEST_CASE("armureTotale : partielle, somme des objets portes") {
+    Equipement equipement;
+    REQUIRE_FALSE(equipement.poser(Emplacement::Tete, {IdObjet::CasqueDeFer}).has_value());
+    REQUIRE_FALSE(equipement.poser(Emplacement::Torse, {IdObjet::CuirasseDeMailles}).has_value());
+
+    REQUIRE(equipement.armureTotale() == armureDe(IdObjet::CasqueDeFer) + armureDe(IdObjet::CuirasseDeMailles));
+}
+
+TEST_CASE("armureTotale : complete, tous les emplacements de defense garnis") {
+    Equipement equipement;
+    REQUIRE_FALSE(equipement.poser(Emplacement::Tete, {IdObjet::CasqueDeFer}).has_value());
+    REQUIRE_FALSE(equipement.poser(Emplacement::Torse, {IdObjet::CuirasseDeMailles}).has_value());
+    REQUIRE_FALSE(equipement.poser(Emplacement::Jambes, {IdObjet::JambieresDeFer}).has_value());
+    REQUIRE_FALSE(equipement.poser(Emplacement::Gants, {IdObjet::GantsDeCuir}).has_value());
+    REQUIRE_FALSE(equipement.poser(Emplacement::Bottes, {IdObjet::BottesDeCuir}).has_value());
+    REQUIRE_FALSE(equipement.poser(Emplacement::MainGauche, {IdObjet::BouclierRond}).has_value());
+    REQUIRE_FALSE(equipement.poser(Emplacement::Collier, {IdObjet::CollierDeProtection}).has_value());
+    REQUIRE_FALSE(equipement.poser(Emplacement::Anneau1, {IdObjet::AnneauDeProtection}).has_value());
+    REQUIRE_FALSE(equipement.poser(Emplacement::Anneau2, {IdObjet::AnneauDeProtection}).has_value());
+
+    int attendu = 0;
+    for (const IdObjet id : {IdObjet::CasqueDeFer, IdObjet::CuirasseDeMailles, IdObjet::JambieresDeFer,
+                             IdObjet::GantsDeCuir, IdObjet::BottesDeCuir, IdObjet::BouclierRond,
+                             IdObjet::CollierDeProtection, IdObjet::AnneauDeProtection,
+                             IdObjet::AnneauDeProtection}) {
+        attendu += armureDe(id);
+    }
+    REQUIRE(equipement.armureTotale() == attendu);
+}
+
+TEST_CASE("armureTotale : suit les changements, sans rien garder d'un ancien etat") {
+    Equipement equipement;
+    REQUIRE_FALSE(equipement.poser(Emplacement::Tete, {IdObjet::CasqueDeFer}).has_value());
+    REQUIRE(equipement.poser(Emplacement::Tete, {IdObjet::CasqueDeCuir}).has_value());
+
+    REQUIRE(equipement.armureTotale() == armureDe(IdObjet::CasqueDeCuir));
+
+    REQUIRE(equipement.retirer(Emplacement::Tete).has_value());
+    REQUIRE(equipement.armureTotale() == 0);
+}
