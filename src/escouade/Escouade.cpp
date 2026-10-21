@@ -274,6 +274,7 @@ std::vector<Coup> Escouade::effetDuSkill(std::size_t place, IdSkill id, const st
         for (const EntiteVue& monstre : monstres) {
             if (distanceBordABord(zone, monstre.cercle) == 0.0f && ligneDeVue(carte, lanceur.getCentre(), monstre.cercle.centre)) {
                 provoquer(monstre.id, place, static_cast<float>(puissance));
+                m_faits.push_back(MonstreProvoque{monstre.id});
             }
         }
         return {};

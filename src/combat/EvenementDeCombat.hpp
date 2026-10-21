@@ -25,7 +25,9 @@ struct Soin {
 struct SkillLance {
     IdSkill skill;
 };
-using DetailEvenement = std::variant<Degats, Soin, SkillLance>;
+// Un monstre vient d'être provoqué (de nouveau, s'il l'était déjà), au-dessus du monstre.
+struct Provoque {};
+using DetailEvenement = std::variant<Degats, Soin, SkillLance, Provoque>;
 
 // `position` : COPIE du centre de la cible à ce moment ; aucune référence vers l'entité, qui peut
 // disparaître dans la même image (monstre tué par ce coup).

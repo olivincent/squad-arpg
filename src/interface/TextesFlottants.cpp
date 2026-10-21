@@ -17,12 +17,14 @@ constexpr float s_finDeLaOpacitePleine = 0.5f;  // fraction de la vie pendant la
 constexpr unsigned int s_tailleNormale = 16;
 constexpr unsigned int s_tailleCoupGratuit = 20;
 constexpr unsigned int s_tailleNomDeSkill = 14;
+constexpr unsigned int s_tailleProvoque = 14;
 constexpr float s_epaisseurContour = 1.0f;
 const sf::Color s_couleurDegatsSurUnMonstre = sf::Color::White;
 const sf::Color s_couleurDegatsSurUnPersonnage(255, 60, 60);
 const sf::Color s_couleurSoin(80, 230, 80);
 const sf::Color s_couleurCoupGratuit(255, 150, 0);
 const sf::Color s_couleurNomDeSkill(255, 210, 60);  // jaune doré
+const sf::Color s_couleurProvoque(255, 100, 40);    // rouge orangé
 }  // namespace
 
 float hauteurDuTexte(float age) {
@@ -49,7 +51,8 @@ std::string libelleDuTexte(const EvenementDeCombat& evenement) {
                                      return degats.opportunite ? montant + "!" : montant;
                                  },
                                  [](const Soin& soin) { return "+" + std::to_string(soin.montant); },
-                                 [](const SkillLance& lance) { return nomDuSkill(lance.skill); }},
+                                 [](const SkillLance& lance) { return nomDuSkill(lance.skill); },
+                                 [](const Provoque&) { return std::string("Provoqué"); }},
                       evenement.detail);
 }
 
@@ -62,14 +65,16 @@ sf::Color couleurDuTexte(const EvenementDeCombat& evenement) {
                                                                                   : s_couleurDegatsSurUnPersonnage;
                                  },
                                  [](const Soin&) { return s_couleurSoin; },
-                                 [](const SkillLance&) { return s_couleurNomDeSkill; }},
+                                 [](const SkillLance&) { return s_couleurNomDeSkill; },
+                                 [](const Provoque&) { return s_couleurProvoque; }},
                       evenement.detail);
 }
 
 unsigned int tailleDuTexte(const EvenementDeCombat& evenement) {
     return std::visit(Surcharges{[](const Degats& degats) { return degats.opportunite ? s_tailleCoupGratuit : s_tailleNormale; },
                                  [](const Soin&) { return s_tailleNormale; },
-                                 [](const SkillLance&) { return s_tailleNomDeSkill; }},
+                                 [](const SkillLance&) { return s_tailleNomDeSkill; },
+                                 [](const Provoque&) { return s_tailleProvoque; }},
                       evenement.detail);
 }
 

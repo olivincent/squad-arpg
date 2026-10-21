@@ -231,6 +231,12 @@ void Partie::signalerLesFaits() {
                    },
                    [&](const Escouade::SkillPart& part) {
                        signaler(Camp::Escouade, static_cast<int>(part.place), part.position, SkillLance{part.skill});
+                   },
+                   [&](const Escouade::MonstreProvoque& provoque) {
+                       // Un monstre disparu dans l'image n'a plus de position : pas de texte.
+                       if (const Monstre* monstre = trouverMonstre(provoque.idMonstre)) {
+                           signaler(Camp::Monstres, monstre->getId(), monstre->getCentre(), Provoque{});
+                       }
                    }},
                    fait);
     }
@@ -239,7 +245,8 @@ void Partie::signalerLesFaits() {
 void Partie::signaler(Camp campCible, int idCible, sf::Vector2f position, DetailEvenement detail) {
     const bool montantNul = std::visit(Surcharges{[](const Degats& degats) { return degats.montant <= 0; },
                                                   [](const Soin& soin) { return soin.montant <= 0; },
-                                                  [](const SkillLance&) { return false; }},
+                                                  [](const SkillLance&) { return false; },
+                                                  [](const Provoque&) { return false; }},
                                        detail);
     if (montantNul) {
         return;

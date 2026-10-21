@@ -131,7 +131,12 @@ public:
         IdSkill skill;
         sf::Vector2f position;
     };
-    using FaitDEscouade = std::variant<SoinApplique, SkillPart>;
+    // Un monstre que la provocation d'un skill vient de provoquer (de nouveau, s'il l'était déjà).
+    // Pas de position : `Partie` la lit sur le monstre.
+    struct MonstreProvoque {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
+        int idMonstre;
+    };
+    using FaitDEscouade = std::variant<SoinApplique, SkillPart, MonstreProvoque>;
     // Les faits survenus depuis le dernier appel (par `declencherSkill` et `attaquer`), dans l'ordre ;
     // la liste est vidée.
     [[nodiscard]] std::vector<FaitDEscouade> prendreFaits();

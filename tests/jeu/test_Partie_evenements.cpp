@@ -250,3 +250,14 @@ TEST_CASE("evenements : un skill lance donne un evenement SkillLance au-dessus d
     REQUIRE(std::get<SkillLance>(lances[0].detail).skill == IdSkill::Provocation);
     verifierPointProche(lances[0].position, *partie.getEscouade().centreDuPersonnage(1));
 }
+
+TEST_CASE("evenements : la provocation donne un evenement Provoque au-dessus de chaque monstre provoque") {
+    Partie partie(niveauDegage({{270.0f, 210.0f}}), std::vector<DefinitionPersonnage>{guerrierDeTest(), pretreDeTest()}, s_graineDeTest);
+    partie.demanderSkill({1, IdSkill::Provocation});
+
+    const std::vector<EvenementDeCombat> provoques = parmi<Provoque>(evenementsPendant(partie, 0.5f), Camp::Monstres);
+    REQUIRE(provoques.size() == 1);
+    REQUIRE(provoques[0].idCible == partie.getMonstres()[0].getId());
+    verifierPointProche(provoques[0].position, partie.getMonstres()[0].getCentre());
+    REQUIRE(parmi<Provoque>(evenementsPendant(partie, 0.5f), Camp::Monstres).empty());  // rien sans relance
+}

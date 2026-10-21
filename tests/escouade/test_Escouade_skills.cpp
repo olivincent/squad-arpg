@@ -461,3 +461,32 @@ TEST_CASE("L'attaque de base ne signale aucun skill parti") {
     REQUIRE_FALSE(attaquerPendant(escouade, monstres, 1.0f, generateur).empty());  // l'attaque de base a frappé
     REQUIRE(skillsPartis(escouade).empty());
 }
+
+TEST_CASE("Provocation : un fait par monstre provoque, aucun pour un monstre hors de la zone") {
+    Generateur generateur = generateurDeTest();
+    Escouade escouade = uneEscouade({200.0f, 200.0f});
+    const std::vector<EntiteVue> monstres = {
+        EntiteVue{1, cibleMonstre({335.0f, 210.0f})},
+        EntiteVue{2, cibleMonstre({235.0f, 310.0f})},
+        EntiteVue{3, cibleMonstre({800.0f, 210.0f})},
+    };
+
+    static_cast<void>(declencherEtAttendre(escouade, s_adresseProvocation, monstres, carteOuverte(), generateur));
+
+    std::vector<int> provoques;
+    for (const Escouade::FaitDEscouade& fait : escouade.prendreFaits()) {
+        if (const auto* provoque = std::get_if<Escouade::MonstreProvoque>(&fait)) {
+            provoques.push_back(provoque->idMonstre);
+        }
+    }
+    REQUIRE(provoques == std::vector<int>{1, 2});
+
+    // Relancée après la recharge, elle provoque de nouveau les mêmes monstres : de nouveaux faits.
+    escouade.mettreAJour(10.1f, carteOuverte(), {});
+    static_cast<void>(declencherEtAttendre(escouade, s_adresseProvocation, monstres, carteOuverte(), generateur));
+    int nouveaux = 0;
+    for (const Escouade::FaitDEscouade& fait : escouade.prendreFaits()) {
+        nouveaux += std::holds_alternative<Escouade::MonstreProvoque>(fait) ? 1 : 0;
+    }
+    REQUIRE(nouveaux == 2);
+}

@@ -127,3 +127,13 @@ TEST_CASE("un skill lance : son nom en jaune dore, 14 px") {
     REQUIRE(couleurDuTexte(lance).b < 100);
     REQUIRE(tailleDuTexte(lance) == 14);
 }
+
+TEST_CASE("provoque : le texte Provoque en rouge orange, 14 px") {
+    const EvenementDeCombat provoque{Camp::Monstres, 4, {}, Provoque{}};
+
+    REQUIRE(libelleDuTexte(provoque) == "Provoqué");
+    REQUIRE(couleurDuTexte(provoque).r == 255);
+    REQUIRE(couleurDuTexte(provoque).g < 150);
+    REQUIRE(couleurDuTexte(provoque) != couleurDuTexte({Camp::Escouade, 1, {}, SkillLance{IdSkill::Provocation}}));
+    REQUIRE(tailleDuTexte(provoque) == 14);
+}
