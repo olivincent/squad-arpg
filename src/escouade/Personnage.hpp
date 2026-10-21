@@ -91,6 +91,12 @@ public:
     // Rayon de vision, en pixels.
     [[nodiscard]] float getRayonVision() const;
     [[nodiscard]] sf::Color getCouleur() const;
+    [[nodiscard]] const Equipement& getEquipement() const;
+    // Porte `objet` à cet emplacement (`assert` : `peutAller`) et rend celui qui y était. L'armure est
+    // recalculée en entier depuis l'équipement. Permis pour un mort.
+    [[nodiscard]] std::optional<Objet> poserEquipement(Emplacement emplacement, Objet objet);
+    // Enlève l'objet de cet emplacement et le rend ; l'armure est recalculée.
+    [[nodiscard]] std::optional<Objet> retirerEquipement(Emplacement emplacement);
 
 private:
     Mobile m_mobile;        // position (centre en pixels du monde) et déplacement
@@ -102,6 +108,8 @@ private:
     Vitalite m_vitalite;    // points de vie et armure
     float m_rayonVision;    // en pixels
     float m_zoneDeControle; // en pixels, bord à bord
+    // Seul endroit où l'armure de la vitalité change : toujours la somme de l'équipement, jamais ajustée.
+    void recalculerArmure();
     [[nodiscard]] const Skill* trouverSkill(IdSkill id) const;  // nullptr si le personnage ne connaît pas ce skill
     [[nodiscard]] Skill* trouverSkill(IdSkill id);
     std::optional<ActionEngagee> m_actionEngagee; // action en exécution et sa cible ; lue seulement pendant l'exécution

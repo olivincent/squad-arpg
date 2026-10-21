@@ -10,6 +10,11 @@ Vitalite::Vitalite(int pointsDeVieMax, int armure)
     assert(armure >= 0);
 }
 
+void Vitalite::definirArmure(int armure) {
+    assert(armure >= 0);
+    m_armure = armure;
+}
+
 int Vitalite::recevoirDegats(int montant) {
     if (!estVivant()) {
         return 0;

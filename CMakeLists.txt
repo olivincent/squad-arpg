@@ -117,6 +117,7 @@ add_executable(tests
     tests/escouade/test_Escouade_vue.cpp
     tests/escouade/test_Escouade_places.cpp
     tests/escouade/test_Escouade_degagement.cpp
+    tests/escouade/test_Escouade_equipement.cpp
     tests/escouade/test_Composition.cpp
     tests/escouade/test_Specialite.cpp
     tests/escouade/test_SelectionDEscouade.cpp

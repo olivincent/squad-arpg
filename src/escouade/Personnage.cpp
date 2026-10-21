@@ -302,3 +302,23 @@ float Personnage::getRayonVision() const {
 sf::Color Personnage::getCouleur() const {
     return m_couleur;
 }
+
+const Equipement& Personnage::getEquipement() const {
+    return m_equipement;
+}
+
+std::optional<Objet> Personnage::poserEquipement(Emplacement emplacement, Objet objet) {
+    std::optional<Objet> ancien = m_equipement.poser(emplacement, objet);
+    recalculerArmure();
+    return ancien;
+}
+
+std::optional<Objet> Personnage::retirerEquipement(Emplacement emplacement) {
+    std::optional<Objet> retire = m_equipement.retirer(emplacement);
+    recalculerArmure();
+    return retire;
+}
+
+void Personnage::recalculerArmure() {
+    m_vitalite.definirArmure(m_equipement.armureTotale());
+}

@@ -3,12 +3,14 @@
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include <algorithm>
+#include <cassert>
 #include <utility>
 #include "base/Cercle.hpp"
 #include "combat/Coup.hpp"
 #include "combat/EntiteVue.hpp"
 #include "combat/Cible.hpp"
 #include "monde/ObjetInteractif.hpp"
+#include "objets/CatalogueObjets.hpp"
 
 namespace {
 // Écart bord à bord (cercle d'un personnage, zone de la porte) à partir duquel la porte s'ouvre.
@@ -29,6 +31,10 @@ Partie::Partie(const Niveau& niveau, std::vector<DefinitionPersonnage> compositi
             m_carte.placerPorte(coordCase);
         }
         m_objets.emplace_back(prochainIdObjet++, Porte{porte.cases}, niveau.tailleCase);
+    }
+    for (const Objet& objet : sacDeDepart()) {
+        [[maybe_unused]] const bool range = m_escouade.ramasser(objet);
+        assert(range);  // le sac de départ tient dans le sac
     }
     mettreAJourLaVision();  // la salle de départ est visible dès la première image
 }

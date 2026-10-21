@@ -25,6 +25,10 @@
 #include "combat/EntiteVue.hpp"
 #include "escouade/Personnage.hpp"
 #include "escouade/PlacesDAttaque.hpp"
+#include "objets/Emplacement.hpp"
+#include "objets/Equipement.hpp"
+#include "objets/Inventaire.hpp"
+#include "objets/Objet.hpp"
 #include "escouade/Provocations.hpp"
 #include "combat/TypeSkill.hpp"
 
@@ -131,6 +135,21 @@ public:
     // Lu par les tests : le contenu de la mémoire (identifiant et minuterie) ; par le comportement, il
     // exigerait des simulations de plusieurs secondes.
     [[nodiscard]] const std::vector<Agresseurs::Agresseur>& getAgresseurs() const;
+    // Le sac de l'escouade (cases à position fixe) et l'équipement du personnage de cette place
+    // (`assert` : place valide). Lus par l'écran d'inventaire.
+    [[nodiscard]] const Inventaire& sac() const;
+    [[nodiscard]] const Equipement& equipementDuPersonnage(std::size_t place) const;
+    // Les trois opérations sont transactionnelles : vraies, tout a été fait ; fausses, rien n'a bougé.
+    // Un objet n'est jamais à deux endroits, ni nulle part. L'armure du personnage est recalculée.
+    // Équiper ou déséquiper un personnage mort est permis. `assert` : place valide, case du sac < capacité.
+    // Met l'objet dans la première case libre du sac ; faux si le sac est plein.
+    [[nodiscard]] bool ramasser(Objet objet);
+    // L'objet de cette case du sac va à cet emplacement (la case doit être occupée et `peutAller`) ;
+    // l'objet déjà porté, s'il y en a un, prend la case libérée.
+    [[nodiscard]] bool equiper(std::size_t place, std::size_t caseDuSac, Emplacement emplacement);
+    // L'objet de cet emplacement (qui doit être occupé) va dans cette case du sac. Case occupée : échange,
+    // si son objet peut aller à cet emplacement ; sinon faux.
+    [[nodiscard]] bool desequiper(std::size_t place, Emplacement emplacement, std::size_t caseDuSac);
     void provoquer(int idMonstre, std::size_t place, float duree);
     // Lu par les tests : le provocateur, l'identifiant et la durée restante, que candidatsDeFrappe ne montre pas.
     [[nodiscard]] const std::vector<Provocations::Provocation>& getProvocations() const;
@@ -221,4 +240,5 @@ private:
     std::vector<SoinApplique> m_soinsAppliques; // soins pas encore pris par prendreSoins
     Agresseurs m_agresseurs; // monstres qui ont frappé l'escouade récemment
     Provocations m_provocations; // monstres provoqués par un personnage
+    Inventaire m_sac;            // les objets que personne ne porte
 };

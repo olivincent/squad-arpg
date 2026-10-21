@@ -19,6 +19,19 @@ TEST_CASE("Vitalite sans armure retire les degats entiers") {
     REQUIRE(vitalite.getValeur() == 70);
 }
 
+TEST_CASE("Vitalite definirArmure remplace l'armure sans toucher aux points de vie") {
+    Vitalite vitalite(100, 0);
+    REQUIRE(vitalite.recevoirDegats(30) == 30);
+
+    vitalite.definirArmure(100);  // armure 100 : la moitie des degats
+
+    REQUIRE(vitalite.getValeur() == 70);
+    REQUIRE(vitalite.recevoirDegats(30) == 15);
+
+    vitalite.definirArmure(0);
+    REQUIRE(vitalite.recevoirDegats(30) == 30);
+}
+
 TEST_CASE("Vitalite applique l'armure avant de retirer les points de vie") {
     Vitalite vitalite(100, 100);  // armure 100 : la moitie des degats
 

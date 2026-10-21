@@ -20,6 +20,7 @@
 #include "combat/Autodefense.hpp"
 #include "monde/ChampDeVision.hpp"
 #include "monde/TileMap.hpp"
+#include "objets/CatalogueObjets.hpp"
 #include "rendu/TraceDeChemin.hpp"
 
 namespace {
@@ -28,7 +29,8 @@ constexpr float s_vitesseAncre = 180.0f;     // en pixels par seconde
 constexpr float s_vitesseRotation = 360.0f;  // de la formation, en degrés par seconde
 constexpr float s_laisseAgresseur = 100.0f;      // en pixels, centre à centre, mesurée depuis la place de formation
 constexpr float s_vitesseSeparation = 120.0f;    // poussée maximale entre deux personnages trop proches, en pixels par seconde (plus lente que la marche, 240 : voir docs/formation.md)
-constexpr float s_toleranceArrivee = 0.01f;       // en pixels : comme le seuil de Mobile, un personnage à cette distance de son point y est arrivé
+constexpr std::size_t s_capaciteDuSac = 40;      // cases du sac de l'escouade
+constexpr float s_toleranceArrivee = 0.01f;      // en pixels : comme le seuil de Mobile, un personnage à cette distance de son point y est arrivé
 
 // Seule conversion d'une place (de 1 à N) vers l'indice (de 0 à N-1).
 std::size_t indiceDeLaPlace(std::size_t place) {
@@ -66,7 +68,8 @@ Escouade::Escouade(sf::Vector2f positionDepart, std::vector<DefinitionPersonnage
       m_pointsVises(),
       m_degagements(composition.size()),
       m_agresseurs(),
-      m_provocations()
+      m_provocations(),
+      m_sac(s_capaciteDuSac)
 {
     assert(!composition.empty());
     for (std::size_t i = 0; i < composition.size(); ++i) {
@@ -1064,4 +1067,52 @@ void Escouade::deverrouiller() {
 
 std::optional<int> Escouade::getCibleVerrouillee() const {
     return m_cibleVerrouillee;
+}
+
+const Inventaire& Escouade::sac() const {
+    return m_sac;
+}
+
+const Equipement& Escouade::equipementDuPersonnage(std::size_t place) const {
+    assert(placeValide(place));
+    return personnageDeLaPlace(place).getEquipement();
+}
+
+bool Escouade::ramasser(Objet objet) {
+    return m_sac.ajouter(objet);
+}
+
+bool Escouade::equiper(std::size_t place, std::size_t caseDuSac, Emplacement emplacement) {
+    assert(placeValide(place));
+    const std::optional<Objet> dansLeSac = m_sac.a(caseDuSac);
+    if (!dansLeSac.has_value() || !peutAller(definitionObjet(dansLeSac->id).categorie, emplacement)) {
+        return false;
+    }
+    // L'objet porté prend la case libérée ; sans objet porté, la case se vide.
+    const std::optional<Objet> porte = personnageDeLaPlace(place).poserEquipement(emplacement, *dansLeSac);
+    [[maybe_unused]] const std::optional<Objet> remplace =
+        porte.has_value() ? m_sac.poser(caseDuSac, *porte) : m_sac.prendre(caseDuSac);
+    assert(remplace == dansLeSac);
+    return true;
+}
+
+bool Escouade::desequiper(std::size_t place, Emplacement emplacement, std::size_t caseDuSac) {
+    assert(placeValide(place));
+    Personnage& personnage = personnageDeLaPlace(place);
+    const std::optional<Objet> porte = personnage.getEquipement().a(emplacement);
+    if (!porte.has_value()) {
+        return false;
+    }
+    const std::optional<Objet> dansLeSac = m_sac.a(caseDuSac);
+    if (dansLeSac.has_value() && !peutAller(definitionObjet(dansLeSac->id).categorie, emplacement)) {
+        return false;
+    }
+    // L'objet de la case prend l'emplacement ; case vide, l'emplacement se vide.
+    [[maybe_unused]] const std::optional<Objet> retire = dansLeSac.has_value()
+                                                             ? personnage.poserEquipement(emplacement, *dansLeSac)
+                                                             : personnage.retirerEquipement(emplacement);
+    assert(retire == porte);
+    [[maybe_unused]] const std::optional<Objet> remplace = m_sac.poser(caseDuSac, *porte);
+    assert(remplace == dansLeSac);
+    return true;
 }
