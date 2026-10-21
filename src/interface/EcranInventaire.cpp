@@ -52,6 +52,8 @@ const sf::Color s_couleurContourVide(80, 80, 80);
 const sf::Color s_couleurContourOccupe(200, 200, 200);
 const sf::Color s_couleurTexteVide(120, 120, 120);
 const sf::Color s_couleurMort(220, 80, 80);
+const sf::Color s_couleurSurbrillance(255, 215, 0);
+constexpr float s_epaisseurSurbrillance = 3.0f;
 const sf::Color s_couleurAttenuation(40, 40, 40, 190);  // sur l'origine du glissement : le panneau, presque opaque
 
 // Un texte UTF-8 (accents) : sans fromUtf8, sf::String le lirait comme de l'ANSI.
@@ -166,6 +168,35 @@ sf::FloatRect rectangleDe(const PositionDObjet& position, sf::Vector2f tailleDeV
             [&](const PositionDansLeSac& dansLeSac) { return rectangleDeLaCaseDuSac(dansLeSac.caseDuSac, tailleDeVue); },
         },
         position);
+}
+
+// Un contour doré autour d'une destination valide du glissement.
+void dessinerSurbrillance(sf::RenderTarget& rendu, sf::FloatRect zone) {
+    sf::RectangleShape forme(zone.size);
+    forme.setPosition(zone.position);
+    forme.setFillColor(sf::Color::Transparent);
+    forme.setOutlineColor(s_couleurSurbrillance);
+    forme.setOutlineThickness(s_epaisseurSurbrillance);
+    rendu.draw(forme);
+}
+
+// Contour sur chaque position, autre que l'origine, où l'objet saisi peut être déposé (emplacements
+// des personnages et cases du sac) : la même requête que le relâchement, donc ce qui brille est permis.
+void dessinerLesDestinations(sf::RenderTarget& rendu, const Escouade& escouade, const PositionDObjet& origine,
+                             sf::Vector2f tailleDeVue) {
+    const auto surligner = [&](const PositionDObjet& position) {
+        if (position != origine && escouade.peutDeplacerObjet(origine, position)) {
+            dessinerSurbrillance(rendu, rectangleDe(position, tailleDeVue));
+        }
+    };
+    for (std::size_t place = 1; place <= s_nombreDePlaces; ++place) {
+        for (std::size_t i = 0; i < s_nombreEmplacements; ++i) {
+            surligner(PositionPortee{place, static_cast<Emplacement>(i)});
+        }
+    }
+    for (std::size_t indice = 0; indice < s_casesDuSac; ++indice) {
+        surligner(PositionDansLeSac{indice});
+    }
 }
 
 // L'objet saisi, centré sur le curseur : un carré de la taille d'une case avec le sigle.
@@ -292,6 +323,7 @@ void EcranInventaire::dessiner(const Contexte& contexte) const {
 
     // Dernières, par-dessus tout le reste.
     if (m_origine.has_value()) {
+        dessinerLesDestinations(fenetre, m_escouade, *m_origine, tailleVue);
         // L'origine atténuée (l'objet n'a pas bougé : il est « en main »), l'objet saisi sous le curseur ;
         // pas d'infobulle pendant le glissement.
         const sf::FloatRect origine = rectangleDe(*m_origine, tailleVue);
