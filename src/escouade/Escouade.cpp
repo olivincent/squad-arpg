@@ -20,7 +20,7 @@
 #include "combat/Autodefense.hpp"
 #include "monde/ChampDeVision.hpp"
 #include "monde/TileMap.hpp"
-#include "objets/CatalogueObjets.hpp"
+#include "objets/PositionDObjet.hpp"
 #include "rendu/TraceDeChemin.hpp"
 
 namespace {
@@ -1082,37 +1082,54 @@ bool Escouade::ramasser(Objet objet) {
     return m_sac.ajouter(objet);
 }
 
-bool Escouade::equiper(std::size_t place, std::size_t caseDuSac, Emplacement emplacement) {
-    assert(placeValide(place));
-    const std::optional<Objet> dansLeSac = m_sac.a(caseDuSac);
-    if (!dansLeSac.has_value() || !peutAller(definitionObjet(dansLeSac->id).categorie, emplacement)) {
-        return false;
-    }
-    // L'objet porté prend la case libérée ; sans objet porté, la case se vide.
-    const std::optional<Objet> porte = personnageDeLaPlace(place).poserEquipement(emplacement, *dansLeSac);
-    [[maybe_unused]] const std::optional<Objet> remplace =
-        porte.has_value() ? m_sac.poser(caseDuSac, *porte) : m_sac.prendre(caseDuSac);
-    assert(remplace == dansLeSac);
-    return true;
+std::optional<Objet> Escouade::objetA(const PositionDObjet& position) const {
+    return std::visit(Surcharges{[&](const PositionDansLeSac& dansLeSac) { return m_sac.a(dansLeSac.caseDuSac); },
+                                 [&](const PositionPortee& portee) {
+                                     assert(placeValide(portee.place));
+                                     return personnageDeLaPlace(portee.place).getEquipement().a(portee.emplacement);
+                                 }},
+                      position);
 }
 
-bool Escouade::desequiper(std::size_t place, Emplacement emplacement, std::size_t caseDuSac) {
-    assert(placeValide(place));
-    Personnage& personnage = personnageDeLaPlace(place);
-    const std::optional<Objet> porte = personnage.getEquipement().a(emplacement);
-    if (!porte.has_value()) {
+std::optional<Objet> Escouade::retirerA(const PositionDObjet& position) {
+    return std::visit(Surcharges{[&](const PositionDansLeSac& dansLeSac) { return m_sac.prendre(dansLeSac.caseDuSac); },
+                                 [&](const PositionPortee& portee) {
+                                     assert(placeValide(portee.place));
+                                     return personnageDeLaPlace(portee.place).retirerEquipement(portee.emplacement);
+                                 }},
+                      position);
+}
+
+void Escouade::poserA(const PositionDObjet& position, Objet objet) {
+    // La position vient d'être vidée par `retirerA` : il n'y a rien à rendre.
+    [[maybe_unused]] const std::optional<Objet> ancien = std::visit(
+        Surcharges{[&](const PositionDansLeSac& dansLeSac) { return m_sac.poser(dansLeSac.caseDuSac, objet); },
+                   [&](const PositionPortee& portee) {
+                       assert(placeValide(portee.place));
+                       return personnageDeLaPlace(portee.place).poserEquipement(portee.emplacement, objet);
+                   }},
+        position);
+    assert(!ancien.has_value());
+}
+
+bool Escouade::peutDeplacerObjet(const PositionDObjet& de, const PositionDObjet& vers) const {
+    return deplacementPermis(de, objetA(de), vers, objetA(vers));
+}
+
+bool Escouade::deplacerObjet(const PositionDObjet& de, const PositionDObjet& vers) {
+    if (!peutDeplacerObjet(de, vers)) {
         return false;
     }
-    const std::optional<Objet> dansLeSac = m_sac.a(caseDuSac);
-    if (dansLeSac.has_value() && !peutAller(definitionObjet(dansLeSac->id).categorie, emplacement)) {
-        return false;
+    if (de == vers) {
+        return true;
     }
-    // L'objet de la case prend l'emplacement ; case vide, l'emplacement se vide.
-    [[maybe_unused]] const std::optional<Objet> retire = dansLeSac.has_value()
-                                                             ? personnage.poserEquipement(emplacement, *dansLeSac)
-                                                             : personnage.retirerEquipement(emplacement);
-    assert(retire == porte);
-    [[maybe_unused]] const std::optional<Objet> remplace = m_sac.poser(caseDuSac, *porte);
-    assert(remplace == dansLeSac);
+    // En croix : les deux objets sont sortis avant d'être posés, donc aucun n'existe à deux endroits.
+    const std::optional<Objet> objetDe = retirerA(de);
+    const std::optional<Objet> objetVers = retirerA(vers);
+    assert(objetDe.has_value());
+    poserA(vers, *objetDe);
+    if (objetVers.has_value()) {
+        poserA(de, *objetVers);
+    }
     return true;
 }

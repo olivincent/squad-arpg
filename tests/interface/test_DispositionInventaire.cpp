@@ -109,9 +109,9 @@ TEST_CASE("elementSous : le centre de chaque emplacement le designe") {
             for (std::size_t i = 0; i < s_nombreEmplacements; ++i) {
                 const Emplacement emplacement = static_cast<Emplacement>(i);
 
-                const std::optional<ElementInventaire> element = elementSous(centre(rectangleDeLEmplacement(place, emplacement, vue)), vue);
+                const std::optional<PositionDObjet> element = elementSous(centre(rectangleDeLEmplacement(place, emplacement, vue)), vue);
 
-                REQUIRE(element == ElementInventaire{ElementEmplacement{place, emplacement}});
+                REQUIRE(element == PositionDObjet{PositionPortee{place, emplacement}});
             }
         }
     }
@@ -119,9 +119,9 @@ TEST_CASE("elementSous : le centre de chaque emplacement le designe") {
 
 TEST_CASE("elementSous : le centre de chaque case du sac la designe") {
     for (std::size_t indice = 0; indice < s_casesDuSac; ++indice) {
-        const std::optional<ElementInventaire> element = elementSous(centre(rectangleDeLaCaseDuSac(indice, s_vueMinimale)), s_vueMinimale);
+        const std::optional<PositionDObjet> element = elementSous(centre(rectangleDeLaCaseDuSac(indice, s_vueMinimale)), s_vueMinimale);
 
-        REQUIRE(element == ElementInventaire{ElementCase{indice}});
+        REQUIRE(element == PositionDObjet{PositionDansLeSac{indice}});
     }
 }
 

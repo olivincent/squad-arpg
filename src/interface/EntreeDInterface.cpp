@@ -18,6 +18,15 @@ std::optional<PointDInterface> clicGaucheDInterface(const sf::Event& evenement, 
     return PointDInterface{contexte.fenetre.mapPixelToCoords(data->position, vue), vue.getCenter()};
 }
 
+std::optional<PointDInterface> relachementGaucheDInterface(const sf::Event& evenement, const Contexte& contexte) {
+    const auto* data = evenement.getIf<sf::Event::MouseButtonReleased>();
+    if (data == nullptr || data->button != sf::Mouse::Button::Left) {
+        return std::nullopt;
+    }
+    const sf::View vue = vueDInterface(contexte.fenetre.getSize());
+    return PointDInterface{contexte.fenetre.mapPixelToCoords(data->position, vue), vue.getCenter()};
+}
+
 PointDInterface preparerLInterface(const Contexte& contexte) {
     sf::RenderWindow& fenetre = contexte.fenetre;
     const sf::View vue = vueDInterface(fenetre.getSize());

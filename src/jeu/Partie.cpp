@@ -441,6 +441,10 @@ const Escouade& Partie::getEscouade() const {
     return m_escouade;
 }
 
+Escouade& Partie::getEscouade() {
+    return m_escouade;
+}
+
 const std::vector<Monstre>& Partie::getMonstres() const {
     return m_monstres;
 }

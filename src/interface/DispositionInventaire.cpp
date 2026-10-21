@@ -67,18 +67,18 @@ sf::FloatRect rectangleDeLaCaseDuSac(std::size_t indice, sf::Vector2f tailleDeVu
     return {{x, y}, {s_cote, s_cote}};
 }
 
-std::optional<ElementInventaire> elementSous(sf::Vector2f point, sf::Vector2f tailleDeVue) {
+std::optional<PositionDObjet> elementSous(sf::Vector2f point, sf::Vector2f tailleDeVue) {
     for (std::size_t place = 1; place <= s_nombreDePlaces; ++place) {
         for (std::size_t i = 0; i < s_nombreEmplacements; ++i) {
             const Emplacement emplacement = static_cast<Emplacement>(i);
             if (rectangleDeLEmplacement(place, emplacement, tailleDeVue).contains(point)) {
-                return ElementEmplacement{place, emplacement};
+                return PositionPortee{place, emplacement};
             }
         }
     }
     for (std::size_t indice = 0; indice < s_casesDuSac; ++indice) {
         if (rectangleDeLaCaseDuSac(indice, tailleDeVue).contains(point)) {
-            return ElementCase{indice};
+            return PositionDansLeSac{indice};
         }
     }
     return std::nullopt;

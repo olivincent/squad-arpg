@@ -5,9 +5,9 @@
 #include <SFML/System/Vector2.hpp>
 #include <cstddef>
 #include <optional>
-#include <variant>
 
 #include "objets/Emplacement.hpp"
+#include "objets/PositionDObjet.hpp"
 
 // Où se dessine chaque élément de l'écran d'inventaire, en coordonnées de la vue d'interface
 // (`vueDInterface` : 800 px de haut, largeur selon le format). Fonctions pures, aucune position
@@ -38,22 +38,9 @@ inline constexpr std::size_t s_casesDuSac = 40;  // la capacité du sac de l'esc
 // Le rectangle de cette case du sac. `assert(indice < s_casesDuSac)`.
 [[nodiscard]] sf::FloatRect rectangleDeLaCaseDuSac(std::size_t indice, sf::Vector2f tailleDeVue);
 
-// Ce que vise un point : l'emplacement d'un personnage, ou une case du sac.
-struct ElementEmplacement {
-    std::size_t place;
-    Emplacement emplacement;
-
-    bool operator==(const ElementEmplacement&) const = default;
-};
-struct ElementCase {
-    std::size_t indice;
-
-    bool operator==(const ElementCase&) const = default;
-};
-using ElementInventaire = std::variant<ElementEmplacement, ElementCase>;
-
-// L'élément dont le rectangle contient ce point ; vide dans un écart ou hors des éléments.
-[[nodiscard]] std::optional<ElementInventaire> elementSous(sf::Vector2f point, sf::Vector2f tailleDeVue);
+// La position (emplacement d'un personnage ou case du sac) dont le rectangle contient ce point ; vide dans
+// un écart ou hors des éléments.
+[[nodiscard]] std::optional<PositionDObjet> elementSous(sf::Vector2f point, sf::Vector2f tailleDeVue);
 
 // Le rectangle d'une infobulle de cette taille pour un curseur en `curseur` : sous et à droite du
 // curseur, ramenée de l'autre côté du curseur si elle sortirait de la vue, puis gardée

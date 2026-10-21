@@ -29,6 +29,7 @@
 #include "objets/Equipement.hpp"
 #include "objets/Inventaire.hpp"
 #include "objets/Objet.hpp"
+#include "objets/PositionDObjet.hpp"
 #include "escouade/Provocations.hpp"
 #include "combat/TypeSkill.hpp"
 
@@ -139,22 +140,28 @@ public:
     // (`assert` : place valide). Lus par l'écran d'inventaire.
     [[nodiscard]] const Inventaire& sac() const;
     [[nodiscard]] const Equipement& equipementDuPersonnage(std::size_t place) const;
-    // Les trois opérations sont transactionnelles : vraies, tout a été fait ; fausses, rien n'a bougé.
+    // Les opérations sont transactionnelles : vraies, tout a été fait ; fausses, rien n'a bougé.
     // Un objet n'est jamais à deux endroits, ni nulle part. L'armure du personnage est recalculée.
     // Équiper ou déséquiper un personnage mort est permis. `assert` : place valide, case du sac < capacité.
     // Met l'objet dans la première case libre du sac ; faux si le sac est plein.
     [[nodiscard]] bool ramasser(Objet objet);
-    // L'objet de cette case du sac va à cet emplacement (la case doit être occupée et `peutAller`) ;
-    // l'objet déjà porté, s'il y en a un, prend la case libérée.
-    [[nodiscard]] bool equiper(std::size_t place, std::size_t caseDuSac, Emplacement emplacement);
-    // L'objet de cet emplacement (qui doit être occupé) va dans cette case du sac. Case occupée : échange,
-    // si son objet peut aller à cet emplacement ; sinon faux.
-    [[nodiscard]] bool desequiper(std::size_t place, Emplacement emplacement, std::size_t caseDuSac);
+    // L'objet à cette position, s'il y en a un (`assert` : place valide, case du sac < capacité).
+    [[nodiscard]] std::optional<Objet> objetA(const PositionDObjet& position) const;
+    // Un objet peut-il aller de `de` à `vers` (case du sac ou emplacement d'un personnage) ? Lit les
+    // deux positions et applique `deplacementPermis`. L'écran s'en sert pour la surbrillance.
+    [[nodiscard]] bool peutDeplacerObjet(const PositionDObjet& de, const PositionDObjet& vers) const;
+    // L'objet de `de` va à `vers` ; si `vers` est occupé, les deux objets s'échangent. Faux, sans rien
+    // changer, si `peutDeplacerObjet` est faux ; vrai sans effet si `de == vers`.
+    [[nodiscard]] bool deplacerObjet(const PositionDObjet& de, const PositionDObjet& vers);
     void provoquer(int idMonstre, std::size_t place, float duree);
     // Lu par les tests : le provocateur, l'identifiant et la durée restante, que candidatsDeFrappe ne montre pas.
     [[nodiscard]] const std::vector<Provocations::Provocation>& getProvocations() const;
 
 private:
+    // Retrait et pose d'un objet à une position (`assert` : place et case valides). `poserA` exige une
+    // position vidée.
+    [[nodiscard]] std::optional<Objet> retirerA(const PositionDObjet& position);
+    void poserA(const PositionDObjet& position, Objet objet);
     // Place de 1 à N : seule conversion vers l'indice 0 à N-1.
     [[nodiscard]] bool placeValide(std::size_t place) const;
     [[nodiscard]] Personnage& personnageDeLaPlace(std::size_t place);              // place valide exigée

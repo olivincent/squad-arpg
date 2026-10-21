@@ -52,6 +52,7 @@ const sf::Color s_couleurContourVide(80, 80, 80);
 const sf::Color s_couleurContourOccupe(200, 200, 200);
 const sf::Color s_couleurTexteVide(120, 120, 120);
 const sf::Color s_couleurMort(220, 80, 80);
+const sf::Color s_couleurAttenuation(40, 40, 40, 190);  // sur l'origine du glissement : le panneau, presque opaque
 
 // Un texte UTF-8 (accents) : sans fromUtf8, sf::String le lirait comme de l'ANSI.
 sf::Text texte(const sf::Font& police, const std::string& libelle, unsigned int taille, sf::Color couleur) {
@@ -150,16 +151,30 @@ void dessinerLeSac(sf::RenderTarget& rendu, const sf::Font& police, const Invent
 
 // L'objet que vise le curseur (porté ou dans le sac) ; vide sur une case vide ou hors des éléments.
 std::optional<Objet> objetSous(const Escouade& escouade, sf::Vector2f curseur, sf::Vector2f tailleDeVue) {
-    const std::optional<ElementInventaire> element = elementSous(curseur, tailleDeVue);
-    if (!element.has_value()) {
+    const std::optional<PositionDObjet> position = elementSous(curseur, tailleDeVue);
+    if (!position.has_value()) {
         return std::nullopt;
     }
+    return escouade.objetA(*position);
+}
+
+// Le rectangle d'une position : un emplacement d'un personnage ou une case du sac.
+sf::FloatRect rectangleDe(const PositionDObjet& position, sf::Vector2f tailleDeVue) {
     return std::visit(
         Surcharges{
-            [&](const ElementEmplacement& cible) { return escouade.equipementDuPersonnage(cible.place).a(cible.emplacement); },
-            [&](const ElementCase& cible) { return escouade.sac().a(cible.indice); },
+            [&](const PositionPortee& portee) { return rectangleDeLEmplacement(portee.place, portee.emplacement, tailleDeVue); },
+            [&](const PositionDansLeSac& dansLeSac) { return rectangleDeLaCaseDuSac(dansLeSac.caseDuSac, tailleDeVue); },
         },
-        *element);
+        position);
+}
+
+// L'objet saisi, centré sur le curseur : un carré de la taille d'une case avec le sigle.
+void dessinerObjetSaisi(sf::RenderTarget& rendu, const sf::Font& police, const Objet& objet, sf::Vector2f curseur,
+                        sf::Vector2f tailleDeVue) {
+    const sf::Vector2f taille = rectangleDeLaCaseDuSac(0, tailleDeVue).size;
+    const sf::FloatRect zone{curseur - taille / 2.0f, taille};
+    dessinerRectangle(rendu, zone, s_couleurCaseOccupee, sf::Color::White);
+    dessinerTexteCentre(rendu, police, sigleDeLObjet(objet.id), s_tailleSigle, sf::Color::White, zone);
 }
 
 // L'infobulle d'un objet près du curseur, gardée dans la vue : un cadre sombre, une ligne par texte.
@@ -184,21 +199,60 @@ void dessinerInfobulle(sf::RenderTarget& rendu, const sf::Font& police, const Ob
 
 }  // namespace
 
-EcranInventaire::EcranInventaire(const Escouade& escouade, std::vector<std::string> nomsDesClasses)
+EcranInventaire::EcranInventaire(Escouade& escouade, std::vector<std::string> nomsDesClasses)
     : m_escouade(escouade), m_nomsDesClasses(std::move(nomsDesClasses)) {
     assert(m_nomsDesClasses.size() == s_nombreDePlaces);
 }
 
-Transition EcranInventaire::appuyer(sf::Keyboard::Scancode touche) const {
+Transition EcranInventaire::appuyer(sf::Keyboard::Scancode touche) {
+    if (touche == sf::Keyboard::Scan::Escape && m_origine.has_value()) {
+        annulerLeGlissement();
+        return Aucune{};
+    }
     if (touche == sf::Keyboard::Scan::I || touche == sf::Keyboard::Scan::Escape) {
         return Depiler{};
     }
     return Aucune{};
 }
 
-Transition EcranInventaire::traiterEvenement(const sf::Event& evenement, const Contexte&) {
+void EcranInventaire::saisir(sf::Vector2f point, sf::Vector2f tailleDeVue) {
+    const std::optional<PositionDObjet> position = elementSous(point, tailleDeVue);
+    if (position.has_value() && m_escouade.objetA(*position).has_value()) {
+        m_origine = position;
+    }
+}
+
+void EcranInventaire::relacher(sf::Vector2f point, sf::Vector2f tailleDeVue) {
+    if (!m_origine.has_value()) {
+        return;
+    }
+    const std::optional<PositionDObjet> cible = elementSous(point, tailleDeVue);
+    if (cible.has_value()) {
+        // Un déplacement refusé est normal (emplacement incompatible) : rien ne bouge, il n'y a rien à dire.
+        static_cast<void>(m_escouade.deplacerObjet(*m_origine, *cible));
+    }
+    m_origine.reset();
+}
+
+void EcranInventaire::annulerLeGlissement() {
+    m_origine.reset();
+}
+
+const std::optional<PositionDObjet>& EcranInventaire::origineDuGlissement() const {
+    return m_origine;
+}
+
+Transition EcranInventaire::traiterEvenement(const sf::Event& evenement, const Contexte& contexte) {
     if (const auto* data = evenement.getIf<sf::Event::KeyPressed>()) {
         return appuyer(data->scancode);
+    }
+    if (const std::optional<PointDInterface> clic = clicGaucheDInterface(evenement, contexte)) {
+        saisir(clic->point, clic->centre * 2.0f);
+    } else if (const std::optional<PointDInterface> relachement = relachementGaucheDInterface(evenement, contexte)) {
+        relacher(relachement->point, relachement->centre * 2.0f);
+    } else if (evenement.is<sf::Event::FocusLost>()) {
+        // Le relâchement hors de la fenêtre n'arrive pas : sans cela l'objet resterait collé au curseur.
+        annulerLeGlissement();
     }
     return Aucune{};
 }
@@ -236,8 +290,19 @@ void EcranInventaire::dessiner(const Contexte& contexte) const {
     }
     dessinerLeSac(fenetre, contexte.police, m_escouade.sac(), tailleVue);
 
-    // Dernière, par-dessus tout le reste.
-    if (const std::optional<Objet> objet = objetSous(m_escouade, vue.point, tailleVue)) {
+    // Dernières, par-dessus tout le reste.
+    if (m_origine.has_value()) {
+        // L'origine atténuée (l'objet n'a pas bougé : il est « en main »), l'objet saisi sous le curseur ;
+        // pas d'infobulle pendant le glissement.
+        const sf::FloatRect origine = rectangleDe(*m_origine, tailleVue);
+        sf::RectangleShape voileDOrigine(origine.size);
+        voileDOrigine.setPosition(origine.position);
+        voileDOrigine.setFillColor(s_couleurAttenuation);
+        fenetre.draw(voileDOrigine);
+        if (const std::optional<Objet> saisi = m_escouade.objetA(*m_origine)) {
+            dessinerObjetSaisi(fenetre, contexte.police, *saisi, vue.point, tailleVue);
+        }
+    } else if (const std::optional<Objet> objet = objetSous(m_escouade, vue.point, tailleVue)) {
         dessinerInfobulle(fenetre, contexte.police, *objet, vue.point, tailleVue);
     }
 }

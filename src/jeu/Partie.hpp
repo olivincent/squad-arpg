@@ -79,6 +79,8 @@ public:
     [[nodiscard]] bool estVisible(sf::Vector2f point) const;
 
     [[nodiscard]] const Escouade& getEscouade() const;
+    // Pour l'inventaire, qui déplace les objets de l'escouade (`docs/ecrans.md`).
+    [[nodiscard]] Escouade& getEscouade();
     [[nodiscard]] const std::vector<Monstre>& getMonstres() const;
 
 private:
