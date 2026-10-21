@@ -2,6 +2,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include "objets/Emplacement.hpp"
 #include "objets/Objet.hpp"
@@ -17,3 +18,6 @@
 
 // Deux lettres, pour une case du sac (« CF » pour le casque de fer).
 [[nodiscard]] std::string sigleDeLObjet(IdObjet id);
+
+// Les lignes de l'infobulle d'un objet : son nom, sa catégorie et son armure (« Armure : +10 »).
+[[nodiscard]] std::vector<std::string> lignesDeLInfobulle(IdObjet id);

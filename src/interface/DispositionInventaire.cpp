@@ -1,6 +1,7 @@
 // ./src/interface/DispositionInventaire.cpp
 #include "interface/DispositionInventaire.hpp"
 
+#include <algorithm>
 #include <cassert>
 
 namespace {
@@ -19,6 +20,8 @@ constexpr std::size_t s_emplacementsParColonne = 5;
 constexpr float s_cote = 44.0f;  // une case du sac
 constexpr float s_ecartEntreCases = 4.0f;
 constexpr float s_hautDuSac = 470.0f;
+
+constexpr float s_decalageInfobulle = 16.0f;  // entre le curseur et le coin de l'infobulle
 
 static_assert(s_nombreEmplacements == 2 * s_emplacementsParColonne);
 static_assert(s_casesDuSac % s_colonnesDuSac == 0);
@@ -77,4 +80,17 @@ std::optional<ElementInventaire> elementSous(sf::Vector2f point, sf::Vector2f ta
         }
     }
     return std::nullopt;
+}
+
+sf::FloatRect placerInfobulle(sf::Vector2f curseur, sf::Vector2f tailleInfobulle, sf::Vector2f tailleDeVue) {
+    sf::Vector2f position = curseur + sf::Vector2f{s_decalageInfobulle, s_decalageInfobulle};
+    if (position.x + tailleInfobulle.x > tailleDeVue.x) {
+        position.x = curseur.x - s_decalageInfobulle - tailleInfobulle.x;
+    }
+    if (position.y + tailleInfobulle.y > tailleDeVue.y) {
+        position.y = curseur.y - s_decalageInfobulle - tailleInfobulle.y;
+    }
+    position.x = std::clamp(position.x, 0.0f, tailleDeVue.x - tailleInfobulle.x);
+    position.y = std::clamp(position.y, 0.0f, tailleDeVue.y - tailleInfobulle.y);
+    return {position, tailleInfobulle};
 }

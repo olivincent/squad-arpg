@@ -133,3 +133,32 @@ TEST_CASE("elementSous : rien dans un ecart, sur un en-tete ou hors des elements
     const sf::FloatRect premiere = rectangleDeLaCaseDuSac(0, s_vueMinimale);
     REQUIRE_FALSE(elementSous({premiere.position.x + premiere.size.x + 1.0f, premiere.position.y + 1.0f}, s_vueMinimale).has_value());
 }
+
+TEST_CASE("infobulle : sous et a droite du curseur quand il y a la place") {
+    const sf::FloatRect zone = placerInfobulle({100.0f, 100.0f}, {200.0f, 70.0f}, s_vueMinimale);
+
+    REQUIRE(zone.position.x > 100.0f);
+    REQUIRE(zone.position.y > 100.0f);
+    REQUIRE(zone.size == sf::Vector2f{200.0f, 70.0f});
+}
+
+TEST_CASE("infobulle : du cote oppose du curseur pres du bord droit ou du bas") {
+    const sf::FloatRect zone = placerInfobulle({1190.0f, 790.0f}, {200.0f, 70.0f}, s_vueMinimale);
+
+    REQUIRE(zone.position.x + zone.size.x <= 1190.0f);
+    REQUIRE(zone.position.y + zone.size.y <= 790.0f);
+}
+
+TEST_CASE("infobulle : toujours entierement dans la vue, curseur n'importe ou") {
+    const sf::Vector2f taille{220.0f, 80.0f};
+    for (float x = 0.0f; x <= s_vueMinimale.x; x += 25.0f) {
+        for (float y = 0.0f; y <= s_vueMinimale.y; y += 25.0f) {
+            const sf::FloatRect zone = placerInfobulle({x, y}, taille, s_vueMinimale);
+
+            REQUIRE(zone.position.x >= 0.0f);
+            REQUIRE(zone.position.y >= 0.0f);
+            REQUIRE(zone.position.x + zone.size.x <= s_vueMinimale.x);
+            REQUIRE(zone.position.y + zone.size.y <= s_vueMinimale.y);
+        }
+    }
+}

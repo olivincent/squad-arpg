@@ -54,3 +54,8 @@ using ElementInventaire = std::variant<ElementEmplacement, ElementCase>;
 
 // L'élément dont le rectangle contient ce point ; vide dans un écart ou hors des éléments.
 [[nodiscard]] std::optional<ElementInventaire> elementSous(sf::Vector2f point, sf::Vector2f tailleDeVue);
+
+// Le rectangle d'une infobulle de cette taille pour un curseur en `curseur` : sous et à droite du
+// curseur, ramenée de l'autre côté du curseur si elle sortirait de la vue, puis gardée
+// entièrement dans la vue. `tailleInfobulle` doit tenir dans `tailleDeVue`.
+[[nodiscard]] sf::FloatRect placerInfobulle(sf::Vector2f curseur, sf::Vector2f tailleInfobulle, sf::Vector2f tailleDeVue);

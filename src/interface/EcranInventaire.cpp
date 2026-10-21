@@ -16,7 +16,10 @@
 #include <optional>
 #include <string>
 #include <utility>
+#include <variant>
+#include <vector>
 
+#include "combat/Cible.hpp"
 #include "escouade/Escouade.hpp"
 #include "interface/AffichageObjets.hpp"
 #include "interface/Contexte.hpp"
@@ -39,6 +42,9 @@ constexpr unsigned int s_tailleSigle = 18;
 constexpr unsigned int s_tailleEtiquetteDuSac = 16;
 constexpr float s_margeDuTexte = 6.0f;  // entre le texte d'un emplacement et son bord
 constexpr float s_hauteurEtiquetteDuSac = 24.0f;
+constexpr unsigned int s_tailleInfobulle = 14;
+constexpr float s_margeInfobulle = 8.0f;
+const sf::Color s_couleurInfobulle(15, 15, 15);
 const sf::Color s_couleurPanneau(40, 40, 40);
 const sf::Color s_couleurCaseVide(25, 25, 25);
 const sf::Color s_couleurCaseOccupee(70, 70, 70);
@@ -142,6 +148,40 @@ void dessinerLeSac(sf::RenderTarget& rendu, const sf::Font& police, const Invent
     }
 }
 
+// L'objet que vise le curseur (porté ou dans le sac) ; vide sur une case vide ou hors des éléments.
+std::optional<Objet> objetSous(const Escouade& escouade, sf::Vector2f curseur, sf::Vector2f tailleDeVue) {
+    const std::optional<ElementInventaire> element = elementSous(curseur, tailleDeVue);
+    if (!element.has_value()) {
+        return std::nullopt;
+    }
+    return std::visit(
+        Surcharges{
+            [&](const ElementEmplacement& cible) { return escouade.equipementDuPersonnage(cible.place).a(cible.emplacement); },
+            [&](const ElementCase& cible) { return escouade.sac().a(cible.indice); },
+        },
+        *element);
+}
+
+// L'infobulle d'un objet près du curseur, gardée dans la vue : un cadre sombre, une ligne par texte.
+void dessinerInfobulle(sf::RenderTarget& rendu, const sf::Font& police, const Objet& objet, sf::Vector2f curseur,
+                       sf::Vector2f tailleDeVue) {
+    std::vector<sf::Text> lignes;
+    float largeur = 0.0f;
+    for (const std::string& ligne : lignesDeLInfobulle(objet.id)) {
+        lignes.push_back(texte(police, ligne, s_tailleInfobulle, sf::Color::White));
+        largeur = std::max(largeur, lignes.back().getLocalBounds().size.x);
+    }
+    const float hauteurDeLigne = police.getLineSpacing(s_tailleInfobulle);
+    const sf::Vector2f taille{largeur + 2.0f * s_margeInfobulle, static_cast<float>(lignes.size()) * hauteurDeLigne + 2.0f * s_margeInfobulle};
+    const sf::FloatRect zone = placerInfobulle(curseur, taille, tailleDeVue);
+
+    dessinerRectangle(rendu, zone, s_couleurInfobulle, sf::Color::White);
+    for (std::size_t i = 0; i < lignes.size(); ++i) {
+        lignes[i].setPosition(zone.position + sf::Vector2f{s_margeInfobulle, s_margeInfobulle + static_cast<float>(i) * hauteurDeLigne});
+        rendu.draw(lignes[i]);
+    }
+}
+
 }  // namespace
 
 EcranInventaire::EcranInventaire(const Escouade& escouade, std::vector<std::string> nomsDesClasses)
@@ -195,4 +235,9 @@ void EcranInventaire::dessiner(const Contexte& contexte) const {
         dessinerColonne(fenetre, contexte.police, m_escouade, place, m_nomsDesClasses[place - 1], tailleVue);
     }
     dessinerLeSac(fenetre, contexte.police, m_escouade.sac(), tailleVue);
+
+    // Dernière, par-dessus tout le reste.
+    if (const std::optional<Objet> objet = objetSous(m_escouade, vue.point, tailleVue)) {
+        dessinerInfobulle(fenetre, contexte.police, *objet, vue.point, tailleVue);
+    }
 }

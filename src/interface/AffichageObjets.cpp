@@ -1,6 +1,8 @@
 // ./src/interface/AffichageObjets.cpp
 #include "interface/AffichageObjets.hpp"
 
+#include "objets/CatalogueObjets.hpp"
+
 // Les trois `switch` n'ont pas de `default` : un emplacement, une catégorie ou un objet ajouté
 // sans texte fait avertir le compilateur.
 
@@ -48,4 +50,9 @@ std::string sigleDeLObjet(IdObjet id) {
         case IdObjet::AnneauDeProtection: return "AP";
     }
     return "";
+}
+
+std::vector<std::string> lignesDeLInfobulle(IdObjet id) {
+    const DefinitionObjet& definition = definitionObjet(id);
+    return {definition.nom, nomDeLaCategorie(definition.categorie), "Armure : +" + std::to_string(definition.armure)};
 }
