@@ -129,6 +129,7 @@ Transition EcranJeu::executer(const CommandeDeTouche& commande) {
                 // Le relâchement du bouton sera reçu par l'inventaire, pas par le Controleur.
                 m_controleur.interrompre();
                 std::vector<std::string> noms;
+                noms.reserve(m_specialites.size());
                 for (const IdSpecialite id : m_specialites) {
                     noms.push_back(specialite(id).nom);
                 }

@@ -101,6 +101,7 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 - Étape 83 — Inventaire et équipement : le modèle (sans interface) ✅
+- Étape 84 — Inventaire : l'écran en lecture (avec R6, D4, P2) ✅
 
 ## Détail des étapes 0 à 73
 
@@ -2032,3 +2033,25 @@ devient `equipementDeDepart` (guerrier et paladin : 50 comme avant, les trois au
 `Escouade::ramasser`, `equiper` et `desequiper` sont transactionnelles ; `Partie` remplit le sac de
 départ. Rien ne s'affiche. 1 011 tests, 41 avertissements `clang-tidy`. Détail : `docs/objets.md`.
 L'ancienne « étape 83 » (nom du skill lancé, « Provoqué ») devient l'étape 86.
+
+### Étape 84 — Inventaire : l'écran en lecture (avec R6, D4, P2) ✅
+
+Deuxième étape de la série inventaire. Neuf sous-étapes. Refactorisations d'abord (audit) : P2
+(`EcranJeu.cpp` inclut des en-têtes SFML précis ; `EcranMenu` reçoit les résolutions du bureau à sa
+construction, la branche « Options » est testée), D4 (`interface/EntreeDInterface` : `clicGaucheDInterface`
+et `preparerLInterface`, utilisées par les trois menus ; le `clear` de la fenêtre passe dans
+l'`Application`), R6 (`commandePourTouche`, fonction pure qui renvoie une commande en `std::variant`,
+et `iconesDeLaBarre`, extraites d'`EcranJeu`). Pile d'écrans : `Ecran::laisseVoirDessous()`,
+`premierEcranADessiner` (fonction pure) ; l'`Application` dessine de bas en haut sous un écran
+transparent, seul l'écran du dessus étant mis à jour (la partie est donc figée sans code de pause) ;
+invariant de la pile (un écran vit plus longtemps que ceux au-dessus de lui) écrit dans
+`docs/ecrans.md`. `EcranInventaire`, empilé par la touche I (sauf sur l'écran de fin), ferme par I
+ou Échap ; `Controleur::interrompre` annule la visée et le déplacement continu avant l'ouverture.
+Il montre, sous un voile sombre, une colonne par personnage (classe à la couleur du personnage,
+armure, « (mort) », 10 emplacements) et le sac de 40 cases (sigles), avec une infobulle au survol
+(nom, catégorie, armure) gardée dans la vue. `DispositionInventaire` (rectangles, `elementSous`,
+`placerInfobulle`) et `AffichageObjets` (noms, sigles, lignes de l'infobulle) sont des fonctions
+pures testées ; `rectangleDeLaCaseDuSac` porte ce nom parce que `rectangleDeLaCase` existe dans
+`SelectionDEscouade`. Lecture seule : aucune fonction de modification n'est appelée. 1 045 tests,
+41 avertissements `clang-tidy` (inchangé). Détail : `docs/ecrans.md`, `docs/boucle-et-entrees.md`,
+`docs/objets.md`, `docs/audit.md` (suivi de R6, D4, P2, T4).

@@ -174,8 +174,18 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
 
 ## Entrée clavier : le skill
 
+- **Une touche devient une commande, fonction pure** (R6, étape 84) :
+  `commandePourTouche(scancode, finDePartie, touches)` (`interface/CommandeDeTouche`) renvoie une
+  `CommandeDeTouche`, un `std::variant` de `commande::Rien`, `Annuler` (Échap), `OuvrirInventaire`
+  (I), `RetourAuChoix` (R), `NouvelleCarte` (F5), `BasculerPointsVises` (F3), `BasculerAncre` (F4),
+  `BasculerBrouillard` (F6) et `ActiverEmplacement {emplacement}`. Échap et F3 à F6 valent en tout
+  temps ; R seulement sur l'écran de fin ; I et les touches de la barre seulement hors de l'écran de
+  fin. L'ordre des règles est celui de l'ancien `if / else if` d'`EcranJeu`. I est écrite en dur,
+  comme les touches F. `EcranJeu::executer` exécute la commande (`std::visit` avec `Surcharges`,
+  chaque cas rend une `Transition`) ; l'ouverture de l'inventaire appelle d'abord
+  `Controleur::interrompre()` (`docs/ecrans.md`, « `EcranInventaire` »).
 - **Événement d'appui, pas lecture d'état** : un appui = une tentative.
-  `EcranJeu` traduit la touche en emplacement (`emplacementPourTouche`) puis en
+  `EcranJeu` traduit la touche en commande `ActiverEmplacement` (`emplacementPourTouche`) puis en
   `controleur.activerEmplacement(partie, barre, emplacement)` ; le
   `Controleur` lit l'adresse de l'emplacement et envoie les skills qui ne sont pas de type
   `Zone` en `partie.demanderSkill(adresse)`. Plusieurs
@@ -628,6 +638,7 @@ Données membres : `m_deplacementContinu` (`bool`), `m_adresseEnVisee`
 | `void debutImage(const Partie& partie)` | Sort de la visée si le lanceur ne peut plus lancer (`!skillEstPret`) |
 | `void appuiGauche(Partie& partie, sf::Vector2f point)` | En visée : `lancerSkillDeZone` puis sortie de la visée (sans verrouiller ni déplacer). Sinon `cliquer` : `Monstre` et `Objet` désarment le déplacement continu, `Sol` l'arme, `Ignore` ne change rien |
 | `void appuiDroit()` / `void appuiEchap()` | Annulent la visée sans recharge |
+| `void interrompre()` | Annule la visée et désarme le déplacement continu : à l'ouverture d'un écran par-dessus la partie (l'inventaire), dont le relâchement du bouton gauche ne parviendrait pas jusqu'au `Controleur` |
 | `void activerEmplacement(Partie& partie, const BarreDeRaccourcis& barre, std::size_t emplacement)` | Une seule action pour la touche et le clic. Emplacement vide : rien. Skill de type `Zone` (`typeDuSkill`) : sort de la visée si cette même adresse y est ; sinon entre en visée de cette adresse (remplaçant la visée d'un autre skill de zone) si l'escouade est vivante et le skill prêt, et désarme le déplacement continu. Autre type : `demanderSkill(adresse)`, la visée en cours continue. `assert(emplacement < barre.taille())` |
 | `void appuiInterface(Partie& partie, const BarreDeRaccourcis& barre, ClicInterface clic)` | Clic gauche consommé par l'interface : désarme le déplacement continu (un appui qui commence sur la barre ne le lance pas, et ne laisse pas un ancien clic au sol le relancer), puis `activerEmplacement` pour la barre `Raccourcis`. Jamais de verrou, de porte, de déplacement ni de point d'impact de visée |
 | `void mettreAJourDeplacement(Partie& partie, bool boutonTenu, sf::Vector2f curseur)` | Si `boutonTenu` (bouton gauche enfoncé ET focus, calculé par `EcranJeu`) et déplacement armé : `ordonnerDeplacement(curseur)` |
@@ -658,6 +669,14 @@ Trois fonctions libres :
 | `sf::FloatRect rectangleDeLEmplacement(std::size_t emplacement, sf::Vector2f tailleVue)` | Grille de 4 colonnes × 3 rangées, icônes de 48 px, 4 px d'écart, centrée en bas de la vue d'interface avec 10 px de marge ; l'emplacement 0 en haut à gauche ; `assert` ; `[[nodiscard]]` |
 | `std::optional<std::size_t> emplacementSous(sf::Vector2f point, sf::Vector2f tailleVue)` | Emplacement dont l'icône contient le point ; vide dans un écart ou hors barre. Construite sur `rectangleDeLEmplacement` : une seule source de vérité pour le dessin et le clic ; `[[nodiscard]]` |
 
+### `CommandeDeTouche` (`interface/`) — ce qu'une touche demande
+
+`CommandeDeTouche.hpp` / `.cpp`. Types dans le namespace `commande` (`Rien`, `Annuler`, `OuvrirInventaire`, `RetourAuChoix`, `NouvelleCarte`, `BasculerPointsVises`, `BasculerAncre`, `BasculerBrouillard`, `ActiverEmplacement {std::size_t emplacement}`) et `using CommandeDeTouche = std::variant<...>`.
+
+| Fonction | Rôle |
+|---|---|
+| `CommandeDeTouche commandePourTouche(sf::Keyboard::Scancode touche, bool finDePartie, const TouchesDesRaccourcis& touches)` | Fonction pure : Échap, F3 à F6 en tout temps ; R (`RetourAuChoix`) seulement si `finDePartie` ; I (`OuvrirInventaire`) et les touches de `touches` (`ActiverEmplacement`) seulement hors fin de partie ; sinon `Rien` ; `[[nodiscard]]` |
+
 ### `ClicInterface` (`interface/`) — l'interface d'abord
 
 `ClicInterface.hpp` / `.cpp`. `enum class Barre { Raccourcis }` (la barre d'auras s'y ajoutera), `struct ClicInterface { Barre barre; std::size_t emplacement; }` (comparable) et une fonction libre.
@@ -672,6 +691,7 @@ Fonctions libres, sans état : tout est recalculé à chaque image. Ne connaît 
 
 | Fonction | Rôle |
 |---|---|
+| `std::array<IconeDeRaccourci, s_emplacementsPrincipaux> iconesDeLaBarre(const BarreDeRaccourcis&, const Escouade&, const TouchesDesRaccourcis&, std::optional<AdresseSkill> enVisee)` | Les 12 icônes telles que l'escouade les montre : nom de la touche (`sf::Keyboard::getDescription`) ; si l'emplacement est garni, état du skill, couleur et place du lanceur, `enVisee` si son adresse est celle en visée ; un emplacement vide ne garde que sa touche (R6, étape 84, extraite d'`EcranJeu::dessiner`) ; `[[nodiscard]]` |
 | `std::string sigleDuSkill(IdSkill id)` | Étiquette de deux lettres : FP, PR, SO, EX, FS, IM, TP, PF ; `switch` sans `default` (un `IdSkill` oublié est un avertissement du compilateur) ; `[[nodiscard]]` |
 | `sf::Color couleurDuContour(bool enVisee, bool enActivation)` | Jaune en visée (prioritaire), blanc en activation, gris sinon |
 | `int secondesAffichees(float tempsRestant)` | Secondes entières, arrondies vers le haut |

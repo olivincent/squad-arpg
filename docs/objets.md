@@ -1,8 +1,8 @@
 # Squad-ARPG — Objets, équipement et sac
 
-Le modèle des objets (étape 83), sans interface : le catalogue, ce que porte chaque personnage, le
-sac de l'escouade et les trois opérations qui déplacent un objet. L'écran d'inventaire est à
-l'étape 84, le glisser-déposer à l'étape 85. L'armure et son effet sur les dégâts sont dans
+Le modèle des objets (étape 83) : le catalogue, ce que porte chaque personnage, le sac de
+l'escouade et les trois opérations qui déplacent un objet. L'écran d'inventaire en lecture (étape 84)
+les affiche ; le glisser-déposer est à l'étape 85. L'armure et son effet sur les dégâts sont dans
 `docs/combat.md`, la construction des personnages dans `docs/formation.md`.
 
 ## Décisions
@@ -53,13 +53,38 @@ l'étape 84, le glisser-déposer à l'étape 85. L'armure et son effet sur les d
   `Inventaire`, qui reçoit sa capacité à la construction. `Partie` remplit le sac avec
   `sacDeDepart()` à sa construction.
 
+## Affichage (étape 84)
+
+L'écran d'inventaire (`EcranInventaire`, `docs/ecrans.md`) montre l'équipement des trois personnages
+et le sac, en lecture seule ; aucune fonction de modification n'est appelée.
+
+- **Les mots sont dans l'interface, pas dans `objets/`** : `interface/AffichageObjets` donne le nom
+  d'un emplacement (« Tête », « Main droite »…), le nom d'une catégorie (« Casque », « Jambières »…) et le
+  sigle d'un objet. Chaque table est un `switch` sans `default` sur l'enum, comme les sigles des
+  skills : un emplacement, une catégorie ou un objet ajouté sans texte fait avertir le compilateur.
+  Les noms des objets, eux, viennent du catalogue (`DefinitionObjet::nom`). Textes en UTF-8,
+  convertis par `sf::String::fromUtf8`.
+- **Emplacement vide** : rectangle grisé avec le nom de l'emplacement en petit ; **occupé** : le nom
+  de l'objet. **Case du sac vide** : carré vide ; **occupée** : le sigle de deux lettres (CF casque de
+  fer, CM cuirasse de mailles, JF jambières de fer, BR bouclier rond, GC gants de cuir, BC bottes de
+  cuir, CC casque de cuir, TM tunique matelassée, CP collier de protection, AP anneau de protection).
+  Un test vérifie que les sigles ont deux lettres et sont tous différents.
+- **Infobulle** au survol d'un objet : trois lignes (`lignesDeLInfobulle`) : nom, catégorie,
+  « Armure : +N ». Rien au survol d'une case vide.
+- **« Armure : N » d'une colonne** est `Equipement::armureTotale()`, la valeur dont la `Vitalite`
+  du personnage est calculée ; elle n'est pas mise en cache dans l'écran.
+- **Disposition** : `interface/DispositionInventaire`, fonctions pures qui servent au dessin, au
+  survol et aux tests ; l'étape 85 s'en servira pour le glisser-déposer (`docs/ecrans.md`).
+
 ## Limites connues
 
-- Rien ne s'affiche : l'équipement et le sac ne se voient que par l'armure des personnages.
+- L'affichage est un sigle de deux lettres par objet : pas d'icônes, pas de couleurs par rareté ou par
+  catégorie.
 - Pas d'armes, pas de main droite, pas de restriction par classe, pas de butin au sol : une nouvelle
   partie repart toujours du départ (aucune sauvegarde de l'équipement).
 - `Monstre` n'a pas d'équipement : son armure reste fixe (`Niveau::armureMonstres`).
-- Les modifications d'équipement ne sont pas annoncées (aucun événement) : l'écran lira l'état.
+- Les modifications d'équipement ne sont pas annoncées (aucun événement) : l'écran relit l'état à
+  chaque image.
 - `armureDe` (tests) et `Equipement::armureTotale` répètent la même somme, volontairement : le test
   doit pouvoir détecter une erreur dans la fonction qu'il contrôle.
 
@@ -129,6 +154,18 @@ Données membres : `m_cases` (`std::vector<std::optional<Objet>>`, dimensionné 
 | `std::optional<Objet> prendre(std::size_t caseDuSac)` | Vide la case et rend son objet ; les autres cases ne bougent pas ; `[[nodiscard]]` |
 | `std::optional<Objet> poser(std::size_t caseDuSac, Objet)` | Met l'objet dans la case et rend l'ancien contenu ; `[[nodiscard]]` |
 | `bool ajouter(Objet)` | Met l'objet dans la première case libre ; faux, sans rien changer, si le sac est plein ; `[[nodiscard]]` |
+
+### `AffichageObjets` (`interface/`)
+
+`AffichageObjets.hpp` / `.cpp` : trois tables de texte et les lignes de l'infobulle, fonctions
+libres sans état, qui rendent des `std::string` en UTF-8.
+
+| Fonction | Rôle |
+|---|---|
+| `std::string nomDeLEmplacement(Emplacement)` | « Tête », « Torse », « Jambes », « Gants », « Bottes », « Main droite », « Main gauche », « Collier », « Anneau 1 », « Anneau 2 » ; `switch` sans `default` ; `[[nodiscard]]` |
+| `std::string nomDeLaCategorie(CategorieObjet)` | « Casque », « Armure », « Jambières », « Gants », « Bottes », « Bouclier », « Collier », « Anneau » ; `[[nodiscard]]` |
+| `std::string sigleDeLObjet(IdObjet)` | Deux lettres par objet du catalogue ; `[[nodiscard]]` |
+| `std::vector<std::string> lignesDeLInfobulle(IdObjet)` | Nom, catégorie, « Armure : +N » ; `[[nodiscard]]` |
 
 ### Ce que `Personnage` et `Escouade` ajoutent
 

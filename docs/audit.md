@@ -23,7 +23,8 @@ fonctionnalités qui en ont besoin) et les décisions reportées sont dans `ROAD
 le deuxième : le groupe (b), les places d'attaque ; la partie 82.4 le troisième : le groupe (c), la
 décision, avec R2 (voir R1 et R2, « Suivi ») ; la partie 82.5 a fermé R2 (la mémoire des agresseurs
 par identifiant), traité D3 et marqué les avertissements voulus de `clang-tidy` (41 restants). R5 est
-rattachée à R4.
+rattachée à R4. L'étape 84 (écran d'inventaire) a traité, en premières sous-étapes, R6, D4, P2
+(parties a et b) et les tests de T4 qui viennent avec leurs extractions (voir « Suivi » de chacun).
 
 Référentiels : C++ Core Guidelines, SOLID (surtout responsabilité unique et inversion des
 dépendances), cohésion et couplage, DRY, règle du zéro, sémantique de valeur, *Game Programming
@@ -528,6 +529,14 @@ font poursuivre 30 monstres durent environ 1,2 s chacun en `-O0`.
   un traducteur.
 - **Coût** : petit.
 - **Risque et tests touchés** : faible ; deux nouveaux fichiers de tests.
+- **Suivi** : **fait à l'étape 84.** (a) `commandePourTouche(Scancode, bool finDePartie, const
+  TouchesDesRaccourcis&)` (`interface/CommandeDeTouche`) renvoie une `CommandeDeTouche`, un
+  `std::variant` de `commande::Rien`, `Annuler` (Échap), `OuvrirInventaire` (I, ajoutée à l'étape),
+  `RetourAuChoix`, `NouvelleCarte`, `BasculerPointsVises`, `BasculerAncre`, `BasculerBrouillard` et
+  `ActiverEmplacement` (le nom de la proposition, `Quitter`, ne convenait pas : R ramène au choix) ;
+  `EcranJeu::executer` l'exécute avec `std::visit`. 7 tests. (b) `iconesDeLaBarre(barre, escouade,
+  touches, enVisee)` est à côté de `BarreDeSkills`. 2 tests (sans le nom de la touche, qui dépend du
+  système). Refactorisation pure : aucun comportement n'a changé.
 - **Dépend de** : aucun (à faire avec M1).
 
 ---
@@ -609,6 +618,10 @@ font poursuivre 30 monstres durent environ 1,2 s chacun en `-O0`.
 - **Coût** : petit.
 - **Risque et tests touchés** : `test_EcranMenu.cpp` s'enrichit d'un cas « Options ».
 - **Dépend de** : aucun.
+- **Suivi** : **fait à l'étape 84 pour (a) et (b)** ; (c) laissé tel quel, comme proposé. (a)
+  `EcranJeu.cpp` inclut des en-têtes SFML précis. (b) `EcranMenu` reçoit les résolutions à sa
+  construction ; l'`Application` les calcule. Le test « Options » vérifie maintenant que l'écran
+  empilé est un `EcranOptions` (`dynamic_cast`).
 
 ---
 
@@ -704,6 +717,13 @@ font poursuivre 30 monstres durent environ 1,2 s chacun en `-O0`.
 - **Coût** : petit.
 - **Risque et tests touchés** : aucun test ; vérification visuelle des trois menus.
 - **Dépend de** : aucun.
+- **Suivi** : **fait à l'étape 84**, dans un module à part, `interface/EntreeDInterface`, et non dans
+  `TailleDeVue.hpp` (elles ont besoin de `Contexte` et de l'événement SFML, alors que `TailleDeVue`
+  est pur). Les deux fonctions rendent un `PointDInterface {point, centre}` : les menus centrent leurs
+  boutons sur le centre de la vue. `preparerLInterface` pose la vue mais **ne vide plus** la fenêtre :
+  le `clear` est passé dans l'`Application`, une fois par image, condition pour dessiner un écran
+  par-dessus un autre (`docs/ecrans.md`). Utilisées par les trois menus et par l'inventaire. Les
+  `mettreAJour` vides restent. Non testées (elles ont besoin d'une `RenderWindow`).
 
 ### D5 — Petites duplications dans `Partie` et constantes jumelles
 - **Constat** : dans `Partie.cpp`, la séquence `deverrouiller()` + `annulerAttaquesEngagees()` est
@@ -990,6 +1010,11 @@ font poursuivre 30 monstres durent environ 1,2 s chacun en `-O0`.
 - **Coût** : petit (dans l'étape qui extrait).
 - **Risque et tests touchés** : aucun.
 - **Dépend de** : R1, R6.
+- **Suivi** : **les trous qui venaient avec R6 et P2 sont comblés à l'étape 84** (`commandePourTouche`,
+  `iconesDeLaBarre`, branche « Options » d'`EcranMenu`). Les fonctions pures ajoutées par l'étape
+  (`premierEcranADessiner`, `DispositionInventaire`, `AffichageObjets`, `EcranInventaire::appuyer`)
+  ont leurs tests ; `Controleur::interrompre` aussi. Restent non testés : `Application`, `EcranJeu`,
+  tout `dessiner*`, `clicGaucheDInterface` et `preparerLInterface`.
 
 ---
 

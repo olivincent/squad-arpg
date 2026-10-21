@@ -8,14 +8,29 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
 ## Pile d'écrans (patron State)
 
 - **Une classe de base abstraite** `Ecran` (`traiterEvenement`, `mettreAJour`,
-  `dessiner`), quatre classes concrètes (`EcranMenu`, `EcranOptions`,
-  `EcranChoixEscouade`, `EcranJeu`), manipulées seulement par `std::unique_ptr<Ecran>`. Copie
-  interdite, destructeur virtuel.
-- **Une pile** (`std::vector<std::unique_ptr<Ecran>>`) plutôt qu'un écran
-  courant : un futur menu de pause s'empilera sur la partie sans réécriture.
-  Aujourd'hui la pile n'a jamais plus de trois écrans (menu, choix de l'escouade, jeu ; ou menu
-  et options). Seul l'écran du dessus reçoit les événements, est mis à jour et est
-  dessiné ; celui du dessous est conservé, mais figé et invisible.
+  `dessiner`, et `laisseVoirDessous`, non pure), cinq classes concrètes (`EcranMenu`,
+  `EcranOptions`, `EcranChoixEscouade`, `EcranJeu`, `EcranInventaire`), manipulées seulement par
+  `std::unique_ptr<Ecran>`. Copie interdite, destructeur virtuel.
+- **Une pile** (`PileDEcrans`, un `std::vector<std::unique_ptr<Ecran>>`) plutôt qu'un écran
+  courant : l'inventaire s'empile sur la partie sans réécriture, un futur menu de pause aussi.
+  La pile a jusqu'à quatre écrans (menu, choix de l'escouade, jeu, inventaire ; ou menu et
+  options). Seul l'écran du dessus reçoit les événements et est mis à jour : ceux du dessous sont
+  conservés, donc **figés**, sans aucun code de pause.
+- **Le dessin va plus bas que le dessus** (étape 84). `Ecran::laisseVoirDessous()` vaut `false`
+  par défaut : l'écran remplit la fenêtre et cache ce qui est dessous. Un écran qui n'est qu'une
+  couche (l'inventaire) la redéfinit à `true`. `premierEcranADessiner(pile)` (fonction pure,
+  `interface/PileDEcrans`) renvoie l'indice du plus haut écran qui ne laisse pas voir dessous ;
+  l'`Application` dessine de cet écran jusqu'à celui du dessus, de bas en haut. Le plus bas
+  écran est toujours dessiné, même s'il laisse voir dessous.
+- **Le `clear` de la fenêtre est dans l'`Application`**, une fois par image, avant de dessiner la
+  pile. Aucun écran n'efface plus la fenêtre : c'est la condition pour en dessiner un par-dessus
+  un autre.
+- **Invariant de la pile : un écran vit toujours plus longtemps que ceux qui sont au-dessus de
+  lui.** C'est ce qui permet à un écran du dessus de garder une référence vers une donnée d'un
+  écran du dessous : `EcranInventaire` garde une `const Escouade&` de l'`EcranJeu`. Ce n'est pas
+  la règle du `Contexte`, jamais gardé parce que la fenêtre est recréée entre deux appels. Toute
+  référence de ce genre se justifie par cet invariant ; un écran ne se retire de la pile que par
+  une `Transition`, donc après tous ceux qui sont au-dessus de lui.
 - **Un écran ne modifie jamais la pile lui-même** : il pourrait se détruire
   pendant l'exécution de sa propre fonction (`Depiler` dans
   `traiterEvenement`). Il renvoie une `Transition` (`std::variant<Aucune,
@@ -35,19 +50,59 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
 - **Logique testable sans fenêtre** : chaque écran à boutons a une fonction
   publique (`EcranMenu::cliquer`, `EcranOptions::cliquer`) qui reçoit un point
   en coordonnées d'interface et renvoie la `Transition`. `traiterEvenement` ne
-  fait que convertir l'événement puis l'appeler. La conversion et le dessin ne
-  sont pas testés.
+  fait que convertir l'événement puis l'appeler. Le dessin n'est pas testé.
+- **Entrées d'interface communes (D4, étape 84)** : deux fonctions libres de
+  `interface/EntreeDInterface` remplacent le code répété dans les trois écrans de menu (pas de
+  classe de base `EcranDeMenu`, les `mettreAJour` vides restent). `clicGaucheDInterface(evenement,
+  contexte)` renvoie le point d'un clic gauche en coordonnées d'interface, ou rien ;
+  `preparerLInterface(contexte)` pose la vue d'interface et renvoie le curseur converti. Toutes
+  deux rendent un `PointDInterface { point, centre }` : les menus centrent leurs boutons sur le
+  centre de la vue, donc il voyage avec le point. L'écran d'inventaire s'en sert aussi.
+- **`EcranMenu` reçoit les résolutions disponibles** (P2, étape 84) : l'`Application` les calcule
+  (`resolutionsDisponibles(getDesktopMode().size)`) et les passe au constructeur, qui les garde et
+  les donne à l'`EcranOptions`. La branche « Options » de `cliquer` se teste sans bureau.
 - **Flux** : menu → « Commencer partie » = `Empiler(EcranChoixEscouade)` ; choix →
   « Commencer » = `Empiler(EcranJeu)` (nouvelle `Partie`, nouvelle graine affichée) ;
   « Retour » = `Depiler` (menu) ; menu → « Options » = `Empiler(EcranOptions)` ;
   « Quitter » = `Quitter`. En jeu, R sur l'écran de fin = `Depiler` (retour à l'écran de
   choix, avec sa sélection), ignorée en cours de partie ; F5 génère une nouvelle carte à tout
-  moment. Échap en jeu annule seulement la visée.
+  moment. Échap en jeu annule seulement la visée. I en jeu (hors écran de fin) =
+  `Empiler(EcranInventaire)` ; I ou Échap dans l'inventaire = `Depiler`.
 - **Principe de conception** : c'est l'application du principe 1 révisé
   (« anticiper la structure, pas les fonctionnalités ») : la pile et la
-  `Transition` accueilleront la pause sans réécriture, mais les alternatives
-  `Remplacer`, une `mettreAJour` qui renvoie une `Transition` et le dessin des
-  écrans du dessous n'existent pas, car rien ne les utilise.
+  `Transition` accueillent la pause et l'inventaire sans réécriture, mais les alternatives
+  `Remplacer` et une `mettreAJour` qui renvoie une `Transition` n'existent pas, car rien ne les
+  utilise. Le dessin des écrans du dessous est arrivé avec l'inventaire, premier écran à en avoir
+  besoin.
+
+## `EcranInventaire` : l'inventaire en lecture (étape 84)
+
+- **Ouvert par I**, empilé par `EcranJeu` sur la commande `OuvrirInventaire` de
+  `commandePourTouche`, sauf sur l'écran de fin (comme les touches de la barre). La touche I est
+  écrite en dur, comme les touches F ; la configuration des touches viendra plus tard.
+- **La partie est figée et visible dessous** (`laisseVoirDessous()` vrai), sous un voile sombre
+  semi-transparent puis un panneau. Pas de code de pause : seul l'écran du dessus est mis à jour.
+- **Avant d'empiler**, `EcranJeu` appelle `Controleur::interrompre()` (annule la visée et le
+  déplacement continu). Sans cela, le relâchement du bouton gauche, reçu par l'inventaire,
+  n'arriverait jamais au `Controleur` : l'escouade repartirait toute seule à la fermeture.
+- **Lecture seule** : l'écran garde une `const Escouade&` (valide grâce à l'invariant de la pile)
+  et les noms des classes des places, que `EcranJeu` lui donne (il connaît ses `IdSpecialite`).
+  Il n'appelle aucune fonction de modification. I et Échap le ferment ; les clics et les autres
+  touches sont ignorés ; la croix de la fenêtre quitte, comme partout.
+- **Disposition en fonctions pures** (`interface/DispositionInventaire`), sans position stockée :
+  tout est recalculé depuis la taille de la vue d'interface. En haut, une colonne par personnage
+  (bande de la classe à la couleur du personnage, « Armure : N », « (mort) », 10 emplacements en
+  deux colonnes de 5) ; en bas, le sac (4 rangées de 10 cases). Le dessin, le survol et les tests
+  appellent les mêmes rectangles (`rectangleDeLEmplacement`, `rectangleDeLaCaseDuSac`,
+  `elementSous`) ; l'étape 85 s'en servira pour le glisser-déposer. Un test vérifie que tout
+  tient dans 1200 × 800 (et en 16:9), dans le panneau, sans chevauchement.
+- **Infobulle** : au survol d'un emplacement ou d'une case occupés, nom, catégorie et armure de
+  l'objet (`lignesDeLInfobulle`), placés près du curseur et gardés entièrement dans la vue
+  (`placerInfobulle`). Rien sur un emplacement ou une case vide.
+- **Textes** : les noms des emplacements et des catégories et les sigles des objets sont dans
+  l'interface (`interface/AffichageObjets`, `switch` sans `default` : le compilateur signale un
+  oubli), en UTF-8 passé à `sf::String::fromUtf8`. Un texte plus large que son rectangle est
+  rétréci.
 
 ## `EcranChoixEscouade` : le choix des 3 classes (étape 76)
 
@@ -179,6 +234,10 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
 - `reglages.ini` est cherché dans le dossier courant, comme la police.
 - Pas de menu de pause ni de retour au choix de l'escouade en cours de partie (R n'agit
   qu'après une défaite ou une victoire).
+- Inventaire (étape 84) : en lecture seule (le glisser-déposer est l'étape 85) ; la touche I n'est
+  pas configurable ; pas d'icônes d'objets (un sigle de deux lettres) ni de couleurs par rareté ;
+  `s_casesDuSac` (disposition) doit égaler la capacité du sac, une constante de `Escouade.cpp`
+  (un `assert` du dessin le vérifie) ; `EcranInventaire` suppose `s_nombreDePlaces` = 3 classes.
 - Les boutons de `ListeDeBoutons` recopient le centrage de texte de
   `EcranDeFin.cpp` (à extraire dans un module commun, dans un commit à part).
 - Le menu reste sous les options et n'est pas redessiné pendant le changement
@@ -248,12 +307,12 @@ indiqué dans son titre. `ARCHITECTURE.md` n'en garde qu'une ligne par module.
 elle possède la fenêtre). Voir `docs/ecrans.md`.
 
 Données membres : `m_fenetre` (`sf::RenderWindow`), `m_police` (`sf::Font`),
-`m_reglages` (`Reglages`), `m_pile` (`std::vector<std::unique_ptr<Ecran>>`).
+`m_reglages` (`Reglages`), `m_pile` (`PileDEcrans`).
 
 | Fonction | Rôle |
 |---|---|
-| `Application()` | Charge `reglages.ini` (absent ou illisible = réglages par défaut), ouvre la fenêtre, charge la police (`std::runtime_error` si elle manque), empile `EcranMenu` |
-| `int executer()` | Boucle : `dt` (borné à `s_dtMax` = 1/20 s, seul endroit du bornage), événements (la croix ferme ; sinon `traiterEvenement` de l'écran du dessus puis `appliquer` de sa `Transition`), `mettreAJour`, `dessiner`, `display`. S'arrête quand la fenêtre est fermée ou la pile vide |
+| `Application()` | Charge `reglages.ini` (absent ou illisible = réglages par défaut), ouvre la fenêtre, charge la police (`std::runtime_error` si elle manque), empile `EcranMenu` (avec `resolutionsDisponibles` du bureau) |
+| `int executer()` | Boucle : `dt` (borné à `s_dtMax` = 1/20 s, seul endroit du bornage), événements (la croix ferme ; sinon `traiterEvenement` de l'écran du dessus puis `appliquer` de sa `Transition`), `mettreAJour` de l'écran du dessus, `clear` de la fenêtre (le seul), `dessiner` de chaque écran de `premierEcranADessiner(m_pile)` à celui du dessus, `display`. S'arrête quand la fenêtre est fermée ou la pile vide |
 | `void ouvrirFenetre()` (privée) | Crée ou recrée la fenêtre à partir des réglages : plein écran à la résolution du bureau, ou fenêtré (`Titlebar` et `Close`) à celle des réglages ; réapplique 60 images par seconde et `setKeyRepeatEnabled(false)` |
 | `void appliquer(Transition)` (privée) | `std::visit` : `Empiler` pousse l'écran, `Depiler` retire celui du dessus, `Quitter` ferme la fenêtre, `AppliquerReglages` copie les réglages, rouvre la fenêtre puis écrit `reglages.ini` |
 
@@ -264,8 +323,27 @@ Données membres : `m_fenetre` (`sf::RenderWindow`), `m_police` (`sf::Font`),
 `class Ecran` : base abstraite (copie interdite, destructeur virtuel) ;
 fonctions virtuelles pures `Transition traiterEvenement(const sf::Event&,
 const Contexte&)`, `void mettreAJour(float dt, const Contexte&)` et `void
-dessiner(const Contexte&) const`. Les écrans ne sont manipulés que par
-`std::unique_ptr<Ecran>`.
+dessiner(const Contexte&) const`, et une fonction virtuelle non pure `[[nodiscard]] bool
+laisseVoirDessous() const` (`false` par défaut : l'écran cache ce qui est dessous). Les écrans ne
+sont manipulés que par `std::unique_ptr<Ecran>`. Aucun écran n'efface la fenêtre : c'est l'`Application`.
+
+### `PileDEcrans` (`interface/`) — le choix des écrans à dessiner
+
+`PileDEcrans.hpp` / `.cpp`. `using PileDEcrans = std::vector<std::unique_ptr<Ecran>>` et
+`[[nodiscard]] std::size_t premierEcranADessiner(const PileDEcrans&)` : l'indice du plus haut écran
+qui ne laisse pas voir dessous (`laisseVoirDessous()` faux), ou 0 ; `assert` : pile non vide.
+Fonction pure, testée avec des écrans de test.
+
+### `EntreeDInterface` (`interface/`) — les entrées des écrans de menu
+
+`EntreeDInterface.hpp` / `.cpp`. `struct PointDInterface { sf::Vector2f point; sf::Vector2f centre; }`.
+
+| Fonction | Rôle |
+|---|---|
+| `std::optional<PointDInterface> clicGaucheDInterface(const sf::Event&, const Contexte&)` | Le point d'un clic gauche en coordonnées de la vue d'interface et le centre de cette vue ; vide pour tout autre événement ; `[[nodiscard]]` |
+| `PointDInterface preparerLInterface(const Contexte&)` | Pose `vueDInterface` sur la fenêtre et rend la position du curseur dans cette vue, avec le centre ; ne vide pas la fenêtre ; `[[nodiscard]]` |
+
+Non testées (elles ont besoin d'une `RenderWindow`).
 
 `Transition` : `std::variant<Aucune, Empiler, Depiler, Quitter,
 AppliquerReglages>` ; `Empiler` porte un `std::unique_ptr<Ecran>`,
@@ -288,18 +366,20 @@ Données membres : `m_tirageDeGraine` (`std::random_device`), `m_specialites` (`
 | Fonction | Rôle |
 |---|---|
 | `explicit EcranJeu(std::vector<IdSpecialite> specialites)` | Garde les classes (`m_specialites`, déclaré avant `m_partie`), tire une graine, la génère et construit la partie (`nouvellePartie`, qui appelle `composer(specialites)`) ; F5 réutilise les mêmes classes |
-| `Transition traiterEvenement(...)` | Clic gauche (d'abord `clicSurInterface` : sur la barre, `Controleur::appuiInterface`, sauf partie perdue ou gagnée ; sinon `appuiGauche`), touches de la barre (`emplacementPourTouche` puis `activerEmplacement`, ignorées sur l'écran de fin), Échap, F5 (nouvelle carte), F3 (bascule les points visés et les chemins restants des personnages et des monstres, les zones de contrôle, et la semi-transparence des monstres qui rentrent à leur poste), F4 (bascule le carré vert de l'ancre), F6 (bascule le brouillard de guerre, visuel seulement) ; R sur l'écran de fin (partie perdue ou gagnée) renvoie `Depiler` (retour à l'écran de choix) ; sinon `Aucune` |
+| `Transition traiterEvenement(...)` | Clic gauche (d'abord `clicSurInterface` : sur la barre, `Controleur::appuiInterface`, sauf partie perdue ou gagnée ; sinon `appuiGauche`), clic droit, puis, pour une touche, `executer(commandePourTouche(...))` (voir `docs/boucle-et-entrees.md`) ; sinon `Aucune` |
+| `Transition executer(const CommandeDeTouche&)` (privée) | `std::visit` de la commande : Échap annule la visée, F5 nouvelle carte, F3 bascule les points visés et les chemins restants des personnages et des monstres, les zones de contrôle, et la semi-transparence des monstres qui rentrent à leur poste, F4 le carré vert de l'ancre, F6 le brouillard de guerre (visuel seulement), un emplacement de la barre est activé ; `RetourAuChoix` (R sur l'écran de fin) renvoie `Depiler` ; `OuvrirInventaire` appelle `Controleur::interrompre()` puis renvoie `Empiler(EcranInventaire(escouade, noms des classes))` ; les autres : `Aucune` |
 | `void mettreAJour(float, const Contexte&)` | Taille de la caméra (`tailleDeVue`), déplacement continu, `Partie::mettreAJour`, puis `prendreEvenements` : chaque événement devient un texte (`TextesFlottants::ajouter`), sauf si le brouillard est actif et que `Partie::estVisible(position)` est faux ; `TextesFlottants::mettreAJour(dt)` (aussi après une défaite ou une victoire : le monde est figé, pas les textes) ; `Controleur::debutImage` (sortie de la visée), caméra centrée sur l'escouade |
-| `void dessiner(const Contexte&) const` | Monde avec la caméra (ancre cachée si `!m_debogage.ancre`, brouillard selon `m_debogage.brouillard`), aperçu de visée, points visés et chemins restants si `m_debogage.pointsVises`, textes flottants (vue du monde, après le brouillard), puis, avec `vueDInterface` : barre de raccourcis (une `IconeDeRaccourci` par emplacement), compteur « Monstres : N » et écran de fin |
+| `void dessiner(const Contexte&) const` | Monde avec la caméra (ancre cachée si `!m_debogage.ancre`, brouillard selon `m_debogage.brouillard`), aperçu de visée, points visés et chemins restants si `m_debogage.pointsVises`, textes flottants (vue du monde, après le brouillard), puis, avec `vueDInterface` : barre de raccourcis (`iconesDeLaBarre`), compteur « Monstres : N » et écran de fin |
 
 ### `EcranMenu` (`interface/`) — le menu de départ
 
-`EcranMenu.hpp` / `.cpp`. Donnée membre : `m_boutons` (`ListeDeBoutons`) :
+`EcranMenu.hpp` / `.cpp`. Données membres : `m_resolutions` (`std::vector<Resolution>`, reçues à la
+construction, `explicit EcranMenu(std::vector<Resolution>)`), `m_boutons` (`ListeDeBoutons`) :
 « Commencer partie », « Options », « Quitter ».
 
 | Fonction | Rôle |
 |---|---|
-| `Transition cliquer(sf::Vector2f point, sf::Vector2f centre, const Reglages&) const` | Point en coordonnées de la vue d'interface. Commencer : `Empiler(EcranChoixEscouade)` ; Options : `Empiler(EcranOptions)` avec les réglages en cours et `resolutionsDisponibles` du bureau ; Quitter : `Quitter` ; ailleurs : `Aucune` |
+| `Transition cliquer(sf::Vector2f point, sf::Vector2f centre, const Reglages&) const` | Point en coordonnées de la vue d'interface. Commencer : `Empiler(EcranChoixEscouade)` ; Options : `Empiler(EcranOptions)` avec les réglages en cours et les résolutions reçues (`m_resolutions`) ; Quitter : `Quitter` ; ailleurs : `Aucune` |
 
 ### `EcranOptions` (`interface/`) — les options d'affichage
 
@@ -323,6 +403,31 @@ Données membres : `m_tirageDeGraine` (`std::random_device`), `m_specialites` (`
 | `Transition cliquer(sf::Vector2f point, sf::Vector2f centre)` | Classe : l'ajoute à la sélection (sans effet si elle est complète). Case remplie : la retire. « Commencer » (actif seulement si la sélection est complète) : `Empiler(EcranJeu(sélection))`, la sélection restant dans cet écran. « Retour » : `Depiler`. Case vide ou ailleurs : `Aucune` ; `[[nodiscard]]` |
 | `const SelectionDEscouade& getSelection() const` | La sélection en cours (tests) ; `[[nodiscard]]` |
 | `void dessiner(const Contexte&) const` | Titre, boutons des classes, trois cases « 1. Guerrier » ou « 1. — » (bande de la couleur que le personnage aura en jeu, doublons assombris), actions |
+
+### `EcranInventaire` (`interface/`) — l'inventaire en lecture
+
+`EcranInventaire.hpp` / `.cpp`. Données membres : `m_escouade` (`const Escouade&`, celle de l'`EcranJeu` du dessous : valide grâce à l'invariant de la pile), `m_nomsDesClasses` (`std::vector<std::string>`, un nom par place).
+
+| Fonction | Rôle |
+|---|---|
+| `EcranInventaire(const Escouade&, std::vector<std::string>)` | `assert` : `s_nombreDePlaces` noms |
+| `Transition appuyer(sf::Keyboard::Scancode) const` | I ou Échap : `Depiler` ; autre touche : `Aucune` ; `[[nodiscard]]` |
+| `Transition traiterEvenement(...)` | Une touche pressée passe par `appuyer` ; clics et autres événements : `Aucune` |
+| `void mettreAJour(float, const Contexte&)` | Ne fait rien (le monde dessous est figé) |
+| `bool laisseVoirDessous() const` | `true` |
+| `void dessiner(const Contexte&) const` | Vue d'interface, voile sombre, panneau (marge de 40 px), titre, les 3 colonnes (en-tête à la couleur du personnage, armure lue sur son `Equipement`, « (mort) » si ses points de vie sont 0, 10 emplacements), le sac (sigles), puis l'infobulle de l'objet sous le curseur |
+
+### `DispositionInventaire` (`interface/`) — où est chaque élément
+
+`DispositionInventaire.hpp` / `.cpp`, fonctions pures en coordonnées de la vue d'interface, `tailleDeVue` en paramètre. Constantes : `s_nombreDePlaces` (3), `s_colonnesDuSac` (10), `s_casesDuSac` (40, la capacité du sac). Colonnes de 340 px centrées (20 px d'écart), emplacements de 160 × 40 px, cases du sac de 44 px.
+
+| Fonction | Rôle |
+|---|---|
+| `rectangleDeLEnTete(place, tailleDeVue)` / `rectangleDeLArmure(...)` | Bande de la classe et ligne « Armure » de la colonne de cette place (de 1 à `s_nombreDePlaces`) ; `[[nodiscard]]` |
+| `rectangleDeLEmplacement(place, Emplacement, tailleDeVue)` | Rectangle de l'emplacement ; les 5 premiers de l'enum à gauche, les 5 suivants à droite ; `[[nodiscard]]` |
+| `rectangleDeLaCaseDuSac(indice, tailleDeVue)` | Rectangle de la case (`assert(indice < s_casesDuSac)`). Nommée ainsi parce que `rectangleDeLaCase` existe dans `SelectionDEscouade` ; `[[nodiscard]]` |
+| `std::optional<ElementInventaire> elementSous(point, tailleDeVue)` | `ElementEmplacement {place, emplacement}` ou `ElementCase {indice}` dans un `std::variant` ; vide dans un écart, sur un en-tête ou hors des éléments ; `[[nodiscard]]` |
+| `sf::FloatRect placerInfobulle(curseur, tailleInfobulle, tailleDeVue)` | Sous et à droite du curseur (16 px), de l'autre côté s'il sortirait de la vue, puis gardée dans la vue ; `[[nodiscard]]` |
 
 ### `SelectionDEscouade` (`escouade/`) — les classes choisies
 

@@ -8,24 +8,26 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 ## Étapes terminées
 
-Étapes 0 à 83 ✅. Les dernières :
-- Étape 80 — Filet de sécurité et corrections locales (suite de l'audit) ✅
+Étapes 0 à 84 ✅. Les dernières :
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 - Étape 83 — Inventaire et équipement : le modèle, sans interface ✅
+- Étape 84 — Inventaire : l'écran en lecture (avec R6, D4, P2) ✅
 
 ## État actuel (résumé)
 
 - **Outils** : conception dans Claude.ai, implémentation avec Claude Code dans VSCode (règles dans
   `CLAUDE.md`) ; dépôt Git `squad-arpg`, poussé sur GitHub ; SFML 3.0.2 intégrée à CMake.
-- **Code** (étape 83) : 62 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
+- **Code** (étape 84) : 68 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
   `combat`, `objets`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
   de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug` et `jeu`, 0
-  avertissement, 1 011 tests verts sous CTest, 41 avertissements `clang-tidy` (`docs/build.md`,
+  avertissement, 1 045 tests verts sous CTest, 41 avertissements `clang-tidy` (`docs/build.md`,
   `docs/audit.md`). `Escouade` n'est plus que l'assemblage : `Escouade.cpp` de 1 223 à 1 067 lignes. Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`).
 - **Écrans** : menu à la souris, options d'affichage (fenêtré ou plein écran, résolutions,
   `reglages.ini`), choix de 3 classes parmi 5 (guerrier, prêtre, mage, paladin, rôdeur ; doublons
-  permis), puis la partie ; R après une victoire ou une défaite ramène au choix (`docs/ecrans.md`).
+  permis), puis la partie ; R après une victoire ou une défaite ramène au choix. La pile d'écrans
+  dessine sous un écran qui laisse voir dessous (`laisseVoirDessous`) ; le `clear` est dans
+  l'`Application` (`docs/ecrans.md`).
 - **Carte** : donjon généré à chaque partie (salles, couloirs en L de 2 cases, portes à chaque
   jonction, 1 à 3 monstres par salle sauf la première, graine affichée), F5 = nouvelle carte ;
   carte à la main pour les tests (`docs/generation.md`, `docs/carte-et-collision.md`).
@@ -33,8 +35,9 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   même règle que la ligne de vue du combat ; F6 le coupe à l'affichage (`docs/vision.md`).
 - **Objets** : 10 emplacements par personnage, un sac de 40 cases pour l'escouade, un catalogue de
   10 objets ; l'armure d'un personnage est la somme de son équipement (guerrier et paladin partent
-  équipés : 50 ; les autres : 0) ; `ramasser`, `equiper` et `desequiper` sont transactionnelles. Aucune
-  interface encore (`docs/objets.md`).
+  équipés : 50 ; les autres : 0) ; `ramasser`, `equiper` et `desequiper` sont transactionnelles. La
+  touche I ouvre l'inventaire par-dessus la partie figée : équipement des 3 personnages, sac de 40
+  cases, infobulle au survol, en lecture seule (`docs/objets.md`, `docs/ecrans.md`).
 - **Escouade** : une ancre suivie par 3 personnages en formation (rangs avant et arrière), qui
   pivote et se resserre près des murs ; places d'attaque autour des monstres, séparation douce,
   chemins qui contournent les monstres, dégagement des tireurs (`docs/formation.md`, `docs/chemin.md`).
@@ -46,7 +49,8 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   alerte du groupe, retour au poste invulnérable avec régénération (`docs/monstre.md`).
 - **Interface** : barre de raccourcis de 12 emplacements (Q W E R / A S D F / Z X C V, ou clic ;
   « l'interface d'abord »), compteur de monstres, écran de victoire ou de défaite ; F3 et F4 de
-  débogage (`docs/boucle-et-entrees.md`).
+  débogage ; une touche devient une commande par une fonction pure, `commandePourTouche`
+  (`docs/boucle-et-entrees.md`).
 
 ## Plan après l'audit (« hybride », décidé à l'étape 80)
 
@@ -105,8 +109,7 @@ fonctionnalités prévues sont donc décalées après l'étape 82.
   - R3 (`Partie` accumule plusieurs rôles), D2 (indices de grille à la main), C3 (conversions de
     signe) et D5 (petites duplications de `Partie`) avant les coffres, les leviers ou la carte
     extérieure ;
-  - R6 (`EcranJeu`), D4 (écrans de menu) et P2 (en-tête parapluie des écrans) en première sous-étape
-    de l'étape 84 (l'écran d'inventaire est le premier écran ajouté depuis l'audit) ;
+  - R6, D4 et P2 (faits à l'étape 84, en première sous-étape de l'écran d'inventaire) ;
   - M1 (`dessiner` dans le noyau) et T4 (trous de couverture) au premier ajout visuel important dans
     le monde, après R4. M1 lève les exceptions transitoires aux règles de dépendance
     (`ARCHITECTURE.md`) et permet une bibliothèque par dossier.
@@ -121,15 +124,11 @@ d'attaque » par type de monstre (`docs/brainstorm.md`, section 4 bis), qui se b
   ou des hordes (la partie 1 a déjà divisé le coût par 7 à 13) ;
 - R5 (identifiants et places) : décidé en 82.5, rattachée à R4 (voir ci-dessus).
 
-## Étape 84 (prochaine) : écran d'inventaire en lecture
+## Étape 85 (prochaine) : glisser-déposer
 
-Série inventaire : 83 = modèle (faite), 84 = écran en lecture, 85 = glisser-déposer. L'étape 84
-commence par R6, D4 et P2 (voir ci-dessus), puis ajoute un écran, ouvert par la touche I, qui met la
-partie en pause et montre sans rien modifier le sac de l'escouade (`Escouade::sac()`) et l'équipement
-de chaque personnage (`equipementDuPersonnage`) : le tout se lit, rien ne se déplace encore.
-
-## Étape 85 : glisser-déposer
-
+Série inventaire : 83 = modèle, 84 = écran en lecture (faite), 85 = glisser-déposer. L'étape 84 a
+laissé de quoi s'appuyer : `DispositionInventaire` (`elementSous` donne l'emplacement ou la case
+sous un point), `EcranInventaire` qui reçoit déjà les événements, et `Controleur::interrompre`.
 Déplacer un objet du sac vers un emplacement et inversement à la souris, avec
 `Escouade::equiper` et `desequiper` (déjà transactionnelles et testées) ; rangement du sac ; échange
 d'un objet entre deux personnages. Idées écartées : `docs/brainstorm.md`, section 5 quater.

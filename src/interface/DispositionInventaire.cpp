@@ -60,8 +60,10 @@ sf::FloatRect rectangleDeLEmplacement(std::size_t place, Emplacement emplacement
 sf::FloatRect rectangleDeLaCaseDuSac(std::size_t indice, sf::Vector2f tailleDeVue) {
     assert(indice < s_casesDuSac);
     const float largeurDuSac = static_cast<float>(s_colonnesDuSac) * (s_cote + s_ecartEntreCases) - s_ecartEntreCases;
-    const float x = (tailleDeVue.x - largeurDuSac) / 2.0f + static_cast<float>(indice % s_colonnesDuSac) * (s_cote + s_ecartEntreCases);
-    const float y = s_hautDuSac + static_cast<float>(indice / s_colonnesDuSac) * (s_cote + s_ecartEntreCases);
+    const std::size_t colonne = indice % s_colonnesDuSac;
+    const std::size_t rangee = indice / s_colonnesDuSac;
+    const float x = (tailleDeVue.x - largeurDuSac) / 2.0f + static_cast<float>(colonne) * (s_cote + s_ecartEntreCases);
+    const float y = s_hautDuSac + static_cast<float>(rangee) * (s_cote + s_ecartEntreCases);
     return {{x, y}, {s_cote, s_cote}};
 }
 

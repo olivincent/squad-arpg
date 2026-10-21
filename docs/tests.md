@@ -12,7 +12,7 @@
   `test_Personnage.cpp`, `test_Skill.cpp`,
   `test_Mobile.cpp`, `test_Cercle.cpp`, `test_Autodefense.cpp`,
   `test_Encerclement.cpp`, `test_BarreDeSkills.cpp`, `test_EntiteVue.cpp`, `test_BarreDeVie.cpp`,
-  `test_BarreDeRaccourcis.cpp`, `test_ClicInterface.cpp`,
+  `test_BarreDeRaccourcis.cpp`, `test_ClicInterface.cpp`, `test_CommandeDeTouche.cpp`, `test_PileDEcrans.cpp`,
   `test_PointsDeVie.cpp`, `test_Provocations.cpp`, `test_Agresseurs.cpp`,
   `test_TextesFlottants.cpp`,
   `test_Controleur.cpp`, `test_ChampDeVision.cpp`, `test_Vision.cpp`, `test_Composition.cpp`…),
@@ -1321,3 +1321,30 @@ même chose avec plus de détail.
   que rééquilibrer le catalogue d'objets ne casse aucun test de règle. `test_Specialite.cpp` lit
   l'équipement de départ du catalogue des classes ; `test_Personnage.cpp` et `test_Vitalite.cpp`
   couvrent l'armure de départ et `definirArmure`.
+
+## Étape 84 : l'inventaire en lecture (+34 cas, 1 011 → 1 045)
+
+- **`tests/interface/test_CommandeDeTouche.cpp`** (7) : Échap en tout temps ; R seulement en fin de
+  partie (sinon c'est l'emplacement 3) ; F3 à F6 en tout temps ; une touche de la barre donne son
+  emplacement ; raccourcis ignorés en fin de partie ; touche inconnue ; I ouvre l'inventaire, sauf en
+  fin de partie.
+- **`tests/interface/test_PileDEcrans.cpp`** (5) : `premierEcranADessiner` avec un faux écran
+  (`EcranDeTest`, transparent ou non) : un seul écran, écran opaque au dessus, transparent au dessus,
+  plusieurs transparents, le plus bas toujours dessiné.
+- **`tests/interface/test_DispositionInventaire.cpp`** (12) : tout tient dans 1200 × 800 et en 16:9, dans
+  le panneau ; aucun chevauchement entre les 134 rectangles ; colonnes dans l'ordre des places et
+  centrées ; emplacements dans l'ordre de l'enum ; sac de 4 rangées de 10 cases carrées ; `elementSous`
+  retrouve chaque emplacement et chaque case, et ne trouve rien dans un écart, sur un en-tête ou
+  ailleurs ; `placerInfobulle` (sous le curseur, de l'autre côté près des bords, toujours dans la vue sur
+  une grille de positions).
+- **`tests/interface/test_AffichageObjets.cpp`** (4) : un nom par emplacement, tous différents ; un nom
+  par catégorie ; un sigle de deux lettres par objet du catalogue, tous différents ; lignes de l'infobulle.
+- **`tests/interface/test_EcranInventaire.cpp`** (3) : I et Échap dépilent, les autres touches sont
+  ignorées, l'écran laisse voir dessous (avec une escouade de test, `aides_escouade.hpp`).
+- **`tests/interface/test_BarreDeSkills.cpp`** (+2) : `iconesDeLaBarre` (emplacement garni et vide, seul
+  l'emplacement du skill visé est en visée ; le nom de la touche n'est pas testé, il dépend du système).
+- **`tests/interface/test_Controleur.cpp`** (+1) : `interrompre` annule la visée et désarme le
+  déplacement continu. **`test_EcranMenu.cpp`** : la branche « Options » vérifie le type de l'écran
+  empilé (`dynamic_cast<EcranOptions*>`).
+- Non testés, parce qu'ils ont besoin d'une `RenderWindow` : `clicGaucheDInterface`,
+  `preparerLInterface`, `Application`, `EcranJeu` et tous les `dessiner`.

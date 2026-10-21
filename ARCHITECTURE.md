@@ -55,10 +55,11 @@ squad-arpg/
 │   │               Provocations, Agresseurs
 │   ├── monstres/   Monstre
 │   ├── jeu/        Partie
-│   ├── interface/  Ecran, Transition, Contexte, EcranMenu, EcranOptions, EcranChoixEscouade,
-│   │               EcranJeu, ListeDeBoutons, Reglages, TailleDeVue, EmplacementsPrincipaux,
-│   │               BarreDeRaccourcis, ClicInterface, BarreDeSkills, EcranDeFin,
-│   │               TextesFlottants, Controleur
+│   ├── interface/  Ecran, Transition, Contexte, PileDEcrans, EntreeDInterface, EcranMenu,
+│   │               EcranOptions, EcranChoixEscouade, EcranJeu, EcranInventaire,
+│   │               DispositionInventaire, AffichageObjets, ListeDeBoutons, Reglages, TailleDeVue,
+│   │               EmplacementsPrincipaux, BarreDeRaccourcis, CommandeDeTouche, ClicInterface,
+│   │               BarreDeSkills, EcranDeFin, TextesFlottants, Controleur
 │   └── app/        main.cpp, Application
 ├── tests/
 │   ├── aides.hpp, aides_escouade.hpp, aides_monstre.hpp   (aides communes, à la racine)
@@ -80,10 +81,13 @@ fenêtre ni boucle. `main` ne contient que `app/` (`main.cpp` et `Application`).
 
 Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `main.cpp` construit et lance l'`Application`, qui possède la fenêtre, la police, les
-  `Reglages` et la pile d'écrans (patron State) ; seul l'écran du dessus reçoit les événements.
+  `Reglages` et la pile d'écrans (patron State) ; seul l'écran du dessus reçoit les événements et
+  est mis à jour, mais la pile est dessinée de bas en haut sous un écran qui laisse voir dessous.
+  Un écran vit toujours plus longtemps que ceux qui sont au-dessus de lui.
 - `EcranChoixEscouade` possède la `SelectionDEscouade` ; `EcranJeu` possède la `Partie`, le
   `Controleur`, la `BarreDeRaccourcis`, les `TextesFlottants` et la caméra, et traduit les
-  événements SFML en appels au `Controleur`.
+  événements SFML en appels au `Controleur` ; `EcranInventaire`, empilé sur lui, ne possède rien : il
+  lit l'`Escouade` de l'`EcranJeu` du dessous.
 - `Partie` possède la `TileMap`, l'`Escouade`, les `Monstre`, les `ObjetInteractif`, la `Vision`
   et le seul `Generateur`. Elle fait l'intermédiaire entre `Escouade` et `Monstre`, qui ne se
   connaissent pas (ils échangent des `EntiteVue`, des `Coup`, des `EntiteDeControle`), et tient la
@@ -171,14 +175,20 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 `interface/` — écrans, HUD, réglages, entrées :
 - `Ecran`, `Transition`, `Contexte` : base des écrans, changements de pile, contexte d'appel (`docs/ecrans.md`).
 - `EcranMenu`, `EcranOptions`, `EcranChoixEscouade` : menu, options d'affichage, choix des classes (`docs/ecrans.md`).
+- `PileDEcrans` : la pile et `premierEcranADessiner`, quels écrans dessiner (`docs/ecrans.md`).
+- `EntreeDInterface` : clic gauche et curseur en coordonnées d'interface, pour les écrans à vue d'interface (`docs/ecrans.md`).
 - `EcranJeu` : l'écran de la partie : événements, caméra, dessin, textes flottants (`docs/ecrans.md`).
+- `EcranInventaire` : le sac et l'équipement en lecture, par-dessus la partie figée, touche I (`docs/ecrans.md`).
+- `DispositionInventaire` : rectangles de l'inventaire, `elementSous`, placement de l'infobulle (`docs/ecrans.md`).
+- `AffichageObjets` : noms des emplacements et des catégories, sigles, lignes de l'infobulle (`docs/objets.md`).
 - `ListeDeBoutons` : colonne de boutons sans position stockée (`docs/ecrans.md`).
 - `Reglages` : réglages d'affichage, `reglages.ini`, table des touches des raccourcis (`docs/ecrans.md`).
 - `TailleDeVue` : vue à hauteur fixe et vue d'interface (`docs/ecrans.md`).
 - `EmplacementsPrincipaux` : `s_emplacementsPrincipaux`, en-tête neutre (P1, `docs/boucle-et-entrees.md`).
 - `BarreDeRaccourcis` : modèle des emplacements, disposition par défaut et à l'écran (`docs/boucle-et-entrees.md`).
+- `CommandeDeTouche` : `commandePourTouche`, ce que fait chaque touche, fonction pure (`docs/boucle-et-entrees.md`).
 - `ClicInterface` : ce qu'un clic touche dans l'interface (`docs/boucle-et-entrees.md`).
-- `BarreDeSkills` : dessin des icônes de la barre (`docs/boucle-et-entrees.md`).
+- `BarreDeSkills` : dessin des icônes de la barre et `iconesDeLaBarre` (`docs/boucle-et-entrees.md`).
 - `EcranDeFin` : voile et titre de victoire ou de défaite (`docs/boucle-et-entrees.md`).
 - `TextesFlottants` : dégâts et soins à l'écran, lus dans la file d'événements (`docs/combat.md`).
 - `Controleur` : état d'interface, visée, déplacement continu (`docs/boucle-et-entrees.md`).
@@ -269,8 +279,8 @@ de modifier un module, lire le fichier correspondant :
 | Fichier | Contenu | Quand le lire |
 |---|---|---|
 | `docs/build.md` | Build (CMake, `squad_core`, dossiers et chemins d'inclusion, exécutables), presets `debug` et `jeu`, CTest, `clang-format` et `clang-tidy`, choix de SFML | Avant de modifier `CMakeLists.txt`, `CMakePresets.json`, `.clang-tidy` ou d'ajouter un fichier source |
-| `docs/ecrans.md` | `Application`, pile d'écrans (patron State), `Transition`, `Contexte`, `EcranJeu`, vues à hauteur fixe, `Reglages` (dont la table des touches) et `reglages.ini`, menu, options, choix de l'escouade ; référence de `app/` et des écrans | Avant de modifier `Application`, un `Ecran`, `ListeDeBoutons`, `Reglages`, `TailleDeVue` ou `SelectionDEscouade` |
-| `docs/boucle-et-entrees.md` | Qui possède quoi, qui fait quoi entre `EcranJeu`, `Controleur` et `Partie`, ordre d'une image, souris et clavier, barre de raccourcis et « l'interface d'abord », mode visée, combat engagé, défaite, caméra ; référence de `Partie`, `Controleur` et du HUD | Avant de modifier `Partie`, `Controleur`, `BarreDeRaccourcis`, `ClicInterface`, `BarreDeSkills` ou `EcranDeFin` |
+| `docs/ecrans.md` | `Application`, pile d'écrans (patron State, dessin sous un écran), `Transition`, `Contexte`, `EcranJeu`, `EcranInventaire` et sa disposition, vues à hauteur fixe, `Reglages` (dont la table des touches) et `reglages.ini`, menu, options, choix de l'escouade ; référence de `app/` et des écrans | Avant de modifier `Application`, un `Ecran`, `PileDEcrans`, `EntreeDInterface`, `DispositionInventaire`, `ListeDeBoutons`, `Reglages`, `TailleDeVue` ou `SelectionDEscouade` |
+| `docs/boucle-et-entrees.md` | Qui possède quoi, qui fait quoi entre `EcranJeu`, `Controleur` et `Partie`, ordre d'une image, souris et clavier, barre de raccourcis et « l'interface d'abord », mode visée, combat engagé, défaite, caméra ; référence de `Partie`, `Controleur` et du HUD | Avant de modifier `Partie`, `Controleur`, `BarreDeRaccourcis`, `CommandeDeTouche`, `ClicInterface`, `BarreDeSkills` ou `EcranDeFin` |
 | `docs/carte-et-collision.md` | Carte, collision et dessin, portes et objets interactifs, déplacement avec glissement et obstacles, plan texte et validation | Avant de modifier `TileMap`, `Deplacement` ou `ObjetInteractif` |
 | `docs/generation.md` | Génération de donjon : placement avec rejet, emprise / forme creusée, paramètres, graine unique ; `Niveau` | Avant de modifier `GenerateurDonjon` ou `Niveau` |
 | `docs/vision.md` | Vision et brouillard de guerre : shadowcasting symétrique, `Vision` (inconnue / explorée / visible), rayon des personnages, règles de clic, dessin, F6, limites | Avant de modifier `ChampDeVision`, `Vision` ou ce que `Partie` en fait |
@@ -278,7 +288,7 @@ de modifier un module, lire le fichier correspondant :
 | `docs/formation.md` | `Escouade` et `Personnage` : ancre, formation, orientation, séparation douce, verrou de cible, placement en combat, places d'attaque, intentions, mort et défaite ; `Formation`, `PlacesDAttaque`, `Intention`, `Separation`, `Composition`, `Specialite`, `Encerclement` | Avant de modifier `Escouade`, `Personnage`, `Formation`, `PlacesDAttaque`, `Intention`, `Separation`, `Composition`, `Specialite` ou `Encerclement` |
 | `docs/combat.md` | `Skill` (dont l'attaque de base), `Cercle`, portée bord à bord, autodéfense, `Cible`, skill en attente, circuit des dégâts, qui bloque qui, armure, aléatoire, zones de contrôle, événements et textes flottants | Avant de modifier un module de `combat/` ou de `base/`, `Provocations`, `Agresseurs`, `TextesFlottants`, `BarreDeVie` ou les listes d'obstacles |
 | `docs/monstre.md` | `Monstre` : identifiant, états, détection, territoire, poursuite, retour au poste, riposte | Avant de modifier `Monstre` |
-| `docs/objets.md` | Objets : emplacements et catégories, catalogue, `Equipement`, `Inventaire`, armure calculée depuis l'équipement, opérations `ramasser` / `equiper` / `desequiper` de l'`Escouade` ; référence des modules d'`objets/` | Avant de modifier un module d'`objets/` ou l'équipement d'un `Personnage` |
+| `docs/objets.md` | Objets : emplacements et catégories, catalogue, `Equipement`, `Inventaire`, armure calculée depuis l'équipement, opérations `ramasser` / `equiper` / `desequiper` de l'`Escouade` ; référence des modules d'`objets/` | Avant de modifier un module d'`objets/`, `AffichageObjets` ou l'équipement d'un `Personnage` |
 | `docs/tests.md` | Tests (Catch2, conventions, dossiers, aides) | Avant d'ajouter ou de modifier un test |
 | `docs/audit.md` | Audit du code avant l'étape 80 : constats par famille (R, M, P, D, C, E, L, V, T, B, K), organisation en dossiers, passages de `clang-tidy` | Avant de planifier une refactorisation |
 | `docs/brainstorm.md` | Idées à explorer par thème (rythme du combat, défense, gambits, génération procédurale), leur statut et leurs prérequis ; rien n'y est une décision | Avant de proposer une nouvelle étape |
