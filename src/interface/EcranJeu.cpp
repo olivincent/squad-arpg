@@ -11,6 +11,7 @@
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Mouse.hpp>
 #include <array>
+#include <memory>
 #include <iostream>
 #include <optional>
 #include <string>
@@ -28,6 +29,7 @@
 #include "interface/Contexte.hpp"
 #include "interface/Controleur.hpp"
 #include "interface/EcranDeFin.hpp"
+#include "interface/EcranInventaire.hpp"
 #include "monde/GenerateurDonjon.hpp"
 #include "monde/Niveau.hpp"
 #include "interface/Reglages.hpp"
@@ -121,6 +123,11 @@ Transition EcranJeu::executer(const CommandeDeTouche& commande) {
             [this](commande::Annuler) -> Transition {
                 m_controleur.appuiEchap();
                 return Aucune{};
+            },
+            [this](commande::OuvrirInventaire) -> Transition {
+                // Le relâchement du bouton sera reçu par l'inventaire, pas par le Controleur.
+                m_controleur.interrompre();
+                return Empiler{std::make_unique<EcranInventaire>()};
             },
             [](commande::RetourAuChoix) -> Transition { return Depiler{}; },  // retour à l'écran de choix
             [this](commande::NouvelleCarte) -> Transition {

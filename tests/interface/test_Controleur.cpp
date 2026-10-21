@@ -291,3 +291,20 @@ TEST_CASE("en visee, un clic de barre n'est jamais le point d'impact") {
     REQUIRE(controleur.getAdresseEnVisee() == s_adresseExplosion);    // toujours en visee
     REQUIRE(partie.getEscouade().skillEstPret(s_adresseExplosion));  // rien n'est lance
 }
+
+TEST_CASE("interrompre annule la visee et desarme le deplacement continu") {
+    Partie partie = unePartie(niveauDegage({s_monstreLointain}), s_graineDeTest);
+    Controleur controleur;
+    const BarreDeRaccourcis barre = barreDe(partie);
+    const sf::Vector2f depart = partie.getEscouade().getCentre();
+    const sf::Vector2f curseur{500.0f, 500.0f};
+
+    controleur.appuiGauche(partie, curseur);  // arme le déplacement continu
+    controleur.activerEmplacement(partie, barre, s_emplacementExplosion);
+    controleur.interrompre();
+
+    REQUIRE_FALSE(controleur.getAdresseEnVisee().has_value());
+    controleur.mettreAJourDeplacement(partie, true, curseur);  // bouton encore tenu
+    avancer(partie, 30);
+    verifierPointProche(partie.getEscouade().getCentre(), depart);
+}

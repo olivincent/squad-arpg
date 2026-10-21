@@ -69,6 +69,11 @@ void Controleur::appuiEchap() {
     m_adresseEnVisee.reset();
 }
 
+void Controleur::interrompre() {
+    m_adresseEnVisee.reset();
+    m_deplacementContinu = false;
+}
+
 void Controleur::mettreAJourDeplacement(Partie& partie, bool boutonTenu, sf::Vector2f curseur) {
     if (boutonTenu && m_deplacementContinu) {
         partie.ordonnerDeplacement(curseur);

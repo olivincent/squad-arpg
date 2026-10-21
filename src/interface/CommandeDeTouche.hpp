@@ -12,6 +12,7 @@
 namespace commande {
 struct Rien {};
 struct Annuler {};  // Échap : sortie de la visée
+struct OuvrirInventaire {};
 struct RetourAuChoix {};
 struct NouvelleCarte {};
 struct BasculerPointsVises {};
@@ -23,12 +24,12 @@ struct ActiverEmplacement {
 }  // namespace commande
 
 using CommandeDeTouche =
-    std::variant<commande::Rien, commande::Annuler, commande::RetourAuChoix, commande::NouvelleCarte,
+    std::variant<commande::Rien, commande::Annuler, commande::OuvrirInventaire, commande::RetourAuChoix, commande::NouvelleCarte,
                  commande::BasculerPointsVises, commande::BasculerAncre, commande::BasculerBrouillard,
                  commande::ActiverEmplacement>;
 
 // La commande d'un appui sur `touche` (physique : scancode). Échap, F3 à F6 valent en tout temps ;
-// R (retour au choix) seulement sur l'écran de fin ; les touches des raccourcis de `touches`
+// R (retour au choix) seulement sur l'écran de fin, I (inventaire) seulement hors de l'écran de fin ; les touches des raccourcis de `touches`
 // seulement hors de l'écran de fin. Toute autre touche : `Rien`.
 [[nodiscard]] CommandeDeTouche commandePourTouche(sf::Keyboard::Scancode touche, bool finDePartie,
                                                   const TouchesDesRaccourcis& touches);

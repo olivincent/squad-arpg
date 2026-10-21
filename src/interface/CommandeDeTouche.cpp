@@ -23,7 +23,10 @@ CommandeDeTouche commandePourTouche(sf::Keyboard::Scancode touche, bool finDePar
     if (touche == sf::Keyboard::Scan::F6) {
         return commande::BasculerBrouillard{};
     }
-    // Sur l'écran de fin, seul R compte : les raccourcis sont ignorés.
+    // Sur l'écran de fin, seul R compte : l'inventaire et les raccourcis sont ignorés.
+    if (touche == sf::Keyboard::Scan::I && !finDePartie) {
+        return commande::OuvrirInventaire{};
+    }
     if (!finDePartie) {
         if (const std::optional<std::size_t> emplacement = emplacementPourTouche(touches, touche)) {
             return commande::ActiverEmplacement{*emplacement};

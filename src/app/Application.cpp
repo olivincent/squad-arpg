@@ -15,6 +15,7 @@
 
 #include "combat/Cible.hpp"
 #include "interface/EcranMenu.hpp"
+#include "interface/PileDEcrans.hpp"
 #include "interface/Reglages.hpp"
 
 namespace {
@@ -116,7 +117,9 @@ int Application::executer() {
         m_pile.back()->mettreAJour(dt, contexte());
         // Le seul clear de l'image : aucun écran n'efface la fenêtre.
         m_fenetre.clear();
-        m_pile.back()->dessiner(contexte());
+        for (std::size_t i = premierEcranADessiner(m_pile); i < m_pile.size(); ++i) {
+            m_pile[i]->dessiner(contexte());
+        }
         m_fenetre.display();
     }
     return 0;

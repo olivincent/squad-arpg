@@ -52,3 +52,8 @@ TEST_CASE("touche : les raccourcis de la barre sont ignores en fin de partie") {
 TEST_CASE("touche : une touche inconnue ne fait rien") {
     REQUIRE(estCommande<commande::Rien>(sf::Keyboard::Scan::P, false));
 }
+
+TEST_CASE("touche : I ouvre l'inventaire, sauf en fin de partie") {
+    REQUIRE(estCommande<commande::OuvrirInventaire>(sf::Keyboard::Scan::I, false));
+    REQUIRE(estCommande<commande::Rien>(sf::Keyboard::Scan::I, true));
+}

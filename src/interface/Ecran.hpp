@@ -11,7 +11,8 @@ struct Contexte;
 
 // Un écran de l'application (menu, options, jeu) : patron State. L'Application
 // en garde une pile de std::unique_ptr<Ecran> ; seul l'écran du dessus reçoit
-// les événements, est mis à jour et est dessiné. L'Application vide la fenêtre avant de
+// les événements et est mis à jour (ceux du dessous sont donc figés) ; il est dessiné avec,
+// dessous, les écrans qu'il laisse voir (`laisseVoirDessous`). L'Application vide la fenêtre avant de
 // dessiner : un écran ne le fait jamais.
 class Ecran {
 public:
@@ -28,4 +29,8 @@ public:
     virtual void mettreAJour(float dt, const Contexte& contexte) = 0;
 
     virtual void dessiner(const Contexte& contexte) const = 0;
+
+    // Vrai si l'écran n'est qu'une couche : l'`Application` dessine alors aussi l'écran en dessous
+    // (puis le sien par-dessus). Faux : il remplit la fenêtre et cache ce qui est dessous.
+    [[nodiscard]] virtual bool laisseVoirDessous() const { return false; }
 };

@@ -7,12 +7,12 @@
 #include <vector>
 
 #include "interface/Contexte.hpp"
-#include "interface/Ecran.hpp"
+#include "interface/PileDEcrans.hpp"
 #include "interface/Reglages.hpp"
 
 // Possède la fenêtre, la police, les réglages et la pile d'écrans ; fait
-// tourner la boucle SFML. Seul l'écran du dessus reçoit les événements, est
-// mis à jour et est dessiné. Les transitions demandées par les écrans sont
+// tourner la boucle SFML. Seul l'écran du dessus reçoit les événements et est
+// mis à jour ; il est dessiné avec, dessous, les écrans qu'il laisse voir. Les transitions demandées par les écrans sont
 // appliquées ici, une fois leur appel terminé.
 class Application {
 public:
@@ -34,5 +34,5 @@ private:
     sf::RenderWindow m_fenetre;
     sf::Font m_police;
     Reglages m_reglages;
-    std::vector<std::unique_ptr<Ecran>> m_pile;
+    PileDEcrans m_pile;
 };

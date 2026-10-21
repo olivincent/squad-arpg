@@ -35,6 +35,9 @@ public:
     // demandé à la partie, la visée en cours continue. `assert(emplacement < barre.taille())`.
     void activerEmplacement(Partie& partie, const BarreDeRaccourcis& barre, std::size_t emplacement);
     void appuiEchap();
+    // Annule la visée et désarme le déplacement continu : à l'ouverture d'un écran par-dessus la partie,
+    // dont le relâchement du bouton ne parviendrait pas jusqu'ici.
+    void interrompre();
     // `boutonTenu` : bouton gauche enfoncé ET fenêtre avec le focus.
     void mettreAJourDeplacement(Partie& partie, bool boutonTenu, sf::Vector2f curseur);
 
