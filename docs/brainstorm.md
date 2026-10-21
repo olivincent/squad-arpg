@@ -4,27 +4,11 @@
 
 Ce document garde en tête les idées à reprendre plus tard. Rien ici n'est une décision, et rien ici n'est de la conception technique : pour chaque idée, seulement ce qu'elle est, ce qu'elle apporte au jeu et quelques questions à se poser le moment venu.
 
-Quand une idée est choisie, sa conception se fait en discussion, elle entre dans `ROADMAP.md` et elle quitte ce document. Les petites pistes techniques (A\* qui tient compte des entités, effets visuels, skill en attente par personnage, etc.) sont listées dans « Autres pistes » de `ROADMAP.md`, pas ici.
+Quand une idée est choisie, sa conception se fait en discussion, elle entre dans `ROADMAP.md` et elle quitte ce document. Quand elle est reprise dans `docs/classes-et-combat.md` (document de référence des classes, des skills et des mathématiques du combat, avec un statut par point), elle quitte aussi ce document : c'est le cas des couleurs, de l'esquive, du blocage, des types de dégâts et des résistances. Les numéros de section sont gardés stables (d'autres fichiers y renvoient), donc les sections 1 et 3 ont changé de contenu mais pas de numéro. Les petites pistes techniques (A\* qui tient compte des entités, effets visuels, skill en attente par personnage, etc.) sont listées dans « Autres pistes » de `ROADMAP.md`, pas ici.
 
 ## 1. Classes et synergie par couleurs
 
-**L'idée.** S'inspirer des couleurs de *Magic: The Gathering* pour donner une identité aux classes et pousser le joueur à penser la synergie de son escouade. Chaque couleur a sa façon de jouer :
-
-- **Blanc (sacré)** : soin direct, dégâts de radiance.
-- **Noir (ombre)** : vol de vie, affaiblissements (debuffs).
-- **Rouge (feu, montagne)** : dégâts de feu, armure physique.
-- **Vert (nature, forêt)** : soin dans le temps, archers.
-
-**Ce que ça apporte.** La composition du groupe devient un vrai choix : tout miser sur une couleur, ou en mélanger deux, trois ou quatre pour créer des combinaisons différentes.
-
-**Principe à garder.** Une classe n'est pas enfermée dans une seule couleur : son arbre de skills offre des choix pour pencher d'un côté ou de l'autre. Les couleurs peuvent aussi se croiser entre personnages, par exemple une classe sacrée qui donne à un allié un buff convertissant une partie de ses dégâts en dégâts sacrés.
-
-**Questions ouvertes.**
-
-- Une cinquième couleur (le bleu de Magic : eau, froid, contrôle ?) ou seulement quatre ?
-- Les couleurs correspondent-elles aux types de dégâts et aux résistances (section 3) ?
-- Faut-il récompenser un groupe d'une seule couleur (bonus), ou laisser les combinaisons parler d'elles-mêmes ?
-- Avec seulement 4 personnages, combien de mélanges restent intéressants ?
+Passé dans `docs/classes-et-combat.md` (sections 3 et 4) : les couleurs comme guide de conception des skills (cinq couleurs, bleu compris), la classe de base qu'on spécialise, la progression à la *Titan Quest*. Reste ouverte, et notée là-bas (question 10) : une escouade d'une seule couleur reçoit-elle un bonus ?
 
 ## 2. Coup double
 
@@ -39,18 +23,15 @@ Quand une idée est choisie, sa conception se fait en discussion, elle entre dan
 - Le second coup peut-il lui-même en déclencher un autre ?
 - Seulement l'attaque de base, ou aussi les skills ?
 
-## 3. Autres défenses
+## 3. Bouclier qui déséquilibre
 
-L'armure existe déjà. D'autres façons de réduire ou d'éviter un coup :
+L'esquive, le blocage au bouclier, les types de dégâts et les résistances sont passés dans `docs/classes-et-combat.md` (sections 7 à 9). Reste cette idée, que la question ouverte 1 de ce document renvoie ici.
 
-- **Esquive** : chance d'éviter tout le coup. Bon ressenti pour un voleur, mais peut sembler injuste en série.
-- **Blocage au bouclier** : chance de bloquer une partie du coup. Donne une identité au tank.
-- **Bouclier qui déséquilibre** : un blocage réussi allonge la prochaine recharge de l'attaquant ; la défense ralentit l'adversaire au lieu de réduire les dégâts.
-- **Types de dégâts et résistances** (physique, feu, froid, poison…) : profondeur à la *Titan Quest*, mais beaucoup de contenu à équilibrer. Lien direct avec les couleurs (section 1).
+**L'idée.** Un blocage réussi allonge la prochaine recharge de l'attaquant : la défense ralentit l'adversaire au lieu de réduire les dégâts.
 
-**Pourquoi ça compte pour l'escouade.** Le blocage physique fait déjà du tank un mur ; la défense en ferait aussi une éponge. Les deux ensemble justifient de mettre le guerrier devant et le mage derrière.
+**Ce que ça apporte.** Le tank devant, le mage derrière : un mur qui, en plus d'encaisser, casse le rythme des monstres de mêlée.
 
-**Questions ouvertes.** La défense vient-elle de l'équipement ou de la classe ? Les monstres ont-ils les mêmes mécanismes ?
+**Questions ouvertes.** Dépend du blocage lui-même (existe-t-il en plus de l'esquive ?). De combien la recharge s'allonge-t-elle, et les monstres de grande taille y sont-ils sensibles ? Vient-il de l'équipement (le bouclier) ou de la classe ?
 
 ## 4. Automatisation de l'escouade (gambits)
 
@@ -116,7 +97,7 @@ L'étape 79 pose une file d'`EvenementDeCombat` produite par `Partie` (dégâts,
 
 - **Fait (étape 86, prévue d'abord sous le numéro 83)** : le nom du skill lancé au-dessus du lanceur et « Provoqué » au-dessus des monstres provoqués. L'événement est devenu champs communs + `DetailEvenement` (variant) ; `Escouade` a un canal unique de faits (`prendreFaits`). Non faits : le nom au début de l'activation, une barre d'incantation.
 - **« Immunisé »** au-dessus d'un monstre qui rentre à son poste quand on le frappe : aujourd'hui un montant de 0 ne produit rien. Il faudrait un événement distinct (ce n'est pas un montant).
-- **Critiques, « raté », résistances** : si un jour le combat les connaît, un texte et une couleur de plus.
+- **Critiques, « Esquivé », « Bloqué », résistances** : prévus par `docs/classes-et-combat.md` (sections 6 à 8, dont les deux seuls événements qui annulent un coup, affichés). Quand le combat les connaîtra, un type de détail de plus dans `DetailEvenement`, un texte et une couleur.
 - **Sons** : un son par type d'événement (coup, soin, coup gratuit), lu dans la même file.
 - **Journal de combat** : une liste défilante des événements, utile pour comprendre ce qui se passe quand l'escouade agit seule (gambits).
 - **Statistiques de fin de partie** : dégâts infligés et subis par personnage, soins rendus, coups gratuits ; une lecture de la file cumulée.
@@ -130,7 +111,7 @@ Le modèle existe (`docs/objets.md`) ; ces idées ont été écartées de l'éta
 - **Ceinture et cape** : deux emplacements de plus ; il suffit d'ajouter des valeurs à `Emplacement` et à `CategorieObjet`, et une règle à `peutAller`.
 - **Grille d'inventaire à la Diablo** : des objets qui occupent plusieurs cases. Écartée : le sac à cases fixes suffit au glisser-déposer simple (étape 85), et la grille demande une forme par objet.
 - **Clic droit pour équiper** : équiper un objet du sac vers son emplacement évident, sans glisser. À reconsidérer après l'étape 85 ; avec deux anneaux et trois personnages, « l'emplacement évident » n'existe pas toujours.
-- **Restrictions d'équipement par classe** : un mage sans cuirasse de mailles. Cela donnerait un sens aux classes, mais fixerait aussi le rôle des futurs arbres de skills ; à décider avec eux.
+- **Restrictions d'équipement par classe** : un mage sans cuirasse de mailles. Cela donnerait un sens aux classes, mais fixerait aussi le rôle des futurs arbres de skills ; à décider avec eux. À distinguer des seuils d'équipement par caractéristique (une arme lourde demande de la Vigueur), déjà retenus dans `docs/classes-et-combat.md`, section 5.
 - **Affixes aléatoires et rareté** : l'`Objet` ne porte aujourd'hui que son identifiant. Des affixes demanderaient d'y ajouter des données, et de ne plus supposer que deux objets du même modèle sont égaux.
 - **Armes et deux mains** : classe `Arme` (intervalle de recharge de l'attaque de base), catégorie d'arme dans `peutAller`, règle d'occupation de la main gauche pour une arme à deux mains.
 - **Sauvegarde de l'équipement** entre deux parties, **butin au sol** et tables de butin des monstres.
@@ -138,7 +119,7 @@ Le modèle existe (`docs/objets.md`) ; ces idées ont été écartées de l'éta
 ## 6. Idées en vrac
 
 - **État de l'escouade** (en combat, en mouvement, au repos) : utile pour la mana et les gambits.
-- **Mana** qui se régénère hors combat.
+- **Mana** qui se régénère hors combat (un mana pour tous, ou une ressource par style : question ouverte 6 de `docs/classes-et-combat.md`).
 - **Caméra** qui dézoome pour garder tout le groupe à l'écran.
 - **Brouillard de guerre** : pousse à garder le groupe uni.
 - **Passage à Unreal Engine** pour la 3D : décision lointaine, raison de plus pour garder la logique de jeu séparée du rendu.
