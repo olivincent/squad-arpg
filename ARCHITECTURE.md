@@ -49,7 +49,7 @@ squad-arpg/
 │   ├── combat/     Skill, SkillConnu, IdSkill, TypeSkill, AdresseSkill, Cible, ActionEngagee,
 │   │               EtatSkill, Coup, EvenementDeCombat, EntiteVue, Autodefense, Engagement,
 │   │               Defense, PointsDeVie, Vitalite
-│   ├── objets/     Emplacement, Objet, CatalogueObjets, Equipement, Inventaire
+│   ├── objets/     Emplacement, Objet, CatalogueObjets, Equipement, Inventaire, PositionDObjet
 │   ├── escouade/   Escouade, Personnage, Formation, PlacesDAttaque, Intention, Separation,
 │   │               EcartEntrePersonnages, Composition, Specialite, SelectionDEscouade,
 │   │               Provocations, Agresseurs
@@ -146,11 +146,13 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
   et `sacDeDepart()`.
 - `Equipement` : un objet au plus par emplacement, `armureTotale()` ; possédé par chaque `Personnage`.
 - `Inventaire` : le sac, des cases à position fixe ; possédé par l'`Escouade`.
+- `PositionDObjet` : une case du sac ou un emplacement d'un personnage, et `deplacementPermis`, seule source
+  de la règle des déplacements.
 
 `escouade/` — le camp du joueur (`docs/formation.md`, sauf mention) :
 - `Escouade` : l'assemblage : ancre, verrou, skills en attente, attaque, et la résolution des intentions en
   points visés ; elle possède `Formation`, `PlacesDAttaque`, `Agresseurs`, `Provocations`, le sac
-  (`Inventaire`) et les `Personnage` ; `ramasser`, `equiper` et `desequiper` déplacent les objets.
+  (`Inventaire`) et les `Personnage` ; `ramasser` et `deplacerObjet` déplacent les objets.
 - `Personnage` : un membre : déplacement, attaque de base, skills, vie, vision, équipement (son armure
   en est la somme).
 - `Formation` : décalages, orientation, point à regarder et places de formation, sans `Personnage`.
@@ -178,8 +180,8 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `PileDEcrans` : la pile et `premierEcranADessiner`, quels écrans dessiner (`docs/ecrans.md`).
 - `EntreeDInterface` : clic gauche et curseur en coordonnées d'interface, pour les écrans à vue d'interface (`docs/ecrans.md`).
 - `EcranJeu` : l'écran de la partie : événements, caméra, dessin, textes flottants (`docs/ecrans.md`).
-- `EcranInventaire` : le sac et l'équipement en lecture, par-dessus la partie figée, touche I (`docs/ecrans.md`).
-- `DispositionInventaire` : rectangles de l'inventaire, `elementSous`, placement de l'infobulle (`docs/ecrans.md`).
+- `EcranInventaire` : le sac et l'équipement, déplacement des objets par glisser-déposer, par-dessus la partie figée, touche I (`docs/ecrans.md`).
+- `DispositionInventaire` : rectangles de l'inventaire, `elementSous` (une `PositionDObjet`), placement de l'infobulle (`docs/ecrans.md`).
 - `AffichageObjets` : noms des emplacements et des catégories, sigles, lignes de l'infobulle (`docs/objets.md`).
 - `ListeDeBoutons` : colonne de boutons sans position stockée (`docs/ecrans.md`).
 - `Reglages` : réglages d'affichage, `reglages.ini`, table des touches des raccourcis (`docs/ecrans.md`).
@@ -288,7 +290,7 @@ de modifier un module, lire le fichier correspondant :
 | `docs/formation.md` | `Escouade` et `Personnage` : ancre, formation, orientation, séparation douce, verrou de cible, placement en combat, places d'attaque, intentions, mort et défaite ; `Formation`, `PlacesDAttaque`, `Intention`, `Separation`, `Composition`, `Specialite`, `Encerclement` | Avant de modifier `Escouade`, `Personnage`, `Formation`, `PlacesDAttaque`, `Intention`, `Separation`, `Composition`, `Specialite` ou `Encerclement` |
 | `docs/combat.md` | `Skill` (dont l'attaque de base), `Cercle`, portée bord à bord, autodéfense, `Cible`, skill en attente, circuit des dégâts, qui bloque qui, armure, aléatoire, zones de contrôle, événements et textes flottants | Avant de modifier un module de `combat/` ou de `base/`, `Provocations`, `Agresseurs`, `TextesFlottants`, `BarreDeVie` ou les listes d'obstacles |
 | `docs/monstre.md` | `Monstre` : identifiant, états, détection, territoire, poursuite, retour au poste, riposte | Avant de modifier `Monstre` |
-| `docs/objets.md` | Objets : emplacements et catégories, catalogue, `Equipement`, `Inventaire`, armure calculée depuis l'équipement, opérations `ramasser` / `equiper` / `desequiper` de l'`Escouade` ; référence des modules d'`objets/` | Avant de modifier un module d'`objets/`, `AffichageObjets` ou l'équipement d'un `Personnage` |
+| `docs/objets.md` | Objets : emplacements et catégories, catalogue, `Equipement`, `Inventaire`, armure calculée depuis l'équipement, opérations `ramasser` / `deplacerObjet` de l'`Escouade`, `PositionDObjet` ; référence des modules d'`objets/` | Avant de modifier un module d'`objets/`, `AffichageObjets` ou l'équipement d'un `Personnage` |
 | `docs/tests.md` | Tests (Catch2, conventions, dossiers, aides) | Avant d'ajouter ou de modifier un test |
 | `docs/audit.md` | Audit du code avant l'étape 80 : constats par famille (R, M, P, D, C, E, L, V, T, B, K), organisation en dossiers, passages de `clang-tidy` | Avant de planifier une refactorisation |
 | `docs/brainstorm.md` | Idées à explorer par thème (rythme du combat, défense, gambits, génération procédurale), leur statut et leurs prérequis ; rien n'y est une décision | Avant de proposer une nouvelle étape |

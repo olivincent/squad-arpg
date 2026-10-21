@@ -102,6 +102,7 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 - Étape 83 — Inventaire et équipement : le modèle (sans interface) ✅
 - Étape 84 — Inventaire : l'écran en lecture (avec R6, D4, P2) ✅
+- Étape 85 — Inventaire : le glisser-déposer ✅
 
 ## Détail des étapes 0 à 73
 
@@ -2055,3 +2056,18 @@ pures testées ; `rectangleDeLaCaseDuSac` porte ce nom parce que `rectangleDeLaC
 `SelectionDEscouade`. Lecture seule : aucune fonction de modification n'est appelée. 1 045 tests,
 41 avertissements `clang-tidy` (inchangé). Détail : `docs/ecrans.md`, `docs/boucle-et-entrees.md`,
 `docs/objets.md`, `docs/audit.md` (suivi de R6, D4, P2, T4).
+
+### Étape 85 — Inventaire : le glisser-déposer ✅
+
+Troisième étape de la série inventaire. Six sous-étapes. Nouveau module `objets/PositionDObjet` :
+`PositionDansLeSac`, `PositionPortee` et `PositionDObjet` (`std::variant`), avec `deplacementPermis`,
+fonction pure et seule source de la règle des déplacements (compatibilité de l'arrivée, et du
+départ pour l'échange). `Escouade::peutDeplacerObjet` (requête) et `deplacerObjet` (commande, qui
+appelle la requête) remplacent `equiper` et `desequiper` ; `objetA` est publique, pour l'écran.
+`ElementInventaire` disparaît : `elementSous` renvoie une `PositionDObjet`. `EcranInventaire` garde une
+`Escouade&` (`Partie::getEscouade()` non constante) et l'origine du glissement ; rien ne bouge dans le
+modèle avant le relâchement. Échap annule un glissement (le deuxième ferme), la perte du focus aussi ;
+l'origine est voilée, l'objet suit le curseur, l'infobulle est masquée, et les destinations valides ont un
+contour doré (`peutDeplacerObjet`, la même requête que le relâchement). `relachementGaucheDInterface`
+complète `EntreeDInterface`. 1 069 tests. Détail : `docs/objets.md`, `docs/ecrans.md`,
+`docs/formation.md`, `docs/tests.md`.

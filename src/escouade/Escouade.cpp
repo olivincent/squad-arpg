@@ -1127,7 +1127,7 @@ bool Escouade::deplacerObjet(const PositionDObjet& de, const PositionDObjet& ver
     const std::optional<Objet> objetDe = retirerA(de);
     const std::optional<Objet> objetVers = retirerA(vers);
     assert(objetDe.has_value());
-    poserA(vers, *objetDe);
+    poserA(vers, *objetDe);  // NOLINT(bugprone-unchecked-optional-access): vérifié par l'assert au-dessus (la requête a refusé les sources vides)
     if (objetVers.has_value()) {
         poserA(de, *objetVers);
     }

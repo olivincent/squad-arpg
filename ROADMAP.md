@@ -8,20 +8,21 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 ## Étapes terminées
 
-Étapes 0 à 84 ✅. Les dernières :
+Étapes 0 à 85 ✅. Les dernières :
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 - Étape 83 — Inventaire et équipement : le modèle, sans interface ✅
 - Étape 84 — Inventaire : l'écran en lecture (avec R6, D4, P2) ✅
+- Étape 85 — Inventaire : le glisser-déposer ✅
 
 ## État actuel (résumé)
 
 - **Outils** : conception dans Claude.ai, implémentation avec Claude Code dans VSCode (règles dans
   `CLAUDE.md`) ; dépôt Git `squad-arpg`, poussé sur GitHub ; SFML 3.0.2 intégrée à CMake.
-- **Code** (étape 84) : 68 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
+- **Code** (étape 85) : 69 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
   `combat`, `objets`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
   de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug` et `jeu`, 0
-  avertissement, 1 045 tests verts sous CTest, 41 avertissements `clang-tidy` (`docs/build.md`,
+  avertissement, 1 069 tests verts sous CTest, 41 avertissements `clang-tidy` (`docs/build.md`,
   `docs/audit.md`). `Escouade` n'est plus que l'assemblage : `Escouade.cpp` de 1 223 à 1 067 lignes. Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`).
 - **Écrans** : menu à la souris, options d'affichage (fenêtré ou plein écran, résolutions,
   `reglages.ini`), choix de 3 classes parmi 5 (guerrier, prêtre, mage, paladin, rôdeur ; doublons
@@ -35,9 +36,11 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   même règle que la ligne de vue du combat ; F6 le coupe à l'affichage (`docs/vision.md`).
 - **Objets** : 10 emplacements par personnage, un sac de 40 cases pour l'escouade, un catalogue de
   10 objets ; l'armure d'un personnage est la somme de son équipement (guerrier et paladin partent
-  équipés : 50 ; les autres : 0) ; `ramasser`, `equiper` et `desequiper` sont transactionnelles. La
+  équipés : 50 ; les autres : 0) ; `ramasser` et `deplacerObjet` sont transactionnelles. La
   touche I ouvre l'inventaire par-dessus la partie figée : équipement des 3 personnages, sac de 40
-  cases, infobulle au survol, en lecture seule (`docs/objets.md`, `docs/ecrans.md`).
+  cases, infobulle au survol, et glisser-déposer des objets (sac, emplacements, entre personnages ;
+  échange si la destination est occupée ; destinations valides en surbrillance) (`docs/objets.md`,
+  `docs/ecrans.md`).
 - **Escouade** : une ancre suivie par 3 personnages en formation (rangs avant et arrière), qui
   pivote et se resserre près des murs ; places d'attaque autour des monstres, séparation douce,
   chemins qui contournent les monstres, dégagement des tireurs (`docs/formation.md`, `docs/chemin.md`).
@@ -124,16 +127,7 @@ d'attaque » par type de monstre (`docs/brainstorm.md`, section 4 bis), qui se b
   ou des hordes (la partie 1 a déjà divisé le coût par 7 à 13) ;
 - R5 (identifiants et places) : décidé en 82.5, rattachée à R4 (voir ci-dessus).
 
-## Étape 85 (prochaine) : glisser-déposer
-
-Série inventaire : 83 = modèle, 84 = écran en lecture (faite), 85 = glisser-déposer. L'étape 84 a
-laissé de quoi s'appuyer : `DispositionInventaire` (`elementSous` donne l'emplacement ou la case
-sous un point), `EcranInventaire` qui reçoit déjà les événements, et `Controleur::interrompre`.
-Déplacer un objet du sac vers un emplacement et inversement à la souris, avec
-`Escouade::equiper` et `desequiper` (déjà transactionnelles et testées) ; rangement du sac ; échange
-d'un objet entre deux personnages. Idées écartées : `docs/brainstorm.md`, section 5 quater.
-
-## Étape 86 : nom du skill lancé et « Provoqué »
+## Étape 86 (prochaine) : nom du skill lancé et « Provoqué »
 
 (Anciennement étape 83.) Le nom du skill lancé au-dessus du lanceur et « Provoqué » au-dessus des
 monstres provoqués, par la même file d'événements que l'étape 79 : un type d'événement de plus

@@ -27,7 +27,7 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
   un autre.
 - **Invariant de la pile : un écran vit toujours plus longtemps que ceux qui sont au-dessus de
   lui.** C'est ce qui permet à un écran du dessus de garder une référence vers une donnée d'un
-  écran du dessous : `EcranInventaire` garde une `const Escouade&` de l'`EcranJeu`. Ce n'est pas
+  écran du dessous : `EcranInventaire` garde une `Escouade&` de l'`EcranJeu`. Ce n'est pas
   la règle du `Contexte`, jamais gardé parce que la fenêtre est recréée entre deux appels. Toute
   référence de ce genre se justifie par cet invariant ; un écran ne se retire de la pile que par
   une `Transition`, donc après tous ceux qui sont au-dessus de lui.
@@ -75,7 +75,7 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
   utilise. Le dessin des écrans du dessous est arrivé avec l'inventaire, premier écran à en avoir
   besoin.
 
-## `EcranInventaire` : l'inventaire en lecture (étape 84)
+## `EcranInventaire` : l'inventaire (étapes 84 et 85)
 
 - **Ouvert par I**, empilé par `EcranJeu` sur la commande `OuvrirInventaire` de
   `commandePourTouche`, sauf sur l'écran de fin (comme les touches de la barre). La touche I est
@@ -85,16 +85,33 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
 - **Avant d'empiler**, `EcranJeu` appelle `Controleur::interrompre()` (annule la visée et le
   déplacement continu). Sans cela, le relâchement du bouton gauche, reçu par l'inventaire,
   n'arriverait jamais au `Controleur` : l'escouade repartirait toute seule à la fermeture.
-- **Lecture seule** : l'écran garde une `const Escouade&` (valide grâce à l'invariant de la pile)
-  et les noms des classes des places, que `EcranJeu` lui donne (il connaît ses `IdSpecialite`).
-  Il n'appelle aucune fonction de modification. I et Échap le ferment ; les clics et les autres
-  touches sont ignorés ; la croix de la fenêtre quitte, comme partout.
+- **`Escouade&` non constante** (étape 85) : l'écran garde l'`Escouade` de l'`EcranJeu` (valide grâce
+  à l'invariant de la pile ; `Partie::getEscouade()` a une surcharge non constante pour cela) et les
+  noms des classes des places, que `EcranJeu` lui donne (il connaît ses `IdSpecialite`). Il n'appelle
+  qu'une fonction de modification : `Escouade::deplacerObjet`. La croix de la fenêtre quitte, comme partout.
+- **Glisser-déposer** (étape 85) : l'état est un `std::optional<PositionDObjet>`, l'origine. Rien ne
+  bouge dans le modèle pendant le glissement ; tout se joue au relâchement.
+  - Appui du bouton gauche sur une position occupée : début du glissement ; position vide ou ailleurs : rien.
+  - Relâchement : si `elementSous` donne une position, `deplacerObjet(origine, cible)` (un résultat
+    faux est normal : rien ne bouge, `static_cast<void>` commenté) ; ailleurs, rien. Le glissement
+    se termine dans tous les cas. Le bouton droit ne fait rien.
+  - Échap pendant un glissement l'annule seulement (un deuxième Échap ferme) ; I ferme l'écran (rien
+    n'a bougé) ; `sf::Event::FocusLost` annule, parce que le relâchement hors de la fenêtre n'arrive pas
+    (sans cela l'objet resterait collé au curseur).
+  - Affichage : l'origine est recouverte d'un voile (`s_couleurAttenuation`), l'objet saisi (carré de la
+    taille d'une case avec son sigle) suit le curseur et est dessiné en dernier, l'infobulle est masquée.
+    Les destinations valides (`peutDeplacerObjet(origine, position)`, sauf l'origine) ont un contour doré :
+    les emplacements des 3 personnages et les cases du sac. C'est la requête du relâchement, donc ce
+    qui brille est permis.
+  - Les fonctions `saisir`, `relacher`, `annulerLeGlissement` prennent des points en coordonnées
+    d'interface : les tests n'ont besoin ni de fenêtre ni d'événement SFML. `traiterEvenement` ne fait que
+    les traduire (`clicGaucheDInterface`, `relachementGaucheDInterface`, `FocusLost`).
 - **Disposition en fonctions pures** (`interface/DispositionInventaire`), sans position stockée :
   tout est recalculé depuis la taille de la vue d'interface. En haut, une colonne par personnage
   (bande de la classe à la couleur du personnage, « Armure : N », « (mort) », 10 emplacements en
   deux colonnes de 5) ; en bas, le sac (4 rangées de 10 cases). Le dessin, le survol et les tests
   appellent les mêmes rectangles (`rectangleDeLEmplacement`, `rectangleDeLaCaseDuSac`,
-  `elementSous`) ; l'étape 85 s'en servira pour le glisser-déposer. Un test vérifie que tout
+  `elementSous`), aussi utilisés par le glisser-déposer. Un test vérifie que tout
   tient dans 1200 × 800 (et en 16:9), dans le panneau, sans chevauchement.
 - **Infobulle** : au survol d'un emplacement ou d'une case occupés, nom, catégorie et armure de
   l'objet (`lignesDeLInfobulle`), placés près du curseur et gardés entièrement dans la vue
@@ -234,8 +251,8 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
 - `reglages.ini` est cherché dans le dossier courant, comme la police.
 - Pas de menu de pause ni de retour au choix de l'escouade en cours de partie (R n'agit
   qu'après une défaite ou une victoire).
-- Inventaire (étape 84) : en lecture seule (le glisser-déposer est l'étape 85) ; la touche I n'est
-  pas configurable ; pas d'icônes d'objets (un sigle de deux lettres) ni de couleurs par rareté ;
+- Inventaire (étapes 84 et 85) : pas de clic droit pour équiper, pas de prise au clic puis dépôt au
+  clic, pas de glisser vers le monde (`docs/brainstorm.md`) ; la touche I n'est pas configurable ; pas d'icônes d'objets (un sigle de deux lettres) ni de couleurs par rareté ;
   `s_casesDuSac` (disposition) doit égaler la capacité du sac, une constante de `Escouade.cpp`
   (un `assert` du dessin le vérifie) ; `EcranInventaire` suppose `s_nombreDePlaces` = 3 classes.
 - Les boutons de `ListeDeBoutons` recopient le centrage de texte de
@@ -341,6 +358,7 @@ Fonction pure, testée avec des écrans de test.
 | Fonction | Rôle |
 |---|---|
 | `std::optional<PointDInterface> clicGaucheDInterface(const sf::Event&, const Contexte&)` | Le point d'un clic gauche en coordonnées de la vue d'interface et le centre de cette vue ; vide pour tout autre événement ; `[[nodiscard]]` |
+| `std::optional<PointDInterface> relachementGaucheDInterface(const sf::Event&, const Contexte&)` | Le point du relâchement du bouton gauche, même conversion ; vide pour tout autre événement ; utilisée par le glisser-déposer de l'inventaire ; `[[nodiscard]]` |
 | `PointDInterface preparerLInterface(const Contexte&)` | Pose `vueDInterface` sur la fenêtre et rend la position du curseur dans cette vue, avec le centre ; ne vide pas la fenêtre ; `[[nodiscard]]` |
 
 Non testées (elles ont besoin d'une `RenderWindow`).
@@ -404,18 +422,22 @@ construction, `explicit EcranMenu(std::vector<Resolution>)`), `m_boutons` (`List
 | `const SelectionDEscouade& getSelection() const` | La sélection en cours (tests) ; `[[nodiscard]]` |
 | `void dessiner(const Contexte&) const` | Titre, boutons des classes, trois cases « 1. Guerrier » ou « 1. — » (bande de la couleur que le personnage aura en jeu, doublons assombris), actions |
 
-### `EcranInventaire` (`interface/`) — l'inventaire en lecture
+### `EcranInventaire` (`interface/`) — l'inventaire
 
-`EcranInventaire.hpp` / `.cpp`. Données membres : `m_escouade` (`const Escouade&`, celle de l'`EcranJeu` du dessous : valide grâce à l'invariant de la pile), `m_nomsDesClasses` (`std::vector<std::string>`, un nom par place).
+`EcranInventaire.hpp` / `.cpp`. Données membres : `m_escouade` (`Escouade&`, celle de l'`EcranJeu` du dessous : valide grâce à l'invariant de la pile), `m_nomsDesClasses` (`std::vector<std::string>`, un nom par place), `m_origine` (`std::optional<PositionDObjet>`, l'origine du glissement en cours).
 
 | Fonction | Rôle |
 |---|---|
-| `EcranInventaire(const Escouade&, std::vector<std::string>)` | `assert` : `s_nombreDePlaces` noms |
-| `Transition appuyer(sf::Keyboard::Scancode) const` | I ou Échap : `Depiler` ; autre touche : `Aucune` ; `[[nodiscard]]` |
-| `Transition traiterEvenement(...)` | Une touche pressée passe par `appuyer` ; clics et autres événements : `Aucune` |
+| `EcranInventaire(Escouade&, std::vector<std::string>)` | `assert` : `s_nombreDePlaces` noms |
+| `Transition appuyer(sf::Keyboard::Scancode)` | I : `Depiler` ; Échap : annule le glissement en cours (`Aucune`), sinon `Depiler` ; autre touche : `Aucune` ; `[[nodiscard]]` |
+| `void saisir(sf::Vector2f point, sf::Vector2f tailleDeVue)` | Commence un glissement si un objet est sous le point |
+| `void relacher(sf::Vector2f point, sf::Vector2f tailleDeVue)` | `deplacerObjet(origine, position sous le point)` s'il y en a une ; termine toujours le glissement ; sans glissement, ne fait rien |
+| `void annulerLeGlissement()` | Efface l'origine sans rien déplacer |
+| `const std::optional<PositionDObjet>& origineDuGlissement() const` | L'origine du glissement, vide sinon ; lue par les tests ; `[[nodiscard]]` |
+| `Transition traiterEvenement(...)` | Touche : `appuyer` ; appui gauche : `saisir` ; relâchement gauche : `relacher` ; `FocusLost` : `annulerLeGlissement` ; le reste : `Aucune` |
 | `void mettreAJour(float, const Contexte&)` | Ne fait rien (le monde dessous est figé) |
 | `bool laisseVoirDessous() const` | `true` |
-| `void dessiner(const Contexte&) const` | Vue d'interface, voile sombre, panneau (marge de 40 px), titre, les 3 colonnes (en-tête à la couleur du personnage, armure lue sur son `Equipement`, « (mort) » si ses points de vie sont 0, 10 emplacements), le sac (sigles), puis l'infobulle de l'objet sous le curseur |
+| `void dessiner(const Contexte&) const` | Vue d'interface, voile sombre, panneau (marge de 40 px), titre, les 3 colonnes (en-tête à la couleur du personnage, armure lue sur son `Equipement`, « (mort) » si ses points de vie sont 0, 10 emplacements), le sac (sigles), puis : sans glissement, l'infobulle de l'objet sous le curseur ; pendant un glissement, le contour des destinations valides, le voile sur l'origine et l'objet saisi sous le curseur (pas d'infobulle) |
 
 ### `DispositionInventaire` (`interface/`) — où est chaque élément
 
@@ -426,7 +448,7 @@ construction, `explicit EcranMenu(std::vector<Resolution>)`), `m_boutons` (`List
 | `rectangleDeLEnTete(place, tailleDeVue)` / `rectangleDeLArmure(...)` | Bande de la classe et ligne « Armure » de la colonne de cette place (de 1 à `s_nombreDePlaces`) ; `[[nodiscard]]` |
 | `rectangleDeLEmplacement(place, Emplacement, tailleDeVue)` | Rectangle de l'emplacement ; les 5 premiers de l'enum à gauche, les 5 suivants à droite ; `[[nodiscard]]` |
 | `rectangleDeLaCaseDuSac(indice, tailleDeVue)` | Rectangle de la case (`assert(indice < s_casesDuSac)`). Nommée ainsi parce que `rectangleDeLaCase` existe dans `SelectionDEscouade` ; `[[nodiscard]]` |
-| `std::optional<ElementInventaire> elementSous(point, tailleDeVue)` | `ElementEmplacement {place, emplacement}` ou `ElementCase {indice}` dans un `std::variant` ; vide dans un écart, sur un en-tête ou hors des éléments ; `[[nodiscard]]` |
+| `std::optional<PositionDObjet> elementSous(point, tailleDeVue)` | `PositionPortee {place, emplacement}` ou `PositionDansLeSac {caseDuSac}` (`objets/PositionDObjet`) ; vide dans un écart, sur un en-tête ou hors des éléments ; `[[nodiscard]]` |
 | `sf::FloatRect placerInfobulle(curseur, tailleInfobulle, tailleDeVue)` | Sous et à droite du curseur (16 px), de l'autre côté s'il sortirait de la vue, puis gardée dans la vue ; `[[nodiscard]]` |
 
 ### `SelectionDEscouade` (`escouade/`) — les classes choisies

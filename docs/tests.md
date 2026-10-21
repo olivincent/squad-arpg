@@ -1312,8 +1312,8 @@ même chose avec plus de détail.
   `test_CatalogueObjets.cpp` (ordre de l'enum, chaque catégorie va quelque part, sac de départ),
   `test_Equipement.cpp` (pose, ancien objet rendu, retrait, `armureTotale` vide, partielle, complète),
   `test_Inventaire.cpp` (première case libre, sac plein, positions stables après une prise).
-- **`tests/escouade/test_Escouade_equipement.cpp`** (13 cas) : `ramasser`, `equiper`, `desequiper`
-  (réussites et échecs, échange, mort équipé), compteur d'exemplaires par modèle avant et après
+- **`tests/escouade/test_Escouade_equipement.cpp`** (18 cas depuis l'étape 85) : `ramasser`,
+  `deplacerObjet` (réussites et échecs, échange, mort équipé), compteur d'exemplaires par modèle avant et après
   chaque opération (un objet n'est qu'à un endroit), armure lue par `recevoirCoup`, sac de départ
   d'une `Partie`.
 - **Aucun littéral d'armure** : les attentes sont calculées avec `definitionObjet(id).armure` et
@@ -1339,8 +1339,9 @@ même chose avec plus de détail.
   une grille de positions).
 - **`tests/interface/test_AffichageObjets.cpp`** (4) : un nom par emplacement, tous différents ; un nom
   par catégorie ; un sigle de deux lettres par objet du catalogue, tous différents ; lignes de l'infobulle.
-- **`tests/interface/test_EcranInventaire.cpp`** (3) : I et Échap dépilent, les autres touches sont
-  ignorées, l'écran laisse voir dessous (avec une escouade de test, `aides_escouade.hpp`).
+- **`tests/interface/test_EcranInventaire.cpp`** (15 depuis l'étape 85) : I et Échap dépilent, les
+  autres touches sont ignorées, l'écran laisse voir dessous (avec une escouade de test,
+  `aides_escouade.hpp`) ; le glissement (voir « Étape 85 »).
 - **`tests/interface/test_BarreDeSkills.cpp`** (+2) : `iconesDeLaBarre` (emplacement garni et vide, seul
   l'emplacement du skill visé est en visée ; le nom de la touche n'est pas testé, il dépend du système).
 - **`tests/interface/test_Controleur.cpp`** (+1) : `interrompre` annule la visée et désarme le
@@ -1348,3 +1349,23 @@ même chose avec plus de détail.
   empilé (`dynamic_cast<EcranOptions*>`).
 - Non testés, parce qu'ils ont besoin d'une `RenderWindow` : `clicGaucheDInterface`,
   `preparerLInterface`, `Application`, `EcranJeu` et tous les `dessiner`.
+
+## Étape 85 : le glisser-déposer (+24 cas, 1 045 → 1 069)
+
+- **`tests/objets/test_PositionDObjet.cpp`** (7) : `deplacementPermis` pour chaque combinaison : source
+  vide, même position, sac → sac (vide, occupé), sac → emplacement (compatible, incompatible, occupé),
+  emplacement → sac (case vide, compatible, incompatible), emplacement → emplacement (anneaux, entre
+  personnages, incompatible). Le cas « permis dans un sens seulement » n'existe pas avec le catalogue
+  actuel (`docs/objets.md`, « Déplacements »).
+- **`tests/escouade/test_Escouade_equipement.cpp`** (+5) : l'armure suit un objet d'un personnage à
+  l'autre (lue par `recevoirCoup`), échange entre deux personnages, sac → sac (case vide, occupée, même
+  case), source vide et destinations refusées sans rien changer, `peutDeplacerObjet` ne change rien.
+  Le compte d'exemplaires est vérifié après chaque déplacement, réussi ou non.
+- **`tests/interface/test_EcranInventaire.cpp`** (+12) : saisir (objet, case vide, vide, hors des
+  éléments), rien ne bouge avant le relâchement, relâcher sur un emplacement compatible, sur une case
+  du sac, sur un emplacement incompatible, dans le vide, sans glissement, objet porté échangé avec un
+  autre personnage, Échap annule puis ferme, I ferme pendant un glissement, `annulerLeGlissement`.
+  Les événements SFML, la perte du focus et le dessin (atténuation, objet qui suit le curseur,
+  surbrillance) ne sont pas testés : ils se vérifient à l'écran.
+- **`tests/interface/test_DispositionInventaire.cpp`** : `elementSous` compare maintenant des
+  `PositionDObjet`.

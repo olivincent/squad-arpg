@@ -1,8 +1,8 @@
 # Squad-ARPG — Objets, équipement et sac
 
 Le modèle des objets (étape 83) : le catalogue, ce que porte chaque personnage, le sac de
-l'escouade et les trois opérations qui déplacent un objet. L'écran d'inventaire en lecture (étape 84)
-les affiche ; le glisser-déposer est à l'étape 85. L'armure et son effet sur les dégâts sont dans
+l'escouade et les opérations qui déplacent un objet. L'écran d'inventaire (étape 84) les affiche, et
+le glisser-déposer (étape 85) les déplace. L'armure et son effet sur les dégâts sont dans
 `docs/combat.md`, la construction des personnages dans `docs/formation.md`.
 
 ## Décisions
@@ -42,13 +42,13 @@ les affiche ; le glisser-déposer est à l'étape 85. L'armure et son effet sur 
   les attentes sont calculées avec `definitionObjet(id).armure` ou `armureDe(equipement)`
   (`tests/aides.hpp`), jamais avec 50 ou 20 écrits en dur. `test_Specialite.cpp` reste le seul
   fichier qui lit l'équipement de départ du catalogue des classes.
-- **Opérations transactionnelles** : `ramasser`, `equiper` et `desequiper` vérifient toutes leurs
+- **Opérations transactionnelles** : `ramasser` et `deplacerObjet` vérifient toutes leurs
   conditions avant de modifier quoi que ce soit ; vraies, tout est fait, fausses, rien n'a bougé.
-  Une fois les conditions vérifiées, l'échange ne peut plus échouer : `equiper` ne dit jamais
-  « sac plein » parce que l'objet porté prend la case que l'objet équipé vient de libérer.
+  Une fois les conditions vérifiées, l'échange ne peut plus échouer : il ne dit jamais « sac plein »
+  parce que chaque objet prend la place que l'autre vient de libérer.
 - **Équiper un mort est permis** : aucune règle ne l'interdit pour l'instant.
 - **Le sac est à positions fixes** : retirer un objet laisse sa case vide, les autres ne bougent
-  pas ; `ajouter` prend la première case libre. Le rangement par le joueur est l'étape 85.
+  pas ; `ajouter` prend la première case libre. Le joueur range le sac par `deplacerObjet`.
 - **La capacité (40) appartient à `Escouade`** (`s_capaciteDuSac`, dans `Escouade.cpp`), pas à
   `Inventaire`, qui reçoit sa capacité à la construction. `Partie` remplit le sac avec
   `sacDeDepart()` à sa construction.
@@ -75,6 +75,28 @@ et le sac, en lecture seule ; aucune fonction de modification n'est appelée.
   du personnage est calculée ; elle n'est pas mise en cache dans l'écran.
 - **Disposition** : `interface/DispositionInventaire`, fonctions pures qui servent au dessin, au
   survol et aux tests ; l'étape 85 s'en servira pour le glisser-déposer (`docs/ecrans.md`).
+
+## Déplacements (étape 85)
+
+- **Une position, un seul type** : `PositionDObjet` est un `std::variant<PositionDansLeSac,
+  PositionPortee>`. La place d'une `PositionPortee` reste un entier de 1 à N (convention des places) :
+  `objets/` ne dépend pas d'`escouade/`. Un seul déplacement remplace les quatre cas (sac → emplacement,
+  emplacement → sac, sac → sac, emplacement → emplacement) ; `equiper` et `desequiper` sont supprimées.
+- **Une règle, une fonction pure** : `deplacementPermis(de, objetDe, vers, objetVers)` ne connaît ni
+  `Escouade`, ni `Inventaire`, ni `Personnage`. Faux si la source est vide ; vrai si `de == vers` ;
+  si `vers` est un emplacement, l'objet doit pouvoir y aller (`peutAller`) ; si `vers` est occupé et
+  que `de` est un emplacement, l'objet de `vers` doit aussi pouvoir aller à celui de `de` (échange).
+  Vers une case du sac, tout objet va.
+- **Requête et commande** : `Escouade::peutDeplacerObjet` lit les deux objets et appelle
+  `deplacementPermis` ; `deplacerObjet` commence par appeler la requête, donc la surbrillance de l'écran
+  et l'action ne peuvent pas diverger. Le déplacement sort les deux objets (`retirerA`) avant de les
+  poser en croix (`poserA`) : aucun n'existe à deux endroits, et l'armure des personnages est
+  recalculée par `Personnage`.
+- **Sens de l'échange** : avec le catalogue actuel (un emplacement par catégorie, sauf les deux
+  anneaux), la compatibilité est symétrique, donc aucun cas « permis dans un sens seulement » n'existe.
+  La condition d'échange est écrite quand même : les armes à deux mains la rendront utile.
+- **Glissement** : le modèle ne bouge pas pendant le glissement ; tout se joue au relâchement
+  (`docs/ecrans.md`).
 
 ## Limites connues
 
@@ -155,6 +177,16 @@ Données membres : `m_cases` (`std::vector<std::optional<Objet>>`, dimensionné 
 | `std::optional<Objet> poser(std::size_t caseDuSac, Objet)` | Met l'objet dans la case et rend l'ancien contenu ; `[[nodiscard]]` |
 | `bool ajouter(Objet)` | Met l'objet dans la première case libre ; faux, sans rien changer, si le sac est plein ; `[[nodiscard]]` |
 
+### `PositionDObjet` (`objets/`)
+
+`PositionDObjet.hpp` / `.cpp`. `struct PositionDansLeSac { std::size_t caseDuSac; }`, `struct
+PositionPortee { std::size_t place; Emplacement emplacement; }` (chacune avec `operator==`) et
+`using PositionDObjet = std::variant<PositionDansLeSac, PositionPortee>`.
+
+| Fonction | Rôle |
+|---|---|
+| `bool deplacementPermis(const PositionDObjet& de, const std::optional<Objet>& objetDe, const PositionDObjet& vers, const std::optional<Objet>& objetVers)` | Seule source de la règle des déplacements (voir « Déplacements ») ; `[[nodiscard]]` |
+
 ### `AffichageObjets` (`interface/`)
 
 `AffichageObjets.hpp` / `.cpp` : trois tables de texte et les lignes de l'infobulle, fonctions
@@ -174,11 +206,11 @@ libres sans état, qui rendent des `std::string` en UTF-8.
   `recalculerArmure()` privée ; constructeur : `const std::vector<ObjetDeDepart>&` à la place de
   l'armure. `Vitalite::definirArmure(int)` (précondition `armure >= 0`).
 - `Escouade` : membre `m_sac` (`Inventaire`, 40 cases), `sac()`, `equipementDuPersonnage(place)`,
-  `ramasser`, `equiper`, `desequiper` (détail dans `docs/formation.md`, tableau d'`Escouade`).
+  `ramasser`, `objetA`, `peutDeplacerObjet`, `deplacerObjet` (détail dans `docs/formation.md`, tableau
+  d'`Escouade`).
   Une `place` suit la convention des places (1 à N, `assert` sur sa validité).
 
 | Opération d'`Escouade` | Réussit quand | Effet |
 |---|---|---|
 | `ramasser(Objet)` | le sac a une case libre | l'objet va dans la première case libre |
-| `equiper(place, caseDuSac, emplacement)` | la case est occupée et `peutAller` | l'objet passe à l'emplacement ; l'objet déjà porté prend la case libérée |
-| `desequiper(place, emplacement, caseDuSac)` | l'emplacement est occupé, et la case est vide ou contient un objet qui peut aller à cet emplacement | case vide : l'objet y va ; case occupée : échange |
+| `deplacerObjet(de, vers)` | `deplacementPermis` | l'objet de `de` va à `vers` ; si `vers` est occupé, échange ; `de == vers` : rien ne bouge |
