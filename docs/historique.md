@@ -106,6 +106,7 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 86 — Nom du skill lancé et « Provoqué » ✅
 - Étape 87 — Moteur du coup : échelle × 10, point d'entrée unique, armure M1 ✅
 - Étape 88 — Caractéristiques : cinq valeurs, Endurance vers PV, Puissance vers dégâts et soins ✅
+- Étape 89 — Le critique : statistiques de combat, capacités offensive et défensive, soins critiques (avec E1) ✅
 
 ## Détail des étapes 0 à 73
 
@@ -2112,3 +2113,21 @@ coups d'opportunité compris. 88.6 : cinq caractéristiques et points de vie sou
 l'inventaire, lignes de bonus dans l'infobulle. 1 126 tests, 41 avertissements `clang-tidy` (inchangé).
 Détail : `docs/combat.md`, `docs/objets.md`, `docs/formation.md`, `docs/ecrans.md`,
 `docs/classes-et-combat.md`.
+
+### Étape 89 — Le critique : statistiques de combat, capacités, soins critiques ✅
+
+Troisième étape de la phase 1 du plan 87–96, faite en une session autonome (un commit par sous-étape). 89.1
+(E1) : `DefinitionDeMonstre` (`monstres/`) porte toutes les valeurs du `Monstre`, qui ne les écrit plus en
+littéraux ; refactorisation pure. 89.2 : `StatistiquesDeCombat` (capacités offensive et défensive),
+`statistiquesDuPersonnage` (`50 + 5 × Adresse`, seul endroit qui les calcule), statistiques d'un monstre en
+donnée (100 et 100). 89.3 : `Attaque` (montant et capacité offensive) circule à la place du montant seul
+(`Coup`, `avancerAttaque`, `avancerSkill`, `recevoirDegats`, `recevoirCoup`) ; le critique devient une étape
+de `resoudreCoup` (fonctions pures du module `Critique`, rapport des capacités : chance `min(0,05 r², 0,5)`,
+multiplicateur de 1,5 à 2), avec le seul tirage du moteur et aucun tirage quand la chance ou le montant est
+nul ; `Vitalite` porte des `Defenses` (armure et capacité défensive). 89.4 : `resoudreSoin`, les soins
+critiquent contre une capacité défensive de référence de 100, plafonnés aux points de vie maximum. 89.5 :
+`critique` dans les événements, « Critique ! » à l'écran (jaune vif pour les dégâts, vert pour un soin,
+18 px), capacités dans l'inventaire. La magie critique (question 7 tranchée). 1 167 tests, 39 avertissements
+`clang-tidy` (41 avant : `Monstre` n'a plus de membres sans valeur par défaut). Détail : `docs/combat.md`,
+`docs/monstre.md`, `docs/objets.md`, `docs/formation.md`, `docs/ecrans.md`, `docs/classes-et-combat.md`,
+`docs/tests.md`, `docs/audit.md`.

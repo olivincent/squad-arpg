@@ -48,16 +48,17 @@ squad-arpg/
 │   │               ObjetInteractif, Niveau, GenerateurDonjon, Encerclement
 │   ├── combat/     Skill, SkillConnu, IdSkill, TypeSkill, AdresseSkill, Cible, ActionEngagee,
 │   │               EtatSkill, Coup, EvenementDeCombat, EntiteVue, Autodefense, Engagement,
-│   │               Defense, ResolutionDuCoup, Caracteristiques, PointsDeVie, Vitalite
+│   │               Attaque, StatistiquesDeCombat, Critique, Defense, ResolutionDuCoup,
+│   │               Caracteristiques, PointsDeVie, Vitalite
 │   ├── objets/     Emplacement, Objet, CatalogueObjets, Equipement, Inventaire, PositionDObjet
 │   ├── escouade/   Escouade, Personnage, Formation, PlacesDAttaque, Intention, Separation,
 │   │               EcartEntrePersonnages, Composition, Specialite, SelectionDEscouade,
 │   │               Provocations, Agresseurs
-│   ├── monstres/   Monstre
+│   ├── monstres/   Monstre, DefinitionDeMonstre
 │   ├── jeu/        Partie
 │   ├── interface/  Ecran, Transition, Contexte, PileDEcrans, EntreeDInterface, EcranMenu,
 │   │               EcranOptions, EcranChoixEscouade, EcranJeu, EcranInventaire,
-│   │               DispositionInventaire, AffichageObjets, AffichageCaracteristiques, AffichageSkills, ListeDeBoutons, Reglages, TailleDeVue,
+│   │               DispositionInventaire, AffichageObjets, AffichageCaracteristiques, AffichageStatistiques, AffichageSkills, ListeDeBoutons, Reglages, TailleDeVue,
 │   │               EmplacementsPrincipaux, BarreDeRaccourcis, CommandeDeTouche, ClicInterface,
 │   │               BarreDeSkills, EcranDeFin, TextesFlottants, Controleur
 │   └── app/        main.cpp, Application
@@ -130,16 +131,19 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `Cible` : `std::variant` allié, monstre ou point, et `Surcharges` pour `std::visit`.
 - `ActionEngagee` : l'action (attaque de base ou skill) qu'un personnage prépare, et sa cible.
 - `EtatSkill` : le skill d'une place, tel que l'affichage en a besoin.
-- `Coup` : dégâts à infliger à un monstre, sortie d'`Escouade`.
+- `Attaque` : ce qui part de l'attaquant et circule jusqu'au défenseur, le montant et la capacité offensive.
+- `Coup` : une attaque à infliger à un monstre, sortie d'`Escouade`.
 - `EvenementDeCombat` : champs communs + détail en variant (dégâts, soin, skill lancé, monstre provoqué), en données (file de `Partie`).
 - `EntiteVue` : une entité telle que l'autre camp la voit, et `trouverEntite`.
 - `Autodefense` : quel ennemi frapper, quel agresseur viser.
 - `Engagement` : zones de contrôle, coups d'opportunité, monstre dont se dégager.
 - `Defense` : `appliquerArmure`, modèle M1 (soustraction avec plancher de 20 %).
-- `ResolutionDuCoup` : `resoudreCoup`, point d'entrée unique d'un coup (aujourd'hui l'armure seule) et `Defenses`.
+- `StatistiquesDeCombat` : ce que le moteur du coup lit d'une entité (capacités offensive et défensive), `statistiquesDuPersonnage`, seul endroit où elles se calculent.
+- `Critique` : chance et multiplicateur du critique par le rapport des capacités, fonctions pures (`docs/combat.md`).
+- `ResolutionDuCoup` : `resoudreCoup`, point d'entrée unique d'un coup (critique puis armure) et seul tirage du moteur ; `resoudreSoin` ; `Defenses`.
 - `PointsDeVie` : valeur et maximum, invariants de vie et de mort.
 - `Caracteristiques` : les cinq caractéristiques (`Caracteristique`, `Caracteristiques`, `Coefficients`), les points de vie maximum et `montantEffectif`, seule source du montant d'un skill de personnage (`docs/combat.md`).
-- `Vitalite` : points de vie et armure d'une entité, commune à `Personnage` et `Monstre`.
+- `Vitalite` : points de vie et défenses (armure, capacité défensive) d'une entité, commune à `Personnage` et `Monstre`.
 
 `objets/` — les objets, ce qu'on porte et le sac (`docs/objets.md`) :
 - `Emplacement` : les 10 emplacements, les 8 catégories d'objet et `peutAller`, seule source de la règle.
@@ -172,6 +176,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 
 `monstres/` :
 - `Monstre` : états, détection, territoire, poursuite, retour au poste, frappe (`docs/monstre.md`).
+- `DefinitionDeMonstre` : toutes les valeurs d'équilibrage d'un monstre, `monstreOrdinaire()` (`docs/monstre.md`).
 
 `jeu/` :
 - `Partie` : règles de jeu, ordre d'une image, intermédiaire escouade/monstres (`docs/boucle-et-entrees.md`).
@@ -186,6 +191,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `DispositionInventaire` : rectangles de l'inventaire, `elementSous` (une `PositionDObjet`), placement de l'infobulle (`docs/ecrans.md`).
 - `AffichageObjets` : noms des emplacements et des catégories, sigles, lignes de l'infobulle (`docs/objets.md`).
 - `AffichageCaracteristiques` : les noms des cinq caractéristiques et la ligne d'une caractéristique avec son bonus (`docs/combat.md`).
+- `AffichageStatistiques` : les lignes des statistiques de combat de l'inventaire (`docs/combat.md`).
 - `AffichageSkills` : `nomDuSkill`, le nom affiché d'un skill (`docs/combat.md`).
 - `ListeDeBoutons` : colonne de boutons sans position stockée (`docs/ecrans.md`).
 - `Reglages` : réglages d'affichage, `reglages.ini`, table des touches des raccourcis (`docs/ecrans.md`).
@@ -292,8 +298,8 @@ de modifier un module, lire le fichier correspondant :
 | `docs/vision.md` | Vision et brouillard de guerre : shadowcasting symétrique, `Vision` (inconnue / explorée / visible), rayon des personnages, règles de clic, dessin, F6, limites | Avant de modifier `ChampDeVision`, `Vision` ou ce que `Partie` en fait |
 | `docs/chemin.md` | Recherche de chemin (A*), suivi de chemin (`Mobile`), lissage de chemin, trace de débogage | Avant de modifier `Chemin`, `Mobile` ou `TraceDeChemin` |
 | `docs/formation.md` | `Escouade` et `Personnage` : ancre, formation, orientation, séparation douce, verrou de cible, placement en combat, places d'attaque, intentions, mort et défaite ; `Formation`, `PlacesDAttaque`, `Intention`, `Separation`, `Composition`, `Specialite`, `Encerclement` | Avant de modifier `Escouade`, `Personnage`, `Formation`, `PlacesDAttaque`, `Intention`, `Separation`, `Composition`, `Specialite` ou `Encerclement` |
-| `docs/combat.md` | `Skill` (dont l'attaque de base), `Cercle`, portée bord à bord, autodéfense, `Cible`, skill en attente, circuit des dégâts, qui bloque qui, armure, aléatoire, zones de contrôle, événements et textes flottants | Avant de modifier un module de `combat/` ou de `base/`, `Provocations`, `Agresseurs`, `TextesFlottants`, `BarreDeVie` ou les listes d'obstacles |
-| `docs/monstre.md` | `Monstre` : identifiant, états, détection, territoire, poursuite, retour au poste, riposte | Avant de modifier `Monstre` |
+| `docs/combat.md` | `Skill` (dont l'attaque de base), `Cercle`, portée bord à bord, autodéfense, `Cible`, skill en attente, circuit des dégâts, qui bloque qui, armure, caractéristiques, statistiques de combat et critique, aléatoire, zones de contrôle, événements et textes flottants | Avant de modifier un module de `combat/` ou de `base/`, `Provocations`, `Agresseurs`, `TextesFlottants`, `BarreDeVie` ou les listes d'obstacles |
+| `docs/monstre.md` | `Monstre` et `DefinitionDeMonstre` : définition, identifiant, états, détection, territoire, poursuite, retour au poste, riposte, statistiques de combat | Avant de modifier `Monstre` |
 | `docs/objets.md` | Objets : emplacements et catégories, catalogue, `Equipement`, `Inventaire`, armure calculée depuis l'équipement, opérations `ramasser` / `deplacerObjet` de l'`Escouade`, `PositionDObjet` ; référence des modules d'`objets/` | Avant de modifier un module d'`objets/`, `AffichageObjets` ou l'équipement d'un `Personnage` |
 | `docs/tests.md` | Tests (Catch2, conventions, dossiers, aides) | Avant d'ajouter ou de modifier un test |
 | `docs/audit.md` | Audit du code avant l'étape 80 : constats par famille (R, M, P, D, C, E, L, V, T, B, K), organisation en dossiers, passages de `clang-tidy` | Avant de planifier une refactorisation |

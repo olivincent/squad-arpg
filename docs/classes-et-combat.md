@@ -109,7 +109,7 @@ Quand un point entre dans `ROADMAP.md`, sa conception détaillée se fait en dis
 - **Retenu.** Le **mana** n'est rattaché à aucune caractéristique tant que la ressource n'est pas tranchée (question 6).
 - **Retenu.** Redistribution des points **payante, seulement dans les refuges** (village, campement), jamais en pleine quête.
 - **Retenu.** Seuils d'équipement à la *Titan Quest*.
-- **À tester** (étape 88). Valeurs de référence : référence 10 pour tous les effets ; 3 % de bonus par point de Puissance au-dessus (ou en dessous) de 10 ; 20 points de vie par point d'Endurance ; bases de classe de somme 50 (guerrier 12/14/10/6/8, paladin 11/13/8/7/11, prêtre 10/10/8/10/12, mage 10/8/8/14/10, rôdeur 10/10/14/8/8 pour Puissance/Endurance/Adresse/Savoir/Volonté). Seules la Puissance et l'Endurance ont un effet pour l'instant.
+- **À tester** (étape 88). Valeurs de référence : référence 10 pour tous les effets ; 3 % de bonus par point de Puissance au-dessus (ou en dessous) de 10 ; 20 points de vie par point d'Endurance ; bases de classe de somme 50 (guerrier 12/14/10/6/8, paladin 11/13/8/7/11, prêtre 10/10/8/10/12, mage 10/8/8/14/10, rôdeur 10/10/14/8/8 pour Puissance/Endurance/Adresse/Savoir/Volonté). Puissance et Endurance ont un effet depuis l'étape 88, l'Adresse depuis l'étape 89 (capacités offensive et défensive, section 7) ; Savoir et Volonté n'en ont pas encore.
 
 ## 6. Le déroulement d'un coup
 
@@ -117,7 +117,7 @@ Quand un point entre dans `ROADMAP.md`, sa conception détaillée se fait en dis
 
 1. **Peut-il agir ?** Recharge écoulée, pas sous contrôle, activation terminée.
 2. **Le coup est-il esquivé ?** Esquive contre la mêlée ou contre les projectiles. Si oui : « Esquivé », le coup s'arrête là.
-3. **Est-ce un critique ?** Capacité offensive contre capacité défensive.
+3. **Est-ce un critique ?** Capacité offensive contre capacité défensive. *(Fait à l'étape 89 : fonction pure d'un tirage, voir section 7.)*
 4. **Dégâts de départ.** Arme ou skill, plus les coefficients par caractéristique du skill, multipliés par le critique. Le critique s'applique **avant** toute réduction : contre une armure par soustraction, c'est ce qui en fait l'arme naturelle contre l'infanterie lourde.
 5. **Blocage au bouclier** (section 7). Un montant fixe est retiré. Si tout est absorbé : « Bloqué ».
 6. **Armure et résistances.** L'armure réduit la part physique, chaque résistance réduit la part de son élément.
@@ -133,6 +133,10 @@ Note de structure : un coup sera une petite collection de **portions typées** (
 - **Proposé.** Un plafond à l'esquive (par exemple 50 %). Plus tard, une distribution pseudo-aléatoire (à la *Dota 2*) contre les séries d'esquives.
 - **Proposé.** Les projectiles magiques (boule de feu) peuvent être esquivés comme une flèche. Les zones ne s'esquivent pas en pourcentage : elles s'évitent en se déplaçant (section 10).
 - **Retenu (dans le principe).** Le critique dépend de la **relation** entre la capacité offensive de l'attaquant et la capacité défensive du défenseur (à la *Titan Quest* / *Grim Dawn*), pas d'un pourcentage fixe de l'attaquant. Plus l'écart est grand, plus le critique est fréquent et fort.
+- **Retenu** (étape 89). La relation est le **rapport** `r = capacité offensive / capacité défensive`. C'est lui, et pas une différence ni un niveau, qui règle à la fois la chance et la force : même capacité des deux côtés (`r = 1`) donne un petit critique rare, le double donne un critique fréquent et fort. Le critique s'applique avant le blocage et l'armure, au montant effectif (Puissance comprise).
+- **À tester** (étape 89). Chance `min(0,05 × r², 0,50)` (1,25 % à `r = 0,5`, 5 % à `r = 1`, 20 % à `r = 2`, 45 % à `r = 3`, plafond de 50 %) ; multiplicateur `clamp(1,5 + 0,25 × (r − 1), 1,5 ; 2,0)` (×1,5 à `r = 1`, ×1,75 à `r = 2`, ×2 dès `r = 3`). Constantes nommées dans `Critique.hpp`. La capacité d'un personnage est `50 + 5 × Adresse` pour les deux côtés (100 à Adresse 10, 120 pour le rôdeur) ; celle d'un monstre ordinaire, 100 et 100, est une donnée de sa définition.
+- **Retenu** (étape 89). **La magie critique**, comme le reste : les attaques de base, les skills de dégâts et de zone (un tirage par monstre touché) et les coups d'opportunité, dans les deux camps. **Les soins critiquent aussi**, par la même courbe, contre une **capacité défensive de référence de 100** (`s_capaciteDefensiveDeReference`, qui suivra le niveau de la zone quand les niveaux existeront) ; le soin critique reste plafonné aux points de vie maximum. Les effets dans le temps ne critiqueront pas.
+- **Retenu** (étape 89). Le calcul est séparé du tirage : chaque étape qui dépend du hasard est une fonction pure qui reçoit un nombre de 0 inclus à 1 exclu ; le tirage a lieu à un seul endroit, dans `resoudreCoup`, et seulement si la chance est non nulle. Aucune distribution pseudo-aléatoire contre les séries de critiques (comme pour l'esquive, voir plus haut).
 - **Retenu.** Blocage au bouclier à la *Titan Quest* : une **chance** de bloquer, un **montant fixe** absorbé (pas tout le coup), puis une **récupération** pendant laquelle le bouclier ne bloque plus. Effet voulu : une nuée « consomme » le bouclier avec ses petits coups, et le gros coup d'une créature monstrueuse passe pendant la récupération. Le tank a une vraie faiblesse face aux mélanges d'ennemis.
 - **À tester.** Les valeurs du blocage (chance, montant, durée de récupération).
 
@@ -217,8 +221,8 @@ Points de conception associés (**proposés**) :
 | Intervalle de recharge | Temps entre deux coups (min-max) | Arme, skill | Oui |
 | Temps d'exécution / d'activation | Durée d'immobilité de l'attaquant | Arme, skill | Oui |
 | Portée | Distance bord à bord | Arme, skill | Oui |
-| Capacité offensive | Chance et force du critique | Adresse, équipement | |
-| Multiplicateur de critique | Force du critique | Équipement, skills | |
+| Capacité offensive | Chance et force du critique | Adresse, équipement | Oui (étape 89 : `50 + 5 × Adresse` pour un personnage, 100 pour un monstre ordinaire ; pas de bonus d'équipement propre) |
+| Multiplicateur de critique | Force du critique | Équipement, skills | Oui, mais seulement en fonction du rapport des capacités (de ×1,5 à ×2, étape 89) ; pas de bonus d'équipement ni de skill |
 | Pénétration d'armure | Ignore un % de l'armure | Arme, équipement | |
 | Pénétration de résistance | Ignore une part de la résistance | Équipement, skills | |
 | Puissance de soin | Montant soigné | Skill, Puissance, équipement | Oui (par skill ; la Puissance, étape 88, comme les dégâts) |
@@ -237,7 +241,7 @@ Points de conception associés (**proposés**) :
 | Résistances | Une par élément, en % plafonné | Équipement, skills | |
 | Esquive contre la mêlée | % d'éviter un coup au contact | Équipement, skills (plafond) | |
 | Esquive contre les projectiles | % d'éviter un tir | Équipement, skills (plafond) | |
-| Capacité défensive | Réduit le critique subi | Adresse, équipement | |
+| Capacité défensive | Réduit le critique subi | Adresse, équipement | Oui (étape 89 : comme la capacité offensive ; une référence de 100 pour les soins) |
 | Résistance au contrôle physique | Réduit la durée de l'étourdissement, du recul, de l'enracinement | Endurance, équipement | |
 | Résistance au contrôle magique | Réduit la durée de la peur, du silence, du charme | Volonté, équipement | |
 | Résistance à l'interruption | Chance de garder son activation | Volonté, équipement | |
@@ -264,12 +268,12 @@ Points de conception associés (**proposés**) :
 ## 14. Questions ouvertes
 
 1. *Tranchée* : blocage à la *Titan Quest* (section 7).
-2. **Le niveau** entre-t-il dans les formules (pénalité selon l'écart, à la *Diablo 2* / WoW), ou un monstre plus fort l'est-il seulement par ses nombres ?
+2. **Le niveau** entre-t-il dans les formules (pénalité selon l'écart, à la *Diablo 2* / WoW), ou un monstre plus fort l'est-il seulement par ses nombres ? *(En partie éclairée à l'étape 89 : le critique traite le niveau par les nombres, car il ne lit que le rapport des capacités ; un monstre de zone plus profonde aura de plus grandes capacités, sans formule d'écart de niveau. Les autres étapes du coup restent à décider.)*
 3. **Les plafonds** : esquive, résistances, réduction de recharge ; lesquels, et à combien ?
 4. *Tranchée* : l'Égide et la Barrière absorbent en dernier (section 9).
 5. **La liste des éléments** : physique, feu, froid, foudre, poison, sacré, vitalité, psychique ? Le saignement est-il un type ou un effet ?
 6. **La ressource** : piste privilégiée, une ressource partagée, l'**Élan**, en couche au-dessus de ressources propres à certaines classes (section 15). À confirmer : quelles classes ont leur propre ressource, et laquelle. Le mana n'est rattaché à aucune caractéristique tant que ce n'est pas tranché.
-7. **La magie peut-elle critiquer ?** (Dans *Titan Quest*, non.)
+7. *Tranchée* (étape 89) : **la magie critique**, comme le reste (section 7). Dans *Titan Quest*, non.
 8. **Les classes de départ** : quelles classes de base, quelles spécialisations, quels paliers ?
 9. **L'automatisation** : quels skills partent seuls (gambits, `docs/brainstorm.md`), lesquels restent au clavier ?
 10. **Un bonus pour une escouade d'une seule couleur** ? (Moins pertinent depuis que les couleurs ne sont qu'un guide de conception.)

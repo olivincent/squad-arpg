@@ -78,7 +78,7 @@
   constantes, jamais en littéral (`== s_degatsFrappeDeTest`, pas `== 25`). Les valeurs qui ne sont pas
   encore injectables (points de vie, vitesse et attaque des monstres, points de vie et vitesse des
   personnages, armure de `creerNiveau`) se lisent par les accesseurs (`getPointsDeVie()` d'une entité
-  neuve, `getPointsDeVieMax()`, `getPuissanceAttaque()`) ou se mesurent dans le test (la vitesse sur
+  neuve, `getPointsDeVieMax()`, `getAttaque().montant`) ou se mesurent dans le test (la vitesse sur
   le premier tic). **Seul `test_Specialite.cpp` lit les valeurs du catalogue** ;
   `test_EcranChoixEscouade.cpp` le lit aussi, mais seulement pour la liste de ses boutons (une par
   classe). Vérification : changer une valeur d'équilibrage du jeu ne fait échouer que les tests dont
@@ -882,7 +882,8 @@
   poste ; `estCiblable` (vrai en garde et en poursuite, faux en retour) ; régénération
   (de 10 % à 100 % en 2 s, plafonnée au maximum, présente à 60 images par seconde,
   absente hors retour). Les valeurs codées en dur de l'étape 68 (400 px, 120 px/s) sont
-  remplacées par `Monstre::s_rayonTerritoire` (publique pour cela).
+  remplacées par `Monstre::s_rayonTerritoire` (publique pour cela ; depuis l'étape 89.1, c'est
+  `monstreOrdinaire().rayonTerritoire`).
 - **`amenerEnRetourHorsTerritoire(monstre, carte, degats)`** : l'aide accepte des dégâts
   à infliger *avant* le retour, puisqu'en retour le monstre est invulnérable.
 - **`test_Partie.cpp`** (5 tests de plus) : un couloir de 2400 × 600 px où l'escouade
@@ -1421,3 +1422,56 @@ même chose avec plus de détail.
 - **`tests/interface/`** : `test_AffichageCaracteristiques.cpp` (noms, ligne avec bonus),
   `test_AffichageObjets.cpp` (infobulle sans « Armure : +0 », une ligne par bonus),
   `test_DispositionInventaire.cpp` (cellules du bloc dans le bloc, bloc entre les emplacements et le sac).
+
+## Étape 89 : le critique (+41 cas, 1 126 → 1 167)
+
+- **Les aides** (`aides.hpp`, `aides_escouade.hpp`, `aides_monstre.hpp`) :
+  - `attaqueSansCritique(montant)` : une `Attaque` de capacité offensive 0, donc de chance de critique nulle :
+    **ni critique ni tirage**. Les tests de règle (armure, mort, agresseurs, points de vie…) n'ont pas à
+    connaître le hasard.
+  - `subir(entite, montant)` (`Vitalite`, `Personnage` ou `Monstre`) et `subirCoup(escouade, idMonstre, place,
+    montant)` : font subir un tel coup avec un générateur neuf (jamais lu) et rendent les dégâts subis ; ce
+    sont les anciens `recevoirDegats(montant)` et `recevoirCoup(…, montant)` des tests (remplacés par
+    substitution, environ 80 appels). `infliger` s'en sert.
+  - `defensesDeTest(armure)` (capacité défensive 100), `defensesDuPersonnageDeTest(armure)` (celle des
+    personnages de test, Adresse 0 : 50), `montantOuZero(optional<Attaque>)` (le montant d'un coup parti, 0
+    sinon : ce que rendaient `avancerAttaque` et `avancerSkill` avant de rendre une `Attaque`),
+    `monstreAvecArmure(armure)` (le monstre ordinaire avec cette armure, pour construire un `Monstre`).
+  - `degatsAttendus(attaque, defenses, critique)` : les dégâts que le jeu devait produire, avec ou sans
+    critique. Les tests de `Partie` ne contrôlent pas son générateur ; ils lisent `critique` dans
+    l'événement et vérifient le montant qui va avec (voir plus bas).
+- **Pourquoi le critique ne casse pas les tests de règle** : une `Attaque` de capacité offensive 0 ne tire
+  jamais. Les 1 126 tests d'avant ont passé tels quels sauf ceux qui comparaient un montant subi par un
+  personnage de test à celui d'un monstre dans une `Partie` (3 cas : un monstre à capacité offensive 100
+  contre une capacité défensive de 50 critique 20 % du temps) ; ils comparent maintenant au montant que
+  donne `degatsAttendus` selon le `critique` de l'événement.
+- **`tests/combat/test_Critique.cpp`** (nouveau, 10) : le rapport ; la chance (0, 1,25 %, 5 %, 20 %, 45 %,
+  plafond de 50 %) ; le multiplicateur (1,5 ; 1,75 ; 2 ; bornes) ; `appliquerCritique` (sous la chance :
+  critique multiplié ; égal ou au-dessus : rien ; arrondi au plus proche ; rapport nul jamais critique ;
+  montant nul).
+- **`tests/combat/test_ResolutionDuCoup.cpp`** (réécrit, 11) : l'armure, le coup de 0 ; **aucun tirage**
+  (le générateur est inchangé, comparé avec `==`) quand la capacité offensive ou le montant est nul, un
+  tirage sinon ; le critique multiplie **avant** l'armure (200 puis l'armure, pas 100 puis l'armure puis ×2) ;
+  la fréquence des critiques suit le rapport (rapport 1 : entre 130 et 270 sur 4 000 coups, 5 % attendus ;
+  plafond : entre 1 800 et 2 200 ; capacité défensive énorme : aucun) ; même graine, mêmes résultats ;
+  `resoudreSoin` (sans capacité offensive : inchangé et sans tirage ; critique ×2 sans armure ; 5 % contre la
+  référence de 100).
+- **`tests/combat/test_Vitalite.cpp`** (+3) : un critique retire le montant multiplié ; un mort ne tire rien ;
+  la capacité défensive des défenses compte pour le critique. `definirArmure` devient `definirDefenses`.
+- **`tests/combat/test_StatistiquesDeCombat.cpp`** (nouveau, 4) : Adresse 10 donne 100 ; 5 par point
+  (50 à Adresse 0, 120 à 14) ; seule l'Adresse compte ; bornes (offensive 0, défensive 1).
+- **`tests/escouade/`** : `test_Personnage.cpp` (statistiques tirées de l'Adresse ; l'attaque de base porte
+  la capacité offensive ; `avancerAttaque` rend une `Attaque`), `test_Escouade_skills_soin.cpp` (un soin
+  critique multiplie le montant rendu et le fait le dit, sur 40 graines ; plafonné aux points de vie maximum
+  même critique), `test_Escouade_equipement.cpp` (`statistiquesDeCombatDuPersonnage`, `attaqueDeBase`).
+- **`tests/monstres/`** : `test_Monstre.cpp` (un monstre prend toutes ses valeurs de sa définition ; son
+  attaque porte la capacité offensive de la définition), `test_Monstre_retour.cpp` (en retour, invulnérable
+  **sans tirer**). Les ~80 constructions deviennent `Monstre(centre, id, groupe, monstreAvecArmure(armure))`.
+- **`tests/jeu/test_Partie_evenements.cpp`** (+1) : un guerrier d'Adresse énorme (capacité offensive 5 050,
+  50 % de critiques, ×2) frappe un monstre : les événements de dégâts portent `critique`, et leur montant est
+  celui de `degatsAttendus` ; il y a des critiques et des coups normaux. `test_Partie_zonesDeControle.cpp` :
+  le coup gratuit lit son événement.
+- **`tests/interface/`** : `test_TextesFlottants.cpp` (+3 : libellés « Critique ! », couleur jaune et taille de
+  18 px même pour un coup gratuit, soin critique vert), `test_AffichageStatistiques.cpp` (nouveau, 1),
+  `test_DispositionInventaire.cpp` (+2 : cellules du bloc des statistiques dans le bloc, bloc sous celui des
+  caractéristiques et étiquette du sac en dessous).

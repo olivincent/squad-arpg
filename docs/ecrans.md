@@ -110,7 +110,9 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
   tout est recalculé depuis la taille de la vue d'interface. En haut, une colonne par personnage
   (bande de la classe à la couleur du personnage, « Armure : N », « (mort) », 10 emplacements en
   deux colonnes de 5, puis, depuis l'étape 88, le bloc de ses cinq caractéristiques effectives — avec « (+N) »
-  quand l'équipement en donne — et de ses points de vie « PV actuels / maximum ») ; en bas, le sac (4 rangées de 10 cases). Le dessin, le survol et les tests
+  quand l'équipement en donne — et de ses points de vie « PV actuels / maximum », puis, depuis l'étape 89, le
+  bloc de ses statistiques de combat : « Capacité offensive N » et « Capacité défensive N », lues par
+  `Escouade::statistiquesDeCombatDuPersonnage`) ; en bas, le sac (4 rangées de 10 cases, à 550 px du haut). Le dessin, le survol et les tests
   appellent les mêmes rectangles (`rectangleDeLEmplacement`, `rectangleDeLaCaseDuSac`,
   `elementSous`), aussi utilisés par le glisser-déposer. Un test vérifie que tout
   tient dans 1200 × 800 (et en 16:9), dans le panneau, sans chevauchement.
@@ -438,17 +440,18 @@ construction, `explicit EcranMenu(std::vector<Resolution>)`), `m_boutons` (`List
 | `Transition traiterEvenement(...)` | Touche : `appuyer` ; appui gauche : `saisir` ; relâchement gauche : `relacher` ; `FocusLost` : `annulerLeGlissement` ; le reste : `Aucune` |
 | `void mettreAJour(float, const Contexte&)` | Ne fait rien (le monde dessous est figé) |
 | `bool laisseVoirDessous() const` | `true` |
-| `void dessiner(const Contexte&) const` | Vue d'interface, voile sombre, panneau (marge de 40 px), titre, les 3 colonnes (en-tête à la couleur du personnage, armure lue sur son `Equipement`, « (mort) » si ses points de vie sont 0, 10 emplacements, caractéristiques effectives et points de vie lus sur l'`Escouade`), le sac (sigles), puis : sans glissement, l'infobulle de l'objet sous le curseur ; pendant un glissement, le contour des destinations valides, le voile sur l'origine et l'objet saisi sous le curseur (pas d'infobulle) |
+| `void dessiner(const Contexte&) const` | Vue d'interface, voile sombre, panneau (marge de 40 px), titre, les 3 colonnes (en-tête à la couleur du personnage, armure lue sur son `Equipement`, « (mort) » si ses points de vie sont 0, 10 emplacements, caractéristiques effectives et points de vie, puis capacités offensive et défensive, lus sur l'`Escouade`), le sac (sigles), puis : sans glissement, l'infobulle de l'objet sous le curseur ; pendant un glissement, le contour des destinations valides, le voile sur l'origine et l'objet saisi sous le curseur (pas d'infobulle) |
 
 ### `DispositionInventaire` (`interface/`) — où est chaque élément
 
-`DispositionInventaire.hpp` / `.cpp`, fonctions pures en coordonnées de la vue d'interface, `tailleDeVue` en paramètre. Constantes : `s_nombreDePlaces` (3), `s_colonnesDuSac` (10), `s_casesDuSac` (40, la capacité du sac). Colonnes de 340 px centrées (20 px d'écart), emplacements de 160 × 40 px, cases du sac de 44 px.
+`DispositionInventaire.hpp` / `.cpp`, fonctions pures en coordonnées de la vue d'interface, `tailleDeVue` en paramètre. Constantes : `s_nombreDePlaces` (3), `s_colonnesDuSac` (10), `s_casesDuSac` (40, la capacité du sac), `s_lignesDeCaracteristiques` et `s_lignesDeStatistiques` (3), `s_cellulesDeStatistiques` (6). Colonnes de 340 px centrées (20 px d'écart), emplacements de 160 × 40 px, cases du sac de 44 px.
 
 | Fonction | Rôle |
 |---|---|
 | `rectangleDeLEnTete(place, tailleDeVue)` / `rectangleDeLArmure(...)` | Bande de la classe et ligne « Armure » de la colonne de cette place (de 1 à `s_nombreDePlaces`) ; `[[nodiscard]]` |
 | `rectangleDeLEmplacement(place, Emplacement, tailleDeVue)` | Rectangle de l'emplacement ; les 5 premiers de l'enum à gauche, les 5 suivants à droite ; `[[nodiscard]]` |
 | `rectangleDesCaracteristiques(place, tailleDeVue)` / `rectangleDeLaCellule(place, indice, tailleDeVue)` | Étape 88 : le bloc sous les emplacements (340 × 54 px, `s_lignesDeCaracteristiques` = 3 lignes de 18 px) et ses 6 cellules en deux colonnes remplies colonne par colonne : Puissance, Endurance, Adresse, puis Savoir, Volonté, points de vie ; `assert(indice <= s_nombreDeCaracteristiques)` ; `[[nodiscard]]` |
+| `rectangleDesStatistiques(place, tailleDeVue)` / `rectangleDeLaStatistique(place, indice, tailleDeVue)` | Étape 89 : le bloc sous celui des caractéristiques (340 × 54 px, `s_lignesDeStatistiques` = 3 lignes de 18 px) et ses `s_cellulesDeStatistiques` (6) cellules en deux colonnes remplies colonne par colonne ; la première colonne porte les capacités offensive et défensive, le reste est libre pour les statistiques de l'étape 90 ; `assert(indice < s_cellulesDeStatistiques)` ; le sac a été descendu de 500 à 550 px pour lui faire place ; `[[nodiscard]]` |
 | `rectangleDeLaCaseDuSac(indice, tailleDeVue)` | Rectangle de la case (`assert(indice < s_casesDuSac)`). Nommée ainsi parce que `rectangleDeLaCase` existe dans `SelectionDEscouade` ; `[[nodiscard]]` |
 | `std::optional<PositionDObjet> elementSous(point, tailleDeVue)` | `PositionPortee {place, emplacement}` ou `PositionDansLeSac {caseDuSac}` (`objets/PositionDObjet`) ; vide dans un écart, sur un en-tête ou hors des éléments ; `[[nodiscard]]` |
 | `sf::FloatRect placerInfobulle(curseur, tailleInfobulle, tailleDeVue)` | Sous et à droite du curseur (16 px), de l'autre côté s'il sortirait de la vue, puis gardée dans la vue ; `[[nodiscard]]` |

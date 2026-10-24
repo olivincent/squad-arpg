@@ -24,7 +24,8 @@ le deuxième : le groupe (b), les places d'attaque ; la partie 82.4 le troisièm
 décision, avec R2 (voir R1 et R2, « Suivi ») ; la partie 82.5 a fermé R2 (la mémoire des agresseurs
 par identifiant), traité D3 et marqué les avertissements voulus de `clang-tidy` (41 restants). R5 est
 rattachée à R4. L'étape 84 (écran d'inventaire) a traité, en premières sous-étapes, R6, D4, P2
-(parties a et b) et les tests de T4 qui viennent avec leurs extractions (voir « Suivi » de chacun).
+(parties a et b) et les tests de T4 qui viennent avec leurs extractions (voir « Suivi » de chacun). La
+sous-étape 89.1 a traité E1 pour `Monstre` (voir « Suivi » de E1).
 
 Référentiels : C++ Core Guidelines, SOLID (surtout responsabilité unique et inversion des
 dépendances), cohésion et couplage, DRY, règle du zéro, sémantique de valeur, *Game Programming
@@ -876,6 +877,18 @@ font poursuivre 30 monstres durent environ 1,2 s chacun en `-O0`.
   armure, groupe)` : le constructeur garde ces quatre paramètres, les autres viennent de la
   structure par défaut.
 - **Dépend de** : C2.
+- **Suivi** : **fait à l'étape 89.1 pour `Monstre`.** `DefinitionDeMonstre` (`monstres/`, initialisation
+  désignée comme `DefinitionDeSkill`) porte toutes les valeurs d'équilibrage du monstre : côté, vitesse,
+  points de vie maximum (1000), armure, détection, territoire, zone de contrôle, régénération du retour et
+  la définition de son attaque ; `monstreOrdinaire()` en est le seul modèle. Écart avec la proposition :
+  nom `DefinitionDeMonstre` (cohérent avec `DefinitionDeSkill` et `DefinitionPersonnage`) plutôt que
+  `ParametresMonstre` ; pas de valeurs par défaut dans la structure (un oubli est signalé par le
+  compilateur, comme pour `DefinitionPersonnage`) mais une fonction qui donne le modèle ; le constructeur
+  est `Monstre(centre, id, groupe, definition)` (l'armure vient du niveau et passe dans la définition, par
+  `Partie`). Refactorisation pure : aucun comportement n'a changé. Les constantes publiques
+  `Monstre::s_rayonTerritoire` et `s_zoneDeControle` ont disparu. **Reste à faire** : les autres
+  dispersions du constat (`Personnage.cpp`, `Escouade.cpp`, `Partie.cpp`) restent telles quelles, comme
+  proposé, jusqu'à ce que les arbres de skills ou les niveaux le demandent.
 
 ---
 

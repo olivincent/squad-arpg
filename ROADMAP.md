@@ -8,7 +8,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 ## Étapes terminées
 
-Étapes 0 à 88 ✅. Les dernières :
+Étapes 0 à 89 ✅. Les dernières :
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 - Étape 83 — Inventaire et équipement : le modèle, sans interface ✅
@@ -17,15 +17,16 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - Étape 86 — Nom du skill lancé et « Provoqué » ✅
 - Étape 87 — Moteur du coup : échelle × 10, point d'entrée unique, armure M1 ✅
 - Étape 88 — Caractéristiques : cinq valeurs, Endurance vers PV, Puissance vers dégâts et soins ✅
+- Étape 89 — Le critique : statistiques de combat, capacités offensive et défensive, soins critiques (avec E1) ✅
 
 ## État actuel (résumé)
 
 - **Outils** : conception dans Claude.ai, implémentation avec Claude Code dans VSCode (règles dans
   `CLAUDE.md`) ; dépôt Git `squad-arpg`, poussé sur GitHub ; SFML 3.0.2 intégrée à CMake.
-- **Code** (étape 88) : 73 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
+- **Code** (étape 89) : 78 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
   `combat`, `objets`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
   de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug` et `jeu`, 0
-  avertissement, 1 126 tests verts sous CTest, 41 avertissements `clang-tidy` (`docs/build.md`,
+  avertissement, 1 167 tests verts sous CTest, 39 avertissements `clang-tidy` (`docs/build.md`,
   `docs/audit.md`). `Escouade` n'est plus que l'assemblage : `Escouade.cpp` de 1 223 à 1 067 lignes. Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`).
 - **Écrans** : menu à la souris, options d'affichage (fenêtré ou plein écran, résolutions,
   `reglages.ini`), choix de 3 classes parmi 5 (guerrier, prêtre, mage, paladin, rôdeur ; doublons
@@ -41,9 +42,10 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   12 objets ; l'armure d'un personnage est la somme de son équipement (guerrier et paladin partent
   équipés : 30 ; les autres : 0) ; chaque personnage a cinq caractéristiques (base de sa classe plus
   bonus de l'équipement : Puissance, Endurance, Adresse, Savoir, Volonté), dont l'Endurance donne des
-  points de vie (20 par point) et la Puissance augmente dégâts et soins (3 % par point au-dessus de 10) ; `ramasser` et `deplacerObjet` sont transactionnelles. La
+  points de vie (20 par point) et la Puissance augmente dégâts et soins (3 % par point au-dessus de 10),
+  l'Adresse donne les capacités offensive et défensive (`50 + 5 × Adresse`) ; `ramasser` et `deplacerObjet` sont transactionnelles. La
   touche I ouvre l'inventaire par-dessus la partie figée : équipement des 3 personnages, sac de 40
-  cases, caractéristiques et points de vie de chaque personnage, infobulle au survol, et glisser-déposer des objets (sac, emplacements, entre personnages ;
+  cases, caractéristiques, points de vie et capacités de chaque personnage, infobulle au survol, et glisser-déposer des objets (sac, emplacements, entre personnages ;
   échange si la destination est occupée ; destinations valides en surbrillance) (`docs/objets.md`,
   `docs/ecrans.md`).
 - **Escouade** : une ancre suivie par 3 personnages en formation (rangs avant et arrière), qui
@@ -52,9 +54,11 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - **Combat** : verrou par clic, autodéfense, agresseurs, temps d'exécution des coups, armure à
   armure par soustraction avec plancher, recharges aléatoires, zones de contrôle et attaques d'opportunité ; skills
   (dégâts, soin, provocation, zone avec visée) avec temps d'activation et un skill en attente pour
-  l'escouade ; dégâts, soins, nom du skill lancé et « Provoqué » flottants (`docs/combat.md`).
+  l'escouade ; critiques (dégâts et soins, des deux camps, selon le rapport des capacités offensive et
+  défensive) ; dégâts, soins, critiques, nom du skill lancé et « Provoqué » flottants (`docs/combat.md`).
 - **Monstres** : détection en vue, poursuite, frappe de la proie ou du plus proche atteignable,
-  alerte du groupe, retour au poste invulnérable avec régénération (`docs/monstre.md`).
+  alerte du groupe, retour au poste invulnérable avec régénération ; toutes leurs valeurs sont dans une
+  `DefinitionDeMonstre` (`docs/monstre.md`).
 - **Interface** : barre de raccourcis de 12 emplacements (Q W E R / A S D F / Z X C V, ou clic ;
   « l'interface d'abord »), compteur de monstres, écran de victoire ou de défaite ; F3 et F4 de
   débogage ; une touche devient une commande par une fonction pure, `commandePourTouche`
@@ -115,8 +119,8 @@ fonctionnalités prévues sont donc décalées après l'étape 82.
     la provocation, sans cible, ne peut pas être mise en attente quand son lanceur est occupé ;
   - C2 (constructeurs à longues listes) : fait à l'étape 88.1 pour `Skill` et `Personnage`
     (`DefinitionDeSkill`, `DefinitionPersonnage` en initialisation désignée) ;
-  - E1 (valeurs dispersées, `Monstre` en littéraux) : première sous-étape de l'étape 89 (avant les types
-    de monstres) ;
+  - E1 (valeurs dispersées, `Monstre` en littéraux) : fait à l'étape 89.1 pour `Monstre`
+    (`DefinitionDeMonstre`, `docs/audit.md`) ;
   - R3 (`Partie` accumule plusieurs rôles), D2 (indices de grille à la main), C3 (conversions de
     signe) et D5 (petites duplications de `Partie`) avant les coffres, les leviers ou la carte
     extérieure ;
@@ -143,9 +147,10 @@ ce qui reste à décider **en discussion** avant son prompt :
   - 87 ✅ : résolution en étapes (`resoudreCoup`), armure M1, échelle × 10 des points de vie.
   - 88 ✅ : cinq caractéristiques (base de classe + équipement), Endurance → points de vie, Puissance →
     dégâts et soins, visibles dans l'inventaire.
-  - 89 : critique (E1 en première sous-étape). À décider : formule du critique (capacité offensive
-    contre défensive) et critique de la magie (question 7).
-  - 90 : esquive et blocage. À décider : plafond de l'esquive (question 3) et valeurs du blocage.
+  - 89 ✅ : critique (E1 en première sous-étape) : `StatistiquesDeCombat` (capacités `50 + 5 × Adresse`),
+    chance et multiplicateur par le rapport des capacités, la magie et les soins critiquent, « Critique ! »
+    à l'écran, capacités dans l'inventaire.
+  - 90 : esquive et blocage (prompt écrit, avec le plafond de l'esquive et les valeurs du blocage).
 - **Phase 2, armes**
   - 91 : armes ; l'attaque de base vient de l'arme. À décider : l'arme décide-t-elle du rôle,
     restrictions par classe.
@@ -156,11 +161,11 @@ ce qui reste à décider **en discussion** avant son prompt :
   - 94 : objets avec leurs propres données (rareté, bonus) ; 95 : butin au sol ; 96 : génération
     aléatoire des objets. À décider : rareté, affixes, niveau d'objet (question 2).
 
-## Étape 89 (prochaine) : à discuter avec Claude.ai
+## Étape 90 (prochaine) : esquive et blocage
 
-Le critique (E1 en première sous-étape). À décider : la formule du critique (capacité offensive contre
-défensive, `docs/classes-et-combat.md`, section 7) et le critique de la magie (question 7). L'Adresse,
-le Savoir et la Volonté existent depuis l'étape 88 et n'ont encore aucun effet.
+La nature de chaque attaque (contact, projectile, zone), l'esquive (plafond de 50 %, bottes et casque de
+cuir), le blocage du bouclier (30 %, 40 points, 3 s de récupération) et leurs textes flottants. Le Savoir et
+la Volonté n'ont encore aucun effet.
 
 ## Fonctionnalités prévues (à choisir avec Claude.ai)
 

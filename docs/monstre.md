@@ -29,6 +29,26 @@ déplacement par chemin dans `docs/chemin.md`.
   est retiré du vecteur (`std::erase_if`, à chaque image) : l'objet
   cesse d'exister.
 
+## Définition du monstre (étape 89.1, E1)
+
+- **Un monstre reçoit ses valeurs, il n'en choisit aucune** : `DefinitionDeMonstre` (`monstres/`, initialisation
+  désignée, sur le modèle de `DefinitionDeSkill` et `DefinitionPersonnage`) porte le côté (30), la vitesse
+  (160), les points de vie maximum (1000), l'armure, le rayon de détection (200), le rayon de territoire
+  (600), la zone de contrôle (20), la régénération du retour (0,5 du maximum par seconde), la définition de
+  son attaque (portée 15, 100 dégâts, recharge de 0,7 à 1,3 s, exécution de 0,3 s) et, depuis l'étape 89, ses
+  `StatistiquesDeCombat`. `monstreOrdinaire()` (`DefinitionDeMonstre.cpp`, constantes `s_` nommées) en donne
+  le seul modèle d'aujourd'hui ; les types de monstres seront d'autres définitions, sans toucher à `Monstre`.
+- **Raison (E1 de `docs/audit.md`)** : ces valeurs étaient écrites en littéraux dans `Monstre.cpp` (constructeur
+  et constantes), donc introuvables au moment d'équilibrer. Refactorisation pure : aucun comportement n'a
+  changé, les 1 126 tests d'avant ont passé sans autre modification que la construction.
+- **Constructeur** : `Monstre(centre, id, groupe, definition)`. L'armure n'est plus un paramètre : le niveau la
+  donne (`Niveau::armureMonstres`), et `Partie` la copie dans la définition (`monstreOrdinaire()` plus
+  `.armure`) avant de construire chaque monstre. `Niveau` (dossier `monde/`) ne connaît pas `monstres/` : il
+  garde un simple `int`.
+- **Les constantes publiques `Monstre::s_rayonTerritoire` et `s_zoneDeControle` n'existent plus** : elles sont
+  des champs de la définition ; les tests lisent `monstreOrdinaire().rayonTerritoire`. Ce qui reste dans
+  `Monstre.cpp` est du dessin (l'opacité du retour).
+
 ## Identifiant, vie et dessin
 
 - **Identifiant** : le constructeur prend un centre et un identifiant ;
@@ -39,18 +59,15 @@ déplacement par chemin dans `docs/chemin.md`.
 - **`contient`** réutilise `sf::FloatRect::contains` plutôt que de
   réimplémenter sa convention (bords gauche/haut inclus, droit/bas
   exclus).
-- **Armure** (étape 55) : le constructeur prend aussi l'armure (`int`, 20
-  pour tous les monstres, `s_armureMonstresParDefaut` donnée par
-  `Niveau::armureMonstres` via `Partie`).
-  `recevoirDegats` retire `appliquerArmure(quantite, armure)`. Voir
-  `docs/combat.md`.
+- **Armure** (étape 55) : `DefinitionDeMonstre::armure` (10 dans le jeu, `s_armureMonstresParDefaut`
+  donnée par `Niveau::armureMonstres` via `Partie`). `recevoirDegats` passe par `resoudreCoup`, dont
+  l'armure est une étape. Voir `docs/combat.md`.
 - **`Vitalite`** (étape 82.1) : les points de vie et l'armure sont dans `m_vitalite`, le même type
   que dans `Personnage`. `recevoirDegats`, `estVivant` et `getPointsDeVie` lui délèguent. Les règles
   propres au monstre restent dans `Monstre` : l'invulnérabilité en `Retour` et l'alerte (dans
   `recevoirDegats`, avant et après la délégation), la régénération (`mettreAJour`, par
-  `Vitalite::soigner`). `s_pointsDeVieMax` (100) reste une constante de `Monstre.cpp`, distincte de
-  celle de `Personnage.cpp` : deux valeurs d'équilibrage égales par hasard (celle des monstres ira
-  dans `ParametresMonstre` avec E1).
+  `Vitalite::soigner`). Les points de vie maximum viennent de la définition
+  (`DefinitionDeMonstre::pointsDeVieMax`, 1000 depuis l'échelle × 10), distincts de ceux d'un personnage.
 - **`recevoirDegats` ne descend jamais sous zéro** : un coup qui dépasse
   le reste ne laisse pas un nombre négatif stocké.
 - **Pas d'accesseur pour les points de vie** : les tests passent par
@@ -97,11 +114,11 @@ déplacement par chemin dans `docs/chemin.md`.
 ## Détection et territoire
 
 - **Le territoire se mesure sur le monstre, pas sur la proie** :
-  `m_rayonTerritoire` (`Monstre::s_rayonTerritoire`, 600 px depuis l'étape 69,
+  `m_rayonTerritoire` (`DefinitionDeMonstre::rayonTerritoire`, 600 px depuis l'étape 69,
   400 avant) est la distance maximale entre le **monstre** et son **poste**. Un
   monstre peut donc poursuivre une proie arbitrairement loin de son point de
   départ, tant que lui-même ne s'éloigne pas de plus de 600 px de son poste.
-  La constante est publique pour que les tests ne recodent pas la valeur.
+  Les tests lisent la valeur dans `monstreOrdinaire()` pour ne pas la recoder.
 - **Détection unique, dans la fonction privée `const`
   `proieDetectee(cible, carte)`** : une proie est détectée si elle existe, si
   elle est à `<=` `m_rayonDetection` (200 px) **du monstre**, à `<=`
@@ -290,10 +307,24 @@ déplacement par chemin dans `docs/chemin.md`.
 - **`mettreAJour` décrémente d'abord la recharge** (`m_attaque.mettreAJour`),
   quel que soit l'état.
 
+## Statistiques de combat, critique (étape 89)
+
+- **Un monstre n'a pas de caractéristiques** : ses `StatistiquesDeCombat` (capacité offensive 100, capacité
+  défensive 100, celles d'un personnage d'Adresse 10) sont des données de sa définition, lues par
+  `getStatistiques()`. Le moteur du coup ne lit que ces statistiques (`docs/combat.md`).
+- **Son attaque est une `Attaque`** : `getAttaque()` rend les dégâts (100) et sa capacité offensive ;
+  `avancerAttaque` rend cette `Attaque` au départ du coup (`std::optional`, vide avant), et `Partie` la
+  transmet à `Escouade::recevoirCoup`. Le défenseur résout alors critique et armure.
+- **`recevoirDegats(attaque, generateur)`** rend un `ResultatDuCoup` (montant après armure, critique ou
+  non). Un monstre qui rentre à son poste est invulnérable : rien n'est appliqué, **aucun tirage n'est
+  fait** (le générateur reste intact) et il n'est pas alerté. Une attaque de montant `> 0` l'alerte comme avant.
+- **Ses coups critiquent** comme ceux des personnages (capacité offensive 100 contre la capacité défensive
+  du personnage touché : 5 % de chance, ×1,5, face à une Adresse de 10).
+
 ## Zone de contrôle (étape 77)
 
-- **Une constante** : `Monstre::s_zoneDeControle` (20 px, bord à bord), la même pour tous les
-  monstres ; `getZoneDeControle()` la renvoie, `getPuissanceAttaque()` donne les dégâts de son attaque
+- **Une valeur de la définition** : `DefinitionDeMonstre::zoneDeControle` (20 px, bord à bord), la même pour
+  tous les monstres d'aujourd'hui ; `getZoneDeControle()` la renvoie, `getAttaque()` donne son attaque
   (de simples lectures). `Monstre` ne sait rien de la règle : c'est `Partie` qui prend les photos et
   applique les coups gratuits (voir `docs/combat.md`).
 - **Un monstre qui rentre à son poste n'engage personne et n'est engagé par personne** : il est exclu
@@ -405,17 +436,18 @@ jusqu'à son arrivée, il est invulnérable, il n'est plus une cible et il regag
 `EntiteVue`) et ses obstacles en paramètres. La proie est celle qu'il poursuit ;
 la cible de frappe est celle qui est à portée ET en vue.
 
-Données membres : `m_mobile`, `m_vitalite` (`Vitalite` : points de vie et armure), `m_id`,
-`m_attaque`, `m_rayonDetection`, `m_rayonTerritoire`, `m_etat` (`Etat`,
+Données membres : `m_mobile`, `m_vitalite` (`Vitalite` : points de vie et défenses), `m_id`,
+`m_attaque`, `m_rayonDetection`, `m_rayonTerritoire`, `m_zoneDeControle`, `m_statistiques`
+(`StatistiquesDeCombat`), `m_regenerationRetour`, `m_etat` (`Etat`,
 `enum class` privé : `EnGarde`, `Poursuite`, `Retour`), `m_poste`,
 `m_groupe` (`int`, opaque), `m_alerte` (`bool`, posé par `alerter`,
-consommé par `mettreAJour`), `m_soinAccumule` (`float`, points de vie rendus pas encore entiers pendant le retour, 0 ailleurs), `m_idCibleEngagee` (`std::optional<int>`, place du personnage visé par le coup en exécution) ; constantes publiques `static constexpr float s_rayonTerritoire` (600 px) et `s_zoneDeControle` (20 px, bord à bord).
+consommé par `mettreAJour`), `m_soinAccumule` (`float`, points de vie rendus pas encore entiers pendant le retour, 0 ailleurs), `m_idCibleEngagee` (`std::optional<int>`, place du personnage visé par le coup en exécution). Toutes les valeurs d'équilibrage viennent de la `DefinitionDeMonstre` du constructeur (aucune constante publique).
 
 | Fonction | Rôle |
 |---|---|
-| `Monstre(sf::Vector2f centre, int id, int armure, int groupe)` | Crée le monstre à ce centre, avec cet identifiant, cette armure (20, donnée par `Niveau`), ce groupe (donné par `Niveau`) et 100 points de vie ; son poste est ce centre |
+| `Monstre(sf::Vector2f centre, int id, int groupe, const DefinitionDeMonstre& definition)` | Crée le monstre à ce centre, avec cet identifiant, ce groupe (donné par `Niveau`) et les valeurs de cette définition (armure comprise, donnée par `Niveau` via `Partie`) ; son poste est ce centre |
 | `int getGroupe() const` | Identifiant de groupe ; `[[nodiscard]]` |
-| `float getZoneDeControle() const` / `int getPuissanceAttaque() const` | Zone de contrôle (`s_zoneDeControle`) et dégâts de son attaque ; de simples lectures, elles ne touchent ni la recharge ni le coup engagé ; `[[nodiscard]]` |
+| `float getZoneDeControle() const` / `Attaque getAttaque() const` / `const StatistiquesDeCombat& getStatistiques() const` | Zone de contrôle, son attaque (dégâts avant l'armure de la cible, capacité offensive) et ses statistiques de combat ; de simples lectures, elles ne touchent ni la recharge ni le coup engagé ; `[[nodiscard]]` |
 | `void alerter()` | Demande d'entrer en poursuite de sa proie habituelle, même hors de la détection, si le monstre est dans son territoire ; prise en compte au prochain `mettreAJour`, sans effet en poursuite ni en retour. `recevoirDegats` (dégâts `> 0`) l'appelle |
 | `bool estEnPoursuite() const` | Statut « attaque » (`Etat::Poursuite`), lu par `Partie` ; `[[nodiscard]]` |
 | `bool estCiblable() const` | Faux en `Retour` (le monstre n'est la cible de personne, mais reste un obstacle) ; vrai sinon ; `[[nodiscard]]` |
@@ -426,12 +458,12 @@ consommé par `mettreAJour`), `m_soinAccumule` (`float`, points de vie rendus pa
 | `bool engagerAttaque(std::optional<EntiteVue> proie, const std::vector<EntiteVue>& candidats, const TileMap& carte)` | Engage un coup (0,3 s d'exécution) sur la cible de frappe : faux s'il n'y en a pas, si le monstre est en retour, s'il est en mouvement ou si l'attaque n'est pas prête. La place choisie est retenue jusqu'au départ. `Partie` le tente à chaque image (l'échec est normal) ; `[[nodiscard]]` |
 | `std::optional<int> cibleEngagee() const` | Place du personnage visé par le coup en exécution (pas forcément la proie) ; vide hors exécution |
 | `std::optional<EntiteVue> cibleDeFrappe(...) const` (privée) | `choisirCibleAFrapper` avec `peutAtteindre` comme prédicat et l'id de la proie comme préféré : la proie si atteignable, sinon le candidat atteignable le plus proche (bord à bord ; égalité : le premier) |
-| `int avancerAttaque(float dt, Generateur& generateur)` | Fait avancer l'exécution ; rend les dégâts au départ du coup, 0 sinon ; `[[nodiscard]]` |
+| `std::optional<Attaque> avancerAttaque(float dt, Generateur& generateur)` | Fait avancer l'exécution ; rend son attaque au départ du coup, vide sinon ; `[[nodiscard]]` |
 | `void annulerAttaque()` | Annule le coup en exécution, sans recharge consommée (appelée par `Partie` quand la proie engagée meurt) |
 | `sf::Vector2f getCentre() const` | Centre du monstre |
 | `Cercle getCercle() const` | Cercle centré sur le monstre, de rayon 15 (façade de `Mobile::getCercle`) |
 | `int getId() const` | Identifiant du monstre |
 | `bool contient(sf::Vector2f point) const` | Le point (pixels du monde) est-il dans le carré du monstre ? |
-| `int recevoirDegats(int quantite)` | Sans aucun effet en `Retour` (invulnérable, pas d'alerte) ni sur un monstre mort : renvoie 0. Sinon délègue à `Vitalite::recevoirDegats` (dégâts après armure, sans descendre sous zéro) ; si `quantite > 0`, mémorise que le monstre vient d'être touché ; renvoie les dégâts après armure |
+| `ResultatDuCoup recevoirDegats(const Attaque& attaque, Generateur& generateur)` | Sans aucun effet en `Retour` (invulnérable, pas d'alerte, aucun tirage) ni sur un monstre mort : rien (montant 0). Sinon délègue à `Vitalite::recevoirDegats` (critique et armure, sans descendre sous zéro) ; si `attaque.montant > 0`, mémorise que le monstre vient d'être touché ; renvoie le résultat (dégâts après armure, critique ou non) |
 | `bool estVivant() const` | Points de vie `> 0` |
 | `int getPointsDeVie() const` | Points de vie actuels |

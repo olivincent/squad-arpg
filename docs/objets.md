@@ -29,8 +29,9 @@ le glisser-déposer (étape 85) les déplace. L'armure et son effet sur les dég
   l'ancien objet le ferait disparaître. Un test compte les exemplaires de chaque modèle dans le sac
   et tous les équipements avant et après chaque opération.
 - **Armure calculée, jamais ajustée** : l'armure d'un personnage est la somme de l'armure de ses objets
-  portés, recalculée en entier depuis son `Equipement` (`Personnage::recalculerArmure`, seul
-  endroit qui appelle `Vitalite::definirArmure`) après chaque pose ou retrait. Aucune addition ni
+  portés, recalculée en entier depuis son `Equipement` (`Personnage::recalculerDepuisLEquipement`, seul
+  endroit qui appelle `Vitalite::definirDefenses`, depuis l'étape 89 ; avant, `recalculerArmure` et
+  `definirArmure`) après chaque pose ou retrait. Aucune addition ni
   soustraction incrémentale, donc aucun risque de dérive après une longue suite d'échanges. Plus
   aucune armure de classe : `DefinitionPersonnage::armure` est remplacé par
   `equipementDeDepart`. À la construction, la `Vitalite` reçoit `armureTotale()` de l'équipement
@@ -210,10 +211,16 @@ libres sans état, qui rendent des `std::string` en UTF-8.
 ### Ce que `Personnage` et `Escouade` ajoutent
 
 - `Personnage` : membre `m_equipement`, `getEquipement()`, `poserEquipement(Emplacement, Objet)` et
-  `retirerEquipement(Emplacement)` (qui rendent l'objet remplacé ou retiré et recalculent l'armure et les
-  caractéristiques effectives, donc le maximum de points de vie),
-  `recalculerArmure()` privée ; constructeur : `const std::vector<ObjetDeDepart>&` à la place de
-  l'armure. `Vitalite::definirArmure(int)` (précondition `armure >= 0`).
+  `retirerEquipement(Emplacement)` (qui rendent l'objet remplacé ou retiré et recalculent, d'un seul appel à
+  `recalculerDepuisLEquipement()` privée, les caractéristiques effectives, le maximum de points de vie, les
+  statistiques de combat et les défenses de la `Vitalite`) ; constructeur : `const
+  std::vector<ObjetDeDepart>&` à la place de l'armure. `Vitalite::definirDefenses(const Defenses&)`
+  (préconditions `armure >= 0`, `capaciteDefensive > 0`).
+- **Statistiques de combat (étape 89)** : l'équipement n'a pas encore de bonus de combat propre. Il agit sur
+  les capacités offensive et défensive par l'**Adresse** : un objet qui donne de l'Adresse
+  (`DefinitionObjet::bonus`) monte les deux capacités de 5 par point (`statistiquesDuPersonnage`,
+  `docs/combat.md`). Le catalogue d'aujourd'hui n'a aucun objet d'Adresse ; la liste de bonus de statistiques
+  de combat des objets (esquive, blocage) viendra à l'étape 90.
 - `Escouade` : membre `m_sac` (`Inventaire`, 40 cases), `sac()`, `equipementDuPersonnage(place)`,
   `ramasser`, `objetA`, `peutDeplacerObjet`, `deplacerObjet` (détail dans `docs/formation.md`, tableau
   d'`Escouade`).
