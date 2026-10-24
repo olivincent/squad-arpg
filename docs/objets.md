@@ -67,10 +67,11 @@ et le sac, en lecture seule ; aucune fonction de modification n'est appelée.
 - **Emplacement vide** : rectangle grisé avec le nom de l'emplacement en petit ; **occupé** : le nom
   de l'objet. **Case du sac vide** : carré vide ; **occupée** : le sigle de deux lettres (CF casque de
   fer, CM cuirasse de mailles, JF jambières de fer, BR bouclier rond, GC gants de cuir, BC bottes de
-  cuir, CC casque de cuir, TM tunique matelassée, CP collier de protection, AP anneau de protection).
+  cuir, CC casque de cuir, TM tunique matelassée, CP collier de protection, AP anneau de protection, AU anneau de puissance, CE collier d'endurance).
   Un test vérifie que les sigles ont deux lettres et sont tous différents.
-- **Infobulle** au survol d'un objet : trois lignes (`lignesDeLInfobulle`) : nom, catégorie,
-  « Armure : +N ». Rien au survol d'une case vide.
+- **Infobulle** au survol d'un objet (`lignesDeLInfobulle`) : nom, catégorie, « Armure : +N » (absente si
+  l'armure est nulle, étape 88) et une ligne par bonus de caractéristique (« Puissance : +3 »). Rien au
+  survol d'une case vide.
 - **« Armure : N » d'une colonne** est `Equipement::armureTotale()`, la valeur dont la `Vitalite`
   du personnage est calculée ; elle n'est pas mise en cache dans l'écran.
 - **Disposition** : `interface/DispositionInventaire`, fonctions pures qui servent au dessin, au
@@ -145,6 +146,12 @@ Valeurs d'armure (provisoires, recalibrées à l'étape 87.3 pour le modèle M1)
 cuirasse de mailles 12, jambières de fer 6, bouclier rond 6, gants de cuir 2, bottes de cuir 2, casque
 de cuir 3, tunique matelassée 5, collier de protection 4, anneau de protection 2.
 
+Bonus de caractéristiques (étape 88) : `DefinitionObjet` reçoit `Caracteristiques bonus = {}` (vide pour les
+objets de protection). Deux objets ajoutés au catalogue (`IdObjet::AnneauDePuissance`, `CollierDEndurance`,
+en fin d'enum) et au sac de départ : « Anneau de puissance » (anneau, armure 0, Puissance +3) et « Collier
+d'endurance » (collier, armure 0, Endurance +3). Un collier d'endurance donne +60 points de vie maximum
+(20 par point d'Endurance).
+
 ### `Equipement` (`objets/`)
 
 `Equipement.hpp` / `.cpp` : `struct ObjetDeDepart { Emplacement emplacement; IdObjet objet; }` (avec
@@ -160,6 +167,7 @@ Données membres : `m_objets` (`std::array<std::optional<Objet>, s_nombreEmplace
 | `std::optional<Objet> poser(Emplacement, Objet)` | Porte l'objet et rend celui qui y était ; `assert(peutAller(...))` : c'est à l'appelant de vérifier ; `[[nodiscard]]` |
 | `std::optional<Objet> retirer(Emplacement)` | Enlève l'objet et le rend (vide si l'emplacement l'était) ; `[[nodiscard]]` |
 | `int armureTotale() const` | Somme de l'armure des objets portés, recalculée à chaque appel ; `[[nodiscard]]` |
+| `Caracteristiques bonusTotal() const` | Somme des bonus de caractéristiques des objets portés, recalculée à chaque appel (étape 88) ; `[[nodiscard]]` |
 
 ### `Inventaire` (`objets/`)
 
@@ -197,12 +205,13 @@ libres sans état, qui rendent des `std::string` en UTF-8.
 | `std::string nomDeLEmplacement(Emplacement)` | « Tête », « Torse », « Jambes », « Gants », « Bottes », « Main droite », « Main gauche », « Collier », « Anneau 1 », « Anneau 2 » ; `switch` sans `default` ; `[[nodiscard]]` |
 | `std::string nomDeLaCategorie(CategorieObjet)` | « Casque », « Armure », « Jambières », « Gants », « Bottes », « Bouclier », « Collier », « Anneau » ; `[[nodiscard]]` |
 | `std::string sigleDeLObjet(IdObjet)` | Deux lettres par objet du catalogue ; `[[nodiscard]]` |
-| `std::vector<std::string> lignesDeLInfobulle(IdObjet)` | Nom, catégorie, « Armure : +N » ; `[[nodiscard]]` |
+| `std::vector<std::string> lignesDeLInfobulle(IdObjet)` | Nom, catégorie, « Armure : +N » si non nulle, une ligne « Nom : +N » par bonus de caractéristique ; `[[nodiscard]]` |
 
 ### Ce que `Personnage` et `Escouade` ajoutent
 
 - `Personnage` : membre `m_equipement`, `getEquipement()`, `poserEquipement(Emplacement, Objet)` et
-  `retirerEquipement(Emplacement)` (qui rendent l'objet remplacé ou retiré et recalculent l'armure),
+  `retirerEquipement(Emplacement)` (qui rendent l'objet remplacé ou retiré et recalculent l'armure et les
+  caractéristiques effectives, donc le maximum de points de vie),
   `recalculerArmure()` privée ; constructeur : `const std::vector<ObjetDeDepart>&` à la place de
   l'armure. `Vitalite::definirArmure(int)` (précondition `armure >= 0`).
 - `Escouade` : membre `m_sac` (`Inventaire`, 40 cases), `sac()`, `equipementDuPersonnage(place)`,

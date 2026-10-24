@@ -105,6 +105,7 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 85 — Inventaire : le glisser-déposer ✅
 - Étape 86 — Nom du skill lancé et « Provoqué » ✅
 - Étape 87 — Moteur du coup : échelle × 10, point d'entrée unique, armure M1 ✅
+- Étape 88 — Caractéristiques : cinq valeurs, Endurance vers PV, Puissance vers dégâts et soins ✅
 
 ## Détail des étapes 0 à 73
 
@@ -2096,3 +2097,18 @@ nouveau module `combat/ResolutionDuCoup` (`Defenses`, `resoudreCoup`), appelé p
 recalibrées (mêlées 30, monstres 10) ; la constante K disparaît. Les tests tuent avec `s_coupMortel` et
 leurs attentes M1 sont calculées. 1 082 tests, 41 avertissements `clang-tidy` (inchangé). Détail :
 `docs/combat.md`, `docs/objets.md`, `docs/classes-et-combat.md`.
+
+### Étape 88 — Caractéristiques : cinq valeurs, Endurance vers PV, Puissance vers dégâts et soins ✅
+
+Deuxième étape de la phase 1 du plan 87–96. Sept sous-étapes. 88.1 (C2) : `DefinitionDeSkill` et
+`Personnage(centre, DefinitionPersonnage)` en initialisation désignée. 88.2 : `combat/Caracteristiques`
+(`Caracteristique`, `Caracteristiques`), `objets/` peut inclure `combat/`. 88.3 : bases par classe (somme 50),
+caractéristiques effectives d'un `Personnage`, Endurance → points de vie maximum (20 par point, bases de
+points de vie ajustées pour garder 1000), `PointsDeVie::changerMaximum` (le vivant garde au moins 1 PV).
+88.4 : bonus de caractéristiques des objets (`DefinitionObjet::bonus`, `Equipement::bonusTotal`), anneau de
+puissance et collier d'endurance, recalcul à chaque changement d'équipement. 88.5 : `Coefficients` par skill
+et `montantEffectif` (3 % par point de Puissance au-dessus de 10) pour les dégâts et soins des personnages,
+coups d'opportunité compris. 88.6 : cinq caractéristiques et points de vie sous chaque personnage dans
+l'inventaire, lignes de bonus dans l'infobulle. 1 126 tests, 41 avertissements `clang-tidy` (inchangé).
+Détail : `docs/combat.md`, `docs/objets.md`, `docs/formation.md`, `docs/ecrans.md`,
+`docs/classes-et-combat.md`.

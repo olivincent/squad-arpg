@@ -629,6 +629,43 @@ personnages sont dans `docs/formation.md`, le monstre dans
 - **Limites** : pas d'affichage de l'armure, pas d'esquive ni de blocage, pas de types de dégâts ni de
   résistances, pas de pénétration d'armure.
 
+## Caractéristiques, points de vie et montant effectif (étape 88)
+
+Détail de conception : `docs/classes-et-combat.md`, section 5.
+
+- **Cinq caractéristiques** (`combat/Caracteristiques`) : `enum class Caracteristique { Puissance,
+  Endurance, Adresse, Savoir, Volonte }` et un type valeur `Caracteristiques` (un `std::array<int, 5>`
+  indexé par l'enum, `valeur(Caracteristique)`, addition). Un tableau plutôt que cinq champs : les bonus
+  d'objets, les coefficients et l'affichage parcourent les cinq de la même façon. Elles vivent dans
+  `combat/` parce que les objets et les personnages s'en servent (`objets/` peut donc inclure `combat/`).
+  Les noms affichés sont dans `interface/AffichageCaracteristiques`.
+- **Valeur de référence 10** (`s_valeurDeReference`, à la *Pillars of Eternity*) : un effet se calcule par
+  rapport à 10, qui ne donne ni bonus ni malus. Provisoire, à tester.
+- **Effectives = base + équipement** : la base vient de la classe (`DefinitionPersonnage::caracteristiques`,
+  somme 50 pour chacune des cinq classes), les bonus de l'équipement (`DefinitionObjet::bonus`) s'y
+  ajoutent. Recalculées en entier à chaque changement d'équipement par
+  `Personnage::recalculerCaracteristiques`, le seul endroit qui les écrit (même règle que l'armure, jamais
+  d'ajustement incrémental). Seules la Puissance et l'Endurance ont un effet pour l'instant ; l'Adresse, le
+  Savoir et la Volonté existent et s'affichent, sans effet.
+- **Endurance → points de vie** : `pointsDeVieMax(pointsDeVieDeBase, caracteristiques)` = base de la classe
+  + `s_pvParPointDEndurance` (20) × Endurance effective. Les PV de base de chaque classe (720, 740, 800,
+  840, 800) sont ajustés pour que le maximum de départ soit 1000 pour toutes, comme avant l'étape 88.
+  Quand le maximum change (équipement), `PointsDeVie::changerMaximum` change la valeur actuelle de la même
+  différence ; un vivant garde au moins 1 PV (on ne meurt pas en se déséquipant) ; un mort reste à 0.
+- **Puissance → dégâts et soins par des coefficients** : chaque skill et chaque attaque de base de
+  personnage déclare dans ses données un `Coefficients` (un flottant par caractéristique, 0 par défaut) ;
+  aujourd'hui Puissance 1,0 pour tous les skills de dégâts, de soin et de zone et pour les attaques de base,
+  rien pour la provocation (sa durée n'est pas un montant). `montantEffectif(montant, coefficients,
+  caracteristiques)` = `montant × (1 + Σ coefficient × s_bonusParPoint × (caractéristique − 10))`, avec
+  `s_bonusParPoint = 0,03`, arrondi au plus proche, jamais négatif : c'est **la seule fonction** qui calcule ce
+  montant. `Personnage::montantDe(skill)` l'appelle pour `avancerAttaque`, `avancerSkill` et
+  `getPuissanceAttaqueDeBase` (lu par `Partie` pour les coups d'opportunité) : tout ce qui inflige un dégât
+  ou un soin de personnage passe par là. Un Puissance de 13 (anneau de puissance +3) donne +9 %.
+- **Les monstres n'ont pas de caractéristiques** : leurs coefficients sont nuls, leurs montants ne changent
+  pas.
+- **Limites** : pas d'effet de l'Adresse, du Savoir et de la Volonté ; pas de points libres, de niveaux ni de
+  croissance ; pas de caractéristiques de monstres ; valeurs de référence provisoires.
+
 ## Temps d'exécution et coup engagé (étape 57)
 
 - **Cycle** : une attaque de base n'est plus instantanée. Prête → **engagée**
@@ -1397,19 +1434,20 @@ Possédé par valeur par `Personnage` (attaque de base, plus un skill en
 option) et par `Monstre` (son attaque). Ne connaît ni la position de son
 propriétaire ni sa cible : il reçoit deux `Cercle`. Ne dessine rien.
 
-Données membres : `m_type` (`TypeSkill`), `m_portee` (bord à bord),
+Données membres : `m_type` (`TypeSkill`), `m_portee` (bord à bord), `m_coefficients` (`Coefficients`, étape 88),
 `m_puissance`, `m_rechargeMin`, `m_rechargeMax` (intervalle de recharge,
 en secondes), `m_tempsRecharge` (durée de la recharge en cours, dernier
 tirage), `m_recharge`, `m_rayonZone` (`float`, en pixels), `m_tempsExecution`, `m_executionRestante` (secondes), `m_phase` (`PhaseSkill`).
 
 | Fonction | Rôle |
 |---|---|
-| `Skill(TypeSkill type, float portee, int puissance, float rechargeMin, float rechargeMax, float rayonZone, float tempsExecution = 0)` | Crée le skill de ce type, avec cette portée, cette puissance, cet intervalle de recharge (`assert(0 <= min <= max)` ; fixe si `min == max`), ce rayon de zone et ce temps d'exécution (`assert >= 0`) ; prêt à la création |
+| `explicit Skill(const DefinitionDeSkill&)` | Crée le skill depuis ses données nommées (étape 88.1, C2) : `DefinitionDeSkill { type; portee; puissance; rechargeMin; rechargeMax; rayonZone = 0; tempsExecution = 0; coefficients = {} }`, en initialisation désignée (`Skill({.type = TypeSkill::Degats, .portee = 80.0f, ...})`). Crée le skill de ce type, avec cette portée, cette puissance, cet intervalle de recharge (`assert(0 <= min <= max)` ; fixe si `min == max`), ce rayon de zone et ce temps d'exécution (`assert >= 0`) ; prêt à la création |
 | `bool commencer()` | Prêt → en exécution ; faux, sans rien changer, dans toute autre phase ; `[[nodiscard]]` |
 | `bool avancer(float dt, Generateur& generateur)` | En exécution : fait avancer l'exécution ; vrai une seule fois, au départ du coup (la recharge est alors tirée, phase → en recharge). Autres phases : comme `mettreAJour`, faux ; `[[nodiscard]]` |
 | `void annuler()` | En exécution → prêt, sans recharge ; sans effet ailleurs |
 | `PhaseSkill getPhase() const` | Phase actuelle |
-| `int getPuissance() const` | Puissance du skill |
+| `int getPuissance() const` | Puissance du skill, brute (sans les caractéristiques : `Personnage::montantDe` les applique) |
+| `const Coefficients& getCoefficients() const` | Ce que la puissance doit aux caractéristiques du lanceur ; `[[nodiscard]]` |
 | `void mettreAJour(float dt)` | Décrémente la recharge, sans descendre sous zéro ; en recharge écoulée, repasse à prêt |
 | `bool estAPortee(Cercle origine, Cercle cible) const` | `distanceBordABord(origine, cible)` est-elle `<=` `m_portee` ? |
 | `void relancerRecharge(Generateur& generateur)` | Remet la recharge au complet, sans déclencher : `min` si `min == max` (aucun tirage), sinon un tirage uniforme (`std::uniform_real_distribution<float>`) dans `[min, max]` |
@@ -1539,6 +1577,22 @@ du code écrit `Generateur` et ne dépend pas de l'algorithme. Possédé par
 de la chaîne `Partie` → `Escouade` → `Personnage` → `Skill` et `Partie` →
 `Monstre` → `Skill` ; jamais copié, jamais gardé, jamais global.
 
+### `Caracteristiques` (`combat/`) — les cinq caractéristiques (étape 88)
+
+`Caracteristiques.hpp` / `.cpp`. Ne dépend de rien d'autre.
+
+- `enum class Caracteristique { Puissance, Endurance, Adresse, Savoir, Volonte }`, `s_nombreDeCaracteristiques`
+  (5) et `s_caracteristiques` (le tableau de toutes, pour les parcourir).
+- `class Caracteristiques` (type valeur, `constexpr`) : un `std::array<int, 5>` indexé par l'enum.
+  `Caracteristiques()` (toutes à 0), `explicit Caracteristiques(std::array<int, 5>)`, `static seule(Caracteristique, int)`,
+  `valeur(Caracteristique)`, `+=`, `+`, `==` ; `[[nodiscard]]`.
+- `class Coefficients` : la même forme en flottants (`seul`, `valeur`, `==`), pour les skills.
+- Constantes : `s_valeurDeReference` (10), `s_bonusParPoint` (0,03), `s_pvParPointDEndurance` (20).
+- `int pointsDeVieMax(int pointsDeVieDeBase, const Caracteristiques&)` : base + 20 × Endurance ;
+  `assert(résultat > 0)` ; `[[nodiscard]]`.
+- `int montantEffectif(int montant, const Coefficients&, const Caracteristiques&)` : voir plus haut ;
+  `assert(montant >= 0)` ; `[[nodiscard]]`.
+
 ### `Defense` (`combat/`) — l'armure
 
 Une fonction libre pure, sans état, utilisée par `Vitalite::recevoirDegats`. Ne dépend d'aucun
@@ -1569,6 +1623,7 @@ Données membres : `m_valeur`, `m_maximum`.
 | `explicit PointsDeVie(int maximum)` | Commence plein ; `assert(maximum > 0)` |
 | `void subirDegats(int montant)` | `assert(montant >= 0)` ; valeur bornée à 0 ; un montant de 0 est permis |
 | `int soigner(int montant)` | `assert(montant >= 0)` ; valeur bornée au maximum ; sans effet si la valeur est à 0 ; renvoie les points réellement rendus (0 à pleine vie ou pour un mort) |
+| `void changerMaximum(int nouveauMaximum)` | `assert(nouveauMaximum > 0)` ; un vivant : la valeur change de la même différence que le maximum, bornée à `[1, nouveauMaximum]` ; un mort reste à 0 |
 | `bool estVivant() const` | Valeur `> 0` (`[[nodiscard]]`) |
 | `int getValeur() const` / `int getMaximum() const` | Valeur actuelle et maximum |
 | `float getRatio() const` | Valeur / maximum |
@@ -1590,6 +1645,7 @@ Données membres : `m_pointsDeVie` (`PointsDeVie`), `m_armure` (`int`).
 |---|---|
 | `Vitalite(int pointsDeVieMax, int armure)` | Commence pleine ; `assert(armure >= 0)` (et `maximum > 0` par `PointsDeVie`) |
 | `int recevoirDegats(int montant)` | `resoudreCoup(montant, {.armure = armure})`, puis `PointsDeVie::subirDegats` ; renvoie les dégâts après armure, non plafonnés par les points de vie restants ; 0 pour un mort (rien n'est appliqué) |
+| `void definirMaximum(int maximum)` | `PointsDeVie::changerMaximum` (précondition `maximum > 0`) |
 | `int soigner(int montant)` | `PointsDeVie::soigner` : plafonné au maximum, 0 pour un mort ; renvoie les points réellement rendus |
 | `bool estVivant() const` | Points de vie `> 0` ; `[[nodiscard]]` |
 | `int getValeur() const` / `int getMaximum() const` | Points de vie actuels et maximum ; `[[nodiscard]]` |

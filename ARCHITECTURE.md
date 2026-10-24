@@ -48,7 +48,7 @@ squad-arpg/
 │   │               ObjetInteractif, Niveau, GenerateurDonjon, Encerclement
 │   ├── combat/     Skill, SkillConnu, IdSkill, TypeSkill, AdresseSkill, Cible, ActionEngagee,
 │   │               EtatSkill, Coup, EvenementDeCombat, EntiteVue, Autodefense, Engagement,
-│   │               Defense, ResolutionDuCoup, PointsDeVie, Vitalite
+│   │               Defense, ResolutionDuCoup, Caracteristiques, PointsDeVie, Vitalite
 │   ├── objets/     Emplacement, Objet, CatalogueObjets, Equipement, Inventaire, PositionDObjet
 │   ├── escouade/   Escouade, Personnage, Formation, PlacesDAttaque, Intention, Separation,
 │   │               EcartEntrePersonnages, Composition, Specialite, SelectionDEscouade,
@@ -57,7 +57,7 @@ squad-arpg/
 │   ├── jeu/        Partie
 │   ├── interface/  Ecran, Transition, Contexte, PileDEcrans, EntreeDInterface, EcranMenu,
 │   │               EcranOptions, EcranChoixEscouade, EcranJeu, EcranInventaire,
-│   │               DispositionInventaire, AffichageObjets, AffichageSkills, ListeDeBoutons, Reglages, TailleDeVue,
+│   │               DispositionInventaire, AffichageObjets, AffichageCaracteristiques, AffichageSkills, ListeDeBoutons, Reglages, TailleDeVue,
 │   │               EmplacementsPrincipaux, BarreDeRaccourcis, CommandeDeTouche, ClicInterface,
 │   │               BarreDeSkills, EcranDeFin, TextesFlottants, Controleur
 │   └── app/        main.cpp, Application
@@ -138,6 +138,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `Defense` : `appliquerArmure`, modèle M1 (soustraction avec plancher de 20 %).
 - `ResolutionDuCoup` : `resoudreCoup`, point d'entrée unique d'un coup (aujourd'hui l'armure seule) et `Defenses`.
 - `PointsDeVie` : valeur et maximum, invariants de vie et de mort.
+- `Caracteristiques` : les cinq caractéristiques (`Caracteristique`, `Caracteristiques`, `Coefficients`), les points de vie maximum et `montantEffectif`, seule source du montant d'un skill de personnage (`docs/combat.md`).
 - `Vitalite` : points de vie et armure d'une entité, commune à `Personnage` et `Monstre`.
 
 `objets/` — les objets, ce qu'on porte et le sac (`docs/objets.md`) :
@@ -155,7 +156,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
   points visés ; elle possède `Formation`, `PlacesDAttaque`, `Agresseurs`, `Provocations`, le sac
   (`Inventaire`) et les `Personnage` ; `ramasser` et `deplacerObjet` déplacent les objets.
 - `Personnage` : un membre : déplacement, attaque de base, skills, vie, vision, équipement (son armure
-  en est la somme).
+  en est la somme), caractéristiques (base de classe plus équipement).
 - `Formation` : décalages, orientation, point à regarder et places de formation, sans `Personnage`.
 - `PlacesDAttaque` : place d'attaque retenue par assaillant autour de sa cible, sans `Personnage`.
 - `Intention` : ce qu'un personnage veut faire, sa situation, `choisirIntention`, les règles par
@@ -184,6 +185,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `EcranInventaire` : le sac et l'équipement, déplacement des objets par glisser-déposer, par-dessus la partie figée, touche I (`docs/ecrans.md`).
 - `DispositionInventaire` : rectangles de l'inventaire, `elementSous` (une `PositionDObjet`), placement de l'infobulle (`docs/ecrans.md`).
 - `AffichageObjets` : noms des emplacements et des catégories, sigles, lignes de l'infobulle (`docs/objets.md`).
+- `AffichageCaracteristiques` : les noms des cinq caractéristiques et la ligne d'une caractéristique avec son bonus (`docs/combat.md`).
 - `AffichageSkills` : `nomDuSkill`, le nom affiché d'un skill (`docs/combat.md`).
 - `ListeDeBoutons` : colonne de boutons sans position stockée (`docs/ecrans.md`).
 - `Reglages` : réglages d'affichage, `reglages.ini`, table des touches des raccourcis (`docs/ecrans.md`).

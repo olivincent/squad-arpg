@@ -1397,3 +1397,27 @@ même chose avec plus de détail.
 - **`tests/combat/test_ResolutionDuCoup.cpp`** (+2) : `resoudreCoup` rend `appliquerArmure` ; un coup de 0
   reste 0.
 - Les attentes de `test_Vitalite`, `test_Monstre` et de quelques tests d'escouade sont recalculées pour M1.
+
+## Étape 88 : caractéristiques (+44 cas, 1 082 → 1 126)
+
+- Sous-étape 1 (C2) : aucun cas ajouté. Les constructions de `Skill` et de `Personnage` des tests passent en
+  initialisation désignée (`Skill({.type = …})`, `Personnage(centre, {.couleur = …})`) ; les définitions des
+  aides (`guerrierDeTest`…) aussi. Les champs omis (`skills`, `equipementDeDepart`, `caracteristiques`,
+  `zoneDeControle`…) ont une valeur par défaut, ce qui évite l'avertissement `-Wmissing-field-initializers`.
+- **`tests/combat/test_Caracteristiques.cpp`** (nouveau) : valeurs à 0 par défaut, ordre de l'enum, `seule`,
+  addition, `pointsDeVieMax`, `Coefficients`, et `montantEffectif` (neutre à 10, coefficient nul, bonus par
+  point, pondération et somme, arrondi au plus proche, jamais négatif).
+- **`tests/combat/test_PointsDeVie.cpp`** (+6) : `changerMaximum` (gain, perte, plancher à 1 pour un vivant,
+  un mort reste à 0, un vivant plein reste plein, aller-retour).
+- **`tests/objets/`** : le catalogue (ordre, armure ou bonus, anneau de puissance et collier d'endurance, sac de
+  départ), `Equipement::bonusTotal`.
+- **`tests/escouade/test_Personnage.cpp`** : caractéristiques effectives (base, base + équipement, équipement de
+  départ), points de vie maximum, équiper et retirer le collier (gain, perte sans tuer, mort inchangé), montant
+  effectif de l'attaque de base et d'un skill, provocation sans coefficient.
+- **`tests/escouade/test_Specialite.cpp`** : somme 50 et 1000 PV max pour chaque classe ; le guerrier plus
+  d'Endurance que le mage, le mage plus de Savoir.
+- **`tests/escouade/test_Escouade_equipement.cpp`** : `puissanceDeLAttaqueDeBase` (lue pour les coups
+  d'opportunité) suit l'anneau de puissance.
+- **`tests/interface/`** : `test_AffichageCaracteristiques.cpp` (noms, ligne avec bonus),
+  `test_AffichageObjets.cpp` (infobulle sans « Armure : +0 », une ligne par bonus),
+  `test_DispositionInventaire.cpp` (cellules du bloc dans le bloc, bloc entre les emplacements et le sac).

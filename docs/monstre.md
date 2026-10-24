@@ -334,8 +334,8 @@ même chose avec plus de détail.
 
 ### État
 
-- **Monstres** : des carrés rouges de 30 × 30 (160 px/s, 100 points de
-  vie, armure 20, barre de vie). Sur la carte générée : 1 à 3 par salle sauf
+- **Monstres** : des carrés rouges de 30 × 30 (160 px/s, 1000 points de
+  vie, armure 10, barre de vie). Sur la carte générée : 1 à 3 par salle sauf
   la première, au centre d'une case intérieure (une case de marge contre
   les murs), à au moins 2 cases les uns des autres et à 400 px ou plus du
   départ (rejet, 10 tentatives par monstre, abandonné sinon : une salle

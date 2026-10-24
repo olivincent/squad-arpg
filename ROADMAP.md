@@ -8,7 +8,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 ## Étapes terminées
 
-Étapes 0 à 87 ✅. Les dernières :
+Étapes 0 à 88 ✅. Les dernières :
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 - Étape 83 — Inventaire et équipement : le modèle, sans interface ✅
@@ -16,15 +16,16 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - Étape 85 — Inventaire : le glisser-déposer ✅
 - Étape 86 — Nom du skill lancé et « Provoqué » ✅
 - Étape 87 — Moteur du coup : échelle × 10, point d'entrée unique, armure M1 ✅
+- Étape 88 — Caractéristiques : cinq valeurs, Endurance vers PV, Puissance vers dégâts et soins ✅
 
 ## État actuel (résumé)
 
 - **Outils** : conception dans Claude.ai, implémentation avec Claude Code dans VSCode (règles dans
   `CLAUDE.md`) ; dépôt Git `squad-arpg`, poussé sur GitHub ; SFML 3.0.2 intégrée à CMake.
-- **Code** (étape 87) : 70 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
+- **Code** (étape 88) : 73 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
   `combat`, `objets`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
   de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug` et `jeu`, 0
-  avertissement, 1 082 tests verts sous CTest, 41 avertissements `clang-tidy` (`docs/build.md`,
+  avertissement, 1 126 tests verts sous CTest, 41 avertissements `clang-tidy` (`docs/build.md`,
   `docs/audit.md`). `Escouade` n'est plus que l'assemblage : `Escouade.cpp` de 1 223 à 1 067 lignes. Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`).
 - **Écrans** : menu à la souris, options d'affichage (fenêtré ou plein écran, résolutions,
   `reglages.ini`), choix de 3 classes parmi 5 (guerrier, prêtre, mage, paladin, rôdeur ; doublons
@@ -37,17 +38,19 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - **Vision** : brouillard de guerre (inconnu, exploré, visible) par shadowcasting symétrique, la
   même règle que la ligne de vue du combat ; F6 le coupe à l'affichage (`docs/vision.md`).
 - **Objets** : 10 emplacements par personnage, un sac de 40 cases pour l'escouade, un catalogue de
-  10 objets ; l'armure d'un personnage est la somme de son équipement (guerrier et paladin partent
-  équipés : 30 ; les autres : 0) ; `ramasser` et `deplacerObjet` sont transactionnelles. La
+  12 objets ; l'armure d'un personnage est la somme de son équipement (guerrier et paladin partent
+  équipés : 30 ; les autres : 0) ; chaque personnage a cinq caractéristiques (base de sa classe plus
+  bonus de l'équipement : Puissance, Endurance, Adresse, Savoir, Volonté), dont l'Endurance donne des
+  points de vie (20 par point) et la Puissance augmente dégâts et soins (3 % par point au-dessus de 10) ; `ramasser` et `deplacerObjet` sont transactionnelles. La
   touche I ouvre l'inventaire par-dessus la partie figée : équipement des 3 personnages, sac de 40
-  cases, infobulle au survol, et glisser-déposer des objets (sac, emplacements, entre personnages ;
+  cases, caractéristiques et points de vie de chaque personnage, infobulle au survol, et glisser-déposer des objets (sac, emplacements, entre personnages ;
   échange si la destination est occupée ; destinations valides en surbrillance) (`docs/objets.md`,
   `docs/ecrans.md`).
 - **Escouade** : une ancre suivie par 3 personnages en formation (rangs avant et arrière), qui
   pivote et se resserre près des murs ; places d'attaque autour des monstres, séparation douce,
   chemins qui contournent les monstres, dégagement des tireurs (`docs/formation.md`, `docs/chemin.md`).
 - **Combat** : verrou par clic, autodéfense, agresseurs, temps d'exécution des coups, armure à
-  rendement décroissant, recharges aléatoires, zones de contrôle et attaques d'opportunité ; skills
+  armure par soustraction avec plancher, recharges aléatoires, zones de contrôle et attaques d'opportunité ; skills
   (dégâts, soin, provocation, zone avec visée) avec temps d'activation et un skill en attente pour
   l'escouade ; dégâts, soins, nom du skill lancé et « Provoqué » flottants (`docs/combat.md`).
 - **Monstres** : détection en vue, poursuite, frappe de la proie ou du plus proche atteignable,
@@ -110,6 +113,8 @@ fonctionnalités prévues sont donc décalées après l'étape 82.
     modifie qu'une fois) et C2 (constructeurs à longues listes) avant les buffs, les
     soins dans le temps ou le mana. Le mode de cible « Soi » de R4 doit lever une limite de l'étape 80 :
     la provocation, sans cible, ne peut pas être mise en attente quand son lanceur est occupé ;
+  - C2 (constructeurs à longues listes) : fait à l'étape 88.1 pour `Skill` et `Personnage`
+    (`DefinitionDeSkill`, `DefinitionPersonnage` en initialisation désignée) ;
   - E1 (valeurs dispersées, `Monstre` en littéraux) : première sous-étape de l'étape 89 (avant les types
     de monstres) ;
   - R3 (`Partie` accumule plusieurs rôles), D2 (indices de grille à la main), C3 (conversions de
@@ -136,8 +141,8 @@ Les mathématiques du combat sont conçues dans `docs/classes-et-combat.md`. Pou
 ce qui reste à décider **en discussion** avant son prompt :
 - **Phase 1, moteur du coup**
   - 87 ✅ : résolution en étapes (`resoudreCoup`), armure M1, échelle × 10 des points de vie.
-  - 88 : cinq caractéristiques (base de classe + équipement), Endurance → points de vie, Puissance →
-    dégâts et soins.
+  - 88 ✅ : cinq caractéristiques (base de classe + équipement), Endurance → points de vie, Puissance →
+    dégâts et soins, visibles dans l'inventaire.
   - 89 : critique (E1 en première sous-étape). À décider : formule du critique (capacité offensive
     contre défensive) et critique de la magie (question 7).
   - 90 : esquive et blocage. À décider : plafond de l'esquive (question 3) et valeurs du blocage.
@@ -151,9 +156,11 @@ ce qui reste à décider **en discussion** avant son prompt :
   - 94 : objets avec leurs propres données (rareté, bonus) ; 95 : butin au sol ; 96 : génération
     aléatoire des objets. À décider : rareté, affixes, niveau d'objet (question 2).
 
-## Étape 88 (prochaine)
+## Étape 89 (prochaine) : à discuter avec Claude.ai
 
-Caractéristiques : le prompt est prêt (Olivier l'a fourni avec celui de l'étape 87).
+Le critique (E1 en première sous-étape). À décider : la formule du critique (capacité offensive contre
+défensive, `docs/classes-et-combat.md`, section 7) et le critique de la magie (question 7). L'Adresse,
+le Savoir et la Volonté existent depuis l'étape 88 et n'ont encore aucun effet.
 
 ## Fonctionnalités prévues (à choisir avec Claude.ai)
 

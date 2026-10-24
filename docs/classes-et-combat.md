@@ -109,6 +109,7 @@ Quand un point entre dans `ROADMAP.md`, sa conception détaillée se fait en dis
 - **Retenu.** Le **mana** n'est rattaché à aucune caractéristique tant que la ressource n'est pas tranchée (question 6).
 - **Retenu.** Redistribution des points **payante, seulement dans les refuges** (village, campement), jamais en pleine quête.
 - **Retenu.** Seuils d'équipement à la *Titan Quest*.
+- **À tester** (étape 88). Valeurs de référence : référence 10 pour tous les effets ; 3 % de bonus par point de Puissance au-dessus (ou en dessous) de 10 ; 20 points de vie par point d'Endurance ; bases de classe de somme 50 (guerrier 12/14/10/6/8, paladin 11/13/8/7/11, prêtre 10/10/8/10/12, mage 10/8/8/14/10, rôdeur 10/10/14/8/8 pour Puissance/Endurance/Adresse/Savoir/Volonté). Seules la Puissance et l'Endurance ont un effet pour l'instant.
 
 ## 6. Le déroulement d'un coup
 
@@ -211,7 +212,7 @@ Points de conception associés (**proposés**) :
 
 | Statistique | Rôle | Source principale | Existe |
 |---|---|---|---|
-| Dégâts de base | Montant de départ du coup | Arme, skill ; modifiés par la Puissance | Oui (fixe par skill) |
+| Dégâts de base | Montant de départ du coup | Arme, skill ; modifiés par la Puissance | Oui (par skill ; la Puissance, étape 88 : 3 % par point au-dessus de 10, valeurs à tester) |
 | Type de dégâts | Physique, feu, froid, foudre, poison, sacré, vitalité… | Arme, skill | |
 | Intervalle de recharge | Temps entre deux coups (min-max) | Arme, skill | Oui |
 | Temps d'exécution / d'activation | Durée d'immobilité de l'attaquant | Arme, skill | Oui |
@@ -220,7 +221,7 @@ Points de conception associés (**proposés**) :
 | Multiplicateur de critique | Force du critique | Équipement, skills | |
 | Pénétration d'armure | Ignore un % de l'armure | Arme, équipement | |
 | Pénétration de résistance | Ignore une part de la résistance | Équipement, skills | |
-| Puissance de soin | Montant soigné | Skill, Puissance, équipement | Oui (fixe) |
+| Puissance de soin | Montant soigné | Skill, Puissance, équipement | Oui (par skill ; la Puissance, étape 88, comme les dégâts) |
 | Taille de zone | Rayon d'un skill de zone | Skill, Savoir, équipement | Oui (fixe) |
 | Durée des effets | Buffs, debuffs, DoT, contrôle infligé | Skill, Savoir, équipement | |
 | Vol de vie | % des dégâts rendus en PV | Équipement, skills | |
@@ -230,9 +231,9 @@ Points de conception associés (**proposés**) :
 
 | Statistique | Rôle | Source principale | Existe |
 |---|---|---|---|
-| Points de vie | Survie | Endurance, niveau, équipement | Oui |
+| Points de vie | Survie | Endurance, niveau, équipement | Oui (étape 88 : base de classe + 20 par point d'Endurance, à tester ; ×10 depuis l'étape 87) |
 | Régénération | PV regagnés dans le temps | Équipement, skills | |
-| Armure | Réduit le physique | Équipement | Oui (en %, K = 100, à remplacer) |
+| Armure | Réduit le physique | Équipement | Oui (soustraction avec plancher de 20 %, étape 87) |
 | Résistances | Une par élément, en % plafonné | Équipement, skills | |
 | Esquive contre la mêlée | % d'éviter un coup au contact | Équipement, skills (plafond) | |
 | Esquive contre les projectiles | % d'éviter un tir | Équipement, skills (plafond) | |

@@ -760,7 +760,8 @@ même endroit dans un passage étroit » a disparu de la liste des limites.
 ## Composition et escouade à N personnages (étape 74)
 
 - **`Composition.hpp` / `.cpp`** : `enum class Rang { Avant, Arriere }`, `struct
-  DefinitionPersonnage { couleur; attaqueDeBase; skills; equipementDeDepart (armure jusqu'à l'étape 82); rayonVision; rang; }`,
+  DefinitionPersonnage { couleur; attaqueDeBase; skills = {}; equipementDeDepart = {}; rayonVision; caracteristiques = {}; pointsDeVieDeBase = 1000; zoneDeControle = 0; rang = Avant; }`
+  (étape 88 : base de caractéristiques et points de vie de base ; les champs avec valeur par défaut peuvent s'omettre en initialisation désignée),
   `compositionParDefaut()` (remplacée à l'étape 76 par `Specialite`, voir plus bas) et
   `decalagesDeFormation(rangs)`. Pourquoi : `Escouade` ne
   doit plus choisir de valeurs, pour que le joueur puisse choisir sa composition
@@ -1033,12 +1034,13 @@ formation, ni `Escouade`, ni `Monstre`.
 Données membres : `m_mobile` (`Mobile`, porte la position et la vitesse),
 `m_couleur`, `m_attaqueDeBase` (`Skill`), `m_skills`
 (`std::vector<SkillConnu>`, sans doublon d'identifiant), `m_cibleChemin` (`std::optional<sf::Vector2f>`,
-cible du dernier A*), `m_equipement` (`Equipement`, déclaré avant `m_vitalite` : l'armure en est tirée à la construction), `m_vitalite` (`Vitalite` : points de vie et armure), `m_rayonVision` (`float`, pixels), `m_zoneDeControle` (`float`, pixels, bord à bord), `m_actionEngagee` (`std::optional<ActionEngagee>`, l'action en exécution — attaque de base ou skill, avec son `IdSkill` — et sa cible ; une seule à la fois ; lue seulement pendant l'exécution).
+cible du dernier A*), `m_equipement` (`Equipement`, déclaré avant `m_vitalite` : l'armure en est tirée à la construction), `m_caracteristiquesDeBase` et `m_caracteristiques` (`Caracteristiques` : celles de la classe, et les effectives, base plus équipement), `m_pointsDeVieDeBase` (`int`), `m_vitalite` (`Vitalite` : points de vie et armure), `m_rayonVision` (`float`, pixels), `m_zoneDeControle` (`float`, pixels, bord à bord), `m_actionEngagee` (`std::optional<ActionEngagee>`, l'action en exécution — attaque de base ou skill, avec son `IdSkill` — et sa cible ; une seule à la fois ; lue seulement pendant l'exécution).
 
 | Fonction | Rôle |
 |---|---|
-| `Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::vector<SkillConnu> skills, const std::vector<ObjetDeDepart>& equipementDeDepart, float rayonVision, float zoneDeControle = 0.0f)` | Crée le personnage à ce centre, avec cette couleur, cette attaque de base, ces skills (`assert` : pas deux fois le même `IdSkill`), cet équipement de départ (son armure en est la somme, `docs/objets.md`), ce rayon de vision et cette zone de contrôle en pixels (tous fournis par `Composition`, via `Escouade`, qui passe la zone explicitement ; la valeur par défaut 0 évite d'écrire une zone dans les tests qui n'en parlent pas) |
+| `Personnage(sf::Vector2f centre, DefinitionPersonnage definition)` | Crée le personnage à ce centre depuis sa définition (étape 88.1, C2 : un agrégat à la place de sept paramètres ; `Escouade` lui passe la définition de la composition). Avec la couleur, l'attaque de base, les skills (`assert` : pas deux fois le même `IdSkill`), cet équipement de départ (son armure en est la somme, `docs/objets.md`), ce rayon de vision et cette zone de contrôle en pixels (tous fournis par `Composition`, via `Escouade`, qui passe la zone explicitement ; la valeur par défaut 0 évite d'écrire une zone dans les tests qui n'en parlent pas) |
 | `const Equipement& getEquipement() const` | Ce que le personnage porte ; `[[nodiscard]]` |
+| `const Caracteristiques& getCaracteristiques() const` | Ses caractéristiques effectives : la base de sa classe plus les bonus de son équipement, recalculées en entier à chaque changement d'équipement (`recalculerCaracteristiques`, privée, qui change aussi le maximum de points de vie : Endurance × 20 + base, `docs/combat.md`) ; `[[nodiscard]]` |
 | `std::optional<Objet> poserEquipement(Emplacement, Objet)` / `std::optional<Objet> retirerEquipement(Emplacement)` | Portent un objet (`assert(peutAller)`) ou l'enlèvent, et rendent l'objet remplacé ou retiré ; l'armure est recalculée en entier depuis l'équipement (`recalculerArmure`, privée, seul appelant de `Vitalite::definirArmure`) ; permis pour un mort ; `[[nodiscard]]` |
 | `float getRayonVision() const` | Rayon de vision, en pixels ; `[[nodiscard]]` |
 | `float getZoneDeControle() const` / `int getPuissanceAttaqueDeBase() const` | Zone de contrôle (0 : il n'engage personne) et dégâts de l'attaque de base ; de simples lectures, elles ne touchent ni la recharge ni le coup engagé ; `[[nodiscard]]` |
