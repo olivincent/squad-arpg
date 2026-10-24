@@ -35,3 +35,13 @@ int Equipement::armureTotale() const {
     }
     return total;
 }
+
+Caracteristiques Equipement::bonusTotal() const {
+    Caracteristiques total;
+    for (const std::optional<Objet>& objet : m_objets) {
+        if (objet) {
+            total += definitionObjet(objet->id).bonus;
+        }
+    }
+    return total;
+}

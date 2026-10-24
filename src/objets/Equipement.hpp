@@ -3,6 +3,7 @@
 #include <array>
 #include <optional>
 #include <vector>
+#include "combat/Caracteristiques.hpp"
 #include "objets/Emplacement.hpp"
 #include "objets/Objet.hpp"
 
@@ -34,6 +35,9 @@ public:
 
     // Somme de l'armure des objets portés, recalculée à chaque appel.
     [[nodiscard]] int armureTotale() const;
+
+    // Somme des bonus de caractéristiques des objets portés, recalculée à chaque appel.
+    [[nodiscard]] Caracteristiques bonusTotal() const;
 
 private:
     std::array<std::optional<Objet>, s_nombreEmplacements> m_objets;

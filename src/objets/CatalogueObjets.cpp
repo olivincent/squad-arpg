@@ -15,6 +15,8 @@ constexpr int s_armureCasqueDeCuir = 3;
 constexpr int s_armureTuniqueMatelassee = 5;
 constexpr int s_armureCollierDeProtection = 4;
 constexpr int s_armureAnneauDeProtection = 2;
+constexpr int s_bonusAnneauDePuissance = 3;    // Puissance
+constexpr int s_bonusCollierDEndurance = 3;    // Endurance
 
 std::vector<DefinitionObjet> construireLeCatalogue() {
     return {
@@ -30,6 +32,10 @@ std::vector<DefinitionObjet> construireLeCatalogue() {
          s_armureCollierDeProtection},
         {IdObjet::AnneauDeProtection, "Anneau de protection", CategorieObjet::Anneau,
          s_armureAnneauDeProtection},
+        {IdObjet::AnneauDePuissance, "Anneau de puissance", CategorieObjet::Anneau, 0,
+         Caracteristiques::seule(Caracteristique::Puissance, s_bonusAnneauDePuissance)},
+        {IdObjet::CollierDEndurance, "Collier d'endurance", CategorieObjet::Collier, 0,
+         Caracteristiques::seule(Caracteristique::Endurance, s_bonusCollierDEndurance)},
     };
 }
 }  // namespace
@@ -48,5 +54,5 @@ const DefinitionObjet& definitionObjet(IdObjet id) {
 std::vector<Objet> sacDeDepart() {
     return {{IdObjet::GantsDeCuir},         {IdObjet::BottesDeCuir},         {IdObjet::CasqueDeCuir},
             {IdObjet::TuniqueMatelassee},   {IdObjet::CollierDeProtection},  {IdObjet::AnneauDeProtection},
-            {IdObjet::AnneauDeProtection}};
+            {IdObjet::AnneauDeProtection}, {IdObjet::AnneauDePuissance},     {IdObjet::CollierDEndurance}};
 }

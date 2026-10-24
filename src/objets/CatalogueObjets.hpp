@@ -2,6 +2,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include "combat/Caracteristiques.hpp"
 #include "objets/Emplacement.hpp"
 #include "objets/Objet.hpp"
 
@@ -11,6 +12,7 @@ struct DefinitionObjet {
     std::string nom;
     CategorieObjet categorie;
     int armure;
+    Caracteristiques bonus = {};  // ajouté aux caractéristiques de qui le porte (vide : aucun bonus)
 };
 
 // Tous les modèles, dans l'ordre de `IdObjet` : l'unique source de leurs valeurs.

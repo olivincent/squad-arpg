@@ -12,7 +12,9 @@ enum class IdObjet {
     CasqueDeCuir,
     TuniqueMatelassee,
     CollierDeProtection,
-    AnneauDeProtection
+    AnneauDeProtection,
+    AnneauDePuissance,
+    CollierDEndurance
 };
 
 // Un objet : l'instance, distincte de son modèle. Petite valeur copiable ; un objet existe à un

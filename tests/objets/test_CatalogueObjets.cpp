@@ -1,5 +1,6 @@
 // ./tests/objets/test_CatalogueObjets.cpp
 #include <catch2/catch_test_macros.hpp>
+#include <algorithm>
 #include <cstddef>
 #include <vector>
 
@@ -24,13 +25,18 @@ TEST_CASE("catalogueObjets : suit l'ordre de IdObjet") {
     for (std::size_t i = 0; i < catalogue.size(); ++i) {
         REQUIRE(static_cast<std::size_t>(catalogue[i].id) == i);
     }
-    REQUIRE(static_cast<std::size_t>(IdObjet::AnneauDeProtection) == catalogue.size() - 1);
+    REQUIRE(static_cast<std::size_t>(IdObjet::CollierDEndurance) == catalogue.size() - 1);
 }
 
-TEST_CASE("catalogueObjets : chaque objet a un nom, une armure positive et une categorie qui va quelque part") {
+TEST_CASE("catalogueObjets : chaque objet a un nom, de l'armure ou un bonus, et une categorie qui va quelque part") {
     for (const DefinitionObjet& definition : catalogueObjets()) {
         REQUIRE_FALSE(definition.nom.empty());
-        REQUIRE(definition.armure > 0);
+        REQUIRE(definition.armure >= 0);
+        int bonus = 0;
+        for (const Caracteristique caracteristique : s_caracteristiques) {
+            bonus += definition.bonus.valeur(caracteristique);
+        }
+        REQUIRE((definition.armure > 0 || bonus > 0));
         REQUIRE(vaQuelquePart(definition.categorie));
     }
 }
@@ -48,7 +54,7 @@ TEST_CASE("Objet : deux objets de meme modele sont egaux") {
     REQUIRE(Objet{IdObjet::GantsDeCuir} != Objet{IdObjet::BottesDeCuir});
 }
 
-TEST_CASE("sacDeDepart : des objets du catalogue, dont deux anneaux") {
+TEST_CASE("sacDeDepart : des objets du catalogue, dont au moins deux anneaux") {
     const std::vector<Objet> sac = sacDeDepart();
 
     REQUIRE_FALSE(sac.empty());
@@ -58,5 +64,30 @@ TEST_CASE("sacDeDepart : des objets du catalogue, dont deux anneaux") {
             ++anneaux;
         }
     }
-    REQUIRE(anneaux == 2);
+    REQUIRE(anneaux >= 2);
+}
+
+TEST_CASE("catalogueObjets : l'anneau de puissance donne de la Puissance, le collier d'endurance de l'Endurance") {
+    const Caracteristiques& anneau = definitionObjet(IdObjet::AnneauDePuissance).bonus;
+    const Caracteristiques& collier = definitionObjet(IdObjet::CollierDEndurance).bonus;
+
+    REQUIRE(definitionObjet(IdObjet::AnneauDePuissance).categorie == CategorieObjet::Anneau);
+    REQUIRE(definitionObjet(IdObjet::CollierDEndurance).categorie == CategorieObjet::Collier);
+    REQUIRE(anneau.valeur(Caracteristique::Puissance) > 0);
+    REQUIRE(collier.valeur(Caracteristique::Endurance) > 0);
+    for (const Caracteristique caracteristique : s_caracteristiques) {
+        if (caracteristique != Caracteristique::Puissance) {
+            REQUIRE(anneau.valeur(caracteristique) == 0);
+        }
+        if (caracteristique != Caracteristique::Endurance) {
+            REQUIRE(collier.valeur(caracteristique) == 0);
+        }
+    }
+}
+
+TEST_CASE("sacDeDepart : contient l'anneau de puissance et le collier d'endurance") {
+    const std::vector<Objet> sac = sacDeDepart();
+
+    REQUIRE(std::ranges::find(sac, Objet{IdObjet::AnneauDePuissance}) != sac.end());
+    REQUIRE(std::ranges::find(sac, Objet{IdObjet::CollierDEndurance}) != sac.end());
 }

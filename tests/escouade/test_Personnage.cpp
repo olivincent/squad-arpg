@@ -1026,3 +1026,79 @@ TEST_CASE("les points de vie maximum d'un personnage viennent de sa base et de s
     REQUIRE(personnage.getPointsDeVieMax() == pointsDeVieMax(pointsDeVieDeBase, base));
     REQUIRE(personnage.getPointsDeVie() == personnage.getPointsDeVieMax());
 }
+
+namespace {
+Personnage unPersonnageAvecCaracteristiques(const Caracteristiques& base) {
+    return Personnage({100.0f, 100.0f},
+                      {.couleur = sf::Color::White,
+                       .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f}),
+                       .rayonVision = s_rayonVisionDeTest,
+                       .caracteristiques = base});
+}
+}  // namespace
+
+TEST_CASE("les caracteristiques effectives sont la base plus les bonus de l'equipement") {
+    const Caracteristiques base({12, 14, 10, 6, 8});
+    Personnage personnage = unPersonnageAvecCaracteristiques(base);
+
+    static_cast<void>(personnage.poserEquipement(Emplacement::Anneau1, {IdObjet::AnneauDePuissance}));
+    REQUIRE(personnage.getCaracteristiques() == base + definitionObjet(IdObjet::AnneauDePuissance).bonus);
+
+    static_cast<void>(personnage.poserEquipement(Emplacement::Anneau2, {IdObjet::AnneauDePuissance}));
+    REQUIRE(personnage.getCaracteristiques() ==
+            base + definitionObjet(IdObjet::AnneauDePuissance).bonus + definitionObjet(IdObjet::AnneauDePuissance).bonus);
+
+    static_cast<void>(personnage.retirerEquipement(Emplacement::Anneau1));
+    static_cast<void>(personnage.retirerEquipement(Emplacement::Anneau2));
+    REQUIRE(personnage.getCaracteristiques() == base);  // jamais ajustées : recalculées en entier
+}
+
+TEST_CASE("un equipement de depart qui donne des caracteristiques compte des la construction") {
+    const Caracteristiques base({12, 14, 10, 6, 8});
+    const Personnage personnage({100.0f, 100.0f},
+                                {.couleur = sf::Color::White,
+                                 .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f}),
+                                 .equipementDeDepart = {{Emplacement::Collier, IdObjet::CollierDEndurance}},
+                                 .rayonVision = s_rayonVisionDeTest,
+                                 .caracteristiques = base});
+
+    REQUIRE(personnage.getCaracteristiques() == base + definitionObjet(IdObjet::CollierDEndurance).bonus);
+    REQUIRE(personnage.getPointsDeVieMax() ==
+            pointsDeVieMax(s_pointsDeVieDeBaseParDefaut, personnage.getCaracteristiques()));
+    REQUIRE(personnage.getPointsDeVie() == personnage.getPointsDeVieMax());
+}
+
+TEST_CASE("equiper un collier d'endurance monte les points de vie maximum et actuels de la meme difference") {
+    Personnage personnage = unPersonnageAvecCaracteristiques(Caracteristiques({10, 10, 10, 10, 10}));
+    const int maximumAvant = personnage.getPointsDeVieMax();
+    const int vieAvant = personnage.getPointsDeVie();
+
+    static_cast<void>(personnage.poserEquipement(Emplacement::Collier, {IdObjet::CollierDEndurance}));
+
+    const int gain = s_pvParPointDEndurance * definitionObjet(IdObjet::CollierDEndurance).bonus.valeur(Caracteristique::Endurance);
+    REQUIRE(personnage.getPointsDeVieMax() == maximumAvant + gain);
+    REQUIRE(personnage.getPointsDeVie() == vieAvant + gain);
+}
+
+TEST_CASE("retirer le collier d'endurance ramene les points de vie, sans tuer un blesse") {
+    Personnage personnage = unPersonnageAvecCaracteristiques(Caracteristiques({10, 10, 10, 10, 10}));
+    static_cast<void>(personnage.poserEquipement(Emplacement::Collier, {IdObjet::CollierDEndurance}));
+    const int maximumEquipe = personnage.getPointsDeVieMax();
+    static_cast<void>(personnage.recevoirDegats(maximumEquipe - 10));  // armure 0 : il lui reste 10 points de vie
+
+    static_cast<void>(personnage.retirerEquipement(Emplacement::Collier));
+
+    REQUIRE(personnage.estVivant());
+    REQUIRE(personnage.getPointsDeVie() == 1);
+}
+
+TEST_CASE("changer d'equipement ne ressuscite pas un mort") {
+    Personnage personnage = unPersonnageAvecCaracteristiques(Caracteristiques({10, 10, 10, 10, 10}));
+    static_cast<void>(personnage.recevoirDegats(personnage.getPointsDeVieMax()));
+    REQUIRE_FALSE(personnage.estVivant());
+
+    static_cast<void>(personnage.poserEquipement(Emplacement::Collier, {IdObjet::CollierDEndurance}));
+
+    REQUIRE_FALSE(personnage.estVivant());
+    REQUIRE(personnage.getPointsDeVie() == 0);
+}

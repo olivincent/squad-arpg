@@ -106,3 +106,26 @@ TEST_CASE("armureTotale : suit les changements, sans rien garder d'un ancien eta
     REQUIRE(equipement.retirer(Emplacement::Tete).has_value());
     REQUIRE(equipement.armureTotale() == 0);
 }
+
+TEST_CASE("equipement : le bonus total additionne les bonus des objets portes") {
+    Equipement equipement;
+    REQUIRE(equipement.bonusTotal() == Caracteristiques());
+
+    static_cast<void>(equipement.poser(Emplacement::Anneau1, {IdObjet::AnneauDePuissance}));
+    static_cast<void>(equipement.poser(Emplacement::Anneau2, {IdObjet::AnneauDePuissance}));
+    static_cast<void>(equipement.poser(Emplacement::Collier, {IdObjet::CollierDEndurance}));
+
+    const Caracteristiques attendu = definitionObjet(IdObjet::AnneauDePuissance).bonus +
+                                     definitionObjet(IdObjet::AnneauDePuissance).bonus +
+                                     definitionObjet(IdObjet::CollierDEndurance).bonus;
+    REQUIRE(equipement.bonusTotal() == attendu);
+}
+
+TEST_CASE("equipement : retirer un objet retire son bonus") {
+    Equipement equipement;
+    static_cast<void>(equipement.poser(Emplacement::Anneau1, {IdObjet::AnneauDePuissance}));
+
+    static_cast<void>(equipement.retirer(Emplacement::Anneau1));
+
+    REQUIRE(equipement.bonusTotal() == Caracteristiques());
+}

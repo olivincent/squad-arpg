@@ -48,6 +48,8 @@ std::string sigleDeLObjet(IdObjet id) {
         case IdObjet::TuniqueMatelassee: return "TM";
         case IdObjet::CollierDeProtection: return "CP";
         case IdObjet::AnneauDeProtection: return "AP";
+        case IdObjet::AnneauDePuissance: return "AU";
+        case IdObjet::CollierDEndurance: return "CE";
     }
     return "";
 }
