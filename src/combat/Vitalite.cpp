@@ -1,6 +1,6 @@
 // ./src/combat/Vitalite.cpp
 #include "combat/Vitalite.hpp"
-#include "combat/Defense.hpp"
+#include "combat/ResolutionDuCoup.hpp"
 #include <cassert>
 
 Vitalite::Vitalite(int pointsDeVieMax, int armure)
@@ -19,7 +19,7 @@ int Vitalite::recevoirDegats(int montant) {
     if (!estVivant()) {
         return 0;
     }
-    const int degats = appliquerArmure(montant, m_armure);
+    const int degats = resoudreCoup(montant, {.armure = m_armure});
     m_pointsDeVie.subirDegats(degats);
     return degats;
 }

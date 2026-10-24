@@ -11,7 +11,7 @@ public:
     Vitalite(int pointsDeVieMax, int armure);
     // Remplace l'armure (celle d'un personnage est recalculée depuis son équipement). Précondition : armure >= 0.
     void definirArmure(int armure);
-    // Applique l'armure (`appliquerArmure`) puis retire les points de vie. Renvoie les dégâts après
+    // Résout le coup (`resoudreCoup`) puis retire les points de vie. Renvoie les dégâts après
     // armure, non plafonnés par les points de vie restants ; 0 pour un mort.
     int recevoirDegats(int montant);
     // Renvoie les points réellement rendus (plafonnés au maximum ; 0 pour un mort).
