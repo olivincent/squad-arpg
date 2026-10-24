@@ -304,13 +304,14 @@ déplacement par chemin dans `docs/chemin.md`.
   référence et le transmet à `Skill` : la recharge de l'attaque est tirée
   dans [0,7 s ; 1,3 s] à chaque départ de coup (moyenne 1 s, comme avant l'étape 56).
   `Monstre` ne garde pas le générateur.
-- **`mettreAJour` décrémente d'abord la recharge** (`m_attaque.mettreAJour`),
-  quel que soit l'état.
+- **`mettreAJour` décrémente d'abord la recharge** (`m_attaque.mettreAJour`) et la
+  récupération du blocage (`m_vitalite.mettreAJour`), quel que soit l'état.
 
 ## Statistiques de combat, critique (étape 89)
 
 - **Un monstre n'a pas de caractéristiques** : ses `StatistiquesDeCombat` (capacité offensive 100, capacité
-  défensive 100, celles d'un personnage d'Adresse 10) sont des données de sa définition, lues par
+  défensive 100, celles d'un personnage d'Adresse 10 ; depuis l'étape 90, 5 % d'esquive contre le contact et 5 %
+  contre les projectiles, et aucun bouclier) sont des données de sa définition, lues par
   `getStatistiques()`. Le moteur du coup ne lit que ces statistiques (`docs/combat.md`).
 - **Son attaque est une `Attaque`** : `getAttaque()` rend les dégâts (100) et sa capacité offensive ;
   `avancerAttaque` rend cette `Attaque` au départ du coup (`std::optional`, vide avant), et `Partie` la
@@ -318,6 +319,13 @@ déplacement par chemin dans `docs/chemin.md`.
 - **`recevoirDegats(attaque, generateur)`** rend un `ResultatDuCoup` (montant après armure, critique ou
   non). Un monstre qui rentre à son poste est invulnérable : rien n'est appliqué, **aucun tirage n'est
   fait** (le générateur reste intact) et il n'est pas alerté. Une attaque de montant `> 0` l'alerte comme avant.
+- **Il esquive et peut bloquer** (étape 90) : `recevoirDegats` résout l'esquive, le critique, le blocage et l'armure
+  (`docs/combat.md`, « L'esquive et le blocage »). Un coup **esquivé ou bloqué en entier réveille quand même le monstre** (il
+  s'alerte, comme après des dégâts : c'est l'intention d'attaquer qui compte), mais jamais en `Retour`
+  (invulnérable, sans effet ni tirage). Sa **récupération du blocage** vit dans sa `Vitalite` et s'écoule dans
+  `mettreAJour` ; le monstre ordinaire n'a pas de bouclier, une définition peut en donner un.
+- **Son attaque est de nature contact** (`DefinitionDeMonstre::attaque.nature`, explicite) : l'esquive contre le
+  contact et le blocage du personnage touché s'y appliquent.
 - **Ses coups critiquent** comme ceux des personnages (capacité offensive 100 contre la capacité défensive
   du personnage touché : 5 % de chance, ×1,5, face à une Adresse de 10).
 
@@ -464,6 +472,6 @@ consommé par `mettreAJour`), `m_soinAccumule` (`float`, points de vie rendus pa
 | `Cercle getCercle() const` | Cercle centré sur le monstre, de rayon 15 (façade de `Mobile::getCercle`) |
 | `int getId() const` | Identifiant du monstre |
 | `bool contient(sf::Vector2f point) const` | Le point (pixels du monde) est-il dans le carré du monstre ? |
-| `ResultatDuCoup recevoirDegats(const Attaque& attaque, Generateur& generateur)` | Sans aucun effet en `Retour` (invulnérable, pas d'alerte, aucun tirage) ni sur un monstre mort : rien (montant 0). Sinon délègue à `Vitalite::recevoirDegats` (critique et armure, sans descendre sous zéro) ; si `attaque.montant > 0`, mémorise que le monstre vient d'être touché ; renvoie le résultat (dégâts après armure, critique ou non) |
+| `ResultatDuCoup recevoirDegats(const Attaque& attaque, Generateur& generateur)` | Sans aucun effet en `Retour` (invulnérable, pas d'alerte, aucun tirage) ni sur un monstre mort : rien (montant 0). Sinon délègue à `Vitalite::recevoirDegats` (esquive, critique, blocage et armure, sans descendre sous 0) ; si `attaque.montant > 0` (même esquivé ou bloqué), mémorise que le monstre vient d'être touché ; renvoie le résultat (dégâts après armure, critique, esquivé, bloqué) |
 | `bool estVivant() const` | Points de vie `> 0` |
 | `int getPointsDeVie() const` | Points de vie actuels |

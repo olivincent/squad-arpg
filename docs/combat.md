@@ -608,15 +608,15 @@ personnages sont dans `docs/formation.md`, le monstre dans
   pourcentages, ce que des coups de 5 ne permettent pas en entiers. Les durées (provocation en
   secondes), les portées et les recharges ne changent pas. Les valeurs chiffrées des sections plus
   anciennes de ce document sont à lire × 10 pour les dégâts, les soins et les points de vie.
-- **Point d'entrée unique du coup (étape 87.2, étendu à l'étape 89)** : `resoudreCoup(Attaque, Defenses,
-  Generateur&)` (module `ResolutionDuCoup`), appelée par `Vitalite::recevoirDegats`. Elle enchaîne des
-  fonctions d'étape dans l'ordre de la section 6 de `docs/classes-et-combat.md` ; aujourd'hui deux existent,
-  le critique (`appliquerCritique`, voir « Le critique… (étape 89) ») puis l'armure (`appliquerArmure`).
-  `Defenses` contient l'armure et la capacité défensive ; l'esquive, le blocage et les résistances s'y
-  ajouteront aux étapes 90 à 93, sans étape vide d'avance.
+- **Point d'entrée unique du coup (étape 87.2, étendu aux étapes 89 et 90)** : `resoudreCoup(Attaque, Defenses,
+  bool blocagePret, Generateur&)` (module `ResolutionDuCoup`), appelée par `Vitalite::recevoirDegats`. Elle
+  enchaîne des fonctions d'étape dans l'ordre de la section 6 de `docs/classes-et-combat.md` : l'esquive, le
+  critique, le blocage, puis l'armure (`appliquerArmure`) ; voir « Le critique… (étape 89) » et « L'esquive et
+  le blocage (étape 90) ». `Defenses` contient l'armure et les statistiques de combat du défenseur ; les
+  résistances s'y ajouteront à l'étape 93, sans étape vide d'avance.
 - **Qui l'applique** : `Vitalite::recevoirDegats`, avant `PointsDeVie::subirDegats`, pour `Personnage`
   et `Monstre` qui lui délèguent. `PointsDeVie` ne connaît pas l'armure. Chaque entité a une `Vitalite`
-  dont les défenses (`Defenses` : l'armure et la capacité défensive) viennent de son constructeur ; pas
+  dont les défenses (`Defenses` : l'armure et les statistiques de combat) viennent de son constructeur ; pas
   d'accesseur.
 - **Origine de l'armure (étape 83)** : celle d'un personnage est la somme de l'armure des objets de son
   `Equipement`, recalculée en entier à chaque changement (`Vitalite::definirDefenses`) ; il n'y a plus
@@ -628,8 +628,7 @@ personnages sont dans `docs/formation.md`, le monstre dans
   de base de 50 fait 40 à un monstre.
 - **Le soin n'est pas touché** par l'armure. Les dégâts de zone, de skill et d'attaque de base passent
   tous par `recevoirDegats`, donc par l'armure.
-- **Limites** : pas d'esquive ni de blocage, pas de types de dégâts ni de résistances, pas de pénétration
-  d'armure.
+- **Limites** : pas de types de dégâts ni de résistances, pas de pénétration d'armure.
 
 ## Caractéristiques, points de vie et montant effectif (étape 88)
 
@@ -673,22 +672,23 @@ Détail de conception : `docs/classes-et-combat.md`, section 5.
 ## Le critique, les statistiques de combat et l'attaque qui circule (étape 89)
 
 Détail de conception : `docs/classes-et-combat.md`, sections 6, 7 et 13. Étape 3 du déroulement d'un coup
-(« est-ce un critique ? »), la première après l'esquive, qui viendra à l'étape 90.
+(« est-ce un critique ? »), la première après l'esquive (étape 90, section suivante).
 
 - **Le moteur du coup ne connaît pas les caractéristiques** : il lit des **statistiques de combat**
   (`StatistiquesDeCombat`, `combat/`, type valeur). Un personnage les tire de ses caractéristiques effectives
-  à **un seul endroit**, `statistiquesDuPersonnage(const Caracteristiques&)`, appelée par
+  à **un seul endroit**, `statistiquesDuPersonnage(const Caracteristiques&, bonus d'équipement)`, appelée par
   `Personnage::recalculerDepuisLEquipement` (donc recalculées en entier à chaque changement d'équipement,
   jamais ajustées) ; un monstre, qui n'a pas de caractéristiques, les reçoit de sa définition
   (`DefinitionDeMonstre::statistiques`, `docs/monstre.md`). Un champ n'existe que quand une étape du coup
-  s'en sert : aujourd'hui deux, la capacité offensive et la capacité défensive.
+  s'en sert : à l'étape 89 deux, la capacité offensive et la capacité défensive (l'étape 90 y a ajouté les
+  esquives et le blocage).
 - **Capacités d'un personnage** : `50 + 5 × Adresse` effective pour les deux (`s_capaciteDeBase`,
   `s_capaciteParPointDAdresse`, « à tester »). Adresse 10 donne 100 ; le rôdeur (14) 120 ; les personnages
   de test (Adresse 0) 50. L'offensive est bornée à 0 par le bas, la défensive à 1 (le rapport la divise).
-  **Monstre ordinaire** : 100 et 100. Les bonus de l'équipement passent aujourd'hui par l'Adresse seule
-  (aucun objet n'en donne) ; la liste de bonus de statistiques de combat des objets viendra à l'étape 90.
-- **L'attaque qui circule (`Attaque`, `combat/Attaque.hpp`)** : `{ int montant; int capaciteOffensive; }`,
-  à la place du montant seul. `Personnage::avancerAttaque` et `avancerSkill`, `Monstre::avancerAttaque` la
+  **Monstre ordinaire** : 100 et 100. Les bonus de l'équipement passent par l'Adresse, et, depuis l'étape 90,
+  directement par les bonus de statistiques de combat des objets (aucun objet ne donne de capacité aujourd'hui).
+- **L'attaque qui circule (`Attaque`, `combat/Attaque.hpp`)** : `{ int montant; int capaciteOffensive;
+  NatureDAttaque nature; }` (la nature date de l'étape 90), à la place du montant seul. `Personnage::avancerAttaque` et `avancerSkill`, `Monstre::avancerAttaque` la
   rendent en `std::optional` (vide tant que le coup n'est pas parti) ; `Coup` est maintenant `{ idMonstre,
   Attaque }` ; `Escouade::recevoirCoup` et `Monstre::recevoirDegats` la reçoivent ; `Escouade::attaqueDeBase`
   et `Monstre::getAttaque` la donnent pour les coups d'opportunité. Le **défenseur fournit ses statistiques**
@@ -713,7 +713,8 @@ Détail de conception : `docs/classes-et-combat.md`, sections 6, 7 et 13. Étape
   recharges fixes de l'étape 56 : ni un mort ni un monstre invulnérable en retour (qui n'appellent pas le
   moteur) ne consomment de nombre. Conséquence : les suites aléatoires d'une partie ont changé à l'étape 89
   (un nombre de plus par coup), sans conséquence de règle.
-- **Place dans le coup** : après l'esquive (étape 90), avant le blocage et l'armure. Le critique multiplie le
+- **Place dans le coup** : après l'esquive (étape 90), avant le blocage et l'armure ; un coup esquivé n'a pas
+  de critique (et ne tire donc pas son critique). Le critique multiplie le
   **montant effectif** (Puissance comprise) puis l'armure s'applique au montant multiplié : c'est ce qui en
   fait l'arme naturelle contre l'armure par soustraction (section 6 de `docs/classes-et-combat.md`).
 - **Ce qui critique** : les attaques de base et les skills de dégâts des deux camps (la magie comme le reste :
@@ -737,9 +738,87 @@ Détail de conception : `docs/classes-et-combat.md`, sections 6, 7 et 13. Étape
   `critique` dans l'événement et compare au montant que le jeu devait produire (`degatsAttendus`, aide de
   `aides.hpp`). Les tests de règle appellent les entités avec `attaqueSansHasard` (capacité offensive 0 :
   ni critique ni tirage) par les aides `subir` et `subirCoup` (`docs/tests.md`).
-- **Limites** : pas d'esquive, de blocage ni de pénétration ; pas de bonus de critique de l'équipement ni de
+- **Limites** : pas de pénétration ; pas de bonus de critique de l'équipement ni de
   skills qui en donnent ; pas de multiplicateur propre à une arme ; pas de distribution pseudo-aléatoire contre
   les séries (ni de critiques consécutifs) ; la capacité défensive de référence des soins est une constante.
+
+## L'esquive et le blocage (étape 90)
+
+Détail de conception : `docs/classes-et-combat.md`, sections 6, 7 et 13. Étapes 2 (« le coup est-il esquivé ? »)
+et 5 (« blocage au bouclier ») du déroulement d'un coup. Tout est physique ici : la question 12 (blocage et
+portions typées) attend l'étape 93.
+
+- **Nature explicite de chaque attaque** : `NatureDAttaque { Contact, Projectile, Zone }`
+  (`combat/NatureDAttaque.hpp`), une **donnée de l'attaque**, jamais déduite : `Attaque::nature` (sans valeur par
+  défaut, un oubli est signalé par le compilateur), `DefinitionDeSkill::nature` (`Contact` par défaut :
+  un soin et une provocation ne sont pas des attaques, leur nature n'est jamais lue), `Skill::getNature()`.
+  Aujourd'hui : attaques de base des mêlées et des monstres, frappe puissante, frappe sacrée, coups
+  d'opportunité = contact ; attaques de base des tireurs et tir perçant = projectile ; explosion et pluie de
+  flèches = zone. À l'étape 91, l'arme fournira la nature de l'attaque de base. **Invariant** (`assert` dans
+  `Skill`) : un skill de type `Zone` est de nature `Zone`, et lui seul — on ne peut pas oublier de rendre une
+  zone inesquivable.
+- **Statistiques ajoutées à `StatistiquesDeCombat`** : `esquiveContact` et `esquiveProjectile` (pour cent),
+  `chanceDeBlocage` (pour cent), `montantBloque` (points) et `recuperationDuBlocage` (secondes). Le même type
+  sert de **bonus d'objet** (`DefinitionObjet::bonusDeCombat`, vide par défaut) : `statistiquesDuPersonnage`
+  additionne à la base d'Adresse la somme des bonus de l'équipement (`Equipement::bonusDeCombatTotal`).
+  L'addition (`operator+=`) somme tous les champs **sauf la récupération**, qui est celle du bouclier : on garde
+  la plus longue. `Defenses` porte maintenant l'armure et les statistiques de combat du défenseur (au lieu de
+  l'armure et de la seule capacité défensive), pour ne pas recopier chaque champ.
+- **Esquive (module `Esquive`)** : `chanceDEsquive(nature, defenseur)` = l'esquive contre le contact ou contre les
+  projectiles du défenseur selon la nature, **plafonnée à 50 %** (`s_esquiveMaximale`, question 3 tranchée pour
+  l'esquive) et jamais négative (`esquiveEffective`, aussi lue par l'affichage : un bonus au-delà du plafond ne
+  s'affiche pas) ; **0 pour une zone**, qui ne s'esquive jamais ; `coupEsquive(chance, tirage)` : `tirage <
+  chance`. Première étape du coup : un coup esquivé s'arrête (montant 0, pas de critique, pas de blocage, pas
+  d'armure) et le résultat porte `esquive = true`.
+- **Valeurs (« à tester »)** : monstres 5 % contre le contact et 5 % contre les projectiles
+  (`DefinitionDeMonstre::statistiques`) ; personnages 0, plus l'équipement : bottes de cuir +5 % contre le
+  contact, casque de cuir +5 % contre les projectiles (`CatalogueObjets.cpp`, `bonusDeCombat`).
+- **Blocage (module `Blocage`)** : `chanceDeBlocage(nature, defenseur, blocagePret)` est nulle contre une zone,
+  pendant la récupération (`blocagePret` faux) et quand le bouclier n'absorbe rien (`montantBloque <= 0`), sinon
+  la chance du défenseur (ramenée de 0 à 100 %) ; `appliquerBlocage(montant, montantBloque, chance, tirage)` :
+  si `tirage < chance`, retire `min(montant, montantBloque)` et rend le montant restant et ce qui a été
+  absorbé. Il bloque le contact et les projectiles, jamais les zones. **Après le critique, avant l'armure** :
+  le bouclier retire un montant fixe du coup (déjà multiplié s'il est critique), puis l'armure M1 joue sur le
+  reste. **Blocage total** : si tout est absorbé, le coup s'arrête, **sans armure ni plancher** (le montant est
+  0, pas 1) ; `ResultatDuCoup::bloque` dit ce qui a été absorbé (> 0 : il y a eu blocage ; total si `montant ==
+  0`).
+- **Valeurs du bouclier rond (« à tester », `CatalogueObjets.cpp`)** : 30 % de chance, 40 points absorbés,
+  3 s de récupération. D'autres bonus de chance ou de montant s'additionneraient ; la récupération est celle du
+  bouclier. Les monstres n'ont pas de bouclier (`montantBloque` 0), mais une définition de monstre peut en avoir un.
+- **La récupération est un état de la `Vitalite`** (`m_recuperationDuBlocage`, en secondes, `mettreAJour(dt)`,
+  `blocagePret()`) : un blocage réussi (`bloque > 0`) la lance à `recuperationDuBlocage` ; tant qu'elle court,
+  `resoudreCoup` reçoit `blocagePret = false` et ne tente (ni ne tire) aucun blocage. **Pourquoi là** : la
+  `Vitalite` est déjà ce qui résout les coups pour les deux camps et ce qui porte les défenses ; l'état de
+  combat de l'entité y vit, écrit une fois, et `Personnage::mettreAJour` et `Monstre::mettreAJour` la font
+  couler comme ils font couler les recharges de leurs skills. Mettre cet état dans `Personnage` et `Monstre` l'aurait
+  dupliqué. Un mort ne récupère pas (`Personnage::mettreAJour` ne fait rien), sans conséquence : il ne bloque plus.
+- **Un coup esquivé ou entièrement bloqué compte comme une attaque reçue** : c'est l'intention d'attaquer qui
+  compte. `Monstre::recevoirDegats` s'alerte et `Escouade::recevoirCoup` enregistre l'agresseur selon
+  `attaque.montant > 0`, jamais selon ce que le coup a donné. Un monstre dont le coup sur un personnage est
+  esquivé ou bloqué devient donc agresseur de l'escouade ; le monstre visé s'alerte. Seuls un mort et un
+  monstre qui rentre à son poste (invulnérable) ne réagissent à rien (pas d'événement non plus).
+- **Les tirages** : jusqu'à trois par coup, dans l'ordre esquive, critique, blocage, **chacun seulement si sa
+  chance est non nulle** (esquive nulle ou zone ; capacité offensive nulle ; pas de bouclier, bouclier en
+  récupération ou zone). Un coup esquivé n'en consomme qu'un. Les suites aléatoires d'une partie ont donc
+  encore changé à l'étape 90.
+- **Événements** : `Esquive {}` et `Bloque { montant, total }` s'ajoutent à `DetailEvenement`. `total` (ajouté au
+  seul `montant` annoncé) dit si le blocage a tout absorbé : sans lui, l'affichage ne pourrait pas distinguer
+  « Bloqué » de « Bloqué −N » (un `Degats` de 0 n'existe pas). La conversion d'un `ResultatDuCoup` en détails
+  est une fonction pure, `detailsDuCoup(resultat, opportunite)` (`EvenementDeCombat.cpp`), que `Partie::signalerLeCoup`
+  parcourt : un coup esquivé donne `Esquive` seul ; sinon les `Degats` (rien s'ils sont nuls), **puis**
+  `Bloque` (le texte du blocage s'empile ainsi au-dessus des dégâts, même cible, même image). Un résultat
+  « rien » ne donne rien. La règle « un montant de 0 ne produit aucun événement » reste pour `Degats` et `Soin`.
+- **Affichage** (`TextesFlottants`) : « Esquivé » en gris clair, 14 px ; blocage total « Bloqué » en gris,
+  14 px ; blocage partiel : les dégâts restants comme d'habitude, et « Bloqué −40 » (signe moins U+2212) en gris,
+  14 px, au-dessus. **Infobulle des objets** : une ligne par bonus de combat (`lignesDeBonusDeCombat`) :
+  « Esquive contre la mêlée : +5 % », « Esquive contre les projectiles : +5 % », « Blocage : 30 %, 40 points, 3 s ».
+  **Inventaire** : sous les capacités, « Blocage 30 % (40) » (« Blocage 0 % » sans bouclier), « Esquive mêlée
+  5 % » et « Esquive projectile 5 % » (valeurs effectives, plafond compris) : `lignesDeStatistiques`.
+- **Limites** : pas de skills qui donnent de l'esquive ou du blocage ; pas de bouclier qui déséquilibre ni
+  d'armes contre les boucliers ; pas de distribution pseudo-aléatoire contre les séries d'esquives ; le
+  blocage ne distingue pas les éléments (question 12) ; les monstres n'ont pas de bouclier dans le catalogue ;
+  un blocage partiel d'un coup de zone est impossible (elles ne se bloquent pas) ; les durées de récupération
+  ne s'affichent que dans l'infobulle du bouclier, pas à l'écran de jeu.
 
 ## Temps d'exécution et coup engagé (étape 57)
 
@@ -883,8 +962,8 @@ image).
   `Monstre` (`choisirCibleAFrapper`).
   L'armure du personnage touché réduit ensuite le coup (voir plus haut).
 - **Ce qui est réellement appliqué** (étape 79) : `Monstre::recevoirDegats`, `Personnage::recevoirDegats` et
-  `Escouade::recevoirCoup` renvoient le résultat du coup (`ResultatDuCoup` : le montant appliqué, après critique et
-  armure, et si ce fut un critique, depuis l'étape 89) ; `recevoirSoin` renvoie les points rendus (voir
+  `Escouade::recevoirCoup` renvoient le résultat du coup (`ResultatDuCoup` : le montant appliqué, après critique,
+  blocage et armure, si ce fut un critique, depuis l'étape 89, et s'il a été esquivé ou bloqué, depuis l'étape 90) ; `recevoirSoin` renvoie les points rendus (voir
   « Événements de combat »).
 - **Un monstre frappe qu'il soit lui-même attaqué ou non** : sa riposte
   ne dépend ni du verrou, ni de son statut — uniquement de la distance
@@ -1160,9 +1239,9 @@ l'enfoncerait dans un obstacle.
   (étape 86 : nom du skill lancé, « Provoqué ») s'ajoute au variant `DetailEvenement` sans réécrire ce
   qui existe.
 - **La forme (étape 86).** Champs communs (`campCible`, `idCible`, `position`) et un `detail` en
-  `std::variant<Degats, Soin, SkillLance, Provoque>` : `Degats { montant, opportunite, critique }`,
-  `Soin { montant, critique }` (le champ `critique` date de l'étape 89), `SkillLance { IdSkill }`,
-  `Provoque {}`. `TypeEvenement` n'existe plus, le
+  `std::variant<Degats, Soin, SkillLance, Provoque, Esquive, Bloque>` : `Degats { montant, opportunite,
+  critique }`, `Soin { montant, critique }` (le champ `critique` date de l'étape 89), `SkillLance { IdSkill }`,
+  `Provoque {}`, `Esquive {}` et `Bloque { montant, total }` (étape 90). `TypeEvenement` n'existe plus, le
   variant dit le type. Raison : un skill lancé n'a pas de montant et « Provoqué » n'a ni montant ni coup
   gratuit ; on ne représente pas des champs qui n'ont pas de sens. Les lecteurs (`TextesFlottants`)
   utilisent `std::visit` avec `Surcharges` : un détail ajouté sans son texte, sa couleur et sa taille ne
@@ -1209,7 +1288,7 @@ l'enfoncerait dans un obstacle.
   `Generateur`. Styles : dégâts sur un monstre en blanc, sur un personnage en rouge ; soin en vert, « +N » ;
   coup gratuit en orange, 20 px au lieu de 16, « N! » (quel que soit le camp) ; critique (dégâts ou soin) en
   jaune vif pour les dégâts, vert pour le soin, 18 px, suivi de « Critique ! » (étape 89 : il l'emporte sur le
-  coup gratuit) ; nom du skill lancé
+  coup gratuit) ; « Esquivé » en gris clair et « Bloqué » ou « Bloqué −N » en gris, 14 px (étape 90) ; nom du skill lancé
   (`nomDuSkill`, `interface/AffichageSkills`) en jaune doré, 14 px ; « Provoqué » en rouge orangé, 14 px ;
   contour noir de 1 px. Les libellés sont en UTF-8 (`sf::String::fromUtf8` dans `dessiner`).
 - **Le brouillard est un filtre d'`EcranJeu`**, pas de `Partie` : si le brouillard est actif et que
@@ -1217,8 +1296,7 @@ l'enfoncerait dans un obstacle.
   ne pas dessiner un monstre caché). F6 coupe le brouillard : tout s'affiche. La file de `Partie`, elle,
   contient tout.
 - **Limites connues** :
-  - pas d'« Immunisé » pour un monstre qui rentre, pas de « raté » (« Esquivé » et « Bloqué » viendront à
-    l'étape 90) ; le nom du skill
+  - pas d'« Immunisé » pour un monstre qui rentre ; le nom du skill
     n'apparaît qu'au départ de l'effet, pas au début de l'activation (pas de barre d'incantation) ;
   - la taille du texte est en pixels du monde : elle suit le zoom de la vue ;
   - la visibilité est celle de la fin de l'image ;
@@ -1553,20 +1631,48 @@ attaque à infliger à ce monstre ; `int degats` avant l'étape 89.3). Sortie d'
 
 ### `Attaque` (`combat/`) — ce qui part de l'attaquant (étape 89.3)
 
-`Attaque.hpp`, sans `.cpp` : `struct Attaque { int montant; int capaciteOffensive; }`. Le montant (dégâts avant
-toute réduction, soin, ou durée d'une provocation), caractéristiques comprises, et la capacité offensive de
-l'attaquant. Produite par `Personnage` (`getAttaqueDeBase`, `avancerAttaque`, `avancerSkill`) et `Monstre`
+`Attaque.hpp`, sans `.cpp` : `struct Attaque { int montant; int capaciteOffensive; NatureDAttaque nature; }`. Le
+montant (dégâts avant toute réduction, soin, ou durée d'une provocation), caractéristiques comprises, la
+capacité offensive de l'attaquant et la nature de l'attaque (étape 90.1 ; sans valeur par défaut). Produite par `Personnage` (`getAttaqueDeBase`, `avancerAttaque`, `avancerSkill`) et `Monstre`
 (`getAttaque`, `avancerAttaque`), portée par `Coup`, reçue par `recevoirDegats` / `recevoirCoup` et
-`resoudreCoup`. Voir « Le critique… (étape 89) ». La nature de l'attaque (contact, projectile, zone) s'y
-ajoutera à l'étape 90.
+`resoudreCoup`. Voir « Le critique… (étape 89) » et « L'esquive et le blocage (étape 90) ».
+
+### `NatureDAttaque` (`combat/`) — contact, projectile ou zone (étape 90.1)
+
+`NatureDAttaque.hpp`, sans `.cpp` : `enum class NatureDAttaque { Contact, Projectile, Zone }`. Lue par l'esquive
+et le blocage (`switch` sans `default` : une nature ajoutée sans règle fait avertir le compilateur).
+Portée par `Attaque` et `DefinitionDeSkill` (`Skill::getNature`).
 
 ### `StatistiquesDeCombat` (`combat/`) — ce que le moteur du coup lit d'une entité (étape 89.2)
 
 `StatistiquesDeCombat.hpp` / `.cpp`. `struct StatistiquesDeCombat { int capaciteOffensive = 0; int
-capaciteDefensive = 0; }` (comparable) ; constantes `s_capaciteDeBase` (50) et `s_capaciteParPointDAdresse` (5) ;
-`StatistiquesDeCombat statistiquesDuPersonnage(const Caracteristiques&)` : `50 + 5 × Adresse` pour les deux,
-offensive bornée à 0, défensive à 1 ; `[[nodiscard]]`. Seul endroit qui calcule les statistiques d'un
-personnage. Voir « Le critique… (étape 89) ».
+capaciteDefensive = 0; int esquiveContact = 0; int esquiveProjectile = 0; int chanceDeBlocage = 0; int
+montantBloque = 0; float recuperationDuBlocage = 0.0f; }` (comparable, `+=` et `+` : tous les champs
+s'additionnent sauf la récupération, qui prend la plus longue) ; esquives et chance de blocage en pour cent ;
+constantes `s_capaciteDeBase` (50) et `s_capaciteParPointDAdresse` (5) ; `StatistiquesDeCombat
+statistiquesDuPersonnage(const Caracteristiques&, const StatistiquesDeCombat& bonusDEquipement)` : `50 + 5 ×
+Adresse` pour les deux capacités plus le bonus, offensive bornée à 0, défensive à 1, les autres champs ceux du
+bonus ; `[[nodiscard]]`. Seul endroit qui calcule les statistiques d'un personnage. Même type pour le bonus
+d'un objet. Voir « Le critique… (étape 89) » et « L'esquive et le blocage (étape 90) ».
+
+### `Esquive` (`combat/`) — la chance d'esquiver (étape 90.2)
+
+`Esquive.hpp` / `.cpp`, fonctions pures. Constante `s_esquiveMaximale` (50).
+
+| Fonction | Rôle |
+|---|---|
+| `constexpr int esquiveEffective(int pourCent)` | Ramenée entre 0 et `s_esquiveMaximale` ; lue par le coup et par l'affichage ; `[[nodiscard]]` |
+| `float chanceDEsquive(NatureDAttaque, const StatistiquesDeCombat&)` | L'esquive contre le contact ou contre les projectiles du défenseur, plafonnée, en fraction de 0 à 0,5 ; 0 pour une zone ; `[[nodiscard]]` |
+| `bool coupEsquive(float chance, float tirage)` | `tirage < chance` ; `[[nodiscard]]` |
+
+### `Blocage` (`combat/`) — le blocage au bouclier (étape 90.3)
+
+`Blocage.hpp` / `.cpp`, fonctions pures. `struct ResultatDuBlocage { int montant; int bloque; }`.
+
+| Fonction | Rôle |
+|---|---|
+| `float chanceDeBlocage(NatureDAttaque, const StatistiquesDeCombat&, bool blocagePret)` | La chance (de 0 à 1) de bloquer : nulle contre une zone, pendant la récupération et sans bouclier (`montantBloque <= 0`), sinon `chanceDeBlocage` ramenée de 0 à 100 % ; `[[nodiscard]]` |
+| `ResultatDuBlocage appliquerBlocage(int montant, int montantBloque, float chance, float tirage)` | Si `tirage < chance`, retire `min(montant, montantBloque)` ; rend le montant restant et ce qui a été absorbé (0 : pas de blocage) ; `assert(montant >= 0)` ; `[[nodiscard]]` |
 
 ### `Critique` (`combat/`) — la chance et la force du critique (étape 89.3)
 
@@ -1583,7 +1689,7 @@ personnage. Voir « Le critique… (étape 89) ».
 
 ### `EvenementDeCombat` (`combat/`) — ce qui s'est passé, en données
 
-`EvenementDeCombat.hpp`, sans `.cpp` : `enum class Camp { Escouade, Monstres }`, les détails `Degats { int montant; bool opportunite; bool critique; }`, `Soin { int montant; bool critique; }`, `SkillLance { IdSkill skill; }`, `Provoque {}`, `using DetailEvenement = std::variant<Degats, Soin, SkillLance, Provoque>` et `struct EvenementDeCombat { Camp campCible; int idCible; sf::Vector2f position; DetailEvenement detail; }`. `idCible` : place du personnage (1 à N) ou identifiant du monstre ; `montant` : ce qui a réellement été appliqué (armure comprise, soin plafonné), jamais 0 ; `position` : COPIE du centre de la cible à ce moment (le monstre tué par ce coup est retiré dans la même image, l'événement lui survit) ; `opportunite` : coup gratuit ; `critique` : le coup ou le soin a été un critique (le montant est déjà multiplié) ; `SkillLance` : cible = le lanceur ; `Provoque` : cible = le monstre provoqué. Patron « file d'événements » : produits par `Partie` (`prendreEvenements`), lus par `EcranJeu`, sans callback ni observateur. Voir `docs/combat.md`.
+`EvenementDeCombat.hpp` / `.cpp` : `enum class Camp { Escouade, Monstres }`, les détails `Degats { int montant; bool opportunite; bool critique; }`, `Soin { int montant; bool critique; }`, `SkillLance { IdSkill skill; }`, `Provoque {}`, `Esquive {}`, `Bloque { int montant; bool total; }`, `using DetailEvenement = std::variant<Degats, Soin, SkillLance, Provoque, Esquive, Bloque>` et `struct EvenementDeCombat { Camp campCible; int idCible; sf::Vector2f position; DetailEvenement detail; }`. `idCible` : place du personnage (1 à N) ou identifiant du monstre ; `montant` : ce qui a réellement été appliqué (armure comprise, soin plafonné), jamais 0 ; `position` : COPIE du centre de la cible à ce moment (le monstre tué par ce coup est retiré dans la même image, l'événement lui survit) ; `opportunite` : coup gratuit ; `critique` : le coup ou le soin a été un critique (le montant est déjà multiplié) ; `Bloque::montant` : ce que le blocage a absorbé (jamais 0), `total` : il a tout absorbé (aucun `Degats` ne suit) ; `SkillLance` : cible = le lanceur ; `Provoque` : cible = le monstre provoqué ; `Esquive` : cible = celui qui a esquivé. La fonction pure `std::vector<DetailEvenement> detailsDuCoup(const ResultatDuCoup&, bool opportunite)` (`[[nodiscard]]`) convertit un résultat de coup : `Esquive` seul s'il a été esquivé, sinon `Degats` (rien s'ils sont nuls) puis `Bloque` s'il y a eu blocage ; liste vide pour un résultat « rien ». Patron « file d'événements » : produits par `Partie` (`prendreEvenements`), lus par `EcranJeu`, sans callback ni observateur. Voir `docs/combat.md`.
 
 ### `TextesFlottants` (`interface/`) — les dégâts et soins à l'écran
 
@@ -1598,7 +1704,7 @@ personnage. Voir « Le critique… (étape 89) ».
 | `float hauteurDuTexte(float age)` | Fonction libre pure : 20 px au-dessus du centre de la cible à la naissance, 30 px de plus sur toute la durée de vie ; `[[nodiscard]]` |
 | `float opaciteDuTexte(float age)` | Pure : 1 pendant la première moitié de la vie, puis linéaire jusqu'à 0 à 0,8 s ; `[[nodiscard]]` |
 | `sf::Vector2f positionDuTexte(const TexteFlottant&)` | Pure : position de l'événement, relevée de `hauteurDuTexte(age)` et de 14 px par rang ; `[[nodiscard]]` |
-| `std::string libelleDuTexte(const EvenementDeCombat&)` / `sf::Color couleurDuTexte(...)` / `unsigned int tailleDuTexte(...)` | Purs. Dégâts « 12 », coup gratuit « 12! » (orange, 20 px), soin « +12 » (vert) ; critique : le texte suivi de « Critique ! » (« 12 Critique ! », « 12! Critique ! », « +12 Critique ! »), jaune vif pour des dégâts (même gratuits), vert pour un soin, 18 px dans les deux cas ; nom du skill lancé (jaune doré, 14 px) ; « Provoqué » (rouge orangé, 14 px) ; dégâts sur un monstre blancs, sur un personnage rouges ; 16 px sinon ; `std::visit` sur le détail ; `[[nodiscard]]` |
+| `std::string libelleDuTexte(const EvenementDeCombat&)` / `sf::Color couleurDuTexte(...)` / `unsigned int tailleDuTexte(...)` | Purs. Dégâts « 12 », coup gratuit « 12! » (orange, 20 px), soin « +12 » (vert) ; critique : le texte suivi de « Critique ! » (« 12 Critique ! », « 12! Critique ! », « +12 Critique ! »), jaune vif pour des dégâts (même gratuits), vert pour un soin, 18 px dans les deux cas ; nom du skill lancé (jaune doré, 14 px) ; « Provoqué » (rouge orangé, 14 px) ; « Esquivé » (gris clair, 14 px), « Bloqué » (blocage total) ou « Bloqué −N » (partiel, signe moins U+2212), gris, 14 px ; dégâts sur un monstre blancs, sur un personnage rouges ; 16 px sinon ; `std::visit` sur le détail ; `[[nodiscard]]` |
 
 ### `ActionEngagee` (`combat/`) — l'action qu'un personnage prépare
 
@@ -1716,12 +1822,11 @@ autre module ni de SFML.
 
 ### `ResolutionDuCoup` (`combat/`) — le point d'entrée du coup (étape 87.2)
 
-`Defenses { int armure; int capaciteDefensive; }` (initialisation désignée ; `capaciteDefensive > 0`),
-`ResultatDuCoup { int montant; bool critique; }`, et deux fonctions libres, `[[nodiscard]]`, sans état ni SFML :
+`Defenses { int armure; StatistiquesDeCombat statistiques; }` (initialisation désignée ; `statistiques.capaciteDefensive > 0` ; seules les statistiques défensives sont lues), `ResultatDuCoup { int montant = 0; bool critique = false; bool esquive = false; int bloque = 0; }` (montant après critique, blocage et armure ; `esquive` : coup esquivé, montant 0 ; `bloque` : points absorbés, total si `montant == 0` ; le résultat par défaut `{}` est « rien »), et deux fonctions libres, `[[nodiscard]]`, sans état ni SFML :
 
 | Fonction | Rôle |
 |---|---|
-| `ResultatDuCoup resoudreCoup(const Attaque&, const Defenses&, Generateur&)` | Appelée par `Vitalite::recevoirDegats`. Critique (`appliquerCritique`, après le tirage éventuel) puis armure (`appliquerArmure`) ; l'en-tête donne l'ordre des étapes à venir (esquive, blocage, résistances). **Le seul tirage du moteur du coup**, aucun quand la capacité offensive ou le montant est nul ; `assert(montant >= 0)` |
+| `ResultatDuCoup resoudreCoup(const Attaque&, const Defenses&, bool blocagePret, Generateur&)` | Appelée par `Vitalite::recevoirDegats`. Esquive (`coupEsquive`) : un coup esquivé s'arrête ; critique (`appliquerCritique`) ; blocage (`appliquerBlocage`) : un blocage total s'arrête, sans armure ; armure (`appliquerArmure`) ; l'en-tête donne l'ordre des étapes à venir (résistances). **Le seul tirage du moteur du coup**, au plus un par étape et seulement si la chance est non nulle (esquive nulle ou zone, capacité offensive nulle, pas de bouclier, récupération en cours) ; aucun pour un montant nul ; `blocagePret` : le blocage n'est pas en récupération ; `assert(montant >= 0)` |
 | `ResultatDuCoup resoudreSoin(const Attaque&, Generateur&)` | Étape 89.4 : un soin peut être critique contre `s_capaciteDefensiveDeReference` (100), sans armure ; même règle de tirage. Appelée par `Escouade::effetDuSkill` |
 
 ### `PointsDeVie` (`combat/`) — les points de vie d'une entité
@@ -1754,14 +1859,16 @@ retour). L'interface ne contient que ce que `Personnage` et `Monstre` utilisent.
 `Defense` sont inchangés ; `Vitalite` n'absorbera `Defense` que quand les armures varieront. Ne
 dépend que de `PointsDeVie` et `Defense`, ni de SFML.
 
-Données membres : `m_pointsDeVie` (`PointsDeVie`), `m_defenses` (`Defenses` : l'armure et la capacité
-défensive, étape 89 ; avant, un `int m_armure`).
+Données membres : `m_pointsDeVie` (`PointsDeVie`), `m_defenses` (`Defenses` : l'armure et les statistiques de
+combat, étape 89 ; avant, un `int m_armure`), `m_recuperationDuBlocage` (`float`, secondes, étape 90.3 ; 0 : le blocage est prêt).
 
 | Fonction | Rôle |
 |---|---|
 | `Vitalite(int pointsDeVieMax, const Defenses& defenses)` | Commence pleine ; `assert(armure >= 0)` et `assert(capaciteDefensive > 0)` (et `maximum > 0` par `PointsDeVie`) |
 | `void definirDefenses(const Defenses& defenses)` | Remplace les défenses (celles d'un personnage sont recalculées depuis son équipement et ses caractéristiques) ; mêmes préconditions ; remplace `definirArmure` |
-| `ResultatDuCoup recevoirDegats(const Attaque& attaque, Generateur& generateur)` | `resoudreCoup(attaque, défenses, générateur)`, puis `PointsDeVie::subirDegats` ; renvoie le résultat (dégâts après critique et armure, non plafonnés par les points de vie restants ; critique ou non) ; rien (montant 0, aucun tirage) pour un mort |
+| `ResultatDuCoup recevoirDegats(const Attaque& attaque, Generateur& generateur)` | `resoudreCoup(attaque, défenses, blocagePret(), générateur)`, puis lance la récupération du blocage si un blocage a eu lieu, puis `PointsDeVie::subirDegats` ; renvoie le résultat (dégâts après critique, blocage et armure, non plafonnés par les points de vie restants ; critique, esquivé, bloqué) ; rien (montant 0, aucun tirage) pour un mort |
+| `void mettreAJour(float dt)` | Fait couler la récupération du blocage (sans descendre sous 0) ; appelée par `Personnage::mettreAJour` (vivant) et `Monstre::mettreAJour` |
+| `bool blocagePret() const` | La récupération est écoulée ; `[[nodiscard]]` |
 | `void definirMaximum(int maximum)` | `PointsDeVie::changerMaximum` (précondition `maximum > 0`) |
 | `int soigner(int montant)` | `PointsDeVie::soigner` : plafonné au maximum, 0 pour un mort ; renvoie les points réellement rendus |
 | `bool estVivant() const` | Points de vie `> 0` ; `[[nodiscard]]` |
@@ -1784,8 +1891,11 @@ Données membres : `struct Cercle { sf::Vector2f centre; float rayon; }`.
 ### `AffichageStatistiques` (`interface/`) — les statistiques de combat à l'écran (étape 89.5)
 
 `AffichageStatistiques.hpp` / `.cpp` : `std::vector<std::string> lignesDeStatistiques(const StatistiquesDeCombat&)`
-(`[[nodiscard]]`), UTF-8 : « Capacité offensive N », « Capacité défensive N », dans l'ordre où
-`DispositionInventaire` remplit le bloc des statistiques. Comme `AffichageCaracteristiques`, les mots sont dans
+(`[[nodiscard]]`), UTF-8, cinq lignes dans l'ordre où `DispositionInventaire` remplit le bloc des statistiques :
+« Capacité offensive N », « Capacité défensive N », « Blocage 30 % (40) » (« Blocage 0 % » sans bouclier),
+« Esquive mêlée N % » et « Esquive projectile N % » (esquives effectives, plafond compris) ; et
+`std::vector<std::string> lignesDeBonusDeCombat(const StatistiquesDeCombat&)` (`[[nodiscard]]`), une ligne par bonus
+non nul pour l'infobulle d'un objet (« Esquive contre la mêlée : +5 % », « Blocage : 30 %, 40 points, 3 s »…). Comme `AffichageCaracteristiques`, les mots sont dans
 l'interface, le noyau ne connaît que les nombres.
 
 ### `AffichageSkills` (`interface/`) — les noms des skills

@@ -116,10 +116,10 @@ Quand un point entre dans `ROADMAP.md`, sa conception détaillée se fait en dis
 **Retenu.** L'ordre compte autant que les nombres. Des jets **successifs et indépendants**, plutôt que la table de jet unique de WoW (plus opaque, elle crée des seuils que les joueurs optimisent).
 
 1. **Peut-il agir ?** Recharge écoulée, pas sous contrôle, activation terminée.
-2. **Le coup est-il esquivé ?** Esquive contre la mêlée ou contre les projectiles. Si oui : « Esquivé », le coup s'arrête là.
+2. **Le coup est-il esquivé ?** Esquive contre la mêlée ou contre les projectiles. Si oui : « Esquivé », le coup s'arrête là. *(Fait à l'étape 90, selon la nature de l'attaque, section 7.)*
 3. **Est-ce un critique ?** Capacité offensive contre capacité défensive. *(Fait à l'étape 89 : fonction pure d'un tirage, voir section 7.)*
 4. **Dégâts de départ.** Arme ou skill, plus les coefficients par caractéristique du skill, multipliés par le critique. Le critique s'applique **avant** toute réduction : contre une armure par soustraction, c'est ce qui en fait l'arme naturelle contre l'infanterie lourde.
-5. **Blocage au bouclier** (section 7). Un montant fixe est retiré. Si tout est absorbé : « Bloqué ».
+5. **Blocage au bouclier** (section 7). Un montant fixe est retiré. Si tout est absorbé : « Bloqué ». *(Fait à l'étape 90 : le montant retiré l'est avant l'armure ; un blocage total saute l'armure et son plancher.)*
 6. **Armure et résistances.** L'armure réduit la part physique, chaque résistance réduit la part de son élément.
 7. **Égide ou Barrière** (section 9) absorbent ce qui reste, puis les points de vie encaissent le reste.
 8. **Effets secondaires.** Vol de vie, effets dans le temps, contrôle.
@@ -130,15 +130,17 @@ Note de structure : un coup sera une petite collection de **portions typées** (
 
 - **Proposé.** Presque tout touche : pas de jet de toucher qui rate. La variété vient des critiques et de l'esquive.
 - **Retenu.** Esquive en pourcentages, à la *Titan Quest* : une contre la mêlée, une contre les projectiles.
-- **Proposé.** Un plafond à l'esquive (par exemple 50 %). Plus tard, une distribution pseudo-aléatoire (à la *Dota 2*) contre les séries d'esquives.
-- **Proposé.** Les projectiles magiques (boule de feu) peuvent être esquivés comme une flèche. Les zones ne s'esquivent pas en pourcentage : elles s'évitent en se déplaçant (section 10).
+- **Retenu** (étape 90). **Plafond de l'esquive : 50 %** (`s_esquiveMaximale`). Plus tard, une distribution pseudo-aléatoire (à la *Dota 2*) contre les séries d'esquives.
+- **Retenu** (étape 90). **La nature de l'attaque** décide : chaque attaque est de nature `contact`, `projectile` ou `zone`, une donnée de l'attaque (à l'étape 91, l'arme la fournira pour l'attaque de base). Aujourd'hui : mêlées, monstres, frappe puissante, frappe sacrée, coups d'opportunité = contact ; tireurs, tir perçant = projectile ; explosion, pluie de flèches = zone. Les projectiles magiques (boule de feu) s'esquivent comme une flèche. **Les zones ne s'esquivent jamais** (ni ne se bloquent) : elles s'évitent en se déplaçant (section 10). Les soins et la provocation ne sont pas des attaques.
+- **À tester** (étape 90). Valeurs de l'esquive : monstres 5 % contre le contact et 5 % contre les projectiles ; personnages 0, plus l'équipement (bottes de cuir +5 % contre le contact, casque de cuir +5 % contre les projectiles). Un coup esquivé ou entièrement bloqué **compte comme une attaque reçue** : le monstre visé s'alerte, et un monstre dont le coup sur un personnage est esquivé ou bloqué devient agresseur de l'escouade (c'est l'intention d'attaquer qui compte).
 - **Retenu (dans le principe).** Le critique dépend de la **relation** entre la capacité offensive de l'attaquant et la capacité défensive du défenseur (à la *Titan Quest* / *Grim Dawn*), pas d'un pourcentage fixe de l'attaquant. Plus l'écart est grand, plus le critique est fréquent et fort.
 - **Retenu** (étape 89). La relation est le **rapport** `r = capacité offensive / capacité défensive`. C'est lui, et pas une différence ni un niveau, qui règle à la fois la chance et la force : même capacité des deux côtés (`r = 1`) donne un petit critique rare, le double donne un critique fréquent et fort. Le critique s'applique avant le blocage et l'armure, au montant effectif (Puissance comprise).
 - **À tester** (étape 89). Chance `min(0,05 × r², 0,50)` (1,25 % à `r = 0,5`, 5 % à `r = 1`, 20 % à `r = 2`, 45 % à `r = 3`, plafond de 50 %) ; multiplicateur `clamp(1,5 + 0,25 × (r − 1), 1,5 ; 2,0)` (×1,5 à `r = 1`, ×1,75 à `r = 2`, ×2 dès `r = 3`). Constantes nommées dans `Critique.hpp`. La capacité d'un personnage est `50 + 5 × Adresse` pour les deux côtés (100 à Adresse 10, 120 pour le rôdeur) ; celle d'un monstre ordinaire, 100 et 100, est une donnée de sa définition.
 - **Retenu** (étape 89). **La magie critique**, comme le reste : les attaques de base, les skills de dégâts et de zone (un tirage par monstre touché) et les coups d'opportunité, dans les deux camps. **Les soins critiquent aussi**, par la même courbe, contre une **capacité défensive de référence de 100** (`s_capaciteDefensiveDeReference`, qui suivra le niveau de la zone quand les niveaux existeront) ; le soin critique reste plafonné aux points de vie maximum. Les effets dans le temps ne critiqueront pas.
 - **Retenu** (étape 89). Le calcul est séparé du tirage : chaque étape qui dépend du hasard est une fonction pure qui reçoit un nombre de 0 inclus à 1 exclu ; le tirage a lieu à un seul endroit, dans `resoudreCoup`, et seulement si la chance est non nulle. Aucune distribution pseudo-aléatoire contre les séries de critiques (comme pour l'esquive, voir plus haut).
 - **Retenu.** Blocage au bouclier à la *Titan Quest* : une **chance** de bloquer, un **montant fixe** absorbé (pas tout le coup), puis une **récupération** pendant laquelle le bouclier ne bloque plus. Effet voulu : une nuée « consomme » le bouclier avec ses petits coups, et le gros coup d'une créature monstrueuse passe pendant la récupération. Le tank a une vraie faiblesse face aux mélanges d'ennemis.
-- **À tester.** Les valeurs du blocage (chance, montant, durée de récupération).
+- **À tester.** Les valeurs du blocage (chance, montant, durée de récupération). *(Étape 90 : bouclier rond, 30 % de chance, 40 points absorbés, 3 s de récupération.)*
+- **Retenu** (étape 90). Règles du blocage : il bloque le contact et les projectiles, jamais les zones ; il vient après le critique et avant l'armure ; un blocage réussi lance la récupération, pendant laquelle aucun blocage n'est tenté ; d'autres bonus de chance ou de montant s'additionneraient, la récupération est celle du bouclier ; un blocage qui absorbe tout le coup l'arrête, sans armure ni plancher. La récupération est un état du défenseur (`Vitalite`), qui s'écoule avec le temps. Les monstres n'ont pas de bouclier, mais rien n'empêche d'en avoir un. La question 12 (blocage et portions typées) attend l'étape 93 : tout est physique pour l'instant.
 
 ## 8. Armure, pénétration et résistances
 
@@ -239,14 +241,14 @@ Points de conception associés (**proposés**) :
 | Régénération | PV regagnés dans le temps | Équipement, skills | |
 | Armure | Réduit le physique | Équipement | Oui (soustraction avec plancher de 20 %, étape 87) |
 | Résistances | Une par élément, en % plafonné | Équipement, skills | |
-| Esquive contre la mêlée | % d'éviter un coup au contact | Équipement, skills (plafond) | |
-| Esquive contre les projectiles | % d'éviter un tir | Équipement, skills (plafond) | |
+| Esquive contre la mêlée | % d'éviter un coup au contact | Équipement, skills (plafond) | Oui (étape 90 : plafond de 50 %, monstres 5 %, bottes de cuir +5 % ; pas de skills qui en donnent) |
+| Esquive contre les projectiles | % d'éviter un tir | Équipement, skills (plafond) | Oui (étape 90 : plafond de 50 %, monstres 5 %, casque de cuir +5 %) |
 | Capacité défensive | Réduit le critique subi | Adresse, équipement | Oui (étape 89 : comme la capacité offensive ; une référence de 100 pour les soins) |
 | Résistance au contrôle physique | Réduit la durée de l'étourdissement, du recul, de l'enracinement | Endurance, équipement | |
 | Résistance au contrôle magique | Réduit la durée de la peur, du silence, du charme | Volonté, équipement | |
 | Résistance à l'interruption | Chance de garder son activation | Volonté, équipement | |
 | Égide / Barrière | Réserve temporaire ; l'Égide bloque le contrôle physique, la Barrière le contrôle magique | Skills, équipement | |
-| Blocage | Chance, montant fixe absorbé, temps de récupération | Bouclier, skills | |
+| Blocage | Chance, montant fixe absorbé, temps de récupération | Bouclier, skills | Oui (étape 90 : bouclier rond 30 %, 40 points, 3 s ; pas de skills qui en donnent) |
 
 **Ressources et déplacement**
 
@@ -269,7 +271,7 @@ Points de conception associés (**proposés**) :
 
 1. *Tranchée* : blocage à la *Titan Quest* (section 7).
 2. **Le niveau** entre-t-il dans les formules (pénalité selon l'écart, à la *Diablo 2* / WoW), ou un monstre plus fort l'est-il seulement par ses nombres ? *(En partie éclairée à l'étape 89 : le critique traite le niveau par les nombres, car il ne lit que le rapport des capacités ; un monstre de zone plus profonde aura de plus grandes capacités, sans formule d'écart de niveau. Les autres étapes du coup restent à décider.)*
-3. **Les plafonds** : esquive, résistances, réduction de recharge ; lesquels, et à combien ?
+3. **Les plafonds** : esquive, résistances, réduction de recharge ; lesquels, et à combien ? *(En partie tranchée à l'étape 90 : l'esquive est plafonnée à 50 %. Restent les résistances et la réduction de recharge.)*
 4. *Tranchée* : l'Égide et la Barrière absorbent en dernier (section 9).
 5. **La liste des éléments** : physique, feu, froid, foudre, poison, sacré, vitalité, psychique ? Le saignement est-il un type ou un effet ?
 6. **La ressource** : piste privilégiée, une ressource partagée, l'**Élan**, en couche au-dessus de ressources propres à certaines classes (section 15). À confirmer : quelles classes ont leur propre ressource, et laquelle. Le mana n'est rattaché à aucune caractéristique tant que ce n'est pas tranché.

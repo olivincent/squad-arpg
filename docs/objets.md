@@ -71,8 +71,10 @@ et le sac, en lecture seule ; aucune fonction de modification n'est appelée.
   cuir, CC casque de cuir, TM tunique matelassée, CP collier de protection, AP anneau de protection, AU anneau de puissance, CE collier d'endurance).
   Un test vérifie que les sigles ont deux lettres et sont tous différents.
 - **Infobulle** au survol d'un objet (`lignesDeLInfobulle`) : nom, catégorie, « Armure : +N » (absente si
-  l'armure est nulle, étape 88) et une ligne par bonus de caractéristique (« Puissance : +3 »). Rien au
-  survol d'une case vide.
+  l'armure est nulle, étape 88), une ligne par bonus de caractéristique (« Puissance : +3 ») et, depuis
+  l'étape 90, une ligne par bonus de combat (« Esquive contre la mêlée : +5 % », « Esquive contre les
+  projectiles : +5 % », « Blocage : 30 %, 40 points, 3 s » : `lignesDeBonusDeCombat`). Rien au survol d'une
+  case vide.
 - **« Armure : N » d'une colonne** est `Equipement::armureTotale()`, la valeur dont la `Vitalite`
   du personnage est calculée ; elle n'est pas mise en cache dans l'écran.
 - **Disposition** : `interface/DispositionInventaire`, fonctions pures qui servent au dessin, au
@@ -135,7 +137,8 @@ AnneauDeProtection }` ; `struct Objet { IdObjet id; }` avec `operator==` par dé
 ### `CatalogueObjets` (`objets/`)
 
 `CatalogueObjets.hpp` / `.cpp` : `struct DefinitionObjet { IdObjet id; std::string nom;
-CategorieObjet categorie; int armure; }` et trois fonctions libres, sans état.
+CategorieObjet categorie; int armure; Caracteristiques bonus = {}; StatistiquesDeCombat bonusDeCombat = {}; }` et trois
+fonctions libres, sans état.
 
 | Fonction | Rôle |
 |---|---|
@@ -153,6 +156,12 @@ en fin d'enum) et au sac de départ : « Anneau de puissance » (anneau, armure 
 d'endurance » (collier, armure 0, Endurance +3). Un collier d'endurance donne +60 points de vie maximum
 (20 par point d'Endurance).
 
+Bonus de combat (étape 90.2 et 90.3) : `DefinitionObjet` reçoit `StatistiquesDeCombat bonusDeCombat = {}`, le
+même type que les statistiques d'un personnage, qui s'y additionnent (`docs/combat.md`). Trois objets en ont
+un (valeurs « à tester », constantes nommées de `CatalogueObjets.cpp`) : les **bottes de cuir** +5 %
+d'esquive contre le contact, le **casque de cuir** +5 % d'esquive contre les projectiles, le **bouclier
+rond** 30 % de chance de blocage, 40 points absorbés, 3 s de récupération.
+
 ### `Equipement` (`objets/`)
 
 `Equipement.hpp` / `.cpp` : `struct ObjetDeDepart { Emplacement emplacement; IdObjet objet; }` (avec
@@ -168,6 +177,7 @@ Données membres : `m_objets` (`std::array<std::optional<Objet>, s_nombreEmplace
 | `std::optional<Objet> poser(Emplacement, Objet)` | Porte l'objet et rend celui qui y était ; `assert(peutAller(...))` : c'est à l'appelant de vérifier ; `[[nodiscard]]` |
 | `std::optional<Objet> retirer(Emplacement)` | Enlève l'objet et le rend (vide si l'emplacement l'était) ; `[[nodiscard]]` |
 | `int armureTotale() const` | Somme de l'armure des objets portés, recalculée à chaque appel ; `[[nodiscard]]` |
+| `StatistiquesDeCombat bonusDeCombatTotal() const` | Somme des bonus de combat des objets portés, recalculée à chaque appel (la récupération du blocage est la plus longue, pas une somme) ; `[[nodiscard]]` |
 | `Caracteristiques bonusTotal() const` | Somme des bonus de caractéristiques des objets portés, recalculée à chaque appel (étape 88) ; `[[nodiscard]]` |
 
 ### `Inventaire` (`objets/`)
@@ -215,12 +225,15 @@ libres sans état, qui rendent des `std::string` en UTF-8.
   `recalculerDepuisLEquipement()` privée, les caractéristiques effectives, le maximum de points de vie, les
   statistiques de combat et les défenses de la `Vitalite`) ; constructeur : `const
   std::vector<ObjetDeDepart>&` à la place de l'armure. `Vitalite::definirDefenses(const Defenses&)`
-  (préconditions `armure >= 0`, `capaciteDefensive > 0`).
-- **Statistiques de combat (étape 89)** : l'équipement n'a pas encore de bonus de combat propre. Il agit sur
-  les capacités offensive et défensive par l'**Adresse** : un objet qui donne de l'Adresse
-  (`DefinitionObjet::bonus`) monte les deux capacités de 5 par point (`statistiquesDuPersonnage`,
-  `docs/combat.md`). Le catalogue d'aujourd'hui n'a aucun objet d'Adresse ; la liste de bonus de statistiques
-  de combat des objets (esquive, blocage) viendra à l'étape 90.
+  (préconditions `armure >= 0`, `statistiques.capaciteDefensive > 0`).
+- **Statistiques de combat (étapes 89 et 90)** : l'équipement agit de deux façons. Par l'**Adresse**
+  (`DefinitionObjet::bonus`) : un point monte les deux capacités de 5 (`statistiquesDuPersonnage`,
+  `docs/combat.md`) ; le catalogue d'aujourd'hui n'a aucun objet d'Adresse. Et **directement**, par
+  `DefinitionObjet::bonusDeCombat` : esquives et blocage (étape 90), mais aussi les capacités, que
+  `Equipement::bonusDeCombatTotal` additionne et que `statistiquesDuPersonnage` ajoute aux statistiques du
+  personnage. Le bouclier rond est donc maintenant porteur d'un blocage ; **les personnages de test ne le
+  portent plus** (`s_equipementMeleeDeTest`), pour que leurs coups reçus ne soient pas bloqués au hasard :
+  les tests de blocage l'ajoutent explicitement (`docs/tests.md`).
 - `Escouade` : membre `m_sac` (`Inventaire`, 40 cases), `sac()`, `equipementDuPersonnage(place)`,
   `ramasser`, `objetA`, `peutDeplacerObjet`, `deplacerObjet` (détail dans `docs/formation.md`, tableau
   d'`Escouade`).

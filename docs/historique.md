@@ -107,6 +107,7 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 87 — Moteur du coup : échelle × 10, point d'entrée unique, armure M1 ✅
 - Étape 88 — Caractéristiques : cinq valeurs, Endurance vers PV, Puissance vers dégâts et soins ✅
 - Étape 89 — Le critique : statistiques de combat, capacités offensive et défensive, soins critiques (avec E1) ✅
+- Étape 90 — Esquive et blocage : nature des attaques, esquive plafonnée, bouclier, textes « Esquivé » et « Bloqué » ✅
 
 ## Détail des étapes 0 à 73
 
@@ -2131,3 +2132,19 @@ critiquent contre une capacité défensive de référence de 100, plafonnés aux
 `clang-tidy` (41 avant : `Monstre` n'a plus de membres sans valeur par défaut). Détail : `docs/combat.md`,
 `docs/monstre.md`, `docs/objets.md`, `docs/formation.md`, `docs/ecrans.md`, `docs/classes-et-combat.md`,
 `docs/tests.md`, `docs/audit.md`.
+
+### Étape 90 — Esquive et blocage ✅
+
+Quatrième étape de la phase 1 du plan 87–96, faite dans la même session autonome que l'étape 89 (un commit par
+sous-étape). 90.1 : `NatureDAttaque` (contact, projectile, zone), une donnée de l'attaque (`Attaque::nature`,
+`DefinitionDeSkill::nature`), explicite pour chaque attaque du catalogue ; un skill de type `Zone` est de
+nature zone (`assert`). 90.2 : `StatistiquesDeCombat` reçoit les esquives et devient aussi le bonus de combat
+d'un objet (`DefinitionObjet::bonusDeCombat`, `Equipement::bonusDeCombatTotal`) ; `Defenses` porte les
+statistiques ; module `Esquive` (plafond de 50 %, une zone ne s'esquive jamais), première étape du coup ;
+monstres 5 % et 5 %, bottes de cuir +5 % contre le contact, casque de cuir +5 % contre les projectiles ; un
+coup esquivé compte comme une attaque reçue. 90.3 : module `Blocage`, bouclier rond (30 %, 40 points, 3 s),
+récupération du blocage dans la `Vitalite` (`mettreAJour`, `blocagePret`), blocage après le critique et avant
+l'armure, blocage total sans armure ni plancher. 90.4 : événements `Esquive` et `Bloque` (`detailsDuCoup`,
+fonction pure), « Esquivé » et « Bloqué » à l'écran, infobulle des objets, esquives et blocage dans l'inventaire.
+1 247 tests, 39 avertissements `clang-tidy` (inchangé depuis 89.1). Détail : `docs/combat.md`, `docs/monstre.md`,
+`docs/objets.md`, `docs/formation.md`, `docs/ecrans.md`, `docs/classes-et-combat.md`, `docs/tests.md`.

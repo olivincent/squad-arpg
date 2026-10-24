@@ -1426,9 +1426,9 @@ même chose avec plus de détail.
 ## Étape 89 : le critique (+41 cas, 1 126 → 1 167)
 
 - **Les aides** (`aides.hpp`, `aides_escouade.hpp`, `aides_monstre.hpp`) :
-  - `attaqueSansHasard(montant)` : une `Attaque` de capacité offensive 0, donc de chance de critique nulle :
-    **ni critique ni tirage**. Les tests de règle (armure, mort, agresseurs, points de vie…) n'ont pas à
-    connaître le hasard.
+  - `attaqueSansHasard(montant)` (appelée `attaqueSansCritique` à l'étape 89) : une `Attaque` de capacité
+    offensive 0 et, depuis l'étape 90, de nature **zone** : **ni critique, ni esquive, ni blocage, donc aucun
+    tirage**. Les tests de règle (armure, mort, agresseurs, points de vie…) n'ont pas à connaître le hasard.
   - `subir(entite, montant)` (`Vitalite`, `Personnage` ou `Monstre`) et `subirCoup(escouade, idMonstre, place,
     montant)` : font subir un tel coup avec un générateur neuf (jamais lu) et rendent les dégâts subis ; ce
     sont les anciens `recevoirDegats(montant)` et `recevoirCoup(…, montant)` des tests (remplacés par
@@ -1475,3 +1475,72 @@ même chose avec plus de détail.
   18 px même pour un coup gratuit, soin critique vert), `test_AffichageStatistiques.cpp` (nouveau, 1),
   `test_DispositionInventaire.cpp` (+2 : cellules du bloc des statistiques dans le bloc, bloc sous celui des
   caractéristiques et étiquette du sac en dessous).
+
+## Étape 90 : esquive et blocage (+80 cas, 1 167 → 1 247)
+
+- **Isoler le hasard** : trois choix pour que les tests de règle restent déterministes. (1) `attaqueSansHasard`
+  est de nature zone (voir « Étape 89 »), donc `subir` et `subirCoup` ne sont jamais esquivés ni bloqués.
+  (2) `s_equipementMeleeDeTest` ne contient **plus le bouclier rond** (casque, cuirasse, jambières : l'armure
+  de test baisse de 6, et `s_armureMeleeDeTest` la calcule) : un guerrier de test qui recevrait les coups d'un
+  monstre en bloquerait 30 % au hasard. Les tests de blocage l'ajoutent explicitement
+  (`equipementDeDepart.push_back({Emplacement::MainGauche, IdObjet::BouclierRond})`). Les trois tests
+  d'objets qui déplaçaient le bouclier d'un personnage à l'autre déplacent les jambières de fer
+  (`Emplacement::Jambes`). (3) `defensesDeTest(armure)` donne `{armure, statistiques}` (capacité défensive 100,
+  rien d'autre) ; les tests qui veulent une esquive ou un bouclier modifient ces statistiques.
+- **Une sélection de graines plutôt qu'un tirage forcé** : un test qui doit observer un événement rare (un
+  coup esquivé à 5 %, un blocage à 30 %) boucle sur des graines (`Generateur generateur(graine)`, de 1 à 50,
+  100 ou 300) ou sur un grand nombre de coups jusqu'à l'observer, puis vérifie ses invariants. Tout est
+  déterministe : la même suite à chaque exécution. Un test qui ne verrait jamais l'événement échoue
+  (`REQUIRE(esquiveVue)`) au lieu de passer en silence.
+- **Compter les tirages** : `resoudreCoup` ne tire que si une chance est non nulle ; les tests le vérifient en
+  copiant le générateur avant l'appel et en le comparant après (`REQUIRE(generateur == intact)`), et un test
+  compte les nombres consommés (un coup esquivé : 1 ; un coup touché à esquive et critique possibles : 2).
+- **`tests/combat/test_Esquive.cpp`** (nouveau, 8) : `esquiveEffective` (plafond 50, négatif à 0) ; la chance
+  contre le contact, contre les projectiles, jamais contre une zone, plafonnée ; `coupEsquive` (strict, nul
+  sans chance).
+- **`tests/combat/test_Blocage.cpp`** (nouveau, 9) : la chance (contact et projectile, pas une zone, nulle en
+  récupération, nulle sans bouclier, ramenée de 0 à 100 %) ; `appliquerBlocage` (partiel, total, sous la
+  chance seulement, strict, jamais sans chance).
+- **`tests/combat/test_EvenementDeCombat.cpp`** (nouveau, 5) : `detailsDuCoup` (esquivé : `Esquive` seul ;
+  dégâts avec coup gratuit et critique ; blocage partiel : `Degats` puis `Bloque` non total ; blocage total :
+  `Bloque` total seul, pas de `Degats` de 0 ; résultat « rien » : liste vide).
+- **`tests/combat/test_ResolutionDuCoup.cpp`** (+15) : un coup esquivé s'arrête, sans dégâts ni critique ; la
+  fréquence des esquives (5 % : entre 130 et 270 sur 4 000 coups ; 20 % ; plafond de 50 % pour un défenseur à
+  90 %) ; l'esquive contre le contact ne joue pas contre les projectiles et inversement ; une zone n'est
+  jamais esquivée, sans tirage ; aucun tirage sans esquive ni capacité offensive ; un coup esquivé ne tire pas
+  son critique ; **le blocage retire un montant fixe puis l'armure joue sur le reste** ; **un blocage total
+  s'arrête sans armure ni plancher (0, pas 1)** ; le blocage retire du montant **déjà critique** ; une zone
+  n'est jamais bloquée ; pendant la récupération, ni blocage ni tirage ; sans bouclier, ni blocage ni tirage ;
+  un coup esquivé n'est pas bloqué ; la fréquence des blocages (30 % : entre 1 100 et 1 300 sur 4 000).
+- **`tests/combat/test_Vitalite.cpp`** (+7) : un coup esquivé ne retire aucun point de vie ; un blocage
+  retire le montant bloqué et lance la récupération (`blocagePret()` faux) ; pendant la récupération le coup
+  passe entier, sans tirer de blocage ; la récupération s'écoule (`mettreAJour(2)`, puis `0,9`, puis `0,2` :
+  prête à 3,1 s) ; un coup de zone ne lance pas la récupération ; un blocage total ne retire aucun point de
+  vie ; sans bouclier le blocage est toujours prêt.
+- **`tests/combat/test_StatistiquesDeCombat.cpp`** (+3) : sans bonus aucune esquive ; les bonus de
+  l'équipement s'ajoutent ; l'addition champ par champ. **`test_Skill.cpp`** (+1) : la nature d'un skill vient
+  de sa définition (contact par défaut). `test_Specialite.cpp` (+1) : nature de chaque attaque de base et de
+  chaque skill du catalogue.
+- **`tests/objets/`** : `test_CatalogueObjets.cpp` (+3 : bottes +5 % contact, casque de cuir +5 %
+  projectiles, bouclier rond 30 / 40 / 3 s, et aucun autre objet n'a de bonus de combat), `test_Equipement.cpp`
+  (+2 : `bonusDeCombatTotal` additionne et retire).
+- **`tests/escouade/`** : `test_Personnage.cpp` (+6 : l'esquive vient de l'équipement et se recalcule, y
+  compris à la construction ; un personnage qui esquive ne perd rien ; le bouclier rond donne ses statistiques ;
+  après un blocage plus aucun pendant 3 s de `mettreAJour`, puis de nouveau ; la nature d'une attaque de base
+  et d'un skill), `test_Escouade_agresseurs.cpp` (+2 : **un coup esquivé et un coup bloqué en entier
+  désignent quand même leur auteur comme agresseur**, sans dégât), `test_Escouade_combat.cpp` (+1 : contact
+  pour la mêlée, projectile pour les tireurs), nature `Zone` des coups de l'explosion et `Contact` de la frappe
+  (assertions ajoutées).
+- **`tests/monstres/`** : `test_Monstre.cpp` (+4 : le monstre ordinaire esquive 5 % et 5 % ; un coup esquivé ne
+  lui retire rien mais le **réveille** quand même ; son attaque est de contact ; un monstre au bouclier récupère
+  son blocage avec le temps qui passe).
+- **`tests/jeu/test_Partie_evenements.cpp`** (+2) : sur 40 s, un guerrier infatigable (1 dégât, sans recharge)
+  qui frappe un monstre : au moins un `Esquive` sur lui, jamais de `Degats` dans la même image (un seul
+  attaquant), la grande majorité des coups touche ; sur 120 s, un guerrier au bouclier rond sous les coups d'un
+  monstre : chaque `Bloque` vaut 40, n'est pas total (un monstre frappe pour 100) et est précédé d'un `Degats`
+  dans la même image (le texte du blocage est donc au-dessus), et deux blocages sont séparés d'au moins 3 s.
+- **`tests/interface/`** : `test_TextesFlottants.cpp` (+3 : libellés « Esquivé », « Bloqué », « Bloqué −N » ;
+  gris, 14 px, l'esquive plus claire ; le blocage partiel s'empile au-dessus des dégâts), `test_AffichageStatistiques.cpp`
+  (+5 : les cinq lignes du bloc, « Blocage 0 % » sans bouclier, esquive plafonnée à l'affichage, lignes de bonus
+  d'objet, virgule des secondes), `test_AffichageObjets.cpp` (+3 : l'infobulle des bottes, du casque de cuir et du
+  bouclier rond).

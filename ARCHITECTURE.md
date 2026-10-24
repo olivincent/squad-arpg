@@ -48,8 +48,8 @@ squad-arpg/
 │   │               ObjetInteractif, Niveau, GenerateurDonjon, Encerclement
 │   ├── combat/     Skill, SkillConnu, IdSkill, TypeSkill, AdresseSkill, Cible, ActionEngagee,
 │   │               EtatSkill, Coup, EvenementDeCombat, EntiteVue, Autodefense, Engagement,
-│   │               Attaque, StatistiquesDeCombat, Critique, Defense, ResolutionDuCoup,
-│   │               Caracteristiques, PointsDeVie, Vitalite
+│   │               Attaque, NatureDAttaque, StatistiquesDeCombat, Esquive, Critique, Blocage, Defense,
+│   │               ResolutionDuCoup, Caracteristiques, PointsDeVie, Vitalite
 │   ├── objets/     Emplacement, Objet, CatalogueObjets, Equipement, Inventaire, PositionDObjet
 │   ├── escouade/   Escouade, Personnage, Formation, PlacesDAttaque, Intention, Separation,
 │   │               EcartEntrePersonnages, Composition, Specialite, SelectionDEscouade,
@@ -131,19 +131,20 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `Cible` : `std::variant` allié, monstre ou point, et `Surcharges` pour `std::visit`.
 - `ActionEngagee` : l'action (attaque de base ou skill) qu'un personnage prépare, et sa cible.
 - `EtatSkill` : le skill d'une place, tel que l'affichage en a besoin.
-- `Attaque` : ce qui part de l'attaquant et circule jusqu'au défenseur, le montant et la capacité offensive.
+- `Attaque` : ce qui part de l'attaquant et circule jusqu'au défenseur, le montant, la capacité offensive et la nature.
+- `NatureDAttaque` : contact, projectile ou zone, une donnée de l'attaque que lisent l'esquive et le blocage.
 - `Coup` : une attaque à infliger à un monstre, sortie d'`Escouade`.
-- `EvenementDeCombat` : champs communs + détail en variant (dégâts, soin, skill lancé, monstre provoqué), en données (file de `Partie`).
+- `EvenementDeCombat` : champs communs + détail en variant (dégâts, soin, skill lancé, monstre provoqué, esquive, blocage), en données (file de `Partie`) ; `detailsDuCoup` convertit le résultat d'un coup.
 - `EntiteVue` : une entité telle que l'autre camp la voit, et `trouverEntite`.
 - `Autodefense` : quel ennemi frapper, quel agresseur viser.
 - `Engagement` : zones de contrôle, coups d'opportunité, monstre dont se dégager.
 - `Defense` : `appliquerArmure`, modèle M1 (soustraction avec plancher de 20 %).
-- `StatistiquesDeCombat` : ce que le moteur du coup lit d'une entité (capacités offensive et défensive), `statistiquesDuPersonnage`, seul endroit où elles se calculent.
-- `Critique` : chance et multiplicateur du critique par le rapport des capacités, fonctions pures (`docs/combat.md`).
-- `ResolutionDuCoup` : `resoudreCoup`, point d'entrée unique d'un coup (critique puis armure) et seul tirage du moteur ; `resoudreSoin` ; `Defenses`.
+- `StatistiquesDeCombat` : ce que le moteur du coup lit d'une entité (capacités, esquives, blocage), aussi le bonus de combat d'un objet ; `statistiquesDuPersonnage`, seul endroit où elles se calculent.
+- `Esquive`, `Critique`, `Blocage` : les étapes du coup qui dépendent du hasard, des fonctions pures qui reçoivent un tirage (`docs/combat.md`).
+- `ResolutionDuCoup` : `resoudreCoup`, point d'entrée unique d'un coup (esquive, critique, blocage, armure) et seul tirage du moteur ; `resoudreSoin` ; `Defenses`.
 - `PointsDeVie` : valeur et maximum, invariants de vie et de mort.
 - `Caracteristiques` : les cinq caractéristiques (`Caracteristique`, `Caracteristiques`, `Coefficients`), les points de vie maximum et `montantEffectif`, seule source du montant d'un skill de personnage (`docs/combat.md`).
-- `Vitalite` : points de vie et défenses (armure, capacité défensive) d'une entité, commune à `Personnage` et `Monstre`.
+- `Vitalite` : points de vie, défenses (armure, statistiques de combat) et récupération du blocage d'une entité, commune à `Personnage` et `Monstre`.
 
 `objets/` — les objets, ce qu'on porte et le sac (`docs/objets.md`) :
 - `Emplacement` : les 10 emplacements, les 8 catégories d'objet et `peutAller`, seule source de la règle.
@@ -191,7 +192,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `DispositionInventaire` : rectangles de l'inventaire, `elementSous` (une `PositionDObjet`), placement de l'infobulle (`docs/ecrans.md`).
 - `AffichageObjets` : noms des emplacements et des catégories, sigles, lignes de l'infobulle (`docs/objets.md`).
 - `AffichageCaracteristiques` : les noms des cinq caractéristiques et la ligne d'une caractéristique avec son bonus (`docs/combat.md`).
-- `AffichageStatistiques` : les lignes des statistiques de combat de l'inventaire (`docs/combat.md`).
+- `AffichageStatistiques` : les lignes des statistiques de combat de l'inventaire et des bonus de combat d'une infobulle (`docs/combat.md`).
 - `AffichageSkills` : `nomDuSkill`, le nom affiché d'un skill (`docs/combat.md`).
 - `ListeDeBoutons` : colonne de boutons sans position stockée (`docs/ecrans.md`).
 - `Reglages` : réglages d'affichage, `reglages.ini`, table des touches des raccourcis (`docs/ecrans.md`).
