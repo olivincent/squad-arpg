@@ -20,9 +20,11 @@
 #include <vector>
 
 #include "combat/Caracteristiques.hpp"
+#include "combat/StatistiquesDeCombat.hpp"
 #include "combat/Cible.hpp"
 #include "escouade/Escouade.hpp"
 #include "interface/AffichageCaracteristiques.hpp"
+#include "interface/AffichageStatistiques.hpp"
 #include "interface/AffichageObjets.hpp"
 #include "interface/Contexte.hpp"
 #include "interface/DispositionInventaire.hpp"
@@ -124,6 +126,15 @@ void dessinerLesCaracteristiques(sf::RenderTarget& rendu, const sf::Font& police
                         std::to_string(escouade.pointsDeVieMaxDuPersonnage(place).value_or(0)));
 }
 
+// Sous les caractéristiques : ses statistiques de combat (capacités offensive et défensive).
+void dessinerLesStatistiques(sf::RenderTarget& rendu, const sf::Font& police, const Escouade& escouade, std::size_t place,
+                             sf::Vector2f tailleDeVue) {
+    const std::vector<std::string> lignes = lignesDeStatistiques(escouade.statistiquesDeCombatDuPersonnage(place).value_or(StatistiquesDeCombat()));
+    for (std::size_t i = 0; i < lignes.size(); ++i) {
+        dessinerCellule(rendu, police, rectangleDeLaStatistique(place, i, tailleDeVue), lignes[i]);
+    }
+}
+
 // La colonne d'un personnage : son en-tête (classe, couleur du personnage), son armure et ses 10 emplacements.
 void dessinerColonne(sf::RenderTarget& rendu, const sf::Font& police, const Escouade& escouade, std::size_t place,
                      const std::string& nomDeLaClasse, sf::Vector2f tailleDeVue) {
@@ -156,6 +167,7 @@ void dessinerColonne(sf::RenderTarget& rendu, const sf::Font& police, const Esco
                             equipement.a(emplacement));
     }
     dessinerLesCaracteristiques(rendu, police, escouade, place, tailleDeVue);
+    dessinerLesStatistiques(rendu, police, escouade, place, tailleDeVue);
 }
 
 // Le sac : une case par indice, vide, ou avec le sigle de son objet.

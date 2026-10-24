@@ -16,6 +16,7 @@ constexpr float s_ecartEmpilement = 14.0f; // px entre deux textes de la même c
 constexpr float s_finDeLaOpacitePleine = 0.5f;  // fraction de la vie pendant laquelle le texte est opaque
 constexpr unsigned int s_tailleNormale = 16;
 constexpr unsigned int s_tailleCoupGratuit = 20;
+constexpr unsigned int s_tailleCritique = 18;  // plus gros qu'un coup normal, moins qu'un coup gratuit
 constexpr unsigned int s_tailleNomDeSkill = 14;
 constexpr unsigned int s_tailleProvoque = 14;
 constexpr float s_epaisseurContour = 1.0f;
@@ -23,6 +24,8 @@ const sf::Color s_couleurDegatsSurUnMonstre = sf::Color::White;
 const sf::Color s_couleurDegatsSurUnPersonnage(255, 60, 60);
 const sf::Color s_couleurSoin(80, 230, 80);
 const sf::Color s_couleurCoupGratuit(255, 150, 0);
+const sf::Color s_couleurCritique(255, 235, 0);     // jaune vif, plus clair que le jaune doré des noms de skills
+const std::string s_suiteDuCritique = " Critique !";
 const sf::Color s_couleurNomDeSkill(255, 210, 60);  // jaune doré
 const sf::Color s_couleurProvoque(255, 100, 40);    // rouge orangé
 }  // namespace
@@ -48,9 +51,13 @@ sf::Vector2f positionDuTexte(const TexteFlottant& texte) {
 std::string libelleDuTexte(const EvenementDeCombat& evenement) {
     return std::visit(Surcharges{[](const Degats& degats) {
                                      const std::string montant = std::to_string(degats.montant);
-                                     return degats.opportunite ? montant + "!" : montant;
+                                     const std::string coupGratuit = degats.opportunite ? montant + "!" : montant;
+                                     return degats.critique ? coupGratuit + s_suiteDuCritique : coupGratuit;
                                  },
-                                 [](const Soin& soin) { return "+" + std::to_string(soin.montant); },
+                                 [](const Soin& soin) {
+                                     const std::string montant = "+" + std::to_string(soin.montant);
+                                     return soin.critique ? montant + s_suiteDuCritique : montant;
+                                 },
                                  [](const SkillLance& lance) { return nomDuSkill(lance.skill); },
                                  [](const Provoque&) { return std::string("Provoqué"); }},
                       evenement.detail);
@@ -58,6 +65,9 @@ std::string libelleDuTexte(const EvenementDeCombat& evenement) {
 
 sf::Color couleurDuTexte(const EvenementDeCombat& evenement) {
     return std::visit(Surcharges{[&](const Degats& degats) {
+                                     if (degats.critique) {
+                                         return s_couleurCritique;  // l'emporte sur le coup gratuit
+                                     }
                                      if (degats.opportunite) {
                                          return s_couleurCoupGratuit;
                                      }
@@ -71,8 +81,13 @@ sf::Color couleurDuTexte(const EvenementDeCombat& evenement) {
 }
 
 unsigned int tailleDuTexte(const EvenementDeCombat& evenement) {
-    return std::visit(Surcharges{[](const Degats& degats) { return degats.opportunite ? s_tailleCoupGratuit : s_tailleNormale; },
-                                 [](const Soin&) { return s_tailleNormale; },
+    return std::visit(Surcharges{[](const Degats& degats) {
+                                     if (degats.critique) {
+                                         return s_tailleCritique;
+                                     }
+                                     return degats.opportunite ? s_tailleCoupGratuit : s_tailleNormale;
+                                 },
+                                 [](const Soin& soin) { return soin.critique ? s_tailleCritique : s_tailleNormale; },
                                  [](const SkillLance&) { return s_tailleNomDeSkill; },
                                  [](const Provoque&) { return s_tailleProvoque; }},
                       evenement.detail);

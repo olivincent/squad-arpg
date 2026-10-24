@@ -21,6 +21,7 @@
 #include "escouade/Formation.hpp"
 #include "escouade/Intention.hpp"
 #include "combat/Coup.hpp"
+#include "combat/StatistiquesDeCombat.hpp"
 #include "combat/Engagement.hpp"
 #include "combat/EtatSkill.hpp"
 #include "combat/IdSkill.hpp"
@@ -67,6 +68,9 @@ public:
     [[nodiscard]] std::optional<int> pointsDeVieMaxDuPersonnage(std::size_t place) const;
     // Caractéristiques effectives (base plus équipement) du personnage de cette place ; vide si la place est invalide.
     [[nodiscard]] std::optional<Caracteristiques> caracteristiquesDuPersonnage(std::size_t place) const;
+    // Statistiques de combat du personnage de cette place (tirées de ses caractéristiques effectives) ; vide
+    // si la place est invalide. Lues par l'écran d'inventaire.
+    [[nodiscard]] std::optional<StatistiquesDeCombat> statistiquesDeCombatDuPersonnage(std::size_t place) const;
     [[nodiscard]] float rayonZoneDuSkill(AdresseSkill adresse) const;
     [[nodiscard]] Cercle cercleDePorteeDuSkill(AdresseSkill adresse) const;
     [[nodiscard]] std::vector<Coup> declencherSkillDeZone(AdresseSkill adresse, sf::Vector2f point, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);

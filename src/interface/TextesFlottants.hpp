@@ -25,11 +25,14 @@ struct TexteFlottant {  // NOLINT(cppcoreguidelines-pro-type-member-init): champ
 [[nodiscard]] float opaciteDuTexte(float age);
 // Position du centre du texte : sous la hauteur de son âge, relevée de 14 px par rang d'empilement.
 [[nodiscard]] sf::Vector2f positionDuTexte(const TexteFlottant& texte);
-// Dégâts : « 12 » (suivi de « ! » pour un coup gratuit) ; soin : « +12 » ; skill lancé : son nom ; provoqué : « Provoqué » (UTF-8).
+// Dégâts : « 12 » (suivi de « ! » pour un coup gratuit) ; soin : « +12 » ; l'un et l'autre suivis de
+// « Critique ! » pour un critique (« 12! Critique ! ») ; skill lancé : son nom ; provoqué : « Provoqué » (UTF-8).
 [[nodiscard]] std::string libelleDuTexte(const EvenementDeCombat& evenement);
-// Coup gratuit orange, soin vert, dégâts sur un monstre blancs, sur un personnage rouges, nom de skill jaune doré, « Provoqué » rouge orangé.
+// Dégâts critiques jaunes (même pour un coup gratuit), coup gratuit orange, soin vert (critique ou non), dégâts sur un
+// monstre blancs, sur un personnage rouges, nom de skill jaune doré, « Provoqué » rouge orangé.
 [[nodiscard]] sf::Color couleurDuTexte(const EvenementDeCombat& evenement);
-// 20 px pour un coup gratuit, 14 px pour un nom de skill ou « Provoqué », 16 px sinon.
+// 18 px pour un critique (dégâts ou soin), 20 px pour un coup gratuit, 14 px pour un nom de skill ou « Provoqué »,
+// 16 px sinon.
 [[nodiscard]] unsigned int tailleDuTexte(const EvenementDeCombat& evenement);
 
 // Les textes à l'écran. Logique pure (sans fenêtre) ; seul `dessiner` touche à SFML. Possédé par

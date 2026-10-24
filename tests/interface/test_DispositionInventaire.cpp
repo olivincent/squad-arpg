@@ -27,6 +27,9 @@ std::vector<sf::FloatRect> tousLesRectangles(sf::Vector2f vue) {
         for (std::size_t cellule = 0; cellule <= s_nombreDeCaracteristiques; ++cellule) {
             rectangles.push_back(rectangleDeLaCellule(place, cellule, vue));
         }
+        for (std::size_t cellule = 0; cellule < s_cellulesDeStatistiques; ++cellule) {
+            rectangles.push_back(rectangleDeLaStatistique(place, cellule, vue));
+        }
         for (std::size_t i = 0; i < s_nombreEmplacements; ++i) {
             rectangles.push_back(rectangleDeLEmplacement(place, static_cast<Emplacement>(i), vue));
         }
@@ -180,6 +183,31 @@ TEST_CASE("disposition : les cellules du bloc des caracteristiques tiennent dans
     REQUIRE(rectangleDeLaCellule(2, 0, s_vueMinimale).position.x == bloc.position.x);
     REQUIRE(rectangleDeLaCellule(2, s_lignesDeCaracteristiques, s_vueMinimale).position.x > bloc.position.x);
     REQUIRE(rectangleDeLaCellule(2, 1, s_vueMinimale).position.y > rectangleDeLaCellule(2, 0, s_vueMinimale).position.y);
+}
+
+TEST_CASE("disposition : les cellules du bloc des statistiques tiennent dans le bloc, en deux colonnes") {
+    const sf::FloatRect bloc = rectangleDesStatistiques(2, s_vueMinimale);
+
+    for (std::size_t cellule = 0; cellule < s_cellulesDeStatistiques; ++cellule) {
+        const sf::FloatRect zone = rectangleDeLaStatistique(2, cellule, s_vueMinimale);
+        REQUIRE(zone.position.x >= bloc.position.x);
+        REQUIRE(zone.position.y >= bloc.position.y);
+        REQUIRE(zone.position.x + zone.size.x <= bloc.position.x + bloc.size.x);
+        REQUIRE(zone.position.y + zone.size.y <= bloc.position.y + bloc.size.y);
+    }
+    REQUIRE(rectangleDeLaStatistique(2, 0, s_vueMinimale).position.x == bloc.position.x);
+    REQUIRE(rectangleDeLaStatistique(2, s_lignesDeStatistiques, s_vueMinimale).position.x > bloc.position.x);
+    REQUIRE(rectangleDeLaStatistique(2, 1, s_vueMinimale).position.y > rectangleDeLaStatistique(2, 0, s_vueMinimale).position.y);
+}
+
+TEST_CASE("disposition : le bloc des statistiques est sous celui des caracteristiques, et l'etiquette du sac en dessous") {
+    constexpr float hauteurDeLEtiquetteDuSac = 24.0f;  // voir EcranInventaire
+    const sf::FloatRect caracteristiques = rectangleDesCaracteristiques(1, s_vueMinimale);
+    const sf::FloatRect statistiques = rectangleDesStatistiques(1, s_vueMinimale);
+
+    REQUIRE(statistiques.position.y >= caracteristiques.position.y + caracteristiques.size.y);
+    REQUIRE(rectangleDeLaCaseDuSac(0, s_vueMinimale).position.y - hauteurDeLEtiquetteDuSac >=
+            statistiques.position.y + statistiques.size.y);
 }
 
 TEST_CASE("disposition : le bloc des caracteristiques est sous les emplacements et au-dessus du sac") {

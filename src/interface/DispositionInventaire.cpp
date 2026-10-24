@@ -21,7 +21,7 @@ constexpr std::size_t s_emplacementsParColonne = 5;
 constexpr float s_cote = 44.0f;  // une case du sac
 constexpr float s_ecartEntreCases = 4.0f;
 constexpr float s_hauteurDeLigneDeCaracteristique = 18.0f;
-constexpr float s_hautDuSac = 500.0f;
+constexpr float s_hautDuSac = 550.0f;  // sous le bloc des statistiques et l'étiquette « Sac »
 
 constexpr float s_decalageInfobulle = 16.0f;  // entre le curseur et le coin de l'infobulle
 
@@ -73,6 +73,23 @@ sf::FloatRect rectangleDeLaCellule(std::size_t place, std::size_t indice, sf::Ve
     const float largeurDeCellule = bloc.size.x / 2.0f;
     const std::size_t colonne = indice / s_lignesDeCaracteristiques;
     const std::size_t rangee = indice % s_lignesDeCaracteristiques;
+    return {{bloc.position.x + static_cast<float>(colonne) * largeurDeCellule,
+             bloc.position.y + static_cast<float>(rangee) * s_hauteurDeLigneDeCaracteristique},
+            {largeurDeCellule, s_hauteurDeLigneDeCaracteristique}};
+}
+
+sf::FloatRect rectangleDesStatistiques(std::size_t place, sf::Vector2f tailleDeVue) {
+    const sf::FloatRect caracteristiques = rectangleDesCaracteristiques(place, tailleDeVue);
+    return {{caracteristiques.position.x, caracteristiques.position.y + caracteristiques.size.y + s_ecartVertical},
+            {s_largeurDeColonne, static_cast<float>(s_lignesDeStatistiques) * s_hauteurDeLigneDeCaracteristique}};
+}
+
+sf::FloatRect rectangleDeLaStatistique(std::size_t place, std::size_t indice, sf::Vector2f tailleDeVue) {
+    assert(indice < s_cellulesDeStatistiques);
+    const sf::FloatRect bloc = rectangleDesStatistiques(place, tailleDeVue);
+    const float largeurDeCellule = bloc.size.x / 2.0f;
+    const std::size_t colonne = indice / s_lignesDeStatistiques;
+    const std::size_t rangee = indice % s_lignesDeStatistiques;
     return {{bloc.position.x + static_cast<float>(colonne) * largeurDeCellule,
              bloc.position.y + static_cast<float>(rangee) * s_hauteurDeLigneDeCaracteristique},
             {largeurDeCellule, s_hauteurDeLigneDeCaracteristique}};

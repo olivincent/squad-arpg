@@ -98,6 +98,39 @@ TEST_CASE("le libelle : degats, coup gratuit et soin") {
     REQUIRE(libelleDuTexte({Camp::Escouade, 2, {}, Soin{20, false}}) == "+20");
 }
 
+TEST_CASE("le libelle d'un critique : le montant suivi de Critique !") {
+    REQUIRE(libelleDuTexte({Camp::Monstres, 1, {}, Degats{12, false, true}}) == "12 Critique !");
+    REQUIRE(libelleDuTexte({Camp::Monstres, 1, {}, Degats{7, true, true}}) == "7! Critique !");  // le « ! » du coup gratuit reste
+    REQUIRE(libelleDuTexte({Camp::Escouade, 2, {}, Soin{20, true}}) == "+20 Critique !");
+}
+
+TEST_CASE("un critique est jaune et de 18 px, meme un coup gratuit ou sur un personnage") {
+    const EvenementDeCombat surUnMonstre{Camp::Monstres, 1, {}, Degats{10, false, true}};
+    const EvenementDeCombat surUnPersonnage{Camp::Escouade, 1, {}, Degats{10, false, true}};
+    const EvenementDeCombat gratuit{Camp::Monstres, 1, {}, Degats{10, true, true}};
+    const EvenementDeCombat normal{Camp::Monstres, 1, {}, Degats{10, false, false}};
+
+    REQUIRE(couleurDuTexte(surUnMonstre) == couleurDuTexte(surUnPersonnage));
+    REQUIRE(couleurDuTexte(surUnMonstre) == couleurDuTexte(gratuit));
+    REQUIRE(couleurDuTexte(surUnMonstre).r == 255);
+    REQUIRE(couleurDuTexte(surUnMonstre).g > 200);
+    REQUIRE(couleurDuTexte(surUnMonstre).b < 50);
+    REQUIRE(couleurDuTexte(surUnMonstre) != couleurDuTexte(normal));
+    REQUIRE(tailleDuTexte(surUnMonstre) == 18);
+    REQUIRE(tailleDuTexte(gratuit) == 18);  // le style critique l'emporte sur celui du coup gratuit
+    REQUIRE(tailleDuTexte(surUnMonstre) > tailleDuTexte(normal));
+}
+
+TEST_CASE("un soin critique reste vert, plus gros qu'un soin normal") {
+    const EvenementDeCombat critique{Camp::Escouade, 2, {}, Soin{10, true}};
+    const EvenementDeCombat normal{Camp::Escouade, 2, {}, Soin{10, false}};
+
+    REQUIRE(couleurDuTexte(critique) == couleurDuTexte(normal));
+    REQUIRE(couleurDuTexte(critique).g > couleurDuTexte(critique).r);
+    REQUIRE(tailleDuTexte(critique) == 18);
+    REQUIRE(tailleDuTexte(normal) == 16);
+}
+
 TEST_CASE("la couleur et la taille : blanc sur un monstre, rouge sur un personnage, vert pour un soin, orange et plus gros pour un coup gratuit") {
     const EvenementDeCombat surUnMonstre = degatsSurUnMonstre(1);
     const EvenementDeCombat surUnPersonnage{Camp::Escouade, 1, {}, Degats{10, false, false}};

@@ -8,6 +8,7 @@
 #include "aides_escouade.hpp"
 #include "combat/Caracteristiques.hpp"
 #include "combat/Defense.hpp"
+#include "combat/StatistiquesDeCombat.hpp"
 #include "escouade/Escouade.hpp"
 #include "objets/CatalogueObjets.hpp"
 #include "objets/Emplacement.hpp"
@@ -300,6 +301,17 @@ TEST_CASE("une partie commence avec le sac de depart dans le sac") {
     for (std::size_t i = attendu.size(); i < sac.capacite(); ++i) {
         REQUIRE_FALSE(sac.a(i).has_value());
     }
+}
+
+TEST_CASE("statistiquesDeCombatDuPersonnage : celles du personnage de la place, vides si la place est invalide") {
+    DefinitionPersonnage rodeur = pretreDeTest();
+    rodeur.caracteristiques = Caracteristiques({10, 10, 14, 8, 8});
+    const Escouade escouade({50.0f, 50.0f}, {guerrierDeTest(), rodeur});
+
+    REQUIRE(escouade.statistiquesDeCombatDuPersonnage(1) == statistiquesDuPersonnage(Caracteristiques()));
+    REQUIRE(escouade.statistiquesDeCombatDuPersonnage(2) == StatistiquesDeCombat{120, 120});
+    REQUIRE_FALSE(escouade.statistiquesDeCombatDuPersonnage(0).has_value());
+    REQUIRE_FALSE(escouade.statistiquesDeCombatDuPersonnage(3).has_value());
 }
 
 TEST_CASE("la puissance de l'attaque de base lue par l'escouade (coup d'opportunite) suit les caracteristiques") {
