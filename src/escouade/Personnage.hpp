@@ -39,17 +39,17 @@ public:
     [[nodiscard]] bool estAPortee(Cercle cible) const;
     // Portée de l'attaque de base, bord à bord.
     [[nodiscard]] float getPorteeAttaqueDeBase() const;
-    // Dégâts de l'attaque de base, avant l'armure de la cible.
-    // Le montant de son attaque de base, caractéristiques comprises (`montantEffectif`).
-    [[nodiscard]] int getPuissanceAttaqueDeBase() const;
+    // Son attaque de base : le montant (caractéristiques comprises, `montantEffectif`), avant l'armure de la
+    // cible, et sa capacité offensive.
+    [[nodiscard]] Attaque getAttaqueDeBase() const;
     // Zone de contrôle, en pixels, bord à bord ; 0 : il n'engage personne.
     [[nodiscard]] float getZoneDeControle() const;
     // Attaque de base en trois temps : engager (vivant, immobile, attaque
-    // prête) ; avancer l'exécution, qui rend les dégâts au moment où le coup
-    // part ; annuler, sans recharge consommée.
+    // prête) ; avancer l'exécution, qui rend l'attaque au moment où le coup
+    // part (vide avant) ; annuler, sans recharge consommée.
     [[nodiscard]] bool engagerAttaque(int idCible);
     [[nodiscard]] std::optional<int> cibleEngagee() const;
-    [[nodiscard]] int avancerAttaque(float dt, Generateur& generateur);
+    [[nodiscard]] std::optional<Attaque> avancerAttaque(float dt, Generateur& generateur);
     // Sans effet sur une activation de skill : seul annulerSkill l'annule.
     void annulerAttaque();
     // Voir Mobile::estEnMouvement.
@@ -71,8 +71,9 @@ public:
     // Skill en trois temps, comme l'attaque de base : engager (vivant, skill
     // prêt, aucun autre skill en activation ; annule le coup de base en
     // exécution, mais ne demande pas d'immobilité) ; avancer l'activation, qui
-    // rend la puissance au moment où l'effet part (et relance la recharge de
-    // l'attaque de base) ; annuler, sans recharge consommée. Une seule action
+    // rend l'attaque (montant et capacité offensive) au moment où l'effet part, vide
+    // avant (et relance la recharge de l'attaque de base ; le montant d'une
+    // provocation est sa durée) ; annuler, sans recharge consommée. Une seule action
     // engagée à la fois ; les recharges des skills sont indépendantes. La portée
     // et la vue sont vérifiées par Escouade ; la cible est stockée sans être interprétée.
     [[nodiscard]] bool engagerSkill(IdSkill id, std::optional<Cible> cible);
@@ -80,11 +81,12 @@ public:
     // activation (le lanceur est libre).
     [[nodiscard]] bool peutEngagerSkill(IdSkill id) const;
     [[nodiscard]] std::optional<ActionEngagee> skillEngage() const;
-    [[nodiscard]] int avancerSkill(float dt, Generateur& generateur);
+    [[nodiscard]] std::optional<Attaque> avancerSkill(float dt, Generateur& generateur);
     void annulerSkill();
-    // Renvoient le montant réellement appliqué : dégâts après armure (0 pour un mort), points
-    // de vie réellement rendus (plafonnés au maximum, 0 pour un mort).
-    int recevoirDegats(int quantite);
+    // `recevoirDegats` rend le résultat du coup (`resoudreCoup`, qui tire dans `generateur`) : dégâts après
+    // armure, rien pour un mort. `recevoirSoin` rend les points de vie réellement rendus (plafonnés au
+    // maximum, 0 pour un mort).
+    ResultatDuCoup recevoirDegats(const Attaque& attaque, Generateur& generateur);
     int recevoirSoin(int quantite);
     [[nodiscard]] bool estVivant() const;
     [[nodiscard]] int getPointsDeVie() const;
@@ -113,19 +115,20 @@ private:
     std::optional<sf::Vector2f> m_cibleChemin; // cible du dernier A* ; vide = pas de chemin en cours
     Equipement m_equipement;  // déclaré avant m_vitalite : l'armure en est tirée à la construction
     Caracteristiques m_caracteristiquesDeBase;  // celles de sa classe, jamais modifiées
-    Caracteristiques m_caracteristiques;        // effectives : seul `recalculerCaracteristiques` les écrit
+    Caracteristiques m_caracteristiques;        // effectives : seul `recalculerDepuisLEquipement` les écrit
     StatistiquesDeCombat m_statistiques;        // tirées des caractéristiques effectives, écrites au même endroit
     int m_pointsDeVieDeBase;                    // sans l'Endurance
-    Vitalite m_vitalite;    // points de vie et armure
+    Vitalite m_vitalite;    // points de vie et défenses
     float m_rayonVision;    // en pixels
     float m_zoneDeControle; // en pixels, bord à bord
-    // Seul endroit où l'armure de la vitalité change : toujours la somme de l'équipement, jamais ajustée.
-    void recalculerArmure();
-    // Seul endroit où les caractéristiques effectives (et les points de vie maximum et les statistiques de
-    // combat qui en viennent) changent : toujours la base plus l'équipement, jamais ajustées.
-    void recalculerCaracteristiques();
-    // Le montant de ce skill de ce personnage, caractéristiques comprises (`montantEffectif`).
-    [[nodiscard]] int montantDe(const Skill& skill) const;
+    // Ce qu'il oppose à un coup : l'armure de son équipement et sa capacité défensive.
+    [[nodiscard]] Defenses defenses() const;
+    // Seul endroit où les caractéristiques effectives et tout ce qui en vient (statistiques de combat, points
+    // de vie maximum, défenses de la vitalité) changent : toujours la base plus l'équipement, jamais ajustées.
+    void recalculerDepuisLEquipement();
+    // L'attaque de ce skill de ce personnage : son montant, caractéristiques comprises (`montantEffectif`), et
+    // la capacité offensive du personnage.
+    [[nodiscard]] Attaque attaqueDe(const Skill& skill) const;
     [[nodiscard]] const Skill* trouverSkill(IdSkill id) const;  // nullptr si le personnage ne connaît pas ce skill
     [[nodiscard]] Skill* trouverSkill(IdSkill id);
     std::optional<ActionEngagee> m_actionEngagee; // action en exécution et sa cible ; lue seulement pendant l'exécution

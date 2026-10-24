@@ -18,7 +18,8 @@ constexpr std::uint8_t s_opaciteRetour = 128;  // sur 255 : environ 50 %, pour m
 
 Monstre::Monstre(sf::Vector2f centre, int id, int groupe, const DefinitionDeMonstre& definition)
     : m_mobile(centre, {definition.cote, definition.cote}, definition.vitesse),
-      m_vitalite(definition.pointsDeVieMax, definition.armure),
+      m_vitalite(definition.pointsDeVieMax,
+                 {.armure = definition.armure, .capaciteDefensive = definition.statistiques.capaciteDefensive}),
       m_id(id),
       m_groupe(groupe),
       m_attaque(definition.attaque),
@@ -81,15 +82,15 @@ bool Monstre::contient(sf::Vector2f point) const {
     return sf::FloatRect(centre - taille / 2.0f, taille).contains(point);
 }
 
-int Monstre::recevoirDegats(int quantite) {
+ResultatDuCoup Monstre::recevoirDegats(const Attaque& attaque, Generateur& generateur) {
     if (m_etat == Etat::Retour || !estVivant()) {
-        return 0;
+        return {.montant = 0, .critique = false};
     }
-    const int degats = m_vitalite.recevoirDegats(quantite);
-    if (quantite > 0) {
+    const ResultatDuCoup resultat = m_vitalite.recevoirDegats(attaque, generateur);
+    if (attaque.montant > 0) {
         alerter();
     }
-    return degats;
+    return resultat;
 }
 
 void Monstre::alerter() {
@@ -119,8 +120,8 @@ float Monstre::getZoneDeControle() const {
     return m_zoneDeControle;
 }
 
-int Monstre::getPuissanceAttaque() const {
-    return m_attaque.getPuissance();
+Attaque Monstre::getAttaque() const {
+    return {.montant = m_attaque.getPuissance(), .capaciteOffensive = m_statistiques.capaciteOffensive};
 }
 
 const StatistiquesDeCombat& Monstre::getStatistiques() const {
@@ -254,12 +255,12 @@ std::optional<int> Monstre::cibleEngagee() const {
     return m_idCibleEngagee;
 }
 
-int Monstre::avancerAttaque(float dt, Generateur& generateur) {
+std::optional<Attaque> Monstre::avancerAttaque(float dt, Generateur& generateur) {
     if (!cibleEngagee().has_value() || !m_attaque.avancer(dt, generateur)) {
-        return 0;
+        return std::nullopt;
     }
     m_idCibleEngagee.reset();
-    return m_attaque.getPuissance();
+    return getAttaque();
 }
 
 void Monstre::annulerAttaque() {

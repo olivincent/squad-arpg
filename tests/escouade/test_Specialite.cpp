@@ -5,6 +5,7 @@
 
 #include "interface/BarreDeRaccourcis.hpp"
 #include "aides.hpp"
+#include "aides_escouade.hpp"
 #include "combat/Caracteristiques.hpp"
 #include "combat/Defense.hpp"
 #include "escouade/Composition.hpp"
@@ -225,8 +226,8 @@ TEST_CASE("armure des classes : une escouade du catalogue encaisse selon l'equip
     Escouade escouade({100.0f, 100.0f}, composer({IdSpecialite::Guerrier, IdSpecialite::Mage}));
     const int armureDuGuerrier = armureDe(specialite(IdSpecialite::Guerrier).definition.equipementDeDepart);
 
-    REQUIRE(escouade.recevoirCoup(7, 1, 40) == appliquerArmure(40, armureDuGuerrier));
-    REQUIRE(escouade.recevoirCoup(7, 2, 40) == 40);
+    REQUIRE(subirCoup(escouade, 7, 1, 40) == appliquerArmure(40, armureDuGuerrier));
+    REQUIRE(subirCoup(escouade, 7, 2, 40) == 40);
 }
 
 TEST_CASE("caracteristiques des classes : somme de 50, et les points de vie maximum de depart sont les memes pour toutes") {

@@ -12,6 +12,7 @@
 #include "combat/Caracteristiques.hpp"
 #include "combat/ActionEngagee.hpp"
 #include "combat/AdresseSkill.hpp"
+#include "combat/Attaque.hpp"
 #include "escouade/Agresseurs.hpp"
 #include "base/Aleatoire.hpp"
 #include "combat/Cible.hpp"
@@ -33,6 +34,7 @@
 #include "objets/Objet.hpp"
 #include "objets/PositionDObjet.hpp"
 #include "escouade/Provocations.hpp"
+#include "combat/ResolutionDuCoup.hpp"
 #include "combat/TypeSkill.hpp"
 
 class TileMap;
@@ -91,17 +93,18 @@ public:
     // provocateur s'il est provoqué et vivant, sinon tous les personnages vivants.
     [[nodiscard]] std::vector<EntiteVue> candidatsDeFrappe(int idMonstre) const;
     [[nodiscard]] bool placeEstVivante(std::size_t place) const;
-    // Un coup du monstre `idMonstre` sur le personnage de cette place. Renvoie les dégâts réellement
-    // subis (après armure) ; 0 si la place est invalide ou morte. Un coup qui fait des dégâts désigne
-    // son auteur comme agresseur.
-    int recevoirCoup(int idMonstre, std::size_t place, int quantite);
+    // Une attaque du monstre `idMonstre` sur le personnage de cette place. Renvoie le résultat du coup
+    // (`resoudreCoup`, qui tire dans `generateur`) : les dégâts réellement subis (après armure) ; rien si la
+    // place est invalide ou morte. Une attaque qui a un montant désigne son auteur comme agresseur.
+    ResultatDuCoup recevoirCoup(int idMonstre, std::size_t place, const Attaque& attaque, Generateur& generateur);
     [[nodiscard]] bool estVivante() const;
     [[nodiscard]] std::vector<Cercle> cerclesDesVivants() const;
     // Une entité de contrôle (identifiant = place de 1 à N, cercle, zone de contrôle) par personnage
     // vivant : les morts n'engagent personne et ne sont pas engagés.
     [[nodiscard]] std::vector<EntiteDeControle> entitesDeControle() const;
-    // Dégâts de l'attaque de base du personnage de cette place, avant l'armure de la cible ; vide si la place est invalide.
-    [[nodiscard]] std::optional<int> puissanceDeLAttaqueDeBase(std::size_t place) const;
+    // Attaque de base du personnage de cette place (dégâts avant l'armure de la cible, capacité offensive) ;
+    // vide si la place est invalide.
+    [[nodiscard]] std::optional<Attaque> attaqueDeBase(std::size_t place) const;
     // Un cercle (centre du personnage, rayon de vision) par personnage vivant : la vision de
     // l'escouade est l'union de leurs champs.
     [[nodiscard]] std::vector<Cercle> cerclesDeVision() const;
@@ -195,7 +198,7 @@ private:
     [[nodiscard]] bool peutAtteindre(const Personnage& personnage, std::optional<IdSkill> skill, Cercle cible, const TileMap& carte) const;
     [[nodiscard]] bool peutLancerAuPoint(AdresseSkill adresse, sf::Vector2f point, const TileMap& carte) const;
     std::vector<Coup> avancerSkillDe(std::size_t indice, float dt, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
-    std::vector<Coup> effetDuSkill(std::size_t place, IdSkill id, const std::optional<Cible>& cible, int puissance, const std::vector<EntiteVue>& monstres, const TileMap& carte);
+    std::vector<Coup> effetDuSkill(std::size_t place, IdSkill id, const std::optional<Cible>& cible, const Attaque& attaque, const std::vector<EntiteVue>& monstres, const TileMap& carte);
     // L'intention que le skill en attente donne à son lanceur (indice de 0 à N-1).
     struct IntentionDuSkill {
         std::size_t lanceur;

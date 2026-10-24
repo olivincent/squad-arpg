@@ -3,25 +3,25 @@
 #include "combat/ResolutionDuCoup.hpp"
 #include <cassert>
 
-Vitalite::Vitalite(int pointsDeVieMax, int armure)
+Vitalite::Vitalite(int pointsDeVieMax, const Defenses& defenses)
     : m_pointsDeVie(pointsDeVieMax),
-      m_armure(armure)
+      m_defenses(defenses)
 {
-    assert(armure >= 0);
+    assert(defenses.armure >= 0 && defenses.capaciteDefensive > 0);
 }
 
-void Vitalite::definirArmure(int armure) {
-    assert(armure >= 0);
-    m_armure = armure;
+void Vitalite::definirDefenses(const Defenses& defenses) {
+    assert(defenses.armure >= 0 && defenses.capaciteDefensive > 0);
+    m_defenses = defenses;
 }
 
-int Vitalite::recevoirDegats(int montant) {
+ResultatDuCoup Vitalite::recevoirDegats(const Attaque& attaque, Generateur& generateur) {
     if (!estVivant()) {
-        return 0;
+        return {.montant = 0, .critique = false};
     }
-    const int degats = resoudreCoup(montant, {.armure = m_armure});
-    m_pointsDeVie.subirDegats(degats);
-    return degats;
+    const ResultatDuCoup resultat = resoudreCoup(attaque, m_defenses, generateur);
+    m_pointsDeVie.subirDegats(resultat.montant);
+    return resultat;
 }
 
 void Vitalite::definirMaximum(int maximum) {

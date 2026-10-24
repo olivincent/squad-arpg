@@ -189,14 +189,14 @@ void Partie::appliquerLesCoupsDOpportunite(const CampsDeControle& avant) {
     for (const CoupDOpportunite& coup : surLesPersonnages) {
         if (const Monstre* attaquant = trouverMonstre(coup.idAttaquant)) {
             infligerAUnPersonnage(attaquant->getId(), static_cast<std::size_t>(coup.idCible),
-                                  attaquant->getPuissanceAttaque(), true);
+                                  attaquant->getAttaque(), true);
         }
     }
     // Personnage qui frappe un monstre : un Coup comme ceux d'attaquer(), sans toucher à aucune recharge.
     std::vector<Coup> coupsSurLesMonstres;
     for (const CoupDOpportunite& coup : surLesMonstres) {
-        if (const std::optional<int> degats = m_escouade.puissanceDeLAttaqueDeBase(static_cast<std::size_t>(coup.idAttaquant))) {
-            coupsSurLesMonstres.push_back({coup.idCible, *degats});
+        if (const std::optional<Attaque> attaque = m_escouade.attaqueDeBase(static_cast<std::size_t>(coup.idAttaquant))) {
+            coupsSurLesMonstres.push_back({coup.idCible, *attaque});
         }
     }
     appliquer(coupsSurLesMonstres, true);
@@ -214,16 +214,16 @@ void Partie::appliquerLesCoupsDOpportunite(const CampsDeControle& avant) {
 void Partie::appliquer(const std::vector<Coup>& coups, bool opportunite) {
     for (const Coup& coup : coups) {
         if (Monstre* touche = trouverMonstre(coup.idMonstre)) {
-            const int subis = touche->recevoirDegats(coup.degats);
-            signaler(Camp::Monstres, touche->getId(), touche->getCentre(), Degats{subis, opportunite});
+            const ResultatDuCoup resultat = touche->recevoirDegats(coup.attaque, m_generateur);
+            signaler(Camp::Monstres, touche->getId(), touche->getCentre(), Degats{resultat.montant, opportunite, resultat.critique});
         }
     }
 }
 
-void Partie::infligerAUnPersonnage(int idMonstre, std::size_t place, int degats, bool opportunite) {
-    const int subis = m_escouade.recevoirCoup(idMonstre, place, degats);
+void Partie::infligerAUnPersonnage(int idMonstre, std::size_t place, const Attaque& attaque, bool opportunite) {
+    const ResultatDuCoup resultat = m_escouade.recevoirCoup(idMonstre, place, attaque, m_generateur);
     if (const std::optional<sf::Vector2f> centre = m_escouade.centreDuPersonnage(place)) {
-        signaler(Camp::Escouade, static_cast<int>(place), *centre, Degats{subis, opportunite});
+        signaler(Camp::Escouade, static_cast<int>(place), *centre, Degats{resultat.montant, opportunite, resultat.critique});
     }
 }
 
@@ -362,8 +362,8 @@ void Partie::faireFrapperLeMonstre(Monstre& monstre, std::optional<EntiteVue> pr
         const std::size_t placeVisee = static_cast<std::size_t>(*place);
         if (!m_escouade.placeEstVivante(placeVisee)) {
             monstre.annulerAttaque();
-        } else if (const int degats = monstre.avancerAttaque(dt, m_generateur); degats > 0) {
-            infligerAUnPersonnage(monstre.getId(), placeVisee, degats, false);
+        } else if (const std::optional<Attaque> attaque = monstre.avancerAttaque(dt, m_generateur)) {
+            infligerAUnPersonnage(monstre.getId(), placeVisee, *attaque, false);
         }
         return;
     }

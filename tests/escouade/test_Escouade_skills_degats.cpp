@@ -30,7 +30,7 @@ TEST_CASE("Sans verrou, le skill de degats part sur un monstre a portee, sans cr
 
     REQUIRE(coups.size() == 1);
     REQUIRE(coups[0].idMonstre == 4);
-    REQUIRE(coups[0].degats == s_degatsFrappeDeTest);
+    REQUIRE(coups[0].attaque.montant == s_degatsFrappeDeTest);
     REQUIRE_FALSE(escouade.getCibleVerrouillee().has_value());
 }
 

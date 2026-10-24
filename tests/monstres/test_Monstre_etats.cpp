@@ -171,7 +171,7 @@ TEST_CASE("Monstre touche en garde poursuit une proie hors detection") {
     Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
     const sf::Vector2f cible(350.0f, 100.0f); // 250 px, hors détection
 
-    monstre.recevoirDegats(10);
+    subir(monstre, 10);
     ecoulerTemps(monstre, 0.5f, pointCible(cible), carte);
 
     REQUIRE(monstre.getCentre().x > 100.0f);
@@ -190,7 +190,7 @@ TEST_CASE("Monstre.recevoirDegats de 0 ne reveille pas le monstre") {
     const TileMap carte = carteDegagee10x10();
     Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
 
-    monstre.recevoirDegats(0);
+    subir(monstre, 0);
     ecoulerTemps(monstre, 0.5f, pointCible({350.0f, 100.0f}), carte);
 
     REQUIRE(monstre.getCentre() == sf::Vector2f(100.0f, 100.0f));
@@ -200,7 +200,7 @@ TEST_CASE("Monstre touche sans proie reste en garde et le coup est consomme") {
     const TileMap carte = carteDegagee10x10();
     Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
 
-    monstre.recevoirDegats(10);
+    subir(monstre, 10);
     ecoulerTemps(monstre, 1.0f / 60.0f, std::nullopt, carte);
     ecoulerTemps(monstre, 0.5f, pointCible({350.0f, 100.0f}), carte);
 
@@ -213,7 +213,7 @@ TEST_CASE("Monstre touche en poursuite continue de poursuivre") {
     ecoulerTemps(monstre, 0.2f, pointCible({250.0f, 100.0f}), carte); // détection
     const float xAvant = monstre.getCentre().x;
 
-    monstre.recevoirDegats(10);
+    subir(monstre, 10);
     ecoulerTemps(monstre, 0.3f, pointCible({400.0f, 100.0f}), carte);
 
     REQUIRE(monstre.getCentre().x > xAvant);
@@ -288,7 +288,7 @@ TEST_CASE("Monstre touche s'active meme sans voir son agresseur") {
     const TileMap carte = carteAvecMur();
     Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
 
-    monstre.recevoirDegats(10);
+    subir(monstre, 10);
     ecoulerTemps(monstre, 0.5f, pointCible({250.0f, 100.0f}), carte);
 
     REQUIRE(monstre.getCentre() != sf::Vector2f(100.0f, 100.0f));

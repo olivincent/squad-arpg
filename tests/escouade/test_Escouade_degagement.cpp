@@ -74,7 +74,7 @@ Escouade::VueDesMonstres sansAttaquer(const UnMonstre& monstre) {
 int coupsDuMage(const std::vector<Coup>& coups) {
     int total = 0;
     for (const Coup& coup : coups) {
-        total += coup.degats == s_degatsDuMage ? 1 : 0;
+        total += coup.attaque.montant == s_degatsDuMage ? 1 : 0;
     }
     return total;
 }
@@ -82,7 +82,7 @@ int coupsDuMage(const std::vector<Coup>& coups) {
 // Le monstre a frappé le guerrier : il est un agresseur, comme dans une vraie partie. Sans cela, un mage
 // qui a fini de se dégager retournerait vers sa place de formation, au contact.
 void lAgresseEstConnu(Escouade& escouade) {
-    escouade.recevoirCoup(1, s_guerrier, 1);
+    subirCoup(escouade, 1, s_guerrier, 1);
 }
 
 // Le monstre est entre le guerrier et le mage : il engage les deux (pas le prêtre).

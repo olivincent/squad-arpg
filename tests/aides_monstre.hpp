@@ -77,7 +77,7 @@ inline int frapperEnEntier(Monstre& monstre, Cercle cible, Generateur& generateu
         return 0;
     }
     for (int i = 0; i < nombreDeTics(1.0f); ++i) {
-        if (const int degats = monstre.avancerAttaque(s_dureeTic, generateur); degats > 0) {
+        if (const int degats = montantOuZero(monstre.avancerAttaque(s_dureeTic, generateur)); degats > 0) {
             return degats;
         }
     }
@@ -89,7 +89,7 @@ inline int frapperEnEntier(Monstre& monstre, Cercle cible, Generateur& generateu
 // `degatsEnPoursuite` est infligé avant le retour (en retour, le monstre est invulnérable).
 inline void amenerEnRetourHorsTerritoire(Monstre& monstre, const TileMap& carte, int degatsEnPoursuite = 0) {
     ecoulerTemps(monstre, 0.2f, pointCible({250.0f, 100.0f}), carte); // détection
-    monstre.recevoirDegats(degatsEnPoursuite);
+    subir(monstre, degatsEnPoursuite);
     while ((monstre.getCentre() - sf::Vector2f(100.0f, 100.0f)).length() <= monstreOrdinaire().rayonTerritoire) {
         ecoulerTemps(monstre, 1.0f / 60.0f, pointCible({900.0f, 100.0f}), carte);
     }

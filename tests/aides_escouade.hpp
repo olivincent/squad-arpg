@@ -21,6 +21,7 @@
 #include "escouade/Escouade.hpp"
 #include "combat/EntiteVue.hpp"
 #include "combat/IdSkill.hpp"
+#include "combat/StatistiquesDeCombat.hpp"
 #include "monstres/Monstre.hpp"
 #include "monde/Niveau.hpp"
 #include "jeu/Partie.hpp"
@@ -167,6 +168,18 @@ inline Escouade uneEscouadeAuSoinCourt(sf::Vector2f positionDepart) {
     return Escouade(positionDepart, std::move(composition));
 }
 
+// Ce que les personnages de test (sans caractéristiques : Adresse 0) opposent à un coup, pour cette armure.
+inline Defenses defensesDuPersonnageDeTest(int armure) {
+    return {.armure = armure, .capaciteDefensive = statistiquesDuPersonnage(Caracteristiques()).capaciteDefensive};
+}
+
+// Un coup de `montant` dégâts sans critique (ni tirage) du monstre `idMonstre` sur le personnage de cette place
+// (`Escouade::recevoirCoup`) ; rend les dégâts subis.
+inline int subirCoup(Escouade& escouade, int idMonstre, std::size_t place, int montant) {
+    Generateur generateur = generateurDeTest();
+    return escouade.recevoirCoup(idMonstre, place, attaqueSansCritique(montant), generateur).montant;
+}
+
 // Un coup du monstre `idMonstre`, posté en `origine`, sur la proie que l'escouade lui donne
 // (proieDuMonstre : provocateur, sinon le plus proche). Renvoie les dégâts subis ; 0 si personne n'est
 // touchable. Le chemin d'un coup de Partie, sans Partie.
@@ -175,7 +188,7 @@ inline int infliger(Escouade& escouade, int idMonstre, sf::Vector2f origine, int
     if (!proie.has_value()) {
         return 0;
     }
-    return escouade.recevoirCoup(idMonstre, static_cast<std::size_t>(proie->id), quantite);
+    return subirCoup(escouade, idMonstre, static_cast<std::size_t>(proie->id), quantite);
 }
 
 // Simule le temps qui passe par tics de 1/60 s, pendant la durée demandée.
@@ -221,7 +234,7 @@ inline int attaquerCible(Escouade& escouade, const TileMap& carte, Cercle cible)
     int total = 0;
     Generateur generateur = generateurDeTest();
     for (const Coup& coup : attaquerJusquAuDepart(escouade, {EntiteVue{1, cible}}, carte, generateur)) {
-        total += coup.degats;
+        total += coup.attaque.montant;
     }
     return total;
 }
@@ -240,7 +253,7 @@ inline std::vector<Coup> attendreLeDepartDesSkills(Escouade& escouade, const std
     std::vector<Coup> coups;
     for (int i = 0; i < nombreDeTics(s_dureeAttenteSkill); ++i) {
         for (const Coup& coup : escouade.attaquer(s_dureeTic, monstres, carte, generateur)) {
-            if (coup.degats != s_degatsBaseDeTest) {
+            if (coup.attaque.montant != s_degatsBaseDeTest) {
                 coups.push_back(coup);
             }
         }
@@ -369,7 +382,7 @@ inline int declencher(Escouade& escouade, AdresseSkill adresse, const std::vecto
     int total = 0;
     Generateur generateur = generateurDeTest();
     for (const Coup& coup : declencherEtAttendre(escouade, adresse, monstres, carteOuverte(), generateur)) {
-        total += coup.degats;
+        total += coup.attaque.montant;
     }
     return total;
 }

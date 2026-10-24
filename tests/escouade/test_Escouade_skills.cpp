@@ -89,7 +89,7 @@ std::vector<Coup> attaquerPendant(Escouade& escouade, const std::vector<EntiteVu
 
 // Nombre de coups d'exactement ce montant (écarte les attaques de base).
 int compter(const std::vector<Coup>& coups, int degats) {
-    return static_cast<int>(std::count_if(coups.begin(), coups.end(), [&](const Coup& coup) { return coup.degats == degats; }));
+    return static_cast<int>(std::count_if(coups.begin(), coups.end(), [&](const Coup& coup) { return coup.attaque.montant == degats; }));
 }
 
 // Position du personnage de cette place, lue par la proie d'un monstre qu'il provoque.
@@ -141,7 +141,7 @@ TEST_CASE("Le lanceur reste sur place pendant l'activation, un ordre de deplacem
     Generateur generateur = generateurDeTest();
     const TileMap& carte = carteOuverte();
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    escouade.recevoirCoup(1, 1, 30);  // un blessé à soigner
+    subirCoup(escouade, 1, 1, 30);  // un blessé à soigner
     REQUIRE(escouade.declencherSkill(s_adresseSoin, {}, carte, generateur).empty());
     const sf::Vector2f avant = positionDeLaPlace(escouade, 2);
 
@@ -159,10 +159,10 @@ TEST_CASE("Le lanceur reste sur place pendant l'activation, un ordre de deplacem
 TEST_CASE("La mort du lanceur annule l'activation, sans recharge consommee") {
     Generateur generateur = generateurDeTest();
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    escouade.recevoirCoup(1, 1, 30);
+    subirCoup(escouade, 1, 1, 30);
     REQUIRE(escouade.declencherSkill(s_adresseSoin, {}, carteOuverte(), generateur).empty());
 
-    escouade.recevoirCoup(1, 2, s_coupMortel);
+    subirCoup(escouade, 1, 2, s_coupMortel);
     static_cast<void>(attaquerPendant(escouade, {}, 1.0f, generateur));
 
     REQUIRE(placeAlliePourSoin(escouade) == 1);  // personne n'a été soigné
@@ -183,10 +183,10 @@ TEST_CASE("La disparition du monstre vise annule l'activation d'un skill de dega
 TEST_CASE("La mort de l'allie vise annule l'activation d'un soin, sans recharge") {
     Generateur generateur = generateurDeTest();
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    escouade.recevoirCoup(1, 1, 30);
+    subirCoup(escouade, 1, 1, 30);
     REQUIRE(escouade.declencherSkill(s_adresseSoin, {}, carteOuverte(), generateur).empty());
 
-    escouade.recevoirCoup(1, 1, s_coupMortel);
+    subirCoup(escouade, 1, 1, s_coupMortel);
     static_cast<void>(attaquerPendant(escouade, {}, 1.0f, generateur));
 
     REQUIRE(escouade.skillEstPret(s_adresseSoin));
@@ -205,7 +205,7 @@ TEST_CASE("Zone : l'effet est evalue au depart, un monstre sorti de la zone n'es
     coups.insert(coups.end(), suite.begin(), suite.end());
 
     REQUIRE(compter(coups, s_degatsZoneDeTest) == 1);
-    REQUIRE(std::any_of(coups.begin(), coups.end(), [](const Coup& coup) { return coup.degats == s_degatsZoneDeTest && coup.idMonstre == 2; }));
+    REQUIRE(std::any_of(coups.begin(), coups.end(), [](const Coup& coup) { return coup.attaque.montant == s_degatsZoneDeTest && coup.idMonstre == 2; }));
 }
 
 TEST_CASE("Provocation : l'effet est evalue au depart, apres 0,2 s") {
@@ -227,7 +227,7 @@ TEST_CASE("Provocation : l'effet est evalue au depart, apres 0,2 s") {
 TEST_CASE("Deux lanceurs peuvent activer en meme temps") {
     Generateur generateur = generateurDeTest();
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    escouade.recevoirCoup(1, 1, 30);
+    subirCoup(escouade, 1, 1, 30);
     const std::vector<EntiteVue> monstres = unSeulMonstre(cibleMonstre({85.0f, 60.0f}));
 
     REQUIRE(escouade.declencherSkill(s_adresseFrappe, monstres, carteOuverte(), generateur).empty());
@@ -379,7 +379,7 @@ TEST_CASE("Lanceur occupe : sans verrou, une frappe en attente est abandonnee si
     REQUIRE(escouade.skillEstPret(s_adresseFrappe));  // sans recharge
 
     // Plus rien n'attend : un autre skill est de nouveau accepté.
-    escouade.recevoirCoup(1, 1, 30);
+    subirCoup(escouade, 1, 1, 30);
     REQUIRE(escouade.declencherSkill(s_adresseSoin, {}, carteOuverte(), generateur).empty());
     REQUIRE(escouade.etatDuSkill(s_adresseSoin)->enActivation);
 }
@@ -388,7 +388,7 @@ TEST_CASE("Lanceur occupe : le paladin soigne apres sa frappe sacree") {
     Generateur generateur = generateurDeTest();
     Escouade escouade({50.0f, 50.0f}, {paladinDeTest()});  // seul, devant : en (85, 60)
     const std::vector<EntiteVue> monstres = unSeulMonstre(cibleMonstre({110.0f, 60.0f}));
-    escouade.recevoirCoup(1, 1, 400);  // blessé : il est la cible de son soin
+    subirCoup(escouade, 1, 1, 400);  // blessé : il est la cible de son soin
     const int vieBlessee = *escouade.pointsDeVieDuPersonnage(1);
 
     REQUIRE(escouade.declencherSkill(s_adresseFrappeSacree, monstres, carteOuverte(), generateur).empty());

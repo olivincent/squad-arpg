@@ -3,7 +3,9 @@
 #include "base/Aleatoire.hpp"
 #include "combat/Skill.hpp"
 #include "base/Cercle.hpp"
+#include "combat/Attaque.hpp"
 #include "combat/EntiteVue.hpp"
+#include "combat/ResolutionDuCoup.hpp"
 #include "monde/Mobile.hpp"
 #include "combat/StatistiquesDeCombat.hpp"
 #include "combat/Vitalite.hpp"
@@ -36,7 +38,7 @@ public:
                      const std::vector<Cercle>& aContourner);
     // Attaque en trois temps, comme celle d'un personnage : engager (cible à
     // portée et en vue, monstre immobile, attaque prête) ; avancer l'exécution, qui rend
-    // les dégâts au départ du coup ; annuler, sans recharge consommée.
+    // l'attaque au départ du coup (vide avant) ; annuler, sans recharge consommée.
     // Une cible est atteignable à portée ET en vue (`ligneDeVue`, en cases).
     // Même règle que `Escouade::peutAtteindre`.
     [[nodiscard]] bool peutAtteindre(Cercle cible, const TileMap& carte) const;
@@ -46,16 +48,17 @@ public:
     [[nodiscard]] bool engagerAttaque(std::optional<EntiteVue> proie, const std::vector<EntiteVue>& candidats, const TileMap& carte);
     // Identifiant (place) du personnage visé par le coup en exécution ; vide hors exécution.
     [[nodiscard]] std::optional<int> cibleEngagee() const;
-    [[nodiscard]] int avancerAttaque(float dt, Generateur& generateur);
+    [[nodiscard]] std::optional<Attaque> avancerAttaque(float dt, Generateur& generateur);
     void annulerAttaque();
     [[nodiscard]] sf::Vector2f getCentre() const;
     [[nodiscard]] Cercle getCercle() const;
     [[nodiscard]] int getId() const;
     [[nodiscard]] int getGroupe() const;
     [[nodiscard]] bool contient(sf::Vector2f point) const;
-    // Sans aucun effet (ni dégâts, ni alerte) pendant le retour au poste : le monstre est invulnérable.
-    // Renvoie les dégâts réellement appliqués (après armure) ; 0 en retour ou si le monstre est mort.
-    int recevoirDegats(int quantite);
+    // Sans aucun effet (ni dégâts, ni alerte, ni tirage) pendant le retour au poste : le monstre est invulnérable.
+    // Renvoie le résultat du coup (`resoudreCoup`, qui tire dans `generateur`) : les dégâts réellement
+    // appliqués (après armure) ; rien en retour ou si le monstre est mort.
+    ResultatDuCoup recevoirDegats(const Attaque& attaque, Generateur& generateur);
     // Demande au monstre d'entrer en poursuite de sa proie habituelle, même
     // hors de la détection, s'il est dans son territoire. Prise en compte au
     // prochain `mettreAJour` ; sans effet sur un monstre déjà en poursuite
@@ -70,8 +73,8 @@ public:
     [[nodiscard]] int getPointsDeVie() const;
     // Zone de contrôle du monstre, en pixels, bord à bord.
     [[nodiscard]] float getZoneDeControle() const;
-    // Dégâts de son attaque, avant l'armure de la cible.
-    [[nodiscard]] int getPuissanceAttaque() const;
+    // Son attaque : les dégâts, avant l'armure de la cible, et sa capacité offensive.
+    [[nodiscard]] Attaque getAttaque() const;
     // Ses statistiques de combat, celles de sa définition.
     [[nodiscard]] const StatistiquesDeCombat& getStatistiques() const;
 

@@ -262,7 +262,7 @@ TEST_CASE("Sans verrou, tous les personnages frappent un monstre a leur portee, 
     REQUIRE(coups.size() == 3);
     for (const Coup& coup : coups) {
         REQUIRE(coup.idMonstre == 4);
-        REQUIRE(coup.degats == s_degatsBaseDeTest);
+        REQUIRE(coup.attaque.montant == s_degatsBaseDeTest);
     }
     verifierPointProche(escouade.getCentre(), centreInitial);
 }
@@ -353,7 +353,7 @@ namespace {
 int attaquerCibleUnTic(Escouade& escouade, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur) {
     int total = 0;
     for (const Coup& coup : escouade.attaquer(s_dureeTic, monstres, carte, generateur)) {
-        total += coup.degats;
+        total += coup.attaque.montant;
     }
     return total;
 }
@@ -508,7 +508,7 @@ TEST_CASE("recevoirCoup frappe le personnage de la place donnee, pas le plus pro
     Escouade escouade = uneEscouade({50.0f, 50.0f});
 
     // Origine à côté du guerrier de la place 1 (85, 60) ; le coup vise la place 3 (35, 85).
-    escouade.recevoirCoup(1, 3, s_coupMortel);
+    subirCoup(escouade, 1, 3, s_coupMortel);
 
     REQUIRE(escouade.cerclesDesVivants().size() == 2);
     REQUIRE(escouade.placeEstVivante(1));
@@ -519,7 +519,7 @@ TEST_CASE("pointsDeVieDuPersonnage donne les points de vie de la place, vide si 
     Escouade escouade = uneEscouade({50.0f, 50.0f});
     const std::optional<int> guerrierAvant = escouade.pointsDeVieDuPersonnage(1);
     const std::optional<int> pretreAvant = escouade.pointsDeVieDuPersonnage(2);
-    escouade.recevoirCoup(1, 2, 10);
+    subirCoup(escouade, 1, 2, 10);
 
     REQUIRE(escouade.pointsDeVieDuPersonnage(1) == guerrierAvant);
     REQUIRE(escouade.pointsDeVieDuPersonnage(2) == *pretreAvant - 10);  // le prêtre n'a pas d'armure
@@ -546,7 +546,7 @@ TEST_CASE("entitesDeControle donne la place, le cercle et la zone de chaque viva
 
 TEST_CASE("entitesDeControle exclut les morts mais garde la place des autres") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    escouade.recevoirCoup(1, 1, s_coupMortel);  // le guerrier meurt
+    subirCoup(escouade, 1, 1, s_coupMortel);  // le guerrier meurt
 
     const std::vector<EntiteDeControle> entites = escouade.entitesDeControle();
 
@@ -555,13 +555,13 @@ TEST_CASE("entitesDeControle exclut les morts mais garde la place des autres") {
     REQUIRE(entites[1].id == 3);
 }
 
-TEST_CASE("puissanceDeLAttaqueDeBase : les degats de la place, vide si la place est invalide") {
+TEST_CASE("attaqueDeBase : l'attaque de la place, vide si la place est invalide") {
     const Escouade escouade = uneEscouade({50.0f, 50.0f});
 
-    REQUIRE(escouade.puissanceDeLAttaqueDeBase(1) == s_degatsBaseDeTest);
-    REQUIRE(escouade.puissanceDeLAttaqueDeBase(3) == s_degatsBaseDeTest);
-    REQUIRE_FALSE(escouade.puissanceDeLAttaqueDeBase(0).has_value());
-    REQUIRE_FALSE(escouade.puissanceDeLAttaqueDeBase(4).has_value());
+    REQUIRE(escouade.attaqueDeBase(1)->montant == s_degatsBaseDeTest);
+    REQUIRE(escouade.attaqueDeBase(3)->montant == s_degatsBaseDeTest);
+    REQUIRE_FALSE(escouade.attaqueDeBase(0).has_value());
+    REQUIRE_FALSE(escouade.attaqueDeBase(4).has_value());
 }
 
 TEST_CASE("proieDuMonstre donne la place du personnage vise") {
@@ -587,7 +587,7 @@ TEST_CASE("candidatsDeFrappe sans provocation donne tous les vivants avec leur p
 
 TEST_CASE("candidatsDeFrappe exclut les morts") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    escouade.recevoirCoup(1, 3, s_coupMortel);
+    subirCoup(escouade, 1, 3, s_coupMortel);
 
     const std::vector<EntiteVue> candidats = escouade.candidatsDeFrappe(1);
 
@@ -611,7 +611,7 @@ TEST_CASE("candidatsDeFrappe d'un monstre provoque ne donne que le provocateur")
 TEST_CASE("candidatsDeFrappe revient a tous les vivants si le provocateur est mort") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
     escouade.provoquer(1, 2, 4.0f);
-    escouade.recevoirCoup(9, 2, s_coupMortel);
+    subirCoup(escouade, 9, 2, s_coupMortel);
 
     const std::vector<EntiteVue> candidats = escouade.candidatsDeFrappe(1);
 
@@ -624,7 +624,7 @@ TEST_CASE("candidatsDeFrappe revient a tous les vivants si le provocateur est mo
 TEST_CASE("candidatsDeFrappe est vide si personne n'est vivant") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
     for (std::size_t place = 1; place <= 3; ++place) {
-        escouade.recevoirCoup(9, place, s_coupMortel);
+        subirCoup(escouade, 9, place, s_coupMortel);
     }
 
     REQUIRE(escouade.candidatsDeFrappe(1).empty());

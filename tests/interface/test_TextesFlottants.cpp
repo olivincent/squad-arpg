@@ -11,7 +11,7 @@
 namespace {
 
 EvenementDeCombat degatsSurUnMonstre(int id, int montant = 10, sf::Vector2f position = {100.0f, 100.0f}) {
-    return {Camp::Monstres, id, position, Degats{montant, false}};
+    return {Camp::Monstres, id, position, Degats{montant, false, false}};
 }
 
 }  // namespace
@@ -74,7 +74,7 @@ TEST_CASE("l'empilement ne touche pas deux cibles differentes dans la meme image
     textes.ajouter(degatsSurUnMonstre(1));
     textes.ajouter(degatsSurUnMonstre(2));
     // Même identifiant, mais un personnage : une autre cible.
-    textes.ajouter({Camp::Escouade, 1, {100.0f, 100.0f}, Degats{10, false}});
+    textes.ajouter({Camp::Escouade, 1, {100.0f, 100.0f}, Degats{10, false, false}});
 
     for (const TexteFlottant& texte : textes.actifs()) {
         REQUIRE(texte.rang == 0);
@@ -94,16 +94,16 @@ TEST_CASE("l'empilement ne touche pas deux images differentes") {
 
 TEST_CASE("le libelle : degats, coup gratuit et soin") {
     REQUIRE(libelleDuTexte(degatsSurUnMonstre(1, 12)) == "12");
-    REQUIRE(libelleDuTexte({Camp::Escouade, 1, {}, Degats{7, true}}) == "7!");
+    REQUIRE(libelleDuTexte({Camp::Escouade, 1, {}, Degats{7, true, false}}) == "7!");
     REQUIRE(libelleDuTexte({Camp::Escouade, 2, {}, Soin{20}}) == "+20");
 }
 
 TEST_CASE("la couleur et la taille : blanc sur un monstre, rouge sur un personnage, vert pour un soin, orange et plus gros pour un coup gratuit") {
     const EvenementDeCombat surUnMonstre = degatsSurUnMonstre(1);
-    const EvenementDeCombat surUnPersonnage{Camp::Escouade, 1, {}, Degats{10, false}};
+    const EvenementDeCombat surUnPersonnage{Camp::Escouade, 1, {}, Degats{10, false, false}};
     const EvenementDeCombat soin{Camp::Escouade, 2, {}, Soin{10}};
-    const EvenementDeCombat gratuitSurUnMonstre{Camp::Monstres, 1, {}, Degats{10, true}};
-    const EvenementDeCombat gratuitSurUnPersonnage{Camp::Escouade, 1, {}, Degats{10, true}};
+    const EvenementDeCombat gratuitSurUnMonstre{Camp::Monstres, 1, {}, Degats{10, true, false}};
+    const EvenementDeCombat gratuitSurUnPersonnage{Camp::Escouade, 1, {}, Degats{10, true, false}};
 
     REQUIRE(couleurDuTexte(surUnMonstre) == sf::Color::White);
     REQUIRE(couleurDuTexte(surUnPersonnage).r == 255);

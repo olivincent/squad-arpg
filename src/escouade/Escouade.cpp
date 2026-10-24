@@ -250,17 +250,17 @@ std::vector<Coup> Escouade::avancerSkillDe(std::size_t indice, float dt, const s
         return {};
     }
 
-    const int puissance = lanceur.avancerSkill(dt, generateur);
-    if (puissance <= 0) {
+    const std::optional<Attaque> attaque = lanceur.avancerSkill(dt, generateur);
+    if (!attaque.has_value()) {
         return {};
     }
     assert(action->skill.has_value());  // une action de skill porte toujours son identifiant (engagerSkill)
-    return effetDuSkill(indice + 1, *action->skill, action->cible, puissance, monstres, carte);  // NOLINT(bugprone-unchecked-optional-access): vérifié par l'assert au-dessus (_assert de MinGW n'est pas noreturn)
+    return effetDuSkill(indice + 1, *action->skill, action->cible, *attaque, monstres, carte);  // NOLINT(bugprone-unchecked-optional-access): vérifié par l'assert au-dessus (_assert de MinGW n'est pas noreturn)
 }
 
 // Effet d'un skill qui part, évalué au moment du départ. La provocation et le
 // soin sont appliqués ici ; les dégâts et la zone sortent en `Coup`.
-std::vector<Coup> Escouade::effetDuSkill(std::size_t place, IdSkill id, const std::optional<Cible>& cible, int puissance, const std::vector<EntiteVue>& monstres, const TileMap& carte) {
+std::vector<Coup> Escouade::effetDuSkill(std::size_t place, IdSkill id, const std::optional<Cible>& cible, const Attaque& attaque, const std::vector<EntiteVue>& monstres, const TileMap& carte) {
     const Personnage& lanceur = personnageDeLaPlace(place);
     m_faits.push_back(SkillPart{place, id, lanceur.getCentre()});
 
@@ -271,7 +271,7 @@ std::vector<Coup> Escouade::effetDuSkill(std::size_t place, IdSkill id, const st
         const Cercle zone = lanceur.zoneDuSkill(id);
         for (const EntiteVue& monstre : monstres) {
             if (distanceBordABord(zone, monstre.cercle) == 0.0f && ligneDeVue(carte, lanceur.getCentre(), monstre.cercle.centre)) {
-                provoquer(monstre.id, place, static_cast<float>(puissance));
+                provoquer(monstre.id, place, static_cast<float>(attaque.montant));
                 m_faits.push_back(MonstreProvoque{monstre.id});
             }
         }
@@ -280,10 +280,10 @@ std::vector<Coup> Escouade::effetDuSkill(std::size_t place, IdSkill id, const st
 
     return std::visit(
         Surcharges{
-            [&](const CibleMonstre& monstre) -> std::vector<Coup> { return {{monstre.id, puissance}}; },
+            [&](const CibleMonstre& monstre) -> std::vector<Coup> { return {{monstre.id, attaque}}; },
             [&](const CibleAllie& allie) -> std::vector<Coup> {
                 Personnage& soigne = personnageDeLaPlace(allie.place);
-                if (const int rendu = soigne.recevoirSoin(puissance); rendu > 0) {
+                if (const int rendu = soigne.recevoirSoin(attaque.montant); rendu > 0) {
                     m_faits.push_back(SoinApplique{allie.place, rendu, soigne.getCentre()});
                 }
                 return {};
@@ -295,7 +295,7 @@ std::vector<Coup> Escouade::effetDuSkill(std::size_t place, IdSkill id, const st
                 std::vector<Coup> coups;
                 for (const EntiteVue& monstre : monstres) {
                     if (distanceBordABord(zone, monstre.cercle) == 0.0f && ligneDeVue(carte, point.point, monstre.cercle.centre)) {
-                        coups.push_back({monstre.id, puissance});
+                        coups.push_back({monstre.id, attaque});
                     }
                 }
                 return coups;
@@ -319,8 +319,8 @@ std::vector<Coup> Escouade::autodefense(float dt, const std::vector<EntiteVue>& 
         if (const std::optional<int> idEngage = personnage.cibleEngagee()) {
             if (!personnage.estVivant() || trouverEntite(monstres, *idEngage) == nullptr) {
                 personnage.annulerAttaque();
-            } else if (const int degats = personnage.avancerAttaque(dt, generateur); degats > 0) {
-                coups.push_back({*idEngage, degats});
+            } else if (const std::optional<Attaque> attaque = personnage.avancerAttaque(dt, generateur)) {
+                coups.push_back({*idEngage, *attaque});
             }
             continue;
         }
@@ -925,17 +925,17 @@ bool Escouade::placeEstVivante(std::size_t place) const {
     return placeValide(place) && personnageDeLaPlace(place).estVivant();
 }
 
-int Escouade::recevoirCoup(int idMonstre, std::size_t place, int quantite) {
+ResultatDuCoup Escouade::recevoirCoup(int idMonstre, std::size_t place, const Attaque& attaque, Generateur& generateur) {
     if (!placeEstVivante(place)) {
-        return 0;
+        return {.montant = 0, .critique = false};
     }
-    const int subis = personnageDeLaPlace(place).recevoirDegats(quantite);
+    const ResultatDuCoup resultat = personnageDeLaPlace(place).recevoirDegats(attaque, generateur);
 
-    // Un coup qui fait des dégâts désigne son auteur comme agresseur.
-    if (quantite > 0) {
+    // Une attaque qui a un montant désigne son auteur comme agresseur.
+    if (attaque.montant > 0) {
         m_agresseurs.enregistrer(idMonstre);
     }
-    return subis;
+    return resultat;
 }
 
 const std::vector<Agresseurs::Agresseur>& Escouade::getAgresseurs() const {
@@ -983,11 +983,11 @@ std::vector<EntiteDeControle> Escouade::entitesDeControle() const {
     return entites;
 }
 
-std::optional<int> Escouade::puissanceDeLAttaqueDeBase(std::size_t place) const {
+std::optional<Attaque> Escouade::attaqueDeBase(std::size_t place) const {
     if (!placeValide(place)) {
         return std::nullopt;
     }
-    return personnageDeLaPlace(place).getPuissanceAttaqueDeBase();
+    return personnageDeLaPlace(place).getAttaqueDeBase();
 }
 
 std::vector<Cercle> Escouade::cerclesDeVision() const {

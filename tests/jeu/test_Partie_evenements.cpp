@@ -8,8 +8,10 @@
 
 #include "aides.hpp"
 #include "aides_escouade.hpp"
+#include "combat/Caracteristiques.hpp"
 #include "combat/Defense.hpp"
 #include "combat/EvenementDeCombat.hpp"
+#include "monstres/DefinitionDeMonstre.hpp"
 #include "monstres/Monstre.hpp"
 #include "monde/Niveau.hpp"
 #include "jeu/Partie.hpp"
@@ -92,7 +94,7 @@ TEST_CASE("evenements : un skill de degats donne un evenement sur le monstre, ar
 TEST_CASE("evenements : le coup d'un monstre donne un evenement sur le personnage touche, armure comprise") {
     Partie guerrier(niveauDegage({{270.0f, 210.0f}}), std::vector<DefinitionPersonnage>{guerrierDeTest()}, s_graineDeTest);
     Partie mage(niveauDegage({{185.0f, 250.0f}}), std::vector<DefinitionPersonnage>{mageDeTest()}, s_graineDeTest);
-    const int puissanceDuMonstre = guerrier.getMonstres().front().getPuissanceAttaque();
+    const Attaque attaqueDuMonstre = guerrier.getMonstres().front().getAttaque();
     static_cast<void>(jusquAuPremierCoup(guerrier, 1));
     static_cast<void>(jusquAuPremierCoup(mage, 1));
 
@@ -100,12 +102,34 @@ TEST_CASE("evenements : le coup d'un monstre donne un evenement sur le personnag
     const std::vector<EvenementDeCombat> surLeMage = parmi<Degats>(mage.prendreEvenements(), Camp::Escouade);
 
     REQUIRE(surLeGuerrier.size() == 1);
-    REQUIRE(degats(surLeGuerrier[0]).montant == appliquerArmure(puissanceDuMonstre, s_armureMeleeDeTest));
+    REQUIRE(degats(surLeGuerrier[0]).montant ==
+            degatsAttendus(attaqueDuMonstre, defensesDuPersonnageDeTest(s_armureMeleeDeTest), degats(surLeGuerrier[0]).critique));
     REQUIRE(surLeGuerrier[0].idCible == 1);
     REQUIRE_FALSE(degats(surLeGuerrier[0]).opportunite);
     verifierPointProche(surLeGuerrier[0].position, *guerrier.getEscouade().centreDuPersonnage(1));
     REQUIRE(surLeMage.size() == 1);
-    REQUIRE(degats(surLeMage[0]).montant == puissanceDuMonstre);  // armure 0
+    REQUIRE(degats(surLeMage[0]).montant ==
+            degatsAttendus(attaqueDuMonstre, defensesDuPersonnageDeTest(0), degats(surLeMage[0]).critique));  // armure 0
+}
+
+TEST_CASE("evenements : un critique est signale, et son montant est multiplie") {
+    // Un guerrier d'Adresse énorme (capacité offensive 5 050 contre 100 : 50 % de critiques, ×2) frappe un monstre.
+    DefinitionPersonnage adroit = guerrierDeTest();
+    adroit.caracteristiques = Caracteristiques({10, 10, 1000, 10, 10});
+    Partie partie(niveauDegage({{235.0f, 170.0f}}), std::vector<DefinitionPersonnage>{adroit}, s_graineDeTest);
+    const Attaque attaque = *partie.getEscouade().attaqueDeBase(1);
+    const Defenses monstre{.armure = 0, .capaciteDefensive = monstreOrdinaire().statistiques.capaciteDefensive};
+
+    const std::vector<EvenementDeCombat> evenements = evenementsPendant(partie, 3.0f);
+
+    int critiques = 0;
+    int normaux = 0;
+    for (const EvenementDeCombat& evenement : parmi<Degats>(evenements, Camp::Monstres)) {
+        REQUIRE(degats(evenement).montant == degatsAttendus(attaque, monstre, degats(evenement).critique));
+        ++(degats(evenement).critique ? critiques : normaux);
+    }
+    REQUIRE(critiques > 0);
+    REQUIRE(normaux > 0);
 }
 
 TEST_CASE("evenements : un skill de zone donne un evenement par monstre touche") {
@@ -130,7 +154,7 @@ TEST_CASE("evenements : un coup gratuit est marque, dans les deux sens") {
     // Le mage seul recule d'un monstre qui l'engage : coup gratuit du monstre sur le mage.
     // Hypothèse : les personnages sont plus rapides que les monstres (le mage sort de la zone).
     Partie mage(niveauDegage({{185.0f, 250.0f}}), std::vector<DefinitionPersonnage>{mageDeTest()}, s_graineDeTest);
-    const int puissanceDuMonstre = mage.getMonstres().front().getPuissanceAttaque();
+    const Attaque attaqueDuMonstre = mage.getMonstres().front().getAttaque();
     static_cast<void>(jusquAuPremierCoup(mage, 1));
     static_cast<void>(mage.prendreEvenements());
     mage.ordonnerDeplacement({210.0f, 20.0f});
@@ -138,7 +162,8 @@ TEST_CASE("evenements : un coup gratuit est marque, dans les deux sens") {
         parmi<Degats>(evenementsPendant(mage, s_fenetreSansCoupNormal), Camp::Escouade);
     REQUIRE(surLeMage.size() == 1);
     REQUIRE(degats(surLeMage[0]).opportunite);
-    REQUIRE(degats(surLeMage[0]).montant == puissanceDuMonstre);  // armure 0
+    REQUIRE(degats(surLeMage[0]).montant ==
+            degatsAttendus(attaqueDuMonstre, defensesDuPersonnageDeTest(0), degats(surLeMage[0]).critique));  // armure 0
 
     // Trois guerriers ; le premier frappe une fois (300 dégâts, recharge de 100 s). Dès que le monstre est
     // touché, le troisième le provoque : il quitte le premier, qui le frappe gratuitement (300 dégâts).

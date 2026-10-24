@@ -5,11 +5,16 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <cmath>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "base/Aleatoire.hpp"
 #include "base/Cercle.hpp"
+#include "combat/Attaque.hpp"
+#include "combat/Critique.hpp"
+#include "combat/Defense.hpp"
+#include "combat/ResolutionDuCoup.hpp"
 #include "monde/TileMap.hpp"
 #include "objets/CatalogueObjets.hpp"
 #include "objets/Equipement.hpp"
@@ -52,6 +57,43 @@ inline const int s_armureMeleeDeTest = armureDe(s_equipementMeleeDeTest);
 // jamais de générateur partagé entre deux tests.
 inline Generateur generateurDeTest() {
     return Generateur(s_graineDeTest);
+}
+
+// Une attaque sans capacité offensive : sa chance de critique est nulle, donc ni critique ni tirage. Pour les
+// tests qui ne portent pas sur le critique.
+inline Attaque attaqueSansCritique(int montant) {
+    return {.montant = montant, .capaciteOffensive = 0};
+}
+
+// Défenses d'un défenseur de test : cette armure et la capacité défensive d'un personnage d'Adresse 10.
+inline Defenses defensesDeTest(int armure = 0) {
+    return {.armure = armure, .capaciteDefensive = 100};
+}
+
+// Le montant d'une attaque qui vient de partir, 0 si rien n'est parti (ce que rendaient avancerAttaque et
+// avancerSkill avant de rendre une attaque entière).
+inline int montantOuZero(const std::optional<Attaque>& attaque) {
+    return attaque.has_value() ? attaque->montant : 0;
+}
+
+// Les dégâts qu'une attaque inflige à ce défenseur, selon que le jeu en a fait un critique ou non : la
+// multiplication du critique (au tirage 0, donc toujours critique) puis l'armure. Pour les tests de Partie, où
+// le tirage n'est pas à eux : ils lisent `critique` dans l'événement et vérifient le montant qui va avec.
+inline int degatsAttendus(const Attaque& attaque, const Defenses& defenses, bool critique) {
+    int montant = attaque.montant;
+    if (critique) {
+        const float rapport = rapportDeCapacites(attaque.capaciteOffensive, defenses.capaciteDefensive);
+        montant = appliquerCritique(montant, rapport, 0.0f).montant;
+    }
+    return appliquerArmure(montant, defenses.armure);
+}
+
+// Fait subir un coup de `montant` dégâts sans critique (ni tirage) à une entité (`Vitalite`, `Personnage`,
+// `Monstre`) et rend les dégâts subis. Le générateur est neuf et jamais lu : pas de capacité offensive.
+template <typename Entite>
+int subir(Entite& entite, int montant) {
+    Generateur generateur = generateurDeTest();
+    return entite.recevoirDegats(attaqueSansCritique(montant), generateur).montant;
 }
 
 // Compare un point à un point attendu avec une tolérance : les positions

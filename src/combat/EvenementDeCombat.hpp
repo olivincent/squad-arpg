@@ -13,10 +13,11 @@ enum class Camp { Escouade, Monstres };
 // Le détail propre à chaque sorte d'événement : le variant dit le type, et chaque sorte ne porte que
 // les champs qui ont un sens pour elle.
 // `montant` : ce qui a réellement été appliqué (armure comprise, soin plafonné), jamais 0.
-// `opportunite` : coup gratuit.
+// `opportunite` : coup gratuit. `critique` : le coup a été un critique (le montant est déjà multiplié).
 struct Degats {
     int montant;
     bool opportunite;
+    bool critique;
 };
 struct Soin {
     int montant;

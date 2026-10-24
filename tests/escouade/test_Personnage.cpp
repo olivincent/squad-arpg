@@ -50,7 +50,7 @@ int frapperEnEntier(Personnage& personnage, Cercle cible, Generateur& generateur
         return 0;
     }
     for (int i = 0; i < nombreDeTics(1.0f); ++i) {
-        if (const int degats = personnage.avancerAttaque(s_dureeTic, generateur); degats > 0) {
+        if (const int degats = montantOuZero(personnage.avancerAttaque(s_dureeTic, generateur)); degats > 0) {
             return degats;
         }
     }
@@ -66,7 +66,7 @@ int lancerSkillEnEntier(Personnage& personnage, std::optional<Cible> cible, Gene
         return 0;
     }
     for (int i = 0; i < nombreDeTics(1.0f); ++i) {
-        if (const int puissance = personnage.avancerSkill(s_dureeTic, generateur); puissance > 0) {
+        if (const int puissance = montantOuZero(personnage.avancerSkill(s_dureeTic, generateur)); puissance > 0) {
             return puissance;
         }
     }
@@ -144,7 +144,7 @@ TEST_CASE("Un personnage est encore vivant apres des degats inferieurs a ses poi
                            .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f}),
                            .rayonVision = s_rayonVisionDeTest});
 
-    personnage.recevoirDegats(personnage.getPointsDeVieMax() - 20);
+    subir(personnage, personnage.getPointsDeVieMax() - 20);
 
     REQUIRE(personnage.estVivant());
 }
@@ -155,7 +155,7 @@ TEST_CASE("Un personnage est mort apres autant de degats que ses points de vie")
                            .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f}),
                            .rayonVision = s_rayonVisionDeTest});
 
-    personnage.recevoirDegats(personnage.getPointsDeVieMax());
+    subir(personnage, personnage.getPointsDeVieMax());
 
     REQUIRE_FALSE(personnage.estVivant());
 }
@@ -209,7 +209,7 @@ TEST_CASE("getPuissanceAttaqueDeBase renvoie les degats de l'attaque de base") {
                                  .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 7, .rechargeMin = 0.5f, .rechargeMax = 0.5f}),
                                  .rayonVision = s_rayonVisionDeTest});
 
-    REQUIRE(personnage.getPuissanceAttaqueDeBase() == 7);
+    REQUIRE(personnage.getAttaqueDeBase().montant == 7);
 }
 
 TEST_CASE("lire la puissance de l'attaque de base ne change ni le coup engage ni la recharge") {
@@ -220,11 +220,11 @@ TEST_CASE("lire la puissance de l'attaque de base ne change ni le coup engage ni
     Generateur generateur = generateurDeTest();
     REQUIRE(personnage.engagerAttaque(1));
 
-    REQUIRE(personnage.getPuissanceAttaqueDeBase() == 5);
+    REQUIRE(personnage.getAttaqueDeBase().montant == 5);
 
     REQUIRE(personnage.cibleEngagee() == 1);
-    REQUIRE(personnage.avancerAttaque(0.2f, generateur) == 5);  // le coup engagé part normalement
-    REQUIRE(personnage.getPuissanceAttaqueDeBase() == 5);
+    REQUIRE(montantOuZero(personnage.avancerAttaque(0.2f, generateur)) == 5);  // le coup engagé part normalement
+    REQUIRE(personnage.getAttaqueDeBase().montant == 5);
     REQUIRE_FALSE(personnage.engagerAttaque(1));                // la recharge court toujours
 }
 
@@ -234,8 +234,8 @@ TEST_CASE("Un personnage est mort apres un coup qui depasse le reste de ses poin
                            .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f}),
                            .rayonVision = s_rayonVisionDeTest});
 
-    personnage.recevoirDegats(personnage.getPointsDeVieMax() - 20);  // reste 20 points de vie
-    personnage.recevoirDegats(50);
+    subir(personnage, personnage.getPointsDeVieMax() - 20);  // reste 20 points de vie
+    subir(personnage, 50);
 
     REQUIRE_FALSE(personnage.estVivant());
 }
@@ -248,7 +248,7 @@ TEST_CASE("Un personnage mort ne frappe plus") {
                            .rayonVision = s_rayonVisionDeTest});
     const Cercle cible = pointCible({150.0f, 100.0f});
 
-    personnage.recevoirDegats(personnage.getPointsDeVieMax());
+    subir(personnage, personnage.getPointsDeVieMax());
 
     REQUIRE(frapperEnEntier(personnage, cible, generateur) == 0);
 }
@@ -261,7 +261,7 @@ TEST_CASE("Un personnage mort ne bouge plus") {
     const TileMap carte = carteDegagee5x5();
     const sf::Vector2f centreInitial = personnage.getCentre();
 
-    personnage.recevoirDegats(personnage.getPointsDeVieMax());
+    subir(personnage, personnage.getPointsDeVieMax());
     ecoulerTemps(personnage, carte, {500.0f, 500.0f}, 2.0f); // cible lointaine, durée généreuse
 
     REQUIRE(personnage.getCentre() == centreInitial);
@@ -329,7 +329,7 @@ TEST_CASE("engagerSkill refuse un personnage mort") {
                            .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f})}},
                            .rayonVision = s_rayonVisionDeTest});
 
-    personnage.recevoirDegats(personnage.getPointsDeVieMax());
+    subir(personnage, personnage.getPointsDeVieMax());
 
     REQUIRE_FALSE(personnage.engagerSkill(IdSkill::FrappePuissante, Cible(CibleMonstre{1, pointCible({150.0f, 100.0f})})));
 }
@@ -413,7 +413,7 @@ TEST_CASE("recevoirSoin rend des points de vie") {
                           {.couleur = sf::Color::White,
                            .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f}),
                            .rayonVision = s_rayonVisionDeTest});
-    personnage.recevoirDegats(50);
+    subir(personnage, 50);
 
     personnage.recevoirSoin(30);
 
@@ -430,8 +430,8 @@ TEST_CASE("recevoirDegats applique l'armure du personnage") {
                        .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f}),
                        .rayonVision = s_rayonVisionDeTest});
 
-    melee.recevoirDegats(10);
-    tireur.recevoirDegats(10);
+    subir(melee, 10);
+    subir(tireur, 10);
 
     REQUIRE(melee.getPointsDeVie() == melee.getPointsDeVieMax() - appliquerArmure(10, s_armureMeleeDeTest));
     REQUIRE(melee.getPointsDeVie() > tireur.getPointsDeVie());
@@ -443,7 +443,7 @@ TEST_CASE("recevoirSoin n'est pas reduit par l'armure") {
                           {.couleur = sf::Color::White,
                            .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f}),
                            .equipementDeDepart = s_equipementMeleeDeTest, .rayonVision = s_rayonVisionDeTest});
-    personnage.recevoirDegats(60);
+    subir(personnage, 60);
     const int retires = personnage.getPointsDeVieMax() - personnage.getPointsDeVie();
     REQUIRE(retires == appliquerArmure(60, s_armureMeleeDeTest));
 
@@ -457,7 +457,7 @@ TEST_CASE("recevoirSoin ne depasse pas le maximum") {
                           {.couleur = sf::Color::White,
                            .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f}),
                            .rayonVision = s_rayonVisionDeTest});
-    personnage.recevoirDegats(10);
+    subir(personnage, 10);
 
     personnage.recevoirSoin(30);
 
@@ -469,7 +469,7 @@ TEST_CASE("recevoirSoin est sans effet sur un mort") {
                           {.couleur = sf::Color::White,
                            .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f}),
                            .rayonVision = s_rayonVisionDeTest});
-    personnage.recevoirDegats(personnage.getPointsDeVieMax());
+    subir(personnage, personnage.getPointsDeVieMax());
 
     personnage.recevoirSoin(30);
 
@@ -620,7 +620,7 @@ TEST_CASE("engagerAttaque exige un personnage immobile") {
 
 TEST_CASE("engagerAttaque refuse un personnage mort ou deja en execution") {
     Personnage mort = personnageAvecExecution();
-    mort.recevoirDegats(mort.getPointsDeVieMax());
+    subir(mort, mort.getPointsDeVieMax());
     REQUIRE_FALSE(mort.engagerAttaque(1));
 
     Personnage personnage = personnageAvecExecution();
@@ -636,23 +636,40 @@ TEST_CASE("avancerAttaque rend les degats une seule fois, a la fin de l'executio
 
     int total = 0;
     for (int i = 0; i < nombreDeTics(0.1f); ++i) {
-        total += personnage.avancerAttaque(s_dureeTic, generateur);
+        total += montantOuZero(personnage.avancerAttaque(s_dureeTic, generateur));
     }
     REQUIRE(total == 0);
     REQUIRE(personnage.cibleEngagee().has_value());
 
     for (int i = 0; i < nombreDeTics(0.2f); ++i) {
-        total += personnage.avancerAttaque(s_dureeTic, generateur);
+        total += montantOuZero(personnage.avancerAttaque(s_dureeTic, generateur));
     }
     REQUIRE(total == 5);
     REQUIRE_FALSE(personnage.cibleEngagee().has_value());
+}
+
+TEST_CASE("l'attaque de base d'un personnage porte sa capacite offensive") {
+    Generateur generateur = generateurDeTest();
+    Personnage rodeur({100.0f, 100.0f},
+                      {.couleur = sf::Color::White,
+                       .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f}),
+                       .rayonVision = s_rayonVisionDeTest,
+                       .caracteristiques = Caracteristiques({10, 10, 14, 8, 8})});
+    REQUIRE(rodeur.getAttaqueDeBase().capaciteOffensive == 120);
+    REQUIRE(rodeur.engagerAttaque(1));
+
+    const std::optional<Attaque> attaque = rodeur.avancerAttaque(0.1f, generateur);
+
+    REQUIRE(attaque.has_value());
+    REQUIRE(attaque->montant == 5);
+    REQUIRE(attaque->capaciteOffensive == 120);
 }
 
 TEST_CASE("annulerAttaque ne consomme pas de recharge") {
     Generateur generateur = generateurDeTest();
     Personnage personnage = personnageAvecExecution();
     REQUIRE(personnage.engagerAttaque(1));
-    REQUIRE(personnage.avancerAttaque(0.05f, generateur) == 0);
+    REQUIRE(montantOuZero(personnage.avancerAttaque(0.05f, generateur)) == 0);
 
     personnage.annulerAttaque();
 
@@ -665,7 +682,7 @@ TEST_CASE("Apres le depart du coup, la recharge court avant le coup suivant") {
     const TileMap carte = carteDegagee5x5();
     Personnage personnage = personnageAvecExecution();
     REQUIRE(personnage.engagerAttaque(1));
-    REQUIRE(personnage.avancerAttaque(0.2f, generateur) == 5);
+    REQUIRE(montantOuZero(personnage.avancerAttaque(0.2f, generateur)) == 5);
 
     REQUIRE_FALSE(personnage.engagerAttaque(1));
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.4f);
@@ -706,13 +723,13 @@ TEST_CASE("avancerSkill rend la puissance une seule fois, a la fin de l'activati
 
     int total = 0;
     for (int i = 0; i < nombreDeTics(0.2f); ++i) {
-        total += personnage.avancerSkill(s_dureeTic, generateur);
+        total += montantOuZero(personnage.avancerSkill(s_dureeTic, generateur));
     }
     REQUIRE(total == 0);
     REQUIRE(personnage.skillEngage().has_value());
 
     for (int i = 0; i < nombreDeTics(0.2f); ++i) {
-        total += personnage.avancerSkill(s_dureeTic, generateur);
+        total += montantOuZero(personnage.avancerSkill(s_dureeTic, generateur));
     }
     REQUIRE(total == 25);
     REQUIRE_FALSE(personnage.skillEngage().has_value());
@@ -742,7 +759,7 @@ TEST_CASE("annulerSkill ne consomme pas de recharge") {
     Generateur generateur = generateurDeTest();
     Personnage personnage = personnageAvecActivation();
     REQUIRE(personnage.engagerSkill(IdSkill::FrappePuissante, s_cibleDuSkill));
-    REQUIRE(personnage.avancerSkill(0.1f, generateur) == 0);
+    REQUIRE(montantOuZero(personnage.avancerSkill(0.1f, generateur)) == 0);
 
     personnage.annulerSkill();
 
@@ -772,7 +789,7 @@ TEST_CASE("Au depart du skill, l'attaque de base repart pour une recharge comple
     const TileMap carte = carteDegagee5x5();
     Personnage personnage = personnageAvecActivation();
     REQUIRE(personnage.engagerSkill(IdSkill::FrappePuissante, s_cibleDuSkill));
-    REQUIRE(personnage.avancerSkill(0.4f, generateur) == 25);
+    REQUIRE(montantOuZero(personnage.avancerSkill(0.4f, generateur)) == 25);
 
     REQUIRE_FALSE(personnage.engagerAttaque(1));
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.6f);
@@ -942,8 +959,8 @@ TEST_CASE("recevoirDegats renvoie les degats subis apres armure") {
                        .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f}),
                        .rayonVision = s_rayonVisionDeTest});
 
-    REQUIRE(melee.recevoirDegats(10) == appliquerArmure(10, s_armureMeleeDeTest));
-    REQUIRE(tireur.recevoirDegats(10) == 10);
+    REQUIRE(subir(melee, 10) == appliquerArmure(10, s_armureMeleeDeTest));
+    REQUIRE(subir(tireur, 10) == 10);
 }
 
 TEST_CASE("recevoirDegats sur un mort renvoie zero") {
@@ -951,9 +968,9 @@ TEST_CASE("recevoirDegats sur un mort renvoie zero") {
                           {.couleur = sf::Color::White,
                            .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f}),
                            .rayonVision = s_rayonVisionDeTest});
-    personnage.recevoirDegats(personnage.getPointsDeVieMax());
+    subir(personnage, personnage.getPointsDeVieMax());
 
-    REQUIRE(personnage.recevoirDegats(10) == 0);
+    REQUIRE(subir(personnage, 10) == 0);
 }
 
 TEST_CASE("recevoirSoin renvoie les points reellement rendus") {
@@ -961,7 +978,7 @@ TEST_CASE("recevoirSoin renvoie les points reellement rendus") {
                           {.couleur = sf::Color::White,
                            .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f}),
                            .rayonVision = s_rayonVisionDeTest});
-    personnage.recevoirDegats(10);
+    subir(personnage, 10);
 
     REQUIRE(personnage.recevoirSoin(30) == 10);  // plafonne au maximum
     REQUIRE(personnage.recevoirSoin(30) == 0);   // deja plein
@@ -972,7 +989,7 @@ TEST_CASE("recevoirSoin sur un mort renvoie zero") {
                           {.couleur = sf::Color::White,
                            .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f}),
                            .rayonVision = s_rayonVisionDeTest});
-    personnage.recevoirDegats(personnage.getPointsDeVieMax());
+    subir(personnage, personnage.getPointsDeVieMax());
 
     REQUIRE(personnage.recevoirSoin(30) == 0);
 }
@@ -988,8 +1005,8 @@ TEST_CASE("l'armure du personnage est celle de son equipement de depart") {
                    .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f}),
                    .rayonVision = s_rayonVisionDeTest});
 
-    REQUIRE(casque.recevoirDegats(40) == appliquerArmure(40, definitionObjet(IdObjet::CasqueDeFer).armure));
-    REQUIRE(nu.recevoirDegats(40) == 40);
+    REQUIRE(subir(casque, 40) == appliquerArmure(40, definitionObjet(IdObjet::CasqueDeFer).armure));
+    REQUIRE(subir(nu, 40) == 40);
 }
 
 TEST_CASE("l'armure du personnage additionne tous les objets de depart") {
@@ -1000,7 +1017,7 @@ TEST_CASE("l'armure du personnage additionne tous les objets de depart") {
                        .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f}),
                        .equipementDeDepart = depart, .rayonVision = s_rayonVisionDeTest});
 
-    REQUIRE(equipe.recevoirDegats(40) == appliquerArmure(40, armureDe(depart)));
+    REQUIRE(subir(equipe, 40) == appliquerArmure(40, armureDe(depart)));
 }
 
 TEST_CASE("les caracteristiques effectives d'un personnage sont celles de sa definition") {
@@ -1097,7 +1114,7 @@ TEST_CASE("retirer le collier d'endurance ramene les points de vie, sans tuer un
     Personnage personnage = unPersonnageAvecCaracteristiques(Caracteristiques({10, 10, 10, 10, 10}));
     static_cast<void>(personnage.poserEquipement(Emplacement::Collier, {IdObjet::CollierDEndurance}));
     const int maximumEquipe = personnage.getPointsDeVieMax();
-    static_cast<void>(personnage.recevoirDegats(maximumEquipe - 10));  // armure 0 : il lui reste 10 points de vie
+    static_cast<void>(subir(personnage, maximumEquipe - 10));  // armure 0 : il lui reste 10 points de vie
 
     static_cast<void>(personnage.retirerEquipement(Emplacement::Collier));
 
@@ -1107,7 +1124,7 @@ TEST_CASE("retirer le collier d'endurance ramene les points de vie, sans tuer un
 
 TEST_CASE("changer d'equipement ne ressuscite pas un mort") {
     Personnage personnage = unPersonnageAvecCaracteristiques(Caracteristiques({10, 10, 10, 10, 10}));
-    static_cast<void>(personnage.recevoirDegats(personnage.getPointsDeVieMax()));
+    static_cast<void>(subir(personnage, personnage.getPointsDeVieMax()));
     REQUIRE_FALSE(personnage.estVivant());
 
     static_cast<void>(personnage.poserEquipement(Emplacement::Collier, {IdObjet::CollierDEndurance}));
@@ -1132,17 +1149,17 @@ Personnage unPersonnageDePuissance(const Caracteristiques& base) {
 
 TEST_CASE("equiper l'anneau de puissance augmente les degats de l'attaque de base") {
     Personnage personnage = unPersonnageDePuissance(Caracteristiques({12, 10, 10, 10, 10}));
-    const int avant = personnage.getPuissanceAttaqueDeBase();
+    const int avant = personnage.getAttaqueDeBase().montant;
     REQUIRE(avant == montantEffectif(100, Coefficients::seul(Caracteristique::Puissance, 1.0f), personnage.getCaracteristiques()));
 
     static_cast<void>(personnage.poserEquipement(Emplacement::Anneau1, {IdObjet::AnneauDePuissance}));
 
-    REQUIRE(personnage.getPuissanceAttaqueDeBase() > avant);
-    REQUIRE(personnage.getPuissanceAttaqueDeBase() ==
+    REQUIRE(personnage.getAttaqueDeBase().montant > avant);
+    REQUIRE(personnage.getAttaqueDeBase().montant ==
             montantEffectif(100, Coefficients::seul(Caracteristique::Puissance, 1.0f), personnage.getCaracteristiques()));
 
     static_cast<void>(personnage.retirerEquipement(Emplacement::Anneau1));
-    REQUIRE(personnage.getPuissanceAttaqueDeBase() == avant);
+    REQUIRE(personnage.getAttaqueDeBase().montant == avant);
 }
 
 TEST_CASE("le coup de l'attaque de base et le skill de degats rendent le montant effectif") {
@@ -1155,7 +1172,7 @@ TEST_CASE("le coup de l'attaque de base et le skill de degats rendent le montant
     REQUIRE(personnage.engagerSkill(IdSkill::FrappePuissante, CibleMonstre{1, cible}));
     int rendu = 0;
     for (int i = 0; i < nombreDeTics(1.0f) && rendu == 0; ++i) {
-        rendu = personnage.avancerSkill(s_dureeTic, generateur);
+        rendu = montantOuZero(personnage.avancerSkill(s_dureeTic, generateur));
     }
     REQUIRE(rendu == montantEffectif(250, puissance, personnage.getCaracteristiques()));
 }
@@ -1167,7 +1184,7 @@ TEST_CASE("la duree d'une provocation ne profite d'aucune caracteristique") {
     REQUIRE(personnage.engagerSkill(IdSkill::Provocation, std::nullopt));
     int rendu = 0;
     for (int i = 0; i < nombreDeTics(1.0f) && rendu == 0; ++i) {
-        rendu = personnage.avancerSkill(s_dureeTic, generateur);
+        rendu = montantOuZero(personnage.avancerSkill(s_dureeTic, generateur));
     }
     REQUIRE(rendu == 4);
 }

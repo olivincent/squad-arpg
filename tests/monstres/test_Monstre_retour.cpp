@@ -21,11 +21,25 @@ TEST_CASE("Monstre touche en retour dans son territoire ne se reveille pas et ne
     const float xAvant = monstre.getCentre().x;
     const int vieAvant = monstre.getPointsDeVie();
 
-    monstre.recevoirDegats(10);
+    subir(monstre, 10);
     REQUIRE(monstre.getPointsDeVie() == vieAvant); // invulnérable
     ecoulerTemps(monstre, 0.3f, pointCible({900.0f, 100.0f}), carte);
 
     REQUIRE(monstre.getCentre().x < xAvant); // continue de rentrer, à l'ouest
+}
+
+TEST_CASE("Monstre en retour est invulnerable sans rien tirer") {
+    const TileMap carte = carteLongue();
+    Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
+    amenerEnRetourHorsTerritoire(monstre, carte);
+    Generateur generateur = generateurDeTest();
+    const Generateur intact = generateur;
+
+    const ResultatDuCoup resultat = monstre.recevoirDegats({.montant = 50, .capaciteOffensive = 100000}, generateur);
+
+    REQUIRE(resultat.montant == 0);
+    REQUIRE_FALSE(resultat.critique);
+    REQUIRE(generateur == intact);
 }
 
 TEST_CASE("Monstre.alerter en retour dans son territoire ne reveille pas le monstre") {
@@ -114,13 +128,13 @@ TEST_CASE("Monstre ne regagne aucun point de vie hors retour") {
     const TileMap carte = carteLongue();
     Monstre enGarde({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
     const int maximum = enGarde.getPointsDeVie();
-    enGarde.recevoirDegats(50);
+    subir(enGarde, 50);
     ecoulerTemps(enGarde, 2.0f, std::nullopt, carte);
     REQUIRE(enGarde.getPointsDeVie() == maximum - 50);
 
     Monstre enPoursuite({100.0f, 100.0f}, 2, 0, monstreAvecArmure(0));
     ecoulerTemps(enPoursuite, 0.2f, pointCible({250.0f, 100.0f}), carte); // détection
-    enPoursuite.recevoirDegats(50);
+    subir(enPoursuite, 50);
     ecoulerTemps(enPoursuite, 1.0f, pointCible({250.0f, 100.0f}), carte);
     REQUIRE(enPoursuite.estEnPoursuite());
     REQUIRE(enPoursuite.getPointsDeVie() == maximum - 50);
@@ -132,7 +146,7 @@ TEST_CASE("Monstre touche en retour hors de son territoire continue de rentrer")
     amenerEnRetourHorsTerritoire(monstre, carte);
     const float xAvant = monstre.getCentre().x;
 
-    monstre.recevoirDegats(10);
+    subir(monstre, 10);
     ecoulerTemps(monstre, 0.3f, pointCible({900.0f, 100.0f}), carte);
 
     REQUIRE(monstre.getCentre().x < xAvant); // va vers son poste, à l'ouest
@@ -155,5 +169,5 @@ TEST_CASE("Monstre.recevoirDegats en retour renvoie zero") {
     Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
     amenerEnRetourHorsTerritoire(monstre, carte, 50);
 
-    REQUIRE(monstre.recevoirDegats(10) == 0);
+    REQUIRE(subir(monstre, 10) == 0);
 }

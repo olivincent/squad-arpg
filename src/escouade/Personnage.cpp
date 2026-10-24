@@ -30,7 +30,7 @@ Personnage::Personnage(sf::Vector2f centre, DefinitionPersonnage definition)
       m_caracteristiques(m_caracteristiquesDeBase + m_equipement.bonusTotal()),
       m_statistiques(statistiquesDuPersonnage(m_caracteristiques)),
       m_pointsDeVieDeBase(definition.pointsDeVieDeBase),
-      m_vitalite(pointsDeVieMax(m_pointsDeVieDeBase, m_caracteristiques), m_equipement.armureTotale()),
+      m_vitalite(pointsDeVieMax(m_pointsDeVieDeBase, m_caracteristiques), defenses()),
       m_rayonVision(definition.rayonVision),
       m_zoneDeControle(definition.zoneDeControle),
       m_actionEngagee()
@@ -114,8 +114,8 @@ float Personnage::getPorteeAttaqueDeBase() const {
     return m_attaqueDeBase.getPortee();
 }
 
-int Personnage::getPuissanceAttaqueDeBase() const {
-    return montantDe(m_attaqueDeBase);
+Attaque Personnage::getAttaqueDeBase() const {
+    return attaqueDe(m_attaqueDeBase);
 }
 
 float Personnage::getZoneDeControle() const {
@@ -145,12 +145,12 @@ std::optional<int> Personnage::cibleEngagee() const {
     return std::get<CibleMonstre>(*m_actionEngagee->cible).id;  // NOLINT(bugprone-unchecked-optional-access): vérifié par l'assert au-dessus (_assert de MinGW n'est pas noreturn)
 }
 
-int Personnage::avancerAttaque(float dt, Generateur& generateur) {
+std::optional<Attaque> Personnage::avancerAttaque(float dt, Generateur& generateur) {
     if (!cibleEngagee().has_value() || !m_attaqueDeBase.avancer(dt, generateur)) {
-        return 0;
+        return std::nullopt;
     }
     m_actionEngagee.reset();
-    return montantDe(m_attaqueDeBase);
+    return attaqueDe(m_attaqueDeBase);
 }
 
 void Personnage::annulerAttaque() {
@@ -243,21 +243,21 @@ std::optional<ActionEngagee> Personnage::skillEngage() const {
     return m_actionEngagee;
 }
 
-int Personnage::avancerSkill(float dt, Generateur& generateur) {
+std::optional<Attaque> Personnage::avancerSkill(float dt, Generateur& generateur) {
     const std::optional<ActionEngagee> action = skillEngage();
     if (!action.has_value()) {
-        return 0;
+        return std::nullopt;
     }
     // engagerSkill n'engage qu'un skill que le personnage connaît.
     assert(action->skill.has_value() && trouverSkill(*action->skill) != nullptr);
     Skill& skill = *trouverSkill(*action->skill);  // NOLINT(bugprone-unchecked-optional-access): vérifié par l'assert au-dessus (_assert de MinGW n'est pas noreturn)
     if (!skill.avancer(dt, generateur)) {
-        return 0;
+        return std::nullopt;
     }
     m_actionEngagee.reset();
     // Le skill est parti : l'attaque de base repart pour une recharge complète.
     m_attaqueDeBase.relancerRecharge(generateur);
-    return montantDe(skill);
+    return attaqueDe(skill);
 }
 
 void Personnage::annulerSkill() {
@@ -269,8 +269,8 @@ void Personnage::annulerSkill() {
     }
 }
 
-int Personnage::recevoirDegats(int quantite) {
-    return m_vitalite.recevoirDegats(quantite);
+ResultatDuCoup Personnage::recevoirDegats(const Attaque& attaque, Generateur& generateur) {
+    return m_vitalite.recevoirDegats(attaque, generateur);
 }
 
 int Personnage::recevoirSoin(int quantite) {
@@ -311,30 +311,30 @@ const Equipement& Personnage::getEquipement() const {
 
 std::optional<Objet> Personnage::poserEquipement(Emplacement emplacement, Objet objet) {
     std::optional<Objet> ancien = m_equipement.poser(emplacement, objet);
-    recalculerArmure();
-    recalculerCaracteristiques();
+    recalculerDepuisLEquipement();
     return ancien;
 }
 
 std::optional<Objet> Personnage::retirerEquipement(Emplacement emplacement) {
     std::optional<Objet> retire = m_equipement.retirer(emplacement);
-    recalculerArmure();
-    recalculerCaracteristiques();
+    recalculerDepuisLEquipement();
     return retire;
 }
 
-void Personnage::recalculerArmure() {
-    m_vitalite.definirArmure(m_equipement.armureTotale());
+Defenses Personnage::defenses() const {
+    return {.armure = m_equipement.armureTotale(), .capaciteDefensive = m_statistiques.capaciteDefensive};
 }
 
-void Personnage::recalculerCaracteristiques() {
+void Personnage::recalculerDepuisLEquipement() {
     m_caracteristiques = m_caracteristiquesDeBase + m_equipement.bonusTotal();
     m_statistiques = statistiquesDuPersonnage(m_caracteristiques);
     m_vitalite.definirMaximum(pointsDeVieMax(m_pointsDeVieDeBase, m_caracteristiques));
+    m_vitalite.definirDefenses(defenses());
 }
 
-int Personnage::montantDe(const Skill& skill) const {
-    return montantEffectif(skill.getPuissance(), skill.getCoefficients(), m_caracteristiques);
+Attaque Personnage::attaqueDe(const Skill& skill) const {
+    return {.montant = montantEffectif(skill.getPuissance(), skill.getCoefficients(), m_caracteristiques),
+            .capaciteOffensive = m_statistiques.capaciteOffensive};
 }
 
 const Caracteristiques& Personnage::getCaracteristiques() const {

@@ -294,16 +294,16 @@ TEST_CASE("recevoirDegats frappe le meme personnage que proieDuMonstre") {
 TEST_CASE("recevoirCoup renvoie les degats subis apres l'armure du personnage touche") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
 
-    REQUIRE(escouade.recevoirCoup(7, 1, 10) == appliquerArmure(10, s_armureMeleeDeTest));  // guerrier
-    REQUIRE(escouade.recevoirCoup(7, 3, 10) == 10);                                         // mage, armure 0
+    REQUIRE(subirCoup(escouade, 7, 1, 10) == appliquerArmure(10, s_armureMeleeDeTest));  // guerrier
+    REQUIRE(subirCoup(escouade, 7, 3, 10) == 10);                                         // mage, armure 0
 }
 
 TEST_CASE("recevoirCoup sur un mort ou sur une place invalide renvoie zero") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    escouade.recevoirCoup(7, 3, s_coupMortel);
+    subirCoup(escouade, 7, 3, s_coupMortel);
 
-    REQUIRE(escouade.recevoirCoup(7, 3, 10) == 0);
-    REQUIRE(escouade.recevoirCoup(7, 9, 10) == 0);
+    REQUIRE(subirCoup(escouade, 7, 3, 10) == 0);
+    REQUIRE(subirCoup(escouade, 7, 9, 10) == 0);
 }
 
 TEST_CASE("recevoirDegats renvoie les degats subis, zero si tout le monde est mort") {

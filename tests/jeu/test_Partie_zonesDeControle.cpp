@@ -9,7 +9,9 @@
 #include "base/Cercle.hpp"
 #include "monstres/Monstre.hpp"
 #include "jeu/Partie.hpp"
+#include "combat/EvenementDeCombat.hpp"
 #include "combat/Skill.hpp"
+#include <variant>
 
 // Zones de contrôle et attaque d'opportunité (étape 77). Le monstre n'a pas d'armure dans ces niveaux
 // (Niveau::armureMonstres vaut 0) : les dégâts lus sur lui sont ceux des attaques de base.
@@ -18,16 +20,24 @@ TEST_CASE("zone de controle : un mage au contact qui s'eloigne recoit un coup gr
     // Un mage seul (zone 0) à 40 px du monstre, qui l'engage (zone de 20 px bord à bord).
     // Hypothèse : les personnages sont plus rapides que les monstres (le mage sort de la zone).
     Partie partie(niveauDegage({{185.0f, 250.0f}}), std::vector<DefinitionPersonnage>{mageDeTest()}, s_graineDeTest);
-    const int puissanceDuMonstre = partie.getMonstres().front().getPuissanceAttaque();
+    const Attaque attaqueDuMonstre = partie.getMonstres().front().getAttaque();
     const int apresLePremierCoup = jusquAuPremierCoup(partie, 1);
+    static_cast<void>(partie.prendreEvenements());
 
     partie.ordonnerDeplacement({210.0f, 20.0f});
     int pointsDeVie = apresLePremierCoup;
+    std::vector<EvenementDeCombat> evenements;
     for (int i = 0; i < nombreDeTics(s_fenetreSansCoupNormal); ++i) {
         pointsDeVie = pointsDeVieApresUnTic(partie, 1);
+        const std::vector<EvenementDeCombat> duTic = partie.prendreEvenements();
+        evenements.insert(evenements.end(), duTic.begin(), duTic.end());
     }
 
-    REQUIRE(pointsDeVie == apresLePremierCoup - puissanceDuMonstre);  // un seul coup gratuit (armure 0)
+    // Un seul coup gratuit (armure 0), critique ou non selon le tirage de la partie.
+    REQUIRE(evenements.size() == 1);
+    const Degats& coupGratuit = std::get<Degats>(evenements[0].detail);
+    REQUIRE(coupGratuit.opportunite);
+    REQUIRE(pointsDeVie == apresLePremierCoup - degatsAttendus(attaqueDuMonstre, defensesDuPersonnageDeTest(0), coupGratuit.critique));
 }
 
 TEST_CASE("zone de controle : un guerrier qui reste au contact ne recoit aucun coup gratuit") {

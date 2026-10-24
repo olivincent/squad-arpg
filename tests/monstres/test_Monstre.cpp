@@ -85,7 +85,7 @@ TEST_CASE("Le monstre est vivant a la creation") {
 TEST_CASE("Le monstre est encore vivant apres des degats inferieurs a ses points de vie") {
     Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
 
-    monstre.recevoirDegats(monstre.getPointsDeVie() - 20);
+    subir(monstre, monstre.getPointsDeVie() - 20);
 
     REQUIRE(monstre.estVivant());
 }
@@ -93,7 +93,7 @@ TEST_CASE("Le monstre est encore vivant apres des degats inferieurs a ses points
 TEST_CASE("Le monstre est mort apres autant de degats que ses points de vie") {
     Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
 
-    monstre.recevoirDegats(monstre.getPointsDeVie());
+    subir(monstre, monstre.getPointsDeVie());
 
     REQUIRE_FALSE(monstre.estVivant());
 }
@@ -101,8 +101,8 @@ TEST_CASE("Le monstre est mort apres autant de degats que ses points de vie") {
 TEST_CASE("Le monstre est mort apres un coup qui depasse les points de vie restants") {
     Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
 
-    monstre.recevoirDegats(monstre.getPointsDeVie() - 20); // reste 20 points de vie
-    monstre.recevoirDegats(50); // dépasse largement le reste
+    subir(monstre, monstre.getPointsDeVie() - 20); // reste 20 points de vie
+    subir(monstre, 50); // dépasse largement le reste
 
     REQUIRE_FALSE(monstre.estVivant());
 }
@@ -110,8 +110,8 @@ TEST_CASE("Le monstre est mort apres un coup qui depasse les points de vie resta
 TEST_CASE("Le monstre reste mort apres un coup supplementaire") {
     Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
 
-    monstre.recevoirDegats(monstre.getPointsDeVie());
-    monstre.recevoirDegats(1);
+    subir(monstre, monstre.getPointsDeVie());
+    subir(monstre, 1);
 
     REQUIRE_FALSE(monstre.estVivant());
 }
@@ -120,7 +120,7 @@ TEST_CASE("Monstre.recevoirDegats applique son armure") {
     Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(20));
     const int maximum = monstre.getPointsDeVie();
 
-    monstre.recevoirDegats(50);
+    subir(monstre, 50);
 
     REQUIRE(monstre.getPointsDeVie() == maximum - 30);  // 50 - 20 = 30
 }
@@ -129,7 +129,7 @@ TEST_CASE("Monstre.recevoirDegats sans armure retire le montant entier") {
     Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
     const int maximum = monstre.getPointsDeVie();
 
-    monstre.recevoirDegats(5);
+    subir(monstre, 5);
 
     REQUIRE(monstre.getPointsDeVie() == maximum - 5);
 }
@@ -140,7 +140,7 @@ TEST_CASE("Monstre.recevoirDegats d'un coup de 1 retire 1 malgre l'armure et rev
     const int maximum = monstre.getPointsDeVie();
     const sf::Vector2f cible(350.0f, 100.0f); // 250 px, hors détection
 
-    monstre.recevoirDegats(1);
+    subir(monstre, 1);
     ecoulerTemps(monstre, 0.5f, pointCible(cible), carte);
 
     REQUIRE(monstre.getPointsDeVie() == maximum - 1);
@@ -157,7 +157,7 @@ TEST_CASE("un monstre a une zone de controle de 20 px et une attaque de 100 dega
     const Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(20));
 
     REQUIRE(monstre.getZoneDeControle() == 20.0f);
-        REQUIRE(monstre.getPuissanceAttaque() == 100);
+        REQUIRE(monstre.getAttaque().montant == 100);
 }
 
 TEST_CASE("un monstre prend toutes ses valeurs de sa definition") {
@@ -173,9 +173,18 @@ TEST_CASE("un monstre prend toutes ses valeurs de sa definition") {
     REQUIRE(monstre.getCercle().rayon == 25.0f);
     REQUIRE(monstre.getPointsDeVie() == 300);
     REQUIRE(monstre.getZoneDeControle() == 35.0f);
-    REQUIRE(monstre.getPuissanceAttaque() == 77);
+    REQUIRE(monstre.getAttaque().montant == 77);
     REQUIRE(monstre.getStatistiques() == StatistiquesDeCombat{130, 90});
-    REQUIRE(monstre.recevoirDegats(100) == appliquerArmure(100, 40));
+    REQUIRE(subir(monstre, 100) == appliquerArmure(100, 40));
+}
+
+TEST_CASE("l'attaque d'un monstre porte la capacite offensive de sa definition") {
+    DefinitionDeMonstre definition = monstreOrdinaire();
+    definition.statistiques.capaciteOffensive = 130;
+    const Monstre monstre({100.0f, 100.0f}, 1, 0, definition);
+
+    REQUIRE(monstre.getAttaque().montant == definition.attaque.puissance);
+    REQUIRE(monstre.getAttaque().capaciteOffensive == 130);
 }
 
 TEST_CASE("lire la puissance de l'attaque ne change ni le coup engage ni la recharge") {
@@ -184,11 +193,11 @@ TEST_CASE("lire la puissance de l'attaque ne change ni le coup engage ni la rech
     Generateur generateur = generateurDeTest();
     REQUIRE(engager(monstre, pointCible({125.0f, 100.0f}), 1, carte));
 
-    const int puissance = monstre.getPuissanceAttaque();
+    const int puissance = monstre.getAttaque().montant;
 
     REQUIRE(monstre.cibleEngagee() == 1);
-    REQUIRE(monstre.avancerAttaque(0.4f, generateur) == puissance);  // le coup engagé part normalement
-    REQUIRE(monstre.getPuissanceAttaque() == puissance);
+    REQUIRE(montantOuZero(monstre.avancerAttaque(0.4f, generateur)) == puissance);  // le coup engagé part normalement
+    REQUIRE(monstre.getAttaque().montant == puissance);
     REQUIRE_FALSE(engager(monstre, pointCible({125.0f, 100.0f}), 1, carte));  // la recharge court toujours
 }
 
@@ -196,13 +205,13 @@ TEST_CASE("Monstre.recevoirDegats renvoie les degats subis apres armure") {
     Monstre sansArmure({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
     Monstre arme({100.0f, 100.0f}, 2, 0, monstreAvecArmure(20));
 
-    REQUIRE(sansArmure.recevoirDegats(50) == 50);
-    REQUIRE(arme.recevoirDegats(50) == 30);  // 50 - 20 = 30
+    REQUIRE(subir(sansArmure, 50) == 50);
+    REQUIRE(subir(arme, 50) == 30);  // 50 - 20 = 30
 }
 
 TEST_CASE("Monstre.recevoirDegats sur un monstre mort renvoie zero") {
     Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
-    monstre.recevoirDegats(monstre.getPointsDeVie());
+    subir(monstre, monstre.getPointsDeVie());
 
-    REQUIRE(monstre.recevoirDegats(10) == 0);
+    REQUIRE(subir(monstre, 10) == 0);
 }

@@ -41,7 +41,7 @@ std::vector<int> exemplaires(const Escouade& escouade) {
 
 // Les dégâts qu'un coup de `s_coup` fait à ce personnage, armure comprise.
 int degatsSubis(Escouade& escouade, std::size_t place) {
-    return escouade.recevoirCoup(1, place, s_coup);
+    return subirCoup(escouade, 1, place, s_coup);
 }
 
 // L'escouade du jeu, sac de départ rangé dans les premières cases.
@@ -142,7 +142,7 @@ TEST_CASE("deplacer du sac vers un emplacement : case vide ou emplacement refuse
 
 TEST_CASE("deplacer : un personnage mort peut etre equipe") {
     Escouade escouade = escouadeAvecSac({s_gants});
-    REQUIRE(escouade.recevoirCoup(1, s_mage, s_coupMortel) > 0);
+    REQUIRE(subirCoup(escouade, 1, s_mage, s_coupMortel) > 0);
     REQUIRE_FALSE(escouade.placeEstVivante(s_mage));
 
     REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_mage, Emplacement::Gants)));
@@ -310,11 +310,11 @@ TEST_CASE("la puissance de l'attaque de base lue par l'escouade (coup d'opportun
                                       .rechargeMin = 0.5f, .rechargeMax = 0.5f, .coefficients = puissance});
     definition.caracteristiques = Caracteristiques({s_valeurDeReference, 10, 10, 10, 10});
     Escouade escouade({50.0f, 50.0f}, {definition});
-    REQUIRE(escouade.puissanceDeLAttaqueDeBase(1) == degats);
+    REQUIRE(escouade.attaqueDeBase(1)->montant == degats);
 
     REQUIRE(escouade.ramasser(Objet{IdObjet::AnneauDePuissance}));
     REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(1, Emplacement::Anneau1)));
 
-    REQUIRE(escouade.puissanceDeLAttaqueDeBase(1) ==
+    REQUIRE(escouade.attaqueDeBase(1)->montant ==
             montantEffectif(degats, puissance, escouade.caracteristiquesDuPersonnage(1).value()));
 }
