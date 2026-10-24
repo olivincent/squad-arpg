@@ -100,9 +100,19 @@ TEST_CASE("catalogueObjets : les bottes de cuir donnent 5 % d'esquive contre le 
     REQUIRE(casque == StatistiquesDeCombat{.esquiveProjectile = 5});
 }
 
+TEST_CASE("catalogueObjets : le bouclier rond bloque 30 % des coups, 40 points, puis 3 s de recuperation") {
+    const StatistiquesDeCombat& bouclier = definitionObjet(IdObjet::BouclierRond).bonusDeCombat;
+
+    REQUIRE(bouclier.chanceDeBlocage == 30);
+    REQUIRE(bouclier.montantBloque == 40);
+    REQUIRE(bouclier.recuperationDuBlocage == 3.0f);
+    REQUIRE(bouclier.esquiveContact == 0);
+}
+
 TEST_CASE("catalogueObjets : les autres objets n'ont aucun bonus de combat") {
     for (const DefinitionObjet& definition : catalogueObjets()) {
-        if (definition.id != IdObjet::BottesDeCuir && definition.id != IdObjet::CasqueDeCuir) {
+        if (definition.id != IdObjet::BottesDeCuir && definition.id != IdObjet::CasqueDeCuir &&
+            definition.id != IdObjet::BouclierRond) {
             REQUIRE(definition.bonusDeCombat == StatistiquesDeCombat());
         }
     }

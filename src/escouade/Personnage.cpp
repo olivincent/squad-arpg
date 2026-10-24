@@ -90,6 +90,7 @@ void Personnage::mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte,
     }
     m_mobile.mettreAJour(dt, carte, obstacles);
 
+    m_vitalite.mettreAJour(dt);
     m_attaqueDeBase.mettreAJour(dt);
     for (SkillConnu& connu : m_skills) {
         connu.skill.mettreAJour(dt);

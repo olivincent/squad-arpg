@@ -17,19 +17,24 @@ struct ResultatDuCoup {
     int montant = 0;         // ce que le défenseur subit (après armure), ou le soin à rendre ; 0 : rien
     bool critique = false;
     bool esquive = false;    // le coup a été esquivé : il s'arrête là, montant 0 (l'attaque a pourtant eu lieu)
+    int bloque = 0;          // points absorbés par un blocage ; > 0 : il y a eu blocage (total si montant == 0)
 };
 
 // Point d'entrée unique d'un coup : ce que le défenseur subit pour cette attaque. Enchaîne des fonctions
 // d'étape dans l'ordre de la section 6 de `docs/classes-et-combat.md` :
 //   1. esquive          (`coupEsquive` : selon la nature de l'attaque ; un coup esquivé s'arrête là)
 //   2. critique         (`appliquerCritique` : s'applique avant toute réduction)
-//   3. blocage          (à venir)
+//   3. blocage          (`appliquerBlocage` : retire un montant fixe ; si tout est absorbé, le coup s'arrête là,
+//                        sans armure ni plancher)
 //   4. armure           (`appliquerArmure`)
 //   5. résistances      (à venir)
 // Seul endroit du moteur du coup qui tire au hasard (un nombre par coup, dans `generateur`, passé par
 // référence, un par étape dont la chance est non nulle) ; aucun tirage quand la chance est nulle (esquive nulle
-// ou zone, capacité offensive nulle) ni quand le montant est nul. Précondition : attaque.montant >= 0.
-[[nodiscard]] ResultatDuCoup resoudreCoup(const Attaque& attaque, const Defenses& defenses, Generateur& generateur);
+// ou zone, capacité offensive nulle, pas de bouclier ou bouclier en récupération) ni quand le montant est nul.
+// `blocagePret` : le blocage du défenseur n'est pas en récupération (l'état vit chez lui, `Vitalite` ; le
+// résultat dit `bloque > 0` quand il faut lancer la récupération). Précondition : attaque.montant >= 0.
+[[nodiscard]] ResultatDuCoup resoudreCoup(const Attaque& attaque, const Defenses& defenses, bool blocagePret,
+                                          Generateur& generateur);
 
 // Capacité défensive contre laquelle un soin tente son critique. Elle suivra le niveau de la zone quand les
 // niveaux existeront. Provisoire, à tester.

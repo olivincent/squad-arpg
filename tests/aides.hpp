@@ -37,8 +37,7 @@ inline constexpr int s_coupMortel = 100000;
 // l'armure qui en résulte est toujours lue dans le catalogue d'objets, jamais écrite en littéral.
 inline const std::vector<ObjetDeDepart> s_equipementMeleeDeTest = {{Emplacement::Tete, IdObjet::CasqueDeFer},
                                                                    {Emplacement::Torse, IdObjet::CuirasseDeMailles},
-                                                                   {Emplacement::Jambes, IdObjet::JambieresDeFer},
-                                                                   {Emplacement::MainGauche, IdObjet::BouclierRond}};
+                                                                   {Emplacement::Jambes, IdObjet::JambieresDeFer}};
 
 // Somme de l'armure des objets de départ.
 inline int armureDe(const std::vector<ObjetDeDepart>& equipement) {

@@ -152,3 +152,86 @@ TEST_CASE("Vitalite : un coup esquive ne retire aucun point de vie") {
     }
     REQUIRE(esquiveVue);
 }
+
+namespace {
+// Une vitalité de 1000 points dont le bouclier bloque toujours (100 %) 40 points, puis 3 s de récupération.
+Vitalite vitaliteAuBouclier() {
+    return Vitalite(1000, {.armure = 0, .statistiques = {.capaciteDefensive = 100, .chanceDeBlocage = 100, .montantBloque = 40,
+                                                         .recuperationDuBlocage = 3.0f}});
+}
+
+const Attaque s_coupDeContact{.montant = 100, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
+}  // namespace
+
+TEST_CASE("Vitalite : un blocage retire le montant bloque et lance la recuperation") {
+    Vitalite vitalite = vitaliteAuBouclier();
+    Generateur generateur = generateurDeTest();
+    REQUIRE(vitalite.blocagePret());
+
+    const ResultatDuCoup resultat = vitalite.recevoirDegats(s_coupDeContact, generateur);
+
+    REQUIRE(resultat.bloque == 40);
+    REQUIRE(resultat.montant == 60);
+    REQUIRE(vitalite.getValeur() == 1000 - 60);
+    REQUIRE_FALSE(vitalite.blocagePret());
+}
+
+TEST_CASE("Vitalite : pendant la recuperation le coup passe entier, et sans tirer de blocage") {
+    Vitalite vitalite = vitaliteAuBouclier();
+    Generateur generateur = generateurDeTest();
+    static_cast<void>(vitalite.recevoirDegats(s_coupDeContact, generateur));
+    const Generateur avant = generateur;
+
+    const ResultatDuCoup resultat = vitalite.recevoirDegats(s_coupDeContact, generateur);
+
+    REQUIRE(resultat.bloque == 0);
+    REQUIRE(resultat.montant == 100);
+    REQUIRE(generateur == avant);
+}
+
+TEST_CASE("Vitalite : la recuperation s'ecoule avec le temps, puis le bouclier bloque de nouveau") {
+    Vitalite vitalite = vitaliteAuBouclier();
+    Generateur generateur = generateurDeTest();
+    static_cast<void>(vitalite.recevoirDegats(s_coupDeContact, generateur));
+
+    vitalite.mettreAJour(2.0f);
+    REQUIRE_FALSE(vitalite.blocagePret());
+    REQUIRE(vitalite.recevoirDegats(s_coupDeContact, generateur).bloque == 0);
+
+    vitalite.mettreAJour(0.9f);
+    REQUIRE_FALSE(vitalite.blocagePret());  // 2,9 s sur 3
+
+    vitalite.mettreAJour(0.2f);
+    REQUIRE(vitalite.blocagePret());
+    REQUIRE(vitalite.recevoirDegats(s_coupDeContact, generateur).bloque == 40);
+}
+
+TEST_CASE("Vitalite : un coup non bloque (zone) ne lance pas la recuperation") {
+    Vitalite vitalite = vitaliteAuBouclier();
+    Generateur generateur = generateurDeTest();
+
+    const ResultatDuCoup resultat = vitalite.recevoirDegats({.montant = 100, .capaciteOffensive = 0, .nature = NatureDAttaque::Zone}, generateur);
+
+    REQUIRE(resultat.bloque == 0);
+    REQUIRE(vitalite.blocagePret());
+}
+
+TEST_CASE("Vitalite : un blocage total ne retire aucun point de vie") {
+    Vitalite vitalite = vitaliteAuBouclier();
+    Generateur generateur = generateurDeTest();
+
+    const ResultatDuCoup resultat = vitalite.recevoirDegats({.montant = 30, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact}, generateur);
+
+    REQUIRE(resultat.bloque == 30);
+    REQUIRE(resultat.montant == 0);
+    REQUIRE(vitalite.getValeur() == 1000);
+}
+
+TEST_CASE("Vitalite : sans bouclier, le blocage est toujours pret") {
+    Vitalite vitalite(100, defensesDeTest(0));
+    Generateur generateur = generateurDeTest();
+
+    static_cast<void>(vitalite.recevoirDegats(s_coupDeContact, generateur));
+
+    REQUIRE(vitalite.blocagePret());
+}

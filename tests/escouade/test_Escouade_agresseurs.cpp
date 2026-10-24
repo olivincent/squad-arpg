@@ -367,3 +367,27 @@ TEST_CASE("Un coup esquive compte comme une attaque recue : le monstre devient a
     }
     REQUIRE(esquiveVue);
 }
+
+TEST_CASE("Un coup bloque compte comme une attaque recue : le monstre devient agresseur") {
+    DefinitionPersonnage guerrier = guerrierDeTest();
+    guerrier.equipementDeDepart.push_back({Emplacement::MainGauche, IdObjet::BouclierRond});  // 30 % de blocage, 40 points
+    const Attaque faible{.montant = 30, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};  // absorbée en entier
+    bool blocageVu = false;
+
+    for (Generateur::result_type graine = 1; graine <= 100 && !blocageVu; ++graine) {
+        Escouade escouade({50.0f, 50.0f}, {guerrier});
+        Generateur generateur(graine);
+        const int vieAvant = *escouade.pointsDeVieDuPersonnage(1);
+
+        const ResultatDuCoup resultat = escouade.recevoirCoup(7, 1, faible, generateur);
+        if (resultat.bloque == 0) {
+            continue;
+        }
+        blocageVu = true;
+        REQUIRE(resultat.montant == 0);
+        REQUIRE(*escouade.pointsDeVieDuPersonnage(1) == vieAvant);
+        REQUIRE(escouade.getAgresseurs().size() == 1);
+        REQUIRE(escouade.getAgresseurs()[0].id == 7);
+    }
+    REQUIRE(blocageVu);
+}

@@ -1097,6 +1097,46 @@ TEST_CASE("un equipement de depart qui donne de l'esquive compte des la construc
     REQUIRE(personnage.getStatistiques().esquiveContact == 5);
 }
 
+TEST_CASE("le bouclier rond donne au personnage 30 % de blocage, 40 points, 3 s de recuperation") {
+    Personnage personnage = unPersonnageSansEsquive();
+
+    static_cast<void>(personnage.poserEquipement(Emplacement::MainGauche, {IdObjet::BouclierRond}));
+
+    REQUIRE(personnage.getStatistiques().chanceDeBlocage == 30);
+    REQUIRE(personnage.getStatistiques().montantBloque == 40);
+    REQUIRE(personnage.getStatistiques().recuperationDuBlocage == 3.0f);
+    static_cast<void>(personnage.retirerEquipement(Emplacement::MainGauche));
+    REQUIRE(personnage.getStatistiques().montantBloque == 0);
+}
+
+TEST_CASE("un personnage au bouclier : apres un blocage, plus aucun pendant 3 s, puis de nouveau") {
+    Personnage personnage = unPersonnageSansEsquive();
+    static_cast<void>(personnage.poserEquipement(Emplacement::MainGauche, {IdObjet::BouclierRond}));
+    const TileMap carte = carteDegagee5x5();
+    Generateur generateur = generateurDeTest();
+    const Attaque attaque{.montant = 10, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
+
+    // 30 % de blocage : on frappe jusqu'au premier blocage.
+    bool bloque = false;
+    for (int i = 0; i < 200 && !bloque; ++i) {
+        bloque = personnage.recevoirDegats(attaque, generateur).bloque > 0;
+    }
+    REQUIRE(bloque);
+
+    // Récupération : aucun blocage sur 100 coups, tant que le temps ne passe pas.
+    for (int i = 0; i < 100; ++i) {
+        REQUIRE(personnage.recevoirDegats(attaque, generateur).bloque == 0);
+    }
+
+    // Après 3 s (mettreAJour du personnage), le bouclier bloque de nouveau.
+    ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 3.1f);
+    bloque = false;
+    for (int i = 0; i < 200 && !bloque; ++i) {
+        bloque = personnage.recevoirDegats(attaque, generateur).bloque > 0;
+    }
+    REQUIRE(bloque);
+}
+
 TEST_CASE("un personnage qui esquive ne perd aucun point de vie") {
     Personnage personnage = unPersonnageSansEsquive();
     static_cast<void>(personnage.poserEquipement(Emplacement::Bottes, {IdObjet::BottesDeCuir}));

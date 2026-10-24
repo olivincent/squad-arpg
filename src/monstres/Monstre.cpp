@@ -163,6 +163,7 @@ void Monstre::mettreAJour(float dt, std::optional<EntiteVue> proie, const std::v
                           const TileMap& carte, const std::vector<Cercle>& obstacles,
                           const std::vector<Cercle>& aContourner) {
     m_attaque.mettreAJour(dt);
+    m_vitalite.mettreAJour(dt);
 
     // Un coup en exécution : le monstre reste sur place, ni poursuite ni
     // retour (l'état et le coup reçu sont pris en compte après le coup).

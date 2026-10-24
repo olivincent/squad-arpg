@@ -223,6 +223,22 @@ TEST_CASE("un coup esquive par un monstre ne lui retire rien mais le reveille qu
     REQUIRE(esquiveVue);
 }
 
+TEST_CASE("un monstre au bouclier : le blocage se recupere avec le temps qui passe") {
+    const TileMap carte = carteDegagee10x10();
+    DefinitionDeMonstre definition = monstreOrdinaire();
+    definition.statistiques = {.capaciteDefensive = 100, .chanceDeBlocage = 100, .montantBloque = 40, .recuperationDuBlocage = 3.0f};
+    Monstre monstre({100.0f, 100.0f}, 1, 0, definition);
+    Generateur generateur = generateurDeTest();
+    const Attaque attaque{.montant = 100, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
+
+    REQUIRE(monstre.recevoirDegats(attaque, generateur).bloque == 40);
+    REQUIRE(monstre.recevoirDegats(attaque, generateur).bloque == 0);  // en récupération
+
+    ecoulerTemps(monstre, 3.1f, std::nullopt, carte);
+
+    REQUIRE(monstre.recevoirDegats(attaque, generateur).bloque == 40);
+}
+
 TEST_CASE("lire la puissance de l'attaque ne change ni le coup engage ni la recharge") {
     Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
     const TileMap carte = carteDegagee10x10();

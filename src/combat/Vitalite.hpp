@@ -18,8 +18,13 @@ public:
     void definirDefenses(const Defenses& defenses);
     // Résout le coup (`resoudreCoup`, qui tire dans `generateur`) puis retire les points de vie. Le
     // résultat porte les dégâts après armure, non plafonnés par les points de vie restants ; rien (0, sans
-    // tirage) pour un mort.
+    // tirage) pour un mort. Un blocage réussi lance la récupération du blocage (le temps pendant lequel le
+    // bouclier ne bloque plus), qui est un état de la vitalité : elle s'écoule par `mettreAJour`.
     ResultatDuCoup recevoirDegats(const Attaque& attaque, Generateur& generateur);
+    // Fait couler le temps : la récupération du blocage diminue de `dt`, sans descendre sous 0.
+    void mettreAJour(float dt);
+    // Le blocage n'est pas en récupération : un blocage est tenté au prochain coup.
+    [[nodiscard]] bool blocagePret() const;
     // Change le maximum des points de vie (`PointsDeVie::changerMaximum`). Précondition : `maximum > 0`.
     void definirMaximum(int maximum);
     // Renvoie les points réellement rendus (plafonnés au maximum ; 0 pour un mort).
@@ -32,4 +37,5 @@ public:
 private:
     PointsDeVie m_pointsDeVie;
     Defenses m_defenses;
+    float m_recuperationDuBlocage = 0.0f;  // en secondes ; 0 : le blocage est prêt
 };

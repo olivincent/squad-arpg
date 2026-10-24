@@ -16,7 +16,7 @@ constexpr int s_armure = 30;
 int nombreDeCritiques(const Attaque& attaque, const Defenses& defenses, int coups, Generateur& generateur) {
     int critiques = 0;
     for (int i = 0; i < coups; ++i) {
-        if (resoudreCoup(attaque, defenses, generateur).critique) {
+        if (resoudreCoup(attaque, defenses, true, generateur).critique) {
             ++critiques;
         }
     }
@@ -27,24 +27,24 @@ int nombreDeCritiques(const Attaque& attaque, const Defenses& defenses, int coup
 TEST_CASE("resoudreCoup applique l'armure du defenseur") {
     Generateur generateur = generateurDeTest();
 
-    REQUIRE(resoudreCoup(attaqueSansHasard(100), defensesDeTest(30), generateur).montant == appliquerArmure(100, 30));
-    REQUIRE(resoudreCoup(attaqueSansHasard(50), defensesDeTest(0), generateur).montant == 50);
-    REQUIRE_FALSE(resoudreCoup(attaqueSansHasard(100), defensesDeTest(30), generateur).critique);
+    REQUIRE(resoudreCoup(attaqueSansHasard(100), defensesDeTest(30), true, generateur).montant == appliquerArmure(100, 30));
+    REQUIRE(resoudreCoup(attaqueSansHasard(50), defensesDeTest(0), true, generateur).montant == 50);
+    REQUIRE_FALSE(resoudreCoup(attaqueSansHasard(100), defensesDeTest(30), true, generateur).critique);
 }
 
 TEST_CASE("resoudreCoup : un coup de 0 reste 0, meme avec une grande capacite offensive") {
     Generateur generateur = generateurDeTest();
 
-    REQUIRE(resoudreCoup(attaqueSansHasard(0), defensesDeTest(30), generateur).montant == 0);
-    REQUIRE(resoudreCoup({.montant = 0, .capaciteOffensive = s_capaciteEnorme, .nature = NatureDAttaque::Contact}, defensesDeTest(0), generateur).montant == 0);
+    REQUIRE(resoudreCoup(attaqueSansHasard(0), defensesDeTest(30), true, generateur).montant == 0);
+    REQUIRE(resoudreCoup({.montant = 0, .capaciteOffensive = s_capaciteEnorme, .nature = NatureDAttaque::Contact}, defensesDeTest(0), true, generateur).montant == 0);
 }
 
 TEST_CASE("resoudreCoup ne tire rien quand la chance de critique est nulle ou le montant nul") {
     Generateur generateur = generateurDeTest();
     const Generateur intact = generateur;
 
-    static_cast<void>(resoudreCoup(attaqueSansHasard(100), defensesDeTest(30), generateur));  // capacité offensive nulle
-    static_cast<void>(resoudreCoup({.montant = 0, .capaciteOffensive = s_capaciteEnorme, .nature = NatureDAttaque::Contact}, defensesDeTest(0), generateur));
+    static_cast<void>(resoudreCoup(attaqueSansHasard(100), defensesDeTest(30), true, generateur));  // capacité offensive nulle
+    static_cast<void>(resoudreCoup({.montant = 0, .capaciteOffensive = s_capaciteEnorme, .nature = NatureDAttaque::Contact}, defensesDeTest(0), true, generateur));
 
     REQUIRE(generateur == intact);
 }
@@ -53,7 +53,7 @@ TEST_CASE("resoudreCoup tire quand la chance de critique est non nulle") {
     Generateur generateur = generateurDeTest();
     const Generateur intact = generateur;
 
-    static_cast<void>(resoudreCoup({.montant = 100, .capaciteOffensive = 100, .nature = NatureDAttaque::Contact}, defensesDeTest(0), generateur));
+    static_cast<void>(resoudreCoup({.montant = 100, .capaciteOffensive = 100, .nature = NatureDAttaque::Contact}, defensesDeTest(0), true, generateur));
 
     REQUIRE(generateur != intact);
 }
@@ -65,7 +65,7 @@ TEST_CASE("resoudreCoup : un critique multiplie le montant avant l'armure") {
     bool normalVu = false;
 
     for (int i = 0; i < 200; ++i) {
-        const ResultatDuCoup resultat = resoudreCoup(attaque, defensesDeTest(s_armure), generateur);
+        const ResultatDuCoup resultat = resoudreCoup(attaque, defensesDeTest(s_armure), true, generateur);
         if (resultat.critique) {
             REQUIRE(resultat.montant == appliquerArmure(2 * s_montant, s_armure));  // 200, puis l'armure : 170
             critiqueVu = true;
@@ -106,8 +106,8 @@ TEST_CASE("resoudreCoup : meme graine, memes resultats") {
     const Attaque attaque{.montant = s_montant, .capaciteOffensive = 150, .nature = NatureDAttaque::Contact};
 
     for (int i = 0; i < 100; ++i) {
-        const ResultatDuCoup a = resoudreCoup(attaque, defensesDeTest(10), premier);
-        const ResultatDuCoup b = resoudreCoup(attaque, defensesDeTest(10), second);
+        const ResultatDuCoup a = resoudreCoup(attaque, defensesDeTest(10), true, premier);
+        const ResultatDuCoup b = resoudreCoup(attaque, defensesDeTest(10), true, second);
         REQUIRE(a.montant == b.montant);
         REQUIRE(a.critique == b.critique);
     }
@@ -168,7 +168,7 @@ Attaque attaqueDeNature(NatureDAttaque nature) {
 int nombreDEsquives(const Attaque& attaque, const Defenses& defenses, int coups, Generateur& generateur) {
     int esquives = 0;
     for (int i = 0; i < coups; ++i) {
-        esquives += resoudreCoup(attaque, defenses, generateur).esquive ? 1 : 0;
+        esquives += resoudreCoup(attaque, defenses, true, generateur).esquive ? 1 : 0;
     }
     return esquives;
 }
@@ -180,7 +180,7 @@ TEST_CASE("resoudreCoup : un coup esquive s'arrete la, sans degats ni critique")
     bool esquiveVue = false;
 
     for (int i = 0; i < 200; ++i) {
-        const ResultatDuCoup resultat = resoudreCoup(attaque, esquiveur(50, 0), generateur);
+        const ResultatDuCoup resultat = resoudreCoup(attaque, esquiveur(50, 0), true, generateur);
         if (resultat.esquive) {
             REQUIRE(resultat.montant == 0);
             REQUIRE_FALSE(resultat.critique);
@@ -229,7 +229,7 @@ TEST_CASE("resoudreCoup : sans esquive ni capacite offensive, aucun tirage") {
     Generateur generateur = generateurDeTest();
     const Generateur intact = generateur;
 
-    static_cast<void>(resoudreCoup(attaqueDeNature(NatureDAttaque::Contact), esquiveur(0, 0), generateur));
+    static_cast<void>(resoudreCoup(attaqueDeNature(NatureDAttaque::Contact), esquiveur(0, 0), true, generateur));
 
     REQUIRE(generateur == intact);
 }
@@ -242,7 +242,7 @@ TEST_CASE("resoudreCoup : une esquive possible tire, et un coup esquive ne tire 
 
     for (int i = 0; i < 200 && (tiragesParCoupEsquive == 0 || tiragesParCoupTouche == 0); ++i) {
         Generateur avant = generateur;
-        const bool esquive = resoudreCoup(attaque, esquiveur(50, 0), generateur).esquive;
+        const bool esquive = resoudreCoup(attaque, esquiveur(50, 0), true, generateur).esquive;
         int tirages = 0;
         while (avant != generateur) {
             static_cast<void>(avant());
@@ -260,9 +260,117 @@ TEST_CASE("resoudreCoup : l'esquive ne change pas ce que la capacite defensive e
     Generateur generateur = generateurDeTest();
 
     for (int i = 0; i < 100; ++i) {
-        const ResultatDuCoup resultat = resoudreCoup(attaqueDeNature(NatureDAttaque::Contact), {.armure = s_armure, .statistiques = {.capaciteDefensive = 100, .esquiveContact = 50}}, generateur);
+        const ResultatDuCoup resultat = resoudreCoup(attaqueDeNature(NatureDAttaque::Contact), {.armure = s_armure, .statistiques = {.capaciteDefensive = 100, .esquiveContact = 50}}, true, generateur);
         if (!resultat.esquive) {
             REQUIRE(resultat.montant == appliquerArmure(s_montant, s_armure));
         }
     }
+}
+
+namespace {
+// Un défenseur sans esquive dont le bouclier bloque toujours (chance 100 %) 40 points.
+Defenses porteurDeBouclier(int armure = 0, int chance = 100) {
+    Defenses defenses = defensesDeTest(armure);
+    defenses.statistiques.chanceDeBlocage = chance;
+    defenses.statistiques.montantBloque = 40;
+    defenses.statistiques.recuperationDuBlocage = 3.0f;
+    return defenses;
+}
+}  // namespace
+
+TEST_CASE("resoudreCoup : un blocage retire un montant fixe, puis l'armure joue sur le reste") {
+    Generateur generateur = generateurDeTest();
+
+    const ResultatDuCoup resultat = resoudreCoup(attaqueDeNature(NatureDAttaque::Contact), porteurDeBouclier(s_armure), true, generateur);
+
+    REQUIRE(resultat.bloque == 40);
+    REQUIRE(resultat.montant == appliquerArmure(s_montant - 40, s_armure));
+    REQUIRE_FALSE(resultat.esquive);
+}
+
+TEST_CASE("resoudreCoup : un blocage qui absorbe tout arrete le coup, sans armure ni plancher") {
+    Generateur generateur = generateurDeTest();
+    const Attaque faible{.montant = 25, .capaciteOffensive = 0, .nature = NatureDAttaque::Projectile};
+
+    const ResultatDuCoup resultat = resoudreCoup(faible, porteurDeBouclier(s_armure), true, generateur);
+
+    REQUIRE(resultat.bloque == 25);
+    REQUIRE(resultat.montant == 0);  // pas 1 : le plancher de l'armure ne s'applique pas
+}
+
+TEST_CASE("resoudreCoup : le blocage retire du montant deja critique, avant l'armure") {
+    Generateur generateur = generateurDeTest();
+    const Attaque attaque{.montant = s_montant, .capaciteOffensive = s_capaciteEnorme, .nature = NatureDAttaque::Contact};
+    bool critiqueVu = false;
+    bool normalVu = false;
+
+    for (int i = 0; i < 200; ++i) {
+        const ResultatDuCoup resultat = resoudreCoup(attaque, porteurDeBouclier(s_armure), true, generateur);
+        REQUIRE(resultat.bloque == 40);
+        REQUIRE(resultat.montant == appliquerArmure((resultat.critique ? 2 * s_montant : s_montant) - 40, s_armure));
+        critiqueVu = critiqueVu || resultat.critique;
+        normalVu = normalVu || !resultat.critique;
+    }
+    REQUIRE(critiqueVu);
+    REQUIRE(normalVu);
+}
+
+TEST_CASE("resoudreCoup : une zone n'est jamais bloquee") {
+    Generateur generateur = generateurDeTest();
+
+    const ResultatDuCoup resultat = resoudreCoup(attaqueDeNature(NatureDAttaque::Zone), porteurDeBouclier(), true, generateur);
+
+    REQUIRE(resultat.bloque == 0);
+    REQUIRE(resultat.montant == s_montant);
+}
+
+TEST_CASE("resoudreCoup : pendant la recuperation, aucun blocage n'est tente ni tire") {
+    Generateur generateur = generateurDeTest();
+    const Generateur intact = generateur;
+
+    const ResultatDuCoup resultat = resoudreCoup(attaqueDeNature(NatureDAttaque::Contact), porteurDeBouclier(), false, generateur);
+
+    REQUIRE(resultat.bloque == 0);
+    REQUIRE(resultat.montant == s_montant);
+    REQUIRE(generateur == intact);
+}
+
+TEST_CASE("resoudreCoup : sans bouclier, aucun blocage ni tirage") {
+    Generateur generateur = generateurDeTest();
+    const Generateur intact = generateur;
+
+    const ResultatDuCoup resultat = resoudreCoup(attaqueDeNature(NatureDAttaque::Contact), defensesDeTest(0), true, generateur);
+
+    REQUIRE(resultat.bloque == 0);
+    REQUIRE(generateur == intact);
+}
+
+TEST_CASE("resoudreCoup : un coup esquive n'est pas bloque") {
+    Generateur generateur = generateurDeTest();
+    Defenses defenses = porteurDeBouclier();
+    defenses.statistiques.esquiveContact = 50;
+    bool esquiveVue = false;
+
+    for (int i = 0; i < 200; ++i) {
+        const ResultatDuCoup resultat = resoudreCoup(attaqueDeNature(NatureDAttaque::Contact), defenses, true, generateur);
+        if (resultat.esquive) {
+            REQUIRE(resultat.bloque == 0);
+            esquiveVue = true;
+        } else {
+            REQUIRE(resultat.bloque == 40);
+        }
+    }
+    REQUIRE(esquiveVue);
+}
+
+TEST_CASE("resoudreCoup : la frequence des blocages suit la chance du bouclier") {
+    Generateur generateur = generateurDeTest();
+    int blocages = 0;
+
+    for (int i = 0; i < 4000; ++i) {
+        blocages += resoudreCoup(attaqueDeNature(NatureDAttaque::Contact), porteurDeBouclier(0, 30), true, generateur).bloque > 0 ? 1 : 0;
+    }
+
+    REQUIRE(blocages > 1100);  // 30 % de 4 000 : 1 200 attendus
+    REQUIRE(blocages < 1300);
 }

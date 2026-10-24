@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <random>
+#include "combat/Blocage.hpp"
 #include "combat/Critique.hpp"
 #include "combat/Defense.hpp"
 #include "combat/Esquive.hpp"
@@ -30,9 +31,17 @@ bool esquiveDe(NatureDAttaque nature, const StatistiquesDeCombat& defenseur, Gen
     const float tirage = chance > 0.0f ? tirer(generateur) : 0.0f;
     return coupEsquive(chance, tirage);
 }
+
+// L'étape blocage, tirage compris : sans chance (récupération, pas de bouclier, zone), aucun tirage.
+ResultatDuBlocage blocageDe(int montant, NatureDAttaque nature, const StatistiquesDeCombat& defenseur, bool blocagePret,
+                            Generateur& generateur) {
+    const float chance = chanceDeBlocage(nature, defenseur, blocagePret);
+    const float tirage = chance > 0.0f ? tirer(generateur) : 0.0f;
+    return appliquerBlocage(montant, defenseur.montantBloque, chance, tirage);
+}
 }  // namespace
 
-ResultatDuCoup resoudreCoup(const Attaque& attaque, const Defenses& defenses, Generateur& generateur) {
+ResultatDuCoup resoudreCoup(const Attaque& attaque, const Defenses& defenses, bool blocagePret, Generateur& generateur) {
     if (attaque.montant == 0) {
         return {};
     }
@@ -41,7 +50,16 @@ ResultatDuCoup resoudreCoup(const Attaque& attaque, const Defenses& defenses, Ge
     }
     const ResultatCritique critique =
         critiqueDe(attaque.montant, attaque.capaciteOffensive, defenses.statistiques.capaciteDefensive, generateur);
-    return {.montant = appliquerArmure(critique.montant, defenses.armure), .critique = critique.critique};
+    const ResultatDuBlocage blocage =
+        blocageDe(critique.montant, attaque.nature, defenses.statistiques, blocagePret, generateur);
+    if (blocage.bloque > 0 && blocage.montant == 0) {
+        // Tout est absorbé : le coup s'arrête, l'armure et son plancher ne s'appliquent pas.
+        return {.montant = 0, .critique = critique.critique, .esquive = false, .bloque = blocage.bloque};
+    }
+    return {.montant = appliquerArmure(blocage.montant, defenses.armure),
+            .critique = critique.critique,
+            .esquive = false,
+            .bloque = blocage.bloque};
 }
 
 ResultatDuCoup resoudreSoin(const Attaque& soin, Generateur& generateur) {

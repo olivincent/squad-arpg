@@ -155,12 +155,12 @@ TEST_CASE("glissement : un objet porte se saisit et s'echange avec un autre pers
     Escouade escouade = uneEscouade({100.0f, 100.0f});
     EcranInventaire ecran(escouade, s_noms);
 
-    ecran.saisir(centreDeLEmplacement(s_guerrier, Emplacement::MainGauche), s_vue);
-    REQUIRE(ecran.origineDuGlissement() == PositionDObjet{PositionPortee{s_guerrier, Emplacement::MainGauche}});
-    ecran.relacher(centreDeLEmplacement(s_mage, Emplacement::MainGauche), s_vue);
+    ecran.saisir(centreDeLEmplacement(s_guerrier, Emplacement::Jambes), s_vue);
+    REQUIRE(ecran.origineDuGlissement() == PositionDObjet{PositionPortee{s_guerrier, Emplacement::Jambes}});
+    ecran.relacher(centreDeLEmplacement(s_mage, Emplacement::Jambes), s_vue);
 
-    REQUIRE_FALSE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainGauche).has_value());
-    REQUIRE(escouade.equipementDuPersonnage(s_mage).a(Emplacement::MainGauche) == Objet{IdObjet::BouclierRond});
+    REQUIRE_FALSE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::Jambes).has_value());
+    REQUIRE(escouade.equipementDuPersonnage(s_mage).a(Emplacement::Jambes) == Objet{IdObjet::JambieresDeFer});
 }
 
 TEST_CASE("glissement : Echap l'annule sans fermer, un deuxieme Echap ferme") {

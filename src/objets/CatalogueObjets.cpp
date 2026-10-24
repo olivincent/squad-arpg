@@ -19,13 +19,18 @@ constexpr int s_bonusAnneauDePuissance = 3;    // Puissance
 constexpr int s_bonusCollierDEndurance = 3;    // Endurance
 constexpr int s_esquiveBottesDeCuir = 5;       // en pour cent, contre le contact
 constexpr int s_esquiveCasqueDeCuir = 5;       // en pour cent, contre les projectiles
+constexpr int s_chanceDeBlocageBouclierRond = 30;       // en pour cent
+constexpr int s_montantBloqueBouclierRond = 40;         // points absorbés par blocage
+constexpr float s_recuperationBouclierRond = 3.0f;      // en secondes
 
 std::vector<DefinitionObjet> construireLeCatalogue() {
     return {
         {IdObjet::CasqueDeFer, "Casque de fer", CategorieObjet::Casque, s_armureCasqueDeFer},
         {IdObjet::CuirasseDeMailles, "Cuirasse de mailles", CategorieObjet::Armure, s_armureCuirasseDeMailles},
         {IdObjet::JambieresDeFer, "Jambières de fer", CategorieObjet::Jambieres, s_armureJambieresDeFer},
-        {IdObjet::BouclierRond, "Bouclier rond", CategorieObjet::Bouclier, s_armureBouclierRond},
+        {IdObjet::BouclierRond, "Bouclier rond", CategorieObjet::Bouclier, s_armureBouclierRond, {},
+         {.chanceDeBlocage = s_chanceDeBlocageBouclierRond, .montantBloque = s_montantBloqueBouclierRond,
+          .recuperationDuBlocage = s_recuperationBouclierRond}},
         {IdObjet::GantsDeCuir, "Gants de cuir", CategorieObjet::Gants, s_armureGantsDeCuir},
         {IdObjet::BottesDeCuir, "Bottes de cuir", CategorieObjet::Bottes, s_armureBottesDeCuir, {},
          {.esquiveContact = s_esquiveBottesDeCuir}},

@@ -19,9 +19,20 @@ ResultatDuCoup Vitalite::recevoirDegats(const Attaque& attaque, Generateur& gene
     if (!estVivant()) {
         return {.montant = 0, .critique = false};
     }
-    const ResultatDuCoup resultat = resoudreCoup(attaque, m_defenses, generateur);
+    const ResultatDuCoup resultat = resoudreCoup(attaque, m_defenses, blocagePret(), generateur);
+    if (resultat.bloque > 0) {
+        m_recuperationDuBlocage = m_defenses.statistiques.recuperationDuBlocage;
+    }
     m_pointsDeVie.subirDegats(resultat.montant);
     return resultat;
+}
+
+void Vitalite::mettreAJour(float dt) {
+    m_recuperationDuBlocage = m_recuperationDuBlocage > dt ? m_recuperationDuBlocage - dt : 0.0f;
+}
+
+bool Vitalite::blocagePret() const {
+    return m_recuperationDuBlocage <= 0.0f;
 }
 
 void Vitalite::definirMaximum(int maximum) {

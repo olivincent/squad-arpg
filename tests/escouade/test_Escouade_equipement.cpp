@@ -200,8 +200,7 @@ TEST_CASE("deplacer d'un emplacement vide : faux, rien ne bouge") {
 
 TEST_CASE("tout desequiper ramene l'armure a zero, tout reequiper la rend") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    const std::vector<Emplacement> portes = {Emplacement::Tete, Emplacement::Torse, Emplacement::Jambes,
-                                             Emplacement::MainGauche};
+    const std::vector<Emplacement> portes = {Emplacement::Tete, Emplacement::Torse, Emplacement::Jambes};
     for (std::size_t i = 0; i < portes.size(); ++i) {
         REQUIRE(escouade.deplacerObjet(portee(s_guerrier, portes[i]), dansLeSac(i)));
     }
@@ -218,17 +217,17 @@ TEST_CASE("tout desequiper ramene l'armure a zero, tout reequiper la rend") {
 TEST_CASE("l'armure suit un objet d'un personnage a l'autre") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
     const std::vector<int> avant = exemplaires(escouade);
-    const int armureBouclier = definitionObjet(IdObjet::BouclierRond).armure;
+    const int armureJambieres = definitionObjet(IdObjet::JambieresDeFer).armure;
     const int armureGuerrier = escouade.equipementDuPersonnage(s_guerrier).armureTotale();
 
-    REQUIRE(escouade.deplacerObjet(portee(s_guerrier, Emplacement::MainGauche), portee(s_mage, Emplacement::MainGauche)));
+    REQUIRE(escouade.deplacerObjet(portee(s_guerrier, Emplacement::Jambes), portee(s_mage, Emplacement::Jambes)));
 
-    REQUIRE_FALSE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainGauche).has_value());
-    REQUIRE(escouade.equipementDuPersonnage(s_mage).a(Emplacement::MainGauche) == Objet{IdObjet::BouclierRond});
-    REQUIRE(escouade.equipementDuPersonnage(s_mage).armureTotale() == armureBouclier);
+    REQUIRE_FALSE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::Jambes).has_value());
+    REQUIRE(escouade.equipementDuPersonnage(s_mage).a(Emplacement::Jambes) == Objet{IdObjet::JambieresDeFer});
+    REQUIRE(escouade.equipementDuPersonnage(s_mage).armureTotale() == armureJambieres);
     REQUIRE(exemplaires(escouade) == avant);
-    REQUIRE(degatsSubis(escouade, s_mage) == appliquerArmure(s_coup, armureBouclier));
-    REQUIRE(degatsSubis(escouade, s_guerrier) == appliquerArmure(s_coup, armureGuerrier - armureBouclier));
+    REQUIRE(degatsSubis(escouade, s_mage) == appliquerArmure(s_coup, armureJambieres));
+    REQUIRE(degatsSubis(escouade, s_guerrier) == appliquerArmure(s_coup, armureGuerrier - armureJambieres));
 }
 
 TEST_CASE("echange entre deux personnages : les deux armures changent") {
