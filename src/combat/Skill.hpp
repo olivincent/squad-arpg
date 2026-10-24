@@ -25,10 +25,21 @@
 // qui le retient.
 enum class PhaseSkill { Pret, EnExecution, EnRecharge };
 
+// Les données d'un skill, nommées à la construction (initialisation désignée) : sept valeurs de
+// types voisins qu'on ne confond plus. Voir `Skill` pour leur sens.
+struct DefinitionDeSkill {
+    TypeSkill type;
+    float portee;        // en pixels, écart bord à bord
+    int puissance;
+    float rechargeMin;   // en secondes
+    float rechargeMax;   // en secondes
+    float rayonZone = 0.0f;       // en pixels
+    float tempsExecution = 0.0f;  // en secondes, entre l'engagement du coup et son départ
+};
+
 class Skill {
 public:
-    Skill(TypeSkill type, float portee, int puissance, float rechargeMin, float rechargeMax, float rayonZone,
-          float tempsExecution = 0.0f);
+    explicit Skill(const DefinitionDeSkill& definition);
     void mettreAJour(float dt);
     // Pret -> EnExecution ; faux (sans rien changer) dans toute autre phase.
     [[nodiscard]] bool commencer();

@@ -15,11 +15,11 @@ enum class Rang { Avant, Arriere };
 struct DefinitionPersonnage {
     sf::Color couleur;
     Skill attaqueDeBase;
-    std::vector<SkillConnu> skills;
-    std::vector<ObjetDeDepart> equipementDeDepart;  // l'armure du personnage vient de lui seul
+    std::vector<SkillConnu> skills = {};
+    std::vector<ObjetDeDepart> equipementDeDepart = {};  // l'armure du personnage vient de lui seul
     float rayonVision;
-    float zoneDeControle;  // en pixels, bord à bord ; 0 = n'engage personne
-    Rang rang;
+    float zoneDeControle = 0.0f;  // en pixels, bord à bord ; 0 = n'engage personne
+    Rang rang = Rang::Avant;
 };
 
 // Décalage de chaque personnage par rapport à l'ancre, pour une escouade orientée vers +x,

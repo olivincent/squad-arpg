@@ -52,7 +52,9 @@ namespace {
 // moins `degats` points de vie, sur 1,2 s.
 int coupsReconnaissables(float zoneDuPremier, int degats) {
     std::vector<DefinitionPersonnage> composition = {guerrierDeTest(), guerrierDeTest(), guerrierDeTest()};
-    composition[0].attaqueDeBase = Skill(TypeSkill::Degats, s_porteeMeleeDeTest, degats, 100.0f, 100.0f, 0.0f, s_executionBaseDeTest);
+    composition[0].attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest,
+                                          .puissance = degats, .rechargeMin = 100.0f, .rechargeMax = 100.0f,
+                                          .tempsExecution = s_executionBaseDeTest});
     composition[0].zoneDeControle = zoneDuPremier;
     Partie partie(niveauDegage({{270.0f, 160.0f}}), std::move(composition), s_graineDeTest);
 
@@ -92,7 +94,9 @@ TEST_CASE("zone de controle : un personnage sans zone ne frappe jamais gratuitem
 TEST_CASE("zone de controle : un monstre tue par un coup gratuit est retire et le verrou est leve") {
     // Le premier coup (600) laisse le monstre à 400 points de vie ; le coup gratuit (600) le tue.
     std::vector<DefinitionPersonnage> composition = {guerrierDeTest(), guerrierDeTest(), guerrierDeTest()};
-    composition[0].attaqueDeBase = Skill(TypeSkill::Degats, s_porteeMeleeDeTest, 600, 100.0f, 100.0f, 0.0f, s_executionBaseDeTest);
+    composition[0].attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest, .puissance = 600,
+                                          .rechargeMin = 100.0f, .rechargeMax = 100.0f,
+                                          .tempsExecution = s_executionBaseDeTest});
     Partie partie(niveauDegage({{270.0f, 160.0f}}), std::move(composition), s_graineDeTest);
     REQUIRE(partie.cliquer({270.0f, 160.0f}) == ResultatClic::Monstre);
 
@@ -156,8 +160,12 @@ constexpr int s_degatsDuMageDansLaPartie = 70;
 
 Partie unGuerrierEtUnMageAuContact() {
     std::vector<DefinitionPersonnage> composition = {guerrierDeTest(), mageDeTest()};
-    composition[0].attaqueDeBase = Skill(TypeSkill::Degats, s_porteeMeleeDeTest, 1, 100.0f, 100.0f, 0.0f, s_executionBaseDeTest);
-    composition[1].attaqueDeBase = Skill(TypeSkill::Degats, 120.0f, s_degatsDuMageDansLaPartie, 0.3f, 0.3f, 0.0f, 0.15f);
+    composition[0].attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest, .puissance = 1,
+                                          .rechargeMin = 100.0f, .rechargeMax = 100.0f,
+                                          .tempsExecution = s_executionBaseDeTest});
+    composition[1].attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 120.0f,
+                                          .puissance = s_degatsDuMageDansLaPartie, .rechargeMin = 0.3f,
+                                          .rechargeMax = 0.3f, .tempsExecution = 0.15f});
     return Partie(niveauDegage({{219.0f, 232.0f}}), std::move(composition), s_graineDeTest);
 }
 

@@ -9,6 +9,7 @@
 #include "combat/Skill.hpp"
 #include "combat/SkillConnu.hpp"
 #include "combat/Vitalite.hpp"
+#include "escouade/Composition.hpp"
 #include "objets/Equipement.hpp"
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
@@ -20,12 +21,12 @@ class TileMap;
 
 class Personnage {
 public:
-    // `rayonVision` : jusqu'où il voit, en pixels (l'union des champs des vivants est la vision de l'escouade).
-    // `skills` : les skills qu'il connaît (assert : pas deux fois le même identifiant).
-    // `equipementDeDepart` : ce qu'il porte à sa création ; son armure est celle de cet équipement.
-    // `zoneDeControle` : la zone qu'il engage autour de lui, en pixels, bord à bord (0 : il n'engage personne).
-    Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::vector<SkillConnu> skills,
-               const std::vector<ObjetDeDepart>& equipementDeDepart, float rayonVision, float zoneDeControle = 0.0f);
+    // Construit depuis sa définition (`DefinitionPersonnage`) : `rayonVision` est jusqu'où il voit, en pixels
+    // (l'union des champs des vivants est la vision de l'escouade) ; `skills` ceux qu'il connaît (assert :
+    // pas deux fois le même identifiant) ; `equipementDeDepart` ce qu'il porte à sa création, et son armure
+    // est celle de cet équipement ; `zoneDeControle` la zone qu'il engage autour de lui, en pixels, bord à
+    // bord (0 : il n'engage personne). Son `rang` n'est lu que par la formation.
+    Personnage(sf::Vector2f centre, DefinitionPersonnage definition);
     void dessiner(sf::RenderTarget& rendu) const;
     // `obstacles` le bloquent ; `aContourner` est ce que son chemin évite : la ligne droite n'est
     // prise que si elle passe loin d'eux, sinon A* avec coût (voir Mobile::allerVers).

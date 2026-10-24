@@ -3,22 +3,21 @@
 #include <cassert>
 #include <random>
 
-Skill::Skill(TypeSkill type, float portee, int puissance, float rechargeMin, float rechargeMax, float rayonZone,
-             float tempsExecution)
-    : m_type(type),
-      m_portee(portee),
-      m_puissance(puissance),
-      m_rechargeMin(rechargeMin),
-      m_rechargeMax(rechargeMax),
-      m_tempsRecharge(rechargeMax),
+Skill::Skill(const DefinitionDeSkill& definition)
+    : m_type(definition.type),
+      m_portee(definition.portee),
+      m_puissance(definition.puissance),
+      m_rechargeMin(definition.rechargeMin),
+      m_rechargeMax(definition.rechargeMax),
+      m_tempsRecharge(definition.rechargeMax),
       m_recharge(0.0f),
-      m_rayonZone(rayonZone),
-      m_tempsExecution(tempsExecution),
+      m_rayonZone(definition.rayonZone),
+      m_tempsExecution(definition.tempsExecution),
       m_executionRestante(0.0f),
       m_phase(PhaseSkill::Pret)
 {
-    assert(rechargeMin >= 0.0f && rechargeMin <= rechargeMax);
-    assert(tempsExecution >= 0.0f);
+    assert(m_rechargeMin >= 0.0f && m_rechargeMin <= m_rechargeMax);
+    assert(m_tempsExecution >= 0.0f);
 }
 
 // Recharge fixe (aucun tirage) si les deux bornes sont égales ; sinon tirage

@@ -56,7 +56,9 @@ std::vector<EvenementDeCombat> parmi(const std::vector<EvenementDeCombat>& evene
 Partie deuxGuerriersQuiTuentLeMemeMonstre() {
     std::vector<DefinitionPersonnage> composition = {guerrierDeTest(), guerrierDeTest()};
     for (DefinitionPersonnage& definition : composition) {
-        definition.attaqueDeBase = Skill(TypeSkill::Degats, s_porteeMeleeDeTest, 2000, 100.0f, 100.0f, 0.0f, s_executionBaseDeTest);
+        definition.attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest, .puissance = 2000,
+                                          .rechargeMin = 100.0f, .rechargeMax = 100.0f,
+                                          .tempsExecution = s_executionBaseDeTest});
     }
     return Partie(niveauDegage({{260.0f, 210.0f}}), std::move(composition), s_graineDeTest);
 }
@@ -141,7 +143,9 @@ TEST_CASE("evenements : un coup gratuit est marque, dans les deux sens") {
     // Trois guerriers ; le premier frappe une fois (300 dégâts, recharge de 100 s). Dès que le monstre est
     // touché, le troisième le provoque : il quitte le premier, qui le frappe gratuitement (300 dégâts).
     std::vector<DefinitionPersonnage> composition = {guerrierDeTest(), guerrierDeTest(), guerrierDeTest()};
-    composition[0].attaqueDeBase = Skill(TypeSkill::Degats, s_porteeMeleeDeTest, 300, 100.0f, 100.0f, 0.0f, s_executionBaseDeTest);
+    composition[0].attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest, .puissance = 300,
+                                          .rechargeMin = 100.0f, .rechargeMax = 100.0f,
+                                          .tempsExecution = s_executionBaseDeTest});
     Partie guerriers(niveauDegage({{270.0f, 160.0f}}), std::move(composition), s_graineDeTest);
     std::vector<EvenementDeCombat> evenements;
     bool provoque = false;

@@ -26,7 +26,8 @@ Monstre::Monstre(sf::Vector2f centre, int id, int armure, int groupe)
       m_vitalite(s_pointsDeVieMax, armure),
       m_id(id),
       m_groupe(groupe),
-      m_attaque(TypeSkill::Degats, 15.0f, 100, 0.7f, 1.3f, 0.0f, s_executionAttaque),  // portée de 15 px, bord à bord
+      m_attaque({.type = TypeSkill::Degats, .portee = 15.0f, .puissance = 100, .rechargeMin = 0.7f,
+                 .rechargeMax = 1.3f, .tempsExecution = s_executionAttaque}),  // portée de 15 px, bord à bord
       m_rayonDetection(200.0f),
       m_rayonTerritoire(s_rayonTerritoire),
       m_etat(Etat::EnGarde),

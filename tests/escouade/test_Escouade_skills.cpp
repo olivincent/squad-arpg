@@ -299,16 +299,23 @@ constexpr AdresseSkill s_adressePluie{1, IdSkill::PluieDeFleches};
 DefinitionPersonnage paladinDeTest() {
     DefinitionPersonnage paladin = guerrierDeTest();
     paladin.skills = {
-        {IdSkill::FrappeSacree, Skill(TypeSkill::Degats, s_porteeMeleeDeTest, s_degatsFrappeSacreeDeTest, 5.0f, 5.0f, 0.0f, 0.3f)},
-        {IdSkill::ImpositionDesMains, Skill(TypeSkill::Soin, s_porteeMeleeDeTest, s_puissanceImpositionDeTest, 10.0f, 10.0f, 0.0f, 0.5f)}};
+        {IdSkill::FrappeSacree, Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest,
+                                       .puissance = s_degatsFrappeSacreeDeTest, .rechargeMin = 5.0f,
+                                       .rechargeMax = 5.0f, .tempsExecution = 0.3f})},
+        {IdSkill::ImpositionDesMains, Skill({.type = TypeSkill::Soin, .portee = s_porteeMeleeDeTest,
+                                             .puissance = s_puissanceImpositionDeTest, .rechargeMin = 10.0f,
+                                             .rechargeMax = 10.0f, .tempsExecution = 0.5f})}};
     return paladin;
 }
 
 DefinitionPersonnage rodeurDeTest() {
     DefinitionPersonnage rodeur = mageDeTest();
     rodeur.skills = {
-        {IdSkill::TirPercant, Skill(TypeSkill::Degats, 200.0f, s_degatsTirDeTest, 6.0f, 6.0f, 0.0f, 0.5f)},
-        {IdSkill::PluieDeFleches, Skill(TypeSkill::Zone, 320.0f, s_degatsPluieDeTest, 8.0f, 8.0f, 45.0f, 0.8f)}};
+        {IdSkill::TirPercant, Skill({.type = TypeSkill::Degats, .portee = 200.0f, .puissance = s_degatsTirDeTest,
+                                     .rechargeMin = 6.0f, .rechargeMax = 6.0f, .tempsExecution = 0.5f})},
+        {IdSkill::PluieDeFleches, Skill({.type = TypeSkill::Zone, .portee = 320.0f, .puissance = s_degatsPluieDeTest,
+                                         .rechargeMin = 8.0f, .rechargeMax = 8.0f, .rayonZone = 45.0f,
+                                         .tempsExecution = 0.8f})}};
     return rodeur;
 }
 

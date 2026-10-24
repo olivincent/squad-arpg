@@ -20,17 +20,16 @@ const sf::Color s_couleurContour(40, 40, 40);       // contour de 1 px vers l'in
 constexpr float s_epaisseurContour = -1.0f;         // négative : vers l'intérieur
 }  // namespace
 
-Personnage::Personnage(sf::Vector2f centre, sf::Color couleur, Skill attaqueDeBase, std::vector<SkillConnu> skills,
-                         const std::vector<ObjetDeDepart>& equipementDeDepart, float rayonVision, float zoneDeControle)
+Personnage::Personnage(sf::Vector2f centre, DefinitionPersonnage definition)
     : m_mobile(centre, {s_cote, s_cote}, s_vitesse),
-      m_couleur(couleur),
-      m_attaqueDeBase(attaqueDeBase),
-      m_skills(std::move(skills)),
+      m_couleur(definition.couleur),
+      m_attaqueDeBase(definition.attaqueDeBase),
+      m_skills(std::move(definition.skills)),
       m_cibleChemin(),
-      m_equipement(equipementDeDepart),
+      m_equipement(definition.equipementDeDepart),
       m_vitalite(s_pointsDeVieMax, m_equipement.armureTotale()),
-      m_rayonVision(rayonVision),
-      m_zoneDeControle(zoneDeControle),
+      m_rayonVision(definition.rayonVision),
+      m_zoneDeControle(definition.zoneDeControle),
       m_actionEngagee()
 {
     for (std::size_t i = 0; i < m_skills.size(); ++i) {

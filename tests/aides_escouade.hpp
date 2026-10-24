@@ -76,51 +76,59 @@ inline constexpr float s_activationZoneDeTest = 0.8f;
 inline constexpr float s_rayonZoneDeTest = 60.0f;   // depuis le point visé
 
 inline Skill attaqueDeMeleeDeTest() {
-    return Skill(TypeSkill::Degats, s_porteeMeleeDeTest, s_degatsBaseDeTest, s_rechargeMeleeMinDeTest,
-                 s_rechargeMeleeMaxDeTest, 0.0f, s_executionBaseDeTest);
+    return Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest, .puissance = s_degatsBaseDeTest,
+                  .rechargeMin = s_rechargeMeleeMinDeTest, .rechargeMax = s_rechargeMeleeMaxDeTest,
+                  .tempsExecution = s_executionBaseDeTest});
 }
 
 inline Skill attaqueDeTireurDeTest() {
-    return Skill(TypeSkill::Degats, s_porteeTireurDeTest, s_degatsBaseDeTest, s_rechargeTireurMinDeTest,
-                 s_rechargeTireurMaxDeTest, 0.0f, s_executionBaseDeTest);
+    return Skill({.type = TypeSkill::Degats, .portee = s_porteeTireurDeTest, .puissance = s_degatsBaseDeTest,
+                  .rechargeMin = s_rechargeTireurMinDeTest, .rechargeMax = s_rechargeTireurMaxDeTest,
+                  .tempsExecution = s_executionBaseDeTest});
 }
 
 // Guerrier de test : devant, mêlée, frappe puissante et provocation.
 inline DefinitionPersonnage guerrierDeTest() {
-    return {sf::Color::Red,
-            attaqueDeMeleeDeTest(),
-            {{IdSkill::FrappePuissante, Skill(TypeSkill::Degats, s_porteeMeleeDeTest, s_degatsFrappeDeTest, s_rechargeFrappeDeTest,
-                                              s_rechargeFrappeDeTest, 0.0f, s_activationFrappeDeTest)},
-             {IdSkill::Provocation, Skill(TypeSkill::Provocation, 0.0f, s_dureeProvocationDeTest, s_rechargeProvocationDeTest,
-                                          s_rechargeProvocationDeTest, s_rayonProvocationDeTest, s_activationProvocationDeTest)}},
-            s_equipementMeleeDeTest,
-            s_rayonVisionDeTest,
-            s_zoneDeControleMeleeDeTest,
-            Rang::Avant};
+    return {.couleur = sf::Color::Red,
+            .attaqueDeBase = attaqueDeMeleeDeTest(),
+            .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest,
+                                               .puissance = s_degatsFrappeDeTest,
+                                               .rechargeMin = s_rechargeFrappeDeTest,
+                                               .rechargeMax = s_rechargeFrappeDeTest,
+                                               .tempsExecution = s_activationFrappeDeTest})},
+             {IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .portee = 0.0f,
+                                           .puissance = s_dureeProvocationDeTest,
+                                           .rechargeMin = s_rechargeProvocationDeTest,
+                                           .rechargeMax = s_rechargeProvocationDeTest,
+                                           .rayonZone = s_rayonProvocationDeTest,
+                                           .tempsExecution = s_activationProvocationDeTest})}},
+            .equipementDeDepart = s_equipementMeleeDeTest,
+            .rayonVision = s_rayonVisionDeTest,
+            .zoneDeControle = s_zoneDeControleMeleeDeTest,
+            .rang = Rang::Avant};
 }
 
 // Prêtre de test : derrière, tireur, soin.
 inline DefinitionPersonnage pretreDeTest() {
-    return {sf::Color(255, 240, 150),
-            attaqueDeTireurDeTest(),
-            {{IdSkill::Soin, Skill(TypeSkill::Soin, s_porteeSoinDeTest, s_puissanceSoinDeTest, s_rechargeSoinDeTest,
-                                   s_rechargeSoinDeTest, 0.0f, s_activationSoinDeTest)}},
-            {},
-            s_rayonVisionDeTest,
-            0.0f,
-            Rang::Arriere};
+    return {.couleur = sf::Color(255, 240, 150),
+            .attaqueDeBase = attaqueDeTireurDeTest(),
+            .skills = {{IdSkill::Soin, Skill({.type = TypeSkill::Soin, .portee = s_porteeSoinDeTest,
+                                    .puissance = s_puissanceSoinDeTest, .rechargeMin = s_rechargeSoinDeTest,
+                                    .rechargeMax = s_rechargeSoinDeTest, .tempsExecution = s_activationSoinDeTest})}},
+            .rayonVision = s_rayonVisionDeTest,
+            .rang = Rang::Arriere};
 }
 
 // Mage de test : derrière, tireur, explosion (skill de zone).
 inline DefinitionPersonnage mageDeTest() {
-    return {sf::Color(160, 80, 220),
-            attaqueDeTireurDeTest(),
-            {{IdSkill::Explosion, Skill(TypeSkill::Zone, s_porteeZoneDeTest, s_degatsZoneDeTest, s_rechargeZoneDeTest,
-                                        s_rechargeZoneDeTest, s_rayonZoneDeTest, s_activationZoneDeTest)}},
-            {},
-            s_rayonVisionDeTest,
-            0.0f,
-            Rang::Arriere};
+    return {.couleur = sf::Color(160, 80, 220),
+            .attaqueDeBase = attaqueDeTireurDeTest(),
+            .skills = {{IdSkill::Explosion, Skill({.type = TypeSkill::Zone, .portee = s_porteeZoneDeTest,
+                                         .puissance = s_degatsZoneDeTest, .rechargeMin = s_rechargeZoneDeTest,
+                                         .rechargeMax = s_rechargeZoneDeTest, .rayonZone = s_rayonZoneDeTest,
+                                         .tempsExecution = s_activationZoneDeTest})}},
+            .rayonVision = s_rayonVisionDeTest,
+            .rang = Rang::Arriere};
 }
 
 // La composition par défaut des tests : guerrier, prêtre, mage (celle du jeu avant l'écran de choix).
@@ -151,8 +159,11 @@ inline Escouade uneEscouadeADeuxGuerriers(sf::Vector2f positionDepart) {
 // soin normal (40 px) : il faut ce soin court pour tester un soin hors de portée.
 inline Escouade uneEscouadeAuSoinCourt(sf::Vector2f positionDepart) {
     std::vector<DefinitionPersonnage> composition = compositionDeTest();
-    composition[1].skills = {{IdSkill::Soin, Skill(TypeSkill::Soin, 33.0f, s_puissanceSoinDeTest, s_rechargeSoinDeTest,
-                                                   s_rechargeSoinDeTest, 0.0f, s_activationSoinDeTest)}};
+    composition[1].skills = {{IdSkill::Soin, Skill({.type = TypeSkill::Soin, .portee = 33.0f,
+                                                    .puissance = s_puissanceSoinDeTest,
+                                                    .rechargeMin = s_rechargeSoinDeTest,
+                                                    .rechargeMax = s_rechargeSoinDeTest,
+                                                    .tempsExecution = s_activationSoinDeTest})}};
     return Escouade(positionDepart, std::move(composition));
 }
 

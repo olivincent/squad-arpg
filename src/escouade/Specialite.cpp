@@ -65,8 +65,8 @@ constexpr std::array<float, 3> s_assombrissements = {0.0f, 0.30f, 0.55f};
 
 // Attaque de base d'un personnage, mêlée ou tireur : la portée et l'intervalle de recharge changent.
 Skill attaqueDeBase(float portee, float rechargeMin, float rechargeMax) {
-    return Skill(TypeSkill::Degats, portee, s_degatsAttaqueDeBase, rechargeMin, rechargeMax, 0.0f,
-                 s_executionAttaqueDeBase);
+    return Skill({.type = TypeSkill::Degats, .portee = portee, .puissance = s_degatsAttaqueDeBase,
+                  .rechargeMin = rechargeMin, .rechargeMax = rechargeMax, .tempsExecution = s_executionAttaqueDeBase});
 }
 
 Skill attaqueDeBaseDeMelee() {
@@ -94,32 +94,58 @@ std::vector<Specialite> construireLeCatalogue() {
     return {
         // Guerrier : devant, au contact.
         {IdSpecialite::Guerrier, "Guerrier",
-         {s_couleurGuerrier, attaqueDeBaseDeMelee(),
-          {{IdSkill::FrappePuissante, Skill(TypeSkill::Degats, s_porteeMelee, s_degatsSkill, s_rechargeSkill, s_rechargeSkill, 0.0f, s_activationSkill)},
-           {IdSkill::Provocation, Skill(TypeSkill::Provocation, 0.0f, s_dureeProvocation, s_rechargeProvocation, s_rechargeProvocation, s_rayonProvocation, s_activationProvocation)}},
-          equipementDeMelee(), s_rayonVision, s_zoneDeControleMelee, Rang::Avant}},
+         {.couleur = s_couleurGuerrier, .attaqueDeBase = attaqueDeBaseDeMelee(),
+          .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = s_porteeMelee,
+                                             .puissance = s_degatsSkill, .rechargeMin = s_rechargeSkill,
+                                             .rechargeMax = s_rechargeSkill, .tempsExecution = s_activationSkill})},
+           {IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .portee = 0.0f,
+                                         .puissance = s_dureeProvocation, .rechargeMin = s_rechargeProvocation,
+                                         .rechargeMax = s_rechargeProvocation, .rayonZone = s_rayonProvocation,
+                                         .tempsExecution = s_activationProvocation})}},
+          .equipementDeDepart = equipementDeMelee(), .rayonVision = s_rayonVision, .zoneDeControle = s_zoneDeControleMelee,
+          .rang = Rang::Avant}},
         // Prêtre : derrière, soigne.
         {IdSpecialite::Pretre, "Prêtre",
-         {s_couleurPretre, attaqueDeBaseDeTireur(),
-          {{IdSkill::Soin, Skill(TypeSkill::Soin, s_porteeSoin, s_puissanceSoin, s_rechargeSoin, s_rechargeSoin, 0.0f, s_activationSoin)}},
-          equipementDeTireur(), s_rayonVision, s_zoneDeControleTireur, Rang::Arriere}},
+         {.couleur = s_couleurPretre, .attaqueDeBase = attaqueDeBaseDeTireur(),
+          .skills = {{IdSkill::Soin, Skill({.type = TypeSkill::Soin, .portee = s_porteeSoin, .puissance = s_puissanceSoin,
+                                  .rechargeMin = s_rechargeSoin, .rechargeMax = s_rechargeSoin,
+                                  .tempsExecution = s_activationSoin})}},
+          .equipementDeDepart = equipementDeTireur(), .rayonVision = s_rayonVision, .zoneDeControle = s_zoneDeControleTireur,
+          .rang = Rang::Arriere}},
         // Mage : derrière, lance l'explosion.
         {IdSpecialite::Mage, "Mage",
-         {s_couleurMage, attaqueDeBaseDeTireur(),
-          {{IdSkill::Explosion, Skill(TypeSkill::Zone, s_porteeZone, s_degatsZone, s_rechargeZone, s_rechargeZone, s_rayonZone, s_activationZone)}},
-          equipementDeTireur(), s_rayonVision, s_zoneDeControleTireur, Rang::Arriere}},
+         {.couleur = s_couleurMage, .attaqueDeBase = attaqueDeBaseDeTireur(),
+          .skills = {{IdSkill::Explosion, Skill({.type = TypeSkill::Zone, .portee = s_porteeZone, .puissance = s_degatsZone,
+                                       .rechargeMin = s_rechargeZone, .rechargeMax = s_rechargeZone,
+                                       .rayonZone = s_rayonZone, .tempsExecution = s_activationZone})}},
+          .equipementDeDepart = equipementDeTireur(), .rayonVision = s_rayonVision, .zoneDeControle = s_zoneDeControleTireur,
+          .rang = Rang::Arriere}},
         // Paladin : devant, au contact, frappe et soigne.
         {IdSpecialite::Paladin, "Paladin",
-         {s_couleurPaladin, attaqueDeBaseDeMelee(),
-          {{IdSkill::FrappeSacree, Skill(TypeSkill::Degats, s_porteeMelee, s_degatsFrappeSacree, s_rechargeFrappeSacree, s_rechargeFrappeSacree, 0.0f, s_activationFrappeSacree)},
-           {IdSkill::ImpositionDesMains, Skill(TypeSkill::Soin, s_porteeMelee, s_puissanceImposition, s_rechargeImposition, s_rechargeImposition, 0.0f, s_activationImposition)}},
-          equipementDeMelee(), s_rayonVision, s_zoneDeControleMelee, Rang::Avant}},
+         {.couleur = s_couleurPaladin, .attaqueDeBase = attaqueDeBaseDeMelee(),
+          .skills = {{IdSkill::FrappeSacree, Skill({.type = TypeSkill::Degats, .portee = s_porteeMelee,
+                                          .puissance = s_degatsFrappeSacree, .rechargeMin = s_rechargeFrappeSacree,
+                                          .rechargeMax = s_rechargeFrappeSacree,
+                                          .tempsExecution = s_activationFrappeSacree})},
+           {IdSkill::ImpositionDesMains, Skill({.type = TypeSkill::Soin, .portee = s_porteeMelee,
+                                                .puissance = s_puissanceImposition,
+                                                .rechargeMin = s_rechargeImposition,
+                                                .rechargeMax = s_rechargeImposition,
+                                                .tempsExecution = s_activationImposition})}},
+          .equipementDeDepart = equipementDeMelee(), .rayonVision = s_rayonVision, .zoneDeControle = s_zoneDeControleMelee,
+          .rang = Rang::Avant}},
         // Rôdeur : derrière, tire de loin et lance une pluie de flèches.
         {IdSpecialite::Rodeur, "Rôdeur",
-         {s_couleurRodeur, attaqueDeBaseDeTireur(),
-          {{IdSkill::TirPercant, Skill(TypeSkill::Degats, s_porteeTirPercant, s_degatsTirPercant, s_rechargeTirPercant, s_rechargeTirPercant, 0.0f, s_activationTirPercant)},
-           {IdSkill::PluieDeFleches, Skill(TypeSkill::Zone, s_porteePluie, s_degatsPluie, s_rechargePluie, s_rechargePluie, s_rayonPluie, s_activationPluie)}},
-          equipementDeTireur(), s_rayonVision, s_zoneDeControleTireur, Rang::Arriere}},
+         {.couleur = s_couleurRodeur, .attaqueDeBase = attaqueDeBaseDeTireur(),
+          .skills = {{IdSkill::TirPercant, Skill({.type = TypeSkill::Degats, .portee = s_porteeTirPercant,
+                                        .puissance = s_degatsTirPercant, .rechargeMin = s_rechargeTirPercant,
+                                        .rechargeMax = s_rechargeTirPercant, .tempsExecution = s_activationTirPercant})},
+           {IdSkill::PluieDeFleches, Skill({.type = TypeSkill::Zone, .portee = s_porteePluie,
+                                            .puissance = s_degatsPluie, .rechargeMin = s_rechargePluie,
+                                            .rechargeMax = s_rechargePluie, .rayonZone = s_rayonPluie,
+                                            .tempsExecution = s_activationPluie})}},
+          .equipementDeDepart = equipementDeTireur(), .rayonVision = s_rayonVision, .zoneDeControle = s_zoneDeControleTireur,
+          .rang = Rang::Arriere}},
     };
 }
 }  // namespace

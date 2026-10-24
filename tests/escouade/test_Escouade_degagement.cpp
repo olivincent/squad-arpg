@@ -32,7 +32,9 @@ constexpr int s_degatsDuMage = 7;  // reconnaissables parmi les 5 de l'attaque d
 // Le mage tire des coups de 7 dégâts (recharge de 0,3 s, exécution de 0,15 s).
 Escouade uneEscouadeAuMageReconnaissable() {
     std::vector<DefinitionPersonnage> composition = compositionDeTest();
-    composition[s_mage - 1].attaqueDeBase = Skill(TypeSkill::Degats, s_porteeTireur, s_degatsDuMage, 0.3f, 0.3f, 0.0f, 0.15f);
+    composition[s_mage - 1].attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = s_porteeTireur,
+                                                   .puissance = s_degatsDuMage, .rechargeMin = 0.3f,
+                                                   .rechargeMax = 0.3f, .tempsExecution = 0.15f});
     return Escouade({300.0f, 500.0f}, std::move(composition));
 }
 
