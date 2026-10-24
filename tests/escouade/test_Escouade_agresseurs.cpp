@@ -48,7 +48,7 @@ TEST_CASE("proieDuMonstre change de cible une fois le plus proche mort") {
     const std::optional<EntiteVue> avant = escouade.proieDuMonstre(1, point);
     REQUIRE(avant.has_value());
 
-    infliger(escouade, 1, point, 200);
+    infliger(escouade, 1, point, s_coupMortel);
     const std::optional<EntiteVue> apres = escouade.proieDuMonstre(1, point);
     REQUIRE(apres.has_value());
 
@@ -60,12 +60,12 @@ TEST_CASE("proieDuMonstre est vide une fois tous les personnages morts") {
     const sf::Vector2f point{1000.0f, 1000.0f};
 
     for (int i = 0; i < 4; ++i) {
-        infliger(escouade, 1, point, 200);
+        infliger(escouade, 1, point, s_coupMortel);
     }
 
     REQUIRE_FALSE(escouade.proieDuMonstre(1, point).has_value());
 
-    infliger(escouade, 1, point, 200);
+    infliger(escouade, 1, point, s_coupMortel);
     REQUIRE_FALSE(escouade.proieDuMonstre(1, point).has_value());
 }
 
@@ -89,7 +89,7 @@ TEST_CASE("Un coup a zero degat n'enregistre aucun agresseur") {
 TEST_CASE("Sans personnage vivant, un coup n'enregistre aucun agresseur") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
     for (int i = 0; i < 4; ++i) {
-        infliger(escouade, 1, {50.0f, 50.0f}, 200);
+        infliger(escouade, 1, {50.0f, 50.0f}, s_coupMortel);
     }
     infliger(escouade, 9, {50.0f, 50.0f}, 10);
 
@@ -224,7 +224,7 @@ TEST_CASE("Une provocation prend fin a la mort du provocateur") {
     escouade.provoquer(7, 2, 4.0f);
     escouade.provoquer(8, 1, 4.0f);
 
-    infliger(escouade, 1, {185.0f, 185.0f}, 200);  // tue la place 2 (le prêtre)
+    infliger(escouade, 1, {185.0f, 185.0f}, s_coupMortel);  // tue la place 2 (le prêtre)
     escouade.mettreAJour(0.016f, carte, {});
 
     const auto& provocations = escouade.getProvocations();
@@ -273,7 +273,7 @@ TEST_CASE("La provocation d'un monstre ne change pas la proie des autres") {
 TEST_CASE("Un monstre provoque dont le provocateur est mort reprend le plus proche") {
     Escouade escouade = uneEscouade({200.0f, 200.0f});
     escouade.provoquer(7, 1, 4.0f);
-    infliger(escouade, 1, {235.0f, 210.0f}, 200);  // tue la place 1
+    infliger(escouade, 1, {235.0f, 210.0f}, s_coupMortel);  // tue la place 1
 
     verifierPointProche(escouade.proieDuMonstre(7, {170.0f, 170.0f})->cercle.centre, {185.0f, 185.0f});
 }
@@ -284,7 +284,7 @@ TEST_CASE("recevoirDegats frappe le meme personnage que proieDuMonstre") {
     const sf::Vector2f monstre{170.0f, 170.0f};
     const Cercle proie = escouade.proieDuMonstre(7, monstre)->cercle;
 
-    infliger(escouade, 7, monstre, 200);
+    infliger(escouade, 7, monstre, s_coupMortel);
 
     const std::vector<Cercle> vivants = escouade.cerclesDesVivants();
     REQUIRE(vivants.size() == 2);
@@ -300,7 +300,7 @@ TEST_CASE("recevoirCoup renvoie les degats subis apres l'armure du personnage to
 
 TEST_CASE("recevoirCoup sur un mort ou sur une place invalide renvoie zero") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    escouade.recevoirCoup(7, 3, 200);
+    escouade.recevoirCoup(7, 3, s_coupMortel);
 
     REQUIRE(escouade.recevoirCoup(7, 3, 10) == 0);
     REQUIRE(escouade.recevoirCoup(7, 9, 10) == 0);
@@ -312,7 +312,7 @@ TEST_CASE("recevoirDegats renvoie les degats subis, zero si tout le monde est mo
 
     REQUIRE(infliger(escouade, 1, point, 10) > 0);
     for (int i = 0; i < 4; ++i) {
-        infliger(escouade, 1, point, 200);
+        infliger(escouade, 1, point, s_coupMortel);
     }
     REQUIRE(infliger(escouade, 1, point, 10) == 0);
 }

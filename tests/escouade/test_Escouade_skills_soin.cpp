@@ -48,7 +48,7 @@ TEST_CASE("choisirCible (soin) choisit la plus petite place en cas d'egalite") {
 
 TEST_CASE("choisirCible (soin) ignore les morts") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    infliger(escouade, 1, {35.0f, 85.0f}, 200);
+    infliger(escouade, 1, {35.0f, 85.0f}, s_coupMortel);
     infliger(escouade, 1, {85.0f, 60.0f}, 10);
 
     REQUIRE(placeAlliePourSoin(escouade) == 1);
@@ -57,7 +57,7 @@ TEST_CASE("choisirCible (soin) ignore les morts") {
 TEST_CASE("choisirCible (soin) est vide quand tout le monde est mort") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
     for (const sf::Vector2f origine : {sf::Vector2f(85.0f, 60.0f), sf::Vector2f(35.0f, 35.0f), sf::Vector2f(35.0f, 85.0f)}) {
-        infliger(escouade, 1, origine, 200);
+        infliger(escouade, 1, origine, s_coupMortel);
     }
 
     REQUIRE_FALSE(escouade.choisirCible(TypeSkill::Soin, s_adresseSoin, {}, carteOuverte()).has_value());
@@ -123,9 +123,9 @@ TEST_CASE("Le soin ne part pas a pleine vie et ne declenche alors pas la recharg
 
 TEST_CASE("Le soin est en recharge juste apres son lancement") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    infliger(escouade, 1, {35.0f, 85.0f}, 60);
+    infliger(escouade, 1, {35.0f, 85.0f}, 600);
 
-    declencher(escouade, s_adresseSoin, {});   // 40 -> 70
+    declencher(escouade, s_adresseSoin, {});   // 400 -> 700
     declencher(escouade, s_adresseSoin, {});   // refusé : recharge
 
     REQUIRE(placeAlliePourSoin(escouade) == 3);
@@ -133,7 +133,7 @@ TEST_CASE("Le soin est en recharge juste apres son lancement") {
 
 TEST_CASE("Un soigneur mort ne soigne pas") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    infliger(escouade, 1, {35.0f, 35.0f}, 200);
+    infliger(escouade, 1, {35.0f, 35.0f}, s_coupMortel);
     infliger(escouade, 1, {35.0f, 85.0f}, 20);
 
     declencher(escouade, s_adresseSoin, {});
@@ -172,7 +172,7 @@ TEST_CASE("Le soin en attente est annule si la cible meurt, sans recharge") {
     infliger(escouade, 1, {85.0f, 60.0f}, 20);
     declencher(escouade, s_adresseSoin, {});
 
-    infliger(escouade, 1, {85.0f, 60.0f}, 200);
+    infliger(escouade, 1, {85.0f, 60.0f}, s_coupMortel);
     static_cast<void>(escouade.attaquer(s_dureeTic, {}, carte, generateur)); // le monstre fantôme n'existe pas : il n'est pas un agresseur
     simuler(escouade, carte, 2.0f);
 
@@ -191,7 +191,7 @@ TEST_CASE("Le soin en attente est annule si le soigneur meurt") {
     infliger(escouade, 1, {85.0f, 60.0f}, 20);
     declencher(escouade, s_adresseSoin, {});
 
-    infliger(escouade, 1, {35.0f, 35.0f}, 200);
+    infliger(escouade, 1, {35.0f, 35.0f}, s_coupMortel);
     simuler(escouade, carte, 2.0f);
 
     REQUIRE(placeAlliePourSoin(escouade) == 1);

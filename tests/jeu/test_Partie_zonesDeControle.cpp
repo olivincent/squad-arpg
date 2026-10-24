@@ -57,7 +57,7 @@ int coupsReconnaissables(float zoneDuPremier, int degats) {
     Partie partie(niveauDegage({{270.0f, 160.0f}}), std::move(composition), s_graineDeTest);
 
     int coups = 0;
-    int pointsDeVie = 100;
+    int pointsDeVie = 1000;
     bool provoque = false;
     for (int i = 0; i < nombreDeTics(1.2f) && !partie.getMonstres().empty(); ++i) {
         partie.mettreAJour(s_dureeTic);
@@ -69,7 +69,7 @@ int coupsReconnaissables(float zoneDuPremier, int degats) {
             ++coups;
         }
         pointsDeVie = apres;
-        if (!provoque && apres < 100) {
+        if (!provoque && apres < 1000) {
             partie.demanderSkill({3, IdSkill::Provocation});
             provoque = true;
         }
@@ -81,18 +81,18 @@ int coupsReconnaissables(float zoneDuPremier, int degats) {
 
 TEST_CASE("zone de controle : un monstre qui quitte un guerrier pour un provocateur est frappe gratuitement") {
     // Le premier coup (normal) et le coup gratuit.
-    REQUIRE(coupsReconnaissables(20.0f, 30) == 2);
+    REQUIRE(coupsReconnaissables(20.0f, 300) == 2);
 }
 
 TEST_CASE("zone de controle : un personnage sans zone ne frappe jamais gratuitement") {
     // Même scénario, mais le premier guerrier n'engage personne : seul son premier coup (normal) compte.
-    REQUIRE(coupsReconnaissables(0.0f, 30) == 1);
+    REQUIRE(coupsReconnaissables(0.0f, 300) == 1);
 }
 
 TEST_CASE("zone de controle : un monstre tue par un coup gratuit est retire et le verrou est leve") {
-    // Le premier coup (60) laisse le monstre à 40 points de vie ; le coup gratuit (60) le tue.
+    // Le premier coup (600) laisse le monstre à 400 points de vie ; le coup gratuit (600) le tue.
     std::vector<DefinitionPersonnage> composition = {guerrierDeTest(), guerrierDeTest(), guerrierDeTest()};
-    composition[0].attaqueDeBase = Skill(TypeSkill::Degats, s_porteeMeleeDeTest, 60, 100.0f, 100.0f, 0.0f, s_executionBaseDeTest);
+    composition[0].attaqueDeBase = Skill(TypeSkill::Degats, s_porteeMeleeDeTest, 600, 100.0f, 100.0f, 0.0f, s_executionBaseDeTest);
     Partie partie(niveauDegage({{270.0f, 160.0f}}), std::move(composition), s_graineDeTest);
     REQUIRE(partie.cliquer({270.0f, 160.0f}) == ResultatClic::Monstre);
 
@@ -100,7 +100,7 @@ TEST_CASE("zone de controle : un monstre tue par un coup gratuit est retire et l
     bool provoque = false;
     for (int i = 0; i < nombreDeTics(1.2f) && !partie.getMonstres().empty(); ++i) {
         partie.mettreAJour(s_dureeTic);
-        if (!provoque && !partie.getMonstres().empty() && partie.getMonstres().front().getPointsDeVie() < 100) {
+        if (!provoque && !partie.getMonstres().empty() && partie.getMonstres().front().getPointsDeVie() < 1000) {
             partie.demanderSkill({3, IdSkill::Provocation});
             provoque = true;
         }
@@ -152,7 +152,7 @@ TEST_CASE("zone de controle : un monstre qui rentre a son poste ne donne ni ne r
 
 namespace {
 
-constexpr int s_degatsDuMageDansLaPartie = 7;
+constexpr int s_degatsDuMageDansLaPartie = 70;
 
 Partie unGuerrierEtUnMageAuContact() {
     std::vector<DefinitionPersonnage> composition = {guerrierDeTest(), mageDeTest()};

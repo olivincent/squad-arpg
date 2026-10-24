@@ -141,7 +141,7 @@ TEST_CASE("deplacer du sac vers un emplacement : case vide ou emplacement refuse
 
 TEST_CASE("deplacer : un personnage mort peut etre equipe") {
     Escouade escouade = escouadeAvecSac({s_gants});
-    REQUIRE(escouade.recevoirCoup(1, s_mage, 1000) > 0);
+    REQUIRE(escouade.recevoirCoup(1, s_mage, s_coupMortel) > 0);
     REQUIRE_FALSE(escouade.placeEstVivante(s_mage));
 
     REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_mage, Emplacement::Gants)));

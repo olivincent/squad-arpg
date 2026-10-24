@@ -112,12 +112,12 @@ TEST_CASE("le paladin est une melee qui frappe et soigne au contact") {
 
     REQUIRE(paladin.skills[0].id == IdSkill::FrappeSacree);
     REQUIRE(paladin.skills[0].skill.getType() == TypeSkill::Degats);
-    REQUIRE(paladin.skills[0].skill.getPuissance() == 20);
+    REQUIRE(paladin.skills[0].skill.getPuissance() == 200);
     REQUIRE(paladin.skills[0].skill.getPortee() == 20.0f);
 
     REQUIRE(paladin.skills[1].id == IdSkill::ImpositionDesMains);
     REQUIRE(paladin.skills[1].skill.getType() == TypeSkill::Soin);
-    REQUIRE(paladin.skills[1].skill.getPuissance() == 25);
+    REQUIRE(paladin.skills[1].skill.getPuissance() == 250);
     REQUIRE(paladin.skills[1].skill.getPortee() == 20.0f);
 }
 
@@ -133,12 +133,12 @@ TEST_CASE("le rodeur est un tireur avec un tir de loin et un skill de zone") {
 
     REQUIRE(rodeur.skills[0].id == IdSkill::TirPercant);
     REQUIRE(rodeur.skills[0].skill.getType() == TypeSkill::Degats);
-    REQUIRE(rodeur.skills[0].skill.getPuissance() == 25);
+    REQUIRE(rodeur.skills[0].skill.getPuissance() == 250);
     REQUIRE(rodeur.skills[0].skill.getPortee() == 200.0f);
 
     REQUIRE(rodeur.skills[1].id == IdSkill::PluieDeFleches);
     REQUIRE(rodeur.skills[1].skill.getType() == TypeSkill::Zone);
-    REQUIRE(rodeur.skills[1].skill.getPuissance() == 12);
+    REQUIRE(rodeur.skills[1].skill.getPuissance() == 120);
     REQUIRE(rodeur.skills[1].skill.getRayonZone() == 45.0f);
     REQUIRE(rodeur.skills[1].skill.getPortee() == 320.0f);
 }

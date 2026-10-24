@@ -51,12 +51,12 @@ std::vector<EvenementDeCombat> parmi(const std::vector<EvenementDeCombat>& evene
     return choisis;
 }
 
-// Deux guerriers (en (235, 185) et (235, 235)) dont l'attaque de base tue d'un coup (200 dégâts), et un
+// Deux guerriers (en (235, 185) et (235, 235)) dont l'attaque de base tue d'un coup (2000 dégâts), et un
 // monstre en (260, 210) qu'ils atteignent tous les deux : leurs deux coups partent au même tic.
 Partie deuxGuerriersQuiTuentLeMemeMonstre() {
     std::vector<DefinitionPersonnage> composition = {guerrierDeTest(), guerrierDeTest()};
     for (DefinitionPersonnage& definition : composition) {
-        definition.attaqueDeBase = Skill(TypeSkill::Degats, s_porteeMeleeDeTest, 200, 100.0f, 100.0f, 0.0f, s_executionBaseDeTest);
+        definition.attaqueDeBase = Skill(TypeSkill::Degats, s_porteeMeleeDeTest, 2000, 100.0f, 100.0f, 0.0f, s_executionBaseDeTest);
     }
     return Partie(niveauDegage({{260.0f, 210.0f}}), std::move(composition), s_graineDeTest);
 }
@@ -138,10 +138,10 @@ TEST_CASE("evenements : un coup gratuit est marque, dans les deux sens") {
     REQUIRE(degats(surLeMage[0]).opportunite);
     REQUIRE(degats(surLeMage[0]).montant == puissanceDuMonstre);  // armure 0
 
-    // Trois guerriers ; le premier frappe une fois (30 dégâts, recharge de 100 s). Dès que le monstre est
-    // touché, le troisième le provoque : il quitte le premier, qui le frappe gratuitement (30 dégâts).
+    // Trois guerriers ; le premier frappe une fois (300 dégâts, recharge de 100 s). Dès que le monstre est
+    // touché, le troisième le provoque : il quitte le premier, qui le frappe gratuitement (300 dégâts).
     std::vector<DefinitionPersonnage> composition = {guerrierDeTest(), guerrierDeTest(), guerrierDeTest()};
-    composition[0].attaqueDeBase = Skill(TypeSkill::Degats, s_porteeMeleeDeTest, 30, 100.0f, 100.0f, 0.0f, s_executionBaseDeTest);
+    composition[0].attaqueDeBase = Skill(TypeSkill::Degats, s_porteeMeleeDeTest, 300, 100.0f, 100.0f, 0.0f, s_executionBaseDeTest);
     Partie guerriers(niveauDegage({{270.0f, 160.0f}}), std::move(composition), s_graineDeTest);
     std::vector<EvenementDeCombat> evenements;
     bool provoque = false;
@@ -157,7 +157,7 @@ TEST_CASE("evenements : un coup gratuit est marque, dans les deux sens") {
     int normaux = 0;
     int gratuits = 0;
     for (const EvenementDeCombat& evenement : parmi<Degats>(evenements, Camp::Monstres)) {
-        if (degats(evenement).montant == 30) {
+        if (degats(evenement).montant == 300) {
             ++(degats(evenement).opportunite ? gratuits : normaux);
         }
     }
@@ -190,14 +190,14 @@ TEST_CASE("evenements : un soin donne un evenement Soin sur l'allie soigne, avec
 }
 
 TEST_CASE("evenements : un coup sur un monstre deja mort dans l'image ne produit rien") {
-    // Les deux coups (200 dégâts) partent au même tic : le premier tue, le second tombe sur un mort (0).
+    // Les deux coups (2000 dégâts) partent au même tic : le premier tue, le second tombe sur un mort (0).
     Partie partie = deuxGuerriersQuiTuentLeMemeMonstre();
 
     const std::vector<EvenementDeCombat> evenements = parmi<Degats>(evenementsPendant(partie, 0.5f), Camp::Monstres);
 
     REQUIRE(partie.getMonstres().empty());
     REQUIRE(evenements.size() == 1);
-    REQUIRE(degats(evenements[0]).montant == 200);
+    REQUIRE(degats(evenements[0]).montant == 2000);
 }
 
 TEST_CASE("evenements : le monstre tue garde son evenement et sa position") {

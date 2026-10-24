@@ -15,7 +15,7 @@ namespace {
 constexpr float s_seuilRecalcul = 40.0f;  // une case, en pixels
 constexpr float s_cote = 20.0f;           // côté du carré, en pixels
 constexpr float s_vitesse = 240.0f;       // en pixels par seconde
-constexpr int s_pointsDeVieMax = 100;
+constexpr int s_pointsDeVieMax = 1000;
 const sf::Color s_couleurContour(40, 40, 40);       // contour de 1 px vers l'intérieur, pour distinguer deux personnages collés
 constexpr float s_epaisseurContour = -1.0f;         // négative : vers l'intérieur
 }  // namespace

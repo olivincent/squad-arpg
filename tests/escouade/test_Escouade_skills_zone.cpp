@@ -32,7 +32,7 @@ TEST_CASE("skillEstPret : faux pour une place invalide") {
 
 TEST_CASE("skillEstPret : faux si le lanceur est mort") {
     Escouade escouade = uneEscouade({200.0f, 200.0f});
-    infliger(escouade, 1, {185.0f, 235.0f}, 200);  // tue la place 3
+    infliger(escouade, 1, {185.0f, 235.0f}, s_coupMortel);  // tue la place 3
 
     REQUIRE_FALSE(escouade.skillEstPret(s_adresseExplosion));
 }
@@ -180,7 +180,7 @@ TEST_CASE("Zone en attente : la mort du lanceur l'annule sans recharge") {
     Escouade escouade = uneEscouade({200.0f, 200.0f});
     const std::vector<EntiteVue> monstres = {EntiteVue{1, cibleMonstre({650.0f, 235.0f})}};
     REQUIRE(declencherZoneEtAttendre(escouade, s_adresseExplosion, {650.0f, 235.0f}, monstres, carte, generateur).empty());
-    infliger(escouade, 1, {185.0f, 235.0f}, 200);  // tue la place 3
+    infliger(escouade, 1, {185.0f, 235.0f}, s_coupMortel);  // tue la place 3
 
     for (int i = 0; i < 300; ++i) {
         REQUIRE(escouade.attaquer(s_dureeTic, monstres, carte, generateur).empty());
@@ -235,7 +235,7 @@ TEST_CASE("Zone : refusee si le lanceur est mort") {
     Generateur generateur = generateurDeTest();
     const TileMap carte = carteDegageeEntouree();
     Escouade escouade = uneEscouade({200.0f, 200.0f});
-    infliger(escouade, 1, {185.0f, 235.0f}, 200);  // tue la place 3
+    infliger(escouade, 1, {185.0f, 235.0f}, s_coupMortel);  // tue la place 3
 
     REQUIRE(declencherZoneEtAttendre(escouade, s_adresseExplosion, {300.0f, 300.0f}, {EntiteVue{1, cibleMonstre({300.0f, 300.0f})}}, carte, generateur).empty());
 }
@@ -313,8 +313,8 @@ TEST_CASE("Zone en attente : en combat verrouille, le lanceur contourne le monst
     Generateur generateur = generateurDeTest();
     const TileMap carte = carteDegageeEntouree();
     Escouade escouade = uneEscouade({200.0f, 200.0f});
-    infliger(escouade, 9, {235.0f, 210.0f}, 200);  // tue le guerrier
-    infliger(escouade, 9, {185.0f, 185.0f}, 200);  // tue le prêtre
+    infliger(escouade, 9, {235.0f, 210.0f}, s_coupMortel);  // tue le guerrier
+    infliger(escouade, 9, {185.0f, 185.0f}, s_coupMortel);  // tue le prêtre
     const Cercle verrou = cibleMonstre({300.0f, 235.0f});
     const std::vector<EntiteVue> monstres = {EntiteVue{1, verrou}};
     escouade.verrouiller(1);

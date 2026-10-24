@@ -222,7 +222,7 @@ TEST_CASE("estVivante reste vraie apres la mort d'un seul personnage") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
     const sf::Vector2f point{1000.0f, 1000.0f};
 
-    infliger(escouade, 1, point, 200);
+    infliger(escouade, 1, point, s_coupMortel);
 
     REQUIRE(escouade.estVivante());
 }
@@ -232,7 +232,7 @@ TEST_CASE("estVivante devient fausse une fois les 3 personnages morts") {
     const sf::Vector2f point{1000.0f, 1000.0f};
 
     for (int i = 0; i < 3; ++i) {
-        infliger(escouade, 1, point, 200);
+        infliger(escouade, 1, point, s_coupMortel);
     }
 
     REQUIRE_FALSE(escouade.estVivante());
@@ -251,7 +251,7 @@ TEST_CASE("cerclesDesVivants n'inclut plus le cercle d'un personnage mort") {
     const std::optional<EntiteVue> futurMort = escouade.proieDuMonstre(1, point);
     REQUIRE(futurMort.has_value());
 
-    infliger(escouade, 1, point, 200);
+    infliger(escouade, 1, point, s_coupMortel);
     const std::vector<Cercle> cercles = escouade.cerclesDesVivants();
 
     REQUIRE(cercles.size() == 2);
@@ -265,7 +265,7 @@ TEST_CASE("cerclesDesVivants est vide une fois tous les personnages morts") {
     const sf::Vector2f point{1000.0f, 1000.0f};
 
     for (int i = 0; i < 3; ++i) {
-        infliger(escouade, 1, point, 200);
+        infliger(escouade, 1, point, s_coupMortel);
     }
 
     REQUIRE(escouade.cerclesDesVivants().empty());
@@ -291,7 +291,7 @@ TEST_CASE("cerclesDeVision n'inclut pas un personnage mort") {
     const std::optional<EntiteVue> futurMort = escouade.proieDuMonstre(1, point);
     REQUIRE(futurMort.has_value());
 
-    infliger(escouade, 1, point, 200);
+    infliger(escouade, 1, point, s_coupMortel);
     const std::vector<Cercle> vision = escouade.cerclesDeVision();
 
     REQUIRE(vision.size() == 2);
@@ -305,7 +305,7 @@ TEST_CASE("cerclesDeVision est vide une fois tous les personnages morts") {
     const sf::Vector2f point{1000.0f, 1000.0f};
 
     for (int i = 0; i < 3; ++i) {
-        infliger(escouade, 1, point, 200);
+        infliger(escouade, 1, point, s_coupMortel);
     }
 
     REQUIRE(escouade.cerclesDeVision().empty());
@@ -504,7 +504,7 @@ TEST_CASE("Separation : apres un demi-tour, les trois personnages rejoignent leu
 TEST_CASE("Separation : un mort ne pousse pas et n'est pas pousse") {
     Escouade escouade = uneEscouade({500.0f, 500.0f});  // centre (510, 510), personnage de la place 3 en (485, 535)
     const TileMap& carte = carteOuverte();
-    infliger(escouade, 1, {-1000.0f, 1000.0f}, 200);  // tue la place 3 (la plus proche de ce point, trop loin pour devenir un agresseur gênant)
+    infliger(escouade, 1, {-1000.0f, 1000.0f}, s_coupMortel);  // tue la place 3 (la plus proche de ce point, trop loin pour devenir un agresseur gênant)
     REQUIRE(escouade.cerclesDesVivants().size() == 2);
 
     // Demi-tour de 50 px vers la gauche : la place finale de la place 2 est

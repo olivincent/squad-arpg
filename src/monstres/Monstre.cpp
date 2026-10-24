@@ -15,7 +15,7 @@
 namespace {
 constexpr float s_cote = 30.0f;      // côté du carré, en pixels
 constexpr float s_vitesse = 160.0f;  // en pixels par seconde
-constexpr int s_pointsDeVieMax = 100;
+constexpr int s_pointsDeVieMax = 1000;
 constexpr float s_executionAttaque = 0.3f;  // en secondes, immobile avant que le coup parte
 constexpr std::uint8_t s_opaciteRetour = 128;  // sur 255 : environ 50 %, pour marquer le retour (débogage F3)
 constexpr float s_regenerationRetour = 0.5f;  // fraction des points de vie maximum rendue par seconde en retour
@@ -26,7 +26,7 @@ Monstre::Monstre(sf::Vector2f centre, int id, int armure, int groupe)
       m_vitalite(s_pointsDeVieMax, armure),
       m_id(id),
       m_groupe(groupe),
-      m_attaque(TypeSkill::Degats, 15.0f, 10, 0.7f, 1.3f, 0.0f, s_executionAttaque),  // portée de 15 px, bord à bord
+      m_attaque(TypeSkill::Degats, 15.0f, 100, 0.7f, 1.3f, 0.0f, s_executionAttaque),  // portée de 15 px, bord à bord
       m_rayonDetection(200.0f),
       m_rayonTerritoire(s_rayonTerritoire),
       m_etat(Etat::EnGarde),

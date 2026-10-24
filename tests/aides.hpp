@@ -25,6 +25,9 @@ inline constexpr Generateur::result_type s_graineDeTest = 12345;
 // Rayon de vision des personnages de test, et de ceux construits à la main dans les tests.
 inline constexpr float s_rayonVisionDeTest = 320.0f;
 
+// Un coup assez fort pour tuer n'importe quelle entité du jeu, quelle que soit son armure.
+inline constexpr int s_coupMortel = 100000;
+
 // Équipement de départ des mêlées de test : les mêmes objets que le catalogue des classes, mais
 // l'armure qui en résulte est toujours lue dans le catalogue d'objets, jamais écrite en littéral.
 inline const std::vector<ObjetDeDepart> s_equipementMeleeDeTest = {{Emplacement::Tete, IdObjet::CasqueDeFer},

@@ -99,7 +99,7 @@ TEST_CASE("attaquer ignore les personnages morts pour decider si l'escouade doit
     Escouade escouade = uneEscouade({50.0f, 50.0f});
     escouade.verrouiller(1);
 
-    infliger(escouade, 1, {1000.0f, 1000.0f}, 200); // tue le personnage le plus proche de ce point
+    infliger(escouade, 1, {1000.0f, 1000.0f}, s_coupMortel); // tue le personnage le plus proche de ce point
 
     escouade.allerVers({300.0f, 60.0f}, carte); // éloigne l'escouade, laisse le mort derrière
     simuler(escouade, carte, 10.0f); // largement assez pour arriver
@@ -335,10 +335,10 @@ TEST_CASE("Une escouade dont tous les personnages sont morts ne frappe plus") {
     Generateur generateur = generateurDeTest();
     const TileMap carte = carteDegagee10x10();
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    infliger(escouade, 1, {85.0f, 35.0f}, 200);
-    infliger(escouade, 1, {85.0f, 85.0f}, 200);
-    infliger(escouade, 1, {35.0f, 35.0f}, 200);
-    infliger(escouade, 1, {35.0f, 85.0f}, 200);
+    infliger(escouade, 1, {85.0f, 35.0f}, s_coupMortel);
+    infliger(escouade, 1, {85.0f, 85.0f}, s_coupMortel);
+    infliger(escouade, 1, {35.0f, 35.0f}, s_coupMortel);
+    infliger(escouade, 1, {35.0f, 85.0f}, s_coupMortel);
 
     REQUIRE(escouade.attaquer(s_dureeTic, {EntiteVue{1, cibleMonstre({85.0f, 60.0f})}}, carte, generateur).empty());
 }
@@ -477,7 +477,7 @@ TEST_CASE("La mort de l'attaquant annule son coup") {
     const std::vector<EntiteVue> monstres = {EntiteVue{1, cibleMonstre({85.0f, 60.0f})}};
     REQUIRE(attaquerCibleUnTic(escouade, monstres, carte, generateur) == 0);
 
-    infliger(escouade, 1, {85.0f, 60.0f}, 1000);  // tue le guerrier en (85, 60)
+    infliger(escouade, 1, {85.0f, 60.0f}, s_coupMortel);  // tue le guerrier en (85, 60)
 
     int total = 0;
     for (int i = 0; i < nombreDeTics(0.2f); ++i) {
@@ -508,7 +508,7 @@ TEST_CASE("recevoirCoup frappe le personnage de la place donnee, pas le plus pro
     Escouade escouade = uneEscouade({50.0f, 50.0f});
 
     // Origine à côté du guerrier de la place 1 (85, 60) ; le coup vise la place 3 (35, 85).
-    escouade.recevoirCoup(1, 3, 1000);
+    escouade.recevoirCoup(1, 3, s_coupMortel);
 
     REQUIRE(escouade.cerclesDesVivants().size() == 2);
     REQUIRE(escouade.placeEstVivante(1));
@@ -546,7 +546,7 @@ TEST_CASE("entitesDeControle donne la place, le cercle et la zone de chaque viva
 
 TEST_CASE("entitesDeControle exclut les morts mais garde la place des autres") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    escouade.recevoirCoup(1, 1, 1000);  // le guerrier meurt
+    escouade.recevoirCoup(1, 1, s_coupMortel);  // le guerrier meurt
 
     const std::vector<EntiteDeControle> entites = escouade.entitesDeControle();
 
@@ -587,7 +587,7 @@ TEST_CASE("candidatsDeFrappe sans provocation donne tous les vivants avec leur p
 
 TEST_CASE("candidatsDeFrappe exclut les morts") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    escouade.recevoirCoup(1, 3, 1000);
+    escouade.recevoirCoup(1, 3, s_coupMortel);
 
     const std::vector<EntiteVue> candidats = escouade.candidatsDeFrappe(1);
 
@@ -611,7 +611,7 @@ TEST_CASE("candidatsDeFrappe d'un monstre provoque ne donne que le provocateur")
 TEST_CASE("candidatsDeFrappe revient a tous les vivants si le provocateur est mort") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
     escouade.provoquer(1, 2, 4.0f);
-    escouade.recevoirCoup(9, 2, 1000);
+    escouade.recevoirCoup(9, 2, s_coupMortel);
 
     const std::vector<EntiteVue> candidats = escouade.candidatsDeFrappe(1);
 
@@ -624,7 +624,7 @@ TEST_CASE("candidatsDeFrappe revient a tous les vivants si le provocateur est mo
 TEST_CASE("candidatsDeFrappe est vide si personne n'est vivant") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
     for (std::size_t place = 1; place <= 3; ++place) {
-        escouade.recevoirCoup(9, place, 1000);
+        escouade.recevoirCoup(9, place, s_coupMortel);
     }
 
     REQUIRE(escouade.candidatsDeFrappe(1).empty());

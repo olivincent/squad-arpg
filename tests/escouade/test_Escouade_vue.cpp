@@ -171,8 +171,8 @@ TEST_CASE("Autodefense : le monstre le plus proche est cache, l'autre est frappe
 // Ne laisse en vie que le mage (en (185, 235)) : seules sa portée et sa vue comptent.
 namespace {
 void garderSeulementLeMage(Escouade& escouade) {
-    infliger(escouade, 1, {235.0f, 210.0f}, 200);
-    infliger(escouade, 1, {185.0f, 185.0f}, 200);
+    infliger(escouade, 1, {235.0f, 210.0f}, s_coupMortel);
+    infliger(escouade, 1, {185.0f, 185.0f}, s_coupMortel);
 }
 }  // namespace
 
@@ -362,7 +362,7 @@ TEST_CASE("unVivantPresDe : vrai quand un vivant est a l'ecart voulu ou moins") 
 TEST_CASE("unVivantPresDe : un mort pres de la zone ne compte pas") {
     Escouade escouade = uneEscouade({200.0f, 200.0f});
     const sf::FloatRect zone({265.0f, 195.0f}, {40.0f, 30.0f});
-    infliger(escouade, 1, {235.0f, 210.0f}, 200);
+    infliger(escouade, 1, {235.0f, 210.0f}, s_coupMortel);
 
     REQUIRE_FALSE(escouade.unVivantPresDe(zone, 20.0f));
 }

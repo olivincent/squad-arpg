@@ -61,7 +61,7 @@ TEST_CASE("etatDuSkill juste apres un declenchement : recharge complete") {
 TEST_CASE("etatDuSkill d'un lanceur mort : lanceurVivant est faux") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
     for (int i = 0; i < 3; ++i) {
-        infliger(escouade, 1, {1000.0f, 1000.0f}, 200);
+        infliger(escouade, 1, {1000.0f, 1000.0f}, s_coupMortel);
     }
 
     const std::optional<EtatSkill> etat = escouade.etatDuSkill(s_adresseProvocation);
@@ -162,7 +162,7 @@ TEST_CASE("La mort du lanceur annule l'activation, sans recharge consommee") {
     escouade.recevoirCoup(1, 1, 30);
     REQUIRE(escouade.declencherSkill(s_adresseSoin, {}, carteOuverte(), generateur).empty());
 
-    escouade.recevoirCoup(1, 2, 1000);
+    escouade.recevoirCoup(1, 2, s_coupMortel);
     static_cast<void>(attaquerPendant(escouade, {}, 1.0f, generateur));
 
     REQUIRE(placeAlliePourSoin(escouade) == 1);  // personne n'a été soigné
@@ -186,7 +186,7 @@ TEST_CASE("La mort de l'allie vise annule l'activation d'un soin, sans recharge"
     escouade.recevoirCoup(1, 1, 30);
     REQUIRE(escouade.declencherSkill(s_adresseSoin, {}, carteOuverte(), generateur).empty());
 
-    escouade.recevoirCoup(1, 1, 1000);
+    escouade.recevoirCoup(1, 1, s_coupMortel);
     static_cast<void>(attaquerPendant(escouade, {}, 1.0f, generateur));
 
     REQUIRE(escouade.skillEstPret(s_adresseSoin));
