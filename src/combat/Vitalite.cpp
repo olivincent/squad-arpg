@@ -24,6 +24,10 @@ int Vitalite::recevoirDegats(int montant) {
     return degats;
 }
 
+void Vitalite::definirMaximum(int maximum) {
+    m_pointsDeVie.changerMaximum(maximum);
+}
+
 int Vitalite::soigner(int montant) {
     return m_pointsDeVie.soigner(montant);
 }

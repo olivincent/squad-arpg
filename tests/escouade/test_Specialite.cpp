@@ -5,6 +5,7 @@
 
 #include "interface/BarreDeRaccourcis.hpp"
 #include "aides.hpp"
+#include "combat/Caracteristiques.hpp"
 #include "combat/Defense.hpp"
 #include "escouade/Composition.hpp"
 #include "objets/CatalogueObjets.hpp"
@@ -226,4 +227,24 @@ TEST_CASE("armure des classes : une escouade du catalogue encaisse selon l'equip
 
     REQUIRE(escouade.recevoirCoup(7, 1, 40) == appliquerArmure(40, armureDuGuerrier));
     REQUIRE(escouade.recevoirCoup(7, 2, 40) == 40);
+}
+
+TEST_CASE("caracteristiques des classes : somme de 50, et les points de vie maximum de depart sont les memes pour toutes") {
+    for (const Specialite& classe : catalogue()) {
+        const DefinitionPersonnage& definition = classe.definition;
+        int somme = 0;
+        for (const Caracteristique caracteristique : s_caracteristiques) {
+            somme += definition.caracteristiques.valeur(caracteristique);
+        }
+        REQUIRE(somme == 50);
+        REQUIRE(pointsDeVieMax(definition.pointsDeVieDeBase, definition.caracteristiques) == 1000);
+    }
+}
+
+TEST_CASE("caracteristiques des classes : le guerrier a plus d'Endurance que le mage, le mage plus de Savoir") {
+    const Caracteristiques& guerrier = specialite(IdSpecialite::Guerrier).definition.caracteristiques;
+    const Caracteristiques& mage = specialite(IdSpecialite::Mage).definition.caracteristiques;
+
+    REQUIRE(guerrier.valeur(Caracteristique::Endurance) > mage.valeur(Caracteristique::Endurance));
+    REQUIRE(mage.valeur(Caracteristique::Savoir) > guerrier.valeur(Caracteristique::Savoir));
 }

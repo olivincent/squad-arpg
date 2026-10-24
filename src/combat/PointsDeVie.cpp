@@ -1,5 +1,6 @@
 // ./src/combat/PointsDeVie.cpp
 #include "combat/PointsDeVie.hpp"
+#include <algorithm>
 #include <cassert>
 
 PointsDeVie::PointsDeVie(int maximum)
@@ -28,6 +29,14 @@ int PointsDeVie::soigner(int montant) {
         m_valeur = m_maximum;
     }
     return m_valeur - avant;
+}
+
+void PointsDeVie::changerMaximum(int nouveauMaximum) {
+    assert(nouveauMaximum > 0);
+    if (estVivant()) {
+        m_valeur = std::clamp(m_valeur + (nouveauMaximum - m_maximum), 1, nouveauMaximum);
+    }
+    m_maximum = nouveauMaximum;
 }
 
 bool PointsDeVie::estVivant() const {

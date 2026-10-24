@@ -93,6 +93,8 @@ public:
     [[nodiscard]] float getRayonVision() const;
     [[nodiscard]] sf::Color getCouleur() const;
     [[nodiscard]] const Equipement& getEquipement() const;
+    // Ses caractéristiques effectives : la base de sa classe plus les bonus de son équipement.
+    [[nodiscard]] const Caracteristiques& getCaracteristiques() const;
     // Porte `objet` à cet emplacement (`assert` : `peutAller`) et rend celui qui y était. L'armure est
     // recalculée en entier depuis l'équipement. Permis pour un mort.
     [[nodiscard]] std::optional<Objet> poserEquipement(Emplacement emplacement, Objet objet);
@@ -106,11 +108,17 @@ private:
     std::vector<SkillConnu> m_skills; // sans doublon d'identifiant
     std::optional<sf::Vector2f> m_cibleChemin; // cible du dernier A* ; vide = pas de chemin en cours
     Equipement m_equipement;  // déclaré avant m_vitalite : l'armure en est tirée à la construction
+    Caracteristiques m_caracteristiquesDeBase;  // celles de sa classe, jamais modifiées
+    Caracteristiques m_caracteristiques;        // effectives : seul `recalculerCaracteristiques` les écrit
+    int m_pointsDeVieDeBase;                    // sans l'Endurance
     Vitalite m_vitalite;    // points de vie et armure
     float m_rayonVision;    // en pixels
     float m_zoneDeControle; // en pixels, bord à bord
     // Seul endroit où l'armure de la vitalité change : toujours la somme de l'équipement, jamais ajustée.
     void recalculerArmure();
+    // Seul endroit où les caractéristiques effectives (et le maximum de points de vie qui en vient)
+    // changent : toujours la base plus l'équipement, jamais ajustées.
+    void recalculerCaracteristiques();
     [[nodiscard]] const Skill* trouverSkill(IdSkill id) const;  // nullptr si le personnage ne connaît pas ce skill
     [[nodiscard]] Skill* trouverSkill(IdSkill id);
     std::optional<ActionEngagee> m_actionEngagee; // action en exécution et sa cible ; lue seulement pendant l'exécution

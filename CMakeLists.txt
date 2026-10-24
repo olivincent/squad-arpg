@@ -72,6 +72,7 @@ add_library(squad_core STATIC
     src/base/Eclaircir.cpp
     src/combat/PointsDeVie.cpp
     src/combat/Vitalite.cpp
+    src/combat/Caracteristiques.cpp
     src/combat/Defense.cpp
     src/combat/ResolutionDuCoup.cpp
     src/objets/Emplacement.cpp

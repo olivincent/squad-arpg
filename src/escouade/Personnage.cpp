@@ -15,7 +15,6 @@ namespace {
 constexpr float s_seuilRecalcul = 40.0f;  // une case, en pixels
 constexpr float s_cote = 20.0f;           // côté du carré, en pixels
 constexpr float s_vitesse = 240.0f;       // en pixels par seconde
-constexpr int s_pointsDeVieMax = 1000;
 const sf::Color s_couleurContour(40, 40, 40);       // contour de 1 px vers l'intérieur, pour distinguer deux personnages collés
 constexpr float s_epaisseurContour = -1.0f;         // négative : vers l'intérieur
 }  // namespace
@@ -27,7 +26,10 @@ Personnage::Personnage(sf::Vector2f centre, DefinitionPersonnage definition)
       m_skills(std::move(definition.skills)),
       m_cibleChemin(),
       m_equipement(definition.equipementDeDepart),
-      m_vitalite(s_pointsDeVieMax, m_equipement.armureTotale()),
+      m_caracteristiquesDeBase(definition.caracteristiques),
+      m_caracteristiques(m_caracteristiquesDeBase),
+      m_pointsDeVieDeBase(definition.pointsDeVieDeBase),
+      m_vitalite(pointsDeVieMax(m_pointsDeVieDeBase, m_caracteristiques), m_equipement.armureTotale()),
       m_rayonVision(definition.rayonVision),
       m_zoneDeControle(definition.zoneDeControle),
       m_actionEngagee()
@@ -320,4 +322,13 @@ std::optional<Objet> Personnage::retirerEquipement(Emplacement emplacement) {
 
 void Personnage::recalculerArmure() {
     m_vitalite.definirArmure(m_equipement.armureTotale());
+}
+
+void Personnage::recalculerCaracteristiques() {
+    m_caracteristiques = m_caracteristiquesDeBase;
+    m_vitalite.definirMaximum(pointsDeVieMax(m_pointsDeVieDeBase, m_caracteristiques));
+}
+
+const Caracteristiques& Personnage::getCaracteristiques() const {
+    return m_caracteristiques;
 }

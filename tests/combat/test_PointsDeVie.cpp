@@ -99,3 +99,63 @@ TEST_CASE("PointsDeVie soigner un mort renvoie zero") {
 
     REQUIRE(vie.soigner(50) == 0);
 }
+
+TEST_CASE("PointsDeVie : monter le maximum soigne de la meme difference") {
+    PointsDeVie vie(100);
+    vie.subirDegats(30);
+
+    vie.changerMaximum(160);
+
+    REQUIRE(vie.getMaximum() == 160);
+    REQUIRE(vie.getValeur() == 130);
+}
+
+TEST_CASE("PointsDeVie : baisser le maximum blesse de la meme difference") {
+    PointsDeVie vie(100);
+    vie.subirDegats(30);
+
+    vie.changerMaximum(60);
+
+    REQUIRE(vie.getMaximum() == 60);
+    REQUIRE(vie.getValeur() == 30);
+}
+
+TEST_CASE("PointsDeVie : un vivant garde au moins 1 point de vie quand le maximum baisse") {
+    PointsDeVie vie(100);
+    vie.subirDegats(90);
+
+    vie.changerMaximum(20);
+
+    REQUIRE(vie.getValeur() == 1);
+    REQUIRE(vie.estVivant());
+}
+
+TEST_CASE("PointsDeVie : un mort reste a zero quand le maximum change") {
+    PointsDeVie vie(100);
+    vie.subirDegats(100);
+
+    vie.changerMaximum(300);
+    REQUIRE(vie.getValeur() == 0);
+    vie.changerMaximum(10);
+    REQUIRE(vie.getValeur() == 0);
+    REQUIRE_FALSE(vie.estVivant());
+}
+
+TEST_CASE("PointsDeVie : un vivant plein reste plein quand le maximum change") {
+    PointsDeVie vie(100);
+
+    vie.changerMaximum(160);
+    REQUIRE(vie.getValeur() == 160);
+    vie.changerMaximum(40);
+    REQUIRE(vie.getValeur() == 40);
+}
+
+TEST_CASE("PointsDeVie : aller-retour du maximum rend la meme valeur quand rien n'est plafonne") {
+    PointsDeVie vie(100);
+    vie.subirDegats(50);
+
+    vie.changerMaximum(160);
+    vie.changerMaximum(100);
+
+    REQUIRE(vie.getValeur() == 50);
+}

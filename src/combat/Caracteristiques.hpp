@@ -53,3 +53,14 @@ public:
 private:
     std::array<int, s_nombreDeCaracteristiques> m_valeurs{};
 };
+
+// Valeur de référence (à la *Pillars of Eternity*) : un effet de caractéristique se calcule par rapport à
+// 10, qui ne donne ni bonus ni malus. Provisoire, à tester.
+inline constexpr int s_valeurDeReference = 10;
+
+// Points de vie maximum que donne chaque point d'Endurance. Provisoire, à tester.
+inline constexpr int s_pvParPointDEndurance = 20;
+
+// Points de vie maximum d'un personnage : ceux de sa classe plus `s_pvParPointDEndurance` par point
+// d'Endurance (effective : base de classe plus équipement). Précondition : le résultat est > 0.
+[[nodiscard]] int pointsDeVieMax(int pointsDeVieDeBase, const Caracteristiques& caracteristiques);

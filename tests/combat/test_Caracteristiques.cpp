@@ -47,3 +47,10 @@ TEST_CASE("Caracteristiques : += accumule") {
     REQUIRE(total.valeur(Caracteristique::Puissance) == 5);
     REQUIRE(total.valeur(Caracteristique::Endurance) == 0);
 }
+
+TEST_CASE("pointsDeVieMax : la base plus 20 par point d'Endurance, les autres caracteristiques sont sans effet") {
+    const Caracteristiques caracteristiques({99, 14, 99, 99, 99});
+
+    REQUIRE(pointsDeVieMax(720, caracteristiques) == 720 + s_pvParPointDEndurance * 14);
+    REQUIRE(pointsDeVieMax(720, Caracteristiques()) == 720);
+}

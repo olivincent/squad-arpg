@@ -14,6 +14,8 @@ public:
     // Résout le coup (`resoudreCoup`) puis retire les points de vie. Renvoie les dégâts après
     // armure, non plafonnés par les points de vie restants ; 0 pour un mort.
     int recevoirDegats(int montant);
+    // Change le maximum des points de vie (`PointsDeVie::changerMaximum`). Précondition : `maximum > 0`.
+    void definirMaximum(int maximum);
     // Renvoie les points réellement rendus (plafonnés au maximum ; 0 pour un mort).
     int soigner(int montant);
     [[nodiscard]] bool estVivant() const;

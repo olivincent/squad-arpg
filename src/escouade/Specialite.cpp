@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <utility>
 #include "base/Eclaircir.hpp"
+#include "combat/Caracteristiques.hpp"
 #include "combat/IdSkill.hpp"
 #include "combat/TypeSkill.hpp"
 #include "objets/Equipement.hpp"
@@ -60,6 +61,20 @@ constexpr float s_rechargePluie = 8.0f;           // en secondes
 constexpr float s_activationPluie = 0.8f;         // en secondes
 constexpr float s_rayonPluie = 45.0f;             // rayon de zone, depuis le point visé
 
+// Caractéristiques de base de chaque classe (somme 50, provisoires, à tester) : Puissance, Endurance,
+// Adresse, Savoir, Volonté. Les points de vie de base sont ajustés pour que les points de vie maximum de
+// départ (base + `s_pvParPointDEndurance` × Endurance) restent ceux d'avant l'étape 88 : 1000.
+constexpr Caracteristiques s_caracteristiquesGuerrier({12, 14, 10, 6, 8});
+constexpr Caracteristiques s_caracteristiquesPaladin({11, 13, 8, 7, 11});
+constexpr Caracteristiques s_caracteristiquesPretre({10, 10, 8, 10, 12});
+constexpr Caracteristiques s_caracteristiquesMage({10, 8, 8, 14, 10});
+constexpr Caracteristiques s_caracteristiquesRodeur({10, 10, 14, 8, 8});
+constexpr int s_pointsDeVieDeBaseGuerrier = 720;  // + 20 × 14
+constexpr int s_pointsDeVieDeBasePaladin = 740;   // + 20 × 13
+constexpr int s_pointsDeVieDeBasePretre = 800;    // + 20 × 10
+constexpr int s_pointsDeVieDeBaseMage = 840;      // + 20 × 8
+constexpr int s_pointsDeVieDeBaseRodeur = 800;    // + 20 × 10
+
 // Part de noir mélangée à la couleur de la classe, selon le nombre de fois où elle a déjà été prise.
 constexpr std::array<float, 3> s_assombrissements = {0.0f, 0.30f, 0.55f};
 
@@ -102,7 +117,9 @@ std::vector<Specialite> construireLeCatalogue() {
                                          .puissance = s_dureeProvocation, .rechargeMin = s_rechargeProvocation,
                                          .rechargeMax = s_rechargeProvocation, .rayonZone = s_rayonProvocation,
                                          .tempsExecution = s_activationProvocation})}},
-          .equipementDeDepart = equipementDeMelee(), .rayonVision = s_rayonVision, .zoneDeControle = s_zoneDeControleMelee,
+          .equipementDeDepart = equipementDeMelee(), .rayonVision = s_rayonVision,
+          .caracteristiques = s_caracteristiquesGuerrier, .pointsDeVieDeBase = s_pointsDeVieDeBaseGuerrier,
+          .zoneDeControle = s_zoneDeControleMelee,
           .rang = Rang::Avant}},
         // Prêtre : derrière, soigne.
         {IdSpecialite::Pretre, "Prêtre",
@@ -110,7 +127,9 @@ std::vector<Specialite> construireLeCatalogue() {
           .skills = {{IdSkill::Soin, Skill({.type = TypeSkill::Soin, .portee = s_porteeSoin, .puissance = s_puissanceSoin,
                                   .rechargeMin = s_rechargeSoin, .rechargeMax = s_rechargeSoin,
                                   .tempsExecution = s_activationSoin})}},
-          .equipementDeDepart = equipementDeTireur(), .rayonVision = s_rayonVision, .zoneDeControle = s_zoneDeControleTireur,
+          .equipementDeDepart = equipementDeTireur(), .rayonVision = s_rayonVision,
+          .caracteristiques = s_caracteristiquesPretre, .pointsDeVieDeBase = s_pointsDeVieDeBasePretre,
+          .zoneDeControle = s_zoneDeControleTireur,
           .rang = Rang::Arriere}},
         // Mage : derrière, lance l'explosion.
         {IdSpecialite::Mage, "Mage",
@@ -118,7 +137,9 @@ std::vector<Specialite> construireLeCatalogue() {
           .skills = {{IdSkill::Explosion, Skill({.type = TypeSkill::Zone, .portee = s_porteeZone, .puissance = s_degatsZone,
                                        .rechargeMin = s_rechargeZone, .rechargeMax = s_rechargeZone,
                                        .rayonZone = s_rayonZone, .tempsExecution = s_activationZone})}},
-          .equipementDeDepart = equipementDeTireur(), .rayonVision = s_rayonVision, .zoneDeControle = s_zoneDeControleTireur,
+          .equipementDeDepart = equipementDeTireur(), .rayonVision = s_rayonVision,
+          .caracteristiques = s_caracteristiquesMage, .pointsDeVieDeBase = s_pointsDeVieDeBaseMage,
+          .zoneDeControle = s_zoneDeControleTireur,
           .rang = Rang::Arriere}},
         // Paladin : devant, au contact, frappe et soigne.
         {IdSpecialite::Paladin, "Paladin",
@@ -132,7 +153,9 @@ std::vector<Specialite> construireLeCatalogue() {
                                                 .rechargeMin = s_rechargeImposition,
                                                 .rechargeMax = s_rechargeImposition,
                                                 .tempsExecution = s_activationImposition})}},
-          .equipementDeDepart = equipementDeMelee(), .rayonVision = s_rayonVision, .zoneDeControle = s_zoneDeControleMelee,
+          .equipementDeDepart = equipementDeMelee(), .rayonVision = s_rayonVision,
+          .caracteristiques = s_caracteristiquesPaladin, .pointsDeVieDeBase = s_pointsDeVieDeBasePaladin,
+          .zoneDeControle = s_zoneDeControleMelee,
           .rang = Rang::Avant}},
         // Rôdeur : derrière, tire de loin et lance une pluie de flèches.
         {IdSpecialite::Rodeur, "Rôdeur",
@@ -144,7 +167,9 @@ std::vector<Specialite> construireLeCatalogue() {
                                             .puissance = s_degatsPluie, .rechargeMin = s_rechargePluie,
                                             .rechargeMax = s_rechargePluie, .rayonZone = s_rayonPluie,
                                             .tempsExecution = s_activationPluie})}},
-          .equipementDeDepart = equipementDeTireur(), .rayonVision = s_rayonVision, .zoneDeControle = s_zoneDeControleTireur,
+          .equipementDeDepart = equipementDeTireur(), .rayonVision = s_rayonVision,
+          .caracteristiques = s_caracteristiquesRodeur, .pointsDeVieDeBase = s_pointsDeVieDeBaseRodeur,
+          .zoneDeControle = s_zoneDeControleTireur,
           .rang = Rang::Arriere}},
     };
 }

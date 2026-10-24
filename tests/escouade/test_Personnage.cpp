@@ -10,6 +10,7 @@
 #include "aides.hpp"
 #include "escouade/Personnage.hpp"
 #include "base/Cercle.hpp"
+#include "combat/Caracteristiques.hpp"
 #include "combat/Defense.hpp"
 #include "combat/IdSkill.hpp"
 #include "combat/Skill.hpp"
@@ -999,4 +1000,29 @@ TEST_CASE("l'armure du personnage additionne tous les objets de depart") {
                        .equipementDeDepart = depart, .rayonVision = s_rayonVisionDeTest});
 
     REQUIRE(equipe.recevoirDegats(40) == appliquerArmure(40, armureDe(depart)));
+}
+
+TEST_CASE("les caracteristiques effectives d'un personnage sont celles de sa definition") {
+    const Caracteristiques base({12, 14, 10, 6, 8});
+    const Personnage personnage({100.0f, 100.0f},
+                                {.couleur = sf::Color::White,
+                                 .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f}),
+                                 .rayonVision = s_rayonVisionDeTest,
+                                 .caracteristiques = base});
+
+    REQUIRE(personnage.getCaracteristiques() == base);
+}
+
+TEST_CASE("les points de vie maximum d'un personnage viennent de sa base et de son Endurance") {
+    constexpr int pointsDeVieDeBase = 700;
+    const Caracteristiques base({12, 14, 10, 6, 8});
+    const Personnage personnage({100.0f, 100.0f},
+                                {.couleur = sf::Color::White,
+                                 .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f}),
+                                 .rayonVision = s_rayonVisionDeTest,
+                                 .caracteristiques = base,
+                                 .pointsDeVieDeBase = pointsDeVieDeBase});
+
+    REQUIRE(personnage.getPointsDeVieMax() == pointsDeVieMax(pointsDeVieDeBase, base));
+    REQUIRE(personnage.getPointsDeVie() == personnage.getPointsDeVieMax());
 }
