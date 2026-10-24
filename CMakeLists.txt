@@ -163,6 +163,7 @@ add_executable(tests
     tests/combat/test_PointsDeVie.cpp
     tests/combat/test_Vitalite.cpp
     tests/combat/test_Defense.cpp
+    tests/combat/test_Caracteristiques.cpp
     tests/combat/test_ResolutionDuCoup.cpp
     tests/objets/test_Emplacement.cpp
     tests/objets/test_CatalogueObjets.cpp

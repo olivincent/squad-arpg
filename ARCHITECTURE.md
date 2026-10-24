@@ -207,7 +207,7 @@ Un dossier n'inclut que lui-même et ceux qui le **précèdent** dans cet ordre 
 ```
 base → monde → combat → objets → escouade, monstres → jeu → interface → app
 rendu : ne dépend que de base
-objets : ne dépend que de base
+objets : ne dépend que de base et de combat (`Caracteristiques`)
 ```
 
 - `escouade/` et `monstres/` ne s'incluent pas entre eux : ils communiquent par `combat/`

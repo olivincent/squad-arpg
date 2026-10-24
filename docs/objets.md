@@ -10,7 +10,7 @@ le glisser-déposer (étape 85) les déplace. L'armure et son effet sur les dég
 - **Un dossier `objets/`, entre `combat` et `escouade`** : ordre `base → monde → combat → objets →
   escouade, monstres → jeu → …`. Le butin au sol (`jeu/`) et de futures tables de butin
   (`monstres/`) auront besoin des objets, et `monstres/` ne peut pas inclure `escouade/`. `objets/` ne
-  dépend que de `base/` et de la bibliothèque standard (en fait, pour l'instant, que de lui-même).
+  dépend que de `base/`, de `combat/` (depuis l'étape 88 : les bonus de caractéristiques d'un objet, `combat/Caracteristiques`) et de la bibliothèque standard.
 - **Emplacement ≠ catégorie** : dix emplacements (où l'on porte), huit catégories (ce qu'est
   l'objet). Deux emplacements (les anneaux) reçoivent la même catégorie, et plus tard une arme
   pourra aller dans deux mains. `peutAller(CategorieObjet, Emplacement)` est la seule source de la
