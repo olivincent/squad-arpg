@@ -7,6 +7,7 @@
 #include "aides.hpp"
 #include "aides_escouade.hpp"
 #include "base/Cercle.hpp"
+#include "monstres/DefinitionDeMonstre.hpp"
 #include "monstres/Monstre.hpp"
 #include "jeu/Partie.hpp"
 
@@ -154,7 +155,7 @@ TEST_CASE("une partie reaffectee avec un niveau neuf recommence") {
 
     REQUIRE_FALSE(partie.estPerdue());
     REQUIRE(partie.getMonstres().size() == 6);
-    const int vieDUnMonstreNeuf = Monstre({0.0f, 0.0f}, 1, 0, 0).getPointsDeVie();
+    const int vieDUnMonstreNeuf = Monstre({0.0f, 0.0f}, 1, 0, monstreOrdinaire()).getPointsDeVie();
     for (const Monstre& monstre : partie.getMonstres()) {
         REQUIRE(monstre.getPointsDeVie() == vieDUnMonstreNeuf);
     }

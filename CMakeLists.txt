@@ -48,6 +48,7 @@ add_library(squad_core STATIC
     src/monde/Chemin.cpp
     src/escouade/Personnage.cpp
     src/monde/Deplacement.cpp
+    src/monstres/DefinitionDeMonstre.cpp
     src/monstres/Monstre.cpp
     src/combat/Skill.cpp
     src/monde/Mobile.cpp

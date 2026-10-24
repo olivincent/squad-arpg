@@ -13,23 +13,19 @@
 #include <cstdint>
 
 namespace {
-constexpr float s_cote = 30.0f;      // côté du carré, en pixels
-constexpr float s_vitesse = 160.0f;  // en pixels par seconde
-constexpr int s_pointsDeVieMax = 1000;
-constexpr float s_executionAttaque = 0.3f;  // en secondes, immobile avant que le coup parte
 constexpr std::uint8_t s_opaciteRetour = 128;  // sur 255 : environ 50 %, pour marquer le retour (débogage F3)
-constexpr float s_regenerationRetour = 0.5f;  // fraction des points de vie maximum rendue par seconde en retour
 }  // namespace
 
-Monstre::Monstre(sf::Vector2f centre, int id, int armure, int groupe)
-    : m_mobile(centre, {s_cote, s_cote}, s_vitesse),
-      m_vitalite(s_pointsDeVieMax, armure),
+Monstre::Monstre(sf::Vector2f centre, int id, int groupe, const DefinitionDeMonstre& definition)
+    : m_mobile(centre, {definition.cote, definition.cote}, definition.vitesse),
+      m_vitalite(definition.pointsDeVieMax, definition.armure),
       m_id(id),
       m_groupe(groupe),
-      m_attaque({.type = TypeSkill::Degats, .portee = 15.0f, .puissance = 100, .rechargeMin = 0.7f,
-                 .rechargeMax = 1.3f, .tempsExecution = s_executionAttaque}),  // portée de 15 px, bord à bord
-      m_rayonDetection(200.0f),
-      m_rayonTerritoire(s_rayonTerritoire),
+      m_attaque(definition.attaque),
+      m_rayonDetection(definition.rayonDetection),
+      m_rayonTerritoire(definition.rayonTerritoire),
+      m_zoneDeControle(definition.zoneDeControle),
+      m_regenerationRetour(definition.regenerationRetour),
       m_etat(Etat::EnGarde),
       m_poste(centre),
       m_alerte(false),
@@ -119,7 +115,7 @@ int Monstre::getPointsDeVie() const {
 }
 
 float Monstre::getZoneDeControle() const {
-    return s_zoneDeControle;
+    return m_zoneDeControle;
 }
 
 int Monstre::getPuissanceAttaque() const {
@@ -206,7 +202,7 @@ void Monstre::mettreAJour(float dt, std::optional<EntiteVue> proie, const std::v
 
     if (m_etat == Etat::Retour) {
         // Seule la partie entière est soignée : un entier à 0,83 point par image serait tronqué à 0.
-        m_soinAccumule += static_cast<float>(m_vitalite.getMaximum()) * s_regenerationRetour * dt;
+        m_soinAccumule += static_cast<float>(m_vitalite.getMaximum()) * m_regenerationRetour * dt;
         const int entier = static_cast<int>(m_soinAccumule);
         m_vitalite.soigner(entier);
         m_soinAccumule -= static_cast<float>(entier);

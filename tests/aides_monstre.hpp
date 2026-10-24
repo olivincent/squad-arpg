@@ -10,6 +10,7 @@
 #include "base/Aleatoire.hpp"
 #include "base/Cercle.hpp"
 #include "combat/EntiteVue.hpp"
+#include "monstres/DefinitionDeMonstre.hpp"
 #include "monstres/Monstre.hpp"
 #include "monde/TileMap.hpp"
 
@@ -37,6 +38,13 @@ inline TileMap carteAvecMur() {
         plan[static_cast<std::size_t>(ligne)][4] = '#';
     }
     return TileMap(plan, 40.0f);
+}
+
+// Le monstre ordinaire avec cette armure (celle du niveau ; la plupart des tests n'en veulent pas).
+inline DefinitionDeMonstre monstreAvecArmure(int armure) {
+    DefinitionDeMonstre definition = monstreOrdinaire();
+    definition.armure = armure;
+    return definition;
 }
 
 // Simule le temps qui passe par tics de 1/60 s, comme dans main.cpp.
@@ -76,13 +84,13 @@ inline int frapperEnEntier(Monstre& monstre, Cercle cible, Generateur& generateu
     return 0;
 }
 
-// Amène le monstre en retour, sorti du territoire (plus de `Monstre::s_rayonTerritoire`
+// Amène le monstre en retour, sorti du territoire (plus de `monstreOrdinaire().rayonTerritoire`
 // de son poste) : la proie lointaine à 800 px de son poste n'est jamais détectée.
 // `degatsEnPoursuite` est infligé avant le retour (en retour, le monstre est invulnérable).
 inline void amenerEnRetourHorsTerritoire(Monstre& monstre, const TileMap& carte, int degatsEnPoursuite = 0) {
     ecoulerTemps(monstre, 0.2f, pointCible({250.0f, 100.0f}), carte); // détection
     monstre.recevoirDegats(degatsEnPoursuite);
-    while ((monstre.getCentre() - sf::Vector2f(100.0f, 100.0f)).length() <= Monstre::s_rayonTerritoire) {
+    while ((monstre.getCentre() - sf::Vector2f(100.0f, 100.0f)).length() <= monstreOrdinaire().rayonTerritoire) {
         ecoulerTemps(monstre, 1.0f / 60.0f, pointCible({900.0f, 100.0f}), carte);
     }
     ecoulerTemps(monstre, 1.0f / 60.0f, pointCible({900.0f, 100.0f}), carte); // bascule en retour

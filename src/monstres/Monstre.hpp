@@ -6,6 +6,7 @@
 #include "combat/EntiteVue.hpp"
 #include "monde/Mobile.hpp"
 #include "combat/Vitalite.hpp"
+#include "monstres/DefinitionDeMonstre.hpp"
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <optional>
@@ -15,14 +16,11 @@ class TileMap;
 
 class Monstre {
 public:
-    // Distance maximale au poste (en pixels) au-delà de laquelle un monstre abandonne.
-    static constexpr float s_rayonTerritoire = 600.0f;
-    // Zone de contrôle (en pixels, bord à bord) : tout monstre engage ce qui est à cette distance.
-    static constexpr float s_zoneDeControle = 20.0f;
-
     // `groupe` est un identifiant opaque : des monstres de même groupe « vont
-    // ensemble ». Le monstre ne sait pas ce qu'il désigne.
-    Monstre(sf::Vector2f centre, int id, int armure, int groupe);
+    // ensemble ». Le monstre ne sait pas ce qu'il désigne. `definition` : toutes ses valeurs
+    // d'équilibrage (taille, vitesse, points de vie, armure, détection, territoire, zone de contrôle,
+    // attaque) ; le monstre n'en choisit aucune.
+    Monstre(sf::Vector2f centre, int id, int groupe, const DefinitionDeMonstre& definition);
     // `marquerLeRetour` (débogage F3) : le carré d'un monstre qui rentre à son poste est semi-transparent.
     void dessiner(sf::RenderTarget& rendu, bool estCible, bool marquerLeRetour) const;
     // Débogage (F3) : trait fin du centre du monstre à travers le chemin restant de son Mobile.
@@ -89,6 +87,8 @@ private:
     Skill m_attaque;
     float m_rayonDetection;
     float m_rayonTerritoire;
+    float m_zoneDeControle;
+    float m_regenerationRetour;
     Etat m_etat;
     sf::Vector2f m_poste;
     bool m_alerte; // posée par `alerter`, consommée par `mettreAJour`

@@ -11,6 +11,7 @@
 #include "combat/EntiteVue.hpp"
 #include "combat/Cible.hpp"
 #include "monde/ObjetInteractif.hpp"
+#include "monstres/DefinitionDeMonstre.hpp"
 #include "objets/CatalogueObjets.hpp"
 
 namespace {
@@ -22,9 +23,11 @@ constexpr float s_epaisseurZoneDeControle = 1.0f;
 
 Partie::Partie(const Niveau& niveau, std::vector<DefinitionPersonnage> composition, Generateur::result_type graine)
     : m_carte(niveau.plan, niveau.tailleCase), m_escouade(niveau.departEscouade, std::move(composition)), m_generateur(graine), m_vision(m_carte) {
+    DefinitionDeMonstre definitionDesMonstres = monstreOrdinaire();
+    definitionDesMonstres.armure = niveau.armureMonstres;
     int prochainId = 1;
     for (const MonstreDuNiveau& monstre : niveau.monstres) {
-        m_monstres.emplace_back(monstre.position, prochainId++, niveau.armureMonstres, monstre.groupe);
+        m_monstres.emplace_back(monstre.position, prochainId++, monstre.groupe, definitionDesMonstres);
     }
     int prochainIdObjet = 1;
     for (const PorteDuNiveau& porte : niveau.portes) {
