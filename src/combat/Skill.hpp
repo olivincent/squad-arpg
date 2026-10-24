@@ -28,7 +28,7 @@ enum class PhaseSkill { Pret, EnExecution, EnRecharge };
 
 // Les données d'un skill, nommées à la construction (initialisation désignée) : sept valeurs de
 // types voisins qu'on ne confond plus. Voir `Skill` pour leur sens.
-struct DefinitionDeSkill {
+struct DefinitionDeSkill {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
     TypeSkill type;
     float portee;        // en pixels, écart bord à bord
     int puissance;

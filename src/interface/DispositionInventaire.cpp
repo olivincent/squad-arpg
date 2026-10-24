@@ -1,5 +1,6 @@
 // ./src/interface/DispositionInventaire.cpp
 #include "interface/DispositionInventaire.hpp"
+#include "combat/Caracteristiques.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -19,7 +20,8 @@ constexpr std::size_t s_emplacementsParColonne = 5;
 
 constexpr float s_cote = 44.0f;  // une case du sac
 constexpr float s_ecartEntreCases = 4.0f;
-constexpr float s_hautDuSac = 470.0f;
+constexpr float s_hauteurDeLigneDeCaracteristique = 18.0f;
+constexpr float s_hautDuSac = 500.0f;
 
 constexpr float s_decalageInfobulle = 16.0f;  // entre le curseur et le coin de l'infobulle
 
@@ -55,6 +57,25 @@ sf::FloatRect rectangleDeLEmplacement(std::size_t place, Emplacement emplacement
     const float y = s_hautDesColonnes + s_hauteurEnTete + s_hauteurArmure + 2.0f * s_ecartVertical +
                     static_cast<float>(rangee) * (s_hauteurEmplacement + s_ecartEntreEmplacements);
     return {{x, y}, {s_largeurEmplacement, s_hauteurEmplacement}};
+}
+
+sf::FloatRect rectangleDesCaracteristiques(std::size_t place, sf::Vector2f tailleDeVue) {
+    const float haut = s_hautDesColonnes + s_hauteurEnTete + s_hauteurArmure + 2.0f * s_ecartVertical +
+                       static_cast<float>(s_emplacementsParColonne) * s_hauteurEmplacement +
+                       static_cast<float>(s_emplacementsParColonne - 1) * s_ecartEntreEmplacements + s_ecartVertical;
+    return {{xDeLaColonne(place, tailleDeVue), haut},
+            {s_largeurDeColonne, static_cast<float>(s_lignesDeCaracteristiques) * s_hauteurDeLigneDeCaracteristique}};
+}
+
+sf::FloatRect rectangleDeLaCellule(std::size_t place, std::size_t indice, sf::Vector2f tailleDeVue) {
+    assert(indice <= s_nombreDeCaracteristiques);
+    const sf::FloatRect bloc = rectangleDesCaracteristiques(place, tailleDeVue);
+    const float largeurDeCellule = bloc.size.x / 2.0f;
+    const std::size_t colonne = indice / s_lignesDeCaracteristiques;
+    const std::size_t rangee = indice % s_lignesDeCaracteristiques;
+    return {{bloc.position.x + static_cast<float>(colonne) * largeurDeCellule,
+             bloc.position.y + static_cast<float>(rangee) * s_hauteurDeLigneDeCaracteristique},
+            {largeurDeCellule, s_hauteurDeLigneDeCaracteristique}};
 }
 
 sf::FloatRect rectangleDeLaCaseDuSac(std::size_t indice, sf::Vector2f tailleDeVue) {

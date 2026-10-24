@@ -8,6 +8,7 @@
 #include <variant>
 #include <vector>
 
+#include "combat/Caracteristiques.hpp"
 #include "interface/DispositionInventaire.hpp"
 
 namespace {
@@ -23,6 +24,9 @@ std::vector<sf::FloatRect> tousLesRectangles(sf::Vector2f vue) {
     for (std::size_t place = 1; place <= s_nombreDePlaces; ++place) {
         rectangles.push_back(rectangleDeLEnTete(place, vue));
         rectangles.push_back(rectangleDeLArmure(place, vue));
+        for (std::size_t cellule = 0; cellule <= s_nombreDeCaracteristiques; ++cellule) {
+            rectangles.push_back(rectangleDeLaCellule(place, cellule, vue));
+        }
         for (std::size_t i = 0; i < s_nombreEmplacements; ++i) {
             rectangles.push_back(rectangleDeLEmplacement(place, static_cast<Emplacement>(i), vue));
         }
@@ -161,4 +165,27 @@ TEST_CASE("infobulle : toujours entierement dans la vue, curseur n'importe ou") 
             REQUIRE(zone.position.y + zone.size.y <= s_vueMinimale.y);
         }
     }
+}
+
+TEST_CASE("disposition : les cellules du bloc des caracteristiques tiennent dans le bloc, en deux colonnes") {
+    const sf::FloatRect bloc = rectangleDesCaracteristiques(2, s_vueMinimale);
+
+    for (std::size_t cellule = 0; cellule <= s_nombreDeCaracteristiques; ++cellule) {
+        const sf::FloatRect zone = rectangleDeLaCellule(2, cellule, s_vueMinimale);
+        REQUIRE(zone.position.x >= bloc.position.x);
+        REQUIRE(zone.position.y >= bloc.position.y);
+        REQUIRE(zone.position.x + zone.size.x <= bloc.position.x + bloc.size.x);
+        REQUIRE(zone.position.y + zone.size.y <= bloc.position.y + bloc.size.y);
+    }
+    REQUIRE(rectangleDeLaCellule(2, 0, s_vueMinimale).position.x == bloc.position.x);
+    REQUIRE(rectangleDeLaCellule(2, s_lignesDeCaracteristiques, s_vueMinimale).position.x > bloc.position.x);
+    REQUIRE(rectangleDeLaCellule(2, 1, s_vueMinimale).position.y > rectangleDeLaCellule(2, 0, s_vueMinimale).position.y);
+}
+
+TEST_CASE("disposition : le bloc des caracteristiques est sous les emplacements et au-dessus du sac") {
+    const sf::FloatRect dernierEmplacement = rectangleDeLEmplacement(1, Emplacement::Bottes, s_vueMinimale);
+    const sf::FloatRect bloc = rectangleDesCaracteristiques(1, s_vueMinimale);
+
+    REQUIRE(bloc.position.y >= dernierEmplacement.position.y + dernierEmplacement.size.y);
+    REQUIRE(bloc.position.y + bloc.size.y < rectangleDeLaCaseDuSac(0, s_vueMinimale).position.y);
 }

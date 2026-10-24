@@ -1,6 +1,7 @@
 // ./src/interface/AffichageObjets.cpp
 #include "interface/AffichageObjets.hpp"
 
+#include "interface/AffichageCaracteristiques.hpp"
 #include "objets/CatalogueObjets.hpp"
 
 // Les trois `switch` n'ont pas de `default` : un emplacement, une catégorie ou un objet ajouté
@@ -56,5 +57,14 @@ std::string sigleDeLObjet(IdObjet id) {
 
 std::vector<std::string> lignesDeLInfobulle(IdObjet id) {
     const DefinitionObjet& definition = definitionObjet(id);
-    return {definition.nom, nomDeLaCategorie(definition.categorie), "Armure : +" + std::to_string(definition.armure)};
+    std::vector<std::string> lignes = {definition.nom, nomDeLaCategorie(definition.categorie)};
+    if (definition.armure != 0) {
+        lignes.push_back("Armure : +" + std::to_string(definition.armure));
+    }
+    for (const Caracteristique caracteristique : s_caracteristiques) {
+        if (const int bonus = definition.bonus.valeur(caracteristique); bonus != 0) {
+            lignes.push_back(nomDeLaCaracteristique(caracteristique) + " : " + (bonus > 0 ? "+" : "") + std::to_string(bonus));
+        }
+    }
+    return lignes;
 }

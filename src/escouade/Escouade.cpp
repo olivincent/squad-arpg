@@ -439,6 +439,13 @@ std::optional<int> Escouade::pointsDeVieDuPersonnage(std::size_t place) const {
     return personnageDeLaPlace(place).getPointsDeVie();
 }
 
+std::optional<int> Escouade::pointsDeVieMaxDuPersonnage(std::size_t place) const {
+    if (!placeValide(place)) {
+        return std::nullopt;
+    }
+    return personnageDeLaPlace(place).getPointsDeVieMax();
+}
+
 std::optional<Caracteristiques> Escouade::caracteristiquesDuPersonnage(std::size_t place) const {
     if (!placeValide(place)) {
         return std::nullopt;

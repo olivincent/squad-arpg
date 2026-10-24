@@ -19,8 +19,10 @@
 #include <variant>
 #include <vector>
 
+#include "combat/Caracteristiques.hpp"
 #include "combat/Cible.hpp"
 #include "escouade/Escouade.hpp"
+#include "interface/AffichageCaracteristiques.hpp"
 #include "interface/AffichageObjets.hpp"
 #include "interface/Contexte.hpp"
 #include "interface/DispositionInventaire.hpp"
@@ -36,6 +38,7 @@ constexpr unsigned int s_tailleTitre = 36;
 constexpr float s_hauteurTitre = 20.0f;  // du haut du panneau
 constexpr unsigned int s_tailleEnTete = 18;
 constexpr unsigned int s_tailleArmure = 16;
+constexpr unsigned int s_tailleCaracteristique = 14;
 constexpr unsigned int s_tailleNomDObjet = 12;
 constexpr unsigned int s_tailleNomDEmplacement = 11;
 constexpr unsigned int s_tailleSigle = 18;
@@ -98,6 +101,29 @@ void dessinerEmplacement(sf::RenderTarget& rendu, const sf::Font& police, sf::Fl
     }
 }
 
+// Une ligne de texte dans la cellule du bloc des caractéristiques.
+void dessinerCellule(sf::RenderTarget& rendu, const sf::Font& police, sf::FloatRect zone, const std::string& ligne) {
+    sf::Text texteDeLaCellule = texte(police, ligne, s_tailleCaracteristique, sf::Color::White);
+    texteDeLaCellule.setPosition(zone.position + sf::Vector2f{s_margeDuTexte, 0.0f});
+    rendu.draw(texteDeLaCellule);
+}
+
+// Sous les emplacements d'un personnage : ses cinq caractéristiques effectives (avec le bonus de son
+// équipement s'il y en a un) et ses points de vie, actuels sur maximum.
+void dessinerLesCaracteristiques(sf::RenderTarget& rendu, const sf::Font& police, const Escouade& escouade,
+                                 std::size_t place, sf::Vector2f tailleDeVue) {
+    const Caracteristiques effectives = escouade.caracteristiquesDuPersonnage(place).value_or(Caracteristiques());
+    const Caracteristiques bonus = escouade.equipementDuPersonnage(place).bonusTotal();
+    for (std::size_t i = 0; i < s_nombreDeCaracteristiques; ++i) {
+        const Caracteristique caracteristique = s_caracteristiques[i];
+        dessinerCellule(rendu, police, rectangleDeLaCellule(place, i, tailleDeVue),
+                        ligneDeCaracteristique(caracteristique, effectives.valeur(caracteristique), bonus.valeur(caracteristique)));
+    }
+    dessinerCellule(rendu, police, rectangleDeLaCellule(place, s_nombreDeCaracteristiques, tailleDeVue),
+                    "PV " + std::to_string(escouade.pointsDeVieDuPersonnage(place).value_or(0)) + " / " +
+                        std::to_string(escouade.pointsDeVieMaxDuPersonnage(place).value_or(0)));
+}
+
 // La colonne d'un personnage : son en-tête (classe, couleur du personnage), son armure et ses 10 emplacements.
 void dessinerColonne(sf::RenderTarget& rendu, const sf::Font& police, const Escouade& escouade, std::size_t place,
                      const std::string& nomDeLaClasse, sf::Vector2f tailleDeVue) {
@@ -129,6 +155,7 @@ void dessinerColonne(sf::RenderTarget& rendu, const sf::Font& police, const Esco
         dessinerEmplacement(rendu, police, rectangleDeLEmplacement(place, emplacement, tailleDeVue), emplacement,
                             equipement.a(emplacement));
     }
+    dessinerLesCaracteristiques(rendu, police, escouade, place, tailleDeVue);
 }
 
 // Le sac : une case par indice, vide, ou avec le sigle de son objet.

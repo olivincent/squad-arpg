@@ -44,3 +44,27 @@ TEST_CASE("affichage : l'infobulle donne le nom, la categorie et l'armure") {
     REQUIRE(lignes[1] == "Casque");
     REQUIRE(lignes[2] == "Armure : +" + std::to_string(definitionObjet(IdObjet::CasqueDeFer).armure));
 }
+
+TEST_CASE("affichage : l'infobulle d'un objet sans armure n'a pas de ligne d'armure, mais une ligne par bonus") {
+    const std::vector<std::string> lignes = lignesDeLInfobulle(IdObjet::AnneauDePuissance);
+
+    REQUIRE(lignes.size() == 3);
+    REQUIRE(lignes[0] == definitionObjet(IdObjet::AnneauDePuissance).nom);
+    REQUIRE(lignes[1] == "Anneau");
+    REQUIRE(lignes[2] == "Puissance : +" + std::to_string(definitionObjet(IdObjet::AnneauDePuissance).bonus.valeur(Caracteristique::Puissance)));
+}
+
+TEST_CASE("affichage : l'infobulle du collier d'endurance donne l'Endurance") {
+    const std::vector<std::string> lignes = lignesDeLInfobulle(IdObjet::CollierDEndurance);
+
+    REQUIRE(lignes.size() == 3);
+    REQUIRE(lignes[2] == "Endurance : +" + std::to_string(definitionObjet(IdObjet::CollierDEndurance).bonus.valeur(Caracteristique::Endurance)));
+}
+
+TEST_CASE("affichage : aucun objet du catalogue n'affiche une valeur nulle") {
+    for (const DefinitionObjet& definition : catalogueObjets()) {
+        for (const std::string& ligne : lignesDeLInfobulle(definition.id)) {
+            REQUIRE(ligne.find("+0") == std::string::npos);
+        }
+    }
+}

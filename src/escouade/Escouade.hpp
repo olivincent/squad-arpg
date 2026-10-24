@@ -58,9 +58,11 @@ public:
     [[nodiscard]] std::vector<AdresseSkill> adressesDesSkills() const;
     // Couleur du personnage de cette place ; vide si la place est invalide.
     [[nodiscard]] std::optional<sf::Color> couleurDuPersonnage(std::size_t place) const;
-    // Points de vie du personnage de cette place ; vide si la place est invalide. Lu par les tests : le
-    // seul accesseur des points de vie (le jeu les montre par la barre de vie dessinée).
+    // Points de vie du personnage de cette place ; vide si la place est invalide. Lu par les tests et par
+    // l'écran d'inventaire (le jeu les montre sinon par la barre de vie dessinée).
     [[nodiscard]] std::optional<int> pointsDeVieDuPersonnage(std::size_t place) const;
+    // Points de vie maximum du personnage de cette place ; vide si la place est invalide.
+    [[nodiscard]] std::optional<int> pointsDeVieMaxDuPersonnage(std::size_t place) const;
     // Caractéristiques effectives (base plus équipement) du personnage de cette place ; vide si la place est invalide.
     [[nodiscard]] std::optional<Caracteristiques> caracteristiquesDuPersonnage(std::size_t place) const;
     [[nodiscard]] float rayonZoneDuSkill(AdresseSkill adresse) const;
