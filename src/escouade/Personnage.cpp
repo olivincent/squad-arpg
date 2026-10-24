@@ -114,7 +114,7 @@ float Personnage::getPorteeAttaqueDeBase() const {
 }
 
 int Personnage::getPuissanceAttaqueDeBase() const {
-    return m_attaqueDeBase.getPuissance();
+    return montantDe(m_attaqueDeBase);
 }
 
 float Personnage::getZoneDeControle() const {
@@ -149,7 +149,7 @@ int Personnage::avancerAttaque(float dt, Generateur& generateur) {
         return 0;
     }
     m_actionEngagee.reset();
-    return m_attaqueDeBase.getPuissance();
+    return montantDe(m_attaqueDeBase);
 }
 
 void Personnage::annulerAttaque() {
@@ -256,7 +256,7 @@ int Personnage::avancerSkill(float dt, Generateur& generateur) {
     m_actionEngagee.reset();
     // Le skill est parti : l'attaque de base repart pour une recharge complète.
     m_attaqueDeBase.relancerRecharge(generateur);
-    return skill.getPuissance();
+    return montantDe(skill);
 }
 
 void Personnage::annulerSkill() {
@@ -329,6 +329,10 @@ void Personnage::recalculerArmure() {
 void Personnage::recalculerCaracteristiques() {
     m_caracteristiques = m_caracteristiquesDeBase + m_equipement.bonusTotal();
     m_vitalite.definirMaximum(pointsDeVieMax(m_pointsDeVieDeBase, m_caracteristiques));
+}
+
+int Personnage::montantDe(const Skill& skill) const {
+    return montantEffectif(skill.getPuissance(), skill.getCoefficients(), m_caracteristiques);
 }
 
 const Caracteristiques& Personnage::getCaracteristiques() const {

@@ -2,6 +2,7 @@
 #pragma once
 #include "base/Aleatoire.hpp"
 #include "base/Cercle.hpp"
+#include "combat/Caracteristiques.hpp"
 #include "combat/TypeSkill.hpp"
 
 // Un skill : un type, une portée, une puissance et une recharge (un
@@ -35,6 +36,7 @@ struct DefinitionDeSkill {
     float rechargeMax;   // en secondes
     float rayonZone = 0.0f;       // en pixels
     float tempsExecution = 0.0f;  // en secondes, entre l'engagement du coup et son départ
+    Coefficients coefficients = {};  // ce que la puissance doit aux caractéristiques du lanceur
 };
 
 class Skill {
@@ -58,6 +60,7 @@ public:
     [[nodiscard]] float getRayonZone() const;
     [[nodiscard]] float getPortee() const;
     [[nodiscard]] int getPuissance() const;
+    [[nodiscard]] const Coefficients& getCoefficients() const;
 
 private:
     TypeSkill m_type;
@@ -69,6 +72,7 @@ private:
     float m_recharge;       // en secondes, avant le prochain déclenchement possible
     float m_rayonZone;      // en pixels
     float m_tempsExecution; // en secondes, entre l'engagement du coup et son départ
+    Coefficients m_coefficients;
     float m_executionRestante; // en secondes, lue seulement en phase EnExecution
     PhaseSkill m_phase;
 

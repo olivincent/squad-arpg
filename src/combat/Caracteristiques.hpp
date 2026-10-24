@@ -54,9 +54,39 @@ private:
     std::array<int, s_nombreDeCaracteristiques> m_valeurs{};
 };
 
+// Combien un skill profite de chaque caractéristique pour son montant (dégâts ou soin) : 0 = pas du tout,
+// 1 = à plein. Même forme que `Caracteristiques`, en flottants. Tout à 0 par défaut.
+class Coefficients {
+public:
+    constexpr Coefficients() = default;
+    // Dans l'ordre de l'enum : Puissance, Endurance, Adresse, Savoir, Volonté.
+    explicit constexpr Coefficients(const std::array<float, s_nombreDeCaracteristiques>& valeurs)
+        : m_valeurs(valeurs) {}
+
+    // Un seul coefficient, les autres à 0.
+    [[nodiscard]] static constexpr Coefficients seul(Caracteristique caracteristique, float valeur) {
+        Coefficients resultat;
+        resultat.m_valeurs[static_cast<std::size_t>(caracteristique)] = valeur;
+        return resultat;
+    }
+
+    [[nodiscard]] constexpr float valeur(Caracteristique caracteristique) const {
+        return m_valeurs[static_cast<std::size_t>(caracteristique)];
+    }
+
+    [[nodiscard]] constexpr bool operator==(const Coefficients&) const = default;
+
+private:
+    std::array<float, s_nombreDeCaracteristiques> m_valeurs{};
+};
+
 // Valeur de référence (à la *Pillars of Eternity*) : un effet de caractéristique se calcule par rapport à
 // 10, qui ne donne ni bonus ni malus. Provisoire, à tester.
 inline constexpr int s_valeurDeReference = 10;
+
+// Part du montant que gagne (ou perd, sous la référence) chaque point de caractéristique, multipliée par
+// le coefficient du skill. Provisoire, à tester.
+inline constexpr float s_bonusParPoint = 0.03f;
 
 // Points de vie maximum que donne chaque point d'Endurance. Provisoire, à tester.
 inline constexpr int s_pvParPointDEndurance = 20;
@@ -64,3 +94,9 @@ inline constexpr int s_pvParPointDEndurance = 20;
 // Points de vie maximum d'un personnage : ceux de sa classe plus `s_pvParPointDEndurance` par point
 // d'Endurance (effective : base de classe plus équipement). Précondition : le résultat est > 0.
 [[nodiscard]] int pointsDeVieMax(int pointsDeVieDeBase, const Caracteristiques& caracteristiques);
+
+// Le montant (dégâts ou soin) d'un skill de personnage, une fois ses caractéristiques prises en compte :
+//   montant × (1 + Σ coefficient × `s_bonusParPoint` × (caractéristique − `s_valeurDeReference`)),
+// arrondi au plus proche, jamais négatif. Seul endroit qui calcule ce montant : tout ce qui inflige un
+// dégât ou un soin de personnage le lit. Précondition : montant >= 0.
+[[nodiscard]] int montantEffectif(int montant, const Coefficients& coefficients, const Caracteristiques& caracteristiques);

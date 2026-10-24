@@ -75,13 +75,17 @@ constexpr int s_pointsDeVieDeBasePretre = 800;    // + 20 × 10
 constexpr int s_pointsDeVieDeBaseMage = 840;      // + 20 × 8
 constexpr int s_pointsDeVieDeBaseRodeur = 800;    // + 20 × 10
 
+// Tous les montants des personnages (dégâts, soins) profitent de la Puissance, à plein et d'elle seule
+// (la durée d'une provocation n'est pas un montant).
+constexpr Coefficients s_puissanceSeule = Coefficients::seul(Caracteristique::Puissance, 1.0f);
+
 // Part de noir mélangée à la couleur de la classe, selon le nombre de fois où elle a déjà été prise.
 constexpr std::array<float, 3> s_assombrissements = {0.0f, 0.30f, 0.55f};
 
 // Attaque de base d'un personnage, mêlée ou tireur : la portée et l'intervalle de recharge changent.
 Skill attaqueDeBase(float portee, float rechargeMin, float rechargeMax) {
     return Skill({.type = TypeSkill::Degats, .portee = portee, .puissance = s_degatsAttaqueDeBase,
-                  .rechargeMin = rechargeMin, .rechargeMax = rechargeMax, .tempsExecution = s_executionAttaqueDeBase});
+                  .rechargeMin = rechargeMin, .rechargeMax = rechargeMax, .tempsExecution = s_executionAttaqueDeBase, .coefficients = s_puissanceSeule});
 }
 
 Skill attaqueDeBaseDeMelee() {
@@ -112,7 +116,7 @@ std::vector<Specialite> construireLeCatalogue() {
          {.couleur = s_couleurGuerrier, .attaqueDeBase = attaqueDeBaseDeMelee(),
           .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = s_porteeMelee,
                                              .puissance = s_degatsSkill, .rechargeMin = s_rechargeSkill,
-                                             .rechargeMax = s_rechargeSkill, .tempsExecution = s_activationSkill})},
+                                             .rechargeMax = s_rechargeSkill, .tempsExecution = s_activationSkill, .coefficients = s_puissanceSeule})},
            {IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .portee = 0.0f,
                                          .puissance = s_dureeProvocation, .rechargeMin = s_rechargeProvocation,
                                          .rechargeMax = s_rechargeProvocation, .rayonZone = s_rayonProvocation,
@@ -126,7 +130,7 @@ std::vector<Specialite> construireLeCatalogue() {
          {.couleur = s_couleurPretre, .attaqueDeBase = attaqueDeBaseDeTireur(),
           .skills = {{IdSkill::Soin, Skill({.type = TypeSkill::Soin, .portee = s_porteeSoin, .puissance = s_puissanceSoin,
                                   .rechargeMin = s_rechargeSoin, .rechargeMax = s_rechargeSoin,
-                                  .tempsExecution = s_activationSoin})}},
+                                  .tempsExecution = s_activationSoin, .coefficients = s_puissanceSeule})}},
           .equipementDeDepart = equipementDeTireur(), .rayonVision = s_rayonVision,
           .caracteristiques = s_caracteristiquesPretre, .pointsDeVieDeBase = s_pointsDeVieDeBasePretre,
           .zoneDeControle = s_zoneDeControleTireur,
@@ -136,7 +140,7 @@ std::vector<Specialite> construireLeCatalogue() {
          {.couleur = s_couleurMage, .attaqueDeBase = attaqueDeBaseDeTireur(),
           .skills = {{IdSkill::Explosion, Skill({.type = TypeSkill::Zone, .portee = s_porteeZone, .puissance = s_degatsZone,
                                        .rechargeMin = s_rechargeZone, .rechargeMax = s_rechargeZone,
-                                       .rayonZone = s_rayonZone, .tempsExecution = s_activationZone})}},
+                                       .rayonZone = s_rayonZone, .tempsExecution = s_activationZone, .coefficients = s_puissanceSeule})}},
           .equipementDeDepart = equipementDeTireur(), .rayonVision = s_rayonVision,
           .caracteristiques = s_caracteristiquesMage, .pointsDeVieDeBase = s_pointsDeVieDeBaseMage,
           .zoneDeControle = s_zoneDeControleTireur,
@@ -147,12 +151,12 @@ std::vector<Specialite> construireLeCatalogue() {
           .skills = {{IdSkill::FrappeSacree, Skill({.type = TypeSkill::Degats, .portee = s_porteeMelee,
                                           .puissance = s_degatsFrappeSacree, .rechargeMin = s_rechargeFrappeSacree,
                                           .rechargeMax = s_rechargeFrappeSacree,
-                                          .tempsExecution = s_activationFrappeSacree})},
+                                          .tempsExecution = s_activationFrappeSacree, .coefficients = s_puissanceSeule})},
            {IdSkill::ImpositionDesMains, Skill({.type = TypeSkill::Soin, .portee = s_porteeMelee,
                                                 .puissance = s_puissanceImposition,
                                                 .rechargeMin = s_rechargeImposition,
                                                 .rechargeMax = s_rechargeImposition,
-                                                .tempsExecution = s_activationImposition})}},
+                                                .tempsExecution = s_activationImposition, .coefficients = s_puissanceSeule})}},
           .equipementDeDepart = equipementDeMelee(), .rayonVision = s_rayonVision,
           .caracteristiques = s_caracteristiquesPaladin, .pointsDeVieDeBase = s_pointsDeVieDeBasePaladin,
           .zoneDeControle = s_zoneDeControleMelee,
@@ -162,11 +166,11 @@ std::vector<Specialite> construireLeCatalogue() {
          {.couleur = s_couleurRodeur, .attaqueDeBase = attaqueDeBaseDeTireur(),
           .skills = {{IdSkill::TirPercant, Skill({.type = TypeSkill::Degats, .portee = s_porteeTirPercant,
                                         .puissance = s_degatsTirPercant, .rechargeMin = s_rechargeTirPercant,
-                                        .rechargeMax = s_rechargeTirPercant, .tempsExecution = s_activationTirPercant})},
+                                        .rechargeMax = s_rechargeTirPercant, .tempsExecution = s_activationTirPercant, .coefficients = s_puissanceSeule})},
            {IdSkill::PluieDeFleches, Skill({.type = TypeSkill::Zone, .portee = s_porteePluie,
                                             .puissance = s_degatsPluie, .rechargeMin = s_rechargePluie,
                                             .rechargeMax = s_rechargePluie, .rayonZone = s_rayonPluie,
-                                            .tempsExecution = s_activationPluie})}},
+                                            .tempsExecution = s_activationPluie, .coefficients = s_puissanceSeule})}},
           .equipementDeDepart = equipementDeTireur(), .rayonVision = s_rayonVision,
           .caracteristiques = s_caracteristiquesRodeur, .pointsDeVieDeBase = s_pointsDeVieDeBaseRodeur,
           .zoneDeControle = s_zoneDeControleTireur,

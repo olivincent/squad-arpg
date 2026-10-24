@@ -54,3 +54,57 @@ TEST_CASE("pointsDeVieMax : la base plus 20 par point d'Endurance, les autres ca
     REQUIRE(pointsDeVieMax(720, caracteristiques) == 720 + s_pvParPointDEndurance * 14);
     REQUIRE(pointsDeVieMax(720, Caracteristiques()) == 720);
 }
+
+TEST_CASE("Coefficients : par defaut tous a zero, seul() n'en pose qu'un") {
+    const Coefficients vide;
+    const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
+
+    for (const Caracteristique caracteristique : s_caracteristiques) {
+        REQUIRE(vide.valeur(caracteristique) == 0.0f);
+        REQUIRE(puissance.valeur(caracteristique) == (caracteristique == Caracteristique::Puissance ? 1.0f : 0.0f));
+    }
+}
+
+TEST_CASE("montantEffectif : neutre quand la caracteristique vaut la reference") {
+    const Coefficients coefficients = Coefficients::seul(Caracteristique::Puissance, 1.0f);
+    const Caracteristiques neutres({s_valeurDeReference, 0, 0, 0, 0});
+
+    REQUIRE(montantEffectif(250, coefficients, neutres) == 250);
+    REQUIRE(montantEffectif(0, coefficients, neutres) == 0);
+}
+
+TEST_CASE("montantEffectif : un coefficient nul ignore les caracteristiques") {
+    const Caracteristiques fortes({40, 40, 40, 40, 40});
+
+    REQUIRE(montantEffectif(250, Coefficients(), fortes) == 250);
+}
+
+TEST_CASE("montantEffectif : chaque point au-dessus de la reference ajoute s_bonusParPoint, chaque point en dessous le retire") {
+    const Coefficients coefficients = Coefficients::seul(Caracteristique::Puissance, 1.0f);
+
+    REQUIRE(montantEffectif(1000, coefficients, Caracteristiques({s_valeurDeReference + 3, 0, 0, 0, 0})) == 1090);
+    REQUIRE(montantEffectif(1000, coefficients, Caracteristiques({s_valeurDeReference - 5, 0, 0, 0, 0})) == 850);
+}
+
+TEST_CASE("montantEffectif : le coefficient pondere et les caracteristiques s'additionnent") {
+    const Coefficients moitie = Coefficients::seul(Caracteristique::Puissance, 0.5f);
+    REQUIRE(montantEffectif(1000, moitie, Caracteristiques({s_valeurDeReference + 10, 0, 0, 0, 0})) == 1150);
+
+    const Coefficients deux({1.0f, 0.0f, 0.0f, 1.0f, 0.0f});
+    REQUIRE(montantEffectif(1000, deux, Caracteristiques({s_valeurDeReference + 2, 0, 0, s_valeurDeReference + 4, 0})) == 1180);
+}
+
+TEST_CASE("montantEffectif : arrondi au plus proche") {
+    const Coefficients coefficients = Coefficients::seul(Caracteristique::Puissance, 1.0f);
+    const Caracteristiques plusUn({s_valeurDeReference + 1, 0, 0, 0, 0});
+
+    REQUIRE(montantEffectif(50, coefficients, plusUn) == 52);  // 51,5
+    REQUIRE(montantEffectif(10, coefficients, plusUn) == 10);  // 10,3
+    REQUIRE(montantEffectif(20, coefficients, plusUn) == 21);  // 20,6
+}
+
+TEST_CASE("montantEffectif : jamais negatif") {
+    const Coefficients coefficients = Coefficients::seul(Caracteristique::Puissance, 1.0f);
+
+    REQUIRE(montantEffectif(100, coefficients, Caracteristiques({-1000, 0, 0, 0, 0})) == 0);
+}

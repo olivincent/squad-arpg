@@ -9,6 +9,7 @@
 #include <optional>
 #include <variant>
 #include <vector>
+#include "combat/Caracteristiques.hpp"
 #include "combat/ActionEngagee.hpp"
 #include "combat/AdresseSkill.hpp"
 #include "escouade/Agresseurs.hpp"
@@ -60,6 +61,8 @@ public:
     // Points de vie du personnage de cette place ; vide si la place est invalide. Lu par les tests : le
     // seul accesseur des points de vie (le jeu les montre par la barre de vie dessinée).
     [[nodiscard]] std::optional<int> pointsDeVieDuPersonnage(std::size_t place) const;
+    // Caractéristiques effectives (base plus équipement) du personnage de cette place ; vide si la place est invalide.
+    [[nodiscard]] std::optional<Caracteristiques> caracteristiquesDuPersonnage(std::size_t place) const;
     [[nodiscard]] float rayonZoneDuSkill(AdresseSkill adresse) const;
     [[nodiscard]] Cercle cercleDePorteeDuSkill(AdresseSkill adresse) const;
     [[nodiscard]] std::vector<Coup> declencherSkillDeZone(AdresseSkill adresse, sf::Vector2f point, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);

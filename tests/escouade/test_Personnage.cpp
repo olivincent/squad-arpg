@@ -1102,3 +1102,59 @@ TEST_CASE("changer d'equipement ne ressuscite pas un mort") {
     REQUIRE_FALSE(personnage.estVivant());
     REQUIRE(personnage.getPointsDeVie() == 0);
 }
+
+namespace {
+// Un personnage dont l'attaque de base et un skill de dégâts profitent de la Puissance.
+Personnage unPersonnageDePuissance(const Caracteristiques& base) {
+    const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
+    return Personnage({100.0f, 100.0f},
+                      {.couleur = sf::Color::White,
+                       .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 100, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .coefficients = puissance}),
+                       .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 250, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .coefficients = puissance})},
+                                  {IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .portee = 0.0f, .puissance = 4, .rechargeMin = 10.0f, .rechargeMax = 10.0f, .rayonZone = 150.0f})}},
+                       .rayonVision = s_rayonVisionDeTest,
+                       .caracteristiques = base});
+}
+}  // namespace
+
+TEST_CASE("equiper l'anneau de puissance augmente les degats de l'attaque de base") {
+    Personnage personnage = unPersonnageDePuissance(Caracteristiques({12, 10, 10, 10, 10}));
+    const int avant = personnage.getPuissanceAttaqueDeBase();
+    REQUIRE(avant == montantEffectif(100, Coefficients::seul(Caracteristique::Puissance, 1.0f), personnage.getCaracteristiques()));
+
+    static_cast<void>(personnage.poserEquipement(Emplacement::Anneau1, {IdObjet::AnneauDePuissance}));
+
+    REQUIRE(personnage.getPuissanceAttaqueDeBase() > avant);
+    REQUIRE(personnage.getPuissanceAttaqueDeBase() ==
+            montantEffectif(100, Coefficients::seul(Caracteristique::Puissance, 1.0f), personnage.getCaracteristiques()));
+
+    static_cast<void>(personnage.retirerEquipement(Emplacement::Anneau1));
+    REQUIRE(personnage.getPuissanceAttaqueDeBase() == avant);
+}
+
+TEST_CASE("le coup de l'attaque de base et le skill de degats rendent le montant effectif") {
+    Generateur generateur = generateurDeTest();
+    Personnage personnage = unPersonnageDePuissance(Caracteristiques({20, 10, 10, 10, 10}));
+    const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
+    const Cercle cible{{120.0f, 100.0f}, 10.0f};
+
+    REQUIRE(frapperEnEntier(personnage, cible, generateur) == montantEffectif(100, puissance, personnage.getCaracteristiques()));
+    REQUIRE(personnage.engagerSkill(IdSkill::FrappePuissante, CibleMonstre{1, cible}));
+    int rendu = 0;
+    for (int i = 0; i < nombreDeTics(1.0f) && rendu == 0; ++i) {
+        rendu = personnage.avancerSkill(s_dureeTic, generateur);
+    }
+    REQUIRE(rendu == montantEffectif(250, puissance, personnage.getCaracteristiques()));
+}
+
+TEST_CASE("la duree d'une provocation ne profite d'aucune caracteristique") {
+    Generateur generateur = generateurDeTest();
+    Personnage personnage = unPersonnageDePuissance(Caracteristiques({40, 40, 40, 40, 40}));
+
+    REQUIRE(personnage.engagerSkill(IdSkill::Provocation, std::nullopt));
+    int rendu = 0;
+    for (int i = 0; i < nombreDeTics(1.0f) && rendu == 0; ++i) {
+        rendu = personnage.avancerSkill(s_dureeTic, generateur);
+    }
+    REQUIRE(rendu == 4);
+}

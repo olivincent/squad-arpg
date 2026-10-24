@@ -39,6 +39,7 @@ public:
     // Portée de l'attaque de base, bord à bord.
     [[nodiscard]] float getPorteeAttaqueDeBase() const;
     // Dégâts de l'attaque de base, avant l'armure de la cible.
+    // Le montant de son attaque de base, caractéristiques comprises (`montantEffectif`).
     [[nodiscard]] int getPuissanceAttaqueDeBase() const;
     // Zone de contrôle, en pixels, bord à bord ; 0 : il n'engage personne.
     [[nodiscard]] float getZoneDeControle() const;
@@ -119,6 +120,8 @@ private:
     // Seul endroit où les caractéristiques effectives (et le maximum de points de vie qui en vient)
     // changent : toujours la base plus l'équipement, jamais ajustées.
     void recalculerCaracteristiques();
+    // Le montant de ce skill de ce personnage, caractéristiques comprises (`montantEffectif`).
+    [[nodiscard]] int montantDe(const Skill& skill) const;
     [[nodiscard]] const Skill* trouverSkill(IdSkill id) const;  // nullptr si le personnage ne connaît pas ce skill
     [[nodiscard]] Skill* trouverSkill(IdSkill id);
     std::optional<ActionEngagee> m_actionEngagee; // action en exécution et sa cible ; lue seulement pendant l'exécution

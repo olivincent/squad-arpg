@@ -6,6 +6,7 @@
 
 #include "aides.hpp"
 #include "aides_escouade.hpp"
+#include "combat/Caracteristiques.hpp"
 #include "combat/Defense.hpp"
 #include "escouade/Escouade.hpp"
 #include "objets/CatalogueObjets.hpp"
@@ -299,4 +300,21 @@ TEST_CASE("une partie commence avec le sac de depart dans le sac") {
     for (std::size_t i = attendu.size(); i < sac.capacite(); ++i) {
         REQUIRE_FALSE(sac.a(i).has_value());
     }
+}
+
+TEST_CASE("la puissance de l'attaque de base lue par l'escouade (coup d'opportunite) suit les caracteristiques") {
+    constexpr int degats = 100;
+    const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
+    DefinitionPersonnage definition = guerrierDeTest();
+    definition.attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest, .puissance = degats,
+                                      .rechargeMin = 0.5f, .rechargeMax = 0.5f, .coefficients = puissance});
+    definition.caracteristiques = Caracteristiques({s_valeurDeReference, 10, 10, 10, 10});
+    Escouade escouade({50.0f, 50.0f}, {definition});
+    REQUIRE(escouade.puissanceDeLAttaqueDeBase(1) == degats);
+
+    REQUIRE(escouade.ramasser(Objet{IdObjet::AnneauDePuissance}));
+    REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(1, Emplacement::Anneau1)));
+
+    REQUIRE(escouade.puissanceDeLAttaqueDeBase(1) ==
+            montantEffectif(degats, puissance, escouade.caracteristiquesDuPersonnage(1).value()));
 }

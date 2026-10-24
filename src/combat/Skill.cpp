@@ -13,6 +13,7 @@ Skill::Skill(const DefinitionDeSkill& definition)
       m_recharge(0.0f),
       m_rayonZone(definition.rayonZone),
       m_tempsExecution(definition.tempsExecution),
+      m_coefficients(definition.coefficients),
       m_executionRestante(0.0f),
       m_phase(PhaseSkill::Pret)
 {
@@ -100,6 +101,10 @@ TypeSkill Skill::getType() const {
 
 float Skill::getPortee() const {
     return m_portee;
+}
+
+const Coefficients& Skill::getCoefficients() const {
+    return m_coefficients;
 }
 
 int Skill::getPuissance() const {

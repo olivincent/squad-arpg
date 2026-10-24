@@ -439,6 +439,13 @@ std::optional<int> Escouade::pointsDeVieDuPersonnage(std::size_t place) const {
     return personnageDeLaPlace(place).getPointsDeVie();
 }
 
+std::optional<Caracteristiques> Escouade::caracteristiquesDuPersonnage(std::size_t place) const {
+    if (!placeValide(place)) {
+        return std::nullopt;
+    }
+    return personnageDeLaPlace(place).getCaracteristiques();
+}
+
 float Escouade::rayonZoneDuSkill(AdresseSkill adresse) const {
     if (!placeValide(adresse.place)) {
         return 0.0f;
