@@ -68,3 +68,21 @@ TEST_CASE("affichage : aucun objet du catalogue n'affiche une valeur nulle") {
         }
     }
 }
+
+TEST_CASE("affichage : l'infobulle des bottes de cuir donne l'esquive contre la melee") {
+    const std::vector<std::string> lignes = lignesDeLInfobulle(IdObjet::BottesDeCuir);
+
+    REQUIRE(lignes.back() == "Esquive contre la mêlée : +5 %");
+}
+
+TEST_CASE("affichage : l'infobulle du casque de cuir donne l'esquive contre les projectiles") {
+    const std::vector<std::string> lignes = lignesDeLInfobulle(IdObjet::CasqueDeCuir);
+
+    REQUIRE(lignes.back() == "Esquive contre les projectiles : +5 %");
+}
+
+TEST_CASE("affichage : l'infobulle du bouclier rond donne son blocage") {
+    const std::vector<std::string> lignes = lignesDeLInfobulle(IdObjet::BouclierRond);
+
+    REQUIRE(lignes.back() == "Blocage : 30 %, 40 points, 3 s");
+}

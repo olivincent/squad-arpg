@@ -20,5 +20,6 @@
 [[nodiscard]] std::string sigleDeLObjet(IdObjet id);
 
 // Les lignes de l'infobulle d'un objet : son nom, sa catégorie, son armure (« Armure : +10 », absente si
-// elle est nulle) et une ligne par bonus de caractéristique (« Puissance : +3 »).
+// elle est nulle), une ligne par bonus de caractéristique (« Puissance : +3 ») et une par bonus de combat
+// (« Esquive contre la mêlée : +5 % », « Blocage : 30 %, 40 points, 3 s » : `lignesDeBonusDeCombat`).
 [[nodiscard]] std::vector<std::string> lignesDeLInfobulle(IdObjet id);

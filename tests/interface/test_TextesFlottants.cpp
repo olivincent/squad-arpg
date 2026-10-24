@@ -131,6 +131,36 @@ TEST_CASE("un soin critique reste vert, plus gros qu'un soin normal") {
     REQUIRE(tailleDuTexte(normal) == 16);
 }
 
+TEST_CASE("le libelle d'une esquive et d'un blocage : Esquive, Bloque total et Bloque partiel") {
+    REQUIRE(libelleDuTexte({Camp::Monstres, 1, {}, Esquive{}}) == "Esquivé");
+    REQUIRE(libelleDuTexte({Camp::Escouade, 1, {}, Bloque{40, true}}) == "Bloqué");
+    REQUIRE(libelleDuTexte({Camp::Escouade, 1, {}, Bloque{40, false}}) == "Bloqué \u2212" "40");
+}
+
+TEST_CASE("l'esquive est en gris clair et le blocage en gris plus fonce, tous deux de 14 px") {
+    const EvenementDeCombat esquive{Camp::Monstres, 1, {}, Esquive{}};
+    const EvenementDeCombat bloque{Camp::Escouade, 1, {}, Bloque{40, false}};
+
+    for (const EvenementDeCombat& evenement : {esquive, bloque}) {
+        const sf::Color couleur = couleurDuTexte(evenement);
+        REQUIRE(couleur.r == couleur.g);
+        REQUIRE(couleur.g == couleur.b);
+        REQUIRE(tailleDuTexte(evenement) == 14);
+    }
+    REQUIRE(couleurDuTexte(esquive).r > couleurDuTexte(bloque).r);
+}
+
+TEST_CASE("un blocage partiel s'empile au-dessus des degats de la meme cible et de la meme image") {
+    TextesFlottants textes;
+
+    textes.ajouter({Camp::Escouade, 1, {100.0f, 100.0f}, Degats{60, false, false}});
+    textes.ajouter({Camp::Escouade, 1, {100.0f, 100.0f}, Bloque{40, false}});
+
+    REQUIRE(textes.actifs()[0].rang == 0);
+    REQUIRE(textes.actifs()[1].rang == 1);
+    REQUIRE(positionDuTexte(textes.actifs()[1]).y < positionDuTexte(textes.actifs()[0]).y);  // plus haut à l'écran
+}
+
 TEST_CASE("la couleur et la taille : blanc sur un monstre, rouge sur un personnage, vert pour un soin, orange et plus gros pour un coup gratuit") {
     const EvenementDeCombat surUnMonstre = degatsSurUnMonstre(1);
     const EvenementDeCombat surUnPersonnage{Camp::Escouade, 1, {}, Degats{10, false, false}};

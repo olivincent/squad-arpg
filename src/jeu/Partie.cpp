@@ -215,7 +215,7 @@ void Partie::appliquer(const std::vector<Coup>& coups, bool opportunite) {
     for (const Coup& coup : coups) {
         if (Monstre* touche = trouverMonstre(coup.idMonstre)) {
             const ResultatDuCoup resultat = touche->recevoirDegats(coup.attaque, m_generateur);
-            signaler(Camp::Monstres, touche->getId(), touche->getCentre(), Degats{resultat.montant, opportunite, resultat.critique});
+            signalerLeCoup(Camp::Monstres, touche->getId(), touche->getCentre(), resultat, opportunite);
         }
     }
 }
@@ -223,7 +223,7 @@ void Partie::appliquer(const std::vector<Coup>& coups, bool opportunite) {
 void Partie::infligerAUnPersonnage(int idMonstre, std::size_t place, const Attaque& attaque, bool opportunite) {
     const ResultatDuCoup resultat = m_escouade.recevoirCoup(idMonstre, place, attaque, m_generateur);
     if (const std::optional<sf::Vector2f> centre = m_escouade.centreDuPersonnage(place)) {
-        signaler(Camp::Escouade, static_cast<int>(place), *centre, Degats{resultat.montant, opportunite, resultat.critique});
+        signalerLeCoup(Camp::Escouade, static_cast<int>(place), *centre, resultat, opportunite);
     }
 }
 
@@ -245,11 +245,20 @@ void Partie::signalerLesFaits() {
     }
 }
 
+void Partie::signalerLeCoup(Camp campCible, int idCible, sf::Vector2f position, const ResultatDuCoup& resultat,
+                            bool opportunite) {
+    for (const DetailEvenement& detail : detailsDuCoup(resultat, opportunite)) {
+        signaler(campCible, idCible, position, detail);
+    }
+}
+
 void Partie::signaler(Camp campCible, int idCible, sf::Vector2f position, DetailEvenement detail) {
     const bool montantNul = std::visit(Surcharges{[](const Degats& degats) { return degats.montant <= 0; },
                                                   [](const Soin& soin) { return soin.montant <= 0; },
                                                   [](const SkillLance&) { return false; },
-                                                  [](const Provoque&) { return false; }},
+                                                  [](const Provoque&) { return false; },
+                                                  [](const Esquive&) { return false; },
+                                                  [](const Bloque&) { return false; }},
                                        detail);
     if (montantNul) {
         return;

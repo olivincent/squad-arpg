@@ -78,6 +78,7 @@ add_library(squad_core STATIC
     src/combat/StatistiquesDeCombat.cpp
     src/combat/Critique.cpp
     src/combat/Esquive.cpp
+    src/combat/EvenementDeCombat.cpp
     src/combat/Blocage.cpp
     src/combat/Caracteristiques.cpp
     src/combat/Defense.cpp
@@ -179,6 +180,7 @@ add_executable(tests
     tests/combat/test_Critique.cpp
     tests/combat/test_Esquive.cpp
     tests/combat/test_Blocage.cpp
+    tests/combat/test_EvenementDeCombat.cpp
     tests/objets/test_Emplacement.cpp
     tests/objets/test_CatalogueObjets.cpp
     tests/objets/test_Equipement.cpp

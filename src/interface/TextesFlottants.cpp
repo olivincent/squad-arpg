@@ -19,6 +19,8 @@ constexpr unsigned int s_tailleCoupGratuit = 20;
 constexpr unsigned int s_tailleCritique = 18;  // plus gros qu'un coup normal, moins qu'un coup gratuit
 constexpr unsigned int s_tailleNomDeSkill = 14;
 constexpr unsigned int s_tailleProvoque = 14;
+constexpr unsigned int s_tailleEsquive = 14;
+constexpr unsigned int s_tailleBloque = 14;
 constexpr float s_epaisseurContour = 1.0f;
 const sf::Color s_couleurDegatsSurUnMonstre = sf::Color::White;
 const sf::Color s_couleurDegatsSurUnPersonnage(255, 60, 60);
@@ -28,6 +30,8 @@ const sf::Color s_couleurCritique(255, 235, 0);     // jaune vif, plus clair que
 const std::string s_suiteDuCritique = " Critique !";
 const sf::Color s_couleurNomDeSkill(255, 210, 60);  // jaune doré
 const sf::Color s_couleurProvoque(255, 100, 40);    // rouge orangé
+const sf::Color s_couleurEsquive(215, 215, 215);    // gris clair
+const sf::Color s_couleurBloque(150, 150, 150);     // gris
 }  // namespace
 
 float hauteurDuTexte(float age) {
@@ -59,7 +63,12 @@ std::string libelleDuTexte(const EvenementDeCombat& evenement) {
                                      return soin.critique ? montant + s_suiteDuCritique : montant;
                                  },
                                  [](const SkillLance& lance) { return nomDuSkill(lance.skill); },
-                                 [](const Provoque&) { return std::string("Provoqué"); }},
+                                 [](const Provoque&) { return std::string("Provoqué"); },
+                                 [](const Esquive&) { return std::string("Esquivé"); },
+                                 [](const Bloque& bloque) {
+                                     // Un blocage partiel dit combien il a absorbé (« Bloqué −40 », signe moins U+2212).
+                                     return bloque.total ? std::string("Bloqué") : "Bloqué \u2212" + std::to_string(bloque.montant);
+                                 }},
                       evenement.detail);
 }
 
@@ -76,7 +85,9 @@ sf::Color couleurDuTexte(const EvenementDeCombat& evenement) {
                                  },
                                  [](const Soin&) { return s_couleurSoin; },
                                  [](const SkillLance&) { return s_couleurNomDeSkill; },
-                                 [](const Provoque&) { return s_couleurProvoque; }},
+                                 [](const Provoque&) { return s_couleurProvoque; },
+                                 [](const Esquive&) { return s_couleurEsquive; },
+                                 [](const Bloque&) { return s_couleurBloque; }},
                       evenement.detail);
 }
 
@@ -89,7 +100,9 @@ unsigned int tailleDuTexte(const EvenementDeCombat& evenement) {
                                  },
                                  [](const Soin& soin) { return soin.critique ? s_tailleCritique : s_tailleNormale; },
                                  [](const SkillLance&) { return s_tailleNomDeSkill; },
-                                 [](const Provoque&) { return s_tailleProvoque; }},
+                                 [](const Provoque&) { return s_tailleProvoque; },
+                                 [](const Esquive&) { return s_tailleEsquive; },
+                                 [](const Bloque&) { return s_tailleBloque; }},
                       evenement.detail);
 }
 

@@ -2,7 +2,9 @@
 #pragma once
 #include <SFML/System/Vector2.hpp>
 #include <variant>
+#include <vector>
 #include "combat/IdSkill.hpp"
+#include "combat/ResolutionDuCoup.hpp"
 
 // Ce qui s'est passé pendant une image, en données : le noyau (Partie) les produit, l'affichage
 // les lit. Une file d'événements, pas de callback : Partie ne connaît pas ceux qui la lisent.
@@ -29,7 +31,15 @@ struct SkillLance {
 };
 // Un monstre vient d'être provoqué (de nouveau, s'il l'était déjà), au-dessus du monstre.
 struct Provoque {};
-using DetailEvenement = std::variant<Degats, Soin, SkillLance, Provoque>;
+// Un coup a été esquivé, au-dessus de la cible : l'attaque a eu lieu, elle n'a rien fait.
+struct Esquive {};
+// Un blocage a absorbé `montant` points (jamais 0) du coup. `total` : il a tout absorbé, aucun `Degats` ne suit ;
+// sinon un `Degats` pour le reste a été signalé juste avant (même cible, même image).
+struct Bloque {
+    int montant;
+    bool total;
+};
+using DetailEvenement = std::variant<Degats, Soin, SkillLance, Provoque, Esquive, Bloque>;
 
 // `position` : COPIE du centre de la cible à ce moment ; aucune référence vers l'entité, qui peut
 // disparaître dans la même image (monstre tué par ce coup).
@@ -39,3 +49,9 @@ struct EvenementDeCombat {  // NOLINT(cppcoreguidelines-pro-type-member-init): c
     sf::Vector2f position;
     DetailEvenement detail;
 };
+
+// Ce qu'un coup donne, en détails d'événements, dans l'ordre où ils s'empilent à l'écran (même cible, même
+// image : le premier en bas) : un coup esquivé donne `Esquive` seul ; sinon les `Degats` (rien s'ils sont nuls,
+// donc rien après un blocage total ni pour un mort), puis `Bloque` s'il y a eu un blocage, au-dessus des dégâts.
+// `opportunite` : coup gratuit. Un résultat « rien » (mort, monstre invulnérable, montant nul) donne une liste vide.
+[[nodiscard]] std::vector<DetailEvenement> detailsDuCoup(const ResultatDuCoup& resultat, bool opportunite);

@@ -2,6 +2,7 @@
 #include "interface/AffichageObjets.hpp"
 
 #include "interface/AffichageCaracteristiques.hpp"
+#include "interface/AffichageStatistiques.hpp"
 #include "objets/CatalogueObjets.hpp"
 
 // Les trois `switch` n'ont pas de `default` : un emplacement, une catégorie ou un objet ajouté
@@ -65,6 +66,9 @@ std::vector<std::string> lignesDeLInfobulle(IdObjet id) {
         if (const int bonus = definition.bonus.valeur(caracteristique); bonus != 0) {
             lignes.push_back(nomDeLaCaracteristique(caracteristique) + " : " + (bonus > 0 ? "+" : "") + std::to_string(bonus));
         }
+    }
+    for (const std::string& ligne : lignesDeBonusDeCombat(definition.bonusDeCombat)) {
+        lignes.push_back(ligne);
     }
     return lignes;
 }

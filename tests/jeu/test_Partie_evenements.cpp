@@ -11,6 +11,9 @@
 #include "combat/Caracteristiques.hpp"
 #include "combat/Defense.hpp"
 #include "combat/EvenementDeCombat.hpp"
+#include "combat/TypeSkill.hpp"
+#include "objets/Emplacement.hpp"
+#include "objets/Objet.hpp"
 #include "monstres/DefinitionDeMonstre.hpp"
 #include "monstres/Monstre.hpp"
 #include "monde/Niveau.hpp"
@@ -289,4 +292,81 @@ TEST_CASE("evenements : la provocation donne un evenement Provoque au-dessus de 
     REQUIRE(provoques[0].idCible == partie.getMonstres()[0].getId());
     verifierPointProche(provoques[0].position, partie.getMonstres()[0].getCentre());
     REQUIRE(parmi<Provoque>(evenementsPendant(partie, 0.5f), Camp::Monstres).empty());  // rien sans relance
+}
+
+namespace {
+
+// Un guerrier increvable dont l'attaque de base ne fait que 1 dégât et revient sans attendre : il frappe sans
+// cesse un monstre qui ne meurt pas, et reçoit ses coups sans mourir.
+DefinitionPersonnage guerrierInfatigable() {
+    DefinitionPersonnage guerrier = guerrierDeTest();
+    guerrier.attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest, .puissance = 1,
+                                    .rechargeMin = 0.0f, .rechargeMax = 0.0f, .tempsExecution = s_executionBaseDeTest});
+    guerrier.pointsDeVieDeBase = 10'000'000;
+    return guerrier;
+}
+
+// Les événements de chaque image, séparément : l'ordre et la simultanéité comptent.
+std::vector<std::vector<EvenementDeCombat>> evenementsParImage(Partie& partie, float duree) {
+    std::vector<std::vector<EvenementDeCombat>> images;
+    for (int i = 0; i < nombreDeTics(duree); ++i) {
+        partie.mettreAJour(s_dureeTic);
+        images.push_back(partie.prendreEvenements());
+    }
+    return images;
+}
+
+}  // namespace
+
+TEST_CASE("evenements : un coup esquive par un monstre donne Esquive, et aucun degat dans la meme image") {
+    // Un seul attaquant (un guerrier qui frappe 6 fois par seconde) : une image ne contient qu'un coup sur le monstre.
+    Partie partie(niveauDegage({{235.0f, 170.0f}}), std::vector<DefinitionPersonnage>{guerrierInfatigable()}, s_graineDeTest);
+    int esquives = 0;
+    int touches = 0;
+
+    for (const std::vector<EvenementDeCombat>& image : evenementsParImage(partie, 40.0f)) {
+        const std::vector<EvenementDeCombat> esquivesDeLImage = parmi<Esquive>(image, Camp::Monstres);
+        const std::vector<EvenementDeCombat> degatsDeLImage = parmi<Degats>(image, Camp::Monstres);
+        esquives += static_cast<int>(esquivesDeLImage.size());
+        touches += static_cast<int>(degatsDeLImage.size());
+        if (!esquivesDeLImage.empty()) {
+            REQUIRE(degatsDeLImage.empty());
+            verifierPointProche(esquivesDeLImage[0].position, partie.getMonstres()[0].getCentre());
+        }
+    }
+
+    REQUIRE(esquives > 0);          // 5 % de plusieurs centaines de coups
+    REQUIRE(touches > 10 * esquives);  // la grande majorité des coups touche
+}
+
+TEST_CASE("evenements : un blocage partiel donne les degats puis Bloque, puis rien pendant la recuperation") {
+    DefinitionPersonnage guerrier = guerrierInfatigable();
+    guerrier.equipementDeDepart.push_back({Emplacement::MainGauche, IdObjet::BouclierRond});  // 30 %, 40 points, 3 s
+    Partie partie(niveauDegage({{270.0f, 210.0f}}), std::vector<DefinitionPersonnage>{guerrier}, s_graineDeTest);
+    const std::vector<std::vector<EvenementDeCombat>> images = evenementsParImage(partie, 120.0f);
+    std::vector<int> imagesDesBlocages;
+
+    for (std::size_t i = 0; i < images.size(); ++i) {
+        std::vector<EvenementDeCombat> surLeGuerrier;
+        for (const EvenementDeCombat& evenement : images[i]) {
+            if (evenement.campCible == Camp::Escouade) {
+                surLeGuerrier.push_back(evenement);
+            }
+        }
+        for (std::size_t k = 0; k < surLeGuerrier.size(); ++k) {
+            if (const Bloque* bloque = std::get_if<Bloque>(&surLeGuerrier[k].detail)) {
+                // Le monstre frappe pour 100 : un bouclier de 40 ne l'absorbe jamais en entier.
+                REQUIRE(bloque->montant == 40);
+                REQUIRE_FALSE(bloque->total);
+                REQUIRE(k > 0);  // les dégâts du reste viennent juste avant, donc le texte du blocage est au-dessus
+                REQUIRE(std::holds_alternative<Degats>(surLeGuerrier[k - 1].detail));
+                imagesDesBlocages.push_back(static_cast<int>(i));
+            }
+        }
+    }
+
+    REQUIRE(imagesDesBlocages.size() >= 3);
+    for (std::size_t k = 1; k < imagesDesBlocages.size(); ++k) {
+        REQUIRE(imagesDesBlocages[k] - imagesDesBlocages[k - 1] >= nombreDeTics(3.0f) - 1);  // 3 s de récupération au moins
+    }
 }

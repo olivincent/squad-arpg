@@ -113,6 +113,8 @@ private:
     void signalerLesFaits();
     // Le seul endroit où un événement naît ; des dégâts ou un soin de montant nul ne produisent rien.
     void signaler(Camp campCible, int idCible, sf::Vector2f position, DetailEvenement detail);
+    // Ce qu'un coup a donné, en événements (`detailsDuCoup` : « Esquivé », ou les dégâts puis le blocage).
+    void signalerLeCoup(Camp campCible, int idCible, sf::Vector2f position, const ResultatDuCoup& resultat, bool opportunite);
     // Étapes de mettreAJour(), dans l'ordre où elles sont appelées.
     void resoudreLesCoups(float dt);
     void faireTournerLesMonstres(float dt);
