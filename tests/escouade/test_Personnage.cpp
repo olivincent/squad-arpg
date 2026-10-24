@@ -665,6 +665,23 @@ TEST_CASE("l'attaque de base d'un personnage porte sa capacite offensive") {
     REQUIRE(attaque->capaciteOffensive == 120);
 }
 
+TEST_CASE("l'attaque d'un personnage porte la nature de son attaque de base, celle d'un skill la sienne") {
+    Generateur generateur = generateurDeTest();
+    Personnage tireur({100.0f, 100.0f},
+                      {.couleur = sf::Color::White,
+                       .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f,
+                                               .rechargeMax = 0.5f, .nature = NatureDAttaque::Projectile}),
+                       .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = 20.0f, .puissance = 7,
+                                                                    .rechargeMin = 1.0f, .rechargeMax = 1.0f})}},
+                       .rayonVision = s_rayonVisionDeTest});
+    REQUIRE(tireur.getAttaqueDeBase().nature == NatureDAttaque::Projectile);
+    REQUIRE(tireur.engagerAttaque(1));
+    REQUIRE(tireur.avancerAttaque(0.1f, generateur)->nature == NatureDAttaque::Projectile);
+
+    REQUIRE(tireur.engagerSkill(IdSkill::FrappePuissante, CibleMonstre{1, Cercle{}}));
+    REQUIRE(tireur.avancerSkill(0.1f, generateur)->nature == NatureDAttaque::Contact);
+}
+
 TEST_CASE("annulerAttaque ne consomme pas de recharge") {
     Generateur generateur = generateurDeTest();
     Personnage personnage = personnageAvecExecution();

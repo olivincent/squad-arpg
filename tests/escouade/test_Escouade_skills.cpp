@@ -312,10 +312,11 @@ DefinitionPersonnage rodeurDeTest() {
     DefinitionPersonnage rodeur = mageDeTest();
     rodeur.skills = {
         {IdSkill::TirPercant, Skill({.type = TypeSkill::Degats, .portee = 200.0f, .puissance = s_degatsTirDeTest,
-                                     .rechargeMin = 6.0f, .rechargeMax = 6.0f, .tempsExecution = 0.5f})},
+                                     .rechargeMin = 6.0f, .rechargeMax = 6.0f, .tempsExecution = 0.5f,
+                                     .nature = NatureDAttaque::Projectile})},
         {IdSkill::PluieDeFleches, Skill({.type = TypeSkill::Zone, .portee = 320.0f, .puissance = s_degatsPluieDeTest,
                                          .rechargeMin = 8.0f, .rechargeMax = 8.0f, .rayonZone = 45.0f,
-                                         .tempsExecution = 0.8f})}};
+                                         .tempsExecution = 0.8f, .nature = NatureDAttaque::Zone})}};
     return rodeur;
 }
 

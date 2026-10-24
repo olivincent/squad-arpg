@@ -187,6 +187,12 @@ TEST_CASE("l'attaque d'un monstre porte la capacite offensive de sa definition")
     REQUIRE(monstre.getAttaque().capaciteOffensive == 130);
 }
 
+TEST_CASE("l'attaque d'un monstre ordinaire est une attaque de contact") {
+    const Monstre monstre({100.0f, 100.0f}, 1, 0, monstreOrdinaire());
+
+    REQUIRE(monstre.getAttaque().nature == NatureDAttaque::Contact);
+}
+
 TEST_CASE("lire la puissance de l'attaque ne change ni le coup engage ni la recharge") {
     Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
     const TileMap carte = carteDegagee10x10();

@@ -91,7 +91,7 @@ TEST_CASE("Vitalite getRatio suit les points de vie") {
 TEST_CASE("Vitalite : un critique retire le montant multiplie") {
     Vitalite vitalite(100000, defensesDeTest(0));
     Generateur generateur = generateurDeTest();
-    const Attaque attaque{.montant = 100, .capaciteOffensive = 100000};  // 50 % de chance, ×2
+    const Attaque attaque{.montant = 100, .capaciteOffensive = 100000, .nature = NatureDAttaque::Contact};  // 50 % de chance, ×2
 
     ResultatDuCoup resultat{};
     for (int i = 0; i < 100 && !resultat.critique; ++i) {
@@ -110,7 +110,7 @@ TEST_CASE("Vitalite : un mort ne tire rien") {
     Generateur generateur = generateurDeTest();
     const Generateur intact = generateur;
 
-    const ResultatDuCoup resultat = vitalite.recevoirDegats({.montant = 50, .capaciteOffensive = 100000}, generateur);
+    const ResultatDuCoup resultat = vitalite.recevoirDegats({.montant = 50, .capaciteOffensive = 100000, .nature = NatureDAttaque::Contact}, generateur);
 
     REQUIRE(resultat.montant == 0);
     REQUIRE_FALSE(resultat.critique);
@@ -125,8 +125,8 @@ TEST_CASE("Vitalite : la capacite defensive des defenses compte pour le critique
     int critiquesDuRobuste = 0;
 
     for (int i = 0; i < 300; ++i) {
-        critiquesDuFragile += fragile.recevoirDegats({.montant = 10, .capaciteOffensive = 100}, generateur).critique ? 1 : 0;
-        critiquesDuRobuste += robuste.recevoirDegats({.montant = 10, .capaciteOffensive = 100}, generateur).critique ? 1 : 0;
+        critiquesDuFragile += fragile.recevoirDegats({.montant = 10, .capaciteOffensive = 100, .nature = NatureDAttaque::Contact}, generateur).critique ? 1 : 0;
+        critiquesDuRobuste += robuste.recevoirDegats({.montant = 10, .capaciteOffensive = 100, .nature = NatureDAttaque::Contact}, generateur).critique ? 1 : 0;
     }
 
     REQUIRE(critiquesDuFragile > 100);  // rapport 100 : 50 %

@@ -163,10 +163,22 @@ TEST_CASE("Skill.getProgressionRecharge ne depasse jamais 1, meme apres un long 
     REQUIRE(skill.getProgressionRecharge() == 1.0f);
 }
 
+TEST_CASE("La nature d'un skill vient de sa definition, Contact par defaut") {
+    const Skill parDefaut({.type = TypeSkill::Degats, .portee = 20.0f, .puissance = 5, .rechargeMin = 1.0f, .rechargeMax = 1.0f});
+    const Skill tir({.type = TypeSkill::Degats, .portee = 120.0f, .puissance = 5, .rechargeMin = 1.0f, .rechargeMax = 1.0f,
+                     .nature = NatureDAttaque::Projectile});
+    const Skill zone({.type = TypeSkill::Zone, .portee = 250.0f, .puissance = 5, .rechargeMin = 1.0f, .rechargeMax = 1.0f,
+                      .rayonZone = 60.0f, .nature = NatureDAttaque::Zone});
+
+    REQUIRE(parDefaut.getNature() == NatureDAttaque::Contact);
+    REQUIRE(tir.getNature() == NatureDAttaque::Projectile);
+    REQUIRE(zone.getNature() == NatureDAttaque::Zone);
+}
+
 TEST_CASE("Skill de zone : le depart relance la recharge, refuse tant qu'elle court") {
     Generateur generateur = generateurDeTest();
     Skill skill({.type = TypeSkill::Zone, .portee = 250.0f, .puissance = 15, .rechargeMin = 8.0f, .rechargeMax = 8.0f,
-                 .rayonZone = 60.0f});
+                 .rayonZone = 60.0f, .nature = NatureDAttaque::Zone});
 
     REQUIRE(lancer(skill, generateur));
     REQUIRE(skill.getPuissance() == 15);

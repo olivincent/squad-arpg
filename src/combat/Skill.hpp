@@ -3,6 +3,7 @@
 #include "base/Aleatoire.hpp"
 #include "base/Cercle.hpp"
 #include "combat/Caracteristiques.hpp"
+#include "combat/NatureDAttaque.hpp"
 #include "combat/TypeSkill.hpp"
 
 // Un skill : un type, une portée, une puissance et une recharge (un
@@ -37,6 +38,9 @@ struct DefinitionDeSkill {  // NOLINT(cppcoreguidelines-pro-type-member-init): c
     float rayonZone = 0.0f;       // en pixels
     float tempsExecution = 0.0f;  // en secondes, entre l'engagement du coup et son départ
     Coefficients coefficients = {};  // ce que la puissance doit aux caractéristiques du lanceur
+    // Nature de l'attaque (contact, projectile, zone) : lue seulement pour un skill de dégâts ou de zone, jamais
+    // pour un soin ni une provocation, qui laissent `Contact`. `Zone` va avec le type `Zone`, et lui seul.
+    NatureDAttaque nature = NatureDAttaque::Contact;
 };
 
 class Skill {
@@ -61,6 +65,7 @@ public:
     [[nodiscard]] float getPortee() const;
     [[nodiscard]] int getPuissance() const;
     [[nodiscard]] const Coefficients& getCoefficients() const;
+    [[nodiscard]] NatureDAttaque getNature() const;
 
 private:
     TypeSkill m_type;
@@ -73,6 +78,7 @@ private:
     float m_rayonZone;      // en pixels
     float m_tempsExecution; // en secondes, entre l'engagement du coup et son départ
     Coefficients m_coefficients;
+    NatureDAttaque m_nature;
     float m_executionRestante; // en secondes, lue seulement en phase EnExecution
     PhaseSkill m_phase;
 

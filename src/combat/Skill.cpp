@@ -14,11 +14,13 @@ Skill::Skill(const DefinitionDeSkill& definition)
       m_rayonZone(definition.rayonZone),
       m_tempsExecution(definition.tempsExecution),
       m_coefficients(definition.coefficients),
+      m_nature(definition.nature),
       m_executionRestante(0.0f),
       m_phase(PhaseSkill::Pret)
 {
     assert(m_rechargeMin >= 0.0f && m_rechargeMin <= m_rechargeMax);
     assert(m_tempsExecution >= 0.0f);
+    assert((m_type == TypeSkill::Zone) == (m_nature == NatureDAttaque::Zone));  // la zone est une nature de type Zone
 }
 
 // Recharge fixe (aucun tirage) si les deux bornes sont égales ; sinon tirage
@@ -105,6 +107,10 @@ float Skill::getPortee() const {
 
 const Coefficients& Skill::getCoefficients() const {
     return m_coefficients;
+}
+
+NatureDAttaque Skill::getNature() const {
+    return m_nature;
 }
 
 int Skill::getPuissance() const {

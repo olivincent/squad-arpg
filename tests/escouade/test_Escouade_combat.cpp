@@ -267,6 +267,25 @@ TEST_CASE("Sans verrou, tous les personnages frappent un monstre a leur portee, 
     verifierPointProche(escouade.getCentre(), centreInitial);
 }
 
+TEST_CASE("La nature des coups : contact pour la melee, projectile pour les tireurs") {
+    Generateur generateur = generateurDeTest();
+    const TileMap carte = carteDegagee10x10();
+    Escouade escouade = uneEscouade({50.0f, 50.0f});
+
+    // Le guerrier (place 1) est en (85, 60), les tireurs en (35, 35) et (35, 85) : tous atteignent ce monstre.
+    const std::vector<Coup> coups = attaquerJusquAuDepart(escouade, {EntiteVue{4, cibleMonstre({85.0f, 60.0f})}}, carte, generateur);
+
+    REQUIRE(coups.size() == 3);
+    int contacts = 0;
+    int projectiles = 0;
+    for (const Coup& coup : coups) {
+        contacts += coup.attaque.nature == NatureDAttaque::Contact ? 1 : 0;
+        projectiles += coup.attaque.nature == NatureDAttaque::Projectile ? 1 : 0;
+    }
+    REQUIRE(contacts == 1);
+    REQUIRE(projectiles == 2);
+}
+
 TEST_CASE("Sans verrou, un monstre hors de portee de tous ne recoit aucun coup") {
     Generateur generateur = generateurDeTest();
     const TileMap carte = carteDegagee10x10();

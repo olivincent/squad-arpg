@@ -185,6 +185,23 @@ TEST_CASE("une escouade de paladin, de rodeur et de guerrier connait les skills 
     REQUIRE_FALSE(escouade.typeDuSkill({1, IdSkill::TirPercant}).has_value());
 }
 
+TEST_CASE("nature des attaques : contact pour les melees, projectile pour les tireurs, zone pour les zones") {
+    const auto nature = [](IdSpecialite id) { return specialite(id).definition.attaqueDeBase.getNature(); };
+
+    REQUIRE(nature(IdSpecialite::Guerrier) == NatureDAttaque::Contact);
+    REQUIRE(nature(IdSpecialite::Paladin) == NatureDAttaque::Contact);
+    REQUIRE(nature(IdSpecialite::Pretre) == NatureDAttaque::Projectile);
+    REQUIRE(nature(IdSpecialite::Mage) == NatureDAttaque::Projectile);
+    REQUIRE(nature(IdSpecialite::Rodeur) == NatureDAttaque::Projectile);
+
+    const auto natureDuSkill = [](IdSpecialite id, std::size_t rang) { return specialite(id).definition.skills[rang].skill.getNature(); };
+    REQUIRE(natureDuSkill(IdSpecialite::Guerrier, 0) == NatureDAttaque::Contact);   // frappe puissante
+    REQUIRE(natureDuSkill(IdSpecialite::Mage, 0) == NatureDAttaque::Zone);          // explosion
+    REQUIRE(natureDuSkill(IdSpecialite::Paladin, 0) == NatureDAttaque::Contact);    // frappe sacree
+    REQUIRE(natureDuSkill(IdSpecialite::Rodeur, 0) == NatureDAttaque::Projectile);  // tir percant
+    REQUIRE(natureDuSkill(IdSpecialite::Rodeur, 1) == NatureDAttaque::Zone);        // pluie de fleches
+}
+
 TEST_CASE("zone de controle : 20 px pour le guerrier et le paladin, 0 pour les trois autres") {
     REQUIRE(specialite(IdSpecialite::Guerrier).definition.zoneDeControle == 20.0f);
     REQUIRE(specialite(IdSpecialite::Paladin).definition.zoneDeControle == 20.0f);

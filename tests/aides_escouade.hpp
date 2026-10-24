@@ -85,7 +85,7 @@ inline Skill attaqueDeMeleeDeTest() {
 inline Skill attaqueDeTireurDeTest() {
     return Skill({.type = TypeSkill::Degats, .portee = s_porteeTireurDeTest, .puissance = s_degatsBaseDeTest,
                   .rechargeMin = s_rechargeTireurMinDeTest, .rechargeMax = s_rechargeTireurMaxDeTest,
-                  .tempsExecution = s_executionBaseDeTest});
+                  .tempsExecution = s_executionBaseDeTest, .nature = NatureDAttaque::Projectile});
 }
 
 // Guerrier de test : devant, mêlée, frappe puissante et provocation.
@@ -127,7 +127,7 @@ inline DefinitionPersonnage mageDeTest() {
             .skills = {{IdSkill::Explosion, Skill({.type = TypeSkill::Zone, .portee = s_porteeZoneDeTest,
                                          .puissance = s_degatsZoneDeTest, .rechargeMin = s_rechargeZoneDeTest,
                                          .rechargeMax = s_rechargeZoneDeTest, .rayonZone = s_rayonZoneDeTest,
-                                         .tempsExecution = s_activationZoneDeTest})}},
+                                         .tempsExecution = s_activationZoneDeTest, .nature = NatureDAttaque::Zone})}},
             .rayonVision = s_rayonVisionDeTest,
             .rang = Rang::Arriere};
 }

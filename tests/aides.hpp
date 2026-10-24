@@ -62,7 +62,7 @@ inline Generateur generateurDeTest() {
 // Une attaque sans capacité offensive : sa chance de critique est nulle, donc ni critique ni tirage. Pour les
 // tests qui ne portent pas sur le critique.
 inline Attaque attaqueSansCritique(int montant) {
-    return {.montant = montant, .capaciteOffensive = 0};
+    return {.montant = montant, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
 }
 
 // Défenses d'un défenseur de test : cette armure et la capacité défensive d'un personnage d'Adresse 10.

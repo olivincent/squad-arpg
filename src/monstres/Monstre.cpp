@@ -121,7 +121,9 @@ float Monstre::getZoneDeControle() const {
 }
 
 Attaque Monstre::getAttaque() const {
-    return {.montant = m_attaque.getPuissance(), .capaciteOffensive = m_statistiques.capaciteOffensive};
+    return {.montant = m_attaque.getPuissance(),
+            .capaciteOffensive = m_statistiques.capaciteOffensive,
+            .nature = m_attaque.getNature()};
 }
 
 const StatistiquesDeCombat& Monstre::getStatistiques() const {

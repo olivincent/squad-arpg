@@ -36,7 +36,7 @@ TEST_CASE("resoudreCoup : un coup de 0 reste 0, meme avec une grande capacite of
     Generateur generateur = generateurDeTest();
 
     REQUIRE(resoudreCoup(attaqueSansCritique(0), defensesDeTest(30), generateur).montant == 0);
-    REQUIRE(resoudreCoup({.montant = 0, .capaciteOffensive = s_capaciteEnorme}, defensesDeTest(0), generateur).montant == 0);
+    REQUIRE(resoudreCoup({.montant = 0, .capaciteOffensive = s_capaciteEnorme, .nature = NatureDAttaque::Contact}, defensesDeTest(0), generateur).montant == 0);
 }
 
 TEST_CASE("resoudreCoup ne tire rien quand la chance de critique est nulle ou le montant nul") {
@@ -44,7 +44,7 @@ TEST_CASE("resoudreCoup ne tire rien quand la chance de critique est nulle ou le
     const Generateur intact = generateur;
 
     static_cast<void>(resoudreCoup(attaqueSansCritique(100), defensesDeTest(30), generateur));  // capacité offensive nulle
-    static_cast<void>(resoudreCoup({.montant = 0, .capaciteOffensive = s_capaciteEnorme}, defensesDeTest(0), generateur));
+    static_cast<void>(resoudreCoup({.montant = 0, .capaciteOffensive = s_capaciteEnorme, .nature = NatureDAttaque::Contact}, defensesDeTest(0), generateur));
 
     REQUIRE(generateur == intact);
 }
@@ -53,14 +53,14 @@ TEST_CASE("resoudreCoup tire quand la chance de critique est non nulle") {
     Generateur generateur = generateurDeTest();
     const Generateur intact = generateur;
 
-    static_cast<void>(resoudreCoup({.montant = 100, .capaciteOffensive = 100}, defensesDeTest(0), generateur));
+    static_cast<void>(resoudreCoup({.montant = 100, .capaciteOffensive = 100, .nature = NatureDAttaque::Contact}, defensesDeTest(0), generateur));
 
     REQUIRE(generateur != intact);
 }
 
 TEST_CASE("resoudreCoup : un critique multiplie le montant avant l'armure") {
     Generateur generateur = generateurDeTest();
-    const Attaque attaque{.montant = s_montant, .capaciteOffensive = s_capaciteEnorme};
+    const Attaque attaque{.montant = s_montant, .capaciteOffensive = s_capaciteEnorme, .nature = NatureDAttaque::Contact};
     bool critiqueVu = false;
     bool normalVu = false;
 
@@ -83,8 +83,8 @@ TEST_CASE("resoudreCoup : la frequence des critiques suit le rapport des capacit
     Generateur generateur = generateurDeTest();
 
     // Rapport 1 : 5 % ; plafond : 50 % (de 4 000 coups, 200 et 2 000 attendus).
-    const int aRapportUn = nombreDeCritiques({.montant = s_montant, .capaciteOffensive = 100}, defensesDeTest(), 4000, generateur);
-    const int auPlafond = nombreDeCritiques({.montant = s_montant, .capaciteOffensive = s_capaciteEnorme}, defensesDeTest(), 4000, generateur);
+    const int aRapportUn = nombreDeCritiques({.montant = s_montant, .capaciteOffensive = 100, .nature = NatureDAttaque::Contact}, defensesDeTest(), 4000, generateur);
+    const int auPlafond = nombreDeCritiques({.montant = s_montant, .capaciteOffensive = s_capaciteEnorme, .nature = NatureDAttaque::Contact}, defensesDeTest(), 4000, generateur);
 
     REQUIRE(aRapportUn > 130);
     REQUIRE(aRapportUn < 270);
@@ -95,7 +95,7 @@ TEST_CASE("resoudreCoup : la frequence des critiques suit le rapport des capacit
 TEST_CASE("resoudreCoup : une grande capacite defensive annule pratiquement les critiques") {
     Generateur generateur = generateurDeTest();
 
-    const int critiques = nombreDeCritiques({.montant = s_montant, .capaciteOffensive = 50}, {.armure = 0, .capaciteDefensive = 100000}, 4000, generateur);
+    const int critiques = nombreDeCritiques({.montant = s_montant, .capaciteOffensive = 50, .nature = NatureDAttaque::Contact}, {.armure = 0, .capaciteDefensive = 100000}, 4000, generateur);
 
     REQUIRE(critiques == 0);
 }
@@ -103,7 +103,7 @@ TEST_CASE("resoudreCoup : une grande capacite defensive annule pratiquement les 
 TEST_CASE("resoudreCoup : meme graine, memes resultats") {
     Generateur premier = generateurDeTest();
     Generateur second = generateurDeTest();
-    const Attaque attaque{.montant = s_montant, .capaciteOffensive = 150};
+    const Attaque attaque{.montant = s_montant, .capaciteOffensive = 150, .nature = NatureDAttaque::Contact};
 
     for (int i = 0; i < 100; ++i) {
         const ResultatDuCoup a = resoudreCoup(attaque, defensesDeTest(10), premier);
@@ -130,7 +130,7 @@ TEST_CASE("resoudreSoin : un critique multiplie le soin, sans armure") {
     bool normalVu = false;
 
     for (int i = 0; i < 100; ++i) {
-        const ResultatDuCoup soin = resoudreSoin({.montant = 300, .capaciteOffensive = s_capaciteEnorme}, generateur);
+        const ResultatDuCoup soin = resoudreSoin({.montant = 300, .capaciteOffensive = s_capaciteEnorme, .nature = NatureDAttaque::Contact}, generateur);
         REQUIRE(soin.montant == (soin.critique ? 600 : 300));
         critiqueVu = critiqueVu || soin.critique;
         normalVu = normalVu || !soin.critique;
@@ -145,7 +145,7 @@ TEST_CASE("resoudreSoin : le soin tente son critique contre une capacite defensi
     int critiques = 0;
 
     for (int i = 0; i < 4000; ++i) {
-        critiques += resoudreSoin({.montant = 300, .capaciteOffensive = s_capaciteDefensiveDeReference}, generateur).critique ? 1 : 0;
+        critiques += resoudreSoin({.montant = 300, .capaciteOffensive = s_capaciteDefensiveDeReference, .nature = NatureDAttaque::Contact}, generateur).critique ? 1 : 0;
     }
 
     REQUIRE(critiques > 130);  // rapport 1 : 5 % de 4 000

@@ -1,5 +1,6 @@
 // ./src/monstres/DefinitionDeMonstre.cpp
 #include "monstres/DefinitionDeMonstre.hpp"
+#include "combat/NatureDAttaque.hpp"
 #include "combat/TypeSkill.hpp"
 
 namespace {
@@ -32,6 +33,6 @@ DefinitionDeMonstre monstreOrdinaire() {
             .regenerationRetour = s_regenerationRetour,
             .attaque = {.type = TypeSkill::Degats, .portee = s_porteeAttaque, .puissance = s_degatsAttaque,
                         .rechargeMin = s_rechargeAttaqueMin, .rechargeMax = s_rechargeAttaqueMax,
-                        .tempsExecution = s_executionAttaque},
+                        .tempsExecution = s_executionAttaque, .nature = NatureDAttaque::Contact},
             .statistiques = {.capaciteOffensive = s_capaciteOffensive, .capaciteDefensive = s_capaciteDefensive}};
 }

@@ -334,7 +334,8 @@ void Personnage::recalculerDepuisLEquipement() {
 
 Attaque Personnage::attaqueDe(const Skill& skill) const {
     return {.montant = montantEffectif(skill.getPuissance(), skill.getCoefficients(), m_caracteristiques),
-            .capaciteOffensive = m_statistiques.capaciteOffensive};
+            .capaciteOffensive = m_statistiques.capaciteOffensive,
+            .nature = skill.getNature()};
 }
 
 const Caracteristiques& Personnage::getCaracteristiques() const {

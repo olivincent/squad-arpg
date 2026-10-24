@@ -101,6 +101,7 @@ TEST_CASE("Zone : un point a portee (250 px bord a bord) part tout de suite") {
     const std::vector<Coup> coups = declencherZoneEtAttendre(escouade, s_adresseExplosion, {435.0f, 235.0f}, {EntiteVue{1, cibleMonstre({435.0f, 235.0f})}}, carte, generateur);
 
     REQUIRE(coups.size() == 1);
+    REQUIRE(coups[0].attaque.nature == NatureDAttaque::Zone);
     REQUIRE_FALSE(escouade.skillEstPret(s_adresseExplosion));
 }
 
