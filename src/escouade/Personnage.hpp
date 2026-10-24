@@ -8,6 +8,7 @@
 #include "monde/Mobile.hpp"
 #include "combat/Skill.hpp"
 #include "combat/SkillConnu.hpp"
+#include "combat/StatistiquesDeCombat.hpp"
 #include "combat/Vitalite.hpp"
 #include "escouade/Composition.hpp"
 #include "objets/Equipement.hpp"
@@ -96,6 +97,8 @@ public:
     [[nodiscard]] const Equipement& getEquipement() const;
     // Ses caractéristiques effectives : la base de sa classe plus les bonus de son équipement.
     [[nodiscard]] const Caracteristiques& getCaracteristiques() const;
+    // Ses statistiques de combat, tirées de ses caractéristiques effectives (`statistiquesDuPersonnage`).
+    [[nodiscard]] const StatistiquesDeCombat& getStatistiques() const;
     // Porte `objet` à cet emplacement (`assert` : `peutAller`) et rend celui qui y était. L'armure est
     // recalculée en entier depuis l'équipement. Permis pour un mort.
     [[nodiscard]] std::optional<Objet> poserEquipement(Emplacement emplacement, Objet objet);
@@ -111,14 +114,15 @@ private:
     Equipement m_equipement;  // déclaré avant m_vitalite : l'armure en est tirée à la construction
     Caracteristiques m_caracteristiquesDeBase;  // celles de sa classe, jamais modifiées
     Caracteristiques m_caracteristiques;        // effectives : seul `recalculerCaracteristiques` les écrit
+    StatistiquesDeCombat m_statistiques;        // tirées des caractéristiques effectives, écrites au même endroit
     int m_pointsDeVieDeBase;                    // sans l'Endurance
     Vitalite m_vitalite;    // points de vie et armure
     float m_rayonVision;    // en pixels
     float m_zoneDeControle; // en pixels, bord à bord
     // Seul endroit où l'armure de la vitalité change : toujours la somme de l'équipement, jamais ajustée.
     void recalculerArmure();
-    // Seul endroit où les caractéristiques effectives (et le maximum de points de vie qui en vient)
-    // changent : toujours la base plus l'équipement, jamais ajustées.
+    // Seul endroit où les caractéristiques effectives (et les points de vie maximum et les statistiques de
+    // combat qui en viennent) changent : toujours la base plus l'équipement, jamais ajustées.
     void recalculerCaracteristiques();
     // Le montant de ce skill de ce personnage, caractéristiques comprises (`montantEffectif`).
     [[nodiscard]] int montantDe(const Skill& skill) const;

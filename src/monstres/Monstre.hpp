@@ -5,6 +5,7 @@
 #include "base/Cercle.hpp"
 #include "combat/EntiteVue.hpp"
 #include "monde/Mobile.hpp"
+#include "combat/StatistiquesDeCombat.hpp"
 #include "combat/Vitalite.hpp"
 #include "monstres/DefinitionDeMonstre.hpp"
 #include <SFML/Graphics/RenderTarget.hpp>
@@ -71,6 +72,8 @@ public:
     [[nodiscard]] float getZoneDeControle() const;
     // Dégâts de son attaque, avant l'armure de la cible.
     [[nodiscard]] int getPuissanceAttaque() const;
+    // Ses statistiques de combat, celles de sa définition.
+    [[nodiscard]] const StatistiquesDeCombat& getStatistiques() const;
 
 private:
     enum class Etat { EnGarde, Poursuite, Retour };
@@ -88,6 +91,7 @@ private:
     float m_rayonDetection;
     float m_rayonTerritoire;
     float m_zoneDeControle;
+    StatistiquesDeCombat m_statistiques;
     float m_regenerationRetour;
     Etat m_etat;
     sf::Vector2f m_poste;

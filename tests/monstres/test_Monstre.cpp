@@ -7,6 +7,7 @@
 #include "aides.hpp"
 #include "base/Cercle.hpp"
 #include "combat/Defense.hpp"
+#include "combat/StatistiquesDeCombat.hpp"
 #include "monstres/Monstre.hpp"
 #include "monde/TileMap.hpp"
 #include "aides_monstre.hpp"
@@ -166,12 +167,14 @@ TEST_CASE("un monstre prend toutes ses valeurs de sa definition") {
     definition.armure = 40;
     definition.zoneDeControle = 35.0f;
     definition.attaque.puissance = 77;
+    definition.statistiques = {.capaciteOffensive = 130, .capaciteDefensive = 90};
     Monstre monstre({100.0f, 100.0f}, 1, 0, definition);
 
     REQUIRE(monstre.getCercle().rayon == 25.0f);
     REQUIRE(monstre.getPointsDeVie() == 300);
     REQUIRE(monstre.getZoneDeControle() == 35.0f);
     REQUIRE(monstre.getPuissanceAttaque() == 77);
+    REQUIRE(monstre.getStatistiques() == StatistiquesDeCombat{130, 90});
     REQUIRE(monstre.recevoirDegats(100) == appliquerArmure(100, 40));
 }
 

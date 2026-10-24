@@ -25,6 +25,7 @@ Monstre::Monstre(sf::Vector2f centre, int id, int groupe, const DefinitionDeMons
       m_rayonDetection(definition.rayonDetection),
       m_rayonTerritoire(definition.rayonTerritoire),
       m_zoneDeControle(definition.zoneDeControle),
+      m_statistiques(definition.statistiques),
       m_regenerationRetour(definition.regenerationRetour),
       m_etat(Etat::EnGarde),
       m_poste(centre),
@@ -120,6 +121,10 @@ float Monstre::getZoneDeControle() const {
 
 int Monstre::getPuissanceAttaque() const {
     return m_attaque.getPuissance();
+}
+
+const StatistiquesDeCombat& Monstre::getStatistiques() const {
+    return m_statistiques;
 }
 
 // Détecte la proie si elle est dans le rayon de détection, dans le territoire

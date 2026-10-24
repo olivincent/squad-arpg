@@ -74,6 +74,7 @@ add_library(squad_core STATIC
     src/base/Eclaircir.cpp
     src/combat/PointsDeVie.cpp
     src/combat/Vitalite.cpp
+    src/combat/StatistiquesDeCombat.cpp
     src/combat/Caracteristiques.cpp
     src/combat/Defense.cpp
     src/combat/ResolutionDuCoup.cpp
@@ -168,6 +169,7 @@ add_executable(tests
     tests/combat/test_Vitalite.cpp
     tests/combat/test_Defense.cpp
     tests/combat/test_Caracteristiques.cpp
+    tests/combat/test_StatistiquesDeCombat.cpp
     tests/combat/test_ResolutionDuCoup.cpp
     tests/objets/test_Emplacement.cpp
     tests/objets/test_CatalogueObjets.cpp

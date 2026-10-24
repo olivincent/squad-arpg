@@ -28,6 +28,7 @@ Personnage::Personnage(sf::Vector2f centre, DefinitionPersonnage definition)
       m_equipement(definition.equipementDeDepart),
       m_caracteristiquesDeBase(definition.caracteristiques),
       m_caracteristiques(m_caracteristiquesDeBase + m_equipement.bonusTotal()),
+      m_statistiques(statistiquesDuPersonnage(m_caracteristiques)),
       m_pointsDeVieDeBase(definition.pointsDeVieDeBase),
       m_vitalite(pointsDeVieMax(m_pointsDeVieDeBase, m_caracteristiques), m_equipement.armureTotale()),
       m_rayonVision(definition.rayonVision),
@@ -328,6 +329,7 @@ void Personnage::recalculerArmure() {
 
 void Personnage::recalculerCaracteristiques() {
     m_caracteristiques = m_caracteristiquesDeBase + m_equipement.bonusTotal();
+    m_statistiques = statistiquesDuPersonnage(m_caracteristiques);
     m_vitalite.definirMaximum(pointsDeVieMax(m_pointsDeVieDeBase, m_caracteristiques));
 }
 
@@ -337,4 +339,8 @@ int Personnage::montantDe(const Skill& skill) const {
 
 const Caracteristiques& Personnage::getCaracteristiques() const {
     return m_caracteristiques;
+}
+
+const StatistiquesDeCombat& Personnage::getStatistiques() const {
+    return m_statistiques;
 }

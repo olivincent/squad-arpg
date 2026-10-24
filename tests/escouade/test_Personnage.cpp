@@ -11,6 +11,7 @@
 #include "escouade/Personnage.hpp"
 #include "base/Cercle.hpp"
 #include "combat/Caracteristiques.hpp"
+#include "combat/StatistiquesDeCombat.hpp"
 #include "combat/Defense.hpp"
 #include "combat/IdSkill.hpp"
 #include "combat/Skill.hpp"
@@ -1011,6 +1012,18 @@ TEST_CASE("les caracteristiques effectives d'un personnage sont celles de sa def
                                  .caracteristiques = base});
 
     REQUIRE(personnage.getCaracteristiques() == base);
+}
+
+TEST_CASE("les statistiques de combat d'un personnage viennent de son Adresse") {
+    const Personnage rodeur({100.0f, 100.0f},
+                            {.couleur = sf::Color::White,
+                             .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f}),
+                             .rayonVision = s_rayonVisionDeTest,
+                             .caracteristiques = Caracteristiques({10, 10, 14, 8, 8})});
+
+    REQUIRE(rodeur.getStatistiques() == statistiquesDuPersonnage(rodeur.getCaracteristiques()));
+    REQUIRE(rodeur.getStatistiques().capaciteOffensive == 120);
+    REQUIRE(rodeur.getStatistiques().capaciteDefensive == 120);
 }
 
 TEST_CASE("les points de vie maximum d'un personnage viennent de sa base et de son Endurance") {
