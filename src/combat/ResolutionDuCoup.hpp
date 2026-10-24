@@ -9,9 +9,9 @@ struct Defenses {
     int capaciteDefensive;  // > 0 (`StatistiquesDeCombat`)
 };
 
-// Ce qu'un coup a donné.
+// Ce qu'un coup (ou un soin) a donné.
 struct ResultatDuCoup {
-    int montant;     // ce que le défenseur subit (après armure) ; 0 : rien
+    int montant;     // ce que le défenseur subit (après armure), ou le soin à rendre ; 0 : rien
     bool critique;
 };
 
@@ -26,3 +26,13 @@ struct ResultatDuCoup {
 // référence) ; aucun tirage quand la chance de critique est nulle (capacité offensive nulle) ni quand le
 // montant est nul. Précondition : attaque.montant >= 0.
 [[nodiscard]] ResultatDuCoup resoudreCoup(const Attaque& attaque, const Defenses& defenses, Generateur& generateur);
+
+// Capacité défensive contre laquelle un soin tente son critique. Elle suivra le niveau de la zone quand les
+// niveaux existeront. Provisoire, à tester.
+inline constexpr int s_capaciteDefensiveDeReference = 100;
+
+// Un soin (décrit comme une attaque : son montant et la capacité offensive de qui le lance) peut être
+// critique, contre `s_capaciteDefensiveDeReference`, par la même courbe et la même règle de tirage que
+// `resoudreCoup`. Le résultat est le soin à rendre, avant le plafond aux points de vie maximum, qui se fait
+// chez celui qui est soigné. Précondition : soin.montant >= 0.
+[[nodiscard]] ResultatDuCoup resoudreSoin(const Attaque& soin, Generateur& generateur);

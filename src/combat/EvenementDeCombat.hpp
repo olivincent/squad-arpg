@@ -13,7 +13,7 @@ enum class Camp { Escouade, Monstres };
 // Le détail propre à chaque sorte d'événement : le variant dit le type, et chaque sorte ne porte que
 // les champs qui ont un sens pour elle.
 // `montant` : ce qui a réellement été appliqué (armure comprise, soin plafonné), jamais 0.
-// `opportunite` : coup gratuit. `critique` : le coup a été un critique (le montant est déjà multiplié).
+// `opportunite` : coup gratuit. `critique` : le coup ou le soin a été un critique (le montant est déjà multiplié).
 struct Degats {
     int montant;
     bool opportunite;
@@ -21,6 +21,7 @@ struct Degats {
 };
 struct Soin {
     int montant;
+    bool critique;
 };
 // Un skill de la barre part (fin de son activation), au-dessus de son lanceur ; jamais l'attaque de base.
 struct SkillLance {

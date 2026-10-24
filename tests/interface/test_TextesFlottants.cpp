@@ -95,13 +95,13 @@ TEST_CASE("l'empilement ne touche pas deux images differentes") {
 TEST_CASE("le libelle : degats, coup gratuit et soin") {
     REQUIRE(libelleDuTexte(degatsSurUnMonstre(1, 12)) == "12");
     REQUIRE(libelleDuTexte({Camp::Escouade, 1, {}, Degats{7, true, false}}) == "7!");
-    REQUIRE(libelleDuTexte({Camp::Escouade, 2, {}, Soin{20}}) == "+20");
+    REQUIRE(libelleDuTexte({Camp::Escouade, 2, {}, Soin{20, false}}) == "+20");
 }
 
 TEST_CASE("la couleur et la taille : blanc sur un monstre, rouge sur un personnage, vert pour un soin, orange et plus gros pour un coup gratuit") {
     const EvenementDeCombat surUnMonstre = degatsSurUnMonstre(1);
     const EvenementDeCombat surUnPersonnage{Camp::Escouade, 1, {}, Degats{10, false, false}};
-    const EvenementDeCombat soin{Camp::Escouade, 2, {}, Soin{10}};
+    const EvenementDeCombat soin{Camp::Escouade, 2, {}, Soin{10, false}};
     const EvenementDeCombat gratuitSurUnMonstre{Camp::Monstres, 1, {}, Degats{10, true, false}};
     const EvenementDeCombat gratuitSurUnPersonnage{Camp::Escouade, 1, {}, Degats{10, true, false}};
 

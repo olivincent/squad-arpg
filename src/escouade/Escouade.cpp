@@ -255,12 +255,12 @@ std::vector<Coup> Escouade::avancerSkillDe(std::size_t indice, float dt, const s
         return {};
     }
     assert(action->skill.has_value());  // une action de skill porte toujours son identifiant (engagerSkill)
-    return effetDuSkill(indice + 1, *action->skill, action->cible, *attaque, monstres, carte);  // NOLINT(bugprone-unchecked-optional-access): vérifié par l'assert au-dessus (_assert de MinGW n'est pas noreturn)
+    return effetDuSkill(indice + 1, *action->skill, action->cible, *attaque, monstres, carte, generateur);  // NOLINT(bugprone-unchecked-optional-access): vérifié par l'assert au-dessus (_assert de MinGW n'est pas noreturn)
 }
 
 // Effet d'un skill qui part, évalué au moment du départ. La provocation et le
-// soin sont appliqués ici ; les dégâts et la zone sortent en `Coup`.
-std::vector<Coup> Escouade::effetDuSkill(std::size_t place, IdSkill id, const std::optional<Cible>& cible, const Attaque& attaque, const std::vector<EntiteVue>& monstres, const TileMap& carte) {
+// soin (critique éventuel compris) sont appliqués ici ; les dégâts et la zone sortent en `Coup`.
+std::vector<Coup> Escouade::effetDuSkill(std::size_t place, IdSkill id, const std::optional<Cible>& cible, const Attaque& attaque, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur) {
     const Personnage& lanceur = personnageDeLaPlace(place);
     m_faits.push_back(SkillPart{place, id, lanceur.getCentre()});
 
@@ -283,8 +283,9 @@ std::vector<Coup> Escouade::effetDuSkill(std::size_t place, IdSkill id, const st
             [&](const CibleMonstre& monstre) -> std::vector<Coup> { return {{monstre.id, attaque}}; },
             [&](const CibleAllie& allie) -> std::vector<Coup> {
                 Personnage& soigne = personnageDeLaPlace(allie.place);
-                if (const int rendu = soigne.recevoirSoin(attaque.montant); rendu > 0) {
-                    m_faits.push_back(SoinApplique{allie.place, rendu, soigne.getCentre()});
+                const ResultatDuCoup soin = resoudreSoin(attaque, generateur);
+                if (const int rendu = soigne.recevoirSoin(soin.montant); rendu > 0) {
+                    m_faits.push_back(SoinApplique{allie.place, rendu, soigne.getCentre(), soin.critique});
                 }
                 return {};
             },

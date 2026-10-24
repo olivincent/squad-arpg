@@ -112,3 +112,42 @@ TEST_CASE("resoudreCoup : meme graine, memes resultats") {
         REQUIRE(a.critique == b.critique);
     }
 }
+
+TEST_CASE("resoudreSoin : sans capacite offensive, le soin est rendu tel quel et sans tirage") {
+    Generateur generateur = generateurDeTest();
+    const Generateur intact = generateur;
+
+    const ResultatDuCoup soin = resoudreSoin(attaqueSansCritique(300), generateur);
+
+    REQUIRE(soin.montant == 300);
+    REQUIRE_FALSE(soin.critique);
+    REQUIRE(generateur == intact);
+}
+
+TEST_CASE("resoudreSoin : un critique multiplie le soin, sans armure") {
+    Generateur generateur = generateurDeTest();
+    bool critiqueVu = false;
+    bool normalVu = false;
+
+    for (int i = 0; i < 100; ++i) {
+        const ResultatDuCoup soin = resoudreSoin({.montant = 300, .capaciteOffensive = s_capaciteEnorme}, generateur);
+        REQUIRE(soin.montant == (soin.critique ? 600 : 300));
+        critiqueVu = critiqueVu || soin.critique;
+        normalVu = normalVu || !soin.critique;
+    }
+
+    REQUIRE(critiqueVu);
+    REQUIRE(normalVu);
+}
+
+TEST_CASE("resoudreSoin : le soin tente son critique contre une capacite defensive de reference de 100") {
+    Generateur generateur = generateurDeTest();
+    int critiques = 0;
+
+    for (int i = 0; i < 4000; ++i) {
+        critiques += resoudreSoin({.montant = 300, .capaciteOffensive = s_capaciteDefensiveDeReference}, generateur).critique ? 1 : 0;
+    }
+
+    REQUIRE(critiques > 130);  // rapport 1 : 5 % de 4 000
+    REQUIRE(critiques < 270);
+}

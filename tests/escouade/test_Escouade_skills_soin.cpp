@@ -7,7 +7,9 @@
 
 #include "aides.hpp"
 #include "aides_escouade.hpp"
+#include "base/Aleatoire.hpp"
 #include "base/Cercle.hpp"
+#include "combat/Caracteristiques.hpp"
 #include "escouade/Escouade.hpp"
 #include "combat/EntiteVue.hpp"
 #include "monde/TileMap.hpp"
@@ -219,4 +221,56 @@ TEST_CASE("Un seul skill en attente a la fois") {
     // Le skill de dégâts de la place 1, à portée d'une cible, est refusé.
     escouade.verrouiller(1);
     REQUIRE(declencher(escouade, s_adresseFrappe, unSeulMonstre(cibleMonstre({85.0f, 60.0f}))) == 0);
+}
+
+namespace {
+// Une escouade dont le prêtre a une Adresse énorme (capacité offensive 5 050 : 50 % de critiques, ×2 contre la
+// référence de 100) et dont le mage (place 3) a perdu `perte` points de vie.
+Escouade escouadeAuPretreAdroit(int perte) {
+    DefinitionPersonnage pretre = pretreDeTest();
+    pretre.caracteristiques = Caracteristiques({10, 10, 1000, 10, 10});
+    Escouade escouade({50.0f, 50.0f}, {guerrierDeTest(), pretre, mageDeTest()});
+    infliger(escouade, 1, {35.0f, 85.0f}, perte);
+    return escouade;
+}
+
+// Le seul soin appliqué par le skill du prêtre, avec ce générateur.
+Escouade::SoinApplique soinDuPretre(Escouade& escouade, Generateur& generateur) {
+    static_cast<void>(declencherEtAttendre(escouade, s_adresseSoin, {}, carteOuverte(), generateur));
+    for (const Escouade::FaitDEscouade& fait : escouade.prendreFaits()) {
+        if (const auto* soin = std::get_if<Escouade::SoinApplique>(&fait)) {
+            return *soin;
+        }
+    }
+    FAIL("aucun soin appliqué");
+    return {};
+}
+}  // namespace
+
+TEST_CASE("Un soin peut etre critique : le montant rendu est multiplie et le fait le dit") {
+    int critiques = 0;
+    int normaux = 0;
+    for (Generateur::result_type graine = 1; graine <= 40; ++graine) {
+        Escouade escouade = escouadeAuPretreAdroit(800);  // il manque 800 : le soin n'est pas plafonné
+        Generateur generateur(graine);
+
+        const Escouade::SoinApplique soin = soinDuPretre(escouade, generateur);
+
+        REQUIRE(soin.montant == (soin.critique ? 2 * s_puissanceSoinDeTest : s_puissanceSoinDeTest));
+        ++(soin.critique ? critiques : normaux);
+    }
+    REQUIRE(critiques > 0);
+    REQUIRE(normaux > 0);
+}
+
+TEST_CASE("Un soin critique reste plafonne aux points de vie maximum") {
+    for (Generateur::result_type graine = 1; graine <= 40; ++graine) {
+        Escouade escouade = escouadeAuPretreAdroit(400);  // il manque 400 ; un critique rendrait 600
+        Generateur generateur(graine);
+
+        const Escouade::SoinApplique soin = soinDuPretre(escouade, generateur);
+
+        REQUIRE(soin.montant == (soin.critique ? 400 : s_puissanceSoinDeTest));
+        REQUIRE(*escouade.pointsDeVieDuPersonnage(3) <= *escouade.pointsDeVieMaxDuPersonnage(3));
+    }
 }

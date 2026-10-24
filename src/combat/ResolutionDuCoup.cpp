@@ -29,3 +29,9 @@ ResultatDuCoup resoudreCoup(const Attaque& attaque, const Defenses& defenses, Ge
         critiqueDe(attaque.montant, attaque.capaciteOffensive, defenses.capaciteDefensive, generateur);
     return {.montant = appliquerArmure(critique.montant, defenses.armure), .critique = critique.critique};
 }
+
+ResultatDuCoup resoudreSoin(const Attaque& soin, Generateur& generateur) {
+    const ResultatCritique critique =
+        critiqueDe(soin.montant, soin.capaciteOffensive, s_capaciteDefensiveDeReference, generateur);
+    return {.montant = critique.montant, .critique = critique.critique};
+}

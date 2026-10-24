@@ -230,7 +230,7 @@ void Partie::infligerAUnPersonnage(int idMonstre, std::size_t place, const Attaq
 void Partie::signalerLesFaits() {
     for (const Escouade::FaitDEscouade& fait : m_escouade.prendreFaits()) {
         std::visit(Surcharges{[&](const Escouade::SoinApplique& soin) {
-                       signaler(Camp::Escouade, static_cast<int>(soin.place), soin.position, Soin{soin.montant});
+                       signaler(Camp::Escouade, static_cast<int>(soin.place), soin.position, Soin{soin.montant, soin.critique});
                    },
                    [&](const Escouade::SkillPart& part) {
                        signaler(Camp::Escouade, static_cast<int>(part.place), part.position, SkillLance{part.skill});

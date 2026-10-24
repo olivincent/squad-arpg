@@ -124,12 +124,14 @@ public:
     [[nodiscard]] std::optional<int> degagementDuPersonnage(std::size_t place) const;
     // Centre du personnage de cette place (de 1 à N), mort ou vivant ; vide si la place est invalide.
     [[nodiscard]] std::optional<sf::Vector2f> centreDuPersonnage(std::size_t place) const;
-    // Un soin appliqué : le personnage soigné (sa place), les points réellement rendus (jamais 0) et
-    // son centre à ce moment. Données de sortie, comme les `Coup` : Escouade ne sait pas qui les lit.
+    // Un soin appliqué : le personnage soigné (sa place), les points réellement rendus (jamais 0), son centre
+    // à ce moment et si le soin était un critique. Données de sortie, comme les `Coup` : Escouade ne sait pas
+    // qui les lit.
     struct SoinApplique {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
         std::size_t place;
         int montant;
         sf::Vector2f position;
+        bool critique;
     };
     // Ce qui s'est passé dans l'escouade et que l'affichage doit savoir : un seul canal, un variant
     // par sorte de fait. `Partie` en fait des événements de combat.
@@ -198,7 +200,7 @@ private:
     [[nodiscard]] bool peutAtteindre(const Personnage& personnage, std::optional<IdSkill> skill, Cercle cible, const TileMap& carte) const;
     [[nodiscard]] bool peutLancerAuPoint(AdresseSkill adresse, sf::Vector2f point, const TileMap& carte) const;
     std::vector<Coup> avancerSkillDe(std::size_t indice, float dt, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
-    std::vector<Coup> effetDuSkill(std::size_t place, IdSkill id, const std::optional<Cible>& cible, const Attaque& attaque, const std::vector<EntiteVue>& monstres, const TileMap& carte);
+    std::vector<Coup> effetDuSkill(std::size_t place, IdSkill id, const std::optional<Cible>& cible, const Attaque& attaque, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
     // L'intention que le skill en attente donne à son lanceur (indice de 0 à N-1).
     struct IntentionDuSkill {
         std::size_t lanceur;
