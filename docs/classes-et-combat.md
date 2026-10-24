@@ -20,6 +20,7 @@ Quand un point entre dans `ROADMAP.md`, sa conception détaillée se fait en dis
 - **Retenu.** Monde très fantasy, style *Donjons et Dragons*.
 - **Retenu.** Inspirations de gameplay : *World of Warcraft*, *Titan Quest*, *Dawn of War 2*. Inspirations de classes : WoW, D&D / *Baldur's Gate 3*, Diablo, Titan Quest, *Age of Conan*.
 - **Retenu.** Un combat **plus lent et stratégique** : un « simulateur de combat » escouade contre monstres, avec peu d'ennemis qui comptent chacun. Pas un jeu à la *Diablo 4* où les monstres meurent par milliers en un coup.
+- **Retenu.** Un jeu sauvegardé, à la *Titan Quest* : pas un roguelite ; le butin et la progression s'accumulent d'une session à l'autre.
 - **Retenu.** Pas de pause tactique : elle casse le rythme (presque du tour par tour) et gênerait un éventuel multijoueur.
 - **Principe.** Un combat long n'ennuie pas s'il est long ; il ennuie quand le joueur n'a rien à décider. Ce qui compte, c'est la **densité de décisions**. Sources de décisions visées :
   - des ennemis qui annoncent leurs coups (temps d'activation visibles) : interrompre, protéger, s'écarter ou encaisser ;
@@ -98,7 +99,7 @@ Quand un point entre dans `ROADMAP.md`, sa conception détaillée se fait en dis
   4. **Un buff ne dure jamais plus longtemps que sa recharge**, même au plafond de Savoir. Sinon, un petit gain de caractéristique rend le buff permanent (effet de palier). Règle vérifiée par un test qui parcourt le catalogue de skills.
 - Note de structure : **un seul endroit calcule les valeurs effectives d'un skill** (zone, durée, dégâts) à partir de sa définition et des caractéristiques du lanceur. L'infobulle, le cercle de prévisualisation et le combat lisent tous ce résultat, pour que l'infobulle ne mente jamais.
 - **Retenu.** Une caractéristique peut ne servir à rien pour une classe donnée. En revanche, une classe ne doit **jamais se définir par une seule caractéristique plus Endurance** (schéma de WoW et de Diablo).
-- **Proposé.** Leviers contre ce schéma :
+- **Retenu.** Leviers contre ce schéma :
   1. Adresse aussi rentable que Puissance pour frapper (critique fort, à la *Titan Quest*).
   2. Les skills puisent dans plusieurs caractéristiques (un saignement profite du Savoir par sa durée) : c'est le choix des skills qui oriente les caractéristiques, pas la classe.
   3. Des seuils d'équipement sur deux caractéristiques (épée bâtarde : Puissance et Adresse).
@@ -138,9 +139,9 @@ Note de structure : un coup sera une petite collection de **portions typées** (
 
 - **Retenu.** Un modèle **mixte** soustraction / pourcentage, avec de la **pénétration d'armure**.
 - **Retenu.** Une réduction ne ramène **jamais** un coup à zéro. Seuls deux événements l'annulent, et ils sont affichés : l'**esquive** (« Esquivé ») et un **blocage** qui absorbe tout le coup (« Bloqué »).
-- **Proposé.** Modèle M1 : `dégâts = max(D − armure, D × plancher)`. L'armure retire un montant fixe par coup, le coup garde toujours au moins un pourcentage. Lisible (« retire 15 par coup, jamais plus de 80 % ») et à effets émergents : la dague s'effondre contre l'infanterie lourde, l'épée à deux mains tient ; une nuée ne fait presque rien au tank, donc elle cherche à le contourner. Il remplacerait le modèle de l'étape 55 (pourcentage à rendement décroissant, K = 100), avec le même plancher à 1.
+- **Retenu** (étape 87). Modèle M1 : `dégâts = max(D − armure, D × plancher)`. L'armure retire un montant fixe par coup, le coup garde toujours au moins un pourcentage. Lisible (« retire 15 par coup, jamais plus de 80 % ») et à effets émergents : la dague s'effondre contre l'infanterie lourde, l'épée à deux mains tient ; une nuée ne fait presque rien au tank, donc elle cherche à le contourner. Il remplace le modèle de l'étape 55 (pourcentage à rendement décroissant, K = 100), avec le même plancher à 1. Les points de vie, dégâts et soins sont à l'échelle × 10 pour que les entiers aient assez de finesse.
   - Alternative écartée pour l'instant : M2 à la *Path of Exile*, `réduction = A / (A + 5 × D)`, plus douce mais moins lisible.
-- **À tester.** Plancher de départ : 20 %. C'est lui qui décide si une nuée est « inoffensive » ou « gênante » contre un tank.
+- **À tester.** Plancher de départ : 20 % (`s_plancherArmure`, `Defense.cpp`). C'est lui qui décide si une nuée est « inoffensive » ou « gênante » contre un tank.
 - **Proposé.** Pénétration d'armure **en %** (ignore X % de l'armure) : identité des armes de spécialiste (estoc, dague de miséricorde, arbalète, pic de guerre).
 - **Retenu.** Les effets dans le temps (saignement, poison…) **ignorent l'armure** ; seules les résistances s'appliquent. Le saignement devient une réponse naturelle à l'infanterie lourde.
 - **Proposé.** L'armure ne protège **que contre le physique** (intuition d'Olivier). Chaque élément a sa **résistance en %**, plafonnée (par exemple 75 %). Une **pénétration de résistance** pourra exister pour les sorts, gagnée par l'équipement ou les skills, pas propre à toute la magie.

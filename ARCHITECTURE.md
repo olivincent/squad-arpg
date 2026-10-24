@@ -48,7 +48,7 @@ squad-arpg/
 │   │               ObjetInteractif, Niveau, GenerateurDonjon, Encerclement
 │   ├── combat/     Skill, SkillConnu, IdSkill, TypeSkill, AdresseSkill, Cible, ActionEngagee,
 │   │               EtatSkill, Coup, EvenementDeCombat, EntiteVue, Autodefense, Engagement,
-│   │               Defense, PointsDeVie, Vitalite
+│   │               Defense, ResolutionDuCoup, PointsDeVie, Vitalite
 │   ├── objets/     Emplacement, Objet, CatalogueObjets, Equipement, Inventaire, PositionDObjet
 │   ├── escouade/   Escouade, Personnage, Formation, PlacesDAttaque, Intention, Separation,
 │   │               EcartEntrePersonnages, Composition, Specialite, SelectionDEscouade,
@@ -135,7 +135,8 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `EntiteVue` : une entité telle que l'autre camp la voit, et `trouverEntite`.
 - `Autodefense` : quel ennemi frapper, quel agresseur viser.
 - `Engagement` : zones de contrôle, coups d'opportunité, monstre dont se dégager.
-- `Defense` : `appliquerArmure`, rendement décroissant.
+- `Defense` : `appliquerArmure`, modèle M1 (soustraction avec plancher de 20 %).
+- `ResolutionDuCoup` : `resoudreCoup`, point d'entrée unique d'un coup (aujourd'hui l'armure seule) et `Defenses`.
 - `PointsDeVie` : valeur et maximum, invariants de vie et de mort.
 - `Vitalite` : points de vie et armure d'une entité, commune à `Personnage` et `Monstre`.
 
@@ -294,6 +295,6 @@ de modifier un module, lire le fichier correspondant :
 | `docs/objets.md` | Objets : emplacements et catégories, catalogue, `Equipement`, `Inventaire`, armure calculée depuis l'équipement, opérations `ramasser` / `deplacerObjet` de l'`Escouade`, `PositionDObjet` ; référence des modules d'`objets/` | Avant de modifier un module d'`objets/`, `AffichageObjets` ou l'équipement d'un `Personnage` |
 | `docs/tests.md` | Tests (Catch2, conventions, dossiers, aides) | Avant d'ajouter ou de modifier un test |
 | `docs/audit.md` | Audit du code avant l'étape 80 : constats par famille (R, M, P, D, C, E, L, V, T, B, K), organisation en dossiers, passages de `clang-tidy` | Avant de planifier une refactorisation |
-| `docs/classes-et-combat.md` | Document de référence de conception (octobre 2026), pas de technique : vision d'un combat lent et stratégique, temps, couleurs (guide de conception des skills), classes et progression, caractéristiques (Vigueur, Adresse, Esprit), déroulement d'un coup, esquive et critique, armure (modèle M1), pénétration et résistances, barrières (Égide, Barrière), zones et escouade, catégories d'ennemis, grammaire des skills (cinq axes), inventaire des statistiques de combat, questions ouvertes. Chaque point porte un statut : retenu, proposé, à tester ou ouvert | Avant de discuter des classes, des skills, des statistiques ou des mathématiques du combat, ou de proposer une étape sur ces sujets |
+| `docs/classes-et-combat.md` | Document de référence de conception (octobre 2026), pas de technique : vision d'un combat lent et stratégique, temps, couleurs (guide de conception des skills), classes et progression, caractéristiques (Puissance, Endurance, Adresse, Savoir, Volonté), déroulement d'un coup, esquive et critique, armure (modèle M1), pénétration et résistances, barrières (Égide, Barrière), zones et escouade, catégories d'ennemis, grammaire des skills (cinq axes), inventaire des statistiques de combat, questions ouvertes. Chaque point porte un statut : retenu, proposé, à tester ou ouvert | Avant de discuter des classes, des skills, des statistiques ou des mathématiques du combat, ou de proposer une étape sur ces sujets |
 | `docs/brainstorm.md` | Idées à explorer par thème (coup double, gambits, stratégie d'attaque des monstres, génération procédurale, barre de raccourcis, file d'événements, inventaire), leur statut et leurs prérequis ; rien n'y est une décision. Ce que `docs/classes-et-combat.md` a déjà repris n'y figure plus | Avant de proposer une nouvelle étape |
 | `docs/historique.md` | Liste des étapes terminées et leur détail | Jamais nécessaire avant de modifier du code |

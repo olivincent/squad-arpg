@@ -770,7 +770,7 @@ même endroit dans un passage étroit » a disparu de la liste des limites.
   `Avant` sont sur `x = +25`, les `Arriere` sur `x = -25` ; dans un rang de n personnages,
   le k-ième (ordre d'apparition dans la composition) est sur `y = (k - (n-1)/2) × 50`. Avec
   2 devant et 2 derrière on retrouve exactement l'ancien carré.
-- **Composition par défaut** : guerrier (Avant, rouge, armure 50 par son équipement de départ, attaque de mêlée, skills
+- **Composition par défaut** : guerrier (Avant, rouge, armure 30 par son équipement de départ, attaque de mêlée, skills
   `FrappePuissante` et `Provocation`), prêtre (Arriere, jaune pâle, armure 0, attaque de
   tireur, skill `Soin`), mage (Arriere, violet, armure 0, attaque de tireur, skill
   `Explosion`). Toutes les valeurs numériques des skills sont celles d'avant.
@@ -807,7 +807,7 @@ même endroit dans un passage étroit » a disparu de la liste des limites.
   l'ordre des décalages. La formation dépend du rang de chaque classe : trois guerriers sont tous
   `Avant` (colonne de x = +25), trois rôdeurs tous `Arriere` (x = −25) ; `decalagesDeFormation`
   gérait déjà ces cas.
-- **Nouvelles classes, sans nouvelle mécanique** : paladin (`Avant`, armure 50 par son équipement, attaque de mêlée,
+- **Nouvelles classes, sans nouvelle mécanique** : paladin (`Avant`, armure 30 par son équipement, attaque de mêlée,
   skills `Degats` et `Soin`, tous deux à 20 px) et rôdeur (`Arriere`, armure 0, attaque de tireur,
   skills `Degats` à 200 px et `Zone`). Elles n'emploient que des `TypeSkill` existants ; les valeurs des skills sont dans `docs/combat.md`.
 - **Soin au contact** : l'imposition des mains a une portée de 20 px (bord à bord) : le paladin va
@@ -1190,7 +1190,7 @@ un personnage immobile. Inclus par `Escouade` et `Formation` sans qu'elles dépe
 | `const Specialite& specialite(IdSpecialite id)` | L'entrée de cet identifiant (indexée par l'enum, `assert` sur l'identifiant) ; `[[nodiscard]]` |
 | `std::vector<DefinitionPersonnage> composer(const std::vector<IdSpecialite>& identifiants)` | Une définition par identifiant, dans l'ordre reçu (c'est l'ordre des places). La k-ième occurrence d'une même classe (k = 0, 1, 2) a sa couleur assombrie de 0 %, 30 % puis 55 % (`assombrir`) ; `assert` : pas plus de 3 fois la même classe ; `[[nodiscard]]` |
 
-Classes : guerrier (`Avant`, rouge, armure 50 par son équipement, attaque de mêlée, `FrappePuissante` et `Provocation`), prêtre (`Arriere`, jaune pâle, armure 0, attaque de tireur, `Soin`), mage (`Arriere`, violet, armure 0, attaque de tireur, `Explosion`), paladin (`Avant`, orange, armure 50, attaque de mêlée, `FrappeSacree` et `ImpositionDesMains`), rôdeur (`Arriere`, vert, armure 0, attaque de tireur, `TirPercant` et `PluieDeFleches`). Rayon de vision 320 px pour toutes. Zone de contrôle : 20 px pour le guerrier et le paladin (mêlées), 0 pour les trois autres. Valeurs des skills dans `docs/combat.md`.
+Classes : guerrier (`Avant`, rouge, armure 30 par son équipement, attaque de mêlée, `FrappePuissante` et `Provocation`), prêtre (`Arriere`, jaune pâle, armure 0, attaque de tireur, `Soin`), mage (`Arriere`, violet, armure 0, attaque de tireur, `Explosion`), paladin (`Avant`, orange, armure 30, attaque de mêlée, `FrappeSacree` et `ImpositionDesMains`), rôdeur (`Arriere`, vert, armure 0, attaque de tireur, `TirPercant` et `PluieDeFleches`). Rayon de vision 320 px pour toutes. Zone de contrôle : 20 px pour le guerrier et le paladin (mêlées), 0 pour les trois autres. Valeurs des skills dans `docs/combat.md`.
 
 ### `Encerclement` (`monde/`) — les places d'un anneau
 

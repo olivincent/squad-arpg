@@ -141,9 +141,9 @@ CategorieObjet categorie; int armure; }` et trois fonctions libres, sans état.
 | `const DefinitionObjet& definitionObjet(IdObjet id)` | Le modèle de cet identifiant ; `assert` : le catalogue suit l'ordre de l'enum ; `[[nodiscard]]` |
 | `std::vector<Objet> sacDeDepart()` | Le contenu du sac au début d'une partie : gants de cuir, bottes de cuir, casque de cuir, tunique matelassée, collier de protection et deux anneaux de protection ; `[[nodiscard]]` |
 
-Valeurs d'armure (provisoires) : casque de fer 10, cuirasse de mailles 20, jambières de fer 10,
-bouclier rond 10, gants de cuir 4, bottes de cuir 4, casque de cuir 5, tunique matelassée 8, collier
-de protection 6, anneau de protection 3.
+Valeurs d'armure (provisoires, recalibrées à l'étape 87.3 pour le modèle M1) : casque de fer 6,
+cuirasse de mailles 12, jambières de fer 6, bouclier rond 6, gants de cuir 2, bottes de cuir 2, casque
+de cuir 3, tunique matelassée 5, collier de protection 4, anneau de protection 2.
 
 ### `Equipement` (`objets/`)
 

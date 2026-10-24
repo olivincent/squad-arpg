@@ -593,38 +593,41 @@ personnages sont dans `docs/formation.md`, le monstre dans
   `Arme` (les intervalles sont écrits dans `Escouade.cpp` et
   `Monstre.cpp`) ; la barre de skills n'est pas concernée (skills fixes).
 
-## Armure à rendement décroissant (étape 55)
+## Armure par soustraction, modèle M1 (étapes 55 puis 87)
 
-- **Formule** : réduction = armure / (armure + K), dégâts subis = montant ×
-  (1 − réduction), avec K = 100 (`s_constanteArmure` dans `Defense.cpp`).
-  Chaque point d'armure compte, mais la réduction n'atteint jamais 100 % :
-  100 d'armure = moitié des dégâts, 50 = un tiers de moins, 20 = un sixième
-  de moins.
-- **Code** : la fonction libre pure `appliquerArmure(montant, armure)`
-  (module `Defense`) ne dépend ni de SFML ni d'un autre module. Elle est
-  écrite `montant × K / (armure + K)` (même valeur, une seule division) :
-  avec `montant × (1 − réduction)` en flottant, 15 avec 20 d'armure pouvait
-  donner 12,4999 au lieu de 12,5, donc 12 au lieu de 13.
-- **Arrondi** : au plus proche (`std::lround`, conversion `static_cast`
-  explicite), avec un plancher à 1 : un coup positif inflige toujours au
-  moins 1, un coup de 0 reste 0. Exemples : 10 avec 50 → 7, 5 avec 20 → 4,
-  15 avec 20 → 13, 25 avec 20 → 21.
-- **Qui l'applique** : `Vitalite::recevoirDegats` (étape 82.1), avant
-  `PointsDeVie::subirDegats`, pour `Personnage` et `Monstre` qui lui délèguent.
-  `PointsDeVie` ne connaît pas l'armure. Chaque entité a une `Vitalite` dont l'armure (`int`) vient
-  de son constructeur ; pas d'accesseur.
+- **Formule (étape 87.3)** : `subis = max(D − armure, D × plancher)`, avec D le montant du coup. L'armure
+  retire un montant fixe par coup, mais le coup garde toujours au moins 20 % de sa force
+  (`s_plancherArmure` dans `Defense.cpp`, valeur « à tester »). Elle remplace le rendement décroissant
+  de l'étape 55 (réduction = armure / (armure + 100), constante K supprimée). Voir `docs/classes-et-combat.md`,
+  section 8.
+- **Arrondi** : au plus proche (`std::lround`), avec un plancher à 1 : un coup positif inflige toujours au
+  moins 1, un coup de 0 reste 0. Exemples : 100 avec 30 → 70, 50 avec 10 → 40, 100 avec 500 → 20.
+- **Échelle × 10 (étape 87.1)** : les points de vie (1000 pour un personnage et un monstre), les dégâts
+  (attaque de base d'un personnage 50, du monstre 100), les soins et les skills sont exprimés dix fois
+  plus grand qu'avant l'étape 87 : M1 retire un montant fixe et les caractéristiques ajouteront des
+  pourcentages, ce que des coups de 5 ne permettent pas en entiers. Les durées (provocation en
+  secondes), les portées et les recharges ne changent pas. Les valeurs chiffrées des sections plus
+  anciennes de ce document sont à lire × 10 pour les dégâts, les soins et les points de vie.
+- **Point d'entrée unique du coup (étape 87.2)** : `resoudreCoup(montant, Defenses)` (module
+  `ResolutionDuCoup`), fonction pure, appelée par `Vitalite::recevoirDegats`. Elle enchaîne des
+  fonctions d'étape dans l'ordre de la section 6 de `docs/classes-et-combat.md` ; aujourd'hui une seule
+  existe, l'armure (`appliquerArmure`). `Defenses` ne contient que l'armure ; esquive, critique, blocage
+  et résistances s'y ajouteront aux étapes 89 à 93, sans étape vide d'avance.
+- **Qui l'applique** : `Vitalite::recevoirDegats`, avant `PointsDeVie::subirDegats`, pour `Personnage`
+  et `Monstre` qui lui délèguent. `PointsDeVie` ne connaît pas l'armure. Chaque entité a une `Vitalite`
+  dont l'armure (`int`) vient de son constructeur ; pas d'accesseur.
 - **Origine de l'armure (étape 83)** : celle d'un personnage est la somme de l'armure des objets de son
   `Equipement`, recalculée en entier à chaque changement (`Vitalite::definirArmure`) ; il n'y a plus
   d'armure de classe (`docs/objets.md`). Celle d'un monstre reste fixe, donnée par le niveau.
-- **Valeurs** : guerrier et paladin 50 (casque de fer, cuirasse de mailles, jambières de fer et
-  bouclier rond de départ), prêtre, mage et rôdeur 0, les
-  monstres 20 (`Niveau::armureMonstres`, valeur `s_armureMonstresParDefaut`
-  commune à la carte à la main et aux cartes générées).
-- **Le soin n'est pas touché** par l'armure. Les dégâts de zone, de skill
-  et d'attaque de base passent tous par `recevoirDegats`, donc par l'armure.
-- **Limites** : pas d'affichage de l'armure, pas d'esquive ni de blocage,
-  pas de types de dégâts ni de résistances, un seul K pour toutes les
-  entités, pas d'équipement.
+- **Valeurs (étape 87.3, provisoires)** : guerrier et paladin 30 (casque de fer 6, cuirasse de mailles 12,
+  jambières de fer 6, bouclier rond 6), prêtre, mage et rôdeur 0, les monstres 10
+  (`Niveau::armureMonstres`, valeur `s_armureMonstresParDefaut` commune à la carte à la main et aux
+  cartes générées). Contrôle : un coup de monstre de 100 fait 70 à un guerrier, 100 à un mage ; une attaque
+  de base de 50 fait 40 à un monstre.
+- **Le soin n'est pas touché** par l'armure. Les dégâts de zone, de skill et d'attaque de base passent
+  tous par `recevoirDegats`, donc par l'armure.
+- **Limites** : pas d'affichage de l'armure, pas d'esquive ni de blocage, pas de types de dégâts ni de
+  résistances, pas de pénétration d'armure.
 
 ## Temps d'exécution et coup engagé (étape 57)
 
@@ -914,7 +917,7 @@ l'enfoncerait dans un obstacle.
   | `TirPercant` (rôdeur) | Degats | 200 px | 25 | — | 6 s | 0,5 s |
   | `PluieDeFleches` (rôdeur) | Zone | 320 px | 12 | rayon 45 px | 8 s | 0,8 s |
 
-  Le paladin a l'attaque de base de mêlée et l'équipement de départ (armure 50) du guerrier, le rôdeur l'attaque de base
+  Le paladin a l'attaque de base de mêlée et l'équipement de départ (armure 30) du guerrier, le rôdeur l'attaque de base
   de tireur et l'absence d'équipement (armure 0) du mage. Les portées sont mesurées de bord à bord, comme les autres.
 - **Étiquette par `IdSkill`, plus par `TypeSkill`** : `sigleDuSkill(IdSkill)` (deux lettres : FP,
   PR, SO, EX, FS, IM, TP, PF) remplace `lettreDuSkill(TypeSkill)`, qui donnait la même lettre à tous
@@ -1212,11 +1215,10 @@ même chose avec plus de détail.
   tirage si `min == max`) : attaques de base des mêlées 0,3–0,7 s, des
   tireurs 0,4–0,6 s, des monstres 0,7–1,3 s ; skills des personnages
   fixes. Voir `docs/combat.md`.
-- **Armure** (étape 55) : `appliquerArmure` (module `Defense`) réduit les
-  dégâts reçus, même formule pour tous : réduction = armure / (armure +
-  100), arrondi au plus proche, au moins 1 par coup positif. Mêlées 50
-  (un tiers de moins), tireurs 0, monstres 20 (un sixième de moins). Le
-  soin n'est pas réduit. Rien n'est affiché à l'écran.
+- **Armure** (étapes 55 et 87) : `appliquerArmure` (module `Defense`) réduit les
+  dégâts reçus, même formule pour tous : `max(D − armure, D × 20 %)`, arrondi au plus proche, au moins 1
+  par coup positif. Mêlées 30, tireurs 0, monstres 10. Le soin n'est pas réduit. Rien n'est affiché à
+  l'écran.
 - **Combat** : le monstre verrouillé est entouré d'un contour jaune.
   L'escouade s'approche en formation jusqu'à ce que tous ses personnages
   vivants soient à portée, puis s'arrête et chacun frappe selon sa propre
@@ -1544,7 +1546,14 @@ autre module ni de SFML.
 
 | Fonction | Rôle |
 |---|---|
-| `int appliquerArmure(int montant, int armure)` | Dégâts réellement subis : `montant × K / (armure + K)` avec K = 100 (rendement décroissant, jamais 100 %), arrondi au plus proche, au moins 1 si `montant > 0`, 0 si `montant == 0` ; `assert(montant >= 0)` et `assert(armure >= 0)` ; `[[nodiscard]]` |
+| `int appliquerArmure(int montant, int armure)` | Dégâts réellement subis : `max(montant − armure, montant × 20 %)` (modèle M1, `s_plancherArmure`), arrondi au plus proche, au moins 1 si `montant > 0`, 0 si `montant == 0` ; `assert(montant >= 0)` et `assert(armure >= 0)` ; `[[nodiscard]]` |
+
+### `ResolutionDuCoup` (`combat/`) — le point d'entrée du coup (étape 87.2)
+
+`Defenses { int armure; }` (initialisation désignée) et la fonction libre pure `int resoudreCoup(int montant,
+const Defenses&)`, `[[nodiscard]]`, sans état ni SFML. Appelée par `Vitalite::recevoirDegats`. L'en-tête donne
+l'ordre des étapes à venir (esquive, critique, blocage, armure, résistances) ; aujourd'hui elle ne fait que
+`appliquerArmure`.
 
 ### `PointsDeVie` (`combat/`) — les points de vie d'une entité
 
@@ -1580,7 +1589,7 @@ Données membres : `m_pointsDeVie` (`PointsDeVie`), `m_armure` (`int`).
 | Fonction | Rôle |
 |---|---|
 | `Vitalite(int pointsDeVieMax, int armure)` | Commence pleine ; `assert(armure >= 0)` (et `maximum > 0` par `PointsDeVie`) |
-| `int recevoirDegats(int montant)` | `appliquerArmure(montant, armure)`, puis `PointsDeVie::subirDegats` ; renvoie les dégâts après armure, non plafonnés par les points de vie restants ; 0 pour un mort (rien n'est appliqué) |
+| `int recevoirDegats(int montant)` | `resoudreCoup(montant, {.armure = armure})`, puis `PointsDeVie::subirDegats` ; renvoie les dégâts après armure, non plafonnés par les points de vie restants ; 0 pour un mort (rien n'est appliqué) |
 | `int soigner(int montant)` | `PointsDeVie::soigner` : plafonné au maximum, 0 pour un mort ; renvoie les points réellement rendus |
 | `bool estVivant() const` | Points de vie `> 0` ; `[[nodiscard]]` |
 | `int getValeur() const` / `int getMaximum() const` | Points de vie actuels et maximum ; `[[nodiscard]]` |

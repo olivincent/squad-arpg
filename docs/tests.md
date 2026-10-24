@@ -1386,3 +1386,14 @@ même chose avec plus de détail.
 - **`tests/interface/test_TextesFlottants.cpp`** (+2) : libellé, couleur et taille d'un skill lancé et de
   « Provoqué ».
 - **`tests/interface/test_AffichageSkills.cpp`** (+2) : un nom par skill, tous différents ; UTF-8.
+
+## Étape 87 : moteur du coup (+3 cas, 1 079 → 1 082)
+
+- **`tests/aides.hpp`** : `s_coupMortel` (100 000), un coup qui tue n'importe quelle entité quelle que soit
+  son armure ; remplace les 200 et 1000 écrits en dur dans les tests de mort (la vie passe de 100 à 1000).
+  Les valeurs « figées » des personnages de test (`s_degatsBaseDeTest`, etc.) sont à l'échelle × 10.
+- **`tests/combat/test_Defense.cpp`** réécrit pour M1 : au-dessus du plancher (100 avec 30 → 70),
+  au plancher (20 %), arrondi du plancher, plancher à 1, coup de 0, bornes.
+- **`tests/combat/test_ResolutionDuCoup.cpp`** (+2) : `resoudreCoup` rend `appliquerArmure` ; un coup de 0
+  reste 0.
+- Les attentes de `test_Vitalite`, `test_Monstre` et de quelques tests d'escouade sont recalculées pour M1.

@@ -103,6 +103,8 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 83 — Inventaire et équipement : le modèle (sans interface) ✅
 - Étape 84 — Inventaire : l'écran en lecture (avec R6, D4, P2) ✅
 - Étape 85 — Inventaire : le glisser-déposer ✅
+- Étape 86 — Nom du skill lancé et « Provoqué » ✅
+- Étape 87 — Moteur du coup : échelle × 10, point d'entrée unique, armure M1 ✅
 
 ## Détail des étapes 0 à 73
 
@@ -2082,3 +2084,15 @@ les convertit (`signalerLesFaits`). Un skill de la barre signale son nom au dép
 l'attaque de base), au-dessus du lanceur, en jaune doré 14 px (`interface/AffichageSkills`) ; chaque
 monstre provoqué affiche « Provoqué » en rouge orangé. Libellés en UTF-8 (`fromUtf8`). 1 079 tests.
 Détail : `docs/combat.md`, `docs/formation.md`, `docs/tests.md`.
+
+### Étape 87 — Moteur du coup : échelle × 10, point d'entrée unique, armure M1 ✅
+
+Première étape de la phase 1 du plan 87–96 (`ROADMAP.md`). Trois sous-étapes de code. 87.1 : points de
+vie, dégâts et soins multipliés par 10 (1000 PV, attaque de base 50, monstre 100) pour que M1 et les
+pourcentages des caractéristiques aient de la finesse en entiers ; les durées ne changent pas. 87.2 :
+nouveau module `combat/ResolutionDuCoup` (`Defenses`, `resoudreCoup`), appelé par
+`Vitalite::recevoirDegats`, qui enchaînera les étapes de la section 6 de `docs/classes-et-combat.md`
+(aujourd'hui l'armure seule). 87.3 : modèle M1, `max(D − armure, D × 20 %)`, plancher à 1 ; armures
+recalibrées (mêlées 30, monstres 10) ; la constante K disparaît. Les tests tuent avec `s_coupMortel` et
+leurs attentes M1 sont calculées. 1 082 tests, 41 avertissements `clang-tidy` (inchangé). Détail :
+`docs/combat.md`, `docs/objets.md`, `docs/classes-et-combat.md`.
