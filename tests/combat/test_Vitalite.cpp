@@ -118,8 +118,8 @@ TEST_CASE("Vitalite : un mort ne tire rien") {
 }
 
 TEST_CASE("Vitalite : la capacite defensive des defenses compte pour le critique") {
-    Vitalite fragile(100000, {.armure = 0, .capaciteDefensive = 1});
-    Vitalite robuste(100000, {.armure = 0, .capaciteDefensive = 100000});
+    Vitalite fragile(100000, {.armure = 0, .statistiques = {.capaciteDefensive = 1}});
+    Vitalite robuste(100000, {.armure = 0, .statistiques = {.capaciteDefensive = 100000}});
     Generateur generateur = generateurDeTest();
     int critiquesDuFragile = 0;
     int critiquesDuRobuste = 0;
@@ -131,4 +131,24 @@ TEST_CASE("Vitalite : la capacite defensive des defenses compte pour le critique
 
     REQUIRE(critiquesDuFragile > 100);  // rapport 100 : 50 %
     REQUIRE(critiquesDuRobuste == 0);
+}
+
+TEST_CASE("Vitalite : un coup esquive ne retire aucun point de vie") {
+    Vitalite vitalite(1000, {.armure = 0, .statistiques = {.capaciteDefensive = 100, .esquiveContact = 50}});
+    Generateur generateur = generateurDeTest();
+    const Attaque attaque{.montant = 100, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
+    bool esquiveVue = false;
+
+    for (int i = 0; i < 100; ++i) {
+        const int avant = vitalite.getValeur();
+        const ResultatDuCoup resultat = vitalite.recevoirDegats(attaque, generateur);
+        if (resultat.esquive) {
+            REQUIRE(resultat.montant == 0);
+            REQUIRE(vitalite.getValeur() == avant);
+            esquiveVue = true;
+        } else {
+            REQUIRE(avant - vitalite.getValeur() == resultat.montant);
+        }
+    }
+    REQUIRE(esquiveVue);
 }

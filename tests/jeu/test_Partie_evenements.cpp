@@ -118,7 +118,7 @@ TEST_CASE("evenements : un critique est signale, et son montant est multiplie") 
     adroit.caracteristiques = Caracteristiques({10, 10, 1000, 10, 10});
     Partie partie(niveauDegage({{235.0f, 170.0f}}), std::vector<DefinitionPersonnage>{adroit}, s_graineDeTest);
     const Attaque attaque = *partie.getEscouade().attaqueDeBase(1);
-    const Defenses monstre{.armure = 0, .capaciteDefensive = monstreOrdinaire().statistiques.capaciteDefensive};
+    const Defenses monstre{.armure = 0, .statistiques = monstreOrdinaire().statistiques};
 
     const std::vector<EvenementDeCombat> evenements = evenementsPendant(partie, 3.0f);
 

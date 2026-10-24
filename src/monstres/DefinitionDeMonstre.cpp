@@ -20,6 +20,8 @@ constexpr float s_rechargeAttaqueMax = 1.3f;
 constexpr float s_executionAttaque = 0.3f;     // en secondes, immobile avant que le coup parte
 constexpr int s_capaciteOffensive = 100;       // celle d'un personnage d'Adresse 10
 constexpr int s_capaciteDefensive = 100;
+constexpr int s_esquiveContact = 5;            // en pour cent
+constexpr int s_esquiveProjectile = 5;
 }  // namespace
 
 DefinitionDeMonstre monstreOrdinaire() {
@@ -34,5 +36,6 @@ DefinitionDeMonstre monstreOrdinaire() {
             .attaque = {.type = TypeSkill::Degats, .portee = s_porteeAttaque, .puissance = s_degatsAttaque,
                         .rechargeMin = s_rechargeAttaqueMin, .rechargeMax = s_rechargeAttaqueMax,
                         .tempsExecution = s_executionAttaque, .nature = NatureDAttaque::Contact},
-            .statistiques = {.capaciteOffensive = s_capaciteOffensive, .capaciteDefensive = s_capaciteDefensive}};
+            .statistiques = {.capaciteOffensive = s_capaciteOffensive, .capaciteDefensive = s_capaciteDefensive,
+                             .esquiveContact = s_esquiveContact, .esquiveProjectile = s_esquiveProjectile}};
 }

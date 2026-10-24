@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include "combat/Caracteristiques.hpp"
+#include "combat/StatistiquesDeCombat.hpp"
 #include "objets/Emplacement.hpp"
 #include "objets/Objet.hpp"
 
@@ -13,6 +14,7 @@ struct DefinitionObjet {
     CategorieObjet categorie;
     int armure;
     Caracteristiques bonus = {};  // ajouté aux caractéristiques de qui le porte (vide : aucun bonus)
+    StatistiquesDeCombat bonusDeCombat = {};  // ajouté aux statistiques de combat de qui le porte (esquive, capacités…)
 };
 
 // Tous les modèles, dans l'ordre de `IdObjet` : l'unique source de leurs valeurs.

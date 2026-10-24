@@ -19,7 +19,7 @@ constexpr std::uint8_t s_opaciteRetour = 128;  // sur 255 : environ 50 %, pour m
 Monstre::Monstre(sf::Vector2f centre, int id, int groupe, const DefinitionDeMonstre& definition)
     : m_mobile(centre, {definition.cote, definition.cote}, definition.vitesse),
       m_vitalite(definition.pointsDeVieMax,
-                 {.armure = definition.armure, .capaciteDefensive = definition.statistiques.capaciteDefensive}),
+                 {.armure = definition.armure, .statistiques = definition.statistiques}),
       m_id(id),
       m_groupe(groupe),
       m_attaque(definition.attaque),

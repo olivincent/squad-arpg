@@ -4,6 +4,7 @@
 #include <optional>
 #include <vector>
 #include "combat/Caracteristiques.hpp"
+#include "combat/StatistiquesDeCombat.hpp"
 #include "objets/Emplacement.hpp"
 #include "objets/Objet.hpp"
 
@@ -38,6 +39,9 @@ public:
 
     // Somme des bonus de caractéristiques des objets portés, recalculée à chaque appel.
     [[nodiscard]] Caracteristiques bonusTotal() const;
+
+    // Somme des bonus de statistiques de combat des objets portés (esquive, capacités…), recalculée à chaque appel.
+    [[nodiscard]] StatistiquesDeCombat bonusDeCombatTotal() const;
 
 private:
     std::array<std::optional<Objet>, s_nombreEmplacements> m_objets;

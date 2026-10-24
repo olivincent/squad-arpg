@@ -1426,7 +1426,7 @@ même chose avec plus de détail.
 ## Étape 89 : le critique (+41 cas, 1 126 → 1 167)
 
 - **Les aides** (`aides.hpp`, `aides_escouade.hpp`, `aides_monstre.hpp`) :
-  - `attaqueSansCritique(montant)` : une `Attaque` de capacité offensive 0, donc de chance de critique nulle :
+  - `attaqueSansHasard(montant)` : une `Attaque` de capacité offensive 0, donc de chance de critique nulle :
     **ni critique ni tirage**. Les tests de règle (armure, mort, agresseurs, points de vie…) n'ont pas à
     connaître le hasard.
   - `subir(entite, montant)` (`Vitalite`, `Personnage` ou `Monstre`) et `subirCoup(escouade, idMonstre, place,

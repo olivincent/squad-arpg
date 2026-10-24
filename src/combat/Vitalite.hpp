@@ -11,7 +11,7 @@
 // dans la classe de l'entité.
 class Vitalite {
 public:
-    // Commence pleine. Préconditions : pointsDeVieMax > 0, defenses.armure >= 0, defenses.capaciteDefensive > 0.
+    // Commence pleine. Préconditions : pointsDeVieMax > 0, defenses.armure >= 0, defenses.statistiques.capaciteDefensive > 0.
     Vitalite(int pointsDeVieMax, const Defenses& defenses);
     // Remplace les défenses (celles d'un personnage sont recalculées depuis son équipement et ses
     // caractéristiques). Mêmes préconditions.

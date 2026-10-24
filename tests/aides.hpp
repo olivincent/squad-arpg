@@ -59,15 +59,16 @@ inline Generateur generateurDeTest() {
     return Generateur(s_graineDeTest);
 }
 
-// Une attaque sans capacité offensive : sa chance de critique est nulle, donc ni critique ni tirage. Pour les
-// tests qui ne portent pas sur le critique.
-inline Attaque attaqueSansCritique(int montant) {
-    return {.montant = montant, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
+// Une attaque sans hasard : sans capacité offensive (donc ni critique) et de nature zone (donc jamais esquivée
+// ni, plus tard, bloquée) : aucun tirage. Pour les tests qui ne portent ni sur le critique, ni sur l'esquive,
+// ni sur le blocage.
+inline Attaque attaqueSansHasard(int montant) {
+    return {.montant = montant, .capaciteOffensive = 0, .nature = NatureDAttaque::Zone};
 }
 
 // Défenses d'un défenseur de test : cette armure et la capacité défensive d'un personnage d'Adresse 10.
 inline Defenses defensesDeTest(int armure = 0) {
-    return {.armure = armure, .capaciteDefensive = 100};
+    return {.armure = armure, .statistiques = {.capaciteOffensive = 0, .capaciteDefensive = 100}};
 }
 
 // Le montant d'une attaque qui vient de partir, 0 si rien n'est parti (ce que rendaient avancerAttaque et
@@ -82,18 +83,18 @@ inline int montantOuZero(const std::optional<Attaque>& attaque) {
 inline int degatsAttendus(const Attaque& attaque, const Defenses& defenses, bool critique) {
     int montant = attaque.montant;
     if (critique) {
-        const float rapport = rapportDeCapacites(attaque.capaciteOffensive, defenses.capaciteDefensive);
+        const float rapport = rapportDeCapacites(attaque.capaciteOffensive, defenses.statistiques.capaciteDefensive);
         montant = appliquerCritique(montant, rapport, 0.0f).montant;
     }
     return appliquerArmure(montant, defenses.armure);
 }
 
-// Fait subir un coup de `montant` dégâts sans critique (ni tirage) à une entité (`Vitalite`, `Personnage`,
-// `Monstre`) et rend les dégâts subis. Le générateur est neuf et jamais lu : pas de capacité offensive.
+// Fait subir un coup de `montant` dégâts sans hasard (ni tirage) à une entité (`Vitalite`, `Personnage`,
+// `Monstre`) et rend les dégâts subis. Le générateur est neuf et jamais lu : l'attaque est sans hasard.
 template <typename Entite>
 int subir(Entite& entite, int montant) {
     Generateur generateur = generateurDeTest();
-    return entite.recevoirDegats(attaqueSansCritique(montant), generateur).montant;
+    return entite.recevoirDegats(attaqueSansHasard(montant), generateur).montant;
 }
 
 // Compare un point à un point attendu avec une tolérance : les positions

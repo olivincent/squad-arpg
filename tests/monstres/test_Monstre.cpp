@@ -193,6 +193,36 @@ TEST_CASE("l'attaque d'un monstre ordinaire est une attaque de contact") {
     REQUIRE(monstre.getAttaque().nature == NatureDAttaque::Contact);
 }
 
+TEST_CASE("un monstre ordinaire esquive 5 % des coups de contact et 5 % des projectiles") {
+    const Monstre monstre({100.0f, 100.0f}, 1, 0, monstreOrdinaire());
+
+    REQUIRE(monstre.getStatistiques().esquiveContact == 5);
+    REQUIRE(monstre.getStatistiques().esquiveProjectile == 5);
+}
+
+TEST_CASE("un coup esquive par un monstre ne lui retire rien mais le reveille quand meme") {
+    const TileMap carte = carteDegagee10x10();
+    DefinitionDeMonstre definition = monstreOrdinaire();
+    definition.statistiques.esquiveContact = 50;
+    const Attaque attaque{.montant = 100, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
+    bool esquiveVue = false;
+
+    for (Generateur::result_type graine = 1; graine <= 50 && !esquiveVue; ++graine) {
+        Monstre monstre({100.0f, 100.0f}, 1, 0, definition);
+        Generateur generateur(graine);
+        const int vieAvant = monstre.getPointsDeVie();
+
+        if (!monstre.recevoirDegats(attaque, generateur).esquive) {
+            continue;
+        }
+        esquiveVue = true;
+        REQUIRE(monstre.getPointsDeVie() == vieAvant);
+        ecoulerTemps(monstre, 0.5f, pointCible({350.0f, 100.0f}), carte);  // une proie hors détection
+        REQUIRE(monstre.getCentre().x > 100.0f);  // l'attaque a eu lieu : le monstre poursuit
+    }
+    REQUIRE(esquiveVue);
+}
+
 TEST_CASE("lire la puissance de l'attaque ne change ni le coup engage ni la recharge") {
     Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
     const TileMap carte = carteDegagee10x10();

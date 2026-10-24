@@ -308,7 +308,7 @@ TEST_CASE("statistiquesDeCombatDuPersonnage : celles du personnage de la place, 
     rodeur.caracteristiques = Caracteristiques({10, 10, 14, 8, 8});
     const Escouade escouade({50.0f, 50.0f}, {guerrierDeTest(), rodeur});
 
-    REQUIRE(escouade.statistiquesDeCombatDuPersonnage(1) == statistiquesDuPersonnage(Caracteristiques()));
+    REQUIRE(escouade.statistiquesDeCombatDuPersonnage(1) == statistiquesDuPersonnage(Caracteristiques(), StatistiquesDeCombat()));
     REQUIRE(escouade.statistiquesDeCombatDuPersonnage(2) == StatistiquesDeCombat{120, 120});
     REQUIRE_FALSE(escouade.statistiquesDeCombatDuPersonnage(0).has_value());
     REQUIRE_FALSE(escouade.statistiquesDeCombatDuPersonnage(3).has_value());

@@ -7,11 +7,11 @@ Vitalite::Vitalite(int pointsDeVieMax, const Defenses& defenses)
     : m_pointsDeVie(pointsDeVieMax),
       m_defenses(defenses)
 {
-    assert(defenses.armure >= 0 && defenses.capaciteDefensive > 0);
+    assert(defenses.armure >= 0 && defenses.statistiques.capaciteDefensive > 0);
 }
 
 void Vitalite::definirDefenses(const Defenses& defenses) {
-    assert(defenses.armure >= 0 && defenses.capaciteDefensive > 0);
+    assert(defenses.armure >= 0 && defenses.statistiques.capaciteDefensive > 0);
     m_defenses = defenses;
 }
 

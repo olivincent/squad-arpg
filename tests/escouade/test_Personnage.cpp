@@ -1055,9 +1055,64 @@ TEST_CASE("les statistiques de combat d'un personnage viennent de son Adresse") 
                              .rayonVision = s_rayonVisionDeTest,
                              .caracteristiques = Caracteristiques({10, 10, 14, 8, 8})});
 
-    REQUIRE(rodeur.getStatistiques() == statistiquesDuPersonnage(rodeur.getCaracteristiques()));
+    REQUIRE(rodeur.getStatistiques() == statistiquesDuPersonnage(rodeur.getCaracteristiques(), StatistiquesDeCombat()));
     REQUIRE(rodeur.getStatistiques().capaciteOffensive == 120);
     REQUIRE(rodeur.getStatistiques().capaciteDefensive == 120);
+}
+
+namespace {
+Personnage unPersonnageSansEsquive() {
+    return Personnage({100.0f, 100.0f},
+                      {.couleur = sf::Color::White,
+                       .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f}),
+                       .rayonVision = s_rayonVisionDeTest,
+                       .caracteristiques = Caracteristiques({10, 10, 10, 10, 10})});
+}
+}  // namespace
+
+TEST_CASE("l'esquive d'un personnage vient de son equipement, recalculee a chaque changement") {
+    Personnage personnage = unPersonnageSansEsquive();
+    REQUIRE(personnage.getStatistiques().esquiveContact == 0);
+    REQUIRE(personnage.getStatistiques().esquiveProjectile == 0);
+
+    static_cast<void>(personnage.poserEquipement(Emplacement::Bottes, {IdObjet::BottesDeCuir}));
+    REQUIRE(personnage.getStatistiques().esquiveContact == 5);
+    REQUIRE(personnage.getStatistiques().esquiveProjectile == 0);
+
+    static_cast<void>(personnage.poserEquipement(Emplacement::Tete, {IdObjet::CasqueDeCuir}));
+    REQUIRE(personnage.getStatistiques().esquiveProjectile == 5);
+
+    static_cast<void>(personnage.retirerEquipement(Emplacement::Bottes));
+    static_cast<void>(personnage.retirerEquipement(Emplacement::Tete));
+    REQUIRE(personnage.getStatistiques() == statistiquesDuPersonnage(personnage.getCaracteristiques(), StatistiquesDeCombat()));
+}
+
+TEST_CASE("un equipement de depart qui donne de l'esquive compte des la construction") {
+    const Personnage personnage({100.0f, 100.0f},
+                                {.couleur = sf::Color::White,
+                                 .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f}),
+                                 .equipementDeDepart = {{Emplacement::Bottes, IdObjet::BottesDeCuir}},
+                                 .rayonVision = s_rayonVisionDeTest});
+
+    REQUIRE(personnage.getStatistiques().esquiveContact == 5);
+}
+
+TEST_CASE("un personnage qui esquive ne perd aucun point de vie") {
+    Personnage personnage = unPersonnageSansEsquive();
+    static_cast<void>(personnage.poserEquipement(Emplacement::Bottes, {IdObjet::BottesDeCuir}));
+    Generateur generateur = generateurDeTest();
+    const Attaque attaque{.montant = 10, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
+    bool esquiveVue = false;
+
+    for (int i = 0; i < 400 && !esquiveVue; ++i) {
+        const int avant = personnage.getPointsDeVie();
+        const ResultatDuCoup resultat = personnage.recevoirDegats(attaque, generateur);
+        esquiveVue = resultat.esquive;
+        if (esquiveVue) {
+            REQUIRE(personnage.getPointsDeVie() == avant);
+        }
+    }
+    REQUIRE(esquiveVue);  // 5 % : 400 coups suffisent largement
 }
 
 TEST_CASE("les points de vie maximum d'un personnage viennent de sa base et de son Endurance") {

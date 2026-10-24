@@ -129,3 +129,26 @@ TEST_CASE("equipement : retirer un objet retire son bonus") {
 
     REQUIRE(equipement.bonusTotal() == Caracteristiques());
 }
+
+TEST_CASE("equipement : le bonus de combat total additionne les bonus des objets portes") {
+    Equipement equipement;
+    REQUIRE(equipement.bonusDeCombatTotal() == StatistiquesDeCombat());
+
+    static_cast<void>(equipement.poser(Emplacement::Bottes, {IdObjet::BottesDeCuir}));
+    static_cast<void>(equipement.poser(Emplacement::Tete, {IdObjet::CasqueDeCuir}));
+    static_cast<void>(equipement.poser(Emplacement::Torse, {IdObjet::CuirasseDeMailles}));  // aucun bonus de combat
+
+    REQUIRE(equipement.bonusDeCombatTotal() ==
+            definitionObjet(IdObjet::BottesDeCuir).bonusDeCombat + definitionObjet(IdObjet::CasqueDeCuir).bonusDeCombat);
+    REQUIRE(equipement.bonusDeCombatTotal().esquiveContact == 5);
+    REQUIRE(equipement.bonusDeCombatTotal().esquiveProjectile == 5);
+}
+
+TEST_CASE("equipement : retirer un objet retire son bonus de combat") {
+    Equipement equipement;
+    static_cast<void>(equipement.poser(Emplacement::Bottes, {IdObjet::BottesDeCuir}));
+
+    static_cast<void>(equipement.retirer(Emplacement::Bottes));
+
+    REQUIRE(equipement.bonusDeCombatTotal() == StatistiquesDeCombat());
+}

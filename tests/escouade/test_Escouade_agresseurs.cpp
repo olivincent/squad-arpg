@@ -6,12 +6,15 @@
 
 #include "aides.hpp"
 #include "aides_escouade.hpp"
+#include "combat/Attaque.hpp"
 #include "combat/Defense.hpp"
 #include "escouade/Agresseurs.hpp"
 #include "base/Cercle.hpp"
 #include "escouade/Escouade.hpp"
 #include "combat/EntiteVue.hpp"
 #include "monde/TileMap.hpp"
+#include "objets/Emplacement.hpp"
+#include "objets/Objet.hpp"
 
 
 TEST_CASE("proieDuMonstre renvoie un centre plus proche du point que le centre de l'escouade") {
@@ -341,4 +344,26 @@ TEST_CASE("Agresseurs : un agresseur mort dans l'image n'attire plus personne, l
 
     REQUIRE(escouade.getAgresseurs().size() == 1);  // toujours en mémoire, mais ignoré
     verifierPointProche(*escouade.pointVise(1), placeDeFormation, 0.01f);
+}
+
+TEST_CASE("Un coup esquive compte comme une attaque recue : le monstre devient agresseur, sans degats") {
+    DefinitionPersonnage guerrier = guerrierDeTest();
+    guerrier.equipementDeDepart.push_back({Emplacement::Bottes, IdObjet::BottesDeCuir});  // 5 % d'esquive contre le contact
+    const Attaque attaque{.montant = 100, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
+    bool esquiveVue = false;
+
+    for (Generateur::result_type graine = 1; graine <= 300 && !esquiveVue; ++graine) {
+        Escouade escouade({50.0f, 50.0f}, {guerrier});
+        Generateur generateur(graine);
+        const int vieAvant = *escouade.pointsDeVieDuPersonnage(1);
+
+        if (!escouade.recevoirCoup(7, 1, attaque, generateur).esquive) {
+            continue;
+        }
+        esquiveVue = true;
+        REQUIRE(*escouade.pointsDeVieDuPersonnage(1) == vieAvant);
+        REQUIRE(escouade.getAgresseurs().size() == 1);
+        REQUIRE(escouade.getAgresseurs()[0].id == 7);
+    }
+    REQUIRE(esquiveVue);
 }

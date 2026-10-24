@@ -5,6 +5,7 @@
 #include <random>
 #include "combat/Critique.hpp"
 #include "combat/Defense.hpp"
+#include "combat/Esquive.hpp"
 
 namespace {
 // Un nombre de 0 inclus à 1 exclu. Le seul tirage du moteur du coup.
@@ -22,11 +23,24 @@ ResultatCritique critiqueDe(int montant, int capaciteOffensive, int capaciteDefe
     const float tirage = chanceDeCritique(rapport) > 0.0f ? tirer(generateur) : 0.0f;
     return appliquerCritique(montant, rapport, tirage);
 }
+
+// L'étape esquive, tirage compris : sans chance, aucun tirage.
+bool esquiveDe(NatureDAttaque nature, const StatistiquesDeCombat& defenseur, Generateur& generateur) {
+    const float chance = chanceDEsquive(nature, defenseur);
+    const float tirage = chance > 0.0f ? tirer(generateur) : 0.0f;
+    return coupEsquive(chance, tirage);
+}
 }  // namespace
 
 ResultatDuCoup resoudreCoup(const Attaque& attaque, const Defenses& defenses, Generateur& generateur) {
+    if (attaque.montant == 0) {
+        return {};
+    }
+    if (esquiveDe(attaque.nature, defenses.statistiques, generateur)) {
+        return {.montant = 0, .critique = false, .esquive = true};
+    }
     const ResultatCritique critique =
-        critiqueDe(attaque.montant, attaque.capaciteOffensive, defenses.capaciteDefensive, generateur);
+        critiqueDe(attaque.montant, attaque.capaciteOffensive, defenses.statistiques.capaciteDefensive, generateur);
     return {.montant = appliquerArmure(critique.montant, defenses.armure), .critique = critique.critique};
 }
 

@@ -91,3 +91,19 @@ TEST_CASE("sacDeDepart : contient l'anneau de puissance et le collier d'enduranc
     REQUIRE(std::ranges::find(sac, Objet{IdObjet::AnneauDePuissance}) != sac.end());
     REQUIRE(std::ranges::find(sac, Objet{IdObjet::CollierDEndurance}) != sac.end());
 }
+
+TEST_CASE("catalogueObjets : les bottes de cuir donnent 5 % d'esquive contre le contact, le casque de cuir 5 % contre les projectiles") {
+    const StatistiquesDeCombat& bottes = definitionObjet(IdObjet::BottesDeCuir).bonusDeCombat;
+    const StatistiquesDeCombat& casque = definitionObjet(IdObjet::CasqueDeCuir).bonusDeCombat;
+
+    REQUIRE(bottes == StatistiquesDeCombat{.esquiveContact = 5});
+    REQUIRE(casque == StatistiquesDeCombat{.esquiveProjectile = 5});
+}
+
+TEST_CASE("catalogueObjets : les autres objets n'ont aucun bonus de combat") {
+    for (const DefinitionObjet& definition : catalogueObjets()) {
+        if (definition.id != IdObjet::BottesDeCuir && definition.id != IdObjet::CasqueDeCuir) {
+            REQUIRE(definition.bonusDeCombat == StatistiquesDeCombat());
+        }
+    }
+}

@@ -121,7 +121,7 @@ private:
     Vitalite m_vitalite;    // points de vie et défenses
     float m_rayonVision;    // en pixels
     float m_zoneDeControle; // en pixels, bord à bord
-    // Ce qu'il oppose à un coup : l'armure de son équipement et sa capacité défensive.
+    // Ce qu'il oppose à un coup : l'armure de son équipement et ses statistiques de combat.
     [[nodiscard]] Defenses defenses() const;
     // Seul endroit où les caractéristiques effectives et tout ce qui en vient (statistiques de combat, points
     // de vie maximum, défenses de la vitalité) changent : toujours la base plus l'équipement, jamais ajustées.

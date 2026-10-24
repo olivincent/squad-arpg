@@ -735,7 +735,7 @@ Détail de conception : `docs/classes-et-combat.md`, sections 6, 7 et 13. Étape
   défensive 50 contre 100 pour l'attaque d'un monstre : 20 % de critiques sur eux), et `Partie` garde son
   générateur. Plutôt que de rendre les parties de test sans hasard, un test qui vérifie un montant lit
   `critique` dans l'événement et compare au montant que le jeu devait produire (`degatsAttendus`, aide de
-  `aides.hpp`). Les tests de règle appellent les entités avec `attaqueSansCritique` (capacité offensive 0 :
+  `aides.hpp`). Les tests de règle appellent les entités avec `attaqueSansHasard` (capacité offensive 0 :
   ni critique ni tirage) par les aides `subir` et `subirCoup` (`docs/tests.md`).
 - **Limites** : pas d'esquive, de blocage ni de pénétration ; pas de bonus de critique de l'équipement ni de
   skills qui en donnent ; pas de multiplicateur propre à une arme ; pas de distribution pseudo-aléatoire contre

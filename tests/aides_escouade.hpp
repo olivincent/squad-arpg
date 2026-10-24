@@ -170,14 +170,14 @@ inline Escouade uneEscouadeAuSoinCourt(sf::Vector2f positionDepart) {
 
 // Ce que les personnages de test (sans caractéristiques : Adresse 0) opposent à un coup, pour cette armure.
 inline Defenses defensesDuPersonnageDeTest(int armure) {
-    return {.armure = armure, .capaciteDefensive = statistiquesDuPersonnage(Caracteristiques()).capaciteDefensive};
+    return {.armure = armure, .statistiques = statistiquesDuPersonnage(Caracteristiques(), StatistiquesDeCombat())};
 }
 
-// Un coup de `montant` dégâts sans critique (ni tirage) du monstre `idMonstre` sur le personnage de cette place
+// Un coup de `montant` dégâts sans hasard (ni tirage) du monstre `idMonstre` sur le personnage de cette place
 // (`Escouade::recevoirCoup`) ; rend les dégâts subis.
 inline int subirCoup(Escouade& escouade, int idMonstre, std::size_t place, int montant) {
     Generateur generateur = generateurDeTest();
-    return escouade.recevoirCoup(idMonstre, place, attaqueSansCritique(montant), generateur).montant;
+    return escouade.recevoirCoup(idMonstre, place, attaqueSansHasard(montant), generateur).montant;
 }
 
 // Un coup du monstre `idMonstre`, posté en `origine`, sur la proie que l'escouade lui donne

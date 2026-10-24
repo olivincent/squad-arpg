@@ -17,6 +17,8 @@ constexpr int s_armureCollierDeProtection = 4;
 constexpr int s_armureAnneauDeProtection = 2;
 constexpr int s_bonusAnneauDePuissance = 3;    // Puissance
 constexpr int s_bonusCollierDEndurance = 3;    // Endurance
+constexpr int s_esquiveBottesDeCuir = 5;       // en pour cent, contre le contact
+constexpr int s_esquiveCasqueDeCuir = 5;       // en pour cent, contre les projectiles
 
 std::vector<DefinitionObjet> construireLeCatalogue() {
     return {
@@ -25,8 +27,10 @@ std::vector<DefinitionObjet> construireLeCatalogue() {
         {IdObjet::JambieresDeFer, "Jambières de fer", CategorieObjet::Jambieres, s_armureJambieresDeFer},
         {IdObjet::BouclierRond, "Bouclier rond", CategorieObjet::Bouclier, s_armureBouclierRond},
         {IdObjet::GantsDeCuir, "Gants de cuir", CategorieObjet::Gants, s_armureGantsDeCuir},
-        {IdObjet::BottesDeCuir, "Bottes de cuir", CategorieObjet::Bottes, s_armureBottesDeCuir},
-        {IdObjet::CasqueDeCuir, "Casque de cuir", CategorieObjet::Casque, s_armureCasqueDeCuir},
+        {IdObjet::BottesDeCuir, "Bottes de cuir", CategorieObjet::Bottes, s_armureBottesDeCuir, {},
+         {.esquiveContact = s_esquiveBottesDeCuir}},
+        {IdObjet::CasqueDeCuir, "Casque de cuir", CategorieObjet::Casque, s_armureCasqueDeCuir, {},
+         {.esquiveProjectile = s_esquiveCasqueDeCuir}},
         {IdObjet::TuniqueMatelassee, "Tunique matelassée", CategorieObjet::Armure, s_armureTuniqueMatelassee},
         {IdObjet::CollierDeProtection, "Collier de protection", CategorieObjet::Collier,
          s_armureCollierDeProtection},

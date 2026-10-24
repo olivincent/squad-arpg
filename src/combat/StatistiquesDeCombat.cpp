@@ -2,7 +2,11 @@
 #include "combat/StatistiquesDeCombat.hpp"
 #include <algorithm>
 
-StatistiquesDeCombat statistiquesDuPersonnage(const Caracteristiques& caracteristiques) {
+StatistiquesDeCombat statistiquesDuPersonnage(const Caracteristiques& caracteristiques,
+                                              const StatistiquesDeCombat& bonusDEquipement) {
     const int capacite = s_capaciteDeBase + s_capaciteParPointDAdresse * caracteristiques.valeur(Caracteristique::Adresse);
-    return {.capaciteOffensive = std::max(0, capacite), .capaciteDefensive = std::max(1, capacite)};
+    StatistiquesDeCombat statistiques = bonusDEquipement;
+    statistiques.capaciteOffensive = std::max(0, capacite + bonusDEquipement.capaciteOffensive);
+    statistiques.capaciteDefensive = std::max(1, capacite + bonusDEquipement.capaciteDefensive);
+    return statistiques;
 }
