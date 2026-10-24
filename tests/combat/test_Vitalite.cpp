@@ -23,20 +23,20 @@ TEST_CASE("Vitalite definirArmure remplace l'armure sans toucher aux points de v
     Vitalite vitalite(100, 0);
     REQUIRE(vitalite.recevoirDegats(30) == 30);
 
-    vitalite.definirArmure(100);  // armure 100 : la moitie des degats
+    vitalite.definirArmure(20);  // armure 20 : 20 dégâts de moins par coup
 
     REQUIRE(vitalite.getValeur() == 70);
-    REQUIRE(vitalite.recevoirDegats(30) == 15);
+    REQUIRE(vitalite.recevoirDegats(30) == 10);
 
     vitalite.definirArmure(0);
     REQUIRE(vitalite.recevoirDegats(30) == 30);
 }
 
 TEST_CASE("Vitalite applique l'armure avant de retirer les points de vie") {
-    Vitalite vitalite(100, 100);  // armure 100 : la moitie des degats
+    Vitalite vitalite(100, 20);  // armure 20 : 20 dégâts de moins par coup
 
-    REQUIRE(vitalite.recevoirDegats(30) == 15);
-    REQUIRE(vitalite.getValeur() == 85);
+    REQUIRE(vitalite.recevoirDegats(30) == 10);
+    REQUIRE(vitalite.getValeur() == 90);
 }
 
 TEST_CASE("Vitalite renvoie les degats apres armure sans les plafonner a la vie restante") {

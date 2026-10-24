@@ -381,7 +381,7 @@ TEST_CASE("Lanceur occupe : le paladin soigne apres sa frappe sacree") {
     Generateur generateur = generateurDeTest();
     Escouade escouade({50.0f, 50.0f}, {paladinDeTest()});  // seul, devant : en (85, 60)
     const std::vector<EntiteVue> monstres = unSeulMonstre(cibleMonstre({110.0f, 60.0f}));
-    escouade.recevoirCoup(1, 1, 40);  // blessé : il est la cible de son soin
+    escouade.recevoirCoup(1, 1, 400);  // blessé : il est la cible de son soin
     const int vieBlessee = *escouade.pointsDeVieDuPersonnage(1);
 
     REQUIRE(escouade.declencherSkill(s_adresseFrappeSacree, monstres, carteOuverte(), generateur).empty());

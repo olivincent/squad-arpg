@@ -41,7 +41,7 @@ TEST_CASE("choisirCible (soin) designe celui qui a le moins de points de vie") {
 TEST_CASE("choisirCible (soin) choisit la plus petite place en cas d'egalite") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
     infliger(escouade, 1, {35.0f, 35.0f}, 20);  // prêtre (place 2), sans armure : perd 20
-    infliger(escouade, 1, {85.0f, 60.0f}, 30);  // guerrier (place 1), armure 50 : 30 x 2/3 = 20
+    infliger(escouade, 1, {85.0f, 60.0f}, 50);  // guerrier (place 1), armure 30 : 50 - 30 = 20
 
     REQUIRE(placeAlliePourSoin(escouade) == 1);
 }

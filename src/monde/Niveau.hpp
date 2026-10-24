@@ -5,7 +5,7 @@
 #include <vector>
 
 // Armure des monstres, commune à la carte faite à la main et aux cartes générées.
-inline constexpr int s_armureMonstresParDefaut = 20;
+inline constexpr int s_armureMonstresParDefaut = 10;
 
 // Un monstre du niveau : où il commence et à quel groupe il appartient.
 struct MonstreDuNiveau {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur

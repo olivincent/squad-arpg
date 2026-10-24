@@ -118,9 +118,9 @@ TEST_CASE("Monstre.recevoirDegats applique son armure") {
     Monstre monstre({100.0f, 100.0f}, 1, 20, 0);
     const int maximum = monstre.getPointsDeVie();
 
-    monstre.recevoirDegats(5);
+    monstre.recevoirDegats(50);
 
-    REQUIRE(monstre.getPointsDeVie() == maximum - 4);  // 5 x 100 / 120 = 4,17 -> 4
+    REQUIRE(monstre.getPointsDeVie() == maximum - 30);  // 50 - 20 = 30
 }
 
 TEST_CASE("Monstre.recevoirDegats sans armure retire le montant entier") {
@@ -177,8 +177,8 @@ TEST_CASE("Monstre.recevoirDegats renvoie les degats subis apres armure") {
     Monstre sansArmure({100.0f, 100.0f}, 1, 0, 0);
     Monstre arme({100.0f, 100.0f}, 2, 20, 0);
 
-    REQUIRE(sansArmure.recevoirDegats(10) == 10);
-    REQUIRE(arme.recevoirDegats(10) == 8);  // 10 x 100 / 120 = 8,33 -> 8
+    REQUIRE(sansArmure.recevoirDegats(50) == 50);
+    REQUIRE(arme.recevoirDegats(50) == 30);  // 50 - 20 = 30
 }
 
 TEST_CASE("Monstre.recevoirDegats sur un monstre mort renvoie zero") {

@@ -5,7 +5,7 @@
 #include <cmath>
 
 namespace {
-constexpr float s_constanteArmure = 100.0f;
+constexpr float s_plancherArmure = 0.2f;  // part minimale du coup qui passe toujours (provisoire, à tester)
 }  // namespace
 
 int appliquerArmure(int montant, int armure) {
@@ -14,9 +14,7 @@ int appliquerArmure(int montant, int armure) {
     if (montant == 0) {
         return 0;
     }
-    // montant * (1 - armure / (armure + K)) = montant * K / (armure + K) :
-    // une seule division, donc exacte quand le résultat tombe juste (12,5).
-    const float subis = static_cast<float>(montant) * s_constanteArmure
-        / (static_cast<float>(armure) + s_constanteArmure);
+    // Modèle M1 : l'armure retire un montant fixe, mais au moins le plancher du coup passe.
+    const float subis = std::max(static_cast<float>(montant - armure), static_cast<float>(montant) * s_plancherArmure);
     return std::max(1, static_cast<int>(std::lround(subis)));
 }

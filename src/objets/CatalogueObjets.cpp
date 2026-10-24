@@ -5,16 +5,16 @@
 
 namespace {
 // Valeurs provisoires, à ajuster après test.
-constexpr int s_armureCasqueDeFer = 10;
-constexpr int s_armureCuirasseDeMailles = 20;
-constexpr int s_armureJambieresDeFer = 10;
-constexpr int s_armureBouclierRond = 10;
-constexpr int s_armureGantsDeCuir = 4;
-constexpr int s_armureBottesDeCuir = 4;
-constexpr int s_armureCasqueDeCuir = 5;
-constexpr int s_armureTuniqueMatelassee = 8;
-constexpr int s_armureCollierDeProtection = 6;
-constexpr int s_armureAnneauDeProtection = 3;
+constexpr int s_armureCasqueDeFer = 6;
+constexpr int s_armureCuirasseDeMailles = 12;
+constexpr int s_armureJambieresDeFer = 6;
+constexpr int s_armureBouclierRond = 6;
+constexpr int s_armureGantsDeCuir = 2;
+constexpr int s_armureBottesDeCuir = 2;
+constexpr int s_armureCasqueDeCuir = 3;
+constexpr int s_armureTuniqueMatelassee = 5;
+constexpr int s_armureCollierDeProtection = 4;
+constexpr int s_armureAnneauDeProtection = 2;
 
 std::vector<DefinitionObjet> construireLeCatalogue() {
     return {

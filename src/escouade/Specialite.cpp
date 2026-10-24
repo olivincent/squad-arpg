@@ -77,7 +77,7 @@ Skill attaqueDeBaseDeTireur() {
     return attaqueDeBase(s_porteeTireur, s_rechargeTireurMin, s_rechargeTireurMax);
 }
 
-// Équipement de départ : les mêlées portent une armure complète (50 en tout), les tireurs rien.
+// Équipement de départ : les mêlées portent une armure complète (30 en tout), les tireurs rien.
 // Valeurs provisoires, à ajuster après test.
 std::vector<ObjetDeDepart> equipementDeMelee() {
     return {{Emplacement::Tete, IdObjet::CasqueDeFer},
