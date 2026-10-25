@@ -78,6 +78,9 @@ public:
     [[nodiscard]] Attaque getAttaque() const;
     // Ses statistiques de combat, celles de sa définition.
     [[nodiscard]] const StatistiquesDeCombat& getStatistiques() const;
+    // Ce que sa mort laisse : la chance (en pour cent) et le nombre d'objets de sa définition.
+    [[nodiscard]] int getChanceDeButin() const;
+    [[nodiscard]] int getNombreDObjets() const;
 
 private:
     enum class Etat { EnGarde, Poursuite, Retour };
@@ -97,6 +100,8 @@ private:
     float m_rayonTerritoire;
     float m_zoneDeControle;
     StatistiquesDeCombat m_statistiques;
+    int m_chanceDeButin;
+    int m_nombreDObjets;
     float m_regenerationRetour;
     Etat m_etat;
     sf::Vector2f m_poste;

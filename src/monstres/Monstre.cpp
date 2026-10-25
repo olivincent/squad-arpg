@@ -28,6 +28,8 @@ Monstre::Monstre(sf::Vector2f centre, int id, int groupe, const DefinitionDeMons
       m_rayonTerritoire(definition.rayonTerritoire),
       m_zoneDeControle(definition.zoneDeControle),
       m_statistiques(definition.statistiques),
+      m_chanceDeButin(definition.chanceDeButin),
+      m_nombreDObjets(definition.nombreDObjets),
       m_regenerationRetour(definition.regenerationRetour),
       m_etat(Etat::EnGarde),
       m_poste(centre),
@@ -129,6 +131,14 @@ Attaque Monstre::getAttaque() const {
 
 const StatistiquesDeCombat& Monstre::getStatistiques() const {
     return m_statistiques;
+}
+
+int Monstre::getChanceDeButin() const {
+    return m_chanceDeButin;
+}
+
+int Monstre::getNombreDObjets() const {
+    return m_nombreDObjets;
 }
 
 // Détecte la proie si elle est dans le rayon de détection, dans le territoire

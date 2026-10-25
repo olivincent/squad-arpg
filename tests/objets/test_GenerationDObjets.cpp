@@ -159,3 +159,48 @@ TEST_CASE("genererObjet : la meme graine donne la meme suite d'objets, une autre
     REQUIRE(tirer(200) == tirer(200));
     REQUIRE_FALSE(tirer(200) == tirer(200, s_graine + 1));
 }
+
+TEST_CASE("genererButin : une chance nulle ne donne rien et ne consomme aucun tirage") {
+    Generateur generateur(s_graine);
+    const Generateur avant = generateur;
+
+    REQUIRE(genererButin(generateur, 0, 3).empty());
+
+    REQUIRE(generateur == avant);
+}
+
+TEST_CASE("genererButin : une chance de 100 donne tous les objets, valides, sans tirage pour la chance") {
+    Generateur generateur(s_graine);
+    Generateur temoin(s_graine);
+
+    const std::vector<Objet> butin = genererButin(generateur, 100, 3);
+
+    REQUIRE(butin.size() == 3);
+    for (const Objet& objet : butin) {
+        REQUIRE(objetValide(objet));
+        REQUIRE(objet == genererObjet(temoin));  // les objets sont ceux que `genererObjet` tire d'emblée
+    }
+    REQUIRE(generateur == temoin);
+}
+
+TEST_CASE("genererButin : une chance entre deux donne soit rien, soit tous les objets, dans la proportion voulue") {
+    Generateur generateur(s_graine);
+    int avecButin = 0;
+    for (int i = 0; i < s_tirages; ++i) {
+        const std::vector<Objet> butin = genererButin(generateur, 20, 2);
+        REQUIRE((butin.empty() || butin.size() == 2));
+        if (!butin.empty()) {
+            ++avecButin;
+        }
+    }
+    // 20 % de 10000 : 2000, à 3 écarts types (environ 120) près.
+    REQUIRE(avecButin > 1800);
+    REQUIRE(avecButin < 2200);
+}
+
+TEST_CASE("genererButin : la meme graine donne le meme butin") {
+    Generateur a(s_graine);
+    Generateur b(s_graine);
+
+    REQUIRE(genererButin(a, 50, 3) == genererButin(b, 50, 3));
+}

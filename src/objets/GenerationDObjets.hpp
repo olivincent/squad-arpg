@@ -1,5 +1,6 @@
 // ./src/objets/GenerationDObjets.hpp
 #pragma once
+#include <vector>
 #include "base/Aleatoire.hpp"
 #include "objets/Affixe.hpp"
 #include "objets/Objet.hpp"
@@ -23,3 +24,8 @@
 // dépend de la bibliothèque standard (`std::uniform_int_distribution` n'est pas défini par la norme, contrairement à
 // `std::mt19937`) : sans conséquence tant que rien n'est sauvegardé ni partagé (`docs/objets.md`).
 [[nodiscard]] Objet genererObjet(Generateur& generateur);
+
+// Le butin d'une mort : d'abord la chance (en pour cent), puis, si le butin tombe, `nombre` objets tirés par `genererObjet`.
+// Un seul tirage pour la chance ; aucun quand elle vaut 0 (jamais de butin) ou 100 (toujours), comme le moteur du coup
+// ne tire pas pour une chance nulle. Sans butin, le résultat est vide et le `Generateur` n'a pas avancé.
+[[nodiscard]] std::vector<Objet> genererButin(Generateur& generateur, int chancePourCent, int nombre);

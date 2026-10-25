@@ -1,0 +1,148 @@
+// ./tests/jeu/test_Partie_butin.cpp
+#include <catch2/catch_test_macros.hpp>
+#include <SFML/System/Vector2.hpp>
+#include <set>
+#include <string>
+#include <vector>
+
+#include "aides.hpp"
+#include "aides_escouade.hpp"
+#include "jeu/ObjetAuSol.hpp"
+#include "jeu/Partie.hpp"
+#include "monde/Niveau.hpp"
+#include "monde/TileMap.hpp"
+#include "monstres/DefinitionDeMonstre.hpp"
+#include "objets/CatalogueObjets.hpp"
+
+// Le butin des monstres (étape 97.3) : un monstre qui meurt laisse des objets au sol.
+namespace {
+constexpr float s_tailleCase = 40.0f;
+
+// Une salle de 7 x 3 cases : un monstre contre le mur du haut a des murs pour voisins.
+const std::vector<std::string> s_plan = {
+    "#########",
+    "#.......#",
+    "#.......#",
+    "#.......#",
+    "#########",
+};
+
+Niveau salleAvecMonstres(const std::vector<sf::Vector2f>& monstres) {
+    std::vector<MonstreDuNiveau> deLaPartie;
+    for (const sf::Vector2f position : monstres) {
+        deLaPartie.push_back({position, static_cast<int>(deLaPartie.size())});
+    }
+    return {s_plan, s_tailleCase, {200.0f, 80.0f}, deLaPartie};
+}
+
+// Un monstre qui meurt au premier coup et laisse ce butin.
+DefinitionDeMonstre monstreQuiLaisse(int chance, int nombre) {
+    DefinitionDeMonstre definition = monstreSansHasard();
+    definition.pointsDeVieMax = 1;
+    definition.chanceDeButin = chance;
+    definition.nombreDObjets = nombre;
+    return definition;
+}
+
+Partie partieDeButin(const Niveau& niveau, int chance, int nombre) {
+    return partieDeTest(niveau, compositionDeTest(), s_graineDeTest, monstreQuiLaisse(chance, nombre));
+}
+
+// Tue tous les monstres de la partie, un clic après l'autre.
+void toutTuer(Partie& partie) {
+    for (int i = 0; i < 3000 && !partie.getMonstres().empty(); ++i) {
+        if (!partie.getEscouade().getCibleVerrouillee().has_value() && !partie.getMonstres().empty()) {
+            static_cast<void>(partie.cliquer(partie.getMonstres().front().getCentre()));
+        }
+        partie.mettreAJour(s_dureeTic);
+    }
+    REQUIRE(partie.getMonstres().empty());
+}
+}  // namespace
+
+TEST_CASE("butin : un monstre tue avec 100 % laisse le bon nombre d'objets valides") {
+    Partie partie = partieDeButin(salleAvecMonstres({{140.0f, 60.0f}}), 100, 3);
+    REQUIRE(partie.getObjetsAuSol().empty());
+
+    toutTuer(partie);
+
+    REQUIRE(partie.getObjetsAuSol().size() == 3);
+    for (const ObjetAuSol& objet : partie.getObjetsAuSol()) {
+        REQUIRE(objetValide(objet.objet));
+    }
+}
+
+TEST_CASE("butin : avec 0 %, un monstre tue ne laisse rien") {
+    Partie partie = partieDeButin(salleAvecMonstres({{140.0f, 60.0f}}), 0, 3);
+
+    toutTuer(partie);
+
+    REQUIRE(partie.getObjetsAuSol().empty());
+}
+
+TEST_CASE("butin : les objets tombent sur le sol, jamais dans un mur, sur des cases differentes") {
+    Partie partie = partieDeButin(salleAvecMonstres({{140.0f, 60.0f}}), 100, 5);
+    const TileMap carte(s_plan, s_tailleCase);
+
+    toutTuer(partie);
+
+    REQUIRE(partie.getObjetsAuSol().size() == 5);
+    std::set<std::pair<int, int>> cases;
+    for (const ObjetAuSol& objet : partie.getObjetsAuSol()) {
+        const sf::Vector2i coordCase = carte.caseContenant(objet.position);
+        REQUIRE(carte.getTile(coordCase.x, coordCase.y) == Tile::Floor);
+        cases.insert({coordCase.x, coordCase.y});
+    }
+    REQUIRE(cases.size() == 5);
+    // Le premier objet tombe sur la case du monstre (la case (3, 1)).
+    REQUIRE(carte.caseContenant(partie.getObjetsAuSol().front().position) == sf::Vector2i(3, 1));
+}
+
+TEST_CASE("butin : les identifiants sont tous differents, d'un monstre a l'autre") {
+    Partie partie = partieDeButin(salleAvecMonstres({{140.0f, 60.0f}, {180.0f, 100.0f}}), 100, 2);
+
+    toutTuer(partie);
+
+    REQUIRE(partie.getObjetsAuSol().size() == 4);
+    std::set<int> identifiants;
+    for (const ObjetAuSol& objet : partie.getObjetsAuSol()) {
+        REQUIRE(objet.id >= 1);
+        identifiants.insert(objet.id);
+    }
+    REQUIRE(identifiants.size() == 4);
+}
+
+TEST_CASE("butin : les monstres vivants ne laissent rien") {
+    Partie partie = partieDeButin(salleAvecMonstres({{140.0f, 60.0f}}), 100, 3);
+
+    avancer(partie, 5);
+
+    REQUIRE(partie.getObjetsAuSol().empty());
+}
+
+TEST_CASE("butin : une partie neuve (F5, nouveau niveau, recommencement) n'a aucun objet au sol") {
+    Partie partie = partieDeButin(salleAvecMonstres({{140.0f, 60.0f}}), 100, 3);
+    toutTuer(partie);
+    REQUIRE_FALSE(partie.getObjetsAuSol().empty());
+
+    partie = partieDeButin(salleAvecMonstres({{140.0f, 60.0f}}), 100, 3);
+
+    REQUIRE(partie.getObjetsAuSol().empty());
+}
+
+TEST_CASE("butin : la meme graine laisse le meme butin") {
+    Partie a = partieDeButin(salleAvecMonstres({{140.0f, 60.0f}}), 100, 3);
+    Partie b = partieDeButin(salleAvecMonstres({{140.0f, 60.0f}}), 100, 3);
+
+    toutTuer(a);
+    toutTuer(b);
+
+    REQUIRE(a.getObjetsAuSol() == b.getObjetsAuSol());
+}
+
+TEST_CASE("butin : les categories du jeu laissent ce que leur definition annonce") {
+    // Les chances sont des données (« à tester ») : ce test ne les fige pas, il vérifie que la créature laisse toujours.
+    const DefinitionDeMonstre& creature = definitionDeMonstre(CategorieDeMonstre::CreatureMonstrueuse);
+    REQUIRE(creature.chanceDeButin == 100);
+    REQUIRE(creature.nombreDObjets >= 1);
+}

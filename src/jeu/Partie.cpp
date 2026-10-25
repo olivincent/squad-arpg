@@ -209,7 +209,23 @@ void Partie::appliquerLesCoupsDOpportunite(const CampsDeControle& avant) {
             m_escouade.deverrouiller();
         }
     }
+    retirerLesMorts();
+}
+
+void Partie::retirerLesMorts() {
+    for (const Monstre& monstre : m_monstres) {
+        if (monstre.estVivant()) {
+            continue;
+        }
+        for (const Objet& objet : genererButin(m_generateur, monstre.getChanceDeButin(), monstre.getNombreDObjets())) {
+            poserAuSol(objet, monstre.getCentre());
+        }
+    }
     std::erase_if(m_monstres, [](const Monstre& m) { return !m.estVivant(); });
+}
+
+void Partie::poserAuSol(const Objet& objet, sf::Vector2f origine) {
+    m_objetsAuSol.push_back({m_prochainIdObjetAuSol++, objet, positionPourUnObjet(m_carte, origine, m_objetsAuSol)});
 }
 
 void Partie::appliquer(const std::vector<Coup>& coups, bool opportunite) {
@@ -311,7 +327,7 @@ void Partie::resoudreLesCoups(float dt) {
     // Soins du skill demandé et des skills qui partent dans attaquer().
     signalerLesFaits();
 
-    std::erase_if(m_monstres, [](const Monstre& m) { return !m.estVivant(); });
+    retirerLesMorts();
 }
 
 void Partie::faireTournerLesMonstres(float dt) {
@@ -493,4 +509,8 @@ Escouade& Partie::getEscouade() {
 
 const std::vector<Monstre>& Partie::getMonstres() const {
     return m_monstres;
+}
+
+const std::vector<ObjetAuSol>& Partie::getObjetsAuSol() const {
+    return m_objetsAuSol;
 }

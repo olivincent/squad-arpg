@@ -103,3 +103,16 @@ Objet genererObjet(Generateur& generateur) {
     assert(objetValide(objet));
     return objet;
 }
+
+std::vector<Objet> genererButin(Generateur& generateur, int chancePourCent, int nombre) {
+    assert(chancePourCent >= 0 && chancePourCent <= 100);
+    if (chancePourCent <= 0 || (chancePourCent < 100 && tirerEntre(generateur, 1, 100) > chancePourCent)) {
+        return {};
+    }
+    std::vector<Objet> butin;
+    butin.reserve(static_cast<std::size_t>(nombre));
+    for (int i = 0; i < nombre; ++i) {
+        butin.push_back(genererObjet(generateur));
+    }
+    return butin;
+}

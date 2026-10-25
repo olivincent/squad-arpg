@@ -13,6 +13,7 @@
 #include "combat/Engagement.hpp"
 #include "escouade/Escouade.hpp"
 #include "combat/EvenementDeCombat.hpp"
+#include "jeu/ObjetAuSol.hpp"
 #include "monstres/DefinitionDeMonstre.hpp"
 #include "monstres/Monstre.hpp"
 #include "monde/Niveau.hpp"
@@ -31,7 +32,8 @@ enum class ResultatClic { Monstre, Objet, Sol, Ignore };
 // autres sont mémorisées, exécutées par mettreAJour() à leur place dans
 // l'image, puis oubliées en fin d'image.
 //
-// Invariant : entre deux appels, tout monstre du vecteur est vivant.
+// Invariant : entre deux appels, tout monstre du vecteur est vivant. Un monstre qui meurt peut laisser des objets au sol
+// (`genererButin`, selon sa définition) ; ils appartiennent à la partie, donc au niveau : une nouvelle partie les efface.
 class Partie {
 public:
     // La graine initialise le générateur aléatoire de la partie, qui est à elle seule.
@@ -91,6 +93,8 @@ public:
     // Pour l'inventaire, qui déplace les objets de l'escouade (`docs/ecrans.md`).
     [[nodiscard]] Escouade& getEscouade();
     [[nodiscard]] const std::vector<Monstre>& getMonstres() const;
+    // Les objets posés au sol, dans l'ordre où ils sont tombés.
+    [[nodiscard]] const std::vector<ObjetAuSol>& getObjetsAuSol() const;
 
 private:
     struct LancerDeZone {
@@ -140,6 +144,11 @@ private:
     // Compare la photo du début de l'image à celle de la fin et applique les coups gratuits dans les
     // deux sens (calculés tous deux avant d'en appliquer un) ; retire les monstres tués et lève leur verrou.
     void appliquerLesCoupsDOpportunite(const CampsDeControle& avant);
+    // Retire les monstres morts ; chacun, dans l'ordre du vecteur, laisse son butin (un tirage de chance, puis les objets) à
+    // l'endroit de sa mort. Le seul endroit où un monstre quitte le vecteur.
+    void retirerLesMorts();
+    // Pose cet objet au sol, à la place libre la plus proche de `origine` (`positionPourUnObjet`), avec un identifiant neuf.
+    void poserAuSol(const Objet& objet, sf::Vector2f origine);
     // `enPoursuiteAvant` : statut de chaque monstre de `m_monstres` avant leur mise à jour.
     void alerterLesGroupes(const std::vector<bool>& enPoursuiteAvant);
 
@@ -147,6 +156,8 @@ private:
     Escouade m_escouade;
     std::vector<Monstre> m_monstres;
     std::vector<ObjetInteractif> m_objets;
+    std::vector<ObjetAuSol> m_objetsAuSol;
+    int m_prochainIdObjetAuSol = 1;  // jamais réutilisé dans la partie
     std::optional<int> m_interactionEnCours;  // identifiant de l'objet que l'escouade va activer
     std::optional<LancerDeZone> m_lancerDeZoneDemande;
     std::optional<AdresseSkill> m_skillDemande;
