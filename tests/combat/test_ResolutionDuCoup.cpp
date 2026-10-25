@@ -383,3 +383,26 @@ TEST_CASE("resoudreCoup : la frequence des blocages suit la chance du bouclier")
     REQUIRE(blocages > 1100);  // 30 % de 4 000 : 1 200 attendus
     REQUIRE(blocages < 1300);
 }
+
+TEST_CASE("resoudreCoup : la penetration de l'attaque reduit l'armure du defenseur, une attaque sans penetration non") {
+    Generateur generateur = generateurDeTest();
+    Attaque perforante = attaqueSansHasard(100);
+    perforante.penetration = 30;
+
+    REQUIRE(resoudreCoup(perforante, defensesDeTest(40), true, generateur).montant == appliquerArmure(100, 40, 30));
+    REQUIRE(resoudreCoup(attaqueSansHasard(100), defensesDeTest(40), true, generateur).montant == appliquerArmure(100, 40));
+    REQUIRE(appliquerArmure(100, 40, 30) > appliquerArmure(100, 40));
+}
+
+TEST_CASE("resoudreCoup : un blocage total ne laisse rien a percer, la penetration n'y change rien") {
+    Generateur generateur = generateurDeTest();
+    Attaque perforante{.montant = 10, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact, .penetration = 75};
+    Defenses defenses = defensesDeTest(1000);
+    defenses.statistiques.chanceDeBlocage = 100;
+    defenses.statistiques.montantBloque = 50;
+
+    const ResultatDuCoup resultat = resoudreCoup(perforante, defenses, true, generateur);
+
+    REQUIRE(resultat.montant == 0);
+    REQUIRE(resultat.bloque == 10);
+}

@@ -56,7 +56,7 @@ ResultatDuCoup resoudreCoup(const Attaque& attaque, const Defenses& defenses, bo
         // Tout est absorbé : le coup s'arrête, l'armure et son plancher ne s'appliquent pas.
         return {.montant = 0, .critique = critique.critique, .esquive = false, .bloque = blocage.bloque};
     }
-    return {.montant = appliquerArmure(blocage.montant, defenses.armure),
+    return {.montant = appliquerArmure(blocage.montant, defenses.armure, attaque.penetration),
             .critique = critique.critique,
             .esquive = false,
             .bloque = blocage.bloque};

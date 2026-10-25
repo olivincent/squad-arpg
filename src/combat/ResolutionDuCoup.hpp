@@ -26,7 +26,7 @@ struct ResultatDuCoup {
 //   2. critique         (`appliquerCritique` : s'applique avant toute réduction)
 //   3. blocage          (`appliquerBlocage` : retire un montant fixe ; si tout est absorbé, le coup s'arrête là,
 //                        sans armure ni plancher)
-//   4. armure           (`appliquerArmure`)
+//   4. armure           (`appliquerArmure`, réduite par la pénétration de l'attaque)
 //   5. résistances      (à venir)
 // Seul endroit du moteur du coup qui tire au hasard (un nombre par coup, dans `generateur`, passé par
 // référence, un par étape dont la chance est non nulle) ; aucun tirage quand la chance est nulle (esquive nulle

@@ -126,7 +126,7 @@ float Personnage::getPorteeAttaqueDeBase() const {
 }
 
 Attaque Personnage::getAttaqueDeBase() const {
-    return attaqueDe(m_attaqueDeBase);
+    return attaqueDe(m_attaqueDeBase, m_descriptionDeBase.penetration);
 }
 
 float Personnage::getZoneDeControle() const {
@@ -162,7 +162,7 @@ std::optional<Attaque> Personnage::avancerAttaque(float dt, Generateur& generate
         return std::nullopt;
     }
     m_actionEngagee.reset();
-    return attaqueDe(m_attaqueDeBase);
+    return attaqueDe(m_attaqueDeBase, m_descriptionDeBase.penetration);
 }
 
 void Personnage::annulerAttaque() {
@@ -280,7 +280,7 @@ std::optional<Attaque> Personnage::avancerSkill(float dt, Generateur& generateur
     m_actionEngagee.reset();
     // Le skill est parti : l'attaque de base repart pour une recharge complète.
     m_attaqueDeBase.relancerRecharge(generateur);
-    return attaqueDe(skill);
+    return attaqueDe(skill, 0);  // un skill a sa propre puissance : aucune pénétration
 }
 
 void Personnage::annulerSkill() {
@@ -381,10 +381,11 @@ void Personnage::relancerSiLArmeAChange(Generateur& generateur) {
     }
 }
 
-Attaque Personnage::attaqueDe(const Skill& skill) const {
+Attaque Personnage::attaqueDe(const Skill& skill, int penetration) const {
     return {.montant = montantEffectif(skill.getPuissance(), skill.getCoefficients(), m_caracteristiques),
             .capaciteOffensive = m_statistiques.capaciteOffensive,
-            .nature = skill.getNature()};
+            .nature = skill.getNature(),
+            .penetration = penetration};
 }
 
 const Caracteristiques& Personnage::getCaracteristiques() const {

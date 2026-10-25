@@ -12,6 +12,7 @@ struct DescriptionDAttaque {  // NOLINT(cppcoreguidelines-pro-type-member-init):
     float tempsExecution;     // en secondes, immobile entre l'engagement du coup et son départ
     float portee;             // en pixels, bord à bord
     NatureDAttaque nature;    // contact ou projectile ; la zone de contrôle en découle (un coup de contact engage)
+    int penetration;          // en pour cent de l'armure du défenseur ignorée (0 : aucune), plafonnée à l'application
 
     bool operator==(const DescriptionDAttaque&) const = default;
 };

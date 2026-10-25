@@ -230,3 +230,12 @@ TEST_CASE("seuilsAtteints : tous les seuils doivent l'etre, un objet sans seuil 
     REQUIRE_FALSE(seuilsAtteints(IdObjet::EpeeADeuxMains, Caracteristiques({13, 11, 0, 0, 0})));  // il manque 1 d'Endurance
     REQUIRE(seuilsAtteints(IdObjet::EpeeADeuxMains, justes));
 }
+
+TEST_CASE("catalogueObjets : la dague perce 30 % de l'armure, aucune autre arme ni les mains nues") {
+    for (const DefinitionObjet& definition : catalogueObjets()) {
+        if (definition.arme.has_value()) {
+            REQUIRE(definition.arme->attaque.penetration == (definition.id == IdObjet::Dague ? 30 : 0));
+        }
+    }
+    REQUIRE(mainsNues().penetration == 0);
+}

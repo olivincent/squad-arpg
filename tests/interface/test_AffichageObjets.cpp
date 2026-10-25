@@ -148,3 +148,14 @@ TEST_CASE("affichage : seules les armes ont des lignes d'attaque, et les deux ma
         REQUIRE(deuxMains == estADeuxMains(definition.id));
     }
 }
+
+TEST_CASE("affichage : l'infobulle de la dague donne sa penetration, celle des autres armes non") {
+    const std::vector<std::string> dague = lignesDeLInfobulle(IdObjet::Dague);
+
+    REQUIRE(std::ranges::find(dague, "Pénétration : 30 %") != dague.end());
+    for (const IdObjet autre : {IdObjet::EpeeLongue, IdObjet::Masse, IdObjet::EpeeADeuxMains, IdObjet::Sceptre, IdObjet::Baton, IdObjet::Arc}) {
+        for (const std::string& ligne : lignesDeLInfobulle(autre)) {
+            REQUIRE(ligne.find("Pénétration") == std::string::npos);
+        }
+    }
+}

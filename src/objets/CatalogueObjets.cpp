@@ -38,6 +38,7 @@ constexpr int s_degatsSceptre = 15;
 constexpr int s_degatsBaton = 15;
 constexpr int s_degatsArc = 15;
 constexpr int s_degatsMainsNues = 6;
+constexpr int s_penetrationDague = 30;  // en pour cent de l'armure ignorée
 
 // Seuils d'équipement (valeurs provisoires, « à tester »). Chaque classe peut porter son équipement de départ avec
 // ses caractéristiques de base ; personne ne peut porter l'épée à deux mains au départ.
@@ -57,17 +58,19 @@ DefinitionObjet avecSeuils(DefinitionObjet definition, std::vector<SeuilDeCaract
     return definition;
 }
 
-DonneesDArme armeDeMelee(TypeDArme type, int mains, int degats, float rechargeMin, float rechargeMax, float execution) {
+DonneesDArme armeDeMelee(TypeDArme type, int mains, int degats, float rechargeMin, float rechargeMax, float execution,
+                         int penetration = 0) {
     return {.type = type, .mains = mains,
             .attaque = {.degats = degats, .rechargeMin = rechargeMin, .rechargeMax = rechargeMax,
-                        .tempsExecution = execution, .portee = s_porteeDeContact, .nature = NatureDAttaque::Contact}};
+                        .tempsExecution = execution, .portee = s_porteeDeContact, .nature = NatureDAttaque::Contact,
+                        .penetration = penetration}};
 }
 
 DonneesDArme armeDeTir(TypeDArme type, int mains, int degats) {
     return {.type = type, .mains = mains,
             .attaque = {.degats = degats, .rechargeMin = s_rechargeTirMin, .rechargeMax = s_rechargeTirMax,
                         .tempsExecution = s_executionArmeLegere, .portee = s_porteeDeProjectile,
-                        .nature = NatureDAttaque::Projectile}};
+                        .nature = NatureDAttaque::Projectile, .penetration = 0}};
 }
 
 std::vector<DefinitionObjet> construireLeCatalogue() {
@@ -102,7 +105,7 @@ std::vector<DefinitionObjet> construireLeCatalogue() {
                     armeDeMelee(TypeDArme::Masse, 1, s_degatsMasse, 0.3f, 0.7f, s_executionArmeLegere)},
                    {{Caracteristique::Puissance, s_puissanceArmeDeMelee}}),
         avecSeuils({IdObjet::Dague, "Dague", CategorieObjet::Arme, 0, {}, {},
-                    armeDeMelee(TypeDArme::Dague, 1, s_degatsDague, 0.4f, 0.8f, s_executionArmeLegere)},
+                    armeDeMelee(TypeDArme::Dague, 1, s_degatsDague, 0.4f, 0.8f, s_executionArmeLegere, s_penetrationDague)},
                    {{Caracteristique::Adresse, s_adresseDague}}),
         avecSeuils({IdObjet::EpeeADeuxMains, "Épée à deux mains", CategorieObjet::Arme, 0, {}, {},
                     armeDeMelee(TypeDArme::EpeeADeuxMains, 2, s_degatsEpeeADeuxMains, 1.2f, 2.8f, s_executionArmeLourde)},
@@ -131,7 +134,8 @@ const DefinitionObjet& definitionObjet(IdObjet id) {
 const DescriptionDAttaque& mainsNues() {
     static const DescriptionDAttaque s_mainsNues = {.degats = s_degatsMainsNues, .rechargeMin = s_rechargeTirMin,
                                                     .rechargeMax = s_rechargeTirMax, .tempsExecution = s_executionArmeLegere,
-                                                    .portee = s_porteeDeContact, .nature = NatureDAttaque::Contact};
+                                                    .portee = s_porteeDeContact, .nature = NatureDAttaque::Contact,
+                                                    .penetration = 0};
     return s_mainsNues;
 }
 

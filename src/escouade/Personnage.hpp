@@ -144,9 +144,9 @@ private:
     // jamais ajustées. Une arme qui change annule le coup de base en cours, sans recharge consommée, puis
     // l'attaque repart pour une recharge complète (`relancerSiLArmeAChange`).
     void recalculerDepuisLEquipement();
-    // L'attaque de ce skill de ce personnage : son montant, caractéristiques comprises (`montantEffectif`), et
-    // la capacité offensive du personnage.
-    [[nodiscard]] Attaque attaqueDe(const Skill& skill) const;
+    // L'attaque de ce skill de ce personnage : son montant, caractéristiques comprises (`montantEffectif`), la
+    // capacité offensive du personnage et la pénétration donnée (celle de l'arme pour l'attaque de base, 0 pour un skill).
+    [[nodiscard]] Attaque attaqueDe(const Skill& skill, int penetration) const;
     // Son arme permet-elle de lancer ce skill (`Skill::convientA`) ?
     [[nodiscard]] bool armeConvientA(const Skill& skill) const;
     [[nodiscard]] const Skill* trouverSkill(IdSkill id) const;  // nullptr si le personnage ne connaît pas ce skill

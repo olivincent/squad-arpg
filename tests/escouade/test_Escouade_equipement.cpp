@@ -498,3 +498,13 @@ TEST_CASE("objetPorteEstInactif : un objet porte dont le seuil n'est pas atteint
     REQUIRE_FALSE(escouade.objetPorteEstInactif(2, Emplacement::Gants));           // sans seuil
     REQUIRE_FALSE(escouade.objetPorteEstInactif(2, Emplacement::Tete));            // vide
 }
+
+TEST_CASE("la penetration de l'attaque de base lue par l'escouade (coup d'opportunite) est celle de l'arme") {
+    Escouade escouade({50.0f, 50.0f}, {capableDePorter(guerrierDeTest(), {IdObjet::Dague})});
+    REQUIRE(escouade.attaqueDeBase(s_guerrier)->penetration == 0);  // l'épée longue
+    REQUIRE(escouade.ramasser(Objet{IdObjet::Dague}));
+
+    REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::MainDroite)));
+
+    REQUIRE(escouade.attaqueDeBase(s_guerrier)->penetration == definitionObjet(IdObjet::Dague).arme->attaque.penetration);
+}

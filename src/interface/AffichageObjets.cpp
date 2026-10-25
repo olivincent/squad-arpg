@@ -34,6 +34,9 @@ void ajouterLesLignesDUneArme(std::vector<std::string>& lignes, const DonneesDAr
         case NatureDAttaque::Projectile: lignes.push_back("Projectile"); break;
         case NatureDAttaque::Zone: lignes.push_back("Zone"); break;
     }
+    if (attaque.penetration > 0) {
+        lignes.push_back("Pénétration : " + std::to_string(attaque.penetration) + " %");
+    }
     if (arme.mains == 2) {
         lignes.push_back("Deux mains");
     }

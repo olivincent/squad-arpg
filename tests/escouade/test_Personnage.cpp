@@ -1416,3 +1416,32 @@ TEST_CASE("un bonus d'objet actif compte dans les points de vie maximum") {
 
     REQUIRE(personnage.getPointsDeVieMax() > avant);
 }
+
+// Pénétration d'armure (étape 92.4).
+TEST_CASE("l'attaque de base d'une dague porte sa penetration, celle d'une epee non, celle d'un skill jamais") {
+    DefinitionPersonnage definition = capableDePorter(definitionArmee(IdObjet::Dague), {IdObjet::Dague});
+    definition.skills = {{IdSkill::FrappePuissante, skillExigeantDesArmes({})}};
+    Personnage dague({100.0f, 100.0f}, definition);
+    Personnage epee({100.0f, 100.0f}, definitionArmee(IdObjet::EpeeLongue));
+    Generateur generateur = generateurDeTest();
+
+    REQUIRE(dague.getAttaqueDeBase().penetration == definitionObjet(IdObjet::Dague).arme->attaque.penetration);
+    REQUIRE(dague.getAttaqueDeBase().penetration > 0);
+    REQUIRE(epee.getAttaqueDeBase().penetration == 0);
+    REQUIRE(dague.engagerAttaque(1));
+    REQUIRE(dague.avancerAttaque(1.0f, generateur)->penetration == dague.getAttaqueDeBase().penetration);  // part avec le coup
+
+    REQUIRE(dague.engagerSkill(IdSkill::FrappePuissante, CibleMonstre{1, Cercle{}}));
+    REQUIRE(dague.avancerSkill(1.0f, generateur)->penetration == 0);
+}
+
+TEST_CASE("changer pour une dague donne la penetration, la retirer la reprend") {
+    Personnage personnage({100.0f, 100.0f}, capableDePorter(definitionArmee(IdObjet::EpeeLongue), {IdObjet::Dague}));
+    REQUIRE(personnage.getAttaqueDeBase().penetration == 0);
+
+    static_cast<void>(personnage.poserEquipement(Emplacement::MainDroite, {IdObjet::Dague}));
+    REQUIRE(personnage.getAttaqueDeBase().penetration == definitionObjet(IdObjet::Dague).arme->attaque.penetration);
+
+    static_cast<void>(personnage.retirerEquipement(Emplacement::MainDroite));
+    REQUIRE(personnage.getAttaqueDeBase().penetration == 0);  // les mains nues
+}
