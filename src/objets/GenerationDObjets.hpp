@@ -1,5 +1,6 @@
 // ./src/objets/GenerationDObjets.hpp
 #pragma once
+#include "base/Aleatoire.hpp"
 #include "objets/Affixe.hpp"
 #include "objets/Objet.hpp"
 
@@ -11,3 +12,14 @@
 // rare : s'il peut porter au moins un préfixe et un suffixe (les bijoux n'ont aucun préfixe : ils ne sont jamais rares).
 // L'unique endroit de cette règle ; le tirage ne choisit parmi les modèles que ceux qui la satisfont.
 [[nodiscard]] bool peutPorterLaRarete(IdObjet modele, Rarete rarete);
+
+// Tire un objet au hasard, toujours valide (`objetValide`) :
+// 1. la rareté, selon `poidsDeRarete` ;
+// 2. le modèle, uniformément parmi ceux qui peuvent porter cette rareté (`peutPorterLaRarete`) ;
+// 3. magique : un affixe uniformément parmi TOUS ceux que la catégorie permet, préfixes et suffixes confondus, placé selon
+//    sa position ; rare : un préfixe et un suffixe, chacun uniformément parmi ceux que la catégorie permet ;
+// 4. chaque valeur : un entier uniforme dans la plage de l'affixe (la même pour un objet magique et pour un objet rare).
+// Fonction sans état : le seul hasard est le `Generateur` reçu, que la `Partie` possède. La suite d'objets d'une graine
+// dépend de la bibliothèque standard (`std::uniform_int_distribution` n'est pas défini par la norme, contrairement à
+// `std::mt19937`) : sans conséquence tant que rien n'est sauvegardé ni partagé (`docs/objets.md`).
+[[nodiscard]] Objet genererObjet(Generateur& generateur);
