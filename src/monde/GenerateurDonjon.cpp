@@ -1,5 +1,6 @@
 // ./src/monde/GenerateurDonjon.cpp
 #include "monde/GenerateurDonjon.hpp"
+#include "base/Aleatoire.hpp"
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -19,12 +20,6 @@ constexpr int s_etalementDUneGrappe = 2;   // en cases : distance maximale (Tche
 // Centre en pixels du monde d'une case de la grille.
 sf::Vector2f centreEnPixels(sf::Vector2i coordCase, float tailleCase) {
     return {(static_cast<float>(coordCase.x) + 0.5f) * tailleCase, (static_cast<float>(coordCase.y) + 0.5f) * tailleCase};
-}
-
-// Tirage dans [min, max], bornes INCLUSES (comme std::uniform_int_distribution).
-int tirerEntre(Generateur& generateur, int min, int max) {
-    std::uniform_int_distribution<int> distribution(min, max);
-    return distribution(generateur);
 }
 
 // Distance au carré entre les centres de deux salles, en cases : suffisante

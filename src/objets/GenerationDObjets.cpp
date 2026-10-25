@@ -1,5 +1,6 @@
 // ./src/objets/GenerationDObjets.cpp
 #include "objets/GenerationDObjets.hpp"
+#include "base/Aleatoire.hpp"
 #include <cassert>
 #include <cstddef>
 #include <random>
@@ -12,12 +13,6 @@ namespace {
 constexpr int s_poidsCommun = 70;
 constexpr int s_poidsMagique = 25;
 constexpr int s_poidsRare = 5;
-
-// Tirage dans [min, max], bornes INCLUSES (comme std::uniform_int_distribution).
-int tirerEntre(Generateur& generateur, int min, int max) {
-    std::uniform_int_distribution<int> distribution(min, max);
-    return distribution(generateur);
-}
 
 // Un élément au hasard, uniformément.
 template <typename T>
