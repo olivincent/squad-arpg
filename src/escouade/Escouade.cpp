@@ -1113,45 +1113,42 @@ std::optional<Objet> Escouade::objetA(const PositionDObjet& position) const {
                       position);
 }
 
-std::optional<Objet> Escouade::retirerA(const PositionDObjet& position) {
-    return std::visit(Surcharges{[&](const PositionDansLeSac& dansLeSac) { return m_sac.prendre(dansLeSac.caseDuSac); },
-                                 [&](const PositionPortee& portee) {
-                                     assert(placeValide(portee.place));
-                                     return personnageDeLaPlace(portee.place).retirerEquipement(portee.emplacement);
-                                 }},
-                      position);
-}
-
-void Escouade::poserA(const PositionDObjet& position, Objet objet) {
-    // La position vient d'être vidée par `retirerA` : il n'y a rien à rendre.
-    [[maybe_unused]] const std::optional<Objet> ancien = std::visit(
-        Surcharges{[&](const PositionDansLeSac& dansLeSac) { return m_sac.poser(dansLeSac.caseDuSac, objet); },
-                   [&](const PositionPortee& portee) {
-                       assert(placeValide(portee.place));
-                       return personnageDeLaPlace(portee.place).poserEquipement(portee.emplacement, objet);
-                   }},
-        position);
-    assert(!ancien.has_value());
+EtatDesObjets Escouade::etatDesObjets() const {
+    EtatDesObjets etat{m_sac, {}};
+    for (const Personnage& personnage : m_personnages) {
+        etat.equipements.push_back(personnage.getEquipement());
+    }
+    return etat;
 }
 
 bool Escouade::peutDeplacerObjet(const PositionDObjet& de, const PositionDObjet& vers) const {
-    return deplacementPermis(de, objetA(de), vers, objetA(vers));
+    return deplacementPossible(etatDesObjets(), de, vers);
 }
 
 bool Escouade::deplacerObjet(const PositionDObjet& de, const PositionDObjet& vers) {
-    if (!peutDeplacerObjet(de, vers)) {
+    EtatDesObjets etat = etatDesObjets();
+    if (!deplacerLesObjets(etat, de, vers)) {
         return false;
     }
-    if (de == vers) {
-        return true;
-    }
-    // En croix : les deux objets sont sortis avant d'être posés, donc aucun n'existe à deux endroits.
-    const std::optional<Objet> objetDe = retirerA(de);
-    const std::optional<Objet> objetVers = retirerA(vers);
-    assert(objetDe.has_value());
-    poserA(vers, *objetDe);  // NOLINT(bugprone-unchecked-optional-access): vérifié par l'assert au-dessus (la requête a refusé les sources vides)
-    if (objetVers.has_value()) {
-        poserA(de, *objetVers);
+    m_sac = std::move(etat.sac);
+    for (std::size_t i = 0; i < m_personnages.size(); ++i) {
+        // Les différences, par emplacement : d'abord tout ce qui est retiré, puis tout ce qui est posé (chaque appel
+        // recalcule l'armure, les caractéristiques et les défenses du personnage).
+        Personnage& personnage = m_personnages[i];
+        const Equipement& voulu = etat.equipements[i];
+        for (std::size_t e = 0; e < s_nombreEmplacements; ++e) {
+            const Emplacement emplacement = static_cast<Emplacement>(e);
+            if (personnage.getEquipement().a(emplacement).has_value() && personnage.getEquipement().a(emplacement) != voulu.a(emplacement)) {
+                static_cast<void>(personnage.retirerEquipement(emplacement));  // l'objet est ailleurs dans `etat` : rien à rendre
+            }
+        }
+        for (std::size_t e = 0; e < s_nombreEmplacements; ++e) {
+            const Emplacement emplacement = static_cast<Emplacement>(e);
+            const std::optional<Objet>& objetVoulu = voulu.a(emplacement);
+            if (objetVoulu.has_value() && personnage.getEquipement().a(emplacement) != objetVoulu) {
+                static_cast<void>(personnage.poserEquipement(emplacement, *objetVoulu));  // l'emplacement vient d'être vidé
+            }
+        }
     }
     return true;
 }

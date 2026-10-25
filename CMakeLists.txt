@@ -88,6 +88,7 @@ add_library(squad_core STATIC
     src/objets/Equipement.cpp
     src/objets/Inventaire.cpp
     src/objets/PositionDObjet.cpp
+    src/objets/DeplacementDObjets.cpp
     src/monde/Niveau.cpp
     src/monde/ObjetInteractif.cpp
     src/monde/ChampDeVision.cpp
@@ -186,6 +187,7 @@ add_executable(tests
     tests/objets/test_Equipement.cpp
     tests/objets/test_Inventaire.cpp
     tests/objets/test_PositionDObjet.cpp
+    tests/objets/test_DeplacementDObjets.cpp
     tests/monde/test_GenerateurDonjon.cpp
     tests/jeu/test_Partie_clics.cpp
     tests/jeu/test_Partie_skills.cpp

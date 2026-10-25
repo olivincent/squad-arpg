@@ -34,6 +34,7 @@ std::string nomDeLaCategorie(CategorieObjet categorie) {
         case CategorieObjet::Bouclier: return "Bouclier";
         case CategorieObjet::Collier: return "Collier";
         case CategorieObjet::Anneau: return "Anneau";
+        case CategorieObjet::Arme: return "Arme";
     }
     return "";
 }
@@ -52,6 +53,13 @@ std::string sigleDeLObjet(IdObjet id) {
         case IdObjet::AnneauDeProtection: return "AP";
         case IdObjet::AnneauDePuissance: return "AU";
         case IdObjet::CollierDEndurance: return "CE";
+        case IdObjet::EpeeLongue: return "EL";
+        case IdObjet::Masse: return "MA";
+        case IdObjet::Dague: return "DA";
+        case IdObjet::EpeeADeuxMains: return "E2";
+        case IdObjet::Sceptre: return "SC";
+        case IdObjet::Baton: return "BT";
+        case IdObjet::Arc: return "AR";
     }
     return "";
 }

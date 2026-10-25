@@ -43,6 +43,8 @@ public:
     // Somme des bonus de statistiques de combat des objets portés (esquive, capacités…), recalculée à chaque appel.
     [[nodiscard]] StatistiquesDeCombat bonusDeCombatTotal() const;
 
+    [[nodiscard]] bool operator==(const Equipement&) const = default;
+
 private:
     std::array<std::optional<Objet>, s_nombreEmplacements> m_objets;
 };

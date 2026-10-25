@@ -51,7 +51,13 @@ TEST_CASE("peutAller : un bouclier va seulement en main gauche") {
     REQUIRE_FALSE(peutAller(CategorieObjet::Bouclier, Emplacement::Torse));
 }
 
-TEST_CASE("peutAller : aucune categorie n'accepte la main droite pour l'instant") {
+TEST_CASE("peutAller : une arme va en main droite, et seulement la, ni en main gauche") {
+    REQUIRE(peutAller(CategorieObjet::Arme, Emplacement::MainDroite));
+    REQUIRE_FALSE(peutAller(CategorieObjet::Arme, Emplacement::MainGauche));
+    REQUIRE_FALSE(peutAller(CategorieObjet::Arme, Emplacement::Torse));
+}
+
+TEST_CASE("peutAller : la main droite n'accepte que les armes") {
     for (const CategorieObjet categorie :
          {CategorieObjet::Casque, CategorieObjet::Armure, CategorieObjet::Jambieres, CategorieObjet::Gants,
           CategorieObjet::Bottes, CategorieObjet::Bouclier, CategorieObjet::Collier, CategorieObjet::Anneau}) {
@@ -75,5 +81,6 @@ TEST_CASE("peutAller : un seul emplacement par categorie, deux pour les anneaux"
     REQUIRE(nombreDEmplacements(CategorieObjet::Bottes) == 1);
     REQUIRE(nombreDEmplacements(CategorieObjet::Bouclier) == 1);
     REQUIRE(nombreDEmplacements(CategorieObjet::Collier) == 1);
+    REQUIRE(nombreDEmplacements(CategorieObjet::Arme) == 1);
     REQUIRE(nombreDEmplacements(CategorieObjet::Anneau) == 2);
 }

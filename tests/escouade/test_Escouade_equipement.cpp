@@ -329,3 +329,79 @@ TEST_CASE("la puissance de l'attaque de base lue par l'escouade (coup d'opportun
     REQUIRE(escouade.attaqueDeBase(1)->montant ==
             montantEffectif(degats, puissance, escouade.caracteristiquesDuPersonnage(1).value()));
 }
+
+// Les deux mains (étape 91.3) : la règle est celle de `deplacerLesObjets` (`test_DeplacementDObjets.cpp`) ; ici,
+// ce que l'escouade en fait : l'armure recalculée, la surbrillance qui suit l'action, rien ne bouge au refus.
+namespace {
+const Objet s_bouclier{IdObjet::BouclierRond};
+const Objet s_epeeADeuxMains{IdObjet::EpeeADeuxMains};
+const Objet s_epee{IdObjet::EpeeLongue};
+
+// Le guerrier porte le bouclier rond ; le sac contient l'épée à deux mains en case 0.
+Escouade escouadeDuGuerrierAuBouclier() {
+    Escouade escouade = escouadeAvecSac({s_bouclier, s_epeeADeuxMains});
+    REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::MainGauche)));
+    return escouade;
+}
+}  // namespace
+
+TEST_CASE("deux mains : l'epee a deux mains range le bouclier du guerrier dans le sac, et son armure baisse") {
+    Escouade escouade = escouadeDuGuerrierAuBouclier();
+    const std::vector<int> avant = exemplaires(escouade);
+    const int armureAvant = escouade.equipementDuPersonnage(s_guerrier).armureTotale();
+    REQUIRE(escouade.peutDeplacerObjet(dansLeSac(1), portee(s_guerrier, Emplacement::MainDroite)));
+
+    REQUIRE(escouade.deplacerObjet(dansLeSac(1), portee(s_guerrier, Emplacement::MainDroite)));
+
+    REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainDroite) == s_epeeADeuxMains);
+    REQUIRE_FALSE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainGauche).has_value());
+    REQUIRE(escouade.sac().a(0) == s_bouclier);   // la première case libre
+    REQUIRE_FALSE(escouade.sac().a(1).has_value());
+    REQUIRE(exemplaires(escouade) == avant);
+    const int armureApres = armureAvant - definitionObjet(IdObjet::BouclierRond).armure;
+    REQUIRE(escouade.equipementDuPersonnage(s_guerrier).armureTotale() == armureApres);
+    REQUIRE(degatsSubis(escouade, s_guerrier) == appliquerArmure(s_coup, armureApres));
+}
+
+TEST_CASE("deux mains : un bouclier range l'arme a deux mains que le guerrier porte") {
+    Escouade escouade = escouadeAvecSac({s_epeeADeuxMains, s_bouclier});
+    REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::MainDroite)));
+    const std::vector<int> avant = exemplaires(escouade);
+
+    REQUIRE(escouade.deplacerObjet(dansLeSac(1), portee(s_guerrier, Emplacement::MainGauche)));
+
+    REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainGauche) == s_bouclier);
+    REQUIRE_FALSE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainDroite).has_value());
+    REQUIRE(escouade.sac().a(0) == s_epeeADeuxMains);
+    REQUIRE(exemplaires(escouade) == avant);
+}
+
+TEST_CASE("deux mains : une arme a une main laisse le bouclier en place") {
+    Escouade escouade = escouadeAvecSac({s_bouclier, s_epee});
+    REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::MainGauche)));
+
+    REQUIRE(escouade.deplacerObjet(dansLeSac(1), portee(s_guerrier, Emplacement::MainDroite)));
+
+    REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainDroite) == s_epee);
+    REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainGauche) == s_bouclier);
+}
+
+TEST_CASE("deux mains : sac plein, l'epee a deux mains est refusee (ni surbrillance ni deplacement), rien ne bouge") {
+    Escouade escouade = escouadeDuGuerrierAuBouclier();
+    // Depuis le sac, la case de l'épée se libère et recevrait le bouclier : le déplacement serait permis. On met donc
+    // l'épée dans la main du mage, puis on remplit le sac.
+    REQUIRE(escouade.deplacerObjet(dansLeSac(1), portee(s_mage, Emplacement::MainDroite)));
+    while (escouade.ramasser(s_gants)) {
+    }
+    const std::vector<int> avant = exemplaires(escouade);
+    const int armure = escouade.equipementDuPersonnage(s_guerrier).armureTotale();
+
+    // L'épée du mage va chez le guerrier (qui a son bouclier) : le sac est plein, aucune case ne se libère.
+    REQUIRE_FALSE(escouade.peutDeplacerObjet(portee(s_mage, Emplacement::MainDroite), portee(s_guerrier, Emplacement::MainDroite)));
+    REQUIRE_FALSE(escouade.deplacerObjet(portee(s_mage, Emplacement::MainDroite), portee(s_guerrier, Emplacement::MainDroite)));
+
+    REQUIRE(exemplaires(escouade) == avant);
+    REQUIRE(escouade.equipementDuPersonnage(s_mage).a(Emplacement::MainDroite) == s_epeeADeuxMains);
+    REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainGauche) == s_bouclier);
+    REQUIRE(escouade.equipementDuPersonnage(s_guerrier).armureTotale() == armure);
+}

@@ -14,7 +14,14 @@ enum class IdObjet {
     CollierDeProtection,
     AnneauDeProtection,
     AnneauDePuissance,
-    CollierDEndurance
+    CollierDEndurance,
+    EpeeLongue,
+    Masse,
+    Dague,
+    EpeeADeuxMains,
+    Sceptre,
+    Baton,
+    Arc
 };
 
 // Un objet : l'instance, distincte de son modèle. Petite valeur copiable ; un objet existe à un

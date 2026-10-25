@@ -23,6 +23,34 @@ constexpr int s_chanceDeBlocageBouclierRond = 30;       // en pour cent
 constexpr int s_montantBloqueBouclierRond = 12;         // points absorbés par blocage
 constexpr float s_recuperationBouclierRond = 3.0f;      // en secondes
 
+// Armes (valeurs provisoires, à tester). Une attaque de contact engage (zone de contrôle), un projectile non.
+constexpr float s_porteeDeContact = 20.0f;        // bord à bord
+constexpr float s_porteeDeProjectile = 120.0f;    // bord à bord
+constexpr float s_executionArmeLegere = 0.15f;    // en secondes
+constexpr float s_executionArmeLourde = 0.3f;
+constexpr float s_rechargeTirMin = 0.4f;          // en secondes, les armes de tir ont le même intervalle
+constexpr float s_rechargeTirMax = 0.6f;
+constexpr int s_degatsEpeeLongue = 15;
+constexpr int s_degatsMasse = 15;
+constexpr int s_degatsDague = 14;
+constexpr int s_degatsEpeeADeuxMains = 60;
+constexpr int s_degatsSceptre = 15;
+constexpr int s_degatsBaton = 15;
+constexpr int s_degatsArc = 15;
+
+DonneesDArme armeDeMelee(TypeDArme type, int mains, int degats, float rechargeMin, float rechargeMax, float execution) {
+    return {.type = type, .mains = mains,
+            .attaque = {.degats = degats, .rechargeMin = rechargeMin, .rechargeMax = rechargeMax,
+                        .tempsExecution = execution, .portee = s_porteeDeContact, .nature = NatureDAttaque::Contact}};
+}
+
+DonneesDArme armeDeTir(TypeDArme type, int mains, int degats) {
+    return {.type = type, .mains = mains,
+            .attaque = {.degats = degats, .rechargeMin = s_rechargeTirMin, .rechargeMax = s_rechargeTirMax,
+                        .tempsExecution = s_executionArmeLegere, .portee = s_porteeDeProjectile,
+                        .nature = NatureDAttaque::Projectile}};
+}
+
 std::vector<DefinitionObjet> construireLeCatalogue() {
     return {
         {IdObjet::CasqueDeFer, "Casque de fer", CategorieObjet::Casque, s_armureCasqueDeFer},
@@ -45,6 +73,17 @@ std::vector<DefinitionObjet> construireLeCatalogue() {
          Caracteristiques::seule(Caracteristique::Puissance, s_bonusAnneauDePuissance)},
         {IdObjet::CollierDEndurance, "Collier d'endurance", CategorieObjet::Collier, 0,
          Caracteristiques::seule(Caracteristique::Endurance, s_bonusCollierDEndurance)},
+        {IdObjet::EpeeLongue, "Épée longue", CategorieObjet::Arme, 0, {}, {},
+         armeDeMelee(TypeDArme::EpeeLongue, 1, s_degatsEpeeLongue, 0.3f, 0.7f, s_executionArmeLegere)},
+        {IdObjet::Masse, "Masse", CategorieObjet::Arme, 0, {}, {},
+         armeDeMelee(TypeDArme::Masse, 1, s_degatsMasse, 0.3f, 0.7f, s_executionArmeLegere)},
+        {IdObjet::Dague, "Dague", CategorieObjet::Arme, 0, {}, {},
+         armeDeMelee(TypeDArme::Dague, 1, s_degatsDague, 0.4f, 0.8f, s_executionArmeLegere)},
+        {IdObjet::EpeeADeuxMains, "Épée à deux mains", CategorieObjet::Arme, 0, {}, {},
+         armeDeMelee(TypeDArme::EpeeADeuxMains, 2, s_degatsEpeeADeuxMains, 1.2f, 2.8f, s_executionArmeLourde)},
+        {IdObjet::Sceptre, "Sceptre", CategorieObjet::Arme, 0, {}, {}, armeDeTir(TypeDArme::Sceptre, 1, s_degatsSceptre)},
+        {IdObjet::Baton, "Bâton", CategorieObjet::Arme, 0, {}, {}, armeDeTir(TypeDArme::Baton, 2, s_degatsBaton)},
+        {IdObjet::Arc, "Arc", CategorieObjet::Arme, 0, {}, {}, armeDeTir(TypeDArme::Arc, 2, s_degatsArc)},
     };
 }
 }  // namespace
@@ -58,6 +97,11 @@ const DefinitionObjet& definitionObjet(IdObjet id) {
     const DefinitionObjet& trouvee = catalogueObjets()[static_cast<std::size_t>(id)];
     assert(trouvee.id == id);  // le catalogue suit l'ordre de IdObjet
     return trouvee;
+}
+
+bool estADeuxMains(IdObjet id) {
+    const std::optional<DonneesDArme>& arme = definitionObjet(id).arme;
+    return arme.has_value() && arme->mains == 2;
 }
 
 std::vector<Objet> sacDeDepart() {

@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <vector>
 
+#include "combat/NatureDAttaque.hpp"
+#include "combat/TypeDArme.hpp"
 #include "objets/CatalogueObjets.hpp"
 #include "objets/Emplacement.hpp"
 
@@ -25,10 +27,10 @@ TEST_CASE("catalogueObjets : suit l'ordre de IdObjet") {
     for (std::size_t i = 0; i < catalogue.size(); ++i) {
         REQUIRE(static_cast<std::size_t>(catalogue[i].id) == i);
     }
-    REQUIRE(static_cast<std::size_t>(IdObjet::CollierDEndurance) == catalogue.size() - 1);
+    REQUIRE(static_cast<std::size_t>(IdObjet::Arc) == catalogue.size() - 1);
 }
 
-TEST_CASE("catalogueObjets : chaque objet a un nom, de l'armure ou un bonus, et une categorie qui va quelque part") {
+TEST_CASE("catalogueObjets : chaque objet a un nom, de l'armure, un bonus ou une arme, et une categorie qui va quelque part") {
     for (const DefinitionObjet& definition : catalogueObjets()) {
         REQUIRE_FALSE(definition.nom.empty());
         REQUIRE(definition.armure >= 0);
@@ -36,7 +38,7 @@ TEST_CASE("catalogueObjets : chaque objet a un nom, de l'armure ou un bonus, et 
         for (const Caracteristique caracteristique : s_caracteristiques) {
             bonus += definition.bonus.valeur(caracteristique);
         }
-        REQUIRE((definition.armure > 0 || bonus > 0));
+        REQUIRE((definition.armure > 0 || bonus > 0 || definition.arme.has_value()));
         REQUIRE(vaQuelquePart(definition.categorie));
     }
 }
@@ -116,4 +118,74 @@ TEST_CASE("catalogueObjets : les autres objets n'ont aucun bonus de combat") {
             REQUIRE(definition.bonusDeCombat == StatistiquesDeCombat());
         }
     }
+}
+
+namespace {
+// Les valeurs du catalogue des armes (le test du catalogue est l'un des rares à les lire).
+struct ArmeAttendue {
+    IdObjet id;
+    TypeDArme type;
+    int mains;
+    int degats;
+    float rechargeMin;
+    float rechargeMax;
+    float execution;
+    float portee;
+    NatureDAttaque nature;
+};
+}  // namespace
+
+TEST_CASE("catalogueObjets : les sept armes, leurs types, leurs mains et leur attaque") {
+    const std::vector<ArmeAttendue> attendues = {
+        {IdObjet::EpeeLongue, TypeDArme::EpeeLongue, 1, 15, 0.3f, 0.7f, 0.15f, 20.0f, NatureDAttaque::Contact},
+        {IdObjet::Masse, TypeDArme::Masse, 1, 15, 0.3f, 0.7f, 0.15f, 20.0f, NatureDAttaque::Contact},
+        {IdObjet::Dague, TypeDArme::Dague, 1, 14, 0.4f, 0.8f, 0.15f, 20.0f, NatureDAttaque::Contact},
+        {IdObjet::EpeeADeuxMains, TypeDArme::EpeeADeuxMains, 2, 60, 1.2f, 2.8f, 0.3f, 20.0f, NatureDAttaque::Contact},
+        {IdObjet::Sceptre, TypeDArme::Sceptre, 1, 15, 0.4f, 0.6f, 0.15f, 120.0f, NatureDAttaque::Projectile},
+        {IdObjet::Baton, TypeDArme::Baton, 2, 15, 0.4f, 0.6f, 0.15f, 120.0f, NatureDAttaque::Projectile},
+        {IdObjet::Arc, TypeDArme::Arc, 2, 15, 0.4f, 0.6f, 0.15f, 120.0f, NatureDAttaque::Projectile},
+    };
+
+    for (const ArmeAttendue& attendue : attendues) {
+        const DefinitionObjet& definition = definitionObjet(attendue.id);
+        REQUIRE(definition.categorie == CategorieObjet::Arme);
+        REQUIRE(definition.armure == 0);
+        REQUIRE(definition.arme.has_value());
+        const DonneesDArme& arme = *definition.arme;  // NOLINT(bugprone-unchecked-optional-access): vérifié par le REQUIRE au-dessus
+        REQUIRE(arme.type == attendue.type);
+        REQUIRE(arme.mains == attendue.mains);
+        REQUIRE(arme.attaque.degats == attendue.degats);
+        REQUIRE(arme.attaque.rechargeMin == attendue.rechargeMin);
+        REQUIRE(arme.attaque.rechargeMax == attendue.rechargeMax);
+        REQUIRE(arme.attaque.tempsExecution == attendue.execution);
+        REQUIRE(arme.attaque.portee == attendue.portee);
+        REQUIRE(arme.attaque.nature == attendue.nature);
+    }
+}
+
+TEST_CASE("catalogueObjets : seules les armes ont des donnees d'arme, et chaque type d'arme a son objet") {
+    std::vector<TypeDArme> types;
+    for (const DefinitionObjet& definition : catalogueObjets()) {
+        REQUIRE(definition.arme.has_value() == (definition.categorie == CategorieObjet::Arme));
+        if (definition.arme.has_value()) {
+            types.push_back(definition.arme->type);
+        }
+    }
+    REQUIRE(types.size() == 7);
+    for (std::size_t i = 0; i < types.size(); ++i) {
+        for (std::size_t j = i + 1; j < types.size(); ++j) {
+            REQUIRE(types[i] != types[j]);
+        }
+    }
+}
+
+TEST_CASE("estADeuxMains : l'epee a deux mains, le baton et l'arc, pas les autres armes ni les autres objets") {
+    REQUIRE(estADeuxMains(IdObjet::EpeeADeuxMains));
+    REQUIRE(estADeuxMains(IdObjet::Baton));
+    REQUIRE(estADeuxMains(IdObjet::Arc));
+    REQUIRE_FALSE(estADeuxMains(IdObjet::EpeeLongue));
+    REQUIRE_FALSE(estADeuxMains(IdObjet::Masse));
+    REQUIRE_FALSE(estADeuxMains(IdObjet::Dague));
+    REQUIRE_FALSE(estADeuxMains(IdObjet::Sceptre));
+    REQUIRE_FALSE(estADeuxMains(IdObjet::BouclierRond));
 }

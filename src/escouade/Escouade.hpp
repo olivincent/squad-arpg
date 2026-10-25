@@ -29,6 +29,7 @@
 #include "combat/EntiteVue.hpp"
 #include "escouade/Personnage.hpp"
 #include "escouade/PlacesDAttaque.hpp"
+#include "objets/DeplacementDObjets.hpp"
 #include "objets/Emplacement.hpp"
 #include "objets/Equipement.hpp"
 #include "objets/Inventaire.hpp"
@@ -176,21 +177,20 @@ public:
     [[nodiscard]] bool ramasser(Objet objet);
     // L'objet à cette position, s'il y en a un (`assert` : place valide, case du sac < capacité).
     [[nodiscard]] std::optional<Objet> objetA(const PositionDObjet& position) const;
-    // Un objet peut-il aller de `de` à `vers` (case du sac ou emplacement d'un personnage) ? Lit les
-    // deux positions et applique `deplacementPermis`. L'écran s'en sert pour la surbrillance.
+    // Un objet peut-il aller de `de` à `vers` (case du sac ou emplacement d'un personnage) ? Applique la règle
+    // des déplacements (`deplacerLesObjets`, dont les deux mains) sur une copie. L'écran s'en sert pour la surbrillance.
     [[nodiscard]] bool peutDeplacerObjet(const PositionDObjet& de, const PositionDObjet& vers) const;
-    // L'objet de `de` va à `vers` ; si `vers` est occupé, les deux objets s'échangent. Faux, sans rien
-    // changer, si `peutDeplacerObjet` est faux ; vrai sans effet si `de == vers`.
+    // L'objet de `de` va à `vers` ; si `vers` est occupé, les deux objets s'échangent ; une arme à deux mains range
+    // l'objet de la main gauche dans le sac (et un bouclier une arme à deux mains). Faux, sans rien changer, si
+    // `peutDeplacerObjet` est faux ; vrai sans effet si `de == vers`.
     [[nodiscard]] bool deplacerObjet(const PositionDObjet& de, const PositionDObjet& vers);
     void provoquer(int idMonstre, std::size_t place, float duree);
     // Lu par les tests : le provocateur, l'identifiant et la durée restante, que candidatsDeFrappe ne montre pas.
     [[nodiscard]] const std::vector<Provocations::Provocation>& getProvocations() const;
 
 private:
-    // Retrait et pose d'un objet à une position (`assert` : place et case valides). `poserA` exige une
-    // position vidée.
-    [[nodiscard]] std::optional<Objet> retirerA(const PositionDObjet& position);
-    void poserA(const PositionDObjet& position, Objet objet);
+    // Le sac et l'équipement de chaque personnage, copiés : l'état sur lequel se décide un déplacement.
+    [[nodiscard]] EtatDesObjets etatDesObjets() const;
     // Place de 1 à N : seule conversion vers l'indice 0 à N-1.
     [[nodiscard]] bool placeValide(std::size_t place) const;
     [[nodiscard]] Personnage& personnageDeLaPlace(std::size_t place);              // place valide exigée
