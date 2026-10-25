@@ -37,6 +37,25 @@ dans « Blocked −40 ».
 | Magique | Magic |
 | Rare | Rare |
 
+## Affixes (`objets/CatalogueAffixes.cpp`, lignes d'infobulle dans `interface/AffichageObjets.cpp`)
+
+Le nom affiché d'un objet est `[préfixe] modèle [suffixe]` (« Blazing Mace », « Keen Bow of the Fox »).
+
+| Concept | Texte | Position | Ligne d'infobulle |
+|---|---|---|---|
+| Flamboyant | Blazing | préfixe | Fire Damage: +N |
+| Sanctifié | Hallowed | préfixe | Holy Damage: +N |
+| Acéré | Keen | préfixe | Penetration: +N % |
+| Renforcé | Reinforced | préfixe | Armor: +N |
+| du Bœuf | of the Ox | suffixe | Might: +N |
+| de l'Ours | of the Bear | suffixe | Constitution: +N |
+| du Renard | of the Fox | suffixe | Dexterity: +N |
+| de la Chouette | of the Owl | suffixe | Intellect: +N |
+| du Lion | of the Lion | suffixe | Resolve: +N |
+| d'Esquive | of Evasion | suffixe | Dodge vs Melee: +N % |
+| de Déviation | of Deflection | suffixe | Dodge vs Projectiles: +N % |
+| de Blocage | of Blocking | suffixe | Block: +N % |
+
 ## Classes (`escouade/Specialite.cpp`)
 
 | Concept | Texte |
@@ -134,6 +153,16 @@ dans « Blocked −40 ».
 | Esquive mêlée, esquive projectile (inventaire) | Melee Dodge, Projectile Dodge |
 | Bonus d'esquive d'un objet | Dodge vs Melee, Dodge vs Projectiles |
 | Points de vie | HP |
+
+## Touches de débogage
+
+| Touche | Effet |
+|---|---|
+| F3 | points visés, chemins, zones de contrôle |
+| F4 | carré de l'ancre |
+| F5 | nouvelle carte |
+| F6 | brouillard de guerre (visuel) |
+| F7 | quatre objets de démonstration dans le sac : Blazing Mace, Keen Bow of the Fox, Reinforced Chain Mail of Evasion, Round Shield of Blocking (tout ou rien) |
 
 ## Écrans
 

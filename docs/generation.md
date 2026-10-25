@@ -215,7 +215,7 @@ même chose avec plus de détail.
   2 cases de large, escouade au centre de la première salle, 1 à 3
   monstres par autre salle, même graine que la partie, voir
   `docs/generation.md`). F5 (à tout moment, touche
-  de débogage) et « Commencer » (écran de choix) génèrent une nouvelle carte avec une
+  de débogage) et « Start » (écran de choix) génèrent une nouvelle carte avec une
   nouvelle graine, affichée dans la console ; R (après une défaite ou une
   victoire) ramène à l'écran de choix de l'escouade ; la carte faite à la main
   (`creerNiveau()` dans `Niveau.cpp`) reste le terrain des tests. La caméra (`sf::View`) est centrée

@@ -112,6 +112,7 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 92 — Seuils d'équipement, objets inactifs, pénétration d'armure (la dague) ✅
 - Étape 93 — Les types de monstres : nuée, infanterie, infanterie lourde, créature monstrueuse, groupes en données ✅
 - Étape 94 — Types de dégâts et résistances : le coup en portions (physique, feu, sacré), l'explosion en feu, la frappe sacrée, premier skill de frappe ✅
+- Étape 95 — Les objets ont leurs propres données (rareté, préfixe et suffixe) ; le texte du jeu passe à l'anglais ✅
 
 ## Détail des étapes 0 à 73
 
@@ -2227,3 +2228,27 @@ du nombre flottant (feu orangé, sacré doré). 94.5 : `DefinitionDeSkill::bonus
 de frappe (dégâts, nature et pénétration de l'arme, plus 45 de sacré : masse 15 + 45 = 60, le total d'avant). 94.6 : mesure
 de performance inchangée (0,04 ms par image) et documentation. 1 439 tests, 0 avertissement de compilation. Détail :
 `docs/combat.md`, `docs/classes-et-combat.md`, `docs/monstre.md`, `docs/objets.md`, `docs/tests.md`.
+
+### Étape 95 — Les objets ont leurs propres données, le jeu en anglais ✅
+
+Première étape de la phase 4 (butin), faite en une session autonome (un commit par sous-étape ; le découpage de la phase :
+95 le modèle et l'affichage, 96 la génération aléatoire, 97 le butin au sol). 95.1 : la règle de travail change dans
+`CLAUDE.md` : un commit par sous-étape terminée (compilée, tests verts), fait par Claude Code, jamais de `git push`.
+95.2 : tout le texte affiché passe à l'anglais (menus, options, classes, skills, objets, catégories, emplacements,
+caractéristiques — Might, Constitution, Dexterity, Intellect, Resolve —, infobulles, inventaire, textes flottants, victoire,
+défaite, compteur) ; les durées s'écrivent avec un point ; pas de système de traduction ; `docs/glossaire.md` dresse la
+table concept → texte. 95.3 : `Objet` devient `{ modèle, rareté, préfixe, suffixe }` (petite valeur, égalité par valeur),
+`Affixe` est `{ id, valeur }` (la valeur est dans l'objet), `CatalogueAffixes` en données (douze affixes) et
+`objetValide`, une **fonction de validation** plutôt qu'une construction avec `assert` (l'`Objet` est un agrégat), `assert`ée
+aux frontières (`Equipement::poser`, `Inventaire`) ; `nomDeLObjet` ; le test d'exemplaires compte par valeur complète.
+95.4 : les affixes ont un effet dans les totaux de l'équipement (armure, caractéristiques, esquives, chance de blocage,
+attaque de base) ; `DescriptionDAttaque::degats` devient un `Degats` : une masse « Blazing » frappe en physique et en feu,
+la Puissance joue sur chaque portion, la frappe sacrée prend toutes les portions de l'arme ; la pénétration d'un affixe
+s'ajoute à celle de l'arme ; les bonus de caractéristiques des affixes entrent dans le point fixe des objets actifs et un
+objet inactif perd ses affixes. 95.5 : `lignesDeLInfobulle` prend un `Objet` (nom composé, catégorie, propriétés du modèle,
+une ligne par affixe, seuils), la couleur de la rareté (blanc, jaune, vert) sur les sigles, les noms et le nom de
+l'infobulle, et F7 (`Escouade::ramasserTout`, tout ou rien) met quatre objets de démonstration dans le sac. 95.6 : tests de
+cohérence des données et documentation. 1 494 tests (+55), 0 avertissement de compilation, aucun nouvel avertissement `clang-tidy`
+dans les fichiers modifiés (le total de 39 n'a pas été recompté) ; mesure de performance inchangée (moyenne 0,035 ms par image, pire 0,12 ms, preset `jeu`). Détail :
+`docs/objets.md`, `docs/combat.md`, `docs/ecrans.md`, `docs/boucle-et-entrees.md`, `docs/tests.md`, `docs/glossaire.md`,
+`docs/classes-et-combat.md`, `docs/brainstorm.md`.

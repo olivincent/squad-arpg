@@ -88,7 +88,7 @@ Quand un point entre dans `ROADMAP.md`, sa conception détaillée se fait en dis
 ## 5. Les caractéristiques
 
 - **Retenu.** Des caractéristiques **par effet** (à la *Pillars of Eternity*), pas une stat de dégâts par classe : le joueur doit vraiment hésiter où mettre ses points.
-- **Retenu.** Des noms **immersifs**, avec une infobulle qui donne les chiffres exacts. Les noms ci-dessous sont des noms de travail, faciles à changer.
+- **Retenu.** Des noms **immersifs**, avec une infobulle qui donne les chiffres exacts. Les noms ci-dessous sont des noms de travail, faciles à changer. **Depuis l'étape 95, le jeu affiche des noms anglais** (noms de travail eux aussi) : Puissance → Might, Endurance → Constitution, Adresse → Dexterity, Savoir → Intellect, Volonté → Resolve (`docs/glossaire.md`). Ce document garde les noms français, qui sont aussi ceux du code.
 - **Retenu.** **Cinq** caractéristiques. Trois, c'était trop peu : la Vigueur donnait dégâts **et** points de vie (une caractéristique que tout le monde monte), et l'Esprit mélangeait un besoin de lanceur de sorts (zones) et un besoin de tank (résistance au contrôle).
 - **Retenu.** La **vitesse** n'est pas une caractéristique (difficile à contrôler, casse le jeu). Elle vient de l'arme (intervalle de recharge propre à chaque type d'arme), de l'équipement (réduction de recharge, vitesse) et des skills (*Hâte*).
 - **Retenu.** Deux caractéristiques offensives, deux défensives et un pivot :
@@ -313,7 +313,7 @@ Points de conception associés (**proposés**) :
 8. **Les classes de départ** : quelles classes de base, quelles spécialisations, quels paliers ?
 9. **L'automatisation** : quels skills partent seuls (gambits, `docs/brainstorm.md`), lesquels restent au clavier ?
 10. **Un bonus pour une escouade d'une seule couleur** ? (Moins pertinent depuis que les couleurs ne sont qu'un guide de conception.)
-11. **Les noms définitifs** des cinq caractéristiques.
+11. **Les noms définitifs** des cinq caractéristiques. *(Depuis l'étape 95, les noms de travail sont en anglais à l'écran : Might, Constitution, Dexterity, Intellect, Resolve. Les noms français restent ceux du code et de ce document ; le choix définitif reste à faire.)*
 12. *Tranchée* (étape 94) : **le blocage et les portions typées** : le bouclier ne réduit que la portion physique (section 7).
 
 ## 15. Pistes

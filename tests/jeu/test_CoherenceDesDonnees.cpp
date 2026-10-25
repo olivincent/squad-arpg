@@ -10,6 +10,7 @@
 #include "monde/CompositionDeGroupe.hpp"
 #include "monde/GenerateurDonjon.hpp"
 #include "monstres/DefinitionDeMonstre.hpp"
+#include "objets/CatalogueAffixes.hpp"
 #include "objets/CatalogueObjets.hpp"
 
 // Ces tests vérifient les données des catalogues, pas du code : chaque donnée ajoutée plus tard (monstres,
@@ -132,4 +133,30 @@ TEST_CASE("les parametres du generateur portent les compositions du jeu") {
 
     REQUIRE(parametres.compositions.size() == compositionsOrdinaires().size());
     REQUIRE(parametres.compositionDeLaSalleLaPlusLoin.has_value());
+}
+
+TEST_CASE("les objets de demonstration de F7 respectent les invariants des objets") {
+    for (const Objet& objet : objetsDeDemonstration()) {
+        INFO(nomDeLObjet(objet));
+        REQUIRE(objetValide(objet));
+    }
+}
+
+TEST_CASE("le sac de depart est fait d'objets communs valides") {
+    for (const Objet& objet : sacDeDepart()) {
+        INFO(nomDeLObjet(objet));
+        REQUIRE(objetValide(objet));
+        REQUIRE(objet.rarete == Rarete::Commun);
+    }
+}
+
+TEST_CASE("chaque affixe du catalogue peut etre porte par au moins un modele du catalogue d'objets") {
+    for (const DefinitionDAffixe& affixe : catalogueAffixes()) {
+        INFO(affixe.nom);
+        bool porte = false;
+        for (const DefinitionObjet& modele : catalogueObjets()) {
+            porte = porte || affixePermis(affixe.id, modele.categorie);
+        }
+        REQUIRE(porte);
+    }
 }

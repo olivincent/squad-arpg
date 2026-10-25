@@ -730,10 +730,10 @@ Détail de conception : `docs/classes-et-combat.md`, sections 6, 7 et 13. Étape
   Même règle de tirage (aucun si la capacité offensive est nulle).
 - **Événements et affichage (89.3 à 89.5)** : `Degats { montant, opportunite, critique }` et `Soin { montant,
   critique }` ; `Partie` pose `critique` d'après le `ResultatDuCoup`. `TextesFlottants` : un critique est en
-  jaune vif, 18 px, suivi de « Critique ! » (« 12 Critique ! », « 12! Critique ! » pour un coup gratuit,
-  « +30 Critique ! » en vert pour un soin) ; le style critique l'emporte sur celui du coup gratuit (couleur
-  et taille), qui garde son « ! ». L'inventaire montre « Capacité offensive N » et « Capacité défensive N »
-  de chaque personnage.
+  jaune vif, 18 px, suivi de « Critical! » (« 12 Critical! », « 12! Critical! » pour un coup gratuit,
+  « +30 Critical! » en vert pour un soin) ; le style critique l'emporte sur celui du coup gratuit (couleur
+  et taille), qui garde son « ! ». L'inventaire montre « Offensive Ability N » et « Defensive Ability N »
+  de chaque personnage (les textes du jeu sont en anglais depuis l'étape 95 : `docs/glossaire.md`).
 - **Pourquoi les tests de `Partie` lisent `critique`** : les personnages de test ont une Adresse de 0 (capacité
   défensive 50 contre 100 pour l'attaque d'un monstre : 20 % de critiques sur eux), et `Partie` garde son
   générateur. Plutôt que de rendre les parties de test sans hasard, un test qui vérifie un montant lit
@@ -808,18 +808,18 @@ physique d'un coup (question 12 tranchée, voir « Types de dégâts et résista
   encore changé à l'étape 90.
 - **Événements** : `Esquive {}` et `Bloque { montant, total }` s'ajoutent à `DetailEvenement`. `total` (ajouté au
   seul `montant` annoncé) dit si le blocage a tout absorbé : sans lui, l'affichage ne pourrait pas distinguer
-  « Bloqué » de « Bloqué −N » (un `Degats` de 0 n'existe pas). La conversion d'un `ResultatDuCoup` en détails
+  « Blocked » de « Blocked −N » (un `Degats` de 0 n'existe pas). La conversion d'un `ResultatDuCoup` en détails
   est une fonction pure, `detailsDuCoup(resultat, opportunite)` (`EvenementDeCombat.cpp`), que `Partie::signalerLeCoup`
   parcourt : un coup esquivé donne `Esquive` seul ; sinon les `Degats` (rien s'ils sont nuls), **puis**
   `Bloque` (le texte du blocage s'empile ainsi au-dessus des dégâts, même cible, même image). Un résultat
   « rien » ne donne rien. La règle « un montant de 0 ne produit aucun événement » reste pour `Degats` et `Soin`.
-- **Affichage** (`TextesFlottants`) : « Esquivé » en gris clair, 14 px ; blocage total « Bloqué » en gris,
-  14 px ; blocage partiel : les dégâts restants comme d'habitude, et « Bloqué −12 » (signe moins U+2212 ; −40 avant l'échelle × 3) en gris,
+- **Affichage** (`TextesFlottants`) : « Dodged » en gris clair, 14 px ; blocage total « Blocked » en gris,
+  14 px ; blocage partiel : les dégâts restants comme d'habitude, et « Blocked −12 » (signe moins U+2212 ; −40 avant l'échelle × 3) en gris,
   14 px, au-dessus. **Infobulle des objets** : une ligne par bonus de combat (`lignesDeBonusDeCombat`) :
-  « Esquive contre la mêlée : +5 % », « Esquive contre les projectiles : +5 % » ; le blocage d'un bouclier est
-  une ligne à part depuis l'étape 91.6 (« Blocage : 30 %, 12 points », `lignesDeLInfobulle`).
-  **Inventaire** : sous les capacités, « Blocage 30 % (12) » (« Blocage 0 % » sans bouclier), « Esquive mêlée
-  5 % » et « Esquive projectile 5 % » (valeurs effectives, plafond compris) : `lignesDeStatistiques`.
+  « Dodge vs Melee: +5 % », « Dodge vs Projectiles: +5 % » ; le blocage d'un bouclier est
+  une ligne à part depuis l'étape 91.6 (« Block: 30 %, 12 points », `lignesDeLInfobulle`).
+  **Inventaire** : sous les capacités, « Block 30 % (12) » (« Block 0 % » sans bouclier), « Melee Dodge
+  5 % » et « Projectile Dodge 5 % » (valeurs effectives, plafond compris) : `lignesDeStatistiques`.
 - **Limites** : pas de skills qui donnent de l'esquive ou du blocage ; pas de bouclier qui déséquilibre ni
   d'armes contre les boucliers ; pas de distribution pseudo-aléatoire contre les séries d'esquives ; le
   blocage ne distingue pas les éléments (question 12) ; les monstres n'ont pas de bouclier dans le catalogue ;
@@ -875,16 +875,17 @@ Détail de conception : `docs/classes-et-combat.md`, section 8.
 - **Une propriété de l'arme** : `DescriptionDAttaque::penetration`, en pour cent entier ; la dague 30, les autres
   armes et les mains nues 0. Elle circule dans l'`Attaque` (`penetration`, 0 par défaut) jusqu'à `resoudreCoup`, qui la
   passe à `appliquerArmure(montant, armure, penetration)`. Le `Personnage` la met dans l'attaque de base
-  (`attaqueDe(skill, penetration)`), donc aussi dans les coups d'opportunité (`Escouade::attaqueDeBase`) ; un skill n'en
-  a pas (il a sa propre puissance), un monstre non plus.
+  (`attaqueDeLArme`, depuis l'étape 95 ; avant, `attaqueDe(skill, penetration)`), donc aussi dans les coups
+  d'opportunité (`Escouade::attaqueDeBase`) ; un skill de dégâts n'en a pas (il a sa propre puissance ; la frappe sacrée
+  prend celle de l'arme), un monstre non plus.
 - **Où elle agit** : sur l'armure, **avant** la soustraction M1 : `armure effective = armure × (1 − pénétration)`, sans
   arrondi intermédiaire (l'arrondi reste celui de M1, en fin de calcul), puis `max(montant − armure effective, montant ×
   20 %)`. Le plancher de 20 % ne bouge pas. Un blocage total s'arrête avant l'armure : la pénétration n'y change rien.
 - **Plafond** : 75 % (`s_penetrationMaximale`, `Defense.hpp`, « à tester ») ; une pénétration plus grande ou négative est
   ramenée entre 0 et 75 à l'application.
 - **Exemple** : 100 contre 40 d'armure, sans pénétration 60 ; à 30 %, l'armure vaut 28 et le coup 72.
-- **Limites** : pas de bonus de pénétration par l'équipement ni par les skills ; pas de pénétration de résistance
-  (hors de portée de l'étape 94). Depuis l'étape 94, le moteur du coup utilise `armureAppliquee`, la version
+- **Limites** : pas de bonus de pénétration par les skills (par l'équipement depuis l'étape 95 : le préfixe « Keen »,
+  voir « Les affixes dans le combat ») ; pas de pénétration de résistance (hors de portée de l'étape 94). Depuis l'étape 94, le moteur du coup utilise `armureAppliquee`, la version
   flottante de M1, sur la portion physique.
 
 ## Types de dégâts et résistances (étape 94)
@@ -931,14 +932,15 @@ Détail de conception : `docs/classes-et-combat.md`, sections 6, 7, 8 et 12.
 - **Sources élémentaires** : `DefinitionDeSkill::element` (physique par défaut) donne l'élément de la puissance d'un
   skill de dégâts ou de zone ; l'explosion du mage est du feu. La frappe sacrée est le premier **skill de frappe** :
   `DefinitionDeSkill::bonusDeFrappe` (un `Degats` typé, ici 45 de sacré) ; l'arme apporte les dégâts physiques, la nature
-  et la pénétration (`Personnage::attaqueDeFrappe`, depuis `DescriptionDAttaque` de l'arme portée), le skill sa portée,
+  et la pénétration (`Personnage::attaqueDeFrappe`, depuis `DescriptionDAttaque` de l'arme portée, **toutes ses portions**
+  depuis l'étape 95 : un affixe de feu ou de sacré compte), le skill sa portée,
   sa recharge, son temps d'activation et son bonus. Sa puissance est 0 et sa nature déclarée n'est pas lue. Calibrage :
   masse (15) + 45 = 60, le total d'avant ; épée à deux mains (60) + 45 = 105. Le bonus étant un `Degats`, la frappe
   puissante et le tir perçant pourront devenir des skills de frappe avec un bonus physique, sans changer la structure.
 - **Affichage** : toujours un seul nombre flottant, le total. `DegatsSubis::element` est celui de la plus grosse portion
   après les réductions (à égalité, le premier de l'énumération : `elementDominant`) ; sa couleur : physique inchangé
   (blanc sur un monstre, rouge sur un personnage), feu orange rougeâtre (255, 95, 10), sacré or pâle (225, 185, 75).
-  Le critique (jaune, « Critique ! ») et le coup gratuit (orange) gardent la priorité. Un test vérifie que ces couleurs
+  Le critique (jaune, « Critical! ») et le coup gratuit (orange) gardent la priorité. Un test vérifie que ces couleurs
   restent distinctes (≥ 50 de distance RGB).
 - **Exemple** : une explosion de 45 de feu contre l'infanterie lourde (armure 10) fait 45 (l'armure n'y touche pas),
   contre la créature monstrueuse 27 ; une attaque de base de 45 physiques contre l'infanterie lourde fait 35.
@@ -946,6 +948,37 @@ Détail de conception : `docs/classes-et-combat.md`, sections 6, 7, 8 et 12.
   pas de pénétration de résistance, pas de résistance ni de bonus élémentaire sur les objets (étape 95), pas de
   bouclier anti-magie, pas d'effets dans le temps, pas de nombre flottant par portion. Le Savoir et la Volonté n'ont
   toujours aucun effet.
+
+## Les affixes dans le combat (étape 95)
+
+Le modèle des affixes est dans `docs/objets.md` (« Rareté et affixes ») ; ici, ce qui change dans le circuit des coups.
+
+- **L'attaque de base est typée.** `DescriptionDAttaque::degats` est un `Degats` (une portion par élément) : les armes
+  du catalogue et les mains nues sont physiques (`degatsPhysiques`). `Equipement::attaqueDeBase` y ajoute les portions de feu
+  et de sacré des affixes de l'arme (« Blazing » : feu, « Hallowed » : sacré) et leur pénétration (« Keen »). Une masse
+  « Blazing » frappe donc en physique **et** en feu.
+- **La Puissance joue sur chaque portion.** `Personnage::attaqueDeLArme` (qui remplace l'usage de `attaqueDe(skill,
+  penetration)` pour l'attaque de base ; le `Skill` de l'attaque de base n'a plus que le temps, sa puissance est 0) applique
+  `montantEffectif` à chaque portion avec le coefficient de Puissance 1,0 : **un arrondi par portion**. Les coups d'opportunité
+  (`Escouade::attaqueDeBase`) lisent la même attaque et en profitent.
+- **La frappe sacrée prend toutes les portions de l'arme**, affixes compris, plus son bonus : avec une masse « Blazing » elle
+  a trois portions (physique de la masse, feu de l'affixe, sacré du bonus). Pour chaque élément, la portion de l'arme et celle
+  du bonus sont arrondies chacune à part, puis additionnées (avec une masse « Hallowed », le sacré est l'arrondi des 4 de
+  l'affixe plus celui des 45 du bonus). Aucun changement pour une arme sans affixe.
+- **Contre l'armure et les résistances.** Contre l'infanterie ordinaire, le physique domine et le nombre garde sa couleur
+  physique ; contre l'infanterie lourde, l'armure écrase le physique et le feu passe : le nombre devient orangé (l'élément
+  de la plus grosse portion, étape 94). Aucun changement du moteur du coup (`resoudreCoup`).
+- **Pénétration.** Celle d'un affixe s'ajoute à celle de l'arme (dague 30 + « Keen » 15 = 45). La somme n'est pas
+  plafonnée dans l'attaque : le plafond de 75 % (`s_penetrationMaximale`) joue à l'application, dans `appliquerArmure` /
+  `armureAppliquee`, comme avant.
+- **Blocage.** La chance de blocage d'un affixe (« of Blocking ») s'ajoute à celle du bouclier dans
+  `Equipement::bonusDeCombatTotal` ; le montant absorbé reste celui du bouclier (sans bouclier, l'affixe n'est même pas
+  permis). L'inventaire affiche la somme (« Block 35 % (12) » avec un bouclier rond « of Blocking » +5).
+- **Esquive et armure.** « of Evasion » et « of Deflection » ajoutent à l'esquive contre le contact ou les projectiles
+  (plafond de 50 % inchangé), « Reinforced » à l'armure : tous passent par les totaux de l'équipement actif.
+- **Un objet inactif perd ses affixes** avec le reste (l'objet entier sort de l'équipement actif).
+- **Limites** : pas d'affixe de résistance (les monstres ne frappent qu'en physique), pas de pénétration de résistance ; un
+  affixe de feu n'ajoute rien aux skills de dégâts propres (explosion, pluie de flèches) ni aux soins.
 
 ## Temps d'exécution et coup engagé (étape 57)
 
@@ -1281,7 +1314,7 @@ l'enfoncerait dans un obstacle.
   attaque, générateur)`, donc le monstre devient agresseur comme après un coup normal ; côté monstre :
   `Monstre::recevoirDegats`, qui l'alerte. Les accesseurs d'attaque (`getAttaqueDeBase`, `getAttaque`) sont
   des lectures : la recharge ne peut pas être touchée par construction. Le coup gratuit peut être un
-  critique (affiché « N! Critique ! »).
+  critique (affiché « N! Critical! »).
 - **Module pur `Engagement`** (voir « Référence des modules ») : une photo (`PhotoDesCamps`) des attaquants et des
   cibles d'un seul sens, au début et à la fin de l'image, et la fonction `coupsDOpportunite`. Il ne connaît
   ni `Escouade`, ni `Monstre`, ni `Personnage`.
@@ -1363,13 +1396,13 @@ l'enfoncerait dans un obstacle.
   (`EvenementDeCombat`), l'affichage les consomme plus tard. `Partie` ne connaît pas l'affichage : pas de
   callback, pas de `std::function` vers `EcranJeu`, pas d'observateur. Le jour où autre chose voudra les
   lire (sons, journal de combat, statistiques), il lira la même file ; un nouveau type d'événement
-  (étape 86 : nom du skill lancé, « Provoqué ») s'ajoute au variant `DetailEvenement` sans réécrire ce
+  (étape 86 : nom du skill lancé, « Taunted ») s'ajoute au variant `DetailEvenement` sans réécrire ce
   qui existe.
 - **La forme (étape 86).** Champs communs (`campCible`, `idCible`, `position`) et un `detail` en
   `std::variant<Degats, Soin, SkillLance, Provoque, Esquive, Bloque>` : `Degats { montant, opportunite,
   critique }`, `Soin { montant, critique }` (le champ `critique` date de l'étape 89), `SkillLance { IdSkill }`,
   `Provoque {}`, `Esquive {}` et `Bloque { montant, total }` (étape 90). `TypeEvenement` n'existe plus, le
-  variant dit le type. Raison : un skill lancé n'a pas de montant et « Provoqué » n'a ni montant ni coup
+  variant dit le type. Raison : un skill lancé n'a pas de montant et « Taunted » n'a ni montant ni coup
   gratuit ; on ne représente pas des champs qui n'ont pas de sens. Les lecteurs (`TextesFlottants`)
   utilisent `std::visit` avec `Surcharges` : un détail ajouté sans son texte, sa couleur et sa taille ne
   compile pas.
@@ -1414,9 +1447,9 @@ l'enfoncerait dans un obstacle.
   le haut (le rang est fixé à l'ajout, `m_image` compte les images) : déterministe, sans hasard ni
   `Generateur`. Styles : dégâts sur un monstre en blanc, sur un personnage en rouge ; soin en vert, « +N » ;
   coup gratuit en orange, 20 px au lieu de 16, « N! » (quel que soit le camp) ; critique (dégâts ou soin) en
-  jaune vif pour les dégâts, vert pour le soin, 18 px, suivi de « Critique ! » (étape 89 : il l'emporte sur le
-  coup gratuit) ; « Esquivé » en gris clair et « Bloqué » ou « Bloqué −N » en gris, 14 px (étape 90) ; nom du skill lancé
-  (`nomDuSkill`, `interface/AffichageSkills`) en jaune doré, 14 px ; « Provoqué » en rouge orangé, 14 px ;
+  jaune vif pour les dégâts, vert pour le soin, 18 px, suivi de « Critical! » (étape 89 : il l'emporte sur le
+  coup gratuit) ; « Dodged » en gris clair et « Blocked » ou « Blocked −N » en gris, 14 px (étape 90) ; nom du skill lancé
+  (`nomDuSkill`, `interface/AffichageSkills`) en jaune doré, 14 px ; « Taunted » en rouge orangé, 14 px ;
   contour noir de 1 px. Les libellés sont en UTF-8 (`sf::String::fromUtf8` dans `dessiner`).
 - **Le brouillard est un filtre d'`EcranJeu`**, pas de `Partie` : si le brouillard est actif et que
   `Partie::estVisible(position)` est faux, l'événement n'est pas transformé en texte (même règle que pour
@@ -1841,7 +1874,7 @@ réussi, le même pour tous.
 | `float hauteurDuTexte(float age)` | Fonction libre pure : 20 px au-dessus du centre de la cible à la naissance, 30 px de plus sur toute la durée de vie ; `[[nodiscard]]` |
 | `float opaciteDuTexte(float age)` | Pure : 1 pendant la première moitié de la vie, puis linéaire jusqu'à 0 à 0,8 s ; `[[nodiscard]]` |
 | `sf::Vector2f positionDuTexte(const TexteFlottant&)` | Pure : position de l'événement, relevée de `hauteurDuTexte(age)` et de 14 px par rang ; `[[nodiscard]]` |
-| `std::string libelleDuTexte(const EvenementDeCombat&)` / `sf::Color couleurDuTexte(...)` / `unsigned int tailleDuTexte(...)` | Purs. Dégâts « 12 », coup gratuit « 12! » (orange, 20 px), soin « +12 » (vert) ; critique : le texte suivi de « Critique ! » (« 12 Critique ! », « 12! Critique ! », « +12 Critique ! »), jaune vif pour des dégâts (même gratuits), vert pour un soin, 18 px dans les deux cas ; nom du skill lancé (jaune doré, 14 px) ; « Provoqué » (rouge orangé, 14 px) ; « Esquivé » (gris clair, 14 px), « Bloqué » (blocage total) ou « Bloqué −N » (partiel, signe moins U+2212), gris, 14 px ; dégâts physiques sur un monstre blancs, sur un personnage rouges, feu orange rougeâtre et sacré or pâle quel que soit le camp (le critique et le coup gratuit gardent leur couleur) ; 16 px sinon ; `std::visit` sur le détail ; `[[nodiscard]]` |
+| `std::string libelleDuTexte(const EvenementDeCombat&)` / `sf::Color couleurDuTexte(...)` / `unsigned int tailleDuTexte(...)` | Purs. Dégâts « 12 », coup gratuit « 12! » (orange, 20 px), soin « +12 » (vert) ; critique : le texte suivi de « Critical! » (« 12 Critical! », « 12! Critical! », « +12 Critical! »), jaune vif pour des dégâts (même gratuits), vert pour un soin, 18 px dans les deux cas ; nom du skill lancé (jaune doré, 14 px) ; « Taunted » (rouge orangé, 14 px) ; « Dodged » (gris clair, 14 px), « Blocked » (blocage total) ou « Blocked −N » (partiel, signe moins U+2212), gris, 14 px ; dégâts physiques sur un monstre blancs, sur un personnage rouges, feu orange rougeâtre et sacré or pâle quel que soit le camp (le critique et le coup gratuit gardent leur couleur) ; 16 px sinon ; `std::visit` sur le détail ; `[[nodiscard]]` |
 
 ### `ActionEngagee` (`combat/`) — l'action qu'un personnage prépare
 
@@ -2045,12 +2078,12 @@ Données membres : `struct Cercle { sf::Vector2f centre; float rayon; }`.
 
 `AffichageStatistiques.hpp` / `.cpp` : `std::vector<std::string> lignesDeStatistiques(const StatistiquesDeCombat&)`
 (`[[nodiscard]]`), UTF-8, cinq lignes dans l'ordre où `DispositionInventaire` remplit le bloc des statistiques :
-« Capacité offensive N », « Capacité défensive N », « Blocage 30 % (12) » (« Blocage 0 % » sans bouclier),
-« Esquive mêlée N % » et « Esquive projectile N % » (esquives effectives, plafond compris) ; et
+« Offensive Ability N », « Defensive Ability N », « Block 30 % (12) » (« Block 0 % » sans bouclier),
+« Melee Dodge N % » et « Projectile Dodge N % » (esquives effectives, plafond compris) ; et
 `std::vector<std::string> lignesDeBonusDeCombat(const StatistiquesDeCombat&)` (`[[nodiscard]]`), une ligne par bonus
-non nul pour l'infobulle d'un objet (« Esquive contre la mêlée : +5 % »… ; plus de ligne de blocage depuis l'étape 91.6). Comme `AffichageCaracteristiques`, les mots sont dans
+non nul pour l'infobulle d'un objet (« Dodge vs Melee: +5 % »… ; plus de ligne de blocage depuis l'étape 91.6). Comme `AffichageCaracteristiques`, les mots sont dans
 l'interface, le noyau ne connaît que les nombres.
 
 ### `AffichageSkills` (`interface/`) — les noms des skills
 
-`AffichageSkills.hpp` / `.cpp` : `std::string nomDuSkill(IdSkill)` (`[[nodiscard]]`), `switch` sans `default` (un skill ajouté sans nom fait avertir le compilateur), UTF-8 : « Frappe puissante », « Provocation », « Soin », « Explosion », « Frappe sacrée », « Imposition des mains », « Tir perçant », « Pluie de flèches ». Le noyau ne connaît que `IdSkill` ; comme `AffichageObjets`, les mots sont dans l'interface.
+`AffichageSkills.hpp` / `.cpp` : `std::string nomDuSkill(IdSkill)` (`[[nodiscard]]`), `switch` sans `default` (un skill ajouté sans nom fait avertir le compilateur), UTF-8, en anglais depuis l'étape 95 : « Power Strike », « Taunt », « Heal », « Explosion », « Holy Strike », « Lay on Hands », « Piercing Shot », « Rain of Arrows ». Le noyau ne connaît que `IdSkill` ; comme `AffichageObjets`, les mots sont dans l'interface.

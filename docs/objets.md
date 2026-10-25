@@ -3,8 +3,10 @@
 Le modèle des objets (étape 83) : le catalogue, ce que porte chaque personnage, le sac de
 l'escouade et les opérations qui déplacent un objet. L'écran d'inventaire (étape 84) les affiche, et
 le glisser-déposer (étape 85) les déplace. Les armes (étape 91) donnent l'attaque de base et la zone de
-contrôle, et le bouclier son blocage. L'armure et son effet sur les dégâts sont dans `docs/combat.md`,
-la construction des personnages dans `docs/formation.md`.
+contrôle, et le bouclier son blocage. Depuis l'étape 95, un objet porte sa rareté et au plus un préfixe et un
+suffixe (« Rareté et affixes »). L'armure et son effet sur les dégâts sont dans `docs/combat.md`, la construction des
+personnages dans `docs/formation.md`. Les textes affichés sont en anglais (`docs/glossaire.md`) : les noms ci-dessous
+sont ceux du jeu, les identifiants du code restent en français.
 
 ## Décisions
 
@@ -22,13 +24,15 @@ la construction des personnages dans `docs/formation.md`.
 - **Données, pas de hiérarchie** : comme `Specialite`, un catalogue (`DefinitionObjet` : id, nom,
   catégorie, armure) dans l'ordre de l'enum `IdObjet`, lu par `definitionObjet(id)` ; l'ordre est
   contrôlé par un `assert`. Pas de sous-classes `Casque`, `Anneau`…
-- **`Objet` est l'instance, `DefinitionObjet` le modèle** : `Objet` ne porte que l'`IdObjet`, c'est
-  une petite valeur copiable, sans pointeur vers le catalogue. Pas d'affixe aléatoire ni de rareté
-  pour l'instant : deux objets du même modèle sont égaux (`operator==`).
+- **`Objet` est l'instance, `DefinitionObjet` le modèle** : `Objet` porte l'`IdObjet` du modèle, sa `Rarete` et
+  au plus un préfixe et un suffixe (étape 95) ; c'est une petite valeur copiable, sans allocation ni pointeur vers
+  le catalogue. L'égalité est par valeur (`operator==` : modèle, rareté et affixes) : deux masses sont égales
+  seulement si elles ont la même rareté et les mêmes affixes aux mêmes valeurs.
 - **Un objet existe à un seul endroit** (un emplacement ou une case du sac). Les déplacements se
   font par valeur, et les fonctions qui rendent l'objet remplacé sont `[[nodiscard]]` : oublier
-  l'ancien objet le ferait disparaître. Un test compte les exemplaires de chaque modèle dans le sac
-  et tous les équipements avant et après chaque opération.
+  l'ancien objet le ferait disparaître. Un test compte les exemplaires de chaque objet (**par valeur complète**,
+  depuis l'étape 95 : modèle, rareté et affixes) dans le sac et tous les équipements avant et après chaque
+  opération.
 - **Armure calculée, jamais ajustée** : l'armure d'un personnage est la somme de l'armure de ses objets
   portés, recalculée en entier depuis son `Equipement` (`Personnage::recalculerDepuisLEquipement`, seul
   endroit qui appelle `Vitalite::definirDefenses`, depuis l'étape 89 ; avant, `recalculerArmure` et
@@ -143,18 +147,82 @@ la construction des personnages dans `docs/formation.md`.
 - **Limites du calcul** : il suppose des bonus positifs ou nuls (tous ceux du catalogue) ; deux objets qui se
   soutiennent l'un l'autre restent actifs (le plus grand point fixe) ; aucun objet du catalogue n'a à la fois un
   bonus et un seuil, donc la chaîne n'est testée que sur des objets inventés.
-- **Affichage** : l'infobulle d'un objet liste ses seuils (« Exige Puissance 11 », après la catégorie : `ligneDeSeuil`) ;
+- **Affichage** : l'infobulle d'un objet liste ses seuils (« Requires Might 11 », en dernier depuis l'étape 95 :
+  `ligneDeSeuil`) ;
   **pendant un glissement**, sur l'emplacement d'un personnage, l'infobulle de l'objet saisi apparaît avec ses seuils,
   **en rouge ceux que ce personnage n'atteint pas** (`Escouade::seuilsManques`, calculé comme la décision : sans compter
   l'objet posé, après ce que le déplacement retire) ; un objet **porté inactif est encadré en rouge** dans
-  l'inventaire (`Escouade::objetPorteEstInactif`) et son infobulle dit « Inactif : seuil non atteint ». L'armure et les
+  l'inventaire (`Escouade::objetPorteEstInactif`) et son infobulle dit « Inactive: requirement not met ». L'armure et les
   bonus affichés sont ceux de l'équipement actif (`Escouade::equipementActifDuPersonnage`).
 - **Pénétration d'armure** : une propriété de l'arme (`DescriptionDAttaque::penetration`, en pour cent entier ; la
   dague : 30, les autres armes et les mains nues : 0). Elle réduit l'armure du défenseur **avant** la soustraction M1 :
   `armure effective = armure × (1 − pénétration)`, sans arrondi intermédiaire (l'arrondi reste celui de M1), plafonnée à
   75 % (`s_penetrationMaximale`, `Defense.hpp`). Elle circule dans l'`Attaque` (`penetration`, 0 par défaut) : l'attaque de
-  base du `Personnage` en porte une (donc aussi les coups d'opportunité, qui en reprennent la puissance), les skills n'en
-  ont pas. Pas de bonus de pénétration par l'équipement. L'infobulle de la dague affiche « Pénétration : 30 % ».
+  base du `Personnage` en porte une (donc aussi les coups d'opportunité, qui en reprennent la puissance), les skills de
+  dégâts n'en ont pas (la frappe sacrée prend celle de l'arme). Depuis l'étape 95, le préfixe « Keen » ajoute de la
+  pénétration à celle de l'arme. L'infobulle de la dague affiche « Penetration: 30 % ».
+
+## Rareté et affixes (étape 95)
+
+- **Un objet** : `struct Objet { IdObjet modele; Rarete rarete = Commun; std::optional<Affixe> prefixe; std::optional<Affixe>
+  suffixe; }`. Le type interdit un troisième affixe ; le reste est un invariant (ci-dessous). Un `Affixe` est
+  `{ IdAffixe id; int valeur; }` : l'identifiant **et la valeur de cet objet**. La valeur est gardée dans l'objet, pas lue
+  dans le catalogue : rééquilibrer un affixe plus tard ne change pas les objets déjà trouvés. Un agrégat à valeurs par
+  défaut : `Objet{IdObjet::Masse}` est une masse commune, ce qui a laissé inchangés les sites d'appel qui n'avaient besoin que
+  du modèle (équipement de départ, sac de départ, la plupart des tests).
+- **Raretés** (à la *Titan Quest*, pour l'instant ; d'autres viendront) : **Common** n'a aucun affixe, **Magic** exactement
+  un (préfixe ou suffixe), **Rare** un préfixe et un suffixe. L'équipement de départ et le sac de départ sont communs.
+- **Invariants : une fonction de validation, pas une construction avec `assert`.** `objetValide(const Objet&)`
+  (`CatalogueObjets`) vérifie que chaque affixe est à sa position (un préfixe dans `prefixe`), permis pour la catégorie du
+  modèle (`affixePermis`) et de valeur strictement positive, et que le nombre d'affixes correspond à la rareté. Choix :
+  `Objet` est un agrégat (le tirage de l'étape 96, les tests, F7 l'écrivent en toutes lettres), donc une fonction de
+  construction n'obligerait personne à passer par elle, et un `assert` dans une construction ne protège pas les objets
+  écrits à la main ; la validation se vérifie à chaque frontière (`assert(objetValide(...))` dans `Equipement::poser` et
+  `Inventaire::poser` / `ajouter`, test de données `test_CoherenceDesDonnees` pour les objets de démonstration et le sac de
+  départ) et se teste comme un prédicat, sans faire échouer le test par un `assert`. La valeur strictement positive vient
+  d'une hypothèse de `objetsActifs` (bonus positifs ou nuls).
+- **Le catalogue d'affixes** (`CatalogueAffixes`, en données comme les autres catalogues) : `DefinitionDAffixe { id, nom,
+  position, effet, categories }` dans l'ordre de `IdAffixe` (contrôlé par un `assert`). **Pas de plage de valeurs** : elle
+  arrive avec le tirage (étape 96). Douze affixes ; valeurs de démonstration « à tester » dans `objetsDeDemonstration`.
+
+  | Affixe | Position | Effet | Catégories permises |
+  |---|---|---|---|
+  | Blazing (`Flamboyant`) | préfixe | points de feu ajoutés à l'attaque de base | armes |
+  | Hallowed (`Sanctifie`) | préfixe | points de sacré ajoutés à l'attaque de base | armes |
+  | Keen (`Acere`) | préfixe | pénétration d'armure en pour cent | armes |
+  | Reinforced (`Renforce`) | préfixe | armure | casque, armure, jambières, bouclier |
+  | of the Ox / Bear / Fox / Owl / Lion | suffixe | un point de Might / Constitution / Dexterity / Intellect / Resolve | toutes |
+  | of Evasion (`DEsquive`) | suffixe | esquive contre le contact, en pour cent | bottes, armure |
+  | of Deflection (`DeDeviation`) | suffixe | esquive contre les projectiles, en pour cent | casque, bouclier |
+  | of Blocking (`DeBlocage`) | suffixe | chance de blocage, en pour cent | bouclier |
+
+  Aucun affixe de résistance pour l'instant : les monstres ne frappent qu'en physique.
+- **Nom affiché** : `nomDeLObjet(objet)` = `[préfixe] modèle [suffixe]` (« Blazing Mace », « Keen Bow of the Fox »,
+  « Reinforced Chain Mail of Evasion »). L'anglais n'accorde pas : aucun genre ni nombre sur les modèles.
+- **Les affixes entrent dans les totaux existants, qui restent les seuls endroits qui calculent**, recalculés à chaque
+  appel, jamais ajustés. `apportDesAffixes(objet)` (`CatalogueAffixes`) rend ce que les affixes d'un objet ajoutent, rangé
+  comme l'équipement le tient déjà (`ApportDesAffixes { armure, bonus, bonusDeCombat, degatsAjoutes, penetration }`), par
+  un `switch` sans `default` sur l'effet. `Equipement` l'additionne à celui du modèle :
+  `armureTotale` (armure), `bonusTotal` (caractéristiques), `bonusDeCombatTotal` (esquives, **chance de blocage ajoutée
+  à celle du bouclier, le montant reste celui du bouclier**), `attaqueDeBase` (voir ci-dessous).
+- **L'attaque de base devient typée** : `DescriptionDAttaque::degats` est un `Degats` (une portion par élément,
+  `docs/combat.md`) au lieu d'un entier. Une arme est physique ; ses affixes y ajoutent du feu ou du sacré (« Blazing
+  Mace » : physique + feu) et de la pénétration (celle de l'arme plus celle de « Keen » ; le plafond de 75 % ne change pas
+  et s'applique avec la défense). `Personnage::attaqueDeLArme` applique la Puissance **à chaque portion** (un arrondi par
+  portion, `montantEffectif`). Les coups d'opportunité utilisent l'attaque de base, donc en profitent ; un skill de
+  frappe (la frappe sacrée) prend **toutes** les portions de l'arme, affixes compris, plus son bonus.
+- **Les objets actifs** : le bonus de caractéristiques d'un affixe compte dans le point fixe de `objetsActifs`
+  (`Equipement::actifPour` passe le bonus du modèle plus celui des affixes) : un suffixe « of the Ox » peut rendre actif un
+  autre objet. Les **seuils ne dépendent que du modèle**. Un objet inactif perd tout : ses propriétés de modèle et ses
+  affixes (on retire l'objet entier de l'équipement actif).
+- **Objets de démonstration (F7)** : `objetsDeDemonstration()` rend quatre objets, valeurs en constantes nommées de
+  `CatalogueObjets.cpp` : Blazing Mace (Magic, +6 de feu), Keen Bow of the Fox (Rare, +15 % de pénétration, +2 de Dexterity),
+  Reinforced Chain Mail of Evasion (Rare, +3 d'armure, +3 % d'esquive contre le contact), Round Shield of Blocking (Magic,
+  +5 % de chance de blocage). La touche F7 les met dans le sac par `Escouade::ramasserTout`, **tout ou rien** : sans quatre
+  cases libres, rien n'est ajouté (même esprit transactionnel que `ramasser`, sur une copie du sac).
+- **Affichage** : le nom composé, de la couleur de la rareté dans l'infobulle ; le texte d'un objet magique ou rare (sigle
+  dans le sac, nom sur un emplacement, objet saisi) prend la couleur de sa rareté ; le cadre rouge d'un objet inactif reste
+  prioritaire. Voir « Affichage ».
 
 ## Affichage (étape 84)
 
@@ -162,23 +230,27 @@ L'écran d'inventaire (`EcranInventaire`, `docs/ecrans.md`) montre l'équipement
 et le sac, en lecture seule ; aucune fonction de modification n'est appelée.
 
 - **Les mots sont dans l'interface, pas dans `objets/`** : `interface/AffichageObjets` donne le nom
-  d'un emplacement (« Tête », « Main droite »…), le nom d'une catégorie (« Casque », « Jambières »…) et le
+  d'un emplacement (« Head », « Main Hand »…), le nom d'une catégorie (« Helmet », « Leggings »…) et le
   sigle d'un objet. Chaque table est un `switch` sans `default` sur l'enum, comme les sigles des
   skills : un emplacement, une catégorie ou un objet ajouté sans texte fait avertir le compilateur.
   Les noms des objets, eux, viennent du catalogue (`DefinitionObjet::nom`). Textes en UTF-8,
   convertis par `sf::String::fromUtf8`.
 - **Emplacement vide** : rectangle grisé avec le nom de l'emplacement en petit ; **occupé** : le nom
-  de l'objet. **Case du sac vide** : carré vide ; **occupée** : le sigle de deux lettres (CF casque de
-  fer, CM cuirasse de mailles, JF jambières de fer, BR bouclier rond, GC gants de cuir, BC bottes de
-  cuir, CC casque de cuir, TM tunique matelassée, CP collier de protection, AP anneau de protection, AU anneau de puissance, CE collier d'endurance).
-  Un test vérifie que les sigles ont deux lettres et sont tous différents.
-- **Infobulle** au survol d'un objet (`lignesDeLInfobulle`) : nom, catégorie, « Armure : +N » (absente si
-  l'armure est nulle, étape 88), une ligne par bonus de caractéristique (« Puissance : +3 »), depuis
-  l'étape 90 une ligne par bonus de combat (« Esquive contre la mêlée : +5 % », « Esquive contre les
-  projectiles : +5 % » : `lignesDeBonusDeCombat`) et, depuis l'étape 91, pour un bouclier son blocage (« Blocage :
-  30 %, 12 points ») et pour une arme son attaque : « Dégâts : 15 », « Recharge : 0,3 à 0,7 s » (« 0,5 s » si les
-  bornes sont égales), « Portée : 20 px », « Contact » ou « Projectile » et « Deux mains » à deux mains. Rien au
-  survol d'une case vide.
+  de l'objet. **Case du sac vide** : carré vide ; **occupée** : le sigle de deux lettres (IH Iron Helm,
+  CM Chain Mail, IG Iron Greaves, RS Round Shield, LG Leather Gloves, LB Leather Boots, LC Leather Cap, PT Padded Tunic,
+  NP Necklace of Protection, RP Ring of Protection, RM Ring of Might, NC Necklace of Constitution, LS Longsword, MA Mace, DA Dagger,
+  GS Greatsword, SC Scepter, ST Staff, BO Bow ; table complète dans `docs/glossaire.md`). Un test vérifie que les sigles
+  ont deux lettres et sont tous différents.
+- **Infobulle** au survol d'un objet (`lignesDeLInfobulle(const Objet&)`, depuis l'étape 95 : elle prend l'objet, pas
+  son modèle). Dans cet ordre : le nom composé (de la couleur de la rareté : blanc, jaune, vert), la catégorie, les
+  propriétés du modèle — « Armor: +N » (absente si l'armure est nulle), une ligne par bonus de caractéristique
+  (« Might: +3 »), une par bonus de combat (« Dodge vs Melee: +5 % », « Dodge vs Projectiles: +5 % » :
+  `lignesDeBonusDeCombat`), pour un bouclier son blocage (« Block: 30 %, 12 points »), pour une arme son attaque
+  (« Damage: 15 », « Cooldown: 0.3 to 0.7 s » — « 0.5 s » si les bornes sont égales —, « Range: 20 px », « Melee » ou
+  « Projectile », « Penetration: 30 % » et « Two-handed ») —, **une ligne par affixe** (`ligneDAffixe` : « Fire Damage: +6 »,
+  « Penetration: +15 % », « Dexterity: +2 », « Block: +5 % »…), puis les seuils (« Requires Dexterity 12 »). La mention
+  « Inactive: requirement not met » est ajoutée par l'écran pour un objet porté inactif. Les durées s'écrivent avec un point.
+  Rien au survol d'une case vide.
 - **« Armure : N » d'une colonne** est `Equipement::armureTotale()`, la valeur dont la `Vitalite`
   du personnage est calculée ; elle n'est pas mise en cache dans l'écran.
 - **Disposition** : `interface/DispositionInventaire`, fonctions pures qui servent au dessin, au
@@ -208,8 +280,11 @@ et le sac, en lecture seule ; aucune fonction de modification n'est appelée.
 
 ## Limites connues
 
-- L'affichage est un sigle de deux lettres par objet : pas d'icônes, pas de couleurs par rareté ou par
-  catégorie.
+- L'affichage est un sigle de deux lettres par objet : pas d'icônes ; la seule couleur est celle de la rareté
+  (étape 95).
+- Les affixes n'ont pas de plage de valeurs (étape 96), pas de niveau d'objet, pas d'affixe de résistance ni de
+  modification des seuils ; un seul préfixe et un seul suffixe ; pas d'objet unique ni de rareté supérieure à Rare.
+- L'emplacement affiche le nom du modèle (en la couleur de la rareté), pas le nom composé : trop long pour la cellule.
 - Pas de restriction d'équipement par classe, pas de butin au sol : une nouvelle partie repart toujours du
   départ (aucune sauvegarde de l'équipement). Pas de deux armes à la fois (la main gauche ne tient qu'un
   bouclier), ni de lancer, ni de munitions.
@@ -242,14 +317,36 @@ CategorieObjet { Casque, Armure, Jambieres, Gants, Bottes, Bouclier, Collier, An
 `Objet.hpp`, sans `.cpp`. `enum class IdObjet { CasqueDeFer, CuirasseDeMailles, JambieresDeFer,
 BouclierRond, GantsDeCuir, BottesDeCuir, CasqueDeCuir, TuniqueMatelassee, CollierDeProtection,
 AnneauDeProtection, AnneauDePuissance, CollierDEndurance, EpeeLongue, Masse, Dague, EpeeADeuxMains, Sceptre, Baton,
-Arc }` ; `struct Objet { IdObjet id; }` avec `operator==` par défaut.
+Arc }` ; `struct Objet { IdObjet modele; Rarete rarete = Rarete::Commun; std::optional<Affixe> prefixe = {};
+std::optional<Affixe> suffixe = {}; }` avec `operator==` par défaut (étape 95 ; avant : `struct Objet { IdObjet id; }`).
+
+### `Affixe` (`objets/`)
+
+`Affixe.hpp`, sans `.cpp`. `enum class Rarete { Commun, Magique, Rare }` ; `enum class IdAffixe { Flamboyant, Sanctifie,
+Acere, Renforce, DuBoeuf, DeLOurs, DuRenard, DeLaChouette, DuLion, DEsquive, DeDeviation, DeBlocage }` (quatre préfixes puis
+huit suffixes) ; `struct Affixe { IdAffixe id; int valeur; }` avec `operator==`.
+
+### `CatalogueAffixes` (`objets/`)
+
+`CatalogueAffixes.hpp` / `.cpp`. `enum class PositionDAffixe { Prefixe, Suffixe }` ; `enum class EffetDAffixe {
+DegatsDeFeu, DegatsSacres, PenetrationDArmure, Armure, Puissance, Endurance, Adresse, Savoir, Volonte, EsquiveContact,
+EsquiveProjectile, ChanceDeBlocage }` ; `struct DefinitionDAffixe { IdAffixe id; std::string nom; PositionDAffixe position;
+EffetDAffixe effet; std::vector<CategorieObjet> categories; }` ; `struct ApportDesAffixes { int armure = 0; Caracteristiques
+bonus; StatistiquesDeCombat bonusDeCombat; Degats degatsAjoutes; int penetration = 0; }`.
+
+| Fonction | Rôle |
+|---|---|
+| `const std::vector<DefinitionDAffixe>& catalogueAffixes()` | Tous les affixes, dans l'ordre de `IdAffixe` ; l'unique source de leurs données ; `[[nodiscard]]` |
+| `const DefinitionDAffixe& definitionAffixe(IdAffixe)` | L'affixe de cet identifiant ; `assert` : le catalogue suit l'ordre de l'enum ; `[[nodiscard]]` |
+| `bool affixePermis(IdAffixe, CategorieObjet)` | Un objet de cette catégorie peut-il le porter ? `[[nodiscard]]` |
+| `ApportDesAffixes apportDesAffixes(const Objet&)` | Ce que les affixes de l'objet ajoutent (préfixe plus suffixe) ; nul pour un objet commun ; `switch` sans `default` sur l'effet ; `[[nodiscard]]` |
 
 ### `CatalogueObjets` (`objets/`)
 
 `CatalogueObjets.hpp` / `.cpp` : `struct DefinitionObjet { IdObjet id; std::string nom;
 CategorieObjet categorie; int armure; Caracteristiques bonus = {}; StatistiquesDeCombat bonusDeCombat = {};
 std::optional<DonneesDArme> arme = {}; std::optional<DonneesDeBouclier> bouclier = {};
-std::vector<SeuilDeCaracteristique> seuils = {}; }` et six fonctions libres, sans état.
+std::vector<SeuilDeCaracteristique> seuils = {}; }` et des fonctions libres, sans état.
 
 | Fonction | Rôle |
 |---|---|
@@ -258,6 +355,9 @@ std::vector<SeuilDeCaracteristique> seuils = {}; }` et six fonctions libres, san
 | `bool seuilsAtteints(IdObjet, const Caracteristiques&)` | Ces caractéristiques atteignent-elles tous les seuils de l'objet ? Toujours vrai sans seuil (étape 92.1) ; `[[nodiscard]]` |
 | `bool estADeuxMains(IdObjet)` | Une arme à deux mains (épée à deux mains, bâton, arc) ; faux pour tout autre objet ; `[[nodiscard]]` |
 | `const DescriptionDAttaque& mainsNues()` | L'attaque de base sans arme ; `[[nodiscard]]` |
+| `bool objetValide(const Objet&)` | Les invariants de l'objet : affixes à leur position, permis pour la catégorie, de valeur > 0, nombre conforme à la rareté (étape 95.3) ; `[[nodiscard]]` |
+| `std::string nomDeLObjet(const Objet&)` | « [préfixe] modèle [suffixe] » (« Blazing Mace ») ; `[[nodiscard]]` |
+| `std::vector<Objet> objetsDeDemonstration()` | Les quatre objets de F7 (Blazing Mace, Keen Bow of the Fox, Reinforced Chain Mail of Evasion, Round Shield of Blocking) ; `[[nodiscard]]` |
 | `std::vector<Objet> sacDeDepart()` | Le contenu du sac au début d'une partie : gants de cuir, bottes de cuir, casque de cuir, tunique matelassée, collier de protection, deux anneaux de protection, l'anneau de puissance, le collier d'endurance, une dague et une épée à deux mains ; `[[nodiscard]]` |
 
 Valeurs d'armure (provisoires ; recalibrées à l'étape 87.3 pour le modèle M1, puis à l'échelle × 3 à l'étape 91.2) :
@@ -302,14 +402,14 @@ Données membres : `m_objets` (`std::array<std::optional<Objet>, s_nombreEmplace
 
 | Fonction | Rôle |
 |---|---|
-| `explicit Equipement(const std::vector<ObjetDeDepart>& objetsDeDepart = {})` | Équipé des objets de départ (vide par défaut) ; `assert` : chaque objet peut aller à son emplacement et deux entrées n'ont pas le même emplacement |
+| `explicit Equipement(const std::vector<ObjetDeDepart>& objetsDeDepart = {})` | Équipé des objets de départ, tous communs (vide par défaut) ; `assert` : chaque objet peut aller à son emplacement et deux entrées n'ont pas le même emplacement |
 | `const std::optional<Objet>& a(Emplacement) const` | L'objet porté à cet emplacement, s'il y en a un ; `[[nodiscard]]` |
-| `std::optional<Objet> poser(Emplacement, Objet)` | Porte l'objet et rend celui qui y était ; `assert(peutAller(...))` : c'est à l'appelant de vérifier ; `[[nodiscard]]` |
+| `std::optional<Objet> poser(Emplacement, Objet)` | Porte l'objet et rend celui qui y était ; `assert(objetValide(...))` et `assert(peutAller(...))` : c'est à l'appelant de vérifier ; `[[nodiscard]]` |
 | `std::optional<Objet> retirer(Emplacement)` | Enlève l'objet et le rend (vide si l'emplacement l'était) ; `[[nodiscard]]` |
-| `int armureTotale() const` | Somme de l'armure des objets portés, recalculée à chaque appel ; `[[nodiscard]]` |
-| `StatistiquesDeCombat bonusDeCombatTotal() const` | Somme des bonus de combat des objets portés et du blocage de leurs boucliers (chance, montant), recalculée à chaque appel ; `[[nodiscard]]` |
-| `Caracteristiques bonusTotal() const` | Somme des bonus de caractéristiques des objets portés, recalculée à chaque appel (étape 88) ; `[[nodiscard]]` |
-| `DescriptionDAttaque attaqueDeBase() const` | L'attaque de base que donne l'équipement : celle de l'arme de la main droite, sinon `mainsNues()` (étape 91.4) ; `[[nodiscard]]` |
+| `int armureTotale() const` | Somme de l'armure des objets portés (modèle plus affixes), recalculée à chaque appel ; `[[nodiscard]]` |
+| `StatistiquesDeCombat bonusDeCombatTotal() const` | Somme des bonus de combat des objets portés (modèle plus affixes) et du blocage de leurs boucliers (chance, montant ; la chance d'un affixe s'y ajoute), recalculée à chaque appel ; `[[nodiscard]]` |
+| `Caracteristiques bonusTotal() const` | Somme des bonus de caractéristiques des objets portés (modèle plus affixes), recalculée à chaque appel (étape 88) ; `[[nodiscard]]` |
+| `DescriptionDAttaque attaqueDeBase() const` | L'attaque de base que donne l'équipement : celle de l'arme de la main droite avec le feu, le sacré et la pénétration de ses affixes, sinon `mainsNues()` (étape 91.4, 95.4) ; `[[nodiscard]]` |
 | `std::optional<TypeDArme> typeDArme() const` | Le type de l'arme de la main droite, vide sans arme (étape 91.5) ; `[[nodiscard]]` |
 | `Equipement actifPour(const Caracteristiques& base) const` | L'équipement sans ses objets inactifs (seuil non atteint par `base` et les bonus des autres objets actifs : `objetsActifs`), étape 92.2 ; `[[nodiscard]]` |
 | `bool operator==(const Equipement&) const` | Défaut : l'`Escouade` compare l'état voulu à l'état courant (étape 91.3) |
@@ -356,8 +456,9 @@ PositionPortee { std::size_t place; Emplacement emplacement; }` (chacune avec `o
 
 En-têtes seuls (étape 91). `struct DonneesDArme { TypeDArme type; int mains; DescriptionDAttaque attaque; }` ;
 `struct DonneesDeBouclier { int chanceDeBlocage; int montantBloque; }` ; `enum class TypeDArme { EpeeLongue, Masse,
-Dague, EpeeADeuxMains, Sceptre, Baton, Arc }` ; `struct DescriptionDAttaque { int degats; float rechargeMin;
-float rechargeMax; float tempsExecution; float portee; NatureDAttaque nature; }` (toutes avec `operator==`, sans
+Dague, EpeeADeuxMains, Sceptre, Baton, Arc }` ; `struct DescriptionDAttaque { Degats degats; float rechargeMin;
+float rechargeMax; float tempsExecution; float portee; NatureDAttaque nature; int penetration; }` (depuis l'étape 95,
+`degats` est typé : une portion par élément ; avant, un entier) (toutes avec `operator==`, sans
 valeur par défaut : un oubli est signalé par le compilateur), accompagnée de `s_zoneDeControleDeContact` (20 px) et
 de `zoneDeControleDe(NatureDAttaque)` (contact : 20, projectile et zone : 0).
 
@@ -380,11 +481,13 @@ libres sans état, qui rendent des `std::string` en UTF-8.
 
 | Fonction | Rôle |
 |---|---|
-| `std::string nomDeLEmplacement(Emplacement)` | « Tête », « Torse », « Jambes », « Gants », « Bottes », « Main droite », « Main gauche », « Collier », « Anneau 1 », « Anneau 2 » ; `switch` sans `default` ; `[[nodiscard]]` |
-| `std::string nomDeLaCategorie(CategorieObjet)` | « Casque », « Armure », « Jambières », « Gants », « Bottes », « Bouclier », « Collier », « Anneau » ; `[[nodiscard]]` |
-| `std::string ligneDeSeuil(const SeuilDeCaracteristique&)` / `std::string ligneDObjetInactif()` | « Exige Puissance 11 » ; « Inactif : seuil non atteint » (étape 92.3) ; `[[nodiscard]]` |
-| `std::string sigleDeLObjet(IdObjet)` | Deux lettres par objet du catalogue (EL épée longue, MA masse, DA dague, E2 épée à deux mains, SC sceptre, BT bâton, AR arc depuis l'étape 91) ; `[[nodiscard]]` |
-| `std::vector<std::string> lignesDeLInfobulle(IdObjet)` | Nom, catégorie, « Armure : +N » si non nulle, une ligne « Nom : +N » par bonus de caractéristique, les bonus de combat, le blocage d'un bouclier, l'attaque d'une arme ; `[[nodiscard]]` |
+| `std::string nomDeLEmplacement(Emplacement)` | « Head », « Chest », « Legs », « Hands », « Feet », « Main Hand », « Off Hand », « Necklace », « Ring 1 », « Ring 2 » ; `switch` sans `default` ; `[[nodiscard]]` |
+| `std::string nomDeLaCategorie(CategorieObjet)` | « Helmet », « Body Armor », « Leggings », « Gloves », « Boots », « Shield », « Necklace », « Ring », « Weapon » ; `[[nodiscard]]` |
+| `std::string ligneDeSeuil(const SeuilDeCaracteristique&)` / `std::string ligneDObjetInactif()` | « Requires Might 11 » ; « Inactive: requirement not met » (étape 92.3) ; `[[nodiscard]]` |
+| `std::string sigleDeLObjet(IdObjet)` | Deux lettres par objet du catalogue (IH, CM, IG, RS, LG, LB, LC, PT, NP, RP, RM, NC, LS, MA, DA, GS, SC, ST, BO) ; `[[nodiscard]]` |
+| `sf::Color couleurDeLaRarete(Rarete)` | Blanc (commun), jaune (magique), vert (rare) ; lisibles sur le fond le plus clair de l'inventaire (contraste ≥ 4,5, un test le vérifie) ; `[[nodiscard]]` (étape 95.5) |
+| `std::string ligneDAffixe(const Affixe&)` | « Fire Damage: +6 », « Holy Damage: +4 », « Penetration: +15 % », « Armor: +3 », « Dexterity: +2 », « Dodge vs Melee: +3 % », « Dodge vs Projectiles: +4 % », « Block: +5 % » ; `switch` sans `default` ; `[[nodiscard]]` |
+| `std::vector<std::string> lignesDeLInfobulle(const Objet&)` | Nom composé, catégorie, propriétés du modèle (armure, bonus, bonus de combat, blocage, attaque), une ligne par affixe, seuils ; `[[nodiscard]]` |
 
 ### Ce que `Personnage` et `Escouade` ajoutent
 
@@ -411,4 +514,5 @@ libres sans état, qui rendent des `std::string` en UTF-8.
 | Opération d'`Escouade` | Réussit quand | Effet |
 |---|---|---|
 | `ramasser(Objet)` | le sac a une case libre | l'objet va dans la première case libre |
+| `ramasserTout(const std::vector<Objet>&)` | le sac a autant de cases libres que d'objets | tous les objets vont dans les premières cases libres, dans l'ordre ; sinon rien ne bouge (F7, étape 95.5) |
 | `deplacerObjet(de, vers)` | `deplacerLesObjets` (règle de base et deux mains) | l'objet de `de` va à `vers` ; si `vers` est occupé, échange ; une arme à deux mains (ou un bouclier sur elle) range l'autre main dans le sac ; `de == vers` : rien ne bouge |

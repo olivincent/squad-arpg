@@ -31,7 +31,7 @@ enum class IdObjet {
 // affixe ; que les affixes soient aux bonnes positions, permis pour la catégorie du modèle et en nombre conforme à la
 // rareté est un invariant que le type ne peut pas dire : `objetValide`. L'égalité est par valeur (modèle, rareté et
 // affixes) : deux objets du même modèle sont égaux s'ils ont la même rareté et les mêmes affixes.
-struct Objet {
+struct Objet {  // NOLINT(cppcoreguidelines-pro-type-member-init): le modèle n'a pas de valeur par défaut exprès, un oubli est signalé par le compilateur
     IdObjet modele;
     Rarete rarete = Rarete::Commun;
     std::optional<Affixe> prefixe = {};

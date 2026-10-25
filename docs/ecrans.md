@@ -61,10 +61,10 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
 - **`EcranMenu` reçoit les résolutions disponibles** (P2, étape 84) : l'`Application` les calcule
   (`resolutionsDisponibles(getDesktopMode().size)`) et les passe au constructeur, qui les garde et
   les donne à l'`EcranOptions`. La branche « Options » de `cliquer` se teste sans bureau.
-- **Flux** : menu → « Commencer partie » = `Empiler(EcranChoixEscouade)` ; choix →
-  « Commencer » = `Empiler(EcranJeu)` (nouvelle `Partie`, nouvelle graine affichée) ;
-  « Retour » = `Depiler` (menu) ; menu → « Options » = `Empiler(EcranOptions)` ;
-  « Quitter » = `Quitter`. En jeu, R sur l'écran de fin = `Depiler` (retour à l'écran de
+- **Flux** : menu → « Start Game » = `Empiler(EcranChoixEscouade)` ; choix →
+  « Start » = `Empiler(EcranJeu)` (nouvelle `Partie`, nouvelle graine affichée) ;
+  « Back » = `Depiler` (menu) ; menu → « Options » = `Empiler(EcranOptions)` ;
+  « Quit » = `Quitter`. En jeu, R sur l'écran de fin = `Depiler` (retour à l'écran de
   choix, avec sa sélection), ignorée en cours de partie ; F5 génère une nouvelle carte à tout
   moment. Échap en jeu annule seulement la visée. I en jeu (hors écran de fin) =
   `Empiler(EcranInventaire)` ; I ou Échap dans l'inventaire = `Depiler`.
@@ -108,23 +108,27 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
     les traduire (`clicGaucheDInterface`, `relachementGaucheDInterface`, `FocusLost`).
 - **Disposition en fonctions pures** (`interface/DispositionInventaire`), sans position stockée :
   tout est recalculé depuis la taille de la vue d'interface. En haut, une colonne par personnage
-  (bande de la classe à la couleur du personnage, « Armure : N », « (mort) », 10 emplacements en
+  (bande de la classe à la couleur du personnage, « Armor: N », « (dead) », 10 emplacements en
   deux colonnes de 5, puis, depuis l'étape 88, le bloc de ses cinq caractéristiques effectives — avec « (+N) »
-  quand l'équipement en donne — et de ses points de vie « PV actuels / maximum », puis, depuis l'étape 89, le
-  bloc de ses statistiques de combat — « Capacité offensive N », « Capacité défensive N », « Blocage 30 % (40) »,
-  « Esquive mêlée N % » et « Esquive projectile N % » (étape 90, valeurs effectives), lues par
+  quand l'équipement en donne — et de ses points de vie « HP actuels / maximum », puis, depuis l'étape 89, le
+  bloc de ses statistiques de combat — « Offensive Ability N », « Defensive Ability N », « Block 30 % (40) »,
+  « Melee Dodge N % » et « Projectile Dodge N % » (étape 90, valeurs effectives), lues par
   `Escouade::statistiquesDeCombatDuPersonnage`) ; en bas, le sac (4 rangées de 10 cases, à 550 px du haut). Le dessin, le survol et les tests
   appellent les mêmes rectangles (`rectangleDeLEmplacement`, `rectangleDeLaCaseDuSac`,
   `elementSous`), aussi utilisés par le glisser-déposer. Un test vérifie que tout
   tient dans 1200 × 800 (et en 16:9), dans le panneau, sans chevauchement.
-- **Infobulle** : au survol d'un emplacement ou d'une case occupés, nom, catégorie, armure et bonus de
-  l'objet, et depuis l'étape 91 le blocage d'un bouclier et l'attaque d'une arme (dégâts, recharge, portée,
-  contact ou projectile, « Deux mains » : `lignesDeLInfobulle`), placés près du curseur et gardés
-  entièrement dans la vue (`placerInfobulle`) ; la hauteur suit le nombre de lignes. Rien sur un emplacement
-  ou une case vide.
-- **Seuils et objets inactifs (étape 92.3)** : l'infobulle d'un objet liste ses seuils (« Exige Puissance 11 ») ; un
+- **Infobulle** : au survol d'un emplacement ou d'une case occupés, le nom composé de l'objet (de la couleur de sa
+  rareté), sa catégorie, les propriétés de son modèle (armure, bonus, blocage d'un bouclier, attaque d'une arme : dégâts,
+  recharge, portée, melee ou projectile, « Two-handed »), une ligne par affixe, puis ses seuils (`lignesDeLInfobulle(const
+  Objet&)`, étape 95), placés près du curseur et gardés entièrement dans la vue (`placerInfobulle`) ; la hauteur suit le
+  nombre de lignes. Rien sur un emplacement ou une case vide.
+- **Couleur de la rareté (étape 95.5)** : le texte d'un objet magique (jaune) ou rare (vert) prend la couleur de sa rareté
+  (`couleurDeLaRarete`) : le sigle dans le sac et sur l'objet saisi, le nom sur un emplacement, le nom dans l'infobulle. Le
+  commun reste blanc. Ces couleurs restent lisibles sur le fond de l'inventaire (un test vérifie le contraste sur le gris
+  à 70, le plus clair). Le cadre rouge d'un objet inactif reste prioritaire.
+- **Seuils et objets inactifs (étape 92.3)** : l'infobulle d'un objet liste ses seuils (« Requires Might 11 », en dernier) ; un
   objet porté dont le seuil n'est plus atteint est **encadré en rouge** (3 px vers l'intérieur) et son infobulle ajoute,
-  en rouge, « Inactif : seuil non atteint » ; **pendant un glissement**, sur l'emplacement d'un personnage,
+  en rouge, « Inactive: requirement not met » ; **pendant un glissement**, sur l'emplacement d'un personnage,
   l'infobulle de l'objet saisi apparaît avec ses seuils, en rouge ceux que ce personnage n'atteint pas
   (`Escouade::seuilsManques`). L'armure et les bonus de caractéristiques de chaque colonne sont ceux de l'équipement
   actif. Un seuil non atteint ne donne pas de surbrillance : le déplacement est refusé (`docs/objets.md`).
@@ -132,6 +136,10 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
   l'action au relâchement (`deplacerObjet`) suivent la même règle : poser une arme à deux mains sur un
   personnage qui porte un bouclier range le bouclier dans la première case libre du sac (et inversement) ;
   sac plein, la destination n'est pas en surbrillance et le relâchement ne fait rien.
+- **Langue (étape 95)** : tout le texte **affiché** est en anglais ; les identifiants, les commentaires et la
+  documentation restent en français. Pas de système de traduction (ni table de textes à clés, ni choix de langue) : les
+  textes sont écrits là où ils s'affichent, et `docs/glossaire.md` en est la référence (concept → texte à l'écran). Les
+  durées s'écrivent avec un point (« 0.6 s »).
 - **Textes** : les noms des emplacements et des catégories et les sigles des objets sont dans
   l'interface (`interface/AffichageObjets`, `switch` sans `default` : le compilateur signale un
   oubli), en UTF-8 passé à `sf::String::fromUtf8`. Un texte plus large que son rectangle est
@@ -149,7 +157,7 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
   `composer`, `Partie` ne reçoit toujours que des `DefinitionPersonnage`.
 - **Trois colonnes, aucune position stockée** (même principe que `ListeDeBoutons`) : classes à
   gauche (`ListeDeBoutons`, un bouton par entrée du catalogue, dans son ordre : le bouton i est
-  `catalogue()[i]`), cases de sélection à droite puis « Commencer » / « Retour »
+  `catalogue()[i]`), cases de sélection à droite puis « Start » / « Back »
   (`ListeDeBoutons`). `centreDesClasses`, `centreDesCases` et `centreDesActions` sont les seules
   sources des positions : dessin, clic et tests les appellent. La géométrie des cases est une
   fonction pure (`rectangleDeLaCase`, `caseSous`), comme la barre de raccourcis. À 1200 × 800 (vue de
@@ -158,7 +166,7 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
   position de la sélection ; un clic sur une case remplie la retire, ce qui n'est pas une action de
   la liste. Les dimensions (520 × 60, 20 px) sont recopiées dans `SelectionDEscouade.cpp` pour que les
   colonnes s'alignent.
-- **« Commencer » inactif** tant que la sélection n'est pas complète : `ListeDeBoutons::definirActif`,
+- **« Start » inactif** tant que la sélection n'est pas complète : `ListeDeBoutons::definirActif`,
   remis à jour après chaque ajout ou retrait ; un bouton inactif n'est jamais renvoyé par
   `boutonSous`, donc un clic dessus ne fait rien.
 - **La bande de couleur d'une case** utilise `composer(sélection)` : le joueur voit déjà la nuance
@@ -216,7 +224,7 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
   disponible).
 - Libellés écrits en UTF-8 dans le source, convertis par `sf::String::fromUtf8`
   (un `std::string` donné tel quel à `sf::Text` serait lu comme de l'ANSI :
-  c'était le cas de « Défaite » dans `EcranDeFin`, dont les accents ne
+  c'était le cas de « Défaite » (alors en français) dans `EcranDeFin`, dont les accents ne
   s'affichaient pas, corrigé après l'étape 65). Tout texte accentué passé à
   `sf::Text` doit passer par `fromUtf8`.
 - Souris seulement : pas de navigation au clavier.
@@ -285,10 +293,10 @@ même chose avec plus de détail.
 ### État
 
 - **Menu et réglages** (étape 65) : au lancement, un menu à la souris
-  (« Commencer partie », « Options », « Quitter ») ; « Commencer partie »
+  (« Start Game », « Options », « Quit ») ; « Start Game »
   ouvre le choix de l'escouade (voir « Choix de l'escouade »), puis lance une partie (nouvelle carte,
   graine dans la console). « Options » :
-  mode fenêtré ou plein écran (à la résolution du bureau) et, en fenêtré,
+  mode fenêtré (Windowed) ou plein écran (Fullscreen, à la résolution du bureau) et, en fenêtré,
   résolution parmi 1200 × 800, 1280 × 720, 1600 × 900 et 1920 × 1080 (celles
   qui tiennent dans le bureau) ; chaque changement s'applique tout de suite
   (la fenêtre est recréée) et est écrit dans `reglages.ini` à côté de
@@ -297,10 +305,10 @@ même chose avec plus de détail.
   fenêtre) ; la barre de skills, le compteur, l'écran de fin et les menus
   suivent la même règle. Fenêtre sans redimensionnement à la main. Voir
   `docs/ecrans.md`.
-- **Choix de l'escouade** (étape 76) : « Commencer partie » ouvre un écran à la souris. À gauche, un
+- **Choix de l'escouade** (étape 76) : « Start Game » ouvre un écran à la souris. À gauche, un
   bouton par classe du catalogue (guerrier, prêtre, mage, paladin, rôdeur) ; à droite, trois cases
-  « 1. Guerrier » / « 1. — » et les boutons « Commencer » (grisé tant que la sélection n'est pas
-  complète) et « Retour » (menu). Cliquer une classe remplit la case suivante (la même classe peut
+  « 1. Warrior » / « 1. — » et les boutons « Start » (grisé tant que la sélection n'est pas
+  complète) et « Back » (menu). Cliquer une classe remplit la case suivante (la même classe peut
   être prise 1 à 3 fois ; une 4ᵉ ne fait rien), cliquer une case remplie la vide et les suivantes
   remontent. L'ordre de sélection donne les places 1 à 3, donc les rangées de la barre de raccourcis
   et la formation (selon le rang de chaque classe). La 2ᵉ et la 3ᵉ occurrence d'une même classe ont
@@ -318,7 +326,7 @@ même chose avec plus de détail.
 
 ### Limites connues
 
-- Menus (étape 65) : souris seulement ; « Options » et « Commencer partie »
+- Menus (étape 65) : souris seulement ; « Options » et « Start Game »
   n'existent qu'au menu de départ (pas de pause ni de retour au menu en
   cours de partie) ; une résolution enregistrée plus grande que le bureau
   ouvre une fenêtre trop grande (les options la corrigent) ; `reglages.ini`
@@ -401,15 +409,15 @@ Données membres : `m_tirageDeGraine` (`std::random_device`), `m_specialites` (`
 |---|---|
 | `explicit EcranJeu(std::vector<IdSpecialite> specialites)` | Garde les classes (`m_specialites`, déclaré avant `m_partie`), tire une graine, la génère et construit la partie (`nouvellePartie`, qui appelle `composer(specialites)`) ; F5 réutilise les mêmes classes |
 | `Transition traiterEvenement(...)` | Clic gauche (d'abord `clicSurInterface` : sur la barre, `Controleur::appuiInterface`, sauf partie perdue ou gagnée ; sinon `appuiGauche`), clic droit, puis, pour une touche, `executer(commandePourTouche(...))` (voir `docs/boucle-et-entrees.md`) ; sinon `Aucune` |
-| `Transition executer(const CommandeDeTouche&)` (privée) | `std::visit` de la commande : Échap annule la visée, F5 nouvelle carte, F3 bascule les points visés et les chemins restants des personnages et des monstres, les zones de contrôle, et la semi-transparence des monstres qui rentrent à leur poste, F4 le carré vert de l'ancre, F6 le brouillard de guerre (visuel seulement), un emplacement de la barre est activé ; `RetourAuChoix` (R sur l'écran de fin) renvoie `Depiler` ; `OuvrirInventaire` appelle `Controleur::interrompre()` puis renvoie `Empiler(EcranInventaire(escouade, noms des classes))` ; les autres : `Aucune` |
+| `Transition executer(const CommandeDeTouche&)` (privée) | `std::visit` de la commande : Échap annule la visée, F5 nouvelle carte, F3 bascule les points visés et les chemins restants des personnages et des monstres, les zones de contrôle, et la semi-transparence des monstres qui rentrent à leur poste, F4 le carré vert de l'ancre, F6 le brouillard de guerre (visuel seulement), F7 met quatre objets de démonstration dans le sac (`Escouade::ramasserTout`, tout ou rien), un emplacement de la barre est activé ; `RetourAuChoix` (R sur l'écran de fin) renvoie `Depiler` ; `OuvrirInventaire` appelle `Controleur::interrompre()` puis renvoie `Empiler(EcranInventaire(escouade, noms des classes))` ; les autres : `Aucune` |
 | `void mettreAJour(float, const Contexte&)` | Taille de la caméra (`tailleDeVue`), déplacement continu, `Partie::mettreAJour`, puis `prendreEvenements` : chaque événement devient un texte (`TextesFlottants::ajouter`), sauf si le brouillard est actif et que `Partie::estVisible(position)` est faux ; `TextesFlottants::mettreAJour(dt)` (aussi après une défaite ou une victoire : le monde est figé, pas les textes) ; `Controleur::debutImage` (sortie de la visée), caméra centrée sur l'escouade |
-| `void dessiner(const Contexte&) const` | Monde avec la caméra (ancre cachée si `!m_debogage.ancre`, brouillard selon `m_debogage.brouillard`), aperçu de visée, points visés et chemins restants si `m_debogage.pointsVises`, textes flottants (vue du monde, après le brouillard), puis, avec `vueDInterface` : barre de raccourcis (`iconesDeLaBarre`), compteur « Monstres : N » et écran de fin |
+| `void dessiner(const Contexte&) const` | Monde avec la caméra (ancre cachée si `!m_debogage.ancre`, brouillard selon `m_debogage.brouillard`), aperçu de visée, points visés et chemins restants si `m_debogage.pointsVises`, textes flottants (vue du monde, après le brouillard), puis, avec `vueDInterface` : barre de raccourcis (`iconesDeLaBarre`), compteur « Monsters: N » et écran de fin |
 
 ### `EcranMenu` (`interface/`) — le menu de départ
 
 `EcranMenu.hpp` / `.cpp`. Données membres : `m_resolutions` (`std::vector<Resolution>`, reçues à la
 construction, `explicit EcranMenu(std::vector<Resolution>)`), `m_boutons` (`ListeDeBoutons`) :
-« Commencer partie », « Options », « Quitter ».
+« Start Game », « Options », « Quit ».
 
 | Fonction | Rôle |
 |---|---|
@@ -419,24 +427,24 @@ construction, `explicit EcranMenu(std::vector<Resolution>)`), `m_boutons` (`List
 
 `EcranOptions.hpp` / `.cpp`. Données membres : `m_reglages` (copie), `m_resolutions`
 (`std::vector<Resolution>` disponibles), `m_indiceResolution`, `m_boutons`
-(trois lignes : mode, résolution, Retour).
+(trois lignes : « Mode: Fullscreen » / « Mode: Windowed », « Resolution: < 1280 × 720 > », « Back »).
 
 | Fonction | Rôle |
 |---|---|
 | `EcranOptions(const Reglages&, std::vector<Resolution>)` | Part des réglages en cours ; l'indice est celui de la résolution courante dans la liste (0 si absente) |
-| `Transition cliquer(sf::Vector2f point, sf::Vector2f centre)` | Mode : bascule, `AppliquerReglages`. Résolution : tiers gauche = précédente, tiers droit = suivante, `AppliquerReglages` (`Aucune` aux bouts de la liste, au milieu, ou ligne inactive : plein écran ou liste vide). Retour : `Depiler` |
+| `Transition cliquer(sf::Vector2f point, sf::Vector2f centre)` | Mode : bascule, `AppliquerReglages`. Résolution : tiers gauche = précédente, tiers droit = suivante, `AppliquerReglages` (`Aucune` aux bouts de la liste, au milieu, ou ligne inactive : plein écran ou liste vide). « Back » : `Depiler` |
 
 ### `EcranChoixEscouade` (`interface/`) — le choix des 3 classes
 
-`EcranChoixEscouade.hpp` / `.cpp`. Entre le menu et la partie. Données membres : `m_selection` (`SelectionDEscouade`), `m_classes` (`ListeDeBoutons`, un bouton par entrée du `catalogue()`, dans son ordre), `m_actions` (`ListeDeBoutons` : « Commencer », « Retour »). Trois colonnes sans position stockée, recalculées à partir du `centre` de la vue d'interface : les classes à gauche, les cases de sélection puis les actions à droite. Voir `docs/ecrans.md`.
+`EcranChoixEscouade.hpp` / `.cpp`. Entre le menu et la partie. Données membres : `m_selection` (`SelectionDEscouade`), `m_classes` (`ListeDeBoutons`, un bouton par entrée du `catalogue()`, dans son ordre), `m_actions` (`ListeDeBoutons` : « Start », « Back »). Trois colonnes sans position stockée, recalculées à partir du `centre` de la vue d'interface : les classes à gauche, les cases de sélection puis les actions à droite. Voir `docs/ecrans.md`.
 
 | Fonction | Rôle |
 |---|---|
 | `sf::Vector2f centreDesClasses(sf::Vector2f centre)` / `centreDesCases(...)` / `centreDesActions(...)` | Centre de chaque colonne (décalages de −300, +300 et +300 px en x ; 0, −80 et +140 en y) ; une seule source pour le dessin, le clic et les tests ; `[[nodiscard]]` |
-| `EcranChoixEscouade()` | Sélection vide, « Commencer » inactif |
-| `Transition cliquer(sf::Vector2f point, sf::Vector2f centre)` | Classe : l'ajoute à la sélection (sans effet si elle est complète). Case remplie : la retire. « Commencer » (actif seulement si la sélection est complète) : `Empiler(EcranJeu(sélection))`, la sélection restant dans cet écran. « Retour » : `Depiler`. Case vide ou ailleurs : `Aucune` ; `[[nodiscard]]` |
+| `EcranChoixEscouade()` | Sélection vide, « Start » inactif |
+| `Transition cliquer(sf::Vector2f point, sf::Vector2f centre)` | Classe : l'ajoute à la sélection (sans effet si elle est complète). Case remplie : la retire. « Start » (actif seulement si la sélection est complète) : `Empiler(EcranJeu(sélection))`, la sélection restant dans cet écran. « Back » : `Depiler`. Case vide ou ailleurs : `Aucune` ; `[[nodiscard]]` |
 | `const SelectionDEscouade& getSelection() const` | La sélection en cours (tests) ; `[[nodiscard]]` |
-| `void dessiner(const Contexte&) const` | Titre, boutons des classes, trois cases « 1. Guerrier » ou « 1. — » (bande de la couleur que le personnage aura en jeu, doublons assombris), actions |
+| `void dessiner(const Contexte&) const` | Titre, boutons des classes, trois cases « 1. Warrior » ou « 1. — » (bande de la couleur que le personnage aura en jeu, doublons assombris), actions |
 
 ### `EcranInventaire` (`interface/`) — l'inventaire
 

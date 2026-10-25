@@ -12,7 +12,7 @@ la fenêtre, la police, l'horloge et `setKeyRepeatEnabled`, qui sont à
 
 | Acteur | Rôle | Connaît SFML Window/Event ? |
 |---|---|---|
-| `EcranJeu` (et `Application` pour la fenêtre, la police et l'horloge) | Caméra, traduction des événements SFML en appels au `Controleur`, retour à l'écran de choix de l'escouade (touche R après une défaite ou une victoire), nouvelle carte (F5), bascules de débogage (F3 points visés, chemins et monstres qui rentrent semi-transparents, F4 ancre, F6 brouillard de guerre ; `OptionsDeDebogage`), compteur de monstres, conversion du curseur en coordonnées du monde, enchaînement du dessin | Oui, seuls |
+| `EcranJeu` (et `Application` pour la fenêtre, la police et l'horloge) | Caméra, traduction des événements SFML en appels au `Controleur`, retour à l'écran de choix de l'escouade (touche R après une défaite ou une victoire), nouvelle carte (F5), bascules de débogage (F3 points visés, chemins et monstres qui rentrent semi-transparents, F4 ancre, F6 brouillard de guerre ; `OptionsDeDebogage`) et F7 (quatre objets de démonstration dans le sac), compteur de monstres, conversion du curseur en coordonnées du monde, enchaînement du dessin | Oui, seuls |
 | `Controleur` | État d'interface : mode visée (`m_adresseEnVisee`) et déplacement continu (`m_deplacementContinu`), sans référence à la `Partie` (reçue à chaque appel) ; traduit les actions du joueur en demandes à la `Partie` ; dessine l'aperçu de visée | Non |
 | `Partie` | Règles de jeu : possède la carte, l'`Escouade`, les `Monstre` et la `Vision` ; intermédiaire entre `Escouade` et `Monstre`, qui ne se connaissent pas | Non |
 
@@ -79,7 +79,7 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
      poste et que F3 est actif, escouade, voile de la `Vision` sauf si F6 l'a coupé), `controleur.
      dessinerApercu`, les débogages de F3, les textes flottants (vue du monde, après le voile du
      brouillard), puis, dans la vue d'interface, barre de raccourcis, compteur
-     « Monstres : N » (haut gauche) et, si la partie est perdue ou gagnée,
+     « Monsters: N » (haut gauche) et, si la partie est perdue ou gagnée,
      écran de fin (par-dessus la barre et le compteur), le tout avec la vue de
      l'interface (800 px de haut, voir `docs/ecrans.md`).
 - **`attaquer` (d) et `escouade.mettreAJour` (g) ne se passent plus rien par des membres**
@@ -119,7 +119,7 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   `declencherSkillDeZone`, `escouade.mettreAJour`, `Monstre::frapper`).
   `main.cpp` tire la graine avec `std::random_device` (variable locale de
   `main`) au démarrage et à chaque recommencement, et l'affiche dans la
-  console (`Graine : …`) pour rejouer une partie à l'identique. L'ordre
+  console (`Seed: …`) pour rejouer une partie à l'identique. L'ordre
   d'une image ne change pas.
 - **`prochainId`** n'est pas un membre de `Partie` : il ne sert qu'à numéroter
   les monstres dans son constructeur.
@@ -178,7 +178,7 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   `commandePourTouche(scancode, finDePartie, touches)` (`interface/CommandeDeTouche`) renvoie une
   `CommandeDeTouche`, un `std::variant` de `commande::Rien`, `Annuler` (Échap), `OuvrirInventaire`
   (I), `RetourAuChoix` (R), `NouvelleCarte` (F5), `BasculerPointsVises` (F3), `BasculerAncre` (F4),
-  `BasculerBrouillard` (F6) et `ActiverEmplacement {emplacement}`. Échap et F3 à F6 valent en tout
+  `BasculerBrouillard` (F6), `AjouterDesObjetsDeDemonstration` (F7, étape 95.5) et `ActiverEmplacement {emplacement}`. Échap et F3 à F7 valent en tout
   temps ; R seulement sur l'écran de fin ; I et les touches de la barre seulement hors de l'écran de
   fin. L'ordre des règles est celui de l'ancien `if / else if` d'`EcranJeu`. I est écrite en dur,
   comme les touches F. `EcranJeu::executer` exécute la commande (`std::visit` avec `Surcharges`,
@@ -229,7 +229,7 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
 - **Touches** : grille Q W E R / A S D F / Z X C V, scancodes (touches physiques). La table est
   dans `Reglages` mais n'est ni lue ni écrite dans `reglages.ini` : `EcranJeu` la lit déjà dans
   le `Contexte`, c'est le chemin que prendra la configuration. R est l'emplacement 3 en jeu ; sur
-  l'écran de fin (perdue ou gagnée), R ramène au choix de l'escouade et les raccourcis sont ignorés. F3 à F6 et
+  l'écran de fin (perdue ou gagnée), R ramène au choix de l'escouade et les raccourcis sont ignorés. F3 à F7 et
   Échap ne sont pas des touches de la grille.
 - **Une seule action pour la touche et le clic** : `Controleur::activerEmplacement`. Vide : rien.
   Skill de type `Zone` : entre en visée de cette adresse, ou en sort si c'est déjà elle (même
@@ -313,11 +313,11 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   libre sur le modèle de `BarreDeSkills`, titre en paramètre) est dessiné
   dans la vue par défaut, après la barre de skills : le voile
   semi-transparent la laisse visible dessous. `main.cpp` l'appelle avec
-  « Défaite » si `partie.estPerdue()`, sinon avec « Victoire » si
+  « Defeat » si `partie.estPerdue()`, sinon avec « Victory » si
   `partie.estGagnee()`.
 - **Recommencer = remplacer l'objet** : depuis l'étape 65, R (seulement si la
   partie est perdue ou gagnée, ignorée en jeu) ramène à l'écran de choix de l'escouade (`Depiler`),
-  et « Commencer » crée un `EcranJeu` neuf, donc une nouvelle `Partie` (même sélection de classes).
+  et « Start » crée un `EcranJeu` neuf, donc une nouvelle `Partie` (même sélection de classes).
   F5 (touche de débogage, à tout moment, y compris en visée) appelle
   `EcranJeu::nouvelleCarte`, qui, comme l'ancienne lambda de `main.cpp`,
   fait `partie = nouvellePartie(tirage)` (nouvelle graine tirée et affichée,
@@ -479,7 +479,7 @@ Repris tel quel d'`ARCHITECTURE.md` à l'étape 81 (K1) ; `ARCHITECTURE.md` en g
   appel et ne les gardent pas. `EcranChoixEscouade` possède la
   `SelectionDEscouade` ; `EcranJeu` reçoit la liste des `IdSpecialite` choisies, la garde, et possède une `Partie`, un
   `Controleur`, une `BarreDeRaccourcis`, des `TextesFlottants`, la caméra et le `std::random_device` (il appelle `composer` pour construire la `Partie`) ; il traduit les
-  événements SFML (clic, touches de la barre de raccourcis, Échap, clic droit, F3, F4 et F6 de débogage) en appels au
+  événements SFML (clic, touches de la barre de raccourcis, Échap, clic droit, F3, F4, F6 et F7 de débogage) en appels au
   `Controleur`. Un clic gauche est d'abord testé sur l'interface (`clicSurInterface`, vue d'interface) : s'il touche la barre, il est consommé et n'atteint pas le monde. Une touche est traduite en emplacement par `emplacementPourTouche` (table des `Reglages`). (Touche R : retour à l'écran de choix de l'escouade si la partie est perdue ou gagnée, sinon c'est un raccourci ;
   F5 : nouvelle carte à tout moment ; F5, comme l'entrée dans l'écran,
   passe par `nouvellePartie`, qui tire la graine et génère le niveau),
@@ -548,10 +548,10 @@ même chose avec plus de détail.
   reste aucun monstre (`Partie::estGagnee`, faux si la partie est perdue : la
   défaite l'emporte si les derniers monstres et personnages meurent dans la
   même image). Le monde se fige comme après la défaite (même sortie
-  anticipée de `mettreAJour`), l'écran de fin affiche « Victoire » (module
-  `EcranDeFin`, titre en paramètre, partagé avec « Défaite ») et R ramène au
+  anticipée de `mettreAJour`), l'écran de fin affiche « Victory » (module
+  `EcranDeFin`, titre en paramètre, partagé avec « Defeat ») et R ramène au
   choix de l'escouade, après une victoire comme après une défaite (F5 inchangée). Un
-  compteur « Monstres : N » (`Partie::monstresRestants`), blanc à contour
+  compteur « Monsters: N » (`Partie::monstresRestants`), blanc à contour
   noir, est fixe en haut à gauche de l'écran (vue de l'interface).
 - **Entrées** : un clic sur le sol envoie l'escouade vers ce point ; tant
   que le bouton reste enfoncé (fenêtre ayant le focus, escouade vivante),
@@ -671,11 +671,11 @@ Trois fonctions libres :
 
 ### `CommandeDeTouche` (`interface/`) — ce qu'une touche demande
 
-`CommandeDeTouche.hpp` / `.cpp`. Types dans le namespace `commande` (`Rien`, `Annuler`, `OuvrirInventaire`, `RetourAuChoix`, `NouvelleCarte`, `BasculerPointsVises`, `BasculerAncre`, `BasculerBrouillard`, `ActiverEmplacement {std::size_t emplacement}`) et `using CommandeDeTouche = std::variant<...>`.
+`CommandeDeTouche.hpp` / `.cpp`. Types dans le namespace `commande` (`Rien`, `Annuler`, `OuvrirInventaire`, `RetourAuChoix`, `NouvelleCarte`, `BasculerPointsVises`, `BasculerAncre`, `BasculerBrouillard`, `AjouterDesObjetsDeDemonstration`, `ActiverEmplacement {std::size_t emplacement}`) et `using CommandeDeTouche = std::variant<...>`.
 
 | Fonction | Rôle |
 |---|---|
-| `CommandeDeTouche commandePourTouche(sf::Keyboard::Scancode touche, bool finDePartie, const TouchesDesRaccourcis& touches)` | Fonction pure : Échap, F3 à F6 en tout temps ; R (`RetourAuChoix`) seulement si `finDePartie` ; I (`OuvrirInventaire`) et les touches de `touches` (`ActiverEmplacement`) seulement hors fin de partie ; sinon `Rien` ; `[[nodiscard]]` |
+| `CommandeDeTouche commandePourTouche(sf::Keyboard::Scancode touche, bool finDePartie, const TouchesDesRaccourcis& touches)` | Fonction pure : Échap, F3 à F7 en tout temps ; R (`RetourAuChoix`) seulement si `finDePartie` ; I (`OuvrirInventaire`) et les touches de `touches` (`ActiverEmplacement`) seulement hors fin de partie ; sinon `Rien` ; `[[nodiscard]]` |
 
 ### `ClicInterface` (`interface/`) — l'interface d'abord
 
@@ -704,4 +704,4 @@ Une fonction libre, sans état, sur le modèle de `BarreDeSkills`. Ne connaît n
 
 | Fonction | Rôle |
 |---|---|
-| `void dessinerEcranDeFin(sf::RenderTarget& rendu, const sf::Font& police, const std::string& titre)` | Voile noir semi-transparent sur toute la vue par défaut, puis `titre` (« Victoire » ou « Défaite ») et « Appuyez sur R pour revenir au choix de l'escouade » au centre ; à appeler avec la vue par défaut, après la barre de skills |
+| `void dessinerEcranDeFin(sf::RenderTarget& rendu, const sf::Font& police, const std::string& titre)` | Voile noir semi-transparent sur toute la vue par défaut, puis `titre` (« Victory » ou « Defeat ») et « Press R to return to squad selection » au centre ; à appeler avec la vue par défaut, après la barre de skills |

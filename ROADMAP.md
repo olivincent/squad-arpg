@@ -8,7 +8,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 ## Étapes terminées
 
-Étapes 0 à 94 ✅. Les dernières :
+Étapes 0 à 95 ✅. Les dernières :
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 - Étape 83 — Inventaire et équipement : le modèle, sans interface ✅
@@ -23,16 +23,17 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - Étape 92 — Seuils d'équipement, objets inactifs, pénétration d'armure (la dague) ✅
 - Étape 93 — Les types de monstres : nuée, infanterie, infanterie lourde, créature monstrueuse, groupes en données ✅
 - Étape 94 — Types de dégâts et résistances : le coup en portions (physique, feu, sacré), l'explosion en feu, la frappe sacrée, premier skill de frappe ✅
+- Étape 95 — Les objets ont leurs propres données (rareté, préfixe et suffixe) ; le texte du jeu passe à l'anglais ✅
 
 ## État actuel (résumé)
 
 - **Outils** : conception dans Claude.ai, implémentation avec Claude Code dans VSCode (règles dans
   `CLAUDE.md`) ; dépôt Git `squad-arpg`, poussé sur GitHub ; SFML 3.0.2 intégrée à CMake.
-- **Code** (étape 94) : 91 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
+- **Code** (étape 95) : 93 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
   `combat`, `objets`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
   de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug` et `jeu`, 0
-  avertissement, 1 439 tests verts sous CTest, 39 avertissements `clang-tidy` (`docs/build.md`,
-  `docs/audit.md`). `Escouade` n'est plus que l'assemblage : `Escouade.cpp` de 1 223 à 1 067 lignes. Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`).
+  avertissement, 1 494 tests verts sous CTest, 39 avertissements `clang-tidy` (`docs/build.md`,
+  `docs/audit.md`). `Escouade` n'est plus que l'assemblage : `Escouade.cpp` de 1 223 à 1 067 lignes. Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`). **Tout le texte affiché est en anglais** (identifiants, commentaires et documentation restent en français ; pas de système de traduction : `docs/glossaire.md` est la référence des noms du jeu). Un commit par sous-étape, fait par Claude Code (`CLAUDE.md`).
 - **Écrans** : menu à la souris, options d'affichage (fenêtré ou plein écran, résolutions,
   `reglages.ini`), choix de 3 classes parmi 5 (guerrier, prêtre, mage, paladin, rôdeur ; doublons
   permis), puis la partie ; R après une victoire ou une défaite ramène au choix. La pile d'écrans
@@ -56,7 +57,11 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   départ, échelle × 3 de l'étape 91) et la Puissance augmente dégâts et soins (3 % par point au-dessus de 10),
   l'Adresse donne les capacités offensive et défensive (`50 + 5 × Adresse`) ; des objets donnent aussi un
   bonus de combat (bottes de cuir : esquive contre la mêlée ; casque de cuir : esquive contre les projectiles) et
-  le bouclier rond un blocage (30 %, 12 points, récupération commune de 3 s) ; `ramasser` et `deplacerObjet` sont transactionnelles. La
+  le bouclier rond un blocage (30 %, 12 points, récupération commune de 3 s) ; **un objet porte sa rareté et au plus un
+  préfixe et un suffixe, avec leur valeur** (Common : aucun ; Magic : un ; Rare : un préfixe et un suffixe ; douze
+  affixes : feu, sacré, pénétration, armure, une caractéristique, esquives, blocage ; nom composé « Keen Bow of the Fox »,
+  couleur de rareté blanc, jaune, vert) dont les effets entrent dans les totaux de l'équipement ; `ramasser`, `ramasserTout`
+  (F7 : quatre objets de démonstration, tout ou rien) et `deplacerObjet` sont transactionnelles. La
   touche I ouvre l'inventaire par-dessus la partie figée : équipement des 3 personnages, sac de 40
   cases, caractéristiques, points de vie, capacités, blocage et esquives de chaque personnage, infobulle au survol, et glisser-déposer des objets (sac, emplacements, entre personnages ;
   échange si la destination est occupée ; destinations valides en surbrillance) (`docs/objets.md`,
@@ -74,8 +79,10 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   physique) ; **un coup est un ensemble de portions par élément** (physique, feu, sacré), chacune réduite par sa propre
   défense : l'armure pour le physique, une résistance en pour cent (plafond de 80 %, vulnérabilités jusqu'à −100 %) pour
   chaque élément, un seul arrondi par portion ; l'explosion du mage est du feu, la frappe sacrée du paladin est le premier
-  skill de frappe (l'arme plus un bonus sacré de 45) ; dégâts (orange pour le feu, doré pour le sacré), soins,
-  critiques, « Esquivé », « Bloqué », nom du skill lancé et « Provoqué » flottants (`docs/combat.md`).
+  skill de frappe (l'arme plus un bonus sacré de 45) ; **l'attaque de base est typée** (l'arme est physique, ses
+  affixes y ajoutent du feu ou du sacré, la Puissance joue sur chaque portion, et la frappe sacrée prend toutes les
+  portions de l'arme) ; dégâts (orange pour le feu, doré pour le sacré), soins, critiques, « Dodged », « Blocked »,
+  nom du skill lancé et « Taunted » flottants (`docs/combat.md`).
 - **Monstres** : détection en vue, poursuite, frappe de la proie ou du plus proche atteignable,
   alerte du groupe, retour au poste invulnérable avec régénération ; **quatre catégories** (nuée de petits
   monstres, infanterie, infanterie lourde, créature monstrueuse), chacune avec ses valeurs dans une
@@ -86,7 +93,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   (`docs/generation.md`). La créature n'a que ses valeurs (rayon réduit à 16, le chemin ne tenant pas compte du
   rayon contre les murs) ; ses règles propres (immunités, blocage) et l'escouade de monstres viendront plus tard.
 - **Interface** : barre de raccourcis de 12 emplacements (Q W E R / A S D F / Z X C V, ou clic ;
-  « l'interface d'abord »), compteur de monstres, écran de victoire ou de défaite ; F3 et F4 de
+  « l'interface d'abord »), compteur de monstres, écran de victoire ou de défaite ; F3 à F7 de
   débogage ; une touche devient une commande par une fonction pure, `commandePourTouche`
   (`docs/boucle-et-entrees.md`).
 
@@ -191,16 +198,29 @@ ce qui reste à décider **en discussion** avant son prompt :
     mesure de performance (inchangée à 0,04 ms par image).
   - 94 ✅ : coups en portions typées (physique, feu, sacré), résistances, blocage du seul physique, explosion en feu,
     créature monstrueuse à 40 % de résistance au feu, frappe sacrée en skill de frappe, nombres flottants colorés.
-- **Phase 4, butin**
-  - 95 : objets avec leurs propres données (rareté, bonus) ; 96 : butin au sol ; 97 : génération
-    aléatoire des objets. À décider : rareté, affixes, niveau d'objet (question 2).
+- **Phase 4, butin** (renumérotée à l'étape 95)
+  - 95 ✅ : le modèle et l'affichage des objets : rareté (Common, Magic, Rare), préfixe et suffixe avec leur valeur, douze
+    affixes qui ont un effet, nom composé, couleurs, infobulle, F7 ; le jeu en anglais, `docs/glossaire.md`.
+  - 96 : la génération aléatoire des objets, avec les **plages de valeurs des affixes** (le catalogue n'en a pas encore).
+  - 97 : le butin au sol et les tables de butin des monstres.
 
-## Étape 95 (prochaine) : objets avec leurs propres données, à discuter avec Claude.ai
+## Étape 96 (prochaine) : la génération aléatoire des objets, à discuter avec Claude.ai
 
-Phase 4 du plan (butin) : rareté, bonus, et les résistances que l'équipement donnera (le champ existe depuis l'étape 94,
-dans `StatistiquesDeCombat`, additionné par `bonusDeCombatTotal`). À décider : rareté, affixes, niveau d'objet
-(question 2 de `docs/classes-et-combat.md`), l'affichage des résistances dans l'inventaire. Le Savoir et la Volonté n'ont
-encore aucun effet.
+Phase 4 du plan (butin) : tirer la rareté, les affixes et leurs valeurs (`DefinitionDAffixe` reçoit une plage de valeurs), à
+partir du seul `Generateur` de la `Partie`. À décider : les chances de chaque rareté, le niveau d'objet (question 2 de
+`docs/classes-et-combat.md`), si un affixe peut sortir deux fois, l'affichage de la plage dans l'infobulle. Le Savoir et la
+Volonté n'ont encore aucun effet.
+
+**Pistes issues de l'étape 95** (étapes à part, plus tard) :
+- **Les résistances sur les objets** : un affixe de résistance (le champ existe depuis l'étape 94, dans
+  `StatistiquesDeCombat`, additionné par `bonusDeCombatTotal`) et son affichage dans l'inventaire ; sans intérêt tant que les
+  monstres ne frappent qu'en physique.
+- **Les objets uniques** (un nom propre, des affixes fixes) et **les raretés supérieures** (plus de deux affixes) : le type
+  `Objet` n'a que deux places d'affixe, il faudra une liste.
+- **Le niveau d'objet**, et des affixes qui changent les seuils.
+- **Une icône par objet** à la place des sigles, et le nom composé sur les emplacements.
+- **Les textes d'un autre pays** : s'il faut un jour une deuxième langue, les textes sont dispersés dans les `switch` des
+  `Affichage*` et dans les catalogues ; `docs/glossaire.md` en dresse la liste.
 
 **Pistes issues de l'étape 94** (étapes à part, plus tard) :
 - **Les éléments sans source** : froid, foudre, poison, nécrotique, saignement s'ajoutent à `Element` avec leur premier

@@ -910,9 +910,9 @@ même chose avec plus de détail.
   (carré gris, sans barre de vie), ne frappe plus, n'est plus ciblé et ne
   bloque plus personne ; il reste dans la formation, sa place est
   simplement vide. Une fois tous morts (`Partie::estPerdue`), le monde se
-  fige, un écran de défaite (voile sombre, « Défaite », « Appuyez sur R pour
-  revenir au choix de l'escouade ») s'affiche et la touche R ramène à l'écran de choix (étapes 65 et 76) ;
-  « Commencer » crée alors une nouvelle `Partie` (nouvelle graine), avec la même sélection.
+  fige, un écran de défaite (voile sombre, « Defeat », « Press R to return to
+  squad selection ») s'affiche et la touche R ramène à l'écran de choix (étapes 65 et 76) ;
+  « Start » crée alors une nouvelle `Partie` (nouvelle graine), avec la même sélection.
 
 ### Limites connues
 
@@ -1032,6 +1032,7 @@ personne ne se dégage), sans valeur par défaut depuis 82.5. Privées : `Intent
 | `void provoquer(int idMonstre, std::size_t place, float duree)` | Enregistre ce monstre comme provoqué par le personnage de la place `place` (1 à N) pour `duree` secondes, ou remet sa durée au maximum s'il l'est déjà. Fin : durée écoulée ou provocateur mort (`mettreAJour`), monstre absent de `monstres` (`attaquer`) |
 | `const Inventaire& sac() const` / `const Equipement& equipementDuPersonnage(std::size_t place) const` | Le sac (40 cases, `s_capaciteDuSac`) et l'équipement du personnage de cette place (`assert` : place valide) ; lus par l'écran d'inventaire ; `[[nodiscard]]` |
 | `bool ramasser(Objet)` | Met l'objet dans la première case libre du sac ; faux si le sac est plein ; `[[nodiscard]]` |
+| `bool ramasserTout(const std::vector<Objet>&)` | Met tous ces objets dans le sac, dans l'ordre, ou aucun (tout ou rien, sur une copie du sac) : faux, sans rien changer, s'il manque des cases libres ; la touche de débogage F7 (étape 95.5) ; `[[nodiscard]]` |
 | `std::optional<Objet> objetA(const PositionDObjet&) const` | L'objet à cette position (case du sac ou emplacement d'un personnage), s'il y en a un ; `assert` : place valide, case < capacité ; lu par l'écran d'inventaire ; `[[nodiscard]]` |
 | `bool peutDeplacerObjet(const PositionDObjet& de, const PositionDObjet& vers) const` | Copie le sac et les équipements (`etatDesObjets`, privée) et applique `deplacementPossible` (règle de base et deux mains) ; la surbrillance de l'écran d'inventaire s'en sert ; `[[nodiscard]]` |
 | `std::vector<SeuilDeCaracteristique> seuilsManques(const PositionDObjet& de, const PositionDObjet& vers) const` | Les seuils que le personnage qui recevrait l'objet de `de` à `vers` n'atteindrait pas (vide si rien ne manque ou si le déplacement est refusé pour une autre raison) ; l'écran les montre en rouge (étape 92.3) ; `[[nodiscard]]` |

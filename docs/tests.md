@@ -1065,9 +1065,9 @@
   hors des cases ; `rectangleDeLaCase` (empilées, centrées). Le `assert` hors bornes n'est pas
   testé.
 - **`test_EcranChoixEscouade.cpp`** (nouveau, 11) : sélection vide ; un clic sur une classe l'ajoute ;
-  trois fois la même, pas de 4ᵉ ; case remplie retirée ; case vide sans effet ; « Commencer »
+  trois fois la même, pas de 4ᵉ ; case remplie retirée ; case vide sans effet ; « Start »
   inactif tant que la sélection est incomplète, `Empiler` quand elle est complète, de nouveau
-  inactif après un retrait, sélection inchangée après « Commencer » ; « Retour » = `Depiler` même
+  inactif après un retrait, sélection inchangée après « Start » ; « Back » = `Depiler` même
   avec une sélection complète ; clic hors des boutons. Les positions viennent de `centreDesClasses`,
   `centreDesCases` et `centreDesActions` (les mêmes que l'écran) ; la liste des classes est reconstruite
   depuis `catalogue()`, comme l'écran.
@@ -1745,3 +1745,39 @@ vie). Une attaque « reconnaissable » (un coup qu'on suit parmi d'autres) s'obt
 - **Mesure de performance** (preset `jeu`, `[perf]`) : inchangée, moyenne 0,035 à 0,04 ms par image, pire 0,12 à 0,16 ms.
 - Une règle apprise : **un nom de `TEST_CASE` ne contient ni guillemets français ni accents** (« Bloque », pas
   « Bloqué ») : CTest ne retrouve pas le test sinon.
+
+## Étape 95 : les objets ont leurs propres données, le jeu en anglais (+55 cas, 1 439 → 1 494)
+
+- **95.2** : aucun changement de comportement ; les textes comparés par les tests passent à l'anglais
+  (`test_AffichageObjets`, `_AffichageCaracteristiques`, `_AffichageSkills`, `_AffichageStatistiques`, `_BarreDeSkills`
+  pour les sigles des skills, `_TextesFlottants`, `_Specialite` pour les noms des classes, `_EcranChoixEscouade`) ; le
+  séparateur décimal de l'infobulle devient le point. Le test « le nom d'un skill est en UTF-8 » devient « en anglais » :
+  plus aucun nom de skill n'a d'accent (le signe moins de « Blocked −N » reste le seul caractère hors ASCII).
+- **95.3** : `tests/objets/test_CatalogueAffixes.cpp` (nouveau, +5 : l'ordre de `IdAffixe`, un nom distinct et une
+  catégorie permise au moins par affixe, quatre préfixes puis huit suffixes, `definitionAffixe`, `affixePermis`) ;
+  `test_CatalogueObjets.cpp` (+9 : un objet sans autre précision est commun, `objetValide` pour tout modèle, pour chaque rareté, les positions, les catégories, la valeur strictement positive, `nomDeLObjet`, et l'égalité par valeur — modèle, rareté, valeur, affixe, position — remplace l'ancien test d'égalité). **Le test d'exemplaires compte par valeur complète** (`test_Escouade_equipement.cpp` :
+  `exemplaires` rend les objets du sac et des équipements sous forme de clés triées, `Exemplaires`) ; un test (+1) vérifie
+  qu'un objet à affixes garde ses affixes du sac à l'emplacement et retour.
+- **95.4** : `tests/objets/test_Equipement_affixes.cpp` (nouveau, +17 : armure d'un préfixe, esquives, caractéristique,
+  blocage — la chance s'ajoute, le montant reste —, masse « Blazing » en physique + feu, « Hallowed », pénétration de
+  « Keen » ajoutée à celle de l'arme et plafond de 75 % à l'application, un objet inactif perd ses affixes, les seuils ne
+  dépendent que du modèle, un suffixe de caractéristique rend un autre objet actif, les affixes d'un objet inactif ne
+  comptent pas, une chaîne d'objets actifs par leurs affixes) ; `tests/escouade/test_Personnage_affixes.cpp` (nouveau, +5 :
+  la Puissance joue sur chaque portion, une masse sans affixe frappe comme avant, un arc « Keen », le suffixe de Dexterity
+  monte les capacités, la recharge n'est refaite que si l'attaque change) ; `test_Specialite.cpp` (+3 : la frappe sacrée
+  avec une masse « Blazing » a trois portions, « Hallowed » additionne deux arrondis, la pénétration de l'arme). **Aucune
+  attente des tests existants n'a changé** : les attaques de base sont lues avec `degats[Element::Physique]` (aide
+  `s_degatsBaseDeTest`).
+- **95.5** : `test_AffichageObjets.cpp` (+7 : l'infobulle d'un objet rare, magique et commun, les deux lignes d'armure d'une
+  cuirasse renforcée, `ligneDAffixe` pour chaque effet, une ligne non vide pour tout affixe, `couleurDeLaRarete`, le contraste
+  d'au moins 4,5 sur le gris à 70 — le fond le plus clair de l'inventaire — ; les tests d'infobulle existants suivent le nouvel
+  ordre : les seuils en dernier) ; `test_CommandeDeTouche.cpp` (F7 en tout temps) ; `test_Escouade_equipement.cpp` (+4 :
+  `ramasserTout` met les objets dans l'ordre, **refuse tout quand il manque des cases libres**, deux appels de suite, liste
+  vide) ; `test_CatalogueObjets.cpp` (+1 : les quatre objets de F7, leurs noms et leurs valeurs). L'effet de F7 sur `EcranJeu` n'est pas testé (cet écran a besoin d'une fenêtre) : il se réduit à un appel de
+  `ramasserTout(objetsDeDemonstration())`.
+- **95.6** : `test_CoherenceDesDonnees.cpp` (+3 : les objets de démonstration respectent les invariants, le sac de départ est
+  fait d'objets communs valides, chaque affixe peut être porté par un modèle du catalogue).
+- **Mesure de performance** (preset `jeu`, `[perf]`) : voir `docs/historique.md`, étape 95.
+- Une règle apprise : un `Objet` est un agrégat à valeurs par défaut, `Objet{IdObjet::Masse}` est commun ; les tests
+  n'écrivent les affixes que quand ils les testent. Une aide de test qui prend un `IdObjet` pour porter une arme n'accepte pas
+  d'affixes : les tests d'affixes posent l'objet après la construction (`poserEquipement`).

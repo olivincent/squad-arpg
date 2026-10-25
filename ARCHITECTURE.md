@@ -51,7 +51,7 @@ squad-arpg/
 │   │               EtatSkill, Coup, EvenementDeCombat, EntiteVue, Autodefense, Engagement,
 │   │               Attaque, NatureDAttaque, StatistiquesDeCombat, Esquive, Critique, Blocage, Defense,
 │   │               ResolutionDuCoup, Caracteristiques, PointsDeVie, Vitalite
-│   ├── objets/     Emplacement, Objet, CatalogueObjets, DonneesDArme, DonneesDeBouclier, ObjetsActifs, Equipement,
+│   ├── objets/     Emplacement, Affixe, Objet, CatalogueAffixes, CatalogueObjets, DonneesDArme, DonneesDeBouclier, ObjetsActifs, Equipement,
 │   │               Inventaire, PositionDObjet, DeplacementDObjets
 │   ├── escouade/   Escouade, Personnage, Formation, PlacesDAttaque, Intention, Separation,
 │   │               EcartEntrePersonnages, Composition, Specialite, SelectionDEscouade,
@@ -69,7 +69,7 @@ squad-arpg/
 │   └── base/, rendu/, monde/, combat/, objets/, escouade/, monstres/, jeu/, interface/
 │                   (miroir de src/ : test_<Module>.cpp, ou test_<Module>_<thème>.cpp)
 ├── assets/fonts/   DejaVuSans.ttf, LICENSE-DejaVu.txt (copiés à côté de main.exe)
-├── docs/           un fichier par sujet (tableau à la fin)
+├── docs/           un fichier par sujet (tableau à la fin ; `glossaire.md` : les textes affichés, en anglais)
 └── reglages.ini    créé par le jeu à côté de main.exe, ignoré par Git
 ```
 
@@ -158,15 +158,21 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 
 `objets/` — les objets, ce qu'on porte et le sac (`docs/objets.md`) :
 - `Emplacement` : les 10 emplacements, les 8 catégories d'objet et `peutAller`, seule source de la règle.
-- `Objet` : `IdObjet` et `Objet`, l'instance (un identifiant), distincte de son modèle.
+- `Affixe` : `Rarete` (commun, magique, rare), `IdAffixe` et `Affixe` (l'identifiant et la valeur de CET objet) ; sans `.cpp`.
+- `Objet` : `IdObjet` et `Objet`, l'instance, distincte de son modèle : le modèle, la rareté, au plus un préfixe et un
+  suffixe ; petite valeur, égalité par valeur.
+- `CatalogueAffixes` : `DefinitionDAffixe` (nom, position, effet, catégories permises), `catalogueAffixes()`,
+  `definitionAffixe()`, `affixePermis()` et `apportDesAffixes()`, ce que les affixes d'un objet ajoutent aux totaux.
 - `CatalogueObjets` : `DefinitionObjet` (nom, catégorie, armure, bonus, données d'arme ou de bouclier, seuils),
-  `catalogueObjets()`, `definitionObjet()`, `seuilsAtteints()`, `estADeuxMains()`, `mainsNues()` et `sacDeDepart()`.
+  `catalogueObjets()`, `definitionObjet()`, `seuilsAtteints()`, `estADeuxMains()`, `mainsNues()`, `sacDeDepart()`,
+  `objetValide()` (les invariants d'un objet), `nomDeLObjet()` (« Blazing Mace ») et `objetsDeDemonstration()` (F7).
 - `ObjetsActifs` : `objetsActifs`, le point fixe qui dit quels objets portés ont un effet (un objet dont le seuil de
   caractéristiques n'est plus atteint reste porté mais est inactif) ; une règle pure.
 - `DonneesDArme`, `DonneesDeBouclier` : ce qui fait d'un objet une arme (type, mains, attaque) ou un bouclier (chance et
   montant de blocage) ; des données, pas une hiérarchie.
-- `Equipement` : un objet au plus par emplacement, `armureTotale()`, `attaqueDeBase()` (l'arme de la main droite, sinon les
-  mains nues), `actifPour(base)` (sans ses objets inactifs) et `caracteristiquesEffectives` ; possédé par chaque `Personnage`.
+- `Equipement` : un objet au plus par emplacement, `armureTotale()`, `attaqueDeBase()` (l'arme de la main droite avec ses
+  affixes, sinon les mains nues), `actifPour(base)` (sans ses objets inactifs) et `caracteristiquesEffectives` ; les affixes
+  entrent dans ces totaux, qui restent les seuls endroits qui calculent ; possédé par chaque `Personnage`.
 - `Inventaire` : le sac, des cases à position fixe ; possédé par l'`Escouade`.
 - `PositionDObjet` : une case du sac ou un emplacement d'un personnage, et `deplacementPermis`, la règle de base
   (catégorie et emplacement).
@@ -177,7 +183,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 `escouade/` — le camp du joueur (`docs/formation.md`, sauf mention) :
 - `Escouade` : l'assemblage : ancre, verrou, skills en attente, attaque, et la résolution des intentions en
   points visés ; elle possède `Formation`, `PlacesDAttaque`, `Agresseurs`, `Provocations`, le sac
-  (`Inventaire`) et les `Personnage` ; `ramasser` et `deplacerObjet` déplacent les objets.
+  (`Inventaire`) et les `Personnage` ; `ramasser`, `ramasserTout` et `deplacerObjet` déplacent les objets.
 - `Personnage` : un membre : déplacement, attaque de base (celle de son arme), skills, vie, vision, équipement (son armure
   en est la somme), caractéristiques (base de classe plus équipement).
 - `Formation` : décalages, orientation, point à regarder et places de formation, sans `Personnage`.
@@ -210,7 +216,8 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `EcranJeu` : l'écran de la partie : événements, caméra, dessin, textes flottants (`docs/ecrans.md`).
 - `EcranInventaire` : le sac et l'équipement, déplacement des objets par glisser-déposer, par-dessus la partie figée, touche I (`docs/ecrans.md`).
 - `DispositionInventaire` : rectangles de l'inventaire, `elementSous` (une `PositionDObjet`), placement de l'infobulle (`docs/ecrans.md`).
-- `AffichageObjets` : noms des emplacements et des catégories, sigles, lignes de l'infobulle (`docs/objets.md`).
+- `AffichageObjets` : noms des emplacements et des catégories, sigles, lignes de l'infobulle d'un objet, lignes des
+  affixes, couleur de la rareté (`docs/objets.md`).
 - `AffichageCaracteristiques` : les noms des cinq caractéristiques et la ligne d'une caractéristique avec son bonus (`docs/combat.md`).
 - `AffichageStatistiques` : les lignes des statistiques de combat de l'inventaire et des bonus de combat d'une infobulle (`docs/combat.md`).
 - `AffichageSkills` : `nomDuSkill`, le nom affiché d'un skill (`docs/combat.md`).
@@ -219,7 +226,8 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `TailleDeVue` : vue à hauteur fixe et vue d'interface (`docs/ecrans.md`).
 - `EmplacementsPrincipaux` : `s_emplacementsPrincipaux`, en-tête neutre (P1, `docs/boucle-et-entrees.md`).
 - `BarreDeRaccourcis` : modèle des emplacements, disposition par défaut et à l'écran (`docs/boucle-et-entrees.md`).
-- `CommandeDeTouche` : `commandePourTouche`, ce que fait chaque touche, fonction pure (`docs/boucle-et-entrees.md`).
+- `CommandeDeTouche` : `commandePourTouche`, ce que fait chaque touche (F3 à F7 de débogage comprises), fonction pure
+  (`docs/boucle-et-entrees.md`).
 - `ClicInterface` : ce qu'un clic touche dans l'interface (`docs/boucle-et-entrees.md`).
 - `BarreDeSkills` : dessin des icônes de la barre et `iconesDeLaBarre` (`docs/boucle-et-entrees.md`).
 - `EcranDeFin` : voile et titre de victoire ou de défaite (`docs/boucle-et-entrees.md`).
@@ -236,7 +244,7 @@ Un dossier n'inclut que lui-même et ceux qui le **précèdent** dans cet ordre 
 ```
 base → monde → combat → objets → escouade, monstres → jeu → interface → app
 rendu : ne dépend que de base
-objets : ne dépend que de base et de combat (`Caracteristiques`, `StatistiquesDeCombat`, `TypeDArme`, `DescriptionDAttaque`)
+objets : ne dépend que de base et de combat (`Caracteristiques`, `StatistiquesDeCombat`, `TypeDArme`, `DescriptionDAttaque`, `Degats`)
 ```
 
 - `escouade/` et `monstres/` ne s'incluent pas entre eux : ils communiquent par `combat/`
@@ -321,8 +329,9 @@ de modifier un module, lire le fichier correspondant :
 | `docs/formation.md` | `Escouade` et `Personnage` : ancre, formation, orientation, séparation douce, verrou de cible, placement en combat, places d'attaque, intentions, mort et défaite ; `Formation`, `PlacesDAttaque`, `Intention`, `Separation`, `Composition`, `Specialite`, `Encerclement` | Avant de modifier `Escouade`, `Personnage`, `Formation`, `PlacesDAttaque`, `Intention`, `Separation`, `Composition`, `Specialite` ou `Encerclement` |
 | `docs/combat.md` | `Skill` (dont l'attaque de base), `Cercle`, portée bord à bord, autodéfense, `Cible`, skill en attente, circuit des dégâts, qui bloque qui, armure, caractéristiques, statistiques de combat et critique, aléatoire, zones de contrôle, événements et textes flottants | Avant de modifier un module de `combat/` ou de `base/`, `Provocations`, `Agresseurs`, `TextesFlottants`, `BarreDeVie` ou les listes d'obstacles |
 | `docs/monstre.md` | `Monstre` et `DefinitionDeMonstre` : définition, identifiant, états, détection, territoire, poursuite, retour au poste, riposte, statistiques de combat | Avant de modifier `Monstre` |
-| `docs/objets.md` | Objets : emplacements et catégories, catalogue, armes (type, mains, attaque de base) et boucliers, `Equipement`, `Inventaire`, armure calculée depuis l'équipement, règle des déplacements et des deux mains (`DeplacementDObjets`), opérations `ramasser` / `deplacerObjet` de l'`Escouade`, `PositionDObjet` ; référence des modules d'`objets/` | Avant de modifier un module d'`objets/`, `AffichageObjets` ou l'équipement d'un `Personnage` |
+| `docs/objets.md` | Objets : emplacements et catégories, catalogue, armes (type, mains, attaque de base) et boucliers, rareté et affixes (invariants, catalogue d'affixes, effets), `Equipement`, `Inventaire`, armure calculée depuis l'équipement, règle des déplacements et des deux mains (`DeplacementDObjets`), opérations `ramasser` / `ramasserTout` / `deplacerObjet` de l'`Escouade`, `PositionDObjet` ; référence des modules d'`objets/` | Avant de modifier un module d'`objets/`, `AffichageObjets` ou l'équipement d'un `Personnage` |
 | `docs/tests.md` | Tests (Catch2, conventions, dossiers, aides) | Avant d'ajouter ou de modifier un test |
+| `docs/glossaire.md` | Les textes affichés par le jeu, en anglais : une table « concept (français) → texte à l'écran », référence de tous les noms (caractéristiques, classes, skills, objets, affixes, rareté, écrans, textes flottants) | Avant d'ajouter ou de changer un texte affiché, un nom d'objet, de skill ou de classe |
 | `docs/audit.md` | Audit du code avant l'étape 80 : constats par famille (R, M, P, D, C, E, L, V, T, B, K), organisation en dossiers, passages de `clang-tidy` | Avant de planifier une refactorisation |
 | `docs/classes-et-combat.md` | Document de référence de conception (octobre 2026), pas de technique : vision d'un combat lent et stratégique, temps, couleurs (guide de conception des skills), classes et progression, caractéristiques (Puissance, Endurance, Adresse, Savoir, Volonté), déroulement d'un coup, esquive et critique, armure (modèle M1), pénétration et résistances, barrières (Égide, Barrière), zones et escouade, catégories d'ennemis, grammaire des skills (cinq axes), inventaire des statistiques de combat, questions ouvertes. Chaque point porte un statut : retenu, proposé, à tester ou ouvert | Avant de discuter des classes, des skills, des statistiques ou des mathématiques du combat, ou de proposer une étape sur ces sujets |
 | `docs/brainstorm.md` | Idées à explorer par thème (coup double, gambits, stratégie d'attaque des monstres, génération procédurale, barre de raccourcis, file d'événements, inventaire), leur statut et leurs prérequis ; rien n'y est une décision. Ce que `docs/classes-et-combat.md` a déjà repris n'y figure plus | Avant de proposer une nouvelle étape |
