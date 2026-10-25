@@ -57,10 +57,10 @@ squad-arpg/
 │   │               EcartEntrePersonnages, Composition, Specialite, SelectionDEscouade,
 │   │               Provocations, Agresseurs
 │   ├── monstres/   Monstre, DefinitionDeMonstre
-│   ├── jeu/        Partie
+│   ├── jeu/        Partie, ObjetAuSol
 │   ├── interface/  Ecran, Transition, Contexte, PileDEcrans, EntreeDInterface, EcranMenu,
 │   │               EcranOptions, EcranChoixEscouade, EcranJeu, EcranInventaire,
-│   │               DispositionInventaire, AffichageObjets, AffichageCaracteristiques, AffichageStatistiques, AffichageSkills, ListeDeBoutons, Reglages, TailleDeVue,
+│   │               DispositionInventaire, AffichageObjets, AffichageObjetsAuSol, AffichageCaracteristiques, AffichageStatistiques, AffichageSkills, ListeDeBoutons, Reglages, TailleDeVue,
 │   │               EmplacementsPrincipaux, BarreDeRaccourcis, CommandeDeTouche, ClicInterface,
 │   │               BarreDeSkills, EcranDeFin, TextesFlottants, Controleur
 │   └── app/        main.cpp, Application
@@ -90,8 +90,8 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `EcranChoixEscouade` possède la `SelectionDEscouade` ; `EcranJeu` possède la `Partie`, le
   `Controleur`, la `BarreDeRaccourcis`, les `TextesFlottants` et la caméra, et traduit les
   événements SFML en appels au `Controleur` ; `EcranInventaire`, empilé sur lui, ne possède rien : il
-  lit l'`Escouade` de l'`EcranJeu` du dessous.
-- `Partie` possède la `TileMap`, l'`Escouade`, les `Monstre`, les `ObjetInteractif`, la `Vision`
+  lit l'`Escouade` de l'`EcranJeu` du dessous et, pour jeter un objet, appelle la `Partie`.
+- `Partie` possède la `TileMap`, l'`Escouade`, les `Monstre`, les `ObjetInteractif`, les `ObjetAuSol`, la `Vision`
   et le seul `Generateur`. Elle fait l'intermédiaire entre `Escouade` et `Monstre`, qui ne se
   connaissent pas (ils échangent des `EntiteVue`, des `Coup`, des `EntiteDeControle`), et tient la
   file des `EvenementDeCombat`.
@@ -105,7 +105,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 ## Modules (une ligne par module)
 
 `base/` — outils sans règle de jeu (`docs/combat.md`) :
-- `Aleatoire` : `using Generateur = std::mt19937`, passé par référence, jamais copié ni global.
+- `Aleatoire` : `using Generateur = std::mt19937`, passé par référence, jamais copié ni global ; `tirerEntre`, un entier uniforme.
 - `Cercle` : forme d'une entité, `cercleDuRectangle`, `distanceBordABord`, `distanceCercleRectangle`,
   `distancePointSegment`.
 - `Eclaircir` : `eclaircir` et `assombrir` une couleur, `s_eclaircissementExecution`.
@@ -168,7 +168,8 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
   `catalogueObjets()`, `definitionObjet()`, `seuilsAtteints()`, `estADeuxMains()`, `mainsNues()`, `sacDeDepart()`,
   `objetValide()` (les invariants d'un objet), `nomDeLObjet()` (« Blazing Mace »).
 - `GenerationDObjets` : `genererObjet`, le tirage d'un objet valide avec le `Generateur` reçu (rareté, modèle, affixes,
-  valeurs), `poidsDeRarete` et `peutPorterLaRarete`, l'unique endroit de la règle « quel modèle peut porter quelle rareté ».
+  valeurs), `genererButin` (le butin d'une mort : la chance, puis les objets), `poidsDeRarete` et `peutPorterLaRarete`, l'unique
+  endroit de la règle « quel modèle peut porter quelle rareté ».
 - `ObjetsActifs` : `objetsActifs`, le point fixe qui dit quels objets portés ont un effet (un objet dont le seuil de
   caractéristiques n'est plus atteint reste porté mais est inactif) ; une règle pure.
 - `DonneesDArme`, `DonneesDeBouclier` : ce qui fait d'un objet une arme (type, mains, attaque) ou un bouclier (chance et
@@ -209,7 +210,8 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
   (`catalogueDeMonstres()`, `definitionDeMonstre(catégorie)`) (`docs/monstre.md`).
 
 `jeu/` :
-- `Partie` : règles de jeu, ordre d'une image, intermédiaire escouade/monstres (et seul tireur du `Generateur`, y compris pour F7) ; reçoit le catalogue des monstres (`docs/boucle-et-entrees.md`).
+- `Partie` : règles de jeu, ordre d'une image, intermédiaire escouade/monstres (et seul tireur du `Generateur`, y compris pour F7 et le butin) ; reçoit le catalogue des monstres ; ramasse et jette les objets (`docs/boucle-et-entrees.md`).
+- `ObjetAuSol` : un objet posé au sol (identifiant jamais réutilisé, objet, position), `positionPourUnObjet`, où le poser (`docs/objets.md`).
 
 `interface/` — écrans, HUD, réglages, entrées :
 - `Ecran`, `Transition`, `Contexte` : base des écrans, changements de pile, contexte d'appel (`docs/ecrans.md`).
@@ -221,6 +223,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `DispositionInventaire` : rectangles de l'inventaire, `elementSous` (une `PositionDObjet`), placement de l'infobulle (`docs/ecrans.md`).
 - `AffichageObjets` : noms des emplacements et des catégories, sigles, lignes de l'infobulle d'un objet, lignes des
   affixes, couleur de la rareté (`docs/objets.md`).
+- `AffichageObjetsAuSol` : le losange des objets au sol et leur nom au survol (`docs/objets.md`).
 - `AffichageCaracteristiques` : les noms des cinq caractéristiques et la ligne d'une caractéristique avec son bonus (`docs/combat.md`).
 - `AffichageStatistiques` : les lignes des statistiques de combat de l'inventaire et des bonus de combat d'une infobulle (`docs/combat.md`).
 - `AffichageSkills` : `nomDuSkill`, le nom affiché d'un skill (`docs/combat.md`).
@@ -332,7 +335,7 @@ de modifier un module, lire le fichier correspondant :
 | `docs/formation.md` | `Escouade` et `Personnage` : ancre, formation, orientation, séparation douce, verrou de cible, placement en combat, places d'attaque, intentions, mort et défaite ; `Formation`, `PlacesDAttaque`, `Intention`, `Separation`, `Composition`, `Specialite`, `Encerclement` | Avant de modifier `Escouade`, `Personnage`, `Formation`, `PlacesDAttaque`, `Intention`, `Separation`, `Composition`, `Specialite` ou `Encerclement` |
 | `docs/combat.md` | `Skill` (dont l'attaque de base), `Cercle`, portée bord à bord, autodéfense, `Cible`, skill en attente, circuit des dégâts, qui bloque qui, armure, caractéristiques, statistiques de combat et critique, aléatoire, zones de contrôle, événements et textes flottants | Avant de modifier un module de `combat/` ou de `base/`, `Provocations`, `Agresseurs`, `TextesFlottants`, `BarreDeVie` ou les listes d'obstacles |
 | `docs/monstre.md` | `Monstre` et `DefinitionDeMonstre` : définition, identifiant, états, détection, territoire, poursuite, retour au poste, riposte, statistiques de combat | Avant de modifier `Monstre` |
-| `docs/objets.md` | Objets : emplacements et catégories, catalogue, armes (type, mains, attaque de base) et boucliers, rareté et affixes (invariants, catalogue d'affixes, effets), `Equipement`, `Inventaire`, armure calculée depuis l'équipement, règle des déplacements et des deux mains (`DeplacementDObjets`), génération aléatoire (`GenerationDObjets`), opérations `ramasser` / `ramasserTout` / `deplacerObjet` de l'`Escouade`, `PositionDObjet` ; référence des modules d'`objets/` | Avant de modifier un module d'`objets/`, `AffichageObjets` ou l'équipement d'un `Personnage` |
+| `docs/objets.md` | Objets : emplacements et catégories, catalogue, armes (type, mains, attaque de base) et boucliers, rareté et affixes (invariants, catalogue d'affixes, effets), `Equipement`, `Inventaire`, armure calculée depuis l'équipement, règle des déplacements et des deux mains (`DeplacementDObjets`), génération aléatoire (`GenerationDObjets`), butin au sol (`ObjetAuSol`), opérations `ramasser` / `ramasserTout` / `deplacerObjet` de l'`Escouade`, `PositionDObjet` ; référence des modules d'`objets/` | Avant de modifier un module d'`objets/`, `ObjetAuSol`, `AffichageObjets`, `AffichageObjetsAuSol` ou l'équipement d'un `Personnage` |
 | `docs/tests.md` | Tests (Catch2, conventions, dossiers, aides) | Avant d'ajouter ou de modifier un test |
 | `docs/glossaire.md` | Les textes affichés par le jeu, en anglais : une table « concept (français) → texte à l'écran », référence de tous les noms (caractéristiques, classes, skills, objets, affixes, rareté, écrans, textes flottants) | Avant d'ajouter ou de changer un texte affiché, un nom d'objet, de skill ou de classe |
 | `docs/audit.md` | Audit du code avant l'étape 80 : constats par famille (R, M, P, D, C, E, L, V, T, B, K), organisation en dossiers, passages de `clang-tidy` | Avant de planifier une refactorisation |

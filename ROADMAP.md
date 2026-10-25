@@ -8,7 +8,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 ## Étapes terminées
 
-Étapes 0 à 96 ✅. Les dernières :
+Étapes 0 à 97 ✅. Les dernières :
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 - Étape 83 — Inventaire et équipement : le modèle, sans interface ✅
@@ -25,15 +25,16 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - Étape 94 — Types de dégâts et résistances : le coup en portions (physique, feu, sacré), l'explosion en feu, la frappe sacrée, premier skill de frappe ✅
 - Étape 95 — Les objets ont leurs propres données (rareté, préfixe et suffixe) ; le texte du jeu passe à l'anglais ✅
 - Étape 96 — La génération aléatoire des objets : plages de valeurs des affixes, poids des raretés, `genererObjet`, F7 tire au hasard ✅
+- Étape 97 — Le butin au sol : les monstres lâchent des objets, ils se voient et se ramassent, on peut les jeter ✅
 
 ## État actuel (résumé)
 
 - **Outils** : conception dans Claude.ai, implémentation avec Claude Code dans VSCode (règles dans
   `CLAUDE.md`) ; dépôt Git `squad-arpg`, poussé sur GitHub ; SFML 3.0.2 intégrée à CMake.
-- **Code** (étape 96) : 94 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
+- **Code** (étape 97) : 96 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
   `combat`, `objets`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
   de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug` et `jeu`, 0
-  avertissement, 1 511 tests verts sous CTest, 39 avertissements `clang-tidy` (`docs/build.md`,
+  avertissement, 1 562 tests verts sous CTest, 39 avertissements `clang-tidy` (`docs/build.md`,
   `docs/audit.md`). `Escouade` n'est plus que l'assemblage : `Escouade.cpp` de 1 223 à 1 067 lignes. Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`). **Tout le texte affiché est en anglais** (identifiants, commentaires et documentation restent en français ; pas de système de traduction : `docs/glossaire.md` est la référence des noms du jeu). Un commit par sous-étape, fait par Claude Code (`CLAUDE.md`).
 - **Écrans** : menu à la souris, options d'affichage (fenêtré ou plein écran, résolutions,
   `reglages.ini`), choix de 3 classes parmi 5 (guerrier, prêtre, mage, paladin, rôdeur ; doublons
@@ -65,7 +66,13 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   objet valide au hasard** (rareté 70 / 25 / 5, un modèle qui peut la porter, affixes et valeurs dans la plage de chaque
   affixe ; les anneaux et colliers, sans préfixe, ne sont jamais Rare ; Reinforced va aussi sur les gants et les bottes) ;
   `ramasser`, `ramasserTout` (F7 : quatre objets tirés au hasard, tout ou rien, sans tirage en cas de refus) et
-  `deplacerObjet` sont transactionnelles. La
+  `deplacerObjet` sont transactionnelles ; **les objets existent aussi au sol** (étape 97) : un monstre qui meurt laisse,
+  selon sa définition, des objets tirés par `genererButin` (nuée 5 %, infanterie 20 %, infanterie lourde 35 %, un objet ;
+  créature monstrueuse 100 %, trois objets), posés sur sa case ou les cases libres voisines ; un losange de la couleur de la
+  rareté les montre (caché sous l'inconnu, assombri sous l'exploré), leur nom composé s'affiche au survol, un clic gauche
+  envoie l'escouade les ramasser (un monstre sous le curseur passe avant ; l'ancre à moins de 30 px les met dans le sac ; sac
+  plein : « Bag full », l'objet reste au sol), et lâcher un objet du sac ou d'un emplacement hors du panneau de l'inventaire le
+  jette près de l'ancre. La
   touche I ouvre l'inventaire par-dessus la partie figée : équipement des 3 personnages, sac de 40
   cases, caractéristiques, points de vie, capacités, blocage et esquives de chaque personnage, infobulle au survol, et glisser-déposer des objets (sac, emplacements, entre personnages ;
   échange si la destination est occupée ; destinations valides en surbrillance) (`docs/objets.md`,
@@ -207,14 +214,21 @@ ce qui reste à décider **en discussion** avant son prompt :
     affixes qui ont un effet, nom composé, couleurs, infobulle, F7 ; le jeu en anglais, `docs/glossaire.md`.
   - 96 ✅ : la génération aléatoire des objets : plages de valeurs des affixes, poids des raretés (70, 25, 5), `genererObjet`,
     F7 tire quatre objets au hasard.
-  - 97 : le butin au sol et les tables de butin des monstres.
+  - 97 ✅ : le butin au sol : chance et nombre d'objets dans `DefinitionDeMonstre`, `genererButin`, `ObjetAuSol`, losange et
+    nom au survol, ramassage au clic, « Bag full », jeter en lâchant hors de l'inventaire. **La phase 4 est terminée.**
 
-## Étape 97 (prochaine) : le butin au sol, à discuter avec Claude.ai
+## Étape 98 (prochaine) : à discuter avec Claude.ai
 
-Phase 4 du plan (butin) : faire tomber des objets au sol (`genererObjet` existe depuis l'étape 96) et les ramasser. À
-décider : le taux de butin par monstre et par catégorie de monstre, les tables de butin, le ramassage (clic, marche
-jusqu'à l'objet, ramassage automatique), l'affichage d'un objet au sol et de son nom, ce qui arrive quand le sac est plein.
-Le Savoir et la Volonté n'ont encore aucun effet.
+La phase 4 (butin) est terminée ; la suite n'est pas décidée. Le Savoir et la Volonté n'ont encore aucun effet.
+
+**Pistes issues de l'étape 97** (étapes à part, plus tard) :
+- **Des tables de butin par monstre** : quels modèles tombent de quel monstre (aujourd'hui chaque objet est un `genererObjet`).
+- **Une rareté minimale**, par exemple pour la créature monstrueuse (aujourd'hui 70 / 25 / 5 pour tous les objets).
+- **Montrer tous les noms au sol** en maintenant une touche (Alt) : aujourd'hui le nom ne s'affiche qu'au survol.
+- **Le ramassage automatique** ou une touche « tout ramasser ».
+- **Ajuster en jouant** les chances de butin (valeurs « à tester ») et la distance de ramassage (30 px).
+- L'or, la monnaie, la vente, les coffres, la disparition des objets avec le temps, la sauvegarde, le tri du sac et la
+  comparaison d'objets restent hors de portée.
 
 **Pistes issues de l'étape 96** (étapes à part, plus tard) :
 - **Un préfixe pour les bijoux**, pour qu'ils puissent être Rare (aujourd'hui `peutPorterLaRarete` les écarte).
@@ -224,8 +238,6 @@ Le Savoir et la Volonté n'ont encore aucun effet.
   n'est pas défini par la norme : `docs/objets.md`, « Génération aléatoire »).
 - **Des affixes négatifs (maudits)** : ils demanderaient de revoir le point fixe des objets actifs, qui suppose des bonus
   positifs ou nuls (`objetValide` exige déjà une valeur strictement positive).
-- **`tirerEntre` en double** (`GenerateurDonjon.cpp` et `GenerationDObjets.cpp`) : à remonter dans `base/Aleatoire.hpp`, en
-  commit séparé.
 
 **Pistes issues de l'étape 95** (étapes à part, plus tard) :
 - **Les résistances sur les objets** : un affixe de résistance (le champ existe depuis l'étape 94, dans

@@ -85,16 +85,20 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
 - **Avant d'empiler**, `EcranJeu` appelle `Controleur::interrompre()` (annule la visée et le
   déplacement continu). Sans cela, le relâchement du bouton gauche, reçu par l'inventaire,
   n'arriverait jamais au `Controleur` : l'escouade repartirait toute seule à la fermeture.
-- **`Escouade&` non constante** (étape 85) : l'écran garde l'`Escouade` de l'`EcranJeu` (valide grâce
-  à l'invariant de la pile ; `Partie::getEscouade()` a une surcharge non constante pour cela) et les
-  noms des classes des places, que `EcranJeu` lui donne (il connaît ses `IdSpecialite`). Il n'appelle
-  qu'une fonction de modification : `Escouade::deplacerObjet`. La croix de la fenêtre quitte, comme partout.
+- **`Partie&` non constante** (étape 97.6 ; `Escouade&` à l'étape 85) : l'écran garde la `Partie` de l'`EcranJeu` (valide
+  grâce à l'invariant de la pile) et, pour lire et déplacer les objets, l'`Escouade` de celle-ci (`Partie::getEscouade()` a
+  une surcharge non constante pour cela), et les noms des classes des places, que `EcranJeu` lui donne (il connaît ses
+  `IdSpecialite`). Il n'appelle que deux fonctions de modification : `Escouade::deplacerObjet` et `Partie::jeterUnObjet`.
+  Il prend la `Partie` et non plus l'`Escouade` parce que jeter un objet le pose sur le sol de la partie. La croix de la
+  fenêtre quitte, comme partout.
 - **Glisser-déposer** (étape 85) : l'état est un `std::optional<PositionDObjet>`, l'origine. Rien ne
   bouge dans le modèle pendant le glissement ; tout se joue au relâchement.
   - Appui du bouton gauche sur une position occupée : début du glissement ; position vide ou ailleurs : rien.
   - Relâchement : si `elementSous` donne une position, `deplacerObjet(origine, cible)` (un résultat
-    faux est normal : rien ne bouge, `static_cast<void>` commenté) ; ailleurs, rien. Le glissement
-    se termine dans tous les cas. Le bouton droit ne fait rien.
+    faux est normal : rien ne bouge, `static_cast<void>` commenté) ; **hors du panneau** (`rectangleDuPanneau` ne contient
+    pas le point : la marge de 40 px autour, étape 97.6), `Partie::jeterUnObjet(origine)` : l'objet, qu'il vienne du sac ou
+    d'un emplacement porté, tombe au sol près de l'ancre ; dans un écart du panneau, rien. Le glissement
+    se termine dans tous les cas. Le bouton droit ne fait rien. Aucune indication à l'écran ne dit que la marge jette.
   - Échap pendant un glissement l'annule seulement (un deuxième Échap ferme) ; I ferme l'écran (rien
     n'a bougé) ; `sf::Event::FocusLost` annule, parce que le relâchement hors de la fenêtre n'arrive pas
     (sans cela l'objet resterait collé au curseur).
@@ -409,9 +413,9 @@ Données membres : `m_tirageDeGraine` (`std::random_device`), `m_specialites` (`
 |---|---|
 | `explicit EcranJeu(std::vector<IdSpecialite> specialites)` | Garde les classes (`m_specialites`, déclaré avant `m_partie`), tire une graine, la génère et construit la partie (`nouvellePartie`, qui appelle `composer(specialites)`) ; F5 réutilise les mêmes classes |
 | `Transition traiterEvenement(...)` | Clic gauche (d'abord `clicSurInterface` : sur la barre, `Controleur::appuiInterface`, sauf partie perdue ou gagnée ; sinon `appuiGauche`), clic droit, puis, pour une touche, `executer(commandePourTouche(...))` (voir `docs/boucle-et-entrees.md`) ; sinon `Aucune` |
-| `Transition executer(const CommandeDeTouche&)` (privée) | `std::visit` de la commande : Échap annule la visée, F5 nouvelle carte, F3 bascule les points visés et les chemins restants des personnages et des monstres, les zones de contrôle, et la semi-transparence des monstres qui rentrent à leur poste, F4 le carré vert de l'ancre, F6 le brouillard de guerre (visuel seulement), F7 met quatre objets tirés au hasard dans le sac (`Partie::ramasserDesObjetsAleatoires(4)`, tout ou rien), un emplacement de la barre est activé ; `RetourAuChoix` (R sur l'écran de fin) renvoie `Depiler` ; `OuvrirInventaire` appelle `Controleur::interrompre()` puis renvoie `Empiler(EcranInventaire(escouade, noms des classes))` ; les autres : `Aucune` |
+| `Transition executer(const CommandeDeTouche&)` (privée) | `std::visit` de la commande : Échap annule la visée, F5 nouvelle carte, F3 bascule les points visés et les chemins restants des personnages et des monstres, les zones de contrôle, et la semi-transparence des monstres qui rentrent à leur poste, F4 le carré vert de l'ancre, F6 le brouillard de guerre (visuel seulement), F7 met quatre objets tirés au hasard dans le sac (`Partie::ramasserDesObjetsAleatoires(4)`, tout ou rien), un emplacement de la barre est activé ; `RetourAuChoix` (R sur l'écran de fin) renvoie `Depiler` ; `OuvrirInventaire` appelle `Controleur::interrompre()` puis renvoie `Empiler(EcranInventaire(partie, noms des classes))` ; les autres : `Aucune` |
 | `void mettreAJour(float, const Contexte&)` | Taille de la caméra (`tailleDeVue`), déplacement continu, `Partie::mettreAJour`, puis `prendreEvenements` : chaque événement devient un texte (`TextesFlottants::ajouter`), sauf si le brouillard est actif et que `Partie::estVisible(position)` est faux ; `TextesFlottants::mettreAJour(dt)` (aussi après une défaite ou une victoire : le monde est figé, pas les textes) ; `Controleur::debutImage` (sortie de la visée), caméra centrée sur l'escouade |
-| `void dessiner(const Contexte&) const` | Monde avec la caméra (ancre cachée si `!m_debogage.ancre`, brouillard selon `m_debogage.brouillard`), aperçu de visée, points visés et chemins restants si `m_debogage.pointsVises`, textes flottants (vue du monde, après le brouillard), puis, avec `vueDInterface` : barre de raccourcis (`iconesDeLaBarre`), compteur « Monsters: N » et écran de fin |
+| `void dessiner(const Contexte&) const` | Monde avec la caméra : la carte (`Partie::dessinerLaCarte`), les objets au sol (`dessinerObjetsAuSol`, sous les monstres), puis les entités et le voile (`Partie::dessinerLesEntites` : ancre cachée si `!m_debogage.ancre`, brouillard selon `m_debogage.brouillard`), aperçu de visée, points visés et chemins restants si `m_debogage.pointsVises`, textes flottants (vue du monde, après le brouillard), le nom de l'objet au sol survolé (`Partie::objetAuSolSous`, `dessinerNomDObjetAuSol`), puis, avec `vueDInterface` : barre de raccourcis (`iconesDeLaBarre`), compteur « Monsters: N » et écran de fin |
 
 ### `EcranMenu` (`interface/`) — le menu de départ
 
@@ -448,14 +452,14 @@ construction, `explicit EcranMenu(std::vector<Resolution>)`), `m_boutons` (`List
 
 ### `EcranInventaire` (`interface/`) — l'inventaire
 
-`EcranInventaire.hpp` / `.cpp`. Données membres : `m_escouade` (`Escouade&`, celle de l'`EcranJeu` du dessous : valide grâce à l'invariant de la pile), `m_nomsDesClasses` (`std::vector<std::string>`, un nom par place), `m_origine` (`std::optional<PositionDObjet>`, l'origine du glissement en cours).
+`EcranInventaire.hpp` / `.cpp`. Données membres : `m_partie` (`Partie&`, celle de l'`EcranJeu` du dessous : valide grâce à l'invariant de la pile), `m_escouade` (`Escouade&`, celle de `m_partie`), `m_nomsDesClasses` (`std::vector<std::string>`, un nom par place), `m_origine` (`std::optional<PositionDObjet>`, l'origine du glissement en cours).
 
 | Fonction | Rôle |
 |---|---|
-| `EcranInventaire(Escouade&, std::vector<std::string>)` | `assert` : `s_nombreDePlaces` noms |
+| `EcranInventaire(Partie&, std::vector<std::string>)` | `assert` : `s_nombreDePlaces` noms |
 | `Transition appuyer(sf::Keyboard::Scancode)` | I : `Depiler` ; Échap : annule le glissement en cours (`Aucune`), sinon `Depiler` ; autre touche : `Aucune` ; `[[nodiscard]]` |
 | `void saisir(sf::Vector2f point, sf::Vector2f tailleDeVue)` | Commence un glissement si un objet est sous le point |
-| `void relacher(sf::Vector2f point, sf::Vector2f tailleDeVue)` | `deplacerObjet(origine, position sous le point)` s'il y en a une ; termine toujours le glissement ; sans glissement, ne fait rien |
+| `void relacher(sf::Vector2f point, sf::Vector2f tailleDeVue)` | `deplacerObjet(origine, position sous le point)` s'il y en a une ; sinon, hors du panneau, `Partie::jeterUnObjet(origine)` (étape 97.6) ; termine toujours le glissement ; sans glissement, ne fait rien |
 | `void annulerLeGlissement()` | Efface l'origine sans rien déplacer |
 | `const std::optional<PositionDObjet>& origineDuGlissement() const` | L'origine du glissement, vide sinon ; lue par les tests ; `[[nodiscard]]` |
 | `Transition traiterEvenement(...)` | Touche : `appuyer` ; appui gauche : `saisir` ; relâchement gauche : `relacher` ; `FocusLost` : `annulerLeGlissement` ; le reste : `Aucune` |
@@ -469,6 +473,7 @@ construction, `explicit EcranMenu(std::vector<Resolution>)`), `m_boutons` (`List
 
 | Fonction | Rôle |
 |---|---|
+| `rectangleDuPanneau(tailleDeVue)` (et `s_margePanneau`, 40 px) | Étape 97.6 : le panneau de l'inventaire, la vue moins la marge de chaque côté ; un point lâché en dehors jette l'objet ; `[[nodiscard]]` |
 | `rectangleDeLEnTete(place, tailleDeVue)` / `rectangleDeLArmure(...)` | Bande de la classe et ligne « Armure » de la colonne de cette place (de 1 à `s_nombreDePlaces`) ; `[[nodiscard]]` |
 | `rectangleDeLEmplacement(place, Emplacement, tailleDeVue)` | Rectangle de l'emplacement ; les 5 premiers de l'enum à gauche, les 5 suivants à droite ; `[[nodiscard]]` |
 | `rectangleDesCaracteristiques(place, tailleDeVue)` / `rectangleDeLaCellule(place, indice, tailleDeVue)` | Étape 88 : le bloc sous les emplacements (340 × 54 px, `s_lignesDeCaracteristiques` = 3 lignes de 18 px) et ses 6 cellules en deux colonnes remplies colonne par colonne : Puissance, Endurance, Adresse, puis Savoir, Volonté, points de vie ; `assert(indice <= s_nombreDeCaracteristiques)` ; `[[nodiscard]]` |

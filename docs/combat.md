@@ -1401,7 +1401,9 @@ l'enfoncerait dans un obstacle.
 - **La forme (étape 86).** Champs communs (`campCible`, `idCible`, `position`) et un `detail` en
   `std::variant<Degats, Soin, SkillLance, Provoque, Esquive, Bloque>` : `Degats { montant, opportunite,
   critique }`, `Soin { montant, critique }` (le champ `critique` date de l'étape 89), `SkillLance { IdSkill }`,
-  `Provoque {}`, `Esquive {}` et `Bloque { montant, total }` (étape 90). `TypeEvenement` n'existe plus, le
+  `Provoque {}`, `Esquive {}` et `Bloque { montant, total }` (étape 90), puis `SacPlein {}` (étape 97.5 : le sac est
+  plein, l'objet visé reste au sol ; `idCible` 0 = l'escouade entière, `position` celle de l'ancre ; produit par
+  `Partie::ramasserSiAPortee`, pas par un coup). `TypeEvenement` n'existe plus, le
   variant dit le type. Raison : un skill lancé n'a pas de montant et « Taunted » n'a ni montant ni coup
   gratuit ; on ne représente pas des champs qui n'ont pas de sens. Les lecteurs (`TextesFlottants`)
   utilisent `std::visit` avec `Surcharges` : un détail ajouté sans son texte, sa couleur et sa taille ne
@@ -1958,7 +1960,10 @@ Deux fonctions libres, sans état, et une constante. `eclaircir` est l'indice vi
 
 ### `Aleatoire` (`base/`) — le générateur aléatoire
 
-`Aleatoire.hpp`, sans `.cpp` : `using Generateur = std::mt19937;`. Le reste
+`Aleatoire.hpp`, sans `.cpp` : `using Generateur = std::mt19937;` et, depuis l'étape 97.1, `tirerEntre(Generateur&, min, max)`
+(`inline`, `[[nodiscard]]` : un entier uniforme dans [min, max], bornes incluses, `std::uniform_int_distribution<int>`),
+l'unique définition qu'utilisent la génération des donjons et celle des objets (elle existait en double ; la suite des tirages
+n'a pas changé). Le reste
 du code écrit `Generateur` et ne dépend pas de l'algorithme. Possédé par
 `Partie` (un seul, initialisé par une graine), passé PAR RÉFÉRENCE le long
 de la chaîne `Partie` → `Escouade` → `Personnage` → `Skill` et `Partie` →

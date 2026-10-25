@@ -256,6 +256,47 @@ déterminisme.
 2 points (plus de quatre écarts types) ne sert pas à absorber le hasard, la graine étant fixe, mais à détecter un
 algorithme modifié (poids changés, rareté retirée après coup).
 
+## Le butin au sol (étape 97)
+
+Les objets existent maintenant hors du sac et de l'équipement : un monstre qui meurt peut en laisser, ils restent au sol, se
+voient et se ramassent, et on peut en jeter. Un objet est toujours à **un seul endroit** : le sac, un emplacement ou le sol.
+- **Les données de butin** sont dans `DefinitionDeMonstre` (`chanceDeButin` en pour cent, `nombreDObjets`) : nuée 5 % et
+  1 objet, infanterie 20 % et 1, infanterie lourde 35 % et 1, créature monstrueuse 100 % et 3 (valeurs « à tester »). Pas de
+  tables de butin (quels modèles pour quel monstre) ni de rareté minimale : chaque objet est un `genererObjet`.
+- **Le tirage** (`genererButin(Generateur&, chance, nombre)`, `GenerationDObjets`) : un tirage pour la chance, puis `nombre`
+  fois `genererObjet`. **Aucun tirage pour la chance quand elle vaut 0 ou 100**, comme le moteur du coup ne tire pas pour une
+  chance nulle : un monstre sans butin ne fait pas avancer le `Generateur`, donc les suites d'une partie (critiques, esquives,
+  objets) ne changent pas. Il a lieu à la mort, dans `Partie::retirerLesMorts`, avec le `Generateur` de la partie.
+- **`ObjetAuSol { id, objet, position }`** (`jeu/ObjetAuSol`), possédé par la `Partie`. L'identifiant est un entier **jamais
+  réutilisé** dans la partie (`m_prochainIdObjetAuSol`, comme l'identifiant d'un monstre) : tout ce qui désigne un objet au sol
+  (survol, clic, visée de ramassage) passe par lui, jamais par un indice du conteneur, qui change quand on retire un élément.
+  La position est le centre d'une case.
+- **Le placement**, `positionPourUnObjet(carte, origine, auSol)` : fonction pure, utilisée pour le butin (origine : le monstre
+  mort) comme pour un objet jeté (origine : l'ancre). Le premier objet tombe au centre de la case de l'origine ; si un objet
+  y est déjà, sur la case voisine la plus proche **praticable** (ni mur ni porte fermée) et **sans objet**, en cherchant par
+  couronnes de cases jusqu'à trois cases (les quatre côtés avant les diagonales) ; si tout est pris ou bloqué, il s'empile
+  sur la case de l'origine. Pas de hasard : les trois objets de la créature monstrueuse tombent toujours sur le même motif.
+- **Un objet au sol ne gêne pas** : ni collision ni chemin. Il appartient au niveau : une nouvelle `Partie` (F5, nouveau
+  niveau, recommencement) les efface, rien de plus à faire.
+- **Brouillard** : un objet se comporte comme le terrain. Il se dessine avant le voile de la vision : caché sous l'inconnu,
+  assombri sous l'exploré, net dans ce qu'on voit. Il ne se désigne (survol, clic) que sur une case non inconnue
+  (`Partie::objetAuSolSous`).
+- **Le ramassage** : un clic gauche sur un objet (`cliquer`, après le monstre, avant la porte) est un ordre : l'escouade marche
+  vers lui comme pour un clic sur le sol (le verrou est levé, les coups engagés annulés). La `Partie` retient l'identifiant
+  visé (`m_objetAuSolVise`, `escouade/` ne connaît pas `jeu/`) ; `ramasserSiAPortee`, à chaque image après le déplacement,
+  ramasse l'objet quand l'**ancre** est à moins de `s_distanceDeRamassage` (30 px, centre à centre, « à tester »). Tout nouvel
+  ordre (clic sur le sol, un monstre, une porte, un autre objet ; `ordonnerDeplacement`) remplace la visée ; un objet visé qui
+  n'existe plus l'abandonne.
+- **Sac plein** : l'objet reste au sol, l'ordre est terminé (la visée est effacée, l'escouade ne retente pas) et l'événement
+  `SacPlein` produit le texte « Bag full » au-dessus de l'escouade (`docs/combat.md`, `docs/glossaire.md`). L'escouade continue
+  son déplacement jusqu'à l'objet (c'était son ordre), mais plus rien n'est tenté ni signalé.
+- **Jeter** : glisser un objet (du sac ou d'un emplacement porté) et le lâcher hors du panneau de l'inventaire
+  (`EcranInventaire`, `docs/ecrans.md`) appelle `Partie::jeterUnObjet(position)` : `Escouade::retirerObjet` l'ôte (retrait
+  ordinaire : recalcul de l'armure, des caractéristiques et des défenses, skill en activation ou en attente abandonné si
+  l'arme exigée disparaît, objets devenus inactifs restent portés) puis `positionPourUnObjet` le pose près de l'ancre, avec un
+  identifiant neuf. Les deux étapes sont dans le même appel : l'objet n'est jamais perdu ni dupliqué. Le test des exemplaires
+  (`exemplaires(const Partie&)`) compte maintenant sac, équipements **et sol**.
+
 ## Affichage (étape 84)
 
 L'écran d'inventaire (`EcranInventaire`, `docs/ecrans.md`) montre l'équipement des trois personnages
@@ -317,9 +358,13 @@ et le sac, en lecture seule ; aucune fonction de modification n'est appelée.
 - Pas de niveau d'objet (les plages sont les mêmes pour tous les objets, Magic comme Rare), pas d'affixe de résistance ni
   de modification des seuils ; les anneaux et les colliers n'ont aucun préfixe donc ne sont jamais Rare ; un seul préfixe et un seul suffixe ; pas d'objet unique ni de rareté supérieure à Rare.
 - L'emplacement affiche le nom du modèle (en la couleur de la rareté), pas le nom composé : trop long pour la cellule.
-- Pas de restriction d'équipement par classe, pas de butin au sol : une nouvelle partie repart toujours du
-  départ (aucune sauvegarde de l'équipement). Pas de deux armes à la fois (la main gauche ne tient qu'un
-  bouclier), ni de lancer, ni de munitions.
+- Pas de restriction d'équipement par classe. Une nouvelle partie repart toujours du départ (aucune sauvegarde de
+  l'équipement ni des objets au sol). Pas de deux armes à la fois (la main gauche ne tient qu'un bouclier), ni de lancer, ni
+  de munitions.
+- Butin (étape 97) : pas de tables par monstre, pas de rareté minimale, pas d'or ; les objets au sol ne disparaissent pas avec
+  le temps ; le nom d'un objet au sol ne s'affiche qu'au survol (pas de touche pour tous les montrer) ; pas de ramassage
+  automatique ni de « tout ramasser » ; un objet jeté tombe toujours près de l'ancre (pas de choix de l'endroit) ; l'écran
+  d'inventaire ne dit pas qu'un lâcher hors du panneau jette l'objet.
 - Pas de réaction aux seuils au-delà de l'inactivité : un objet devenu inactif n'est ni déséquipé ni signalé par un
   événement (l'écran relit l'état).
 - Un objet qui ne convient qu'un instant (le seuil franchi par un bonus qu'un échange retire dans la même
@@ -434,6 +479,7 @@ s_raretes` (les trois raretés, de la plus commune à la plus rare).
 | `int poidsDeRarete(Rarete)` | Le poids de cette rareté dans le tirage : 70, 25, 5 (« à tester ») ; `[[nodiscard]]` |
 | `bool peutPorterLaRarete(IdObjet, Rarete)` | L'unique endroit de la règle : Common toujours, Magic avec au moins un affixe permis, Rare avec un préfixe et un suffixe permis ; `[[nodiscard]]` |
 | `Objet genererObjet(Generateur&)` | Un objet tiré au hasard, valide (voir « Génération aléatoire ») ; `assert(objetValide)` ; `[[nodiscard]]` |
+| `std::vector<Objet> genererButin(Generateur&, int chancePourCent, int nombre)` | Le butin d'une mort (étape 97.3) : vide si la chance est nulle ou si le tirage de chance échoue, sinon `nombre` objets de `genererObjet` ; **un seul tirage pour la chance, aucun à 0 ou 100** ; `assert` : chance de 0 à 100 ; `[[nodiscard]]` |
 
 ### `Equipement` (`objets/`)
 
@@ -560,3 +606,22 @@ libres sans état, qui rendent des `std::string` en UTF-8.
 | `ramasser(Objet)` | le sac a une case libre | l'objet va dans la première case libre |
 | `ramasserTout(const std::vector<Objet>&)` | le sac a autant de cases libres que d'objets | tous les objets vont dans les premières cases libres, dans l'ordre ; sinon rien ne bouge (F7, étape 95.5 ; depuis l'étape 96 par `Partie::ramasserDesObjetsAleatoires`) |
 | `deplacerObjet(de, vers)` | `deplacerLesObjets` (règle de base et deux mains) | l'objet de `de` va à `vers` ; si `vers` est occupé, échange ; une arme à deux mains (ou un bouclier sur elle) range l'autre main dans le sac ; `de == vers` : rien ne bouge |
+| `retirerObjet(position)` | la position est occupée (sinon vide, rien ne bouge) | l'objet est retiré et rendu ; sa case ou son emplacement reste vide, le personnage recalcule armure, caractéristiques et défenses, un skill (en activation ou en attente) qui exigeait l'arme retirée est abandonné ; l'objet n'est plus nulle part : `Partie::jeterUnObjet` le pose au sol (étape 97.6) |
+
+### `ObjetAuSol` (`jeu/`) — un objet posé au sol (étape 97)
+
+`ObjetAuSol.hpp` / `.cpp`. `struct ObjetAuSol { int id; Objet objet; sf::Vector2f position; }` (comparable) ; constantes
+`s_rayonDeSurvolDObjet` (14 px, la zone où le curseur le désigne : un peu plus que son dessin de 8 px de rayon) et
+`s_distanceDeRamassage` (30 px).
+
+| Fonction | Rôle |
+|---|---|
+| `sf::Vector2f positionPourUnObjet(const TileMap&, sf::Vector2f origine, const std::vector<ObjetAuSol>& auSol)` | Où poser un objet de plus : le centre de la case de `origine` si aucun objet de `auSol` n'y est, sinon la case voisine la plus proche, praticable et sans objet (couronnes jusqu'à trois cases, les quatre côtés avant les diagonales), sinon la case de `origine` ; pure, sans hasard ; `[[nodiscard]]` |
+
+### `AffichageObjetsAuSol` (`interface/`) — les objets au sol à l'écran (étape 97.4)
+
+`AffichageObjetsAuSol.hpp` / `.cpp`, fonctions libres à appeler avec la vue du monde. `dessinerObjetsAuSol(rendu, objets)` :
+un losange (cercle à quatre côtés, 8 px de rayon, contour noir) dans la couleur de la rareté (`couleurDeLaRarete`) ;
+`dessinerNomDObjetAuSol(rendu, police, objet)` : le nom composé (`nomDeLObjet`) au-dessus du losange, dans la couleur de la
+rareté, 14 px, contour noir. `EcranJeu` les appelle : les losanges entre la carte et les entités (`Partie::dessinerLaCarte`
+puis `Partie::dessinerLesEntites`), le nom au survol après les textes flottants.

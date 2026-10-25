@@ -1806,3 +1806,49 @@ vérifient des propriétés.
   personnage ne porte au départ, pour que les exemplaires se comptent par valeur complète). L'effet de F7 sur `EcranJeu`
   n'est toujours pas testé (cet écran a besoin d'une fenêtre) : il se réduit à un appel de
   `Partie::ramasserDesObjetsAleatoires(4)`.
+
+## Étape 97 : le butin au sol (+51 cas, 1 511 → 1 562)
+
+Le hasard des tests de butin est maîtrisé de deux façons : les règles du tirage sont testées sans `Partie`
+(`genererButin`, sur des `Generateur` qu'on compare avec `==`, `std::mt19937` est comparable), et les tests de `Partie`
+fixent le butin d'un monstre à 0 ou à 100 %, donc sans chance à tirer.
+- **97.1** : aucun test ajouté ; les 1 511 d'avant passent sans changer une valeur (la suite des tirages d'un donjon ou d'un
+  objet pour une graine est la même).
+- **97.2** : `test_CoherenceDesDonnees.cpp` (+0 : le test « chaque definition de monstre est valide » vérifie en plus une chance
+  de 0 à 100 et au moins un objet quand elle est positive). `aides.hpp` : `monstreSansHasard` et `catalogueDeTest` mettent
+  `chanceDeButin` à 0 : les monstres des tests existants ne tirent rien à leur mort, donc leurs suites aléatoires ne changent pas.
+- **97.3** : `test_GenerationDObjets.cpp` (+4 : `genererButin` — chance nulle, rien et **aucun tirage** ; chance de 100, tous
+  les objets valides, ceux de `genererObjet` et **aucun tirage pour la chance** ; chance de 20 % sur 10 000 tirages, rien ou
+  tous les objets, dans la proportion ; même graine, même butin) ; `tests/jeu/test_ObjetAuSol.cpp` (nouveau, +6 :
+  `positionPourUnObjet` — premier objet au centre de la case de l'origine, quatre côtés avant les diagonales, jamais dans un
+  mur ni sur une case prise tant qu'il en reste (21 objets sur 21 cases de sol), jamais sur une porte fermée, tout pris :
+  sur la case de l'origine, déterministe) ; `tests/jeu/test_Partie_butin.cpp` (nouveau, +8 : le bon nombre d'objets valides
+  à 100 %, aucun à 0 %, jamais dans un mur et sur des cases différentes, identifiants tous différents d'un monstre à l'autre,
+  les monstres vivants ne laissent rien, une partie neuve (F5, nouveau niveau, recommencement : `EcranJeu::nouvelleCarte`
+  remplace la `Partie`) n'a rien au sol, même graine même butin, la créature laisse toujours).
+- **97.4** : `test_Partie_butin.cpp` (+3 : `objetAuSolSous` — l'objet désigné à moins de 14 px et pas à 15 ; le plus proche entre
+  deux ; **un objet sur une case inconnue est caché, il se désigne une fois la case explorée, même hors de vue**, avec un mage
+  qui voit à 50 px et tue d'un coup d'explosion un monstre hors de sa vue). Le dessin (`AffichageObjetsAuSol`) n'a pas de test :
+  il a besoin d'une fenêtre, comme tout le dessin.
+- **97.5** : `tests/jeu/test_Partie_ramassage.cpp` (nouveau, +11 : l'objet passe dans le sac quand l'ancre arrive, dans la
+  première case libre ; un clic sur le sol et `ordonnerDeplacement` remplacent la visée, rien n'est ramassé ; une nouvelle visée
+  remplace la précédente ; **sac plein : l'objet reste au sol, un seul `SacPlein`, l'ordre est terminé** ; l'événement est
+  au-dessus de l'escouade entière (`idCible` 0, position de l'ancre) ; **monstre et objet sous le curseur : le clic vise le
+  monstre** ; un clic sur un objet rompt le combat ; un clic juste hors de la zone de survol est un clic au sol ; un objet
+  sur une case inconnue ne se clique pas) ; `test_TextesFlottants.cpp` (+1 : « Bag full », 14 px, une couleur que les autres
+  textes n'ont pas).
+- **97.6** : `test_Escouade_equipement.cpp` (+5 : `retirerObjet` — du sac, d'un emplacement avec l'armure qui baisse, position
+  vide, l'objet n'est plus nulle part sauf chez celui qui l'a retiré, l'anneau de puissance retiré rend l'épée à deux mains
+  inactive) ; `test_Escouade_skills.cpp` (+2 : retirer l'arme exigée rend le skill refusé, et abandonne un skill en attente) ;
+  `tests/jeu/test_Partie_jeter.cpp` (nouveau, +6 : `jeterUnObjet` — du sac, au sol près de l'ancre ; porté, l'emplacement se vide
+  et l'armure baisse ; jeter l'arme : l'attaque de base devient celle des mains nues ; position vide ; identifiants et cases
+  différents ; **le compte des exemplaires (sac, équipements et sol) est conservé à travers jeter puis ramasser**) ;
+  `test_EcranInventaire.cpp` (+4 : lâcher hors du panneau jette depuis le sac et depuis un emplacement, annuler ou lâcher sans
+  glissement ne jette rien ; le test « lâcher dans le vide » devient « lâcher dans un écart du panneau », puisque la marge jette
+  maintenant) ; `test_DispositionInventaire.cpp` (+1 : `rectangleDuPanneau`, tous les éléments y tiennent).
+- **Aides** : `aides_escouade.hpp` reçoit `Cle`, `cle` et `exemplaires(const Escouade&)` (déplacés tels quels depuis
+  `test_Escouade_equipement.cpp`), `exemplaires(const Partie&)` (sac, équipements et sol) et `viderLeSac` (une `Partie` range
+  le sac de départ du jeu dans son sac : les tests d'objets le vident pour compter des cases). `test_EcranInventaire.cpp` construit
+  maintenant l'écran avec une `Partie` (`partieSansMonstre` : une partie sans monstre est gagnée, donc figée ; les tests qui
+  font avancer le temps ajoutent un monstre dormant dans un coin).
+- **Mesure de performance** (preset `jeu`, `[perf]`) : inchangée, moyenne 0,036 ms par image, pire 0,16 ms.

@@ -37,8 +37,8 @@ déplacement par chemin dans `docs/chemin.md`.
   (160), les points de vie maximum (300 depuis l'échelle × 3 de l'étape 91 ; 1000 avant), l'armure, le rayon de détection (200), le rayon de territoire
   (600), la zone de contrôle (20), la régénération du retour (0,5 du maximum par seconde), la définition de
   son attaque (portée 15, 30 dégâts — 100 avant l'échelle × 3 —, recharge de 0,7 à 1,3 s, exécution de 0,3 s) et, depuis l'étape 89, ses
-  `StatistiquesDeCombat`, et, depuis l'étape 93, sa couleur. Les définitions sont celles des quatre catégories de
-  monstres (« Catégories de monstres », ci-dessous), sans toucher à `Monstre`.
+  `StatistiquesDeCombat`, et, depuis l'étape 93, sa couleur, et, depuis l'étape 97, son butin (voir « Butin »). Les
+  définitions sont celles des quatre catégories de monstres (« Catégories de monstres », ci-dessous), sans toucher à `Monstre`.
 - **Raison (E1 de `docs/audit.md`)** : ces valeurs étaient écrites en littéraux dans `Monstre.cpp` (constructeur
   et constantes), donc introuvables au moment d'équilibrer. Refactorisation pure : aucun comportement n'a
   changé, les 1 126 tests d'avant ont passé sans autre modification que la construction.
@@ -104,6 +104,19 @@ de vie, armure 3).
   ni cible commune, ni ancre, ni formation (voir `docs/generation.md` pour sa génération).
 - **Coût mesuré** (preset `jeu`, `docs/tests.md`) : une image de `Partie` au contact d'une nuée de 7, les autres
   groupes d'un niveau de 19 monstres en place, coûte en moyenne 0,04 ms (au pire 0,18 ms).
+
+## Butin (étape 97)
+
+- **Deux données par catégorie**, dans `DefinitionDeMonstre` : `chanceDeButin` (en pour cent, de 0 à 100) et `nombreDObjets`
+  (au moins 1 quand la chance est positive : `test_CoherenceDesDonnees`). Valeurs « à tester » : nuée 5 % et 1 objet,
+  infanterie 20 % et 1, infanterie lourde 35 % et 1, créature monstrueuse 100 % et 3 (elle laisse toujours trois objets).
+- **Le monstre ne tire rien lui-même** : il garde ces deux valeurs (`getChanceDeButin`, `getNombreDObjets`) et c'est la
+  `Partie` qui tire à sa mort, avec son `Generateur` (`genererButin`) : le monstre ne connaît pas `objets/` et n'a aucun hasard
+  de ce genre. Voir `docs/objets.md`, « Le butin au sol ».
+- **Aucun tirage pour une chance de 0 ou 100** : un monstre sans butin ne consomme aucun nombre aléatoire. Les aides de test
+  (`monstreSansHasard`, `catalogueDeTest`) mettent la chance à 0 : les suites aléatoires des tests de combat n'ont pas changé.
+- **Les monstres qui meurent hors de vue** (explosion lancée au loin) laissent aussi leur butin, sur une case que le joueur
+  n'a peut-être jamais vue : l'objet est caché sous l'inconnu et ne se désigne pas avant que la case soit explorée.
 
 ## Identifiant, vie et dessin
 
@@ -552,7 +565,8 @@ valeur n'est oublié sans que le compilateur le signale) et le catalogue.
 Champs de `struct DefinitionDeMonstre` : `cote` (`float`, du carré, en pixels ; le cercle de collision lui est inscrit),
 `couleur` (`sf::Color`), `vitesse` (`float`), `pointsDeVieMax`, `armure`, `rayonDetection`, `rayonTerritoire`,
 `zoneDeControle`, `regenerationRetour`, `attaque` (`DefinitionDeSkill` : portée, dégâts, recharge, exécution, nature),
-`statistiques` (`StatistiquesDeCombat` : capacités, esquives, et depuis l'étape 94 les résistances).
+`statistiques` (`StatistiquesDeCombat` : capacités, esquives, et depuis l'étape 94 les résistances), `chanceDeButin` (en pour
+cent) et `nombreDObjets` (étape 97).
 
 | Fonction | Rôle |
 |---|---|

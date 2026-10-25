@@ -96,6 +96,7 @@ Le nom affiché d'un objet est `[préfixe] modèle [suffixe]` (« Blazing Mace �
 | Esquivé | Dodged |
 | Bloqué | Blocked (« Blocked −40 » si le blocage est partiel) |
 | Provoqué | Taunted |
+| Sac plein (l'objet visé reste au sol) | Bag full |
 | Coup gratuit (attaque d'opportunité) | un `!` après le nombre (« 7! ») |
 
 ## Emplacements et catégories d'objet (`interface/AffichageObjets.cpp`)

@@ -114,6 +114,7 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 94 — Types de dégâts et résistances : le coup en portions (physique, feu, sacré), l'explosion en feu, la frappe sacrée, premier skill de frappe ✅
 - Étape 95 — Les objets ont leurs propres données (rareté, préfixe et suffixe) ; le texte du jeu passe à l'anglais ✅
 - Étape 96 — La génération aléatoire des objets : plages de valeurs des affixes, poids des raretés, `genererObjet`, F7 tire au hasard ✅
+- Étape 97 — Le butin au sol : les monstres lâchent des objets, ils se voient et se ramassent, on peut les jeter ✅
 
 ## Détail des étapes 0 à 73
 
@@ -2273,3 +2274,28 @@ bibliothèque standard (`std::uniform_int_distribution` n'est pas défini par la
 plateforme, sans sauvegarde ni multijoueur. 1 511 tests (+17), 0 avertissement de compilation, 39 avertissements `clang-tidy`.
 Mesure de performance non refaite (le tirage n'a lieu que sur F7). Détail : `docs/objets.md`, `docs/boucle-et-entrees.md`,
 `docs/tests.md`, `docs/glossaire.md`.
+
+### Étape 97 — Le butin au sol ✅
+
+Dernière étape de la phase 4 (butin), faite en une session autonome (un commit par sous-étape). 97.1 : `tirerEntre`,
+qui existait en double (`GenerateurDonjon.cpp`, `GenerationDObjets.cpp`), est définie une fois dans `base/Aleatoire.hpp`
+(`inline`, `[[nodiscard]]`) ; la suite des tirages n'a pas changé, les 1 511 tests ont passé sans changer une valeur. 97.2 :
+`DefinitionDeMonstre` reçoit `chanceDeButin` (en pour cent) et `nombreDObjets` (nuée 5 % et 1, infanterie 20 % et 1, infanterie
+lourde 35 % et 1, créature monstrueuse 100 % et 3, « à tester ») ; `Monstre` garde les deux valeurs. 97.3 : `genererButin`
+(`GenerationDObjets` : un tirage pour la chance, aucun à 0 ou 100, puis `genererObjet` autant de fois), `ObjetAuSol { id, objet,
+position }` (`jeu/`, identifiants jamais réutilisés), `positionPourUnObjet` (fonction pure : la case de l'origine, sinon la
+voisine praticable et libre la plus proche, par couronnes) et `Partie::retirerLesMorts`, seul endroit où un monstre quitte le
+vecteur, qui tire et pose le butin à l'endroit de sa mort ; une nouvelle `Partie` (F5, niveau, recommencement) repart sans objet
+au sol. 97.4 : `Partie::dessiner` est coupé en `dessinerLaCarte` et `dessinerLesEntites` pour que l'écran dessine les objets au
+sol entre les deux (`interface/AffichageObjetsAuSol` : losange de la couleur de la rareté, nom composé au survol), qui ont
+besoin de `couleurDeLaRarete`, de `interface/` ; le voile du brouillard fait la règle (caché sous l'inconnu, assombri sous
+l'exploré) et `Partie::objetAuSolSous` ne désigne rien sur une case inconnue. 97.5 : un clic sur un objet (après le monstre, avant
+la porte) est un ordre de ramassage retenu par la `Partie` (`m_objetAuSolVise`, un identifiant) ; `ramasserSiAPortee` ramasse
+quand l'ancre est à moins de 30 px ; sac plein, l'objet reste au sol, l'ordre est terminé et l'événement `SacPlein` produit
+« Bag full » ; tout nouvel ordre remplace la visée. 97.6 : `Escouade::retirerObjet` (le retrait ordinaire, sans destination),
+`Partie::jeterUnObjet`, et `EcranInventaire` reçoit la `Partie` : lâcher un objet hors du panneau (`rectangleDuPanneau`) le jette
+près de l'ancre, depuis le sac comme depuis un emplacement ; le test des exemplaires compte le sol. 97.7 : documentation. 1 562
+tests (+51), 0 avertissement de compilation sur les deux presets, aucun nouvel avertissement `clang-tidy` dans les fichiers
+modifiés (le total de 39 n'a pas été recompté) ; mesure de performance inchangée (moyenne 0,036 ms par image, pire 0,16 ms,
+preset `jeu`). Détail : `docs/objets.md`, `docs/monstre.md`, `docs/boucle-et-entrees.md`, `docs/ecrans.md`, `docs/combat.md`,
+`docs/formation.md`, `docs/tests.md`, `docs/glossaire.md`, `docs/brainstorm.md`.

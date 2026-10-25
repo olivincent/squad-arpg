@@ -9,7 +9,7 @@ class TileMap;
 // Un objet posé au sol, dans le monde. Possédé par la `Partie`, qui lui donne un identifiant jamais réutilisé : tout ce
 // qui désigne un objet au sol (survol, clic, ramassage) passe par lui, jamais par un indice du conteneur, qui change
 // quand on retire un élément.
-struct ObjetAuSol {
+struct ObjetAuSol {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
     int id;
     Objet objet;
     sf::Vector2f position;  // le centre de sa case, en pixels du monde
