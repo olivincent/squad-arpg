@@ -198,6 +198,7 @@ add_executable(tests
     tests/jeu/test_Partie_portes.cpp
     tests/jeu/test_Partie_zonesDeControle.cpp
     tests/jeu/test_Partie_evenements.cpp
+    tests/jeu/test_CoherenceDesDonnees.cpp
     tests/interface/test_TextesFlottants.cpp
     tests/monde/test_ObjetInteractif.cpp
     tests/monde/test_ChampDeVision.cpp
