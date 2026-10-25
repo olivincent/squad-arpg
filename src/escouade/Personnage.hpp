@@ -143,12 +143,15 @@ private:
     // jamais ajustées. Une arme qui change annule le coup de base en cours, sans recharge consommée, puis
     // l'attaque repart pour une recharge complète (`relancerSiLArmeAChange`).
     void recalculerDepuisLEquipement();
+    // L'attaque de base : les portions de l'arme portée (ou des mains nues), la Puissance sur chaque portion
+    // (`montantEffectif`, un arrondi par portion), la nature et la pénétration de l'arme, la capacité offensive du personnage.
+    [[nodiscard]] Attaque attaqueDeLArme() const;
     // L'attaque de ce skill de ce personnage : son montant, caractéristiques comprises (`montantEffectif`), rangé
     // dans le champ que dit le type du skill (dégâts, soin ou durée de provocation), la
-    // capacité offensive du personnage et la pénétration donnée (celle de l'arme pour l'attaque de base, 0 pour un skill).
-    [[nodiscard]] Attaque attaqueDe(const Skill& skill, int penetration) const;
-    // Celle d'un skill de frappe : les dégâts physiques, la nature et la pénétration de l'arme portée, plus le bonus du
-    // skill ; la Puissance joue sur chaque portion (`montantEffectif`, avec les coefficients du skill).
+    // capacité offensive du personnage ; aucune pénétration.
+    [[nodiscard]] Attaque attaqueDe(const Skill& skill) const;
+    // Celle d'un skill de frappe : toutes les portions, la nature et la pénétration de l'arme portée (affixes compris), plus
+    // le bonus du skill ; la Puissance joue sur chaque portion (`montantEffectif`, avec les coefficients du skill).
     [[nodiscard]] Attaque attaqueDeFrappe(const Skill& skill) const;
     // Son arme permet-elle de lancer ce skill (`Skill::convientA`) ?
     [[nodiscard]] bool armeConvientA(const Skill& skill) const;

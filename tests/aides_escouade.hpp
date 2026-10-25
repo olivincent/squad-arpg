@@ -65,7 +65,7 @@ inline const Caracteristiques s_caracteristiquesDeTest({s_valeurDeReference, 0, 
 // Attaque de base (mêlées et tireurs).
 inline const DescriptionDAttaque s_attaqueDeMeleeDeTest = definitionObjet(IdObjet::EpeeLongue).arme.value().attaque;
 inline const DescriptionDAttaque s_attaqueDeTireurDeTest = definitionObjet(IdObjet::Sceptre).arme.value().attaque;
-inline const int s_degatsBaseDeTest = s_attaqueDeMeleeDeTest.degats;
+inline const int s_degatsBaseDeTest = s_attaqueDeMeleeDeTest.degats[Element::Physique];
 inline const float s_executionBaseDeTest = s_attaqueDeMeleeDeTest.tempsExecution;  // en secondes
 inline const float s_porteeMeleeDeTest = s_attaqueDeMeleeDeTest.portee;            // bord à bord
 inline const float s_porteeTireurDeTest = s_attaqueDeTireurDeTest.portee;          // bord à bord

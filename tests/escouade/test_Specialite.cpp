@@ -412,7 +412,7 @@ TEST_CASE("la frappe sacree avec la masse de depart : physique de la masse, sacr
 
     const Attaque attaque = frappeSacreeDe(paladin);
 
-    REQUIRE(attaque.degats[Element::Physique] == montantEffectif(definitionObjet(IdObjet::Masse).arme->attaque.degats, puissance, paladin.getCaracteristiques()));
+    REQUIRE(attaque.degats[Element::Physique] == montantEffectif(definitionObjet(IdObjet::Masse).arme->attaque.degats[Element::Physique], puissance, paladin.getCaracteristiques()));
     REQUIRE(attaque.degats[Element::Sacre] == montantEffectif(45, puissance, paladin.getCaracteristiques()));
     REQUIRE(attaque.degats[Element::Feu] == 0);
     // Le total d'avant l'étape 94 : un skill de 60 avec la Puissance. Chaque portion arrondit à part : écart d'au plus 1.
@@ -438,6 +438,39 @@ TEST_CASE("la frappe sacree avec l'epee a deux mains : la portion physique est p
     REQUIRE(deuxMains.degats[Element::Physique] > masse.degats[Element::Physique]);
     REQUIRE(deuxMains.degats[Element::Sacre] == masse.degats[Element::Sacre]);
     REQUIRE(deuxMains.degats.total() > masse.degats.total());
+}
+
+TEST_CASE("la frappe sacree avec une masse flamboyante a trois portions : physique, feu de l'arme, sacre du bonus") {
+    Personnage paladin = deLaClasse(IdSpecialite::Paladin);
+    static_cast<void>(paladin.poserEquipement(Emplacement::MainDroite, Objet{IdObjet::Masse, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}}));
+    const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
+
+    const Attaque attaque = frappeSacreeDe(paladin);
+
+    REQUIRE(attaque.degats[Element::Physique] == montantEffectif(definitionObjet(IdObjet::Masse).arme->attaque.degats[Element::Physique], puissance, paladin.getCaracteristiques()));
+    REQUIRE(attaque.degats[Element::Feu] == montantEffectif(6, puissance, paladin.getCaracteristiques()));
+    REQUIRE(attaque.degats[Element::Sacre] == montantEffectif(45, puissance, paladin.getCaracteristiques()));
+    REQUIRE(attaque.degats[Element::Physique] > 0);
+    REQUIRE(attaque.degats[Element::Feu] > 0);
+    REQUIRE(attaque.degats[Element::Sacre] > 0);
+}
+
+TEST_CASE("la frappe sacree avec une masse sanctifiee ajoute le sacre de l'arme a celui du bonus, une portion arrondie a part chacune") {
+    Personnage paladin = deLaClasse(IdSpecialite::Paladin);
+    static_cast<void>(paladin.poserEquipement(Emplacement::MainDroite, Objet{IdObjet::Masse, Rarete::Magique, Affixe{IdAffixe::Sanctifie, 4}}));
+    const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
+
+    const Attaque attaque = frappeSacreeDe(paladin);
+
+    REQUIRE(attaque.degats[Element::Sacre] ==
+            montantEffectif(4, puissance, paladin.getCaracteristiques()) + montantEffectif(45, puissance, paladin.getCaracteristiques()));
+}
+
+TEST_CASE("la frappe sacree prend la penetration de l'arme, affixes compris") {
+    Personnage paladin = deLaClasse(IdSpecialite::Paladin);
+    static_cast<void>(paladin.poserEquipement(Emplacement::MainDroite, Objet{IdObjet::Masse, Rarete::Magique, Affixe{IdAffixe::Acere, 15}}));
+
+    REQUIRE(frappeSacreeDe(paladin).penetration == 15);
 }
 
 TEST_CASE("la frappe sacree sans l'arme exigee est refusee, comme avant") {

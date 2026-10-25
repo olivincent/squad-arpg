@@ -232,7 +232,7 @@ TEST_CASE("catalogueObjets : les sept armes, leurs types, leurs mains et leur at
         const DonneesDArme& arme = *definition.arme;  // NOLINT(bugprone-unchecked-optional-access): vérifié par le REQUIRE au-dessus
         REQUIRE(arme.type == attendue.type);
         REQUIRE(arme.mains == attendue.mains);
-        REQUIRE(arme.attaque.degats == attendue.degats);
+        REQUIRE(arme.attaque.degats == degatsPhysiques(attendue.degats));
         REQUIRE(arme.attaque.rechargeMin == attendue.rechargeMin);
         REQUIRE(arme.attaque.rechargeMax == attendue.rechargeMax);
         REQUIRE(arme.attaque.tempsExecution == attendue.execution);

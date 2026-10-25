@@ -2,8 +2,12 @@
 #pragma once
 #include <string>
 #include <vector>
+#include "combat/Caracteristiques.hpp"
+#include "combat/Degats.hpp"
+#include "combat/StatistiquesDeCombat.hpp"
 #include "objets/Affixe.hpp"
 #include "objets/Emplacement.hpp"
+#include "objets/Objet.hpp"
 
 // Où un affixe se place dans le nom d'un objet, et dans l'objet : un préfixe avant le modèle (« Blazing Mace »), un
 // suffixe après (« Bow of the Fox »).
@@ -45,3 +49,17 @@ struct DefinitionDAffixe {  // NOLINT(cppcoreguidelines-pro-type-member-init): c
 
 // Un objet de cette catégorie peut-il porter cet affixe ?
 [[nodiscard]] bool affixePermis(IdAffixe id, CategorieObjet categorie);
+
+// Ce que les affixes d'un objet ajoutent, rangé par total que l'équipement tient déjà (`Equipement` y additionne ces
+// apports à ceux du modèle : `armureTotale`, `bonusTotal`, `bonusDeCombatTotal`, `attaqueDeBase`, qui restent les seuls
+// endroits qui calculent). Rien n'est stocké : recalculé à chaque appel, depuis les valeurs de l'objet.
+struct ApportDesAffixes {
+    int armure = 0;
+    Caracteristiques bonus = {};
+    StatistiquesDeCombat bonusDeCombat = {};  // les esquives, et la chance de blocage (le montant reste celui du bouclier)
+    Degats degatsAjoutes = {};                // portions ajoutées à l'attaque de base de l'arme (feu, sacré)
+    int penetration = 0;                      // pour cent ajoutés à celle de l'arme (le plafond s'applique plus loin)
+};
+
+// L'apport des affixes de cet objet (celui du préfixe plus celui du suffixe) ; nul pour un objet commun.
+[[nodiscard]] ApportDesAffixes apportDesAffixes(const Objet& objet);

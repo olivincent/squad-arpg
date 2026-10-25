@@ -121,7 +121,7 @@ TEST_CASE("affichage : l'infobulle d'une arme a une main donne ses degats, sa re
     const std::vector<std::string> lignes = lignesDeLInfobulle(IdObjet::EpeeLongue);
     const DescriptionDAttaque& attaque = definitionObjet(IdObjet::EpeeLongue).arme.value().attaque;
 
-    REQUIRE(lignes == std::vector<std::string>{"Longsword", "Weapon", "Requires Might 11", "Damage: " + std::to_string(attaque.degats),
+    REQUIRE(lignes == std::vector<std::string>{"Longsword", "Weapon", "Requires Might 11", "Damage: " + std::to_string(attaque.degats.total()),
                                                "Cooldown: 0.3 to 0.7 s", "Range: 20 px", "Melee"});
 }
 

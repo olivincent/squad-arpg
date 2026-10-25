@@ -22,7 +22,7 @@ std::string secondes(float valeur) {
 // Les lignes d'une arme : l'attaque de base qu'elle donne et, à deux mains, « Two-handed ».
 void ajouterLesLignesDUneArme(std::vector<std::string>& lignes, const DonneesDArme& arme) {
     const DescriptionDAttaque& attaque = arme.attaque;
-    lignes.push_back("Damage: " + std::to_string(attaque.degats));
+    lignes.push_back("Damage: " + std::to_string(attaque.degats.total()));
     lignes.push_back("Cooldown: " + (attaque.rechargeMin == attaque.rechargeMax
                                           ? secondes(attaque.rechargeMin)
                                           : secondes(attaque.rechargeMin) + " to " + secondes(attaque.rechargeMax)) + " s");

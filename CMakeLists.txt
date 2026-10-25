@@ -155,6 +155,7 @@ add_executable(tests
     tests/monstres/test_Monstre_retour.cpp
     tests/monstres/test_Monstre_engagement.cpp
     tests/escouade/test_Personnage.cpp
+    tests/escouade/test_Personnage_affixes.cpp
     tests/combat/test_Skill.cpp
     tests/monde/test_Mobile.cpp
     tests/base/test_Cercle.cpp
@@ -191,6 +192,7 @@ add_executable(tests
     tests/objets/test_CatalogueAffixes.cpp
     tests/objets/test_CatalogueObjets.cpp
     tests/objets/test_Equipement.cpp
+    tests/objets/test_Equipement_affixes.cpp
     tests/objets/test_Inventaire.cpp
     tests/objets/test_PositionDObjet.cpp
     tests/objets/test_DeplacementDObjets.cpp

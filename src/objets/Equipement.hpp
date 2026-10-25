@@ -42,23 +42,25 @@ public:
     // Enlève l'objet de cet emplacement et le rend (vide si l'emplacement l'était).
     [[nodiscard]] std::optional<Objet> retirer(Emplacement emplacement);
 
-    // Somme de l'armure des objets portés, recalculée à chaque appel.
+    // Somme de l'armure des objets portés (celle de leur modèle et celle de leurs affixes), recalculée à chaque appel.
     [[nodiscard]] int armureTotale() const;
 
-    // Somme des bonus de caractéristiques des objets portés, recalculée à chaque appel.
+    // Somme des bonus de caractéristiques des objets portés (modèles et affixes), recalculée à chaque appel.
     [[nodiscard]] Caracteristiques bonusTotal() const;
 
-    // Somme des bonus de statistiques de combat des objets portés (esquive, capacités…) et du blocage de leurs boucliers
-    // (chance, montant), recalculée à chaque appel.
+    // Somme des bonus de statistiques de combat des objets portés (esquive, capacités…, modèles et affixes) et du blocage de
+    // leurs boucliers (chance, montant), recalculée à chaque appel. La chance de blocage d'un affixe s'ajoute à celle du
+    // bouclier ; le montant reste celui du bouclier.
     [[nodiscard]] StatistiquesDeCombat bonusDeCombatTotal() const;
 
-    // L'attaque de base que donne cet équipement : celle de l'arme de la main droite, sinon les mains nues
-    // (`mainsNues`). Une valeur dérivée, recalculée à chaque appel, jamais stockée.
+    // L'attaque de base que donne cet équipement : celle de l'arme de la main droite, avec les portions de feu et de sacré
+    // et la pénétration que ses affixes y ajoutent, sinon les mains nues (`mainsNues`). Une valeur dérivée, recalculée à
+    // chaque appel, jamais stockée.
     [[nodiscard]] DescriptionDAttaque attaqueDeBase() const;
 
     // L'équipement **actif** d'un porteur de ces caractéristiques de base (étape 92.2) : les objets dont le seuil n'est
     // plus atteint n'ont plus aucun effet (ni armure, ni bonus, ni données d'arme ou de bouclier : les mains nues,
-    // pas de blocage) tout en restant portés. Le calcul (point fixe) est `objetsActifs`.
+    // pas de blocage, ni leurs affixes) tout en restant portés. Le calcul (point fixe) est `objetsActifs`.
     [[nodiscard]] Equipement actifPour(const Caracteristiques& base) const;
 
     // Le type de l'arme de la main droite ; vide sans arme (les mains nues n'ont pas de type).

@@ -29,6 +29,25 @@ std::vector<DefinitionDAffixe> construireLeCatalogue() {
         {IdAffixe::DeBlocage, "of Blocking", PositionDAffixe::Suffixe, EffetDAffixe::ChanceDeBlocage, {CategorieObjet::Bouclier}},
     };
 }
+
+// Ajoute l'apport d'un affixe. Le `switch` n'a pas de `default` : un effet ajouté sans règle fait avertir le compilateur.
+void ajouter(ApportDesAffixes& apport, const Affixe& affixe) {
+    const int valeur = affixe.valeur;
+    switch (definitionAffixe(affixe.id).effet) {
+        case EffetDAffixe::DegatsDeFeu: apport.degatsAjoutes[Element::Feu] += valeur; break;
+        case EffetDAffixe::DegatsSacres: apport.degatsAjoutes[Element::Sacre] += valeur; break;
+        case EffetDAffixe::PenetrationDArmure: apport.penetration += valeur; break;
+        case EffetDAffixe::Armure: apport.armure += valeur; break;
+        case EffetDAffixe::Puissance: apport.bonus += Caracteristiques::seule(Caracteristique::Puissance, valeur); break;
+        case EffetDAffixe::Endurance: apport.bonus += Caracteristiques::seule(Caracteristique::Endurance, valeur); break;
+        case EffetDAffixe::Adresse: apport.bonus += Caracteristiques::seule(Caracteristique::Adresse, valeur); break;
+        case EffetDAffixe::Savoir: apport.bonus += Caracteristiques::seule(Caracteristique::Savoir, valeur); break;
+        case EffetDAffixe::Volonte: apport.bonus += Caracteristiques::seule(Caracteristique::Volonte, valeur); break;
+        case EffetDAffixe::EsquiveContact: apport.bonusDeCombat.esquiveContact += valeur; break;
+        case EffetDAffixe::EsquiveProjectile: apport.bonusDeCombat.esquiveProjectile += valeur; break;
+        case EffetDAffixe::ChanceDeBlocage: apport.bonusDeCombat.chanceDeBlocage += valeur; break;
+    }
+}
 }  // namespace
 
 const std::vector<DefinitionDAffixe>& catalogueAffixes() {
@@ -45,4 +64,15 @@ const DefinitionDAffixe& definitionAffixe(IdAffixe id) {
 bool affixePermis(IdAffixe id, CategorieObjet categorie) {
     const std::vector<CategorieObjet>& permises = definitionAffixe(id).categories;
     return std::ranges::find(permises, categorie) != permises.end();
+}
+
+ApportDesAffixes apportDesAffixes(const Objet& objet) {
+    ApportDesAffixes apport;
+    if (objet.prefixe.has_value()) {
+        ajouter(apport, *objet.prefixe);
+    }
+    if (objet.suffixe.has_value()) {
+        ajouter(apport, *objet.suffixe);
+    }
+    return apport;
 }

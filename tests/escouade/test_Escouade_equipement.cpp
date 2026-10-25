@@ -490,7 +490,7 @@ TEST_CASE("objets inactifs : retirer l'anneau de puissance rend l'epee a deux ma
     REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainDroite) == s_epeeADeuxMains);   // toujours portée
     REQUIRE_FALSE(escouade.equipementActifDuPersonnage(s_guerrier).a(Emplacement::MainDroite).has_value());  // sans effet
     REQUIRE(escouade.attaqueDeBase(s_guerrier)->degats.total() <
-            montantEffectif(definitionObjet(IdObjet::EpeeADeuxMains).arme->attaque.degats, Coefficients::seul(Caracteristique::Puissance, 1.0f),
+            montantEffectif(definitionObjet(IdObjet::EpeeADeuxMains).arme->attaque.degats[Element::Physique], Coefficients::seul(Caracteristique::Puissance, 1.0f),
                             *escouade.caracteristiquesDuPersonnage(s_guerrier)));
 }
 

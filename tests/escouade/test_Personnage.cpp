@@ -190,7 +190,7 @@ TEST_CASE("changer d'arme change la zone de controle, la portee et l'attaque de 
     const DescriptionDAttaque epee = definitionObjet(IdObjet::EpeeLongue).arme.value().attaque;
     const DescriptionDAttaque arc = definitionObjet(IdObjet::Arc).arme.value().attaque;
     REQUIRE(personnage.getPorteeAttaqueDeBase() == epee.portee);
-    REQUIRE(personnage.getAttaqueDeBase().degats.total() == montantEffectif(epee.degats, Coefficients::seul(Caracteristique::Puissance, 1.0f),
+    REQUIRE(personnage.getAttaqueDeBase().degats.total() == montantEffectif(epee.degats[Element::Physique], Coefficients::seul(Caracteristique::Puissance, 1.0f),
                                                                      personnage.getCaracteristiques()));
 
     static_cast<void>(personnage.retirerEquipement(Emplacement::MainDroite));
@@ -1362,7 +1362,7 @@ TEST_CASE("une arme dont le seuil n'est pas atteint reste portee mais le personn
     REQUIRE_FALSE(personnage.getEquipementActif().a(Emplacement::MainDroite).has_value());
     REQUIRE(personnage.getPorteeAttaqueDeBase() == mainsNues().portee);
     REQUIRE(personnage.getAttaqueDeBase().degats.total() ==
-            montantEffectif(mainsNues().degats, Coefficients::seul(Caracteristique::Puissance, 1.0f), personnage.getCaracteristiques()));
+            montantEffectif(mainsNues().degats[Element::Physique], Coefficients::seul(Caracteristique::Puissance, 1.0f), personnage.getCaracteristiques()));
 }
 
 TEST_CASE("retirer l'anneau de puissance rend l'epee inactive, le remettre la remet en service") {
@@ -1544,7 +1544,7 @@ TEST_CASE("un skill de frappe prend les degats physiques et la nature de l'arme,
     const Attaque tir = lancerSkillEnEntier(archer, Cible(CibleMonstre{1, Cercle{{120.0f, 100.0f}, 10.0f}}), generateur, IdSkill::FrappeSacree);
 
     REQUIRE(tir.nature == NatureDAttaque::Projectile);  // celle de l'arc, pas la nature déclarée par le skill
-    REQUIRE(tir.degats[Element::Physique] == montantEffectif(definitionObjet(IdObjet::Arc).arme->attaque.degats, puissance, archer.getCaracteristiques()));
+    REQUIRE(tir.degats[Element::Physique] == montantEffectif(definitionObjet(IdObjet::Arc).arme->attaque.degats[Element::Physique], puissance, archer.getCaracteristiques()));
     REQUIRE(tir.degats[Element::Feu] == montantEffectif(10, puissance, archer.getCaracteristiques()));
 }
 

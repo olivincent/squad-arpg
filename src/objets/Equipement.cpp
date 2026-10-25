@@ -31,7 +31,7 @@ int Equipement::armureTotale() const {
     int total = 0;
     for (const std::optional<Objet>& objet : m_objets) {
         if (objet) {
-            total += definitionObjet(objet->modele).armure;
+            total += definitionObjet(objet->modele).armure + apportDesAffixes(*objet).armure;
         }
     }
     return total;
@@ -43,6 +43,7 @@ StatistiquesDeCombat Equipement::bonusDeCombatTotal() const {
         if (objet) {
             const DefinitionObjet& definition = definitionObjet(objet->modele);
             total += definition.bonusDeCombat;
+            total += apportDesAffixes(*objet).bonusDeCombat;
             if (definition.bouclier.has_value()) {
                 total.chanceDeBlocage += definition.bouclier->chanceDeBlocage;
                 total.montantBloque += definition.bouclier->montantBloque;
@@ -57,7 +58,15 @@ DescriptionDAttaque Equipement::attaqueDeBase() const {
     if (main.has_value()) {
         const std::optional<DonneesDArme>& arme = definitionObjet(main->modele).arme;
         if (arme.has_value()) {
-            return arme->attaque;
+            // L'attaque de l'arme, avec ce que ses affixes y ajoutent : du feu ou du sacré en portions de plus, de la
+            // pénétration en plus de celle de l'arme (le plafond s'applique avec la défense).
+            DescriptionDAttaque attaque = arme->attaque;
+            const ApportDesAffixes apport = apportDesAffixes(*main);
+            for (const Element element : s_elements) {
+                attaque.degats[element] += apport.degatsAjoutes[element];
+            }
+            attaque.penetration += apport.penetration;
+            return attaque;
         }
     }
     return mainsNues();
@@ -80,7 +89,9 @@ Equipement Equipement::actifPour(const Caracteristiques& base) const {
         const std::optional<Objet>& objet = m_objets[i];
         if (objet.has_value()) {
             const DefinitionObjet& definition = definitionObjet(objet->modele);
-            portes[i] = ExigencesEtBonus{definition.seuils, definition.bonus};
+            // Les seuils ne dépendent que du modèle ; le bonus compte celui des affixes (un suffixe de caractéristique
+            // peut rendre actif un autre objet).
+            portes[i] = ExigencesEtBonus{definition.seuils, definition.bonus + apportDesAffixes(*objet).bonus};
         }
     }
     const std::vector<bool> actifs = objetsActifs(base, portes);
@@ -102,6 +113,7 @@ Caracteristiques Equipement::bonusTotal() const {
     for (const std::optional<Objet>& objet : m_objets) {
         if (objet) {
             total += definitionObjet(objet->modele).bonus;
+            total += apportDesAffixes(*objet).bonus;
         }
     }
     return total;

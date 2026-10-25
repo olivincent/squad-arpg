@@ -61,14 +61,14 @@ DefinitionObjet avecSeuils(DefinitionObjet definition, std::vector<SeuilDeCaract
 DonneesDArme armeDeMelee(TypeDArme type, int mains, int degats, float rechargeMin, float rechargeMax, float execution,
                          int penetration = 0) {
     return {.type = type, .mains = mains,
-            .attaque = {.degats = degats, .rechargeMin = rechargeMin, .rechargeMax = rechargeMax,
+            .attaque = {.degats = degatsPhysiques(degats), .rechargeMin = rechargeMin, .rechargeMax = rechargeMax,
                         .tempsExecution = execution, .portee = s_porteeDeContact, .nature = NatureDAttaque::Contact,
                         .penetration = penetration}};
 }
 
 DonneesDArme armeDeTir(TypeDArme type, int mains, int degats) {
     return {.type = type, .mains = mains,
-            .attaque = {.degats = degats, .rechargeMin = s_rechargeTirMin, .rechargeMax = s_rechargeTirMax,
+            .attaque = {.degats = degatsPhysiques(degats), .rechargeMin = s_rechargeTirMin, .rechargeMax = s_rechargeTirMax,
                         .tempsExecution = s_executionArmeLegere, .portee = s_porteeDeProjectile,
                         .nature = NatureDAttaque::Projectile, .penetration = 0}};
 }
@@ -132,7 +132,7 @@ const DefinitionObjet& definitionObjet(IdObjet id) {
 }
 
 const DescriptionDAttaque& mainsNues() {
-    static const DescriptionDAttaque s_mainsNues = {.degats = s_degatsMainsNues, .rechargeMin = s_rechargeTirMin,
+    static const DescriptionDAttaque s_mainsNues = {.degats = degatsPhysiques(s_degatsMainsNues), .rechargeMin = s_rechargeTirMin,
                                                     .rechargeMax = s_rechargeTirMax, .tempsExecution = s_executionArmeLegere,
                                                     .portee = s_porteeDeContact, .nature = NatureDAttaque::Contact,
                                                     .penetration = 0};
