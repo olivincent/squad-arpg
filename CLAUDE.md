@@ -40,14 +40,14 @@ modifier.
      ne sont pas réexpliquées, sauf si Olivier le demande) ;
    - ce qu'il doit **tester visuellement** en lançant le jeu (Claude Code
      ne voit pas la fenêtre du jeu) ;
-   - le message de commit proposé.
+   - le message du commit fait.
    Puis attendre sa confirmation avant la sous-étape suivante.
 4. **Sous-étapes enchaînables.** Si un prompt marque une sous-étape
    « (enchaînable) » parce qu'elle n'a rien à tester visuellement, la
    réaliser, compiler, lancer les tests, puis passer directement à la
    sous-étape suivante sans s'arrêter. Au prochain arrêt, le résumé
-   couvre tout le groupe de sous-étapes enchaînées, et un seul commit
-   est proposé pour l'ensemble. S'arrêter quand même si la compilation
+   couvre tout le groupe de sous-étapes enchaînées ; chaque sous-étape
+   a quand même son commit (règle 7). S'arrêter quand même si la compilation
    ou un test échoue, ou si quelque chose d'imprévu se présente. Sans
    cette mention, la règle précédente (un arrêt par sous-étape)
    s'applique. Ne jamais décider soi-même qu'une sous-étape est
@@ -61,8 +61,11 @@ modifier.
    code devenu inutile est supprimé (Git le garde).
 6. **Migrations sans casse** : quand on déplace du code, on le déplace sans
    le modifier, et les améliorations se font dans un commit séparé.
-7. **Git** : ne pas faire de commit soi-même. Proposer la commande
-   `git add` / `git commit -m "..."` ; Olivier la lance après avoir testé.
+7. **Git** : un commit par sous-étape terminée (compilée sur les deux presets,
+   tests verts), fait par Claude Code avec un message court
+   (`95.2 : le jeu en anglais`). Jamais de `git push`, ni de commit d'une
+   sous-étape qui ne compile pas ou dont un test échoue. Un prompt n'a pas à
+   répéter cette règle.
 8. **Fin d'une étape complète** : quand Olivier le demande, mettre à
    jour :
    - `ROADMAP.md` (version courte) : étape cochée, « État actuel » résumé,
