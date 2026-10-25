@@ -10,6 +10,8 @@
 #include "aides_escouade.hpp"
 #include "combat/Caracteristiques.hpp"
 #include "combat/Defense.hpp"
+#include "combat/Element.hpp"
+#include "combat/TypeSkill.hpp"
 #include "combat/TypeDArme.hpp"
 #include "escouade/Composition.hpp"
 #include "objets/CatalogueObjets.hpp"
@@ -365,5 +367,17 @@ TEST_CASE("seuils : chaque classe atteint les seuils de son equipement de depart
 TEST_CASE("seuils : aucune classe ne peut porter l'epee a deux mains au depart") {
     for (const Specialite& classe : catalogue()) {
         REQUIRE_FALSE(seuilsAtteints(IdObjet::EpeeADeuxMains, classe.definition.caracteristiques));
+    }
+}
+
+TEST_CASE("l'explosion du mage est du feu, les autres skills de degats et de zone sont physiques") {
+    for (const Specialite& classe : catalogue()) {
+        for (const SkillConnu& connu : classe.definition.skills) {
+            const bool explosion = connu.id == IdSkill::Explosion;
+            INFO(classe.nom << " : skill " << static_cast<int>(connu.id));
+            if (connu.skill.getType() == TypeSkill::DegatsSurCible || connu.skill.getType() == TypeSkill::Zone) {
+                REQUIRE(connu.skill.getElement() == (explosion ? Element::Feu : Element::Physique));
+            }
+        }
     }
 }

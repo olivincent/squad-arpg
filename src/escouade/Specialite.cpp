@@ -6,6 +6,7 @@
 #include <utility>
 #include "base/Eclaircir.hpp"
 #include "combat/Caracteristiques.hpp"
+#include "combat/Element.hpp"
 #include "combat/IdSkill.hpp"
 #include "combat/NatureDAttaque.hpp"
 #include "combat/TypeDArme.hpp"
@@ -122,7 +123,7 @@ std::vector<Specialite> construireLeCatalogue() {
           .skills = {{IdSkill::Explosion, Skill({.type = TypeSkill::Zone, .portee = s_porteeZone, .puissance = s_degatsZone,
                                        .rechargeMin = s_rechargeZone, .rechargeMax = s_rechargeZone,
                                        .rayonZone = s_rayonZone, .tempsExecution = s_activationZone, .coefficients = s_puissanceSeule,
-                                       .nature = NatureDAttaque::Zone})}},
+                                       .nature = NatureDAttaque::Zone, .element = Element::Feu})}},
           .equipementDeDepart = equipementDeTireur(IdObjet::Baton), .rayonVision = s_rayonVision,
           .caracteristiques = s_caracteristiquesMage,
           .rang = Rang::Arriere}},

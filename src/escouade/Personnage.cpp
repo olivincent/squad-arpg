@@ -391,7 +391,7 @@ Attaque Personnage::attaqueDe(const Skill& skill, int penetration) const {
     switch (skill.getType()) {
         case TypeSkill::DegatsSurCible:
         case TypeSkill::Zone:
-            attaque.degats = degatsPhysiques(montant);
+            attaque.degats = degatsDe(skill.getElement(), montant);
             break;
         case TypeSkill::Soin:
             attaque.soin = montant;

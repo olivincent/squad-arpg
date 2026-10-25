@@ -20,6 +20,7 @@
 #include "combat/Caracteristiques.hpp"
 #include "combat/Cible.hpp"
 #include "combat/DescriptionDAttaque.hpp"
+#include "combat/Element.hpp"
 #include "escouade/Composition.hpp"
 #include "combat/Coup.hpp"
 #include "escouade/Escouade.hpp"
@@ -127,13 +128,14 @@ inline DefinitionPersonnage pretreDeTest() {
             .rang = Rang::Arriere};
 }
 
-// Mage de test : derrière, tireur, explosion (skill de zone).
+// Mage de test : derrière, tireur, explosion (skill de zone, de feu comme celle de la classe).
 inline DefinitionPersonnage mageDeTest() {
     return {.couleur = sf::Color(160, 80, 220),
             .skills = {{IdSkill::Explosion, Skill({.type = TypeSkill::Zone, .portee = s_porteeZoneDeTest,
                                          .puissance = s_degatsZoneDeTest, .rechargeMin = s_rechargeZoneDeTest,
                                          .rechargeMax = s_rechargeZoneDeTest, .rayonZone = s_rayonZoneDeTest,
-                                         .tempsExecution = s_activationZoneDeTest, .nature = NatureDAttaque::Zone})}},
+                                         .tempsExecution = s_activationZoneDeTest, .nature = NatureDAttaque::Zone,
+                                         .element = Element::Feu})}},
             .equipementDeDepart = {{Emplacement::MainDroite, IdObjet::Baton}},
             .rayonVision = s_rayonVisionDeTest,
             .caracteristiques = caracteristiquesPourPorter({{Emplacement::MainDroite, IdObjet::Baton}}),

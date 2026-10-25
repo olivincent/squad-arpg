@@ -2,6 +2,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <vector>
 
+#include "combat/Defense.hpp"
+#include "combat/Element.hpp"
 #include "combat/Esquive.hpp"
 #include "escouade/Specialite.hpp"
 #include "monde/CategorieDeMonstre.hpp"
@@ -42,6 +44,21 @@ TEST_CASE("chaque definition de monstre est valide") {
         REQUIRE(definition.statistiques.esquiveProjectile <= s_esquiveMaximale);
         REQUIRE(definition.rayonDetection > 0.0f);
         REQUIRE(definition.rayonTerritoire >= definition.rayonDetection);
+        for (const Element element : s_elements) {
+            INFO("element " << static_cast<int>(element));
+            REQUIRE(definition.statistiques.resistances[element] >= s_resistanceMinimale);
+            REQUIRE(definition.statistiques.resistances[element] <= s_resistanceMaximale);
+        }
+    }
+}
+
+TEST_CASE("seule la creature monstrueuse resiste au feu, et la resistance physique est nulle partout") {
+    for (const CategorieDeMonstre categorie : s_categoriesDeMonstre) {
+        const Resistances& resistances = definitionDeMonstre(categorie).statistiques.resistances;
+        INFO("categorie " << static_cast<int>(categorie));
+        REQUIRE(resistances[Element::Physique] == 0);
+        REQUIRE(resistances[Element::Sacre] == 0);
+        REQUIRE(resistances[Element::Feu] == (categorie == CategorieDeMonstre::CreatureMonstrueuse ? 40 : 0));
     }
 }
 

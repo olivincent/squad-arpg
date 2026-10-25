@@ -13,9 +13,7 @@ using Portions = ParElement<float>;
 
 // Des dégâts d'un seul élément : `montant` points de cet élément, rien ailleurs.
 [[nodiscard]] constexpr Degats degatsDe(Element element, int montant) {
-    Degats degats;
-    degats[element] = montant;
-    return degats;
+    return Degats::seul(element, montant);
 }
 
 // Des dégâts purement physiques : ceux de toute source qui n'a pas d'élément (attaque de base, skill ordinaire,

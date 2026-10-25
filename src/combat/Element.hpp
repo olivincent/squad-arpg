@@ -31,6 +31,13 @@ template <typename T>
 struct ParElement {
     std::array<T, s_nombreDElements> valeurs = {};
 
+    // Cette valeur pour cet élément, zéro pour les autres (comme `Coefficients::seul`).
+    [[nodiscard]] static constexpr ParElement seul(Element element, T valeur) {
+        ParElement resultat;
+        resultat[element] = valeur;
+        return resultat;
+    }
+
     [[nodiscard]] constexpr T& operator[](Element element) {
         return valeurs[static_cast<std::size_t>(element)];
     }

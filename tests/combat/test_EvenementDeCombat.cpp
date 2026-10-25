@@ -3,6 +3,7 @@
 #include <variant>
 #include <vector>
 
+#include "combat/Degats.hpp"
 #include "combat/EvenementDeCombat.hpp"
 #include "combat/ResolutionDuCoup.hpp"
 
@@ -45,4 +46,31 @@ TEST_CASE("detailsDuCoup : un blocage total donne Bloque seul, sans DegatsSubis 
 TEST_CASE("detailsDuCoup : un resultat rien (mort, invulnerable, montant nul) ne donne aucun evenement") {
     REQUIRE(detailsDuCoup({}, false).empty());
     REQUIRE(detailsDuCoup({}, true).empty());
+}
+
+TEST_CASE("detailsDuCoup : l'element des degats est celui de la plus grosse portion apres les reductions") {
+    Degats portions = degatsDe(Element::Physique, 20);
+    portions[Element::Feu] = 35;
+    portions[Element::Sacre] = 5;
+
+    const std::vector<DetailEvenement> details = detailsDuCoup({.montant = 60, .critique = false, .esquive = false, .bloque = 0, .portions = portions}, false);
+
+    REQUIRE(details.size() == 1);
+    REQUIRE(std::get<DegatsSubis>(details[0]).element == Element::Feu);
+    REQUIRE(std::get<DegatsSubis>(details[0]).montant == 60);  // un seul nombre : le total
+}
+
+TEST_CASE("detailsDuCoup : a egalite des portions, l'element est le premier de l'enumeration") {
+    Degats portions = degatsDe(Element::Sacre, 10);
+    portions[Element::Feu] = 10;
+
+    const std::vector<DetailEvenement> details = detailsDuCoup({.montant = 20, .critique = false, .esquive = false, .bloque = 0, .portions = portions}, false);
+
+    REQUIRE(std::get<DegatsSubis>(details[0]).element == Element::Feu);
+}
+
+TEST_CASE("detailsDuCoup : des degats purement physiques gardent l'element physique") {
+    const std::vector<DetailEvenement> details = detailsDuCoup({.montant = 20, .critique = false, .esquive = false, .bloque = 0, .portions = degatsPhysiques(20)}, false);
+
+    REQUIRE(std::get<DegatsSubis>(details[0]).element == Element::Physique);
 }

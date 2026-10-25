@@ -11,6 +11,8 @@
 #include "combat/EvenementDeCombat.hpp"
 #include "combat/ResolutionDuCoup.hpp"
 #include "combat/Vitalite.hpp"
+#include "monde/CategorieDeMonstre.hpp"
+#include "monstres/DefinitionDeMonstre.hpp"
 
 namespace {
 // Une capacité offensive assez grande pour que le critique soit au plafond : 50 % de chance, ×2.
@@ -236,4 +238,44 @@ TEST_CASE("portions : un coup sans aucune portion ne fait rien et ne tire rien")
 
     REQUIRE(resultat.montant == 0);
     REQUIRE(generateur == intact);
+}
+
+namespace {
+// Ce que la définition de cette catégorie oppose à un coup (sans esquive : les tests ne tirent aucun nombre).
+Defenses defensesDeLaCategorie(CategorieDeMonstre categorie) {
+    const DefinitionDeMonstre& definition = definitionDeMonstre(categorie);
+    Defenses defenses = {.armure = definition.armure, .statistiques = definition.statistiques};
+    defenses.statistiques.esquiveContact = 0;
+    defenses.statistiques.esquiveProjectile = 0;
+    return defenses;
+}
+}  // namespace
+
+TEST_CASE("portions : contre l'infanterie lourde, le feu ignore l'armure qui ecrase le physique") {
+    Generateur generateur = generateurDeTest();
+    const Defenses lourde = defensesDeLaCategorie(CategorieDeMonstre::InfanterieLourde);
+    const Defenses ordinaire = defensesDeLaCategorie(CategorieDeMonstre::Infanterie);
+
+    const int feuSurLourde = resoudreCoup(attaqueDe(degatsDe(Element::Feu, 45), NatureDAttaque::Zone), lourde, true, generateur).montant;
+    const int feuSurOrdinaire = resoudreCoup(attaqueDe(degatsDe(Element::Feu, 45), NatureDAttaque::Zone), ordinaire, true, generateur).montant;
+    const int physiqueSurLourde = resoudreCoup(attaqueDe(degatsDe(Element::Physique, 45), NatureDAttaque::Zone), lourde, true, generateur).montant;
+
+    REQUIRE(feuSurLourde == 45);
+    REQUIRE(feuSurOrdinaire == 45);
+    REQUIRE(physiqueSurLourde == 45 - lourde.armure);
+    REQUIRE(physiqueSurLourde < feuSurLourde);
+}
+
+TEST_CASE("portions : la creature monstrueuse encaisse 60 % du feu et la totalite du physique non arme") {
+    Generateur generateur = generateurDeTest();
+    const Defenses creature = defensesDeLaCategorie(CategorieDeMonstre::CreatureMonstrueuse);
+    const Defenses ordinaire = defensesDeLaCategorie(CategorieDeMonstre::Infanterie);
+
+    const int feuSurCreature = resoudreCoup(attaqueDe(degatsDe(Element::Feu, 100), NatureDAttaque::Zone), creature, true, generateur).montant;
+    const int feuSurOrdinaire = resoudreCoup(attaqueDe(degatsDe(Element::Feu, 100), NatureDAttaque::Zone), ordinaire, true, generateur).montant;
+    const int sacreSurCreature = resoudreCoup(attaqueDe(degatsDe(Element::Sacre, 100), NatureDAttaque::Zone), creature, true, generateur).montant;
+
+    REQUIRE(feuSurCreature == 60);
+    REQUIRE(feuSurOrdinaire == 100);
+    REQUIRE(sacreSurCreature == 100);  // elle ne résiste qu'au feu
 }

@@ -17,6 +17,7 @@ Skill::Skill(const DefinitionDeSkill& definition)
       m_coefficients(definition.coefficients),
       m_nature(definition.nature),
       m_armesExigees(definition.armesExigees),
+      m_element(definition.element),
       m_executionRestante(0.0f),
       m_phase(PhaseSkill::Pret)
 {
@@ -113,6 +114,10 @@ const Coefficients& Skill::getCoefficients() const {
 
 NatureDAttaque Skill::getNature() const {
     return m_nature;
+}
+
+Element Skill::getElement() const {
+    return m_element;
 }
 
 const std::vector<TypeDArme>& Skill::getArmesExigees() const {

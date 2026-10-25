@@ -4,6 +4,11 @@
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/System/Vector2.hpp>
 
+#include <algorithm>
+#include <cmath>
+#include <vector>
+
+#include "combat/Element.hpp"
 #include "combat/EvenementDeCombat.hpp"
 #include "combat/IdSkill.hpp"
 #include "interface/TextesFlottants.hpp"
@@ -199,4 +204,80 @@ TEST_CASE("provoque : le texte Provoque en rouge orange, 14 px") {
     REQUIRE(couleurDuTexte(provoque).g < 150);
     REQUIRE(couleurDuTexte(provoque) != couleurDuTexte({Camp::Escouade, 1, {}, SkillLance{IdSkill::Provocation}}));
     REQUIRE(tailleDuTexte(provoque) == 14);
+}
+
+namespace {
+EvenementDeCombat degatsDeLElement(Element element, Camp camp = Camp::Monstres, bool opportunite = false, bool critique = false) {
+    return {camp, 1, {}, DegatsSubis{10, opportunite, critique, element}};
+}
+
+double distanceDeCouleur(sf::Color a, sf::Color b) {
+    const double r = static_cast<double>(a.r) - static_cast<double>(b.r);
+    const double g = static_cast<double>(a.g) - static_cast<double>(b.g);
+    const double bleu = static_cast<double>(a.b) - static_cast<double>(b.b);
+    return std::sqrt(r * r + g * g + bleu * bleu);
+}
+}  // namespace
+
+TEST_CASE("le nombre d'un coup physique garde la couleur de sa cible, quel que soit l'element par defaut") {
+    REQUIRE(couleurDuTexte(degatsDeLElement(Element::Physique, Camp::Monstres)) == sf::Color::White);
+    REQUIRE(couleurDuTexte(degatsDeLElement(Element::Physique, Camp::Escouade)) == sf::Color(255, 60, 60));
+}
+
+TEST_CASE("le nombre d'un coup elementaire prend la couleur de son element, sur un monstre comme sur un personnage") {
+    for (const Element element : s_elements) {
+        if (element == Element::Physique) {
+            continue;
+        }
+        INFO("element " << static_cast<int>(element));
+        REQUIRE(couleurDuTexte(degatsDeLElement(element, Camp::Monstres)) == couleurDuTexte(degatsDeLElement(element, Camp::Escouade)));
+        REQUIRE(couleurDuTexte(degatsDeLElement(element)) != couleurDuTexte(degatsDeLElement(Element::Physique, Camp::Monstres)));
+        REQUIRE(couleurDuTexte(degatsDeLElement(element)) != couleurDuTexte(degatsDeLElement(Element::Physique, Camp::Escouade)));
+    }
+}
+
+TEST_CASE("le feu est orange et le sacre dore") {
+    const sf::Color feu = couleurDuTexte(degatsDeLElement(Element::Feu));
+    const sf::Color sacre = couleurDuTexte(degatsDeLElement(Element::Sacre));
+
+    REQUIRE(feu.r == 255);
+    REQUIRE(feu.g > feu.b);
+    REQUIRE(feu.g < 150);
+    REQUIRE(sacre.r > 200);
+    REQUIRE(sacre.g > 150);
+    REQUIRE(sacre.b < 120);
+    REQUIRE(sacre != feu);
+}
+
+TEST_CASE("les couleurs des nombres sont assez distinctes : physique, feu, sacre, coup gratuit, critique, soin") {
+    const std::vector<sf::Color> couleurs = {
+        couleurDuTexte(degatsDeLElement(Element::Physique, Camp::Monstres)),
+        couleurDuTexte(degatsDeLElement(Element::Physique, Camp::Escouade)),
+        couleurDuTexte(degatsDeLElement(Element::Feu)),
+        couleurDuTexte(degatsDeLElement(Element::Sacre)),
+        couleurDuTexte(degatsDeLElement(Element::Physique, Camp::Monstres, true)),  // coup gratuit
+        couleurDuTexte(degatsDeLElement(Element::Physique, Camp::Monstres, false, true)),  // critique
+        couleurDuTexte({Camp::Escouade, 1, {}, Soin{10, false}}),
+    };
+
+    for (std::size_t i = 0; i < couleurs.size(); ++i) {
+        for (std::size_t j = i + 1; j < couleurs.size(); ++j) {
+            INFO("couleurs " << i << " et " << j);
+            REQUIRE(distanceDeCouleur(couleurs[i], couleurs[j]) >= 50.0);
+        }
+    }
+}
+
+TEST_CASE("un critique elementaire reste jaune, avec son Critique !") {
+    const EvenementDeCombat critiqueDeFeu = degatsDeLElement(Element::Feu, Camp::Monstres, false, true);
+    const EvenementDeCombat critiquePhysique = degatsDeLElement(Element::Physique, Camp::Monstres, false, true);
+
+    REQUIRE(couleurDuTexte(critiqueDeFeu) == couleurDuTexte(critiquePhysique));
+    REQUIRE(libelleDuTexte(critiqueDeFeu) == "10 Critique !");
+    REQUIRE(tailleDuTexte(critiqueDeFeu) == 18);
+}
+
+TEST_CASE("le libelle d'un coup elementaire est le total, comme pour un coup physique") {
+    REQUIRE(libelleDuTexte(degatsDeLElement(Element::Feu)) == "10");
+    REQUIRE(libelleDuTexte(degatsDeLElement(Element::Sacre)) == libelleDuTexte(degatsDeLElement(Element::Physique)));
 }

@@ -3,6 +3,7 @@
 #include <SFML/System/Vector2.hpp>
 #include <variant>
 #include <vector>
+#include "combat/Element.hpp"
 #include "combat/IdSkill.hpp"
 #include "combat/ResolutionDuCoup.hpp"
 
@@ -16,10 +17,13 @@ enum class Camp { Escouade, Monstres };
 // les champs qui ont un sens pour elle.
 // `montant` : ce qui a réellement été appliqué (armure comprise, soin plafonné), jamais 0.
 // `opportunite` : coup gratuit. `critique` : le coup ou le soin a été un critique (le montant est déjà multiplié).
+// `element` : celui de la plus grosse portion après les réductions (à égalité, le premier de l'énumération) : le
+// montant est le total, un seul nombre à l'écran, dont l'élément donne la couleur.
 struct DegatsSubis {
     int montant;
     bool opportunite;
     bool critique;
+    Element element = Element::Physique;
 };
 struct Soin {
     int montant;

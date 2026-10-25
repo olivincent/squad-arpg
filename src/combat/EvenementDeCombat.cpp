@@ -7,7 +7,7 @@ std::vector<DetailEvenement> detailsDuCoup(const ResultatDuCoup& resultat, bool 
     }
     std::vector<DetailEvenement> details;
     if (resultat.montant > 0) {
-        details.push_back(DegatsSubis{resultat.montant, opportunite, resultat.critique});
+        details.push_back(DegatsSubis{resultat.montant, opportunite, resultat.critique, resultat.portions.elementDominant()});
     }
     if (resultat.bloque > 0) {
         details.push_back(Bloque{resultat.bloque, resultat.montant == 0});

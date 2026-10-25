@@ -162,7 +162,7 @@ TEST_CASE("evenements : un skill de zone donne un evenement par monstre touche")
     // mage (activation de 0,8 s) part avant qu'ils aient pu atteindre quelqu'un.
     Partie partie = unePartie(niveauDegage({{400.0f, 340.0f}, {435.0f, 340.0f}, {400.0f, 375.0f}}), s_graineDeTest);
     partie.lancerSkillDeZone(s_adresseExplosion, {400.0f, 340.0f});
-    const Attaque explosion{.degats = degatsPhysiques(s_degatsZoneDeTest),
+    const Attaque explosion{.degats = degatsDe(Element::Feu, s_degatsZoneDeTest),
                             .capaciteOffensive = partie.getEscouade().statistiquesDeCombatDuPersonnage(3)->capaciteOffensive,
                             .nature = NatureDAttaque::Zone};
 
@@ -172,6 +172,7 @@ TEST_CASE("evenements : un skill de zone donne un evenement par monstre touche")
     std::vector<int> touches;
     for (const EvenementDeCombat& evenement : parmi<DegatsSubis>(evenements, Camp::Monstres)) {
         REQUIRE(degats(evenement).montant == degatsAttendus(explosion, defensesDuMonstreDeTest(), degats(evenement).critique));
+        REQUIRE(degats(evenement).element == Element::Feu);  // un seul nombre, dont l'élément donne la couleur
         touches.push_back(evenement.idCible);
     }
     std::ranges::sort(touches);

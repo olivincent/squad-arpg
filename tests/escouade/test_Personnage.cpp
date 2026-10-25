@@ -1475,3 +1475,38 @@ TEST_CASE("l'attaque d'un skill range son montant dans le champ de son type, les
     REQUIRE(provocation.degats.total() == 0);
     REQUIRE(provocation.soin == 0);
 }
+
+TEST_CASE("l'attaque d'un skill de zone de feu porte toute sa puissance dans la portion de feu") {
+    Generateur generateur = generateurDeTest();
+    const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
+    Personnage personnage({100.0f, 100.0f},
+                          {.couleur = sf::Color::White,
+                           .skills = {{IdSkill::Explosion, Skill({.type = TypeSkill::Zone, .portee = 200.0f, .puissance = 40, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .rayonZone = 60.0f, .coefficients = puissance, .nature = NatureDAttaque::Zone, .element = Element::Feu})},
+                                      {IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
+                           .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest,
+                           .caracteristiques = Caracteristiques({10, 10, 10, 10, 10})});
+
+    const Attaque explosion = lancerSkillEnEntier(personnage, Cible(CiblePoint{{150.0f, 100.0f}}), generateur, IdSkill::Explosion);
+    const Attaque frappe = lancerSkillEnEntier(personnage, Cible(CibleMonstre{1, Cercle{{120.0f, 100.0f}, 10.0f}}), generateur);
+
+    REQUIRE(explosion.degats[Element::Feu] == 40);
+    REQUIRE(explosion.degats[Element::Physique] == 0);
+    REQUIRE(explosion.degats[Element::Sacre] == 0);
+    REQUIRE(frappe.degats[Element::Physique] == 25);  // un skill sans element est physique
+    REQUIRE(frappe.degats[Element::Feu] == 0);
+}
+
+TEST_CASE("l'attaque de base et la Puissance : toutes les portions profitent de la Puissance") {
+    Generateur generateur = generateurDeTest();
+    const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
+    Personnage fort({100.0f, 100.0f},
+                    {.couleur = sf::Color::White,
+                     .skills = {{IdSkill::Explosion, Skill({.type = TypeSkill::Zone, .portee = 200.0f, .puissance = 100, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .rayonZone = 60.0f, .coefficients = puissance, .nature = NatureDAttaque::Zone, .element = Element::Feu})}},
+                     .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest,
+                     .caracteristiques = Caracteristiques({20, 10, 10, 10, 10})});
+
+    const Attaque explosion = lancerSkillEnEntier(fort, Cible(CiblePoint{{150.0f, 100.0f}}), generateur, IdSkill::Explosion);
+
+    REQUIRE(explosion.degats[Element::Feu] == montantEffectif(100, puissance, fort.getCaracteristiques()));
+    REQUIRE(explosion.degats[Element::Feu] > 100);
+}

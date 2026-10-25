@@ -5,8 +5,10 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <optional>
 #include <variant>
 #include "combat/Cible.hpp"
+#include "combat/Element.hpp"
 #include "interface/AffichageSkills.hpp"
 
 namespace {
@@ -28,6 +30,15 @@ const sf::Color s_couleurSoin(80, 230, 80);
 const sf::Color s_couleurCoupGratuit(255, 150, 0);
 const sf::Color s_couleurCritique(255, 235, 0);     // jaune vif, plus clair que le jaune doré des noms de skills
 const std::string s_suiteDuCritique = " Critique !";
+// La couleur du nombre d'un coup selon l'élément de sa plus grosse portion ; le physique n'en a pas (la couleur de
+// la cible, comme avant). Distinctes du blanc, du rouge, de l'orange du coup gratuit et du jaune du critique
+// (`test_TextesFlottants`) : le feu est un orange rougeâtre, le sacré un or pâle.
+const ParElement<std::optional<sf::Color>> s_couleurDeLElement = [] {
+    ParElement<std::optional<sf::Color>> couleurs;
+    couleurs[Element::Feu] = sf::Color(255, 95, 10);
+    couleurs[Element::Sacre] = sf::Color(225, 185, 75);
+    return couleurs;
+}();
 const sf::Color s_couleurNomDeSkill(255, 210, 60);  // jaune doré
 const sf::Color s_couleurProvoque(255, 100, 40);    // rouge orangé
 const sf::Color s_couleurEsquive(215, 215, 215);    // gris clair
@@ -79,6 +90,9 @@ sf::Color couleurDuTexte(const EvenementDeCombat& evenement) {
                                      }
                                      if (degats.opportunite) {
                                          return s_couleurCoupGratuit;
+                                     }
+                                     if (const std::optional<sf::Color>& couleur = s_couleurDeLElement[degats.element]) {
+                                         return *couleur;
                                      }
                                      return evenement.campCible == Camp::Monstres ? s_couleurDegatsSurUnMonstre
                                                                                   : s_couleurDegatsSurUnPersonnage;
