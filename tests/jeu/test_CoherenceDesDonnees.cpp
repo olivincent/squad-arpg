@@ -12,6 +12,7 @@
 #include "monstres/DefinitionDeMonstre.hpp"
 #include "objets/CatalogueAffixes.hpp"
 #include "objets/CatalogueObjets.hpp"
+#include "objets/GenerationDObjets.hpp"
 
 // Ces tests vérifient les données des catalogues, pas du code : chaque donnée ajoutée plus tard (monstres,
 // compositions de groupes) y trouve sa vérification.
@@ -147,6 +148,26 @@ TEST_CASE("le sac de depart est fait d'objets communs valides") {
         INFO(nomDeLObjet(objet));
         REQUIRE(objetValide(objet));
         REQUIRE(objet.rarete == Rarete::Commun);
+    }
+}
+
+TEST_CASE("la plage de valeurs de chaque affixe est positive et ordonnee") {
+    for (const DefinitionDAffixe& affixe : catalogueAffixes()) {
+        INFO(affixe.nom);
+        REQUIRE(affixe.valeurs.min >= 1);
+        REQUIRE(affixe.valeurs.min <= affixe.valeurs.max);
+    }
+}
+
+TEST_CASE("chaque rarete a un poids positif et au moins un modele qui peut la porter") {
+    for (const Rarete rarete : s_raretes) {
+        INFO("rarete " << static_cast<int>(rarete));
+        REQUIRE(poidsDeRarete(rarete) > 0);
+        bool possible = false;
+        for (const DefinitionObjet& modele : catalogueObjets()) {
+            possible = possible || peutPorterLaRarete(modele.id, rarete);
+        }
+        REQUIRE(possible);
     }
 }
 

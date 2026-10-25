@@ -31,13 +31,20 @@ enum class EffetDAffixe {
     ChanceDeBlocage      // pour cent de chance de blocage, ajoutés à ceux du bouclier (le montant reste le sien)
 };
 
-// Le modèle d'un affixe : ce qui est commun à toutes ses instances. Pas de plage de valeurs ici : elle arrive avec le
-// tirage des objets (étape 96) ; la valeur d'un affixe est celle de l'objet qui le porte (`Affixe::valeur`).
+// Les valeurs qu'un affixe peut prendre sur un objet tiré : un entier dans [min, max], bornes incluses. Elle ne sert qu'au
+// tirage : la valeur d'un affixe est celle de l'objet qui le porte (`Affixe::valeur`), que rééquilibrer la plage ne change pas.
+struct PlageDeValeurs {
+    int min;
+    int max;
+};
+
+// Le modèle d'un affixe : ce qui est commun à toutes ses instances.
 struct DefinitionDAffixe {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
     IdAffixe id;
     std::string nom;  // le texte affiché, en anglais (« Blazing », « of the Fox »)
     PositionDAffixe position;
     EffetDAffixe effet;
+    PlageDeValeurs valeurs;                  // les valeurs tirées (même plage sur un objet magique et sur un objet rare)
     std::vector<CategorieObjet> categories;  // les catégories d'objet qui peuvent le porter
 };
 
@@ -49,6 +56,9 @@ struct DefinitionDAffixe {  // NOLINT(cppcoreguidelines-pro-type-member-init): c
 
 // Un objet de cette catégorie peut-il porter cet affixe ?
 [[nodiscard]] bool affixePermis(IdAffixe id, CategorieObjet categorie);
+
+// Les affixes de cette position qu'un objet de cette catégorie peut porter, dans l'ordre du catalogue.
+[[nodiscard]] std::vector<IdAffixe> affixesPermisPour(CategorieObjet categorie, PositionDAffixe position);
 
 // Ce que les affixes d'un objet ajoutent, rangé par total que l'équipement tient déjà (`Equipement` y additionne ces
 // apports à ceux du modèle : `armureTotale`, `bonusTotal`, `bonusDeCombatTotal`, `attaqueDeBase`, qui restent les seuls

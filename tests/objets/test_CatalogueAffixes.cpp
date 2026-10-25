@@ -54,6 +54,8 @@ TEST_CASE("affixePermis : les armes pour le feu, le bouclier pour le blocage, to
     REQUIRE(affixePermis(IdAffixe::DeBlocage, CategorieObjet::Bouclier));
     REQUIRE_FALSE(affixePermis(IdAffixe::DeBlocage, CategorieObjet::Arme));
     REQUIRE(affixePermis(IdAffixe::Renforce, CategorieObjet::Jambieres));
+    REQUIRE(affixePermis(IdAffixe::Renforce, CategorieObjet::Gants));  // des pieces d'armure (etape 96)
+    REQUIRE(affixePermis(IdAffixe::Renforce, CategorieObjet::Bottes));
     REQUIRE_FALSE(affixePermis(IdAffixe::Renforce, CategorieObjet::Anneau));
     REQUIRE(affixePermis(IdAffixe::DEsquive, CategorieObjet::Bottes));
     REQUIRE(affixePermis(IdAffixe::DeDeviation, CategorieObjet::Casque));
@@ -63,4 +65,16 @@ TEST_CASE("affixePermis : les armes pour le feu, le bouclier pour le blocage, to
           CategorieObjet::Arme}) {
         REQUIRE(affixePermis(IdAffixe::DuLion, categorie));
     }
+}
+
+TEST_CASE("affixesPermisPour : les affixes de la position demandee, dans l'ordre du catalogue") {
+    const std::vector<IdAffixe> prefixesDArme = affixesPermisPour(CategorieObjet::Arme, PositionDAffixe::Prefixe);
+    REQUIRE(prefixesDArme == std::vector<IdAffixe>{IdAffixe::Flamboyant, IdAffixe::Sanctifie, IdAffixe::Acere});
+
+    const std::vector<IdAffixe> suffixesDeBottes = affixesPermisPour(CategorieObjet::Bottes, PositionDAffixe::Suffixe);
+    REQUIRE(suffixesDeBottes == std::vector<IdAffixe>{IdAffixe::DuBoeuf, IdAffixe::DeLOurs, IdAffixe::DuRenard,
+                                                      IdAffixe::DeLaChouette, IdAffixe::DuLion, IdAffixe::DEsquive});
+
+    REQUIRE(affixesPermisPour(CategorieObjet::Anneau, PositionDAffixe::Prefixe).empty());
+    REQUIRE(affixesPermisPour(CategorieObjet::Gants, PositionDAffixe::Prefixe) == std::vector<IdAffixe>{IdAffixe::Renforce});
 }

@@ -1,9 +1,13 @@
 // ./src/objets/Affixe.hpp
 #pragma once
+#include <array>
 
 // La rareté d'un objet : elle dit combien d'affixes il porte (`objetValide`). Commun : aucun ; magique : exactement un,
 // préfixe ou suffixe ; rare : un préfixe et un suffixe.
 enum class Rarete { Commun, Magique, Rare };
+
+// Toutes les raretés, de la plus commune à la plus rare : pour les parcourir (tirage, tests de données).
+inline constexpr std::array s_raretes = {Rarete::Commun, Rarete::Magique, Rarete::Rare};
 
 // Les affixes du catalogue (`CatalogueAffixes.hpp`) : un modificateur qui s'ajoute à un objet. Noms de travail, en
 // français ; le texte affiché est dans le catalogue (`docs/glossaire.md`).
