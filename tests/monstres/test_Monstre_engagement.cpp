@@ -13,13 +13,13 @@
 #include "aides_monstre.hpp"
 
 // Monstre centré en (100, 100), rayon 15 px, portée 15 px (bord à bord). Ses dégâts ne sont pas
-// injectables : les tests les lisent par getAttaque().montant.
+// injectables : les tests les lisent par getAttaque().degats.
 
 TEST_CASE("Monstre.frapper renvoie les degats pour une cible a portee") {
     Generateur generateur = generateurDeTest();
     Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
 
-    REQUIRE(frapperEnEntier(monstre, pointCible({110.0f, 100.0f}), generateur) == monstre.getAttaque().montant);
+    REQUIRE(frapperEnEntier(monstre, pointCible({110.0f, 100.0f}), generateur) == monstre.getAttaque().degats);
 }
 
 TEST_CASE("Monstre.frapper renvoie 0 pour une cible hors de portee") {
@@ -35,9 +35,9 @@ TEST_CASE("Monstre.frapper renvoie de nouveau les degats apres une duree simulee
     Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
     const Cercle cible = pointCible({110.0f, 100.0f});
 
-    REQUIRE(frapperEnEntier(monstre, cible, generateur) == monstre.getAttaque().montant);
+    REQUIRE(frapperEnEntier(monstre, cible, generateur) == monstre.getAttaque().degats);
     ecoulerTemps(monstre, 1.5f, std::nullopt, carte);
-    REQUIRE(frapperEnEntier(monstre, cible, generateur) == monstre.getAttaque().montant);
+    REQUIRE(frapperEnEntier(monstre, cible, generateur) == monstre.getAttaque().degats);
 }
 
 // Temps d'exécution de l'attaque (0,3 s) : le monstre frappe immobile, le coup
@@ -68,14 +68,14 @@ TEST_CASE("Monstre.avancerAttaque rend les degats une seule fois, a la fin de l'
 
     int total = 0;
     for (int i = 0; i < nombreDeTics(0.25f); ++i) {
-        total += montantOuZero(monstre.avancerAttaque(s_dureeTic, generateur));
+        total += degatsOuZero(monstre.avancerAttaque(s_dureeTic, generateur));
     }
     REQUIRE(total == 0);
 
     for (int i = 0; i < nombreDeTics(0.2f); ++i) {
-        total += montantOuZero(monstre.avancerAttaque(s_dureeTic, generateur));
+        total += degatsOuZero(monstre.avancerAttaque(s_dureeTic, generateur));
     }
-    REQUIRE(total == monstre.getAttaque().montant);
+    REQUIRE(total == monstre.getAttaque().degats);
     REQUIRE_FALSE(monstre.cibleEngagee().has_value());
 }
 
@@ -93,7 +93,7 @@ TEST_CASE("Monstre.annulerAttaque ne consomme pas de recharge") {
     Generateur generateur = generateurDeTest();
     Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
     REQUIRE(engager(monstre, pointCible({110.0f, 100.0f}), 1, carteOuverte()));
-    REQUIRE(montantOuZero(monstre.avancerAttaque(0.1f, generateur)) == 0);
+    REQUIRE(degatsOuZero(monstre.avancerAttaque(0.1f, generateur)) == 0);
 
     monstre.annulerAttaque();
 
@@ -106,7 +106,7 @@ TEST_CASE("Monstre : apres le depart du coup, la recharge court avant le suivant
     const TileMap carte = carteLongue();
     Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
     REQUIRE(engager(monstre, pointCible({110.0f, 100.0f}), 1, carteOuverte()));
-    REQUIRE(montantOuZero(monstre.avancerAttaque(0.4f, generateur)) == monstre.getAttaque().montant);
+    REQUIRE(degatsOuZero(monstre.avancerAttaque(0.4f, generateur)) == monstre.getAttaque().degats);
 
     REQUIRE_FALSE(engager(monstre, pointCible({110.0f, 100.0f}), 1, carteOuverte()));
     ecoulerTemps(monstre, 1.4f, std::nullopt, carte);  // recharge de 0,7 à 1,3 s écoulée
@@ -266,10 +266,10 @@ TEST_CASE("Monstre le coup engage touche la place choisie et rend les degats") {
     int degats = 0;
     for (int i = 0; i < nombreDeTics(1.0f) && degats == 0; ++i) {
         REQUIRE(monstre.cibleEngagee() == 2);
-        degats = montantOuZero(monstre.avancerAttaque(s_dureeTic, generateur));
+        degats = degatsOuZero(monstre.avancerAttaque(s_dureeTic, generateur));
     }
 
-    REQUIRE(degats == monstre.getAttaque().montant);
+    REQUIRE(degats == monstre.getAttaque().degats);
 }
 
 TEST_CASE("Monstre ne contourne pas un personnage entre lui et sa proie : il s'arrete pour le frapper") {

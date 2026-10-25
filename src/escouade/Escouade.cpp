@@ -269,12 +269,12 @@ std::vector<Coup> Escouade::effetDuSkill(std::size_t place, IdSkill id, const st
 
     // Provocation (sans cible) : zone centrée sur le lanceur ; touche les
     // monstres de la zone et en vue du lanceur (`ligneDeVue`). La puissance
-    // est la durée.
+    // est la durée (`dureeDeProvocation`).
     if (!cible.has_value()) {
         const Cercle zone = lanceur.zoneDuSkill(id);
         for (const EntiteVue& monstre : monstres) {
             if (distanceBordABord(zone, monstre.cercle) == 0.0f && ligneDeVue(carte, lanceur.getCentre(), monstre.cercle.centre)) {
-                provoquer(monstre.id, place, static_cast<float>(attaque.montant));
+                provoquer(monstre.id, place, static_cast<float>(attaque.dureeDeProvocation));
                 m_faits.push_back(MonstreProvoque{monstre.id});
             }
         }
@@ -942,8 +942,8 @@ ResultatDuCoup Escouade::recevoirCoup(int idMonstre, std::size_t place, const At
     }
     const ResultatDuCoup resultat = personnageDeLaPlace(place).recevoirDegats(attaque, generateur);
 
-    // Une attaque qui a un montant désigne son auteur comme agresseur.
-    if (attaque.montant > 0) {
+    // Une attaque qui a des dégâts désigne son auteur comme agresseur.
+    if (attaque.degats > 0) {
         m_agresseurs.enregistrer(idMonstre);
     }
     return resultat;

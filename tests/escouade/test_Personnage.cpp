@@ -55,7 +55,7 @@ int frapperEnEntier(Personnage& personnage, Cercle cible, Generateur& generateur
         return 0;
     }
     for (int i = 0; i < nombreDeTics(1.0f); ++i) {
-        if (const int degats = montantOuZero(personnage.avancerAttaque(s_dureeTic, generateur)); degats > 0) {
+        if (const int degats = degatsOuZero(personnage.avancerAttaque(s_dureeTic, generateur)); degats > 0) {
             return degats;
         }
     }
@@ -63,19 +63,20 @@ int frapperEnEntier(Personnage& personnage, Cercle cible, Generateur& generateur
 }
 
 // Lance le skill en un seul appel : engage, puis avance l'activation jusqu'au
-// départ de l'effet. Rend la puissance du skill, 0 s'il ne peut pas être engagé.
-// La portée est vérifiée par Escouade, pas ici. Les skills de ce fichier ont
+// départ de l'effet. Rend l'attaque du skill (dégâts, soin ou durée de provocation selon son type), toute à 0
+// s'il ne peut pas être engagé. La portée est vérifiée par Escouade, pas ici. Les skills de ce fichier ont
 // une activation nulle (sauf mention) : l'effet part au premier tic.
-int lancerSkillEnEntier(Personnage& personnage, std::optional<Cible> cible, Generateur& generateur, IdSkill id = IdSkill::FrappePuissante) {
+Attaque lancerSkillEnEntier(Personnage& personnage, std::optional<Cible> cible, Generateur& generateur, IdSkill id = IdSkill::FrappePuissante) {
+    const Attaque rien = {.degats = 0, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
     if (!personnage.engagerSkill(id, cible)) {
-        return 0;
+        return rien;
     }
     for (int i = 0; i < nombreDeTics(1.0f); ++i) {
-        if (const int puissance = montantOuZero(personnage.avancerSkill(s_dureeTic, generateur)); puissance > 0) {
-            return puissance;
+        if (const std::optional<Attaque> attaque = personnage.avancerSkill(s_dureeTic, generateur)) {
+            return *attaque;
         }
     }
-    return 0;
+    return rien;
 }
 
 }  // namespace
@@ -189,7 +190,7 @@ TEST_CASE("changer d'arme change la zone de controle, la portee et l'attaque de 
     const DescriptionDAttaque epee = definitionObjet(IdObjet::EpeeLongue).arme.value().attaque;
     const DescriptionDAttaque arc = definitionObjet(IdObjet::Arc).arme.value().attaque;
     REQUIRE(personnage.getPorteeAttaqueDeBase() == epee.portee);
-    REQUIRE(personnage.getAttaqueDeBase().montant == montantEffectif(epee.degats, Coefficients::seul(Caracteristique::Puissance, 1.0f),
+    REQUIRE(personnage.getAttaqueDeBase().degats == montantEffectif(epee.degats, Coefficients::seul(Caracteristique::Puissance, 1.0f),
                                                                      personnage.getCaracteristiques()));
 
     static_cast<void>(personnage.retirerEquipement(Emplacement::MainDroite));
@@ -254,7 +255,7 @@ TEST_CASE("getPuissanceAttaqueDeBase renvoie les degats de l'attaque de base") {
     const Personnage personnage({100.0f, 100.0f},
                                 definitionArmee(IdObjet::Sceptre));
 
-    REQUIRE(personnage.getAttaqueDeBase().montant == s_degatsBaseDeTest);
+    REQUIRE(personnage.getAttaqueDeBase().degats == s_degatsBaseDeTest);
 }
 
 TEST_CASE("lire la puissance de l'attaque de base ne change ni le coup engage ni la recharge") {
@@ -263,11 +264,11 @@ TEST_CASE("lire la puissance de l'attaque de base ne change ni le coup engage ni
     Generateur generateur = generateurDeTest();
     REQUIRE(personnage.engagerAttaque(1));
 
-    REQUIRE(personnage.getAttaqueDeBase().montant == s_degatsBaseDeTest);
+    REQUIRE(personnage.getAttaqueDeBase().degats == s_degatsBaseDeTest);
 
     REQUIRE(personnage.cibleEngagee() == 1);
-    REQUIRE(montantOuZero(personnage.avancerAttaque(0.2f, generateur)) == s_degatsBaseDeTest);  // le coup engagé part normalement
-    REQUIRE(personnage.getAttaqueDeBase().montant == s_degatsBaseDeTest);
+    REQUIRE(degatsOuZero(personnage.avancerAttaque(0.2f, generateur)) == s_degatsBaseDeTest);  // le coup engagé part normalement
+    REQUIRE(personnage.getAttaqueDeBase().degats == s_degatsBaseDeTest);
     REQUIRE_FALSE(personnage.engagerAttaque(1));                // la recharge court toujours
 }
 
@@ -313,7 +314,7 @@ TEST_CASE("Lancer un skill rend sa puissance") {
                            .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
                            .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
 
-    REQUIRE(lancerSkillEnEntier(personnage, Cible(CibleMonstre{1, pointCible({150.0f, 100.0f})}), generateur) == 25);
+    REQUIRE(lancerSkillEnEntier(personnage, Cible(CibleMonstre{1, pointCible({150.0f, 100.0f})}), generateur).degats == 25);
 }
 
 TEST_CASE("Un personnage avec un skill de provocation en expose le type et le lance") {
@@ -325,7 +326,7 @@ TEST_CASE("Un personnage avec un skill de provocation en expose le type et le la
 
     REQUIRE(personnage.typeSkill(IdSkill::Provocation) == TypeSkill::Provocation);
     REQUIRE(personnage.skillEstPret(IdSkill::Provocation));
-    REQUIRE(lancerSkillEnEntier(personnage, std::nullopt, generateur, IdSkill::Provocation) == 4);
+    REQUIRE(lancerSkillEnEntier(personnage, std::nullopt, generateur, IdSkill::Provocation).dureeDeProvocation == 4);
     REQUIRE_FALSE(personnage.skillEstPret(IdSkill::Provocation));
 }
 
@@ -384,12 +385,12 @@ TEST_CASE("Un skill ne peut pas etre relance pendant sa recharge, puis le peut u
     const TileMap carte = carteDegagee5x5();
     const Cible cible = CibleMonstre{1, pointCible({150.0f, 100.0f})};
 
-    REQUIRE(lancerSkillEnEntier(personnage, cible, generateur) == 25);
-    REQUIRE(lancerSkillEnEntier(personnage, cible, generateur) == 0);
+    REQUIRE(lancerSkillEnEntier(personnage, cible, generateur).degats == 25);
+    REQUIRE(lancerSkillEnEntier(personnage, cible, generateur).degats == 0);
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 4.8f);
-    REQUIRE(lancerSkillEnEntier(personnage, cible, generateur) == 0);
+    REQUIRE(lancerSkillEnEntier(personnage, cible, generateur).degats == 0);
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.4f);
-    REQUIRE(lancerSkillEnEntier(personnage, cible, generateur) == 25);
+    REQUIRE(lancerSkillEnEntier(personnage, cible, generateur).degats == 25);
 }
 
 TEST_CASE("Apres un skill reussi, l'attaque de base attend une recharge complete") {
@@ -407,7 +408,7 @@ TEST_CASE("Apres un skill reussi, l'attaque de base attend une recharge complete
     // fait sans le skill.
     REQUIRE(frapperEnEntier(personnage, cible, generateur) == s_degatsBaseDeTest);
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.3f);
-    REQUIRE(lancerSkillEnEntier(personnage, Cible(CibleMonstre{1, cible}), generateur) == 25);
+    REQUIRE(lancerSkillEnEntier(personnage, Cible(CibleMonstre{1, cible}), generateur).degats == 25);
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.3f);
     REQUIRE(frapperEnEntier(personnage, cible, generateur) == 0);
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.3f);
@@ -639,13 +640,13 @@ TEST_CASE("avancerAttaque rend les degats une seule fois, a la fin de l'executio
 
     int total = 0;
     for (int i = 0; i < nombreDeTics(0.1f); ++i) {
-        total += montantOuZero(personnage.avancerAttaque(s_dureeTic, generateur));
+        total += degatsOuZero(personnage.avancerAttaque(s_dureeTic, generateur));
     }
     REQUIRE(total == 0);
     REQUIRE(personnage.cibleEngagee().has_value());
 
     for (int i = 0; i < nombreDeTics(0.2f); ++i) {
-        total += montantOuZero(personnage.avancerAttaque(s_dureeTic, generateur));
+        total += degatsOuZero(personnage.avancerAttaque(s_dureeTic, generateur));
     }
     REQUIRE(total == s_degatsBaseDeTest);
     REQUIRE_FALSE(personnage.cibleEngagee().has_value());
@@ -663,7 +664,7 @@ TEST_CASE("l'attaque de base d'un personnage porte sa capacite offensive") {
     const std::optional<Attaque> attaque = rodeur.avancerAttaque(s_executionBaseDeTest, generateur);
 
     REQUIRE(attaque.has_value());
-    REQUIRE(attaque->montant == s_degatsBaseDeTest);
+    REQUIRE(attaque->degats == s_degatsBaseDeTest);
     REQUIRE(attaque->capaciteOffensive == 120);
 }
 
@@ -686,7 +687,7 @@ TEST_CASE("annulerAttaque ne consomme pas de recharge") {
     Generateur generateur = generateurDeTest();
     Personnage personnage = personnageAvecExecution();
     REQUIRE(personnage.engagerAttaque(1));
-    REQUIRE(montantOuZero(personnage.avancerAttaque(0.05f, generateur)) == 0);
+    REQUIRE(degatsOuZero(personnage.avancerAttaque(0.05f, generateur)) == 0);
 
     personnage.annulerAttaque();
 
@@ -699,7 +700,7 @@ TEST_CASE("Apres le depart du coup, la recharge court avant le coup suivant") {
     const TileMap carte = carteDegagee5x5();
     Personnage personnage = personnageAvecExecution();
     REQUIRE(personnage.engagerAttaque(1));
-    REQUIRE(montantOuZero(personnage.avancerAttaque(0.2f, generateur)) == s_degatsBaseDeTest);
+    REQUIRE(degatsOuZero(personnage.avancerAttaque(0.2f, generateur)) == s_degatsBaseDeTest);
 
     REQUIRE_FALSE(personnage.engagerAttaque(1));
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.4f);
@@ -739,13 +740,13 @@ TEST_CASE("avancerSkill rend la puissance une seule fois, a la fin de l'activati
 
     int total = 0;
     for (int i = 0; i < nombreDeTics(0.2f); ++i) {
-        total += montantOuZero(personnage.avancerSkill(s_dureeTic, generateur));
+        total += degatsOuZero(personnage.avancerSkill(s_dureeTic, generateur));
     }
     REQUIRE(total == 0);
     REQUIRE(personnage.skillEngage().has_value());
 
     for (int i = 0; i < nombreDeTics(0.2f); ++i) {
-        total += montantOuZero(personnage.avancerSkill(s_dureeTic, generateur));
+        total += degatsOuZero(personnage.avancerSkill(s_dureeTic, generateur));
     }
     REQUIRE(total == 25);
     REQUIRE_FALSE(personnage.skillEngage().has_value());
@@ -775,7 +776,7 @@ TEST_CASE("annulerSkill ne consomme pas de recharge") {
     Generateur generateur = generateurDeTest();
     Personnage personnage = personnageAvecActivation();
     REQUIRE(personnage.engagerSkill(IdSkill::FrappePuissante, s_cibleDuSkill));
-    REQUIRE(montantOuZero(personnage.avancerSkill(0.1f, generateur)) == 0);
+    REQUIRE(degatsOuZero(personnage.avancerSkill(0.1f, generateur)) == 0);
 
     personnage.annulerSkill();
 
@@ -805,7 +806,7 @@ TEST_CASE("Au depart du skill, l'attaque de base repart pour une recharge comple
     const TileMap carte = carteDegagee5x5();
     Personnage personnage = personnageAvecActivation();
     REQUIRE(personnage.engagerSkill(IdSkill::FrappePuissante, s_cibleDuSkill));
-    REQUIRE(montantOuZero(personnage.avancerSkill(0.4f, generateur)) == 25);
+    REQUIRE(degatsOuZero(personnage.avancerSkill(0.4f, generateur)) == 25);
 
     REQUIRE_FALSE(personnage.engagerAttaque(1));
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.6f);
@@ -925,11 +926,11 @@ TEST_CASE("Les recharges de deux skills sont independantes") {
     const TileMap carte = carteDegagee5x5();
     Personnage personnage = personnageAvecDeuxSkills();
 
-    REQUIRE(lancerSkillEnEntier(personnage, s_cibleDuSkill, generateur, IdSkill::FrappePuissante) == 25);
+    REQUIRE(lancerSkillEnEntier(personnage, s_cibleDuSkill, generateur, IdSkill::FrappePuissante).degats == 25);
     // La frappe est en recharge, la provocation reste utilisable aussitôt.
     REQUIRE_FALSE(personnage.skillEstPret(IdSkill::FrappePuissante));
     REQUIRE(personnage.skillEstPret(IdSkill::Provocation));
-    REQUIRE(lancerSkillEnEntier(personnage, std::nullopt, generateur, IdSkill::Provocation) == 4);
+    REQUIRE(lancerSkillEnEntier(personnage, std::nullopt, generateur, IdSkill::Provocation).dureeDeProvocation == 4);
 
     // Après 5,5 s la frappe est prête, pas la provocation (10 s).
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 5.5f);
@@ -1091,7 +1092,7 @@ TEST_CASE("un personnage au bouclier : apres un blocage, plus aucun pendant 3 s,
     static_cast<void>(personnage.poserEquipement(Emplacement::MainGauche, {IdObjet::BouclierRond}));
     const TileMap carte = carteDegagee5x5();
     Generateur generateur = generateurDeTest();
-    const Attaque attaque{.montant = 1, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
+    const Attaque attaque{.degats = 1, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
     // À 30 % par coup, la chance de ne voir aucun blocage sur 200 coups est de l'ordre de 10^-31.
     const auto jusquAuBlocage = [&] {
         bool bloque = false;
@@ -1117,7 +1118,7 @@ TEST_CASE("un personnage qui esquive ne perd aucun point de vie") {
     Personnage personnage({100.0f, 100.0f}, avecEnduranceEnorme(definitionArmee()));
     static_cast<void>(personnage.poserEquipement(Emplacement::Bottes, {IdObjet::BottesDeCuir}));
     Generateur generateur = generateurDeTest();
-    const Attaque attaque{.montant = 10, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
+    const Attaque attaque{.degats = 10, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
     int esquives = 0;
 
     // À 5 % par coup, la chance de n'en voir aucune sur 1 000 coups est de l'ordre de 10^-23.
@@ -1230,17 +1231,17 @@ Personnage unPersonnageDePuissance(const Caracteristiques& base) {
 
 TEST_CASE("equiper l'anneau de puissance augmente les degats de l'attaque de base") {
     Personnage personnage = unPersonnageDePuissance(Caracteristiques({12, 10, 10, 10, 11}));
-    const int avant = personnage.getAttaqueDeBase().montant;
+    const int avant = personnage.getAttaqueDeBase().degats;
     REQUIRE(avant == montantEffectif(s_degatsBaseDeTest, Coefficients::seul(Caracteristique::Puissance, 1.0f), personnage.getCaracteristiques()));
 
     static_cast<void>(personnage.poserEquipement(Emplacement::Anneau1, {IdObjet::AnneauDePuissance}));
 
-    REQUIRE(personnage.getAttaqueDeBase().montant > avant);
-    REQUIRE(personnage.getAttaqueDeBase().montant ==
+    REQUIRE(personnage.getAttaqueDeBase().degats > avant);
+    REQUIRE(personnage.getAttaqueDeBase().degats ==
             montantEffectif(s_degatsBaseDeTest, Coefficients::seul(Caracteristique::Puissance, 1.0f), personnage.getCaracteristiques()));
 
     static_cast<void>(personnage.retirerEquipement(Emplacement::Anneau1));
-    REQUIRE(personnage.getAttaqueDeBase().montant == avant);
+    REQUIRE(personnage.getAttaqueDeBase().degats == avant);
 }
 
 TEST_CASE("le coup de l'attaque de base et le skill de degats rendent le montant effectif") {
@@ -1253,7 +1254,7 @@ TEST_CASE("le coup de l'attaque de base et le skill de degats rendent le montant
     REQUIRE(personnage.engagerSkill(IdSkill::FrappePuissante, CibleMonstre{1, cible}));
     int rendu = 0;
     for (int i = 0; i < nombreDeTics(1.0f) && rendu == 0; ++i) {
-        rendu = montantOuZero(personnage.avancerSkill(s_dureeTic, generateur));
+        rendu = degatsOuZero(personnage.avancerSkill(s_dureeTic, generateur));
     }
     REQUIRE(rendu == montantEffectif(250, puissance, personnage.getCaracteristiques()));
 }
@@ -1265,7 +1266,9 @@ TEST_CASE("la duree d'une provocation ne profite d'aucune caracteristique") {
     REQUIRE(personnage.engagerSkill(IdSkill::Provocation, std::nullopt));
     int rendu = 0;
     for (int i = 0; i < nombreDeTics(1.0f) && rendu == 0; ++i) {
-        rendu = montantOuZero(personnage.avancerSkill(s_dureeTic, generateur));
+        if (const std::optional<Attaque> attaque = personnage.avancerSkill(s_dureeTic, generateur)) {
+            rendu = attaque->dureeDeProvocation;
+        }
     }
     REQUIRE(rendu == 4);
 }
@@ -1358,7 +1361,7 @@ TEST_CASE("une arme dont le seuil n'est pas atteint reste portee mais le personn
     REQUIRE(personnage.getEquipement().a(Emplacement::MainDroite) == Objet{IdObjet::EpeeLongue});
     REQUIRE_FALSE(personnage.getEquipementActif().a(Emplacement::MainDroite).has_value());
     REQUIRE(personnage.getPorteeAttaqueDeBase() == mainsNues().portee);
-    REQUIRE(personnage.getAttaqueDeBase().montant ==
+    REQUIRE(personnage.getAttaqueDeBase().degats ==
             montantEffectif(mainsNues().degats, Coefficients::seul(Caracteristique::Puissance, 1.0f), personnage.getCaracteristiques()));
 }
 
@@ -1444,4 +1447,31 @@ TEST_CASE("changer pour une dague donne la penetration, la retirer la reprend") 
 
     static_cast<void>(personnage.retirerEquipement(Emplacement::MainDroite));
     REQUIRE(personnage.getAttaqueDeBase().penetration == 0);  // les mains nues
+}
+
+TEST_CASE("l'attaque d'un skill range son montant dans le champ de son type, les autres restent a zero") {
+    Generateur generateur = generateurDeTest();
+    const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
+    Personnage personnage({100.0f, 100.0f},
+                          {.couleur = sf::Color::White,
+                           .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})},
+                                      {IdSkill::Soin, Skill({.type = TypeSkill::Soin, .portee = 80.0f, .puissance = 90, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .coefficients = puissance, .nature = NatureDAttaque::Contact})},
+                                      {IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .portee = 0.0f, .puissance = 4, .rechargeMin = 10.0f, .rechargeMax = 10.0f, .rayonZone = 150.0f, .nature = NatureDAttaque::Contact})}},
+                           .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest,
+                           .caracteristiques = Caracteristiques({10, 10, 10, 10, 10})});
+
+    const Attaque degats = lancerSkillEnEntier(personnage, Cible(CibleMonstre{1, Cercle{{120.0f, 100.0f}, 10.0f}}), generateur);
+    REQUIRE(degats.degats == 25);
+    REQUIRE(degats.soin == 0);
+    REQUIRE(degats.dureeDeProvocation == 0);
+
+    const Attaque soin = lancerSkillEnEntier(personnage, Cible(CiblePoint{{120.0f, 100.0f}}), generateur, IdSkill::Soin);
+    REQUIRE(soin.soin == 90);
+    REQUIRE(soin.degats == 0);
+    REQUIRE(soin.dureeDeProvocation == 0);
+
+    const Attaque provocation = lancerSkillEnEntier(personnage, std::nullopt, generateur, IdSkill::Provocation);
+    REQUIRE(provocation.dureeDeProvocation == 4);
+    REQUIRE(provocation.degats == 0);
+    REQUIRE(provocation.soin == 0);
 }

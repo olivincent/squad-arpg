@@ -88,7 +88,7 @@ ResultatDuCoup Monstre::recevoirDegats(const Attaque& attaque, Generateur& gener
         return {.montant = 0, .critique = false};
     }
     const ResultatDuCoup resultat = m_vitalite.recevoirDegats(attaque, generateur);
-    if (attaque.montant > 0) {
+    if (attaque.degats > 0) {
         alerter();
     }
     return resultat;
@@ -122,7 +122,7 @@ float Monstre::getZoneDeControle() const {
 }
 
 Attaque Monstre::getAttaque() const {
-    return {.montant = m_attaque.getPuissance(),
+    return {.degats = m_attaque.getPuissance(),
             .capaciteOffensive = m_statistiques.capaciteOffensive,
             .nature = m_attaque.getNature()};
 }

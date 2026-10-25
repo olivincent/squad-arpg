@@ -77,7 +77,7 @@ Escouade::VueDesMonstres sansAttaquer(const UnMonstre& monstre) {
 int coupsDuMage(const std::vector<Coup>& coups) {
     int total = 0;
     for (const Coup& coup : coups) {
-        total += coup.attaque.montant == s_degatsDuMage ? 1 : 0;
+        total += coup.attaque.degats == s_degatsDuMage ? 1 : 0;
     }
     return total;
 }

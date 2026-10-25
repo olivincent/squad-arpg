@@ -321,12 +321,12 @@ TEST_CASE("la puissance de l'attaque de base lue par l'escouade (coup d'opportun
     DefinitionPersonnage definition = guerrierDeTest();
     definition.caracteristiques = Caracteristiques({s_valeurDeReference + 1, 10, 10, 10, 10});  // 11 de Puissance : l'épée est active (bonus de 3 % arrondi à 0)
     Escouade escouade({50.0f, 50.0f}, {definition});
-    REQUIRE(escouade.attaqueDeBase(1)->montant == degats);
+    REQUIRE(escouade.attaqueDeBase(1)->degats == degats);
 
     REQUIRE(escouade.ramasser(Objet{IdObjet::AnneauDePuissance}));
     REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(1, Emplacement::Anneau1)));
 
-    REQUIRE(escouade.attaqueDeBase(1)->montant ==
+    REQUIRE(escouade.attaqueDeBase(1)->degats ==
             montantEffectif(degats, puissance, escouade.caracteristiquesDuPersonnage(1).value()));
 }
 
@@ -471,7 +471,7 @@ TEST_CASE("objets inactifs : retirer l'anneau de puissance rend l'epee a deux ma
 
     REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainDroite) == s_epeeADeuxMains);   // toujours portée
     REQUIRE_FALSE(escouade.equipementActifDuPersonnage(s_guerrier).a(Emplacement::MainDroite).has_value());  // sans effet
-    REQUIRE(escouade.attaqueDeBase(s_guerrier)->montant <
+    REQUIRE(escouade.attaqueDeBase(s_guerrier)->degats <
             montantEffectif(definitionObjet(IdObjet::EpeeADeuxMains).arme->attaque.degats, Coefficients::seul(Caracteristique::Puissance, 1.0f),
                             *escouade.caracteristiquesDuPersonnage(s_guerrier)));
 }

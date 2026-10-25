@@ -100,7 +100,7 @@ public:
     [[nodiscard]] bool placeEstVivante(std::size_t place) const;
     // Une attaque du monstre `idMonstre` sur le personnage de cette place. Renvoie le résultat du coup
     // (`resoudreCoup`, qui tire dans `generateur`) : les dégâts réellement subis (après armure) ; rien si la
-    // place est invalide ou morte. Une attaque qui a un montant désigne son auteur comme agresseur.
+    // place est invalide ou morte. Une attaque qui a des dégâts désigne son auteur comme agresseur.
     ResultatDuCoup recevoirCoup(int idMonstre, std::size_t place, const Attaque& attaque, Generateur& generateur);
     [[nodiscard]] bool estVivante() const;
     [[nodiscard]] std::vector<Cercle> cerclesDesVivants() const;

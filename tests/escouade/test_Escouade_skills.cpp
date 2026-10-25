@@ -93,7 +93,7 @@ std::vector<Coup> attaquerPendant(Escouade& escouade, const std::vector<EntiteVu
 
 // Nombre de coups d'exactement ce montant (écarte les attaques de base).
 int compter(const std::vector<Coup>& coups, int degats) {
-    return static_cast<int>(std::count_if(coups.begin(), coups.end(), [&](const Coup& coup) { return coup.attaque.montant == degats; }));
+    return static_cast<int>(std::count_if(coups.begin(), coups.end(), [&](const Coup& coup) { return coup.attaque.degats == degats; }));
 }
 
 // Position du personnage de cette place, lue par la proie d'un monstre qu'il provoque.
@@ -209,7 +209,7 @@ TEST_CASE("Zone : l'effet est evalue au depart, un monstre sorti de la zone n'es
     coups.insert(coups.end(), suite.begin(), suite.end());
 
     REQUIRE(compter(coups, s_degatsZoneDeTest) == 1);
-    REQUIRE(std::any_of(coups.begin(), coups.end(), [](const Coup& coup) { return coup.attaque.montant == s_degatsZoneDeTest && coup.idMonstre == 2; }));
+    REQUIRE(std::any_of(coups.begin(), coups.end(), [](const Coup& coup) { return coup.attaque.degats == s_degatsZoneDeTest && coup.idMonstre == 2; }));
 }
 
 TEST_CASE("Provocation : l'effet est evalue au depart, apres 0,2 s") {

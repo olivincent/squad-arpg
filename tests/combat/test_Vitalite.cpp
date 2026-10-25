@@ -92,7 +92,7 @@ TEST_CASE("Vitalite getRatio suit les points de vie") {
 TEST_CASE("Vitalite : un critique retire le montant multiplie") {
     Vitalite vitalite(100000, defensesDeTest(0));
     Generateur generateur = generateurDeTest();
-    const Attaque attaque{.montant = 100, .capaciteOffensive = 100000, .nature = NatureDAttaque::Contact};  // 50 % de chance, ×2
+    const Attaque attaque{.degats = 100, .capaciteOffensive = 100000, .nature = NatureDAttaque::Contact};  // 50 % de chance, ×2
     int critiques = 0;
 
     // Chaque coup est vérifié ; à 50 %, la chance de n'en voir aucun critique sur 100 est de 2^-100.
@@ -112,7 +112,7 @@ TEST_CASE("Vitalite : un mort ne tire rien") {
     Generateur generateur = generateurDeTest();
     const Generateur intact = generateur;
 
-    const ResultatDuCoup resultat = vitalite.recevoirDegats({.montant = 50, .capaciteOffensive = 100000, .nature = NatureDAttaque::Contact}, generateur);
+    const ResultatDuCoup resultat = vitalite.recevoirDegats({.degats = 50, .capaciteOffensive = 100000, .nature = NatureDAttaque::Contact}, generateur);
 
     REQUIRE(resultat.montant == 0);
     REQUIRE_FALSE(resultat.critique);
@@ -127,8 +127,8 @@ TEST_CASE("Vitalite : la capacite defensive des defenses compte pour le critique
     int critiquesDuRobuste = 0;
 
     for (int i = 0; i < 300; ++i) {
-        critiquesDuFragile += fragile.recevoirDegats({.montant = 10, .capaciteOffensive = 100, .nature = NatureDAttaque::Contact}, generateur).critique ? 1 : 0;
-        critiquesDuRobuste += robuste.recevoirDegats({.montant = 10, .capaciteOffensive = 100, .nature = NatureDAttaque::Contact}, generateur).critique ? 1 : 0;
+        critiquesDuFragile += fragile.recevoirDegats({.degats = 10, .capaciteOffensive = 100, .nature = NatureDAttaque::Contact}, generateur).critique ? 1 : 0;
+        critiquesDuRobuste += robuste.recevoirDegats({.degats = 10, .capaciteOffensive = 100, .nature = NatureDAttaque::Contact}, generateur).critique ? 1 : 0;
     }
 
     REQUIRE(critiquesDuFragile > 100);  // rapport 100 : 50 %
@@ -138,7 +138,7 @@ TEST_CASE("Vitalite : la capacite defensive des defenses compte pour le critique
 TEST_CASE("Vitalite : un coup esquive ne retire aucun point de vie") {
     Vitalite vitalite(1000, {.armure = 0, .statistiques = {.capaciteDefensive = 100, .esquiveContact = 50}});
     Generateur generateur = generateurDeTest();
-    const Attaque attaque{.montant = 100, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
+    const Attaque attaque{.degats = 100, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
     bool esquiveVue = false;
 
     for (int i = 0; i < 100; ++i) {
@@ -162,7 +162,7 @@ Vitalite vitaliteAuBouclier() {
     return Vitalite(1000, {.armure = 0, .statistiques = {.capaciteDefensive = 100, .chanceDeBlocage = 100, .montantBloque = 40}});
 }
 
-const Attaque s_coupDeContact{.montant = 100, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
+const Attaque s_coupDeContact{.degats = 100, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
 }  // namespace
 
 TEST_CASE("Vitalite : un blocage retire le montant bloque et lance la recuperation") {
@@ -212,7 +212,7 @@ TEST_CASE("Vitalite : un coup non bloque (zone) ne lance pas la recuperation") {
     Vitalite vitalite = vitaliteAuBouclier();
     Generateur generateur = generateurDeTest();
 
-    const ResultatDuCoup resultat = vitalite.recevoirDegats({.montant = 100, .capaciteOffensive = 0, .nature = NatureDAttaque::Zone}, generateur);
+    const ResultatDuCoup resultat = vitalite.recevoirDegats({.degats = 100, .capaciteOffensive = 0, .nature = NatureDAttaque::Zone}, generateur);
 
     REQUIRE(resultat.bloque == 0);
     REQUIRE(vitalite.blocagePret());
@@ -222,7 +222,7 @@ TEST_CASE("Vitalite : un blocage total ne retire aucun point de vie") {
     Vitalite vitalite = vitaliteAuBouclier();
     Generateur generateur = generateurDeTest();
 
-    const ResultatDuCoup resultat = vitalite.recevoirDegats({.montant = 30, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact}, generateur);
+    const ResultatDuCoup resultat = vitalite.recevoirDegats({.degats = 30, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact}, generateur);
 
     REQUIRE(resultat.bloque == 30);
     REQUIRE(resultat.montant == 0);

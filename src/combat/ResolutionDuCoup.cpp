@@ -42,14 +42,14 @@ ResultatDuBlocage blocageDe(int montant, NatureDAttaque nature, const Statistiqu
 }  // namespace
 
 ResultatDuCoup resoudreCoup(const Attaque& attaque, const Defenses& defenses, bool blocagePret, Generateur& generateur) {
-    if (attaque.montant == 0) {
+    if (attaque.degats == 0) {
         return {};
     }
     if (esquiveDe(attaque.nature, defenses.statistiques, generateur)) {
         return {.montant = 0, .critique = false, .esquive = true};
     }
     const ResultatCritique critique =
-        critiqueDe(attaque.montant, attaque.capaciteOffensive, defenses.statistiques.capaciteDefensive, generateur);
+        critiqueDe(attaque.degats, attaque.capaciteOffensive, defenses.statistiques.capaciteDefensive, generateur);
     const ResultatDuBlocage blocage =
         blocageDe(critique.montant, attaque.nature, defenses.statistiques, blocagePret, generateur);
     if (blocage.bloque > 0 && blocage.montant == 0) {
@@ -62,8 +62,8 @@ ResultatDuCoup resoudreCoup(const Attaque& attaque, const Defenses& defenses, bo
             .bloque = blocage.bloque};
 }
 
-ResultatDuCoup resoudreSoin(const Attaque& soin, Generateur& generateur) {
+ResultatDuCoup resoudreSoin(const Attaque& attaque, Generateur& generateur) {
     const ResultatCritique critique =
-        critiqueDe(soin.montant, soin.capaciteOffensive, s_capaciteDefensiveDeReference, generateur);
+        critiqueDe(attaque.soin, attaque.capaciteOffensive, s_capaciteDefensiveDeReference, generateur);
     return {.montant = critique.montant, .critique = critique.critique};
 }

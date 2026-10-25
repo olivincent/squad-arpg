@@ -262,7 +262,7 @@ TEST_CASE("Sans verrou, tous les personnages frappent un monstre a leur portee, 
     REQUIRE(coups.size() == 3);
     for (const Coup& coup : coups) {
         REQUIRE(coup.idMonstre == 4);
-        REQUIRE(coup.attaque.montant == s_degatsBaseDeTest);
+        REQUIRE(coup.attaque.degats == s_degatsBaseDeTest);
     }
     verifierPointProche(escouade.getCentre(), centreInitial);
 }
@@ -372,7 +372,7 @@ namespace {
 int attaquerCibleUnTic(Escouade& escouade, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur) {
     int total = 0;
     for (const Coup& coup : escouade.attaquer(s_dureeTic, monstres, carte, generateur)) {
-        total += coup.attaque.montant;
+        total += coup.attaque.degats;
     }
     return total;
 }
@@ -577,8 +577,8 @@ TEST_CASE("entitesDeControle exclut les morts mais garde la place des autres") {
 TEST_CASE("attaqueDeBase : l'attaque de la place, vide si la place est invalide") {
     const Escouade escouade = uneEscouade({50.0f, 50.0f});
 
-    REQUIRE(escouade.attaqueDeBase(1)->montant == s_degatsBaseDeTest);
-    REQUIRE(escouade.attaqueDeBase(3)->montant == s_degatsBaseDeTest);
+    REQUIRE(escouade.attaqueDeBase(1)->degats == s_degatsBaseDeTest);
+    REQUIRE(escouade.attaqueDeBase(3)->degats == s_degatsBaseDeTest);
     REQUIRE_FALSE(escouade.attaqueDeBase(0).has_value());
     REQUIRE_FALSE(escouade.attaqueDeBase(4).has_value());
 }

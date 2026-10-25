@@ -32,7 +32,7 @@ struct ResultatDuCoup {
 // référence, un par étape dont la chance est non nulle) ; aucun tirage quand la chance est nulle (esquive nulle
 // ou zone, capacité offensive nulle, pas de bouclier ou bouclier en récupération) ni quand le montant est nul.
 // `blocagePret` : le blocage du défenseur n'est pas en récupération (l'état vit chez lui, `Vitalite` ; le
-// résultat dit `bloque > 0` quand il faut lancer la récupération). Précondition : attaque.montant >= 0.
+// résultat dit `bloque > 0` quand il faut lancer la récupération). Précondition : attaque.degats >= 0.
 [[nodiscard]] ResultatDuCoup resoudreCoup(const Attaque& attaque, const Defenses& defenses, bool blocagePret,
                                           Generateur& generateur);
 
@@ -40,8 +40,8 @@ struct ResultatDuCoup {
 // niveaux existeront. Provisoire, à tester.
 inline constexpr int s_capaciteDefensiveDeReference = 100;
 
-// Un soin (décrit comme une attaque : son montant et la capacité offensive de qui le lance) peut être
+// Un soin (décrit comme une attaque : son champ `soin` et la capacité offensive de qui le lance) peut être
 // critique, contre `s_capaciteDefensiveDeReference`, par la même courbe et la même règle de tirage que
 // `resoudreCoup`. Le résultat est le soin à rendre, avant le plafond aux points de vie maximum, qui se fait
-// chez celui qui est soigné. Précondition : soin.montant >= 0.
-[[nodiscard]] ResultatDuCoup resoudreSoin(const Attaque& soin, Generateur& generateur);
+// chez celui qui est soigné. Précondition : attaque.soin >= 0.
+[[nodiscard]] ResultatDuCoup resoudreSoin(const Attaque& attaque, Generateur& generateur);

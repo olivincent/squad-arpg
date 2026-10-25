@@ -91,7 +91,7 @@ TEST_CASE("evenements : un skill de degats donne un evenement sur le monstre, ar
                                  s_graineDeTest, monstreAvecArmure(armure));
     partie.demanderSkill(s_adresseFrappe);
     const Defenses monstre = defensesDuMonstreDeTest(armure);
-    const Attaque frappe{.montant = s_degatsFrappeDeTest,
+    const Attaque frappe{.degats = s_degatsFrappeDeTest,
                          .capaciteOffensive = partie.getEscouade().statistiquesDeCombatDuPersonnage(1)->capaciteOffensive,
                          .nature = NatureDAttaque::Contact};
     const Attaque base = *partie.getEscouade().attaqueDeBase(1);
@@ -162,7 +162,7 @@ TEST_CASE("evenements : un skill de zone donne un evenement par monstre touche")
     // mage (activation de 0,8 s) part avant qu'ils aient pu atteindre quelqu'un.
     Partie partie = unePartie(niveauDegage({{400.0f, 340.0f}, {435.0f, 340.0f}, {400.0f, 375.0f}}), s_graineDeTest);
     partie.lancerSkillDeZone(s_adresseExplosion, {400.0f, 340.0f});
-    const Attaque explosion{.montant = s_degatsZoneDeTest,
+    const Attaque explosion{.degats = s_degatsZoneDeTest,
                             .capaciteOffensive = partie.getEscouade().statistiquesDeCombatDuPersonnage(3)->capaciteOffensive,
                             .nature = NatureDAttaque::Zone};
 

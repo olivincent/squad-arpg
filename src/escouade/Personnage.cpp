@@ -382,10 +382,25 @@ void Personnage::relancerSiLArmeAChange(Generateur& generateur) {
 }
 
 Attaque Personnage::attaqueDe(const Skill& skill, int penetration) const {
-    return {.montant = montantEffectif(skill.getPuissance(), skill.getCoefficients(), m_caracteristiques),
-            .capaciteOffensive = m_statistiques.capaciteOffensive,
-            .nature = skill.getNature(),
-            .penetration = penetration};
+    const int montant = montantEffectif(skill.getPuissance(), skill.getCoefficients(), m_caracteristiques);
+    Attaque attaque = {.degats = 0,
+                       .capaciteOffensive = m_statistiques.capaciteOffensive,
+                       .nature = skill.getNature(),
+                       .penetration = penetration};
+    // Le type du skill dit ce que son montant est : des dégâts, un soin ou une durée.
+    switch (skill.getType()) {
+        case TypeSkill::Degats:
+        case TypeSkill::Zone:
+            attaque.degats = montant;
+            break;
+        case TypeSkill::Soin:
+            attaque.soin = montant;
+            break;
+        case TypeSkill::Provocation:
+            attaque.dureeDeProvocation = montant;
+            break;
+    }
+    return attaque;
 }
 
 const Caracteristiques& Personnage::getCaracteristiques() const {

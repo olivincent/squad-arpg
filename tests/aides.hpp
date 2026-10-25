@@ -84,7 +84,12 @@ inline Generateur generateurDeTest() {
 // aide explicite : `monstreSansHasard()`, `defensesDeTest()`, un personnage de test sans bottes ni bouclier.
 // Pour les tests qui ne portent ni sur le critique, ni sur l'esquive, ni sur le blocage.
 inline Attaque attaqueSansHasard(int montant) {
-    return {.montant = montant, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
+    return {.degats = montant, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
+}
+
+// Un soin de `montant` points, sans hasard non plus (pour `resoudreSoin`).
+inline Attaque soinSansHasard(int montant) {
+    return {.degats = 0, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact, .soin = montant};
 }
 
 // L'infanterie sans esquive ni armure : les coups qu'elle reçoit ne dépendent plus du hasard du défenseur, et
@@ -122,17 +127,17 @@ inline Defenses defensesDeTest(int armure = 0) {
     return {.armure = armure, .statistiques = {.capaciteOffensive = 0, .capaciteDefensive = 100}};
 }
 
-// Le montant d'une attaque qui vient de partir, 0 si rien n'est parti (ce que rendaient avancerAttaque et
+// Les dégâts d'une attaque qui vient de partir, 0 si rien n'est parti (ce que rendaient avancerAttaque et
 // avancerSkill avant de rendre une attaque entière).
-inline int montantOuZero(const std::optional<Attaque>& attaque) {
-    return attaque.has_value() ? attaque->montant : 0;
+inline int degatsOuZero(const std::optional<Attaque>& attaque) {
+    return attaque.has_value() ? attaque->degats : 0;
 }
 
 // Les dégâts qu'une attaque inflige à ce défenseur, selon que le jeu en a fait un critique ou non : la
 // multiplication du critique (au tirage 0, donc toujours critique) puis l'armure. Pour les tests de Partie, où
 // le tirage n'est pas à eux : ils lisent `critique` dans l'événement et vérifient le montant qui va avec.
 inline int degatsAttendus(const Attaque& attaque, const Defenses& defenses, bool critique) {
-    int montant = attaque.montant;
+    int montant = attaque.degats;
     if (critique) {
         const float rapport = rapportDeCapacites(attaque.capaciteOffensive, defenses.statistiques.capaciteDefensive);
         montant = appliquerCritique(montant, rapport, 0.0f).montant;

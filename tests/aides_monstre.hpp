@@ -70,7 +70,7 @@ inline int frapperEnEntier(Monstre& monstre, Cercle cible, Generateur& generateu
         return 0;
     }
     for (int i = 0; i < nombreDeTics(1.0f); ++i) {
-        if (const int degats = montantOuZero(monstre.avancerAttaque(s_dureeTic, generateur)); degats > 0) {
+        if (const int degats = degatsOuZero(monstre.avancerAttaque(s_dureeTic, generateur)); degats > 0) {
             return degats;
         }
     }

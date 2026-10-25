@@ -354,7 +354,7 @@ TEST_CASE("Agresseurs : un agresseur mort dans l'image n'attire plus personne, l
 TEST_CASE("Un coup esquive compte comme une attaque recue : le monstre devient agresseur, sans degats") {
     DefinitionPersonnage guerrier = avecEnduranceEnorme(guerrierDeTest());
     guerrier.equipementDeDepart.push_back({Emplacement::Bottes, IdObjet::BottesDeCuir});  // esquive contre le contact
-    const Attaque attaque{.montant = 1, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
+    const Attaque attaque{.degats = 1, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
     Escouade escouade({50.0f, 50.0f}, {guerrier});
     Generateur generateur = generateurDeTest();
     int esquives = 0;
@@ -386,7 +386,7 @@ TEST_CASE("Un coup bloque compte comme une attaque recue : le monstre devient ag
     for (int essai = 0; essai < 150; ++essai) {
         Escouade escouade({50.0f, 50.0f}, {guerrier});
         const StatistiquesDeCombat statistiques = *escouade.statistiquesDeCombatDuPersonnage(1);
-        const Attaque faible{.montant = statistiques.montantBloque, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
+        const Attaque faible{.degats = statistiques.montantBloque, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
         const int vieAvant = *escouade.pointsDeVieDuPersonnage(1);
 
         const ResultatDuCoup resultat = escouade.recevoirCoup(7, 1, faible, generateur);

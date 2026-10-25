@@ -40,7 +40,7 @@ public:
     [[nodiscard]] bool estAPortee(Cercle cible) const;
     // Portée de l'attaque de base, bord à bord.
     [[nodiscard]] float getPorteeAttaqueDeBase() const;
-    // Son attaque de base : le montant (caractéristiques comprises, `montantEffectif`), avant l'armure de la
+    // Son attaque de base : les dégâts (caractéristiques comprises, `montantEffectif`), avant l'armure de la
     // cible, et sa capacité offensive.
     [[nodiscard]] Attaque getAttaqueDeBase() const;
     // Zone de contrôle, en pixels, bord à bord ; 0 : il n'engage personne. Celle de son attaque de base, donc de son arme.
@@ -81,9 +81,8 @@ public:
     // Skill en trois temps, comme l'attaque de base : engager (vivant, skill
     // prêt, aucun autre skill en activation ; annule le coup de base en
     // exécution, mais ne demande pas d'immobilité) ; avancer l'activation, qui
-    // rend l'attaque (montant et capacité offensive) au moment où l'effet part, vide
-    // avant (et relance la recharge de l'attaque de base ; le montant d'une
-    // provocation est sa durée) ; annuler, sans recharge consommée. Une seule action
+    // rend l'attaque (dégâts, soin ou durée de provocation selon le type du skill, et capacité offensive) au moment
+    // où l'effet part, vide avant (et relance la recharge de l'attaque de base) ; annuler, sans recharge consommée. Une seule action
     // engagée à la fois ; les recharges des skills sont indépendantes. La portée
     // et la vue sont vérifiées par Escouade ; la cible est stockée sans être interprétée.
     [[nodiscard]] bool engagerSkill(IdSkill id, std::optional<Cible> cible);
@@ -144,7 +143,8 @@ private:
     // jamais ajustées. Une arme qui change annule le coup de base en cours, sans recharge consommée, puis
     // l'attaque repart pour une recharge complète (`relancerSiLArmeAChange`).
     void recalculerDepuisLEquipement();
-    // L'attaque de ce skill de ce personnage : son montant, caractéristiques comprises (`montantEffectif`), la
+    // L'attaque de ce skill de ce personnage : son montant, caractéristiques comprises (`montantEffectif`), rangé
+    // dans le champ que dit le type du skill (dégâts, soin ou durée de provocation), la
     // capacité offensive du personnage et la pénétration donnée (celle de l'arme pour l'attaque de base, 0 pour un skill).
     [[nodiscard]] Attaque attaqueDe(const Skill& skill, int penetration) const;
     // Son arme permet-elle de lancer ce skill (`Skill::convientA`) ?

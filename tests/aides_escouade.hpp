@@ -355,7 +355,7 @@ inline int attaquerCible(Escouade& escouade, const TileMap& carte, Cercle cible)
     int total = 0;
     Generateur generateur = generateurDeTest();
     for (const Coup& coup : attaquerJusquAuDepart(escouade, {EntiteVue{1, cible}}, carte, generateur)) {
-        total += coup.attaque.montant;
+        total += coup.attaque.degats;
     }
     return total;
 }
@@ -374,7 +374,7 @@ inline std::vector<Coup> attendreLeDepartDesSkills(Escouade& escouade, const std
     std::vector<Coup> coups;
     for (int i = 0; i < nombreDeTics(s_dureeAttenteSkill); ++i) {
         for (const Coup& coup : escouade.attaquer(s_dureeTic, monstres, carte, generateur)) {
-            if (coup.attaque.montant != s_degatsBaseDeTest) {
+            if (coup.attaque.degats != s_degatsBaseDeTest) {
                 coups.push_back(coup);
             }
         }
@@ -503,7 +503,7 @@ inline int declencher(Escouade& escouade, AdresseSkill adresse, const std::vecto
     int total = 0;
     Generateur generateur = generateurDeTest();
     for (const Coup& coup : declencherEtAttendre(escouade, adresse, monstres, carteOuverte(), generateur)) {
-        total += coup.attaque.montant;
+        total += coup.attaque.degats;
     }
     return total;
 }
