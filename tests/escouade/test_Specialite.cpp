@@ -115,12 +115,12 @@ TEST_CASE("le paladin est une melee qui frappe et soigne au contact") {
 
     REQUIRE(paladin.skills[0].id == IdSkill::FrappeSacree);
     REQUIRE(paladin.skills[0].skill.getType() == TypeSkill::Degats);
-    REQUIRE(paladin.skills[0].skill.getPuissance() == 200);
+    REQUIRE(paladin.skills[0].skill.getPuissance() == 60);
     REQUIRE(paladin.skills[0].skill.getPortee() == 20.0f);
 
     REQUIRE(paladin.skills[1].id == IdSkill::ImpositionDesMains);
     REQUIRE(paladin.skills[1].skill.getType() == TypeSkill::Soin);
-    REQUIRE(paladin.skills[1].skill.getPuissance() == 250);
+    REQUIRE(paladin.skills[1].skill.getPuissance() == 75);
     REQUIRE(paladin.skills[1].skill.getPortee() == 20.0f);
 }
 
@@ -136,12 +136,12 @@ TEST_CASE("le rodeur est un tireur avec un tir de loin et un skill de zone") {
 
     REQUIRE(rodeur.skills[0].id == IdSkill::TirPercant);
     REQUIRE(rodeur.skills[0].skill.getType() == TypeSkill::Degats);
-    REQUIRE(rodeur.skills[0].skill.getPuissance() == 250);
+    REQUIRE(rodeur.skills[0].skill.getPuissance() == 75);
     REQUIRE(rodeur.skills[0].skill.getPortee() == 200.0f);
 
     REQUIRE(rodeur.skills[1].id == IdSkill::PluieDeFleches);
     REQUIRE(rodeur.skills[1].skill.getType() == TypeSkill::Zone);
-    REQUIRE(rodeur.skills[1].skill.getPuissance() == 120);
+    REQUIRE(rodeur.skills[1].skill.getPuissance() == 36);
     REQUIRE(rodeur.skills[1].skill.getRayonZone() == 45.0f);
     REQUIRE(rodeur.skills[1].skill.getPortee() == 320.0f);
 }
@@ -251,7 +251,7 @@ TEST_CASE("armure des classes : une escouade du catalogue encaisse selon l'equip
     REQUIRE(subirCoup(escouade, 7, 2, 40) == 40);
 }
 
-TEST_CASE("caracteristiques des classes : somme de 50, et les points de vie maximum de depart sont les memes pour toutes") {
+TEST_CASE("caracteristiques des classes : somme de 50, et les points de vie de depart ne dependent que de l'Endurance") {
     for (const Specialite& classe : catalogue()) {
         const DefinitionPersonnage& definition = classe.definition;
         int somme = 0;
@@ -259,7 +259,8 @@ TEST_CASE("caracteristiques des classes : somme de 50, et les points de vie maxi
             somme += definition.caracteristiques.valeur(caracteristique);
         }
         REQUIRE(somme == 50);
-        REQUIRE(pointsDeVieMax(definition.pointsDeVieDeBase, definition.caracteristiques) == 1000);
+        REQUIRE(pointsDeVieMax(definition.caracteristiques) ==
+                s_pointsDeVieDeBase + s_pvParPointDEndurance * definition.caracteristiques.valeur(Caracteristique::Endurance));
     }
 }
 

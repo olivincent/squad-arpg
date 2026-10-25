@@ -7,14 +7,14 @@ namespace {
 // Valeurs provisoires, à ajuster après test.
 constexpr float s_cote = 30.0f;                // côté du carré, en pixels
 constexpr float s_vitesse = 160.0f;            // en pixels par seconde
-constexpr int s_pointsDeVieMax = 1000;
+constexpr int s_pointsDeVieMax = 300;
 constexpr int s_armure = 0;
 constexpr float s_rayonDetection = 200.0f;     // en pixels
 constexpr float s_rayonTerritoire = 600.0f;    // en pixels
 constexpr float s_zoneDeControle = 20.0f;      // en pixels, bord à bord
 constexpr float s_regenerationRetour = 0.5f;   // fraction des points de vie maximum rendue par seconde en retour
 constexpr float s_porteeAttaque = 15.0f;       // bord à bord
-constexpr int s_degatsAttaque = 100;
+constexpr int s_degatsAttaque = 30;
 constexpr float s_rechargeAttaqueMin = 0.7f;   // en secondes
 constexpr float s_rechargeAttaqueMax = 1.3f;
 constexpr float s_executionAttaque = 0.3f;     // en secondes, immobile avant que le coup parte

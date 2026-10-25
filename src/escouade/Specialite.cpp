@@ -22,17 +22,17 @@ constexpr float s_porteeTireur = 120.0f;  // bord à bord
 constexpr float s_rayonVision = 320.0f;  // en pixels (8 cases), le même pour tous
 constexpr float s_zoneDeControleMelee = 20.0f;   // bord à bord : les mêlées engagent ce qui les touche presque
 constexpr float s_zoneDeControleTireur = 0.0f;   // les tireurs n'engagent personne (mais peuvent être engagés)
-constexpr int s_degatsAttaqueDeBase = 50;
+constexpr int s_degatsAttaqueDeBase = 15;
 constexpr float s_executionAttaqueDeBase = 0.15f;  // en secondes, immobile avant que le coup parte
 constexpr float s_rechargeMeleeMin = 0.3f;   // attaque de base des mêlées, en secondes
 constexpr float s_rechargeMeleeMax = 0.7f;
 constexpr float s_rechargeTireurMin = 0.4f;  // attaque de base des tireurs, en secondes
 constexpr float s_rechargeTireurMax = 0.6f;
-constexpr int s_degatsSkill = 250;
+constexpr int s_degatsSkill = 75;
 constexpr float s_rechargeSkill = 5.0f;   // en secondes
 constexpr float s_activationSkill = 0.3f; // en secondes, immobile avant que l'effet parte
 constexpr float s_porteeSoin = 40.0f;     // bord à bord
-constexpr int s_puissanceSoin = 300;
+constexpr int s_puissanceSoin = 90;
 constexpr float s_rechargeSoin = 8.0f;    // en secondes
 constexpr float s_activationSoin = 0.6f;  // en secondes
 constexpr float s_rayonProvocation = 150.0f;  // rayon de zone, depuis le centre du provocateur
@@ -40,41 +40,36 @@ constexpr int s_dureeProvocation = 4;         // en secondes (la puissance de ce
 constexpr float s_rechargeProvocation = 10.0f;  // en secondes
 constexpr float s_activationProvocation = 0.2f;  // en secondes
 constexpr float s_porteeZone = 250.0f;        // portée de lancement du skill de zone, bord à bord
-constexpr int s_degatsZone = 150;
+constexpr int s_degatsZone = 45;
 constexpr float s_rechargeZone = 8.0f;        // en secondes
 constexpr float s_activationZone = 0.8f;      // en secondes
 constexpr float s_rayonZone = 60.0f;          // rayon de zone, depuis le point visé
 
 // Paladin et rôdeur : valeurs provisoires, à ajuster après test.
-constexpr int s_degatsFrappeSacree = 200;
+constexpr int s_degatsFrappeSacree = 60;
 constexpr float s_rechargeFrappeSacree = 5.0f;    // en secondes
 constexpr float s_activationFrappeSacree = 0.3f;  // en secondes
-constexpr int s_puissanceImposition = 250;
+constexpr int s_puissanceImposition = 75;
 constexpr float s_rechargeImposition = 10.0f;     // en secondes
 constexpr float s_activationImposition = 0.5f;    // en secondes
 constexpr float s_porteeTirPercant = 200.0f;      // bord à bord
-constexpr int s_degatsTirPercant = 250;
+constexpr int s_degatsTirPercant = 75;
 constexpr float s_rechargeTirPercant = 6.0f;      // en secondes
 constexpr float s_activationTirPercant = 0.5f;    // en secondes
 constexpr float s_porteePluie = 320.0f;           // portée de lancement, bord à bord
-constexpr int s_degatsPluie = 120;
+constexpr int s_degatsPluie = 36;
 constexpr float s_rechargePluie = 8.0f;           // en secondes
 constexpr float s_activationPluie = 0.8f;         // en secondes
 constexpr float s_rayonPluie = 45.0f;             // rayon de zone, depuis le point visé
 
 // Caractéristiques de base de chaque classe (somme 50, provisoires, à tester) : Puissance, Endurance,
-// Adresse, Savoir, Volonté. Les points de vie de base sont ajustés pour que les points de vie maximum de
-// départ (base + `s_pvParPointDEndurance` × Endurance) restent ceux d'avant l'étape 88 : 1000.
+// Adresse, Savoir, Volonté. Les points de vie ne viennent que de l'Endurance (`pointsDeVieMax` : base commune
+// plus `s_pvParPointDEndurance` par point) : guerrier 324, paladin 318, prêtre et rôdeur 300, mage 288.
 constexpr Caracteristiques s_caracteristiquesGuerrier({12, 14, 10, 6, 8});
 constexpr Caracteristiques s_caracteristiquesPaladin({11, 13, 8, 7, 11});
 constexpr Caracteristiques s_caracteristiquesPretre({10, 10, 8, 10, 12});
 constexpr Caracteristiques s_caracteristiquesMage({10, 8, 8, 14, 10});
 constexpr Caracteristiques s_caracteristiquesRodeur({10, 10, 14, 8, 8});
-constexpr int s_pointsDeVieDeBaseGuerrier = 720;  // + 20 × 14
-constexpr int s_pointsDeVieDeBasePaladin = 740;   // + 20 × 13
-constexpr int s_pointsDeVieDeBasePretre = 800;    // + 20 × 10
-constexpr int s_pointsDeVieDeBaseMage = 840;      // + 20 × 8
-constexpr int s_pointsDeVieDeBaseRodeur = 800;    // + 20 × 10
 
 // Tous les montants des personnages (dégâts, soins) profitent de la Puissance, à plein et d'elle seule
 // (la durée d'une provocation n'est pas un montant).
@@ -98,7 +93,7 @@ Skill attaqueDeBaseDeTireur() {
     return attaqueDeBase(s_porteeTireur, s_rechargeTireurMin, s_rechargeTireurMax, NatureDAttaque::Projectile);
 }
 
-// Équipement de départ : les mêlées portent une armure complète (30 en tout), les tireurs rien.
+// Équipement de départ : les mêlées portent une armure complète (9 en tout), les tireurs rien.
 // Valeurs provisoires, à ajuster après test.
 std::vector<ObjetDeDepart> equipementDeMelee() {
     return {{Emplacement::Tete, IdObjet::CasqueDeFer},
@@ -125,7 +120,7 @@ std::vector<Specialite> construireLeCatalogue() {
                                          .rechargeMax = s_rechargeProvocation, .rayonZone = s_rayonProvocation,
                                          .tempsExecution = s_activationProvocation, .nature = NatureDAttaque::Contact})}},
           .equipementDeDepart = equipementDeMelee(), .rayonVision = s_rayonVision,
-          .caracteristiques = s_caracteristiquesGuerrier, .pointsDeVieDeBase = s_pointsDeVieDeBaseGuerrier,
+          .caracteristiques = s_caracteristiquesGuerrier,
           .zoneDeControle = s_zoneDeControleMelee,
           .rang = Rang::Avant}},
         // Prêtre : derrière, soigne.
@@ -135,7 +130,7 @@ std::vector<Specialite> construireLeCatalogue() {
                                   .rechargeMin = s_rechargeSoin, .rechargeMax = s_rechargeSoin,
                                   .tempsExecution = s_activationSoin, .coefficients = s_puissanceSeule, .nature = NatureDAttaque::Contact})}},
           .equipementDeDepart = equipementDeTireur(), .rayonVision = s_rayonVision,
-          .caracteristiques = s_caracteristiquesPretre, .pointsDeVieDeBase = s_pointsDeVieDeBasePretre,
+          .caracteristiques = s_caracteristiquesPretre,
           .zoneDeControle = s_zoneDeControleTireur,
           .rang = Rang::Arriere}},
         // Mage : derrière, lance l'explosion.
@@ -146,7 +141,7 @@ std::vector<Specialite> construireLeCatalogue() {
                                        .rayonZone = s_rayonZone, .tempsExecution = s_activationZone, .coefficients = s_puissanceSeule,
                                        .nature = NatureDAttaque::Zone})}},
           .equipementDeDepart = equipementDeTireur(), .rayonVision = s_rayonVision,
-          .caracteristiques = s_caracteristiquesMage, .pointsDeVieDeBase = s_pointsDeVieDeBaseMage,
+          .caracteristiques = s_caracteristiquesMage,
           .zoneDeControle = s_zoneDeControleTireur,
           .rang = Rang::Arriere}},
         // Paladin : devant, au contact, frappe et soigne.
@@ -163,7 +158,7 @@ std::vector<Specialite> construireLeCatalogue() {
                                                 .rechargeMax = s_rechargeImposition,
                                                 .tempsExecution = s_activationImposition, .coefficients = s_puissanceSeule, .nature = NatureDAttaque::Contact})}},
           .equipementDeDepart = equipementDeMelee(), .rayonVision = s_rayonVision,
-          .caracteristiques = s_caracteristiquesPaladin, .pointsDeVieDeBase = s_pointsDeVieDeBasePaladin,
+          .caracteristiques = s_caracteristiquesPaladin,
           .zoneDeControle = s_zoneDeControleMelee,
           .rang = Rang::Avant}},
         // Rôdeur : derrière, tire de loin et lance une pluie de flèches.
@@ -179,7 +174,7 @@ std::vector<Specialite> construireLeCatalogue() {
                                             .tempsExecution = s_activationPluie, .coefficients = s_puissanceSeule,
                                             .nature = NatureDAttaque::Zone})}},
           .equipementDeDepart = equipementDeTireur(), .rayonVision = s_rayonVision,
-          .caracteristiques = s_caracteristiquesRodeur, .pointsDeVieDeBase = s_pointsDeVieDeBaseRodeur,
+          .caracteristiques = s_caracteristiquesRodeur,
           .zoneDeControle = s_zoneDeControleTireur,
           .rang = Rang::Arriere}},
     };

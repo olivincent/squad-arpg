@@ -88,12 +88,16 @@ inline constexpr int s_valeurDeReference = 10;
 // le coefficient du skill. Provisoire, à tester.
 inline constexpr float s_bonusParPoint = 0.03f;
 
-// Points de vie maximum que donne chaque point d'Endurance. Provisoire, à tester.
-inline constexpr int s_pvParPointDEndurance = 20;
+// Points de vie de base d'un personnage, les mêmes pour toutes les classes : l'Endurance fait seule la différence.
+// Provisoire, à tester.
+inline constexpr int s_pointsDeVieDeBase = 240;
 
-// Points de vie maximum d'un personnage : ceux de sa classe plus `s_pvParPointDEndurance` par point
+// Points de vie maximum que donne chaque point d'Endurance. Provisoire, à tester.
+inline constexpr int s_pvParPointDEndurance = 6;
+
+// Points de vie maximum d'un personnage : `s_pointsDeVieDeBase` plus `s_pvParPointDEndurance` par point
 // d'Endurance (effective : base de classe plus équipement). Précondition : le résultat est > 0.
-[[nodiscard]] int pointsDeVieMax(int pointsDeVieDeBase, const Caracteristiques& caracteristiques);
+[[nodiscard]] int pointsDeVieMax(const Caracteristiques& caracteristiques);
 
 // Le montant (dégâts ou soin) d'un skill de personnage, une fois ses caractéristiques prises en compte :
 //   montant × (1 + Σ coefficient × `s_bonusParPoint` × (caractéristique − `s_valeurDeReference`)),

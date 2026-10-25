@@ -173,7 +173,7 @@ TEST_CASE("zone de controle : un monstre qui rentre a son poste ne donne ni ne r
 
 namespace {
 
-constexpr int s_degatsDuMageDansLaPartie = 70;
+constexpr int s_degatsDuMageDansLaPartie = 15;  // dix coups, même critiques, ne tuent pas le monstre
 
 Partie unGuerrierEtUnMageAuContact() {
     std::vector<DefinitionPersonnage> composition = {guerrierDeTest(), mageDeTest()};

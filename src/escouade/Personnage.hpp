@@ -117,7 +117,6 @@ private:
     Caracteristiques m_caracteristiquesDeBase;  // celles de sa classe, jamais modifiées
     Caracteristiques m_caracteristiques;        // effectives : seul `recalculerDepuisLEquipement` les écrit
     StatistiquesDeCombat m_statistiques;        // tirées des caractéristiques effectives, écrites au même endroit
-    int m_pointsDeVieDeBase;                    // sans l'Endurance
     Vitalite m_vitalite;    // points de vie et défenses
     float m_rayonVision;    // en pixels
     float m_zoneDeControle; // en pixels, bord à bord

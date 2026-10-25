@@ -10,6 +10,8 @@
 #include "aides.hpp"
 #include "escouade/Personnage.hpp"
 #include "base/Cercle.hpp"
+#include "combat/Blocage.hpp"
+#include "combat/Esquive.hpp"
 #include "combat/Caracteristiques.hpp"
 #include "combat/StatistiquesDeCombat.hpp"
 #include "combat/Defense.hpp"
@@ -1097,14 +1099,15 @@ TEST_CASE("un equipement de depart qui donne de l'esquive compte des la construc
     REQUIRE(personnage.getStatistiques().esquiveContact == 5);
 }
 
-TEST_CASE("le bouclier rond donne au personnage 30 % de blocage, 40 points, 3 s de recuperation") {
+TEST_CASE("le bouclier rond donne au personnage sa chance de blocage, son montant et sa recuperation") {
     Personnage personnage = unPersonnageSansEsquive();
 
     static_cast<void>(personnage.poserEquipement(Emplacement::MainGauche, {IdObjet::BouclierRond}));
 
-    REQUIRE(personnage.getStatistiques().chanceDeBlocage == 30);
-    REQUIRE(personnage.getStatistiques().montantBloque == 40);
-    REQUIRE(personnage.getStatistiques().recuperationDuBlocage == 3.0f);
+    const StatistiquesDeCombat& bouclier = definitionObjet(IdObjet::BouclierRond).bonusDeCombat;
+    REQUIRE(personnage.getStatistiques().chanceDeBlocage == bouclier.chanceDeBlocage);
+    REQUIRE(personnage.getStatistiques().montantBloque == bouclier.montantBloque);
+    REQUIRE(personnage.getStatistiques().recuperationDuBlocage == bouclier.recuperationDuBlocage);
     static_cast<void>(personnage.retirerEquipement(Emplacement::MainGauche));
     REQUIRE(personnage.getStatistiques().montantBloque == 0);
 }
@@ -1113,59 +1116,46 @@ TEST_CASE("un personnage au bouclier : apres un blocage, plus aucun pendant 3 s,
     Personnage personnage = unPersonnageSansEsquive();
     static_cast<void>(personnage.poserEquipement(Emplacement::MainGauche, {IdObjet::BouclierRond}));
     const TileMap carte = carteDegagee5x5();
-    Generateur generateur = generateurDeTest();
     const Attaque attaque{.montant = 10, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
+    const float chance = chanceDeBlocage(NatureDAttaque::Contact, personnage.getStatistiques(), true);
+    // Le seul tirage d'un coup est celui du blocage (ni esquive ni critique) ; un nouveau générateur par blocage voulu.
+    Generateur quiBloque = generateurQuiTireSous(chance);
 
-    // 30 % de blocage : on frappe jusqu'au premier blocage.
-    bool bloque = false;
-    for (int i = 0; i < 200 && !bloque; ++i) {
-        bloque = personnage.recevoirDegats(attaque, generateur).bloque > 0;
-    }
-    REQUIRE(bloque);
+    REQUIRE(personnage.recevoirDegats(attaque, quiBloque).bloque > 0);
 
-    // Récupération : aucun blocage sur 100 coups, tant que le temps ne passe pas.
-    for (int i = 0; i < 100; ++i) {
-        REQUIRE(personnage.recevoirDegats(attaque, generateur).bloque == 0);
+    // Récupération : aucun blocage, même sous la chance, tant que le temps ne passe pas (et aucun tirage : sans chance).
+    for (int i = 0; i < 10; ++i) {  // dix coups de 10 : le personnage survit
+        Generateur quiBloqueEncore = generateurQuiTireSous(chance);
+        REQUIRE(personnage.recevoirDegats(attaque, quiBloqueEncore).bloque == 0);
     }
 
     // Après 3 s (mettreAJour du personnage), le bouclier bloque de nouveau.
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 3.1f);
-    bloque = false;
-    for (int i = 0; i < 200 && !bloque; ++i) {
-        bloque = personnage.recevoirDegats(attaque, generateur).bloque > 0;
-    }
-    REQUIRE(bloque);
+    Generateur quiBloqueApres = generateurQuiTireSous(chance);
+    REQUIRE(personnage.recevoirDegats(attaque, quiBloqueApres).bloque > 0);
 }
 
 TEST_CASE("un personnage qui esquive ne perd aucun point de vie") {
     Personnage personnage = unPersonnageSansEsquive();
     static_cast<void>(personnage.poserEquipement(Emplacement::Bottes, {IdObjet::BottesDeCuir}));
-    Generateur generateur = generateurDeTest();
     const Attaque attaque{.montant = 10, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
-    bool esquiveVue = false;
+    // Le seul tirage du coup est celui de l'esquive (pas de critique ni de bouclier), choisi sous sa chance.
+    Generateur generateur = generateurQuiTireSous(chanceDEsquive(NatureDAttaque::Contact, personnage.getStatistiques()));
+    const int avant = personnage.getPointsDeVie();
 
-    for (int i = 0; i < 400 && !esquiveVue; ++i) {
-        const int avant = personnage.getPointsDeVie();
-        const ResultatDuCoup resultat = personnage.recevoirDegats(attaque, generateur);
-        esquiveVue = resultat.esquive;
-        if (esquiveVue) {
-            REQUIRE(personnage.getPointsDeVie() == avant);
-        }
-    }
-    REQUIRE(esquiveVue);  // 5 % : 400 coups suffisent largement
+    REQUIRE(personnage.recevoirDegats(attaque, generateur).esquive);
+    REQUIRE(personnage.getPointsDeVie() == avant);
 }
 
-TEST_CASE("les points de vie maximum d'un personnage viennent de sa base et de son Endurance") {
-    constexpr int pointsDeVieDeBase = 700;
+TEST_CASE("les points de vie maximum d'un personnage viennent de la base commune et de son Endurance") {
     const Caracteristiques base({12, 14, 10, 6, 8});
     const Personnage personnage({100.0f, 100.0f},
                                 {.couleur = sf::Color::White,
                                  .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
                                  .rayonVision = s_rayonVisionDeTest,
-                                 .caracteristiques = base,
-                                 .pointsDeVieDeBase = pointsDeVieDeBase});
+                                 .caracteristiques = base});
 
-    REQUIRE(personnage.getPointsDeVieMax() == pointsDeVieMax(pointsDeVieDeBase, base));
+    REQUIRE(personnage.getPointsDeVieMax() == pointsDeVieMax(base));
     REQUIRE(personnage.getPointsDeVie() == personnage.getPointsDeVieMax());
 }
 
@@ -1205,8 +1195,7 @@ TEST_CASE("un equipement de depart qui donne des caracteristiques compte des la 
                                  .caracteristiques = base});
 
     REQUIRE(personnage.getCaracteristiques() == base + definitionObjet(IdObjet::CollierDEndurance).bonus);
-    REQUIRE(personnage.getPointsDeVieMax() ==
-            pointsDeVieMax(s_pointsDeVieDeBaseParDefaut, personnage.getCaracteristiques()));
+    REQUIRE(personnage.getPointsDeVieMax() == pointsDeVieMax(personnage.getCaracteristiques()));
     REQUIRE(personnage.getPointsDeVie() == personnage.getPointsDeVieMax());
 }
 

@@ -127,9 +127,9 @@ TEST_CASE("Le soin ne part pas a pleine vie et ne declenche alors pas la recharg
 
 TEST_CASE("Le soin est en recharge juste apres son lancement") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    infliger(escouade, 1, {35.0f, 85.0f}, 600);
+    infliger(escouade, 1, {35.0f, 85.0f}, 2 * s_puissanceSoinDeTest);  // le mage perd deux soins
 
-    declencher(escouade, s_adresseSoin, {});   // 400 -> 700
+    declencher(escouade, s_adresseSoin, {});   // un soin rendu : il manque encore un soin
     declencher(escouade, s_adresseSoin, {});   // refusé : recharge
 
     REQUIRE(placeAlliePourSoin(escouade) == 3);

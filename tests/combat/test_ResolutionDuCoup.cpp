@@ -234,23 +234,32 @@ TEST_CASE("resoudreCoup : sans esquive ni capacite offensive, aucun tirage") {
     REQUIRE(generateur == intact);
 }
 
-TEST_CASE("resoudreCoup : une esquive possible tire, et un coup esquive ne tire pas son critique") {
-    Generateur generateur = generateurDeTest();
-    const Attaque attaque{.montant = s_montant, .capaciteOffensive = s_capaciteEnorme, .nature = NatureDAttaque::Contact};
-    int tiragesParCoupEsquive = 0;
-    int tiragesParCoupTouche = 0;
-
-    for (int i = 0; i < 200 && (tiragesParCoupEsquive == 0 || tiragesParCoupTouche == 0); ++i) {
-        Generateur avant = generateur;
-        const bool esquive = resoudreCoup(attaque, esquiveur(50, 0), true, generateur).esquive;
-        int tirages = 0;
-        while (avant != generateur) {
-            static_cast<void>(avant());
-            ++tirages;
-        }
-        (esquive ? tiragesParCoupEsquive : tiragesParCoupTouche) = tirages;
+namespace {
+// Le nombre de nombres que ce coup a tirés dans le générateur.
+int tiragesDuCoup(const Attaque& attaque, const Defenses& defenses, Generateur& generateur, bool& esquive) {
+    Generateur avant = generateur;
+    esquive = resoudreCoup(attaque, defenses, true, generateur).esquive;
+    int tirages = 0;
+    while (avant != generateur) {
+        static_cast<void>(avant());
+        ++tirages;
     }
+    return tirages;
+}
+}  // namespace
 
+TEST_CASE("resoudreCoup : une esquive possible tire, et un coup esquive ne tire pas son critique") {
+    const Attaque attaque{.montant = s_montant, .capaciteOffensive = s_capaciteEnorme, .nature = NatureDAttaque::Contact};
+    Generateur quiEsquive = generateurQuiTireSous(0.5f);        // esquive à 50 % : le tirage est sous la chance
+    Generateur quiTouche = generateurQuiTireAuDessus(0.5f);
+    bool esquive = false;
+    bool touche = true;
+
+    const int tiragesParCoupEsquive = tiragesDuCoup(attaque, esquiveur(50, 0), quiEsquive, esquive);
+    const int tiragesParCoupTouche = tiragesDuCoup(attaque, esquiveur(50, 0), quiTouche, touche);
+
+    REQUIRE(esquive);
+    REQUIRE_FALSE(touche);
     // Esquivé : un seul nombre (l'esquive). Touché : deux (l'esquive, puis le critique).
     REQUIRE(tiragesParCoupEsquive == 1);
     REQUIRE(tiragesParCoupTouche == 2);

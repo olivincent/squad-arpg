@@ -154,11 +154,11 @@ TEST_CASE("Monstre.getGroupe rend le groupe recu a la construction") {
     REQUIRE(monstre.getGroupe() == 7);
 }
 
-TEST_CASE("un monstre a une zone de controle de 20 px et une attaque de 100 degats") {
+TEST_CASE("un monstre a une zone de controle de 20 px et l'attaque de sa definition") {
     const Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(20));
 
     REQUIRE(monstre.getZoneDeControle() == 20.0f);
-        REQUIRE(monstre.getAttaque().montant == 100);
+    REQUIRE(monstre.getAttaque().montant == monstreOrdinaire().attaque.puissance);
 }
 
 TEST_CASE("un monstre prend toutes ses valeurs de sa definition") {

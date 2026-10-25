@@ -68,7 +68,7 @@ DefinitionPersonnage guerrierInfatigable() {
     DefinitionPersonnage guerrier = guerrierDeTest();
     guerrier.attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest, .puissance = 1,
                                     .rechargeMin = 0.0f, .rechargeMax = 0.0f, .tempsExecution = s_executionBaseDeTest, .nature = NatureDAttaque::Contact});
-    guerrier.pointsDeVieDeBase = 10'000'000;
+    guerrier.caracteristiques = Caracteristiques({10, 2'000'000, 10, 10, 10});  // l'Endurance donne les points de vie
     return guerrier;
 }
 
@@ -194,10 +194,12 @@ TEST_CASE("evenements : un coup gratuit est marque, dans les deux sens") {
     REQUIRE(degats(surLeMage[0]).montant ==
             degatsAttendus(attaqueDuMonstre, defensesDuPersonnageDeTest(0), degats(surLeMage[0]).critique));  // armure 0
 
-    // Trois guerriers ; le premier frappe une fois (300 dégâts, recharge de 100 s). Dès que le monstre est
-    // touché, le troisième le provoque : il quitte le premier, qui le frappe gratuitement (300 dégâts).
+    // Trois guerriers ; le premier frappe une fois (60 % des points de vie du monstre, 90 % si critique, recharge
+    // de 100 s). Dès que le monstre est touché, le troisième le provoque : il quitte le premier, qui le frappe
+    // gratuitement (le même coup).
     std::vector<DefinitionPersonnage> composition = {guerrierDeTest(), guerrierDeTest(), guerrierDeTest()};
-    composition[0].attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest, .puissance = 300,
+    const int vieDuMonstre = partieDeTest(niveauDegage({{270.0f, 160.0f}}), compositionDeTest()).getMonstres().front().getPointsDeVie();
+    composition[0].attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest, .puissance = 6 * vieDuMonstre / 10,
                                           .rechargeMin = 100.0f, .rechargeMax = 100.0f,
                                           .tempsExecution = s_executionBaseDeTest, .nature = NatureDAttaque::Contact});
     Partie guerriers = partieDeTest(niveauDegage({{270.0f, 160.0f}}), std::move(composition));
@@ -342,6 +344,7 @@ TEST_CASE("evenements : un coup esquive par un monstre donne Esquive, et aucun d
     // aucun coup touché est de l'ordre de 2^-200, quelle que soit la graine.
     DefinitionDeMonstre esquiveur = monstreSansHasard();
     esquiveur.statistiques.esquiveContact = s_esquiveMaximale;
+    esquiveur.pointsDeVieMax = 10'000'000;  // il survit à 40 s de coups
     Partie partie(niveauDegage({{235.0f, 170.0f}}), std::vector<DefinitionPersonnage>{guerrierInfatigable()}, s_graineDeTest, esquiveur);
     int esquives = 0;
     int touches = 0;
@@ -364,7 +367,10 @@ TEST_CASE("evenements : un coup esquive par un monstre donne Esquive, et aucun d
 TEST_CASE("evenements : un blocage partiel donne les degats puis Bloque, puis rien pendant la recuperation") {
     DefinitionPersonnage guerrier = guerrierInfatigable();
     guerrier.equipementDeDepart.push_back({Emplacement::MainGauche, IdObjet::BouclierRond});  // 30 %, 40 points, 3 s
-    Partie partie = partieDeTest(niveauDegage({{270.0f, 210.0f}}), std::vector<DefinitionPersonnage>{guerrier});
+    DefinitionDeMonstre monstre = monstreSansHasard();
+    monstre.pointsDeVieMax = 10'000'000;  // il survit à 120 s de coups
+    Partie partie(niveauDegage({{270.0f, 210.0f}}), std::vector<DefinitionPersonnage>{guerrier}, s_graineDeTest, monstre);
+    const StatistiquesDeCombat bouclier = *partie.getEscouade().statistiquesDeCombatDuPersonnage(1);
     const std::vector<std::vector<EvenementDeCombat>> images = evenementsParImage(partie, 120.0f);
     std::vector<int> imagesDesBlocages;
 
@@ -377,8 +383,9 @@ TEST_CASE("evenements : un blocage partiel donne les degats puis Bloque, puis ri
         }
         for (std::size_t k = 0; k < surLeGuerrier.size(); ++k) {
             if (const Bloque* bloque = std::get_if<Bloque>(&surLeGuerrier[k].detail)) {
-                // Le monstre frappe pour 100 : un bouclier de 40 ne l'absorbe jamais en entier.
-                REQUIRE(bloque->montant == 40);
+                // Le monstre frappe plus fort que ce que le bouclier absorbe : il ne l'absorbe jamais en entier.
+                REQUIRE(bouclier.montantBloque < monstre.attaque.puissance);
+                REQUIRE(bloque->montant == bouclier.montantBloque);
                 REQUIRE_FALSE(bloque->total);
                 REQUIRE(k > 0);  // les dégâts du reste viennent juste avant, donc le texte du blocage est au-dessus
                 REQUIRE(std::holds_alternative<Degats>(surLeGuerrier[k - 1].detail));

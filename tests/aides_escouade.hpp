@@ -45,7 +45,7 @@ inline constexpr AdresseSkill s_adresseExplosion{3, IdSkill::Explosion};
 // (étape 80), mais indépendantes de lui. Rééquilibrer une classe dans Specialite.cpp ne change aucun
 // test de règle ; test_Specialite.cpp est le seul fichier de tests qui lit les valeurs du catalogue.
 // Attaque de base (mêlées et tireurs).
-inline constexpr int s_degatsBaseDeTest = 50;
+inline constexpr int s_degatsBaseDeTest = 15;
 inline constexpr float s_executionBaseDeTest = 0.15f;  // en secondes
 inline constexpr float s_porteeMeleeDeTest = 20.0f;    // bord à bord
 inline constexpr float s_porteeTireurDeTest = 120.0f;  // bord à bord
@@ -56,7 +56,7 @@ inline constexpr float s_rechargeTireurMaxDeTest = 0.6f;
 // Contrôle (les tireurs n'ont ni équipement ni zone de contrôle). L'armure d'une mêlée est dans aides.hpp.
 inline constexpr float s_zoneDeControleMeleeDeTest = 20.0f;  // bord à bord
 // Frappe puissante du guerrier.
-inline constexpr int s_degatsFrappeDeTest = 250;
+inline constexpr int s_degatsFrappeDeTest = 75;
 inline constexpr float s_rechargeFrappeDeTest = 5.0f;     // en secondes
 inline constexpr float s_activationFrappeDeTest = 0.3f;   // en secondes
 // Provocation du guerrier.
@@ -66,12 +66,12 @@ inline constexpr float s_rechargeProvocationDeTest = 10.0f;
 inline constexpr float s_activationProvocationDeTest = 0.2f;
 // Soin du prêtre.
 inline constexpr float s_porteeSoinDeTest = 40.0f;  // bord à bord
-inline constexpr int s_puissanceSoinDeTest = 300;
+inline constexpr int s_puissanceSoinDeTest = 90;
 inline constexpr float s_rechargeSoinDeTest = 8.0f;
 inline constexpr float s_activationSoinDeTest = 0.6f;
 // Explosion du mage (skill de zone).
 inline constexpr float s_porteeZoneDeTest = 250.0f;  // portée de lancement, bord à bord
-inline constexpr int s_degatsZoneDeTest = 150;
+inline constexpr int s_degatsZoneDeTest = 45;
 inline constexpr float s_rechargeZoneDeTest = 8.0f;
 inline constexpr float s_activationZoneDeTest = 0.8f;
 inline constexpr float s_rayonZoneDeTest = 60.0f;   // depuis le point visé

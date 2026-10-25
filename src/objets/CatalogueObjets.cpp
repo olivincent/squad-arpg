@@ -5,22 +5,22 @@
 
 namespace {
 // Valeurs provisoires, à ajuster après test.
-constexpr int s_armureCasqueDeFer = 6;
-constexpr int s_armureCuirasseDeMailles = 12;
-constexpr int s_armureJambieresDeFer = 6;
-constexpr int s_armureBouclierRond = 6;
-constexpr int s_armureGantsDeCuir = 2;
-constexpr int s_armureBottesDeCuir = 2;
-constexpr int s_armureCasqueDeCuir = 3;
-constexpr int s_armureTuniqueMatelassee = 5;
-constexpr int s_armureCollierDeProtection = 4;
-constexpr int s_armureAnneauDeProtection = 2;
+constexpr int s_armureCasqueDeFer = 2;
+constexpr int s_armureCuirasseDeMailles = 4;
+constexpr int s_armureJambieresDeFer = 2;
+constexpr int s_armureBouclierRond = 1;
+constexpr int s_armureGantsDeCuir = 1;
+constexpr int s_armureBottesDeCuir = 1;
+constexpr int s_armureCasqueDeCuir = 1;
+constexpr int s_armureTuniqueMatelassee = 2;
+constexpr int s_armureCollierDeProtection = 1;
+constexpr int s_armureAnneauDeProtection = 1;
 constexpr int s_bonusAnneauDePuissance = 3;    // Puissance
 constexpr int s_bonusCollierDEndurance = 3;    // Endurance
 constexpr int s_esquiveBottesDeCuir = 5;       // en pour cent, contre le contact
 constexpr int s_esquiveCasqueDeCuir = 5;       // en pour cent, contre les projectiles
 constexpr int s_chanceDeBlocageBouclierRond = 30;       // en pour cent
-constexpr int s_montantBloqueBouclierRond = 40;         // points absorbés par blocage
+constexpr int s_montantBloqueBouclierRond = 12;         // points absorbés par blocage
 constexpr float s_recuperationBouclierRond = 3.0f;      // en secondes
 
 std::vector<DefinitionObjet> construireLeCatalogue() {

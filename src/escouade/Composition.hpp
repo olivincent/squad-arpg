@@ -11,10 +11,6 @@
 // Rang d'un personnage dans la formation : devant ou derrière l'ancre.
 enum class Rang { Avant, Arriere };
 
-// Points de vie de base d'un personnage défini sans les préciser (les tests) ; ceux d'une classe sont
-// dans `Specialite.cpp`.
-inline constexpr int s_pointsDeVieDeBaseParDefaut = 1000;
-
 // Tout ce qu'il faut pour construire un personnage de l'escouade. L'escouade ne
 // choisit aucune valeur : elle reçoit sa composition.
 struct DefinitionPersonnage {
@@ -23,8 +19,7 @@ struct DefinitionPersonnage {
     std::vector<SkillConnu> skills = {};
     std::vector<ObjetDeDepart> equipementDeDepart = {};  // l'armure du personnage vient de lui seul
     float rayonVision;
-    Caracteristiques caracteristiques = {};  // la base de sa classe ; l'équipement s'y ajoute
-    int pointsDeVieDeBase = s_pointsDeVieDeBaseParDefaut;  // sans l'Endurance (`pointsDeVieMax`)
+    Caracteristiques caracteristiques = {};  // la base de sa classe ; l'équipement s'y ajoute (ses points de vie en viennent : `pointsDeVieMax`)
     float zoneDeControle = 0.0f;  // en pixels, bord à bord ; 0 = n'engage personne
     Rang rang = Rang::Avant;
 };
