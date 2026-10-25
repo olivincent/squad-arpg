@@ -18,10 +18,11 @@ inline constexpr float s_recuperationDuBlocage = 3.0f;
 [[nodiscard]] float chanceDeBlocage(NatureDAttaque nature, const StatistiquesDeCombat& defenseur, bool blocagePret);
 
 struct ResultatDuBlocage {
-    int montant;  // ce qui reste du coup après le blocage
-    int bloque;   // ce que le blocage a absorbé ; 0 : pas de blocage (donc pas de récupération à lancer)
+    float montant;  // ce qui reste de la portion après le blocage
+    float bloque;   // ce que le blocage a absorbé ; 0 : pas de blocage (donc pas de récupération à lancer)
 };
 
 // L'étape « blocage » du coup : `tirage` (de 0 inclus à 1 exclu) sous `chance`, le bouclier absorbe
-// `montantBloque` points, sans dépasser le montant du coup. Précondition : montant >= 0.
-[[nodiscard]] ResultatDuBlocage appliquerBlocage(int montant, int montantBloque, float chance, float tirage);
+// `montantBloque` points, sans dépasser la portion. Le bouclier ne retient que la portion **physique** d'un coup
+// (étape 94) : `montant` est cette portion, en flottant (l'arrondi vient à la fin du coup). Précondition : montant >= 0.
+[[nodiscard]] ResultatDuBlocage appliquerBlocage(float montant, int montantBloque, float chance, float tirage);

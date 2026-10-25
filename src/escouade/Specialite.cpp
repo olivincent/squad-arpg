@@ -96,7 +96,7 @@ std::vector<Specialite> construireLeCatalogue() {
         // Guerrier : devant, au contact.
         {IdSpecialite::Guerrier, "Guerrier",
          {.couleur = s_couleurGuerrier,
-          .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = s_porteeMelee,
+          .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = s_porteeMelee,
                                              .puissance = s_degatsSkill, .rechargeMin = s_rechargeSkill,
                                              .rechargeMax = s_rechargeSkill, .tempsExecution = s_activationSkill, .coefficients = s_puissanceSeule,
                                              .nature = NatureDAttaque::Contact, .armesExigees = s_armesDeFrappePuissante})},
@@ -129,7 +129,7 @@ std::vector<Specialite> construireLeCatalogue() {
         // Paladin : devant, au contact, frappe et soigne.
         {IdSpecialite::Paladin, "Paladin",
          {.couleur = s_couleurPaladin,
-          .skills = {{IdSkill::FrappeSacree, Skill({.type = TypeSkill::Degats, .portee = s_porteeMelee,
+          .skills = {{IdSkill::FrappeSacree, Skill({.type = TypeSkill::DegatsSurCible, .portee = s_porteeMelee,
                                           .puissance = s_degatsFrappeSacree, .rechargeMin = s_rechargeFrappeSacree,
                                           .rechargeMax = s_rechargeFrappeSacree,
                                           .tempsExecution = s_activationFrappeSacree, .coefficients = s_puissanceSeule,
@@ -145,7 +145,7 @@ std::vector<Specialite> construireLeCatalogue() {
         // Rôdeur : derrière, tire de loin et lance une pluie de flèches.
         {IdSpecialite::Rodeur, "Rôdeur",
          {.couleur = s_couleurRodeur,
-          .skills = {{IdSkill::TirPercant, Skill({.type = TypeSkill::Degats, .portee = s_porteeTirPercant,
+          .skills = {{IdSkill::TirPercant, Skill({.type = TypeSkill::DegatsSurCible, .portee = s_porteeTirPercant,
                                         .puissance = s_degatsTirPercant, .rechargeMin = s_rechargeTirPercant,
                                         .rechargeMax = s_rechargeTirPercant, .tempsExecution = s_activationTirPercant, .coefficients = s_puissanceSeule,
                                         .nature = NatureDAttaque::Projectile, .armesExigees = s_armesDeTir})},

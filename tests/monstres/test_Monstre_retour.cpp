@@ -35,7 +35,7 @@ TEST_CASE("Monstre en retour est invulnerable sans rien tirer") {
     Generateur generateur = generateurDeTest();
     const Generateur intact = generateur;
 
-    const ResultatDuCoup resultat = monstre.recevoirDegats({.degats = 50, .capaciteOffensive = 100000, .nature = NatureDAttaque::Contact}, generateur);
+    const ResultatDuCoup resultat = monstre.recevoirDegats({.degats = degatsPhysiques(50), .capaciteOffensive = 100000, .nature = NatureDAttaque::Contact}, generateur);
 
     REQUIRE(resultat.montant == 0);
     REQUIRE_FALSE(resultat.critique);

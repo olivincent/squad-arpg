@@ -102,3 +102,39 @@ TEST_CASE("Degats : des portions de plusieurs elements s'additionnent dans le to
 
     REQUIRE(degats.total() == 60);
 }
+
+TEST_CASE("elementDominant : la plus grande portion, a egalite le premier de l'enumeration") {
+    Degats degats;
+    REQUIRE(degats.elementDominant() == Element::Physique);  // tout est à égalité : le premier
+
+    degats[Element::Feu] = 5;
+    REQUIRE(degats.elementDominant() == Element::Feu);
+
+    degats[Element::Sacre] = 5;
+    REQUIRE(degats.elementDominant() == Element::Feu);  // égalité : Feu précède Sacre
+
+    degats[Element::Sacre] = 6;
+    REQUIRE(degats.elementDominant() == Element::Sacre);
+
+    degats[Element::Physique] = 9;
+    REQUIRE(degats.elementDominant() == Element::Physique);
+}
+
+TEST_CASE("enPortions : chaque portion entiere devient un flottant, rien n'est perdu") {
+    Degats degats = degatsDe(Element::Feu, 7);
+    degats[Element::Sacre] = 3;
+
+    const Portions portions = enPortions(degats);
+
+    REQUIRE(portions[Element::Physique] == 0.0f);
+    REQUIRE(portions[Element::Feu] == 7.0f);
+    REQUIRE(portions[Element::Sacre] == 3.0f);
+    REQUIRE(portions.total() == 10.0f);
+}
+
+TEST_CASE("degatsPhysiques : des degats du seul element physique") {
+    const Degats degats = degatsPhysiques(12);
+
+    REQUIRE(degats[Element::Physique] == 12);
+    REQUIRE(degats.total() == 12);
+}

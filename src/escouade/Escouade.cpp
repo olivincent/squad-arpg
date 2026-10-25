@@ -943,7 +943,7 @@ ResultatDuCoup Escouade::recevoirCoup(int idMonstre, std::size_t place, const At
     const ResultatDuCoup resultat = personnageDeLaPlace(place).recevoirDegats(attaque, generateur);
 
     // Une attaque qui a des dégâts désigne son auteur comme agresseur.
-    if (attaque.degats > 0) {
+    if (attaque.degats.total() > 0) {
         m_agresseurs.enregistrer(idMonstre);
     }
     return resultat;
@@ -1025,7 +1025,7 @@ std::optional<Cible> Escouade::choisirCible(TypeSkill type, AdresseSkill adresse
     if (type == TypeSkill::Provocation || type == TypeSkill::Zone) {
         return std::nullopt;
     }
-    if (type == TypeSkill::Degats) {
+    if (type == TypeSkill::DegatsSurCible) {
         // Avec un verrou : le monstre verrouillé, à portée ou non.
         if (m_cibleVerrouillee.has_value()) {
             const EntiteVue* verrou = trouverEntite(monstres, *m_cibleVerrouillee);

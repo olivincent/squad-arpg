@@ -22,11 +22,11 @@ float chanceDeBlocage(NatureDAttaque nature, const StatistiquesDeCombat& defense
     return 0.0f;
 }
 
-ResultatDuBlocage appliquerBlocage(int montant, int montantBloque, float chance, float tirage) {
-    assert(montant >= 0);
+ResultatDuBlocage appliquerBlocage(float montant, int montantBloque, float chance, float tirage) {
+    assert(montant >= 0.0f);
     if (tirage >= chance) {
-        return {.montant = montant, .bloque = 0};
+        return {.montant = montant, .bloque = 0.0f};
     }
-    const int bloque = std::min(montant, montantBloque);
+    const float bloque = std::min(montant, static_cast<float>(montantBloque));
     return {.montant = montant - bloque, .bloque = bloque};
 }

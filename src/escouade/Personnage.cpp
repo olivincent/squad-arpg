@@ -22,7 +22,7 @@ const Coefficients s_coefficientsDeLAttaqueDeBase = Coefficients::seul(Caracteri
 
 // La machine à états d'une attaque de base décrite par une arme (ou les mains nues).
 Skill skillDeLAttaqueDeBase(const DescriptionDAttaque& description) {
-    return Skill({.type = TypeSkill::Degats, .portee = description.portee, .puissance = description.degats,
+    return Skill({.type = TypeSkill::DegatsSurCible, .portee = description.portee, .puissance = description.degats,
                   .rechargeMin = description.rechargeMin, .rechargeMax = description.rechargeMax,
                   .tempsExecution = description.tempsExecution, .coefficients = s_coefficientsDeLAttaqueDeBase,
                   .nature = description.nature});
@@ -383,15 +383,15 @@ void Personnage::relancerSiLArmeAChange(Generateur& generateur) {
 
 Attaque Personnage::attaqueDe(const Skill& skill, int penetration) const {
     const int montant = montantEffectif(skill.getPuissance(), skill.getCoefficients(), m_caracteristiques);
-    Attaque attaque = {.degats = 0,
+    Attaque attaque = {.degats = {},
                        .capaciteOffensive = m_statistiques.capaciteOffensive,
                        .nature = skill.getNature(),
                        .penetration = penetration};
     // Le type du skill dit ce que son montant est : des dégâts, un soin ou une durée.
     switch (skill.getType()) {
-        case TypeSkill::Degats:
+        case TypeSkill::DegatsSurCible:
         case TypeSkill::Zone:
-            attaque.degats = montant;
+            attaque.degats = degatsPhysiques(montant);
             break;
         case TypeSkill::Soin:
             attaque.soin = montant;

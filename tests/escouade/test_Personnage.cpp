@@ -67,7 +67,7 @@ int frapperEnEntier(Personnage& personnage, Cercle cible, Generateur& generateur
 // s'il ne peut pas être engagé. La portée est vérifiée par Escouade, pas ici. Les skills de ce fichier ont
 // une activation nulle (sauf mention) : l'effet part au premier tic.
 Attaque lancerSkillEnEntier(Personnage& personnage, std::optional<Cible> cible, Generateur& generateur, IdSkill id = IdSkill::FrappePuissante) {
-    const Attaque rien = {.degats = 0, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
+    const Attaque rien = {.degats = {}, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
     if (!personnage.engagerSkill(id, cible)) {
         return rien;
     }
@@ -190,7 +190,7 @@ TEST_CASE("changer d'arme change la zone de controle, la portee et l'attaque de 
     const DescriptionDAttaque epee = definitionObjet(IdObjet::EpeeLongue).arme.value().attaque;
     const DescriptionDAttaque arc = definitionObjet(IdObjet::Arc).arme.value().attaque;
     REQUIRE(personnage.getPorteeAttaqueDeBase() == epee.portee);
-    REQUIRE(personnage.getAttaqueDeBase().degats == montantEffectif(epee.degats, Coefficients::seul(Caracteristique::Puissance, 1.0f),
+    REQUIRE(personnage.getAttaqueDeBase().degats.total() == montantEffectif(epee.degats, Coefficients::seul(Caracteristique::Puissance, 1.0f),
                                                                      personnage.getCaracteristiques()));
 
     static_cast<void>(personnage.retirerEquipement(Emplacement::MainDroite));
@@ -255,7 +255,7 @@ TEST_CASE("getPuissanceAttaqueDeBase renvoie les degats de l'attaque de base") {
     const Personnage personnage({100.0f, 100.0f},
                                 definitionArmee(IdObjet::Sceptre));
 
-    REQUIRE(personnage.getAttaqueDeBase().degats == s_degatsBaseDeTest);
+    REQUIRE(personnage.getAttaqueDeBase().degats.total() == s_degatsBaseDeTest);
 }
 
 TEST_CASE("lire la puissance de l'attaque de base ne change ni le coup engage ni la recharge") {
@@ -264,11 +264,11 @@ TEST_CASE("lire la puissance de l'attaque de base ne change ni le coup engage ni
     Generateur generateur = generateurDeTest();
     REQUIRE(personnage.engagerAttaque(1));
 
-    REQUIRE(personnage.getAttaqueDeBase().degats == s_degatsBaseDeTest);
+    REQUIRE(personnage.getAttaqueDeBase().degats.total() == s_degatsBaseDeTest);
 
     REQUIRE(personnage.cibleEngagee() == 1);
     REQUIRE(degatsOuZero(personnage.avancerAttaque(0.2f, generateur)) == s_degatsBaseDeTest);  // le coup engagé part normalement
-    REQUIRE(personnage.getAttaqueDeBase().degats == s_degatsBaseDeTest);
+    REQUIRE(personnage.getAttaqueDeBase().degats.total() == s_degatsBaseDeTest);
     REQUIRE_FALSE(personnage.engagerAttaque(1));                // la recharge court toujours
 }
 
@@ -311,10 +311,10 @@ TEST_CASE("Lancer un skill rend sa puissance") {
     Generateur generateur = generateurDeTest();
     Personnage personnage({100.0f, 100.0f},
                           {.couleur = sf::Color::White,
-                           .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
+                           .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
                            .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
 
-    REQUIRE(lancerSkillEnEntier(personnage, Cible(CibleMonstre{1, pointCible({150.0f, 100.0f})}), generateur).degats == 25);
+    REQUIRE(lancerSkillEnEntier(personnage, Cible(CibleMonstre{1, pointCible({150.0f, 100.0f})}), generateur).degats.total() == 25);
 }
 
 TEST_CASE("Un personnage avec un skill de provocation en expose le type et le lance") {
@@ -356,7 +356,7 @@ TEST_CASE("engagerSkill refuse un personnage sans skill, sans toucher a l'attaqu
 TEST_CASE("engagerSkill refuse un personnage mort") {
     Personnage personnage({100.0f, 100.0f},
                           {.couleur = sf::Color::White,
-                           .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
+                           .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
                            .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
 
     subir(personnage, personnage.getPointsDeVieMax());
@@ -368,7 +368,7 @@ TEST_CASE("skillEstAPortee mesure la portee du skill, sans toucher a l'attaque d
     Generateur generateur = generateurDeTest();
     Personnage personnage({100.0f, 100.0f},
                           {.couleur = sf::Color::White,
-                           .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
+                           .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
                            .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
 
     REQUIRE(personnage.skillEstAPortee(IdSkill::FrappePuissante, pointCible({150.0f, 100.0f})));
@@ -380,24 +380,24 @@ TEST_CASE("Un skill ne peut pas etre relance pendant sa recharge, puis le peut u
     Generateur generateur = generateurDeTest();
     Personnage personnage({100.0f, 100.0f},
                           {.couleur = sf::Color::White,
-                           .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
+                           .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
                            .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
     const TileMap carte = carteDegagee5x5();
     const Cible cible = CibleMonstre{1, pointCible({150.0f, 100.0f})};
 
-    REQUIRE(lancerSkillEnEntier(personnage, cible, generateur).degats == 25);
-    REQUIRE(lancerSkillEnEntier(personnage, cible, generateur).degats == 0);
+    REQUIRE(lancerSkillEnEntier(personnage, cible, generateur).degats.total() == 25);
+    REQUIRE(lancerSkillEnEntier(personnage, cible, generateur).degats.total() == 0);
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 4.8f);
-    REQUIRE(lancerSkillEnEntier(personnage, cible, generateur).degats == 0);
+    REQUIRE(lancerSkillEnEntier(personnage, cible, generateur).degats.total() == 0);
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.4f);
-    REQUIRE(lancerSkillEnEntier(personnage, cible, generateur).degats == 25);
+    REQUIRE(lancerSkillEnEntier(personnage, cible, generateur).degats.total() == 25);
 }
 
 TEST_CASE("Apres un skill reussi, l'attaque de base attend une recharge complete") {
     Generateur generateur = generateurDeTest();
     Personnage personnage({100.0f, 100.0f},
                           {.couleur = sf::Color::White,
-                           .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
+                           .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
                            .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
     const TileMap carte = carteDegagee5x5();
     const Cercle cible = pointCible({150.0f, 100.0f});
@@ -408,7 +408,7 @@ TEST_CASE("Apres un skill reussi, l'attaque de base attend une recharge complete
     // fait sans le skill.
     REQUIRE(frapperEnEntier(personnage, cible, generateur) == s_degatsBaseDeTest);
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.3f);
-    REQUIRE(lancerSkillEnEntier(personnage, Cible(CibleMonstre{1, cible}), generateur).degats == 25);
+    REQUIRE(lancerSkillEnEntier(personnage, Cible(CibleMonstre{1, cible}), generateur).degats.total() == 25);
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.3f);
     REQUIRE(frapperEnEntier(personnage, cible, generateur) == 0);
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.3f);
@@ -602,7 +602,7 @@ namespace {
 Personnage personnageAvecExecution() {
     return Personnage({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
-                       .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
+                       .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
                        .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
 }
 
@@ -664,7 +664,7 @@ TEST_CASE("l'attaque de base d'un personnage porte sa capacite offensive") {
     const std::optional<Attaque> attaque = rodeur.avancerAttaque(s_executionBaseDeTest, generateur);
 
     REQUIRE(attaque.has_value());
-    REQUIRE(attaque->degats == s_degatsBaseDeTest);
+    REQUIRE(attaque->degats.total() == s_degatsBaseDeTest);
     REQUIRE(attaque->capaciteOffensive == 120);
 }
 
@@ -672,7 +672,7 @@ TEST_CASE("l'attaque d'un personnage porte la nature de son attaque de base, cel
     Generateur generateur = generateurDeTest();
     Personnage tireur({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
-                       .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = 20.0f, .puissance = 7,
+                       .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 20.0f, .puissance = 7,
                                                                     .rechargeMin = 1.0f, .rechargeMax = 1.0f, .nature = NatureDAttaque::Contact})}},
                        .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
     REQUIRE(tireur.getAttaqueDeBase().nature == NatureDAttaque::Projectile);
@@ -725,7 +725,7 @@ namespace {
 Personnage personnageAvecActivation() {
     return Personnage({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
-                       .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .tempsExecution = 0.3f, .nature = NatureDAttaque::Contact})}},
+                       .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .tempsExecution = 0.3f, .nature = NatureDAttaque::Contact})}},
                        .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
 }
 
@@ -883,7 +883,7 @@ namespace {
 Personnage personnageAvecDeuxSkills() {
     return Personnage({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
-                       .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .tempsExecution = 0.3f, .nature = NatureDAttaque::Contact})}, {IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .portee = 0.0f, .puissance = 4, .rechargeMin = 10.0f, .rechargeMax = 10.0f, .rayonZone = 150.0f, .tempsExecution = 0.2f, .nature = NatureDAttaque::Contact})}},
+                       .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .tempsExecution = 0.3f, .nature = NatureDAttaque::Contact})}, {IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .portee = 0.0f, .puissance = 4, .rechargeMin = 10.0f, .rechargeMax = 10.0f, .rayonZone = 150.0f, .tempsExecution = 0.2f, .nature = NatureDAttaque::Contact})}},
                        .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
 }
 
@@ -892,7 +892,7 @@ Personnage personnageAvecDeuxSkills() {
 TEST_CASE("Un personnage expose chacun de ses skills par identifiant") {
     const Personnage personnage = personnageAvecDeuxSkills();
 
-    REQUIRE(personnage.typeSkill(IdSkill::FrappePuissante) == TypeSkill::Degats);
+    REQUIRE(personnage.typeSkill(IdSkill::FrappePuissante) == TypeSkill::DegatsSurCible);
     REQUIRE(personnage.typeSkill(IdSkill::Provocation) == TypeSkill::Provocation);
     REQUIRE(personnage.zoneDuSkill(IdSkill::Provocation).rayon == 150.0f);
     REQUIRE(personnage.zoneDuSkill(IdSkill::FrappePuissante).rayon == 0.0f);
@@ -926,7 +926,7 @@ TEST_CASE("Les recharges de deux skills sont independantes") {
     const TileMap carte = carteDegagee5x5();
     Personnage personnage = personnageAvecDeuxSkills();
 
-    REQUIRE(lancerSkillEnEntier(personnage, s_cibleDuSkill, generateur, IdSkill::FrappePuissante).degats == 25);
+    REQUIRE(lancerSkillEnEntier(personnage, s_cibleDuSkill, generateur, IdSkill::FrappePuissante).degats.total() == 25);
     // La frappe est en recharge, la provocation reste utilisable aussitôt.
     REQUIRE_FALSE(personnage.skillEstPret(IdSkill::FrappePuissante));
     REQUIRE(personnage.skillEstPret(IdSkill::Provocation));
@@ -1092,7 +1092,7 @@ TEST_CASE("un personnage au bouclier : apres un blocage, plus aucun pendant 3 s,
     static_cast<void>(personnage.poserEquipement(Emplacement::MainGauche, {IdObjet::BouclierRond}));
     const TileMap carte = carteDegagee5x5();
     Generateur generateur = generateurDeTest();
-    const Attaque attaque{.degats = 1, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
+    const Attaque attaque{.degats = degatsPhysiques(1), .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
     // À 30 % par coup, la chance de ne voir aucun blocage sur 200 coups est de l'ordre de 10^-31.
     const auto jusquAuBlocage = [&] {
         bool bloque = false;
@@ -1118,7 +1118,7 @@ TEST_CASE("un personnage qui esquive ne perd aucun point de vie") {
     Personnage personnage({100.0f, 100.0f}, avecEnduranceEnorme(definitionArmee()));
     static_cast<void>(personnage.poserEquipement(Emplacement::Bottes, {IdObjet::BottesDeCuir}));
     Generateur generateur = generateurDeTest();
-    const Attaque attaque{.degats = 10, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
+    const Attaque attaque{.degats = degatsPhysiques(10), .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
     int esquives = 0;
 
     // À 5 % par coup, la chance de n'en voir aucune sur 1 000 coups est de l'ordre de 10^-23.
@@ -1222,7 +1222,7 @@ Personnage unPersonnageDePuissance(const Caracteristiques& base) {
     const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
     return Personnage({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
-                       .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 250, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .coefficients = puissance, .nature = NatureDAttaque::Contact})},
+                       .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 250, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .coefficients = puissance, .nature = NatureDAttaque::Contact})},
                                   {IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .portee = 0.0f, .puissance = 4, .rechargeMin = 10.0f, .rechargeMax = 10.0f, .rayonZone = 150.0f, .nature = NatureDAttaque::Contact})}},
                        .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest,
                        .caracteristiques = base});
@@ -1231,17 +1231,17 @@ Personnage unPersonnageDePuissance(const Caracteristiques& base) {
 
 TEST_CASE("equiper l'anneau de puissance augmente les degats de l'attaque de base") {
     Personnage personnage = unPersonnageDePuissance(Caracteristiques({12, 10, 10, 10, 11}));
-    const int avant = personnage.getAttaqueDeBase().degats;
+    const int avant = personnage.getAttaqueDeBase().degats.total();
     REQUIRE(avant == montantEffectif(s_degatsBaseDeTest, Coefficients::seul(Caracteristique::Puissance, 1.0f), personnage.getCaracteristiques()));
 
     static_cast<void>(personnage.poserEquipement(Emplacement::Anneau1, {IdObjet::AnneauDePuissance}));
 
-    REQUIRE(personnage.getAttaqueDeBase().degats > avant);
-    REQUIRE(personnage.getAttaqueDeBase().degats ==
+    REQUIRE(personnage.getAttaqueDeBase().degats.total() > avant);
+    REQUIRE(personnage.getAttaqueDeBase().degats.total() ==
             montantEffectif(s_degatsBaseDeTest, Coefficients::seul(Caracteristique::Puissance, 1.0f), personnage.getCaracteristiques()));
 
     static_cast<void>(personnage.retirerEquipement(Emplacement::Anneau1));
-    REQUIRE(personnage.getAttaqueDeBase().degats == avant);
+    REQUIRE(personnage.getAttaqueDeBase().degats.total() == avant);
 }
 
 TEST_CASE("le coup de l'attaque de base et le skill de degats rendent le montant effectif") {
@@ -1361,7 +1361,7 @@ TEST_CASE("une arme dont le seuil n'est pas atteint reste portee mais le personn
     REQUIRE(personnage.getEquipement().a(Emplacement::MainDroite) == Objet{IdObjet::EpeeLongue});
     REQUIRE_FALSE(personnage.getEquipementActif().a(Emplacement::MainDroite).has_value());
     REQUIRE(personnage.getPorteeAttaqueDeBase() == mainsNues().portee);
-    REQUIRE(personnage.getAttaqueDeBase().degats ==
+    REQUIRE(personnage.getAttaqueDeBase().degats.total() ==
             montantEffectif(mainsNues().degats, Coefficients::seul(Caracteristique::Puissance, 1.0f), personnage.getCaracteristiques()));
 }
 
@@ -1454,24 +1454,24 @@ TEST_CASE("l'attaque d'un skill range son montant dans le champ de son type, les
     const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
     Personnage personnage({100.0f, 100.0f},
                           {.couleur = sf::Color::White,
-                           .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})},
+                           .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})},
                                       {IdSkill::Soin, Skill({.type = TypeSkill::Soin, .portee = 80.0f, .puissance = 90, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .coefficients = puissance, .nature = NatureDAttaque::Contact})},
                                       {IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .portee = 0.0f, .puissance = 4, .rechargeMin = 10.0f, .rechargeMax = 10.0f, .rayonZone = 150.0f, .nature = NatureDAttaque::Contact})}},
                            .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest,
                            .caracteristiques = Caracteristiques({10, 10, 10, 10, 10})});
 
     const Attaque degats = lancerSkillEnEntier(personnage, Cible(CibleMonstre{1, Cercle{{120.0f, 100.0f}, 10.0f}}), generateur);
-    REQUIRE(degats.degats == 25);
+    REQUIRE(degats.degats.total() == 25);
     REQUIRE(degats.soin == 0);
     REQUIRE(degats.dureeDeProvocation == 0);
 
     const Attaque soin = lancerSkillEnEntier(personnage, Cible(CiblePoint{{120.0f, 100.0f}}), generateur, IdSkill::Soin);
     REQUIRE(soin.soin == 90);
-    REQUIRE(soin.degats == 0);
+    REQUIRE(soin.degats.total() == 0);
     REQUIRE(soin.dureeDeProvocation == 0);
 
     const Attaque provocation = lancerSkillEnEntier(personnage, std::nullopt, generateur, IdSkill::Provocation);
     REQUIRE(provocation.dureeDeProvocation == 4);
-    REQUIRE(provocation.degats == 0);
+    REQUIRE(provocation.degats.total() == 0);
     REQUIRE(provocation.soin == 0);
 }

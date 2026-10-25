@@ -1,6 +1,12 @@
 // ./src/combat/StatistiquesDeCombat.hpp
 #pragma once
 #include "combat/Caracteristiques.hpp"
+#include "combat/Element.hpp"
+
+// Les résistances d'une entité, en pour cent par élément : un coup en perd cette part, élément par élément
+// (`appliquerResistance`, bornée par `s_resistanceMinimale` et `s_resistanceMaximale`). Négative : vulnérabilité.
+// La résistance physique est 0 partout pour l'instant : l'armure fait le travail du physique.
+using Resistances = ParElement<int>;
 
 // Ce que le moteur du coup lit d'une entité (`docs/classes-et-combat.md`, sections 6, 7 et 13). Le moteur
 // ne connaît pas les caractéristiques : un personnage en tire ses statistiques (`statistiquesDuPersonnage`,
@@ -14,6 +20,7 @@ struct StatistiquesDeCombat {
     int esquiveProjectile = 0;  // idem pour un projectile
     int chanceDeBlocage = 0;    // chance en pour cent de bloquer un coup de contact ou un projectile (bouclier)
     int montantBloque = 0;      // points que le blocage absorbe, sans dépasser le coup ; 0 : pas de bouclier
+    Resistances resistances = {};  // en pour cent par élément ; toutes à 0 par défaut
     // La récupération qui suit un blocage réussi est la même pour tous (`s_recuperationDuBlocage`, `Blocage.hpp`) :
     // ce n'est pas une statistique.
 
@@ -25,6 +32,9 @@ struct StatistiquesDeCombat {
         esquiveProjectile += autre.esquiveProjectile;
         chanceDeBlocage += autre.chanceDeBlocage;
         montantBloque += autre.montantBloque;
+        for (const Element element : s_elements) {
+            resistances[element] += autre.resistances[element];
+        }
         return *this;
     }
 

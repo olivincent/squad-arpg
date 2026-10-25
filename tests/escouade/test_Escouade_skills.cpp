@@ -32,7 +32,7 @@ TEST_CASE("etatDuSkill est vide pour une place invalide") {
 TEST_CASE("etatDuSkill donne le type du skill de chaque place") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
 
-    REQUIRE(escouade.etatDuSkill(s_adresseFrappe)->type == TypeSkill::Degats);
+    REQUIRE(escouade.etatDuSkill(s_adresseFrappe)->type == TypeSkill::DegatsSurCible);
     REQUIRE(escouade.etatDuSkill(s_adresseProvocation)->type == TypeSkill::Provocation);
     REQUIRE(escouade.etatDuSkill(s_adresseSoin)->type == TypeSkill::Soin);
     REQUIRE(escouade.etatDuSkill(s_adresseExplosion)->type == TypeSkill::Zone);
@@ -93,7 +93,7 @@ std::vector<Coup> attaquerPendant(Escouade& escouade, const std::vector<EntiteVu
 
 // Nombre de coups d'exactement ce montant (écarte les attaques de base).
 int compter(const std::vector<Coup>& coups, int degats) {
-    return static_cast<int>(std::count_if(coups.begin(), coups.end(), [&](const Coup& coup) { return coup.attaque.degats == degats; }));
+    return static_cast<int>(std::count_if(coups.begin(), coups.end(), [&](const Coup& coup) { return coup.attaque.degats.total() == degats; }));
 }
 
 // Position du personnage de cette place, lue par la proie d'un monstre qu'il provoque.
@@ -209,7 +209,7 @@ TEST_CASE("Zone : l'effet est evalue au depart, un monstre sorti de la zone n'es
     coups.insert(coups.end(), suite.begin(), suite.end());
 
     REQUIRE(compter(coups, s_degatsZoneDeTest) == 1);
-    REQUIRE(std::any_of(coups.begin(), coups.end(), [](const Coup& coup) { return coup.attaque.degats == s_degatsZoneDeTest && coup.idMonstre == 2; }));
+    REQUIRE(std::any_of(coups.begin(), coups.end(), [](const Coup& coup) { return coup.attaque.degats.total() == s_degatsZoneDeTest && coup.idMonstre == 2; }));
 }
 
 TEST_CASE("Provocation : l'effet est evalue au depart, apres 0,2 s") {
@@ -263,7 +263,7 @@ TEST_CASE("Une adresse dont le skill est inconnu du personnage est traitee comme
 TEST_CASE("typeDuSkill donne le type du skill a l'adresse, vide pour une place invalide") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
 
-    REQUIRE(escouade.typeDuSkill(s_adresseFrappe) == TypeSkill::Degats);
+    REQUIRE(escouade.typeDuSkill(s_adresseFrappe) == TypeSkill::DegatsSurCible);
     REQUIRE(escouade.typeDuSkill(s_adresseExplosion) == TypeSkill::Zone);
     REQUIRE_FALSE(escouade.typeDuSkill(AdresseSkill{5, IdSkill::FrappePuissante}).has_value());
 }
@@ -303,7 +303,7 @@ constexpr AdresseSkill s_adressePluie{1, IdSkill::PluieDeFleches};
 DefinitionPersonnage paladinDeTest() {
     DefinitionPersonnage paladin = guerrierDeTest();
     paladin.skills = {
-        {IdSkill::FrappeSacree, Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest,
+        {IdSkill::FrappeSacree, Skill({.type = TypeSkill::DegatsSurCible, .portee = s_porteeMeleeDeTest,
                                        .puissance = s_degatsFrappeSacreeDeTest, .rechargeMin = 5.0f,
                                        .rechargeMax = 5.0f, .tempsExecution = 0.3f, .nature = NatureDAttaque::Contact})},
         {IdSkill::ImpositionDesMains, Skill({.type = TypeSkill::Soin, .portee = s_porteeMeleeDeTest,
@@ -315,7 +315,7 @@ DefinitionPersonnage paladinDeTest() {
 DefinitionPersonnage rodeurDeTest() {
     DefinitionPersonnage rodeur = mageDeTest();
     rodeur.skills = {
-        {IdSkill::TirPercant, Skill({.type = TypeSkill::Degats, .portee = 200.0f, .puissance = s_degatsTirDeTest,
+        {IdSkill::TirPercant, Skill({.type = TypeSkill::DegatsSurCible, .portee = 200.0f, .puissance = s_degatsTirDeTest,
                                      .rechargeMin = 6.0f, .rechargeMax = 6.0f, .tempsExecution = 0.5f,
                                      .nature = NatureDAttaque::Projectile})},
         {IdSkill::PluieDeFleches, Skill({.type = TypeSkill::Zone, .portee = 320.0f, .puissance = s_degatsPluieDeTest,

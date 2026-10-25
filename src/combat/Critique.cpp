@@ -18,9 +18,13 @@ float multiplicateurDeCritique(float rapport) {
                       s_multiplicateurMaximal);
 }
 
+bool coupCritique(float rapport, float tirage) {
+    return tirage < chanceDeCritique(rapport);
+}
+
 ResultatCritique appliquerCritique(int montant, float rapport, float tirage) {
     assert(montant >= 0);
-    if (tirage >= chanceDeCritique(rapport)) {
+    if (!coupCritique(rapport, tirage)) {
         return {.montant = montant, .critique = false};
     }
     const float amplifie = static_cast<float>(montant) * multiplicateurDeCritique(rapport);

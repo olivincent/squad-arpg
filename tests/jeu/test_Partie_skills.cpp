@@ -30,7 +30,7 @@ TEST_CASE("un skill et attaquer dans la meme image ne frappent pas deux fois le 
     Partie partie = unePartie(niveauDegage({{235.0f, 170.0f}}), s_graineDeTest);
     const int vieDeDepart = partie.getMonstres().front().getPointsDeVie();
     const Defenses monstre{.armure = 0, .statistiques = monstreSansHasard().statistiques};
-    const Attaque frappe{.degats = s_degatsFrappeDeTest,
+    const Attaque frappe{.degats = degatsPhysiques(s_degatsFrappeDeTest),
                          .capaciteOffensive = partie.getEscouade().statistiquesDeCombatDuPersonnage(1)->capaciteOffensive,
                          .nature = NatureDAttaque::Contact};
     const Attaque basePretre = *partie.getEscouade().attaqueDeBase(2);

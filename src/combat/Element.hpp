@@ -49,5 +49,17 @@ struct ParElement {
         return somme;
     }
 
+    // L'élément de la plus grande valeur ; à égalité, le premier dans l'ordre de l'énumération. Pour un type
+    // comparable.
+    [[nodiscard]] constexpr Element elementDominant() const {
+        Element dominant = Element::Physique;
+        for (const Element element : s_elements) {
+            if ((*this)[element] > (*this)[dominant]) {
+                dominant = element;
+            }
+        }
+        return dominant;
+    }
+
     bool operator==(const ParElement&) const = default;
 };

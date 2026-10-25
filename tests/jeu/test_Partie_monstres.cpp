@@ -261,7 +261,7 @@ TEST_CASE("chaque monstre du niveau recoit la definition de sa categorie") {
         const Monstre& monstre = partie.getMonstres()[i];
         REQUIRE(monstre.getPointsDeVie() == definition.pointsDeVieMax);
         REQUIRE(monstre.getCercle().rayon == definition.cote / 2.0f);
-        REQUIRE(monstre.getAttaque().degats == definition.attaque.puissance);
+        REQUIRE(monstre.getAttaque().degats.total() == definition.attaque.puissance);
         REQUIRE(monstre.getStatistiques() == definition.statistiques);
     }
 }

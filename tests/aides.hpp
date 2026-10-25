@@ -84,12 +84,12 @@ inline Generateur generateurDeTest() {
 // aide explicite : `monstreSansHasard()`, `defensesDeTest()`, un personnage de test sans bottes ni bouclier.
 // Pour les tests qui ne portent ni sur le critique, ni sur l'esquive, ni sur le blocage.
 inline Attaque attaqueSansHasard(int montant) {
-    return {.degats = montant, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
+    return {.degats = degatsPhysiques(montant), .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
 }
 
 // Un soin de `montant` points, sans hasard non plus (pour `resoudreSoin`).
 inline Attaque soinSansHasard(int montant) {
-    return {.degats = 0, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact, .soin = montant};
+    return {.degats = {}, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact, .soin = montant};
 }
 
 // L'infanterie sans esquive ni armure : les coups qu'elle reçoit ne dépendent plus du hasard du défenseur, et
@@ -130,19 +130,20 @@ inline Defenses defensesDeTest(int armure = 0) {
 // Les dégâts d'une attaque qui vient de partir, 0 si rien n'est parti (ce que rendaient avancerAttaque et
 // avancerSkill avant de rendre une attaque entière).
 inline int degatsOuZero(const std::optional<Attaque>& attaque) {
-    return attaque.has_value() ? attaque->degats : 0;
+    return attaque.has_value() ? attaque->degats.total() : 0;
 }
 
 // Les dégâts qu'une attaque inflige à ce défenseur, selon que le jeu en a fait un critique ou non : la
 // multiplication du critique (au tirage 0, donc toujours critique) puis l'armure. Pour les tests de Partie, où
 // le tirage n'est pas à eux : ils lisent `critique` dans l'événement et vérifient le montant qui va avec.
 inline int degatsAttendus(const Attaque& attaque, const Defenses& defenses, bool critique) {
-    int montant = attaque.degats;
+    // Des attaques physiques : une seule portion, sans arrondi avant la fin (comme `resoudreCoup`).
+    float montant = static_cast<float>(attaque.degats.total());
     if (critique) {
         const float rapport = rapportDeCapacites(attaque.capaciteOffensive, defenses.statistiques.capaciteDefensive);
-        montant = appliquerCritique(montant, rapport, 0.0f).montant;
+        montant *= multiplicateurDeCritique(rapport);
     }
-    return appliquerArmure(montant, defenses.armure);
+    return std::max(1, static_cast<int>(std::lround(armureAppliquee(montant, defenses.armure))));
 }
 
 // Fait subir un coup de `montant` dégâts sans hasard (ni tirage) à une entité (`Vitalite`, `Personnage`,

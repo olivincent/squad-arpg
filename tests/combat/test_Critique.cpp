@@ -77,3 +77,15 @@ TEST_CASE("appliquerCritique : un rapport nul n'est jamais critique, meme au tir
 TEST_CASE("appliquerCritique : un montant de 0 reste 0") {
     REQUIRE(appliquerCritique(0, 3.0f, 0.0f).montant == 0);
 }
+
+TEST_CASE("coupCritique : le tirage doit etre sous la chance, strictement") {
+    // Rapport 1 : 5 % de chance.
+    REQUIRE(coupCritique(1.0f, 0.0f));
+    REQUIRE(coupCritique(1.0f, 0.049f));
+    REQUIRE_FALSE(coupCritique(1.0f, 0.05f));
+    REQUIRE_FALSE(coupCritique(1.0f, 0.9f));
+}
+
+TEST_CASE("coupCritique : sans chance, aucun tirage ne donne un critique, meme 0") {
+    REQUIRE_FALSE(coupCritique(0.0f, 0.0f));
+}

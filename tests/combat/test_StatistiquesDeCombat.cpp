@@ -56,3 +56,30 @@ TEST_CASE("StatistiquesDeCombat : l'addition se fait champ par champ") {
     REQUIRE(a + b == StatistiquesDeCombat{11, 22, 33, 44});
     REQUIRE(a == StatistiquesDeCombat{1, 2, 3, 4});  // les opérandes ne changent pas
 }
+
+TEST_CASE("les resistances sont a zero par defaut et s'additionnent avec les bonus") {
+    StatistiquesDeCombat statistiques;
+    REQUIRE(statistiques.resistances.total() == 0);
+
+    StatistiquesDeCombat bonus;
+    bonus.resistances[Element::Feu] = 10;
+    StatistiquesDeCombat autreBonus;
+    autreBonus.resistances[Element::Feu] = 15;
+    autreBonus.resistances[Element::Sacre] = -20;
+
+    const StatistiquesDeCombat somme = statistiques + bonus + autreBonus;
+
+    REQUIRE(somme.resistances[Element::Feu] == 25);
+    REQUIRE(somme.resistances[Element::Sacre] == -20);
+    REQUIRE(somme.resistances[Element::Physique] == 0);
+}
+
+TEST_CASE("statistiquesDuPersonnage garde les resistances du bonus d'equipement") {
+    StatistiquesDeCombat bonus;
+    bonus.resistances[Element::Feu] = 25;
+
+    const StatistiquesDeCombat statistiques = statistiquesDuPersonnage(Caracteristiques({10, 10, 10, 10, 10}), bonus);
+
+    REQUIRE(statistiques.resistances[Element::Feu] == 25);
+    REQUIRE(statistiques.resistances[Element::Sacre] == 0);
+}

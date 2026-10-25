@@ -110,8 +110,8 @@ TEST_CASE("zone de controle : un monstre tue par un coup gratuit est retire et l
     composition[0] = avecPuissance(avecArme(composition[0], IdObjet::EpeeADeuxMains), s_puissanceReconnaissable);
     Partie partie = partieDeTest(niveauDegage({{270.0f, 160.0f}}), std::move(composition));
     const int vieDuMonstre = partie.getMonstres().front().getPointsDeVie();
-    REQUIRE(partie.getEscouade().attaqueDeBase(1)->degats >= 6 * vieDuMonstre / 10);
-    REQUIRE(partie.getEscouade().attaqueDeBase(1)->degats * 3 / 2 < vieDuMonstre);
+    REQUIRE(partie.getEscouade().attaqueDeBase(1)->degats.total() >= 6 * vieDuMonstre / 10);
+    REQUIRE(partie.getEscouade().attaqueDeBase(1)->degats.total() * 3 / 2 < vieDuMonstre);
     REQUIRE(partie.cliquer({270.0f, 160.0f}) == ResultatClic::Monstre);
 
     // En 1,2 s les autres guerriers ne retirent que quelques points : seul le coup gratuit peut le tuer.

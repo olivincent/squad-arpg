@@ -26,6 +26,10 @@ struct ResultatCritique {
     bool critique;
 };
 
-// L'étape « critique » du coup : `tirage` (de 0 inclus à 1 exclu) sous la chance du rapport, c'est un critique.
+// Le coup est un critique : `tirage` (de 0 inclus à 1 exclu) sous la chance du rapport. Le moteur du coup en
+// tire le multiplicateur de chaque portion (`multiplicateurDeCritique`), sans arrondir.
+[[nodiscard]] bool coupCritique(float rapport, float tirage);
+
+// L'étape « critique » d'un montant seul (un soin) : `coupCritique`, puis le montant multiplié et arrondi.
 // Précondition : montant >= 0.
 [[nodiscard]] ResultatCritique appliquerCritique(int montant, float rapport, float tirage);

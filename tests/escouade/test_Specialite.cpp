@@ -145,7 +145,7 @@ TEST_CASE("le paladin est une melee qui frappe et soigne au contact") {
     REQUIRE(paladin.skills.size() == 2);
 
     REQUIRE(paladin.skills[0].id == IdSkill::FrappeSacree);
-    REQUIRE(paladin.skills[0].skill.getType() == TypeSkill::Degats);
+    REQUIRE(paladin.skills[0].skill.getType() == TypeSkill::DegatsSurCible);
     REQUIRE(paladin.skills[0].skill.getPuissance() == 60);
     REQUIRE(paladin.skills[0].skill.getPortee() == 20.0f);
 
@@ -165,7 +165,7 @@ TEST_CASE("le rodeur est un tireur avec un tir de loin et un skill de zone") {
     REQUIRE(rodeur.skills.size() == 2);
 
     REQUIRE(rodeur.skills[0].id == IdSkill::TirPercant);
-    REQUIRE(rodeur.skills[0].skill.getType() == TypeSkill::Degats);
+    REQUIRE(rodeur.skills[0].skill.getType() == TypeSkill::DegatsSurCible);
     REQUIRE(rodeur.skills[0].skill.getPuissance() == 75);
     REQUIRE(rodeur.skills[0].skill.getPortee() == 200.0f);
 
@@ -212,7 +212,7 @@ TEST_CASE("une escouade de paladin, de rodeur et de guerrier connait les skills 
 
     REQUIRE(escouade.typeDuSkill({1, IdSkill::ImpositionDesMains}) == TypeSkill::Soin);
     REQUIRE(escouade.typeDuSkill({2, IdSkill::PluieDeFleches}) == TypeSkill::Zone);
-    REQUIRE(escouade.typeDuSkill({3, IdSkill::FrappePuissante}) == TypeSkill::Degats);
+    REQUIRE(escouade.typeDuSkill({3, IdSkill::FrappePuissante}) == TypeSkill::DegatsSurCible);
     REQUIRE_FALSE(escouade.typeDuSkill({1, IdSkill::TirPercant}).has_value());
 }
 

@@ -36,7 +36,7 @@ TEST_CASE("resoudreCoup : un coup de 0 reste 0, meme avec une grande capacite of
     Generateur generateur = generateurDeTest();
 
     REQUIRE(resoudreCoup(attaqueSansHasard(0), defensesDeTest(30), true, generateur).montant == 0);
-    REQUIRE(resoudreCoup({.degats = 0, .capaciteOffensive = s_capaciteEnorme, .nature = NatureDAttaque::Contact}, defensesDeTest(0), true, generateur).montant == 0);
+    REQUIRE(resoudreCoup({.degats = degatsPhysiques(0), .capaciteOffensive = s_capaciteEnorme, .nature = NatureDAttaque::Contact}, defensesDeTest(0), true, generateur).montant == 0);
 }
 
 TEST_CASE("resoudreCoup ne tire rien quand la chance de critique est nulle ou le montant nul") {
@@ -44,7 +44,7 @@ TEST_CASE("resoudreCoup ne tire rien quand la chance de critique est nulle ou le
     const Generateur intact = generateur;
 
     static_cast<void>(resoudreCoup(attaqueSansHasard(100), defensesDeTest(30), true, generateur));  // capacité offensive nulle
-    static_cast<void>(resoudreCoup({.degats = 0, .capaciteOffensive = s_capaciteEnorme, .nature = NatureDAttaque::Contact}, defensesDeTest(0), true, generateur));
+    static_cast<void>(resoudreCoup({.degats = degatsPhysiques(0), .capaciteOffensive = s_capaciteEnorme, .nature = NatureDAttaque::Contact}, defensesDeTest(0), true, generateur));
 
     REQUIRE(generateur == intact);
 }
@@ -53,14 +53,14 @@ TEST_CASE("resoudreCoup tire quand la chance de critique est non nulle") {
     Generateur generateur = generateurDeTest();
     const Generateur intact = generateur;
 
-    static_cast<void>(resoudreCoup({.degats = 100, .capaciteOffensive = 100, .nature = NatureDAttaque::Contact}, defensesDeTest(0), true, generateur));
+    static_cast<void>(resoudreCoup({.degats = degatsPhysiques(100), .capaciteOffensive = 100, .nature = NatureDAttaque::Contact}, defensesDeTest(0), true, generateur));
 
     REQUIRE(generateur != intact);
 }
 
 TEST_CASE("resoudreCoup : un critique multiplie le montant avant l'armure") {
     Generateur generateur = generateurDeTest();
-    const Attaque attaque{.degats = s_montant, .capaciteOffensive = s_capaciteEnorme, .nature = NatureDAttaque::Contact};
+    const Attaque attaque{.degats = degatsPhysiques(s_montant), .capaciteOffensive = s_capaciteEnorme, .nature = NatureDAttaque::Contact};
     bool critiqueVu = false;
     bool normalVu = false;
 
@@ -83,8 +83,8 @@ TEST_CASE("resoudreCoup : la frequence des critiques suit le rapport des capacit
     Generateur generateur = generateurDeTest();
 
     // Rapport 1 : 5 % ; plafond : 50 % (de 4 000 coups, 200 et 2 000 attendus).
-    const int aRapportUn = nombreDeCritiques({.degats = s_montant, .capaciteOffensive = 100, .nature = NatureDAttaque::Contact}, defensesDeTest(), 4000, generateur);
-    const int auPlafond = nombreDeCritiques({.degats = s_montant, .capaciteOffensive = s_capaciteEnorme, .nature = NatureDAttaque::Contact}, defensesDeTest(), 4000, generateur);
+    const int aRapportUn = nombreDeCritiques({.degats = degatsPhysiques(s_montant), .capaciteOffensive = 100, .nature = NatureDAttaque::Contact}, defensesDeTest(), 4000, generateur);
+    const int auPlafond = nombreDeCritiques({.degats = degatsPhysiques(s_montant), .capaciteOffensive = s_capaciteEnorme, .nature = NatureDAttaque::Contact}, defensesDeTest(), 4000, generateur);
 
     REQUIRE(aRapportUn > 130);
     REQUIRE(aRapportUn < 270);
@@ -95,7 +95,7 @@ TEST_CASE("resoudreCoup : la frequence des critiques suit le rapport des capacit
 TEST_CASE("resoudreCoup : une grande capacite defensive annule pratiquement les critiques") {
     Generateur generateur = generateurDeTest();
 
-    const int critiques = nombreDeCritiques({.degats = s_montant, .capaciteOffensive = 50, .nature = NatureDAttaque::Contact}, {.armure = 0, .statistiques = {.capaciteDefensive = 100000}}, 4000, generateur);
+    const int critiques = nombreDeCritiques({.degats = degatsPhysiques(s_montant), .capaciteOffensive = 50, .nature = NatureDAttaque::Contact}, {.armure = 0, .statistiques = {.capaciteDefensive = 100000}}, 4000, generateur);
 
     REQUIRE(critiques == 0);
 }
@@ -103,7 +103,7 @@ TEST_CASE("resoudreCoup : une grande capacite defensive annule pratiquement les 
 TEST_CASE("resoudreCoup : meme graine, memes resultats") {
     Generateur premier = generateurDeTest();
     Generateur second = generateurDeTest();
-    const Attaque attaque{.degats = s_montant, .capaciteOffensive = 150, .nature = NatureDAttaque::Contact};
+    const Attaque attaque{.degats = degatsPhysiques(s_montant), .capaciteOffensive = 150, .nature = NatureDAttaque::Contact};
 
     for (int i = 0; i < 100; ++i) {
         const ResultatDuCoup a = resoudreCoup(attaque, defensesDeTest(10), true, premier);
@@ -130,7 +130,7 @@ TEST_CASE("resoudreSoin : un critique multiplie le soin, sans armure") {
     bool normalVu = false;
 
     for (int i = 0; i < 100; ++i) {
-        const ResultatDuCoup soin = resoudreSoin({.degats = 0, .capaciteOffensive = s_capaciteEnorme, .nature = NatureDAttaque::Contact, .soin = 300}, generateur);
+        const ResultatDuCoup soin = resoudreSoin({.degats = degatsPhysiques(0), .capaciteOffensive = s_capaciteEnorme, .nature = NatureDAttaque::Contact, .soin = 300}, generateur);
         REQUIRE(soin.montant == (soin.critique ? 600 : 300));
         critiqueVu = critiqueVu || soin.critique;
         normalVu = normalVu || !soin.critique;
@@ -145,7 +145,7 @@ TEST_CASE("resoudreSoin : le soin tente son critique contre une capacite defensi
     int critiques = 0;
 
     for (int i = 0; i < 4000; ++i) {
-        critiques += resoudreSoin({.degats = 0, .capaciteOffensive = s_capaciteDefensiveDeReference, .nature = NatureDAttaque::Contact, .soin = 300}, generateur).critique ? 1 : 0;
+        critiques += resoudreSoin({.degats = degatsPhysiques(0), .capaciteOffensive = s_capaciteDefensiveDeReference, .nature = NatureDAttaque::Contact, .soin = 300}, generateur).critique ? 1 : 0;
     }
 
     REQUIRE(critiques > 130);  // rapport 1 : 5 % de 4 000
@@ -162,7 +162,7 @@ Defenses esquiveur(int contact, int projectile) {
 }
 
 Attaque attaqueDeNature(NatureDAttaque nature) {
-    return {.degats = s_montant, .capaciteOffensive = 0, .nature = nature};
+    return {.degats = degatsPhysiques(s_montant), .capaciteOffensive = 0, .nature = nature};
 }
 
 int nombreDEsquives(const Attaque& attaque, const Defenses& defenses, int coups, Generateur& generateur) {
@@ -176,7 +176,7 @@ int nombreDEsquives(const Attaque& attaque, const Defenses& defenses, int coups,
 
 TEST_CASE("resoudreCoup : un coup esquive s'arrete la, sans degats ni critique") {
     Generateur generateur = generateurDeTest();
-    const Attaque attaque{.degats = s_montant, .capaciteOffensive = s_capaciteEnorme, .nature = NatureDAttaque::Contact};
+    const Attaque attaque{.degats = degatsPhysiques(s_montant), .capaciteOffensive = s_capaciteEnorme, .nature = NatureDAttaque::Contact};
     bool esquiveVue = false;
 
     for (int i = 0; i < 200; ++i) {
@@ -250,7 +250,7 @@ int tiragesDuCoup(const Attaque& attaque, const Defenses& defenses, Generateur& 
 
 TEST_CASE("resoudreCoup : une esquive possible tire, et un coup esquive ne tire pas son critique") {
     Generateur generateur = generateurDeTest();
-    const Attaque attaque{.degats = s_montant, .capaciteOffensive = s_capaciteEnorme, .nature = NatureDAttaque::Contact};
+    const Attaque attaque{.degats = degatsPhysiques(s_montant), .capaciteOffensive = s_capaciteEnorme, .nature = NatureDAttaque::Contact};
     int esquives = 0;
     int touches = 0;
 
@@ -299,7 +299,7 @@ TEST_CASE("resoudreCoup : un blocage retire un montant fixe, puis l'armure joue 
 
 TEST_CASE("resoudreCoup : un blocage qui absorbe tout arrete le coup, sans armure ni plancher") {
     Generateur generateur = generateurDeTest();
-    const Attaque faible{.degats = 25, .capaciteOffensive = 0, .nature = NatureDAttaque::Projectile};
+    const Attaque faible{.degats = degatsPhysiques(25), .capaciteOffensive = 0, .nature = NatureDAttaque::Projectile};
 
     const ResultatDuCoup resultat = resoudreCoup(faible, porteurDeBouclier(s_armure), true, generateur);
 
@@ -309,7 +309,7 @@ TEST_CASE("resoudreCoup : un blocage qui absorbe tout arrete le coup, sans armur
 
 TEST_CASE("resoudreCoup : le blocage retire du montant deja critique, avant l'armure") {
     Generateur generateur = generateurDeTest();
-    const Attaque attaque{.degats = s_montant, .capaciteOffensive = s_capaciteEnorme, .nature = NatureDAttaque::Contact};
+    const Attaque attaque{.degats = degatsPhysiques(s_montant), .capaciteOffensive = s_capaciteEnorme, .nature = NatureDAttaque::Contact};
     bool critiqueVu = false;
     bool normalVu = false;
 
@@ -396,7 +396,7 @@ TEST_CASE("resoudreCoup : la penetration de l'attaque reduit l'armure du defense
 
 TEST_CASE("resoudreCoup : un blocage total ne laisse rien a percer, la penetration n'y change rien") {
     Generateur generateur = generateurDeTest();
-    Attaque perforante{.degats = 10, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact, .penetration = 75};
+    Attaque perforante{.degats = degatsPhysiques(10), .capaciteOffensive = 0, .nature = NatureDAttaque::Contact, .penetration = 75};
     Defenses defenses = defensesDeTest(1000);
     defenses.statistiques.chanceDeBlocage = 100;
     defenses.statistiques.montantBloque = 50;

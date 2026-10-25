@@ -98,7 +98,7 @@ inline constexpr float s_rayonZoneDeTest = 60.0f;   // depuis le point visé
 // Guerrier de test : devant, mêlée, frappe puissante et provocation.
 inline DefinitionPersonnage guerrierDeTest() {
     return {.couleur = sf::Color::Red,
-            .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest,
+            .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = s_porteeMeleeDeTest,
                                                .puissance = s_degatsFrappeDeTest,
                                                .rechargeMin = s_rechargeFrappeDeTest,
                                                .rechargeMax = s_rechargeFrappeDeTest,
@@ -142,7 +142,7 @@ inline DefinitionPersonnage mageDeTest() {
 
 // Un skill de dégâts de contact qui exige l'un de ces types d'arme (vide : aucune exigence).
 inline Skill skillExigeantDesArmes(std::vector<TypeDArme> armes) {
-    return Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest, .puissance = s_degatsFrappeDeTest,
+    return Skill({.type = TypeSkill::DegatsSurCible, .portee = s_porteeMeleeDeTest, .puissance = s_degatsFrappeDeTest,
                   .rechargeMin = s_rechargeFrappeDeTest, .rechargeMax = s_rechargeFrappeDeTest,
                   .tempsExecution = s_activationFrappeDeTest, .nature = NatureDAttaque::Contact,
                   .armesExigees = std::move(armes)});
@@ -355,7 +355,7 @@ inline int attaquerCible(Escouade& escouade, const TileMap& carte, Cercle cible)
     int total = 0;
     Generateur generateur = generateurDeTest();
     for (const Coup& coup : attaquerJusquAuDepart(escouade, {EntiteVue{1, cible}}, carte, generateur)) {
-        total += coup.attaque.degats;
+        total += coup.attaque.degats.total();
     }
     return total;
 }
@@ -374,7 +374,7 @@ inline std::vector<Coup> attendreLeDepartDesSkills(Escouade& escouade, const std
     std::vector<Coup> coups;
     for (int i = 0; i < nombreDeTics(s_dureeAttenteSkill); ++i) {
         for (const Coup& coup : escouade.attaquer(s_dureeTic, monstres, carte, generateur)) {
-            if (coup.attaque.degats != s_degatsBaseDeTest) {
+            if (coup.attaque.degats.total() != s_degatsBaseDeTest) {
                 coups.push_back(coup);
             }
         }
@@ -503,7 +503,7 @@ inline int declencher(Escouade& escouade, AdresseSkill adresse, const std::vecto
     int total = 0;
     Generateur generateur = generateurDeTest();
     for (const Coup& coup : declencherEtAttendre(escouade, adresse, monstres, carteOuverte(), generateur)) {
-        total += coup.attaque.degats;
+        total += coup.attaque.degats.total();
     }
     return total;
 }

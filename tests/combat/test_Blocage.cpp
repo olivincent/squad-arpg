@@ -74,3 +74,17 @@ TEST_CASE("appliquerBlocage : sans chance, jamais, meme au tirage 0") {
     REQUIRE(resultat.bloque == 0);
     REQUIRE(resultat.montant == 100);
 }
+
+TEST_CASE("appliquerBlocage : la portion est un flottant, le bouclier retire des points entiers") {
+    const ResultatDuBlocage resultat = appliquerBlocage(52.5f, 40, 1.0f, 0.0f);
+
+    REQUIRE_THAT(resultat.bloque, WithinAbs(40.0, s_tolerance));
+    REQUIRE_THAT(resultat.montant, WithinAbs(12.5, s_tolerance));
+}
+
+TEST_CASE("appliquerBlocage : ne retire jamais plus que la portion") {
+    const ResultatDuBlocage resultat = appliquerBlocage(12.5f, 40, 1.0f, 0.0f);
+
+    REQUIRE_THAT(resultat.bloque, WithinAbs(12.5, s_tolerance));
+    REQUIRE_THAT(resultat.montant, WithinAbs(0.0, s_tolerance));
+}

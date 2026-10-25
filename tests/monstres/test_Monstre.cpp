@@ -158,7 +158,7 @@ TEST_CASE("un monstre a une zone de controle de 20 px et l'attaque de sa definit
     const Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(20));
 
     REQUIRE(monstre.getZoneDeControle() == 20.0f);
-    REQUIRE(monstre.getAttaque().degats == definitionDeMonstre(CategorieDeMonstre::Infanterie).attaque.puissance);
+    REQUIRE(monstre.getAttaque().degats.total() == definitionDeMonstre(CategorieDeMonstre::Infanterie).attaque.puissance);
 }
 
 TEST_CASE("un monstre prend toutes ses valeurs de sa definition") {
@@ -174,7 +174,7 @@ TEST_CASE("un monstre prend toutes ses valeurs de sa definition") {
     REQUIRE(monstre.getCercle().rayon == 25.0f);
     REQUIRE(monstre.getPointsDeVie() == 300);
     REQUIRE(monstre.getZoneDeControle() == 35.0f);
-    REQUIRE(monstre.getAttaque().degats == 77);
+    REQUIRE(monstre.getAttaque().degats.total() == 77);
     REQUIRE(monstre.getStatistiques() == StatistiquesDeCombat{130, 90});
     REQUIRE(subir(monstre, 100) == appliquerArmure(100, 40));
 }
@@ -184,7 +184,7 @@ TEST_CASE("l'attaque d'un monstre porte la capacite offensive de sa definition")
     definition.statistiques.capaciteOffensive = 130;
     const Monstre monstre({100.0f, 100.0f}, 1, 0, definition);
 
-    REQUIRE(monstre.getAttaque().degats == definition.attaque.puissance);
+    REQUIRE(monstre.getAttaque().degats.total() == definition.attaque.puissance);
     REQUIRE(monstre.getAttaque().capaciteOffensive == 130);
 }
 
@@ -205,7 +205,7 @@ TEST_CASE("un coup esquive par un monstre ne lui retire rien mais le reveille qu
     const TileMap carte = carteDegagee10x10();
     DefinitionDeMonstre definition = monstreSansHasard();
     definition.statistiques.esquiveContact = 50;
-    const Attaque attaque{.degats = 100, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
+    const Attaque attaque{.degats = degatsPhysiques(100), .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
     Generateur generateur = generateurDeTest();
     int esquives = 0;
 
@@ -233,7 +233,7 @@ TEST_CASE("un monstre au bouclier : le blocage se recupere avec le temps qui pas
     definition.statistiques = {.capaciteDefensive = 100, .chanceDeBlocage = 100, .montantBloque = 40};
     Monstre monstre({100.0f, 100.0f}, 1, 0, definition);
     Generateur generateur = generateurDeTest();
-    const Attaque attaque{.degats = 100, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
+    const Attaque attaque{.degats = degatsPhysiques(100), .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
 
     REQUIRE(monstre.recevoirDegats(attaque, generateur).bloque == 40);
     REQUIRE(monstre.recevoirDegats(attaque, generateur).bloque == 0);  // en récupération
@@ -249,11 +249,11 @@ TEST_CASE("lire la puissance de l'attaque ne change ni le coup engage ni la rech
     Generateur generateur = generateurDeTest();
     REQUIRE(engager(monstre, pointCible({125.0f, 100.0f}), 1, carte));
 
-    const int puissance = monstre.getAttaque().degats;
+    const int puissance = monstre.getAttaque().degats.total();
 
     REQUIRE(monstre.cibleEngagee() == 1);
     REQUIRE(degatsOuZero(monstre.avancerAttaque(0.4f, generateur)) == puissance);  // le coup engagé part normalement
-    REQUIRE(monstre.getAttaque().degats == puissance);
+    REQUIRE(monstre.getAttaque().degats.total() == puissance);
     REQUIRE_FALSE(engager(monstre, pointCible({125.0f, 100.0f}), 1, carte));  // la recharge court toujours
 }
 

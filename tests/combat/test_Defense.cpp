@@ -1,5 +1,6 @@
 // ./tests/combat/test_Defense.cpp
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "combat/Defense.hpp"
 
@@ -80,4 +81,37 @@ TEST_CASE("Defense avec penetration : elle ne fait jamais subir moins ni plus qu
             REQUIRE(avec <= 100);
         }
     }
+}
+
+// Les étapes flottantes du moteur du coup (étape 94) : aucun arrondi, un seul à la fin du coup.
+TEST_CASE("armureAppliquee : l'armure M1 sans arrondi") {
+    REQUIRE_THAT(armureAppliquee(100.0f, 30), Catch::Matchers::WithinAbs(70.0, 1e-4));
+    REQUIRE_THAT(armureAppliquee(12.0f, 1000), Catch::Matchers::WithinAbs(2.4, 1e-4));     // le plancher, 2,4 : pas arrondi
+    REQUIRE_THAT(armureAppliquee(100.0f, 15, 30), Catch::Matchers::WithinAbs(89.5, 1e-4));  // 15 × 0,7 = 10,5
+    REQUIRE_THAT(armureAppliquee(0.0f, 50), Catch::Matchers::WithinAbs(0.0, 1e-4));         // 0 reste 0, sans minimum de 1
+}
+
+TEST_CASE("resistanceEffective : ramenee entre -100 et 80") {
+    REQUIRE(resistanceEffective(0) == 0);
+    REQUIRE(resistanceEffective(40) == 40);
+    REQUIRE(resistanceEffective(80) == 80);
+    REQUIRE(resistanceEffective(81) == 80);
+    REQUIRE(resistanceEffective(500) == 80);
+    REQUIRE(resistanceEffective(-100) == -100);
+    REQUIRE(resistanceEffective(-101) == -100);
+    REQUIRE(resistanceEffective(-250) == -100);
+}
+
+TEST_CASE("appliquerResistance : la portion perd la part resistee, sans arrondi") {
+    REQUIRE_THAT(appliquerResistance(100.0f, 0), Catch::Matchers::WithinAbs(100.0, 1e-4));
+    REQUIRE_THAT(appliquerResistance(100.0f, 40), Catch::Matchers::WithinAbs(60.0, 1e-4));
+    REQUIRE_THAT(appliquerResistance(3.0f, 50), Catch::Matchers::WithinAbs(1.5, 1e-4));
+    REQUIRE_THAT(appliquerResistance(0.0f, 50), Catch::Matchers::WithinAbs(0.0, 1e-4));
+}
+
+TEST_CASE("appliquerResistance : plafonnee a 80 %, une vulnerabilite augmente la portion") {
+    REQUIRE_THAT(appliquerResistance(100.0f, 95), Catch::Matchers::WithinAbs(20.0, 1e-4));
+    REQUIRE_THAT(appliquerResistance(100.0f, -50), Catch::Matchers::WithinAbs(150.0, 1e-4));
+    REQUIRE_THAT(appliquerResistance(100.0f, -100), Catch::Matchers::WithinAbs(200.0, 1e-4));
+    REQUIRE_THAT(appliquerResistance(100.0f, -300), Catch::Matchers::WithinAbs(200.0, 1e-4));  // ramenée à −100
 }

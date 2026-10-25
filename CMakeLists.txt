@@ -180,6 +180,7 @@ add_executable(tests
     tests/combat/test_Caracteristiques.cpp
     tests/combat/test_StatistiquesDeCombat.cpp
     tests/combat/test_ResolutionDuCoup.cpp
+    tests/combat/test_ResolutionDuCoup_portions.cpp
     tests/combat/test_Element.cpp
     tests/combat/test_Critique.cpp
     tests/combat/test_Esquive.cpp
