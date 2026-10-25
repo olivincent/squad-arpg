@@ -188,3 +188,51 @@ TEST_CASE("equipement : le bouclier compte dans les statistiques de combat total
     REQUIRE(total.montantBloque == bouclier.montantBloque);
     REQUIRE(total.esquiveContact == definitionObjet(IdObjet::BottesDeCuir).bonusDeCombat.esquiveContact);
 }
+
+// Les objets actifs (étape 92.2), avec les objets du catalogue.
+TEST_CASE("actifPour : l'epee longue exige 11 de Puissance, l'anneau de puissance la lui donne, le retirer la rend inactive") {
+    Equipement equipement;
+    static_cast<void>(equipement.poser(Emplacement::MainDroite, {IdObjet::EpeeLongue}));
+    const Caracteristiques neuf({9, 0, 0, 0, 0});
+
+    REQUIRE_FALSE(equipement.actifPour(neuf).a(Emplacement::MainDroite).has_value());
+    REQUIRE(equipement.a(Emplacement::MainDroite).has_value());  // elle reste portée
+    REQUIRE(equipement.actifPour(Caracteristiques({11, 0, 0, 0, 0})).a(Emplacement::MainDroite).has_value());
+
+    static_cast<void>(equipement.poser(Emplacement::Anneau1, {IdObjet::AnneauDePuissance}));  // +3 de Puissance : 12
+    REQUIRE(equipement.actifPour(neuf).a(Emplacement::MainDroite).has_value());
+
+    static_cast<void>(equipement.retirer(Emplacement::Anneau1));
+    REQUIRE_FALSE(equipement.actifPour(neuf).a(Emplacement::MainDroite).has_value());  // inactive de nouveau
+}
+
+TEST_CASE("actifPour : un objet inactif n'a aucun effet, ni armure, ni arme, ni blocage, ni bonus") {
+    Equipement equipement;
+    static_cast<void>(equipement.poser(Emplacement::Torse, {IdObjet::CuirasseDeMailles}));
+    static_cast<void>(equipement.poser(Emplacement::MainGauche, {IdObjet::BouclierRond}));
+    static_cast<void>(equipement.poser(Emplacement::MainDroite, {IdObjet::Arc}));
+    static_cast<void>(equipement.poser(Emplacement::Bottes, {IdObjet::BottesDeCuir}));  // pas de seuil
+    const Equipement actif = equipement.actifPour(Caracteristiques());
+
+    REQUIRE(actif.armureTotale() == definitionObjet(IdObjet::BottesDeCuir).armure);
+    REQUIRE(actif.bonusDeCombatTotal() == definitionObjet(IdObjet::BottesDeCuir).bonusDeCombat);  // aucun blocage
+    REQUIRE(actif.attaqueDeBase() == mainsNues());
+    REQUIRE_FALSE(actif.typeDArme().has_value());
+    REQUIRE(equipement.armureTotale() > actif.armureTotale());  // l'équipement porté, lui, les garde
+}
+
+TEST_CASE("actifPour : sans objet a seuil, l'equipement actif est l'equipement porte") {
+    Equipement equipement;
+    static_cast<void>(equipement.poser(Emplacement::Bottes, {IdObjet::BottesDeCuir}));
+    static_cast<void>(equipement.poser(Emplacement::Anneau1, {IdObjet::AnneauDePuissance}));
+
+    REQUIRE(equipement.actifPour(Caracteristiques()) == equipement);
+}
+
+TEST_CASE("caracteristiquesEffectives : la base plus les bonus des seuls objets actifs") {
+    Equipement equipement;
+    static_cast<void>(equipement.poser(Emplacement::Anneau1, {IdObjet::AnneauDePuissance}));
+
+    REQUIRE(caracteristiquesEffectives(Caracteristiques({10, 0, 0, 0, 0}), equipement) ==
+            Caracteristiques({10 + definitionObjet(IdObjet::AnneauDePuissance).bonus.valeur(Caracteristique::Puissance), 0, 0, 0, 0}));
+}

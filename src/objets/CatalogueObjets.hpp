@@ -7,16 +7,9 @@
 #include "combat/StatistiquesDeCombat.hpp"
 #include "objets/DonneesDArme.hpp"
 #include "objets/DonneesDeBouclier.hpp"
+#include "objets/ObjetsActifs.hpp"
 #include "objets/Emplacement.hpp"
 #include "objets/Objet.hpp"
-
-// Une valeur minimale de caractéristique que le porteur doit avoir pour équiper un objet (étape 92).
-struct SeuilDeCaracteristique {
-    Caracteristique caracteristique;
-    int valeur;
-
-    bool operator==(const SeuilDeCaracteristique&) const = default;
-};
 
 // Le modèle d'un objet : ce qui est commun à toutes ses instances.
 struct DefinitionObjet {

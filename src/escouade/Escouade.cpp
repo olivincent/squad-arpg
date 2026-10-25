@@ -1103,6 +1103,11 @@ const Equipement& Escouade::equipementDuPersonnage(std::size_t place) const {
     return personnageDeLaPlace(place).getEquipement();
 }
 
+const Equipement& Escouade::equipementActifDuPersonnage(std::size_t place) const {
+    assert(placeValide(place));
+    return personnageDeLaPlace(place).getEquipementActif();
+}
+
 bool Escouade::ramasser(Objet objet) {
     return m_sac.ajouter(objet);
 }

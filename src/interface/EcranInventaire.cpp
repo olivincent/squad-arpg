@@ -115,7 +115,7 @@ void dessinerCellule(sf::RenderTarget& rendu, const sf::Font& police, sf::FloatR
 void dessinerLesCaracteristiques(sf::RenderTarget& rendu, const sf::Font& police, const Escouade& escouade,
                                  std::size_t place, sf::Vector2f tailleDeVue) {
     const Caracteristiques effectives = escouade.caracteristiquesDuPersonnage(place).value_or(Caracteristiques());
-    const Caracteristiques bonus = escouade.equipementDuPersonnage(place).bonusTotal();
+    const Caracteristiques bonus = escouade.equipementActifDuPersonnage(place).bonusTotal();
     for (std::size_t i = 0; i < s_nombreDeCaracteristiques; ++i) {
         const Caracteristique caracteristique = s_caracteristiques[i];
         dessinerCellule(rendu, police, rectangleDeLaCellule(place, i, tailleDeVue),
@@ -150,7 +150,8 @@ void dessinerColonne(sf::RenderTarget& rendu, const sf::Font& police, const Esco
 
     const Equipement& equipement = escouade.equipementDuPersonnage(place);
     const sf::FloatRect zoneArmure = rectangleDeLArmure(place, tailleDeVue);
-    sf::Text armure = texte(police, "Armure : " + std::to_string(equipement.armureTotale()), s_tailleArmure, sf::Color::White);
+    // L'armure qui a un effet : celle des objets actifs.
+    sf::Text armure = texte(police, "Armure : " + std::to_string(escouade.equipementActifDuPersonnage(place).armureTotale()), s_tailleArmure, sf::Color::White);
     armure.setPosition(zoneArmure.position + sf::Vector2f{s_margeDuTexte, 0.0f});
     rendu.draw(armure);
     if (escouade.pointsDeVieDuPersonnage(place).value_or(0) == 0) {

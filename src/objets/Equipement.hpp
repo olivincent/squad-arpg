@@ -19,7 +19,8 @@ struct ObjetDeDepart {
 };
 
 // Les caractéristiques effectives d'un porteur de ces caractéristiques de base et de cet équipement : la base plus les
-// bonus des objets portés. Seul endroit qui les calcule (`Personnage` comme les déplacements d'objets s'en servent).
+// bonus des objets **actifs** (`Equipement::actifPour`). Seul endroit qui les calcule (`Personnage` comme les
+// déplacements d'objets s'en servent).
 class Equipement;
 [[nodiscard]] Caracteristiques caracteristiquesEffectives(const Caracteristiques& base, const Equipement& equipement);
 
@@ -54,6 +55,11 @@ public:
     // L'attaque de base que donne cet équipement : celle de l'arme de la main droite, sinon les mains nues
     // (`mainsNues`). Une valeur dérivée, recalculée à chaque appel, jamais stockée.
     [[nodiscard]] DescriptionDAttaque attaqueDeBase() const;
+
+    // L'équipement **actif** d'un porteur de ces caractéristiques de base (étape 92.2) : les objets dont le seuil n'est
+    // plus atteint n'ont plus aucun effet (ni armure, ni bonus, ni données d'arme ou de bouclier : les mains nues,
+    // pas de blocage) tout en restant portés. Le calcul (point fixe) est `objetsActifs`.
+    [[nodiscard]] Equipement actifPour(const Caracteristiques& base) const;
 
     // Le type de l'arme de la main droite ; vide sans arme (les mains nues n'ont pas de type).
     [[nodiscard]] std::optional<TypeDArme> typeDArme() const;

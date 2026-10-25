@@ -319,7 +319,7 @@ TEST_CASE("la puissance de l'attaque de base lue par l'escouade (coup d'opportun
     const int degats = s_degatsBaseDeTest;
     const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
     DefinitionPersonnage definition = guerrierDeTest();
-    definition.caracteristiques = Caracteristiques({s_valeurDeReference, 10, 10, 10, 10});
+    definition.caracteristiques = Caracteristiques({s_valeurDeReference + 1, 10, 10, 10, 10});  // 11 de Puissance : l'épée est active (bonus de 3 % arrondi à 0)
     Escouade escouade({50.0f, 50.0f}, {definition});
     REQUIRE(escouade.attaqueDeBase(1)->montant == degats);
 
@@ -457,4 +457,21 @@ TEST_CASE("seuils : le guerrier ne porte pas l'epee a deux mains, avec l'anneau 
     REQUIRE(escouade.peutDeplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::MainDroite)));
     REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::MainDroite)));
     REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainDroite) == s_epeeADeuxMains);
+}
+
+TEST_CASE("objets inactifs : retirer l'anneau de puissance rend l'epee a deux mains inactive, sans la deplacer") {
+    Escouade escouade = uneEscouade({50.0f, 50.0f});
+    REQUIRE(escouade.ramasser(s_epeeADeuxMains));                  // case 0
+    REQUIRE(escouade.ramasser(Objet{IdObjet::AnneauDePuissance}));  // case 1
+    REQUIRE(escouade.deplacerObjet(dansLeSac(1), portee(s_guerrier, Emplacement::Anneau1)));
+    REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::MainDroite)));
+    REQUIRE(escouade.equipementActifDuPersonnage(s_guerrier).a(Emplacement::MainDroite) == s_epeeADeuxMains);
+
+    REQUIRE(escouade.deplacerObjet(portee(s_guerrier, Emplacement::Anneau1), dansLeSac(5)));  // vers le sac : aucun seuil
+
+    REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainDroite) == s_epeeADeuxMains);   // toujours portée
+    REQUIRE_FALSE(escouade.equipementActifDuPersonnage(s_guerrier).a(Emplacement::MainDroite).has_value());  // sans effet
+    REQUIRE(escouade.attaqueDeBase(s_guerrier)->montant <
+            montantEffectif(definitionObjet(IdObjet::EpeeADeuxMains).arme->attaque.degats, Coefficients::seul(Caracteristique::Puissance, 1.0f),
+                            *escouade.caracteristiquesDuPersonnage(s_guerrier)));
 }

@@ -68,7 +68,7 @@ constexpr int s_puissanceReconnaissable = 77;
 // monstre, sur 1,2 s. Un monstre indestructible : aucun coup ne le tue.
 int coupsGratuitsDuPremier(IdObjet arme) {
     std::vector<DefinitionPersonnage> composition = {guerrierDeTest(), guerrierDeTest(), guerrierDeTest()};
-    composition[0] = avecPuissance(avecArme(composition[0], arme), s_puissanceReconnaissable);
+    composition[0] = avecPuissance(capableDePorter(avecArme(composition[0], arme), {arme}), s_puissanceReconnaissable);
     Partie partie = partieDeTest(niveauDegage({{270.0f, 160.0f}}), std::move(composition), s_graineDeTest, monstreIndestructible());
     const Attaque coupDuPremier = *partie.getEscouade().attaqueDeBase(1);
     const Defenses monstre{.armure = 0, .statistiques = monstreSansHasard().statistiques};
@@ -169,7 +169,7 @@ namespace {
 // donc reconnaissable. Le monstre est indestructible : trois secondes de coups ne le tuent pas.
 constexpr int s_puissanceDuMage = 110;
 const int s_degatsDuMageDansLaPartie = montantEffectif(s_degatsBaseDeTest, Coefficients::seul(Caracteristique::Puissance, 1.0f),
-                                                       Caracteristiques({s_puissanceDuMage, 0, 0, 0, 0}));
+                                                       avecPuissance(mageDeTest(), s_puissanceDuMage).caracteristiques);
 
 Partie unGuerrierEtUnMageAuContact() {
     std::vector<DefinitionPersonnage> composition = {guerrierDeTest(), avecPuissance(mageDeTest(), s_puissanceDuMage)};

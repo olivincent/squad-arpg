@@ -170,6 +170,8 @@ public:
     // (`assert` : place valide). Lus par l'écran d'inventaire.
     [[nodiscard]] const Inventaire& sac() const;
     [[nodiscard]] const Equipement& equipementDuPersonnage(std::size_t place) const;
+    // Le même, sans ses objets inactifs (seuil non atteint) : celui dont l'armure et les bonus ont un effet (étape 92.2).
+    [[nodiscard]] const Equipement& equipementActifDuPersonnage(std::size_t place) const;
     // Les opérations sont transactionnelles : vraies, tout a été fait ; fausses, rien n'a bougé.
     // Un objet n'est jamais à deux endroits, ni nulle part. L'armure du personnage est recalculée.
     // Équiper ou déséquiper un personnage mort est permis. `assert` : place valide, case du sac < capacité.

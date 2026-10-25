@@ -73,8 +73,27 @@ std::optional<TypeDArme> Equipement::typeDArme() const {
     return std::nullopt;
 }
 
+Equipement Equipement::actifPour(const Caracteristiques& base) const {
+    std::vector<std::optional<ExigencesEtBonus>> portes(m_objets.size());
+    for (std::size_t i = 0; i < m_objets.size(); ++i) {
+        const std::optional<Objet>& objet = m_objets[i];
+        if (objet.has_value()) {
+            const DefinitionObjet& definition = definitionObjet(objet->id);
+            portes[i] = ExigencesEtBonus{definition.seuils, definition.bonus};
+        }
+    }
+    const std::vector<bool> actifs = objetsActifs(base, portes);
+    Equipement actif = *this;
+    for (std::size_t i = 0; i < m_objets.size(); ++i) {
+        if (!actifs[i]) {
+            actif.m_objets[i].reset();
+        }
+    }
+    return actif;
+}
+
 Caracteristiques caracteristiquesEffectives(const Caracteristiques& base, const Equipement& equipement) {
-    return base + equipement.bonusTotal();
+    return base + equipement.actifPour(base).bonusTotal();
 }
 
 Caracteristiques Equipement::bonusTotal() const {

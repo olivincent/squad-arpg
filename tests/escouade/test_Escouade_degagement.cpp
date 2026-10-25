@@ -29,14 +29,15 @@ constexpr std::size_t s_mage = 3;
 constexpr float s_zoneDuMonstre = 20.0f;
 // Le mage est d'une Puissance énorme : son attaque de base (le bâton, portée de tireur) fait quatre fois plus que
 // celle des autres, donc reconnaissable.
-const Caracteristiques s_caracteristiquesDuMage({110, 10, 10, 10, 10});
+const DefinitionPersonnage s_mageReconnaissable = avecPuissance(mageDeTest(), 110);
+const Caracteristiques& s_caracteristiquesDuMage = s_mageReconnaissable.caracteristiques;
 const int s_degatsDuMage = montantEffectif(s_degatsBaseDeTest, Coefficients::seul(Caracteristique::Puissance, 1.0f),
                                            s_caracteristiquesDuMage);
 
 // Le mage tire des coups reconnaissables (exécution de 0,15 s).
 Escouade uneEscouadeAuMageReconnaissable() {
     std::vector<DefinitionPersonnage> composition = compositionDeTest();
-    composition[s_mage - 1].caracteristiques = s_caracteristiquesDuMage;
+    composition[s_mage - 1] = s_mageReconnaissable;
     return Escouade({300.0f, 500.0f}, std::move(composition));
 }
 

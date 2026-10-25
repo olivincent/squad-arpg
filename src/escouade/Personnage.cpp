@@ -32,14 +32,15 @@ Skill skillDeLAttaqueDeBase(const DescriptionDAttaque& description) {
 Personnage::Personnage(sf::Vector2f centre, DefinitionPersonnage definition)
     : m_mobile(centre, {s_cote, s_cote}, s_vitesse),
       m_couleur(definition.couleur),
+      m_caracteristiquesDeBase(definition.caracteristiques),
       m_equipement(definition.equipementDeDepart),
-      m_descriptionDeBase(m_equipement.attaqueDeBase()),
+      m_equipementActif(m_equipement.actifPour(m_caracteristiquesDeBase)),
+      m_descriptionDeBase(m_equipementActif.attaqueDeBase()),
       m_attaqueDeBase(skillDeLAttaqueDeBase(m_descriptionDeBase)),
       m_skills(std::move(definition.skills)),
       m_cibleChemin(),
-      m_caracteristiquesDeBase(definition.caracteristiques),
-      m_caracteristiques(caracteristiquesEffectives(m_caracteristiquesDeBase, m_equipement)),
-      m_statistiques(statistiquesDuPersonnage(m_caracteristiques, m_equipement.bonusDeCombatTotal())),
+      m_caracteristiques(m_caracteristiquesDeBase + m_equipementActif.bonusTotal()),
+      m_statistiques(statistiquesDuPersonnage(m_caracteristiques, m_equipementActif.bonusDeCombatTotal())),
       m_vitalite(pointsDeVieMax(m_caracteristiques), defenses()),
       m_rayonVision(definition.rayonVision),
       m_actionEngagee()
@@ -201,7 +202,7 @@ std::vector<IdSkill> Personnage::idsDesSkills() const {
 }
 
 bool Personnage::armeConvientA(const Skill& skill) const {
-    return skill.convientA(m_equipement.typeDArme());
+    return skill.convientA(m_equipementActif.typeDArme());
 }
 
 bool Personnage::armeConvientAuSkill(IdSkill id) const {
@@ -331,6 +332,10 @@ const Equipement& Personnage::getEquipement() const {
     return m_equipement;
 }
 
+const Equipement& Personnage::getEquipementActif() const {
+    return m_equipementActif;
+}
+
 std::optional<Objet> Personnage::poserEquipement(Emplacement emplacement, Objet objet) {
     std::optional<Objet> ancien = m_equipement.poser(emplacement, objet);
     recalculerDepuisLEquipement();
@@ -344,12 +349,13 @@ std::optional<Objet> Personnage::retirerEquipement(Emplacement emplacement) {
 }
 
 Defenses Personnage::defenses() const {
-    return {.armure = m_equipement.armureTotale(), .statistiques = m_statistiques};
+    return {.armure = m_equipementActif.armureTotale(), .statistiques = m_statistiques};
 }
 
 void Personnage::recalculerDepuisLEquipement() {
-    m_caracteristiques = caracteristiquesEffectives(m_caracteristiquesDeBase, m_equipement);
-    m_statistiques = statistiquesDuPersonnage(m_caracteristiques, m_equipement.bonusDeCombatTotal());
+    m_equipementActif = m_equipement.actifPour(m_caracteristiquesDeBase);
+    m_caracteristiques = m_caracteristiquesDeBase + m_equipementActif.bonusTotal();
+    m_statistiques = statistiquesDuPersonnage(m_caracteristiques, m_equipementActif.bonusDeCombatTotal());
     m_vitalite.definirMaximum(pointsDeVieMax(m_caracteristiques));
     m_vitalite.definirDefenses(defenses());
     // Un skill en activation qui exige une arme qu'on ne porte plus est annulé, sans recharge consommée.
@@ -360,7 +366,7 @@ void Personnage::recalculerDepuisLEquipement() {
         }
     }
     // L'attaque de base : refaite seulement si l'arme l'a changée (un anneau ne remet pas la recharge à zéro).
-    if (const DescriptionDAttaque voulue = m_equipement.attaqueDeBase(); voulue != m_descriptionDeBase) {
+    if (const DescriptionDAttaque voulue = m_equipementActif.attaqueDeBase(); voulue != m_descriptionDeBase) {
         annulerAttaque();
         m_descriptionDeBase = voulue;
         m_attaqueDeBase = skillDeLAttaqueDeBase(voulue);

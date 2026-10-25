@@ -107,6 +107,9 @@ public:
     [[nodiscard]] float getRayonVision() const;
     [[nodiscard]] sf::Color getCouleur() const;
     [[nodiscard]] const Equipement& getEquipement() const;
+    // Ce qui a un effet (étape 92.2) : l'équipement sans ses objets inactifs, dont le seuil n'est plus atteint. Son armure
+    // et ses bonus sont ceux du personnage.
+    [[nodiscard]] const Equipement& getEquipementActif() const;
     // Ses caractéristiques effectives : la base de sa classe plus les bonus de son équipement.
     [[nodiscard]] const Caracteristiques& getCaracteristiques() const;
     // Celles de sa classe, sans l'équipement : la base des seuils d'équipement.
@@ -122,13 +125,14 @@ public:
 private:
     Mobile m_mobile;        // position (centre en pixels du monde) et déplacement
     sf::Color m_couleur;
-    Equipement m_equipement;  // déclaré avant ce qui en est tiré (attaque de base, défenses) à la construction
+    Caracteristiques m_caracteristiquesDeBase;  // celles de sa classe, jamais modifiées
+    Equipement m_equipement;  // ce qu'il porte, objets inactifs compris ; déclaré avant ce qui en est tiré
+    Equipement m_equipementActif;  // ce qui a un effet (seuils atteints, `actifPour`) : seul `recalculerDepuisLEquipement` l'écrit
     DescriptionDAttaque m_descriptionDeBase;    // celle de l'équipement, que `m_attaqueDeBase` met en œuvre
     Skill m_attaqueDeBase;  // la machine à états de l'attaque de base : refaite quand l'équipement la change
     bool m_rechargeARelancer = false;  // l'arme a changé : la recharge complète reste à tirer
     std::vector<SkillConnu> m_skills; // sans doublon d'identifiant
     std::optional<sf::Vector2f> m_cibleChemin; // cible du dernier A* ; vide = pas de chemin en cours
-    Caracteristiques m_caracteristiquesDeBase;  // celles de sa classe, jamais modifiées
     Caracteristiques m_caracteristiques;        // effectives : seul `recalculerDepuisLEquipement` les écrit
     StatistiquesDeCombat m_statistiques;        // tirées des caractéristiques effectives, écrites au même endroit
     Vitalite m_vitalite;    // points de vie et défenses
