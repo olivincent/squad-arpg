@@ -158,11 +158,11 @@ TEST_CASE("un monstre a une zone de controle de 20 px et l'attaque de sa definit
     const Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(20));
 
     REQUIRE(monstre.getZoneDeControle() == 20.0f);
-    REQUIRE(monstre.getAttaque().montant == monstreOrdinaire().attaque.puissance);
+    REQUIRE(monstre.getAttaque().montant == definitionDeMonstre(CategorieDeMonstre::Infanterie).attaque.puissance);
 }
 
 TEST_CASE("un monstre prend toutes ses valeurs de sa definition") {
-    DefinitionDeMonstre definition = monstreOrdinaire();
+    DefinitionDeMonstre definition = definitionDeMonstre(CategorieDeMonstre::Infanterie);
     definition.cote = 50.0f;
     definition.pointsDeVieMax = 300;
     definition.armure = 40;
@@ -180,7 +180,7 @@ TEST_CASE("un monstre prend toutes ses valeurs de sa definition") {
 }
 
 TEST_CASE("l'attaque d'un monstre porte la capacite offensive de sa definition") {
-    DefinitionDeMonstre definition = monstreOrdinaire();
+    DefinitionDeMonstre definition = definitionDeMonstre(CategorieDeMonstre::Infanterie);
     definition.statistiques.capaciteOffensive = 130;
     const Monstre monstre({100.0f, 100.0f}, 1, 0, definition);
 
@@ -188,14 +188,14 @@ TEST_CASE("l'attaque d'un monstre porte la capacite offensive de sa definition")
     REQUIRE(monstre.getAttaque().capaciteOffensive == 130);
 }
 
-TEST_CASE("l'attaque d'un monstre ordinaire est une attaque de contact") {
-    const Monstre monstre({100.0f, 100.0f}, 1, 0, monstreOrdinaire());
+TEST_CASE("l'attaque de l'infanterie est une attaque de contact") {
+    const Monstre monstre({100.0f, 100.0f}, 1, 0, definitionDeMonstre(CategorieDeMonstre::Infanterie));
 
     REQUIRE(monstre.getAttaque().nature == NatureDAttaque::Contact);
 }
 
-TEST_CASE("un monstre ordinaire esquive 5 % des coups de contact et 5 % des projectiles") {
-    const Monstre monstre({100.0f, 100.0f}, 1, 0, monstreOrdinaire());
+TEST_CASE("l'infanterie esquive 5 % des coups de contact et 5 % des projectiles") {
+    const Monstre monstre({100.0f, 100.0f}, 1, 0, definitionDeMonstre(CategorieDeMonstre::Infanterie));
 
     REQUIRE(monstre.getStatistiques().esquiveContact == 5);
     REQUIRE(monstre.getStatistiques().esquiveProjectile == 5);
@@ -229,7 +229,7 @@ TEST_CASE("un coup esquive par un monstre ne lui retire rien mais le reveille qu
 
 TEST_CASE("un monstre au bouclier : le blocage se recupere avec le temps qui passe") {
     const TileMap carte = carteDegagee10x10();
-    DefinitionDeMonstre definition = monstreOrdinaire();
+    DefinitionDeMonstre definition = definitionDeMonstre(CategorieDeMonstre::Infanterie);
     definition.statistiques = {.capaciteDefensive = 100, .chanceDeBlocage = 100, .montantBloque = 40};
     Monstre monstre({100.0f, 100.0f}, 1, 0, definition);
     Generateur generateur = generateurDeTest();

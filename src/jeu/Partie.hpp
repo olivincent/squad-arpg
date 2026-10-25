@@ -36,10 +36,10 @@ class Partie {
 public:
     // La graine initialise le générateur aléatoire de la partie, qui est à elle seule.
     // `composition` : les personnages de l'escouade (elle n'appartient pas au niveau : c'est le choix du joueur).
-    // `definitionDesMonstres` : le modèle de tous les monstres du niveau (aujourd'hui un seul modèle, le jeu
-    // ne le précise pas) ; l'armure vient du niveau (`Niveau::armureMonstres`), pas de la définition.
+    // `catalogue` : les définitions des monstres, une par catégorie ; chaque monstre du niveau reçoit celle de sa
+    // catégorie. Le jeu ne le précise pas ; les tests y substituent un catalogue sans hasard.
     Partie(const Niveau& niveau, std::vector<DefinitionPersonnage> composition, Generateur::result_type graine,
-           const DefinitionDeMonstre& definitionDesMonstres = monstreOrdinaire());
+           const CatalogueDeMonstres& catalogue = catalogueDeMonstres());
 
     // Verrouille le monstre ciblable qui contient ce point (Monstre) ; sinon, sur une porte
     // fermée (Objet), lève le verrou, mémorise l'interaction et envoie l'escouade devant elle

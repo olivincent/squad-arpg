@@ -40,13 +40,6 @@ inline TileMap carteAvecMur() {
     return TileMap(plan, 40.0f);
 }
 
-// Le monstre sans esquive avec cette armure (celle du niveau ; la plupart des tests n'en veulent pas).
-inline DefinitionDeMonstre monstreAvecArmure(int armure) {
-    DefinitionDeMonstre definition = monstreSansHasard();
-    definition.armure = armure;
-    return definition;
-}
-
 // Simule le temps qui passe par tics de 1/60 s, comme dans main.cpp.
 // La cible est à la fois la proie (place 1) et l'unique candidat de frappe.
 inline void ecoulerTemps(Monstre& monstre, float duree, std::optional<Cercle> cible, const TileMap& carte,
@@ -84,13 +77,13 @@ inline int frapperEnEntier(Monstre& monstre, Cercle cible, Generateur& generateu
     return 0;
 }
 
-// Amène le monstre en retour, sorti du territoire (plus de `monstreOrdinaire().rayonTerritoire`
+// Amène le monstre en retour, sorti du territoire (plus de `definitionDeMonstre(CategorieDeMonstre::Infanterie).rayonTerritoire`
 // de son poste) : la proie lointaine à 800 px de son poste n'est jamais détectée.
 // `degatsEnPoursuite` est infligé avant le retour (en retour, le monstre est invulnérable).
 inline void amenerEnRetourHorsTerritoire(Monstre& monstre, const TileMap& carte, int degatsEnPoursuite = 0) {
     ecoulerTemps(monstre, 0.2f, pointCible({250.0f, 100.0f}), carte); // détection
     subir(monstre, degatsEnPoursuite);
-    while ((monstre.getCentre() - sf::Vector2f(100.0f, 100.0f)).length() <= monstreOrdinaire().rayonTerritoire) {
+    while ((monstre.getCentre() - sf::Vector2f(100.0f, 100.0f)).length() <= definitionDeMonstre(CategorieDeMonstre::Infanterie).rayonTerritoire) {
         ecoulerTemps(monstre, 1.0f / 60.0f, pointCible({900.0f, 100.0f}), carte);
     }
     ecoulerTemps(monstre, 1.0f / 60.0f, pointCible({900.0f, 100.0f}), carte); // bascule en retour

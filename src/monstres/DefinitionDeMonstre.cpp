@@ -1,5 +1,6 @@
 // ./src/monstres/DefinitionDeMonstre.cpp
 #include "monstres/DefinitionDeMonstre.hpp"
+#include <cstddef>
 #include "combat/NatureDAttaque.hpp"
 #include "combat/TypeSkill.hpp"
 
@@ -8,7 +9,7 @@ namespace {
 constexpr float s_cote = 30.0f;                // côté du carré, en pixels
 constexpr float s_vitesse = 160.0f;            // en pixels par seconde
 constexpr int s_pointsDeVieMax = 300;
-constexpr int s_armure = 0;
+constexpr int s_armure = 3;
 constexpr float s_rayonDetection = 200.0f;     // en pixels
 constexpr float s_rayonTerritoire = 600.0f;    // en pixels
 constexpr float s_zoneDeControle = 20.0f;      // en pixels, bord à bord
@@ -22,9 +23,8 @@ constexpr int s_capaciteOffensive = 100;       // celle d'un personnage d'Adress
 constexpr int s_capaciteDefensive = 100;
 constexpr int s_esquiveContact = 5;            // en pour cent
 constexpr int s_esquiveProjectile = 5;
-}  // namespace
 
-DefinitionDeMonstre monstreOrdinaire() {
+DefinitionDeMonstre infanterie() {
     return {.cote = s_cote,
             .vitesse = s_vitesse,
             .pointsDeVieMax = s_pointsDeVieMax,
@@ -38,4 +38,18 @@ DefinitionDeMonstre monstreOrdinaire() {
                         .tempsExecution = s_executionAttaque, .nature = NatureDAttaque::Contact},
             .statistiques = {.capaciteOffensive = s_capaciteOffensive, .capaciteDefensive = s_capaciteDefensive,
                              .esquiveContact = s_esquiveContact, .esquiveProjectile = s_esquiveProjectile}};
+}
+}  // namespace
+
+const CatalogueDeMonstres& catalogueDeMonstres() {
+    static const CatalogueDeMonstres catalogue = {infanterie()};
+    return catalogue;
+}
+
+const DefinitionDeMonstre& definitionDeMonstre(const CatalogueDeMonstres& catalogue, CategorieDeMonstre categorie) {
+    return catalogue[static_cast<std::size_t>(categorie)];
+}
+
+const DefinitionDeMonstre& definitionDeMonstre(CategorieDeMonstre categorie) {
+    return definitionDeMonstre(catalogueDeMonstres(), categorie);
 }

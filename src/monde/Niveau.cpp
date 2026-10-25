@@ -55,6 +55,5 @@ Niveau creerNiveau() {
             {{1500.0f, 540.0f}, 4},  // ces deux-là partagent un groupe
             {{1620.0f, 540.0f}, 4},
         },
-        s_armureMonstresParDefaut,
     };
 }

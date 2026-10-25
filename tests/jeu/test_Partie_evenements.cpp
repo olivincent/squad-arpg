@@ -63,7 +63,7 @@ std::vector<EvenementDeCombat> parmi(const std::vector<EvenementDeCombat>& evene
     return choisis;
 }
 
-// Ce que le monstre de test oppose à un coup : pas d'esquive, l'armure donnée (celle du niveau).
+// Ce que le monstre de test oppose à un coup : pas d'esquive, l'armure donnée (`monstreAvecArmure`).
 Defenses defensesDuMonstreDeTest(int armure = 0) {
     return {.armure = armure, .statistiques = monstreSansHasard().statistiques};
 }
@@ -87,9 +87,8 @@ Partie deuxGuerriersQuiTuentLeMemeMonstre() {
 
 TEST_CASE("evenements : un skill de degats donne un evenement sur le monstre, armure comprise") {
     constexpr int armure = 20;
-    Niveau niveau = niveauDegage({{235.0f, 170.0f}});
-    niveau.armureMonstres = armure;
-    Partie partie = partieDeTest(niveau, std::vector<DefinitionPersonnage>{guerrierDeTest()});
+    Partie partie = partieDeTest(niveauDegage({{235.0f, 170.0f}}), std::vector<DefinitionPersonnage>{guerrierDeTest()},
+                                 s_graineDeTest, monstreAvecArmure(armure));
     partie.demanderSkill(s_adresseFrappe);
     const Defenses monstre = defensesDuMonstreDeTest(armure);
     const Attaque frappe{.montant = s_degatsFrappeDeTest,
@@ -337,7 +336,8 @@ TEST_CASE("evenements : un coup esquive par un monstre donne Esquive, et aucun d
     // aucun coup touché est de l'ordre de 2^-200, quelle que soit la graine.
     DefinitionDeMonstre esquiveur = monstreIndestructible();
     esquiveur.statistiques.esquiveContact = s_esquiveMaximale;
-    Partie partie(niveauDegage({{235.0f, 170.0f}}), std::vector<DefinitionPersonnage>{guerrierInfatigable()}, s_graineDeTest, esquiveur);
+    Partie partie = partieDeTest(niveauDegage({{235.0f, 170.0f}}), std::vector<DefinitionPersonnage>{guerrierInfatigable()},
+                                 s_graineDeTest, esquiveur);
     int esquives = 0;
     int touches = 0;
 
@@ -360,7 +360,7 @@ TEST_CASE("evenements : un blocage partiel donne les degats puis Bloque, puis ri
     DefinitionPersonnage guerrier = guerrierInfatigable();
     guerrier.equipementDeDepart.push_back({Emplacement::MainGauche, IdObjet::BouclierRond});  // 30 %, 40 points, 3 s
     const DefinitionDeMonstre monstre = monstreIndestructible();
-    Partie partie(niveauDegage({{270.0f, 210.0f}}), std::vector<DefinitionPersonnage>{guerrier}, s_graineDeTest, monstre);
+    Partie partie = partieDeTest(niveauDegage({{270.0f, 210.0f}}), std::vector<DefinitionPersonnage>{guerrier}, s_graineDeTest, monstre);
     const StatistiquesDeCombat bouclier = *partie.getEscouade().statistiquesDeCombatDuPersonnage(1);
     const std::vector<std::vector<EvenementDeCombat>> images = evenementsParImage(partie, 120.0f);
     std::vector<int> imagesDesBlocages;

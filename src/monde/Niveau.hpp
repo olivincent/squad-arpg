@@ -3,14 +3,14 @@
 #include <SFML/System/Vector2.hpp>
 #include <string>
 #include <vector>
+#include "monde/CategorieDeMonstre.hpp"
 
-// Armure des monstres, commune à la carte faite à la main et aux cartes générées.
-inline constexpr int s_armureMonstresParDefaut = 3;
-
-// Un monstre du niveau : où il commence et à quel groupe il appartient.
-struct MonstreDuNiveau {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
+// Un monstre du niveau : où il commence, à quel groupe il appartient et sa catégorie (ses statistiques sont
+// celles du catalogue de monstres). Sans catégorie précisée, c'est l'infanterie, le monstre de base.
+struct MonstreDuNiveau {  // NOLINT(cppcoreguidelines-pro-type-member-init): position et groupe sans valeur par défaut exprès, un oubli est signalé par le compilateur
     sf::Vector2f position; // centre, en pixels du monde
     int groupe;            // identifiant opaque : même valeur = « vont ensemble »
+    CategorieDeMonstre categorie = CategorieDeMonstre::Infanterie;
 
     bool operator==(const MonstreDuNiveau&) const = default;
 };
@@ -29,7 +29,6 @@ struct Niveau {
     float tailleCase;                    // en pixels
     sf::Vector2f departEscouade;         // centre de l'ancre, en pixels du monde
     std::vector<MonstreDuNiveau> monstres;
-    int armureMonstres = 0;              // armure de chaque monstre (le jeu donne la sienne)
     std::vector<PorteDuNiveau> portes = {};
 };
 

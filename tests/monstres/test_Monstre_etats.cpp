@@ -125,7 +125,7 @@ TEST_CASE("Monstre.mettreAJour ne redetecte pas une proie revenue dans son terri
     ecoulerTemps(monstre, 0.2f, pointCible({250.0f, 100.0f}), carte); // détection
     ecoulerTemps(monstre, 4.0f, pointCible({900.0f, 100.0f}), carte); // franchit le territoire : début du retour
     // Laisse le retour ramener le monstre assez loin de la frontière pour que la proie, 100 px plus loin, soit dans le territoire.
-    while ((monstre.getCentre() - sf::Vector2f(100.0f, 100.0f)).length() > monstreOrdinaire().rayonTerritoire - 150.0f) {
+    while ((monstre.getCentre() - sf::Vector2f(100.0f, 100.0f)).length() > definitionDeMonstre(CategorieDeMonstre::Infanterie).rayonTerritoire - 150.0f) {
         ecoulerTemps(monstre, 1.0f / 60.0f, pointCible({900.0f, 100.0f}), carte);
     }
     const sf::Vector2f centrePendantLeRetour = monstre.getCentre();

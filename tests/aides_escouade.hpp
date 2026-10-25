@@ -188,7 +188,7 @@ inline Escouade uneEscouade(sf::Vector2f positionDepart) {
 inline Partie partieDeTest(const Niveau& niveau, std::vector<DefinitionPersonnage> composition,
                            Generateur::result_type graine = s_graineDeTest,
                            const DefinitionDeMonstre& monstre = monstreSansHasard()) {
-    return Partie(niveau, std::move(composition), graine, monstre);
+    return Partie(niveau, std::move(composition), graine, catalogueDeTest(monstre));
 }
 
 // Le monstre sans esquive aux points de vie énormes : il survit à tous les coups d'un test qui dure.

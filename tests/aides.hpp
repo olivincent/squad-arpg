@@ -87,14 +87,34 @@ inline Attaque attaqueSansHasard(int montant) {
     return {.montant = montant, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
 }
 
-// Le monstre ordinaire sans esquive : les coups qu'il reçoit ne dépendent plus du hasard du défenseur. Reste le
-// critique de l'attaquant, jamais de chance nulle : un test qui compte des dégâts exacts lit `critique` dans
-// l'événement (`degatsAttendus`).
+// L'infanterie sans esquive ni armure : les coups qu'elle reçoit ne dépendent plus du hasard du défenseur, et
+// les dégâts lus sur elle sont ceux de l'attaque. Reste le critique de l'attaquant, jamais de chance nulle : un
+// test qui compte des dégâts exacts lit `critique` dans l'événement (`degatsAttendus`).
 inline DefinitionDeMonstre monstreSansHasard() {
-    DefinitionDeMonstre definition = monstreOrdinaire();
+    DefinitionDeMonstre definition = definitionDeMonstre(CategorieDeMonstre::Infanterie);
+    definition.armure = 0;
     definition.statistiques.esquiveContact = 0;
     definition.statistiques.esquiveProjectile = 0;
     return definition;
+}
+
+// Cette infanterie sans esquive, avec cette armure.
+inline DefinitionDeMonstre monstreAvecArmure(int armure) {
+    DefinitionDeMonstre definition = monstreSansHasard();
+    definition.armure = armure;
+    return definition;
+}
+
+// Le catalogue des monstres d'un test : cette infanterie, et les autres catégories du jeu sans esquive.
+inline CatalogueDeMonstres catalogueDeTest(const DefinitionDeMonstre& infanterie = monstreSansHasard()) {
+    CatalogueDeMonstres catalogue = catalogueDeMonstres();
+    for (const CategorieDeMonstre categorie : s_categoriesDeMonstre) {
+        DefinitionDeMonstre& definition = catalogue[static_cast<std::size_t>(categorie)];
+        definition.statistiques.esquiveContact = 0;
+        definition.statistiques.esquiveProjectile = 0;
+    }
+    catalogue[static_cast<std::size_t>(CategorieDeMonstre::Infanterie)] = infanterie;
+    return catalogue;
 }
 
 // Défenses d'un défenseur de test : cette armure et la capacité défensive d'un personnage d'Adresse 10.

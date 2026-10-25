@@ -446,12 +446,6 @@ TEST_CASE("genererNiveau place chaque monstre sur du sol, hors de la premiere sa
     }
 }
 
-TEST_CASE("genererNiveau donne aux monstres la meme armure que creerNiveau") {
-    Generateur generateur(s_graine);
-
-    REQUIRE(genererNiveau(generateur, ParametresDonjon{}).armureMonstres == creerNiveau().armureMonstres);
-}
-
 TEST_CASE("genererNiveau donne les memes monstres pour la meme graine") {
     Generateur premier(s_graine);
     Generateur second(s_graine);

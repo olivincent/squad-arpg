@@ -169,7 +169,7 @@ std::vector<MonstreDuNiveau> placerMonstres(Generateur& generateur, const std::v
                     });
                 if (!tropPresDuDepart && !tropPresDUnMonstre) {
                     casesPlacees.push_back(candidate);
-                    monstres.push_back({centre, prochainGroupe});
+                    monstres.push_back({centre, prochainGroupe, CategorieDeMonstre::Infanterie});
                     break;
                 }
             }
@@ -260,5 +260,5 @@ Niveau genererNiveau(Generateur& generateur, const ParametresDonjon& parametres)
     // Les portes ne tirent rien. Les monstres en dernier : leurs tirages ne changent ni les salles ni les couloirs.
     std::vector<PorteDuNiveau> portes = placerPortes(plan, salles, parametres.largeurCouloir);
     return {plan, parametres.tailleCase, depart, placerMonstres(generateur, salles, depart, parametres),
-            s_armureMonstresParDefaut, std::move(portes)};
+            std::move(portes)};
 }

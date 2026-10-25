@@ -155,7 +155,7 @@ TEST_CASE("une partie reaffectee avec un niveau neuf recommence") {
 
     REQUIRE_FALSE(partie.estPerdue());
     REQUIRE(partie.getMonstres().size() == 6);
-    const int vieDUnMonstreNeuf = Monstre({0.0f, 0.0f}, 1, 0, monstreOrdinaire()).getPointsDeVie();
+    const int vieDUnMonstreNeuf = Monstre({0.0f, 0.0f}, 1, 0, definitionDeMonstre(CategorieDeMonstre::Infanterie)).getPointsDeVie();
     for (const Monstre& monstre : partie.getMonstres()) {
         REQUIRE(monstre.getPointsDeVie() == vieDUnMonstreNeuf);
     }
