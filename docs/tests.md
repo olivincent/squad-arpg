@@ -1544,3 +1544,38 @@ même chose avec plus de détail.
   (+5 : les cinq lignes du bloc, « Blocage 0 % » sans bouclier, esquive plafonnée à l'affichage, lignes de bonus
   d'objet, virgule des secondes), `test_AffichageObjets.cpp` (+3 : l'infobulle des bottes, du casque de cuir et du
   bouclier rond).
+
+## Étape 91.1 : les tests ne dépendent pas de la chance
+
+Le moteur du coup tire au hasard (esquive, critique, blocage, recharges). Un test qui n'est vert que parce
+que la graine fixe (`s_graineDeTest`) ne produit pas d'esquive est fragile : il casse dès qu'un tirage
+s'ajoute ou change d'ordre. Trois règles, appliquées à tous les tests existants.
+
+1. **Les événements rares se testent sur des tirages choisis**, jamais dans une boucle qui cherche une graine.
+   Les étapes pures (`appliquerCritique`, `coupEsquive`, `appliquerBlocage`) reçoivent le tirage (par exemple
+   0,01 et 0,99). Quand un test d'intégration a besoin d'un événement rare (un coup esquivé ou bloqué qui désigne
+   quand même son auteur comme agresseur, un soin critique), `generateurQuiTireSous(chance)` et
+   `generateurQuiTireAuDessus(chance)` (`aides.hpp`) rendent un générateur dont le prochain tirage du moteur du
+   coup est sous (ou au moins) cette chance. Précondition : l'étape visée est la seule à tirer dans le coup (une
+   attaque de capacité offensive nulle ne tire pas de critique ; une recharge fixe ne tire rien).
+2. **Les tests qui comptent des dégâts exacts n'ont pas de hasard de défenseur.** Dans `Partie`, les monstres
+   sont ceux de `monstreSansHasard()` (le monstre ordinaire sans esquive), passés au constructeur de `Partie`
+   (`partieDeTest`, `unePartie`) ; dans les tests de `Monstre`, `monstreAvecArmure`. Reste le critique de
+   l'attaquant, qui n'a **jamais une chance nulle** : le test lit alors `critique` dans l'événement et compare
+   à `degatsAttendus(attaque, defenses, critique)` (même règle pour un monstre qui frappe un personnage). Un
+   test statistique (un critique ou une esquive doit apparaître) fait assez de coups pour que son échec soit de
+   l'ordre de 2⁻⁶⁰, quelle que soit la graine.
+3. **Écarter le hasard se fait par une aide explicite, jamais par un détour par une règle de jeu.**
+   `attaqueSansHasard` ne repose plus sur la nature `Zone` (qui ne s'esquive ni ne se bloque) : c'est une
+   attaque de contact de capacité offensive nulle (jamais critique), et c'est le **défenseur** qui n'a pas de
+   chance (`monstreSansHasard`, `defensesDeTest`, un personnage de test sans bottes ni bouclier). Un test qui
+   donne le bouclier du catalogue à un défenseur choisit le tirage du blocage (`generateurQuiTireAuDessus`).
+
+**Vérification** : le balayage des graines. Remplacer temporairement `s_graineDeTest` par une valeur lue dans
+l'environnement et lancer `tests.exe` sur 80 graines ne doit faire échouer aucun test (neuf tests fragiles
+trouvés ainsi à l'étape 91.1 : coups d'un skill et d'attaques de base comptés au point de vie près, critiques et
+esquives attendus au premier tir, un personnage surpris en pleine exécution d'un coup à la recharge aléatoire).
+
+`Partie` reçoit pour cela un quatrième paramètre, `definitionDesMonstres` (par défaut `monstreOrdinaire()`, le
+jeu ne le précise pas) : le modèle commun des monstres du niveau, sur le même principe que les définitions de
+personnages.

@@ -7,6 +7,7 @@
 #include "aides.hpp"
 #include "base/Cercle.hpp"
 #include "combat/Defense.hpp"
+#include "combat/Esquive.hpp"
 #include "combat/StatistiquesDeCombat.hpp"
 #include "monstres/Monstre.hpp"
 #include "monde/TileMap.hpp"
@@ -202,25 +203,19 @@ TEST_CASE("un monstre ordinaire esquive 5 % des coups de contact et 5 % des proj
 
 TEST_CASE("un coup esquive par un monstre ne lui retire rien mais le reveille quand meme") {
     const TileMap carte = carteDegagee10x10();
-    DefinitionDeMonstre definition = monstreOrdinaire();
+    DefinitionDeMonstre definition = monstreSansHasard();
     definition.statistiques.esquiveContact = 50;
     const Attaque attaque{.montant = 100, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
-    bool esquiveVue = false;
+    Monstre monstre({100.0f, 100.0f}, 1, 0, definition);
+    // Le seul tirage du coup est celui de l'esquive (capacité offensive nulle : pas de critique), choisi sous sa chance.
+    Generateur generateur = generateurQuiTireSous(chanceDEsquive(NatureDAttaque::Contact, monstre.getStatistiques()));
+    const int vieAvant = monstre.getPointsDeVie();
 
-    for (Generateur::result_type graine = 1; graine <= 50 && !esquiveVue; ++graine) {
-        Monstre monstre({100.0f, 100.0f}, 1, 0, definition);
-        Generateur generateur(graine);
-        const int vieAvant = monstre.getPointsDeVie();
+    REQUIRE(monstre.recevoirDegats(attaque, generateur).esquive);
 
-        if (!monstre.recevoirDegats(attaque, generateur).esquive) {
-            continue;
-        }
-        esquiveVue = true;
-        REQUIRE(monstre.getPointsDeVie() == vieAvant);
-        ecoulerTemps(monstre, 0.5f, pointCible({350.0f, 100.0f}), carte);  // une proie hors détection
-        REQUIRE(monstre.getCentre().x > 100.0f);  // l'attaque a eu lieu : le monstre poursuit
-    }
-    REQUIRE(esquiveVue);
+    REQUIRE(monstre.getPointsDeVie() == vieAvant);
+    ecoulerTemps(monstre, 0.5f, pointCible({350.0f, 100.0f}), carte);  // une proie hors détection
+    REQUIRE(monstre.getCentre().x > 100.0f);  // l'attaque a eu lieu : le monstre poursuit
 }
 
 TEST_CASE("un monstre au bouclier : le blocage se recupere avec le temps qui passe") {

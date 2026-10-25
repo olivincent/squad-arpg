@@ -4,8 +4,10 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <SFML/System/Vector2.hpp>
+#include <cassert>
 #include <cmath>
 #include <optional>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -17,6 +19,7 @@
 #include "combat/ResolutionDuCoup.hpp"
 #include "monde/TileMap.hpp"
 #include "objets/CatalogueObjets.hpp"
+#include "monstres/DefinitionDeMonstre.hpp"
 #include "objets/Equipement.hpp"
 
 // Aides de base communes à plusieurs fichiers de tests : graine et générateur, tolérances, cibles,
@@ -58,11 +61,51 @@ inline Generateur generateurDeTest() {
     return Generateur(s_graineDeTest);
 }
 
-// Une attaque sans hasard : sans capacité offensive (donc ni critique) et de nature zone (donc jamais esquivée
-// ni, plus tard, bloquée) : aucun tirage. Pour les tests qui ne portent ni sur le critique, ni sur l'esquive,
-// ni sur le blocage.
+// Une attaque dont l'attaquant n'apporte aucun hasard : sans capacité offensive, donc jamais critique. Le reste
+// du hasard (esquive, blocage) est celui du **défenseur** : elle ne s'écarte pas par la nature de l'attaque (une
+// zone ne s'esquive pas, mais c'est une règle de jeu, pas un moyen de test), elle se règle côté défenseur par une
+// aide explicite : `monstreSansHasard()`, `defensesDeTest()`, un personnage de test sans bottes ni bouclier.
+// Pour les tests qui ne portent ni sur le critique, ni sur l'esquive, ni sur le blocage.
 inline Attaque attaqueSansHasard(int montant) {
-    return {.montant = montant, .capaciteOffensive = 0, .nature = NatureDAttaque::Zone};
+    return {.montant = montant, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
+}
+
+// Le monstre ordinaire sans esquive : les coups qu'il reçoit ne dépendent plus du hasard du défenseur. Reste le
+// critique de l'attaquant, jamais de chance nulle : un test qui compte des dégâts exacts lit `critique` dans
+// l'événement (`degatsAttendus`).
+inline DefinitionDeMonstre monstreSansHasard() {
+    DefinitionDeMonstre definition = monstreOrdinaire();
+    definition.statistiques.esquiveContact = 0;
+    definition.statistiques.esquiveProjectile = 0;
+    return definition;
+}
+
+// Un générateur dont le prochain tirage du moteur du coup (`resoudreCoup` tire un nombre de 0 inclus à 1 exclu avec
+// `std::uniform_real_distribution<float>`) est sous `seuil` : l'étape à la chance `seuil` réussit. Pour les tests
+// d'intégration qui veulent un événement rare (une esquive, un blocage, un critique) sans chercher une graine dans
+// le test ; les étapes elles-mêmes se testent par leurs fonctions pures, avec un tirage choisi. Le prochain tirage
+// doit être celui de l'étape visée (une seule étape à chance non nulle dans le coup).
+inline Generateur generateurQuiTireSous(float seuil) {
+    assert(seuil > 0.0f);
+    for (Generateur::result_type graine = 1;; ++graine) {
+        const Generateur candidat(graine);
+        Generateur copie = candidat;
+        if (std::uniform_real_distribution<float>(0.0f, 1.0f)(copie) < seuil) {
+            return candidat;
+        }
+    }
+}
+
+// Comme `generateurQuiTireSous`, mais le prochain tirage est au moins `seuil` : l'étape à la chance `seuil` échoue.
+inline Generateur generateurQuiTireAuDessus(float seuil) {
+    assert(seuil < 1.0f);
+    for (Generateur::result_type graine = 1;; ++graine) {
+        const Generateur candidat(graine);
+        Generateur copie = candidat;
+        if (std::uniform_real_distribution<float>(0.0f, 1.0f)(copie) >= seuil) {
+            return candidat;
+        }
+    }
 }
 
 // Défenses d'un défenseur de test : cette armure et la capacité défensive d'un personnage d'Adresse 10.

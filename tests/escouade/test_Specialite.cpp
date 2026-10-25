@@ -6,6 +6,7 @@
 #include "interface/BarreDeRaccourcis.hpp"
 #include "aides.hpp"
 #include "aides_escouade.hpp"
+#include "combat/Blocage.hpp"
 #include "combat/Caracteristiques.hpp"
 #include "combat/Defense.hpp"
 #include "escouade/Composition.hpp"
@@ -242,8 +243,11 @@ TEST_CASE("equipement de depart : chaque objet va a son emplacement, sans emplac
 TEST_CASE("armure des classes : une escouade du catalogue encaisse selon l'equipement de sa classe") {
     Escouade escouade({100.0f, 100.0f}, composer({IdSpecialite::Guerrier, IdSpecialite::Mage}));
     const int armureDuGuerrier = armureDe(specialite(IdSpecialite::Guerrier).definition.equipementDeDepart);
+    // Le guerrier porte un bouclier : le tirage du blocage est choisi au-dessus de sa chance (le coup passe).
+    Generateur sansBlocage = generateurQuiTireAuDessus(
+        chanceDeBlocage(NatureDAttaque::Contact, *escouade.statistiquesDeCombatDuPersonnage(1), true));
 
-    REQUIRE(subirCoup(escouade, 7, 1, 40) == appliquerArmure(40, armureDuGuerrier));
+    REQUIRE(escouade.recevoirCoup(7, 1, attaqueSansHasard(40), sansBlocage).montant == appliquerArmure(40, armureDuGuerrier));
     REQUIRE(subirCoup(escouade, 7, 2, 40) == 40);
 }
 

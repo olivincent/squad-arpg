@@ -10,6 +10,8 @@
 #include "base/Aleatoire.hpp"
 #include "base/Cercle.hpp"
 #include "combat/Caracteristiques.hpp"
+#include "combat/Critique.hpp"
+#include "combat/ResolutionDuCoup.hpp"
 #include "escouade/Escouade.hpp"
 #include "combat/EntiteVue.hpp"
 #include "monde/TileMap.hpp"
@@ -225,10 +227,14 @@ TEST_CASE("Un seul skill en attente a la fois") {
 
 namespace {
 // Une escouade dont le prêtre a une Adresse énorme (capacité offensive 5 050 : 50 % de critiques, ×2 contre la
-// référence de 100) et dont le mage (place 3) a perdu `perte` points de vie.
+// référence de 100) et dont le mage (place 3) a perdu `perte` points de vie. L'attaque de base du prêtre a une
+// recharge fixe : son départ ne tire rien dans le générateur, le critique du soin est le seul tirage.
 Escouade escouadeAuPretreAdroit(int perte) {
     DefinitionPersonnage pretre = pretreDeTest();
     pretre.caracteristiques = Caracteristiques({10, 10, 1000, 10, 10});
+    pretre.attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = s_porteeTireurDeTest, .puissance = s_degatsBaseDeTest,
+                                  .rechargeMin = s_rechargeTireurMinDeTest, .rechargeMax = s_rechargeTireurMinDeTest,
+                                  .tempsExecution = s_executionBaseDeTest, .nature = NatureDAttaque::Projectile});
     Escouade escouade({50.0f, 50.0f}, {guerrierDeTest(), pretre, mageDeTest()});
     infliger(escouade, 1, {35.0f, 85.0f}, perte);
     return escouade;
@@ -247,30 +253,42 @@ Escouade::SoinApplique soinDuPretre(Escouade& escouade, Generateur& generateur) 
 }
 }  // namespace
 
-TEST_CASE("Un soin peut etre critique : le montant rendu est multiplie et le fait le dit") {
-    int critiques = 0;
-    int normaux = 0;
-    for (Generateur::result_type graine = 1; graine <= 40; ++graine) {
-        Escouade escouade = escouadeAuPretreAdroit(800);  // il manque 800 : le soin n'est pas plafonné
-        Generateur generateur(graine);
+// La chance de critique des soins du prêtre adroit : sa capacité offensive contre la référence des soins.
+float chanceDeCritiqueDuSoin(const Escouade& escouade) {
+    const int capacite = escouade.statistiquesDeCombatDuPersonnage(2)->capaciteOffensive;
+    return chanceDeCritique(rapportDeCapacites(capacite, s_capaciteDefensiveDeReference));
+}
 
-        const Escouade::SoinApplique soin = soinDuPretre(escouade, generateur);
+// Les tirages sont choisis (`generateurQuiTireSous` / `AuDessus`) : le seul tirage de l'escouade, dans ces tests,
+// est celui du critique du soin (les autres personnages n'ont aucun monstre à frapper, les recharges sont fixes).
+TEST_CASE("Un soin critique : le montant rendu est multiplie et le fait le dit") {
+    Escouade escouade = escouadeAuPretreAdroit(5 * s_puissanceSoinDeTest / 2);  // le soin n'est pas plafonné
+    Generateur generateur = generateurQuiTireSous(chanceDeCritiqueDuSoin(escouade));
 
-        REQUIRE(soin.montant == (soin.critique ? 2 * s_puissanceSoinDeTest : s_puissanceSoinDeTest));
-        ++(soin.critique ? critiques : normaux);
-    }
-    REQUIRE(critiques > 0);
-    REQUIRE(normaux > 0);
+    const Escouade::SoinApplique soin = soinDuPretre(escouade, generateur);
+
+    REQUIRE(soin.critique);
+    REQUIRE(soin.montant == 2 * s_puissanceSoinDeTest);
+}
+
+TEST_CASE("Un soin sans critique rend le montant simple") {
+    Escouade escouade = escouadeAuPretreAdroit(5 * s_puissanceSoinDeTest / 2);
+    Generateur generateur = generateurQuiTireAuDessus(chanceDeCritiqueDuSoin(escouade));
+
+    const Escouade::SoinApplique soin = soinDuPretre(escouade, generateur);
+
+    REQUIRE_FALSE(soin.critique);
+    REQUIRE(soin.montant == s_puissanceSoinDeTest);
 }
 
 TEST_CASE("Un soin critique reste plafonne aux points de vie maximum") {
-    for (Generateur::result_type graine = 1; graine <= 40; ++graine) {
-        Escouade escouade = escouadeAuPretreAdroit(400);  // il manque 400 ; un critique rendrait 600
-        Generateur generateur(graine);
+    const int manque = s_puissanceSoinDeTest * 3 / 2;  // un soin normal ne le comble pas, un critique le dépasserait
+    Escouade escouade = escouadeAuPretreAdroit(manque);
+    Generateur generateur = generateurQuiTireSous(chanceDeCritiqueDuSoin(escouade));
 
-        const Escouade::SoinApplique soin = soinDuPretre(escouade, generateur);
+    const Escouade::SoinApplique soin = soinDuPretre(escouade, generateur);
 
-        REQUIRE(soin.montant == (soin.critique ? 400 : s_puissanceSoinDeTest));
-        REQUIRE(*escouade.pointsDeVieDuPersonnage(3) <= *escouade.pointsDeVieMaxDuPersonnage(3));
-    }
+    REQUIRE(soin.critique);
+    REQUIRE(soin.montant == manque);
+    REQUIRE(*escouade.pointsDeVieDuPersonnage(3) == *escouade.pointsDeVieMaxDuPersonnage(3));
 }

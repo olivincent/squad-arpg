@@ -13,6 +13,7 @@
 #include "combat/Engagement.hpp"
 #include "escouade/Escouade.hpp"
 #include "combat/EvenementDeCombat.hpp"
+#include "monstres/DefinitionDeMonstre.hpp"
 #include "monstres/Monstre.hpp"
 #include "monde/Niveau.hpp"
 #include "monde/ObjetInteractif.hpp"
@@ -35,7 +36,10 @@ class Partie {
 public:
     // La graine initialise le générateur aléatoire de la partie, qui est à elle seule.
     // `composition` : les personnages de l'escouade (elle n'appartient pas au niveau : c'est le choix du joueur).
-    Partie(const Niveau& niveau, std::vector<DefinitionPersonnage> composition, Generateur::result_type graine);
+    // `definitionDesMonstres` : le modèle de tous les monstres du niveau (aujourd'hui un seul modèle, le jeu
+    // ne le précise pas) ; l'armure vient du niveau (`Niveau::armureMonstres`), pas de la définition.
+    Partie(const Niveau& niveau, std::vector<DefinitionPersonnage> composition, Generateur::result_type graine,
+           const DefinitionDeMonstre& definitionDesMonstres = monstreOrdinaire());
 
     // Verrouille le monstre ciblable qui contient ce point (Monstre) ; sinon, sur une porte
     // fermée (Objet), lève le verrou, mémorise l'interaction et envoie l'escouade devant elle

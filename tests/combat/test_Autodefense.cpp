@@ -17,7 +17,7 @@ namespace {
 Personnage personnageDePortee20() {
     return Personnage({0.0f, 0.0f},
                       {.couleur = sf::Color::Red,
-                       .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 20.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f}),
+                       .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 20.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
                        .rayonVision = s_rayonVisionDeTest});
 }
 

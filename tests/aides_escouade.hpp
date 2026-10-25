@@ -79,7 +79,7 @@ inline constexpr float s_rayonZoneDeTest = 60.0f;   // depuis le point visé
 inline Skill attaqueDeMeleeDeTest() {
     return Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest, .puissance = s_degatsBaseDeTest,
                   .rechargeMin = s_rechargeMeleeMinDeTest, .rechargeMax = s_rechargeMeleeMaxDeTest,
-                  .tempsExecution = s_executionBaseDeTest});
+                  .tempsExecution = s_executionBaseDeTest, .nature = NatureDAttaque::Contact});
 }
 
 inline Skill attaqueDeTireurDeTest() {
@@ -96,13 +96,13 @@ inline DefinitionPersonnage guerrierDeTest() {
                                                .puissance = s_degatsFrappeDeTest,
                                                .rechargeMin = s_rechargeFrappeDeTest,
                                                .rechargeMax = s_rechargeFrappeDeTest,
-                                               .tempsExecution = s_activationFrappeDeTest})},
+                                               .tempsExecution = s_activationFrappeDeTest, .nature = NatureDAttaque::Contact})},
              {IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .portee = 0.0f,
                                            .puissance = s_dureeProvocationDeTest,
                                            .rechargeMin = s_rechargeProvocationDeTest,
                                            .rechargeMax = s_rechargeProvocationDeTest,
                                            .rayonZone = s_rayonProvocationDeTest,
-                                           .tempsExecution = s_activationProvocationDeTest})}},
+                                           .tempsExecution = s_activationProvocationDeTest, .nature = NatureDAttaque::Contact})}},
             .equipementDeDepart = s_equipementMeleeDeTest,
             .rayonVision = s_rayonVisionDeTest,
             .zoneDeControle = s_zoneDeControleMeleeDeTest,
@@ -115,7 +115,7 @@ inline DefinitionPersonnage pretreDeTest() {
             .attaqueDeBase = attaqueDeTireurDeTest(),
             .skills = {{IdSkill::Soin, Skill({.type = TypeSkill::Soin, .portee = s_porteeSoinDeTest,
                                     .puissance = s_puissanceSoinDeTest, .rechargeMin = s_rechargeSoinDeTest,
-                                    .rechargeMax = s_rechargeSoinDeTest, .tempsExecution = s_activationSoinDeTest})}},
+                                    .rechargeMax = s_rechargeSoinDeTest, .tempsExecution = s_activationSoinDeTest, .nature = NatureDAttaque::Contact})}},
             .rayonVision = s_rayonVisionDeTest,
             .rang = Rang::Arriere};
 }
@@ -142,8 +142,15 @@ inline Escouade uneEscouade(sf::Vector2f positionDepart) {
     return Escouade(positionDepart, compositionDeTest());
 }
 
+// Une partie de test : les monstres n'ont aucune esquive (`monstreSansHasard`), pour que les dégâts qu'ils
+// reçoivent ne dépendent pas de la chance (reste le critique, qui se lit dans les événements).
+inline Partie partieDeTest(const Niveau& niveau, std::vector<DefinitionPersonnage> composition,
+                           Generateur::result_type graine = s_graineDeTest) {
+    return Partie(niveau, std::move(composition), graine, monstreSansHasard());
+}
+
 inline Partie unePartie(const Niveau& niveau, Generateur::result_type graine) {
-    return Partie(niveau, compositionDeTest(), graine);
+    return partieDeTest(niveau, compositionDeTest(), graine);
 }
 
 // Une escouade de quatre : deux guerriers devant (mêlées), le prêtre et le mage derrière. Pour les tests
@@ -164,7 +171,7 @@ inline Escouade uneEscouadeAuSoinCourt(sf::Vector2f positionDepart) {
                                                     .puissance = s_puissanceSoinDeTest,
                                                     .rechargeMin = s_rechargeSoinDeTest,
                                                     .rechargeMax = s_rechargeSoinDeTest,
-                                                    .tempsExecution = s_activationSoinDeTest})}};
+                                                    .tempsExecution = s_activationSoinDeTest, .nature = NatureDAttaque::Contact})}};
     return Escouade(positionDepart, std::move(composition));
 }
 

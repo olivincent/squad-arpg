@@ -21,13 +21,14 @@ const sf::Color s_couleurZoneDeControle(255, 0, 255, 180);  // débogage F3 : ce
 constexpr float s_epaisseurZoneDeControle = 1.0f;
 }
 
-Partie::Partie(const Niveau& niveau, std::vector<DefinitionPersonnage> composition, Generateur::result_type graine)
+Partie::Partie(const Niveau& niveau, std::vector<DefinitionPersonnage> composition, Generateur::result_type graine,
+               const DefinitionDeMonstre& definitionDesMonstres)
     : m_carte(niveau.plan, niveau.tailleCase), m_escouade(niveau.departEscouade, std::move(composition)), m_generateur(graine), m_vision(m_carte) {
-    DefinitionDeMonstre definitionDesMonstres = monstreOrdinaire();
-    definitionDesMonstres.armure = niveau.armureMonstres;
+    DefinitionDeMonstre definitionDuNiveau = definitionDesMonstres;
+    definitionDuNiveau.armure = niveau.armureMonstres;
     int prochainId = 1;
     for (const MonstreDuNiveau& monstre : niveau.monstres) {
-        m_monstres.emplace_back(monstre.position, prochainId++, monstre.groupe, definitionDesMonstres);
+        m_monstres.emplace_back(monstre.position, prochainId++, monstre.groupe, definitionDuNiveau);
     }
     int prochainIdObjet = 1;
     for (const PorteDuNiveau& porte : niveau.portes) {

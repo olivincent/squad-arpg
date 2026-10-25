@@ -28,8 +28,8 @@ bool lancer(Skill& skill, Generateur& generateur) {
 
 TEST_CASE("Skill.getType renvoie le type donne au constructeur") {
     Skill degats({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f,
-                  .rechargeMax = 5.0f});
-    Skill soin({.type = TypeSkill::Soin, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f});
+                  .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact});
+    Skill soin({.type = TypeSkill::Soin, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact});
 
     REQUIRE(degats.getType() == TypeSkill::Degats);
     REQUIRE(soin.getType() == TypeSkill::Soin);
@@ -37,9 +37,9 @@ TEST_CASE("Skill.getType renvoie le type donne au constructeur") {
 
 TEST_CASE("Skill.getRayonZone renvoie le rayon donne au constructeur, distinct de la portee") {
     Skill zone({.type = TypeSkill::Degats, .portee = 250.0f, .puissance = 15, .rechargeMin = 8.0f,
-                .rechargeMax = 8.0f, .rayonZone = 60.0f});
+                .rechargeMax = 8.0f, .rayonZone = 60.0f, .nature = NatureDAttaque::Contact});
     Skill monoCible({.type = TypeSkill::Soin, .portee = 40.0f, .puissance = 30, .rechargeMin = 8.0f,
-                     .rechargeMax = 8.0f});
+                     .rechargeMax = 8.0f, .nature = NatureDAttaque::Contact});
 
     REQUIRE(zone.getRayonZone() == 60.0f);
     REQUIRE(zone.estAPortee(pointCible({100.0f, 100.0f}), pointCible({300.0f, 100.0f})));
@@ -49,7 +49,7 @@ TEST_CASE("Skill.getRayonZone renvoie le rayon donne au constructeur, distinct d
 TEST_CASE("Skill de provocation : la puissance est la duree, avec zone et recharge") {
     Generateur generateur = generateurDeTest();
     Skill provocation({.type = TypeSkill::Provocation, .portee = 0.0f, .puissance = 4, .rechargeMin = 10.0f,
-                       .rechargeMax = 10.0f, .rayonZone = 150.0f});
+                       .rechargeMax = 10.0f, .rayonZone = 150.0f, .nature = NatureDAttaque::Contact});
     const Cercle origine = pointCible({100.0f, 100.0f});
 
     REQUIRE(provocation.getType() == TypeSkill::Provocation);
@@ -63,7 +63,7 @@ TEST_CASE("Skill de provocation : la puissance est la duree, avec zone et rechar
 
 TEST_CASE("Skill refuse de partir pendant la recharge, puis repart une fois ecoulee") {
     Generateur generateur = generateurDeTest();
-    Skill skill({.type = TypeSkill::Soin, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f});
+    Skill skill({.type = TypeSkill::Soin, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact});
 
     REQUIRE(lancer(skill, generateur));
     REQUIRE_FALSE(lancer(skill, generateur));
@@ -78,7 +78,7 @@ TEST_CASE("Skill refuse de partir pendant la recharge, puis repart une fois ecou
 TEST_CASE("Skill.getProgressionRecharge vaut 1 pret, 0 juste apres le declenchement") {
     Generateur generateur = generateurDeTest();
     Skill skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f,
-                 .rechargeMax = 5.0f});
+                 .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact});
 
     REQUIRE(skill.getProgressionRecharge() == 1.0f);
 
@@ -90,26 +90,26 @@ TEST_CASE("Skill.getProgressionRecharge vaut 1 pret, 0 juste apres le declenchem
 }
 
 TEST_CASE("Skill.estAPortee renvoie vrai pour un point proche") {
-    Skill skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f});
+    Skill skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact});
 
     REQUIRE(skill.estAPortee(pointCible({100.0f, 100.0f}), pointCible({150.0f, 100.0f})));
 }
 
 TEST_CASE("Skill.estAPortee renvoie faux pour un point lointain") {
-    Skill skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f});
+    Skill skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact});
 
     REQUIRE_FALSE(skill.estAPortee(pointCible({100.0f, 100.0f}), pointCible({300.0f, 100.0f})));
 }
 
 TEST_CASE("Skill.estAPortee renvoie vrai pour une distance exactement egale a la portee") {
-    Skill skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f});
+    Skill skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact});
 
     REQUIRE(skill.estAPortee(pointCible({100.0f, 100.0f}), pointCible({180.0f, 100.0f})));
 }
 
 TEST_CASE("Skill refuse de partir apres une duree simulee trop courte") {
     Generateur generateur = generateurDeTest();
-    Skill skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f});
+    Skill skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact});
 
     REQUIRE(lancer(skill, generateur));
     ecoulerTemps(skill, 0.3f);
@@ -118,7 +118,7 @@ TEST_CASE("Skill refuse de partir apres une duree simulee trop courte") {
 
 TEST_CASE("Skill repart apres une duree simulee genereuse") {
     Generateur generateur = generateurDeTest();
-    Skill skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f});
+    Skill skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact});
 
     REQUIRE(lancer(skill, generateur));
     ecoulerTemps(skill, 0.6f);
@@ -127,7 +127,7 @@ TEST_CASE("Skill repart apres une duree simulee genereuse") {
 
 TEST_CASE("Skill.relancerRecharge empeche de frapper avant une recharge complete") {
     Generateur generateur = generateurDeTest();
-    Skill skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f});
+    Skill skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact});
 
     skill.relancerRecharge(generateur);
     REQUIRE_FALSE(lancer(skill, generateur));
@@ -137,7 +137,7 @@ TEST_CASE("Skill.relancerRecharge empeche de frapper avant une recharge complete
 
 TEST_CASE("Skill.getProgressionRecharge vaut 1 prete, 0 juste apres un coup, entre les deux ensuite") {
     Generateur generateur = generateurDeTest();
-    Skill skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f});
+    Skill skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact});
 
     REQUIRE(skill.getProgressionRecharge() == 1.0f);
 
@@ -155,7 +155,7 @@ TEST_CASE("Skill.getProgressionRecharge vaut 1 prete, 0 juste apres un coup, ent
 
 TEST_CASE("Skill.getProgressionRecharge ne depasse jamais 1, meme apres un long temps ecoule") {
     Generateur generateur = generateurDeTest();
-    Skill skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f});
+    Skill skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact});
 
     skill.relancerRecharge(generateur);
     skill.mettreAJour(10.0f);
@@ -164,7 +164,7 @@ TEST_CASE("Skill.getProgressionRecharge ne depasse jamais 1, meme apres un long 
 }
 
 TEST_CASE("La nature d'un skill vient de sa definition, Contact par defaut") {
-    const Skill parDefaut({.type = TypeSkill::Degats, .portee = 20.0f, .puissance = 5, .rechargeMin = 1.0f, .rechargeMax = 1.0f});
+    const Skill parDefaut({.type = TypeSkill::Degats, .portee = 20.0f, .puissance = 5, .rechargeMin = 1.0f, .rechargeMax = 1.0f, .nature = NatureDAttaque::Contact});
     const Skill tir({.type = TypeSkill::Degats, .portee = 120.0f, .puissance = 5, .rechargeMin = 1.0f, .rechargeMax = 1.0f,
                      .nature = NatureDAttaque::Projectile});
     const Skill zone({.type = TypeSkill::Zone, .portee = 250.0f, .puissance = 5, .rechargeMin = 1.0f, .rechargeMax = 1.0f,
@@ -193,7 +193,7 @@ TEST_CASE("Skill a recharge fixe (min == max) donne exactement cette valeur, san
     Generateur generateur = generateurDeTest();
     const Generateur intact = generateur;
     Skill skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f,
-                 .rechargeMax = 5.0f});
+                 .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact});
 
     REQUIRE(lancer(skill, generateur));
 
@@ -204,7 +204,7 @@ TEST_CASE("Skill a recharge fixe (min == max) donne exactement cette valeur, san
 TEST_CASE("Skill a recharge en intervalle : chaque recharge est dans l'intervalle et elles ne sont pas toutes egales") {
     Generateur generateur = generateurDeTest();
     Skill skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 0.3f,
-                 .rechargeMax = 0.7f});
+                 .rechargeMax = 0.7f, .nature = NatureDAttaque::Contact});
     std::vector<float> recharges;
 
     for (int i = 0; i < 200; ++i) {
@@ -224,9 +224,9 @@ TEST_CASE("Skill : deux generateurs de meme graine donnent la meme suite de rech
     Generateur premier = generateurDeTest();
     Generateur second = generateurDeTest();
     Skill skillA({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 0.3f,
-                  .rechargeMax = 0.7f});
+                  .rechargeMax = 0.7f, .nature = NatureDAttaque::Contact});
     Skill skillB({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 0.3f,
-                  .rechargeMax = 0.7f});
+                  .rechargeMax = 0.7f, .nature = NatureDAttaque::Contact});
 
     for (int i = 0; i < 20; ++i) {
         skillA.mettreAJour(1.0f);
@@ -240,7 +240,7 @@ TEST_CASE("Skill : deux generateurs de meme graine donnent la meme suite de rech
 TEST_CASE("Skill.relancerRecharge tire aussi dans l'intervalle") {
     Generateur generateur = generateurDeTest();
     Skill skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 0.3f,
-                 .rechargeMax = 0.7f});
+                 .rechargeMax = 0.7f, .nature = NatureDAttaque::Contact});
 
     skill.relancerRecharge(generateur);
 
@@ -253,7 +253,7 @@ TEST_CASE("Skill.relancerRecharge tire aussi dans l'intervalle") {
 
 TEST_CASE("Skill.commencer passe en execution depuis pret seulement") {
     Skill skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 1.0f,
-                 .rechargeMax = 1.0f, .tempsExecution = 0.5f});
+                 .rechargeMax = 1.0f, .tempsExecution = 0.5f, .nature = NatureDAttaque::Contact});
 
     REQUIRE(skill.getPhase() == PhaseSkill::Pret);
     REQUIRE(skill.commencer());
@@ -265,7 +265,7 @@ TEST_CASE("Skill.commencer passe en execution depuis pret seulement") {
 TEST_CASE("Skill.avancer fait partir le coup une seule fois a la fin de l'execution") {
     Generateur generateur = generateurDeTest();
     Skill skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 1.0f,
-                 .rechargeMax = 1.0f, .tempsExecution = 0.5f});
+                 .rechargeMax = 1.0f, .tempsExecution = 0.5f, .nature = NatureDAttaque::Contact});
     REQUIRE(skill.commencer());
 
     int departs = 0;
@@ -285,7 +285,7 @@ TEST_CASE("Skill.avancer fait partir le coup une seule fois a la fin de l'execut
 TEST_CASE("Skill.avancer tire la recharge au depart du coup puis revient a pret") {
     Generateur generateur = generateurDeTest();
     Skill skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 1.0f,
-                 .rechargeMax = 1.0f, .tempsExecution = 0.5f});
+                 .rechargeMax = 1.0f, .tempsExecution = 0.5f, .nature = NatureDAttaque::Contact});
     REQUIRE(skill.commencer());
     REQUIRE_FALSE(skill.avancer(0.4f, generateur));
     REQUIRE(skill.getRechargeRestante() == 0.0f);
@@ -305,7 +305,7 @@ TEST_CASE("Skill.avancer tire la recharge au depart du coup puis revient a pret"
 TEST_CASE("Skill.annuler revient a pret sans consommer de recharge") {
     Generateur generateur = generateurDeTest();
     Skill skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 1.0f,
-                 .rechargeMax = 1.0f, .tempsExecution = 0.5f});
+                 .rechargeMax = 1.0f, .tempsExecution = 0.5f, .nature = NatureDAttaque::Contact});
     REQUIRE(skill.commencer());
     REQUIRE_FALSE(skill.avancer(0.2f, generateur));
 
@@ -319,7 +319,7 @@ TEST_CASE("Skill.annuler revient a pret sans consommer de recharge") {
 TEST_CASE("Skill.annuler ne touche pas une recharge en cours") {
     Generateur generateur = generateurDeTest();
     Skill skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 1.0f,
-                 .rechargeMax = 1.0f});
+                 .rechargeMax = 1.0f, .nature = NatureDAttaque::Contact});
     REQUIRE(skill.commencer());
     REQUIRE(skill.avancer(0.0f, generateur));
 
@@ -332,7 +332,7 @@ TEST_CASE("Skill.annuler ne touche pas une recharge en cours") {
 TEST_CASE("Skill a execution nulle : le coup part des le premier avancer") {
     Generateur generateur = generateurDeTest();
     Skill skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 1.0f,
-                 .rechargeMax = 1.0f});
+                 .rechargeMax = 1.0f, .nature = NatureDAttaque::Contact});
     REQUIRE(skill.commencer());
 
     REQUIRE(skill.avancer(s_dureeTic, generateur));

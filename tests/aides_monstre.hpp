@@ -40,9 +40,9 @@ inline TileMap carteAvecMur() {
     return TileMap(plan, 40.0f);
 }
 
-// Le monstre ordinaire avec cette armure (celle du niveau ; la plupart des tests n'en veulent pas).
+// Le monstre sans esquive avec cette armure (celle du niveau ; la plupart des tests n'en veulent pas).
 inline DefinitionDeMonstre monstreAvecArmure(int armure) {
-    DefinitionDeMonstre definition = monstreOrdinaire();
+    DefinitionDeMonstre definition = monstreSansHasard();
     definition.armure = armure;
     return definition;
 }

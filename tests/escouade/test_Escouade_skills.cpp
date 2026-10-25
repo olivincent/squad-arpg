@@ -301,10 +301,10 @@ DefinitionPersonnage paladinDeTest() {
     paladin.skills = {
         {IdSkill::FrappeSacree, Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest,
                                        .puissance = s_degatsFrappeSacreeDeTest, .rechargeMin = 5.0f,
-                                       .rechargeMax = 5.0f, .tempsExecution = 0.3f})},
+                                       .rechargeMax = 5.0f, .tempsExecution = 0.3f, .nature = NatureDAttaque::Contact})},
         {IdSkill::ImpositionDesMains, Skill({.type = TypeSkill::Soin, .portee = s_porteeMeleeDeTest,
                                              .puissance = s_puissanceImpositionDeTest, .rechargeMin = 10.0f,
-                                             .rechargeMax = 10.0f, .tempsExecution = 0.5f})}};
+                                             .rechargeMax = 10.0f, .tempsExecution = 0.5f, .nature = NatureDAttaque::Contact})}};
     return paladin;
 }
 

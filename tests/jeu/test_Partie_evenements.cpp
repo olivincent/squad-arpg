@@ -10,6 +10,7 @@
 #include "aides_escouade.hpp"
 #include "combat/Caracteristiques.hpp"
 #include "combat/Defense.hpp"
+#include "combat/Esquive.hpp"
 #include "combat/EvenementDeCombat.hpp"
 #include "combat/TypeSkill.hpp"
 #include "objets/Emplacement.hpp"
@@ -56,6 +57,21 @@ std::vector<EvenementDeCombat> parmi(const std::vector<EvenementDeCombat>& evene
     return choisis;
 }
 
+// Ce que le monstre de test oppose à un coup : pas d'esquive, l'armure donnée (celle du niveau).
+Defenses defensesDuMonstreDeTest(int armure = 0) {
+    return {.armure = armure, .statistiques = monstreSansHasard().statistiques};
+}
+
+// Un guerrier increvable dont l'attaque de base ne fait que 1 dégât et revient sans attendre : il frappe sans
+// cesse un monstre qui ne meurt pas, et reçoit ses coups sans mourir.
+DefinitionPersonnage guerrierInfatigable() {
+    DefinitionPersonnage guerrier = guerrierDeTest();
+    guerrier.attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest, .puissance = 1,
+                                    .rechargeMin = 0.0f, .rechargeMax = 0.0f, .tempsExecution = s_executionBaseDeTest, .nature = NatureDAttaque::Contact});
+    guerrier.pointsDeVieDeBase = 10'000'000;
+    return guerrier;
+}
+
 // Deux guerriers (en (235, 185) et (235, 235)) dont l'attaque de base tue d'un coup (2000 dégâts), et un
 // monstre en (260, 210) qu'ils atteignent tous les deux : leurs deux coups partent au même tic.
 Partie deuxGuerriersQuiTuentLeMemeMonstre() {
@@ -63,9 +79,9 @@ Partie deuxGuerriersQuiTuentLeMemeMonstre() {
     for (DefinitionPersonnage& definition : composition) {
         definition.attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest, .puissance = 2000,
                                           .rechargeMin = 100.0f, .rechargeMax = 100.0f,
-                                          .tempsExecution = s_executionBaseDeTest});
+                                          .tempsExecution = s_executionBaseDeTest, .nature = NatureDAttaque::Contact});
     }
-    return Partie(niveauDegage({{260.0f, 210.0f}}), std::move(composition), s_graineDeTest);
+    return partieDeTest(niveauDegage({{260.0f, 210.0f}}), std::move(composition));
 }
 
 }  // namespace
@@ -74,17 +90,22 @@ TEST_CASE("evenements : un skill de degats donne un evenement sur le monstre, ar
     constexpr int armure = 20;
     Niveau niveau = niveauDegage({{235.0f, 170.0f}});
     niveau.armureMonstres = armure;
-    Partie partie(niveau, std::vector<DefinitionPersonnage>{guerrierDeTest()}, s_graineDeTest);
+    Partie partie = partieDeTest(niveau, std::vector<DefinitionPersonnage>{guerrierDeTest()});
     partie.demanderSkill(s_adresseFrappe);
+    const Defenses monstre = defensesDuMonstreDeTest(armure);
+    const Attaque frappe{.montant = s_degatsFrappeDeTest,
+                         .capaciteOffensive = partie.getEscouade().statistiquesDeCombatDuPersonnage(1)->capaciteOffensive,
+                         .nature = NatureDAttaque::Contact};
+    const Attaque base = *partie.getEscouade().attaqueDeBase(1);
 
     const std::vector<EvenementDeCombat> evenements = evenementsPendant(partie, 0.5f);
 
-    // La frappe après armure se distingue de l'attaque de base après armure.
-    const int frappeApresArmure = appliquerArmure(s_degatsFrappeDeTest, armure);
-    REQUIRE(frappeApresArmure != appliquerArmure(s_degatsBaseDeTest, armure));
+    // Le critique est au tirage de la partie : chaque événement dit s'il l'était. La frappe, même sans critique,
+    // frappe plus fort que l'attaque de base, même critique : on les distingue toujours.
+    REQUIRE(degatsAttendus(base, monstre, true) < degatsAttendus(frappe, monstre, false));
     int frappes = 0;
     for (const EvenementDeCombat& evenement : parmi<Degats>(evenements, Camp::Monstres)) {
-        if (degats(evenement).montant == frappeApresArmure) {
+        if (degats(evenement).montant == degatsAttendus(frappe, monstre, degats(evenement).critique)) {
             ++frappes;
             REQUIRE(evenement.idCible == 1);
             REQUIRE_FALSE(degats(evenement).opportunite);
@@ -95,8 +116,8 @@ TEST_CASE("evenements : un skill de degats donne un evenement sur le monstre, ar
 }
 
 TEST_CASE("evenements : le coup d'un monstre donne un evenement sur le personnage touche, armure comprise") {
-    Partie guerrier(niveauDegage({{270.0f, 210.0f}}), std::vector<DefinitionPersonnage>{guerrierDeTest()}, s_graineDeTest);
-    Partie mage(niveauDegage({{185.0f, 250.0f}}), std::vector<DefinitionPersonnage>{mageDeTest()}, s_graineDeTest);
+    Partie guerrier = partieDeTest(niveauDegage({{270.0f, 210.0f}}), std::vector<DefinitionPersonnage>{guerrierDeTest()});
+    Partie mage = partieDeTest(niveauDegage({{185.0f, 250.0f}}), std::vector<DefinitionPersonnage>{mageDeTest()});
     const Attaque attaqueDuMonstre = guerrier.getMonstres().front().getAttaque();
     static_cast<void>(jusquAuPremierCoup(guerrier, 1));
     static_cast<void>(jusquAuPremierCoup(mage, 1));
@@ -116,14 +137,16 @@ TEST_CASE("evenements : le coup d'un monstre donne un evenement sur le personnag
 }
 
 TEST_CASE("evenements : un critique est signale, et son montant est multiplie") {
-    // Un guerrier d'Adresse énorme (capacité offensive 5 050 contre 100 : 50 % de critiques, ×2) frappe un monstre.
-    DefinitionPersonnage adroit = guerrierDeTest();
+    // Un guerrier d'Adresse énorme (capacité offensive 5 050 contre 100 : 50 % de critiques, ×2) frappe sans cesse
+    // un monstre (1 dégât, sans recharge) : une soixantaine de coups en 10 s, dont la chance de n'avoir que des
+    // critiques ou que des coups normaux est de 2^-60 (la graine n'y change rien).
+    DefinitionPersonnage adroit = guerrierInfatigable();
     adroit.caracteristiques = Caracteristiques({10, 10, 1000, 10, 10});
-    Partie partie(niveauDegage({{235.0f, 170.0f}}), std::vector<DefinitionPersonnage>{adroit}, s_graineDeTest);
+    Partie partie = partieDeTest(niveauDegage({{235.0f, 170.0f}}), std::vector<DefinitionPersonnage>{adroit});
     const Attaque attaque = *partie.getEscouade().attaqueDeBase(1);
-    const Defenses monstre{.armure = 0, .statistiques = monstreOrdinaire().statistiques};
+    const Defenses monstre = defensesDuMonstreDeTest();
 
-    const std::vector<EvenementDeCombat> evenements = evenementsPendant(partie, 3.0f);
+    const std::vector<EvenementDeCombat> evenements = evenementsPendant(partie, 10.0f);
 
     int critiques = 0;
     int normaux = 0;
@@ -140,14 +163,17 @@ TEST_CASE("evenements : un skill de zone donne un evenement par monstre touche")
     // mage (activation de 0,8 s) part avant qu'ils aient pu atteindre quelqu'un.
     Partie partie = unePartie(niveauDegage({{400.0f, 340.0f}, {435.0f, 340.0f}, {400.0f, 375.0f}}), s_graineDeTest);
     partie.lancerSkillDeZone(s_adresseExplosion, {400.0f, 340.0f});
+    const Attaque explosion{.montant = s_degatsZoneDeTest,
+                            .capaciteOffensive = partie.getEscouade().statistiquesDeCombatDuPersonnage(3)->capaciteOffensive,
+                            .nature = NatureDAttaque::Zone};
 
     const std::vector<EvenementDeCombat> evenements = evenementsPendant(partie, 1.0f);
 
+    // Seule l'explosion touche les monstres (ils sont loin) ; son critique est au tirage, l'événement le dit.
     std::vector<int> touches;
     for (const EvenementDeCombat& evenement : parmi<Degats>(evenements, Camp::Monstres)) {
-        if (degats(evenement).montant == s_degatsZoneDeTest) {
-            touches.push_back(evenement.idCible);
-        }
+        REQUIRE(degats(evenement).montant == degatsAttendus(explosion, defensesDuMonstreDeTest(), degats(evenement).critique));
+        touches.push_back(evenement.idCible);
     }
     std::ranges::sort(touches);
     REQUIRE(touches == std::vector<int>{1, 2, 3});
@@ -156,7 +182,7 @@ TEST_CASE("evenements : un skill de zone donne un evenement par monstre touche")
 TEST_CASE("evenements : un coup gratuit est marque, dans les deux sens") {
     // Le mage seul recule d'un monstre qui l'engage : coup gratuit du monstre sur le mage.
     // Hypothèse : les personnages sont plus rapides que les monstres (le mage sort de la zone).
-    Partie mage(niveauDegage({{185.0f, 250.0f}}), std::vector<DefinitionPersonnage>{mageDeTest()}, s_graineDeTest);
+    Partie mage = partieDeTest(niveauDegage({{185.0f, 250.0f}}), std::vector<DefinitionPersonnage>{mageDeTest()});
     const Attaque attaqueDuMonstre = mage.getMonstres().front().getAttaque();
     static_cast<void>(jusquAuPremierCoup(mage, 1));
     static_cast<void>(mage.prendreEvenements());
@@ -173,8 +199,9 @@ TEST_CASE("evenements : un coup gratuit est marque, dans les deux sens") {
     std::vector<DefinitionPersonnage> composition = {guerrierDeTest(), guerrierDeTest(), guerrierDeTest()};
     composition[0].attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest, .puissance = 300,
                                           .rechargeMin = 100.0f, .rechargeMax = 100.0f,
-                                          .tempsExecution = s_executionBaseDeTest});
-    Partie guerriers(niveauDegage({{270.0f, 160.0f}}), std::move(composition), s_graineDeTest);
+                                          .tempsExecution = s_executionBaseDeTest, .nature = NatureDAttaque::Contact});
+    Partie guerriers = partieDeTest(niveauDegage({{270.0f, 160.0f}}), std::move(composition));
+    const Attaque coupDuPremier = *guerriers.getEscouade().attaqueDeBase(1);
     std::vector<EvenementDeCombat> evenements;
     bool provoque = false;
     for (int i = 0; i < nombreDeTics(1.2f); ++i) {
@@ -189,7 +216,7 @@ TEST_CASE("evenements : un coup gratuit est marque, dans les deux sens") {
     int normaux = 0;
     int gratuits = 0;
     for (const EvenementDeCombat& evenement : parmi<Degats>(evenements, Camp::Monstres)) {
-        if (degats(evenement).montant == 300) {
+        if (degats(evenement).montant == degatsAttendus(coupDuPremier, defensesDuMonstreDeTest(), degats(evenement).critique)) {
             ++(degats(evenement).opportunite ? gratuits : normaux);
         }
     }
@@ -199,7 +226,7 @@ TEST_CASE("evenements : un coup gratuit est marque, dans les deux sens") {
 
 TEST_CASE("evenements : un soin donne un evenement Soin sur l'allie soigne, avec les points reellement rendus") {
     // Le monstre blesse le guerrier ; le prêtre le soigne (30) : les points rendus sont ceux qui manquaient.
-    Partie partie(niveauDegage({{270.0f, 210.0f}}), std::vector<DefinitionPersonnage>{guerrierDeTest(), pretreDeTest()}, s_graineDeTest);
+    Partie partie = partieDeTest(niveauDegage({{270.0f, 210.0f}}), std::vector<DefinitionPersonnage>{guerrierDeTest(), pretreDeTest()});
     const int vieDeDepart = *partie.getEscouade().pointsDeVieDuPersonnage(1);
     static_cast<void>(jusquAuPremierCoup(partie, 1));
     std::vector<EvenementDeCombat> evenements = partie.prendreEvenements();
@@ -224,12 +251,13 @@ TEST_CASE("evenements : un soin donne un evenement Soin sur l'allie soigne, avec
 TEST_CASE("evenements : un coup sur un monstre deja mort dans l'image ne produit rien") {
     // Les deux coups (2000 dégâts) partent au même tic : le premier tue, le second tombe sur un mort (0).
     Partie partie = deuxGuerriersQuiTuentLeMemeMonstre();
+    const Attaque coup = *partie.getEscouade().attaqueDeBase(1);
 
     const std::vector<EvenementDeCombat> evenements = parmi<Degats>(evenementsPendant(partie, 0.5f), Camp::Monstres);
 
     REQUIRE(partie.getMonstres().empty());
     REQUIRE(evenements.size() == 1);
-    REQUIRE(degats(evenements[0]).montant == 2000);
+    REQUIRE(degats(evenements[0]).montant == degatsAttendus(coup, defensesDuMonstreDeTest(), degats(evenements[0]).critique));
 }
 
 TEST_CASE("evenements : le monstre tue garde son evenement et sa position") {
@@ -271,7 +299,7 @@ TEST_CASE("evenements : une partie gagnee ou perdue n'en produit plus") {
 }
 
 TEST_CASE("evenements : un skill lance donne un evenement SkillLance au-dessus du lanceur, a la fin de l'activation") {
-    Partie partie(niveauDegage({{270.0f, 210.0f}}), std::vector<DefinitionPersonnage>{guerrierDeTest(), pretreDeTest()}, s_graineDeTest);
+    Partie partie = partieDeTest(niveauDegage({{270.0f, 210.0f}}), std::vector<DefinitionPersonnage>{guerrierDeTest(), pretreDeTest()});
     partie.demanderSkill({1, IdSkill::Provocation});
 
     REQUIRE(parmi<SkillLance>(partie.prendreEvenements(), Camp::Escouade).empty());  // l'activation commence seulement
@@ -284,7 +312,7 @@ TEST_CASE("evenements : un skill lance donne un evenement SkillLance au-dessus d
 }
 
 TEST_CASE("evenements : la provocation donne un evenement Provoque au-dessus de chaque monstre provoque") {
-    Partie partie(niveauDegage({{270.0f, 210.0f}}), std::vector<DefinitionPersonnage>{guerrierDeTest(), pretreDeTest()}, s_graineDeTest);
+    Partie partie = partieDeTest(niveauDegage({{270.0f, 210.0f}}), std::vector<DefinitionPersonnage>{guerrierDeTest(), pretreDeTest()});
     partie.demanderSkill({1, IdSkill::Provocation});
 
     const std::vector<EvenementDeCombat> provoques = parmi<Provoque>(evenementsPendant(partie, 0.5f), Camp::Monstres);
@@ -295,16 +323,6 @@ TEST_CASE("evenements : la provocation donne un evenement Provoque au-dessus de 
 }
 
 namespace {
-
-// Un guerrier increvable dont l'attaque de base ne fait que 1 dégât et revient sans attendre : il frappe sans
-// cesse un monstre qui ne meurt pas, et reçoit ses coups sans mourir.
-DefinitionPersonnage guerrierInfatigable() {
-    DefinitionPersonnage guerrier = guerrierDeTest();
-    guerrier.attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest, .puissance = 1,
-                                    .rechargeMin = 0.0f, .rechargeMax = 0.0f, .tempsExecution = s_executionBaseDeTest});
-    guerrier.pointsDeVieDeBase = 10'000'000;
-    return guerrier;
-}
 
 // Les événements de chaque image, séparément : l'ordre et la simultanéité comptent.
 std::vector<std::vector<EvenementDeCombat>> evenementsParImage(Partie& partie, float duree) {
@@ -320,7 +338,11 @@ std::vector<std::vector<EvenementDeCombat>> evenementsParImage(Partie& partie, f
 
 TEST_CASE("evenements : un coup esquive par un monstre donne Esquive, et aucun degat dans la meme image") {
     // Un seul attaquant (un guerrier qui frappe 6 fois par seconde) : une image ne contient qu'un coup sur le monstre.
-    Partie partie(niveauDegage({{235.0f, 170.0f}}), std::vector<DefinitionPersonnage>{guerrierInfatigable()}, s_graineDeTest);
+    // Le monstre esquive la moitié des coups (le plafond) : sur 40 s, la chance de ne voir aucune esquive ou
+    // aucun coup touché est de l'ordre de 2^-200, quelle que soit la graine.
+    DefinitionDeMonstre esquiveur = monstreSansHasard();
+    esquiveur.statistiques.esquiveContact = s_esquiveMaximale;
+    Partie partie(niveauDegage({{235.0f, 170.0f}}), std::vector<DefinitionPersonnage>{guerrierInfatigable()}, s_graineDeTest, esquiveur);
     int esquives = 0;
     int touches = 0;
 
@@ -335,14 +357,14 @@ TEST_CASE("evenements : un coup esquive par un monstre donne Esquive, et aucun d
         }
     }
 
-    REQUIRE(esquives > 0);          // 5 % de plusieurs centaines de coups
-    REQUIRE(touches > 10 * esquives);  // la grande majorité des coups touche
+    REQUIRE(esquives > 0);
+    REQUIRE(touches > 0);
 }
 
 TEST_CASE("evenements : un blocage partiel donne les degats puis Bloque, puis rien pendant la recuperation") {
     DefinitionPersonnage guerrier = guerrierInfatigable();
     guerrier.equipementDeDepart.push_back({Emplacement::MainGauche, IdObjet::BouclierRond});  // 30 %, 40 points, 3 s
-    Partie partie(niveauDegage({{270.0f, 210.0f}}), std::vector<DefinitionPersonnage>{guerrier}, s_graineDeTest);
+    Partie partie = partieDeTest(niveauDegage({{270.0f, 210.0f}}), std::vector<DefinitionPersonnage>{guerrier});
     const std::vector<std::vector<EvenementDeCombat>> images = evenementsParImage(partie, 120.0f);
     std::vector<int> imagesDesBlocages;
 

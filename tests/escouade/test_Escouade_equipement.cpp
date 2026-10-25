@@ -318,7 +318,7 @@ TEST_CASE("la puissance de l'attaque de base lue par l'escouade (coup d'opportun
     const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
     DefinitionPersonnage definition = guerrierDeTest();
     definition.attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest, .puissance = degats,
-                                      .rechargeMin = 0.5f, .rechargeMax = 0.5f, .coefficients = puissance});
+                                      .rechargeMin = 0.5f, .rechargeMax = 0.5f, .coefficients = puissance, .nature = NatureDAttaque::Contact});
     definition.caracteristiques = Caracteristiques({s_valeurDeReference, 10, 10, 10, 10});
     Escouade escouade({50.0f, 50.0f}, {definition});
     REQUIRE(escouade.attaqueDeBase(1)->montant == degats);

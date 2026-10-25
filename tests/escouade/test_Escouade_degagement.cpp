@@ -34,7 +34,7 @@ Escouade uneEscouadeAuMageReconnaissable() {
     std::vector<DefinitionPersonnage> composition = compositionDeTest();
     composition[s_mage - 1].attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = s_porteeTireur,
                                                    .puissance = s_degatsDuMage, .rechargeMin = 0.3f,
-                                                   .rechargeMax = 0.3f, .tempsExecution = 0.15f});
+                                                   .rechargeMax = 0.3f, .tempsExecution = 0.15f, .nature = NatureDAttaque::Contact});
     return Escouade({300.0f, 500.0f}, std::move(composition));
 }
 

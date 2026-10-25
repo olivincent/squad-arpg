@@ -38,9 +38,11 @@ struct DefinitionDeSkill {  // NOLINT(cppcoreguidelines-pro-type-member-init): c
     float rayonZone = 0.0f;       // en pixels
     float tempsExecution = 0.0f;  // en secondes, entre l'engagement du coup et son départ
     Coefficients coefficients = {};  // ce que la puissance doit aux caractéristiques du lanceur
-    // Nature de l'attaque (contact, projectile, zone) : lue seulement pour un skill de dégâts ou de zone, jamais
-    // pour un soin ni une provocation, qui laissent `Contact`. `Zone` va avec le type `Zone`, et lui seul.
-    NatureDAttaque nature = NatureDAttaque::Contact;
+    // Nature de l'attaque (contact, projectile, zone) : sans valeur par défaut, chaque skill déclare la sienne (un
+    // oubli est signalé par le compilateur, comme le rayon de zone à l'étape 42). Elle n'est lue que pour un skill de
+    // dégâts ou de zone : un soin ou une provocation écrit `Contact`, qui ne sert à rien. `Zone` va avec le type
+    // `Zone`, et lui seul.
+    NatureDAttaque nature;
 };
 
 class Skill {

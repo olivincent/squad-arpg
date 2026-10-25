@@ -1,10 +1,14 @@
 // ./tests/jeu/test_Partie_skills.cpp
 #include <catch2/catch_test_macros.hpp>
 #include <SFML/System/Vector2.hpp>
+#include <variant>
 #include <vector>
 
 #include "aides.hpp"
 #include "aides_escouade.hpp"
+#include "combat/Attaque.hpp"
+#include "combat/EvenementDeCombat.hpp"
+#include "combat/ResolutionDuCoup.hpp"
 #include "monstres/Monstre.hpp"
 #include "jeu/Partie.hpp"
 
@@ -25,12 +29,43 @@ TEST_CASE("un skill et attaquer dans la meme image ne frappent pas deux fois le 
     // frappe pas avec son attaque de base pendant l'activation ni juste après.
     Partie partie = unePartie(niveauDegage({{235.0f, 170.0f}}), s_graineDeTest);
     const int vieDeDepart = partie.getMonstres().front().getPointsDeVie();
+    const Defenses monstre{.armure = 0, .statistiques = monstreSansHasard().statistiques};
+    const Attaque frappe{.montant = s_degatsFrappeDeTest,
+                         .capaciteOffensive = partie.getEscouade().statistiquesDeCombatDuPersonnage(1)->capaciteOffensive,
+                         .nature = NatureDAttaque::Contact};
+    const Attaque basePretre = *partie.getEscouade().attaqueDeBase(2);
+    const Attaque baseMage = *partie.getEscouade().attaqueDeBase(3);
 
     // 0,35 s : le skill est parti (activation de 0,3 s) et les tireurs ont eu
     // le temps d'exécuter leur coup (0,15 s), pas le mêlée, dont la recharge
     // de l'attaque de base a été relancée au complet (au moins 0,3 s) au départ.
     partie.demanderSkill(s_adresseFrappe);
-    avancer(partie, nombreDeTics(0.35f));
+    std::vector<EvenementDeCombat> evenements;
+    for (int i = 0; i < nombreDeTics(0.35f); ++i) {
+        partie.mettreAJour(s_dureeTic);
+        const std::vector<EvenementDeCombat> duTic = partie.prendreEvenements();
+        evenements.insert(evenements.end(), duTic.begin(), duTic.end());
+    }
 
-    REQUIRE(partie.getMonstres().front().getPointsDeVie() == vieDeDepart - s_degatsFrappeDeTest - 2 * s_degatsBaseDeTest);
+    // Le critique est au tirage de la partie : chaque événement dit s'il l'était. Un coup de la frappe, un de
+    // chaque tireur, et aucun du guerrier avec son attaque de base (qui ferait un quatrième coup).
+    int total = 0;
+    int frappes = 0;
+    int basesDesTireurs = 0;
+    for (const EvenementDeCombat& evenement : evenements) {
+        const Degats* coup = std::get_if<Degats>(&evenement.detail);
+        if (coup == nullptr || evenement.campCible != Camp::Monstres) {
+            continue;
+        }
+        total += coup->montant;
+        if (coup->montant == degatsAttendus(frappe, monstre, coup->critique)) {
+            ++frappes;
+        } else if (coup->montant == degatsAttendus(basePretre, monstre, coup->critique) ||
+                   coup->montant == degatsAttendus(baseMage, monstre, coup->critique)) {
+            ++basesDesTireurs;
+        }
+    }
+    REQUIRE(frappes == 1);
+    REQUIRE(basesDesTireurs == 2);
+    REQUIRE(partie.getMonstres().front().getPointsDeVie() == vieDeDepart - total);
 }
