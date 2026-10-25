@@ -475,3 +475,26 @@ TEST_CASE("objets inactifs : retirer l'anneau de puissance rend l'epee a deux ma
             montantEffectif(definitionObjet(IdObjet::EpeeADeuxMains).arme->attaque.degats, Coefficients::seul(Caracteristique::Puissance, 1.0f),
                             *escouade.caracteristiquesDuPersonnage(s_guerrier)));
 }
+
+TEST_CASE("seuilsManques : ce que le mage n'atteint pas pour la cuirasse, rien pour des gants") {
+    Escouade escouade = uneEscouade({50.0f, 50.0f});
+    REQUIRE(escouade.ramasser(Objet{IdObjet::CuirasseDeMailles}));  // case 0
+    REQUIRE(escouade.ramasser(s_gants));                            // case 1
+
+    const std::vector<SeuilDeCaracteristique> manques = escouade.seuilsManques(dansLeSac(0), portee(s_mage, Emplacement::Torse));
+
+    REQUIRE(manques == definitionObjet(IdObjet::CuirasseDeMailles).seuils);
+    REQUIRE(escouade.seuilsManques(dansLeSac(1), portee(s_mage, Emplacement::Gants)).empty());
+}
+
+TEST_CASE("objetPorteEstInactif : un objet porte dont le seuil n'est pas atteint, pas un objet actif ni un emplacement vide") {
+    const std::vector<ObjetDeDepart> depart = {{Emplacement::Torse, IdObjet::CuirasseDeMailles}, {Emplacement::Gants, IdObjet::GantsDeCuir}};
+    DefinitionPersonnage faible = pretreDeTest();
+    faible.equipementDeDepart = depart;  // l'Endurance du prêtre ne suffit pas à la cuirasse
+    const Escouade escouade({50.0f, 50.0f}, {guerrierDeTest(), faible});
+
+    REQUIRE_FALSE(escouade.objetPorteEstInactif(s_guerrier, Emplacement::Torse));  // actif
+    REQUIRE(escouade.objetPorteEstInactif(2, Emplacement::Torse));                 // porté, sans effet
+    REQUIRE_FALSE(escouade.objetPorteEstInactif(2, Emplacement::Gants));           // sans seuil
+    REQUIRE_FALSE(escouade.objetPorteEstInactif(2, Emplacement::Tete));            // vide
+}

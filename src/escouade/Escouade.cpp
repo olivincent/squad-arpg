@@ -1130,6 +1130,16 @@ EtatDesObjets Escouade::etatDesObjets() const {
     return etat;
 }
 
+std::vector<SeuilDeCaracteristique> Escouade::seuilsManques(const PositionDObjet& de, const PositionDObjet& vers) const {
+    return ::seuilsManques(etatDesObjets(), de, vers);
+}
+
+bool Escouade::objetPorteEstInactif(std::size_t place, Emplacement emplacement) const {
+    assert(placeValide(place));
+    const Personnage& personnage = personnageDeLaPlace(place);
+    return personnage.getEquipement().a(emplacement).has_value() && !personnage.getEquipementActif().a(emplacement).has_value();
+}
+
 bool Escouade::peutDeplacerObjet(const PositionDObjet& de, const PositionDObjet& vers) const {
     return deplacementPossible(etatDesObjets(), de, vers);
 }

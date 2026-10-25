@@ -91,34 +91,40 @@ bool libererLaMainOpposee(EtatDesObjets& etat, const PositionDObjet& position) {
     return etat.sac.ajouter(*chasse);  // NOLINT(bugprone-unchecked-optional-access): vérifié par l'assert au-dessus (_assert de MinGW n'est pas noreturn)
 }
 
-// Le personnage qui reçoit l'objet posé à cette position atteint-il ses seuils, sans compter cet objet ? Toujours
-// vrai vers une case du sac.
-bool seuilsRespectes(const EtatDesObjets& etat, const PositionDObjet& position) {
+// Les seuils de l'objet posé à cette position que son porteur n'atteint pas, sans compter cet objet. Vide vers une
+// case du sac.
+std::vector<SeuilDeCaracteristique> seuilsNonAtteints(const EtatDesObjets& etat, const PositionDObjet& position) {
     const PositionPortee* portee = std::get_if<PositionPortee>(&position);
     if (portee == nullptr) {
-        return true;
+        return {};
     }
     Equipement sansLui = equipementDe(etat, *portee);
     const std::optional<Objet> pose = sansLui.retirer(portee->emplacement);
     if (!pose.has_value()) {
-        return true;
+        return {};
     }
     assert(portee->place <= etat.bases.size());
-    return seuilsAtteints(pose->id, caracteristiquesEffectives(etat.bases[portee->place - 1], sansLui));
+    const Caracteristiques effectives = caracteristiquesEffectives(etat.bases[portee->place - 1], sansLui);
+    std::vector<SeuilDeCaracteristique> manques;
+    for (const SeuilDeCaracteristique& seuil : definitionObjet(pose->id).seuils) {
+        if (effectives.valeur(seuil.caracteristique) < seuil.valeur) {
+            manques.push_back(seuil);
+        }
+    }
+    return manques;
 }
-}  // namespace
 
-bool deplacerLesObjets(EtatDesObjets& etat, const PositionDObjet& de, const PositionDObjet& vers) {
+// Le déplacement sans les seuils : la règle de base et les deux mains, sur une copie. Vide si l'un des deux refuse.
+std::optional<EtatDesObjets> deplacerSansLesSeuils(const EtatDesObjets& etat, const PositionDObjet& de, const PositionDObjet& vers) {
     const std::optional<Objet> objetDe = objetA(etat, de);
     const std::optional<Objet> objetVers = objetA(etat, vers);
     if (!deplacementPermis(de, objetDe, vers, objetVers)) {
-        return false;
+        return std::nullopt;
     }
-    if (de == vers) {
-        return true;
-    }
-    // Sur une copie : un sac plein au moment de ranger une main refuse tout, état intact.
     EtatDesObjets essai = etat;
+    if (de == vers) {
+        return essai;
+    }
     // En croix : les deux objets sont sortis avant d'être posés, donc aucun n'existe à deux endroits.
     [[maybe_unused]] const std::optional<Objet> sortiDe = retirerA(essai, de);
     [[maybe_unused]] const std::optional<Objet> sortiVers = retirerA(essai, vers);
@@ -128,13 +134,31 @@ bool deplacerLesObjets(EtatDesObjets& etat, const PositionDObjet& de, const Posi
         poserA(essai, de, *sortiVers);
     }
     if (!libererLaMainOpposee(essai, vers) || (sortiVers.has_value() && !libererLaMainOpposee(essai, de))) {
+        return std::nullopt;
+    }
+    return essai;
+}
+}  // namespace
+
+bool deplacerLesObjets(EtatDesObjets& etat, const PositionDObjet& de, const PositionDObjet& vers) {
+    // Sur une copie : un sac plein au moment de ranger une main, ou un seuil non atteint, refuse tout, état intact.
+    std::optional<EtatDesObjets> essai = deplacerSansLesSeuils(etat, de, vers);
+    if (!essai.has_value()) {
         return false;
     }
-    if (!seuilsRespectes(essai, vers) || (sortiVers.has_value() && !seuilsRespectes(essai, de))) {
+    if (de == vers) {
+        return true;
+    }
+    if (!seuilsNonAtteints(*essai, vers).empty() || (objetA(etat, vers).has_value() && !seuilsNonAtteints(*essai, de).empty())) {
         return false;
     }
-    etat = std::move(essai);
+    etat = std::move(*essai);
     return true;
+}
+
+std::vector<SeuilDeCaracteristique> seuilsManques(const EtatDesObjets& etat, const PositionDObjet& de, const PositionDObjet& vers) {
+    const std::optional<EtatDesObjets> essai = deplacerSansLesSeuils(etat, de, vers);
+    return essai.has_value() && de != vers ? seuilsNonAtteints(*essai, vers) : std::vector<SeuilDeCaracteristique>{};
 }
 
 bool deplacementPossible(const EtatDesObjets& etat, const PositionDObjet& de, const PositionDObjet& vers) {

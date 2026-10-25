@@ -182,6 +182,11 @@ public:
     // Un objet peut-il aller de `de` à `vers` (case du sac ou emplacement d'un personnage) ? Applique la règle
     // des déplacements (`deplacerLesObjets`, dont les deux mains) sur une copie. L'écran s'en sert pour la surbrillance.
     [[nodiscard]] bool peutDeplacerObjet(const PositionDObjet& de, const PositionDObjet& vers) const;
+    // Les seuils que le personnage qui recevrait l'objet de `de` à `vers` n'atteindrait pas (`seuilsManques`) ; vide si
+    // rien ne manque ou si le déplacement est refusé pour une autre raison. L'écran les montre en rouge (étape 92.3).
+    [[nodiscard]] std::vector<SeuilDeCaracteristique> seuilsManques(const PositionDObjet& de, const PositionDObjet& vers) const;
+    // L'objet porté à cet emplacement est-il inactif (porté, mais son seuil n'est plus atteint) ? Faux sans objet.
+    [[nodiscard]] bool objetPorteEstInactif(std::size_t place, Emplacement emplacement) const;
     // L'objet de `de` va à `vers` ; si `vers` est occupé, les deux objets s'échangent ; une arme à deux mains range
     // l'objet de la main gauche dans le sac (et un bouclier une arme à deux mains). Faux, sans rien changer, si
     // `peutDeplacerObjet` est faux ; vrai sans effet si `de == vers`.

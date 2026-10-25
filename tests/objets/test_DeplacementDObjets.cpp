@@ -372,3 +372,35 @@ TEST_CASE("seuils : le bouclier range par les deux mains ne rencontre aucun seui
     REQUIRE(deplacerLesObjets(etat, dansLeSac(2), portee(s_placeA, Emplacement::MainDroite)));
     REQUIRE(etat.sac.a(0) == s_bouclier);
 }
+
+TEST_CASE("seuilsManques : les seuils que le personnage qui recevrait l'objet n'atteint pas") {
+    EtatDesObjets etat = etatDeBases(Caracteristiques({13, 11, 0, 0, 0}), s_fort);
+    rangerDansLeSac(etat, 0, s_epeeADeuxMains);  // Puissance 13 et Endurance 12 exigées
+
+    const std::vector<SeuilDeCaracteristique> manques = seuilsManques(etat, dansLeSac(0), portee(s_placeA, Emplacement::MainDroite));
+
+    REQUIRE(manques == std::vector<SeuilDeCaracteristique>{{Caracteristique::Endurance, 12}});
+    REQUIRE(seuilsManques(etat, dansLeSac(0), portee(s_placeB, Emplacement::MainDroite)).empty());  // le fort les atteint
+}
+
+TEST_CASE("seuilsManques : tous les seuils non atteints, vide vers le sac ou quand le deplacement est refuse pour une autre raison") {
+    EtatDesObjets etat = etatDeBases(s_faible, s_faible);
+    rangerDansLeSac(etat, 0, s_epeeADeuxMains);
+    rangerDansLeSac(etat, 1, s_gants);
+    porter(etat, s_placeA, Emplacement::MainDroite, s_epee);
+
+    REQUIRE(seuilsManques(etat, dansLeSac(0), portee(s_placeB, Emplacement::MainDroite)).size() == 2);  // Puissance 13 et Endurance 12
+    REQUIRE(seuilsManques(etat, portee(s_placeA, Emplacement::MainDroite), dansLeSac(5)).empty());       // vers le sac
+    REQUIRE(seuilsManques(etat, dansLeSac(1), portee(s_placeB, Emplacement::MainDroite)).empty());       // des gants en main : refusé autrement
+    REQUIRE(seuilsManques(etat, dansLeSac(0), dansLeSac(0)).empty());
+}
+
+TEST_CASE("seuilsManques : ne change rien a l'etat") {
+    EtatDesObjets etat = etatDeBases(s_faible, s_faible);
+    rangerDansLeSac(etat, 0, s_epeeADeuxMains);
+    const std::vector<std::optional<Objet>> avant = contenu(etat);
+
+    static_cast<void>(seuilsManques(etat, dansLeSac(0), portee(s_placeA, Emplacement::MainDroite)));
+
+    REQUIRE(contenu(etat) == avant);
+}

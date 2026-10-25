@@ -38,13 +38,39 @@ TEST_CASE("affichage : chaque objet du catalogue a un sigle de deux lettres, tou
     REQUIRE(sigles.size() == catalogueObjets().size());
 }
 
-TEST_CASE("affichage : l'infobulle donne le nom, la categorie et l'armure") {
+TEST_CASE("affichage : l'infobulle donne le nom, la categorie, le seuil et l'armure") {
     const std::vector<std::string> lignes = lignesDeLInfobulle(IdObjet::CasqueDeFer);
 
-    REQUIRE(lignes.size() == 3);
+    REQUIRE(lignes.size() == 4);
     REQUIRE(lignes[0] == definitionObjet(IdObjet::CasqueDeFer).nom);
     REQUIRE(lignes[1] == "Casque");
-    REQUIRE(lignes[2] == "Armure : +" + std::to_string(definitionObjet(IdObjet::CasqueDeFer).armure));
+    REQUIRE(lignes[2] == ligneDeSeuil(definitionObjet(IdObjet::CasqueDeFer).seuils.front()));
+    REQUIRE(lignes[3] == "Armure : +" + std::to_string(definitionObjet(IdObjet::CasqueDeFer).armure));
+}
+
+TEST_CASE("affichage : une ligne de seuil donne la caracteristique et la valeur exigee") {
+    REQUIRE(ligneDeSeuil({Caracteristique::Puissance, 11}) == "Exige Puissance 11");
+    REQUIRE(ligneDeSeuil({Caracteristique::Endurance, 12}) == "Exige Endurance 12");
+}
+
+TEST_CASE("affichage : l'infobulle liste tous les seuils, un par ligne, apres la categorie") {
+    const std::vector<std::string> lignes = lignesDeLInfobulle(IdObjet::EpeeADeuxMains);
+
+    REQUIRE(lignes[1] == "Arme");
+    REQUIRE(lignes[2] == "Exige Puissance 13");
+    REQUIRE(lignes[3] == "Exige Endurance 12");
+}
+
+TEST_CASE("affichage : un objet sans seuil n'a aucune ligne d'exigence") {
+    for (const IdObjet libre : {IdObjet::GantsDeCuir, IdObjet::BottesDeCuir, IdObjet::AnneauDePuissance, IdObjet::CollierDEndurance}) {
+        for (const std::string& ligne : lignesDeLInfobulle(libre)) {
+            REQUIRE(ligne.find("Exige") == std::string::npos);
+        }
+    }
+}
+
+TEST_CASE("affichage : la ligne d'un objet inactif") {
+    REQUIRE(ligneDObjetInactif() == "Inactif : seuil non atteint");
 }
 
 TEST_CASE("affichage : l'infobulle d'un objet sans armure n'a pas de ligne d'armure, mais une ligne par bonus") {
@@ -95,7 +121,7 @@ TEST_CASE("affichage : l'infobulle d'une arme a une main donne ses degats, sa re
     const std::vector<std::string> lignes = lignesDeLInfobulle(IdObjet::EpeeLongue);
     const DescriptionDAttaque& attaque = definitionObjet(IdObjet::EpeeLongue).arme.value().attaque;
 
-    REQUIRE(lignes == std::vector<std::string>{"Épée longue", "Arme", "Dégâts : " + std::to_string(attaque.degats),
+    REQUIRE(lignes == std::vector<std::string>{"Épée longue", "Arme", "Exige Puissance 11", "Dégâts : " + std::to_string(attaque.degats),
                                                "Recharge : 0,3 à 0,7 s", "Portée : 20 px", "Contact"});
 }
 
@@ -106,11 +132,11 @@ TEST_CASE("affichage : l'infobulle d'une arme a deux mains le dit, celle d'une a
 
     REQUIRE(arc.back() == "Deux mains");
     REQUIRE(arc[arc.size() - 2] == "Projectile");
-    REQUIRE(arc[3] == "Recharge : 0,4 à 0,6 s");
-    REQUIRE(arc[4] == "Portée : 120 px");
+    REQUIRE(arc[4] == "Recharge : 0,4 à 0,6 s");
+    REQUIRE(arc[5] == "Portée : 120 px");
     REQUIRE(sceptre.back() == "Projectile");  // une main : pas de « Deux mains »
     REQUIRE(deuxMains.back() == "Deux mains");
-    REQUIRE(deuxMains[3] == "Recharge : 1,2 à 2,8 s");
+    REQUIRE(deuxMains[5] == "Recharge : 1,2 à 2,8 s");  // après deux lignes de seuil
 }
 
 TEST_CASE("affichage : seules les armes ont des lignes d'attaque, et les deux mains ne sont dites que des armes a deux mains") {

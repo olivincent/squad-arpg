@@ -99,9 +99,20 @@ std::string sigleDeLObjet(IdObjet id) {
     return "";
 }
 
+std::string ligneDeSeuil(const SeuilDeCaracteristique& seuil) {
+    return "Exige " + nomDeLaCaracteristique(seuil.caracteristique) + " " + std::to_string(seuil.valeur);
+}
+
+std::string ligneDObjetInactif() {
+    return "Inactif : seuil non atteint";
+}
+
 std::vector<std::string> lignesDeLInfobulle(IdObjet id) {
     const DefinitionObjet& definition = definitionObjet(id);
     std::vector<std::string> lignes = {definition.nom, nomDeLaCategorie(definition.categorie)};
+    for (const SeuilDeCaracteristique& seuil : definition.seuils) {
+        lignes.push_back(ligneDeSeuil(seuil));
+    }
     if (definition.armure != 0) {
         lignes.push_back("Armure : +" + std::to_string(definition.armure));
     }

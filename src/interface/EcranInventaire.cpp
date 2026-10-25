@@ -58,6 +58,8 @@ const sf::Color s_couleurContourOccupe(200, 200, 200);
 const sf::Color s_couleurTexteVide(120, 120, 120);
 const sf::Color s_couleurMort(220, 80, 80);
 const sf::Color s_couleurSurbrillance(255, 215, 0);
+const sf::Color s_couleurInactif(230, 50, 50);     // cadre d'un objet porté dont le seuil n'est plus atteint, et lignes d'alerte de l'infobulle
+constexpr float s_epaisseurInactif = 3.0f;
 constexpr float s_epaisseurSurbrillance = 3.0f;
 const sf::Color s_couleurAttenuation(40, 40, 40, 190);  // sur l'origine du glissement : le panneau, presque opaque
 
@@ -91,12 +93,21 @@ void dessinerRectangle(sf::RenderTarget& rendu, sf::FloatRect zone, sf::Color fo
     rendu.draw(forme);
 }
 
-// Un emplacement : le nom de l'objet porté, ou le nom de l'emplacement en petit sur fond grisé.
+// Un emplacement : le nom de l'objet porté, encadré de rouge s'il est inactif, ou le nom de l'emplacement en petit
+// sur fond grisé.
 void dessinerEmplacement(sf::RenderTarget& rendu, const sf::Font& police, sf::FloatRect zone, Emplacement emplacement,
-                         const std::optional<Objet>& objet) {
+                         const std::optional<Objet>& objet, bool inactif) {
     if (objet.has_value()) {
         dessinerRectangle(rendu, zone, s_couleurCaseOccupee, s_couleurContourOccupe);
         dessinerTexteCentre(rendu, police, definitionObjet(objet->id).nom, s_tailleNomDObjet, sf::Color::White, zone);
+        if (inactif) {
+            sf::RectangleShape cadre(zone.size);
+            cadre.setPosition(zone.position);
+            cadre.setFillColor(sf::Color::Transparent);
+            cadre.setOutlineColor(s_couleurInactif);
+            cadre.setOutlineThickness(-s_epaisseurInactif);  // vers l'intérieur : le cadre ne déborde pas sur le voisin
+            rendu.draw(cadre);
+        }
     } else {
         dessinerRectangle(rendu, zone, s_couleurCaseVide, s_couleurContourVide);
         dessinerTexteCentre(rendu, police, nomDeLEmplacement(emplacement), s_tailleNomDEmplacement, s_couleurTexteVide, zone);
@@ -165,7 +176,7 @@ void dessinerColonne(sf::RenderTarget& rendu, const sf::Font& police, const Esco
     for (std::size_t i = 0; i < s_nombreEmplacements; ++i) {
         const Emplacement emplacement = static_cast<Emplacement>(i);
         dessinerEmplacement(rendu, police, rectangleDeLEmplacement(place, emplacement, tailleDeVue), emplacement,
-                            equipement.a(emplacement));
+                            equipement.a(emplacement), escouade.objetPorteEstInactif(place, emplacement));
     }
     dessinerLesCaracteristiques(rendu, police, escouade, place, tailleDeVue);
     dessinerLesStatistiques(rendu, police, escouade, place, tailleDeVue);
@@ -189,15 +200,6 @@ void dessinerLeSac(sf::RenderTarget& rendu, const sf::Font& police, const Invent
             dessinerRectangle(rendu, zone, s_couleurCaseVide, s_couleurContourVide);
         }
     }
-}
-
-// L'objet que vise le curseur (porté ou dans le sac) ; vide sur une case vide ou hors des éléments.
-std::optional<Objet> objetSous(const Escouade& escouade, sf::Vector2f curseur, sf::Vector2f tailleDeVue) {
-    const std::optional<PositionDObjet> position = elementSous(curseur, tailleDeVue);
-    if (!position.has_value()) {
-        return std::nullopt;
-    }
-    return escouade.objetA(*position);
 }
 
 // Le rectangle d'une position : un emplacement d'un personnage ou une case du sac.
@@ -248,13 +250,21 @@ void dessinerObjetSaisi(sf::RenderTarget& rendu, const sf::Font& police, const O
     dessinerTexteCentre(rendu, police, sigleDeLObjet(objet.id), s_tailleSigle, sf::Color::White, zone);
 }
 
-// L'infobulle d'un objet près du curseur, gardée dans la vue : un cadre sombre, une ligne par texte.
+// L'infobulle d'un objet près du curseur, gardée dans la vue : un cadre sombre, une ligne par texte. Les seuils de
+// `manques` (ceux que le personnage visé n'atteint pas) et, si l'objet est `inactif`, une dernière ligne « Inactif :
+// seuil non atteint », sont en rouge.
 void dessinerInfobulle(sf::RenderTarget& rendu, const sf::Font& police, const Objet& objet, sf::Vector2f curseur,
-                       sf::Vector2f tailleDeVue) {
+                       sf::Vector2f tailleDeVue, const std::vector<SeuilDeCaracteristique>& manques, bool inactif) {
     std::vector<sf::Text> lignes;
     float largeur = 0.0f;
-    for (const std::string& ligne : lignesDeLInfobulle(objet.id)) {
-        lignes.push_back(texte(police, ligne, s_tailleInfobulle, sf::Color::White));
+    std::vector<std::string> textes = lignesDeLInfobulle(objet.id);
+    if (inactif) {
+        textes.push_back(ligneDObjetInactif());
+    }
+    for (const std::string& ligne : textes) {
+        const bool enRouge = ligne == ligneDObjetInactif() ||
+                             std::ranges::any_of(manques, [&](const SeuilDeCaracteristique& seuil) { return ligne == ligneDeSeuil(seuil); });
+        lignes.push_back(texte(police, ligne, s_tailleInfobulle, enRouge ? s_couleurInactif : sf::Color::White));
         largeur = std::max(largeur, lignes.back().getLocalBounds().size.x);
     }
     const float hauteurDeLigne = police.getLineSpacing(s_tailleInfobulle);
@@ -364,8 +374,7 @@ void EcranInventaire::dessiner(const Contexte& contexte) const {
     // Dernières, par-dessus tout le reste.
     if (m_origine.has_value()) {
         dessinerLesDestinations(fenetre, m_escouade, *m_origine, tailleVue);
-        // L'origine atténuée (l'objet n'a pas bougé : il est « en main »), l'objet saisi sous le curseur ;
-        // pas d'infobulle pendant le glissement.
+        // L'origine atténuée (l'objet n'a pas bougé : il est « en main »), l'objet saisi sous le curseur.
         const sf::FloatRect origine = rectangleDe(*m_origine, tailleVue);
         sf::RectangleShape voileDOrigine(origine.size);
         voileDOrigine.setPosition(origine.position);
@@ -373,8 +382,18 @@ void EcranInventaire::dessiner(const Contexte& contexte) const {
         fenetre.draw(voileDOrigine);
         if (const std::optional<Objet> saisi = m_escouade.objetA(*m_origine)) {
             dessinerObjetSaisi(fenetre, contexte.police, *saisi, vue.point, tailleVue);
+            // Sur l'emplacement d'un personnage : les exigences de l'objet saisi, celles que ce personnage n'atteint
+            // pas en rouge (étape 92.3).
+            const std::optional<PositionDObjet> visee = elementSous(vue.point, tailleVue);
+            if (visee.has_value() && std::holds_alternative<PositionPortee>(*visee) && !definitionObjet(saisi->id).seuils.empty()) {
+                dessinerInfobulle(fenetre, contexte.police, *saisi, vue.point, tailleVue, m_escouade.seuilsManques(*m_origine, *visee), false);
+            }
         }
-    } else if (const std::optional<Objet> objet = objetSous(m_escouade, vue.point, tailleVue)) {
-        dessinerInfobulle(fenetre, contexte.police, *objet, vue.point, tailleVue);
+    } else if (const std::optional<PositionDObjet> survolee = elementSous(vue.point, tailleVue)) {
+        if (const std::optional<Objet> objet = m_escouade.objetA(*survolee)) {
+            const PositionPortee* portee = std::get_if<PositionPortee>(&*survolee);
+            const bool inactif = portee != nullptr && m_escouade.objetPorteEstInactif(portee->place, portee->emplacement);
+            dessinerInfobulle(fenetre, contexte.police, *objet, vue.point, tailleVue, {}, inactif);
+        }
     }
 }

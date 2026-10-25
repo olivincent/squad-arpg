@@ -2,6 +2,7 @@
 #pragma once
 #include <vector>
 #include "combat/Caracteristiques.hpp"
+#include "objets/CatalogueObjets.hpp"
 #include "objets/Equipement.hpp"
 #include "objets/Inventaire.hpp"
 #include "objets/PositionDObjet.hpp"
@@ -29,6 +30,13 @@ struct EtatDesObjets {
 //   (l'objet échangé, ce qui est rangé dans le sac). Vers le sac, aucun seuil.
 // `assert` : places valides, cases du sac valides.
 [[nodiscard]] bool deplacerLesObjets(EtatDesObjets& etat, const PositionDObjet& de, const PositionDObjet& vers);
+
+// Les seuils que le personnage qui recevrait l'objet de `de` à la position `vers` n'atteindrait pas (étape 92.3), avec
+// les mêmes caractéristiques que `deplacerLesObjets` (sans compter l'objet posé, après ce que le déplacement retire).
+// Vide vers une case du sac, et quand le déplacement est refusé pour une autre raison (catégorie, sac plein). Sert à
+// montrer en rouge ce qui manque pendant un glissement.
+[[nodiscard]] std::vector<SeuilDeCaracteristique> seuilsManques(const EtatDesObjets& etat, const PositionDObjet& de,
+                                                                const PositionDObjet& vers);
 
 // Le déplacement serait-il permis ? Le même calcul que `deplacerLesObjets`, sur une copie.
 [[nodiscard]] bool deplacementPossible(const EtatDesObjets& etat, const PositionDObjet& de, const PositionDObjet& vers);
