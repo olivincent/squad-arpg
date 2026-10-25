@@ -18,6 +18,7 @@ constexpr std::uint8_t s_opaciteRetour = 128;  // sur 255 : environ 50 %, pour m
 
 Monstre::Monstre(sf::Vector2f centre, int id, int groupe, const DefinitionDeMonstre& definition)
     : m_mobile(centre, {definition.cote, definition.cote}, definition.vitesse),
+      m_couleur(definition.couleur),
       m_vitalite(definition.pointsDeVieMax,
                  {.armure = definition.armure, .statistiques = definition.statistiques}),
       m_id(id),
@@ -42,7 +43,7 @@ void Monstre::dessiner(sf::RenderTarget& rendu, bool estCible, bool marquerLeRet
 
     sf::RectangleShape forme(taille);
     forme.setPosition(centre - taille / 2.0f);
-    sf::Color couleur = cibleEngagee().has_value() ? eclaircir(sf::Color::Red, s_eclaircissementExecution) : sf::Color::Red;
+    sf::Color couleur = cibleEngagee().has_value() ? eclaircir(m_couleur, s_eclaircissementExecution) : m_couleur;
     if (marquerLeRetour && m_etat == Etat::Retour) {
         couleur.a = s_opaciteRetour;
     }

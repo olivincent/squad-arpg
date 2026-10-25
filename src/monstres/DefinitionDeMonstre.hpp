@@ -1,5 +1,6 @@
 // ./src/monstres/DefinitionDeMonstre.hpp
 #pragma once
+#include <SFML/Graphics/Color.hpp>
 #include <array>
 #include "combat/Skill.hpp"
 #include "combat/StatistiquesDeCombat.hpp"
@@ -8,7 +9,8 @@
 // Les valeurs d'équilibrage d'un monstre, nommées à la construction (initialisation désignée) : un monstre
 // ne choisit rien, il reçoit sa définition. Une définition par catégorie (`catalogueDeMonstres`).
 struct DefinitionDeMonstre {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
-    float cote;                // du carré, en pixels
+    float cote;                // du carré, en pixels ; son cercle de collision en est inscrit (rayon = cote / 2)
+    sf::Color couleur;         // celle de sa catégorie, pour le reconnaître à l'écran
     float vitesse;             // en pixels par seconde
     int pointsDeVieMax;
     int armure;

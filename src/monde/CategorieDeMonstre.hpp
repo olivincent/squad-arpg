@@ -7,10 +7,11 @@
 // ici, dans `monde/`, parce que le niveau et le générateur ne peuvent pas connaître les statistiques ; les
 // valeurs de chaque catégorie sont le catalogue de `monstres/DefinitionDeMonstre.hpp`. L'ordre de l'enum est
 // l'index dans ce catalogue.
-enum class CategorieDeMonstre { Infanterie };
+enum class CategorieDeMonstre { Nuee, Infanterie, InfanterieLourde, CreatureMonstrueuse };
 
-inline constexpr std::size_t s_nombreDeCategoriesDeMonstre = 1;
+inline constexpr std::size_t s_nombreDeCategoriesDeMonstre = 4;
 
 // Toutes les catégories, dans l'ordre de l'enum, pour les parcourir.
 inline constexpr std::array<CategorieDeMonstre, s_nombreDeCategoriesDeMonstre> s_categoriesDeMonstre = {
-    CategorieDeMonstre::Infanterie};
+    CategorieDeMonstre::Nuee, CategorieDeMonstre::Infanterie, CategorieDeMonstre::InfanterieLourde,
+    CategorieDeMonstre::CreatureMonstrueuse};

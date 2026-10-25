@@ -10,6 +10,7 @@
 #include "combat/StatistiquesDeCombat.hpp"
 #include "combat/Vitalite.hpp"
 #include "monstres/DefinitionDeMonstre.hpp"
+#include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <optional>
@@ -21,7 +22,7 @@ class Monstre {
 public:
     // `groupe` est un identifiant opaque : des monstres de même groupe « vont
     // ensemble ». Le monstre ne sait pas ce qu'il désigne. `definition` : toutes ses valeurs
-    // d'équilibrage (taille, vitesse, points de vie, armure, détection, territoire, zone de contrôle,
+    // d'équilibrage (taille, couleur, vitesse, points de vie, armure, détection, territoire, zone de contrôle,
     // attaque) ; le monstre n'en choisit aucune.
     Monstre(sf::Vector2f centre, int id, int groupe, const DefinitionDeMonstre& definition);
     // `marquerLeRetour` (débogage F3) : le carré d'un monstre qui rentre à son poste est semi-transparent.
@@ -87,6 +88,7 @@ private:
                                            const std::vector<EntiteVue>& candidats, const TileMap& carte) const;
 
     Mobile m_mobile;
+    sf::Color m_couleur;
     Vitalite m_vitalite; // points de vie et armure
     int m_id;
     int m_groupe;

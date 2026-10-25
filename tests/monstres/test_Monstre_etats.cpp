@@ -2,10 +2,14 @@
 #include <catch2/catch_test_macros.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <optional>
+#include <string>
 #include <vector>
 
 #include "aides.hpp"
 #include "base/Cercle.hpp"
+#include "monde/CategorieDeMonstre.hpp"
+#include "monde/GenerateurDonjon.hpp"
+#include "monstres/DefinitionDeMonstre.hpp"
 #include "monstres/Monstre.hpp"
 #include "monde/TileMap.hpp"
 #include "aides_monstre.hpp"
@@ -312,4 +316,37 @@ TEST_CASE("Monstre en poursuite sans cercle a contourner reste bloque derriere u
     ecoulerTemps(monstre, 6.0f, pointCible({240.0f, 200.0f}), carte, autre, {});
 
     REQUIRE(monstre.getCentre().x <= 120.0f);
+}
+
+namespace {
+// Deux salles reliées par un couloir en L de la largeur du générateur : A (colonnes 1 à 6, lignes 1 à 6) et B (colonnes
+// 10 à 15, lignes 8 à 13). Un monstre en A (centre de la salle) et sa proie en B sont à moins de 500 px à vol
+// d'oiseau, donc dans son territoire, mais loin de sa détection : il faut l'alerter.
+TileMap carteDeDeuxSallesReliees(SensCouloir sens) {
+    const ParametresDonjon parametres;
+    const std::vector<Salle> salles = {{1, 1, 6, 6}, {10, 8, 6, 6}};
+    std::vector<std::string> plan(16, std::string(18, '#'));
+    for (const Salle& salle : salles) {
+        creuserSalle(plan, salle);
+    }
+    creuserCouloir(plan, salles[0].centre(), salles[1].centre(), sens, parametres.largeurCouloir);
+    return TileMap(plan, parametres.tailleCase);
+}
+}  // namespace
+
+TEST_CASE("chaque categorie de monstre traverse un couloir en L jusqu'a sa proie") {
+    for (const CategorieDeMonstre categorie : s_categoriesDeMonstre) {
+        for (const SensCouloir sens : {SensCouloir::HorizontalPuisVertical, SensCouloir::VerticalPuisHorizontal}) {
+            INFO("categorie " << static_cast<int>(categorie) << ", sens " << static_cast<int>(sens));
+            const TileMap carte = carteDeDeuxSallesReliees(sens);
+            const sf::Vector2f poste = carte.centreDeCase(Salle{1, 1, 6, 6}.centre());
+            const Cercle proie = cibleMonstre(carte.centreDeCase(Salle{10, 8, 6, 6}.centre()));
+            Monstre monstre(poste, 1, 0, definitionDeMonstre(categorie));
+            monstre.alerter();
+
+            ecoulerTemps(monstre, 20.0f, proie, carte);
+
+            REQUIRE(monstre.peutAtteindre(proie, carte));
+        }
+    }
 }

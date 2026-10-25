@@ -2,12 +2,16 @@
 #include <catch2/catch_test_macros.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <algorithm>
+#include <cstddef>
 #include <optional>
 #include <vector>
 
 #include "aides.hpp"
 #include "aides_escouade.hpp"
 #include "base/Cercle.hpp"
+#include "monde/CategorieDeMonstre.hpp"
+#include "monde/Niveau.hpp"
+#include "monstres/DefinitionDeMonstre.hpp"
 #include "monstres/Monstre.hpp"
 #include "jeu/Partie.hpp"
 
@@ -241,4 +245,23 @@ TEST_CASE("un monstre qui abandonne rentre a son poste sans perdre de vie et san
     REQUIRE(fuyard(partie).estCiblable());
     verifierPointProche(fuyard(partie).getCentre(), s_posteDuFuyard);
     REQUIRE(fuyard(partie).getPointsDeVie() == vieDeDepart);
+}
+
+TEST_CASE("chaque monstre du niveau recoit la definition de sa categorie") {
+    std::vector<MonstreDuNiveau> monstres;
+    for (const CategorieDeMonstre categorie : s_categoriesDeMonstre) {
+        const float x = 100.0f + 100.0f * static_cast<float>(monstres.size());
+        monstres.push_back({{x, 500.0f}, static_cast<int>(monstres.size()), categorie});
+    }
+    const Partie partie(niveauDegageEnGroupes(monstres), compositionDeTest(), s_graineDeTest);
+
+    REQUIRE(partie.getMonstres().size() == s_nombreDeCategoriesDeMonstre);
+    for (std::size_t i = 0; i < partie.getMonstres().size(); ++i) {
+        const DefinitionDeMonstre& definition = definitionDeMonstre(s_categoriesDeMonstre[i]);
+        const Monstre& monstre = partie.getMonstres()[i];
+        REQUIRE(monstre.getPointsDeVie() == definition.pointsDeVieMax);
+        REQUIRE(monstre.getCercle().rayon == definition.cote / 2.0f);
+        REQUIRE(monstre.getAttaque().montant == definition.attaque.puissance);
+        REQUIRE(monstre.getStatistiques() == definition.statistiques);
+    }
 }
