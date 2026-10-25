@@ -46,6 +46,9 @@ TEST_CASE("chaque definition de monstre est valide") {
         REQUIRE(definition.statistiques.esquiveProjectile <= s_esquiveMaximale);
         REQUIRE(definition.rayonDetection > 0.0f);
         REQUIRE(definition.rayonTerritoire >= definition.rayonDetection);
+        REQUIRE(definition.chanceDeButin >= 0);
+        REQUIRE(definition.chanceDeButin <= 100);
+        REQUIRE((definition.chanceDeButin == 0 || definition.nombreDObjets >= 1));
         for (const Element element : s_elements) {
             INFO("element " << static_cast<int>(element));
             REQUIRE(definition.statistiques.resistances[element] >= s_resistanceMinimale);

@@ -29,19 +29,23 @@ struct Profil {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans 
     int capaciteDefensive;
     int esquive;              // en pour cent, contre le contact comme contre les projectiles
     Resistances resistances;  // en pour cent par élément : à quoi cette catégorie résiste, indépendamment de son corps
+    int chanceDeButin;        // en pour cent (« à tester »)
+    int nombreDObjets;        // laissés quand le butin tombe
 };
 
 constexpr Profil s_nuee = {.couleur = {115, 165, 25}, .rayon = 9.0f, .vitesse = 190.0f, .pointsDeVieMax = 60,
                            .armure = 0, .degats = 10, .rechargeMin = 0.6f, .rechargeMax = 1.0f, .execution = 0.2f,
-                           .capaciteOffensive = 90, .capaciteDefensive = 80, .esquive = 10, .resistances = {}};
+                           .capaciteOffensive = 90, .capaciteDefensive = 80, .esquive = 10, .resistances = {},
+                           .chanceDeButin = 5, .nombreDObjets = 1};
 constexpr Profil s_infanterie = {.couleur = {255, 0, 0}, .rayon = 15.0f, .vitesse = 160.0f, .pointsDeVieMax = 300,
                                  .armure = 3, .degats = 30, .rechargeMin = 0.7f, .rechargeMax = 1.3f,
                                  .execution = 0.3f, .capaciteOffensive = 100, .capaciteDefensive = 100, .esquive = 5,
-                                 .resistances = {}};
+                                 .resistances = {}, .chanceDeButin = 20, .nombreDObjets = 1};
 constexpr Profil s_infanterieLourde = {.couleur = {110, 125, 140}, .rayon = 17.0f, .vitesse = 110.0f,
                                        .pointsDeVieMax = 450, .armure = 10, .degats = 45, .rechargeMin = 1.2f,
                                        .rechargeMax = 1.8f, .execution = 0.4f, .capaciteOffensive = 100,
-                                       .capaciteDefensive = 120, .esquive = 0, .resistances = {}};
+                                       .capaciteDefensive = 120, .esquive = 0, .resistances = {},
+                                       .chanceDeButin = 35, .nombreDObjets = 1};
 // Rayon 16 et non 30 : un chemin suit les centres des cases, donc à une demi-case (20 px) du mur de sa voie, et un
 // cercle de rayon 20 ou plus s'y bloque (mesuré : 19 passe, 20 non). 16 laisse 4 px de marge. À rétablir quand le
 // chemin tiendra compte du rayon des monstres (`docs/monstre.md`).
@@ -49,7 +53,8 @@ constexpr Profil s_creatureMonstrueuse = {.couleur = {90, 30, 140}, .rayon = 16.
                                           .pointsDeVieMax = 1500, .armure = 6, .degats = 70, .rechargeMin = 1.5f,
                                           .rechargeMax = 2.5f, .execution = 0.5f, .capaciteOffensive = 120,
                                           .capaciteDefensive = 110, .esquive = 0,
-                                          .resistances = Resistances::seul(Element::Feu, s_resistanceAuFeuDeLaCreature)};
+                                          .resistances = Resistances::seul(Element::Feu, s_resistanceAuFeuDeLaCreature),
+                                          .chanceDeButin = 100, .nombreDObjets = 3};
 
 DefinitionDeMonstre definitionDuProfil(const Profil& profil) {
     return {.cote = 2.0f * profil.rayon,
@@ -67,7 +72,9 @@ DefinitionDeMonstre definitionDuProfil(const Profil& profil) {
             .statistiques = {.capaciteOffensive = profil.capaciteOffensive,
                              .capaciteDefensive = profil.capaciteDefensive,
                              .esquiveContact = profil.esquive, .esquiveProjectile = profil.esquive,
-                             .resistances = profil.resistances}};
+                             .resistances = profil.resistances},
+            .chanceDeButin = profil.chanceDeButin,
+            .nombreDObjets = profil.nombreDObjets};
 }
 }  // namespace
 

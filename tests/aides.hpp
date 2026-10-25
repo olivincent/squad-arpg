@@ -94,9 +94,11 @@ inline Attaque soinSansHasard(int montant) {
 
 // L'infanterie sans esquive ni armure : les coups qu'elle reçoit ne dépendent plus du hasard du défenseur, et
 // les dégâts lus sur elle sont ceux de l'attaque. Reste le critique de l'attaquant, jamais de chance nulle : un
-// test qui compte des dégâts exacts lit `critique` dans l'événement (`degatsAttendus`).
+// test qui compte des dégâts exacts lit `critique` dans l'événement (`degatsAttendus`). Sans butin non plus : sa
+// mort ne tire rien, donc ne consomme aucun nombre du `Generateur` de la partie.
 inline DefinitionDeMonstre monstreSansHasard() {
     DefinitionDeMonstre definition = definitionDeMonstre(CategorieDeMonstre::Infanterie);
+    definition.chanceDeButin = 0;
     definition.armure = 0;
     definition.statistiques.esquiveContact = 0;
     definition.statistiques.esquiveProjectile = 0;
@@ -110,13 +112,14 @@ inline DefinitionDeMonstre monstreAvecArmure(int armure) {
     return definition;
 }
 
-// Le catalogue des monstres d'un test : cette infanterie, et les autres catégories du jeu sans esquive.
+// Le catalogue des monstres d'un test : cette infanterie, et les autres catégories du jeu sans esquive ni butin.
 inline CatalogueDeMonstres catalogueDeTest(const DefinitionDeMonstre& infanterie = monstreSansHasard()) {
     CatalogueDeMonstres catalogue = catalogueDeMonstres();
     for (const CategorieDeMonstre categorie : s_categoriesDeMonstre) {
         DefinitionDeMonstre& definition = catalogue[static_cast<std::size_t>(categorie)];
         definition.statistiques.esquiveContact = 0;
         definition.statistiques.esquiveProjectile = 0;
+        definition.chanceDeButin = 0;
     }
     catalogue[static_cast<std::size_t>(CategorieDeMonstre::Infanterie)] = infanterie;
     return catalogue;

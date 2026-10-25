@@ -20,6 +20,8 @@ struct DefinitionDeMonstre {  // NOLINT(cppcoreguidelines-pro-type-member-init):
     float regenerationRetour;  // fraction des points de vie maximum rendue par seconde pendant le retour au poste
     DefinitionDeSkill attaque; // portée bord à bord, dégâts avant l'armure de la cible, recharge, exécution
     StatistiquesDeCombat statistiques;  // un monstre n'a pas de caractéristiques : il reçoit ses statistiques
+    int chanceDeButin;         // en pour cent : la chance que sa mort laisse du butin (un seul tirage)
+    int nombreDObjets;         // le nombre d'objets que laisse un butin
 };
 
 // Une définition par catégorie, dans l'ordre de `CategorieDeMonstre`.
