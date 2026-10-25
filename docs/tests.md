@@ -331,7 +331,7 @@
 - **Skill** : chaque `Personnage` des tests existants reçoit
   `std::nullopt` comme skill (paramètre sans valeur par défaut) ; ceux qui
   testent le skill de dégâts passent un
-  `Skill(TypeSkill::Degats, portée, puissance, recharge, 0.0f)`.
+  `Skill(TypeSkill::DegatsSurCible, portée, puissance, recharge, 0.0f)`.
   - `test_Skill.cpp` : `relancerRecharge` empêche de frapper avant une
     recharge complète, même sur une attaque jamais utilisée ;
     `getProgressionRecharge` vaut 1 à la création, 0 juste après
@@ -1711,3 +1711,37 @@ vie). Une attaque « reconnaissable » (un coup qu'on suit parmi d'autres) s'obt
   0,13 à 0,18 ms, loin des 5 ms et 16 ms qui feraient signaler un problème.
 - **Vérification des graines** : non refaite en bloc ; les tests ajoutés ne dépendent d'aucune graine (les propriétés se
   vérifient sur 50 graines, la distribution des compositions sur 200).
+
+## Étape 94 : types de dégâts et résistances (+63 cas, 1 376 → 1 439)
+
+- **94.1** : `Attaque::montant` devient `degats`, `soin` et `dureeDeProvocation`. Aides : `degatsOuZero` (ex-`montantOuZero`),
+  `soinSansHasard` ; `lancerSkillEnEntier` (`test_Personnage.cpp`) rend l'`Attaque` entière. Un test : l'attaque d'un skill range
+  son montant dans le champ de son type, les deux autres restent à 0.
+- **94.2** : `tests/combat/test_Element.cpp` (nouveau) : valeurs à zéro par défaut, accès par élément, total, copie par
+  valeur, `seul`, sentinelle (la taille suit l'énumération, `s_elements` dans l'ordre), `elementDominant` (égalité : le
+  premier), `enPortions`, `degatsDe` / `degatsPhysiques`. L'événement `Degats` devient `DegatsSubis` (mise à jour des tests
+  d'événements et de textes).
+- **94.3** : `tests/combat/test_ResolutionDuCoup_portions.cpp` (nouveau, thème « portions » de `test_ResolutionDuCoup`) : un coup
+  mixte avec armure et résistance ; l'armure ne touche pas un élément ; la résistance physique ; le critique sur toutes
+  les portions ; le blocage ne réduit que le physique ; une portion physique entièrement bloquée sans plancher, avec une
+  portion élémentaire qui passe ; un projectile purement élémentaire (aucun tirage, aucune récupération lancée, y compris
+  dans `Vitalite`) ; `Bloque` total seulement si tout est absorbé ; plafond de 80 %, vulnérabilité, −300 ramené à −100 ; un
+  arrondi par portion (3 × 50 % deux fois fait 4, pas 3) ; le minimum de 1 dans la plus grosse portion ; la pénétration ne
+  touche pas la résistance ; un coup esquivé n'a aucune portion ; un coup vide ne tire rien. Étapes pures : `armureAppliquee`,
+  `resistanceEffective`, `appliquerResistance` (`test_Defense.cpp`), `coupCritique` (`test_Critique.cpp`), `appliquerBlocage`
+  flottant (`test_Blocage.cpp`), résistances dans `StatistiquesDeCombat` (`test_StatistiquesDeCombat.cpp`). **Aucune valeur
+  attendue des tests existants n'a changé** ; seule l'aide `degatsAttendus` suit le calcul sans arrondi intermédiaire.
+- **94.4** : l'élément dominant dans `detailsDuCoup` (`test_EvenementDeCombat.cpp`, 3) ; les couleurs des nombres
+  (`test_TextesFlottants.cpp`, +6 : physique inchangé, feu et sacré distincts, distance RGB d'au moins 50 entre toutes les
+  couleurs de nombres, un critique élémentaire reste jaune) ; `test_CoherenceDesDonnees.cpp` (+1, et résistances dans
+  [−100, 80] dans la validité d'une définition) ; l'explosion du mage est du feu et les autres skills physiques
+  (`test_Specialite.cpp`) ; un skill de zone de feu (`test_Personnage.cpp`, +2) ; contre l'infanterie lourde le feu ignore
+  l'armure, la créature encaisse 60 % du feu (`test_ResolutionDuCoup_portions.cpp`, +2). Le mage de test
+  (`mageDeTest`) a une explosion de feu, comme la classe.
+- **94.5** : la frappe sacrée (`test_Specialite.cpp`, +4 : la masse donne le physique de l'arme et le sacré du bonus, le total
+  d'avant à 1 près ; l'épée à deux mains donne un physique plus grand ; sans l'arme exigée elle est refusée, icône grisée ;
+  dorée contre l'infanterie lourde, physique si l'épée à deux mains domine) ; `test_Personnage.cpp` (+3 : la pénétration vient
+  de l'arme, la nature et les dégâts physiques aussi, changer d'arme change le physique pas le bonus) ; `test_Skill.cpp` (+1).
+- **Mesure de performance** (preset `jeu`, `[perf]`) : inchangée, moyenne 0,035 à 0,04 ms par image, pire 0,12 à 0,16 ms.
+- Une règle apprise : **un nom de `TEST_CASE` ne contient ni guillemets français ni accents** (« Bloque », pas
+  « Bloqué ») : CTest ne retrouve pas le test sinon.

@@ -132,13 +132,15 @@ Quand un point entre dans `ROADMAP.md`, sa conception détaillée se fait en dis
 1. **Peut-il agir ?** Recharge écoulée, pas sous contrôle, activation terminée.
 2. **Le coup est-il esquivé ?** Esquive contre la mêlée ou contre les projectiles. Si oui : « Esquivé », le coup s'arrête là. *(Fait à l'étape 90, selon la nature de l'attaque, section 7.)*
 3. **Est-ce un critique ?** Capacité offensive contre capacité défensive. *(Fait à l'étape 89 : fonction pure d'un tirage, voir section 7.)*
-4. **Dégâts de départ.** Arme ou skill, plus les coefficients par caractéristique du skill, multipliés par le critique. Le critique s'applique **avant** toute réduction : contre une armure par soustraction, c'est ce qui en fait l'arme naturelle contre l'infanterie lourde.
-5. **Blocage au bouclier** (section 7). Un montant fixe est retiré. Si tout est absorbé : « Bloqué ». *(Fait à l'étape 90 : le montant retiré l'est avant l'armure ; un blocage total saute l'armure et son plancher.)*
-6. **Armure et résistances.** L'armure réduit la part physique, chaque résistance réduit la part de son élément.
+4. **Dégâts de départ.** Arme ou skill, plus les coefficients par caractéristique du skill, multipliés par le critique. Le critique s'applique **avant** toute réduction : contre une armure par soustraction, c'est ce qui en fait l'arme naturelle contre l'infanterie lourde. *(Depuis l'étape 94, le critique et la Puissance s'appliquent à **toutes** les portions du coup, bonus élémentaires compris.)*
+5. **Blocage au bouclier** (section 7). Un montant fixe est retiré. Si tout est absorbé : « Bloqué ». *(Fait à l'étape 90 : le montant retiré l'est avant l'armure ; un blocage total saute l'armure et son plancher. Depuis l'étape 94, il ne retire que de la portion **physique**.)*
+6. **Armure et résistances.** L'armure réduit la part physique, chaque résistance réduit la part de son élément. *(Fait à l'étape 94.)*
 7. **Égide ou Barrière** (section 9) absorbent ce qui reste, puis les points de vie encaissent le reste.
 8. **Effets secondaires.** Vol de vie, effets dans le temps, contrôle.
 
-Note de structure : un coup sera une petite collection de **portions typées** (par exemple 30 physique + 10 feu), chacune réduite par sa propre défense, plutôt qu'un seul nombre. Chaque étape deviendra une fonction qui transforme le coup, testable seule, dans l'esprit d'`appliquerArmure` (étape 55).
+- **Retenu** (étape 94). Un coup est une petite collection de **portions typées** (`Degats`, une quantité par `Element` : par exemple 30 physique + 10 feu), chacune réduite par sa propre défense, plutôt qu'un seul nombre. Chaque étape est une fonction pure testable seule, dans l'esprit d'`appliquerArmure` (étape 55) ; `resoudreCoup` les enchaîne.
+- **Retenu** (étape 94). **Un seul arrondi par portion, en fin de calcul**, au plus proche, sans arrondi intermédiaire (ni après le critique, ni après le blocage, ni après l'armure : comme la pénétration). Le total est la somme des portions arrondies ; **un coup ni esquivé ni entièrement bloqué inflige au moins 1**, dans la plus grosse portion (à égalité, la première de l'énumération). Cela remplace le « au moins 1 » par étape de l'armure.
+- **Retenu** (étape 94). Le soin et la provocation ne sont pas des portions : un soin a son propre montant (il critique, sans élément) et une provocation sa durée.
 
 ## 7. Toucher, esquive et critique
 
@@ -154,7 +156,8 @@ Note de structure : un coup sera une petite collection de **portions typées** (
 - **Retenu** (étape 89). Le calcul est séparé du tirage : chaque étape qui dépend du hasard est une fonction pure qui reçoit un nombre de 0 inclus à 1 exclu ; le tirage a lieu à un seul endroit, dans `resoudreCoup`, et seulement si la chance est non nulle. Aucune distribution pseudo-aléatoire contre les séries de critiques (comme pour l'esquive, voir plus haut).
 - **Retenu.** Blocage au bouclier à la *Titan Quest* : une **chance** de bloquer, un **montant fixe** absorbé (pas tout le coup), puis une **récupération** pendant laquelle le bouclier ne bloque plus. Effet voulu : une nuée « consomme » le bouclier avec ses petits coups, et le gros coup d'une créature monstrueuse passe pendant la récupération. Le tank a une vraie faiblesse face aux mélanges d'ennemis.
 - **À tester.** Les valeurs du blocage (chance, montant, durée de récupération). *(Étape 90 : bouclier rond, 30 % de chance, 40 points absorbés, 3 s de récupération.)*
-- **Retenu** (étape 90). Règles du blocage : il bloque le contact et les projectiles, jamais les zones ; il vient après le critique et avant l'armure ; un blocage réussi lance la récupération, pendant laquelle aucun blocage n'est tenté ; d'autres bonus de chance ou de montant s'additionneraient, la récupération est celle du bouclier ; un blocage qui absorbe tout le coup l'arrête, sans armure ni plancher. La récupération est un état du défenseur (`Vitalite`), qui s'écoule avec le temps. Les monstres n'ont pas de bouclier, mais rien n'empêche d'en avoir un. La question 12 (blocage et portions typées) attend l'étape 93 : tout est physique pour l'instant.
+- **Retenu** (étape 90). Règles du blocage : il bloque le contact et les projectiles, jamais les zones ; il vient après le critique et avant l'armure ; un blocage réussi lance la récupération, pendant laquelle aucun blocage n'est tenté ; d'autres bonus de chance ou de montant s'additionneraient, la récupération est celle du bouclier ; un blocage qui absorbe tout le coup l'arrête, sans armure ni plancher. La récupération est un état du défenseur (`Vitalite`), qui s'écoule avec le temps. Les monstres n'ont pas de bouclier, mais rien n'empêche d'en avoir un. 
+- **Retenu** (étape 94, question 12 tranchée). **Le bouclier ne réduit que la portion physique.** Les portions élémentaires passent toujours : la magie se distingue par son élément, sans drapeau « magique ». Le blocage n'est tenté que si l'attaque est de contact ou un projectile **et** a une portion physique non nulle : une boule de feu (projectile purement élémentaire) ne déclenche ni tirage ni récupération. Une portion physique entièrement absorbée ne subit ni l'armure ni son plancher ; les autres portions continuent. Le texte « Bloqué » (sans montant) n'apparaît que si le coup entier est absorbé, donc s'il n'y avait que du physique ; sinon « Bloqué −N », puis le total des dégâts qui passent. *Piste : un bouclier « anti-magie » qui bloquerait aussi des portions élémentaires (section 15).*
 
 ## 8. Armure, pénétration et résistances
 
@@ -166,7 +169,10 @@ Note de structure : un coup sera une petite collection de **portions typées** (
 - **Retenu** (étape 92). Pénétration d'armure **en %** (ignore X % de l'armure) : identité des armes de spécialiste (estoc, dague de miséricorde, arbalète, pic de guerre). Elle réduit l'armure du défenseur **avant** la soustraction M1 : `armure effective = armure × (1 − pénétration)`, sans arrondi intermédiaire. Propriété de l'arme, portée par l'attaque de base (coups d'opportunité compris) ; un skill n'en a pas (il a sa propre puissance) ; pas de bonus de pénétration par l'équipement à cette étape. La dague : 30 %.
 - **À tester** (étape 92). Plafond de la pénétration : 75 % (`s_penetrationMaximale`, `Defense.hpp`).
 - **Retenu.** Les effets dans le temps (saignement, poison…) **ignorent l'armure** ; seules les résistances s'appliquent. Le saignement devient une réponse naturelle à l'infanterie lourde.
-- **Proposé.** L'armure ne protège **que contre le physique** (intuition d'Olivier). Chaque élément a sa **résistance en %**, plafonnée (par exemple 75 %). Une **pénétration de résistance** pourra exister pour les sorts, gagnée par l'équipement ou les skills, pas propre à toute la magie.
+- **Retenu** (étape 94). **L'armure ne protège que contre le physique.** Chaque élément a sa **résistance en %** : une seule règle pour tous, physique compris (`portion × (1 − résistance)`, sans arrondi), appliquée après l'armure. La résistance physique vaut 0 partout pour l'instant. Valeurs : `docs/combat.md`.
+- **À tester** (étape 94, question 3 tranchée pour les résistances). **Plafond de 80 %** (`s_resistanceMaximale`, `Defense.hpp`, à côté de la pénétration d'armure) ; les résistances **négatives** (vulnérabilités) sont permises jusqu'à −100 % (`s_resistanceMinimale`, le coup est doublé). Hors de [−100, 80], la valeur est ramenée dans l'intervalle à l'application. Les personnages ont toutes leurs résistances à 0 (l'équipement en donnera à l'étape 95) ; les monstres les ont dans leur définition (`docs/monstre.md`) : toutes à 0 sauf la créature monstrueuse, 40 % contre le feu. Les attaques des monstres restent 100 % physiques.
+- **Proposé.** Une **pénétration de résistance** pourra exister pour les sorts, gagnée par l'équipement ou les skills, pas propre à toute la magie. *Pas à l'étape 94 : la pénétration d'armure ne touche que l'armure.*
+- **Retenu** (étape 94, question 5 tranchée). **Les éléments** : physique, feu, froid, foudre, poison, sacré, nécrotique, saignement. Le **saignement est un type de dégâts** avec sa propre résistance : il arrive surtout dans le temps et ignore l'armure comme tout effet dans le temps, mais il n'est pas imparable. *Psychique / Arcane* reste une piste, à revoir en créant les classes. **Dans le code, seulement ceux qui ont une source** : physique, feu (l'explosion du mage), sacré (la frappe sacrée du paladin) ; les autres s'ajouteront avec leur premier skill ou monstre.
 - **Principe.** On ne peut pas se protéger contre tout, et c'est voulu :
   - l'équipement a des profils (plate : beaucoup d'armure, peu de résistances ; robe enchantée : l'inverse ; cuir : entre les deux) ;
   - les couleurs ont un rôle défensif (blanc : armure ; bleu : protection magique) ;
@@ -236,6 +242,7 @@ Points de conception associés (**proposés**) :
 - **Instantané contre activation** : l'instantané compense par des nombres plus faibles ou une recharge plus longue ; l'activation peut être interrompue.
 - **Retenu.** Chaque skill déclare ses **coefficients par caractéristique** (levier 2 de la section 5). Ce sont des données du skill, pas du code propre à chaque skill.
 - **Retenu** (étape 91, documentation seulement). **Deux familles de skills de dégâts** : les **skills de frappe** utilisent l'arme (ses dégâts plus un bonus, sa nature et sa pénétration ; candidats : frappe puissante, frappe sacrée, tir perçant) et les **skills à dégâts propres** (explosion, pluie de flèches). La description de l'attaque construite à partir de l'arme (`DescriptionDAttaque`) peut servir de point de départ à un skill de frappe ; aucun skill ne change à l'étape 91.
+- **Retenu** (étape 94). **La frappe sacrée est le premier skill de frappe** (`DefinitionDeSkill::bonusDeFrappe`). De l'arme : les dégâts physiques (Puissance comprise), la nature et la pénétration. Du skill : un **bonus fixe, typé** (un `Degats` : ici du sacré), la recharge, le temps d'activation et la portée. Les exigences d'arme ne changent pas (épée longue, masse, épée à deux mains). **À tester** : bonus sacré de 45, calibré sur la masse de départ (15 + 45 = 60, le total d'avant) ; avec l'épée à deux mains (60) : 105. Contre l'infanterie lourde, l'armure écrase le physique et le nombre est doré. La frappe puissante et le tir perçant pourront devenir des skills de frappe avec un bonus physique, sans changer la structure (section 15).
 
 ## 13. Inventaire des statistiques de combat
 
@@ -246,14 +253,14 @@ Points de conception associés (**proposés**) :
 | Statistique | Rôle | Source principale | Existe |
 |---|---|---|---|
 | Dégâts de base | Montant de départ du coup | Arme, skill ; modifiés par la Puissance | Oui (l'attaque de base vient de l'arme depuis l'étape 91 ; par skill pour les autres ; la Puissance, étape 88 : 3 % par point au-dessus de 10, valeurs à tester) |
-| Type de dégâts | Physique, feu, froid, foudre, poison, sacré, vitalité… | Arme, skill | |
+| Type de dégâts | Physique, feu, froid, foudre, poison, sacré, nécrotique, saignement | Arme, skill | Oui (étape 94 : physique, feu et sacré ; un coup est une collection de portions ; les autres éléments avec leur première source) |
 | Intervalle de recharge | Temps entre deux coups (min-max) | Arme, skill | Oui (par arme depuis l'étape 91 ; changer d'arme relance une recharge complète) |
 | Temps d'exécution / d'activation | Durée d'immobilité de l'attaquant | Arme, skill | Oui |
 | Portée | Distance bord à bord | Arme, skill | Oui |
 | Capacité offensive | Chance et force du critique | Adresse, équipement | Oui (étape 89 : `50 + 5 × Adresse` pour un personnage, 100 pour un monstre ordinaire ; pas de bonus d'équipement propre) |
 | Multiplicateur de critique | Force du critique | Équipement, skills | Oui, mais seulement en fonction du rapport des capacités (de ×1,5 à ×2, étape 89) ; pas de bonus d'équipement ni de skill |
 | Pénétration d'armure | Ignore un % de l'armure | Arme, équipement | Oui (étape 92 : propriété de l'arme, la dague 30 %, plafond de 75 % ; pas de bonus d'équipement) |
-| Pénétration de résistance | Ignore une part de la résistance | Équipement, skills | |
+| Pénétration de résistance | Ignore une part de la résistance | Équipement, skills | Non (l'étape 94 ne la fait pas) |
 | Puissance de soin | Montant soigné | Skill, Puissance, équipement | Oui (par skill ; la Puissance, étape 88, comme les dégâts) |
 | Taille de zone | Rayon d'un skill de zone | Skill, Savoir, équipement | Oui (fixe) |
 | Durée des effets | Buffs, debuffs, DoT, contrôle infligé | Skill, Savoir, équipement | |
@@ -266,8 +273,8 @@ Points de conception associés (**proposés**) :
 |---|---|---|---|
 | Points de vie | Survie | Endurance, niveau, équipement | Oui (étape 91 : base commune 240 + 6 par point d'Endurance, à tester ; échelle × 3) |
 | Régénération | PV regagnés dans le temps | Équipement, skills | |
-| Armure | Réduit le physique | Équipement | Oui (soustraction avec plancher de 20 %, étape 87) |
-| Résistances | Une par élément, en % plafonné | Équipement, skills | |
+| Armure | Réduit le physique | Équipement | Oui (soustraction avec plancher de 20 %, étape 87 ; seulement la portion physique depuis l'étape 94) |
+| Résistances | Une par élément, en % plafonné | Équipement, skills | Oui (étape 94 : plafond de 80 %, vulnérabilité jusqu'à −100 % ; monstres dans leur définition, la créature monstrueuse 40 % de feu ; personnages 0, l'équipement en donnera à l'étape 95) |
 | Esquive contre la mêlée | % d'éviter un coup au contact | Équipement, skills (plafond) | Oui (étape 90 : plafond de 50 %, monstres 5 %, bottes de cuir +5 % ; pas de skills qui en donnent) |
 | Esquive contre les projectiles | % d'éviter un tir | Équipement, skills (plafond) | Oui (étape 90 : plafond de 50 %, monstres 5 %, casque de cuir +5 %) |
 | Capacité défensive | Réduit le critique subi | Adresse, équipement | Oui (étape 89 : comme la capacité offensive ; une référence de 100 pour les soins) |
@@ -275,7 +282,7 @@ Points de conception associés (**proposés**) :
 | Résistance au contrôle magique | Réduit la durée de la peur, du silence, du charme | Volonté, équipement | |
 | Résistance à l'interruption | Chance de garder son activation | Volonté, équipement | |
 | Égide / Barrière | Réserve temporaire ; l'Égide bloque le contrôle physique, la Barrière le contrôle magique | Skills, équipement | |
-| Blocage | Chance, montant fixe absorbé, temps de récupération | Bouclier, skills | Oui (étape 91 : bouclier rond 30 %, 12 points ; récupération commune de 3 s ; pas de skills qui en donnent) |
+| Blocage | Chance, montant fixe absorbé, temps de récupération | Bouclier, skills | Oui (étape 91 : bouclier rond 30 %, 12 points ; récupération commune de 3 s ; pas de skills qui en donnent ; étape 94 : ne réduit que la portion physique) |
 
 **Ressources et déplacement**
 
@@ -298,21 +305,25 @@ Points de conception associés (**proposés**) :
 
 1. *Tranchée* : blocage à la *Titan Quest* (section 7).
 2. **Le niveau** entre-t-il dans les formules (pénalité selon l'écart, à la *Diablo 2* / WoW), ou un monstre plus fort l'est-il seulement par ses nombres ? *(En partie éclairée à l'étape 89 : le critique traite le niveau par les nombres, car il ne lit que le rapport des capacités ; un monstre de zone plus profonde aura de plus grandes capacités, sans formule d'écart de niveau. Les autres étapes du coup restent à décider.)*
-3. **Les plafonds** : esquive, résistances, réduction de recharge ; lesquels, et à combien ? *(En partie tranchée à l'étape 90 : l'esquive est plafonnée à 50 %. Restent les résistances et la réduction de recharge.)*
+3. **Les plafonds** : esquive, résistances, réduction de recharge ; lesquels, et à combien ? *(En partie tranchée : l'esquive est plafonnée à 50 % (étape 90), les résistances à 80 % avec des vulnérabilités jusqu'à −100 % (étape 94, à tester). Reste la réduction de recharge.)*
 4. *Tranchée* : l'Égide et la Barrière absorbent en dernier (section 9).
-5. **La liste des éléments** : physique, feu, froid, foudre, poison, sacré, vitalité, psychique ? Le saignement est-il un type ou un effet ?
+5. *Tranchée* (étape 94) : **la liste des éléments** (physique, feu, froid, foudre, poison, sacré, nécrotique, saignement ; psychique / arcane en piste) et le saignement est un type (section 8).
 6. **La ressource** : piste privilégiée, une ressource partagée, l'**Élan**, en couche au-dessus de ressources propres à certaines classes (section 15). À confirmer : quelles classes ont leur propre ressource, et laquelle. Le mana n'est rattaché à aucune caractéristique tant que ce n'est pas tranché.
 7. *Tranchée* (étape 89) : **la magie critique**, comme le reste (section 7). Dans *Titan Quest*, non.
 8. **Les classes de départ** : quelles classes de base, quelles spécialisations, quels paliers ?
 9. **L'automatisation** : quels skills partent seuls (gambits, `docs/brainstorm.md`), lesquels restent au clavier ?
 10. **Un bonus pour une escouade d'une seule couleur** ? (Moins pertinent depuis que les couleurs ne sont qu'un guide de conception.)
 11. **Les noms définitifs** des cinq caractéristiques.
-12. **Le blocage et les portions typées** : comment le montant bloqué se répartit-il entre les portions d'un coup (physique d'abord, ou au prorata) ?
+12. *Tranchée* (étape 94) : **le blocage et les portions typées** : le bouclier ne réduit que la portion physique (section 7).
 
 ## 15. Pistes
 
 Idées retenues pour plus tard, sans étape prévue.
 
+- **Éléments sans source** (étape 94) : froid, foudre, poison, nécrotique, saignement s'ajouteront à l'énumération `Element` avec leur premier skill ou monstre ; `Psychique / Arcane` est à revoir en créant les classes.
+- **Pénétration de résistance** : par l'équipement ou des skills, comme la pénétration d'armure (à décider).
+- **Bouclier anti-magie** : un bouclier qui bloquerait aussi une part des portions élémentaires (le bouclier rond ne bloque que le physique).
+- **Frappe puissante et tir perçant en skills de frappe** : la même structure que la frappe sacrée, avec un bonus physique.
 - **Hystérésis du changement de cible** (inspirée de la menace de WoW) : un monstre ne change de cible que si la nouvelle est **nettement** plus proche, pas dès qu'elle l'est un peu. Évite les oscillations (« ping-pong »), utile dès les escouades de monstres. Pas de table de menace : les monstres frappent toujours le plus proche.
 - **Projectiles physiques** (inspirés de *Titan Quest*) : une flèche ou un sort touche le **premier** corps sur sa trajectoire. Avec le blocage entre entités, la ligne de front protège les tireurs arrière des tirs ennemis. Plus coûteux en code : les projectiles deviennent des objets du monde.
 - **Postures d'escouade** (inspirées de *Dawn of War 2* et *Dragon Age*) : une bascule globale du comportement automatique. **Offensive** : on poursuit et on engage. **Défensive** : on tient la formation, on ne poursuit pas. **Prudente** : les tireurs restent à leur portée maximale. Une seule décision change les trois personnages. C'est une première marche, plus simple, vers les gambits, et ça reprend l'idée d'un état de l'escouade.
@@ -321,7 +332,7 @@ Idées retenues pour plus tard, sans étape prévue.
 
 ## Ordre de discussion proposé
 
-1. Finir les maths du combat (questions 2, 3, 5, 6, 7 et 12).
+1. Finir les maths du combat (questions 2, 3, 6 et 7 ; 5 et 12 sont tranchées depuis l'étape 94).
 2. Les catégories d'ennemis, qui découlent du modèle d'armure (faites à l'étape 93, valeurs à tester ; restent leurs règles propres et leurs comportements).
 3. La progression des classes : barre de maîtrise, paliers, fourche de spécialisation.
 4. Les skills de chaque classe, conçus avec les couleurs comme boussole.

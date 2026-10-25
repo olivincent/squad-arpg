@@ -284,7 +284,9 @@ d'endurance » (collier, armure 0, Endurance +3). Un collier d'endurance donne +
 (20 par point d'Endurance).
 
 Bonus de combat (étape 90.2) : `DefinitionObjet` reçoit `StatistiquesDeCombat bonusDeCombat = {}`, le
-même type que les statistiques d'un personnage, qui s'y additionnent (`docs/combat.md`). Deux objets en ont
+même type que les statistiques d'un personnage, qui s'y additionnent (`docs/combat.md`). Depuis l'étape 94, ce type
+porte aussi les **résistances** par élément (`Resistances`), additionnées de la même façon ; aucun objet n'en donne
+encore (étape 95), tous les personnages ont 0. Deux objets en ont
 un (valeurs « à tester », constantes nommées de `CatalogueObjets.cpp`) : les **bottes de cuir** +5 %
 d'esquive contre le contact, le **casque de cuir** +5 % d'esquive contre les projectiles. Le **bouclier rond**
 (30 % de chance de blocage, 12 points absorbés) est depuis l'étape 91.6 une propriété du bouclier

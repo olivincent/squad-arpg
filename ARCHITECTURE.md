@@ -47,6 +47,7 @@ squad-arpg/
 │   ├── monde/      TileMap, Chemin, Deplacement, Mobile, ChampDeVision, Vision,
 │   │               ObjetInteractif, Niveau, CategorieDeMonstre, CompositionDeGroupe, GenerateurDonjon, Encerclement
 │   ├── combat/     Skill, SkillConnu, IdSkill, TypeSkill, TypeDArme, DescriptionDAttaque, AdresseSkill, Cible, ActionEngagee,
+│   │               Element, Degats,
 │   │               EtatSkill, Coup, EvenementDeCombat, EntiteVue, Autodefense, Engagement,
 │   │               Attaque, NatureDAttaque, StatistiquesDeCombat, Esquive, Critique, Blocage, Defense,
 │   │               ResolutionDuCoup, Caracteristiques, PointsDeVie, Vitalite
@@ -131,24 +132,26 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 
 `combat/` — skills et règles communes aux deux camps (`docs/combat.md`) :
 - `Skill` : type, portée, puissance, recharge, zone, armes exigées, machine à états `commencer`/`avancer`/`annuler`.
-- `TypeSkill` : `Degats`, `Soin`, `Provocation`, `Zone`.
+- `TypeSkill` : `DegatsSurCible`, `Soin`, `Provocation`, `Zone`.
+- `Element`, `Degats` : les éléments d'un coup (`Physique`, `Feu`, `Sacre`), `ParElement<T>` (une valeur par élément), `Degats`
+  (les portions d'un coup) et `Portions` (leur version flottante pendant la résolution) ; sans `.cpp` (`docs/combat.md`).
 - `TypeDArme`, `DescriptionDAttaque` : le type d'une arme (ce qu'un skill peut exiger) et la description d'une attaque de base
   (dégâts, recharge, exécution, portée, nature) que donne une arme ou les mains nues ; `zoneDeControleDe(nature)` (`docs/objets.md`).
 - `IdSkill`, `SkillConnu`, `AdresseSkill` : identifiant stable d'un skill, skill d'un personnage, place + skill.
 - `Cible` : `std::variant` allié, monstre ou point, et `Surcharges` pour `std::visit`.
 - `ActionEngagee` : l'action (attaque de base ou skill) qu'un personnage prépare, et sa cible.
 - `EtatSkill` : le skill d'une place, tel que l'affichage en a besoin.
-- `Attaque` : ce qui part de l'attaquant et circule jusqu'au défenseur, le montant, la capacité offensive et la nature.
+- `Attaque` : ce qui part de l'attaquant et circule jusqu'au défenseur : les dégâts en portions par élément (ou un soin, ou une durée de provocation), la capacité offensive, la nature et la pénétration.
 - `NatureDAttaque` : contact, projectile ou zone, une donnée de l'attaque que lisent l'esquive et le blocage.
 - `Coup` : une attaque à infliger à un monstre, sortie d'`Escouade`.
 - `EvenementDeCombat` : champs communs + détail en variant (dégâts, soin, skill lancé, monstre provoqué, esquive, blocage), en données (file de `Partie`) ; `detailsDuCoup` convertit le résultat d'un coup.
 - `EntiteVue` : une entité telle que l'autre camp la voit, et `trouverEntite`.
 - `Autodefense` : quel ennemi frapper, quel agresseur viser.
 - `Engagement` : zones de contrôle, coups d'opportunité, monstre dont se dégager.
-- `Defense` : `appliquerArmure`, modèle M1 (soustraction avec plancher de 20 %, armure réduite par la pénétration de l'attaque).
-- `StatistiquesDeCombat` : ce que le moteur du coup lit d'une entité (capacités, esquives, blocage), aussi le bonus de combat d'un objet ; `statistiquesDuPersonnage`, seul endroit où elles se calculent.
+- `Defense` : `appliquerArmure` et `armureAppliquee`, modèle M1 (soustraction avec plancher de 20 %, armure réduite par la pénétration de l'attaque), et `appliquerResistance` (résistance par élément, de −100 % à 80 %).
+- `StatistiquesDeCombat` : ce que le moteur du coup lit d'une entité (capacités, esquives, blocage, résistances par élément), aussi le bonus de combat d'un objet ; `statistiquesDuPersonnage`, seul endroit où elles se calculent.
 - `Esquive`, `Critique`, `Blocage` : les étapes du coup qui dépendent du hasard, des fonctions pures qui reçoivent un tirage (`docs/combat.md`).
-- `ResolutionDuCoup` : `resoudreCoup`, point d'entrée unique d'un coup (esquive, critique, blocage, armure) et seul tirage du moteur ; `resoudreSoin` ; `Defenses`.
+- `ResolutionDuCoup` : `resoudreCoup`, point d'entrée unique d'un coup, portion par portion (esquive, critique, blocage du physique, armure, résistances, un arrondi par portion) et seul tirage du moteur ; `resoudreSoin` ; `Defenses`.
 - `PointsDeVie` : valeur et maximum, invariants de vie et de mort.
 - `Caracteristiques` : les cinq caractéristiques (`Caracteristique`, `Caracteristiques`, `Coefficients`), les points de vie maximum et `montantEffectif`, seule source du montant d'un skill de personnage (`docs/combat.md`).
 - `Vitalite` : points de vie, défenses (armure, statistiques de combat) et récupération du blocage d'une entité, commune à `Personnage` et `Monstre`.

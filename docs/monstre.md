@@ -115,6 +115,14 @@ de vie, armure 3).
 - **`contient`** réutilise `sf::FloatRect::contains` plutôt que de
   réimplémenter sa convention (bords gauche/haut inclus, droit/bas
   exclus).
+- **Résistances** (étape 94) : `DefinitionDeMonstre::statistiques.resistances` (un `ParElement<int>`, en pour cent par
+  élément, dans les statistiques de combat avec les esquives ; voir `docs/combat.md`, « Types de dégâts et
+  résistances »). Elles sont une donnée de la définition (le `Profil` de chaque catégorie dans
+  `DefinitionDeMonstre.cpp`), pas une règle écrite pour une catégorie : la catégorie dit quel corps a le monstre, les
+  résistances de quoi il se protège. « À tester » : toutes à 0 sauf la **créature monstrueuse, 40 % contre le feu**
+  (`s_resistanceAuFeuDeLaCreature`) ; l'explosion du mage fait donc 60 % de ses dégâts contre elle, et n'est pas réduite
+  par l'armure de l'infanterie lourde (l'armure ne réduit que le physique). `test_CoherenceDesDonnees` vérifie que toutes
+  les résistances du catalogue sont dans [−100, 80]. Les attaques des monstres restent 100 % physiques.
 - **Armure** (étape 55) : `DefinitionDeMonstre::armure` (de 0 à 10 selon la catégorie depuis l'étape 93 ; avant,
   3 pour tous, donnée par le niveau). `recevoirDegats` passe par `resoudreCoup`, dont
   l'armure est une étape. Voir `docs/combat.md`.
@@ -544,7 +552,7 @@ valeur n'est oublié sans que le compilateur le signale) et le catalogue.
 Champs de `struct DefinitionDeMonstre` : `cote` (`float`, du carré, en pixels ; le cercle de collision lui est inscrit),
 `couleur` (`sf::Color`), `vitesse` (`float`), `pointsDeVieMax`, `armure`, `rayonDetection`, `rayonTerritoire`,
 `zoneDeControle`, `regenerationRetour`, `attaque` (`DefinitionDeSkill` : portée, dégâts, recharge, exécution, nature),
-`statistiques` (`StatistiquesDeCombat`).
+`statistiques` (`StatistiquesDeCombat` : capacités, esquives, et depuis l'étape 94 les résistances).
 
 | Fonction | Rôle |
 |---|---|

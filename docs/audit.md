@@ -806,7 +806,7 @@ font poursuivre 30 monstres durent environ 1,2 s chacun en `-O0`.
 - **Proposition** : `struct DefinitionDeSkill { TypeSkill type; float portee; int puissance; float
   rechargeMin; float rechargeMax; float rayonZone = 0; float tempsExecution = 0; }` et
   `explicit Skill(const DefinitionDeSkill&)` ; les appels s'écrivent
-  `Skill({.type = TypeSkill::Degats, .portee = s_porteeMelee, ...})`. Même idée pour `Personnage`
+  `Skill({.type = TypeSkill::DegatsSurCible, .portee = s_porteeMelee, ...})`. Même idée pour `Personnage`
   (il reçoit déjà presque une `DefinitionPersonnage` : lui passer la définition). `Niveau::
   armureMonstres = s_armureMonstresParDefaut`.
 - **Coût** : petit (mécanique ; commencer par `Specialite.cpp`).

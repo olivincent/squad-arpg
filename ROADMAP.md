@@ -8,7 +8,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 ## Étapes terminées
 
-Étapes 0 à 93 ✅. Les dernières :
+Étapes 0 à 94 ✅. Les dernières :
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 - Étape 83 — Inventaire et équipement : le modèle, sans interface ✅
@@ -22,15 +22,16 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - Étape 91 — Les armes : l'attaque de base et la zone de contrôle viennent de l'arme, échelle × 3, deux mains, skills qui exigent une arme ✅
 - Étape 92 — Seuils d'équipement, objets inactifs, pénétration d'armure (la dague) ✅
 - Étape 93 — Les types de monstres : nuée, infanterie, infanterie lourde, créature monstrueuse, groupes en données ✅
+- Étape 94 — Types de dégâts et résistances : le coup en portions (physique, feu, sacré), l'explosion en feu, la frappe sacrée, premier skill de frappe ✅
 
 ## État actuel (résumé)
 
 - **Outils** : conception dans Claude.ai, implémentation avec Claude Code dans VSCode (règles dans
   `CLAUDE.md`) ; dépôt Git `squad-arpg`, poussé sur GitHub ; SFML 3.0.2 intégrée à CMake.
-- **Code** (étape 93) : 89 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
+- **Code** (étape 94) : 91 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
   `combat`, `objets`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
   de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug` et `jeu`, 0
-  avertissement, 1 376 tests verts sous CTest, 39 avertissements `clang-tidy` (`docs/build.md`,
+  avertissement, 1 439 tests verts sous CTest, 39 avertissements `clang-tidy` (`docs/build.md`,
   `docs/audit.md`). `Escouade` n'est plus que l'assemblage : `Escouade.cpp` de 1 223 à 1 067 lignes. Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`).
 - **Écrans** : menu à la souris, options d'affichage (fenêtré ou plein écran, résolutions,
   `reglages.ini`), choix de 3 classes parmi 5 (guerrier, prêtre, mage, paladin, rôdeur ; doublons
@@ -69,7 +70,11 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   (dégâts, soin, provocation, zone avec visée) avec temps d'activation et un skill en attente pour
   l'escouade ; critiques (dégâts et soins, des deux camps, selon le rapport des capacités offensive et
   défensive) ; esquive (plafond de 50 %, selon la nature de l'attaque : contact, projectile ou zone, qui ne
-  s'esquive ni ne se bloque) et blocage au bouclier (chance, montant fixe, récupération) ; dégâts, soins,
+  s'esquive ni ne se bloque) et blocage au bouclier (chance, montant fixe, récupération, de la seule portion
+  physique) ; **un coup est un ensemble de portions par élément** (physique, feu, sacré), chacune réduite par sa propre
+  défense : l'armure pour le physique, une résistance en pour cent (plafond de 80 %, vulnérabilités jusqu'à −100 %) pour
+  chaque élément, un seul arrondi par portion ; l'explosion du mage est du feu, la frappe sacrée du paladin est le premier
+  skill de frappe (l'arme plus un bonus sacré de 45) ; dégâts (orange pour le feu, doré pour le sacré), soins,
   critiques, « Esquivé », « Bloqué », nom du skill lancé et « Provoqué » flottants (`docs/combat.md`).
 - **Monstres** : détection en vue, poursuite, frappe de la proie ou du plus proche atteignable,
   alerte du groupe, retour au poste invulnérable avec régénération ; **quatre catégories** (nuée de petits
@@ -184,18 +189,28 @@ ce qui reste à décider **en discussion** avant son prompt :
   - 93 ✅ : types de monstres (nuée, infanterie, infanterie lourde, créature monstrueuse), catalogue de
     définitions, catégorie dans le `Niveau`, groupes en données, créature dans la salle la plus éloignée,
     mesure de performance (inchangée à 0,04 ms par image).
-  - 94 : coups en portions typées, résistances (l'ancienne étape 93). À décider : la liste des éléments
-    (question 5).
+  - 94 ✅ : coups en portions typées (physique, feu, sacré), résistances, blocage du seul physique, explosion en feu,
+    créature monstrueuse à 40 % de résistance au feu, frappe sacrée en skill de frappe, nombres flottants colorés.
 - **Phase 4, butin**
   - 95 : objets avec leurs propres données (rareté, bonus) ; 96 : butin au sol ; 97 : génération
     aléatoire des objets. À décider : rareté, affixes, niveau d'objet (question 2).
 
-## Étape 94 (prochaine) : types de dégâts et résistances, à discuter avec Claude.ai
+## Étape 95 (prochaine) : objets avec leurs propres données, à discuter avec Claude.ai
 
-Phase 3 du plan (éléments) : les coups en portions typées et les résistances. À décider : la liste des éléments
-(question 5 de `docs/classes-et-combat.md`), la pénétration de résistance (la pénétration d'armure existe depuis
-l'étape 92), comment le montant bloqué se répartit entre les portions d'un coup (question 12), et quelles
-résistances ont les quatre catégories de monstres. Le Savoir et la Volonté n'ont encore aucun effet.
+Phase 4 du plan (butin) : rareté, bonus, et les résistances que l'équipement donnera (le champ existe depuis l'étape 94,
+dans `StatistiquesDeCombat`, additionné par `bonusDeCombatTotal`). À décider : rareté, affixes, niveau d'objet
+(question 2 de `docs/classes-et-combat.md`), l'affichage des résistances dans l'inventaire. Le Savoir et la Volonté n'ont
+encore aucun effet.
+
+**Pistes issues de l'étape 94** (étapes à part, plus tard) :
+- **Les éléments sans source** : froid, foudre, poison, nécrotique, saignement s'ajoutent à `Element` avec leur premier
+  skill ou monstre (le saignement est un type de dégâts, `docs/classes-et-combat.md`, section 8) ; Psychique / Arcane est
+  à revoir en créant les classes.
+- **La pénétration de résistance** (par l'équipement ou des skills), et les bonus de pénétration d'armure.
+- **Un bouclier anti-magie**, qui bloquerait aussi une part des portions élémentaires.
+- **La frappe puissante et le tir perçant en skills de frappe** (la structure de la frappe sacrée, avec un bonus
+  physique).
+- **Les effets dans le temps** (saignement, poison) qui ignorent l'armure, et les immunités.
 
 **Pistes issues de l'étape 93** (étapes à part, plus tard) :
 - **La vraie escouade de monstres** (ancre, formation, places d'attaque autour de leur cible, cible commune) : elle

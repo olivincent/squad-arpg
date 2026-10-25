@@ -160,7 +160,7 @@ personnages sont dans `docs/formation.md`, le monstre dans
 
 ## Skill
 
-- **Une classe `Skill`** : un `TypeSkill` (`Degats`, `Soin`,
+- **Une classe `Skill`** : un `TypeSkill` (`DegatsSurCible`, `Soin`,
   `Provocation` ou `Zone`), une portée (bord à bord), une puissance, un
   temps de recharge, la recharge courante et un rayon de zone. Le mot
   « dégâts » est caché derrière un nom neutre, la puissance (dégâts
@@ -611,9 +611,9 @@ personnages sont dans `docs/formation.md`, le monstre dans
 - **Point d'entrée unique du coup (étape 87.2, étendu aux étapes 89 et 90)** : `resoudreCoup(Attaque, Defenses,
   bool blocagePret, Generateur&)` (module `ResolutionDuCoup`), appelée par `Vitalite::recevoirDegats`. Elle
   enchaîne des fonctions d'étape dans l'ordre de la section 6 de `docs/classes-et-combat.md` : l'esquive, le
-  critique, le blocage, puis l'armure (`appliquerArmure`) ; voir « Le critique… (étape 89) » et « L'esquive et
-  le blocage (étape 90) ». `Defenses` contient l'armure et les statistiques de combat du défenseur ; les
-  résistances s'y ajouteront à l'étape 93, sans étape vide d'avance.
+  critique, le blocage, l'armure, puis les résistances (étape 94, portion par portion) ; voir « Le critique… (étape 89) »,
+  « L'esquive et le blocage (étape 90) » et « Types de dégâts et résistances (étape 94) ». `Defenses` contient
+  l'armure et les statistiques de combat du défenseur, dont les résistances.
 - **Qui l'applique** : `Vitalite::recevoirDegats`, avant `PointsDeVie::subirDegats`, pour `Personnage`
   et `Monstre` qui lui délèguent. `PointsDeVie` ne connaît pas l'armure. Chaque entité a une `Vitalite`
   dont les défenses (`Defenses` : l'armure et les statistiques de combat) viennent de son constructeur ; pas
@@ -629,7 +629,8 @@ personnages sont dans `docs/formation.md`, le monstre dans
   mage ; une attaque de base de 15 fait 12 à un monstre.
 - **Le soin n'est pas touché** par l'armure. Les dégâts de zone, de skill et d'attaque de base passent
   tous par `recevoirDegats`, donc par l'armure.
-- **Limites** : pas de types de dégâts ni de résistances (la pénétration d'armure date de l'étape 92 : voir plus loin).
+- **Limites** : l'armure ne réduit que la portion physique d'un coup (étape 94 : types de dégâts et résistances, voir
+  plus loin) ; la pénétration d'armure date de l'étape 92.
 
 ## Caractéristiques, points de vie et montant effectif (étape 88)
 
@@ -746,8 +747,8 @@ Détail de conception : `docs/classes-et-combat.md`, sections 6, 7 et 13. Étape
 ## L'esquive et le blocage (étape 90)
 
 Détail de conception : `docs/classes-et-combat.md`, sections 6, 7 et 13. Étapes 2 (« le coup est-il esquivé ? »)
-et 5 (« blocage au bouclier ») du déroulement d'un coup. Tout est physique ici : la question 12 (blocage et
-portions typées) attend l'étape 93.
+et 5 (« blocage au bouclier ») du déroulement d'un coup. Depuis l'étape 94, le bouclier ne réduit que la portion
+physique d'un coup (question 12 tranchée, voir « Types de dégâts et résistances »).
 
 - **Nature explicite de chaque attaque** : `NatureDAttaque { Contact, Projectile, Zone }`
   (`combat/NatureDAttaque.hpp`), une **donnée de l'attaque**, jamais déduite : `Attaque::nature` (sans valeur par
@@ -864,7 +865,8 @@ mains sont dans `docs/objets.md`.
   **récupération est une constante commune** (`s_recuperationDuBlocage`, `Blocage.hpp`, 3 s), lue par
   `Vitalite::recevoirDegats`. `StatistiquesDeCombat::recuperationDuBlocage` a disparu avec la règle « la plus
   longue » ; un monstre au bouclier récupère comme un personnage.
-- **Limites** : pas de types de dégâts ni de résistances (étape 93).
+- **Limites** : le blocage et les armes ignorent les éléments jusqu'à l'étape 94 (voir « Types de dégâts et
+  résistances »).
 
 ## Pénétration d'armure (étape 92.4)
 
@@ -882,7 +884,68 @@ Détail de conception : `docs/classes-et-combat.md`, section 8.
   ramenée entre 0 et 75 à l'application.
 - **Exemple** : 100 contre 40 d'armure, sans pénétration 60 ; à 30 %, l'armure vaut 28 et le coup 72.
 - **Limites** : pas de bonus de pénétration par l'équipement ni par les skills ; pas de pénétration de résistance
-  (étape 93).
+  (hors de portée de l'étape 94). Depuis l'étape 94, le moteur du coup utilise `armureAppliquee`, la version
+  flottante de M1, sur la portion physique.
+
+## Types de dégâts et résistances (étape 94)
+
+Détail de conception : `docs/classes-et-combat.md`, sections 6, 7, 8 et 12.
+
+- **Un coup est un ensemble de portions.** `Element` (`Physique`, `Feu`, `Sacre`, plus la sentinelle `Nombre`) et
+  `ParElement<T>` (`combat/Element.hpp`) : une valeur par élément, à zéro par défaut, indexée par `Element` (le
+  `static_cast` est caché dans `operator[]`), `seul(élément, valeur)`, `total()`, `elementDominant()` ; la taille vient de
+  la sentinelle : ajouter un élément avant elle agrandit tous les tableaux, sans second endroit à tenir à jour (aucun
+  `switch` ne porte sur un `Element` : ce qui dépend de l'élément se lit dans un `ParElement`, parcouru avec
+  `s_elements`). `Degats = ParElement<int>` (`combat/Degats.hpp`, avec `degatsDe`, `degatsPhysiques`, `enPortions`) ; les
+  résistances sont aussi un `ParElement<int>`, en pour cent (`Resistances`). L'événement de combat qui dit ce qu'une
+  cible a perdu s'appelle `DegatsSubis` (le nom `Degats` est celui du type).
+- **`Attaque::degats` est un `Degats`.** Le soin et la provocation ne sont pas typés : ils gardent leur valeur
+  (`Attaque::soin`, `dureeDeProvocation`, séparés des dégâts depuis l'étape 94.1 : un skill ne produit qu'une des trois
+  choses, selon son type, et `Personnage::attaqueDe` range son montant dans le bon champ). Toutes les sources
+  existantes produisent du physique pur, sauf l'explosion (feu) et la frappe sacrée (physique de l'arme + sacré).
+- **Les règles du coup**, dans l'ordre de `resoudreCoup`, chaque étape étant une fonction pure :
+  1. esquive, inchangée (elle dépend de la nature de l'attaque, pas de l'élément) ;
+  2. critique (`coupCritique`) : le multiplicateur s'applique à **toutes** les portions ; la Puissance aussi, bonus
+     élémentaires compris (`montantEffectif`, portion par portion) ;
+  3. blocage (`appliquerBlocage`, sur la seule portion physique) : tenté seulement si l'attaque est de contact ou un
+     projectile **et** a une portion physique non nulle (sinon ni tirage ni récupération) ; une portion physique
+     entièrement absorbée ne subit ni l'armure ni son plancher, les autres portions continuent ; si tout le coup est
+     absorbé, il s'arrête là ;
+  4. armure (`armureAppliquee`, avec la pénétration de l'attaque) sur la portion physique, plancher de 20 % ;
+  5. résistances (`appliquerResistance`) : chaque portion, physique comprise, est multipliée par
+     `1 − résistance effective` ; `resistanceEffective` ramène la valeur dans
+     [`s_resistanceMinimale` (−100), `s_resistanceMaximale` (80)] (`Defense.hpp`, « à tester ») ;
+  6. arrondi : **un seul par portion**, au plus proche, en fin de calcul (aucune étape avant n'arrondit : les étapes
+     travaillent sur des `Portions` flottantes) ; le total est la somme ; un coup ni esquivé ni entièrement bloqué
+     fait au moins 1, dans la plus grosse portion.
+  La pénétration d'armure ne touche que l'armure (pas de pénétration de résistance). `ResultatDuCoup::portions` dit ce
+  que chaque élément a donné après les réductions (la somme est `montant`).
+- **Le tirage est inchangé** : un nombre par étape dont la chance est non nulle, dans `resoudreCoup`. Le blocage n'en
+  tire aucun s'il n'y a pas de portion physique.
+- **Où vivent les résistances** : dans `StatistiquesDeCombat::resistances`, avec les esquives et le blocage, et pas à
+  côté de l'armure dans `Defenses`. Raison : les bonus d'équipement s'additionnent déjà dans ce type (`bonusDeCombatTotal`,
+  `operator+=`), donc l'étape 95 n'aura qu'à remplir le champ des objets ; l'armure reste à part parce qu'elle a son
+  propre modèle (M1, pénétration) et sa propre source (le champ `armure` d'un objet). Les personnages : toutes à 0.
+  Les monstres : dans leur définition (`DefinitionDeMonstre::statistiques`, voir `docs/monstre.md`) — toutes à 0 sauf la
+  créature monstrueuse, 40 % de feu.
+- **Sources élémentaires** : `DefinitionDeSkill::element` (physique par défaut) donne l'élément de la puissance d'un
+  skill de dégâts ou de zone ; l'explosion du mage est du feu. La frappe sacrée est le premier **skill de frappe** :
+  `DefinitionDeSkill::bonusDeFrappe` (un `Degats` typé, ici 45 de sacré) ; l'arme apporte les dégâts physiques, la nature
+  et la pénétration (`Personnage::attaqueDeFrappe`, depuis `DescriptionDAttaque` de l'arme portée), le skill sa portée,
+  sa recharge, son temps d'activation et son bonus. Sa puissance est 0 et sa nature déclarée n'est pas lue. Calibrage :
+  masse (15) + 45 = 60, le total d'avant ; épée à deux mains (60) + 45 = 105. Le bonus étant un `Degats`, la frappe
+  puissante et le tir perçant pourront devenir des skills de frappe avec un bonus physique, sans changer la structure.
+- **Affichage** : toujours un seul nombre flottant, le total. `DegatsSubis::element` est celui de la plus grosse portion
+  après les réductions (à égalité, le premier de l'énumération : `elementDominant`) ; sa couleur : physique inchangé
+  (blanc sur un monstre, rouge sur un personnage), feu orange rougeâtre (255, 95, 10), sacré or pâle (225, 185, 75).
+  Le critique (jaune, « Critique ! ») et le coup gratuit (orange) gardent la priorité. Un test vérifie que ces couleurs
+  restent distinctes (≥ 50 de distance RGB).
+- **Exemple** : une explosion de 45 de feu contre l'infanterie lourde (armure 10) fait 45 (l'armure n'y touche pas),
+  contre la créature monstrueuse 27 ; une attaque de base de 45 physiques contre l'infanterie lourde fait 35.
+- **Limites** : trois éléments seulement (froid, foudre, poison, nécrotique, saignement avec leur première source) ;
+  pas de pénétration de résistance, pas de résistance ni de bonus élémentaire sur les objets (étape 95), pas de
+  bouclier anti-magie, pas d'effets dans le temps, pas de nombre flottant par portion. Le Savoir et la Volonté n'ont
+  toujours aucun effet.
 
 ## Temps d'exécution et coup engagé (étape 57)
 
@@ -1160,7 +1223,7 @@ l'enfoncerait dans un obstacle.
 ## Paladin, rôdeur et étiquettes des icônes (étape 76)
 
 - **Quatre `IdSkill` de plus** : `FrappeSacree`, `ImpositionDesMains`, `TirPercant`,
-  `PluieDeFleches`. Aucun `TypeSkill` ni mécanique nouveau : chacun est un `Degats`, un `Soin` ou
+  `PluieDeFleches`. Aucun `TypeSkill` ni mécanique nouveau : chacun est un `DegatsSurCible`, un `Soin` ou
   un `Zone` existant, donc passe par exactement les mêmes chemins (engagement, activation, skill en
   attente, ligne de vue, visée pour la zone). La visée dépend du `TypeSkill::Zone`, pas de
   l'identifiant : la pluie de flèches entre en visée comme l'explosion.
@@ -1646,25 +1709,26 @@ sans nouveau coup du même monstre. Aucune position (82.5).
 
 ### `Skill` (`combat/`) — une capacité spéciale
 
-Un `TypeSkill` (`enum class { Degats, Soin, Provocation, Zone }`), une
+Un `TypeSkill` (`enum class { DegatsSurCible, Soin, Provocation, Zone }`), une
 portée, une puissance (dégâts, points de vie rendus ou durée en secondes,
 dégâts d'un skill de zone), une recharge, ainsi qu'un rayon de zone (la
 taille de la zone touchée par un skill de zone ; 0, non lu, pour un skill
 à cible unique). Sert aussi d'attaque de base : un `Skill` de type
-`Degats`, de rayon de zone 0.
+`DegatsSurCible`, de rayon de zone 0.
 Il suit une machine à états (`enum class PhaseSkill { Pret, EnExecution, EnRecharge }`) : `commencer` (prêt → en exécution), `avancer` (fin de l'exécution : le coup part, la recharge est tirée, → en recharge), `annuler` (en exécution → prêt, sans recharge). Les skills des personnages passent par la même machine à états (étape 58 : activation de 0,3 s, 0,2 s, 0,6 s et 0,8 s pour dégâts, provocation, soin et zone) ; avec un temps nul, l'effet part dans l'image de l'engagement. Il ne connaît pas la cible du coup engagé, c'est son propriétaire qui la retient.
 Possédé par valeur par `Personnage` (attaque de base, plus un skill en
 option) et par `Monstre` (son attaque). Ne connaît ni la position de son
 propriétaire ni sa cible : il reçoit deux `Cercle`. Ne dessine rien.
 
 Données membres : `m_type` (`TypeSkill`), `m_portee` (bord à bord), `m_coefficients` (`Coefficients`, étape 88), `m_nature` (étape 90), `m_armesExigees` (`std::vector<TypeDArme>`, étape 91.5),
+`m_element` (`Element`, étape 94.4), `m_bonusDeFrappe` (`std::optional<Degats>`, étape 94.5),
 `m_puissance`, `m_rechargeMin`, `m_rechargeMax` (intervalle de recharge,
 en secondes), `m_tempsRecharge` (durée de la recharge en cours, dernier
 tirage), `m_recharge`, `m_rayonZone` (`float`, en pixels), `m_tempsExecution`, `m_executionRestante` (secondes), `m_phase` (`PhaseSkill`).
 
 | Fonction | Rôle |
 |---|---|
-| `explicit Skill(const DefinitionDeSkill&)` | Crée le skill depuis ses données nommées (étape 88.1, C2) : `DefinitionDeSkill { type; portee; puissance; rechargeMin; rechargeMax; rayonZone = 0; tempsExecution = 0; coefficients = {}; nature; armesExigees = {} }` (la `nature` n'a plus de valeur par défaut depuis l'étape 91.1 : chaque skill déclare la sienne, un oubli est une erreur de compilation ; un soin ou une provocation écrit `Contact`), en initialisation désignée (`Skill({.type = TypeSkill::Degats, .portee = 80.0f, ...})`). Crée le skill de ce type, avec cette portée, cette puissance, cet intervalle de recharge (`assert(0 <= min <= max)` ; fixe si `min == max`), ce rayon de zone et ce temps d'exécution (`assert >= 0`) ; prêt à la création |
+| `explicit Skill(const DefinitionDeSkill&)` | Crée le skill depuis ses données nommées (étape 88.1, C2) : `DefinitionDeSkill { type; portee; puissance; rechargeMin; rechargeMax; rayonZone = 0; tempsExecution = 0; coefficients = {}; nature; armesExigees = {}; element = Physique; bonusDeFrappe = vide }` (la `nature` n'a plus de valeur par défaut depuis l'étape 91.1 : chaque skill déclare la sienne, un oubli est une erreur de compilation ; un soin ou une provocation écrit `Contact`), en initialisation désignée (`Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, ...})`). Crée le skill de ce type, avec cette portée, cette puissance, cet intervalle de recharge (`assert(0 <= min <= max)` ; fixe si `min == max`), ce rayon de zone et ce temps d'exécution (`assert >= 0`) ; prêt à la création |
 | `bool commencer()` | Prêt → en exécution ; faux, sans rien changer, dans toute autre phase ; `[[nodiscard]]` |
 | `bool avancer(float dt, Generateur& generateur)` | En exécution : fait avancer l'exécution ; vrai une seule fois, au départ du coup (la recharge est alors tirée, phase → en recharge). Autres phases : comme `mettreAJour`, faux ; `[[nodiscard]]` |
 | `void annuler()` | En exécution → prêt, sans recharge ; sans effet ailleurs |
@@ -1679,6 +1743,8 @@ tirage), `m_recharge`, `m_rayonZone` (`float`, en pixels), `m_tempsExecution`, `
 | `TypeSkill getType() const` | Type du skill |
 | `float getRayonZone() const` | Rayon de zone du skill |
 | `float getPortee() const` | Portée du skill (bord à bord) |
+| `Element getElement() const` | L'élément des dégâts de la puissance (physique par défaut ; l'explosion : feu) ; `[[nodiscard]]` |
+| `const std::optional<Degats>& getBonusDeFrappe() const` | Le bonus d'un skill de frappe (vide pour tout autre skill) ; `assert` à la construction : un skill de frappe est de type `DegatsSurCible` de puissance 0 ; `[[nodiscard]]` |
 | `const std::vector<TypeDArme>& getArmesExigees() const` | Les types d'arme qui permettent le skill (vide : aucune exigence) ; `[[nodiscard]]` |
 | `bool convientA(std::optional<TypeDArme> arme) const` | Toujours vrai sans exigence ; sinon l'arme (vide : mains nues, faux) est-elle dans la liste ? ; `[[nodiscard]]` |
 
@@ -1697,8 +1763,9 @@ attaque à infliger à ce monstre ; `int degats` avant l'étape 89.3). Sortie d'
 
 ### `Attaque` (`combat/`) — ce qui part de l'attaquant (étape 89.3)
 
-`Attaque.hpp`, sans `.cpp` : `struct Attaque { int montant; int capaciteOffensive; NatureDAttaque nature; int penetration = 0; }`. Le
-montant (dégâts avant toute réduction, soin, ou durée d'une provocation), caractéristiques comprises, la
+`Attaque.hpp`, sans `.cpp` : `struct Attaque { Degats degats; int capaciteOffensive; NatureDAttaque nature; int penetration = 0; int soin = 0; int dureeDeProvocation = 0; }`.
+Les dégâts en portions par élément (étape 94 ; avant toute réduction, caractéristiques comprises), le soin et la durée
+d'une provocation (champs séparés depuis l'étape 94.1 : `montant` a disparu ; un skill n'en produit qu'un), la
 capacité offensive de l'attaquant, la nature de l'attaque (étape 90.1 ; sans valeur par défaut) et la pénétration
 d'armure en pour cent (étape 92.4 ; 0 par défaut : un skill, un monstre). Produite par `Personnage` (`getAttaqueDeBase`, `avancerAttaque`, `avancerSkill`) et `Monstre`
 (`getAttaque`, `avancerAttaque`), portée par `Coup`, reçue par `recevoirDegats` / `recevoirCoup` et
@@ -1714,7 +1781,7 @@ Portée par `Attaque` et `DefinitionDeSkill` (`Skill::getNature`).
 
 `StatistiquesDeCombat.hpp` / `.cpp`. `struct StatistiquesDeCombat { int capaciteOffensive = 0; int
 capaciteDefensive = 0; int esquiveContact = 0; int esquiveProjectile = 0; int chanceDeBlocage = 0; int
-montantBloque = 0; }` (comparable, `+=` et `+` : tous les champs s'additionnent ; la récupération du blocage a
+montantBloque = 0; Resistances resistances = {}; }` (comparable, `+=` et `+` : tous les champs s'additionnent, les résistances élément par élément ; la récupération du blocage a
 disparu à l'étape 91.6, c'est une constante commune) ; esquives et chance de blocage en pour cent ;
 constantes `s_capaciteDeBase` (50) et `s_capaciteParPointDAdresse` (5) ; `StatistiquesDeCombat
 statistiquesDuPersonnage(const Caracteristiques&, const StatistiquesDeCombat& bonusDEquipement)` : `50 + 5 ×
@@ -1734,14 +1801,14 @@ d'un objet. Voir « Le critique… (étape 89) » et « L'esquive et le blocage 
 
 ### `Blocage` (`combat/`) — le blocage au bouclier (étape 90.3)
 
-`Blocage.hpp` / `.cpp`, fonctions pures. `struct ResultatDuBlocage { int montant; int bloque; }` ; constante
+`Blocage.hpp` / `.cpp`, fonctions pures. `struct ResultatDuBlocage { float montant; float bloque; }` (flottants depuis l'étape 94 : l'arrondi vient à la fin du coup) ; constante
 `s_recuperationDuBlocage` (3 s, étape 91.6) : le temps pendant lequel un bouclier ne bloque plus après un blocage
 réussi, le même pour tous.
 
 | Fonction | Rôle |
 |---|---|
 | `float chanceDeBlocage(NatureDAttaque, const StatistiquesDeCombat&, bool blocagePret)` | La chance (de 0 à 1) de bloquer : nulle contre une zone, pendant la récupération et sans bouclier (`montantBloque <= 0`), sinon `chanceDeBlocage` ramenée de 0 à 100 % ; `[[nodiscard]]` |
-| `ResultatDuBlocage appliquerBlocage(int montant, int montantBloque, float chance, float tirage)` | Si `tirage < chance`, retire `min(montant, montantBloque)` ; rend le montant restant et ce qui a été absorbé (0 : pas de blocage) ; `assert(montant >= 0)` ; `[[nodiscard]]` |
+| `ResultatDuBlocage appliquerBlocage(float montant, int montantBloque, float chance, float tirage)` | `montant` est la portion **physique** du coup. Si `tirage < chance`, retire `min(montant, montantBloque)` ; rend le montant restant et ce qui a été absorbé (0 : pas de blocage) ; `assert(montant >= 0)` ; `[[nodiscard]]` |
 
 ### `Critique` (`combat/`) — la chance et la force du critique (étape 89.3)
 
@@ -1754,11 +1821,12 @@ réussi, le même pour tous.
 | `float rapportDeCapacites(int capaciteOffensive, int capaciteDefensive)` | Offensive / défensive ; `assert(défensive > 0)` ; `[[nodiscard]]` |
 | `float chanceDeCritique(float rapport)` | `min(0,05 × rapport², 0,5)` ; `[[nodiscard]]` |
 | `float multiplicateurDeCritique(float rapport)` | `clamp(1,5 + 0,25 × (rapport − 1), 1,5 ; 2,0)` ; `[[nodiscard]]` |
-| `ResultatCritique appliquerCritique(int montant, float rapport, float tirage)` | `{ montant, critique }` : critique si `tirage < chance`, montant multiplié et arrondi au plus proche ; `assert(montant >= 0)` ; `[[nodiscard]]` |
+| `bool coupCritique(float rapport, float tirage)` | `tirage < chanceDeCritique(rapport)` ; le moteur du coup en tire le multiplicateur de chaque portion, sans arrondir ; `[[nodiscard]]` |
+| `ResultatCritique appliquerCritique(int montant, float rapport, float tirage)` | `{ montant, critique }` pour un montant seul (le soin) : critique si `coupCritique`, montant multiplié et arrondi au plus proche ; `assert(montant >= 0)` ; `[[nodiscard]]` |
 
 ### `EvenementDeCombat` (`combat/`) — ce qui s'est passé, en données
 
-`EvenementDeCombat.hpp` / `.cpp` : `enum class Camp { Escouade, Monstres }`, les détails `Degats { int montant; bool opportunite; bool critique; }`, `Soin { int montant; bool critique; }`, `SkillLance { IdSkill skill; }`, `Provoque {}`, `Esquive {}`, `Bloque { int montant; bool total; }`, `using DetailEvenement = std::variant<Degats, Soin, SkillLance, Provoque, Esquive, Bloque>` et `struct EvenementDeCombat { Camp campCible; int idCible; sf::Vector2f position; DetailEvenement detail; }`. `idCible` : place du personnage (1 à N) ou identifiant du monstre ; `montant` : ce qui a réellement été appliqué (armure comprise, soin plafonné), jamais 0 ; `position` : COPIE du centre de la cible à ce moment (le monstre tué par ce coup est retiré dans la même image, l'événement lui survit) ; `opportunite` : coup gratuit ; `critique` : le coup ou le soin a été un critique (le montant est déjà multiplié) ; `Bloque::montant` : ce que le blocage a absorbé (jamais 0), `total` : il a tout absorbé (aucun `Degats` ne suit) ; `SkillLance` : cible = le lanceur ; `Provoque` : cible = le monstre provoqué ; `Esquive` : cible = celui qui a esquivé. La fonction pure `std::vector<DetailEvenement> detailsDuCoup(const ResultatDuCoup&, bool opportunite)` (`[[nodiscard]]`) convertit un résultat de coup : `Esquive` seul s'il a été esquivé, sinon `Degats` (rien s'ils sont nuls) puis `Bloque` s'il y a eu blocage ; liste vide pour un résultat « rien ». Patron « file d'événements » : produits par `Partie` (`prendreEvenements`), lus par `EcranJeu`, sans callback ni observateur. Voir `docs/combat.md`.
+`EvenementDeCombat.hpp` / `.cpp` : `enum class Camp { Escouade, Monstres }`, les détails `DegatsSubis { int montant; bool opportunite; bool critique; Element element = Physique; }` (`element` : celui de la plus grosse portion après les réductions, étape 94 ; `Degats` avant l'étape 94), `Soin { int montant; bool critique; }`, `SkillLance { IdSkill skill; }`, `Provoque {}`, `Esquive {}`, `Bloque { int montant; bool total; }`, `using DetailEvenement = std::variant<DegatsSubis, Soin, SkillLance, Provoque, Esquive, Bloque>` et `struct EvenementDeCombat { Camp campCible; int idCible; sf::Vector2f position; DetailEvenement detail; }`. `idCible` : place du personnage (1 à N) ou identifiant du monstre ; `montant` : ce qui a réellement été appliqué (armure comprise, soin plafonné), jamais 0 ; `position` : COPIE du centre de la cible à ce moment (le monstre tué par ce coup est retiré dans la même image, l'événement lui survit) ; `opportunite` : coup gratuit ; `critique` : le coup ou le soin a été un critique (le montant est déjà multiplié) ; `Bloque::montant` : ce que le blocage a absorbé (jamais 0), `total` : il a tout absorbé (aucun `DegatsSubis` ne suit) ; `SkillLance` : cible = le lanceur ; `Provoque` : cible = le monstre provoqué ; `Esquive` : cible = celui qui a esquivé. La fonction pure `std::vector<DetailEvenement> detailsDuCoup(const ResultatDuCoup&, bool opportunite)` (`[[nodiscard]]`) convertit un résultat de coup : `Esquive` seul s'il a été esquivé, sinon `DegatsSubis` (rien s'ils sont nuls ; son `element` est `portions.elementDominant()`) puis `Bloque` s'il y a eu blocage ; liste vide pour un résultat « rien ». Patron « file d'événements » : produits par `Partie` (`prendreEvenements`), lus par `EcranJeu`, sans callback ni observateur. Voir `docs/combat.md`.
 
 ### `TextesFlottants` (`interface/`) — les dégâts et soins à l'écran
 
@@ -1773,7 +1841,7 @@ réussi, le même pour tous.
 | `float hauteurDuTexte(float age)` | Fonction libre pure : 20 px au-dessus du centre de la cible à la naissance, 30 px de plus sur toute la durée de vie ; `[[nodiscard]]` |
 | `float opaciteDuTexte(float age)` | Pure : 1 pendant la première moitié de la vie, puis linéaire jusqu'à 0 à 0,8 s ; `[[nodiscard]]` |
 | `sf::Vector2f positionDuTexte(const TexteFlottant&)` | Pure : position de l'événement, relevée de `hauteurDuTexte(age)` et de 14 px par rang ; `[[nodiscard]]` |
-| `std::string libelleDuTexte(const EvenementDeCombat&)` / `sf::Color couleurDuTexte(...)` / `unsigned int tailleDuTexte(...)` | Purs. Dégâts « 12 », coup gratuit « 12! » (orange, 20 px), soin « +12 » (vert) ; critique : le texte suivi de « Critique ! » (« 12 Critique ! », « 12! Critique ! », « +12 Critique ! »), jaune vif pour des dégâts (même gratuits), vert pour un soin, 18 px dans les deux cas ; nom du skill lancé (jaune doré, 14 px) ; « Provoqué » (rouge orangé, 14 px) ; « Esquivé » (gris clair, 14 px), « Bloqué » (blocage total) ou « Bloqué −N » (partiel, signe moins U+2212), gris, 14 px ; dégâts sur un monstre blancs, sur un personnage rouges ; 16 px sinon ; `std::visit` sur le détail ; `[[nodiscard]]` |
+| `std::string libelleDuTexte(const EvenementDeCombat&)` / `sf::Color couleurDuTexte(...)` / `unsigned int tailleDuTexte(...)` | Purs. Dégâts « 12 », coup gratuit « 12! » (orange, 20 px), soin « +12 » (vert) ; critique : le texte suivi de « Critique ! » (« 12 Critique ! », « 12! Critique ! », « +12 Critique ! »), jaune vif pour des dégâts (même gratuits), vert pour un soin, 18 px dans les deux cas ; nom du skill lancé (jaune doré, 14 px) ; « Provoqué » (rouge orangé, 14 px) ; « Esquivé » (gris clair, 14 px), « Bloqué » (blocage total) ou « Bloqué −N » (partiel, signe moins U+2212), gris, 14 px ; dégâts physiques sur un monstre blancs, sur un personnage rouges, feu orange rougeâtre et sacré or pâle quel que soit le camp (le critique et le coup gratuit gardent leur couleur) ; 16 px sinon ; `std::visit` sur le détail ; `[[nodiscard]]` |
 
 ### `ActionEngagee` (`combat/`) — l'action qu'un personnage prépare
 
@@ -1793,7 +1861,7 @@ réussi, le même pour tous.
 
 ### `TypeSkill` (`combat/`) — le type d'un skill
 
-`TypeSkill.hpp`, sans `.cpp` : `enum class TypeSkill { Degats, Soin,
+`TypeSkill.hpp`, sans `.cpp` : `enum class TypeSkill { DegatsSurCible, Soin,
 Provocation, Zone }`. Inclus par `Skill`, `EtatSkill`, `BarreDeSkills` et
 `Escouade` sans qu'ils dépendent de la classe `Skill`.
 
@@ -1880,6 +1948,19 @@ de la chaîne `Partie` → `Escouade` → `Personnage` → `Skill` et `Partie` �
 - `int montantEffectif(int montant, const Coefficients&, const Caracteristiques&)` : voir plus haut ;
   `assert(montant >= 0)` ; `[[nodiscard]]`.
 
+### `Element` et `Degats` (`combat/`) — les portions d'un coup (étape 94.2)
+
+`Element.hpp` et `Degats.hpp`, sans `.cpp`. Voir « Types de dégâts et résistances (étape 94) ».
+
+- `enum class Element { Physique, Feu, Sacre, Nombre }` : `Nombre` est la sentinelle, pas un élément. `s_nombreDElements`
+  (`std::size_t`) et `s_elements` (`std::array<Element, s_nombreDElements>`, dans l'ordre de l'énumération).
+- `template <typename T> struct ParElement { std::array<T, s_nombreDElements> valeurs = {}; }` : `operator[](Element)` (const
+  et non const), `static constexpr ParElement seul(Element, T)`, `constexpr T total() const` (type numérique),
+  `constexpr Element elementDominant() const` (la plus grande valeur ; à égalité, le premier de l'énumération),
+  `operator==` par défaut.
+- `Degats = ParElement<int>` ; `Portions = ParElement<float>` (le coup en cours de résolution, sans arrondi) ;
+  `degatsDe(Element, int)`, `degatsPhysiques(int)`, `enPortions(const Degats&)` : `constexpr`, `[[nodiscard]]`.
+
 ### `Defense` (`combat/`) — l'armure
 
 Une fonction libre pure, sans état, utilisée par `Vitalite::recevoirDegats`. Ne dépend d'aucun
@@ -1887,15 +1968,18 @@ autre module ni de SFML.
 
 | Fonction | Rôle |
 |---|---|
+| `float armureAppliquee(float montant, int armure, int penetration = 0)` | La même armure M1 sans aucun arrondi ni minimum de 1 (étape 94) : ce qu'utilise `resoudreCoup` sur la portion physique ; `appliquerArmure` en est la version entière ; `[[nodiscard]]` |
+| `constexpr int resistanceEffective(int pourCent)` | Ramenée entre `s_resistanceMinimale` (−100) et `s_resistanceMaximale` (80) ; `[[nodiscard]]` |
+| `float appliquerResistance(float montant, int resistance)` | `montant × (1 − résistance effective / 100)`, sans arrondi ; une résistance négative augmente la portion ; `[[nodiscard]]` |
 | `int appliquerArmure(int montant, int armure, int penetration = 0)` | Dégâts réellement subis : `max(montant − armure effective, montant × 20 %)` (modèle M1, `s_plancherArmure`), où l'armure effective est `armure × (1 − penetration / 100)` (pénétration ramenée entre 0 et `s_penetrationMaximale`, 75, sans arrondi intermédiaire), arrondi au plus proche, au moins 1 si `montant > 0`, 0 si `montant == 0` ; `assert(montant >= 0)` et `assert(armure >= 0)` ; `[[nodiscard]]` |
 
 ### `ResolutionDuCoup` (`combat/`) — le point d'entrée du coup (étape 87.2)
 
-`Defenses { int armure; StatistiquesDeCombat statistiques; }` (initialisation désignée ; `statistiques.capaciteDefensive > 0` ; seules les statistiques défensives sont lues), `ResultatDuCoup { int montant = 0; bool critique = false; bool esquive = false; int bloque = 0; }` (montant après critique, blocage et armure ; `esquive` : coup esquivé, montant 0 ; `bloque` : points absorbés, total si `montant == 0` ; le résultat par défaut `{}` est « rien »), et deux fonctions libres, `[[nodiscard]]`, sans état ni SFML :
+`Defenses { int armure; StatistiquesDeCombat statistiques; }` (initialisation désignée ; `statistiques.capaciteDefensive > 0` ; seules les statistiques défensives sont lues), `ResultatDuCoup { int montant = 0; bool critique = false; bool esquive = false; int bloque = 0; Degats portions = {}; }` (montant : le total après critique, blocage, armure, résistances et arrondi, somme de `portions` ; `esquive` : coup esquivé, montant 0 ; `bloque` : points absorbés, total si `montant == 0` ; `portions` : ce que chaque élément a donné, étape 94 ; le résultat par défaut `{}` est « rien »), et deux fonctions libres, `[[nodiscard]]`, sans état ni SFML :
 
 | Fonction | Rôle |
 |---|---|
-| `ResultatDuCoup resoudreCoup(const Attaque&, const Defenses&, bool blocagePret, Generateur&)` | Appelée par `Vitalite::recevoirDegats`. Esquive (`coupEsquive`) : un coup esquivé s'arrête ; critique (`appliquerCritique`) ; blocage (`appliquerBlocage`) : un blocage total s'arrête, sans armure ; armure (`appliquerArmure`) ; l'en-tête donne l'ordre des étapes à venir (résistances). **Le seul tirage du moteur du coup**, au plus un par étape et seulement si la chance est non nulle (esquive nulle ou zone, capacité offensive nulle, pas de bouclier, récupération en cours) ; aucun pour un montant nul ; `blocagePret` : le blocage n'est pas en récupération ; `assert(montant >= 0)` |
+| `ResultatDuCoup resoudreCoup(const Attaque&, const Defenses&, bool blocagePret, Generateur&)` | Appelée par `Vitalite::recevoirDegats`. Esquive (`coupEsquive`) : un coup esquivé s'arrête ; critique (`coupCritique`, multiplicateur sur toutes les portions) ; blocage (`appliquerBlocage`, portion physique seule) : un blocage total s'arrête, sans armure ; armure (`armureAppliquee`, portion physique) ; résistances (`appliquerResistance`, chaque portion) ; un seul arrondi par portion, au moins 1 au total (voir « Types de dégâts et résistances (étape 94) »). **Le seul tirage du moteur du coup**, au plus un par étape et seulement si la chance est non nulle (esquive nulle ou zone, capacité offensive nulle, pas de bouclier, récupération en cours, pas de portion physique) ; aucun pour un total nul ; `blocagePret` : le blocage n'est pas en récupération ; `assert(montant >= 0)` |
 | `ResultatDuCoup resoudreSoin(const Attaque&, Generateur&)` | Étape 89.4 : un soin peut être critique contre `s_capaciteDefensiveDeReference` (100), sans armure ; même règle de tirage. Appelée par `Escouade::effetDuSkill` |
 
 ### `PointsDeVie` (`combat/`) — les points de vie d'une entité

@@ -111,6 +111,7 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 91 — Les armes : l'attaque de base et la zone de contrôle viennent de l'arme, échelle × 3, deux mains, skills qui exigent une arme ✅
 - Étape 92 — Seuils d'équipement, objets inactifs, pénétration d'armure (la dague) ✅
 - Étape 93 — Les types de monstres : nuée, infanterie, infanterie lourde, créature monstrueuse, groupes en données ✅
+- Étape 94 — Types de dégâts et résistances : le coup en portions (physique, feu, sacré), l'explosion en feu, la frappe sacrée, premier skill de frappe ✅
 
 ## Détail des étapes 0 à 73
 
@@ -1010,7 +1011,7 @@ marcher son lanceur vers sa cible, puis se déclenche à l'arrivée.
 1. [x] `Skill.hpp/.cpp` : `TypeSkill { Degats, Soin }` et `Skill` autour
        d'une `Attaque`, avec `test_Skill.cpp` (enchaînée)
 2. [x] `Personnage` possède un `std::optional<Skill>` ; skill de dégâts
-       existant créé avec `TypeSkill::Degats` (enchaînée)
+       existant créé avec `TypeSkill::DegatsSurCible` (enchaînée)
 3. [x] `Escouade::declencherSkill(place, ...)` ; `main.cpp` relie les
        touches 1 à 4 aux places 1 à 4
 4. [x] `Personnage::recevoirSoin`, `getPointsDeVie`, `getPointsDeVieMax`
@@ -2207,3 +2208,22 @@ grappe, infanterie, mélange), la salle la plus éloignée du départ reçoit à
 nuée de 7, moyenne 0,04 ms, pire 0,18 ms (preset `jeu`), sans optimisation. 1 376 tests, 39 avertissements `clang-tidy`
 (inchangé). Détail : `docs/monstre.md`, `docs/generation.md`, `docs/tests.md`, `docs/classes-et-combat.md`,
 `docs/brainstorm.md`, `docs/boucle-et-entrees.md`, `docs/combat.md`, `docs/objets.md`.
+
+### Étape 94 — Types de dégâts et résistances ✅
+
+Deuxième étape de la phase 3 (éléments), faite en une session autonome (un commit par sous-étape). Avant elle, tout coup
+était physique : `Attaque::montant` servait à la fois aux dégâts, au soin et à la durée d'une provocation. 94.1 : ces trois
+valeurs sont séparées dans `Attaque` (`degats`, `soin`, `dureeDeProvocation`), `Personnage::attaqueDe` rangeant le montant
+dans le champ que dit le type du skill (un petit morceau de R4). 94.2 : `Element` (physique, feu, sacré, avec une
+sentinelle qui donne la taille), `ParElement<T>` (une valeur par élément, `seul`, `total`, `elementDominant`) et
+`Degats = ParElement<int>` ; l'événement `Degats` devient `DegatsSubis` pour libérer le nom. 94.3 : `Attaque::degats` est un
+`Degats` et `resoudreCoup` enchaîne esquive, critique sur toutes les portions, blocage de la seule portion physique (tenté
+seulement s'il y en a une), armure sur le physique, résistances par élément (plafond de 80 %, vulnérabilités jusqu'à −100 %)
+et un seul arrondi par portion, le total faisant au moins 1 sauf blocage total ; les résistances vivent dans
+`StatistiquesDeCombat`, à 0 partout ; `TypeSkill::Degats` devient `DegatsSurCible` (le nom `Degats` est pris, `-Wshadow`).
+94.4 : `DefinitionDeSkill::element` (l'explosion du mage est du feu), la créature monstrueuse résiste à 40 % au feu
+(résistances dans la définition du monstre), `DegatsSubis::element` (la plus grosse portion après réductions) et la couleur
+du nombre flottant (feu orangé, sacré doré). 94.5 : `DefinitionDeSkill::bonusDeFrappe` : la frappe sacrée est le premier skill
+de frappe (dégâts, nature et pénétration de l'arme, plus 45 de sacré : masse 15 + 45 = 60, le total d'avant). 94.6 : mesure
+de performance inchangée (0,04 ms par image) et documentation. 1 439 tests, 0 avertissement de compilation. Détail :
+`docs/combat.md`, `docs/classes-et-combat.md`, `docs/monstre.md`, `docs/objets.md`, `docs/tests.md`.
