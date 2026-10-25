@@ -4,7 +4,10 @@
 #include "base/Cercle.hpp"
 #include "combat/Caracteristiques.hpp"
 #include "combat/NatureDAttaque.hpp"
+#include "combat/TypeDArme.hpp"
 #include "combat/TypeSkill.hpp"
+#include <optional>
+#include <vector>
 
 // Un skill : un type, une portée, une puissance et une recharge (un
 // intervalle [rechargeMin, rechargeMax] en secondes, tiré au hasard à chaque
@@ -43,6 +46,10 @@ struct DefinitionDeSkill {  // NOLINT(cppcoreguidelines-pro-type-member-init): c
     // dégâts ou de zone : un soin ou une provocation écrit `Contact`, qui ne sert à rien. `Zone` va avec le type
     // `Zone`, et lui seul.
     NatureDAttaque nature;
+    // Les types d'arme qui permettent de lancer le skill (modèle de *Titan Quest* : pas de restriction par classe) ;
+    // vide : aucune exigence. Sans l'une de ces armes en main droite (les mains nues n'en sont pas une), le skill est
+    // refusé comme celui d'un lanceur mort.
+    std::vector<TypeDArme> armesExigees = {};
 };
 
 class Skill {
@@ -68,6 +75,9 @@ public:
     [[nodiscard]] int getPuissance() const;
     [[nodiscard]] const Coefficients& getCoefficients() const;
     [[nodiscard]] NatureDAttaque getNature() const;
+    [[nodiscard]] const std::vector<TypeDArme>& getArmesExigees() const;
+    // Cette arme (vide : les mains nues) permet-elle de lancer le skill ? Toujours vrai sans exigence.
+    [[nodiscard]] bool convientA(std::optional<TypeDArme> arme) const;
 
 private:
     TypeSkill m_type;
@@ -81,6 +91,7 @@ private:
     float m_tempsExecution; // en secondes, entre l'engagement du coup et son départ
     Coefficients m_coefficients;
     NatureDAttaque m_nature;
+    std::vector<TypeDArme> m_armesExigees;
     float m_executionRestante; // en secondes, lue seulement en phase EnExecution
     PhaseSkill m_phase;
 

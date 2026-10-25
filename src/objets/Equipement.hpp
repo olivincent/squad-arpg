@@ -5,6 +5,7 @@
 #include <vector>
 #include "combat/Caracteristiques.hpp"
 #include "combat/DescriptionDAttaque.hpp"
+#include "combat/TypeDArme.hpp"
 #include "combat/StatistiquesDeCombat.hpp"
 #include "objets/Emplacement.hpp"
 #include "objets/Objet.hpp"
@@ -47,6 +48,9 @@ public:
     // L'attaque de base que donne cet équipement : celle de l'arme de la main droite, sinon les mains nues
     // (`mainsNues`). Une valeur dérivée, recalculée à chaque appel, jamais stockée.
     [[nodiscard]] DescriptionDAttaque attaqueDeBase() const;
+
+    // Le type de l'arme de la main droite ; vide sans arme (les mains nues n'ont pas de type).
+    [[nodiscard]] std::optional<TypeDArme> typeDArme() const;
 
     [[nodiscard]] bool operator==(const Equipement&) const = default;
 

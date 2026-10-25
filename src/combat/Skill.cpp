@@ -1,5 +1,6 @@
 // ./src/combat/Skill.cpp
 #include "combat/Skill.hpp"
+#include <algorithm>
 #include <cassert>
 #include <random>
 
@@ -15,6 +16,7 @@ Skill::Skill(const DefinitionDeSkill& definition)
       m_tempsExecution(definition.tempsExecution),
       m_coefficients(definition.coefficients),
       m_nature(definition.nature),
+      m_armesExigees(definition.armesExigees),
       m_executionRestante(0.0f),
       m_phase(PhaseSkill::Pret)
 {
@@ -111,6 +113,14 @@ const Coefficients& Skill::getCoefficients() const {
 
 NatureDAttaque Skill::getNature() const {
     return m_nature;
+}
+
+const std::vector<TypeDArme>& Skill::getArmesExigees() const {
+    return m_armesExigees;
+}
+
+bool Skill::convientA(std::optional<TypeDArme> arme) const {
+    return m_armesExigees.empty() || (arme.has_value() && std::ranges::find(m_armesExigees, *arme) != m_armesExigees.end());
 }
 
 int Skill::getPuissance() const {

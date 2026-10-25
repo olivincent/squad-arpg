@@ -34,6 +34,7 @@
 #include "jeu/Partie.hpp"
 #include "combat/Skill.hpp"
 #include "monde/TileMap.hpp"
+#include "combat/TypeDArme.hpp"
 #include "combat/TypeSkill.hpp"
 
 // Fixtures d'Escouade et de Partie communes à plusieurs fichiers de tests : personnages et escouades
@@ -136,6 +137,14 @@ inline DefinitionPersonnage mageDeTest() {
             .rayonVision = s_rayonVisionDeTest,
             .caracteristiques = s_caracteristiquesDeTest,
             .rang = Rang::Arriere};
+}
+
+// Un skill de dégâts de contact qui exige l'un de ces types d'arme (vide : aucune exigence).
+inline Skill skillExigeantDesArmes(std::vector<TypeDArme> armes) {
+    return Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest, .puissance = s_degatsFrappeDeTest,
+                  .rechargeMin = s_rechargeFrappeDeTest, .rechargeMax = s_rechargeFrappeDeTest,
+                  .tempsExecution = s_activationFrappeDeTest, .nature = NatureDAttaque::Contact,
+                  .armesExigees = std::move(armes)});
 }
 
 // Test Data Builder : les tests de `Personnage` et d'`Escouade` créent leurs personnages par ces aides et non par la

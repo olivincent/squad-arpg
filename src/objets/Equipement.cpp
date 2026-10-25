@@ -57,6 +57,17 @@ DescriptionDAttaque Equipement::attaqueDeBase() const {
     return mainsNues();
 }
 
+std::optional<TypeDArme> Equipement::typeDArme() const {
+    const std::optional<Objet>& main = a(Emplacement::MainDroite);
+    if (main.has_value()) {
+        const std::optional<DonneesDArme>& arme = definitionObjet(main->id).arme;
+        if (arme.has_value()) {
+            return arme->type;
+        }
+    }
+    return std::nullopt;
+}
+
 Caracteristiques Equipement::bonusTotal() const {
     Caracteristiques total;
     for (const std::optional<Objet>& objet : m_objets) {

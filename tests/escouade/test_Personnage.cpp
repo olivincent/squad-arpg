@@ -9,6 +9,8 @@
 
 #include "aides.hpp"
 #include "aides_escouade.hpp"
+#include "combat/EtatSkill.hpp"
+#include "combat/TypeDArme.hpp"
 #include "escouade/Personnage.hpp"
 #include "base/Cercle.hpp"
 #include "combat/Blocage.hpp"
@@ -1262,4 +1264,84 @@ TEST_CASE("la duree d'une provocation ne profite d'aucune caracteristique") {
         rendu = montantOuZero(personnage.avancerSkill(s_dureeTic, generateur));
     }
     REQUIRE(rendu == 4);
+}
+
+// Skills qui exigent un type d'arme (étape 91.5).
+namespace {
+Personnage unPersonnageAuSkillExigeant(std::optional<IdObjet> arme) {
+    DefinitionPersonnage definition = arme.has_value() ? definitionArmee(*arme) : definitionSansArme();
+    definition.skills = {{IdSkill::FrappePuissante, skillExigeantDesArmes({TypeDArme::EpeeLongue, TypeDArme::Masse})}};
+    return Personnage({100.0f, 100.0f}, std::move(definition));
+}
+}  // namespace
+
+TEST_CASE("un skill qui exige une arme est pret et engageable avec l'une de ces armes") {
+    Personnage personnage = unPersonnageAuSkillExigeant(IdObjet::Masse);
+
+    REQUIRE(personnage.skillEstPret(IdSkill::FrappePuissante));
+    REQUIRE(personnage.peutEngagerSkill(IdSkill::FrappePuissante));
+    REQUIRE_FALSE(personnage.etatDuSkill(IdSkill::FrappePuissante)->armeAbsente);
+    REQUIRE(personnage.engagerSkill(IdSkill::FrappePuissante, CibleMonstre{1, Cercle{}}));
+}
+
+TEST_CASE("un skill qui exige une arme est refuse avec une autre arme ou aux mains nues, sans recharge consommee") {
+    for (const std::optional<IdObjet> arme : {std::optional<IdObjet>(IdObjet::Arc), std::optional<IdObjet>(IdObjet::Dague), std::optional<IdObjet>()}) {
+        Personnage personnage = unPersonnageAuSkillExigeant(arme);
+
+        REQUIRE_FALSE(personnage.skillEstPret(IdSkill::FrappePuissante));
+        REQUIRE_FALSE(personnage.peutEngagerSkill(IdSkill::FrappePuissante));
+        REQUIRE_FALSE(personnage.engagerSkill(IdSkill::FrappePuissante, CibleMonstre{1, Cercle{}}));
+        REQUIRE_FALSE(personnage.skillEngage().has_value());
+        const std::optional<EtatSkill> etat = personnage.etatDuSkill(IdSkill::FrappePuissante);
+        REQUIRE(etat->armeAbsente);
+        REQUIRE(etat->lanceurVivant);
+        REQUIRE(etat->tempsRestant == 0.0f);  // aucune recharge
+        REQUIRE(etat->progression == 1.0f);
+    }
+}
+
+TEST_CASE("un skill sans exigence reste utilisable aux mains nues") {
+    DefinitionPersonnage definition = definitionSansArme();
+    definition.skills = {{IdSkill::FrappePuissante, skillExigeantDesArmes({})}};
+    const Personnage personnage({100.0f, 100.0f}, std::move(definition));
+
+    REQUIRE(personnage.skillEstPret(IdSkill::FrappePuissante));
+    REQUIRE_FALSE(personnage.etatDuSkill(IdSkill::FrappePuissante)->armeAbsente);
+}
+
+TEST_CASE("retirer ou poser l'arme exigee rend le skill refuse ou pret") {
+    Personnage personnage = unPersonnageAuSkillExigeant(IdObjet::EpeeLongue);
+    REQUIRE(personnage.skillEstPret(IdSkill::FrappePuissante));
+
+    static_cast<void>(personnage.retirerEquipement(Emplacement::MainDroite));
+    REQUIRE_FALSE(personnage.skillEstPret(IdSkill::FrappePuissante));
+    REQUIRE(personnage.etatDuSkill(IdSkill::FrappePuissante)->armeAbsente);
+
+    static_cast<void>(personnage.poserEquipement(Emplacement::MainDroite, {IdObjet::Arc}));
+    REQUIRE_FALSE(personnage.skillEstPret(IdSkill::FrappePuissante));
+
+    static_cast<void>(personnage.poserEquipement(Emplacement::MainDroite, {IdObjet::Masse}));
+    REQUIRE(personnage.skillEstPret(IdSkill::FrappePuissante));
+    REQUIRE_FALSE(personnage.etatDuSkill(IdSkill::FrappePuissante)->armeAbsente);
+}
+
+TEST_CASE("retirer l'arme exigee annule l'activation du skill, sans recharge consommee") {
+    Personnage personnage = unPersonnageAuSkillExigeant(IdObjet::EpeeLongue);
+    REQUIRE(personnage.engagerSkill(IdSkill::FrappePuissante, CibleMonstre{1, Cercle{}}));
+    REQUIRE(personnage.skillEngage().has_value());
+
+    static_cast<void>(personnage.retirerEquipement(Emplacement::MainDroite));
+
+    REQUIRE_FALSE(personnage.skillEngage().has_value());
+    static_cast<void>(personnage.poserEquipement(Emplacement::MainDroite, {IdObjet::Masse}));
+    REQUIRE(personnage.skillEstPret(IdSkill::FrappePuissante));  // la recharge n'a pas été consommée
+}
+
+TEST_CASE("changer pour une autre arme qui convient laisse le skill en activation") {
+    Personnage personnage = unPersonnageAuSkillExigeant(IdObjet::EpeeLongue);
+    REQUIRE(personnage.engagerSkill(IdSkill::FrappePuissante, CibleMonstre{1, Cercle{}}));
+
+    static_cast<void>(personnage.poserEquipement(Emplacement::MainDroite, {IdObjet::Masse}));
+
+    REQUIRE(personnage.skillEngage().has_value());
 }

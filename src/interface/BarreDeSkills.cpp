@@ -137,9 +137,10 @@ void dessinerBarreDeSkills(sf::RenderTarget& rendu, const sf::Font& police,
         fond.setOutlineThickness(icone.enVisee || enActivation ? 3.0f : 1.0f);
         rendu.draw(fond);
 
-        // Lanceur mort ou emplacement vide : texte atténué, ni quartier ni chiffre.
+        // Lanceur mort, arme exigée absente ou emplacement vide : texte atténué, ni quartier ni chiffre.
         const bool lanceurVivant = icone.etat.has_value() && icone.etat->lanceurVivant;
-        const sf::Color couleurTexte = lanceurVivant ? sf::Color::White : sf::Color(90, 90, 90);
+        const bool utilisable = lanceurVivant && !icone.etat->armeAbsente;
+        const sf::Color couleurTexte = utilisable ? sf::Color::White : sf::Color(90, 90, 90);
         sf::Text nomDeLaTouche(police, icone.touche, s_tailleNomDeTouche);
         nomDeLaTouche.setFillColor(couleurTexte);
         nomDeLaTouche.setPosition(coin + sf::Vector2f{4.0f, 1.0f});
@@ -163,7 +164,7 @@ void dessinerBarreDeSkills(sf::RenderTarget& rendu, const sf::Font& police,
         numeroDePlace.setOrigin(zoneDuNumero.position + zoneDuNumero.size / 2.0f);
         numeroDePlace.setPosition(bande.getPosition() + bande.getSize() / 2.0f);
         rendu.draw(numeroDePlace);
-        if (!lanceurVivant) {
+        if (!utilisable) {
             continue;
         }
 

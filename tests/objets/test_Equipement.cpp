@@ -152,3 +152,26 @@ TEST_CASE("equipement : retirer un objet retire son bonus de combat") {
 
     REQUIRE(equipement.bonusDeCombatTotal() == StatistiquesDeCombat());
 }
+
+TEST_CASE("typeDArme : le type de l'arme de la main droite, vide sans arme") {
+    Equipement equipement;
+    REQUIRE_FALSE(equipement.typeDArme().has_value());
+
+    static_cast<void>(equipement.poser(Emplacement::MainDroite, {IdObjet::Dague}));
+    REQUIRE(equipement.typeDArme() == TypeDArme::Dague);
+
+    static_cast<void>(equipement.poser(Emplacement::MainDroite, {IdObjet::Arc}));
+    REQUIRE(equipement.typeDArme() == TypeDArme::Arc);
+
+    static_cast<void>(equipement.retirer(Emplacement::MainDroite));
+    static_cast<void>(equipement.poser(Emplacement::MainGauche, {IdObjet::BouclierRond}));
+    REQUIRE_FALSE(equipement.typeDArme().has_value());  // un bouclier n'est pas une arme
+}
+
+TEST_CASE("attaqueDeBase d'un equipement : celle de l'arme de la main droite, sinon les mains nues") {
+    Equipement equipement;
+    REQUIRE(equipement.attaqueDeBase() == mainsNues());
+
+    static_cast<void>(equipement.poser(Emplacement::MainDroite, {IdObjet::EpeeADeuxMains}));
+    REQUIRE(equipement.attaqueDeBase() == definitionObjet(IdObjet::EpeeADeuxMains).arme.value().attaque);
+}

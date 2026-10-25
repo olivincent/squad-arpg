@@ -9,6 +9,10 @@
 
 #include "aides.hpp"
 #include "aides_escouade.hpp"
+#include "escouade/Specialite.hpp"
+#include "objets/Emplacement.hpp"
+#include "objets/Objet.hpp"
+#include "objets/PositionDObjet.hpp"
 #include "base/Cercle.hpp"
 #include "combat/Coup.hpp"
 #include "escouade/Escouade.hpp"
@@ -497,4 +501,82 @@ TEST_CASE("Provocation : un fait par monstre provoque, aucun pour un monstre hor
         nouveaux += std::holds_alternative<Escouade::MonstreProvoque>(fait) ? 1 : 0;
     }
     REQUIRE(nouveaux == 2);
+}
+
+// Les armes exigées (étape 91.5), avec les vraies classes : le guerrier a besoin d'une épée, d'une masse, d'une dague
+// ou d'une épée à deux mains pour sa frappe puissante. Escouade en (50, 50) : le guerrier en (85, 60).
+namespace {
+constexpr AdresseSkill s_frappeDuGuerrierReel{1, IdSkill::FrappePuissante};
+constexpr AdresseSkill s_provocationDuGuerrierReel{1, IdSkill::Provocation};
+
+Escouade unGuerrierReel() {
+    return Escouade({50.0f, 50.0f}, composer({IdSpecialite::Guerrier}));
+}
+
+void retirerLArme(Escouade& escouade) {
+    REQUIRE(escouade.deplacerObjet(PositionPortee{1, Emplacement::MainDroite}, PositionDansLeSac{0}));
+}
+}  // namespace
+
+TEST_CASE("Armes exigees : sans l'arme, le skill est refuse comme celui d'un lanceur mort, sans recharge ni attente") {
+    Generateur generateur = generateurDeTest();
+    Escouade escouade = unGuerrierReel();
+    const std::vector<EntiteVue> monstres = unSeulMonstre(cibleMonstre({110.0f, 60.0f}));
+    escouade.verrouiller(1);
+    retirerLArme(escouade);
+
+    REQUIRE_FALSE(escouade.skillEstPret(s_frappeDuGuerrierReel));
+    REQUIRE(escouade.etatDuSkill(s_frappeDuGuerrierReel)->armeAbsente);
+    REQUIRE(escouade.declencherSkill(s_frappeDuGuerrierReel, monstres, carteOuverte(), generateur).empty());
+
+    REQUIRE_FALSE(escouade.etatDuSkill(s_frappeDuGuerrierReel)->enActivation);
+    REQUIRE(escouade.etatDuSkill(s_frappeDuGuerrierReel)->tempsRestant == 0.0f);   // pas de recharge
+    // Pas de mise en attente non plus : un autre skill est accepté tout de suite.
+    REQUIRE(escouade.declencherSkill(s_provocationDuGuerrierReel, monstres, carteOuverte(), generateur).empty());
+    REQUIRE(escouade.etatDuSkill(s_provocationDuGuerrierReel)->enActivation);
+}
+
+TEST_CASE("Armes exigees : la provocation, sans exigence, se lance aux mains nues") {
+    Escouade escouade = unGuerrierReel();
+    retirerLArme(escouade);
+
+    REQUIRE(escouade.skillEstPret(s_provocationDuGuerrierReel));
+    REQUIRE_FALSE(escouade.etatDuSkill(s_provocationDuGuerrierReel)->armeAbsente);
+}
+
+TEST_CASE("Armes exigees : remettre une arme qui convient (la dague) rend le skill pret") {
+    Escouade escouade = unGuerrierReel();
+    retirerLArme(escouade);
+    REQUIRE_FALSE(escouade.skillEstPret(s_frappeDuGuerrierReel));
+
+    REQUIRE(escouade.ramasser(Objet{IdObjet::Dague}));
+    REQUIRE(escouade.deplacerObjet(PositionDansLeSac{1}, PositionPortee{1, Emplacement::MainDroite}));
+
+    REQUIRE(escouade.skillEstPret(s_frappeDuGuerrierReel));
+    REQUIRE_FALSE(escouade.etatDuSkill(s_frappeDuGuerrierReel)->armeAbsente);
+}
+
+TEST_CASE("Armes exigees : un arc ne convient pas a la frappe puissante") {
+    Escouade escouade = unGuerrierReel();
+    retirerLArme(escouade);
+    REQUIRE(escouade.ramasser(Objet{IdObjet::Arc}));
+    REQUIRE(escouade.deplacerObjet(PositionDansLeSac{1}, PositionPortee{1, Emplacement::MainDroite}));
+
+    REQUIRE(escouade.etatDuSkill(s_frappeDuGuerrierReel)->armeAbsente);
+}
+
+TEST_CASE("Armes exigees : un skill en attente est abandonne quand son lanceur perd l'arme") {
+    Generateur generateur = generateurDeTest();
+    Escouade escouade = unGuerrierReel();
+    const std::vector<EntiteVue> loin = unSeulMonstre(cibleMonstre({300.0f, 60.0f}));
+    escouade.verrouiller(1);
+    REQUIRE(escouade.declencherSkill(s_frappeDuGuerrierReel, loin, carteOuverte(), generateur).empty());  // hors de portée : en attente
+    REQUIRE_FALSE(escouade.etatDuSkill(s_provocationDuGuerrierReel)->enActivation);
+    REQUIRE(escouade.declencherSkill(s_provocationDuGuerrierReel, loin, carteOuverte(), generateur).empty());
+    REQUIRE_FALSE(escouade.etatDuSkill(s_provocationDuGuerrierReel)->enActivation);  // refusée : un skill attend
+
+    retirerLArme(escouade);
+
+    REQUIRE(escouade.declencherSkill(s_provocationDuGuerrierReel, loin, carteOuverte(), generateur).empty());
+    REQUIRE(escouade.etatDuSkill(s_provocationDuGuerrierReel)->enActivation);  // plus rien n'attend
 }

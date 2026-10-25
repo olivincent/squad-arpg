@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "aides.hpp"
+#include "combat/TypeDArme.hpp"
 #include "base/Cercle.hpp"
 #include "combat/Skill.hpp"
 
@@ -337,4 +338,25 @@ TEST_CASE("Skill a execution nulle : le coup part des le premier avancer") {
 
     REQUIRE(skill.avancer(s_dureeTic, generateur));
     REQUIRE(skill.getPhase() == PhaseSkill::EnRecharge);
+}
+
+TEST_CASE("Skill.convientA : sans exigence, toute arme et les mains nues conviennent") {
+    const Skill libre({.type = TypeSkill::Degats, .portee = 20.0f, .puissance = 5, .rechargeMin = 1.0f, .rechargeMax = 1.0f,
+                       .nature = NatureDAttaque::Contact});
+
+    REQUIRE(libre.getArmesExigees().empty());
+    REQUIRE(libre.convientA(std::nullopt));
+    REQUIRE(libre.convientA(TypeDArme::Arc));
+}
+
+TEST_CASE("Skill.convientA : avec des exigences, seules les armes de la liste conviennent, jamais les mains nues") {
+    const Skill exigeant({.type = TypeSkill::Degats, .portee = 20.0f, .puissance = 5, .rechargeMin = 1.0f, .rechargeMax = 1.0f,
+                          .nature = NatureDAttaque::Contact, .armesExigees = {TypeDArme::EpeeLongue, TypeDArme::Masse}});
+
+    REQUIRE(exigeant.getArmesExigees().size() == 2);
+    REQUIRE(exigeant.convientA(TypeDArme::EpeeLongue));
+    REQUIRE(exigeant.convientA(TypeDArme::Masse));
+    REQUIRE_FALSE(exigeant.convientA(TypeDArme::Dague));
+    REQUIRE_FALSE(exigeant.convientA(TypeDArme::Arc));
+    REQUIRE_FALSE(exigeant.convientA(std::nullopt));
 }

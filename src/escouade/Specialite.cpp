@@ -8,6 +8,7 @@
 #include "combat/Caracteristiques.hpp"
 #include "combat/IdSkill.hpp"
 #include "combat/NatureDAttaque.hpp"
+#include "combat/TypeDArme.hpp"
 #include "combat/TypeSkill.hpp"
 #include "objets/Equipement.hpp"
 
@@ -66,6 +67,12 @@ constexpr Caracteristiques s_caracteristiquesRodeur({10, 10, 14, 8, 8});
 // (la durée d'une provocation n'est pas un montant).
 constexpr Coefficients s_puissanceSeule = Coefficients::seul(Caracteristique::Puissance, 1.0f);
 
+// Les armes qui permettent les skills de frappe et de tir (modèle de *Titan Quest* : pas de restriction par classe).
+const std::vector<TypeDArme> s_armesDeFrappePuissante = {TypeDArme::EpeeLongue, TypeDArme::Masse, TypeDArme::Dague,
+                                                         TypeDArme::EpeeADeuxMains};
+const std::vector<TypeDArme> s_armesDeFrappeSacree = {TypeDArme::EpeeLongue, TypeDArme::Masse, TypeDArme::EpeeADeuxMains};
+const std::vector<TypeDArme> s_armesDeTir = {TypeDArme::Arc};
+
 // Part de noir mélangée à la couleur de la classe, selon le nombre de fois où elle a déjà été prise.
 constexpr std::array<float, 3> s_assombrissements = {0.0f, 0.30f, 0.55f};
 
@@ -92,7 +99,7 @@ std::vector<Specialite> construireLeCatalogue() {
           .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = s_porteeMelee,
                                              .puissance = s_degatsSkill, .rechargeMin = s_rechargeSkill,
                                              .rechargeMax = s_rechargeSkill, .tempsExecution = s_activationSkill, .coefficients = s_puissanceSeule,
-                                             .nature = NatureDAttaque::Contact})},
+                                             .nature = NatureDAttaque::Contact, .armesExigees = s_armesDeFrappePuissante})},
            {IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .portee = 0.0f,
                                          .puissance = s_dureeProvocation, .rechargeMin = s_rechargeProvocation,
                                          .rechargeMax = s_rechargeProvocation, .rayonZone = s_rayonProvocation,
@@ -126,7 +133,7 @@ std::vector<Specialite> construireLeCatalogue() {
                                           .puissance = s_degatsFrappeSacree, .rechargeMin = s_rechargeFrappeSacree,
                                           .rechargeMax = s_rechargeFrappeSacree,
                                           .tempsExecution = s_activationFrappeSacree, .coefficients = s_puissanceSeule,
-                                          .nature = NatureDAttaque::Contact})},
+                                          .nature = NatureDAttaque::Contact, .armesExigees = s_armesDeFrappeSacree})},
            {IdSkill::ImpositionDesMains, Skill({.type = TypeSkill::Soin, .portee = s_porteeMelee,
                                                 .puissance = s_puissanceImposition,
                                                 .rechargeMin = s_rechargeImposition,
@@ -141,12 +148,12 @@ std::vector<Specialite> construireLeCatalogue() {
           .skills = {{IdSkill::TirPercant, Skill({.type = TypeSkill::Degats, .portee = s_porteeTirPercant,
                                         .puissance = s_degatsTirPercant, .rechargeMin = s_rechargeTirPercant,
                                         .rechargeMax = s_rechargeTirPercant, .tempsExecution = s_activationTirPercant, .coefficients = s_puissanceSeule,
-                                        .nature = NatureDAttaque::Projectile})},
+                                        .nature = NatureDAttaque::Projectile, .armesExigees = s_armesDeTir})},
            {IdSkill::PluieDeFleches, Skill({.type = TypeSkill::Zone, .portee = s_porteePluie,
                                             .puissance = s_degatsPluie, .rechargeMin = s_rechargePluie,
                                             .rechargeMax = s_rechargePluie, .rayonZone = s_rayonPluie,
                                             .tempsExecution = s_activationPluie, .coefficients = s_puissanceSeule,
-                                            .nature = NatureDAttaque::Zone})}},
+                                            .nature = NatureDAttaque::Zone, .armesExigees = s_armesDeTir})}},
           .equipementDeDepart = equipementDeTireur(IdObjet::Arc), .rayonVision = s_rayonVision,
           .caracteristiques = s_caracteristiquesRodeur,
           .rang = Rang::Arriere}},

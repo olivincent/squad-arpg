@@ -10,6 +10,7 @@
 #include "aides_escouade.hpp"
 #include "combat/Caracteristiques.hpp"
 #include "combat/Defense.hpp"
+#include "combat/TypeDArme.hpp"
 #include "escouade/Composition.hpp"
 #include "objets/CatalogueObjets.hpp"
 #include "base/Eclaircir.hpp"
@@ -322,4 +323,33 @@ TEST_CASE("caracteristiques des classes : le guerrier a plus d'Endurance que le 
 
     REQUIRE(guerrier.valeur(Caracteristique::Endurance) > mage.valeur(Caracteristique::Endurance));
     REQUIRE(mage.valeur(Caracteristique::Savoir) > guerrier.valeur(Caracteristique::Savoir));
+}
+
+TEST_CASE("armes exigees : frappe puissante, frappe sacree et skills de l'archer") {
+    using Types = std::vector<TypeDArme>;
+    const auto exigees = [](IdSpecialite id, std::size_t rang) { return specialite(id).definition.skills[rang].skill.getArmesExigees(); };
+
+    REQUIRE(exigees(IdSpecialite::Guerrier, 0) ==
+            Types{TypeDArme::EpeeLongue, TypeDArme::Masse, TypeDArme::Dague, TypeDArme::EpeeADeuxMains});  // frappe puissante
+    REQUIRE(exigees(IdSpecialite::Paladin, 0) ==
+            Types{TypeDArme::EpeeLongue, TypeDArme::Masse, TypeDArme::EpeeADeuxMains});                    // frappe sacree
+    REQUIRE(exigees(IdSpecialite::Rodeur, 0) == Types{TypeDArme::Arc});                                      // tir percant
+    REQUIRE(exigees(IdSpecialite::Rodeur, 1) == Types{TypeDArme::Arc});                                      // pluie de fleches
+}
+
+TEST_CASE("armes exigees : les autres skills n'exigent rien") {
+    REQUIRE(specialite(IdSpecialite::Guerrier).definition.skills[1].skill.getArmesExigees().empty());   // provocation
+    REQUIRE(specialite(IdSpecialite::Pretre).definition.skills[0].skill.getArmesExigees().empty());     // soin
+    REQUIRE(specialite(IdSpecialite::Mage).definition.skills[0].skill.getArmesExigees().empty());       // explosion
+    REQUIRE(specialite(IdSpecialite::Paladin).definition.skills[1].skill.getArmesExigees().empty());    // imposition des mains
+}
+
+TEST_CASE("armes exigees : chaque classe porte au depart l'arme que ses skills exigent") {
+    for (const Specialite& classe : catalogue()) {
+        const Personnage personnage({0.0f, 0.0f}, classe.definition);
+        for (const SkillConnu& connu : classe.definition.skills) {
+            REQUIRE(personnage.skillEstPret(connu.id));
+            REQUIRE_FALSE(personnage.etatDuSkill(connu.id)->armeAbsente);
+        }
+    }
 }

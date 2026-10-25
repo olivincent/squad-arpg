@@ -10,6 +10,9 @@
 #include <optional>
 
 #include "aides_escouade.hpp"
+#include "escouade/Specialite.hpp"
+#include "objets/Emplacement.hpp"
+#include "objets/PositionDObjet.hpp"
 #include "interface/BarreDeSkills.hpp"
 #include "interface/Reglages.hpp"
 #include "combat/IdSkill.hpp"
@@ -126,5 +129,21 @@ TEST_CASE("iconesDeLaBarre : seul l'emplacement du skill vise est en visee") {
 
     for (std::size_t i = 0; i < icones.size(); ++i) {
         REQUIRE(icones[i].enVisee == (barre.adresse(i) == s_adresseSoin));
+    }
+}
+
+TEST_CASE("iconesDeLaBarre : un skill dont l'arme exigee manque le dit (icone grisee), les autres non") {
+    Escouade escouade({100.0f, 100.0f}, composer({IdSpecialite::Guerrier}));
+    const BarreDeRaccourcis barre = barreParDefaut(escouade.adressesDesSkills());
+    const TouchesDesRaccourcis touches = Reglages{}.touchesDesRaccourcis;
+    REQUIRE(escouade.deplacerObjet(PositionPortee{1, Emplacement::MainDroite}, PositionDansLeSac{0}));
+
+    const auto icones = iconesDeLaBarre(barre, escouade, touches, std::nullopt);
+
+    for (std::size_t i = 0; i < icones.size(); ++i) {
+        if (!icones[i].etat.has_value()) {
+            continue;
+        }
+        REQUIRE(icones[i].etat->armeAbsente == (icones[i].etat->id == IdSkill::FrappePuissante));
     }
 }

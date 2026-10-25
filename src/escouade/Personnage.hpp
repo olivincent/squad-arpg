@@ -70,6 +70,9 @@ public:
     [[nodiscard]] std::optional<TypeSkill> typeSkill(IdSkill id) const;
     // Identifiants des skills qu'il connaît, dans l'ordre de sa liste.
     [[nodiscard]] std::vector<IdSkill> idsDesSkills() const;
+    // L'arme portée permet-elle de lancer ce skill ? Faux pour un skill que le personnage ne connaît pas.
+    [[nodiscard]] bool armeConvientAuSkill(IdSkill id) const;
+    // Prêt : le lanceur est vivant, connaît le skill, qui n'est pas en recharge, et porte l'arme qu'il exige.
     [[nodiscard]] bool skillEstPret(IdSkill id) const;
     [[nodiscard]] std::optional<EtatSkill> etatDuSkill(IdSkill id) const;
     [[nodiscard]] bool skillEstAPortee(IdSkill id, Cercle cible) const;
@@ -84,7 +87,7 @@ public:
     // engagée à la fois ; les recharges des skills sont indépendantes. La portée
     // et la vue sont vérifiées par Escouade ; la cible est stockée sans être interprétée.
     [[nodiscard]] bool engagerSkill(IdSkill id, std::optional<Cible> cible);
-    // Les conditions d'engagerSkill : vivant, skill connu et prêt, aucun skill en
+    // Les conditions d'engagerSkill : vivant, skill connu et prêt, arme exigée portée, aucun skill en
     // activation (le lanceur est libre).
     [[nodiscard]] bool peutEngagerSkill(IdSkill id) const;
     [[nodiscard]] std::optional<ActionEngagee> skillEngage() const;
@@ -138,6 +141,8 @@ private:
     // L'attaque de ce skill de ce personnage : son montant, caractéristiques comprises (`montantEffectif`), et
     // la capacité offensive du personnage.
     [[nodiscard]] Attaque attaqueDe(const Skill& skill) const;
+    // Son arme permet-elle de lancer ce skill (`Skill::convientA`) ?
+    [[nodiscard]] bool armeConvientA(const Skill& skill) const;
     [[nodiscard]] const Skill* trouverSkill(IdSkill id) const;  // nullptr si le personnage ne connaît pas ce skill
     [[nodiscard]] Skill* trouverSkill(IdSkill id);
     std::optional<ActionEngagee> m_actionEngagee; // action en exécution et sa cible ; lue seulement pendant l'exécution

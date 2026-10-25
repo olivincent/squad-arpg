@@ -200,9 +200,18 @@ std::vector<IdSkill> Personnage::idsDesSkills() const {
     return ids;
 }
 
+bool Personnage::armeConvientA(const Skill& skill) const {
+    return skill.convientA(m_equipement.typeDArme());
+}
+
+bool Personnage::armeConvientAuSkill(IdSkill id) const {
+    const Skill* skill = trouverSkill(id);
+    return skill != nullptr && armeConvientA(*skill);
+}
+
 bool Personnage::skillEstPret(IdSkill id) const {
     const Skill* skill = trouverSkill(id);
-    return estVivant() && skill != nullptr && skill->getPhase() == PhaseSkill::Pret;
+    return estVivant() && skill != nullptr && skill->getPhase() == PhaseSkill::Pret && armeConvientA(*skill);
 }
 
 std::optional<EtatSkill> Personnage::etatDuSkill(IdSkill id) const {
@@ -212,7 +221,8 @@ std::optional<EtatSkill> Personnage::etatDuSkill(IdSkill id) const {
     }
     const std::optional<ActionEngagee> action = skillEngage();
     const bool enActivation = action.has_value() && action->skill == id;
-    return EtatSkill{id, skill->getType(), skill->getProgressionRecharge(), skill->getRechargeRestante(), estVivant(), enActivation};
+    return EtatSkill{id, skill->getType(), skill->getProgressionRecharge(), skill->getRechargeRestante(), estVivant(),
+                     !armeConvientA(*skill), enActivation};
 }
 
 bool Personnage::skillEstAPortee(IdSkill id, Cercle cible) const {
@@ -244,7 +254,8 @@ bool Personnage::engagerSkill(IdSkill id, std::optional<Cible> cible) {
 bool Personnage::peutEngagerSkill(IdSkill id) const {
     const Skill* skill = trouverSkill(id);
     // Un seul skill en activation à la fois, même si les recharges sont indépendantes.
-    return estVivant() && skill != nullptr && !skillEngage().has_value() && skill->getPhase() == PhaseSkill::Pret;
+    return estVivant() && skill != nullptr && !skillEngage().has_value() && skill->getPhase() == PhaseSkill::Pret &&
+           armeConvientA(*skill);
 }
 
 std::optional<ActionEngagee> Personnage::skillEngage() const {
@@ -341,6 +352,13 @@ void Personnage::recalculerDepuisLEquipement() {
     m_statistiques = statistiquesDuPersonnage(m_caracteristiques, m_equipement.bonusDeCombatTotal());
     m_vitalite.definirMaximum(pointsDeVieMax(m_caracteristiques));
     m_vitalite.definirDefenses(defenses());
+    // Un skill en activation qui exige une arme qu'on ne porte plus est annulé, sans recharge consommée.
+    if (const std::optional<ActionEngagee> action = skillEngage(); action.has_value() && action->skill.has_value()) {
+        const Skill* skill = trouverSkill(*action->skill);
+        if (skill != nullptr && !armeConvientA(*skill)) {
+            annulerSkill();
+        }
+    }
     // L'attaque de base : refaite seulement si l'arme l'a changée (un anneau ne remet pas la recharge à zéro).
     if (const DescriptionDAttaque voulue = m_equipement.attaqueDeBase(); voulue != m_descriptionDeBase) {
         annulerAttaque();

@@ -1153,5 +1153,12 @@ bool Escouade::deplacerObjet(const PositionDObjet& de, const PositionDObjet& ver
             }
         }
     }
+    // Un skill en attente dont le lanceur n'a plus l'arme qu'il exige est abandonné (sans recharge consommée).
+    if (m_skillEnAttente.has_value()) {
+        const AdresseSkill adresse = m_skillEnAttente->adresse;
+        if (!personnageDeLaPlace(adresse.place).armeConvientAuSkill(adresse.id)) {
+            m_skillEnAttente = std::nullopt;
+        }
+    }
     return true;
 }
