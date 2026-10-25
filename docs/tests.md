@@ -79,7 +79,7 @@
   encore injectables (points de vie, vitesse et attaque des monstres, points de vie et vitesse des
   personnages, armure de `creerNiveau`) se lisent par les accesseurs (`getPointsDeVie()` d'une entité
   neuve, `getPointsDeVieMax()`, `getAttaque().montant`) ou se mesurent dans le test (la vitesse sur
-  le premier tic). **Seul `test_Specialite.cpp` lit les valeurs du catalogue** ;
+  le premier tic). **Seul `test_Specialite.cpp` lit les valeurs du catalogue des classes** (et, depuis l'étape 91, les personnages de test lisent l'attaque de leur arme dans le catalogue des objets : voir « Étape 91 ») ;
   `test_EcranChoixEscouade.cpp` le lit aussi, mais seulement pour la liste de ses boutons (une par
   classe). Vérification : changer une valeur d'équilibrage du jeu ne fait échouer que les tests dont
   le sujet est cette valeur (voir « Étape 80 » plus bas).
@@ -1545,37 +1545,88 @@ même chose avec plus de détail.
   d'objet, virgule des secondes), `test_AffichageObjets.cpp` (+3 : l'infobulle des bottes, du casque de cuir et du
   bouclier rond).
 
-## Étape 91.1 : les tests ne dépendent pas de la chance
+## Étape 91 : les tests ne dépendent pas de la chance, les armes (+56 cas, 1 247 → 1 303)
+
+### Les tests ne dépendent pas de la chance (91.1)
 
 Le moteur du coup tire au hasard (esquive, critique, blocage, recharges). Un test qui n'est vert que parce
 que la graine fixe (`s_graineDeTest`) ne produit pas d'esquive est fragile : il casse dès qu'un tirage
 s'ajoute ou change d'ordre. Trois règles, appliquées à tous les tests existants.
 
-1. **Les événements rares se testent sur des tirages choisis**, jamais dans une boucle qui cherche une graine.
-   Les étapes pures (`appliquerCritique`, `coupEsquive`, `appliquerBlocage`) reçoivent le tirage (par exemple
-   0,01 et 0,99). Quand un test d'intégration a besoin d'un événement rare (un coup esquivé ou bloqué qui désigne
-   quand même son auteur comme agresseur, un soin critique), `generateurQuiTireSous(chance)` et
-   `generateurQuiTireAuDessus(chance)` (`aides.hpp`) rendent un générateur dont le prochain tirage du moteur du
-   coup est sous (ou au moins) cette chance. Précondition : l'étape visée est la seule à tirer dans le coup (une
-   attaque de capacité offensive nulle ne tire pas de critique ; une recharge fixe ne tire rien).
+1. **Les événements rares se testent sur les fonctions d'étape pures, avec un tirage choisi** (0,01 et 0,99 :
+   `appliquerCritique`, `coupEsquive`, `appliquerBlocage` reçoivent le tirage). **Jamais dans une boucle qui
+   cherche une graine** ni avec un générateur « truqué » par une recherche de graine : une telle aide
+   (`generateurQuiTireSous`, essayée à l'étape 91.1 puis supprimée à l'étape 91.4) ne contrôle qu'**un** tirage,
+   alors qu'un coup peut en faire trois (esquive, critique, blocage) et qu'une recharge aléatoire en ajoute. Un
+   test d'intégration qui a besoin d'un événement rare fait donc l'une des deux choses suivantes :
+   - il **lit le résultat ou l'événement** et vérifie, pour **chaque** coup d'une série (un même générateur
+     de test, des centaines de coups), ce qui doit être vrai que l'événement ait eu lieu ou non (« esquivé ou
+     non, le monstre devient agresseur » ; « critique ou non, le montant est celui de `degatsAttendus` ») ;
+   - et, quand il faut que l'événement soit vu au moins une fois, la série est assez longue pour que la chance
+     de ne jamais le voir soit de l'ordre de 2⁻⁶⁰ ou moins (50 % sur cent coups, 5 % sur deux mille), quelle
+     que soit la graine.
 2. **Les tests qui comptent des dégâts exacts n'ont pas de hasard de défenseur.** Dans `Partie`, les monstres
    sont ceux de `monstreSansHasard()` (le monstre ordinaire sans esquive), passés au constructeur de `Partie`
-   (`partieDeTest`, `unePartie`) ; dans les tests de `Monstre`, `monstreAvecArmure`. Reste le critique de
-   l'attaquant, qui n'a **jamais une chance nulle** : le test lit alors `critique` dans l'événement et compare
-   à `degatsAttendus(attaque, defenses, critique)` (même règle pour un monstre qui frappe un personnage). Un
-   test statistique (un critique ou une esquive doit apparaître) fait assez de coups pour que son échec soit de
-   l'ordre de 2⁻⁶⁰, quelle que soit la graine.
+   (`partieDeTest`, `unePartie`) ; `monstreIndestructible()` y ajoute des points de vie énormes pour les tests qui
+   durent ; dans les tests de `Monstre`, `monstreAvecArmure`. Reste le critique de l'attaquant, qui n'a **jamais une
+   chance nulle** : le test lit alors `critique` dans l'événement et compare à `degatsAttendus(attaque, defenses,
+   critique)` (même règle pour un monstre qui frappe un personnage).
 3. **Écarter le hasard se fait par une aide explicite, jamais par un détour par une règle de jeu.**
    `attaqueSansHasard` ne repose plus sur la nature `Zone` (qui ne s'esquive ni ne se bloque) : c'est une
    attaque de contact de capacité offensive nulle (jamais critique), et c'est le **défenseur** qui n'a pas de
    chance (`monstreSansHasard`, `defensesDeTest`, un personnage de test sans bottes ni bouclier). Un test qui
-   donne le bouclier du catalogue à un défenseur choisit le tirage du blocage (`generateurQuiTireAuDessus`).
+   donne le bouclier du catalogue à un défenseur retire le bouclier de son équipement quand il ne parle pas de
+   blocage.
 
 **Vérification** : le balayage des graines. Remplacer temporairement `s_graineDeTest` par une valeur lue dans
-l'environnement et lancer `tests.exe` sur 80 graines ne doit faire échouer aucun test (neuf tests fragiles
+l'environnement et lancer `tests.exe` sur 60 graines ne doit faire échouer aucun test (neuf tests fragiles
 trouvés ainsi à l'étape 91.1 : coups d'un skill et d'attaques de base comptés au point de vie près, critiques et
 esquives attendus au premier tir, un personnage surpris en pleine exécution d'un coup à la recharge aléatoire).
+Le balayage a été refait à chaque sous-étape suivante.
 
 `Partie` reçoit pour cela un quatrième paramètre, `definitionDesMonstres` (par défaut `monstreOrdinaire()`, le
-jeu ne le précise pas) : le modèle commun des monstres du niveau, sur le même principe que les définitions de
-personnages.
+jeu ne le précise pas) : le modèle commun des monstres du niveau. Il ira dans `Niveau` avec les types de monstres.
+
+### Constructeurs de test : le patron *Test Data Builder* (91.4)
+
+Les tests qui créent des personnages le font par des **aides** de `aides_escouade.hpp`, pas par la signature
+complète de `DefinitionPersonnage` ou du constructeur de `Personnage` : un futur changement de signature
+(comme la disparition de `attaqueDeBase` à l'étape 91.4) ne touche alors que les aides, pas les centaines de
+sites d'appel. Les aides : `guerrierDeTest`, `pretreDeTest`, `mageDeTest`, `definitionArmee(arme)` (sans classe, armée
+de cette arme), `definitionSansArme()`, `unPersonnageArme(centre, arme)`, `avecArme`, `avecPuissance`,
+`avecEnduranceEnorme`, `skillExigeantDesArmes`, `partieDeTest`, `unePartie`. On ne réécrit pas pour autant un test
+qui ne casse pas.
+
+### L'attaque de base vient d'une arme du catalogue (91.4)
+
+Les personnages de test portent l'épée longue (mêlée), le sceptre (prêtre) et le bâton (mage), du catalogue des
+objets : c'est la seule dépendance au catalogue des objets de leur attaque, et les constantes (`s_degatsBaseDeTest`,
+`s_porteeMeleeDeTest`, `s_rechargeMeleeMinDeTest`…, `aides_escouade.hpp`) sont **lues** dans la description de
+l'attaque de l'arme (`inline const`, plus `constexpr`), jamais écrites en littéral. Leurs caractéristiques sont
+`s_caracteristiquesDeTest` (Puissance de référence 10, les autres à 0) : l'attaque de base, qui profite à plein de la
+Puissance, fait exactement les dégâts de l'arme ; Adresse 0 et Endurance 0 comme avant (capacité 50, 240 points de
+vie). Une attaque « reconnaissable » (un coup qu'on suit parmi d'autres) s'obtient par une Puissance élevée
+(`avecPuissance`) ou par le choix de l'arme (l'épée à deux mains frappe une fois en 1,2 s), pas par une attaque
+écrite à la main ; un monstre qui ne doit pas mourir est `monstreIndestructible()`.
+
+### Nouveaux tests
+
+- **`tests/objets/`** : `test_DeplacementDObjets.cpp` (+16 : les deux mains dans les deux sens, première case
+  libre, case quittée par l'arme libre pour le bouclier dans un sac plein, sac plein et rien ne se libère = refus
+  et rien ne bouge, échange entre deux personnages à ses deux extrémités, retirer une arme à deux mains ne range
+  rien, règle de base conservée, `deplacementPossible` ne change rien) ; `test_CatalogueObjets.cpp` (+4 : les sept
+  armes, leurs types, mains et attaque ; seules les armes ont des données d'arme et seuls les boucliers des données
+  de bouclier ; `estADeuxMains` ; bouclier rond 30 % et 12 points) ; `test_Emplacement.cpp` (+1 : l'arme va en
+  main droite seulement) ; `test_Equipement.cpp` (+3 : `typeDArme`, `attaqueDeBase`, le bouclier compte dans les
+  statistiques de combat).
+- **`tests/escouade/`** : `test_Personnage.cpp` (+10 : zone de contrôle, portée et attaque de base qui suivent l'arme ;
+  changer d'arme relance une recharge complète tirée dans l'intervalle de la nouvelle arme, annule le coup en
+  cours, et un changement qui laisse l'arme intacte n'y touche pas ; un skill qui exige une arme est prêt, refusé
+  sans recharge consommée, annulé si on perd l'arme, inchangé si l'autre arme convient) ; `test_Escouade_equipement.cpp`
+  (+5 : les deux mains avec le guerrier, `attaquer` relance la recharge après un changement d'arme) ;
+  `test_Escouade_skills.cpp` (+5 : les armes exigées avec les vraies classes, le skill en attente abandonné) ;
+  `test_Specialite.cpp` (+5 : armes de départ, exigences, chaque classe porte l'arme de ses skills).
+- **`tests/combat/`** : `test_Skill.cpp` (+2 : `convientA`) ; `test_Escouade_skills_degats.cpp` (+1 : le `static_assert` des attaques de base devient un test) ; `test_Vitalite.cpp` : la récupération du blocage est
+  la constante commune.
+- **`tests/interface/`** : `test_AffichageObjets.cpp` (+3 : infobulles des armes) ; `test_BarreDeSkills.cpp` (+1 :
+  `armeAbsente`).

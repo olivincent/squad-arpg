@@ -33,11 +33,14 @@ déplacement par chemin dans `docs/chemin.md`.
 
 - **Un monstre reçoit ses valeurs, il n'en choisit aucune** : `DefinitionDeMonstre` (`monstres/`, initialisation
   désignée, sur le modèle de `DefinitionDeSkill` et `DefinitionPersonnage`) porte le côté (30), la vitesse
-  (160), les points de vie maximum (1000), l'armure, le rayon de détection (200), le rayon de territoire
+  (160), les points de vie maximum (300 depuis l'échelle × 3 de l'étape 91 ; 1000 avant), l'armure, le rayon de détection (200), le rayon de territoire
   (600), la zone de contrôle (20), la régénération du retour (0,5 du maximum par seconde), la définition de
-  son attaque (portée 15, 100 dégâts, recharge de 0,7 à 1,3 s, exécution de 0,3 s) et, depuis l'étape 89, ses
+  son attaque (portée 15, 30 dégâts — 100 avant l'échelle × 3 —, recharge de 0,7 à 1,3 s, exécution de 0,3 s) et, depuis l'étape 89, ses
   `StatistiquesDeCombat`. `monstreOrdinaire()` (`DefinitionDeMonstre.cpp`, constantes `s_` nommées) en donne
   le seul modèle d'aujourd'hui ; les types de monstres seront d'autres définitions, sans toucher à `Monstre`.
+  Depuis l'étape 91.1, `Partie` reçoit la définition des monstres en quatrième paramètre optionnel (par défaut
+  `monstreOrdinaire()`, le jeu ne la précise pas), ce qui permet aux tests de choisir leur monstre (sans esquive,
+  indestructible…) ; elle ira dans `Niveau` avec les types de monstres. L'armure vient toujours du niveau.
 - **Raison (E1 de `docs/audit.md`)** : ces valeurs étaient écrites en littéraux dans `Monstre.cpp` (constructeur
   et constantes), donc introuvables au moment d'équilibrer. Refactorisation pure : aucun comportement n'a
   changé, les 1 126 tests d'avant ont passé sans autre modification que la construction.
@@ -67,7 +70,7 @@ déplacement par chemin dans `docs/chemin.md`.
   propres au monstre restent dans `Monstre` : l'invulnérabilité en `Retour` et l'alerte (dans
   `recevoirDegats`, avant et après la délégation), la régénération (`mettreAJour`, par
   `Vitalite::soigner`). Les points de vie maximum viennent de la définition
-  (`DefinitionDeMonstre::pointsDeVieMax`, 1000 depuis l'échelle × 10), distincts de ceux d'un personnage.
+  (`DefinitionDeMonstre::pointsDeVieMax`, 300 depuis l'échelle × 3 ; 1000 depuis l'échelle × 10), distincts de ceux d'un personnage.
 - **`recevoirDegats` ne descend jamais sous zéro** : un coup qui dépasse
   le reste ne laisse pas un nombre négatif stocké.
 - **Pas d'accesseur pour les points de vie** : les tests passent par
@@ -313,7 +316,7 @@ déplacement par chemin dans `docs/chemin.md`.
   défensive 100, celles d'un personnage d'Adresse 10 ; depuis l'étape 90, 5 % d'esquive contre le contact et 5 %
   contre les projectiles, et aucun bouclier) sont des données de sa définition, lues par
   `getStatistiques()`. Le moteur du coup ne lit que ces statistiques (`docs/combat.md`).
-- **Son attaque est une `Attaque`** : `getAttaque()` rend les dégâts (100) et sa capacité offensive ;
+- **Son attaque est une `Attaque`** : `getAttaque()` rend les dégâts (30) et sa capacité offensive ;
   `avancerAttaque` rend cette `Attaque` au départ du coup (`std::optional`, vide avant), et `Partie` la
   transmet à `Escouade::recevoirCoup`. Le défenseur résout alors critique et armure.
 - **`recevoirDegats(attaque, generateur)`** rend un `ResultatDuCoup` (montant après armure, critique ou

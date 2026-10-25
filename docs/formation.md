@@ -763,8 +763,10 @@ même endroit dans un passage étroit » a disparu de la liste des limites.
 ## Composition et escouade à N personnages (étape 74)
 
 - **`Composition.hpp` / `.cpp`** : `enum class Rang { Avant, Arriere }`, `struct
-  DefinitionPersonnage { couleur; attaqueDeBase; skills = {}; equipementDeDepart = {}; rayonVision; caracteristiques = {}; pointsDeVieDeBase = 1000; zoneDeControle = 0; rang = Avant; }`
-  (étape 88 : base de caractéristiques et points de vie de base ; les champs avec valeur par défaut peuvent s'omettre en initialisation désignée),
+  DefinitionPersonnage { couleur; skills = {}; equipementDeDepart = {}; rayonVision; caracteristiques = {}; rang = Avant; }`
+  (étape 88 : base de caractéristiques ; étape 91 : `attaqueDeBase`, `zoneDeControle` et `pointsDeVieDeBase`
+  disparaissent, l'attaque de base et la zone viennent de l'arme de l'équipement de départ, les points de vie de
+  l'Endurance ; les champs avec valeur par défaut peuvent s'omettre en initialisation désignée),
   `compositionParDefaut()` (remplacée à l'étape 76 par `Specialite`, voir plus bas) et
   `decalagesDeFormation(rangs)`. Pourquoi : `Escouade` ne
   doit plus choisir de valeurs, pour que le joueur puisse choisir sa composition
@@ -774,7 +776,7 @@ même endroit dans un passage étroit » a disparu de la liste des limites.
   `Avant` sont sur `x = +25`, les `Arriere` sur `x = -25` ; dans un rang de n personnages,
   le k-ième (ordre d'apparition dans la composition) est sur `y = (k - (n-1)/2) × 50`. Avec
   2 devant et 2 derrière on retrouve exactement l'ancien carré.
-- **Composition par défaut** : guerrier (Avant, rouge, armure 30 par son équipement de départ, attaque de mêlée, skills
+- **Composition par défaut** (armures de l'époque ; 9 au lieu de 30 depuis l'échelle × 3 de l'étape 91) : guerrier (Avant, rouge, armure 30 par son équipement de départ, attaque de mêlée, skills
   `FrappePuissante` et `Provocation`), prêtre (Arriere, jaune pâle, armure 0, attaque de
   tireur, skill `Soin`), mage (Arriere, violet, armure 0, attaque de tireur, skill
   `Explosion`). Toutes les valeurs numériques des skills sont celles d'avant.
@@ -811,6 +813,11 @@ même endroit dans un passage étroit » a disparu de la liste des limites.
   l'ordre des décalages. La formation dépend du rang de chaque classe : trois guerriers sont tous
   `Avant` (colonne de x = +25), trois rôdeurs tous `Arriere` (x = −25) ; `decalagesDeFormation`
   gérait déjà ces cas.
+- **La classe ne fixe plus l'attaque de base** (étape 91.4) : elle garde ses skills, son rang, ses
+  caractéristiques de base et son équipement de départ, dont l'arme (guerrier épée longue, paladin masse, prêtre
+  sceptre, mage bâton, rôdeur arc) fournit l'attaque de base, la portée et la zone de contrôle ; les skills de
+  frappe et de tir exigent un type d'arme (`docs/combat.md`). Les points de vie ne viennent plus que de
+  l'Endurance (base commune de 240).
 - **Nouvelles classes, sans nouvelle mécanique** : paladin (`Avant`, armure 30 par son équipement, attaque de mêlée,
   skills `Degats` et `Soin`, tous deux à 20 px) et rôdeur (`Arriere`, armure 0, attaque de tireur,
   skills `Degats` à 200 px et `Zone`). Elles n'emploient que des `TypeSkill` existants ; les valeurs des skills sont dans `docs/combat.md`.
@@ -820,12 +827,14 @@ même endroit dans un passage étroit » a disparu de la liste des limites.
 - **Limites** : au plus trois fois la même classe (`assert` dans `composer`) ; pas d'arbre de skills,
   de niveaux ni de points à dépenser ; valeurs du paladin et du rôdeur provisoires.
 
-## Zone de contrôle (étape 77)
+## Zone de contrôle (étape 77, venue de l'arme à l'étape 91)
 
-- **Une valeur de plus par classe** : `DefinitionPersonnage::zoneDeControle`, 20 px (bord à bord) pour
-  le guerrier et le paladin, 0 pour le prêtre, le mage et le rôdeur. Valeur explicite, pas déduite du
-  rang (`Rang`) ni de la portée : un jour un tireur pourrait en avoir une, ou une mêlée aucune.
-  `Personnage` la stocke (`getZoneDeControle`) ; `Escouade` ne fait que la transmettre à la construction.
+- **La zone vient de l'arme depuis l'étape 91.4** (avant : `DefinitionPersonnage::zoneDeControle`, 20 px pour le
+  guerrier et le paladin, 0 pour les autres, une valeur explicite par classe). Une attaque de base de contact
+  engage (`zoneDeControleDe(nature)`, 20 px bord à bord), un projectile non : un guerrier qui reçoit un arc cesse
+  d'engager, un mage qui prend une épée engage. Valeur dérivée, pas stockée : `Personnage::getZoneDeControle` la lit
+  sur la nature de l'attaque de base ; `Escouade` ne fait que la transmettre. Le dégagement des tireurs
+  (étape 78) s'applique à tout personnage dont la zone est 0 : aucun changement de règle.
 - **`Escouade::entitesDeControle()`** donne à `Partie` une `EntiteDeControle` par personnage vivant
   (identifiant = place de 1 à N). `Escouade` ne connaît ni la règle ni les monstres : elle ne décide
   rien, elle lit. Les morts n'y sont pas.
@@ -1024,8 +1033,8 @@ personne ne se dégage), sans valeur par défaut depuis 82.5. Privées : `Intent
 | `const Inventaire& sac() const` / `const Equipement& equipementDuPersonnage(std::size_t place) const` | Le sac (40 cases, `s_capaciteDuSac`) et l'équipement du personnage de cette place (`assert` : place valide) ; lus par l'écran d'inventaire ; `[[nodiscard]]` |
 | `bool ramasser(Objet)` | Met l'objet dans la première case libre du sac ; faux si le sac est plein ; `[[nodiscard]]` |
 | `std::optional<Objet> objetA(const PositionDObjet&) const` | L'objet à cette position (case du sac ou emplacement d'un personnage), s'il y en a un ; `assert` : place valide, case < capacité ; lu par l'écran d'inventaire ; `[[nodiscard]]` |
-| `bool peutDeplacerObjet(const PositionDObjet& de, const PositionDObjet& vers) const` | Lit les deux objets et applique `deplacementPermis` ; la surbrillance de l'écran d'inventaire s'en sert ; `[[nodiscard]]` |
-| `bool deplacerObjet(const PositionDObjet& de, const PositionDObjet& vers)` | Appelle `peutDeplacerObjet` ; faux sans rien changer s'il est faux ; sinon sort les deux objets (`retirerA`) puis les pose en croix (`poserA`, privées) : échange si `vers` est occupé. Transactionnelle, valable pour un mort ; voir `docs/objets.md` ; `[[nodiscard]]` |
+| `bool peutDeplacerObjet(const PositionDObjet& de, const PositionDObjet& vers) const` | Copie le sac et les équipements (`etatDesObjets`, privée) et applique `deplacementPossible` (règle de base et deux mains) ; la surbrillance de l'écran d'inventaire s'en sert ; `[[nodiscard]]` |
+| `bool deplacerObjet(const PositionDObjet& de, const PositionDObjet& vers)` | Déplace sur une copie (`deplacerLesObjets`) ; faux sans rien changer si le déplacement est refusé ; sinon recopie le sac, puis dans chaque personnage les différences d'équipement (retraits, puis poses : chaque appel recalcule armure, caractéristiques, défenses et attaque de base) : échange si `vers` est occupé, objet rangé dans le sac pour les deux mains. Abandonne le skill en attente dont le lanceur n'a plus l'arme exigée. Transactionnelle, valable pour un mort ; voir `docs/objets.md` ; `[[nodiscard]]` |
 | `const std::vector<Provocation>& getProvocations() const` | Monstres actuellement provoqués, avec leur provocateur et le temps restant ; lue par les tests (`candidatsDeFrappe` ne montre ni l'un ni l'autre) |
 | `const std::vector<Agresseur>& getAgresseurs() const` | Monstres qui ont frappé l'escouade récemment : identifiant et temps restant (oubliés après 3 s sans coup, ou absents de `monstres` dans `attaquer`) ; lue par les tests |
 
@@ -1036,18 +1045,20 @@ frappe à portée, a des points de vie et peut mourir. Ne connaît ni la
 formation, ni `Escouade`, ni `Monstre`.
 
 Données membres : `m_mobile` (`Mobile`, porte la position et la vitesse),
-`m_couleur`, `m_attaqueDeBase` (`Skill`), `m_skills`
+`m_couleur`, `m_equipement` (`Equipement`, déclaré avant ce qui en est tiré à la construction : attaque de base et défenses), `m_descriptionDeBase` (`DescriptionDAttaque` : celle de l'équipement, que `m_attaqueDeBase` met en œuvre), `m_attaqueDeBase` (`Skill`, refait quand l'arme change), `m_rechargeARelancer` (`bool`, étape 91.4 : l'arme a changé, la recharge complète reste à tirer), `m_skills`
 (`std::vector<SkillConnu>`, sans doublon d'identifiant), `m_cibleChemin` (`std::optional<sf::Vector2f>`,
-cible du dernier A*), `m_equipement` (`Equipement`, déclaré avant `m_vitalite` : l'armure en est tirée à la construction), `m_caracteristiquesDeBase` et `m_caracteristiques` (`Caracteristiques` : celles de la classe, et les effectives, base plus équipement), `m_pointsDeVieDeBase` (`int`), `m_vitalite` (`Vitalite` : points de vie et armure), `m_rayonVision` (`float`, pixels), `m_zoneDeControle` (`float`, pixels, bord à bord), `m_actionEngagee` (`std::optional<ActionEngagee>`, l'action en exécution — attaque de base ou skill, avec son `IdSkill` — et sa cible ; une seule à la fois ; lue seulement pendant l'exécution).
+cible du dernier A*), `m_caracteristiquesDeBase` et `m_caracteristiques` (`Caracteristiques` : celles de la classe, et les effectives, base plus équipement), `m_vitalite` (`Vitalite` : points de vie et armure), `m_rayonVision` (`float`, pixels), `m_actionEngagee` (`std::optional<ActionEngagee>`, l'action en exécution — attaque de base ou skill, avec son `IdSkill` — et sa cible ; une seule à la fois ; lue seulement pendant l'exécution).
 
 | Fonction | Rôle |
 |---|---|
-| `Personnage(sf::Vector2f centre, DefinitionPersonnage definition)` | Crée le personnage à ce centre depuis sa définition (étape 88.1, C2 : un agrégat à la place de sept paramètres ; `Escouade` lui passe la définition de la composition). Avec la couleur, l'attaque de base, les skills (`assert` : pas deux fois le même `IdSkill`), cet équipement de départ (son armure en est la somme, `docs/objets.md`), ce rayon de vision et cette zone de contrôle en pixels (tous fournis par `Composition`, via `Escouade`, qui passe la zone explicitement ; la valeur par défaut 0 évite d'écrire une zone dans les tests qui n'en parlent pas) |
+| `Personnage(sf::Vector2f centre, DefinitionPersonnage definition)` | Crée le personnage à ce centre depuis sa définition (étape 88.1, C2 : un agrégat à la place de sept paramètres ; `Escouade` lui passe la définition de la composition). Avec la couleur, les skills (`assert` : pas deux fois le même `IdSkill`), cet équipement de départ (son armure, son attaque de base et sa zone de contrôle en sont calculées, `docs/objets.md`) et ce rayon de vision (tous fournis par `Composition`, via `Escouade`). Depuis l'étape 91.4, plus d'attaque de base ni de zone de contrôle dans la définition, et depuis 91.2 plus de points de vie de base (`pointsDeVieMax(caracteristiques)`) |
 | `const Equipement& getEquipement() const` | Ce que le personnage porte ; `[[nodiscard]]` |
-| `const Caracteristiques& getCaracteristiques() const` | Ses caractéristiques effectives : la base de sa classe plus les bonus de son équipement, recalculées en entier à chaque changement d'équipement (`recalculerDepuisLEquipement`, privée, qui change aussi le maximum de points de vie — Endurance × 20 + base —, les statistiques de combat et les défenses de la `Vitalite` ; `docs/combat.md`) ; `[[nodiscard]]` |
+| `const Caracteristiques& getCaracteristiques() const` | Ses caractéristiques effectives : la base de sa classe plus les bonus de son équipement, recalculées en entier à chaque changement d'équipement (`recalculerDepuisLEquipement`, privée, qui change aussi le maximum de points de vie — 240 + 6 × Endurance depuis l'étape 91.2 —, les statistiques de combat et les défenses de la `Vitalite` ; `docs/combat.md`) ; `[[nodiscard]]` |
 | `const StatistiquesDeCombat& getStatistiques() const` | Ses statistiques de combat : capacités offensive et défensive (`50 + 5 × Adresse` effective) plus les bonus de combat de son équipement — esquives, blocage (`statistiquesDuPersonnage`, seul endroit qui les calcule, rappelée par `recalculerDepuisLEquipement`) ; `[[nodiscard]]` |
 | `std::optional<Objet> poserEquipement(Emplacement, Objet)` / `std::optional<Objet> retirerEquipement(Emplacement)` | Portent un objet (`assert(peutAller)`) ou l'enlèvent, et rendent l'objet remplacé ou retiré ; l'armure et les caractéristiques sont recalculées en entier depuis l'équipement (`recalculerDepuisLEquipement`, privée, seul appelant de `Vitalite::definirDefenses`) ; permis pour un mort ; `[[nodiscard]]` |
 | `float getRayonVision() const` | Rayon de vision, en pixels ; `[[nodiscard]]` |
+| `void relancerSiLArmeAChange(Generateur& generateur)` | Si l'arme a changé depuis le dernier appel, relance au complet la recharge de l'attaque de base (tirage dans l'intervalle de la nouvelle arme) ; `Escouade::attaquer` l'appelle au début de chaque image ; tant qu'elle est à relancer, `engagerAttaque` refuse (étape 91.4) |
+| `bool armeConvientAuSkill(IdSkill id) const` | L'arme portée permet-elle ce skill (`Skill::convientA`) ? Faux sans ce skill (étape 91.5) ; `[[nodiscard]]` |
 | `float getZoneDeControle() const` / `Attaque getAttaqueDeBase() const` | Zone de contrôle (0 : il n'engage personne) et attaque de base (dégâts, capacité offensive) ; de simples lectures, elles ne touchent ni la recharge ni le coup engagé ; `[[nodiscard]]` |
 | `void mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte, const std::vector<Cercle>& obstacles, const std::vector<Cercle>& aContourner)` | Si vivant, avance vers la cible (en ligne droite si le trajet est libre de murs ET ne passe pas près d'un des `aContourner` — `traverseUnObstacle` —, sinon par un chemin A* lissé qui les contourne, recalculé si la cible s'éloigne de plus d'une case de sa fin ou si `estBloque()` ; collision avec les murs et les cercles `obstacles`, glissement) puis décrémente la recharge de l'attaque et de chacun de ses skills ; sinon ne fait rien |
 | `void decaler(sf::Vector2f decalage, const TileMap&, const std::vector<Cercle>&)` | Pousse le personnage vivant (délègue à `Mobile::decaler`) ; sans effet s'il est mort |
@@ -1063,13 +1074,13 @@ cible du dernier A*), `m_equipement` (`Equipement`, déclaré avant `m_vitalite`
 | `std::vector<IdSkill> idsDesSkills() const` | Identifiants de ses skills, dans l'ordre de sa liste ; `[[nodiscard]]` |
 | `sf::Color getCouleur() const` | Sa couleur ; `[[nodiscard]]` |
 | `std::optional<TypeSkill> typeSkill(IdSkill id) const` | Type de ce skill, vide s'il ne le connaît pas (comme les cinq suivantes : un identifiant inconnu = pas de skill) |
-| `bool skillEstPret(IdSkill id) const` | Vivant, avec ce skill en phase prête (recharge écoulée, pas en activation) |
+| `bool skillEstPret(IdSkill id) const` | Vivant, avec ce skill en phase prête (recharge écoulée, pas en activation) et l'arme qu'il exige (étape 91.5) |
 | `std::optional<EtatSkill> etatDuSkill(IdSkill id) const` | Type, progression de la recharge, temps restant, état de vie et activation en cours (vraie seulement si c'est ce skill qui est engagé) ; vide sans ce skill |
 | `bool skillEstAPortee(IdSkill id, Cercle cible) const` | Ce skill est-il à portée de `cible` (bord à bord) ? Faux sans ce skill |
 | `Cercle zoneDuSkill(IdSkill id) const` | Cercle centré sur le personnage, de rayon le rayon de zone de ce skill (0 sans ce skill) |
 | `Cercle cercleDePorteeDuSkill(IdSkill id) const` | Cercle centré sur le personnage, de rayon son rayon + la portée de ce skill (rayon seul sans ce skill) |
 | `bool engagerSkill(IdSkill id, std::optional<Cible> cible)` | Engage ce skill : faux si `peutEngagerSkill(id)` est faux. Ne demande pas d'immobilité. Annule le coup de base en exécution. La portée et la vue sont vérifiées par `Escouade`, qui ne l'appelle que si `peutEngagerSkill` est vrai (`assert` du résultat) ; la cible (vide pour la provocation) est stockée sans être interprétée ; `[[nodiscard]]` |
-| `bool peutEngagerSkill(IdSkill id) const` | Les conditions d'`engagerSkill`, seule source de vérité : vivant, skill connu et prêt, aucun skill en activation (le lanceur est libre) ; `[[nodiscard]]` |
+| `bool peutEngagerSkill(IdSkill id) const` | Les conditions d'`engagerSkill`, seule source de vérité : vivant, skill connu et prêt, arme exigée portée, aucun skill en activation (le lanceur est libre) ; `[[nodiscard]]` |
 | `std::optional<ActionEngagee> skillEngage() const` | L'action `Skill` en activation, avec son `IdSkill` et sa cible ; vide sinon |
 | `std::optional<Attaque> avancerSkill(float dt, Generateur& generateur)` | Fait avancer l'activation ; rend l'attaque du skill (montant et capacité offensive ; pour une provocation, le montant est sa durée) au départ de l'effet (et relance au complet la recharge de `m_attaqueDeBase`), vide sinon ; `[[nodiscard]]` |
 | `void annulerSkill()` | Annule l'activation, sans recharge consommée |
@@ -1179,7 +1190,7 @@ un personnage immobile. Inclus par `Escouade` et `Formation` sans qu'elles dépe
 
 `Composition.hpp` / `.cpp` : une énumération, une structure et deux fonctions libres, sans état. `Escouade` ne choisit plus aucune valeur : elle reçoit sa composition. Voir `docs/formation.md`.
 
-`enum class Rang { Avant, Arriere }` ; `struct DefinitionPersonnage { sf::Color couleur; Skill attaqueDeBase; std::vector<SkillConnu> skills; std::vector<ObjetDeDepart> equipementDeDepart; float rayonVision; float zoneDeControle; Rang rang; }` (`equipementDeDepart` : emplacement et objet de ce que le personnage porte à sa création, voir `docs/objets.md` ; `zoneDeControle` : en pixels, bord à bord, 0 = n'engage personne).
+`enum class Rang { Avant, Arriere }` ; `struct DefinitionPersonnage { sf::Color couleur; std::vector<SkillConnu> skills = {}; std::vector<ObjetDeDepart> equipementDeDepart = {}; float rayonVision; Caracteristiques caracteristiques = {}; Rang rang = Avant; }` (`equipementDeDepart` : emplacement et objet de ce que le personnage porte à sa création, voir `docs/objets.md` : son armure, son attaque de base et sa zone de contrôle en viennent ; depuis l'étape 91, ni `attaqueDeBase`, ni `zoneDeControle`, ni points de vie de base).
 
 | Fonction | Rôle |
 |---|---|
@@ -1197,7 +1208,7 @@ un personnage immobile. Inclus par `Escouade` et `Formation` sans qu'elles dépe
 | `const Specialite& specialite(IdSpecialite id)` | L'entrée de cet identifiant (indexée par l'enum, `assert` sur l'identifiant) ; `[[nodiscard]]` |
 | `std::vector<DefinitionPersonnage> composer(const std::vector<IdSpecialite>& identifiants)` | Une définition par identifiant, dans l'ordre reçu (c'est l'ordre des places). La k-ième occurrence d'une même classe (k = 0, 1, 2) a sa couleur assombrie de 0 %, 30 % puis 55 % (`assombrir`) ; `assert` : pas plus de 3 fois la même classe ; `[[nodiscard]]` |
 
-Classes : guerrier (`Avant`, rouge, armure 30 par son équipement, attaque de mêlée, `FrappePuissante` et `Provocation`), prêtre (`Arriere`, jaune pâle, armure 0, attaque de tireur, `Soin`), mage (`Arriere`, violet, armure 0, attaque de tireur, `Explosion`), paladin (`Avant`, orange, armure 30, attaque de mêlée, `FrappeSacree` et `ImpositionDesMains`), rôdeur (`Arriere`, vert, armure 0, attaque de tireur, `TirPercant` et `PluieDeFleches`). Rayon de vision 320 px pour toutes. Zone de contrôle : 20 px pour le guerrier et le paladin (mêlées), 0 pour les trois autres. Valeurs des skills dans `docs/combat.md`.
+Classes (équipement de départ depuis l'étape 91.4) : guerrier (`Avant`, rouge, armure 9, épée longue et bouclier rond, `FrappePuissante` et `Provocation`), prêtre (`Arriere`, jaune pâle, sceptre, `Soin`), mage (`Arriere`, violet, bâton, `Explosion`), paladin (`Avant`, orange, armure 9, masse et bouclier rond, `FrappeSacree` et `ImpositionDesMains`), rôdeur (`Arriere`, vert, arc, `TirPercant` et `PluieDeFleches`). Rayon de vision 320 px pour toutes. Zone de contrôle : celle de l'arme (20 px pour le guerrier et le paladin, au contact ; 0 pour les trois autres). Points de vie : 240 + 6 × Endurance (guerrier 324, paladin 318, prêtre et rôdeur 300, mage 288). Les skills de frappe et de tir exigent un type d'arme. Valeurs des skills dans `docs/combat.md`.
 
 ### `Encerclement` (`monde/`) — les places d'un anneau
 

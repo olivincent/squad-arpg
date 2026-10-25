@@ -8,7 +8,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 ## Étapes terminées
 
-Étapes 0 à 90 ✅. Les dernières :
+Étapes 0 à 91 ✅. Les dernières :
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 - Étape 83 — Inventaire et équipement : le modèle, sans interface ✅
@@ -19,15 +19,16 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - Étape 88 — Caractéristiques : cinq valeurs, Endurance vers PV, Puissance vers dégâts et soins ✅
 - Étape 89 — Le critique : statistiques de combat, capacités offensive et défensive, soins critiques (avec E1) ✅
 - Étape 90 — Esquive et blocage : nature des attaques, esquive plafonnée, bouclier, textes « Esquivé » et « Bloqué » ✅
+- Étape 91 — Les armes : l'attaque de base et la zone de contrôle viennent de l'arme, échelle × 3, deux mains, skills qui exigent une arme ✅
 
 ## État actuel (résumé)
 
 - **Outils** : conception dans Claude.ai, implémentation avec Claude Code dans VSCode (règles dans
   `CLAUDE.md`) ; dépôt Git `squad-arpg`, poussé sur GitHub ; SFML 3.0.2 intégrée à CMake.
-- **Code** (étape 90) : 81 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
+- **Code** (étape 91) : 86 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
   `combat`, `objets`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
   de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug` et `jeu`, 0
-  avertissement, 1 247 tests verts sous CTest, 39 avertissements `clang-tidy` (`docs/build.md`,
+  avertissement, 1 303 tests verts sous CTest, 39 avertissements `clang-tidy` (`docs/build.md`,
   `docs/audit.md`). `Escouade` n'est plus que l'assemblage : `Escouade.cpp` de 1 223 à 1 067 lignes. Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`).
 - **Écrans** : menu à la souris, options d'affichage (fenêtré ou plein écran, résolutions,
   `reglages.ini`), choix de 3 classes parmi 5 (guerrier, prêtre, mage, paladin, rôdeur ; doublons
@@ -40,13 +41,17 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - **Vision** : brouillard de guerre (inconnu, exploré, visible) par shadowcasting symétrique, la
   même règle que la ligne de vue du combat ; F6 le coupe à l'affichage (`docs/vision.md`).
 - **Objets** : 10 emplacements par personnage, un sac de 40 cases pour l'escouade, un catalogue de
-  12 objets ; l'armure d'un personnage est la somme de son équipement (guerrier et paladin partent
-  équipés : 30 ; les autres : 0) ; chaque personnage a cinq caractéristiques (base de sa classe plus
-  bonus de l'équipement : Puissance, Endurance, Adresse, Savoir, Volonté), dont l'Endurance donne des
-  points de vie (20 par point) et la Puissance augmente dégâts et soins (3 % par point au-dessus de 10),
-  l'Adresse donne les capacités offensive et défensive (`50 + 5 × Adresse`) ; trois objets donnent aussi un
-  bonus de combat (bottes de cuir : esquive contre la mêlée ; casque de cuir : esquive contre les projectiles ;
-  bouclier rond : blocage) ; `ramasser` et `deplacerObjet` sont transactionnelles. La
+  19 objets dont 7 armes (épée longue, masse, dague, épée à deux mains, sceptre, bâton, arc) ; l'armure d'un
+  personnage est la somme de son équipement (guerrier et paladin partent équipés : 9 ; les autres : 0) ;
+  **l'attaque de base et la zone de contrôle viennent de l'arme** de la main droite (les mains nues sans arme ;
+  contact : zone de 20 px, projectile : aucune), changer d'arme relance une recharge complète ; une arme à deux
+  mains exige la main gauche vide et range ce qui la gêne dans le sac (sac plein : refus) ; chaque personnage a
+  cinq caractéristiques (base de sa classe plus bonus de l'équipement : Puissance, Endurance, Adresse, Savoir,
+  Volonté), dont l'Endurance donne des points de vie (base commune de 240 plus 6 par point : environ 300 au
+  départ, échelle × 3 de l'étape 91) et la Puissance augmente dégâts et soins (3 % par point au-dessus de 10),
+  l'Adresse donne les capacités offensive et défensive (`50 + 5 × Adresse`) ; des objets donnent aussi un
+  bonus de combat (bottes de cuir : esquive contre la mêlée ; casque de cuir : esquive contre les projectiles) et
+  le bouclier rond un blocage (30 %, 12 points, récupération commune de 3 s) ; `ramasser` et `deplacerObjet` sont transactionnelles. La
   touche I ouvre l'inventaire par-dessus la partie figée : équipement des 3 personnages, sac de 40
   cases, caractéristiques, points de vie, capacités, blocage et esquives de chaque personnage, infobulle au survol, et glisser-déposer des objets (sac, emplacements, entre personnages ;
   échange si la destination est occupée ; destinations valides en surbrillance) (`docs/objets.md`,
@@ -54,7 +59,8 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - **Escouade** : une ancre suivie par 3 personnages en formation (rangs avant et arrière), qui
   pivote et se resserre près des murs ; places d'attaque autour des monstres, séparation douce,
   chemins qui contournent les monstres, dégagement des tireurs (`docs/formation.md`, `docs/chemin.md`).
-- **Combat** : verrou par clic, autodéfense, agresseurs, temps d'exécution des coups, armure à
+- **Combat** : verrou par clic, attaque de base et zone de contrôle de l'arme, skills qui exigent un type d'arme
+  (refusés sans elle, icône grisée), autodéfense, agresseurs, temps d'exécution des coups, armure à
   armure par soustraction avec plancher, recharges aléatoires, zones de contrôle et attaques d'opportunité ; skills
   (dégâts, soin, provocation, zone avec visée) avec temps d'activation et un skill en attente pour
   l'escouade ; critiques (dégâts et soins, des deux camps, selon le rapport des capacités offensive et
@@ -63,7 +69,8 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   critiques, « Esquivé », « Bloqué », nom du skill lancé et « Provoqué » flottants (`docs/combat.md`).
 - **Monstres** : détection en vue, poursuite, frappe de la proie ou du plus proche atteignable,
   alerte du groupe, retour au poste invulnérable avec régénération ; toutes leurs valeurs sont dans une
-  `DefinitionDeMonstre` (`docs/monstre.md`).
+  `DefinitionDeMonstre` (`docs/monstre.md`), aujourd'hui un paramètre optionnel de `Partie` : elle ira dans
+  `Niveau` avec les types de monstres.
 - **Interface** : barre de raccourcis de 12 emplacements (Q W E R / A S D F / Z X C V, ou clic ;
   « l'interface d'abord »), compteur de monstres, écran de victoire ou de défaite ; F3 et F4 de
   débogage ; une touche devient une commande par une fonction pure, `commandePourTouche`
@@ -156,22 +163,26 @@ ce qui reste à décider **en discussion** avant son prompt :
     chance et multiplicateur par le rapport des capacités, la magie et les soins critiquent, « Critique ! »
     à l'écran, capacités dans l'inventaire.
   - 90 ✅ : esquive et blocage : nature explicite des attaques, esquive plafonnée à 50 %, bonus de combat des
-    objets, bouclier rond (30 %, 40 points, 3 s), « Esquivé » et « Bloqué » à l'écran.
+    objets, bouclier rond (30 %, 12 points depuis l'échelle × 3, récupération commune de 3 s), « Esquivé » et
+    « Bloqué » à l'écran.
 - **Phase 2, armes**
-  - 91 : armes ; l'attaque de base vient de l'arme (dont sa nature : contact ou projectile, aujourd'hui écrite
-    dans la classe). À décider : l'arme décide-t-elle du rôle, restrictions par classe.
-  - 92 : seuils d'équipement, pénétration d'armure.
+  - 91 ✅ : armes ; l'attaque de base et la zone de contrôle viennent de l'arme, échelle × 3, base de points de
+    vie commune, deux mains (rangement automatique), skills qui exigent un type d'arme, blocage propriété du
+    bouclier, infobulles (modèle C : pas de restriction par classe).
+  - 92 : seuils d'équipement, objets inactifs, pénétration d'armure (la dague).
 - **Phase 3, éléments**
   - 93 : coups en portions typées, résistances. À décider : la liste des éléments (question 5).
 - **Phase 4, butin**
   - 94 : objets avec leurs propres données (rareté, bonus) ; 95 : butin au sol ; 96 : génération
     aléatoire des objets. À décider : rareté, affixes, niveau d'objet (question 2).
 
-## Étape 91 (prochaine) : armes, à discuter avec Claude.ai
+## Étape 92 (prochaine) : seuils d'équipement et pénétration d'armure
 
-L'attaque de base viendra de l'arme (dégâts, portée, intervalle de recharge, nature contact ou projectile).
-À décider : l'arme décide-t-elle du rôle, les restrictions par classe, ce que devient la main droite (vide
-depuis l'étape 83). Le Savoir et la Volonté n'ont encore aucun effet.
+Les objets exigent des valeurs minimales de caractéristiques (impossible d'équiper sous le seuil ; un objet porté
+dont le seuil n'est plus atteint devient inactif, calcul par point fixe ; affichage des seuils et des objets
+inactifs), et la dague perce l'armure (pénétration en pour cent, plafonnée à 75 %). Le Savoir et la Volonté n'ont
+encore aucun effet. Les définitions de monstres, aujourd'hui un paramètre optionnel de `Partie`, iront dans
+`Niveau` avec les types de monstres.
 
 ## Fonctionnalités prévues (à choisir avec Claude.ai)
 
@@ -196,8 +207,6 @@ Autres pistes discutées (issues de `docs/audit.md` et des étapes précédentes
 - Interruption de l'activation d'un skill par les dégâts reçus
 - Laisse prolongée par les dégâts (`docs/monstre.md`), vitesse relative escouade/monstres et
   ralentissement de l'escouade engagée, comme leviers contre le kiting
-- Classe `Arme` qui fournit l'intervalle de recharge de l'attaque de base (aujourd'hui écrit dans
-  `Escouade.cpp` et `Monstre.cpp`)
 - Monstre touché qui se jette sur l'auteur du coup, effet visuel d'alerte, alerte par proximité ou
   par le bruit, chef de groupe, retour au poste en groupe, patrouille, escouade de monstres
 - Effets visuels : impact du skill de zone, monstre provoqué, cible de chaque personnage, coup ou

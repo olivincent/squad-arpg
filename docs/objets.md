@@ -2,8 +2,9 @@
 
 Le modèle des objets (étape 83) : le catalogue, ce que porte chaque personnage, le sac de
 l'escouade et les opérations qui déplacent un objet. L'écran d'inventaire (étape 84) les affiche, et
-le glisser-déposer (étape 85) les déplace. L'armure et son effet sur les dégâts sont dans
-`docs/combat.md`, la construction des personnages dans `docs/formation.md`.
+le glisser-déposer (étape 85) les déplace. Les armes (étape 91) donnent l'attaque de base et la zone de
+contrôle, et le bouclier son blocage. L'armure et son effet sur les dégâts sont dans `docs/combat.md`,
+la construction des personnages dans `docs/formation.md`.
 
 ## Décisions
 
@@ -15,9 +16,9 @@ le glisser-déposer (étape 85) les déplace. L'armure et son effet sur les dég
   l'objet). Deux emplacements (les anneaux) reçoivent la même catégorie, et plus tard une arme
   pourra aller dans deux mains. `peutAller(CategorieObjet, Emplacement)` est la seule source de la
   règle ; personne d'autre ne compare une catégorie à un emplacement.
-- **Pas de catégorie d'arme** : la main droite reste vide (aucune catégorie n'y va). La classe
-  `Arme` viendra plus tard ; une arme à deux mains sera une extension de `peutAller` avec une règle
-  d'occupation de l'autre main, pas avant.
+- **Une catégorie d'arme, pas une classe `Arme`** (étape 91) : `CategorieObjet::Arme` va en main droite
+  seulement ; qu'une arme prenne les deux mains est une donnée de l'arme (`DonneesDArme::mains`), et la règle
+  d'occupation de l'autre main est dans `deplacerLesObjets` (voir « Armes (étape 91) »).
 - **Données, pas de hiérarchie** : comme `Specialite`, un catalogue (`DefinitionObjet` : id, nom,
   catégorie, armure) dans l'ordre de l'enum `IdObjet`, lu par `definitionObjet(id)` ; l'ordre est
   contrôlé par un `assert`. Pas de sous-classes `Casque`, `Anneau`…
@@ -36,13 +37,15 @@ le glisser-déposer (étape 85) les déplace. L'armure et son effet sur les dég
   aucune armure de classe : `DefinitionPersonnage::armure` est remplacé par
   `equipementDeDepart`. À la construction, la `Vitalite` reçoit `armureTotale()` de l'équipement
   de départ (`m_equipement` est déclaré avant `m_vitalite`).
-- **Équilibre inchangé** : le guerrier et le paladin partent équipés (casque de fer 10, cuirasse de
-  mailles 20, jambières de fer 10, bouclier rond 10 : 50), les trois autres sans rien (0). Les
-  valeurs sont provisoires.
+- **Équilibre** : le guerrier et le paladin partent équipés (casque de fer 2, cuirasse de mailles 4,
+  jambières de fer 2, bouclier rond 1 : 9 depuis l'échelle × 3 de l'étape 91.2 ; 50 avant l'étape 87), les trois
+  autres n'ont que leur arme (armure 0). Les valeurs sont provisoires.
 - **Les tests ne lisent pas les valeurs du catalogue d'objets** (même règle que pour les classes) :
   les attentes sont calculées avec `definitionObjet(id).armure` ou `armureDe(equipement)`
-  (`tests/aides.hpp`), jamais avec 50 ou 20 écrits en dur. `test_Specialite.cpp` reste le seul
-  fichier qui lit l'équipement de départ du catalogue des classes.
+  (`tests/aides.hpp`), jamais avec 9 ou 4 écrits en dur. `test_Specialite.cpp` reste le seul
+  fichier qui lit l'équipement de départ du catalogue des classes. Depuis l'étape 91, l'attaque de base des
+  personnages de test vient d'une arme du catalogue : les constantes (`s_degatsBaseDeTest`…) sont **lues** dans la
+  description de l'attaque de l'épée longue ou du sceptre (`docs/tests.md`).
 - **Opérations transactionnelles** : `ramasser` et `deplacerObjet` vérifient toutes leurs
   conditions avant de modifier quoi que ce soit ; vraies, tout est fait, fausses, rien n'a bougé.
   Une fois les conditions vérifiées, l'échange ne peut plus échouer : il ne dit jamais « sac plein »
@@ -53,6 +56,49 @@ le glisser-déposer (étape 85) les déplace. L'armure et son effet sur les dég
 - **La capacité (40) appartient à `Escouade`** (`s_capaciteDuSac`, dans `Escouade.cpp`), pas à
   `Inventaire`, qui reçoit sa capacité à la construction. `Partie` remplit le sac avec
   `sacDeDepart()` à sa construction.
+
+## Armes (étape 91)
+
+- **Données, pas de hiérarchie** : une `DefinitionObjet` porte, si elle en est une, des `DonneesDArme`
+  (`std::optional`) ; un bouclier porte des `DonneesDeBouclier`. Pas de sous-classe `Arme`.
+- **Une arme** : un `TypeDArme` (`EpeeLongue`, `Masse`, `Dague`, `EpeeADeuxMains`, `Sceptre`, `Baton`, `Arc` ;
+  `combat/TypeDArme.hpp`, parce que les skills l'exigent et que `combat/` ne connaît pas `objets/`), un nombre de
+  mains (1 ou 2) et une `DescriptionDAttaque` (`combat/`) : dégâts, intervalle de recharge, temps d'exécution,
+  portée bord à bord et nature (contact ou projectile). Les mains nues ne sont pas un objet : `mainsNues()`
+  rend leur description (6 dégâts, 0,4 – 0,6 s, 0,15 s, 20 px, contact).
+- **L'attaque de base est une valeur dérivée de l'équipement** : `Equipement::attaqueDeBase()` rend celle de
+  l'arme de la main droite, sinon les mains nues ; le `Personnage` la recalcule à chaque changement d'équipement
+  (`recalculerDepuisLEquipement`), comme l'armure et les caractéristiques, jamais stockée en double. Le skill de
+  l'attaque de base n'est refait que si la description change (un anneau ne remet pas la recharge à zéro) ; un
+  coup de base en cours est alors annulé sans recharge consommée, et l'attaque repart pour une **recharge
+  complète** tirée dans l'intervalle de la nouvelle arme (`Personnage::relancerSiLArmeAChange`, appelé par
+  `Escouade::attaquer` : l'équipement n'a pas de générateur). Sans cela, retirer et remettre une arme lente dans
+  l'inventaire (partie figée) donnerait une attaque prête tout de suite.
+- **La zone de contrôle vient de l'arme** : une attaque de contact engage (`s_zoneDeControleDeContact`, 20 px,
+  `zoneDeControleDe(nature)`), un projectile non. `DefinitionPersonnage::zoneDeControle` a disparu, comme la
+  portée et l'intervalle de l'attaque de base dans la définition de classe.
+- **Deux mains** : une arme à deux mains occupe la main droite et exige la main gauche vide. Poser une arme à
+  deux mains alors que la main gauche est occupée **range l'objet de la main gauche dans la première case libre du
+  sac** ; poser un bouclier alors que la main droite tient une arme à deux mains range l'arme ; sac plein, le
+  déplacement est refusé. Cela vaut aux deux extrémités d'un échange entre personnages.
+- **Une seule fonction de décision, sur un état en valeurs** : `objets/DeplacementDObjets` définit
+  `EtatDesObjets` (le sac et l'équipement de chaque place, copiés) et `deplacerLesObjets(etat, de, vers)`, qui
+  applique la règle de base (`deplacementPermis` : catégorie et emplacement) puis les deux mains, **sur une
+  copie** qu'elle ne garde que si tout réussit (transactionnel : un sac plein au moment de ranger refuse tout, état
+  intact). `deplacementPossible` fait le même calcul sans rien changer : `Escouade::peutDeplacerObjet`
+  (surbrillance) et `Escouade::deplacerObjet` (action) en dérivent, donc ne divergent pas. L'`Escouade` copie son
+  état, déplace, puis recopie les différences dans les personnages (chaque pose recalcule armure, caractéristiques,
+  défenses et attaque de base). Un skill en attente dont le lanceur perd l'arme qu'il exige est abandonné.
+- **Le bouclier** : sa chance de blocage et son montant absorbé sont des propriétés du bouclier
+  (`DonneesDeBouclier`), plus des bonus de statistiques ; `Equipement::bonusDeCombatTotal` les ajoute aux
+  statistiques de combat du porteur. La **récupération** (3 s) est une constante commune
+  (`s_recuperationDuBlocage`, `combat/Blocage.hpp`), plus une donnée d'objet : la règle « on garde la plus longue »
+  a disparu. D'autres objets pourront plus tard ajouter de la chance de blocage ou réduire la récupération ; aucun
+  champ n'existe pour cela, aucun objet ne s'en sert.
+- **Équipement de départ** : guerrier épée longue + bouclier rond + pièces de fer, paladin masse + bouclier rond +
+  pièces de fer, prêtre sceptre, mage bâton, rôdeur arc. Le sac de départ reçoit une dague et une épée à deux
+  mains.
+- **Les skills exigent un type d'arme** (`docs/combat.md`) : le refus est celui d'un lanceur mort.
 
 ## Affichage (étape 84)
 
@@ -71,10 +117,12 @@ et le sac, en lecture seule ; aucune fonction de modification n'est appelée.
   cuir, CC casque de cuir, TM tunique matelassée, CP collier de protection, AP anneau de protection, AU anneau de puissance, CE collier d'endurance).
   Un test vérifie que les sigles ont deux lettres et sont tous différents.
 - **Infobulle** au survol d'un objet (`lignesDeLInfobulle`) : nom, catégorie, « Armure : +N » (absente si
-  l'armure est nulle, étape 88), une ligne par bonus de caractéristique (« Puissance : +3 ») et, depuis
-  l'étape 90, une ligne par bonus de combat (« Esquive contre la mêlée : +5 % », « Esquive contre les
-  projectiles : +5 % », « Blocage : 30 %, 40 points, 3 s » : `lignesDeBonusDeCombat`). Rien au survol d'une
-  case vide.
+  l'armure est nulle, étape 88), une ligne par bonus de caractéristique (« Puissance : +3 »), depuis
+  l'étape 90 une ligne par bonus de combat (« Esquive contre la mêlée : +5 % », « Esquive contre les
+  projectiles : +5 % » : `lignesDeBonusDeCombat`) et, depuis l'étape 91, pour un bouclier son blocage (« Blocage :
+  30 %, 12 points ») et pour une arme son attaque : « Dégâts : 15 », « Recharge : 0,3 à 0,7 s » (« 0,5 s » si les
+  bornes sont égales), « Portée : 20 px », « Contact » ou « Projectile » et « Deux mains » à deux mains. Rien au
+  survol d'une case vide.
 - **« Armure : N » d'une colonne** est `Equipement::armureTotale()`, la valeur dont la `Vitalite`
   du personnage est calculée ; elle n'est pas mise en cache dans l'écran.
 - **Disposition** : `interface/DispositionInventaire`, fonctions pures qui servent au dessin, au
@@ -106,8 +154,10 @@ et le sac, en lecture seule ; aucune fonction de modification n'est appelée.
 
 - L'affichage est un sigle de deux lettres par objet : pas d'icônes, pas de couleurs par rareté ou par
   catégorie.
-- Pas d'armes, pas de main droite, pas de restriction par classe, pas de butin au sol : une nouvelle
-  partie repart toujours du départ (aucune sauvegarde de l'équipement).
+- Pas de restriction d'équipement par classe, pas de butin au sol : une nouvelle partie repart toujours du
+  départ (aucune sauvegarde de l'équipement). Pas de deux armes à la fois (la main gauche ne tient qu'un
+  bouclier), ni de lancer, ni de munitions.
+- Une arme à deux mains n'est pas encore liée à un seuil de caractéristiques (étape 92).
 - `Monstre` n'a pas d'équipement : son armure reste fixe (`Niveau::armureMonstres`).
 - Les modifications d'équipement ne sont pas annoncées (aucun événement) : l'écran relit l'état à
   chaque image.
@@ -122,33 +172,50 @@ et le sac, en lecture seule ; aucune fonction de modification n'est appelée.
 
 `enum class Emplacement { Tete, Torse, Jambes, Gants, Bottes, MainDroite, MainGauche, Collier,
 Anneau1, Anneau2 }` ; `inline constexpr std::size_t s_nombreEmplacements = 10` ; `enum class
-CategorieObjet { Casque, Armure, Jambieres, Gants, Bottes, Bouclier, Collier, Anneau }`.
+CategorieObjet { Casque, Armure, Jambieres, Gants, Bottes, Bouclier, Collier, Anneau, Arme }`.
 
 | Fonction | Rôle |
 |---|---|
-| `bool peutAller(CategorieObjet, Emplacement)` | Un objet de cette catégorie peut-il être porté à cet emplacement ? Chaque catégorie a un emplacement, sauf l'anneau (`Anneau1` et `Anneau2`) ; le bouclier va en `MainGauche` seulement ; `MainDroite` n'en accepte aucune ; `[[nodiscard]]` |
+| `bool peutAller(CategorieObjet, Emplacement)` | Un objet de cette catégorie peut-il être porté à cet emplacement ? Chaque catégorie a un emplacement, sauf l'anneau (`Anneau1` et `Anneau2`) ; le bouclier va en `MainGauche` seulement ; l'arme va en `MainDroite` seulement (la main droite n'accepte qu'elle) ; `[[nodiscard]]` |
 
 ### `Objet` (`objets/`)
 
 `Objet.hpp`, sans `.cpp`. `enum class IdObjet { CasqueDeFer, CuirasseDeMailles, JambieresDeFer,
 BouclierRond, GantsDeCuir, BottesDeCuir, CasqueDeCuir, TuniqueMatelassee, CollierDeProtection,
-AnneauDeProtection }` ; `struct Objet { IdObjet id; }` avec `operator==` par défaut.
+AnneauDeProtection, AnneauDePuissance, CollierDEndurance, EpeeLongue, Masse, Dague, EpeeADeuxMains, Sceptre, Baton,
+Arc }` ; `struct Objet { IdObjet id; }` avec `operator==` par défaut.
 
 ### `CatalogueObjets` (`objets/`)
 
 `CatalogueObjets.hpp` / `.cpp` : `struct DefinitionObjet { IdObjet id; std::string nom;
-CategorieObjet categorie; int armure; Caracteristiques bonus = {}; StatistiquesDeCombat bonusDeCombat = {}; }` et trois
+CategorieObjet categorie; int armure; Caracteristiques bonus = {}; StatistiquesDeCombat bonusDeCombat = {};
+std::optional<DonneesDArme> arme = {}; std::optional<DonneesDeBouclier> bouclier = {}; }` et cinq
 fonctions libres, sans état.
 
 | Fonction | Rôle |
 |---|---|
 | `const std::vector<DefinitionObjet>& catalogueObjets()` | Tous les modèles, dans l'ordre de `IdObjet` ; l'unique source de leurs valeurs ; `[[nodiscard]]` |
 | `const DefinitionObjet& definitionObjet(IdObjet id)` | Le modèle de cet identifiant ; `assert` : le catalogue suit l'ordre de l'enum ; `[[nodiscard]]` |
-| `std::vector<Objet> sacDeDepart()` | Le contenu du sac au début d'une partie : gants de cuir, bottes de cuir, casque de cuir, tunique matelassée, collier de protection et deux anneaux de protection ; `[[nodiscard]]` |
+| `bool estADeuxMains(IdObjet)` | Une arme à deux mains (épée à deux mains, bâton, arc) ; faux pour tout autre objet ; `[[nodiscard]]` |
+| `const DescriptionDAttaque& mainsNues()` | L'attaque de base sans arme ; `[[nodiscard]]` |
+| `std::vector<Objet> sacDeDepart()` | Le contenu du sac au début d'une partie : gants de cuir, bottes de cuir, casque de cuir, tunique matelassée, collier de protection, deux anneaux de protection, l'anneau de puissance, le collier d'endurance, une dague et une épée à deux mains ; `[[nodiscard]]` |
 
-Valeurs d'armure (provisoires, recalibrées à l'étape 87.3 pour le modèle M1) : casque de fer 6,
-cuirasse de mailles 12, jambières de fer 6, bouclier rond 6, gants de cuir 2, bottes de cuir 2, casque
-de cuir 3, tunique matelassée 5, collier de protection 4, anneau de protection 2.
+Valeurs d'armure (provisoires ; recalibrées à l'étape 87.3 pour le modèle M1, puis à l'échelle × 3 à l'étape 91.2) :
+casque de fer 2, cuirasse de mailles 4, jambières de fer 2, bouclier rond 1, gants de cuir 1, bottes de cuir 1,
+casque de cuir 1, tunique matelassée 2, collier de protection 1, anneau de protection 1 ; armes 0.
+
+Armes (étape 91, valeurs provisoires, « à tester ») :
+
+| Arme | Dégâts | Recharge | Exécution | Portée | Nature | Mains |
+|---|---|---|---|---|---|---|
+| Épée longue, masse | 15 | 0,3 – 0,7 s | 0,15 s | 20 px | contact | 1 |
+| Dague | 14 | 0,4 – 0,8 s | 0,15 s | 20 px | contact | 1 |
+| Épée à deux mains | 60 | 1,2 – 2,8 s | 0,3 s | 20 px | contact | 2 |
+| Sceptre | 15 | 0,4 – 0,6 s | 0,15 s | 120 px | projectile | 1 |
+| Bâton, arc | 15 | 0,4 – 0,6 s | 0,15 s | 120 px | projectile | 2 |
+| *Mains nues* (pas un objet) | 6 | 0,4 – 0,6 s | 0,15 s | 20 px | contact | — |
+
+Le coefficient de Puissance de l'attaque de base est 1,0 (`Personnage`, comme avant l'étape 91).
 
 Bonus de caractéristiques (étape 88) : `DefinitionObjet` reçoit `Caracteristiques bonus = {}` (vide pour les
 objets de protection). Deux objets ajoutés au catalogue (`IdObjet::AnneauDePuissance`, `CollierDEndurance`,
@@ -156,11 +223,12 @@ en fin d'enum) et au sac de départ : « Anneau de puissance » (anneau, armure 
 d'endurance » (collier, armure 0, Endurance +3). Un collier d'endurance donne +60 points de vie maximum
 (20 par point d'Endurance).
 
-Bonus de combat (étape 90.2 et 90.3) : `DefinitionObjet` reçoit `StatistiquesDeCombat bonusDeCombat = {}`, le
-même type que les statistiques d'un personnage, qui s'y additionnent (`docs/combat.md`). Trois objets en ont
+Bonus de combat (étape 90.2) : `DefinitionObjet` reçoit `StatistiquesDeCombat bonusDeCombat = {}`, le
+même type que les statistiques d'un personnage, qui s'y additionnent (`docs/combat.md`). Deux objets en ont
 un (valeurs « à tester », constantes nommées de `CatalogueObjets.cpp`) : les **bottes de cuir** +5 %
-d'esquive contre le contact, le **casque de cuir** +5 % d'esquive contre les projectiles, le **bouclier
-rond** 30 % de chance de blocage, 40 points absorbés, 3 s de récupération.
+d'esquive contre le contact, le **casque de cuir** +5 % d'esquive contre les projectiles. Le **bouclier rond**
+(30 % de chance de blocage, 12 points absorbés) est depuis l'étape 91.6 une propriété du bouclier
+(`DonneesDeBouclier`), plus un bonus.
 
 ### `Equipement` (`objets/`)
 
@@ -177,8 +245,11 @@ Données membres : `m_objets` (`std::array<std::optional<Objet>, s_nombreEmplace
 | `std::optional<Objet> poser(Emplacement, Objet)` | Porte l'objet et rend celui qui y était ; `assert(peutAller(...))` : c'est à l'appelant de vérifier ; `[[nodiscard]]` |
 | `std::optional<Objet> retirer(Emplacement)` | Enlève l'objet et le rend (vide si l'emplacement l'était) ; `[[nodiscard]]` |
 | `int armureTotale() const` | Somme de l'armure des objets portés, recalculée à chaque appel ; `[[nodiscard]]` |
-| `StatistiquesDeCombat bonusDeCombatTotal() const` | Somme des bonus de combat des objets portés, recalculée à chaque appel (la récupération du blocage est la plus longue, pas une somme) ; `[[nodiscard]]` |
+| `StatistiquesDeCombat bonusDeCombatTotal() const` | Somme des bonus de combat des objets portés et du blocage de leurs boucliers (chance, montant), recalculée à chaque appel ; `[[nodiscard]]` |
 | `Caracteristiques bonusTotal() const` | Somme des bonus de caractéristiques des objets portés, recalculée à chaque appel (étape 88) ; `[[nodiscard]]` |
+| `DescriptionDAttaque attaqueDeBase() const` | L'attaque de base que donne l'équipement : celle de l'arme de la main droite, sinon `mainsNues()` (étape 91.4) ; `[[nodiscard]]` |
+| `std::optional<TypeDArme> typeDArme() const` | Le type de l'arme de la main droite, vide sans arme (étape 91.5) ; `[[nodiscard]]` |
+| `bool operator==(const Equipement&) const` | Défaut : l'`Escouade` compare l'état voulu à l'état courant (étape 91.3) |
 
 ### `Inventaire` (`objets/`)
 
@@ -206,6 +277,25 @@ PositionPortee { std::size_t place; Emplacement emplacement; }` (chacune avec `o
 |---|---|
 | `bool deplacementPermis(const PositionDObjet& de, const std::optional<Objet>& objetDe, const PositionDObjet& vers, const std::optional<Objet>& objetVers)` | Seule source de la règle des déplacements (voir « Déplacements ») ; `[[nodiscard]]` |
 
+### `DonneesDArme`, `DonneesDeBouclier` (`objets/`) et `TypeDArme`, `DescriptionDAttaque` (`combat/`)
+
+En-têtes seuls (étape 91). `struct DonneesDArme { TypeDArme type; int mains; DescriptionDAttaque attaque; }` ;
+`struct DonneesDeBouclier { int chanceDeBlocage; int montantBloque; }` ; `enum class TypeDArme { EpeeLongue, Masse,
+Dague, EpeeADeuxMains, Sceptre, Baton, Arc }` ; `struct DescriptionDAttaque { int degats; float rechargeMin;
+float rechargeMax; float tempsExecution; float portee; NatureDAttaque nature; }` (toutes avec `operator==`, sans
+valeur par défaut : un oubli est signalé par le compilateur), accompagnée de `s_zoneDeControleDeContact` (20 px) et
+de `zoneDeControleDe(NatureDAttaque)` (contact : 20, projectile et zone : 0).
+
+### `DeplacementDObjets` (`objets/`) — la règle des déplacements (étape 91.3)
+
+`DeplacementDObjets.hpp` / `.cpp` : `struct EtatDesObjets { Inventaire sac; std::vector<Equipement> equipements; }`
+(un équipement par place, indice = place − 1) et deux fonctions libres (voir « Armes (étape 91) »).
+
+| Fonction | Rôle |
+|---|---|
+| `bool deplacerLesObjets(EtatDesObjets&, const PositionDObjet& de, const PositionDObjet& vers)` | Déplace l'objet de `de` vers `vers` (échange si occupé, deux mains comprises), ou rend faux sans rien changer ; `[[nodiscard]]` |
+| `bool deplacementPossible(const EtatDesObjets&, de, vers)` | Le même calcul sur une copie ; `[[nodiscard]]` |
+
 ### `AffichageObjets` (`interface/`)
 
 `AffichageObjets.hpp` / `.cpp` : trois tables de texte et les lignes de l'infobulle, fonctions
@@ -215,8 +305,8 @@ libres sans état, qui rendent des `std::string` en UTF-8.
 |---|---|
 | `std::string nomDeLEmplacement(Emplacement)` | « Tête », « Torse », « Jambes », « Gants », « Bottes », « Main droite », « Main gauche », « Collier », « Anneau 1 », « Anneau 2 » ; `switch` sans `default` ; `[[nodiscard]]` |
 | `std::string nomDeLaCategorie(CategorieObjet)` | « Casque », « Armure », « Jambières », « Gants », « Bottes », « Bouclier », « Collier », « Anneau » ; `[[nodiscard]]` |
-| `std::string sigleDeLObjet(IdObjet)` | Deux lettres par objet du catalogue ; `[[nodiscard]]` |
-| `std::vector<std::string> lignesDeLInfobulle(IdObjet)` | Nom, catégorie, « Armure : +N » si non nulle, une ligne « Nom : +N » par bonus de caractéristique ; `[[nodiscard]]` |
+| `std::string sigleDeLObjet(IdObjet)` | Deux lettres par objet du catalogue (EL épée longue, MA masse, DA dague, E2 épée à deux mains, SC sceptre, BT bâton, AR arc depuis l'étape 91) ; `[[nodiscard]]` |
+| `std::vector<std::string> lignesDeLInfobulle(IdObjet)` | Nom, catégorie, « Armure : +N » si non nulle, une ligne « Nom : +N » par bonus de caractéristique, les bonus de combat, le blocage d'un bouclier, l'attaque d'une arme ; `[[nodiscard]]` |
 
 ### Ce que `Personnage` et `Escouade` ajoutent
 
@@ -236,10 +326,11 @@ libres sans état, qui rendent des `std::string` en UTF-8.
   les tests de blocage l'ajoutent explicitement (`docs/tests.md`).
 - `Escouade` : membre `m_sac` (`Inventaire`, 40 cases), `sac()`, `equipementDuPersonnage(place)`,
   `ramasser`, `objetA`, `peutDeplacerObjet`, `deplacerObjet` (détail dans `docs/formation.md`, tableau
-  d'`Escouade`).
+  d'`Escouade`) ; depuis l'étape 91, les deux derniers copient l'état dans un `EtatDesObjets` et appellent
+  `deplacementPossible` / `deplacerLesObjets`.
   Une `place` suit la convention des places (1 à N, `assert` sur sa validité).
 
 | Opération d'`Escouade` | Réussit quand | Effet |
 |---|---|---|
 | `ramasser(Objet)` | le sac a une case libre | l'objet va dans la première case libre |
-| `deplacerObjet(de, vers)` | `deplacementPermis` | l'objet de `de` va à `vers` ; si `vers` est occupé, échange ; `de == vers` : rien ne bouge |
+| `deplacerObjet(de, vers)` | `deplacerLesObjets` (règle de base et deux mains) | l'objet de `de` va à `vers` ; si `vers` est occupé, échange ; une arme à deux mains (ou un bouclier sur elle) range l'autre main dans le sac ; `de == vers` : rien ne bouge |

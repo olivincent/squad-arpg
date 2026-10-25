@@ -46,11 +46,12 @@ squad-arpg/
 │   ├── rendu/      BarreDeVie, TraceDeChemin
 │   ├── monde/      TileMap, Chemin, Deplacement, Mobile, ChampDeVision, Vision,
 │   │               ObjetInteractif, Niveau, GenerateurDonjon, Encerclement
-│   ├── combat/     Skill, SkillConnu, IdSkill, TypeSkill, AdresseSkill, Cible, ActionEngagee,
+│   ├── combat/     Skill, SkillConnu, IdSkill, TypeSkill, TypeDArme, DescriptionDAttaque, AdresseSkill, Cible, ActionEngagee,
 │   │               EtatSkill, Coup, EvenementDeCombat, EntiteVue, Autodefense, Engagement,
 │   │               Attaque, NatureDAttaque, StatistiquesDeCombat, Esquive, Critique, Blocage, Defense,
 │   │               ResolutionDuCoup, Caracteristiques, PointsDeVie, Vitalite
-│   ├── objets/     Emplacement, Objet, CatalogueObjets, Equipement, Inventaire, PositionDObjet
+│   ├── objets/     Emplacement, Objet, CatalogueObjets, DonneesDArme, DonneesDeBouclier, Equipement, Inventaire,
+│   │               PositionDObjet, DeplacementDObjets
 │   ├── escouade/   Escouade, Personnage, Formation, PlacesDAttaque, Intention, Separation,
 │   │               EcartEntrePersonnages, Composition, Specialite, SelectionDEscouade,
 │   │               Provocations, Agresseurs
@@ -125,8 +126,10 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `Encerclement` : places régulières sur un anneau (`docs/formation.md`).
 
 `combat/` — skills et règles communes aux deux camps (`docs/combat.md`) :
-- `Skill` : type, portée, puissance, recharge, zone, machine à états `commencer`/`avancer`/`annuler`.
+- `Skill` : type, portée, puissance, recharge, zone, armes exigées, machine à états `commencer`/`avancer`/`annuler`.
 - `TypeSkill` : `Degats`, `Soin`, `Provocation`, `Zone`.
+- `TypeDArme`, `DescriptionDAttaque` : le type d'une arme (ce qu'un skill peut exiger) et la description d'une attaque de base
+  (dégâts, recharge, exécution, portée, nature) que donne une arme ou les mains nues ; `zoneDeControleDe(nature)` (`docs/objets.md`).
 - `IdSkill`, `SkillConnu`, `AdresseSkill` : identifiant stable d'un skill, skill d'un personnage, place + skill.
 - `Cible` : `std::variant` allié, monstre ou point, et `Surcharges` pour `std::visit`.
 - `ActionEngagee` : l'action (attaque de base ou skill) qu'un personnage prépare, et sa cible.
@@ -149,18 +152,23 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 `objets/` — les objets, ce qu'on porte et le sac (`docs/objets.md`) :
 - `Emplacement` : les 10 emplacements, les 8 catégories d'objet et `peutAller`, seule source de la règle.
 - `Objet` : `IdObjet` et `Objet`, l'instance (un identifiant), distincte de son modèle.
-- `CatalogueObjets` : `DefinitionObjet` (nom, catégorie, armure), `catalogueObjets()`, `definitionObjet()`
-  et `sacDeDepart()`.
-- `Equipement` : un objet au plus par emplacement, `armureTotale()` ; possédé par chaque `Personnage`.
+- `CatalogueObjets` : `DefinitionObjet` (nom, catégorie, armure, bonus, données d'arme ou de bouclier),
+  `catalogueObjets()`, `definitionObjet()`, `estADeuxMains()`, `mainsNues()` et `sacDeDepart()`.
+- `DonneesDArme`, `DonneesDeBouclier` : ce qui fait d'un objet une arme (type, mains, attaque) ou un bouclier (chance et
+  montant de blocage) ; des données, pas une hiérarchie.
+- `Equipement` : un objet au plus par emplacement, `armureTotale()`, `attaqueDeBase()` (l'arme de la main droite, sinon les
+  mains nues) ; possédé par chaque `Personnage`.
 - `Inventaire` : le sac, des cases à position fixe ; possédé par l'`Escouade`.
-- `PositionDObjet` : une case du sac ou un emplacement d'un personnage, et `deplacementPermis`, seule source
-  de la règle des déplacements.
+- `PositionDObjet` : une case du sac ou un emplacement d'un personnage, et `deplacementPermis`, la règle de base
+  (catégorie et emplacement).
+- `DeplacementDObjets` : `EtatDesObjets` (le sac et les équipements, en valeurs) et `deplacerLesObjets`, seule source de
+  la règle des déplacements, deux mains comprises, sur une copie (transactionnel).
 
 `escouade/` — le camp du joueur (`docs/formation.md`, sauf mention) :
 - `Escouade` : l'assemblage : ancre, verrou, skills en attente, attaque, et la résolution des intentions en
   points visés ; elle possède `Formation`, `PlacesDAttaque`, `Agresseurs`, `Provocations`, le sac
   (`Inventaire`) et les `Personnage` ; `ramasser` et `deplacerObjet` déplacent les objets.
-- `Personnage` : un membre : déplacement, attaque de base, skills, vie, vision, équipement (son armure
+- `Personnage` : un membre : déplacement, attaque de base (celle de son arme), skills, vie, vision, équipement (son armure
   en est la somme), caractéristiques (base de classe plus équipement).
 - `Formation` : décalages, orientation, point à regarder et places de formation, sans `Personnage`.
 - `PlacesDAttaque` : place d'attaque retenue par assaillant autour de sa cible, sans `Personnage`.
@@ -168,7 +176,8 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
   priorité où se brancheront les gambits, et `cerclesAContourner` (fonctions pures, sans carte).
 - `Separation` : `pousseesDeSeparation`, séparation douce en fonction pure (`EtatDeSeparation`).
 - `EcartEntrePersonnages` : `s_ecartEntrePersonnages`, en-tête neutre.
-- `Composition` : `DefinitionPersonnage` (dont l'équipement de départ), `Rang` et `decalagesDeFormation`.
+- `Composition` : `DefinitionPersonnage` (dont l'équipement de départ, d'où viennent l'attaque de base et la zone de contrôle),
+  `Rang` et `decalagesDeFormation`.
 - `Specialite` : catalogue des 5 classes et `composer`.
 - `SelectionDEscouade` : les 3 classes choisies, cases de l'écran de choix (`docs/ecrans.md`).
 - `Provocations` : monstres provoqués et leur provocateur (`docs/combat.md`).
@@ -180,7 +189,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `DefinitionDeMonstre` : toutes les valeurs d'équilibrage d'un monstre, `monstreOrdinaire()` (`docs/monstre.md`).
 
 `jeu/` :
-- `Partie` : règles de jeu, ordre d'une image, intermédiaire escouade/monstres (`docs/boucle-et-entrees.md`).
+- `Partie` : règles de jeu, ordre d'une image, intermédiaire escouade/monstres ; reçoit la définition des monstres (`docs/boucle-et-entrees.md`).
 
 `interface/` — écrans, HUD, réglages, entrées :
 - `Ecran`, `Transition`, `Contexte` : base des écrans, changements de pile, contexte d'appel (`docs/ecrans.md`).
@@ -216,7 +225,7 @@ Un dossier n'inclut que lui-même et ceux qui le **précèdent** dans cet ordre 
 ```
 base → monde → combat → objets → escouade, monstres → jeu → interface → app
 rendu : ne dépend que de base
-objets : ne dépend que de base et de combat (`Caracteristiques`)
+objets : ne dépend que de base et de combat (`Caracteristiques`, `StatistiquesDeCombat`, `TypeDArme`, `DescriptionDAttaque`)
 ```
 
 - `escouade/` et `monstres/` ne s'incluent pas entre eux : ils communiquent par `combat/`
@@ -301,7 +310,7 @@ de modifier un module, lire le fichier correspondant :
 | `docs/formation.md` | `Escouade` et `Personnage` : ancre, formation, orientation, séparation douce, verrou de cible, placement en combat, places d'attaque, intentions, mort et défaite ; `Formation`, `PlacesDAttaque`, `Intention`, `Separation`, `Composition`, `Specialite`, `Encerclement` | Avant de modifier `Escouade`, `Personnage`, `Formation`, `PlacesDAttaque`, `Intention`, `Separation`, `Composition`, `Specialite` ou `Encerclement` |
 | `docs/combat.md` | `Skill` (dont l'attaque de base), `Cercle`, portée bord à bord, autodéfense, `Cible`, skill en attente, circuit des dégâts, qui bloque qui, armure, caractéristiques, statistiques de combat et critique, aléatoire, zones de contrôle, événements et textes flottants | Avant de modifier un module de `combat/` ou de `base/`, `Provocations`, `Agresseurs`, `TextesFlottants`, `BarreDeVie` ou les listes d'obstacles |
 | `docs/monstre.md` | `Monstre` et `DefinitionDeMonstre` : définition, identifiant, états, détection, territoire, poursuite, retour au poste, riposte, statistiques de combat | Avant de modifier `Monstre` |
-| `docs/objets.md` | Objets : emplacements et catégories, catalogue, `Equipement`, `Inventaire`, armure calculée depuis l'équipement, opérations `ramasser` / `deplacerObjet` de l'`Escouade`, `PositionDObjet` ; référence des modules d'`objets/` | Avant de modifier un module d'`objets/`, `AffichageObjets` ou l'équipement d'un `Personnage` |
+| `docs/objets.md` | Objets : emplacements et catégories, catalogue, armes (type, mains, attaque de base) et boucliers, `Equipement`, `Inventaire`, armure calculée depuis l'équipement, règle des déplacements et des deux mains (`DeplacementDObjets`), opérations `ramasser` / `deplacerObjet` de l'`Escouade`, `PositionDObjet` ; référence des modules d'`objets/` | Avant de modifier un module d'`objets/`, `AffichageObjets` ou l'équipement d'un `Personnage` |
 | `docs/tests.md` | Tests (Catch2, conventions, dossiers, aides) | Avant d'ajouter ou de modifier un test |
 | `docs/audit.md` | Audit du code avant l'étape 80 : constats par famille (R, M, P, D, C, E, L, V, T, B, K), organisation en dossiers, passages de `clang-tidy` | Avant de planifier une refactorisation |
 | `docs/classes-et-combat.md` | Document de référence de conception (octobre 2026), pas de technique : vision d'un combat lent et stratégique, temps, couleurs (guide de conception des skills), classes et progression, caractéristiques (Puissance, Endurance, Adresse, Savoir, Volonté), déroulement d'un coup, esquive et critique, armure (modèle M1), pénétration et résistances, barrières (Égide, Barrière), zones et escouade, catégories d'ennemis, grammaire des skills (cinq axes), inventaire des statistiques de combat, questions ouvertes. Chaque point porte un statut : retenu, proposé, à tester ou ouvert | Avant de discuter des classes, des skills, des statistiques ou des mathématiques du combat, ou de proposer une étape sur ces sujets |

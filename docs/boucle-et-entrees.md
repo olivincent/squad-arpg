@@ -540,7 +540,7 @@ même chose avec plus de détail.
   Pendant la recharge, un quartier noir semi-transparent suit les
   bords du carré (zone claire grandissante depuis midi, sens horaire) et
   le temps restant en secondes entières s'affiche au centre. Icône grisée,
-  sans quartier ni chiffre, quand le lanceur est mort ; contour jaune sur
+  sans quartier ni chiffre, quand le lanceur est mort ou ne porte pas l'arme que le skill exige ; contour jaune sur
   l'icône du skill en cours de visée, contour blanc pendant son activation. Police DejaVu Sans dans
   `assets/fonts/`, copiée à côté de `main.exe` par CMake ; le jeu refuse
   de démarrer si elle manque.
@@ -696,7 +696,7 @@ Fonctions libres, sans état : tout est recalculé à chaque image. Ne connaît 
 | `sf::Color couleurDuContour(bool enVisee, bool enActivation)` | Jaune en visée (prioritaire), blanc en activation, gris sinon |
 | `int secondesAffichees(float tempsRestant)` | Secondes entières, arrondies vers le haut |
 | `std::vector<sf::Vector2f> pointsDuQuartier(sf::Vector2f centre, float cote, float fractionSombre)` | Sommets d'un `TriangleFan` : centre, aiguille, coins du carré dans l'intervalle, midi ; vide si la fraction est nulle |
-| `void dessinerBarreDeSkills(sf::RenderTarget& rendu, const sf::Font& police, const std::array<IconeDeRaccourci, s_emplacementsPrincipaux>& icones)` | Dessine les 12 icônes à la place de `rectangleDeLEmplacement` (à appeler avec la vue d'interface) : fond, sigle, nom de la touche dans un coin, bande de la couleur du lanceur (14 px) avec la place du lanceur, quartier sombre et chiffre en recharge, grisée si le lanceur est mort, contour jaune si `enVisee`, blanc si `enActivation`. Un emplacement vide est un cadre sombre avec seulement le nom de sa touche |
+| `void dessinerBarreDeSkills(sf::RenderTarget& rendu, const sf::Font& police, const std::array<IconeDeRaccourci, s_emplacementsPrincipaux>& icones)` | Dessine les 12 icônes à la place de `rectangleDeLEmplacement` (à appeler avec la vue d'interface) : fond, sigle, nom de la touche dans un coin, bande de la couleur du lanceur (14 px) avec la place du lanceur, quartier sombre et chiffre en recharge, grisée si le lanceur est mort ou s'il ne porte pas l'arme que le skill exige (`EtatSkill::armeAbsente`, étape 91.5), contour jaune si `enVisee`, blanc si `enActivation`. Un emplacement vide est un cadre sombre avec seulement le nom de sa touche |
 
 ### `EcranDeFin` (`interface/`) — l'écran de fin de partie
 

@@ -621,11 +621,11 @@ personnages sont dans `docs/formation.md`, le monstre dans
 - **Origine de l'armure (étape 83)** : celle d'un personnage est la somme de l'armure des objets de son
   `Equipement`, recalculée en entier à chaque changement (`Vitalite::definirDefenses`) ; il n'y a plus
   d'armure de classe (`docs/objets.md`). Celle d'un monstre reste fixe, donnée par le niveau.
-- **Valeurs (étape 87.3, provisoires)** : guerrier et paladin 30 (casque de fer 6, cuirasse de mailles 12,
-  jambières de fer 6, bouclier rond 6), prêtre, mage et rôdeur 0, les monstres 10
-  (`Niveau::armureMonstres`, valeur `s_armureMonstresParDefaut` commune à la carte à la main et aux
-  cartes générées). Contrôle : un coup de monstre de 100 fait 70 à un guerrier, 100 à un mage ; une attaque
-  de base de 50 fait 40 à un monstre.
+- **Valeurs (étape 87.3, provisoires ; à l'échelle × 3 depuis l'étape 91.2)** : guerrier et paladin 9 (casque de
+  fer 2, cuirasse de mailles 4, jambières de fer 2, bouclier rond 1 ; 30 avant l'étape 91), prêtre, mage et
+  rôdeur 0, les monstres 3 (`Niveau::armureMonstres`, valeur `s_armureMonstresParDefaut` commune à la carte à la
+  main et aux cartes générées ; 10 avant). Contrôle : un coup de monstre de 30 fait 21 à un guerrier, 30 à un
+  mage ; une attaque de base de 15 fait 12 à un monstre.
 - **Le soin n'est pas touché** par l'armure. Les dégâts de zone, de skill et d'attaque de base passent
   tous par `recevoirDegats`, donc par l'armure.
 - **Limites** : pas de types de dégâts ni de résistances, pas de pénétration d'armure.
@@ -782,11 +782,14 @@ portions typées) attend l'étape 93.
   reste. **Blocage total** : si tout est absorbé, le coup s'arrête, **sans armure ni plancher** (le montant est
   0, pas 1) ; `ResultatDuCoup::bloque` dit ce qui a été absorbé (> 0 : il y a eu blocage ; total si `montant ==
   0`).
-- **Valeurs du bouclier rond (« à tester », `CatalogueObjets.cpp`)** : 30 % de chance, 40 points absorbés,
-  3 s de récupération. D'autres bonus de chance ou de montant s'additionneraient ; la récupération est celle du
-  bouclier. Les monstres n'ont pas de bouclier (`montantBloque` 0), mais une définition de monstre peut en avoir un.
+- **Valeurs du bouclier rond (« à tester », `CatalogueObjets.cpp`)** : 30 % de chance, 12 points absorbés (40
+  avant l'échelle × 3), 3 s de récupération (une constante commune depuis l'étape 91.6, plus la donnée du
+  bouclier). Depuis l'étape 91.6, chance et montant sont les `DonneesDeBouclier` du bouclier, que `Equipement`
+  ajoute aux statistiques de combat. Les monstres n'ont pas de bouclier (`montantBloque` 0), mais une définition de
+  monstre peut en avoir un.
 - **La récupération est un état de la `Vitalite`** (`m_recuperationDuBlocage`, en secondes, `mettreAJour(dt)`,
-  `blocagePret()`) : un blocage réussi (`bloque > 0`) la lance à `recuperationDuBlocage` ; tant qu'elle court,
+  `blocagePret()`) : un blocage réussi (`bloque > 0`) la lance à `s_recuperationDuBlocage` (à `statistiques.recuperationDuBlocage`
+  avant l'étape 91.6) ; tant qu'elle court,
   `resoudreCoup` reçoit `blocagePret = false` et ne tente (ni ne tire) aucun blocage. **Pourquoi là** : la
   `Vitalite` est déjà ce qui résout les coups pour les deux camps et ce qui porte les défenses ; l'état de
   combat de l'entité y vit, écrit une fois, et `Personnage::mettreAJour` et `Monstre::mettreAJour` la font
@@ -809,16 +812,58 @@ portions typées) attend l'étape 93.
   `Bloque` (le texte du blocage s'empile ainsi au-dessus des dégâts, même cible, même image). Un résultat
   « rien » ne donne rien. La règle « un montant de 0 ne produit aucun événement » reste pour `Degats` et `Soin`.
 - **Affichage** (`TextesFlottants`) : « Esquivé » en gris clair, 14 px ; blocage total « Bloqué » en gris,
-  14 px ; blocage partiel : les dégâts restants comme d'habitude, et « Bloqué −40 » (signe moins U+2212) en gris,
+  14 px ; blocage partiel : les dégâts restants comme d'habitude, et « Bloqué −12 » (signe moins U+2212 ; −40 avant l'échelle × 3) en gris,
   14 px, au-dessus. **Infobulle des objets** : une ligne par bonus de combat (`lignesDeBonusDeCombat`) :
-  « Esquive contre la mêlée : +5 % », « Esquive contre les projectiles : +5 % », « Blocage : 30 %, 40 points, 3 s ».
-  **Inventaire** : sous les capacités, « Blocage 30 % (40) » (« Blocage 0 % » sans bouclier), « Esquive mêlée
+  « Esquive contre la mêlée : +5 % », « Esquive contre les projectiles : +5 % » ; le blocage d'un bouclier est
+  une ligne à part depuis l'étape 91.6 (« Blocage : 30 %, 12 points », `lignesDeLInfobulle`).
+  **Inventaire** : sous les capacités, « Blocage 30 % (12) » (« Blocage 0 % » sans bouclier), « Esquive mêlée
   5 % » et « Esquive projectile 5 % » (valeurs effectives, plafond compris) : `lignesDeStatistiques`.
 - **Limites** : pas de skills qui donnent de l'esquive ou du blocage ; pas de bouclier qui déséquilibre ni
   d'armes contre les boucliers ; pas de distribution pseudo-aléatoire contre les séries d'esquives ; le
   blocage ne distingue pas les éléments (question 12) ; les monstres n'ont pas de bouclier dans le catalogue ;
   un blocage partiel d'un coup de zone est impossible (elles ne se bloquent pas) ; les durées de récupération
   ne s'affichent que dans l'infobulle du bouclier, pas à l'écran de jeu.
+
+## Échelle × 3, armes et skills qui exigent une arme (étape 91)
+
+Décisions de conception : `docs/classes-et-combat.md` (sections 5, 12 et 13). Les objets, les armes et les deux
+mains sont dans `docs/objets.md`.
+
+- **Échelle × 3 (étape 91.2)** : 1 000 points de vie au départ, c'était trop haut pour un jeu dont les nombres
+  grandiront avec les niveaux (*Titan Quest* commence à 300). Toutes les valeurs en points de vie passent à 30 % de
+  leur valeur d'avant (arrondies au plus proche) : points de vie, dégâts, soins, armures, montant bloqué. Les
+  rapports et pourcentages ne changent pas : +3 % par point de Puissance, capacités `50 + 5 × Adresse` (monstres
+  100), esquives, chance de blocage, plancher de 20 %, plafonds. Repères : attaque de base 15, coup de monstre 30,
+  frappe puissante 75, soin 90, explosion 45, monstre 300 points de vie (régénération du retour : une fraction du
+  maximum, donc inchangée).
+- **Points de vie des personnages** : base **commune** (`s_pointsDeVieDeBase`, 240) plus `s_pvParPointDEndurance`
+  (6) par point d'Endurance, `pointsDeVieMax(const Caracteristiques&)`. Plus de base par classe
+  (`DefinitionPersonnage::pointsDeVieDeBase` supprimé) : l'Endurance fait seule la différence (guerrier 324,
+  paladin 318, prêtre et rôdeur 300, mage 288 ; le collier d'endurance, +3, donne +18).
+- **L'attaque de base vient de l'arme (étape 91.4)** : voir `docs/objets.md`. Le `Personnage` en fait un `Skill`
+  de type `Degats` (coefficient de Puissance 1,0) ; sa nature décide de la zone de contrôle (`zoneDeControleDe`) ;
+  une arme qui change relance une recharge complète. Les skills de personnage gardent leurs propres valeurs.
+- **Deux familles de skills de dégâts** (à noter dans `docs/classes-et-combat.md`, section 12 ; **seulement la
+  documentation à cette étape**, aucun skill ne change) : les **skills de frappe** utiliseront l'arme (ses dégâts
+  plus un bonus, sa nature et sa pénétration ; candidats : frappe puissante, frappe sacrée, tir perçant) et les
+  **skills à dégâts propres** (explosion, pluie de flèches). La `DescriptionDAttaque` construite à partir de l'arme
+  peut servir de point de départ à un skill de frappe.
+- **Un skill peut exiger un type d'arme (étape 91.5)** : `DefinitionDeSkill::armesExigees`, une liste de
+  `TypeDArme` (vide : aucune exigence, le défaut), lue par `Skill::convientA(std::optional<TypeDArme>)`. Sans l'une
+  de ces armes en main droite (les mains nues n'en sont pas une), le skill est **refusé comme celui d'un lanceur
+  mort** : `Personnage::skillEstPret` et `peutEngagerSkill` sont faux, donc `Escouade::declencherSkill` et
+  `declencherSkillDeZone` renvoient sans activation, sans mise en attente et sans recharge consommée. Perdre l'arme
+  (inventaire) annule l'activation en cours et abandonne le skill en attente de l'escouade ; changer pour une autre
+  arme qui convient ne touche à rien. `EtatSkill::armeAbsente` le dit, et `BarreDeSkills` grise l'icône (texte
+  atténué, ni quartier ni chiffre, comme un lanceur mort). Exigences du catalogue des classes : frappe puissante
+  épée longue, masse, dague ou épée à deux mains ; frappe sacrée épée longue, masse ou épée à deux mains ; tir
+  perçant et pluie de flèches arc ; les autres aucune. Pas de restriction par classe : un guerrier qui reçoit un arc
+  tire, mais n'a plus sa frappe.
+- **Le blocage est une propriété du bouclier (étape 91.6)** : `DonneesDeBouclier` (chance, montant) ; la
+  **récupération est une constante commune** (`s_recuperationDuBlocage`, `Blocage.hpp`, 3 s), lue par
+  `Vitalite::recevoirDegats`. `StatistiquesDeCombat::recuperationDuBlocage` a disparu avec la règle « la plus
+  longue » ; un monstre au bouclier récupère comme un personnage.
+- **Limites** : pas de pénétration d'armure (étape 92), de types de dégâts ni de résistances (étape 93).
 
 ## Temps d'exécution et coup engagé (étape 57)
 
@@ -1593,14 +1638,14 @@ Possédé par valeur par `Personnage` (attaque de base, plus un skill en
 option) et par `Monstre` (son attaque). Ne connaît ni la position de son
 propriétaire ni sa cible : il reçoit deux `Cercle`. Ne dessine rien.
 
-Données membres : `m_type` (`TypeSkill`), `m_portee` (bord à bord), `m_coefficients` (`Coefficients`, étape 88),
+Données membres : `m_type` (`TypeSkill`), `m_portee` (bord à bord), `m_coefficients` (`Coefficients`, étape 88), `m_nature` (étape 90), `m_armesExigees` (`std::vector<TypeDArme>`, étape 91.5),
 `m_puissance`, `m_rechargeMin`, `m_rechargeMax` (intervalle de recharge,
 en secondes), `m_tempsRecharge` (durée de la recharge en cours, dernier
 tirage), `m_recharge`, `m_rayonZone` (`float`, en pixels), `m_tempsExecution`, `m_executionRestante` (secondes), `m_phase` (`PhaseSkill`).
 
 | Fonction | Rôle |
 |---|---|
-| `explicit Skill(const DefinitionDeSkill&)` | Crée le skill depuis ses données nommées (étape 88.1, C2) : `DefinitionDeSkill { type; portee; puissance; rechargeMin; rechargeMax; rayonZone = 0; tempsExecution = 0; coefficients = {} }`, en initialisation désignée (`Skill({.type = TypeSkill::Degats, .portee = 80.0f, ...})`). Crée le skill de ce type, avec cette portée, cette puissance, cet intervalle de recharge (`assert(0 <= min <= max)` ; fixe si `min == max`), ce rayon de zone et ce temps d'exécution (`assert >= 0`) ; prêt à la création |
+| `explicit Skill(const DefinitionDeSkill&)` | Crée le skill depuis ses données nommées (étape 88.1, C2) : `DefinitionDeSkill { type; portee; puissance; rechargeMin; rechargeMax; rayonZone = 0; tempsExecution = 0; coefficients = {}; nature; armesExigees = {} }` (la `nature` n'a plus de valeur par défaut depuis l'étape 91.1 : chaque skill déclare la sienne, un oubli est une erreur de compilation ; un soin ou une provocation écrit `Contact`), en initialisation désignée (`Skill({.type = TypeSkill::Degats, .portee = 80.0f, ...})`). Crée le skill de ce type, avec cette portée, cette puissance, cet intervalle de recharge (`assert(0 <= min <= max)` ; fixe si `min == max`), ce rayon de zone et ce temps d'exécution (`assert >= 0`) ; prêt à la création |
 | `bool commencer()` | Prêt → en exécution ; faux, sans rien changer, dans toute autre phase ; `[[nodiscard]]` |
 | `bool avancer(float dt, Generateur& generateur)` | En exécution : fait avancer l'exécution ; vrai une seule fois, au départ du coup (la recharge est alors tirée, phase → en recharge). Autres phases : comme `mettreAJour`, faux ; `[[nodiscard]]` |
 | `void annuler()` | En exécution → prêt, sans recharge ; sans effet ailleurs |
@@ -1615,6 +1660,8 @@ tirage), `m_recharge`, `m_rayonZone` (`float`, en pixels), `m_tempsExecution`, `
 | `TypeSkill getType() const` | Type du skill |
 | `float getRayonZone() const` | Rayon de zone du skill |
 | `float getPortee() const` | Portée du skill (bord à bord) |
+| `const std::vector<TypeDArme>& getArmesExigees() const` | Les types d'arme qui permettent le skill (vide : aucune exigence) ; `[[nodiscard]]` |
+| `bool convientA(std::optional<TypeDArme> arme) const` | Toujours vrai sans exigence ; sinon l'arme (vide : mains nues, faux) est-elle dans la liste ? ; `[[nodiscard]]` |
 
 ### `IdSkill`, `SkillConnu`, `AdresseSkill` (`combat/`) — désigner un skill
 
@@ -1647,8 +1694,8 @@ Portée par `Attaque` et `DefinitionDeSkill` (`Skill::getNature`).
 
 `StatistiquesDeCombat.hpp` / `.cpp`. `struct StatistiquesDeCombat { int capaciteOffensive = 0; int
 capaciteDefensive = 0; int esquiveContact = 0; int esquiveProjectile = 0; int chanceDeBlocage = 0; int
-montantBloque = 0; float recuperationDuBlocage = 0.0f; }` (comparable, `+=` et `+` : tous les champs
-s'additionnent sauf la récupération, qui prend la plus longue) ; esquives et chance de blocage en pour cent ;
+montantBloque = 0; }` (comparable, `+=` et `+` : tous les champs s'additionnent ; la récupération du blocage a
+disparu à l'étape 91.6, c'est une constante commune) ; esquives et chance de blocage en pour cent ;
 constantes `s_capaciteDeBase` (50) et `s_capaciteParPointDAdresse` (5) ; `StatistiquesDeCombat
 statistiquesDuPersonnage(const Caracteristiques&, const StatistiquesDeCombat& bonusDEquipement)` : `50 + 5 ×
 Adresse` pour les deux capacités plus le bonus, offensive bornée à 0, défensive à 1, les autres champs ceux du
@@ -1667,7 +1714,9 @@ d'un objet. Voir « Le critique… (étape 89) » et « L'esquive et le blocage 
 
 ### `Blocage` (`combat/`) — le blocage au bouclier (étape 90.3)
 
-`Blocage.hpp` / `.cpp`, fonctions pures. `struct ResultatDuBlocage { int montant; int bloque; }`.
+`Blocage.hpp` / `.cpp`, fonctions pures. `struct ResultatDuBlocage { int montant; int bloque; }` ; constante
+`s_recuperationDuBlocage` (3 s, étape 91.6) : le temps pendant lequel un bouclier ne bloque plus après un blocage
+réussi, le même pour tous.
 
 | Fonction | Rôle |
 |---|---|
@@ -1765,7 +1814,7 @@ erreur de compilation.
 
 ### `EtatSkill` (`combat/`) — le skill d'une place, pour l'affichage
 
-`EtatSkill.hpp`, sans `.cpp` : `struct EtatSkill { IdSkill id; TypeSkill type; float progression; float tempsRestant; bool lanceurVivant; bool enActivation; }`. `progression` va de 0 (juste lancé) à 1 (prêt), `tempsRestant` est en secondes, `enActivation` est vrai pendant l'activation du skill. Produite par `Escouade::etatDuSkill`, consommée par `BarreDeSkills`.
+`EtatSkill.hpp`, sans `.cpp` : `struct EtatSkill { IdSkill id; TypeSkill type; float progression; float tempsRestant; bool lanceurVivant; bool armeAbsente; bool enActivation; }`. `armeAbsente` (étape 91.5) : le skill exige un type d'arme que le lanceur ne porte pas ; l'icône est grisée. `progression` va de 0 (juste lancé) à 1 (prêt), `tempsRestant` est en secondes, `enActivation` est vrai pendant l'activation du skill. Produite par `Escouade::etatDuSkill`, consommée par `BarreDeSkills`.
 
 ### `BarreDeVie` (`rendu/`) — la barre de vie d'une entité
 
@@ -1805,9 +1854,9 @@ de la chaîne `Partie` → `Escouade` → `Personnage` → `Skill` et `Partie` �
   `Caracteristiques()` (toutes à 0), `explicit Caracteristiques(std::array<int, 5>)`, `static seule(Caracteristique, int)`,
   `valeur(Caracteristique)`, `+=`, `+`, `==` ; `[[nodiscard]]`.
 - `class Coefficients` : la même forme en flottants (`seul`, `valeur`, `==`), pour les skills.
-- Constantes : `s_valeurDeReference` (10), `s_bonusParPoint` (0,03), `s_pvParPointDEndurance` (20).
-- `int pointsDeVieMax(int pointsDeVieDeBase, const Caracteristiques&)` : base + 20 × Endurance ;
-  `assert(résultat > 0)` ; `[[nodiscard]]`.
+- Constantes : `s_valeurDeReference` (10), `s_bonusParPoint` (0,03), `s_pointsDeVieDeBase` (240) et
+  `s_pvParPointDEndurance` (6) depuis l'étape 91.2 (avant : 20 par point, base par classe).
+- `int pointsDeVieMax(const Caracteristiques&)` : 240 + 6 × Endurance ; `assert(résultat > 0)` ; `[[nodiscard]]`.
 - `int montantEffectif(int montant, const Coefficients&, const Caracteristiques&)` : voir plus haut ;
   `assert(montant >= 0)` ; `[[nodiscard]]`.
 
@@ -1860,7 +1909,7 @@ retour). L'interface ne contient que ce que `Personnage` et `Monstre` utilisent.
 dépend que de `PointsDeVie` et `Defense`, ni de SFML.
 
 Données membres : `m_pointsDeVie` (`PointsDeVie`), `m_defenses` (`Defenses` : l'armure et les statistiques de
-combat, étape 89 ; avant, un `int m_armure`), `m_recuperationDuBlocage` (`float`, secondes, étape 90.3 ; 0 : le blocage est prêt).
+combat, étape 89 ; avant, un `int m_armure`), `m_recuperationDuBlocage` (`float`, secondes, étape 90.3 ; 0 : le blocage est prêt ; lancée à `s_recuperationDuBlocage` depuis l'étape 91.6).
 
 | Fonction | Rôle |
 |---|---|
@@ -1892,10 +1941,10 @@ Données membres : `struct Cercle { sf::Vector2f centre; float rayon; }`.
 
 `AffichageStatistiques.hpp` / `.cpp` : `std::vector<std::string> lignesDeStatistiques(const StatistiquesDeCombat&)`
 (`[[nodiscard]]`), UTF-8, cinq lignes dans l'ordre où `DispositionInventaire` remplit le bloc des statistiques :
-« Capacité offensive N », « Capacité défensive N », « Blocage 30 % (40) » (« Blocage 0 % » sans bouclier),
+« Capacité offensive N », « Capacité défensive N », « Blocage 30 % (12) » (« Blocage 0 % » sans bouclier),
 « Esquive mêlée N % » et « Esquive projectile N % » (esquives effectives, plafond compris) ; et
 `std::vector<std::string> lignesDeBonusDeCombat(const StatistiquesDeCombat&)` (`[[nodiscard]]`), une ligne par bonus
-non nul pour l'infobulle d'un objet (« Esquive contre la mêlée : +5 % », « Blocage : 30 %, 40 points, 3 s »…). Comme `AffichageCaracteristiques`, les mots sont dans
+non nul pour l'infobulle d'un objet (« Esquive contre la mêlée : +5 % »… ; plus de ligne de blocage depuis l'étape 91.6). Comme `AffichageCaracteristiques`, les mots sont dans
 l'interface, le noyau ne connaît que les nombres.
 
 ### `AffichageSkills` (`interface/`) — les noms des skills

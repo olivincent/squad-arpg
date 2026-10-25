@@ -75,6 +75,16 @@ Quand un point entre dans `ROADMAP.md`, sa conception détaillée se fait en dis
 - **Retenu.** Pas d'arbre géant à la *Path of Exile* (intimidant, on s'y perd). La classe garde le joueur dans une lignée cohérente.
 - **Proposé.** Combinaison : une barre de maîtrise à la *Titan Quest* (paliers de skills) et une fourche de spécialisation unique et définitive à un certain niveau (à la WoW / BG3). 5 classes × 2 spécialisations donnent 10 profils et 220 escouades possibles avec doublons.
 
+### Les armes : le modèle C (étape 91)
+
+- **Retenu.** **Pas de restriction par classe** (modèle de *Titan Quest*) : n'importe quel personnage peut porter n'importe quelle arme, sous réserve de ses caractéristiques (seuils, étape 92) et de la règle des deux mains.
+- **Retenu.** **L'arme décide de l'attaque de base** (dégâts, intervalle de recharge, temps d'exécution, portée, nature contact ou projectile) **et de la zone de contrôle** : une attaque de contact engage (20 px), un projectile non. Sans arme, les mains nues (6 dégâts, contact).
+- **Retenu.** **La classe garde** ses skills, son rang dans la formation, ses caractéristiques de base et son équipement de départ.
+- **Retenu.** **Les skills peuvent exiger un type d'arme** (liste de types ; vide : aucune exigence). Sans l'arme exigée, le skill est refusé comme celui d'un lanceur mort et son icône est grisée. Un guerrier qui reçoit un arc tire à distance, n'engage plus, et perd sa frappe puissante.
+- **Retenu.** Sept types d'arme : épée longue, masse, dague, épée à deux mains, sceptre, bâton, arc. Une arme à deux mains exige la main gauche vide ; la poser range ce qui gêne dans la première case libre du sac (et refuse si le sac est plein), et un bouclier range de même une arme à deux mains.
+- **Retenu.** Le **bouclier** a des données propres (chance de blocage, montant absorbé) ; la **récupération** du blocage (3 s) est **commune à tous**, plus une donnée d'objet. D'autres objets pourront plus tard ajouter de la chance de blocage ou réduire la récupération.
+- **À tester.** Valeurs des armes : épée longue et masse 15 dégâts (0,3 – 0,7 s, 0,15 s d'exécution), dague 14 (0,4 – 0,8 s), épée à deux mains 60 (1,2 – 2,8 s, 0,3 s), sceptre, bâton et arc 15 à 120 px (0,4 – 0,6 s) ; mains nues 6. Équipement de départ : guerrier épée longue et bouclier rond, paladin masse et bouclier rond, prêtre sceptre, mage bâton, rôdeur arc.
+
 ## 5. Les caractéristiques
 
 - **Retenu.** Des caractéristiques **par effet** (à la *Pillars of Eternity*), pas une stat de dégâts par classe : le joueur doit vraiment hésiter où mettre ses points.
@@ -109,7 +119,9 @@ Quand un point entre dans `ROADMAP.md`, sa conception détaillée se fait en dis
 - **Retenu.** Le **mana** n'est rattaché à aucune caractéristique tant que la ressource n'est pas tranchée (question 6).
 - **Retenu.** Redistribution des points **payante, seulement dans les refuges** (village, campement), jamais en pleine quête.
 - **Retenu.** Seuils d'équipement à la *Titan Quest*.
-- **À tester** (étape 88). Valeurs de référence : référence 10 pour tous les effets ; 3 % de bonus par point de Puissance au-dessus (ou en dessous) de 10 ; 20 points de vie par point d'Endurance ; bases de classe de somme 50 (guerrier 12/14/10/6/8, paladin 11/13/8/7/11, prêtre 10/10/8/10/12, mage 10/8/8/14/10, rôdeur 10/10/14/8/8 pour Puissance/Endurance/Adresse/Savoir/Volonté). Puissance et Endurance ont un effet depuis l'étape 88, l'Adresse depuis l'étape 89 (capacités offensive et défensive, section 7) ; Savoir et Volonté n'en ont pas encore.
+- **Retenu** (étape 91). **Échelle × 3** : 1000 points de vie au départ, c'est trop haut pour un jeu dont les nombres grandiront avec les niveaux (*Titan Quest* commence à 300). Toutes les valeurs en points de vie (points de vie, dégâts, soins, armures, montant bloqué) passent à 30 % de leur valeur d'avant ; les pourcentages et les rapports ne changent pas (3 % par point de Puissance, capacités `50 + 5 × Adresse`, esquives, plancher de 20 %).
+- **Retenu** (étape 91). **Points de vie de départ d'environ 300** : une **base commune à toutes les classes, 240**, plus **6 par point d'Endurance** (guerrier 324, paladin 318, prêtre et rôdeur 300, mage 288) ; plus de base de points de vie par classe, l'Endurance fait seule la différence.
+- **À tester** (étape 88). Valeurs de référence : référence 10 pour tous les effets ; 3 % de bonus par point de Puissance au-dessus (ou en dessous) de 10 ; 6 points de vie par point d'Endurance (20 sur une base par classe avant l'étape 91) ; bases de classe de somme 50 (guerrier 12/14/10/6/8, paladin 11/13/8/7/11, prêtre 10/10/8/10/12, mage 10/8/8/14/10, rôdeur 10/10/14/8/8 pour Puissance/Endurance/Adresse/Savoir/Volonté). Puissance et Endurance ont un effet depuis l'étape 88, l'Adresse depuis l'étape 89 (capacités offensive et défensive, section 7) ; Savoir et Volonté n'en ont pas encore.
 
 ## 6. Le déroulement d'un coup
 
@@ -146,7 +158,7 @@ Note de structure : un coup sera une petite collection de **portions typées** (
 
 - **Retenu.** Un modèle **mixte** soustraction / pourcentage, avec de la **pénétration d'armure**.
 - **Retenu.** Une réduction ne ramène **jamais** un coup à zéro. Seuls deux événements l'annulent, et ils sont affichés : l'**esquive** (« Esquivé ») et un **blocage** qui absorbe tout le coup (« Bloqué »).
-- **Retenu** (étape 87). Modèle M1 : `dégâts = max(D − armure, D × plancher)`. L'armure retire un montant fixe par coup, le coup garde toujours au moins un pourcentage. Lisible (« retire 15 par coup, jamais plus de 80 % ») et à effets émergents : la dague s'effondre contre l'infanterie lourde, l'épée à deux mains tient ; une nuée ne fait presque rien au tank, donc elle cherche à le contourner. Il remplace le modèle de l'étape 55 (pourcentage à rendement décroissant, K = 100), avec le même plancher à 1. Les points de vie, dégâts et soins sont à l'échelle × 10 pour que les entiers aient assez de finesse.
+- **Retenu** (étape 87). Modèle M1 : `dégâts = max(D − armure, D × plancher)`. L'armure retire un montant fixe par coup, le coup garde toujours au moins un pourcentage. Lisible (« retire 15 par coup, jamais plus de 80 % ») et à effets émergents : la dague s'effondre contre l'infanterie lourde, l'épée à deux mains tient ; une nuée ne fait presque rien au tank, donc elle cherche à le contourner. Il remplace le modèle de l'étape 55 (pourcentage à rendement décroissant, K = 100), avec le même plancher à 1. Les points de vie, dégâts et soins sont à l'échelle × 10 pour que les entiers aient assez de finesse, puis ramenés à 30 % à l'étape 91 (échelle × 3 par rapport à l'étape 86 ; armure de départ 9, monstres 3).
   - Alternative écartée pour l'instant : M2 à la *Path of Exile*, `réduction = A / (A + 5 × D)`, plus douce mais moins lisible.
 - **À tester.** Plancher de départ : 20 % (`s_plancherArmure`, `Defense.cpp`). C'est lui qui décide si une nuée est « inoffensive » ou « gênante » contre un tank.
 - **Proposé.** Pénétration d'armure **en %** (ignore X % de l'armure) : identité des armes de spécialiste (estoc, dague de miséricorde, arbalète, pic de guerre).
@@ -209,6 +221,7 @@ Points de conception associés (**proposés**) :
 - **Les formes de soin ont chacune un rôle** : direct (réagit à l'urgence), dans le temps (anticipe, s'automatise bien), absorption (choix de timing), vol de vie (oblige à attaquer).
 - **Instantané contre activation** : l'instantané compense par des nombres plus faibles ou une recharge plus longue ; l'activation peut être interrompue.
 - **Retenu.** Chaque skill déclare ses **coefficients par caractéristique** (levier 2 de la section 5). Ce sont des données du skill, pas du code propre à chaque skill.
+- **Retenu** (étape 91, documentation seulement). **Deux familles de skills de dégâts** : les **skills de frappe** utilisent l'arme (ses dégâts plus un bonus, sa nature et sa pénétration ; candidats : frappe puissante, frappe sacrée, tir perçant) et les **skills à dégâts propres** (explosion, pluie de flèches). La description de l'attaque construite à partir de l'arme (`DescriptionDAttaque`) peut servir de point de départ à un skill de frappe ; aucun skill ne change à l'étape 91.
 
 ## 13. Inventaire des statistiques de combat
 
@@ -218,9 +231,9 @@ Points de conception associés (**proposés**) :
 
 | Statistique | Rôle | Source principale | Existe |
 |---|---|---|---|
-| Dégâts de base | Montant de départ du coup | Arme, skill ; modifiés par la Puissance | Oui (par skill ; la Puissance, étape 88 : 3 % par point au-dessus de 10, valeurs à tester) |
+| Dégâts de base | Montant de départ du coup | Arme, skill ; modifiés par la Puissance | Oui (l'attaque de base vient de l'arme depuis l'étape 91 ; par skill pour les autres ; la Puissance, étape 88 : 3 % par point au-dessus de 10, valeurs à tester) |
 | Type de dégâts | Physique, feu, froid, foudre, poison, sacré, vitalité… | Arme, skill | |
-| Intervalle de recharge | Temps entre deux coups (min-max) | Arme, skill | Oui |
+| Intervalle de recharge | Temps entre deux coups (min-max) | Arme, skill | Oui (par arme depuis l'étape 91 ; changer d'arme relance une recharge complète) |
 | Temps d'exécution / d'activation | Durée d'immobilité de l'attaquant | Arme, skill | Oui |
 | Portée | Distance bord à bord | Arme, skill | Oui |
 | Capacité offensive | Chance et force du critique | Adresse, équipement | Oui (étape 89 : `50 + 5 × Adresse` pour un personnage, 100 pour un monstre ordinaire ; pas de bonus d'équipement propre) |
@@ -237,7 +250,7 @@ Points de conception associés (**proposés**) :
 
 | Statistique | Rôle | Source principale | Existe |
 |---|---|---|---|
-| Points de vie | Survie | Endurance, niveau, équipement | Oui (étape 88 : base de classe + 20 par point d'Endurance, à tester ; ×10 depuis l'étape 87) |
+| Points de vie | Survie | Endurance, niveau, équipement | Oui (étape 91 : base commune 240 + 6 par point d'Endurance, à tester ; échelle × 3) |
 | Régénération | PV regagnés dans le temps | Équipement, skills | |
 | Armure | Réduit le physique | Équipement | Oui (soustraction avec plancher de 20 %, étape 87) |
 | Résistances | Une par élément, en % plafonné | Équipement, skills | |
@@ -248,7 +261,7 @@ Points de conception associés (**proposés**) :
 | Résistance au contrôle magique | Réduit la durée de la peur, du silence, du charme | Volonté, équipement | |
 | Résistance à l'interruption | Chance de garder son activation | Volonté, équipement | |
 | Égide / Barrière | Réserve temporaire ; l'Égide bloque le contrôle physique, la Barrière le contrôle magique | Skills, équipement | |
-| Blocage | Chance, montant fixe absorbé, temps de récupération | Bouclier, skills | Oui (étape 90 : bouclier rond 30 %, 40 points, 3 s ; pas de skills qui en donnent) |
+| Blocage | Chance, montant fixe absorbé, temps de récupération | Bouclier, skills | Oui (étape 91 : bouclier rond 30 %, 12 points ; récupération commune de 3 s ; pas de skills qui en donnent) |
 
 **Ressources et déplacement**
 
@@ -257,7 +270,7 @@ Points de conception associés (**proposés**) :
 | Mana max et régénération | Budget de skills, surtout hors combat | Niveau, équipement (caractéristique à décider, question 6) | |
 | Coût d'un skill | Mana, ou PV pour le noir | Skill | |
 | Vitesse de déplacement | Poursuite, fuite, placement | Classe, équipement, *Lenteur* / *Hâte* | Oui |
-| Zone de contrôle | Déclenche l'attaque d'opportunité | Classe (mêlée) | Oui |
+| Zone de contrôle | Déclenche l'attaque d'opportunité | Arme (contact) depuis l'étape 91 | Oui |
 
 **Propriétés de la cible**
 

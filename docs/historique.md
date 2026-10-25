@@ -108,6 +108,7 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 88 — Caractéristiques : cinq valeurs, Endurance vers PV, Puissance vers dégâts et soins ✅
 - Étape 89 — Le critique : statistiques de combat, capacités offensive et défensive, soins critiques (avec E1) ✅
 - Étape 90 — Esquive et blocage : nature des attaques, esquive plafonnée, bouclier, textes « Esquivé » et « Bloqué » ✅
+- Étape 91 — Les armes : l'attaque de base et la zone de contrôle viennent de l'arme, échelle × 3, deux mains, skills qui exigent une arme ✅
 
 ## Détail des étapes 0 à 73
 
@@ -2148,3 +2149,22 @@ l'armure, blocage total sans armure ni plancher. 90.4 : événements `Esquive` e
 fonction pure), « Esquivé » et « Bloqué » à l'écran, infobulle des objets, esquives et blocage dans l'inventaire.
 1 247 tests, 39 avertissements `clang-tidy` (inchangé depuis 89.1). Détail : `docs/combat.md`, `docs/monstre.md`,
 `docs/objets.md`, `docs/formation.md`, `docs/ecrans.md`, `docs/classes-et-combat.md`, `docs/tests.md`.
+
+### Étape 91 — Les armes ✅
+
+Première étape de la phase 2 du plan 87–96, faite en une session autonome (un commit par sous-étape, reprise en
+cours de route après une interruption). 91.1 : `DefinitionDeSkill::nature` sans valeur par défaut ; les tests ne
+dépendent plus de la chance (neuf tests fragiles trouvés par un balayage de graines ; `Partie` reçoit la
+définition des monstres en paramètre optionnel ; aides `monstreSansHasard`, `partieDeTest`). 91.2 : échelle × 3
+(30 % de toutes les valeurs en points de vie : monstre 300, attaque de base 15, coup de monstre 30, armure de
+départ 9, blocage 12) et base de points de vie commune de 240 plus 6 par point d'Endurance. 91.3 : catégorie
+d'arme (main droite), sept armes au catalogue (`DonneesDArme`, `TypeDArme`, `DescriptionDAttaque`), module
+`DeplacementDObjets` : la règle des déplacements sur un état en valeurs, dont les deux mains (une arme à deux
+mains range la main gauche dans la première case libre du sac, transactionnel). 91.4 : l'attaque de base est une
+valeur dérivée de l'équipement (les mains nues sans arme), la zone de contrôle en découle (contact : 20, projectile :
+0), changer d'arme relance une recharge complète ; équipement et sac de départ ; les tests créent leurs personnages
+par des aides (*Test Data Builder*) et les aides de recherche de graine sont supprimées. 91.5 : les skills
+peuvent exiger un type d'arme (refus comme un lanceur mort, icône grisée). 91.6 : le blocage devient une
+propriété du bouclier (`DonneesDeBouclier`), la récupération une constante commune. 91.7 : infobulles des armes.
+1 303 tests, 39 avertissements `clang-tidy` (inchangé). Détail : `docs/objets.md`, `docs/combat.md`,
+`docs/formation.md`, `docs/monstre.md`, `docs/ecrans.md`, `docs/tests.md`, `docs/classes-et-combat.md`.

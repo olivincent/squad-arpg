@@ -113,7 +113,7 @@ Le modèle existe (`docs/objets.md`) ; ces idées ont été écartées de l'éta
 - **Clic droit pour équiper** : équiper un objet du sac vers son emplacement évident, sans glisser. À reconsidérer après l'étape 85 ; avec deux anneaux et trois personnages, « l'emplacement évident » n'existe pas toujours.
 - **Restrictions d'équipement par classe** : un mage sans cuirasse de mailles. Cela donnerait un sens aux classes, mais fixerait aussi le rôle des futurs arbres de skills ; à décider avec eux. À distinguer des seuils d'équipement par caractéristique (une arme lourde demande de la Vigueur), déjà retenus dans `docs/classes-et-combat.md`, section 5.
 - **Affixes aléatoires et rareté** : l'`Objet` ne porte aujourd'hui que son identifiant. Des affixes demanderaient d'y ajouter des données, et de ne plus supposer que deux objets du même modèle sont égaux.
-- **Armes et deux mains** : classe `Arme` (intervalle de recharge de l'attaque de base), catégorie d'arme dans `peutAller`, règle d'occupation de la main gauche pour une arme à deux mains.
+- ~~**Armes et deux mains**~~ : **fait à l'étape 91** (`docs/objets.md`, « Armes (étape 91) ») : des données d'arme sur la `DefinitionObjet` plutôt qu'une classe `Arme`, une catégorie d'arme dans `peutAller`, la règle des deux mains dans `deplacerLesObjets`. Reste d'ouvert : deux armes à la fois (une arme en main gauche), lancers, munitions.
 - **Sauvegarde de l'équipement** entre deux parties, **butin au sol** et tables de butin des monstres.
 
 ## 6. Idées en vrac

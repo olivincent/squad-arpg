@@ -117,9 +117,15 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
   appellent les mêmes rectangles (`rectangleDeLEmplacement`, `rectangleDeLaCaseDuSac`,
   `elementSous`), aussi utilisés par le glisser-déposer. Un test vérifie que tout
   tient dans 1200 × 800 (et en 16:9), dans le panneau, sans chevauchement.
-- **Infobulle** : au survol d'un emplacement ou d'une case occupés, nom, catégorie et armure de
-  l'objet (`lignesDeLInfobulle`), placés près du curseur et gardés entièrement dans la vue
-  (`placerInfobulle`). Rien sur un emplacement ou une case vide.
+- **Infobulle** : au survol d'un emplacement ou d'une case occupés, nom, catégorie, armure et bonus de
+  l'objet, et depuis l'étape 91 le blocage d'un bouclier et l'attaque d'une arme (dégâts, recharge, portée,
+  contact ou projectile, « Deux mains » : `lignesDeLInfobulle`), placés près du curseur et gardés
+  entièrement dans la vue (`placerInfobulle`) ; la hauteur suit le nombre de lignes. Rien sur un emplacement
+  ou une case vide.
+- **Deux mains (étape 91.3)** : la surbrillance des destinations valides (`Escouade::peutDeplacerObjet`) et
+  l'action au relâchement (`deplacerObjet`) suivent la même règle : poser une arme à deux mains sur un
+  personnage qui porte un bouclier range le bouclier dans la première case libre du sac (et inversement) ;
+  sac plein, la destination n'est pas en surbrillance et le relâchement ne fait rien.
 - **Textes** : les noms des emplacements et des catégories et les sigles des objets sont dans
   l'interface (`interface/AffichageObjets`, `switch` sans `default` : le compilateur signale un
   oubli), en UTF-8 passé à `sf::String::fromUtf8`. Un texte plus large que son rectangle est
