@@ -280,6 +280,9 @@ std::optional<Attaque> Personnage::avancerSkill(float dt, Generateur& generateur
     m_actionEngagee.reset();
     // Le skill est parti : l'attaque de base repart pour une recharge complète.
     m_attaqueDeBase.relancerRecharge(generateur);
+    if (skill.getBonusDeFrappe().has_value()) {
+        return attaqueDeFrappe(skill);
+    }
     return attaqueDe(skill, 0);  // un skill a sa propre puissance : aucune pénétration
 }
 
@@ -399,6 +402,20 @@ Attaque Personnage::attaqueDe(const Skill& skill, int penetration) const {
         case TypeSkill::Provocation:
             attaque.dureeDeProvocation = montant;
             break;
+    }
+    return attaque;
+}
+
+Attaque Personnage::attaqueDeFrappe(const Skill& skill) const {
+    assert(skill.getBonusDeFrappe().has_value());
+    // Les dégâts viennent de l'arme, comme pour l'attaque de base ; le skill n'ajoute que son bonus.
+    Attaque attaque = {.degats = {},
+                       .capaciteOffensive = m_statistiques.capaciteOffensive,
+                       .nature = m_descriptionDeBase.nature,
+                       .penetration = m_descriptionDeBase.penetration};
+    attaque.degats[Element::Physique] = montantEffectif(m_descriptionDeBase.degats, skill.getCoefficients(), m_caracteristiques);
+    for (const Element element : s_elements) {
+        attaque.degats[element] += montantEffectif((*skill.getBonusDeFrappe())[element], skill.getCoefficients(), m_caracteristiques);  // NOLINT(bugprone-unchecked-optional-access): vérifié par l'assert au-dessus (_assert de MinGW n'est pas noreturn)
     }
     return attaque;
 }

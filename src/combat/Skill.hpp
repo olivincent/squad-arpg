@@ -3,6 +3,7 @@
 #include "base/Aleatoire.hpp"
 #include "base/Cercle.hpp"
 #include "combat/Caracteristiques.hpp"
+#include "combat/Degats.hpp"
 #include "combat/Element.hpp"
 #include "combat/NatureDAttaque.hpp"
 #include "combat/TypeDArme.hpp"
@@ -15,7 +16,8 @@
 // déclenchement ; fixe si les deux bornes sont égales, sans aucun tirage). La
 // « puissance » est le nombre de dégâts pour un skill de Degats, le nombre
 // de points de vie rendus pour un skill de Soin, la durée en secondes pour
-// un skill de Provocation, le nombre de dégâts pour un skill de Zone. Le
+// un skill de Provocation, le nombre de dégâts pour un skill de Zone, 0 pour un skill de frappe (voir
+// `bonusDeFrappe` : ses dégâts viennent de l'arme). Le
 // rayon de zone est la taille de la zone touchée par un skill de zone ; il
 // vaut 0 et n'est pas lu pour un skill à cible unique (c'est le type qui
 // décide).
@@ -54,6 +56,11 @@ struct DefinitionDeSkill {  // NOLINT(cppcoreguidelines-pro-type-member-init): c
     // L'élément des dégâts de la puissance (skill de dégâts ou de zone) : une explosion est du feu. Le physique par
     // défaut ; un soin et une provocation n'en ont pas.
     Element element = Element::Physique;
+    // Présent : c'est un **skill de frappe** (étape 94), qui utilise l'arme portée. Ses dégâts physiques, sa nature et sa
+    // pénétration sont ceux de l'arme (`DescriptionDAttaque`) ; le skill apporte ce bonus fixe, typé (la frappe sacrée :
+    // du sacré), sa portée, sa recharge et son temps d'activation. La puissance est alors 0 et la nature déclarée
+    // (non zone) n'est pas lue : l'attaque prend celle de l'arme. Un skill de frappe est de type `DegatsSurCible`.
+    std::optional<Degats> bonusDeFrappe = std::nullopt;
 };
 
 class Skill {
@@ -80,6 +87,8 @@ public:
     [[nodiscard]] const Coefficients& getCoefficients() const;
     [[nodiscard]] NatureDAttaque getNature() const;
     [[nodiscard]] Element getElement() const;
+    // Le bonus d'un skill de frappe ; vide pour tout autre skill.
+    [[nodiscard]] const std::optional<Degats>& getBonusDeFrappe() const;
     [[nodiscard]] const std::vector<TypeDArme>& getArmesExigees() const;
     // Cette arme (vide : les mains nues) permet-elle de lancer le skill ? Toujours vrai sans exigence.
     [[nodiscard]] bool convientA(std::optional<TypeDArme> arme) const;
@@ -98,6 +107,7 @@ private:
     NatureDAttaque m_nature;
     std::vector<TypeDArme> m_armesExigees;
     Element m_element;
+    std::optional<Degats> m_bonusDeFrappe;
     float m_executionRestante; // en secondes, lue seulement en phase EnExecution
     PhaseSkill m_phase;
 

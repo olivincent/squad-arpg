@@ -1510,3 +1510,52 @@ TEST_CASE("l'attaque de base et la Puissance : toutes les portions profitent de 
     REQUIRE(explosion.degats[Element::Feu] == montantEffectif(100, puissance, fort.getCaracteristiques()));
     REQUIRE(explosion.degats[Element::Feu] > 100);
 }
+
+namespace {
+// Un personnage dont l'unique skill est un skill de frappe de test (bonus de feu 10, puissance 0) qui accepte ces armes.
+Personnage unPersonnageDeFrappe(IdObjet arme, std::vector<TypeDArme> armes) {
+    const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
+    return Personnage({100.0f, 100.0f},
+                      {.couleur = sf::Color::White,
+                       .skills = {{IdSkill::FrappeSacree, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 0, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .coefficients = puissance, .nature = NatureDAttaque::Contact, .armesExigees = std::move(armes), .bonusDeFrappe = degatsDe(Element::Feu, 10)})}},
+                       .equipementDeDepart = {{Emplacement::MainDroite, arme}}, .rayonVision = s_rayonVisionDeTest,
+                       .caracteristiques = Caracteristiques({20, 20, 20, 20, 20})});
+}
+}  // namespace
+
+TEST_CASE("un skill de frappe prend la penetration de l'arme, pas celle du skill") {
+    Generateur generateur = generateurDeTest();
+    Personnage dague = unPersonnageDeFrappe(IdObjet::Dague, {TypeDArme::Dague, TypeDArme::EpeeLongue});
+    Personnage epee = unPersonnageDeFrappe(IdObjet::EpeeLongue, {TypeDArme::Dague, TypeDArme::EpeeLongue});
+
+    const Attaque avecDague = lancerSkillEnEntier(dague, Cible(CibleMonstre{1, Cercle{{120.0f, 100.0f}, 10.0f}}), generateur, IdSkill::FrappeSacree);
+    const Attaque avecEpee = lancerSkillEnEntier(epee, Cible(CibleMonstre{1, Cercle{{120.0f, 100.0f}, 10.0f}}), generateur, IdSkill::FrappeSacree);
+
+    REQUIRE(avecDague.penetration == definitionObjet(IdObjet::Dague).arme->attaque.penetration);
+    REQUIRE(avecDague.penetration > 0);
+    REQUIRE(avecEpee.penetration == 0);
+}
+
+TEST_CASE("un skill de frappe prend les degats physiques et la nature de l'arme, le feu du bonus") {
+    Generateur generateur = generateurDeTest();
+    const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
+    Personnage archer = unPersonnageDeFrappe(IdObjet::Arc, {TypeDArme::Arc});
+
+    const Attaque tir = lancerSkillEnEntier(archer, Cible(CibleMonstre{1, Cercle{{120.0f, 100.0f}, 10.0f}}), generateur, IdSkill::FrappeSacree);
+
+    REQUIRE(tir.nature == NatureDAttaque::Projectile);  // celle de l'arc, pas la nature déclarée par le skill
+    REQUIRE(tir.degats[Element::Physique] == montantEffectif(definitionObjet(IdObjet::Arc).arme->attaque.degats, puissance, archer.getCaracteristiques()));
+    REQUIRE(tir.degats[Element::Feu] == montantEffectif(10, puissance, archer.getCaracteristiques()));
+}
+
+TEST_CASE("changer d'arme change les degats physiques d'un skill de frappe, pas son bonus") {
+    Generateur generateur = generateurDeTest();
+    Personnage personnage = unPersonnageDeFrappe(IdObjet::EpeeLongue, {TypeDArme::EpeeLongue, TypeDArme::Dague});
+    const Attaque epee = lancerSkillEnEntier(personnage, Cible(CibleMonstre{1, Cercle{{120.0f, 100.0f}, 10.0f}}), generateur, IdSkill::FrappeSacree);
+
+    Personnage poignard = unPersonnageDeFrappe(IdObjet::Dague, {TypeDArme::EpeeLongue, TypeDArme::Dague});
+    const Attaque dague = lancerSkillEnEntier(poignard, Cible(CibleMonstre{1, Cercle{{120.0f, 100.0f}, 10.0f}}), generateur, IdSkill::FrappeSacree);
+
+    REQUIRE(epee.degats[Element::Physique] != dague.degats[Element::Physique]);  // 15 et 14, avec la Puissance
+    REQUIRE(epee.degats[Element::Feu] == dague.degats[Element::Feu]);
+}

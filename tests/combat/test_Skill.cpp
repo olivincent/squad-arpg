@@ -360,3 +360,13 @@ TEST_CASE("Skill.convientA : avec des exigences, seules les armes de la liste co
     REQUIRE_FALSE(exigeant.convientA(TypeDArme::Arc));
     REQUIRE_FALSE(exigeant.convientA(std::nullopt));
 }
+
+TEST_CASE("un skill ordinaire n'a pas de bonus de frappe, un skill de frappe a le sien") {
+    const Skill ordinaire({.type = TypeSkill::DegatsSurCible, .portee = 20.0f, .puissance = 5, .rechargeMin = 1.0f, .rechargeMax = 1.0f, .nature = NatureDAttaque::Contact});
+    const Skill frappe({.type = TypeSkill::DegatsSurCible, .portee = 20.0f, .puissance = 0, .rechargeMin = 1.0f, .rechargeMax = 1.0f, .nature = NatureDAttaque::Contact, .bonusDeFrappe = degatsDe(Element::Sacre, 45)});
+
+    REQUIRE_FALSE(ordinaire.getBonusDeFrappe().has_value());
+    REQUIRE(frappe.getBonusDeFrappe().has_value());
+    REQUIRE((*frappe.getBonusDeFrappe())[Element::Sacre] == 45);
+    REQUIRE(ordinaire.getElement() == Element::Physique);
+}

@@ -6,6 +6,7 @@
 #include <utility>
 #include "base/Eclaircir.hpp"
 #include "combat/Caracteristiques.hpp"
+#include "combat/Degats.hpp"
 #include "combat/Element.hpp"
 #include "combat/IdSkill.hpp"
 #include "combat/NatureDAttaque.hpp"
@@ -39,7 +40,9 @@ constexpr float s_activationZone = 0.8f;      // en secondes
 constexpr float s_rayonZone = 60.0f;          // rayon de zone, depuis le point visé
 
 // Paladin et rôdeur : valeurs provisoires, à ajuster après test.
-constexpr int s_degatsFrappeSacree = 60;
+// Le bonus sacré de la frappe sacrée s'ajoute aux dégâts de l'arme. Calibré sur la masse de départ du paladin (15) :
+// 15 + 45 = 60, le total d'avant l'étape 94 ; avec l'épée à deux mains (60), 105.
+constexpr int s_bonusSacreFrappeSacree = 45;
 constexpr float s_rechargeFrappeSacree = 5.0f;    // en secondes
 constexpr float s_activationFrappeSacree = 0.3f;  // en secondes
 constexpr int s_puissanceImposition = 75;
@@ -131,10 +134,11 @@ std::vector<Specialite> construireLeCatalogue() {
         {IdSpecialite::Paladin, "Paladin",
          {.couleur = s_couleurPaladin,
           .skills = {{IdSkill::FrappeSacree, Skill({.type = TypeSkill::DegatsSurCible, .portee = s_porteeMelee,
-                                          .puissance = s_degatsFrappeSacree, .rechargeMin = s_rechargeFrappeSacree,
+                                          .puissance = 0, .rechargeMin = s_rechargeFrappeSacree,
                                           .rechargeMax = s_rechargeFrappeSacree,
                                           .tempsExecution = s_activationFrappeSacree, .coefficients = s_puissanceSeule,
-                                          .nature = NatureDAttaque::Contact, .armesExigees = s_armesDeFrappeSacree})},
+                                          .nature = NatureDAttaque::Contact, .armesExigees = s_armesDeFrappeSacree,
+                                          .bonusDeFrappe = degatsDe(Element::Sacre, s_bonusSacreFrappeSacree)})},
            {IdSkill::ImpositionDesMains, Skill({.type = TypeSkill::Soin, .portee = s_porteeMelee,
                                                 .puissance = s_puissanceImposition,
                                                 .rechargeMin = s_rechargeImposition,

@@ -147,6 +147,9 @@ private:
     // dans le champ que dit le type du skill (dégâts, soin ou durée de provocation), la
     // capacité offensive du personnage et la pénétration donnée (celle de l'arme pour l'attaque de base, 0 pour un skill).
     [[nodiscard]] Attaque attaqueDe(const Skill& skill, int penetration) const;
+    // Celle d'un skill de frappe : les dégâts physiques, la nature et la pénétration de l'arme portée, plus le bonus du
+    // skill ; la Puissance joue sur chaque portion (`montantEffectif`, avec les coefficients du skill).
+    [[nodiscard]] Attaque attaqueDeFrappe(const Skill& skill) const;
     // Son arme permet-elle de lancer ce skill (`Skill::convientA`) ?
     [[nodiscard]] bool armeConvientA(const Skill& skill) const;
     [[nodiscard]] const Skill* trouverSkill(IdSkill id) const;  // nullptr si le personnage ne connaît pas ce skill

@@ -18,12 +18,14 @@ Skill::Skill(const DefinitionDeSkill& definition)
       m_nature(definition.nature),
       m_armesExigees(definition.armesExigees),
       m_element(definition.element),
+      m_bonusDeFrappe(definition.bonusDeFrappe),
       m_executionRestante(0.0f),
       m_phase(PhaseSkill::Pret)
 {
     assert(m_rechargeMin >= 0.0f && m_rechargeMin <= m_rechargeMax);
     assert(m_tempsExecution >= 0.0f);
     assert((m_type == TypeSkill::Zone) == (m_nature == NatureDAttaque::Zone));  // la zone est une nature de type Zone
+    assert(!m_bonusDeFrappe.has_value() || (m_type == TypeSkill::DegatsSurCible && m_puissance == 0));  // un skill de frappe : dégâts de l'arme
 }
 
 // Recharge fixe (aucun tirage) si les deux bornes sont égales ; sinon tirage
@@ -118,6 +120,10 @@ NatureDAttaque Skill::getNature() const {
 
 Element Skill::getElement() const {
     return m_element;
+}
+
+const std::optional<Degats>& Skill::getBonusDeFrappe() const {
+    return m_bonusDeFrappe;
 }
 
 const std::vector<TypeDArme>& Skill::getArmesExigees() const {

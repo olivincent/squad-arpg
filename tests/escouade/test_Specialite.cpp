@@ -1,6 +1,7 @@
 // ./tests/escouade/test_Specialite.cpp
 #include <catch2/catch_test_macros.hpp>
 #include <cassert>
+#include <cstdlib>
 #include <cstddef>
 #include <optional>
 #include <vector>
@@ -9,7 +10,12 @@
 #include "aides.hpp"
 #include "aides_escouade.hpp"
 #include "combat/Caracteristiques.hpp"
+#include "combat/Cible.hpp"
 #include "combat/Defense.hpp"
+#include "combat/Degats.hpp"
+#include "combat/ResolutionDuCoup.hpp"
+#include "monde/CategorieDeMonstre.hpp"
+#include "monstres/DefinitionDeMonstre.hpp"
 #include "combat/Element.hpp"
 #include "combat/TypeSkill.hpp"
 #include "combat/TypeDArme.hpp"
@@ -148,7 +154,10 @@ TEST_CASE("le paladin est une melee qui frappe et soigne au contact") {
 
     REQUIRE(paladin.skills[0].id == IdSkill::FrappeSacree);
     REQUIRE(paladin.skills[0].skill.getType() == TypeSkill::DegatsSurCible);
-    REQUIRE(paladin.skills[0].skill.getPuissance() == 60);
+    // Un skill de frappe : pas de puissance propre (les dégâts viennent de l'arme), un bonus sacré fixe.
+    REQUIRE(paladin.skills[0].skill.getPuissance() == 0);
+    REQUIRE(paladin.skills[0].skill.getBonusDeFrappe().has_value());
+    REQUIRE(*paladin.skills[0].skill.getBonusDeFrappe() == degatsDe(Element::Sacre, 45));
     REQUIRE(paladin.skills[0].skill.getPortee() == 20.0f);
 
     REQUIRE(paladin.skills[1].id == IdSkill::ImpositionDesMains);
@@ -380,4 +389,88 @@ TEST_CASE("l'explosion du mage est du feu, les autres skills de degats et de zon
             }
         }
     }
+}
+
+namespace {
+// Lance la frappe sacrée du paladin (portée de mêlée) et rend l'attaque qui part.
+Attaque frappeSacreeDe(Personnage& paladin) {
+    Generateur generateur = generateurDeTest();
+    REQUIRE(paladin.engagerSkill(IdSkill::FrappeSacree, CibleMonstre{1, Cercle{{15.0f, 0.0f}, 10.0f}}));
+    for (int i = 0; i < nombreDeTics(2.0f); ++i) {
+        if (const std::optional<Attaque> attaque = paladin.avancerSkill(s_dureeTic, generateur)) {
+            return *attaque;
+        }
+    }
+    FAIL("la frappe sacree n'est jamais partie");
+    return {.degats = {}, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
+}
+}  // namespace
+
+TEST_CASE("la frappe sacree avec la masse de depart : physique de la masse, sacre du bonus, le total d'avant") {
+    Personnage paladin = deLaClasse(IdSpecialite::Paladin);
+    const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
+
+    const Attaque attaque = frappeSacreeDe(paladin);
+
+    REQUIRE(attaque.degats[Element::Physique] == montantEffectif(definitionObjet(IdObjet::Masse).arme->attaque.degats, puissance, paladin.getCaracteristiques()));
+    REQUIRE(attaque.degats[Element::Sacre] == montantEffectif(45, puissance, paladin.getCaracteristiques()));
+    REQUIRE(attaque.degats[Element::Feu] == 0);
+    // Le total d'avant l'étape 94 : un skill de 60 avec la Puissance. Chaque portion arrondit à part : écart d'au plus 1.
+    const int avant = montantEffectif(60, puissance, paladin.getCaracteristiques());
+    REQUIRE(std::abs(attaque.degats.total() - avant) <= 1);
+    REQUIRE(attaque.nature == NatureDAttaque::Contact);
+    REQUIRE(attaque.penetration == 0);
+}
+
+TEST_CASE("la frappe sacree avec l'epee a deux mains : la portion physique est plus grande, le sacre est le meme") {
+    DefinitionPersonnage definition = specialite(IdSpecialite::Paladin).definition;
+    definition.caracteristiques = Caracteristiques({20, 20, 8, 7, 11});  // de quoi porter l'épée à deux mains
+    Personnage avecLaMasse({0.0f, 0.0f}, definition);
+    Personnage avecLEpee({0.0f, 0.0f}, definition);
+    // Une arme à deux mains exige la main gauche vide : le bouclier part d'abord.
+    static_cast<void>(avecLEpee.retirerEquipement(Emplacement::MainGauche));
+    static_cast<void>(avecLEpee.retirerEquipement(Emplacement::MainDroite));
+    static_cast<void>(avecLEpee.poserEquipement(Emplacement::MainDroite, Objet{IdObjet::EpeeADeuxMains}));
+
+    const Attaque masse = frappeSacreeDe(avecLaMasse);
+    const Attaque deuxMains = frappeSacreeDe(avecLEpee);
+
+    REQUIRE(deuxMains.degats[Element::Physique] > masse.degats[Element::Physique]);
+    REQUIRE(deuxMains.degats[Element::Sacre] == masse.degats[Element::Sacre]);
+    REQUIRE(deuxMains.degats.total() > masse.degats.total());
+}
+
+TEST_CASE("la frappe sacree sans l'arme exigee est refusee, comme avant") {
+    Personnage paladin = deLaClasse(IdSpecialite::Paladin);
+    static_cast<void>(paladin.retirerEquipement(Emplacement::MainDroite));
+
+    REQUIRE_FALSE(paladin.armeConvientAuSkill(IdSkill::FrappeSacree));
+    REQUIRE_FALSE(paladin.skillEstPret(IdSkill::FrappeSacree));
+    REQUIRE_FALSE(paladin.engagerSkill(IdSkill::FrappeSacree, CibleMonstre{1, Cercle{{15.0f, 0.0f}, 10.0f}}));
+    REQUIRE(paladin.etatDuSkill(IdSkill::FrappeSacree)->armeAbsente);
+}
+
+TEST_CASE("la frappe sacree du paladin : doree contre l'infanterie lourde, physique si la portion physique domine") {
+    Generateur generateur = generateurDeTest();
+    const auto defensesDe = [](CategorieDeMonstre categorie) {
+        const DefinitionDeMonstre& definition = definitionDeMonstre(categorie);
+        Defenses defenses = {.armure = definition.armure, .statistiques = definition.statistiques};
+        defenses.statistiques.esquiveContact = 0;
+        return defenses;
+    };
+    Personnage paladin = deLaClasse(IdSpecialite::Paladin);
+    const Attaque attaque = frappeSacreeDe(paladin);
+
+    // La masse : 15 de physique contre 45 de sacré, l'armure de 10 achève le physique.
+    REQUIRE(resoudreCoup(attaque, defensesDe(CategorieDeMonstre::InfanterieLourde), true, generateur).portions.elementDominant() == Element::Sacre);
+
+    DefinitionPersonnage definition = specialite(IdSpecialite::Paladin).definition;
+    definition.caracteristiques = Caracteristiques({20, 20, 8, 7, 11});
+    Personnage avecLEpee({0.0f, 0.0f}, definition);
+    static_cast<void>(avecLEpee.retirerEquipement(Emplacement::MainGauche));
+    static_cast<void>(avecLEpee.retirerEquipement(Emplacement::MainDroite));
+    static_cast<void>(avecLEpee.poserEquipement(Emplacement::MainDroite, Objet{IdObjet::EpeeADeuxMains}));
+    const Attaque lourde = frappeSacreeDe(avecLEpee);
+
+    REQUIRE(resoudreCoup(lourde, defensesDe(CategorieDeMonstre::Infanterie), true, generateur).portions.elementDominant() == Element::Physique);
 }
