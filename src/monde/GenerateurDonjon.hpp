@@ -2,9 +2,11 @@
 #pragma once
 #include <SFML/System/Vector2.hpp>
 #include <cstddef>
+#include <optional>
 #include <string>
 #include <vector>
 #include "base/Aleatoire.hpp"
+#include "monde/CompositionDeGroupe.hpp"
 #include "monde/Niveau.hpp"
 
 // L'emprise d'une salle : un rectangle en cases. Elle sert au placement, au
@@ -34,8 +36,11 @@ struct ParametresDonjon {
     int coteMax = 12;       // côté maximal d'une salle, en cases
     int marge = 1;          // cases de mur exigées entre deux salles
     int largeurCouloir = 2; // en cases
-    int monstresParSalleMin = 1;      // monstres voulus par salle (hors première), bornes incluses
-    int monstresParSalleMax = 3;
+    // Les groupes de monstres : chaque salle sauf la première en reçoit un, tiré au hasard parmi `compositions`
+    // selon leurs poids ; la salle la plus éloignée du départ reçoit à la place `compositionDeLaSalleLaPlusLoin`
+    // (vide : elle tire comme les autres).
+    std::vector<CompositionDeGroupe> compositions = compositionsOrdinaires();
+    std::optional<CompositionDeGroupe> compositionDeLaSalleLaPlusLoin = compositionDeLaCreature();
     float distanceMinDepart = 400.0f; // en pixels : aucun monstre plus près du départ de l'escouade
     int tentativesParMonstre = 10;    // essais avant d'abandonner un monstre
 };
@@ -71,16 +76,19 @@ void creuserSalle(std::vector<std::string>& plan, const Salle& salle);
 void creuserCouloir(std::vector<std::string>& plan, sf::Vector2i depart, sf::Vector2i arrivee, SensCouloir sens,
                     int largeur);
 
-// Tire les monstres : position (centre de case, en pixels du monde) et groupe.
+// Tire les monstres : position (centre de case, en pixels du monde), groupe et catégorie.
 // Le groupe est un compteur qui augmente de 1 pour chaque salle qui reçoit au
 // moins un monstre ; tous les monstres d'une salle le partagent. Aucun
-// dans la salle 0 ; dans chaque autre salle, un nombre voulu tiré dans
-// [monstresParSalleMin, monstresParSalleMax], chacun sur une case intérieure
+// dans la salle 0 ; chaque autre salle reçoit une composition (`compositions`, tirée selon les poids ; pour la
+// salle la plus éloignée de la salle 0, centre à centre — la plus petite en cas d'égalité —
+// `compositionDeLaSalleLaPlusLoin` si elle existe, sans tirage) : pour chaque effectif, un nombre tiré dans
+// [min, max] de monstres de cette catégorie, chacun sur une case intérieure
 // (une case de marge contre les murs de l'emprise). Placement par rejet : au
 // plus `tentativesParMonstre` essais par monstre, qui est abandonné s'ils
 // échouent tous. Une position est rejetée si elle est à moins de 2 cases d'un
 // monstre déjà placé (distance de Tchebychev) ou à moins de
-// `distanceMinDepart` pixels de `depart`.
+// `distanceMinDepart` pixels de `depart`. Dans une composition `serre`, le premier monstre est tiré dans la salle,
+// les suivants à 2 cases au plus de lui (une case par monstre, case contre case permis).
 [[nodiscard]] std::vector<MonstreDuNiveau> placerMonstres(Generateur& generateur, const std::vector<Salle>& salles,
                                                           sf::Vector2f depart, const ParametresDonjon& parametres);
 

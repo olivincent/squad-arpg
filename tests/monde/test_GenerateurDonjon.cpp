@@ -2,11 +2,15 @@
 #include <catch2/catch_test_macros.hpp>
 #include <algorithm>
 #include <cmath>
+#include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "base/Aleatoire.hpp"
+#include "monde/CategorieDeMonstre.hpp"
 #include "monde/Chemin.hpp"
+#include "monde/CompositionDeGroupe.hpp"
 #include "monde/GenerateurDonjon.hpp"
 #include "monde/Niveau.hpp"
 #include "monde/TileMap.hpp"
@@ -26,6 +30,37 @@ bool memesSalles(const std::vector<Salle>& a, const std::vector<Salle>& b) {
         }
     }
     return true;
+}
+
+// Des paramètres où chaque salle reçoit de `min` à `max` infanteries, et rien d'autre : ni nuée, ni mélange, ni créature.
+ParametresDonjon parametresAvecInfanterie(int min, int max) {
+    ParametresDonjon parametres;
+    parametres.compositions = {{.effectifs = {{CategorieDeMonstre::Infanterie, min, max}}, .poids = 1}};
+    parametres.compositionDeLaSalleLaPlusLoin.reset();
+    return parametres;
+}
+
+// Des paramètres où chaque salle reçoit cette composition, sans créature.
+ParametresDonjon parametresAvec(const CompositionDeGroupe& composition) {
+    ParametresDonjon parametres;
+    parametres.compositions = {composition};
+    parametres.compositionDeLaSalleLaPlusLoin.reset();
+    return parametres;
+}
+
+// Le nombre de monstres de chaque catégorie, par groupe.
+std::map<int, std::map<CategorieDeMonstre, int>> categoriesParGroupe(const std::vector<MonstreDuNiveau>& monstres) {
+    std::map<int, std::map<CategorieDeMonstre, int>> resultat;
+    for (const MonstreDuNiveau& monstre : monstres) {
+        ++resultat[monstre.groupe][monstre.categorie];
+    }
+    return resultat;
+}
+
+int nombreDe(CategorieDeMonstre categorie, const std::vector<MonstreDuNiveau>& monstres) {
+    return static_cast<int>(std::ranges::count_if(monstres, [&](const MonstreDuNiveau& monstre) {
+        return monstre.categorie == categorie;
+    }));
 }
 
 }  // namespace
@@ -487,9 +522,7 @@ TEST_CASE("placerMonstres place chaque monstre au centre d'une case interieure d
 }
 
 TEST_CASE("placerMonstres place au plus max monstres par salle") {
-    ParametresDonjon parametres;
-    parametres.monstresParSalleMin = 1;
-    parametres.monstresParSalleMax = 2;
+    ParametresDonjon parametres = parametresAvecInfanterie(1, 2);
     const Salle salle{20, 20, 12, 12};
     const std::vector<Salle> salles{{1, 1, 6, 6}, salle};
     for (Generateur::result_type graine = 0; graine < 50; ++graine) {
@@ -500,9 +533,7 @@ TEST_CASE("placerMonstres place au plus max monstres par salle") {
 }
 
 TEST_CASE("placerMonstres laisse au moins une case libre entre deux monstres") {
-    ParametresDonjon parametres;
-    parametres.monstresParSalleMin = 6;
-    parametres.monstresParSalleMax = 6;
+    ParametresDonjon parametres = parametresAvecInfanterie(6, 6);
     parametres.tentativesParMonstre = 50;
     const std::vector<Salle> salles{{1, 1, 6, 6}, {20, 20, 12, 12}};
     for (Generateur::result_type graine = 0; graine < 50; ++graine) {
@@ -522,9 +553,7 @@ TEST_CASE("placerMonstres laisse au moins une case libre entre deux monstres") {
 
 TEST_CASE("placerMonstres abandonne les monstres qui ne tiennent pas") {
     // Salle 6 x 6 : l'intérieur fait 4 x 4 cases, donc 4 monstres au plus à 2 cases d'écart.
-    ParametresDonjon parametres;
-    parametres.monstresParSalleMin = 10;
-    parametres.monstresParSalleMax = 10;
+    ParametresDonjon parametres = parametresAvecInfanterie(10, 10);
     const std::vector<Salle> salles{{1, 1, 6, 6}, {20, 20, 6, 6}};
     Generateur generateur(s_graine);
 
@@ -586,9 +615,7 @@ TEST_CASE("genererNiveau produit un plan que TileMap accepte") {
 }
 
 TEST_CASE("placerMonstres donne le meme groupe aux monstres d'une meme salle") {
-    ParametresDonjon parametres;
-    parametres.monstresParSalleMin = 3;
-    parametres.monstresParSalleMax = 3;
+    ParametresDonjon parametres = parametresAvecInfanterie(3, 3);
     parametres.tentativesParMonstre = 50;
     const std::vector<Salle> salles{{1, 1, 6, 6}, {20, 20, 12, 12}};
     for (Generateur::result_type graine = 0; graine < 50; ++graine) {
@@ -604,9 +631,7 @@ TEST_CASE("placerMonstres donne le meme groupe aux monstres d'une meme salle") {
 }
 
 TEST_CASE("placerMonstres donne des groupes differents aux monstres de salles differentes") {
-    ParametresDonjon parametres;
-    parametres.monstresParSalleMin = 2;
-    parametres.monstresParSalleMax = 2;
+    ParametresDonjon parametres = parametresAvecInfanterie(2, 2);
     parametres.tentativesParMonstre = 50;
     const std::vector<Salle> salles{{1, 1, 6, 6}, {20, 20, 12, 12}, {40, 5, 10, 10}};
     for (Generateur::result_type graine = 0; graine < 50; ++graine) {
@@ -801,4 +826,186 @@ TEST_CASE("genererNiveau ne contient aucun coin diagonal pour les graines 1 a 50
 
     INFO(avecCoin << " graines sur 50 contiennent un coin diagonal, la premiere est " << premiere);
     REQUIRE(avecCoin == 0);
+}
+
+TEST_CASE("placerMonstres : chaque groupe suit l'une des compositions, aucune categorie hors d'elles") {
+    const ParametresDonjon parametres;
+    const std::vector<Salle> salles{{1, 1, 6, 6}, {20, 1, 12, 12}, {1, 20, 12, 12}, {40, 30, 12, 8}};
+    for (Generateur::result_type graine = 0; graine < 50; ++graine) {
+        Generateur generateur(graine);
+
+        const std::vector<MonstreDuNiveau> monstres = placerMonstres(generateur, salles, {100.0f, 100.0f}, parametres);
+
+        for (const auto& [groupe, categories] : categoriesParGroupe(monstres)) {
+            std::vector<CompositionDeGroupe> candidates = parametres.compositions;
+            candidates.push_back(*parametres.compositionDeLaSalleLaPlusLoin);
+            const bool uneComposition = std::ranges::any_of(candidates, [&](const CompositionDeGroupe& composition) {
+                return std::ranges::all_of(categories, [&](const auto& entree) {
+                    const auto effectif = std::ranges::find_if(composition.effectifs, [&](const EffectifDeCategorie& e) {
+                        return e.categorie == entree.first;
+                    });
+                    return effectif != composition.effectifs.end() && entree.second <= effectif->max;
+                });
+            });
+            INFO("groupe " << groupe);
+            REQUIRE(uneComposition);
+        }
+    }
+}
+
+TEST_CASE("placerMonstres : un melange donne une infanterie lourde et un ou deux infanteries par salle") {
+    const CompositionDeGroupe melange = compositionsOrdinaires()[2];
+    const ParametresDonjon parametres = parametresAvec(melange);
+    const std::vector<Salle> salles{{1, 1, 6, 6}, {20, 20, 12, 12}};
+    for (Generateur::result_type graine = 0; graine < 50; ++graine) {
+        Generateur generateur(graine);
+
+        const std::vector<MonstreDuNiveau> monstres = placerMonstres(generateur, salles, {0.0f, 0.0f}, parametres);
+
+        REQUIRE(nombreDe(CategorieDeMonstre::InfanterieLourde, monstres) == 1);
+        REQUIRE(nombreDe(CategorieDeMonstre::Infanterie, monstres) >= 1);
+        REQUIRE(nombreDe(CategorieDeMonstre::Infanterie, monstres) <= 2);
+        REQUIRE(monstres.size() == static_cast<std::size_t>(nombreDe(CategorieDeMonstre::Infanterie, monstres) + 1));
+    }
+}
+
+TEST_CASE("placerMonstres : une nuee est groupee autour de son premier monstre, une case par monstre") {
+    const CompositionDeGroupe nuee = compositionsOrdinaires()[0];
+    const ParametresDonjon parametres = parametresAvec(nuee);
+    const std::vector<Salle> salles{{1, 1, 6, 6}, {20, 20, 12, 12}};
+    for (Generateur::result_type graine = 0; graine < 50; ++graine) {
+        Generateur generateur(graine);
+
+        const std::vector<MonstreDuNiveau> monstres = placerMonstres(generateur, salles, {0.0f, 0.0f}, parametres);
+
+        REQUIRE(monstres.size() >= 1);
+        for (const MonstreDuNiveau& monstre : monstres) {
+            REQUIRE(monstre.categorie == CategorieDeMonstre::Nuee);
+        }
+        const EffectifDeCategorie& effectif = nuee.effectifs.front();
+        REQUIRE(monstres.size() <= static_cast<std::size_t>(effectif.max));
+        for (std::size_t i = 0; i < monstres.size(); ++i) {
+            const float ecartAuPremierX = std::abs(monstres[i].position.x - monstres[0].position.x);
+            const float ecartAuPremierY = std::abs(monstres[i].position.y - monstres[0].position.y);
+            REQUIRE(std::max(ecartAuPremierX, ecartAuPremierY) <= 2.0f * parametres.tailleCase);
+            for (std::size_t j = i + 1; j < monstres.size(); ++j) {
+                REQUIRE(monstres[i].position != monstres[j].position);
+            }
+        }
+    }
+}
+
+TEST_CASE("placerMonstres : une nuee a toujours son nombre complet dans une salle assez grande") {
+    const CompositionDeGroupe nuee = compositionsOrdinaires()[0];
+    ParametresDonjon parametres = parametresAvec(nuee);
+    parametres.tentativesParMonstre = 200;
+    const std::vector<Salle> salles{{1, 1, 6, 6}, {20, 20, 12, 12}};
+    for (Generateur::result_type graine = 0; graine < 50; ++graine) {
+        Generateur generateur(graine);
+
+        const std::vector<MonstreDuNiveau> monstres = placerMonstres(generateur, salles, {0.0f, 0.0f}, parametres);
+
+        REQUIRE(monstres.size() >= static_cast<std::size_t>(nuee.effectifs.front().min));
+    }
+}
+
+TEST_CASE("placerMonstres : une salle trop petite pour toute une nuee en recoit autant qu'elle en tient") {
+    // Salle 4 x 3 : l'intérieur fait 2 x 1 cases.
+    const CompositionDeGroupe nuee = compositionsOrdinaires()[0];
+    ParametresDonjon parametres = parametresAvec(nuee);
+    parametres.tentativesParMonstre = 200;
+    const std::vector<Salle> salles{{1, 1, 6, 6}, {20, 20, 4, 3}};
+    for (Generateur::result_type graine = 0; graine < 50; ++graine) {
+        Generateur generateur(graine);
+
+        const std::vector<MonstreDuNiveau> monstres = placerMonstres(generateur, salles, {0.0f, 0.0f}, parametres);
+
+        REQUIRE(monstres.size() == 2);
+        REQUIRE(monstres[0].position != monstres[1].position);
+    }
+}
+
+TEST_CASE("placerMonstres : la creature est seule, dans la salle la plus eloignee de la salle 0") {
+    const ParametresDonjon parametres;
+    const std::vector<Salle> salles{{1, 1, 6, 6}, {20, 1, 8, 7}, {1, 20, 12, 12}, {40, 30, 8, 8}};  // la 3 est la plus loin
+    for (Generateur::result_type graine = 0; graine < 50; ++graine) {
+        Generateur generateur(graine);
+
+        const std::vector<MonstreDuNiveau> monstres = placerMonstres(generateur, salles, {0.0f, 0.0f}, parametres);
+
+        REQUIRE(nombreDe(CategorieDeMonstre::CreatureMonstrueuse, monstres) == 1);
+        const auto creature = std::ranges::find(monstres, CategorieDeMonstre::CreatureMonstrueuse, &MonstreDuNiveau::categorie);
+        const float colonne = creature->position.x / parametres.tailleCase - 0.5f;
+        const float ligne = creature->position.y / parametres.tailleCase - 0.5f;
+        REQUIRE(colonne >= 41.0f);  // dans la salle 3
+        REQUIRE(ligne >= 31.0f);
+        for (const MonstreDuNiveau& monstre : monstres) {
+            if (monstre.groupe == creature->groupe) {
+                REQUIRE(monstre.categorie == CategorieDeMonstre::CreatureMonstrueuse);
+            }
+        }
+    }
+}
+
+TEST_CASE("placerMonstres : a egalite de distance, la creature va dans la plus petite salle") {
+    // Les salles 1 et 2 sont à la même distance de la salle 0 (19 cases, l'une à droite, l'autre en dessous).
+    const std::vector<Salle> salles{{1, 1, 6, 6}, {20, 1, 6, 6}, {1, 20, 6, 6}};
+    for (Generateur::result_type graine = 0; graine < 50; ++graine) {
+        Generateur generateur(graine);
+
+        const std::vector<MonstreDuNiveau> monstres = placerMonstres(generateur, salles, {0.0f, 0.0f}, ParametresDonjon{});
+
+        const auto creature = std::ranges::find(monstres, CategorieDeMonstre::CreatureMonstrueuse, &MonstreDuNiveau::categorie);
+        REQUIRE(creature != monstres.end());
+        REQUIRE(creature->position.x > creature->position.y);  // la salle 1 est à droite de la salle 0
+    }
+}
+
+TEST_CASE("placerMonstres : sans composition pour la salle la plus loin, aucune creature") {
+    ParametresDonjon parametres;
+    parametres.compositionDeLaSalleLaPlusLoin.reset();
+    const std::vector<Salle> salles{{1, 1, 6, 6}, {20, 1, 8, 7}, {1, 20, 12, 12}, {40, 30, 8, 8}};
+    for (Generateur::result_type graine = 0; graine < 50; ++graine) {
+        Generateur generateur(graine);
+
+        REQUIRE(nombreDe(CategorieDeMonstre::CreatureMonstrueuse,
+                         placerMonstres(generateur, salles, {0.0f, 0.0f}, parametres)) == 0);
+    }
+}
+
+TEST_CASE("placerMonstres : les trois compositions ordinaires sortent, dans les salles ordinaires") {
+    const ParametresDonjon parametres;
+    const std::vector<Salle> salles{{1, 1, 6, 6}, {20, 1, 12, 12}, {1, 20, 12, 12}, {40, 30, 12, 8}};
+    int nuees = 0;
+    int infanteries = 0;
+    int melanges = 0;
+    for (Generateur::result_type graine = 0; graine < 200; ++graine) {
+        Generateur generateur(graine);
+
+        for (const auto& [groupe, categories] : categoriesParGroupe(placerMonstres(generateur, salles, {0.0f, 0.0f}, parametres))) {
+            if (categories.contains(CategorieDeMonstre::Nuee)) {
+                ++nuees;
+            } else if (categories.contains(CategorieDeMonstre::InfanterieLourde)) {
+                ++melanges;
+            } else if (categories.contains(CategorieDeMonstre::Infanterie)) {
+                ++infanteries;
+            }
+        }
+    }
+
+    // 400 salles ordinaires tirées à 30 %, 40 % et 30 % : en voir moins d'une de chaque est de l'ordre de 0,7^400.
+    REQUIRE(nuees > 0);
+    REQUIRE(infanteries > 0);
+    REQUIRE(melanges > 0);
+}
+
+TEST_CASE("genererNiveau : au plus une creature") {
+    const ParametresDonjon parametres;
+    for (Generateur::result_type graine = 0; graine < 50; ++graine) {
+        Generateur generateur(graine);
+
+        const Niveau niveau = genererNiveau(generateur, parametres);
+
+        REQUIRE(nombreDe(CategorieDeMonstre::CreatureMonstrueuse, niveau.monstres) <= 1);
+    }
 }

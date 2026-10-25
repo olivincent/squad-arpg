@@ -1,9 +1,11 @@
 // ./tests/jeu/test_CoherenceDesDonnees.cpp
 #include <catch2/catch_test_macros.hpp>
+#include <vector>
 
 #include "combat/Esquive.hpp"
 #include "escouade/Specialite.hpp"
 #include "monde/CategorieDeMonstre.hpp"
+#include "monde/CompositionDeGroupe.hpp"
 #include "monde/GenerateurDonjon.hpp"
 #include "monstres/DefinitionDeMonstre.hpp"
 #include "objets/CatalogueObjets.hpp"
@@ -72,4 +74,45 @@ TEST_CASE("la creature monstrueuse garde une marge de 4 px avec les murs d'un ch
 
     REQUIRE(definitionDeMonstre(CategorieDeMonstre::CreatureMonstrueuse).cote / 2.0f + marge <=
             parametres.tailleCase / 2.0f);
+}
+
+namespace {
+// Une composition utilisable : au moins un effectif, chacun avec 0 <= min <= max, et au moins un monstre possible.
+void verifierComposition(const CompositionDeGroupe& composition) {
+    REQUIRE_FALSE(composition.effectifs.empty());
+    int maximum = 0;
+    for (const EffectifDeCategorie& effectif : composition.effectifs) {
+        REQUIRE(effectif.min >= 0);
+        REQUIRE(effectif.min <= effectif.max);
+        maximum += effectif.max;
+    }
+    REQUIRE(maximum >= 1);
+}
+}  // namespace
+
+TEST_CASE("chaque composition de groupe est non vide et coherente") {
+    const std::vector<CompositionDeGroupe> compositions = compositionsOrdinaires();
+
+    REQUIRE_FALSE(compositions.empty());
+    for (const CompositionDeGroupe& composition : compositions) {
+        verifierComposition(composition);
+        REQUIRE(composition.poids > 0);
+    }
+    verifierComposition(compositionDeLaCreature());
+}
+
+TEST_CASE("la composition de la creature est une creature seule") {
+    const CompositionDeGroupe composition = compositionDeLaCreature();
+
+    REQUIRE(composition.effectifs.size() == 1);
+    REQUIRE(composition.effectifs.front().categorie == CategorieDeMonstre::CreatureMonstrueuse);
+    REQUIRE(composition.effectifs.front().min == 1);
+    REQUIRE(composition.effectifs.front().max == 1);
+}
+
+TEST_CASE("les parametres du generateur portent les compositions du jeu") {
+    const ParametresDonjon parametres;
+
+    REQUIRE(parametres.compositions.size() == compositionsOrdinaires().size());
+    REQUIRE(parametres.compositionDeLaSalleLaPlusLoin.has_value());
 }

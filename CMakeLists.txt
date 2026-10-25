@@ -95,6 +95,7 @@ add_library(squad_core STATIC
     src/monde/ChampDeVision.cpp
     src/monde/Vision.cpp
     src/monde/GenerateurDonjon.cpp
+    src/monde/CompositionDeGroupe.cpp
     src/jeu/Partie.cpp
     src/interface/TextesFlottants.cpp
     src/interface/Controleur.cpp

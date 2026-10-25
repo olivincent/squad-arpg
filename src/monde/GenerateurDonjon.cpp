@@ -4,6 +4,7 @@
 #include <array>
 #include <cassert>
 #include <cstdlib>
+#include <optional>
 #include <random>
 #include <utility>
 
@@ -12,6 +13,8 @@ namespace {
 constexpr char s_mur = '#';
 constexpr char s_sol = '.';
 constexpr int s_ecartMinEntreMonstres = 2; // en cases (Tchebychev) : une case libre entre deux monstres
+constexpr int s_ecartMinDansUneGrappe = 1; // en cases : une case par monstre
+constexpr int s_etalementDUneGrappe = 2;   // en cases : distance maximale (Tchebychev) au premier monstre du groupe
 
 // Centre en pixels du monde d'une case de la grille.
 sf::Vector2f centreEnPixels(sf::Vector2i coordCase, float tailleCase) {
@@ -29,6 +32,65 @@ int tirerEntre(Generateur& generateur, int min, int max) {
 int distanceCarreeEntreCentres(const Salle& a, const Salle& b) {
     const sf::Vector2i ecart = a.centre() - b.centre();
     return ecart.x * ecart.x + ecart.y * ecart.y;
+}
+
+// Les cases où un monstre peut apparaître, bornes incluses.
+struct ZoneDePlacement {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
+    sf::Vector2i min;
+    sf::Vector2i max;
+};
+
+// L'intérieur de la salle (une case de marge contre les murs de l'emprise), réduit à l'entourage de `autourDe`
+// (sans sortir de la salle) pour une grappe déjà commencée.
+ZoneDePlacement zoneDePlacement(const Salle& salle, std::optional<sf::Vector2i> autourDe) {
+    ZoneDePlacement zone{{salle.x + 1, salle.y + 1}, {salle.x + salle.largeur - 2, salle.y + salle.hauteur - 2}};
+    if (autourDe.has_value()) {
+        zone.min = {std::max(zone.min.x, autourDe->x - s_etalementDUneGrappe),
+                    std::max(zone.min.y, autourDe->y - s_etalementDUneGrappe)};
+        zone.max = {std::min(zone.max.x, autourDe->x + s_etalementDUneGrappe),
+                    std::min(zone.max.y, autourDe->y + s_etalementDUneGrappe)};
+    }
+    return zone;
+}
+
+// Une composition utilisable : au moins un effectif, chacun avec 0 <= min <= max (lue seulement par des `assert`).
+[[maybe_unused]] bool compositionValide(const CompositionDeGroupe& composition) {
+    return !composition.effectifs.empty() &&
+           std::ranges::all_of(composition.effectifs, [](const EffectifDeCategorie& effectif) {
+               return effectif.min >= 0 && effectif.min <= effectif.max;
+           });
+}
+
+// Une composition au hasard, selon les poids.
+const CompositionDeGroupe& tirerComposition(Generateur& generateur, const std::vector<CompositionDeGroupe>& compositions) {
+    int poidsTotal = 0;
+    for (const CompositionDeGroupe& composition : compositions) {
+        poidsTotal += composition.poids;
+    }
+    int reste = tirerEntre(generateur, 0, poidsTotal - 1);
+    for (const CompositionDeGroupe& composition : compositions) {
+        if (reste < composition.poids) {
+            return composition;
+        }
+        reste -= composition.poids;
+    }
+    assert(false);  // le tirage est dans [0, poidsTotal)
+    return compositions.back();
+}
+
+// Indice de la salle (hors la 0) la plus éloignée de la salle 0, centre à centre ; la plus petite à égalité.
+// Vide s'il n'y a pas d'autre salle.
+std::optional<std::size_t> salleLaPlusEloignee(const std::vector<Salle>& salles) {
+    std::optional<std::size_t> plusLoin;
+    int distanceMax = -1;
+    for (std::size_t i = 1; i < salles.size(); ++i) {
+        const int distance = distanceCarreeEntreCentres(salles[i], salles[0]);
+        if (distance > distanceMax) {
+            distanceMax = distance;
+            plusLoin = i;
+        }
+    }
+    return plusLoin;
 }
 
 // Transforme en sol le rectangle de cases [colonneMin, colonneMax] x [ligneMin, ligneMax], bornes incluses.
@@ -141,9 +203,14 @@ void creuserCouloir(std::vector<std::string>& plan, sf::Vector2i depart, sf::Vec
 
 std::vector<MonstreDuNiveau> placerMonstres(Generateur& generateur, const std::vector<Salle>& salles,
                                             sf::Vector2f depart, const ParametresDonjon& parametres) {
-    assert(parametres.monstresParSalleMin >= 0 && parametres.monstresParSalleMin <= parametres.monstresParSalleMax);
+    assert(!parametres.compositions.empty());
+    assert(std::ranges::all_of(parametres.compositions, [](const CompositionDeGroupe& composition) {
+        return composition.poids > 0 && compositionValide(composition);
+    }));
+    assert(!parametres.compositionDeLaSalleLaPlusLoin || compositionValide(*parametres.compositionDeLaSalleLaPlusLoin));
     assert(parametres.tentativesParMonstre >= 1);
 
+    const std::optional<std::size_t> plusLoin = salleLaPlusEloignee(salles);
     std::vector<sf::Vector2i> casesPlacees;
     std::vector<MonstreDuNiveau> monstres;
     int prochainGroupe = 0;  // pas l'indice de la salle : seules les salles peuplées comptent
@@ -152,25 +219,36 @@ std::vector<MonstreDuNiveau> placerMonstres(Generateur& generateur, const std::v
         const Salle& salle = salles[i];
         // Une case de marge contre les murs de l'emprise.
         assert(salle.largeur >= 3 && salle.hauteur >= 3);
-        const int voulus = tirerEntre(generateur, parametres.monstresParSalleMin, parametres.monstresParSalleMax);
-        for (int k = 0; k < voulus; ++k) {
-            for (int tentative = 0; tentative < parametres.tentativesParMonstre; ++tentative) {
-                const sf::Vector2i candidate{tirerEntre(generateur, salle.x + 1, salle.x + salle.largeur - 2),
-                                             tirerEntre(generateur, salle.y + 1, salle.y + salle.hauteur - 2)};
-                const sf::Vector2f centre = centreEnPixels(candidate, parametres.tailleCase);
-                const sf::Vector2f versDepart = centre - depart;
-                const bool tropPresDuDepart =
-                    versDepart.x * versDepart.x + versDepart.y * versDepart.y <
-                    parametres.distanceMinDepart * parametres.distanceMinDepart;
-                const bool tropPresDUnMonstre =
-                    std::any_of(casesPlacees.begin(), casesPlacees.end(), [&](sf::Vector2i placee) {
-                        return std::max(std::abs(placee.x - candidate.x), std::abs(placee.y - candidate.y)) <
-                               s_ecartMinEntreMonstres;
-                    });
-                if (!tropPresDuDepart && !tropPresDUnMonstre) {
-                    casesPlacees.push_back(candidate);
-                    monstres.push_back({centre, prochainGroupe, CategorieDeMonstre::Infanterie});
-                    break;
+        const bool laPlusLoin = plusLoin == i && parametres.compositionDeLaSalleLaPlusLoin.has_value();
+        const CompositionDeGroupe& composition = laPlusLoin ? *parametres.compositionDeLaSalleLaPlusLoin
+                                                            : tirerComposition(generateur, parametres.compositions);
+        const int ecartMin = composition.serre ? s_ecartMinDansUneGrappe : s_ecartMinEntreMonstres;
+        std::optional<sf::Vector2i> premier;  // le premier monstre placé du groupe, autour de qui se forme une grappe
+        for (const EffectifDeCategorie& effectif : composition.effectifs) {
+            const int voulus = tirerEntre(generateur, effectif.min, effectif.max);
+            for (int k = 0; k < voulus; ++k) {
+                const ZoneDePlacement zone =
+                    zoneDePlacement(salle, composition.serre ? premier : std::optional<sf::Vector2i>());
+                for (int tentative = 0; tentative < parametres.tentativesParMonstre; ++tentative) {
+                    const sf::Vector2i candidate{tirerEntre(generateur, zone.min.x, zone.max.x),
+                                                 tirerEntre(generateur, zone.min.y, zone.max.y)};
+                    const sf::Vector2f centre = centreEnPixels(candidate, parametres.tailleCase);
+                    const sf::Vector2f versDepart = centre - depart;
+                    const bool tropPresDuDepart =
+                        versDepart.x * versDepart.x + versDepart.y * versDepart.y <
+                        parametres.distanceMinDepart * parametres.distanceMinDepart;
+                    const bool tropPresDUnMonstre =
+                        std::any_of(casesPlacees.begin(), casesPlacees.end(), [&](sf::Vector2i placee) {
+                            return std::max(std::abs(placee.x - candidate.x), std::abs(placee.y - candidate.y)) < ecartMin;
+                        });
+                    if (!tropPresDuDepart && !tropPresDUnMonstre) {
+                        casesPlacees.push_back(candidate);
+                        monstres.push_back({centre, prochainGroupe, effectif.categorie});
+                        if (!premier.has_value()) {
+                            premier = candidate;
+                        }
+                        break;
+                    }
                 }
             }
         }
