@@ -49,21 +49,21 @@ sf::Vector2f pointDuBord(sf::Vector2f centre, float demiCote, float angleDegres)
 std::string sigleDuSkill(IdSkill id) {
     switch (id) {
         case IdSkill::FrappePuissante:
-            return "FP";
+            return "PS";
         case IdSkill::Provocation:
-            return "PR";
+            return "TA";
         case IdSkill::Soin:
-            return "SO";
+            return "HE";
         case IdSkill::Explosion:
             return "EX";
         case IdSkill::FrappeSacree:
-            return "FS";
+            return "HS";
         case IdSkill::ImpositionDesMains:
-            return "IM";
+            return "LH";
         case IdSkill::TirPercant:
-            return "TP";
+            return "PC";
         case IdSkill::PluieDeFleches:
-            return "PF";
+            return "RA";
     }
     return "??";
 }

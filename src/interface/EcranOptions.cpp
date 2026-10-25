@@ -36,9 +36,9 @@ EcranOptions::EcranOptions(const Reglages& reglages, std::vector<Resolution> res
 ListeDeBoutons EcranOptions::creerBoutons() const {
     const bool pleinEcran = m_reglages.mode == ModeAffichage::PleinEcran;
     ListeDeBoutons boutons({
-        pleinEcran ? "Mode : Plein écran" : "Mode : Fenêtré",
-        "Résolution : < " + std::to_string(m_reglages.largeur) + " × " + std::to_string(m_reglages.hauteur) + " >",
-        "Retour",
+        pleinEcran ? "Mode: Fullscreen" : "Mode: Windowed",
+        "Resolution: < " + std::to_string(m_reglages.largeur) + " × " + std::to_string(m_reglages.hauteur) + " >",
+        "Back",
     });
     boutons.definirActif(s_ligneResolution, !pleinEcran && !m_resolutions.empty());
     return boutons;

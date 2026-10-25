@@ -18,7 +18,7 @@ TEST_CASE("affichage : chaque skill a un nom, tous differents") {
     REQUIRE(noms.size() == 8);
 }
 
-TEST_CASE("affichage : le nom d'un skill est en UTF-8") {
-    REQUIRE(nomDuSkill(IdSkill::FrappeSacree) == "Frappe sacrée");
-    REQUIRE(nomDuSkill(IdSkill::ImpositionDesMains) == "Imposition des mains");
+TEST_CASE("affichage : le nom d'un skill est en anglais") {
+    REQUIRE(nomDuSkill(IdSkill::FrappeSacree) == "Holy Strike");
+    REQUIRE(nomDuSkill(IdSkill::ImpositionDesMains) == "Lay on Hands");
 }

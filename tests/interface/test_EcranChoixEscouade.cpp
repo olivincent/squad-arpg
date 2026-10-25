@@ -31,9 +31,9 @@ sf::Vector2f centreDeLaCase(std::size_t indice) {
     return milieu(rectangleDeLaCase(indice, centreDesCases(s_centre)));
 }
 
-// 0 = « Commencer », 1 = « Retour ».
+// 0 = « Start », 1 = « Back ».
 sf::Vector2f centreDeLAction(std::size_t indice) {
-    return milieu(ListeDeBoutons({"Commencer", "Retour"}).rectangleDuBouton(indice, centreDesActions(s_centre)));
+    return milieu(ListeDeBoutons({"Start", "Back"}).rectangleDuBouton(indice, centreDesActions(s_centre)));
 }
 
 // Clique la classe, en ignorant la transition (toujours `Aucune`).

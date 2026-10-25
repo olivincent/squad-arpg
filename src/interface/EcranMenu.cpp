@@ -21,7 +21,7 @@ constexpr std::size_t s_boutonQuitter = 2;
 }  // namespace
 
 EcranMenu::EcranMenu(std::vector<Resolution> resolutions)
-    : m_resolutions(std::move(resolutions)), m_boutons({"Commencer partie", "Options", "Quitter"}) {}
+    : m_resolutions(std::move(resolutions)), m_boutons({"Start Game", "Options", "Quit"}) {}
 
 Transition EcranMenu::cliquer(sf::Vector2f point, sf::Vector2f centre, const Reglages& reglages) const {
     const std::optional<std::size_t> bouton = m_boutons.boutonSous(point, centre);

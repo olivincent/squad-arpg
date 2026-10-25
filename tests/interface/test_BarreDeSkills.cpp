@@ -33,14 +33,14 @@ float aire(const std::vector<sf::Vector2f>& points) {
 }  // namespace
 
 TEST_CASE("sigleDuSkill donne deux lettres par skill") {
-    REQUIRE(sigleDuSkill(IdSkill::FrappePuissante) == "FP");
-    REQUIRE(sigleDuSkill(IdSkill::Provocation) == "PR");
-    REQUIRE(sigleDuSkill(IdSkill::Soin) == "SO");
+    REQUIRE(sigleDuSkill(IdSkill::FrappePuissante) == "PS");
+    REQUIRE(sigleDuSkill(IdSkill::Provocation) == "TA");
+    REQUIRE(sigleDuSkill(IdSkill::Soin) == "HE");
     REQUIRE(sigleDuSkill(IdSkill::Explosion) == "EX");
-    REQUIRE(sigleDuSkill(IdSkill::FrappeSacree) == "FS");
-    REQUIRE(sigleDuSkill(IdSkill::ImpositionDesMains) == "IM");
-    REQUIRE(sigleDuSkill(IdSkill::TirPercant) == "TP");
-    REQUIRE(sigleDuSkill(IdSkill::PluieDeFleches) == "PF");
+    REQUIRE(sigleDuSkill(IdSkill::FrappeSacree) == "HS");
+    REQUIRE(sigleDuSkill(IdSkill::ImpositionDesMains) == "LH");
+    REQUIRE(sigleDuSkill(IdSkill::TirPercant) == "PC");
+    REQUIRE(sigleDuSkill(IdSkill::PluieDeFleches) == "RA");
 }
 
 TEST_CASE("sigleDuSkill : les sigles sont tous differents") {

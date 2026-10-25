@@ -98,7 +98,7 @@ std::vector<ObjetDeDepart> equipementDeTireur(IdObjet arme) {
 std::vector<Specialite> construireLeCatalogue() {
     return {
         // Guerrier : devant, au contact.
-        {IdSpecialite::Guerrier, "Guerrier",
+        {IdSpecialite::Guerrier, "Warrior",
          {.couleur = s_couleurGuerrier,
           .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = s_porteeMelee,
                                              .puissance = s_degatsSkill, .rechargeMin = s_rechargeSkill,
@@ -112,7 +112,7 @@ std::vector<Specialite> construireLeCatalogue() {
           .caracteristiques = s_caracteristiquesGuerrier,
           .rang = Rang::Avant}},
         // Prêtre : derrière, soigne.
-        {IdSpecialite::Pretre, "Prêtre",
+        {IdSpecialite::Pretre, "Priest",
          {.couleur = s_couleurPretre,
           .skills = {{IdSkill::Soin, Skill({.type = TypeSkill::Soin, .portee = s_porteeSoin, .puissance = s_puissanceSoin,
                                   .rechargeMin = s_rechargeSoin, .rechargeMax = s_rechargeSoin,
@@ -148,7 +148,7 @@ std::vector<Specialite> construireLeCatalogue() {
           .caracteristiques = s_caracteristiquesPaladin,
           .rang = Rang::Avant}},
         // Rôdeur : derrière, tire de loin et lance une pluie de flèches.
-        {IdSpecialite::Rodeur, "Rôdeur",
+        {IdSpecialite::Rodeur, "Ranger",
          {.couleur = s_couleurRodeur,
           .skills = {{IdSkill::TirPercant, Skill({.type = TypeSkill::DegatsSurCible, .portee = s_porteeTirPercant,
                                         .puissance = s_degatsTirPercant, .rechargeMin = s_rechargeTirPercant,

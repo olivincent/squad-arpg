@@ -16,10 +16,10 @@ TEST_CASE("affichage : chaque caracteristique a un nom, tous differents") {
 }
 
 TEST_CASE("affichage : la ligne d'une caracteristique donne sa valeur effective") {
-    REQUIRE(ligneDeCaracteristique(Caracteristique::Endurance, 14, 0) == "Endurance 14");
+    REQUIRE(ligneDeCaracteristique(Caracteristique::Endurance, 14, 0) == "Constitution 14");
 }
 
 TEST_CASE("affichage : un bonus de l'equipement s'ajoute entre parentheses") {
-    REQUIRE(ligneDeCaracteristique(Caracteristique::Puissance, 15, 3) == "Puissance 15 (+3)");
-    REQUIRE(ligneDeCaracteristique(Caracteristique::Savoir, 4, -2) == "Savoir 4 (-2)");
+    REQUIRE(ligneDeCaracteristique(Caracteristique::Puissance, 15, 3) == "Might 15 (+3)");
+    REQUIRE(ligneDeCaracteristique(Caracteristique::Savoir, 4, -2) == "Intellect 4 (-2)");
 }

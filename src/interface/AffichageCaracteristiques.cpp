@@ -4,11 +4,11 @@
 // Le `switch` n'a pas de `default` : une caractéristique ajoutée sans nom fait avertir le compilateur.
 std::string nomDeLaCaracteristique(Caracteristique caracteristique) {
     switch (caracteristique) {
-        case Caracteristique::Puissance: return "Puissance";
-        case Caracteristique::Endurance: return "Endurance";
-        case Caracteristique::Adresse: return "Adresse";
-        case Caracteristique::Savoir: return "Savoir";
-        case Caracteristique::Volonte: return "Volonté";
+        case Caracteristique::Puissance: return "Might";
+        case Caracteristique::Endurance: return "Constitution";
+        case Caracteristique::Adresse: return "Dexterity";
+        case Caracteristique::Savoir: return "Intellect";
+        case Caracteristique::Volonte: return "Resolve";
     }
     return "";
 }

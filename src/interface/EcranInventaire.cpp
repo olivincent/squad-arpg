@@ -133,7 +133,7 @@ void dessinerLesCaracteristiques(sf::RenderTarget& rendu, const sf::Font& police
                         ligneDeCaracteristique(caracteristique, effectives.valeur(caracteristique), bonus.valeur(caracteristique)));
     }
     dessinerCellule(rendu, police, rectangleDeLaCellule(place, s_nombreDeCaracteristiques, tailleDeVue),
-                    "PV " + std::to_string(escouade.pointsDeVieDuPersonnage(place).value_or(0)) + " / " +
+                    "HP " + std::to_string(escouade.pointsDeVieDuPersonnage(place).value_or(0)) + " / " +
                         std::to_string(escouade.pointsDeVieMaxDuPersonnage(place).value_or(0)));
 }
 
@@ -162,11 +162,11 @@ void dessinerColonne(sf::RenderTarget& rendu, const sf::Font& police, const Esco
     const Equipement& equipement = escouade.equipementDuPersonnage(place);
     const sf::FloatRect zoneArmure = rectangleDeLArmure(place, tailleDeVue);
     // L'armure qui a un effet : celle des objets actifs.
-    sf::Text armure = texte(police, "Armure : " + std::to_string(escouade.equipementActifDuPersonnage(place).armureTotale()), s_tailleArmure, sf::Color::White);
+    sf::Text armure = texte(police, "Armor: " + std::to_string(escouade.equipementActifDuPersonnage(place).armureTotale()), s_tailleArmure, sf::Color::White);
     armure.setPosition(zoneArmure.position + sf::Vector2f{s_margeDuTexte, 0.0f});
     rendu.draw(armure);
     if (escouade.pointsDeVieDuPersonnage(place).value_or(0) == 0) {
-        sf::Text mort = texte(police, "(mort)", s_tailleArmure, s_couleurMort);
+        sf::Text mort = texte(police, "(dead)", s_tailleArmure, s_couleurMort);
         const sf::FloatRect limitesMort = mort.getLocalBounds();
         mort.setPosition({zoneArmure.position.x + zoneArmure.size.x - s_margeDuTexte - limitesMort.size.x - limitesMort.position.x,
                           zoneArmure.position.y});
@@ -186,7 +186,7 @@ void dessinerColonne(sf::RenderTarget& rendu, const sf::Font& police, const Esco
 void dessinerLeSac(sf::RenderTarget& rendu, const sf::Font& police, const Inventaire& sac, sf::Vector2f tailleDeVue) {
     assert(sac.capacite() == s_casesDuSac);
     const sf::FloatRect premiere = rectangleDeLaCaseDuSac(0, tailleDeVue);
-    sf::Text etiquette = texte(police, "Sac", s_tailleEtiquetteDuSac, sf::Color::White);
+    sf::Text etiquette = texte(police, "Bag", s_tailleEtiquetteDuSac, sf::Color::White);
     etiquette.setPosition(premiere.position - sf::Vector2f{0.0f, s_hauteurEtiquetteDuSac});
     rendu.draw(etiquette);
 
@@ -360,7 +360,7 @@ void EcranInventaire::dessiner(const Contexte& contexte) const {
     panneau.setOutlineThickness(s_epaisseurContour);
     fenetre.draw(panneau);
 
-    sf::Text titre = texte(contexte.police, "Inventaire", s_tailleTitre, sf::Color::White);
+    sf::Text titre = texte(contexte.police, "Inventory", s_tailleTitre, sf::Color::White);
     const sf::FloatRect limites = titre.getLocalBounds();
     titre.setOrigin({limites.position.x + limites.size.x / 2.0f, limites.position.y});
     titre.setPosition({vue.centre.x, s_margePanneau + s_hauteurTitre});

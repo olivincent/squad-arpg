@@ -5,14 +5,14 @@
 
 std::string nomDuSkill(IdSkill id) {
     switch (id) {
-        case IdSkill::FrappePuissante: return "Frappe puissante";
-        case IdSkill::Provocation: return "Provocation";
-        case IdSkill::Soin: return "Soin";
+        case IdSkill::FrappePuissante: return "Power Strike";
+        case IdSkill::Provocation: return "Taunt";
+        case IdSkill::Soin: return "Heal";
         case IdSkill::Explosion: return "Explosion";
-        case IdSkill::FrappeSacree: return "Frappe sacrée";
-        case IdSkill::ImpositionDesMains: return "Imposition des mains";
-        case IdSkill::TirPercant: return "Tir perçant";
-        case IdSkill::PluieDeFleches: return "Pluie de flèches";
+        case IdSkill::FrappeSacree: return "Holy Strike";
+        case IdSkill::ImpositionDesMains: return "Lay on Hands";
+        case IdSkill::TirPercant: return "Piercing Shot";
+        case IdSkill::PluieDeFleches: return "Rain of Arrows";
     }
     return "";
 }

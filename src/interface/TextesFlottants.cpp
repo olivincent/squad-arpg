@@ -29,7 +29,7 @@ const sf::Color s_couleurDegatsSurUnPersonnage(255, 60, 60);
 const sf::Color s_couleurSoin(80, 230, 80);
 const sf::Color s_couleurCoupGratuit(255, 150, 0);
 const sf::Color s_couleurCritique(255, 235, 0);     // jaune vif, plus clair que le jaune doré des noms de skills
-const std::string s_suiteDuCritique = " Critique !";
+const std::string s_suiteDuCritique = " Critical!";
 // La couleur du nombre d'un coup selon l'élément de sa plus grosse portion ; le physique n'en a pas (la couleur de
 // la cible, comme avant). Distinctes du blanc, du rouge, de l'orange du coup gratuit et du jaune du critique
 // (`test_TextesFlottants`) : le feu est un orange rougeâtre, le sacré un or pâle.
@@ -74,11 +74,11 @@ std::string libelleDuTexte(const EvenementDeCombat& evenement) {
                                      return soin.critique ? montant + s_suiteDuCritique : montant;
                                  },
                                  [](const SkillLance& lance) { return nomDuSkill(lance.skill); },
-                                 [](const Provoque&) { return std::string("Provoqué"); },
-                                 [](const Esquive&) { return std::string("Esquivé"); },
+                                 [](const Provoque&) { return std::string("Taunted"); },
+                                 [](const Esquive&) { return std::string("Dodged"); },
                                  [](const Bloque& bloque) {
-                                     // Un blocage partiel dit combien il a absorbé (« Bloqué −40 », signe moins U+2212).
-                                     return bloque.total ? std::string("Bloqué") : "Bloqué \u2212" + std::to_string(bloque.montant);
+                                     // Un blocage partiel dit combien il a absorbé (« Blocked −40 », signe moins U+2212).
+                                     return bloque.total ? std::string("Blocked") : "Blocked \u2212" + std::to_string(bloque.montant);
                                  }},
                       evenement.detail);
 }

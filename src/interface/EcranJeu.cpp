@@ -44,7 +44,7 @@ namespace {
 // même combat.
 Partie nouvellePartie(std::random_device& tirage, const std::vector<IdSpecialite>& specialites) {
     const Generateur::result_type graine = tirage();
-    std::cout << "Graine : " << graine << '\n';
+    std::cout << "Seed: " << graine << '\n';
     Generateur generateurDeNiveau(graine);
     const Niveau niveau = genererNiveau(generateurDeNiveau, ParametresDonjon{});
     return Partie(niveau, composer(specialites), graine);
@@ -56,7 +56,7 @@ constexpr float s_margeCompteur = 16.0f;
 // « Monstres : N » dans le coin haut gauche, en coordonnées de la fenêtre
 // (à appeler avec la vue par défaut). Contour noir pour rester lisible sur la carte.
 void dessinerCompteurDeMonstres(sf::RenderTarget& rendu, const sf::Font& police, int restants) {
-    sf::Text texte(police, "Monstres : " + std::to_string(restants), s_tailleCompteur);
+    sf::Text texte(police, "Monsters: " + std::to_string(restants), s_tailleCompteur);
     texte.setFillColor(sf::Color::White);
     texte.setOutlineColor(sf::Color::Black);
     texte.setOutlineThickness(2.0f);
@@ -200,8 +200,8 @@ void EcranJeu::dessiner(const Contexte& contexte) const {
                                           m_controleur.getAdresseEnVisee()));
     dessinerCompteurDeMonstres(fenetre, contexte.police, m_partie.monstresRestants());
     if (m_partie.estPerdue()) {
-        dessinerEcranDeFin(fenetre, contexte.police, "Défaite");
+        dessinerEcranDeFin(fenetre, contexte.police, "Defeat");
     } else if (m_partie.estGagnee()) {
-        dessinerEcranDeFin(fenetre, contexte.police, "Victoire");
+        dessinerEcranDeFin(fenetre, contexte.police, "Victory");
     }
 }

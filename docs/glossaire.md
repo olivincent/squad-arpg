@@ -1,0 +1,147 @@
+# Squad-ARPG — Glossaire (concept → texte à l'écran)
+
+Référence de tous les noms que le joueur voit. **Le texte affiché est en anglais** (décidé à l'étape 95) ;
+le code (identifiants), les commentaires, la documentation et les messages de commit restent en français.
+Il n'y a pas de système de traduction : les textes sont écrits là où ils s'affichent (les `switch` de
+`interface/Affichage*.cpp`, le catalogue des objets, celui des classes, `TextesFlottants`, les écrans). Ce
+fichier dit où chercher et fixe le vocabulaire ; la documentation cite les textes du jeu en anglais.
+
+Conventions du texte affiché : deux-points collé au mot (« Damage: 12 »), point décimal (« 0.6 s »), le
+signe `%` et l'unité `px` séparés du nombre par une espace (« 30 % », « 20 px »), signe moins `−` (U+2212)
+dans « Blocked −40 ».
+
+## Caractéristiques (`interface/AffichageCaracteristiques.cpp`)
+
+| Concept | Texte | Identifiant |
+|---|---|---|
+| Puissance | Might | `Caracteristique::Puissance` |
+| Endurance | Constitution | `Caracteristique::Endurance` |
+| Adresse | Dexterity | `Caracteristique::Adresse` |
+| Savoir | Intellect | `Caracteristique::Savoir` |
+| Volonté | Resolve | `Caracteristique::Volonte` |
+
+## Éléments (pas encore affichés : textes à venir avec les résistances dans l'inventaire)
+
+| Concept | Texte |
+|---|---|
+| Physique | Physical |
+| Feu | Fire |
+| Sacré | Holy |
+| Froid, foudre, poison, nécrotique, saignement (pas encore dans `Element`) | Cold, Lightning, Poison, Necrotic, Bleed |
+
+## Raretés d'objet
+
+| Concept | Texte |
+|---|---|
+| Commun | Common |
+| Magique | Magic |
+| Rare | Rare |
+
+## Classes (`escouade/Specialite.cpp`)
+
+| Concept | Texte |
+|---|---|
+| Guerrier | Warrior |
+| Prêtre | Priest |
+| Mage | Mage |
+| Paladin | Paladin |
+| Rôdeur | Ranger |
+
+## Catégories de monstres (pas affichées ; `monde/CategorieDeMonstre.hpp`)
+
+| Concept | Texte |
+|---|---|
+| Nuée | Swarm |
+| Infanterie | Infantry |
+| Infanterie lourde | Heavy Infantry |
+| Créature monstrueuse | Monstrous Creature |
+
+## Skills (`interface/AffichageSkills.cpp`, sigles dans `interface/BarreDeSkills.cpp`)
+
+| Concept | Texte | Sigle |
+|---|---|---|
+| Frappe puissante | Power Strike | PS |
+| Provocation | Taunt | TA |
+| Soin | Heal | HE |
+| Explosion | Explosion | EX |
+| Frappe sacrée | Holy Strike | HS |
+| Imposition des mains | Lay on Hands | LH |
+| Tir perçant | Piercing Shot | PC |
+| Pluie de flèches | Rain of Arrows | RA |
+
+## Textes flottants (`interface/TextesFlottants.cpp`)
+
+| Concept | Texte |
+|---|---|
+| Critique | `Critical!` à la suite du nombre (« 12 Critical! ») |
+| Esquivé | Dodged |
+| Bloqué | Blocked (« Blocked −40 » si le blocage est partiel) |
+| Provoqué | Taunted |
+| Coup gratuit (attaque d'opportunité) | un `!` après le nombre (« 7! ») |
+
+## Emplacements et catégories d'objet (`interface/AffichageObjets.cpp`)
+
+| Emplacement | Texte | Catégorie | Texte |
+|---|---|---|---|
+| Tête | Head | Casque | Helmet |
+| Torse | Chest | Armure | Body Armor |
+| Jambes | Legs | Jambières | Leggings |
+| Gants | Hands | Gants | Gloves |
+| Bottes | Feet | Bottes | Boots |
+| Main droite | Main Hand | Bouclier | Shield |
+| Main gauche | Off Hand | Collier | Necklace |
+| Collier | Necklace | Anneau | Ring |
+| Anneau 1, Anneau 2 | Ring 1, Ring 2 | Arme | Weapon |
+
+## Objets (`objets/CatalogueObjets.cpp`, sigles dans `interface/AffichageObjets.cpp`)
+
+| Concept | Texte | Sigle |
+|---|---|---|
+| Casque de fer | Iron Helm | IH |
+| Cuirasse de mailles | Chain Mail | CM |
+| Jambières de fer | Iron Greaves | IG |
+| Bouclier rond | Round Shield | RS |
+| Gants de cuir | Leather Gloves | LG |
+| Bottes de cuir | Leather Boots | LB |
+| Casque de cuir | Leather Cap | LC |
+| Tunique matelassée | Padded Tunic | PT |
+| Collier de protection | Necklace of Protection | NP |
+| Anneau de protection | Ring of Protection | RP |
+| Anneau de puissance | Ring of Might | RM |
+| Collier d'endurance | Necklace of Constitution | NC |
+| Épée longue | Longsword | LS |
+| Masse | Mace | MA |
+| Dague | Dagger | DA |
+| Épée à deux mains | Greatsword | GS |
+| Sceptre | Scepter | SC |
+| Bâton | Staff | ST |
+| Arc | Bow | BO |
+
+## Lignes d'infobulle et statistiques (`interface/AffichageObjets.cpp`, `AffichageStatistiques.cpp`)
+
+| Concept | Texte |
+|---|---|
+| Armure | Armor |
+| Dégâts, recharge, portée | Damage, Cooldown (« 0.3 to 0.7 s »), Range (« 20 px ») |
+| Nature de l'attaque : contact, projectile, zone | Melee, Projectile, Area |
+| Pénétration d'armure | Penetration (« Penetration: 30 % ») |
+| Deux mains | Two-handed |
+| Seuil de caractéristique | Requires Might 11 |
+| Objet inactif | Inactive: requirement not met |
+| Blocage d'un bouclier (infobulle) | Block: 30 %, 12 points |
+| Capacité offensive, défensive | Offensive Ability, Defensive Ability |
+| Blocage (inventaire) | Block 30 % (12) |
+| Esquive mêlée, esquive projectile (inventaire) | Melee Dodge, Projectile Dodge |
+| Bonus d'esquive d'un objet | Dodge vs Melee, Dodge vs Projectiles |
+| Points de vie | HP |
+
+## Écrans
+
+| Concept | Texte |
+|---|---|
+| Menu | Start Game, Options, Quit |
+| Options | Mode: Fullscreen / Mode: Windowed, Resolution: < 1280 × 720 >, Back |
+| Choix de l'escouade | Choose 3 classes, Start, Back |
+| Partie | Monsters: N (compteur), Seed: N (graine, dans la console) |
+| Inventaire | Inventory, Bag, Armor: N, (dead) |
+| Fin de partie | Victory, Defeat, Press R to return to squad selection |

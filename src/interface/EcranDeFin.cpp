@@ -37,6 +37,6 @@ void dessinerEcranDeFin(sf::RenderTarget& rendu, const sf::Font& police, const s
 
     const sf::Vector2f centre = tailleVue / 2.0f;
     dessinerTexteCentre(rendu, police, titre, s_tailleTitre, centre, sf::Color::White);
-    dessinerTexteCentre(rendu, police, "Appuyez sur R pour revenir au choix de l'escouade", s_tailleConsigne,
+    dessinerTexteCentre(rendu, police, "Press R to return to squad selection", s_tailleConsigne,
                         centre + sf::Vector2f{0.0f, s_ecartTitreConsigne}, sf::Color::White);
 }

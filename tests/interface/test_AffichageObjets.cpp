@@ -43,34 +43,34 @@ TEST_CASE("affichage : l'infobulle donne le nom, la categorie, le seuil et l'arm
 
     REQUIRE(lignes.size() == 4);
     REQUIRE(lignes[0] == definitionObjet(IdObjet::CasqueDeFer).nom);
-    REQUIRE(lignes[1] == "Casque");
+    REQUIRE(lignes[1] == "Helmet");
     REQUIRE(lignes[2] == ligneDeSeuil(definitionObjet(IdObjet::CasqueDeFer).seuils.front()));
-    REQUIRE(lignes[3] == "Armure : +" + std::to_string(definitionObjet(IdObjet::CasqueDeFer).armure));
+    REQUIRE(lignes[3] == "Armor: +" + std::to_string(definitionObjet(IdObjet::CasqueDeFer).armure));
 }
 
 TEST_CASE("affichage : une ligne de seuil donne la caracteristique et la valeur exigee") {
-    REQUIRE(ligneDeSeuil({Caracteristique::Puissance, 11}) == "Exige Puissance 11");
-    REQUIRE(ligneDeSeuil({Caracteristique::Endurance, 12}) == "Exige Endurance 12");
+    REQUIRE(ligneDeSeuil({Caracteristique::Puissance, 11}) == "Requires Might 11");
+    REQUIRE(ligneDeSeuil({Caracteristique::Endurance, 12}) == "Requires Constitution 12");
 }
 
 TEST_CASE("affichage : l'infobulle liste tous les seuils, un par ligne, apres la categorie") {
     const std::vector<std::string> lignes = lignesDeLInfobulle(IdObjet::EpeeADeuxMains);
 
-    REQUIRE(lignes[1] == "Arme");
-    REQUIRE(lignes[2] == "Exige Puissance 13");
-    REQUIRE(lignes[3] == "Exige Endurance 12");
+    REQUIRE(lignes[1] == "Weapon");
+    REQUIRE(lignes[2] == "Requires Might 13");
+    REQUIRE(lignes[3] == "Requires Constitution 12");
 }
 
 TEST_CASE("affichage : un objet sans seuil n'a aucune ligne d'exigence") {
     for (const IdObjet libre : {IdObjet::GantsDeCuir, IdObjet::BottesDeCuir, IdObjet::AnneauDePuissance, IdObjet::CollierDEndurance}) {
         for (const std::string& ligne : lignesDeLInfobulle(libre)) {
-            REQUIRE(ligne.find("Exige") == std::string::npos);
+            REQUIRE(ligne.find("Requires") == std::string::npos);
         }
     }
 }
 
 TEST_CASE("affichage : la ligne d'un objet inactif") {
-    REQUIRE(ligneDObjetInactif() == "Inactif : seuil non atteint");
+    REQUIRE(ligneDObjetInactif() == "Inactive: requirement not met");
 }
 
 TEST_CASE("affichage : l'infobulle d'un objet sans armure n'a pas de ligne d'armure, mais une ligne par bonus") {
@@ -78,15 +78,15 @@ TEST_CASE("affichage : l'infobulle d'un objet sans armure n'a pas de ligne d'arm
 
     REQUIRE(lignes.size() == 3);
     REQUIRE(lignes[0] == definitionObjet(IdObjet::AnneauDePuissance).nom);
-    REQUIRE(lignes[1] == "Anneau");
-    REQUIRE(lignes[2] == "Puissance : +" + std::to_string(definitionObjet(IdObjet::AnneauDePuissance).bonus.valeur(Caracteristique::Puissance)));
+    REQUIRE(lignes[1] == "Ring");
+    REQUIRE(lignes[2] == "Might: +" + std::to_string(definitionObjet(IdObjet::AnneauDePuissance).bonus.valeur(Caracteristique::Puissance)));
 }
 
 TEST_CASE("affichage : l'infobulle du collier d'endurance donne l'Endurance") {
     const std::vector<std::string> lignes = lignesDeLInfobulle(IdObjet::CollierDEndurance);
 
     REQUIRE(lignes.size() == 3);
-    REQUIRE(lignes[2] == "Endurance : +" + std::to_string(definitionObjet(IdObjet::CollierDEndurance).bonus.valeur(Caracteristique::Endurance)));
+    REQUIRE(lignes[2] == "Constitution: +" + std::to_string(definitionObjet(IdObjet::CollierDEndurance).bonus.valeur(Caracteristique::Endurance)));
 }
 
 TEST_CASE("affichage : aucun objet du catalogue n'affiche une valeur nulle") {
@@ -100,20 +100,20 @@ TEST_CASE("affichage : aucun objet du catalogue n'affiche une valeur nulle") {
 TEST_CASE("affichage : l'infobulle des bottes de cuir donne l'esquive contre la melee") {
     const std::vector<std::string> lignes = lignesDeLInfobulle(IdObjet::BottesDeCuir);
 
-    REQUIRE(lignes.back() == "Esquive contre la mêlée : +5 %");
+    REQUIRE(lignes.back() == "Dodge vs Melee: +5 %");
 }
 
 TEST_CASE("affichage : l'infobulle du casque de cuir donne l'esquive contre les projectiles") {
     const std::vector<std::string> lignes = lignesDeLInfobulle(IdObjet::CasqueDeCuir);
 
-    REQUIRE(lignes.back() == "Esquive contre les projectiles : +5 %");
+    REQUIRE(lignes.back() == "Dodge vs Projectiles: +5 %");
 }
 
 TEST_CASE("affichage : l'infobulle du bouclier rond donne son blocage") {
     const std::vector<std::string> lignes = lignesDeLInfobulle(IdObjet::BouclierRond);
 
     const DonneesDeBouclier& bouclier = definitionObjet(IdObjet::BouclierRond).bouclier.value();
-    REQUIRE(lignes.back() == "Blocage : " + std::to_string(bouclier.chanceDeBlocage) + " %, " +
+    REQUIRE(lignes.back() == "Block: " + std::to_string(bouclier.chanceDeBlocage) + " %, " +
                                  std::to_string(bouclier.montantBloque) + " points");
 }
 
@@ -121,8 +121,8 @@ TEST_CASE("affichage : l'infobulle d'une arme a une main donne ses degats, sa re
     const std::vector<std::string> lignes = lignesDeLInfobulle(IdObjet::EpeeLongue);
     const DescriptionDAttaque& attaque = definitionObjet(IdObjet::EpeeLongue).arme.value().attaque;
 
-    REQUIRE(lignes == std::vector<std::string>{"Épée longue", "Arme", "Exige Puissance 11", "Dégâts : " + std::to_string(attaque.degats),
-                                               "Recharge : 0,3 à 0,7 s", "Portée : 20 px", "Contact"});
+    REQUIRE(lignes == std::vector<std::string>{"Longsword", "Weapon", "Requires Might 11", "Damage: " + std::to_string(attaque.degats),
+                                               "Cooldown: 0.3 to 0.7 s", "Range: 20 px", "Melee"});
 }
 
 TEST_CASE("affichage : l'infobulle d'une arme a deux mains le dit, celle d'une arme de tir donne un projectile") {
@@ -130,20 +130,20 @@ TEST_CASE("affichage : l'infobulle d'une arme a deux mains le dit, celle d'une a
     const std::vector<std::string> sceptre = lignesDeLInfobulle(IdObjet::Sceptre);
     const std::vector<std::string> deuxMains = lignesDeLInfobulle(IdObjet::EpeeADeuxMains);
 
-    REQUIRE(arc.back() == "Deux mains");
+    REQUIRE(arc.back() == "Two-handed");
     REQUIRE(arc[arc.size() - 2] == "Projectile");
-    REQUIRE(arc[4] == "Recharge : 0,4 à 0,6 s");
-    REQUIRE(arc[5] == "Portée : 120 px");
-    REQUIRE(sceptre.back() == "Projectile");  // une main : pas de « Deux mains »
-    REQUIRE(deuxMains.back() == "Deux mains");
-    REQUIRE(deuxMains[5] == "Recharge : 1,2 à 2,8 s");  // après deux lignes de seuil
+    REQUIRE(arc[4] == "Cooldown: 0.4 to 0.6 s");
+    REQUIRE(arc[5] == "Range: 120 px");
+    REQUIRE(sceptre.back() == "Projectile");  // une main : pas de « Two-handed »
+    REQUIRE(deuxMains.back() == "Two-handed");
+    REQUIRE(deuxMains[5] == "Cooldown: 1.2 to 2.8 s");  // après deux lignes de seuil
 }
 
 TEST_CASE("affichage : seules les armes ont des lignes d'attaque, et les deux mains ne sont dites que des armes a deux mains") {
     for (const DefinitionObjet& definition : catalogueObjets()) {
         const std::vector<std::string> lignes = lignesDeLInfobulle(definition.id);
-        const bool aDesDegats = std::ranges::any_of(lignes, [](const std::string& ligne) { return ligne.starts_with("Dégâts"); });
-        const bool deuxMains = std::ranges::any_of(lignes, [](const std::string& ligne) { return ligne == "Deux mains"; });
+        const bool aDesDegats = std::ranges::any_of(lignes, [](const std::string& ligne) { return ligne.starts_with("Damage"); });
+        const bool deuxMains = std::ranges::any_of(lignes, [](const std::string& ligne) { return ligne == "Two-handed"; });
         REQUIRE(aDesDegats == definition.arme.has_value());
         REQUIRE(deuxMains == estADeuxMains(definition.id));
     }
@@ -152,10 +152,10 @@ TEST_CASE("affichage : seules les armes ont des lignes d'attaque, et les deux ma
 TEST_CASE("affichage : l'infobulle de la dague donne sa penetration, celle des autres armes non") {
     const std::vector<std::string> dague = lignesDeLInfobulle(IdObjet::Dague);
 
-    REQUIRE(std::ranges::find(dague, "Pénétration : 30 %") != dague.end());
+    REQUIRE(std::ranges::find(dague, "Penetration: 30 %") != dague.end());
     for (const IdObjet autre : {IdObjet::EpeeLongue, IdObjet::Masse, IdObjet::EpeeADeuxMains, IdObjet::Sceptre, IdObjet::Baton, IdObjet::Arc}) {
         for (const std::string& ligne : lignesDeLInfobulle(autre)) {
-            REQUIRE(ligne.find("Pénétration") == std::string::npos);
+            REQUIRE(ligne.find("Penetration") == std::string::npos);
         }
     }
 }

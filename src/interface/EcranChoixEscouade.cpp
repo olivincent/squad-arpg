@@ -100,7 +100,7 @@ sf::Vector2f centreDesActions(sf::Vector2f centre) {
     return centre + s_decalageDesActions;
 }
 
-EcranChoixEscouade::EcranChoixEscouade() : m_classes(nomsDesClasses()), m_actions({"Commencer", "Retour"}) {
+EcranChoixEscouade::EcranChoixEscouade() : m_classes(nomsDesClasses()), m_actions({"Start", "Back"}) {
     actualiserBoutons();
 }
 
@@ -151,7 +151,7 @@ void EcranChoixEscouade::dessiner(const Contexte& contexte) const {
     const sf::Vector2f centre = pointeur.centre;
     const sf::Vector2f curseur = pointeur.point;
 
-    const std::string titre = "Choisissez " + std::to_string(SelectionDEscouade::s_taille) + " classes";
+    const std::string titre = "Choose " + std::to_string(SelectionDEscouade::s_taille) + " classes";
     fenetre.draw(texteCentre(contexte.police, titre, s_tailleTitre, centre + sf::Vector2f{0.0f, s_hauteurDuTitre}, sf::Color::White));
 
     m_classes.dessiner(fenetre, contexte.police, centreDesClasses(centre), m_classes.boutonSous(curseur, centreDesClasses(centre)));

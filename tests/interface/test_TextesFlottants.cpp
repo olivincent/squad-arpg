@@ -104,9 +104,9 @@ TEST_CASE("le libelle : degats, coup gratuit et soin") {
 }
 
 TEST_CASE("le libelle d'un critique : le montant suivi de Critique !") {
-    REQUIRE(libelleDuTexte({Camp::Monstres, 1, {}, DegatsSubis{12, false, true}}) == "12 Critique !");
-    REQUIRE(libelleDuTexte({Camp::Monstres, 1, {}, DegatsSubis{7, true, true}}) == "7! Critique !");  // le « ! » du coup gratuit reste
-    REQUIRE(libelleDuTexte({Camp::Escouade, 2, {}, Soin{20, true}}) == "+20 Critique !");
+    REQUIRE(libelleDuTexte({Camp::Monstres, 1, {}, DegatsSubis{12, false, true}}) == "12 Critical!");
+    REQUIRE(libelleDuTexte({Camp::Monstres, 1, {}, DegatsSubis{7, true, true}}) == "7! Critical!");  // le « ! » du coup gratuit reste
+    REQUIRE(libelleDuTexte({Camp::Escouade, 2, {}, Soin{20, true}}) == "+20 Critical!");
 }
 
 TEST_CASE("un critique est jaune et de 18 px, meme un coup gratuit ou sur un personnage") {
@@ -137,9 +137,9 @@ TEST_CASE("un soin critique reste vert, plus gros qu'un soin normal") {
 }
 
 TEST_CASE("le libelle d'une esquive et d'un blocage : Esquive, Bloque total et Bloque partiel") {
-    REQUIRE(libelleDuTexte({Camp::Monstres, 1, {}, Esquive{}}) == "Esquivé");
-    REQUIRE(libelleDuTexte({Camp::Escouade, 1, {}, Bloque{40, true}}) == "Bloqué");
-    REQUIRE(libelleDuTexte({Camp::Escouade, 1, {}, Bloque{40, false}}) == "Bloqué \u2212" "40");
+    REQUIRE(libelleDuTexte({Camp::Monstres, 1, {}, Esquive{}}) == "Dodged");
+    REQUIRE(libelleDuTexte({Camp::Escouade, 1, {}, Bloque{40, true}}) == "Blocked");
+    REQUIRE(libelleDuTexte({Camp::Escouade, 1, {}, Bloque{40, false}}) == "Blocked \u2212" "40");
 }
 
 TEST_CASE("l'esquive est en gris clair et le blocage en gris plus fonce, tous deux de 14 px") {
@@ -188,8 +188,8 @@ TEST_CASE("un skill lance : son nom en jaune dore, 14 px") {
     const EvenementDeCombat lance{Camp::Escouade, 1, {}, SkillLance{IdSkill::ImpositionDesMains}};
     const EvenementDeCombat autre{Camp::Escouade, 1, {}, SkillLance{IdSkill::FrappeSacree}};
 
-    REQUIRE(libelleDuTexte(lance) == "Imposition des mains");
-    REQUIRE(libelleDuTexte(autre) == "Frappe sacrée");
+    REQUIRE(libelleDuTexte(lance) == "Lay on Hands");
+    REQUIRE(libelleDuTexte(autre) == "Holy Strike");
     REQUIRE(couleurDuTexte(lance).r == 255);
     REQUIRE(couleurDuTexte(lance).g > 150);
     REQUIRE(couleurDuTexte(lance).b < 100);
@@ -199,7 +199,7 @@ TEST_CASE("un skill lance : son nom en jaune dore, 14 px") {
 TEST_CASE("provoque : le texte Provoque en rouge orange, 14 px") {
     const EvenementDeCombat provoque{Camp::Monstres, 4, {}, Provoque{}};
 
-    REQUIRE(libelleDuTexte(provoque) == "Provoqué");
+    REQUIRE(libelleDuTexte(provoque) == "Taunted");
     REQUIRE(couleurDuTexte(provoque).r == 255);
     REQUIRE(couleurDuTexte(provoque).g < 150);
     REQUIRE(couleurDuTexte(provoque) != couleurDuTexte({Camp::Escouade, 1, {}, SkillLance{IdSkill::Provocation}}));
@@ -273,7 +273,7 @@ TEST_CASE("un critique elementaire reste jaune, avec son Critique !") {
     const EvenementDeCombat critiquePhysique = degatsDeLElement(Element::Physique, Camp::Monstres, false, true);
 
     REQUIRE(couleurDuTexte(critiqueDeFeu) == couleurDuTexte(critiquePhysique));
-    REQUIRE(libelleDuTexte(critiqueDeFeu) == "10 Critique !");
+    REQUIRE(libelleDuTexte(critiqueDeFeu) == "10 Critical!");
     REQUIRE(tailleDuTexte(critiqueDeFeu) == 18);
 }
 

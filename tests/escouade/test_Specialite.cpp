@@ -77,7 +77,7 @@ TEST_CASE("catalogue : chaque specialite a un nom, de la vision et des skills sa
 }
 
 TEST_CASE("specialite : rend l'entree du catalogue de cet identifiant") {
-    REQUIRE(specialite(IdSpecialite::Guerrier).nom == "Guerrier");
+    REQUIRE(specialite(IdSpecialite::Guerrier).nom == "Warrior");
     REQUIRE(specialite(IdSpecialite::Pretre).definition.rang == Rang::Arriere);
     REQUIRE(specialite(IdSpecialite::Mage).definition.skills.front().id == IdSkill::Explosion);
 }
@@ -169,7 +169,7 @@ TEST_CASE("le paladin est une melee qui frappe et soigne au contact") {
 TEST_CASE("le rodeur est un tireur avec un tir de loin et un skill de zone") {
     const DefinitionPersonnage& rodeur = specialite(IdSpecialite::Rodeur).definition;
 
-    REQUIRE(specialite(IdSpecialite::Rodeur).nom == "Rôdeur");
+    REQUIRE(specialite(IdSpecialite::Rodeur).nom == "Ranger");
     REQUIRE(rodeur.rang == Rang::Arriere);
     REQUIRE(rodeur.equipementDeDepart == std::vector<ObjetDeDepart>{{Emplacement::MainDroite, IdObjet::Arc}});
     REQUIRE(deLaClasse(IdSpecialite::Rodeur).getPorteeAttaqueDeBase() == deLaClasse(IdSpecialite::Mage).getPorteeAttaqueDeBase());
