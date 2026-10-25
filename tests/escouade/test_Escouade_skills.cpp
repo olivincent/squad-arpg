@@ -581,3 +581,32 @@ TEST_CASE("Armes exigees : un skill en attente est abandonne quand son lanceur p
     REQUIRE(escouade.declencherSkill(s_provocationDuGuerrierReel, loin, carteOuverte(), generateur).empty());
     REQUIRE(escouade.etatDuSkill(s_provocationDuGuerrierReel)->enActivation);  // plus rien n'attend
 }
+
+// Retirer l'arme sans la ranger (étape 97.6, jeter un objet) : mêmes règles que le déplacement vers le sac.
+TEST_CASE("Armes exigees : retirerObjet sur l'arme portee rend le skill refuse, et rend l'arme") {
+    Escouade escouade = unGuerrierReel();
+    REQUIRE(escouade.skillEstPret(s_frappeDuGuerrierReel));
+
+    const std::optional<Objet> arme = escouade.retirerObjet(PositionPortee{1, Emplacement::MainDroite});
+
+    REQUIRE(arme.has_value());
+    REQUIRE(definitionObjet(arme->modele).arme.has_value());
+    REQUIRE_FALSE(escouade.equipementDuPersonnage(1).a(Emplacement::MainDroite).has_value());
+    REQUIRE_FALSE(escouade.skillEstPret(s_frappeDuGuerrierReel));
+    REQUIRE(escouade.etatDuSkill(s_frappeDuGuerrierReel)->armeAbsente);
+}
+
+TEST_CASE("Armes exigees : un skill en attente est abandonne quand retirerObjet retire l'arme de son lanceur") {
+    Generateur generateur = generateurDeTest();
+    Escouade escouade = unGuerrierReel();
+    const std::vector<EntiteVue> loin = unSeulMonstre(cibleMonstre({300.0f, 60.0f}));
+    escouade.verrouiller(1);
+    REQUIRE(escouade.declencherSkill(s_frappeDuGuerrierReel, loin, carteOuverte(), generateur).empty());  // hors de portée : en attente
+    REQUIRE(escouade.declencherSkill(s_provocationDuGuerrierReel, loin, carteOuverte(), generateur).empty());
+    REQUIRE_FALSE(escouade.etatDuSkill(s_provocationDuGuerrierReel)->enActivation);  // refusée : un skill attend
+
+    REQUIRE(escouade.retirerObjet(PositionPortee{1, Emplacement::MainDroite}).has_value());
+
+    REQUIRE(escouade.declencherSkill(s_provocationDuGuerrierReel, loin, carteOuverte(), generateur).empty());
+    REQUIRE(escouade.etatDuSkill(s_provocationDuGuerrierReel)->enActivation);  // plus rien n'attend
+}

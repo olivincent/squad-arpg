@@ -1181,12 +1181,27 @@ bool Escouade::deplacerObjet(const PositionDObjet& de, const PositionDObjet& ver
             }
         }
     }
-    // Un skill en attente dont le lanceur n'a plus l'arme qu'il exige est abandonné (sans recharge consommée).
+    abandonnerLeSkillEnAttenteSansArme();
+    return true;
+}
+
+std::optional<Objet> Escouade::retirerObjet(const PositionDObjet& position) {
+    std::optional<Objet> retire = std::visit(Surcharges{[&](const PositionDansLeSac& dansLeSac) { return m_sac.prendre(dansLeSac.caseDuSac); },
+                                                        [&](const PositionPortee& portee) {
+                                                            assert(placeValide(portee.place));
+                                                            return personnageDeLaPlace(portee.place).retirerEquipement(portee.emplacement);
+                                                        }},
+                                             position);
+    abandonnerLeSkillEnAttenteSansArme();
+    return retire;
+}
+
+// Un skill en attente dont le lanceur n'a plus l'arme qu'il exige est abandonné (sans recharge consommée).
+void Escouade::abandonnerLeSkillEnAttenteSansArme() {
     if (m_skillEnAttente.has_value()) {
         const AdresseSkill adresse = m_skillEnAttente->adresse;
         if (!personnageDeLaPlace(adresse.place).armeConvientAuSkill(adresse.id)) {
             m_skillEnAttente = std::nullopt;
         }
     }
-    return true;
 }

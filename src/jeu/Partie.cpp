@@ -527,6 +527,15 @@ bool Partie::estVisible(sf::Vector2f point) const {
     return m_vision.estVisible(point);
 }
 
+bool Partie::jeterUnObjet(const PositionDObjet& position) {
+    const std::optional<Objet> objet = m_escouade.retirerObjet(position);
+    if (!objet.has_value()) {
+        return false;
+    }
+    poserAuSol(*objet, m_escouade.getCentre());
+    return true;
+}
+
 bool Partie::ramasserDesObjetsAleatoires(std::size_t nombre) {
     // La vérification vient avant le tirage : un refus ne consomme aucun nombre aléatoire.
     if (m_escouade.sac().casesLibres() < nombre) {

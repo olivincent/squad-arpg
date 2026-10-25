@@ -29,6 +29,11 @@ inline constexpr std::size_t s_lignesDeStatistiques = 3;       // du bloc des st
 inline constexpr std::size_t s_cellulesDeStatistiques = 2 * s_lignesDeStatistiques;  // en deux colonnes
 inline constexpr std::size_t s_casesDuSac = 40;  // la capacité du sac de l'escouade
 
+// Le panneau de l'inventaire : la vue moins une marge de chaque côté. Ce qui est lâché en dehors de lui, hors de la « fenêtre
+// d'inventaire », est jeté au sol.
+inline constexpr float s_margePanneau = 40.0f;
+[[nodiscard]] sf::FloatRect rectangleDuPanneau(sf::Vector2f tailleDeVue);
+
 // La bande d'en-tête de la colonne de cette place (le nom de la classe). `assert` : place de 1 à
 // `s_nombreDePlaces`.
 [[nodiscard]] sf::FloatRect rectangleDeLEnTete(std::size_t place, sf::Vector2f tailleDeVue);

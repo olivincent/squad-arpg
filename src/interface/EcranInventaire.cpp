@@ -29,12 +29,12 @@
 #include "interface/Contexte.hpp"
 #include "interface/DispositionInventaire.hpp"
 #include "interface/EntreeDInterface.hpp"
+#include "jeu/Partie.hpp"
 #include "objets/CatalogueObjets.hpp"
 
 namespace {
 
 constexpr unsigned char s_opaciteVoile = 170;
-constexpr float s_margePanneau = 40.0f;  // entre le panneau et le bord de la vue
 constexpr float s_epaisseurContour = 2.0f;
 constexpr unsigned int s_tailleTitre = 36;
 constexpr float s_hauteurTitre = 20.0f;  // du haut du panneau
@@ -281,8 +281,8 @@ void dessinerInfobulle(sf::RenderTarget& rendu, const sf::Font& police, const Ob
 
 }  // namespace
 
-EcranInventaire::EcranInventaire(Escouade& escouade, std::vector<std::string> nomsDesClasses)
-    : m_escouade(escouade), m_nomsDesClasses(std::move(nomsDesClasses)) {
+EcranInventaire::EcranInventaire(Partie& partie, std::vector<std::string> nomsDesClasses)
+    : m_partie(partie), m_escouade(partie.getEscouade()), m_nomsDesClasses(std::move(nomsDesClasses)) {
     assert(m_nomsDesClasses.size() == s_nombreDePlaces);
 }
 
@@ -312,6 +312,10 @@ void EcranInventaire::relacher(sf::Vector2f point, sf::Vector2f tailleDeVue) {
     if (cible.has_value()) {
         // Un déplacement refusé est normal (emplacement incompatible) : rien ne bouge, il n'y a rien à dire.
         static_cast<void>(m_escouade.deplacerObjet(*m_origine, *cible));
+    } else if (!rectangleDuPanneau(tailleDeVue).contains(point)) {
+        // Lâché hors de la fenêtre d'inventaire : l'objet saisi est toujours là (le glissement ne touche pas au modèle).
+        [[maybe_unused]] const bool jete = m_partie.jeterUnObjet(*m_origine);
+        assert(jete);
     }
     m_origine.reset();
 }
@@ -354,8 +358,9 @@ void EcranInventaire::dessiner(const Contexte& contexte) const {
     voile.setFillColor(sf::Color(0, 0, 0, s_opaciteVoile));
     fenetre.draw(voile);
 
-    sf::RectangleShape panneau(tailleVue - sf::Vector2f{2.0f * s_margePanneau, 2.0f * s_margePanneau});
-    panneau.setPosition({s_margePanneau, s_margePanneau});
+    const sf::FloatRect zonePanneau = rectangleDuPanneau(tailleVue);
+    sf::RectangleShape panneau(zonePanneau.size);
+    panneau.setPosition(zonePanneau.position);
     panneau.setFillColor(s_couleurPanneau);
     panneau.setOutlineColor(sf::Color::White);
     panneau.setOutlineThickness(s_epaisseurContour);

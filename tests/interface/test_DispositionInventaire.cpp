@@ -15,8 +15,6 @@ namespace {
 
 const sf::Vector2f s_vueMinimale{1200.0f, 800.0f};
 const sf::Vector2f s_vueLarge{1422.0f, 800.0f};  // 16:9
-// Marge gardée libre de chaque côté pour le panneau de l'écran (voir EcranInventaire).
-constexpr float s_margeDuPanneau = 40.0f;
 
 // Tous les rectangles de l'écran, pour les vérifications globales.
 std::vector<sf::FloatRect> tousLesRectangles(sf::Vector2f vue) {
@@ -48,7 +46,7 @@ sf::Vector2f centre(sf::FloatRect rectangle) {
 
 TEST_CASE("disposition : tout tient dans la vue, dans le panneau") {
     for (const sf::Vector2f vue : {s_vueMinimale, s_vueLarge}) {
-        const sf::Vector2f coinHautGauche{s_margeDuPanneau, s_margeDuPanneau};
+        const sf::Vector2f coinHautGauche{s_margePanneau, s_margePanneau};
         const sf::Vector2f coinBasDroit = vue - coinHautGauche;
         for (const sf::FloatRect& rectangle : tousLesRectangles(vue)) {
             REQUIRE(rectangle.position.x >= coinHautGauche.x);
@@ -216,4 +214,17 @@ TEST_CASE("disposition : le bloc des caracteristiques est sous les emplacements 
 
     REQUIRE(bloc.position.y >= dernierEmplacement.position.y + dernierEmplacement.size.y);
     REQUIRE(bloc.position.y + bloc.size.y < rectangleDeLaCaseDuSac(0, s_vueMinimale).position.y);
+}
+
+TEST_CASE("le panneau : la vue moins la marge de chaque cote, et tous les elements y tiennent") {
+    for (const sf::Vector2f vue : {s_vueMinimale, s_vueLarge}) {
+        const sf::FloatRect panneau = rectangleDuPanneau(vue);
+
+        REQUIRE(panneau.position == sf::Vector2f(s_margePanneau, s_margePanneau));
+        REQUIRE(panneau.size == vue - sf::Vector2f(2.0f * s_margePanneau, 2.0f * s_margePanneau));
+        for (const sf::FloatRect& rectangle : tousLesRectangles(vue)) {
+            REQUIRE(panneau.contains(rectangle.position));
+            REQUIRE(panneau.contains(rectangle.position + rectangle.size - sf::Vector2f(1.0f, 1.0f)));
+        }
+    }
 }

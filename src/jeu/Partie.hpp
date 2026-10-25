@@ -20,6 +20,7 @@
 #include "monde/ObjetInteractif.hpp"
 #include "monde/TileMap.hpp"
 #include "monde/Vision.hpp"
+#include "objets/PositionDObjet.hpp"
 
 // Ce que le clic du joueur a désigné : un monstre, un objet (une porte fermée ou un objet au sol), le sol.
 enum class ResultatClic { Monstre, Objet, Sol, Ignore };
@@ -72,6 +73,12 @@ public:
     // Débogage (F3) : un cercle fin autour de chaque entité qui a une zone de contrôle (rayon de
     // l'entité + zone), personnages vivants et monstres qui ne rentrent pas à leur poste.
     void dessinerZonesDeControle(sf::RenderTarget& rendu) const;
+
+    // Jette l'objet de cette position (case du sac ou emplacement d'un personnage, `Escouade::retirerObjet`) : il est retiré de
+    // l'escouade, qui recalcule ce que son retrait change, et posé au sol près de l'ancre (`positionPourUnObjet`) avec un
+    // identifiant neuf. Un objet n'est jamais perdu ni dupliqué : il quitte l'escouade et arrive au sol dans le même appel.
+    // Faux, sans rien changer, si la position est vide.
+    [[nodiscard]] bool jeterUnObjet(const PositionDObjet& position);
 
     // Tire `nombre` objets au hasard (`genererObjet`, avec le générateur de la partie) et les met dans le sac de l'escouade,
     // tout ou rien : sans `nombre` cases libres, rien n'est ajouté, aucun tirage n'est fait (le générateur n'avance pas) et

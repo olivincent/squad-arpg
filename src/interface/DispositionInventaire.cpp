@@ -38,6 +38,10 @@ float xDeLaColonne(std::size_t place, sf::Vector2f tailleDeVue) {
 
 }  // namespace
 
+sf::FloatRect rectangleDuPanneau(sf::Vector2f tailleDeVue) {
+    return {{s_margePanneau, s_margePanneau}, tailleDeVue - sf::Vector2f{2.0f * s_margePanneau, 2.0f * s_margePanneau}};
+}
+
 sf::FloatRect rectangleDeLEnTete(std::size_t place, sf::Vector2f tailleDeVue) {
     return {{xDeLaColonne(place, tailleDeVue), s_hautDesColonnes}, {s_largeurDeColonne, s_hauteurEnTete}};
 }

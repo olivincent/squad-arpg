@@ -4,6 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/System/Vector2.hpp>
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <cstddef>
@@ -29,10 +30,13 @@
 #include "combat/IdSkill.hpp"
 #include "combat/StatistiquesDeCombat.hpp"
 #include "monstres/Monstre.hpp"
+#include "objets/Affixe.hpp"
 #include "objets/CatalogueObjets.hpp"
 #include "objets/Emplacement.hpp"
 #include "objets/Objet.hpp"
+#include "objets/PositionDObjet.hpp"
 #include "monde/Niveau.hpp"
+#include "jeu/ObjetAuSol.hpp"
 #include "jeu/Partie.hpp"
 #include "combat/Skill.hpp"
 #include "monde/TileMap.hpp"
@@ -428,6 +432,57 @@ inline Niveau niveauDegage(const std::vector<sf::Vector2f>& monstres) {
         deLaPartie.push_back({position, static_cast<int>(deLaPartie.size())});
     }
     return niveauDegageEnGroupes(deLaPartie);
+}
+
+// Un objet par valeur complète (modèle, rareté, affixes), sous une forme qui se trie : deux objets du même modèle mais
+// d'affixes différents sont deux exemplaires distincts.
+using Cle = std::array<int, 6>;
+
+inline Cle cle(const Objet& objet) {
+    const auto affixe = [](const std::optional<Affixe>& a) { return a.has_value() ? std::pair{static_cast<int>(a->id), a->valeur} : std::pair{-1, 0}; };
+    const auto [idPrefixe, valeurPrefixe] = affixe(objet.prefixe);
+    const auto [idSuffixe, valeurSuffixe] = affixe(objet.suffixe);
+    return {static_cast<int>(objet.modele), static_cast<int>(objet.rarete), idPrefixe, valeurPrefixe, idSuffixe, valeurSuffixe};
+}
+
+// Tous les objets qui existent dans le sac et dans tous les équipements, un par exemplaire, triés : comparer deux de
+// ces listes compte les exemplaires par valeur complète.
+using Exemplaires = std::vector<Cle>;
+
+inline Exemplaires exemplaires(const Escouade& escouade) {
+    Exemplaires tous;
+    for (std::size_t i = 0; i < escouade.sac().capacite(); ++i) {
+        if (const std::optional<Objet>& objet = escouade.sac().a(i)) {
+            tous.push_back(cle(*objet));
+        }
+    }
+    for (std::size_t place = 1; place <= 3; ++place) {
+        for (std::size_t e = 0; e < s_nombreEmplacements; ++e) {
+            if (const std::optional<Objet>& objet = escouade.equipementDuPersonnage(place).a(static_cast<Emplacement>(e))) {
+                tous.push_back(cle(*objet));
+            }
+        }
+    }
+    std::ranges::sort(tous);
+    return tous;
+}
+
+// Tous les objets de la partie, un par exemplaire, triés : ceux de l'escouade (sac et équipements) et ceux du sol. Un objet
+// existe à un seul endroit : jeter, ramasser ou déplacer ne change jamais cette liste.
+inline Exemplaires exemplaires(const Partie& partie) {
+    Exemplaires tous = exemplaires(partie.getEscouade());
+    for (const ObjetAuSol& objet : partie.getObjetsAuSol()) {
+        tous.push_back(cle(objet.objet));
+    }
+    std::ranges::sort(tous);
+    return tous;
+}
+
+// Vide le sac de l'escouade : une `Partie` y range le sac de départ du jeu, que les tests d'objets ne veulent pas toujours.
+inline void viderLeSac(Escouade& escouade) {
+    for (std::size_t i = 0; i < escouade.sac().capacite(); ++i) {
+        static_cast<void>(escouade.retirerObjet(PositionDansLeSac{i}));  // l'objet rendu n'intéresse personne
+    }
 }
 
 // Fait avancer la partie de ce nombre de tics de 1/60 s.

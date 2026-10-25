@@ -194,6 +194,11 @@ public:
     // l'objet de la main gauche dans le sac (et un bouclier une arme à deux mains). Faux, sans rien changer, si
     // `peutDeplacerObjet` est faux ; vrai sans effet si `de == vers`.
     [[nodiscard]] bool deplacerObjet(const PositionDObjet& de, const PositionDObjet& vers);
+    // Retire l'objet de cette position (case du sac ou emplacement) et le rend ; vide, sans rien changer, si la position est
+    // vide. Un retrait ordinaire : sa case reste vide, l'armure, les caractéristiques et les défenses du personnage sont
+    // recalculées, et un skill (en activation ou en attente) qui exigeait l'arme retirée est abandonné. L'objet n'est plus
+    // nulle part : celui qui l'a retiré doit le poser ailleurs (le sol, `Partie::jeterUnObjet`).
+    [[nodiscard]] std::optional<Objet> retirerObjet(const PositionDObjet& position);
     void provoquer(int idMonstre, std::size_t place, float duree);
     // Lu par les tests : le provocateur, l'identifiant et la durée restante, que candidatsDeFrappe ne montre pas.
     [[nodiscard]] const std::vector<Provocations::Provocation>& getProvocations() const;
@@ -207,6 +212,8 @@ private:
     [[nodiscard]] const Personnage& personnageDeLaPlace(std::size_t place) const;  // place valide exigée
     [[nodiscard]] bool skillEnAttenteDeDegats() const;
     void annulerSkillDeDegatsEnAttente();
+    // Abandonne le skill en attente dont le lanceur n'a plus l'arme qu'il exige (sans recharge consommée).
+    void abandonnerLeSkillEnAttenteSansArme();
     [[nodiscard]] std::optional<std::size_t> indicePersonnageLePlusProche(sf::Vector2f point) const;
     [[nodiscard]] std::optional<std::size_t> indiceProieDuMonstre(int idMonstre, sf::Vector2f positionMonstre) const;
     // Avec quoi un personnage atteint une cible : son attaque de base ou son skill.

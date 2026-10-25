@@ -27,39 +27,6 @@ constexpr std::size_t s_guerrier = 1;
 constexpr std::size_t s_mage = 3;
 constexpr int s_coup = 10;  // petit : trois coups ne tuent personne, quelle que soit l'armure
 
-// Un objet par valeur complète (modèle, rareté, affixes), sous une forme qui se trie : deux objets du même modèle mais
-// d'affixes différents sont deux exemplaires distincts.
-using Cle = std::array<int, 6>;
-
-Cle cle(const Objet& objet) {
-    const auto affixe = [](const std::optional<Affixe>& a) { return a.has_value() ? std::pair{static_cast<int>(a->id), a->valeur} : std::pair{-1, 0}; };
-    const auto [idPrefixe, valeurPrefixe] = affixe(objet.prefixe);
-    const auto [idSuffixe, valeurSuffixe] = affixe(objet.suffixe);
-    return {static_cast<int>(objet.modele), static_cast<int>(objet.rarete), idPrefixe, valeurPrefixe, idSuffixe, valeurSuffixe};
-}
-
-// Tous les objets qui existent dans le sac et dans tous les équipements, un par exemplaire, triés : comparer deux de
-// ces listes compte les exemplaires par valeur complète.
-using Exemplaires = std::vector<Cle>;
-
-Exemplaires exemplaires(const Escouade& escouade) {
-    Exemplaires tous;
-    for (std::size_t i = 0; i < escouade.sac().capacite(); ++i) {
-        if (const std::optional<Objet>& objet = escouade.sac().a(i)) {
-            tous.push_back(cle(*objet));
-        }
-    }
-    for (std::size_t place = 1; place <= 3; ++place) {
-        for (std::size_t e = 0; e < s_nombreEmplacements; ++e) {
-            if (const std::optional<Objet>& objet = escouade.equipementDuPersonnage(place).a(static_cast<Emplacement>(e))) {
-                tous.push_back(cle(*objet));
-            }
-        }
-    }
-    std::ranges::sort(tous);
-    return tous;
-}
-
 // Les dégâts qu'un coup de `s_coup` fait à ce personnage, armure comprise.
 int degatsSubis(Escouade& escouade, std::size_t place) {
     return subirCoup(escouade, 1, place, s_coup);
@@ -598,4 +565,63 @@ TEST_CASE("ramasserTout : une liste vide reussit sans rien changer") {
 
     REQUIRE(escouade.ramasserTout({}));
     REQUIRE(exemplaires(escouade) == avant);
+}
+
+// retirerObjet (étape 97.6) : le retrait ordinaire, sans destination.
+TEST_CASE("retirerObjet : un objet du sac est rendu et sa case reste vide, les autres ne bougent pas") {
+    Escouade escouade = escouadeAvecSac({s_gants, s_casqueDeCuir});
+
+    const std::optional<Objet> retire = escouade.retirerObjet(dansLeSac(0));
+
+    REQUIRE(retire == s_gants);
+    REQUIRE_FALSE(escouade.sac().a(0).has_value());
+    REQUIRE(escouade.sac().a(1) == s_casqueDeCuir);
+}
+
+TEST_CASE("retirerObjet : un objet porte est rendu, l'emplacement se vide et l'armure baisse") {
+    Escouade escouade = escouadeAvecSac({});
+    const int armureAvant = escouade.equipementDuPersonnage(s_guerrier).armureTotale();
+
+    const std::optional<Objet> retire = escouade.retirerObjet(portee(s_guerrier, Emplacement::Tete));
+
+    REQUIRE(retire == s_casqueDeFer);
+    REQUIRE_FALSE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::Tete).has_value());
+    REQUIRE(escouade.equipementDuPersonnage(s_guerrier).armureTotale() < armureAvant);
+    REQUIRE(escouade.equipementActifDuPersonnage(s_guerrier).armureTotale() < armureAvant);
+}
+
+TEST_CASE("retirerObjet : une position vide ne rend rien et ne change rien") {
+    Escouade escouade = escouadeAvecSac({s_gants});
+    const Exemplaires avant = exemplaires(escouade);
+
+    REQUIRE_FALSE(escouade.retirerObjet(dansLeSac(5)).has_value());
+    REQUIRE_FALSE(escouade.retirerObjet(portee(s_mage, Emplacement::Tete)).has_value());
+
+    REQUIRE(exemplaires(escouade) == avant);
+}
+
+TEST_CASE("retirerObjet : l'objet n'est plus nulle part, sauf chez celui qui l'a retire") {
+    Escouade escouade = escouadeAvecSac({s_gants});
+    const Exemplaires avant = exemplaires(escouade);
+
+    const std::optional<Objet> retire = escouade.retirerObjet(dansLeSac(0));
+
+    REQUIRE(retire.has_value());
+    Exemplaires attendu = avant;
+    attendu.erase(std::ranges::find(attendu, cle(*retire)));
+    REQUIRE(exemplaires(escouade) == attendu);
+}
+
+TEST_CASE("retirerObjet : retirer l'anneau de puissance rend l'epee a deux mains inactive, comme un deplacement vers le sac") {
+    Escouade escouade = uneEscouade({50.0f, 50.0f});
+    REQUIRE(escouade.ramasser(Objet{IdObjet::EpeeADeuxMains}));      // case 0
+    REQUIRE(escouade.ramasser(Objet{IdObjet::AnneauDePuissance}));  // case 1
+    REQUIRE(escouade.deplacerObjet(dansLeSac(1), portee(s_guerrier, Emplacement::Anneau1)));
+    REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::MainDroite)));
+    REQUIRE_FALSE(escouade.objetPorteEstInactif(s_guerrier, Emplacement::MainDroite));
+
+    REQUIRE(escouade.retirerObjet(portee(s_guerrier, Emplacement::Anneau1)).has_value());
+
+    REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainDroite).has_value());  // toujours portée
+    REQUIRE(escouade.objetPorteEstInactif(s_guerrier, Emplacement::MainDroite));
 }
