@@ -8,7 +8,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 ## Étapes terminées
 
-Étapes 0 à 92 ✅. Les dernières :
+Étapes 0 à 93 ✅. Les dernières :
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 - Étape 83 — Inventaire et équipement : le modèle, sans interface ✅
@@ -21,15 +21,16 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - Étape 90 — Esquive et blocage : nature des attaques, esquive plafonnée, bouclier, textes « Esquivé » et « Bloqué » ✅
 - Étape 91 — Les armes : l'attaque de base et la zone de contrôle viennent de l'arme, échelle × 3, deux mains, skills qui exigent une arme ✅
 - Étape 92 — Seuils d'équipement, objets inactifs, pénétration d'armure (la dague) ✅
+- Étape 93 — Les types de monstres : nuée, infanterie, infanterie lourde, créature monstrueuse, groupes en données ✅
 
 ## État actuel (résumé)
 
 - **Outils** : conception dans Claude.ai, implémentation avec Claude Code dans VSCode (règles dans
   `CLAUDE.md`) ; dépôt Git `squad-arpg`, poussé sur GitHub ; SFML 3.0.2 intégrée à CMake.
-- **Code** (étape 92) : 87 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
+- **Code** (étape 93) : 89 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
   `combat`, `objets`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
   de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug` et `jeu`, 0
-  avertissement, 1 357 tests verts sous CTest, 39 avertissements `clang-tidy` (`docs/build.md`,
+  avertissement, 1 376 tests verts sous CTest, 39 avertissements `clang-tidy` (`docs/build.md`,
   `docs/audit.md`). `Escouade` n'est plus que l'assemblage : `Escouade.cpp` de 1 223 à 1 067 lignes. Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`).
 - **Écrans** : menu à la souris, options d'affichage (fenêtré ou plein écran, résolutions,
   `reglages.ini`), choix de 3 classes parmi 5 (guerrier, prêtre, mage, paladin, rôdeur ; doublons
@@ -37,7 +38,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   dessine sous un écran qui laisse voir dessous (`laisseVoirDessous`) ; le `clear` est dans
   l'`Application` (`docs/ecrans.md`).
 - **Carte** : donjon généré à chaque partie (salles, couloirs en L de 2 cases, portes à chaque
-  jonction, 1 à 3 monstres par salle sauf la première, graine affichée), F5 = nouvelle carte ;
+  jonction, un groupe de monstres par salle sauf la première, graine affichée), F5 = nouvelle carte ;
   carte à la main pour les tests (`docs/generation.md`, `docs/carte-et-collision.md`).
 - **Vision** : brouillard de guerre (inconnu, exploré, visible) par shadowcasting symétrique, la
   même règle que la ligne de vue du combat ; F6 le coupe à l'affichage (`docs/vision.md`).
@@ -71,9 +72,14 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   s'esquive ni ne se bloque) et blocage au bouclier (chance, montant fixe, récupération) ; dégâts, soins,
   critiques, « Esquivé », « Bloqué », nom du skill lancé et « Provoqué » flottants (`docs/combat.md`).
 - **Monstres** : détection en vue, poursuite, frappe de la proie ou du plus proche atteignable,
-  alerte du groupe, retour au poste invulnérable avec régénération ; toutes leurs valeurs sont dans une
-  `DefinitionDeMonstre` (`docs/monstre.md`), aujourd'hui un paramètre optionnel de `Partie` : elle ira dans
-  `Niveau` avec les types de monstres.
+  alerte du groupe, retour au poste invulnérable avec régénération ; **quatre catégories** (nuée de petits
+  monstres, infanterie, infanterie lourde, créature monstrueuse), chacune avec ses valeurs dans une
+  `DefinitionDeMonstre` du catalogue (`docs/monstre.md`), sa couleur et sa taille ; le `Niveau` dit la catégorie de
+  chaque monstre (`CategorieDeMonstre`). Le générateur peuple chaque salle sauf la première d'un groupe dont la
+  composition est une donnée (nuée de 5 à 7 en grappe, 1 à 3 infanteries, ou 1 à 2 infanteries avec 1 infanterie
+  lourde ; poids 30, 40, 30), plus une créature monstrueuse seule dans la salle la plus éloignée du départ
+  (`docs/generation.md`). La créature n'a que ses valeurs (rayon réduit à 16, le chemin ne tenant pas compte du
+  rayon contre les murs) ; ses règles propres (immunités, blocage) et l'escouade de monstres viendront plus tard.
 - **Interface** : barre de raccourcis de 12 emplacements (Q W E R / A S D F / Z X C V, ou clic ;
   « l'interface d'abord »), compteur de monstres, écran de victoire ou de défaite ; F3 et F4 de
   débogage ; une touche devient une commande par une fonction pure, `commandePourTouche`
@@ -154,7 +160,7 @@ d'attaque » par type de monstre (`docs/brainstorm.md`, section 4 bis), qui se b
   ou des hordes (la partie 1 a déjà divisé le coût par 7 à 13) ;
 - R5 (identifiants et places) : décidé en 82.5, rattachée à R4 (voir ci-dessus).
 
-## Plan en quatre phases (étapes 87 à 96), décidé avec Olivier
+## Plan en quatre phases (étapes 87 à 97), décidé avec Olivier
 
 Les mathématiques du combat sont conçues dans `docs/classes-et-combat.md`. Pour chaque étape à venir,
 ce qui reste à décider **en discussion** avant son prompt :
@@ -174,19 +180,34 @@ ce qui reste à décider **en discussion** avant son prompt :
     bouclier, infobulles (modèle C : pas de restriction par classe).
   - 92 ✅ : seuils d'équipement (impossible d'équiper sous le seuil, calcul à une seule fonction de décision), objets
     inactifs (point fixe), affichage en rouge, pénétration d'armure en pour cent (la dague, 30 %, plafond de 75 %).
-- **Phase 3, éléments**
-  - 93 : coups en portions typées, résistances. À décider : la liste des éléments (question 5).
+- **Phase 3, monstres et éléments**
+  - 93 ✅ : types de monstres (nuée, infanterie, infanterie lourde, créature monstrueuse), catalogue de
+    définitions, catégorie dans le `Niveau`, groupes en données, créature dans la salle la plus éloignée,
+    mesure de performance (inchangée à 0,04 ms par image).
+  - 94 : coups en portions typées, résistances (l'ancienne étape 93). À décider : la liste des éléments
+    (question 5).
 - **Phase 4, butin**
-  - 94 : objets avec leurs propres données (rareté, bonus) ; 95 : butin au sol ; 96 : génération
+  - 95 : objets avec leurs propres données (rareté, bonus) ; 96 : butin au sol ; 97 : génération
     aléatoire des objets. À décider : rareté, affixes, niveau d'objet (question 2).
 
-## Étape 93 (prochaine) : types de dégâts et résistances, à discuter avec Claude.ai
+## Étape 94 (prochaine) : types de dégâts et résistances, à discuter avec Claude.ai
 
 Phase 3 du plan (éléments) : les coups en portions typées et les résistances. À décider : la liste des éléments
 (question 5 de `docs/classes-et-combat.md`), la pénétration de résistance (la pénétration d'armure existe depuis
-l'étape 92), comment le montant bloqué se répartit entre les portions d'un coup (question 12). Le Savoir et la
-Volonté n'ont encore aucun effet. Les définitions de monstres, aujourd'hui un paramètre optionnel de `Partie`,
-iront dans `Niveau` avec les types de monstres.
+l'étape 92), comment le montant bloqué se répartit entre les portions d'un coup (question 12), et quelles
+résistances ont les quatre catégories de monstres. Le Savoir et la Volonté n'ont encore aucun effet.
+
+**Pistes issues de l'étape 93** (étapes à part, plus tard) :
+- **La vraie escouade de monstres** (ancre, formation, places d'attaque autour de leur cible, cible commune) : elle
+  demandera d'abord de déplacer `Formation` et `PlacesDAttaque` hors d'`escouade/` (`monstres/` ne peut pas les
+  inclure). Les compositions de groupe (`monde/CompositionDeGroupe.hpp`) l'attendent ; une nuée n'est aujourd'hui
+  qu'un groupe de petits monstres qui s'alertent ensemble.
+- **Les règles propres de la créature monstrueuse** : immunités au recul et à l'étourdissement, ne pas être
+  bloquée par un seul personnage (`docs/classes-et-combat.md`, section 11).
+- **Un chemin qui tient compte du rayon contre les murs**, pour rétablir le rayon de 30 px de la créature (16
+  aujourd'hui : un chemin par les centres des cases la bloque dans les couloirs de 2 cases, `docs/monstre.md`).
+- Des comportements différents par catégorie (stratégie d'attaque, `docs/brainstorm.md`, 4 bis) et des poids et
+  nombres de groupes à ajuster en jouant.
 
 ## Fonctionnalités prévues (à choisir avec Claude.ai)
 

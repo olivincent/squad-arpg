@@ -883,7 +883,8 @@
   (de 10 % à 100 % en 2 s, plafonnée au maximum, présente à 60 images par seconde,
   absente hors retour). Les valeurs codées en dur de l'étape 68 (400 px, 120 px/s) sont
   remplacées par `Monstre::s_rayonTerritoire` (publique pour cela ; depuis l'étape 89.1, c'est
-  `monstreOrdinaire().rayonTerritoire`).
+  `monstreOrdinaire().rayonTerritoire`, et depuis l'étape 93
+  `definitionDeMonstre(CategorieDeMonstre::Infanterie).rayonTerritoire`).
 - **`amenerEnRetourHorsTerritoire(monstre, carte, degats)`** : l'aide accepte des dégâts
   à infliger *avant* le retour, puisqu'en retour le monstre est invulnérable.
 - **`test_Partie.cpp`** (5 tests de plus) : un couloir de 2400 × 600 px où l'escouade
@@ -1584,8 +1585,8 @@ trouvés ainsi à l'étape 91.1 : coups d'un skill et d'attaques de base compté
 esquives attendus au premier tir, un personnage surpris en pleine exécution d'un coup à la recharge aléatoire).
 Le balayage a été refait à chaque sous-étape suivante.
 
-`Partie` reçoit pour cela un quatrième paramètre, `definitionDesMonstres` (par défaut `monstreOrdinaire()`, le
-jeu ne le précise pas) : le modèle commun des monstres du niveau. Il ira dans `Niveau` avec les types de monstres.
+`Partie` reçoit pour cela un quatrième paramètre optionnel, que le jeu ne précise pas : depuis l'étape 93, le
+catalogue des monstres (`CatalogueDeMonstres`), et non plus une définition commune à tous (`docs/monstre.md`).
 
 ### Constructeurs de test : le patron *Test Data Builder* (91.4)
 
@@ -1661,3 +1662,52 @@ vie). Une attaque « reconnaissable » (un coup qu'on suit parmi d'autres) s'obt
 - **`tests/interface/`** : `test_AffichageObjets.cpp` (+5 : lignes de seuil, objet sans seuil, ligne d'objet inactif,
   pénétration de la dague).
 - **Vérification des graines** : le balayage de 40 graines est resté vert à chaque sous-étape.
+
+## Étape 93 : les types de monstres (+19 cas, 1 357 → 1 376)
+
+- **`tests/jeu/test_CoherenceDesDonnees.cpp`** (nouveau, +8) : ces tests vérifient les **données** des catalogues, pas du
+  code, et accueillent la vérification de chaque donnée ajoutée plus tard. Équipement de départ : chaque classe atteint les
+  seuils de tout son équipement de départ (aucun objet de départ inactif). Monstres : chaque définition est valide (valeurs
+  positives, recharge minimale au plus égale à la maximale, esquives au plus égales au plafond), deux catégories ne se
+  ressemblent ni par la couleur ni par la taille, aucun cercle ne touche les murs d'un chemin par les centres des
+  cases (la demi-case de `tailleCase`), la créature garde 4 px de marge. Compositions de groupe : non vides et cohérentes
+  (au moins un monstre possible, min au plus égal à max, poids positif), la créature est seule, les paramètres du générateur
+  portent les compositions du jeu. Aucune valeur du catalogue n'y est écrite en dur : les règles sont relatives (comparaisons
+  entre champs, `ParametresDonjon`).
+- **`tests/monstres/test_Monstre_etats.cpp`** (+1) : chaque catégorie traverse un couloir en L (les deux sens, largeur du
+  générateur) entre deux salles et atteint sa proie. C'est ce test qui a révélé que 19 px de rayon passent et 20 non
+  (`docs/monstre.md`).
+- **`tests/jeu/test_Partie_monstres.cpp`** (+1) : chaque monstre du niveau reçoit la définition de sa catégorie (points
+  de vie, rayon, attaque, statistiques).
+- **`tests/monde/test_GenerateurDonjon.cpp`** (+10, −1) : un mélange donne une infanterie lourde et un ou deux
+  infanteries ; une nuée est groupée autour de son premier monstre, une case par monstre ; une nuée a son nombre
+  complet dans une salle assez grande, autant qu'il en tient dans une salle trop petite ; la créature est seule dans la
+  salle la plus éloignée, à égalité dans la plus petite ; sans composition pour la salle la plus loin, aucune créature ;
+  les trois compositions ordinaires sortent (200 graines : en voir une absente est de l'ordre de 0,7^400) ; chaque
+  groupe suit une composition ; au plus une créature par niveau. Le test « même armure que `creerNiveau` » disparaît
+  avec `Niveau::armureMonstres`. Les tests de nombres (au plus max, une case libre, abandon, groupes) passent par
+  l'aide `parametresAvecInfanterie(min, max)` (une seule composition d'infanterie, pas de créature) au lieu de
+  `monstresParSalleMin` et `monstresParSalleMax`.
+- **Aides** (`aides.hpp`) : `monstreSansHasard()` est l'infanterie sans esquive **ni armure** (les niveaux de test n'ont
+  jamais eu d'armure de monstre) ; `monstreAvecArmure(armure)` y est passée (elle était dans `aides_monstre.hpp`) ;
+  `catalogueDeTest(infanterie = monstreSansHasard())` est le catalogue du jeu où l'infanterie est celle donnée et où
+  les autres catégories n'ont pas d'esquive ; `partieDeTest(niveau, composition, graine, monstre)` en dépend. Un test
+  qui veut un monstre indestructible ou sans esquive le dit comme avant (`monstreIndestructible()`), mais cela ne
+  vaut que pour l'infanterie ; un niveau de test qui nomme une autre catégorie la reçoit du catalogue du jeu, sans
+  esquive.
+- **Mesure de performance, cachée** (`tests/jeu/test_Partie_performance.cpp`, étiquette Catch2 `[.][perf]`, donc
+  absente de CTest et de `tests.exe` sans argument). Elle cherche la première graine (parmi les 2 000 premières) dont le
+  niveau a une nuée de 7, pose l'escouade (increvable, pour que le combat dure) à 3 cases du premier monstre de la
+  nuée, avec tous les autres groupes en place, simule 600 images de `Partie` et affiche (par `WARN`) le temps moyen et
+  le pire d'une image, sur les 600 images et sur celles où une nuée est en vie. Elle n'affirme rien sur les temps. À
+  lancer avec le preset `jeu` (Release) :
+
+  ```bash
+  cmake --build --preset jeu
+  ./build/jeu/tests.exe "[perf]"
+  ```
+
+  Mesure de l'étape 93 (niveau de 19 monstres, 429 images de combat contre la nuée) : moyenne 0,04 ms par image, pire
+  0,13 à 0,18 ms, loin des 5 ms et 16 ms qui feraient signaler un problème.
+- **Vérification des graines** : non refaite en bloc ; les tests ajoutés ne dépendent d'aucune graine (les propriétés se
+  vérifient sur 50 graines, la distribution des compositions sur 200).

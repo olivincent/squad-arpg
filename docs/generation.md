@@ -67,10 +67,11 @@ testable avec des salles écrites à la main. `genererNiveau` l'appelle en
 dernier, après les salles et les couloirs : ses tirages ne changent ni les
 salles ni les couloirs d'une graine donnée.
 
-**Combien et où** : aucun dans la salle 0 (le départ). Dans chaque autre
-salle, un nombre voulu tiré dans [1, 3] (bornes incluses), puis pour chaque
-monstre une case tirée à l'intérieur de l'emprise avec une case de marge
-contre les murs ; le monstre est au centre de la case.
+**Combien et où** : aucun dans la salle 0 (le départ). Chaque autre salle reçoit un **groupe**, dont la
+composition est une donnée (« Groupes de monstres », ci-dessous) : pour chaque effectif de la composition,
+un nombre tiré dans [min, max] (bornes incluses) de monstres de la catégorie, puis pour chaque monstre une
+case tirée à l'intérieur de l'emprise avec une case de marge contre les murs ; le monstre est au centre de la
+case.
 
 **Rejet** : comme pour les salles, au plus 10 tentatives par monstre. Une
 position est rejetée si elle est à moins de 2 cases d'un monstre déjà placé
@@ -97,8 +98,35 @@ groupe = salle ; une salle restée vide ne laisse pas de trou dans la
 numérotation. Le compteur ne tire rien : les graines donnent les mêmes
 positions qu'avant.
 
-**Armure** : `s_armureMonstresParDefaut` (20, `Niveau.hpp`) est partagée par
-`creerNiveau()` et `genererNiveau()`. Elle n'est pas dans `ParametresDonjon`.
+**Armure** : depuis l'étape 93, l'armure d'un monstre est une valeur de sa définition (`docs/monstre.md`) ;
+`Niveau::armureMonstres` et `s_armureMonstresParDefaut` n'existent plus.
+
+## Groupes de monstres (étape 93)
+
+- **La composition d'un groupe est une donnée** (`monde/CompositionDeGroupe.hpp`) : une liste d'`EffectifDeCategorie`
+  (catégorie, nombre minimal, nombre maximal), un poids (chance relative d'être tirée) et un drapeau `serre`.
+  `placerMonstres` ne connaît pas d'autre recette : la future escouade de monstres (ancre, formation, cible
+  commune) se branchera sur ces compositions sans réécrire la génération.
+- **Les trois compositions ordinaires** (`compositionsOrdinaires()`, provisoires, « à tester ») : **nuée** (5 à 7
+  nuées, poids 30, `serre`), **infanterie** (1 à 3 infanteries, poids 40, la génération d'avant l'étape 93),
+  **mélange** (1 à 2 infanteries puis 1 infanterie lourde, poids 30). Chaque salle sauf la première en reçoit une,
+  tirée selon les poids (un tirage, avant ceux des effectifs et des positions).
+- **La créature** (`compositionDeLaCreature()`) : une seule créature monstrueuse, seule dans son groupe, dans la
+  salle **la plus éloignée de la salle 0** (distance entre les centres ; à égalité, la plus petite), **à la place**
+  du groupe tiré (la salle ne tire pas de composition). Au plus une par niveau. Si sa position est rejetée (trop
+  près du départ) après toutes les tentatives, la salle reste vide : il n'y a pas de repli sur un groupe ordinaire.
+- **Une nuée est placée groupée** (`serre`) : le premier monstre est tiré dans la salle, les suivants à 2 cases au
+  plus de lui (Tchebychev, sans sortir de la salle), une case par monstre (case contre case permis : les nuées sont
+  petites, leur rayon est de 9 px). Une salle trop petite pour toute la nuée en reçoit autant qu'il en tient
+  (essais épuisés, monstre abandonné) : sans chevauchement, jamais deux monstres sur la même case.
+- **Règles inchangées** : aucun monstre dans la première salle ni à moins de 400 px du départ ; les autres
+  monstres (hors grappe) restent à 2 cases au moins les uns des autres ; abandon après 10 essais ; tirages par le
+  `Generateur` de la graine unique, après les salles, les couloirs et les portes.
+- **Paramètres** : `ParametresDonjon::compositions` (les ordinaires) et `compositionDeLaSalleLaPlusLoin`
+  (`std::optional`, vide : aucune créature, la salle tire comme les autres) remplacent `monstresParSalleMin` et
+  `monstresParSalleMax`. Les tests qui veulent un nombre précis de monstres donnent leur propre composition.
+- **Limites** : les poids et les nombres sont à ajuster en jouant ; une salle de départ trop proche de toutes les
+  autres peut rester sans créature ; la nuée est placée par cases (grille), jamais en tas plus serré que 40 px.
 
 ## Portes (étape 70)
 
@@ -119,15 +147,15 @@ exactement celle d'avant (reliée, testé sur 5 graines).
 
 `ParametresDonjon` : carte 59 × 40 cases de 40 px, 30 tentatives, côtés de 6 à
 12 cases, marge d'une case de mur entre deux salles, couloirs de 2 cases,
-1 à 3 monstres par salle, 400 px de distance minimale au départ, 10 tentatives
-par monstre. `tailleCase` y figure parce que `Niveau` la contient.
+un groupe de monstres par salle (`compositions`, et la créature dans la salle la plus éloignée du départ),
+400 px de distance minimale au départ, 10 tentatives par monstre. `tailleCase` y figure parce que `Niveau` la contient.
 
 ## Niveau produit
 
 Le plan utilise les mêmes caractères que `creerNiveau()` (`#` mur, `.` sol).
 Le départ de l'escouade est le centre (en pixels) de la case centrale de la
 première salle placée, donc toujours sur du sol. Les portes sont celles de
-`placerPortes`. Les monstres sont ceux de `placerMonstres`, avec l'armure par défaut.
+`placerPortes`. Les monstres sont ceux de `placerMonstres`, chacun avec sa catégorie.
 
 ## Graine unique et nouvelle carte
 
@@ -213,14 +241,11 @@ indiqué dans son titre. `ARCHITECTURE.md` n'en garde qu'une ligne par module.
 `Niveau.hpp` / `.cpp` : structure sans comportement et une fonction libre.
 
 Données membres : `struct Niveau { std::vector<std::string> plan; float
-tailleCase; sf::Vector2f departEscouade; std::vector<sf::Vector2f>
-monstres; int armureMonstres = 0; }` (le jeu donne toujours son armure ; 0 est ce que recevaient déjà les niveaux de test qui n'en donnent pas), où `monstres` est un `std::vector<MonstreDuNiveau>` (`struct MonstreDuNiveau { sf::Vector2f position; int groupe; }`, groupe : identifiant opaque, même valeur = « vont ensemble »), et `struct PorteDuNiveau { std::vector<sf::Vector2i> cases; }` (cases du plan, du sol, qu'une porte ferme ; `Niveau::portes`, vide par défaut, vide dans `creerNiveau()`), et la constante
-`s_armureMonstresParDefaut` (20), partagée par `creerNiveau()` et
-`genererNiveau()`.
+tailleCase; sf::Vector2f departEscouade; std::vector<MonstreDuNiveau> monstres; std::vector<PorteDuNiveau> portes = {}; }`, où `MonstreDuNiveau` est `struct MonstreDuNiveau { sf::Vector2f position; int groupe; CategorieDeMonstre categorie = CategorieDeMonstre::Infanterie; }` (groupe : identifiant opaque, même valeur = « vont ensemble » ; catégorie : `monde/CategorieDeMonstre.hpp`, les statistiques sont dans le catalogue de `monstres/`), et `struct PorteDuNiveau { std::vector<sf::Vector2i> cases; }` (cases du plan, du sol, qu'une porte ferme ; `Niveau::portes`, vide par défaut, vide dans `creerNiveau()`). L'armure des monstres n'est plus dans le niveau (étape 93).
 
 | Fonction | Rôle |
 |---|---|
-| `Niveau creerNiveau()` | Le niveau des tests (carte de 59 × 40 cases de 40 px, départ en `(100, 100)`, six monstres d'armure `s_armureMonstresParDefaut`) ; pas de lecture de fichier |
+| `Niveau creerNiveau()` | Le niveau des tests (carte de 59 × 40 cases de 40 px, départ en `(100, 100)`, six monstres, tous de l'infanterie) ; pas de lecture de fichier |
 
 ### `GenerateurDonjon` (`monde/`) — la carte générée
 
@@ -231,7 +256,8 @@ paramètre (`Generateur&`).
 `struct Salle { int x, y, largeur, hauteur; }` : l'emprise d'une salle, en
 cases. `struct ParametresDonjon` : `largeurCarte` 59, `hauteurCarte` 40,
 `tailleCase` 40 px, `tentatives` 30, `coteMin` 6, `coteMax` 12, `marge` 1,
-`largeurCouloir` 2, `monstresParSalleMin` 1, `monstresParSalleMax` 3,
+`largeurCouloir` 2, `compositions` (`std::vector<CompositionDeGroupe>`, `compositionsOrdinaires()`),
+`compositionDeLaSalleLaPlusLoin` (`std::optional<CompositionDeGroupe>`, `compositionDeLaCreature()`),
 `distanceMinDepart` 400 px, `tentativesParMonstre` 10. `struct Liaison { std::size_t de, vers; }` (indices de
 salles) et `enum class SensCouloir { HorizontalPuisVertical,
 VerticalPuisHorizontal }`.
@@ -244,7 +270,20 @@ VerticalPuisHorizontal }`.
 | `void creuserSalle(std::vector<std::string>& plan, const Salle&)` | Transforme l'emprise en sol (aujourd'hui tout le rectangle) |
 | `std::vector<Liaison> choisirLiaisons(const std::vector<Salle>&)` | Sans aléatoire : chaque salle i ≥ 1 est reliée à la plus proche (distance au carré entre centres) parmi les salles 0 à i−1 ; égalité : le plus petit indice ; n−1 liaisons |
 | `void creuserCouloir(std::vector<std::string>& plan, sf::Vector2i depart, sf::Vector2i arrivee, SensCouloir, int largeur)` | Couloir en L de `largeur` cases (étendue vers le bas et la droite), coude plein, départ et arrivée en sol |
-| `std::vector<MonstreDuNiveau> placerMonstres(Generateur&, const std::vector<Salle>&, sf::Vector2f depart, const ParametresDonjon&)` | Groupe : compteur qui augmente de 1 pour chaque salle qui reçoit au moins un monstre, partagé par les monstres de la salle. Aucun monstre dans la salle 0 ; dans chaque autre, un nombre tiré dans [min, max] de monstres, au centre d'une case intérieure (une case de marge). Rejet, `tentativesParMonstre` essais, monstre abandonné sinon : position à moins de 2 cases (Tchebychev) d'un monstre placé, ou à moins de `distanceMinDepart` px de `depart` |
+| `std::vector<MonstreDuNiveau> placerMonstres(Generateur&, const std::vector<Salle>&, sf::Vector2f depart, const ParametresDonjon&)` | Groupe : compteur qui augmente de 1 pour chaque salle qui reçoit au moins un monstre, partagé par les monstres de la salle. Aucun monstre dans la salle 0 ; chaque autre reçoit une composition (tirée selon les poids de `compositions`, ou `compositionDeLaSalleLaPlusLoin` pour la salle la plus éloignée de la salle 0, sans tirage) : pour chaque effectif, un nombre tiré dans [min, max] de monstres de sa catégorie, au centre d'une case intérieure (une case de marge). Rejet, `tentativesParMonstre` essais, monstre abandonné sinon : position à moins de 2 cases (Tchebychev) d'un monstre placé (1 case dans une composition `serre`, où les monstres suivants sont à 2 cases au plus du premier), ou à moins de `distanceMinDepart` px de `depart` |
 | `std::vector<PorteDuNiveau> placerPortes(const std::vector<std::string>& plan, const std::vector<Salle>&, int largeurCouloir)` | Sans aléatoire, sur le plan creusé. Pour chaque salle, l'anneau de cases juste à l'extérieur de l'emprise, côté par côté, sans les coins : une porte est une suite maximale de cases de sol qui fait exactement `largeurCouloir` cases, dont les deux cases qui la prolongent (coins compris) sont des murs et dont les cases au-delà de l'anneau sont du sol. Autre largeur : pas de porte. Doublons supprimés |
 | `bool contientUnCoinDiagonal(const std::vector<std::string>& plan)` | Le plan contient-il un damier : un carré de 2 × 2 cases (bords compris) dont deux cases en diagonale sont du sol et les deux autres des murs, dans l'une ou l'autre orientation ? Pure, sans aléatoire ; `genererNiveau` ne l'appelle pas, seul un test de propriété (graines 1 à 50) la lit ; `[[nodiscard]]` |
-| `Niveau genererNiveau(Generateur&, const ParametresDonjon&)` | Plan tout en mur, salles creusées, puis un couloir par liaison (sens tiré au hasard, un tirage par liaison) entre les centres ; `portes` de `placerPortes` (après les couloirs, sans tirage) ; départ de l'escouade au centre en pixels de la première salle, monstres de `placerMonstres` (appelée en dernier), `armureMonstres` = `s_armureMonstresParDefaut` |
+| `Niveau genererNiveau(Generateur&, const ParametresDonjon&)` | Plan tout en mur, salles creusées, puis un couloir par liaison (sens tiré au hasard, un tirage par liaison) entre les centres ; `portes` de `placerPortes` (après les couloirs, sans tirage) ; départ de l'escouade au centre en pixels de la première salle, monstres de `placerMonstres` (appelée en dernier) |
+
+### `CompositionDeGroupe` (`monde/`) — la recette d'un groupe de monstres
+
+`CompositionDeGroupe.hpp` / `.cpp` : deux structures et deux fonctions, des données.
+
+`struct EffectifDeCategorie { CategorieDeMonstre categorie; int min; int max; }` : un nombre tiré dans [min, max], bornes
+incluses. `struct CompositionDeGroupe { std::vector<EffectifDeCategorie> effectifs; int poids; bool serre = false; }` :
+les effectifs dans l'ordre de placement, le poids parmi les compositions ordinaires, et le placement en grappe.
+
+| Fonction | Rôle |
+|---|---|
+| `std::vector<CompositionDeGroupe> compositionsOrdinaires()` | Nuée (5 à 7, poids 30, serrée), infanterie (1 à 3, poids 40), mélange (1 à 2 infanteries et 1 infanterie lourde, poids 30) ; `[[nodiscard]]` |
+| `CompositionDeGroupe compositionDeLaCreature()` | Une créature monstrueuse (1 à 1), poids 0 (jamais tirée) ; `[[nodiscard]]` |

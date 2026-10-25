@@ -78,7 +78,7 @@ L'étape 77 donne un prix à la fuite (attaque d'opportunité). Elle laisse des 
 
 **Autres styles de donjons.** Grottes organiques, salles rondes ou en L, assemblage de modules dessinés à la main (la qualité « faite main » de *Diablo 3*).
 
-**Peuplement.** Nombre de monstres selon la taille de la salle, types de monstres variés, territoires, patrouilles.
+**Peuplement.** Fait à l'étape 93 : des types de monstres variés, par groupes dont la composition est une donnée (nuée, infanterie, mélange, une créature monstrueuse dans la salle la plus éloignée ; `docs/generation.md`). Reste : nombre de monstres selon la taille de la salle, compositions selon la profondeur ou le type de salle, territoires, patrouilles, une vraie **escouade de monstres** (ancre, formation, cible commune : elle demandera de sortir `Formation` et `PlacesDAttaque` d'`escouade/`, que `monstres/` ne peut pas inclure).
 
 ## 5 bis. Barre de raccourcis, la suite (étape 75)
 

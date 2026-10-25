@@ -195,7 +195,18 @@ Note de structure : un coup sera une petite collection de **portions typées** (
 
 ## 11. Catégories d'ennemis (à la *Warhammer 40k*)
 
-- **Retenu (dans le principe).** Des catégories d'ennemis : **nuée**, **infanterie**, **infanterie lourde**, **créature monstrueuse** (peut-être **commandant** pour les boss). Par exemple, des attaques au couteau rapides et peu puissantes, très bonnes contre une nuée, moins contre l'infanterie lourde.
+- **Retenu (étape 93).** Quatre catégories d'ennemis, qui existent dans le jeu : **nuée**, **infanterie**, **infanterie lourde**, **créature monstrueuse** (peut-être **commandant** pour les boss, plus tard). Par exemple, des attaques au couteau rapides et peu puissantes, très bonnes contre une nuée, moins contre l'infanterie lourde.
+- **À tester (étape 93).** Leurs valeurs (`docs/monstre.md`, « Catégories de monstres »), à l'échelle × 3 :
+
+  | Catégorie | PV | Armure | Attaque | Recharge | Vitesse | Rayon |
+  |---|---|---|---|---|---|---|
+  | Nuée (par monstre) | 60 | 0 | 10 | 0,6 – 1,0 s | 190 | 9 |
+  | Infanterie | 300 | 3 | 30 | 0,7 – 1,3 s | 160 | 15 |
+  | Infanterie lourde | 450 | 10 | 45 | 1,2 – 1,8 s | 110 | 17 |
+  | Créature monstrueuse | 1500 | 6 | 70 | 1,5 – 2,5 s | 140 | 16 (30 voulus, voir `docs/monstre.md`) |
+
+  (plus les capacités offensive et défensive et l'esquive, dans `docs/monstre.md`.) Une **nuée** est un groupe de petits monstres (5 à 7, placés en grappe) qui s'alertent ensemble, pas une vraie escouade de monstres : celle-ci (ancre, formation, places d'attaque autour de leur cible, cible commune) est une étape à part, plus tard.
+- **Retenu, pas encore fait (étape 93).** La **créature monstrueuse** n'a que ses valeurs ; ses règles propres, ci-dessous (« immunisée au recul et à l'étourdissement », « ne peut pas être bloquée par un seul personnage »), viendront plus tard, avec le recul, l'étourdissement et le blocage entre entités.
 - **Proposé.** Faire **émerger** ces effets des règles plutôt que d'une grande table de multiplicateurs à la *Dawn of War 2* :
   - l'armure par soustraction (section 8) rend les petits coups faibles contre l'infanterie lourde ;
   - une nuée a peu de PV : les gros coups y gaspillent leurs dégâts en excédent, pas les petits ;
@@ -279,7 +290,7 @@ Points de conception associés (**proposés**) :
 
 | Propriété | Rôle | Existe |
 |---|---|---|
-| Catégorie | Nuée, infanterie, infanterie lourde, créature monstrueuse | |
+| Catégorie | Nuée, infanterie, infanterie lourde, créature monstrueuse | Oui (étape 93) |
 | Taille (cercle) | Portée bord à bord, blocage, encerclement | Oui |
 | Immunités | Ex. pas de recul pour une créature monstrueuse | |
 
@@ -311,6 +322,6 @@ Idées retenues pour plus tard, sans étape prévue.
 ## Ordre de discussion proposé
 
 1. Finir les maths du combat (questions 2, 3, 5, 6, 7 et 12).
-2. Les catégories d'ennemis, qui découlent du modèle d'armure.
+2. Les catégories d'ennemis, qui découlent du modèle d'armure (faites à l'étape 93, valeurs à tester ; restent leurs règles propres et leurs comportements).
 3. La progression des classes : barre de maîtrise, paliers, fourche de spécialisation.
 4. Les skills de chaque classe, conçus avec les couleurs comme boussole.

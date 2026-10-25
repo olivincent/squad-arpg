@@ -110,6 +110,7 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 90 — Esquive et blocage : nature des attaques, esquive plafonnée, bouclier, textes « Esquivé » et « Bloqué » ✅
 - Étape 91 — Les armes : l'attaque de base et la zone de contrôle viennent de l'arme, échelle × 3, deux mains, skills qui exigent une arme ✅
 - Étape 92 — Seuils d'équipement, objets inactifs, pénétration d'armure (la dague) ✅
+- Étape 93 — Les types de monstres : nuée, infanterie, infanterie lourde, créature monstrueuse, groupes en données ✅
 
 ## Détail des étapes 0 à 73
 
@@ -2185,3 +2186,24 @@ visé n'atteint pas, objet inactif encadré en rouge. 92.4 : pénétration d'arm
 dague : 30 %), portée par l'`Attaque` (coups d'opportunité compris), qui réduit l'armure avant la soustraction M1 (sans
 arrondi intermédiaire, plafond de 75 %). 1 357 tests, 39 avertissements `clang-tidy` (inchangé). Détail :
 `docs/objets.md`, `docs/combat.md`, `docs/formation.md`, `docs/ecrans.md`, `docs/tests.md`, `docs/classes-et-combat.md`.
+
+### Étape 93 — Les types de monstres ✅
+
+Première étape de la phase 3 (renumérotée : les éléments passent à l'étape 94, le butin aux étapes 95 à 97), faite en
+une session autonome (un commit par sous-étape). Avant elle, tous les monstres étaient identiques et les différences
+entre armes, pénétration et critique presque invisibles. 93.1 : test de cohérence des données (chaque classe atteint les
+seuils de tout son équipement de départ), `tests/jeu/test_CoherenceDesDonnees.cpp`, qui accueille les vérifications des
+données suivantes. 93.2 : les définitions de monstres deviennent des données du niveau : `CategorieDeMonstre` (dans
+`monde/`, parce que `Niveau` la nomme sans pouvoir inclure `monstres/`), `MonstreDuNiveau::categorie`, le catalogue
+`CatalogueDeMonstres` de `monstres/` ; `Niveau::armureMonstres` disparaît (l'armure est une valeur de la définition), et
+`Partie` reçoit un catalogue au lieu d'une définition (le paramètre optionnel reste, pour les tests ; écart avec le prompt,
+expliqué dans `docs/monstre.md`). 93.3 : nuée (60 PV, 10 d'attaque, 190 px/s, 9 px de rayon), infanterie lourde (450 PV,
+armure 10, 110 px/s) et créature monstrueuse (1 500 PV, 70 d'attaque), une couleur chacune (`DefinitionDeMonstre::couleur`) ;
+un test fait traverser un couloir en L aux quatre catégories et révèle que le chemin par les centres des cases bloque tout
+cercle de 20 px de rayon ou plus : le rayon de la créature est réduit de 30 à 16 (marge de 4 px). 93.4 : compositions de
+groupe en données (`CompositionDeGroupe`) ; chaque salle sauf la première reçoit un groupe tiré selon les poids (nuée en
+grappe, infanterie, mélange), la salle la plus éloignée du départ reçoit à la place une créature seule ;
+`ParametresDonjon::monstresParSalleMin` et `Max` disparaissent. 93.5 : test caché `[.][perf]` : 600 images au contact d'une
+nuée de 7, moyenne 0,04 ms, pire 0,18 ms (preset `jeu`), sans optimisation. 1 376 tests, 39 avertissements `clang-tidy`
+(inchangé). Détail : `docs/monstre.md`, `docs/generation.md`, `docs/tests.md`, `docs/classes-et-combat.md`,
+`docs/brainstorm.md`, `docs/boucle-et-entrees.md`, `docs/combat.md`, `docs/objets.md`.

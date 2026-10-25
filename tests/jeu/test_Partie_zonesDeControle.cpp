@@ -15,7 +15,7 @@
 #include <variant>
 
 // Zones de contrôle et attaque d'opportunité (étape 77). Le monstre n'a pas d'armure dans ces niveaux
-// (Niveau::armureMonstres vaut 0) : les dégâts lus sur lui sont ceux des attaques de base.
+// (`monstreSansHasard` n'en a pas) : les dégâts lus sur lui sont ceux des attaques de base.
 
 TEST_CASE("zone de controle : un mage au contact qui s'eloigne recoit un coup gratuit du monstre") {
     // Un mage seul (zone 0) à 40 px du monstre, qui l'engage (zone de 20 px bord à bord).

@@ -17,9 +17,10 @@ déplacement par chemin dans `docs/chemin.md`.
   vivant), ses candidats de frappe (`std::vector<EntiteVue>`) et les
   obstacles en paramètres de `mettreAJour`. C'est `main.cpp` qui fait l'intermédiaire (voir
   `docs/boucle-et-entrees.md` et `docs/combat.md`).
-- **Position et taille portées par `m_mobile`** (30 × 30, 160 px/s depuis
+- **Position et taille portées par `m_mobile`** (30 × 30 et 160 px/s pour l'infanterie, depuis
   l'étape 69 — plus lent que l'ancre à 180 px/s et que les personnages à
-  240 px/s, pour que la fuite reste possible : l'écart se creuse lentement) :
+  240 px/s, pour que la fuite reste possible : l'écart se creuse lentement ; la taille et la vitesse
+  dépendent de la catégorie depuis l'étape 93) :
   une seule copie de ces données. `getCentre`, `contient`,
   `dessiner` et `getCercle` les lisent via `m_mobile` (`getCercle` est une façade de
   `Mobile::getCercle` depuis l'étape 82.1).
@@ -36,21 +37,73 @@ déplacement par chemin dans `docs/chemin.md`.
   (160), les points de vie maximum (300 depuis l'échelle × 3 de l'étape 91 ; 1000 avant), l'armure, le rayon de détection (200), le rayon de territoire
   (600), la zone de contrôle (20), la régénération du retour (0,5 du maximum par seconde), la définition de
   son attaque (portée 15, 30 dégâts — 100 avant l'échelle × 3 —, recharge de 0,7 à 1,3 s, exécution de 0,3 s) et, depuis l'étape 89, ses
-  `StatistiquesDeCombat`. `monstreOrdinaire()` (`DefinitionDeMonstre.cpp`, constantes `s_` nommées) en donne
-  le seul modèle d'aujourd'hui ; les types de monstres seront d'autres définitions, sans toucher à `Monstre`.
-  Depuis l'étape 91.1, `Partie` reçoit la définition des monstres en quatrième paramètre optionnel (par défaut
-  `monstreOrdinaire()`, le jeu ne la précise pas), ce qui permet aux tests de choisir leur monstre (sans esquive,
-  indestructible…) ; elle ira dans `Niveau` avec les types de monstres. L'armure vient toujours du niveau.
+  `StatistiquesDeCombat`, et, depuis l'étape 93, sa couleur. Les définitions sont celles des quatre catégories de
+  monstres (« Catégories de monstres », ci-dessous), sans toucher à `Monstre`.
 - **Raison (E1 de `docs/audit.md`)** : ces valeurs étaient écrites en littéraux dans `Monstre.cpp` (constructeur
   et constantes), donc introuvables au moment d'équilibrer. Refactorisation pure : aucun comportement n'a
   changé, les 1 126 tests d'avant ont passé sans autre modification que la construction.
-- **Constructeur** : `Monstre(centre, id, groupe, definition)`. L'armure n'est plus un paramètre : le niveau la
-  donne (`Niveau::armureMonstres`), et `Partie` la copie dans la définition (`monstreOrdinaire()` plus
-  `.armure`) avant de construire chaque monstre. `Niveau` (dossier `monde/`) ne connaît pas `monstres/` : il
-  garde un simple `int`.
+- **Constructeur** : `Monstre(centre, id, groupe, definition)`. L'armure n'est pas un paramètre : elle est dans la
+  définition (depuis l'étape 93 ; avant, le niveau la donnait par `Niveau::armureMonstres`, qui n'existe plus).
 - **Les constantes publiques `Monstre::s_rayonTerritoire` et `s_zoneDeControle` n'existent plus** : elles sont
-  des champs de la définition ; les tests lisent `monstreOrdinaire().rayonTerritoire`. Ce qui reste dans
-  `Monstre.cpp` est du dessin (l'opacité du retour).
+  des champs de la définition ; les tests lisent `definitionDeMonstre(CategorieDeMonstre::Infanterie).rayonTerritoire`.
+  Ce qui reste dans `Monstre.cpp` est du dessin (l'opacité du retour).
+
+## Catégories de monstres (étape 93)
+
+Section 11 de `docs/classes-et-combat.md`. Quatre catégories aux profils différents, pour que les différences
+entre armes, la pénétration et le critique se voient : avant, tous les monstres étaient identiques (300 points
+de vie, armure 3).
+
+- **Le nom d'une catégorie est dans `monde/`, ses valeurs dans `monstres/`.** `enum class CategorieDeMonstre { Nuee,
+  Infanterie, InfanterieLourde, CreatureMonstrueuse }` est dans `monde/CategorieDeMonstre.hpp`, parce que `Niveau`
+  et le générateur (`monde/`) la nomment sans pouvoir inclure `monstres/` (ni `combat/`, d'où viennent les
+  statistiques) : règles de dépendance d'`ARCHITECTURE.md`. Le catalogue des définitions, lui, est dans
+  `monstres/DefinitionDeMonstre.hpp` : `CatalogueDeMonstres` (un `std::array` indexé par la catégorie),
+  `catalogueDeMonstres()` (l'unique source des valeurs) et `definitionDeMonstre(catégorie)` (ou, avec un
+  catalogue en premier paramètre, dans ce catalogue). Le modèle est celui des catalogues d'objets et de classes.
+- **Le niveau dit la catégorie, `Partie` la traduit.** `MonstreDuNiveau` porte `categorie` (infanterie par
+  défaut : le monstre de base, ce qui évite de la répéter dans les niveaux faits à la main) ; `Partie` construit
+  chaque `Monstre` avec la définition de sa catégorie. `Niveau::armureMonstres` et `s_armureMonstresParDefaut`
+  n'existent plus : l'armure est une valeur de la définition (3 pour l'infanterie, comme avant dans le jeu).
+- **`Partie` garde un paramètre optionnel, un catalogue** (écart avec le prompt, qui voulait le supprimer) :
+  `Partie(niveau, composition, graine, const CatalogueDeMonstres& = catalogueDeMonstres())`. Il remplace la
+  définition unique de l'étape 91.1. Sans lui, un test ne pourrait pas avoir un monstre sans esquive ni
+  indestructible, puisque `Niveau` (dans `monde/`) ne peut pas porter de `DefinitionDeMonstre`. Les tests
+  passent par `partieDeTest` (`catalogueDeTest` : l'infanterie de test, `monstreSansHasard()` ou `monstreIndestructible()`,
+  et les autres catégories sans esquive).
+- **Valeurs** (échelle × 3, provisoires, « à tester » ; le côté du carré est le double du rayon) :
+
+  | Catégorie | PV | Armure | Attaque | Recharge | Exécution | Vitesse | Rayon | OA | DA | Esquive (contact / projectile) |
+  |---|---|---|---|---|---|---|---|---|---|---|
+  | Nuée (par monstre) | 60 | 0 | 10 | 0,6 – 1,0 s | 0,2 s | 190 | 9 | 90 | 80 | 10 % / 10 % |
+  | Infanterie | 300 | 3 | 30 | 0,7 – 1,3 s | 0,3 s | 160 | 15 | 100 | 100 | 5 % / 5 % |
+  | Infanterie lourde | 450 | 10 | 45 | 1,2 – 1,8 s | 0,4 s | 110 | 17 | 100 | 120 | 0 % / 0 % |
+  | Créature monstrueuse | 1500 | 6 | 70 | 1,5 – 2,5 s | 0,5 s | 140 | **16** (voir ci-dessous) | 120 | 110 | 0 % / 0 % |
+
+  Communs à toutes : zone de contrôle 20 px, rayon de détection 200, territoire 600, portée d'attaque 15 px
+  bord à bord, régénération du retour, attaque de contact. Les valeurs sont des constantes `s_` d'un tableau de
+  `Profil` dans `DefinitionDeMonstre.cpp`.
+- **Reconnaissance à l'écran** : une couleur par catégorie (`DefinitionDeMonstre::couleur`, lue par
+  `Monstre::dessiner`) et la taille donnée par le rayon : nuée vert-jaune sombre (115, 165, 25), infanterie rouge
+  (comme avant), infanterie lourde gris acier (110, 125, 140), créature violet foncé (90, 30, 140). La nuée est
+  plus foncée que le jaune-vert vif imaginé au départ pour que le contour jaune du monstre verrouillé reste lisible.
+- **Le rayon de la créature : 16, pas 30** (écart avec le prompt, voulu par lui si la créature ne passe pas). Un
+  chemin (`Chemin`, A\*) suit les centres des cases : dans un couloir de 2 cases, un monstre longe sa voie à
+  une demi-case (20 px) du mur. Un cercle de rayon 20 ou plus s'y bloque, 19 passe (mesuré par
+  `tests/monstres/test_Monstre_etats.cpp`, qui fait traverser un couloir en L aux quatre catégories). Les 30 px
+  voulus au départ ne passaient donc pas, même si le couloir fait 80 px de large : le défaut est dans le chemin,
+  qui ne tient pas compte du rayon du mobile contre les murs. 16 laisse 4 px de marge. Conséquence visible : la
+  créature (32 px de côté) est plus petite que l'infanterie lourde (34 px) ; seules sa couleur et ses nombres la
+  distinguent. **À rétablir à 30** quand le chemin évitera les murs à la distance du rayon (étape à part).
+  Deux tests de `test_CoherenceDesDonnees.cpp` gardent la règle (aucun cercle ne touche les murs d'un chemin par
+  les centres des cases ; marge de 4 px pour la créature).
+- **La créature est « simple »** : seulement ses valeurs. Ses règles propres (immunité au recul et à
+  l'étourdissement, ne pas être bloquée par un seul personnage) viendront plus tard.
+- **Comportements** : inchangés et communs à toutes les catégories (détection, territoire, poursuite, retour au
+  poste, alerte du groupe). Une nuée n'est qu'un groupe de petits monstres qui s'alertent ensemble ; elle n'a
+  ni cible commune, ni ancre, ni formation (voir `docs/generation.md` pour sa génération).
+- **Coût mesuré** (preset `jeu`, `docs/tests.md`) : une image de `Partie` au contact d'une nuée de 7, les autres
+  groupes d'un niveau de 19 monstres en place, coûte en moyenne 0,04 ms (au pire 0,18 ms).
 
 ## Identifiant, vie et dessin
 
@@ -62,8 +115,8 @@ déplacement par chemin dans `docs/chemin.md`.
 - **`contient`** réutilise `sf::FloatRect::contains` plutôt que de
   réimplémenter sa convention (bords gauche/haut inclus, droit/bas
   exclus).
-- **Armure** (étape 55) : `DefinitionDeMonstre::armure` (10 dans le jeu, `s_armureMonstresParDefaut`
-  donnée par `Niveau::armureMonstres` via `Partie`). `recevoirDegats` passe par `resoudreCoup`, dont
+- **Armure** (étape 55) : `DefinitionDeMonstre::armure` (de 0 à 10 selon la catégorie depuis l'étape 93 ; avant,
+  3 pour tous, donnée par le niveau). `recevoirDegats` passe par `resoudreCoup`, dont
   l'armure est une étape. Voir `docs/combat.md`.
 - **`Vitalite`** (étape 82.1) : les points de vie et l'armure sont dans `m_vitalite`, le même type
   que dans `Personnage`. `recevoirDegats`, `estVivant` et `getPointsDeVie` lui délèguent. Les règles
@@ -121,7 +174,7 @@ déplacement par chemin dans `docs/chemin.md`.
   400 avant) est la distance maximale entre le **monstre** et son **poste**. Un
   monstre peut donc poursuivre une proie arbitrairement loin de son point de
   départ, tant que lui-même ne s'éloigne pas de plus de 600 px de son poste.
-  Les tests lisent la valeur dans `monstreOrdinaire()` pour ne pas la recoder.
+  Les tests lisent la valeur dans `definitionDeMonstre(CategorieDeMonstre::Infanterie)` pour ne pas la recoder.
 - **Détection unique, dans la fonction privée `const`
   `proieDetectee(cible, carte)`** : une proie est détectée si elle existe, si
   elle est à `<=` `m_rayonDetection` (200 px) **du monstre**, à `<=`
@@ -367,6 +420,10 @@ déplacement par chemin dans `docs/chemin.md`.
   cône de vision.
 - Un monstre n'évite pas de quitter la zone d'un personnage (le coup gratuit est subi, pas évité) ; pas
   de monstre qui « tient » son adversaire de lui-même (étape 77).
+- Étape 93 : le chemin ne tient pas compte du rayon du mobile contre les murs, donc la créature monstrueuse
+  est réduite à 16 px de rayon (voir « Catégories de monstres ») ; ses règles propres (immunités, blocage) et
+  des comportements différents par catégorie (`docs/brainstorm.md`, 4 bis) manquent encore ; une nuée n'est pas
+  une vraie escouade de monstres (pas d'ancre, de formation ni de cible commune).
 
 ## État et limites à la fin de l'étape 80
 
@@ -439,15 +496,15 @@ indiqué dans son titre. `ARCHITECTURE.md` n'en garde qu'une ligne par module.
 
 ### `Monstre` (`monstres/`) — un ennemi
 
-Un carré rouge de 30 × 30 qui détecte un personnage (à moins de 200 px, dans son territoire et en vue), le poursuit sans dépendre de la vue, frappe
-à portée et retourne à son poste (160 px/s ; territoire de 600 px). Au retour, il ne réagit à rien
+Un carré de la couleur et de la taille de sa catégorie (rouge, 30 × 30 pour l'infanterie) qui détecte un personnage (à moins de 200 px, dans son territoire et en vue), le poursuit sans dépendre de la vue, frappe
+à portée et retourne à son poste (160 px/s pour l'infanterie ; territoire de 600 px). Au retour, il ne réagit à rien
 jusqu'à son arrivée, il est invulnérable, il n'est plus une cible et il regagne ses points de vie
 (`docs/monstre.md`). Possédé par `Partie`. Ne connaît ni
 `Escouade` ni `Personnage` : il reçoit sa proie, ses candidats de frappe (des
 `EntiteVue`) et ses obstacles en paramètres. La proie est celle qu'il poursuit ;
 la cible de frappe est celle qui est à portée ET en vue.
 
-Données membres : `m_mobile`, `m_vitalite` (`Vitalite` : points de vie et défenses), `m_id`,
+Données membres : `m_mobile`, `m_couleur` (`sf::Color`, celle de la définition), `m_vitalite` (`Vitalite` : points de vie et défenses), `m_id`,
 `m_attaque`, `m_rayonDetection`, `m_rayonTerritoire`, `m_zoneDeControle`, `m_statistiques`
 (`StatistiquesDeCombat`), `m_regenerationRetour`, `m_etat` (`Etat`,
 `enum class` privé : `EnGarde`, `Poursuite`, `Retour`), `m_poste`,
@@ -456,13 +513,13 @@ consommé par `mettreAJour`), `m_soinAccumule` (`float`, points de vie rendus pa
 
 | Fonction | Rôle |
 |---|---|
-| `Monstre(sf::Vector2f centre, int id, int groupe, const DefinitionDeMonstre& definition)` | Crée le monstre à ce centre, avec cet identifiant, ce groupe (donné par `Niveau`) et les valeurs de cette définition (armure comprise, donnée par `Niveau` via `Partie`) ; son poste est ce centre |
+| `Monstre(sf::Vector2f centre, int id, int groupe, const DefinitionDeMonstre& definition)` | Crée le monstre à ce centre, avec cet identifiant, ce groupe (donné par `Niveau`) et les valeurs de cette définition (armure et couleur comprises) ; son poste est ce centre |
 | `int getGroupe() const` | Identifiant de groupe ; `[[nodiscard]]` |
 | `float getZoneDeControle() const` / `Attaque getAttaque() const` / `const StatistiquesDeCombat& getStatistiques() const` | Zone de contrôle, son attaque (dégâts avant l'armure de la cible, capacité offensive) et ses statistiques de combat ; de simples lectures, elles ne touchent ni la recharge ni le coup engagé ; `[[nodiscard]]` |
 | `void alerter()` | Demande d'entrer en poursuite de sa proie habituelle, même hors de la détection, si le monstre est dans son territoire ; prise en compte au prochain `mettreAJour`, sans effet en poursuite ni en retour. `recevoirDegats` (dégâts `> 0`) l'appelle |
 | `bool estEnPoursuite() const` | Statut « attaque » (`Etat::Poursuite`), lu par `Partie` ; `[[nodiscard]]` |
 | `bool estCiblable() const` | Faux en `Retour` (le monstre n'est la cible de personne, mais reste un obstacle) ; vrai sinon ; `[[nodiscard]]` |
-| `void dessiner(sf::RenderTarget& rendu, bool estCible, bool marquerLeRetour) const` | Dessine le monstre (éclairci de 50 % pendant l'exécution d'un coup ; semi-transparent, alpha 128, s'il est en retour et que `marquerLeRetour`, c'est-à-dire F3) et sa barre de vie ; ajoute un contour jaune si `estCible` |
+| `void dessiner(sf::RenderTarget& rendu, bool estCible, bool marquerLeRetour) const` | Dessine le monstre, de la couleur de sa définition (éclairci de 50 % pendant l'exécution d'un coup ; semi-transparent, alpha 128, s'il est en retour et que `marquerLeRetour`, c'est-à-dire F3) et sa barre de vie ; ajoute un contour jaune si `estCible` |
 | `void dessinerChemin(sf::RenderTarget& rendu) const` | Débogage (F3) : trait rouge fin du centre du monstre à travers son chemin restant |
 | `void mettreAJour(float dt, std::optional<EntiteVue> proie, const std::vector<EntiteVue>& candidats, const TileMap& carte, const std::vector<Cercle>& obstacles, const std::vector<Cercle>& aContourner)` | Décrémente la recharge. Pendant l'exécution d'un coup : arrête le monstre et le déplace (immobile), sans toucher à l'état. Sinon met à jour l'état (détection de la proie soumise à la ligne de vue, `proieDetectee`, seulement en `EnGarde` ; la poursuite ne dépend pas de la vue ; `Retour` ne se termine qu'à l'arrivée au poste, sans retour possible vers `Poursuite`), regagne des points de vie en `Retour` (50 % du maximum par seconde, par l'accumulateur `m_soinAccumule`) et donne ses ordres à `m_mobile` (poursuite de la proie, arrêt dès qu'une cible de frappe existe, retour au poste — le chemin du retour est aussi recalculé quand `estBloque()`), puis le déplace ; `obstacles` le bloquent, `aContourner` (les autres monstres, pas les personnages) est ce que ses chemins évitent |
 | `bool peutAtteindre(Cercle cible, const TileMap& carte) const` | La cible est-elle à portée d'attaque (bord à bord) ET en vue (`ligneDeVue`, en cases) ? Même règle que `Escouade::peutAtteindre` ; `[[nodiscard]]` |
@@ -472,9 +529,26 @@ consommé par `mettreAJour`), `m_soinAccumule` (`float`, points de vie rendus pa
 | `std::optional<Attaque> avancerAttaque(float dt, Generateur& generateur)` | Fait avancer l'exécution ; rend son attaque au départ du coup, vide sinon ; `[[nodiscard]]` |
 | `void annulerAttaque()` | Annule le coup en exécution, sans recharge consommée (appelée par `Partie` quand la proie engagée meurt) |
 | `sf::Vector2f getCentre() const` | Centre du monstre |
-| `Cercle getCercle() const` | Cercle centré sur le monstre, de rayon 15 (façade de `Mobile::getCercle`) |
+| `Cercle getCercle() const` | Cercle centré sur le monstre, de rayon la moitié du côté de sa définition (15 pour l'infanterie ; façade de `Mobile::getCercle`) |
 | `int getId() const` | Identifiant du monstre |
 | `bool contient(sf::Vector2f point) const` | Le point (pixels du monde) est-il dans le carré du monstre ? |
 | `ResultatDuCoup recevoirDegats(const Attaque& attaque, Generateur& generateur)` | Sans aucun effet en `Retour` (invulnérable, pas d'alerte, aucun tirage) ni sur un monstre mort : rien (montant 0). Sinon délègue à `Vitalite::recevoirDegats` (esquive, critique, blocage et armure, sans descendre sous 0) ; si `attaque.montant > 0` (même esquivé ou bloqué), mémorise que le monstre vient d'être touché ; renvoie le résultat (dégâts après armure, critique, esquivé, bloqué) |
 | `bool estVivant() const` | Points de vie `> 0` |
 | `int getPointsDeVie() const` | Points de vie actuels |
+
+### `DefinitionDeMonstre` (`monstres/`) — les valeurs d'une catégorie de monstre
+
+`DefinitionDeMonstre.hpp` / `.cpp` : une structure sans comportement (initialisation désignée, aucun champ sans
+valeur n'est oublié sans que le compilateur le signale) et le catalogue.
+
+Champs de `struct DefinitionDeMonstre` : `cote` (`float`, du carré, en pixels ; le cercle de collision lui est inscrit),
+`couleur` (`sf::Color`), `vitesse` (`float`), `pointsDeVieMax`, `armure`, `rayonDetection`, `rayonTerritoire`,
+`zoneDeControle`, `regenerationRetour`, `attaque` (`DefinitionDeSkill` : portée, dégâts, recharge, exécution, nature),
+`statistiques` (`StatistiquesDeCombat`).
+
+| Fonction | Rôle |
+|---|---|
+| `using CatalogueDeMonstres = std::array<DefinitionDeMonstre, s_nombreDeCategoriesDeMonstre>` | Une définition par catégorie, indexée par `CategorieDeMonstre` |
+| `const CatalogueDeMonstres& catalogueDeMonstres()` | Les définitions des quatre catégories, construites une fois ; l'unique source de leurs valeurs ; `[[nodiscard]]` |
+| `const DefinitionDeMonstre& definitionDeMonstre(const CatalogueDeMonstres&, CategorieDeMonstre)` | La définition de cette catégorie dans ce catalogue (le seul endroit qui indexe le tableau) ; `[[nodiscard]]` |
+| `const DefinitionDeMonstre& definitionDeMonstre(CategorieDeMonstre)` | La même, dans le catalogue du jeu ; `[[nodiscard]]` |

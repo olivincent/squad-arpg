@@ -217,7 +217,7 @@ et le sac, en lecture seule ; aucune fonction de modification n'est appelée.
   événement (l'écran relit l'état).
 - Un objet qui ne convient qu'un instant (le seuil franchi par un bonus qu'un échange retire dans la même
   opération) est jugé sur l'état après le déplacement, jamais sur un état intermédiaire.
-- `Monstre` n'a pas d'équipement : son armure reste fixe (`Niveau::armureMonstres`).
+- `Monstre` n'a pas d'équipement : son armure reste fixe (celle de sa définition, `docs/monstre.md`).
 - Les modifications d'équipement ne sont pas annoncées (aucun événement) : l'écran relit l'état à
   chaque image.
 - `armureDe` (tests) et `Equipement::armureTotale` répètent la même somme, volontairement : le test

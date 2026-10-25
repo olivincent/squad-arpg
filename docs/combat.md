@@ -620,11 +620,12 @@ personnages sont dans `docs/formation.md`, le monstre dans
   d'accesseur.
 - **Origine de l'armure (étape 83)** : celle d'un personnage est la somme de l'armure des objets de son
   `Equipement`, recalculée en entier à chaque changement (`Vitalite::definirDefenses`) ; il n'y a plus
-  d'armure de classe (`docs/objets.md`). Celle d'un monstre reste fixe, donnée par le niveau.
+  d'armure de classe (`docs/objets.md`). Celle d'un monstre est fixe, une valeur de sa définition (de sa catégorie
+  depuis l'étape 93, `docs/monstre.md`).
 - **Valeurs (étape 87.3, provisoires ; à l'échelle × 3 depuis l'étape 91.2)** : guerrier et paladin 9 (casque de
   fer 2, cuirasse de mailles 4, jambières de fer 2, bouclier rond 1 ; 30 avant l'étape 91), prêtre, mage et
-  rôdeur 0, les monstres 3 (`Niveau::armureMonstres`, valeur `s_armureMonstresParDefaut` commune à la carte à la
-  main et aux cartes générées ; 10 avant). Contrôle : un coup de monstre de 30 fait 21 à un guerrier, 30 à un
+  rôdeur 0, les monstres 3 (10 avant l'échelle × 3 ; depuis l'étape 93, 3 pour l'infanterie seulement : 0 pour la
+  nuée, 10 pour l'infanterie lourde, 6 pour la créature monstrueuse). Contrôle : un coup de monstre de 30 fait 21 à un guerrier, 30 à un
   mage ; une attaque de base de 15 fait 12 à un monstre.
 - **Le soin n'est pas touché** par l'armure. Les dégâts de zone, de skill et d'attaque de base passent
   tous par `recevoirDegats`, donc par l'armure.

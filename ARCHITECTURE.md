@@ -45,7 +45,7 @@ squad-arpg/
 │   ├── base/       Aleatoire, Cercle, Eclaircir
 │   ├── rendu/      BarreDeVie, TraceDeChemin
 │   ├── monde/      TileMap, Chemin, Deplacement, Mobile, ChampDeVision, Vision,
-│   │               ObjetInteractif, Niveau, GenerateurDonjon, Encerclement
+│   │               ObjetInteractif, Niveau, CategorieDeMonstre, CompositionDeGroupe, GenerateurDonjon, Encerclement
 │   ├── combat/     Skill, SkillConnu, IdSkill, TypeSkill, TypeDArme, DescriptionDAttaque, AdresseSkill, Cible, ActionEngagee,
 │   │               EtatSkill, Coup, EvenementDeCombat, EntiteVue, Autodefense, Engagement,
 │   │               Attaque, NatureDAttaque, StatistiquesDeCombat, Esquive, Critique, Blocage, Defense,
@@ -121,8 +121,12 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `ChampDeVision` : shadowcasting symétrique, `estVisibleDepuis`, `ligneDeVue` (`docs/vision.md`).
 - `Vision` : cases inconnues, explorées, visibles, et voile du brouillard (`docs/vision.md`).
 - `ObjetInteractif` : portes et point d'approche (`docs/carte-et-collision.md`).
-- `Niveau` : données d'un niveau, `creerNiveau()` pour les tests (`docs/generation.md`).
-- `GenerateurDonjon` : salles, couloirs, monstres, portes, `genererNiveau` (`docs/generation.md`).
+- `Niveau` : données d'un niveau (dont la catégorie de chaque monstre), `creerNiveau()` pour les tests (`docs/generation.md`).
+- `CategorieDeMonstre` : `Nuee`, `Infanterie`, `InfanterieLourde`, `CreatureMonstrueuse`, le nom seul, ici parce que `Niveau` et le
+  générateur le nomment ; les valeurs sont dans `monstres/` (`docs/monstre.md`).
+- `CompositionDeGroupe` : la recette d'un groupe de monstres en données (catégories, nombres, poids), `compositionsOrdinaires()`,
+  `compositionDeLaCreature()` (`docs/generation.md`).
+- `GenerateurDonjon` : salles, couloirs, groupes de monstres, portes, `genererNiveau` (`docs/generation.md`).
 - `Encerclement` : places régulières sur un anneau (`docs/formation.md`).
 
 `combat/` — skills et règles communes aux deux camps (`docs/combat.md`) :
@@ -189,10 +193,11 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 
 `monstres/` :
 - `Monstre` : états, détection, territoire, poursuite, retour au poste, frappe (`docs/monstre.md`).
-- `DefinitionDeMonstre` : toutes les valeurs d'équilibrage d'un monstre, `monstreOrdinaire()` (`docs/monstre.md`).
+- `DefinitionDeMonstre` : toutes les valeurs d'équilibrage d'un monstre, le catalogue des quatre catégories
+  (`catalogueDeMonstres()`, `definitionDeMonstre(catégorie)`) (`docs/monstre.md`).
 
 `jeu/` :
-- `Partie` : règles de jeu, ordre d'une image, intermédiaire escouade/monstres ; reçoit la définition des monstres (`docs/boucle-et-entrees.md`).
+- `Partie` : règles de jeu, ordre d'une image, intermédiaire escouade/monstres ; reçoit le catalogue des monstres (`docs/boucle-et-entrees.md`).
 
 `interface/` — écrans, HUD, réglages, entrées :
 - `Ecran`, `Transition`, `Contexte` : base des écrans, changements de pile, contexte d'appel (`docs/ecrans.md`).
