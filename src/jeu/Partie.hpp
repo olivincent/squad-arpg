@@ -21,7 +21,7 @@
 #include "monde/TileMap.hpp"
 #include "monde/Vision.hpp"
 
-// Ce que le clic du joueur a désigné.
+// Ce que le clic du joueur a désigné : un monstre, un objet (une porte fermée ou un objet au sol), le sol.
 enum class ResultatClic { Monstre, Objet, Sol, Ignore };
 
 // Les règles de jeu : possède la carte, l'escouade et les monstres, et sert
@@ -43,7 +43,9 @@ public:
     Partie(const Niveau& niveau, std::vector<DefinitionPersonnage> composition, Generateur::result_type graine,
            const CatalogueDeMonstres& catalogue = catalogueDeMonstres());
 
-    // Verrouille le monstre ciblable qui contient ce point (Monstre) ; sinon, sur une porte
+    // Verrouille le monstre ciblable qui contient ce point (Monstre) ; sinon, sur un objet au sol (`objetAuSolSous`), lève le
+    // verrou et envoie l'escouade le ramasser (Objet : `ramasserSiAPortee` le ramasse quand l'ancre arrive, et tout autre
+    // ordre remplace cette visée) ; sinon, sur une porte
     // fermée (Objet), lève le verrou, mémorise l'interaction et envoie l'escouade devant elle
     // (Sol si aucun côté n'est libre) ; sinon lève le verrou (Sol) : un monstre qui rentre à son poste compte comme le sol.
     // Ignore si l'escouade est vaincue : rien ne change.
@@ -120,6 +122,10 @@ private:
     void ouvrir(const ObjetInteractif& objet);
     // Ouvre l'objet en cours d'interaction si un personnage vivant est assez près.
     void interagirSiAPortee();
+    // Ramasse l'objet au sol visé quand l'ANCRE est à moins de `s_distanceDeRamassage` de lui : il passe dans le premier
+    // emplacement libre du sac et l'ordre est terminé. Sac plein : l'objet reste au sol, `SacPlein` est signalé et l'ordre est
+    // terminé aussi. Un objet visé qui n'existe plus : la visée est abandonnée.
+    void ramasserSiAPortee();
     // Deux vues des monstres pour l'escouade : les CIBLES (ceux qu'on peut frapper, provoquer,
     // viser ou verrouiller : pas ceux qui rentrent à leur poste) et les PHYSIQUES (tous :
     // obstacles bloquants et à contourner).
@@ -166,6 +172,7 @@ private:
     std::vector<ObjetAuSol> m_objetsAuSol;
     int m_prochainIdObjetAuSol = 1;  // jamais réutilisé dans la partie
     std::optional<int> m_interactionEnCours;  // identifiant de l'objet que l'escouade va activer
+    std::optional<int> m_objetAuSolVise;      // identifiant de l'objet au sol que l'escouade va ramasser (jamais un indice)
     std::optional<LancerDeZone> m_lancerDeZoneDemande;
     std::optional<AdresseSkill> m_skillDemande;
     std::optional<sf::Vector2f> m_deplacementOrdonne;

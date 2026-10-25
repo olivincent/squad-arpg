@@ -43,7 +43,10 @@ struct Bloque {
     int montant;
     bool total;
 };
-using DetailEvenement = std::variant<DegatsSubis, Soin, SkillLance, Provoque, Esquive, Bloque>;
+// Le sac est plein : l'objet que l'escouade est venue ramasser reste au sol. Au-dessus de l'escouade entière : `idCible` vaut 0
+// (aucune place, qui vont de 1 à N) et `position` est celle de l'ancre.
+struct SacPlein {};
+using DetailEvenement = std::variant<DegatsSubis, Soin, SkillLance, Provoque, Esquive, Bloque, SacPlein>;
 
 // `position` : COPIE du centre de la cible à ce moment ; aucune référence vers l'entité, qui peut
 // disparaître dans la même image (monstre tué par ce coup).

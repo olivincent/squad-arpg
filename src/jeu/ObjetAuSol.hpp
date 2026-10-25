@@ -21,6 +21,10 @@ struct ObjetAuSol {
 // 8 px de rayon, `interface/AffichageObjetsAuSol`), pour ne pas exiger la précision au pixel.
 inline constexpr float s_rayonDeSurvolDObjet = 14.0f;
 
+// La distance (centre à centre, en pixels du monde) de l'ancre de l'escouade à un objet visé en deçà de laquelle il est ramassé
+// (« à tester »).
+inline constexpr float s_distanceDeRamassage = 30.0f;
+
 // Où poser un objet de plus, à partir de `origine` : le centre de la case de `origine` si aucun objet de `auSol` n'y est,
 // sinon celui de la case voisine la plus proche qui est praticable (ni mur ni porte fermée) et sans objet. Les voisines
 // sont essayées par couronnes de cases autour de l'origine (jusqu'à trois cases), les plus proches d'abord ; si toutes sont

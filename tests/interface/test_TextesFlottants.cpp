@@ -155,6 +155,19 @@ TEST_CASE("l'esquive est en gris clair et le blocage en gris plus fonce, tous de
     REQUIRE(couleurDuTexte(esquive).r > couleurDuTexte(bloque).r);
 }
 
+TEST_CASE("le texte du sac plein : Bag full, de 14 px, d'une couleur que les autres textes n'ont pas") {
+    const EvenementDeCombat sacPlein{Camp::Escouade, 0, {}, SacPlein{}};
+
+    REQUIRE(libelleDuTexte(sacPlein) == "Bag full");
+    REQUIRE(tailleDuTexte(sacPlein) == 14);
+    for (const EvenementDeCombat& autre :
+         {degatsSurUnMonstre(1), EvenementDeCombat{Camp::Escouade, 1, {}, DegatsSubis{10, false, false}},
+          EvenementDeCombat{Camp::Escouade, 2, {}, Soin{10, false}}, EvenementDeCombat{Camp::Monstres, 1, {}, Esquive{}},
+          EvenementDeCombat{Camp::Escouade, 1, {}, Bloque{40, false}}, EvenementDeCombat{Camp::Monstres, 1, {}, Provoque{}}}) {
+        REQUIRE(couleurDuTexte(sacPlein) != couleurDuTexte(autre));
+    }
+}
+
 TEST_CASE("un blocage partiel s'empile au-dessus des degats de la meme cible et de la meme image") {
     TextesFlottants textes;
 

@@ -23,6 +23,7 @@ constexpr unsigned int s_tailleNomDeSkill = 14;
 constexpr unsigned int s_tailleProvoque = 14;
 constexpr unsigned int s_tailleEsquive = 14;
 constexpr unsigned int s_tailleBloque = 14;
+constexpr unsigned int s_tailleSacPlein = 14;
 constexpr float s_epaisseurContour = 1.0f;
 const sf::Color s_couleurDegatsSurUnMonstre = sf::Color::White;
 const sf::Color s_couleurDegatsSurUnPersonnage(255, 60, 60);
@@ -43,6 +44,7 @@ const sf::Color s_couleurNomDeSkill(255, 210, 60);  // jaune doré
 const sf::Color s_couleurProvoque(255, 100, 40);    // rouge orangé
 const sf::Color s_couleurEsquive(215, 215, 215);    // gris clair
 const sf::Color s_couleurBloque(150, 150, 150);     // gris
+const sf::Color s_couleurSacPlein(255, 140, 140);   // rose rouge : un refus
 }  // namespace
 
 float hauteurDuTexte(float age) {
@@ -79,7 +81,8 @@ std::string libelleDuTexte(const EvenementDeCombat& evenement) {
                                  [](const Bloque& bloque) {
                                      // Un blocage partiel dit combien il a absorbé (« Blocked −40 », signe moins U+2212).
                                      return bloque.total ? std::string("Blocked") : "Blocked \u2212" + std::to_string(bloque.montant);
-                                 }},
+                                 },
+                                 [](const SacPlein&) { return std::string("Bag full"); }},
                       evenement.detail);
 }
 
@@ -101,7 +104,8 @@ sf::Color couleurDuTexte(const EvenementDeCombat& evenement) {
                                  [](const SkillLance&) { return s_couleurNomDeSkill; },
                                  [](const Provoque&) { return s_couleurProvoque; },
                                  [](const Esquive&) { return s_couleurEsquive; },
-                                 [](const Bloque&) { return s_couleurBloque; }},
+                                 [](const Bloque&) { return s_couleurBloque; },
+                                 [](const SacPlein&) { return s_couleurSacPlein; }},
                       evenement.detail);
 }
 
@@ -116,7 +120,8 @@ unsigned int tailleDuTexte(const EvenementDeCombat& evenement) {
                                  [](const SkillLance&) { return s_tailleNomDeSkill; },
                                  [](const Provoque&) { return s_tailleProvoque; },
                                  [](const Esquive&) { return s_tailleEsquive; },
-                                 [](const Bloque&) { return s_tailleBloque; }},
+                                 [](const Bloque&) { return s_tailleBloque; },
+                                 [](const SacPlein&) { return s_tailleSacPlein; }},
                       evenement.detail);
 }
 

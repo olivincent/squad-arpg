@@ -19,6 +19,7 @@
 namespace {
 // Écart bord à bord (cercle d'un personnage, zone de la porte) à partir duquel la porte s'ouvre.
 constexpr float s_porteeInteraction = 20.0f;
+constexpr int s_idDeLEscouadeEntiere = 0;  // `idCible` d'un événement qui vise l'escouade et non l'un de ses personnages
 const sf::Color s_couleurZoneDeControle(255, 0, 255, 180);  // débogage F3 : cercle fin des zones de contrôle
 constexpr float s_epaisseurZoneDeControle = 1.0f;
 }
@@ -55,9 +56,20 @@ ResultatClic Partie::cliquer(sf::Vector2f point) {
     if (it != m_monstres.end()) {
         m_escouade.verrouiller(it->getId());
         m_interactionEnCours.reset();
+        m_objetAuSolVise.reset();
         return ResultatClic::Monstre;
     }
     m_interactionEnCours.reset();
+    m_objetAuSolVise.reset();
+    if (const ObjetAuSol* objet = objetAuSolSous(point)) {
+        // Un ordre de ramassage : l'escouade marche vers l'objet comme vers le sol (le combat est rompu de la même façon) ;
+        // `ramasserSiAPortee` le ramasse quand l'ancre arrive.
+        m_escouade.deverrouiller();
+        m_escouade.annulerAttaquesEngagees();
+        m_objetAuSolVise = objet->id;
+        m_deplacementOrdonne = objet->position;
+        return ResultatClic::Objet;
+    }
     if (const ObjetInteractif* objet = trouverObjetActif(point)) {
         if (m_escouade.unVivantPresDe(objet->zone, s_porteeInteraction)) {
             // Déjà à portée : ouverture sur place, sans ordre ni interaction mémorisée.
@@ -94,6 +106,7 @@ void Partie::lancerSkillDeZone(AdresseSkill adresse, sf::Vector2f point) {
 
 void Partie::ordonnerDeplacement(sf::Vector2f point) {
     m_interactionEnCours.reset();
+    m_objetAuSolVise.reset();
     m_deplacementOrdonne = point;
 }
 
@@ -148,6 +161,30 @@ void Partie::interagirSiAPortee() {
     if (objet != nullptr && m_escouade.unVivantPresDe(objet->zone, s_porteeInteraction)) {
         ouvrir(*objet);
         m_interactionEnCours.reset();
+    }
+}
+
+void Partie::ramasserSiAPortee() {
+    if (!m_objetAuSolVise.has_value()) {
+        return;
+    }
+    const auto it = std::ranges::find(m_objetsAuSol, *m_objetAuSolVise, &ObjetAuSol::id);
+    if (it == m_objetsAuSol.end()) {
+        m_objetAuSolVise.reset();  // l'objet n'existe plus : la visée est abandonnée
+        return;
+    }
+    const sf::Vector2f ancre = m_escouade.getCentre();
+    const sf::Vector2f ecart = it->position - ancre;
+    if (std::hypot(ecart.x, ecart.y) >= s_distanceDeRamassage) {
+        return;
+    }
+    // À portée, l'ordre est terminé, que l'objet entre dans le sac ou non : un sac plein le laisse au sol, sans qu'on
+    // insiste.
+    m_objetAuSolVise.reset();
+    if (m_escouade.ramasser(it->objet)) {
+        m_objetsAuSol.erase(it);
+    } else {
+        signaler(Camp::Escouade, s_idDeLEscouadeEntiere, ancre, SacPlein{});
     }
 }
 
@@ -276,7 +313,8 @@ void Partie::signaler(Camp campCible, int idCible, sf::Vector2f position, Detail
                                                   [](const SkillLance&) { return false; },
                                                   [](const Provoque&) { return false; },
                                                   [](const Esquive&) { return false; },
-                                                  [](const Bloque&) { return false; }},
+                                                  [](const Bloque&) { return false; },
+                                                  [](const SacPlein&) { return false; }},
                                        detail);
     if (montantNul) {
         return;
@@ -432,6 +470,7 @@ void Partie::mettreAJour(float dt) {
                                          .ciblables = entitesCiblables(),
                                          .deControle = avant.monstres});
     interagirSiAPortee();
+    ramasserSiAPortee();
     faireTournerLesMonstres(dt);
     appliquerLesCoupsDOpportunite(avant);
     // En dernier, pour que ce que le joueur voit corresponde aux positions de la fin de l'image.
