@@ -113,6 +113,7 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 93 — Les types de monstres : nuée, infanterie, infanterie lourde, créature monstrueuse, groupes en données ✅
 - Étape 94 — Types de dégâts et résistances : le coup en portions (physique, feu, sacré), l'explosion en feu, la frappe sacrée, premier skill de frappe ✅
 - Étape 95 — Les objets ont leurs propres données (rareté, préfixe et suffixe) ; le texte du jeu passe à l'anglais ✅
+- Étape 96 — La génération aléatoire des objets : plages de valeurs des affixes, poids des raretés, `genererObjet`, F7 tire au hasard ✅
 
 ## Détail des étapes 0 à 73
 
@@ -2252,3 +2253,23 @@ cohérence des données et documentation. 1 494 tests (+55), 0 avertissement de 
 dans les fichiers modifiés (le total de 39 n'a pas été recompté) ; mesure de performance inchangée (moyenne 0,035 ms par image, pire 0,12 ms, preset `jeu`). Détail :
 `docs/objets.md`, `docs/combat.md`, `docs/ecrans.md`, `docs/boucle-et-entrees.md`, `docs/tests.md`, `docs/glossaire.md`,
 `docs/classes-et-combat.md`, `docs/brainstorm.md`.
+
+### Étape 96 — La génération aléatoire des objets ✅
+
+Deuxième étape de la phase 4 (butin), faite en une session autonome (un commit par sous-étape ; le butin au sol devient
+l'étape 97). 96.1 : `clang-tidy` recompté sur les 75 sources de `src/` : 39 avertissements, aucun nouveau depuis l'étape 95.
+96.2 : chaque `DefinitionDAffixe` reçoit une plage de valeurs entières `{min, max}` (feu et sacré 3 – 8, pénétration 10 – 20 %,
+armure 2 – 5, caractéristiques 1 – 3, esquives 2 – 4 %, blocage 3 – 7 % ; la même plage pour un objet magique et un objet
+rare) ; Reinforced est permis sur les gants et les bottes ; nouveau module `objets/GenerationDObjets` : `poidsDeRarete`
+(Common 70, Magic 25, Rare 5, en données comme les compositions de groupe) et `peutPorterLaRarete`, l'unique endroit de la
+règle « quel modèle peut porter quelle rareté » (les bijoux, sans préfixe, ne sont jamais rares) ; `affixesPermisPour`. 96.3 :
+`genererObjet(Generateur&)`, fonction libre sans état : rareté selon les poids, modèle uniforme parmi ceux qui peuvent la
+porter, un affixe parmi tous les permis pour un magique, un préfixe et un suffixe pour un rare, valeur uniforme dans la
+plage ; l'objet passe toujours `objetValide`, et l'agrégat `Objet` est gardé. 96.4 : F7 tire quatre objets au hasard par
+`Partie::ramasserDesObjetsAleatoires`, avec le `Generateur` de la partie, tout ou rien (sans quatre cases libres,
+`Inventaire::casesLibres`, rien n'est ajouté et aucun tirage n'est fait) ; la commande devient `AjouterDesObjetsAleatoires` ;
+`objetsDeDemonstration` et ses constantes sont supprimés. 96.5 : documentation. La suite d'objets d'une graine dépend de la
+bibliothèque standard (`std::uniform_int_distribution` n'est pas défini par la norme) : sans conséquence sur une seule
+plateforme, sans sauvegarde ni multijoueur. 1 511 tests (+17), 0 avertissement de compilation, 39 avertissements `clang-tidy`.
+Mesure de performance non refaite (le tirage n'a lieu que sur F7). Détail : `docs/objets.md`, `docs/boucle-et-entrees.md`,
+`docs/tests.md`, `docs/glossaire.md`.

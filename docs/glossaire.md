@@ -162,7 +162,7 @@ Le nom affiché d'un objet est `[préfixe] modèle [suffixe]` (« Blazing Mace �
 | F4 | carré de l'ancre |
 | F5 | nouvelle carte |
 | F6 | brouillard de guerre (visuel) |
-| F7 | quatre objets de démonstration dans le sac : Blazing Mace, Keen Bow of the Fox, Reinforced Chain Mail of Evasion, Round Shield of Blocking (tout ou rien) |
+| F7 | quatre objets tirés au hasard dans le sac (tout ou rien) |
 
 ## Écrans
 

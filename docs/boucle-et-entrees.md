@@ -12,7 +12,7 @@ la fenêtre, la police, l'horloge et `setKeyRepeatEnabled`, qui sont à
 
 | Acteur | Rôle | Connaît SFML Window/Event ? |
 |---|---|---|
-| `EcranJeu` (et `Application` pour la fenêtre, la police et l'horloge) | Caméra, traduction des événements SFML en appels au `Controleur`, retour à l'écran de choix de l'escouade (touche R après une défaite ou une victoire), nouvelle carte (F5), bascules de débogage (F3 points visés, chemins et monstres qui rentrent semi-transparents, F4 ancre, F6 brouillard de guerre ; `OptionsDeDebogage`) et F7 (quatre objets de démonstration dans le sac), compteur de monstres, conversion du curseur en coordonnées du monde, enchaînement du dessin | Oui, seuls |
+| `EcranJeu` (et `Application` pour la fenêtre, la police et l'horloge) | Caméra, traduction des événements SFML en appels au `Controleur`, retour à l'écran de choix de l'escouade (touche R après une défaite ou une victoire), nouvelle carte (F5), bascules de débogage (F3 points visés, chemins et monstres qui rentrent semi-transparents, F4 ancre, F6 brouillard de guerre ; `OptionsDeDebogage`) et F7 (quatre objets tirés au hasard dans le sac), compteur de monstres, conversion du curseur en coordonnées du monde, enchaînement du dessin | Oui, seuls |
 | `Controleur` | État d'interface : mode visée (`m_adresseEnVisee`) et déplacement continu (`m_deplacementContinu`), sans référence à la `Partie` (reçue à chaque appel) ; traduit les actions du joueur en demandes à la `Partie` ; dessine l'aperçu de visée | Non |
 | `Partie` | Règles de jeu : possède la carte, l'`Escouade`, les `Monstre` et la `Vision` ; intermédiaire entre `Escouade` et `Monstre`, qui ne se connaissent pas | Non |
 
@@ -178,7 +178,7 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   `commandePourTouche(scancode, finDePartie, touches)` (`interface/CommandeDeTouche`) renvoie une
   `CommandeDeTouche`, un `std::variant` de `commande::Rien`, `Annuler` (Échap), `OuvrirInventaire`
   (I), `RetourAuChoix` (R), `NouvelleCarte` (F5), `BasculerPointsVises` (F3), `BasculerAncre` (F4),
-  `BasculerBrouillard` (F6), `AjouterDesObjetsDeDemonstration` (F7, étape 95.5) et `ActiverEmplacement {emplacement}`. Échap et F3 à F7 valent en tout
+  `BasculerBrouillard` (F6), `AjouterDesObjetsAleatoires` (F7, étape 95.5 ; étape 96.4 pour le nom et le tirage au hasard) et `ActiverEmplacement {emplacement}`. Échap et F3 à F7 valent en tout
   temps ; R seulement sur l'écran de fin ; I et les touches de la barre seulement hors de l'écran de
   fin. L'ordre des règles est celui de l'ancien `if / else if` d'`EcranJeu`. I est écrite en dur,
   comme les touches F. `EcranJeu::executer` exécute la commande (`std::visit` avec `Surcharges`,
@@ -612,6 +612,7 @@ bloque donc comme avant mais n'est plus une cible, et le verrou posé sur lui es
 | `bool estGagnee() const` | Vrai quand `m_monstres` est vide ET que la partie n'est pas perdue (la défaite l'emporte) ; `[[nodiscard]]` |
 | `int monstresRestants() const` | Nombre de monstres vivants (`m_monstres.size()`), pour le compteur d'`EcranJeu` ; `[[nodiscard]]` |
 | `std::vector<EvenementDeCombat> prendreEvenements()` | Les dégâts et soins réellement appliqués, les skills lancés et les monstres provoqués depuis le dernier appel, dans l'ordre où ils ont eu lieu ; la file est vidée (`std::exchange`). Un montant de 0 (cible morte, monstre en retour, soin à pleine vie) ne produit aucun événement ; une partie figée n'en produit plus ; `[[nodiscard]]` |
+| `bool ramasserDesObjetsAleatoires(std::size_t nombre)` | Tire `nombre` objets avec `genererObjet` et le `m_generateur` de la partie, puis les met dans le sac de l'escouade (`Escouade::ramasserTout`, tout ou rien). Sans `nombre` cases libres (`Inventaire::casesLibres`), faux, rien n'est ajouté **et aucun tirage n'est fait** (la vérification précède le tirage : un refus ne fait pas avancer le générateur). Touche de débogage F7, étape 96.4 ; `[[nodiscard]]` |
 | `bool estVisible(sf::Vector2f point) const` | La case de ce point (pixels du monde) est-elle `Visible` à la fin de la dernière image ? (`Vision::estVisible`) ; sert à `EcranJeu` à ne pas montrer ce qui se passe dans le brouillard ; `[[nodiscard]]` |
 | `void mettreAJour(float dt)` | Sans effet si la partie est perdue ou gagnée (le monde est figé). Sinon exécute, dans l'ordre : lancer de zone, skill demandé, `attaquer(dt, …)` et application des coups, déverrouillage si la cible est morte, retrait des monstres morts, ordre de déplacement, mise à jour (**photo des deux camps** pour les zones de contrôle, escouade avec sa `VueDesMonstres` — physiques, ciblables et monstres de la photo —, puis ouverture de la porte en cours d'interaction si `unVivantPresDe(zone, 20 px)`, tour de chaque monstre avec ses obstacles bloquants — personnages vivants et autres monstres — et ses cercles à contourner — les autres monstres seulement —, avec l'engagement et le départ de son coup, puis **seconde photo** et coups gratuits des deux sens : `coupsDOpportunite` ; dégâts de base de l'attaquant, `Escouade::recevoirCoup` côté personnage, `Monstre::recevoirDegats` côté monstre ; monstres tués retirés, verrou levé) ; vide les demandes. Chaque coup résolu (`appliquer`, `infligerAUnPersonnage` : dégâts, critique, esquive ou blocage, par `signalerLeCoup`) et chaque soin pris à `Escouade::prendreSoins` passe par `signaler`, seul endroit où naît un événement ; les coups gratuits sont marqués `opportunite` |
 | `void dessiner(sf::RenderTarget& rendu, bool afficherAncre, bool marquerLeRetour, bool brouillard) const` | Carte, monstres (contour jaune sur le monstre verrouillé ; `marquerLeRetour` est transmis à `Monstre::dessiner` ; un monstre non visible n'est pas dessiné si `brouillard`), escouade (`afficherAncre` est transmis à `Escouade::dessiner`), puis le voile de la `Vision` si `brouillard` |
@@ -671,7 +672,7 @@ Trois fonctions libres :
 
 ### `CommandeDeTouche` (`interface/`) — ce qu'une touche demande
 
-`CommandeDeTouche.hpp` / `.cpp`. Types dans le namespace `commande` (`Rien`, `Annuler`, `OuvrirInventaire`, `RetourAuChoix`, `NouvelleCarte`, `BasculerPointsVises`, `BasculerAncre`, `BasculerBrouillard`, `AjouterDesObjetsDeDemonstration`, `ActiverEmplacement {std::size_t emplacement}`) et `using CommandeDeTouche = std::variant<...>`.
+`CommandeDeTouche.hpp` / `.cpp`. Types dans le namespace `commande` (`Rien`, `Annuler`, `OuvrirInventaire`, `RetourAuChoix`, `NouvelleCarte`, `BasculerPointsVises`, `BasculerAncre`, `BasculerBrouillard`, `AjouterDesObjetsAleatoires`, `ActiverEmplacement {std::size_t emplacement}`) et `using CommandeDeTouche = std::variant<...>`.
 
 | Fonction | Rôle |
 |---|---|

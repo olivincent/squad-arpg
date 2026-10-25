@@ -4,7 +4,7 @@ Le modèle des objets (étape 83) : le catalogue, ce que porte chaque personnage
 l'escouade et les opérations qui déplacent un objet. L'écran d'inventaire (étape 84) les affiche, et
 le glisser-déposer (étape 85) les déplace. Les armes (étape 91) donnent l'attaque de base et la zone de
 contrôle, et le bouclier son blocage. Depuis l'étape 95, un objet porte sa rareté et au plus un préfixe et un
-suffixe (« Rareté et affixes »). L'armure et son effet sur les dégâts sont dans `docs/combat.md`, la construction des
+suffixe (« Rareté et affixes »), et depuis l'étape 96 `genererObjet` en tire au hasard (« Génération aléatoire »). L'armure et son effet sur les dégâts sont dans `docs/combat.md`, la construction des
 personnages dans `docs/formation.md`. Les textes affichés sont en anglais (`docs/glossaire.md`) : les noms ci-dessous
 sont ceux du jeu, les identifiants du code restent en français.
 
@@ -175,22 +175,25 @@ sont ceux du jeu, les identifiants du code restent en français.
 - **Invariants : une fonction de validation, pas une construction avec `assert`.** `objetValide(const Objet&)`
   (`CatalogueObjets`) vérifie que chaque affixe est à sa position (un préfixe dans `prefixe`), permis pour la catégorie du
   modèle (`affixePermis`) et de valeur strictement positive, et que le nombre d'affixes correspond à la rareté. Choix :
-  `Objet` est un agrégat (le tirage de l'étape 96, les tests, F7 l'écrivent en toutes lettres), donc une fonction de
+  `Objet` est un agrégat (`genererObjet`, les tests l'écrivent en toutes lettres), donc une fonction de
   construction n'obligerait personne à passer par elle, et un `assert` dans une construction ne protège pas les objets
   écrits à la main ; la validation se vérifie à chaque frontière (`assert(objetValide(...))` dans `Equipement::poser` et
-  `Inventaire::poser` / `ajouter`, test de données `test_CoherenceDesDonnees` pour les objets de démonstration et le sac de
-  départ) et se teste comme un prédicat, sans faire échouer le test par un `assert`. La valeur strictement positive vient
+  `Inventaire::poser` / `ajouter`, `assert` à la fin de `genererObjet`, test de données `test_CoherenceDesDonnees` pour le
+  sac de départ, et les 10 000 tirages de `test_GenerationDObjets`) et se teste comme un prédicat, sans faire échouer le test par un `assert`. La valeur strictement positive vient
   d'une hypothèse de `objetsActifs` (bonus positifs ou nuls).
 - **Le catalogue d'affixes** (`CatalogueAffixes`, en données comme les autres catalogues) : `DefinitionDAffixe { id, nom,
-  position, effet, categories }` dans l'ordre de `IdAffixe` (contrôlé par un `assert`). **Pas de plage de valeurs** : elle
-  arrive avec le tirage (étape 96). Douze affixes ; valeurs de démonstration « à tester » dans `objetsDeDemonstration`.
+  position, effet, valeurs, categories }` dans l'ordre de `IdAffixe` (contrôlé par un `assert`). Douze affixes. Depuis
+  l'étape 96, chacun a une **plage de valeurs** `{min, max}` (entiers, bornes incluses), qui ne sert qu'au tirage : la
+  valeur d'un objet est dans l'objet, rééquilibrer une plage ne change pas les objets déjà tirés. Valeurs « à tester » :
+  Blazing et Hallowed 3 – 8, Keen 10 – 20 (%), Reinforced 2 – 5, les cinq caractéristiques 1 – 3, Evasion et Deflection
+  2 – 4 (%), Blocking 3 – 7 (%). Un objet Rare utilise les mêmes plages qu'un objet Magic.
 
   | Affixe | Position | Effet | Catégories permises |
   |---|---|---|---|
   | Blazing (`Flamboyant`) | préfixe | points de feu ajoutés à l'attaque de base | armes |
   | Hallowed (`Sanctifie`) | préfixe | points de sacré ajoutés à l'attaque de base | armes |
   | Keen (`Acere`) | préfixe | pénétration d'armure en pour cent | armes |
-  | Reinforced (`Renforce`) | préfixe | armure | casque, armure, jambières, bouclier |
+  | Reinforced (`Renforce`) | préfixe | armure | casque, armure, jambières, gants, bottes, bouclier |
   | of the Ox / Bear / Fox / Owl / Lion | suffixe | un point de Might / Constitution / Dexterity / Intellect / Resolve | toutes |
   | of Evasion (`DEsquive`) | suffixe | esquive contre le contact, en pour cent | bottes, armure |
   | of Deflection (`DeDeviation`) | suffixe | esquive contre les projectiles, en pour cent | casque, bouclier |
@@ -215,14 +218,43 @@ sont ceux du jeu, les identifiants du code restent en français.
   (`Equipement::actifPour` passe le bonus du modèle plus celui des affixes) : un suffixe « of the Ox » peut rendre actif un
   autre objet. Les **seuils ne dépendent que du modèle**. Un objet inactif perd tout : ses propriétés de modèle et ses
   affixes (on retire l'objet entier de l'équipement actif).
-- **Objets de démonstration (F7)** : `objetsDeDemonstration()` rend quatre objets, valeurs en constantes nommées de
-  `CatalogueObjets.cpp` : Blazing Mace (Magic, +6 de feu), Keen Bow of the Fox (Rare, +15 % de pénétration, +2 de Dexterity),
-  Reinforced Chain Mail of Evasion (Rare, +3 d'armure, +3 % d'esquive contre le contact), Round Shield of Blocking (Magic,
-  +5 % de chance de blocage). La touche F7 les met dans le sac par `Escouade::ramasserTout`, **tout ou rien** : sans quatre
-  cases libres, rien n'est ajouté (même esprit transactionnel que `ramasser`, sur une copie du sac).
+- **F7** (débogage) : `Partie::ramasserDesObjetsAleatoires(4)` tire quatre objets avec `genererObjet` et le `Generateur` de
+  la partie, puis les met dans le sac par `Escouade::ramasserTout`, **tout ou rien** : sans quatre cases libres
+  (`Inventaire::casesLibres`), rien n'est ajouté **et aucun tirage n'est fait** (la vérification précède le tirage, pour que
+  le refus ne fasse pas avancer le générateur). Les anciens objets de démonstration fixes ont disparu.
 - **Affichage** : le nom composé, de la couleur de la rareté dans l'infobulle ; le texte d'un objet magique ou rare (sigle
   dans le sac, nom sur un emplacement, objet saisi) prend la couleur de sa rareté ; le cadre rouge d'un objet inactif reste
   prioritaire. Voir « Affichage ».
+
+## Génération aléatoire (étape 96)
+
+`genererObjet(Generateur&)` (`GenerationDObjets`) tire un objet **toujours valide** (`objetValide`). Fonction libre de
+`objets/`, sans état : le seul hasard est le `Generateur` reçu, que la `Partie` possède (`objets/` inclut `base/`). Le tirage
+est le principal fabricant d'objets et le garant de leurs invariants ; on a gardé l'agrégat `Objet` (pas de classe à
+constructeur).
+1. **La rareté**, selon `poidsDeRarete` : Common 70, Magic 25, Rare 5 (des poids en données, comme les compositions de groupe ;
+   « à tester »). Elle est tirée **en premier et jamais retirée** : les proportions observées sont celles des poids.
+2. **Le modèle**, uniformément parmi ceux qui peuvent porter cette rareté. La règle est écrite une fois,
+   `peutPorterLaRarete(modèle, rareté)` : Common, tous ; Magic, au moins un affixe permis pour la catégorie ; Rare, au moins un
+   préfixe **et** un suffixe permis. Les anneaux et les colliers n'ont aucun préfixe : ils ne sont jamais Rare (voulu, voir les
+   pistes). Les gants et les bottes peuvent être Rare depuis que Reinforced leur est permis (ce sont des pièces d'armure).
+3. **Magic** : un affixe uniformément parmi **tous** ceux que la catégorie permet, préfixes et suffixes confondus
+   (`affixesPermisPour`), placé selon sa position. Une catégorie qui a plus de suffixes que de préfixes (une arme : 3
+   préfixes, 5 suffixes) donne donc plus souvent un suffixe. **Rare** : un préfixe uniforme parmi les préfixes permis et un
+   suffixe uniforme parmi les suffixes permis. Pas de poids par affixe (ils seraient tous égaux).
+4. **Chaque valeur** : un entier uniforme dans la plage de l'affixe.
+L'ordre des tirages est fixe (rareté, modèle, affixe, valeur, puis le second affixe d'un Rare), donc une graine donne
+toujours la même suite d'objets sur une même plateforme.
+
+**Portabilité** : `std::mt19937` est défini exactement par la norme, mais `std::uniform_int_distribution` ne l'est pas. Une
+même graine peut donc donner d'autres objets avec une autre bibliothèque standard (MSVC, libstdc++, libc++). C'est sans
+conséquence sur une seule plateforme, sans sauvegarde de graine ni multijoueur : rien à corriger. Les tests n'attendent
+donc aucun objet précis pour une graine : ils vérifient la validité, la couverture, les plages, les proportions et le
+déterminisme.
+
+**Proportions testées** : sur 10 000 tirages, l'écart type d'une proportion est d'au plus 0,5 point ; la tolérance de
+2 points (plus de quatre écarts types) ne sert pas à absorber le hasard, la graine étant fixe, mais à détecter un
+algorithme modifié (poids changés, rareté retirée après coup).
 
 ## Affichage (étape 84)
 
@@ -282,8 +314,8 @@ et le sac, en lecture seule ; aucune fonction de modification n'est appelée.
 
 - L'affichage est un sigle de deux lettres par objet : pas d'icônes ; la seule couleur est celle de la rareté
   (étape 95).
-- Les affixes n'ont pas de plage de valeurs (étape 96), pas de niveau d'objet, pas d'affixe de résistance ni de
-  modification des seuils ; un seul préfixe et un seul suffixe ; pas d'objet unique ni de rareté supérieure à Rare.
+- Pas de niveau d'objet (les plages sont les mêmes pour tous les objets, Magic comme Rare), pas d'affixe de résistance ni
+  de modification des seuils ; les anneaux et les colliers n'ont aucun préfixe donc ne sont jamais Rare ; un seul préfixe et un seul suffixe ; pas d'objet unique ni de rareté supérieure à Rare.
 - L'emplacement affiche le nom du modèle (en la couleur de la rareté), pas le nom composé : trop long pour la cellule.
 - Pas de restriction d'équipement par classe, pas de butin au sol : une nouvelle partie repart toujours du
   départ (aucune sauvegarde de l'équipement). Pas de deux armes à la fois (la main gauche ne tient qu'un
@@ -331,7 +363,7 @@ huit suffixes) ; `struct Affixe { IdAffixe id; int valeur; }` avec `operator==`.
 `CatalogueAffixes.hpp` / `.cpp`. `enum class PositionDAffixe { Prefixe, Suffixe }` ; `enum class EffetDAffixe {
 DegatsDeFeu, DegatsSacres, PenetrationDArmure, Armure, Puissance, Endurance, Adresse, Savoir, Volonte, EsquiveContact,
 EsquiveProjectile, ChanceDeBlocage }` ; `struct DefinitionDAffixe { IdAffixe id; std::string nom; PositionDAffixe position;
-EffetDAffixe effet; std::vector<CategorieObjet> categories; }` ; `struct ApportDesAffixes { int armure = 0; Caracteristiques
+EffetDAffixe effet; PlageDeValeurs valeurs; std::vector<CategorieObjet> categories; }` ; `struct PlageDeValeurs { int min; int max; }` ; `struct ApportDesAffixes { int armure = 0; Caracteristiques
 bonus; StatistiquesDeCombat bonusDeCombat; Degats degatsAjoutes; int penetration = 0; }`.
 
 | Fonction | Rôle |
@@ -339,6 +371,7 @@ bonus; StatistiquesDeCombat bonusDeCombat; Degats degatsAjoutes; int penetration
 | `const std::vector<DefinitionDAffixe>& catalogueAffixes()` | Tous les affixes, dans l'ordre de `IdAffixe` ; l'unique source de leurs données ; `[[nodiscard]]` |
 | `const DefinitionDAffixe& definitionAffixe(IdAffixe)` | L'affixe de cet identifiant ; `assert` : le catalogue suit l'ordre de l'enum ; `[[nodiscard]]` |
 | `bool affixePermis(IdAffixe, CategorieObjet)` | Un objet de cette catégorie peut-il le porter ? `[[nodiscard]]` |
+| `std::vector<IdAffixe> affixesPermisPour(CategorieObjet, PositionDAffixe)` | Les affixes de cette position qu'une catégorie peut porter, dans l'ordre du catalogue (étape 96.2) ; `[[nodiscard]]` |
 | `ApportDesAffixes apportDesAffixes(const Objet&)` | Ce que les affixes de l'objet ajoutent (préfixe plus suffixe) ; nul pour un objet commun ; `switch` sans `default` sur l'effet ; `[[nodiscard]]` |
 
 ### `CatalogueObjets` (`objets/`)
@@ -357,7 +390,6 @@ std::vector<SeuilDeCaracteristique> seuils = {}; }` et des fonctions libres, san
 | `const DescriptionDAttaque& mainsNues()` | L'attaque de base sans arme ; `[[nodiscard]]` |
 | `bool objetValide(const Objet&)` | Les invariants de l'objet : affixes à leur position, permis pour la catégorie, de valeur > 0, nombre conforme à la rareté (étape 95.3) ; `[[nodiscard]]` |
 | `std::string nomDeLObjet(const Objet&)` | « [préfixe] modèle [suffixe] » (« Blazing Mace ») ; `[[nodiscard]]` |
-| `std::vector<Objet> objetsDeDemonstration()` | Les quatre objets de F7 (Blazing Mace, Keen Bow of the Fox, Reinforced Chain Mail of Evasion, Round Shield of Blocking) ; `[[nodiscard]]` |
 | `std::vector<Objet> sacDeDepart()` | Le contenu du sac au début d'une partie : gants de cuir, bottes de cuir, casque de cuir, tunique matelassée, collier de protection, deux anneaux de protection, l'anneau de puissance, le collier d'endurance, une dague et une épée à deux mains ; `[[nodiscard]]` |
 
 Valeurs d'armure (provisoires ; recalibrées à l'étape 87.3 pour le modèle M1, puis à l'échelle × 3 à l'étape 91.2) :
@@ -391,6 +423,17 @@ un (valeurs « à tester », constantes nommées de `CatalogueObjets.cpp`) : les
 d'esquive contre le contact, le **casque de cuir** +5 % d'esquive contre les projectiles. Le **bouclier rond**
 (30 % de chance de blocage, 12 points absorbés) est depuis l'étape 91.6 une propriété du bouclier
 (`DonneesDeBouclier`), plus un bonus.
+
+### `GenerationDObjets` (`objets/`)
+
+`GenerationDObjets.hpp` / `.cpp` : des fonctions libres, sans état. `Affixe.hpp` porte aussi `inline constexpr std::array
+s_raretes` (les trois raretés, de la plus commune à la plus rare).
+
+| Fonction | Rôle |
+|---|---|
+| `int poidsDeRarete(Rarete)` | Le poids de cette rareté dans le tirage : 70, 25, 5 (« à tester ») ; `[[nodiscard]]` |
+| `bool peutPorterLaRarete(IdObjet, Rarete)` | L'unique endroit de la règle : Common toujours, Magic avec au moins un affixe permis, Rare avec un préfixe et un suffixe permis ; `[[nodiscard]]` |
+| `Objet genererObjet(Generateur&)` | Un objet tiré au hasard, valide (voir « Génération aléatoire ») ; `assert(objetValide)` ; `[[nodiscard]]` |
 
 ### `Equipement` (`objets/`)
 
@@ -437,6 +480,7 @@ Données membres : `m_cases` (`std::vector<std::optional<Objet>>`, dimensionné 
 |---|---|
 | `explicit Inventaire(std::size_t capacite)` | Un sac de cette taille, toutes les cases vides |
 | `std::size_t capacite() const` | Nombre de cases ; `[[nodiscard]]` |
+| `std::size_t casesLibres() const` | Nombre de cases vides (étape 96.4) ; `[[nodiscard]]` |
 | `const std::optional<Objet>& a(std::size_t caseDuSac) const` | L'objet de cette case, s'il y en a un ; `[[nodiscard]]` |
 | `std::optional<Objet> prendre(std::size_t caseDuSac)` | Vide la case et rend son objet ; les autres cases ne bougent pas ; `[[nodiscard]]` |
 | `std::optional<Objet> poser(std::size_t caseDuSac, Objet)` | Met l'objet dans la case et rend l'ancien contenu ; `[[nodiscard]]` |
@@ -514,5 +558,5 @@ libres sans état, qui rendent des `std::string` en UTF-8.
 | Opération d'`Escouade` | Réussit quand | Effet |
 |---|---|---|
 | `ramasser(Objet)` | le sac a une case libre | l'objet va dans la première case libre |
-| `ramasserTout(const std::vector<Objet>&)` | le sac a autant de cases libres que d'objets | tous les objets vont dans les premières cases libres, dans l'ordre ; sinon rien ne bouge (F7, étape 95.5) |
+| `ramasserTout(const std::vector<Objet>&)` | le sac a autant de cases libres que d'objets | tous les objets vont dans les premières cases libres, dans l'ordre ; sinon rien ne bouge (F7, étape 95.5 ; depuis l'étape 96 par `Partie::ramasserDesObjetsAleatoires`) |
 | `deplacerObjet(de, vers)` | `deplacerLesObjets` (règle de base et deux mains) | l'objet de `de` va à `vers` ; si `vers` est occupé, échange ; une arme à deux mains (ou un bouclier sur elle) range l'autre main dans le sac ; `de == vers` : rien ne bouge |

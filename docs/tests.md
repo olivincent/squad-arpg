@@ -36,7 +36,7 @@
   - `Partie` (étape 80) : `test_Partie_clics.cpp` (clics et ce qui est cliquable selon la vision),
     `_skills.cpp`, `_monstres.cpp` (combat, coup en préparation, alerte de groupe, provocation stricte,
     retour au poste), `_fin.cpp` (défaite, victoire, partie figée, réaffectation), `_portes.cpp`,
-    `_zonesDeControle.cpp` (avec le dégagement), `_evenements.cpp` ;
+    `_zonesDeControle.cpp` (avec le dégagement), `_evenements.cpp`, `_objets.cpp` (F7, étape 96) ;
   - `Monstre` (étape 80) : `test_Monstre.cpp` (forme, vie, dégâts, groupe, valeurs),
     `_etats.cpp` (garde, détection, poursuite, territoire, alerte, vue de la détection, contournement),
     `_retour.cpp` (retour au poste, invulnérabilité, régénération), `_engagement.cpp` (frappe, temps
@@ -1781,3 +1781,28 @@ vie). Une attaque « reconnaissable » (un coup qu'on suit parmi d'autres) s'obt
 - Une règle apprise : un `Objet` est un agrégat à valeurs par défaut, `Objet{IdObjet::Masse}` est commun ; les tests
   n'écrivent les affixes que quand ils les testent. Une aide de test qui prend un `IdObjet` pour porter une arme n'accepte pas
   d'affixes : les tests d'affixes posent l'objet après la construction (`poserEquipement`).
+
+## Étape 96 : la génération aléatoire des objets (+17 cas, 1 494 → 1 511)
+
+Les tirages utilisent une graine fixe : un test qui échoue échoue toujours de la même façon. Aucun test n'attend un objet
+précis pour une graine (la suite dépend de `std::uniform_int_distribution`, `docs/objets.md`, « Génération aléatoire ») ; ils
+vérifient des propriétés.
+- **96.2** : `tests/objets/test_GenerationDObjets.cpp` (nouveau, +4 : les poids 70, 25, 5 ; tout modèle peut être commun ; un
+  bijou peut être magique et jamais rare ; gants, bottes, armures et armes peuvent être rares) ; `test_CatalogueAffixes.cpp`
+  (+1 : `affixesPermisPour` ; et Reinforced permis sur les gants et les bottes) ; `test_CoherenceDesDonnees.cpp` (+2 : chaque
+  plage a `min >= 1` et `min <= max` ; chaque rareté a un poids positif et au moins un modèle qui peut la porter).
+- **96.3** : `test_GenerationDObjets.cpp` (+6, 10 000 tirages d'une graine fixe : tous valides ; chaque rareté, chaque modèle et
+  chaque affixe apparaissent et toute valeur est dans sa plage ; les bornes d'une plage sortent ; un anneau ou un collier
+  n'est jamais rare alors que des gants et des bottes le sont, avec Reinforced pour préfixe ; **proportions** de raretés à
+  deux points des poids ; même graine, même suite, autre graine, autre suite). **La tolérance de deux points** : sur
+  10 000 tirages l'écart type d'une proportion est d'au plus 0,5 point (à 70 %), donc deux points valent plus de quatre
+  écarts types ; la graine étant fixe, la tolérance ne sert pas à absorber le hasard mais à détecter un algorithme modifié
+  (poids changés, rareté retirée après coup parce que le modèle ne convient pas).
+- **96.4** : `tests/jeu/test_Partie_objets.cpp` (nouveau, +5 : quatre objets valides de plus dans le sac, rien d'autre ne
+  bouge ; le sac juste assez libre accepte ; **sans assez de cases libres, rien n'est ajouté ; un refus ne consomme aucun
+  tirage** — deux parties de même graine, l'une essaie 4 puis 3 objets, l'autre 3 : leurs sacs sont identiques ; la graine
+  décide des objets) ; `test_Inventaire.cpp` (+1 : `casesLibres`). Les objets de démonstration fixes disparaissent, ainsi que
+  leur test (-2) : `test_Escouade_equipement.cpp` utilise son propre lot de quatre objets à affixes (`s_lotDeQuatre`, qu'aucun
+  personnage ne porte au départ, pour que les exemplaires se comptent par valeur complète). L'effet de F7 sur `EcranJeu`
+  n'est toujours pas testé (cet écran a besoin d'une fenêtre) : il se réduit à un appel de
+  `Partie::ramasserDesObjetsAleatoires(4)`.
