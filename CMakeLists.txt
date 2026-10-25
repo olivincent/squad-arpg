@@ -65,6 +65,7 @@ add_library(squad_core STATIC
     src/interface/AffichageCaracteristiques.cpp
     src/interface/AffichageStatistiques.cpp
     src/interface/AffichageObjets.cpp
+    src/interface/AffichageObjetsAuSol.cpp
     src/interface/AffichageSkills.cpp
     src/interface/DispositionInventaire.cpp
     src/interface/EcranInventaire.cpp

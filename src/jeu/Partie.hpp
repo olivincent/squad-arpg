@@ -57,11 +57,14 @@ public:
 
     // Fige le monde (rien ne bouge) une fois la partie perdue ou gagnée.
     void mettreAJour(float dt);
+    // Le dessin d'une image se fait en deux temps, l'écran dessinant entre les deux ce qui n'est pas du noyau (les objets
+    // au sol, `interface/AffichageObjetsAuSol`, sous les monstres et l'escouade) : la carte, puis les entités et le voile.
+    void dessinerLaCarte(sf::RenderTarget& rendu) const;
     // `afficherAncre` est transmis à Escouade::dessiner, `marquerLeRetour` (débogage F3) à Monstre::dessiner.
     // `brouillard` (débogage F6) : vrai, seuls les monstres visibles sont dessinés et le voile de la
     // vision couvre l'inconnu et l'exploré ; faux, ni voile ni monstre caché. Visuel seulement : la
-    // règle de clic (monstre hors de vue, porte inconnue) n'en dépend pas.
-    void dessiner(sf::RenderTarget& rendu, bool afficherAncre, bool marquerLeRetour, bool brouillard) const;
+    // règle de clic (monstre hors de vue, porte inconnue) n'en dépend pas. À appeler après `dessinerLaCarte`.
+    void dessinerLesEntites(sf::RenderTarget& rendu, bool afficherAncre, bool marquerLeRetour, bool brouillard) const;
     // Débogage (F3) : chemin restant de chaque monstre.
     void dessinerCheminsDesMonstres(sf::RenderTarget& rendu) const;
     // Débogage (F3) : un cercle fin autour de chaque entité qui a une zone de contrôle (rayon de
@@ -95,6 +98,10 @@ public:
     [[nodiscard]] const std::vector<Monstre>& getMonstres() const;
     // Les objets posés au sol, dans l'ordre où ils sont tombés.
     [[nodiscard]] const std::vector<ObjetAuSol>& getObjetsAuSol() const;
+    // L'objet au sol que ce point (pixels du monde) désigne : le plus proche à moins de `s_rayonDeSurvolDObjet`, nullptr s'il
+    // n'y en a pas. Un objet est comme le terrain : sur une case jamais vue (inconnue), il est caché, donc introuvable ;
+    // dans une case explorée, même hors de vue, il se désigne.
+    [[nodiscard]] const ObjetAuSol* objetAuSolSous(sf::Vector2f point) const;
 
 private:
     struct LancerDeZone {

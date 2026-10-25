@@ -17,6 +17,10 @@ struct ObjetAuSol {
     bool operator==(const ObjetAuSol&) const = default;
 };
 
+// Le rayon (en pixels du monde) de la zone où le curseur désigne un objet au sol : un peu plus que son dessin (un losange de
+// 8 px de rayon, `interface/AffichageObjetsAuSol`), pour ne pas exiger la précision au pixel.
+inline constexpr float s_rayonDeSurvolDObjet = 14.0f;
+
 // Où poser un objet de plus, à partir de `origine` : le centre de la case de `origine` si aucun objet de `auSol` n'y est,
 // sinon celui de la case voisine la plus proche qui est praticable (ni mur ni porte fermée) et sans objet. Les voisines
 // sont essayées par couronnes de cases autour de l'origine (jusqu'à trois cases), les plus proches d'abord ; si toutes sont

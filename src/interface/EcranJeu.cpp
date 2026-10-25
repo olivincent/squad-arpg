@@ -25,6 +25,7 @@
 #include "interface/BarreDeRaccourcis.hpp"
 #include "interface/BarreDeSkills.hpp"
 #include "escouade/Specialite.hpp"
+#include "interface/AffichageObjetsAuSol.hpp"
 #include "interface/ClicInterface.hpp"
 #include "combat/Cible.hpp"
 #include "interface/CommandeDeTouche.hpp"
@@ -191,7 +192,9 @@ void EcranJeu::mettreAJour(float dt, const Contexte& contexte) {
 void EcranJeu::dessiner(const Contexte& contexte) const {
     sf::RenderWindow& fenetre = contexte.fenetre;
     fenetre.setView(m_camera);
-    m_partie.dessiner(fenetre, m_debogage.ancre, m_debogage.pointsVises, m_debogage.brouillard);
+    m_partie.dessinerLaCarte(fenetre);
+    dessinerObjetsAuSol(fenetre, m_partie.getObjetsAuSol());  // au-dessus du sol, sous les monstres et l'escouade
+    m_partie.dessinerLesEntites(fenetre, m_debogage.ancre, m_debogage.pointsVises, m_debogage.brouillard);
     m_controleur.dessinerApercu(m_partie, fenetre, fenetre.mapPixelToCoords(sf::Mouse::getPosition(fenetre)));
     if (m_debogage.pointsVises) {
         m_partie.getEscouade().dessinerPointsVises(fenetre);
@@ -199,6 +202,9 @@ void EcranJeu::dessiner(const Contexte& contexte) const {
         m_partie.dessinerZonesDeControle(fenetre);
     }
     m_textes.dessiner(fenetre, contexte.police);
+    if (const ObjetAuSol* survole = m_partie.objetAuSolSous(fenetre.mapPixelToCoords(sf::Mouse::getPosition(fenetre)))) {
+        dessinerNomDObjetAuSol(fenetre, contexte.police, *survole);
+    }
 
     // Interface fixe à l'écran : vue de l'interface, dessinée en dernier.
     fenetre.setView(vueDInterface(fenetre.getSize()));

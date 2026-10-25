@@ -146,3 +146,68 @@ TEST_CASE("butin : les categories du jeu laissent ce que leur definition annonce
     REQUIRE(creature.chanceDeButin == 100);
     REQUIRE(creature.nombreDObjets >= 1);
 }
+
+// Le survol (étape 97.4) : `Partie::objetAuSolSous`.
+namespace {
+// Une partie où le mage, qui voit à 50 px seulement, tue d'un coup d'explosion un monstre hors de sa vue, à 240 px de
+// l'escouade (hors de la détection du monstre, à portée du skill) : son butin tombe sur une case inconnue.
+Partie partieOuLeButinTombeDansLInconnu(sf::Vector2f* positionDuMonstre) {
+    constexpr float s_rayonDeVueCourt = 50.0f;
+    std::vector<DefinitionPersonnage> composition = compositionDeTest();
+    for (DefinitionPersonnage& definition : composition) {
+        definition.rayonVision = s_rayonDeVueCourt;
+    }
+    *positionDuMonstre = {440.0f, 200.0f};
+    // Un second monstre, loin dans un coin, pour que la partie ne soit pas gagnée (une partie gagnée se fige).
+    Partie partie = partieDeTest(niveauDegage({*positionDuMonstre, {570.0f, 570.0f}}), std::move(composition), s_graineDeTest,
+                                 monstreQuiLaisse(100, 1));
+    partie.lancerSkillDeZone(s_adresseExplosion, *positionDuMonstre);
+    avancer(partie, nombreDeTics(2.0f));
+    return partie;
+}
+}  // namespace
+
+TEST_CASE("objetAuSolSous : le curseur sur un objet explore le designe, un peu a cote aussi, loin non") {
+    Partie partie = partieDeButin(salleAvecMonstres({{140.0f, 60.0f}}), 100, 1);
+    toutTuer(partie);
+    REQUIRE(partie.getObjetsAuSol().size() == 1);
+    const ObjetAuSol& objet = partie.getObjetsAuSol().front();
+
+    REQUIRE(partie.objetAuSolSous(objet.position) == &objet);
+    REQUIRE(partie.objetAuSolSous(objet.position + sf::Vector2f(s_rayonDeSurvolDObjet - 1.0f, 0.0f)) == &objet);
+    REQUIRE(partie.objetAuSolSous(objet.position + sf::Vector2f(0.0f, s_rayonDeSurvolDObjet + 1.0f)) == nullptr);
+}
+
+TEST_CASE("objetAuSolSous : entre deux objets, le plus proche du curseur") {
+    Partie partie = partieDeButin(salleAvecMonstres({{140.0f, 60.0f}}), 100, 2);
+    toutTuer(partie);
+    REQUIRE(partie.getObjetsAuSol().size() == 2);
+    const ObjetAuSol& premier = partie.getObjetsAuSol()[0];
+    const ObjetAuSol& second = partie.getObjetsAuSol()[1];
+    // Deux cases voisines : leurs centres sont à 40 px, le curseur à 10 px du second les départage même si le premier est à 30 px.
+    const sf::Vector2f pres = second.position + (premier.position - second.position) * 0.1f;
+
+    REQUIRE(partie.objetAuSolSous(second.position) == &second);
+    REQUIRE(partie.objetAuSolSous(pres) == &second);
+    REQUIRE(partie.objetAuSolSous(premier.position) == &premier);
+}
+
+TEST_CASE("objetAuSolSous : un objet sur une case inconnue est cache, il se designe une fois la case explore, meme hors de vue") {
+    sf::Vector2f positionDuMonstre;
+    Partie partie = partieOuLeButinTombeDansLInconnu(&positionDuMonstre);
+    REQUIRE(partie.getMonstres().size() == 1);
+    REQUIRE(partie.getObjetsAuSol().size() == 1);
+    const sf::Vector2f positionDeLObjet = partie.getObjetsAuSol().front().position;
+
+    REQUIRE(partie.objetAuSolSous(positionDeLObjet) == nullptr);  // inconnu : caché
+
+    partie.ordonnerDeplacement(positionDeLObjet);
+    for (int i = 0; i < nombreDeTics(10.0f) && partie.objetAuSolSous(positionDeLObjet) == nullptr; ++i) {
+        partie.mettreAJour(s_dureeTic);
+    }
+    REQUIRE(partie.objetAuSolSous(positionDeLObjet) != nullptr);  // vu : exploré
+
+    partie.ordonnerDeplacement({100.0f, 200.0f});  // l'escouade s'éloigne : la case reste explorée, hors de vue
+    avancer(partie, nombreDeTics(10.0f));
+    REQUIRE(partie.objetAuSolSous(positionDeLObjet) != nullptr);
+}

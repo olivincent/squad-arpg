@@ -4,6 +4,7 @@
 #include <SFML/Graphics/Color.hpp>
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <utility>
 #include <variant>
 #include "base/Cercle.hpp"
@@ -441,8 +442,11 @@ void Partie::mettreAJour(float dt) {
     m_deplacementOrdonne.reset();
 }
 
-void Partie::dessiner(sf::RenderTarget& rendu, bool afficherAncre, bool marquerLeRetour, bool brouillard) const {
+void Partie::dessinerLaCarte(sf::RenderTarget& rendu) const {
     m_carte.dessiner(rendu);
+}
+
+void Partie::dessinerLesEntites(sf::RenderTarget& rendu, bool afficherAncre, bool marquerLeRetour, bool brouillard) const {
     for (const Monstre& m : m_monstres) {
         // Un monstre hors de vue n'est pas dessiné du tout (ni carré, ni barre de vie, ni contour).
         if (!brouillard || m_vision.estVisible(m.getCentre())) {
@@ -513,4 +517,18 @@ const std::vector<Monstre>& Partie::getMonstres() const {
 
 const std::vector<ObjetAuSol>& Partie::getObjetsAuSol() const {
     return m_objetsAuSol;
+}
+
+const ObjetAuSol* Partie::objetAuSolSous(sf::Vector2f point) const {
+    const ObjetAuSol* trouve = nullptr;
+    float meilleureDistance = s_rayonDeSurvolDObjet;
+    for (const ObjetAuSol& objet : m_objetsAuSol) {
+        const sf::Vector2f ecart = objet.position - point;
+        const float distance = std::hypot(ecart.x, ecart.y);
+        if (distance <= meilleureDistance && m_vision.etat(m_carte.caseContenant(objet.position)) != EtatCase::Inconnue) {
+            trouve = &objet;
+            meilleureDistance = distance;
+        }
+    }
+    return trouve;
 }
