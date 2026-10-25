@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cassert>
 #include <utility>
+#include "objets/CatalogueObjets.hpp"
 
 Inventaire::Inventaire(std::size_t capacite) : m_cases(capacite) {}
 
@@ -22,10 +23,12 @@ std::optional<Objet> Inventaire::prendre(std::size_t caseDuSac) {
 
 std::optional<Objet> Inventaire::poser(std::size_t caseDuSac, Objet objet) {
     assert(caseDuSac < m_cases.size());
+    assert(objetValide(objet));
     return std::exchange(m_cases[caseDuSac], objet);
 }
 
 bool Inventaire::ajouter(Objet objet) {
+    assert(objetValide(objet));
     const auto libre = std::ranges::find_if(m_cases, [](const std::optional<Objet>& c) { return !c; });
     if (libre == m_cases.end()) {
         return false;

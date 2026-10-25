@@ -17,7 +17,8 @@ const std::optional<Objet>& Equipement::a(Emplacement emplacement) const {
 }
 
 std::optional<Objet> Equipement::poser(Emplacement emplacement, Objet objet) {
-    assert(peutAller(definitionObjet(objet.id).categorie, emplacement));
+    assert(objetValide(objet));
+    assert(peutAller(definitionObjet(objet.modele).categorie, emplacement));
     std::optional<Objet>& place = m_objets[static_cast<std::size_t>(emplacement)];
     return std::exchange(place, objet);
 }
@@ -30,7 +31,7 @@ int Equipement::armureTotale() const {
     int total = 0;
     for (const std::optional<Objet>& objet : m_objets) {
         if (objet) {
-            total += definitionObjet(objet->id).armure;
+            total += definitionObjet(objet->modele).armure;
         }
     }
     return total;
@@ -40,7 +41,7 @@ StatistiquesDeCombat Equipement::bonusDeCombatTotal() const {
     StatistiquesDeCombat total;
     for (const std::optional<Objet>& objet : m_objets) {
         if (objet) {
-            const DefinitionObjet& definition = definitionObjet(objet->id);
+            const DefinitionObjet& definition = definitionObjet(objet->modele);
             total += definition.bonusDeCombat;
             if (definition.bouclier.has_value()) {
                 total.chanceDeBlocage += definition.bouclier->chanceDeBlocage;
@@ -54,7 +55,7 @@ StatistiquesDeCombat Equipement::bonusDeCombatTotal() const {
 DescriptionDAttaque Equipement::attaqueDeBase() const {
     const std::optional<Objet>& main = a(Emplacement::MainDroite);
     if (main.has_value()) {
-        const std::optional<DonneesDArme>& arme = definitionObjet(main->id).arme;
+        const std::optional<DonneesDArme>& arme = definitionObjet(main->modele).arme;
         if (arme.has_value()) {
             return arme->attaque;
         }
@@ -65,7 +66,7 @@ DescriptionDAttaque Equipement::attaqueDeBase() const {
 std::optional<TypeDArme> Equipement::typeDArme() const {
     const std::optional<Objet>& main = a(Emplacement::MainDroite);
     if (main.has_value()) {
-        const std::optional<DonneesDArme>& arme = definitionObjet(main->id).arme;
+        const std::optional<DonneesDArme>& arme = definitionObjet(main->modele).arme;
         if (arme.has_value()) {
             return arme->type;
         }
@@ -78,7 +79,7 @@ Equipement Equipement::actifPour(const Caracteristiques& base) const {
     for (std::size_t i = 0; i < m_objets.size(); ++i) {
         const std::optional<Objet>& objet = m_objets[i];
         if (objet.has_value()) {
-            const DefinitionObjet& definition = definitionObjet(objet->id);
+            const DefinitionObjet& definition = definitionObjet(objet->modele);
             portes[i] = ExigencesEtBonus{definition.seuils, definition.bonus};
         }
     }
@@ -100,7 +101,7 @@ Caracteristiques Equipement::bonusTotal() const {
     Caracteristiques total;
     for (const std::optional<Objet>& objet : m_objets) {
         if (objet) {
-            total += definitionObjet(objet->id).bonus;
+            total += definitionObjet(objet->modele).bonus;
         }
     }
     return total;

@@ -2,6 +2,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <algorithm>
 #include <cstddef>
+#include <optional>
 #include <vector>
 
 #include "combat/NatureDAttaque.hpp"
@@ -51,9 +52,81 @@ TEST_CASE("definitionObjet : rend l'entree du catalogue de cet identifiant") {
     REQUIRE(definitionObjet(IdObjet::AnneauDeProtection).categorie == CategorieObjet::Anneau);
 }
 
-TEST_CASE("Objet : deux objets de meme modele sont egaux") {
+TEST_CASE("Objet : l'egalite est par valeur, modele, rarete et affixes compris") {
+    const Objet masseFlamboyante{IdObjet::Masse, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}};
+
     REQUIRE(Objet{IdObjet::GantsDeCuir} == Objet{IdObjet::GantsDeCuir});
     REQUIRE(Objet{IdObjet::GantsDeCuir} != Objet{IdObjet::BottesDeCuir});
+    REQUIRE(masseFlamboyante == Objet{IdObjet::Masse, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}});
+    REQUIRE(masseFlamboyante != Objet{IdObjet::Masse});                                                    // sans affixe
+    REQUIRE(masseFlamboyante != Objet{IdObjet::Masse, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 7}});  // autre valeur
+    REQUIRE(masseFlamboyante != Objet{IdObjet::Masse, Rarete::Magique, Affixe{IdAffixe::Sanctifie, 6}});   // autre affixe
+    REQUIRE(masseFlamboyante != Objet{IdObjet::Masse, Rarete::Rare, Affixe{IdAffixe::Flamboyant, 6}});     // autre rareté
+    REQUIRE(masseFlamboyante != Objet{IdObjet::Masse, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DuLion, 6}});
+}
+
+TEST_CASE("Objet : un objet sans autre precision est commun et sans affixe") {
+    const Objet objet{IdObjet::Arc};
+
+    REQUIRE(objet.rarete == Rarete::Commun);
+    REQUIRE_FALSE(objet.prefixe.has_value());
+    REQUIRE_FALSE(objet.suffixe.has_value());
+}
+
+TEST_CASE("objetValide : tout modele du catalogue est valide a l'etat commun") {
+    for (const DefinitionObjet& definition : catalogueObjets()) {
+        REQUIRE(objetValide(Objet{definition.id}));
+    }
+}
+
+TEST_CASE("objetValide : un objet magique a exactement un affixe, prefixe ou suffixe") {
+    REQUIRE(objetValide(Objet{IdObjet::Masse, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}}));
+    REQUIRE(objetValide(Objet{IdObjet::Masse, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DuBoeuf, 2}}));
+    REQUIRE_FALSE(objetValide(Objet{IdObjet::Masse, Rarete::Magique}));  // aucun affixe
+    REQUIRE_FALSE(objetValide(Objet{IdObjet::Masse, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}, Affixe{IdAffixe::DuBoeuf, 2}}));
+}
+
+TEST_CASE("objetValide : un objet rare a un prefixe et un suffixe") {
+    REQUIRE(objetValide(Objet{IdObjet::Arc, Rarete::Rare, Affixe{IdAffixe::Acere, 15}, Affixe{IdAffixe::DuRenard, 2}}));
+    REQUIRE_FALSE(objetValide(Objet{IdObjet::Arc, Rarete::Rare, Affixe{IdAffixe::Acere, 15}}));
+    REQUIRE_FALSE(objetValide(Objet{IdObjet::Arc, Rarete::Rare, std::nullopt, Affixe{IdAffixe::DuRenard, 2}}));
+    REQUIRE_FALSE(objetValide(Objet{IdObjet::Arc, Rarete::Rare}));
+}
+
+TEST_CASE("objetValide : un objet commun n'a aucun affixe") {
+    REQUIRE_FALSE(objetValide(Objet{IdObjet::Masse, Rarete::Commun, Affixe{IdAffixe::Flamboyant, 6}}));
+    REQUIRE_FALSE(objetValide(Objet{IdObjet::Masse, Rarete::Commun, std::nullopt, Affixe{IdAffixe::DuBoeuf, 2}}));
+}
+
+TEST_CASE("objetValide : un affixe est a sa position, un prefixe dans prefixe et un suffixe dans suffixe") {
+    REQUIRE_FALSE(objetValide(Objet{IdObjet::Masse, Rarete::Magique, Affixe{IdAffixe::DuBoeuf, 2}}));                    // suffixe en préfixe
+    REQUIRE_FALSE(objetValide(Objet{IdObjet::Masse, Rarete::Magique, std::nullopt, Affixe{IdAffixe::Flamboyant, 6}}));  // préfixe en suffixe
+    REQUIRE_FALSE(objetValide(Objet{IdObjet::Arc, Rarete::Rare, Affixe{IdAffixe::DuRenard, 2}, Affixe{IdAffixe::Acere, 15}}));  // inversés
+}
+
+TEST_CASE("objetValide : un affixe est permis pour la categorie du modele") {
+    REQUIRE_FALSE(objetValide(Objet{IdObjet::CasqueDeFer, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}}));  // du feu sur un casque
+    REQUIRE_FALSE(objetValide(Objet{IdObjet::Masse, Rarete::Magique, Affixe{IdAffixe::Renforce, 2}}));           // de l'armure sur une arme
+    REQUIRE_FALSE(objetValide(Objet{IdObjet::Masse, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeBlocage, 5}}));  // du blocage sur une arme
+    REQUIRE_FALSE(objetValide(Objet{IdObjet::BouclierRond, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DEsquive, 3}}));  // pas sur un bouclier
+    REQUIRE(objetValide(Objet{IdObjet::BouclierRond, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeBlocage, 5}}));
+    REQUIRE(objetValide(Objet{IdObjet::CuirasseDeMailles, Rarete::Rare, Affixe{IdAffixe::Renforce, 3}, Affixe{IdAffixe::DEsquive, 3}}));
+    REQUIRE(objetValide(Objet{IdObjet::AnneauDeProtection, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeLaChouette, 2}}));
+}
+
+TEST_CASE("objetValide : la valeur d'un affixe est strictement positive") {
+    REQUIRE_FALSE(objetValide(Objet{IdObjet::Masse, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 0}}));
+    REQUIRE_FALSE(objetValide(Objet{IdObjet::Masse, Rarete::Magique, Affixe{IdAffixe::Flamboyant, -6}}));
+}
+
+TEST_CASE("nomDeLObjet : prefixe, modele, suffixe") {
+    REQUIRE(nomDeLObjet(Objet{IdObjet::Masse}) == "Mace");
+    REQUIRE(nomDeLObjet(Objet{IdObjet::Masse, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}}) == "Blazing Mace");
+    REQUIRE(nomDeLObjet(Objet{IdObjet::Arc, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DuRenard, 2}}) == "Bow of the Fox");
+    REQUIRE(nomDeLObjet(Objet{IdObjet::Arc, Rarete::Rare, Affixe{IdAffixe::Acere, 15}, Affixe{IdAffixe::DuRenard, 2}}) ==
+            "Keen Bow of the Fox");
+    REQUIRE(nomDeLObjet(Objet{IdObjet::CuirasseDeMailles, Rarete::Rare, Affixe{IdAffixe::Renforce, 3}, Affixe{IdAffixe::DEsquive, 3}}) ==
+            "Reinforced Chain Mail of Evasion");
 }
 
 TEST_CASE("sacDeDepart : des objets du catalogue, dont au moins deux anneaux") {
@@ -62,7 +135,7 @@ TEST_CASE("sacDeDepart : des objets du catalogue, dont au moins deux anneaux") {
     REQUIRE_FALSE(sac.empty());
     std::size_t anneaux = 0;
     for (const Objet& objet : sac) {
-        if (definitionObjet(objet.id).categorie == CategorieObjet::Anneau) {
+        if (definitionObjet(objet.modele).categorie == CategorieObjet::Anneau) {
             ++anneaux;
         }
     }

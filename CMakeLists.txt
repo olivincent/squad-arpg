@@ -84,6 +84,7 @@ add_library(squad_core STATIC
     src/combat/Defense.cpp
     src/combat/ResolutionDuCoup.cpp
     src/objets/Emplacement.cpp
+    src/objets/CatalogueAffixes.cpp
     src/objets/CatalogueObjets.cpp
     src/objets/Equipement.cpp
     src/objets/Inventaire.cpp
@@ -187,6 +188,7 @@ add_executable(tests
     tests/combat/test_Blocage.cpp
     tests/combat/test_EvenementDeCombat.cpp
     tests/objets/test_Emplacement.cpp
+    tests/objets/test_CatalogueAffixes.cpp
     tests/objets/test_CatalogueObjets.cpp
     tests/objets/test_Equipement.cpp
     tests/objets/test_Inventaire.cpp

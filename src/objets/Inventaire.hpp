@@ -20,7 +20,8 @@ public:
     // Vide cette case et rend son objet (vide si la case l'était).
     [[nodiscard]] std::optional<Objet> prendre(std::size_t caseDuSac);
 
-    // Met `objet` dans cette case et rend l'ancien contenu.
+    // Met `objet` dans cette case et rend l'ancien contenu. `assert` : l'objet est valide (`objetValide`), ici et dans
+    // `ajouter`.
     [[nodiscard]] std::optional<Objet> poser(std::size_t caseDuSac, Objet objet);
 
     // Met `objet` dans la première case libre. Faux, sans rien changer, si le sac est plein.

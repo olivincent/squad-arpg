@@ -139,6 +139,34 @@ const DescriptionDAttaque& mainsNues() {
     return s_mainsNues;
 }
 
+bool objetValide(const Objet& objet) {
+    const CategorieObjet categorie = definitionObjet(objet.modele).categorie;
+    const auto affixeValide = [&](const std::optional<Affixe>& affixe, PositionDAffixe position) {
+        return !affixe.has_value() || (affixe->valeur > 0 && definitionAffixe(affixe->id).position == position &&
+                                       affixePermis(affixe->id, categorie));
+    };
+    if (!affixeValide(objet.prefixe, PositionDAffixe::Prefixe) || !affixeValide(objet.suffixe, PositionDAffixe::Suffixe)) {
+        return false;
+    }
+    switch (objet.rarete) {
+        case Rarete::Commun: return !objet.prefixe.has_value() && !objet.suffixe.has_value();
+        case Rarete::Magique: return objet.prefixe.has_value() != objet.suffixe.has_value();
+        case Rarete::Rare: return objet.prefixe.has_value() && objet.suffixe.has_value();
+    }
+    return false;
+}
+
+std::string nomDeLObjet(const Objet& objet) {
+    std::string nom = definitionObjet(objet.modele).nom;
+    if (objet.prefixe.has_value()) {
+        nom = definitionAffixe(objet.prefixe->id).nom + " " + nom;
+    }
+    if (objet.suffixe.has_value()) {
+        nom += " " + definitionAffixe(objet.suffixe->id).nom;
+    }
+    return nom;
+}
+
 bool seuilsAtteints(IdObjet id, const Caracteristiques& caracteristiques) {
     for (const SeuilDeCaracteristique& seuil : definitionObjet(id).seuils) {
         if (caracteristiques.valeur(seuil.caracteristique) < seuil.valeur) {

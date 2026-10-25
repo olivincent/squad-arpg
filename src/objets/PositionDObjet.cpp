@@ -7,7 +7,7 @@
 
 namespace {
 bool objetPeutAller(const Objet& objet, Emplacement emplacement) {
-    return peutAller(definitionObjet(objet.id).categorie, emplacement);
+    return peutAller(definitionObjet(objet.modele).categorie, emplacement);
 }
 
 // L'emplacement de cette position, vide si c'est une case du sac. (`objets/` ne dépend que de

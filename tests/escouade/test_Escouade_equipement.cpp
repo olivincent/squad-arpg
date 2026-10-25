@@ -1,7 +1,10 @@
 // ./tests/escouade/test_Escouade_equipement.cpp
 #include <catch2/catch_test_macros.hpp>
+#include <algorithm>
+#include <array>
 #include <cstddef>
 #include <optional>
+#include <utility>
 #include <vector>
 
 #include "aides.hpp"
@@ -24,22 +27,37 @@ constexpr std::size_t s_guerrier = 1;
 constexpr std::size_t s_mage = 3;
 constexpr int s_coup = 10;  // petit : trois coups ne tuent personne, quelle que soit l'armure
 
-// Combien d'exemplaires de chaque objet existent dans le sac et dans tous les équipements.
-std::vector<int> exemplaires(const Escouade& escouade) {
-    std::vector<int> nombre(catalogueObjets().size(), 0);
+// Un objet par valeur complète (modèle, rareté, affixes), sous une forme qui se trie : deux objets du même modèle mais
+// d'affixes différents sont deux exemplaires distincts.
+using Cle = std::array<int, 6>;
+
+Cle cle(const Objet& objet) {
+    const auto affixe = [](const std::optional<Affixe>& a) { return a.has_value() ? std::pair{static_cast<int>(a->id), a->valeur} : std::pair{-1, 0}; };
+    const auto [idPrefixe, valeurPrefixe] = affixe(objet.prefixe);
+    const auto [idSuffixe, valeurSuffixe] = affixe(objet.suffixe);
+    return {static_cast<int>(objet.modele), static_cast<int>(objet.rarete), idPrefixe, valeurPrefixe, idSuffixe, valeurSuffixe};
+}
+
+// Tous les objets qui existent dans le sac et dans tous les équipements, un par exemplaire, triés : comparer deux de
+// ces listes compte les exemplaires par valeur complète.
+using Exemplaires = std::vector<Cle>;
+
+Exemplaires exemplaires(const Escouade& escouade) {
+    Exemplaires tous;
     for (std::size_t i = 0; i < escouade.sac().capacite(); ++i) {
         if (const std::optional<Objet>& objet = escouade.sac().a(i)) {
-            ++nombre[static_cast<std::size_t>(objet->id)];
+            tous.push_back(cle(*objet));
         }
     }
     for (std::size_t place = 1; place <= 3; ++place) {
         for (std::size_t e = 0; e < s_nombreEmplacements; ++e) {
             if (const std::optional<Objet>& objet = escouade.equipementDuPersonnage(place).a(static_cast<Emplacement>(e))) {
-                ++nombre[static_cast<std::size_t>(objet->id)];
+                tous.push_back(cle(*objet));
             }
         }
     }
-    return nombre;
+    std::ranges::sort(tous);
+    return tous;
 }
 
 // Les dégâts qu'un coup de `s_coup` fait à ce personnage, armure comprise.
@@ -96,14 +114,14 @@ TEST_CASE("ramasser : premiere case libre, puis faux quand le sac est plein") {
     for (std::size_t i = 2; i < escouade.sac().capacite(); ++i) {
         REQUIRE(escouade.ramasser(s_gants));
     }
-    const std::vector<int> avant = exemplaires(escouade);
+    const Exemplaires avant = exemplaires(escouade);
     REQUIRE_FALSE(escouade.ramasser(s_casqueDeCuir));
     REQUIRE(exemplaires(escouade) == avant);
 }
 
 TEST_CASE("deplacer du sac vers un emplacement vide : l'objet quitte le sac, l'emplacement vide le recoit, l'armure suit") {
     Escouade escouade = escouadeAvecSac({s_gants});
-    const std::vector<int> avant = exemplaires(escouade);
+    const Exemplaires avant = exemplaires(escouade);
 
     REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_mage, Emplacement::Gants)));
 
@@ -115,7 +133,7 @@ TEST_CASE("deplacer du sac vers un emplacement vide : l'objet quitte le sac, l'e
 
 TEST_CASE("deplacer du sac vers un emplacement occupe echange avec la case du sac") {
     Escouade escouade = escouadeAvecSac({s_casqueDeCuir});
-    const std::vector<int> avant = exemplaires(escouade);
+    const Exemplaires avant = exemplaires(escouade);
     const int armureAvant = escouade.equipementDuPersonnage(s_guerrier).armureTotale();
 
     REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::Tete)));
@@ -131,7 +149,7 @@ TEST_CASE("deplacer du sac vers un emplacement occupe echange avec la case du sa
 
 TEST_CASE("deplacer du sac vers un emplacement : case vide ou emplacement refuse, rien ne bouge") {
     Escouade escouade = escouadeAvecSac({s_gants});
-    const std::vector<int> avant = exemplaires(escouade);
+    const Exemplaires avant = exemplaires(escouade);
 
     REQUIRE_FALSE(escouade.deplacerObjet(dansLeSac(5), portee(s_mage, Emplacement::Gants)));       // case vide
     REQUIRE_FALSE(escouade.deplacerObjet(dansLeSac(0), portee(s_mage, Emplacement::Tete)));        // des gants ne vont pas sur la tete
@@ -155,7 +173,7 @@ TEST_CASE("deplacer : un personnage mort peut etre equipe") {
 
 TEST_CASE("deplacer d'un emplacement vers une case vide : l'objet va dans le sac, l'armure baisse") {
     Escouade escouade = uneEscouadeCapableDeToutPorter({50.0f, 50.0f});
-    const std::vector<int> avant = exemplaires(escouade);
+    const Exemplaires avant = exemplaires(escouade);
     const int armureAvant = escouade.equipementDuPersonnage(s_guerrier).armureTotale();
 
     REQUIRE(escouade.deplacerObjet(portee(s_guerrier, Emplacement::Tete), dansLeSac(7)));
@@ -169,7 +187,7 @@ TEST_CASE("deplacer d'un emplacement vers une case vide : l'objet va dans le sac
 
 TEST_CASE("deplacer d'un emplacement vers une case occupee par un objet compatible echange") {
     Escouade escouade = escouadeAvecSac({s_casqueDeCuir});
-    const std::vector<int> avant = exemplaires(escouade);
+    const Exemplaires avant = exemplaires(escouade);
 
     REQUIRE(escouade.deplacerObjet(portee(s_guerrier, Emplacement::Tete), dansLeSac(0)));
 
@@ -180,7 +198,7 @@ TEST_CASE("deplacer d'un emplacement vers une case occupee par un objet compatib
 
 TEST_CASE("deplacer d'un emplacement vers une case occupee par un objet incompatible : rien ne bouge") {
     Escouade escouade = escouadeAvecSac({s_gants});
-    const std::vector<int> avant = exemplaires(escouade);
+    const Exemplaires avant = exemplaires(escouade);
 
     REQUIRE_FALSE(escouade.deplacerObjet(portee(s_guerrier, Emplacement::Tete), dansLeSac(0)));
 
@@ -192,7 +210,7 @@ TEST_CASE("deplacer d'un emplacement vers une case occupee par un objet incompat
 
 TEST_CASE("deplacer d'un emplacement vide : faux, rien ne bouge") {
     Escouade escouade = escouadeAvecSac({s_gants});
-    const std::vector<int> avant = exemplaires(escouade);
+    const Exemplaires avant = exemplaires(escouade);
 
     REQUIRE_FALSE(escouade.deplacerObjet(portee(s_mage, Emplacement::Gants), dansLeSac(3)));
 
@@ -218,7 +236,7 @@ TEST_CASE("tout desequiper ramene l'armure a zero, tout reequiper la rend") {
 
 TEST_CASE("l'armure suit un objet d'un personnage a l'autre") {
     Escouade escouade = uneEscouadeCapableDeToutPorter({50.0f, 50.0f});
-    const std::vector<int> avant = exemplaires(escouade);
+    const Exemplaires avant = exemplaires(escouade);
     const int armureJambieres = definitionObjet(IdObjet::JambieresDeFer).armure;
     const int armureGuerrier = escouade.equipementDuPersonnage(s_guerrier).armureTotale();
 
@@ -236,7 +254,7 @@ TEST_CASE("echange entre deux personnages : les deux armures changent") {
     Escouade escouade = uneEscouadeCapableDeToutPorter({50.0f, 50.0f});
     REQUIRE(escouade.ramasser(s_casqueDeCuir));
     REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_mage, Emplacement::Tete)));
-    const std::vector<int> avant = exemplaires(escouade);
+    const Exemplaires avant = exemplaires(escouade);
     const int armureGuerrier = escouade.equipementDuPersonnage(s_guerrier).armureTotale();
     const int armureMage = escouade.equipementDuPersonnage(s_mage).armureTotale();
     const int ecart = definitionObjet(IdObjet::CasqueDeFer).armure - definitionObjet(IdObjet::CasqueDeCuir).armure;
@@ -252,7 +270,7 @@ TEST_CASE("echange entre deux personnages : les deux armures changent") {
 
 TEST_CASE("deplacer d'une case du sac a une autre : case vide, case occupee, meme case") {
     Escouade escouade = escouadeAvecSac({s_gants, s_casqueDeCuir});
-    const std::vector<int> avant = exemplaires(escouade);
+    const Exemplaires avant = exemplaires(escouade);
 
     REQUIRE(escouade.deplacerObjet(dansLeSac(0), dansLeSac(9)));
     REQUIRE_FALSE(escouade.sac().a(0).has_value());
@@ -269,7 +287,7 @@ TEST_CASE("deplacer d'une case du sac a une autre : case vide, case occupee, mem
 
 TEST_CASE("deplacer : source vide ou destination refusee, rien ne bouge") {
     Escouade escouade = escouadeAvecSac({s_gants});
-    const std::vector<int> avant = exemplaires(escouade);
+    const Exemplaires avant = exemplaires(escouade);
 
     REQUIRE_FALSE(escouade.deplacerObjet(dansLeSac(5), dansLeSac(6)));                              // source vide
     REQUIRE_FALSE(escouade.deplacerObjet(portee(s_mage, Emplacement::Gants), dansLeSac(0)));        // emplacement vide
@@ -282,7 +300,7 @@ TEST_CASE("deplacer : source vide ou destination refusee, rien ne bouge") {
 
 TEST_CASE("peutDeplacerObjet : repond comme deplacerObjet, sans rien changer") {
     Escouade escouade = escouadeAvecSac({s_gants});
-    const std::vector<int> avant = exemplaires(escouade);
+    const Exemplaires avant = exemplaires(escouade);
 
     REQUIRE(escouade.peutDeplacerObjet(dansLeSac(0), portee(s_mage, Emplacement::Gants)));
     REQUIRE_FALSE(escouade.peutDeplacerObjet(dansLeSac(0), portee(s_mage, Emplacement::Tete)));
@@ -347,7 +365,7 @@ Escouade escouadeDuGuerrierAuBouclier() {
 
 TEST_CASE("deux mains : l'epee a deux mains range le bouclier du guerrier dans le sac, et son armure baisse") {
     Escouade escouade = escouadeDuGuerrierAuBouclier();
-    const std::vector<int> avant = exemplaires(escouade);
+    const Exemplaires avant = exemplaires(escouade);
     const int armureAvant = escouade.equipementDuPersonnage(s_guerrier).armureTotale();
     REQUIRE(escouade.peutDeplacerObjet(dansLeSac(1), portee(s_guerrier, Emplacement::MainDroite)));
 
@@ -366,7 +384,7 @@ TEST_CASE("deux mains : l'epee a deux mains range le bouclier du guerrier dans l
 TEST_CASE("deux mains : un bouclier range l'arme a deux mains que le guerrier porte") {
     Escouade escouade = escouadeAvecSac({s_epeeADeuxMains, s_bouclier});
     REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::MainDroite)));
-    const std::vector<int> avant = exemplaires(escouade);
+    const Exemplaires avant = exemplaires(escouade);
 
     REQUIRE(escouade.deplacerObjet(dansLeSac(1), portee(s_guerrier, Emplacement::MainGauche)));
 
@@ -394,7 +412,7 @@ TEST_CASE("deux mains : sac plein, l'epee a deux mains est refusee (ni surbrilla
     REQUIRE(escouade.deplacerObjet(dansLeSac(1), portee(s_mage, Emplacement::MainDroite)));
     while (escouade.ramasser(s_gants)) {
     }
-    const std::vector<int> avant = exemplaires(escouade);
+    const Exemplaires avant = exemplaires(escouade);
     const int armure = escouade.equipementDuPersonnage(s_guerrier).armureTotale();
 
     // L'épée du mage va chez le guerrier (qui a son bouclier) : le sac est plein, aucune case ne se libère.
@@ -436,7 +454,7 @@ TEST_CASE("seuils : le mage ne peut pas recevoir la cuirasse de mailles, ni la s
     Escouade escouade = uneEscouade({50.0f, 50.0f});  // le mage n'a pas l'Endurance de la cuirasse
     const Objet cuirasse{IdObjet::CuirasseDeMailles};
     REQUIRE(escouade.ramasser(cuirasse));
-    const std::vector<int> avant = exemplaires(escouade);
+    const Exemplaires avant = exemplaires(escouade);
 
     REQUIRE_FALSE(escouade.peutDeplacerObjet(dansLeSac(0), portee(s_mage, Emplacement::Torse)));
     REQUIRE_FALSE(escouade.deplacerObjet(dansLeSac(0), portee(s_mage, Emplacement::Torse)));
@@ -507,4 +525,21 @@ TEST_CASE("la penetration de l'attaque de base lue par l'escouade (coup d'opport
     REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::MainDroite)));
 
     REQUIRE(escouade.attaqueDeBase(s_guerrier)->penetration == definitionObjet(IdObjet::Dague).arme->attaque.penetration);
+}
+
+TEST_CASE("un objet a affixes garde ses affixes du sac a l'emplacement et retour, et se compte par valeur complete") {
+    const Objet masseFlamboyante{IdObjet::Masse, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}};
+    const Objet masseCommune{IdObjet::Masse};
+    Escouade escouade = escouadeAvecSac({masseFlamboyante, masseCommune});
+    const Exemplaires avant = exemplaires(escouade);
+
+    REQUIRE(std::ranges::count(avant, cle(masseFlamboyante)) == 1);  // la masse commune est comptée à part, même modèle
+    REQUIRE(std::ranges::count(avant, cle(masseCommune)) >= 1);
+    REQUIRE(cle(masseFlamboyante) != cle(masseCommune));
+    REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_mage, Emplacement::MainDroite)));
+    REQUIRE(escouade.equipementDuPersonnage(s_mage).a(Emplacement::MainDroite) == masseFlamboyante);
+    REQUIRE(exemplaires(escouade) == avant);
+    REQUIRE(escouade.deplacerObjet(portee(s_mage, Emplacement::MainDroite), dansLeSac(0)));
+    REQUIRE(escouade.sac().a(0) == masseFlamboyante);
+    REQUIRE(exemplaires(escouade) == avant);
 }

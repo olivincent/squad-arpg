@@ -99,7 +99,7 @@ void dessinerEmplacement(sf::RenderTarget& rendu, const sf::Font& police, sf::Fl
                          const std::optional<Objet>& objet, bool inactif) {
     if (objet.has_value()) {
         dessinerRectangle(rendu, zone, s_couleurCaseOccupee, s_couleurContourOccupe);
-        dessinerTexteCentre(rendu, police, definitionObjet(objet->id).nom, s_tailleNomDObjet, sf::Color::White, zone);
+        dessinerTexteCentre(rendu, police, definitionObjet(objet->modele).nom, s_tailleNomDObjet, sf::Color::White, zone);
         if (inactif) {
             sf::RectangleShape cadre(zone.size);
             cadre.setPosition(zone.position);
@@ -195,7 +195,7 @@ void dessinerLeSac(sf::RenderTarget& rendu, const sf::Font& police, const Invent
         const std::optional<Objet>& objet = sac.a(indice);
         if (objet.has_value()) {
             dessinerRectangle(rendu, zone, s_couleurCaseOccupee, s_couleurContourOccupe);
-            dessinerTexteCentre(rendu, police, sigleDeLObjet(objet->id), s_tailleSigle, sf::Color::White, zone);
+            dessinerTexteCentre(rendu, police, sigleDeLObjet(objet->modele), s_tailleSigle, sf::Color::White, zone);
         } else {
             dessinerRectangle(rendu, zone, s_couleurCaseVide, s_couleurContourVide);
         }
@@ -247,7 +247,7 @@ void dessinerObjetSaisi(sf::RenderTarget& rendu, const sf::Font& police, const O
     const sf::Vector2f taille = rectangleDeLaCaseDuSac(0, tailleDeVue).size;
     const sf::FloatRect zone{curseur - taille / 2.0f, taille};
     dessinerRectangle(rendu, zone, s_couleurCaseOccupee, sf::Color::White);
-    dessinerTexteCentre(rendu, police, sigleDeLObjet(objet.id), s_tailleSigle, sf::Color::White, zone);
+    dessinerTexteCentre(rendu, police, sigleDeLObjet(objet.modele), s_tailleSigle, sf::Color::White, zone);
 }
 
 // L'infobulle d'un objet près du curseur, gardée dans la vue : un cadre sombre, une ligne par texte. Les seuils de
@@ -257,7 +257,7 @@ void dessinerInfobulle(sf::RenderTarget& rendu, const sf::Font& police, const Ob
                        sf::Vector2f tailleDeVue, const std::vector<SeuilDeCaracteristique>& manques, bool inactif) {
     std::vector<sf::Text> lignes;
     float largeur = 0.0f;
-    std::vector<std::string> textes = lignesDeLInfobulle(objet.id);
+    std::vector<std::string> textes = lignesDeLInfobulle(objet.modele);
     if (inactif) {
         textes.push_back(ligneDObjetInactif());
     }
@@ -385,7 +385,7 @@ void EcranInventaire::dessiner(const Contexte& contexte) const {
             // Sur l'emplacement d'un personnage : les exigences de l'objet saisi, celles que ce personnage n'atteint
             // pas en rouge (étape 92.3).
             const std::optional<PositionDObjet> visee = elementSous(vue.point, tailleVue);
-            if (visee.has_value() && std::holds_alternative<PositionPortee>(*visee) && !definitionObjet(saisi->id).seuils.empty()) {
+            if (visee.has_value() && std::holds_alternative<PositionPortee>(*visee) && !definitionObjet(saisi->modele).seuils.empty()) {
                 dessinerInfobulle(fenetre, contexte.police, *saisi, vue.point, tailleVue, m_escouade.seuilsManques(*m_origine, *visee), false);
             }
         }

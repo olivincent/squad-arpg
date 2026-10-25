@@ -77,10 +77,10 @@ bool libererLaMainOpposee(EtatDesObjets& etat, const PositionDObjet& position) {
     // une arme à deux mains.
     const std::optional<Objet> droite = equipement.a(Emplacement::MainDroite);
     std::optional<Emplacement> aRanger;
-    if (portee->emplacement == Emplacement::MainDroite && estADeuxMains(pose->id) &&
+    if (portee->emplacement == Emplacement::MainDroite && estADeuxMains(pose->modele) &&
         equipement.a(Emplacement::MainGauche).has_value()) {
         aRanger = Emplacement::MainGauche;
-    } else if (portee->emplacement == Emplacement::MainGauche && droite.has_value() && estADeuxMains(droite->id)) {
+    } else if (portee->emplacement == Emplacement::MainGauche && droite.has_value() && estADeuxMains(droite->modele)) {
         aRanger = Emplacement::MainDroite;
     }
     if (!aRanger.has_value()) {
@@ -106,7 +106,7 @@ std::vector<SeuilDeCaracteristique> seuilsNonAtteints(const EtatDesObjets& etat,
     assert(portee->place <= etat.bases.size());
     const Caracteristiques effectives = caracteristiquesEffectives(etat.bases[portee->place - 1], sansLui);
     std::vector<SeuilDeCaracteristique> manques;
-    for (const SeuilDeCaracteristique& seuil : definitionObjet(pose->id).seuils) {
+    for (const SeuilDeCaracteristique& seuil : definitionObjet(pose->modele).seuils) {
         if (effectives.valeur(seuil.caracteristique) < seuil.valeur) {
             manques.push_back(seuil);
         }

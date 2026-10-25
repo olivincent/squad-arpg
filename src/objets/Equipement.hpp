@@ -35,8 +35,8 @@ public:
     // L'objet porté à cet emplacement, s'il y en a un.
     [[nodiscard]] const std::optional<Objet>& a(Emplacement emplacement) const;
 
-    // Porte `objet` à cet emplacement et rend celui qui y était. `assert` : l'objet peut aller à
-    // cet emplacement (`peutAller`) ; c'est à l'appelant de le vérifier.
+    // Porte `objet` à cet emplacement et rend celui qui y était. `assert` : l'objet est valide (`objetValide`) et peut
+    // aller à cet emplacement (`peutAller`) ; c'est à l'appelant de le vérifier.
     [[nodiscard]] std::optional<Objet> poser(Emplacement emplacement, Objet objet);
 
     // Enlève l'objet de cet emplacement et le rend (vide si l'emplacement l'était).

@@ -5,6 +5,7 @@
 #include <vector>
 #include "combat/Caracteristiques.hpp"
 #include "combat/StatistiquesDeCombat.hpp"
+#include "objets/CatalogueAffixes.hpp"
 #include "objets/DonneesDArme.hpp"
 #include "objets/DonneesDeBouclier.hpp"
 #include "objets/ObjetsActifs.hpp"
@@ -29,6 +30,21 @@ struct DefinitionObjet {
 
 // Le modèle de cet identifiant.
 [[nodiscard]] const DefinitionObjet& definitionObjet(IdObjet id);
+
+// L'objet respecte-t-il ses invariants ? Une fonction de validation plutôt qu'une fonction de construction avec
+// `assert` : `Objet` est un agrégat (on l'écrit en toutes lettres, comme le fera le tirage de l'étape 96), donc aucune
+// construction n'est obligée de passer par une fonction ; la validation, elle, se vérifie à chaque frontière
+// (`Equipement::poser`, le sac, les tests de données) et se teste sans `assert`. Un objet est valide quand :
+// - chaque affixe est à sa position (un préfixe dans `prefixe`, un suffixe dans `suffixe`), permis pour la catégorie de
+//   son modèle (`affixePermis`), et de valeur strictement positive (le calcul des objets actifs suppose des bonus
+//   positifs ou nuls) ;
+// - le nombre d'affixes correspond à la rareté : commun, aucun ; magique, exactement un (préfixe ou suffixe) ; rare, un
+//   préfixe et un suffixe.
+[[nodiscard]] bool objetValide(const Objet& objet);
+
+// Le nom affiché de cet objet : « [préfixe] modèle [suffixe] » (« Blazing Mace », « Keen Bow of the Fox »). L'anglais
+// n'accorde pas : aucun genre ni nombre à gérer sur les modèles.
+[[nodiscard]] std::string nomDeLObjet(const Objet& objet);
 
 // Ces caractéristiques atteignent-elles tous les seuils de cet objet ? Toujours vrai sans seuil.
 [[nodiscard]] bool seuilsAtteints(IdObjet id, const Caracteristiques& caracteristiques);
