@@ -177,6 +177,9 @@ public:
     // Équiper ou déséquiper un personnage mort est permis. `assert` : place valide, case du sac < capacité.
     // Met l'objet dans la première case libre du sac ; faux si le sac est plein.
     [[nodiscard]] bool ramasser(Objet objet);
+    // Met tous ces objets dans le sac, dans l'ordre, ou aucun : faux, sans rien changer, s'il n'y a pas assez de cases
+    // libres (même esprit que `ramasser`, transactionnel). Sert à la touche de débogage F7.
+    [[nodiscard]] bool ramasserTout(const std::vector<Objet>& objets);
     // L'objet à cette position, s'il y en a un (`assert` : place valide, case du sac < capacité).
     [[nodiscard]] std::optional<Objet> objetA(const PositionDObjet& position) const;
     // Un objet peut-il aller de `de` à `vers` (case du sac ou emplacement d'un personnage) ? Applique la règle

@@ -57,3 +57,7 @@ struct DefinitionObjet {
 
 // Le contenu du sac au début d'une partie.
 [[nodiscard]] std::vector<Objet> sacDeDepart();
+
+// Les objets de démonstration que la touche F7 met dans le sac (débogage, étape 95.5) : une masse flamboyante, un arc acéré
+// du renard, une cotte de mailles renforcée d'esquive, un bouclier rond de blocage. Tous valides (`objetValide`).
+[[nodiscard]] std::vector<Objet> objetsDeDemonstration();

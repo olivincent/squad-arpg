@@ -99,7 +99,7 @@ void dessinerEmplacement(sf::RenderTarget& rendu, const sf::Font& police, sf::Fl
                          const std::optional<Objet>& objet, bool inactif) {
     if (objet.has_value()) {
         dessinerRectangle(rendu, zone, s_couleurCaseOccupee, s_couleurContourOccupe);
-        dessinerTexteCentre(rendu, police, definitionObjet(objet->modele).nom, s_tailleNomDObjet, sf::Color::White, zone);
+        dessinerTexteCentre(rendu, police, definitionObjet(objet->modele).nom, s_tailleNomDObjet, couleurDeLaRarete(objet->rarete), zone);
         if (inactif) {
             sf::RectangleShape cadre(zone.size);
             cadre.setPosition(zone.position);
@@ -195,7 +195,7 @@ void dessinerLeSac(sf::RenderTarget& rendu, const sf::Font& police, const Invent
         const std::optional<Objet>& objet = sac.a(indice);
         if (objet.has_value()) {
             dessinerRectangle(rendu, zone, s_couleurCaseOccupee, s_couleurContourOccupe);
-            dessinerTexteCentre(rendu, police, sigleDeLObjet(objet->modele), s_tailleSigle, sf::Color::White, zone);
+            dessinerTexteCentre(rendu, police, sigleDeLObjet(objet->modele), s_tailleSigle, couleurDeLaRarete(objet->rarete), zone);
         } else {
             dessinerRectangle(rendu, zone, s_couleurCaseVide, s_couleurContourVide);
         }
@@ -247,24 +247,25 @@ void dessinerObjetSaisi(sf::RenderTarget& rendu, const sf::Font& police, const O
     const sf::Vector2f taille = rectangleDeLaCaseDuSac(0, tailleDeVue).size;
     const sf::FloatRect zone{curseur - taille / 2.0f, taille};
     dessinerRectangle(rendu, zone, s_couleurCaseOccupee, sf::Color::White);
-    dessinerTexteCentre(rendu, police, sigleDeLObjet(objet.modele), s_tailleSigle, sf::Color::White, zone);
+    dessinerTexteCentre(rendu, police, sigleDeLObjet(objet.modele), s_tailleSigle, couleurDeLaRarete(objet.rarete), zone);
 }
 
-// L'infobulle d'un objet près du curseur, gardée dans la vue : un cadre sombre, une ligne par texte. Les seuils de
-// `manques` (ceux que le personnage visé n'atteint pas) et, si l'objet est `inactif`, une dernière ligne « Inactif :
-// seuil non atteint », sont en rouge.
+// L'infobulle d'un objet près du curseur, gardée dans la vue : un cadre sombre, une ligne par texte. Le nom (première
+// ligne) est de la couleur de la rareté. Les seuils de `manques` (ceux que le personnage visé n'atteint pas) et, si
+// l'objet est `inactif`, une dernière ligne « Inactive: requirement not met », sont en rouge.
 void dessinerInfobulle(sf::RenderTarget& rendu, const sf::Font& police, const Objet& objet, sf::Vector2f curseur,
                        sf::Vector2f tailleDeVue, const std::vector<SeuilDeCaracteristique>& manques, bool inactif) {
     std::vector<sf::Text> lignes;
     float largeur = 0.0f;
-    std::vector<std::string> textes = lignesDeLInfobulle(objet.modele);
+    std::vector<std::string> textes = lignesDeLInfobulle(objet);
     if (inactif) {
         textes.push_back(ligneDObjetInactif());
     }
     for (const std::string& ligne : textes) {
         const bool enRouge = ligne == ligneDObjetInactif() ||
                              std::ranges::any_of(manques, [&](const SeuilDeCaracteristique& seuil) { return ligne == ligneDeSeuil(seuil); });
-        lignes.push_back(texte(police, ligne, s_tailleInfobulle, enRouge ? s_couleurInactif : sf::Color::White));
+        const sf::Color couleur = enRouge ? s_couleurInactif : (lignes.empty() ? couleurDeLaRarete(objet.rarete) : sf::Color::White);
+        lignes.push_back(texte(police, ligne, s_tailleInfobulle, couleur));
         largeur = std::max(largeur, lignes.back().getLocalBounds().size.x);
     }
     const float hauteurDeLigne = police.getLineSpacing(s_tailleInfobulle);

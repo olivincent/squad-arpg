@@ -543,3 +543,52 @@ TEST_CASE("un objet a affixes garde ses affixes du sac a l'emplacement et retour
     REQUIRE(escouade.sac().a(0) == masseFlamboyante);
     REQUIRE(exemplaires(escouade) == avant);
 }
+
+TEST_CASE("ramasserTout : tous les objets dans les premieres cases libres, dans l'ordre") {
+    Escouade escouade = escouadeAvecSac({s_gants});
+    const std::vector<Objet> demonstration = objetsDeDemonstration();
+
+    REQUIRE(escouade.ramasserTout(demonstration));
+
+    REQUIRE(escouade.sac().a(0) == s_gants);
+    for (std::size_t i = 0; i < demonstration.size(); ++i) {
+        REQUIRE(escouade.sac().a(i + 1) == demonstration[i]);
+    }
+    REQUIRE_FALSE(escouade.sac().a(demonstration.size() + 1).has_value());
+}
+
+TEST_CASE("ramasserTout : sans assez de cases libres, rien n'est ajoute (tout ou rien)") {
+    Escouade escouade = uneEscouadeCapableDeToutPorter({50.0f, 50.0f});
+    const std::size_t libres = 3;  // il en faut quatre
+    for (std::size_t i = 0; i + libres < escouade.sac().capacite(); ++i) {
+        REQUIRE(escouade.ramasser(s_gants));
+    }
+    const Exemplaires avant = exemplaires(escouade);
+
+    REQUIRE_FALSE(escouade.ramasserTout(objetsDeDemonstration()));
+
+    REQUIRE(exemplaires(escouade) == avant);
+    for (std::size_t i = escouade.sac().capacite() - libres; i < escouade.sac().capacite(); ++i) {
+        REQUIRE_FALSE(escouade.sac().a(i).has_value());  // aucune des trois cases libres n'a été remplie
+    }
+}
+
+TEST_CASE("ramasserTout : deux appels de suite sur un sac vide donnent deux exemplaires de chaque objet") {
+    Escouade escouade = uneEscouadeCapableDeToutPorter({50.0f, 50.0f});
+
+    REQUIRE(escouade.ramasserTout(objetsDeDemonstration()));
+    REQUIRE(escouade.ramasserTout(objetsDeDemonstration()));
+
+    const Exemplaires tous = exemplaires(escouade);
+    for (const Objet& objet : objetsDeDemonstration()) {
+        REQUIRE(std::ranges::count(tous, cle(objet)) == 2);  // deux exemplaires de la même valeur complète
+    }
+}
+
+TEST_CASE("ramasserTout : une liste vide reussit sans rien changer") {
+    Escouade escouade = escouadeAvecSac({s_gants});
+    const Exemplaires avant = exemplaires(escouade);
+
+    REQUIRE(escouade.ramasserTout({}));
+    REQUIRE(exemplaires(escouade) == avant);
+}

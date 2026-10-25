@@ -35,6 +35,7 @@ TEST_CASE("touche : les touches de debogage valent en tout temps") {
         REQUIRE(estCommande<commande::BasculerPointsVises>(sf::Keyboard::Scan::F3, fin));
         REQUIRE(estCommande<commande::BasculerAncre>(sf::Keyboard::Scan::F4, fin));
         REQUIRE(estCommande<commande::BasculerBrouillard>(sf::Keyboard::Scan::F6, fin));
+        REQUIRE(estCommande<commande::AjouterDesObjetsDeDemonstration>(sf::Keyboard::Scan::F7, fin));
     }
 }
 

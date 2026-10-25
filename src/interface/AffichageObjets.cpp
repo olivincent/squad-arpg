@@ -2,6 +2,7 @@
 #include "interface/AffichageObjets.hpp"
 
 #include <cmath>
+#include <optional>
 
 #include "interface/AffichageCaracteristiques.hpp"
 #include "interface/AffichageStatistiques.hpp"
@@ -109,12 +110,39 @@ std::string ligneDObjetInactif() {
     return "Inactive: requirement not met";
 }
 
-std::vector<std::string> lignesDeLInfobulle(IdObjet id) {
-    const DefinitionObjet& definition = definitionObjet(id);
-    std::vector<std::string> lignes = {definition.nom, nomDeLaCategorie(definition.categorie)};
-    for (const SeuilDeCaracteristique& seuil : definition.seuils) {
-        lignes.push_back(ligneDeSeuil(seuil));
+sf::Color couleurDeLaRarete(Rarete rarete) {
+    switch (rarete) {
+        case Rarete::Commun: return sf::Color::White;
+        case Rarete::Magique: return sf::Color(240, 220, 70);
+        case Rarete::Rare: return sf::Color(90, 220, 90);
     }
+    return sf::Color::White;
+}
+
+std::string ligneDAffixe(const Affixe& affixe) {
+    const int valeur = affixe.valeur;
+    const std::string plus = "+" + std::to_string(valeur);
+    // Le `switch` n'a pas de `default` : un effet ajouté sans texte fait avertir le compilateur.
+    switch (definitionAffixe(affixe.id).effet) {
+        case EffetDAffixe::DegatsDeFeu: return "Fire Damage: " + plus;
+        case EffetDAffixe::DegatsSacres: return "Holy Damage: " + plus;
+        case EffetDAffixe::PenetrationDArmure: return "Penetration: " + plus + " %";
+        case EffetDAffixe::Armure: return "Armor: " + plus;
+        case EffetDAffixe::Puissance: return nomDeLaCaracteristique(Caracteristique::Puissance) + ": " + plus;
+        case EffetDAffixe::Endurance: return nomDeLaCaracteristique(Caracteristique::Endurance) + ": " + plus;
+        case EffetDAffixe::Adresse: return nomDeLaCaracteristique(Caracteristique::Adresse) + ": " + plus;
+        case EffetDAffixe::Savoir: return nomDeLaCaracteristique(Caracteristique::Savoir) + ": " + plus;
+        case EffetDAffixe::Volonte: return nomDeLaCaracteristique(Caracteristique::Volonte) + ": " + plus;
+        case EffetDAffixe::EsquiveContact: return lignesDeBonusDeCombat({.esquiveContact = valeur}).front();
+        case EffetDAffixe::EsquiveProjectile: return lignesDeBonusDeCombat({.esquiveProjectile = valeur}).front();
+        case EffetDAffixe::ChanceDeBlocage: return "Block: " + plus + " %";
+    }
+    return "";
+}
+
+std::vector<std::string> lignesDeLInfobulle(const Objet& objet) {
+    const DefinitionObjet& definition = definitionObjet(objet.modele);
+    std::vector<std::string> lignes = {nomDeLObjet(objet), nomDeLaCategorie(definition.categorie)};
     if (definition.armure != 0) {
         lignes.push_back("Armor: +" + std::to_string(definition.armure));
     }
@@ -132,6 +160,14 @@ std::vector<std::string> lignesDeLInfobulle(IdObjet id) {
     }
     if (definition.arme.has_value()) {
         ajouterLesLignesDUneArme(lignes, *definition.arme);
+    }
+    for (const std::optional<Affixe>& affixe : {objet.prefixe, objet.suffixe}) {
+        if (affixe.has_value()) {
+            lignes.push_back(ligneDAffixe(*affixe));
+        }
+    }
+    for (const SeuilDeCaracteristique& seuil : definition.seuils) {
+        lignes.push_back(ligneDeSeuil(seuil));
     }
     return lignes;
 }

@@ -23,6 +23,9 @@ CommandeDeTouche commandePourTouche(sf::Keyboard::Scancode touche, bool finDePar
     if (touche == sf::Keyboard::Scan::F6) {
         return commande::BasculerBrouillard{};
     }
+    if (touche == sf::Keyboard::Scan::F7) {
+        return commande::AjouterDesObjetsDeDemonstration{};
+    }
     // Sur l'écran de fin, seul R compte : l'inventaire et les raccourcis sont ignorés.
     if (touche == sf::Keyboard::Scan::I && !finDePartie) {
         return commande::OuvrirInventaire{};

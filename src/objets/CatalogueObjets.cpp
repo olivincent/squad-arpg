@@ -40,6 +40,14 @@ constexpr int s_degatsArc = 15;
 constexpr int s_degatsMainsNues = 6;
 constexpr int s_penetrationDague = 30;  // en pour cent de l'armure ignorée
 
+// Les objets de démonstration de F7 (valeurs « à tester » ; celle d'un affixe est dans l'objet).
+constexpr int s_feuDeLaMasseDeDemonstration = 6;
+constexpr int s_penetrationDeLArcDeDemonstration = 15;  // en pour cent
+constexpr int s_adresseDeLArcDeDemonstration = 2;
+constexpr int s_armureDeLaMailleDeDemonstration = 3;
+constexpr int s_esquiveDeLaMailleDeDemonstration = 3;   // en pour cent, contre le contact
+constexpr int s_blocageDuBouclierDeDemonstration = 5;   // en pour cent
+
 // Seuils d'équipement (valeurs provisoires, « à tester »). Chaque classe peut porter son équipement de départ avec
 // ses caractéristiques de base ; personne ne peut porter l'épée à deux mains au départ.
 constexpr int s_puissanceArmeDeMelee = 11;         // épée longue, masse
@@ -186,4 +194,13 @@ std::vector<Objet> sacDeDepart() {
             {IdObjet::TuniqueMatelassee},   {IdObjet::CollierDeProtection},  {IdObjet::AnneauDeProtection},
             {IdObjet::AnneauDeProtection}, {IdObjet::AnneauDePuissance},     {IdObjet::CollierDEndurance},
             {IdObjet::Dague},               {IdObjet::EpeeADeuxMains}};
+}
+
+std::vector<Objet> objetsDeDemonstration() {
+    return {{IdObjet::Masse, Rarete::Magique, Affixe{IdAffixe::Flamboyant, s_feuDeLaMasseDeDemonstration}},
+            {IdObjet::Arc, Rarete::Rare, Affixe{IdAffixe::Acere, s_penetrationDeLArcDeDemonstration},
+             Affixe{IdAffixe::DuRenard, s_adresseDeLArcDeDemonstration}},
+            {IdObjet::CuirasseDeMailles, Rarete::Rare, Affixe{IdAffixe::Renforce, s_armureDeLaMailleDeDemonstration},
+             Affixe{IdAffixe::DEsquive, s_esquiveDeLaMailleDeDemonstration}},
+            {IdObjet::BouclierRond, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeBlocage, s_blocageDuBouclierDeDemonstration}}};
 }

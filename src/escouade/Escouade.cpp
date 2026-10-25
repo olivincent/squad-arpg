@@ -1112,6 +1112,18 @@ bool Escouade::ramasser(Objet objet) {
     return m_sac.ajouter(objet);
 }
 
+bool Escouade::ramasserTout(const std::vector<Objet>& objets) {
+    // Sur une copie du sac : un sac qui se remplit en cours de route est jeté, et rien n'a bougé.
+    Inventaire essai = m_sac;
+    for (const Objet& objet : objets) {
+        if (!essai.ajouter(objet)) {
+            return false;
+        }
+    }
+    m_sac = std::move(essai);
+    return true;
+}
+
 std::optional<Objet> Escouade::objetA(const PositionDObjet& position) const {
     return std::visit(Surcharges{[&](const PositionDansLeSac& dansLeSac) { return m_sac.a(dansLeSac.caseDuSac); },
                                  [&](const PositionPortee& portee) {
