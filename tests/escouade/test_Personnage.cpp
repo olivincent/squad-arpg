@@ -1068,15 +1068,14 @@ TEST_CASE("un equipement de depart qui donne de l'esquive compte des la construc
     REQUIRE(personnage.getStatistiques().esquiveContact == 5);
 }
 
-TEST_CASE("le bouclier rond donne au personnage sa chance de blocage, son montant et sa recuperation") {
+TEST_CASE("le bouclier rond donne au personnage sa chance de blocage et son montant") {
     Personnage personnage = unPersonnageSansEsquive();
 
     static_cast<void>(personnage.poserEquipement(Emplacement::MainGauche, {IdObjet::BouclierRond}));
 
-    const StatistiquesDeCombat& bouclier = definitionObjet(IdObjet::BouclierRond).bonusDeCombat;
+    const DonneesDeBouclier& bouclier = definitionObjet(IdObjet::BouclierRond).bouclier.value();
     REQUIRE(personnage.getStatistiques().chanceDeBlocage == bouclier.chanceDeBlocage);
     REQUIRE(personnage.getStatistiques().montantBloque == bouclier.montantBloque);
-    REQUIRE(personnage.getStatistiques().recuperationDuBlocage == bouclier.recuperationDuBlocage);
     static_cast<void>(personnage.retirerEquipement(Emplacement::MainGauche));
     REQUIRE(personnage.getStatistiques().montantBloque == 0);
 }
@@ -1105,7 +1104,7 @@ TEST_CASE("un personnage au bouclier : apres un blocage, plus aucun pendant 3 s,
     }
 
     // Après 3 s (mettreAJour du personnage), le bouclier bloque de nouveau.
-    ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 3.1f);
+    ecoulerTemps(personnage, carte, {100.0f, 100.0f}, s_recuperationDuBlocage + 0.1f);
     REQUIRE(jusquAuBlocage());
 }
 

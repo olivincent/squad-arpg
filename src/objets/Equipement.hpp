@@ -42,7 +42,8 @@ public:
     // Somme des bonus de caractéristiques des objets portés, recalculée à chaque appel.
     [[nodiscard]] Caracteristiques bonusTotal() const;
 
-    // Somme des bonus de statistiques de combat des objets portés (esquive, capacités…), recalculée à chaque appel.
+    // Somme des bonus de statistiques de combat des objets portés (esquive, capacités…) et du blocage de leurs boucliers
+    // (chance, montant), recalculée à chaque appel.
     [[nodiscard]] StatistiquesDeCombat bonusDeCombatTotal() const;
 
     // L'attaque de base que donne cet équipement : celle de l'arme de la main droite, sinon les mains nues

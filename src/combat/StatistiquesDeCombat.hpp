@@ -14,9 +14,10 @@ struct StatistiquesDeCombat {
     int esquiveProjectile = 0;  // idem pour un projectile
     int chanceDeBlocage = 0;    // chance en pour cent de bloquer un coup de contact ou un projectile (bouclier)
     int montantBloque = 0;      // points que le blocage absorbe, sans dépasser le coup ; 0 : pas de bouclier
-    float recuperationDuBlocage = 0.0f;  // en secondes, après un blocage réussi, sans nouveau blocage
+    // La récupération qui suit un blocage réussi est la même pour tous (`s_recuperationDuBlocage`, `Blocage.hpp`) :
+    // ce n'est pas une statistique.
 
-    // Les bonus s'additionnent, sauf la récupération : c'est celle du bouclier, pas une somme (la plus longue).
+    // Les bonus s'additionnent.
     constexpr StatistiquesDeCombat& operator+=(const StatistiquesDeCombat& autre) {
         capaciteOffensive += autre.capaciteOffensive;
         capaciteDefensive += autre.capaciteDefensive;
@@ -24,7 +25,6 @@ struct StatistiquesDeCombat {
         esquiveProjectile += autre.esquiveProjectile;
         chanceDeBlocage += autre.chanceDeBlocage;
         montantBloque += autre.montantBloque;
-        recuperationDuBlocage = recuperationDuBlocage > autre.recuperationDuBlocage ? recuperationDuBlocage : autre.recuperationDuBlocage;
         return *this;
     }
 

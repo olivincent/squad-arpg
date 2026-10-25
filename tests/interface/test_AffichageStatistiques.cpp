@@ -9,7 +9,7 @@
 TEST_CASE("affichage : les capacites, le blocage et les esquives, dans l'ordre des cellules") {
     const std::vector<std::string> lignes = lignesDeStatistiques(
         {.capaciteOffensive = 120, .capaciteDefensive = 95, .esquiveContact = 5, .esquiveProjectile = 12,
-         .chanceDeBlocage = 30, .montantBloque = 40, .recuperationDuBlocage = 3.0f});
+         .chanceDeBlocage = 30, .montantBloque = 40});
 
     REQUIRE(lignes == std::vector<std::string>{"Capacité offensive 120", "Capacité défensive 95", "Blocage 30 % (40)",
                                                "Esquive mêlée 5 %", "Esquive projectile 12 %"});
@@ -37,16 +37,12 @@ TEST_CASE("affichage : l'esquive s'affiche plafonnee, comme elle joue") {
 
 TEST_CASE("affichage : le bonus de combat d'un objet donne une ligne par bonus non nul") {
     const std::vector<std::string> lignes = lignesDeBonusDeCombat(
-        {.capaciteOffensive = 10, .capaciteDefensive = -5, .esquiveContact = 5, .esquiveProjectile = 7,
-         .chanceDeBlocage = 30, .montantBloque = 40, .recuperationDuBlocage = 3.0f});
+        {.capaciteOffensive = 10, .capaciteDefensive = -5, .esquiveContact = 5, .esquiveProjectile = 7});
 
     REQUIRE(lignes == std::vector<std::string>{"Capacité offensive : +10", "Capacité défensive : -5",
-                                               "Esquive contre la mêlée : +5 %", "Esquive contre les projectiles : +7 %",
-                                               "Blocage : 30 %, 40 points, 3 s"});
+                                               "Esquive contre la mêlée : +5 %", "Esquive contre les projectiles : +7 %"});
 }
 
-TEST_CASE("affichage : un objet sans bonus de combat n'a aucune ligne, une recuperation fractionnaire prend une virgule") {
+TEST_CASE("affichage : un objet sans bonus de combat n'a aucune ligne") {
     REQUIRE(lignesDeBonusDeCombat({}).empty());
-    REQUIRE(lignesDeBonusDeCombat({.chanceDeBlocage = 20, .montantBloque = 15, .recuperationDuBlocage = 2.5f}) ==
-            std::vector<std::string>{"Blocage : 20 %, 15 points, 2,5 s"});
 }

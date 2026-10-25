@@ -21,7 +21,6 @@ constexpr int s_esquiveBottesDeCuir = 5;       // en pour cent, contre le contac
 constexpr int s_esquiveCasqueDeCuir = 5;       // en pour cent, contre les projectiles
 constexpr int s_chanceDeBlocageBouclierRond = 30;       // en pour cent
 constexpr int s_montantBloqueBouclierRond = 12;         // points absorbés par blocage
-constexpr float s_recuperationBouclierRond = 3.0f;      // en secondes
 
 // Armes (valeurs provisoires, à tester). Une attaque de contact engage (zone de contrôle), un projectile non.
 constexpr float s_porteeDeContact = 20.0f;        // bord à bord
@@ -57,9 +56,8 @@ std::vector<DefinitionObjet> construireLeCatalogue() {
         {IdObjet::CasqueDeFer, "Casque de fer", CategorieObjet::Casque, s_armureCasqueDeFer},
         {IdObjet::CuirasseDeMailles, "Cuirasse de mailles", CategorieObjet::Armure, s_armureCuirasseDeMailles},
         {IdObjet::JambieresDeFer, "Jambières de fer", CategorieObjet::Jambieres, s_armureJambieresDeFer},
-        {IdObjet::BouclierRond, "Bouclier rond", CategorieObjet::Bouclier, s_armureBouclierRond, {},
-         {.chanceDeBlocage = s_chanceDeBlocageBouclierRond, .montantBloque = s_montantBloqueBouclierRond,
-          .recuperationDuBlocage = s_recuperationBouclierRond}},
+        {IdObjet::BouclierRond, "Bouclier rond", CategorieObjet::Bouclier, s_armureBouclierRond, {}, {}, std::nullopt,
+         DonneesDeBouclier{.chanceDeBlocage = s_chanceDeBlocageBouclierRond, .montantBloque = s_montantBloqueBouclierRond}},
         {IdObjet::GantsDeCuir, "Gants de cuir", CategorieObjet::Gants, s_armureGantsDeCuir},
         {IdObjet::BottesDeCuir, "Bottes de cuir", CategorieObjet::Bottes, s_armureBottesDeCuir, {},
          {.esquiveContact = s_esquiveBottesDeCuir}},

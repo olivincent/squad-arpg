@@ -12,7 +12,7 @@ namespace {
 constexpr double s_tolerance = 1e-6;
 
 // Un défenseur au bouclier rond d'aujourd'hui : 30 % de chance, 40 points, 3 s de récupération.
-const StatistiquesDeCombat s_bouclier{.chanceDeBlocage = 30, .montantBloque = 40, .recuperationDuBlocage = 3.0f};
+const StatistiquesDeCombat s_bouclier{.chanceDeBlocage = 30, .montantBloque = 40};
 }  // namespace
 
 TEST_CASE("chanceDeBlocage : le bouclier bloque le contact et les projectiles de la meme facon") {

@@ -1,5 +1,6 @@
 // ./src/combat/Vitalite.cpp
 #include "combat/Vitalite.hpp"
+#include "combat/Blocage.hpp"
 #include "combat/ResolutionDuCoup.hpp"
 #include <cassert>
 
@@ -21,7 +22,7 @@ ResultatDuCoup Vitalite::recevoirDegats(const Attaque& attaque, Generateur& gene
     }
     const ResultatDuCoup resultat = resoudreCoup(attaque, m_defenses, blocagePret(), generateur);
     if (resultat.bloque > 0) {
-        m_recuperationDuBlocage = m_defenses.statistiques.recuperationDuBlocage;
+        m_recuperationDuBlocage = s_recuperationDuBlocage;
     }
     m_pointsDeVie.subirDegats(resultat.montant);
     return resultat;

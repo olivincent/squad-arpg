@@ -1,25 +1,12 @@
 // ./src/interface/AffichageStatistiques.cpp
 #include "interface/AffichageStatistiques.hpp"
 #include <algorithm>
-#include <cmath>
 #include "combat/Esquive.hpp"
 
 namespace {
 // Un nombre signé : « +5 », « -3 ».
 std::string signe(int valeur) {
     return (valeur > 0 ? "+" : "") + std::to_string(valeur);
-}
-
-// Des secondes : « 3 » pour 3,0, « 2,5 » pour 2,5 (une décimale au plus, virgule française).
-std::string secondes(float valeur) {
-    const float arrondi = std::round(valeur * 10.0f) / 10.0f;
-    if (arrondi == std::floor(arrondi)) {
-        return std::to_string(static_cast<int>(arrondi));
-    }
-    std::string texte = std::to_string(arrondi);  // « 2.500000 »
-    texte.erase(texte.find('.') + 2);
-    texte[texte.find('.')] = ',';
-    return texte;
 }
 }  // namespace
 
@@ -47,10 +34,6 @@ std::vector<std::string> lignesDeBonusDeCombat(const StatistiquesDeCombat& bonus
     }
     if (bonus.esquiveProjectile != 0) {
         lignes.push_back("Esquive contre les projectiles : " + signe(bonus.esquiveProjectile) + " %");
-    }
-    if (bonus.montantBloque > 0) {
-        lignes.push_back("Blocage : " + std::to_string(bonus.chanceDeBlocage) + " %, " + std::to_string(bonus.montantBloque) +
-                         " points, " + secondes(bonus.recuperationDuBlocage) + " s");
     }
     return lignes;
 }

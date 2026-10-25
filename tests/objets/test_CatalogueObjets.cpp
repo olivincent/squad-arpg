@@ -102,19 +102,24 @@ TEST_CASE("catalogueObjets : les bottes de cuir donnent 5 % d'esquive contre le 
     REQUIRE(casque == StatistiquesDeCombat{.esquiveProjectile = 5});
 }
 
-TEST_CASE("catalogueObjets : le bouclier rond bloque 30 % des coups, 12 points, puis 3 s de recuperation") {
-    const StatistiquesDeCombat& bouclier = definitionObjet(IdObjet::BouclierRond).bonusDeCombat;
+TEST_CASE("catalogueObjets : le bouclier rond bloque 30 % des coups, 12 points, par ses donnees de bouclier") {
+    const DefinitionObjet& bouclier = definitionObjet(IdObjet::BouclierRond);
 
-    REQUIRE(bouclier.chanceDeBlocage == 30);
-    REQUIRE(bouclier.montantBloque == 12);
-    REQUIRE(bouclier.recuperationDuBlocage == 3.0f);
-    REQUIRE(bouclier.esquiveContact == 0);
+    REQUIRE(bouclier.bouclier.has_value());
+    REQUIRE(bouclier.bouclier->chanceDeBlocage == 30);
+    REQUIRE(bouclier.bouclier->montantBloque == 12);
+    REQUIRE(bouclier.bonusDeCombat == StatistiquesDeCombat());  // le blocage n'est pas un bonus de statistiques
+}
+
+TEST_CASE("catalogueObjets : seul un bouclier a des donnees de bouclier") {
+    for (const DefinitionObjet& definition : catalogueObjets()) {
+        REQUIRE(definition.bouclier.has_value() == (definition.categorie == CategorieObjet::Bouclier));
+    }
 }
 
 TEST_CASE("catalogueObjets : les autres objets n'ont aucun bonus de combat") {
     for (const DefinitionObjet& definition : catalogueObjets()) {
-        if (definition.id != IdObjet::BottesDeCuir && definition.id != IdObjet::CasqueDeCuir &&
-            definition.id != IdObjet::BouclierRond) {
+        if (definition.id != IdObjet::BottesDeCuir && definition.id != IdObjet::CasqueDeCuir) {
             REQUIRE(definition.bonusDeCombat == StatistiquesDeCombat());
         }
     }

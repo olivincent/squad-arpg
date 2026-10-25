@@ -16,6 +16,7 @@
 [[nodiscard]] std::vector<std::string> lignesDeStatistiques(const StatistiquesDeCombat& statistiques);
 
 // Les lignes d'infobulle du bonus de combat d'un objet, une par bonus non nul, dans cet ordre :
-// « Capacité offensive : +10 », « Capacité défensive : +10 », « Esquive contre la mêlée : +5 % »,
-// « Esquive contre les projectiles : +5 % » et « Blocage : 30 %, 40 points, 3 s ». Vide pour un objet sans bonus.
+// « Capacité offensive : +10 », « Capacité défensive : +10 », « Esquive contre la mêlée : +5 % » et
+// « Esquive contre les projectiles : +5 % ». Vide pour un objet sans bonus. (Le blocage d'un bouclier est une
+// propriété du bouclier : `lignesDeLInfobulle`.)
 [[nodiscard]] std::vector<std::string> lignesDeBonusDeCombat(const StatistiquesDeCombat& bonus);

@@ -6,6 +6,7 @@
 #include "combat/Caracteristiques.hpp"
 #include "combat/StatistiquesDeCombat.hpp"
 #include "objets/DonneesDArme.hpp"
+#include "objets/DonneesDeBouclier.hpp"
 #include "objets/Emplacement.hpp"
 #include "objets/Objet.hpp"
 
@@ -18,6 +19,7 @@ struct DefinitionObjet {
     Caracteristiques bonus = {};  // ajouté aux caractéristiques de qui le porte (vide : aucun bonus)
     StatistiquesDeCombat bonusDeCombat = {};  // ajouté aux statistiques de combat de qui le porte (esquive, capacités…)
     std::optional<DonneesDArme> arme = {};    // seulement pour une arme
+    std::optional<DonneesDeBouclier> bouclier = {};  // seulement pour un bouclier : son blocage
 };
 
 // Tous les modèles, dans l'ordre de `IdObjet` : l'unique source de leurs valeurs.

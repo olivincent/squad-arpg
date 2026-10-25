@@ -283,7 +283,6 @@ Defenses porteurDeBouclier(int armure = 0, int chance = 100) {
     Defenses defenses = defensesDeTest(armure);
     defenses.statistiques.chanceDeBlocage = chance;
     defenses.statistiques.montantBloque = 40;
-    defenses.statistiques.recuperationDuBlocage = 3.0f;
     return defenses;
 }
 }  // namespace

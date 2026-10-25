@@ -78,5 +78,9 @@ std::vector<std::string> lignesDeLInfobulle(IdObjet id) {
     for (const std::string& ligne : lignesDeBonusDeCombat(definition.bonusDeCombat)) {
         lignes.push_back(ligne);
     }
+    if (definition.bouclier.has_value()) {
+        lignes.push_back("Blocage : " + std::to_string(definition.bouclier->chanceDeBlocage) + " %, " +
+                         std::to_string(definition.bouclier->montantBloque) + " points");
+    }
     return lignes;
 }

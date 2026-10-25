@@ -40,7 +40,12 @@ StatistiquesDeCombat Equipement::bonusDeCombatTotal() const {
     StatistiquesDeCombat total;
     for (const std::optional<Objet>& objet : m_objets) {
         if (objet) {
-            total += definitionObjet(objet->id).bonusDeCombat;
+            const DefinitionObjet& definition = definitionObjet(objet->id);
+            total += definition.bonusDeCombat;
+            if (definition.bouclier.has_value()) {
+                total.chanceDeBlocage += definition.bouclier->chanceDeBlocage;
+                total.montantBloque += definition.bouclier->montantBloque;
+            }
         }
     }
     return total;

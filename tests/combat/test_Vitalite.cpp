@@ -2,6 +2,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "aides.hpp"
+#include "combat/Blocage.hpp"
 #include "combat/Vitalite.hpp"
 
 TEST_CASE("Vitalite commence pleine") {
@@ -155,10 +156,10 @@ TEST_CASE("Vitalite : un coup esquive ne retire aucun point de vie") {
 }
 
 namespace {
-// Une vitalité de 1000 points dont le bouclier bloque toujours (100 %) 40 points, puis 3 s de récupération.
+// Une vitalité de 1000 points dont le bouclier bloque toujours (100 %) 40 points, puis `s_recuperationDuBlocage`
+// (3 s, la même pour tous les boucliers) de récupération.
 Vitalite vitaliteAuBouclier() {
-    return Vitalite(1000, {.armure = 0, .statistiques = {.capaciteDefensive = 100, .chanceDeBlocage = 100, .montantBloque = 40,
-                                                         .recuperationDuBlocage = 3.0f}});
+    return Vitalite(1000, {.armure = 0, .statistiques = {.capaciteDefensive = 100, .chanceDeBlocage = 100, .montantBloque = 40}});
 }
 
 const Attaque s_coupDeContact{.montant = 100, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
@@ -195,12 +196,12 @@ TEST_CASE("Vitalite : la recuperation s'ecoule avec le temps, puis le bouclier b
     Generateur generateur = generateurDeTest();
     static_cast<void>(vitalite.recevoirDegats(s_coupDeContact, generateur));
 
-    vitalite.mettreAJour(2.0f);
+    vitalite.mettreAJour(s_recuperationDuBlocage - 1.0f);
     REQUIRE_FALSE(vitalite.blocagePret());
     REQUIRE(vitalite.recevoirDegats(s_coupDeContact, generateur).bloque == 0);
 
     vitalite.mettreAJour(0.9f);
-    REQUIRE_FALSE(vitalite.blocagePret());  // 2,9 s sur 3
+    REQUIRE_FALSE(vitalite.blocagePret());  // 0,1 s avant la fin
 
     vitalite.mettreAJour(0.2f);
     REQUIRE(vitalite.blocagePret());

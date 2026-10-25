@@ -175,3 +175,16 @@ TEST_CASE("attaqueDeBase d'un equipement : celle de l'arme de la main droite, si
     static_cast<void>(equipement.poser(Emplacement::MainDroite, {IdObjet::EpeeADeuxMains}));
     REQUIRE(equipement.attaqueDeBase() == definitionObjet(IdObjet::EpeeADeuxMains).arme.value().attaque);
 }
+
+TEST_CASE("equipement : le bouclier compte dans les statistiques de combat totales, sans bonus de recuperation") {
+    Equipement equipement;
+    static_cast<void>(equipement.poser(Emplacement::MainGauche, {IdObjet::BouclierRond}));
+    static_cast<void>(equipement.poser(Emplacement::Bottes, {IdObjet::BottesDeCuir}));
+
+    const StatistiquesDeCombat total = equipement.bonusDeCombatTotal();
+
+    const DonneesDeBouclier& bouclier = definitionObjet(IdObjet::BouclierRond).bouclier.value();
+    REQUIRE(total.chanceDeBlocage == bouclier.chanceDeBlocage);
+    REQUIRE(total.montantBloque == bouclier.montantBloque);
+    REQUIRE(total.esquiveContact == definitionObjet(IdObjet::BottesDeCuir).bonusDeCombat.esquiveContact);
+}

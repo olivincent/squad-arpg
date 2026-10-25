@@ -8,6 +8,7 @@
 
 #include "aides.hpp"
 #include "aides_escouade.hpp"
+#include "combat/Blocage.hpp"
 #include "combat/Caracteristiques.hpp"
 #include "combat/Defense.hpp"
 #include "combat/Esquive.hpp"
@@ -386,6 +387,6 @@ TEST_CASE("evenements : un blocage partiel donne les degats puis Bloque, puis ri
 
     REQUIRE(imagesDesBlocages.size() >= 3);
     for (std::size_t k = 1; k < imagesDesBlocages.size(); ++k) {
-        REQUIRE(imagesDesBlocages[k] - imagesDesBlocages[k - 1] >= nombreDeTics(3.0f) - 1);  // 3 s de récupération au moins
+        REQUIRE(imagesDesBlocages[k] - imagesDesBlocages[k - 1] >= nombreDeTics(s_recuperationDuBlocage) - 1);  // la récupération (commune) au moins
     }
 }

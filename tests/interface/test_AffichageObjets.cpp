@@ -84,7 +84,7 @@ TEST_CASE("affichage : l'infobulle du casque de cuir donne l'esquive contre les 
 TEST_CASE("affichage : l'infobulle du bouclier rond donne son blocage") {
     const std::vector<std::string> lignes = lignesDeLInfobulle(IdObjet::BouclierRond);
 
-    const StatistiquesDeCombat& bouclier = definitionObjet(IdObjet::BouclierRond).bonusDeCombat;
+    const DonneesDeBouclier& bouclier = definitionObjet(IdObjet::BouclierRond).bouclier.value();
     REQUIRE(lignes.back() == "Blocage : " + std::to_string(bouclier.chanceDeBlocage) + " %, " +
-                                 std::to_string(bouclier.montantBloque) + " points, 3 s");
+                                 std::to_string(bouclier.montantBloque) + " points");
 }
