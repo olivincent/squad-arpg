@@ -1,9 +1,44 @@
 // ./src/interface/AffichageObjets.cpp
 #include "interface/AffichageObjets.hpp"
 
+#include <cmath>
+
 #include "interface/AffichageCaracteristiques.hpp"
 #include "interface/AffichageStatistiques.hpp"
 #include "objets/CatalogueObjets.hpp"
+
+namespace {
+// Des secondes : « 3 » pour 3,0, « 0,3 » pour 0,3 (une décimale au plus, virgule française).
+std::string secondes(float valeur) {
+    const float arrondi = std::round(valeur * 10.0f) / 10.0f;
+    if (arrondi == std::floor(arrondi)) {
+        return std::to_string(static_cast<int>(arrondi));
+    }
+    std::string texte = std::to_string(arrondi);  // « 0.300000 »
+    texte.erase(texte.find('.') + 2);
+    texte[texte.find('.')] = ',';
+    return texte;
+}
+
+// Les lignes d'une arme : l'attaque de base qu'elle donne et, à deux mains, « Deux mains ».
+void ajouterLesLignesDUneArme(std::vector<std::string>& lignes, const DonneesDArme& arme) {
+    const DescriptionDAttaque& attaque = arme.attaque;
+    lignes.push_back("Dégâts : " + std::to_string(attaque.degats));
+    lignes.push_back("Recharge : " + (attaque.rechargeMin == attaque.rechargeMax
+                                          ? secondes(attaque.rechargeMin)
+                                          : secondes(attaque.rechargeMin) + " à " + secondes(attaque.rechargeMax)) + " s");
+    lignes.push_back("Portée : " + std::to_string(static_cast<int>(std::lround(attaque.portee))) + " px");
+    // Le `switch` n'a pas de `default` : une nature ajoutée sans texte fait avertir le compilateur.
+    switch (attaque.nature) {
+        case NatureDAttaque::Contact: lignes.push_back("Contact"); break;
+        case NatureDAttaque::Projectile: lignes.push_back("Projectile"); break;
+        case NatureDAttaque::Zone: lignes.push_back("Zone"); break;
+    }
+    if (arme.mains == 2) {
+        lignes.push_back("Deux mains");
+    }
+}
+}  // namespace
 
 // Les trois `switch` n'ont pas de `default` : un emplacement, une catégorie ou un objet ajouté
 // sans texte fait avertir le compilateur.
@@ -81,6 +116,9 @@ std::vector<std::string> lignesDeLInfobulle(IdObjet id) {
     if (definition.bouclier.has_value()) {
         lignes.push_back("Blocage : " + std::to_string(definition.bouclier->chanceDeBlocage) + " %, " +
                          std::to_string(definition.bouclier->montantBloque) + " points");
+    }
+    if (definition.arme.has_value()) {
+        ajouterLesLignesDUneArme(lignes, *definition.arme);
     }
     return lignes;
 }

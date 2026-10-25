@@ -21,6 +21,7 @@
 
 // Les lignes de l'infobulle d'un objet : son nom, sa catégorie, son armure (« Armure : +10 », absente si
 // elle est nulle), une ligne par bonus de caractéristique (« Puissance : +3 »), une par bonus de combat
-// (« Esquive contre la mêlée : +5 % » : `lignesDeBonusDeCombat`) et, pour un bouclier, son blocage
-// (« Blocage : 30 %, 12 points »).
+// (« Esquive contre la mêlée : +5 % » : `lignesDeBonusDeCombat`), pour un bouclier son blocage
+// (« Blocage : 30 %, 12 points ») et pour une arme son attaque (« Dégâts : 15 », « Recharge : 0,3 à 0,7 s »,
+// « Portée : 20 px », « Contact » ou « Projectile », et « Deux mains » à deux mains).
 [[nodiscard]] std::vector<std::string> lignesDeLInfobulle(IdObjet id);

@@ -1,11 +1,13 @@
 // ./tests/interface/test_AffichageObjets.cpp
 #include <catch2/catch_test_macros.hpp>
+#include <algorithm>
 
 #include <cstddef>
 #include <set>
 #include <string>
 #include <vector>
 
+#include "combat/DescriptionDAttaque.hpp"
 #include "interface/AffichageObjets.hpp"
 #include "objets/CatalogueObjets.hpp"
 #include "objets/Emplacement.hpp"
@@ -87,4 +89,36 @@ TEST_CASE("affichage : l'infobulle du bouclier rond donne son blocage") {
     const DonneesDeBouclier& bouclier = definitionObjet(IdObjet::BouclierRond).bouclier.value();
     REQUIRE(lignes.back() == "Blocage : " + std::to_string(bouclier.chanceDeBlocage) + " %, " +
                                  std::to_string(bouclier.montantBloque) + " points");
+}
+
+TEST_CASE("affichage : l'infobulle d'une arme a une main donne ses degats, sa recharge, sa portee et sa nature") {
+    const std::vector<std::string> lignes = lignesDeLInfobulle(IdObjet::EpeeLongue);
+    const DescriptionDAttaque& attaque = definitionObjet(IdObjet::EpeeLongue).arme.value().attaque;
+
+    REQUIRE(lignes == std::vector<std::string>{"Épée longue", "Arme", "Dégâts : " + std::to_string(attaque.degats),
+                                               "Recharge : 0,3 à 0,7 s", "Portée : 20 px", "Contact"});
+}
+
+TEST_CASE("affichage : l'infobulle d'une arme a deux mains le dit, celle d'une arme de tir donne un projectile") {
+    const std::vector<std::string> arc = lignesDeLInfobulle(IdObjet::Arc);
+    const std::vector<std::string> sceptre = lignesDeLInfobulle(IdObjet::Sceptre);
+    const std::vector<std::string> deuxMains = lignesDeLInfobulle(IdObjet::EpeeADeuxMains);
+
+    REQUIRE(arc.back() == "Deux mains");
+    REQUIRE(arc[arc.size() - 2] == "Projectile");
+    REQUIRE(arc[3] == "Recharge : 0,4 à 0,6 s");
+    REQUIRE(arc[4] == "Portée : 120 px");
+    REQUIRE(sceptre.back() == "Projectile");  // une main : pas de « Deux mains »
+    REQUIRE(deuxMains.back() == "Deux mains");
+    REQUIRE(deuxMains[3] == "Recharge : 1,2 à 2,8 s");
+}
+
+TEST_CASE("affichage : seules les armes ont des lignes d'attaque, et les deux mains ne sont dites que des armes a deux mains") {
+    for (const DefinitionObjet& definition : catalogueObjets()) {
+        const std::vector<std::string> lignes = lignesDeLInfobulle(definition.id);
+        const bool aDesDegats = std::ranges::any_of(lignes, [](const std::string& ligne) { return ligne.starts_with("Dégâts"); });
+        const bool deuxMains = std::ranges::any_of(lignes, [](const std::string& ligne) { return ligne == "Deux mains"; });
+        REQUIRE(aDesDegats == definition.arme.has_value());
+        REQUIRE(deuxMains == estADeuxMains(definition.id));
+    }
 }
