@@ -312,26 +312,3 @@ TEST_CASE("catalogueObjets : la dague perce 30 % de l'armure, aucune autre arme 
     }
     REQUIRE(mainsNues().penetration == 0);
 }
-
-TEST_CASE("objetsDeDemonstration : quatre objets valides, ceux de F7") {
-    const std::vector<Objet> objets = objetsDeDemonstration();
-
-    REQUIRE(objets.size() == 4);
-    for (const Objet& objet : objets) {
-        REQUIRE(objetValide(objet));
-    }
-    REQUIRE(nomDeLObjet(objets[0]) == "Blazing Mace");
-    REQUIRE(objets[0].rarete == Rarete::Magique);
-    REQUIRE(objets[0].prefixe == Affixe{IdAffixe::Flamboyant, 6});
-    REQUIRE(nomDeLObjet(objets[1]) == "Keen Bow of the Fox");
-    REQUIRE(objets[1].rarete == Rarete::Rare);
-    REQUIRE(objets[1].prefixe == Affixe{IdAffixe::Acere, 15});
-    REQUIRE(objets[1].suffixe == Affixe{IdAffixe::DuRenard, 2});
-    REQUIRE(nomDeLObjet(objets[2]) == "Reinforced Chain Mail of Evasion");
-    REQUIRE(objets[2].rarete == Rarete::Rare);
-    REQUIRE(objets[2].prefixe == Affixe{IdAffixe::Renforce, 3});
-    REQUIRE(objets[2].suffixe == Affixe{IdAffixe::DEsquive, 3});
-    REQUIRE(nomDeLObjet(objets[3]) == "Round Shield of Blocking");
-    REQUIRE(objets[3].rarete == Rarete::Magique);
-    REQUIRE(objets[3].suffixe == Affixe{IdAffixe::DeBlocage, 5});
-}

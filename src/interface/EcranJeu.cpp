@@ -10,6 +10,7 @@
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Mouse.hpp>
+#include <cstddef>
 #include <array>
 #include <memory>
 #include <string>
@@ -33,7 +34,6 @@
 #include "interface/EcranInventaire.hpp"
 #include "monde/GenerateurDonjon.hpp"
 #include "monde/Niveau.hpp"
-#include "objets/CatalogueObjets.hpp"
 #include "interface/Reglages.hpp"
 #include "interface/TailleDeVue.hpp"
 
@@ -53,6 +53,7 @@ Partie nouvellePartie(std::random_device& tirage, const std::vector<IdSpecialite
 
 constexpr unsigned int s_tailleCompteur = 22;
 constexpr float s_margeCompteur = 16.0f;
+constexpr std::size_t s_objetsParF7 = 4;  // F7 (débogage) : combien d'objets tirés au hasard
 
 // « Monsters: N » dans le coin haut gauche, en coordonnées de la fenêtre
 // (à appeler avec la vue par défaut). Contour noir pour rester lisible sur la carte.
@@ -153,9 +154,9 @@ Transition EcranJeu::executer(const CommandeDeTouche& commande) {
                 m_debogage.brouillard = !m_debogage.brouillard;
                 return Aucune{};
             },
-            [this](commande::AjouterDesObjetsDeDemonstration) -> Transition {
+            [this](commande::AjouterDesObjetsAleatoires) -> Transition {
                 // Un refus (pas quatre cases libres) est normal : rien n'est ajouté, il n'y a rien à dire.
-                static_cast<void>(m_partie.getEscouade().ramasserTout(objetsDeDemonstration()));
+                static_cast<void>(m_partie.ramasserDesObjetsAleatoires(s_objetsParF7));
                 return Aucune{};
             },
             [this](commande::ActiverEmplacement activer) -> Transition {

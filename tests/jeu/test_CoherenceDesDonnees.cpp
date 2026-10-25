@@ -136,13 +136,6 @@ TEST_CASE("les parametres du generateur portent les compositions du jeu") {
     REQUIRE(parametres.compositionDeLaSalleLaPlusLoin.has_value());
 }
 
-TEST_CASE("les objets de demonstration de F7 respectent les invariants des objets") {
-    for (const Objet& objet : objetsDeDemonstration()) {
-        INFO(nomDeLObjet(objet));
-        REQUIRE(objetValide(objet));
-    }
-}
-
 TEST_CASE("le sac de depart est fait d'objets communs valides") {
     for (const Objet& objet : sacDeDepart()) {
         INFO(nomDeLObjet(objet));

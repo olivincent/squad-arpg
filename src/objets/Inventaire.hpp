@@ -14,6 +14,9 @@ public:
 
     [[nodiscard]] std::size_t capacite() const;
 
+    // Combien de cases sont vides.
+    [[nodiscard]] std::size_t casesLibres() const;
+
     // L'objet de cette case, s'il y en a un.
     [[nodiscard]] const std::optional<Objet>& a(std::size_t caseDuSac) const;
 

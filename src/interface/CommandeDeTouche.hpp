@@ -18,7 +18,7 @@ struct NouvelleCarte {};
 struct BasculerPointsVises {};
 struct BasculerAncre {};
 struct BasculerBrouillard {};
-struct AjouterDesObjetsDeDemonstration {};  // F7 : quatre objets à affixes dans le sac
+struct AjouterDesObjetsAleatoires {};  // F7 : quatre objets tirés au hasard dans le sac
 struct ActiverEmplacement {
     std::size_t emplacement;
 };
@@ -27,7 +27,7 @@ struct ActiverEmplacement {
 using CommandeDeTouche =
     std::variant<commande::Rien, commande::Annuler, commande::OuvrirInventaire, commande::RetourAuChoix, commande::NouvelleCarte,
                  commande::BasculerPointsVises, commande::BasculerAncre, commande::BasculerBrouillard,
-                 commande::AjouterDesObjetsDeDemonstration, commande::ActiverEmplacement>;
+                 commande::AjouterDesObjetsAleatoires, commande::ActiverEmplacement>;
 
 // La commande d'un appui sur `touche` (physique : scancode). Échap, F3 à F7 valent en tout temps ;
 // R (retour au choix) seulement sur l'écran de fin, I (inventaire) seulement hors de l'écran de fin ; les touches des raccourcis de `touches`

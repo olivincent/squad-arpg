@@ -100,3 +100,18 @@ TEST_CASE("inventaire : poser dans une case occupee rend l'ancien objet") {
     REQUIRE(ancien == s_casque);
     REQUIRE(sac.a(0) == s_gants);
 }
+
+TEST_CASE("inventaire : casesLibres compte les cases vides, une case videe redevient libre") {
+    Inventaire sac(s_capaciteDeTest);
+    REQUIRE(sac.casesLibres() == s_capaciteDeTest);
+
+    REQUIRE(sac.ajouter(s_casque));
+    REQUIRE(sac.ajouter(s_gants));
+    REQUIRE(sac.casesLibres() == 1);
+
+    REQUIRE(sac.ajouter(s_bottes));
+    REQUIRE(sac.casesLibres() == 0);
+
+    REQUIRE(sac.prendre(1).has_value());
+    REQUIRE(sac.casesLibres() == 1);
+}

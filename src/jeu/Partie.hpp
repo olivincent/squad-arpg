@@ -66,6 +66,11 @@ public:
     // l'entité + zone), personnages vivants et monstres qui ne rentrent pas à leur poste.
     void dessinerZonesDeControle(sf::RenderTarget& rendu) const;
 
+    // Tire `nombre` objets au hasard (`genererObjet`, avec le générateur de la partie) et les met dans le sac de l'escouade,
+    // tout ou rien : sans `nombre` cases libres, rien n'est ajouté, aucun tirage n'est fait (le générateur n'avance pas) et
+    // le résultat est faux. Pour la touche de débogage F7.
+    [[nodiscard]] bool ramasserDesObjetsAleatoires(std::size_t nombre);
+
     // Vrai quand tous les personnages sont morts.
     [[nodiscard]] bool estPerdue() const;
     // Vrai quand il ne reste aucun monstre ET que la partie n'est pas perdue

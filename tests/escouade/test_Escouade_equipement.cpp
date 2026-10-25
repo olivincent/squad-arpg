@@ -85,6 +85,14 @@ PositionDObjet portee(std::size_t place, Emplacement emplacement) {
 const Objet s_gants{IdObjet::GantsDeCuir};
 const Objet s_casqueDeCuir{IdObjet::CasqueDeCuir};
 const Objet s_casqueDeFer{IdObjet::CasqueDeFer};
+
+// Un lot de quatre objets différents, tous à affixes : aucun n'est porté au départ, donc chacun a zéro exemplaire dans une
+// escouade neuve (les objets sont comptés par valeur complète).
+const std::vector<Objet> s_lotDeQuatre = {
+    {IdObjet::Masse, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}},
+    {IdObjet::Arc, Rarete::Rare, Affixe{IdAffixe::Acere, 15}, Affixe{IdAffixe::DuRenard, 2}},
+    {IdObjet::CasqueDeFer, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeDeviation, 3}},
+    {IdObjet::BouclierRond, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeBlocage, 5}}};
 }  // namespace
 
 TEST_CASE("le sac d'une escouade neuve est vide") {
@@ -546,15 +554,14 @@ TEST_CASE("un objet a affixes garde ses affixes du sac a l'emplacement et retour
 
 TEST_CASE("ramasserTout : tous les objets dans les premieres cases libres, dans l'ordre") {
     Escouade escouade = escouadeAvecSac({s_gants});
-    const std::vector<Objet> demonstration = objetsDeDemonstration();
 
-    REQUIRE(escouade.ramasserTout(demonstration));
+    REQUIRE(escouade.ramasserTout(s_lotDeQuatre));
 
     REQUIRE(escouade.sac().a(0) == s_gants);
-    for (std::size_t i = 0; i < demonstration.size(); ++i) {
-        REQUIRE(escouade.sac().a(i + 1) == demonstration[i]);
+    for (std::size_t i = 0; i < s_lotDeQuatre.size(); ++i) {
+        REQUIRE(escouade.sac().a(i + 1) == s_lotDeQuatre[i]);
     }
-    REQUIRE_FALSE(escouade.sac().a(demonstration.size() + 1).has_value());
+    REQUIRE_FALSE(escouade.sac().a(s_lotDeQuatre.size() + 1).has_value());
 }
 
 TEST_CASE("ramasserTout : sans assez de cases libres, rien n'est ajoute (tout ou rien)") {
@@ -565,7 +572,7 @@ TEST_CASE("ramasserTout : sans assez de cases libres, rien n'est ajoute (tout ou
     }
     const Exemplaires avant = exemplaires(escouade);
 
-    REQUIRE_FALSE(escouade.ramasserTout(objetsDeDemonstration()));
+    REQUIRE_FALSE(escouade.ramasserTout(s_lotDeQuatre));
 
     REQUIRE(exemplaires(escouade) == avant);
     for (std::size_t i = escouade.sac().capacite() - libres; i < escouade.sac().capacite(); ++i) {
@@ -576,11 +583,11 @@ TEST_CASE("ramasserTout : sans assez de cases libres, rien n'est ajoute (tout ou
 TEST_CASE("ramasserTout : deux appels de suite sur un sac vide donnent deux exemplaires de chaque objet") {
     Escouade escouade = uneEscouadeCapableDeToutPorter({50.0f, 50.0f});
 
-    REQUIRE(escouade.ramasserTout(objetsDeDemonstration()));
-    REQUIRE(escouade.ramasserTout(objetsDeDemonstration()));
+    REQUIRE(escouade.ramasserTout(s_lotDeQuatre));
+    REQUIRE(escouade.ramasserTout(s_lotDeQuatre));
 
     const Exemplaires tous = exemplaires(escouade);
-    for (const Objet& objet : objetsDeDemonstration()) {
+    for (const Objet& objet : s_lotDeQuatre) {
         REQUIRE(std::ranges::count(tous, cle(objet)) == 2);  // deux exemplaires de la même valeur complète
     }
 }

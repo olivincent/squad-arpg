@@ -13,6 +13,7 @@
 #include "monde/ObjetInteractif.hpp"
 #include "monstres/DefinitionDeMonstre.hpp"
 #include "objets/CatalogueObjets.hpp"
+#include "objets/GenerationDObjets.hpp"
 
 namespace {
 // Écart bord à bord (cercle d'un personnage, zone de la porte) à partir duquel la porte s'ouvre.
@@ -465,6 +466,21 @@ void Partie::dessinerZonesDeControle(sf::RenderTarget& rendu) const {
 
 bool Partie::estVisible(sf::Vector2f point) const {
     return m_vision.estVisible(point);
+}
+
+bool Partie::ramasserDesObjetsAleatoires(std::size_t nombre) {
+    // La vérification vient avant le tirage : un refus ne consomme aucun nombre aléatoire.
+    if (m_escouade.sac().casesLibres() < nombre) {
+        return false;
+    }
+    std::vector<Objet> objets;
+    objets.reserve(nombre);
+    for (std::size_t i = 0; i < nombre; ++i) {
+        objets.push_back(genererObjet(m_generateur));
+    }
+    [[maybe_unused]] const bool ok = m_escouade.ramasserTout(objets);
+    assert(ok);  // il y avait assez de cases libres
+    return true;
 }
 
 const Escouade& Partie::getEscouade() const {

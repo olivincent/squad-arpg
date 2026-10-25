@@ -204,6 +204,7 @@ add_executable(tests
     tests/jeu/test_Partie_skills.cpp
     tests/jeu/test_Partie_monstres.cpp
     tests/jeu/test_Partie_fin.cpp
+    tests/jeu/test_Partie_objets.cpp
     tests/jeu/test_Partie_portes.cpp
     tests/jeu/test_Partie_zonesDeControle.cpp
     tests/jeu/test_Partie_evenements.cpp

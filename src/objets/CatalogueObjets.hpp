@@ -32,7 +32,7 @@ struct DefinitionObjet {
 [[nodiscard]] const DefinitionObjet& definitionObjet(IdObjet id);
 
 // L'objet respecte-t-il ses invariants ? Une fonction de validation plutôt qu'une fonction de construction avec
-// `assert` : `Objet` est un agrégat (on l'écrit en toutes lettres, comme le fera le tirage de l'étape 96), donc aucune
+// `assert` : `Objet` est un agrégat (on l'écrit en toutes lettres, comme le fait le tirage de `genererObjet`), donc aucune
 // construction n'est obligée de passer par une fonction ; la validation, elle, se vérifie à chaque frontière
 // (`Equipement::poser`, le sac, les tests de données) et se teste sans `assert`. Un objet est valide quand :
 // - chaque affixe est à sa position (un préfixe dans `prefixe`, un suffixe dans `suffixe`), permis pour la catégorie de
@@ -57,7 +57,3 @@ struct DefinitionObjet {
 
 // Le contenu du sac au début d'une partie.
 [[nodiscard]] std::vector<Objet> sacDeDepart();
-
-// Les objets de démonstration que la touche F7 met dans le sac (débogage, étape 95.5) : une masse flamboyante, un arc acéré
-// du renard, une cotte de mailles renforcée d'esquive, un bouclier rond de blocage. Tous valides (`objetValide`).
-[[nodiscard]] std::vector<Objet> objetsDeDemonstration();

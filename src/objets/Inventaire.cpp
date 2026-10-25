@@ -11,6 +11,10 @@ std::size_t Inventaire::capacite() const {
     return m_cases.size();
 }
 
+std::size_t Inventaire::casesLibres() const {
+    return static_cast<std::size_t>(std::ranges::count_if(m_cases, [](const std::optional<Objet>& c) { return !c; }));
+}
+
 const std::optional<Objet>& Inventaire::a(std::size_t caseDuSac) const {
     assert(caseDuSac < m_cases.size());
     return m_cases[caseDuSac];
