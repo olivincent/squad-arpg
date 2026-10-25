@@ -152,7 +152,7 @@ TEST_CASE("glissement : relacher sans glissement ne fait rien") {
 }
 
 TEST_CASE("glissement : un objet porte se saisit et s'echange avec un autre personnage") {
-    Escouade escouade = uneEscouade({100.0f, 100.0f});
+    Escouade escouade = uneEscouadeCapableDeToutPorter({100.0f, 100.0f});
     EcranInventaire ecran(escouade, s_noms);
 
     ecran.saisir(centreDeLEmplacement(s_guerrier, Emplacement::Jambes), s_vue);

@@ -18,6 +18,11 @@ struct ObjetDeDepart {
     bool operator==(const ObjetDeDepart&) const = default;
 };
 
+// Les caractéristiques effectives d'un porteur de ces caractéristiques de base et de cet équipement : la base plus les
+// bonus des objets portés. Seul endroit qui les calcule (`Personnage` comme les déplacements d'objets s'en servent).
+class Equipement;
+[[nodiscard]] Caracteristiques caracteristiquesEffectives(const Caracteristiques& base, const Equipement& equipement);
+
 // Les objets portés par un personnage : au plus un par emplacement. Possédé par valeur par
 // chaque `Personnage`. Les objets passent d'un endroit à l'autre par valeur.
 class Equipement {

@@ -4,7 +4,10 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <SFML/System/Vector2.hpp>
+#include <algorithm>
+#include <array>
 #include <cmath>
+#include <cstddef>
 #include <optional>
 #include <string>
 #include <vector>
@@ -41,6 +44,20 @@ inline const std::vector<ObjetDeDepart> s_equipementMeleeDeTest = {{Emplacement:
                                                                    {Emplacement::Torse, IdObjet::CuirasseDeMailles},
                                                                    {Emplacement::Jambes, IdObjet::JambieresDeFer},
                                                                    {Emplacement::MainDroite, IdObjet::EpeeLongue}};
+
+// Les caractéristiques d'un personnage de test qui porte ces objets : la Puissance de référence (10) et juste ce qu'il
+// faut pour atteindre tous les seuils de ses objets (lus au catalogue, jamais écrits en littéral), les autres à 0.
+// Sans cela, un objet de départ à seuil serait inactif (étape 92) et les armures et attaques de test ne s'appliqueraient pas.
+inline Caracteristiques caracteristiquesPourPorter(const std::vector<ObjetDeDepart>& objets) {
+    std::array<int, s_nombreDeCaracteristiques> valeurs = {s_valeurDeReference, 0, 0, 0, 0};
+    for (const ObjetDeDepart& objet : objets) {
+        for (const SeuilDeCaracteristique& seuil : definitionObjet(objet.objet).seuils) {
+            int& valeur = valeurs[static_cast<std::size_t>(seuil.caracteristique)];
+            valeur = std::max(valeur, seuil.valeur);
+        }
+    }
+    return Caracteristiques(valeurs);
+}
 
 // Somme de l'armure des objets de départ.
 inline int armureDe(const std::vector<ObjetDeDepart>& equipement) {

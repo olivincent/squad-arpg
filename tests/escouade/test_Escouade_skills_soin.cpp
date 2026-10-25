@@ -43,7 +43,10 @@ TEST_CASE("choisirCible (soin) designe celui qui a le moins de points de vie") {
 TEST_CASE("choisirCible (soin) choisit la plus petite place en cas d'egalite") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
     infliger(escouade, 1, {35.0f, 35.0f}, 20);  // prêtre (place 2), sans armure : perd 20
-    infliger(escouade, 1, {85.0f, 60.0f}, 50);  // guerrier (place 1), armure 30 : 50 - 30 = 20
+    // Le guerrier (place 1) a plus de points de vie et de l'armure : on règle son coup pour qu'il en ait autant que le prêtre.
+    const int pointsDuPretre = *escouade.pointsDeVieDuPersonnage(2);
+    infliger(escouade, 1, {85.0f, 60.0f}, *escouade.pointsDeVieDuPersonnage(1) - pointsDuPretre + s_armureMeleeDeTest);
+    REQUIRE(*escouade.pointsDeVieDuPersonnage(1) == pointsDuPretre);
 
     REQUIRE(placeAlliePourSoin(escouade) == 1);
 }

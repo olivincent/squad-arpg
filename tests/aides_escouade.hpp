@@ -4,6 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/System/Vector2.hpp>
+#include <array>
 #include <cassert>
 #include <cstddef>
 #include <optional>
@@ -110,7 +111,7 @@ inline DefinitionPersonnage guerrierDeTest() {
                                            .tempsExecution = s_activationProvocationDeTest, .nature = NatureDAttaque::Contact})}},
             .equipementDeDepart = s_equipementMeleeDeTest,
             .rayonVision = s_rayonVisionDeTest,
-            .caracteristiques = s_caracteristiquesDeTest,
+            .caracteristiques = caracteristiquesPourPorter(s_equipementMeleeDeTest),
             .rang = Rang::Avant};
 }
 
@@ -122,7 +123,7 @@ inline DefinitionPersonnage pretreDeTest() {
                                     .rechargeMax = s_rechargeSoinDeTest, .tempsExecution = s_activationSoinDeTest, .nature = NatureDAttaque::Contact})}},
             .equipementDeDepart = {{Emplacement::MainDroite, IdObjet::Sceptre}},
             .rayonVision = s_rayonVisionDeTest,
-            .caracteristiques = s_caracteristiquesDeTest,
+            .caracteristiques = caracteristiquesPourPorter({{Emplacement::MainDroite, IdObjet::Sceptre}}),
             .rang = Rang::Arriere};
 }
 
@@ -135,7 +136,7 @@ inline DefinitionPersonnage mageDeTest() {
                                          .tempsExecution = s_activationZoneDeTest, .nature = NatureDAttaque::Zone})}},
             .equipementDeDepart = {{Emplacement::MainDroite, IdObjet::Baton}},
             .rayonVision = s_rayonVisionDeTest,
-            .caracteristiques = s_caracteristiquesDeTest,
+            .caracteristiques = caracteristiquesPourPorter({{Emplacement::MainDroite, IdObjet::Baton}}),
             .rang = Rang::Arriere};
 }
 
@@ -153,7 +154,7 @@ inline Skill skillExigeantDesArmes(std::vector<TypeDArme> armes) {
 // viennent son attaque de base, sa portée et sa zone de contrôle.
 inline DefinitionPersonnage definitionArmee(IdObjet arme = IdObjet::EpeeLongue) {
     return {.couleur = sf::Color::White, .equipementDeDepart = {{Emplacement::MainDroite, arme}},
-            .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeTest};
+            .rayonVision = s_rayonVisionDeTest, .caracteristiques = caracteristiquesPourPorter({{Emplacement::MainDroite, arme}})};
 }
 
 // Idem, sans arme : les mains nues.
@@ -167,8 +168,10 @@ inline Personnage unPersonnageArme(sf::Vector2f centre, IdObjet arme = IdObjet::
     return Personnage(centre, definitionArmee(arme));
 }
 
-// Seule l'arme de main droite d'un équipement de départ, pour les définitions qui précisent d'autres champs.
+// Seule l'arme de main droite d'un équipement de départ, pour les définitions qui précisent d'autres champs, et les
+// caractéristiques qu'il faut pour la porter.
 inline const std::vector<ObjetDeDepart> s_armeDeTireurSeuleDeTest = {{Emplacement::MainDroite, IdObjet::Sceptre}};
+inline const Caracteristiques s_caracteristiquesDeLArmeDeTireurDeTest = caracteristiquesPourPorter(s_armeDeTireurSeuleDeTest);
 
 // La composition par défaut des tests : guerrier, prêtre, mage (celle du jeu avant l'écran de choix).
 inline std::vector<DefinitionPersonnage> compositionDeTest() {
@@ -210,19 +213,58 @@ inline DefinitionPersonnage avecArme(DefinitionPersonnage definition, IdObjet ar
 
 // Cette définition, avec cette Puissance de base (les autres à 0) : son attaque de base fait
 // `montantEffectif(degats, Puissance seule, ...)`, `puissance` assez grande pour la rendre reconnaissable ou mortelle.
-inline DefinitionPersonnage avecPuissance(DefinitionPersonnage definition, int puissance) {
-    definition.caracteristiques = Caracteristiques({puissance, 0, 0, 0, 0});
+inline DefinitionPersonnage avecCaracteristique(DefinitionPersonnage definition, Caracteristique caracteristique, int valeur) {
+    std::array<int, s_nombreDeCaracteristiques> valeurs{};
+    for (const Caracteristique autre : s_caracteristiques) {
+        valeurs[static_cast<std::size_t>(autre)] = autre == caracteristique ? valeur : definition.caracteristiques.valeur(autre);
+    }
+    definition.caracteristiques = Caracteristiques(valeurs);
     return definition;
+}
+
+// Cette définition, avec juste ce qu'il faut de caractéristiques en plus pour porter ces objets (seuils lus au catalogue).
+inline DefinitionPersonnage capableDePorter(DefinitionPersonnage definition, const std::vector<IdObjet>& objets) {
+    for (const IdObjet objet : objets) {
+        for (const SeuilDeCaracteristique& seuil : definitionObjet(objet).seuils) {
+            if (definition.caracteristiques.valeur(seuil.caracteristique) < seuil.valeur) {
+                definition = avecCaracteristique(std::move(definition), seuil.caracteristique, seuil.valeur);
+            }
+        }
+    }
+    return definition;
+}
+
+// Cette définition, capable de porter tous les objets du catalogue : pour les tests qui déplacent des objets entre
+// personnages sans parler de seuils.
+inline DefinitionPersonnage capableDeToutPorter(DefinitionPersonnage definition) {
+    std::vector<IdObjet> tous;
+    for (const DefinitionObjet& objet : catalogueObjets()) {
+        tous.push_back(objet.id);
+    }
+    return capableDePorter(std::move(definition), tous);
+}
+
+inline DefinitionPersonnage avecPuissance(DefinitionPersonnage definition, int puissance) {
+    return avecCaracteristique(std::move(definition), Caracteristique::Puissance, puissance);
 }
 
 // Un guerrier increvable (l'Endurance donne les points de vie) : il reçoit les coups d'un test qui dure sans mourir.
 inline DefinitionPersonnage avecEnduranceEnorme(DefinitionPersonnage definition) {
-    definition.caracteristiques = Caracteristiques({s_valeurDeReference, 2'000'000, 0, 0, 0});
-    return definition;
+    return avecCaracteristique(std::move(definition), Caracteristique::Endurance, 2'000'000);
 }
 
 inline Partie unePartie(const Niveau& niveau, Generateur::result_type graine) {
     return partieDeTest(niveau, compositionDeTest(), graine);
+}
+
+// L'escouade par défaut dont les trois personnages peuvent porter tous les objets du catalogue : pour les tests qui
+// déplacent des objets sans parler de seuils.
+inline Escouade uneEscouadeCapableDeToutPorter(sf::Vector2f positionDepart) {
+    std::vector<DefinitionPersonnage> composition = compositionDeTest();
+    for (DefinitionPersonnage& definition : composition) {
+        definition = capableDeToutPorter(std::move(definition));
+    }
+    return Escouade(positionDepart, std::move(composition));
 }
 
 // Une escouade de quatre : deux guerriers devant (mêlées), le prêtre et le mage derrière. Pour les tests

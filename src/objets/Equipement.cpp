@@ -73,6 +73,10 @@ std::optional<TypeDArme> Equipement::typeDArme() const {
     return std::nullopt;
 }
 
+Caracteristiques caracteristiquesEffectives(const Caracteristiques& base, const Equipement& equipement) {
+    return base + equipement.bonusTotal();
+}
+
 Caracteristiques Equipement::bonusTotal() const {
     Caracteristiques total;
     for (const std::optional<Objet>& objet : m_objets) {

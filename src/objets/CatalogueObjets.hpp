@@ -10,6 +10,14 @@
 #include "objets/Emplacement.hpp"
 #include "objets/Objet.hpp"
 
+// Une valeur minimale de caractéristique que le porteur doit avoir pour équiper un objet (étape 92).
+struct SeuilDeCaracteristique {
+    Caracteristique caracteristique;
+    int valeur;
+
+    bool operator==(const SeuilDeCaracteristique&) const = default;
+};
+
 // Le modèle d'un objet : ce qui est commun à toutes ses instances.
 struct DefinitionObjet {
     IdObjet id;
@@ -20,6 +28,7 @@ struct DefinitionObjet {
     StatistiquesDeCombat bonusDeCombat = {};  // ajouté aux statistiques de combat de qui le porte (esquive, capacités…)
     std::optional<DonneesDArme> arme = {};    // seulement pour une arme
     std::optional<DonneesDeBouclier> bouclier = {};  // seulement pour un bouclier : son blocage
+    std::vector<SeuilDeCaracteristique> seuils = {};  // vide : aucun seuil (cuir, bijoux)
 };
 
 // Tous les modèles, dans l'ordre de `IdObjet` : l'unique source de leurs valeurs.
@@ -27,6 +36,9 @@ struct DefinitionObjet {
 
 // Le modèle de cet identifiant.
 [[nodiscard]] const DefinitionObjet& definitionObjet(IdObjet id);
+
+// Ces caractéristiques atteignent-elles tous les seuils de cet objet ? Toujours vrai sans seuil.
+[[nodiscard]] bool seuilsAtteints(IdObjet id, const Caracteristiques& caracteristiques);
 
 // Cet objet prend-il les deux mains (une arme à deux mains) ?
 [[nodiscard]] bool estADeuxMains(IdObjet id);

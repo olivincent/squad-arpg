@@ -109,6 +109,8 @@ public:
     [[nodiscard]] const Equipement& getEquipement() const;
     // Ses caractéristiques effectives : la base de sa classe plus les bonus de son équipement.
     [[nodiscard]] const Caracteristiques& getCaracteristiques() const;
+    // Celles de sa classe, sans l'équipement : la base des seuils d'équipement.
+    [[nodiscard]] const Caracteristiques& getCaracteristiquesDeBase() const;
     // Ses statistiques de combat, tirées de ses caractéristiques effectives (`statistiquesDuPersonnage`).
     [[nodiscard]] const StatistiquesDeCombat& getStatistiques() const;
     // Porte `objet` à cet emplacement (`assert` : `peutAller`) et rend celui qui y était. L'armure est

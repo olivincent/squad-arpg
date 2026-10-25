@@ -38,7 +38,7 @@ Personnage::Personnage(sf::Vector2f centre, DefinitionPersonnage definition)
       m_skills(std::move(definition.skills)),
       m_cibleChemin(),
       m_caracteristiquesDeBase(definition.caracteristiques),
-      m_caracteristiques(m_caracteristiquesDeBase + m_equipement.bonusTotal()),
+      m_caracteristiques(caracteristiquesEffectives(m_caracteristiquesDeBase, m_equipement)),
       m_statistiques(statistiquesDuPersonnage(m_caracteristiques, m_equipement.bonusDeCombatTotal())),
       m_vitalite(pointsDeVieMax(m_caracteristiques), defenses()),
       m_rayonVision(definition.rayonVision),
@@ -348,7 +348,7 @@ Defenses Personnage::defenses() const {
 }
 
 void Personnage::recalculerDepuisLEquipement() {
-    m_caracteristiques = m_caracteristiquesDeBase + m_equipement.bonusTotal();
+    m_caracteristiques = caracteristiquesEffectives(m_caracteristiquesDeBase, m_equipement);
     m_statistiques = statistiquesDuPersonnage(m_caracteristiques, m_equipement.bonusDeCombatTotal());
     m_vitalite.definirMaximum(pointsDeVieMax(m_caracteristiques));
     m_vitalite.definirDefenses(defenses());
@@ -383,6 +383,10 @@ Attaque Personnage::attaqueDe(const Skill& skill) const {
 
 const Caracteristiques& Personnage::getCaracteristiques() const {
     return m_caracteristiques;
+}
+
+const Caracteristiques& Personnage::getCaracteristiquesDeBase() const {
+    return m_caracteristiquesDeBase;
 }
 
 const StatistiquesDeCombat& Personnage::getStatistiques() const {

@@ -49,7 +49,7 @@ int degatsSubis(Escouade& escouade, std::size_t place) {
 
 // L'escouade du jeu, sac de départ rangé dans les premières cases.
 Escouade escouadeAvecSac(const std::vector<Objet>& objets) {
-    Escouade escouade = uneEscouade({50.0f, 50.0f});
+    Escouade escouade = uneEscouadeCapableDeToutPorter({50.0f, 50.0f});
     for (const Objet& objet : objets) {
         REQUIRE(escouade.ramasser(objet));
     }
@@ -70,7 +70,7 @@ const Objet s_casqueDeFer{IdObjet::CasqueDeFer};
 }  // namespace
 
 TEST_CASE("le sac d'une escouade neuve est vide") {
-    const Escouade escouade = uneEscouade({50.0f, 50.0f});
+    const Escouade escouade = uneEscouadeCapableDeToutPorter({50.0f, 50.0f});
 
     REQUIRE(escouade.sac().capacite() > 0);
     for (std::size_t i = 0; i < escouade.sac().capacite(); ++i) {
@@ -79,14 +79,14 @@ TEST_CASE("le sac d'une escouade neuve est vide") {
 }
 
 TEST_CASE("equipementDuPersonnage : le guerrier est equipe, le mage non") {
-    const Escouade escouade = uneEscouade({50.0f, 50.0f});
+    const Escouade escouade = uneEscouadeCapableDeToutPorter({50.0f, 50.0f});
 
     REQUIRE(escouade.equipementDuPersonnage(s_guerrier).armureTotale() == s_armureMeleeDeTest);
     REQUIRE(escouade.equipementDuPersonnage(s_mage).armureTotale() == 0);
 }
 
 TEST_CASE("ramasser : premiere case libre, puis faux quand le sac est plein") {
-    Escouade escouade = uneEscouade({50.0f, 50.0f});
+    Escouade escouade = uneEscouadeCapableDeToutPorter({50.0f, 50.0f});
 
     REQUIRE(escouade.ramasser(s_gants));
     REQUIRE(escouade.ramasser(s_casqueDeCuir));
@@ -154,7 +154,7 @@ TEST_CASE("deplacer : un personnage mort peut etre equipe") {
 }
 
 TEST_CASE("deplacer d'un emplacement vers une case vide : l'objet va dans le sac, l'armure baisse") {
-    Escouade escouade = uneEscouade({50.0f, 50.0f});
+    Escouade escouade = uneEscouadeCapableDeToutPorter({50.0f, 50.0f});
     const std::vector<int> avant = exemplaires(escouade);
     const int armureAvant = escouade.equipementDuPersonnage(s_guerrier).armureTotale();
 
@@ -201,7 +201,7 @@ TEST_CASE("deplacer d'un emplacement vide : faux, rien ne bouge") {
 }
 
 TEST_CASE("tout desequiper ramene l'armure a zero, tout reequiper la rend") {
-    Escouade escouade = uneEscouade({50.0f, 50.0f});
+    Escouade escouade = uneEscouadeCapableDeToutPorter({50.0f, 50.0f});
     const std::vector<Emplacement> portes = {Emplacement::Tete, Emplacement::Torse, Emplacement::Jambes};
     for (std::size_t i = 0; i < portes.size(); ++i) {
         REQUIRE(escouade.deplacerObjet(portee(s_guerrier, portes[i]), dansLeSac(i)));
@@ -217,7 +217,7 @@ TEST_CASE("tout desequiper ramene l'armure a zero, tout reequiper la rend") {
 }
 
 TEST_CASE("l'armure suit un objet d'un personnage a l'autre") {
-    Escouade escouade = uneEscouade({50.0f, 50.0f});
+    Escouade escouade = uneEscouadeCapableDeToutPorter({50.0f, 50.0f});
     const std::vector<int> avant = exemplaires(escouade);
     const int armureJambieres = definitionObjet(IdObjet::JambieresDeFer).armure;
     const int armureGuerrier = escouade.equipementDuPersonnage(s_guerrier).armureTotale();
@@ -233,7 +233,7 @@ TEST_CASE("l'armure suit un objet d'un personnage a l'autre") {
 }
 
 TEST_CASE("echange entre deux personnages : les deux armures changent") {
-    Escouade escouade = uneEscouade({50.0f, 50.0f});
+    Escouade escouade = uneEscouadeCapableDeToutPorter({50.0f, 50.0f});
     REQUIRE(escouade.ramasser(s_casqueDeCuir));
     REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_mage, Emplacement::Tete)));
     const std::vector<int> avant = exemplaires(escouade);
@@ -410,7 +410,8 @@ TEST_CASE("deux mains : sac plein, l'epee a deux mains est refusee (ni surbrilla
 TEST_CASE("changer d'arme dans l'inventaire relance la recharge : le premier coup attend l'intervalle de la nouvelle arme") {
     Generateur generateur = generateurDeTest();
     const TileMap& carte = carteOuverte();
-    Escouade escouade({50.0f, 50.0f}, {guerrierDeTest()});  // seul : tous les coups sont les siens
+    // Seul : tous les coups sont les siens ; capable de porter la dague.
+    Escouade escouade({50.0f, 50.0f}, {capableDePorter(guerrierDeTest(), {IdObjet::Dague})});
     REQUIRE(escouade.ramasser(Objet{IdObjet::Dague}));
     REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::MainDroite)));
     const DescriptionDAttaque dague = definitionObjet(IdObjet::Dague).arme.value().attaque;
@@ -429,4 +430,31 @@ TEST_CASE("changer d'arme dans l'inventaire relance la recharge : le premier cou
     REQUIRE(coupsPendant(dague.rechargeMin * 0.9f) == 0);
     // Passé l'intervalle et l'exécution, le coup part.
     REQUIRE(coupsPendant(dague.rechargeMax + dague.tempsExecution + 0.2f) >= 1);
+}
+
+TEST_CASE("seuils : le mage ne peut pas recevoir la cuirasse de mailles, ni la surbrillance ni le deplacement") {
+    Escouade escouade = uneEscouade({50.0f, 50.0f});  // le mage n'a pas l'Endurance de la cuirasse
+    const Objet cuirasse{IdObjet::CuirasseDeMailles};
+    REQUIRE(escouade.ramasser(cuirasse));
+    const std::vector<int> avant = exemplaires(escouade);
+
+    REQUIRE_FALSE(escouade.peutDeplacerObjet(dansLeSac(0), portee(s_mage, Emplacement::Torse)));
+    REQUIRE_FALSE(escouade.deplacerObjet(dansLeSac(0), portee(s_mage, Emplacement::Torse)));
+
+    REQUIRE(escouade.sac().a(0) == cuirasse);
+    REQUIRE_FALSE(escouade.equipementDuPersonnage(s_mage).a(Emplacement::Torse).has_value());
+    REQUIRE(exemplaires(escouade) == avant);
+}
+
+TEST_CASE("seuils : le guerrier ne porte pas l'epee a deux mains, avec l'anneau de puissance il le peut") {
+    Escouade escouade = uneEscouade({50.0f, 50.0f});
+    REQUIRE(escouade.ramasser(s_epeeADeuxMains));                            // case 0
+    REQUIRE(escouade.ramasser(Objet{IdObjet::AnneauDePuissance}));           // case 1
+    REQUIRE_FALSE(escouade.peutDeplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::MainDroite)));
+
+    REQUIRE(escouade.deplacerObjet(dansLeSac(1), portee(s_guerrier, Emplacement::Anneau1)));
+
+    REQUIRE(escouade.peutDeplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::MainDroite)));
+    REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::MainDroite)));
+    REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainDroite) == s_epeeADeuxMains);
 }

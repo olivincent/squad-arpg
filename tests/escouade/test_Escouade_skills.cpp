@@ -510,7 +510,8 @@ constexpr AdresseSkill s_frappeDuGuerrierReel{1, IdSkill::FrappePuissante};
 constexpr AdresseSkill s_provocationDuGuerrierReel{1, IdSkill::Provocation};
 
 Escouade unGuerrierReel() {
-    return Escouade({50.0f, 50.0f}, composer({IdSpecialite::Guerrier}));
+    // Capable de tout porter : les armes qu'on lui donne ne se heurtent pas à ses seuils.
+    return Escouade({50.0f, 50.0f}, {capableDeToutPorter(composer({IdSpecialite::Guerrier})[0])});
 }
 
 void retirerLArme(Escouade& escouade) {

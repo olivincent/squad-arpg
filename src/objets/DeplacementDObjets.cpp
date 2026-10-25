@@ -90,6 +90,22 @@ bool libererLaMainOpposee(EtatDesObjets& etat, const PositionDObjet& position) {
     assert(chasse.has_value());
     return etat.sac.ajouter(*chasse);  // NOLINT(bugprone-unchecked-optional-access): vérifié par l'assert au-dessus (_assert de MinGW n'est pas noreturn)
 }
+
+// Le personnage qui reçoit l'objet posé à cette position atteint-il ses seuils, sans compter cet objet ? Toujours
+// vrai vers une case du sac.
+bool seuilsRespectes(const EtatDesObjets& etat, const PositionDObjet& position) {
+    const PositionPortee* portee = std::get_if<PositionPortee>(&position);
+    if (portee == nullptr) {
+        return true;
+    }
+    Equipement sansLui = equipementDe(etat, *portee);
+    const std::optional<Objet> pose = sansLui.retirer(portee->emplacement);
+    if (!pose.has_value()) {
+        return true;
+    }
+    assert(portee->place <= etat.bases.size());
+    return seuilsAtteints(pose->id, caracteristiquesEffectives(etat.bases[portee->place - 1], sansLui));
+}
 }  // namespace
 
 bool deplacerLesObjets(EtatDesObjets& etat, const PositionDObjet& de, const PositionDObjet& vers) {
@@ -112,6 +128,9 @@ bool deplacerLesObjets(EtatDesObjets& etat, const PositionDObjet& de, const Posi
         poserA(essai, de, *sortiVers);
     }
     if (!libererLaMainOpposee(essai, vers) || (sortiVers.has_value() && !libererLaMainOpposee(essai, de))) {
+        return false;
+    }
+    if (!seuilsRespectes(essai, vers) || (sortiVers.has_value() && !seuilsRespectes(essai, de))) {
         return false;
     }
     etat = std::move(essai);

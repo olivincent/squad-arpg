@@ -1,6 +1,7 @@
 // ./src/objets/DeplacementDObjets.hpp
 #pragma once
 #include <vector>
+#include "combat/Caracteristiques.hpp"
 #include "objets/Equipement.hpp"
 #include "objets/Inventaire.hpp"
 #include "objets/PositionDObjet.hpp"
@@ -11,6 +12,7 @@
 struct EtatDesObjets {
     Inventaire sac;
     std::vector<Equipement> equipements;
+    std::vector<Caracteristiques> bases;  // les caractéristiques de base de chaque place (celles de la classe), pour les seuils
 };
 
 // Déplace l'objet de `de` vers `vers` sur cet état, ou rend faux sans rien changer. Seule source de la règle des
@@ -21,7 +23,10 @@ struct EtatDesObjets {
 // - les deux mains : poser une arme à deux mains alors que la main gauche est occupée range l'objet de la main
 //   gauche dans la première case libre du sac ; poser un bouclier alors que la main droite tient une arme à deux mains
 //   range l'arme. Pas de case libre : le déplacement est refusé. Les deux extrémités d'un échange entre deux
-//   personnages sont traitées pareil.
+//   personnages sont traitées pareil ;
+// - les seuils (étape 92) : un objet posé sur un personnage exige que celui-ci atteigne ses seuils avec ses
+//   caractéristiques effectives **sans compter l'objet posé** et en tenant compte de ce que le déplacement retire
+//   (l'objet échangé, ce qui est rangé dans le sac). Vers le sac, aucun seuil.
 // `assert` : places valides, cases du sac valides.
 [[nodiscard]] bool deplacerLesObjets(EtatDesObjets& etat, const PositionDObjet& de, const PositionDObjet& vers);
 

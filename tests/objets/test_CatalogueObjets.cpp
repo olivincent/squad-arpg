@@ -194,3 +194,39 @@ TEST_CASE("estADeuxMains : l'epee a deux mains, le baton et l'arc, pas les autre
     REQUIRE_FALSE(estADeuxMains(IdObjet::Sceptre));
     REQUIRE_FALSE(estADeuxMains(IdObjet::BouclierRond));
 }
+
+TEST_CASE("catalogueObjets : les seuils des armes, des armures de fer et du bouclier") {
+    using Seuils = std::vector<SeuilDeCaracteristique>;
+    const auto seuils = [](IdObjet id) { return definitionObjet(id).seuils; };
+
+    REQUIRE(seuils(IdObjet::EpeeLongue) == Seuils{{Caracteristique::Puissance, 11}});
+    REQUIRE(seuils(IdObjet::Masse) == Seuils{{Caracteristique::Puissance, 11}});
+    REQUIRE(seuils(IdObjet::EpeeADeuxMains) == Seuils{{Caracteristique::Puissance, 13}, {Caracteristique::Endurance, 12}});
+    REQUIRE(seuils(IdObjet::Dague) == Seuils{{Caracteristique::Adresse, 10}});
+    REQUIRE(seuils(IdObjet::Arc) == Seuils{{Caracteristique::Adresse, 12}});
+    REQUIRE(seuils(IdObjet::Baton) == Seuils{{Caracteristique::Savoir, 12}});
+    REQUIRE(seuils(IdObjet::Sceptre) == Seuils{{Caracteristique::Volonte, 11}});
+    REQUIRE(seuils(IdObjet::BouclierRond) == Seuils{{Caracteristique::Endurance, 11}});
+    for (const IdObjet fer : {IdObjet::CasqueDeFer, IdObjet::CuirasseDeMailles, IdObjet::JambieresDeFer}) {
+        REQUIRE(seuils(fer) == Seuils{{Caracteristique::Endurance, 12}});
+    }
+}
+
+TEST_CASE("catalogueObjets : les objets de cuir et les bijoux n'ont aucun seuil") {
+    for (const IdObjet libre : {IdObjet::GantsDeCuir, IdObjet::BottesDeCuir, IdObjet::CasqueDeCuir, IdObjet::TuniqueMatelassee,
+                                IdObjet::CollierDeProtection, IdObjet::AnneauDeProtection, IdObjet::AnneauDePuissance,
+                                IdObjet::CollierDEndurance}) {
+        REQUIRE(definitionObjet(libre).seuils.empty());
+    }
+}
+
+TEST_CASE("seuilsAtteints : tous les seuils doivent l'etre, un objet sans seuil l'est toujours") {
+    const Caracteristiques faibles({10, 10, 10, 10, 10});
+    const Caracteristiques justes({13, 12, 0, 0, 0});
+
+    REQUIRE(seuilsAtteints(IdObjet::GantsDeCuir, Caracteristiques()));
+    REQUIRE_FALSE(seuilsAtteints(IdObjet::EpeeLongue, faibles));                          // Puissance 11 exigée
+    REQUIRE(seuilsAtteints(IdObjet::Dague, faibles));                                     // Adresse 10 : atteint, pas dépassé
+    REQUIRE_FALSE(seuilsAtteints(IdObjet::EpeeADeuxMains, Caracteristiques({13, 11, 0, 0, 0})));  // il manque 1 d'Endurance
+    REQUIRE(seuilsAtteints(IdObjet::EpeeADeuxMains, justes));
+}

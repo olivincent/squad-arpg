@@ -1117,9 +1117,10 @@ std::optional<Objet> Escouade::objetA(const PositionDObjet& position) const {
 }
 
 EtatDesObjets Escouade::etatDesObjets() const {
-    EtatDesObjets etat{m_sac, {}};
+    EtatDesObjets etat{m_sac, {}, {}};
     for (const Personnage& personnage : m_personnages) {
         etat.equipements.push_back(personnage.getEquipement());
+        etat.bases.push_back(personnage.getCaracteristiquesDeBase());
     }
     return etat;
 }

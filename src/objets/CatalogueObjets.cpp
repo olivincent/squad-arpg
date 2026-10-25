@@ -2,6 +2,7 @@
 #include "objets/CatalogueObjets.hpp"
 #include <cassert>
 #include <cstddef>
+#include <utility>
 
 namespace {
 // Valeurs provisoires, à ajuster après test.
@@ -38,6 +39,24 @@ constexpr int s_degatsBaton = 15;
 constexpr int s_degatsArc = 15;
 constexpr int s_degatsMainsNues = 6;
 
+// Seuils d'équipement (valeurs provisoires, « à tester »). Chaque classe peut porter son équipement de départ avec
+// ses caractéristiques de base ; personne ne peut porter l'épée à deux mains au départ.
+constexpr int s_puissanceArmeDeMelee = 11;         // épée longue, masse
+constexpr int s_puissanceEpeeADeuxMains = 13;
+constexpr int s_enduranceEpeeADeuxMains = 12;
+constexpr int s_adresseDague = 10;
+constexpr int s_adresseArc = 12;
+constexpr int s_savoirBaton = 12;
+constexpr int s_volonteSceptre = 11;
+constexpr int s_enduranceBouclierRond = 11;
+constexpr int s_enduranceArmureDeFer = 12;         // casque, cuirasse de mailles, jambières de fer
+
+// Cette définition, avec ces seuils.
+DefinitionObjet avecSeuils(DefinitionObjet definition, std::vector<SeuilDeCaracteristique> seuils) {
+    definition.seuils = std::move(seuils);
+    return definition;
+}
+
 DonneesDArme armeDeMelee(TypeDArme type, int mains, int degats, float rechargeMin, float rechargeMax, float execution) {
     return {.type = type, .mains = mains,
             .attaque = {.degats = degats, .rechargeMin = rechargeMin, .rechargeMax = rechargeMax,
@@ -53,11 +72,15 @@ DonneesDArme armeDeTir(TypeDArme type, int mains, int degats) {
 
 std::vector<DefinitionObjet> construireLeCatalogue() {
     return {
-        {IdObjet::CasqueDeFer, "Casque de fer", CategorieObjet::Casque, s_armureCasqueDeFer},
-        {IdObjet::CuirasseDeMailles, "Cuirasse de mailles", CategorieObjet::Armure, s_armureCuirasseDeMailles},
-        {IdObjet::JambieresDeFer, "Jambières de fer", CategorieObjet::Jambieres, s_armureJambieresDeFer},
-        {IdObjet::BouclierRond, "Bouclier rond", CategorieObjet::Bouclier, s_armureBouclierRond, {}, {}, std::nullopt,
-         DonneesDeBouclier{.chanceDeBlocage = s_chanceDeBlocageBouclierRond, .montantBloque = s_montantBloqueBouclierRond}},
+        avecSeuils({IdObjet::CasqueDeFer, "Casque de fer", CategorieObjet::Casque, s_armureCasqueDeFer},
+                   {{Caracteristique::Endurance, s_enduranceArmureDeFer}}),
+        avecSeuils({IdObjet::CuirasseDeMailles, "Cuirasse de mailles", CategorieObjet::Armure, s_armureCuirasseDeMailles},
+                   {{Caracteristique::Endurance, s_enduranceArmureDeFer}}),
+        avecSeuils({IdObjet::JambieresDeFer, "Jambières de fer", CategorieObjet::Jambieres, s_armureJambieresDeFer},
+                   {{Caracteristique::Endurance, s_enduranceArmureDeFer}}),
+        avecSeuils({IdObjet::BouclierRond, "Bouclier rond", CategorieObjet::Bouclier, s_armureBouclierRond, {}, {}, std::nullopt,
+                    DonneesDeBouclier{.chanceDeBlocage = s_chanceDeBlocageBouclierRond, .montantBloque = s_montantBloqueBouclierRond}},
+                   {{Caracteristique::Endurance, s_enduranceBouclierRond}}),
         {IdObjet::GantsDeCuir, "Gants de cuir", CategorieObjet::Gants, s_armureGantsDeCuir},
         {IdObjet::BottesDeCuir, "Bottes de cuir", CategorieObjet::Bottes, s_armureBottesDeCuir, {},
          {.esquiveContact = s_esquiveBottesDeCuir}},
@@ -72,17 +95,24 @@ std::vector<DefinitionObjet> construireLeCatalogue() {
          Caracteristiques::seule(Caracteristique::Puissance, s_bonusAnneauDePuissance)},
         {IdObjet::CollierDEndurance, "Collier d'endurance", CategorieObjet::Collier, 0,
          Caracteristiques::seule(Caracteristique::Endurance, s_bonusCollierDEndurance)},
-        {IdObjet::EpeeLongue, "Épée longue", CategorieObjet::Arme, 0, {}, {},
-         armeDeMelee(TypeDArme::EpeeLongue, 1, s_degatsEpeeLongue, 0.3f, 0.7f, s_executionArmeLegere)},
-        {IdObjet::Masse, "Masse", CategorieObjet::Arme, 0, {}, {},
-         armeDeMelee(TypeDArme::Masse, 1, s_degatsMasse, 0.3f, 0.7f, s_executionArmeLegere)},
-        {IdObjet::Dague, "Dague", CategorieObjet::Arme, 0, {}, {},
-         armeDeMelee(TypeDArme::Dague, 1, s_degatsDague, 0.4f, 0.8f, s_executionArmeLegere)},
-        {IdObjet::EpeeADeuxMains, "Épée à deux mains", CategorieObjet::Arme, 0, {}, {},
-         armeDeMelee(TypeDArme::EpeeADeuxMains, 2, s_degatsEpeeADeuxMains, 1.2f, 2.8f, s_executionArmeLourde)},
-        {IdObjet::Sceptre, "Sceptre", CategorieObjet::Arme, 0, {}, {}, armeDeTir(TypeDArme::Sceptre, 1, s_degatsSceptre)},
-        {IdObjet::Baton, "Bâton", CategorieObjet::Arme, 0, {}, {}, armeDeTir(TypeDArme::Baton, 2, s_degatsBaton)},
-        {IdObjet::Arc, "Arc", CategorieObjet::Arme, 0, {}, {}, armeDeTir(TypeDArme::Arc, 2, s_degatsArc)},
+        avecSeuils({IdObjet::EpeeLongue, "Épée longue", CategorieObjet::Arme, 0, {}, {},
+                    armeDeMelee(TypeDArme::EpeeLongue, 1, s_degatsEpeeLongue, 0.3f, 0.7f, s_executionArmeLegere)},
+                   {{Caracteristique::Puissance, s_puissanceArmeDeMelee}}),
+        avecSeuils({IdObjet::Masse, "Masse", CategorieObjet::Arme, 0, {}, {},
+                    armeDeMelee(TypeDArme::Masse, 1, s_degatsMasse, 0.3f, 0.7f, s_executionArmeLegere)},
+                   {{Caracteristique::Puissance, s_puissanceArmeDeMelee}}),
+        avecSeuils({IdObjet::Dague, "Dague", CategorieObjet::Arme, 0, {}, {},
+                    armeDeMelee(TypeDArme::Dague, 1, s_degatsDague, 0.4f, 0.8f, s_executionArmeLegere)},
+                   {{Caracteristique::Adresse, s_adresseDague}}),
+        avecSeuils({IdObjet::EpeeADeuxMains, "Épée à deux mains", CategorieObjet::Arme, 0, {}, {},
+                    armeDeMelee(TypeDArme::EpeeADeuxMains, 2, s_degatsEpeeADeuxMains, 1.2f, 2.8f, s_executionArmeLourde)},
+                   {{Caracteristique::Puissance, s_puissanceEpeeADeuxMains}, {Caracteristique::Endurance, s_enduranceEpeeADeuxMains}}),
+        avecSeuils({IdObjet::Sceptre, "Sceptre", CategorieObjet::Arme, 0, {}, {}, armeDeTir(TypeDArme::Sceptre, 1, s_degatsSceptre)},
+                   {{Caracteristique::Volonte, s_volonteSceptre}}),
+        avecSeuils({IdObjet::Baton, "Bâton", CategorieObjet::Arme, 0, {}, {}, armeDeTir(TypeDArme::Baton, 2, s_degatsBaton)},
+                   {{Caracteristique::Savoir, s_savoirBaton}}),
+        avecSeuils({IdObjet::Arc, "Arc", CategorieObjet::Arme, 0, {}, {}, armeDeTir(TypeDArme::Arc, 2, s_degatsArc)},
+                   {{Caracteristique::Adresse, s_adresseArc}}),
     };
 }
 }  // namespace
@@ -103,6 +133,15 @@ const DescriptionDAttaque& mainsNues() {
                                                     .rechargeMax = s_rechargeTirMax, .tempsExecution = s_executionArmeLegere,
                                                     .portee = s_porteeDeContact, .nature = NatureDAttaque::Contact};
     return s_mainsNues;
+}
+
+bool seuilsAtteints(IdObjet id, const Caracteristiques& caracteristiques) {
+    for (const SeuilDeCaracteristique& seuil : definitionObjet(id).seuils) {
+        if (caracteristiques.valeur(seuil.caracteristique) < seuil.valeur) {
+            return false;
+        }
+    }
+    return true;
 }
 
 bool estADeuxMains(IdObjet id) {
