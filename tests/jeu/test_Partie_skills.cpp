@@ -53,7 +53,7 @@ TEST_CASE("un skill et attaquer dans la meme image ne frappent pas deux fois le 
     int frappes = 0;
     int basesDesTireurs = 0;
     for (const EvenementDeCombat& evenement : evenements) {
-        const Degats* coup = std::get_if<Degats>(&evenement.detail);
+        const DegatsSubis* coup = std::get_if<DegatsSubis>(&evenement.detail);
         if (coup == nullptr || evenement.campCible != Camp::Monstres) {
             continue;
         }

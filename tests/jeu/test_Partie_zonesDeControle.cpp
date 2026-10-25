@@ -36,7 +36,7 @@ TEST_CASE("zone de controle : un mage au contact qui s'eloigne recoit un coup gr
 
     // Un seul coup gratuit (armure 0), critique ou non selon le tirage de la partie.
     REQUIRE(evenements.size() == 1);
-    const Degats& coupGratuit = std::get<Degats>(evenements[0].detail);
+    const DegatsSubis& coupGratuit = std::get<DegatsSubis>(evenements[0].detail);
     REQUIRE(coupGratuit.opportunite);
     REQUIRE(pointsDeVie == apresLePremierCoup - degatsAttendus(attaqueDuMonstre, defensesDuPersonnageDeTest(0), coupGratuit.critique));
 }
@@ -78,7 +78,7 @@ int coupsGratuitsDuPremier(IdObjet arme) {
     for (int i = 0; i < nombreDeTics(1.2f); ++i) {
         partie.mettreAJour(s_dureeTic);
         for (const EvenementDeCombat& evenement : partie.prendreEvenements()) {
-            const Degats* coup = std::get_if<Degats>(&evenement.detail);
+            const DegatsSubis* coup = std::get_if<DegatsSubis>(&evenement.detail);
             if (coup == nullptr || evenement.campCible != Camp::Monstres) {
                 continue;
             }

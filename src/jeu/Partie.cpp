@@ -253,7 +253,7 @@ void Partie::signalerLeCoup(Camp campCible, int idCible, sf::Vector2f position, 
 }
 
 void Partie::signaler(Camp campCible, int idCible, sf::Vector2f position, DetailEvenement detail) {
-    const bool montantNul = std::visit(Surcharges{[](const Degats& degats) { return degats.montant <= 0; },
+    const bool montantNul = std::visit(Surcharges{[](const DegatsSubis& degats) { return degats.montant <= 0; },
                                                   [](const Soin& soin) { return soin.montant <= 0; },
                                                   [](const SkillLance&) { return false; },
                                                   [](const Provoque&) { return false; },

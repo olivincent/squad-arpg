@@ -16,7 +16,7 @@ enum class Camp { Escouade, Monstres };
 // les champs qui ont un sens pour elle.
 // `montant` : ce qui a réellement été appliqué (armure comprise, soin plafonné), jamais 0.
 // `opportunite` : coup gratuit. `critique` : le coup ou le soin a été un critique (le montant est déjà multiplié).
-struct Degats {
+struct DegatsSubis {
     int montant;
     bool opportunite;
     bool critique;
@@ -33,13 +33,13 @@ struct SkillLance {
 struct Provoque {};
 // Un coup a été esquivé, au-dessus de la cible : l'attaque a eu lieu, elle n'a rien fait.
 struct Esquive {};
-// Un blocage a absorbé `montant` points (jamais 0) du coup. `total` : il a tout absorbé, aucun `Degats` ne suit ;
-// sinon un `Degats` pour le reste a été signalé juste avant (même cible, même image).
+// Un blocage a absorbé `montant` points (jamais 0) du coup. `total` : il a tout absorbé, aucun `DegatsSubis` ne suit ;
+// sinon un `DegatsSubis` pour le reste a été signalé juste avant (même cible, même image).
 struct Bloque {
     int montant;
     bool total;
 };
-using DetailEvenement = std::variant<Degats, Soin, SkillLance, Provoque, Esquive, Bloque>;
+using DetailEvenement = std::variant<DegatsSubis, Soin, SkillLance, Provoque, Esquive, Bloque>;
 
 // `position` : COPIE du centre de la cible à ce moment ; aucune référence vers l'entité, qui peut
 // disparaître dans la même image (monstre tué par ce coup).
@@ -51,7 +51,7 @@ struct EvenementDeCombat {  // NOLINT(cppcoreguidelines-pro-type-member-init): c
 };
 
 // Ce qu'un coup donne, en détails d'événements, dans l'ordre où ils s'empilent à l'écran (même cible, même
-// image : le premier en bas) : un coup esquivé donne `Esquive` seul ; sinon les `Degats` (rien s'ils sont nuls,
+// image : le premier en bas) : un coup esquivé donne `Esquive` seul ; sinon les `DegatsSubis` (rien s'ils sont nuls,
 // donc rien après un blocage total ni pour un mort), puis `Bloque` s'il y a eu un blocage, au-dessus des dégâts.
 // `opportunite` : coup gratuit. Un résultat « rien » (mort, monstre invulnérable, montant nul) donne une liste vide.
 [[nodiscard]] std::vector<DetailEvenement> detailsDuCoup(const ResultatDuCoup& resultat, bool opportunite);

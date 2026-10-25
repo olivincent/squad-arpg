@@ -53,7 +53,7 @@ sf::Vector2f positionDuTexte(const TexteFlottant& texte) {
 }
 
 std::string libelleDuTexte(const EvenementDeCombat& evenement) {
-    return std::visit(Surcharges{[](const Degats& degats) {
+    return std::visit(Surcharges{[](const DegatsSubis& degats) {
                                      const std::string montant = std::to_string(degats.montant);
                                      const std::string coupGratuit = degats.opportunite ? montant + "!" : montant;
                                      return degats.critique ? coupGratuit + s_suiteDuCritique : coupGratuit;
@@ -73,7 +73,7 @@ std::string libelleDuTexte(const EvenementDeCombat& evenement) {
 }
 
 sf::Color couleurDuTexte(const EvenementDeCombat& evenement) {
-    return std::visit(Surcharges{[&](const Degats& degats) {
+    return std::visit(Surcharges{[&](const DegatsSubis& degats) {
                                      if (degats.critique) {
                                          return s_couleurCritique;  // l'emporte sur le coup gratuit
                                      }
@@ -92,7 +92,7 @@ sf::Color couleurDuTexte(const EvenementDeCombat& evenement) {
 }
 
 unsigned int tailleDuTexte(const EvenementDeCombat& evenement) {
-    return std::visit(Surcharges{[](const Degats& degats) {
+    return std::visit(Surcharges{[](const DegatsSubis& degats) {
                                      if (degats.critique) {
                                          return s_tailleCritique;
                                      }
