@@ -1630,3 +1630,34 @@ vie). Une attaque « reconnaissable » (un coup qu'on suit parmi d'autres) s'obt
   la constante commune.
 - **`tests/interface/`** : `test_AffichageObjets.cpp` (+3 : infobulles des armes) ; `test_BarreDeSkills.cpp` (+1 :
   `armeAbsente`).
+
+## Étape 92 : seuils, objets inactifs, pénétration (+54 cas, 1 303 → 1 357)
+
+- **Les personnages de test atteignent les seuils de leurs objets.** Sans cela, un objet à seuil de leur équipement
+  de départ serait inactif (étape 92.2) et leurs armures et leurs attaques ne s'appliqueraient pas. Aides de
+  `aides.hpp` et `aides_escouade.hpp`, qui lisent les seuils au catalogue (jamais écrits en littéral) :
+  `caracteristiquesPourPorter(objets)` (la Puissance de référence 10 et juste ce qu'il faut pour les seuils),
+  `capableDePorter(definition, objets)`, `capableDeToutPorter(definition)`, `uneEscouadeCapableDeToutPorter(position)` (pour
+  les tests qui déplacent des objets entre personnages sans parler de seuils), `avecCaracteristique`. Les
+  personnages de test ont donc les caractéristiques de leur équipement (guerrier : Puissance 11 et Endurance 12 ; 312
+  points de vie).
+- **`tests/objets/test_ObjetsActifs.cpp`** (nouveau, +8) : le point fixe sur des objets inventés (le catalogue n'a aucun
+  objet à la fois bonus et seuil) : sans seuil, seuil atteint exactement, bonus d'un autre objet, un objet ne
+  compte pas pour son propre seuil, la chaîne (désactiver un objet en désactive un autre, sur plusieurs maillons et dans
+  les deux ordres), la remise en service, deux objets qui se soutiennent.
+- **`tests/objets/`** : `test_CatalogueObjets.cpp` (+4 : les seuils de chaque objet, ni cuir ni bijou n'en a, `seuilsAtteints`,
+  la dague perce 30 % et aucune autre arme) ; `test_DeplacementDObjets.cpp` (+11 : sous le seuil rien ne bouge, seuil
+  atteint exactement, les deux seuils de l'épée à deux mains, les bonus des autres objets comptent, vers le sac aucun
+  seuil, l'échange entre deux personnages exige les deux côtés, `seuilsManques`) ; `test_Equipement.cpp` (+4 : `actifPour`,
+  un objet inactif n'a aucun effet, `caracteristiquesEffectives`).
+- **`tests/escouade/`** : `test_Personnage.cpp` (+7 : une arme inactive donne les mains nues, l'anneau de puissance, une armure
+  ou un bouclier inactif, une arme inactive refuse les skills, la pénétration de l'attaque de base) ;
+  `test_Escouade_equipement.cpp` (+6 : le mage ne reçoit pas la cuirasse, le guerrier et l'épée à deux mains avec
+  l'anneau, retirer l'anneau la rend inactive sans la déplacer, `seuilsManques`, `objetPorteEstInactif`, la pénétration
+  lue par l'escouade) ; `test_Specialite.cpp` (+2 : chaque classe atteint les seuils de son équipement de départ,
+  personne ne porte l'épée à deux mains au départ).
+- **`tests/combat/`** : `test_Defense.cpp` (+5 : la pénétration réduit l'armure sans arrondi intermédiaire, plafond de 75 %,
+  négative sans effet, jamais moins que sans) ; `test_ResolutionDuCoup.cpp` (+2).
+- **`tests/interface/`** : `test_AffichageObjets.cpp` (+5 : lignes de seuil, objet sans seuil, ligne d'objet inactif,
+  pénétration de la dague).
+- **Vérification des graines** : le balayage de 40 graines est resté vert à chaque sous-étape.

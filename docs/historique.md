@@ -109,6 +109,7 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 89 — Le critique : statistiques de combat, capacités offensive et défensive, soins critiques (avec E1) ✅
 - Étape 90 — Esquive et blocage : nature des attaques, esquive plafonnée, bouclier, textes « Esquivé » et « Bloqué » ✅
 - Étape 91 — Les armes : l'attaque de base et la zone de contrôle viennent de l'arme, échelle × 3, deux mains, skills qui exigent une arme ✅
+- Étape 92 — Seuils d'équipement, objets inactifs, pénétration d'armure (la dague) ✅
 
 ## Détail des étapes 0 à 73
 
@@ -2168,3 +2169,19 @@ peuvent exiger un type d'arme (refus comme un lanceur mort, icône grisée). 91.
 propriété du bouclier (`DonneesDeBouclier`), la récupération une constante commune. 91.7 : infobulles des armes.
 1 303 tests, 39 avertissements `clang-tidy` (inchangé). Détail : `docs/objets.md`, `docs/combat.md`,
 `docs/formation.md`, `docs/monstre.md`, `docs/ecrans.md`, `docs/tests.md`, `docs/classes-et-combat.md`.
+
+### Étape 92 — Seuils d'équipement, objets inactifs, pénétration d'armure ✅
+
+Deuxième et dernière étape de la phase 2 du plan 87–96, faite dans la même session autonome que l'étape 91 (un
+commit par sous-étape). 92.1 : `DefinitionObjet::seuils` (valeurs minimales de caractéristiques : Puissance 11 pour
+l'épée longue et la masse, Puissance 13 et Endurance 12 pour l'épée à deux mains, Adresse 10 pour la dague, 12 pour l'arc,
+Savoir 12 pour le bâton, Volonté 11 pour le sceptre, Endurance 11 pour le bouclier rond et 12 pour les armures de fer) ;
+impossible d'équiper sous le seuil, dans la même fonction de décision que les deux mains (`deplacerLesObjets`), avec les
+caractéristiques effectives du destinataire sans l'objet posé et après ce que le déplacement retire. 92.2 : un objet
+porté dont le seuil n'est plus atteint est inactif (aucun effet, mains nues, pas de blocage), calcul par point fixe
+(`objetsActifs`, testé sur des objets inventés pour la chaîne), `Equipement::actifPour`, le `Personnage` recalcule tout
+depuis son équipement actif. 92.3 : les seuils dans l'infobulle, en rouge pendant un glissement ceux que le personnage
+visé n'atteint pas, objet inactif encadré en rouge. 92.4 : pénétration d'armure en pour cent, propriété de l'arme (la
+dague : 30 %), portée par l'`Attaque` (coups d'opportunité compris), qui réduit l'armure avant la soustraction M1 (sans
+arrondi intermédiaire, plafond de 75 %). 1 357 tests, 39 avertissements `clang-tidy` (inchangé). Détail :
+`docs/objets.md`, `docs/combat.md`, `docs/formation.md`, `docs/ecrans.md`, `docs/tests.md`, `docs/classes-et-combat.md`.

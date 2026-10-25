@@ -628,7 +628,7 @@ personnages sont dans `docs/formation.md`, le monstre dans
   mage ; une attaque de base de 15 fait 12 à un monstre.
 - **Le soin n'est pas touché** par l'armure. Les dégâts de zone, de skill et d'attaque de base passent
   tous par `recevoirDegats`, donc par l'armure.
-- **Limites** : pas de types de dégâts ni de résistances, pas de pénétration d'armure.
+- **Limites** : pas de types de dégâts ni de résistances (la pénétration d'armure date de l'étape 92 : voir plus loin).
 
 ## Caractéristiques, points de vie et montant effectif (étape 88)
 
@@ -863,7 +863,25 @@ mains sont dans `docs/objets.md`.
   **récupération est une constante commune** (`s_recuperationDuBlocage`, `Blocage.hpp`, 3 s), lue par
   `Vitalite::recevoirDegats`. `StatistiquesDeCombat::recuperationDuBlocage` a disparu avec la règle « la plus
   longue » ; un monstre au bouclier récupère comme un personnage.
-- **Limites** : pas de pénétration d'armure (étape 92), de types de dégâts ni de résistances (étape 93).
+- **Limites** : pas de types de dégâts ni de résistances (étape 93).
+
+## Pénétration d'armure (étape 92.4)
+
+Détail de conception : `docs/classes-et-combat.md`, section 8.
+
+- **Une propriété de l'arme** : `DescriptionDAttaque::penetration`, en pour cent entier ; la dague 30, les autres
+  armes et les mains nues 0. Elle circule dans l'`Attaque` (`penetration`, 0 par défaut) jusqu'à `resoudreCoup`, qui la
+  passe à `appliquerArmure(montant, armure, penetration)`. Le `Personnage` la met dans l'attaque de base
+  (`attaqueDe(skill, penetration)`), donc aussi dans les coups d'opportunité (`Escouade::attaqueDeBase`) ; un skill n'en
+  a pas (il a sa propre puissance), un monstre non plus.
+- **Où elle agit** : sur l'armure, **avant** la soustraction M1 : `armure effective = armure × (1 − pénétration)`, sans
+  arrondi intermédiaire (l'arrondi reste celui de M1, en fin de calcul), puis `max(montant − armure effective, montant ×
+  20 %)`. Le plancher de 20 % ne bouge pas. Un blocage total s'arrête avant l'armure : la pénétration n'y change rien.
+- **Plafond** : 75 % (`s_penetrationMaximale`, `Defense.hpp`, « à tester ») ; une pénétration plus grande ou négative est
+  ramenée entre 0 et 75 à l'application.
+- **Exemple** : 100 contre 40 d'armure, sans pénétration 60 ; à 30 %, l'armure vaut 28 et le coup 72.
+- **Limites** : pas de bonus de pénétration par l'équipement ni par les skills ; pas de pénétration de résistance
+  (étape 93).
 
 ## Temps d'exécution et coup engagé (étape 57)
 
@@ -1678,9 +1696,10 @@ attaque à infliger à ce monstre ; `int degats` avant l'étape 89.3). Sortie d'
 
 ### `Attaque` (`combat/`) — ce qui part de l'attaquant (étape 89.3)
 
-`Attaque.hpp`, sans `.cpp` : `struct Attaque { int montant; int capaciteOffensive; NatureDAttaque nature; }`. Le
+`Attaque.hpp`, sans `.cpp` : `struct Attaque { int montant; int capaciteOffensive; NatureDAttaque nature; int penetration = 0; }`. Le
 montant (dégâts avant toute réduction, soin, ou durée d'une provocation), caractéristiques comprises, la
-capacité offensive de l'attaquant et la nature de l'attaque (étape 90.1 ; sans valeur par défaut). Produite par `Personnage` (`getAttaqueDeBase`, `avancerAttaque`, `avancerSkill`) et `Monstre`
+capacité offensive de l'attaquant, la nature de l'attaque (étape 90.1 ; sans valeur par défaut) et la pénétration
+d'armure en pour cent (étape 92.4 ; 0 par défaut : un skill, un monstre). Produite par `Personnage` (`getAttaqueDeBase`, `avancerAttaque`, `avancerSkill`) et `Monstre`
 (`getAttaque`, `avancerAttaque`), portée par `Coup`, reçue par `recevoirDegats` / `recevoirCoup` et
 `resoudreCoup`. Voir « Le critique… (étape 89) » et « L'esquive et le blocage (étape 90) ».
 
@@ -1867,7 +1886,7 @@ autre module ni de SFML.
 
 | Fonction | Rôle |
 |---|---|
-| `int appliquerArmure(int montant, int armure)` | Dégâts réellement subis : `max(montant − armure, montant × 20 %)` (modèle M1, `s_plancherArmure`), arrondi au plus proche, au moins 1 si `montant > 0`, 0 si `montant == 0` ; `assert(montant >= 0)` et `assert(armure >= 0)` ; `[[nodiscard]]` |
+| `int appliquerArmure(int montant, int armure, int penetration = 0)` | Dégâts réellement subis : `max(montant − armure effective, montant × 20 %)` (modèle M1, `s_plancherArmure`), où l'armure effective est `armure × (1 − penetration / 100)` (pénétration ramenée entre 0 et `s_penetrationMaximale`, 75, sans arrondi intermédiaire), arrondi au plus proche, au moins 1 si `montant > 0`, 0 si `montant == 0` ; `assert(montant >= 0)` et `assert(armure >= 0)` ; `[[nodiscard]]` |
 
 ### `ResolutionDuCoup` (`combat/`) — le point d'entrée du coup (étape 87.2)
 

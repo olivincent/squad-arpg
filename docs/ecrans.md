@@ -122,6 +122,12 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
   contact ou projectile, « Deux mains » : `lignesDeLInfobulle`), placés près du curseur et gardés
   entièrement dans la vue (`placerInfobulle`) ; la hauteur suit le nombre de lignes. Rien sur un emplacement
   ou une case vide.
+- **Seuils et objets inactifs (étape 92.3)** : l'infobulle d'un objet liste ses seuils (« Exige Puissance 11 ») ; un
+  objet porté dont le seuil n'est plus atteint est **encadré en rouge** (3 px vers l'intérieur) et son infobulle ajoute,
+  en rouge, « Inactif : seuil non atteint » ; **pendant un glissement**, sur l'emplacement d'un personnage,
+  l'infobulle de l'objet saisi apparaît avec ses seuils, en rouge ceux que ce personnage n'atteint pas
+  (`Escouade::seuilsManques`). L'armure et les bonus de caractéristiques de chaque colonne sont ceux de l'équipement
+  actif. Un seuil non atteint ne donne pas de surbrillance : le déplacement est refusé (`docs/objets.md`).
 - **Deux mains (étape 91.3)** : la surbrillance des destinations valides (`Escouade::peutDeplacerObjet`) et
   l'action au relâchement (`deplacerObjet`) suivent la même règle : poser une arme à deux mains sur un
   personnage qui porte un bouclier range le bouclier dans la première case libre du sac (et inversement) ;

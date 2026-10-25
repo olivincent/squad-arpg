@@ -8,7 +8,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 ## Étapes terminées
 
-Étapes 0 à 91 ✅. Les dernières :
+Étapes 0 à 92 ✅. Les dernières :
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 - Étape 83 — Inventaire et équipement : le modèle, sans interface ✅
@@ -20,15 +20,16 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - Étape 89 — Le critique : statistiques de combat, capacités offensive et défensive, soins critiques (avec E1) ✅
 - Étape 90 — Esquive et blocage : nature des attaques, esquive plafonnée, bouclier, textes « Esquivé » et « Bloqué » ✅
 - Étape 91 — Les armes : l'attaque de base et la zone de contrôle viennent de l'arme, échelle × 3, deux mains, skills qui exigent une arme ✅
+- Étape 92 — Seuils d'équipement, objets inactifs, pénétration d'armure (la dague) ✅
 
 ## État actuel (résumé)
 
 - **Outils** : conception dans Claude.ai, implémentation avec Claude Code dans VSCode (règles dans
   `CLAUDE.md`) ; dépôt Git `squad-arpg`, poussé sur GitHub ; SFML 3.0.2 intégrée à CMake.
-- **Code** (étape 91) : 86 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
+- **Code** (étape 92) : 87 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
   `combat`, `objets`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
   de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug` et `jeu`, 0
-  avertissement, 1 303 tests verts sous CTest, 39 avertissements `clang-tidy` (`docs/build.md`,
+  avertissement, 1 357 tests verts sous CTest, 39 avertissements `clang-tidy` (`docs/build.md`,
   `docs/audit.md`). `Escouade` n'est plus que l'assemblage : `Escouade.cpp` de 1 223 à 1 067 lignes. Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`).
 - **Écrans** : menu à la souris, options d'affichage (fenêtré ou plein écran, résolutions,
   `reglages.ini`), choix de 3 classes parmi 5 (guerrier, prêtre, mage, paladin, rôdeur ; doublons
@@ -45,7 +46,9 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   personnage est la somme de son équipement (guerrier et paladin partent équipés : 9 ; les autres : 0) ;
   **l'attaque de base et la zone de contrôle viennent de l'arme** de la main droite (les mains nues sans arme ;
   contact : zone de 20 px, projectile : aucune), changer d'arme relance une recharge complète ; une arme à deux
-  mains exige la main gauche vide et range ce qui la gêne dans le sac (sac plein : refus) ; chaque personnage a
+  mains exige la main gauche vide et range ce qui la gêne dans le sac (sac plein : refus) ; **les objets ont des
+  seuils de caractéristiques** (impossible d'équiper sous le seuil ; un objet porté dont le seuil n'est plus atteint
+  est inactif : porté, sans effet, encadré en rouge) et la dague perce 30 % de l'armure ; chaque personnage a
   cinq caractéristiques (base de sa classe plus bonus de l'équipement : Puissance, Endurance, Adresse, Savoir,
   Volonté), dont l'Endurance donne des points de vie (base commune de 240 plus 6 par point : environ 300 au
   départ, échelle × 3 de l'étape 91) et la Puissance augmente dégâts et soins (3 % par point au-dessus de 10),
@@ -169,20 +172,21 @@ ce qui reste à décider **en discussion** avant son prompt :
   - 91 ✅ : armes ; l'attaque de base et la zone de contrôle viennent de l'arme, échelle × 3, base de points de
     vie commune, deux mains (rangement automatique), skills qui exigent un type d'arme, blocage propriété du
     bouclier, infobulles (modèle C : pas de restriction par classe).
-  - 92 : seuils d'équipement, objets inactifs, pénétration d'armure (la dague).
+  - 92 ✅ : seuils d'équipement (impossible d'équiper sous le seuil, calcul à une seule fonction de décision), objets
+    inactifs (point fixe), affichage en rouge, pénétration d'armure en pour cent (la dague, 30 %, plafond de 75 %).
 - **Phase 3, éléments**
   - 93 : coups en portions typées, résistances. À décider : la liste des éléments (question 5).
 - **Phase 4, butin**
   - 94 : objets avec leurs propres données (rareté, bonus) ; 95 : butin au sol ; 96 : génération
     aléatoire des objets. À décider : rareté, affixes, niveau d'objet (question 2).
 
-## Étape 92 (prochaine) : seuils d'équipement et pénétration d'armure
+## Étape 93 (prochaine) : types de dégâts et résistances, à discuter avec Claude.ai
 
-Les objets exigent des valeurs minimales de caractéristiques (impossible d'équiper sous le seuil ; un objet porté
-dont le seuil n'est plus atteint devient inactif, calcul par point fixe ; affichage des seuils et des objets
-inactifs), et la dague perce l'armure (pénétration en pour cent, plafonnée à 75 %). Le Savoir et la Volonté n'ont
-encore aucun effet. Les définitions de monstres, aujourd'hui un paramètre optionnel de `Partie`, iront dans
-`Niveau` avec les types de monstres.
+Phase 3 du plan (éléments) : les coups en portions typées et les résistances. À décider : la liste des éléments
+(question 5 de `docs/classes-et-combat.md`), la pénétration de résistance (la pénétration d'armure existe depuis
+l'étape 92), comment le montant bloqué se répartit entre les portions d'un coup (question 12). Le Savoir et la
+Volonté n'ont encore aucun effet. Les définitions de monstres, aujourd'hui un paramètre optionnel de `Partie`,
+iront dans `Niveau` avec les types de monstres.
 
 ## Fonctionnalités prévues (à choisir avec Claude.ai)
 

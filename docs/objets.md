@@ -100,6 +100,62 @@ la construction des personnages dans `docs/formation.md`.
   mains.
 - **Les skills exigent un type d'arme** (`docs/combat.md`) : le refus est celui d'un lanceur mort.
 
+## Seuils, objets inactifs et pénétration (étape 92)
+
+- **Seuils** : une `DefinitionObjet` peut exiger des valeurs minimales de caractéristiques (`seuils`, liste de
+  `SeuilDeCaracteristique { caracteristique, valeur }` ; vide : aucun seuil). Valeurs « à tester » :
+
+  | Objet | Seuil |
+  |---|---|
+  | Épée longue, masse | Puissance 11 |
+  | Épée à deux mains | Puissance 13 et Endurance 12 |
+  | Dague | Adresse 10 |
+  | Arc | Adresse 12 |
+  | Bâton | Savoir 12 |
+  | Sceptre | Volonté 11 |
+  | Bouclier rond | Endurance 11 |
+  | Casque de fer, cuirasse de mailles, jambières de fer | Endurance 12 |
+  | Objets de cuir, bijoux | aucun |
+
+  Chaque classe peut porter son équipement de départ avec ses caractéristiques de base (un test parcourt les
+  classes) ; personne ne peut porter l'épée à deux mains au départ (le guerrier y arrive avec l'anneau de
+  puissance).
+- **Sous le seuil, impossible d'équiper** : `deplacerLesObjets` vérifie, pour chaque personnage qui reçoit un objet
+  (la destination, et l'autre extrémité d'un échange entre personnages), qu'il atteint les seuils de l'objet posé
+  avec ses **caractéristiques effectives sans compter cet objet** (un objet ne remplit pas son propre seuil) **et en
+  tenant compte de ce que le déplacement retire** (l'objet échangé, l'objet rangé dans le sac par les deux mains).
+  La règle reste dans une seule fonction de décision, utilisée par la surbrillance et par le déplacement ;
+  `EtatDesObjets` porte pour cela les caractéristiques de base de chaque place (`bases`). Vers le sac, aucun seuil.
+  L'équipement de départ d'un personnage n'est pas vérifié à la construction.
+- **Objet inactif** : un objet **porté** dont le seuil n'est plus atteint (les caractéristiques ont baissé, par
+  exemple en retirant l'anneau de puissance) **reste porté mais n'a plus aucun effet** : ni armure, ni bonus, ni
+  données d'arme (l'attaque de base passe aux mains nues, et les skills qui exigent l'arme sont refusés) ou de
+  bouclier (pas de blocage). Il redevient actif dès que le seuil revient.
+- **Calcul par point fixe, à l'endroit unique des valeurs effectives** : `objetsActifs(base, portes)` (module
+  `ObjetsActifs`, une règle pure sur des `ExigencesEtBonus`, donc testable sur des objets inventés) part de tous les
+  objets portés, retire ceux dont le seuil n'est pas atteint par la base et les bonus des **autres** objets actifs,
+  et recommence jusqu'à stabilité (la liste ne fait que diminuer, donc le calcul se termine ; l'ordre des retraits ne
+  change pas le résultat : c'est le plus grand point fixe). `Equipement::actifPour(base)` en tire l'équipement actif,
+  et `caracteristiquesEffectives(base, equipement)` la base plus les bonus des objets actifs. Le `Personnage`
+  garde son équipement actif (`getEquipementActif`) et recalcule tout depuis lui (`recalculerDepuisLEquipement` :
+  caractéristiques, points de vie maximum, statistiques de combat, défenses, attaque de base). Tests : la chaîne
+  (désactiver un objet en désactive un autre) et la remise en service.
+- **Limites du calcul** : il suppose des bonus positifs ou nuls (tous ceux du catalogue) ; deux objets qui se
+  soutiennent l'un l'autre restent actifs (le plus grand point fixe) ; aucun objet du catalogue n'a à la fois un
+  bonus et un seuil, donc la chaîne n'est testée que sur des objets inventés.
+- **Affichage** : l'infobulle d'un objet liste ses seuils (« Exige Puissance 11 », après la catégorie : `ligneDeSeuil`) ;
+  **pendant un glissement**, sur l'emplacement d'un personnage, l'infobulle de l'objet saisi apparaît avec ses seuils,
+  **en rouge ceux que ce personnage n'atteint pas** (`Escouade::seuilsManques`, calculé comme la décision : sans compter
+  l'objet posé, après ce que le déplacement retire) ; un objet **porté inactif est encadré en rouge** dans
+  l'inventaire (`Escouade::objetPorteEstInactif`) et son infobulle dit « Inactif : seuil non atteint ». L'armure et les
+  bonus affichés sont ceux de l'équipement actif (`Escouade::equipementActifDuPersonnage`).
+- **Pénétration d'armure** : une propriété de l'arme (`DescriptionDAttaque::penetration`, en pour cent entier ; la
+  dague : 30, les autres armes et les mains nues : 0). Elle réduit l'armure du défenseur **avant** la soustraction M1 :
+  `armure effective = armure × (1 − pénétration)`, sans arrondi intermédiaire (l'arrondi reste celui de M1), plafonnée à
+  75 % (`s_penetrationMaximale`, `Defense.hpp`). Elle circule dans l'`Attaque` (`penetration`, 0 par défaut) : l'attaque de
+  base du `Personnage` en porte une (donc aussi les coups d'opportunité, qui en reprennent la puissance), les skills n'en
+  ont pas. Pas de bonus de pénétration par l'équipement. L'infobulle de la dague affiche « Pénétration : 30 % ».
+
 ## Affichage (étape 84)
 
 L'écran d'inventaire (`EcranInventaire`, `docs/ecrans.md`) montre l'équipement des trois personnages
@@ -157,7 +213,10 @@ et le sac, en lecture seule ; aucune fonction de modification n'est appelée.
 - Pas de restriction d'équipement par classe, pas de butin au sol : une nouvelle partie repart toujours du
   départ (aucune sauvegarde de l'équipement). Pas de deux armes à la fois (la main gauche ne tient qu'un
   bouclier), ni de lancer, ni de munitions.
-- Une arme à deux mains n'est pas encore liée à un seuil de caractéristiques (étape 92).
+- Pas de réaction aux seuils au-delà de l'inactivité : un objet devenu inactif n'est ni déséquipé ni signalé par un
+  événement (l'écran relit l'état).
+- Un objet qui ne convient qu'un instant (le seuil franchi par un bonus qu'un échange retire dans la même
+  opération) est jugé sur l'état après le déplacement, jamais sur un état intermédiaire.
 - `Monstre` n'a pas d'équipement : son armure reste fixe (`Niveau::armureMonstres`).
 - Les modifications d'équipement ne sont pas annoncées (aucun événement) : l'écran relit l'état à
   chaque image.
@@ -189,13 +248,14 @@ Arc }` ; `struct Objet { IdObjet id; }` avec `operator==` par défaut.
 
 `CatalogueObjets.hpp` / `.cpp` : `struct DefinitionObjet { IdObjet id; std::string nom;
 CategorieObjet categorie; int armure; Caracteristiques bonus = {}; StatistiquesDeCombat bonusDeCombat = {};
-std::optional<DonneesDArme> arme = {}; std::optional<DonneesDeBouclier> bouclier = {}; }` et cinq
-fonctions libres, sans état.
+std::optional<DonneesDArme> arme = {}; std::optional<DonneesDeBouclier> bouclier = {};
+std::vector<SeuilDeCaracteristique> seuils = {}; }` et six fonctions libres, sans état.
 
 | Fonction | Rôle |
 |---|---|
 | `const std::vector<DefinitionObjet>& catalogueObjets()` | Tous les modèles, dans l'ordre de `IdObjet` ; l'unique source de leurs valeurs ; `[[nodiscard]]` |
 | `const DefinitionObjet& definitionObjet(IdObjet id)` | Le modèle de cet identifiant ; `assert` : le catalogue suit l'ordre de l'enum ; `[[nodiscard]]` |
+| `bool seuilsAtteints(IdObjet, const Caracteristiques&)` | Ces caractéristiques atteignent-elles tous les seuils de l'objet ? Toujours vrai sans seuil (étape 92.1) ; `[[nodiscard]]` |
 | `bool estADeuxMains(IdObjet)` | Une arme à deux mains (épée à deux mains, bâton, arc) ; faux pour tout autre objet ; `[[nodiscard]]` |
 | `const DescriptionDAttaque& mainsNues()` | L'attaque de base sans arme ; `[[nodiscard]]` |
 | `std::vector<Objet> sacDeDepart()` | Le contenu du sac au début d'une partie : gants de cuir, bottes de cuir, casque de cuir, tunique matelassée, collier de protection, deux anneaux de protection, l'anneau de puissance, le collier d'endurance, une dague et une épée à deux mains ; `[[nodiscard]]` |
@@ -249,7 +309,20 @@ Données membres : `m_objets` (`std::array<std::optional<Objet>, s_nombreEmplace
 | `Caracteristiques bonusTotal() const` | Somme des bonus de caractéristiques des objets portés, recalculée à chaque appel (étape 88) ; `[[nodiscard]]` |
 | `DescriptionDAttaque attaqueDeBase() const` | L'attaque de base que donne l'équipement : celle de l'arme de la main droite, sinon `mainsNues()` (étape 91.4) ; `[[nodiscard]]` |
 | `std::optional<TypeDArme> typeDArme() const` | Le type de l'arme de la main droite, vide sans arme (étape 91.5) ; `[[nodiscard]]` |
+| `Equipement actifPour(const Caracteristiques& base) const` | L'équipement sans ses objets inactifs (seuil non atteint par `base` et les bonus des autres objets actifs : `objetsActifs`), étape 92.2 ; `[[nodiscard]]` |
 | `bool operator==(const Equipement&) const` | Défaut : l'`Escouade` compare l'état voulu à l'état courant (étape 91.3) |
+
+Fonction libre : `Caracteristiques caracteristiquesEffectives(const Caracteristiques& base, const Equipement&)` : la base plus
+les bonus des objets actifs, seul endroit qui les calcule (`[[nodiscard]]`).
+
+### `ObjetsActifs` (`objets/`) — quels objets portés ont un effet (étape 92.2)
+
+`ObjetsActifs.hpp` / `.cpp` : `struct SeuilDeCaracteristique { Caracteristique caracteristique; int valeur; }`, `struct
+ExigencesEtBonus { std::vector<SeuilDeCaracteristique> seuils; Caracteristiques bonus; }` et une fonction pure.
+
+| Fonction | Rôle |
+|---|---|
+| `std::vector<bool> objetsActifs(const Caracteristiques& base, const std::vector<std::optional<ExigencesEtBonus>>& portes)` | Un booléen par emplacement de `portes` (faux s'il est vide) : le point fixe décrit plus haut ; `[[nodiscard]]` |
 
 ### `Inventaire` (`objets/`)
 
@@ -288,13 +361,15 @@ de `zoneDeControleDe(NatureDAttaque)` (contact : 20, projectile et zone : 0).
 
 ### `DeplacementDObjets` (`objets/`) — la règle des déplacements (étape 91.3)
 
-`DeplacementDObjets.hpp` / `.cpp` : `struct EtatDesObjets { Inventaire sac; std::vector<Equipement> equipements; }`
-(un équipement par place, indice = place − 1) et deux fonctions libres (voir « Armes (étape 91) »).
+`DeplacementDObjets.hpp` / `.cpp` : `struct EtatDesObjets { Inventaire sac; std::vector<Equipement> equipements; std::vector<Caracteristiques> bases; }`
+(un équipement et des caractéristiques de base par place, indice = place − 1) et trois fonctions libres (voir « Armes
+(étape 91) » et « Seuils… (étape 92) »).
 
 | Fonction | Rôle |
 |---|---|
 | `bool deplacerLesObjets(EtatDesObjets&, const PositionDObjet& de, const PositionDObjet& vers)` | Déplace l'objet de `de` vers `vers` (échange si occupé, deux mains comprises), ou rend faux sans rien changer ; `[[nodiscard]]` |
 | `bool deplacementPossible(const EtatDesObjets&, de, vers)` | Le même calcul sur une copie ; `[[nodiscard]]` |
+| `std::vector<SeuilDeCaracteristique> seuilsManques(const EtatDesObjets&, de, vers)` | Les seuils de l'objet posé en `vers` que son porteur n'atteindrait pas (même calcul que la décision) ; vide vers le sac ou si le déplacement est refusé pour une autre raison ; `[[nodiscard]]` (étape 92.3) |
 
 ### `AffichageObjets` (`interface/`)
 
@@ -305,6 +380,7 @@ libres sans état, qui rendent des `std::string` en UTF-8.
 |---|---|
 | `std::string nomDeLEmplacement(Emplacement)` | « Tête », « Torse », « Jambes », « Gants », « Bottes », « Main droite », « Main gauche », « Collier », « Anneau 1 », « Anneau 2 » ; `switch` sans `default` ; `[[nodiscard]]` |
 | `std::string nomDeLaCategorie(CategorieObjet)` | « Casque », « Armure », « Jambières », « Gants », « Bottes », « Bouclier », « Collier », « Anneau » ; `[[nodiscard]]` |
+| `std::string ligneDeSeuil(const SeuilDeCaracteristique&)` / `std::string ligneDObjetInactif()` | « Exige Puissance 11 » ; « Inactif : seuil non atteint » (étape 92.3) ; `[[nodiscard]]` |
 | `std::string sigleDeLObjet(IdObjet)` | Deux lettres par objet du catalogue (EL épée longue, MA masse, DA dague, E2 épée à deux mains, SC sceptre, BT bâton, AR arc depuis l'étape 91) ; `[[nodiscard]]` |
 | `std::vector<std::string> lignesDeLInfobulle(IdObjet)` | Nom, catégorie, « Armure : +N » si non nulle, une ligne « Nom : +N » par bonus de caractéristique, les bonus de combat, le blocage d'un bouclier, l'attaque d'une arme ; `[[nodiscard]]` |
 

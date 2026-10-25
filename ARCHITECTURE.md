@@ -50,8 +50,8 @@ squad-arpg/
 │   │               EtatSkill, Coup, EvenementDeCombat, EntiteVue, Autodefense, Engagement,
 │   │               Attaque, NatureDAttaque, StatistiquesDeCombat, Esquive, Critique, Blocage, Defense,
 │   │               ResolutionDuCoup, Caracteristiques, PointsDeVie, Vitalite
-│   ├── objets/     Emplacement, Objet, CatalogueObjets, DonneesDArme, DonneesDeBouclier, Equipement, Inventaire,
-│   │               PositionDObjet, DeplacementDObjets
+│   ├── objets/     Emplacement, Objet, CatalogueObjets, DonneesDArme, DonneesDeBouclier, ObjetsActifs, Equipement,
+│   │               Inventaire, PositionDObjet, DeplacementDObjets
 │   ├── escouade/   Escouade, Personnage, Formation, PlacesDAttaque, Intention, Separation,
 │   │               EcartEntrePersonnages, Composition, Specialite, SelectionDEscouade,
 │   │               Provocations, Agresseurs
@@ -141,7 +141,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `EntiteVue` : une entité telle que l'autre camp la voit, et `trouverEntite`.
 - `Autodefense` : quel ennemi frapper, quel agresseur viser.
 - `Engagement` : zones de contrôle, coups d'opportunité, monstre dont se dégager.
-- `Defense` : `appliquerArmure`, modèle M1 (soustraction avec plancher de 20 %).
+- `Defense` : `appliquerArmure`, modèle M1 (soustraction avec plancher de 20 %, armure réduite par la pénétration de l'attaque).
 - `StatistiquesDeCombat` : ce que le moteur du coup lit d'une entité (capacités, esquives, blocage), aussi le bonus de combat d'un objet ; `statistiquesDuPersonnage`, seul endroit où elles se calculent.
 - `Esquive`, `Critique`, `Blocage` : les étapes du coup qui dépendent du hasard, des fonctions pures qui reçoivent un tirage (`docs/combat.md`).
 - `ResolutionDuCoup` : `resoudreCoup`, point d'entrée unique d'un coup (esquive, critique, blocage, armure) et seul tirage du moteur ; `resoudreSoin` ; `Defenses`.
@@ -152,17 +152,20 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 `objets/` — les objets, ce qu'on porte et le sac (`docs/objets.md`) :
 - `Emplacement` : les 10 emplacements, les 8 catégories d'objet et `peutAller`, seule source de la règle.
 - `Objet` : `IdObjet` et `Objet`, l'instance (un identifiant), distincte de son modèle.
-- `CatalogueObjets` : `DefinitionObjet` (nom, catégorie, armure, bonus, données d'arme ou de bouclier),
-  `catalogueObjets()`, `definitionObjet()`, `estADeuxMains()`, `mainsNues()` et `sacDeDepart()`.
+- `CatalogueObjets` : `DefinitionObjet` (nom, catégorie, armure, bonus, données d'arme ou de bouclier, seuils),
+  `catalogueObjets()`, `definitionObjet()`, `seuilsAtteints()`, `estADeuxMains()`, `mainsNues()` et `sacDeDepart()`.
+- `ObjetsActifs` : `objetsActifs`, le point fixe qui dit quels objets portés ont un effet (un objet dont le seuil de
+  caractéristiques n'est plus atteint reste porté mais est inactif) ; une règle pure.
 - `DonneesDArme`, `DonneesDeBouclier` : ce qui fait d'un objet une arme (type, mains, attaque) ou un bouclier (chance et
   montant de blocage) ; des données, pas une hiérarchie.
 - `Equipement` : un objet au plus par emplacement, `armureTotale()`, `attaqueDeBase()` (l'arme de la main droite, sinon les
-  mains nues) ; possédé par chaque `Personnage`.
+  mains nues), `actifPour(base)` (sans ses objets inactifs) et `caracteristiquesEffectives` ; possédé par chaque `Personnage`.
 - `Inventaire` : le sac, des cases à position fixe ; possédé par l'`Escouade`.
 - `PositionDObjet` : une case du sac ou un emplacement d'un personnage, et `deplacementPermis`, la règle de base
   (catégorie et emplacement).
-- `DeplacementDObjets` : `EtatDesObjets` (le sac et les équipements, en valeurs) et `deplacerLesObjets`, seule source de
-  la règle des déplacements, deux mains comprises, sur une copie (transactionnel).
+- `DeplacementDObjets` : `EtatDesObjets` (le sac, les équipements et les caractéristiques de base, en valeurs) et
+  `deplacerLesObjets`, seule source de la règle des déplacements, deux mains et seuils compris, sur une copie
+  (transactionnel) ; `seuilsManques` dit ce qui manque.
 
 `escouade/` — le camp du joueur (`docs/formation.md`, sauf mention) :
 - `Escouade` : l'assemblage : ancre, verrou, skills en attente, attaque, et la résolution des intentions en
