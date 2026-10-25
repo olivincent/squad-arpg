@@ -2,7 +2,6 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "aides.hpp"
-#include "combat/Critique.hpp"
 #include "combat/Vitalite.hpp"
 
 TEST_CASE("Vitalite commence pleine") {
@@ -91,15 +90,19 @@ TEST_CASE("Vitalite getRatio suit les points de vie") {
 
 TEST_CASE("Vitalite : un critique retire le montant multiplie") {
     Vitalite vitalite(100000, defensesDeTest(0));
-    Generateur generateur = generateurQuiTireSous(s_chanceMaximale);  // le seul tirage du coup est celui du critique
+    Generateur generateur = generateurDeTest();
     const Attaque attaque{.montant = 100, .capaciteOffensive = 100000, .nature = NatureDAttaque::Contact};  // 50 % de chance, ×2
+    int critiques = 0;
 
-    const int avant = vitalite.getValeur();
-    const ResultatDuCoup resultat = vitalite.recevoirDegats(attaque, generateur);
-
-    REQUIRE(resultat.critique);
-    REQUIRE(resultat.montant == 200);
-    REQUIRE(avant - vitalite.getValeur() == resultat.montant);
+    // Chaque coup est vérifié ; à 50 %, la chance de n'en voir aucun critique sur 100 est de 2^-100.
+    for (int i = 0; i < 100; ++i) {
+        const int avant = vitalite.getValeur();
+        const ResultatDuCoup resultat = vitalite.recevoirDegats(attaque, generateur);
+        REQUIRE(avant - vitalite.getValeur() == resultat.montant);
+        REQUIRE(resultat.montant == (resultat.critique ? 200 : 100));
+        critiques += resultat.critique ? 1 : 0;
+    }
+    REQUIRE(critiques > 0);
 }
 
 TEST_CASE("Vitalite : un mort ne tire rien") {

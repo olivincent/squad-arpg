@@ -4,6 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/System/Vector2.hpp>
+#include <cassert>
 #include <cstddef>
 #include <optional>
 #include <string>
@@ -15,14 +16,20 @@
 #include "combat/AdresseSkill.hpp"
 #include "base/Aleatoire.hpp"
 #include "base/Cercle.hpp"
+#include "combat/Caracteristiques.hpp"
 #include "combat/Cible.hpp"
+#include "combat/DescriptionDAttaque.hpp"
 #include "escouade/Composition.hpp"
 #include "combat/Coup.hpp"
 #include "escouade/Escouade.hpp"
+#include "escouade/Personnage.hpp"
 #include "combat/EntiteVue.hpp"
 #include "combat/IdSkill.hpp"
 #include "combat/StatistiquesDeCombat.hpp"
 #include "monstres/Monstre.hpp"
+#include "objets/CatalogueObjets.hpp"
+#include "objets/Emplacement.hpp"
+#include "objets/Objet.hpp"
 #include "monde/Niveau.hpp"
 #include "jeu/Partie.hpp"
 #include "combat/Skill.hpp"
@@ -41,20 +48,30 @@ inline constexpr AdresseSkill s_adresseProvocation{1, IdSkill::Provocation};
 inline constexpr AdresseSkill s_adresseSoin{2, IdSkill::Soin};
 inline constexpr AdresseSkill s_adresseExplosion{3, IdSkill::Explosion};
 
-// Valeurs des personnages de test, figées : celles du catalogue au moment où elles ont été recopiées
+// Valeurs des personnages de test, figées : celles du catalogue des classes au moment où elles ont été recopiées
 // (étape 80), mais indépendantes de lui. Rééquilibrer une classe dans Specialite.cpp ne change aucun
-// test de règle ; test_Specialite.cpp est le seul fichier de tests qui lit les valeurs du catalogue.
+// test de règle ; test_Specialite.cpp est le seul fichier de tests qui lit les valeurs du catalogue des classes.
+// Exception depuis l'étape 91 : l'attaque de base vient de l'arme que le personnage porte, donc du catalogue des
+// objets ; les mêlées de test portent l'épée longue, le prêtre le sceptre, le mage le bâton, et les constantes ci-dessous
+// **sont lues** dans la description de leur attaque (jamais écrites en littéral).
+// Caractéristiques des personnages de test : la Puissance de référence (10), pour que l'attaque de base, qui en profite
+// à plein, fasse exactement les dégâts de son arme ; les quatre autres à 0 (Adresse 0 : capacité de 50, Endurance 0 :
+// 240 points de vie), comme avant l'étape 91.
+inline const Caracteristiques s_caracteristiquesDeTest({s_valeurDeReference, 0, 0, 0, 0});
+
 // Attaque de base (mêlées et tireurs).
-inline constexpr int s_degatsBaseDeTest = 15;
-inline constexpr float s_executionBaseDeTest = 0.15f;  // en secondes
-inline constexpr float s_porteeMeleeDeTest = 20.0f;    // bord à bord
-inline constexpr float s_porteeTireurDeTest = 120.0f;  // bord à bord
-inline constexpr float s_rechargeMeleeMinDeTest = 0.3f;  // en secondes
-inline constexpr float s_rechargeMeleeMaxDeTest = 0.7f;
-inline constexpr float s_rechargeTireurMinDeTest = 0.4f;
-inline constexpr float s_rechargeTireurMaxDeTest = 0.6f;
-// Contrôle (les tireurs n'ont ni équipement ni zone de contrôle). L'armure d'une mêlée est dans aides.hpp.
-inline constexpr float s_zoneDeControleMeleeDeTest = 20.0f;  // bord à bord
+inline const DescriptionDAttaque s_attaqueDeMeleeDeTest = definitionObjet(IdObjet::EpeeLongue).arme.value().attaque;
+inline const DescriptionDAttaque s_attaqueDeTireurDeTest = definitionObjet(IdObjet::Sceptre).arme.value().attaque;
+inline const int s_degatsBaseDeTest = s_attaqueDeMeleeDeTest.degats;
+inline const float s_executionBaseDeTest = s_attaqueDeMeleeDeTest.tempsExecution;  // en secondes
+inline const float s_porteeMeleeDeTest = s_attaqueDeMeleeDeTest.portee;            // bord à bord
+inline const float s_porteeTireurDeTest = s_attaqueDeTireurDeTest.portee;          // bord à bord
+inline const float s_rechargeMeleeMinDeTest = s_attaqueDeMeleeDeTest.rechargeMin;  // en secondes
+inline const float s_rechargeMeleeMaxDeTest = s_attaqueDeMeleeDeTest.rechargeMax;
+inline const float s_rechargeTireurMinDeTest = s_attaqueDeTireurDeTest.rechargeMin;
+inline const float s_rechargeTireurMaxDeTest = s_attaqueDeTireurDeTest.rechargeMax;
+// Contrôle : une mêlée engage ce qui la touche presque, un tireur personne. L'armure d'une mêlée est dans aides.hpp.
+inline const float s_zoneDeControleMeleeDeTest = zoneDeControleDe(NatureDAttaque::Contact);  // bord à bord
 // Frappe puissante du guerrier.
 inline constexpr int s_degatsFrappeDeTest = 75;
 inline constexpr float s_rechargeFrappeDeTest = 5.0f;     // en secondes
@@ -76,22 +93,9 @@ inline constexpr float s_rechargeZoneDeTest = 8.0f;
 inline constexpr float s_activationZoneDeTest = 0.8f;
 inline constexpr float s_rayonZoneDeTest = 60.0f;   // depuis le point visé
 
-inline Skill attaqueDeMeleeDeTest() {
-    return Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest, .puissance = s_degatsBaseDeTest,
-                  .rechargeMin = s_rechargeMeleeMinDeTest, .rechargeMax = s_rechargeMeleeMaxDeTest,
-                  .tempsExecution = s_executionBaseDeTest, .nature = NatureDAttaque::Contact});
-}
-
-inline Skill attaqueDeTireurDeTest() {
-    return Skill({.type = TypeSkill::Degats, .portee = s_porteeTireurDeTest, .puissance = s_degatsBaseDeTest,
-                  .rechargeMin = s_rechargeTireurMinDeTest, .rechargeMax = s_rechargeTireurMaxDeTest,
-                  .tempsExecution = s_executionBaseDeTest, .nature = NatureDAttaque::Projectile});
-}
-
 // Guerrier de test : devant, mêlée, frappe puissante et provocation.
 inline DefinitionPersonnage guerrierDeTest() {
     return {.couleur = sf::Color::Red,
-            .attaqueDeBase = attaqueDeMeleeDeTest(),
             .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest,
                                                .puissance = s_degatsFrappeDeTest,
                                                .rechargeMin = s_rechargeFrappeDeTest,
@@ -105,32 +109,57 @@ inline DefinitionPersonnage guerrierDeTest() {
                                            .tempsExecution = s_activationProvocationDeTest, .nature = NatureDAttaque::Contact})}},
             .equipementDeDepart = s_equipementMeleeDeTest,
             .rayonVision = s_rayonVisionDeTest,
-            .zoneDeControle = s_zoneDeControleMeleeDeTest,
+            .caracteristiques = s_caracteristiquesDeTest,
             .rang = Rang::Avant};
 }
 
 // Prêtre de test : derrière, tireur, soin.
 inline DefinitionPersonnage pretreDeTest() {
     return {.couleur = sf::Color(255, 240, 150),
-            .attaqueDeBase = attaqueDeTireurDeTest(),
             .skills = {{IdSkill::Soin, Skill({.type = TypeSkill::Soin, .portee = s_porteeSoinDeTest,
                                     .puissance = s_puissanceSoinDeTest, .rechargeMin = s_rechargeSoinDeTest,
                                     .rechargeMax = s_rechargeSoinDeTest, .tempsExecution = s_activationSoinDeTest, .nature = NatureDAttaque::Contact})}},
+            .equipementDeDepart = {{Emplacement::MainDroite, IdObjet::Sceptre}},
             .rayonVision = s_rayonVisionDeTest,
+            .caracteristiques = s_caracteristiquesDeTest,
             .rang = Rang::Arriere};
 }
 
 // Mage de test : derrière, tireur, explosion (skill de zone).
 inline DefinitionPersonnage mageDeTest() {
     return {.couleur = sf::Color(160, 80, 220),
-            .attaqueDeBase = attaqueDeTireurDeTest(),
             .skills = {{IdSkill::Explosion, Skill({.type = TypeSkill::Zone, .portee = s_porteeZoneDeTest,
                                          .puissance = s_degatsZoneDeTest, .rechargeMin = s_rechargeZoneDeTest,
                                          .rechargeMax = s_rechargeZoneDeTest, .rayonZone = s_rayonZoneDeTest,
                                          .tempsExecution = s_activationZoneDeTest, .nature = NatureDAttaque::Zone})}},
+            .equipementDeDepart = {{Emplacement::MainDroite, IdObjet::Baton}},
             .rayonVision = s_rayonVisionDeTest,
+            .caracteristiques = s_caracteristiquesDeTest,
             .rang = Rang::Arriere};
 }
+
+// Test Data Builder : les tests de `Personnage` et d'`Escouade` créent leurs personnages par ces aides et non par la
+// signature complète de `DefinitionPersonnage`, pour qu'un changement de cette signature ne touche que les aides.
+// Une définition sans classe (ni skill, ni caractéristiques : Adresse 0), armée de cette arme en main droite, d'où
+// viennent son attaque de base, sa portée et sa zone de contrôle.
+inline DefinitionPersonnage definitionArmee(IdObjet arme = IdObjet::EpeeLongue) {
+    return {.couleur = sf::Color::White, .equipementDeDepart = {{Emplacement::MainDroite, arme}},
+            .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeTest};
+}
+
+// Idem, sans arme : les mains nues.
+inline DefinitionPersonnage definitionSansArme() {
+    return {.couleur = sf::Color::White, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeTest};
+}
+
+// Un personnage de test à ce centre, armé de cette arme (le sceptre par défaut : une attaque de portée, comme les
+// tireurs, pour que la géométrie des tests de `Personnage` ne dépende pas du contact).
+inline Personnage unPersonnageArme(sf::Vector2f centre, IdObjet arme = IdObjet::Sceptre) {
+    return Personnage(centre, definitionArmee(arme));
+}
+
+// Seule l'arme de main droite d'un équipement de départ, pour les définitions qui précisent d'autres champs.
+inline const std::vector<ObjetDeDepart> s_armeDeTireurSeuleDeTest = {{Emplacement::MainDroite, IdObjet::Sceptre}};
 
 // La composition par défaut des tests : guerrier, prêtre, mage (celle du jeu avant l'écran de choix).
 inline std::vector<DefinitionPersonnage> compositionDeTest() {
@@ -145,8 +174,42 @@ inline Escouade uneEscouade(sf::Vector2f positionDepart) {
 // Une partie de test : les monstres n'ont aucune esquive (`monstreSansHasard`), pour que les dégâts qu'ils
 // reçoivent ne dépendent pas de la chance (reste le critique, qui se lit dans les événements).
 inline Partie partieDeTest(const Niveau& niveau, std::vector<DefinitionPersonnage> composition,
-                           Generateur::result_type graine = s_graineDeTest) {
-    return Partie(niveau, std::move(composition), graine, monstreSansHasard());
+                           Generateur::result_type graine = s_graineDeTest,
+                           const DefinitionDeMonstre& monstre = monstreSansHasard()) {
+    return Partie(niveau, std::move(composition), graine, monstre);
+}
+
+// Le monstre sans esquive aux points de vie énormes : il survit à tous les coups d'un test qui dure.
+inline DefinitionDeMonstre monstreIndestructible() {
+    DefinitionDeMonstre definition = monstreSansHasard();
+    definition.pointsDeVieMax = 10'000'000;
+    return definition;
+}
+
+// Cette définition, avec cette arme en main droite à la place de la sienne (son attaque de base, sa nature et sa
+// zone de contrôle en viennent). `assert` : la définition portait une arme.
+inline DefinitionPersonnage avecArme(DefinitionPersonnage definition, IdObjet arme) {
+    for (ObjetDeDepart& objet : definition.equipementDeDepart) {
+        if (objet.emplacement == Emplacement::MainDroite) {
+            objet.objet = arme;
+            return definition;
+        }
+    }
+    assert(false);
+    return definition;
+}
+
+// Cette définition, avec cette Puissance de base (les autres à 0) : son attaque de base fait
+// `montantEffectif(degats, Puissance seule, ...)`, `puissance` assez grande pour la rendre reconnaissable ou mortelle.
+inline DefinitionPersonnage avecPuissance(DefinitionPersonnage definition, int puissance) {
+    definition.caracteristiques = Caracteristiques({puissance, 0, 0, 0, 0});
+    return definition;
+}
+
+// Un guerrier increvable (l'Endurance donne les points de vie) : il reçoit les coups d'un test qui dure sans mourir.
+inline DefinitionPersonnage avecEnduranceEnorme(DefinitionPersonnage definition) {
+    definition.caracteristiques = Caracteristiques({s_valeurDeReference, 2'000'000, 0, 0, 0});
+    return definition;
 }
 
 inline Partie unePartie(const Niveau& niveau, Generateur::result_type graine) {
@@ -254,9 +317,9 @@ inline constexpr float s_dureeAttenteSkill = 1.0f;
 // de skill partis. Les coups de l'attaque de base (s_degatsBaseDeTest) que les
 // autres personnages portent entre-temps sont écartés : seuls les skills comptent
 // (leurs dégâts doivent donc différer de ceux de l'attaque de base).
-static_assert(s_degatsFrappeDeTest != s_degatsBaseDeTest && s_degatsZoneDeTest != s_degatsBaseDeTest);
 inline std::vector<Coup> attendreLeDepartDesSkills(Escouade& escouade, const std::vector<EntiteVue>& monstres, const TileMap& carte,
                                                    Generateur& generateur) {
+    assert(s_degatsFrappeDeTest != s_degatsBaseDeTest && s_degatsZoneDeTest != s_degatsBaseDeTest);
     std::vector<Coup> coups;
     for (int i = 0; i < nombreDeTics(s_dureeAttenteSkill); ++i) {
         for (const Coup& coup : escouade.attaquer(s_dureeTic, monstres, carte, generateur)) {

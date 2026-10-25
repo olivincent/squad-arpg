@@ -118,7 +118,9 @@ TEST_CASE("Le skill de degats est refuse sans monstre verrouille meme si une cib
 // Skill de dégâts en attente. Les attaques de base des 3 personnages réunies
 // restent sous la frappe en un tic : un tic qui rapporte au moins la frappe
 // contient donc forcément le skill.
-static_assert(3 * s_degatsBaseDeTest < s_degatsFrappeDeTest);
+TEST_CASE("skill de degats en attente : les attaques de base des trois personnages reunies restent sous la frappe") {
+    REQUIRE(3 * s_degatsBaseDeTest < s_degatsFrappeDeTest);
+}
 
 TEST_CASE("Un skill de degats hors de portee est mis en attente, puis part a l'arrivee du lanceur") {
     const TileMap carte = carteDegagee10x10();

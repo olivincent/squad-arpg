@@ -7,7 +7,6 @@
 #include "aides.hpp"
 #include "base/Cercle.hpp"
 #include "combat/Defense.hpp"
-#include "combat/Esquive.hpp"
 #include "combat/StatistiquesDeCombat.hpp"
 #include "monstres/Monstre.hpp"
 #include "monde/TileMap.hpp"
@@ -206,16 +205,25 @@ TEST_CASE("un coup esquive par un monstre ne lui retire rien mais le reveille qu
     DefinitionDeMonstre definition = monstreSansHasard();
     definition.statistiques.esquiveContact = 50;
     const Attaque attaque{.montant = 100, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
-    Monstre monstre({100.0f, 100.0f}, 1, 0, definition);
-    // Le seul tirage du coup est celui de l'esquive (capacité offensive nulle : pas de critique), choisi sous sa chance.
-    Generateur generateur = generateurQuiTireSous(chanceDEsquive(NatureDAttaque::Contact, monstre.getStatistiques()));
-    const int vieAvant = monstre.getPointsDeVie();
+    Generateur generateur = generateurDeTest();
+    int esquives = 0;
 
-    REQUIRE(monstre.recevoirDegats(attaque, generateur).esquive);
+    // Esquivé ou non, un coup réveille le monstre ; esquivé, il ne lui retire rien. À 50 %, la chance de n'en voir
+    // aucun esquivé sur 100 coups est de 2^-100, quelle que soit la graine.
+    for (int essai = 0; essai < 100; ++essai) {
+        Monstre monstre({100.0f, 100.0f}, 1, 0, definition);
+        const int vieAvant = monstre.getPointsDeVie();
 
-    REQUIRE(monstre.getPointsDeVie() == vieAvant);
-    ecoulerTemps(monstre, 0.5f, pointCible({350.0f, 100.0f}), carte);  // une proie hors détection
-    REQUIRE(monstre.getCentre().x > 100.0f);  // l'attaque a eu lieu : le monstre poursuit
+        const bool esquive = monstre.recevoirDegats(attaque, generateur).esquive;
+
+        if (esquive) {
+            ++esquives;
+            REQUIRE(monstre.getPointsDeVie() == vieAvant);
+        }
+        ecoulerTemps(monstre, 0.5f, pointCible({350.0f, 100.0f}), carte);  // une proie hors détection
+        REQUIRE(monstre.getCentre().x > 100.0f);  // l'attaque a eu lieu : le monstre poursuit
+    }
+    REQUIRE(esquives > 0);
 }
 
 TEST_CASE("un monstre au bouclier : le blocage se recupere avec le temps qui passe") {

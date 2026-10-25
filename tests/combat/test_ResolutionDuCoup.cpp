@@ -249,20 +249,21 @@ int tiragesDuCoup(const Attaque& attaque, const Defenses& defenses, Generateur& 
 }  // namespace
 
 TEST_CASE("resoudreCoup : une esquive possible tire, et un coup esquive ne tire pas son critique") {
+    Generateur generateur = generateurDeTest();
     const Attaque attaque{.montant = s_montant, .capaciteOffensive = s_capaciteEnorme, .nature = NatureDAttaque::Contact};
-    Generateur quiEsquive = generateurQuiTireSous(0.5f);        // esquive à 50 % : le tirage est sous la chance
-    Generateur quiTouche = generateurQuiTireAuDessus(0.5f);
-    bool esquive = false;
-    bool touche = true;
+    int esquives = 0;
+    int touches = 0;
 
-    const int tiragesParCoupEsquive = tiragesDuCoup(attaque, esquiveur(50, 0), quiEsquive, esquive);
-    const int tiragesParCoupTouche = tiragesDuCoup(attaque, esquiveur(50, 0), quiTouche, touche);
-
-    REQUIRE(esquive);
-    REQUIRE_FALSE(touche);
-    // Esquivé : un seul nombre (l'esquive). Touché : deux (l'esquive, puis le critique).
-    REQUIRE(tiragesParCoupEsquive == 1);
-    REQUIRE(tiragesParCoupTouche == 2);
+    // Chaque coup est vérifié ; à 50 %, la chance de ne voir que d'une sorte sur 200 coups est de 2^-199.
+    for (int i = 0; i < 200; ++i) {
+        bool esquive = false;
+        const int tirages = tiragesDuCoup(attaque, esquiveur(50, 0), generateur, esquive);
+        // Esquivé : un seul nombre (l'esquive). Touché : deux (l'esquive, puis le critique).
+        REQUIRE(tirages == (esquive ? 1 : 2));
+        ++(esquive ? esquives : touches);
+    }
+    REQUIRE(esquives > 0);
+    REQUIRE(touches > 0);
 }
 
 TEST_CASE("resoudreCoup : l'esquive ne change pas ce que la capacite defensive et l'armure font du coup touche") {

@@ -17,21 +17,31 @@ constexpr float s_cote = 20.0f;           // côté du carré, en pixels
 constexpr float s_vitesse = 240.0f;       // en pixels par seconde
 const sf::Color s_couleurContour(40, 40, 40);       // contour de 1 px vers l'intérieur, pour distinguer deux personnages collés
 constexpr float s_epaisseurContour = -1.0f;         // négative : vers l'intérieur
+// L'attaque de base profite de la Puissance à plein, d'elle seule.
+const Coefficients s_coefficientsDeLAttaqueDeBase = Coefficients::seul(Caracteristique::Puissance, 1.0f);
+
+// La machine à états d'une attaque de base décrite par une arme (ou les mains nues).
+Skill skillDeLAttaqueDeBase(const DescriptionDAttaque& description) {
+    return Skill({.type = TypeSkill::Degats, .portee = description.portee, .puissance = description.degats,
+                  .rechargeMin = description.rechargeMin, .rechargeMax = description.rechargeMax,
+                  .tempsExecution = description.tempsExecution, .coefficients = s_coefficientsDeLAttaqueDeBase,
+                  .nature = description.nature});
+}
 }  // namespace
 
 Personnage::Personnage(sf::Vector2f centre, DefinitionPersonnage definition)
     : m_mobile(centre, {s_cote, s_cote}, s_vitesse),
       m_couleur(definition.couleur),
-      m_attaqueDeBase(definition.attaqueDeBase),
+      m_equipement(definition.equipementDeDepart),
+      m_descriptionDeBase(m_equipement.attaqueDeBase()),
+      m_attaqueDeBase(skillDeLAttaqueDeBase(m_descriptionDeBase)),
       m_skills(std::move(definition.skills)),
       m_cibleChemin(),
-      m_equipement(definition.equipementDeDepart),
       m_caracteristiquesDeBase(definition.caracteristiques),
       m_caracteristiques(m_caracteristiquesDeBase + m_equipement.bonusTotal()),
       m_statistiques(statistiquesDuPersonnage(m_caracteristiques, m_equipement.bonusDeCombatTotal())),
       m_vitalite(pointsDeVieMax(m_caracteristiques), defenses()),
       m_rayonVision(definition.rayonVision),
-      m_zoneDeControle(definition.zoneDeControle),
       m_actionEngagee()
 {
     for (std::size_t i = 0; i < m_skills.size(); ++i) {
@@ -119,7 +129,7 @@ Attaque Personnage::getAttaqueDeBase() const {
 }
 
 float Personnage::getZoneDeControle() const {
-    return m_zoneDeControle;
+    return zoneDeControleDe(m_descriptionDeBase.nature);
 }
 
 bool Personnage::estAPortee(Cercle cible) const {
@@ -127,7 +137,8 @@ bool Personnage::estAPortee(Cercle cible) const {
 }
 
 bool Personnage::engagerAttaque(int idCible) {
-    if (!estVivant() || m_mobile.estEnMouvement() || m_actionEngagee.has_value() || !m_attaqueDeBase.commencer()) {
+    if (!estVivant() || m_mobile.estEnMouvement() || m_actionEngagee.has_value() || m_rechargeARelancer ||
+        !m_attaqueDeBase.commencer()) {
         return false;
     }
     // Seul l'identifiant sert à l'attaque de base : le cercle n'est pas renseigné.
@@ -330,6 +341,20 @@ void Personnage::recalculerDepuisLEquipement() {
     m_statistiques = statistiquesDuPersonnage(m_caracteristiques, m_equipement.bonusDeCombatTotal());
     m_vitalite.definirMaximum(pointsDeVieMax(m_caracteristiques));
     m_vitalite.definirDefenses(defenses());
+    // L'attaque de base : refaite seulement si l'arme l'a changée (un anneau ne remet pas la recharge à zéro).
+    if (const DescriptionDAttaque voulue = m_equipement.attaqueDeBase(); voulue != m_descriptionDeBase) {
+        annulerAttaque();
+        m_descriptionDeBase = voulue;
+        m_attaqueDeBase = skillDeLAttaqueDeBase(voulue);
+        m_rechargeARelancer = true;
+    }
+}
+
+void Personnage::relancerSiLArmeAChange(Generateur& generateur) {
+    if (m_rechargeARelancer) {
+        m_attaqueDeBase.relancerRecharge(generateur);
+        m_rechargeARelancer = false;
+    }
 }
 
 Attaque Personnage::attaqueDe(const Skill& skill) const {

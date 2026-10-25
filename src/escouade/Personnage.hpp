@@ -24,9 +24,10 @@ class Personnage {
 public:
     // Construit depuis sa définition (`DefinitionPersonnage`) : `rayonVision` est jusqu'où il voit, en pixels
     // (l'union des champs des vivants est la vision de l'escouade) ; `skills` ceux qu'il connaît (assert :
-    // pas deux fois le même identifiant) ; `equipementDeDepart` ce qu'il porte à sa création, et son armure
-    // est celle de cet équipement ; `zoneDeControle` la zone qu'il engage autour de lui, en pixels, bord à
-    // bord (0 : il n'engage personne). Son `rang` n'est lu que par la formation.
+    // pas deux fois le même identifiant) ; `equipementDeDepart` ce qu'il porte à sa création : son armure,
+    // son attaque de base (celle de son arme, les mains nues sans arme) et la zone qu'il engage autour de lui
+    // (celle d'une attaque de contact, aucune pour un projectile) en sont calculées. Son `rang` n'est lu que par
+    // la formation.
     Personnage(sf::Vector2f centre, DefinitionPersonnage definition);
     void dessiner(sf::RenderTarget& rendu) const;
     // `obstacles` le bloquent ; `aContourner` est ce que son chemin évite : la ligne droite n'est
@@ -42,12 +43,18 @@ public:
     // Son attaque de base : le montant (caractéristiques comprises, `montantEffectif`), avant l'armure de la
     // cible, et sa capacité offensive.
     [[nodiscard]] Attaque getAttaqueDeBase() const;
-    // Zone de contrôle, en pixels, bord à bord ; 0 : il n'engage personne.
+    // Zone de contrôle, en pixels, bord à bord ; 0 : il n'engage personne. Celle de son attaque de base, donc de son arme.
     [[nodiscard]] float getZoneDeControle() const;
     // Attaque de base en trois temps : engager (vivant, immobile, attaque
     // prête) ; avancer l'exécution, qui rend l'attaque au moment où le coup
     // part (vide avant) ; annuler, sans recharge consommée.
+    // Refuse tant qu'une arme changée n'a pas relancé la recharge (`relancerSiLArmeAChange`).
     [[nodiscard]] bool engagerAttaque(int idCible);
+    // Quand l'arme a changé (`poserEquipement` / `retirerEquipement`), l'attaque de base repart pour une recharge
+    // complète, tirée dans l'intervalle de la nouvelle arme : sans cela, retirer et remettre une arme lente (partie
+    // figée) donnerait une attaque prête tout de suite. Le tirage attend un générateur, que l'équipement n'a pas :
+    // `Escouade::attaquer` l'appelle au début de chaque image. Sans effet si l'arme n'a pas changé.
+    void relancerSiLArmeAChange(Generateur& generateur);
     [[nodiscard]] std::optional<int> cibleEngagee() const;
     [[nodiscard]] std::optional<Attaque> avancerAttaque(float dt, Generateur& generateur);
     // Sans effet sur une activation de skill : seul annulerSkill l'annule.
@@ -110,20 +117,23 @@ public:
 private:
     Mobile m_mobile;        // position (centre en pixels du monde) et déplacement
     sf::Color m_couleur;
-    Skill m_attaqueDeBase;
+    Equipement m_equipement;  // déclaré avant ce qui en est tiré (attaque de base, défenses) à la construction
+    DescriptionDAttaque m_descriptionDeBase;    // celle de l'équipement, que `m_attaqueDeBase` met en œuvre
+    Skill m_attaqueDeBase;  // la machine à états de l'attaque de base : refaite quand l'équipement la change
+    bool m_rechargeARelancer = false;  // l'arme a changé : la recharge complète reste à tirer
     std::vector<SkillConnu> m_skills; // sans doublon d'identifiant
     std::optional<sf::Vector2f> m_cibleChemin; // cible du dernier A* ; vide = pas de chemin en cours
-    Equipement m_equipement;  // déclaré avant m_vitalite : l'armure en est tirée à la construction
     Caracteristiques m_caracteristiquesDeBase;  // celles de sa classe, jamais modifiées
     Caracteristiques m_caracteristiques;        // effectives : seul `recalculerDepuisLEquipement` les écrit
     StatistiquesDeCombat m_statistiques;        // tirées des caractéristiques effectives, écrites au même endroit
     Vitalite m_vitalite;    // points de vie et défenses
     float m_rayonVision;    // en pixels
-    float m_zoneDeControle; // en pixels, bord à bord
     // Ce qu'il oppose à un coup : l'armure de son équipement et ses statistiques de combat.
     [[nodiscard]] Defenses defenses() const;
     // Seul endroit où les caractéristiques effectives et tout ce qui en vient (statistiques de combat, points
-    // de vie maximum, défenses de la vitalité) changent : toujours la base plus l'équipement, jamais ajustées.
+    // de vie maximum, défenses de la vitalité, attaque de base) changent : toujours la base plus l'équipement,
+    // jamais ajustées. Une arme qui change annule le coup de base en cours, sans recharge consommée, puis
+    // l'attaque repart pour une recharge complète (`relancerSiLArmeAChange`).
     void recalculerDepuisLEquipement();
     // L'attaque de ce skill de ce personnage : son montant, caractéristiques comprises (`montantEffectif`), et
     // la capacité offensive du personnage.

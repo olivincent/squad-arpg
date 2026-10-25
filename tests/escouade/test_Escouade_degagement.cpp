@@ -9,6 +9,7 @@
 #include "aides.hpp"
 #include "aides_escouade.hpp"
 #include "base/Cercle.hpp"
+#include "combat/Caracteristiques.hpp"
 #include "combat/Coup.hpp"
 #include "combat/Engagement.hpp"
 #include "escouade/Escouade.hpp"
@@ -25,16 +26,17 @@ constexpr std::size_t s_guerrier = 1;
 constexpr std::size_t s_pretre = 2;
 constexpr std::size_t s_mage = 3;
 
-constexpr float s_porteeTireur = 120.0f;
 constexpr float s_zoneDuMonstre = 20.0f;
-constexpr int s_degatsDuMage = 7;  // reconnaissables parmi les 5 de l'attaque de base des autres
+// Le mage est d'une Puissance énorme : son attaque de base (le bâton, portée de tireur) fait quatre fois plus que
+// celle des autres, donc reconnaissable.
+const Caracteristiques s_caracteristiquesDuMage({110, 10, 10, 10, 10});
+const int s_degatsDuMage = montantEffectif(s_degatsBaseDeTest, Coefficients::seul(Caracteristique::Puissance, 1.0f),
+                                           s_caracteristiquesDuMage);
 
-// Le mage tire des coups de 7 dégâts (recharge de 0,3 s, exécution de 0,15 s).
+// Le mage tire des coups reconnaissables (exécution de 0,15 s).
 Escouade uneEscouadeAuMageReconnaissable() {
     std::vector<DefinitionPersonnage> composition = compositionDeTest();
-    composition[s_mage - 1].attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = s_porteeTireur,
-                                                   .puissance = s_degatsDuMage, .rechargeMin = 0.3f,
-                                                   .rechargeMax = 0.3f, .tempsExecution = 0.15f, .nature = NatureDAttaque::Contact});
+    composition[s_mage - 1].caracteristiques = s_caracteristiquesDuMage;
     return Escouade({300.0f, 500.0f}, std::move(composition));
 }
 
@@ -118,7 +120,7 @@ TEST_CASE("Degagement : le mage au contact d'un monstre tenu par le guerrier se 
     REQUIRE_FALSE(escouade.degagementDuPersonnage(s_mage).has_value());  // arrivé
     const std::vector<Cercle> cercles = escouade.cerclesDesVivants();
     const float ecart = distanceBordABord(cercles[s_mage - 1], monstre.cercle);
-    REQUIRE_THAT(ecart, Catch::Matchers::WithinAbs(0.9f * s_porteeTireur, 1.0f));  // à 90 % de sa portée
+    REQUIRE_THAT(ecart, Catch::Matchers::WithinAbs(0.9f * s_porteeTireurDeTest, 1.0f));  // à 90 % de sa portée
     REQUIRE_FALSE(engageLaPlace(escouade, monstre, s_mage));
     REQUIRE(engageLaPlace(escouade, monstre, s_guerrier));  // le guerrier tient toujours le monstre
     REQUIRE(coupsApres > 0);                                // arrivé, il tire sur place

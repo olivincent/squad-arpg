@@ -37,6 +37,7 @@ constexpr int s_degatsEpeeADeuxMains = 60;
 constexpr int s_degatsSceptre = 15;
 constexpr int s_degatsBaton = 15;
 constexpr int s_degatsArc = 15;
+constexpr int s_degatsMainsNues = 6;
 
 DonneesDArme armeDeMelee(TypeDArme type, int mains, int degats, float rechargeMin, float rechargeMax, float execution) {
     return {.type = type, .mains = mains,
@@ -99,6 +100,13 @@ const DefinitionObjet& definitionObjet(IdObjet id) {
     return trouvee;
 }
 
+const DescriptionDAttaque& mainsNues() {
+    static const DescriptionDAttaque s_mainsNues = {.degats = s_degatsMainsNues, .rechargeMin = s_rechargeTirMin,
+                                                    .rechargeMax = s_rechargeTirMax, .tempsExecution = s_executionArmeLegere,
+                                                    .portee = s_porteeDeContact, .nature = NatureDAttaque::Contact};
+    return s_mainsNues;
+}
+
 bool estADeuxMains(IdObjet id) {
     const std::optional<DonneesDArme>& arme = definitionObjet(id).arme;
     return arme.has_value() && arme->mains == 2;
@@ -107,5 +115,6 @@ bool estADeuxMains(IdObjet id) {
 std::vector<Objet> sacDeDepart() {
     return {{IdObjet::GantsDeCuir},         {IdObjet::BottesDeCuir},         {IdObjet::CasqueDeCuir},
             {IdObjet::TuniqueMatelassee},   {IdObjet::CollierDeProtection},  {IdObjet::AnneauDeProtection},
-            {IdObjet::AnneauDeProtection}, {IdObjet::AnneauDePuissance},     {IdObjet::CollierDEndurance}};
+            {IdObjet::AnneauDeProtection}, {IdObjet::AnneauDePuissance},     {IdObjet::CollierDEndurance},
+            {IdObjet::Dague},               {IdObjet::EpeeADeuxMains}};
 }

@@ -15,3 +15,20 @@ struct DescriptionDAttaque {  // NOLINT(cppcoreguidelines-pro-type-member-init):
 
     bool operator==(const DescriptionDAttaque&) const = default;
 };
+
+// Zone de contrôle d'une attaque de contact, en pixels bord à bord : qui frappe au contact engage ce qui le touche
+// presque. Un projectile n'engage personne (son tireur peut être engagé, et se dégage).
+inline constexpr float s_zoneDeControleDeContact = 20.0f;
+
+// La zone de contrôle que donne une attaque de base de cette nature : elle vient de l'arme, plus de la classe.
+// Le `switch` n'a pas de `default` : une nature ajoutée sans règle fait avertir le compilateur.
+[[nodiscard]] constexpr float zoneDeControleDe(NatureDAttaque nature) {
+    switch (nature) {
+        case NatureDAttaque::Contact:
+            return s_zoneDeControleDeContact;
+        case NatureDAttaque::Projectile:
+        case NatureDAttaque::Zone:
+            return 0.0f;
+    }
+    return 0.0f;
+}

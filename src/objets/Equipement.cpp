@@ -46,6 +46,17 @@ StatistiquesDeCombat Equipement::bonusDeCombatTotal() const {
     return total;
 }
 
+DescriptionDAttaque Equipement::attaqueDeBase() const {
+    const std::optional<Objet>& main = a(Emplacement::MainDroite);
+    if (main.has_value()) {
+        const std::optional<DonneesDArme>& arme = definitionObjet(main->id).arme;
+        if (arme.has_value()) {
+            return arme->attaque;
+        }
+    }
+    return mainsNues();
+}
+
 Caracteristiques Equipement::bonusTotal() const {
     Caracteristiques total;
     for (const std::optional<Objet>& objet : m_objets) {

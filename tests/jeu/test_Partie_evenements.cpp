@@ -26,6 +26,11 @@
 
 namespace {
 
+// Une Puissance qui multiplie l'attaque de base par plus de 30 : elle tue en un coup un monstre ordinaire.
+constexpr int s_puissanceMortelle = 1000;
+// Celle qui fait de l'épée à deux mains (60) un coup d'environ 60 % des points de vie du monstre ordinaire.
+constexpr int s_puissanceDeLEpeeADeuxMains = 77;
+
 // Avance de cette durée, tic par tic, et rend tous les événements produits.
 std::vector<EvenementDeCombat> evenementsPendant(Partie& partie, float duree) {
     std::vector<EvenementDeCombat> tous;
@@ -62,25 +67,18 @@ Defenses defensesDuMonstreDeTest(int armure = 0) {
     return {.armure = armure, .statistiques = monstreSansHasard().statistiques};
 }
 
-// Un guerrier increvable dont l'attaque de base ne fait que 1 dégât et revient sans attendre : il frappe sans
-// cesse un monstre qui ne meurt pas, et reçoit ses coups sans mourir.
+// Un guerrier increvable : il frappe sans cesse un monstre indestructible (`monstreIndestructible`), et reçoit ses
+// coups sans mourir.
 DefinitionPersonnage guerrierInfatigable() {
-    DefinitionPersonnage guerrier = guerrierDeTest();
-    guerrier.attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest, .puissance = 1,
-                                    .rechargeMin = 0.0f, .rechargeMax = 0.0f, .tempsExecution = s_executionBaseDeTest, .nature = NatureDAttaque::Contact});
-    guerrier.caracteristiques = Caracteristiques({10, 2'000'000, 10, 10, 10});  // l'Endurance donne les points de vie
-    return guerrier;
+    return avecEnduranceEnorme(guerrierDeTest());
 }
 
-// Deux guerriers (en (235, 185) et (235, 235)) dont l'attaque de base tue d'un coup (2000 dégâts), et un
-// monstre en (260, 210) qu'ils atteignent tous les deux : leurs deux coups partent au même tic.
+// Deux guerriers (en (235, 185) et (235, 235)) d'une Puissance telle que leur attaque de base tue d'un coup, et un
+// monstre en (260, 210) qu'ils atteignent tous les deux : leurs deux coups partent au même tic (et le monstre
+// est mort avant que la recharge de l'épée ne leur en laisse un autre).
 Partie deuxGuerriersQuiTuentLeMemeMonstre() {
-    std::vector<DefinitionPersonnage> composition = {guerrierDeTest(), guerrierDeTest()};
-    for (DefinitionPersonnage& definition : composition) {
-        definition.attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest, .puissance = 2000,
-                                          .rechargeMin = 100.0f, .rechargeMax = 100.0f,
-                                          .tempsExecution = s_executionBaseDeTest, .nature = NatureDAttaque::Contact});
-    }
+    std::vector<DefinitionPersonnage> composition = {avecPuissance(guerrierDeTest(), s_puissanceMortelle),
+                                                     avecPuissance(guerrierDeTest(), s_puissanceMortelle)};
     return partieDeTest(niveauDegage({{260.0f, 210.0f}}), std::move(composition));
 }
 
@@ -137,16 +135,17 @@ TEST_CASE("evenements : le coup d'un monstre donne un evenement sur le personnag
 }
 
 TEST_CASE("evenements : un critique est signale, et son montant est multiplie") {
-    // Un guerrier d'Adresse énorme (capacité offensive 5 050 contre 100 : 50 % de critiques, ×2) frappe sans cesse
-    // un monstre (1 dégât, sans recharge) : une soixantaine de coups en 10 s, dont la chance de n'avoir que des
-    // critiques ou que des coups normaux est de 2^-60 (la graine n'y change rien).
+    // Un guerrier d'Adresse énorme (capacité offensive 5 050 contre 100 : 50 % de critiques, ×2) et d'Endurance
+    // énorme frappe sans cesse un monstre indestructible : une centaine de coups en 60 s, dont la chance de n'avoir
+    // que des critiques ou que des coups normaux est de 2^-100 (la graine n'y change rien).
     DefinitionPersonnage adroit = guerrierInfatigable();
-    adroit.caracteristiques = Caracteristiques({10, 10, 1000, 10, 10});
-    Partie partie = partieDeTest(niveauDegage({{235.0f, 170.0f}}), std::vector<DefinitionPersonnage>{adroit});
+    adroit.caracteristiques = Caracteristiques({10, 2'000'000, 1000, 10, 10});
+    Partie partie = partieDeTest(niveauDegage({{235.0f, 170.0f}}), std::vector<DefinitionPersonnage>{adroit}, s_graineDeTest,
+                                 monstreIndestructible());
     const Attaque attaque = *partie.getEscouade().attaqueDeBase(1);
     const Defenses monstre = defensesDuMonstreDeTest();
 
-    const std::vector<EvenementDeCombat> evenements = evenementsPendant(partie, 10.0f);
+    const std::vector<EvenementDeCombat> evenements = evenementsPendant(partie, 60.0f);
 
     int critiques = 0;
     int normaux = 0;
@@ -194,26 +193,19 @@ TEST_CASE("evenements : un coup gratuit est marque, dans les deux sens") {
     REQUIRE(degats(surLeMage[0]).montant ==
             degatsAttendus(attaqueDuMonstre, defensesDuPersonnageDeTest(0), degats(surLeMage[0]).critique));  // armure 0
 
-    // Trois guerriers ; le premier frappe une fois (60 % des points de vie du monstre, 90 % si critique, recharge
-    // de 100 s). Dès que le monstre est touché, le troisième le provoque : il quitte le premier, qui le frappe
-    // gratuitement (le même coup).
+    // Trois guerriers ; le premier frappe une fois, fort (l'épée à deux mains, de Puissance telle qu'elle prend 60 %
+    // des points de vie du monstre, 90 % si critique, et de recharge d'au moins 1,2 s : une seule frappe en 1,2 s).
+    // Le troisième le provoque dès le départ : il quitte le premier, qui le frappe gratuitement (le même coup).
     std::vector<DefinitionPersonnage> composition = {guerrierDeTest(), guerrierDeTest(), guerrierDeTest()};
-    const int vieDuMonstre = partieDeTest(niveauDegage({{270.0f, 160.0f}}), compositionDeTest()).getMonstres().front().getPointsDeVie();
-    composition[0].attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest, .puissance = 6 * vieDuMonstre / 10,
-                                          .rechargeMin = 100.0f, .rechargeMax = 100.0f,
-                                          .tempsExecution = s_executionBaseDeTest, .nature = NatureDAttaque::Contact});
+    composition[0] = avecPuissance(avecArme(composition[0], IdObjet::EpeeADeuxMains), s_puissanceDeLEpeeADeuxMains);
     Partie guerriers = partieDeTest(niveauDegage({{270.0f, 160.0f}}), std::move(composition));
     const Attaque coupDuPremier = *guerriers.getEscouade().attaqueDeBase(1);
     std::vector<EvenementDeCombat> evenements;
-    bool provoque = false;
+    guerriers.demanderSkill({3, IdSkill::Provocation});
     for (int i = 0; i < nombreDeTics(1.2f); ++i) {
         guerriers.mettreAJour(s_dureeTic);
         const std::vector<EvenementDeCombat> duTic = guerriers.prendreEvenements();
         evenements.insert(evenements.end(), duTic.begin(), duTic.end());
-        if (!provoque && !evenements.empty()) {
-            guerriers.demanderSkill({3, IdSkill::Provocation});
-            provoque = true;
-        }
     }
     int normaux = 0;
     int gratuits = 0;
@@ -342,9 +334,8 @@ TEST_CASE("evenements : un coup esquive par un monstre donne Esquive, et aucun d
     // Un seul attaquant (un guerrier qui frappe 6 fois par seconde) : une image ne contient qu'un coup sur le monstre.
     // Le monstre esquive la moitié des coups (le plafond) : sur 40 s, la chance de ne voir aucune esquive ou
     // aucun coup touché est de l'ordre de 2^-200, quelle que soit la graine.
-    DefinitionDeMonstre esquiveur = monstreSansHasard();
+    DefinitionDeMonstre esquiveur = monstreIndestructible();
     esquiveur.statistiques.esquiveContact = s_esquiveMaximale;
-    esquiveur.pointsDeVieMax = 10'000'000;  // il survit à 40 s de coups
     Partie partie(niveauDegage({{235.0f, 170.0f}}), std::vector<DefinitionPersonnage>{guerrierInfatigable()}, s_graineDeTest, esquiveur);
     int esquives = 0;
     int touches = 0;
@@ -367,8 +358,7 @@ TEST_CASE("evenements : un coup esquive par un monstre donne Esquive, et aucun d
 TEST_CASE("evenements : un blocage partiel donne les degats puis Bloque, puis rien pendant la recuperation") {
     DefinitionPersonnage guerrier = guerrierInfatigable();
     guerrier.equipementDeDepart.push_back({Emplacement::MainGauche, IdObjet::BouclierRond});  // 30 %, 40 points, 3 s
-    DefinitionDeMonstre monstre = monstreSansHasard();
-    monstre.pointsDeVieMax = 10'000'000;  // il survit à 120 s de coups
+    const DefinitionDeMonstre monstre = monstreIndestructible();
     Partie partie(niveauDegage({{270.0f, 210.0f}}), std::vector<DefinitionPersonnage>{guerrier}, s_graineDeTest, monstre);
     const StatistiquesDeCombat bouclier = *partie.getEscouade().statistiquesDeCombatDuPersonnage(1);
     const std::vector<std::vector<EvenementDeCombat>> images = evenementsParImage(partie, 120.0f);

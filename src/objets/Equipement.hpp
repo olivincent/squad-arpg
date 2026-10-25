@@ -4,6 +4,7 @@
 #include <optional>
 #include <vector>
 #include "combat/Caracteristiques.hpp"
+#include "combat/DescriptionDAttaque.hpp"
 #include "combat/StatistiquesDeCombat.hpp"
 #include "objets/Emplacement.hpp"
 #include "objets/Objet.hpp"
@@ -42,6 +43,10 @@ public:
 
     // Somme des bonus de statistiques de combat des objets portés (esquive, capacités…), recalculée à chaque appel.
     [[nodiscard]] StatistiquesDeCombat bonusDeCombatTotal() const;
+
+    // L'attaque de base que donne cet équipement : celle de l'arme de la main droite, sinon les mains nues
+    // (`mainsNues`). Une valeur dérivée, recalculée à chaque appel, jamais stockée.
+    [[nodiscard]] DescriptionDAttaque attaqueDeBase() const;
 
     [[nodiscard]] bool operator==(const Equipement&) const = default;
 

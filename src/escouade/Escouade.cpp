@@ -132,6 +132,9 @@ void Escouade::annulerAttaquesEngagees() {
 }
 
 std::vector<Coup> Escouade::attaquer(float dt, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur) {
+    for (Personnage& personnage : m_personnages) {
+        personnage.relancerSiLArmeAChange(generateur);  // une arme changée dans l'inventaire : recharge complète
+    }
     actualiserMemoires(monstres);
     engagerSkillDeZoneEnAttente(carte);
     approcherVerrou(monstres, carte);

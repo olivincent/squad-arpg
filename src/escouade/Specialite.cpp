@@ -18,16 +18,7 @@ const sf::Color s_couleurMage(160, 80, 220);     // violet
 const sf::Color s_couleurPaladin(255, 140, 0);   // orange
 const sf::Color s_couleurRodeur(50, 170, 70);    // vert
 constexpr float s_porteeMelee = 20.0f;    // bord à bord
-constexpr float s_porteeTireur = 120.0f;  // bord à bord
 constexpr float s_rayonVision = 320.0f;  // en pixels (8 cases), le même pour tous
-constexpr float s_zoneDeControleMelee = 20.0f;   // bord à bord : les mêlées engagent ce qui les touche presque
-constexpr float s_zoneDeControleTireur = 0.0f;   // les tireurs n'engagent personne (mais peuvent être engagés)
-constexpr int s_degatsAttaqueDeBase = 15;
-constexpr float s_executionAttaqueDeBase = 0.15f;  // en secondes, immobile avant que le coup parte
-constexpr float s_rechargeMeleeMin = 0.3f;   // attaque de base des mêlées, en secondes
-constexpr float s_rechargeMeleeMax = 0.7f;
-constexpr float s_rechargeTireurMin = 0.4f;  // attaque de base des tireurs, en secondes
-constexpr float s_rechargeTireurMax = 0.6f;
 constexpr int s_degatsSkill = 75;
 constexpr float s_rechargeSkill = 5.0f;   // en secondes
 constexpr float s_activationSkill = 0.3f; // en secondes, immobile avant que l'effet parte
@@ -78,39 +69,26 @@ constexpr Coefficients s_puissanceSeule = Coefficients::seul(Caracteristique::Pu
 // Part de noir mélangée à la couleur de la classe, selon le nombre de fois où elle a déjà été prise.
 constexpr std::array<float, 3> s_assombrissements = {0.0f, 0.30f, 0.55f};
 
-// Attaque de base d'un personnage, mêlée ou tireur : la portée et l'intervalle de recharge changent.
-Skill attaqueDeBase(float portee, float rechargeMin, float rechargeMax, NatureDAttaque nature) {
-    return Skill({.type = TypeSkill::Degats, .portee = portee, .puissance = s_degatsAttaqueDeBase,
-                  .rechargeMin = rechargeMin, .rechargeMax = rechargeMax, .tempsExecution = s_executionAttaqueDeBase,
-                  .coefficients = s_puissanceSeule, .nature = nature});
-}
-
-Skill attaqueDeBaseDeMelee() {
-    return attaqueDeBase(s_porteeMelee, s_rechargeMeleeMin, s_rechargeMeleeMax, NatureDAttaque::Contact);
-}
-
-Skill attaqueDeBaseDeTireur() {
-    return attaqueDeBase(s_porteeTireur, s_rechargeTireurMin, s_rechargeTireurMax, NatureDAttaque::Projectile);
-}
-
-// Équipement de départ : les mêlées portent une armure complète (9 en tout), les tireurs rien.
-// Valeurs provisoires, à ajuster après test.
-std::vector<ObjetDeDepart> equipementDeMelee() {
+// Équipement de départ : les mêlées portent une armure complète (9 en tout), un bouclier et leur arme, les tireurs
+// seulement leur arme (leur attaque de base et leur zone de contrôle en viennent). Valeurs provisoires, à ajuster
+// après test.
+std::vector<ObjetDeDepart> equipementDeMelee(IdObjet arme) {
     return {{Emplacement::Tete, IdObjet::CasqueDeFer},
             {Emplacement::Torse, IdObjet::CuirasseDeMailles},
             {Emplacement::Jambes, IdObjet::JambieresDeFer},
+            {Emplacement::MainDroite, arme},
             {Emplacement::MainGauche, IdObjet::BouclierRond}};
 }
 
-std::vector<ObjetDeDepart> equipementDeTireur() {
-    return {};
+std::vector<ObjetDeDepart> equipementDeTireur(IdObjet arme) {
+    return {{Emplacement::MainDroite, arme}};
 }
 
 std::vector<Specialite> construireLeCatalogue() {
     return {
         // Guerrier : devant, au contact.
         {IdSpecialite::Guerrier, "Guerrier",
-         {.couleur = s_couleurGuerrier, .attaqueDeBase = attaqueDeBaseDeMelee(),
+         {.couleur = s_couleurGuerrier,
           .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = s_porteeMelee,
                                              .puissance = s_degatsSkill, .rechargeMin = s_rechargeSkill,
                                              .rechargeMax = s_rechargeSkill, .tempsExecution = s_activationSkill, .coefficients = s_puissanceSeule,
@@ -119,34 +97,31 @@ std::vector<Specialite> construireLeCatalogue() {
                                          .puissance = s_dureeProvocation, .rechargeMin = s_rechargeProvocation,
                                          .rechargeMax = s_rechargeProvocation, .rayonZone = s_rayonProvocation,
                                          .tempsExecution = s_activationProvocation, .nature = NatureDAttaque::Contact})}},
-          .equipementDeDepart = equipementDeMelee(), .rayonVision = s_rayonVision,
+          .equipementDeDepart = equipementDeMelee(IdObjet::EpeeLongue), .rayonVision = s_rayonVision,
           .caracteristiques = s_caracteristiquesGuerrier,
-          .zoneDeControle = s_zoneDeControleMelee,
           .rang = Rang::Avant}},
         // Prêtre : derrière, soigne.
         {IdSpecialite::Pretre, "Prêtre",
-         {.couleur = s_couleurPretre, .attaqueDeBase = attaqueDeBaseDeTireur(),
+         {.couleur = s_couleurPretre,
           .skills = {{IdSkill::Soin, Skill({.type = TypeSkill::Soin, .portee = s_porteeSoin, .puissance = s_puissanceSoin,
                                   .rechargeMin = s_rechargeSoin, .rechargeMax = s_rechargeSoin,
                                   .tempsExecution = s_activationSoin, .coefficients = s_puissanceSeule, .nature = NatureDAttaque::Contact})}},
-          .equipementDeDepart = equipementDeTireur(), .rayonVision = s_rayonVision,
+          .equipementDeDepart = equipementDeTireur(IdObjet::Sceptre), .rayonVision = s_rayonVision,
           .caracteristiques = s_caracteristiquesPretre,
-          .zoneDeControle = s_zoneDeControleTireur,
           .rang = Rang::Arriere}},
         // Mage : derrière, lance l'explosion.
         {IdSpecialite::Mage, "Mage",
-         {.couleur = s_couleurMage, .attaqueDeBase = attaqueDeBaseDeTireur(),
+         {.couleur = s_couleurMage,
           .skills = {{IdSkill::Explosion, Skill({.type = TypeSkill::Zone, .portee = s_porteeZone, .puissance = s_degatsZone,
                                        .rechargeMin = s_rechargeZone, .rechargeMax = s_rechargeZone,
                                        .rayonZone = s_rayonZone, .tempsExecution = s_activationZone, .coefficients = s_puissanceSeule,
                                        .nature = NatureDAttaque::Zone})}},
-          .equipementDeDepart = equipementDeTireur(), .rayonVision = s_rayonVision,
+          .equipementDeDepart = equipementDeTireur(IdObjet::Baton), .rayonVision = s_rayonVision,
           .caracteristiques = s_caracteristiquesMage,
-          .zoneDeControle = s_zoneDeControleTireur,
           .rang = Rang::Arriere}},
         // Paladin : devant, au contact, frappe et soigne.
         {IdSpecialite::Paladin, "Paladin",
-         {.couleur = s_couleurPaladin, .attaqueDeBase = attaqueDeBaseDeMelee(),
+         {.couleur = s_couleurPaladin,
           .skills = {{IdSkill::FrappeSacree, Skill({.type = TypeSkill::Degats, .portee = s_porteeMelee,
                                           .puissance = s_degatsFrappeSacree, .rechargeMin = s_rechargeFrappeSacree,
                                           .rechargeMax = s_rechargeFrappeSacree,
@@ -157,13 +132,12 @@ std::vector<Specialite> construireLeCatalogue() {
                                                 .rechargeMin = s_rechargeImposition,
                                                 .rechargeMax = s_rechargeImposition,
                                                 .tempsExecution = s_activationImposition, .coefficients = s_puissanceSeule, .nature = NatureDAttaque::Contact})}},
-          .equipementDeDepart = equipementDeMelee(), .rayonVision = s_rayonVision,
+          .equipementDeDepart = equipementDeMelee(IdObjet::Masse), .rayonVision = s_rayonVision,
           .caracteristiques = s_caracteristiquesPaladin,
-          .zoneDeControle = s_zoneDeControleMelee,
           .rang = Rang::Avant}},
         // Rôdeur : derrière, tire de loin et lance une pluie de flèches.
         {IdSpecialite::Rodeur, "Rôdeur",
-         {.couleur = s_couleurRodeur, .attaqueDeBase = attaqueDeBaseDeTireur(),
+         {.couleur = s_couleurRodeur,
           .skills = {{IdSkill::TirPercant, Skill({.type = TypeSkill::Degats, .portee = s_porteeTirPercant,
                                         .puissance = s_degatsTirPercant, .rechargeMin = s_rechargeTirPercant,
                                         .rechargeMax = s_rechargeTirPercant, .tempsExecution = s_activationTirPercant, .coefficients = s_puissanceSeule,
@@ -173,9 +147,8 @@ std::vector<Specialite> construireLeCatalogue() {
                                             .rechargeMax = s_rechargePluie, .rayonZone = s_rayonPluie,
                                             .tempsExecution = s_activationPluie, .coefficients = s_puissanceSeule,
                                             .nature = NatureDAttaque::Zone})}},
-          .equipementDeDepart = equipementDeTireur(), .rayonVision = s_rayonVision,
+          .equipementDeDepart = equipementDeTireur(IdObjet::Arc), .rayonVision = s_rayonVision,
           .caracteristiques = s_caracteristiquesRodeur,
-          .zoneDeControle = s_zoneDeControleTireur,
           .rang = Rang::Arriere}},
     };
 }

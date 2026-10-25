@@ -7,7 +7,9 @@
 #include "aides.hpp"
 #include "aides_escouade.hpp"
 #include "combat/Caracteristiques.hpp"
+#include "combat/DescriptionDAttaque.hpp"
 #include "combat/Defense.hpp"
+#include "combat/EntiteVue.hpp"
 #include "combat/StatistiquesDeCombat.hpp"
 #include "escouade/Escouade.hpp"
 #include "objets/CatalogueObjets.hpp"
@@ -314,11 +316,9 @@ TEST_CASE("statistiquesDeCombatDuPersonnage : celles du personnage de la place, 
 }
 
 TEST_CASE("la puissance de l'attaque de base lue par l'escouade (coup d'opportunite) suit les caracteristiques") {
-    constexpr int degats = 100;
+    const int degats = s_degatsBaseDeTest;
     const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
     DefinitionPersonnage definition = guerrierDeTest();
-    definition.attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest, .puissance = degats,
-                                      .rechargeMin = 0.5f, .rechargeMax = 0.5f, .coefficients = puissance, .nature = NatureDAttaque::Contact});
     definition.caracteristiques = Caracteristiques({s_valeurDeReference, 10, 10, 10, 10});
     Escouade escouade({50.0f, 50.0f}, {definition});
     REQUIRE(escouade.attaqueDeBase(1)->montant == degats);
@@ -356,7 +356,7 @@ TEST_CASE("deux mains : l'epee a deux mains range le bouclier du guerrier dans l
     REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainDroite) == s_epeeADeuxMains);
     REQUIRE_FALSE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainGauche).has_value());
     REQUIRE(escouade.sac().a(0) == s_bouclier);   // la première case libre
-    REQUIRE_FALSE(escouade.sac().a(1).has_value());
+    REQUIRE(escouade.sac().a(1) == s_epee);       // l'épée longue du guerrier a pris la place de l'arme (échange)
     REQUIRE(exemplaires(escouade) == avant);
     const int armureApres = armureAvant - definitionObjet(IdObjet::BouclierRond).armure;
     REQUIRE(escouade.equipementDuPersonnage(s_guerrier).armureTotale() == armureApres);
@@ -372,7 +372,8 @@ TEST_CASE("deux mains : un bouclier range l'arme a deux mains que le guerrier po
 
     REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainGauche) == s_bouclier);
     REQUIRE_FALSE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainDroite).has_value());
-    REQUIRE(escouade.sac().a(0) == s_epeeADeuxMains);
+    REQUIRE(escouade.sac().a(0) == s_epee);              // l'épée longue rendue par l'échange de l'arme à deux mains
+    REQUIRE(escouade.sac().a(1) == s_epeeADeuxMains);    // la première case libre : celle que le bouclier a quittée
     REQUIRE(exemplaires(escouade) == avant);
 }
 
@@ -404,4 +405,28 @@ TEST_CASE("deux mains : sac plein, l'epee a deux mains est refusee (ni surbrilla
     REQUIRE(escouade.equipementDuPersonnage(s_mage).a(Emplacement::MainDroite) == s_epeeADeuxMains);
     REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainGauche) == s_bouclier);
     REQUIRE(escouade.equipementDuPersonnage(s_guerrier).armureTotale() == armure);
+}
+
+TEST_CASE("changer d'arme dans l'inventaire relance la recharge : le premier coup attend l'intervalle de la nouvelle arme") {
+    Generateur generateur = generateurDeTest();
+    const TileMap& carte = carteOuverte();
+    Escouade escouade({50.0f, 50.0f}, {guerrierDeTest()});  // seul : tous les coups sont les siens
+    REQUIRE(escouade.ramasser(Objet{IdObjet::Dague}));
+    REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::MainDroite)));
+    const DescriptionDAttaque dague = definitionObjet(IdObjet::Dague).arme.value().attaque;
+    const std::vector<EntiteVue> monstres = {EntiteVue{1, cibleMonstre({110.0f, 60.0f})}};  // au contact du guerrier, en (85, 60)
+    const auto coupsPendant = [&](float duree) {
+        std::size_t coups = 0;
+        for (int i = 0; i < nombreDeTics(duree); ++i) {
+            coups += escouade.attaquer(s_dureeTic, monstres, carte, generateur).size();
+            escouade.mettreAJour(s_dureeTic, carte, {.physiques = monstres, .ciblables = monstres, .deControle = {}});
+        }
+        return coups;
+    };
+
+    // Une arme neuve n'est pas prête : ni la recharge minimale de la dague, ni le temps d'exécution ne suffisent
+    // à faire partir un coup avant la fin de l'intervalle (un coup exige la recharge puis l'exécution).
+    REQUIRE(coupsPendant(dague.rechargeMin * 0.9f) == 0);
+    // Passé l'intervalle et l'exécution, le coup part.
+    REQUIRE(coupsPendant(dague.rechargeMax + dague.tempsExecution + 0.2f) >= 1);
 }

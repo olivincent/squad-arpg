@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "aides.hpp"
+#include "aides_escouade.hpp"
 #include "escouade/Personnage.hpp"
 #include "base/Cercle.hpp"
 #include "combat/Blocage.hpp"
@@ -81,18 +82,14 @@ int lancerSkillEnEntier(Personnage& personnage, std::optional<Cible> cible, Gene
 
 TEST_CASE("estAPortee renvoie vrai pour un point proche") {
     const Personnage personnage({100.0f, 100.0f},
-                                {.couleur = sf::Color::White,
-                                 .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                                 .rayonVision = s_rayonVisionDeTest});
+                                definitionArmee(IdObjet::Sceptre));
 
     REQUIRE(personnage.estAPortee(pointCible({150.0f, 100.0f})));
 }
 
 TEST_CASE("estAPortee renvoie faux pour un point lointain") {
     const Personnage personnage({100.0f, 100.0f},
-                                {.couleur = sf::Color::White,
-                                 .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                                 .rayonVision = s_rayonVisionDeTest});
+                                definitionArmee(IdObjet::Sceptre));
 
     REQUIRE_FALSE(personnage.estAPortee(pointCible({300.0f, 100.0f})));
 }
@@ -100,19 +97,15 @@ TEST_CASE("estAPortee renvoie faux pour un point lointain") {
 TEST_CASE("frapper renvoie les degats pour une cible a portee") {
     Generateur generateur = generateurDeTest();
     Personnage personnage({100.0f, 100.0f},
-                          {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                           .rayonVision = s_rayonVisionDeTest});
+                          definitionArmee(IdObjet::Sceptre));
 
-    REQUIRE(frapperEnEntier(personnage, pointCible({150.0f, 100.0f}), generateur) == 5);
+    REQUIRE(frapperEnEntier(personnage, pointCible({150.0f, 100.0f}), generateur) == s_degatsBaseDeTest);
 }
 
 TEST_CASE("frapper renvoie 0 pour une cible hors de portee") {
     Generateur generateur = generateurDeTest();
     Personnage personnage({100.0f, 100.0f},
-                          {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                           .rayonVision = s_rayonVisionDeTest});
+                          definitionArmee(IdObjet::Sceptre));
 
     REQUIRE(frapperEnEntier(personnage, pointCible({300.0f, 100.0f}), generateur) == 0);
 }
@@ -120,31 +113,25 @@ TEST_CASE("frapper renvoie 0 pour une cible hors de portee") {
 TEST_CASE("frapper renvoie de nouveau les degats apres une duree simulee genereuse") {
     Generateur generateur = generateurDeTest();
     Personnage personnage({100.0f, 100.0f},
-                          {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                           .rayonVision = s_rayonVisionDeTest});
+                          definitionArmee(IdObjet::Sceptre));
     const TileMap carte = carteDegagee5x5();
     const Cercle cible = pointCible({150.0f, 100.0f});
 
-    REQUIRE(frapperEnEntier(personnage, cible, generateur) == 5);
+    REQUIRE(frapperEnEntier(personnage, cible, generateur) == s_degatsBaseDeTest);
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.6f);
-    REQUIRE(frapperEnEntier(personnage, cible, generateur) == 5);
+    REQUIRE(frapperEnEntier(personnage, cible, generateur) == s_degatsBaseDeTest);
 }
 
 TEST_CASE("Un personnage est vivant a la creation") {
     const Personnage personnage({100.0f, 100.0f},
-                                {.couleur = sf::Color::White,
-                                 .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                                 .rayonVision = s_rayonVisionDeTest});
+                                definitionArmee(IdObjet::Sceptre));
 
     REQUIRE(personnage.estVivant());
 }
 
 TEST_CASE("Un personnage est encore vivant apres des degats inferieurs a ses points de vie") {
     Personnage personnage({100.0f, 100.0f},
-                          {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                           .rayonVision = s_rayonVisionDeTest});
+                          definitionArmee(IdObjet::Sceptre));
 
     subir(personnage, personnage.getPointsDeVieMax() - 20);
 
@@ -153,9 +140,7 @@ TEST_CASE("Un personnage est encore vivant apres des degats inferieurs a ses poi
 
 TEST_CASE("Un personnage est mort apres autant de degats que ses points de vie") {
     Personnage personnage({100.0f, 100.0f},
-                          {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                           .rayonVision = s_rayonVisionDeTest});
+                          definitionArmee(IdObjet::Sceptre));
 
     subir(personnage, personnage.getPointsDeVieMax());
 
@@ -164,18 +149,14 @@ TEST_CASE("Un personnage est mort apres autant de degats que ses points de vie")
 
 TEST_CASE("getCentre renvoie le centre donne au constructeur") {
     const Personnage personnage({100.0f, 100.0f},
-                                {.couleur = sf::Color::White,
-                                 .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                                 .rayonVision = s_rayonVisionDeTest});
+                                definitionArmee(IdObjet::Sceptre));
 
     REQUIRE(personnage.getCentre() == sf::Vector2f(100.0f, 100.0f));
 }
 
 TEST_CASE("getCercle renvoie un cercle centre sur le personnage, de rayon la moitie du cote") {
     const Personnage personnage({100.0f, 100.0f},
-                                {.couleur = sf::Color::White,
-                                 .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                                 .rayonVision = s_rayonVisionDeTest});
+                                definitionArmee(IdObjet::Sceptre));
     const Cercle cercle = personnage.getCercle();
 
     REQUIRE(cercle.centre == sf::Vector2f(100.0f, 100.0f));
@@ -185,56 +166,112 @@ TEST_CASE("getCercle renvoie un cercle centre sur le personnage, de rayon la moi
 TEST_CASE("getRayonVision renvoie le rayon donne au constructeur") {
     const Personnage personnage({100.0f, 100.0f},
                                 {.couleur = sf::Color::White,
-                                 .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                                 .rayonVision = 123.0f});
+                                 .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = 123.0f, .caracteristiques = s_caracteristiquesDeTest});
 
     REQUIRE(personnage.getRayonVision() == 123.0f);
 }
 
-TEST_CASE("getZoneDeControle renvoie la zone donnee au constructeur, 0 par defaut") {
-    const Personnage engageant({100.0f, 100.0f},
-                               {.couleur = sf::Color::White,
-                                .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 20.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                                .rayonVision = s_rayonVisionDeTest, .zoneDeControle = 20.0f});
-    const Personnage sansZone({100.0f, 100.0f},
-                              {.couleur = sf::Color::White,
-                               .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 20.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                               .rayonVision = s_rayonVisionDeTest});
+TEST_CASE("getZoneDeControle vient de l'arme : une attaque de contact engage, un projectile non, les mains nues engagent") {
+    const Personnage epee = unPersonnageArme({100.0f, 100.0f}, IdObjet::EpeeLongue);
+    const Personnage arc = unPersonnageArme({100.0f, 100.0f}, IdObjet::Arc);
+    const Personnage mainsNues({100.0f, 100.0f}, definitionSansArme());
 
-    REQUIRE(engageant.getZoneDeControle() == 20.0f);
-    REQUIRE(sansZone.getZoneDeControle() == 0.0f);
+    REQUIRE(epee.getZoneDeControle() == zoneDeControleDe(NatureDAttaque::Contact));
+    REQUIRE(epee.getZoneDeControle() > 0.0f);
+    REQUIRE(arc.getZoneDeControle() == 0.0f);
+    REQUIRE(mainsNues.getZoneDeControle() == zoneDeControleDe(NatureDAttaque::Contact));
+}
+
+TEST_CASE("changer d'arme change la zone de controle, la portee et l'attaque de base") {
+    Personnage personnage = unPersonnageArme({100.0f, 100.0f}, IdObjet::EpeeLongue);
+    const DescriptionDAttaque epee = definitionObjet(IdObjet::EpeeLongue).arme.value().attaque;
+    const DescriptionDAttaque arc = definitionObjet(IdObjet::Arc).arme.value().attaque;
+    REQUIRE(personnage.getPorteeAttaqueDeBase() == epee.portee);
+    REQUIRE(personnage.getAttaqueDeBase().montant == montantEffectif(epee.degats, Coefficients::seul(Caracteristique::Puissance, 1.0f),
+                                                                     personnage.getCaracteristiques()));
+
+    static_cast<void>(personnage.retirerEquipement(Emplacement::MainDroite));
+    REQUIRE(personnage.getPorteeAttaqueDeBase() == mainsNues().portee);   // sans arme : les mains nues
+    REQUIRE(personnage.getAttaqueDeBase().nature == NatureDAttaque::Contact);
+
+    static_cast<void>(personnage.poserEquipement(Emplacement::MainDroite, {IdObjet::Arc}));
+    REQUIRE(personnage.getPorteeAttaqueDeBase() == arc.portee);
+    REQUIRE(personnage.getZoneDeControle() == 0.0f);
+    REQUIRE(personnage.getAttaqueDeBase().nature == NatureDAttaque::Projectile);
+}
+
+TEST_CASE("changer d'arme relance une recharge complete tiree dans l'intervalle de la nouvelle arme") {
+    Generateur generateur = generateurDeTest();
+    Personnage personnage = unPersonnageArme({100.0f, 100.0f}, IdObjet::EpeeLongue);
+    const TileMap carte = carteDegagee5x5();
+    const DescriptionDAttaque lente = definitionObjet(IdObjet::EpeeADeuxMains).arme.value().attaque;
+    REQUIRE(personnage.engagerAttaque(1));  // une arme neuve est prête
+    personnage.annulerAttaque();
+
+    static_cast<void>(personnage.poserEquipement(Emplacement::MainDroite, {IdObjet::EpeeADeuxMains}));
+    REQUIRE_FALSE(personnage.engagerAttaque(1));  // la recharge reste à tirer : pas prête
+    personnage.relancerSiLArmeAChange(generateur);
+
+    REQUIRE_FALSE(personnage.engagerAttaque(1));  // en recharge
+    ecoulerTemps(personnage, carte, {100.0f, 100.0f}, lente.rechargeMin * 0.9f);
+    REQUIRE_FALSE(personnage.engagerAttaque(1));  // le minimum de l'intervalle n'est pas écoulé
+    ecoulerTemps(personnage, carte, {100.0f, 100.0f}, lente.rechargeMax);
+    REQUIRE(personnage.engagerAttaque(1));        // le maximum l'est
+}
+
+TEST_CASE("changer d'arme annule le coup de base en cours, sans le faire partir") {
+    Generateur generateur = generateurDeTest();
+    Personnage personnage = unPersonnageArme({100.0f, 100.0f}, IdObjet::EpeeLongue);
+    REQUIRE(personnage.engagerAttaque(1));
+    REQUIRE(personnage.cibleEngagee() == 1);
+
+    static_cast<void>(personnage.poserEquipement(Emplacement::MainDroite, {IdObjet::Dague}));
+
+    REQUIRE_FALSE(personnage.cibleEngagee().has_value());
+    REQUIRE_FALSE(personnage.estEnExecution());
+    REQUIRE_FALSE(personnage.avancerAttaque(1.0f, generateur).has_value());
+}
+
+TEST_CASE("un changement qui laisse l'arme intacte ne touche pas la recharge ni le coup en cours") {
+    Generateur generateur = generateurDeTest();
+    Personnage personnage = unPersonnageArme({100.0f, 100.0f}, IdObjet::EpeeLongue);
+    REQUIRE(personnage.engagerAttaque(1));
+
+    static_cast<void>(personnage.poserEquipement(Emplacement::Anneau1, {IdObjet::AnneauDeProtection}));
+    personnage.relancerSiLArmeAChange(generateur);
+
+    REQUIRE(personnage.cibleEngagee() == 1);  // le coup engagé continue
+    REQUIRE(personnage.avancerAttaque(1.0f, generateur).has_value());
+    // L'anneau n'a pas non plus remis l'attaque prête : elle est en recharge après son départ.
+    static_cast<void>(personnage.poserEquipement(Emplacement::Anneau2, {IdObjet::AnneauDeProtection}));
+    personnage.relancerSiLArmeAChange(generateur);
+    REQUIRE_FALSE(personnage.engagerAttaque(1));
 }
 
 TEST_CASE("getPuissanceAttaqueDeBase renvoie les degats de l'attaque de base") {
     const Personnage personnage({100.0f, 100.0f},
-                                {.couleur = sf::Color::White,
-                                 .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 7, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                                 .rayonVision = s_rayonVisionDeTest});
+                                definitionArmee(IdObjet::Sceptre));
 
-    REQUIRE(personnage.getAttaqueDeBase().montant == 7);
+    REQUIRE(personnage.getAttaqueDeBase().montant == s_degatsBaseDeTest);
 }
 
 TEST_CASE("lire la puissance de l'attaque de base ne change ni le coup engage ni la recharge") {
     Personnage personnage({100.0f, 100.0f},
-                          {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .tempsExecution = 0.15f, .nature = NatureDAttaque::Contact}),
-                           .rayonVision = s_rayonVisionDeTest});
+                          definitionArmee(IdObjet::Sceptre));
     Generateur generateur = generateurDeTest();
     REQUIRE(personnage.engagerAttaque(1));
 
-    REQUIRE(personnage.getAttaqueDeBase().montant == 5);
+    REQUIRE(personnage.getAttaqueDeBase().montant == s_degatsBaseDeTest);
 
     REQUIRE(personnage.cibleEngagee() == 1);
-    REQUIRE(montantOuZero(personnage.avancerAttaque(0.2f, generateur)) == 5);  // le coup engagé part normalement
-    REQUIRE(personnage.getAttaqueDeBase().montant == 5);
+    REQUIRE(montantOuZero(personnage.avancerAttaque(0.2f, generateur)) == s_degatsBaseDeTest);  // le coup engagé part normalement
+    REQUIRE(personnage.getAttaqueDeBase().montant == s_degatsBaseDeTest);
     REQUIRE_FALSE(personnage.engagerAttaque(1));                // la recharge court toujours
 }
 
 TEST_CASE("Un personnage est mort apres un coup qui depasse le reste de ses points de vie") {
     Personnage personnage({100.0f, 100.0f},
-                          {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                           .rayonVision = s_rayonVisionDeTest});
+                          definitionArmee(IdObjet::Sceptre));
 
     subir(personnage, personnage.getPointsDeVieMax() - 20);  // reste 20 points de vie
     subir(personnage, 50);
@@ -245,9 +282,7 @@ TEST_CASE("Un personnage est mort apres un coup qui depasse le reste de ses poin
 TEST_CASE("Un personnage mort ne frappe plus") {
     Generateur generateur = generateurDeTest();
     Personnage personnage({100.0f, 100.0f},
-                          {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                           .rayonVision = s_rayonVisionDeTest});
+                          definitionArmee(IdObjet::Sceptre));
     const Cercle cible = pointCible({150.0f, 100.0f});
 
     subir(personnage, personnage.getPointsDeVieMax());
@@ -257,9 +292,7 @@ TEST_CASE("Un personnage mort ne frappe plus") {
 
 TEST_CASE("Un personnage mort ne bouge plus") {
     Personnage personnage({100.0f, 100.0f},
-                          {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                           .rayonVision = s_rayonVisionDeTest});
+                          definitionArmee(IdObjet::Sceptre));
     const TileMap carte = carteDegagee5x5();
     const sf::Vector2f centreInitial = personnage.getCentre();
 
@@ -275,9 +308,8 @@ TEST_CASE("Lancer un skill rend sa puissance") {
     Generateur generateur = generateurDeTest();
     Personnage personnage({100.0f, 100.0f},
                           {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
                            .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
-                           .rayonVision = s_rayonVisionDeTest});
+                           .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeTest});
 
     REQUIRE(lancerSkillEnEntier(personnage, Cible(CibleMonstre{1, pointCible({150.0f, 100.0f})}), generateur) == 25);
 }
@@ -286,9 +318,8 @@ TEST_CASE("Un personnage avec un skill de provocation en expose le type et le la
     Generateur generateur = generateurDeTest();
     Personnage personnage({100.0f, 100.0f},
                           {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 20.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
                            .skills = {{IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .portee = 0.0f, .puissance = 4, .rechargeMin = 10.0f, .rechargeMax = 10.0f, .rayonZone = 150.0f, .nature = NatureDAttaque::Contact})}},
-                           .rayonVision = s_rayonVisionDeTest});
+                           .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeTest});
 
     REQUIRE(personnage.typeSkill(IdSkill::Provocation) == TypeSkill::Provocation);
     REQUIRE(personnage.skillEstPret(IdSkill::Provocation));
@@ -299,13 +330,10 @@ TEST_CASE("Un personnage avec un skill de provocation en expose le type et le la
 TEST_CASE("zoneDuSkill est centree sur le personnage, au rayon de zone du skill") {
     Personnage provocateur({100.0f, 100.0f},
                            {.couleur = sf::Color::White,
-                            .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 20.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
                             .skills = {{IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .portee = 0.0f, .puissance = 4, .rechargeMin = 10.0f, .rechargeMax = 10.0f, .rayonZone = 150.0f, .nature = NatureDAttaque::Contact})}},
-                            .rayonVision = s_rayonVisionDeTest});
+                            .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeTest});
     Personnage sansSkill({100.0f, 100.0f},
-                         {.couleur = sf::Color::White,
-                          .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 20.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                          .rayonVision = s_rayonVisionDeTest});
+                         definitionArmee(IdObjet::Sceptre));
 
     REQUIRE(provocateur.zoneDuSkill(IdSkill::Provocation).centre == provocateur.getCentre());
     REQUIRE(provocateur.zoneDuSkill(IdSkill::Provocation).rayon == 150.0f);
@@ -315,21 +343,18 @@ TEST_CASE("zoneDuSkill est centree sur le personnage, au rayon de zone du skill"
 TEST_CASE("engagerSkill refuse un personnage sans skill, sans toucher a l'attaque de base") {
     Generateur generateur = generateurDeTest();
     Personnage personnage({100.0f, 100.0f},
-                          {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                           .rayonVision = s_rayonVisionDeTest});
+                          definitionArmee(IdObjet::Sceptre));
     const Cercle cible = pointCible({150.0f, 100.0f});
 
     REQUIRE_FALSE(personnage.engagerSkill(IdSkill::FrappePuissante, Cible(CibleMonstre{1, cible})));
-    REQUIRE(frapperEnEntier(personnage, cible, generateur) == 5);
+    REQUIRE(frapperEnEntier(personnage, cible, generateur) == s_degatsBaseDeTest);
 }
 
 TEST_CASE("engagerSkill refuse un personnage mort") {
     Personnage personnage({100.0f, 100.0f},
                           {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
                            .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
-                           .rayonVision = s_rayonVisionDeTest});
+                           .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeTest});
 
     subir(personnage, personnage.getPointsDeVieMax());
 
@@ -340,22 +365,20 @@ TEST_CASE("skillEstAPortee mesure la portee du skill, sans toucher a l'attaque d
     Generateur generateur = generateurDeTest();
     Personnage personnage({100.0f, 100.0f},
                           {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
                            .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
-                           .rayonVision = s_rayonVisionDeTest});
+                           .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeTest});
 
     REQUIRE(personnage.skillEstAPortee(IdSkill::FrappePuissante, pointCible({150.0f, 100.0f})));
     REQUIRE_FALSE(personnage.skillEstAPortee(IdSkill::FrappePuissante, pointCible({300.0f, 100.0f})));
-    REQUIRE(frapperEnEntier(personnage, pointCible({150.0f, 100.0f}), generateur) == 5);
+    REQUIRE(frapperEnEntier(personnage, pointCible({150.0f, 100.0f}), generateur) == s_degatsBaseDeTest);
 }
 
 TEST_CASE("Un skill ne peut pas etre relance pendant sa recharge, puis le peut une fois ecoulee") {
     Generateur generateur = generateurDeTest();
     Personnage personnage({100.0f, 100.0f},
                           {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
                            .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
-                           .rayonVision = s_rayonVisionDeTest});
+                           .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeTest});
     const TileMap carte = carteDegagee5x5();
     const Cible cible = CibleMonstre{1, pointCible({150.0f, 100.0f})};
 
@@ -371,9 +394,8 @@ TEST_CASE("Apres un skill reussi, l'attaque de base attend une recharge complete
     Generateur generateur = generateurDeTest();
     Personnage personnage({100.0f, 100.0f},
                           {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
                            .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
-                           .rayonVision = s_rayonVisionDeTest});
+                           .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeTest});
     const TileMap carte = carteDegagee5x5();
     const Cercle cible = pointCible({150.0f, 100.0f});
 
@@ -381,21 +403,19 @@ TEST_CASE("Apres un skill reussi, l'attaque de base attend une recharge complete
     // 0,2 s de recharge. Le skill la relance au complet (0,5 s) : 0,3 s
     // plus tard, elle ne doit toujours pas partir, alors qu'elle l'aurait
     // fait sans le skill.
-    REQUIRE(frapperEnEntier(personnage, cible, generateur) == 5);
+    REQUIRE(frapperEnEntier(personnage, cible, generateur) == s_degatsBaseDeTest);
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.3f);
     REQUIRE(lancerSkillEnEntier(personnage, Cible(CibleMonstre{1, cible}), generateur) == 25);
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.3f);
     REQUIRE(frapperEnEntier(personnage, cible, generateur) == 0);
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.3f);
-    REQUIRE(frapperEnEntier(personnage, cible, generateur) == 5);
+    REQUIRE(frapperEnEntier(personnage, cible, generateur) == s_degatsBaseDeTest);
 }
 
 TEST_CASE("mettreAJour s'arrete avant d'entrer dans un obstacle") {
     const TileMap carte = carteDegagee5x5();
     Personnage personnage({100.0f, 100.0f},
-                          {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                           .rayonVision = s_rayonVisionDeTest});
+                          definitionArmee(IdObjet::Sceptre));
     const std::vector<Cercle> obstacles = {{{140.0f, 100.0f}, 15.0f}};
 
     for (int i = 0; i < 60; ++i) {
@@ -412,9 +432,7 @@ TEST_CASE("mettreAJour s'arrete avant d'entrer dans un obstacle") {
 
 TEST_CASE("recevoirSoin rend des points de vie") {
     Personnage personnage({100.0f, 100.0f},
-                          {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                           .rayonVision = s_rayonVisionDeTest});
+                          definitionArmee(IdObjet::Sceptre));
     subir(personnage, 50);
 
     personnage.recevoirSoin(30);
@@ -425,12 +443,9 @@ TEST_CASE("recevoirSoin rend des points de vie") {
 TEST_CASE("recevoirDegats applique l'armure du personnage") {
     Personnage melee({100.0f, 100.0f},
                      {.couleur = sf::Color::White,
-                      .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
                       .equipementDeDepart = s_equipementMeleeDeTest, .rayonVision = s_rayonVisionDeTest});
     Personnage tireur({100.0f, 100.0f},
-                      {.couleur = sf::Color::White,
-                       .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                       .rayonVision = s_rayonVisionDeTest});
+                      definitionArmee(IdObjet::Sceptre));
 
     subir(melee, 10);
     subir(tireur, 10);
@@ -443,7 +458,6 @@ TEST_CASE("recevoirDegats applique l'armure du personnage") {
 TEST_CASE("recevoirSoin n'est pas reduit par l'armure") {
     Personnage personnage({100.0f, 100.0f},
                           {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
                            .equipementDeDepart = s_equipementMeleeDeTest, .rayonVision = s_rayonVisionDeTest});
     subir(personnage, 60);
     const int retires = personnage.getPointsDeVieMax() - personnage.getPointsDeVie();
@@ -456,9 +470,7 @@ TEST_CASE("recevoirSoin n'est pas reduit par l'armure") {
 
 TEST_CASE("recevoirSoin ne depasse pas le maximum") {
     Personnage personnage({100.0f, 100.0f},
-                          {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                           .rayonVision = s_rayonVisionDeTest});
+                          definitionArmee(IdObjet::Sceptre));
     subir(personnage, 10);
 
     personnage.recevoirSoin(30);
@@ -468,9 +480,7 @@ TEST_CASE("recevoirSoin ne depasse pas le maximum") {
 
 TEST_CASE("recevoirSoin est sans effet sur un mort") {
     Personnage personnage({100.0f, 100.0f},
-                          {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                           .rayonVision = s_rayonVisionDeTest});
+                          definitionArmee(IdObjet::Sceptre));
     subir(personnage, personnage.getPointsDeVieMax());
 
     personnage.recevoirSoin(30);
@@ -482,9 +492,7 @@ TEST_CASE("recevoirSoin est sans effet sur un mort") {
 TEST_CASE("En terrain degage, le personnage avance en ligne droite de vitesse * dt") {
     const TileMap carte = carteDegagee5x5();
     Personnage personnage({60.0f, 60.0f},
-                          {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                           .rayonVision = s_rayonVisionDeTest});
+                          definitionArmee(IdObjet::Sceptre));
 
     // La vitesse n'est pas injectable : le premier tic la mesure (vitesse * dt), les suivants
     // doivent avancer d'autant, sans dévier (la cible est à 120 px, hors d'atteinte en 10 tics).
@@ -507,9 +515,7 @@ TEST_CASE("Un personnage separe de sa cible par un mur avec une ouverture finit 
                          "#######"},
                         40.0f);
     Personnage personnage({60.0f, 60.0f},
-                          {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                           .rayonVision = s_rayonVisionDeTest});
+                          definitionArmee(IdObjet::Sceptre));
     const sf::Vector2f cible{220.0f, 60.0f};
 
     ecoulerTemps(personnage, carte, cible, 5.0f);
@@ -524,9 +530,7 @@ TEST_CASE("Sans aucun chemin possible, le personnage ne plante pas et reste bloq
                          "#####"},
                         40.0f);
     Personnage personnage({60.0f, 60.0f},
-                          {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                           .rayonVision = s_rayonVisionDeTest});
+                          definitionArmee(IdObjet::Sceptre));
 
     ecoulerTemps(personnage, carte, {140.0f, 60.0f}, 2.0f);
 
@@ -549,9 +553,7 @@ TileMap deuxPiecesAvecPorte() {
 TEST_CASE("Une cible qui bouge de moins d'une case ne fait pas recalculer le chemin") {
     const TileMap carte = deuxPiecesAvecPorte();
     Personnage personnage({60.0f, 60.0f},
-                          {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                           .rayonVision = s_rayonVisionDeTest});
+                          definitionArmee(IdObjet::Sceptre));
 
     ecoulerTemps(personnage, carte, {220.0f, 60.0f}, 0.2f);
     // Nouvelle cible à 30 px de la précédente, mais dans le mur de droite :
@@ -565,9 +567,7 @@ TEST_CASE("Une cible qui bouge de moins d'une case ne fait pas recalculer le che
 TEST_CASE("Une cible qui bouge de plus d'une case fait recalculer le chemin") {
     const TileMap carte = deuxPiecesAvecPorte();
     Personnage personnage({60.0f, 60.0f},
-                          {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                           .rayonVision = s_rayonVisionDeTest});
+                          definitionArmee(IdObjet::Sceptre));
 
     ecoulerTemps(personnage, carte, {220.0f, 60.0f}, 0.2f);
     // Nouvelle cible à 50 px, dans le mur : le chemin est recalculé, le A*
@@ -580,9 +580,7 @@ TEST_CASE("Une cible qui bouge de plus d'une case fait recalculer le chemin") {
 TEST_CASE("Quand le trajet direct redevient libre, le chemin en cours est abandonne") {
     const TileMap carte = deuxPiecesAvecPorte();
     Personnage personnage({60.0f, 60.0f},
-                          {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                           .rayonVision = s_rayonVisionDeTest});
+                          definitionArmee(IdObjet::Sceptre));
 
     ecoulerTemps(personnage, carte, {220.0f, 60.0f}, 0.2f);
     ecoulerTemps(personnage, carte, {60.0f, 100.0f}, 1.0f);
@@ -599,9 +597,8 @@ namespace {
 Personnage personnageAvecExecution() {
     return Personnage({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
-                       .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .tempsExecution = 0.15f, .nature = NatureDAttaque::Contact}),
                        .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
-                       .rayonVision = s_rayonVisionDeTest});
+                       .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeTest});
 }
 
 }  // namespace
@@ -646,7 +643,7 @@ TEST_CASE("avancerAttaque rend les degats une seule fois, a la fin de l'executio
     for (int i = 0; i < nombreDeTics(0.2f); ++i) {
         total += montantOuZero(personnage.avancerAttaque(s_dureeTic, generateur));
     }
-    REQUIRE(total == 5);
+    REQUIRE(total == s_degatsBaseDeTest);
     REQUIRE_FALSE(personnage.cibleEngagee().has_value());
 }
 
@@ -654,16 +651,15 @@ TEST_CASE("l'attaque de base d'un personnage porte sa capacite offensive") {
     Generateur generateur = generateurDeTest();
     Personnage rodeur({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
-                       .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                       .rayonVision = s_rayonVisionDeTest,
+                       .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest,
                        .caracteristiques = Caracteristiques({10, 10, 14, 8, 8})});
     REQUIRE(rodeur.getAttaqueDeBase().capaciteOffensive == 120);
     REQUIRE(rodeur.engagerAttaque(1));
 
-    const std::optional<Attaque> attaque = rodeur.avancerAttaque(0.1f, generateur);
+    const std::optional<Attaque> attaque = rodeur.avancerAttaque(s_executionBaseDeTest, generateur);
 
     REQUIRE(attaque.has_value());
-    REQUIRE(attaque->montant == 5);
+    REQUIRE(attaque->montant == s_degatsBaseDeTest);
     REQUIRE(attaque->capaciteOffensive == 120);
 }
 
@@ -671,14 +667,12 @@ TEST_CASE("l'attaque d'un personnage porte la nature de son attaque de base, cel
     Generateur generateur = generateurDeTest();
     Personnage tireur({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
-                       .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f,
-                                               .rechargeMax = 0.5f, .nature = NatureDAttaque::Projectile}),
                        .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = 20.0f, .puissance = 7,
                                                                     .rechargeMin = 1.0f, .rechargeMax = 1.0f, .nature = NatureDAttaque::Contact})}},
-                       .rayonVision = s_rayonVisionDeTest});
+                       .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeTest});
     REQUIRE(tireur.getAttaqueDeBase().nature == NatureDAttaque::Projectile);
     REQUIRE(tireur.engagerAttaque(1));
-    REQUIRE(tireur.avancerAttaque(0.1f, generateur)->nature == NatureDAttaque::Projectile);
+    REQUIRE(tireur.avancerAttaque(s_executionBaseDeTest, generateur)->nature == NatureDAttaque::Projectile);
 
     REQUIRE(tireur.engagerSkill(IdSkill::FrappePuissante, CibleMonstre{1, Cercle{}}));
     REQUIRE(tireur.avancerSkill(0.1f, generateur)->nature == NatureDAttaque::Contact);
@@ -701,7 +695,7 @@ TEST_CASE("Apres le depart du coup, la recharge court avant le coup suivant") {
     const TileMap carte = carteDegagee5x5();
     Personnage personnage = personnageAvecExecution();
     REQUIRE(personnage.engagerAttaque(1));
-    REQUIRE(montantOuZero(personnage.avancerAttaque(0.2f, generateur)) == 5);
+    REQUIRE(montantOuZero(personnage.avancerAttaque(0.2f, generateur)) == s_degatsBaseDeTest);
 
     REQUIRE_FALSE(personnage.engagerAttaque(1));
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.4f);
@@ -726,9 +720,8 @@ namespace {
 Personnage personnageAvecActivation() {
     return Personnage({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
-                       .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .tempsExecution = 0.15f, .nature = NatureDAttaque::Contact}),
                        .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .tempsExecution = 0.3f, .nature = NatureDAttaque::Contact})}},
-                       .rayonVision = s_rayonVisionDeTest});
+                       .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeTest});
 }
 
 const Cible s_cibleDuSkill = CibleMonstre{1, {{150.0f, 100.0f}, 0.0f}};
@@ -818,9 +811,7 @@ TEST_CASE("Au depart du skill, l'attaque de base repart pour une recharge comple
 TEST_CASE("mettreAJour garde la ligne droite en terrain degage meme avec un obstacle a contourner loin du trajet") {
     const TileMap carte = carteDegagee10x10();
     Personnage personnage({60.0f, 60.0f},
-                          {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                           .rayonVision = s_rayonVisionDeTest});
+                          definitionArmee(IdObjet::Sceptre));
     const std::vector<Cercle> loin = {{{180.0f, 200.0f}, 15.0f}};
 
     personnage.mettreAJour(s_dureeTic, {300.0f, 60.0f}, carte, loin, loin);
@@ -831,9 +822,7 @@ TEST_CASE("mettreAJour garde la ligne droite en terrain degage meme avec un obst
 TEST_CASE("mettreAJour contourne un obstacle a contourner place sur la ligne droite") {
     const TileMap carte = carteDegagee10x10();
     Personnage personnage({60.0f, 60.0f},
-                          {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                           .rayonVision = s_rayonVisionDeTest});
+                          definitionArmee(IdObjet::Sceptre));
     const std::vector<Cercle> obstacle = {{{180.0f, 60.0f}, 15.0f}};
 
     for (int i = 0; i < nombreDeTics(5.0f); ++i) {
@@ -851,9 +840,7 @@ TEST_CASE("mettreAJour recalcule son chemin quand il est bloque") {
     const TileMap carte({".....#....", ".....#....", "..........", ".....#....", ".....#....",
                          ".....#....", ".....#....", ".....#....", "..........", ".....#...."}, 40.0f);
     Personnage personnage({60.0f, 200.0f},
-                          {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                           .rayonVision = s_rayonVisionDeTest});
+                          definitionArmee(IdObjet::Sceptre));
     const sf::Vector2f cible{340.0f, 100.0f};
     // Un obstacle qui bouche l'ouverture de la ligne 2, que le premier chemin ignore (aContourner vide au départ).
     const std::vector<Cercle> bouchon = {{{220.0f, 100.0f}, 15.0f}};
@@ -873,9 +860,7 @@ TEST_CASE("mettreAJour recalcule son chemin quand il est bloque") {
 TEST_CASE("mettreAJour sans obstacle a contourner reste bloque contre un obstacle bloquant") {
     const TileMap carte = carteDegagee10x10();
     Personnage personnage({60.0f, 60.0f},
-                          {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                           .rayonVision = s_rayonVisionDeTest});
+                          definitionArmee(IdObjet::Sceptre));
     const std::vector<Cercle> obstacle = {{{180.0f, 60.0f}, 15.0f}};
 
     for (int i = 0; i < nombreDeTics(5.0f); ++i) {
@@ -893,9 +878,8 @@ namespace {
 Personnage personnageAvecDeuxSkills() {
     return Personnage({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
-                       .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
                        .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .tempsExecution = 0.3f, .nature = NatureDAttaque::Contact})}, {IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .portee = 0.0f, .puissance = 4, .rechargeMin = 10.0f, .rechargeMax = 10.0f, .rayonZone = 150.0f, .tempsExecution = 0.2f, .nature = NatureDAttaque::Contact})}},
-                       .rayonVision = s_rayonVisionDeTest});
+                       .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeTest});
 }
 
 }  // namespace
@@ -971,12 +955,9 @@ TEST_CASE("annulerSkill annule le skill engage sans consommer sa recharge, l'aut
 TEST_CASE("recevoirDegats renvoie les degats subis apres armure") {
     Personnage melee({100.0f, 100.0f},
                      {.couleur = sf::Color::White,
-                      .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
                       .equipementDeDepart = s_equipementMeleeDeTest, .rayonVision = s_rayonVisionDeTest});
     Personnage tireur({100.0f, 100.0f},
-                      {.couleur = sf::Color::White,
-                       .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                       .rayonVision = s_rayonVisionDeTest});
+                      definitionArmee(IdObjet::Sceptre));
 
     REQUIRE(subir(melee, 10) == appliquerArmure(10, s_armureMeleeDeTest));
     REQUIRE(subir(tireur, 10) == 10);
@@ -984,9 +965,7 @@ TEST_CASE("recevoirDegats renvoie les degats subis apres armure") {
 
 TEST_CASE("recevoirDegats sur un mort renvoie zero") {
     Personnage personnage({100.0f, 100.0f},
-                          {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                           .rayonVision = s_rayonVisionDeTest});
+                          definitionArmee(IdObjet::Sceptre));
     subir(personnage, personnage.getPointsDeVieMax());
 
     REQUIRE(subir(personnage, 10) == 0);
@@ -994,9 +973,7 @@ TEST_CASE("recevoirDegats sur un mort renvoie zero") {
 
 TEST_CASE("recevoirSoin renvoie les points reellement rendus") {
     Personnage personnage({100.0f, 100.0f},
-                          {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                           .rayonVision = s_rayonVisionDeTest});
+                          definitionArmee(IdObjet::Sceptre));
     subir(personnage, 10);
 
     REQUIRE(personnage.recevoirSoin(30) == 10);  // plafonne au maximum
@@ -1005,9 +982,7 @@ TEST_CASE("recevoirSoin renvoie les points reellement rendus") {
 
 TEST_CASE("recevoirSoin sur un mort renvoie zero") {
     Personnage personnage({100.0f, 100.0f},
-                          {.couleur = sf::Color::White,
-                           .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                           .rayonVision = s_rayonVisionDeTest});
+                          definitionArmee(IdObjet::Sceptre));
     subir(personnage, personnage.getPointsDeVieMax());
 
     REQUIRE(personnage.recevoirSoin(30) == 0);
@@ -1017,12 +992,9 @@ TEST_CASE("l'armure du personnage est celle de son equipement de depart") {
     const std::vector<ObjetDeDepart> casqueSeul = {{Emplacement::Tete, IdObjet::CasqueDeFer}};
     Personnage casque({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
-                       .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
                        .equipementDeDepart = casqueSeul, .rayonVision = s_rayonVisionDeTest});
     Personnage nu({100.0f, 100.0f},
-                  {.couleur = sf::Color::White,
-                   .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                   .rayonVision = s_rayonVisionDeTest});
+                  definitionArmee(IdObjet::Sceptre));
 
     REQUIRE(subir(casque, 40) == appliquerArmure(40, definitionObjet(IdObjet::CasqueDeFer).armure));
     REQUIRE(subir(nu, 40) == 40);
@@ -1033,7 +1005,6 @@ TEST_CASE("l'armure du personnage additionne tous les objets de depart") {
                                                {Emplacement::Torse, IdObjet::CuirasseDeMailles}};
     Personnage equipe({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
-                       .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
                        .equipementDeDepart = depart, .rayonVision = s_rayonVisionDeTest});
 
     REQUIRE(subir(equipe, 40) == appliquerArmure(40, armureDe(depart)));
@@ -1043,8 +1014,7 @@ TEST_CASE("les caracteristiques effectives d'un personnage sont celles de sa def
     const Caracteristiques base({12, 14, 10, 6, 8});
     const Personnage personnage({100.0f, 100.0f},
                                 {.couleur = sf::Color::White,
-                                 .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                                 .rayonVision = s_rayonVisionDeTest,
+                                 .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest,
                                  .caracteristiques = base});
 
     REQUIRE(personnage.getCaracteristiques() == base);
@@ -1053,8 +1023,7 @@ TEST_CASE("les caracteristiques effectives d'un personnage sont celles de sa def
 TEST_CASE("les statistiques de combat d'un personnage viennent de son Adresse") {
     const Personnage rodeur({100.0f, 100.0f},
                             {.couleur = sf::Color::White,
-                             .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                             .rayonVision = s_rayonVisionDeTest,
+                             .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest,
                              .caracteristiques = Caracteristiques({10, 10, 14, 8, 8})});
 
     REQUIRE(rodeur.getStatistiques() == statistiquesDuPersonnage(rodeur.getCaracteristiques(), StatistiquesDeCombat()));
@@ -1066,8 +1035,7 @@ namespace {
 Personnage unPersonnageSansEsquive() {
     return Personnage({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
-                       .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                       .rayonVision = s_rayonVisionDeTest,
+                       .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest,
                        .caracteristiques = Caracteristiques({10, 10, 10, 10, 10})});
 }
 }  // namespace
@@ -1092,7 +1060,6 @@ TEST_CASE("l'esquive d'un personnage vient de son equipement, recalculee a chaqu
 TEST_CASE("un equipement de depart qui donne de l'esquive compte des la construction") {
     const Personnage personnage({100.0f, 100.0f},
                                 {.couleur = sf::Color::White,
-                                 .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
                                  .equipementDeDepart = {{Emplacement::Bottes, IdObjet::BottesDeCuir}},
                                  .rayonVision = s_rayonVisionDeTest});
 
@@ -1113,46 +1080,56 @@ TEST_CASE("le bouclier rond donne au personnage sa chance de blocage, son montan
 }
 
 TEST_CASE("un personnage au bouclier : apres un blocage, plus aucun pendant 3 s, puis de nouveau") {
-    Personnage personnage = unPersonnageSansEsquive();
+    // Endurance énorme : il encaisse les centaines de coups de 1 point sans mourir.
+    Personnage personnage({100.0f, 100.0f}, avecEnduranceEnorme(definitionArmee()));
     static_cast<void>(personnage.poserEquipement(Emplacement::MainGauche, {IdObjet::BouclierRond}));
     const TileMap carte = carteDegagee5x5();
-    const Attaque attaque{.montant = 10, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
-    const float chance = chanceDeBlocage(NatureDAttaque::Contact, personnage.getStatistiques(), true);
-    // Le seul tirage d'un coup est celui du blocage (ni esquive ni critique) ; un nouveau générateur par blocage voulu.
-    Generateur quiBloque = generateurQuiTireSous(chance);
+    Generateur generateur = generateurDeTest();
+    const Attaque attaque{.montant = 1, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
+    // À 30 % par coup, la chance de ne voir aucun blocage sur 200 coups est de l'ordre de 10^-31.
+    const auto jusquAuBlocage = [&] {
+        bool bloque = false;
+        for (int i = 0; i < 200 && !bloque; ++i) {
+            bloque = personnage.recevoirDegats(attaque, generateur).bloque > 0;
+        }
+        return bloque;
+    };
 
-    REQUIRE(personnage.recevoirDegats(attaque, quiBloque).bloque > 0);
+    REQUIRE(jusquAuBlocage());
 
-    // Récupération : aucun blocage, même sous la chance, tant que le temps ne passe pas (et aucun tirage : sans chance).
-    for (int i = 0; i < 10; ++i) {  // dix coups de 10 : le personnage survit
-        Generateur quiBloqueEncore = generateurQuiTireSous(chance);
-        REQUIRE(personnage.recevoirDegats(attaque, quiBloqueEncore).bloque == 0);
+    // Récupération : aucun blocage sur 100 coups, tant que le temps ne passe pas.
+    for (int i = 0; i < 100; ++i) {
+        REQUIRE(personnage.recevoirDegats(attaque, generateur).bloque == 0);
     }
 
     // Après 3 s (mettreAJour du personnage), le bouclier bloque de nouveau.
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 3.1f);
-    Generateur quiBloqueApres = generateurQuiTireSous(chance);
-    REQUIRE(personnage.recevoirDegats(attaque, quiBloqueApres).bloque > 0);
+    REQUIRE(jusquAuBlocage());
 }
 
 TEST_CASE("un personnage qui esquive ne perd aucun point de vie") {
-    Personnage personnage = unPersonnageSansEsquive();
+    Personnage personnage({100.0f, 100.0f}, avecEnduranceEnorme(definitionArmee()));
     static_cast<void>(personnage.poserEquipement(Emplacement::Bottes, {IdObjet::BottesDeCuir}));
+    Generateur generateur = generateurDeTest();
     const Attaque attaque{.montant = 10, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
-    // Le seul tirage du coup est celui de l'esquive (pas de critique ni de bouclier), choisi sous sa chance.
-    Generateur generateur = generateurQuiTireSous(chanceDEsquive(NatureDAttaque::Contact, personnage.getStatistiques()));
-    const int avant = personnage.getPointsDeVie();
+    int esquives = 0;
 
-    REQUIRE(personnage.recevoirDegats(attaque, generateur).esquive);
-    REQUIRE(personnage.getPointsDeVie() == avant);
+    // À 5 % par coup, la chance de n'en voir aucune sur 1 000 coups est de l'ordre de 10^-23.
+    for (int i = 0; i < 1000; ++i) {
+        const int avant = personnage.getPointsDeVie();
+        if (personnage.recevoirDegats(attaque, generateur).esquive) {
+            ++esquives;
+            REQUIRE(personnage.getPointsDeVie() == avant);
+        }
+    }
+    REQUIRE(esquives > 0);
 }
 
 TEST_CASE("les points de vie maximum d'un personnage viennent de la base commune et de son Endurance") {
     const Caracteristiques base({12, 14, 10, 6, 8});
     const Personnage personnage({100.0f, 100.0f},
                                 {.couleur = sf::Color::White,
-                                 .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                                 .rayonVision = s_rayonVisionDeTest,
+                                 .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest,
                                  .caracteristiques = base});
 
     REQUIRE(personnage.getPointsDeVieMax() == pointsDeVieMax(base));
@@ -1163,8 +1140,7 @@ namespace {
 Personnage unPersonnageAvecCaracteristiques(const Caracteristiques& base) {
     return Personnage({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
-                       .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                       .rayonVision = s_rayonVisionDeTest,
+                       .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest,
                        .caracteristiques = base});
 }
 }  // namespace
@@ -1189,7 +1165,6 @@ TEST_CASE("un equipement de depart qui donne des caracteristiques compte des la 
     const Caracteristiques base({12, 14, 10, 6, 8});
     const Personnage personnage({100.0f, 100.0f},
                                 {.couleur = sf::Color::White,
-                                 .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
                                  .equipementDeDepart = {{Emplacement::Collier, IdObjet::CollierDEndurance}},
                                  .rayonVision = s_rayonVisionDeTest,
                                  .caracteristiques = base});
@@ -1240,10 +1215,9 @@ Personnage unPersonnageDePuissance(const Caracteristiques& base) {
     const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
     return Personnage({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
-                       .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 100, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .coefficients = puissance, .nature = NatureDAttaque::Contact}),
                        .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::Degats, .portee = 80.0f, .puissance = 250, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .coefficients = puissance, .nature = NatureDAttaque::Contact})},
                                   {IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .portee = 0.0f, .puissance = 4, .rechargeMin = 10.0f, .rechargeMax = 10.0f, .rayonZone = 150.0f, .nature = NatureDAttaque::Contact})}},
-                       .rayonVision = s_rayonVisionDeTest,
+                       .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest,
                        .caracteristiques = base});
 }
 }  // namespace
@@ -1251,13 +1225,13 @@ Personnage unPersonnageDePuissance(const Caracteristiques& base) {
 TEST_CASE("equiper l'anneau de puissance augmente les degats de l'attaque de base") {
     Personnage personnage = unPersonnageDePuissance(Caracteristiques({12, 10, 10, 10, 10}));
     const int avant = personnage.getAttaqueDeBase().montant;
-    REQUIRE(avant == montantEffectif(100, Coefficients::seul(Caracteristique::Puissance, 1.0f), personnage.getCaracteristiques()));
+    REQUIRE(avant == montantEffectif(s_degatsBaseDeTest, Coefficients::seul(Caracteristique::Puissance, 1.0f), personnage.getCaracteristiques()));
 
     static_cast<void>(personnage.poserEquipement(Emplacement::Anneau1, {IdObjet::AnneauDePuissance}));
 
     REQUIRE(personnage.getAttaqueDeBase().montant > avant);
     REQUIRE(personnage.getAttaqueDeBase().montant ==
-            montantEffectif(100, Coefficients::seul(Caracteristique::Puissance, 1.0f), personnage.getCaracteristiques()));
+            montantEffectif(s_degatsBaseDeTest, Coefficients::seul(Caracteristique::Puissance, 1.0f), personnage.getCaracteristiques()));
 
     static_cast<void>(personnage.retirerEquipement(Emplacement::Anneau1));
     REQUIRE(personnage.getAttaqueDeBase().montant == avant);
@@ -1269,7 +1243,7 @@ TEST_CASE("le coup de l'attaque de base et le skill de degats rendent le montant
     const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
     const Cercle cible{{120.0f, 100.0f}, 10.0f};
 
-    REQUIRE(frapperEnEntier(personnage, cible, generateur) == montantEffectif(100, puissance, personnage.getCaracteristiques()));
+    REQUIRE(frapperEnEntier(personnage, cible, generateur) == montantEffectif(s_degatsBaseDeTest, puissance, personnage.getCaracteristiques()));
     REQUIRE(personnage.engagerSkill(IdSkill::FrappePuissante, CibleMonstre{1, cible}));
     int rendu = 0;
     for (int i = 0; i < nombreDeTics(1.0f) && rendu == 0; ++i) {

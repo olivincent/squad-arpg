@@ -1,19 +1,47 @@
 // ./tests/escouade/test_Specialite.cpp
 #include <catch2/catch_test_macros.hpp>
+#include <cassert>
 #include <cstddef>
+#include <optional>
 #include <vector>
 
 #include "interface/BarreDeRaccourcis.hpp"
 #include "aides.hpp"
 #include "aides_escouade.hpp"
-#include "combat/Blocage.hpp"
 #include "combat/Caracteristiques.hpp"
 #include "combat/Defense.hpp"
 #include "escouade/Composition.hpp"
 #include "objets/CatalogueObjets.hpp"
 #include "base/Eclaircir.hpp"
 #include "escouade/Escouade.hpp"
+#include "escouade/Personnage.hpp"
+#include "objets/Emplacement.hpp"
+#include "objets/Objet.hpp"
 #include "escouade/Specialite.hpp"
+
+namespace {
+// Un personnage construit depuis la définition de la classe (son attaque de base et sa zone de contrôle en viennent).
+Personnage deLaClasse(IdSpecialite id) {
+    return Personnage({0.0f, 0.0f}, specialite(id).definition);
+}
+
+// Ce que la définition fait porter à cet emplacement, s'il y en a un.
+std::optional<IdObjet> portePar(const DefinitionPersonnage& definition, Emplacement emplacement) {
+    for (const ObjetDeDepart& objet : definition.equipementDeDepart) {
+        if (objet.emplacement == emplacement) {
+            return objet.objet;
+        }
+    }
+    return std::nullopt;
+}
+
+// L'arme de main droite d'une définition (`assert` : elle en porte une).
+IdObjet armeDe(const DefinitionPersonnage& definition) {
+    const std::optional<IdObjet> arme = portePar(definition, Emplacement::MainDroite);
+    assert(arme.has_value());
+    return arme.value();
+}
+}  // namespace
 
 TEST_CASE("catalogue : les specialites suivent l'ordre de IdSpecialite") {
     const std::vector<Specialite>& specialites = catalogue();
@@ -109,8 +137,10 @@ TEST_CASE("le paladin est une melee qui frappe et soigne au contact") {
 
     REQUIRE(specialite(IdSpecialite::Paladin).nom == "Paladin");
     REQUIRE(paladin.rang == Rang::Avant);
-    REQUIRE(paladin.equipementDeDepart == guerrier.equipementDeDepart);
-    REQUIRE(paladin.attaqueDeBase.getPortee() == guerrier.attaqueDeBase.getPortee());
+    // La même armure et le même bouclier que le guerrier, mais la masse à la place de l'épée longue.
+    REQUIRE(armureDe(paladin.equipementDeDepart) == armureDe(guerrier.equipementDeDepart));
+    REQUIRE(armeDe(paladin) == IdObjet::Masse);
+    REQUIRE(deLaClasse(IdSpecialite::Paladin).getPorteeAttaqueDeBase() == deLaClasse(IdSpecialite::Guerrier).getPorteeAttaqueDeBase());
     REQUIRE(paladin.skills.size() == 2);
 
     REQUIRE(paladin.skills[0].id == IdSkill::FrappeSacree);
@@ -126,12 +156,11 @@ TEST_CASE("le paladin est une melee qui frappe et soigne au contact") {
 
 TEST_CASE("le rodeur est un tireur avec un tir de loin et un skill de zone") {
     const DefinitionPersonnage& rodeur = specialite(IdSpecialite::Rodeur).definition;
-    const DefinitionPersonnage& mage = specialite(IdSpecialite::Mage).definition;
 
     REQUIRE(specialite(IdSpecialite::Rodeur).nom == "Rôdeur");
     REQUIRE(rodeur.rang == Rang::Arriere);
-    REQUIRE(rodeur.equipementDeDepart.empty());
-    REQUIRE(rodeur.attaqueDeBase.getPortee() == mage.attaqueDeBase.getPortee());
+    REQUIRE(rodeur.equipementDeDepart == std::vector<ObjetDeDepart>{{Emplacement::MainDroite, IdObjet::Arc}});
+    REQUIRE(deLaClasse(IdSpecialite::Rodeur).getPorteeAttaqueDeBase() == deLaClasse(IdSpecialite::Mage).getPorteeAttaqueDeBase());
     REQUIRE(rodeur.skills.size() == 2);
 
     REQUIRE(rodeur.skills[0].id == IdSkill::TirPercant);
@@ -187,7 +216,7 @@ TEST_CASE("une escouade de paladin, de rodeur et de guerrier connait les skills 
 }
 
 TEST_CASE("nature des attaques : contact pour les melees, projectile pour les tireurs, zone pour les zones") {
-    const auto nature = [](IdSpecialite id) { return specialite(id).definition.attaqueDeBase.getNature(); };
+    const auto nature = [](IdSpecialite id) { return deLaClasse(id).getAttaqueDeBase().nature; };
 
     REQUIRE(nature(IdSpecialite::Guerrier) == NatureDAttaque::Contact);
     REQUIRE(nature(IdSpecialite::Paladin) == NatureDAttaque::Contact);
@@ -203,29 +232,51 @@ TEST_CASE("nature des attaques : contact pour les melees, projectile pour les ti
     REQUIRE(natureDuSkill(IdSpecialite::Rodeur, 1) == NatureDAttaque::Zone);        // pluie de fleches
 }
 
-TEST_CASE("zone de controle : 20 px pour le guerrier et le paladin, 0 pour les trois autres") {
-    REQUIRE(specialite(IdSpecialite::Guerrier).definition.zoneDeControle == 20.0f);
-    REQUIRE(specialite(IdSpecialite::Paladin).definition.zoneDeControle == 20.0f);
-    REQUIRE(specialite(IdSpecialite::Pretre).definition.zoneDeControle == 0.0f);
-    REQUIRE(specialite(IdSpecialite::Mage).definition.zoneDeControle == 0.0f);
-    REQUIRE(specialite(IdSpecialite::Rodeur).definition.zoneDeControle == 0.0f);
+TEST_CASE("zone de controle : 20 px pour le guerrier et le paladin (arme de contact), 0 pour les trois autres") {
+    REQUIRE(deLaClasse(IdSpecialite::Guerrier).getZoneDeControle() == 20.0f);
+    REQUIRE(deLaClasse(IdSpecialite::Paladin).getZoneDeControle() == 20.0f);
+    REQUIRE(deLaClasse(IdSpecialite::Pretre).getZoneDeControle() == 0.0f);
+    REQUIRE(deLaClasse(IdSpecialite::Mage).getZoneDeControle() == 0.0f);
+    REQUIRE(deLaClasse(IdSpecialite::Rodeur).getZoneDeControle() == 0.0f);
 }
 
-TEST_CASE("composer garde la zone de controle de la classe, quelle que soit la nuance") {
+TEST_CASE("composer garde l'arme, donc la zone de controle, de la classe, quelle que soit la nuance") {
     const std::vector<DefinitionPersonnage> composition =
         composer({IdSpecialite::Paladin, IdSpecialite::Paladin, IdSpecialite::Mage});
 
-    REQUIRE(composition[0].zoneDeControle == 20.0f);
-    REQUIRE(composition[1].zoneDeControle == 20.0f);
-    REQUIRE(composition[2].zoneDeControle == 0.0f);
+    REQUIRE(Personnage({0.0f, 0.0f}, composition[0]).getZoneDeControle() == 20.0f);
+    REQUIRE(Personnage({0.0f, 0.0f}, composition[1]).getZoneDeControle() == 20.0f);
+    REQUIRE(Personnage({0.0f, 0.0f}, composition[2]).getZoneDeControle() == 0.0f);
 }
 
-TEST_CASE("equipement de depart : les melees sont equipees, les tireurs non") {
-    REQUIRE_FALSE(specialite(IdSpecialite::Guerrier).definition.equipementDeDepart.empty());
-    REQUIRE_FALSE(specialite(IdSpecialite::Paladin).definition.equipementDeDepart.empty());
-    REQUIRE(specialite(IdSpecialite::Pretre).definition.equipementDeDepart.empty());
-    REQUIRE(specialite(IdSpecialite::Mage).definition.equipementDeDepart.empty());
-    REQUIRE(specialite(IdSpecialite::Rodeur).definition.equipementDeDepart.empty());
+TEST_CASE("equipement de depart : les melees portent armure, bouclier et arme, les tireurs seulement leur arme") {
+    for (const IdSpecialite melee : {IdSpecialite::Guerrier, IdSpecialite::Paladin}) {
+        const DefinitionPersonnage& definition = specialite(melee).definition;
+        REQUIRE(armureDe(definition.equipementDeDepart) > 0);
+        REQUIRE(portePar(definition, Emplacement::MainGauche) == IdObjet::BouclierRond);
+    }
+    for (const IdSpecialite tireur : {IdSpecialite::Pretre, IdSpecialite::Mage, IdSpecialite::Rodeur}) {
+        const DefinitionPersonnage& definition = specialite(tireur).definition;
+        REQUIRE(definition.equipementDeDepart.size() == 1);
+        REQUIRE(armureDe(definition.equipementDeDepart) == 0);
+    }
+}
+
+TEST_CASE("equipement de depart : l'arme de chaque classe") {
+    REQUIRE(armeDe(specialite(IdSpecialite::Guerrier).definition) == IdObjet::EpeeLongue);
+    REQUIRE(armeDe(specialite(IdSpecialite::Paladin).definition) == IdObjet::Masse);
+    REQUIRE(armeDe(specialite(IdSpecialite::Pretre).definition) == IdObjet::Sceptre);
+    REQUIRE(armeDe(specialite(IdSpecialite::Mage).definition) == IdObjet::Baton);
+    REQUIRE(armeDe(specialite(IdSpecialite::Rodeur).definition) == IdObjet::Arc);
+}
+
+TEST_CASE("equipement de depart : une arme a deux mains ne cote pas de bouclier a qui n'en porte pas") {
+    for (const Specialite& classe : catalogue()) {
+        const IdObjet arme = armeDe(classe.definition);
+        if (estADeuxMains(arme)) {
+            REQUIRE_FALSE(portePar(classe.definition, Emplacement::MainGauche).has_value());
+        }
+    }
 }
 
 TEST_CASE("equipement de depart : chaque objet va a son emplacement, sans emplacement en double") {
@@ -241,13 +292,14 @@ TEST_CASE("equipement de depart : chaque objet va a son emplacement, sans emplac
 }
 
 TEST_CASE("armure des classes : une escouade du catalogue encaisse selon l'equipement de sa classe") {
-    Escouade escouade({100.0f, 100.0f}, composer({IdSpecialite::Guerrier, IdSpecialite::Mage}));
-    const int armureDuGuerrier = armureDe(specialite(IdSpecialite::Guerrier).definition.equipementDeDepart);
-    // Le guerrier porte un bouclier : le tirage du blocage est choisi au-dessus de sa chance (le coup passe).
-    Generateur sansBlocage = generateurQuiTireAuDessus(
-        chanceDeBlocage(NatureDAttaque::Contact, *escouade.statistiquesDeCombatDuPersonnage(1), true));
+    // Le guerrier sans son bouclier, qui bloquerait au hasard : son armure est celle du reste de son équipement.
+    std::vector<DefinitionPersonnage> composition = composer({IdSpecialite::Guerrier, IdSpecialite::Mage});
+    std::erase_if(composition[0].equipementDeDepart,
+                  [](const ObjetDeDepart& objet) { return objet.emplacement == Emplacement::MainGauche; });
+    const int armureDuGuerrier = armureDe(composition[0].equipementDeDepart);
+    Escouade escouade({100.0f, 100.0f}, std::move(composition));
 
-    REQUIRE(escouade.recevoirCoup(7, 1, attaqueSansHasard(40), sansBlocage).montant == appliquerArmure(40, armureDuGuerrier));
+    REQUIRE(subirCoup(escouade, 7, 1, 40) == appliquerArmure(40, armureDuGuerrier));
     REQUIRE(subirCoup(escouade, 7, 2, 40) == 40);
 }
 

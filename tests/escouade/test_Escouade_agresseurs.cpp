@@ -7,9 +7,7 @@
 #include "aides.hpp"
 #include "aides_escouade.hpp"
 #include "combat/Attaque.hpp"
-#include "combat/Blocage.hpp"
 #include "combat/Defense.hpp"
-#include "combat/Esquive.hpp"
 #include "combat/ResolutionDuCoup.hpp"
 #include "combat/StatistiquesDeCombat.hpp"
 #include "escouade/Agresseurs.hpp"
@@ -354,36 +352,52 @@ TEST_CASE("Agresseurs : un agresseur mort dans l'image n'attire plus personne, l
 }
 
 TEST_CASE("Un coup esquive compte comme une attaque recue : le monstre devient agresseur, sans degats") {
-    DefinitionPersonnage guerrier = guerrierDeTest();
+    DefinitionPersonnage guerrier = avecEnduranceEnorme(guerrierDeTest());
     guerrier.equipementDeDepart.push_back({Emplacement::Bottes, IdObjet::BottesDeCuir});  // esquive contre le contact
-    const Attaque attaque{.montant = 100, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
+    const Attaque attaque{.montant = 1, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
     Escouade escouade({50.0f, 50.0f}, {guerrier});
-    // Le seul tirage du coup est celui de l'esquive (pas de critique ni de bouclier) : choisi sous sa chance.
-    Generateur generateur = generateurQuiTireSous(chanceDEsquive(NatureDAttaque::Contact, *escouade.statistiquesDeCombatDuPersonnage(1)));
-    const int vieAvant = *escouade.pointsDeVieDuPersonnage(1);
+    Generateur generateur = generateurDeTest();
+    int esquives = 0;
 
-    REQUIRE(escouade.recevoirCoup(7, 1, attaque, generateur).esquive);
+    // Chaque coup vient d'un monstre neuf : esquivé ou non, il doit devenir agresseur. Avec 5 % d'esquive, la chance
+    // de n'en voir aucune sur 2 000 coups est de l'ordre de 10^-45, quelle que soit la graine.
+    for (int monstre = 1; monstre <= 2000; ++monstre) {
+        const int vieAvant = *escouade.pointsDeVieDuPersonnage(1);
+        const ResultatDuCoup resultat = escouade.recevoirCoup(monstre, 1, attaque, generateur);
 
-    REQUIRE(*escouade.pointsDeVieDuPersonnage(1) == vieAvant);
-    REQUIRE(escouade.getAgresseurs().size() == 1);
-    REQUIRE(escouade.getAgresseurs()[0].id == 7);
+        if (resultat.esquive) {
+            ++esquives;
+            REQUIRE(*escouade.pointsDeVieDuPersonnage(1) == vieAvant);
+        }
+        REQUIRE(escouade.getAgresseurs().back().id == monstre);
+    }
+    REQUIRE(esquives > 0);
 }
 
 TEST_CASE("Un coup bloque compte comme une attaque recue : le monstre devient agresseur") {
     DefinitionPersonnage guerrier = guerrierDeTest();
     guerrier.equipementDeDepart.push_back({Emplacement::MainGauche, IdObjet::BouclierRond});
-    Escouade escouade({50.0f, 50.0f}, {guerrier});
-    const StatistiquesDeCombat statistiques = *escouade.statistiquesDeCombatDuPersonnage(1);
-    const Attaque faible{.montant = statistiques.montantBloque, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};  // absorbée en entier
-    // Le seul tirage du coup est celui du blocage (ni esquive ni critique) : choisi sous sa chance.
-    Generateur generateur = generateurQuiTireSous(chanceDeBlocage(NatureDAttaque::Contact, statistiques, true));
-    const int vieAvant = *escouade.pointsDeVieDuPersonnage(1);
+    Generateur generateur = generateurDeTest();
+    int blocages = 0;
 
-    const ResultatDuCoup resultat = escouade.recevoirCoup(7, 1, faible, generateur);
+    // Une escouade neuve par coup (après un blocage, le bouclier récupère 3 s). Le coup est plus faible que ce que le
+    // bouclier absorbe : bloqué, il ne fait aucun dégât. Avec 30 % de blocage, la chance de n'en voir aucun sur
+    // 150 coups est de l'ordre de 10^-23, quelle que soit la graine.
+    for (int essai = 0; essai < 150; ++essai) {
+        Escouade escouade({50.0f, 50.0f}, {guerrier});
+        const StatistiquesDeCombat statistiques = *escouade.statistiquesDeCombatDuPersonnage(1);
+        const Attaque faible{.montant = statistiques.montantBloque, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
+        const int vieAvant = *escouade.pointsDeVieDuPersonnage(1);
 
-    REQUIRE(resultat.bloque == statistiques.montantBloque);
-    REQUIRE(resultat.montant == 0);
-    REQUIRE(*escouade.pointsDeVieDuPersonnage(1) == vieAvant);
-    REQUIRE(escouade.getAgresseurs().size() == 1);
-    REQUIRE(escouade.getAgresseurs()[0].id == 7);
+        const ResultatDuCoup resultat = escouade.recevoirCoup(7, 1, faible, generateur);
+
+        if (resultat.bloque > 0) {
+            ++blocages;
+            REQUIRE(resultat.montant == 0);
+            REQUIRE(*escouade.pointsDeVieDuPersonnage(1) == vieAvant);
+        }
+        REQUIRE(escouade.getAgresseurs().size() == 1);
+        REQUIRE(escouade.getAgresseurs()[0].id == 7);
+    }
+    REQUIRE(blocages > 0);
 }

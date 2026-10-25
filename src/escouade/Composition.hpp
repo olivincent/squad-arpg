@@ -15,12 +15,10 @@ enum class Rang { Avant, Arriere };
 // choisit aucune valeur : elle reçoit sa composition.
 struct DefinitionPersonnage {
     sf::Color couleur;
-    Skill attaqueDeBase;
     std::vector<SkillConnu> skills = {};
-    std::vector<ObjetDeDepart> equipementDeDepart = {};  // l'armure du personnage vient de lui seul
+    std::vector<ObjetDeDepart> equipementDeDepart = {};  // son armure, son attaque de base (son arme) et sa zone de contrôle en viennent
     float rayonVision;
     Caracteristiques caracteristiques = {};  // la base de sa classe ; l'équipement s'y ajoute (ses points de vie en viennent : `pointsDeVieMax`)
-    float zoneDeControle = 0.0f;  // en pixels, bord à bord ; 0 = n'engage personne
     Rang rang = Rang::Avant;
 };
 

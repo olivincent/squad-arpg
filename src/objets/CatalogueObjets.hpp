@@ -29,5 +29,8 @@ struct DefinitionObjet {
 // Cet objet prend-il les deux mains (une arme à deux mains) ?
 [[nodiscard]] bool estADeuxMains(IdObjet id);
 
+// L'attaque de base de qui ne porte aucune arme : les mains nues, qui ne sont pas un objet.
+[[nodiscard]] const DescriptionDAttaque& mainsNues();
+
 // Le contenu du sac au début d'une partie.
 [[nodiscard]] std::vector<Objet> sacDeDepart();

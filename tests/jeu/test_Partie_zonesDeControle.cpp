@@ -10,6 +10,7 @@
 #include "monstres/Monstre.hpp"
 #include "jeu/Partie.hpp"
 #include "combat/EvenementDeCombat.hpp"
+#include "combat/Caracteristiques.hpp"
 #include "combat/Skill.hpp"
 #include <variant>
 
@@ -54,80 +55,71 @@ TEST_CASE("zone de controle : un guerrier qui reste au contact ne recoit aucun c
 
 namespace {
 
-// Les dégâts du coup reconnaissable : six fois l'attaque de base, que même un critique (×2 au plus) ne rapproche
-// pas ; les autres guerriers ne frappent qu'avec elle.
-const int s_degatsReconnaissables = 6 * s_degatsBaseDeTest;
+// Une Puissance qui rend le coup du premier guerrier reconnaissable : son attaque de base (15 pour une arme du
+// catalogue, 60 pour l'épée à deux mains) fait plus de trois fois plus, quand les autres guerriers (Puissance de
+// base) ne font que l'attaque de leur épée.
+constexpr int s_puissanceReconnaissable = 77;
 
-// Trois guerriers (le premier au nord, à (235, 160)) et un monstre à (270, 160), au contact du
-// premier seulement. L'attaque de base du premier est reconnaissable : `degats` dégâts, recharge
-// de 100 s, donc après son premier coup tout nouveau coup de cette force sur le monstre est un coup
-// gratuit. Dès que le monstre est touché, le troisième guerrier (à (235, 260)) le provoque : le
-// monstre quitte le premier pour aller vers lui. Renvoie le nombre d'images où le monstre perd au
-// moins `degats` points de vie, sur 1,2 s.
-int coupsReconnaissables(float zoneDuPremier, int degats) {
+// Trois guerriers (le premier au nord, à (235, 160)) et un monstre à (270, 160), au contact du premier seulement.
+// Le premier porte cette arme, de Puissance `s_puissanceReconnaissable` : son coup est reconnaissable. Le troisième
+// guerrier (à (235, 260)) provoque le monstre dès le départ : il quitte le premier pour aller vers lui (si la
+// provocation attendait le premier coup, les autres guerriers se seraient déjà portés au contact du monstre et
+// l'auraient retenu dans la zone du premier). Renvoie le nombre de coups **gratuits** (marqués `opportunite`) de la force du coup du premier sur le
+// monstre, sur 1,2 s. Un monstre indestructible : aucun coup ne le tue.
+int coupsGratuitsDuPremier(IdObjet arme) {
     std::vector<DefinitionPersonnage> composition = {guerrierDeTest(), guerrierDeTest(), guerrierDeTest()};
-    composition[0].attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest,
-                                          .puissance = degats, .rechargeMin = 100.0f, .rechargeMax = 100.0f,
-                                          .tempsExecution = s_executionBaseDeTest, .nature = NatureDAttaque::Contact});
-    composition[0].zoneDeControle = zoneDuPremier;
-    Partie partie = partieDeTest(niveauDegage({{270.0f, 160.0f}}), std::move(composition));
+    composition[0] = avecPuissance(avecArme(composition[0], arme), s_puissanceReconnaissable);
+    Partie partie = partieDeTest(niveauDegage({{270.0f, 160.0f}}), std::move(composition), s_graineDeTest, monstreIndestructible());
+    const Attaque coupDuPremier = *partie.getEscouade().attaqueDeBase(1);
+    const Defenses monstre{.armure = 0, .statistiques = monstreSansHasard().statistiques};
 
-    int coups = 0;
-    const int vieDeDepart = partie.getMonstres().front().getPointsDeVie();
-    int pointsDeVie = vieDeDepart;
-    bool provoque = false;
-    for (int i = 0; i < nombreDeTics(1.2f) && !partie.getMonstres().empty(); ++i) {
+    int gratuits = 0;
+    partie.demanderSkill({3, IdSkill::Provocation});
+    for (int i = 0; i < nombreDeTics(1.2f); ++i) {
         partie.mettreAJour(s_dureeTic);
-        if (partie.getMonstres().empty()) {
-            break;
-        }
-        const int apres = partie.getMonstres().front().getPointsDeVie();
-        if (pointsDeVie - apres >= degats) {
-            ++coups;
-        }
-        pointsDeVie = apres;
-        if (!provoque && apres < vieDeDepart) {
-            partie.demanderSkill({3, IdSkill::Provocation});
-            provoque = true;
+        for (const EvenementDeCombat& evenement : partie.prendreEvenements()) {
+            const Degats* coup = std::get_if<Degats>(&evenement.detail);
+            if (coup == nullptr || evenement.campCible != Camp::Monstres) {
+                continue;
+            }
+            if (coup->opportunite && coup->montant == degatsAttendus(coupDuPremier, monstre, coup->critique)) {
+                ++gratuits;
+            }
         }
     }
-    return coups;
+    return gratuits;
 }
 
 }  // namespace
 
 TEST_CASE("zone de controle : un monstre qui quitte un guerrier pour un provocateur est frappe gratuitement") {
-    // Le premier coup (normal) et le coup gratuit.
-    REQUIRE(coupsReconnaissables(20.0f, s_degatsReconnaissables) == 2);
+    // L'épée à deux mains frappe une fois en 1,2 s (recharge d'au moins 1,2 s) : le coup gratuit est le seul de sa
+    // force marqué comme tel.
+    REQUIRE(coupsGratuitsDuPremier(IdObjet::EpeeADeuxMains) == 1);
 }
 
 TEST_CASE("zone de controle : un personnage sans zone ne frappe jamais gratuitement") {
-    // Même scénario, mais le premier guerrier n'engage personne : seul son premier coup (normal) compte.
-    REQUIRE(coupsReconnaissables(0.0f, s_degatsReconnaissables) == 1);
+    // Même scénario, mais le premier porte un arc (projectile) : sa zone de contrôle est nulle, aucun coup gratuit.
+    REQUIRE(coupsGratuitsDuPremier(IdObjet::Arc) == 0);
 }
 
 TEST_CASE("zone de controle : un monstre tue par un coup gratuit est retire et le verrou est leve") {
     // Le premier coup (60 % des points de vie du monstre, 90 % s'il est critique : il reste en vie) en laisse au
-    // plus 40 % ; le coup gratuit, au moins aussi fort, le tue.
-    const int vieDuMonstre = partieDeTest(niveauDegage({{270.0f, 160.0f}}), compositionDeTest()).getMonstres().front().getPointsDeVie();
+    // plus 40 % ; le coup gratuit, au moins aussi fort, le tue. La provocation est demandée dès le départ.
     std::vector<DefinitionPersonnage> composition = {guerrierDeTest(), guerrierDeTest(), guerrierDeTest()};
-    composition[0].attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest, .puissance = 6 * vieDuMonstre / 10,
-                                          .rechargeMin = 100.0f, .rechargeMax = 100.0f,
-                                          .tempsExecution = s_executionBaseDeTest, .nature = NatureDAttaque::Contact});
+    composition[0] = avecPuissance(avecArme(composition[0], IdObjet::EpeeADeuxMains), s_puissanceReconnaissable);
     Partie partie = partieDeTest(niveauDegage({{270.0f, 160.0f}}), std::move(composition));
+    const int vieDuMonstre = partie.getMonstres().front().getPointsDeVie();
+    REQUIRE(partie.getEscouade().attaqueDeBase(1)->montant >= 6 * vieDuMonstre / 10);
+    REQUIRE(partie.getEscouade().attaqueDeBase(1)->montant * 3 / 2 < vieDuMonstre);
     REQUIRE(partie.cliquer({270.0f, 160.0f}) == ResultatClic::Monstre);
 
     // En 1,2 s les autres guerriers ne retirent que quelques points : seul le coup gratuit peut le tuer.
-    bool provoque = false;
+    partie.demanderSkill({3, IdSkill::Provocation});
     for (int i = 0; i < nombreDeTics(1.2f) && !partie.getMonstres().empty(); ++i) {
         partie.mettreAJour(s_dureeTic);
-        if (!provoque && !partie.getMonstres().empty() && partie.getMonstres().front().getPointsDeVie() < vieDuMonstre) {
-            partie.demanderSkill({3, IdSkill::Provocation});
-            provoque = true;
-        }
     }
 
-    REQUIRE(provoque);
     REQUIRE(partie.getMonstres().empty());
     REQUIRE_FALSE(partie.getEscouade().getCibleVerrouillee().has_value());
 }
@@ -168,22 +160,20 @@ TEST_CASE("zone de controle : un monstre qui rentre a son poste ne donne ni ne r
 
 // Dégagement des tireurs (étape 78). Guerrier (place 1, en (235, 210)) et mage (place 2, en (185, 210)),
 // monstre en (219, 232) : il engage les deux (écarts bord à bord de 2 et 15,5 px pour une zone de 20 px),
-// et sa proie est le guerrier, plus proche. Le guerrier frappe une seule fois (1 dégât, recharge de 100 s) ;
-// le mage tire des coups de 7 dégâts : on reconnaît ainsi qui touche le monstre.
+// et sa proie est le guerrier, plus proche. Le guerrier frappe de son épée (15) ; le mage tire des coups bien plus
+// forts : on reconnaît ainsi qui touche le monstre.
 
 namespace {
 
-constexpr int s_degatsDuMageDansLaPartie = 15;  // dix coups, même critiques, ne tuent pas le monstre
+// Le mage est d'une Puissance énorme : son attaque de base (le bâton) fait quatre fois celle de l'épée du guerrier,
+// donc reconnaissable. Le monstre est indestructible : trois secondes de coups ne le tuent pas.
+constexpr int s_puissanceDuMage = 110;
+const int s_degatsDuMageDansLaPartie = montantEffectif(s_degatsBaseDeTest, Coefficients::seul(Caracteristique::Puissance, 1.0f),
+                                                       Caracteristiques({s_puissanceDuMage, 0, 0, 0, 0}));
 
 Partie unGuerrierEtUnMageAuContact() {
-    std::vector<DefinitionPersonnage> composition = {guerrierDeTest(), mageDeTest()};
-    composition[0].attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = s_porteeMeleeDeTest, .puissance = 1,
-                                          .rechargeMin = 100.0f, .rechargeMax = 100.0f,
-                                          .tempsExecution = s_executionBaseDeTest, .nature = NatureDAttaque::Contact});
-    composition[1].attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 120.0f,
-                                          .puissance = s_degatsDuMageDansLaPartie, .rechargeMin = 0.3f,
-                                          .rechargeMax = 0.3f, .tempsExecution = 0.15f, .nature = NatureDAttaque::Contact});
-    return partieDeTest(niveauDegage({{219.0f, 232.0f}}), std::move(composition));
+    std::vector<DefinitionPersonnage> composition = {guerrierDeTest(), avecPuissance(mageDeTest(), s_puissanceDuMage)};
+    return partieDeTest(niveauDegage({{219.0f, 232.0f}}), std::move(composition), s_graineDeTest, monstreIndestructible());
 }
 
 }  // namespace

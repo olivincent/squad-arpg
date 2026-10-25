@@ -9,16 +9,20 @@
 #include "combat/Autodefense.hpp"
 #include "combat/EntiteVue.hpp"
 #include "escouade/Personnage.hpp"
+#include "objets/Emplacement.hpp"
+#include "objets/Objet.hpp"
 
 namespace {
 
-// Personnage en (0, 0), rayon 10, portée 20 px bord à bord : un cercle de
-// rayon 15 est à portée si son centre est à 45 px ou moins.
+// Personnage en (0, 0), rayon 10, portée 20 px bord à bord (celle de l'épée longue, que l'aide vérifie) : un cercle
+// de rayon 15 est à portée si son centre est à 45 px ou moins.
 Personnage personnageDePortee20() {
-    return Personnage({0.0f, 0.0f},
-                      {.couleur = sf::Color::Red,
-                       .attaqueDeBase = Skill({.type = TypeSkill::Degats, .portee = 20.0f, .puissance = 5, .rechargeMin = 0.5f, .rechargeMax = 0.5f, .nature = NatureDAttaque::Contact}),
-                       .rayonVision = s_rayonVisionDeTest});
+    Personnage personnage({0.0f, 0.0f},
+                          {.couleur = sf::Color::Red,
+                           .equipementDeDepart = {{Emplacement::MainDroite, IdObjet::EpeeLongue}},
+                           .rayonVision = s_rayonVisionDeTest});
+    REQUIRE(personnage.getPorteeAttaqueDeBase() == 20.0f);
+    return personnage;
 }
 
 EntiteVue monstreEn(int id, float x) {
