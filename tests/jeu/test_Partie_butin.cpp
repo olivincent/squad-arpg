@@ -20,6 +20,7 @@
 #include "monde/Niveau.hpp"
 #include "monde/TileMap.hpp"
 #include "monstres/DefinitionDeMonstre.hpp"
+#include "objets/CatalogueAffixes.hpp"
 #include "objets/CatalogueObjets.hpp"
 
 // Le butin des monstres (étape 97.3) : un monstre qui meurt laisse des objets au sol.
@@ -351,4 +352,52 @@ TEST_CASE("objetAuSolSous : un objet sur une case inconnue est cache, il se desi
     partie.ordonnerDeplacement({100.0f, 200.0f});  // l'escouade s'éloigne : la case reste explorée, hors de vue
     avancer(partie, nombreDeTics(10.0f));
     REQUIRE(partie.objetAuSolSous(positionDeLObjet) != nullptr);
+}
+
+namespace {
+// Le butin de trois monstres tués à cette profondeur (cinq objets chacun, toujours).
+std::vector<ObjetAuSol> butinALaProfondeur(int profondeur) {
+    Expedition expedition = expeditionDeTest();
+    expedition.profondeur = profondeur;
+    Partie partie(salleAvecMonstres({{140.0f, 60.0f}, {200.0f, 60.0f}, {260.0f, 60.0f}}), std::move(expedition), s_graineDeTest,
+                  catalogueDeTest(monstreQuiLaisse(100, 5)));
+    toutTuer(partie);
+    return partie.getSol().tous();
+}
+
+// Les valeurs de ce butin sont-elles toutes dans les plages de ce niveau ? `depasse` : l'une dépasse-t-elle l'ancien maximum ?
+bool valeursDansLesPlagesDuNiveau(const std::vector<ObjetAuSol>& butin, int niveau, bool& depasse) {
+    depasse = false;
+    for (const ObjetAuSol& auSol : butin) {
+        for (const std::optional<Affixe>& affixe : {auSol.objet.prefixe, auSol.objet.suffixe}) {
+            if (!affixe.has_value()) {
+                continue;
+            }
+            const PlageDeValeurs plage = plageAuNiveau(affixe->id, niveau);
+            if (affixe->valeur < plage.min || affixe->valeur > plage.max) {
+                return false;
+            }
+            depasse = depasse || affixe->valeur > definitionAffixe(affixe->id).valeurs.max;
+        }
+    }
+    return true;
+}
+}  // namespace
+
+TEST_CASE("butin : au 1er etage, les valeurs des affixes restent dans les plages du catalogue") {
+    const std::vector<ObjetAuSol> butin = butinALaProfondeur(1);
+    REQUIRE(butin.size() == 15);
+
+    bool depasse = false;
+    REQUIRE(valeursDansLesPlagesDuNiveau(butin, 1, depasse));
+    REQUIRE_FALSE(depasse);
+}
+
+TEST_CASE("butin : a l'etage 5, les objets laches sont du niveau 5 (plages agrandies, certaines valeurs depassent l'ancien maximum)") {
+    const std::vector<ObjetAuSol> butin = butinALaProfondeur(5);
+    REQUIRE(butin.size() == 15);
+
+    bool depasse = false;
+    REQUIRE(valeursDansLesPlagesDuNiveau(butin, 5, depasse));
+    REQUIRE(depasse);
 }

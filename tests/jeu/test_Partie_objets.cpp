@@ -6,7 +6,10 @@
 
 #include "aides.hpp"
 #include "aides_escouade.hpp"
+#include "base/Aleatoire.hpp"
+#include "jeu/Expedition.hpp"
 #include "jeu/Partie.hpp"
+#include "objets/GenerationDObjets.hpp"
 #include "objets/CatalogueObjets.hpp"
 
 // Les objets tirés au hasard par la touche F7 (étape 96.4) : `Partie::ramasserDesObjetsAleatoires`.
@@ -22,6 +25,24 @@ void remplirLeSac(Partie& partie, std::size_t libres) {
     while (partie.getEscouade().sac().casesLibres() > libres) {
         REQUIRE(partie.getEscouade().ramasser(Objet{IdObjet::GantsDeCuir}));
     }
+}
+
+// Une partie du sac à cette profondeur.
+Partie partieDuSacALaProfondeur(int profondeur) {
+    Expedition expedition = expeditionDeTest();
+    expedition.profondeur = profondeur;
+    return Partie(niveauDegage({{400.0f, 400.0f}}), std::move(expedition), s_graineDeTest, catalogueDeTest(monstreSansHasard()));
+}
+
+// Les objets du sac, dans l'ordre des cases, sans les cases vides.
+std::vector<Objet> objetsDuSac(const Partie& partie) {
+    std::vector<Objet> objets;
+    for (std::size_t i = 0; i < partie.getEscouade().sac().capacite(); ++i) {
+        if (partie.getEscouade().sac().a(i).has_value()) {
+            objets.push_back(*partie.getEscouade().sac().a(i));
+        }
+    }
+    return objets;
 }
 
 std::vector<std::optional<Objet>> contenuDuSac(const Partie& partie) {
@@ -100,4 +121,30 @@ TEST_CASE("ramasserDesObjetsAleatoires : le hasard est celui de la partie, la gr
 
     REQUIRE(contenuDuSac(a) == contenuDuSac(memeGraine));
     REQUIRE_FALSE(contenuDuSac(a) == contenuDuSac(autreGraine));
+}
+
+TEST_CASE("ramasserDesObjetsAleatoires : au 1er etage, les objets sont ceux de genererObjet au niveau 1") {
+    Partie partie = partieDuSacALaProfondeur(1);
+    Generateur temoin(s_graineDeTest);  // la partie n'a tiré aucun nombre avant F7
+
+    REQUIRE(partie.ramasserDesObjetsAleatoires(s_objetsParF7));
+
+    std::vector<Objet> attendus;
+    for (std::size_t i = 0; i < s_objetsParF7; ++i) {
+        attendus.push_back(genererObjet(temoin, 1));
+    }
+    REQUIRE(objetsDuSac(partie) == attendus);
+}
+
+TEST_CASE("ramasserDesObjetsAleatoires : a l'etage 5, le generateur recoit la profondeur comme niveau") {
+    Partie partie = partieDuSacALaProfondeur(5);
+    Generateur temoin(s_graineDeTest);
+
+    REQUIRE(partie.ramasserDesObjetsAleatoires(s_objetsParF7));
+
+    std::vector<Objet> attendus;
+    for (std::size_t i = 0; i < s_objetsParF7; ++i) {
+        attendus.push_back(genererObjet(temoin, 5));
+    }
+    REQUIRE(objetsDuSac(partie) == attendus);
 }
