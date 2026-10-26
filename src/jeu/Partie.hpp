@@ -205,9 +205,14 @@ private:
     // `enPoursuiteAvant` : statut de chaque monstre de `m_monstres` avant leur mise à jour.
     void alerterLesGroupes(const std::vector<bool>& enPoursuiteAvant);
 
-    // L'expédition reçue. Sa profondeur, sa graine et la classe de chaque membre ne changent pas pendant l'étage ; ce qui change
-    // (équipement, caractéristiques de base, sac) vit dans l'escouade, et `expedition()` le relit.
-    Expedition m_expedition;
+    // Ce que la partie garde de l'expédition reçue, et seulement cela : la profondeur, la graine et la classe de chaque membre ne
+    // changent pas pendant l'étage, l'expérience grandit ici. Ce qui change (équipement, points dépensés, sac) vit dans
+    // l'escouade : l'équipement et le sac reçus ne sont PAS gardés (ils seraient périmés dès le premier changement), et
+    // `expedition()` est le seul endroit où l'`Expedition` complète est construite, en les relisant.
+    int m_profondeur;
+    Generateur::result_type m_graineDExpedition;
+    std::vector<DefinitionPersonnage> m_classes;  // une par membre, dans l'ordre des places
+    int m_experience;
     TileMap m_carte;
     Escouade m_escouade;
     std::vector<Monstre> m_monstres;

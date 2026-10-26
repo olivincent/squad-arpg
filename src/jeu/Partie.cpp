@@ -23,20 +23,32 @@ constexpr float s_porteeInteraction = 20.0f;
 constexpr int s_idDeLEscouadeEntiere = 0;  // `idCible` d'un événement qui vise l'escouade et non l'un de ses personnages
 const sf::Color s_couleurZoneDeControle(255, 0, 255, 180);  // débogage F3 : cercle fin des zones de contrôle
 constexpr float s_epaisseurZoneDeControle = 1.0f;
+
+// La classe de chaque membre de l'expédition, dans l'ordre.
+std::vector<DefinitionPersonnage> classesDe(const Expedition& expedition) {
+    std::vector<DefinitionPersonnage> classes;
+    classes.reserve(expedition.membres.size());
+    for (const MembreDExpedition& membre : expedition.membres) {
+        classes.push_back(membre.definition);
+    }
+    return classes;
+}
 }
 
 Partie::Partie(const Niveau& niveau, Expedition expedition, Generateur::result_type graine,
                const CatalogueDeMonstres& catalogue)
-    : m_expedition(std::move(expedition)),
+    : m_profondeur(expedition.profondeur),
+      m_graineDExpedition(expedition.graine),
+      m_classes(classesDe(expedition)),
+      m_experience(expedition.experience),
       m_carte(niveau.plan, niveau.tailleCase),
-      m_escouade(niveau.departEscouade, compositionDeLExpedition(m_expedition), m_expedition.sac,
-                 niveauPour(m_expedition.experience)),
+      m_escouade(niveau.departEscouade, compositionDeLExpedition(expedition), expedition.sac, niveauPour(expedition.experience)),
       m_generateur(graine),
       m_vision(m_carte) {
     int prochainId = 1;
     for (const MonstreDuNiveau& monstre : niveau.monstres) {
         m_monstres.emplace_back(monstre.position, prochainId++, monstre.groupe,
-                                renforcer(definitionDeMonstre(catalogue, monstre.categorie), m_expedition.profondeur));
+                                renforcer(definitionDeMonstre(catalogue, monstre.categorie), m_profondeur));
     }
     int prochainIdObjet = 1;
     for (const PorteDuNiveau& porte : niveau.portes) {
@@ -284,7 +296,7 @@ void Partie::retirerLesMorts() {
         if (monstre.estVivant()) {
             continue;
         }
-        m_expedition.experience += monstre.getExperience();  // à l'escouade, quel que soit le tueur, même si des personnages sont morts
+        m_experience += monstre.getExperience();  // à l'escouade, quel que soit le tueur, même si des personnages sont morts
         for (const Objet& objet : genererButin(m_generateur, monstre.getChanceDeButin(), monstre.getNombreDObjets())) {
             m_sol.poser(objet, monstre.getCentre(), m_carte);
         }
@@ -294,7 +306,7 @@ void Partie::retirerLesMorts() {
 }
 
 void Partie::monterSiLExperienceLeDonne() {
-    const int niveau = niveauPour(m_expedition.experience);
+    const int niveau = niveauPour(m_experience);
     if (niveau <= m_escouade.getNiveau()) {
         return;
     }
@@ -306,7 +318,7 @@ void Partie::monterSiLExperienceLeDonne() {
 }
 
 int Partie::getExperience() const {
-    return m_expedition.experience;
+    return m_experience;
 }
 
 int Partie::getNiveau() const {
@@ -317,7 +329,7 @@ void Partie::gagnerUnNiveau() {
     if (estPerdue()) {
         return;
     }
-    m_expedition.experience += experienceManquante(m_expedition.experience);
+    m_experience += experienceManquante(m_experience);
     monterSiLExperienceLeDonne();
 }
 
@@ -493,7 +505,7 @@ void Partie::faireFrapperLeMonstre(Monstre& monstre, std::optional<EntiteVue> pr
 }
 
 bool Partie::doitDescendre() const {
-    return m_escalierPris && !estPerdue() && m_expedition.profondeur < s_profondeurMaximale;
+    return m_escalierPris && !estPerdue() && m_profondeur < s_profondeurMaximale;
 }
 
 void Partie::forcerLaDescente() {
@@ -508,11 +520,11 @@ bool Partie::estPerdue() const {
 }
 
 bool Partie::estGagnee() const {
-    return m_escalierPris && !estPerdue() && m_expedition.profondeur >= s_profondeurMaximale;
+    return m_escalierPris && !estPerdue() && m_profondeur >= s_profondeurMaximale;
 }
 
 int Partie::getProfondeur() const {
-    return m_expedition.profondeur;
+    return m_profondeur;
 }
 
 int Partie::monstresRestants() const {
@@ -600,13 +612,14 @@ bool Partie::estVisible(sf::Vector2f point) const {
 }
 
 Expedition Partie::expedition() const {
-    Expedition expedition = m_expedition;
-    for (std::size_t i = 0; i < expedition.membres.size(); ++i) {
+    Expedition expedition{.profondeur = m_profondeur, .graine = m_graineDExpedition, .membres = {}, .sac = m_escouade.sac(),
+                          .experience = m_experience};
+    for (std::size_t i = 0; i < m_classes.size(); ++i) {
         const std::size_t place = i + 1;
-        expedition.membres[i].equipement = m_escouade.equipementDuPersonnage(place);
-        expedition.membres[i].pointsDepenses = m_escouade.pointsDepensesDuPersonnage(place).value();
+        expedition.membres.push_back({.definition = m_classes[i],
+                                      .equipement = m_escouade.equipementDuPersonnage(place),
+                                      .pointsDepenses = m_escouade.pointsDepensesDuPersonnage(place).value()});
     }
-    expedition.sac = m_escouade.sac();
     return expedition;
 }
 
