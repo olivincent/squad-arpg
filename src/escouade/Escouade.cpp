@@ -38,10 +38,10 @@ std::size_t indiceDeLaPlace(std::size_t place) {
 }  // namespace
 
 namespace {
-std::vector<Rang> rangsDe(const std::vector<DefinitionPersonnage>& composition) {
+std::vector<Rang> rangsDe(const std::vector<MembreDEscouade>& membres) {
     std::vector<Rang> rangs;
-    for (const DefinitionPersonnage& definition : composition) {
-        rangs.push_back(definition.rang);
+    for (const MembreDEscouade& membre : membres) {
+        rangs.push_back(membre.definition.rang);
     }
     return rangs;
 }
@@ -57,26 +57,26 @@ std::optional<int> monstreDontLaPlaceEstGardee(const Intention& intention, bool 
 }
 }  // namespace
 
-Escouade::Escouade(sf::Vector2f positionDepart, std::vector<DefinitionPersonnage> composition)
-    : Escouade(positionDepart, std::move(composition), Inventaire(s_capaciteDuSac)) {}
+Escouade::Escouade(sf::Vector2f positionDepart, std::vector<MembreDEscouade> membres)
+    : Escouade(positionDepart, std::move(membres), Inventaire(s_capaciteDuSac)) {}
 
-Escouade::Escouade(sf::Vector2f positionDepart, std::vector<DefinitionPersonnage> composition, Inventaire sac)
+Escouade::Escouade(sf::Vector2f positionDepart, std::vector<MembreDEscouade> membres, Inventaire sac)
     : m_mobile(positionDepart + sf::Vector2f(s_coteAncre / 2.0f, s_coteAncre / 2.0f), {s_coteAncre, s_coteAncre}, s_vitesseAncre),
-      m_formation(decalagesDeFormation(rangsDe(composition)), m_mobile.getCentre(), s_vitesseRotation),
+      m_formation(decalagesDeFormation(rangsDe(membres)), m_mobile.getCentre(), s_vitesseRotation),
       m_personnages(),
       m_cibleVerrouillee(),
       m_skillEnAttente(),
-      m_placesDAttaque(composition.size(), s_ecartEntrePersonnages),
+      m_placesDAttaque(membres.size(), s_ecartEntrePersonnages),
       m_pointsVises(),
-      m_degagements(composition.size()),
+      m_degagements(membres.size()),
       m_agresseurs(),
       m_provocations(),
       m_sac(std::move(sac))
 {
-    assert(!composition.empty());
+    assert(!membres.empty());
     assert(m_sac.capacite() == s_capaciteDuSac);
-    for (std::size_t i = 0; i < composition.size(); ++i) {
-        m_personnages.emplace_back(m_formation.getPlaces()[i], std::move(composition[i]));
+    for (std::size_t i = 0; i < membres.size(); ++i) {
+        m_personnages.emplace_back(m_formation.getPlaces()[i], std::move(membres[i].definition), std::move(membres[i].equipement));
     }
     m_pointsVises = m_formation.getPlaces();
 }

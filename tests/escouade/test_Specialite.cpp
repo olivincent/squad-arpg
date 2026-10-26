@@ -31,7 +31,7 @@
 namespace {
 // Un personnage construit depuis la définition de la classe (son attaque de base et sa zone de contrôle en viennent).
 Personnage deLaClasse(IdSpecialite id) {
-    return Personnage({0.0f, 0.0f}, specialite(id).definition);
+    return unPersonnage({0.0f, 0.0f}, specialite(id).definition);
 }
 
 // Ce que la définition fait porter à cet emplacement, s'il y en a un.
@@ -203,7 +203,7 @@ TEST_CASE("trois rodeurs : tous derriere, en colonne, avec trois nuances de vert
 }
 
 TEST_CASE("trois rodeurs : la barre par defaut a une rangee par rodeur") {
-    const Escouade escouade({100.0f, 100.0f},
+    const Escouade escouade = uneEscouadeDe({100.0f, 100.0f},
                             composer({IdSpecialite::Rodeur, IdSpecialite::Rodeur, IdSpecialite::Rodeur}));
 
     const BarreDeRaccourcis barre = barreParDefaut(escouade.adressesDesSkills());
@@ -218,7 +218,7 @@ TEST_CASE("trois rodeurs : la barre par defaut a une rangee par rodeur") {
 }
 
 TEST_CASE("une escouade de paladin, de rodeur et de guerrier connait les skills de chacun") {
-    const Escouade escouade({100.0f, 100.0f},
+    const Escouade escouade = uneEscouadeDe({100.0f, 100.0f},
                             composer({IdSpecialite::Paladin, IdSpecialite::Rodeur, IdSpecialite::Guerrier}));
 
     REQUIRE(escouade.typeDuSkill({1, IdSkill::ImpositionDesMains}) == TypeSkill::Soin);
@@ -256,9 +256,9 @@ TEST_CASE("composer garde l'arme, donc la zone de controle, de la classe, quelle
     const std::vector<DefinitionPersonnage> composition =
         composer({IdSpecialite::Paladin, IdSpecialite::Paladin, IdSpecialite::Mage});
 
-    REQUIRE(Personnage({0.0f, 0.0f}, composition[0]).getZoneDeControle() == 20.0f);
-    REQUIRE(Personnage({0.0f, 0.0f}, composition[1]).getZoneDeControle() == 20.0f);
-    REQUIRE(Personnage({0.0f, 0.0f}, composition[2]).getZoneDeControle() == 0.0f);
+    REQUIRE(unPersonnage({0.0f, 0.0f}, composition[0]).getZoneDeControle() == 20.0f);
+    REQUIRE(unPersonnage({0.0f, 0.0f}, composition[1]).getZoneDeControle() == 20.0f);
+    REQUIRE(unPersonnage({0.0f, 0.0f}, composition[2]).getZoneDeControle() == 0.0f);
 }
 
 TEST_CASE("equipement de depart : les melees portent armure, bouclier et arme, les tireurs seulement leur arme") {
@@ -309,7 +309,7 @@ TEST_CASE("armure des classes : une escouade du catalogue encaisse selon l'equip
     std::erase_if(composition[0].equipementDeDepart,
                   [](const ObjetDeDepart& objet) { return objet.emplacement == Emplacement::MainGauche; });
     const int armureDuGuerrier = armureDe(composition[0].equipementDeDepart);
-    Escouade escouade({100.0f, 100.0f}, std::move(composition));
+    Escouade escouade = uneEscouadeDe({100.0f, 100.0f}, std::move(composition));
 
     REQUIRE(subirCoup(escouade, 7, 1, 40) == appliquerArmure(40, armureDuGuerrier));
     REQUIRE(subirCoup(escouade, 7, 2, 40) == 40);
@@ -357,7 +357,7 @@ TEST_CASE("armes exigees : les autres skills n'exigent rien") {
 
 TEST_CASE("armes exigees : chaque classe porte au depart l'arme que ses skills exigent") {
     for (const Specialite& classe : catalogue()) {
-        const Personnage personnage({0.0f, 0.0f}, classe.definition);
+        const Personnage personnage = unPersonnage({0.0f, 0.0f}, classe.definition);
         for (const SkillConnu& connu : classe.definition.skills) {
             REQUIRE(personnage.skillEstPret(connu.id));
             REQUIRE_FALSE(personnage.etatDuSkill(connu.id)->armeAbsente);
@@ -425,8 +425,8 @@ TEST_CASE("la frappe sacree avec la masse de depart : physique de la masse, sacr
 TEST_CASE("la frappe sacree avec l'epee a deux mains : la portion physique est plus grande, le sacre est le meme") {
     DefinitionPersonnage definition = specialite(IdSpecialite::Paladin).definition;
     definition.caracteristiques = Caracteristiques({20, 20, 8, 7, 11});  // de quoi porter l'épée à deux mains
-    Personnage avecLaMasse({0.0f, 0.0f}, definition);
-    Personnage avecLEpee({0.0f, 0.0f}, definition);
+    Personnage avecLaMasse = unPersonnage({0.0f, 0.0f}, definition);
+    Personnage avecLEpee = unPersonnage({0.0f, 0.0f}, definition);
     // Une arme à deux mains exige la main gauche vide : le bouclier part d'abord.
     static_cast<void>(avecLEpee.retirerEquipement(Emplacement::MainGauche));
     static_cast<void>(avecLEpee.retirerEquipement(Emplacement::MainDroite));
@@ -499,7 +499,7 @@ TEST_CASE("la frappe sacree du paladin : doree contre l'infanterie lourde, physi
 
     DefinitionPersonnage definition = specialite(IdSpecialite::Paladin).definition;
     definition.caracteristiques = Caracteristiques({20, 20, 8, 7, 11});
-    Personnage avecLEpee({0.0f, 0.0f}, definition);
+    Personnage avecLEpee = unPersonnage({0.0f, 0.0f}, definition);
     static_cast<void>(avecLEpee.retirerEquipement(Emplacement::MainGauche));
     static_cast<void>(avecLEpee.retirerEquipement(Emplacement::MainDroite));
     static_cast<void>(avecLEpee.poserEquipement(Emplacement::MainDroite, Objet{IdObjet::EpeeADeuxMains}));

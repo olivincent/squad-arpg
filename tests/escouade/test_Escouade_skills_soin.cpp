@@ -232,7 +232,7 @@ namespace {
 Escouade escouadeAuPretreAdroit(int perte) {
     DefinitionPersonnage pretre = pretreDeTest();
     pretre.caracteristiques = Caracteristiques({10, 10, 1000, 10, 10});
-    Escouade escouade({50.0f, 50.0f}, {guerrierDeTest(), pretre, mageDeTest()});
+    Escouade escouade = uneEscouadeDe({50.0f, 50.0f}, {guerrierDeTest(), pretre, mageDeTest()});
     infliger(escouade, 1, {35.0f, 85.0f}, perte);
     return escouade;
 }

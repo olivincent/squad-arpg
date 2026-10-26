@@ -30,7 +30,6 @@ Partie partieDeLeJet() {
         definition = capableDeToutPorter(std::move(definition));
     }
     Partie partie = partieDeTest(niveauDegage({s_coinLointain}), std::move(composition));
-    viderLeSac(partie.getEscouade());
     return partie;
 }
 

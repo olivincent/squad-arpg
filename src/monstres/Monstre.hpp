@@ -96,6 +96,7 @@ private:
     int m_id;
     int m_groupe;
     Skill m_attaque;
+    Degats m_degats;  // les portions de son coup
     float m_rayonDetection;
     float m_rayonTerritoire;
     float m_zoneDeControle;

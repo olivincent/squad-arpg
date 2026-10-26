@@ -39,7 +39,7 @@ Partie partieDe(Expedition expedition, const std::vector<sf::Vector2f>& monstres
 const Objet s_masseFlamboyante{IdObjet::Masse, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}};
 }  // namespace
 
-TEST_CASE("nouvelleExpedition : profondeur 1, l'equipement de depart porte, le sac de depart") {
+TEST_CASE("nouvelleExpedition : profondeur 1, l'equipement de depart porte, un sac vide") {
     const std::vector<DefinitionPersonnage> composition = compositionDeTest();
 
     const Expedition expedition = nouvelleExpedition(composition, 777);
@@ -53,13 +53,8 @@ TEST_CASE("nouvelleExpedition : profondeur 1, l'equipement de depart porte, le s
         REQUIRE(expedition.membres[i].definition.caracteristiques == composition[i].caracteristiques);
         REQUIRE(expedition.membres[i].definition.couleur == composition[i].couleur);
     }
-    const std::vector<Objet> attendu = sacDeDepart();
     for (std::size_t i = 0; i < expedition.sac.capacite(); ++i) {
-        if (i < attendu.size()) {
-            REQUIRE(expedition.sac.a(i) == attendu[i]);
-        } else {
-            REQUIRE_FALSE(expedition.sac.a(i).has_value());
-        }
+        REQUIRE_FALSE(expedition.sac.a(i).has_value());
     }
 }
 
@@ -77,7 +72,6 @@ TEST_CASE("Partie : une partie neuve porte l'equipement de depart de l'expeditio
 TEST_CASE("expedition : aller-retour, l'equipement, le sac et les caracteristiques de base survivent") {
     Partie partie = partieDe(expeditionCapableDeToutPorter());
     Escouade& escouade = partie.getEscouade();
-    viderLeSac(escouade);
     // Un objet magique à la case 20 du sac (une case que `ramasser` ne donnerait pas : la place est gardée), une paire de gants
     // portés par le mage, la masse flamboyante dans la main droite du prêtre.
     REQUIRE(escouade.sac().capacite() > 20);

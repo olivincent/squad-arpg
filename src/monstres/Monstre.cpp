@@ -24,6 +24,7 @@ Monstre::Monstre(sf::Vector2f centre, int id, int groupe, const DefinitionDeMons
       m_id(id),
       m_groupe(groupe),
       m_attaque(definition.attaque),
+      m_degats(definition.degats),
       m_rayonDetection(definition.rayonDetection),
       m_rayonTerritoire(definition.rayonTerritoire),
       m_zoneDeControle(definition.zoneDeControle),
@@ -124,7 +125,7 @@ float Monstre::getZoneDeControle() const {
 }
 
 Attaque Monstre::getAttaque() const {
-    return {.degats = degatsPhysiques(m_attaque.getPuissance()),
+    return {.degats = m_degats,
             .capaciteOffensive = m_statistiques.capaciteOffensive,
             .nature = m_attaque.getNature()};
 }

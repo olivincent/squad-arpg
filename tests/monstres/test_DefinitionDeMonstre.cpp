@@ -41,7 +41,7 @@ TEST_CASE("renforcer : au premier etage, la definition est identique") {
         const DefinitionDeMonstre renforcee = renforcer(definition, 1);
 
         REQUIRE(renforcee.pointsDeVieMax == definition.pointsDeVieMax);
-        REQUIRE(renforcee.attaque.puissance == definition.attaque.puissance);
+        REQUIRE(renforcee.degats.total() == definition.degats.total());
         REQUIRE(renforcee.statistiques == definition.statistiques);
         verifierQueLeResteNeChangePas(definition, renforcee);
     }
@@ -54,7 +54,7 @@ TEST_CASE("renforcer : au troisieme etage, points de vie x 1,5, degats x 1,3, ca
         const DefinitionDeMonstre renforcee = renforcer(definition, 3);
 
         REQUIRE(renforcee.pointsDeVieMax == definition.pointsDeVieMax * 3 / 2);
-        REQUIRE(renforcee.attaque.puissance == (definition.attaque.puissance * 13 + 5) / 10);
+        REQUIRE(renforcee.degats.total() == (definition.degats.total() * 13 + 5) / 10);
         REQUIRE(renforcee.statistiques.capaciteOffensive == definition.statistiques.capaciteOffensive + 20);
         REQUIRE(renforcee.statistiques.capaciteDefensive == definition.statistiques.capaciteDefensive + 20);
         verifierQueLeResteNeChangePas(definition, renforcee);
@@ -64,19 +64,19 @@ TEST_CASE("renforcer : au troisieme etage, points de vie x 1,5, degats x 1,3, ca
 TEST_CASE("renforcer : valeurs connues de l'infanterie, de la nuee et de la creature au deuxieme et au cinquieme etage") {
     const DefinitionDeMonstre& infanterie = definitionDeMonstre(CategorieDeMonstre::Infanterie);  // 300 PV, 30 dégâts, 100 / 100
     REQUIRE(renforcer(infanterie, 2).pointsDeVieMax == 375);
-    REQUIRE(renforcer(infanterie, 2).attaque.puissance == 35);  // 34,5 arrondi au plus proche
+    REQUIRE(renforcer(infanterie, 2).degats.total() == 35);  // 34,5 arrondi au plus proche
     REQUIRE(renforcer(infanterie, 2).statistiques.capaciteOffensive == 110);
     REQUIRE(renforcer(infanterie, 5).pointsDeVieMax == 600);
-    REQUIRE(renforcer(infanterie, 5).attaque.puissance == 48);
+    REQUIRE(renforcer(infanterie, 5).degats.total() == 48);
     REQUIRE(renforcer(infanterie, 5).statistiques.capaciteDefensive == 140);
 
     const DefinitionDeMonstre& nuee = definitionDeMonstre(CategorieDeMonstre::Nuee);  // 60 PV, 10 dégâts
     REQUIRE(renforcer(nuee, 5).pointsDeVieMax == 120);
-    REQUIRE(renforcer(nuee, 5).attaque.puissance == 16);
+    REQUIRE(renforcer(nuee, 5).degats.total() == 16);
 
     const DefinitionDeMonstre& creature = definitionDeMonstre(CategorieDeMonstre::CreatureMonstrueuse);  // 1500 PV, 70 dégâts
     REQUIRE(renforcer(creature, 5).pointsDeVieMax == 3000);
-    REQUIRE(renforcer(creature, 5).attaque.puissance == 112);
+    REQUIRE(renforcer(creature, 5).degats.total() == 112);
     REQUIRE(renforcer(creature, 5).statistiques.resistances[Element::Feu] == creature.statistiques.resistances[Element::Feu]);
 }
 
@@ -87,7 +87,7 @@ TEST_CASE("renforcer : plus la profondeur est grande, plus le monstre est fort")
         const DefinitionDeMonstre plus = renforcer(definition, profondeur + 1);
 
         REQUIRE(plus.pointsDeVieMax > moins.pointsDeVieMax);
-        REQUIRE(plus.attaque.puissance > moins.attaque.puissance);
+        REQUIRE(plus.degats.total() > moins.degats.total());
         REQUIRE(plus.statistiques.capaciteOffensive > moins.statistiques.capaciteOffensive);
         REQUIRE(plus.statistiques.capaciteDefensive > moins.statistiques.capaciteDefensive);
     }
@@ -102,4 +102,28 @@ TEST_CASE("renforcer : ne modifie pas la definition recue, meme renforcee deux f
 
     REQUIRE(definition.pointsDeVieMax == vieAvant);
     REQUIRE(premiere.pointsDeVieMax == seconde.pointsDeVieMax);
+}
+
+TEST_CASE("renforcer : toutes les portions des degats sont majorees, une attaque mixte comprise") {
+    DefinitionDeMonstre definition = definitionDeMonstre(CategorieDeMonstre::Infanterie);
+    definition.degats = {};
+    definition.degats[Element::Physique] = 30;
+    definition.degats[Element::Feu] = 20;  // le sacré reste nul
+
+    const DefinitionDeMonstre renforcee = renforcer(definition, 3);  // +30 % : deux étages de 15 %
+
+    REQUIRE(renforcee.degats[Element::Physique] == 39);
+    REQUIRE(renforcee.degats[Element::Feu] == 26);
+    REQUIRE(renforcee.degats[Element::Sacre] == 0);
+    REQUIRE(renforcer(definition, 1).degats == definition.degats);
+}
+
+TEST_CASE("renforcer : une portion de feu est majoree, les resistances de la creature restent") {
+    DefinitionDeMonstre definition = definitionDeMonstre(CategorieDeMonstre::CreatureMonstrueuse);
+    definition.degats[Element::Feu] = 10;
+
+    const DefinitionDeMonstre renforcee = renforcer(definition, 5);
+
+    REQUIRE(renforcee.statistiques.resistances == definition.statistiques.resistances);
+    REQUIRE(renforcee.degats[Element::Feu] == 16);
 }

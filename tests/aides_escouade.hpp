@@ -169,12 +169,6 @@ inline DefinitionPersonnage definitionSansArme() {
     return {.couleur = sf::Color::White, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeTest};
 }
 
-// Un personnage de test à ce centre, armé de cette arme (le sceptre par défaut : une attaque de portée, comme les
-// tireurs, pour que la géométrie des tests de `Personnage` ne dépende pas du contact).
-inline Personnage unPersonnageArme(sf::Vector2f centre, IdObjet arme = IdObjet::Sceptre) {
-    return Personnage(centre, definitionArmee(arme));
-}
-
 // Seule l'arme de main droite d'un équipement de départ, pour les définitions qui précisent d'autres champs, et les
 // caractéristiques qu'il faut pour la porter.
 inline const std::vector<ObjetDeDepart> s_armeDeTireurSeuleDeTest = {{Emplacement::MainDroite, IdObjet::Sceptre}};
@@ -185,14 +179,37 @@ inline std::vector<DefinitionPersonnage> compositionDeTest() {
     return {guerrierDeTest(), pretreDeTest(), mageDeTest()};
 }
 
-// Une escouade / une partie avec la composition par défaut des tests.
-inline Escouade uneEscouade(sf::Vector2f positionDepart) {
-    return Escouade(positionDepart, compositionDeTest());
-}
-
-// Une expédition qui commence (profondeur 1, équipement de départ, sac de départ) avec cette composition.
+// Une expédition qui commence (profondeur 1, équipement de départ, sac vide) avec cette composition.
 inline Expedition expeditionDeTest(std::vector<DefinitionPersonnage> composition = compositionDeTest()) {
     return nouvelleExpedition(std::move(composition), s_graineDeTest);
+}
+
+// Les membres à construire pour une escouade de cette composition : l'équipement de départ des recettes passe par la
+// conversion de l'expédition (`nouvelleExpedition`), seul endroit qui le lit, comme dans le jeu.
+inline std::vector<MembreDEscouade> membresDeTest(std::vector<DefinitionPersonnage> composition = compositionDeTest()) {
+    return compositionDeLExpedition(expeditionDeTest(std::move(composition)));
+}
+
+// Une escouade de cette composition, à cette position.
+inline Escouade uneEscouadeDe(sf::Vector2f positionDepart, std::vector<DefinitionPersonnage> composition) {
+    return Escouade(positionDepart, membresDeTest(std::move(composition)));
+}
+
+// Un personnage de cette définition (équipement de départ converti comme dans le jeu), à ce centre.
+inline Personnage unPersonnage(sf::Vector2f centre, DefinitionPersonnage definition) {
+    std::vector<MembreDEscouade> membres = membresDeTest({std::move(definition)});
+    return Personnage(centre, std::move(membres[0].definition), std::move(membres[0].equipement));
+}
+
+// Une escouade avec la composition par défaut des tests.
+inline Escouade uneEscouade(sf::Vector2f positionDepart) {
+    return uneEscouadeDe(positionDepart, compositionDeTest());
+}
+
+// Un personnage de test à ce centre, armé de cette arme (le sceptre par défaut : une attaque de portée, comme les
+// tireurs, pour que la géométrie des tests de `Personnage` ne dépende pas du contact).
+inline Personnage unPersonnageArme(sf::Vector2f centre, IdObjet arme = IdObjet::Sceptre) {
+    return unPersonnage(centre, definitionArmee(arme));
 }
 
 // Une partie de test : les monstres n'ont aucune esquive (`monstreSansHasard`), pour que les dégâts qu'ils
@@ -276,7 +293,7 @@ inline Escouade uneEscouadeCapableDeToutPorter(sf::Vector2f positionDepart) {
     for (DefinitionPersonnage& definition : composition) {
         definition = capableDeToutPorter(std::move(definition));
     }
-    return Escouade(positionDepart, std::move(composition));
+    return uneEscouadeDe(positionDepart, std::move(composition));
 }
 
 // Une escouade de quatre : deux guerriers devant (mêlées), le prêtre et le mage derrière. Pour les tests
@@ -284,7 +301,7 @@ inline Escouade uneEscouadeCapableDeToutPorter(sf::Vector2f positionDepart) {
 inline Escouade uneEscouadeADeuxGuerriers(sf::Vector2f positionDepart) {
     std::vector<DefinitionPersonnage> composition = compositionDeTest();
     composition.insert(composition.begin(), composition[0]);
-    return Escouade(positionDepart, std::move(composition));
+    return uneEscouadeDe(positionDepart, std::move(composition));
 }
 
 // Une escouade par défaut dont le prêtre a un soin de portée plus courte (33 px bord à bord,
@@ -298,7 +315,7 @@ inline Escouade uneEscouadeAuSoinCourt(sf::Vector2f positionDepart) {
                                                     .rechargeMin = s_rechargeSoinDeTest,
                                                     .rechargeMax = s_rechargeSoinDeTest,
                                                     .tempsExecution = s_activationSoinDeTest, .nature = NatureDAttaque::Contact})}};
-    return Escouade(positionDepart, std::move(composition));
+    return uneEscouadeDe(positionDepart, std::move(composition));
 }
 
 // Ce que les personnages de test (sans caractéristiques : Adresse 0) opposent à un coup, pour cette armure.
@@ -482,13 +499,6 @@ inline Exemplaires exemplaires(const Partie& partie) {
     }
     std::ranges::sort(tous);
     return tous;
-}
-
-// Vide le sac de l'escouade : une `Partie` y range le sac de départ du jeu, que les tests d'objets ne veulent pas toujours.
-inline void viderLeSac(Escouade& escouade) {
-    for (std::size_t i = 0; i < escouade.sac().capacite(); ++i) {
-        static_cast<void>(escouade.retirerObjet(PositionDansLeSac{i}));  // l'objet rendu n'intéresse personne
-    }
 }
 
 // Fait avancer la partie de ce nombre de tics de 1/60 s.

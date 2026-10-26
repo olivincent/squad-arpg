@@ -284,15 +284,11 @@ TEST_CASE("peutDeplacerObjet : repond comme deplacerObjet, sans rien changer") {
     REQUIRE(escouade.sac().a(0) == s_gants);
 }
 
-TEST_CASE("une partie commence avec le sac de depart dans le sac") {
+TEST_CASE("une partie commence avec un sac vide") {
     const Partie partie = unePartie(niveauDegage({}), s_graineDeTest);
     const Inventaire& sac = partie.getEscouade().sac();
 
-    const std::vector<Objet> attendu = sacDeDepart();
-    for (std::size_t i = 0; i < attendu.size(); ++i) {
-        REQUIRE(sac.a(i) == attendu[i]);
-    }
-    for (std::size_t i = attendu.size(); i < sac.capacite(); ++i) {
+    for (std::size_t i = 0; i < sac.capacite(); ++i) {
         REQUIRE_FALSE(sac.a(i).has_value());
     }
 }
@@ -300,7 +296,7 @@ TEST_CASE("une partie commence avec le sac de depart dans le sac") {
 TEST_CASE("statistiquesDeCombatDuPersonnage : celles du personnage de la place, vides si la place est invalide") {
     DefinitionPersonnage rodeur = pretreDeTest();
     rodeur.caracteristiques = Caracteristiques({10, 10, 14, 8, 8});
-    const Escouade escouade({50.0f, 50.0f}, {guerrierDeTest(), rodeur});
+    const Escouade escouade = uneEscouadeDe({50.0f, 50.0f}, {guerrierDeTest(), rodeur});
 
     REQUIRE(escouade.statistiquesDeCombatDuPersonnage(1) == statistiquesDuPersonnage(Caracteristiques(), StatistiquesDeCombat()));
     REQUIRE(escouade.statistiquesDeCombatDuPersonnage(2) == StatistiquesDeCombat{120, 120});
@@ -313,7 +309,7 @@ TEST_CASE("la puissance de l'attaque de base lue par l'escouade (coup d'opportun
     const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
     DefinitionPersonnage definition = guerrierDeTest();
     definition.caracteristiques = Caracteristiques({s_valeurDeReference + 1, 10, 10, 10, 10});  // 11 de Puissance : l'épée est active (bonus de 3 % arrondi à 0)
-    Escouade escouade({50.0f, 50.0f}, {definition});
+    Escouade escouade = uneEscouadeDe({50.0f, 50.0f}, {definition});
     REQUIRE(escouade.attaqueDeBase(1)->degats.total() == degats);
 
     REQUIRE(escouade.ramasser(Objet{IdObjet::AnneauDePuissance}));
@@ -404,7 +400,7 @@ TEST_CASE("changer d'arme dans l'inventaire relance la recharge : le premier cou
     Generateur generateur = generateurDeTest();
     const TileMap& carte = carteOuverte();
     // Seul : tous les coups sont les siens ; capable de porter la dague.
-    Escouade escouade({50.0f, 50.0f}, {capableDePorter(guerrierDeTest(), {IdObjet::Dague})});
+    Escouade escouade = uneEscouadeDe({50.0f, 50.0f}, {capableDePorter(guerrierDeTest(), {IdObjet::Dague})});
     REQUIRE(escouade.ramasser(Objet{IdObjet::Dague}));
     REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::MainDroite)));
     const DescriptionDAttaque dague = definitionObjet(IdObjet::Dague).arme.value().attaque;
@@ -484,7 +480,7 @@ TEST_CASE("objetPorteEstInactif : un objet porte dont le seuil n'est pas atteint
     const std::vector<ObjetDeDepart> depart = {{Emplacement::Torse, IdObjet::CuirasseDeMailles}, {Emplacement::Gants, IdObjet::GantsDeCuir}};
     DefinitionPersonnage faible = pretreDeTest();
     faible.equipementDeDepart = depart;  // l'Endurance du prêtre ne suffit pas à la cuirasse
-    const Escouade escouade({50.0f, 50.0f}, {guerrierDeTest(), faible});
+    const Escouade escouade = uneEscouadeDe({50.0f, 50.0f}, {guerrierDeTest(), faible});
 
     REQUIRE_FALSE(escouade.objetPorteEstInactif(s_guerrier, Emplacement::Torse));  // actif
     REQUIRE(escouade.objetPorteEstInactif(2, Emplacement::Torse));                 // porté, sans effet
@@ -493,7 +489,7 @@ TEST_CASE("objetPorteEstInactif : un objet porte dont le seuil n'est pas atteint
 }
 
 TEST_CASE("la penetration de l'attaque de base lue par l'escouade (coup d'opportunite) est celle de l'arme") {
-    Escouade escouade({50.0f, 50.0f}, {capableDePorter(guerrierDeTest(), {IdObjet::Dague})});
+    Escouade escouade = uneEscouadeDe({50.0f, 50.0f}, {capableDePorter(guerrierDeTest(), {IdObjet::Dague})});
     REQUIRE(escouade.attaqueDeBase(s_guerrier)->penetration == 0);  // l'épée longue
     REQUIRE(escouade.ramasser(Objet{IdObjet::Dague}));
 

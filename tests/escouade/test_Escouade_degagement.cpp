@@ -38,7 +38,7 @@ const int s_degatsDuMage = montantEffectif(s_degatsBaseDeTest, Coefficients::seu
 Escouade uneEscouadeAuMageReconnaissable() {
     std::vector<DefinitionPersonnage> composition = compositionDeTest();
     composition[s_mage - 1] = s_mageReconnaissable;
-    return Escouade({300.0f, 500.0f}, std::move(composition));
+    return uneEscouadeDe({300.0f, 500.0f}, std::move(composition));
 }
 
 // Les deux listes que Partie donne à l'escouade pour un monstre (id 1) immobile à ce centre.

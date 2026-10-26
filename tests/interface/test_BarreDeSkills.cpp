@@ -133,7 +133,7 @@ TEST_CASE("iconesDeLaBarre : seul l'emplacement du skill vise est en visee") {
 }
 
 TEST_CASE("iconesDeLaBarre : un skill dont l'arme exigee manque le dit (icone grisee), les autres non") {
-    Escouade escouade({100.0f, 100.0f}, composer({IdSpecialite::Guerrier}));
+    Escouade escouade = uneEscouadeDe({100.0f, 100.0f}, composer({IdSpecialite::Guerrier}));
     const BarreDeRaccourcis barre = barreParDefaut(escouade.adressesDesSkills());
     const TouchesDesRaccourcis touches = Reglages{}.touchesDesRaccourcis;
     REQUIRE(escouade.deplacerObjet(PositionPortee{1, Emplacement::MainDroite}, PositionDansLeSac{0}));

@@ -84,14 +84,14 @@ Attaque lancerSkillEnEntier(Personnage& personnage, std::optional<Cible> cible, 
 // Personnage centré en (100, 100), portée 80 px.
 
 TEST_CASE("estAPortee renvoie vrai pour un point proche") {
-    const Personnage personnage({100.0f, 100.0f},
+    const Personnage personnage = unPersonnage({100.0f, 100.0f},
                                 definitionArmee(IdObjet::Sceptre));
 
     REQUIRE(personnage.estAPortee(pointCible({150.0f, 100.0f})));
 }
 
 TEST_CASE("estAPortee renvoie faux pour un point lointain") {
-    const Personnage personnage({100.0f, 100.0f},
+    const Personnage personnage = unPersonnage({100.0f, 100.0f},
                                 definitionArmee(IdObjet::Sceptre));
 
     REQUIRE_FALSE(personnage.estAPortee(pointCible({300.0f, 100.0f})));
@@ -99,7 +99,7 @@ TEST_CASE("estAPortee renvoie faux pour un point lointain") {
 
 TEST_CASE("frapper renvoie les degats pour une cible a portee") {
     Generateur generateur = generateurDeTest();
-    Personnage personnage({100.0f, 100.0f},
+    Personnage personnage = unPersonnage({100.0f, 100.0f},
                           definitionArmee(IdObjet::Sceptre));
 
     REQUIRE(frapperEnEntier(personnage, pointCible({150.0f, 100.0f}), generateur) == s_degatsBaseDeTest);
@@ -107,7 +107,7 @@ TEST_CASE("frapper renvoie les degats pour une cible a portee") {
 
 TEST_CASE("frapper renvoie 0 pour une cible hors de portee") {
     Generateur generateur = generateurDeTest();
-    Personnage personnage({100.0f, 100.0f},
+    Personnage personnage = unPersonnage({100.0f, 100.0f},
                           definitionArmee(IdObjet::Sceptre));
 
     REQUIRE(frapperEnEntier(personnage, pointCible({300.0f, 100.0f}), generateur) == 0);
@@ -115,7 +115,7 @@ TEST_CASE("frapper renvoie 0 pour une cible hors de portee") {
 
 TEST_CASE("frapper renvoie de nouveau les degats apres une duree simulee genereuse") {
     Generateur generateur = generateurDeTest();
-    Personnage personnage({100.0f, 100.0f},
+    Personnage personnage = unPersonnage({100.0f, 100.0f},
                           definitionArmee(IdObjet::Sceptre));
     const TileMap carte = carteDegagee5x5();
     const Cercle cible = pointCible({150.0f, 100.0f});
@@ -126,14 +126,14 @@ TEST_CASE("frapper renvoie de nouveau les degats apres une duree simulee genereu
 }
 
 TEST_CASE("Un personnage est vivant a la creation") {
-    const Personnage personnage({100.0f, 100.0f},
+    const Personnage personnage = unPersonnage({100.0f, 100.0f},
                                 definitionArmee(IdObjet::Sceptre));
 
     REQUIRE(personnage.estVivant());
 }
 
 TEST_CASE("Un personnage est encore vivant apres des degats inferieurs a ses points de vie") {
-    Personnage personnage({100.0f, 100.0f},
+    Personnage personnage = unPersonnage({100.0f, 100.0f},
                           definitionArmee(IdObjet::Sceptre));
 
     subir(personnage, personnage.getPointsDeVieMax() - 20);
@@ -142,7 +142,7 @@ TEST_CASE("Un personnage est encore vivant apres des degats inferieurs a ses poi
 }
 
 TEST_CASE("Un personnage est mort apres autant de degats que ses points de vie") {
-    Personnage personnage({100.0f, 100.0f},
+    Personnage personnage = unPersonnage({100.0f, 100.0f},
                           definitionArmee(IdObjet::Sceptre));
 
     subir(personnage, personnage.getPointsDeVieMax());
@@ -151,14 +151,14 @@ TEST_CASE("Un personnage est mort apres autant de degats que ses points de vie")
 }
 
 TEST_CASE("getCentre renvoie le centre donne au constructeur") {
-    const Personnage personnage({100.0f, 100.0f},
+    const Personnage personnage = unPersonnage({100.0f, 100.0f},
                                 definitionArmee(IdObjet::Sceptre));
 
     REQUIRE(personnage.getCentre() == sf::Vector2f(100.0f, 100.0f));
 }
 
 TEST_CASE("getCercle renvoie un cercle centre sur le personnage, de rayon la moitie du cote") {
-    const Personnage personnage({100.0f, 100.0f},
+    const Personnage personnage = unPersonnage({100.0f, 100.0f},
                                 definitionArmee(IdObjet::Sceptre));
     const Cercle cercle = personnage.getCercle();
 
@@ -167,7 +167,7 @@ TEST_CASE("getCercle renvoie un cercle centre sur le personnage, de rayon la moi
 }
 
 TEST_CASE("getRayonVision renvoie le rayon donne au constructeur") {
-    const Personnage personnage({100.0f, 100.0f},
+    const Personnage personnage = unPersonnage({100.0f, 100.0f},
                                 {.couleur = sf::Color::White,
                                  .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = 123.0f, .caracteristiques = s_caracteristiquesDeTest});
 
@@ -177,7 +177,7 @@ TEST_CASE("getRayonVision renvoie le rayon donne au constructeur") {
 TEST_CASE("getZoneDeControle vient de l'arme : une attaque de contact engage, un projectile non, les mains nues engagent") {
     const Personnage epee = unPersonnageArme({100.0f, 100.0f}, IdObjet::EpeeLongue);
     const Personnage arc = unPersonnageArme({100.0f, 100.0f}, IdObjet::Arc);
-    const Personnage mainsNues({100.0f, 100.0f}, definitionSansArme());
+    const Personnage mainsNues = unPersonnage({100.0f, 100.0f}, definitionSansArme());
 
     REQUIRE(epee.getZoneDeControle() == zoneDeControleDe(NatureDAttaque::Contact));
     REQUIRE(epee.getZoneDeControle() > 0.0f);
@@ -186,7 +186,7 @@ TEST_CASE("getZoneDeControle vient de l'arme : une attaque de contact engage, un
 }
 
 TEST_CASE("changer d'arme change la zone de controle, la portee et l'attaque de base") {
-    Personnage personnage({100.0f, 100.0f}, capableDePorter(definitionArmee(IdObjet::EpeeLongue), {IdObjet::Arc}));
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, capableDePorter(definitionArmee(IdObjet::EpeeLongue), {IdObjet::Arc}));
     const DescriptionDAttaque epee = definitionObjet(IdObjet::EpeeLongue).arme.value().attaque;
     const DescriptionDAttaque arc = definitionObjet(IdObjet::Arc).arme.value().attaque;
     REQUIRE(personnage.getPorteeAttaqueDeBase() == epee.portee);
@@ -205,7 +205,7 @@ TEST_CASE("changer d'arme change la zone de controle, la portee et l'attaque de 
 
 TEST_CASE("changer d'arme relance une recharge complete tiree dans l'intervalle de la nouvelle arme") {
     Generateur generateur = generateurDeTest();
-    Personnage personnage({100.0f, 100.0f}, capableDePorter(definitionArmee(IdObjet::EpeeLongue), {IdObjet::EpeeADeuxMains}));
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, capableDePorter(definitionArmee(IdObjet::EpeeLongue), {IdObjet::EpeeADeuxMains}));
     const TileMap carte = carteDegagee5x5();
     const DescriptionDAttaque lente = definitionObjet(IdObjet::EpeeADeuxMains).arme.value().attaque;
     REQUIRE(personnage.engagerAttaque(1));  // une arme neuve est prête
@@ -252,14 +252,14 @@ TEST_CASE("un changement qui laisse l'arme intacte ne touche pas la recharge ni 
 }
 
 TEST_CASE("getPuissanceAttaqueDeBase renvoie les degats de l'attaque de base") {
-    const Personnage personnage({100.0f, 100.0f},
+    const Personnage personnage = unPersonnage({100.0f, 100.0f},
                                 definitionArmee(IdObjet::Sceptre));
 
     REQUIRE(personnage.getAttaqueDeBase().degats.total() == s_degatsBaseDeTest);
 }
 
 TEST_CASE("lire la puissance de l'attaque de base ne change ni le coup engage ni la recharge") {
-    Personnage personnage({100.0f, 100.0f},
+    Personnage personnage = unPersonnage({100.0f, 100.0f},
                           definitionArmee(IdObjet::Sceptre));
     Generateur generateur = generateurDeTest();
     REQUIRE(personnage.engagerAttaque(1));
@@ -273,7 +273,7 @@ TEST_CASE("lire la puissance de l'attaque de base ne change ni le coup engage ni
 }
 
 TEST_CASE("Un personnage est mort apres un coup qui depasse le reste de ses points de vie") {
-    Personnage personnage({100.0f, 100.0f},
+    Personnage personnage = unPersonnage({100.0f, 100.0f},
                           definitionArmee(IdObjet::Sceptre));
 
     subir(personnage, personnage.getPointsDeVieMax() - 20);  // reste 20 points de vie
@@ -284,7 +284,7 @@ TEST_CASE("Un personnage est mort apres un coup qui depasse le reste de ses poin
 
 TEST_CASE("Un personnage mort ne frappe plus") {
     Generateur generateur = generateurDeTest();
-    Personnage personnage({100.0f, 100.0f},
+    Personnage personnage = unPersonnage({100.0f, 100.0f},
                           definitionArmee(IdObjet::Sceptre));
     const Cercle cible = pointCible({150.0f, 100.0f});
 
@@ -294,7 +294,7 @@ TEST_CASE("Un personnage mort ne frappe plus") {
 }
 
 TEST_CASE("Un personnage mort ne bouge plus") {
-    Personnage personnage({100.0f, 100.0f},
+    Personnage personnage = unPersonnage({100.0f, 100.0f},
                           definitionArmee(IdObjet::Sceptre));
     const TileMap carte = carteDegagee5x5();
     const sf::Vector2f centreInitial = personnage.getCentre();
@@ -309,7 +309,7 @@ TEST_CASE("Un personnage mort ne bouge plus") {
 
 TEST_CASE("Lancer un skill rend sa puissance") {
     Generateur generateur = generateurDeTest();
-    Personnage personnage({100.0f, 100.0f},
+    Personnage personnage = unPersonnage({100.0f, 100.0f},
                           {.couleur = sf::Color::White,
                            .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
                            .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
@@ -319,7 +319,7 @@ TEST_CASE("Lancer un skill rend sa puissance") {
 
 TEST_CASE("Un personnage avec un skill de provocation en expose le type et le lance") {
     Generateur generateur = generateurDeTest();
-    Personnage personnage({100.0f, 100.0f},
+    Personnage personnage = unPersonnage({100.0f, 100.0f},
                           {.couleur = sf::Color::White,
                            .skills = {{IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .portee = 0.0f, .puissance = 4, .rechargeMin = 10.0f, .rechargeMax = 10.0f, .rayonZone = 150.0f, .nature = NatureDAttaque::Contact})}},
                            .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
@@ -331,11 +331,11 @@ TEST_CASE("Un personnage avec un skill de provocation en expose le type et le la
 }
 
 TEST_CASE("zoneDuSkill est centree sur le personnage, au rayon de zone du skill") {
-    Personnage provocateur({100.0f, 100.0f},
+    Personnage provocateur = unPersonnage({100.0f, 100.0f},
                            {.couleur = sf::Color::White,
                             .skills = {{IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .portee = 0.0f, .puissance = 4, .rechargeMin = 10.0f, .rechargeMax = 10.0f, .rayonZone = 150.0f, .nature = NatureDAttaque::Contact})}},
                             .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
-    Personnage sansSkill({100.0f, 100.0f},
+    Personnage sansSkill = unPersonnage({100.0f, 100.0f},
                          definitionArmee(IdObjet::Sceptre));
 
     REQUIRE(provocateur.zoneDuSkill(IdSkill::Provocation).centre == provocateur.getCentre());
@@ -345,7 +345,7 @@ TEST_CASE("zoneDuSkill est centree sur le personnage, au rayon de zone du skill"
 
 TEST_CASE("engagerSkill refuse un personnage sans skill, sans toucher a l'attaque de base") {
     Generateur generateur = generateurDeTest();
-    Personnage personnage({100.0f, 100.0f},
+    Personnage personnage = unPersonnage({100.0f, 100.0f},
                           definitionArmee(IdObjet::Sceptre));
     const Cercle cible = pointCible({150.0f, 100.0f});
 
@@ -354,7 +354,7 @@ TEST_CASE("engagerSkill refuse un personnage sans skill, sans toucher a l'attaqu
 }
 
 TEST_CASE("engagerSkill refuse un personnage mort") {
-    Personnage personnage({100.0f, 100.0f},
+    Personnage personnage = unPersonnage({100.0f, 100.0f},
                           {.couleur = sf::Color::White,
                            .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
                            .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
@@ -366,7 +366,7 @@ TEST_CASE("engagerSkill refuse un personnage mort") {
 
 TEST_CASE("skillEstAPortee mesure la portee du skill, sans toucher a l'attaque de base") {
     Generateur generateur = generateurDeTest();
-    Personnage personnage({100.0f, 100.0f},
+    Personnage personnage = unPersonnage({100.0f, 100.0f},
                           {.couleur = sf::Color::White,
                            .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
                            .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
@@ -378,7 +378,7 @@ TEST_CASE("skillEstAPortee mesure la portee du skill, sans toucher a l'attaque d
 
 TEST_CASE("Un skill ne peut pas etre relance pendant sa recharge, puis le peut une fois ecoulee") {
     Generateur generateur = generateurDeTest();
-    Personnage personnage({100.0f, 100.0f},
+    Personnage personnage = unPersonnage({100.0f, 100.0f},
                           {.couleur = sf::Color::White,
                            .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
                            .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
@@ -395,7 +395,7 @@ TEST_CASE("Un skill ne peut pas etre relance pendant sa recharge, puis le peut u
 
 TEST_CASE("Apres un skill reussi, l'attaque de base attend une recharge complete") {
     Generateur generateur = generateurDeTest();
-    Personnage personnage({100.0f, 100.0f},
+    Personnage personnage = unPersonnage({100.0f, 100.0f},
                           {.couleur = sf::Color::White,
                            .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
                            .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
@@ -417,7 +417,7 @@ TEST_CASE("Apres un skill reussi, l'attaque de base attend une recharge complete
 
 TEST_CASE("mettreAJour s'arrete avant d'entrer dans un obstacle") {
     const TileMap carte = carteDegagee5x5();
-    Personnage personnage({100.0f, 100.0f},
+    Personnage personnage = unPersonnage({100.0f, 100.0f},
                           definitionArmee(IdObjet::Sceptre));
     const std::vector<Cercle> obstacles = {{{140.0f, 100.0f}, 15.0f}};
 
@@ -434,7 +434,7 @@ TEST_CASE("mettreAJour s'arrete avant d'entrer dans un obstacle") {
 }
 
 TEST_CASE("recevoirSoin rend des points de vie") {
-    Personnage personnage({100.0f, 100.0f},
+    Personnage personnage = unPersonnage({100.0f, 100.0f},
                           definitionArmee(IdObjet::Sceptre));
     subir(personnage, 50);
 
@@ -444,11 +444,11 @@ TEST_CASE("recevoirSoin rend des points de vie") {
 }
 
 TEST_CASE("recevoirDegats applique l'armure du personnage") {
-    Personnage melee({100.0f, 100.0f},
+    Personnage melee = unPersonnage({100.0f, 100.0f},
                      {.couleur = sf::Color::White,
                       .equipementDeDepart = s_equipementMeleeDeTest, .rayonVision = s_rayonVisionDeTest,
                        .caracteristiques = caracteristiquesPourPorter(s_equipementMeleeDeTest)});
-    Personnage tireur({100.0f, 100.0f},
+    Personnage tireur = unPersonnage({100.0f, 100.0f},
                       definitionArmee(IdObjet::Sceptre));
 
     subir(melee, 10);
@@ -460,7 +460,7 @@ TEST_CASE("recevoirDegats applique l'armure du personnage") {
 }
 
 TEST_CASE("recevoirSoin n'est pas reduit par l'armure") {
-    Personnage personnage({100.0f, 100.0f},
+    Personnage personnage = unPersonnage({100.0f, 100.0f},
                           {.couleur = sf::Color::White,
                            .equipementDeDepart = s_equipementMeleeDeTest, .rayonVision = s_rayonVisionDeTest,
                        .caracteristiques = caracteristiquesPourPorter(s_equipementMeleeDeTest)});
@@ -474,7 +474,7 @@ TEST_CASE("recevoirSoin n'est pas reduit par l'armure") {
 }
 
 TEST_CASE("recevoirSoin ne depasse pas le maximum") {
-    Personnage personnage({100.0f, 100.0f},
+    Personnage personnage = unPersonnage({100.0f, 100.0f},
                           definitionArmee(IdObjet::Sceptre));
     subir(personnage, 10);
 
@@ -484,7 +484,7 @@ TEST_CASE("recevoirSoin ne depasse pas le maximum") {
 }
 
 TEST_CASE("recevoirSoin est sans effet sur un mort") {
-    Personnage personnage({100.0f, 100.0f},
+    Personnage personnage = unPersonnage({100.0f, 100.0f},
                           definitionArmee(IdObjet::Sceptre));
     subir(personnage, personnage.getPointsDeVieMax());
 
@@ -496,7 +496,7 @@ TEST_CASE("recevoirSoin est sans effet sur un mort") {
 
 TEST_CASE("En terrain degage, le personnage avance en ligne droite de vitesse * dt") {
     const TileMap carte = carteDegagee5x5();
-    Personnage personnage({60.0f, 60.0f},
+    Personnage personnage = unPersonnage({60.0f, 60.0f},
                           definitionArmee(IdObjet::Sceptre));
 
     // La vitesse n'est pas injectable : le premier tic la mesure (vitesse * dt), les suivants
@@ -519,7 +519,7 @@ TEST_CASE("Un personnage separe de sa cible par un mur avec une ouverture finit 
                          "#.....#",
                          "#######"},
                         40.0f);
-    Personnage personnage({60.0f, 60.0f},
+    Personnage personnage = unPersonnage({60.0f, 60.0f},
                           definitionArmee(IdObjet::Sceptre));
     const sf::Vector2f cible{220.0f, 60.0f};
 
@@ -534,7 +534,7 @@ TEST_CASE("Sans aucun chemin possible, le personnage ne plante pas et reste bloq
                          "#.#.#",
                          "#####"},
                         40.0f);
-    Personnage personnage({60.0f, 60.0f},
+    Personnage personnage = unPersonnage({60.0f, 60.0f},
                           definitionArmee(IdObjet::Sceptre));
 
     ecoulerTemps(personnage, carte, {140.0f, 60.0f}, 2.0f);
@@ -557,7 +557,7 @@ TileMap deuxPiecesAvecPorte() {
 
 TEST_CASE("Une cible qui bouge de moins d'une case ne fait pas recalculer le chemin") {
     const TileMap carte = deuxPiecesAvecPorte();
-    Personnage personnage({60.0f, 60.0f},
+    Personnage personnage = unPersonnage({60.0f, 60.0f},
                           definitionArmee(IdObjet::Sceptre));
 
     ecoulerTemps(personnage, carte, {220.0f, 60.0f}, 0.2f);
@@ -571,7 +571,7 @@ TEST_CASE("Une cible qui bouge de moins d'une case ne fait pas recalculer le che
 
 TEST_CASE("Une cible qui bouge de plus d'une case fait recalculer le chemin") {
     const TileMap carte = deuxPiecesAvecPorte();
-    Personnage personnage({60.0f, 60.0f},
+    Personnage personnage = unPersonnage({60.0f, 60.0f},
                           definitionArmee(IdObjet::Sceptre));
 
     ecoulerTemps(personnage, carte, {220.0f, 60.0f}, 0.2f);
@@ -584,7 +584,7 @@ TEST_CASE("Une cible qui bouge de plus d'une case fait recalculer le chemin") {
 
 TEST_CASE("Quand le trajet direct redevient libre, le chemin en cours est abandonne") {
     const TileMap carte = deuxPiecesAvecPorte();
-    Personnage personnage({60.0f, 60.0f},
+    Personnage personnage = unPersonnage({60.0f, 60.0f},
                           definitionArmee(IdObjet::Sceptre));
 
     ecoulerTemps(personnage, carte, {220.0f, 60.0f}, 0.2f);
@@ -600,7 +600,7 @@ TEST_CASE("Quand le trajet direct redevient libre, le chemin en cours est abando
 namespace {
 
 Personnage personnageAvecExecution() {
-    return Personnage({100.0f, 100.0f},
+    return unPersonnage({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
                        .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
                        .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
@@ -654,7 +654,7 @@ TEST_CASE("avancerAttaque rend les degats une seule fois, a la fin de l'executio
 
 TEST_CASE("l'attaque de base d'un personnage porte sa capacite offensive") {
     Generateur generateur = generateurDeTest();
-    Personnage rodeur({100.0f, 100.0f},
+    Personnage rodeur = unPersonnage({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
                        .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest,
                        .caracteristiques = Caracteristiques({10, 10, 14, 8, 11})});  // 11 de Volonté : le sceptre est actif
@@ -670,7 +670,7 @@ TEST_CASE("l'attaque de base d'un personnage porte sa capacite offensive") {
 
 TEST_CASE("l'attaque d'un personnage porte la nature de son attaque de base, celle d'un skill la sienne") {
     Generateur generateur = generateurDeTest();
-    Personnage tireur({100.0f, 100.0f},
+    Personnage tireur = unPersonnage({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
                        .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 20.0f, .puissance = 7,
                                                                     .rechargeMin = 1.0f, .rechargeMax = 1.0f, .nature = NatureDAttaque::Contact})}},
@@ -723,7 +723,7 @@ TEST_CASE("Engager un skill annule le coup en execution") {
 namespace {
 
 Personnage personnageAvecActivation() {
-    return Personnage({100.0f, 100.0f},
+    return unPersonnage({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
                        .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .tempsExecution = 0.3f, .nature = NatureDAttaque::Contact})}},
                        .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
@@ -815,7 +815,7 @@ TEST_CASE("Au depart du skill, l'attaque de base repart pour une recharge comple
 
 TEST_CASE("mettreAJour garde la ligne droite en terrain degage meme avec un obstacle a contourner loin du trajet") {
     const TileMap carte = carteDegagee10x10();
-    Personnage personnage({60.0f, 60.0f},
+    Personnage personnage = unPersonnage({60.0f, 60.0f},
                           definitionArmee(IdObjet::Sceptre));
     const std::vector<Cercle> loin = {{{180.0f, 200.0f}, 15.0f}};
 
@@ -826,7 +826,7 @@ TEST_CASE("mettreAJour garde la ligne droite en terrain degage meme avec un obst
 
 TEST_CASE("mettreAJour contourne un obstacle a contourner place sur la ligne droite") {
     const TileMap carte = carteDegagee10x10();
-    Personnage personnage({60.0f, 60.0f},
+    Personnage personnage = unPersonnage({60.0f, 60.0f},
                           definitionArmee(IdObjet::Sceptre));
     const std::vector<Cercle> obstacle = {{{180.0f, 60.0f}, 15.0f}};
 
@@ -844,7 +844,7 @@ TEST_CASE("mettreAJour recalcule son chemin quand il est bloque") {
     // Mur sur la colonne 5, avec deux ouvertures d'une case : lignes 2 (y de 80 à 120) et 8.
     const TileMap carte({".....#....", ".....#....", "..........", ".....#....", ".....#....",
                          ".....#....", ".....#....", ".....#....", "..........", ".....#...."}, 40.0f);
-    Personnage personnage({60.0f, 200.0f},
+    Personnage personnage = unPersonnage({60.0f, 200.0f},
                           definitionArmee(IdObjet::Sceptre));
     const sf::Vector2f cible{340.0f, 100.0f};
     // Un obstacle qui bouche l'ouverture de la ligne 2, que le premier chemin ignore (aContourner vide au départ).
@@ -864,7 +864,7 @@ TEST_CASE("mettreAJour recalcule son chemin quand il est bloque") {
 
 TEST_CASE("mettreAJour sans obstacle a contourner reste bloque contre un obstacle bloquant") {
     const TileMap carte = carteDegagee10x10();
-    Personnage personnage({60.0f, 60.0f},
+    Personnage personnage = unPersonnage({60.0f, 60.0f},
                           definitionArmee(IdObjet::Sceptre));
     const std::vector<Cercle> obstacle = {{{180.0f, 60.0f}, 15.0f}};
 
@@ -881,7 +881,7 @@ TEST_CASE("mettreAJour sans obstacle a contourner reste bloque contre un obstacl
 namespace {
 
 Personnage personnageAvecDeuxSkills() {
-    return Personnage({100.0f, 100.0f},
+    return unPersonnage({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
                        .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .tempsExecution = 0.3f, .nature = NatureDAttaque::Contact})}, {IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .portee = 0.0f, .puissance = 4, .rechargeMin = 10.0f, .rechargeMax = 10.0f, .rayonZone = 150.0f, .tempsExecution = 0.2f, .nature = NatureDAttaque::Contact})}},
                        .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
@@ -958,11 +958,11 @@ TEST_CASE("annulerSkill annule le skill engage sans consommer sa recharge, l'aut
 }
 
 TEST_CASE("recevoirDegats renvoie les degats subis apres armure") {
-    Personnage melee({100.0f, 100.0f},
+    Personnage melee = unPersonnage({100.0f, 100.0f},
                      {.couleur = sf::Color::White,
                       .equipementDeDepart = s_equipementMeleeDeTest, .rayonVision = s_rayonVisionDeTest,
                        .caracteristiques = caracteristiquesPourPorter(s_equipementMeleeDeTest)});
-    Personnage tireur({100.0f, 100.0f},
+    Personnage tireur = unPersonnage({100.0f, 100.0f},
                       definitionArmee(IdObjet::Sceptre));
 
     REQUIRE(subir(melee, 10) == appliquerArmure(10, s_armureMeleeDeTest));
@@ -970,7 +970,7 @@ TEST_CASE("recevoirDegats renvoie les degats subis apres armure") {
 }
 
 TEST_CASE("recevoirDegats sur un mort renvoie zero") {
-    Personnage personnage({100.0f, 100.0f},
+    Personnage personnage = unPersonnage({100.0f, 100.0f},
                           definitionArmee(IdObjet::Sceptre));
     subir(personnage, personnage.getPointsDeVieMax());
 
@@ -978,7 +978,7 @@ TEST_CASE("recevoirDegats sur un mort renvoie zero") {
 }
 
 TEST_CASE("recevoirSoin renvoie les points reellement rendus") {
-    Personnage personnage({100.0f, 100.0f},
+    Personnage personnage = unPersonnage({100.0f, 100.0f},
                           definitionArmee(IdObjet::Sceptre));
     subir(personnage, 10);
 
@@ -987,7 +987,7 @@ TEST_CASE("recevoirSoin renvoie les points reellement rendus") {
 }
 
 TEST_CASE("recevoirSoin sur un mort renvoie zero") {
-    Personnage personnage({100.0f, 100.0f},
+    Personnage personnage = unPersonnage({100.0f, 100.0f},
                           definitionArmee(IdObjet::Sceptre));
     subir(personnage, personnage.getPointsDeVieMax());
 
@@ -996,11 +996,11 @@ TEST_CASE("recevoirSoin sur un mort renvoie zero") {
 
 TEST_CASE("l'armure du personnage est celle de son equipement de depart") {
     const std::vector<ObjetDeDepart> casqueSeul = {{Emplacement::Tete, IdObjet::CasqueDeFer}};
-    Personnage casque({100.0f, 100.0f},
+    Personnage casque = unPersonnage({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
                        .equipementDeDepart = casqueSeul, .rayonVision = s_rayonVisionDeTest,
                        .caracteristiques = caracteristiquesPourPorter(casqueSeul)});
-    Personnage nu({100.0f, 100.0f},
+    Personnage nu = unPersonnage({100.0f, 100.0f},
                   definitionArmee(IdObjet::Sceptre));
 
     REQUIRE(subir(casque, 40) == appliquerArmure(40, definitionObjet(IdObjet::CasqueDeFer).armure));
@@ -1010,7 +1010,7 @@ TEST_CASE("l'armure du personnage est celle de son equipement de depart") {
 TEST_CASE("l'armure du personnage additionne tous les objets de depart") {
     const std::vector<ObjetDeDepart> depart = {{Emplacement::Tete, IdObjet::CasqueDeFer},
                                                {Emplacement::Torse, IdObjet::CuirasseDeMailles}};
-    Personnage equipe({100.0f, 100.0f},
+    Personnage equipe = unPersonnage({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
                        .equipementDeDepart = depart, .rayonVision = s_rayonVisionDeTest,
                        .caracteristiques = caracteristiquesPourPorter(depart)});
@@ -1020,7 +1020,7 @@ TEST_CASE("l'armure du personnage additionne tous les objets de depart") {
 
 TEST_CASE("les caracteristiques effectives d'un personnage sont celles de sa definition") {
     const Caracteristiques base({12, 14, 10, 6, 8});
-    const Personnage personnage({100.0f, 100.0f},
+    const Personnage personnage = unPersonnage({100.0f, 100.0f},
                                 {.couleur = sf::Color::White,
                                  .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest,
                                  .caracteristiques = base});
@@ -1029,7 +1029,7 @@ TEST_CASE("les caracteristiques effectives d'un personnage sont celles de sa def
 }
 
 TEST_CASE("les statistiques de combat d'un personnage viennent de son Adresse") {
-    const Personnage rodeur({100.0f, 100.0f},
+    const Personnage rodeur = unPersonnage({100.0f, 100.0f},
                             {.couleur = sf::Color::White,
                              .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest,
                              .caracteristiques = Caracteristiques({10, 10, 14, 8, 8})});
@@ -1041,7 +1041,7 @@ TEST_CASE("les statistiques de combat d'un personnage viennent de son Adresse") 
 
 namespace {
 Personnage unPersonnageSansEsquive() {
-    return Personnage({100.0f, 100.0f},
+    return unPersonnage({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
                        .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest,
                        .caracteristiques = Caracteristiques({10, 12, 10, 10, 11})});  // Endurance pour le bouclier, Volonté pour le sceptre
@@ -1066,7 +1066,7 @@ TEST_CASE("l'esquive d'un personnage vient de son equipement, recalculee a chaqu
 }
 
 TEST_CASE("un equipement de depart qui donne de l'esquive compte des la construction") {
-    const Personnage personnage({100.0f, 100.0f},
+    const Personnage personnage = unPersonnage({100.0f, 100.0f},
                                 {.couleur = sf::Color::White,
                                  .equipementDeDepart = {{Emplacement::Bottes, IdObjet::BottesDeCuir}},
                                  .rayonVision = s_rayonVisionDeTest});
@@ -1088,7 +1088,7 @@ TEST_CASE("le bouclier rond donne au personnage sa chance de blocage et son mont
 
 TEST_CASE("un personnage au bouclier : apres un blocage, plus aucun pendant 3 s, puis de nouveau") {
     // Endurance énorme : il encaisse les centaines de coups de 1 point sans mourir.
-    Personnage personnage({100.0f, 100.0f}, avecEnduranceEnorme(definitionArmee()));
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, avecEnduranceEnorme(definitionArmee()));
     static_cast<void>(personnage.poserEquipement(Emplacement::MainGauche, {IdObjet::BouclierRond}));
     const TileMap carte = carteDegagee5x5();
     Generateur generateur = generateurDeTest();
@@ -1115,7 +1115,7 @@ TEST_CASE("un personnage au bouclier : apres un blocage, plus aucun pendant 3 s,
 }
 
 TEST_CASE("un personnage qui esquive ne perd aucun point de vie") {
-    Personnage personnage({100.0f, 100.0f}, avecEnduranceEnorme(definitionArmee()));
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, avecEnduranceEnorme(definitionArmee()));
     static_cast<void>(personnage.poserEquipement(Emplacement::Bottes, {IdObjet::BottesDeCuir}));
     Generateur generateur = generateurDeTest();
     const Attaque attaque{.degats = degatsPhysiques(10), .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
@@ -1134,7 +1134,7 @@ TEST_CASE("un personnage qui esquive ne perd aucun point de vie") {
 
 TEST_CASE("les points de vie maximum d'un personnage viennent de la base commune et de son Endurance") {
     const Caracteristiques base({12, 14, 10, 6, 8});
-    const Personnage personnage({100.0f, 100.0f},
+    const Personnage personnage = unPersonnage({100.0f, 100.0f},
                                 {.couleur = sf::Color::White,
                                  .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest,
                                  .caracteristiques = base});
@@ -1145,7 +1145,7 @@ TEST_CASE("les points de vie maximum d'un personnage viennent de la base commune
 
 namespace {
 Personnage unPersonnageAvecCaracteristiques(const Caracteristiques& base) {
-    return Personnage({100.0f, 100.0f},
+    return unPersonnage({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
                        .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest,
                        .caracteristiques = base});
@@ -1170,7 +1170,7 @@ TEST_CASE("les caracteristiques effectives sont la base plus les bonus de l'equi
 
 TEST_CASE("un equipement de depart qui donne des caracteristiques compte des la construction") {
     const Caracteristiques base({12, 14, 10, 6, 8});
-    const Personnage personnage({100.0f, 100.0f},
+    const Personnage personnage = unPersonnage({100.0f, 100.0f},
                                 {.couleur = sf::Color::White,
                                  .equipementDeDepart = {{Emplacement::Collier, IdObjet::CollierDEndurance}},
                                  .rayonVision = s_rayonVisionDeTest,
@@ -1220,7 +1220,7 @@ namespace {
 // Un personnage dont l'attaque de base et un skill de dégâts profitent de la Puissance.
 Personnage unPersonnageDePuissance(const Caracteristiques& base) {
     const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
-    return Personnage({100.0f, 100.0f},
+    return unPersonnage({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
                        .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 250, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .coefficients = puissance, .nature = NatureDAttaque::Contact})},
                                   {IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .portee = 0.0f, .puissance = 4, .rechargeMin = 10.0f, .rechargeMax = 10.0f, .rayonZone = 150.0f, .nature = NatureDAttaque::Contact})}},
@@ -1278,7 +1278,7 @@ namespace {
 Personnage unPersonnageAuSkillExigeant(std::optional<IdObjet> arme) {
     DefinitionPersonnage definition = arme.has_value() ? definitionArmee(*arme) : definitionSansArme();
     definition.skills = {{IdSkill::FrappePuissante, skillExigeantDesArmes({TypeDArme::EpeeLongue, TypeDArme::Masse})}};
-    return Personnage({100.0f, 100.0f}, std::move(definition));
+    return unPersonnage({100.0f, 100.0f}, std::move(definition));
 }
 }  // namespace
 
@@ -1310,7 +1310,7 @@ TEST_CASE("un skill qui exige une arme est refuse avec une autre arme ou aux mai
 TEST_CASE("un skill sans exigence reste utilisable aux mains nues") {
     DefinitionPersonnage definition = definitionSansArme();
     definition.skills = {{IdSkill::FrappePuissante, skillExigeantDesArmes({})}};
-    const Personnage personnage({100.0f, 100.0f}, std::move(definition));
+    const Personnage personnage = unPersonnage({100.0f, 100.0f}, std::move(definition));
 
     REQUIRE(personnage.skillEstPret(IdSkill::FrappePuissante));
     REQUIRE_FALSE(personnage.etatDuSkill(IdSkill::FrappePuissante)->armeAbsente);
@@ -1355,7 +1355,7 @@ TEST_CASE("changer pour une autre arme qui convient laisse le skill en activatio
 
 // Objets inactifs (étape 92.2).
 TEST_CASE("une arme dont le seuil n'est pas atteint reste portee mais le personnage frappe aux mains nues") {
-    Personnage personnage({100.0f, 100.0f},
+    Personnage personnage = unPersonnage({100.0f, 100.0f},
                           avecCaracteristique(definitionArmee(IdObjet::EpeeLongue), Caracteristique::Puissance, 5));  // sous les 11 exigés
 
     REQUIRE(personnage.getEquipement().a(Emplacement::MainDroite) == Objet{IdObjet::EpeeLongue});
@@ -1366,7 +1366,7 @@ TEST_CASE("une arme dont le seuil n'est pas atteint reste portee mais le personn
 }
 
 TEST_CASE("retirer l'anneau de puissance rend l'epee inactive, le remettre la remet en service") {
-    Personnage personnage({100.0f, 100.0f},
+    Personnage personnage = unPersonnage({100.0f, 100.0f},
                           avecCaracteristique(definitionArmee(IdObjet::EpeeLongue), Caracteristique::Puissance, 9));
     REQUIRE_FALSE(personnage.getEquipementActif().a(Emplacement::MainDroite).has_value());
 
@@ -1385,14 +1385,14 @@ TEST_CASE("retirer l'anneau de puissance rend l'epee inactive, le remettre la re
 
 TEST_CASE("une armure ou un bouclier inactif ne donne ni armure ni blocage") {
     const std::vector<ObjetDeDepart> lourd = {{Emplacement::Torse, IdObjet::CuirasseDeMailles}, {Emplacement::MainGauche, IdObjet::BouclierRond}};
-    Personnage nu({100.0f, 100.0f}, {.couleur = sf::Color::White, .equipementDeDepart = lourd, .rayonVision = s_rayonVisionDeTest});  // Endurance 0
-    Personnage fort({100.0f, 100.0f}, {.couleur = sf::Color::White, .equipementDeDepart = lourd, .rayonVision = s_rayonVisionDeTest,
+    Personnage nu = unPersonnage({100.0f, 100.0f}, {.couleur = sf::Color::White, .equipementDeDepart = lourd, .rayonVision = s_rayonVisionDeTest});  // Endurance 0
+    Personnage fort = unPersonnage({100.0f, 100.0f}, {.couleur = sf::Color::White, .equipementDeDepart = lourd, .rayonVision = s_rayonVisionDeTest,
                                        .caracteristiques = caracteristiquesPourPorter(lourd)});
 
     // L'armure sans le bouclier (qui bloquerait au hasard) ; le blocage se lit dans les statistiques.
     const std::vector<ObjetDeDepart> cuirasse = {{Emplacement::Torse, IdObjet::CuirasseDeMailles}};
-    Personnage cuirasseSansForce({100.0f, 100.0f}, {.couleur = sf::Color::White, .equipementDeDepart = cuirasse, .rayonVision = s_rayonVisionDeTest});
-    Personnage cuirasseAvecForce({100.0f, 100.0f}, {.couleur = sf::Color::White, .equipementDeDepart = cuirasse, .rayonVision = s_rayonVisionDeTest,
+    Personnage cuirasseSansForce = unPersonnage({100.0f, 100.0f}, {.couleur = sf::Color::White, .equipementDeDepart = cuirasse, .rayonVision = s_rayonVisionDeTest});
+    Personnage cuirasseAvecForce = unPersonnage({100.0f, 100.0f}, {.couleur = sf::Color::White, .equipementDeDepart = cuirasse, .rayonVision = s_rayonVisionDeTest,
                                                     .caracteristiques = caracteristiquesPourPorter(cuirasse)});
 
     REQUIRE(subir(cuirasseSansForce, 40) == 40);
@@ -1405,14 +1405,14 @@ TEST_CASE("une armure ou un bouclier inactif ne donne ni armure ni blocage") {
 TEST_CASE("une arme inactive ne permet pas les skills qui l'exigent") {
     DefinitionPersonnage definition = avecCaracteristique(definitionArmee(IdObjet::EpeeLongue), Caracteristique::Puissance, 5);
     definition.skills = {{IdSkill::FrappePuissante, skillExigeantDesArmes({TypeDArme::EpeeLongue})}};
-    const Personnage personnage({100.0f, 100.0f}, std::move(definition));
+    const Personnage personnage = unPersonnage({100.0f, 100.0f}, std::move(definition));
 
     REQUIRE_FALSE(personnage.skillEstPret(IdSkill::FrappePuissante));
     REQUIRE(personnage.etatDuSkill(IdSkill::FrappePuissante)->armeAbsente);
 }
 
 TEST_CASE("un bonus d'objet actif compte dans les points de vie maximum") {
-    Personnage personnage({100.0f, 100.0f}, definitionSansArme());
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, definitionSansArme());
     const int avant = personnage.getPointsDeVieMax();
 
     static_cast<void>(personnage.poserEquipement(Emplacement::Collier, {IdObjet::CollierDEndurance}));
@@ -1424,8 +1424,8 @@ TEST_CASE("un bonus d'objet actif compte dans les points de vie maximum") {
 TEST_CASE("l'attaque de base d'une dague porte sa penetration, celle d'une epee non, celle d'un skill jamais") {
     DefinitionPersonnage definition = capableDePorter(definitionArmee(IdObjet::Dague), {IdObjet::Dague});
     definition.skills = {{IdSkill::FrappePuissante, skillExigeantDesArmes({})}};
-    Personnage dague({100.0f, 100.0f}, definition);
-    Personnage epee({100.0f, 100.0f}, definitionArmee(IdObjet::EpeeLongue));
+    Personnage dague = unPersonnage({100.0f, 100.0f}, definition);
+    Personnage epee = unPersonnage({100.0f, 100.0f}, definitionArmee(IdObjet::EpeeLongue));
     Generateur generateur = generateurDeTest();
 
     REQUIRE(dague.getAttaqueDeBase().penetration == definitionObjet(IdObjet::Dague).arme->attaque.penetration);
@@ -1439,7 +1439,7 @@ TEST_CASE("l'attaque de base d'une dague porte sa penetration, celle d'une epee 
 }
 
 TEST_CASE("changer pour une dague donne la penetration, la retirer la reprend") {
-    Personnage personnage({100.0f, 100.0f}, capableDePorter(definitionArmee(IdObjet::EpeeLongue), {IdObjet::Dague}));
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, capableDePorter(definitionArmee(IdObjet::EpeeLongue), {IdObjet::Dague}));
     REQUIRE(personnage.getAttaqueDeBase().penetration == 0);
 
     static_cast<void>(personnage.poserEquipement(Emplacement::MainDroite, {IdObjet::Dague}));
@@ -1452,7 +1452,7 @@ TEST_CASE("changer pour une dague donne la penetration, la retirer la reprend") 
 TEST_CASE("l'attaque d'un skill range son montant dans le champ de son type, les autres restent a zero") {
     Generateur generateur = generateurDeTest();
     const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
-    Personnage personnage({100.0f, 100.0f},
+    Personnage personnage = unPersonnage({100.0f, 100.0f},
                           {.couleur = sf::Color::White,
                            .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})},
                                       {IdSkill::Soin, Skill({.type = TypeSkill::Soin, .portee = 80.0f, .puissance = 90, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .coefficients = puissance, .nature = NatureDAttaque::Contact})},
@@ -1479,7 +1479,7 @@ TEST_CASE("l'attaque d'un skill range son montant dans le champ de son type, les
 TEST_CASE("l'attaque d'un skill de zone de feu porte toute sa puissance dans la portion de feu") {
     Generateur generateur = generateurDeTest();
     const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
-    Personnage personnage({100.0f, 100.0f},
+    Personnage personnage = unPersonnage({100.0f, 100.0f},
                           {.couleur = sf::Color::White,
                            .skills = {{IdSkill::Explosion, Skill({.type = TypeSkill::Zone, .portee = 200.0f, .puissance = 40, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .rayonZone = 60.0f, .coefficients = puissance, .nature = NatureDAttaque::Zone, .element = Element::Feu})},
                                       {IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
@@ -1499,7 +1499,7 @@ TEST_CASE("l'attaque d'un skill de zone de feu porte toute sa puissance dans la 
 TEST_CASE("l'attaque de base et la Puissance : toutes les portions profitent de la Puissance") {
     Generateur generateur = generateurDeTest();
     const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
-    Personnage fort({100.0f, 100.0f},
+    Personnage fort = unPersonnage({100.0f, 100.0f},
                     {.couleur = sf::Color::White,
                      .skills = {{IdSkill::Explosion, Skill({.type = TypeSkill::Zone, .portee = 200.0f, .puissance = 100, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .rayonZone = 60.0f, .coefficients = puissance, .nature = NatureDAttaque::Zone, .element = Element::Feu})}},
                      .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest,
@@ -1515,7 +1515,7 @@ namespace {
 // Un personnage dont l'unique skill est un skill de frappe de test (bonus de feu 10, puissance 0) qui accepte ces armes.
 Personnage unPersonnageDeFrappe(IdObjet arme, std::vector<TypeDArme> armes) {
     const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
-    return Personnage({100.0f, 100.0f},
+    return unPersonnage({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
                        .skills = {{IdSkill::FrappeSacree, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 0, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .coefficients = puissance, .nature = NatureDAttaque::Contact, .armesExigees = std::move(armes), .bonusDeFrappe = degatsDe(Element::Feu, 10)})}},
                        .equipementDeDepart = {{Emplacement::MainDroite, arme}}, .rayonVision = s_rayonVisionDeTest,

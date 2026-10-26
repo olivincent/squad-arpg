@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <utility>
 #include "escouade/Escouade.hpp"
-#include "objets/CatalogueObjets.hpp"
 
 namespace {
 // Les constantes du mélangeur « splitmix64 » : un mélange de bits connu, qui fait d'entiers voisins des entiers sans rapport.
@@ -24,22 +23,16 @@ Expedition nouvelleExpedition(std::vector<DefinitionPersonnage> composition, Gen
         definition.equipementDeDepart.clear();
         expedition.membres.push_back({std::move(definition), equipement});
     }
-    for (const Objet& objet : sacDeDepart()) {
-        [[maybe_unused]] const bool range = expedition.sac.ajouter(objet);
-        assert(range);  // le sac de départ tient dans le sac
-    }
     return expedition;
 }
 
-std::vector<DefinitionPersonnage> compositionDeLExpedition(const Expedition& expedition) {
-    std::vector<DefinitionPersonnage> composition;
-    composition.reserve(expedition.membres.size());
+std::vector<MembreDEscouade> compositionDeLExpedition(const Expedition& expedition) {
+    std::vector<MembreDEscouade> membres;
+    membres.reserve(expedition.membres.size());
     for (const MembreDExpedition& membre : expedition.membres) {
-        DefinitionPersonnage definition = membre.definition;
-        definition.equipementPorte = membre.equipement;
-        composition.push_back(std::move(definition));
+        membres.push_back({membre.definition, membre.equipement});
     }
-    return composition;
+    return membres;
 }
 
 Generateur::result_type graineDEtage(Generateur::result_type graineDExpedition, int profondeur) {

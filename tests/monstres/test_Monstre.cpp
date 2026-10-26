@@ -8,6 +8,7 @@
 #include "base/Cercle.hpp"
 #include "combat/Blocage.hpp"
 #include "combat/Defense.hpp"
+#include "combat/Element.hpp"
 #include "combat/StatistiquesDeCombat.hpp"
 #include "monstres/Monstre.hpp"
 #include "monde/TileMap.hpp"
@@ -158,7 +159,7 @@ TEST_CASE("un monstre a une zone de controle de 20 px et l'attaque de sa definit
     const Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(20));
 
     REQUIRE(monstre.getZoneDeControle() == 20.0f);
-    REQUIRE(monstre.getAttaque().degats.total() == definitionDeMonstre(CategorieDeMonstre::Infanterie).attaque.puissance);
+    REQUIRE(monstre.getAttaque().degats.total() == definitionDeMonstre(CategorieDeMonstre::Infanterie).degats.total());
 }
 
 TEST_CASE("un monstre prend toutes ses valeurs de sa definition") {
@@ -167,7 +168,7 @@ TEST_CASE("un monstre prend toutes ses valeurs de sa definition") {
     definition.pointsDeVieMax = 300;
     definition.armure = 40;
     definition.zoneDeControle = 35.0f;
-    definition.attaque.puissance = 77;
+    definition.degats = degatsPhysiques(77);
     definition.statistiques = {.capaciteOffensive = 130, .capaciteDefensive = 90};
     Monstre monstre({100.0f, 100.0f}, 1, 0, definition);
 
@@ -184,7 +185,7 @@ TEST_CASE("l'attaque d'un monstre porte la capacite offensive de sa definition")
     definition.statistiques.capaciteOffensive = 130;
     const Monstre monstre({100.0f, 100.0f}, 1, 0, definition);
 
-    REQUIRE(monstre.getAttaque().degats.total() == definition.attaque.puissance);
+    REQUIRE(monstre.getAttaque().degats.total() == definition.degats.total());
     REQUIRE(monstre.getAttaque().capaciteOffensive == 130);
 }
 
@@ -270,4 +271,14 @@ TEST_CASE("Monstre.recevoirDegats sur un monstre mort renvoie zero") {
     subir(monstre, monstre.getPointsDeVie());
 
     REQUIRE(subir(monstre, 10) == 0);
+}
+
+TEST_CASE("l'attaque d'un monstre porte toutes les portions de sa definition") {
+    DefinitionDeMonstre definition = definitionDeMonstre(CategorieDeMonstre::Infanterie);
+    definition.degats = {};
+    definition.degats[Element::Physique] = 12;
+    definition.degats[Element::Feu] = 8;
+    const Monstre monstre({100.0f, 100.0f}, 1, 0, definition);
+
+    REQUIRE(monstre.getAttaque().degats == definition.degats);
 }

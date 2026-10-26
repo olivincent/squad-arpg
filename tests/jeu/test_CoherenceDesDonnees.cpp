@@ -34,7 +34,7 @@ TEST_CASE("chaque definition de monstre est valide") {
         REQUIRE(definition.vitesse > 0.0f);
         REQUIRE(definition.pointsDeVieMax > 0);
         REQUIRE(definition.armure >= 0);
-        REQUIRE(definition.attaque.puissance > 0);
+        REQUIRE(definition.degats.total() > 0);
         REQUIRE(definition.attaque.rechargeMin > 0.0f);
         REQUIRE(definition.attaque.rechargeMin <= definition.attaque.rechargeMax);
         REQUIRE(definition.attaque.tempsExecution >= 0.0f);
@@ -137,14 +137,6 @@ TEST_CASE("les parametres du generateur portent les compositions du jeu") {
 
     REQUIRE(parametres.compositions.size() == compositionsOrdinaires().size());
     REQUIRE(parametres.compositionDeLaSalleLaPlusLoin.has_value());
-}
-
-TEST_CASE("le sac de depart est fait d'objets communs valides") {
-    for (const Objet& objet : sacDeDepart()) {
-        INFO(nomDeLObjet(objet));
-        REQUIRE(objetValide(objet));
-        REQUIRE(objet.rarete == Rarete::Commun);
-    }
 }
 
 TEST_CASE("la plage de valeurs de chaque affixe est positive et ordonnee") {

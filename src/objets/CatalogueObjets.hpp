@@ -54,6 +54,3 @@ struct DefinitionObjet {
 
 // L'attaque de base de qui ne porte aucune arme : les mains nues, qui ne sont pas un objet.
 [[nodiscard]] const DescriptionDAttaque& mainsNues();
-
-// Le contenu du sac au début d'une partie.
-[[nodiscard]] std::vector<Objet> sacDeDepart();

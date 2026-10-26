@@ -129,19 +129,6 @@ TEST_CASE("nomDeLObjet : prefixe, modele, suffixe") {
             "Reinforced Chain Mail of Evasion");
 }
 
-TEST_CASE("sacDeDepart : des objets du catalogue, dont au moins deux anneaux") {
-    const std::vector<Objet> sac = sacDeDepart();
-
-    REQUIRE_FALSE(sac.empty());
-    std::size_t anneaux = 0;
-    for (const Objet& objet : sac) {
-        if (definitionObjet(objet.modele).categorie == CategorieObjet::Anneau) {
-            ++anneaux;
-        }
-    }
-    REQUIRE(anneaux >= 2);
-}
-
 TEST_CASE("catalogueObjets : l'anneau de puissance donne de la Puissance, le collier d'endurance de l'Endurance") {
     const Caracteristiques& anneau = definitionObjet(IdObjet::AnneauDePuissance).bonus;
     const Caracteristiques& collier = definitionObjet(IdObjet::CollierDEndurance).bonus;
@@ -158,13 +145,6 @@ TEST_CASE("catalogueObjets : l'anneau de puissance donne de la Puissance, le col
             REQUIRE(collier.valeur(caracteristique) == 0);
         }
     }
-}
-
-TEST_CASE("sacDeDepart : contient l'anneau de puissance et le collier d'endurance") {
-    const std::vector<Objet> sac = sacDeDepart();
-
-    REQUIRE(std::ranges::find(sac, Objet{IdObjet::AnneauDePuissance}) != sac.end());
-    REQUIRE(std::ranges::find(sac, Objet{IdObjet::CollierDEndurance}) != sac.end());
 }
 
 TEST_CASE("catalogueObjets : les bottes de cuir donnent 5 % d'esquive contre le contact, le casque de cuir 5 % contre les projectiles") {

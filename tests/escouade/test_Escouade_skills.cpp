@@ -391,7 +391,7 @@ TEST_CASE("Lanceur occupe : sans verrou, une frappe en attente est abandonnee si
 
 TEST_CASE("Lanceur occupe : le paladin soigne apres sa frappe sacree") {
     Generateur generateur = generateurDeTest();
-    Escouade escouade({50.0f, 50.0f}, {paladinDeTest()});  // seul, devant : en (85, 60)
+    Escouade escouade = uneEscouadeDe({50.0f, 50.0f}, {paladinDeTest()});  // seul, devant : en (85, 60)
     const std::vector<EntiteVue> monstres = unSeulMonstre(cibleMonstre({110.0f, 60.0f}));
     subirCoup(escouade, 1, 1, 4 * s_puissanceImpositionDeTest);  // blessé (sans mourir) : il est la cible de son soin
     const int vieBlessee = *escouade.pointsDeVieDuPersonnage(1);
@@ -407,7 +407,7 @@ TEST_CASE("Lanceur occupe : le paladin soigne apres sa frappe sacree") {
 
 TEST_CASE("Lanceur occupe : le rodeur lance sa pluie de fleches apres son tir percant") {
     Generateur generateur = generateurDeTest();
-    Escouade escouade({50.0f, 50.0f}, {rodeurDeTest()});  // seul, derrière : en (35, 60)
+    Escouade escouade = uneEscouadeDe({50.0f, 50.0f}, {rodeurDeTest()});  // seul, derrière : en (35, 60)
     const std::vector<EntiteVue> monstres = unSeulMonstre(cibleMonstre({135.0f, 60.0f}));
 
     REQUIRE(escouade.declencherSkill(s_adresseTir, monstres, carteOuverte(), generateur).empty());
@@ -511,7 +511,7 @@ constexpr AdresseSkill s_provocationDuGuerrierReel{1, IdSkill::Provocation};
 
 Escouade unGuerrierReel() {
     // Capable de tout porter : les armes qu'on lui donne ne se heurtent pas à ses seuils.
-    return Escouade({50.0f, 50.0f}, {capableDeToutPorter(composer({IdSpecialite::Guerrier})[0])});
+    return uneEscouadeDe({50.0f, 50.0f}, {capableDeToutPorter(composer({IdSpecialite::Guerrier})[0])});
 }
 
 void retirerLArme(Escouade& escouade) {

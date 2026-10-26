@@ -261,7 +261,7 @@ TEST_CASE("chaque monstre du niveau recoit la definition de sa categorie") {
         const Monstre& monstre = partie.getMonstres()[i];
         REQUIRE(monstre.getPointsDeVie() == definition.pointsDeVieMax);
         REQUIRE(monstre.getCercle().rayon == definition.cote / 2.0f);
-        REQUIRE(monstre.getAttaque().degats.total() == definition.attaque.puissance);
+        REQUIRE(monstre.getAttaque().degats.total() == definition.degats.total());
         REQUIRE(monstre.getStatistiques() == definition.statistiques);
     }
 }
@@ -282,7 +282,7 @@ TEST_CASE("les monstres d'un etage profond sont renforces par la profondeur de l
         const Monstre& monstre = partie.getMonstres()[i];
         REQUIRE(monstre.getPointsDeVie() == renforcee.pointsDeVieMax);
         REQUIRE(monstre.getPointsDeVie() > definitionDeMonstre(s_categoriesDeMonstre[i]).pointsDeVieMax);
-        REQUIRE(monstre.getAttaque().degats.total() == renforcee.attaque.puissance);
+        REQUIRE(monstre.getAttaque().degats.total() == renforcee.degats.total());
         REQUIRE(monstre.getStatistiques() == renforcee.statistiques);
     }
 }

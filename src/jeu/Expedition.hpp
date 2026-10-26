@@ -31,12 +31,13 @@ struct Expedition {  // NOLINT(cppcoreguidelines-pro-type-member-init): la grain
 };
 
 // Une expédition qui commence : profondeur 1, chaque personnage dans l'état de sa définition (équipement de départ porté,
-// caractéristiques de sa classe), le sac de départ (`sacDeDepart`). `assert` : la composition n'est pas vide.
+// caractéristiques de sa classe), un sac vide. `assert` : la composition n'est pas vide.
 [[nodiscard]] Expedition nouvelleExpedition(std::vector<DefinitionPersonnage> composition, Generateur::result_type graine);
 
-// Les personnages à construire pour l'étage où l'expédition est : leur définition, avec les caractéristiques et l'équipement
-// qu'elle garde. Un personnage construit ainsi est à pleine vie, vivant, à sa place de formation : la vie ne se garde pas.
-[[nodiscard]] std::vector<DefinitionPersonnage> compositionDeLExpedition(const Expedition& expedition);
+// Les personnages à construire pour l'étage où l'expédition est : leur définition, avec les caractéristiques qu'elle garde, et
+// l'équipement qu'elle garde. Un personnage construit ainsi est à pleine vie, vivant, à sa place de formation : la vie ne se
+// garde pas. C'est l'unique chemin vers l'`Escouade` : l'équipement de départ des recettes n'est lu que par `nouvelleExpedition`.
+[[nodiscard]] std::vector<MembreDEscouade> compositionDeLExpedition(const Expedition& expedition);
 
 // La graine de l'étage de cette profondeur : une fonction pure de la graine de l'expédition et de la profondeur. La même
 // expédition donne donc les mêmes cartes, quels que soient les combats, et chaque profondeur a la sienne.

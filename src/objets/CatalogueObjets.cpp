@@ -180,10 +180,3 @@ bool estADeuxMains(IdObjet id) {
     const std::optional<DonneesDArme>& arme = definitionObjet(id).arme;
     return arme.has_value() && arme->mains == 2;
 }
-
-std::vector<Objet> sacDeDepart() {
-    return {{IdObjet::GantsDeCuir},         {IdObjet::BottesDeCuir},         {IdObjet::CasqueDeCuir},
-            {IdObjet::TuniqueMatelassee},   {IdObjet::CollierDeProtection},  {IdObjet::AnneauDeProtection},
-            {IdObjet::AnneauDeProtection}, {IdObjet::AnneauDePuissance},     {IdObjet::CollierDEndurance},
-            {IdObjet::Dague},               {IdObjet::EpeeADeuxMains}};
-}

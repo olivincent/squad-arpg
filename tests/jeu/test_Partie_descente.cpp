@@ -84,7 +84,6 @@ TEST_CASE("descente : l'etage suivant a la profondeur suivante et garde l'equipe
     Partie partie(niveauAvecEscalier({{s_coinLointain, 0}}), expedition, s_graineDeTest, catalogueDeTest(monstreSansHasard()));
     Escouade& escouade = partie.getEscouade();
     // Un sac et un équipement qui ont bougé pendant l'étage.
-    viderLeSac(escouade);
     REQUIRE(escouade.ramasser(Objet{IdObjet::GantsDeCuir}));
     REQUIRE(escouade.deplacerObjet(PositionDansLeSac{0}, PositionDansLeSac{17}));
     REQUIRE(escouade.ramasser(Objet{IdObjet::GantsDeCuir}));

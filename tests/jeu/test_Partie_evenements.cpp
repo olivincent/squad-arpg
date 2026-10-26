@@ -377,7 +377,7 @@ TEST_CASE("evenements : un blocage partiel donne les degats puis Bloque, puis ri
         for (std::size_t k = 0; k < surLeGuerrier.size(); ++k) {
             if (const Bloque* bloque = std::get_if<Bloque>(&surLeGuerrier[k].detail)) {
                 // Le monstre frappe plus fort que ce que le bouclier absorbe : il ne l'absorbe jamais en entier.
-                REQUIRE(bouclier.montantBloque < monstre.attaque.puissance);
+                REQUIRE(bouclier.montantBloque < monstre.degats.total());
                 REQUIRE(bloque->montant == bouclier.montantBloque);
                 REQUIRE_FALSE(bloque->total);
                 REQUIRE(k > 0);  // les dégâts du reste viennent juste avant, donc le texte du blocage est au-dessus

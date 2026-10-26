@@ -17,7 +17,7 @@ const Coefficients s_puissance = Coefficients::seul(Caracteristique::Puissance, 
 
 // Un personnage avec cette Puissance (relevée au besoin pour porter l'arme), qui porte cet objet en main droite.
 Personnage armeDe(const Objet& arme, int puissance) {
-    Personnage personnage({100.0f, 100.0f}, capableDePorter(avecPuissance(definitionArmee(IdObjet::Masse), puissance), {arme.modele}));
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, capableDePorter(avecPuissance(definitionArmee(IdObjet::Masse), puissance), {arme.modele}));
     static_cast<void>(personnage.poserEquipement(Emplacement::MainDroite, arme));
     return personnage;
 }
@@ -65,7 +65,7 @@ TEST_CASE("le suffixe de Dexterite d'un arc entre dans les caracteristiques du p
 }
 
 TEST_CASE("changer pour une arme a affixes refait l'attaque de base, un anneau a affixes ne la refait pas") {
-    Personnage personnage({100.0f, 100.0f}, capableDePorter(definitionArmee(IdObjet::Masse), {IdObjet::Masse}));
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, capableDePorter(definitionArmee(IdObjet::Masse), {IdObjet::Masse}));
     REQUIRE(personnage.engagerAttaque(1));  // une arme neuve est prête
     personnage.annulerAttaque();
 

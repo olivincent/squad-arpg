@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "aides.hpp"
+#include "aides_escouade.hpp"
 #include "combat/Autodefense.hpp"
 #include "combat/EntiteVue.hpp"
 #include "escouade/Personnage.hpp"
@@ -17,7 +18,7 @@ namespace {
 // Personnage en (0, 0), rayon 10, portée 20 px bord à bord (celle de l'épée longue, que l'aide vérifie) : un cercle
 // de rayon 15 est à portée si son centre est à 45 px ou moins.
 Personnage personnageDePortee20() {
-    Personnage personnage({0.0f, 0.0f},
+    Personnage personnage = unPersonnage({0.0f, 0.0f},
                           {.couleur = sf::Color::Red,
                            .equipementDeDepart = {{Emplacement::MainDroite, IdObjet::EpeeLongue}},
                            .rayonVision = s_rayonVisionDeTest});

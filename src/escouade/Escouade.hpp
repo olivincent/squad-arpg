@@ -44,11 +44,12 @@ class Escouade {
 public:
     static constexpr std::size_t s_capaciteDuSac = 40;  // cases du sac de l'escouade
 
-    // `composition` : un personnage par définition, aux places 1 à N dans l'ordre (assert : non vide). Le sac est vide.
-    Escouade(sf::Vector2f positionDepart, std::vector<DefinitionPersonnage> composition);
+    // `membres` : un personnage par membre (sa définition et son équipement), aux places 1 à N dans l'ordre (assert : non
+    // vide). Le sac est vide.
+    Escouade(sf::Vector2f positionDepart, std::vector<MembreDEscouade> membres);
     // Avec ce sac, tel quel (ses objets restent à leur case) : celui d'une expédition qui continue (`jeu/Expedition`).
     // `assert` : sa capacité est `s_capaciteDuSac`.
-    Escouade(sf::Vector2f positionDepart, std::vector<DefinitionPersonnage> composition, Inventaire sac);
+    Escouade(sf::Vector2f positionDepart, std::vector<MembreDEscouade> membres, Inventaire sac);
     // `afficherAncre` faux : le carré vert de l'ancre n'est pas dessiné (débogage).
     void dessiner(sf::RenderTarget& rendu, bool afficherAncre) const;
     void allerVers(sf::Vector2f destination, const TileMap& carte);

@@ -2,7 +2,6 @@
 #pragma once
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/System/Vector2.hpp>
-#include <optional>
 #include <vector>
 #include "combat/Caracteristiques.hpp"
 #include "combat/Skill.hpp"
@@ -17,13 +16,19 @@ enum class Rang { Avant, Arriere };
 struct DefinitionPersonnage {
     sf::Color couleur;
     std::vector<SkillConnu> skills = {};
-    std::vector<ObjetDeDepart> equipementDeDepart = {};  // son armure, son attaque de base (son arme) et sa zone de contrôle en viennent
+    // Sa recette d'équipement : des noms de modèles, lue une seule fois, par `nouvelleExpedition`, qui la convertit en
+    // `Equipement`. Ni `Personnage` ni `Escouade` ne la lisent : ils reçoivent l'`Equipement` (`MembreDEscouade`).
+    std::vector<ObjetDeDepart> equipementDeDepart = {};
     float rayonVision;
     Caracteristiques caracteristiques = {};  // la base de sa classe ; l'équipement s'y ajoute (ses points de vie en viennent : `pointsDeVieMax`)
     Rang rang = Rang::Avant;
-    // Un équipement déjà constitué, objets complets (rareté, affixes) : celui qu'un personnage d'expédition garde d'un étage
-    // à l'autre. S'il est présent, il remplace `equipementDeDepart`, qui est alors ignoré.
-    std::optional<Equipement> equipementPorte = {};
+};
+
+// Un personnage à construire : sa définition et ce qu'il porte (objets complets : rareté, affixes). L'équipement a une seule
+// source, l'expédition ; son armure, son attaque de base (son arme) et sa zone de contrôle en viennent.
+struct MembreDEscouade {
+    DefinitionPersonnage definition;
+    Equipement equipement;
 };
 
 // Décalage de chaque personnage par rapport à l'ancre, pour une escouade orientée vers +x,

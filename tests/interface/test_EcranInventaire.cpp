@@ -37,9 +37,7 @@ sf::Vector2f centreDeLEmplacement(std::size_t place, Emplacement emplacement) {
 
 // Une partie sans monstre, avec l'escouade de test et un sac vide.
 Partie partieSansMonstre() {
-    Partie partie = unePartie(niveauDegage({}), s_graineDeTest);
-    viderLeSac(partie.getEscouade());
-    return partie;
+    return unePartie(niveauDegage({}), s_graineDeTest);
 }
 
 // La même, avec des gants de cuir dans la case 0 du sac.
@@ -56,7 +54,6 @@ Partie partieCapableDeToutPorter() {
         definition = capableDeToutPorter(std::move(definition));
     }
     Partie partie = partieDeTest(niveauDegage({}), std::move(composition));
-    viderLeSac(partie.getEscouade());
     return partie;
 }
 

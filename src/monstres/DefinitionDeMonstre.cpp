@@ -2,6 +2,7 @@
 #include "monstres/DefinitionDeMonstre.hpp"
 #include <cassert>
 #include <cstddef>
+#include "combat/Degats.hpp"
 #include "combat/Element.hpp"
 #include "combat/NatureDAttaque.hpp"
 #include "combat/TypeSkill.hpp"
@@ -78,9 +79,10 @@ DefinitionDeMonstre definitionDuProfil(const Profil& profil) {
             .rayonTerritoire = s_rayonTerritoire,
             .zoneDeControle = s_zoneDeControle,
             .regenerationRetour = s_regenerationRetour,
-            .attaque = {.type = TypeSkill::DegatsSurCible, .portee = s_porteeAttaque, .puissance = profil.degats,
+            .attaque = {.type = TypeSkill::DegatsSurCible, .portee = s_porteeAttaque, .puissance = 0,
                         .rechargeMin = profil.rechargeMin, .rechargeMax = profil.rechargeMax,
                         .tempsExecution = profil.execution, .nature = NatureDAttaque::Contact},
+            .degats = degatsPhysiques(profil.degats),
             .statistiques = {.capaciteOffensive = profil.capaciteOffensive,
                              .capaciteDefensive = profil.capaciteDefensive,
                              .esquiveContact = profil.esquive, .esquiveProjectile = profil.esquive,
@@ -110,7 +112,9 @@ DefinitionDeMonstre renforcer(const DefinitionDeMonstre& definition, int profond
     const int etagesEnPlus = profondeur - 1;
     DefinitionDeMonstre renforcee = definition;
     renforcee.pointsDeVieMax = majoree(definition.pointsDeVieMax, s_pourcentDePointsDeVieParEtage * etagesEnPlus);
-    renforcee.attaque.puissance = majoree(definition.attaque.puissance, s_pourcentDeDegatsParEtage * etagesEnPlus);
+    for (const Element element : s_elements) {
+        renforcee.degats[element] = majoree(definition.degats[element], s_pourcentDeDegatsParEtage * etagesEnPlus);
+    }
     renforcee.statistiques.capaciteOffensive += s_capaciteParEtage * etagesEnPlus;
     renforcee.statistiques.capaciteDefensive += s_capaciteParEtage * etagesEnPlus;
     return renforcee;
