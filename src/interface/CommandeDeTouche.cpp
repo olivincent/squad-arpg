@@ -29,6 +29,9 @@ CommandeDeTouche commandePourTouche(sf::Keyboard::Scancode touche, bool finDePar
     if (touche == sf::Keyboard::Scan::F8) {
         return commande::DescendreDUnEtage{};
     }
+    if (touche == sf::Keyboard::Scan::F9) {
+        return commande::GagnerUnNiveau{};
+    }
     // Sur l'écran de fin, seul R compte : l'inventaire et les raccourcis sont ignorés.
     if (touche == sf::Keyboard::Scan::I && !finDePartie) {
         return commande::OuvrirInventaire{};

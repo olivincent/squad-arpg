@@ -295,9 +295,30 @@ void Partie::retirerLesMorts() {
 
 void Partie::monterSiLExperienceLeDonne() {
     const int niveau = niveauPour(m_expedition.experience);
-    if (niveau > m_escouade.getNiveau()) {
-        m_escouade.monterAuNiveau(niveau);
+    if (niveau <= m_escouade.getNiveau()) {
+        return;
     }
+    // Un événement par niveau gagné, puis tous les niveaux d'un coup : la base d'un personnage est une fonction de son niveau.
+    for (int atteint = m_escouade.getNiveau() + 1; atteint <= niveau; ++atteint) {
+        signaler(Camp::Escouade, s_idDeLEscouadeEntiere, m_escouade.getCentre(), NiveauAtteint{atteint});
+    }
+    m_escouade.monterAuNiveau(niveau);
+}
+
+int Partie::getExperience() const {
+    return m_expedition.experience;
+}
+
+int Partie::getNiveau() const {
+    return m_escouade.getNiveau();
+}
+
+void Partie::gagnerUnNiveau() {
+    if (estPerdue()) {
+        return;
+    }
+    m_expedition.experience += experienceManquante(m_expedition.experience);
+    monterSiLExperienceLeDonne();
 }
 
 void Partie::appliquer(const std::vector<Coup>& coups, bool opportunite) {
@@ -348,7 +369,8 @@ void Partie::signaler(Camp campCible, int idCible, sf::Vector2f position, Detail
                                                   [](const Provoque&) { return false; },
                                                   [](const Esquive&) { return false; },
                                                   [](const Bloque&) { return false; },
-                                                  [](const SacPlein&) { return false; }},
+                                                  [](const SacPlein&) { return false; },
+                                                  [](const NiveauAtteint&) { return false; }},
                                        detail);
     if (montantNul) {
         return;

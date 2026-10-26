@@ -4,12 +4,14 @@
 #include <cstddef>
 #include <optional>
 #include <set>
+#include <variant>
 #include <string>
 #include <vector>
 
 #include "aides.hpp"
 #include "aides_escouade.hpp"
 #include "combat/Caracteristiques.hpp"
+#include "combat/EvenementDeCombat.hpp"
 #include "combat/Progression.hpp"
 #include "jeu/Expedition.hpp"
 #include "jeu/ObjetAuSol.hpp"
@@ -138,6 +140,64 @@ TEST_CASE("niveau : plusieurs niveaux gagnes d'un coup sont tous appliques, a ch
     REQUIRE(apres.valeur(Caracteristique::Puissance) == avant->valeur(Caracteristique::Puissance) + 2);   // niveaux 2 et 4
     REQUIRE(apres.valeur(Caracteristique::Endurance) == avant->valeur(Caracteristique::Endurance) + 2);   // niveaux 3 et 5
     REQUIRE(*partie.getEscouade().pointsDeVieMaxDuPersonnage(1) == *vieMaxAvant + 2 * s_pvParPointDEndurance + 4 * s_pvParNiveau);
+}
+
+namespace {
+// Les niveaux annoncés par les événements de montée de niveau.
+std::vector<int> niveauxAnnonces(const std::vector<EvenementDeCombat>& evenements) {
+    std::vector<int> niveaux;
+    for (const EvenementDeCombat& evenement : evenements) {
+        if (const auto* atteint = std::get_if<NiveauAtteint>(&evenement.detail)) {
+            REQUIRE(evenement.campCible == Camp::Escouade);
+            REQUIRE(evenement.idCible == 0);  // l'escouade entière
+            niveaux.push_back(atteint->niveau);
+        }
+    }
+    return niveaux;
+}
+}  // namespace
+
+TEST_CASE("niveau : un evenement par niveau gagne, dans l'ordre, y compris quand plusieurs viennent d'un coup") {
+    Partie partie = partieAvecExperience(experiencePourAtteindre(5));
+
+    toutTuer(partie);
+
+    REQUIRE(niveauxAnnonces(partie.prendreEvenements()) == std::vector<int>{2, 3, 4, 5});
+}
+
+TEST_CASE("niveau : aucun evenement quand l'experience ne donne pas de niveau") {
+    Partie partie = partieAvecExperience(experiencePourAtteindre(2) - 1);
+
+    toutTuer(partie);
+
+    REQUIRE(niveauxAnnonces(partie.prendreEvenements()).empty());
+}
+
+TEST_CASE("niveau : F9 fait gagner exactement un niveau, avec son evenement, et ainsi de suite") {
+    Partie partie = partieAvecExperience(1);
+    REQUIRE(partie.getNiveau() == 1);
+
+    partie.gagnerUnNiveau();
+    REQUIRE(partie.getNiveau() == 2);
+    REQUIRE(partie.getExperience() == experiencePourAtteindre(2));
+    REQUIRE(niveauxAnnonces(partie.prendreEvenements()) == std::vector<int>{2});
+
+    partie.gagnerUnNiveau();
+    REQUIRE(partie.getNiveau() == 3);
+    REQUIRE(partie.getExperience() == experiencePourAtteindre(3));
+    REQUIRE(niveauxAnnonces(partie.prendreEvenements()) == std::vector<int>{3});
+}
+
+TEST_CASE("niveau : F9 donne l'experience qui manque, pas plus, quand on est deja a mi-chemin") {
+    Expedition expedition = expeditionDeTest();
+    expedition.experience = experiencePourAtteindre(3) + 5;
+    Partie partie(salleAvecMonstres({}), expedition, s_graineDeTest, catalogueDeTest(monstreSansHasard()));
+    REQUIRE(partie.getNiveau() == 3);
+
+    partie.gagnerUnNiveau();
+
+    REQUIRE(partie.getNiveau() == 4);
+    REQUIRE(partie.getExperience() == experiencePourAtteindre(4));
 }
 
 TEST_CASE("niveau : la base d'un personnage ne vit que dans sa classe et l'experience, pas dans l'expedition") {

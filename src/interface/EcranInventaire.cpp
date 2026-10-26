@@ -25,6 +25,7 @@
 #include "escouade/Escouade.hpp"
 #include "interface/AffichageCaracteristiques.hpp"
 #include "interface/AffichageStatistiques.hpp"
+#include "interface/AffichageNiveau.hpp"
 #include "interface/AffichageObjets.hpp"
 #include "interface/Contexte.hpp"
 #include "interface/DispositionInventaire.hpp"
@@ -38,6 +39,8 @@ constexpr unsigned char s_opaciteVoile = 170;
 constexpr float s_epaisseurContour = 2.0f;
 constexpr unsigned int s_tailleTitre = 36;
 constexpr float s_hauteurTitre = 10.0f;  // du haut du panneau
+constexpr unsigned int s_tailleNiveau = 22;
+constexpr float s_margeDuNiveau = 16.0f;  // entre le texte du niveau et le bord droit du panneau
 constexpr unsigned int s_tailleEnTete = 18;
 constexpr unsigned int s_tailleArmure = 16;
 constexpr unsigned int s_tailleCaracteristique = 14;
@@ -371,6 +374,10 @@ void EcranInventaire::dessiner(const Contexte& contexte) const {
     titre.setOrigin({limites.position.x + limites.size.x / 2.0f, limites.position.y});
     titre.setPosition({vue.centre.x, zonePanneau.position.y + s_hauteurTitre});
     fenetre.draw(titre);
+    sf::Text niveau = texte(contexte.police, ligneDeNiveau(m_escouade.getNiveau()), s_tailleNiveau, sf::Color::White);
+    niveau.setOrigin({niveau.getLocalBounds().position.x + niveau.getLocalBounds().size.x, niveau.getLocalBounds().position.y});
+    niveau.setPosition({zonePanneau.position.x + zonePanneau.size.x - s_margeDuNiveau, zonePanneau.position.y + s_hauteurTitre});
+    fenetre.draw(niveau);
 
     for (std::size_t place = 1; place <= s_nombreDePlaces; ++place) {
         dessinerColonne(fenetre, contexte.police, m_escouade, place, m_nomsDesClasses[place - 1], tailleVue);

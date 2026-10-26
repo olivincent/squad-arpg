@@ -69,3 +69,27 @@ TEST_CASE("croissanceAuNiveau : chaque niveau gagne exactement un point, dans la
         REQUIRE(croissance.valeur(Caracteristique::Volonte) == 0);
     }
 }
+
+// La barre d'expérience et F9 (étape 99.5).
+TEST_CASE("progressionVersLeNiveauSuivant : 0 juste au seuil, la moitie au milieu, jamais 1") {
+    for (int niveau = 1; niveau <= 20; ++niveau) {
+        const int debut = experiencePourAtteindre(niveau);
+        const int fin = experiencePourAtteindre(niveau + 1);
+        INFO("niveau " << niveau);
+        REQUIRE(progressionVersLeNiveauSuivant(debut) == 0.0f);
+        REQUIRE(progressionVersLeNiveauSuivant(fin - 1) < 1.0f);
+        REQUIRE(progressionVersLeNiveauSuivant(fin - 1) > 0.0f);
+    }
+    REQUIRE(progressionVersLeNiveauSuivant(experiencePourAtteindre(2) / 2) == 0.5f);
+}
+
+TEST_CASE("experienceManquante : de quoi atteindre exactement le niveau suivant, au moins 1") {
+    REQUIRE(experienceManquante(0) == experiencePourAtteindre(2));
+    for (int experience = 0; experience < 3000; experience += 7) {
+        const int manquante = experienceManquante(experience);
+        REQUIRE(manquante >= 1);
+        REQUIRE(niveauPour(experience + manquante) == niveauPour(experience) + 1);
+        REQUIRE(niveauPour(experience + manquante - 1) == niveauPour(experience));
+        REQUIRE(experience + manquante == experiencePourAtteindre(niveauPour(experience) + 1));
+    }
+}

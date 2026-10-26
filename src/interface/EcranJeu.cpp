@@ -3,6 +3,7 @@
 
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Font.hpp>
+#include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/Text.hpp>
@@ -10,6 +11,7 @@
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Mouse.hpp>
+#include <algorithm>
 #include <cstddef>
 #include <array>
 #include <memory>
@@ -25,6 +27,8 @@
 #include "interface/BarreDeRaccourcis.hpp"
 #include "interface/BarreDeSkills.hpp"
 #include "escouade/Specialite.hpp"
+#include "combat/Progression.hpp"
+#include "interface/AffichageNiveau.hpp"
 #include "interface/AffichageObjetsAuSol.hpp"
 #include "interface/AffichageProfondeur.hpp"
 #include "interface/ClicInterface.hpp"
@@ -61,21 +65,50 @@ Partie nouvellePartie(std::random_device& tirage, const std::vector<IdSpecialite
 constexpr unsigned int s_tailleCompteur = 22;
 constexpr float s_margeCompteur = 16.0f;
 constexpr std::size_t s_objetsParF7 = 4;  // F7 (débogage) : combien d'objets tirés au hasard
+constexpr float s_ecartDansLEnTete = 24.0f;            // entre « Depth » et « Level », en pixels
+constexpr float s_largeurBarreDExperience = 110.0f;    // en pixels
+constexpr float s_hauteurBarreDExperience = 8.0f;
+const sf::Color s_couleurFondDeLaBarreDExperience(30, 30, 30, 200);
+const sf::Color s_couleurDeLaBarreDExperience(120, 220, 255);  // le bleu clair de « Level up! »
 
-// « Depth 2 / 5 » puis « Monsters: N » dans le coin haut gauche, en coordonnées de la fenêtre
-// (à appeler avec la vue par défaut). Contour noir pour rester lisible sur la carte.
-void dessinerEnTete(sf::RenderTarget& rendu, const sf::Font& police, int profondeur, int restants) {
-    const std::array<std::string, 2> lignes = {ligneDeProfondeur(profondeur), "Monsters: " + std::to_string(restants)};
-    float y = s_margeCompteur;
-    for (const std::string& ligne : lignes) {
-        sf::Text texte(police, ligne, s_tailleCompteur);
-        texte.setFillColor(sf::Color::White);
-        texte.setOutlineColor(sf::Color::Black);
-        texte.setOutlineThickness(2.0f);
-        texte.setPosition({s_margeCompteur, y});
-        rendu.draw(texte);
-        y += police.getLineSpacing(s_tailleCompteur);
-    }
+// Un texte de l'en-tête, contour noir pour rester lisible sur la carte.
+sf::Text texteDeLEnTete(const sf::Font& police, const std::string& ligne, sf::Vector2f position) {
+    sf::Text texte(police, ligne, s_tailleCompteur);
+    texte.setFillColor(sf::Color::White);
+    texte.setOutlineColor(sf::Color::Black);
+    texte.setOutlineThickness(2.0f);
+    texte.setPosition(position);
+    return texte;
+}
+
+// La barre d'expérience : un fond sombre et un remplissage proportionnel à la progression vers le niveau suivant (de 0 à 1),
+// centrée sur la hauteur de la ligne de texte qui la précède.
+void dessinerLaBarreDExperience(sf::RenderTarget& rendu, sf::Vector2f coinHautGauche, float progression) {
+    sf::RectangleShape fond({s_largeurBarreDExperience, s_hauteurBarreDExperience});
+    fond.setPosition(coinHautGauche);
+    fond.setFillColor(s_couleurFondDeLaBarreDExperience);
+    fond.setOutlineColor(sf::Color::Black);
+    fond.setOutlineThickness(1.0f);
+    rendu.draw(fond);
+    sf::RectangleShape remplissage({s_largeurBarreDExperience * std::clamp(progression, 0.0f, 1.0f), s_hauteurBarreDExperience});
+    remplissage.setPosition(coinHautGauche);
+    remplissage.setFillColor(s_couleurDeLaBarreDExperience);
+    rendu.draw(remplissage);
+}
+
+// « Depth 2 / 5 », « Level N » et sa barre d'expérience sur la première ligne, puis « Monsters: N » dessous, dans le coin haut
+// gauche, en coordonnées de la fenêtre (à appeler avec la vue par défaut).
+void dessinerEnTete(sf::RenderTarget& rendu, const sf::Font& police, const Partie& partie) {
+    const float interligne = police.getLineSpacing(s_tailleCompteur);
+    const sf::Text profondeur = texteDeLEnTete(police, ligneDeProfondeur(partie.getProfondeur()), {s_margeCompteur, s_margeCompteur});
+    rendu.draw(profondeur);
+    const float xNiveau = s_margeCompteur + profondeur.getGlobalBounds().size.x + s_ecartDansLEnTete;
+    const sf::Text niveau = texteDeLEnTete(police, ligneDeNiveau(partie.getNiveau()), {xNiveau, s_margeCompteur});
+    rendu.draw(niveau);
+    const float xBarre = xNiveau + niveau.getGlobalBounds().size.x + s_ecartDansLEnTete / 2.0f;
+    dessinerLaBarreDExperience(rendu, {xBarre, s_margeCompteur + (interligne - s_hauteurBarreDExperience) / 2.0f},
+                               progressionVersLeNiveauSuivant(partie.getExperience()));
+    rendu.draw(texteDeLEnTete(police, "Monsters: " + std::to_string(partie.monstresRestants()), {s_margeCompteur, s_margeCompteur + interligne}));
 }
 
 }  // namespace
@@ -185,6 +218,10 @@ Transition EcranJeu::executer(const CommandeDeTouche& commande) {
                 m_partie.forcerLaDescente();  // la descente se fait à la fin de l'image (mettreAJour)
                 return Aucune{};
             },
+            [this](commande::GagnerUnNiveau) -> Transition {
+                m_partie.gagnerUnNiveau();
+                return Aucune{};
+            },
             [this](commande::ActiverEmplacement activer) -> Transition {
                 m_controleur.activerEmplacement(m_partie, m_barre, activer.emplacement);
                 return Aucune{};
@@ -239,7 +276,7 @@ void EcranJeu::dessiner(const Contexte& contexte) const {
     dessinerBarreDeSkills(fenetre, contexte.police,
                           iconesDeLaBarre(m_barre, m_partie.getEscouade(), contexte.reglages.touchesDesRaccourcis,
                                           m_controleur.getAdresseEnVisee()));
-    dessinerEnTete(fenetre, contexte.police, m_partie.getProfondeur(), m_partie.monstresRestants());
+    dessinerEnTete(fenetre, contexte.police, m_partie);
     if (m_partie.estPerdue()) {
         dessinerEcranDeFin(fenetre, contexte.police, "Defeat");
     } else if (m_partie.estGagnee()) {

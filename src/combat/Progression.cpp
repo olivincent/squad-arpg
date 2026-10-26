@@ -17,6 +17,17 @@ Caracteristiques croissanceAuNiveau(int niveau, const PaireDeCroissance& paire) 
     return croissance;
 }
 
+float progressionVersLeNiveauSuivant(int experience) {
+    const int niveau = niveauPour(experience);
+    const int debut = experiencePourAtteindre(niveau);
+    const int fin = experiencePourAtteindre(niveau + 1);
+    return static_cast<float>(experience - debut) / static_cast<float>(fin - debut);
+}
+
+int experienceManquante(int experience) {
+    return experiencePourAtteindre(niveauPour(experience) + 1) - experience;
+}
+
 int niveauPour(int experience) {
     assert(experience >= 0);
     int niveau = 1;

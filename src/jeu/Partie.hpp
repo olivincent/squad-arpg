@@ -102,6 +102,13 @@ public:
     // partie est gagnée). Sans effet si l'escouade est vaincue.
     void forcerLaDescente();
 
+    // L'expérience totale de l'expédition, et le niveau de l'escouade (celui de chacun de ses personnages) : ce que l'en-tête montre.
+    [[nodiscard]] int getExperience() const;
+    [[nodiscard]] int getNiveau() const;
+    // Débogage (F9) : donne l'expérience qui manque pour le niveau suivant, donc exactement un niveau (`NiveauAtteint` est
+    // signalé). Sans effet si l'escouade est vaincue.
+    void gagnerUnNiveau();
+
     // Vrai quand tous les personnages sont morts.
     [[nodiscard]] bool estPerdue() const;
     // Vrai quand l'escouade a pris l'escalier du dernier étage (`s_profondeurMaximale`) ET que la partie n'est pas perdue

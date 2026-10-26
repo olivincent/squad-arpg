@@ -46,7 +46,12 @@ struct Bloque {
 // Le sac est plein : l'objet que l'escouade est venue ramasser reste au sol. Au-dessus de l'escouade entière : `idCible` vaut 0
 // (aucune place, qui vont de 1 à N) et `position` est celle de l'ancre.
 struct SacPlein {};
-using DetailEvenement = std::variant<DegatsSubis, Soin, SkillLance, Provoque, Esquive, Bloque, SacPlein>;
+// L'escouade vient d'atteindre ce niveau : un événement par niveau gagné (plusieurs d'un coup, un par niveau, dans l'ordre).
+// Au-dessus de l'escouade entière, comme `SacPlein` : `idCible` vaut 0 et `position` est celle de l'ancre.
+struct NiveauAtteint {
+    int niveau;
+};
+using DetailEvenement = std::variant<DegatsSubis, Soin, SkillLance, Provoque, Esquive, Bloque, SacPlein, NiveauAtteint>;
 
 // `position` : COPIE du centre de la cible à ce moment ; aucune référence vers l'entité, qui peut
 // disparaître dans la même image (monstre tué par ce coup).

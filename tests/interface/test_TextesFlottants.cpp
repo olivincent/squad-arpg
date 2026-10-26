@@ -294,3 +294,28 @@ TEST_CASE("le libelle d'un coup elementaire est le total, comme pour un coup phy
     REQUIRE(libelleDuTexte(degatsDeLElement(Element::Feu)) == "10");
     REQUIRE(libelleDuTexte(degatsDeLElement(Element::Sacre)) == libelleDuTexte(degatsDeLElement(Element::Physique)));
 }
+
+TEST_CASE("le texte du niveau atteint : Level up!, de 20 px, d'une couleur que les autres textes n'ont pas") {
+    const EvenementDeCombat niveauAtteint{Camp::Escouade, 0, {}, NiveauAtteint{3}};
+
+    REQUIRE(libelleDuTexte(niveauAtteint) == "Level up!");
+    REQUIRE(tailleDuTexte(niveauAtteint) == 20);
+    for (const EvenementDeCombat& autre :
+         {degatsSurUnMonstre(1), EvenementDeCombat{Camp::Escouade, 1, {}, DegatsSubis{10, false, false}},
+          EvenementDeCombat{Camp::Escouade, 2, {}, Soin{10, false}}, EvenementDeCombat{Camp::Monstres, 1, {}, Esquive{}},
+          EvenementDeCombat{Camp::Escouade, 1, {}, Bloque{40, false}}, EvenementDeCombat{Camp::Monstres, 1, {}, Provoque{}},
+          EvenementDeCombat{Camp::Escouade, 0, {}, SacPlein{}}}) {
+        REQUIRE(couleurDuTexte(niveauAtteint) != couleurDuTexte(autre));
+    }
+}
+
+TEST_CASE("le niveau atteint s'empile avec les autres textes de l'escouade entiere, comme Bag full") {
+    TextesFlottants textes;
+
+    textes.ajouter({Camp::Escouade, 0, {}, SacPlein{}});
+    textes.ajouter({Camp::Escouade, 0, {}, NiveauAtteint{2}});
+
+    REQUIRE(textes.actifs().size() == 2);
+    REQUIRE(textes.actifs()[0].rang == 0);
+    REQUIRE(textes.actifs()[1].rang == 1);
+}

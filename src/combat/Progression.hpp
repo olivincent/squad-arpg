@@ -11,6 +11,13 @@
 // niveau 3 à 4 à la fin du 1er étage, niveau 10 à 11 à la fin du 5e (`tests/jeu/test_CalibrageDeLExperience.cpp`).
 inline constexpr int s_experienceDeLaCourbe = 21;
 
+// Où en est cette expérience entre son niveau et le suivant, de 0 (juste arrivé) à moins de 1 (le niveau suivant est atteint à
+// 1) : pour la barre d'expérience. `assert` : expérience >= 0.
+[[nodiscard]] float progressionVersLeNiveauSuivant(int experience);
+
+// L'expérience qui manque pour atteindre le niveau suivant (toujours au moins 1). `assert` : expérience >= 0.
+[[nodiscard]] int experienceManquante(int experience);
+
 // L'expérience cumulée qu'il faut pour atteindre ce niveau. `assert` : niveau >= 1.
 [[nodiscard]] int experiencePourAtteindre(int niveau);
 

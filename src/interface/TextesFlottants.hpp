@@ -27,14 +27,15 @@ struct TexteFlottant {  // NOLINT(cppcoreguidelines-pro-type-member-init): champ
 [[nodiscard]] sf::Vector2f positionDuTexte(const TexteFlottant& texte);
 // Dégâts : « 12 » (suivi de « ! » pour un coup gratuit) ; soin : « +12 » ; l'un et l'autre suivis de
 // « Critique ! » pour un critique (« 12! Critique ! ») ; skill lancé : son nom ; provoqué : « Provoqué » ; esquive :
-// « Esquivé » ; blocage : « Bloqué » (total) ou « Bloqué −40 » (partiel, signe moins U+2212) ; sac plein : « Bag full » (UTF-8).
+// « Esquivé » ; blocage : « Bloqué » (total) ou « Bloqué −40 » (partiel, signe moins U+2212) ; sac plein : « Bag full » ; niveau atteint :
+// « Level up! » (UTF-8).
 [[nodiscard]] std::string libelleDuTexte(const EvenementDeCombat& evenement);
 // Dégâts critiques jaunes (même pour un coup gratuit), coup gratuit orange, puis la couleur de l'élément de la plus
 // grosse portion : feu orangé, sacré doré ; sinon (physique) dégâts sur un monstre blancs, sur un personnage rouges.
 // Soin vert (critique ou non), nom de skill jaune doré, « Provoqué » rouge orangé, « Esquivé » gris clair,
-// « Bloqué » gris, « Bag full » rose rouge.
+// « Bloqué » gris, « Bag full » rose rouge, « Level up! » bleu clair.
 [[nodiscard]] sf::Color couleurDuTexte(const EvenementDeCombat& evenement);
-// 18 px pour un critique (dégâts ou soin), 20 px pour un coup gratuit, 14 px pour un nom de skill, « Provoqué »,
+// 18 px pour un critique (dégâts ou soin), 20 px pour un coup gratuit ou « Level up! », 14 px pour un nom de skill, « Provoqué »,
 // « Esquivé », « Bloqué » ou « Bag full », 16 px sinon.
 [[nodiscard]] unsigned int tailleDuTexte(const EvenementDeCombat& evenement);
 
