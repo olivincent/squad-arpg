@@ -41,7 +41,7 @@ float distance(sf::Vector2f a, sf::Vector2f b) {
 
 // Avance jusqu'à ce que l'escalier soit pris, au plus `secondes`.
 void avancerJusquALaDescente(Partie& partie, float secondes) {
-    for (int i = 0; i < nombreDeTics(secondes) && !partie.aPrisLEscalier(); ++i) {
+    for (int i = 0; i < nombreDeTics(secondes) && !partie.doitDescendre(); ++i) {
         partie.mettreAJour(s_dureeTic);
     }
 }
@@ -74,15 +74,15 @@ TEST_CASE("escalier : l'escalier d'une case jamais vue ne se clique pas, une foi
 
 TEST_CASE("escalier : l'escouade marche jusqu'a l'escalier, et le prend quand l'ancre arrive") {
     Partie partie = partieAvecEscalier();
-    REQUIRE_FALSE(partie.aPrisLEscalier());
+    REQUIRE_FALSE(partie.doitDescendre());
     REQUIRE(partie.cliquer(centreDe(s_caseProche)) == ResultatClic::Escalier);
 
     partie.mettreAJour(s_dureeTic);
-    REQUIRE_FALSE(partie.aPrisLEscalier());  // l'ancre est à 180 px
+    REQUIRE_FALSE(partie.doitDescendre());  // l'ancre est à 180 px
 
     avancerJusquALaDescente(partie, 10.0f);
 
-    REQUIRE(partie.aPrisLEscalier());
+    REQUIRE(partie.doitDescendre());
     REQUIRE(distance(partie.getEscouade().getCentre(), centreDe(s_caseProche)) < s_distanceDeDescente);
 }
 
@@ -96,7 +96,7 @@ TEST_CASE("escalier : sans ordre, passer sur l'escalier ne le prend pas") {
     }
 
     REQUIRE(distance(partie.getEscouade().getCentre(), centreDe(s_caseProche)) < s_distanceDeDescente);
-    REQUIRE_FALSE(partie.aPrisLEscalier());
+    REQUIRE_FALSE(partie.doitDescendre());
 }
 
 TEST_CASE("escalier : un nouvel ordre au sol remplace la visee de l'escalier") {
@@ -109,7 +109,7 @@ TEST_CASE("escalier : un nouvel ordre au sol remplace la visee de l'escalier") {
     // jusqu'à l'escalier, sans le prendre, puisqu'on ne le lui demande plus.
     avancer(partie, nombreDeTics(8.0f));
 
-    REQUIRE_FALSE(partie.aPrisLEscalier());
+    REQUIRE_FALSE(partie.doitDescendre());
 }
 
 TEST_CASE("escalier : un ordre de deplacement (bouton tenu) remplace la visee de l'escalier") {
@@ -121,7 +121,7 @@ TEST_CASE("escalier : un ordre de deplacement (bouton tenu) remplace la visee de
         partie.mettreAJour(s_dureeTic);
     }
 
-    REQUIRE_FALSE(partie.aPrisLEscalier());
+    REQUIRE_FALSE(partie.doitDescendre());
     REQUIRE(distance(partie.getEscouade().getCentre(), centreDe(s_caseProche)) > s_distanceDeDescente);
 }
 
@@ -132,7 +132,7 @@ TEST_CASE("escalier : un clic sur un monstre remplace la visee de l'escalier") {
     REQUIRE(partie.cliquer({100.0f, 300.0f}) == ResultatClic::Monstre);
     avancer(partie, nombreDeTics(3.0f));
 
-    REQUIRE_FALSE(partie.aPrisLEscalier());
+    REQUIRE_FALSE(partie.doitDescendre());
 }
 
 TEST_CASE("escalier : avec un monstre sous le curseur, le clic vise le monstre et non l'escalier") {
@@ -143,7 +143,7 @@ TEST_CASE("escalier : avec un monstre sous le curseur, le clic vise le monstre e
     REQUIRE(partie.cliquer(centreDe(s_caseProche)) == ResultatClic::Monstre);
 
     avancer(partie, nombreDeTics(2.0f));
-    REQUIRE_FALSE(partie.aPrisLEscalier());
+    REQUIRE_FALSE(partie.doitDescendre());
 }
 
 TEST_CASE("escalier : avec un objet au sol sous le curseur, le clic vise l'objet et non l'escalier") {
@@ -162,7 +162,7 @@ TEST_CASE("escalier : avec un objet au sol sous le curseur, le clic vise l'objet
         partie.mettreAJour(s_dureeTic);
     }
     REQUIRE(partie.getSol().tous().size() == 48);
-    REQUIRE_FALSE(partie.aPrisLEscalier());
+    REQUIRE_FALSE(partie.doitDescendre());
 }
 
 TEST_CASE("escalier : on peut descendre en plein combat, sans avoir rien tue") {
@@ -173,7 +173,7 @@ TEST_CASE("escalier : on peut descendre en plein combat, sans avoir rien tue") {
     REQUIRE(partie.cliquer(centreDe(s_caseProche)) == ResultatClic::Escalier);
     avancerJusquALaDescente(partie, 10.0f);
 
-    REQUIRE(partie.aPrisLEscalier());
+    REQUIRE(partie.doitDescendre());
     REQUIRE(partie.monstresRestants() >= 1);  // le monstre du coin n'a pas été tué
 }
 

@@ -49,3 +49,9 @@ Generateur::result_type graineDEtage(Generateur::result_type graineDExpedition, 
     x ^= x >> s_decalageC;
     return static_cast<Generateur::result_type>(x);
 }
+
+Expedition etageSuivant(Expedition expedition) {
+    assert(expedition.profondeur < s_profondeurMaximale);
+    ++expedition.profondeur;
+    return expedition;
+}

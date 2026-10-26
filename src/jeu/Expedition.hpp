@@ -16,6 +16,9 @@ struct MembreDExpedition {
     Equipement equipement;
 };
 
+// La profondeur du dernier étage : prendre son escalier, c'est gagner l'expédition (« à tester »).
+inline constexpr int s_profondeurMaximale = 5;
+
 // Ce qui survit d'un étage à l'autre, et rien d'autre : la profondeur, la graine, les personnages (dans l'ordre des places) et
 // le sac commun. Aucune position, aucun combat, aucun monstre ni objet au sol : tout cela appartient à l'étage (`Partie`), qui
 // se reconstruit en entier à chaque descente. Une valeur : la copier donne une autre expédition. Elle grandira (expérience,
@@ -38,3 +41,7 @@ struct Expedition {  // NOLINT(cppcoreguidelines-pro-type-member-init): la grain
 // La graine de l'étage de cette profondeur : une fonction pure de la graine de l'expédition et de la profondeur. La même
 // expédition donne donc les mêmes cartes, quels que soient les combats, et chaque profondeur a la sienne.
 [[nodiscard]] Generateur::result_type graineDEtage(Generateur::result_type graineDExpedition, int profondeur);
+
+// L'expédition une fois l'escalier pris : la même, un étage plus bas (profondeur + 1). `assert` : ce n'était pas le dernier
+// étage (prendre son escalier gagne l'expédition, il n'y a rien dessous).
+[[nodiscard]] Expedition etageSuivant(Expedition expedition);

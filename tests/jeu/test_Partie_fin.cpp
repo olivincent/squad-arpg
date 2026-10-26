@@ -2,6 +2,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <optional>
+#include <utility>
 #include <vector>
 
 #include "aides.hpp"
@@ -9,6 +10,7 @@
 #include "base/Cercle.hpp"
 #include "monstres/DefinitionDeMonstre.hpp"
 #include "monstres/Monstre.hpp"
+#include "jeu/Expedition.hpp"
 #include "jeu/Partie.hpp"
 
 TEST_CASE("une fois l'escouade vaincue, les clics et les demandes sont sans effet") {
@@ -79,24 +81,24 @@ TEST_CASE("une partie perdue se fige") {
     }
 }
 
-TEST_CASE("estGagnee est faux tant qu'il reste des monstres") {
+TEST_CASE("estGagnee est faux au depart, monstres ou non") {
     Partie partie = unePartie(niveauDegage({{400.0f, 400.0f}}), s_graineDeTest);
 
     REQUIRE_FALSE(partie.estGagnee());
     REQUIRE(partie.monstresRestants() == 1);
 }
 
-TEST_CASE("estGagnee est vrai quand tous les monstres sont tues") {
+TEST_CASE("tuer tous les monstres ne gagne plus la partie : il faut prendre l'escalier du dernier etage") {
     Partie partie = unePartie(niveauDegage({{235.0f, 210.0f}}), s_graineDeTest);
     REQUIRE(partie.cliquer({235.0f, 210.0f}) == ResultatClic::Monstre);
 
-    for (int i = 0; i < 600 && !partie.estGagnee(); ++i) {
+    for (int i = 0; i < 600 && partie.monstresRestants() > 0; ++i) {
         partie.mettreAJour(s_dureeTic);
     }
 
-    REQUIRE(partie.estGagnee());
-    REQUIRE_FALSE(partie.estPerdue());
     REQUIRE(partie.monstresRestants() == 0);
+    REQUIRE_FALSE(partie.estGagnee());
+    REQUIRE_FALSE(partie.estPerdue());
 }
 
 TEST_CASE("une partie perdue n'est pas gagnee") {
@@ -109,10 +111,10 @@ TEST_CASE("une partie perdue n'est pas gagnee") {
     REQUIRE_FALSE(partie.estGagnee());
 }
 
-TEST_CASE("sans monstre au depart la partie est gagnee") {
+TEST_CASE("sans monstre au depart la partie n'est pas gagnee") {
     Partie partie = unePartie(niveauDegage({}), s_graineDeTest);
 
-    REQUIRE(partie.estGagnee());
+    REQUIRE_FALSE(partie.estGagnee());
     REQUIRE(partie.monstresRestants() == 0);
 }
 
@@ -129,10 +131,10 @@ TEST_CASE("le compteur de monstres baisse quand un monstre meurt") {
 }
 
 TEST_CASE("une partie gagnee se fige") {
-    Partie partie = unePartie(niveauDegage({{235.0f, 210.0f}}), s_graineDeTest);
-    for (int i = 0; i < 600 && !partie.estGagnee(); ++i) {
-        partie.mettreAJour(s_dureeTic);
-    }
+    Expedition expedition = expeditionDeTest();
+    expedition.profondeur = s_profondeurMaximale;
+    Partie partie(niveauDegage({{550.0f, 550.0f}}), std::move(expedition), s_graineDeTest, catalogueDeTest(monstreSansHasard()));
+    partie.forcerLaDescente();
     REQUIRE(partie.estGagnee());
 
     const sf::Vector2f centre = partie.getEscouade().getCentre();

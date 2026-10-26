@@ -275,10 +275,11 @@ TEST_CASE("evenements : prendreEvenements vide la file") {
     REQUIRE(partie.prendreEvenements().empty());
 }
 
-TEST_CASE("evenements : une partie gagnee ou perdue n'en produit plus") {
+TEST_CASE("evenements : une partie figee (escalier pris) ou perdue n'en produit plus") {
     Partie gagnee = deuxGuerriersQuiTuentLeMemeMonstre();
     avancer(gagnee, nombreDeTics(0.5f));
-    REQUIRE(gagnee.estGagnee());
+    gagnee.forcerLaDescente();
+    REQUIRE(gagnee.doitDescendre());
     static_cast<void>(gagnee.prendreEvenements());
     avancer(gagnee, nombreDeTics(1.0f));
     REQUIRE(gagnee.prendreEvenements().empty());

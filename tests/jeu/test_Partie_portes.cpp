@@ -107,9 +107,10 @@ TEST_CASE("porte : sans cote libre, le clic compte comme un clic au sol") {
 }
 
 TEST_CASE("porte : une partie figee n'ouvre rien") {
-    Partie partie = unePartie(niveauAvecPorte({}), s_graineDeTest);  // aucun monstre : gagnée
-    REQUIRE(partie.estGagnee());
+    Partie partie = unePartie(niveauAvecPorte({}), s_graineDeTest);
     REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Porte);
+    partie.forcerLaDescente();  // l'escalier est pris : la partie est figée
+    REQUIRE(partie.doitDescendre());
 
     avancer(partie, 120);
 

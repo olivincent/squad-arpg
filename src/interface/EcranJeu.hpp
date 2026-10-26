@@ -46,6 +46,9 @@ private:
     // d'interface à zéro.
     void nouvelleCarte();
 
+    // Remplace la partie par l'étage suivant de la même expédition (l'escalier vient d'être pris).
+    void descendre();
+
     std::random_device m_tirageDeGraine;
     std::vector<IdSpecialite> m_specialites;  // déclarée avant m_partie : la construction la lit
     Partie m_partie;

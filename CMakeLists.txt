@@ -107,6 +107,7 @@ add_library(squad_core STATIC
     src/interface/Reglages.cpp
     src/interface/TailleDeVue.cpp
     src/interface/EcranJeu.cpp
+    src/interface/AffichageProfondeur.cpp
     src/interface/ListeDeBoutons.cpp
     src/interface/EcranChoixEscouade.cpp
     src/interface/EcranMenu.cpp
@@ -206,6 +207,8 @@ add_executable(tests
     tests/jeu/test_ObjetsAuSol.cpp
     tests/jeu/test_Expedition.cpp
     tests/jeu/test_Partie_escalier.cpp
+    tests/jeu/test_Partie_descente.cpp
+    tests/interface/test_AffichageProfondeur.cpp
     tests/monstres/test_DefinitionDeMonstre.cpp
     tests/jeu/test_Partie_clics.cpp
     tests/jeu/test_Partie_skills.cpp

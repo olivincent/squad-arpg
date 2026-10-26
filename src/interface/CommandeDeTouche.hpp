@@ -19,6 +19,7 @@ struct BasculerPointsVises {};
 struct BasculerAncre {};
 struct BasculerBrouillard {};
 struct AjouterDesObjetsAleatoires {};  // F7 : quatre objets tirés au hasard dans le sac
+struct DescendreDUnEtage {};           // F8 : l'escouade prend l'escalier d'où elle est
 struct ActiverEmplacement {
     std::size_t emplacement;
 };
@@ -27,9 +28,9 @@ struct ActiverEmplacement {
 using CommandeDeTouche =
     std::variant<commande::Rien, commande::Annuler, commande::OuvrirInventaire, commande::RetourAuChoix, commande::NouvelleCarte,
                  commande::BasculerPointsVises, commande::BasculerAncre, commande::BasculerBrouillard,
-                 commande::AjouterDesObjetsAleatoires, commande::ActiverEmplacement>;
+                 commande::AjouterDesObjetsAleatoires, commande::DescendreDUnEtage, commande::ActiverEmplacement>;
 
-// La commande d'un appui sur `touche` (physique : scancode). Échap, F3 à F7 valent en tout temps ;
+// La commande d'un appui sur `touche` (physique : scancode). Échap, F3 à F8 valent en tout temps ;
 // R (retour au choix) seulement sur l'écran de fin, I (inventaire) seulement hors de l'écran de fin ; les touches des raccourcis de `touches`
 // seulement hors de l'écran de fin. Toute autre touche : `Rien`.
 [[nodiscard]] CommandeDeTouche commandePourTouche(sf::Keyboard::Scancode touche, bool finDePartie,

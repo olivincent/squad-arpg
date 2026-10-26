@@ -459,8 +459,15 @@ void Partie::faireFrapperLeMonstre(Monstre& monstre, std::optional<EntiteVue> pr
     static_cast<void>(monstre.engagerAttaque(proie, candidats, m_carte));
 }
 
-bool Partie::aPrisLEscalier() const {
-    return m_escalierPris;
+bool Partie::doitDescendre() const {
+    return m_escalierPris && !estPerdue() && m_expedition.profondeur < s_profondeurMaximale;
+}
+
+void Partie::forcerLaDescente() {
+    if (!estPerdue()) {
+        m_escalierVise = false;
+        m_escalierPris = true;
+    }
 }
 
 bool Partie::estPerdue() const {
@@ -468,7 +475,11 @@ bool Partie::estPerdue() const {
 }
 
 bool Partie::estGagnee() const {
-    return m_monstres.empty() && !estPerdue();
+    return m_escalierPris && !estPerdue() && m_expedition.profondeur >= s_profondeurMaximale;
+}
+
+int Partie::getProfondeur() const {
+    return m_expedition.profondeur;
 }
 
 int Partie::monstresRestants() const {
@@ -476,7 +487,7 @@ int Partie::monstresRestants() const {
 }
 
 void Partie::mettreAJour(float dt) {
-    if (estPerdue() || estGagnee()) {
+    if (estPerdue() || m_escalierPris) {
         return;
     }
     resoudreLesCoups(dt);

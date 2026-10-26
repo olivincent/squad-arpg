@@ -68,7 +68,7 @@ public:
     // Envoie l'escouade vers ce point, dans mettreAJour, si elle est vivante. Annule l'interaction en cours.
     void ordonnerDeplacement(sf::Vector2f point);
 
-    // Fige le monde (rien ne bouge) une fois la partie perdue ou gagnée.
+    // Fige le monde (rien ne bouge) une fois la partie perdue, gagnée, ou l'escalier pris.
     void mettreAJour(float dt);
     // Le dessin d'une image se fait en deux temps, l'écran dessinant entre les deux ce qui n'est pas du noyau (les objets
     // au sol, `interface/AffichageObjetsAuSol`, sous les monstres et l'escouade) : la carte, puis les entités et le voile.
@@ -94,15 +94,21 @@ public:
     // (positions, combat, agresseurs, provocations, visées, recharges, objets au sol, monstres). Pour construire l'étage suivant.
     [[nodiscard]] Expedition expedition() const;
 
-    // Vrai quand l'ancre est arrivée à l'escalier que l'escouade visait : l'étage est terminé et l'escouade descend. Reste vrai
-    // pour le reste de la partie (celui qui la lit construit l'étage suivant, `expedition`).
-    [[nodiscard]] bool aPrisLEscalier() const;
+    // Vrai quand l'escouade a pris l'escalier d'un étage qui n'est pas le dernier (l'ancre est arrivée à l'escalier qu'elle
+    // visait, ou `forcerLaDescente`) et n'est pas vaincue : l'étage est terminé et l'escouade descend. Reste vrai pour le reste
+    // de la partie, qui est figée : celui qui la lit construit l'étage suivant (`expedition`, `etageSuivant`).
+    [[nodiscard]] bool doitDescendre() const;
+    // Débogage (F8) : l'escouade prend l'escalier d'où elle est, comme si l'ancre y était arrivée (donc, au dernier étage, la
+    // partie est gagnée). Sans effet si l'escouade est vaincue.
+    void forcerLaDescente();
 
     // Vrai quand tous les personnages sont morts.
     [[nodiscard]] bool estPerdue() const;
-    // Vrai quand il ne reste aucun monstre ET que la partie n'est pas perdue
-    // (la défaite l'emporte si les derniers meurent dans la même image).
+    // Vrai quand l'escouade a pris l'escalier du dernier étage (`s_profondeurMaximale`) ET que la partie n'est pas perdue
+    // (la défaite l'emporte si les derniers personnages meurent dans la même image). Tuer tous les monstres ne suffit pas.
     [[nodiscard]] bool estGagnee() const;
+    // L'étage où l'on est : la profondeur de l'expédition (1 au premier).
+    [[nodiscard]] int getProfondeur() const;
     // Nombre de monstres vivants.
     [[nodiscard]] int monstresRestants() const;
 
@@ -149,7 +155,7 @@ private:
     // terminé aussi. Un objet visé qui n'existe plus : la visée est abandonnée.
     void ramasserSiAPortee();
     // Prend l'escalier visé quand l'ANCRE est à moins de `s_distanceDeDescente` de son centre : la visée est terminée et
-    // `aPrisLEscalier` devient vrai.
+    // l'escalier est pris (`doitDescendre`, ou `estGagnee` au dernier étage).
     void prendreLEscalierSiAPortee();
     // Un nouvel ordre : l'escouade ne va plus ouvrir de porte, ramasser un objet ni prendre l'escalier.
     void abandonnerLesVisees();

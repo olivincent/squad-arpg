@@ -26,6 +26,7 @@
 #include "interface/BarreDeSkills.hpp"
 #include "escouade/Specialite.hpp"
 #include "interface/AffichageObjetsAuSol.hpp"
+#include "interface/AffichageProfondeur.hpp"
 #include "interface/ClicInterface.hpp"
 #include "combat/Cible.hpp"
 #include "interface/CommandeDeTouche.hpp"
@@ -61,15 +62,20 @@ constexpr unsigned int s_tailleCompteur = 22;
 constexpr float s_margeCompteur = 16.0f;
 constexpr std::size_t s_objetsParF7 = 4;  // F7 (débogage) : combien d'objets tirés au hasard
 
-// « Monsters: N » dans le coin haut gauche, en coordonnées de la fenêtre
+// « Depth 2 / 5 » puis « Monsters: N » dans le coin haut gauche, en coordonnées de la fenêtre
 // (à appeler avec la vue par défaut). Contour noir pour rester lisible sur la carte.
-void dessinerCompteurDeMonstres(sf::RenderTarget& rendu, const sf::Font& police, int restants) {
-    sf::Text texte(police, "Monsters: " + std::to_string(restants), s_tailleCompteur);
-    texte.setFillColor(sf::Color::White);
-    texte.setOutlineColor(sf::Color::Black);
-    texte.setOutlineThickness(2.0f);
-    texte.setPosition({s_margeCompteur, s_margeCompteur});
-    rendu.draw(texte);
+void dessinerEnTete(sf::RenderTarget& rendu, const sf::Font& police, int profondeur, int restants) {
+    const std::array<std::string, 2> lignes = {ligneDeProfondeur(profondeur), "Monsters: " + std::to_string(restants)};
+    float y = s_margeCompteur;
+    for (const std::string& ligne : lignes) {
+        sf::Text texte(police, ligne, s_tailleCompteur);
+        texte.setFillColor(sf::Color::White);
+        texte.setOutlineColor(sf::Color::Black);
+        texte.setOutlineThickness(2.0f);
+        texte.setPosition({s_margeCompteur, y});
+        rendu.draw(texte);
+        y += police.getLineSpacing(s_tailleCompteur);
+    }
 }
 
 }  // namespace
@@ -91,6 +97,15 @@ void EcranJeu::nouvelleCarte() {
     m_barre = barreParDefaut(m_partie.getEscouade().adressesDesSkills());
     m_textes = TextesFlottants{};
     m_debogage = OptionsDeDebogage{};
+}
+
+// L'escouade a pris l'escalier : l'étage suivant, avec la même expédition (un étage plus bas). Une partie neuve, donc une
+// carte neuve, des monstres neufs, les personnages à pleine vie ; l'interface de l'étage (visée, textes) repart de zéro. Les
+// bascules de débogage et la barre de raccourcis (mêmes classes, mêmes skills) restent.
+void EcranJeu::descendre() {
+    m_partie = partieDeLEtage(etageSuivant(m_partie.expedition()));
+    m_controleur = Controleur{};
+    m_textes = TextesFlottants{};
 }
 
 Transition EcranJeu::traiterEvenement(const sf::Event& evenement, const Contexte& contexte) {
@@ -166,6 +181,10 @@ Transition EcranJeu::executer(const CommandeDeTouche& commande) {
                 static_cast<void>(m_partie.ramasserDesObjetsAleatoires(s_objetsParF7));
                 return Aucune{};
             },
+            [this](commande::DescendreDUnEtage) -> Transition {
+                m_partie.forcerLaDescente();  // la descente se fait à la fin de l'image (mettreAJour)
+                return Aucune{};
+            },
             [this](commande::ActiverEmplacement activer) -> Transition {
                 m_controleur.activerEmplacement(m_partie, m_barre, activer.emplacement);
                 return Aucune{};
@@ -189,6 +208,9 @@ void EcranJeu::mettreAJour(float dt, const Contexte& contexte) {
         }
     }
     m_textes.mettreAJour(dt);
+    if (m_partie.doitDescendre()) {
+        descendre();
+    }
     // Sortie de la visée si le lanceur ne peut plus lancer (mort, défaite) :
     // ici, en fin d'image, donc avant les événements de la suivante.
     m_controleur.debutImage(m_partie);
@@ -217,7 +239,7 @@ void EcranJeu::dessiner(const Contexte& contexte) const {
     dessinerBarreDeSkills(fenetre, contexte.police,
                           iconesDeLaBarre(m_barre, m_partie.getEscouade(), contexte.reglages.touchesDesRaccourcis,
                                           m_controleur.getAdresseEnVisee()));
-    dessinerCompteurDeMonstres(fenetre, contexte.police, m_partie.monstresRestants());
+    dessinerEnTete(fenetre, contexte.police, m_partie.getProfondeur(), m_partie.monstresRestants());
     if (m_partie.estPerdue()) {
         dessinerEcranDeFin(fenetre, contexte.police, "Defeat");
     } else if (m_partie.estGagnee()) {
