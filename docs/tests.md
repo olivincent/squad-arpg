@@ -1985,3 +1985,27 @@ avant de construire la `Partie`.
   signal en haut de l'écran) se vérifie à l'œil.
 - **Un nom de `TEST_CASE` sans « » ni accents** (les guillemets français faisaient échouer le filtre de CTest) : « Points: N » s'écrit
   `Points: N` dans le nom du test.
+
+## Étape 101 : le niveau d'objet (+16 cas, 1 704 → 1 720)
+
+- **101.1** (0) : `m_expedition` de `Partie` remplacé par les seuls champs vivants ; comportement identique, les tests existants
+  (`test_Expedition.cpp`, `test_Partie_descente.cpp`) le couvrent.
+- **101.2** (+12) : `test_CatalogueAffixes.cpp` (+4 : `plageAuNiveau` — **la plage du catalogue au niveau 1, pour chaque affixe** ;
+  au niveau 5, les bornes doublent (Blazing 6 – 16, un suffixe de caractéristique 2 – 6) ; **les arrondis** (12,5 devient 13, 4,5
+  devient 5) ; une plage ne rapetisse jamais d'un niveau à l'autre, reste positive et ordonnée jusqu'au niveau 20) ;
+  `test_GenerationDObjets.cpp` (+8, et les anciens tests passent un niveau explicite : `poidsDeRarete` au niveau 1 (70 / 25 / 5), au
+  niveau 5 (50 / 37 / 13) et le plancher du commun (atteint au niveau 11, respecté aux niveaux 12 et 20) ; **les proportions de raretés**
+  (la logique des 10 000 tirages à 2 points près, mise en fonction) aux niveaux 5 et 20 ; **la suite épinglée au niveau 1** (les huit
+  premiers objets de la graine 96 et l'état du générateur après 200 objets, relevés avant la modification, donc les mêmes tirages
+  qu'avant) ; au niveau 5, 10 000 tirages valides, chaque valeur dans la plage agrandie, certaines au-dessus de l'ancien maximum, et
+  les bornes de Blazing (6 et 16) qui sortent ; `genererButin` passe le niveau à `genererObjet`) ; `test_CoherenceDesDonnees.cpp`
+  (1 modifié : **les poids restent positifs à chaque niveau jusqu'à 20**).
+- **101.3** (+4) : `test_Partie_objets.cpp` (+2 : F7 au 1er étage donne exactement les objets de `genererObjet` au niveau 1 avec la
+  même graine ; **à l'étage 5, exactement ceux du niveau 5** : le générateur reçoit la profondeur) ; `test_Partie_butin.cpp` (+2 :
+  le butin du 1er étage reste dans les plages du catalogue ; **celui de l'étage 5 est dans les plages du niveau 5 et certaines valeurs
+  dépassent l'ancien maximum**). Le butin du 1er étage n'est pas comparé à une suite d'« avant » : le combat tire aussi dans le
+  générateur de la partie avant la mort ; seule la suite de `genererObjet` est épinglée.
+- **Ce que les tests ne voient pas** : la sensation en jeu (plus d'objets jaunes et verts au 5e étage, des valeurs plus grandes) se
+  vérifie à l'œil.
+- **Un nom de `TEST_CASE` sans accent** : un « â » dans un nom a fait échouer le filtre de CTest (le test existait mais ne se lançait
+  pas) ; « laches » et « a l'etage 5 ».

@@ -118,6 +118,7 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 98 — Les étages : l'escalier, l'expédition (équipement et sac gardés), des monstres plus forts avec la profondeur, la victoire au 5e étage ✅
 - Étape 99 — L'expérience et les niveaux : un niveau d'escouade, la croissance automatique de deux caractéristiques par classe, les points de vie par niveau ✅
 - Étape 100 — Les points libres : 3 par niveau et par personnage, répartis dans l'inventaire avec un brouillon (+, −, Apply, Reset), définitifs ✅
+- Étape 101 — Le niveau d'objet : la profondeur fait grandir les plages des affixes et les chances de Magic et de Rare ✅
 
 ## Détail des étapes 0 à 73
 
@@ -2369,3 +2370,16 @@ colonnes de trois lignes à une colonne de six lignes pleine largeur (les bouton
 (`ligneDePointsADepenser`). 100.4 : documentation. 1 704 tests (+43), 0 avertissement de compilation sur les deux presets. Détail :
 `docs/classes-et-combat.md`, `docs/ecrans.md`, `docs/formation.md`, `docs/boucle-et-entrees.md`, `docs/combat.md`, `docs/tests.md`,
 `docs/glossaire.md`.
+
+### Étape 101 — Le niveau d'objet ✅
+
+Dernière étape de la phase 5 (progression), faite en une session autonome (un commit par sous-étape, les tests visuels à la fin).
+101.1 : vérification de `m_expedition` — la `Partie` gardait toute l'`Expedition` reçue, dont l'équipement de chaque membre, ses points
+dépensés et le sac, copiés au début de l'étage et périmés au premier changement (seul `expedition()` les écrasait) ; elle ne garde
+plus que `m_profondeur`, `m_graineDExpedition`, `m_classes` et `m_experience`, et construit l'`Expedition` complète dans
+`expedition()` seul ; comportement identique. 101.2 : `genererObjet(générateur, niveau)` et `genererButin(…, niveau)` ; `plageAuNiveau`
+(`CatalogueAffixes`, bornes × `1 + 0,25 × (niveau − 1)` arrondies au plus proche) et `poidsDeRarete(rareté, niveau)` (commun −5 avec
+plancher de 20, magique +3, rare +2 par niveau au-delà du premier) ; **au niveau 1, mêmes tirages et mêmes objets qu'avant** (suite
+épinglée). 101.3 : le butin des monstres et F7 sont générés au niveau de la profondeur (`m_profondeur`). Le niveau d'un objet est la
+profondeur où il est généré, sans champ dans l'`Objet`. 101.4 : documentation. 1 720 tests (+16), 0 avertissement de compilation sur
+les deux presets. Détail : `docs/objets.md`, `docs/classes-et-combat.md`, `docs/boucle-et-entrees.md`, `docs/tests.md`.

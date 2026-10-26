@@ -8,7 +8,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 ## Étapes terminées
 
-Étapes 0 à 100 ✅. Les dernières :
+Étapes 0 à 101 ✅. Les dernières :
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 - Étape 83 — Inventaire et équipement : le modèle, sans interface ✅
@@ -29,15 +29,16 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - Étape 98 — Les étages : l'escalier, l'expédition (équipement et sac gardés), des monstres plus forts avec la profondeur, la victoire au 5e étage ✅
 - Étape 99 — L'expérience et les niveaux : un niveau d'escouade, la croissance automatique de deux caractéristiques par classe, les points de vie par niveau ✅
 - Étape 100 — Les points libres : 3 par niveau et par personnage, répartis dans l'inventaire avec un brouillon (+, −, Apply, Reset), définitifs ✅
+- Étape 101 — Le niveau d'objet : la profondeur fait grandir les plages des affixes et les chances de Magic et de Rare ✅ (la phase 5 est terminée)
 
 ## État actuel (résumé)
 
 - **Outils** : conception dans Claude.ai, implémentation avec Claude Code dans VSCode (règles dans
   `CLAUDE.md`) ; dépôt Git `squad-arpg`, poussé sur GitHub ; SFML 3.0.2 intégrée à CMake.
-- **Code** (étape 100) : 101 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
+- **Code** (étape 101) : 101 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
   `combat`, `objets`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
   de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug` et `jeu`, 0
-  avertissement, 1 704 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers des étapes 98 à 100 : `docs/build.md`,
+  avertissement, 1 720 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers des étapes 98 à 101 : `docs/build.md`,
   `docs/audit.md`). `Escouade` n'est plus que l'assemblage : `Escouade.cpp` de 1 223 à 1 067 lignes. Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`). **Tout le texte affiché est en anglais** (identifiants, commentaires et documentation restent en français ; pas de système de traduction : `docs/glossaire.md` est la référence des noms du jeu). Un commit par sous-étape, fait par Claude Code (`CLAUDE.md`).
 - **Écrans** : menu à la souris, options d'affichage (fenêtré ou plein écran, résolutions,
   `reglages.ini`), choix de 3 classes parmi 5 (guerrier, prêtre, mage, paladin, rôdeur ; doublons
@@ -82,6 +83,13 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   caractéristique affiche son effet (nombres lus dans les constantes ; « no effect yet » pour l'Intellect et la Resolve) ; en haut de
   l'écran, « Points to spend » tant qu'un personnage (mort compris) a des points (`docs/classes-et-combat.md`, « Les points libres »,
   `docs/ecrans.md`).
+- **Niveau d'objet** (étape 101) : **le niveau d'un objet est la profondeur où il est généré** (butin des monstres et F7), sans
+  champ dans l'`Objet`. `genererObjet(générateur, niveau)` : les plages des affixes sont multipliées par `1 + 0,25 × (niveau − 1)`
+  (`plageAuNiveau`, arrondi au plus proche ; au niveau 5, Blazing 3 – 8 devient 6 – 16, un suffixe de caractéristique 1 – 3 devient
+  2 – 6) et les poids de rareté passent, par niveau au-delà du premier, de commun −5 (plancher 20), magique +3, rare +2 (niveau 5 :
+  50 / 37 / 13) ; tout est « à tester ». Au niveau 1 rien ne change (mêmes tirages, mêmes objets pour une graine) ; les objets de base
+  et les seuils ne dépendent que du modèle. La `Partie` ne garde de l'`Expedition` reçue que ce qui vit pendant l'étage
+  (`docs/objets.md`, « Le niveau d'objet » ; `docs/boucle-et-entrees.md`).
 - **Carte** : donjon généré à chaque partie (salles, couloirs en L de 2 cases, portes à chaque
   jonction, un groupe de monstres par salle sauf la première, un escalier, graine affichée), F5 = nouvelle expédition ;
   carte à la main pour les tests (`docs/generation.md`, `docs/carte-et-collision.md`).
@@ -268,14 +276,23 @@ ce qui reste à décider **en discussion** avant son prompt :
     niveau en cours d'étage ; l'affichage (en-tête, « Level up! », inventaire) et F9.
   - 100 ✅ : les points libres : 3 par niveau et par personnage, la dépense définitive, le brouillon dans l'inventaire (+, −,
     Apply, Reset), l'infobulle des caractéristiques, le signal « Points to spend ».
-  - 101 : le niveau d'objet (à discuter avec Claude.ai).
+  - 101 ✅ : le niveau d'objet : en première sous-étape, la `Partie` ne garde plus de copie périmée de l'expédition ; le niveau
+    d'un objet est la profondeur où il est généré ; plages d'affixes (`plageAuNiveau`) et poids de rareté (`poidsDeRarete`) selon le
+    niveau ; butin et F7 générés au niveau de l'étage. **La phase 5 est terminée.**
 
-## Étape 101 (prochaine) : le niveau d'objet, à discuter avec Claude.ai
+## Étape 102 (prochaine) : à discuter avec Claude.ai
 
-L'étape 100 (les points libres) est faite ; la phase 5 se termine par le niveau d'objet (101), qui fera varier les plages de valeurs des
-affixes et les chances de rareté (`docs/classes-et-combat.md`, question 2, et les pistes de l'étape 96). Le Savoir et la Volonté n'ont encore aucun
-effet (les paires de croissance du prêtre et du mage deviendront justes quand ils serviront). L'`Expedition` garde maintenant les points
-dépensés ; c'est elle qu'on sauvegardera un jour.
+L'étape 101 (le niveau d'objet) est faite et termine la phase 5 (progression). La suite se discute avec Claude.ai. Le Savoir et la
+Volonté n'ont encore aucun effet (les paires de croissance du prêtre et du mage deviendront justes quand ils serviront). L'`Expedition`
+garde les points dépensés ; c'est elle qu'on sauvegardera un jour.
+
+**Pistes issues de l'étape 101** (étapes à part, plus tard) :
+- **Des paliers d'affixes à la *Titan Quest*** : un nom et une plage par palier, à la place d'une même plage qui s'agrandit.
+- **Des modèles de base supérieurs** : une épée d'acier après celle de fer (aujourd'hui les objets de base ne dépendent pas du niveau).
+- **Un champ niveau dans l'objet**, le jour où un prix ou un affichage du niveau d'objet en aura besoin.
+- **Une rareté minimale pour la créature monstrueuse** (aujourd'hui les mêmes poids pour tous les monstres).
+- **Ajuster en jouant** la croissance des plages (0,25 par niveau) et les poids de rareté par niveau (−5 avec plancher 20, +3, +2) :
+  tous « à tester ».
 
 **Pistes issues de l'étape 100** (étapes à part, plus tard) :
 - **La redistribution payante aux refuges** : reprendre les points dépensés pour les remettre ailleurs (aujourd'hui définitif).
@@ -300,7 +317,7 @@ dépensés ; c'est elle qu'on sauvegardera un jour.
   même en plein combat : voulu).
 - **Des étages qui changent de taille ou de thème** (aujourd'hui tous les étages ont les mêmes paramètres de génération).
 - **La sauvegarde de l'`Expedition`**.
-- **Le butin qui dépend de la profondeur**, et le niveau d'objet (101).
+- ~~**Le butin qui dépend de la profondeur**, et le niveau d'objet~~ : fait à l'étape 101.
 - **Ajuster en jouant** les facteurs de renforcement (+25 % de points de vie, +15 % de dégâts, +10 de capacités par étage), la
   profondeur maximale (5) et la distance de descente (30 px) : tous « à tester ».
 
@@ -316,7 +333,7 @@ dépensés ; c'est elle qu'on sauvegardera un jour.
 **Pistes issues de l'étape 96** (étapes à part, plus tard) :
 - **Un préfixe pour les bijoux**, pour qu'ils puissent être Rare (aujourd'hui `peutPorterLaRarete` les écarte).
 - **Des poids par affixe** (aujourd'hui tous égaux) et **des affixes plus forts sur les objets Rare** (même plage que Magic).
-- **Le niveau d'objet**, qui ferait varier les plages et les chances de rareté (question 2 de `docs/classes-et-combat.md`).
+- ~~**Le niveau d'objet**, qui ferait varier les plages et les chances de rareté~~ : fait à l'étape 101.
 - **Des distributions portables** si un jour la graine doit donner les mêmes objets partout (`std::uniform_int_distribution`
   n'est pas défini par la norme : `docs/objets.md`, « Génération aléatoire »).
 - **Des affixes négatifs (maudits)** : ils demanderaient de revoir le point fixe des objets actifs, qui suppose des bonus
@@ -328,7 +345,7 @@ dépensés ; c'est elle qu'on sauvegardera un jour.
   monstres ne frappent qu'en physique.
 - **Les objets uniques** (un nom propre, des affixes fixes) et **les raretés supérieures** (plus de deux affixes) : le type
   `Objet` n'a que deux places d'affixe, il faudra une liste.
-- **Le niveau d'objet**, et des affixes qui changent les seuils.
+- ~~**Le niveau d'objet**~~ (fait à l'étape 101), et des affixes qui changent les seuils.
 - **Une icône par objet** à la place des sigles, et le nom composé sur les emplacements.
 - **Les textes d'un autre pays** : s'il faut un jour une deuxième langue, les textes sont dispersés dans les `switch` des
   `Affichage*` et dans les catalogues ; `docs/glossaire.md` en dresse la liste.

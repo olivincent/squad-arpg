@@ -197,7 +197,8 @@ sont ceux du jeu, les identifiants du code restent en français.
   l'étape 96, chacun a une **plage de valeurs** `{min, max}` (entiers, bornes incluses), qui ne sert qu'au tirage : la
   valeur d'un objet est dans l'objet, rééquilibrer une plage ne change pas les objets déjà tirés. Valeurs « à tester » :
   Blazing et Hallowed 3 – 8, Keen 10 – 20 (%), Reinforced 2 – 5, les cinq caractéristiques 1 – 3, Evasion et Deflection
-  2 – 4 (%), Blocking 3 – 7 (%). Un objet Rare utilise les mêmes plages qu'un objet Magic.
+  2 – 4 (%), Blocking 3 – 7 (%). Un objet Rare utilise les mêmes plages qu'un objet Magic. Depuis l'étape 101, ce sont les
+  plages **au niveau 1** ; `plageAuNiveau(id, niveau)` donne celle d'un objet de niveau supérieur (« Le niveau d'objet »).
 
   | Affixe | Position | Effet | Catégories permises |
   |---|---|---|---|
@@ -229,8 +230,8 @@ sont ceux du jeu, les identifiants du code restent en français.
   (`Equipement::actifPour` passe le bonus du modèle plus celui des affixes) : un suffixe « of the Ox » peut rendre actif un
   autre objet. Les **seuils ne dépendent que du modèle**. Un objet inactif perd tout : ses propriétés de modèle et ses
   affixes (on retire l'objet entier de l'équipement actif).
-- **F7** (débogage) : `Partie::ramasserDesObjetsAleatoires(4)` tire quatre objets avec `genererObjet` et le `Generateur` de
-  la partie, puis les met dans le sac par `Escouade::ramasserTout`, **tout ou rien** : sans quatre cases libres
+- **F7** (débogage) : `Partie::ramasserDesObjetsAleatoires(4)` tire quatre objets avec `genererObjet` (au niveau de la
+  profondeur de l'étage, depuis l'étape 101) et le `Generateur` de la partie, puis les met dans le sac par `Escouade::ramasserTout`, **tout ou rien** : sans quatre cases libres
   (`Inventaire::casesLibres`), rien n'est ajouté **et aucun tirage n'est fait** (la vérification précède le tirage, pour que
   le refus ne fasse pas avancer le générateur). Les anciens objets de démonstration fixes ont disparu.
 - **Affichage** : le nom composé, de la couleur de la rareté dans l'infobulle ; le texte d'un objet magique ou rare (sigle
@@ -239,11 +240,11 @@ sont ceux du jeu, les identifiants du code restent en français.
 
 ## Génération aléatoire (étape 96)
 
-`genererObjet(Generateur&)` (`GenerationDObjets`) tire un objet **toujours valide** (`objetValide`). Fonction libre de
+`genererObjet(Generateur&, int niveau)` (`GenerationDObjets`) tire un objet **toujours valide** (`objetValide`). Fonction libre de
 `objets/`, sans état : le seul hasard est le `Generateur` reçu, que la `Partie` possède (`objets/` inclut `base/`). Le tirage
 est le principal fabricant d'objets et le garant de leurs invariants ; on a gardé l'agrégat `Objet` (pas de classe à
 constructeur).
-1. **La rareté**, selon `poidsDeRarete` : Common 70, Magic 25, Rare 5 (des poids en données, comme les compositions de groupe ;
+1. **La rareté**, selon `poidsDeRarete(rareté, niveau)` : au niveau 1, Common 70, Magic 25, Rare 5 (des poids en données, comme les compositions de groupe ;
    « à tester »). Elle est tirée **en premier et jamais retirée** : les proportions observées sont celles des poids.
 2. **Le modèle**, uniformément parmi ceux qui peuvent porter cette rareté. La règle est écrite une fois,
    `peutPorterLaRarete(modèle, rareté)` : Common, tous ; Magic, au moins un affixe permis pour la catégorie ; Rare, au moins un
@@ -253,7 +254,7 @@ constructeur).
    (`affixesPermisPour`), placé selon sa position. Une catégorie qui a plus de suffixes que de préfixes (une arme : 3
    préfixes, 5 suffixes) donne donc plus souvent un suffixe. **Rare** : un préfixe uniforme parmi les préfixes permis et un
    suffixe uniforme parmi les suffixes permis. Pas de poids par affixe (ils seraient tous égaux).
-4. **Chaque valeur** : un entier uniforme dans la plage de l'affixe.
+4. **Chaque valeur** : un entier uniforme dans la plage de l'affixe **à ce niveau** (`plageAuNiveau`).
 L'ordre des tirages est fixe (rareté, modèle, affixe, valeur, puis le second affixe d'un Rare), donc une graine donne
 toujours la même suite d'objets sur une même plateforme.
 
@@ -261,11 +262,36 @@ toujours la même suite d'objets sur une même plateforme.
 même graine peut donc donner d'autres objets avec une autre bibliothèque standard (MSVC, libstdc++, libc++). C'est sans
 conséquence sur une seule plateforme, sans sauvegarde de graine ni multijoueur : rien à corriger. Les tests n'attendent
 donc aucun objet précis pour une graine : ils vérifient la validité, la couverture, les plages, les proportions et le
-déterminisme.
+déterminisme. **Une exception depuis l'étape 101** : un test épingle les huit premiers objets de la graine 96 au niveau 1, et
+l'état du générateur après 200 objets, relevés avant d'ajouter le niveau, pour prouver que le niveau 1 consomme les mêmes tirages
+et donne les mêmes objets qu'avant. Valable avec la bibliothèque standard de MinGW ; à réépingler si elle change.
 
 **Proportions testées** : sur 10 000 tirages, l'écart type d'une proportion est d'au plus 0,5 point ; la tolérance de
 2 points (plus de quatre écarts types) ne sert pas à absorber le hasard, la graine étant fixe, mais à détecter un
 algorithme modifié (poids changés, rareté retirée après coup).
+
+## Le niveau d'objet (étape 101)
+
+**Le niveau d'un objet est la profondeur où il est généré** : un objet lâché au 4e étage, ou tiré par F7 au 4e étage, est de
+niveau 4. `genererObjet(générateur, niveau)` et `genererButin(générateur, chance, nombre, niveau)` le reçoivent (`assert` :
+niveau d'au moins 1) ; `Partie` leur passe `m_profondeur`, dans `retirerLesMorts` et `ramasserDesObjetsAleatoires`. **Il n'y a pas
+de champ niveau dans l'`Objet`** : la valeur tirée de chaque affixe porte déjà sa force, et rien ne lirait ce champ (un prix ou un
+affichage du niveau d'objet le justifierait, plus tard).
+
+Il agit sur deux choses, par deux fonctions pures, et sur rien d'autre (les objets de base — dégâts des armes, armure, blocage —
+et les seuils ne dépendent que du modèle) :
+- **La plage des affixes** : `plageAuNiveau(id, niveau)` (`CatalogueAffixes`) multiplie le min et le max du catalogue par
+  `1 + 0,25 × (niveau − 1)` (`s_croissanceDesPlagesParNiveau`, « à tester ») et arrondit au plus proche. Au niveau 5, Blazing
+  passe de 3 – 8 à 6 – 16, un suffixe de caractéristique de 1 – 3 à 2 – 6, Keen de 10 – 20 % à 20 – 40 %. Le min reste au moins 1
+  et ne dépasse jamais le max, à tout niveau. Aucun nouveau plafond : ceux qui existent (75 % de pénétration d'armure, 50 %
+  d'esquive) protègent les pourcentages.
+- **Les poids de rareté** : `poidsDeRarete(rareté, niveau)`. Pour chaque niveau au-delà du premier, Common −5 (plancher de 20),
+  Magic +3, Rare +2 (`s_perteDeCommunParNiveau`, `s_plancherDeCommun`, `s_gainDeMagiqueParNiveau`, `s_gainDeRareParNiveau`,
+  « à tester »). Niveau 1 : 70 / 25 / 5 ; niveau 5 : 50 / 37 / 13 ; niveau 11 et au-delà, Common reste à 20 (niveau 20 : 20 / 82 /
+  43). Les trois poids restent positifs à tout niveau (un test de données le vérifie jusqu'au niveau 20).
+
+**Au niveau 1, rien ne change** : mêmes plages, mêmes poids, donc **les mêmes tirages dans le même ordre** et les mêmes objets
+pour une même graine (suite épinglée par un test). L'ordre des tirages ne dépend pas du niveau.
 
 ## Le butin au sol (étape 97)
 
@@ -369,7 +395,9 @@ et le sac, en lecture seule ; aucune fonction de modification n'est appelée.
 
 - L'affichage est un sigle de deux lettres par objet : pas d'icônes ; la seule couleur est celle de la rareté
   (étape 95).
-- Pas de niveau d'objet (les plages sont les mêmes pour tous les objets, Magic comme Rare), pas d'affixe de résistance ni
+- Le niveau d'objet (étape 101) ne fait varier que les plages d'affixes et les poids de rareté, pas de palier d'affixe (un nom
+  et une plage par palier, à la *Titan Quest*), pas de modèle de base supérieur (une épée d'acier après celle de fer) ni de
+  champ niveau dans l'objet ; les plages sont les mêmes pour Magic et Rare ; pas d'affixe de résistance ni
   de modification des seuils ; les anneaux et les colliers n'ont aucun préfixe donc ne sont jamais Rare ; un seul préfixe et un seul suffixe ; pas d'objet unique ni de rareté supérieure à Rare.
 - L'emplacement affiche le nom du modèle (en la couleur de la rareté), pas le nom composé : trop long pour la cellule.
 - Pas de restriction d'équipement par classe. Une nouvelle partie repart toujours du départ (aucune sauvegarde de
@@ -429,6 +457,7 @@ bonus; StatistiquesDeCombat bonusDeCombat; Degats degatsAjoutes; int penetration
 |---|---|
 | `const std::vector<DefinitionDAffixe>& catalogueAffixes()` | Tous les affixes, dans l'ordre de `IdAffixe` ; l'unique source de leurs données ; `[[nodiscard]]` |
 | `const DefinitionDAffixe& definitionAffixe(IdAffixe)` | L'affixe de cet identifiant ; `assert` : le catalogue suit l'ordre de l'enum ; `[[nodiscard]]` |
+| `PlageDeValeurs plageAuNiveau(IdAffixe, int niveau)` | La plage de cet affixe sur un objet de ce niveau (étape 101) : min et max du catalogue × `1 + 0,25 × (niveau − 1)`, arrondis au plus proche ; la plage du catalogue au niveau 1 ; `assert(niveau >= 1)` ; `[[nodiscard]]` |
 | `bool affixePermis(IdAffixe, CategorieObjet)` | Un objet de cette catégorie peut-il le porter ? `[[nodiscard]]` |
 | `std::vector<IdAffixe> affixesPermisPour(CategorieObjet, PositionDAffixe)` | Les affixes de cette position qu'une catégorie peut porter, dans l'ordre du catalogue (étape 96.2) ; `[[nodiscard]]` |
 | `ApportDesAffixes apportDesAffixes(const Objet&)` | Ce que les affixes de l'objet ajoutent (préfixe plus suffixe) ; nul pour un objet commun ; `switch` sans `default` sur l'effet ; `[[nodiscard]]` |
@@ -490,10 +519,10 @@ s_raretes` (les trois raretés, de la plus commune à la plus rare).
 
 | Fonction | Rôle |
 |---|---|
-| `int poidsDeRarete(Rarete)` | Le poids de cette rareté dans le tirage : 70, 25, 5 (« à tester ») ; `[[nodiscard]]` |
+| `int poidsDeRarete(Rarete, int niveau)` | Le poids de cette rareté dans le tirage d'un objet de ce niveau : 70, 25, 5 au niveau 1 ; commun −5 (plancher 20), magique +3, rare +2 par niveau au-delà (« à tester ») ; `assert(niveau >= 1)` ; `[[nodiscard]]` |
 | `bool peutPorterLaRarete(IdObjet, Rarete)` | L'unique endroit de la règle : Common toujours, Magic avec au moins un affixe permis, Rare avec un préfixe et un suffixe permis ; `[[nodiscard]]` |
-| `Objet genererObjet(Generateur&)` | Un objet tiré au hasard, valide (voir « Génération aléatoire ») ; `assert(objetValide)` ; `[[nodiscard]]` |
-| `std::vector<Objet> genererButin(Generateur&, int chancePourCent, int nombre)` | Le butin d'une mort (étape 97.3) : vide si la chance est nulle ou si le tirage de chance échoue, sinon `nombre` objets de `genererObjet` ; **un seul tirage pour la chance, aucun à 0 ou 100** ; `assert` : chance de 0 à 100 ; `[[nodiscard]]` |
+| `Objet genererObjet(Generateur&, int niveau)` | Un objet tiré au hasard, de ce niveau (étape 101), valide (voir « Génération aléatoire » et « Le niveau d'objet ») ; `assert(niveau >= 1)`, `assert(objetValide)` ; `[[nodiscard]]` |
+| `std::vector<Objet> genererButin(Generateur&, int chancePourCent, int nombre, int niveau)` | Le butin d'une mort (étape 97.3) : vide si la chance est nulle ou si le tirage de chance échoue, sinon `nombre` objets de `genererObjet` de ce niveau ; **un seul tirage pour la chance, aucun à 0 ou 100** ; `assert` : chance de 0 à 100 ; `[[nodiscard]]` |
 
 ### `Equipement` (`objets/`)
 

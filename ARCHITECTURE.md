@@ -93,7 +93,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
   `EcranInventaire`, empilé sur lui, ne possède rien : il reçoit l'`Escouade`, les `ObjetsAuSol` et la `TileMap` de la `Partie`
   de l'`EcranJeu` du dessous (et rien d'autre : il ne connaît pas la `Partie`).
 - `Partie` (un étage) possède la `TileMap`, l'`Escouade`, les `Monstre`, les `ObjetInteractif`, les `ObjetsAuSol`, la `Vision`
-  et le seul `Generateur`, et garde l'`Expedition` reçue (ce qui survit d'un étage à l'autre : profondeur, graine, personnages, points dépensés, sac, expérience). Elle fait l'intermédiaire entre `Escouade` et `Monstre`, qui ne se
+  et le seul `Generateur`, et ne garde de l'`Expedition` reçue (ce qui survit d'un étage à l'autre : profondeur, graine, personnages, points dépensés, sac, expérience) que ce qui vit pendant l'étage (profondeur, graine, classes, expérience) ; l'`Expedition` complète n'est construite que par `Partie::expedition()`. Elle fait l'intermédiaire entre `Escouade` et `Monstre`, qui ne se
   connaissent pas (ils échangent des `EntiteVue`, des `Coup`, des `EntiteDeControle`), et tient la
   file des `EvenementDeCombat`.
 - `Escouade` possède son ancre (`Mobile`), sa `Formation`, ses `PlacesDAttaque`, N `Personnage`,
@@ -164,14 +164,14 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `Objet` : `IdObjet` et `Objet`, l'instance, distincte de son modèle : le modèle, la rareté, au plus un préfixe et un
   suffixe ; petite valeur, égalité par valeur.
 - `CatalogueAffixes` : `DefinitionDAffixe` (nom, position, effet, plage de valeurs, catégories permises), `catalogueAffixes()`,
-  `definitionAffixe()`, `affixePermis()`, `affixesPermisPour()` et `apportDesAffixes()`, ce que les affixes d'un objet
-  ajoutent aux totaux.
+  `definitionAffixe()`, `plageAuNiveau()` (la plage d'un affixe sur un objet d'un niveau, étape 101), `affixePermis()`,
+  `affixesPermisPour()` et `apportDesAffixes()`, ce que les affixes d'un objet ajoutent aux totaux.
 - `CatalogueObjets` : `DefinitionObjet` (nom, catégorie, armure, bonus, données d'arme ou de bouclier, seuils),
   `catalogueObjets()`, `definitionObjet()`, `seuilsAtteints()`, `estADeuxMains()`, `mainsNues()`,
   `objetValide()` (les invariants d'un objet), `nomDeLObjet()` (« Blazing Mace »).
-- `GenerationDObjets` : `genererObjet`, le tirage d'un objet valide avec le `Generateur` reçu (rareté, modèle, affixes,
-  valeurs), `genererButin` (le butin d'une mort : la chance, puis les objets), `poidsDeRarete` et `peutPorterLaRarete`, l'unique
-  endroit de la règle « quel modèle peut porter quelle rareté ».
+- `GenerationDObjets` : `genererObjet`, le tirage d'un objet valide d'un niveau (la profondeur où il est généré) avec le `Generateur`
+  reçu (rareté, modèle, affixes, valeurs), `genererButin` (le butin d'une mort : la chance, puis les objets), `poidsDeRarete`
+  (selon le niveau) et `peutPorterLaRarete`, l'unique endroit de la règle « quel modèle peut porter quelle rareté ».
 - `ObjetsActifs` : `objetsActifs`, le point fixe qui dit quels objets portés ont un effet (un objet dont le seuil de
   caractéristiques n'est plus atteint reste porté mais est inactif) ; une règle pure.
 - `DonneesDArme`, `DonneesDeBouclier` : ce qui fait d'un objet une arme (type, mains, attaque) ou un bouclier (chance et
