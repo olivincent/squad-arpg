@@ -46,11 +46,11 @@ sf::Vector2f centre(sf::FloatRect rectangle) {
 
 TEST_CASE("disposition : tout tient dans la vue, dans le panneau") {
     for (const sf::Vector2f vue : {s_vueMinimale, s_vueLarge}) {
-        const sf::Vector2f coinHautGauche{s_margePanneau, s_margePanneau};
-        const sf::Vector2f coinBasDroit = vue - coinHautGauche;
+        const sf::FloatRect panneau = rectangleDuPanneau(vue);
+        const sf::Vector2f coinBasDroit = panneau.position + panneau.size;
         for (const sf::FloatRect& rectangle : tousLesRectangles(vue)) {
-            REQUIRE(rectangle.position.x >= coinHautGauche.x);
-            REQUIRE(rectangle.position.y >= coinHautGauche.y);
+            REQUIRE(rectangle.position.x >= panneau.position.x);
+            REQUIRE(rectangle.position.y >= panneau.position.y);
             REQUIRE(rectangle.position.x + rectangle.size.x <= coinBasDroit.x);
             REQUIRE(rectangle.position.y + rectangle.size.y <= coinBasDroit.y);
         }
@@ -89,17 +89,19 @@ TEST_CASE("disposition : les emplacements suivent l'ordre de l'enum, en deux col
     REQUIRE(anneau2.position.y == bottes.position.y);
 }
 
-TEST_CASE("disposition : le sac a 4 rangees de 10 cases carrees dans l'ordre des indices") {
+TEST_CASE("disposition : le sac a 2 rangees de 20 cases carrees dans l'ordre des indices") {
     const sf::FloatRect premiere = rectangleDeLaCaseDuSac(0, s_vueMinimale);
-    const sf::FloatRect dixieme = rectangleDeLaCaseDuSac(9, s_vueMinimale);
-    const sf::FloatRect onzieme = rectangleDeLaCaseDuSac(10, s_vueMinimale);
+    const sf::FloatRect derniereDeLaRangee = rectangleDeLaCaseDuSac(s_colonnesDuSac - 1, s_vueMinimale);
+    const sf::FloatRect premiereDeLaSuivante = rectangleDeLaCaseDuSac(s_colonnesDuSac, s_vueMinimale);
 
+    REQUIRE(s_colonnesDuSac == 20);
+    REQUIRE(s_casesDuSac / s_colonnesDuSac == 2);
     REQUIRE(premiere.size.x == premiere.size.y);
-    REQUIRE(dixieme.position.y == premiere.position.y);
-    REQUIRE(dixieme.position.x > premiere.position.x);
-    REQUIRE(onzieme.position.x == premiere.position.x);
-    REQUIRE(onzieme.position.y > premiere.position.y);
-    REQUIRE(rectangleDeLaCaseDuSac(39, s_vueMinimale).position.y == rectangleDeLaCaseDuSac(30, s_vueMinimale).position.y);
+    REQUIRE(derniereDeLaRangee.position.y == premiere.position.y);
+    REQUIRE(derniereDeLaRangee.position.x > premiere.position.x);
+    REQUIRE(premiereDeLaSuivante.position.x == premiere.position.x);
+    REQUIRE(premiereDeLaSuivante.position.y > premiere.position.y);
+    REQUIRE(rectangleDeLaCaseDuSac(s_casesDuSac - 1, s_vueMinimale).position.y == premiereDeLaSuivante.position.y);
 }
 
 TEST_CASE("disposition : le sac est sous les colonnes des personnages") {
@@ -216,15 +218,30 @@ TEST_CASE("disposition : le bloc des caracteristiques est sous les emplacements 
     REQUIRE(bloc.position.y + bloc.size.y < rectangleDeLaCaseDuSac(0, s_vueMinimale).position.y);
 }
 
-TEST_CASE("le panneau : la vue moins la marge de chaque cote, et tous les elements y tiennent") {
+TEST_CASE("le panneau : centre, de la meme taille quelle que soit la vue, et tous les elements y tiennent") {
+    const sf::FloatRect surLaVueMinimale = rectangleDuPanneau(s_vueMinimale);
+
     for (const sf::Vector2f vue : {s_vueMinimale, s_vueLarge}) {
         const sf::FloatRect panneau = rectangleDuPanneau(vue);
 
-        REQUIRE(panneau.position == sf::Vector2f(s_margePanneau, s_margePanneau));
-        REQUIRE(panneau.size == vue - sf::Vector2f(2.0f * s_margePanneau, 2.0f * s_margePanneau));
+        REQUIRE(panneau.size == surLaVueMinimale.size);
+        REQUIRE(panneau.position.x == vue.x - (panneau.position.x + panneau.size.x));
+        REQUIRE(panneau.position.y == vue.y - (panneau.position.y + panneau.size.y));
         for (const sf::FloatRect& rectangle : tousLesRectangles(vue)) {
             REQUIRE(panneau.contains(rectangle.position));
             REQUIRE(panneau.contains(rectangle.position + rectangle.size - sf::Vector2f(1.0f, 1.0f)));
         }
+    }
+}
+
+TEST_CASE("le panneau : une bande de jeu reste visible tout autour, assez large pour y lacher un objet") {
+    constexpr float bandeMinimale = 50.0f;
+    for (const sf::Vector2f vue : {s_vueMinimale, s_vueLarge}) {
+        const sf::FloatRect panneau = rectangleDuPanneau(vue);
+
+        REQUIRE(panneau.position.x >= bandeMinimale);
+        REQUIRE(panneau.position.y >= bandeMinimale);
+        REQUIRE(vue.x - (panneau.position.x + panneau.size.x) >= bandeMinimale);
+        REQUIRE(vue.y - (panneau.position.y + panneau.size.y) >= bandeMinimale);
     }
 }

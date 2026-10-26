@@ -62,12 +62,12 @@ void toutTuer(Partie& partie) {
 
 TEST_CASE("butin : un monstre tue avec 100 % laisse le bon nombre d'objets valides") {
     Partie partie = partieDeButin(salleAvecMonstres({{140.0f, 60.0f}}), 100, 3);
-    REQUIRE(partie.getObjetsAuSol().empty());
+    REQUIRE(partie.getSol().tous().empty());
 
     toutTuer(partie);
 
-    REQUIRE(partie.getObjetsAuSol().size() == 3);
-    for (const ObjetAuSol& objet : partie.getObjetsAuSol()) {
+    REQUIRE(partie.getSol().tous().size() == 3);
+    for (const ObjetAuSol& objet : partie.getSol().tous()) {
         REQUIRE(objetValide(objet.objet));
     }
 }
@@ -77,7 +77,7 @@ TEST_CASE("butin : avec 0 %, un monstre tue ne laisse rien") {
 
     toutTuer(partie);
 
-    REQUIRE(partie.getObjetsAuSol().empty());
+    REQUIRE(partie.getSol().tous().empty());
 }
 
 TEST_CASE("butin : les objets tombent sur le sol, jamais dans un mur, sur des cases differentes") {
@@ -86,16 +86,16 @@ TEST_CASE("butin : les objets tombent sur le sol, jamais dans un mur, sur des ca
 
     toutTuer(partie);
 
-    REQUIRE(partie.getObjetsAuSol().size() == 5);
+    REQUIRE(partie.getSol().tous().size() == 5);
     std::set<std::pair<int, int>> cases;
-    for (const ObjetAuSol& objet : partie.getObjetsAuSol()) {
+    for (const ObjetAuSol& objet : partie.getSol().tous()) {
         const sf::Vector2i coordCase = carte.caseContenant(objet.position);
         REQUIRE(carte.getTile(coordCase.x, coordCase.y) == Tile::Floor);
         cases.insert({coordCase.x, coordCase.y});
     }
     REQUIRE(cases.size() == 5);
     // Le premier objet tombe sur la case du monstre (la case (3, 1)).
-    REQUIRE(carte.caseContenant(partie.getObjetsAuSol().front().position) == sf::Vector2i(3, 1));
+    REQUIRE(carte.caseContenant(partie.getSol().tous().front().position) == sf::Vector2i(3, 1));
 }
 
 TEST_CASE("butin : les identifiants sont tous differents, d'un monstre a l'autre") {
@@ -103,9 +103,9 @@ TEST_CASE("butin : les identifiants sont tous differents, d'un monstre a l'autre
 
     toutTuer(partie);
 
-    REQUIRE(partie.getObjetsAuSol().size() == 4);
+    REQUIRE(partie.getSol().tous().size() == 4);
     std::set<int> identifiants;
-    for (const ObjetAuSol& objet : partie.getObjetsAuSol()) {
+    for (const ObjetAuSol& objet : partie.getSol().tous()) {
         REQUIRE(objet.id >= 1);
         identifiants.insert(objet.id);
     }
@@ -117,17 +117,17 @@ TEST_CASE("butin : les monstres vivants ne laissent rien") {
 
     avancer(partie, 5);
 
-    REQUIRE(partie.getObjetsAuSol().empty());
+    REQUIRE(partie.getSol().tous().empty());
 }
 
 TEST_CASE("butin : une partie neuve (F5, nouveau niveau, recommencement) n'a aucun objet au sol") {
     Partie partie = partieDeButin(salleAvecMonstres({{140.0f, 60.0f}}), 100, 3);
     toutTuer(partie);
-    REQUIRE_FALSE(partie.getObjetsAuSol().empty());
+    REQUIRE_FALSE(partie.getSol().tous().empty());
 
     partie = partieDeButin(salleAvecMonstres({{140.0f, 60.0f}}), 100, 3);
 
-    REQUIRE(partie.getObjetsAuSol().empty());
+    REQUIRE(partie.getSol().tous().empty());
 }
 
 TEST_CASE("butin : la meme graine laisse le meme butin") {
@@ -137,7 +137,7 @@ TEST_CASE("butin : la meme graine laisse le meme butin") {
     toutTuer(a);
     toutTuer(b);
 
-    REQUIRE(a.getObjetsAuSol() == b.getObjetsAuSol());
+    REQUIRE(a.getSol().tous() == b.getSol().tous());
 }
 
 TEST_CASE("butin : les categories du jeu laissent ce que leur definition annonce") {
@@ -170,8 +170,8 @@ Partie partieOuLeButinTombeDansLInconnu(sf::Vector2f* positionDuMonstre) {
 TEST_CASE("objetAuSolSous : le curseur sur un objet explore le designe, un peu a cote aussi, loin non") {
     Partie partie = partieDeButin(salleAvecMonstres({{140.0f, 60.0f}}), 100, 1);
     toutTuer(partie);
-    REQUIRE(partie.getObjetsAuSol().size() == 1);
-    const ObjetAuSol& objet = partie.getObjetsAuSol().front();
+    REQUIRE(partie.getSol().tous().size() == 1);
+    const ObjetAuSol& objet = partie.getSol().tous().front();
 
     REQUIRE(partie.objetAuSolSous(objet.position) == &objet);
     REQUIRE(partie.objetAuSolSous(objet.position + sf::Vector2f(s_rayonDeSurvolDObjet - 1.0f, 0.0f)) == &objet);
@@ -181,9 +181,9 @@ TEST_CASE("objetAuSolSous : le curseur sur un objet explore le designe, un peu a
 TEST_CASE("objetAuSolSous : entre deux objets, le plus proche du curseur") {
     Partie partie = partieDeButin(salleAvecMonstres({{140.0f, 60.0f}}), 100, 2);
     toutTuer(partie);
-    REQUIRE(partie.getObjetsAuSol().size() == 2);
-    const ObjetAuSol& premier = partie.getObjetsAuSol()[0];
-    const ObjetAuSol& second = partie.getObjetsAuSol()[1];
+    REQUIRE(partie.getSol().tous().size() == 2);
+    const ObjetAuSol& premier = partie.getSol().tous()[0];
+    const ObjetAuSol& second = partie.getSol().tous()[1];
     // Deux cases voisines : leurs centres sont à 40 px, le curseur à 10 px du second les départage même si le premier est à 30 px.
     const sf::Vector2f pres = second.position + (premier.position - second.position) * 0.1f;
 
@@ -196,8 +196,8 @@ TEST_CASE("objetAuSolSous : un objet sur une case inconnue est cache, il se desi
     sf::Vector2f positionDuMonstre;
     Partie partie = partieOuLeButinTombeDansLInconnu(&positionDuMonstre);
     REQUIRE(partie.getMonstres().size() == 1);
-    REQUIRE(partie.getObjetsAuSol().size() == 1);
-    const sf::Vector2f positionDeLObjet = partie.getObjetsAuSol().front().position;
+    REQUIRE(partie.getSol().tous().size() == 1);
+    const sf::Vector2f positionDeLObjet = partie.getSol().tous().front().position;
 
     REQUIRE(partie.objetAuSolSous(positionDeLObjet) == nullptr);  // inconnu : caché
 

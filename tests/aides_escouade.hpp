@@ -471,7 +471,7 @@ inline Exemplaires exemplaires(const Escouade& escouade) {
 // existe à un seul endroit : jeter, ramasser ou déplacer ne change jamais cette liste.
 inline Exemplaires exemplaires(const Partie& partie) {
     Exemplaires tous = exemplaires(partie.getEscouade());
-    for (const ObjetAuSol& objet : partie.getObjetsAuSol()) {
+    for (const ObjetAuSol& objet : partie.getSol().tous()) {
         tous.push_back(cle(objet.objet));
     }
     std::ranges::sort(tous);

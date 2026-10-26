@@ -105,7 +105,7 @@ TEST_CASE("vision : une porte vue devient cliquable") {
     partie.ordonnerDeplacement({800.0f, 200.0f});  // à 5 cases de la porte
     avancer(partie, 250);
 
-    REQUIRE(partie.cliquer(s_surLaPorteLointaine) == ResultatClic::Objet);
+    REQUIRE(partie.cliquer(s_surLaPorteLointaine) == ResultatClic::Porte);
 }
 
 TEST_CASE("estVisible : la salle de depart est visible, un point lointain non") {

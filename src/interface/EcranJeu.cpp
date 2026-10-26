@@ -136,7 +136,8 @@ Transition EcranJeu::executer(const CommandeDeTouche& commande) {
                 for (const IdSpecialite id : m_specialites) {
                     noms.push_back(specialite(id).nom);
                 }
-                return Empiler{std::make_unique<EcranInventaire>(m_partie, std::move(noms))};
+                return Empiler{std::make_unique<EcranInventaire>(m_partie.getEscouade(), m_partie.getSol(), m_partie.getCarte(),
+                                                                  std::move(noms))};
             },
             [](commande::RetourAuChoix) -> Transition { return Depiler{}; },  // retour à l'écran de choix
             [this](commande::NouvelleCarte) -> Transition {
@@ -193,7 +194,7 @@ void EcranJeu::dessiner(const Contexte& contexte) const {
     sf::RenderWindow& fenetre = contexte.fenetre;
     fenetre.setView(m_camera);
     m_partie.dessinerLaCarte(fenetre);
-    dessinerObjetsAuSol(fenetre, m_partie.getObjetsAuSol());  // au-dessus du sol, sous les monstres et l'escouade
+    dessinerObjetsAuSol(fenetre, m_partie.getSol().tous());  // au-dessus du sol, sous les monstres et l'escouade
     m_partie.dessinerLesEntites(fenetre, m_debogage.ancre, m_debogage.pointsVises, m_debogage.brouillard);
     m_controleur.dessinerApercu(m_partie, fenetre, fenetre.mapPixelToCoords(sf::Mouse::getPosition(fenetre)));
     if (m_debogage.pointsVises) {

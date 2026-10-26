@@ -36,10 +36,10 @@ Partie partieAvecUnObjetAuSol(const std::vector<MonstreDuNiveau>& autres = {{s_c
     monstres.insert(monstres.end(), autres.begin(), autres.end());
     Partie partie = partieDeTest(niveauDegageEnGroupes(monstres), compositionDeTest(), s_graineDeTest, faible);
     partie.lancerSkillDeZone(s_adresseExplosion, s_positionDuMonstreTue);
-    for (int i = 0; i < nombreDeTics(5.0f) && partie.getObjetsAuSol().empty(); ++i) {
+    for (int i = 0; i < nombreDeTics(5.0f) && partie.getSol().tous().empty(); ++i) {
         partie.mettreAJour(s_dureeTic);
     }
-    REQUIRE(partie.getObjetsAuSol().size() == 1);
+    REQUIRE(partie.getSol().tous().size() == 1);
     return partie;
 }
 
@@ -49,7 +49,7 @@ float distance(sf::Vector2f a, sf::Vector2f b) {
 
 // Avance jusqu'à ce que l'objet au sol ait disparu (ramassé), au plus `secondes`.
 void avancerJusquAuRamassage(Partie& partie, float secondes) {
-    for (int i = 0; i < nombreDeTics(secondes) && !partie.getObjetsAuSol().empty(); ++i) {
+    for (int i = 0; i < nombreDeTics(secondes) && !partie.getSol().tous().empty(); ++i) {
         partie.mettreAJour(s_dureeTic);
     }
 }
@@ -82,15 +82,15 @@ int combienDeSacPlein(const std::vector<EvenementDeCombat>& evenements) {
 
 TEST_CASE("ramassage : un clic sur un objet envoie l'escouade, et il passe dans le sac quand l'ancre arrive") {
     Partie partie = partieAvecUnObjetAuSol();
-    const ObjetAuSol objet = partie.getObjetsAuSol().front();
+    const ObjetAuSol objet = partie.getSol().tous().front();
     REQUIRE(distance(partie.getEscouade().getCentre(), objet.position) > s_distanceDeRamassage);
     const std::size_t libresAvant = partie.getEscouade().sac().casesLibres();
 
-    REQUIRE(partie.cliquer(objet.position) == ResultatClic::Objet);
-    REQUIRE(partie.getObjetsAuSol().size() == 1);  // un ordre, pas un ramassage immédiat : l'ancre est loin
+    REQUIRE(partie.cliquer(objet.position) == ResultatClic::ObjetAuSol);
+    REQUIRE(partie.getSol().tous().size() == 1);  // un ordre, pas un ramassage immédiat : l'ancre est loin
     avancerJusquAuRamassage(partie, 10.0f);
 
-    REQUIRE(partie.getObjetsAuSol().empty());
+    REQUIRE(partie.getSol().tous().empty());
     REQUIRE(sacContient(partie, objet.objet));
     REQUIRE(partie.getEscouade().sac().casesLibres() == libresAvant - 1);
     REQUIRE(distance(partie.getEscouade().getCentre(), objet.position) < s_distanceDeRamassage + 5.0f);
@@ -98,7 +98,7 @@ TEST_CASE("ramassage : un clic sur un objet envoie l'escouade, et il passe dans 
 
 TEST_CASE("ramassage : l'objet va dans la premiere case libre du sac") {
     Partie partie = partieAvecUnObjetAuSol();
-    const ObjetAuSol objet = partie.getObjetsAuSol().front();
+    const ObjetAuSol objet = partie.getSol().tous().front();
     std::size_t premiereLibre = 0;
     while (partie.getEscouade().sac().a(premiereLibre).has_value()) {
         ++premiereLibre;
@@ -112,29 +112,29 @@ TEST_CASE("ramassage : l'objet va dans la premiere case libre du sac") {
 
 TEST_CASE("ramassage : un clic sur le sol avant d'arriver remplace la visee, rien n'est ramasse") {
     Partie partie = partieAvecUnObjetAuSol();
-    const ObjetAuSol objet = partie.getObjetsAuSol().front();
+    const ObjetAuSol objet = partie.getSol().tous().front();
     const std::size_t libresAvant = partie.getEscouade().sac().casesLibres();
 
-    REQUIRE(partie.cliquer(objet.position) == ResultatClic::Objet);
+    REQUIRE(partie.cliquer(objet.position) == ResultatClic::ObjetAuSol);
     avancer(partie, 10);
     REQUIRE(partie.cliquer({100.0f, 100.0f}) == ResultatClic::Sol);
     avancer(partie, nombreDeTics(10.0f));
 
-    REQUIRE(partie.getObjetsAuSol().size() == 1);
+    REQUIRE(partie.getSol().tous().size() == 1);
     REQUIRE(partie.getEscouade().sac().casesLibres() == libresAvant);
 }
 
 TEST_CASE("ramassage : un ordre de deplacement remplace aussi la visee") {
     Partie partie = partieAvecUnObjetAuSol();
-    const ObjetAuSol objet = partie.getObjetsAuSol().front();
+    const ObjetAuSol objet = partie.getSol().tous().front();
     const std::size_t libresAvant = partie.getEscouade().sac().casesLibres();
 
-    REQUIRE(partie.cliquer(objet.position) == ResultatClic::Objet);
+    REQUIRE(partie.cliquer(objet.position) == ResultatClic::ObjetAuSol);
     avancer(partie, 10);
     partie.ordonnerDeplacement({100.0f, 100.0f});
     avancer(partie, nombreDeTics(10.0f));
 
-    REQUIRE(partie.getObjetsAuSol().size() == 1);
+    REQUIRE(partie.getSol().tous().size() == 1);
     REQUIRE(partie.getEscouade().sac().casesLibres() == libresAvant);
 }
 
@@ -147,31 +147,31 @@ TEST_CASE("ramassage : une nouvelle visee remplace la precedente, un seul ordre 
     Partie partie = partieDeTest(niveauDegageEnGroupes({{s_positionDuMonstreTue, 0}, {s_coinLointain, 1}}), compositionDeTest(),
                                  s_graineDeTest, faible);
     partie.lancerSkillDeZone(s_adresseExplosion, s_positionDuMonstreTue);
-    for (int i = 0; i < nombreDeTics(5.0f) && partie.getObjetsAuSol().empty(); ++i) {
+    for (int i = 0; i < nombreDeTics(5.0f) && partie.getSol().tous().empty(); ++i) {
         partie.mettreAJour(s_dureeTic);
     }
-    REQUIRE(partie.getObjetsAuSol().size() == 2);
-    const ObjetAuSol premier = partie.getObjetsAuSol()[0];
-    const ObjetAuSol second = partie.getObjetsAuSol()[1];
+    REQUIRE(partie.getSol().tous().size() == 2);
+    const ObjetAuSol premier = partie.getSol().tous()[0];
+    const ObjetAuSol second = partie.getSol().tous()[1];
 
-    REQUIRE(partie.cliquer(premier.position) == ResultatClic::Objet);
-    REQUIRE(partie.cliquer(second.position) == ResultatClic::Objet);
+    REQUIRE(partie.cliquer(premier.position) == ResultatClic::ObjetAuSol);
+    REQUIRE(partie.cliquer(second.position) == ResultatClic::ObjetAuSol);
     avancer(partie, nombreDeTics(10.0f));
 
     // Seul le second est ramassé : la première visée a été remplacée. L'ancre, au second, est assez loin du premier
     // (une case, 40 px) pour ne pas être passée sur lui par hasard.
-    REQUIRE(partie.getObjetsAuSol().size() == 1);
-    REQUIRE(partie.getObjetsAuSol().front().id == premier.id);
+    REQUIRE(partie.getSol().tous().size() == 1);
+    REQUIRE(partie.getSol().tous().front().id == premier.id);
     REQUIRE(sacContient(partie, second.objet));
 }
 
 TEST_CASE("ramassage : sac plein, l'objet reste au sol, l'evenement est emis une fois et l'ordre est termine") {
     Partie partie = partieAvecUnObjetAuSol();
     remplirLeSac(partie);
-    const ObjetAuSol objet = partie.getObjetsAuSol().front();
+    const ObjetAuSol objet = partie.getSol().tous().front();
     static_cast<void>(partie.prendreEvenements());  // ceux de l'explosion
 
-    REQUIRE(partie.cliquer(objet.position) == ResultatClic::Objet);
+    REQUIRE(partie.cliquer(objet.position) == ResultatClic::ObjetAuSol);
     std::vector<EvenementDeCombat> evenements;
     for (int i = 0; i < nombreDeTics(10.0f) && combienDeSacPlein(evenements) == 0; ++i) {
         partie.mettreAJour(s_dureeTic);
@@ -181,21 +181,21 @@ TEST_CASE("ramassage : sac plein, l'objet reste au sol, l'evenement est emis une
     }
 
     REQUIRE(combienDeSacPlein(evenements) == 1);
-    REQUIRE(partie.getObjetsAuSol().size() == 1);
-    REQUIRE(partie.getObjetsAuSol().front() == objet);
+    REQUIRE(partie.getSol().tous().size() == 1);
+    REQUIRE(partie.getSol().tous().front() == objet);
     REQUIRE(partie.getEscouade().sac().casesLibres() == 0);
 
     // L'ordre est terminé : l'escouade ne tente plus rien, aucun autre événement.
     avancer(partie, nombreDeTics(3.0f));
     REQUIRE(combienDeSacPlein(partie.prendreEvenements()) == 0);
-    REQUIRE(partie.getObjetsAuSol().size() == 1);
+    REQUIRE(partie.getSol().tous().size() == 1);
 }
 
 TEST_CASE("ramassage : l'evenement du sac plein est au-dessus de l'escouade entiere, a la position de l'ancre") {
     Partie partie = partieAvecUnObjetAuSol();
     remplirLeSac(partie);
     static_cast<void>(partie.prendreEvenements());
-    static_cast<void>(partie.cliquer(partie.getObjetsAuSol().front().position));
+    static_cast<void>(partie.cliquer(partie.getSol().tous().front().position));
 
     std::optional<EvenementDeCombat> plein;
     for (int i = 0; i < nombreDeTics(10.0f) && !plein.has_value(); ++i) {
@@ -218,7 +218,7 @@ TEST_CASE("ramassage : avec un monstre et un objet sous le curseur, le clic vise
     // Un monstre lourd juste à côté du monstre tué, de sorte que le point de l'objet est dans son carré.
     const sf::Vector2f positionDuLourd = {450.0f, 215.0f};
     Partie partie = partieAvecUnObjetAuSol({{positionDuLourd, 1, CategorieDeMonstre::InfanterieLourde}});
-    const ObjetAuSol objet = partie.getObjetsAuSol().front();
+    const ObjetAuSol objet = partie.getSol().tous().front();
     REQUIRE(partie.getMonstres().size() == 1);
     const Monstre& lourd = partie.getMonstres().front();
     REQUIRE(lourd.contient(objet.position));  // sinon le test ne prouve rien
@@ -231,19 +231,19 @@ TEST_CASE("ramassage : avec un monstre et un objet sous le curseur, le clic vise
 
 TEST_CASE("ramassage : un clic sur un objet rompt le combat, comme un clic sur le sol") {
     Partie partie = partieAvecUnObjetAuSol({{{440.0f, 330.0f}, 1, CategorieDeMonstre::InfanterieLourde}});
-    const ObjetAuSol objet = partie.getObjetsAuSol().front();
+    const ObjetAuSol objet = partie.getSol().tous().front();
     REQUIRE(partie.getMonstres().size() == 1);
     REQUIRE(partie.cliquer(partie.getMonstres().front().getCentre()) == ResultatClic::Monstre);
     REQUIRE(partie.getEscouade().getCibleVerrouillee().has_value());
 
-    REQUIRE(partie.cliquer(objet.position) == ResultatClic::Objet);
+    REQUIRE(partie.cliquer(objet.position) == ResultatClic::ObjetAuSol);
 
     REQUIRE_FALSE(partie.getEscouade().getCibleVerrouillee().has_value());
 }
 
 TEST_CASE("ramassage : un clic juste hors de la zone de survol de l'objet est un clic au sol") {
     Partie partie = partieAvecUnObjetAuSol();
-    const ObjetAuSol objet = partie.getObjetsAuSol().front();
+    const ObjetAuSol objet = partie.getSol().tous().front();
 
     REQUIRE(partie.cliquer(objet.position + sf::Vector2f(0.0f, s_rayonDeSurvolDObjet + 5.0f)) == ResultatClic::Sol);
 }
@@ -261,10 +261,10 @@ TEST_CASE("ramassage : un objet qu'on ne peut pas voir (case inconnue) ne se cli
     Partie partie = partieDeTest(niveauDegageEnGroupes({{s_positionDuMonstreTue, 0}, {s_coinLointain, 1}}), std::move(composition),
                                  s_graineDeTest, faible);
     partie.lancerSkillDeZone(s_adresseExplosion, s_positionDuMonstreTue);
-    for (int i = 0; i < nombreDeTics(5.0f) && partie.getObjetsAuSol().empty(); ++i) {
+    for (int i = 0; i < nombreDeTics(5.0f) && partie.getSol().tous().empty(); ++i) {
         partie.mettreAJour(s_dureeTic);
     }
-    REQUIRE(partie.getObjetsAuSol().size() == 1);
+    REQUIRE(partie.getSol().tous().size() == 1);
 
-    REQUIRE(partie.cliquer(partie.getObjetsAuSol().front().position) == ResultatClic::Sol);
+    REQUIRE(partie.cliquer(partie.getSol().tous().front().position) == ResultatClic::Sol);
 }

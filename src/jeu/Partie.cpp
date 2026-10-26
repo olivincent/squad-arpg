@@ -68,7 +68,7 @@ ResultatClic Partie::cliquer(sf::Vector2f point) {
         m_escouade.annulerAttaquesEngagees();
         m_objetAuSolVise = objet->id;
         m_deplacementOrdonne = objet->position;
-        return ResultatClic::Objet;
+        return ResultatClic::ObjetAuSol;
     }
     if (const ObjetInteractif* objet = trouverObjetActif(point)) {
         if (m_escouade.unVivantPresDe(objet->zone, s_porteeInteraction)) {
@@ -78,7 +78,7 @@ ResultatClic Partie::cliquer(sf::Vector2f point) {
             m_deplacementOrdonne.reset();
             ouvrir(*objet);
             m_escouade.regarderVers(objet->zone.getCenter());
-            return ResultatClic::Objet;
+            return ResultatClic::Porte;
         }
         const std::optional<sf::Vector2f> approche = std::visit(
             Surcharges{[&](const Porte& porte) { return pointDApproche(porte, m_carte, m_escouade.getCentre()); }},
@@ -88,7 +88,7 @@ ResultatClic Partie::cliquer(sf::Vector2f point) {
             m_escouade.annulerAttaquesEngagees();
             m_interactionEnCours = objet->id;
             m_deplacementOrdonne = approche;
-            return ResultatClic::Objet;
+            return ResultatClic::Porte;
         }
     }
     m_escouade.deverrouiller();
@@ -168,21 +168,22 @@ void Partie::ramasserSiAPortee() {
     if (!m_objetAuSolVise.has_value()) {
         return;
     }
-    const auto it = std::ranges::find(m_objetsAuSol, *m_objetAuSolVise, &ObjetAuSol::id);
-    if (it == m_objetsAuSol.end()) {
+    const ObjetAuSol* objet = m_sol.trouver(*m_objetAuSolVise);
+    if (objet == nullptr) {
         m_objetAuSolVise.reset();  // l'objet n'existe plus : la visée est abandonnée
         return;
     }
     const sf::Vector2f ancre = m_escouade.getCentre();
-    const sf::Vector2f ecart = it->position - ancre;
+    const sf::Vector2f ecart = objet->position - ancre;
     if (std::hypot(ecart.x, ecart.y) >= s_distanceDeRamassage) {
         return;
     }
     // À portée, l'ordre est terminé, que l'objet entre dans le sac ou non : un sac plein le laisse au sol, sans qu'on
     // insiste.
     m_objetAuSolVise.reset();
-    if (m_escouade.ramasser(it->objet)) {
-        m_objetsAuSol.erase(it);
+    if (m_escouade.ramasser(objet->objet)) {
+        [[maybe_unused]] const bool retire = m_sol.retirer(objet->id);
+        assert(retire);  // l'objet vient d'être trouvé
     } else {
         signaler(Camp::Escouade, s_idDeLEscouadeEntiere, ancre, SacPlein{});
     }
@@ -256,14 +257,10 @@ void Partie::retirerLesMorts() {
             continue;
         }
         for (const Objet& objet : genererButin(m_generateur, monstre.getChanceDeButin(), monstre.getNombreDObjets())) {
-            poserAuSol(objet, monstre.getCentre());
+            m_sol.poser(objet, monstre.getCentre(), m_carte);
         }
     }
     std::erase_if(m_monstres, [](const Monstre& m) { return !m.estVivant(); });
-}
-
-void Partie::poserAuSol(const Objet& objet, sf::Vector2f origine) {
-    m_objetsAuSol.push_back({m_prochainIdObjetAuSol++, objet, positionPourUnObjet(m_carte, origine, m_objetsAuSol)});
 }
 
 void Partie::appliquer(const std::vector<Coup>& coups, bool opportunite) {
@@ -527,15 +524,6 @@ bool Partie::estVisible(sf::Vector2f point) const {
     return m_vision.estVisible(point);
 }
 
-bool Partie::jeterUnObjet(const PositionDObjet& position) {
-    const std::optional<Objet> objet = m_escouade.retirerObjet(position);
-    if (!objet.has_value()) {
-        return false;
-    }
-    poserAuSol(*objet, m_escouade.getCentre());
-    return true;
-}
-
 bool Partie::ramasserDesObjetsAleatoires(std::size_t nombre) {
     // La vérification vient avant le tirage : un refus ne consomme aucun nombre aléatoire.
     if (m_escouade.sac().casesLibres() < nombre) {
@@ -563,20 +551,18 @@ const std::vector<Monstre>& Partie::getMonstres() const {
     return m_monstres;
 }
 
-const std::vector<ObjetAuSol>& Partie::getObjetsAuSol() const {
-    return m_objetsAuSol;
+const TileMap& Partie::getCarte() const {
+    return m_carte;
+}
+
+const ObjetsAuSol& Partie::getSol() const {
+    return m_sol;
+}
+
+ObjetsAuSol& Partie::getSol() {
+    return m_sol;
 }
 
 const ObjetAuSol* Partie::objetAuSolSous(sf::Vector2f point) const {
-    const ObjetAuSol* trouve = nullptr;
-    float meilleureDistance = s_rayonDeSurvolDObjet;
-    for (const ObjetAuSol& objet : m_objetsAuSol) {
-        const sf::Vector2f ecart = objet.position - point;
-        const float distance = std::hypot(ecart.x, ecart.y);
-        if (distance <= meilleureDistance && m_vision.etat(m_carte.caseContenant(objet.position)) != EtatCase::Inconnue) {
-            trouve = &objet;
-            meilleureDistance = distance;
-        }
-    }
-    return trouve;
+    return m_sol.sous(point, m_carte, m_vision);
 }

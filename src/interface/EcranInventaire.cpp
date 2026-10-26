@@ -29,7 +29,7 @@
 #include "interface/Contexte.hpp"
 #include "interface/DispositionInventaire.hpp"
 #include "interface/EntreeDInterface.hpp"
-#include "jeu/Partie.hpp"
+#include "jeu/ObjetsAuSol.hpp"
 #include "objets/CatalogueObjets.hpp"
 
 namespace {
@@ -37,7 +37,7 @@ namespace {
 constexpr unsigned char s_opaciteVoile = 170;
 constexpr float s_epaisseurContour = 2.0f;
 constexpr unsigned int s_tailleTitre = 36;
-constexpr float s_hauteurTitre = 20.0f;  // du haut du panneau
+constexpr float s_hauteurTitre = 10.0f;  // du haut du panneau
 constexpr unsigned int s_tailleEnTete = 18;
 constexpr unsigned int s_tailleArmure = 16;
 constexpr unsigned int s_tailleCaracteristique = 14;
@@ -281,8 +281,8 @@ void dessinerInfobulle(sf::RenderTarget& rendu, const sf::Font& police, const Ob
 
 }  // namespace
 
-EcranInventaire::EcranInventaire(Partie& partie, std::vector<std::string> nomsDesClasses)
-    : m_partie(partie), m_escouade(partie.getEscouade()), m_nomsDesClasses(std::move(nomsDesClasses)) {
+EcranInventaire::EcranInventaire(Escouade& escouade, ObjetsAuSol& sol, const TileMap& carte, std::vector<std::string> nomsDesClasses)
+    : m_escouade(escouade), m_sol(sol), m_carte(carte), m_nomsDesClasses(std::move(nomsDesClasses)) {
     assert(m_nomsDesClasses.size() == s_nombreDePlaces);
 }
 
@@ -314,7 +314,7 @@ void EcranInventaire::relacher(sf::Vector2f point, sf::Vector2f tailleDeVue) {
         static_cast<void>(m_escouade.deplacerObjet(*m_origine, *cible));
     } else if (!rectangleDuPanneau(tailleDeVue).contains(point)) {
         // Lâché hors de la fenêtre d'inventaire : l'objet saisi est toujours là (le glissement ne touche pas au modèle).
-        [[maybe_unused]] const bool jete = m_partie.jeterUnObjet(*m_origine);
+        [[maybe_unused]] const bool jete = jeterUnObjet(m_escouade, m_sol, m_carte, *m_origine);
         assert(jete);
     }
     m_origine.reset();
@@ -369,7 +369,7 @@ void EcranInventaire::dessiner(const Contexte& contexte) const {
     sf::Text titre = texte(contexte.police, "Inventory", s_tailleTitre, sf::Color::White);
     const sf::FloatRect limites = titre.getLocalBounds();
     titre.setOrigin({limites.position.x + limites.size.x / 2.0f, limites.position.y});
-    titre.setPosition({vue.centre.x, s_margePanneau + s_hauteurTitre});
+    titre.setPosition({vue.centre.x, zonePanneau.position.y + s_hauteurTitre});
     fenetre.draw(titre);
 
     for (std::size_t place = 1; place <= s_nombreDePlaces; ++place) {

@@ -48,14 +48,14 @@ TEST_CASE("porte : un clic dessus renvoie Objet et leve le verrou") {
     REQUIRE(partie.cliquer({60.0f, 60.0f}) == ResultatClic::Monstre);
     REQUIRE(partie.getEscouade().getCibleVerrouillee().has_value());
 
-    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Porte);
 
     REQUIRE_FALSE(partie.getEscouade().getCibleVerrouillee().has_value());
 }
 
 TEST_CASE("porte : l'escouade s'avance, la porte s'ouvre et le chemin passe") {
     Partie partie = unePartie(niveauAvecPorte(), s_graineDeTest);
-    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Porte);
 
     avancer(partie, 120);
 
@@ -71,22 +71,22 @@ TEST_CASE("porte : l'escouade s'avance, la porte s'ouvre et le chemin passe") {
 
 TEST_CASE("porte : un ordre de deplacement annule l'interaction") {
     Partie partie = unePartie(niveauAvecPorte(), s_graineDeTest);
-    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Porte);
 
     partie.ordonnerDeplacement({100.0f, 200.0f});
     avancer(partie, 120);
 
-    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);  // toujours fermée
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Porte);  // toujours fermée
 }
 
 TEST_CASE("porte : un clic au sol annule l'interaction") {
     Partie partie = unePartie(niveauAvecPorte(), s_graineDeTest);
-    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Porte);
 
     REQUIRE(partie.cliquer({100.0f, 200.0f}) == ResultatClic::Sol);
     avancer(partie, 120);
 
-    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Porte);
 }
 
 TEST_CASE("porte : un monstre ciblable sur la porte a la priorite") {
@@ -109,11 +109,11 @@ TEST_CASE("porte : sans cote libre, le clic compte comme un clic au sol") {
 TEST_CASE("porte : une partie figee n'ouvre rien") {
     Partie partie = unePartie(niveauAvecPorte({}), s_graineDeTest);  // aucun monstre : gagnée
     REQUIRE(partie.estGagnee());
-    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Porte);
 
     avancer(partie, 120);
 
-    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Porte);
 }
 
 namespace {
@@ -143,7 +143,7 @@ TEST_CASE("porte : un personnage deja a portee ouvre la porte sur place, sans de
     Partie partie = unePartie(niveauCollePorteDeDos(), s_graineDeTest);
     const sf::Vector2f centreAvant = partie.getEscouade().getCentre();
 
-    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Porte);
 
     REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Sol);  // déjà ouverte, avant tout mettreAJour
     avancer(partie, 30);
@@ -155,7 +155,7 @@ TEST_CASE("porte : de dos et collee a la porte, la formation fait face a la port
     partie.mettreAJour(s_dureeTic);
     REQUIRE_FALSE(formationFaitFace(partie, s_surLaPorte));
 
-    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Porte);
     avancer(partie, 60);
 
     REQUIRE(formationFaitFace(partie, s_surLaPorte));
@@ -166,7 +166,7 @@ TEST_CASE("porte : apres l'ouverture par approche, la formation est tournee vers
     niveau.departEscouade = {250.0f, 80.0f};  // au nord-ouest : l'approche se fait vers le sud
     Partie partie = unePartie(niveau, s_graineDeTest);
 
-    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Porte);
     avancer(partie, 200);
 
     REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Sol);  // ouverte
@@ -176,9 +176,9 @@ TEST_CASE("porte : apres l'ouverture par approche, la formation est tournee vers
 TEST_CASE("porte : loin de la porte, la porte reste fermee tant que l'escouade n'est pas arrivee") {
     Partie partie = unePartie(niveauAvecPorte(s_monstreLointain), s_graineDeTest);  // départ (210, 210), à 70 px
 
-    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Porte);
 
-    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Objet);  // pas encore ouverte
+    REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Porte);  // pas encore ouverte
     avancer(partie, 120);
     REQUIRE(partie.cliquer(s_surLaPorte) == ResultatClic::Sol);
 }

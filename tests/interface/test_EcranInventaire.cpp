@@ -64,21 +64,21 @@ Partie partieCapableDeToutPorter() {
 
 TEST_CASE("inventaire : I ferme l'ecran") {
     Partie partie = partieSansMonstre();
-    EcranInventaire ecran(partie, s_noms);
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
 
     REQUIRE(std::holds_alternative<Depiler>(ecran.appuyer(sf::Keyboard::Scan::I)));
 }
 
 TEST_CASE("inventaire : Echap ferme l'ecran quand rien n'est saisi") {
     Partie partie = partieSansMonstre();
-    EcranInventaire ecran(partie, s_noms);
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
 
     REQUIRE(std::holds_alternative<Depiler>(ecran.appuyer(sf::Keyboard::Scan::Escape)));
 }
 
 TEST_CASE("inventaire : les autres touches sont ignorees") {
     Partie partie = partieSansMonstre();
-    EcranInventaire ecran(partie, s_noms);
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
 
     REQUIRE(std::holds_alternative<Aucune>(ecran.appuyer(sf::Keyboard::Scan::Q)));
     REQUIRE(std::holds_alternative<Aucune>(ecran.appuyer(sf::Keyboard::Scan::F5)));
@@ -86,14 +86,14 @@ TEST_CASE("inventaire : les autres touches sont ignorees") {
 
 TEST_CASE("inventaire : laisse voir la partie dessous") {
     Partie partie = partieSansMonstre();
-    const EcranInventaire ecran(partie, s_noms);
+    const EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
 
     REQUIRE(ecran.laisseVoirDessous());
 }
 
 TEST_CASE("glissement : saisir un objet commence le glissement, une case vide non") {
     Partie partie = partieAvecDesGants();
-    EcranInventaire ecran(partie, s_noms);
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
 
     ecran.saisir(centreDeLaCase(5), s_vue);  // case vide
     REQUIRE_FALSE(ecran.origineDuGlissement().has_value());
@@ -109,7 +109,7 @@ TEST_CASE("glissement : saisir un objet commence le glissement, une case vide no
 TEST_CASE("glissement : rien ne bouge avant le relachement") {
     Partie partie = partieAvecDesGants();
     Escouade& escouade = partie.getEscouade();
-    EcranInventaire ecran(partie, s_noms);
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
 
     ecran.saisir(centreDeLaCase(0), s_vue);
 
@@ -119,7 +119,7 @@ TEST_CASE("glissement : rien ne bouge avant le relachement") {
 TEST_CASE("glissement : relacher sur un emplacement compatible equipe l'objet") {
     Partie partie = partieAvecDesGants();
     Escouade& escouade = partie.getEscouade();
-    EcranInventaire ecran(partie, s_noms);
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
 
     ecran.saisir(centreDeLaCase(0), s_vue);
     ecran.relacher(centreDeLEmplacement(s_mage, Emplacement::Gants), s_vue);
@@ -132,7 +132,7 @@ TEST_CASE("glissement : relacher sur un emplacement compatible equipe l'objet") 
 TEST_CASE("glissement : relacher sur une case du sac range l'objet") {
     Partie partie = partieAvecDesGants();
     Escouade& escouade = partie.getEscouade();
-    EcranInventaire ecran(partie, s_noms);
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
 
     ecran.saisir(centreDeLaCase(0), s_vue);
     ecran.relacher(centreDeLaCase(12), s_vue);
@@ -144,7 +144,7 @@ TEST_CASE("glissement : relacher sur une case du sac range l'objet") {
 TEST_CASE("glissement : un emplacement incompatible refuse, rien ne bouge, le glissement se termine") {
     Partie partie = partieAvecDesGants();
     Escouade& escouade = partie.getEscouade();
-    EcranInventaire ecran(partie, s_noms);
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
 
     ecran.saisir(centreDeLaCase(0), s_vue);
     ecran.relacher(centreDeLEmplacement(s_guerrier, Emplacement::Tete), s_vue);
@@ -157,19 +157,19 @@ TEST_CASE("glissement : un emplacement incompatible refuse, rien ne bouge, le gl
 TEST_CASE("glissement : relacher dans un ecart du panneau ne bouge rien, ne jette rien et termine le glissement") {
     Partie partie = partieAvecDesGants();
     Escouade& escouade = partie.getEscouade();
-    EcranInventaire ecran(partie, s_noms);
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
 
     ecran.saisir(centreDeLaCase(0), s_vue);
     ecran.relacher(centre(rectangleDeLEnTete(s_guerrier, s_vue)), s_vue);  // dans le panneau, sur aucun element
 
     REQUIRE_FALSE(ecran.origineDuGlissement().has_value());
     REQUIRE(escouade.sac().a(0) == Objet{IdObjet::GantsDeCuir});
-    REQUIRE(partie.getObjetsAuSol().empty());
+    REQUIRE(partie.getSol().tous().empty());
 }
 
 TEST_CASE("jeter : lacher un objet du sac hors du panneau le pose au sol pres de l'ancre") {
     Partie partie = partieAvecDesGants();
-    EcranInventaire ecran(partie, s_noms);
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
     const Exemplaires avant = exemplaires(partie);
 
     ecran.saisir(centreDeLaCase(0), s_vue);
@@ -177,14 +177,14 @@ TEST_CASE("jeter : lacher un objet du sac hors du panneau le pose au sol pres de
 
     REQUIRE_FALSE(ecran.origineDuGlissement().has_value());
     REQUIRE_FALSE(partie.getEscouade().sac().a(0).has_value());
-    REQUIRE(partie.getObjetsAuSol().size() == 1);
-    REQUIRE(partie.getObjetsAuSol().front().objet == Objet{IdObjet::GantsDeCuir});
+    REQUIRE(partie.getSol().tous().size() == 1);
+    REQUIRE(partie.getSol().tous().front().objet == Objet{IdObjet::GantsDeCuir});
     REQUIRE(exemplaires(partie) == avant);
 }
 
 TEST_CASE("jeter : lacher un objet porte hors du panneau le pose au sol, l'emplacement se vide") {
     Partie partie = partieCapableDeToutPorter();
-    EcranInventaire ecran(partie, s_noms);
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
     const Exemplaires avant = exemplaires(partie);
 
     ecran.saisir(centreDeLEmplacement(s_guerrier, Emplacement::MainDroite), s_vue);
@@ -192,36 +192,36 @@ TEST_CASE("jeter : lacher un objet porte hors du panneau le pose au sol, l'empla
     ecran.relacher({s_vue.x - 5.0f, s_vue.y - 5.0f}, s_vue);
 
     REQUIRE_FALSE(partie.getEscouade().equipementDuPersonnage(s_guerrier).a(Emplacement::MainDroite).has_value());
-    REQUIRE(partie.getObjetsAuSol().size() == 1);
+    REQUIRE(partie.getSol().tous().size() == 1);
     REQUIRE(exemplaires(partie) == avant);
 }
 
 TEST_CASE("jeter : annuler le glissement avant de lacher ne jette rien") {
     Partie partie = partieAvecDesGants();
-    EcranInventaire ecran(partie, s_noms);
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
 
     ecran.saisir(centreDeLaCase(0), s_vue);
     ecran.annulerLeGlissement();
     ecran.relacher({1.0f, 1.0f}, s_vue);
 
     REQUIRE(partie.getEscouade().sac().a(0) == Objet{IdObjet::GantsDeCuir});
-    REQUIRE(partie.getObjetsAuSol().empty());
+    REQUIRE(partie.getSol().tous().empty());
 }
 
 TEST_CASE("jeter : lacher hors du panneau sans glissement ne fait rien") {
     Partie partie = partieAvecDesGants();
-    EcranInventaire ecran(partie, s_noms);
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
 
     ecran.relacher({1.0f, 1.0f}, s_vue);
 
     REQUIRE(partie.getEscouade().sac().a(0) == Objet{IdObjet::GantsDeCuir});
-    REQUIRE(partie.getObjetsAuSol().empty());
+    REQUIRE(partie.getSol().tous().empty());
 }
 
 TEST_CASE("glissement : relacher sans glissement ne fait rien") {
     Partie partie = partieAvecDesGants();
     Escouade& escouade = partie.getEscouade();
-    EcranInventaire ecran(partie, s_noms);
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
 
     ecran.relacher(centreDeLaCase(3), s_vue);
 
@@ -232,7 +232,7 @@ TEST_CASE("glissement : relacher sans glissement ne fait rien") {
 TEST_CASE("glissement : un objet porte se saisit et s'echange avec un autre personnage") {
     Partie partie = partieCapableDeToutPorter();
     Escouade& escouade = partie.getEscouade();
-    EcranInventaire ecran(partie, s_noms);
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
 
     ecran.saisir(centreDeLEmplacement(s_guerrier, Emplacement::Jambes), s_vue);
     REQUIRE(ecran.origineDuGlissement() == PositionDObjet{PositionPortee{s_guerrier, Emplacement::Jambes}});
@@ -245,7 +245,7 @@ TEST_CASE("glissement : un objet porte se saisit et s'echange avec un autre pers
 TEST_CASE("glissement : Echap l'annule sans fermer, un deuxieme Echap ferme") {
     Partie partie = partieAvecDesGants();
     Escouade& escouade = partie.getEscouade();
-    EcranInventaire ecran(partie, s_noms);
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
 
     ecran.saisir(centreDeLaCase(0), s_vue);
     REQUIRE(std::holds_alternative<Aucune>(ecran.appuyer(sf::Keyboard::Scan::Escape)));
@@ -258,7 +258,7 @@ TEST_CASE("glissement : Echap l'annule sans fermer, un deuxieme Echap ferme") {
 TEST_CASE("glissement : I ferme l'ecran meme pendant un glissement, rien n'a bouge") {
     Partie partie = partieAvecDesGants();
     Escouade& escouade = partie.getEscouade();
-    EcranInventaire ecran(partie, s_noms);
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
 
     ecran.saisir(centreDeLaCase(0), s_vue);
 
@@ -269,7 +269,7 @@ TEST_CASE("glissement : I ferme l'ecran meme pendant un glissement, rien n'a bou
 TEST_CASE("glissement : annulerLeGlissement abandonne sans rien deplacer") {
     Partie partie = partieAvecDesGants();
     Escouade& escouade = partie.getEscouade();
-    EcranInventaire ecran(partie, s_noms);
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
 
     ecran.saisir(centreDeLaCase(0), s_vue);
     ecran.annulerLeGlissement();

@@ -99,7 +99,7 @@ add_library(squad_core STATIC
     src/monde/Vision.cpp
     src/monde/GenerateurDonjon.cpp
     src/monde/CompositionDeGroupe.cpp
-    src/jeu/ObjetAuSol.cpp
+    src/jeu/ObjetsAuSol.cpp
     src/jeu/Partie.cpp
     src/interface/TextesFlottants.cpp
     src/interface/Controleur.cpp
@@ -202,7 +202,7 @@ add_executable(tests
     tests/objets/test_ObjetsActifs.cpp
     tests/objets/test_GenerationDObjets.cpp
     tests/monde/test_GenerateurDonjon.cpp
-    tests/jeu/test_ObjetAuSol.cpp
+    tests/jeu/test_ObjetsAuSol.cpp
     tests/jeu/test_Partie_clics.cpp
     tests/jeu/test_Partie_skills.cpp
     tests/jeu/test_Partie_monstres.cpp

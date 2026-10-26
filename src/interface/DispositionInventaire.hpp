@@ -19,19 +19,18 @@
 // (Tête, Torse, Jambes, Gants, Bottes à gauche ; Main droite, Main gauche, Collier, Anneau 1,
 // Anneau 2 à droite : l'ordre de `Emplacement`), puis le bloc des caractéristiques et des points de vie, puis
 // le bloc des statistiques de combat. En bas, le sac : `s_casesDuSac` cases carrées,
-// `s_colonnesDuSac` par rangée, dans l'ordre des indices. Tout tient dans une vue de
+// `s_colonnesDuSac` par rangée (deux rangées), dans l'ordre des indices. Tout tient dans une vue de
 // 1200 × 800 au moins, sans chevauchement.
 
 inline constexpr std::size_t s_nombreDePlaces = 3;
-inline constexpr std::size_t s_colonnesDuSac = 10;
+inline constexpr std::size_t s_colonnesDuSac = 20;
 inline constexpr std::size_t s_lignesDeCaracteristiques = 3;  // du bloc des caractéristiques
 inline constexpr std::size_t s_lignesDeStatistiques = 3;       // du bloc des statistiques de combat
 inline constexpr std::size_t s_cellulesDeStatistiques = 2 * s_lignesDeStatistiques;  // en deux colonnes
 inline constexpr std::size_t s_casesDuSac = 40;  // la capacité du sac de l'escouade
 
-// Le panneau de l'inventaire : la vue moins une marge de chaque côté. Ce qui est lâché en dehors de lui, hors de la « fenêtre
-// d'inventaire », est jeté au sol.
-inline constexpr float s_margePanneau = 40.0f;
+// Le panneau de l'inventaire : de la taille de son contenu (la même quelle que soit la vue), centré dans la vue, qui laisse
+// voir le jeu tout autour. Ce qui est lâché en dehors de lui, hors de la « fenêtre d'inventaire », est jeté au sol.
 [[nodiscard]] sf::FloatRect rectangleDuPanneau(sf::Vector2f tailleDeVue);
 
 // La bande d'en-tête de la colonne de cette place (le nom de la classe). `assert` : place de 1 à

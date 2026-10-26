@@ -11,7 +11,8 @@
 #include "objets/PositionDObjet.hpp"
 
 class Escouade;
-class Partie;
+class ObjetsAuSol;
+class TileMap;
 
 // L'inventaire, ouvert par-dessus la partie (touche I) : l'équipement des personnages et le sac
 // de l'escouade, où l'on déplace les objets par glisser-déposer. Il laisse voir l'écran de jeu
@@ -19,15 +20,15 @@ class Partie;
 // glissement en cours, sinon ferme l'écran.
 //
 // Le glissement ne touche pas au modèle : on retient seulement la position d'origine, et tout se joue
-// au relâchement, par `Escouade::deplacerObjet`, ou `Partie::jeterUnObjet` si l'objet est lâché hors du panneau de
+// au relâchement, par `Escouade::deplacerObjet`, ou `jeterUnObjet` (`jeu/ObjetsAuSol`) si l'objet est lâché hors du panneau de
 // l'inventaire. Les points sont en coordonnées de la vue d'interface.
 class EcranInventaire : public Ecran {
 public:
-    // `partie` : celle de l'écran de jeu, qui reste sous celui-ci dans la pile et lui survit
-    // donc (invariant de la pile, `docs/ecrans.md`) ; l'écran lit et déplace les objets de son escouade, et jette ceux
-    // qu'on lâche hors du panneau sur son sol. `nomsDesClasses` : le nom de la classe de
-    // chaque place, dans l'ordre des places (`s_nombreDePlaces` noms).
-    EcranInventaire(Partie& partie, std::vector<std::string> nomsDesClasses);
+    // Ce que l'écran utilise, et rien d'autre de la partie : `escouade`, dont il lit et déplace les objets, `sol`, où il jette
+    // ceux qu'on lâche hors du panneau, et `carte`, qui dit où ils tombent près de l'ancre. Ils appartiennent à la `Partie` de
+    // l'écran de jeu, qui reste sous celui-ci dans la pile et leur survit donc (invariant de la pile, `docs/ecrans.md`).
+    // `nomsDesClasses` : le nom de la classe de chaque place, dans l'ordre des places (`s_nombreDePlaces` noms).
+    EcranInventaire(Escouade& escouade, ObjetsAuSol& sol, const TileMap& carte, std::vector<std::string> nomsDesClasses);
 
     // Une touche pressée : I dépile l'écran ; Échap annule le glissement en cours, ou dépile s'il n'y en
     // a pas ; les autres ne font rien. Sépare la logique de l'événement SFML, comme `cliquer` pour les menus.
@@ -51,8 +52,9 @@ public:
     [[nodiscard]] bool laisseVoirDessous() const override;
 
 private:
-    Partie& m_partie;
-    Escouade& m_escouade;  // celle de m_partie
+    Escouade& m_escouade;
+    ObjetsAuSol& m_sol;
+    const TileMap& m_carte;
     std::vector<std::string> m_nomsDesClasses;
     std::optional<PositionDObjet> m_origine;
 };

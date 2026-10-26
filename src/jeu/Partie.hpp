@@ -14,6 +14,7 @@
 #include "escouade/Escouade.hpp"
 #include "combat/EvenementDeCombat.hpp"
 #include "jeu/ObjetAuSol.hpp"
+#include "jeu/ObjetsAuSol.hpp"
 #include "monstres/DefinitionDeMonstre.hpp"
 #include "monstres/Monstre.hpp"
 #include "monde/Niveau.hpp"
@@ -22,8 +23,8 @@
 #include "monde/Vision.hpp"
 #include "objets/PositionDObjet.hpp"
 
-// Ce que le clic du joueur a désigné : un monstre, un objet (une porte fermée ou un objet au sol), le sol.
-enum class ResultatClic { Monstre, Objet, Sol, Ignore };
+// Ce que le clic du joueur a désigné : un monstre, une porte fermée, un objet au sol, le sol.
+enum class ResultatClic { Monstre, Porte, ObjetAuSol, Sol, Ignore };
 
 // Les règles de jeu : possède la carte, l'escouade et les monstres, et sert
 // d'intermédiaire entre Escouade et Monstre, qui ne se connaissent pas.
@@ -45,9 +46,9 @@ public:
            const CatalogueDeMonstres& catalogue = catalogueDeMonstres());
 
     // Verrouille le monstre ciblable qui contient ce point (Monstre) ; sinon, sur un objet au sol (`objetAuSolSous`), lève le
-    // verrou et envoie l'escouade le ramasser (Objet : `ramasserSiAPortee` le ramasse quand l'ancre arrive, et tout autre
+    // verrou et envoie l'escouade le ramasser (ObjetAuSol : `ramasserSiAPortee` le ramasse quand l'ancre arrive, et tout autre
     // ordre remplace cette visée) ; sinon, sur une porte
-    // fermée (Objet), lève le verrou, mémorise l'interaction et envoie l'escouade devant elle
+    // fermée (Porte), lève le verrou, mémorise l'interaction et envoie l'escouade devant elle
     // (Sol si aucun côté n'est libre) ; sinon lève le verrou (Sol) : un monstre qui rentre à son poste compte comme le sol.
     // Ignore si l'escouade est vaincue : rien ne change.
     ResultatClic cliquer(sf::Vector2f point);
@@ -74,12 +75,6 @@ public:
     // l'entité + zone), personnages vivants et monstres qui ne rentrent pas à leur poste.
     void dessinerZonesDeControle(sf::RenderTarget& rendu) const;
 
-    // Jette l'objet de cette position (case du sac ou emplacement d'un personnage, `Escouade::retirerObjet`) : il est retiré de
-    // l'escouade, qui recalcule ce que son retrait change, et posé au sol près de l'ancre (`positionPourUnObjet`) avec un
-    // identifiant neuf. Un objet n'est jamais perdu ni dupliqué : il quitte l'escouade et arrive au sol dans le même appel.
-    // Faux, sans rien changer, si la position est vide.
-    [[nodiscard]] bool jeterUnObjet(const PositionDObjet& position);
-
     // Tire `nombre` objets au hasard (`genererObjet`, avec le générateur de la partie) et les met dans le sac de l'escouade,
     // tout ou rien : sans `nombre` cases libres, rien n'est ajouté, aucun tirage n'est fait (le générateur n'avance pas) et
     // le résultat est faux. Pour la touche de débogage F7.
@@ -105,11 +100,13 @@ public:
     // Pour l'inventaire, qui déplace les objets de l'escouade (`docs/ecrans.md`).
     [[nodiscard]] Escouade& getEscouade();
     [[nodiscard]] const std::vector<Monstre>& getMonstres() const;
-    // Les objets posés au sol, dans l'ordre où ils sont tombés.
-    [[nodiscard]] const std::vector<ObjetAuSol>& getObjetsAuSol() const;
-    // L'objet au sol que ce point (pixels du monde) désigne : le plus proche à moins de `s_rayonDeSurvolDObjet`, nullptr s'il
-    // n'y en a pas. Un objet est comme le terrain : sur une case jamais vue (inconnue), il est caché, donc introuvable ;
-    // dans une case explorée, même hors de vue, il se désigne.
+    // La carte, pour ce qui doit trouver une place dans le monde (jeter un objet : `jeterUnObjet`).
+    [[nodiscard]] const TileMap& getCarte() const;
+    // Les objets posés au sol (`tous()` : dans l'ordre où ils sont tombés).
+    [[nodiscard]] const ObjetsAuSol& getSol() const;
+    // Pour l'inventaire, qui y jette les objets (`docs/ecrans.md`).
+    [[nodiscard]] ObjetsAuSol& getSol();
+    // L'objet au sol que ce point (pixels du monde) désigne (`ObjetsAuSol::sous`, avec la carte et la vision de la partie).
     [[nodiscard]] const ObjetAuSol* objetAuSolSous(sf::Vector2f point) const;
 
 private:
@@ -167,8 +164,6 @@ private:
     // Retire les monstres morts ; chacun, dans l'ordre du vecteur, laisse son butin (un tirage de chance, puis les objets) à
     // l'endroit de sa mort. Le seul endroit où un monstre quitte le vecteur.
     void retirerLesMorts();
-    // Pose cet objet au sol, à la place libre la plus proche de `origine` (`positionPourUnObjet`), avec un identifiant neuf.
-    void poserAuSol(const Objet& objet, sf::Vector2f origine);
     // `enPoursuiteAvant` : statut de chaque monstre de `m_monstres` avant leur mise à jour.
     void alerterLesGroupes(const std::vector<bool>& enPoursuiteAvant);
 
@@ -176,8 +171,7 @@ private:
     Escouade m_escouade;
     std::vector<Monstre> m_monstres;
     std::vector<ObjetInteractif> m_objets;
-    std::vector<ObjetAuSol> m_objetsAuSol;
-    int m_prochainIdObjetAuSol = 1;  // jamais réutilisé dans la partie
+    ObjetsAuSol m_sol;
     std::optional<int> m_interactionEnCours;  // identifiant de l'objet que l'escouade va activer
     std::optional<int> m_objetAuSolVise;      // identifiant de l'objet au sol que l'escouade va ramasser (jamais un indice)
     std::optional<LancerDeZone> m_lancerDeZoneDemande;
