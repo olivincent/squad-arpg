@@ -2,6 +2,7 @@
 #include "objets/CatalogueAffixes.hpp"
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <cstddef>
 
 namespace {
@@ -17,6 +18,10 @@ constexpr PlageDeValeurs s_plageArmure = {2, 5};              // points d'armure
 constexpr PlageDeValeurs s_plageCaracteristique = {1, 3};     // points de caractéristique
 constexpr PlageDeValeurs s_plageEsquive = {2, 4};             // pour cent
 constexpr PlageDeValeurs s_plageBlocage = {3, 7};             // pour cent de chance
+
+// De combien les bornes d'une plage grandissent à chaque niveau d'objet au-delà du premier, en part de la plage du catalogue
+// (valeur provisoire, « à tester »).
+constexpr double s_croissanceDesPlagesParNiveau = 0.25;
 
 std::vector<DefinitionDAffixe> construireLeCatalogue() {
     return {
@@ -77,6 +82,13 @@ const DefinitionDAffixe& definitionAffixe(IdAffixe id) {
     const DefinitionDAffixe& trouvee = catalogueAffixes()[static_cast<std::size_t>(id)];
     assert(trouvee.id == id);  // le catalogue suit l'ordre de IdAffixe
     return trouvee;
+}
+
+PlageDeValeurs plageAuNiveau(IdAffixe id, int niveau) {
+    assert(niveau >= 1);
+    const PlageDeValeurs& plage = definitionAffixe(id).valeurs;
+    const double facteur = 1.0 + s_croissanceDesPlagesParNiveau * (niveau - 1);
+    return {static_cast<int>(std::lround(plage.min * facteur)), static_cast<int>(std::lround(plage.max * facteur))};
 }
 
 bool affixePermis(IdAffixe id, CategorieObjet categorie) {

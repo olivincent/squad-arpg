@@ -297,7 +297,7 @@ void Partie::retirerLesMorts() {
             continue;
         }
         m_experience += monstre.getExperience();  // à l'escouade, quel que soit le tueur, même si des personnages sont morts
-        for (const Objet& objet : genererButin(m_generateur, monstre.getChanceDeButin(), monstre.getNombreDObjets())) {
+        for (const Objet& objet : genererButin(m_generateur, monstre.getChanceDeButin(), monstre.getNombreDObjets(), 1)) {
             m_sol.poser(objet, monstre.getCentre(), m_carte);
         }
     }
@@ -631,7 +631,7 @@ bool Partie::ramasserDesObjetsAleatoires(std::size_t nombre) {
     std::vector<Objet> objets;
     objets.reserve(nombre);
     for (std::size_t i = 0; i < nombre; ++i) {
-        objets.push_back(genererObjet(m_generateur));
+        objets.push_back(genererObjet(m_generateur, 1));
     }
     [[maybe_unused]] const bool ok = m_escouade.ramasserTout(objets);
     assert(ok);  // il y avait assez de cases libres

@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <optional>
 #include <set>
+#include <string>
 #include <vector>
 
 #include "base/Aleatoire.hpp"
@@ -15,10 +16,25 @@
 // Les objets tirés (étape 96) : les poids, la règle « ce modèle peut-il porter cette rareté » et `genererObjet`. Les tirages
 // utilisent une graine fixe : un test qui échoue échoue toujours de la même façon.
 
-TEST_CASE("poidsDeRarete : commun 70, magique 25, rare 5") {
-    REQUIRE(poidsDeRarete(Rarete::Commun) == 70);
-    REQUIRE(poidsDeRarete(Rarete::Magique) == 25);
-    REQUIRE(poidsDeRarete(Rarete::Rare) == 5);
+TEST_CASE("poidsDeRarete : au niveau 1, commun 70, magique 25, rare 5") {
+    REQUIRE(poidsDeRarete(Rarete::Commun, 1) == 70);
+    REQUIRE(poidsDeRarete(Rarete::Magique, 1) == 25);
+    REQUIRE(poidsDeRarete(Rarete::Rare, 1) == 5);
+}
+
+TEST_CASE("poidsDeRarete : au niveau 5, commun 50, magique 37, rare 13") {
+    REQUIRE(poidsDeRarete(Rarete::Commun, 5) == 50);
+    REQUIRE(poidsDeRarete(Rarete::Magique, 5) == 37);
+    REQUIRE(poidsDeRarete(Rarete::Rare, 5) == 13);
+}
+
+TEST_CASE("poidsDeRarete : le commun recule de 5 par niveau jusqu'a son plancher de 20, le magique et le rare avancent sans limite") {
+    REQUIRE(poidsDeRarete(Rarete::Commun, 10) == 25);
+    REQUIRE(poidsDeRarete(Rarete::Commun, 11) == 20);  // le plancher est atteint
+    REQUIRE(poidsDeRarete(Rarete::Commun, 12) == 20);  // et respecte : sans lui, 15
+    REQUIRE(poidsDeRarete(Rarete::Commun, 20) == 20);  // sans lui, -25
+    REQUIRE(poidsDeRarete(Rarete::Magique, 20) == 25 + 3 * 19);
+    REQUIRE(poidsDeRarete(Rarete::Rare, 20) == 5 + 2 * 19);
 }
 
 TEST_CASE("peutPorterLaRarete : tous les modeles peuvent etre communs") {
@@ -51,11 +67,11 @@ constexpr unsigned int s_graine = 96;
 constexpr int s_tirages = 10000;
 
 // Les objets tirés d'un générateur de graine fixe.
-std::vector<Objet> tirer(int nombre, unsigned int graine = s_graine) {
+std::vector<Objet> tirer(int nombre, unsigned int graine = s_graine, int niveau = 1) {
     Generateur generateur(graine);
     std::vector<Objet> objets;
     for (int i = 0; i < nombre; ++i) {
-        objets.push_back(genererObjet(generateur));
+        objets.push_back(genererObjet(generateur, niveau));
     }
     return objets;
 }
@@ -70,9 +86,9 @@ bool estDesGantsOuDesBottes(IdObjet modele) {
     return categorie == CategorieObjet::Gants || categorie == CategorieObjet::Bottes;
 }
 
-// La valeur de cet affixe est-elle dans la plage de son catalogue ?
-bool dansLaPlage(const Affixe& affixe) {
-    const PlageDeValeurs& plage = definitionAffixe(affixe.id).valeurs;
+// La valeur de cet affixe est-elle dans sa plage, à ce niveau ?
+bool dansLaPlage(const Affixe& affixe, int niveau = 1) {
+    const PlageDeValeurs plage = plageAuNiveau(affixe.id, niveau);
     return affixe.valeur >= plage.min && affixe.valeur <= plage.max;
 }
 }  // namespace
@@ -133,26 +149,40 @@ TEST_CASE("genererObjet : un anneau ou un collier n'est jamais rare, des gants e
     REQUIRE(gantsOuBottesRares);
 }
 
-TEST_CASE("genererObjet : les proportions de raretes sont celles des poids, a deux points pres") {
-    // Sur 10 000 tirages, l'écart type d'une proportion est d'au plus 0,5 point (à 70 %) : deux points, c'est plus de quatre
-    // écarts types. La graine est fixe, donc la tolérance n'est pas là pour absorber le hasard : elle détecte un algorithme
-    // modifié (poids changés, rareté retirée après coup parce que le modèle ne convient pas…), qui déplacerait une
-    // proportion de plus de deux points.
+namespace {
+// Les proportions de raretés de 10 000 objets de ce niveau sont celles de `poidsDeRarete`, à deux points près. Sur 10 000
+// tirages, l'écart type d'une proportion est d'au plus 0,5 point : deux points, c'est plus de quatre écarts types. La graine
+// est fixe, donc la tolérance n'est pas là pour absorber le hasard : elle détecte un algorithme modifié (poids changés,
+// rareté retirée après coup parce que le modèle ne convient pas…), qui déplacerait une proportion de plus de deux points.
+void verifierLesProportions(int niveau) {
     constexpr double tolerance = 0.02;
     int poidsTotal = 0;
     for (const Rarete rarete : s_raretes) {
-        poidsTotal += poidsDeRarete(rarete);
+        poidsTotal += poidsDeRarete(rarete, niveau);
     }
     std::array<int, s_raretes.size()> compte = {};  // indexé par la valeur de Rarete
-    for (const Objet& objet : tirer(s_tirages)) {
+    for (const Objet& objet : tirer(s_tirages, s_graine, niveau)) {
         ++compte[static_cast<std::size_t>(objet.rarete)];
     }
     for (const Rarete rarete : s_raretes) {
-        const double attendu = static_cast<double>(poidsDeRarete(rarete)) / poidsTotal;
+        const double attendu = static_cast<double>(poidsDeRarete(rarete, niveau)) / poidsTotal;
         const double observe = static_cast<double>(compte[static_cast<std::size_t>(rarete)]) / s_tirages;
-        INFO("rarete " << static_cast<int>(rarete) << " : attendu " << attendu << ", observe " << observe);
+        INFO("niveau " << niveau << ", rarete " << static_cast<int>(rarete) << " : attendu " << attendu << ", observe " << observe);
         REQUIRE(std::abs(observe - attendu) <= tolerance);
     }
+}
+}  // namespace
+
+TEST_CASE("genererObjet : les proportions de raretes sont celles des poids, a deux points pres") {
+    verifierLesProportions(1);
+}
+
+TEST_CASE("genererObjet : au niveau 5, les proportions sont 50 / 37 / 13, a deux points pres") {
+    verifierLesProportions(5);
+}
+
+TEST_CASE("genererObjet : a un niveau eleve, le commun garde son plancher (20 sur 145) et les proportions suivent") {
+    verifierLesProportions(20);
 }
 
 TEST_CASE("genererObjet : la meme graine donne la meme suite d'objets, une autre graine une autre suite") {
@@ -160,11 +190,73 @@ TEST_CASE("genererObjet : la meme graine donne la meme suite d'objets, une autre
     REQUIRE_FALSE(tirer(200) == tirer(200, s_graine + 1));
 }
 
+namespace {
+// Un objet en une ligne : modèle, rareté, puis préfixe et suffixe éventuels (identifiant et valeur).
+std::string decrire(const Objet& objet) {
+    std::string texte = std::to_string(static_cast<int>(objet.modele)) + "/" + std::to_string(static_cast<int>(objet.rarete));
+    for (const std::optional<Affixe>& affixe : {objet.prefixe, objet.suffixe}) {
+        texte += affixe.has_value() ? " " + std::to_string(static_cast<int>(affixe->id)) + "=" + std::to_string(affixe->valeur) : " -";
+    }
+    return texte;
+}
+}  // namespace
+
+TEST_CASE("genererObjet : au niveau 1, la meme suite d'objets et les memes tirages qu'avant l'etape 101 (suite epinglee)") {
+    // Épinglée avec la bibliothèque standard de MinGW (`std::uniform_int_distribution` n'est pas défini par la norme) avant que
+    // `genererObjet` reçoive un niveau : modèle (`IdObjet`) / rareté (`Rarete`), préfixe, suffixe (`IdAffixe` = valeur).
+    const std::vector<std::string> attendu = {
+        "9/0 - -",      // anneau de protection, commun
+        "16/1 - 7=1",   // sceptre, magique, of Deflection
+        "13/1 - 6=2",   // masse, magique, of Evasion
+        "9/0 - -", "8/0 - -", "4/0 - -", "13/0 - -", "5/0 - -",
+    };
+    const std::vector<Objet> objets = tirer(static_cast<int>(attendu.size()));
+    for (std::size_t i = 0; i < attendu.size(); ++i) {
+        INFO("objet " << i);
+        REQUIRE(decrire(objets[i]) == attendu[i]);
+    }
+
+    // Le même nombre de tirages : après 200 objets, le prochain nombre du générateur est celui d'avant.
+    Generateur generateur(s_graine);
+    for (int i = 0; i < 200; ++i) {
+        static_cast<void>(genererObjet(generateur, 1));
+    }
+    REQUIRE(generateur() == 3549376931U);
+}
+
+TEST_CASE("genererObjet : au niveau 5, 10000 tirages restent valides, chaque valeur est dans la plage agrandie, certaines depassent l'ancien maximum") {
+    bool depasseLAncienMaximum = false;
+    for (const Objet& objet : tirer(s_tirages, s_graine, 5)) {
+        INFO(nomDeLObjet(objet));
+        REQUIRE(objetValide(objet));
+        for (const std::optional<Affixe>& affixe : {objet.prefixe, objet.suffixe}) {
+            if (affixe.has_value()) {
+                REQUIRE(dansLaPlage(*affixe, 5));
+                depasseLAncienMaximum = depasseLAncienMaximum || affixe->valeur > definitionAffixe(affixe->id).valeurs.max;
+            }
+        }
+    }
+    REQUIRE(depasseLAncienMaximum);
+}
+
+TEST_CASE("genererObjet : au niveau 5, les bornes de la plage agrandie sortent (Blazing de 6 a 16)") {
+    std::set<int> valeursDeFeu;
+    for (const Objet& objet : tirer(s_tirages, s_graine, 5)) {
+        for (const std::optional<Affixe>& affixe : {objet.prefixe, objet.suffixe}) {
+            if (affixe.has_value() && affixe->id == IdAffixe::Flamboyant) {
+                valeursDeFeu.insert(affixe->valeur);
+            }
+        }
+    }
+    REQUIRE(*valeursDeFeu.begin() == 6);
+    REQUIRE(*valeursDeFeu.rbegin() == 16);
+}
+
 TEST_CASE("genererButin : une chance nulle ne donne rien et ne consomme aucun tirage") {
     Generateur generateur(s_graine);
     const Generateur avant = generateur;
 
-    REQUIRE(genererButin(generateur, 0, 3).empty());
+    REQUIRE(genererButin(generateur, 0, 3, 1).empty());
 
     REQUIRE(generateur == avant);
 }
@@ -173,12 +265,12 @@ TEST_CASE("genererButin : une chance de 100 donne tous les objets, valides, sans
     Generateur generateur(s_graine);
     Generateur temoin(s_graine);
 
-    const std::vector<Objet> butin = genererButin(generateur, 100, 3);
+    const std::vector<Objet> butin = genererButin(generateur, 100, 3, 1);
 
     REQUIRE(butin.size() == 3);
     for (const Objet& objet : butin) {
         REQUIRE(objetValide(objet));
-        REQUIRE(objet == genererObjet(temoin));  // les objets sont ceux que `genererObjet` tire d'emblée
+        REQUIRE(objet == genererObjet(temoin, 1));  // les objets sont ceux que `genererObjet` tire d'emblée
     }
     REQUIRE(generateur == temoin);
 }
@@ -187,7 +279,7 @@ TEST_CASE("genererButin : une chance entre deux donne soit rien, soit tous les o
     Generateur generateur(s_graine);
     int avecButin = 0;
     for (int i = 0; i < s_tirages; ++i) {
-        const std::vector<Objet> butin = genererButin(generateur, 20, 2);
+        const std::vector<Objet> butin = genererButin(generateur, 20, 2, 1);
         REQUIRE((butin.empty() || butin.size() == 2));
         if (!butin.empty()) {
             ++avecButin;
@@ -202,5 +294,17 @@ TEST_CASE("genererButin : la meme graine donne le meme butin") {
     Generateur a(s_graine);
     Generateur b(s_graine);
 
-    REQUIRE(genererButin(a, 50, 3) == genererButin(b, 50, 3));
+    REQUIRE(genererButin(a, 50, 3, 1) == genererButin(b, 50, 3, 1));
+}
+
+TEST_CASE("genererButin : les objets sont du niveau recu") {
+    Generateur generateur(s_graine);
+    Generateur temoin(s_graine);
+
+    const std::vector<Objet> butin = genererButin(generateur, 100, 3, 5);
+
+    REQUIRE(butin.size() == 3);
+    for (const Objet& objet : butin) {
+        REQUIRE(objet == genererObjet(temoin, 5));
+    }
 }

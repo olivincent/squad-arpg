@@ -148,10 +148,13 @@ TEST_CASE("la plage de valeurs de chaque affixe est positive et ordonnee") {
     }
 }
 
-TEST_CASE("chaque rarete a un poids positif et au moins un modele qui peut la porter") {
+TEST_CASE("chaque rarete a un poids positif a chaque niveau jusqu'a 20, et au moins un modele qui peut la porter") {
     for (const Rarete rarete : s_raretes) {
         INFO("rarete " << static_cast<int>(rarete));
-        REQUIRE(poidsDeRarete(rarete) > 0);
+        for (int niveau = 1; niveau <= 20; ++niveau) {
+            INFO("niveau " << niveau);
+            REQUIRE(poidsDeRarete(rarete, niveau) > 0);
+        }
         bool possible = false;
         for (const DefinitionObjet& modele : catalogueObjets()) {
             possible = possible || peutPorterLaRarete(modele.id, rarete);

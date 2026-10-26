@@ -78,3 +78,52 @@ TEST_CASE("affixesPermisPour : les affixes de la position demandee, dans l'ordre
     REQUIRE(affixesPermisPour(CategorieObjet::Anneau, PositionDAffixe::Prefixe).empty());
     REQUIRE(affixesPermisPour(CategorieObjet::Gants, PositionDAffixe::Prefixe) == std::vector<IdAffixe>{IdAffixe::Renforce});
 }
+
+TEST_CASE("plageAuNiveau : au niveau 1, la plage du catalogue, pour chaque affixe") {
+    for (const DefinitionDAffixe& affixe : catalogueAffixes()) {
+        INFO(affixe.nom);
+        const PlageDeValeurs plage = plageAuNiveau(affixe.id, 1);
+        REQUIRE(plage.min == affixe.valeurs.min);
+        REQUIRE(plage.max == affixe.valeurs.max);
+    }
+}
+
+TEST_CASE("plageAuNiveau : au niveau 5, les bornes doublent (Blazing 3 a 8 devient 6 a 16, un suffixe de caracteristique 1 a 3 devient 2 a 6)") {
+    const PlageDeValeurs feu = plageAuNiveau(IdAffixe::Flamboyant, 5);
+    REQUIRE(feu.min == 6);
+    REQUIRE(feu.max == 16);
+
+    const PlageDeValeurs caracteristique = plageAuNiveau(IdAffixe::DuRenard, 5);
+    REQUIRE(caracteristique.min == 2);
+    REQUIRE(caracteristique.max == 6);
+}
+
+TEST_CASE("plageAuNiveau : les bornes sont arrondies au plus proche") {
+    // Niveau 2 : facteur 1,25. Blazing 3 a 8 : 3,75 et 10 ; Keen 10 a 20 : 12,5 (arrondi vers le haut) et 25.
+    const PlageDeValeurs feu = plageAuNiveau(IdAffixe::Flamboyant, 2);
+    REQUIRE(feu.min == 4);
+    REQUIRE(feu.max == 10);
+    const PlageDeValeurs penetration = plageAuNiveau(IdAffixe::Acere, 2);
+    REQUIRE(penetration.min == 13);
+    REQUIRE(penetration.max == 25);
+    // Niveau 3 : facteur 1,5. Blazing : 4,5 (vers le haut) et 12.
+    const PlageDeValeurs feuAuTrois = plageAuNiveau(IdAffixe::Flamboyant, 3);
+    REQUIRE(feuAuTrois.min == 5);
+    REQUIRE(feuAuTrois.max == 12);
+}
+
+TEST_CASE("plageAuNiveau : une plage ne rapetisse jamais d'un niveau a l'autre, reste positive et ordonnee, jusqu'au niveau 20") {
+    for (const DefinitionDAffixe& affixe : catalogueAffixes()) {
+        INFO(affixe.nom);
+        PlageDeValeurs precedente = plageAuNiveau(affixe.id, 1);
+        for (int niveau = 2; niveau <= 20; ++niveau) {
+            INFO("niveau " << niveau);
+            const PlageDeValeurs plage = plageAuNiveau(affixe.id, niveau);
+            REQUIRE(plage.min >= precedente.min);
+            REQUIRE(plage.max >= precedente.max);
+            REQUIRE(plage.min >= 1);
+            REQUIRE(plage.min <= plage.max);
+            precedente = plage;
+        }
+    }
+}

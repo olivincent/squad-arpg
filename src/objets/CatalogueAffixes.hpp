@@ -38,6 +38,12 @@ struct PlageDeValeurs {
     int max;
 };
 
+// La plage d'un affixe sur un objet de ce niveau (le niveau d'un objet est la profondeur où il est tiré, 1 au premier étage) : le
+// min et le max du catalogue, chacun multiplié par `1 + 0,25 × (niveau − 1)` et arrondi au plus proche (0,25 : « à tester »).
+// Au niveau 1, la plage du catalogue, inchangée. Les plafonds (pénétration, esquive) protègent les pourcentages, rien d'autre.
+// `assert` : `niveau >= 1`.
+[[nodiscard]] PlageDeValeurs plageAuNiveau(IdAffixe id, int niveau);
+
 // Le modèle d'un affixe : ce qui est commun à toutes ses instances.
 struct DefinitionDAffixe {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
     IdAffixe id;
