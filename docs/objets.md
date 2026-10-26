@@ -57,9 +57,15 @@ sont ceux du jeu, les identifiants du code restent en français.
 - **Équiper un mort est permis** : aucune règle ne l'interdit pour l'instant.
 - **Le sac est à positions fixes** : retirer un objet laisse sa case vide, les autres ne bougent
   pas ; `ajouter` prend la première case libre. Le joueur range le sac par `deplacerObjet`.
-- **La capacité (40) appartient à `Escouade`** (`s_capaciteDuSac`, dans `Escouade.cpp`), pas à
-  `Inventaire`, qui reçoit sa capacité à la construction. `Partie` remplit le sac avec
-  `sacDeDepart()` à sa construction.
+- **La capacité (40) appartient à `Escouade`** (`Escouade::s_capaciteDuSac`, publique depuis l'étape 98.2), pas à
+  `Inventaire`, qui reçoit sa capacité à la construction. Depuis l'étape 98.2, ce n'est plus `Partie` qui remplit le sac avec
+  `sacDeDepart()` : c'est `nouvelleExpedition` (`jeu/Expedition`), et la `Partie` reçoit le sac de l'expédition, ses objets à
+  leur case (`Escouade(positionDepart, composition, sac)`). Le sac et l'équipement des personnages survivent ainsi d'un étage à
+  l'autre ; les objets au sol, non (`docs/boucle-et-entrees.md`, « Les étages et l'expédition »).
+- **Un équipement déjà constitué** : `DefinitionPersonnage::equipementPorte` (`std::optional<Equipement>`, étape 98.2), s'il est
+  présent, remplace `equipementDeDepart` à la construction du `Personnage`. Le kit de départ (`equipementDeDepart`) ne dit que des
+  modèles (`IdObjet`) ; l'équipement qu'un personnage garde d'un étage à l'autre a des objets complets (rareté, affixes). Aucun
+  seuil n'est revérifié à la reconstruction : un objet porté mais inactif (seuil non atteint) reste porté et inactif.
 
 ## Armes (étape 91)
 
@@ -267,21 +273,24 @@ voient et se ramassent, et on peut en jeter. Un objet est toujours à **un seul 
   fois `genererObjet`. **Aucun tirage pour la chance quand elle vaut 0 ou 100**, comme le moteur du coup ne tire pas pour une
   chance nulle : un monstre sans butin ne fait pas avancer le `Generateur`, donc les suites d'une partie (critiques, esquives,
   objets) ne changent pas. Il a lieu à la mort, dans `Partie::retirerLesMorts`, avec le `Generateur` de la partie.
-- **`ObjetAuSol { id, objet, position }`** (`jeu/ObjetAuSol`), possédé par la `Partie`. L'identifiant est un entier **jamais
-  réutilisé** dans la partie (`m_prochainIdObjetAuSol`, comme l'identifiant d'un monstre) : tout ce qui désigne un objet au sol
+- **`ObjetAuSol { id, objet, position }`** (`jeu/ObjetAuSol`), rangé dans un `ObjetsAuSol` (`jeu/ObjetsAuSol`, étape 98.1)
+  possédé par la `Partie`. L'identifiant est un entier **jamais réutilisé** dans l'ensemble (`ObjetsAuSol::m_prochainId`, comme
+  l'identifiant d'un monstre) : tout ce qui désigne un objet au sol
   (survol, clic, visée de ramassage) passe par lui, jamais par un indice du conteneur, qui change quand on retire un élément.
   La position est le centre d'une case.
-- **Le placement**, `positionPourUnObjet(carte, origine, auSol)` : fonction pure, utilisée pour le butin (origine : le monstre
+- **Le placement**, `ObjetsAuSol::positionPour(carte, origine)` (une fonction libre `positionPourUnObjet(carte, origine, auSol)` avant l'étape 98.1) : sans hasard, utilisée pour le butin (origine : le monstre
   mort) comme pour un objet jeté (origine : l'ancre). Le premier objet tombe au centre de la case de l'origine ; si un objet
   y est déjà, sur la case voisine la plus proche **praticable** (ni mur ni porte fermée) et **sans objet**, en cherchant par
   couronnes de cases jusqu'à trois cases (les quatre côtés avant les diagonales) ; si tout est pris ou bloqué, il s'empile
   sur la case de l'origine. Pas de hasard : les trois objets de la créature monstrueuse tombent toujours sur le même motif.
+  **Depuis l'étape 98.4, la case de l'escalier compte comme prise** : un objet la quitte pour une voisine, sauf si tout est pris
+  autour (alors il s'y pose faute de mieux : « quand c'est possible »).
 - **Un objet au sol ne gêne pas** : ni collision ni chemin. Il appartient au niveau : une nouvelle `Partie` (F5, nouveau
   niveau, recommencement) les efface, rien de plus à faire.
 - **Brouillard** : un objet se comporte comme le terrain. Il se dessine avant le voile de la vision : caché sous l'inconnu,
   assombri sous l'exploré, net dans ce qu'on voit. Il ne se désigne (survol, clic) que sur une case non inconnue
   (`Partie::objetAuSolSous`).
-- **Le ramassage** : un clic gauche sur un objet (`cliquer`, après le monstre, avant la porte) est un ordre : l'escouade marche
+- **Le ramassage** : un clic gauche sur un objet (`cliquer`, après le monstre, avant l'escalier et la porte) est un ordre : l'escouade marche
   vers lui comme pour un clic sur le sol (le verrou est levé, les coups engagés annulés). La `Partie` retient l'identifiant
   visé (`m_objetAuSolVise`, `escouade/` ne connaît pas `jeu/`) ; `ramasserSiAPortee`, à chaque image après le déplacement,
   ramasse l'objet quand l'**ancre** est à moins de `s_distanceDeRamassage` (30 px, centre à centre, « à tester »). Tout nouvel
@@ -291,9 +300,9 @@ voient et se ramassent, et on peut en jeter. Un objet est toujours à **un seul 
   `SacPlein` produit le texte « Bag full » au-dessus de l'escouade (`docs/combat.md`, `docs/glossaire.md`). L'escouade continue
   son déplacement jusqu'à l'objet (c'était son ordre), mais plus rien n'est tenté ni signalé.
 - **Jeter** : glisser un objet (du sac ou d'un emplacement porté) et le lâcher hors du panneau de l'inventaire
-  (`EcranInventaire`, `docs/ecrans.md`) appelle `Partie::jeterUnObjet(position)` : `Escouade::retirerObjet` l'ôte (retrait
+  (`EcranInventaire`, `docs/ecrans.md`) appelle `jeterUnObjet(escouade, sol, carte, position)` (fonction libre de `jeu/ObjetsAuSol`, étape 98.1 ; c'était `Partie::jeterUnObjet`) : `Escouade::retirerObjet` l'ôte (retrait
   ordinaire : recalcul de l'armure, des caractéristiques et des défenses, skill en activation ou en attente abandonné si
-  l'arme exigée disparaît, objets devenus inactifs restent portés) puis `positionPourUnObjet` le pose près de l'ancre, avec un
+  l'arme exigée disparaît, objets devenus inactifs restent portés) puis `ObjetsAuSol::poser` (donc `positionPour`) le pose près de l'ancre, avec un
   identifiant neuf. Les deux étapes sont dans le même appel : l'objet n'est jamais perdu ni dupliqué. Le test des exemplaires
   (`exemplaires(const Partie&)`) compte maintenant sac, équipements **et sol**.
 
@@ -606,17 +615,28 @@ libres sans état, qui rendent des `std::string` en UTF-8.
 | `ramasser(Objet)` | le sac a une case libre | l'objet va dans la première case libre |
 | `ramasserTout(const std::vector<Objet>&)` | le sac a autant de cases libres que d'objets | tous les objets vont dans les premières cases libres, dans l'ordre ; sinon rien ne bouge (F7, étape 95.5 ; depuis l'étape 96 par `Partie::ramasserDesObjetsAleatoires`) |
 | `deplacerObjet(de, vers)` | `deplacerLesObjets` (règle de base et deux mains) | l'objet de `de` va à `vers` ; si `vers` est occupé, échange ; une arme à deux mains (ou un bouclier sur elle) range l'autre main dans le sac ; `de == vers` : rien ne bouge |
-| `retirerObjet(position)` | la position est occupée (sinon vide, rien ne bouge) | l'objet est retiré et rendu ; sa case ou son emplacement reste vide, le personnage recalcule armure, caractéristiques et défenses, un skill (en activation ou en attente) qui exigeait l'arme retirée est abandonné ; l'objet n'est plus nulle part : `Partie::jeterUnObjet` le pose au sol (étape 97.6) |
+| `retirerObjet(position)` | la position est occupée (sinon vide, rien ne bouge) | l'objet est retiré et rendu ; sa case ou son emplacement reste vide, le personnage recalcule armure, caractéristiques et défenses, un skill (en activation ou en attente) qui exigeait l'arme retirée est abandonné ; l'objet n'est plus nulle part : `jeterUnObjet` (`jeu/ObjetsAuSol`) le pose au sol (étape 97.6) |
 
-### `ObjetAuSol` (`jeu/`) — un objet posé au sol (étape 97)
+### `ObjetAuSol` et `ObjetsAuSol` (`jeu/`) — les objets posés au sol (étapes 97 et 98.1)
 
-`ObjetAuSol.hpp` / `.cpp`. `struct ObjetAuSol { int id; Objet objet; sf::Vector2f position; }` (comparable) ; constantes
+`ObjetAuSol.hpp` : `struct ObjetAuSol { int id; Objet objet; sf::Vector2f position; }` (comparable) ; constantes
 `s_rayonDeSurvolDObjet` (14 px, la zone où le curseur le désigne : un peu plus que son dessin de 8 px de rayon) et
 `s_distanceDeRamassage` (30 px).
 
+`ObjetsAuSol.hpp` / `.cpp` : une classe, `ObjetsAuSol`, qui possède le `std::vector<ObjetAuSol>` et le compteur d'identifiants
+(`m_prochainId`, jamais réutilisé). Elle ne garde ni la carte ni la vision (une `Partie` se déplace : une référence resterait
+pendante) : elles lui sont passées à chaque appel qui en a besoin. Extraite de la `Partie` à l'étape 98.1 (principe de moindre
+connaissance : l'inventaire n'a plus besoin de la `Partie` entière pour jeter un objet).
+
 | Fonction | Rôle |
 |---|---|
-| `sf::Vector2f positionPourUnObjet(const TileMap&, sf::Vector2f origine, const std::vector<ObjetAuSol>& auSol)` | Où poser un objet de plus : le centre de la case de `origine` si aucun objet de `auSol` n'y est, sinon la case voisine la plus proche, praticable et sans objet (couronnes jusqu'à trois cases, les quatre côtés avant les diagonales), sinon la case de `origine` ; pure, sans hasard ; `[[nodiscard]]` |
+| `void poser(const Objet&, sf::Vector2f origine, const TileMap&)` | Pose l'objet à `positionPour(carte, origine)`, avec un identifiant neuf |
+| `bool retirer(int id)` | Retire l'objet de cet identifiant ; faux, sans rien changer, s'il n'y en a pas ; `[[nodiscard]]` |
+| `const ObjetAuSol* trouver(int id) const` | L'objet de cet identifiant, `nullptr` sinon ; le pointeur ne survit pas à un `poser` ni à un `retirer` ; `[[nodiscard]]` |
+| `const ObjetAuSol* sous(sf::Vector2f point, const TileMap&, const Vision&) const` | L'objet le plus proche à moins de `s_rayonDeSurvolDObjet` du point, sur une case que la vision ne dit pas inconnue ; `nullptr` sinon ; `[[nodiscard]]` |
+| `sf::Vector2f positionPour(const TileMap&, sf::Vector2f origine) const` | Où poser un objet de plus : le centre de la case de `origine` si aucun objet n'y est, sinon la case voisine la plus proche, praticable, sans objet et qui n'est pas l'escalier (couronnes jusqu'à trois cases, les quatre côtés avant les diagonales), sinon la case de `origine` ; sans hasard ; `[[nodiscard]]` |
+| `const std::vector<ObjetAuSol>& tous() const` | Les objets, dans l'ordre où ils sont tombés ; dessin et tests ; `[[nodiscard]]` |
+| `bool jeterUnObjet(Escouade&, ObjetsAuSol&, const TileMap&, const PositionDObjet&)` (fonction libre) | Retire l'objet de cette position de l'escouade (`Escouade::retirerObjet`) et le pose au sol près de l'ancre, dans le même appel : un objet n'est jamais perdu ni dupliqué ; faux, sans rien changer, si la position est vide ; appelée par `EcranInventaire` quand on lâche un objet hors du panneau ; `[[nodiscard]]` |
 
 ### `AffichageObjetsAuSol` (`interface/`) — les objets au sol à l'écran (étape 97.4)
 

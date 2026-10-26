@@ -12,7 +12,7 @@ la fenêtre, la police, l'horloge et `setKeyRepeatEnabled`, qui sont à
 
 | Acteur | Rôle | Connaît SFML Window/Event ? |
 |---|---|---|
-| `EcranJeu` (et `Application` pour la fenêtre, la police et l'horloge) | Caméra, traduction des événements SFML en appels au `Controleur`, retour à l'écran de choix de l'escouade (touche R après une défaite ou une victoire), nouvelle carte (F5), bascules de débogage (F3 points visés, chemins et monstres qui rentrent semi-transparents, F4 ancre, F6 brouillard de guerre ; `OptionsDeDebogage`) et F7 (quatre objets tirés au hasard dans le sac), compteur de monstres, conversion du curseur en coordonnées du monde, enchaînement du dessin | Oui, seuls |
+| `EcranJeu` (et `Application` pour la fenêtre, la police et l'horloge) | Caméra, traduction des événements SFML en appels au `Controleur`, retour à l'écran de choix de l'escouade (touche R après une défaite ou une victoire), nouvelle carte (F5), bascules de débogage (F3 points visés, chemins et monstres qui rentrent semi-transparents, F4 ancre, F6 brouillard de guerre ; `OptionsDeDebogage`) F7 (quatre objets tirés au hasard dans le sac) et F8 (descendre d'un étage), la descente à l'étage suivant quand l'escalier est pris (« Les étages et l'expédition »), profondeur et compteur de monstres, conversion du curseur en coordonnées du monde, enchaînement du dessin | Oui, seuls |
 | `Controleur` | État d'interface : mode visée (`m_adresseEnVisee`) et déplacement continu (`m_deplacementContinu`), sans référence à la `Partie` (reçue à chaque appel) ; traduit les actions du joueur en demandes à la `Partie` ; dessine l'aperçu de visée | Non |
 | `Partie` | Règles de jeu : possède la carte, l'`Escouade`, les `Monstre` et la `Vision` ; intermédiaire entre `Escouade` et `Monstre`, qui ne se connaissent pas | Non |
 
@@ -130,12 +130,14 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   (bouton gauche) décide, à l'instant du clic, ce que fait ce clic, peu
   importe où le curseur va ensuite. `Controleur::appuiGauche` : hors visée,
   `Partie::cliquer` renvoie `Monstre` (verrou posé, déplacement continu
-  désarmé ; un monstre hors de vue n'est pas candidat, voir `docs/vision.md`), `Objet`
-  (un objet au sol cliqué — ordre de ramassage, voir « Le butin au sol » de `docs/objets.md` — ou une porte fermée cliquée, dont une case au moins n'est pas inconnue : verrou levé, interaction mémorisée,
+  désarmé ; un monstre hors de vue n'est pas candidat, voir `docs/vision.md`), `ObjetAuSol`
+  (un objet au sol cliqué : ordre de ramassage, voir « Le butin au sol » de `docs/objets.md` ; déplacement continu désarmé), `Escalier` (la case de l'escalier cliquée, connue : ordre de descente, voir « Les étages et l'expédition » ; déplacement continu désarmé), `Porte` (une porte fermée cliquée, dont une case au moins n'est pas inconnue : verrou levé, interaction mémorisée,
   déplacement continu désarmé ; voir `docs/carte-et-collision.md`), `Sol` (verrou levé, déplacement continu armé) ou `Ignore`
   (escouade vaincue : rien ne change, y compris le déplacement continu).
-- **Priorité d'un clic** (étape 97) : un monstre vivant sous le curseur (visible, ciblable) passe avant un objet au sol, qui
-  passe avant une porte, qui passe avant le sol. Un objet sur une case inconnue ne se clique pas.
+- **Priorité d'un clic** (étapes 97 et 98) : un monstre vivant sous le curseur (visible, ciblable) passe avant un objet au sol, qui
+  passe avant l'escalier, qui passe avant une porte, qui passe avant le sol. Un objet ou un escalier sur une case inconnue ne se
+  clique pas. Tout nouvel ordre (clic sur le sol, un monstre, un objet, une porte, `ordonnerDeplacement`) remplace la visée
+  de l'escalier.
 - **Déplacement continu : lecture d'état, armée par l'événement d'appui** :
   `main.cpp` calcule `boutonTenu` = fenêtre avec le focus ET
   `sf::Mouse::isButtonPressed(Left)` et le passe à
@@ -180,7 +182,7 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   `commandePourTouche(scancode, finDePartie, touches)` (`interface/CommandeDeTouche`) renvoie une
   `CommandeDeTouche`, un `std::variant` de `commande::Rien`, `Annuler` (Échap), `OuvrirInventaire`
   (I), `RetourAuChoix` (R), `NouvelleCarte` (F5), `BasculerPointsVises` (F3), `BasculerAncre` (F4),
-  `BasculerBrouillard` (F6), `AjouterDesObjetsAleatoires` (F7, étape 95.5 ; étape 96.4 pour le nom et le tirage au hasard) et `ActiverEmplacement {emplacement}`. Échap et F3 à F7 valent en tout
+  `BasculerBrouillard` (F6), `AjouterDesObjetsAleatoires` (F7, étape 95.5 ; étape 96.4 pour le nom et le tirage au hasard), `DescendreDUnEtage` (F8, étape 98.5) et `ActiverEmplacement {emplacement}`. Échap et F3 à F8 valent en tout
   temps ; R seulement sur l'écran de fin ; I et les touches de la barre seulement hors de l'écran de
   fin. L'ordre des règles est celui de l'ancien `if / else if` d'`EcranJeu`. I est écrite en dur,
   comme les touches F. `EcranJeu::executer` exécute la commande (`std::visit` avec `Surcharges`,
@@ -231,7 +233,7 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
 - **Touches** : grille Q W E R / A S D F / Z X C V, scancodes (touches physiques). La table est
   dans `Reglages` mais n'est ni lue ni écrite dans `reglages.ini` : `EcranJeu` la lit déjà dans
   le `Contexte`, c'est le chemin que prendra la configuration. R est l'emplacement 3 en jeu ; sur
-  l'écran de fin (perdue ou gagnée), R ramène au choix de l'escouade et les raccourcis sont ignorés. F3 à F7 et
+  l'écran de fin (perdue ou gagnée), R ramène au choix de l'escouade et les raccourcis sont ignorés. F3 à F8 et
   Échap ne sont pas des touches de la grille.
 - **Une seule action pour la touche et le clic** : `Controleur::activerEmplacement`. Vide : rien.
   Skill de type `Zone` : entre en visée de cette adresse, ou en sort si c'est déjà elle (même
@@ -319,7 +321,8 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   `partie.estGagnee()`.
 - **Recommencer = remplacer l'objet** : depuis l'étape 65, R (seulement si la
   partie est perdue ou gagnée, ignorée en jeu) ramène à l'écran de choix de l'escouade (`Depiler`),
-  et « Start » crée un `EcranJeu` neuf, donc une nouvelle `Partie` (même sélection de classes).
+  et « Start » crée un `EcranJeu` neuf, donc une nouvelle `Partie` (même sélection de classes) ; depuis l'étape 98, c'est une
+  nouvelle **expédition** (profondeur 1, équipement et sac de départ) : une défaite la perd.
   F5 (touche de débogage, à tout moment, y compris en visée) appelle
   `EcranJeu::nouvelleCarte`, qui, comme l'ancienne lambda de `main.cpp`,
   fait `partie = nouvellePartie(tirage)` (nouvelle graine tirée et affichée,
@@ -337,26 +340,58 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   `Partie` reste une variable ordinaire de `main` et, remplacée par
   déplacement, garde son adresse.
 
-## Victoire (étape 63)
+## Victoire (étape 63, refaite à l'étape 98)
 
-- **Règle** : `Partie::estGagnee()` = aucun monstre dans le vecteur ET
-  `!estPerdue()`. La défaite l'emporte : si le dernier monstre et le dernier
-  personnage meurent dans la même image, la partie est perdue (gagner exige
-  un survivant). La règle vit dans le noyau, comme `estPerdue`.
-- **Même figement que la défaite** : `mettreAJour` sort tout de suite si
-  `estPerdue() || estGagnee()`, un seul chemin de code. `cliquer` n'est pas
-  bloqué après une victoire (il ne change rien d'utile : le monde est figé).
-- **Compteur** : `Partie::monstresRestants()` plutôt qu'un comptage dans
-  `main.cpp`, qui ne connaît pas `Monstre`. Dessiné par une fonction du
-  namespace anonyme de `main.cpp` (un simple `sf::Text`, pas un module : une
-  seule utilisation), en haut à gauche pour ne pas gêner la barre de skills
-  en bas.
-- **Carte sans monstre** : si le générateur n'en place aucun (très rare), la
-  partie est gagnée dès le départ. Acceptée : F5 suffit, le générateur n'est
-  pas modifié.
-- **Tests** : les tests de `Controleur` qui font avancer la partie ont un
-  monstre lointain (`s_monstreLointain`), sinon une partie sans monstre est
-  gagnée donc figée.
+- **Règle** (étape 98) : `Partie::estGagnee()` = l'escalier du **dernier étage** (`s_profondeurMaximale`, 5, « à tester ») a été
+  pris ET `!estPerdue()`. La victoire **ne dépend plus des monstres** : tuer tous ceux d'un étage ne la donne pas (jusqu'à
+  l'étape 97, la règle était « aucun monstre restant »). La défaite l'emporte : une escouade vaincue ne gagne pas, même si
+  l'escalier a été pris dans la même image. La règle vit dans le noyau, comme `estPerdue`.
+- **Même figement que la défaite** : `mettreAJour` sort tout de suite si `estPerdue()` ou si l'escalier est pris
+  (`m_escalierPris`, qui couvre la victoire et la descente), un seul chemin de code. `cliquer` n'est pas bloqué après une
+  victoire (il ne change rien d'utile : le monde est figé).
+- **Compteur** : `Partie::monstresRestants()` plutôt qu'un comptage dans `EcranJeu`, qui ne connaît pas `Monstre`. Il est
+  dessiné sous la ligne de la profondeur (« Depth 2 / 5 », `ligneDeProfondeur`), en haut à gauche pour ne pas gêner la barre
+  de skills en bas (`dessinerEnTete`, fonction du namespace anonyme d'`EcranJeu.cpp`).
+- **Carte sans monstre** : n'est plus un cas particulier. Une carte sans monstre n'est pas gagnée au départ et le monde
+  n'est pas figé ; on la quitte par l'escalier comme les autres.
+- **Tests** : les tests qui voulaient une partie figée « parce que sans monstre » utilisent `forcerLaDescente()` (l'escalier pris
+  fige la partie) ; ceux qui voulaient une victoire la prennent au dernier étage (`docs/tests.md`, étape 98).
+
+## Les étages et l'expédition (étape 98)
+
+- **Une `Expedition` (`jeu/Expedition`) est ce qui survit d'un étage à l'autre** : la profondeur (1 au départ), la graine de
+  l'expédition, pour chaque personnage dans l'ordre des places sa classe (`DefinitionPersonnage`, dont les
+  `caracteristiques` sont sa base) et son `Equipement`, et le sac commun (`Inventaire`, ses objets à leur case). Rien
+  d'autre : ni positions, ni combat, ni agresseurs, ni provocations, ni visées, ni recharges, ni monstres, ni objets au sol.
+  Une valeur copiable ; elle grandira (expérience, points libres) et sera un jour ce qu'on sauvegarde.
+- **Une `Partie` est un étage** : `Partie(niveau, expedition, graine, catalogue)`. L'escouade est construite avec les
+  personnages de l'expédition (`compositionDeLExpedition` : leur définition, avec la `caracteristiques` de base et
+  l'`equipementPorte` que l'expédition garde) et son sac (`Escouade(positionDepart, composition, sac)`). Un personnage
+  construit ainsi est **à pleine vie, vivant**, à sa place de formation : la vie ne se garde pas, un mort revient. Les monstres
+  du niveau sont **renforcés par la profondeur** (`renforcer`, `docs/monstre.md`).
+- **`Partie::expedition()` rend l'état durable de la partie en cours** : l'équipement de chaque personnage
+  (`equipementDuPersonnage`), ses caractéristiques de base (`caracteristiquesDeBaseDuPersonnage`) et le sac, lus dans l'escouade,
+  avec la profondeur, la graine et la classe de chaque membre de l'expédition reçue (`m_expedition`, qui ne changent pas
+  pendant l'étage). `etageSuivant(expedition)` ajoute un étage.
+- **Descendre = construire une nouvelle `Partie`**, comme F5 : aucun état n'est remis à zéro membre par membre (le risque
+  d'en oublier un). `EcranJeu::descendre` fait `m_partie = partieDeLEtage(etageSuivant(m_partie.expedition()))`, repart d'un
+  `Controleur` et de `TextesFlottants` neufs, garde les bascules de débogage et la barre de raccourcis (mêmes classes, mêmes skills).
+- **La graine de l'étage** est `graineDEtage(graineDExpedition, profondeur)`, une fonction pure (un mélange de bits de type
+  splitmix64) : la même expédition redonne les mêmes cartes, quels que soient les combats, et chaque profondeur a la sienne.
+  L'étage génère son niveau avec elle et construit sa `Partie` avec la même (la même graine redonne la même carte et le même
+  combat) ; elle est affichée dans la console (« Seed: N »). Une nouvelle expédition tire la sienne avec `std::random_device`.
+- **L'escalier** (`Tile::Escalier`, `docs/generation.md` pour sa place, `docs/carte-et-collision.md` pour la carte) : un clic
+  sur sa case, connue, est un ordre (`ResultatClic::Escalier`). `cliquer` lève le verrou, annule les coups engagés (on peut
+  descendre en plein combat, sans avoir rien tué : voulu), retient la visée (`m_escalierVise`) et ordonne d'aller au centre de la
+  case. `prendreLEscalierSiAPortee`, à chaque image après le ramassage, prend l'escalier quand l'**ancre** est à moins de
+  `s_distanceDeDescente` (30 px, « à tester ») de ce centre : `m_escalierPris`. Un nouvel ordre remplace la visée.
+- **Ce que fait ensuite l'écran** : `Partie::doitDescendre()` (escalier pris, pas au dernier étage, pas vaincue) ; `EcranJeu`
+  le lit à la fin de `mettreAJour`, après avoir pris les événements de l'image, et descend. Au dernier étage, l'escalier pris
+  est la victoire (`estGagnee`) et l'écran de fin s'affiche. R ramène alors au choix : l'expédition est finie.
+- **F8** (débogage, en tout temps) : `Partie::forcerLaDescente` prend l'escalier d'où l'on est, comme si l'ancre y était arrivée
+  (au dernier étage : la victoire). Sans effet si l'escouade est vaincue.
+- **Limites** : on ne remonte pas ; les monstres ne suivent pas ; les points de vie ne se conservent pas (arrivée soignée) ; on
+  peut fuir un combat par l'escalier. Voir `ROADMAP.md`, pistes de l'étape 98.
 
 ## Les monstres dans `Partie::mettreAJour`
 
@@ -401,7 +436,7 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
 - **Butin** (étape 97) : les monstres tués ne sortent de `m_monstres` que par `retirerLesMorts`, appelée aux deux endroits qui
   les retiraient (après les coups de l'escouade, après les coups gratuits). Pour chaque monstre mort, dans l'ordre du vecteur,
   `genererButin` tire (chance, puis objets) et chaque objet est posé au sol par `poserAuSol` à l'endroit de la mort
-  (`positionPourUnObjet`) ; un monstre sans butin ne tire rien.
+  (`ObjetsAuSol::positionPour`) ; un monstre sans butin ne tire rien.
 - **Ramassage** (étape 97) : `ramasserSiAPortee` suit `interagirSiAPortee` dans `mettreAJour`, après le déplacement de
   l'escouade : si l'objet visé existe et que l'ancre est à moins de 30 px, il passe dans le sac (`Escouade::ramasser`) ou, sac
   plein, reste au sol avec l'événement `SacPlein` ; dans les deux cas la visée est effacée.
@@ -489,8 +524,8 @@ Repris tel quel d'`ARCHITECTURE.md` à l'étape 81 (K1) ; `ARCHITECTURE.md` en g
   reçoivent la fenêtre, la police et les réglages dans un `Contexte` à chaque
   appel et ne les gardent pas. `EcranChoixEscouade` possède la
   `SelectionDEscouade` ; `EcranJeu` reçoit la liste des `IdSpecialite` choisies, la garde, et possède une `Partie`, un
-  `Controleur`, une `BarreDeRaccourcis`, des `TextesFlottants`, la caméra et le `std::random_device` (il appelle `composer` pour construire la `Partie`) ; il traduit les
-  événements SFML (clic, touches de la barre de raccourcis, Échap, clic droit, F3, F4, F6 et F7 de débogage) en appels au
+  `Controleur`, une `BarreDeRaccourcis`, des `TextesFlottants`, la caméra et le `std::random_device` (il appelle `composer` puis `nouvelleExpedition` pour construire la `Partie`, et reconstruit celle de l'étage suivant à chaque descente) ; il traduit les
+  événements SFML (clic, touches de la barre de raccourcis, Échap, clic droit, F3, F4, F6, F7 et F8 de débogage) en appels au
   `Controleur`. Un clic gauche est d'abord testé sur l'interface (`clicSurInterface`, vue d'interface) : s'il touche la barre, il est consommé et n'atteint pas le monde. Une touche est traduite en emplacement par `emplacementPourTouche` (table des `Reglages`). (Touche R : retour à l'écran de choix de l'escouade si la partie est perdue ou gagnée, sinon c'est un raccourci ;
   F5 : nouvelle carte à tout moment ; F5, comme l'entrée dans l'écran,
   passe par `nouvellePartie`, qui tire la graine et génère le niveau),
@@ -499,7 +534,7 @@ Repris tel quel d'`ARCHITECTURE.md` à l'étape 81 (K1) ; `ARCHITECTURE.md` en g
   ni `Coup`, ni `EntiteVue`, ni `Chemin`, ni `Personnage` (il les reçoit seulement par les inclusions de `Partie.hpp`).
 - `Partie` possède la `TileMap`, l'`Escouade`, un `std::vector<Monstre>` et le
   `Generateur` aléatoire (graine reçue au constructeur),
-  construits à partir d'un `Niveau`, ainsi que les `ObjetInteractif` (les portes), les `ObjetAuSol` (le butin et les objets jetés, étape 97) et la `Vision` (ce que le joueur sait de la carte). Elle fait l'intermédiaire entre
+  construits à partir d'un `Niveau`, ainsi que les `ObjetInteractif` (les portes), les `ObjetsAuSol` (le butin et les objets jetés, étape 97 ; une classe depuis l'étape 98.1 : identifiants, placement, ajout, retrait, recherche sous un point) et la `Vision` (ce que le joueur sait de la carte), et garde l'`Expedition` reçue (étape 98). Elle fait l'intermédiaire entre
   `Escouade` et `Monstre`, qui ne se connaissent pas : elle leur donne la
   liste des monstres (`EntiteVue`, deux listes : les cibles, sans ceux qui rentrent à leur poste, et tous les monstres comme obstacles) ; pour chaque monstre, elle lui donne aussi sa proie et ses candidats de frappe (`EntiteVue` de personnages) et applique les `Coup` renvoyés. Elle prend deux photos des camps par image (`EntiteDeControle`) et applique les coups gratuits que `Engagement` en déduit, dans les deux sens. Elle tient la file des `EvenementDeCombat` : chaque dégât et chaque soin réellement appliqué y est inscrit (données seulement : elle ne connaît pas ceux qui la lisent).
 - `Controleur` porte l'état d'interface : le mode visée et le déplacement
@@ -593,11 +628,11 @@ seulement : les règles propres à `Escouade` ou à `Monstre` y restent. Le
 joueur agit par des demandes, mémorisées puis exécutées par `mettreAJour` à
 leur place dans l'image ; l'ordre est décrit dans `docs/boucle-et-entrees.md`.
 Invariant : entre deux appels, tout monstre du vecteur est vivant.
-Une partie perdue ou gagnée est figée. Elle se recommence en la remplaçant par une
+Une partie perdue, gagnée ou dont l'escalier est pris est figée. Elle se recommence en la remplaçant par une
 `Partie` neuve (réaffectation par déplacement : règle du zéro).
 
-Données membres : `m_carte` (`TileMap`), `m_escouade` (`Escouade`),
-`m_monstres` (`std::vector<Monstre>`), `m_objets` (`std::vector<ObjetInteractif>`), `m_objetsAuSol` (`std::vector<ObjetAuSol>`), `m_prochainIdObjetAuSol` (jamais réutilisé), `m_objetAuSolVise` (`std::optional<int>`, identifiant de l'objet au sol que l'escouade va ramasser), `m_interactionEnCours` (`std::optional<int>`, identifiant de l'objet que l'escouade va activer), `m_lancerDeZoneDemande`
+Données membres : `m_expedition` (`Expedition`, l'expédition reçue : sa profondeur, sa graine et la classe de chaque membre ne changent pas pendant l'étage ; `expedition()` relit le reste dans l'escouade), `m_carte` (`TileMap`), `m_escouade` (`Escouade`),
+`m_monstres` (`std::vector<Monstre>`), `m_objets` (`std::vector<ObjetInteractif>`), `m_sol` (`ObjetsAuSol`, les objets au sol et leurs identifiants jamais réutilisés), `m_objetAuSolVise` (`std::optional<int>`, identifiant de l'objet au sol que l'escouade va ramasser), `m_escalierVise` et `m_escalierPris` (`bool` : l'escouade marche vers l'escalier pour le prendre ; l'ancre y est arrivée), `m_interactionEnCours` (`std::optional<int>`, identifiant de l'objet que l'escouade va activer), `m_lancerDeZoneDemande`
 (`std::optional<LancerDeZone>`, structure privée : `adresse`, `point`),
 `m_skillDemande` (`std::optional<AdresseSkill>`), `m_deplacementOrdonne`
 (`std::optional<sf::Vector2f>`), `m_generateur` (`Generateur`, le seul de
@@ -614,21 +649,25 @@ bloque donc comme avant mais n'est plus une cible, et le verrou posé sur lui es
 
 | Fonction | Rôle |
 |---|---|
-| `Partie(const Niveau& niveau, std::vector<DefinitionPersonnage> composition, Generateur::result_type graine, const CatalogueDeMonstres& catalogue = catalogueDeMonstres())` | Construit la carte, l'escouade (avec cette composition : elle n'appartient pas au niveau) et les monstres (identifiants 1, 2, 3…, chacun avec la définition de sa catégorie dans `catalogue` : le jeu ne le précise pas, les tests y substituent un catalogue sans hasard), ferme chaque case de `niveau.portes` (`placerPorte`) et crée un `ObjetInteractif` par porte (identifiants 1, 2, 3…, compteur distinct de celui des monstres) et initialise le générateur avec `graine` (`EcranJeu` la tire avec `std::random_device` et l'affiche ; les tests passent une graine fixe) |
-| `ResultatClic cliquer(sf::Vector2f point)` | Appliqué tout de suite. `Monstre` : verrouille le monstre ciblable et **visible** (`m_vision.estVisible` de son centre) qui contient le point (un monstre qui rentre à son poste ou hors de vue compte comme le sol) ; `Objet` : un point dans la zone d'une porte fermée dont une case au moins n'est pas `Inconnue` (et pas sur un monstre cliquable) lève le verrou et annule les coups en exécution ; si un personnage vivant est déjà à portée (`unVivantPresDe`), la porte s'ouvre tout de suite (`ouvrir`), l'ordre de déplacement en attente est effacé, aucune interaction n'est mémorisée et la formation regarde la porte (`regarderVers`) ; sinon mémorise l'interaction et l'ordre d'aller au `pointDApproche` (`mettreAJour` appelle `regarderVers` juste après l'`allerVers` de cet ordre) ; sans point d'approche, c'est `Sol`. `Sol` : lève le verrou et annule les coups en exécution des personnages ; `Ignore` si l'escouade est vaincue, sans rien changer. Tout clic (sauf `Ignore`) annule l'interaction en cours et la visée d'un objet au sol. **Objet au sol** (étape 97) : après le monstre et avant la porte, un point sur un objet (`objetAuSolSous`) lève le verrou, annule les coups en exécution, retient l'identifiant (`m_objetAuSolVise`) et ordonne d'aller à l'objet ; `Objet`. `enum class ResultatClic { Monstre, Objet, Sol, Ignore }` (`Objet` : une porte ou un objet au sol) |
+| `Partie(const Niveau& niveau, Expedition expedition, Generateur::result_type graine, const CatalogueDeMonstres& catalogue = catalogueDeMonstres())` | Un étage. Garde l'expédition ; construit la carte, l'escouade (les personnages de l'expédition — pleine vie —, son sac et la place de départ du niveau) et les monstres (identifiants 1, 2, 3…, chacun avec la définition de sa catégorie dans `catalogue`, **renforcée par la profondeur** : le jeu ne précise pas le catalogue, les tests y substituent un catalogue sans hasard), ferme chaque case de `niveau.portes` (`placerPorte`) et crée un `ObjetInteractif` par porte (identifiants 1, 2, 3…, compteur distinct de celui des monstres) et initialise le générateur avec `graine` (celle de l'étage, `graineDEtage` ; `EcranJeu` l'affiche ; les tests passent une graine fixe). Le sac de départ n'est plus rangé ici : il vient de `nouvelleExpedition` |
+| `ResultatClic cliquer(sf::Vector2f point)` | Appliqué tout de suite. `Monstre` : verrouille le monstre ciblable et **visible** (`m_vision.estVisible` de son centre) qui contient le point (un monstre qui rentre à son poste ou hors de vue compte comme le sol) ; `ObjetAuSol` (étape 97, après le monstre) : un point sur un objet (`objetAuSolSous`) lève le verrou, annule les coups en exécution, retient l'identifiant (`m_objetAuSolVise`) et ordonne d'aller à l'objet ; `Escalier` (étape 98, après l'objet) : un point dans la case de l'escalier, non inconnue, lève le verrou, annule les coups en exécution, pose `m_escalierVise` et ordonne d'aller au centre de la case ; `Porte` : un point dans la zone d'une porte fermée dont une case au moins n'est pas `Inconnue` (et pas sur un monstre cliquable) lève le verrou et annule les coups en exécution ; si un personnage vivant est déjà à portée (`unVivantPresDe`), la porte s'ouvre tout de suite (`ouvrir`), l'ordre de déplacement en attente est effacé, aucune interaction n'est mémorisée et la formation regarde la porte (`regarderVers`) ; sinon mémorise l'interaction et l'ordre d'aller au `pointDApproche` (`mettreAJour` appelle `regarderVers` juste après l'`allerVers` de cet ordre) ; sans point d'approche, c'est `Sol`. `Sol` : lève le verrou et annule les coups en exécution des personnages ; `Ignore` si l'escouade est vaincue, sans rien changer. Tout clic (sauf `Ignore`) passe par `abandonnerLesVisees` : l'interaction en cours, la visée d'un objet au sol et celle de l'escalier sont annulées. `enum class ResultatClic { Monstre, Porte, ObjetAuSol, Escalier, Sol, Ignore }` (`Porte` et `ObjetAuSol` étaient une même valeur `Objet` jusqu'à l'étape 98.1) |
 | `void demanderSkill(AdresseSkill adresse)` | Mémorise la demande de skill ; la dernière demande de l'image gagne |
 | `void lancerSkillDeZone(AdresseSkill adresse, sf::Vector2f point)` | Mémorise le lancer du skill de zone |
-| `void ordonnerDeplacement(sf::Vector2f point)` | Mémorise l'ordre de déplacement ; exécuté seulement si l'escouade est vivante ; annule l'interaction en cours et la visée d'un objet au sol |
-| `bool jeterUnObjet(const PositionDObjet& position)` | Étape 97.6 : retire l'objet de cette position de l'escouade (`Escouade::retirerObjet`) et le pose au sol près de l'ancre (`poserAuSol`) avec un identifiant neuf, dans le même appel ; faux, sans rien changer, si la position est vide ; appelée par `EcranInventaire` quand on lâche un objet hors du panneau ; `[[nodiscard]]` |
-| `const ObjetAuSol* objetAuSolSous(sf::Vector2f point) const` | Étape 97 : l'objet au sol le plus proche à moins de `s_rayonDeSurvolDObjet` (14 px) du point, sur une case non inconnue ; `nullptr` sinon ; sert au clic et au survol ; `[[nodiscard]]` |
-| `const std::vector<ObjetAuSol>& getObjetsAuSol() const` | Les objets au sol, dans l'ordre où ils sont tombés ; dessin et tests ; `[[nodiscard]]` |
+| `void ordonnerDeplacement(sf::Vector2f point)` | Mémorise l'ordre de déplacement ; exécuté seulement si l'escouade est vivante ; annule l'interaction en cours et les visées d'un objet au sol et de l'escalier (`abandonnerLesVisees`) |
+| `const TileMap& getCarte() const` | Étape 98.1 : la carte, pour ce qui doit trouver une place dans le monde (jeter un objet, `jeterUnObjet` de `jeu/ObjetsAuSol`) ; `[[nodiscard]]` |
+| `const ObjetsAuSol& getSol() const` / `ObjetsAuSol& getSol()` | Étape 98.1 : les objets au sol (`tous()` : dans l'ordre où ils sont tombés ; dessin et tests) ; la surcharge non constante est pour l'inventaire, qui y jette les objets (`jeterUnObjet` remplace `Partie::jeterUnObjet`, retirée) ; `[[nodiscard]]` |
+| `const ObjetAuSol* objetAuSolSous(sf::Vector2f point) const` | Étape 97 : `ObjetsAuSol::sous` avec la carte et la vision de la partie : l'objet au sol le plus proche à moins de `s_rayonDeSurvolDObjet` (14 px) du point, sur une case non inconnue ; `nullptr` sinon ; sert au clic et au survol ; `[[nodiscard]]` |
+| `Expedition expedition() const` | Étape 98.2 : l'état durable de la partie en cours (équipement et caractéristiques de base de chaque personnage, sac, lus dans l'escouade ; profondeur, graine et classes de l'expédition reçue), sans rien de l'état de l'étage ; `[[nodiscard]]` |
+| `int getProfondeur() const` | Étape 98.5 : la profondeur de l'expédition (1 au premier étage) ; `[[nodiscard]]` |
+| `bool doitDescendre() const` | Étape 98.5 : l'escalier est pris (ancre arrivée à l'escalier visé, ou `forcerLaDescente`), l'escouade n'est pas vaincue et ce n'est pas le dernier étage ; `EcranJeu` construit alors l'étage suivant ; `[[nodiscard]]` |
+| `void forcerLaDescente()` | Étape 98.5, débogage (F8) : prend l'escalier d'où l'on est (au dernier étage, la victoire) ; sans effet si l'escouade est vaincue |
 | `bool estPerdue() const` | Vrai quand tous les personnages sont morts (`!m_escouade.estVivante()`) ; `[[nodiscard]]` |
-| `bool estGagnee() const` | Vrai quand `m_monstres` est vide ET que la partie n'est pas perdue (la défaite l'emporte) ; `[[nodiscard]]` |
+| `bool estGagnee() const` | Vrai quand l'escalier du dernier étage (`profondeur >= s_profondeurMaximale`) est pris ET que la partie n'est pas perdue (la défaite l'emporte) ; ne dépend plus des monstres (étape 98.5) ; `[[nodiscard]]` |
 | `int monstresRestants() const` | Nombre de monstres vivants (`m_monstres.size()`), pour le compteur d'`EcranJeu` ; `[[nodiscard]]` |
 | `std::vector<EvenementDeCombat> prendreEvenements()` | Les dégâts et soins réellement appliqués, les skills lancés et les monstres provoqués depuis le dernier appel, dans l'ordre où ils ont eu lieu ; la file est vidée (`std::exchange`). Un montant de 0 (cible morte, monstre en retour, soin à pleine vie) ne produit aucun événement ; une partie figée n'en produit plus ; `[[nodiscard]]` |
 | `bool ramasserDesObjetsAleatoires(std::size_t nombre)` | Tire `nombre` objets avec `genererObjet` et le `m_generateur` de la partie, puis les met dans le sac de l'escouade (`Escouade::ramasserTout`, tout ou rien). Sans `nombre` cases libres (`Inventaire::casesLibres`), faux, rien n'est ajouté **et aucun tirage n'est fait** (la vérification précède le tirage : un refus ne fait pas avancer le générateur). Touche de débogage F7, étape 96.4 ; `[[nodiscard]]` |
 | `bool estVisible(sf::Vector2f point) const` | La case de ce point (pixels du monde) est-elle `Visible` à la fin de la dernière image ? (`Vision::estVisible`) ; sert à `EcranJeu` à ne pas montrer ce qui se passe dans le brouillard ; `[[nodiscard]]` |
-| `void mettreAJour(float dt)` | Sans effet si la partie est perdue ou gagnée (le monde est figé). Sinon exécute, dans l'ordre : lancer de zone, skill demandé, `attaquer(dt, …)` et application des coups, déverrouillage si la cible est morte, retrait des monstres morts, ordre de déplacement, mise à jour (**photo des deux camps** pour les zones de contrôle, escouade avec sa `VueDesMonstres` — physiques, ciblables et monstres de la photo —, puis ouverture de la porte en cours d'interaction si `unVivantPresDe(zone, 20 px)`, tour de chaque monstre avec ses obstacles bloquants — personnages vivants et autres monstres — et ses cercles à contourner — les autres monstres seulement —, avec l'engagement et le départ de son coup, puis **seconde photo** et coups gratuits des deux sens : `coupsDOpportunite` ; dégâts de base de l'attaquant, `Escouade::recevoirCoup` côté personnage, `Monstre::recevoirDegats` côté monstre ; monstres tués retirés, verrou levé) ; vide les demandes. Chaque coup résolu (`appliquer`, `infligerAUnPersonnage` : dégâts, critique, esquive ou blocage, par `signalerLeCoup`) et chaque soin pris à `Escouade::prendreSoins` passe par `signaler`, seul endroit où naît un événement ; les coups gratuits sont marqués `opportunite` |
+| `void mettreAJour(float dt)` | Sans effet si la partie est perdue ou si l'escalier est pris (le monde est figé). Sinon exécute, dans l'ordre : lancer de zone, skill demandé, `attaquer(dt, …)` et application des coups, déverrouillage si la cible est morte, retrait des monstres morts, ordre de déplacement, mise à jour (**photo des deux camps** pour les zones de contrôle, escouade avec sa `VueDesMonstres` — physiques, ciblables et monstres de la photo —, puis ouverture de la porte en cours d'interaction si `unVivantPresDe(zone, 20 px)`, ramassage de l'objet visé (`ramasserSiAPortee`), prise de l'escalier visé (`prendreLEscalierSiAPortee`), tour de chaque monstre avec ses obstacles bloquants — personnages vivants et autres monstres — et ses cercles à contourner — les autres monstres seulement —, avec l'engagement et le départ de son coup, puis **seconde photo** et coups gratuits des deux sens : `coupsDOpportunite` ; dégâts de base de l'attaquant, `Escouade::recevoirCoup` côté personnage, `Monstre::recevoirDegats` côté monstre ; monstres tués retirés, verrou levé) ; vide les demandes. Chaque coup résolu (`appliquer`, `infligerAUnPersonnage` : dégâts, critique, esquive ou blocage, par `signalerLeCoup`) et chaque soin pris à `Escouade::prendreSoins` passe par `signaler`, seul endroit où naît un événement ; les coups gratuits sont marqués `opportunite` |
 | `void dessinerLaCarte(sf::RenderTarget& rendu) const` | La carte seule (étape 97.4 : l'ancien `dessiner` est coupé en deux pour que l'écran dessine les objets au sol entre la carte et les entités) |
 | `void dessinerLesEntites(sf::RenderTarget& rendu, bool afficherAncre, bool marquerLeRetour, bool brouillard) const` | Monstres (contour jaune sur le monstre verrouillé ; `marquerLeRetour` est transmis à `Monstre::dessiner` ; un monstre non visible n'est pas dessiné si `brouillard`), escouade (`afficherAncre` est transmis à `Escouade::dessiner`), puis le voile de la `Vision` si `brouillard` ; à appeler après `dessinerLaCarte` |
 | `void dessinerCheminsDesMonstres(sf::RenderTarget& rendu) const` | Débogage (F3) : le chemin restant de chaque monstre (`Monstre::dessinerChemin`) |
@@ -687,11 +726,11 @@ Trois fonctions libres :
 
 ### `CommandeDeTouche` (`interface/`) — ce qu'une touche demande
 
-`CommandeDeTouche.hpp` / `.cpp`. Types dans le namespace `commande` (`Rien`, `Annuler`, `OuvrirInventaire`, `RetourAuChoix`, `NouvelleCarte`, `BasculerPointsVises`, `BasculerAncre`, `BasculerBrouillard`, `AjouterDesObjetsAleatoires`, `ActiverEmplacement {std::size_t emplacement}`) et `using CommandeDeTouche = std::variant<...>`.
+`CommandeDeTouche.hpp` / `.cpp`. Types dans le namespace `commande` (`Rien`, `Annuler`, `OuvrirInventaire`, `RetourAuChoix`, `NouvelleCarte`, `BasculerPointsVises`, `BasculerAncre`, `BasculerBrouillard`, `AjouterDesObjetsAleatoires`, `DescendreDUnEtage`, `ActiverEmplacement {std::size_t emplacement}`) et `using CommandeDeTouche = std::variant<...>`.
 
 | Fonction | Rôle |
 |---|---|
-| `CommandeDeTouche commandePourTouche(sf::Keyboard::Scancode touche, bool finDePartie, const TouchesDesRaccourcis& touches)` | Fonction pure : Échap, F3 à F7 en tout temps ; R (`RetourAuChoix`) seulement si `finDePartie` ; I (`OuvrirInventaire`) et les touches de `touches` (`ActiverEmplacement`) seulement hors fin de partie ; sinon `Rien` ; `[[nodiscard]]` |
+| `CommandeDeTouche commandePourTouche(sf::Keyboard::Scancode touche, bool finDePartie, const TouchesDesRaccourcis& touches)` | Fonction pure : Échap, F3 à F8 en tout temps ; R (`RetourAuChoix`) seulement si `finDePartie` ; I (`OuvrirInventaire`) et les touches de `touches` (`ActiverEmplacement`) seulement hors fin de partie ; sinon `Rien` ; `[[nodiscard]]` |
 
 ### `ClicInterface` (`interface/`) — l'interface d'abord
 

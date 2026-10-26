@@ -57,10 +57,10 @@ squad-arpg/
 │   │               EcartEntrePersonnages, Composition, Specialite, SelectionDEscouade,
 │   │               Provocations, Agresseurs
 │   ├── monstres/   Monstre, DefinitionDeMonstre
-│   ├── jeu/        Partie, ObjetAuSol
+│   ├── jeu/        Partie, Expedition, ObjetAuSol, ObjetsAuSol
 │   ├── interface/  Ecran, Transition, Contexte, PileDEcrans, EntreeDInterface, EcranMenu,
 │   │               EcranOptions, EcranChoixEscouade, EcranJeu, EcranInventaire,
-│   │               DispositionInventaire, AffichageObjets, AffichageObjetsAuSol, AffichageCaracteristiques, AffichageStatistiques, AffichageSkills, ListeDeBoutons, Reglages, TailleDeVue,
+│   │               DispositionInventaire, AffichageObjets, AffichageObjetsAuSol, AffichageCaracteristiques, AffichageStatistiques, AffichageSkills, AffichageProfondeur, ListeDeBoutons, Reglages, TailleDeVue,
 │   │               EmplacementsPrincipaux, BarreDeRaccourcis, CommandeDeTouche, ClicInterface,
 │   │               BarreDeSkills, EcranDeFin, TextesFlottants, Controleur
 │   └── app/        main.cpp, Application
@@ -87,12 +87,13 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
   `Reglages` et la pile d'écrans (patron State) ; seul l'écran du dessus reçoit les événements et
   est mis à jour, mais la pile est dessinée de bas en haut sous un écran qui laisse voir dessous.
   Un écran vit toujours plus longtemps que ceux qui sont au-dessus de lui.
-- `EcranChoixEscouade` possède la `SelectionDEscouade` ; `EcranJeu` possède la `Partie`, le
-  `Controleur`, la `BarreDeRaccourcis`, les `TextesFlottants` et la caméra, et traduit les
-  événements SFML en appels au `Controleur` ; `EcranInventaire`, empilé sur lui, ne possède rien : il
-  lit l'`Escouade` de l'`EcranJeu` du dessous et, pour jeter un objet, appelle la `Partie`.
-- `Partie` possède la `TileMap`, l'`Escouade`, les `Monstre`, les `ObjetInteractif`, les `ObjetAuSol`, la `Vision`
-  et le seul `Generateur`. Elle fait l'intermédiaire entre `Escouade` et `Monstre`, qui ne se
+- `EcranChoixEscouade` possède la `SelectionDEscouade` ; `EcranJeu` possède la `Partie` (un étage), le
+  `Controleur`, la `BarreDeRaccourcis`, les `TextesFlottants` et la caméra, traduit les
+  événements SFML en appels au `Controleur` et, quand l'escalier est pris, remplace la `Partie` par celle de l'étage suivant ;
+  `EcranInventaire`, empilé sur lui, ne possède rien : il reçoit l'`Escouade`, les `ObjetsAuSol` et la `TileMap` de la `Partie`
+  de l'`EcranJeu` du dessous (et rien d'autre : il ne connaît pas la `Partie`).
+- `Partie` (un étage) possède la `TileMap`, l'`Escouade`, les `Monstre`, les `ObjetInteractif`, les `ObjetsAuSol`, la `Vision`
+  et le seul `Generateur`, et garde l'`Expedition` reçue (ce qui survit d'un étage à l'autre : profondeur, graine, personnages, sac). Elle fait l'intermédiaire entre `Escouade` et `Monstre`, qui ne se
   connaissent pas (ils échangent des `EntiteVue`, des `Coup`, des `EntiteDeControle`), et tient la
   file des `EvenementDeCombat`.
 - `Escouade` possède son ancre (`Mobile`), sa `Formation`, ses `PlacesDAttaque`, N `Personnage`,
@@ -115,7 +116,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `TraceDeChemin` : ligne brisée du chemin restant, débogage F3 (`docs/chemin.md`).
 
 `monde/` — la carte et ce qui s'y déplace :
-- `TileMap` : grille de cases (sol, mur, portes), collision, dessin (`docs/carte-et-collision.md`).
+- `TileMap` : grille de cases (sol, mur, portes, escalier), collision, dessin (`docs/carte-et-collision.md`).
 - `Chemin` : A*, coût des obstacles, lissage, repli vers une origine (`docs/chemin.md`).
 - `Deplacement` : collision et glissement contre les murs et les cercles (`docs/carte-et-collision.md`).
 - `Mobile` : suivi de chemin, état « en mouvement » et « bloqué » (`docs/chemin.md`).
@@ -210,16 +211,18 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
   (`catalogueDeMonstres()`, `definitionDeMonstre(catégorie)`) (`docs/monstre.md`).
 
 `jeu/` :
-- `Partie` : règles de jeu, ordre d'une image, intermédiaire escouade/monstres (et seul tireur du `Generateur`, y compris pour F7 et le butin) ; reçoit le catalogue des monstres ; ramasse et jette les objets (`docs/boucle-et-entrees.md`).
-- `ObjetAuSol` : un objet posé au sol (identifiant jamais réutilisé, objet, position), `positionPourUnObjet`, où le poser (`docs/objets.md`).
+- `Partie` : un étage — règles de jeu, ordre d'une image, intermédiaire escouade/monstres (et seul tireur du `Generateur`, y compris pour F7 et le butin) ; se construit depuis un `Niveau` et une `Expedition`, rend l'`Expedition` de la partie en cours, renforce les monstres par la profondeur, prend l'escalier ; reçoit le catalogue des monstres (`docs/boucle-et-entrees.md`).
+- `Expedition` : ce qui survit d'un étage à l'autre (profondeur, graine, personnages — classe, caractéristiques de base, équipement —, sac), `nouvelleExpedition`, `etageSuivant`, `graineDEtage`, `s_profondeurMaximale` (`docs/boucle-et-entrees.md`).
+- `ObjetAuSol` : un objet posé au sol (identifiant, objet, position) (`docs/objets.md`).
+- `ObjetsAuSol` : les objets au sol d'un étage : identifiants jamais réutilisés, `poser` (où : `positionPour`, qui évite l'escalier), `retirer`, `trouver`, `sous` (le survol, avec la carte et la vision) ; `jeterUnObjet`, qui retire un objet de l'escouade et le pose au sol (`docs/objets.md`).
 
 `interface/` — écrans, HUD, réglages, entrées :
 - `Ecran`, `Transition`, `Contexte` : base des écrans, changements de pile, contexte d'appel (`docs/ecrans.md`).
 - `EcranMenu`, `EcranOptions`, `EcranChoixEscouade` : menu, options d'affichage, choix des classes (`docs/ecrans.md`).
 - `PileDEcrans` : la pile et `premierEcranADessiner`, quels écrans dessiner (`docs/ecrans.md`).
 - `EntreeDInterface` : clic gauche et curseur en coordonnées d'interface, pour les écrans à vue d'interface (`docs/ecrans.md`).
-- `EcranJeu` : l'écran de la partie : événements, caméra, dessin, textes flottants (`docs/ecrans.md`).
-- `EcranInventaire` : le sac et l'équipement, déplacement des objets par glisser-déposer, par-dessus la partie figée, touche I (`docs/ecrans.md`).
+- `EcranJeu` : l'écran de la partie : événements, caméra, dessin, textes flottants, descente à l'étage suivant (`docs/ecrans.md`).
+- `EcranInventaire` : le sac et l'équipement, déplacement des objets par glisser-déposer, par-dessus la partie figée, touche I ; un panneau centré qui laisse voir le jeu autour (`docs/ecrans.md`).
 - `DispositionInventaire` : rectangles de l'inventaire, `elementSous` (une `PositionDObjet`), placement de l'infobulle (`docs/ecrans.md`).
 - `AffichageObjets` : noms des emplacements et des catégories, sigles, lignes de l'infobulle d'un objet, lignes des
   affixes, couleur de la rareté (`docs/objets.md`).
@@ -227,12 +230,13 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `AffichageCaracteristiques` : les noms des cinq caractéristiques et la ligne d'une caractéristique avec son bonus (`docs/combat.md`).
 - `AffichageStatistiques` : les lignes des statistiques de combat de l'inventaire et des bonus de combat d'une infobulle (`docs/combat.md`).
 - `AffichageSkills` : `nomDuSkill`, le nom affiché d'un skill (`docs/combat.md`).
+- `AffichageProfondeur` : `ligneDeProfondeur`, « Depth 2 / 5 » (`docs/boucle-et-entrees.md`).
 - `ListeDeBoutons` : colonne de boutons sans position stockée (`docs/ecrans.md`).
 - `Reglages` : réglages d'affichage, `reglages.ini`, table des touches des raccourcis (`docs/ecrans.md`).
 - `TailleDeVue` : vue à hauteur fixe et vue d'interface (`docs/ecrans.md`).
 - `EmplacementsPrincipaux` : `s_emplacementsPrincipaux`, en-tête neutre (P1, `docs/boucle-et-entrees.md`).
 - `BarreDeRaccourcis` : modèle des emplacements, disposition par défaut et à l'écran (`docs/boucle-et-entrees.md`).
-- `CommandeDeTouche` : `commandePourTouche`, ce que fait chaque touche (F3 à F7 de débogage comprises), fonction pure
+- `CommandeDeTouche` : `commandePourTouche`, ce que fait chaque touche (F3 à F8 de débogage comprises), fonction pure
   (`docs/boucle-et-entrees.md`).
 - `ClicInterface` : ce qu'un clic touche dans l'interface (`docs/boucle-et-entrees.md`).
 - `BarreDeSkills` : dessin des icônes de la barre et `iconesDeLaBarre` (`docs/boucle-et-entrees.md`).

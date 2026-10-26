@@ -143,6 +143,22 @@ toute ouverture d'une autre largeur n'ont pas de porte. La salle de départ a se
 portes fermées. Les portes sont des cases de sol du plan : ouvertes, la carte est
 exactement celle d'avant (reliée, testé sur 5 graines).
 
+## L'escalier (étape 98)
+
+- **Un escalier par niveau**, écrit dans le plan par le caractère `'>'` (`s_caractereDEscalier`, `monde/TileMap.hpp`) : c'est du
+  terrain, pas un objet du niveau. `Niveau` n'a donc pas de champ de plus ; la `Partie` le lit sur la `TileMap`
+  (`caseDeLEscalier`).
+- **Où** (`placerEscalier`) : sur une case intérieure (une case de marge contre les murs) de la salle la plus éloignée de la
+  salle 0, centre à centre (`salleLaPlusEloignee`, la même que celle de la créature monstrueuse), tirée au hasard parmi les
+  cases où ne se tient **aucun** monstre. Il n'est donc jamais sous la créature. Si la créature n'a pas pu être placée (ou sans
+  composition pour la salle la plus éloignée), l'escalier est quand même là, puisqu'il dépend de la salle et non de la
+  créature. Une carte d'une seule salle : l'escalier est dans cette salle. Une salle sans case libre (jamais vu) : son centre.
+- **Tiré en tout dernier**, après les monstres : son tirage ne change ni les salles, ni les couloirs, ni les monstres, ni les
+  portes (qui lisent le plan avant que l'escalier y soit écrit). Les niveaux d'avant l'étape 98 sont donc les mêmes, à la case de
+  l'escalier près.
+- **Le plan** n'est plus que `'#'` et `'.'` : il porte aussi un `'>'`. Ce qui parcourait « tout ce qui n'est pas un mur » (les
+  tests, la connexité) n'a pas à changer ; ce qui cherchait `'.'` doit accepter l'escalier.
+
 ## Paramètres
 
 `ParametresDonjon` : carte 59 × 40 cases de 40 px, 30 tentatives, côtés de 6 à
@@ -152,21 +168,20 @@ un groupe de monstres par salle (`compositions`, et la créature dans la salle l
 
 ## Niveau produit
 
-Le plan utilise les mêmes caractères que `creerNiveau()` (`#` mur, `.` sol).
+Le plan utilise les mêmes caractères que `creerNiveau()` (`#` mur, `.` sol), plus un `>` (l'escalier, étape 98).
 Le départ de l'escouade est le centre (en pixels) de la case centrale de la
 première salle placée, donc toujours sur du sol. Les portes sont celles de
 `placerPortes`. Les monstres sont ceux de `placerMonstres`, chacun avec sa catégorie.
 
-## Graine unique et nouvelle carte
+## Graine unique, graine d'étage et nouvelle carte
 
-Une seule fonction de `main.cpp`, `nouvellePartie`, tire une graine avec
-`std::random_device`, l'affiche dans la console, génère le niveau avec un
-`Generateur` initialisé par elle, puis construit la `Partie` avec la même
-graine : la même graine redonne la même carte et le même combat. Le
-lancement, R et F5 passent tous par elle. R (seulement après une défaite) et
-F5 (touche de débogage, à tout moment, y compris en visée) l'appellent par
-une lambda qui réaffecte aussi le `Controleur`. Le `Niveau` n'est plus gardé
-dans `main` : chaque carte est neuve, avec une nouvelle graine.
+Une partie est un étage d'une **expédition** (étape 98, `docs/boucle-et-entrees.md`, « Les étages et l'expédition »). La
+graine de l'étage est `graineDEtage(graine de l'expédition, profondeur)`, une fonction pure : la même expédition redonne les
+mêmes cartes, quels que soient les combats, et chaque profondeur a la sienne. `partieDeLEtage` (fonction du namespace anonyme
+d'`EcranJeu.cpp`) l'affiche dans la console (« Seed: N »), génère le niveau avec un `Generateur` initialisé par elle, puis
+construit la `Partie` avec la même graine : la même graine redonne la même carte et le même combat. « Start », F5 et chaque
+descente passent par elle ; une nouvelle expédition (« Start », F5) tire la graine d'expédition avec `std::random_device`
+(`nouvellePartie`). Le `Niveau` n'est pas gardé : chaque étage est neuf.
 
 ## Pas de coin diagonal (étape 73)
 
@@ -223,9 +238,8 @@ même chose avec plus de détail.
 
 ### Limites connues
 
-- Si le générateur ne place aucun monstre (très rare), la partie est gagnée
-  dès le départ ; F5 génère une autre carte (le générateur n'est pas
-  modifié).
+- Si le générateur ne place aucun monstre (très rare), l'étage se joue sans (depuis l'étape 98, la victoire ne dépend plus
+  des monstres : on quitte l'étage par l'escalier).
 - Couloirs générés (étape 60) : un couloir peut traverser une autre salle
   ou longer un mur, et les couloirs ne forment pas de boucle (arbre).
   Aucun problème de déplacement observé dans les couloirs de 2 cases.
@@ -241,7 +255,7 @@ indiqué dans son titre. `ARCHITECTURE.md` n'en garde qu'une ligne par module.
 `Niveau.hpp` / `.cpp` : structure sans comportement et une fonction libre.
 
 Données membres : `struct Niveau { std::vector<std::string> plan; float
-tailleCase; sf::Vector2f departEscouade; std::vector<MonstreDuNiveau> monstres; std::vector<PorteDuNiveau> portes = {}; }`, où `MonstreDuNiveau` est `struct MonstreDuNiveau { sf::Vector2f position; int groupe; CategorieDeMonstre categorie = CategorieDeMonstre::Infanterie; }` (groupe : identifiant opaque, même valeur = « vont ensemble » ; catégorie : `monde/CategorieDeMonstre.hpp`, les statistiques sont dans le catalogue de `monstres/`), et `struct PorteDuNiveau { std::vector<sf::Vector2i> cases; }` (cases du plan, du sol, qu'une porte ferme ; `Niveau::portes`, vide par défaut, vide dans `creerNiveau()`). L'armure des monstres n'est plus dans le niveau (étape 93).
+tailleCase; sf::Vector2f departEscouade; std::vector<MonstreDuNiveau> monstres; std::vector<PorteDuNiveau> portes = {}; }` (le `plan` porte aussi l'escalier : `'>'`, étape 98.4), où `MonstreDuNiveau` est `struct MonstreDuNiveau { sf::Vector2f position; int groupe; CategorieDeMonstre categorie = CategorieDeMonstre::Infanterie; }` (groupe : identifiant opaque, même valeur = « vont ensemble » ; catégorie : `monde/CategorieDeMonstre.hpp`, les statistiques sont dans le catalogue de `monstres/`), et `struct PorteDuNiveau { std::vector<sf::Vector2i> cases; }` (cases du plan, du sol, qu'une porte ferme ; `Niveau::portes`, vide par défaut, vide dans `creerNiveau()`). L'armure des monstres n'est plus dans le niveau (étape 93).
 
 | Fonction | Rôle |
 |---|---|
@@ -271,9 +285,10 @@ VerticalPuisHorizontal }`.
 | `std::vector<Liaison> choisirLiaisons(const std::vector<Salle>&)` | Sans aléatoire : chaque salle i ≥ 1 est reliée à la plus proche (distance au carré entre centres) parmi les salles 0 à i−1 ; égalité : le plus petit indice ; n−1 liaisons |
 | `void creuserCouloir(std::vector<std::string>& plan, sf::Vector2i depart, sf::Vector2i arrivee, SensCouloir, int largeur)` | Couloir en L de `largeur` cases (étendue vers le bas et la droite), coude plein, départ et arrivée en sol |
 | `std::vector<MonstreDuNiveau> placerMonstres(Generateur&, const std::vector<Salle>&, sf::Vector2f depart, const ParametresDonjon&)` | Groupe : compteur qui augmente de 1 pour chaque salle qui reçoit au moins un monstre, partagé par les monstres de la salle. Aucun monstre dans la salle 0 ; chaque autre reçoit une composition (tirée selon les poids de `compositions`, ou `compositionDeLaSalleLaPlusLoin` pour la salle la plus éloignée de la salle 0, sans tirage) : pour chaque effectif, un nombre tiré dans [min, max] de monstres de sa catégorie, au centre d'une case intérieure (une case de marge). Rejet, `tentativesParMonstre` essais, monstre abandonné sinon : position à moins de 2 cases (Tchebychev) d'un monstre placé (1 case dans une composition `serre`, où les monstres suivants sont à 2 cases au plus du premier), ou à moins de `distanceMinDepart` px de `depart` |
+| `sf::Vector2i placerEscalier(Generateur&, const std::vector<Salle>&, const std::vector<MonstreDuNiveau>& monstres, float tailleCase)` | Étape 98.4 : la case de l'escalier, tirée parmi les cases intérieures de la salle la plus éloignée de la salle 0 (la salle 0 s'il n'y en a qu'une) où ne se tient aucun monstre de `monstres` ; le centre de la salle si aucune n'est libre ; `assert` : au moins une salle ; `[[nodiscard]]` |
 | `std::vector<PorteDuNiveau> placerPortes(const std::vector<std::string>& plan, const std::vector<Salle>&, int largeurCouloir)` | Sans aléatoire, sur le plan creusé. Pour chaque salle, l'anneau de cases juste à l'extérieur de l'emprise, côté par côté, sans les coins : une porte est une suite maximale de cases de sol qui fait exactement `largeurCouloir` cases, dont les deux cases qui la prolongent (coins compris) sont des murs et dont les cases au-delà de l'anneau sont du sol. Autre largeur : pas de porte. Doublons supprimés |
 | `bool contientUnCoinDiagonal(const std::vector<std::string>& plan)` | Le plan contient-il un damier : un carré de 2 × 2 cases (bords compris) dont deux cases en diagonale sont du sol et les deux autres des murs, dans l'une ou l'autre orientation ? Pure, sans aléatoire ; `genererNiveau` ne l'appelle pas, seul un test de propriété (graines 1 à 50) la lit ; `[[nodiscard]]` |
-| `Niveau genererNiveau(Generateur&, const ParametresDonjon&)` | Plan tout en mur, salles creusées, puis un couloir par liaison (sens tiré au hasard, un tirage par liaison) entre les centres ; `portes` de `placerPortes` (après les couloirs, sans tirage) ; départ de l'escouade au centre en pixels de la première salle, monstres de `placerMonstres` (appelée en dernier) |
+| `Niveau genererNiveau(Generateur&, const ParametresDonjon&)` | Plan tout en mur, salles creusées, puis un couloir par liaison (sens tiré au hasard, un tirage par liaison) entre les centres ; `portes` de `placerPortes` (après les couloirs, sans tirage) ; départ de l'escouade au centre en pixels de la première salle, monstres de `placerMonstres`, puis l'escalier de `placerEscalier` (écrit dans le plan, tiré en dernier) |
 
 ### `CompositionDeGroupe` (`monde/`) — la recette d'un groupe de monstres
 

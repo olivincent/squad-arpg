@@ -1852,3 +1852,55 @@ fixent le butin d'un monstre à 0 ou à 100 %, donc sans chance à tirer.
   maintenant l'écran avec une `Partie` (`partieSansMonstre` : une partie sans monstre est gagnée, donc figée ; les tests qui
   font avancer le temps ajoutent un monstre dormant dans un coin).
 - **Mesure de performance** (preset `jeu`, `[perf]`) : inchangée, moyenne 0,036 ms par image, pire 0,16 ms.
+
+## Étape 98 : les étages (+62 cas, 1 562 → 1 624)
+
+Les tests de l'expédition construisent une `Partie` à partir d'une `Expedition` (`expeditionDeTest()`, profondeur 1,
+équipement et sac de départ de la composition de test ; `aides_escouade.hpp`) ; `partieDeTest` et `unePartie` passent par elle,
+donc tous les tests d'avant ont le même départ qu'avant. La profondeur se règle sur l'expédition (`expedition.profondeur = 3`)
+avant de construire la `Partie`.
+- **98.1** (+4) : `test_DispositionInventaire.cpp` (le panneau est de la taille de son contenu, centré, la même dans toutes les
+  vues, tous les éléments y tiennent, **une bande de jeu d'au moins 50 px reste visible tout autour** ; le sac a 2 rangées de 20
+  cases) ; `tests/jeu/test_ObjetsAuSol.cpp` (anciennement `test_ObjetAuSol.cpp` ; les tests de placement passent par
+  `ObjetsAuSol::positionPour` ; +3 : les identifiants ne sont jamais réutilisés même après un retrait, `retirer` et `trouver`
+  passent par l'identifiant, retirer un identifiant absent ne change rien) ; `test_EcranInventaire.cpp` construit l'écran avec
+  `(escouade, sol, carte, noms)` ; `test_Partie_jeter.cpp` appelle `jeterUnObjet` (fonction libre) ; `ResultatClic::Objet` devient
+  `Porte` ou `ObjetAuSol` dans les tests de portes, de clics, de ramassage et de `Controleur`.
+- **98.2** (+11) : `tests/jeu/test_Expedition.cpp` (nouveau : `nouvelleExpedition` — profondeur 1, kit porté, sac de départ ;
+  **aller-retour : l'équipement, le sac (avec une case que `ramasser` ne donnerait pas) et les caractéristiques de base
+  survivent** ; un objet porté mais inactif reste porté et inactif ; **l'étage suivant commence à pleine vie, un mort
+  compris** ; **rien de l'étage ne passe** — monstres, objets au sol, agresseurs, provocations, verrou, place de départ ; une
+  expédition est une valeur ; `graineDEtage` — déterministe, une graine par profondeur, deux expéditions différentes, jamais la
+  graine de l'expédition elle-même).
+- **98.3** (+6) : `tests/monstres/test_DefinitionDeMonstre.cpp` (nouveau : `renforcer` — identique au 1er étage ; au 3e étage points
+  de vie × 1,5, dégâts × 1,3, capacités + 20, pour chaque catégorie ; valeurs connues de l'infanterie, de la nuée et de la
+  créature aux 2e et 5e étages, dont l'arrondi de 34,5 en 35 ; strictement croissant ; tout le reste inchangé champ par champ ;
+  la définition reçue n'est pas modifiée) ; `test_Partie_monstres.cpp` (+1 : les monstres d'un étage profond sont renforcés).
+- **98.4** (+26) : `test_TileMap.cpp` (+3 : `'>'` est une case `Escalier` que la carte retrouve, un plan sans `'>'` n'en a pas,
+  l'escalier ne bloque ni le déplacement ni la vue) ; `test_GenerateurDonjon.cpp` (+8 : **un seul escalier, dans la salle la plus
+  éloignée du départ, sur une case intérieure, graines 1 à 50 ; jamais sous un monstre, la créature comprise, graines 1 à 100** ;
+  la salle de la créature est celle de l'escalier ; une graine redonne le même escalier, les mêmes monstres et le même plan ;
+  `placerEscalier` — la seule case libre, sans monstre, une seule salle, salle pleine de monstres : le centre ; le test « toutes
+  les cases des salles sont du sol » accepte l'escalier) ; `test_ObjetsAuSol.cpp` (+3 : un objet évite l'escalier même quand
+  l'origine en est une, un tas autour ne le prend jamais tant qu'il reste de la place, faute de mieux il s'y pose) ;
+  `tests/jeu/test_Partie_escalier.cpp` (nouveau, +12 : le clic sur l'escalier visible est `Escalier` (tout point de la case, pas la
+  voisine) ; une partie sans escalier n'en a pas ; **un escalier sur une case inconnue ne se clique pas, une fois exploré il se
+  clique** ; l'escouade marche et le prend quand l'ancre arrive ; passer dessus sans ordre ne le prend pas ; **un clic au sol,
+  `ordonnerDeplacement` ou un clic sur un monstre remplacent la visée** ; **avec un monstre ou un objet au sol sous le curseur, le
+  clic ne vise pas l'escalier** (49 objets remplissent les 48 cases voisines, le 49e s'empile sur l'escalier) ; on descend en
+  plein combat sans avoir rien tué ; l'ordre lève le verrou).
+- **98.5** (+15) : `tests/jeu/test_Partie_descente.cpp` (nouveau, +14 : profondeur de la partie ; l'escalier d'un étage ordinaire
+  demande de descendre sans gagner ; `etageSuivant` ; **l'étage suivant a la profondeur suivante et garde l'équipement et le
+  sac** ; **l'escalier du dernier étage gagne** ; viser l'escalier ne suffit pas ; **tuer tous les monstres ne donne pas la
+  victoire** ; une carte sans monstre n'est ni gagnée ni figée ; descendre sans avoir tué personne ; `forcerLaDescente` (F8) à un
+  étage ordinaire et au dernier ; une escouade vaincue ne descend ni ne gagne ; une partie qui a pris l'escalier se fige ; les
+  monstres de l'étage suivant sont plus forts) ; `test_AffichageProfondeur.cpp` (nouveau, +1 : « Depth 1 / 5 ») ;
+  `test_CommandeDeTouche.cpp` (F8 vaut en tout temps) ; **tests adaptés à la nouvelle règle de victoire** : `test_Partie_fin.cpp`
+  (« estGagnee est vrai quand tous les monstres sont tués » devient « tuer tous les monstres ne gagne plus », « sans monstre au
+  départ la partie est gagnée » devient « n'est pas gagnée », « une partie gagnée se fige » gagne au dernier étage par F8),
+  `test_Partie_evenements.cpp` et `test_Partie_portes.cpp` (une partie figée l'est par `forcerLaDescente`, plus « sans monstre »).
+- **Ce que les tests de `EcranJeu` ne voient pas** : la descente elle-même (`EcranJeu::descendre`) a besoin d'une fenêtre ; elle se
+  réduit à `partieDeLEtage(etageSuivant(m_partie.expedition()))`, dont chaque pièce est testée. L'affichage (marches de
+  l'escalier, panneau réduit, ligne de profondeur) se vérifie à l'œil.
+- **Les commentaires d'avant disent encore** « une partie sans monstre est gagnée, donc figée » (étapes 63 à 97) : plus vrai depuis
+  l'étape 98.

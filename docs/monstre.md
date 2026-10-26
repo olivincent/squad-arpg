@@ -118,6 +118,23 @@ de vie, armure 3).
 - **Les monstres qui meurent hors de vue** (explosion lancée au loin) laissent aussi leur butin, sur une case que le joueur
   n'a peut-être jamais vue : l'objet est caché sous l'inconnu et ne se désigne pas avant que la case soit explorée.
 
+## Renforcement par la profondeur (étape 98)
+
+- **Le niveau passe par les nombres** (`docs/classes-et-combat.md`, question 2) : `renforcer(definition, profondeur)`, une fonction
+  pure, rend la définition renforcée ; le monstre ne connaît pas la profondeur, il reçoit sa définition comme avant. La
+  `Partie` l'applique à la définition de chaque monstre du niveau, avec la profondeur de son expédition.
+- **Pour chaque étage au-delà du premier** (valeurs « à tester », constantes nommées du `.cpp`, linéaires) : points de vie
+  maximum +25 % (`s_pourcentDePointsDeVieParEtage`), dégâts de l'attaque +15 % (`s_pourcentDeDegatsParEtage`), capacités
+  offensive et défensive +10 points (`s_capaciteParEtage`). Au 3e étage : points de vie × 1,5, dégâts × 1,3, capacités + 20 ; au
+  5e : × 2, × 1,6, + 40. Chaque valeur est arrondie au plus proche (la moitié vers le haut) **en entiers** (`majoree`), pour que
+  le résultat ne dépende pas des arrondis des flottants.
+- **Ce qui ne change pas** : l'armure, l'esquive, le blocage, les résistances, la vitesse, la taille, la portée, la recharge et
+  le temps d'exécution de l'attaque, le butin, les rayons et la zone de contrôle. Au 1er étage la définition est identique.
+- **Les dégâts d'un monstre sont aujourd'hui une seule portion physique** (`attaque.puissance`) : c'est elle qui est majorée.
+  Le jour où un monstre aura des portions typées, `renforcer` devra les majorer toutes (« sur toutes les portions »).
+- **Pas de formule d'écart de niveau** : ni pénalité ni bonus selon le niveau du personnage, seulement des monstres plus forts.
+  Le butin ne dépend pas encore de la profondeur.
+
 ## Identifiant, vie et dessin
 
 - **Identifiant** : le constructeur prend un centre et un identifiant ;
@@ -574,3 +591,4 @@ cent) et `nombreDObjets` (étape 97).
 | `const CatalogueDeMonstres& catalogueDeMonstres()` | Les définitions des quatre catégories, construites une fois ; l'unique source de leurs valeurs ; `[[nodiscard]]` |
 | `const DefinitionDeMonstre& definitionDeMonstre(const CatalogueDeMonstres&, CategorieDeMonstre)` | La définition de cette catégorie dans ce catalogue (le seul endroit qui indexe le tableau) ; `[[nodiscard]]` |
 | `const DefinitionDeMonstre& definitionDeMonstre(CategorieDeMonstre)` | La même, dans le catalogue du jeu ; `[[nodiscard]]` |
+| `DefinitionDeMonstre renforcer(const DefinitionDeMonstre&, int profondeur)` | Étape 98.3 : la définition renforcée par la profondeur (points de vie +25 %, dégâts de l'attaque +15 %, capacités +10, par étage au-delà du premier ; arrondi au plus proche) ; pure ; l'identité au 1er étage ; `assert` : profondeur >= 1 ; `[[nodiscard]]` |

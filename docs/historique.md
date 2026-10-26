@@ -115,6 +115,7 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 95 — Les objets ont leurs propres données (rareté, préfixe et suffixe) ; le texte du jeu passe à l'anglais ✅
 - Étape 96 — La génération aléatoire des objets : plages de valeurs des affixes, poids des raretés, `genererObjet`, F7 tire au hasard ✅
 - Étape 97 — Le butin au sol : les monstres lâchent des objets, ils se voient et se ramassent, on peut les jeter ✅
+- Étape 98 — Les étages : l'escalier, l'expédition (équipement et sac gardés), des monstres plus forts avec la profondeur, la victoire au 5e étage ✅
 
 ## Détail des étapes 0 à 73
 
@@ -2299,3 +2300,26 @@ tests (+51), 0 avertissement de compilation sur les deux presets, aucun nouvel a
 modifiés (le total de 39 n'a pas été recompté) ; mesure de performance inchangée (moyenne 0,036 ms par image, pire 0,16 ms,
 preset `jeu`). Détail : `docs/objets.md`, `docs/monstre.md`, `docs/boucle-et-entrees.md`, `docs/ecrans.md`, `docs/combat.md`,
 `docs/formation.md`, `docs/tests.md`, `docs/glossaire.md`, `docs/brainstorm.md`.
+
+### Étape 98 — Les étages ✅
+
+Première étape de la phase 5 (progression), faite en une session autonome (un commit par sous-étape, les tests visuels à la fin).
+98.1 : les dettes de l'étape 97 — le panneau d'inventaire, de la taille de son contenu et centré, laisse voir le jeu tout autour
+(cases de la même taille, écart entre colonnes réduit, sac sur 2 rangées de 20) ; `ResultatClic::Objet` se sépare en `Porte` et
+`ObjetAuSol` ; les objets au sol deviennent une classe `ObjetsAuSol` (`jeu/` : identifiants, placement, ajout, retrait, recherche)
+et `EcranInventaire` ne reçoit plus la `Partie` mais l'`Escouade`, les `ObjetsAuSol` et la `TileMap` (`Partie::jeterUnObjet` devient
+la fonction libre `jeterUnObjet`). 98.2 : `Expedition` (`jeu/`, profondeur, graine, pour chaque personnage sa classe, ses
+caractéristiques de base et son équipement, le sac) ; une `Partie` se construit depuis un `Niveau` et une `Expedition`
+(`DefinitionPersonnage::equipementPorte`, `Escouade` avec un sac reçu) et rend l'expédition de la partie en cours
+(`Partie::expedition`) ; les personnages arrivent à pleine vie, un mort compris ; `graineDEtage`, une fonction pure. 98.3 :
+`renforcer(definition, profondeur)` : points de vie +25 %, dégâts +15 %, capacités +10 par étage au-delà du premier, arrondis au
+plus proche en entiers. 98.4 : `Tile::Escalier` (caractère `'>'` du plan), placé par `placerEscalier` dans la salle de la créature
+(jamais sous un monstre), dessiné en marches, caché sous l'inconnu comme le terrain ; `ResultatClic::Escalier` : un clic (après un
+monstre et un objet) envoie l'escouade le prendre, un nouvel ordre remplace la visée ; les objets jetés évitent sa case. 98.5 :
+`Partie::doitDescendre` et `EcranJeu::descendre` (une nouvelle `Partie` depuis `etageSuivant(expedition())`) ; la victoire est
+d'avoir pris l'escalier du 5e étage (tuer les monstres ne la donne plus) ; « Depth N / 5 » à l'écran ; F8 descend tout de suite.
+98.6 : documentation. 1 624 tests (+62), 0 avertissement de compilation sur les deux presets, aucun nouvel avertissement
+`clang-tidy` dans les fichiers de l'étape (le total de 39 n'a pas été recompté). Écart avec le prompt : « sac vide » à une nouvelle
+expédition — le sac de départ habituel (11 objets de débogage) est gardé, « comme aujourd'hui ». Détail : `docs/boucle-et-entrees.md`,
+`docs/generation.md`, `docs/monstre.md`, `docs/objets.md`, `docs/ecrans.md`, `docs/carte-et-collision.md`, `docs/formation.md`,
+`docs/classes-et-combat.md`, `docs/tests.md`, `docs/glossaire.md`.

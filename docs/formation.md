@@ -763,7 +763,7 @@ même endroit dans un passage étroit » a disparu de la liste des limites.
 ## Composition et escouade à N personnages (étape 74)
 
 - **`Composition.hpp` / `.cpp`** : `enum class Rang { Avant, Arriere }`, `struct
-  DefinitionPersonnage { couleur; skills = {}; equipementDeDepart = {}; rayonVision; caracteristiques = {}; rang = Avant; }`
+  DefinitionPersonnage { couleur; skills = {}; equipementDeDepart = {}; rayonVision; caracteristiques = {}; rang = Avant; equipementPorte = {}; }`
   (étape 88 : base de caractéristiques ; étape 91 : `attaqueDeBase`, `zoneDeControle` et `pointsDeVieDeBase`
   disparaissent, l'attaque de base et la zone viennent de l'arme de l'équipement de départ, les points de vie de
   l'Endurance ; les champs avec valeur par défaut peuvent s'omettre en initialisation désignée),
@@ -990,7 +990,9 @@ personne ne se dégage), sans valeur par défaut depuis 82.5. Privées : `Intent
 
 | Fonction | Rôle |
 |---|---|
-| `Escouade(sf::Vector2f positionDepart, std::vector<DefinitionPersonnage> composition)` | Crée l'escouade et un personnage par définition, aux places 1 à N, en formation (décalages de `decalagesDeFormation`) ; `assert(!composition.empty())`. `Escouade` ne choisit aucune valeur |
+| `Escouade(sf::Vector2f positionDepart, std::vector<DefinitionPersonnage> composition)` | Crée l'escouade et un personnage par définition, aux places 1 à N, en formation (décalages de `decalagesDeFormation`) ; `assert(!composition.empty())`. `Escouade` ne choisit aucune valeur. Le sac est vide |
+| `Escouade(sf::Vector2f positionDepart, std::vector<DefinitionPersonnage> composition, Inventaire sac)` | Étape 98.2 : le même, avec ce sac tel quel (ses objets restent à leur case) ; celui d'une expédition qui continue ; `assert` : sa capacité est `s_capaciteDuSac` (40, `static constexpr` publique) |
+| `std::optional<Caracteristiques> caracteristiquesDeBaseDuPersonnage(std::size_t place) const` | Étape 98.2 : les caractéristiques de base (sa classe, sans l'équipement) du personnage de cette place ; vide si la place est invalide ; ce que l'expédition garde ; `[[nodiscard]]` |
 | `void allerVers(sf::Vector2f destination, const TileMap& carte)` | Ordre du joueur : annule les coups en exécution (`annulerAttaquesEngagees`), puis délègue à `m_mobile.allerVers` |
 | `void regarderVers(sf::Vector2f point)` | Délègue à `Formation::regarderVers` : une fois l'ancre arrêtée, la formation se tourne vers ce point (360°/s). Pendant la marche, l'orientation suit la marche. Effacé par `allerVers`, par l'approche du verrou (`attaquer`) et par `verrouiller`. `Escouade` ne sait pas que c'est une porte |
 | `void annulerAttaquesEngagees()` | Annule le coup en exécution de chaque personnage, sans recharge consommée ; appelée par `allerVers`, `verrouiller` (autre monstre) et `Partie::cliquer` (sol) |
@@ -1039,7 +1041,7 @@ personne ne se dégage), sans valeur par défaut depuis 82.5. Privées : `Intent
 | `bool objetPorteEstInactif(std::size_t place, Emplacement) const` | L'objet porté là est-il inactif (porté, seuil non atteint) ? Faux sans objet (étape 92.3) ; `[[nodiscard]]` |
 | `const Equipement& equipementActifDuPersonnage(std::size_t place) const` | L'équipement du personnage sans ses objets inactifs (étape 92.2) ; `[[nodiscard]]` |
 | `bool deplacerObjet(const PositionDObjet& de, const PositionDObjet& vers)` | Déplace sur une copie (`deplacerLesObjets`) ; faux sans rien changer si le déplacement est refusé ; sinon recopie le sac, puis dans chaque personnage les différences d'équipement (retraits, puis poses : chaque appel recalcule armure, caractéristiques, défenses et attaque de base) : échange si `vers` est occupé, objet rangé dans le sac pour les deux mains. Abandonne le skill en attente dont le lanceur n'a plus l'arme exigée. Transactionnelle, valable pour un mort ; voir `docs/objets.md` ; `[[nodiscard]]` |
-| `std::optional<Objet> retirerObjet(const PositionDObjet& position)` | Étape 97.6 : retire et rend l'objet de cette position (case du sac ou emplacement d'un personnage) ; vide si la position l'est. Un retrait ordinaire : le personnage recalcule (`retirerEquipement`) et le skill en attente dont le lanceur n'a plus l'arme exigée est abandonné (`abandonnerLeSkillEnAttenteSansArme`, privée, partagée avec `deplacerObjet`). L'objet n'est plus nulle part : `Partie::jeterUnObjet` le pose au sol (`docs/objets.md`) ; `[[nodiscard]]` |
+| `std::optional<Objet> retirerObjet(const PositionDObjet& position)` | Étape 97.6 : retire et rend l'objet de cette position (case du sac ou emplacement d'un personnage) ; vide si la position l'est. Un retrait ordinaire : le personnage recalcule (`retirerEquipement`) et le skill en attente dont le lanceur n'a plus l'arme exigée est abandonné (`abandonnerLeSkillEnAttenteSansArme`, privée, partagée avec `deplacerObjet`). L'objet n'est plus nulle part : `jeterUnObjet` (`jeu/ObjetsAuSol`) le pose au sol (`docs/objets.md`) ; `[[nodiscard]]` |
 | `const std::vector<Provocation>& getProvocations() const` | Monstres actuellement provoqués, avec leur provocateur et le temps restant ; lue par les tests (`candidatsDeFrappe` ne montre ni l'un ni l'autre) |
 | `const std::vector<Agresseur>& getAgresseurs() const` | Monstres qui ont frappé l'escouade récemment : identifiant et temps restant (oubliés après 3 s sans coup, ou absents de `monstres` dans `attaquer`) ; lue par les tests |
 
@@ -1197,7 +1199,7 @@ un personnage immobile. Inclus par `Escouade` et `Formation` sans qu'elles dépe
 
 `Composition.hpp` / `.cpp` : une énumération, une structure et deux fonctions libres, sans état. `Escouade` ne choisit plus aucune valeur : elle reçoit sa composition. Voir `docs/formation.md`.
 
-`enum class Rang { Avant, Arriere }` ; `struct DefinitionPersonnage { sf::Color couleur; std::vector<SkillConnu> skills = {}; std::vector<ObjetDeDepart> equipementDeDepart = {}; float rayonVision; Caracteristiques caracteristiques = {}; Rang rang = Avant; }` (`equipementDeDepart` : emplacement et objet de ce que le personnage porte à sa création, voir `docs/objets.md` : son armure, son attaque de base et sa zone de contrôle en viennent ; depuis l'étape 91, ni `attaqueDeBase`, ni `zoneDeControle`, ni points de vie de base).
+`enum class Rang { Avant, Arriere }` ; `struct DefinitionPersonnage { sf::Color couleur; std::vector<SkillConnu> skills = {}; std::vector<ObjetDeDepart> equipementDeDepart = {}; float rayonVision; Caracteristiques caracteristiques = {}; Rang rang = Avant; std::optional<Equipement> equipementPorte = {}; }` (`equipementPorte`, étape 98.2 : un équipement déjà constitué, objets complets, qui remplace `equipementDeDepart` quand il est présent — celui qu'une expédition garde d'un étage à l'autre ; `equipementDeDepart` : emplacement et objet de ce que le personnage porte à sa création, voir `docs/objets.md` : son armure, son attaque de base et sa zone de contrôle en viennent ; depuis l'étape 91, ni `attaqueDeBase`, ni `zoneDeControle`, ni points de vie de base).
 
 | Fonction | Rôle |
 |---|---|

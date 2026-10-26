@@ -8,7 +8,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 ## Étapes terminées
 
-Étapes 0 à 97 ✅. Les dernières :
+Étapes 0 à 98 ✅. Les dernières :
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 - Étape 83 — Inventaire et équipement : le modèle, sans interface ✅
@@ -26,23 +26,35 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - Étape 95 — Les objets ont leurs propres données (rareté, préfixe et suffixe) ; le texte du jeu passe à l'anglais ✅
 - Étape 96 — La génération aléatoire des objets : plages de valeurs des affixes, poids des raretés, `genererObjet`, F7 tire au hasard ✅
 - Étape 97 — Le butin au sol : les monstres lâchent des objets, ils se voient et se ramassent, on peut les jeter ✅
+- Étape 98 — Les étages : l'escalier, l'expédition (équipement et sac gardés), des monstres plus forts avec la profondeur, la victoire au 5e étage ✅
 
 ## État actuel (résumé)
 
 - **Outils** : conception dans Claude.ai, implémentation avec Claude Code dans VSCode (règles dans
   `CLAUDE.md`) ; dépôt Git `squad-arpg`, poussé sur GitHub ; SFML 3.0.2 intégrée à CMake.
-- **Code** (étape 97) : 96 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
+- **Code** (étape 98) : 99 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
   `combat`, `objets`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
   de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug` et `jeu`, 0
-  avertissement, 1 562 tests verts sous CTest, 39 avertissements `clang-tidy` (`docs/build.md`,
+  avertissement, 1 624 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers de l'étape : `docs/build.md`,
   `docs/audit.md`). `Escouade` n'est plus que l'assemblage : `Escouade.cpp` de 1 223 à 1 067 lignes. Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`). **Tout le texte affiché est en anglais** (identifiants, commentaires et documentation restent en français ; pas de système de traduction : `docs/glossaire.md` est la référence des noms du jeu). Un commit par sous-étape, fait par Claude Code (`CLAUDE.md`).
 - **Écrans** : menu à la souris, options d'affichage (fenêtré ou plein écran, résolutions,
   `reglages.ini`), choix de 3 classes parmi 5 (guerrier, prêtre, mage, paladin, rôdeur ; doublons
   permis), puis la partie ; R après une victoire ou une défaite ramène au choix. La pile d'écrans
   dessine sous un écran qui laisse voir dessous (`laisseVoirDessous`) ; le `clear` est dans
   l'`Application` (`docs/ecrans.md`).
+- **Étages et expédition** (étape 98) : une partie est **un étage** d'une `Expedition` (profondeur de 1 à 5, graine, les trois
+  personnages avec leur classe, leurs caractéristiques de base et leur équipement, le sac) ; l'expédition est ce qui survit d'un
+  étage à l'autre, et rien d'autre. Un **escalier** (une case du terrain, dessinée en marches, cachée sous l'inconnu comme le sol)
+  est placé dans la salle la plus éloignée du départ, celle de la créature, jamais sous elle ; cliquer dessus (après un monstre
+  et un objet au sol, avant une porte) envoie l'escouade le prendre, et quand l'ancre arrive à moins de 30 px **la partie suivante
+  se construit** : nouvelle carte (graine dérivée de celle de l'expédition et de la profondeur), personnages **à pleine vie, morts
+  compris**, même équipement et même sac, monstres **renforcés** (points de vie +25 %, dégâts +15 %, capacités +10 par étage au-delà du
+  premier). On peut descendre à tout moment, même en plein combat. **La victoire est de prendre l'escalier du 5e étage** (tuer
+  les monstres ne la donne plus) ; R ramène au choix après une victoire ou une défaite, et « Start » ou F5 fondent une nouvelle
+  expédition au 1er étage (équipement et sac de départ). « Depth N / 5 » s'affiche avec le compteur de monstres ; F8 descend
+  d'un étage tout de suite (`docs/boucle-et-entrees.md`, `docs/generation.md`, `docs/monstre.md`).
 - **Carte** : donjon généré à chaque partie (salles, couloirs en L de 2 cases, portes à chaque
-  jonction, un groupe de monstres par salle sauf la première, graine affichée), F5 = nouvelle carte ;
+  jonction, un groupe de monstres par salle sauf la première, un escalier, graine affichée), F5 = nouvelle expédition ;
   carte à la main pour les tests (`docs/generation.md`, `docs/carte-et-collision.md`).
 - **Vision** : brouillard de guerre (inconnu, exploré, visible) par shadowcasting symétrique, la
   même règle que la ligne de vue du combat ; F6 le coupe à l'affichage (`docs/vision.md`).
@@ -72,7 +84,8 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   rareté les montre (caché sous l'inconnu, assombri sous l'exploré), leur nom composé s'affiche au survol, un clic gauche
   envoie l'escouade les ramasser (un monstre sous le curseur passe avant ; l'ancre à moins de 30 px les met dans le sac ; sac
   plein : « Bag full », l'objet reste au sol), et lâcher un objet du sac ou d'un emplacement hors du panneau de l'inventaire le
-  jette près de l'ancre. La
+  jette près de l'ancre (le panneau est réduit depuis l'étape 98 : le jeu reste visible tout autour, le sac tient sur 2 rangées de
+  20 cases ; un objet évite la case de l'escalier ; les objets au sol ne descendent pas avec l'escouade). La
   touche I ouvre l'inventaire par-dessus la partie figée : équipement des 3 personnages, sac de 40
   cases, caractéristiques, points de vie, capacités, blocage et esquives de chaque personnage, infobulle au survol, et glisser-déposer des objets (sac, emplacements, entre personnages ;
   échange si la destination est occupée ; destinations valides en surbrillance) (`docs/objets.md`,
@@ -104,7 +117,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   (`docs/generation.md`). La créature n'a que ses valeurs (rayon réduit à 16, le chemin ne tenant pas compte du
   rayon contre les murs) ; ses règles propres (immunités, blocage) et l'escouade de monstres viendront plus tard.
 - **Interface** : barre de raccourcis de 12 emplacements (Q W E R / A S D F / Z X C V, ou clic ;
-  « l'interface d'abord »), compteur de monstres, écran de victoire ou de défaite ; F3 à F7 de
+  « l'interface d'abord »), compteur de monstres, écran de victoire ou de défaite ; F3 à F8 de
   débogage ; une touche devient une commande par une fonction pure, `commandePourTouche`
   (`docs/boucle-et-entrees.md`).
 
@@ -183,7 +196,7 @@ d'attaque » par type de monstre (`docs/brainstorm.md`, section 4 bis), qui se b
   ou des hordes (la partie 1 a déjà divisé le coût par 7 à 13) ;
 - R5 (identifiants et places) : décidé en 82.5, rattachée à R4 (voir ci-dessus).
 
-## Plan en quatre phases (étapes 87 à 97), décidé avec Olivier
+## Plan en cinq phases (étapes 87 à 101), décidé avec Olivier
 
 Les mathématiques du combat sont conçues dans `docs/classes-et-combat.md`. Pour chaque étape à venir,
 ce qui reste à décider **en discussion** avant son prompt :
@@ -216,10 +229,31 @@ ce qui reste à décider **en discussion** avant son prompt :
     F7 tire quatre objets au hasard.
   - 97 ✅ : le butin au sol : chance et nombre d'objets dans `DefinitionDeMonstre`, `genererButin`, `ObjetAuSol`, losange et
     nom au survol, ramassage au clic, « Bag full », jeter en lâchant hors de l'inventaire. **La phase 4 est terminée.**
+- **Phase 5, progression** (décidée à l'étape 98)
+  - 98 ✅ : les étages : l'escalier, l'`Expedition` (ce qui survit d'un étage à l'autre), des monstres renforcés par la
+    profondeur, la victoire au 5e étage ; en première sous-étape les dettes de l'étape 97 (panneau d'inventaire réduit,
+    `ResultatClic` séparé, `ObjetsAuSol`, `EcranInventaire` sans la `Partie`).
+  - 99 : l'expérience et les niveaux (à discuter avec Claude.ai) ;
+  - 100 : les points libres ;
+  - 101 : le niveau d'objet.
 
-## Étape 98 (prochaine) : à discuter avec Claude.ai
+## Étape 99 (prochaine) : l'expérience et les niveaux, à discuter avec Claude.ai
 
-La phase 4 (butin) est terminée ; la suite n'est pas décidée. Le Savoir et la Volonté n'ont encore aucun effet.
+L'étape 98 (les étages) est faite ; la phase 5 continue par l'expérience et les niveaux (99), les points libres (100) et le
+niveau d'objet (101). Le Savoir et la Volonté n'ont encore aucun effet. L'`Expedition` grandira avec l'expérience et les points
+libres (`jeu/Expedition`) et c'est elle qu'on sauvegardera un jour.
+
+**Pistes issues de l'étape 98** (étapes à part, plus tard) :
+- **Les refuges** : un endroit sûr où l'on reprend son souffle entre deux étages (soin, sac, achat).
+- **La résurrection et le personnage à terre** : aujourd'hui un mort revient à pleine vie à l'étage suivant, sans rien coûter.
+- **Conserver les points de vie en descendant** (aujourd'hui l'escouade arrive soignée sur chaque étage).
+- **Interdire de descendre en combat** si la fuite par l'escalier s'avère trop facile (aujourd'hui on descend à tout moment,
+  même en plein combat : voulu).
+- **Des étages qui changent de taille ou de thème** (aujourd'hui tous les étages ont les mêmes paramètres de génération).
+- **La sauvegarde de l'`Expedition`**.
+- **Le butin qui dépend de la profondeur**, et le niveau d'objet (101).
+- **Ajuster en jouant** les facteurs de renforcement (+25 % de points de vie, +15 % de dégâts, +10 de capacités par étage), la
+  profondeur maximale (5) et la distance de descente (30 px) : tous « à tester ».
 
 **Pistes issues de l'étape 97** (étapes à part, plus tard) :
 - **Des tables de butin par monstre** : quels modèles tombent de quel monstre (aujourd'hui chaque objet est un `genererObjet`).

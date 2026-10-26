@@ -5,9 +5,12 @@
 - **Coordonnées du monde** : la carte et les entités sont positionnées en
   pixels de la carte, jamais en pixels de l'écran. C'est ce qui a permis
   d'ajouter la caméra sans modifier `TileMap`.
-- **`enum class Tile { Floor, Wall, PorteFermee, PorteOuverte }`** : `enum class`
+- **`enum class Tile { Floor, Wall, PorteFermee, PorteOuverte, Escalier }`** : `enum class`
   plutôt que `enum` pour la portée (`Tile::Wall`) et l'absence de conversion
-  implicite en `int`.
+  implicite en `int`. `Escalier` (étape 98.4) est du sol qu'on peut prendre pour descendre : il ne bloque ni le déplacement ni
+  la vue (`estBloquante` est faux), donc collision, A*, lissage et vision n'ont pas changé ; il se dessine comme le terrain
+  (la case de sol et quatre marches de plus en plus claires), donc le voile du brouillard le cache dans l'inconnu et le
+  assombrit dans l'exploré, sans code propre. La carte retient sa case (`caseDeLEscalier`).
 - **Stockage 1D** : la case `(x, y)` est à l'indice `y * largeur + x`,
   calculé par la fonction privée `indice(x, y)`. Plus simple et contigu en
   mémoire qu'un vecteur de vecteurs.
@@ -151,6 +154,8 @@ mène à un chevauchement avec un cercle obstacle (`deplacementBloque`).
 
 - **Format** : `std::vector<std::string>`, une chaîne par ligne de cases.
   Largeur = longueur des lignes, hauteur = nombre de lignes.
+- **Caractères** : `'#'` (`s_caractereDeMur`) = mur, `'>'` (`s_caractereDEscalier`) = escalier (au plus un, `assert`), tout autre
+  caractère = sol.
 - **Validation** : `plan.at(0)` lance `std::out_of_range` si le plan est
   vide ; une ligne de longueur différente lance `std::invalid_argument`
   avec le numéro de la ligne. Ces exceptions ne sont pas attrapées : le
@@ -197,12 +202,12 @@ indiqué dans son titre. `ARCHITECTURE.md` n'en garde qu'une ligne par module.
 
 ### `TileMap` (`monde/`) — l'environnement de jeu
 
-Grille de cases de taille fixe, chaque case étant du sol ou un mur. Un
+Grille de cases de taille fixe, chaque case étant du sol, un mur ou l'escalier. Un
 point hors de la carte est un mur. Construite à partir d'un plan texte
-(`'#'` = mur, tout autre caractère = sol).
+(`'#'` = mur, `'>'` = escalier, tout autre caractère = sol).
 
 Données membres : `m_largeur`, `m_hauteur` (cases), `m_tailleCase`
-(pixels), `m_cases` (`std::vector<Tile>`, `enum class Tile { Floor, Wall, PorteFermee, PorteOuverte }`). `bool estBloquante(Tile)` (fonction libre, vrai pour `Wall` et `PorteFermee`) est la seule façon de demander « passe-t-on, voit-on » : collision, A*, lissage, repli, champ de vision (`ChampDeVision`, donc aussi `ligneDeVue`) et skill de zone l'utilisent, aucun ne teste `Tile::Wall` directement.
+(pixels), `m_cases` (`std::vector<Tile>`, `enum class Tile { Floor, Wall, PorteFermee, PorteOuverte, Escalier }`), `m_escalier` (`std::optional<sf::Vector2i>`, sa case). `bool estBloquante(Tile)` (fonction libre, vrai pour `Wall` et `PorteFermee`) est la seule façon de demander « passe-t-on, voit-on » : collision, A*, lissage, repli, champ de vision (`ChampDeVision`, donc aussi `ligneDeVue`) et skill de zone l'utilisent, aucun ne teste `Tile::Wall` directement.
 
 | Fonction | Rôle |
 |---|---|
@@ -211,9 +216,10 @@ Données membres : `m_largeur`, `m_hauteur` (cases), `m_tailleCase`
 | `int getLargeur() const` | Largeur de la carte, en cases |
 | `int getHauteur() const` | Hauteur de la carte, en cases |
 | `float getTailleCase() const` | Côté d'une case, en pixels (`coutDesObstacles` construit les rectangles des cases) ; `[[nodiscard]]` |
+| `std::optional<sf::Vector2i> caseDeLEscalier() const` | Étape 98.4 : la case de l'escalier, s'il y en a un dans le plan ; `[[nodiscard]]` |
 | `sf::Vector2i caseContenant(sf::Vector2f point) const` | Case (coordonnées de grille) contenant ce point, en pixels du monde |
 | `sf::Vector2f centreDeCase(sf::Vector2i coordCase) const` | Centre de cette case, en pixels du monde |
-| `void dessiner(sf::RenderTarget& rendu) const` | Dessine toutes les cases (porte fermée : case brune pleine ; porte ouverte : sol avec un cadre brun de 4 px) |
+| `void dessiner(sf::RenderTarget& rendu) const` | Dessine toutes les cases (porte fermée : case brune pleine ; porte ouverte : sol avec un cadre brun de 4 px ; escalier : quatre bandes horizontales de plus en plus claires, `dessinerLesMarches`) |
 | `void placerPorte(sf::Vector2i coordCase)` | `Floor` → `PorteFermee` (`assert`) |
 | `void ouvrirPorte(sf::Vector2i coordCase)` | `PorteFermee` → `PorteOuverte` (`assert`) ; une porte ouverte le reste |
 | `bool chevaucheUnMur(const sf::FloatRect& rect) const` | Le rectangle (en pixels du monde) chevauche-t-il une case bloquante (mur ou porte fermée) ? |
