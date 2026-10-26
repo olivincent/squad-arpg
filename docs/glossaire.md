@@ -97,6 +97,7 @@ Le nom affiché d'un objet est `[préfixe] modèle [suffixe]` (« Blazing Mace �
 | Bloqué | Blocked (« Blocked −40 » si le blocage est partiel) |
 | Provoqué | Taunted |
 | Sac plein (l'objet visé reste au sol) | Bag full |
+| Niveau atteint (au-dessus de l'escouade) | Level up! |
 | Coup gratuit (attaque d'opportunité) | un `!` après le nombre (« 7! ») |
 
 ## Emplacements et catégories d'objet (`interface/AffichageObjets.cpp`)
@@ -165,6 +166,7 @@ Le nom affiché d'un objet est `[préfixe] modèle [suffixe]` (« Blazing Mace �
 | F6 | brouillard de guerre (visuel) |
 | F7 | quatre objets tirés au hasard dans le sac (tout ou rien) |
 | F8 | prend l'escalier d'où l'on est : descend d'un étage (au dernier étage : la victoire) |
+| F9 | donne l'expérience qui manque pour le niveau suivant : exactement un niveau |
 
 ## Écrans
 
@@ -173,6 +175,6 @@ Le nom affiché d'un objet est `[préfixe] modèle [suffixe]` (« Blazing Mace �
 | Menu | Start Game, Options, Quit |
 | Options | Mode: Fullscreen / Mode: Windowed, Resolution: < 1280 × 720 >, Back |
 | Choix de l'escouade | Choose 3 classes, Start, Back |
-| Partie | Depth N / 5 (profondeur, `interface/AffichageProfondeur.cpp`), Monsters: N (compteur), Seed: N (graine de l'étage, dans la console) |
+| Partie | Depth N / 5 (profondeur, `interface/AffichageProfondeur.cpp`), Level N (niveau de l'escouade, `interface/AffichageNiveau.cpp`, aussi dans l'inventaire) et sa barre d'expérience, Monsters: N (compteur), Seed: N (graine de l'étage, dans la console) |
 | Inventaire | Inventory, Bag, Armor: N, (dead) |
 | Fin de partie | Victory, Defeat, Press R to return to squad selection |

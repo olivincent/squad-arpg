@@ -77,7 +77,7 @@ Escouade::Escouade(sf::Vector2f positionDepart, std::vector<MembreDEscouade> mem
     assert(!membres.empty());
     assert(m_sac.capacite() == s_capaciteDuSac);
     for (std::size_t i = 0; i < membres.size(); ++i) {
-        m_personnages.emplace_back(m_formation.getPlaces()[i], std::move(membres[i].definition), std::move(membres[i].equipement), niveau);
+        m_personnages.emplace_back(m_formation.getPlaces()[i], std::move(membres[i].definition), membres[i].equipement, niveau);
     }
     m_pointsVises = m_formation.getPlaces();
 }

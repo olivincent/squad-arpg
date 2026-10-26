@@ -37,7 +37,7 @@ Personnage::Personnage(sf::Vector2f centre, DefinitionPersonnage definition, Equ
       m_croissance(definition.croissance),
       m_niveau(niveau),
       m_caracteristiquesDeBase(baseAuNiveau(niveau)),
-      m_equipement(std::move(equipement)),
+      m_equipement(equipement),
       m_equipementActif(m_equipement.actifPour(m_caracteristiquesDeBase)),
       m_descriptionDeBase(m_equipementActif.attaqueDeBase()),
       m_attaqueDeBase(skillDeLAttaqueDeBase(m_descriptionDeBase)),

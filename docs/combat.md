@@ -654,7 +654,8 @@ Détail de conception : `docs/classes-et-combat.md`, section 5.
   s'affichent, sans effet.
 - **Endurance → points de vie** : `pointsDeVieMax(pointsDeVieDeBase, caracteristiques)` = base de la classe
   + `s_pvParPointDEndurance` (20) × Endurance effective. Les PV de base de chaque classe (720, 740, 800,
-  840, 800) sont ajustés pour que le maximum de départ soit 1000 pour toutes, comme avant l'étape 88.
+  840, 800) sont ajustés pour que le maximum de départ soit 1000 pour toutes, comme avant l'étape 88. (Depuis les étapes 91.2 et
+  99.4 : base commune 240, 6 par point d'Endurance et 8 par niveau au-delà du premier, voir plus bas.)
   Quand le maximum change (équipement), `PointsDeVie::changerMaximum` change la valeur actuelle de la même
   différence ; un vivant garde au moins 1 PV (on ne meurt pas en se déséquipant) ; un mort reste à 0.
 - **Puissance → dégâts et soins par des coefficients** : chaque skill et chaque attaque de base de
@@ -839,7 +840,8 @@ mains sont dans `docs/objets.md`.
   frappe puissante 75, soin 90, explosion 45, monstre 300 points de vie (régénération du retour : une fraction du
   maximum, donc inchangée).
 - **Points de vie des personnages** : base **commune** (`s_pointsDeVieDeBase`, 240) plus `s_pvParPointDEndurance`
-  (6) par point d'Endurance, `pointsDeVieMax(const Caracteristiques&)`. Plus de base par classe
+  (6) par point d'Endurance, plus `s_pvParNiveau` (8) par niveau au-delà du premier (étape 99.4),
+  `pointsDeVieMax(const Caracteristiques&, int niveau)`. Plus de base par classe
   (`DefinitionPersonnage::pointsDeVieDeBase` supprimé) : l'Endurance fait seule la différence (guerrier 324,
   paladin 318, prêtre et rôdeur 300, mage 288 ; le collier d'endurance, +3, donne +18).
 - **L'attaque de base vient de l'arme (étape 91.4)** : voir `docs/objets.md`. Le `Personnage` en fait un `Skill`
@@ -1707,6 +1709,13 @@ même chose avec plus de détail.
   un agresseur (voir « Agresseurs ») s'y ajoute, mais seulement dans la
   laisse de 100 px et ancre à l'arrêt.
 
+### Le niveau atteint (étape 99.5)
+
+`NiveauAtteint { niveau }` est un détail d'événement de plus (`combat/EvenementDeCombat.hpp`), au-dessus de l'escouade entière
+comme `SacPlein` (`Camp::Escouade`, `idCible` 0, position de l'ancre) : un événement par niveau gagné, signalé par
+`Partie::monterSiLExperienceLeDonne`. Le texte flottant est « Level up! », 20 px, bleu clair (une couleur que ni le soin, ni le nom
+d'un skill, ni « Bag full » n'ont) ; il s'empile avec les autres textes de l'escouade entière.
+
 ## Référence des modules
 
 Repris tel quel d'`ARCHITECTURE.md` à l'étape 81 (K1, « déplacer d'abord ») : données
@@ -1981,8 +1990,24 @@ de la chaîne `Partie` → `Escouade` → `Personnage` → `Skill` et `Partie` �
   `valeur(Caracteristique)`, `+=`, `+`, `==` ; `[[nodiscard]]`.
 - `class Coefficients` : la même forme en flottants (`seul`, `valeur`, `==`), pour les skills.
 - Constantes : `s_valeurDeReference` (10), `s_bonusParPoint` (0,03), `s_pointsDeVieDeBase` (240) et
-  `s_pvParPointDEndurance` (6) depuis l'étape 91.2 (avant : 20 par point, base par classe).
-- `int pointsDeVieMax(const Caracteristiques&)` : 240 + 6 × Endurance ; `assert(résultat > 0)` ; `[[nodiscard]]`.
+  `s_pvParPointDEndurance` (6) depuis l'étape 91.2 (avant : 20 par point, base par classe), `s_pvParNiveau` (8, étape 99.4).
+- `int pointsDeVieMax(const Caracteristiques&, int niveau)` : 240 + 6 × Endurance + 8 × (niveau − 1) ; `assert(niveau >= 1)` et
+  `assert(résultat > 0)` ; `[[nodiscard]]`. Le niveau est celui de l'escouade (`Personnage::getNiveau`).
+
+### `Progression` (`combat/`) — la courbe de l'expérience et la croissance (étape 99)
+
+`Progression.hpp` / `.cpp`. Des fonctions pures, qui ne dépendent que de `Caracteristiques`. Voir `docs/classes-et-combat.md`,
+« L'expérience et les niveaux ».
+
+| Élément | Rôle |
+|---|---|
+| `s_experienceDeLaCourbe` (21) | Le coefficient `k` de la courbe, « à tester » (calibré, `test_CalibrageDeLExperience.cpp`) |
+| `int experiencePourAtteindre(int niveau)` | L'expérience cumulée pour atteindre ce niveau : `k × n × (n − 1)`, 0 pour le niveau 1 ; `assert(niveau >= 1)` ; `[[nodiscard]]` |
+| `int niveauPour(int experience)` | Le plus grand niveau dont le seuil est atteint (pas de maximum) ; `assert(experience >= 0)` ; `[[nodiscard]]` |
+| `float progressionVersLeNiveauSuivant(int experience)` | De 0 (juste arrivé) à moins de 1 : la barre d'expérience ; `[[nodiscard]]` |
+| `int experienceManquante(int experience)` | Ce qui manque pour le niveau suivant, au moins 1 (F9) ; `[[nodiscard]]` |
+| `using PaireDeCroissance = std::array<Caracteristique, 2>` | Les deux caractéristiques qui grandissent avec le niveau d'une classe, dans l'ordre |
+| `Caracteristiques croissanceAuNiveau(int niveau, const PaireDeCroissance&)` | Ce que les niveaux ajoutent à la base d'une classe : +1 par niveau gagné au-delà du premier, la première puis la seconde de la paire en alternance ; rien au niveau 1 ; `assert(niveau >= 1)` ; `[[nodiscard]]` |
 - `int montantEffectif(int montant, const Coefficients&, const Caracteristiques&)` : voir plus haut ;
   `assert(montant >= 0)` ; `[[nodiscard]]`.
 

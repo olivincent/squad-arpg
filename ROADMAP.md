@@ -8,7 +8,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 ## Étapes terminées
 
-Étapes 0 à 98 ✅. Les dernières :
+Étapes 0 à 99 ✅. Les dernières :
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 - Étape 83 — Inventaire et équipement : le modèle, sans interface ✅
@@ -27,15 +27,16 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - Étape 96 — La génération aléatoire des objets : plages de valeurs des affixes, poids des raretés, `genererObjet`, F7 tire au hasard ✅
 - Étape 97 — Le butin au sol : les monstres lâchent des objets, ils se voient et se ramassent, on peut les jeter ✅
 - Étape 98 — Les étages : l'escalier, l'expédition (équipement et sac gardés), des monstres plus forts avec la profondeur, la victoire au 5e étage ✅
+- Étape 99 — L'expérience et les niveaux : un niveau d'escouade, la croissance automatique de deux caractéristiques par classe, les points de vie par niveau ✅
 
 ## État actuel (résumé)
 
 - **Outils** : conception dans Claude.ai, implémentation avec Claude Code dans VSCode (règles dans
   `CLAUDE.md`) ; dépôt Git `squad-arpg`, poussé sur GitHub ; SFML 3.0.2 intégrée à CMake.
-- **Code** (étape 98) : 99 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
+- **Code** (étape 99) : 101 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
   `combat`, `objets`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
   de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug` et `jeu`, 0
-  avertissement, 1 624 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers de l'étape : `docs/build.md`,
+  avertissement, 1 661 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers des étapes 98 et 99 : `docs/build.md`,
   `docs/audit.md`). `Escouade` n'est plus que l'assemblage : `Escouade.cpp` de 1 223 à 1 067 lignes. Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`). **Tout le texte affiché est en anglais** (identifiants, commentaires et documentation restent en français ; pas de système de traduction : `docs/glossaire.md` est la référence des noms du jeu). Un commit par sous-étape, fait par Claude Code (`CLAUDE.md`).
 - **Écrans** : menu à la souris, options d'affichage (fenêtré ou plein écran, résolutions,
   `reglages.ini`), choix de 3 classes parmi 5 (guerrier, prêtre, mage, paladin, rôdeur ; doublons
@@ -43,7 +44,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   dessine sous un écran qui laisse voir dessous (`laisseVoirDessous`) ; le `clear` est dans
   l'`Application` (`docs/ecrans.md`).
 - **Étages et expédition** (étape 98) : une partie est **un étage** d'une `Expedition` (profondeur de 1 à 5, graine, les trois
-  personnages avec leur classe, leurs caractéristiques de base et leur équipement, le sac) ; l'expédition est ce qui survit d'un
+  personnages avec leur classe et leur équipement, le sac, l'expérience totale) ; l'expédition est ce qui survit d'un
   étage à l'autre, et rien d'autre. Un **escalier** (une case du terrain, dessinée en marches, cachée sous l'inconnu comme le sol)
   est placé dans la salle la plus éloignée du départ, celle de la créature, jamais sous elle ; cliquer dessus (après un monstre
   et un objet au sol, avant une porte) envoie l'escouade le prendre, et quand l'ancre arrive à moins de 30 px **la partie suivante
@@ -51,8 +52,21 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   compris**, même équipement et même sac, monstres **renforcés** (points de vie +25 %, dégâts +15 %, capacités +10 par étage au-delà du
   premier). On peut descendre à tout moment, même en plein combat. **La victoire est de prendre l'escalier du 5e étage** (tuer
   les monstres ne la donne plus) ; R ramène au choix après une victoire ou une défaite, et « Start » ou F5 fondent une nouvelle
-  expédition au 1er étage (équipement et sac de départ). « Depth N / 5 » s'affiche avec le compteur de monstres ; F8 descend
-  d'un étage tout de suite (`docs/boucle-et-entrees.md`, `docs/generation.md`, `docs/monstre.md`).
+  expédition au 1er étage (équipement de départ, **sac vide** depuis l'étape 99, niveau 1). « Depth N / 5 » s'affiche avec le
+  compteur de monstres ; F8 descend d'un étage tout de suite (`docs/boucle-et-entrees.md`, `docs/generation.md`, `docs/monstre.md`).
+- **Expérience et niveaux** (étape 99) : **un seul niveau pour toute l'escouade**. L'expédition ne garde que l'**expérience
+  totale** ; le niveau s'en déduit (`niveauPour`, `combat/Progression`), il n'est jamais stocké. **Toute mort de monstre rapporte son
+  expérience** (une donnée de `DefinitionDeMonstre` : nuée 3, infanterie 10, infanterie lourde 25, créature 100, majorée de 25 % par
+  étage au-delà du premier), quel que soit le tueur, même si des personnages sont morts ; elle survit à la descente. La courbe est
+  `k × n × (n − 1)` avec **`k = 21`** (calibré : tous les monstres tués, niveau 3 à 4 après le 1er étage, 10 à 11 après le 5e).
+  **Chaque niveau donne +1 point, en alternance dans les deux caractéristiques de la classe** (guerrier et paladin : Might puis
+  Constitution ; prêtre : Might puis Resolve ; mage : Might puis Intellect ; rôdeur : Dexterity puis Might) et **8 points de vie
+  maximum** (`240 + 6 × Endurance + 8 × (niveau − 1)`). Les caractéristiques de base sont **calculées** (classe plus croissance),
+  plus copiées dans l'expédition. Une montée en cours d'étage recalcule tout par le chemin de l'équipement : un vivant gagne autant
+  de points de vie que son maximum, un mort reste mort, plusieurs niveaux d'un coup s'appliquent tous, un seuil d'équipement
+  atteint remet l'objet en service. En haut de l'écran : « Level N » et une barre d'expérience, « Level up! » flottant, « Level N »
+  dans l'inventaire ; **F9** donne le niveau suivant. L'Intellect et la Resolve n'ont encore aucun effet (`docs/classes-et-combat.md`,
+  « L'expérience et les niveaux »).
 - **Carte** : donjon généré à chaque partie (salles, couloirs en L de 2 cases, portes à chaque
   jonction, un groupe de monstres par salle sauf la première, un escalier, graine affichée), F5 = nouvelle expédition ;
   carte à la main pour les tests (`docs/generation.md`, `docs/carte-et-collision.md`).
@@ -117,7 +131,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   (`docs/generation.md`). La créature n'a que ses valeurs (rayon réduit à 16, le chemin ne tenant pas compte du
   rayon contre les murs) ; ses règles propres (immunités, blocage) et l'escouade de monstres viendront plus tard.
 - **Interface** : barre de raccourcis de 12 emplacements (Q W E R / A S D F / Z X C V, ou clic ;
-  « l'interface d'abord »), compteur de monstres, écran de victoire ou de défaite ; F3 à F8 de
+  « l'interface d'abord »), compteur de monstres, écran de victoire ou de défaite ; F3 à F9 de
   débogage ; une touche devient une commande par une fonction pure, `commandePourTouche`
   (`docs/boucle-et-entrees.md`).
 
@@ -233,15 +247,27 @@ ce qui reste à décider **en discussion** avant son prompt :
   - 98 ✅ : les étages : l'escalier, l'`Expedition` (ce qui survit d'un étage à l'autre), des monstres renforcés par la
     profondeur, la victoire au 5e étage ; en première sous-étape les dettes de l'étape 97 (panneau d'inventaire réduit,
     `ResultatClic` séparé, `ObjetsAuSol`, `EcranInventaire` sans la `Partie`).
-  - 99 : l'expérience et les niveaux (à discuter avec Claude.ai) ;
-  - 100 : les points libres ;
+  - 99 ✅ : l'expérience et les niveaux : en première sous-étape trois corrections de l'étape 98 (sac vide au départ, `renforcer`
+    sur toutes les portions des dégâts, une seule source pour l'équipement) ; l'expérience des monstres ; l'expérience totale de
+    l'expédition et `niveauPour` (`k = 21`) ; la croissance automatique par classe, les points de vie par niveau, la montée de
+    niveau en cours d'étage ; l'affichage (en-tête, « Level up! », inventaire) et F9.
+  - 100 : les points libres (à discuter avec Claude.ai) ;
   - 101 : le niveau d'objet.
 
-## Étape 99 (prochaine) : l'expérience et les niveaux, à discuter avec Claude.ai
+## Étape 100 (prochaine) : les points libres et leur écran, à discuter avec Claude.ai
 
-L'étape 98 (les étages) est faite ; la phase 5 continue par l'expérience et les niveaux (99), les points libres (100) et le
-niveau d'objet (101). Le Savoir et la Volonté n'ont encore aucun effet. L'`Expedition` grandira avec l'expérience et les points
-libres (`jeu/Expedition`) et c'est elle qu'on sauvegardera un jour.
+L'étape 99 (l'expérience et les niveaux) est faite ; la phase 5 continue par les points libres (100) et le niveau d'objet (101).
+L'étape 100 ajoutera les points libres dépensés au calcul des caractéristiques de base (classe plus croissance du niveau, plus
+points libres), qui est déjà une fonction pure. Le Savoir et la Volonté n'ont encore aucun effet (les paires de croissance du prêtre
+et du mage deviendront justes quand ils serviront). L'`Expedition` grandira avec les points libres (`jeu/Expedition`) et c'est
+elle qu'on sauvegardera un jour.
+
+**Pistes issues de l'étape 99** (étapes à part, plus tard) :
+- **Un niveau par personnage** si un recrutement arrive (aujourd'hui un seul niveau, déduit de l'expérience totale de l'escouade).
+- **Un niveau maximum** (aujourd'hui aucun : la courbe est quadratique, les points de vie linéaires).
+- **L'expérience refusée aux morts** (aujourd'hui toute mort de monstre rapporte à l'escouade, même si des personnages sont morts).
+- **Ajuster en jouant** `k` (21), l'expérience de chaque catégorie, les 8 points de vie par niveau et les paires de croissance :
+  tous « à tester ». Le calibrage de `k` laisse le 1er étage à 3 ou 4 (`docs/classes-et-combat.md`).
 
 **Pistes issues de l'étape 98** (étapes à part, plus tard) :
 - **Les refuges** : un endroit sûr où l'on reprend son souffle entre deux étages (soin, sac, achat).

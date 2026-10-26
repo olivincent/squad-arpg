@@ -1848,7 +1848,8 @@ fixent le butin d'un monstre à 0 ou à 100 %, donc sans chance à tirer.
   maintenant) ; `test_DispositionInventaire.cpp` (+1 : `rectangleDuPanneau`, tous les éléments y tiennent).
 - **Aides** : `aides_escouade.hpp` reçoit `Cle`, `cle` et `exemplaires(const Escouade&)` (déplacés tels quels depuis
   `test_Escouade_equipement.cpp`), `exemplaires(const Partie&)` (sac, équipements et sol) et `viderLeSac` (une `Partie` range
-  le sac de départ du jeu dans son sac : les tests d'objets le vident pour compter des cases). `test_EcranInventaire.cpp` construit
+  le sac de départ du jeu dans son sac : les tests d'objets le vident pour compter des cases ; **supprimée à l'étape 99.1** : le sac
+  commence vide). `test_EcranInventaire.cpp` construit
   maintenant l'écran avec une `Partie` (`partieSansMonstre` : une partie sans monstre est gagnée, donc figée ; les tests qui
   font avancer le temps ajoutent un monstre dormant dans un coin).
 - **Mesure de performance** (preset `jeu`, `[perf]`) : inchangée, moyenne 0,036 ms par image, pire 0,16 ms.
@@ -1904,3 +1905,49 @@ avant de construire la `Partie`.
   l'escalier, panneau réduit, ligne de profondeur) se vérifie à l'œil.
 - **Les commentaires d'avant disent encore** « une partie sans monstre est gagnée, donc figée » (étapes 63 à 97) : plus vrai depuis
   l'étape 98.
+
+## Étape 99 : l'expérience et les niveaux (+37 cas, 1 624 → 1 661)
+
+- **99.1** (−3, +3 : 1 624 → 1 621 après la suppression du sac de départ, puis 1 624) : `test_CatalogueObjets.cpp` (−2 : les deux
+  tests de `sacDeDepart`), `test_CoherenceDesDonnees.cpp` (−1 : le sac de départ est fait d'objets communs valides) ;
+  `test_Escouade_equipement.cpp` et `test_Expedition.cpp` (le test du sac de départ devient « un sac vide » ; `viderLeSac`,
+  devenue inutile, est supprimée de `aides_escouade.hpp` avec ses cinq appels) ; `test_DefinitionDeMonstre.cpp` (+2 : **toutes les
+  portions des dégâts sont majorées**, avec une attaque mixte physique 30 et feu 20 qui donne 39 et 26 au 3e étage, le sacré nul
+  restant nul ; une portion de feu majorée sans toucher aux résistances de la créature) et `test_Monstre.cpp` (+1 : l'attaque d'un
+  monstre porte toutes les portions de sa définition). **Une seule source pour l'équipement** : aucun test nouveau, la conversion
+  est exercée par tous ; les aides de `aides_escouade.hpp` passent par elle : `membresDeTest(composition)` (=
+  `compositionDeLExpedition(expeditionDeTest(composition))`), `uneEscouadeDe(position, composition)` et `unPersonnage(centre,
+  definition)` (niveau 1). Les ~140 constructions directes de `Personnage` et d'`Escouade` des tests (`test_Personnage.cpp`,
+  `test_Escouade_*.cpp`, `test_Specialite.cpp`, `test_Autodefense.cpp`, `test_BarreDeSkills.cpp`) appellent ces aides au lieu des
+  constructeurs, dont la signature a changé ; les définitions de test gardent leur `equipementDeDepart` (la recette).
+- **99.2** (+2) : `test_DefinitionDeMonstre.cpp` (+2 : l'expérience des quatre catégories au 1er étage — 3, 10, 25, 100 — et au 3e
+  — 5, 15, 38, 150, avec les arrondis de 4,5 et de 37,5) ; `test_CoherenceDesDonnees.cpp` (une expérience d'au moins 1 par monstre).
+- **99.3** (+9) : `tests/combat/test_Progression.cpp` (nouveau, +5 : `experiencePourAtteindre` = `k n (n − 1)` ; `niveauPour` — niveau 1
+  sans expérience et juste avant le seuil du niveau 2 ; **juste avant et juste à chaque seuil de 2 à 60** ; sans plafond ; jamais
+  décroissant de 0 à 5 000) ; `tests/jeu/test_CalibrageDeLExperience.cpp` (nouveau, +1 : **la cible de calibrage** — l'expérience
+  moyenne de chaque étage de 1 à 5 sur 300 graines, cumulée : niveau 3 à 4 après le 1er étage, 10 à 11 après le 5e, chaque étage
+  fait monter ; 0,3 s) ; `test_Partie_butin.cpp` (+2 : **un monstre tué ajoute son expérience**, même sans butin ; trois monstres
+  l'additionnent) ; `test_Partie_descente.cpp` (+1 : **l'expérience survit à la descente**) ;
+  `test_Expedition.cpp` (une nouvelle expédition a 0 d'expérience).
+- **99.4** (+17) : `test_Progression.cpp` (+3 : la croissance — rien au niveau 1 ; **les niveaux 2, 3 et 4 donnent la première, la
+  seconde, la première de la paire** ; un point par niveau, dans la paire seulement, de 1 à 30) ; `test_Caracteristiques.cpp` (+1 :
+  **les points de vie suivent la formule** `240 + 6 × Endurance + 8 × (niveau − 1)`) ; `test_Personnage.cpp` (+7 : niveau 1 = la
+  base de la classe ; **la croissance alterne aux niveaux 2, 3 et 4** ; **plusieurs niveaux d'un coup = un niveau après l'autre** ;
+  les points de vie maximum suivent le niveau ; **un vivant blessé gagne autant de points de vie que son maximum** (le manque ne
+  change pas) ; **un mort reste mort**, avec sa croissance ; **un seuil d'équipement atteint grâce à la croissance rend l'objet
+  actif**, l'arme redevient l'arme) ; `test_Specialite.cpp` (+2 : la paire de chaque classe, gardée par `composer` quelle que soit la
+  nuance) ; `test_Partie_butin.cpp` (+4 : une partie commence au niveau de l'expérience de l'expédition ; **l'expérience d'un monstre
+  tué fait monter au seuil exact** — un point de moins, rien ; **plusieurs niveaux d'un coup sont tous appliqués à chaque
+  personnage**, caractéristiques et points de vie maximum ; la base ne vit que dans la classe et l'expérience : l'expédition garde
+  la classe, jamais la croissance).
+- **99.5** (+9) : `test_Progression.cpp` (+2 : `progressionVersLeNiveauSuivant` — 0 juste au seuil, entre 0 et 1 juste avant le suivant,
+  la moitié au milieu ; `experienceManquante` — exactement de quoi atteindre le niveau suivant, au moins 1) ; `test_Partie_butin.cpp`
+  (+4 : **un événement `NiveauAtteint` par niveau gagné, dans l'ordre**, 2 à 5 pour cinq niveaux d'un coup, au-dessus de l'escouade
+  entière ; aucun événement sans niveau ; **F9 (`gagnerUnNiveau`) fait gagner exactement un niveau**, avec son événement, deux fois de
+  suite ; F9 à mi-chemin ne donne que ce qui manque) ; `test_TextesFlottants.cpp` (+2 : « Level up! », 20 px, d'une couleur que les
+  autres textes n'ont pas ; il s'empile avec « Bag full ») ; `test_CommandeDeTouche.cpp` (F9 vaut en tout temps) ;
+  `test_AffichageNiveau.cpp` (nouveau, +1 : « Level 1 », « Level 12 »).
+- **Ce que les tests ne voient pas** : l'en-tête (la place de « Level N » et de la barre, son remplissage), le niveau dans
+  l'inventaire et la couleur de « Level up! » se vérifient à l'œil. Seul le calcul (`progressionVersLeNiveauSuivant`) est testé.
+- **Calibrage** : le programme de mesure (5 000 graines, l'expérience moyenne de chaque étage) n'est pas dans le dépôt ; le test de
+  cible le résume avec 300 graines (`docs/classes-et-combat.md`, « Calibrage de `k` »).

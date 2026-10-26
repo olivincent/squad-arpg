@@ -58,14 +58,19 @@ sont ceux du jeu, les identifiants du code restent en français.
 - **Le sac est à positions fixes** : retirer un objet laisse sa case vide, les autres ne bougent
   pas ; `ajouter` prend la première case libre. Le joueur range le sac par `deplacerObjet`.
 - **La capacité (40) appartient à `Escouade`** (`Escouade::s_capaciteDuSac`, publique depuis l'étape 98.2), pas à
-  `Inventaire`, qui reçoit sa capacité à la construction. Depuis l'étape 98.2, ce n'est plus `Partie` qui remplit le sac avec
-  `sacDeDepart()` : c'est `nouvelleExpedition` (`jeu/Expedition`), et la `Partie` reçoit le sac de l'expédition, ses objets à
-  leur case (`Escouade(positionDepart, composition, sac)`). Le sac et l'équipement des personnages survivent ainsi d'un étage à
+  `Inventaire`, qui reçoit sa capacité à la construction. Depuis l'étape 98.2, ce n'est plus `Partie` qui remplit le sac :
+  `nouvelleExpedition` (`jeu/Expedition`) le crée, et la `Partie` reçoit le sac de l'expédition, ses objets à
+  leur case (`Escouade(positionDepart, membres, sac, niveau)`). **Depuis l'étape 99.1, une nouvelle expédition commence avec un sac
+  vide** : `sacDeDepart()` (11 objets de démonstration) est supprimée ; F7 sert aux tests, et les tests qui avaient besoin d'objets
+  les reçoivent eux-mêmes (`ramasser`). Le sac et l'équipement des personnages survivent ainsi d'un étage à
   l'autre ; les objets au sol, non (`docs/boucle-et-entrees.md`, « Les étages et l'expédition »).
-- **Un équipement déjà constitué** : `DefinitionPersonnage::equipementPorte` (`std::optional<Equipement>`, étape 98.2), s'il est
-  présent, remplace `equipementDeDepart` à la construction du `Personnage`. Le kit de départ (`equipementDeDepart`) ne dit que des
-  modèles (`IdObjet`) ; l'équipement qu'un personnage garde d'un étage à l'autre a des objets complets (rareté, affixes). Aucun
-  seuil n'est revérifié à la reconstruction : un objet porté mais inactif (seuil non atteint) reste porté et inactif.
+- **Une seule source pour l'équipement** (étape 99.1) : le kit de départ d'une classe (`DefinitionPersonnage::equipementDeDepart`) ne
+  dit que des modèles (`IdObjet`) ; `nouvelleExpedition` le lit **une seule fois** et le convertit en `Equipement` (objets complets :
+  rareté, affixes), puis vide le champ. Ensuite `Partie` et `Escouade` ne reçoivent que les `Equipement` de l'expédition
+  (`MembreDEscouade`) : `Personnage(centre, definition, equipement, niveau)` ne lit jamais `equipementDeDepart`. (`equipementPorte`,
+  un second champ pour la même information, ajouté à l'étape 98.2, est supprimé.) Une aide de test qui construit une escouade ou un
+  personnage depuis une recette passe par la même conversion (`membresDeTest`, `uneEscouadeDe`, `unPersonnage`). Aucun seuil n'est
+  revérifié à la reconstruction : un objet porté mais inactif (seuil non atteint) reste porté et inactif.
 
 ## Armes (étape 91)
 
@@ -106,8 +111,8 @@ sont ceux du jeu, les identifiants du code restent en français.
   a disparu. D'autres objets pourront plus tard ajouter de la chance de blocage ou réduire la récupération ; aucun
   champ n'existe pour cela, aucun objet ne s'en sert.
 - **Équipement de départ** : guerrier épée longue + bouclier rond + pièces de fer, paladin masse + bouclier rond +
-  pièces de fer, prêtre sceptre, mage bâton, rôdeur arc. Le sac de départ reçoit une dague et une épée à deux
-  mains.
+  pièces de fer, prêtre sceptre, mage bâton, rôdeur arc. (Le sac de départ de l'étape 91, avec une dague et une épée à deux mains,
+  n'existe plus depuis l'étape 99.1 : le sac commence vide.)
 - **Les skills exigent un type d'arme** (`docs/combat.md`) : le refus est celui d'un lanceur mort.
 
 ## Seuils, objets inactifs et pénétration (étape 92)
@@ -444,7 +449,7 @@ std::vector<SeuilDeCaracteristique> seuils = {}; }` et des fonctions libres, san
 | `const DescriptionDAttaque& mainsNues()` | L'attaque de base sans arme ; `[[nodiscard]]` |
 | `bool objetValide(const Objet&)` | Les invariants de l'objet : affixes à leur position, permis pour la catégorie, de valeur > 0, nombre conforme à la rareté (étape 95.3) ; `[[nodiscard]]` |
 | `std::string nomDeLObjet(const Objet&)` | « [préfixe] modèle [suffixe] » (« Blazing Mace ») ; `[[nodiscard]]` |
-| `std::vector<Objet> sacDeDepart()` | Le contenu du sac au début d'une partie : gants de cuir, bottes de cuir, casque de cuir, tunique matelassée, collier de protection, deux anneaux de protection, l'anneau de puissance, le collier d'endurance, une dague et une épée à deux mains ; `[[nodiscard]]` |
+| ~~`std::vector<Objet> sacDeDepart()`~~ | Supprimée à l'étape 99.1 (le sac commence vide). Elle rendait le contenu du sac au début d'une partie : gants de cuir, bottes de cuir, casque de cuir, tunique matelassée, collier de protection, deux anneaux de protection, l'anneau de puissance, le collier d'endurance, une dague et une épée à deux mains ; `[[nodiscard]]` |
 
 Valeurs d'armure (provisoires ; recalibrées à l'étape 87.3 pour le modèle M1, puis à l'échelle × 3 à l'étape 91.2) :
 casque de fer 2, cuirasse de mailles 4, jambières de fer 2, bouclier rond 1, gants de cuir 1, bottes de cuir 1,

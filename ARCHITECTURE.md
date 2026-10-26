@@ -46,7 +46,7 @@ squad-arpg/
 │   ├── rendu/      BarreDeVie, TraceDeChemin
 │   ├── monde/      TileMap, Chemin, Deplacement, Mobile, ChampDeVision, Vision,
 │   │               ObjetInteractif, Niveau, CategorieDeMonstre, CompositionDeGroupe, GenerateurDonjon, Encerclement
-│   ├── combat/     Skill, SkillConnu, IdSkill, TypeSkill, TypeDArme, DescriptionDAttaque, AdresseSkill, Cible, ActionEngagee,
+│   ├── combat/     Skill, SkillConnu, IdSkill, TypeSkill, TypeDArme, DescriptionDAttaque, AdresseSkill, Cible, ActionEngagee, Progression,
 │   │               Element, Degats,
 │   │               EtatSkill, Coup, EvenementDeCombat, EntiteVue, Autodefense, Engagement,
 │   │               Attaque, NatureDAttaque, StatistiquesDeCombat, Esquive, Critique, Blocage, Defense,
@@ -60,7 +60,7 @@ squad-arpg/
 │   ├── jeu/        Partie, Expedition, ObjetAuSol, ObjetsAuSol
 │   ├── interface/  Ecran, Transition, Contexte, PileDEcrans, EntreeDInterface, EcranMenu,
 │   │               EcranOptions, EcranChoixEscouade, EcranJeu, EcranInventaire,
-│   │               DispositionInventaire, AffichageObjets, AffichageObjetsAuSol, AffichageCaracteristiques, AffichageStatistiques, AffichageSkills, AffichageProfondeur, ListeDeBoutons, Reglages, TailleDeVue,
+│   │               DispositionInventaire, AffichageObjets, AffichageObjetsAuSol, AffichageCaracteristiques, AffichageStatistiques, AffichageSkills, AffichageProfondeur, AffichageNiveau, ListeDeBoutons, Reglages, TailleDeVue,
 │   │               EmplacementsPrincipaux, BarreDeRaccourcis, CommandeDeTouche, ClicInterface,
 │   │               BarreDeSkills, EcranDeFin, TextesFlottants, Controleur
 │   └── app/        main.cpp, Application
@@ -93,7 +93,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
   `EcranInventaire`, empilé sur lui, ne possède rien : il reçoit l'`Escouade`, les `ObjetsAuSol` et la `TileMap` de la `Partie`
   de l'`EcranJeu` du dessous (et rien d'autre : il ne connaît pas la `Partie`).
 - `Partie` (un étage) possède la `TileMap`, l'`Escouade`, les `Monstre`, les `ObjetInteractif`, les `ObjetsAuSol`, la `Vision`
-  et le seul `Generateur`, et garde l'`Expedition` reçue (ce qui survit d'un étage à l'autre : profondeur, graine, personnages, sac). Elle fait l'intermédiaire entre `Escouade` et `Monstre`, qui ne se
+  et le seul `Generateur`, et garde l'`Expedition` reçue (ce qui survit d'un étage à l'autre : profondeur, graine, personnages, sac, expérience). Elle fait l'intermédiaire entre `Escouade` et `Monstre`, qui ne se
   connaissent pas (ils échangent des `EntiteVue`, des `Coup`, des `EntiteDeControle`), et tient la
   file des `EvenementDeCombat`.
 - `Escouade` possède son ancre (`Mobile`), sa `Formation`, ses `PlacesDAttaque`, N `Personnage`,
@@ -154,7 +154,8 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `Esquive`, `Critique`, `Blocage` : les étapes du coup qui dépendent du hasard, des fonctions pures qui reçoivent un tirage (`docs/combat.md`).
 - `ResolutionDuCoup` : `resoudreCoup`, point d'entrée unique d'un coup, portion par portion (esquive, critique, blocage du physique, armure, résistances, un arrondi par portion) et seul tirage du moteur ; `resoudreSoin` ; `Defenses`.
 - `PointsDeVie` : valeur et maximum, invariants de vie et de mort.
-- `Caracteristiques` : les cinq caractéristiques (`Caracteristique`, `Caracteristiques`, `Coefficients`), les points de vie maximum et `montantEffectif`, seule source du montant d'un skill de personnage (`docs/combat.md`).
+- `Caracteristiques` : les cinq caractéristiques (`Caracteristique`, `Caracteristiques`, `Coefficients`), les points de vie maximum (selon le niveau) et `montantEffectif`, seule source du montant d'un skill de personnage (`docs/combat.md`).
+- `Progression` : la courbe de l'expérience (`niveauPour`, `experiencePourAtteindre`, `progressionVersLeNiveauSuivant`, `experienceManquante`) et la croissance automatique d'une classe (`PaireDeCroissance`, `croissanceAuNiveau`) ; des fonctions pures (`docs/combat.md`, `docs/classes-et-combat.md`).
 - `Vitalite` : points de vie, défenses (armure, statistiques de combat) et récupération du blocage d'une entité, commune à `Personnage` et `Monstre`.
 
 `objets/` — les objets, ce qu'on porte et le sac (`docs/objets.md`) :
@@ -166,7 +167,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
   `definitionAffixe()`, `affixePermis()`, `affixesPermisPour()` et `apportDesAffixes()`, ce que les affixes d'un objet
   ajoutent aux totaux.
 - `CatalogueObjets` : `DefinitionObjet` (nom, catégorie, armure, bonus, données d'arme ou de bouclier, seuils),
-  `catalogueObjets()`, `definitionObjet()`, `seuilsAtteints()`, `estADeuxMains()`, `mainsNues()`, `sacDeDepart()`,
+  `catalogueObjets()`, `definitionObjet()`, `seuilsAtteints()`, `estADeuxMains()`, `mainsNues()`,
   `objetValide()` (les invariants d'un objet), `nomDeLObjet()` (« Blazing Mace »).
 - `GenerationDObjets` : `genererObjet`, le tirage d'un objet valide avec le `Generateur` reçu (rareté, modèle, affixes,
   valeurs), `genererButin` (le butin d'une mort : la chance, puis les objets), `poidsDeRarete` et `peutPorterLaRarete`, l'unique
@@ -190,15 +191,16 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
   points visés ; elle possède `Formation`, `PlacesDAttaque`, `Agresseurs`, `Provocations`, le sac
   (`Inventaire`) et les `Personnage` ; `ramasser`, `ramasserTout` et `deplacerObjet` déplacent les objets.
 - `Personnage` : un membre : déplacement, attaque de base (celle de son arme), skills, vie, vision, équipement (son armure
-  en est la somme), caractéristiques (base de classe plus équipement).
+  en est la somme), niveau (celui de l'escouade), caractéristiques (base de classe plus croissance du niveau, plus équipement).
 - `Formation` : décalages, orientation, point à regarder et places de formation, sans `Personnage`.
 - `PlacesDAttaque` : place d'attaque retenue par assaillant autour de sa cible, sans `Personnage`.
 - `Intention` : ce qu'un personnage veut faire, sa situation, `choisirIntention`, les règles par
   priorité où se brancheront les gambits, et `cerclesAContourner` (fonctions pures, sans carte).
 - `Separation` : `pousseesDeSeparation`, séparation douce en fonction pure (`EtatDeSeparation`).
 - `EcartEntrePersonnages` : `s_ecartEntrePersonnages`, en-tête neutre.
-- `Composition` : `DefinitionPersonnage` (dont l'équipement de départ, d'où viennent l'attaque de base et la zone de contrôle),
-  `Rang` et `decalagesDeFormation`.
+- `Composition` : `DefinitionPersonnage` (dont la recette d'équipement de départ, lue par `nouvelleExpedition` seule, et la paire de
+  croissance), `MembreDEscouade` (une définition et l'`Equipement` qu'elle porte : ce que l'`Escouade` reçoit), `Rang` et
+  `decalagesDeFormation`.
 - `Specialite` : catalogue des 5 classes et `composer`.
 - `SelectionDEscouade` : les 3 classes choisies, cases de l'écran de choix (`docs/ecrans.md`).
 - `Provocations` : monstres provoqués et leur provocateur (`docs/combat.md`).
@@ -212,7 +214,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 
 `jeu/` :
 - `Partie` : un étage — règles de jeu, ordre d'une image, intermédiaire escouade/monstres (et seul tireur du `Generateur`, y compris pour F7 et le butin) ; se construit depuis un `Niveau` et une `Expedition`, rend l'`Expedition` de la partie en cours, renforce les monstres par la profondeur, prend l'escalier ; reçoit le catalogue des monstres (`docs/boucle-et-entrees.md`).
-- `Expedition` : ce qui survit d'un étage à l'autre (profondeur, graine, personnages — classe, caractéristiques de base, équipement —, sac), `nouvelleExpedition`, `etageSuivant`, `graineDEtage`, `s_profondeurMaximale` (`docs/boucle-et-entrees.md`).
+- `Expedition` : ce qui survit d'un étage à l'autre (profondeur, graine, personnages — classe et équipement —, sac, expérience totale ; le niveau et les caractéristiques de base se calculent), `nouvelleExpedition` (seul endroit qui lit l'équipement de départ des recettes ; sac vide), `compositionDeLExpedition`, `etageSuivant`, `graineDEtage`, `s_profondeurMaximale` (`docs/boucle-et-entrees.md`).
 - `ObjetAuSol` : un objet posé au sol (identifiant, objet, position) (`docs/objets.md`).
 - `ObjetsAuSol` : les objets au sol d'un étage : identifiants jamais réutilisés, `poser` (où : `positionPour`, qui évite l'escalier), `retirer`, `trouver`, `sous` (le survol, avec la carte et la vision) ; `jeterUnObjet`, qui retire un objet de l'escouade et le pose au sol (`docs/objets.md`).
 
@@ -231,12 +233,13 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `AffichageStatistiques` : les lignes des statistiques de combat de l'inventaire et des bonus de combat d'une infobulle (`docs/combat.md`).
 - `AffichageSkills` : `nomDuSkill`, le nom affiché d'un skill (`docs/combat.md`).
 - `AffichageProfondeur` : `ligneDeProfondeur`, « Depth 2 / 5 » (`docs/boucle-et-entrees.md`).
+- `AffichageNiveau` : `ligneDeNiveau`, « Level 3 » (`docs/boucle-et-entrees.md`, `docs/ecrans.md`).
 - `ListeDeBoutons` : colonne de boutons sans position stockée (`docs/ecrans.md`).
 - `Reglages` : réglages d'affichage, `reglages.ini`, table des touches des raccourcis (`docs/ecrans.md`).
 - `TailleDeVue` : vue à hauteur fixe et vue d'interface (`docs/ecrans.md`).
 - `EmplacementsPrincipaux` : `s_emplacementsPrincipaux`, en-tête neutre (P1, `docs/boucle-et-entrees.md`).
 - `BarreDeRaccourcis` : modèle des emplacements, disposition par défaut et à l'écran (`docs/boucle-et-entrees.md`).
-- `CommandeDeTouche` : `commandePourTouche`, ce que fait chaque touche (F3 à F8 de débogage comprises), fonction pure
+- `CommandeDeTouche` : `commandePourTouche`, ce que fait chaque touche (F3 à F9 de débogage comprises), fonction pure
   (`docs/boucle-et-entrees.md`).
 - `ClicInterface` : ce qu'un clic touche dans l'interface (`docs/boucle-et-entrees.md`).
 - `BarreDeSkills` : dessin des icônes de la barre et `iconesDeLaBarre` (`docs/boucle-et-entrees.md`).

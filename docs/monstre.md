@@ -130,10 +130,25 @@ de vie, armure 3).
   le résultat ne dépende pas des arrondis des flottants.
 - **Ce qui ne change pas** : l'armure, l'esquive, le blocage, les résistances, la vitesse, la taille, la portée, la recharge et
   le temps d'exécution de l'attaque, le butin, les rayons et la zone de contrôle. Au 1er étage la définition est identique.
-- **Les dégâts d'un monstre sont aujourd'hui une seule portion physique** (`attaque.puissance`) : c'est elle qui est majorée.
-  Le jour où un monstre aura des portions typées, `renforcer` devra les majorer toutes (« sur toutes les portions »).
+- **Les dégâts d'un monstre sont des portions par élément** (`DefinitionDeMonstre::degats`, un `Degats` ; étape 99.1, avant : un
+  seul entier physique dans `attaque.puissance`, qui vaut maintenant 0 et n'est plus lu) : `renforcer` majore **chaque portion** du
+  même pourcentage, une portion nulle restant nulle. Aucune catégorie du catalogue n'a encore de portion élémentaire ; le test
+  `renforcer : toutes les portions des degats sont majorees` le vérifie avec une attaque mixte (physique 30 et feu 20 : au 3e
+  étage 39 et 26). `Monstre::getAttaque` rend ces portions telles quelles.
+- **L'expérience** (étape 99.2) est majorée comme les points de vie : +25 % par étage au-delà du premier
+  (`s_pourcentDExperienceParEtage`), arrondi au plus proche. Un monstre rapporte donc davantage aux étages profonds : nuée 3, 5 au
+  3e étage ; infanterie 10, 15 ; infanterie lourde 25, 38 ; créature 100, 150.
 - **Pas de formule d'écart de niveau** : ni pénalité ni bonus selon le niveau du personnage, seulement des monstres plus forts.
   Le butin ne dépend pas encore de la profondeur.
+
+## Expérience (étape 99)
+
+- **Une donnée par catégorie**, dans `DefinitionDeMonstre::experience` (au moins 1 : `test_CoherenceDesDonnees`). Valeurs « à tester » :
+  nuée 3, infanterie 10, infanterie lourde 25, créature monstrueuse 100.
+- **Le monstre ne gagne ni ne donne rien lui-même** : il garde la valeur (`getExperience`) et c'est la `Partie` qui l'ajoute à
+  l'expérience de l'expédition à sa mort, dans `retirerLesMorts`, à côté du butin, quel que soit le tueur. Voir
+  `docs/boucle-et-entrees.md`, « Expérience et niveaux ».
+- **Renforcée par la profondeur** (`renforcer`), voir plus haut.
 
 ## Identifiant, vie et dessin
 
@@ -581,9 +596,10 @@ valeur n'est oublié sans que le compilateur le signale) et le catalogue.
 
 Champs de `struct DefinitionDeMonstre` : `cote` (`float`, du carré, en pixels ; le cercle de collision lui est inscrit),
 `couleur` (`sf::Color`), `vitesse` (`float`), `pointsDeVieMax`, `armure`, `rayonDetection`, `rayonTerritoire`,
-`zoneDeControle`, `regenerationRetour`, `attaque` (`DefinitionDeSkill` : portée, dégâts, recharge, exécution, nature),
-`statistiques` (`StatistiquesDeCombat` : capacités, esquives, et depuis l'étape 94 les résistances), `chanceDeButin` (en pour
-cent) et `nombreDObjets` (étape 97).
+`zoneDeControle`, `regenerationRetour`, `attaque` (`DefinitionDeSkill` : portée, recharge, exécution, nature ; sa puissance vaut
+0), `degats` (`Degats` : les portions du coup par élément, étape 99.1), `statistiques` (`StatistiquesDeCombat` : capacités,
+esquives, et depuis l'étape 94 les résistances), `chanceDeButin` (en pour cent), `nombreDObjets` (étape 97) et `experience`
+(étape 99.2).
 
 | Fonction | Rôle |
 |---|---|
@@ -591,4 +607,4 @@ cent) et `nombreDObjets` (étape 97).
 | `const CatalogueDeMonstres& catalogueDeMonstres()` | Les définitions des quatre catégories, construites une fois ; l'unique source de leurs valeurs ; `[[nodiscard]]` |
 | `const DefinitionDeMonstre& definitionDeMonstre(const CatalogueDeMonstres&, CategorieDeMonstre)` | La définition de cette catégorie dans ce catalogue (le seul endroit qui indexe le tableau) ; `[[nodiscard]]` |
 | `const DefinitionDeMonstre& definitionDeMonstre(CategorieDeMonstre)` | La même, dans le catalogue du jeu ; `[[nodiscard]]` |
-| `DefinitionDeMonstre renforcer(const DefinitionDeMonstre&, int profondeur)` | Étape 98.3 : la définition renforcée par la profondeur (points de vie +25 %, dégâts de l'attaque +15 %, capacités +10, par étage au-delà du premier ; arrondi au plus proche) ; pure ; l'identité au 1er étage ; `assert` : profondeur >= 1 ; `[[nodiscard]]` |
+| `DefinitionDeMonstre renforcer(const DefinitionDeMonstre&, int profondeur)` | Étape 98.3 : la définition renforcée par la profondeur (points de vie +25 %, chaque portion des dégâts +15 %, capacités +10, expérience +25 %, par étage au-delà du premier ; arrondi au plus proche) ; pure ; l'identité au 1er étage ; `assert` : profondeur >= 1 ; `[[nodiscard]]` |

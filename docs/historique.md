@@ -116,6 +116,7 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 96 — La génération aléatoire des objets : plages de valeurs des affixes, poids des raretés, `genererObjet`, F7 tire au hasard ✅
 - Étape 97 — Le butin au sol : les monstres lâchent des objets, ils se voient et se ramassent, on peut les jeter ✅
 - Étape 98 — Les étages : l'escalier, l'expédition (équipement et sac gardés), des monstres plus forts avec la profondeur, la victoire au 5e étage ✅
+- Étape 99 — L'expérience et les niveaux : un niveau d'escouade, la croissance automatique de deux caractéristiques par classe, les points de vie par niveau ✅
 
 ## Détail des étapes 0 à 73
 
@@ -2323,3 +2324,25 @@ d'avoir pris l'escalier du 5e étage (tuer les monstres ne la donne plus) ; « D
 expédition — le sac de départ habituel (11 objets de débogage) est gardé, « comme aujourd'hui ». Détail : `docs/boucle-et-entrees.md`,
 `docs/generation.md`, `docs/monstre.md`, `docs/objets.md`, `docs/ecrans.md`, `docs/carte-et-collision.md`, `docs/formation.md`,
 `docs/classes-et-combat.md`, `docs/tests.md`, `docs/glossaire.md`.
+
+### Étape 99 — L'expérience et les niveaux ✅
+
+Deuxième étape de la phase 5 (progression), faite en une session autonome (un commit par sous-étape, les tests visuels à la fin).
+99.1 : trois corrections de l'étape 98 — une nouvelle expédition commence avec un **sac vide** (`sacDeDepart` et ses 11 objets de
+démonstration sont supprimés, F7 sert aux tests) ; `renforcer` majore **toutes les portions** des dégâts (`DefinitionDeMonstre::degats`,
+un `Degats`, remplace `attaque.puissance` pour les monstres, pour qu'une attaque mixte soit possible et testable) ; **une seule
+source pour l'équipement** : `equipementPorte` est supprimé, `nouvelleExpedition` lit seule l'`equipementDeDepart` des recettes,
+`Personnage` et `Escouade` reçoivent des `Equipement` (`MembreDEscouade`), les aides de test passent par la même conversion. 99.2 :
+`DefinitionDeMonstre::experience` (nuée 3, infanterie 10, infanterie lourde 25, créature 100), majorée de 25 % par étage par
+`renforcer`. 99.3 : l'expérience **totale** dans l'`Expedition`, `niveauPour` (`combat/Progression`, courbe `k × n × (n − 1)`),
+le gain à la mort de chaque monstre dans `retirerLesMorts` (quel que soit le tueur), et le calibrage de `k` : 5 000 cartes mesurées,
+expérience moyenne par étage 262, 332, 398, 458 et 523 ; **`k = 21`** (niveaux 4, 5, 7, 8 et 10 en moyenne ; `k = 22` aurait donné
+exactement 3 au 1er étage mais 9 au 5e). 99.4 : la paire de croissance de chaque classe (`Specialite`), `croissanceAuNiveau`, les
+caractéristiques de base **calculées** (classe plus croissance, plus copiées dans l'expédition), `pointsDeVieMax(caracteristiques,
+niveau)` (+8 par niveau), `Personnage::monterAuNiveau` et `Escouade::monterAuNiveau` (recalcul par le chemin de l'équipement, un
+vivant gagne autant de points de vie que son maximum, un mort reste mort, plusieurs niveaux d'un coup) ; `Partie` monte l'escouade
+quand l'expérience le donne. 99.5 : l'événement `NiveauAtteint` (un par niveau gagné) et le texte flottant « Level up! »,
+« Level N » et la barre d'expérience en haut de l'écran, « Level N » dans l'inventaire (`AffichageNiveau`), F9. 99.6 : documentation.
+1 661 tests (+37), 0 avertissement de compilation sur les deux presets. Détail : `docs/classes-et-combat.md`, `docs/combat.md`,
+`docs/monstre.md`, `docs/formation.md`, `docs/boucle-et-entrees.md`, `docs/ecrans.md`, `docs/objets.md`, `docs/tests.md`,
+`docs/glossaire.md`.

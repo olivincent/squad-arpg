@@ -85,6 +85,55 @@ Quand un point entre dans `ROADMAP.md`, sa conception détaillée se fait en dis
 - **Retenu.** Le **bouclier** a des données propres (chance de blocage, montant absorbé) ; la **récupération** du blocage (3 s) est **commune à tous**, plus une donnée d'objet. D'autres objets pourront plus tard ajouter de la chance de blocage ou réduire la récupération.
 - **À tester.** Valeurs des armes : épée longue et masse 15 dégâts (0,3 – 0,7 s, 0,15 s d'exécution), dague 14 (0,4 – 0,8 s), épée à deux mains 60 (1,2 – 2,8 s, 0,3 s), sceptre, bâton et arc 15 à 120 px (0,4 – 0,6 s) ; mains nues 6. Équipement de départ : guerrier épée longue et bouclier rond, paladin masse et bouclier rond, prêtre sceptre, mage bâton, rôdeur arc.
 
+### L'expérience et les niveaux (étape 99)
+
+- **Retenu.** **Un seul niveau pour toute l'escouade** : tous les personnages ont toujours le même niveau (un niveau par personnage
+  viendrait avec un recrutement). L'`Expedition` ne stocke que l'**expérience totale** ; le niveau en est déduit par la fonction
+  pure `niveauPour` (`combat/Progression`). Une valeur dérivée n'est jamais stockée, pour qu'elle ne puisse pas diverger de sa
+  source.
+- **Retenu.** **Toute mort de monstre rapporte son expérience à l'escouade**, quel que soit le tueur (une explosion, un coup
+  d'opportunité, l'autodéfense), même si des personnages sont morts. Elle survit à la descente ; une nouvelle expédition (F5,
+  « Start ») repart de 0 (niveau 1).
+- **Retenu.** **La courbe** : l'expérience cumulée pour atteindre le niveau n est `k × n × (n − 1)` (niveau 1 à 0), sans niveau
+  maximum. **À tester** : `k = 21` (`s_experienceDeLaCourbe`).
+- **À tester.** **L'expérience des monstres** est une donnée de `DefinitionDeMonstre` : nuée 3, infanterie 10, infanterie lourde 25,
+  créature monstrueuse 100 ; `renforcer` la majore de 25 % par étage au-delà du premier, comme les points de vie.
+- **Calibrage de `k`** (étape 99.3). Cible : en tuant tous les monstres, environ le niveau 3 à la fin du 1er étage et 10 à 11 à la
+  fin du 5e. L'expérience moyenne d'un étage a été mesurée sur 5 000 graines (cartes générées, avec les compositions, leurs poids
+  et la créature) : **262** au 1er étage, 332 au 2e, 398 au 3e, 458 au 4e, 523 au 5e, soit un cumul de **262, 593, 991, 1 449 et
+  1 972**. Les deux bouts de la cible demandent `k` entre 21,8 et 43,6 (exactement le niveau 3 au 1er étage : `6 k ≤ 262 < 12 k`) et
+  entre 14,9 et 21,9 (niveau 10 à 11 au 5e : `90 k ≤ 1 972 < 132 k`) : la fenêtre commune, de 21,8 à 21,9, est trop étroite pour un
+  entier. Avec **`k = 21`**, la moyenne
+  donne les niveaux 4, 5, 7, 8 et 10 ; la répartition sur les graines est 43 % de niveau 3 et 57 % de niveau 4 au 1er étage, 29 %
+  de niveau 9 et 70 % de niveau 10 au 5e. Avec `k = 22`, le 1er étage donne 54 % de niveau 3, mais le 5e seulement 53 % de niveau 9
+  et 46 % de niveau 10 (jamais 11). `k = 21` garde le 5e étage dans la cible ; le 1er étage est à 3 ou 4 (« environ »). Seul `k`
+  s'ajuste, pas l'expérience des monstres. `test_CalibrageDeLExperience.cpp` épingle la cible (niveau 3 à 4 après le 1er étage,
+  10 à 11 après le 5e, chaque étage fait monter).
+- **Retenu.** **Croissance automatique** (levier 4 de la section 5 : jamais une seule caractéristique) : chaque niveau gagné donne
+  **+1 point**, alternativement dans la première puis la seconde caractéristique de la **paire de la classe** (le niveau 2 donne la
+  première, le niveau 3 la seconde, le niveau 4 la première…). La paire est une donnée de la classe (`Specialite`) :
+
+| Classe | Première (niveaux pairs) | Seconde (niveaux impairs) |
+|---|---|---|
+| Guerrier (Warrior) | Puissance (Might) | Endurance (Constitution) |
+| Paladin | Puissance (Might) | Endurance (Constitution) |
+| Prêtre (Priest) | Puissance (Might) | Volonté (Resolve) |
+| Mage | Puissance (Might) | Savoir (Intellect) |
+| Rôdeur (Ranger) | Adresse (Dexterity) | Puissance (Might) |
+
+- **Retenu.** Les caractéristiques de base d'un personnage sont **calculées** (la base de sa classe plus la croissance du niveau,
+  `croissanceAuNiveau`), jamais copiées dans l'`Expedition` : une seule source, la classe et l'expérience. L'étape 100 y ajoutera
+  les points libres dépensés. Le Savoir et la Volonté n'ont encore aucun effet : les paires du prêtre et du mage deviendront
+  justes quand ils serviront.
+- **À tester.** **Points de vie par niveau** : `pointsDeVieMax = 240 + 6 × Endurance + 8 × (niveau − 1)` (`s_pvParNiveau = 8`).
+- **Retenu.** **Montée de niveau au milieu d'un étage** : les caractéristiques, les statistiques, le maximum de points de vie et
+  les objets actifs sont recalculés tout de suite, par le chemin de l'équipement (`Personnage::recalculerDepuisLEquipement`) ; les
+  points de vie actuels d'un vivant montent du même montant que son maximum (`PointsDeVie::changerMaximum`) ; un mort reste mort
+  (il revient à l'étage suivant, avec son nouveau niveau). Plusieurs niveaux d'un coup (la créature au fond) s'appliquent tous. Un
+  seuil d'équipement atteint grâce à la croissance remet l'objet en service.
+- **Pistes** (étapes à part) : un niveau par personnage si un recrutement arrive ; un niveau maximum ; l'expérience refusée aux
+  morts.
+
 ## 5. Les caractéristiques
 
 - **Retenu.** Des caractéristiques **par effet** (à la *Pillars of Eternity*), pas une stat de dégâts par classe : le joueur doit vraiment hésiter où mettre ses points.
@@ -114,7 +163,7 @@ Quand un point entre dans `ROADMAP.md`, sa conception détaillée se fait en dis
   2. Les skills puisent dans plusieurs caractéristiques (un saignement profite du Savoir par sa durée) : c'est le choix des skills qui oriente les caractéristiques, pas la classe.
   3. Des seuils d'équipement sur deux caractéristiques (épée bâtarde : Puissance et Adresse).
   4. Une croissance automatique répartie sur deux caractéristiques, jamais une seule.
-- **Retenu.** Trois sources : une **petite croissance automatique orientée par la spécialisation** (un mage du feu gagne plutôt de la Puissance, un mage du givre plutôt du Savoir), l'**essentiel en points libres**, et l'**équipement**.
+- **Retenu** (fait à l'étape 99 pour la classe, pas encore pour la spécialisation). Trois sources : une **petite croissance automatique orientée par la spécialisation** (un mage du feu gagne plutôt de la Puissance, un mage du givre plutôt du Savoir), l'**essentiel en points libres**, et l'**équipement**.
 - **Retenu.** L'équipement peut augmenter une caractéristique **et/ou** directement un élément de la mécanique de combat (par exemple + critique, + résistance au feu, + esquive contre les projectiles).
 - **Retenu.** Le **mana** n'est rattaché à aucune caractéristique tant que la ressource n'est pas tranchée (question 6).
 - **Retenu.** Redistribution des points **payante, seulement dans les refuges** (village, campement), jamais en pleine quête.
