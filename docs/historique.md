@@ -117,6 +117,7 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 97 — Le butin au sol : les monstres lâchent des objets, ils se voient et se ramassent, on peut les jeter ✅
 - Étape 98 — Les étages : l'escalier, l'expédition (équipement et sac gardés), des monstres plus forts avec la profondeur, la victoire au 5e étage ✅
 - Étape 99 — L'expérience et les niveaux : un niveau d'escouade, la croissance automatique de deux caractéristiques par classe, les points de vie par niveau ✅
+- Étape 100 — Les points libres : 3 par niveau et par personnage, répartis dans l'inventaire avec un brouillon (+, −, Apply, Reset), définitifs ✅
 
 ## Détail des étapes 0 à 73
 
@@ -2345,4 +2346,26 @@ quand l'expérience le donne. 99.5 : l'événement `NiveauAtteint` (un par nivea
 « Level N » et la barre d'expérience en haut de l'écran, « Level N » dans l'inventaire (`AffichageNiveau`), F9. 99.6 : documentation.
 1 661 tests (+37), 0 avertissement de compilation sur les deux presets. Détail : `docs/classes-et-combat.md`, `docs/combat.md`,
 `docs/monstre.md`, `docs/formation.md`, `docs/boucle-et-entrees.md`, `docs/ecrans.md`, `docs/objets.md`, `docs/tests.md`,
+`docs/glossaire.md`.
+
+### Étape 100 — Les points libres ✅
+
+Troisième étape de la phase 5 (progression), faite en une session autonome (un commit par sous-étape, les tests visuels à la fin).
+100.1 : la logique. `s_pointsLibresParNiveau` (3) et trois fonctions pures dans `combat/Progression` — `pointsLibresRecus(niveau)`,
+`pointsLibresDisponibles(niveau, dépensés)` (jamais stockés), `depensePermise` (aucune valeur négative, somme au plus égale aux points
+disponibles) ; `Caracteristiques::somme()` ; `MembreDExpedition::pointsDepenses` et `MembreDEscouade::pointsDepenses` (sans valeur par
+défaut) ; le `Personnage` les reçoit à sa construction, les garde (`m_pointsDepenses`), les ajoute à sa base (`baseAuNiveau`) et les
+dépense par `depenserDesPoints` (tout ou rien, puis le chemin de recalcul de l'équipement) ; `Escouade::pointsDepensesDuPersonnage`,
+`pointsLibresDuPersonnage` et `depenserDesPoints(place, dépense)` ; `Partie::expedition()` relit les points dépensés dans l'escouade, comme
+l'équipement et le sac, d'où ils survivent à la descente. **Écart avec la suggestion du prompt** : l'inventaire ne reçoit pas une référence
+à l'`Expedition` mais passe par l'`Escouade` qu'il connaît déjà, car le personnage doit garder ses points dépensés pour recalculer sa
+base à chaque montée de niveau : avec l'`Expedition` en plus, les mêmes points auraient existé en deux copies à tenir synchrones. 100.2 : le
+brouillon dans l'inventaire — `EcranInventaire::m_enAttente` (un `Caracteristiques` par place), `ajouterUnPoint`, `retirerUnPoint`,
+`appliquer`, `reinitialiser`, le brouillon effacé à la fermeture ; le bloc des caractéristiques de `DispositionInventaire` passe de deux
+colonnes de trois lignes à une colonne de six lignes pleine largeur (les boutons y tiennent), le panneau de 604 à 658 px de haut ;
+`rectangleDuBoutonPlus` / `Moins` / `Appliquer` / `Reinitialiser`, `boutonSous` (un `std::variant`) et `caracteristiqueSous` ;
+« Points: N », « (+N) » et l'infobulle d'effet dans `AffichageCaracteristiques` (les nombres lus dans `s_bonusParPoint`,
+`s_pvParPointDEndurance`, `s_capaciteParPointDAdresse`). 100.3 : `Escouade::aDesPointsLibres` et « Points to spend » en haut de l'écran
+(`ligneDePointsADepenser`). 100.4 : documentation. 1 704 tests (+43), 0 avertissement de compilation sur les deux presets. Détail :
+`docs/classes-et-combat.md`, `docs/ecrans.md`, `docs/formation.md`, `docs/boucle-et-entrees.md`, `docs/combat.md`, `docs/tests.md`,
 `docs/glossaire.md`.

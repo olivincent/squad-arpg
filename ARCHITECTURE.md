@@ -93,7 +93,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
   `EcranInventaire`, empilé sur lui, ne possède rien : il reçoit l'`Escouade`, les `ObjetsAuSol` et la `TileMap` de la `Partie`
   de l'`EcranJeu` du dessous (et rien d'autre : il ne connaît pas la `Partie`).
 - `Partie` (un étage) possède la `TileMap`, l'`Escouade`, les `Monstre`, les `ObjetInteractif`, les `ObjetsAuSol`, la `Vision`
-  et le seul `Generateur`, et garde l'`Expedition` reçue (ce qui survit d'un étage à l'autre : profondeur, graine, personnages, sac, expérience). Elle fait l'intermédiaire entre `Escouade` et `Monstre`, qui ne se
+  et le seul `Generateur`, et garde l'`Expedition` reçue (ce qui survit d'un étage à l'autre : profondeur, graine, personnages, points dépensés, sac, expérience). Elle fait l'intermédiaire entre `Escouade` et `Monstre`, qui ne se
   connaissent pas (ils échangent des `EntiteVue`, des `Coup`, des `EntiteDeControle`), et tient la
   file des `EvenementDeCombat`.
 - `Escouade` possède son ancre (`Mobile`), sa `Formation`, ses `PlacesDAttaque`, N `Personnage`,
@@ -155,7 +155,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `ResolutionDuCoup` : `resoudreCoup`, point d'entrée unique d'un coup, portion par portion (esquive, critique, blocage du physique, armure, résistances, un arrondi par portion) et seul tirage du moteur ; `resoudreSoin` ; `Defenses`.
 - `PointsDeVie` : valeur et maximum, invariants de vie et de mort.
 - `Caracteristiques` : les cinq caractéristiques (`Caracteristique`, `Caracteristiques`, `Coefficients`), les points de vie maximum (selon le niveau) et `montantEffectif`, seule source du montant d'un skill de personnage (`docs/combat.md`).
-- `Progression` : la courbe de l'expérience (`niveauPour`, `experiencePourAtteindre`, `progressionVersLeNiveauSuivant`, `experienceManquante`) et la croissance automatique d'une classe (`PaireDeCroissance`, `croissanceAuNiveau`) ; des fonctions pures (`docs/combat.md`, `docs/classes-et-combat.md`).
+- `Progression` : la courbe de l'expérience (`niveauPour`, `experiencePourAtteindre`, `progressionVersLeNiveauSuivant`, `experienceManquante`) la croissance automatique d'une classe (`PaireDeCroissance`, `croissanceAuNiveau`) et les points libres (`pointsLibresRecus`, `pointsLibresDisponibles`, `depensePermise`) ; des fonctions pures (`docs/combat.md`, `docs/classes-et-combat.md`).
 - `Vitalite` : points de vie, défenses (armure, statistiques de combat) et récupération du blocage d'une entité, commune à `Personnage` et `Monstre`.
 
 `objets/` — les objets, ce qu'on porte et le sac (`docs/objets.md`) :
@@ -199,7 +199,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `Separation` : `pousseesDeSeparation`, séparation douce en fonction pure (`EtatDeSeparation`).
 - `EcartEntrePersonnages` : `s_ecartEntrePersonnages`, en-tête neutre.
 - `Composition` : `DefinitionPersonnage` (dont la recette d'équipement de départ, lue par `nouvelleExpedition` seule, et la paire de
-  croissance), `MembreDEscouade` (une définition et l'`Equipement` qu'elle porte : ce que l'`Escouade` reçoit), `Rang` et
+  croissance), `MembreDEscouade` (une définition, l'`Equipement` qu'elle porte et ses points dépensés : ce que l'`Escouade` reçoit), `Rang` et
   `decalagesDeFormation`.
 - `Specialite` : catalogue des 5 classes et `composer`.
 - `SelectionDEscouade` : les 3 classes choisies, cases de l'écran de choix (`docs/ecrans.md`).
@@ -214,7 +214,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 
 `jeu/` :
 - `Partie` : un étage — règles de jeu, ordre d'une image, intermédiaire escouade/monstres (et seul tireur du `Generateur`, y compris pour F7 et le butin) ; se construit depuis un `Niveau` et une `Expedition`, rend l'`Expedition` de la partie en cours, renforce les monstres par la profondeur, prend l'escalier ; reçoit le catalogue des monstres (`docs/boucle-et-entrees.md`).
-- `Expedition` : ce qui survit d'un étage à l'autre (profondeur, graine, personnages — classe et équipement —, sac, expérience totale ; le niveau et les caractéristiques de base se calculent), `nouvelleExpedition` (seul endroit qui lit l'équipement de départ des recettes ; sac vide), `compositionDeLExpedition`, `etageSuivant`, `graineDEtage`, `s_profondeurMaximale` (`docs/boucle-et-entrees.md`).
+- `Expedition` : ce qui survit d'un étage à l'autre (profondeur, graine, personnages — classe, équipement et points libres dépensés —, sac, expérience totale ; le niveau, les points disponibles et les caractéristiques de base se calculent), `nouvelleExpedition` (seul endroit qui lit l'équipement de départ des recettes ; sac vide), `compositionDeLExpedition`, `etageSuivant`, `graineDEtage`, `s_profondeurMaximale` (`docs/boucle-et-entrees.md`).
 - `ObjetAuSol` : un objet posé au sol (identifiant, objet, position) (`docs/objets.md`).
 - `ObjetsAuSol` : les objets au sol d'un étage : identifiants jamais réutilisés, `poser` (où : `positionPour`, qui évite l'escalier), `retirer`, `trouver`, `sous` (le survol, avec la carte et la vision) ; `jeterUnObjet`, qui retire un objet de l'escouade et le pose au sol (`docs/objets.md`).
 
@@ -224,16 +224,16 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `PileDEcrans` : la pile et `premierEcranADessiner`, quels écrans dessiner (`docs/ecrans.md`).
 - `EntreeDInterface` : clic gauche et curseur en coordonnées d'interface, pour les écrans à vue d'interface (`docs/ecrans.md`).
 - `EcranJeu` : l'écran de la partie : événements, caméra, dessin, textes flottants, descente à l'étage suivant (`docs/ecrans.md`).
-- `EcranInventaire` : le sac et l'équipement, déplacement des objets par glisser-déposer, par-dessus la partie figée, touche I ; un panneau centré qui laisse voir le jeu autour (`docs/ecrans.md`).
-- `DispositionInventaire` : rectangles de l'inventaire, `elementSous` (une `PositionDObjet`), placement de l'infobulle (`docs/ecrans.md`).
+- `EcranInventaire` : le sac et l'équipement, déplacement des objets par glisser-déposer, par-dessus la partie figée, touche I ; un panneau centré qui laisse voir le jeu autour ; le brouillon des points libres (+, −, Apply, Reset), un état de l'écran (`docs/ecrans.md`).
+- `DispositionInventaire` : rectangles de l'inventaire, `elementSous` (une `PositionDObjet`), boutons des points libres (`boutonSous`), `caracteristiqueSous`, placement de l'infobulle (`docs/ecrans.md`).
 - `AffichageObjets` : noms des emplacements et des catégories, sigles, lignes de l'infobulle d'un objet, lignes des
   affixes, couleur de la rareté (`docs/objets.md`).
 - `AffichageObjetsAuSol` : le losange des objets au sol et leur nom au survol (`docs/objets.md`).
-- `AffichageCaracteristiques` : les noms des cinq caractéristiques et la ligne d'une caractéristique avec son bonus (`docs/combat.md`).
+- `AffichageCaracteristiques` : les noms des cinq caractéristiques, la ligne d'une caractéristique avec son bonus, « Points: N », le brouillon « (+N) » et l'infobulle d'effet (`docs/combat.md`).
 - `AffichageStatistiques` : les lignes des statistiques de combat de l'inventaire et des bonus de combat d'une infobulle (`docs/combat.md`).
 - `AffichageSkills` : `nomDuSkill`, le nom affiché d'un skill (`docs/combat.md`).
 - `AffichageProfondeur` : `ligneDeProfondeur`, « Depth 2 / 5 » (`docs/boucle-et-entrees.md`).
-- `AffichageNiveau` : `ligneDeNiveau`, « Level 3 » (`docs/boucle-et-entrees.md`, `docs/ecrans.md`).
+- `AffichageNiveau` : `ligneDeNiveau`, « Level 3 », et `ligneDePointsADepenser`, « Points to spend » (`docs/boucle-et-entrees.md`, `docs/ecrans.md`).
 - `ListeDeBoutons` : colonne de boutons sans position stockée (`docs/ecrans.md`).
 - `Reglages` : réglages d'affichage, `reglages.ini`, table des touches des raccourcis (`docs/ecrans.md`).
 - `TailleDeVue` : vue à hauteur fixe et vue d'interface (`docs/ecrans.md`).

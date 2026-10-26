@@ -91,8 +91,8 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
   `EcranJeu` lui donne (il connaît ses `IdSpecialite`). Il n'appelle que deux fonctions de modification :
   `Escouade::deplacerObjet` et `jeterUnObjet` (`jeu/ObjetsAuSol`). Un module ne reçoit que ce qu'il utilise. La croix de la
   fenêtre quitte, comme partout.
-- **Le panneau** (étape 98.1) est de la taille de son contenu (1 076 × 604 px dans la vue d'interface de 800 px de haut),
-  **centré**, et laisse voir le jeu tout autour : au moins 62 px de chaque côté dans une vue de 1200 × 800, 98 px en haut et en bas.
+- **Le panneau** (étape 98.1) est de la taille de son contenu (1 076 × 658 px depuis l'étape 100.2, 604 avant ; dans la vue d'interface de 800 px de haut),
+  **centré**, et laisse voir le jeu tout autour : au moins 62 px de chaque côté dans une vue de 1200 × 800, 71 px en haut et en bas (98 avant l'étape 100.2).
   Les cases n'ont pas changé de taille : la place s'est gagnée sur les marges, l'écart entre colonnes (12 px au lieu de 20), le
   titre et le sac, mis sur 2 rangées de 20 cases au lieu de 4 de 10. La bande autour est l'endroit où l'on jette un objet.
 - **Glisser-déposer** (étape 85) : l'état est un `std::optional<PositionDObjet>`, l'origine. Rien ne
@@ -118,7 +118,8 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
   tout est recalculé depuis la taille de la vue d'interface. En haut, une colonne par personnage
   (bande de la classe à la couleur du personnage, « Armor: N », « (dead) », 10 emplacements en
   deux colonnes de 5, puis, depuis l'étape 88, le bloc de ses cinq caractéristiques effectives — avec « (+N) »
-  quand l'équipement en donne — et de ses points de vie « HP actuels / maximum », puis, depuis l'étape 89, le
+  quand l'équipement en donne — et de ses points de vie « HP actuels / maximum » (depuis l'étape 100.2, **une ligne par
+  caractéristique sur toute la largeur de la colonne**, six lignes de 18 px, pour y mettre les boutons des points libres), puis, depuis l'étape 89, le
   bloc de ses statistiques de combat — « Offensive Ability N », « Defensive Ability N », « Block 30 % (40) »,
   « Melee Dodge N % » et « Projectile Dodge N % » (étape 90, valeurs effectives), lues par
   `Escouade::statistiquesDeCombatDuPersonnage`) ; en bas, le sac (depuis l'étape 98.1, 2 rangées de 20 cases). Le dessin, le survol et les tests
@@ -130,6 +131,32 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
   recharge, portée, melee ou projectile, « Two-handed »), une ligne par affixe, puis ses seuils (`lignesDeLInfobulle(const
   Objet&)`, étape 95), placés près du curseur et gardés entièrement dans la vue (`placerInfobulle`) ; la hauteur suit le
   nombre de lignes. Rien sur un emplacement ou une case vide.
+- **Les points libres et leur brouillon (étape 100.2)** : tant qu'un personnage a des points libres (`Escouade::pointsLibresDuPersonnage`
+  > 0), sa colonne montre « Points: N » en or au milieu de la ligne d'armure, sous son nom (N = ses points libres **moins le
+  brouillon**), un « + » à droite de chacune de ses cinq caractéristiques (grisé quand N vaut 0) et un « − » à côté de chaque
+  caractéristique qui a des points en attente. La valeur de la caractéristique garde sa ligne (« Might 15 (+3) ») et le brouillon
+  s'écrit après, dans une autre couleur (vert) : « Might 15 (+3) (+2) » (`textePointsEnAttente`). Quand il y a quelque chose en attente,
+  la ligne des points de vie porte deux boutons, « Apply » et « Reset ».
+  - **Le brouillon est un état de l'écran** : `m_enAttente`, un `Caracteristiques` par place (`std::array`). L'`Escouade` n'en sait
+    rien jusqu'à « Apply » ; les points de vie, les capacités et l'armure ne le montrent pas.
+  - `ajouterUnPoint(place, car)` : sans effet s'il ne reste aucun point à répartir (`pointsRestants` = points libres moins brouillon).
+    `retirerUnPoint(place, car)` : sans effet s'il n'y a rien en attente dans cette caractéristique, donc **jamais un point déjà
+    dépensé**. `appliquer(place)` : `Escouade::depenserDesPoints(place, brouillon)` (définitif, transactionnel) puis efface le brouillon
+    de ce personnage ; la dépense ne peut pas échouer (le brouillon ne dépasse jamais les points libres, la partie est figée), donc
+    `[[maybe_unused]] const bool ok` et un `assert`. `reinitialiser(place)` efface le brouillon de ce personnage.
+  - Un clic sur un bouton agit tout de suite (`saisir`, par `boutonSous` de la disposition) et ne commence aucun glissement. Un bouton
+    qui n'est pas visible (rien en attente, plus de point à répartir) agit sur un état où l'opération est sans effet : aucun test de
+    visibilité n'est nécessaire au clic.
+  - **Fermer l'inventaire efface le brouillon** (I ou Échap sans glissement : `appuyer` vide `m_enAttente` avant de dépiler), sans
+    rien appliquer. L'écran est de toute façon détruit à la fermeture ; l'effacement rend la règle observable par les tests.
+  - **Pourquoi cette forme** : l'écran ne reçoit toujours que l'`Escouade`, les `ObjetsAuSol` et la `TileMap`, pas la `Partie`. La
+    dépense passe par l'`Escouade` (comme `deplacerObjet`) : c'est elle qui possède les personnages, et un personnage garde ses points
+    dépensés (sa base, recalculée à chaque montée de niveau, en dépend). `Partie::expedition()` les relit dans l'`Expedition`, comme
+    l'équipement et le sac : une seule source pendant l'étage (le personnage), une seule entre deux étages (l'expédition). Donner à
+    l'écran une référence à l'`Expedition` aurait obligé une fonction libre à tenir à jour deux copies des mêmes points.
+- **Infobulle d'une caractéristique (étape 100.2)** : sans glissement, le survol de la ligne d'une caractéristique (`caracteristiqueSous`,
+  boutons compris) affiche une ligne près du curseur, sur le même cadre que l'infobulle d'un objet (`ligneDEffetDeLaCaracteristique` :
+  les nombres sont lus dans `s_bonusParPoint`, `s_pvParPointDEndurance` et `s_capaciteParPointDAdresse`, jamais recopiés).
 - **Couleur de la rareté (étape 95.5)** : le texte d'un objet magique (jaune) ou rare (vert) prend la couleur de sa rareté
   (`couleurDeLaRarete`) : le sigle dans le sac et sur l'objet saisi, le nom sur un emplacement, le nom dans l'infobulle. Le
   commun reste blanc. Ces couleurs restent lisibles sur le fond de l'inventaire (un test vérifie le contraste sur le gris
@@ -420,13 +447,15 @@ Données membres : `m_tirageDeGraine` (`std::random_device`), `m_specialites` (`
 | `Transition traiterEvenement(...)` | Clic gauche (d'abord `clicSurInterface` : sur la barre, `Controleur::appuiInterface`, sauf partie perdue ou gagnée ; sinon `appuiGauche`), clic droit, puis, pour une touche, `executer(commandePourTouche(...))` (voir `docs/boucle-et-entrees.md`) ; sinon `Aucune` |
 | `Transition executer(const CommandeDeTouche&)` (privée) | `std::visit` de la commande : Échap annule la visée, F5 nouvelle carte, F3 bascule les points visés et les chemins restants des personnages et des monstres, les zones de contrôle, et la semi-transparence des monstres qui rentrent à leur poste, F4 le carré vert de l'ancre, F6 le brouillard de guerre (visuel seulement), F7 met quatre objets tirés au hasard dans le sac (`Partie::ramasserDesObjetsAleatoires(4)`, tout ou rien), F8 prend l'escalier d'où l'on est (`Partie::forcerLaDescente`, la descente se fait à la fin de l'image), F9 donne le niveau suivant (`Partie::gagnerUnNiveau`), un emplacement de la barre est activé ; `RetourAuChoix` (R sur l'écran de fin) renvoie `Depiler` ; `OuvrirInventaire` appelle `Controleur::interrompre()` puis renvoie `Empiler(EcranInventaire(escouade, sol, carte, noms des classes))` ; les autres : `Aucune` |
 | `void mettreAJour(float, const Contexte&)` | Taille de la caméra (`tailleDeVue`), déplacement continu, `Partie::mettreAJour`, puis `prendreEvenements` : chaque événement devient un texte (`TextesFlottants::ajouter`), sauf si le brouillard est actif et que `Partie::estVisible(position)` est faux ; `TextesFlottants::mettreAJour(dt)` (aussi après une défaite ou une victoire : le monde est figé, pas les textes) ; `descendre()` si `Partie::doitDescendre()` ; `Controleur::debutImage` (sortie de la visée), caméra centrée sur l'escouade |
-| `void dessiner(const Contexte&) const` | Monde avec la caméra : la carte (`Partie::dessinerLaCarte`), les objets au sol (`dessinerObjetsAuSol`, sous les monstres), puis les entités et le voile (`Partie::dessinerLesEntites` : ancre cachée si `!m_debogage.ancre`, brouillard selon `m_debogage.brouillard`), aperçu de visée, points visés et chemins restants si `m_debogage.pointsVises`, textes flottants (vue du monde, après le brouillard), le nom de l'objet au sol survolé (`Partie::objetAuSolSous`, `dessinerNomDObjetAuSol`), puis, avec `vueDInterface` : barre de raccourcis (`iconesDeLaBarre`), en-tête (`dessinerEnTete`) : « Depth N / 5 », « Level N » et sa barre d'expérience sur la première ligne, compteur « Monsters: N » dessous, et écran de fin |
+| `void dessiner(const Contexte&) const` | Monde avec la caméra : la carte (`Partie::dessinerLaCarte`), les objets au sol (`dessinerObjetsAuSol`, sous les monstres), puis les entités et le voile (`Partie::dessinerLesEntites` : ancre cachée si `!m_debogage.ancre`, brouillard selon `m_debogage.brouillard`), aperçu de visée, points visés et chemins restants si `m_debogage.pointsVises`, textes flottants (vue du monde, après le brouillard), le nom de l'objet au sol survolé (`Partie::objetAuSolSous`, `dessinerNomDObjetAuSol`), puis, avec `vueDInterface` : barre de raccourcis (`iconesDeLaBarre`), en-tête (`dessinerEnTete`) : « Depth N / 5 », « Level N », sa barre d'expérience et « Points to spend » (tant qu'un personnage a des points libres) sur la première ligne, compteur « Monsters: N » dessous, et écran de fin |
 
 **L'en-tête (étape 99.5)** : sur la première ligne, du coin haut gauche vers la droite, « Depth N / 5 » (`ligneDeProfondeur`), 24 px plus loin
 « Level N » (`ligneDeNiveau`, `interface/AffichageNiveau`) et, 12 px après, la barre d'expérience : 110 × 8 px, un fond sombre et un
 remplissage bleu clair de `progressionVersLeNiveauSuivant(expérience)` de sa largeur (vide juste après une montée, jamais pleine). La
 deuxième ligne garde « Monsters: N ». Les textes ont le contour noir des autres. Le texte « Level up! » (20 px, bleu clair) est un
-texte flottant de l'événement `NiveauAtteint` au-dessus de l'escouade (`docs/combat.md`, textes flottants). **L'inventaire** montre
+texte flottant de l'événement `NiveauAtteint` au-dessus de l'escouade (`docs/combat.md`, textes flottants). **« Points to spend »**
+(étape 100.3, `ligneDePointsADepenser`, or) s'écrit 24 px après la barre d'expérience, tant que `Escouade::aDesPointsLibres()` : au
+moins un personnage, mort compris, a des points libres ; il disparaît quand tous ont tout dépensé. **L'inventaire** montre
 « Level N » (22 px) en haut à droite du panneau, sur la ligne du titre ; les caractéristiques de base de chaque colonne en
 tiennent compte (classe plus croissance).
 
@@ -465,33 +494,40 @@ construction, `explicit EcranMenu(std::vector<Resolution>)`), `m_boutons` (`List
 
 ### `EcranInventaire` (`interface/`) — l'inventaire
 
-`EcranInventaire.hpp` / `.cpp`. Données membres : `m_escouade` (`Escouade&`), `m_sol` (`ObjetsAuSol&`) et `m_carte` (`const TileMap&`), ceux de la `Partie` de l'`EcranJeu` du dessous (valides grâce à l'invariant de la pile), `m_nomsDesClasses` (`std::vector<std::string>`, un nom par place), `m_origine` (`std::optional<PositionDObjet>`, l'origine du glissement en cours).
+`EcranInventaire.hpp` / `.cpp`. Données membres : `m_escouade` (`Escouade&`), `m_sol` (`ObjetsAuSol&`) et `m_carte` (`const TileMap&`), ceux de la `Partie` de l'`EcranJeu` du dessous (valides grâce à l'invariant de la pile), `m_nomsDesClasses` (`std::vector<std::string>`, un nom par place), `m_origine` (`std::optional<PositionDObjet>`, l'origine du glissement en cours), `m_enAttente` (`std::array<Caracteristiques, s_nombreDePlaces>`, étape 100.2 : le brouillon des points libres, par place).
 
 | Fonction | Rôle |
 |---|---|
 | `EcranInventaire(Escouade&, ObjetsAuSol&, const TileMap&, std::vector<std::string>)` | `assert` : `s_nombreDePlaces` noms |
-| `Transition appuyer(sf::Keyboard::Scancode)` | I : `Depiler` ; Échap : annule le glissement en cours (`Aucune`), sinon `Depiler` ; autre touche : `Aucune` ; `[[nodiscard]]` |
-| `void saisir(sf::Vector2f point, sf::Vector2f tailleDeVue)` | Commence un glissement si un objet est sous le point |
+| `Transition appuyer(sf::Keyboard::Scancode)` | I : `Depiler` ; Échap : annule le glissement en cours (`Aucune`), sinon `Depiler` ; autre touche : `Aucune` ; fermer efface le brouillon des points libres (étape 100.2) ; `[[nodiscard]]` |
+| `void saisir(sf::Vector2f point, sf::Vector2f tailleDeVue)` | Un bouton des points libres sous le point (`boutonSous`) agit tout de suite (`cliquerSurUnBouton`, privée : `std::visit` du `BoutonDePoints`) et ne commence aucun glissement ; sinon commence un glissement si un objet est sous le point |
+| `const Caracteristiques& pointsEnAttente(std::size_t place) const` / `int pointsRestants(std::size_t place) const` | Étape 100.2 : le brouillon de ce personnage (`assert` : place de 1 à `s_nombreDePlaces`) et ce qui reste à répartir (ses points libres moins le brouillon) ; `[[nodiscard]]` |
+| `void ajouterUnPoint(std::size_t place, Caracteristique)` / `void retirerUnPoint(std::size_t place, Caracteristique)` | Un point de plus en attente (sans effet s'il ne reste rien à répartir) / un point de moins (sans effet s'il n'y a rien en attente : jamais un point déjà dépensé) |
+| `void appliquer(std::size_t place)` / `void reinitialiser(std::size_t place)` | `Escouade::depenserDesPoints` puis efface le brouillon de ce personnage (sans effet s'il est vide) / efface le brouillon sans rien appliquer |
 | `void relacher(sf::Vector2f point, sf::Vector2f tailleDeVue)` | `deplacerObjet(origine, position sous le point)` s'il y en a une ; sinon, hors du panneau, `jeterUnObjet(escouade, sol, carte, origine)` (étapes 97.6 et 98.1) ; termine toujours le glissement ; sans glissement, ne fait rien |
 | `void annulerLeGlissement()` | Efface l'origine sans rien déplacer |
 | `const std::optional<PositionDObjet>& origineDuGlissement() const` | L'origine du glissement, vide sinon ; lue par les tests ; `[[nodiscard]]` |
 | `Transition traiterEvenement(...)` | Touche : `appuyer` ; appui gauche : `saisir` ; relâchement gauche : `relacher` ; `FocusLost` : `annulerLeGlissement` ; le reste : `Aucune` |
 | `void mettreAJour(float, const Contexte&)` | Ne fait rien (le monde dessous est figé) |
 | `bool laisseVoirDessous() const` | `true` |
-| `void dessiner(const Contexte&) const` | Vue d'interface, voile sombre, panneau (centré, de la taille de son contenu), titre, les 3 colonnes (en-tête à la couleur du personnage, armure lue sur son `Equipement`, « (mort) » si ses points de vie sont 0, 10 emplacements, caractéristiques effectives et points de vie, puis capacités offensive et défensive, lus sur l'`Escouade`), le sac (sigles), puis : sans glissement, l'infobulle de l'objet sous le curseur ; pendant un glissement, le contour des destinations valides, le voile sur l'origine et l'objet saisi sous le curseur (pas d'infobulle) |
+| `void dessiner(const Contexte&) const` | Vue d'interface, voile sombre, panneau (centré, de la taille de son contenu), titre, les 3 colonnes (en-tête à la couleur du personnage, armure lue sur son `Equipement`, « (mort) » si ses points de vie sont 0, « Points: N » s'il a des points libres, 10 emplacements, caractéristiques effectives (avec le brouillon en vert et les boutons « + » et « − ») et points de vie (avec « Apply » et « Reset » s'il y a un brouillon), puis capacités offensive et défensive, lus sur l'`Escouade`), le sac (sigles), puis : sans glissement, l'infobulle de l'objet sous le curseur, ou, sur la ligne d'une caractéristique, celle de son effet ; pendant un glissement, le contour des destinations valides, le voile sur l'origine et l'objet saisi sous le curseur (pas d'infobulle) |
 
 ### `DispositionInventaire` (`interface/`) — où est chaque élément
 
-`DispositionInventaire.hpp` / `.cpp`, fonctions pures en coordonnées de la vue d'interface, `tailleDeVue` en paramètre. Constantes : `s_nombreDePlaces` (3), `s_colonnesDuSac` (20 depuis l'étape 98.1), `s_casesDuSac` (40, la capacité du sac), `s_lignesDeCaracteristiques` et `s_lignesDeStatistiques` (3), `s_cellulesDeStatistiques` (6). Colonnes de 340 px centrées (12 px d'écart), emplacements de 160 × 40 px, cases du sac de 44 px. Les positions verticales se comptent depuis le haut du panneau, lui-même centré dans la vue.
+`DispositionInventaire.hpp` / `.cpp`, fonctions pures en coordonnées de la vue d'interface, `tailleDeVue` en paramètre. Constantes : `s_nombreDePlaces` (3), `s_colonnesDuSac` (20 depuis l'étape 98.1), `s_casesDuSac` (40, la capacité du sac), `s_lignesDeCaracteristiques` (6 depuis l'étape 100.2 : cinq caractéristiques et les points de vie, en une colonne ; 3 avant) et `s_lignesDeStatistiques` (3), `s_cellulesDeStatistiques` (6). Colonnes de 340 px centrées (12 px d'écart), emplacements de 160 × 40 px, cases du sac de 44 px. Les positions verticales se comptent depuis le haut du panneau, lui-même centré dans la vue.
 
 | Fonction | Rôle |
 |---|---|
-| `rectangleDuPanneau(tailleDeVue)` | Étape 98.1 (la vue moins 40 px de chaque côté à l'étape 97.6) : le panneau de l'inventaire, de la taille de son contenu (1 076 × 604 px, la même quelle que soit la vue), centré dans la vue ; un point lâché en dehors jette l'objet ; `[[nodiscard]]` |
+| `rectangleDuPanneau(tailleDeVue)` | Étape 98.1 (la vue moins 40 px de chaque côté à l'étape 97.6) : le panneau de l'inventaire, de la taille de son contenu (1 076 × 658 px depuis l'étape 100.2, la même quelle que soit la vue), centré dans la vue ; un point lâché en dehors jette l'objet ; `[[nodiscard]]` |
 | `rectangleDeLEnTete(place, tailleDeVue)` / `rectangleDeLArmure(...)` | Bande de la classe et ligne « Armure » de la colonne de cette place (de 1 à `s_nombreDePlaces`) ; `[[nodiscard]]` |
 | `rectangleDeLEmplacement(place, Emplacement, tailleDeVue)` | Rectangle de l'emplacement ; les 5 premiers de l'enum à gauche, les 5 suivants à droite ; `[[nodiscard]]` |
-| `rectangleDesCaracteristiques(place, tailleDeVue)` / `rectangleDeLaCellule(place, indice, tailleDeVue)` | Étape 88 : le bloc sous les emplacements (340 × 54 px, `s_lignesDeCaracteristiques` = 3 lignes de 18 px) et ses 6 cellules en deux colonnes remplies colonne par colonne : Puissance, Endurance, Adresse, puis Savoir, Volonté, points de vie ; `assert(indice <= s_nombreDeCaracteristiques)` ; `[[nodiscard]]` |
-| `rectangleDesStatistiques(place, tailleDeVue)` / `rectangleDeLaStatistique(place, indice, tailleDeVue)` | Étape 89 : le bloc sous celui des caractéristiques (340 × 54 px, `s_lignesDeStatistiques` = 3 lignes de 18 px) et ses `s_cellulesDeStatistiques` (6) cellules en deux colonnes remplies colonne par colonne ; la première colonne porte les capacités offensive et défensive et le blocage, la seconde les deux esquives (une cellule libre) — `lignesDeStatistiques`, étape 90 ; `assert(indice < s_cellulesDeStatistiques)` ; le sac a été descendu de 500 à 550 px pour lui faire place ; `[[nodiscard]]` |
+| `rectangleDesCaracteristiques(place, tailleDeVue)` / `rectangleDeLaCellule(place, indice, tailleDeVue)` | Étape 88 : le bloc sous les emplacements (340 × 108 px depuis l'étape 100.2, `s_lignesDeCaracteristiques` = 6 lignes de 18 px, pleine largeur) et ses 6 lignes de haut en bas : Puissance, Endurance, Adresse, Savoir, Volonté, points de vie (c'était 340 × 54 px en deux colonnes) ; `assert(indice <= s_nombreDeCaracteristiques)` ; `[[nodiscard]]` |
+| `rectangleDesStatistiques(place, tailleDeVue)` / `rectangleDeLaStatistique(place, indice, tailleDeVue)` | Étape 89 : le bloc sous celui des caractéristiques (340 × 54 px, `s_lignesDeStatistiques` = 3 lignes de 18 px) et ses `s_cellulesDeStatistiques` (6) cellules en deux colonnes remplies colonne par colonne ; la première colonne porte les capacités offensive et défensive et le blocage, la seconde les deux esquives (une cellule libre) — `lignesDeStatistiques`, étape 90 ; `assert(indice < s_cellulesDeStatistiques)` ; le sac a été descendu de 500 à 550 px pour lui faire place (puis à 552 px, étape 100.2, pour les trois lignes de plus du bloc des caractéristiques) ; `[[nodiscard]]` |
 | `rectangleDeLaCaseDuSac(indice, tailleDeVue)` | Rectangle de la case (`assert(indice < s_casesDuSac)`). Nommée ainsi parce que `rectangleDeLaCase` existe dans `SelectionDEscouade` ; `[[nodiscard]]` |
+| `rectangleDuBoutonPlus(place, Caracteristique, tailleDeVue)` / `rectangleDuBoutonMoins(...)` | Étape 100.2 : les boutons de 22 × 18 px à droite de la ligne de la caractéristique (le « + » au bord, le « − » à sa gauche, 4 px d'écart) ; toujours les mêmes rectangles, visibles ou non ; `[[nodiscard]]` |
+| `rectangleDuBoutonAppliquer(place, tailleDeVue)` / `rectangleDuBoutonReinitialiser(...)` | Étape 100.2 : « Apply » et « Reset », 64 × 18 px, à droite de la ligne des points de vie ; `[[nodiscard]]` |
+| `std::optional<BoutonDePoints> boutonSous(point, tailleDeVue)` | `BoutonPlus {place, caracteristique}`, `BoutonMoins {...}`, `BoutonAppliquer {place}` ou `BoutonReinitialiser {place}` (un `std::variant`, comme `PositionDObjet`) ; vide ailleurs ; ne dit pas si le bouton est visible ; `[[nodiscard]]` |
+| `std::optional<CaracteristiqueSurvolee> caracteristiqueSous(point, tailleDeVue)` | La caractéristique dont la ligne (boutons compris) contient le point, pour l'infobulle ; vide ailleurs, sur la ligne des points de vie comprise ; `[[nodiscard]]` |
 | `std::optional<PositionDObjet> elementSous(point, tailleDeVue)` | `PositionPortee {place, emplacement}` ou `PositionDansLeSac {caseDuSac}` (`objets/PositionDObjet`) ; vide dans un écart, sur un en-tête ou hors des éléments ; `[[nodiscard]]` |
 | `sf::FloatRect placerInfobulle(curseur, tailleInfobulle, tailleDeVue)` | Sous et à droite du curseur (16 px), de l'autre côté s'il sortirait de la vue, puis gardée dans la vue ; `[[nodiscard]]` |
 

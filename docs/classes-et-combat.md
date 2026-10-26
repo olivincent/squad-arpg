@@ -103,7 +103,7 @@ Quand un point entre dans `ROADMAP.md`, sa conception détaillée se fait en dis
   et la créature) : **262** au 1er étage, 332 au 2e, 398 au 3e, 458 au 4e, 523 au 5e, soit un cumul de **262, 593, 991, 1 449 et
   1 972**. Les deux bouts de la cible demandent `k` entre 21,8 et 43,6 (exactement le niveau 3 au 1er étage : `6 k ≤ 262 < 12 k`) et
   entre 14,9 et 21,9 (niveau 10 à 11 au 5e : `90 k ≤ 1 972 < 132 k`) : la fenêtre commune, de 21,8 à 21,9, est trop étroite pour un
-  entier. Avec **`k = 21`**, la moyenne
+  entier. **Retenu après les tests visuels de l'étape 99** (des montées rapides au début, le niveau 10 au 5e étage). Avec **`k = 21`**, la moyenne
   donne les niveaux 4, 5, 7, 8 et 10 ; la répartition sur les graines est 43 % de niveau 3 et 57 % de niveau 4 au 1er étage, 29 %
   de niveau 9 et 70 % de niveau 10 au 5e. Avec `k = 22`, le 1er étage donne 54 % de niveau 3, mais le 5e seulement 53 % de niveau 9
   et 46 % de niveau 10 (jamais 11). `k = 21` garde le 5e étage dans la cible ; le 1er étage est à 3 ou 4 (« environ »). Seul `k`
@@ -122,9 +122,9 @@ Quand un point entre dans `ROADMAP.md`, sa conception détaillée se fait en dis
 | Rôdeur (Ranger) | Adresse (Dexterity) | Puissance (Might) |
 
 - **Retenu.** Les caractéristiques de base d'un personnage sont **calculées** (la base de sa classe plus la croissance du niveau,
-  `croissanceAuNiveau`), jamais copiées dans l'`Expedition` : une seule source, la classe et l'expérience. L'étape 100 y ajoutera
-  les points libres dépensés. Le Savoir et la Volonté n'ont encore aucun effet : les paires du prêtre et du mage deviendront
-  justes quand ils serviront.
+  `croissanceAuNiveau`), plus, depuis l'étape 100, les points libres que le joueur a dépensés (section suivante), jamais copiées
+  dans l'`Expedition` : une seule source, la classe, l'expérience et les points dépensés. Le Savoir et la Volonté n'ont encore
+  aucun effet : les paires du prêtre et du mage deviendront justes quand ils serviront.
 - **À tester.** **Points de vie par niveau** : `pointsDeVieMax = 240 + 6 × Endurance + 8 × (niveau − 1)` (`s_pvParNiveau = 8`).
 - **Retenu.** **Montée de niveau au milieu d'un étage** : les caractéristiques, les statistiques, le maximum de points de vie et
   les objets actifs sont recalculés tout de suite, par le chemin de l'équipement (`Personnage::recalculerDepuisLEquipement`) ; les
@@ -133,6 +133,34 @@ Quand un point entre dans `ROADMAP.md`, sa conception détaillée se fait en dis
   seuil d'équipement atteint grâce à la croissance remet l'objet en service.
 - **Pistes** (étapes à part) : un niveau par personnage si un recrutement arrive ; un niveau maximum ; l'expérience refusée aux
   morts.
+
+### Les points libres (étape 100)
+
+- **À tester.** **Trois points libres par niveau et par personnage**, à partir du niveau 2 (`s_pointsLibresParNiveau`) : au niveau n,
+  un personnage a reçu `3 × (n − 1)` points. Chacun les dépense à la main dans ses cinq caractéristiques, en plus de la croissance
+  automatique (qui reste, +1 par niveau dans la paire de la classe).
+- **Retenu.** **Une seule source** : l'`Expedition` garde, pour chaque personnage, les points **dépensés** dans chaque
+  caractéristique (`MembreDExpedition::pointsDepenses`, un `Caracteristiques`). Les points **disponibles** ne sont jamais stockés :
+  `pointsLibresDisponibles(niveau, dépensés)` = reçus au niveau moins la somme des dépensés, une fonction pure (`combat/Progression`).
+  La base d'un personnage est toujours sa classe, plus la croissance de son niveau, plus ses points dépensés
+  (`Personnage::baseAuNiveau`, l'unique calcul).
+- **Retenu.** **Dépenser est définitif** : pas de remboursement. La redistribution viendra avec les refuges, payante.
+- **Retenu.** **Une dépense est transactionnelle** : `Personnage::depenserDesPoints` (et `Escouade::depenserDesPoints(place, dépense)`)
+  refuse tout, sans rien changer, si une valeur est négative ou si la somme dépasse les points disponibles (`depensePermise`).
+  Sinon elle passe par le même chemin qu'une montée de niveau (`recalculerDepuisLEquipement`) : caractéristiques, statistiques,
+  maximum de points de vie et objets actifs sont recalculés ; les points de vie actuels d'un vivant montent du même montant que son
+  maximum ; un mort peut dépenser ses points (il les aura en revenant) ; un seuil d'équipement atteint grâce à la dépense remet
+  l'objet en service. On dépense à tout moment, même en combat.
+- **Retenu.** **Le brouillon est un état de l'écran** (`EcranInventaire`, `docs/ecrans.md`), pas de l'expédition : « + » met un
+  point en attente, « − » ne retire qu'un point en attente (jamais un point déjà dépensé), « Apply » dépense, « Reset » et la fermeture
+  de l'inventaire effacent. Les valeurs dérivées (points de vie, capacités, armure) ne montrent pas le brouillon : elles changent à « Apply ».
+- **Retenu.** **L'infobulle d'une caractéristique** dit ce qu'un point fait, avec les nombres lus dans les constantes du jeu
+  (`s_bonusParPoint`, `s_pvParPointDEndurance`, `s_capaciteParPointDAdresse`), jamais recopiés : « Might: +3% damage and healing per
+  point », « Constitution: +6 health per point », « Dexterity: +5 offensive and defensive capability per point », « no effect yet »
+  pour l'Intellect et la Resolve. Le signal « Points to spend » apparaît en haut de l'écran tant qu'un personnage (mort compris) a
+  des points libres.
+- **Pistes** (étapes à part) : la **redistribution payante aux refuges** ; **l'aperçu des valeurs dérivées** pendant le brouillon (points de vie,
+  capacités avant « Apply ») ; l'effet de l'Intellect et de la Resolve ; les rangs de skills et les points de skills.
 
 ## 5. Les caractéristiques
 

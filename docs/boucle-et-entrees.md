@@ -362,10 +362,11 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
 - **Une `Expedition` (`jeu/Expedition`) est ce qui survit d'un étage à l'autre** : la profondeur (1 au départ), la graine de
   l'expédition, pour chaque personnage dans l'ordre des places sa classe (`DefinitionPersonnage`, dont les
   `caracteristiques` sont celles de la classe au niveau 1, pas sa base du moment) et son `Equipement`, le sac commun
-  (`Inventaire`, ses objets à leur case, **vide au départ** depuis l'étape 99.1) et l'**expérience totale** de l'escouade
-  (étape 99.3). Rien d'autre : ni positions, ni combat, ni agresseurs, ni provocations, ni visées, ni recharges, ni monstres,
-  ni objets au sol, **ni niveau** (il se déduit de l'expérience) **ni caractéristiques de base** (classe plus croissance du niveau).
-  Une valeur copiable ; elle grandira (points libres) et sera un jour ce qu'on sauvegarde.
+  (`Inventaire`, ses objets à leur case, **vide au départ** depuis l'étape 99.1), l'**expérience totale** de l'escouade
+  (étape 99.3) et, pour chaque personnage, ses **points libres dépensés** par caractéristique (`MembreDExpedition::pointsDepenses`,
+  étape 100.1 ; aucun au départ). Rien d'autre : ni positions, ni combat, ni agresseurs, ni provocations, ni visées, ni recharges, ni monstres,
+  ni objets au sol, **ni niveau** (il se déduit de l'expérience), **ni points libres disponibles** (reçus au niveau moins dépensés : `pointsLibresDisponibles`) **ni
+  caractéristiques de base** (classe plus croissance du niveau plus points dépensés). Une valeur copiable ; elle sera un jour ce qu'on sauvegarde.
 - **Une `Partie` est un étage** : `Partie(niveau, expedition, graine, catalogue)`. L'escouade est construite avec les
   personnages de l'expédition (`compositionDeLExpedition` : un `MembreDEscouade` par personnage, sa définition et l'`Equipement`
   que l'expédition garde — l'unique chemin de l'équipement vers l'escouade, l'`equipementDeDepart` des recettes n'est lu que par
@@ -373,10 +374,11 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   niveau)`). Un personnage
   construit ainsi est **à pleine vie, vivant**, à sa place de formation : la vie ne se garde pas, un mort revient. Les monstres
   du niveau sont **renforcés par la profondeur** (`renforcer`, `docs/monstre.md`).
-- **`Partie::expedition()` rend l'état durable de la partie en cours** : l'équipement de chaque personnage
-  (`equipementDuPersonnage`) et le sac, lus dans l'escouade, avec la profondeur, la graine et la classe de chaque membre de
+- **`Partie::expedition()` rend l'état durable de la partie en cours** : l'équipement et les points dépensés de chaque personnage
+  (`equipementDuPersonnage`, `pointsDepensesDuPersonnage`) et le sac, lus dans l'escouade (qui est la source pendant l'étage : on
+  dépense dans l'inventaire, sans passer par l'`Expedition`), avec la profondeur, la graine et la classe de chaque membre de
   l'expédition reçue, et l'expérience (`m_expedition`, que les morts de monstres font grandir). Les caractéristiques de base ne
-  sont plus relues : elles se calculent (étape 99.4). `etageSuivant(expedition)` ajoute un étage.
+  sont plus relues : elles se calculent (étape 99.4, plus les points dépensés depuis l'étape 100.1). `etageSuivant(expedition)` ajoute un étage.
 - **Descendre = construire une nouvelle `Partie`**, comme F5 : aucun état n'est remis à zéro membre par membre (le risque
   d'en oublier un). `EcranJeu::descendre` fait `m_partie = partieDeLEtage(etageSuivant(m_partie.expedition()))`, repart d'un
   `Controleur` et de `TextesFlottants` neufs, garde les bascules de débogage et la barre de raccourcis (mêmes classes, mêmes skills).

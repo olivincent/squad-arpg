@@ -638,10 +638,10 @@ Détail de conception : `docs/classes-et-combat.md`, section 5.
 
 - **Cinq caractéristiques** (`combat/Caracteristiques`) : `enum class Caracteristique { Puissance,
   Endurance, Adresse, Savoir, Volonte }` et un type valeur `Caracteristiques` (un `std::array<int, 5>`
-  indexé par l'enum, `valeur(Caracteristique)`, addition). Un tableau plutôt que cinq champs : les bonus
+  indexé par l'enum, `valeur(Caracteristique)`, addition, `somme()` depuis l'étape 100.1). Un tableau plutôt que cinq champs : les bonus
   d'objets, les coefficients et l'affichage parcourent les cinq de la même façon. Elles vivent dans
   `combat/` parce que les objets et les personnages s'en servent (`objets/` peut donc inclure `combat/`).
-  Les noms affichés sont dans `interface/AffichageCaracteristiques`.
+  Les noms affichés, « Points: N », le brouillon « (+N) » et l'infobulle d'effet (étape 100.2, les nombres lus dans les constantes) sont dans `interface/AffichageCaracteristiques`.
 - **Valeur de référence 10** (`s_valeurDeReference`, à la *Pillars of Eternity*) : un effet se calcule par
   rapport à 10, qui ne donne ni bonus ni malus. Provisoire, à tester.
 - **Effectives = base + équipement** : la base vient de la classe (`DefinitionPersonnage::caracteristiques`,
@@ -2008,6 +2008,10 @@ de la chaîne `Partie` → `Escouade` → `Personnage` → `Skill` et `Partie` �
 | `int experienceManquante(int experience)` | Ce qui manque pour le niveau suivant, au moins 1 (F9) ; `[[nodiscard]]` |
 | `using PaireDeCroissance = std::array<Caracteristique, 2>` | Les deux caractéristiques qui grandissent avec le niveau d'une classe, dans l'ordre |
 | `Caracteristiques croissanceAuNiveau(int niveau, const PaireDeCroissance&)` | Ce que les niveaux ajoutent à la base d'une classe : +1 par niveau gagné au-delà du premier, la première puis la seconde de la paire en alternance ; rien au niveau 1 ; `assert(niveau >= 1)` ; `[[nodiscard]]` |
+| `s_pointsLibresParNiveau` (3) | Étape 100.1 : les points libres qu'un personnage reçoit à chaque niveau gagné au-delà du premier, « à tester » |
+| `int pointsLibresRecus(int niveau)` | Les points libres reçus en tout au niveau n : `3 × (n − 1)` ; `assert(niveau >= 1)` ; `[[nodiscard]]` |
+| `int pointsLibresDisponibles(int niveau, const Caracteristiques& depenses)` | Ceux qui restent à dépenser : reçus moins `depenses.somme()` ; jamais stockés ; `[[nodiscard]]` |
+| `bool depensePermise(int niveau, const Caracteristiques& depenses, const Caracteristiques& depense)` | Aucune valeur de `depense` négative et sa somme au plus égale aux points disponibles ; la règle de `Personnage::depenserDesPoints` ; `[[nodiscard]]` |
 - `int montantEffectif(int montant, const Coefficients&, const Caracteristiques&)` : voir plus haut ;
   `assert(montant >= 0)` ; `[[nodiscard]]`.
 

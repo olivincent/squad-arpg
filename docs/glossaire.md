@@ -20,6 +20,22 @@ dans « Blocked −40 ».
 | Savoir | Intellect | `Caracteristique::Savoir` |
 | Volonté | Resolve | `Caracteristique::Volonte` |
 
+Points libres (étape 100, `interface/AffichageCaracteristiques.cpp`, `AffichageNiveau.cpp`, `EcranInventaire.cpp`) :
+
+| Concept | Texte |
+|---|---|
+| Points à répartir d'un personnage (brouillon déduit) | Points: 3 |
+| Points en attente dans une caractéristique | (+2), écrit après la valeur : « Might 15 (+3) (+2) » |
+| Boutons d'une caractéristique | +, − |
+| Boutons du brouillon d'un personnage | Apply, Reset |
+| Signal en haut de l'écran | Points to spend |
+| Effet de Might | Might: +3% damage and healing per point |
+| Effet de Constitution | Constitution: +6 health per point |
+| Effet de Dexterity | Dexterity: +5 offensive and defensive capability per point |
+| Effet d'Intellect, de Resolve | Intellect: no effect yet, Resolve: no effect yet |
+
+Les nombres des effets sont lus dans les constantes du code (`s_bonusParPoint`, `s_pvParPointDEndurance`, `s_capaciteParPointDAdresse`).
+
 ## Éléments (pas encore affichés : textes à venir avec les résistances dans l'inventaire)
 
 | Concept | Texte |
@@ -176,5 +192,5 @@ Le nom affiché d'un objet est `[préfixe] modèle [suffixe]` (« Blazing Mace �
 | Options | Mode: Fullscreen / Mode: Windowed, Resolution: < 1280 × 720 >, Back |
 | Choix de l'escouade | Choose 3 classes, Start, Back |
 | Partie | Depth N / 5 (profondeur, `interface/AffichageProfondeur.cpp`), Level N (niveau de l'escouade, `interface/AffichageNiveau.cpp`, aussi dans l'inventaire) et sa barre d'expérience, Monsters: N (compteur), Seed: N (graine de l'étage, dans la console) |
-| Inventaire | Inventory, Bag, Armor: N, (dead) |
+| Inventaire | Inventory, Bag, Armor: N, (dead), Points: N, Apply, Reset (voir « Caractéristiques ») |
 | Fin de partie | Victory, Defeat, Press R to return to squad selection |

@@ -1951,3 +1951,37 @@ avant de construire la `Partie`.
   l'inventaire et la couleur de « Level up! » se vérifient à l'œil. Seul le calcul (`progressionVersLeNiveauSuivant`) est testé.
 - **Calibrage** : le programme de mesure (5 000 graines, l'expérience moyenne de chaque étage) n'est pas dans le dépôt ; le test de
   cible le résume avec 300 graines (`docs/classes-et-combat.md`, « Calibrage de `k` »).
+
+## Étape 100 : les points libres (+43 cas, 1 661 → 1 704)
+
+- **100.1** (+19) : `test_Progression.cpp` (+4 : `pointsLibresRecus` — 0, 3 et 12 aux niveaux 1, 2 et 5 ; `pointsLibresDisponibles` — les
+  reçus moins la somme des dépensés ; `depensePermise` — jusqu'au dernier point disponible, pas un de plus, rien au niveau 1 ; **une
+  valeur négative est refusée même si la somme est permise**) ; `test_Personnage.cpp` (+10 : aucun point libre au niveau 1, trois par
+  niveau gagné ; **une dépense valide change la base, le maximum de points de vie et les points libres** ; deux dépenses s'additionnent ;
+  **un vivant blessé gagne autant de points de vie que son maximum** ; **un mort peut dépenser et reste mort** avec son nouveau maximum ;
+  **une dépense trop grande est refusée sans rien changer** ; **une valeur négative aussi**, sans reprendre un point dépensé ; rien à
+  dépenser au niveau 1 ; **un seuil d'équipement atteint grâce à la dépense rend l'objet actif** (l'épée longue redevient l'arme) ;
+  les points dépensés restent après une montée de niveau) ; `test_Escouade_equipement.cpp` (+3 : la dépense va au personnage de cette
+  place et aux autres rien ; place invalide, dépense trop grande ou négative : faux, rien ne change ; `monterAuNiveau` donne trois
+  points par niveau à chaque personnage) ; `test_Expedition.cpp` (+2 : **une nouvelle expédition n'a aucun point dépensé** ; **les points
+  dépensés survivent à la descente** — `Partie::expedition()` les relit, l'étage suivant les rend, les points libres se recalculent
+  et la base aussi). Les aides de test passent par `membresDeTest` : `unPersonnage` transmet `pointsDepenses` (vide).
+- **100.2** (+20) : `test_EcranInventaire.cpp` (+11, sur l'état de l'écran et sans fenêtre : **« + » ajoute en attente sans toucher à
+  l'escouade** (points dépensés, base et maximum de points de vie inchangés) ; le clic sur le « + » d'une caractéristique ; **« + » est
+  sans effet quand il ne reste aucun point**, et au niveau 1 ; « − » retire un point en attente, pas plus ; **« − » ne retire jamais un
+  point déjà dépensé** ; **« Apply » dépense pour de bon et vide le brouillon** (base, maximum de points de vie) ; « Apply » sans rien en
+  attente ne fait rien ; **« Reset » et la fermeture (I comme Échap) vident le brouillon sans rien appliquer** ; un brouillon par
+  personnage, indépendants) ; `test_DispositionInventaire.cpp` (+6 et 1 modifié : le bloc des caractéristiques est maintenant une
+  colonne de six lignes ; les boutons « + » et « − » sont dans la ligne de leur caractéristique, à droite, sans se toucher, dans les vues
+  de 1200 et de 1422 px ; « Apply » et « Reset » dans la ligne des points de vie ; `boutonSous` désigne le centre de chaque bouton, rien
+  sur le texte, un emplacement ou hors du panneau ; `caracteristiqueSous` désigne toute la ligne, boutons compris, et rien sur la
+  ligne des points de vie, une statistique ou un emplacement) ; `test_AffichageCaracteristiques.cpp` (+3 : « Points: N » ; « (+N) » et
+  rien sans attente ; **l'effet d'une caractéristique lit les constantes** — Might, Constitution, Dexterity ; « no effect yet » pour
+  Intellect et Resolve).
+- **100.3** (+4) : `test_Escouade_equipement.cpp` (+3 : `aDesPointsLibres` — faux au niveau 1, vrai après une montée ; **vrai tant qu'un
+  seul personnage en a, faux quand tous ont tout dépensé** ; **un mort garde ses points, le signal reste**) ; `test_AffichageNiveau.cpp`
+  (+1 : « Points to spend »).
+- **Ce que les tests ne voient pas** : le dessin (les boutons, leur grisé, le vert du brouillon, « Points: N » en or, l'infobulle, le
+  signal en haut de l'écran) se vérifie à l'œil.
+- **Un nom de `TEST_CASE` sans « » ni accents** (les guillemets français faisaient échouer le filtre de CTest) : « Points: N » s'écrit
+  `Points: N` dans le nom du test.

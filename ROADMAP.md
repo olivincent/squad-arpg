@@ -8,7 +8,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 ## Étapes terminées
 
-Étapes 0 à 99 ✅. Les dernières :
+Étapes 0 à 100 ✅. Les dernières :
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 - Étape 83 — Inventaire et équipement : le modèle, sans interface ✅
@@ -28,15 +28,16 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - Étape 97 — Le butin au sol : les monstres lâchent des objets, ils se voient et se ramassent, on peut les jeter ✅
 - Étape 98 — Les étages : l'escalier, l'expédition (équipement et sac gardés), des monstres plus forts avec la profondeur, la victoire au 5e étage ✅
 - Étape 99 — L'expérience et les niveaux : un niveau d'escouade, la croissance automatique de deux caractéristiques par classe, les points de vie par niveau ✅
+- Étape 100 — Les points libres : 3 par niveau et par personnage, répartis dans l'inventaire avec un brouillon (+, −, Apply, Reset), définitifs ✅
 
 ## État actuel (résumé)
 
 - **Outils** : conception dans Claude.ai, implémentation avec Claude Code dans VSCode (règles dans
   `CLAUDE.md`) ; dépôt Git `squad-arpg`, poussé sur GitHub ; SFML 3.0.2 intégrée à CMake.
-- **Code** (étape 99) : 101 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
+- **Code** (étape 100) : 101 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
   `combat`, `objets`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
   de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug` et `jeu`, 0
-  avertissement, 1 661 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers des étapes 98 et 99 : `docs/build.md`,
+  avertissement, 1 704 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers des étapes 98 à 100 : `docs/build.md`,
   `docs/audit.md`). `Escouade` n'est plus que l'assemblage : `Escouade.cpp` de 1 223 à 1 067 lignes. Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`). **Tout le texte affiché est en anglais** (identifiants, commentaires et documentation restent en français ; pas de système de traduction : `docs/glossaire.md` est la référence des noms du jeu). Un commit par sous-étape, fait par Claude Code (`CLAUDE.md`).
 - **Écrans** : menu à la souris, options d'affichage (fenêtré ou plein écran, résolutions,
   `reglages.ini`), choix de 3 classes parmi 5 (guerrier, prêtre, mage, paladin, rôdeur ; doublons
@@ -66,7 +67,21 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   de points de vie que son maximum, un mort reste mort, plusieurs niveaux d'un coup s'appliquent tous, un seuil d'équipement
   atteint remet l'objet en service. En haut de l'écran : « Level N » et une barre d'expérience, « Level up! » flottant, « Level N »
   dans l'inventaire ; **F9** donne le niveau suivant. L'Intellect et la Resolve n'ont encore aucun effet (`docs/classes-et-combat.md`,
-  « L'expérience et les niveaux »).
+  « L'expérience et les niveaux »). `k = 21` est **retenu** après les tests visuels (des montées rapides au début, le niveau 10 au 5e étage).
+- **Points libres** (étape 100) : **chaque niveau donne 3 points libres à chaque personnage**, à partir du niveau 2 (au niveau n :
+  `3 × (n − 1)` points reçus, `s_pointsLibresParNiveau`, « à tester »). L'`Expedition` garde, pour chaque personnage, les points
+  **dépensés** dans chaque caractéristique (`MembreDExpedition::pointsDepenses`) ; les points **disponibles** se calculent (reçus
+  moins dépensés, `pointsLibresDisponibles`), la base d'un personnage est sa classe, plus la croissance de son niveau, plus ses points
+  dépensés. **Dépenser est définitif** (pas de remboursement, la redistribution viendra avec les refuges) et transactionnel
+  (`Escouade::depenserDesPoints` : tout est refusé si une valeur est négative ou si la somme dépasse les points disponibles) ; la
+  dépense passe par le chemin d'une montée de niveau (caractéristiques, maximum de points de vie, objets actifs recalculés ; un
+  vivant gagne autant de points de vie que son maximum ; un mort peut dépenser) et se fait à tout moment, même en combat. Dans
+  l'inventaire (I), un personnage qui a des points voit « Points: N » sous son nom, un « + » (grisé à 0) et, là où il y a de l'attente,
+  un « − » à côté de chaque caractéristique, la valeur « Might 15 (+2) » avec le brouillon en vert, et « Apply » / « Reset » ; **le
+  brouillon est un état de l'écran**, effacé par « Reset » et par la fermeture ; les valeurs dérivées changent à « Apply ». Le survol d'une
+  caractéristique affiche son effet (nombres lus dans les constantes ; « no effect yet » pour l'Intellect et la Resolve) ; en haut de
+  l'écran, « Points to spend » tant qu'un personnage (mort compris) a des points (`docs/classes-et-combat.md`, « Les points libres »,
+  `docs/ecrans.md`).
 - **Carte** : donjon généré à chaque partie (salles, couloirs en L de 2 cases, portes à chaque
   jonction, un groupe de monstres par salle sauf la première, un escalier, graine affichée), F5 = nouvelle expédition ;
   carte à la main pour les tests (`docs/generation.md`, `docs/carte-et-collision.md`).
@@ -251,16 +266,24 @@ ce qui reste à décider **en discussion** avant son prompt :
     sur toutes les portions des dégâts, une seule source pour l'équipement) ; l'expérience des monstres ; l'expérience totale de
     l'expédition et `niveauPour` (`k = 21`) ; la croissance automatique par classe, les points de vie par niveau, la montée de
     niveau en cours d'étage ; l'affichage (en-tête, « Level up! », inventaire) et F9.
-  - 100 : les points libres (à discuter avec Claude.ai) ;
-  - 101 : le niveau d'objet.
+  - 100 ✅ : les points libres : 3 par niveau et par personnage, la dépense définitive, le brouillon dans l'inventaire (+, −,
+    Apply, Reset), l'infobulle des caractéristiques, le signal « Points to spend ».
+  - 101 : le niveau d'objet (à discuter avec Claude.ai).
 
-## Étape 100 (prochaine) : les points libres et leur écran, à discuter avec Claude.ai
+## Étape 101 (prochaine) : le niveau d'objet, à discuter avec Claude.ai
 
-L'étape 99 (l'expérience et les niveaux) est faite ; la phase 5 continue par les points libres (100) et le niveau d'objet (101).
-L'étape 100 ajoutera les points libres dépensés au calcul des caractéristiques de base (classe plus croissance du niveau, plus
-points libres), qui est déjà une fonction pure. Le Savoir et la Volonté n'ont encore aucun effet (les paires de croissance du prêtre
-et du mage deviendront justes quand ils serviront). L'`Expedition` grandira avec les points libres (`jeu/Expedition`) et c'est
-elle qu'on sauvegardera un jour.
+L'étape 100 (les points libres) est faite ; la phase 5 se termine par le niveau d'objet (101), qui fera varier les plages de valeurs des
+affixes et les chances de rareté (`docs/classes-et-combat.md`, question 2, et les pistes de l'étape 96). Le Savoir et la Volonté n'ont encore aucun
+effet (les paires de croissance du prêtre et du mage deviendront justes quand ils serviront). L'`Expedition` garde maintenant les points
+dépensés ; c'est elle qu'on sauvegardera un jour.
+
+**Pistes issues de l'étape 100** (étapes à part, plus tard) :
+- **La redistribution payante aux refuges** : reprendre les points dépensés pour les remettre ailleurs (aujourd'hui définitif).
+- **L'aperçu des valeurs dérivées pendant le brouillon** (points de vie, capacités, armure avant « Apply »).
+- **Un effet pour l'Intellect et la Resolve**, que l'infobulle annonce « no effect yet ».
+- **Les rangs de skills et les points de skills**, et un écran de caractéristiques séparé de l'inventaire, si le panneau se remplit trop.
+- **Ajuster en jouant** les 3 points par niveau (`s_pointsLibresParNiveau`), à voir avec la croissance automatique (+1 par niveau)
+  et `k = 21`.
 
 **Pistes issues de l'étape 99** (étapes à part, plus tard) :
 - **Un niveau par personnage** si un recrutement arrive (aujourd'hui un seul niveau, déduit de l'expérience totale de l'escouade).
