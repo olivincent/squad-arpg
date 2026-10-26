@@ -35,6 +35,7 @@ TEST_CASE("chaque definition de monstre est valide") {
         REQUIRE(definition.pointsDeVieMax > 0);
         REQUIRE(definition.armure >= 0);
         REQUIRE(definition.degats.total() > 0);
+        REQUIRE(definition.experience >= 1);
         REQUIRE(definition.attaque.rechargeMin > 0.0f);
         REQUIRE(definition.attaque.rechargeMin <= definition.attaque.rechargeMax);
         REQUIRE(definition.attaque.tempsExecution >= 0.0f);

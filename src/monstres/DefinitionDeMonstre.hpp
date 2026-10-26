@@ -24,6 +24,7 @@ struct DefinitionDeMonstre {  // NOLINT(cppcoreguidelines-pro-type-member-init):
     StatistiquesDeCombat statistiques;  // un monstre n'a pas de caractéristiques : il reçoit ses statistiques
     int chanceDeButin;         // en pour cent : la chance que sa mort laisse du butin (un seul tirage)
     int nombreDObjets;         // le nombre d'objets que laisse un butin
+    int experience;            // ce que sa mort rapporte à l'escouade, quel que soit le tueur (« à tester »)
 };
 
 // Une définition par catégorie, dans l'ordre de `CategorieDeMonstre`.
@@ -44,5 +45,6 @@ using CatalogueDeMonstres = std::array<DefinitionDeMonstre, s_nombreDeCategories
 // offensive et défensive +10 ; chaque valeur est arrondie au plus proche, et le pourcentage des dégâts s'applique à **chaque
 // portion** du coup (physique, feu, sacré), une portion nulle restant nulle. Le niveau passe par les nombres, sans formule d'écart
 // de niveau. L'armure, l'esquive, le blocage, les résistances, la vitesse, la taille, la portée et la recharge de l'attaque et le
-// butin ne changent pas. Une fonction pure ; `assert` : profondeur d'au moins 1.
+// butin ne changent pas. L'expérience que rapporte le monstre est majorée de 25 % par étage au-delà du premier, comme ses
+// points de vie. Une fonction pure ; `assert` : profondeur d'au moins 1.
 [[nodiscard]] DefinitionDeMonstre renforcer(const DefinitionDeMonstre& definition, int profondeur);

@@ -127,3 +127,17 @@ TEST_CASE("renforcer : une portion de feu est majoree, les resistances de la cre
     REQUIRE(renforcee.statistiques.resistances == definition.statistiques.resistances);
     REQUIRE(renforcee.degats[Element::Feu] == 16);
 }
+
+TEST_CASE("experience : les valeurs du catalogue au premier etage") {
+    REQUIRE(renforcer(definitionDeMonstre(CategorieDeMonstre::Nuee), 1).experience == 3);
+    REQUIRE(renforcer(definitionDeMonstre(CategorieDeMonstre::Infanterie), 1).experience == 10);
+    REQUIRE(renforcer(definitionDeMonstre(CategorieDeMonstre::InfanterieLourde), 1).experience == 25);
+    REQUIRE(renforcer(definitionDeMonstre(CategorieDeMonstre::CreatureMonstrueuse), 1).experience == 100);
+}
+
+TEST_CASE("experience : au troisieme etage, +50 % arrondi au plus proche") {
+    REQUIRE(renforcer(definitionDeMonstre(CategorieDeMonstre::Nuee), 3).experience == 5);                // 4,5
+    REQUIRE(renforcer(definitionDeMonstre(CategorieDeMonstre::Infanterie), 3).experience == 15);
+    REQUIRE(renforcer(definitionDeMonstre(CategorieDeMonstre::InfanterieLourde), 3).experience == 38);   // 37,5
+    REQUIRE(renforcer(definitionDeMonstre(CategorieDeMonstre::CreatureMonstrueuse), 3).experience == 150);
+}
