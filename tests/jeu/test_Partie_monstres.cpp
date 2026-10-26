@@ -265,3 +265,24 @@ TEST_CASE("chaque monstre du niveau recoit la definition de sa categorie") {
         REQUIRE(monstre.getStatistiques() == definition.statistiques);
     }
 }
+
+TEST_CASE("les monstres d'un etage profond sont renforces par la profondeur de l'expedition") {
+    std::vector<MonstreDuNiveau> monstres;
+    for (const CategorieDeMonstre categorie : s_categoriesDeMonstre) {
+        const float x = 100.0f + 100.0f * static_cast<float>(monstres.size());
+        monstres.push_back({{x, 500.0f}, static_cast<int>(monstres.size()), categorie});
+    }
+    Expedition expedition = expeditionDeTest();
+    expedition.profondeur = 3;
+    const Partie partie(niveauDegageEnGroupes(monstres), std::move(expedition), s_graineDeTest);
+
+    REQUIRE(partie.getMonstres().size() == s_nombreDeCategoriesDeMonstre);
+    for (std::size_t i = 0; i < partie.getMonstres().size(); ++i) {
+        const DefinitionDeMonstre renforcee = renforcer(definitionDeMonstre(s_categoriesDeMonstre[i]), 3);
+        const Monstre& monstre = partie.getMonstres()[i];
+        REQUIRE(monstre.getPointsDeVie() == renforcee.pointsDeVieMax);
+        REQUIRE(monstre.getPointsDeVie() > definitionDeMonstre(s_categoriesDeMonstre[i]).pointsDeVieMax);
+        REQUIRE(monstre.getAttaque().degats.total() == renforcee.attaque.puissance);
+        REQUIRE(monstre.getStatistiques() == renforcee.statistiques);
+    }
+}

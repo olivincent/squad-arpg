@@ -34,7 +34,7 @@ Partie::Partie(const Niveau& niveau, Expedition expedition, Generateur::result_t
     int prochainId = 1;
     for (const MonstreDuNiveau& monstre : niveau.monstres) {
         m_monstres.emplace_back(monstre.position, prochainId++, monstre.groupe,
-                                definitionDeMonstre(catalogue, monstre.categorie));
+                                renforcer(definitionDeMonstre(catalogue, monstre.categorie), m_expedition.profondeur));
     }
     int prochainIdObjet = 1;
     for (const PorteDuNiveau& porte : niveau.portes) {

@@ -205,6 +205,7 @@ add_executable(tests
     tests/monde/test_GenerateurDonjon.cpp
     tests/jeu/test_ObjetsAuSol.cpp
     tests/jeu/test_Expedition.cpp
+    tests/monstres/test_DefinitionDeMonstre.cpp
     tests/jeu/test_Partie_clics.cpp
     tests/jeu/test_Partie_skills.cpp
     tests/jeu/test_Partie_monstres.cpp

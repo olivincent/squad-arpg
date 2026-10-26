@@ -36,3 +36,10 @@ using CatalogueDeMonstres = std::array<DefinitionDeMonstre, s_nombreDeCategories
 
 // La définition de cette catégorie, dans le catalogue du jeu.
 [[nodiscard]] const DefinitionDeMonstre& definitionDeMonstre(CategorieDeMonstre categorie);
+
+// Cette définition renforcée par la profondeur de l'étage (`profondeur` : 1 au premier étage, où elle est rendue identique).
+// Pour chaque étage au-delà du premier : les points de vie maximum +25 %, les dégâts de l'attaque +15 %, les capacités
+// offensive et défensive +10 ; chaque valeur est arrondie au plus proche. Le niveau passe par les nombres, sans formule d'écart
+// de niveau. L'armure, l'esquive, le blocage, les résistances, la vitesse, la taille, la portée et la recharge de l'attaque et le
+// butin ne changent pas. Une fonction pure ; `assert` : profondeur d'au moins 1.
+[[nodiscard]] DefinitionDeMonstre renforcer(const DefinitionDeMonstre& definition, int profondeur);

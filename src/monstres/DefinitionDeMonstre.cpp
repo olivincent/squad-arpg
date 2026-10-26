@@ -1,5 +1,6 @@
 // ./src/monstres/DefinitionDeMonstre.cpp
 #include "monstres/DefinitionDeMonstre.hpp"
+#include <cassert>
 #include <cstddef>
 #include "combat/Element.hpp"
 #include "combat/NatureDAttaque.hpp"
@@ -13,6 +14,17 @@ constexpr float s_zoneDeControle = 20.0f;      // en pixels, bord à bord
 constexpr float s_regenerationRetour = 0.5f;   // fraction des points de vie maximum rendue par seconde en retour
 constexpr float s_porteeAttaque = 15.0f;       // bord à bord
 constexpr int s_resistanceAuFeuDeLaCreature = 40;  // en pour cent (« à tester »)
+
+// Le renforcement par la profondeur : ce que chaque étage au-delà du premier ajoute (« à tester »).
+constexpr int s_pourcentDePointsDeVieParEtage = 25;  // des points de vie maximum de la définition
+constexpr int s_pourcentDeDegatsParEtage = 15;       // des dégâts de l'attaque de la définition
+constexpr int s_capaciteParEtage = 10;               // points de capacité offensive et défensive
+
+// `valeur` augmentée de `pourcent` pour cent, arrondie au plus proche (la moitié vers le haut), en entiers : le résultat ne
+// dépend pas des arrondis des flottants. `valeur` et `pourcent` ne sont pas négatifs.
+constexpr int majoree(int valeur, int pourcent) {
+    return (valeur * (100 + pourcent) + 50) / 100;
+}
 
 // Ce qui change d'une catégorie à l'autre : une ligne du tableau de `docs/classes-et-combat.md` (section 11).
 struct Profil {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
@@ -91,4 +103,15 @@ const DefinitionDeMonstre& definitionDeMonstre(const CatalogueDeMonstres& catalo
 
 const DefinitionDeMonstre& definitionDeMonstre(CategorieDeMonstre categorie) {
     return definitionDeMonstre(catalogueDeMonstres(), categorie);
+}
+
+DefinitionDeMonstre renforcer(const DefinitionDeMonstre& definition, int profondeur) {
+    assert(profondeur >= 1);
+    const int etagesEnPlus = profondeur - 1;
+    DefinitionDeMonstre renforcee = definition;
+    renforcee.pointsDeVieMax = majoree(definition.pointsDeVieMax, s_pourcentDePointsDeVieParEtage * etagesEnPlus);
+    renforcee.attaque.puissance = majoree(definition.attaque.puissance, s_pourcentDeDegatsParEtage * etagesEnPlus);
+    renforcee.statistiques.capaciteOffensive += s_capaciteParEtage * etagesEnPlus;
+    renforcee.statistiques.capaciteDefensive += s_capaciteParEtage * etagesEnPlus;
+    return renforcee;
 }

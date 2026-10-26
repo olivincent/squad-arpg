@@ -44,7 +44,7 @@ public:
     // seuls viennent de l'expédition les personnages (classe, caractéristiques de base, équipement) et le sac (`jeu/Expedition`).
     // La graine initialise le générateur aléatoire de la partie, qui est à elle seule (celle de l'étage : `graineDEtage`).
     // `catalogue` : les définitions des monstres, une par catégorie ; chaque monstre du niveau reçoit celle de sa
-    // catégorie. Le jeu ne le précise pas ; les tests y substituent un catalogue sans hasard.
+    // catégorie, renforcée par la profondeur de l'expédition (`renforcer`). Le jeu ne le précise pas ; les tests y substituent un catalogue sans hasard.
     Partie(const Niveau& niveau, Expedition expedition, Generateur::result_type graine,
            const CatalogueDeMonstres& catalogue = catalogueDeMonstres());
 
