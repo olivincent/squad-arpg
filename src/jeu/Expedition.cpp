@@ -11,9 +11,9 @@ namespace {
 constexpr std::uint64_t s_pasDeProfondeur = 0x9E3779B97F4A7C15ULL;
 constexpr std::uint64_t s_multiplicateurA = 0xBF58476D1CE4E5B9ULL;
 constexpr std::uint64_t s_multiplicateurB = 0x94D049BB133111EBULL;
-constexpr int s_decalageA = 30;
-constexpr int s_decalageB = 27;
-constexpr int s_decalageC = 31;
+constexpr unsigned int s_decalageA = 30;
+constexpr unsigned int s_decalageB = 27;
+constexpr unsigned int s_decalageC = 31;
 }  // namespace
 
 Expedition nouvelleExpedition(std::vector<DefinitionPersonnage> composition, Generateur::result_type graine) {
@@ -22,7 +22,7 @@ Expedition nouvelleExpedition(std::vector<DefinitionPersonnage> composition, Gen
     for (DefinitionPersonnage& definition : composition) {
         Equipement equipement(definition.equipementDeDepart);
         definition.equipementDeDepart.clear();
-        expedition.membres.push_back({std::move(definition), std::move(equipement)});
+        expedition.membres.push_back({std::move(definition), equipement});
     }
     for (const Objet& objet : sacDeDepart()) {
         [[maybe_unused]] const bool range = expedition.sac.ajouter(objet);

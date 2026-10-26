@@ -208,7 +208,7 @@ void Partie::prendreLEscalierSiAPortee() {
     }
     const std::optional<sf::Vector2i> escalier = m_carte.caseDeLEscalier();
     assert(escalier.has_value());  // la visée vient d'un clic sur l'escalier
-    const sf::Vector2f ecart = m_carte.centreDeCase(*escalier) - m_escouade.getCentre();
+    const sf::Vector2f ecart = m_carte.centreDeCase(*escalier) - m_escouade.getCentre();  // NOLINT(bugprone-unchecked-optional-access): l'assert ci-dessus
     if (std::hypot(ecart.x, ecart.y) < s_distanceDeDescente) {
         m_escalierVise = false;
         m_escalierPris = true;
