@@ -65,6 +65,10 @@ const sf::Color s_couleurInactif(230, 50, 50);     // cadre d'un objet porté do
 constexpr float s_epaisseurInactif = 3.0f;
 constexpr float s_epaisseurSurbrillance = 3.0f;
 const sf::Color s_couleurAttenuation(40, 40, 40, 190);  // sur l'origine du glissement : le panneau, presque opaque
+const sf::Color s_couleurDesPointsLibres(255, 215, 0);  // « Points: N »
+const sf::Color s_couleurEnAttente(110, 220, 110);      // « (+2) » : ce qui est en attente dans une caractéristique
+constexpr unsigned int s_tailleBouton = 14;
+constexpr unsigned int s_tailleBoutonDeDepense = 12;
 
 // Un texte UTF-8 (accents) : sans fromUtf8, sf::String le lirait comme de l'ANSI.
 sf::Text texte(const sf::Font& police, const std::string& libelle, unsigned int taille, sf::Color couleur) {
@@ -117,27 +121,57 @@ void dessinerEmplacement(sf::RenderTarget& rendu, const sf::Font& police, sf::Fl
     }
 }
 
-// Une ligne de texte dans la cellule du bloc des caractéristiques.
-void dessinerCellule(sf::RenderTarget& rendu, const sf::Font& police, sf::FloatRect zone, const std::string& ligne) {
+// Une ligne de texte dans la cellule du bloc des caractéristiques ; rend le bord droit du texte.
+float dessinerCellule(sf::RenderTarget& rendu, const sf::Font& police, sf::FloatRect zone, const std::string& ligne) {
     sf::Text texteDeLaCellule = texte(police, ligne, s_tailleCaracteristique, sf::Color::White);
     texteDeLaCellule.setPosition(zone.position + sf::Vector2f{s_margeDuTexte, 0.0f});
     rendu.draw(texteDeLaCellule);
+    const sf::FloatRect limites = texteDeLaCellule.getGlobalBounds();
+    return limites.position.x + limites.size.x;
 }
 
-// Sous les emplacements d'un personnage : ses cinq caractéristiques effectives (avec le bonus de son
-// équipement s'il y en a un) et ses points de vie, actuels sur maximum.
+// Un bouton des points libres : un petit rectangle et son libellé ; grisé s'il n'est pas actif.
+void dessinerBouton(sf::RenderTarget& rendu, const sf::Font& police, sf::FloatRect zone, const std::string& libelle,
+                    unsigned int taille, bool actif) {
+    dessinerRectangle(rendu, zone, actif ? s_couleurCaseOccupee : s_couleurCaseVide, actif ? s_couleurContourOccupe : s_couleurContourVide);
+    dessinerTexteCentre(rendu, police, libelle, taille, actif ? sf::Color::White : s_couleurTexteVide, zone);
+}
+
+// Sous les emplacements d'un personnage : ses cinq caractéristiques effectives (avec le bonus de son équipement s'il y en a un,
+// puis les points en attente dans une autre couleur) et ses points de vie, actuels sur maximum. Quand le personnage a des
+// points libres : un « + » par caractéristique (grisé s'il n'en reste plus à répartir), un « − » là où il y en a en attente,
+// et « Apply » et « Reset » sur la ligne des points de vie s'il y a quelque chose en attente.
 void dessinerLesCaracteristiques(sf::RenderTarget& rendu, const sf::Font& police, const Escouade& escouade,
-                                 std::size_t place, sf::Vector2f tailleDeVue) {
+                                 std::size_t place, sf::Vector2f tailleDeVue, const Caracteristiques& enAttente) {
     const Caracteristiques effectives = escouade.caracteristiquesDuPersonnage(place).value_or(Caracteristiques());
     const Caracteristiques bonus = escouade.equipementActifDuPersonnage(place).bonusTotal();
+    const int libres = escouade.pointsLibresDuPersonnage(place).value_or(0);
+    const int restants = libres - enAttente.somme();
     for (std::size_t i = 0; i < s_nombreDeCaracteristiques; ++i) {
         const Caracteristique caracteristique = s_caracteristiques[i];
-        dessinerCellule(rendu, police, rectangleDeLaCellule(place, i, tailleDeVue),
-                        ligneDeCaracteristique(caracteristique, effectives.valeur(caracteristique), bonus.valeur(caracteristique)));
+        const sf::FloatRect zone = rectangleDeLaCellule(place, i, tailleDeVue);
+        const float bord = dessinerCellule(rendu, police, zone,
+                                           ligneDeCaracteristique(caracteristique, effectives.valeur(caracteristique), bonus.valeur(caracteristique)));
+        const int attente = enAttente.valeur(caracteristique);
+        if (attente > 0) {
+            sf::Text enPlus = texte(police, textePointsEnAttente(attente), s_tailleCaracteristique, s_couleurEnAttente);
+            enPlus.setPosition({bord + s_margeDuTexte, zone.position.y});
+            rendu.draw(enPlus);
+        }
+        if (libres > 0) {
+            dessinerBouton(rendu, police, rectangleDuBoutonPlus(place, caracteristique, tailleDeVue), "+", s_tailleBouton, restants > 0);
+            if (attente > 0) {
+                dessinerBouton(rendu, police, rectangleDuBoutonMoins(place, caracteristique, tailleDeVue), "−", s_tailleBouton, true);
+            }
+        }
     }
     dessinerCellule(rendu, police, rectangleDeLaCellule(place, s_nombreDeCaracteristiques, tailleDeVue),
                     "HP " + std::to_string(escouade.pointsDeVieDuPersonnage(place).value_or(0)) + " / " +
                         std::to_string(escouade.pointsDeVieMaxDuPersonnage(place).value_or(0)));
+    if (enAttente.somme() > 0) {
+        dessinerBouton(rendu, police, rectangleDuBoutonAppliquer(place, tailleDeVue), "Apply", s_tailleBoutonDeDepense, true);
+        dessinerBouton(rendu, police, rectangleDuBoutonReinitialiser(place, tailleDeVue), "Reset", s_tailleBoutonDeDepense, true);
+    }
 }
 
 // Sous les caractéristiques : ses statistiques de combat (capacités offensive et défensive).
@@ -151,7 +185,7 @@ void dessinerLesStatistiques(sf::RenderTarget& rendu, const sf::Font& police, co
 
 // La colonne d'un personnage : son en-tête (classe, couleur du personnage), son armure et ses 10 emplacements.
 void dessinerColonne(sf::RenderTarget& rendu, const sf::Font& police, const Escouade& escouade, std::size_t place,
-                     const std::string& nomDeLaClasse, sf::Vector2f tailleDeVue) {
+                     const std::string& nomDeLaClasse, sf::Vector2f tailleDeVue, const Caracteristiques& enAttente) {
     const sf::FloatRect enTete = rectangleDeLEnTete(place, tailleDeVue);
     dessinerRectangle(rendu, enTete, escouade.couleurDuPersonnage(place).value_or(sf::Color(90, 90, 90)), sf::Color::Black);
     sf::Text classe = texte(police, nomDeLaClasse, s_tailleEnTete, sf::Color::White);
@@ -168,6 +202,11 @@ void dessinerColonne(sf::RenderTarget& rendu, const sf::Font& police, const Esco
     sf::Text armure = texte(police, "Armor: " + std::to_string(escouade.equipementActifDuPersonnage(place).armureTotale()), s_tailleArmure, sf::Color::White);
     armure.setPosition(zoneArmure.position + sf::Vector2f{s_margeDuTexte, 0.0f});
     rendu.draw(armure);
+    // Sous le nom du personnage : ce qu'il lui reste à répartir, brouillon déduit, tant qu'il a des points libres.
+    if (escouade.pointsLibresDuPersonnage(place).value_or(0) > 0) {
+        const int restants = escouade.pointsLibresDuPersonnage(place).value_or(0) - enAttente.somme();
+        dessinerTexteCentre(rendu, police, ligneDePointsLibres(restants), s_tailleArmure, s_couleurDesPointsLibres, zoneArmure);
+    }
     if (escouade.pointsDeVieDuPersonnage(place).value_or(0) == 0) {
         sf::Text mort = texte(police, "(dead)", s_tailleArmure, s_couleurMort);
         const sf::FloatRect limitesMort = mort.getLocalBounds();
@@ -181,7 +220,7 @@ void dessinerColonne(sf::RenderTarget& rendu, const sf::Font& police, const Esco
         dessinerEmplacement(rendu, police, rectangleDeLEmplacement(place, emplacement, tailleDeVue), emplacement,
                             equipement.a(emplacement), escouade.objetPorteEstInactif(place, emplacement));
     }
-    dessinerLesCaracteristiques(rendu, police, escouade, place, tailleDeVue);
+    dessinerLesCaracteristiques(rendu, police, escouade, place, tailleDeVue, enAttente);
     dessinerLesStatistiques(rendu, police, escouade, place, tailleDeVue);
 }
 
@@ -253,6 +292,20 @@ void dessinerObjetSaisi(sf::RenderTarget& rendu, const sf::Font& police, const O
     dessinerTexteCentre(rendu, police, sigleDeLObjet(objet.modele), s_tailleSigle, couleurDeLaRarete(objet.rarete), zone);
 }
 
+// Le cadre sombre d'une infobulle (`largeur` : celle de sa plus longue ligne) près du curseur, gardé dans la vue, et ses lignes dedans.
+void dessinerCadreDInfobulle(sf::RenderTarget& rendu, const sf::Font& police, std::vector<sf::Text>& lignes, float largeur,
+                             sf::Vector2f curseur, sf::Vector2f tailleDeVue) {
+    const float hauteurDeLigne = police.getLineSpacing(s_tailleInfobulle);
+    const sf::Vector2f taille{largeur + 2.0f * s_margeInfobulle, static_cast<float>(lignes.size()) * hauteurDeLigne + 2.0f * s_margeInfobulle};
+    const sf::FloatRect zone = placerInfobulle(curseur, taille, tailleDeVue);
+
+    dessinerRectangle(rendu, zone, s_couleurInfobulle, sf::Color::White);
+    for (std::size_t i = 0; i < lignes.size(); ++i) {
+        lignes[i].setPosition(zone.position + sf::Vector2f{s_margeInfobulle, s_margeInfobulle + static_cast<float>(i) * hauteurDeLigne});
+        rendu.draw(lignes[i]);
+    }
+}
+
 // L'infobulle d'un objet près du curseur, gardée dans la vue : un cadre sombre, une ligne par texte. Le nom (première
 // ligne) est de la couleur de la rareté. Les seuils de `manques` (ceux que le personnage visé n'atteint pas) et, si
 // l'objet est `inactif`, une dernière ligne « Inactive: requirement not met », sont en rouge.
@@ -271,15 +324,15 @@ void dessinerInfobulle(sf::RenderTarget& rendu, const sf::Font& police, const Ob
         lignes.push_back(texte(police, ligne, s_tailleInfobulle, couleur));
         largeur = std::max(largeur, lignes.back().getLocalBounds().size.x);
     }
-    const float hauteurDeLigne = police.getLineSpacing(s_tailleInfobulle);
-    const sf::Vector2f taille{largeur + 2.0f * s_margeInfobulle, static_cast<float>(lignes.size()) * hauteurDeLigne + 2.0f * s_margeInfobulle};
-    const sf::FloatRect zone = placerInfobulle(curseur, taille, tailleDeVue);
+    dessinerCadreDInfobulle(rendu, police, lignes, largeur, curseur, tailleDeVue);
+}
 
-    dessinerRectangle(rendu, zone, s_couleurInfobulle, sf::Color::White);
-    for (std::size_t i = 0; i < lignes.size(); ++i) {
-        lignes[i].setPosition(zone.position + sf::Vector2f{s_margeInfobulle, s_margeInfobulle + static_cast<float>(i) * hauteurDeLigne});
-        rendu.draw(lignes[i]);
-    }
+// L'infobulle d'une seule ligne de texte (ce que fait une caractéristique), près du curseur, gardée dans la vue.
+void dessinerInfobulleDeTexte(sf::RenderTarget& rendu, const sf::Font& police, const std::string& ligne, sf::Vector2f curseur,
+                              sf::Vector2f tailleDeVue) {
+    std::vector<sf::Text> lignes;
+    lignes.push_back(texte(police, ligne, s_tailleInfobulle, sf::Color::White));
+    dessinerCadreDInfobulle(rendu, police, lignes, lignes.back().getLocalBounds().size.x, curseur, tailleDeVue);
 }
 
 }  // namespace
@@ -295,12 +348,68 @@ Transition EcranInventaire::appuyer(sf::Keyboard::Scancode touche) {
         return Aucune{};
     }
     if (touche == sf::Keyboard::Scan::I || touche == sf::Keyboard::Scan::Escape) {
+        // Fermer efface le brouillon des points libres : rien n'est appliqué qui ne l'ait été par « Apply ».
+        m_enAttente = {};
         return Depiler{};
     }
     return Aucune{};
 }
 
+const Caracteristiques& EcranInventaire::pointsEnAttente(std::size_t place) const {
+    assert(place >= 1 && place <= s_nombreDePlaces);
+    return m_enAttente[place - 1];
+}
+
+int EcranInventaire::pointsRestants(std::size_t place) const {
+    return m_escouade.pointsLibresDuPersonnage(place).value_or(0) - pointsEnAttente(place).somme();
+}
+
+void EcranInventaire::ajouterUnPoint(std::size_t place, Caracteristique caracteristique) {
+    if (pointsRestants(place) > 0) {
+        m_enAttente[place - 1] += Caracteristiques::seule(caracteristique, 1);
+    }
+}
+
+void EcranInventaire::retirerUnPoint(std::size_t place, Caracteristique caracteristique) {
+    if (pointsEnAttente(place).valeur(caracteristique) > 0) {
+        m_enAttente[place - 1] += Caracteristiques::seule(caracteristique, -1);
+    }
+}
+
+void EcranInventaire::appliquer(std::size_t place) {
+    const Caracteristiques& enAttente = pointsEnAttente(place);
+    if (enAttente.somme() == 0) {
+        return;
+    }
+    // Le brouillon ne dépasse jamais les points libres (`ajouterUnPoint`) et n'a aucune valeur négative (`retirerUnPoint`) :
+    // la dépense est permise, l'écran étant au-dessus d'une partie figée.
+    [[maybe_unused]] const bool depense = m_escouade.depenserDesPoints(place, enAttente);
+    assert(depense);
+    reinitialiser(place);
+}
+
+void EcranInventaire::reinitialiser(std::size_t place) {
+    assert(place >= 1 && place <= s_nombreDePlaces);
+    m_enAttente[place - 1] = Caracteristiques();
+}
+
+void EcranInventaire::cliquerSurUnBouton(const BoutonDePoints& bouton) {
+    std::visit(Surcharges{
+                   [&](const BoutonPlus& plus) { ajouterUnPoint(plus.place, plus.caracteristique); },
+                   [&](const BoutonMoins& moins) { retirerUnPoint(moins.place, moins.caracteristique); },
+                   [&](const BoutonAppliquer& appliquerLesPoints) { appliquer(appliquerLesPoints.place); },
+                   [&](const BoutonReinitialiser& reinitialiserLesPoints) { reinitialiser(reinitialiserLesPoints.place); },
+               },
+               bouton);
+}
+
 void EcranInventaire::saisir(sf::Vector2f point, sf::Vector2f tailleDeVue) {
+    // Un bouton des points libres agit tout de suite. Un bouton qui n'est pas visible (rien en attente, plus de point à
+    // répartir) n'a rien à faire : les opérations sont sans effet dans ces cas.
+    if (const std::optional<BoutonDePoints> bouton = boutonSous(point, tailleDeVue)) {
+        cliquerSurUnBouton(*bouton);
+        return;
+    }
     const std::optional<PositionDObjet> position = elementSous(point, tailleDeVue);
     if (position.has_value() && m_escouade.objetA(*position).has_value()) {
         m_origine = position;
@@ -380,7 +489,7 @@ void EcranInventaire::dessiner(const Contexte& contexte) const {
     fenetre.draw(niveau);
 
     for (std::size_t place = 1; place <= s_nombreDePlaces; ++place) {
-        dessinerColonne(fenetre, contexte.police, m_escouade, place, m_nomsDesClasses[place - 1], tailleVue);
+        dessinerColonne(fenetre, contexte.police, m_escouade, place, m_nomsDesClasses[place - 1], tailleVue, m_enAttente[place - 1]);
     }
     dessinerLeSac(fenetre, contexte.police, m_escouade.sac(), tailleVue);
 
@@ -408,5 +517,7 @@ void EcranInventaire::dessiner(const Contexte& contexte) const {
             const bool inactif = portee != nullptr && m_escouade.objetPorteEstInactif(portee->place, portee->emplacement);
             dessinerInfobulle(fenetre, contexte.police, *objet, vue.point, tailleVue, {}, inactif);
         }
+    } else if (const std::optional<CaracteristiqueSurvolee> ligneSurvolee = caracteristiqueSous(vue.point, tailleVue)) {
+        dessinerInfobulleDeTexte(fenetre, contexte.police, ligneDEffetDeLaCaracteristique(ligneSurvolee->caracteristique), vue.point, tailleVue);
     }
 }

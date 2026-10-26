@@ -23,7 +23,11 @@ constexpr std::size_t s_emplacementsParColonne = 5;
 constexpr float s_cote = 44.0f;  // une case du sac
 constexpr float s_ecartEntreCases = 4.0f;
 constexpr float s_hauteurDeLigneDeCaracteristique = 18.0f;
-constexpr float s_hautDuSac = 498.0f;  // sous le bloc des statistiques (fin à 468) et l'étiquette « Sac » (24)
+constexpr float s_hautDuSac = 552.0f;  // sous le bloc des statistiques (fin à 522) et l'étiquette « Sac » (24)
+constexpr float s_largeurDuBoutonDeCaracteristique = 22.0f;  // « + » et « − », de la hauteur de la ligne
+constexpr float s_largeurDuBoutonDeDepense = 64.0f;          // « Apply » et « Reset »
+constexpr float s_ecartEntreBoutons = 4.0f;
+constexpr float s_margeDesBoutons = 6.0f;  // entre le dernier bouton d'une ligne et le bord de la colonne
 constexpr float s_margeBasse = 14.0f;  // entre la dernière rangée du sac et le bord du panneau
 
 constexpr float s_decalageInfobulle = 16.0f;  // entre le curseur et le coin de l'infobulle
@@ -86,12 +90,30 @@ sf::FloatRect rectangleDesCaracteristiques(std::size_t place, sf::Vector2f taill
 sf::FloatRect rectangleDeLaCellule(std::size_t place, std::size_t indice, sf::Vector2f tailleDeVue) {
     assert(indice <= s_nombreDeCaracteristiques);
     const sf::FloatRect bloc = rectangleDesCaracteristiques(place, tailleDeVue);
-    const float largeurDeCellule = bloc.size.x / 2.0f;
-    const std::size_t colonne = indice / s_lignesDeCaracteristiques;
-    const std::size_t rangee = indice % s_lignesDeCaracteristiques;
-    return {{bloc.position.x + static_cast<float>(colonne) * largeurDeCellule,
-             bloc.position.y + static_cast<float>(rangee) * s_hauteurDeLigneDeCaracteristique},
-            {largeurDeCellule, s_hauteurDeLigneDeCaracteristique}};
+    return {{bloc.position.x, bloc.position.y + static_cast<float>(indice) * s_hauteurDeLigneDeCaracteristique},
+            {bloc.size.x, s_hauteurDeLigneDeCaracteristique}};
+}
+
+sf::FloatRect rectangleDuBoutonPlus(std::size_t place, Caracteristique caracteristique, sf::Vector2f tailleDeVue) {
+    const sf::FloatRect ligne = rectangleDeLaCellule(place, static_cast<std::size_t>(caracteristique), tailleDeVue);
+    return {{ligne.position.x + ligne.size.x - s_margeDesBoutons - s_largeurDuBoutonDeCaracteristique, ligne.position.y},
+            {s_largeurDuBoutonDeCaracteristique, ligne.size.y}};
+}
+
+sf::FloatRect rectangleDuBoutonMoins(std::size_t place, Caracteristique caracteristique, sf::Vector2f tailleDeVue) {
+    const sf::FloatRect plus = rectangleDuBoutonPlus(place, caracteristique, tailleDeVue);
+    return {{plus.position.x - s_ecartEntreBoutons - s_largeurDuBoutonDeCaracteristique, plus.position.y}, plus.size};
+}
+
+sf::FloatRect rectangleDuBoutonReinitialiser(std::size_t place, sf::Vector2f tailleDeVue) {
+    const sf::FloatRect ligne = rectangleDeLaCellule(place, s_nombreDeCaracteristiques, tailleDeVue);
+    return {{ligne.position.x + ligne.size.x - s_margeDesBoutons - s_largeurDuBoutonDeDepense, ligne.position.y},
+            {s_largeurDuBoutonDeDepense, ligne.size.y}};
+}
+
+sf::FloatRect rectangleDuBoutonAppliquer(std::size_t place, sf::Vector2f tailleDeVue) {
+    const sf::FloatRect reinitialiser = rectangleDuBoutonReinitialiser(place, tailleDeVue);
+    return {{reinitialiser.position.x - s_ecartEntreBoutons - s_largeurDuBoutonDeDepense, reinitialiser.position.y}, reinitialiser.size};
 }
 
 sf::FloatRect rectangleDesStatistiques(std::size_t place, sf::Vector2f tailleDeVue) {
@@ -119,6 +141,37 @@ sf::FloatRect rectangleDeLaCaseDuSac(std::size_t indice, sf::Vector2f tailleDeVu
     const float x = (tailleDeVue.x - largeurDuSac) / 2.0f + static_cast<float>(colonne) * (s_cote + s_ecartEntreCases);
     const float y = hautDuPanneau(tailleDeVue) + s_hautDuSac + static_cast<float>(rangee) * (s_cote + s_ecartEntreCases);
     return {{x, y}, {s_cote, s_cote}};
+}
+
+std::optional<BoutonDePoints> boutonSous(sf::Vector2f point, sf::Vector2f tailleDeVue) {
+    for (std::size_t place = 1; place <= s_nombreDePlaces; ++place) {
+        for (const Caracteristique caracteristique : s_caracteristiques) {
+            if (rectangleDuBoutonPlus(place, caracteristique, tailleDeVue).contains(point)) {
+                return BoutonPlus{place, caracteristique};
+            }
+            if (rectangleDuBoutonMoins(place, caracteristique, tailleDeVue).contains(point)) {
+                return BoutonMoins{place, caracteristique};
+            }
+        }
+        if (rectangleDuBoutonAppliquer(place, tailleDeVue).contains(point)) {
+            return BoutonAppliquer{place};
+        }
+        if (rectangleDuBoutonReinitialiser(place, tailleDeVue).contains(point)) {
+            return BoutonReinitialiser{place};
+        }
+    }
+    return std::nullopt;
+}
+
+std::optional<CaracteristiqueSurvolee> caracteristiqueSous(sf::Vector2f point, sf::Vector2f tailleDeVue) {
+    for (std::size_t place = 1; place <= s_nombreDePlaces; ++place) {
+        for (const Caracteristique caracteristique : s_caracteristiques) {
+            if (rectangleDeLaCellule(place, static_cast<std::size_t>(caracteristique), tailleDeVue).contains(point)) {
+                return CaracteristiqueSurvolee{place, caracteristique};
+            }
+        }
+    }
+    return std::nullopt;
 }
 
 std::optional<PositionDObjet> elementSous(sf::Vector2f point, sf::Vector2f tailleDeVue) {

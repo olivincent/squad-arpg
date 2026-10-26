@@ -170,19 +170,20 @@ TEST_CASE("infobulle : toujours entierement dans la vue, curseur n'importe ou") 
     }
 }
 
-TEST_CASE("disposition : les cellules du bloc des caracteristiques tiennent dans le bloc, en deux colonnes") {
+TEST_CASE("disposition : les lignes du bloc des caracteristiques tiennent dans le bloc, en une colonne de haut en bas") {
     const sf::FloatRect bloc = rectangleDesCaracteristiques(2, s_vueMinimale);
 
     for (std::size_t cellule = 0; cellule <= s_nombreDeCaracteristiques; ++cellule) {
         const sf::FloatRect zone = rectangleDeLaCellule(2, cellule, s_vueMinimale);
-        REQUIRE(zone.position.x >= bloc.position.x);
+        REQUIRE(zone.position.x == bloc.position.x);
+        REQUIRE(zone.size.x == bloc.size.x);
         REQUIRE(zone.position.y >= bloc.position.y);
-        REQUIRE(zone.position.x + zone.size.x <= bloc.position.x + bloc.size.x);
         REQUIRE(zone.position.y + zone.size.y <= bloc.position.y + bloc.size.y);
+        if (cellule > 0) {
+            REQUIRE(zone.position.y >= rectangleDeLaCellule(2, cellule - 1, s_vueMinimale).position.y + zone.size.y);
+        }
     }
-    REQUIRE(rectangleDeLaCellule(2, 0, s_vueMinimale).position.x == bloc.position.x);
-    REQUIRE(rectangleDeLaCellule(2, s_lignesDeCaracteristiques, s_vueMinimale).position.x > bloc.position.x);
-    REQUIRE(rectangleDeLaCellule(2, 1, s_vueMinimale).position.y > rectangleDeLaCellule(2, 0, s_vueMinimale).position.y);
+    REQUIRE(s_lignesDeCaracteristiques == s_nombreDeCaracteristiques + 1);
 }
 
 TEST_CASE("disposition : les cellules du bloc des statistiques tiennent dans le bloc, en deux colonnes") {
@@ -244,4 +245,84 @@ TEST_CASE("le panneau : une bande de jeu reste visible tout autour, assez large 
         REQUIRE(vue.x - (panneau.position.x + panneau.size.x) >= bandeMinimale);
         REQUIRE(vue.y - (panneau.position.y + panneau.size.y) >= bandeMinimale);
     }
+}
+
+// Les boutons des points libres (étape 100.2).
+TEST_CASE("disposition : les boutons + et - sont dans la ligne de leur caracteristique, a droite, sans se toucher") {
+    for (const sf::Vector2f vue : {s_vueMinimale, s_vueLarge}) {
+        for (std::size_t place = 1; place <= s_nombreDePlaces; ++place) {
+            for (const Caracteristique caracteristique : s_caracteristiques) {
+                const sf::FloatRect ligne = rectangleDeLaCellule(place, static_cast<std::size_t>(caracteristique), vue);
+                const sf::FloatRect plus = rectangleDuBoutonPlus(place, caracteristique, vue);
+                const sf::FloatRect moins = rectangleDuBoutonMoins(place, caracteristique, vue);
+
+                for (const sf::FloatRect& bouton : {plus, moins}) {
+                    REQUIRE(bouton.position.x >= ligne.position.x);
+                    REQUIRE(bouton.position.y >= ligne.position.y);
+                    REQUIRE(bouton.position.x + bouton.size.x <= ligne.position.x + ligne.size.x);
+                    REQUIRE(bouton.position.y + bouton.size.y <= ligne.position.y + ligne.size.y);
+                }
+                REQUIRE(moins.position.x + moins.size.x < plus.position.x);  // le « − » est à gauche du « + »
+                REQUIRE(moins.position.x > ligne.position.x + ligne.size.x / 2.0f);  // et il reste de la place pour le texte
+            }
+        }
+    }
+}
+
+TEST_CASE("disposition : Apply et Reset sont dans la ligne des points de vie, a droite, sans se toucher") {
+    for (std::size_t place = 1; place <= s_nombreDePlaces; ++place) {
+        const sf::FloatRect ligne = rectangleDeLaCellule(place, s_nombreDeCaracteristiques, s_vueMinimale);
+        const sf::FloatRect appliquer = rectangleDuBoutonAppliquer(place, s_vueMinimale);
+        const sf::FloatRect reinitialiser = rectangleDuBoutonReinitialiser(place, s_vueMinimale);
+
+        for (const sf::FloatRect& bouton : {appliquer, reinitialiser}) {
+            REQUIRE(bouton.position.y >= ligne.position.y);
+            REQUIRE(bouton.position.y + bouton.size.y <= ligne.position.y + ligne.size.y);
+            REQUIRE(bouton.position.x >= ligne.position.x + ligne.size.x / 2.0f);
+            REQUIRE(bouton.position.x + bouton.size.x <= ligne.position.x + ligne.size.x);
+        }
+        REQUIRE(appliquer.position.x + appliquer.size.x < reinitialiser.position.x);
+    }
+}
+
+TEST_CASE("boutonSous : le centre de chaque bouton le designe") {
+    for (std::size_t place = 1; place <= s_nombreDePlaces; ++place) {
+        for (const Caracteristique caracteristique : s_caracteristiques) {
+            REQUIRE(boutonSous(centre(rectangleDuBoutonPlus(place, caracteristique, s_vueMinimale)), s_vueMinimale) ==
+                    BoutonDePoints{BoutonPlus{place, caracteristique}});
+            REQUIRE(boutonSous(centre(rectangleDuBoutonMoins(place, caracteristique, s_vueMinimale)), s_vueMinimale) ==
+                    BoutonDePoints{BoutonMoins{place, caracteristique}});
+        }
+        REQUIRE(boutonSous(centre(rectangleDuBoutonAppliquer(place, s_vueMinimale)), s_vueMinimale) ==
+                BoutonDePoints{BoutonAppliquer{place}});
+        REQUIRE(boutonSous(centre(rectangleDuBoutonReinitialiser(place, s_vueMinimale)), s_vueMinimale) ==
+                BoutonDePoints{BoutonReinitialiser{place}});
+    }
+}
+
+TEST_CASE("boutonSous : rien sur le texte d'une caracteristique, un emplacement ou en dehors du panneau") {
+    const sf::FloatRect ligne = rectangleDeLaCellule(1, 0, s_vueMinimale);
+
+    REQUIRE_FALSE(boutonSous(ligne.position + sf::Vector2f{10.0f, 5.0f}, s_vueMinimale).has_value());
+    REQUIRE_FALSE(boutonSous(centre(rectangleDeLEmplacement(2, Emplacement::Torse, s_vueMinimale)), s_vueMinimale).has_value());
+    REQUIRE_FALSE(boutonSous({1.0f, 1.0f}, s_vueMinimale).has_value());
+}
+
+TEST_CASE("caracteristiqueSous : toute la ligne d'une caracteristique la designe, boutons compris") {
+    for (std::size_t place = 1; place <= s_nombreDePlaces; ++place) {
+        for (const Caracteristique caracteristique : s_caracteristiques) {
+            const sf::FloatRect ligne = rectangleDeLaCellule(place, static_cast<std::size_t>(caracteristique), s_vueMinimale);
+            const CaracteristiqueSurvolee attendue{place, caracteristique};
+
+            REQUIRE(caracteristiqueSous(ligne.position + sf::Vector2f{3.0f, 3.0f}, s_vueMinimale) == attendue);
+            REQUIRE(caracteristiqueSous(centre(ligne), s_vueMinimale) == attendue);
+            REQUIRE(caracteristiqueSous(centre(rectangleDuBoutonPlus(place, caracteristique, s_vueMinimale)), s_vueMinimale) == attendue);
+        }
+    }
+}
+
+TEST_CASE("caracteristiqueSous : rien sur la ligne des points de vie, les statistiques ou un emplacement") {
+    REQUIRE_FALSE(caracteristiqueSous(centre(rectangleDeLaCellule(1, s_nombreDeCaracteristiques, s_vueMinimale)), s_vueMinimale).has_value());
+    REQUIRE_FALSE(caracteristiqueSous(centre(rectangleDeLaStatistique(1, 0, s_vueMinimale)), s_vueMinimale).has_value());
+    REQUIRE_FALSE(caracteristiqueSous(centre(rectangleDeLEmplacement(1, Emplacement::Tete, s_vueMinimale)), s_vueMinimale).has_value());
 }

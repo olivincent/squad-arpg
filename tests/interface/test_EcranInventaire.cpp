@@ -11,8 +11,11 @@
 #include <vector>
 
 #include "aides_escouade.hpp"
+#include "combat/Caracteristiques.hpp"
+#include "combat/Progression.hpp"
 #include "interface/DispositionInventaire.hpp"
 #include "interface/EcranInventaire.hpp"
+#include "jeu/Expedition.hpp"
 #include "jeu/Partie.hpp"
 #include "objets/Objet.hpp"
 
@@ -274,4 +277,189 @@ TEST_CASE("glissement : annulerLeGlissement abandonne sans rien deplacer") {
 
     REQUIRE(escouade.sac().a(0) == Objet{IdObjet::GantsDeCuir});
     REQUIRE_FALSE(escouade.equipementDuPersonnage(s_mage).a(Emplacement::Gants).has_value());
+}
+
+// Les points libres et leur brouillon (étape 100.2). Une partie de niveau 2 : chaque personnage a 3 points libres.
+namespace {
+constexpr std::size_t s_pretre = 2;
+
+Partie partieDeNiveau(int niveau) {
+    Expedition expedition = expeditionDeTest();
+    expedition.experience = experiencePourAtteindre(niveau);
+    return Partie(niveauDegage({}), std::move(expedition), s_graineDeTest, catalogueDeTest(monstreSansHasard()));
+}
+
+Caracteristiques unePuissance(int valeur = 1) {
+    return Caracteristiques::seule(Caracteristique::Puissance, valeur);
+}
+}  // namespace
+
+TEST_CASE("points libres : un + met un point en attente sans toucher a l'escouade") {
+    Partie partie = partieDeNiveau(2);
+    Escouade& escouade = partie.getEscouade();
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+    const Caracteristiques baseAvant = escouade.caracteristiquesDeBaseDuPersonnage(s_mage).value();
+    const int maximumAvant = escouade.pointsDeVieMaxDuPersonnage(s_mage).value();
+    REQUIRE(ecran.pointsRestants(s_mage) == 3);
+
+    ecran.ajouterUnPoint(s_mage, Caracteristique::Endurance);
+
+    REQUIRE(ecran.pointsEnAttente(s_mage) == Caracteristiques::seule(Caracteristique::Endurance, 1));
+    REQUIRE(ecran.pointsRestants(s_mage) == 2);
+    REQUIRE(escouade.pointsDepensesDuPersonnage(s_mage) == Caracteristiques());  // rien n'est dépensé
+    REQUIRE(escouade.pointsLibresDuPersonnage(s_mage) == 3);
+    REQUIRE(escouade.caracteristiquesDeBaseDuPersonnage(s_mage) == baseAvant);
+    REQUIRE(escouade.pointsDeVieMaxDuPersonnage(s_mage) == maximumAvant);  // les valeurs dérivées ne montrent pas le brouillon
+}
+
+TEST_CASE("points libres : cliquer sur le + d'une caracteristique met un point en attente") {
+    Partie partie = partieDeNiveau(2);
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+
+    ecran.saisir(centre(rectangleDuBoutonPlus(s_pretre, Caracteristique::Volonte, s_vue)), s_vue);
+
+    REQUIRE(ecran.pointsEnAttente(s_pretre) == Caracteristiques::seule(Caracteristique::Volonte, 1));
+    REQUIRE_FALSE(ecran.origineDuGlissement().has_value());  // un bouton ne commence aucun glissement
+}
+
+TEST_CASE("points libres : le + est sans effet quand il ne reste aucun point a repartir") {
+    Partie partie = partieDeNiveau(2);
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+    for (int i = 0; i < 3; ++i) {
+        ecran.ajouterUnPoint(s_guerrier, Caracteristique::Puissance);
+    }
+    REQUIRE(ecran.pointsRestants(s_guerrier) == 0);
+
+    ecran.ajouterUnPoint(s_guerrier, Caracteristique::Adresse);
+    ecran.saisir(centre(rectangleDuBoutonPlus(s_guerrier, Caracteristique::Puissance, s_vue)), s_vue);
+
+    REQUIRE(ecran.pointsEnAttente(s_guerrier) == unePuissance(3));
+    REQUIRE(ecran.pointsRestants(s_guerrier) == 0);
+}
+
+TEST_CASE("points libres : au niveau 1, le + est sans effet") {
+    Partie partie = partieSansMonstre();
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+
+    ecran.ajouterUnPoint(s_guerrier, Caracteristique::Puissance);
+    ecran.saisir(centre(rectangleDuBoutonPlus(s_guerrier, Caracteristique::Puissance, s_vue)), s_vue);
+
+    REQUIRE(ecran.pointsEnAttente(s_guerrier) == Caracteristiques());
+    REQUIRE(ecran.pointsRestants(s_guerrier) == 0);
+}
+
+TEST_CASE("points libres : le - retire un point en attente, pas plus") {
+    Partie partie = partieDeNiveau(2);
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+    ecran.ajouterUnPoint(s_mage, Caracteristique::Puissance);
+    ecran.ajouterUnPoint(s_mage, Caracteristique::Puissance);
+
+    ecran.retirerUnPoint(s_mage, Caracteristique::Puissance);
+    REQUIRE(ecran.pointsEnAttente(s_mage) == unePuissance());
+    REQUIRE(ecran.pointsRestants(s_mage) == 2);
+
+    ecran.saisir(centre(rectangleDuBoutonMoins(s_mage, Caracteristique::Puissance, s_vue)), s_vue);
+    REQUIRE(ecran.pointsEnAttente(s_mage) == Caracteristiques());
+
+    ecran.retirerUnPoint(s_mage, Caracteristique::Puissance);  // plus rien en attente : pas de valeur negative
+    ecran.retirerUnPoint(s_mage, Caracteristique::Savoir);
+    REQUIRE(ecran.pointsEnAttente(s_mage) == Caracteristiques());
+    REQUIRE(ecran.pointsRestants(s_mage) == 3);
+}
+
+TEST_CASE("points libres : le - ne retire jamais un point deja depense") {
+    Partie partie = partieDeNiveau(2);
+    Escouade& escouade = partie.getEscouade();
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+    ecran.ajouterUnPoint(s_mage, Caracteristique::Endurance);
+    ecran.ajouterUnPoint(s_mage, Caracteristique::Endurance);
+    ecran.appliquer(s_mage);
+    const Caracteristiques baseApres = escouade.caracteristiquesDeBaseDuPersonnage(s_mage).value();
+
+    ecran.retirerUnPoint(s_mage, Caracteristique::Endurance);
+    ecran.saisir(centre(rectangleDuBoutonMoins(s_mage, Caracteristique::Endurance, s_vue)), s_vue);
+
+    REQUIRE(escouade.pointsDepensesDuPersonnage(s_mage) == Caracteristiques::seule(Caracteristique::Endurance, 2));
+    REQUIRE(escouade.caracteristiquesDeBaseDuPersonnage(s_mage) == baseApres);
+    REQUIRE(ecran.pointsEnAttente(s_mage) == Caracteristiques());
+}
+
+TEST_CASE("points libres : Apply depense pour de bon, puis vide le brouillon") {
+    Partie partie = partieDeNiveau(2);
+    Escouade& escouade = partie.getEscouade();
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+    const int maximumAvant = escouade.pointsDeVieMaxDuPersonnage(s_mage).value();
+    const int puissanceAvant = escouade.caracteristiquesDeBaseDuPersonnage(s_mage).value().valeur(Caracteristique::Puissance);
+    ecran.ajouterUnPoint(s_mage, Caracteristique::Puissance);
+    ecran.ajouterUnPoint(s_mage, Caracteristique::Endurance);
+    ecran.ajouterUnPoint(s_mage, Caracteristique::Endurance);
+
+    ecran.saisir(centre(rectangleDuBoutonAppliquer(s_mage, s_vue)), s_vue);
+
+    REQUIRE(escouade.pointsDepensesDuPersonnage(s_mage) == Caracteristiques({1, 2, 0, 0, 0}));
+    REQUIRE(escouade.pointsLibresDuPersonnage(s_mage) == 0);
+    REQUIRE(escouade.caracteristiquesDeBaseDuPersonnage(s_mage).value().valeur(Caracteristique::Puissance) == puissanceAvant + 1);
+    REQUIRE(escouade.pointsDeVieMaxDuPersonnage(s_mage) == maximumAvant + 2 * s_pvParPointDEndurance);
+    REQUIRE(ecran.pointsEnAttente(s_mage) == Caracteristiques());
+    REQUIRE(ecran.pointsRestants(s_mage) == 0);
+}
+
+TEST_CASE("points libres : Apply sans rien en attente ne fait rien") {
+    Partie partie = partieDeNiveau(2);
+    Escouade& escouade = partie.getEscouade();
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+
+    ecran.appliquer(s_mage);
+    ecran.saisir(centre(rectangleDuBoutonAppliquer(s_mage, s_vue)), s_vue);
+
+    REQUIRE(escouade.pointsDepensesDuPersonnage(s_mage) == Caracteristiques());
+    REQUIRE(escouade.pointsLibresDuPersonnage(s_mage) == 3);
+}
+
+TEST_CASE("points libres : Reset vide le brouillon sans rien appliquer") {
+    Partie partie = partieDeNiveau(2);
+    Escouade& escouade = partie.getEscouade();
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+    ecran.ajouterUnPoint(s_mage, Caracteristique::Puissance);
+    ecran.ajouterUnPoint(s_mage, Caracteristique::Adresse);
+
+    ecran.saisir(centre(rectangleDuBoutonReinitialiser(s_mage, s_vue)), s_vue);
+
+    REQUIRE(ecran.pointsEnAttente(s_mage) == Caracteristiques());
+    REQUIRE(ecran.pointsRestants(s_mage) == 3);
+    REQUIRE(escouade.pointsDepensesDuPersonnage(s_mage) == Caracteristiques());
+}
+
+TEST_CASE("points libres : fermer l'ecran efface le brouillon sans rien appliquer") {
+    for (const sf::Keyboard::Scancode touche : {sf::Keyboard::Scan::I, sf::Keyboard::Scan::Escape}) {
+        Partie partie = partieDeNiveau(2);
+        Escouade& escouade = partie.getEscouade();
+        EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+        ecran.ajouterUnPoint(s_mage, Caracteristique::Puissance);
+        ecran.ajouterUnPoint(s_guerrier, Caracteristique::Endurance);
+
+        REQUIRE(std::holds_alternative<Depiler>(ecran.appuyer(touche)));
+
+        REQUIRE(ecran.pointsEnAttente(s_mage) == Caracteristiques());
+        REQUIRE(ecran.pointsEnAttente(s_guerrier) == Caracteristiques());
+        REQUIRE(escouade.pointsDepensesDuPersonnage(s_mage) == Caracteristiques());
+        REQUIRE(escouade.pointsDepensesDuPersonnage(s_guerrier) == Caracteristiques());
+    }
+}
+
+TEST_CASE("points libres : un brouillon par personnage, independants") {
+    Partie partie = partieDeNiveau(3);  // 6 points libres chacun
+    Escouade& escouade = partie.getEscouade();
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+    ecran.ajouterUnPoint(s_guerrier, Caracteristique::Puissance);
+    ecran.ajouterUnPoint(s_mage, Caracteristique::Savoir);
+    ecran.ajouterUnPoint(s_mage, Caracteristique::Savoir);
+
+    ecran.appliquer(s_mage);
+
+    REQUIRE(escouade.pointsDepensesDuPersonnage(s_mage) == Caracteristiques::seule(Caracteristique::Savoir, 2));
+    REQUIRE(escouade.pointsDepensesDuPersonnage(s_guerrier) == Caracteristiques());
+    REQUIRE(ecran.pointsEnAttente(s_guerrier) == unePuissance());  // le brouillon du guerrier est intact
+    REQUIRE(ecran.pointsRestants(s_guerrier) == 5);
+    REQUIRE(ecran.pointsRestants(s_mage) == 4);
 }

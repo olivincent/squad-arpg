@@ -5,7 +5,9 @@
 #include <SFML/System/Vector2.hpp>
 #include <cstddef>
 #include <optional>
+#include <variant>
 
+#include "combat/Caracteristiques.hpp"
 #include "objets/Emplacement.hpp"
 #include "objets/PositionDObjet.hpp"
 
@@ -20,11 +22,11 @@
 // Anneau 2 à droite : l'ordre de `Emplacement`), puis le bloc des caractéristiques et des points de vie, puis
 // le bloc des statistiques de combat. En bas, le sac : `s_casesDuSac` cases carrées,
 // `s_colonnesDuSac` par rangée (deux rangées), dans l'ordre des indices. Tout tient dans une vue de
-// 1200 × 800 au moins, sans chevauchement.
+// 1200 × 800 au moins, sans chevauchement (les boutons des points libres sont dans les lignes du bloc des caractéristiques).
 
 inline constexpr std::size_t s_nombreDePlaces = 3;
 inline constexpr std::size_t s_colonnesDuSac = 20;
-inline constexpr std::size_t s_lignesDeCaracteristiques = 3;  // du bloc des caractéristiques
+inline constexpr std::size_t s_lignesDeCaracteristiques = s_nombreDeCaracteristiques + 1;  // du bloc des caractéristiques : une par caractéristique, puis les points de vie
 inline constexpr std::size_t s_lignesDeStatistiques = 3;       // du bloc des statistiques de combat
 inline constexpr std::size_t s_cellulesDeStatistiques = 2 * s_lignesDeStatistiques;  // en deux colonnes
 inline constexpr std::size_t s_casesDuSac = 40;  // la capacité du sac de l'escouade
@@ -43,14 +45,61 @@ inline constexpr std::size_t s_casesDuSac = 40;  // la capacité du sac de l'esc
 // Le rectangle de cet emplacement pour le personnage de cette place. Même précondition.
 [[nodiscard]] sf::FloatRect rectangleDeLEmplacement(std::size_t place, Emplacement emplacement, sf::Vector2f tailleDeVue);
 
-// Le bloc sous les emplacements : les cinq caractéristiques et les points de vie, en deux colonnes de
-// `s_lignesDeCaracteristiques` lignes (`rectangleDeLaCaracteristique`). Même précondition.
+// Le bloc sous les emplacements : les cinq caractéristiques et les points de vie, en une colonne de
+// `s_lignesDeCaracteristiques` lignes pleine largeur (la place des boutons des points libres à droite). Même précondition.
 [[nodiscard]] sf::FloatRect rectangleDesCaracteristiques(std::size_t place, sf::Vector2f tailleDeVue);
 
-// La cellule d'une ligne du bloc : l'indice 0 à 4 est la caractéristique de ce rang dans l'enum
-// (`s_caracteristiques`), l'indice 5 les points de vie ; remplies colonne par colonne (Puissance,
-// Endurance, Adresse, puis Savoir, Volonté, points de vie). `assert(indice <= s_nombreDeCaracteristiques)`.
+// La ligne du bloc : l'indice 0 à 4 est la caractéristique de ce rang dans l'enum (`s_caracteristiques`), l'indice 5 les
+// points de vie, de haut en bas. `assert(indice <= s_nombreDeCaracteristiques)`.
 [[nodiscard]] sf::FloatRect rectangleDeLaCellule(std::size_t place, std::size_t indice, sf::Vector2f tailleDeVue);
+
+// Les boutons des points libres. Les rectangles sont toujours les mêmes : que le bouton soit visible ou actif, c'est à
+// l'écran d'en décider (`EcranInventaire`). « + » et « − » sont à droite de la ligne de la caractéristique ; « Apply » et
+// « Reset » à droite de la ligne des points de vie. `assert` : place de 1 à `s_nombreDePlaces`.
+[[nodiscard]] sf::FloatRect rectangleDuBoutonPlus(std::size_t place, Caracteristique caracteristique, sf::Vector2f tailleDeVue);
+[[nodiscard]] sf::FloatRect rectangleDuBoutonMoins(std::size_t place, Caracteristique caracteristique, sf::Vector2f tailleDeVue);
+[[nodiscard]] sf::FloatRect rectangleDuBoutonAppliquer(std::size_t place, sf::Vector2f tailleDeVue);
+[[nodiscard]] sf::FloatRect rectangleDuBoutonReinitialiser(std::size_t place, sf::Vector2f tailleDeVue);
+
+// Un bouton des points libres : le « + » d'une caractéristique d'un personnage, son « − », « Apply » ou « Reset » de
+// ce personnage (place de 1 à N, comme partout).
+struct BoutonPlus {
+    std::size_t place;
+    Caracteristique caracteristique;
+
+    bool operator==(const BoutonPlus&) const = default;
+};
+struct BoutonMoins {
+    std::size_t place;
+    Caracteristique caracteristique;
+
+    bool operator==(const BoutonMoins&) const = default;
+};
+struct BoutonAppliquer {
+    std::size_t place;
+
+    bool operator==(const BoutonAppliquer&) const = default;
+};
+struct BoutonReinitialiser {
+    std::size_t place;
+
+    bool operator==(const BoutonReinitialiser&) const = default;
+};
+using BoutonDePoints = std::variant<BoutonPlus, BoutonMoins, BoutonAppliquer, BoutonReinitialiser>;
+
+// Le bouton dont le rectangle contient ce point ; vide ailleurs. Il ne dit pas si le bouton est visible : ils le sont ou
+// non selon l'état de l'écran.
+[[nodiscard]] std::optional<BoutonDePoints> boutonSous(sf::Vector2f point, sf::Vector2f tailleDeVue);
+
+// La caractéristique d'un personnage dont la ligne contient ce point (boutons compris), pour son infobulle.
+struct CaracteristiqueSurvolee {
+    std::size_t place;
+    Caracteristique caracteristique;
+
+    bool operator==(const CaracteristiqueSurvolee&) const = default;
+};
+// Vide si le point n'est sur la ligne d'aucune caractéristique.
+[[nodiscard]] std::optional<CaracteristiqueSurvolee> caracteristiqueSous(sf::Vector2f point, sf::Vector2f tailleDeVue);
 
 // Le bloc sous celui des caractéristiques : les statistiques de combat, en deux colonnes de
 // `s_lignesDeStatistiques` lignes (`rectangleDeLaStatistique`). Même précondition.
