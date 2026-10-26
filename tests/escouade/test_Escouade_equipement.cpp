@@ -666,3 +666,36 @@ TEST_CASE("Escouade::monterAuNiveau : les points libres augmentent de trois par 
         REQUIRE(escouade.pointsLibresDuPersonnage(place) == 9);
     }
 }
+
+// Le signal « Points to spend » (étape 100.3) : tant qu'un personnage au moins a des points libres.
+TEST_CASE("aDesPointsLibres : aucun au niveau 1, oui apres une montee de niveau") {
+    Escouade escouade = uneEscouade({50.0f, 50.0f});
+    REQUIRE_FALSE(escouade.aDesPointsLibres());
+
+    escouade.monterAuNiveau(2);
+
+    REQUIRE(escouade.aDesPointsLibres());
+}
+
+TEST_CASE("aDesPointsLibres : tant qu'un seul personnage en a, et plus quand tous ont tout depense") {
+    Escouade escouade(sf::Vector2f{50.0f, 50.0f}, membresDeTest(), Inventaire(Escouade::s_capaciteDuSac), 2);  // 3 chacun
+    REQUIRE(escouade.depenserDesPoints(s_guerrier, Caracteristiques::seule(Caracteristique::Puissance, 3)));
+    REQUIRE(escouade.depenserDesPoints(s_pretre, Caracteristiques::seule(Caracteristique::Volonte, 3)));
+    REQUIRE(escouade.aDesPointsLibres());  // le mage n'a rien depense
+
+    REQUIRE(escouade.depenserDesPoints(s_mage, Caracteristiques::seule(Caracteristique::Savoir, 2)));
+    REQUIRE(escouade.aDesPointsLibres());  // il lui en reste un
+
+    REQUIRE(escouade.depenserDesPoints(s_mage, Caracteristiques::seule(Caracteristique::Savoir, 1)));
+    REQUIRE_FALSE(escouade.aDesPointsLibres());
+}
+
+TEST_CASE("aDesPointsLibres : un mort garde ses points, le signal reste") {
+    Escouade escouade(sf::Vector2f{50.0f, 50.0f}, membresDeTest(), Inventaire(Escouade::s_capaciteDuSac), 2);
+    REQUIRE(escouade.depenserDesPoints(s_guerrier, Caracteristiques::seule(Caracteristique::Puissance, 3)));
+    REQUIRE(escouade.depenserDesPoints(s_pretre, Caracteristiques::seule(Caracteristique::Volonte, 3)));
+    static_cast<void>(subirCoup(escouade, 1, s_mage, 1'000'000));  // le mage meurt avec ses 3 points
+    REQUIRE(escouade.pointsDeVieDuPersonnage(s_mage) == 0);
+
+    REQUIRE(escouade.aDesPointsLibres());
+}

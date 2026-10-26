@@ -70,6 +70,7 @@ constexpr float s_largeurBarreDExperience = 110.0f;    // en pixels
 constexpr float s_hauteurBarreDExperience = 8.0f;
 const sf::Color s_couleurFondDeLaBarreDExperience(30, 30, 30, 200);
 const sf::Color s_couleurDeLaBarreDExperience(120, 220, 255);  // le bleu clair de « Level up! »
+const sf::Color s_couleurDesPointsADepenser(255, 215, 0);      // « Points to spend » : l'or de « Points: N » de l'inventaire
 
 // Un texte de l'en-tête, contour noir pour rester lisible sur la carte.
 sf::Text texteDeLEnTete(const sf::Font& police, const std::string& ligne, sf::Vector2f position) {
@@ -96,8 +97,9 @@ void dessinerLaBarreDExperience(sf::RenderTarget& rendu, sf::Vector2f coinHautGa
     rendu.draw(remplissage);
 }
 
-// « Depth 2 / 5 », « Level N » et sa barre d'expérience sur la première ligne, puis « Monsters: N » dessous, dans le coin haut
-// gauche, en coordonnées de la fenêtre (à appeler avec la vue par défaut).
+// « Depth 2 / 5 », « Level N », sa barre d'expérience et, tant qu'un personnage a des points libres, « Points to spend » sur la
+// première ligne, puis « Monsters: N » dessous, dans le coin haut gauche, en coordonnées de la fenêtre (à appeler avec la vue par
+// défaut).
 void dessinerEnTete(sf::RenderTarget& rendu, const sf::Font& police, const Partie& partie) {
     const float interligne = police.getLineSpacing(s_tailleCompteur);
     const sf::Text profondeur = texteDeLEnTete(police, ligneDeProfondeur(partie.getProfondeur()), {s_margeCompteur, s_margeCompteur});
@@ -108,6 +110,11 @@ void dessinerEnTete(sf::RenderTarget& rendu, const sf::Font& police, const Parti
     const float xBarre = xNiveau + niveau.getGlobalBounds().size.x + s_ecartDansLEnTete / 2.0f;
     dessinerLaBarreDExperience(rendu, {xBarre, s_margeCompteur + (interligne - s_hauteurBarreDExperience) / 2.0f},
                                progressionVersLeNiveauSuivant(partie.getExperience()));
+    if (partie.getEscouade().aDesPointsLibres()) {
+        sf::Text points = texteDeLEnTete(police, ligneDePointsADepenser(), {xBarre + s_largeurBarreDExperience + s_ecartDansLEnTete, s_margeCompteur});
+        points.setFillColor(s_couleurDesPointsADepenser);
+        rendu.draw(points);
+    }
     rendu.draw(texteDeLEnTete(police, "Monsters: " + std::to_string(partie.monstresRestants()), {s_margeCompteur, s_margeCompteur + interligne}));
 }
 

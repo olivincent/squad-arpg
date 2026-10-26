@@ -87,6 +87,8 @@ public:
     // dépenser (calculés : `Personnage::getPointsLibres`) ; vide si la place est invalide.
     [[nodiscard]] std::optional<Caracteristiques> pointsDepensesDuPersonnage(std::size_t place) const;
     [[nodiscard]] std::optional<int> pointsLibresDuPersonnage(std::size_t place) const;
+    // Au moins un personnage, mort compris (il garde ses points), a des points libres à dépenser : le signal « Points to spend ».
+    [[nodiscard]] bool aDesPointsLibres() const;
     // Fait dépenser ces points au personnage de cette place (`Personnage::depenserDesPoints`), tout ou rien ; faux, sans rien
     // changer, si la place est invalide ou si la dépense est refusée (valeur négative, plus que ses points libres). Permis à
     // tout moment, même en combat, et pour un mort.

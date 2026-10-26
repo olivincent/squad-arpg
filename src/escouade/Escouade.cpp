@@ -495,6 +495,10 @@ std::optional<int> Escouade::pointsLibresDuPersonnage(std::size_t place) const {
     return personnageDeLaPlace(place).getPointsLibres();
 }
 
+bool Escouade::aDesPointsLibres() const {
+    return std::ranges::any_of(m_personnages, [](const Personnage& personnage) { return personnage.getPointsLibres() > 0; });
+}
+
 bool Escouade::depenserDesPoints(std::size_t place, const Caracteristiques& depense) {
     return placeValide(place) && personnageDeLaPlace(place).depenserDesPoints(depense);
 }
