@@ -19,8 +19,8 @@ struct MembreDExpedition {
 // La profondeur du dernier étage : prendre son escalier, c'est gagner l'expédition (« à tester »).
 inline constexpr int s_profondeurMaximale = 5;
 
-// Ce qui survit d'un étage à l'autre, et rien d'autre : la profondeur, la graine, les personnages (dans l'ordre des places) et
-// le sac commun. Aucune position, aucun combat, aucun monstre ni objet au sol : tout cela appartient à l'étage (`Partie`), qui
+// Ce qui survit d'un étage à l'autre, et rien d'autre : la profondeur, la graine, les personnages (dans l'ordre des places),
+// le sac commun et l'expérience de l'escouade (un seul niveau pour tous). Aucune position, aucun combat, aucun monstre ni objet au sol : tout cela appartient à l'étage (`Partie`), qui
 // se reconstruit en entier à chaque descente. Une valeur : la copier donne une autre expédition. Elle grandira (expérience,
 // points libres) et sera, un jour, ce qu'on sauvegarde.
 struct Expedition {  // NOLINT(cppcoreguidelines-pro-type-member-init): la graine n'a pas de valeur par défaut exprès, un oubli est signalé par le compilateur
@@ -28,10 +28,11 @@ struct Expedition {  // NOLINT(cppcoreguidelines-pro-type-member-init): la grain
     Generateur::result_type graine;        // celle de l'expédition ; chaque étage en dérive la sienne (`graineDEtage`)
     std::vector<MembreDExpedition> membres;
     Inventaire sac;
+    int experience = 0;                    // l'expérience TOTALE de l'escouade ; son niveau s'en déduit (`niveauPour`), jamais stocké
 };
 
 // Une expédition qui commence : profondeur 1, chaque personnage dans l'état de sa définition (équipement de départ porté,
-// caractéristiques de sa classe), un sac vide. `assert` : la composition n'est pas vide.
+// caractéristiques de sa classe), un sac vide, aucune expérience (niveau 1). `assert` : la composition n'est pas vide.
 [[nodiscard]] Expedition nouvelleExpedition(std::vector<DefinitionPersonnage> composition, Generateur::result_type graine);
 
 // Les personnages à construire pour l'étage où l'expédition est : leur définition, avec les caractéristiques qu'elle garde, et

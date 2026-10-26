@@ -90,7 +90,7 @@ public:
     [[nodiscard]] bool ramasserDesObjetsAleatoires(std::size_t nombre);
 
     // L'expédition telle qu'elle est maintenant : ce qui doit survivre à l'étage (équipement et caractéristiques de base de chaque
-    // personnage, sac) lu dans l'escouade, la profondeur et la graine de celle que la partie a reçue. Rien de l'état de l'étage
+    // personnage, sac) lu dans l'escouade, l'expérience gagnée pendant l'étage, la profondeur et la graine de celle que la partie a reçue. Rien de l'état de l'étage
     // (positions, combat, agresseurs, provocations, visées, recharges, objets au sol, monstres). Pour construire l'étage suivant.
     [[nodiscard]] Expedition expedition() const;
 
@@ -190,8 +190,8 @@ private:
     // Compare la photo du début de l'image à celle de la fin et applique les coups gratuits dans les
     // deux sens (calculés tous deux avant d'en appliquer un) ; retire les monstres tués et lève leur verrou.
     void appliquerLesCoupsDOpportunite(const CampsDeControle& avant);
-    // Retire les monstres morts ; chacun, dans l'ordre du vecteur, laisse son butin (un tirage de chance, puis les objets) à
-    // l'endroit de sa mort. Le seul endroit où un monstre quitte le vecteur.
+    // Retire les monstres morts ; chacun, dans l'ordre du vecteur, rapporte son expérience à l'escouade puis laisse son butin
+    // (un tirage de chance, puis les objets) à l'endroit de sa mort. Le seul endroit où un monstre quitte le vecteur.
     void retirerLesMorts();
     // `enPoursuiteAvant` : statut de chaque monstre de `m_monstres` avant leur mise à jour.
     void alerterLesGroupes(const std::vector<bool>& enPoursuiteAvant);

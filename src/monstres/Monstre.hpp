@@ -81,6 +81,8 @@ public:
     // Ce que sa mort laisse : la chance (en pour cent) et le nombre d'objets de sa définition.
     [[nodiscard]] int getChanceDeButin() const;
     [[nodiscard]] int getNombreDObjets() const;
+    // L'expérience que sa mort rapporte à l'escouade.
+    [[nodiscard]] int getExperience() const;
 
 private:
     enum class Etat { EnGarde, Poursuite, Retour };
@@ -103,6 +105,7 @@ private:
     StatistiquesDeCombat m_statistiques;
     int m_chanceDeButin;
     int m_nombreDObjets;
+    int m_experience;
     float m_regenerationRetour;
     Etat m_etat;
     sf::Vector2f m_poste;

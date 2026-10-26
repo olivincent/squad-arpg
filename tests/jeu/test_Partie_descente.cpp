@@ -211,3 +211,17 @@ TEST_CASE("descente : les monstres de l'etage suivant sont plus forts que ceux d
     REQUIRE(deuxieme.getMonstres().front().getPointsDeVie() > premier.getMonstres().front().getPointsDeVie());
     REQUIRE(deuxieme.getMonstres().front().getAttaque().degats.total() > premier.getMonstres().front().getAttaque().degats.total());
 }
+
+TEST_CASE("descente : l'experience survit a la descente, dans l'expedition de l'etage suivant") {
+    Expedition expedition = expeditionDeTest();
+    expedition.experience = 137;
+    Partie partie(niveauAvecEscalier({{s_coinLointain, 0}}), expedition, s_graineDeTest, catalogueDeTest(monstreSansHasard()));
+    prendreLEscalier(partie);
+    REQUIRE(partie.doitDescendre());
+
+    const Expedition suivante = etageSuivant(partie.expedition());
+    const Partie etageSuivantPartie(niveauAvecEscalier({{s_coinLointain, 0}}), suivante, s_graineDeTest, catalogueDeTest(monstreSansHasard()));
+
+    REQUIRE(suivante.experience == 137);
+    REQUIRE(etageSuivantPartie.expedition().experience == 137);
+}

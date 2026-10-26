@@ -282,6 +282,7 @@ void Partie::retirerLesMorts() {
         if (monstre.estVivant()) {
             continue;
         }
+        m_expedition.experience += monstre.getExperience();  // à l'escouade, quel que soit le tueur, même si des personnages sont morts
         for (const Objet& objet : genererButin(m_generateur, monstre.getChanceDeButin(), monstre.getNombreDObjets())) {
             m_sol.poser(objet, monstre.getCentre(), m_carte);
         }

@@ -31,6 +31,7 @@ Monstre::Monstre(sf::Vector2f centre, int id, int groupe, const DefinitionDeMons
       m_statistiques(definition.statistiques),
       m_chanceDeButin(definition.chanceDeButin),
       m_nombreDObjets(definition.nombreDObjets),
+      m_experience(definition.experience),
       m_regenerationRetour(definition.regenerationRetour),
       m_etat(Etat::EnGarde),
       m_poste(centre),
@@ -140,6 +141,10 @@ int Monstre::getChanceDeButin() const {
 
 int Monstre::getNombreDObjets() const {
     return m_nombreDObjets;
+}
+
+int Monstre::getExperience() const {
+    return m_experience;
 }
 
 // Détecte la proie si elle est dans le rayon de détection, dans le territoire

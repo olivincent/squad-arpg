@@ -46,6 +46,7 @@ TEST_CASE("nouvelleExpedition : profondeur 1, l'equipement de depart porte, un s
 
     REQUIRE(expedition.profondeur == 1);
     REQUIRE(expedition.graine == 777);
+    REQUIRE(expedition.experience == 0);
     REQUIRE(expedition.membres.size() == composition.size());
     for (std::size_t i = 0; i < composition.size(); ++i) {
         REQUIRE(expedition.membres[i].equipement == Equipement(composition[i].equipementDeDepart));

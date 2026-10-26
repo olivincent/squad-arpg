@@ -82,6 +82,7 @@ add_library(squad_core STATIC
     src/combat/EvenementDeCombat.cpp
     src/combat/Blocage.cpp
     src/combat/Caracteristiques.cpp
+    src/combat/Progression.cpp
     src/combat/Defense.cpp
     src/combat/ResolutionDuCoup.cpp
     src/objets/Emplacement.cpp
@@ -185,6 +186,7 @@ add_executable(tests
     tests/combat/test_Vitalite.cpp
     tests/combat/test_Defense.cpp
     tests/combat/test_Caracteristiques.cpp
+    tests/combat/test_Progression.cpp
     tests/combat/test_StatistiquesDeCombat.cpp
     tests/combat/test_ResolutionDuCoup.cpp
     tests/combat/test_ResolutionDuCoup_portions.cpp
@@ -222,6 +224,7 @@ add_executable(tests
     tests/jeu/test_Partie_zonesDeControle.cpp
     tests/jeu/test_Partie_evenements.cpp
     tests/jeu/test_CoherenceDesDonnees.cpp
+    tests/jeu/test_CalibrageDeLExperience.cpp
     tests/jeu/test_Partie_performance.cpp
     tests/interface/test_TextesFlottants.cpp
     tests/monde/test_ObjetInteractif.cpp

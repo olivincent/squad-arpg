@@ -9,6 +9,7 @@
 #include "aides_escouade.hpp"
 #include "jeu/ObjetAuSol.hpp"
 #include "jeu/Partie.hpp"
+#include "monde/CategorieDeMonstre.hpp"
 #include "monde/Niveau.hpp"
 #include "monde/TileMap.hpp"
 #include "monstres/DefinitionDeMonstre.hpp"
@@ -70,6 +71,23 @@ TEST_CASE("butin : un monstre tue avec 100 % laisse le bon nombre d'objets valid
     for (const ObjetAuSol& objet : partie.getSol().tous()) {
         REQUIRE(objetValide(objet.objet));
     }
+}
+
+TEST_CASE("experience : un monstre tue ajoute son experience a l'expedition, comme le butin, quel que soit le butin") {
+    Partie partie = partieDeButin(salleAvecMonstres({{140.0f, 60.0f}}), 0, 1);
+    REQUIRE(partie.expedition().experience == 0);
+
+    toutTuer(partie);
+
+    REQUIRE(partie.expedition().experience == definitionDeMonstre(CategorieDeMonstre::Infanterie).experience);
+}
+
+TEST_CASE("experience : chaque monstre tue rapporte la sienne, l'experience s'additionne") {
+    Partie partie = partieDeButin(salleAvecMonstres({{140.0f, 60.0f}, {200.0f, 60.0f}, {260.0f, 60.0f}}), 0, 1);
+
+    toutTuer(partie);
+
+    REQUIRE(partie.expedition().experience == 3 * definitionDeMonstre(CategorieDeMonstre::Infanterie).experience);
 }
 
 TEST_CASE("butin : avec 0 %, un monstre tue ne laisse rien") {

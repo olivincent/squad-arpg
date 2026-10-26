@@ -17,7 +17,7 @@ constexpr unsigned int s_decalageC = 31;
 
 Expedition nouvelleExpedition(std::vector<DefinitionPersonnage> composition, Generateur::result_type graine) {
     assert(!composition.empty());
-    Expedition expedition{.profondeur = 1, .graine = graine, .membres = {}, .sac = Inventaire(Escouade::s_capaciteDuSac)};
+    Expedition expedition{.profondeur = 1, .graine = graine, .membres = {}, .sac = Inventaire(Escouade::s_capaciteDuSac), .experience = 0};
     for (DefinitionPersonnage& definition : composition) {
         Equipement equipement(definition.equipementDeDepart);
         definition.equipementDeDepart.clear();
