@@ -67,6 +67,15 @@ constexpr Caracteristiques s_caracteristiquesPretre({10, 10, 8, 10, 12});
 constexpr Caracteristiques s_caracteristiquesMage({10, 8, 8, 14, 10});
 constexpr Caracteristiques s_caracteristiquesRodeur({10, 10, 14, 8, 8});
 
+// La paire de caractéristiques qui grandissent avec le niveau de chaque classe (la première au niveau 2, la seconde au niveau 3,
+// en alternance ; « à tester »). Le Savoir et la Volonté n'ont encore aucun effet : les paires du prêtre et du mage deviendront
+// justes quand ces caractéristiques serviront.
+constexpr PaireDeCroissance s_croissanceGuerrier = {Caracteristique::Puissance, Caracteristique::Endurance};
+constexpr PaireDeCroissance s_croissancePaladin = {Caracteristique::Puissance, Caracteristique::Endurance};
+constexpr PaireDeCroissance s_croissancePretre = {Caracteristique::Puissance, Caracteristique::Volonte};
+constexpr PaireDeCroissance s_croissanceMage = {Caracteristique::Puissance, Caracteristique::Savoir};
+constexpr PaireDeCroissance s_croissanceRodeur = {Caracteristique::Adresse, Caracteristique::Puissance};
+
 // Tous les montants des personnages (dégâts, soins) profitent de la Puissance, à plein et d'elle seule
 // (la durée d'une provocation n'est pas un montant).
 constexpr Coefficients s_puissanceSeule = Coefficients::seul(Caracteristique::Puissance, 1.0f);
@@ -109,7 +118,7 @@ std::vector<Specialite> construireLeCatalogue() {
                                          .rechargeMax = s_rechargeProvocation, .rayonZone = s_rayonProvocation,
                                          .tempsExecution = s_activationProvocation, .nature = NatureDAttaque::Contact})}},
           .equipementDeDepart = equipementDeMelee(IdObjet::EpeeLongue), .rayonVision = s_rayonVision,
-          .caracteristiques = s_caracteristiquesGuerrier,
+          .caracteristiques = s_caracteristiquesGuerrier, .croissance = s_croissanceGuerrier,
           .rang = Rang::Avant}},
         // Prêtre : derrière, soigne.
         {IdSpecialite::Pretre, "Priest",
@@ -118,7 +127,7 @@ std::vector<Specialite> construireLeCatalogue() {
                                   .rechargeMin = s_rechargeSoin, .rechargeMax = s_rechargeSoin,
                                   .tempsExecution = s_activationSoin, .coefficients = s_puissanceSeule, .nature = NatureDAttaque::Contact})}},
           .equipementDeDepart = equipementDeTireur(IdObjet::Sceptre), .rayonVision = s_rayonVision,
-          .caracteristiques = s_caracteristiquesPretre,
+          .caracteristiques = s_caracteristiquesPretre, .croissance = s_croissancePretre,
           .rang = Rang::Arriere}},
         // Mage : derrière, lance l'explosion.
         {IdSpecialite::Mage, "Mage",
@@ -128,7 +137,7 @@ std::vector<Specialite> construireLeCatalogue() {
                                        .rayonZone = s_rayonZone, .tempsExecution = s_activationZone, .coefficients = s_puissanceSeule,
                                        .nature = NatureDAttaque::Zone, .element = Element::Feu})}},
           .equipementDeDepart = equipementDeTireur(IdObjet::Baton), .rayonVision = s_rayonVision,
-          .caracteristiques = s_caracteristiquesMage,
+          .caracteristiques = s_caracteristiquesMage, .croissance = s_croissanceMage,
           .rang = Rang::Arriere}},
         // Paladin : devant, au contact, frappe et soigne.
         {IdSpecialite::Paladin, "Paladin",
@@ -145,7 +154,7 @@ std::vector<Specialite> construireLeCatalogue() {
                                                 .rechargeMax = s_rechargeImposition,
                                                 .tempsExecution = s_activationImposition, .coefficients = s_puissanceSeule, .nature = NatureDAttaque::Contact})}},
           .equipementDeDepart = equipementDeMelee(IdObjet::Masse), .rayonVision = s_rayonVision,
-          .caracteristiques = s_caracteristiquesPaladin,
+          .caracteristiques = s_caracteristiquesPaladin, .croissance = s_croissancePaladin,
           .rang = Rang::Avant}},
         // Rôdeur : derrière, tire de loin et lance une pluie de flèches.
         {IdSpecialite::Rodeur, "Ranger",
@@ -160,7 +169,7 @@ std::vector<Specialite> construireLeCatalogue() {
                                             .tempsExecution = s_activationPluie, .coefficients = s_puissanceSeule,
                                             .nature = NatureDAttaque::Zone, .armesExigees = s_armesDeTir})}},
           .equipementDeDepart = equipementDeTireur(IdObjet::Arc), .rayonVision = s_rayonVision,
-          .caracteristiques = s_caracteristiquesRodeur,
+          .caracteristiques = s_caracteristiquesRodeur, .croissance = s_croissanceRodeur,
           .rang = Rang::Arriere}},
     };
 }

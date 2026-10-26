@@ -193,6 +193,8 @@ private:
     // Retire les monstres morts ; chacun, dans l'ordre du vecteur, rapporte son expérience à l'escouade puis laisse son butin
     // (un tirage de chance, puis les objets) à l'endroit de sa mort. Le seul endroit où un monstre quitte le vecteur.
     void retirerLesMorts();
+    // Si l'expérience de l'expédition donne un niveau de plus que l'escouade n'en a, tous les niveaux gagnés s'appliquent d'un coup.
+    void monterSiLExperienceLeDonne();
     // `enPoursuiteAvant` : statut de chaque monstre de `m_monstres` avant leur mise à jour.
     void alerterLesGroupes(const std::vector<bool>& enPoursuiteAvant);
 

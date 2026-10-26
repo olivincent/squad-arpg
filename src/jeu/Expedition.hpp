@@ -9,8 +9,9 @@
 
 // Un personnage tel que l'expédition le garde d'un étage à l'autre.
 struct MembreDExpedition {
-    // Sa classe : couleur, skills, rayon de vision et rang, qui ne changent pas ; `caracteristiques` y est sa base, qui
-    // grandira (expérience, points libres). Son `equipementDeDepart` est vide : le kit de départ est devenu `equipement`.
+    // Sa classe : couleur, skills, rayon de vision, rang, paire de croissance et caractéristiques de classe (au niveau 1), qui
+    // ne changent pas : sa base est calculée (cette classe plus la croissance du niveau, `croissanceAuNiveau`), jamais copiée
+    // ici. Son `equipementDeDepart` est vide : le kit de départ est devenu `equipement`.
     DefinitionPersonnage definition;
     // Ce qu'il porte, objets complets (rareté, affixes).
     Equipement equipement;

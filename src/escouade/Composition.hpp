@@ -4,6 +4,7 @@
 #include <SFML/System/Vector2.hpp>
 #include <vector>
 #include "combat/Caracteristiques.hpp"
+#include "combat/Progression.hpp"
 #include "combat/Skill.hpp"
 #include "combat/SkillConnu.hpp"
 #include "objets/Equipement.hpp"
@@ -20,7 +21,10 @@ struct DefinitionPersonnage {
     // `Equipement`. Ni `Personnage` ni `Escouade` ne la lisent : ils reçoivent l'`Equipement` (`MembreDEscouade`).
     std::vector<ObjetDeDepart> equipementDeDepart = {};
     float rayonVision;
-    Caracteristiques caracteristiques = {};  // la base de sa classe ; l'équipement s'y ajoute (ses points de vie en viennent : `pointsDeVieMax`)
+    Caracteristiques caracteristiques = {};  // la base de sa classe, au niveau 1 ; la croissance de ses niveaux, puis l'équipement s'y ajoutent
+    // Les deux caractéristiques qui grandissent avec le niveau, en alternance (`croissanceAuNiveau`) ; par défaut Puissance et
+    // Endurance, celles du guerrier.
+    PaireDeCroissance croissance = {Caracteristique::Puissance, Caracteristique::Endurance};
     Rang rang = Rang::Avant;
 };
 

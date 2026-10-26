@@ -51,8 +51,8 @@ TEST_CASE("Caracteristiques : += accumule") {
 TEST_CASE("pointsDeVieMax : la base commune plus 6 par point d'Endurance, les autres caracteristiques sont sans effet") {
     const Caracteristiques caracteristiques({99, 14, 99, 99, 99});
 
-    REQUIRE(pointsDeVieMax(caracteristiques) == s_pointsDeVieDeBase + s_pvParPointDEndurance * 14);
-    REQUIRE(pointsDeVieMax(Caracteristiques()) == s_pointsDeVieDeBase);
+    REQUIRE(pointsDeVieMax(caracteristiques, 1) == s_pointsDeVieDeBase + s_pvParPointDEndurance * 14);
+    REQUIRE(pointsDeVieMax(Caracteristiques(), 1) == s_pointsDeVieDeBase);
 }
 
 TEST_CASE("Coefficients : par defaut tous a zero, seul() n'en pose qu'un") {
@@ -107,4 +107,14 @@ TEST_CASE("montantEffectif : jamais negatif") {
     const Coefficients coefficients = Coefficients::seul(Caracteristique::Puissance, 1.0f);
 
     REQUIRE(montantEffectif(100, coefficients, Caracteristiques({-1000, 0, 0, 0, 0})) == 0);
+}
+
+TEST_CASE("pointsDeVieMax : la base, l'Endurance et 8 points par niveau au-dela du premier") {
+    const Caracteristiques caracteristiques = Caracteristiques::seule(Caracteristique::Endurance, 14);
+
+    REQUIRE(pointsDeVieMax(caracteristiques, 1) == s_pointsDeVieDeBase + s_pvParPointDEndurance * 14);
+    REQUIRE(pointsDeVieMax(caracteristiques, 2) == s_pointsDeVieDeBase + s_pvParPointDEndurance * 14 + s_pvParNiveau);
+    REQUIRE(pointsDeVieMax(caracteristiques, 11) == s_pointsDeVieDeBase + s_pvParPointDEndurance * 14 + 10 * s_pvParNiveau);
+    REQUIRE(pointsDeVieMax(Caracteristiques(), 6) == 240 + 5 * 8);
+    REQUIRE(s_pvParNiveau == 8);
 }

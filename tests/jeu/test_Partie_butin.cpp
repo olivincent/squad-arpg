@@ -1,12 +1,17 @@
 // ./tests/jeu/test_Partie_butin.cpp
 #include <catch2/catch_test_macros.hpp>
 #include <SFML/System/Vector2.hpp>
+#include <cstddef>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
 
 #include "aides.hpp"
 #include "aides_escouade.hpp"
+#include "combat/Caracteristiques.hpp"
+#include "combat/Progression.hpp"
+#include "jeu/Expedition.hpp"
 #include "jeu/ObjetAuSol.hpp"
 #include "jeu/Partie.hpp"
 #include "monde/CategorieDeMonstre.hpp"
@@ -88,6 +93,64 @@ TEST_CASE("experience : chaque monstre tue rapporte la sienne, l'experience s'ad
     toutTuer(partie);
 
     REQUIRE(partie.expedition().experience == 3 * definitionDeMonstre(CategorieDeMonstre::Infanterie).experience);
+}
+
+namespace {
+// Un monstre qui meurt au premier coup et rapporte cette expérience.
+Partie partieAvecExperience(int experience) {
+    DefinitionDeMonstre definition = monstreQuiLaisse(0, 1);
+    definition.experience = experience;
+    return partieDeTest(salleAvecMonstres({{140.0f, 60.0f}}), compositionDeTest(), s_graineDeTest, definition);
+}
+}  // namespace
+
+TEST_CASE("niveau : une partie commence au niveau de l'experience de l'expedition") {
+    REQUIRE(partieAvecExperience(10).getEscouade().getNiveau() == 1);
+
+    Expedition expedition = expeditionDeTest();
+    expedition.experience = experiencePourAtteindre(3);
+    const Partie partie(salleAvecMonstres({}), expedition, s_graineDeTest, catalogueDeTest(monstreSansHasard()));
+
+    REQUIRE(partie.getEscouade().getNiveau() == 3);
+    REQUIRE(partie.getEscouade().pointsDeVieMaxDuPersonnage(1) == pointsDeVieMax(*partie.getEscouade().caracteristiquesDuPersonnage(1), 3));
+}
+
+TEST_CASE("niveau : l'experience d'un monstre tue fait monter l'escouade au seuil exact") {
+    Partie partie = partieAvecExperience(experiencePourAtteindre(2) - 1);
+    toutTuer(partie);
+    REQUIRE(partie.getEscouade().getNiveau() == 1);
+
+    Partie assez = partieAvecExperience(experiencePourAtteindre(2));
+    toutTuer(assez);
+    REQUIRE(assez.getEscouade().getNiveau() == 2);
+}
+
+TEST_CASE("niveau : plusieurs niveaux gagnes d'un coup sont tous appliques, a chaque personnage") {
+    Partie partie = partieAvecExperience(experiencePourAtteindre(5));
+    const std::optional<Caracteristiques> avant = partie.getEscouade().caracteristiquesDeBaseDuPersonnage(1);  // le guerrier de test : Puissance, Endurance
+    const std::optional<int> vieMaxAvant = partie.getEscouade().pointsDeVieMaxDuPersonnage(1);
+
+    toutTuer(partie);
+
+    REQUIRE(partie.getEscouade().getNiveau() == 5);
+    REQUIRE(partie.expedition().experience == experiencePourAtteindre(5));
+    const Caracteristiques apres = *partie.getEscouade().caracteristiquesDeBaseDuPersonnage(1);
+    REQUIRE(apres.valeur(Caracteristique::Puissance) == avant->valeur(Caracteristique::Puissance) + 2);   // niveaux 2 et 4
+    REQUIRE(apres.valeur(Caracteristique::Endurance) == avant->valeur(Caracteristique::Endurance) + 2);   // niveaux 3 et 5
+    REQUIRE(*partie.getEscouade().pointsDeVieMaxDuPersonnage(1) == *vieMaxAvant + 2 * s_pvParPointDEndurance + 4 * s_pvParNiveau);
+}
+
+TEST_CASE("niveau : la base d'un personnage ne vit que dans sa classe et l'experience, pas dans l'expedition") {
+    Partie partie = partieAvecExperience(experiencePourAtteindre(4));
+    const Expedition avant = partie.expedition();
+
+    toutTuer(partie);
+    const Expedition apres = partie.expedition();
+
+    REQUIRE(apres.experience == experiencePourAtteindre(4));
+    for (std::size_t i = 0; i < apres.membres.size(); ++i) {
+        REQUIRE(apres.membres[i].definition.caracteristiques == avant.membres[i].definition.caracteristiques);  // la classe, jamais la croissance
+    }
 }
 
 TEST_CASE("butin : avec 0 %, un monstre tue ne laisse rien") {

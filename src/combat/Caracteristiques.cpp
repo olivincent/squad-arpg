@@ -4,8 +4,10 @@
 #include <cassert>
 #include <cmath>
 
-int pointsDeVieMax(const Caracteristiques& caracteristiques) {
-    const int maximum = s_pointsDeVieDeBase + s_pvParPointDEndurance * caracteristiques.valeur(Caracteristique::Endurance);
+int pointsDeVieMax(const Caracteristiques& caracteristiques, int niveau) {
+    assert(niveau >= 1);
+    const int maximum = s_pointsDeVieDeBase + s_pvParPointDEndurance * caracteristiques.valeur(Caracteristique::Endurance) +
+                        s_pvParNiveau * (niveau - 1);
     assert(maximum > 0);
     return maximum;
 }

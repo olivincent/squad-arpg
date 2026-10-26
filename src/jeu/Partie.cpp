@@ -9,6 +9,7 @@
 #include <variant>
 #include "base/Cercle.hpp"
 #include "combat/Coup.hpp"
+#include "combat/Progression.hpp"
 #include "combat/EntiteVue.hpp"
 #include "combat/Cible.hpp"
 #include "monde/ObjetInteractif.hpp"
@@ -28,7 +29,8 @@ Partie::Partie(const Niveau& niveau, Expedition expedition, Generateur::result_t
                const CatalogueDeMonstres& catalogue)
     : m_expedition(std::move(expedition)),
       m_carte(niveau.plan, niveau.tailleCase),
-      m_escouade(niveau.departEscouade, compositionDeLExpedition(m_expedition), m_expedition.sac),
+      m_escouade(niveau.departEscouade, compositionDeLExpedition(m_expedition), m_expedition.sac,
+                 niveauPour(m_expedition.experience)),
       m_generateur(graine),
       m_vision(m_carte) {
     int prochainId = 1;
@@ -288,6 +290,14 @@ void Partie::retirerLesMorts() {
         }
     }
     std::erase_if(m_monstres, [](const Monstre& m) { return !m.estVivant(); });
+    monterSiLExperienceLeDonne();
+}
+
+void Partie::monterSiLExperienceLeDonne() {
+    const int niveau = niveauPour(m_expedition.experience);
+    if (niveau > m_escouade.getNiveau()) {
+        m_escouade.monterAuNiveau(niveau);
+    }
 }
 
 void Partie::appliquer(const std::vector<Coup>& coups, bool opportunite) {
@@ -572,7 +582,6 @@ Expedition Partie::expedition() const {
     for (std::size_t i = 0; i < expedition.membres.size(); ++i) {
         const std::size_t place = i + 1;
         expedition.membres[i].equipement = m_escouade.equipementDuPersonnage(place);
-        expedition.membres[i].definition.caracteristiques = m_escouade.caracteristiquesDeBaseDuPersonnage(place).value_or(Caracteristiques());
     }
     expedition.sac = m_escouade.sac();
     return expedition;

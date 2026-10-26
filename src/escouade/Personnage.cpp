@@ -30,10 +30,13 @@ Skill skillDeLAttaqueDeBase(const DescriptionDAttaque& description) {
 }
 }  // namespace
 
-Personnage::Personnage(sf::Vector2f centre, DefinitionPersonnage definition, Equipement equipement)
+Personnage::Personnage(sf::Vector2f centre, DefinitionPersonnage definition, Equipement equipement, int niveau)
     : m_mobile(centre, {s_cote, s_cote}, s_vitesse),
       m_couleur(definition.couleur),
-      m_caracteristiquesDeBase(definition.caracteristiques),
+      m_caracteristiquesDeClasse(definition.caracteristiques),
+      m_croissance(definition.croissance),
+      m_niveau(niveau),
+      m_caracteristiquesDeBase(baseAuNiveau(niveau)),
       m_equipement(std::move(equipement)),
       m_equipementActif(m_equipement.actifPour(m_caracteristiquesDeBase)),
       m_descriptionDeBase(m_equipementActif.attaqueDeBase()),
@@ -42,10 +45,11 @@ Personnage::Personnage(sf::Vector2f centre, DefinitionPersonnage definition, Equ
       m_cibleChemin(),
       m_caracteristiques(m_caracteristiquesDeBase + m_equipementActif.bonusTotal()),
       m_statistiques(statistiquesDuPersonnage(m_caracteristiques, m_equipementActif.bonusDeCombatTotal())),
-      m_vitalite(pointsDeVieMax(m_caracteristiques), defenses()),
+      m_vitalite(pointsDeVieMax(m_caracteristiques, m_niveau), defenses()),
       m_rayonVision(definition.rayonVision),
       m_actionEngagee()
 {
+    assert(niveau >= 1);
     for (std::size_t i = 0; i < m_skills.size(); ++i) {
         for (std::size_t j = i + 1; j < m_skills.size(); ++j) {
             assert(m_skills[i].id != m_skills[j].id);
@@ -356,11 +360,26 @@ Defenses Personnage::defenses() const {
     return {.armure = m_equipementActif.armureTotale(), .statistiques = m_statistiques};
 }
 
+Caracteristiques Personnage::baseAuNiveau(int niveau) const {
+    return m_caracteristiquesDeClasse + croissanceAuNiveau(niveau, m_croissance);
+}
+
+int Personnage::getNiveau() const {
+    return m_niveau;
+}
+
+void Personnage::monterAuNiveau(int niveau) {
+    assert(niveau >= m_niveau);
+    m_niveau = niveau;
+    m_caracteristiquesDeBase = baseAuNiveau(niveau);
+    recalculerDepuisLEquipement();
+}
+
 void Personnage::recalculerDepuisLEquipement() {
     m_equipementActif = m_equipement.actifPour(m_caracteristiquesDeBase);
     m_caracteristiques = m_caracteristiquesDeBase + m_equipementActif.bonusTotal();
     m_statistiques = statistiquesDuPersonnage(m_caracteristiques, m_equipementActif.bonusDeCombatTotal());
-    m_vitalite.definirMaximum(pointsDeVieMax(m_caracteristiques));
+    m_vitalite.definirMaximum(pointsDeVieMax(m_caracteristiques, m_niveau));
     m_vitalite.definirDefenses(defenses());
     // Un skill en activation qui exige une arme qu'on ne porte plus est annulé, sans recharge consommée.
     if (const std::optional<ActionEngagee> action = skillEngage(); action.has_value() && action->skill.has_value()) {

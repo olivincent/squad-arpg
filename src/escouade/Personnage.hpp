@@ -28,7 +28,9 @@ public:
     // son attaque de base (celle de son arme, les mains nues sans arme) et la zone qu'il engage autour de lui
     // (celle d'une attaque de contact, aucune pour un projectile) en sont calculées. Son `rang` n'est lu que par
     // la formation.
-    Personnage(sf::Vector2f centre, DefinitionPersonnage definition, Equipement equipement);
+    // `niveau` (>= 1) est celui de l'escouade : sa base est la classe plus la croissance de ce niveau, et ses points de vie en
+    // dépendent (`pointsDeVieMax`).
+    Personnage(sf::Vector2f centre, DefinitionPersonnage definition, Equipement equipement, int niveau);
     void dessiner(sf::RenderTarget& rendu) const;
     // `obstacles` le bloquent ; `aContourner` est ce que son chemin évite : la ligne droite n'est
     // prise que si elle passe loin d'eux, sinon A* avec coût (voir Mobile::allerVers).
@@ -109,10 +111,15 @@ public:
     // Ce qui a un effet (étape 92.2) : l'équipement sans ses objets inactifs, dont le seuil n'est plus atteint. Son armure
     // et ses bonus sont ceux du personnage.
     [[nodiscard]] const Equipement& getEquipementActif() const;
-    // Ses caractéristiques effectives : la base de sa classe plus les bonus de son équipement.
+    // Ses caractéristiques effectives : sa base plus les bonus de son équipement.
     [[nodiscard]] const Caracteristiques& getCaracteristiques() const;
-    // Celles de sa classe, sans l'équipement : la base des seuils d'équipement.
+    // Celles de sa classe au niveau 1 plus la croissance de son niveau, sans l'équipement : la base des seuils d'équipement.
     [[nodiscard]] const Caracteristiques& getCaracteristiquesDeBase() const;
+    [[nodiscard]] int getNiveau() const;
+    // Passe à ce niveau (`assert` : au moins le sien, tous les niveaux gagnés d'un coup s'appliquent). Sa base, ses
+    // caractéristiques, ses statistiques, ses objets actifs et son maximum de points de vie sont recalculés par le chemin de
+    // l'équipement (`recalculerDepuisLEquipement`) ; un vivant gagne autant de points de vie que son maximum, un mort reste mort.
+    void monterAuNiveau(int niveau);
     // Ses statistiques de combat, tirées de ses caractéristiques effectives (`statistiquesDuPersonnage`).
     [[nodiscard]] const StatistiquesDeCombat& getStatistiques() const;
     // Porte `objet` à cet emplacement (`assert` : `peutAller`) et rend celui qui y était. L'armure est
@@ -124,7 +131,10 @@ public:
 private:
     Mobile m_mobile;        // position (centre en pixels du monde) et déplacement
     sf::Color m_couleur;
-    Caracteristiques m_caracteristiquesDeBase;  // celles de sa classe, jamais modifiées
+    Caracteristiques m_caracteristiquesDeClasse;  // celles de sa classe au niveau 1, jamais modifiées
+    PaireDeCroissance m_croissance;              // ce qui grandit avec le niveau
+    int m_niveau;                                // celui de l'escouade, >= 1
+    Caracteristiques m_caracteristiquesDeBase;   // sa classe plus la croissance de son niveau (`baseAuNiveau`), sans l'équipement
     Equipement m_equipement;  // ce qu'il porte, objets inactifs compris ; déclaré avant ce qui en est tiré
     Equipement m_equipementActif;  // ce qui a un effet (seuils atteints, `actifPour`) : seul `recalculerDepuisLEquipement` l'écrit
     DescriptionDAttaque m_descriptionDeBase;    // celle de l'équipement, que `m_attaqueDeBase` met en œuvre
@@ -138,6 +148,8 @@ private:
     float m_rayonVision;    // en pixels
     // Ce qu'il oppose à un coup : l'armure de son équipement et ses statistiques de combat.
     [[nodiscard]] Defenses defenses() const;
+    // Sa classe plus la croissance de ce niveau (`croissanceAuNiveau`) : l'unique calcul de sa base.
+    [[nodiscard]] Caracteristiques baseAuNiveau(int niveau) const;
     // Seul endroit où les caractéristiques effectives et tout ce qui en vient (statistiques de combat, points
     // de vie maximum, défenses de la vitalité, attaque de base) changent : toujours la base plus l'équipement,
     // jamais ajustées. Une arme qui change annule le coup de base en cours, sans recharge consommée, puis

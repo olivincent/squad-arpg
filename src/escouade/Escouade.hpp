@@ -45,11 +45,16 @@ public:
     static constexpr std::size_t s_capaciteDuSac = 40;  // cases du sac de l'escouade
 
     // `membres` : un personnage par membre (sa définition et son équipement), aux places 1 à N dans l'ordre (assert : non
-    // vide). Le sac est vide.
+    // vide). Le sac est vide, le niveau est 1.
     Escouade(sf::Vector2f positionDepart, std::vector<MembreDEscouade> membres);
-    // Avec ce sac, tel quel (ses objets restent à leur case) : celui d'une expédition qui continue (`jeu/Expedition`).
-    // `assert` : sa capacité est `s_capaciteDuSac`.
-    Escouade(sf::Vector2f positionDepart, std::vector<MembreDEscouade> membres, Inventaire sac);
+    // Avec ce sac, tel quel (ses objets restent à leur case), et ce niveau (>= 1), le même pour tous les personnages : ceux
+    // d'une expédition qui continue (`jeu/Expedition`). `assert` : la capacité du sac est `s_capaciteDuSac`.
+    Escouade(sf::Vector2f positionDepart, std::vector<MembreDEscouade> membres, Inventaire sac, int niveau);
+    // Le niveau de l'escouade : celui de chacun de ses personnages.
+    [[nodiscard]] int getNiveau() const;
+    // Tous les personnages, morts compris, passent à ce niveau (`Personnage::monterAuNiveau`). `assert` : au moins le niveau
+    // actuel.
+    void monterAuNiveau(int niveau);
     // `afficherAncre` faux : le carré vert de l'ancre n'est pas dessiné (débogage).
     void dessiner(sf::RenderTarget& rendu, bool afficherAncre) const;
     void allerVers(sf::Vector2f destination, const TileMap& carte);
@@ -303,4 +308,5 @@ private:
     Agresseurs m_agresseurs; // monstres qui ont frappé l'escouade récemment
     Provocations m_provocations; // monstres provoqués par un personnage
     Inventaire m_sac;            // les objets que personne ne porte
+    int m_niveau;                // le même pour tous les personnages, >= 1
 };

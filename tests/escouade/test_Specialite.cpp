@@ -323,7 +323,7 @@ TEST_CASE("caracteristiques des classes : somme de 50, et les points de vie de d
             somme += definition.caracteristiques.valeur(caracteristique);
         }
         REQUIRE(somme == 50);
-        REQUIRE(pointsDeVieMax(definition.caracteristiques) ==
+        REQUIRE(pointsDeVieMax(definition.caracteristiques, 1) ==
                 s_pointsDeVieDeBase + s_pvParPointDEndurance * definition.caracteristiques.valeur(Caracteristique::Endurance));
     }
 }
@@ -506,4 +506,21 @@ TEST_CASE("la frappe sacree du paladin : doree contre l'infanterie lourde, physi
     const Attaque lourde = frappeSacreeDe(avecLEpee);
 
     REQUIRE(resoudreCoup(lourde, defensesDe(CategorieDeMonstre::Infanterie), true, generateur).portions.elementDominant() == Element::Physique);
+}
+
+TEST_CASE("croissance : la paire de caracteristiques de chaque classe") {
+    const PaireDeCroissance puissanceEtEndurance = {Caracteristique::Puissance, Caracteristique::Endurance};
+
+    REQUIRE(specialite(IdSpecialite::Guerrier).definition.croissance == puissanceEtEndurance);
+    REQUIRE(specialite(IdSpecialite::Paladin).definition.croissance == puissanceEtEndurance);
+    REQUIRE(specialite(IdSpecialite::Pretre).definition.croissance == PaireDeCroissance{Caracteristique::Puissance, Caracteristique::Volonte});
+    REQUIRE(specialite(IdSpecialite::Mage).definition.croissance == PaireDeCroissance{Caracteristique::Puissance, Caracteristique::Savoir});
+    REQUIRE(specialite(IdSpecialite::Rodeur).definition.croissance == PaireDeCroissance{Caracteristique::Adresse, Caracteristique::Puissance});
+}
+
+TEST_CASE("composer : la paire de croissance de la classe est gardee, quelle que soit la nuance") {
+    const std::vector<DefinitionPersonnage> composition = composer({IdSpecialite::Rodeur, IdSpecialite::Rodeur});
+
+    REQUIRE(composition[0].croissance == specialite(IdSpecialite::Rodeur).definition.croissance);
+    REQUIRE(composition[1].croissance == specialite(IdSpecialite::Rodeur).definition.croissance);
 }

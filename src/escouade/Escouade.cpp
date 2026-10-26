@@ -58,9 +58,9 @@ std::optional<int> monstreDontLaPlaceEstGardee(const Intention& intention, bool 
 }  // namespace
 
 Escouade::Escouade(sf::Vector2f positionDepart, std::vector<MembreDEscouade> membres)
-    : Escouade(positionDepart, std::move(membres), Inventaire(s_capaciteDuSac)) {}
+    : Escouade(positionDepart, std::move(membres), Inventaire(s_capaciteDuSac), 1) {}
 
-Escouade::Escouade(sf::Vector2f positionDepart, std::vector<MembreDEscouade> membres, Inventaire sac)
+Escouade::Escouade(sf::Vector2f positionDepart, std::vector<MembreDEscouade> membres, Inventaire sac, int niveau)
     : m_mobile(positionDepart + sf::Vector2f(s_coteAncre / 2.0f, s_coteAncre / 2.0f), {s_coteAncre, s_coteAncre}, s_vitesseAncre),
       m_formation(decalagesDeFormation(rangsDe(membres)), m_mobile.getCentre(), s_vitesseRotation),
       m_personnages(),
@@ -71,14 +71,27 @@ Escouade::Escouade(sf::Vector2f positionDepart, std::vector<MembreDEscouade> mem
       m_degagements(membres.size()),
       m_agresseurs(),
       m_provocations(),
-      m_sac(std::move(sac))
+      m_sac(std::move(sac)),
+      m_niveau(niveau)
 {
     assert(!membres.empty());
     assert(m_sac.capacite() == s_capaciteDuSac);
     for (std::size_t i = 0; i < membres.size(); ++i) {
-        m_personnages.emplace_back(m_formation.getPlaces()[i], std::move(membres[i].definition), std::move(membres[i].equipement));
+        m_personnages.emplace_back(m_formation.getPlaces()[i], std::move(membres[i].definition), std::move(membres[i].equipement), niveau);
     }
     m_pointsVises = m_formation.getPlaces();
+}
+
+int Escouade::getNiveau() const {
+    return m_niveau;
+}
+
+void Escouade::monterAuNiveau(int niveau) {
+    assert(niveau >= m_niveau);
+    m_niveau = niveau;
+    for (Personnage& personnage : m_personnages) {
+        personnage.monterAuNiveau(niveau);
+    }
 }
 
 bool Escouade::placeValide(std::size_t place) const {

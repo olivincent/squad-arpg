@@ -1139,7 +1139,7 @@ TEST_CASE("les points de vie maximum d'un personnage viennent de la base commune
                                  .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest,
                                  .caracteristiques = base});
 
-    REQUIRE(personnage.getPointsDeVieMax() == pointsDeVieMax(base));
+    REQUIRE(personnage.getPointsDeVieMax() == pointsDeVieMax(base, 1));
     REQUIRE(personnage.getPointsDeVie() == personnage.getPointsDeVieMax());
 }
 
@@ -1177,7 +1177,7 @@ TEST_CASE("un equipement de depart qui donne des caracteristiques compte des la 
                                  .caracteristiques = base});
 
     REQUIRE(personnage.getCaracteristiques() == base + definitionObjet(IdObjet::CollierDEndurance).bonus);
-    REQUIRE(personnage.getPointsDeVieMax() == pointsDeVieMax(personnage.getCaracteristiques()));
+    REQUIRE(personnage.getPointsDeVieMax() == pointsDeVieMax(personnage.getCaracteristiques(), 1));
     REQUIRE(personnage.getPointsDeVie() == personnage.getPointsDeVieMax());
 }
 
@@ -1558,4 +1558,102 @@ TEST_CASE("changer d'arme change les degats physiques d'un skill de frappe, pas 
 
     REQUIRE(epee.degats[Element::Physique] != dague.degats[Element::Physique]);  // 15 et 14, avec la Puissance
     REQUIRE(epee.degats[Element::Feu] == dague.degats[Element::Feu]);
+}
+
+// Le niveau (étape 99.4).
+namespace {
+// Une mêlée de test (épée longue : Puissance 11 exigée) de Puissance 10 et d'Endurance 5, qui grandit en Puissance puis en Endurance.
+DefinitionPersonnage guerrierSousLeSeuil() {
+    DefinitionPersonnage definition = avecCaracteristique(definitionArmee(IdObjet::EpeeLongue), Caracteristique::Puissance, 10);
+    definition.croissance = {Caracteristique::Puissance, Caracteristique::Endurance};
+    return avecCaracteristique(std::move(definition), Caracteristique::Endurance, 5);
+}
+}  // namespace
+
+TEST_CASE("un personnage de niveau 1 n'a que la base de sa classe") {
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, guerrierSousLeSeuil());
+
+    REQUIRE(personnage.getNiveau() == 1);
+    REQUIRE(personnage.getCaracteristiquesDeBase().valeur(Caracteristique::Puissance) == 10);
+    REQUIRE(personnage.getCaracteristiquesDeBase().valeur(Caracteristique::Endurance) == 5);
+    REQUIRE(personnage.getPointsDeVieMax() == pointsDeVieMax(personnage.getCaracteristiques(), 1));
+}
+
+TEST_CASE("monterAuNiveau : la croissance alterne sur la paire de la classe, aux niveaux 2, 3 et 4") {
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, guerrierSousLeSeuil());
+
+    personnage.monterAuNiveau(2);
+    REQUIRE(personnage.getCaracteristiquesDeBase().valeur(Caracteristique::Puissance) == 11);
+    REQUIRE(personnage.getCaracteristiquesDeBase().valeur(Caracteristique::Endurance) == 5);
+
+    personnage.monterAuNiveau(3);
+    REQUIRE(personnage.getCaracteristiquesDeBase().valeur(Caracteristique::Puissance) == 11);
+    REQUIRE(personnage.getCaracteristiquesDeBase().valeur(Caracteristique::Endurance) == 6);
+
+    personnage.monterAuNiveau(4);
+    REQUIRE(personnage.getCaracteristiquesDeBase().valeur(Caracteristique::Puissance) == 12);
+    REQUIRE(personnage.getCaracteristiquesDeBase().valeur(Caracteristique::Endurance) == 6);
+    REQUIRE(personnage.getNiveau() == 4);
+}
+
+TEST_CASE("monterAuNiveau : plusieurs niveaux d'un coup s'appliquent tous, comme un niveau apres l'autre") {
+    Personnage dUnCoup = unPersonnage({100.0f, 100.0f}, guerrierSousLeSeuil());
+    Personnage pasAPas = unPersonnage({100.0f, 100.0f}, guerrierSousLeSeuil());
+
+    dUnCoup.monterAuNiveau(5);
+    for (int niveau = 2; niveau <= 5; ++niveau) {
+        pasAPas.monterAuNiveau(niveau);
+    }
+
+    REQUIRE(dUnCoup.getCaracteristiquesDeBase() == pasAPas.getCaracteristiquesDeBase());
+    REQUIRE(dUnCoup.getCaracteristiquesDeBase().valeur(Caracteristique::Puissance) == 12);
+    REQUIRE(dUnCoup.getCaracteristiquesDeBase().valeur(Caracteristique::Endurance) == 7);
+    REQUIRE(dUnCoup.getPointsDeVieMax() == pasAPas.getPointsDeVieMax());
+}
+
+TEST_CASE("monterAuNiveau : les points de vie maximum suivent la formule du niveau") {
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, guerrierSousLeSeuil());
+
+    personnage.monterAuNiveau(3);  // l'Endurance gagne 1 au niveau 3
+
+    REQUIRE(personnage.getPointsDeVieMax() == s_pointsDeVieDeBase + s_pvParPointDEndurance * 6 + 2 * s_pvParNiveau);
+}
+
+TEST_CASE("monterAuNiveau : un vivant blesse gagne autant de points de vie que son maximum") {
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, guerrierSousLeSeuil());
+    subir(personnage, 100);
+    const int vieAvant = personnage.getPointsDeVie();
+    const int maximumAvant = personnage.getPointsDeVieMax();
+    REQUIRE(vieAvant < maximumAvant);
+
+    personnage.monterAuNiveau(3);
+
+    const int gain = personnage.getPointsDeVieMax() - maximumAvant;
+    REQUIRE(gain > 0);
+    REQUIRE(personnage.getPointsDeVie() == vieAvant + gain);
+    REQUIRE(personnage.getPointsDeVieMax() - personnage.getPointsDeVie() == maximumAvant - vieAvant);  // le manque ne change pas
+}
+
+TEST_CASE("monterAuNiveau : un mort reste mort, avec son nouveau maximum") {
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, guerrierSousLeSeuil());
+    subir(personnage, personnage.getPointsDeVieMax());
+    REQUIRE_FALSE(personnage.estVivant());
+
+    personnage.monterAuNiveau(4);
+
+    REQUIRE_FALSE(personnage.estVivant());
+    REQUIRE(personnage.getPointsDeVie() == 0);
+    REQUIRE(personnage.getNiveau() == 4);
+    REQUIRE(personnage.getCaracteristiquesDeBase().valeur(Caracteristique::Puissance) == 12);  // il grandit quand même
+}
+
+TEST_CASE("monterAuNiveau : un seuil d'equipement atteint grace a la croissance rend l'objet actif") {
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, guerrierSousLeSeuil());  // Puissance 10, l'épée en exige 11
+    REQUIRE_FALSE(personnage.getEquipementActif().a(Emplacement::MainDroite).has_value());
+    REQUIRE(personnage.getPorteeAttaqueDeBase() == mainsNues().portee);
+
+    personnage.monterAuNiveau(2);  // la Puissance gagne 1
+
+    REQUIRE(personnage.getEquipementActif().a(Emplacement::MainDroite).has_value());
+    REQUIRE(personnage.getPorteeAttaqueDeBase() == definitionObjet(IdObjet::EpeeLongue).arme.value().attaque.portee);
 }

@@ -198,7 +198,7 @@ inline Escouade uneEscouadeDe(sf::Vector2f positionDepart, std::vector<Definitio
 // Un personnage de cette définition (équipement de départ converti comme dans le jeu), à ce centre.
 inline Personnage unPersonnage(sf::Vector2f centre, DefinitionPersonnage definition) {
     std::vector<MembreDEscouade> membres = membresDeTest({std::move(definition)});
-    return Personnage(centre, std::move(membres[0].definition), std::move(membres[0].equipement));
+    return Personnage(centre, std::move(membres[0].definition), std::move(membres[0].equipement), 1);
 }
 
 // Une escouade avec la composition par défaut des tests.
