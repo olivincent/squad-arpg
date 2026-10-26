@@ -604,6 +604,7 @@ Expedition Partie::expedition() const {
     for (std::size_t i = 0; i < expedition.membres.size(); ++i) {
         const std::size_t place = i + 1;
         expedition.membres[i].equipement = m_escouade.equipementDuPersonnage(place);
+        expedition.membres[i].pointsDepenses = m_escouade.pointsDepensesDuPersonnage(place).value();
     }
     expedition.sac = m_escouade.sac();
     return expedition;

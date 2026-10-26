@@ -15,6 +15,10 @@ struct MembreDExpedition {
     DefinitionPersonnage definition;
     // Ce qu'il porte, objets complets (rareté, affixes).
     Equipement equipement;
+    // Les points libres qu'il a dépensés, par caractéristique : définitifs, ils s'ajoutent à sa base (classe plus croissance). Ceux
+    // qui lui restent à dépenser ne sont pas gardés : ils se calculent (`pointsLibresDisponibles`, de son niveau, déduit de
+    // l'expérience, et de ces points).
+    Caracteristiques pointsDepenses;
 };
 
 // La profondeur du dernier étage : prendre son escalier, c'est gagner l'expédition (« à tester »).
@@ -33,11 +37,11 @@ struct Expedition {  // NOLINT(cppcoreguidelines-pro-type-member-init): la grain
 };
 
 // Une expédition qui commence : profondeur 1, chaque personnage dans l'état de sa définition (équipement de départ porté,
-// caractéristiques de sa classe), un sac vide, aucune expérience (niveau 1). `assert` : la composition n'est pas vide.
+// caractéristiques de sa classe, aucun point dépensé), un sac vide, aucune expérience (niveau 1). `assert` : la composition n'est pas vide.
 [[nodiscard]] Expedition nouvelleExpedition(std::vector<DefinitionPersonnage> composition, Generateur::result_type graine);
 
 // Les personnages à construire pour l'étage où l'expédition est : leur définition, avec les caractéristiques qu'elle garde, et
-// l'équipement qu'elle garde. Un personnage construit ainsi est à pleine vie, vivant, à sa place de formation : la vie ne se
+// l'équipement et les points dépensés qu'elle garde. Un personnage construit ainsi est à pleine vie, vivant, à sa place de formation : la vie ne se
 // garde pas. C'est l'unique chemin vers l'`Escouade` : l'équipement de départ des recettes n'est lu que par `nouvelleExpedition`.
 [[nodiscard]] std::vector<MembreDEscouade> compositionDeLExpedition(const Expedition& expedition);
 

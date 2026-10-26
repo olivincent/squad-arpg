@@ -21,7 +21,7 @@ Expedition nouvelleExpedition(std::vector<DefinitionPersonnage> composition, Gen
     for (DefinitionPersonnage& definition : composition) {
         Equipement equipement(definition.equipementDeDepart);
         definition.equipementDeDepart.clear();
-        expedition.membres.push_back({std::move(definition), equipement});
+        expedition.membres.push_back({.definition = std::move(definition), .equipement = equipement, .pointsDepenses = Caracteristiques()});
     }
     return expedition;
 }
@@ -30,7 +30,7 @@ std::vector<MembreDEscouade> compositionDeLExpedition(const Expedition& expediti
     std::vector<MembreDEscouade> membres;
     membres.reserve(expedition.membres.size());
     for (const MembreDExpedition& membre : expedition.membres) {
-        membres.push_back({membre.definition, membre.equipement});
+        membres.push_back({membre.definition, membre.equipement, membre.pointsDepenses});
     }
     return membres;
 }

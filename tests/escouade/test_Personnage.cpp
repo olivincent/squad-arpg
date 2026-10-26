@@ -1657,3 +1657,135 @@ TEST_CASE("monterAuNiveau : un seuil d'equipement atteint grace a la croissance 
     REQUIRE(personnage.getEquipementActif().a(Emplacement::MainDroite).has_value());
     REQUIRE(personnage.getPorteeAttaqueDeBase() == definitionObjet(IdObjet::EpeeLongue).arme.value().attaque.portee);
 }
+
+// Les points libres (étape 100.1).
+namespace {
+const Caracteristiques s_unePuissance = Caracteristiques::seule(Caracteristique::Puissance, 1);
+}
+
+TEST_CASE("points libres : aucun au niveau 1, trois par niveau gagne, aucun depense au depart") {
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, guerrierSousLeSeuil());
+
+    REQUIRE(personnage.getPointsLibres() == 0);
+    REQUIRE(personnage.getPointsDepenses() == Caracteristiques());
+
+    personnage.monterAuNiveau(2);
+    REQUIRE(personnage.getPointsLibres() == 3);
+    personnage.monterAuNiveau(5);
+    REQUIRE(personnage.getPointsLibres() == 12);
+}
+
+TEST_CASE("depenserDesPoints : une depense valide change la base, le maximum de points de vie et les points libres") {
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, guerrierSousLeSeuil());
+    personnage.monterAuNiveau(2);  // 3 points libres ; la Puissance a gagne 1 (11), l'Endurance reste a 5
+    const int maximumAvant = personnage.getPointsDeVieMax();
+
+    REQUIRE(personnage.depenserDesPoints(Caracteristiques({1, 2, 0, 0, 0})));
+
+    REQUIRE(personnage.getCaracteristiquesDeBase().valeur(Caracteristique::Puissance) == 12);
+    REQUIRE(personnage.getCaracteristiquesDeBase().valeur(Caracteristique::Endurance) == 7);
+    REQUIRE(personnage.getCaracteristiques().valeur(Caracteristique::Endurance) == 7);
+    REQUIRE(personnage.getPointsDeVieMax() == maximumAvant + 2 * s_pvParPointDEndurance);
+    REQUIRE(personnage.getPointsDepenses() == Caracteristiques({1, 2, 0, 0, 0}));
+    REQUIRE(personnage.getPointsLibres() == 0);
+}
+
+TEST_CASE("depenserDesPoints : deux depenses s'additionnent") {
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, guerrierSousLeSeuil());
+    personnage.monterAuNiveau(3);  // 6 points libres
+
+    REQUIRE(personnage.depenserDesPoints(s_unePuissance));
+    REQUIRE(personnage.depenserDesPoints(Caracteristiques({1, 0, 1, 0, 0})));
+
+    REQUIRE(personnage.getPointsDepenses() == Caracteristiques({2, 0, 1, 0, 0}));
+    REQUIRE(personnage.getPointsLibres() == 3);
+}
+
+TEST_CASE("depenserDesPoints : un vivant blesse gagne autant de points de vie que son maximum") {
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, guerrierSousLeSeuil());
+    personnage.monterAuNiveau(2);
+    subir(personnage, 100);
+    const int vieAvant = personnage.getPointsDeVie();
+    const int maximumAvant = personnage.getPointsDeVieMax();
+
+    REQUIRE(personnage.depenserDesPoints(Caracteristiques::seule(Caracteristique::Endurance, 3)));
+
+    const int gain = personnage.getPointsDeVieMax() - maximumAvant;
+    REQUIRE(gain == 3 * s_pvParPointDEndurance);
+    REQUIRE(personnage.getPointsDeVie() == vieAvant + gain);
+}
+
+TEST_CASE("depenserDesPoints : un mort peut depenser, il reste mort avec son nouveau maximum") {
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, guerrierSousLeSeuil());
+    personnage.monterAuNiveau(2);
+    subir(personnage, personnage.getPointsDeVieMax());
+    REQUIRE_FALSE(personnage.estVivant());
+    const int maximumAvant = personnage.getPointsDeVieMax();
+
+    REQUIRE(personnage.depenserDesPoints(Caracteristiques::seule(Caracteristique::Endurance, 2)));
+
+    REQUIRE_FALSE(personnage.estVivant());
+    REQUIRE(personnage.getPointsDeVie() == 0);
+    REQUIRE(personnage.getPointsDeVieMax() == maximumAvant + 2 * s_pvParPointDEndurance);
+    REQUIRE(personnage.getPointsLibres() == 1);
+}
+
+TEST_CASE("depenserDesPoints : une depense trop grande est refusee, sans rien changer") {
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, guerrierSousLeSeuil());
+    personnage.monterAuNiveau(2);  // 3 points libres
+    const Caracteristiques baseAvant = personnage.getCaracteristiquesDeBase();
+    const int maximumAvant = personnage.getPointsDeVieMax();
+
+    REQUIRE_FALSE(personnage.depenserDesPoints(Caracteristiques({2, 2, 0, 0, 0})));  // 4 pour 3
+
+    REQUIRE(personnage.getCaracteristiquesDeBase() == baseAvant);
+    REQUIRE(personnage.getPointsDeVieMax() == maximumAvant);
+    REQUIRE(personnage.getPointsDepenses() == Caracteristiques());
+    REQUIRE(personnage.getPointsLibres() == 3);
+}
+
+TEST_CASE("depenserDesPoints : une valeur negative est refusee, sans rien changer") {
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, guerrierSousLeSeuil());
+    personnage.monterAuNiveau(3);
+    REQUIRE(personnage.depenserDesPoints(Caracteristiques::seule(Caracteristique::Puissance, 2)));
+    const Caracteristiques baseAvant = personnage.getCaracteristiquesDeBase();
+
+    REQUIRE_FALSE(personnage.depenserDesPoints(Caracteristiques({-1, 1, 0, 0, 0})));  // reprendre un point de Puissance
+
+    REQUIRE(personnage.getCaracteristiquesDeBase() == baseAvant);
+    REQUIRE(personnage.getPointsDepenses() == Caracteristiques::seule(Caracteristique::Puissance, 2));
+}
+
+TEST_CASE("depenserDesPoints : au niveau 1, il n'y a rien a depenser") {
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, guerrierSousLeSeuil());
+
+    REQUIRE_FALSE(personnage.depenserDesPoints(s_unePuissance));
+}
+
+TEST_CASE("depenserDesPoints : un seuil d'equipement atteint grace a la depense rend l'objet actif") {
+    // Une classe dont la croissance ne touche pas la Puissance : à 10, l'épée longue (11 exigé) reste inactive au niveau 2.
+    DefinitionPersonnage definition = guerrierSousLeSeuil();
+    definition.croissance = {Caracteristique::Endurance, Caracteristique::Endurance};
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, std::move(definition));
+    personnage.monterAuNiveau(2);
+    REQUIRE_FALSE(personnage.getEquipementActif().a(Emplacement::MainDroite).has_value());
+    REQUIRE(personnage.getPorteeAttaqueDeBase() == mainsNues().portee);
+
+    REQUIRE(personnage.depenserDesPoints(s_unePuissance));
+
+    REQUIRE(personnage.getEquipementActif().a(Emplacement::MainDroite).has_value());
+    REQUIRE(personnage.getPorteeAttaqueDeBase() == definitionObjet(IdObjet::EpeeLongue).arme.value().attaque.portee);
+}
+
+TEST_CASE("les points depenses restent apres une montee de niveau, et les libres augmentent de trois") {
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, guerrierSousLeSeuil());
+    personnage.monterAuNiveau(2);
+    const int adresseAvant = personnage.getCaracteristiquesDeBase().valeur(Caracteristique::Adresse);
+    REQUIRE(personnage.depenserDesPoints(Caracteristiques::seule(Caracteristique::Adresse, 3)));
+
+    personnage.monterAuNiveau(3);
+
+    REQUIRE(personnage.getPointsDepenses() == Caracteristiques::seule(Caracteristique::Adresse, 3));
+    REQUIRE(personnage.getPointsLibres() == 3);
+    REQUIRE(personnage.getCaracteristiquesDeBase().valeur(Caracteristique::Adresse) == adresseAvant + 3);
+}

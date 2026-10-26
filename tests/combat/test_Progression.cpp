@@ -93,3 +93,36 @@ TEST_CASE("experienceManquante : de quoi atteindre exactement le niveau suivant,
         REQUIRE(experience + manquante == experiencePourAtteindre(niveauPour(experience) + 1));
     }
 }
+
+// Les points libres (étape 100.1).
+TEST_CASE("pointsLibresRecus : rien au niveau 1, puis trois par niveau gagne") {
+    REQUIRE(pointsLibresRecus(1) == 0);
+    REQUIRE(pointsLibresRecus(2) == s_pointsLibresParNiveau);
+    REQUIRE(pointsLibresRecus(5) == 4 * s_pointsLibresParNiveau);
+    REQUIRE(s_pointsLibresParNiveau == 3);
+}
+
+TEST_CASE("pointsLibresDisponibles : les recus moins la somme de ce qui est depense") {
+    const Caracteristiques depenses({2, 0, 1, 0, 0});
+
+    REQUIRE(pointsLibresDisponibles(1, Caracteristiques()) == 0);
+    REQUIRE(pointsLibresDisponibles(2, Caracteristiques()) == 3);
+    REQUIRE(pointsLibresDisponibles(5, Caracteristiques()) == 12);
+    REQUIRE(pointsLibresDisponibles(5, depenses) == 9);
+    REQUIRE(pointsLibresDisponibles(2, depenses) == 0);  // tout depense
+}
+
+TEST_CASE("depensePermise : jusqu'aux points disponibles, pas un de plus") {
+    const Caracteristiques dejaDepense = Caracteristiques::seule(Caracteristique::Puissance, 2);  // niveau 3 : 6 recus, 4 libres
+
+    REQUIRE(depensePermise(3, dejaDepense, Caracteristiques({0, 4, 0, 0, 0})));
+    REQUIRE(depensePermise(3, dejaDepense, Caracteristiques({1, 1, 1, 1, 0})));
+    REQUIRE(depensePermise(3, dejaDepense, Caracteristiques()));
+    REQUIRE_FALSE(depensePermise(3, dejaDepense, Caracteristiques({0, 5, 0, 0, 0})));
+    REQUIRE_FALSE(depensePermise(1, Caracteristiques(), Caracteristiques::seule(Caracteristique::Savoir, 1)));
+}
+
+TEST_CASE("depensePermise : une valeur negative est refusee, meme si la somme est permise") {
+    REQUIRE_FALSE(depensePermise(5, Caracteristiques(), Caracteristiques({-1, 0, 0, 0, 0})));
+    REQUIRE_FALSE(depensePermise(5, Caracteristiques(), Caracteristiques({4, -1, 0, 0, 0})));  // somme 3, mais une reprise
+}

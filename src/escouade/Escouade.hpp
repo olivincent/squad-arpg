@@ -83,6 +83,14 @@ public:
     // Caractéristiques de base (celles de sa classe, sans l'équipement) du personnage de cette place ; vide si la place est
     // invalide. Ce que l'expédition garde d'un étage à l'autre.
     [[nodiscard]] std::optional<Caracteristiques> caracteristiquesDeBaseDuPersonnage(std::size_t place) const;
+    // Les points libres que le personnage de cette place a dépensés (ce que l'expédition garde), et ceux qui lui restent à
+    // dépenser (calculés : `Personnage::getPointsLibres`) ; vide si la place est invalide.
+    [[nodiscard]] std::optional<Caracteristiques> pointsDepensesDuPersonnage(std::size_t place) const;
+    [[nodiscard]] std::optional<int> pointsLibresDuPersonnage(std::size_t place) const;
+    // Fait dépenser ces points au personnage de cette place (`Personnage::depenserDesPoints`), tout ou rien ; faux, sans rien
+    // changer, si la place est invalide ou si la dépense est refusée (valeur négative, plus que ses points libres). Permis à
+    // tout moment, même en combat, et pour un mort.
+    [[nodiscard]] bool depenserDesPoints(std::size_t place, const Caracteristiques& depense);
     // Statistiques de combat du personnage de cette place (tirées de ses caractéristiques effectives) ; vide
     // si la place est invalide. Lues par l'écran d'inventaire.
     [[nodiscard]] std::optional<StatistiquesDeCombat> statistiquesDeCombatDuPersonnage(std::size_t place) const;

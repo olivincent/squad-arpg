@@ -89,7 +89,7 @@ public:
     // le résultat est faux. Pour la touche de débogage F7.
     [[nodiscard]] bool ramasserDesObjetsAleatoires(std::size_t nombre);
 
-    // L'expédition telle qu'elle est maintenant : ce qui doit survivre à l'étage (équipement et caractéristiques de base de chaque
+    // L'expédition telle qu'elle est maintenant : ce qui doit survivre à l'étage (équipement et points dépensés de chaque
     // personnage, sac) lu dans l'escouade, l'expérience gagnée pendant l'étage, la profondeur et la graine de celle que la partie a reçue. Rien de l'état de l'étage
     // (positions, combat, agresseurs, provocations, visées, recharges, objets au sol, monstres). Pour construire l'étage suivant.
     [[nodiscard]] Expedition expedition() const;

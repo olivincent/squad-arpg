@@ -8,6 +8,8 @@
 
 #include "aides.hpp"
 #include "aides_escouade.hpp"
+#include "combat/Caracteristiques.hpp"
+#include "combat/Progression.hpp"
 #include "jeu/Expedition.hpp"
 #include "jeu/Partie.hpp"
 #include "objets/CatalogueObjets.hpp"
@@ -194,4 +196,39 @@ TEST_CASE("graineDEtage : deux expeditions n'ont pas les memes etages") {
 
 TEST_CASE("graineDEtage : la graine d'un etage n'est pas celle de l'expedition") {
     REQUIRE(graineDEtage(12345, 1) != 12345);
+}
+
+// Les points libres (étape 100.1).
+TEST_CASE("nouvelleExpedition : aucun point depense") {
+    const Expedition expedition = nouvelleExpedition(compositionDeTest(), 777);
+
+    for (const MembreDExpedition& membre : expedition.membres) {
+        REQUIRE(membre.pointsDepenses == Caracteristiques());
+    }
+}
+
+TEST_CASE("Partie : les points depenses survivent a la descente, et les points libres se recalculent") {
+    Expedition depart = expeditionDeTest();
+    depart.experience = experiencePourAtteindre(4);  // niveau 4 : 9 points libres par personnage
+    Partie partie = partieDe(depart);
+    Escouade& escouade = partie.getEscouade();
+    REQUIRE(escouade.pointsLibresDuPersonnage(s_pretre) == 9);
+    REQUIRE(escouade.depenserDesPoints(s_pretre, Caracteristiques({2, 1, 0, 0, 3})));
+    REQUIRE(escouade.depenserDesPoints(s_mage, Caracteristiques::seule(Caracteristique::Savoir, 9)));
+    const Caracteristiques basePretre = escouade.caracteristiquesDeBaseDuPersonnage(s_pretre).value();
+
+    const Expedition expedition = partie.expedition();
+    REQUIRE(expedition.membres[s_pretre - 1].pointsDepenses == Caracteristiques({2, 1, 0, 0, 3}));
+    REQUIRE(expedition.membres[s_guerrier - 1].pointsDepenses == Caracteristiques());
+    const Partie suivante = partieDe(etageSuivant(expedition));
+    const Escouade& arrivee = suivante.getEscouade();
+
+    REQUIRE(arrivee.pointsDepensesDuPersonnage(s_pretre) == Caracteristiques({2, 1, 0, 0, 3}));
+    REQUIRE(arrivee.pointsDepensesDuPersonnage(s_mage) == Caracteristiques::seule(Caracteristique::Savoir, 9));
+    REQUIRE(arrivee.pointsDepensesDuPersonnage(s_guerrier) == Caracteristiques());
+    REQUIRE(arrivee.pointsLibresDuPersonnage(s_pretre) == 3);
+    REQUIRE(arrivee.pointsLibresDuPersonnage(s_mage) == 0);
+    REQUIRE(arrivee.pointsLibresDuPersonnage(s_guerrier) == 9);
+    REQUIRE(arrivee.caracteristiquesDeBaseDuPersonnage(s_pretre) == basePretre);
+    REQUIRE(arrivee.pointsDeVieMaxDuPersonnage(s_pretre) == escouade.pointsDeVieMaxDuPersonnage(s_pretre));
 }

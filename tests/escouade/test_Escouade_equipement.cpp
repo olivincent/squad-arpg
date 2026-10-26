@@ -17,6 +17,7 @@
 #include "escouade/Escouade.hpp"
 #include "objets/CatalogueObjets.hpp"
 #include "objets/Emplacement.hpp"
+#include "objets/Inventaire.hpp"
 #include "objets/Objet.hpp"
 #include "objets/PositionDObjet.hpp"
 
@@ -24,6 +25,7 @@
 // et 3 mage (sans rien). Les attentes d'armure viennent du catalogue d'objets.
 namespace {
 constexpr std::size_t s_guerrier = 1;
+constexpr std::size_t s_pretre = 2;
 constexpr std::size_t s_mage = 3;
 constexpr int s_coup = 10;  // petit : trois coups ne tuent personne, quelle que soit l'armure
 
@@ -620,4 +622,47 @@ TEST_CASE("retirerObjet : retirer l'anneau de puissance rend l'epee a deux mains
 
     REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainDroite).has_value());  // toujours portée
     REQUIRE(escouade.objetPorteEstInactif(s_guerrier, Emplacement::MainDroite));
+}
+
+// Les points libres (étape 100.1) : la dépense passe par l'escouade, qui désigne le personnage par sa place.
+TEST_CASE("Escouade::depenserDesPoints : le personnage de cette place depense, les autres non") {
+    Escouade escouade(sf::Vector2f{50.0f, 50.0f}, membresDeTest(), Inventaire(Escouade::s_capaciteDuSac), 3);  // 6 points libres chacun
+    const Caracteristiques baseDuGuerrier = escouade.caracteristiquesDeBaseDuPersonnage(s_guerrier).value();
+    const int maximumDuMage = escouade.pointsDeVieMaxDuPersonnage(s_mage).value();
+
+    REQUIRE(escouade.depenserDesPoints(s_mage, Caracteristiques::seule(Caracteristique::Endurance, 4)));
+
+    REQUIRE(escouade.pointsDepensesDuPersonnage(s_mage) == Caracteristiques::seule(Caracteristique::Endurance, 4));
+    REQUIRE(escouade.pointsLibresDuPersonnage(s_mage) == 2);
+    REQUIRE(escouade.pointsDeVieMaxDuPersonnage(s_mage) == maximumDuMage + 4 * s_pvParPointDEndurance);
+    REQUIRE(escouade.pointsDepensesDuPersonnage(s_guerrier) == Caracteristiques());
+    REQUIRE(escouade.pointsLibresDuPersonnage(s_guerrier) == 6);
+    REQUIRE(escouade.caracteristiquesDeBaseDuPersonnage(s_guerrier) == baseDuGuerrier);
+}
+
+TEST_CASE("Escouade::depenserDesPoints : une place invalide ou une depense refusee ne changent rien") {
+    Escouade escouade(sf::Vector2f{50.0f, 50.0f}, membresDeTest(), Inventaire(Escouade::s_capaciteDuSac), 2);  // 3 points libres chacun
+
+    REQUIRE_FALSE(escouade.depenserDesPoints(0, Caracteristiques::seule(Caracteristique::Puissance, 1)));
+    REQUIRE_FALSE(escouade.depenserDesPoints(4, Caracteristiques::seule(Caracteristique::Puissance, 1)));
+    REQUIRE_FALSE(escouade.depenserDesPoints(s_mage, Caracteristiques::seule(Caracteristique::Puissance, 4)));
+    REQUIRE_FALSE(escouade.depenserDesPoints(s_mage, Caracteristiques({-1, 2, 0, 0, 0})));
+
+    for (std::size_t place = s_guerrier; place <= s_mage; ++place) {
+        REQUIRE(escouade.pointsDepensesDuPersonnage(place) == Caracteristiques());
+        REQUIRE(escouade.pointsLibresDuPersonnage(place) == 3);
+    }
+    REQUIRE_FALSE(escouade.pointsDepensesDuPersonnage(0).has_value());
+    REQUIRE_FALSE(escouade.pointsLibresDuPersonnage(4).has_value());
+}
+
+TEST_CASE("Escouade::monterAuNiveau : les points libres augmentent de trois par niveau pour chaque personnage") {
+    Escouade escouade = uneEscouade({50.0f, 50.0f});
+    REQUIRE(escouade.pointsLibresDuPersonnage(s_pretre) == 0);
+
+    escouade.monterAuNiveau(4);
+
+    for (std::size_t place = s_guerrier; place <= s_mage; ++place) {
+        REQUIRE(escouade.pointsLibresDuPersonnage(place) == 9);
+    }
 }

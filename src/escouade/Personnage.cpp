@@ -30,12 +30,14 @@ Skill skillDeLAttaqueDeBase(const DescriptionDAttaque& description) {
 }
 }  // namespace
 
-Personnage::Personnage(sf::Vector2f centre, DefinitionPersonnage definition, Equipement equipement, int niveau)
+Personnage::Personnage(sf::Vector2f centre, DefinitionPersonnage definition, Equipement equipement, const Caracteristiques& pointsDepenses,
+                       int niveau)
     : m_mobile(centre, {s_cote, s_cote}, s_vitesse),
       m_couleur(definition.couleur),
       m_caracteristiquesDeClasse(definition.caracteristiques),
       m_croissance(definition.croissance),
       m_niveau(niveau),
+      m_pointsDepenses(pointsDepenses),
       m_caracteristiquesDeBase(baseAuNiveau(niveau)),
       m_equipement(equipement),
       m_equipementActif(m_equipement.actifPour(m_caracteristiquesDeBase)),
@@ -50,6 +52,7 @@ Personnage::Personnage(sf::Vector2f centre, DefinitionPersonnage definition, Equ
       m_actionEngagee()
 {
     assert(niveau >= 1);
+    assert(depensePermise(niveau, Caracteristiques(), pointsDepenses));
     for (std::size_t i = 0; i < m_skills.size(); ++i) {
         for (std::size_t j = i + 1; j < m_skills.size(); ++j) {
             assert(m_skills[i].id != m_skills[j].id);
@@ -361,7 +364,25 @@ Defenses Personnage::defenses() const {
 }
 
 Caracteristiques Personnage::baseAuNiveau(int niveau) const {
-    return m_caracteristiquesDeClasse + croissanceAuNiveau(niveau, m_croissance);
+    return m_caracteristiquesDeClasse + croissanceAuNiveau(niveau, m_croissance) + m_pointsDepenses;
+}
+
+const Caracteristiques& Personnage::getPointsDepenses() const {
+    return m_pointsDepenses;
+}
+
+int Personnage::getPointsLibres() const {
+    return pointsLibresDisponibles(m_niveau, m_pointsDepenses);
+}
+
+bool Personnage::depenserDesPoints(const Caracteristiques& depense) {
+    if (!depensePermise(m_niveau, m_pointsDepenses, depense)) {
+        return false;
+    }
+    m_pointsDepenses += depense;
+    m_caracteristiquesDeBase = baseAuNiveau(m_niveau);
+    recalculerDepuisLEquipement();
+    return true;
 }
 
 int Personnage::getNiveau() const {

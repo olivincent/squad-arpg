@@ -36,6 +36,15 @@ public:
         return m_valeurs[static_cast<std::size_t>(caracteristique)];
     }
 
+    // La somme des cinq valeurs.
+    [[nodiscard]] constexpr int somme() const {
+        int total = 0;
+        for (const int valeur : m_valeurs) {
+            total += valeur;
+        }
+        return total;
+    }
+
     constexpr Caracteristiques& operator+=(const Caracteristiques& autre) {
         for (std::size_t i = 0; i < s_nombreDeCaracteristiques; ++i) {
             m_valeurs[i] += autre.m_valeurs[i];

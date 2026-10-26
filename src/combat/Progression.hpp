@@ -31,6 +31,22 @@ using PaireDeCroissance = std::array<Caracteristique, 2>;
 // `assert` : niveau >= 1.
 [[nodiscard]] Caracteristiques croissanceAuNiveau(int niveau, const PaireDeCroissance& paire);
 
+// Les points libres que reçoit chaque personnage à chaque niveau gagné au-delà du premier (« à tester »). Ils se dépensent à la
+// main dans les caractéristiques, pour de bon : la redistribution viendra avec les refuges.
+inline constexpr int s_pointsLibresParNiveau = 3;
+
+// Les points libres qu'un personnage a reçus en tout au niveau n : `s_pointsLibresParNiveau` × (n − 1), rien au niveau 1.
+// `assert` : niveau >= 1.
+[[nodiscard]] int pointsLibresRecus(int niveau);
+
+// Ceux qui lui restent à dépenser : les reçus moins la somme de ce qu'il a déjà dépensé. Jamais stockés : toujours calculés
+// depuis le niveau et les points dépensés. `assert` : niveau >= 1.
+[[nodiscard]] int pointsLibresDisponibles(int niveau, const Caracteristiques& depenses);
+
+// Cette dépense est-elle permise ? Aucune valeur négative (on ne reprend rien) et pas plus que les points disponibles.
+// `depenses` : ce qui est déjà dépensé. `assert` : niveau >= 1.
+[[nodiscard]] bool depensePermise(int niveau, const Caracteristiques& depenses, const Caracteristiques& depense);
+
 // Le niveau de qui a cette expérience totale : le plus grand dont `experiencePourAtteindre` est atteinte. `assert` :
 // expérience >= 0.
 [[nodiscard]] int niveauPour(int experience);

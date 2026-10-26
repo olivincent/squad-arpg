@@ -77,7 +77,8 @@ Escouade::Escouade(sf::Vector2f positionDepart, std::vector<MembreDEscouade> mem
     assert(!membres.empty());
     assert(m_sac.capacite() == s_capaciteDuSac);
     for (std::size_t i = 0; i < membres.size(); ++i) {
-        m_personnages.emplace_back(m_formation.getPlaces()[i], std::move(membres[i].definition), membres[i].equipement, niveau);
+        m_personnages.emplace_back(m_formation.getPlaces()[i], std::move(membres[i].definition), membres[i].equipement,
+                                 membres[i].pointsDepenses, niveau);
     }
     m_pointsVises = m_formation.getPlaces();
 }
@@ -478,6 +479,24 @@ std::optional<Caracteristiques> Escouade::caracteristiquesDeBaseDuPersonnage(std
         return std::nullopt;
     }
     return personnageDeLaPlace(place).getCaracteristiquesDeBase();
+}
+
+std::optional<Caracteristiques> Escouade::pointsDepensesDuPersonnage(std::size_t place) const {
+    if (!placeValide(place)) {
+        return std::nullopt;
+    }
+    return personnageDeLaPlace(place).getPointsDepenses();
+}
+
+std::optional<int> Escouade::pointsLibresDuPersonnage(std::size_t place) const {
+    if (!placeValide(place)) {
+        return std::nullopt;
+    }
+    return personnageDeLaPlace(place).getPointsLibres();
+}
+
+bool Escouade::depenserDesPoints(std::size_t place, const Caracteristiques& depense) {
+    return placeValide(place) && personnageDeLaPlace(place).depenserDesPoints(depense);
 }
 
 std::optional<StatistiquesDeCombat> Escouade::statistiquesDeCombatDuPersonnage(std::size_t place) const {

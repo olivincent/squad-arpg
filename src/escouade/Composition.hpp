@@ -28,11 +28,14 @@ struct DefinitionPersonnage {
     Rang rang = Rang::Avant;
 };
 
-// Un personnage à construire : sa définition et ce qu'il porte (objets complets : rareté, affixes). L'équipement a une seule
+// Un personnage à construire : sa définition, ce qu'il porte (objets complets : rareté, affixes) et ses points dépensés.
+// L'équipement a une seule
 // source, l'expédition ; son armure, son attaque de base (son arme) et sa zone de contrôle en viennent.
 struct MembreDEscouade {
     DefinitionPersonnage definition;
     Equipement equipement;
+    // Les points libres qu'il a déjà dépensés, par caractéristique (`combat/Progression`) : ils s'ajoutent à sa base.
+    Caracteristiques pointsDepenses;
 };
 
 // Décalage de chaque personnage par rapport à l'ancre, pour une escouade orientée vers +x,
