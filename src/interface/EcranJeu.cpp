@@ -40,16 +40,21 @@
 
 namespace {
 
-// Une nouvelle carte : tire une graine (affichée dans la console, pour pouvoir
-// rejouer à l'identique), génère le niveau avec elle, puis construit la
-// partie avec la même graine : la même graine redonne la même carte et le
+// L'étage où l'expédition est : la graine de l'étage (affichée dans la console, pour pouvoir
+// rejouer à l'identique) dérive de celle de l'expédition et de la profondeur ; elle génère le niveau,
+// puis la partie est construite avec la même graine : la même graine redonne la même carte et le
 // même combat.
-Partie nouvellePartie(std::random_device& tirage, const std::vector<IdSpecialite>& specialites) {
-    const Generateur::result_type graine = tirage();
+Partie partieDeLEtage(const Expedition& expedition) {
+    const Generateur::result_type graine = graineDEtage(expedition.graine, expedition.profondeur);
     std::cout << "Seed: " << graine << '\n';
     Generateur generateurDeNiveau(graine);
     const Niveau niveau = genererNiveau(generateurDeNiveau, ParametresDonjon{});
-    return Partie(niveau, composer(specialites), graine);
+    return Partie(niveau, expedition, graine);
+}
+
+// Une nouvelle expédition, au premier étage : tire sa graine et prend l'équipement de départ des classes choisies.
+Partie nouvellePartie(std::random_device& tirage, const std::vector<IdSpecialite>& specialites) {
+    return partieDeLEtage(nouvelleExpedition(composer(specialites), tirage()));
 }
 
 constexpr unsigned int s_tailleCompteur = 22;

@@ -24,9 +24,13 @@ const sf::Color s_couleurZoneDeControle(255, 0, 255, 180);  // débogage F3 : ce
 constexpr float s_epaisseurZoneDeControle = 1.0f;
 }
 
-Partie::Partie(const Niveau& niveau, std::vector<DefinitionPersonnage> composition, Generateur::result_type graine,
+Partie::Partie(const Niveau& niveau, Expedition expedition, Generateur::result_type graine,
                const CatalogueDeMonstres& catalogue)
-    : m_carte(niveau.plan, niveau.tailleCase), m_escouade(niveau.departEscouade, std::move(composition)), m_generateur(graine), m_vision(m_carte) {
+    : m_expedition(std::move(expedition)),
+      m_carte(niveau.plan, niveau.tailleCase),
+      m_escouade(niveau.departEscouade, compositionDeLExpedition(m_expedition), m_expedition.sac),
+      m_generateur(graine),
+      m_vision(m_carte) {
     int prochainId = 1;
     for (const MonstreDuNiveau& monstre : niveau.monstres) {
         m_monstres.emplace_back(monstre.position, prochainId++, monstre.groupe,
@@ -38,10 +42,6 @@ Partie::Partie(const Niveau& niveau, std::vector<DefinitionPersonnage> compositi
             m_carte.placerPorte(coordCase);
         }
         m_objets.emplace_back(prochainIdObjet++, Porte{porte.cases}, niveau.tailleCase);
-    }
-    for (const Objet& objet : sacDeDepart()) {
-        [[maybe_unused]] const bool range = m_escouade.ramasser(objet);
-        assert(range);  // le sac de départ tient dans le sac
     }
     mettreAJourLaVision();  // la salle de départ est visible dès la première image
 }
@@ -522,6 +522,17 @@ void Partie::dessinerZonesDeControle(sf::RenderTarget& rendu) const {
 
 bool Partie::estVisible(sf::Vector2f point) const {
     return m_vision.estVisible(point);
+}
+
+Expedition Partie::expedition() const {
+    Expedition expedition = m_expedition;
+    for (std::size_t i = 0; i < expedition.membres.size(); ++i) {
+        const std::size_t place = i + 1;
+        expedition.membres[i].equipement = m_escouade.equipementDuPersonnage(place);
+        expedition.membres[i].definition.caracteristiques = m_escouade.caracteristiquesDeBaseDuPersonnage(place).value_or(Caracteristiques());
+    }
+    expedition.sac = m_escouade.sac();
+    return expedition;
 }
 
 bool Partie::ramasserDesObjetsAleatoires(std::size_t nombre) {

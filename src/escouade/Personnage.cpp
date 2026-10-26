@@ -34,7 +34,7 @@ Personnage::Personnage(sf::Vector2f centre, DefinitionPersonnage definition)
     : m_mobile(centre, {s_cote, s_cote}, s_vitesse),
       m_couleur(definition.couleur),
       m_caracteristiquesDeBase(definition.caracteristiques),
-      m_equipement(definition.equipementDeDepart),
+      m_equipement(definition.equipementPorte.has_value() ? *definition.equipementPorte : Equipement(definition.equipementDeDepart)),
       m_equipementActif(m_equipement.actifPour(m_caracteristiquesDeBase)),
       m_descriptionDeBase(m_equipementActif.attaqueDeBase()),
       m_attaqueDeBase(skillDeLAttaqueDeBase(m_descriptionDeBase)),

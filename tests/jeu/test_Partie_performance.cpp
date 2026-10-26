@@ -107,7 +107,7 @@ TEST_CASE("perf : une image de Partie au contact d'une nuee de 7", "[.][perf]") 
     for (DefinitionPersonnage& definition : composition) {
         definition = avecEnduranceEnorme(std::move(definition));
     }
-    Partie partie(niveau, std::move(composition), s_graineDeTest);
+    Partie partie(niveau, expeditionDeTest(std::move(composition)), s_graineDeTest);
 
     double sommeEnCombat = 0.0;
     double piresEnCombat = 0.0;

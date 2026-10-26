@@ -24,7 +24,7 @@ class Personnage {
 public:
     // Construit depuis sa définition (`DefinitionPersonnage`) : `rayonVision` est jusqu'où il voit, en pixels
     // (l'union des champs des vivants est la vision de l'escouade) ; `skills` ceux qu'il connaît (assert :
-    // pas deux fois le même identifiant) ; `equipementDeDepart` ce qu'il porte à sa création : son armure,
+    // pas deux fois le même identifiant) ; `equipementDeDepart` (ou `equipementPorte`, s'il est présent) ce qu'il porte à sa création : son armure,
     // son attaque de base (celle de son arme, les mains nues sans arme) et la zone qu'il engage autour de lui
     // (celle d'une attaque de contact, aucune pour un projectile) en sont calculées. Son `rang` n'est lu que par
     // la formation.

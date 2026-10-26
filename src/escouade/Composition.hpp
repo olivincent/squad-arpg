@@ -2,6 +2,7 @@
 #pragma once
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/System/Vector2.hpp>
+#include <optional>
 #include <vector>
 #include "combat/Caracteristiques.hpp"
 #include "combat/Skill.hpp"
@@ -20,6 +21,9 @@ struct DefinitionPersonnage {
     float rayonVision;
     Caracteristiques caracteristiques = {};  // la base de sa classe ; l'équipement s'y ajoute (ses points de vie en viennent : `pointsDeVieMax`)
     Rang rang = Rang::Avant;
+    // Un équipement déjà constitué, objets complets (rareté, affixes) : celui qu'un personnage d'expédition garde d'un étage
+    // à l'autre. S'il est présent, il remplace `equipementDeDepart`, qui est alors ignoré.
+    std::optional<Equipement> equipementPorte = {};
 };
 
 // Décalage de chaque personnage par rapport à l'ancre, pour une escouade orientée vers +x,

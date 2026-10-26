@@ -253,7 +253,7 @@ TEST_CASE("chaque monstre du niveau recoit la definition de sa categorie") {
         const float x = 100.0f + 100.0f * static_cast<float>(monstres.size());
         monstres.push_back({{x, 500.0f}, static_cast<int>(monstres.size()), categorie});
     }
-    const Partie partie(niveauDegageEnGroupes(monstres), compositionDeTest(), s_graineDeTest);
+    const Partie partie(niveauDegageEnGroupes(monstres), expeditionDeTest(), s_graineDeTest);
 
     REQUIRE(partie.getMonstres().size() == s_nombreDeCategoriesDeMonstre);
     for (std::size_t i = 0; i < partie.getMonstres().size(); ++i) {

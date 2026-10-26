@@ -13,6 +13,7 @@
 #include "combat/Engagement.hpp"
 #include "escouade/Escouade.hpp"
 #include "combat/EvenementDeCombat.hpp"
+#include "jeu/Expedition.hpp"
 #include "jeu/ObjetAuSol.hpp"
 #include "jeu/ObjetsAuSol.hpp"
 #include "monstres/DefinitionDeMonstre.hpp"
@@ -38,11 +39,13 @@ enum class ResultatClic { Monstre, Porte, ObjetAuSol, Sol, Ignore };
 // (`genererButin`, selon sa définition) ; ils appartiennent à la partie, donc au niveau : une nouvelle partie les efface.
 class Partie {
 public:
-    // La graine initialise le générateur aléatoire de la partie, qui est à elle seule.
-    // `composition` : les personnages de l'escouade (elle n'appartient pas au niveau : c'est le choix du joueur).
+    // Un étage : le niveau, avec l'escouade que l'expédition amène. La partie est neuve : tous les personnages sont à pleine vie et
+    // vivants, à la place de départ du niveau, et rien de l'étage précédent ne passe (ni monstre, ni objet au sol, ni combat) ;
+    // seuls viennent de l'expédition les personnages (classe, caractéristiques de base, équipement) et le sac (`jeu/Expedition`).
+    // La graine initialise le générateur aléatoire de la partie, qui est à elle seule (celle de l'étage : `graineDEtage`).
     // `catalogue` : les définitions des monstres, une par catégorie ; chaque monstre du niveau reçoit celle de sa
     // catégorie. Le jeu ne le précise pas ; les tests y substituent un catalogue sans hasard.
-    Partie(const Niveau& niveau, std::vector<DefinitionPersonnage> composition, Generateur::result_type graine,
+    Partie(const Niveau& niveau, Expedition expedition, Generateur::result_type graine,
            const CatalogueDeMonstres& catalogue = catalogueDeMonstres());
 
     // Verrouille le monstre ciblable qui contient ce point (Monstre) ; sinon, sur un objet au sol (`objetAuSolSous`), lève le
@@ -79,6 +82,11 @@ public:
     // tout ou rien : sans `nombre` cases libres, rien n'est ajouté, aucun tirage n'est fait (le générateur n'avance pas) et
     // le résultat est faux. Pour la touche de débogage F7.
     [[nodiscard]] bool ramasserDesObjetsAleatoires(std::size_t nombre);
+
+    // L'expédition telle qu'elle est maintenant : ce qui doit survivre à l'étage (équipement et caractéristiques de base de chaque
+    // personnage, sac) lu dans l'escouade, la profondeur et la graine de celle que la partie a reçue. Rien de l'état de l'étage
+    // (positions, combat, agresseurs, provocations, visées, recharges, objets au sol, monstres). Pour construire l'étage suivant.
+    [[nodiscard]] Expedition expedition() const;
 
     // Vrai quand tous les personnages sont morts.
     [[nodiscard]] bool estPerdue() const;
@@ -167,6 +175,9 @@ private:
     // `enPoursuiteAvant` : statut de chaque monstre de `m_monstres` avant leur mise à jour.
     void alerterLesGroupes(const std::vector<bool>& enPoursuiteAvant);
 
+    // L'expédition reçue. Sa profondeur, sa graine et la classe de chaque membre ne changent pas pendant l'étage ; ce qui change
+    // (équipement, caractéristiques de base, sac) vit dans l'escouade, et `expedition()` le relit.
+    Expedition m_expedition;
     TileMap m_carte;
     Escouade m_escouade;
     std::vector<Monstre> m_monstres;

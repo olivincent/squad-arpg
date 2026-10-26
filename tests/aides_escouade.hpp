@@ -36,6 +36,7 @@
 #include "objets/Objet.hpp"
 #include "objets/PositionDObjet.hpp"
 #include "monde/Niveau.hpp"
+#include "jeu/Expedition.hpp"
 #include "jeu/ObjetAuSol.hpp"
 #include "jeu/Partie.hpp"
 #include "combat/Skill.hpp"
@@ -189,12 +190,17 @@ inline Escouade uneEscouade(sf::Vector2f positionDepart) {
     return Escouade(positionDepart, compositionDeTest());
 }
 
+// Une expédition qui commence (profondeur 1, équipement de départ, sac de départ) avec cette composition.
+inline Expedition expeditionDeTest(std::vector<DefinitionPersonnage> composition = compositionDeTest()) {
+    return nouvelleExpedition(std::move(composition), s_graineDeTest);
+}
+
 // Une partie de test : les monstres n'ont aucune esquive (`monstreSansHasard`), pour que les dégâts qu'ils
 // reçoivent ne dépendent pas de la chance (reste le critique, qui se lit dans les événements).
 inline Partie partieDeTest(const Niveau& niveau, std::vector<DefinitionPersonnage> composition,
                            Generateur::result_type graine = s_graineDeTest,
                            const DefinitionDeMonstre& monstre = monstreSansHasard()) {
-    return Partie(niveau, std::move(composition), graine, catalogueDeTest(monstre));
+    return Partie(niveau, expeditionDeTest(std::move(composition)), graine, catalogueDeTest(monstre));
 }
 
 // Le monstre sans esquive aux points de vie énormes : il survit à tous les coups d'un test qui dure.

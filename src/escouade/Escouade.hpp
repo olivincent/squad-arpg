@@ -42,8 +42,13 @@
 class TileMap;
 class Escouade {
 public:
-    // `composition` : un personnage par définition, aux places 1 à N dans l'ordre (assert : non vide).
+    static constexpr std::size_t s_capaciteDuSac = 40;  // cases du sac de l'escouade
+
+    // `composition` : un personnage par définition, aux places 1 à N dans l'ordre (assert : non vide). Le sac est vide.
     Escouade(sf::Vector2f positionDepart, std::vector<DefinitionPersonnage> composition);
+    // Avec ce sac, tel quel (ses objets restent à leur case) : celui d'une expédition qui continue (`jeu/Expedition`).
+    // `assert` : sa capacité est `s_capaciteDuSac`.
+    Escouade(sf::Vector2f positionDepart, std::vector<DefinitionPersonnage> composition, Inventaire sac);
     // `afficherAncre` faux : le carré vert de l'ancre n'est pas dessiné (débogage).
     void dessiner(sf::RenderTarget& rendu, bool afficherAncre) const;
     void allerVers(sf::Vector2f destination, const TileMap& carte);
@@ -69,6 +74,9 @@ public:
     [[nodiscard]] std::optional<int> pointsDeVieMaxDuPersonnage(std::size_t place) const;
     // Caractéristiques effectives (base plus équipement) du personnage de cette place ; vide si la place est invalide.
     [[nodiscard]] std::optional<Caracteristiques> caracteristiquesDuPersonnage(std::size_t place) const;
+    // Caractéristiques de base (celles de sa classe, sans l'équipement) du personnage de cette place ; vide si la place est
+    // invalide. Ce que l'expédition garde d'un étage à l'autre.
+    [[nodiscard]] std::optional<Caracteristiques> caracteristiquesDeBaseDuPersonnage(std::size_t place) const;
     // Statistiques de combat du personnage de cette place (tirées de ses caractéristiques effectives) ; vide
     // si la place est invalide. Lues par l'écran d'inventaire.
     [[nodiscard]] std::optional<StatistiquesDeCombat> statistiquesDeCombatDuPersonnage(std::size_t place) const;

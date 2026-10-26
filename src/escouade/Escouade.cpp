@@ -29,7 +29,6 @@ constexpr float s_vitesseAncre = 180.0f;     // en pixels par seconde
 constexpr float s_vitesseRotation = 360.0f;  // de la formation, en degrés par seconde
 constexpr float s_laisseAgresseur = 100.0f;      // en pixels, centre à centre, mesurée depuis la place de formation
 constexpr float s_vitesseSeparation = 120.0f;    // poussée maximale entre deux personnages trop proches, en pixels par seconde (plus lente que la marche, 240 : voir docs/formation.md)
-constexpr std::size_t s_capaciteDuSac = 40;      // cases du sac de l'escouade
 constexpr float s_toleranceArrivee = 0.01f;      // en pixels : comme le seuil de Mobile, un personnage à cette distance de son point y est arrivé
 
 // Seule conversion d'une place (de 1 à N) vers l'indice (de 0 à N-1).
@@ -59,6 +58,9 @@ std::optional<int> monstreDontLaPlaceEstGardee(const Intention& intention, bool 
 }  // namespace
 
 Escouade::Escouade(sf::Vector2f positionDepart, std::vector<DefinitionPersonnage> composition)
+    : Escouade(positionDepart, std::move(composition), Inventaire(s_capaciteDuSac)) {}
+
+Escouade::Escouade(sf::Vector2f positionDepart, std::vector<DefinitionPersonnage> composition, Inventaire sac)
     : m_mobile(positionDepart + sf::Vector2f(s_coteAncre / 2.0f, s_coteAncre / 2.0f), {s_coteAncre, s_coteAncre}, s_vitesseAncre),
       m_formation(decalagesDeFormation(rangsDe(composition)), m_mobile.getCentre(), s_vitesseRotation),
       m_personnages(),
@@ -69,9 +71,10 @@ Escouade::Escouade(sf::Vector2f positionDepart, std::vector<DefinitionPersonnage
       m_degagements(composition.size()),
       m_agresseurs(),
       m_provocations(),
-      m_sac(s_capaciteDuSac)
+      m_sac(std::move(sac))
 {
     assert(!composition.empty());
+    assert(m_sac.capacite() == s_capaciteDuSac);
     for (std::size_t i = 0; i < composition.size(); ++i) {
         m_personnages.emplace_back(m_formation.getPlaces()[i], std::move(composition[i]));
     }
@@ -455,6 +458,13 @@ std::optional<Caracteristiques> Escouade::caracteristiquesDuPersonnage(std::size
         return std::nullopt;
     }
     return personnageDeLaPlace(place).getCaracteristiques();
+}
+
+std::optional<Caracteristiques> Escouade::caracteristiquesDeBaseDuPersonnage(std::size_t place) const {
+    if (!placeValide(place)) {
+        return std::nullopt;
+    }
+    return personnageDeLaPlace(place).getCaracteristiquesDeBase();
 }
 
 std::optional<StatistiquesDeCombat> Escouade::statistiquesDeCombatDuPersonnage(std::size_t place) const {
