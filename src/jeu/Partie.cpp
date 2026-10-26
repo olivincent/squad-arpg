@@ -55,12 +55,10 @@ ResultatClic Partie::cliquer(sf::Vector2f point) {
     });
     if (it != m_monstres.end()) {
         m_escouade.verrouiller(it->getId());
-        m_interactionEnCours.reset();
-        m_objetAuSolVise.reset();
+        abandonnerLesVisees();
         return ResultatClic::Monstre;
     }
-    m_interactionEnCours.reset();
-    m_objetAuSolVise.reset();
+    abandonnerLesVisees();
     if (const ObjetAuSol* objet = objetAuSolSous(point)) {
         // Un ordre de ramassage : l'escouade marche vers l'objet comme vers le sol (le combat est rompu de la même façon) ;
         // `ramasserSiAPortee` le ramasse quand l'ancre arrive.
@@ -69,6 +67,16 @@ ResultatClic Partie::cliquer(sf::Vector2f point) {
         m_objetAuSolVise = objet->id;
         m_deplacementOrdonne = objet->position;
         return ResultatClic::ObjetAuSol;
+    }
+    if (const std::optional<sf::Vector2i> escalier = m_carte.caseDeLEscalier();
+        escalier.has_value() && m_carte.caseContenant(point) == *escalier && m_vision.etat(*escalier) != EtatCase::Inconnue) {
+        // Un ordre de descente : l'escouade marche vers l'escalier comme vers le sol (le combat est rompu de la même façon) ;
+        // `prendreLEscalierSiAPortee` la fait descendre quand l'ancre arrive. On peut descendre en plein combat.
+        m_escouade.deverrouiller();
+        m_escouade.annulerAttaquesEngagees();
+        m_escalierVise = true;
+        m_deplacementOrdonne = m_carte.centreDeCase(*escalier);
+        return ResultatClic::Escalier;
     }
     if (const ObjetInteractif* objet = trouverObjetActif(point)) {
         if (m_escouade.unVivantPresDe(objet->zone, s_porteeInteraction)) {
@@ -105,9 +113,14 @@ void Partie::lancerSkillDeZone(AdresseSkill adresse, sf::Vector2f point) {
 }
 
 void Partie::ordonnerDeplacement(sf::Vector2f point) {
+    abandonnerLesVisees();
+    m_deplacementOrdonne = point;
+}
+
+void Partie::abandonnerLesVisees() {
     m_interactionEnCours.reset();
     m_objetAuSolVise.reset();
-    m_deplacementOrdonne = point;
+    m_escalierVise = false;
 }
 
 Monstre* Partie::trouverMonstre(int id) {
@@ -186,6 +199,19 @@ void Partie::ramasserSiAPortee() {
         assert(retire);  // l'objet vient d'être trouvé
     } else {
         signaler(Camp::Escouade, s_idDeLEscouadeEntiere, ancre, SacPlein{});
+    }
+}
+
+void Partie::prendreLEscalierSiAPortee() {
+    if (!m_escalierVise) {
+        return;
+    }
+    const std::optional<sf::Vector2i> escalier = m_carte.caseDeLEscalier();
+    assert(escalier.has_value());  // la visée vient d'un clic sur l'escalier
+    const sf::Vector2f ecart = m_carte.centreDeCase(*escalier) - m_escouade.getCentre();
+    if (std::hypot(ecart.x, ecart.y) < s_distanceDeDescente) {
+        m_escalierVise = false;
+        m_escalierPris = true;
     }
 }
 
@@ -433,6 +459,10 @@ void Partie::faireFrapperLeMonstre(Monstre& monstre, std::optional<EntiteVue> pr
     static_cast<void>(monstre.engagerAttaque(proie, candidats, m_carte));
 }
 
+bool Partie::aPrisLEscalier() const {
+    return m_escalierPris;
+}
+
 bool Partie::estPerdue() const {
     return !m_escouade.estVivante();
 }
@@ -468,6 +498,7 @@ void Partie::mettreAJour(float dt) {
                                          .deControle = avant.monstres});
     interagirSiAPortee();
     ramasserSiAPortee();
+    prendreLEscalierSiAPortee();
     faireTournerLesMonstres(dt);
     appliquerLesCoupsDOpportunite(avant);
     // En dernier, pour que ce que le joueur voit corresponde aux positions de la fin de l'image.

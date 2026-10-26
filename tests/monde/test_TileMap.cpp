@@ -519,3 +519,31 @@ TEST_CASE("porte fermee : trouverChemin la traite comme un mur") {
     carte.ouvrirPorte({2, 1});
     REQUIRE(trouverChemin(carte, {1, 1}, {3, 1}).size() == 3);
 }
+
+TEST_CASE("l'escalier : le caractere '>' du plan est une case Escalier, que la carte retrouve") {
+    const std::vector<std::string> plan = {
+        "....",
+        ".>#.",
+        "....",
+    };
+    const TileMap carte(plan, 40.0f);
+
+    REQUIRE(carte.getTile(1, 1) == Tile::Escalier);
+    REQUIRE(carte.caseDeLEscalier() == sf::Vector2i(1, 1));
+    REQUIRE(carte.getTile(0, 1) == Tile::Floor);
+    REQUIRE(carte.getTile(2, 1) == Tile::Wall);
+}
+
+TEST_CASE("l'escalier : un plan sans '>' n'a pas d'escalier") {
+    const TileMap carte({"...", "...", "..."}, 40.0f);
+
+    REQUIRE_FALSE(carte.caseDeLEscalier().has_value());
+}
+
+TEST_CASE("l'escalier ne bloque pas : on le traverse, la vue aussi") {
+    const TileMap carte({"...", ".>.", "..."}, 40.0f);
+
+    REQUIRE_FALSE(estBloquante(Tile::Escalier));
+    REQUIRE_FALSE(carte.chevaucheUnMur(sf::FloatRect({40.0f, 40.0f}, {40.0f, 40.0f})));
+    REQUIRE(carte.trajetLibre(sf::FloatRect({5.0f, 45.0f}, {20.0f, 20.0f}), {60.0f, 0.0f}));
+}

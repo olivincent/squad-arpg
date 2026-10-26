@@ -408,7 +408,7 @@ TEST_CASE("genererNiveau creuse toutes les cases des salles") {
     for (const Salle& salle : placerSalles(copie, parametres)) {
         for (int ligne = salle.y; ligne < salle.y + salle.hauteur; ++ligne) {
             for (int colonne = salle.x; colonne < salle.x + salle.largeur; ++colonne) {
-                REQUIRE(niveau.plan[static_cast<std::size_t>(ligne)][static_cast<std::size_t>(colonne)] == '.');
+                REQUIRE(niveau.plan[static_cast<std::size_t>(ligne)][static_cast<std::size_t>(colonne)] != s_caractereDeMur);
             }
         }
     }
@@ -1008,4 +1008,144 @@ TEST_CASE("genererNiveau : au plus une creature") {
 
         REQUIRE(nombreDe(CategorieDeMonstre::CreatureMonstrueuse, niveau.monstres) <= 1);
     }
+}
+
+// L'escalier (étape 98.4).
+namespace {
+// Les cases du plan qui portent l'escalier.
+std::vector<sf::Vector2i> casesDEscalier(const Niveau& niveau) {
+    std::vector<sf::Vector2i> cases;
+    for (std::size_t ligne = 0; ligne < niveau.plan.size(); ++ligne) {
+        for (std::size_t colonne = 0; colonne < niveau.plan[ligne].size(); ++colonne) {
+            if (niveau.plan[ligne][colonne] == s_caractereDEscalier) {
+                cases.push_back({static_cast<int>(colonne), static_cast<int>(ligne)});
+            }
+        }
+    }
+    return cases;
+}
+
+// L'indice de la salle la plus éloignée de la salle 0, centre à centre (la plus petite à égalité), sinon 0.
+std::size_t indiceDeLaSalleLaPlusEloignee(const std::vector<Salle>& salles) {
+    std::size_t plusLoin = 0;
+    int distanceMax = -1;
+    for (std::size_t i = 1; i < salles.size(); ++i) {
+        const sf::Vector2i ecart = salles[i].centre() - salles[0].centre();
+        const int distance = ecart.x * ecart.x + ecart.y * ecart.y;
+        if (distance > distanceMax) {
+            distanceMax = distance;
+            plusLoin = i;
+        }
+    }
+    return plusLoin;
+}
+
+bool estDansLInterieur(const Salle& salle, sf::Vector2i coordCase) {
+    return coordCase.x >= salle.x + 1 && coordCase.x <= salle.x + salle.largeur - 2 && coordCase.y >= salle.y + 1 &&
+           coordCase.y <= salle.y + salle.hauteur - 2;
+}
+
+sf::Vector2i caseDuMonstre(const MonstreDuNiveau& monstre, float tailleCase) {
+    return {static_cast<int>(std::floor(monstre.position.x / tailleCase)), static_cast<int>(std::floor(monstre.position.y / tailleCase))};
+}
+}  // namespace
+
+TEST_CASE("genererNiveau place un seul escalier, dans la salle la plus eloignee du depart, sur une case interieure") {
+    const ParametresDonjon parametres;
+    for (Generateur::result_type graine = 1; graine <= 50; ++graine) {
+        Generateur generateur(graine);
+        Generateur copie(graine);
+        const Niveau niveau = genererNiveau(generateur, parametres);
+        const std::vector<Salle> salles = placerSalles(copie, parametres);
+
+        const std::vector<sf::Vector2i> escaliers = casesDEscalier(niveau);
+
+        REQUIRE(escaliers.size() == 1);
+        REQUIRE(estDansLInterieur(salles[indiceDeLaSalleLaPlusEloignee(salles)], escaliers.front()));
+    }
+}
+
+TEST_CASE("genererNiveau : l'escalier n'est jamais sous un monstre, la creature comprise") {
+    const ParametresDonjon parametres;
+    for (Generateur::result_type graine = 1; graine <= 100; ++graine) {
+        Generateur generateur(graine);
+        const Niveau niveau = genererNiveau(generateur, parametres);
+        const std::vector<sf::Vector2i> escaliers = casesDEscalier(niveau);
+        REQUIRE(escaliers.size() == 1);
+
+        for (const MonstreDuNiveau& monstre : niveau.monstres) {
+            REQUIRE(caseDuMonstre(monstre, niveau.tailleCase) != escaliers.front());
+        }
+    }
+}
+
+TEST_CASE("genererNiveau : la salle de la creature et celle de l'escalier sont la meme") {
+    const ParametresDonjon parametres;
+    for (Generateur::result_type graine = 1; graine <= 50; ++graine) {
+        Generateur generateur(graine);
+        Generateur copie(graine);
+        const Niveau niveau = genererNiveau(generateur, parametres);
+        const std::vector<Salle> salles = placerSalles(copie, parametres);
+        const Salle& salle = salles[indiceDeLaSalleLaPlusEloignee(salles)];
+        const sf::Vector2i escalier = casesDEscalier(niveau).front();
+
+        for (const MonstreDuNiveau& monstre : niveau.monstres) {
+            if (monstre.categorie == CategorieDeMonstre::CreatureMonstrueuse) {
+                REQUIRE(estDansLInterieur(salle, caseDuMonstre(monstre, niveau.tailleCase)));
+                REQUIRE(estDansLInterieur(salle, escalier));
+            }
+        }
+    }
+}
+
+TEST_CASE("genererNiveau : une graine redonne le meme escalier, les memes monstres et le meme plan") {
+    const ParametresDonjon parametres;
+    Generateur premier(s_graine);
+    Generateur second(s_graine);
+    const Niveau a = genererNiveau(premier, parametres);
+    const Niveau b = genererNiveau(second, parametres);
+
+    REQUIRE(casesDEscalier(a) == casesDEscalier(b));
+    REQUIRE(a.monstres == b.monstres);
+    REQUIRE(a.plan == b.plan);
+}
+
+TEST_CASE("placerEscalier : jamais sur la case d'un monstre, ici il ne reste qu'une case") {
+    const std::vector<Salle> salles{{1, 1, 6, 6}, {20, 20, 6, 6}};
+    // Un monstre sur chaque case intérieure de la salle 1 (cases 21 à 24) sauf la case (24, 24).
+    std::vector<MonstreDuNiveau> monstres;
+    for (int ligne = 21; ligne <= 24; ++ligne) {
+        for (int colonne = 21; colonne <= 24; ++colonne) {
+            if (colonne != 24 || ligne != 24) {
+                monstres.push_back({{(static_cast<float>(colonne) + 0.5f) * 40.0f, (static_cast<float>(ligne) + 0.5f) * 40.0f}, 0});
+            }
+        }
+    }
+    Generateur generateur(s_graine);
+
+    REQUIRE(placerEscalier(generateur, salles, monstres, 40.0f) == sf::Vector2i(24, 24));
+}
+
+TEST_CASE("placerEscalier : sans monstre, ou si la creature n'a pas pu etre placee, l'escalier est dans la salle la plus eloignee") {
+    const std::vector<Salle> salles{{1, 1, 6, 6}, {20, 20, 6, 6}, {10, 30, 6, 6}};
+    Generateur generateur(s_graine);
+
+    const sf::Vector2i escalier = placerEscalier(generateur, salles, {}, 40.0f);
+
+    REQUIRE(estDansLInterieur(salles[indiceDeLaSalleLaPlusEloignee(salles)], escalier));
+}
+
+TEST_CASE("placerEscalier : avec une seule salle, l'escalier est dans cette salle") {
+    const std::vector<Salle> salles{{3, 3, 8, 8}};
+    Generateur generateur(s_graine);
+
+    REQUIRE(estDansLInterieur(salles.front(), placerEscalier(generateur, salles, {}, 40.0f)));
+}
+
+TEST_CASE("placerEscalier : une salle pleine de monstres donne le centre de la salle") {
+    const std::vector<Salle> salles{{1, 1, 6, 6}, {20, 20, 3, 3}};  // l'intérieur de la salle 1 : une seule case, (21, 21)
+    const std::vector<MonstreDuNiveau> monstres = {{{21.5f * 40.0f, 21.5f * 40.0f}, 0}};
+    Generateur generateur(s_graine);
+
+    REQUIRE(placerEscalier(generateur, salles, monstres, 40.0f) == salles[1].centre());
 }

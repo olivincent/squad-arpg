@@ -24,8 +24,12 @@
 #include "monde/Vision.hpp"
 #include "objets/PositionDObjet.hpp"
 
-// Ce que le clic du joueur a désigné : un monstre, une porte fermée, un objet au sol, le sol.
-enum class ResultatClic { Monstre, Porte, ObjetAuSol, Sol, Ignore };
+// Ce que le clic du joueur a désigné : un monstre, une porte fermée, un objet au sol, l'escalier, le sol.
+enum class ResultatClic { Monstre, Porte, ObjetAuSol, Escalier, Sol, Ignore };
+
+// La distance (centre à centre, en pixels du monde) de l'ancre de l'escouade au centre de l'escalier visé en deçà de laquelle
+// l'escouade le prend (« à tester »).
+inline constexpr float s_distanceDeDescente = 30.0f;
 
 // Les règles de jeu : possède la carte, l'escouade et les monstres, et sert
 // d'intermédiaire entre Escouade et Monstre, qui ne se connaissent pas.
@@ -50,7 +54,9 @@ public:
 
     // Verrouille le monstre ciblable qui contient ce point (Monstre) ; sinon, sur un objet au sol (`objetAuSolSous`), lève le
     // verrou et envoie l'escouade le ramasser (ObjetAuSol : `ramasserSiAPortee` le ramasse quand l'ancre arrive, et tout autre
-    // ordre remplace cette visée) ; sinon, sur une porte
+    // ordre remplace cette visée) ; sinon, sur l'escalier d'une case connue (pas inconnue), lève le verrou et envoie l'escouade
+    // au centre de la case (Escalier : `prendreLEscalierSiAPortee` la fait descendre quand l'ancre arrive, et tout autre ordre
+    // remplace cette visée) ; sinon, sur une porte
     // fermée (Porte), lève le verrou, mémorise l'interaction et envoie l'escouade devant elle
     // (Sol si aucun côté n'est libre) ; sinon lève le verrou (Sol) : un monstre qui rentre à son poste compte comme le sol.
     // Ignore si l'escouade est vaincue : rien ne change.
@@ -87,6 +93,10 @@ public:
     // personnage, sac) lu dans l'escouade, la profondeur et la graine de celle que la partie a reçue. Rien de l'état de l'étage
     // (positions, combat, agresseurs, provocations, visées, recharges, objets au sol, monstres). Pour construire l'étage suivant.
     [[nodiscard]] Expedition expedition() const;
+
+    // Vrai quand l'ancre est arrivée à l'escalier que l'escouade visait : l'étage est terminé et l'escouade descend. Reste vrai
+    // pour le reste de la partie (celui qui la lit construit l'étage suivant, `expedition`).
+    [[nodiscard]] bool aPrisLEscalier() const;
 
     // Vrai quand tous les personnages sont morts.
     [[nodiscard]] bool estPerdue() const;
@@ -138,6 +148,11 @@ private:
     // emplacement libre du sac et l'ordre est terminé. Sac plein : l'objet reste au sol, `SacPlein` est signalé et l'ordre est
     // terminé aussi. Un objet visé qui n'existe plus : la visée est abandonnée.
     void ramasserSiAPortee();
+    // Prend l'escalier visé quand l'ANCRE est à moins de `s_distanceDeDescente` de son centre : la visée est terminée et
+    // `aPrisLEscalier` devient vrai.
+    void prendreLEscalierSiAPortee();
+    // Un nouvel ordre : l'escouade ne va plus ouvrir de porte, ramasser un objet ni prendre l'escalier.
+    void abandonnerLesVisees();
     // Deux vues des monstres pour l'escouade : les CIBLES (ceux qu'on peut frapper, provoquer,
     // viser ou verrouiller : pas ceux qui rentrent à leur poste) et les PHYSIQUES (tous :
     // obstacles bloquants et à contourner).
@@ -185,6 +200,8 @@ private:
     ObjetsAuSol m_sol;
     std::optional<int> m_interactionEnCours;  // identifiant de l'objet que l'escouade va activer
     std::optional<int> m_objetAuSolVise;      // identifiant de l'objet au sol que l'escouade va ramasser (jamais un indice)
+    bool m_escalierVise = false;              // l'escouade marche vers l'escalier pour le prendre
+    bool m_escalierPris = false;              // l'ancre est arrivée à l'escalier visé
     std::optional<LancerDeZone> m_lancerDeZoneDemande;
     std::optional<AdresseSkill> m_skillDemande;
     std::optional<sf::Vector2f> m_deplacementOrdonne;

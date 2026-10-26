@@ -27,9 +27,10 @@ public:
     // une case explorée, même hors de vue, il se désigne.
     [[nodiscard]] const ObjetAuSol* sous(sf::Vector2f point, const TileMap& carte, const Vision& vision) const;
     // Où poser un objet de plus, à partir de `origine` : le centre de la case de `origine` si aucun objet n'y est, sinon celui
-    // de la case voisine la plus proche qui est praticable (ni mur ni porte fermée) et sans objet. Les voisines sont
-    // essayées par couronnes de cases autour de l'origine (jusqu'à trois cases), les plus proches d'abord ; si toutes sont
-    // prises ou bloquées, l'objet se pose sur la case de l'origine, avec celui qui y est. `origine` est un point praticable
+    // de la case voisine la plus proche qui est praticable (ni mur ni porte fermée), sans objet et qui n'est pas l'escalier
+    // (la case de l'origine elle-même est essayée avec les mêmes règles). Les voisines sont essayées par couronnes de cases
+    // autour de l'origine (jusqu'à trois cases), les plus proches d'abord ; si toutes sont prises ou bloquées, l'objet se pose
+    // sur la case de l'origine, avec celui qui y est (même si c'est l'escalier : « quand c'est possible »). `origine` est un point praticable
     // (un monstre, l'ancre de l'escouade). Aucun hasard : même résultat pour le même état.
     [[nodiscard]] sf::Vector2f positionPour(const TileMap& carte, sf::Vector2f origine) const;
     // Tous les objets, dans l'ordre où ils sont tombés.

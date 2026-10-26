@@ -67,7 +67,8 @@ sf::Vector2f ObjetsAuSol::positionPour(const TileMap& carte, sf::Vector2f origin
     };
     for (const sf::Vector2i decalage : decalagesParProximite()) {
         const sf::Vector2i candidate = depart + decalage;
-        if (!estBloquante(carte.getTile(candidate.x, candidate.y)) && !estOccupee(candidate)) {
+        const Tile terrain = carte.getTile(candidate.x, candidate.y);
+        if (!estBloquante(terrain) && terrain != Tile::Escalier && !estOccupee(candidate)) {
             return carte.centreDeCase(candidate);
         }
     }

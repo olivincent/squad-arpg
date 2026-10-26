@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <cstdint>
 #include <stdexcept>
 
 namespace {
@@ -13,6 +14,21 @@ const sf::Color s_couleurPorte(139, 90, 43);
 const sf::Color s_couleurContourCase(20, 20, 20);
 constexpr float s_epaisseurContourCase = 1.0f;
 constexpr float s_epaisseurCadrePorte = 4.0f;
+constexpr int s_nombreDeMarches = 4;  // les bandes qui font l'escalier, de la plus sombre (en haut) à la plus claire
+
+// Les marches d'un escalier : des bandes horizontales de plus en plus claires dans la case dont `coin` est le coin haut gauche.
+void dessinerLesMarches(sf::RenderTarget& rendu, sf::Vector2f coin, float cote) {
+    const float hauteur = cote / static_cast<float>(s_nombreDeMarches);
+    sf::RectangleShape marche({cote, hauteur});
+    for (int i = 0; i < s_nombreDeMarches; ++i) {
+        const auto nuance = static_cast<std::uint8_t>(90 + 35 * i);
+        marche.setPosition({coin.x, coin.y + static_cast<float>(i) * hauteur});
+        marche.setFillColor(sf::Color(nuance, nuance, static_cast<std::uint8_t>(nuance - 25)));
+        marche.setOutlineColor(s_couleurContourCase);
+        marche.setOutlineThickness(-s_epaisseurContourCase);
+        rendu.draw(marche);
+    }
+}
 }
 
 bool estBloquante(Tile tile) {
@@ -23,7 +39,8 @@ TileMap::TileMap(const std::vector<std::string>& plan, float tailleCase)
     : m_largeur(static_cast<int>(plan.at(0).size())),
       m_hauteur(static_cast<int>(plan.size())),
       m_tailleCase(tailleCase),
-      m_cases(m_largeur * m_hauteur, Tile::Floor)
+      m_cases(m_largeur * m_hauteur, Tile::Floor),
+      m_escalier()
 {
     for (int y = 0; y < m_hauteur; ++y) {
         const std::string& ligne = plan[y];
@@ -31,8 +48,12 @@ TileMap::TileMap(const std::vector<std::string>& plan, float tailleCase)
             throw std::invalid_argument("TileMap : la ligne " + std::to_string(y) + " n'a pas la bonne longueur");
         }
         for (int x = 0; x < m_largeur; ++x) {
-            if (ligne[x] == '#') {
+            if (ligne[x] == s_caractereDeMur) {
                 m_cases[indice(x, y)] = Tile::Wall;
+            } else if (ligne[x] == s_caractereDEscalier) {
+                assert(!m_escalier.has_value());  // un seul escalier par plan
+                m_cases[indice(x, y)] = Tile::Escalier;
+                m_escalier = sf::Vector2i{x, y};
             }
         }
     }
@@ -59,6 +80,10 @@ int TileMap::getHauteur() const {
 
 float TileMap::getTailleCase() const {
     return m_tailleCase;
+}
+
+std::optional<sf::Vector2i> TileMap::caseDeLEscalier() const {
+    return m_escalier;
 }
 
 sf::Vector2i TileMap::caseContenant(sf::Vector2f point) const {
@@ -91,6 +116,9 @@ void TileMap::dessiner(sf::RenderTarget& rendu) const {
                 forme.setOutlineColor(s_couleurContourCase);
             }
             rendu.draw(forme);
+            if (tile == Tile::Escalier) {
+                dessinerLesMarches(rendu, forme.getPosition(), m_tailleCase);
+            }
         }
     }
 }

@@ -92,6 +92,14 @@ void creuserCouloir(std::vector<std::string>& plan, sf::Vector2i depart, sf::Vec
 [[nodiscard]] std::vector<MonstreDuNiveau> placerMonstres(Generateur& generateur, const std::vector<Salle>& salles,
                                                           sf::Vector2f depart, const ParametresDonjon& parametres);
 
+// La case de l'escalier : une case intérieure (une case de marge contre les murs de l'emprise) de la salle la plus éloignée de
+// la salle 0 (celle de la créature, `salleLaPlusEloignee`), tirée au hasard parmi celles où ne se tient aucun monstre de
+// `monstres` ; la salle 0 s'il n'y a qu'une salle. Sans monstre à éviter ou si la créature n'a pas pu être placée, l'escalier
+// est quand même là. `tailleCase` en pixels, pour retrouver la case de chaque monstre. Si aucune case n'est libre (salle
+// pleine de monstres), le centre de la salle. `assert` : au moins une salle.
+[[nodiscard]] sf::Vector2i placerEscalier(Generateur& generateur, const std::vector<Salle>& salles,
+                                          const std::vector<MonstreDuNiveau>& monstres, float tailleCase);
+
 // Place les portes : sans aléatoire, sur le plan déjà creusé. Pour chaque salle, on
 // parcourt l'anneau de cases juste à l'extérieur de son emprise, côté par côté, sans
 // les coins. Une porte est une suite maximale de cases de sol sur un côté de l'anneau
@@ -109,5 +117,6 @@ void creuserCouloir(std::vector<std::string>& plan, sf::Vector2i depart, sf::Vec
 [[nodiscard]] bool contientUnCoinDiagonal(const std::vector<std::string>& plan);
 
 // Niveau fait de salles reliées par des couloirs en L, fermé par des portes
-// (`placerPortes`) et peuplé de monstres (`placerMonstres`) ; l'escouade part au centre de la première salle placée.
+// (`placerPortes`) et peuplé de monstres (`placerMonstres`), avec un escalier (`placerEscalier`, écrit dans le plan par
+// `s_caractereDEscalier`, tiré après les monstres : eux ne changent pas) ; l'escouade part au centre de la première salle placée.
 [[nodiscard]] Niveau genererNiveau(Generateur& generateur, const ParametresDonjon& parametres);

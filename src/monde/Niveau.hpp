@@ -25,7 +25,7 @@ struct PorteDuNiveau {
 
 // Les données d'un niveau, sans comportement : de quoi construire une Partie.
 struct Niveau {
-    std::vector<std::string> plan;       // '#' = mur, tout autre caractère = sol
+    std::vector<std::string> plan;       // '#' = mur, '>' = escalier (au plus un), tout autre caractère = sol
     float tailleCase;                    // en pixels
     sf::Vector2f departEscouade;         // centre de l'ancre, en pixels du monde
     std::vector<MonstreDuNiveau> monstres;

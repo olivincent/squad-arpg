@@ -148,3 +148,36 @@ TEST_CASE("ObjetsAuSol : retirer un identifiant absent ne change rien") {
 
     REQUIRE(sol.tous() == avant);
 }
+
+TEST_CASE("positionPour : un objet evite la case de l'escalier, meme quand l'origine est l'escalier") {
+    const TileMap carte({"#########", "#.......#", "#...>...#", "#.......#", "#########"}, s_tailleCase);
+    const sf::Vector2f escalier = centre(4, 2);
+
+    const sf::Vector2f position = ObjetsAuSol{}.positionPour(carte, escalier);
+
+    REQUIRE(position != escalier);
+    REQUIRE(carte.getTile(carte.caseContenant(position).x, carte.caseContenant(position).y) == Tile::Floor);
+}
+
+TEST_CASE("positionPour : les objets d'un tas autour de l'escalier ne le prennent jamais tant qu'il reste de la place") {
+    const TileMap carte({"#########", "#.......#", "#...>...#", "#.......#", "#########"}, s_tailleCase);
+    ObjetsAuSol sol;
+
+    for (int i = 0; i < 20; ++i) {  // le sol compte 7 x 3 = 21 cases, dont l'escalier
+        sol.poser(s_gants, centre(4, 2), carte);
+    }
+
+    for (const ObjetAuSol& objet : sol.tous()) {
+        REQUIRE(carte.caseContenant(objet.position) != sf::Vector2i(4, 2));
+    }
+}
+
+TEST_CASE("positionPour : quand tout autour est pris, l'objet se pose sur l'escalier faute de mieux") {
+    // Une seule case de sol en dehors de l'escalier.
+    const TileMap carte({"####", "#>.#", "####"}, s_tailleCase);
+    ObjetsAuSol sol;
+    sol.poser(s_gants, centre(1, 1), carte);  // prend la case (2, 1) : l'escalier est évité
+    REQUIRE(carte.caseContenant(sol.tous().front().position) == sf::Vector2i(2, 1));
+
+    REQUIRE(sol.positionPour(carte, centre(1, 1)) == centre(1, 1));
+}

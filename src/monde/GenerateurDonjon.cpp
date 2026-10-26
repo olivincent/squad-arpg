@@ -1,9 +1,11 @@
 // ./src/monde/GenerateurDonjon.cpp
 #include "monde/GenerateurDonjon.hpp"
 #include "base/Aleatoire.hpp"
+#include "monde/TileMap.hpp"
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <cmath>
 #include <cstdlib>
 #include <optional>
 #include <random>
@@ -254,6 +256,30 @@ std::vector<MonstreDuNiveau> placerMonstres(Generateur& generateur, const std::v
     return monstres;
 }
 
+sf::Vector2i placerEscalier(Generateur& generateur, const std::vector<Salle>& salles,
+                            const std::vector<MonstreDuNiveau>& monstres, float tailleCase) {
+    assert(!salles.empty());
+    const Salle& salle = salles[salleLaPlusEloignee(salles).value_or(0)];
+    const ZoneDePlacement zone = zoneDePlacement(salle, std::nullopt);
+    const auto caseDuMonstre = [&](const MonstreDuNiveau& monstre) {
+        return sf::Vector2i{static_cast<int>(std::floor(monstre.position.x / tailleCase)),
+                            static_cast<int>(std::floor(monstre.position.y / tailleCase))};
+    };
+    std::vector<sf::Vector2i> libres;
+    for (int ligne = zone.min.y; ligne <= zone.max.y; ++ligne) {
+        for (int colonne = zone.min.x; colonne <= zone.max.x; ++colonne) {
+            const sf::Vector2i candidate{colonne, ligne};
+            if (!std::ranges::any_of(monstres, [&](const MonstreDuNiveau& monstre) { return caseDuMonstre(monstre) == candidate; })) {
+                libres.push_back(candidate);
+            }
+        }
+    }
+    if (libres.empty()) {
+        return salle.centre();
+    }
+    return libres[static_cast<std::size_t>(tirerEntre(generateur, 0, static_cast<int>(libres.size()) - 1))];
+}
+
 std::vector<PorteDuNiveau> placerPortes(const std::vector<std::string>& plan, const std::vector<Salle>& salles,
                                         int largeurCouloir) {
     assert(largeurCouloir >= 1);
@@ -332,6 +358,9 @@ Niveau genererNiveau(Generateur& generateur, const ParametresDonjon& parametres)
     const sf::Vector2f depart = centreEnPixels(salles.front().centre(), parametres.tailleCase);
     // Les portes ne tirent rien. Les monstres en dernier : leurs tirages ne changent ni les salles ni les couloirs.
     std::vector<PorteDuNiveau> portes = placerPortes(plan, salles, parametres.largeurCouloir);
-    return {plan, parametres.tailleCase, depart, placerMonstres(generateur, salles, depart, parametres),
-            std::move(portes)};
+    std::vector<MonstreDuNiveau> monstres = placerMonstres(generateur, salles, depart, parametres);
+    // L'escalier en tout dernier : son tirage ne change ni les salles, ni les couloirs, ni les monstres.
+    const sf::Vector2i escalier = placerEscalier(generateur, salles, monstres, parametres.tailleCase);
+    plan[static_cast<std::size_t>(escalier.y)][static_cast<std::size_t>(escalier.x)] = s_caractereDEscalier;
+    return {plan, parametres.tailleCase, depart, std::move(monstres), std::move(portes)};
 }
