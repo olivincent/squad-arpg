@@ -46,7 +46,7 @@ squad-arpg/
 │   ├── rendu/      BarreDeVie, TraceDeChemin
 │   ├── monde/      TileMap, Chemin, Deplacement, Mobile, ChampDeVision, Vision,
 │   │               ObjetInteractif, Niveau, CategorieDeMonstre, CompositionDeGroupe, GenerateurDonjon, Encerclement
-│   ├── combat/     Skill, SkillConnu, IdSkill, TypeSkill, TypeDArme, DescriptionDAttaque, PlageDeDegats, AdresseSkill, Cible, ActionEngagee, Progression,
+│   ├── combat/     Skill, SkillConnu, IdSkill, ModeDeCible, EffetDeSkill, ResultatDEffet, Place, IdMonstre, TypeDArme, DescriptionDAttaque, PlageDeDegats, AdresseSkill, Cible, ActionEngagee, Progression,
 │   │               Element, Degats,
 │   │               EtatSkill, Coup, EvenementDeCombat, EntiteVue, Autodefense, Engagement,
 │   │               Attaque, NatureDAttaque, StatistiquesDeCombat, Esquive, Critique, Blocage, Defense,
@@ -132,8 +132,11 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `Encerclement` : places régulières sur un anneau (`docs/formation.md`).
 
 `combat/` — skills et règles communes aux deux camps (`docs/combat.md`) :
-- `Skill` : type, portée, puissance, recharge, zone, armes exigées, machine à états `commencer`/`avancer`/`annuler`.
-- `TypeSkill` : `DegatsSurCible`, `Soin`, `Provocation`, `Zone`.
+- `Skill` : mode de cible, portée, recharge, effet, rayon de zone optionnel, armes exigées, machine à états `commencer`/`avancer`/`annuler`.
+- `ModeDeCible`, `EffetDeSkill` : comment un skill vise (`Soi`, `Monstre`, `Allie`, `Point`) et ce qu'il fait (`EffetDegats`, `EffetFrappe`, `EffetSoin`,
+  `EffetProvocation`, un `std::variant`, chacun avec ses seuls champs) ; `campTouche`, le camp que touche un effet dans une zone (`docs/combat.md`, étape 105).
+- `Place`, `IdMonstre` : les types forts d'une place d'escouade (de 1 à N, `indice()` la seule conversion vers 0 à N-1) et d'un monstre ; sans `.cpp`.
+- `ResultatDEffet` : la sortie unique d'`Escouade` (`SkillParti`, `Coup`, `SoinSurAllie`, `ProvocationPosee`), traduite en événements par `Partie`.
 - `Element`, `Degats` : les éléments d'un coup (`Physique`, `Feu`, `Sacre`), `ParElement<T>` (une valeur par élément), `Degats`
   (les portions d'un coup) et `Portions` (leur version flottante pendant la résolution) ; sans `.cpp` (`docs/combat.md`).
 - `TypeDArme`, `DescriptionDAttaque` : le type d'une arme (treize depuis l'étape 102 ; ce qu'un skill peut exiger) et la description d'une
@@ -142,16 +145,16 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `PlageDeDegats` : un `Degats` minimum et un `Degats` maximum, `plageFixe`, et `tirerLesDegats` (un tirage par élément qui a un écart,
   aucun quand `min == max`) : chaque coup d'une arme tire ses dégâts dans sa plage (`docs/combat.md`, `docs/objets.md`).
 - `IdSkill`, `SkillConnu`, `AdresseSkill` : identifiant stable d'un skill, skill d'un personnage, place + skill.
-- `Cible` : `std::variant` allié, monstre ou point, et `Surcharges` pour `std::visit`.
+- `Cible` : `std::variant` allié (`Place`), monstre (`IdMonstre`) ou point, et `Surcharges` pour `std::visit`.
 - `ActionEngagee` : l'action (attaque de base ou skill) qu'un personnage prépare, et sa cible.
 - `EtatSkill` : le skill d'une place, tel que l'affichage en a besoin.
 - `Attaque` : ce qui part de l'attaquant et circule jusqu'au défenseur : les dégâts en portions par élément (ou un soin, ou une durée de provocation), la capacité offensive, la nature et la pénétration.
 - `NatureDAttaque` : contact, projectile ou zone, une donnée de l'attaque que lisent l'esquive et le blocage.
-- `Coup` : une attaque à infliger à un monstre, sortie d'`Escouade`.
-- `EvenementDeCombat` : champs communs + détail en variant (dégâts, soin, skill lancé, monstre provoqué, esquive, blocage), en données (file de `Partie`) ; `detailsDuCoup` convertit le résultat d'un coup.
-- `EntiteVue` : une entité telle que l'autre camp la voit, et `trouverEntite`.
+- `Coup` : une attaque à infliger à un monstre (`IdMonstre`), l'alternative « dégâts » de `ResultatDEffet`.
+- `EvenementDeCombat` : une cible (`std::variant<Place, IdMonstre, EscouadeEntiere>`), une position et un détail en variant (dégâts, soin, skill lancé, monstre provoqué, esquive, blocage…), en données (file de `Partie`) ; `detailsDuCoup` convertit le résultat d'un coup.
+- `EntiteVue<Identifiant>` : une entité telle que l'autre camp la voit (`MonstreVu`, `PersonnageVu`), et `trouverEntite`.
 - `Autodefense` : quel ennemi frapper, quel agresseur viser.
-- `Engagement` : zones de contrôle, coups d'opportunité, monstre dont se dégager.
+- `Engagement` : zones de contrôle (`EntiteDeControle<Identifiant>`, dans les deux sens), coups d'opportunité, monstre dont se dégager.
 - `Defense` : `appliquerArmure` et `armureAppliquee`, modèle M1 (soustraction avec plancher de 20 %, armure réduite par la pénétration de l'attaque), et `appliquerResistance` (résistance par élément, de −100 % à 80 %).
 - `StatistiquesDeCombat` : ce que le moteur du coup lit d'une entité (capacités, esquives, blocage, résistances par élément), aussi le bonus de combat d'un objet ; `statistiquesDuPersonnage`, seul endroit où elles se calculent.
 - `Esquive`, `Critique`, `Blocage` : les étapes du coup qui dépendent du hasard, des fonctions pures qui reçoivent un tirage (`docs/combat.md`).
@@ -199,8 +202,8 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
   (transactionnel) ; `seuilsManques` dit ce qui manque.
 
 `escouade/` — le camp du joueur (`docs/formation.md`, sauf mention) :
-- `Escouade` : l'assemblage : ancre, verrou, skills en attente, attaque, et la résolution des intentions en
-  points visés ; elle possède `Formation`, `PlacesDAttaque`, `Agresseurs`, `Provocations`, le sac
+- `Escouade` : l'assemblage : ancre, verrou, skills en attente (dont ceux de mode `Soi`), attaque, application de l'effet d'un skill
+  (sa seule sortie : des `ResultatDEffet`), et la résolution des intentions en points visés ; elle possède `Formation`, `PlacesDAttaque`, `Agresseurs`, `Provocations`, le sac
   (`Inventaire`) et les `Personnage` ; `ramasser`, `ramasserTout` et `deplacerObjet` déplacent les objets.
 - `Personnage` : un membre : déplacement, attaque de base (celle de son arme), skills, vie, vision, équipement (son armure
   en est la somme), niveau (celui de l'escouade), caractéristiques (base de classe plus croissance du niveau, plus équipement).

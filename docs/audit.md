@@ -25,7 +25,8 @@ décision, avec R2 (voir R1 et R2, « Suivi ») ; la partie 82.5 a fermé R2 (la
 par identifiant), traité D3 et marqué les avertissements voulus de `clang-tidy` (41 restants). R5 est
 rattachée à R4. L'étape 84 (écran d'inventaire) a traité, en premières sous-étapes, R6, D4, P2
 (parties a et b) et les tests de T4 qui viennent avec leurs extractions (voir « Suivi » de chacun). La
-sous-étape 89.1 a traité E1 pour `Monstre` (voir « Suivi » de E1).
+sous-étape 89.1 a traité E1 pour `Monstre` (voir « Suivi » de E1). **L'étape 105 a traité R4 et R5**, ensemble (voir « Suivi » de
+chacun et `docs/combat.md`, « Les skills en données (étape 105) »).
 
 Référentiels : C++ Core Guidelines, SOLID (surtout responsabilité unique et inversion des
 dépendances), cohésion et couplage, DRY, règle du zéro, sémantique de valeur, *Game Programming
@@ -77,8 +78,8 @@ respectées (une seule dépendance montante, voir « Organisation en dossiers »
 | R1 | `Escouade` porte au moins six responsabilités | haute | gros | 3 |
 | R2 | Couplage temporel `attaquer` / `mettreAJour` et état partagé | moyenne | petit | 3 |
 | R3 | `Partie` accumule objets interactifs, journal d'événements, groupes | moyenne | moyen | 5 |
-| R4 | Skills : le type décide partout, trois canaux de sortie | haute | gros | 4 |
-| R5 | Identifiants et places : `int`, `size_t`, 1 à N contre 0 à N−1 | moyenne | moyen | 3 |
+| R4 | Skills : le type décide partout, trois canaux de sortie (**fait, étape 105**) | haute | gros | 4 |
+| R5 | Identifiants et places : `int`, `size_t`, 1 à N contre 0 à N−1 (**fait, étape 105**) | moyenne | moyen | 3 |
 | R6 | `EcranJeu` mélange décisions pures et appels SFML | basse | petit | 6 |
 | M1 | `dessiner` dans six classes du noyau | moyenne | moyen | 6 |
 | P1 | `Reglages` dépend de `BarreDeRaccourcis` ; `Controleur` mal placé | basse | petit | 2 |
@@ -482,6 +483,21 @@ font poursuivre 30 monstres durent environ 1,2 s chacun en `-O0`.
   données, comme le sont déjà les classes (`Specialite`). Un nouveau type d'effet = une
   alternative de `std::variant` : le compilateur signale chaque `visit` à compléter (c'est déjà la
   technique de `Cible`).
+- **Suivi (étape 105, fait)** : les quatre pas de la proposition sont faits, avec cinq écarts :
+  1. **La zone est séparée de l'effet**, ce que la proposition rangeait dans `EffetProvocation { durée, rayon }` et `EffetDegatsDeZone`
+     : un rayon optionnel du skill (`DefinitionDeSkill::rayonZone`), et un camp touché qui se déduit de l'effet (`campTouche`). Il n'y a
+     donc plus d'alternative « dégâts de zone » : une zone n'est pas une sorte d'effet.
+  2. **Quatre alternatives, pas trois** : `EffetDegats`, `EffetFrappe` (la frappe sacrée, née à l'étape 94, que l'audit ne connaissait
+     pas), `EffetSoin`, `EffetProvocation`. La nature, l'élément et les coefficients (arrivés depuis l'audit) vont à l'effet qui a un
+     montant, pas au skill.
+  3. **`TypeSkill` est retiré**, pas gardé comme étiquette : rien ne s'en servait plus (`EtatSkill::type` n'était lu par aucun affichage).
+  4. **Le canal unique contient aussi le départ du skill et le `Coup`** : `ResultatDEffet = variant<SkillParti, Coup, SoinSurAllie,
+     ProvocationPosee>`. `prendreSoins` n'existait plus (un canal de faits l'avait remplacé à l'étape 86) ; ce canal de faits est
+     supprimé à son tour (`m_faits`, `prendreFaits`). `Coup` garde son nom (c'est « dégâts sur un monstre »).
+  5. **Un seul effet par skill** (l'audit parlait de variants sans trancher). `Escouade::provoquer` reste public pour les tests.
+  Le mode `Soi` lève la limite de l'étape 80 (la provocation d'un lanceur occupé attend). `TypeSkill` et trois des cinq endroits qui
+  testaient le type sont devenus des lectures du mode ; le quatrième (`effetDuSkill`, qui déduisait la provocation de l'absence de
+  cible) est un `std::visit` sur l'effet.
 - **Coût** : gros.
 - **Risque et tests touchés** : moyen. `test_Skill.cpp` (24), `test_Escouade_skills.cpp` (76),
   `test_Personnage.cpp` (64), `test_Partie.cpp`, `test_Controleur.cpp` ; les assertions sur `Coup`
@@ -511,7 +527,14 @@ font poursuivre 30 monstres durent environ 1,2 s chacun en `-O0`.
 - **Risque et tests touchés** : faible mais large : presque tous les tests d'`Escouade` et de
   `Partie` changent d'écriture.
 - **Dépend de** : R1.
-- **Suivi** : **rattachée à R4 (décision de 82.5)** : les deux touchent les mêmes signatures
+- **Suivi (étape 105, fait)** : `struct Place` et `struct IdMonstre` (`combat/`) remplacent les `size_t` et les `int` de `AdresseSkill`,
+  `Cible`, `Provocations`, `Agresseurs`, `Coup`, des intentions, des places d'attaque, de `Monstre`, de `PositionPortee` et de
+  l'interface (`DispositionInventaire`, `EcranInventaire`, `BarreDeSkills`). `indice()` est la seule conversion vers 0 à N−1 (avec un
+  `assert`), `depuisIndice` l'inverse : il ne reste aucun `+ 1`, `- 1` ni `static_cast` d'identifiant. **`EntiteVue` et `EntiteDeControle`
+  sont des gabarits** (`MonstreVu`/`PersonnageVu`, `MonstreDeControle`/`PersonnageDeControle`) plutôt que deux types : la règle qui les
+  lit est la même pour les deux camps. **La cible d'un événement** est un `std::variant<Place, IdMonstre, EscouadeEntiere>` (le
+  `idCible` 0 de « l'escouade entière » devient une alternative).
+- **Suivi (82.5)** : **rattachée à R4 (décision de 82.5)** : les deux touchent les mêmes signatures
   (`AdresseSkill`, `Cible`, `EntiteVue`, identifiants des intentions) ; on ne les modifie qu'une fois,
   en première sous-étape de la fonctionnalité qui a besoin de R4.
 

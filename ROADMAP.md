@@ -8,7 +8,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 ## Étapes terminées
 
-Étapes 0 à 104 ✅. Les dernières :
+Étapes 0 à 105 ✅. Les dernières :
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 - Étape 83 — Inventaire et équipement : le modèle, sans interface ✅
@@ -33,15 +33,16 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - Étape 102 — Les gabarits d'armes : treize gabarits (vitesse, portée, nature, mains, pénétration, écart par coup), l'objet retient son niveau et sa qualité, ses dégâts et ses seuils se calculent, chaque coup tire ses dégâts dans une plage ✅ (première étape de la phase 6)
 - Étape 103 — Armures, boucliers et reliques : vingt pièces d'armure en quatre types (tissu, léger, intermédiaire, lourd), un Shield, deux reliques de main gauche (Orb, Holy Relic), malus d'esquive des pièces lourdes, niveau d'apparition dans le butin ; armure, blocage et bonus se calculent depuis le gabarit, le niveau et la qualité (`effetsDeBase`) ✅
 - Étape 104 — Familles de butin et affinités d'affixes : le butin se répartit entre arme, armure, main gauche et bijou (35 / 35 / 15 / 15, à toute profondeur), chaque gabarit penche vers quelques affixes ✅ (la phase 6 est terminée)
+- Étape 105 — Les skills en données (R4 et R5) : un mode de cible, une zone séparée de l'effet, un effet en `std::variant`, un seul canal de sortie, des types forts `Place` et `IdMonstre`, la provocation qui attend ✅ (première étape de la phase 7)
 
 ## État actuel (résumé)
 
 - **Outils** : conception dans Claude.ai, implémentation avec Claude Code dans VSCode (règles dans
   `CLAUDE.md`) ; dépôt Git `squad-arpg`, poussé sur GitHub ; SFML 3.0.2 intégrée à CMake.
-- **Code** (étape 104) : 103 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
+- **Code** (étape 105) : 107 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
   `combat`, `objets`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
   de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug` et `jeu`, 0
-  avertissement, 1 790 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers des étapes 98 à 102 : `docs/build.md`,
+  avertissement, 1 803 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers des étapes 98 à 102 : `docs/build.md`,
   `docs/audit.md`). `Escouade` n'est plus que l'assemblage : `Escouade.cpp` de 1 223 à 1 067 lignes. Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`). **Tout le texte affiché est en anglais** (identifiants, commentaires et documentation restent en français ; pas de système de traduction : `docs/glossaire.md` est la référence des noms du jeu). Un commit par sous-étape, fait par Claude Code (`CLAUDE.md`).
 - **Écrans** : menu à la souris, options d'affichage (fenêtré ou plein écran, résolutions,
   `reglages.ini`), choix de 3 classes parmi 5 (guerrier, prêtre, mage, paladin, rôdeur ; doublons
@@ -127,6 +128,17 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   dagues et lances vers Keen, les armures lourdes vers Reinforced, le Shield vers of Blocking. `affiniteDe` donne le poids d'un affixe (1
   sans affinité) et le tirage ne pondère que parmi les affixes que la catégorie **permet**. Aucun poids de base par affixe ni par gabarit
   encore. Rien ne change à l'écran ; tout est « à tester » (`docs/objets.md`, « Génération aléatoire », `docs/aide-memoire-objets.md`).
+- **Skills en données** (étape 105) : un skill se décrit par **comment il vise** (`ModeDeCible { Soi, Monstre, Allie, Point }`, lu par le choix
+  de la cible, le déclenchement, la mise en attente et la visée), **où il s'applique** (un rayon de zone optionnel : sans rayon l'effet
+  touche la cible, avec un rayon il touche tout le camp concerné autour de la cible, du point visé ou du lanceur, en vue de ce centre) et
+  **ce qu'il fait** (un `std::variant<EffetDegats, EffetFrappe, EffetSoin, EffetProvocation>`, chacun avec ses seuls champs ; le camp
+  touché se déduit de l'effet, `campTouche`). `TypeSkill` n'existe plus ; les huit skills du catalogue sont des données. **`Escouade`
+  rend tout par un seul canal**, des `ResultatDEffet` (`SkillParti`, `Coup`, `SoinSurAllie`, `ProvocationPosee`) que `Partie::traduire`
+  convertit en événements ; plus de `prendreFaits`. Le **mode `Soi` attend** : une provocation demandée pendant l'activation d'un autre
+  skill de son lanceur est mise en attente comme un skill à cible, au lieu d'être perdue. **Types forts** : `Place` (de 1 à N, `indice()` la
+  seule conversion vers 0 à N-1) et `IdMonstre` remplacent les entiers partout ; `EntiteVue` et `EntiteDeControle` sont des gabarits
+  (`MonstreVu`, `PersonnageVu`…) ; la cible d'un événement est un `std::variant<Place, IdMonstre, EscouadeEntiere>`. Rien ne change à
+  l'écran, sauf la provocation qui attend (`docs/combat.md`, « Les skills en données (étape 105) », `docs/audit.md`, R4 et R5).
 - **Carte** : donjon généré à chaque partie (salles, couloirs en L de 2 cases, portes à chaque
   jonction, un groupe de monstres par salle sauf la première, un escalier, graine affichée), F5 = nouvelle expédition ;
   carte à la main pour les tests (`docs/generation.md`, `docs/carte-et-collision.md`).
@@ -246,8 +258,8 @@ fonctionnalités prévues sont donc décalées après l'étape 82.
   - R4 (skills : le type décide partout), **avec R5** (types forts pour les places et les identifiants :
     les deux touchent `AdresseSkill`, `Cible`, `EntiteVue` et les identifiants des intentions, on ne les
     modifie qu'une fois) et C2 (constructeurs à longues listes) avant les buffs, les
-    soins dans le temps ou le mana. Le mode de cible « Soi » de R4 doit lever une limite de l'étape 80 :
-    la provocation, sans cible, ne peut pas être mise en attente quand son lanceur est occupé ;
+    soins dans le temps ou le mana : **faits à l'étape 105**. Le mode de cible « Soi » de R4 a levé la limite de l'étape 80 :
+    la provocation d'un lanceur occupé attend maintenant, au lieu d'être perdue ;
   - C2 (constructeurs à longues listes) : fait à l'étape 88.1 pour `Skill` et `Personnage`
     (`DefinitionDeSkill`, `DefinitionPersonnage` en initialisation désignée) ;
   - E1 (valeurs dispersées, `Monstre` en littéraux) : fait à l'étape 89.1 pour `Monstre`
@@ -325,13 +337,29 @@ ce qui reste à décider **en discussion** avant son prompt :
     kits, infobulle), le Shield, les reliques de main gauche (Orb, Holy Relic).
   - 104 ✅ : familles de butin et affinités d'affixes : le modèle se tire en deux temps (famille, puis gabarit), les proportions des
     familles ne changent pas avec la profondeur, chaque gabarit penche vers quelques affixes (tirage pondéré). **La phase 6 est terminée.**
+- **Phase 7, skills en données, mana et effets des caractéristiques** (décidée à l'étape 105 ; Olivier conçoit en parallèle les classes et
+  leurs skills)
+  - 105 ✅ : R4 et R5 (voir ci-dessus) : le mode de cible, la zone et l'effet en données, un seul canal de sortie, les types forts, la
+    provocation qui attend. Aucun nouveau skill ni nouvelle règle : c'est la structure qui accueillera la suite.
+  - À discuter avec Claude.ai : le mana (coûts, ressources de classe), les effets du Savoir et de la Volonté, puis les buffs,
+    les affaiblissements, les effets dans le temps et les auras (plusieurs effets par skill).
 
 
-## Étape 105 (prochaine) : à discuter avec Claude.ai
+## Étape 106 (prochaine) : à discuter avec Claude.ai
 
-L'étape 104 (familles de butin et affinités d'affixes) est faite, et avec elle la phase 6. La suite se discute avec Claude.ai. Le Savoir
+L'étape 105 (les skills en données) est faite : première étape de la phase 7. La suite se discute avec Claude.ai, après la conception des
+classes par Olivier : le mana, puis les effets du Savoir et de la Volonté. Le Savoir
 et la Volonté n'ont encore aucun effet (les paires de croissance du prêtre et du mage deviendront justes quand ils serviront).
 L'`Expedition` garde les points dépensés ; c'est elle qu'on sauvegardera un jour.
+
+**Pistes issues de l'étape 105** (étapes à part, plus tard) :
+- **Plusieurs effets par skill** (aujourd'hui un seul : un `std::vector<EffetDeSkill>` ou une liste d'effets, le jour où un skill soigne
+  *et* protège), et les **buffs, affaiblissements, effets dans le temps et auras** : une alternative de plus dans `EffetDeSkill`, le
+  compilateur signale chaque `std::visit` à compléter (`campTouche`, `Personnage::attaqueDuSkill`, `Escouade::appliquerLEffet`).
+- **Un skill en attente par personnage** (aujourd'hui un seul pour toute l'escouade, y compris pour les skills de mode `Soi`).
+- **Un effet de zone sur les alliés dans le catalogue** (un soin de zone existe dans les tests, aucun skill de classe ne l'utilise).
+- **Des identifiants et des places affichables** : `Place` et `IdMonstre` n'ont pas d'`operator<<` (Catch2 affiche `{?}` dans un échec).
+- **Ajuster en jouant** l'ordre des événements d'une image (le départ d'un skill est signalé avant ses effets), s'il gêne un jour.
 
 **Pistes issues de l'étape 104** (étapes à part, plus tard) :
 - **Ajuster en jouant** les poids des familles (35 / 35 / 15 / 15) et les multiplicateurs d'affinité (3 et 2) : « à tester ».

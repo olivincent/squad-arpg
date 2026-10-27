@@ -13,8 +13,8 @@ déplacement par chemin dans `docs/chemin.md`.
   comportement partagé ne le justifie. Les points de vie et la barre de
   vie sont dupliqués volontairement.
 - **`Monstre` ne connaît ni `Escouade` ni `Personnage`** : il reçoit sa
-  proie (un `std::optional<EntiteVue>`, vide quand aucun personnage n'est
-  vivant), ses candidats de frappe (`std::vector<EntiteVue>`) et les
+  proie (un `std::optional<PersonnageVu>`, vide quand aucun personnage n'est
+  vivant), ses candidats de frappe (`std::vector<PersonnageVu>`) et les
   obstacles en paramètres de `mettreAJour`. C'est `main.cpp` qui fait l'intermédiaire (voir
   `docs/boucle-et-entrees.md` et `docs/combat.md`).
 - **Position et taille portées par `m_mobile`** (30 × 30 et 160 px/s pour l'infanterie, depuis
@@ -562,11 +562,11 @@ Données membres : `m_mobile`, `m_couleur` (`sf::Color`, celle de la définition
 (`StatistiquesDeCombat`), `m_regenerationRetour`, `m_etat` (`Etat`,
 `enum class` privé : `EnGarde`, `Poursuite`, `Retour`), `m_poste`,
 `m_groupe` (`int`, opaque), `m_alerte` (`bool`, posé par `alerter`,
-consommé par `mettreAJour`), `m_soinAccumule` (`float`, points de vie rendus pas encore entiers pendant le retour, 0 ailleurs), `m_idCibleEngagee` (`std::optional<int>`, place du personnage visé par le coup en exécution). Toutes les valeurs d'équilibrage viennent de la `DefinitionDeMonstre` du constructeur (aucune constante publique).
+consommé par `mettreAJour`), `m_soinAccumule` (`float`, points de vie rendus pas encore entiers pendant le retour, 0 ailleurs), `m_placeCibleEngagee` (`std::optional<Place>`, place du personnage visé par le coup en exécution). Toutes les valeurs d'équilibrage viennent de la `DefinitionDeMonstre` du constructeur (aucune constante publique).
 
 | Fonction | Rôle |
 |---|---|
-| `Monstre(sf::Vector2f centre, int id, int groupe, const DefinitionDeMonstre& definition)` | Crée le monstre à ce centre, avec cet identifiant, ce groupe (donné par `Niveau`) et les valeurs de cette définition (armure et couleur comprises) ; son poste est ce centre |
+| `Monstre(sf::Vector2f centre, IdMonstre id, int groupe, const DefinitionDeMonstre& definition)` | Crée le monstre à ce centre, avec cet identifiant, ce groupe (donné par `Niveau`) et les valeurs de cette définition (armure et couleur comprises) ; son poste est ce centre |
 | `int getGroupe() const` | Identifiant de groupe ; `[[nodiscard]]` |
 | `float getZoneDeControle() const` / `Attaque getAttaque() const` / `const StatistiquesDeCombat& getStatistiques() const` | Zone de contrôle, son attaque (dégâts avant l'armure de la cible, capacité offensive) et ses statistiques de combat ; de simples lectures, elles ne touchent ni la recharge ni le coup engagé ; `[[nodiscard]]` |
 | `void alerter()` | Demande d'entrer en poursuite de sa proie habituelle, même hors de la détection, si le monstre est dans son territoire ; prise en compte au prochain `mettreAJour`, sans effet en poursuite ni en retour. `recevoirDegats` (dégâts `> 0`) l'appelle |
@@ -574,16 +574,16 @@ consommé par `mettreAJour`), `m_soinAccumule` (`float`, points de vie rendus pa
 | `bool estCiblable() const` | Faux en `Retour` (le monstre n'est la cible de personne, mais reste un obstacle) ; vrai sinon ; `[[nodiscard]]` |
 | `void dessiner(sf::RenderTarget& rendu, bool estCible, bool marquerLeRetour) const` | Dessine le monstre, de la couleur de sa définition (éclairci de 50 % pendant l'exécution d'un coup ; semi-transparent, alpha 128, s'il est en retour et que `marquerLeRetour`, c'est-à-dire F3) et sa barre de vie ; ajoute un contour jaune si `estCible` |
 | `void dessinerChemin(sf::RenderTarget& rendu) const` | Débogage (F3) : trait rouge fin du centre du monstre à travers son chemin restant |
-| `void mettreAJour(float dt, std::optional<EntiteVue> proie, const std::vector<EntiteVue>& candidats, const TileMap& carte, const std::vector<Cercle>& obstacles, const std::vector<Cercle>& aContourner)` | Décrémente la recharge. Pendant l'exécution d'un coup : arrête le monstre et le déplace (immobile), sans toucher à l'état. Sinon met à jour l'état (détection de la proie soumise à la ligne de vue, `proieDetectee`, seulement en `EnGarde` ; la poursuite ne dépend pas de la vue ; `Retour` ne se termine qu'à l'arrivée au poste, sans retour possible vers `Poursuite`), regagne des points de vie en `Retour` (50 % du maximum par seconde, par l'accumulateur `m_soinAccumule`) et donne ses ordres à `m_mobile` (poursuite de la proie, arrêt dès qu'une cible de frappe existe, retour au poste — le chemin du retour est aussi recalculé quand `estBloque()`), puis le déplace ; `obstacles` le bloquent, `aContourner` (les autres monstres, pas les personnages) est ce que ses chemins évitent |
+| `void mettreAJour(float dt, std::optional<PersonnageVu> proie, const std::vector<PersonnageVu>& candidats, const TileMap& carte, const std::vector<Cercle>& obstacles, const std::vector<Cercle>& aContourner)` | Décrémente la recharge. Pendant l'exécution d'un coup : arrête le monstre et le déplace (immobile), sans toucher à l'état. Sinon met à jour l'état (détection de la proie soumise à la ligne de vue, `proieDetectee`, seulement en `EnGarde` ; la poursuite ne dépend pas de la vue ; `Retour` ne se termine qu'à l'arrivée au poste, sans retour possible vers `Poursuite`), regagne des points de vie en `Retour` (50 % du maximum par seconde, par l'accumulateur `m_soinAccumule`) et donne ses ordres à `m_mobile` (poursuite de la proie, arrêt dès qu'une cible de frappe existe, retour au poste — le chemin du retour est aussi recalculé quand `estBloque()`), puis le déplace ; `obstacles` le bloquent, `aContourner` (les autres monstres, pas les personnages) est ce que ses chemins évitent |
 | `bool peutAtteindre(Cercle cible, const TileMap& carte) const` | La cible est-elle à portée d'attaque (bord à bord) ET en vue (`ligneDeVue`, en cases) ? Même règle que `Escouade::peutAtteindre` ; `[[nodiscard]]` |
-| `bool engagerAttaque(std::optional<EntiteVue> proie, const std::vector<EntiteVue>& candidats, const TileMap& carte)` | Engage un coup (0,3 s d'exécution) sur la cible de frappe : faux s'il n'y en a pas, si le monstre est en retour, s'il est en mouvement ou si l'attaque n'est pas prête. La place choisie est retenue jusqu'au départ. `Partie` le tente à chaque image (l'échec est normal) ; `[[nodiscard]]` |
-| `std::optional<int> cibleEngagee() const` | Place du personnage visé par le coup en exécution (pas forcément la proie) ; vide hors exécution |
-| `std::optional<EntiteVue> cibleDeFrappe(...) const` (privée) | `choisirCibleAFrapper` avec `peutAtteindre` comme prédicat et l'id de la proie comme préféré : la proie si atteignable, sinon le candidat atteignable le plus proche (bord à bord ; égalité : le premier) |
+| `bool engagerAttaque(std::optional<PersonnageVu> proie, const std::vector<PersonnageVu>& candidats, const TileMap& carte)` | Engage un coup (0,3 s d'exécution) sur la cible de frappe : faux s'il n'y en a pas, si le monstre est en retour, s'il est en mouvement ou si l'attaque n'est pas prête. La place choisie est retenue jusqu'au départ. `Partie` le tente à chaque image (l'échec est normal) ; `[[nodiscard]]` |
+| `std::optional<Place> cibleEngagee() const` | Place du personnage visé par le coup en exécution (pas forcément la proie) ; vide hors exécution |
+| `std::optional<PersonnageVu> cibleDeFrappe(...) const` (privée) | `choisirCibleAFrapper` avec `peutAtteindre` comme prédicat et l'id de la proie comme préféré : la proie si atteignable, sinon le candidat atteignable le plus proche (bord à bord ; égalité : le premier) |
 | `std::optional<Attaque> avancerAttaque(float dt, Generateur& generateur)` | Fait avancer l'exécution ; rend son attaque au départ du coup, vide sinon ; `[[nodiscard]]` |
 | `void annulerAttaque()` | Annule le coup en exécution, sans recharge consommée (appelée par `Partie` quand la proie engagée meurt) |
 | `sf::Vector2f getCentre() const` | Centre du monstre |
 | `Cercle getCercle() const` | Cercle centré sur le monstre, de rayon la moitié du côté de sa définition (15 pour l'infanterie ; façade de `Mobile::getCercle`) |
-| `int getId() const` | Identifiant du monstre |
+| `IdMonstre getId() const` | Identifiant du monstre |
 | `bool contient(sf::Vector2f point) const` | Le point (pixels du monde) est-il dans le carré du monstre ? |
 | `ResultatDuCoup recevoirDegats(const Attaque& attaque, Generateur& generateur)` | Sans aucun effet en `Retour` (invulnérable, pas d'alerte, aucun tirage) ni sur un monstre mort : rien (montant 0). Sinon délègue à `Vitalite::recevoirDegats` (esquive, critique, blocage et armure, sans descendre sous 0) ; si `attaque.montant > 0` (même esquivé ou bloqué), mémorise que le monstre vient d'être touché ; renvoie le résultat (dégâts après armure, critique, esquivé, bloqué) |
 | `bool estVivant() const` | Points de vie `> 0` |

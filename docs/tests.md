@@ -2102,3 +2102,38 @@ Deux sous-étapes, un commit chacune (104.1 enchaînée). Beaucoup de tirages : 
   permet pas ne joue pas** : of Deflection n'apparaît jamais sur des gants de cuir, et le bassin de ces gants vaut 7).
 - **Ce que les tests ne voient pas** : l'impression d'un butin équilibré en jouant (un tiers d'armes, un tiers d'armures), les
   « Keen », « of the Owl » et « Reinforced » qui reviennent sur les bons gabarits : à l'œil, en tirant avec F7 aux étages 1 et 5.
+
+## Étape 105 : les skills en données, R4 et R5 (+13 cas, 1 790 → 1 803)
+
+Six sous-étapes, un commit chacune, toutes enchaînées. Une refactorisation : presque tous les tests existants changent d'écriture
+(types forts, résultats d'effets), aucun ne change de sens.
+- **105.1** (+6) : les types forts. `test_Place.cpp` (nouveau : `Place::indice` et `depuisIndice` inverses l'un de l'autre, comparaison
+  par numéro, `IdMonstre` comparable, et quatre `static_assert` : ni un entier, ni une place, ni un identifiant de monstre ne se
+  convertissent l'un en l'autre) ; `test_EntiteVue.cpp` (`trouverEntite` cherche aussi un personnage par sa `Place`) ;
+  `test_Engagement.cpp` (**le sens inverse** : un personnage engage un monstre qui fuit, la règle étant un gabarit). Les ~600 lignes qui
+  écrivaient un identifiant ou une place en entier nu sont réécrites : `Place{1}`, `IdMonstre{7}`, `MonstreVu`, `PersonnageVu`,
+  `CibleDEvenement{…}` à la place de « camp + identifiant » ; les constantes `s_guerrier`, `s_pretre`, `s_mage` sont des `Place`. Les
+  aides de test qui se font passer pour un numéro (`monstreEn(int)`, `choisir(...)` de `test_Autodefense.cpp`, `entite(int)` de
+  `test_Engagement.cpp`) convertissent à l'entrée, pour que les cas restent lisibles.
+- **105.2** (+1) : `test_Skill.cpp` (`getMode` rend le mode donné, quel que soit ce que fait le skill) ; `modeDuSkill` remplace
+  `typeDuSkill` (guerrier : `Monstre`, provocation : `Soi`, prêtre : `Allie`, mage : `Point`) ; chaque `DefinitionDeSkill` des tests écrit
+  son mode.
+- **105.3** (+2) : `test_EffetDeSkill.cpp` (nouveau : `campTouche` pour les quatre effets ; `EffetDegats` physique et sans coefficients par
+  défaut). Les 69 définitions de skill des tests sont converties **par un script** (type, puissance, nature, élément, coefficients,
+  bonus de frappe → mode, effet, rayon optionnel), puis relues : les assertions sur `getType`, `getPuissance`, `getNature`,
+  `getElement`, `getBonusDeFrappe` lisent maintenant `getEffet()` (`std::get<EffetDegats>`…). **La frappe sacrée n'a plus de nature à
+  tester** : elle prend celle de l'arme (le test des natures vérifie que c'est un `EffetFrappe`).
+- **105.4** (+2) : `test_Escouade_skills_soin.cpp` (**un soin de zone** : au point visé (mode `Point`) il soigne le prêtre et le mage mais
+  pas le guerrier à 50 px ; autour du lanceur (mode `Soi`) il soigne le prêtre et le mage mais pas le guerrier) — le camp touché par un
+  effet de soin en zone, que le catalogue n'utilise pas encore. Les tests qui lisaient `prendreFaits` lisent les résultats que rendent
+  `attaquer` et `declencherSkill` (`aides_escouade.hpp` : `coupsDe`, `parmiLesResultats<…>`, `declencherEtAttendreTout`,
+  `declencherZoneEtAttendreTout`, `attendreLeDepartDesSkillsTout`, `declencherTout`) ; les anciennes aides rendent toujours des
+  `std::vector<Coup>` (`declencherEtAttendre`, `attaquerJusquAuDepart`…), et les `.empty()` sur un appel d'`Escouade` portent sur les
+  coups (`coupsDe(…).empty()`), ce qu'ils voulaient dire.
+- **105.5** (+2) : `test_Escouade_skills.cpp` (**une provocation demandée pendant l'activation d'un autre skill de son lanceur attend,
+  puis part** : la frappe s'active, la provocation n'a pas commencé et sa recharge ne court pas, puis la frappe part et la provocation
+  provoque le monstre — ce test **échouait avant** : zéro monstre provoqué ; une provocation en attente est abandonnée à la mort de
+  son lanceur, un autre skill est de nouveau accepté).
+- **Ce que les tests ne voient pas** : que tous les skills se comportent comme avant à l'écran (chiffres flottants, critiques,
+  « Dodged » et « Blocked », visée de la zone, icônes grisées) : à l'œil, en jouant chaque classe ; l'ordre des événements d'une image,
+  qui a changé sans effet sur l'affichage (un texte ne s'empile qu'avec ceux de la même cible).

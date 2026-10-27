@@ -767,7 +767,7 @@ Données membres : `m_cases` (`std::vector<std::optional<Objet>>`, dimensionné 
 ### `PositionDObjet` (`objets/`)
 
 `PositionDObjet.hpp` / `.cpp`. `struct PositionDansLeSac { std::size_t caseDuSac; }`, `struct
-PositionPortee { std::size_t place; Emplacement emplacement; }` (chacune avec `operator==`) et
+PositionPortee { Place place; Emplacement emplacement; }` (chacune avec `operator==`) et
 `using PositionDObjet = std::variant<PositionDansLeSac, PositionPortee>`.
 
 | Fonction | Rôle |

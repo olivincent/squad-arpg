@@ -160,6 +160,9 @@ personnages sont dans `docs/formation.md`, le monstre dans
 
 ## Skill
 
+*Depuis l'étape 105, un skill se décrit en données (mode de cible, zone, effet) et `TypeSkill` n'existe plus : voir « Les skills en
+données (étape 105) » plus bas. Ce qui suit est l'état de l'étape 55 à l'étape 104.*
+
 - **Une classe `Skill`** : un `TypeSkill` (`DegatsSurCible`, `Soin`,
   `Provocation` ou `Zone`), une portée (bord à bord), une puissance, un
   temps de recharge, la recharge courante et un rayon de zone. Le mot
@@ -1073,7 +1076,7 @@ Le modèle des affixes est dans `docs/objets.md` (« Rareté et affixes ») ; ic
   récent, il va au bout. Un soin dont la cible est remontée à pleine vie part
   quand même (plafonné par `recevoirSoin`). Pas de revérification de portée
   ni de vue au départ (même règle qu'à l'étape 57).
-- **Effet évalué au départ** (`Escouade::effetDuSkill`) : dégâts : le coup va
+- **Effet évalué au départ** (`Escouade::effetDuSkill`, devenue `appliquerLEffet` à l'étape 105) : dégâts : le coup va
   au monstre engagé ; soin : à l'allié engagé ; zone : monstres dans la zone au
   moment du départ, autour du point fixé, en vue du point d'impact ;
   provocation : monstres dans la zone autour du provocateur au moment du
@@ -1403,7 +1406,8 @@ l'enfoncerait dans un obstacle.
   lire (sons, journal de combat, statistiques), il lira la même file ; un nouveau type d'événement
   (étape 86 : nom du skill lancé, « Taunted ») s'ajoute au variant `DetailEvenement` sans réécrire ce
   qui existe.
-- **La forme (étape 86).** Champs communs (`campCible`, `idCible`, `position`) et un `detail` en
+- **La forme (étape 86).** *(Étape 105.1 : `campCible` et `idCible` sont remplacés par une `cible`, un
+  `std::variant<Place, IdMonstre, EscouadeEntiere>`.)* Champs communs (`campCible`, `idCible`, `position`) et un `detail` en
   `std::variant<Degats, Soin, SkillLance, Provoque, Esquive, Bloque>` : `Degats { montant, opportunite,
   critique }`, `Soin { montant, critique }` (le champ `critique` date de l'étape 89), `SkillLance { IdSkill }`,
   `Provoque {}`, `Esquive {}` et `Bloque { montant, total }` (étape 90), puis `SacPlein {}` (étape 97.5 : le sac est
@@ -1426,7 +1430,9 @@ l'enfoncerait dans un obstacle.
 - **La position est une copie.** `EvenementDeCombat::position` est le centre de la cible au moment de
   l'événement, jamais une référence ni un pointeur : le monstre tué par ce coup est retiré de
   `m_monstres` dans la même image, et un pointeur serait pendant. L'événement lui survit.
-- **D'où viennent les événements.** `Partie::appliquer` (coups sur les monstres : skills, attaque de base,
+- **D'où viennent les événements.** *(Étape 105.4 : le canal des faits décrit ici est remplacé par un seul canal, les `ResultatDEffet`
+  que rendent `attaquer`, `declencherSkill` et `declencherSkillDeZone` ; `Partie::traduire` en fait les événements. Voir « Les skills en
+  données (étape 105) ».)* `Partie::appliquer` (coups sur les monstres : skills, attaque de base,
   zone, coups gratuits des personnages) et `Partie::infligerAUnPersonnage` (coups des monstres, coups
   gratuits des monstres) appellent `signaler` avec le montant renvoyé ; `opportunite` vaut vrai pour les
   coups gratuits seulement. **Le reste vient d'`Escouade::effetDuSkill`**, par un canal unique : une
@@ -1604,7 +1610,7 @@ même chose avec plus de détail.
   reste sur place. L'ordre du joueur (ancre en mouvement), le skill en
   attente et le verrou (personnage à portée du monstre verrouillé) passent
   avant.
-- **Skills** : quatre, de classe `Skill` (type, portée, puissance, recharge, rayon de zone, temps d'activation).
+- **Skills** : quatre, de classe `Skill` (depuis l'étape 105 : mode de cible, portée, recharge, effet, rayon de zone optionnel, temps d'activation).
   **Étape 74** : un skill est désigné par une `AdresseSkill` (place du personnage et `IdSkill`
   stable : `FrappePuissante`, `Provocation`, `Soin`, `Explosion`) ; un personnage connaît une liste de
   skills, une seule action engagée à la fois (engager un second skill pendant l'activation d'un autre est
@@ -1715,9 +1721,65 @@ même chose avec plus de détail.
 ### Le niveau atteint (étape 99.5)
 
 `NiveauAtteint { niveau }` est un détail d'événement de plus (`combat/EvenementDeCombat.hpp`), au-dessus de l'escouade entière
-comme `SacPlein` (`Camp::Escouade`, `idCible` 0, position de l'ancre) : un événement par niveau gagné, signalé par
+comme `SacPlein` (`EscouadeEntiere`, position de l'ancre) : un événement par niveau gagné, signalé par
 `Partie::monterSiLExperienceLeDonne`. Le texte flottant est « Level up! », 20 px, bleu clair (une couleur que ni le soin, ni le nom
 d'un skill, ni « Bag full » n'ont) ; il s'empile avec les autres textes de l'escouade entière.
+
+## Les skills en données (étape 105)
+
+Refactorisation R4 et R5 de `docs/audit.md`, première étape de la phase 7 : aucun nouveau skill, aucune nouvelle règle, aucune valeur
+d'équilibrage qui change. Seul changement visible : la provocation peut être mise en attente quand son lanceur est occupé.
+
+- **Un skill se décrit en trois morceaux.** *Comment* il vise (`ModeDeCible { Soi, Monstre, Allie, Point }`), *où* il s'applique (un
+  rayon de zone optionnel) et *ce qu'il fait* (`EffetDeSkill`, un `std::variant<EffetDegats, EffetFrappe, EffetSoin,
+  EffetProvocation>`). Le choix de la cible (`Escouade::choisirCible`), le déclenchement (`declencherSkill`), la mise en attente et la
+  visée à la souris (`Controleur::activerEmplacement`, par `Escouade::modeDuSkill`) lisent le mode et jamais l'effet ; `TypeSkill`, qui
+  mélangeait les deux, est retiré (plus rien ne le lisait : l'icône de la barre ne lit que l'`IdSkill`).
+- **La zone est une propriété du skill, séparée de l'effet.** Sans rayon, l'effet touche la cible. Avec un rayon, il touche chaque
+  entité du camp concerné dans le cercle de ce rayon centré sur la cible, le point visé (mode `Point`) ou le lanceur (mode `Soi`), et en
+  vue de ce centre (`ligneDeVue` : un sort ne traverse pas les murs). Le camp se déduit de l'effet, à un seul endroit (`campTouche` :
+  dégâts, frappe et provocation touchent les monstres, le soin les alliés). Un soin de zone marche donc sans une ligne de plus, même
+  si aucun skill du catalogue n'en a (deux tests le montrent, au point visé et autour du lanceur).
+- **Chaque champ est là où il a un sens.** `EffetDegats { montant, nature, élément, coefficients }` ; `EffetFrappe { bonus,
+  coefficients }` (la nature et la pénétration sont celles de l'arme, ce que la définition ne peut donc plus faire semblant de
+  déclarer) ; `EffetSoin { montant, coefficients }` ; `EffetProvocation { durée }` (une durée n'est pas un montant : aucune
+  caractéristique n'y joue). **Les coefficients vont à l'effet, pas au skill** : ils disent ce que le *montant* doit aux
+  caractéristiques, un futur effet sans montant n'en aura pas. Le `Skill` ne garde que ce qui ne dépend pas de l'effet : mode, portée,
+  recharge, rayon de zone, temps d'exécution, armes exigées. `m_puissance`, `m_rayonZone` surchargé et `m_bonusDeFrappe` ne sont plus
+  lus pour une partie des types seulement.
+- **Les invariants qui restent** (assert du constructeur) : un skill de mode `Point` a un rayon ; un skill de mode `Monstre` a un effet
+  qui touche les monstres, un skill de mode `Allie` un effet qui touche les alliés ; un rayon est strictement positif. L'ancien
+  « nature `Zone` si et seulement si type `Zone` » est supprimé : il liait deux choses que cette étape sépare (une pluie de flèches
+  est un skill à point *et* de nature zone, mais rien n'empêche une zone de contact un jour).
+- **L'attaque de base et l'attaque d'un monstre** restent des `Skill` qui ne portent que le temps : un `EffetDegats` de montant 0, de
+  mode `Monstre` (le mode n'est pas lu pour eux). La nature d'une attaque de monstre se lit dans cet effet.
+- **Un seul effet par skill.** Un nouveau type d'effet est une alternative de plus ; le compilateur signale chaque `std::visit` à
+  compléter : `campTouche`, `Personnage::attaqueDuSkill` (le montant, rangé dans le bon champ de l'`Attaque`) et
+  `Escouade::appliquerLEffet`.
+- **Un seul canal de sortie.** `attaquer`, `declencherSkill` et `declencherSkillDeZone` rendent des `ResultatDEffet`
+  (`std::variant<SkillParti, Coup, SoinSurAllie, ProvocationPosee>`, dans l'ordre où ils surviennent) ; la liste de faits d'`Escouade`
+  (`m_faits`, `prendreFaits`, `FaitDEscouade`, `SoinApplique`, `SkillPart`, `MonstreProvoque`) est retirée. Le soin et la provocation
+  ont déjà eu lieu quand leur résultat est rendu (`Escouade` possède les personnages et les provocations) ; le `Coup` est à infliger,
+  le monstre n'étant pas à l'escouade. `Coup` garde son nom : c'est l'alternative « dégâts sur un monstre ». `Partie::traduire` les
+  convertit un à un (`std::visit`), `Partie::infligerUnCoup` sert aussi aux coups d'opportunité. **Conséquence sur l'ordre des
+  événements** : un skill y signale son départ puis ses effets, résultat par résultat (avant : les coups de l'image, puis les faits à
+  la fin) ; l'affichage n'en dépend pas, un texte ne s'empile qu'avec ceux de la même cible. `Escouade::provoquer` reste public pour
+  les tests, qui ont besoin d'un monstre provoqué sans lancer le skill ; l'effet pose la provocation lui-même.
+- **Le mode `Soi` attend.** Le skill demandé pendant l'activation d'un autre skill de son lanceur n'est plus perdu : `SkillEnAttente`
+  porte une `std::optional<Cible>`, vide pour un skill de mode `Soi`, qui n'a personne vers qui marcher et attend seulement que son
+  lanceur soit libre (`engagerSkillSurSoiEnAttente`, avant l'approche du verrou). La mort de son lanceur l'annule. C'est la limite de
+  l'étape 80 (« la provocation, sans cible, ne peut pas être mise en attente »).
+- **R5, les types forts.** `Place` (un numéro de 1 à N ; `indice()` est la seule conversion vers 0 à N-1, avec un `assert`, et
+  `depuisIndice` le chemin inverse : plus aucun `+ 1` ni `- 1`) et `IdMonstre` remplacent les `size_t` et les `int` de `AdresseSkill`,
+  `Cible`, `Provocations`, `Agresseurs`, `Coup`, des intentions, des places d'attaque, de `Monstre` et de `PositionPortee`.
+  **`EntiteVue` et `EntiteDeControle` deviennent des gabarits** (`MonstreVu`, `PersonnageVu`, `MonstreDeControle`,
+  `PersonnageDeControle`) plutôt que deux types : les règles qui les lisent sont les mêmes pour les deux camps (`trouverEntite`,
+  `choisirCibleAFrapper`, la règle des zones de contrôle, qui se joue dans les deux sens), et un gabarit les écrit une fois en
+  empêchant de confondre un monstre et un personnage. **La cible d'un événement** est un `std::variant<Place, IdMonstre,
+  EscouadeEntiere>` à la place du couple « camp, entier » : l'ajout d'une troisième alternative, pas prévue par le prompt, remplace le
+  `idCible` 0 qui voulait dire « l'escouade entière » (sac plein, niveau atteint).
+- **Limites.** Un seul skill en attente pour toute l'escouade (inchangé). Un effet qui touche plusieurs alliés tire un critique par
+  allié. Plusieurs effets par skill, les buffs, le mana et les effets dans le temps restent à faire (phase 7).
 
 ## Référence des modules
 
@@ -1733,11 +1795,11 @@ provocateur de 1 à N, `tempsRestant`).
 
 | Fonction | Rôle |
 |---|---|
-| `void provoquer(int id, std::size_t place, float duree)` | Ajoute la provocation, ou remet la durée au maximum (et change le provocateur) si ce monstre l'est déjà ; pas de doublon. La validation de la place reste dans `Escouade::provoquer` |
+| `void provoquer(IdMonstre id, Place place, float duree)` | Ajoute la provocation, ou remet la durée au maximum (et change le provocateur) si ce monstre l'est déjà ; pas de doublon. La validation de la place reste dans `Escouade::provoquer` |
 | `void mettreAJour(float dt)` | Fait écouler le temps ; retire les provocations échues |
-| `void retirerMonstresAbsents(const std::vector<EntiteVue>& monstres)` | Retire les monstres absents de la liste (morts) |
-| `void retirerProvocateur(std::size_t place)` | Retire les provocations de ce provocateur (mort) |
-| `std::optional<std::size_t> provocateurDe(int id) const` | Place du provocateur de ce monstre, vide s'il n'est pas provoqué |
+| `void retirerMonstresAbsents(const std::vector<MonstreVu>& monstres)` | Retire les monstres absents de la liste (morts) |
+| `void retirerProvocateur(Place place)` | Retire les provocations de ce provocateur (mort) |
+| `std::optional<Place> provocateurDe(IdMonstre id) const` | Place du provocateur de ce monstre, vide s'il n'est pas provoqué |
 | `const std::vector<Provocation>& liste() const` | Provocations en cours |
 
 ### `Agresseurs` (`escouade/`) — les monstres qui ont frappé l'escouade
@@ -1748,52 +1810,77 @@ sans nouveau coup du même monstre. Aucune position (82.5).
 
 | Fonction | Rôle |
 |---|---|
-| `void enregistrer(int id)` | Ajoute l'agresseur, ou remet son temps à 3 s s'il est connu. La règle « coup à 0 = rien » reste dans `Escouade::recevoirCoup` |
+| `void enregistrer(IdMonstre id)` | Ajoute l'agresseur, ou remet son temps à 3 s s'il est connu. La règle « coup à 0 = rien » reste dans `Escouade::recevoirCoup` |
 | `void mettreAJour(float dt)` | Fait écouler le temps ; oublie les agresseurs échus |
-| `void retirerMonstresAbsents(const std::vector<EntiteVue>& monstres)` | Oublie les agresseurs absents de la liste (morts, ou plus ciblables) |
-| `std::vector<EntiteVue> vusParmi(const std::vector<EntiteVue>& monstres) const` | Les agresseurs sous la forme d'`EntiteVue`, avec le cercle qu'ils ont dans cette liste, dans l'ordre d'enregistrement ; un agresseur absent de la liste est ignoré (et gardé en mémoire) ; `Escouade::mettreAJour` l'appelle une fois par image avec les ciblables ; `[[nodiscard]]` |
+| `void retirerMonstresAbsents(const std::vector<MonstreVu>& monstres)` | Oublie les agresseurs absents de la liste (morts, ou plus ciblables) |
+| `std::vector<MonstreVu> vusParmi(const std::vector<MonstreVu>& monstres) const` | Les agresseurs sous la forme de `MonstreVu`, avec le cercle qu'ils ont dans cette liste, dans l'ordre d'enregistrement ; un agresseur absent de la liste est ignoré (et gardé en mémoire) ; `Escouade::mettreAJour` l'appelle une fois par image avec les ciblables ; `[[nodiscard]]` |
 | `const std::vector<Agresseur>& liste() const` | Agresseurs retenus |
 
 ### `Skill` (`combat/`) — une capacité spéciale
 
-Un `TypeSkill` (`enum class { DegatsSurCible, Soin, Provocation, Zone }`), une
-portée, une puissance (dégâts, points de vie rendus ou durée en secondes,
-dégâts d'un skill de zone), une recharge, ainsi qu'un rayon de zone (la
-taille de la zone touchée par un skill de zone ; 0, non lu, pour un skill
-à cible unique). Sert aussi d'attaque de base : un `Skill` de type
-`DegatsSurCible`, de rayon de zone 0.
+Un `ModeDeCible` (comment il vise), une portée (bord à bord), un intervalle de recharge, un `EffetDeSkill` (ce qu'il fait), un rayon
+de zone optionnel (où il s'applique : voir « Les skills en données (étape 105) »), un temps d'exécution et les types d'arme qu'il
+exige. Sert aussi d'attaque de base (un `EffetDegats` de montant 0, de mode `Monstre`) et d'attaque des monstres.
 Il suit une machine à états (`enum class PhaseSkill { Pret, EnExecution, EnRecharge }`) : `commencer` (prêt → en exécution), `avancer` (fin de l'exécution : le coup part, la recharge est tirée, → en recharge), `annuler` (en exécution → prêt, sans recharge). Les skills des personnages passent par la même machine à états (étape 58 : activation de 0,3 s, 0,2 s, 0,6 s et 0,8 s pour dégâts, provocation, soin et zone) ; avec un temps nul, l'effet part dans l'image de l'engagement. Il ne connaît pas la cible du coup engagé, c'est son propriétaire qui la retient.
-Possédé par valeur par `Personnage` (attaque de base, plus un skill en
-option) et par `Monstre` (son attaque). Ne connaît ni la position de son
+Possédé par valeur par `Personnage` (attaque de base, plus ses skills) et par `Monstre` (son attaque). Ne connaît ni la position de son
 propriétaire ni sa cible : il reçoit deux `Cercle`. Ne dessine rien.
 
-Données membres : `m_type` (`TypeSkill`), `m_portee` (bord à bord), `m_coefficients` (`Coefficients`, étape 88), `m_nature` (étape 90), `m_armesExigees` (`std::vector<TypeDArme>`, étape 91.5),
-`m_element` (`Element`, étape 94.4), `m_bonusDeFrappe` (`std::optional<Degats>`, étape 94.5),
-`m_puissance`, `m_rechargeMin`, `m_rechargeMax` (intervalle de recharge,
-en secondes), `m_tempsRecharge` (durée de la recharge en cours, dernier
-tirage), `m_recharge`, `m_rayonZone` (`float`, en pixels), `m_tempsExecution`, `m_executionRestante` (secondes), `m_phase` (`PhaseSkill`).
+Données membres : `m_mode` (`ModeDeCible`), `m_portee` (bord à bord), `m_rechargeMin`, `m_rechargeMax` (intervalle de recharge,
+en secondes), `m_tempsRecharge` (durée de la recharge en cours, dernier tirage), `m_recharge`, `m_effet` (`EffetDeSkill`),
+`m_rayonZone` (`std::optional<float>`, en pixels), `m_tempsExecution`, `m_armesExigees` (`std::vector<TypeDArme>`, étape 91.5),
+`m_executionRestante` (secondes), `m_phase` (`PhaseSkill`).
 
 | Fonction | Rôle |
 |---|---|
-| `explicit Skill(const DefinitionDeSkill&)` | Crée le skill depuis ses données nommées (étape 88.1, C2) : `DefinitionDeSkill { type; portee; puissance; rechargeMin; rechargeMax; rayonZone = 0; tempsExecution = 0; coefficients = {}; nature; armesExigees = {}; element = Physique; bonusDeFrappe = vide }` (la `nature` n'a plus de valeur par défaut depuis l'étape 91.1 : chaque skill déclare la sienne, un oubli est une erreur de compilation ; un soin ou une provocation écrit `Contact`), en initialisation désignée (`Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, ...})`). Crée le skill de ce type, avec cette portée, cette puissance, cet intervalle de recharge (`assert(0 <= min <= max)` ; fixe si `min == max`), ce rayon de zone et ce temps d'exécution (`assert >= 0`) ; prêt à la création |
+| `explicit Skill(const DefinitionDeSkill&)` | Crée le skill depuis ses données nommées : `DefinitionDeSkill { mode; portee; rechargeMin; rechargeMax; effet; rayonZone = vide; tempsExecution = 0; armesExigees = {} }`, en initialisation désignée (`Skill({.mode = ModeDeCible::Monstre, .portee = 80.0f, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}})`). Les quatre premiers champs et l'effet n'ont pas de valeur par défaut (un oubli est une erreur de compilation). `assert` : `0 <= min <= max` (recharge fixe si `min == max`), temps d'exécution `>= 0`, rayon `> 0` s'il y en a un, un skill de mode `Point` a un rayon, un skill de mode `Monstre` un effet qui touche les monstres (`campTouche`), un skill de mode `Allie` un effet qui touche les alliés ; prêt à la création |
 | `bool commencer()` | Prêt → en exécution ; faux, sans rien changer, dans toute autre phase ; `[[nodiscard]]` |
 | `bool avancer(float dt, Generateur& generateur)` | En exécution : fait avancer l'exécution ; vrai une seule fois, au départ du coup (la recharge est alors tirée, phase → en recharge). Autres phases : comme `mettreAJour`, faux ; `[[nodiscard]]` |
 | `void annuler()` | En exécution → prêt, sans recharge ; sans effet ailleurs |
 | `PhaseSkill getPhase() const` | Phase actuelle |
-| `int getPuissance() const` | Puissance du skill, brute (sans les caractéristiques : `Personnage::attaqueDe` les applique) |
-| `const Coefficients& getCoefficients() const` | Ce que la puissance doit aux caractéristiques du lanceur ; `[[nodiscard]]` |
 | `void mettreAJour(float dt)` | Décrémente la recharge, sans descendre sous zéro ; en recharge écoulée, repasse à prêt |
 | `bool estAPortee(Cercle origine, Cercle cible) const` | `distanceBordABord(origine, cible)` est-elle `<=` `m_portee` ? |
 | `void relancerRecharge(Generateur& generateur)` | Remet la recharge au complet, sans déclencher : `min` si `min == max` (aucun tirage), sinon un tirage uniforme (`std::uniform_real_distribution<float>`) dans `[min, max]` |
 | `float getProgressionRecharge() const` | De 0 (juste après le déclenchement) à 1 (prêt) ; 1 si le temps de recharge est nul |
 | `float getRechargeRestante() const` | Temps de recharge restant, en secondes (0 si prêt) |
-| `TypeSkill getType() const` | Type du skill |
-| `float getRayonZone() const` | Rayon de zone du skill |
+| `ModeDeCible getMode() const` | Comment le skill vise ; `[[nodiscard]]` |
+| `const EffetDeSkill& getEffet() const` | Ce que fait le skill, brut (sans les caractéristiques : `Personnage::attaqueDuSkill` les applique) ; `[[nodiscard]]` |
+| `std::optional<float> getRayonZone() const` | Le rayon de la zone touchée ; vide si l'effet touche la cible seule ; `[[nodiscard]]` |
 | `float getPortee() const` | Portée du skill (bord à bord) |
-| `Element getElement() const` | L'élément des dégâts de la puissance (physique par défaut ; l'explosion : feu) ; `[[nodiscard]]` |
-| `const std::optional<Degats>& getBonusDeFrappe() const` | Le bonus d'un skill de frappe (vide pour tout autre skill) ; `assert` à la construction : un skill de frappe est de type `DegatsSurCible` de puissance 0 ; `[[nodiscard]]` |
 | `const std::vector<TypeDArme>& getArmesExigees() const` | Les types d'arme qui permettent le skill (vide : aucune exigence) ; `[[nodiscard]]` |
 | `bool convientA(std::optional<TypeDArme> arme) const` | Toujours vrai sans exigence ; sinon l'arme (vide : mains nues, faux) est-elle dans la liste ? ; `[[nodiscard]]` |
+
+### `ModeDeCible` (`combat/`) — comment un skill vise
+
+`ModeDeCible.hpp`, sans `.cpp` : `enum class ModeDeCible { Soi, Monstre, Allie, Point }`. `Soi` : aucune cible, le skill part du lanceur
+(la provocation) ; `Monstre` : le monstre du verrou, ou celui que le lanceur frapperait en autodéfense ; `Allie` : le personnage le plus
+blessé ; `Point` : un point du monde que le joueur désigne (visée à la souris). Lu par `Escouade` (choix de la cible, déclenchement, mise
+en attente) et `Controleur` (visée), jamais déduit de l'effet.
+
+### `EffetDeSkill` (`combat/`) — ce que fait un skill
+
+`EffetDeSkill.hpp` / `.cpp` : `struct EffetDegats { int montant; NatureDAttaque nature; Element element = Physique; Coefficients
+coefficients = {}; }`, `struct EffetFrappe { Degats bonus; Coefficients coefficients = {}; }` (l'arme portée plus ce bonus typé : la frappe
+sacrée), `struct EffetSoin { int montant; Coefficients coefficients = {}; }`, `struct EffetProvocation { int duree; }` (secondes) et `using
+EffetDeSkill = std::variant<EffetDegats, EffetFrappe, EffetSoin, EffetProvocation>`. `enum class CampTouche { Monstres, Allies }` et
+`CampTouche campTouche(const EffetDeSkill&)` (`[[nodiscard]]`) : le camp que touche un effet quand le skill a un rayon de zone, seul
+endroit où il se déduit.
+
+### `ResultatDEffet` (`combat/`) — la sortie d'`Escouade`
+
+`ResultatDEffet.hpp`, sans `.cpp` : `struct SkillParti { Place lanceur; IdSkill skill; sf::Vector2f position; }` (le départ du skill, au
+centre du lanceur, toujours le premier résultat du skill ; jamais pour l'attaque de base), `Coup` (dégâts sur un monstre), `struct SoinSurAllie
+{ Place place; int montant; sf::Vector2f position; bool critique; }` (les points réellement rendus, jamais 0), `struct ProvocationPosee {
+IdMonstre monstre; }` et `using ResultatDEffet = std::variant<SkillParti, Coup, SoinSurAllie, ProvocationPosee>`. Rendu par `attaquer`,
+`declencherSkill` et `declencherSkillDeZone` ; lu par `Partie::traduire`.
+
+### `Place` et `IdMonstre` (`combat/`) — les types forts (étape 105.1)
+
+`Place.hpp` et `IdMonstre.hpp`, sans `.cpp`. `struct Place { std::size_t numero; }` : la place d'un personnage dans l'escouade, de 1 à N ;
+`Place::depuisIndice(std::size_t)` (`indice + 1`) et `indice()` (`numero - 1`, `assert(numero >= 1)`) sont les seules conversions avec la
+position 0 à N-1 d'un tableau. Une place hors de 1 à N est représentable : c'est `Escouade::placeValide` qui sait combien il y en a (les
+tests de « place invalide » écrivent `Place{0}` ou `Place{5}`). `struct IdMonstre { int valeur; }` : l'identifiant d'un monstre, donné par
+`Partie` à la création, jamais réutilisé pendant l'étage. Chacun est comparable (`<=>` par défaut) et n'est convertible ni en entier ni
+en l'autre.
 
 ### `IdSkill`, `SkillConnu`, `AdresseSkill` (`combat/`) — désigner un skill
 
@@ -1801,12 +1888,12 @@ tirage), `m_recharge`, `m_rayonZone` (`float`, en pixels), `m_tempsExecution`, `
 
 - `enum class IdSkill { FrappePuissante, Provocation, Soin, Explosion, FrappeSacree, ImpositionDesMains, TirPercant, PluieDeFleches }` : identifiant **stable** d'un skill, indépendant de l'ordre dans la liste d'un personnage et de la touche.
 - `struct SkillConnu { IdSkill id; Skill skill; }` : un skill d'un personnage avec son identifiant (`Skill` ne porte pas d'identifiant : il sert aussi d'attaque de base et d'attaque des monstres).
-- `struct AdresseSkill { std::size_t place; IdSkill id; }` (comparable, `operator==` par défaut) : le personnage (place de 1 à N) et le skill. Une adresse invalide (place invalide ou skill inconnu de ce personnage) est traitée comme une place invalide : refus, liste vide, `optional` vide.
+- `struct AdresseSkill { Place place; IdSkill id; }` (comparable, `operator==` par défaut) : le personnage (place de 1 à N) et le skill. Une adresse invalide (place invalide ou skill inconnu de ce personnage) est traitée comme une place invalide : refus, liste vide, `optional` vide.
 
 ### `Coup` (`combat/`) — ce qui circule entre `Escouade` et `Partie`
 
-`Coup.hpp`, sans `.cpp` : `struct Coup { int idMonstre; Attaque attaque; }` (une
-attaque à infliger à ce monstre ; `int degats` avant l'étape 89.3). Sortie d'`Escouade`.
+`Coup.hpp`, sans `.cpp` : `struct Coup { IdMonstre idMonstre; Attaque attaque; }` (une
+attaque à infliger à ce monstre ; `int degats` avant l'étape 89.3). Une des alternatives de `ResultatDEffet`, la sortie d'`Escouade`.
 
 ### `Attaque` (`combat/`) — ce qui part de l'attaquant (étape 89.3)
 
@@ -1873,7 +1960,7 @@ réussi, le même pour tous.
 
 ### `EvenementDeCombat` (`combat/`) — ce qui s'est passé, en données
 
-`EvenementDeCombat.hpp` / `.cpp` : `enum class Camp { Escouade, Monstres }`, les détails `DegatsSubis { int montant; bool opportunite; bool critique; Element element = Physique; }` (`element` : celui de la plus grosse portion après les réductions, étape 94 ; `Degats` avant l'étape 94), `Soin { int montant; bool critique; }`, `SkillLance { IdSkill skill; }`, `Provoque {}`, `Esquive {}`, `Bloque { int montant; bool total; }`, `using DetailEvenement = std::variant<DegatsSubis, Soin, SkillLance, Provoque, Esquive, Bloque>` et `struct EvenementDeCombat { Camp campCible; int idCible; sf::Vector2f position; DetailEvenement detail; }`. `idCible` : place du personnage (1 à N) ou identifiant du monstre ; `montant` : ce qui a réellement été appliqué (armure comprise, soin plafonné), jamais 0 ; `position` : COPIE du centre de la cible à ce moment (le monstre tué par ce coup est retiré dans la même image, l'événement lui survit) ; `opportunite` : coup gratuit ; `critique` : le coup ou le soin a été un critique (le montant est déjà multiplié) ; `Bloque::montant` : ce que le blocage a absorbé (jamais 0), `total` : il a tout absorbé (aucun `DegatsSubis` ne suit) ; `SkillLance` : cible = le lanceur ; `Provoque` : cible = le monstre provoqué ; `Esquive` : cible = celui qui a esquivé. La fonction pure `std::vector<DetailEvenement> detailsDuCoup(const ResultatDuCoup&, bool opportunite)` (`[[nodiscard]]`) convertit un résultat de coup : `Esquive` seul s'il a été esquivé, sinon `DegatsSubis` (rien s'ils sont nuls ; son `element` est `portions.elementDominant()`) puis `Bloque` s'il y a eu blocage ; liste vide pour un résultat « rien ». Patron « file d'événements » : produits par `Partie` (`prendreEvenements`), lus par `EcranJeu`, sans callback ni observateur. Voir `docs/combat.md`.
+`EvenementDeCombat.hpp` / `.cpp` : `struct EscouadeEntiere {}`, `using CibleDEvenement = std::variant<Place, IdMonstre, EscouadeEntiere>`, les détails `DegatsSubis { int montant; bool opportunite; bool critique; Element element = Physique; }` (`element` : celui de la plus grosse portion après les réductions, étape 94 ; `Degats` avant l'étape 94), `Soin { int montant; bool critique; }`, `SkillLance { IdSkill skill; }`, `Provoque {}`, `Esquive {}`, `Bloque { int montant; bool total; }`, `using DetailEvenement = std::variant<DegatsSubis, Soin, SkillLance, Provoque, Esquive, Bloque, SacPlein, NiveauAtteint>` et `struct EvenementDeCombat { CibleDEvenement cible; sf::Vector2f position; DetailEvenement detail; }`. `cible` : un personnage (sa `Place`), un monstre (son `IdMonstre`) ou l'escouade entière (`EscouadeEntiere` : sac plein, niveau atteint) ; `montant` : ce qui a réellement été appliqué (armure comprise, soin plafonné), jamais 0 ; `position` : COPIE du centre de la cible à ce moment (le monstre tué par ce coup est retiré dans la même image, l'événement lui survit) ; `opportunite` : coup gratuit ; `critique` : le coup ou le soin a été un critique (le montant est déjà multiplié) ; `Bloque::montant` : ce que le blocage a absorbé (jamais 0), `total` : il a tout absorbé (aucun `DegatsSubis` ne suit) ; `SkillLance` : cible = le lanceur ; `Provoque` : cible = le monstre provoqué ; `Esquive` : cible = celui qui a esquivé. La fonction pure `std::vector<DetailEvenement> detailsDuCoup(const ResultatDuCoup&, bool opportunite)` (`[[nodiscard]]`) convertit un résultat de coup : `Esquive` seul s'il a été esquivé, sinon `DegatsSubis` (rien s'ils sont nuls ; son `element` est `portions.elementDominant()`) puis `Bloque` s'il y a eu blocage ; liste vide pour un résultat « rien ». Patron « file d'événements » : produits par `Partie` (`prendreEvenements`), lus par `EcranJeu`, sans callback ni observateur. Voir `docs/combat.md`.
 
 ### `TextesFlottants` (`interface/`) — les dégâts et soins à l'écran
 
@@ -1881,7 +1968,7 @@ réussi, le même pour tous.
 
 | Fonction | Rôle |
 |---|---|
-| `void ajouter(const EvenementDeCombat&)` | Ajoute un texte d'âge 0. Son rang est le nombre de textes déjà ajoutés dans cette image pour la même cible (`campCible` et `idCible`) : empilement déterministe, sans hasard |
+| `void ajouter(const EvenementDeCombat&)` | Ajoute un texte d'âge 0. Son rang est le nombre de textes déjà ajoutés dans cette image pour la même cible (`cible`) : empilement déterministe, sans hasard |
 | `void mettreAJour(float dt)` | Fait vieillir tous les textes, retire ceux qui ont atteint 0,8 s, passe à l'image suivante |
 | `const std::vector<TexteFlottant>& actifs() const` | Les textes à l'écran ; `[[nodiscard]]` |
 | `void dessiner(sf::RenderTarget&, const sf::Font&) const` | Un `sf::Text` par texte, centré sur `positionDuTexte`, contour noir de 1 px, opacité de `opaciteDuTexte` (à appeler avec la vue du monde) |
@@ -1896,21 +1983,22 @@ réussi, le même pour tous.
 
 ### `EntiteVue` (`combat/`) — une entité telle que l'autre camp la voit
 
-`EntiteVue.hpp` / `.cpp` : `struct EntiteVue { int id; Cercle cercle; }` (l'identifiant d'un monstre, ou la place 1 à N d'un personnage)
-(entrée d'`Escouade` et d'`Autodefense`) et une fonction libre.
+`EntiteVue.hpp`, sans `.cpp` : `template <class Identifiant> struct EntiteVue { Identifiant id; Cercle cercle; }`, avec `using MonstreVu =
+EntiteVue<IdMonstre>` et `using PersonnageVu = EntiteVue<Place>` (entrées d'`Escouade`, de `Monstre` et d'`Autodefense`) et une fonction
+libre. Un gabarit plutôt que deux types : les règles qui les lisent sont les mêmes pour les deux camps (étape 105.1), et deux alias en
+empêchent la confusion.
 
 | Fonction | Rôle |
 |---|---|
-| `const EntiteVue* trouverEntite(const std::vector<EntiteVue>& entites, int id)` | Entité portant cet identifiant, `nullptr` si elle est absente (`[[nodiscard]]`) |
+| `template <class Identifiant> const EntiteVue<Identifiant>* trouverEntite(const std::vector<EntiteVue<Identifiant>>& entites, Identifiant id)` | Entité portant cet identifiant, `nullptr` si elle est absente (`[[nodiscard]]`) |
 
 `Partie` a son équivalent pour `std::vector<Monstre>`, `trouverMonstre`
 (fonction privée).
 
-### `TypeSkill` (`combat/`) — le type d'un skill
+### `TypeSkill` — retiré à l'étape 105
 
-`TypeSkill.hpp`, sans `.cpp` : `enum class TypeSkill { DegatsSurCible, Soin,
-Provocation, Zone }`. Inclus par `Skill`, `EtatSkill`, `BarreDeSkills` et
-`Escouade` sans qu'ils dépendent de la classe `Skill`.
+`TypeSkill.hpp` n'existe plus : ce qu'un skill fait est son `EffetDeSkill`, comment il vise son `ModeDeCible`. `EtatSkill` n'en portait
+un que pour rien (l'icône ne lit que l'`IdSkill`).
 
 ### `Autodefense` (`combat/`) — quel monstre un combattant frappe
 
@@ -1920,25 +2008,25 @@ par `Escouade::mettreAJour`.
 
 | Fonction | Rôle |
 |---|---|
-| `std::optional<int> choisirCibleAFrapper(Cercle origine, const std::function<bool(Cercle)>& estAPortee, const std::vector<EntiteVue>& entites, std::optional<int> idPrefere)` | Identifiant de l'entité préférée (verrouillée, ou proie) si elle est à portée ; sinon de la plus proche (bord à bord) parmi celles à portée (égalité : la première de la liste) ; sinon vide. Même règle pour les deux camps. `estAPortee` dit si un cercle est à portée (celle de l'attaque ou celle d'un skill) |
-| `std::optional<EntiteVue> choisirAgresseurAViser(Cercle personnage, sf::Vector2f place, float laisse, const std::vector<EntiteVue>& agresseurs)` | Agresseur (identifiant et cercle) le plus proche du personnage (bord à bord ; égalité : le premier de la liste) parmi ceux dont le centre est à `laisse` ou moins de `place` ; sinon vide |
+| `template <class Identifiant> std::optional<Identifiant> choisirCibleAFrapper(Cercle origine, const std::function<bool(Cercle)>& estAPortee, const std::vector<EntiteVue<Identifiant>>& entites, std::optional<Identifiant> idPrefere)` | Identifiant de l'entité préférée (verrouillée, ou proie) si elle est à portée ; sinon de la plus proche (bord à bord) parmi celles à portée (égalité : la première de la liste) ; sinon vide. Même règle pour les deux camps. `estAPortee` dit si un cercle est à portée (celle de l'attaque ou celle d'un skill) |
+| `std::optional<MonstreVu> choisirAgresseurAViser(Cercle personnage, sf::Vector2f place, float laisse, const std::vector<MonstreVu>& agresseurs)` | Agresseur (identifiant et cercle) le plus proche du personnage (bord à bord ; égalité : le premier de la liste) parmi ceux dont le centre est à `laisse` ou moins de `place` ; sinon vide |
 
 ### `Engagement` (`combat/`) — zones de contrôle et attaque d'opportunité
 
 `Engagement.hpp` / `.cpp` : deux structures de données, une structure de résultat et trois fonctions libres, sans état et sans SFML graphique. Ne connaît ni `Escouade`, ni `Monstre`, ni `Personnage`, ni `Partie` (sur le modèle d'`Autodefense`) : elle reçoit des cercles et des zones. Voir `docs/combat.md`.
 
-`struct EntiteDeControle { int id; Cercle cercle; float zone; }` (id d'un monstre, ou place 1 à N d'un personnage ; zone en pixels, bord à bord ; 0 = n'engage personne). `struct PhotoDesCamps { std::vector<EntiteDeControle> attaquants; std::vector<EntiteDeControle> cibles; }` (les deux camps d'UN sens ; pour l'autre sens, on échange les deux listes). `struct CoupDOpportunite { int idAttaquant; int idCible; }`.
+`template <class Identifiant> struct EntiteDeControle { Identifiant id; Cercle cercle; float zone; }` (`MonstreDeControle` et `PersonnageDeControle` en sont les alias ; zone en pixels, bord à bord ; 0 = n'engage personne). `template <class IdAttaquant, class IdCible> struct PhotoDesCamps { std::vector<EntiteDeControle<IdAttaquant>> attaquants; std::vector<EntiteDeControle<IdCible>> cibles; }` (les deux camps d'UN sens ; pour l'autre sens, on échange les deux listes et les deux types). `template <class IdAttaquant, class IdCible> struct CoupDOpportunite { IdAttaquant idAttaquant; IdCible idCible; }`.
 
 | Fonction | Rôle |
 |---|---|
-| `bool engage(const EntiteDeControle& a, const EntiteDeControle& b)` | A engage B : zone de A > 0 et `distanceBordABord` <= zone de A. Pas symétrique ; `[[nodiscard]]` |
-| `std::vector<CoupDOpportunite> coupsDOpportunite(const PhotoDesCamps& avant, const PhotoDesCamps& apres)` | Coups gratuits d'un sens, d'après les photos du début et de la fin de l'image. Paire (A engage B) présente au début et rompue à la fin, B ayant fui (déplacement projeté sur la droite A→B du début : B s'est écarté au moins autant que A) : A frappe B, sauf si A engage encore quelqu'un à la fin, ou si A ou B est absent de la photo de fin. Au plus un coup par attaquant : le fuyard le plus proche à la fin (bord à bord ; égalité : le premier de `avant.cibles`). Ordre du résultat : celui de `avant.attaquants` ; `[[nodiscard]]` |
-| `std::optional<int> monstreDontSeDegager(const EntiteDeControle& personnage, const std::vector<EntiteDeControle>& personnages, const std::vector<EntiteDeControle>& monstres)` | Règle de départ du dégagement (étape 78). `personnage` sans zone (> 0 : jamais), engagé par au moins un monstre, et CHAQUE monstre qui l'engage engage aussi un AUTRE personnage de `personnages` (identifiant différent ; lui-même y figure sans compter). Renvoie l'identifiant du plus proche des monstres qui l'engagent (bord à bord ; égalité : le premier) ; vide sinon. Ne connaît ni l'ancre, ni les skills, ni l'état de dégagement : c'est l'affaire d'`Escouade::degagementVoulu` ; `[[nodiscard]]` |
+| `template <class IdA, class IdB> bool engage(const EntiteDeControle<IdA>& a, const EntiteDeControle<IdB>& b)` | A engage B : zone de A > 0 et `distanceBordABord` <= zone de A. Pas symétrique ; `[[nodiscard]]` |
+| `template <class IdAttaquant, class IdCible> std::vector<CoupDOpportunite<IdAttaquant, IdCible>> coupsDOpportunite(const PhotoDesCamps<IdAttaquant, IdCible>& avant, const PhotoDesCamps<IdAttaquant, IdCible>& apres)` (définie pour `<IdMonstre, Place>` et `<Place, IdMonstre>`) | Coups gratuits d'un sens, d'après les photos du début et de la fin de l'image. Paire (A engage B) présente au début et rompue à la fin, B ayant fui (déplacement projeté sur la droite A→B du début : B s'est écarté au moins autant que A) : A frappe B, sauf si A engage encore quelqu'un à la fin, ou si A ou B est absent de la photo de fin. Au plus un coup par attaquant : le fuyard le plus proche à la fin (bord à bord ; égalité : le premier de `avant.cibles`). Ordre du résultat : celui de `avant.attaquants` ; `[[nodiscard]]` |
+| `std::optional<IdMonstre> monstreDontSeDegager(const PersonnageDeControle& personnage, const std::vector<PersonnageDeControle>& personnages, const std::vector<MonstreDeControle>& monstres)` | Règle de départ du dégagement (étape 78). `personnage` sans zone (> 0 : jamais), engagé par au moins un monstre, et CHAQUE monstre qui l'engage engage aussi un AUTRE personnage de `personnages` (identifiant différent ; lui-même y figure sans compter). Renvoie l'identifiant du plus proche des monstres qui l'engagent (bord à bord ; égalité : le premier) ; vide sinon. Ne connaît ni l'ancre, ni les skills, ni l'état de dégagement : c'est l'affaire d'`Escouade::degagementVoulu` ; `[[nodiscard]]` |
 
 ### `Cible` (`combat/`) — ce que vise un skill
 
-`Cible.hpp`, sans `.cpp` : `struct CibleAllie { std::size_t place; }`
-(de 1 à N), `struct CibleMonstre { int id; Cercle cercle; }`,
+`Cible.hpp`, sans `.cpp` : `struct CibleAllie { Place place; }`,
+`struct CibleMonstre { IdMonstre id; Cercle cercle; }`,
 `struct CiblePoint { sf::Vector2f point; }` (point fixé au clic, pour un
 skill de zone en attente) et
 `using Cible = std::variant<CibleAllie, CibleMonstre, CiblePoint>`. L'absence de
@@ -1949,7 +2037,7 @@ erreur de compilation.
 
 ### `EtatSkill` (`combat/`) — le skill d'une place, pour l'affichage
 
-`EtatSkill.hpp`, sans `.cpp` : `struct EtatSkill { IdSkill id; TypeSkill type; float progression; float tempsRestant; bool lanceurVivant; bool armeAbsente; bool enActivation; }`. `armeAbsente` (étape 91.5) : le skill exige un type d'arme que le lanceur ne porte pas ; l'icône est grisée. `progression` va de 0 (juste lancé) à 1 (prêt), `tempsRestant` est en secondes, `enActivation` est vrai pendant l'activation du skill. Produite par `Escouade::etatDuSkill`, consommée par `BarreDeSkills`.
+`EtatSkill.hpp`, sans `.cpp` : `struct EtatSkill { IdSkill id; float progression; float tempsRestant; bool lanceurVivant; bool armeAbsente; bool enActivation; }`. `armeAbsente` (étape 91.5) : le skill exige un type d'arme que le lanceur ne porte pas ; l'icône est grisée. `progression` va de 0 (juste lancé) à 1 (prêt), `tempsRestant` est en secondes, `enActivation` est vrai pendant l'activation du skill. Produite par `Escouade::etatDuSkill`, consommée par `BarreDeSkills`.
 
 ### `BarreDeVie` (`rendu/`) — la barre de vie d'une entité
 

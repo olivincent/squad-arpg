@@ -122,6 +122,7 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 102 — Les gabarits d'armes : treize gabarits, l'objet retient son niveau et sa qualité, ses dégâts et ses seuils se calculent, chaque coup tire ses dégâts dans une plage ✅ (première étape de la phase 6, gabarits d'objets)
 - Étape 103 — Armures, boucliers et reliques : vingt pièces d'armure en quatre types, un Shield, deux reliques de main gauche, armure, blocage et bonus calculés depuis le gabarit, le niveau et la qualité, malus d'esquive des pièces lourdes, niveau d'apparition ✅
 - Étape 104 — Familles de butin et affinités d'affixes : le modèle se tire en deux temps (famille, puis gabarit), les proportions des familles sont les mêmes à toute profondeur, chaque gabarit penche vers quelques affixes ✅ (fin de la phase 6)
+- Étape 105 — Les skills en données (R4 et R5) : un mode de cible, une zone séparée de l'effet, un effet en `std::variant`, un seul canal de sortie, des types forts pour les places et les monstres, la provocation qui attend ✅ (première étape de la phase 7)
 
 ## Détail des étapes 0 à 73
 
@@ -2452,3 +2453,24 @@ ne permet pas reste impossible ; Magic : un tirage pondéré parmi tous les affi
 Pas de poids de base par affixe. 1 790 tests (+12), 0 avertissement de compilation sur les deux presets, aucun avertissement
 `clang-tidy` dans les fichiers modifiés. Détail : `docs/objets.md` (« Génération aléatoire »), `docs/aide-memoire-objets.md`
 (« Familles de butin », « Affinités d'affixes »), `docs/tests.md`.
+
+### Étape 105 — Les skills en données (R4 et R5) ✅
+
+Première étape de la phase 7 (mana, puis effets du Savoir et de la Volonté) : les refactorisations R4 et R5 de `docs/audit.md`, que le
+plan de l'étape 80 impose avant d'ajouter des effets, en six sous-étapes, un commit chacune, toutes enchaînées. Aucune règle nouvelle,
+aucune valeur d'équilibrage qui change ; seul changement visible : une provocation demandée pendant l'activation d'un autre skill de son
+lanceur n'est plus perdue. 105.1 (R5) : `Place` et `IdMonstre` (`combat/`) remplacent les `size_t` et les `int` de `AdresseSkill`, `Cible`,
+`Provocations`, `Agresseurs`, `Coup`, des intentions, des places d'attaque, de `Monstre`, de `PositionPortee` et de l'interface ;
+`EntiteVue` et `EntiteDeControle` deviennent des gabarits (`MonstreVu`, `PersonnageVu`, `MonstreDeControle`, `PersonnageDeControle` :
+les règles qui les lisent sont les mêmes pour les deux camps) ; la cible d'un événement est un `std::variant<Place, IdMonstre,
+EscouadeEntiere>` à la place du couple camp-identifiant. 105.2 : `ModeDeCible { Soi, Monstre, Allie, Point }` dans `DefinitionDeSkill` ;
+le choix de la cible, le déclenchement, la mise en attente et la visée de la barre (`Escouade::modeDuSkill`) le lisent. 105.3 : la zone
+est un rayon optionnel du skill, séparé de l'effet ; l'effet est un `std::variant<EffetDegats, EffetFrappe, EffetSoin,
+EffetProvocation>` (`combat/EffetDeSkill`), chacun avec ses seuls champs ; les huit skills du catalogue sont réécrits en données ;
+`TypeSkill` est retiré. 105.4 : un seul canal de sortie, `ResultatDEffet` (`SkillParti`, `Coup`, `SoinSurAllie`, `ProvocationPosee`) que
+rendent `attaquer`, `declencherSkill` et `declencherSkillDeZone` (`std::visit` sur l'effet dans `Escouade::appliquerLEffet`) ;
+`SoinApplique`, `prendreFaits` et `m_faits` sont retirés, `Partie::traduire` fait les événements ; un soin de zone sur les alliés marche
+sans autre ligne. 105.5 : le mode `Soi` lève la limite de l'étape 80 (`SkillEnAttente::cible` vide, `engagerSkillSurSoiEnAttente`).
+105.6 : la documentation. 1 803 tests (+13), 0 avertissement de compilation sur les deux presets, aucun avertissement `clang-tidy`
+nouveau (deux de moins dans `Escouade.cpp`). Détail : `docs/combat.md` (« Les skills en données (étape 105) »), `docs/audit.md` (R4 et
+R5), `docs/formation.md`, `docs/tests.md`.
