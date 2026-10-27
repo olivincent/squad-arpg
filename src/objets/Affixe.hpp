@@ -28,6 +28,18 @@ enum class IdAffixe {
     DeBlocage
 };
 
+// Le penchant d'un gabarit pour un affixe : dans le tirage, le poids de cet affixe est multiplié par `multiplicateur` (au moins
+// `s_multiplicateurMinimalDAffinite`) sur les objets de ce gabarit. Un affixe que la catégorie de l'objet ne permet pas n'est
+// jamais tiré, affinité ou non : l'affinité ne fait que pondérer parmi les affixes permis.
+struct AffiniteDAffixe {
+    IdAffixe affixe;
+    int multiplicateur;
+
+    bool operator==(const AffiniteDAffixe&) const = default;
+};
+
+inline constexpr int s_multiplicateurMinimalDAffinite = 2;
+
 // L'affixe d'un objet : son identifiant et la valeur de CET objet. La valeur est gardée dans l'objet, pas lue dans le
 // catalogue : rééquilibrer un affixe ne change pas les objets déjà trouvés.
 struct Affixe {

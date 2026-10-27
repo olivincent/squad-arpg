@@ -1,4 +1,5 @@
 // ./tests/objets/test_GenerationDObjets.cpp
+#include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <array>
 #include <cmath>
@@ -282,6 +283,92 @@ TEST_CASE("genererObjet : un objet rare n'est jamais un bijou ni une relique, la
     }
     REQUIRE(unBouclierRare);
     verifierLesFamilles(Rarete::Rare, 5);  // les proportions suivent les familles éligibles : 35 / 35 / 15 sur 85
+}
+
+namespace {
+// La chance qu'un objet de ce modèle et de cette rareté porte cet affixe, selon la règle : pondéré par les affinités du gabarit,
+// parmi tous les affixes permis (préfixes et suffixes confondus) pour un objet magique, parmi ceux de la position de l'affixe
+// pour un objet rare.
+double chanceAttendue(IdObjet modele, Rarete rarete, IdAffixe affixe) {
+    const CategorieObjet categorie = definitionObjet(modele).categorie;
+    std::vector<IdAffixe> bassin = affixesPermisPour(categorie, PositionDAffixe::Prefixe);
+    const std::vector<IdAffixe> suffixes = affixesPermisPour(categorie, PositionDAffixe::Suffixe);
+    bassin.insert(bassin.end(), suffixes.begin(), suffixes.end());
+    if (rarete == Rarete::Rare) {
+        bassin = affixesPermisPour(categorie, definitionAffixe(affixe).position);
+    }
+    int total = 0;
+    for (const IdAffixe permis : bassin) {
+        total += affiniteDe(modele, permis);
+    }
+    return static_cast<double>(affiniteDe(modele, affixe)) / total;
+}
+
+// La part des objets tirés de ce modèle et de cette rareté qui portent cet affixe.
+double chanceObservee(const std::vector<Objet>& objets, IdObjet modele, Rarete rarete, IdAffixe affixe) {
+    int total = 0;
+    int avecAffixe = 0;
+    for (const Objet& objet : objets) {
+        if (objet.modele == modele && objet.rarete == rarete) {
+            ++total;
+            const bool porte = (objet.prefixe.has_value() && objet.prefixe->id == affixe) ||
+                               (objet.suffixe.has_value() && objet.suffixe->id == affixe);
+            avecAffixe += porte ? 1 : 0;
+        }
+    }
+    REQUIRE(total > 200);
+    return static_cast<double>(avecAffixe) / total;
+}
+
+// L'observé est l'attendu, à `tolerance` près (3 écarts types environ, selon l'effectif : la graine est fixe, la tolérance détecte
+// une pondération absente ou changée).
+void verifierLaChance(const std::vector<Objet>& objets, IdObjet modele, Rarete rarete, IdAffixe affixe, double tolerance) {
+    const double attendu = chanceAttendue(modele, rarete, affixe);
+    const double observe = chanceObservee(objets, modele, rarete, affixe);
+    INFO(definitionObjet(modele).nom << ", " << definitionAffixe(affixe).nom << " : attendu " << attendu << ", observe " << observe);
+    REQUIRE(std::abs(observe - attendu) <= tolerance);
+}
+}  // namespace
+
+TEST_CASE("genererObjet : les affinites orientent les affixes, un baton porte of the Owl bien plus souvent qu'un arc, un Shield of Blocking") {
+    // 8 affixes permis sur une arme, 8 aussi sur le Shield : sans affinité, chacun aurait 12,5 %.
+    REQUIRE(chanceAttendue(IdObjet::Baton, Rarete::Magique, IdAffixe::DeLaChouette) == Catch::Approx(3.0 / 11));  // 3 + 2 + 6 × 1
+    REQUIRE(chanceAttendue(IdObjet::Baton, Rarete::Magique, IdAffixe::Flamboyant) == Catch::Approx(2.0 / 11));
+    REQUIRE(chanceAttendue(IdObjet::Arc, Rarete::Magique, IdAffixe::DeLaChouette) == Catch::Approx(1.0 / 11));  // 3 + 2 + 6 × 1
+    REQUIRE(chanceAttendue(IdObjet::Bouclier, Rarete::Magique, IdAffixe::DeBlocage) == Catch::Approx(3.0 / 11));  // 3 + 2 + 6 × 1
+    REQUIRE(chanceAttendue(IdObjet::Baton, Rarete::Rare, IdAffixe::DeLaChouette) == Catch::Approx(3.0 / 7));  // 3 + 4 × 1 suffixes
+    REQUIRE(chanceAttendue(IdObjet::Baton, Rarete::Rare, IdAffixe::Flamboyant) == Catch::Approx(2.0 / 4));  // 2 + 2 × 1 préfixes
+
+    const std::vector<Objet> objets = tirer(60000, s_graine, 5);
+    constexpr double toleranceMagique = 0.06;  // environ 600 bâtons magiques : un écart type d'un peu moins de 2 points
+    constexpr double toleranceRare = 0.10;     // environ 250 bâtons rares
+    verifierLaChance(objets, IdObjet::Baton, Rarete::Magique, IdAffixe::DeLaChouette, toleranceMagique);
+    verifierLaChance(objets, IdObjet::Baton, Rarete::Magique, IdAffixe::Flamboyant, toleranceMagique);
+    verifierLaChance(objets, IdObjet::Arc, Rarete::Magique, IdAffixe::DeLaChouette, toleranceMagique);
+    verifierLaChance(objets, IdObjet::Arc, Rarete::Magique, IdAffixe::DuRenard, toleranceMagique);
+    verifierLaChance(objets, IdObjet::Bouclier, Rarete::Magique, IdAffixe::DeBlocage, toleranceMagique);
+    verifierLaChance(objets, IdObjet::Baton, Rarete::Rare, IdAffixe::DeLaChouette, toleranceRare);
+    verifierLaChance(objets, IdObjet::Baton, Rarete::Rare, IdAffixe::Flamboyant, toleranceRare);
+
+    // La propriété cherchée : le bâton porte of the Owl au moins deux fois plus souvent que l'arc.
+    REQUIRE(chanceObservee(objets, IdObjet::Baton, Rarete::Magique, IdAffixe::DeLaChouette) >
+            2.0 * chanceObservee(objets, IdObjet::Arc, Rarete::Magique, IdAffixe::DeLaChouette));
+}
+
+TEST_CASE("genererObjet : une affinite pour un affixe que la categorie ne permet pas ne joue pas (of Deflection sur des gants legers)") {
+    // L'armure légère penche vers of Deflection, mais seuls le casque et le bouclier le permettent : jamais sur des gants.
+    REQUIRE(affiniteDe(IdObjet::GantsDeCuir, IdAffixe::DeDeviation) == 2);
+    REQUIRE_FALSE(affixePermis(IdAffixe::DeDeviation, CategorieObjet::Gants));
+    for (const Objet& objet : tirer(s_tirages, s_graine, 5)) {
+        if (objet.modele == IdObjet::GantsDeCuir) {
+            for (const std::optional<Affixe>& affixe : {objet.prefixe, objet.suffixe}) {
+                REQUIRE_FALSE((affixe.has_value() && affixe->id == IdAffixe::DeDeviation));
+            }
+        }
+    }
+    // Et la chance d'un affixe permis ne compte que les affixes permis : of Evasion (3) n'est permis sur des gants ni plus (bottes et
+    // armure seulement). Le bassin est Reinforced, l'Ox, l'Ours, la Chouette, le Lion (1 chacun) et le Renard (2) : 7.
+    REQUIRE(chanceAttendue(IdObjet::GantsDeCuir, Rarete::Magique, IdAffixe::DuRenard) == Catch::Approx(2.0 / 7));
 }
 
 TEST_CASE("genererObjet : la meme graine donne la meme suite d'objets, une autre graine une autre suite") {

@@ -40,8 +40,9 @@ inline constexpr std::array s_famillesDeButin = {FamilleDeButin::Arme, FamilleDe
 //    uniformément parmi les modèles possibles de cette famille ;
 // 3. la qualité, un entier uniforme de 0 à `s_qualiteMaximale`, pour TOUT objet (arme ou non : l'ordre des tirages ne dépend
 //    pas du modèle) ;
-// 4. magique : un affixe uniformément parmi TOUS ceux que la catégorie permet, préfixes et suffixes confondus, placé selon
-//    sa position ; rare : un préfixe et un suffixe, chacun uniformément parmi ceux que la catégorie permet ;
+// 4. magique : un affixe parmi TOUS ceux que la catégorie permet, préfixes et suffixes confondus, placé selon sa position ;
+//    rare : un préfixe et un suffixe, chacun parmi ceux que la catégorie permet. Le tirage est pondéré par l'affinité du
+//    gabarit (`affiniteDe` : 1 sans affinité, au moins 2 avec) ; il n'y a pas encore de poids de base par affixe ;
 // 5. chaque valeur : un entier uniforme dans la plage de l'affixe à ce niveau (`plageAuNiveau`, la même pour un objet magique
 //    et pour un objet rare).
 // `niveau` : le niveau de l'objet, la profondeur où il est tiré (`assert` : au moins 1) ; l'objet le retient.

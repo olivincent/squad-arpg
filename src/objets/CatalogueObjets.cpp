@@ -61,9 +61,22 @@ constexpr float s_rechargeMainsNuesMax = 0.6f;
 constexpr int s_penteSeuilPrincipale = 2;
 constexpr int s_penteSeuilSecondaire = 1;
 
+// Les multiplicateurs d'affinité (valeurs provisoires, « à tester ») : un penchant fort, puis un penchant moyen.
+constexpr int s_affiniteForte = 3;
+constexpr int s_affiniteMoyenne = 2;
+
 // Cette définition, avec ces exigences.
 DefinitionObjet avecExigences(DefinitionObjet definition, std::vector<ExigenceDeCaracteristique> exigences) {
     definition.exigences = std::move(exigences);
+    return definition;
+}
+
+// Cette définition, avec ces affinités d'affixes.
+DefinitionObjet avecAffinites(DefinitionObjet definition, std::vector<AffiniteDAffixe> affinites) {
+    assert(std::ranges::all_of(affinites, [](const AffiniteDAffixe& affinite) {
+        return affinite.multiplicateur >= s_multiplicateurMinimalDAffinite;
+    }));
+    definition.affinites = std::move(affinites);
     return definition;
 }
 
@@ -112,6 +125,24 @@ std::vector<ExigenceDeCaracteristique> exigencesDuType(TypeDArmure type) {
     return {};
 }
 
+// Les affixes qu'un type d'armure rend plus probables, partagés par ses cinq pièces : le tissu va vers le Savoir et la Volonté, le
+// léger vers l'esquive, l'intermédiaire vers l'Endurance et l'esquive, le lourd vers l'armure.
+std::vector<AffiniteDAffixe> affinitesDuType(TypeDArmure type) {
+    switch (type) {
+        case TypeDArmure::Tissu:
+            return {{IdAffixe::DeLaChouette, s_affiniteForte}, {IdAffixe::DuLion, s_affiniteForte}};
+        case TypeDArmure::Leger:
+            return {{IdAffixe::DEsquive, s_affiniteForte}, {IdAffixe::DuRenard, s_affiniteMoyenne},
+                    {IdAffixe::DeDeviation, s_affiniteMoyenne}};
+        case TypeDArmure::Intermediaire:
+            return {{IdAffixe::DeLOurs, s_affiniteMoyenne}, {IdAffixe::DEsquive, s_affiniteMoyenne}};
+        case TypeDArmure::Lourd:
+            return {{IdAffixe::Renforce, s_affiniteForte}, {IdAffixe::DeLOurs, s_affiniteMoyenne},
+                    {IdAffixe::DuBoeuf, s_affiniteMoyenne}};
+    }
+    return {};
+}
+
 // Les cinq pièces d'un type d'armure : leur armure de base (niveau 1, qualité moyenne), leur malus d'esquive (en points de
 // pourcentage, contre le contact comme contre les projectiles ; fixe), le niveau d'apparition du type. Les identifiants se
 // suivent dans `IdObjet` à partir du premier.
@@ -123,6 +154,7 @@ std::vector<DefinitionObjet> piecesDArmure(TypeDArmure type, IdObjet premier, co
         DefinitionObjet piece = {static_cast<IdObjet>(static_cast<std::size_t>(premier) + i), noms[i], s_categoriesDesPieces[i], armure[i]};
         piece.bonusDeCombat = {.esquiveContact = -malusDEsquive[i], .esquiveProjectile = -malusDEsquive[i]};
         piece.exigences = exigencesDuType(type);
+        piece.affinites = affinitesDuType(type);
         piece.niveauDApparition = niveauDApparition;
         piece.typeDArmure = type;
         pieces.push_back(std::move(piece));
@@ -157,11 +189,14 @@ std::vector<DefinitionObjet> construireLeCatalogue() {
                           {"Plate Armor", "Plate Greaves", "Great Helm", "Gauntlets", "Sabatons"}, s_armureDeLArmureLourde, s_malusLourd,
                           s_apparitionDuLourd));
     ajouter({
-        avecExigences({IdObjet::Bouclier, "Shield", CategorieObjet::Bouclier, s_armureBouclier, {}, {}, std::nullopt,
-                       DonneesDeBouclier{.chanceAuNiveau1 = s_chanceDeBlocageBouclier, .montantAuNiveau1 = s_montantBloqueBouclier}},
-                      {{Caracteristique::Endurance, s_penteSeuilPrincipale}}),
-        uneRelique(IdObjet::Orbe, "Orb", Caracteristique::Savoir),
-        uneRelique(IdObjet::ReliqueSacree, "Holy Relic", Caracteristique::Volonte),
+        avecAffinites(avecExigences({IdObjet::Bouclier, "Shield", CategorieObjet::Bouclier, s_armureBouclier, {}, {}, std::nullopt,
+                                     DonneesDeBouclier{.chanceAuNiveau1 = s_chanceDeBlocageBouclier,
+                                                       .montantAuNiveau1 = s_montantBloqueBouclier}},
+                                    {{Caracteristique::Endurance, s_penteSeuilPrincipale}}),
+                      {{IdAffixe::DeBlocage, s_affiniteForte}, {IdAffixe::Renforce, s_affiniteMoyenne}}),
+        // Une relique ne porte aucun préfixe : son affinité est un suffixe.
+        avecAffinites(uneRelique(IdObjet::Orbe, "Orb", Caracteristique::Savoir), {{IdAffixe::DeLaChouette, s_affiniteForte}}),
+        avecAffinites(uneRelique(IdObjet::ReliqueSacree, "Holy Relic", Caracteristique::Volonte), {{IdAffixe::DuLion, s_affiniteForte}}),
         {IdObjet::CollierDeProtection, "Necklace of Protection", CategorieObjet::Collier,
          s_armureCollierDeProtection},
         {IdObjet::AnneauDeProtection, "Ring of Protection", CategorieObjet::Anneau,
@@ -175,33 +210,60 @@ std::vector<DefinitionObjet> construireLeCatalogue() {
         // Les treize gabarits d'armes (étape 102.4), dans l'ordre de `IdObjet`. Chacun fixe l'identité de l'arme ; ses dégâts
         // dépendent de l'objet (`descriptionDeLArme`). Les dégâts/s visés sont 23 à une main et 30 à deux mains : la référence
         // est ces dégâts/s fois (exécution + recharge moyenne).
+        // Chacun penche vers quelques affixes (étape 104.2) : `avecAffinites`, un penchant fort puis un moyen.
         //                id,                  nom,          type,                    mains, réf., écart, recharge,  portée, pénétr., exigences
-        uneArmeDeContact(IdObjet::Dague,           "Dagger",     TypeDArme::Dague,           1, 10, 10, 0.20f, 0.50f, s_porteeDeContact, 15,
+        avecAffinites(
+            uneArmeDeContact(IdObjet::Dague,           "Dagger",     TypeDArme::Dague,           1, 10, 10, 0.20f, 0.50f, s_porteeDeContact, 15,
+                             {{Caracteristique::Adresse, s_penteSeuilPrincipale}}),
+            {{IdAffixe::Acere, s_affiniteForte}, {IdAffixe::DuRenard, s_affiniteMoyenne}}),
+        avecAffinites(
+            uneArmeDeContact(IdObjet::EpeeAUneMain,    "Sword",      TypeDArme::EpeeAUneMain,    1, 15, 15, 0.30f, 0.70f, s_porteeDeContact, 0,
+                             {{Caracteristique::Puissance, s_penteSeuilPrincipale}}),
+            {{IdAffixe::DuBoeuf, s_affiniteMoyenne}, {IdAffixe::DuRenard, s_affiniteMoyenne}}),
+        avecAffinites(
+            uneArmeDeContact(IdObjet::HacheAUneMain,   "Hand Axe",   TypeDArme::HacheAUneMain,   1, 20, 25, 0.40f, 1.00f, s_porteeDeContact, 0,
+                             {{Caracteristique::Puissance, s_penteSeuilPrincipale}}),
+            {{IdAffixe::DuBoeuf, s_affiniteMoyenne}}),
+        avecAffinites(
+            uneArmeDeContact(IdObjet::MasseAUneMain,   "Mace",       TypeDArme::MasseAUneMain,   1, 26, 40, 0.60f, 1.40f, s_porteeDeContact, 0,
+                             {{Caracteristique::Puissance, s_penteSeuilPrincipale}}),
+            {{IdAffixe::Sanctifie, s_affiniteForte}, {IdAffixe::DuBoeuf, s_affiniteMoyenne}}),
+        avecAffinites(
+            uneArmeDeContact(IdObjet::Lance,           "Spear",      TypeDArme::Lance,           1, 28, 25, 0.70f, 1.45f, s_porteeDeLaLance, 30,
+                             {{Caracteristique::Adresse, s_penteSeuilPrincipale}, {Caracteristique::Puissance, s_penteSeuilSecondaire}}),
+            {{IdAffixe::Acere, s_affiniteForte}, {IdAffixe::DuRenard, s_affiniteMoyenne}}),
+        avecAffinites(
+            uneArmeDeContact(IdObjet::EpeeADeuxMains,  "Greatsword", TypeDArme::EpeeADeuxMains,  2, 35, 15, 0.50f, 1.20f, s_porteeDeContact, 0,
+                             {{Caracteristique::Puissance, s_penteSeuilPrincipale}, {Caracteristique::Adresse, s_penteSeuilSecondaire}}),
+            {{IdAffixe::DuBoeuf, s_affiniteForte}, {IdAffixe::DuRenard, s_affiniteMoyenne}}),
+        avecAffinites(
+            uneArmeDeContact(IdObjet::HacheADeuxMains, "Great Axe",  TypeDArme::HacheADeuxMains, 2, 48, 25, 0.80f, 1.80f, s_porteeDeContact, 0,
+                             {{Caracteristique::Puissance, s_penteSeuilPrincipale}}),
+            {{IdAffixe::DuBoeuf, s_affiniteMoyenne}}),
+        avecAffinites(
+            uneArmeDeContact(IdObjet::MasseADeuxMains, "Maul",       TypeDArme::MasseADeuxMains, 2, 48, 40, 0.80f, 1.80f, s_porteeDeContact, 0,
+                             {{Caracteristique::Puissance, s_penteSeuilPrincipale}, {Caracteristique::Endurance, s_penteSeuilSecondaire}}),
+            {{IdAffixe::Sanctifie, s_affiniteForte}, {IdAffixe::DuBoeuf, s_affiniteMoyenne}}),
+        avecAffinites(
+            uneArmeDeTir(IdObjet::Baguette,            "Wand",       TypeDArme::Baguette,        1, 15, 15, 0.30f, 0.70f, s_porteeDeProjectile, 0,
+                         {{Caracteristique::Savoir, s_penteSeuilPrincipale}}),
+            {{IdAffixe::DeLaChouette, s_affiniteForte}, {IdAffixe::Flamboyant, s_affiniteMoyenne}}),
+        avecAffinites(
+            uneArmeDeTir(IdObjet::Sceptre,             "Scepter",    TypeDArme::Sceptre,         1, 20, 15, 0.40f, 1.00f, s_porteeDeProjectile, 0,
+                         {{Caracteristique::Volonte, s_penteSeuilPrincipale}}),
+            {{IdAffixe::DuLion, s_affiniteForte}, {IdAffixe::Sanctifie, s_affiniteMoyenne}}),
+        avecAffinites(
+            uneArmeDeTir(IdObjet::Baton,               "Staff",      TypeDArme::Baton,           2, 30, 25, 0.55f, 0.85f, s_porteeDeProjectile, 0,
+                         {{Caracteristique::Savoir, s_penteSeuilPrincipale}}),
+            {{IdAffixe::DeLaChouette, s_affiniteForte}, {IdAffixe::Flamboyant, s_affiniteMoyenne}}),
+        avecAffinites(
+            uneArmeDeTir(IdObjet::Arc,                 "Bow",        TypeDArme::Arc,             2, 23, 25, 0.35f, 0.55f, s_porteeDeProjectile, 15,
                          {{Caracteristique::Adresse, s_penteSeuilPrincipale}}),
-        uneArmeDeContact(IdObjet::EpeeAUneMain,    "Sword",      TypeDArme::EpeeAUneMain,    1, 15, 15, 0.30f, 0.70f, s_porteeDeContact, 0,
-                         {{Caracteristique::Puissance, s_penteSeuilPrincipale}}),
-        uneArmeDeContact(IdObjet::HacheAUneMain,   "Hand Axe",   TypeDArme::HacheAUneMain,   1, 20, 25, 0.40f, 1.00f, s_porteeDeContact, 0,
-                         {{Caracteristique::Puissance, s_penteSeuilPrincipale}}),
-        uneArmeDeContact(IdObjet::MasseAUneMain,   "Mace",       TypeDArme::MasseAUneMain,   1, 26, 40, 0.60f, 1.40f, s_porteeDeContact, 0,
-                         {{Caracteristique::Puissance, s_penteSeuilPrincipale}}),
-        uneArmeDeContact(IdObjet::Lance,           "Spear",      TypeDArme::Lance,           1, 28, 25, 0.70f, 1.45f, s_porteeDeLaLance, 30,
+            {{IdAffixe::DuRenard, s_affiniteForte}, {IdAffixe::Acere, s_affiniteMoyenne}}),
+        avecAffinites(
+            uneArmeDeTir(IdObjet::Arbalete,            "Crossbow",   TypeDArme::Arbalete,        2, 30, 15, 0.55f, 0.85f, s_porteeDeLArbalete, 30,
                          {{Caracteristique::Adresse, s_penteSeuilPrincipale}, {Caracteristique::Puissance, s_penteSeuilSecondaire}}),
-        uneArmeDeContact(IdObjet::EpeeADeuxMains,  "Greatsword", TypeDArme::EpeeADeuxMains,  2, 35, 15, 0.50f, 1.20f, s_porteeDeContact, 0,
-                         {{Caracteristique::Puissance, s_penteSeuilPrincipale}, {Caracteristique::Adresse, s_penteSeuilSecondaire}}),
-        uneArmeDeContact(IdObjet::HacheADeuxMains, "Great Axe",  TypeDArme::HacheADeuxMains, 2, 48, 25, 0.80f, 1.80f, s_porteeDeContact, 0,
-                         {{Caracteristique::Puissance, s_penteSeuilPrincipale}}),
-        uneArmeDeContact(IdObjet::MasseADeuxMains, "Maul",       TypeDArme::MasseADeuxMains, 2, 48, 40, 0.80f, 1.80f, s_porteeDeContact, 0,
-                         {{Caracteristique::Puissance, s_penteSeuilPrincipale}, {Caracteristique::Endurance, s_penteSeuilSecondaire}}),
-        uneArmeDeTir(IdObjet::Baguette,            "Wand",       TypeDArme::Baguette,        1, 15, 15, 0.30f, 0.70f, s_porteeDeProjectile, 0,
-                     {{Caracteristique::Savoir, s_penteSeuilPrincipale}}),
-        uneArmeDeTir(IdObjet::Sceptre,             "Scepter",    TypeDArme::Sceptre,         1, 20, 15, 0.40f, 1.00f, s_porteeDeProjectile, 0,
-                     {{Caracteristique::Volonte, s_penteSeuilPrincipale}}),
-        uneArmeDeTir(IdObjet::Baton,               "Staff",      TypeDArme::Baton,           2, 30, 25, 0.55f, 0.85f, s_porteeDeProjectile, 0,
-                     {{Caracteristique::Savoir, s_penteSeuilPrincipale}}),
-        uneArmeDeTir(IdObjet::Arc,                 "Bow",        TypeDArme::Arc,             2, 23, 25, 0.35f, 0.55f, s_porteeDeProjectile, 15,
-                     {{Caracteristique::Adresse, s_penteSeuilPrincipale}}),
-        uneArmeDeTir(IdObjet::Arbalete,            "Crossbow",   TypeDArme::Arbalete,        2, 30, 15, 0.55f, 0.85f, s_porteeDeLArbalete, 30,
-                     {{Caracteristique::Adresse, s_penteSeuilPrincipale}, {Caracteristique::Puissance, s_penteSeuilSecondaire}}),
+            {{IdAffixe::Acere, s_affiniteForte}, {IdAffixe::DuBoeuf, s_affiniteMoyenne}}),
     });
     return catalogue;
 }
@@ -216,6 +278,15 @@ const DefinitionObjet& definitionObjet(IdObjet id) {
     const DefinitionObjet& trouvee = catalogueObjets()[static_cast<std::size_t>(id)];
     assert(trouvee.id == id);  // le catalogue suit l'ordre de IdObjet
     return trouvee;
+}
+
+int affiniteDe(IdObjet modele, IdAffixe affixe) {
+    for (const AffiniteDAffixe& affinite : definitionObjet(modele).affinites) {
+        if (affinite.affixe == affixe) {
+            return affinite.multiplicateur;
+        }
+    }
+    return 1;
 }
 
 const DescriptionDAttaque& mainsNues() {

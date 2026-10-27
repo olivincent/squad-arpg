@@ -150,19 +150,21 @@ Objet genererObjet(Generateur& generateur, int niveau) {
     const CategorieObjet categorie = definitionObjet(objet.modele).categorie;
     const std::vector<IdAffixe> prefixes = affixesPermisPour(categorie, PositionDAffixe::Prefixe);
     const std::vector<IdAffixe> suffixes = affixesPermisPour(categorie, PositionDAffixe::Suffixe);
+    // Le poids d'un affixe permis : l'affinité du gabarit (1 sans affinité).
+    const auto poids = [modele = objet.modele](IdAffixe id) { return affiniteDe(modele, id); };
 
     switch (rarete) {
         case Rarete::Commun: break;
         case Rarete::Magique: {
             std::vector<IdAffixe> tous = prefixes;
             tous.insert(tous.end(), suffixes.begin(), suffixes.end());
-            const Affixe affixe = avecUneValeur(generateur, tirerParmi(generateur, tous), niveau);
+            const Affixe affixe = avecUneValeur(generateur, tirerSelonLesPoids(generateur, tous, poids), niveau);
             (definitionAffixe(affixe.id).position == PositionDAffixe::Prefixe ? objet.prefixe : objet.suffixe) = affixe;
             break;
         }
         case Rarete::Rare:
-            objet.prefixe = avecUneValeur(generateur, tirerParmi(generateur, prefixes), niveau);
-            objet.suffixe = avecUneValeur(generateur, tirerParmi(generateur, suffixes), niveau);
+            objet.prefixe = avecUneValeur(generateur, tirerSelonLesPoids(generateur, prefixes, poids), niveau);
+            objet.suffixe = avecUneValeur(generateur, tirerSelonLesPoids(generateur, suffixes, poids), niveau);
             break;
     }
     assert(objetValide(objet));

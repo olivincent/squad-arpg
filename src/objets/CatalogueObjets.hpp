@@ -43,6 +43,9 @@ struct DefinitionObjet {
     std::vector<ExigenceDeCaracteristique> exigences = {};  // vide : aucun seuil (tissu, bijoux)
     int niveauDApparition = 1;  // `genererObjet` ne tire ce modèle que pour un objet d'au moins ce niveau (la profondeur)
     std::optional<TypeDArmure> typeDArmure = {};  // seulement pour une pièce d'armure (torse, jambes, tête, gants, bottes)
+    // Les affixes que ce gabarit rend plus probables : une courte liste, tout affixe absent vaut 1 (`affiniteDe`). Les cinq pièces
+    // d'un type d'armure ont la liste de leur type.
+    std::vector<AffiniteDAffixe> affinites = {};
 };
 
 // Ce qu'un objet apporte par lui-même (son modèle, son niveau et sa qualité), sans ses affixes : en entiers, le tout rangé comme
@@ -58,6 +61,10 @@ struct EffetsDeBase {
 
 // Le modèle de cet identifiant.
 [[nodiscard]] const DefinitionObjet& definitionObjet(IdObjet id);
+
+// Le poids d'un affixe dans le tirage sur ce modèle : son multiplicateur d'affinité, ou 1 sans affinité. L'unique lecture des
+// affinités ; le tirage ne l'applique qu'aux affixes que la catégorie permet.
+[[nodiscard]] int affiniteDe(IdObjet modele, IdAffixe affixe);
 
 // L'objet respecte-t-il ses invariants ? Une fonction de validation plutôt qu'une fonction de construction avec
 // `assert` : `Objet` est un agrégat (on l'écrit en toutes lettres, comme le fait le tirage de `genererObjet`), donc aucune

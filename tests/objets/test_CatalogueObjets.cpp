@@ -699,3 +699,85 @@ TEST_CASE("objetValide : une relique ne porte que des suffixes de caracteristiqu
     REQUIRE_FALSE(objetValide(Objet{IdObjet::Orbe, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeBlocage, 2}}));
     REQUIRE_FALSE(objetValide(Objet{IdObjet::ReliqueSacree, Rarete::Magique, Affixe{IdAffixe::Renforce, 2}}));
 }
+
+namespace {
+// Les affinités décidées à l'étape 104 : pour chaque gabarit (ou type d'armure), ses pièces et sa liste, dans l'ordre du catalogue.
+struct AffinitesAttendues {
+    std::vector<IdObjet> modeles;
+    std::vector<AffiniteDAffixe> affinites;
+};
+
+const std::vector<AffinitesAttendues>& affinitesAttendues() {
+    static const std::vector<AffinitesAttendues> table = {
+        {{IdObjet::Dague}, {{IdAffixe::Acere, 3}, {IdAffixe::DuRenard, 2}}},
+        {{IdObjet::EpeeAUneMain}, {{IdAffixe::DuBoeuf, 2}, {IdAffixe::DuRenard, 2}}},
+        {{IdObjet::HacheAUneMain, IdObjet::HacheADeuxMains}, {{IdAffixe::DuBoeuf, 2}}},
+        {{IdObjet::MasseAUneMain, IdObjet::MasseADeuxMains}, {{IdAffixe::Sanctifie, 3}, {IdAffixe::DuBoeuf, 2}}},
+        {{IdObjet::Lance}, {{IdAffixe::Acere, 3}, {IdAffixe::DuRenard, 2}}},
+        {{IdObjet::EpeeADeuxMains}, {{IdAffixe::DuBoeuf, 3}, {IdAffixe::DuRenard, 2}}},
+        {{IdObjet::Baguette, IdObjet::Baton}, {{IdAffixe::DeLaChouette, 3}, {IdAffixe::Flamboyant, 2}}},
+        {{IdObjet::Sceptre}, {{IdAffixe::DuLion, 3}, {IdAffixe::Sanctifie, 2}}},
+        {{IdObjet::Arc}, {{IdAffixe::DuRenard, 3}, {IdAffixe::Acere, 2}}},
+        {{IdObjet::Arbalete}, {{IdAffixe::Acere, 3}, {IdAffixe::DuBoeuf, 2}}},
+        {{IdObjet::Robe, IdObjet::JambieresDeTissu, IdObjet::Capuchon, IdObjet::GantsDeTissu, IdObjet::Chaussons},
+         {{IdAffixe::DeLaChouette, 3}, {IdAffixe::DuLion, 3}}},
+        {{IdObjet::Justaucorps, IdObjet::JambieresDeCuir, IdObjet::CalotteDeCuir, IdObjet::GantsDeCuir, IdObjet::BottesDeCuir},
+         {{IdAffixe::DEsquive, 3}, {IdAffixe::DuRenard, 2}, {IdAffixe::DeDeviation, 2}}},
+        {{IdObjet::CotteDeMailles, IdObjet::JambieresDeMailles, IdObjet::CoiffeDeMailles, IdObjet::GantsDeMailles,
+          IdObjet::BottesDeMailles},
+         {{IdAffixe::DeLOurs, 2}, {IdAffixe::DEsquive, 2}}},
+        {{IdObjet::ArmureDePlaques, IdObjet::JambieresDePlaques, IdObjet::HeaumeIntegral, IdObjet::Gantelets, IdObjet::Solerets},
+         {{IdAffixe::Renforce, 3}, {IdAffixe::DeLOurs, 2}, {IdAffixe::DuBoeuf, 2}}},
+        {{IdObjet::Bouclier}, {{IdAffixe::DeBlocage, 3}, {IdAffixe::Renforce, 2}}},
+        {{IdObjet::Orbe}, {{IdAffixe::DeLaChouette, 3}}},
+        {{IdObjet::ReliqueSacree}, {{IdAffixe::DuLion, 3}}},
+        {{IdObjet::CollierDeProtection, IdObjet::AnneauDeProtection, IdObjet::AnneauDePuissance, IdObjet::CollierDEndurance}, {}},
+    };
+    return table;
+}
+}  // namespace
+
+TEST_CASE("catalogueObjets : les affinites de chaque gabarit sont celles du tableau, les cinq pieces d'un type ont celles de leur type") {
+    std::size_t modelesVus = 0;
+    for (const AffinitesAttendues& attendu : affinitesAttendues()) {
+        for (const IdObjet modele : attendu.modeles) {
+            INFO(definitionObjet(modele).nom);
+            REQUIRE(definitionObjet(modele).affinites == attendu.affinites);
+            ++modelesVus;
+        }
+    }
+    REQUIRE(modelesVus == catalogueObjets().size());  // le tableau couvre le catalogue, sans rien oublier ni répéter
+}
+
+TEST_CASE("catalogueObjets : tout multiplicateur d'affinite est d'au moins 2, aucun affixe n'est nomme deux fois") {
+    for (const DefinitionObjet& definition : catalogueObjets()) {
+        INFO(definition.nom);
+        for (std::size_t i = 0; i < definition.affinites.size(); ++i) {
+            REQUIRE(definition.affinites[i].multiplicateur >= s_multiplicateurMinimalDAffinite);
+            for (std::size_t j = i + 1; j < definition.affinites.size(); ++j) {
+                REQUIRE(definition.affinites[i].affixe != definition.affinites[j].affixe);
+            }
+        }
+    }
+}
+
+TEST_CASE("catalogueObjets : chaque affinite nomme un affixe permis sur au moins une piece du gabarit, ou du type d'armure") {
+    for (const AffinitesAttendues& attendu : affinitesAttendues()) {
+        for (const AffiniteDAffixe& affinite : attendu.affinites) {
+            const bool permis = std::ranges::any_of(attendu.modeles, [&affinite](IdObjet modele) {
+                return affixePermis(affinite.affixe, definitionObjet(modele).categorie);
+            });
+            INFO(definitionObjet(attendu.modeles.front()).nom << " : " << definitionAffixe(affinite.affixe).nom);
+            REQUIRE(permis);
+        }
+    }
+}
+
+TEST_CASE("affiniteDe : le multiplicateur de l'affinite, 1 pour tout autre affixe") {
+    REQUIRE(affiniteDe(IdObjet::Baton, IdAffixe::DeLaChouette) == 3);
+    REQUIRE(affiniteDe(IdObjet::Baton, IdAffixe::Flamboyant) == 2);
+    REQUIRE(affiniteDe(IdObjet::Baton, IdAffixe::Acere) == 1);
+    REQUIRE(affiniteDe(IdObjet::Baton, IdAffixe::DeBlocage) == 1);  // un affixe que le bâton ne peut pas porter vaut 1 aussi
+    REQUIRE(affiniteDe(IdObjet::AnneauDePuissance, IdAffixe::DuBoeuf) == 1);
+    REQUIRE(affiniteDe(IdObjet::Bouclier, IdAffixe::DeBlocage) == 3);
+}
