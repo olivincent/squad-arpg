@@ -46,6 +46,16 @@ inline constexpr double s_croissanceParNiveau = 0.25;
     return 1.0 + s_croissanceParNiveau * (niveau - 1);
 }
 
+// Ce que la qualité fait grandir (dégâts d'une arme, armure, bonus, blocage) : le facteur va de `s_facteurDeQualiteMin` (qualité 0)
+// à `s_facteurDeQualiteMin + s_amplitudeDeQualite` (qualité 100) et vaut 1 à la qualité moyenne (valeurs provisoires, « à tester »).
+// Écrit une fois, partagé par les armes et les protections.
+inline constexpr double s_facteurDeQualiteMin = 0.85;
+inline constexpr double s_amplitudeDeQualite = 0.30;
+
+[[nodiscard]] constexpr double facteurDeQualite(int qualite) {
+    return s_facteurDeQualiteMin + s_amplitudeDeQualite * qualite / s_qualiteMaximale;
+}
+
 // Un objet : l'instance, distincte de son modèle. Petite valeur copiable, sans allocation ; un objet existe à un seul
 // endroit à la fois (un emplacement ou une case du sac) et se déplace par valeur. Le type interdit un troisième
 // affixe ; que les affixes soient aux bonnes positions, permis pour la catégorie du modèle et en nombre conforme à la

@@ -26,17 +26,28 @@ struct ExigenceDeCaracteristique {
 // distinguent que par leur pente.
 inline constexpr int s_seuilAuNiveau1 = 6;
 
-// Le modèle d'un objet : ce qui est commun à toutes ses instances.
+// Le modèle d'un objet : ce qui est commun à toutes ses instances. Les valeurs de base (armure, bonus, capacités, bouclier) sont
+// celles d'un objet de niveau 1 et de qualité moyenne ; ce que porte VRAIMENT un objet se calcule (`effetsDeBase`).
 struct DefinitionObjet {
     IdObjet id;
     std::string nom;
     CategorieObjet categorie;
     int armure;
     Caracteristiques bonus = {};  // ajouté aux caractéristiques de qui le porte (vide : aucun bonus)
-    StatistiquesDeCombat bonusDeCombat = {};  // ajouté aux statistiques de combat de qui le porte (esquive, capacités…)
+    // Ajouté aux statistiques de combat de qui le porte : les capacités grandissent avec le niveau et la qualité, les esquives et
+    // les résistances sont fixes. Le blocage n'y est pas : c'est `bouclier`.
+    StatistiquesDeCombat bonusDeCombat = {};
     std::optional<DonneesDArme> arme = {};    // seulement pour une arme
     std::optional<DonneesDeBouclier> bouclier = {};  // seulement pour un bouclier : son blocage
     std::vector<ExigenceDeCaracteristique> exigences = {};  // vide : aucun seuil (cuir, bijoux)
+};
+
+// Ce qu'un objet apporte par lui-même (son modèle, son niveau et sa qualité), sans ses affixes : en entiers, le tout rangé comme
+// l'équipement le tient déjà.
+struct EffetsDeBase {
+    int armure = 0;
+    Caracteristiques bonus = {};
+    StatistiquesDeCombat bonusDeCombat = {};  // esquives (malus compris), capacités, et le blocage d'un bouclier
 };
 
 // Tous les modèles, dans l'ordre de `IdObjet` : l'unique source de leurs valeurs.
@@ -74,6 +85,19 @@ struct DefinitionObjet {
 
 // L'attaque de base de qui ne porte aucune arme : les mains nues, qui ne sont pas un objet.
 [[nodiscard]] const DescriptionDAttaque& mainsNues();
+
+// Les effets de base de cet objet. L'UNIQUE endroit qui les calcule : `Equipement` (armure, bonus, objets actifs), l'infobulle et
+// les tests y passent. Rien n'est stocké dans l'objet. Chaque valeur vient du modèle :
+// - l'armure, les bonus de caractéristiques, les capacités et le montant absorbé par un bouclier sont `base × facteurDeNiveau ×
+//   facteurDeQualite`, arrondis au plus proche (un arrondi par valeur) ;
+// - la chance de blocage d'un bouclier est celle du niveau 1 plus `s_gainDeBlocageParNiveau` par niveau au-delà du premier (le
+//   niveau seul, pas la qualité) ;
+// - les esquives et les résistances du modèle sont fixes : ni le niveau ni la qualité n'y changent rien.
+// Les affixes s'ajoutent à part (`apportDesAffixes`).
+[[nodiscard]] EffetsDeBase effetsDeBase(const Objet& objet);
+
+// Combien de points de pourcentage de blocage un bouclier gagne à chaque niveau au-delà du premier (« à tester »).
+inline constexpr int s_gainDeBlocageParNiveau = 1;
 
 // L'attaque que donne cette arme, sans ses affixes. L'UNIQUE endroit qui la calcule : `Equipement::attaqueDeBase`, l'infobulle
 // et les tests y passent. Rien n'est stocké dans l'objet ; tout vient du gabarit de son modèle (`DonneesDArme`) et de son

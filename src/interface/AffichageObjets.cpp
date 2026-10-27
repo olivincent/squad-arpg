@@ -155,20 +155,22 @@ std::vector<std::string> lignesDeLInfobulle(const Objet& objet) {
     // La qualité n'est pas affichée : le joueur la voit dans ce qu'elle change (les dégâts d'une arme).
     std::vector<std::string> lignes = {nomDeLObjet(objet), nomDeLaCategorie(definition.categorie),
                                        "Item Level " + std::to_string(objet.niveau)};
-    if (definition.armure != 0) {
-        lignes.push_back("Armor: +" + std::to_string(definition.armure));
+    // Les effets de base de CET objet (son niveau et sa qualité compris), jamais ceux du modèle.
+    const EffetsDeBase effets = effetsDeBase(objet);
+    if (effets.armure != 0) {
+        lignes.push_back("Armor: +" + std::to_string(effets.armure));
     }
     for (const Caracteristique caracteristique : s_caracteristiques) {
-        if (const int bonus = definition.bonus.valeur(caracteristique); bonus != 0) {
+        if (const int bonus = effets.bonus.valeur(caracteristique); bonus != 0) {
             lignes.push_back(nomDeLaCaracteristique(caracteristique) + ": " + (bonus > 0 ? "+" : "") + std::to_string(bonus));
         }
     }
-    for (const std::string& ligne : lignesDeBonusDeCombat(definition.bonusDeCombat)) {
+    for (const std::string& ligne : lignesDeBonusDeCombat(effets.bonusDeCombat)) {
         lignes.push_back(ligne);
     }
     if (definition.bouclier.has_value()) {
-        lignes.push_back("Block: " + std::to_string(definition.bouclier->chanceDeBlocage) + " %, " +
-                         std::to_string(definition.bouclier->montantBloque) + " points");
+        lignes.push_back("Block: " + std::to_string(effets.bonusDeCombat.chanceDeBlocage) + " %, " +
+                         std::to_string(effets.bonusDeCombat.montantBloque) + " points");
     }
     if (definition.arme.has_value()) {
         ajouterLesLignesDUneArme(lignes, objet, *definition.arme);

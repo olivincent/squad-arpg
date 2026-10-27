@@ -68,8 +68,8 @@ TEST_CASE("affixes : la chance de blocage s'ajoute a celle du bouclier, le monta
 
     const StatistiquesDeCombat total = equipement.bonusDeCombatTotal();
 
-    REQUIRE(total.chanceDeBlocage == bouclier.chanceDeBlocage + 5);
-    REQUIRE(total.montantBloque == bouclier.montantBloque);
+    REQUIRE(total.chanceDeBlocage == bouclier.chanceAuNiveau1 + 5);
+    REQUIRE(total.montantBloque == bouclier.montantAuNiveau1);
 }
 
 TEST_CASE("affixes : l'armure d'un bouclier renforce s'ajoute aussi") {

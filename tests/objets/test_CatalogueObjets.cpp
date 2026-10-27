@@ -1,5 +1,6 @@
 // ./tests/objets/test_CatalogueObjets.cpp
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <algorithm>
 #include <cstddef>
 #include <optional>
@@ -105,6 +106,76 @@ TEST_CASE("facteurDeNiveau : 1 au niveau 1, puis 0,25 de plus par niveau") {
     REQUIRE(facteurDeNiveau(9) == 3.0);
 }
 
+TEST_CASE("facteurDeQualite : de 0,85 a la qualite 0 a 1,15 a la qualite 100, 1 a la qualite moyenne") {
+    REQUIRE_THAT(facteurDeQualite(0), Catch::Matchers::WithinAbs(0.85, 1e-9));
+    REQUIRE_THAT(facteurDeQualite(50), Catch::Matchers::WithinAbs(1.0, 1e-9));
+    REQUIRE_THAT(facteurDeQualite(100), Catch::Matchers::WithinAbs(1.15, 1e-9));
+}
+
+TEST_CASE("effetsDeBase : au niveau 1 et a la qualite moyenne, ce sont les valeurs du modele") {
+    for (const DefinitionObjet& definition : catalogueObjets()) {
+        INFO(definition.nom);
+        const EffetsDeBase effets = effetsDeBase(Objet{definition.id});
+        REQUIRE(effets.armure == definition.armure);
+        REQUIRE(effets.bonus == definition.bonus);
+        StatistiquesDeCombat attendu = definition.bonusDeCombat;
+        if (definition.bouclier.has_value()) {
+            attendu.chanceDeBlocage = definition.bouclier->chanceAuNiveau1;
+            attendu.montantBloque = definition.bouclier->montantAuNiveau1;
+        }
+        REQUIRE(effets.bonusDeCombat == attendu);
+    }
+}
+
+TEST_CASE("effetsDeBase : l'armure suit le niveau et la qualite, en entier arrondi au plus proche") {
+    const auto armure = [](int niveau, int qualite) {  // la cuirasse de mailles : 4 au niveau 1
+        return effetsDeBase(Objet{IdObjet::CuirasseDeMailles, Rarete::Commun, std::nullopt, std::nullopt, niveau, qualite}).armure;
+    };
+
+    REQUIRE(armure(1, 50) == 4);
+    REQUIRE(armure(5, 50) == 8);  // x 2
+    REQUIRE(armure(2, 50) == 5);  // 5
+    REQUIRE(armure(1, 0) == 3);   // 3,4
+    REQUIRE(armure(1, 100) == 5); // 4,6
+    REQUIRE(armure(3, 100) == 7); // 4 x 1,5 x 1,15 = 6,9
+}
+
+TEST_CASE("effetsDeBase : le bonus de caracteristiques d'un bijou grandit, sans toucher aux autres caracteristiques") {
+    const EffetsDeBase effets = effetsDeBase(Objet{IdObjet::AnneauDePuissance, Rarete::Commun, std::nullopt, std::nullopt, 5});
+
+    REQUIRE(effets.bonus.valeur(Caracteristique::Puissance) == 2 * definitionObjet(IdObjet::AnneauDePuissance).bonus.valeur(Caracteristique::Puissance));
+    for (const Caracteristique caracteristique : s_caracteristiques) {
+        if (caracteristique != Caracteristique::Puissance) {
+            REQUIRE(effets.bonus.valeur(caracteristique) == 0);
+        }
+    }
+}
+
+TEST_CASE("effetsDeBase : les esquives du modele sont fixes, ni le niveau ni la qualite n'y changent rien") {
+    const StatistiquesDeCombat depart = effetsDeBase(Objet{IdObjet::BottesDeCuir}).bonusDeCombat;
+
+    REQUIRE(depart.esquiveContact > 0);
+    for (const int niveau : {1, 5, 20}) {
+        for (const int qualite : {0, 50, 100}) {
+            const Objet bottes{IdObjet::BottesDeCuir, Rarete::Commun, std::nullopt, std::nullopt, niveau, qualite};
+            REQUIRE(effetsDeBase(bottes).bonusDeCombat.esquiveContact == depart.esquiveContact);
+        }
+    }
+}
+
+TEST_CASE("effetsDeBase : un bouclier gagne un point de chance par niveau (pas par qualite) et un montant qui suit niveau et qualite") {
+    const DonneesDeBouclier& modele = definitionObjet(IdObjet::BouclierRond).bouclier.value();
+    const auto bouclier = [](int niveau, int qualite) {
+        return effetsDeBase(Objet{IdObjet::BouclierRond, Rarete::Commun, std::nullopt, std::nullopt, niveau, qualite}).bonusDeCombat;
+    };
+
+    REQUIRE(bouclier(1, 50).chanceDeBlocage == modele.chanceAuNiveau1);
+    REQUIRE(bouclier(5, 50).chanceDeBlocage == modele.chanceAuNiveau1 + 4 * s_gainDeBlocageParNiveau);
+    REQUIRE(bouclier(5, 0).chanceDeBlocage == bouclier(5, 100).chanceDeBlocage);
+    REQUIRE(bouclier(5, 50).montantBloque == 2 * modele.montantAuNiveau1);
+    REQUIRE(bouclier(1, 0).montantBloque < bouclier(1, 100).montantBloque);
+}
+
 TEST_CASE("objetValide : tout modele du catalogue est valide a l'etat commun") {
     for (const DefinitionObjet& definition : catalogueObjets()) {
         REQUIRE(objetValide(Objet{definition.id}));
@@ -191,8 +262,8 @@ TEST_CASE("catalogueObjets : le bouclier rond bloque 30 % des coups, 12 points, 
     const DefinitionObjet& bouclier = definitionObjet(IdObjet::BouclierRond);
 
     REQUIRE(bouclier.bouclier.has_value());
-    REQUIRE(bouclier.bouclier->chanceDeBlocage == 30);
-    REQUIRE(bouclier.bouclier->montantBloque == 12);
+    REQUIRE(bouclier.bouclier->chanceAuNiveau1 == 30);
+    REQUIRE(bouclier.bouclier->montantAuNiveau1 == 12);
     REQUIRE(bouclier.bonusDeCombat == StatistiquesDeCombat());  // le blocage n'est pas un bonus de statistiques
 }
 

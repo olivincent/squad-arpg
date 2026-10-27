@@ -1115,8 +1115,8 @@ TEST_CASE("le bouclier rond donne au personnage sa chance de blocage et son mont
     static_cast<void>(personnage.poserEquipement(Emplacement::MainGauche, {IdObjet::BouclierRond}));
 
     const DonneesDeBouclier& bouclier = definitionObjet(IdObjet::BouclierRond).bouclier.value();
-    REQUIRE(personnage.getStatistiques().chanceDeBlocage == bouclier.chanceDeBlocage);
-    REQUIRE(personnage.getStatistiques().montantBloque == bouclier.montantBloque);
+    REQUIRE(personnage.getStatistiques().chanceDeBlocage == bouclier.chanceAuNiveau1);
+    REQUIRE(personnage.getStatistiques().montantBloque == bouclier.montantAuNiveau1);
     static_cast<void>(personnage.retirerEquipement(Emplacement::MainGauche));
     REQUIRE(personnage.getStatistiques().montantBloque == 0);
 }
@@ -1440,7 +1440,7 @@ TEST_CASE("une armure ou un bouclier inactif ne donne ni armure ni blocage") {
     REQUIRE(nu.getStatistiques().montantBloque == 0);
     REQUIRE(nu.getEquipement().armureTotale() > 0);  // portée, sans effet
     REQUIRE(subir(cuirasseAvecForce, 40) == appliquerArmure(40, armureDe(cuirasse)));
-    REQUIRE(fort.getStatistiques().montantBloque == definitionObjet(IdObjet::BouclierRond).bouclier->montantBloque);
+    REQUIRE(fort.getStatistiques().montantBloque == definitionObjet(IdObjet::BouclierRond).bouclier->montantAuNiveau1);
 }
 
 TEST_CASE("une arme inactive ne permet pas les skills qui l'exigent") {

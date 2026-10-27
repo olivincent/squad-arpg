@@ -118,8 +118,8 @@ TEST_CASE("affichage : l'infobulle du bouclier rond donne son blocage") {
     const std::vector<std::string> lignes = lignesDeLInfobulle(Objet{IdObjet::BouclierRond});
 
     const DonneesDeBouclier& bouclier = definitionObjet(IdObjet::BouclierRond).bouclier.value();
-    REQUIRE(lignes[lignes.size() - 2] == "Block: " + std::to_string(bouclier.chanceDeBlocage) + " %, " +
-                                 std::to_string(bouclier.montantBloque) + " points");
+    REQUIRE(lignes[lignes.size() - 2] == "Block: " + std::to_string(bouclier.chanceAuNiveau1) + " %, " +
+                                 std::to_string(bouclier.montantAuNiveau1) + " points");
 }
 
 TEST_CASE("affichage : l'infobulle d'une arme a une main donne son niveau, ses degats, sa recharge, sa portee et sa nature") {

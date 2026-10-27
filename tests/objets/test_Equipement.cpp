@@ -184,8 +184,8 @@ TEST_CASE("equipement : le bouclier compte dans les statistiques de combat total
     const StatistiquesDeCombat total = equipement.bonusDeCombatTotal();
 
     const DonneesDeBouclier& bouclier = definitionObjet(IdObjet::BouclierRond).bouclier.value();
-    REQUIRE(total.chanceDeBlocage == bouclier.chanceDeBlocage);
-    REQUIRE(total.montantBloque == bouclier.montantBloque);
+    REQUIRE(total.chanceDeBlocage == bouclier.chanceAuNiveau1);
+    REQUIRE(total.montantBloque == bouclier.montantAuNiveau1);
     REQUIRE(total.esquiveContact == definitionObjet(IdObjet::BottesDeCuir).bonusDeCombat.esquiveContact);
 }
 

@@ -23,8 +23,8 @@ constexpr int s_bonusAnneauDePuissance = 3;    // Puissance
 constexpr int s_bonusCollierDEndurance = 3;    // Endurance
 constexpr int s_esquiveBottesDeCuir = 5;       // en pour cent, contre le contact
 constexpr int s_esquiveCasqueDeCuir = 5;       // en pour cent, contre les projectiles
-constexpr int s_chanceDeBlocageBouclierRond = 30;       // en pour cent
-constexpr int s_montantBloqueBouclierRond = 12;         // points absorbés par blocage
+constexpr int s_chanceDeBlocageBouclierRond = 30;       // en pour cent, au niveau 1
+constexpr int s_montantBloqueBouclierRond = 12;         // points absorbés par blocage, au niveau 1 et à la qualité moyenne
 
 // Armes (valeurs provisoires, à tester). Une attaque de contact engage (zone de contrôle), un projectile non. Les durées sont
 // en secondes, les portées en pixels, bord à bord.
@@ -39,12 +39,6 @@ constexpr float s_executionDeuxMains = 0.3f;
 constexpr int s_degatsMainsNues = 6;
 constexpr float s_rechargeMainsNuesMin = 0.4f;
 constexpr float s_rechargeMainsNuesMax = 0.6f;
-
-// Les dégâts moyens d'une arme : sa référence, fois le facteur de son niveau (`facteurDeNiveau`), fois un facteur de qualité qui
-// va de `s_facteurDeQualiteMin` (qualité 0) à `s_facteurDeQualiteMin + s_amplitudeDeQualite` (qualité 100), donc 1 à la qualité
-// moyenne (valeurs provisoires, « à tester »).
-constexpr double s_facteurDeQualiteMin = 0.85;
-constexpr double s_amplitudeDeQualite = 0.30;
 
 // Les exigences d'équipement (valeurs provisoires, « à tester ») : le seuil de chaque exigence est
 // `s_seuilAuNiveau1 + pente × (niveau − 1)` (`seuilsDeLObjet`). La pente de la caractéristique principale d'un objet, puis celle
@@ -93,7 +87,7 @@ std::vector<DefinitionObjet> construireLeCatalogue() {
         avecExigences({IdObjet::JambieresDeFer, "Iron Greaves", CategorieObjet::Jambieres, s_armureJambieresDeFer},
                       {{Caracteristique::Endurance, s_penteSeuilPrincipale}}),
         avecExigences({IdObjet::BouclierRond, "Round Shield", CategorieObjet::Bouclier, s_armureBouclierRond, {}, {}, std::nullopt,
-                       DonneesDeBouclier{.chanceDeBlocage = s_chanceDeBlocageBouclierRond, .montantBloque = s_montantBloqueBouclierRond}},
+                       DonneesDeBouclier{.chanceAuNiveau1 = s_chanceDeBlocageBouclierRond, .montantAuNiveau1 = s_montantBloqueBouclierRond}},
                       {{Caracteristique::Endurance, s_penteSeuilPrincipale}}),
         {IdObjet::GantsDeCuir, "Leather Gloves", CategorieObjet::Gants, s_armureGantsDeCuir},
         {IdObjet::BottesDeCuir, "Leather Boots", CategorieObjet::Bottes, s_armureBottesDeCuir, {},
@@ -162,12 +156,31 @@ const DescriptionDAttaque& mainsNues() {
     return s_mainsNues;
 }
 
+EffetsDeBase effetsDeBase(const Objet& objet) {
+    const DefinitionObjet& definition = definitionObjet(objet.modele);
+    const double facteur = facteurDeNiveau(objet.niveau) * facteurDeQualite(objet.qualite);
+    const auto grandi = [facteur](int base) { return static_cast<int>(std::lround(base * facteur)); };
+
+    EffetsDeBase effets;
+    effets.armure = grandi(definition.armure);
+    for (const Caracteristique caracteristique : s_caracteristiques) {
+        effets.bonus += Caracteristiques::seule(caracteristique, grandi(definition.bonus.valeur(caracteristique)));
+    }
+    effets.bonusDeCombat = definition.bonusDeCombat;  // les esquives et les résistances restent celles du modèle
+    effets.bonusDeCombat.capaciteOffensive = grandi(definition.bonusDeCombat.capaciteOffensive);
+    effets.bonusDeCombat.capaciteDefensive = grandi(definition.bonusDeCombat.capaciteDefensive);
+    if (definition.bouclier.has_value()) {
+        effets.bonusDeCombat.chanceDeBlocage += definition.bouclier->chanceAuNiveau1 + s_gainDeBlocageParNiveau * (objet.niveau - 1);
+        effets.bonusDeCombat.montantBloque += grandi(definition.bouclier->montantAuNiveau1);
+    }
+    return effets;
+}
+
 DescriptionDAttaque descriptionDeLArme(const Objet& arme) {
     const std::optional<DonneesDArme>& gabarit = definitionObjet(arme.modele).arme;
     assert(gabarit.has_value());
     const DonneesDArme& donnees = *gabarit;  // NOLINT(bugprone-unchecked-optional-access): vérifié par l'assert au-dessus (_assert de MinGW n'est pas noreturn)
-    const double moyens = donnees.degatsDeReference * facteurDeNiveau(arme.niveau) *
-                          (s_facteurDeQualiteMin + s_amplitudeDeQualite * arme.qualite / s_qualiteMaximale);
+    const double moyens = donnees.degatsDeReference * facteurDeNiveau(arme.niveau) * facteurDeQualite(arme.qualite);
     // Un seul arrondi par borne, au plus proche, et au moins 1 point.
     const auto borne = [&](int pourCent) { return std::max(1, static_cast<int>(std::lround(moyens * pourCent / 100.0))); };
     return {.degats = {degatsPhysiques(borne(100 - donnees.ecartPourCent)), degatsPhysiques(borne(100 + donnees.ecartPourCent))},

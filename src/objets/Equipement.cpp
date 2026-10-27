@@ -31,7 +31,7 @@ int Equipement::armureTotale() const {
     int total = 0;
     for (const std::optional<Objet>& objet : m_objets) {
         if (objet) {
-            total += definitionObjet(objet->modele).armure + apportDesAffixes(*objet).armure;
+            total += effetsDeBase(*objet).armure + apportDesAffixes(*objet).armure;
         }
     }
     return total;
@@ -41,13 +41,8 @@ StatistiquesDeCombat Equipement::bonusDeCombatTotal() const {
     StatistiquesDeCombat total;
     for (const std::optional<Objet>& objet : m_objets) {
         if (objet) {
-            const DefinitionObjet& definition = definitionObjet(objet->modele);
-            total += definition.bonusDeCombat;
+            total += effetsDeBase(*objet).bonusDeCombat;
             total += apportDesAffixes(*objet).bonusDeCombat;
-            if (definition.bouclier.has_value()) {
-                total.chanceDeBlocage += definition.bouclier->chanceDeBlocage;
-                total.montantBloque += definition.bouclier->montantBloque;
-            }
         }
     }
     return total;
@@ -89,10 +84,9 @@ Equipement Equipement::actifPour(const Caracteristiques& base) const {
     for (std::size_t i = 0; i < m_objets.size(); ++i) {
         const std::optional<Objet>& objet = m_objets[i];
         if (objet.has_value()) {
-            const DefinitionObjet& definition = definitionObjet(objet->modele);
-            // Les seuils viennent du modèle et du niveau de l'objet (`seuilsDeLObjet`) ; le bonus compte celui des affixes
-            // (un suffixe de caractéristique peut rendre actif un autre objet).
-            portes[i] = ExigencesEtBonus{seuilsDeLObjet(*objet), definition.bonus + apportDesAffixes(*objet).bonus};
+            // Les seuils viennent du modèle et du niveau de l'objet (`seuilsDeLObjet`) ; le bonus compte celui de base et celui des
+            // affixes (un suffixe de caractéristique peut rendre actif un autre objet).
+            portes[i] = ExigencesEtBonus{seuilsDeLObjet(*objet), effetsDeBase(*objet).bonus + apportDesAffixes(*objet).bonus};
         }
     }
     const std::vector<bool> actifs = objetsActifs(base, portes);
@@ -113,7 +107,7 @@ Caracteristiques Equipement::bonusTotal() const {
     Caracteristiques total;
     for (const std::optional<Objet>& objet : m_objets) {
         if (objet) {
-            total += definitionObjet(objet->modele).bonus;
+            total += effetsDeBase(*objet).bonus;
             total += apportDesAffixes(*objet).bonus;
         }
     }
