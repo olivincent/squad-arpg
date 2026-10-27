@@ -16,10 +16,10 @@ constexpr float s_porteeDeTest = 20.0f;
 constexpr float s_porteeDuSkillDeTest = 50.0f;
 const sf::Vector2f s_placeDeFormation(100.0f, 100.0f);
 const sf::Vector2f s_pointDuSkill(400.0f, 100.0f);
-const EntiteVue s_monstreDeLaPlace{3, {{150.0f, 100.0f}, 15.0f}};
-const EntiteVue s_degagement{4, {{160.0f, 120.0f}, 15.0f}};
-const EntiteVue s_verrou{5, {{200.0f, 100.0f}, 15.0f}};
-const EntiteVue s_agresseur{6, {{130.0f, 60.0f}, 0.0f}};  // tout juste enregistré : rayon nul
+const MonstreVu s_monstreDeLaPlace{3, {{150.0f, 100.0f}, 15.0f}};
+const MonstreVu s_degagement{4, {{160.0f, 120.0f}, 15.0f}};
+const MonstreVu s_verrou{5, {{200.0f, 100.0f}, 15.0f}};
+const MonstreVu s_agresseur{6, {{130.0f, 60.0f}, 0.0f}};  // tout juste enregistré : rayon nul
 
 // Un personnage vivant, ancre à l'arrêt, sans rien d'autre : il va à sa place de formation.
 SituationDuPersonnage auRepos() {
@@ -49,7 +49,7 @@ SituationDuPersonnage avecToutesLesRegles() {
     return situation;
 }
 
-Intention approcher(EntiteVue monstre, float portee = s_porteeDeTest) {
+Intention approcher(MonstreVu monstre, float portee = s_porteeDeTest) {
     return ApprocherMonstre{monstre.id, monstre.cercle, portee};
 }
 
@@ -175,10 +175,10 @@ TEST_CASE("monstreDeLIntention : le monstre approche, celui de la place gardee, 
 }
 
 namespace {
-const EntiteVue s_monstre1{1, {{100.0f, 0.0f}, 15.0f}};
-const EntiteVue s_monstre2{2, {{200.0f, 0.0f}, 12.0f}};
-const EntiteVue s_monstre3{3, {{300.0f, 0.0f}, 18.0f}};
-const std::vector<EntiteVue> s_troisMonstres = {s_monstre1, s_monstre2, s_monstre3};
+const MonstreVu s_monstre1{1, {{100.0f, 0.0f}, 15.0f}};
+const MonstreVu s_monstre2{2, {{200.0f, 0.0f}, 12.0f}};
+const MonstreVu s_monstre3{3, {{300.0f, 0.0f}, 18.0f}};
+const std::vector<MonstreVu> s_troisMonstres = {s_monstre1, s_monstre2, s_monstre3};
 }  // namespace
 
 TEST_CASE("cerclesAContourner : approcher un monstre, tous les autres sont a contourner") {

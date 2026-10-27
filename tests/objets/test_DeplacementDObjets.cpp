@@ -15,8 +15,8 @@
 // arme à deux mains exige la main gauche vide, et range ce qui la gêne dans la première case libre du sac.
 namespace {
 constexpr std::size_t s_capaciteDuSac = 6;
-constexpr std::size_t s_placeA = 1;
-constexpr std::size_t s_placeB = 2;
+constexpr Place s_placeA{1};
+constexpr Place s_placeB{2};
 
 const Objet s_bouclier{IdObjet::Bouclier};
 const Objet s_epee{IdObjet::EpeeAUneMain};
@@ -30,7 +30,7 @@ PositionDObjet dansLeSac(std::size_t caseDuSac) {
     return PositionDansLeSac{caseDuSac};
 }
 
-PositionDObjet portee(std::size_t place, Emplacement emplacement) {
+PositionDObjet portee(Place place, Emplacement emplacement) {
     return PositionPortee{place, emplacement};
 }
 
@@ -46,8 +46,8 @@ void rangerDansLeSac(EtatDesObjets& etat, std::size_t caseDuSac, Objet objet) {
     REQUIRE_FALSE(etat.sac.poser(caseDuSac, objet).has_value());
 }
 
-void porter(EtatDesObjets& etat, std::size_t place, Emplacement emplacement, Objet objet) {
-    REQUIRE_FALSE(etat.equipements[place - 1].poser(emplacement, objet).has_value());
+void porter(EtatDesObjets& etat, Place place, Emplacement emplacement, Objet objet) {
+    REQUIRE_FALSE(etat.equipements[place.indice()].poser(emplacement, objet).has_value());
 }
 
 // Tout ce que l'état contient, dans un ordre fixe : le sac, puis chaque emplacement de chaque personnage.

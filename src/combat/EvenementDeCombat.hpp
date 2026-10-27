@@ -4,14 +4,20 @@
 #include <variant>
 #include <vector>
 #include "combat/Element.hpp"
+#include "combat/IdMonstre.hpp"
 #include "combat/IdSkill.hpp"
+#include "combat/Place.hpp"
 #include "combat/ResolutionDuCoup.hpp"
 
 // Ce qui s'est passé pendant une image, en données : le noyau (Partie) les produit, l'affichage
 // les lit. Une file d'événements, pas de callback : Partie ne connaît pas ceux qui la lisent.
 
-// Le camp de la cible : l'escouade (idCible = place, de 1 à N) ou les monstres (idCible = identifiant).
-enum class Camp { Escouade, Monstres };
+// Ce que vise un événement : un personnage (sa place), un monstre (son identifiant) ou l'escouade entière (sac plein, niveau
+// atteint : aucune place). Un variant plutôt qu'un camp et un entier, dont le sens dépendait du camp.
+struct EscouadeEntiere {
+    bool operator==(const EscouadeEntiere&) const = default;
+};
+using CibleDEvenement = std::variant<Place, IdMonstre, EscouadeEntiere>;
 
 // Le détail propre à chaque sorte d'événement : le variant dit le type, et chaque sorte ne porte que
 // les champs qui ont un sens pour elle.
@@ -43,11 +49,11 @@ struct Bloque {
     int montant;
     bool total;
 };
-// Le sac est plein : l'objet que l'escouade est venue ramasser reste au sol. Au-dessus de l'escouade entière : `idCible` vaut 0
-// (aucune place, qui vont de 1 à N) et `position` est celle de l'ancre.
+// Le sac est plein : l'objet que l'escouade est venue ramasser reste au sol. Au-dessus de l'escouade entière (`EscouadeEntiere`) ;
+// `position` est celle de l'ancre.
 struct SacPlein {};
 // L'escouade vient d'atteindre ce niveau : un événement par niveau gagné (plusieurs d'un coup, un par niveau, dans l'ordre).
-// Au-dessus de l'escouade entière, comme `SacPlein` : `idCible` vaut 0 et `position` est celle de l'ancre.
+// Au-dessus de l'escouade entière, comme `SacPlein` : `position` est celle de l'ancre.
 struct NiveauAtteint {
     int niveau;
 };
@@ -56,8 +62,7 @@ using DetailEvenement = std::variant<DegatsSubis, Soin, SkillLance, Provoque, Es
 // `position` : COPIE du centre de la cible à ce moment ; aucune référence vers l'entité, qui peut
 // disparaître dans la même image (monstre tué par ce coup).
 struct EvenementDeCombat {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
-    Camp campCible;
-    int idCible;
+    CibleDEvenement cible;
     sf::Vector2f position;
     DetailEvenement detail;
 };

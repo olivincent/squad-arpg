@@ -47,9 +47,9 @@ float hautDuPanneau(sf::Vector2f tailleDeVue) {
 }
 
 // Le bord gauche de la colonne de cette place, les colonnes étant centrées dans la vue.
-float xDeLaColonne(std::size_t place, sf::Vector2f tailleDeVue) {
-    assert(place >= 1 && place <= s_nombreDePlaces);
-    return (tailleDeVue.x - s_largeurDesColonnes) / 2.0f + static_cast<float>(place - 1) * (s_largeurDeColonne + s_ecartDeColonnes);
+float xDeLaColonne(Place place, sf::Vector2f tailleDeVue) {
+    assert(place.numero <= s_nombreDePlaces);
+    return (tailleDeVue.x - s_largeurDesColonnes) / 2.0f + static_cast<float>(place.indice()) * (s_largeurDeColonne + s_ecartDeColonnes);
 }
 
 }  // namespace
@@ -58,16 +58,16 @@ sf::FloatRect rectangleDuPanneau(sf::Vector2f tailleDeVue) {
     return {{(tailleDeVue.x - s_largeurDuPanneau) / 2.0f, hautDuPanneau(tailleDeVue)}, {s_largeurDuPanneau, s_hauteurDuPanneau}};
 }
 
-sf::FloatRect rectangleDeLEnTete(std::size_t place, sf::Vector2f tailleDeVue) {
+sf::FloatRect rectangleDeLEnTete(Place place, sf::Vector2f tailleDeVue) {
     return {{xDeLaColonne(place, tailleDeVue), hautDuPanneau(tailleDeVue) + s_hautDesColonnes}, {s_largeurDeColonne, s_hauteurEnTete}};
 }
 
-sf::FloatRect rectangleDeLArmure(std::size_t place, sf::Vector2f tailleDeVue) {
+sf::FloatRect rectangleDeLArmure(Place place, sf::Vector2f tailleDeVue) {
     return {{xDeLaColonne(place, tailleDeVue), hautDuPanneau(tailleDeVue) + s_hautDesColonnes + s_hauteurEnTete + s_ecartVertical},
             {s_largeurDeColonne, s_hauteurArmure}};
 }
 
-sf::FloatRect rectangleDeLEmplacement(std::size_t place, Emplacement emplacement, sf::Vector2f tailleDeVue) {
+sf::FloatRect rectangleDeLEmplacement(Place place, Emplacement emplacement, sf::Vector2f tailleDeVue) {
     const std::size_t indice = static_cast<std::size_t>(emplacement);
     const std::size_t sousColonne = indice / s_emplacementsParColonne;
     const std::size_t rangee = indice % s_emplacementsParColonne;
@@ -79,7 +79,7 @@ sf::FloatRect rectangleDeLEmplacement(std::size_t place, Emplacement emplacement
     return {{x, y}, {s_largeurEmplacement, s_hauteurEmplacement}};
 }
 
-sf::FloatRect rectangleDesCaracteristiques(std::size_t place, sf::Vector2f tailleDeVue) {
+sf::FloatRect rectangleDesCaracteristiques(Place place, sf::Vector2f tailleDeVue) {
     const float haut = hautDuPanneau(tailleDeVue) + s_hautDesColonnes + s_hauteurEnTete + s_hauteurArmure + 2.0f * s_ecartVertical +
                        static_cast<float>(s_emplacementsParColonne) * s_hauteurEmplacement +
                        static_cast<float>(s_emplacementsParColonne - 1) * s_ecartEntreEmplacements + s_ecartVertical;
@@ -87,42 +87,42 @@ sf::FloatRect rectangleDesCaracteristiques(std::size_t place, sf::Vector2f taill
             {s_largeurDeColonne, static_cast<float>(s_lignesDeCaracteristiques) * s_hauteurDeLigneDeCaracteristique}};
 }
 
-sf::FloatRect rectangleDeLaCellule(std::size_t place, std::size_t indice, sf::Vector2f tailleDeVue) {
+sf::FloatRect rectangleDeLaCellule(Place place, std::size_t indice, sf::Vector2f tailleDeVue) {
     assert(indice <= s_nombreDeCaracteristiques);
     const sf::FloatRect bloc = rectangleDesCaracteristiques(place, tailleDeVue);
     return {{bloc.position.x, bloc.position.y + static_cast<float>(indice) * s_hauteurDeLigneDeCaracteristique},
             {bloc.size.x, s_hauteurDeLigneDeCaracteristique}};
 }
 
-sf::FloatRect rectangleDuBoutonPlus(std::size_t place, Caracteristique caracteristique, sf::Vector2f tailleDeVue) {
+sf::FloatRect rectangleDuBoutonPlus(Place place, Caracteristique caracteristique, sf::Vector2f tailleDeVue) {
     const sf::FloatRect ligne = rectangleDeLaCellule(place, static_cast<std::size_t>(caracteristique), tailleDeVue);
     return {{ligne.position.x + ligne.size.x - s_margeDesBoutons - s_largeurDuBoutonDeCaracteristique, ligne.position.y},
             {s_largeurDuBoutonDeCaracteristique, ligne.size.y}};
 }
 
-sf::FloatRect rectangleDuBoutonMoins(std::size_t place, Caracteristique caracteristique, sf::Vector2f tailleDeVue) {
+sf::FloatRect rectangleDuBoutonMoins(Place place, Caracteristique caracteristique, sf::Vector2f tailleDeVue) {
     const sf::FloatRect plus = rectangleDuBoutonPlus(place, caracteristique, tailleDeVue);
     return {{plus.position.x - s_ecartEntreBoutons - s_largeurDuBoutonDeCaracteristique, plus.position.y}, plus.size};
 }
 
-sf::FloatRect rectangleDuBoutonReinitialiser(std::size_t place, sf::Vector2f tailleDeVue) {
+sf::FloatRect rectangleDuBoutonReinitialiser(Place place, sf::Vector2f tailleDeVue) {
     const sf::FloatRect ligne = rectangleDeLaCellule(place, s_nombreDeCaracteristiques, tailleDeVue);
     return {{ligne.position.x + ligne.size.x - s_margeDesBoutons - s_largeurDuBoutonDeDepense, ligne.position.y},
             {s_largeurDuBoutonDeDepense, ligne.size.y}};
 }
 
-sf::FloatRect rectangleDuBoutonAppliquer(std::size_t place, sf::Vector2f tailleDeVue) {
+sf::FloatRect rectangleDuBoutonAppliquer(Place place, sf::Vector2f tailleDeVue) {
     const sf::FloatRect reinitialiser = rectangleDuBoutonReinitialiser(place, tailleDeVue);
     return {{reinitialiser.position.x - s_ecartEntreBoutons - s_largeurDuBoutonDeDepense, reinitialiser.position.y}, reinitialiser.size};
 }
 
-sf::FloatRect rectangleDesStatistiques(std::size_t place, sf::Vector2f tailleDeVue) {
+sf::FloatRect rectangleDesStatistiques(Place place, sf::Vector2f tailleDeVue) {
     const sf::FloatRect caracteristiques = rectangleDesCaracteristiques(place, tailleDeVue);
     return {{caracteristiques.position.x, caracteristiques.position.y + caracteristiques.size.y + s_ecartVertical},
             {s_largeurDeColonne, static_cast<float>(s_lignesDeStatistiques) * s_hauteurDeLigneDeCaracteristique}};
 }
 
-sf::FloatRect rectangleDeLaStatistique(std::size_t place, std::size_t indice, sf::Vector2f tailleDeVue) {
+sf::FloatRect rectangleDeLaStatistique(Place place, std::size_t indice, sf::Vector2f tailleDeVue) {
     assert(indice < s_cellulesDeStatistiques);
     const sf::FloatRect bloc = rectangleDesStatistiques(place, tailleDeVue);
     const float largeurDeCellule = bloc.size.x / 2.0f;
@@ -144,7 +144,7 @@ sf::FloatRect rectangleDeLaCaseDuSac(std::size_t indice, sf::Vector2f tailleDeVu
 }
 
 std::optional<BoutonDePoints> boutonSous(sf::Vector2f point, sf::Vector2f tailleDeVue) {
-    for (std::size_t place = 1; place <= s_nombreDePlaces; ++place) {
+    for (const Place place : s_places) {
         for (const Caracteristique caracteristique : s_caracteristiques) {
             if (rectangleDuBoutonPlus(place, caracteristique, tailleDeVue).contains(point)) {
                 return BoutonPlus{place, caracteristique};
@@ -164,7 +164,7 @@ std::optional<BoutonDePoints> boutonSous(sf::Vector2f point, sf::Vector2f taille
 }
 
 std::optional<CaracteristiqueSurvolee> caracteristiqueSous(sf::Vector2f point, sf::Vector2f tailleDeVue) {
-    for (std::size_t place = 1; place <= s_nombreDePlaces; ++place) {
+    for (const Place place : s_places) {
         for (const Caracteristique caracteristique : s_caracteristiques) {
             if (rectangleDeLaCellule(place, static_cast<std::size_t>(caracteristique), tailleDeVue).contains(point)) {
                 return CaracteristiqueSurvolee{place, caracteristique};
@@ -175,7 +175,7 @@ std::optional<CaracteristiqueSurvolee> caracteristiqueSous(sf::Vector2f point, s
 }
 
 std::optional<PositionDObjet> elementSous(sf::Vector2f point, sf::Vector2f tailleDeVue) {
-    for (std::size_t place = 1; place <= s_nombreDePlaces; ++place) {
+    for (const Place place : s_places) {
         for (std::size_t i = 0; i < s_nombreEmplacements; ++i) {
             const Emplacement emplacement = static_cast<Emplacement>(i);
             if (rectangleDeLEmplacement(place, emplacement, tailleDeVue).contains(point)) {

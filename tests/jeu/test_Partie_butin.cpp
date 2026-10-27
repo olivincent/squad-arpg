@@ -115,7 +115,7 @@ TEST_CASE("niveau : une partie commence au niveau de l'experience de l'expeditio
     const Partie partie(salleAvecMonstres({}), expedition, s_graineDeTest, catalogueDeTest(monstreSansHasard()));
 
     REQUIRE(partie.getEscouade().getNiveau() == 3);
-    REQUIRE(partie.getEscouade().pointsDeVieMaxDuPersonnage(1) == pointsDeVieMax(*partie.getEscouade().caracteristiquesDuPersonnage(1), 3));
+    REQUIRE(partie.getEscouade().pointsDeVieMaxDuPersonnage(Place{1}) == pointsDeVieMax(*partie.getEscouade().caracteristiquesDuPersonnage(Place{1}), 3));
 }
 
 TEST_CASE("niveau : l'experience d'un monstre tue fait monter l'escouade au seuil exact") {
@@ -130,17 +130,17 @@ TEST_CASE("niveau : l'experience d'un monstre tue fait monter l'escouade au seui
 
 TEST_CASE("niveau : plusieurs niveaux gagnes d'un coup sont tous appliques, a chaque personnage") {
     Partie partie = partieAvecExperience(experiencePourAtteindre(5));
-    const std::optional<Caracteristiques> avant = partie.getEscouade().caracteristiquesDeBaseDuPersonnage(1);  // le guerrier de test : Puissance, Endurance
-    const std::optional<int> vieMaxAvant = partie.getEscouade().pointsDeVieMaxDuPersonnage(1);
+    const std::optional<Caracteristiques> avant = partie.getEscouade().caracteristiquesDeBaseDuPersonnage(Place{1});  // le guerrier de test : Puissance, Endurance
+    const std::optional<int> vieMaxAvant = partie.getEscouade().pointsDeVieMaxDuPersonnage(Place{1});
 
     toutTuer(partie);
 
     REQUIRE(partie.getEscouade().getNiveau() == 5);
     REQUIRE(partie.expedition().experience == experiencePourAtteindre(5));
-    const Caracteristiques apres = *partie.getEscouade().caracteristiquesDeBaseDuPersonnage(1);
+    const Caracteristiques apres = *partie.getEscouade().caracteristiquesDeBaseDuPersonnage(Place{1});
     REQUIRE(apres.valeur(Caracteristique::Puissance) == avant->valeur(Caracteristique::Puissance) + 2);   // niveaux 2 et 4
     REQUIRE(apres.valeur(Caracteristique::Endurance) == avant->valeur(Caracteristique::Endurance) + 2);   // niveaux 3 et 5
-    REQUIRE(*partie.getEscouade().pointsDeVieMaxDuPersonnage(1) == *vieMaxAvant + 2 * s_pvParPointDEndurance + 4 * s_pvParNiveau);
+    REQUIRE(*partie.getEscouade().pointsDeVieMaxDuPersonnage(Place{1}) == *vieMaxAvant + 2 * s_pvParPointDEndurance + 4 * s_pvParNiveau);
 }
 
 namespace {
@@ -149,8 +149,7 @@ std::vector<int> niveauxAnnonces(const std::vector<EvenementDeCombat>& evenement
     std::vector<int> niveaux;
     for (const EvenementDeCombat& evenement : evenements) {
         if (const auto* atteint = std::get_if<NiveauAtteint>(&evenement.detail)) {
-            REQUIRE(evenement.campCible == Camp::Escouade);
-            REQUIRE(evenement.idCible == 0);  // l'escouade entière
+            REQUIRE(std::holds_alternative<EscouadeEntiere>(evenement.cible));  // l'escouade entière
             niveaux.push_back(atteint->niveau);
         }
     }

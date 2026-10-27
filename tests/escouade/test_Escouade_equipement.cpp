@@ -25,14 +25,14 @@
 // Équipement et sac de l'escouade (étape 83). Places de uneEscouade : 1 guerrier (équipé), 2 prêtre
 // et 3 mage (sans rien). Les attentes d'armure viennent du catalogue d'objets.
 namespace {
-constexpr std::size_t s_guerrier = 1;
-constexpr std::size_t s_pretre = 2;
-constexpr std::size_t s_mage = 3;
+constexpr Place s_guerrier{1};
+constexpr Place s_pretre{2};
+constexpr Place s_mage{3};
 constexpr int s_coup = 10;  // petit : trois coups ne tuent personne, quelle que soit l'armure
 
 // Les dégâts qu'un coup de `s_coup` fait à ce personnage, armure comprise.
-int degatsSubis(Escouade& escouade, std::size_t place) {
-    return subirCoup(escouade, 1, place, s_coup);
+int degatsSubis(Escouade& escouade, Place place) {
+    return subirCoup(escouade, IdMonstre{1}, place, s_coup);
 }
 
 // L'escouade du jeu, sac de départ rangé dans les premières cases.
@@ -48,7 +48,7 @@ PositionDObjet dansLeSac(std::size_t caseDuSac) {
     return PositionDansLeSac{caseDuSac};
 }
 
-PositionDObjet portee(std::size_t place, Emplacement emplacement) {
+PositionDObjet portee(Place place, Emplacement emplacement) {
     return PositionPortee{place, emplacement};
 }
 
@@ -141,7 +141,7 @@ TEST_CASE("deplacer du sac vers un emplacement : case vide ou emplacement refuse
 
 TEST_CASE("deplacer : un personnage mort peut etre equipe") {
     Escouade escouade = escouadeAvecSac({s_gants});
-    REQUIRE(subirCoup(escouade, 1, s_mage, s_coupMortel) > 0);
+    REQUIRE(subirCoup(escouade, IdMonstre{1}, s_mage, s_coupMortel) > 0);
     REQUIRE_FALSE(escouade.placeEstVivante(s_mage));
 
     REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_mage, Emplacement::Gants)));
@@ -302,11 +302,11 @@ TEST_CASE("statistiquesDeCombatDuPersonnage : celles du personnage de la place, 
     const Escouade escouade = uneEscouadeDe({50.0f, 50.0f}, {guerrierDeTest(), rodeur});
 
     // Le guerrier de test porte des pièces lourdes : leur malus d'esquive est dans ses statistiques.
-    REQUIRE(escouade.statistiquesDeCombatDuPersonnage(1) ==
+    REQUIRE(escouade.statistiquesDeCombatDuPersonnage(Place{1}) ==
             statistiquesDuPersonnage(Caracteristiques(), Equipement(s_equipementMeleeDeTest).bonusDeCombatTotal()));
-    REQUIRE(escouade.statistiquesDeCombatDuPersonnage(2) == StatistiquesDeCombat{120, 120});
-    REQUIRE_FALSE(escouade.statistiquesDeCombatDuPersonnage(0).has_value());
-    REQUIRE_FALSE(escouade.statistiquesDeCombatDuPersonnage(3).has_value());
+    REQUIRE(escouade.statistiquesDeCombatDuPersonnage(Place{2}) == StatistiquesDeCombat{120, 120});
+    REQUIRE_FALSE(escouade.statistiquesDeCombatDuPersonnage(Place{0}).has_value());
+    REQUIRE_FALSE(escouade.statistiquesDeCombatDuPersonnage(Place{3}).has_value());
 }
 
 TEST_CASE("la puissance de l'attaque de base lue par l'escouade (coup d'opportunite) suit les caracteristiques") {
@@ -314,15 +314,15 @@ TEST_CASE("la puissance de l'attaque de base lue par l'escouade (coup d'opportun
     DefinitionPersonnage definition = guerrierDeTest();
     definition.caracteristiques = Caracteristiques({s_valeurDeReference + 1, 10, 10, 10, 10});  // 11 de Puissance : l'épée est active (bonus de 3 % arrondi à 0)
     Escouade escouade = uneEscouadeDe({50.0f, 50.0f}, {definition});
-    REQUIRE(dansLaPlageAvecPuissance(attaqueDeBaseDe(escouade, 1)->degats.total(), s_attaqueDeMeleeDeTest,
-                                     escouade.caracteristiquesDuPersonnage(1).value()));
+    REQUIRE(dansLaPlageAvecPuissance(attaqueDeBaseDe(escouade, Place{1})->degats.total(), s_attaqueDeMeleeDeTest,
+                                     escouade.caracteristiquesDuPersonnage(Place{1}).value()));
 
     REQUIRE(escouade.ramasser(Objet{IdObjet::AnneauDePuissance}));
-    REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(1, Emplacement::Anneau1)));
+    REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(Place{1}, Emplacement::Anneau1)));
 
     // Le coup tiré dans la plage de l'épée, la Puissance de l'anneau sur chaque borne.
-    const Caracteristiques avecAnneau = escouade.caracteristiquesDuPersonnage(1).value();
-    const int degats = attaqueDeBaseDe(escouade, 1)->degats.total();
+    const Caracteristiques avecAnneau = escouade.caracteristiquesDuPersonnage(Place{1}).value();
+    const int degats = attaqueDeBaseDe(escouade, Place{1})->degats.total();
     REQUIRE(degats >= montantEffectif(s_degatsBaseMinDeTest, puissance, avecAnneau));
     REQUIRE(degats <= montantEffectif(s_degatsBaseMaxDeTest, puissance, avecAnneau));
     REQUIRE(montantEffectif(s_degatsBaseMaxDeTest, puissance, avecAnneau) > s_degatsBaseMaxDeTest);  // la Puissance joue vraiment
@@ -413,7 +413,7 @@ TEST_CASE("changer d'arme dans l'inventaire relance la recharge : le premier cou
     REQUIRE(escouade.ramasser(Objet{IdObjet::Dague}));
     REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::MainDroite)));
     const DescriptionDAttaque dague = descriptionDeLArme(Objet{IdObjet::Dague});
-    const std::vector<EntiteVue> monstres = {EntiteVue{1, cibleMonstre({110.0f, 60.0f})}};  // au contact du guerrier, en (85, 60)
+    const std::vector<MonstreVu> monstres = {MonstreVu{IdMonstre{1}, cibleMonstre({110.0f, 60.0f})}};  // au contact du guerrier, en (85, 60)
     const auto coupsPendant = [&](float duree) {
         std::size_t coups = 0;
         for (int i = 0; i < nombreDeTics(duree); ++i) {
@@ -507,9 +507,9 @@ TEST_CASE("objetPorteEstInactif : un objet porte dont le seuil n'est pas atteint
     const Escouade escouade({50.0f, 50.0f}, std::move(membres));
 
     REQUIRE_FALSE(escouade.objetPorteEstInactif(s_guerrier, Emplacement::Torse));  // le guerrier porte une cuirasse de niveau 1 : actif
-    REQUIRE(escouade.objetPorteEstInactif(2, Emplacement::Torse));                 // porté, sans effet
-    REQUIRE_FALSE(escouade.objetPorteEstInactif(2, Emplacement::Gants));           // sans seuil
-    REQUIRE_FALSE(escouade.objetPorteEstInactif(2, Emplacement::Tete));            // vide
+    REQUIRE(escouade.objetPorteEstInactif(Place{2}, Emplacement::Torse));                 // porté, sans effet
+    REQUIRE_FALSE(escouade.objetPorteEstInactif(Place{2}, Emplacement::Gants));           // sans seuil
+    REQUIRE_FALSE(escouade.objetPorteEstInactif(Place{2}, Emplacement::Tete));            // vide
 }
 
 TEST_CASE("la penetration de l'attaque de base lue par l'escouade (coup d'opportunite) est celle de l'arme") {
@@ -665,17 +665,18 @@ TEST_CASE("Escouade::depenserDesPoints : le personnage de cette place depense, l
 TEST_CASE("Escouade::depenserDesPoints : une place invalide ou une depense refusee ne changent rien") {
     Escouade escouade(sf::Vector2f{50.0f, 50.0f}, membresDeTest(), Inventaire(Escouade::s_capaciteDuSac), 2);  // 3 points libres chacun
 
-    REQUIRE_FALSE(escouade.depenserDesPoints(0, Caracteristiques::seule(Caracteristique::Puissance, 1)));
-    REQUIRE_FALSE(escouade.depenserDesPoints(4, Caracteristiques::seule(Caracteristique::Puissance, 1)));
+    REQUIRE_FALSE(escouade.depenserDesPoints(Place{0}, Caracteristiques::seule(Caracteristique::Puissance, 1)));
+    REQUIRE_FALSE(escouade.depenserDesPoints(Place{4}, Caracteristiques::seule(Caracteristique::Puissance, 1)));
     REQUIRE_FALSE(escouade.depenserDesPoints(s_mage, Caracteristiques::seule(Caracteristique::Puissance, 4)));
     REQUIRE_FALSE(escouade.depenserDesPoints(s_mage, Caracteristiques({-1, 2, 0, 0, 0})));
 
-    for (std::size_t place = s_guerrier; place <= s_mage; ++place) {
+    for (std::size_t numero = s_guerrier.numero; numero <= s_mage.numero; ++numero) {
+        const Place place{numero};
         REQUIRE(escouade.pointsDepensesDuPersonnage(place) == Caracteristiques());
         REQUIRE(escouade.pointsLibresDuPersonnage(place) == 3);
     }
-    REQUIRE_FALSE(escouade.pointsDepensesDuPersonnage(0).has_value());
-    REQUIRE_FALSE(escouade.pointsLibresDuPersonnage(4).has_value());
+    REQUIRE_FALSE(escouade.pointsDepensesDuPersonnage(Place{0}).has_value());
+    REQUIRE_FALSE(escouade.pointsLibresDuPersonnage(Place{4}).has_value());
 }
 
 TEST_CASE("Escouade::monterAuNiveau : les points libres augmentent de trois par niveau pour chaque personnage") {
@@ -684,7 +685,8 @@ TEST_CASE("Escouade::monterAuNiveau : les points libres augmentent de trois par 
 
     escouade.monterAuNiveau(4);
 
-    for (std::size_t place = s_guerrier; place <= s_mage; ++place) {
+    for (std::size_t numero = s_guerrier.numero; numero <= s_mage.numero; ++numero) {
+        const Place place{numero};
         REQUIRE(escouade.pointsLibresDuPersonnage(place) == 9);
     }
 }
@@ -716,7 +718,7 @@ TEST_CASE("aDesPointsLibres : un mort garde ses points, le signal reste") {
     Escouade escouade(sf::Vector2f{50.0f, 50.0f}, membresDeTest(), Inventaire(Escouade::s_capaciteDuSac), 2);
     REQUIRE(escouade.depenserDesPoints(s_guerrier, Caracteristiques::seule(Caracteristique::Puissance, 3)));
     REQUIRE(escouade.depenserDesPoints(s_pretre, Caracteristiques::seule(Caracteristique::Volonte, 3)));
-    static_cast<void>(subirCoup(escouade, 1, s_mage, 1'000'000));  // le mage meurt avec ses 3 points
+    static_cast<void>(subirCoup(escouade, IdMonstre{1}, s_mage, 1'000'000));  // le mage meurt avec ses 3 points
     REQUIRE(escouade.pointsDeVieDuPersonnage(s_mage) == 0);
 
     REQUIRE(escouade.aDesPointsLibres());

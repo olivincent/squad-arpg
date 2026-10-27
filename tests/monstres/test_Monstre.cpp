@@ -18,49 +18,49 @@
 // y: [85, 115).
 
 TEST_CASE("contient renvoie vrai pour un point au centre") {
-    const Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
+    const Monstre monstre({100.0f, 100.0f}, IdMonstre{1}, 0, monstreAvecArmure(0));
 
     REQUIRE(monstre.contient({100.0f, 100.0f}));
 }
 
 TEST_CASE("contient renvoie faux pour un point a l'exterieur") {
-    const Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
+    const Monstre monstre({100.0f, 100.0f}, IdMonstre{1}, 0, monstreAvecArmure(0));
 
     REQUIRE_FALSE(monstre.contient({200.0f, 200.0f}));
 }
 
 TEST_CASE("contient renvoie vrai pour un point sur le bord gauche") {
-    const Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
+    const Monstre monstre({100.0f, 100.0f}, IdMonstre{1}, 0, monstreAvecArmure(0));
 
     REQUIRE(monstre.contient({85.0f, 100.0f}));
 }
 
 TEST_CASE("contient renvoie vrai pour un point sur le bord haut") {
-    const Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
+    const Monstre monstre({100.0f, 100.0f}, IdMonstre{1}, 0, monstreAvecArmure(0));
 
     REQUIRE(monstre.contient({100.0f, 85.0f}));
 }
 
 TEST_CASE("contient renvoie faux pour un point sur le bord droit") {
-    const Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
+    const Monstre monstre({100.0f, 100.0f}, IdMonstre{1}, 0, monstreAvecArmure(0));
 
     REQUIRE_FALSE(monstre.contient({115.0f, 100.0f}));
 }
 
 TEST_CASE("contient renvoie faux pour un point sur le bord bas") {
-    const Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
+    const Monstre monstre({100.0f, 100.0f}, IdMonstre{1}, 0, monstreAvecArmure(0));
 
     REQUIRE_FALSE(monstre.contient({100.0f, 115.0f}));
 }
 
 TEST_CASE("getCentre renvoie le centre du monstre") {
-    const Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
+    const Monstre monstre({100.0f, 100.0f}, IdMonstre{1}, 0, monstreAvecArmure(0));
 
     REQUIRE(monstre.getCentre() == sf::Vector2f(100.0f, 100.0f));
 }
 
 TEST_CASE("getCercle renvoie un cercle centre sur le monstre, de rayon la moitie du cote") {
-    const Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
+    const Monstre monstre({100.0f, 100.0f}, IdMonstre{1}, 0, monstreAvecArmure(0));
     const Cercle cercle = monstre.getCercle();
 
     REQUIRE(cercle.centre == sf::Vector2f(100.0f, 100.0f));
@@ -68,24 +68,24 @@ TEST_CASE("getCercle renvoie un cercle centre sur le monstre, de rayon la moitie
 }
 
 TEST_CASE("getId renvoie l'identifiant de chaque monstre") {
-    const Monstre premier({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
-    const Monstre second({200.0f, 200.0f}, 2, 0, monstreAvecArmure(0));
+    const Monstre premier({100.0f, 100.0f}, IdMonstre{1}, 0, monstreAvecArmure(0));
+    const Monstre second({200.0f, 200.0f}, IdMonstre{2}, 0, monstreAvecArmure(0));
 
-    REQUIRE(premier.getId() == 1);
-    REQUIRE(second.getId() == 2);
+    REQUIRE(premier.getId() == IdMonstre{1});
+    REQUIRE(second.getId() == IdMonstre{2});
 }
 
 // Le monstre a tous ses points de vie à la création. Leur nombre n'est pas injectable : les tests
 // le lisent sur le monstre neuf (getPointsDeVie), sans l'écrire.
 
 TEST_CASE("Le monstre est vivant a la creation") {
-    const Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
+    const Monstre monstre({100.0f, 100.0f}, IdMonstre{1}, 0, monstreAvecArmure(0));
 
     REQUIRE(monstre.estVivant());
 }
 
 TEST_CASE("Le monstre est encore vivant apres des degats inferieurs a ses points de vie") {
-    Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
+    Monstre monstre({100.0f, 100.0f}, IdMonstre{1}, 0, monstreAvecArmure(0));
 
     subir(monstre, monstre.getPointsDeVie() - 20);
 
@@ -93,7 +93,7 @@ TEST_CASE("Le monstre est encore vivant apres des degats inferieurs a ses points
 }
 
 TEST_CASE("Le monstre est mort apres autant de degats que ses points de vie") {
-    Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
+    Monstre monstre({100.0f, 100.0f}, IdMonstre{1}, 0, monstreAvecArmure(0));
 
     subir(monstre, monstre.getPointsDeVie());
 
@@ -101,7 +101,7 @@ TEST_CASE("Le monstre est mort apres autant de degats que ses points de vie") {
 }
 
 TEST_CASE("Le monstre est mort apres un coup qui depasse les points de vie restants") {
-    Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
+    Monstre monstre({100.0f, 100.0f}, IdMonstre{1}, 0, monstreAvecArmure(0));
 
     subir(monstre, monstre.getPointsDeVie() - 20); // reste 20 points de vie
     subir(monstre, 50); // dépasse largement le reste
@@ -110,7 +110,7 @@ TEST_CASE("Le monstre est mort apres un coup qui depasse les points de vie resta
 }
 
 TEST_CASE("Le monstre reste mort apres un coup supplementaire") {
-    Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
+    Monstre monstre({100.0f, 100.0f}, IdMonstre{1}, 0, monstreAvecArmure(0));
 
     subir(monstre, monstre.getPointsDeVie());
     subir(monstre, 1);
@@ -119,7 +119,7 @@ TEST_CASE("Le monstre reste mort apres un coup supplementaire") {
 }
 
 TEST_CASE("Monstre.recevoirDegats applique son armure") {
-    Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(20));
+    Monstre monstre({100.0f, 100.0f}, IdMonstre{1}, 0, monstreAvecArmure(20));
     const int maximum = monstre.getPointsDeVie();
 
     subir(monstre, 50);
@@ -128,7 +128,7 @@ TEST_CASE("Monstre.recevoirDegats applique son armure") {
 }
 
 TEST_CASE("Monstre.recevoirDegats sans armure retire le montant entier") {
-    Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
+    Monstre monstre({100.0f, 100.0f}, IdMonstre{1}, 0, monstreAvecArmure(0));
     const int maximum = monstre.getPointsDeVie();
 
     subir(monstre, 5);
@@ -138,7 +138,7 @@ TEST_CASE("Monstre.recevoirDegats sans armure retire le montant entier") {
 
 TEST_CASE("Monstre.recevoirDegats d'un coup de 1 retire 1 malgre l'armure et reveille le monstre") {
     const TileMap carte = carteDegagee10x10();
-    Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(20));
+    Monstre monstre({100.0f, 100.0f}, IdMonstre{1}, 0, monstreAvecArmure(20));
     const int maximum = monstre.getPointsDeVie();
     const sf::Vector2f cible(350.0f, 100.0f); // 250 px, hors détection
 
@@ -150,13 +150,13 @@ TEST_CASE("Monstre.recevoirDegats d'un coup de 1 retire 1 malgre l'armure et rev
 }
 
 TEST_CASE("Monstre.getGroupe rend le groupe recu a la construction") {
-    Monstre monstre({100.0f, 100.0f}, 1, 7, monstreAvecArmure(0));
+    Monstre monstre({100.0f, 100.0f}, IdMonstre{1}, 7, monstreAvecArmure(0));
 
     REQUIRE(monstre.getGroupe() == 7);
 }
 
 TEST_CASE("un monstre a une zone de controle de 20 px et l'attaque de sa definition") {
-    const Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(20));
+    const Monstre monstre({100.0f, 100.0f}, IdMonstre{1}, 0, monstreAvecArmure(20));
 
     REQUIRE(monstre.getZoneDeControle() == 20.0f);
     REQUIRE(monstre.getAttaque().degats.total() == definitionDeMonstre(CategorieDeMonstre::Infanterie).degats.total());
@@ -170,7 +170,7 @@ TEST_CASE("un monstre prend toutes ses valeurs de sa definition") {
     definition.zoneDeControle = 35.0f;
     definition.degats = degatsPhysiques(77);
     definition.statistiques = {.capaciteOffensive = 130, .capaciteDefensive = 90};
-    Monstre monstre({100.0f, 100.0f}, 1, 0, definition);
+    Monstre monstre({100.0f, 100.0f}, IdMonstre{1}, 0, definition);
 
     REQUIRE(monstre.getCercle().rayon == 25.0f);
     REQUIRE(monstre.getPointsDeVie() == 300);
@@ -183,20 +183,20 @@ TEST_CASE("un monstre prend toutes ses valeurs de sa definition") {
 TEST_CASE("l'attaque d'un monstre porte la capacite offensive de sa definition") {
     DefinitionDeMonstre definition = definitionDeMonstre(CategorieDeMonstre::Infanterie);
     definition.statistiques.capaciteOffensive = 130;
-    const Monstre monstre({100.0f, 100.0f}, 1, 0, definition);
+    const Monstre monstre({100.0f, 100.0f}, IdMonstre{1}, 0, definition);
 
     REQUIRE(monstre.getAttaque().degats.total() == definition.degats.total());
     REQUIRE(monstre.getAttaque().capaciteOffensive == 130);
 }
 
 TEST_CASE("l'attaque de l'infanterie est une attaque de contact") {
-    const Monstre monstre({100.0f, 100.0f}, 1, 0, definitionDeMonstre(CategorieDeMonstre::Infanterie));
+    const Monstre monstre({100.0f, 100.0f}, IdMonstre{1}, 0, definitionDeMonstre(CategorieDeMonstre::Infanterie));
 
     REQUIRE(monstre.getAttaque().nature == NatureDAttaque::Contact);
 }
 
 TEST_CASE("l'infanterie esquive 5 % des coups de contact et 5 % des projectiles") {
-    const Monstre monstre({100.0f, 100.0f}, 1, 0, definitionDeMonstre(CategorieDeMonstre::Infanterie));
+    const Monstre monstre({100.0f, 100.0f}, IdMonstre{1}, 0, definitionDeMonstre(CategorieDeMonstre::Infanterie));
 
     REQUIRE(monstre.getStatistiques().esquiveContact == 5);
     REQUIRE(monstre.getStatistiques().esquiveProjectile == 5);
@@ -213,7 +213,7 @@ TEST_CASE("un coup esquive par un monstre ne lui retire rien mais le reveille qu
     // Esquivé ou non, un coup réveille le monstre ; esquivé, il ne lui retire rien. À 50 %, la chance de n'en voir
     // aucun esquivé sur 100 coups est de 2^-100, quelle que soit la graine.
     for (int essai = 0; essai < 100; ++essai) {
-        Monstre monstre({100.0f, 100.0f}, 1, 0, definition);
+        Monstre monstre({100.0f, 100.0f}, IdMonstre{1}, 0, definition);
         const int vieAvant = monstre.getPointsDeVie();
 
         const bool esquive = monstre.recevoirDegats(attaque, generateur).esquive;
@@ -232,7 +232,7 @@ TEST_CASE("un monstre au bouclier : le blocage se recupere avec le temps qui pas
     const TileMap carte = carteDegagee10x10();
     DefinitionDeMonstre definition = definitionDeMonstre(CategorieDeMonstre::Infanterie);
     definition.statistiques = {.capaciteDefensive = 100, .chanceDeBlocage = 100, .montantBloque = 40};
-    Monstre monstre({100.0f, 100.0f}, 1, 0, definition);
+    Monstre monstre({100.0f, 100.0f}, IdMonstre{1}, 0, definition);
     Generateur generateur = generateurDeTest();
     const Attaque attaque{.degats = degatsPhysiques(100), .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
 
@@ -245,29 +245,29 @@ TEST_CASE("un monstre au bouclier : le blocage se recupere avec le temps qui pas
 }
 
 TEST_CASE("lire la puissance de l'attaque ne change ni le coup engage ni la recharge") {
-    Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
+    Monstre monstre({100.0f, 100.0f}, IdMonstre{1}, 0, monstreAvecArmure(0));
     const TileMap carte = carteDegagee10x10();
     Generateur generateur = generateurDeTest();
-    REQUIRE(engager(monstre, pointCible({125.0f, 100.0f}), 1, carte));
+    REQUIRE(engager(monstre, pointCible({125.0f, 100.0f}), Place{1}, carte));
 
     const int puissance = monstre.getAttaque().degats.total();
 
-    REQUIRE(monstre.cibleEngagee() == 1);
+    REQUIRE(monstre.cibleEngagee() == Place{1});
     REQUIRE(degatsOuZero(monstre.avancerAttaque(0.4f, generateur)) == puissance);  // le coup engagé part normalement
     REQUIRE(monstre.getAttaque().degats.total() == puissance);
-    REQUIRE_FALSE(engager(monstre, pointCible({125.0f, 100.0f}), 1, carte));  // la recharge court toujours
+    REQUIRE_FALSE(engager(monstre, pointCible({125.0f, 100.0f}), Place{1}, carte));  // la recharge court toujours
 }
 
 TEST_CASE("Monstre.recevoirDegats renvoie les degats subis apres armure") {
-    Monstre sansArmure({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
-    Monstre arme({100.0f, 100.0f}, 2, 0, monstreAvecArmure(20));
+    Monstre sansArmure({100.0f, 100.0f}, IdMonstre{1}, 0, monstreAvecArmure(0));
+    Monstre arme({100.0f, 100.0f}, IdMonstre{2}, 0, monstreAvecArmure(20));
 
     REQUIRE(subir(sansArmure, 50) == 50);
     REQUIRE(subir(arme, 50) == 30);  // 50 - 20 = 30
 }
 
 TEST_CASE("Monstre.recevoirDegats sur un monstre mort renvoie zero") {
-    Monstre monstre({100.0f, 100.0f}, 1, 0, monstreAvecArmure(0));
+    Monstre monstre({100.0f, 100.0f}, IdMonstre{1}, 0, monstreAvecArmure(0));
     subir(monstre, monstre.getPointsDeVie());
 
     REQUIRE(subir(monstre, 10) == 0);
@@ -278,7 +278,7 @@ TEST_CASE("l'attaque d'un monstre porte toutes les portions de sa definition") {
     definition.degats = {};
     definition.degats[Element::Physique] = 12;
     definition.degats[Element::Feu] = 8;
-    const Monstre monstre({100.0f, 100.0f}, 1, 0, definition);
+    const Monstre monstre({100.0f, 100.0f}, IdMonstre{1}, 0, definition);
 
     REQUIRE(monstre.getAttaque().degats == definition.degats);
 }

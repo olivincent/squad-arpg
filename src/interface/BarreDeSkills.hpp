@@ -14,6 +14,7 @@
 #include "combat/AdresseSkill.hpp"
 #include "combat/EtatSkill.hpp"
 #include "combat/IdSkill.hpp"
+#include "combat/Place.hpp"
 #include "interface/Reglages.hpp"
 
 class Escouade;
@@ -38,7 +39,7 @@ struct IconeDeRaccourci {
     std::optional<EtatSkill> etat;  // vide = emplacement vide (cadre sombre, seulement le nom de la touche)
     sf::String touche;              // nom de la touche, affiché dans un coin
     sf::Color couleurDuLanceur;     // bande au bas de l'icône : la couleur du personnage
-    std::size_t place = 0;          // place du lanceur (1 à N), écrite dans la bande
+    Place place = Place{0};         // place du lanceur, écrite dans la bande (Place{0} : emplacement vide)
     bool enVisee = false;           // contour jaune : le skill de cet emplacement est en cours de visée
 };
 

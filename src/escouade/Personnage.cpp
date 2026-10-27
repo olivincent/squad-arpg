@@ -145,7 +145,7 @@ bool Personnage::estAPortee(Cercle cible) const {
     return m_attaqueDeBase.estAPortee(getCercle(), cible);
 }
 
-bool Personnage::engagerAttaque(int idCible) {
+bool Personnage::engagerAttaque(IdMonstre idCible) {
     if (!estVivant() || m_mobile.estEnMouvement() || m_actionEngagee.has_value() || m_rechargeARelancer ||
         !m_attaqueDeBase.commencer()) {
         return false;
@@ -155,7 +155,7 @@ bool Personnage::engagerAttaque(int idCible) {
     return true;
 }
 
-std::optional<int> Personnage::cibleEngagee() const {
+std::optional<IdMonstre> Personnage::cibleEngagee() const {
     if (!m_actionEngagee.has_value() || m_actionEngagee->action != TypeAction::AttaqueDeBase ||
         m_attaqueDeBase.getPhase() != PhaseSkill::EnExecution) {
         return std::nullopt;

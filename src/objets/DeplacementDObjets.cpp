@@ -13,13 +13,13 @@ namespace {
 // `std::visit` sans `Surcharges` (qui est dans `combat/`, et `objets/` ne dépend que de `base/` et de ce qu'il lui
 // faut de `combat/`) : un `if constexpr` sur le type de la position.
 Equipement& equipementDe(EtatDesObjets& etat, const PositionPortee& portee) {
-    assert(portee.place >= 1 && portee.place <= etat.equipements.size());
-    return etat.equipements[portee.place - 1];
+    assert(portee.place.numero <= etat.equipements.size());
+    return etat.equipements[portee.place.indice()];
 }
 
 const Equipement& equipementDe(const EtatDesObjets& etat, const PositionPortee& portee) {
-    assert(portee.place >= 1 && portee.place <= etat.equipements.size());
-    return etat.equipements[portee.place - 1];
+    assert(portee.place.numero <= etat.equipements.size());
+    return etat.equipements[portee.place.indice()];
 }
 
 std::optional<Objet> objetA(const EtatDesObjets& etat, const PositionDObjet& position) {
@@ -103,8 +103,8 @@ std::vector<SeuilDeCaracteristique> seuilsNonAtteints(const EtatDesObjets& etat,
     if (!pose.has_value()) {
         return {};
     }
-    assert(portee->place <= etat.bases.size());
-    const Caracteristiques effectives = caracteristiquesEffectives(etat.bases[portee->place - 1], sansLui);
+    assert(portee->place.numero <= etat.bases.size());
+    const Caracteristiques effectives = caracteristiquesEffectives(etat.bases[portee->place.indice()], sansLui);
     std::vector<SeuilDeCaracteristique> manques;
     for (const SeuilDeCaracteristique& seuil : seuilsDeLObjet(*pose)) {
         if (effectives.valeur(seuil.caracteristique) < seuil.valeur) {

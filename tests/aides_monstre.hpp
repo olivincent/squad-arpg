@@ -44,10 +44,10 @@ inline TileMap carteAvecMur() {
 // La cible est à la fois la proie (place 1) et l'unique candidat de frappe.
 inline void ecoulerTemps(Monstre& monstre, float duree, std::optional<Cercle> cible, const TileMap& carte,
                   const std::vector<Cercle>& obstacles = {}, const std::vector<Cercle>& aContourner = {}) {
-    std::optional<EntiteVue> proie;
-    std::vector<EntiteVue> candidats;
+    std::optional<PersonnageVu> proie;
+    std::vector<PersonnageVu> candidats;
     if (cible) {
-        proie = EntiteVue{1, *cible};
+        proie = PersonnageVu{Place{1}, *cible};
         candidats.push_back(*proie);
     }
     const int nombreTics = nombreDeTics(duree);
@@ -57,8 +57,8 @@ inline void ecoulerTemps(Monstre& monstre, float duree, std::optional<Cercle> ci
 }
 
 // Engage un coup sur cette cible, à la fois proie et unique candidat.
-inline bool engager(Monstre& monstre, Cercle cible, int id, const TileMap& carte) {
-    const EntiteVue entite{id, cible};
+inline bool engager(Monstre& monstre, Cercle cible, Place place, const TileMap& carte) {
+    const PersonnageVu entite{place, cible};
     return monstre.engagerAttaque(entite, {entite}, carte);
 }
 
@@ -66,7 +66,7 @@ inline bool engager(Monstre& monstre, Cercle cible, int id, const TileMap& carte
 // cible (refusée hors de portée), puis avance l'exécution (0,3 s) jusqu'au
 // départ. Renvoie les dégâts, 0 si rien ne part.
 inline int frapperEnEntier(Monstre& monstre, Cercle cible, Generateur& generateur) {
-    if (!engager(monstre, cible, 1, carteOuverte())) {
+    if (!engager(monstre, cible, Place{1}, carteOuverte())) {
         return 0;
     }
     for (int i = 0; i < nombreDeTics(1.0f); ++i) {

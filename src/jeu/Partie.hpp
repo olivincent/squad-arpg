@@ -146,7 +146,7 @@ private:
         sf::Vector2f point;
     };
 
-    [[nodiscard]] Monstre* trouverMonstre(int id);
+    [[nodiscard]] Monstre* trouverMonstre(IdMonstre id);
     // Objet interactif encore actif qui contient ce point (une porte fermée), nullptr sinon.
     [[nodiscard]] const ObjetInteractif* trouverObjetActif(sf::Vector2f point) const;
     // Recalcule la vision à partir des personnages vivants, à leur position actuelle.
@@ -169,29 +169,29 @@ private:
     // Deux vues des monstres pour l'escouade : les CIBLES (ceux qu'on peut frapper, provoquer,
     // viser ou verrouiller : pas ceux qui rentrent à leur poste) et les PHYSIQUES (tous :
     // obstacles bloquants et à contourner).
-    [[nodiscard]] std::vector<EntiteVue> entitesCiblables() const;
-    [[nodiscard]] std::vector<EntiteVue> entitesPhysiques() const;
+    [[nodiscard]] std::vector<MonstreVu> entitesCiblables() const;
+    [[nodiscard]] std::vector<MonstreVu> entitesPhysiques() const;
     // Applique les coups aux monstres et signale chacun (`opportunite` : coups gratuits).
     void appliquer(const std::vector<Coup>& coups, bool opportunite = false);
     // Une attaque de monstre sur le personnage de cette place (Escouade::recevoirCoup), signalée.
-    void infligerAUnPersonnage(int idMonstre, std::size_t place, const Attaque& attaque, bool opportunite);
+    void infligerAUnPersonnage(IdMonstre idMonstre, Place place, const Attaque& attaque, bool opportunite);
     // Les faits qu'Escouade a produits depuis le dernier appel, signalés.
     void signalerLesFaits();
     // Le seul endroit où un événement naît ; des dégâts ou un soin de montant nul ne produisent rien.
-    void signaler(Camp campCible, int idCible, sf::Vector2f position, DetailEvenement detail);
+    void signaler(CibleDEvenement cible, sf::Vector2f position, DetailEvenement detail);
     // Ce qu'un coup a donné, en événements (`detailsDuCoup` : « Esquivé », ou les dégâts puis le blocage).
-    void signalerLeCoup(Camp campCible, int idCible, sf::Vector2f position, const ResultatDuCoup& resultat, bool opportunite);
+    void signalerLeCoup(CibleDEvenement cible, sf::Vector2f position, const ResultatDuCoup& resultat, bool opportunite);
     // Étapes de mettreAJour(), dans l'ordre où elles sont appelées.
     void resoudreLesCoups(float dt);
     void faireTournerLesMonstres(float dt);
-    void faireFrapperLeMonstre(Monstre& monstre, std::optional<EntiteVue> proie,
-                               const std::vector<EntiteVue>& candidats, float dt);
+    void faireFrapperLeMonstre(Monstre& monstre, std::optional<PersonnageVu> proie,
+                               const std::vector<PersonnageVu>& candidats, float dt);
     // Les deux camps tels que la règle des zones de contrôle les voit (Engagement.hpp) : les personnages
     // vivants et les monstres vivants qui ne rentrent pas à leur poste (invulnérables, ils n'engagent
     // personne et ne sont engagés par personne).
     struct CampsDeControle {
-        std::vector<EntiteDeControle> monstres;
-        std::vector<EntiteDeControle> personnages;
+        std::vector<MonstreDeControle> monstres;
+        std::vector<PersonnageDeControle> personnages;
     };
     [[nodiscard]] CampsDeControle photographierLesCamps() const;
     // Compare la photo du début de l'image à celle de la fin et applique les coups gratuits dans les

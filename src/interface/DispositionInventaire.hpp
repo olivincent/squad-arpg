@@ -3,12 +3,14 @@
 
 #include <SFML/Graphics/Rect.hpp>
 #include <SFML/System/Vector2.hpp>
+#include <array>
 #include <cstddef>
 #include <optional>
 #include <variant>
 
 #include "combat/Caracteristiques.hpp"
 #include "objets/Emplacement.hpp"
+#include "combat/Place.hpp"
 #include "objets/PositionDObjet.hpp"
 
 // Où se dessine chaque élément de l'écran d'inventaire, en coordonnées de la vue d'interface
@@ -25,6 +27,7 @@
 // 1200 × 800 au moins, sans chevauchement (les boutons des points libres sont dans les lignes du bloc des caractéristiques).
 
 inline constexpr std::size_t s_nombreDePlaces = 3;
+inline constexpr std::array<Place, s_nombreDePlaces> s_places = {Place{1}, Place{2}, Place{3}};  // les colonnes, dans l'ordre
 inline constexpr std::size_t s_colonnesDuSac = 20;
 inline constexpr std::size_t s_lignesDeCaracteristiques = s_nombreDeCaracteristiques + 1;  // du bloc des caractéristiques : une par caractéristique, puis les points de vie
 inline constexpr std::size_t s_lignesDeStatistiques = 3;       // du bloc des statistiques de combat
@@ -37,51 +40,51 @@ inline constexpr std::size_t s_casesDuSac = 40;  // la capacité du sac de l'esc
 
 // La bande d'en-tête de la colonne de cette place (le nom de la classe). `assert` : place de 1 à
 // `s_nombreDePlaces`.
-[[nodiscard]] sf::FloatRect rectangleDeLEnTete(std::size_t place, sf::Vector2f tailleDeVue);
+[[nodiscard]] sf::FloatRect rectangleDeLEnTete(Place place, sf::Vector2f tailleDeVue);
 
 // La ligne sous l'en-tête (« Armure : N », « (mort) »). Même précondition.
-[[nodiscard]] sf::FloatRect rectangleDeLArmure(std::size_t place, sf::Vector2f tailleDeVue);
+[[nodiscard]] sf::FloatRect rectangleDeLArmure(Place place, sf::Vector2f tailleDeVue);
 
 // Le rectangle de cet emplacement pour le personnage de cette place. Même précondition.
-[[nodiscard]] sf::FloatRect rectangleDeLEmplacement(std::size_t place, Emplacement emplacement, sf::Vector2f tailleDeVue);
+[[nodiscard]] sf::FloatRect rectangleDeLEmplacement(Place place, Emplacement emplacement, sf::Vector2f tailleDeVue);
 
 // Le bloc sous les emplacements : les cinq caractéristiques et les points de vie, en une colonne de
 // `s_lignesDeCaracteristiques` lignes pleine largeur (la place des boutons des points libres à droite). Même précondition.
-[[nodiscard]] sf::FloatRect rectangleDesCaracteristiques(std::size_t place, sf::Vector2f tailleDeVue);
+[[nodiscard]] sf::FloatRect rectangleDesCaracteristiques(Place place, sf::Vector2f tailleDeVue);
 
 // La ligne du bloc : l'indice 0 à 4 est la caractéristique de ce rang dans l'enum (`s_caracteristiques`), l'indice 5 les
 // points de vie, de haut en bas. `assert(indice <= s_nombreDeCaracteristiques)`.
-[[nodiscard]] sf::FloatRect rectangleDeLaCellule(std::size_t place, std::size_t indice, sf::Vector2f tailleDeVue);
+[[nodiscard]] sf::FloatRect rectangleDeLaCellule(Place place, std::size_t indice, sf::Vector2f tailleDeVue);
 
 // Les boutons des points libres. Les rectangles sont toujours les mêmes : que le bouton soit visible ou actif, c'est à
 // l'écran d'en décider (`EcranInventaire`). « + » et « − » sont à droite de la ligne de la caractéristique ; « Apply » et
 // « Reset » à droite de la ligne des points de vie. `assert` : place de 1 à `s_nombreDePlaces`.
-[[nodiscard]] sf::FloatRect rectangleDuBoutonPlus(std::size_t place, Caracteristique caracteristique, sf::Vector2f tailleDeVue);
-[[nodiscard]] sf::FloatRect rectangleDuBoutonMoins(std::size_t place, Caracteristique caracteristique, sf::Vector2f tailleDeVue);
-[[nodiscard]] sf::FloatRect rectangleDuBoutonAppliquer(std::size_t place, sf::Vector2f tailleDeVue);
-[[nodiscard]] sf::FloatRect rectangleDuBoutonReinitialiser(std::size_t place, sf::Vector2f tailleDeVue);
+[[nodiscard]] sf::FloatRect rectangleDuBoutonPlus(Place place, Caracteristique caracteristique, sf::Vector2f tailleDeVue);
+[[nodiscard]] sf::FloatRect rectangleDuBoutonMoins(Place place, Caracteristique caracteristique, sf::Vector2f tailleDeVue);
+[[nodiscard]] sf::FloatRect rectangleDuBoutonAppliquer(Place place, sf::Vector2f tailleDeVue);
+[[nodiscard]] sf::FloatRect rectangleDuBoutonReinitialiser(Place place, sf::Vector2f tailleDeVue);
 
 // Un bouton des points libres : le « + » d'une caractéristique d'un personnage, son « − », « Apply » ou « Reset » de
-// ce personnage (place de 1 à N, comme partout).
+// ce personnage (sa place).
 struct BoutonPlus {
-    std::size_t place;
+    Place place;
     Caracteristique caracteristique;
 
     bool operator==(const BoutonPlus&) const = default;
 };
 struct BoutonMoins {
-    std::size_t place;
+    Place place;
     Caracteristique caracteristique;
 
     bool operator==(const BoutonMoins&) const = default;
 };
 struct BoutonAppliquer {
-    std::size_t place;
+    Place place;
 
     bool operator==(const BoutonAppliquer&) const = default;
 };
 struct BoutonReinitialiser {
-    std::size_t place;
+    Place place;
 
     bool operator==(const BoutonReinitialiser&) const = default;
 };
@@ -93,7 +96,7 @@ using BoutonDePoints = std::variant<BoutonPlus, BoutonMoins, BoutonAppliquer, Bo
 
 // La caractéristique d'un personnage dont la ligne contient ce point (boutons compris), pour son infobulle.
 struct CaracteristiqueSurvolee {
-    std::size_t place;
+    Place place;
     Caracteristique caracteristique;
 
     bool operator==(const CaracteristiqueSurvolee&) const = default;
@@ -103,11 +106,11 @@ struct CaracteristiqueSurvolee {
 
 // Le bloc sous celui des caractéristiques : les statistiques de combat, en deux colonnes de
 // `s_lignesDeStatistiques` lignes (`rectangleDeLaStatistique`). Même précondition.
-[[nodiscard]] sf::FloatRect rectangleDesStatistiques(std::size_t place, sf::Vector2f tailleDeVue);
+[[nodiscard]] sf::FloatRect rectangleDesStatistiques(Place place, sf::Vector2f tailleDeVue);
 
 // La cellule d'une ligne du bloc des statistiques, remplies colonne par colonne.
 // `assert(indice < s_cellulesDeStatistiques)`.
-[[nodiscard]] sf::FloatRect rectangleDeLaStatistique(std::size_t place, std::size_t indice, sf::Vector2f tailleDeVue);
+[[nodiscard]] sf::FloatRect rectangleDeLaStatistique(Place place, std::size_t indice, sf::Vector2f tailleDeVue);
 
 // Le rectangle de cette case du sac. `assert(indice < s_casesDuSac)`.
 [[nodiscard]] sf::FloatRect rectangleDeLaCaseDuSac(std::size_t indice, sf::Vector2f tailleDeVue);

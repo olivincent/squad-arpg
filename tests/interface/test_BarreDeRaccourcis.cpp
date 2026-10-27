@@ -60,20 +60,20 @@ TEST_CASE("barreParDefaut : une rangee de 4 par personnage avec la composition p
 
 TEST_CASE("barreParDefaut : les skills au-dela du quatrieme d'un personnage ne sont pas places") {
     const std::vector<AdresseSkill> adresses = {
-        {1, IdSkill::FrappePuissante}, {1, IdSkill::Provocation}, {1, IdSkill::Soin}, {1, IdSkill::Explosion},
-        {1, IdSkill::FrappePuissante},  // le cinquieme du personnage 1
-        {2, IdSkill::Soin},
+        {Place{1}, IdSkill::FrappePuissante}, {Place{1}, IdSkill::Provocation}, {Place{1}, IdSkill::Soin}, {Place{1}, IdSkill::Explosion},
+        {Place{1}, IdSkill::FrappePuissante},  // le cinquieme du personnage 1
+        {Place{2}, IdSkill::Soin},
     };
 
     const BarreDeRaccourcis barre = barreParDefaut(adresses);
 
-    REQUIRE(barre.adresse(3) == AdresseSkill{1, IdSkill::Explosion});
+    REQUIRE(barre.adresse(3) == AdresseSkill{Place{1}, IdSkill::Explosion});
     REQUIRE(barre.adresse(4) == s_adresseSoin);  // la rangee suivante n'est pas touchee
     REQUIRE_FALSE(barre.adresse(5).has_value());
 }
 
 TEST_CASE("barreParDefaut : une place sans rangee est ignoree, sans erreur") {
-    const std::vector<AdresseSkill> adresses = {{4, IdSkill::Soin}, {0, IdSkill::Soin}};
+    const std::vector<AdresseSkill> adresses = {{Place{4}, IdSkill::Soin}, {Place{0}, IdSkill::Soin}};
 
     const BarreDeRaccourcis barre = barreParDefaut(adresses);
 

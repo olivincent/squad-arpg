@@ -3,7 +3,7 @@
 #include "combat/Cible.hpp"
 
 namespace {
-ApprocherMonstre approcher(EntiteVue monstre, float portee) {
+ApprocherMonstre approcher(MonstreVu monstre, float portee) {
     return {monstre.id, monstre.cercle, portee};
 }
 }  // namespace
@@ -33,20 +33,20 @@ Intention choisirIntention(const SituationDuPersonnage& situation) {
     return AllerAuPoint{situation.placeDeFormation};
 }
 
-std::optional<int> monstreDeLIntention(const Intention& intention) {
+std::optional<IdMonstre> monstreDeLIntention(const Intention& intention) {
     return std::visit(
         Surcharges{
             [](const ResterSurPlace& rester) { return rester.placeAutourDe; },
-            [](const AllerAuPoint&) -> std::optional<int> { return std::nullopt; },
-            [](const ApprocherMonstre& approche) -> std::optional<int> { return approche.idMonstre; },
+            [](const AllerAuPoint&) -> std::optional<IdMonstre> { return std::nullopt; },
+            [](const ApprocherMonstre& approche) -> std::optional<IdMonstre> { return approche.idMonstre; },
         },
         intention);
 }
 
-std::vector<Cercle> cerclesAContourner(const std::vector<EntiteVue>& monstres, const Intention& intention) {
-    const std::optional<int> vise = monstreDeLIntention(intention);
+std::vector<Cercle> cerclesAContourner(const std::vector<MonstreVu>& monstres, const Intention& intention) {
+    const std::optional<IdMonstre> vise = monstreDeLIntention(intention);
     std::vector<Cercle> aContourner;
-    for (const EntiteVue& monstre : monstres) {
+    for (const MonstreVu& monstre : monstres) {
         if (monstre.id != vise) {
             aContourner.push_back(monstre.cercle);
         }

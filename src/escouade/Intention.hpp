@@ -6,12 +6,13 @@
 #include <vector>
 #include "base/Cercle.hpp"
 #include "combat/EntiteVue.hpp"
+#include "combat/IdMonstre.hpp"
 
 // Ce qu'un personnage veut faire à cette image, décidé sans carte ni place d'attaque. Escouade le
 // traduit ensuite en un point à atteindre (la résolution).
 // Il reste où il est ; sa place d'attaque est gardée si elle est autour de ce monstre (vide : oubliée).
 struct ResterSurPlace {
-    std::optional<int> placeAutourDe;
+    std::optional<IdMonstre> placeAutourDe;
     bool operator==(const ResterSurPlace&) const = default;
 };
 // Il marche vers ce point ; sa place d'attaque est oubliée.
@@ -22,7 +23,7 @@ struct AllerAuPoint {
 // Il approche ce monstre jusqu'à une place d'attaque autour de lui, avec la portée (bord à bord) de
 // l'action avec laquelle il l'approche. Le cercle est celui que la situation a reçu.
 struct ApprocherMonstre {
-    int idMonstre;
+    IdMonstre idMonstre;
     Cercle cercle;
     float portee;
     bool operator==(const ApprocherMonstre&) const = default;
@@ -34,13 +35,13 @@ using Intention = std::variant<ResterSurPlace, AllerAuPoint, ApprocherMonstre>;
 struct SituationDuPersonnage {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
     bool vivant;
     bool enExecution;                         // règle 0 : un coup ou un skill en exécution
-    std::optional<int> monstreDeLaPlace;      // règle 0 : cible de sa place d'attaque retenue
+    std::optional<IdMonstre> monstreDeLaPlace;  // règle 0 : cible de sa place d'attaque retenue
     std::optional<Intention> skillEnAttente;  // règle 1 : il lance le skill en attente, qui le fait marcher
-    std::optional<EntiteVue> degagement;      // règle 2 : monstre dont il se dégage (une place libre l'attend)
-    std::optional<EntiteVue> verrou;          // règle 3 : monstre verrouillé, s'il est vu
+    std::optional<MonstreVu> degagement;      // règle 2 : monstre dont il se dégage (une place libre l'attend)
+    std::optional<MonstreVu> verrou;          // règle 3 : monstre verrouillé, s'il est vu
     bool verrouAtteint;                       // règle 3 : à portée de son attaque de base et en vue
     bool ancreArretee;                        // règle 4
-    std::optional<EntiteVue> agresseur;       // règle 4 : agresseur retenu dans sa laisse
+    std::optional<MonstreVu> agresseur;       // règle 4 : agresseur retenu dans sa laisse
     bool monstreAPortee;                      // règle 4 : un monstre ciblable à portée de son attaque de base et en vue
     sf::Vector2f placeDeFormation;            // règle 5
     float porteeAttaqueDeBase;                // portée des approches des règles 2 à 4
@@ -60,8 +61,8 @@ struct SituationDuPersonnage {  // NOLINT(cppcoreguidelines-pro-type-member-init
 
 // Le monstre de l'intention : celui qu'il approche, ou celui autour duquel il garde sa place ; vide pour
 // un point. Il n'est pas à contourner, et c'est autour de lui que la place d'attaque est gardée.
-[[nodiscard]] std::optional<int> monstreDeLIntention(const Intention& intention);
+[[nodiscard]] std::optional<IdMonstre> monstreDeLIntention(const Intention& intention);
 // Les cercles à contourner en marchant : tous les monstres, sauf celui de l'intention (on ne se détourne
 // ni de celui qu'on approche, ni de celui autour duquel on reste). Elle ne reçoit rien du placement :
 // l'exclusion ne peut pas dépendre de la réussite de la recherche d'une place d'attaque.
-[[nodiscard]] std::vector<Cercle> cerclesAContourner(const std::vector<EntiteVue>& monstres, const Intention& intention);
+[[nodiscard]] std::vector<Cercle> cerclesAContourner(const std::vector<MonstreVu>& monstres, const Intention& intention);

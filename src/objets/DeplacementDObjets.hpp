@@ -7,7 +7,7 @@
 #include "objets/Inventaire.hpp"
 #include "objets/PositionDObjet.hpp"
 
-// Tous les objets de l'escouade, en valeurs : le sac et l'équipement de chaque place (indice = place - 1). Un
+// Tous les objets de l'escouade, en valeurs : le sac et l'équipement de chaque place (dans l'ordre des places). Un
 // déplacement se fait sur une copie de cet état, qu'on garde ou qu'on jette : c'est ce qui le rend transactionnel
 // (tout se fait ou rien ne bouge) et qui permet de répondre « est-ce permis ? » sans rien changer.
 struct EtatDesObjets {

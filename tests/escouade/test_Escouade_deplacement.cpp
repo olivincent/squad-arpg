@@ -222,7 +222,7 @@ TEST_CASE("estVivante reste vraie apres la mort d'un seul personnage") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
     const sf::Vector2f point{1000.0f, 1000.0f};
 
-    infliger(escouade, 1, point, s_coupMortel);
+    infliger(escouade, IdMonstre{1}, point, s_coupMortel);
 
     REQUIRE(escouade.estVivante());
 }
@@ -232,7 +232,7 @@ TEST_CASE("estVivante devient fausse une fois les 3 personnages morts") {
     const sf::Vector2f point{1000.0f, 1000.0f};
 
     for (int i = 0; i < 3; ++i) {
-        infliger(escouade, 1, point, s_coupMortel);
+        infliger(escouade, IdMonstre{1}, point, s_coupMortel);
     }
 
     REQUIRE_FALSE(escouade.estVivante());
@@ -248,10 +248,10 @@ TEST_CASE("cerclesDesVivants n'inclut plus le cercle d'un personnage mort") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
     const sf::Vector2f point{1000.0f, 1000.0f};
 
-    const std::optional<EntiteVue> futurMort = escouade.proieDuMonstre(1, point);
+    const std::optional<PersonnageVu> futurMort = escouade.proieDuMonstre(IdMonstre{1}, point);
     REQUIRE(futurMort.has_value());
 
-    infliger(escouade, 1, point, s_coupMortel);
+    infliger(escouade, IdMonstre{1}, point, s_coupMortel);
     const std::vector<Cercle> cercles = escouade.cerclesDesVivants();
 
     REQUIRE(cercles.size() == 2);
@@ -265,7 +265,7 @@ TEST_CASE("cerclesDesVivants est vide une fois tous les personnages morts") {
     const sf::Vector2f point{1000.0f, 1000.0f};
 
     for (int i = 0; i < 3; ++i) {
-        infliger(escouade, 1, point, s_coupMortel);
+        infliger(escouade, IdMonstre{1}, point, s_coupMortel);
     }
 
     REQUIRE(escouade.cerclesDesVivants().empty());
@@ -288,10 +288,10 @@ TEST_CASE("cerclesDeVision renvoie le centre et le rayon de vision de chacun des
 TEST_CASE("cerclesDeVision n'inclut pas un personnage mort") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
     const sf::Vector2f point{1000.0f, 1000.0f};
-    const std::optional<EntiteVue> futurMort = escouade.proieDuMonstre(1, point);
+    const std::optional<PersonnageVu> futurMort = escouade.proieDuMonstre(IdMonstre{1}, point);
     REQUIRE(futurMort.has_value());
 
-    infliger(escouade, 1, point, s_coupMortel);
+    infliger(escouade, IdMonstre{1}, point, s_coupMortel);
     const std::vector<Cercle> vision = escouade.cerclesDeVision();
 
     REQUIRE(vision.size() == 2);
@@ -305,7 +305,7 @@ TEST_CASE("cerclesDeVision est vide une fois tous les personnages morts") {
     const sf::Vector2f point{1000.0f, 1000.0f};
 
     for (int i = 0; i < 3; ++i) {
-        infliger(escouade, 1, point, s_coupMortel);
+        infliger(escouade, IdMonstre{1}, point, s_coupMortel);
     }
 
     REQUIRE(escouade.cerclesDeVision().empty());
@@ -326,7 +326,7 @@ TEST_CASE("Les obstacles bloquent les personnages mais pas l'ancre") {
     };
     TileMap carte(plan, 40.0f);
     Escouade escouade = uneEscouade({50.0f, 50.0f}); // centre (60, 60), guerrier en (85, 60), prêtre en (35, 35), mage en (35, 85)
-    const std::vector<EntiteVue> obstacles = {{1, {{200.0f, 60.0f}, 30.0f}}};
+    const std::vector<MonstreVu> obstacles = {{1, {{200.0f, 60.0f}, 30.0f}}};
 
     escouade.allerVers({400.0f, 60.0f}, carte);
     for (int i = 0; i < 300; ++i) {
@@ -504,7 +504,7 @@ TEST_CASE("Separation : apres un demi-tour, les trois personnages rejoignent leu
 TEST_CASE("Separation : un mort ne pousse pas et n'est pas pousse") {
     Escouade escouade = uneEscouade({500.0f, 500.0f});  // centre (510, 510), personnage de la place 3 en (485, 535)
     const TileMap& carte = carteOuverte();
-    infliger(escouade, 1, {-1000.0f, 1000.0f}, s_coupMortel);  // tue la place 3 (la plus proche de ce point, trop loin pour devenir un agresseur gênant)
+    infliger(escouade, IdMonstre{1}, {-1000.0f, 1000.0f}, s_coupMortel);  // tue la place 3 (la plus proche de ce point, trop loin pour devenir un agresseur gênant)
     REQUIRE(escouade.cerclesDesVivants().size() == 2);
 
     // Demi-tour de 50 px vers la gauche : la place finale de la place 2 est
@@ -586,7 +586,7 @@ TEST_CASE("un personnage dont la place est derriere un monstre non vise le conto
     const TileMap carte = carteDegagee10x10();
     Escouade escouade = uneEscouade({50.0f, 50.0f}); // centre (60, 60), guerrier en (85, 60), prêtre en (35, 35), mage en (35, 85)
     // Sur la route du mage (35, 85) quand l'escouade part vers l'est ; hors de celle de l'ancre.
-    const std::vector<EntiteVue> monstres = {{1, {{160.0f, 85.0f}, 15.0f}}};
+    const std::vector<MonstreVu> monstres = {{1, {{160.0f, 85.0f}, 15.0f}}};
 
     escouade.allerVers({340.0f, 60.0f}, carte);
     for (int i = 0; i < nombreDeTics(6.0f); ++i) {
@@ -608,7 +608,7 @@ TEST_CASE("une place de formation dans un monstre est deplacee vers un point lib
     const TileMap carte = carteDegagee10x10();
     Escouade escouade = uneEscouade({150.0f, 150.0f}); // centre (160, 160)
     // Sur la place du guerrier : place théorique (185, 160) pour une formation vers l'est.
-    const std::vector<EntiteVue> monstres = {{1, {{185.0f, 160.0f}, 15.0f}}};
+    const std::vector<MonstreVu> monstres = {{1, {{185.0f, 160.0f}, 15.0f}}};
 
     escouade.mettreAJour(s_dureeTic, carte, {.physiques = monstres, .ciblables = {}, .deControle = {}});
 
@@ -673,7 +673,7 @@ TEST_CASE("verrouiller efface le point a regarder") {
     const sf::Vector2f loinAEst{3000.0f, 2010.0f};
 
     escouade.regarderVers({2010.0f, 2500.0f});
-    escouade.verrouiller(1);  // monstre absent de la liste : l'ancre reste à l'arrêt
+    escouade.verrouiller(IdMonstre{1});  // monstre absent de la liste : l'ancre reste à l'arrêt
     simuler(escouade, carte, 2.0f);
 
     REQUIRE(avantPlusProche(escouade, loinAEst));
@@ -683,9 +683,9 @@ TEST_CASE("l'approche du verrou efface le point a regarder") {
     const TileMap& carte = carteOuverte();
     Generateur generateur = generateurDeTest();
     Escouade escouade = uneEscouade({2000.0f, 2000.0f});
-    const std::vector<EntiteVue> monstres = {{1, cibleMonstre({1700.0f, 2010.0f})}};
+    const std::vector<MonstreVu> monstres = {{1, cibleMonstre({1700.0f, 2010.0f})}};
 
-    escouade.verrouiller(1);
+    escouade.verrouiller(IdMonstre{1});
     escouade.regarderVers({2010.0f, 2500.0f});  // après verrouiller : seule l'approche peut l'effacer
     for (int i = 0; i < nombreDeTics(4.0f); ++i) {
         static_cast<void>(escouade.attaquer(s_dureeTic, monstres, carte, generateur));

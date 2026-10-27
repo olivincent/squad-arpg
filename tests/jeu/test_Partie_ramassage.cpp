@@ -208,8 +208,7 @@ TEST_CASE("ramassage : l'evenement du sac plein est au-dessus de l'escouade enti
     }
 
     REQUIRE(plein.has_value());
-    REQUIRE(plein->campCible == Camp::Escouade);
-    REQUIRE(plein->idCible == 0);
+    REQUIRE(std::holds_alternative<EscouadeEntiere>(plein->cible));
     // L'ancre a un peu bougé depuis l'événement, dans la même image : une marge de quelques pixels.
     REQUIRE(distance(plein->position, partie.getEscouade().getCentre()) < 5.0f);
 }

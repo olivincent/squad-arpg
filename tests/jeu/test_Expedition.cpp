@@ -19,9 +19,9 @@
 
 // L'expédition (étape 98.2) : ce qui survit d'un étage à l'autre, et la graine de chaque étage.
 namespace {
-constexpr std::size_t s_guerrier = 1;
-constexpr std::size_t s_pretre = 2;
-constexpr std::size_t s_mage = 3;
+constexpr Place s_guerrier{1};
+constexpr Place s_pretre{2};
+constexpr Place s_mage{3};
 constexpr int s_degatsDeLaMort = 1'000'000;
 const sf::Vector2f s_coinLointain = {570.0f, 570.0f};
 
@@ -67,8 +67,8 @@ TEST_CASE("Partie : une partie neuve porte l'equipement de depart de l'expeditio
     const Escouade& escouade = partie.getEscouade();
 
     for (std::size_t i = 0; i < composition.size(); ++i) {
-        REQUIRE(escouade.equipementDuPersonnage(i + 1) == Equipement(composition[i].equipementDeDepart));
-        REQUIRE(escouade.caracteristiquesDeBaseDuPersonnage(i + 1) == composition[i].caracteristiques);
+        REQUIRE(escouade.equipementDuPersonnage(Place::depuisIndice(i)) == Equipement(composition[i].equipementDeDepart));
+        REQUIRE(escouade.caracteristiquesDeBaseDuPersonnage(Place::depuisIndice(i)) == composition[i].caracteristiques);
     }
 }
 
@@ -94,7 +94,8 @@ TEST_CASE("expedition : aller-retour, l'equipement, le sac et les caracteristiqu
     REQUIRE(arrivee.sac().a(20) == Objet{IdObjet::GantsDeTissu});
     REQUIRE(arrivee.equipementDuPersonnage(s_mage).a(Emplacement::Gants) == Objet{IdObjet::GantsDeTissu});
     REQUIRE(arrivee.equipementDuPersonnage(s_pretre).a(Emplacement::MainDroite) == s_masseFlamboyante);
-    for (std::size_t place = s_guerrier; place <= s_mage; ++place) {
+    for (std::size_t numero = s_guerrier.numero; numero <= s_mage.numero; ++numero) {
+        const Place place{numero};
         REQUIRE(arrivee.equipementDuPersonnage(place) == escouade.equipementDuPersonnage(place));
         REQUIRE(arrivee.caracteristiquesDeBaseDuPersonnage(place) == escouade.caracteristiquesDeBaseDuPersonnage(place));
         REQUIRE(arrivee.caracteristiquesDuPersonnage(place) == escouade.caracteristiquesDuPersonnage(place));
@@ -122,15 +123,16 @@ TEST_CASE("expedition : un objet inactif (seuil non atteint) reste porte d'un et
 TEST_CASE("expedition : l'etage suivant commence a pleine vie, un mort compris") {
     Partie partie = partieDe(expeditionDeTest(), {s_coinLointain});
     Escouade& escouade = partie.getEscouade();
-    REQUIRE(subirCoup(escouade, 1, s_mage, s_degatsDeLaMort) > 0);  // le mage meurt
-    REQUIRE(subirCoup(escouade, 1, s_pretre, 50) > 0);         // le prêtre est blessé
+    REQUIRE(subirCoup(escouade, IdMonstre{1}, s_mage, s_degatsDeLaMort) > 0);  // le mage meurt
+    REQUIRE(subirCoup(escouade, IdMonstre{1}, s_pretre, 50) > 0);         // le prêtre est blessé
     REQUIRE_FALSE(escouade.placeEstVivante(s_mage));
     REQUIRE(escouade.pointsDeVieDuPersonnage(s_pretre).value() < escouade.pointsDeVieMaxDuPersonnage(s_pretre).value());
 
     const Partie suivante = partieDe(partie.expedition());
     const Escouade& arrivee = suivante.getEscouade();
 
-    for (std::size_t place = s_guerrier; place <= s_mage; ++place) {
+    for (std::size_t numero = s_guerrier.numero; numero <= s_mage.numero; ++numero) {
+        const Place place{numero};
         REQUIRE(arrivee.placeEstVivante(place));
         REQUIRE(arrivee.pointsDeVieDuPersonnage(place) == arrivee.pointsDeVieMaxDuPersonnage(place));
         REQUIRE(arrivee.pointsDeVieMaxDuPersonnage(place) == escouade.pointsDeVieMaxDuPersonnage(place));
@@ -143,10 +145,10 @@ TEST_CASE("expedition : rien de l'etage ne passe, ni les monstres, ni les objets
     REQUIRE(partie.getEscouade().ramasser(Objet{IdObjet::GantsDeTissu}));
     REQUIRE(jeterUnObjet(partie.getEscouade(), partie.getSol(), partie.getCarte(), PositionDansLeSac{0}));
     REQUIRE(partie.getSol().tous().size() == 1);
-    REQUIRE(subirCoup(partie.getEscouade(), 1, s_guerrier, 10) > 0);  // le monstre 1 devient un agresseur
+    REQUIRE(subirCoup(partie.getEscouade(), IdMonstre{1}, s_guerrier, 10) > 0);  // le monstre 1 devient un agresseur
     REQUIRE_FALSE(partie.getEscouade().getAgresseurs().empty());
-    partie.getEscouade().verrouiller(1);
-    partie.getEscouade().provoquer(1, s_guerrier, 4.0f);
+    partie.getEscouade().verrouiller(IdMonstre{1});
+    partie.getEscouade().provoquer(IdMonstre{1}, s_guerrier, 4.0f);
     const sf::Vector2f ancreAvant = partie.getEscouade().getCentre();
     const Exemplaires exemplairesDeLEscouade = exemplaires(partie.getEscouade());
 
@@ -218,8 +220,8 @@ TEST_CASE("Partie : les points depenses survivent a la descente, et les points l
     const Caracteristiques basePretre = escouade.caracteristiquesDeBaseDuPersonnage(s_pretre).value();
 
     const Expedition expedition = partie.expedition();
-    REQUIRE(expedition.membres[s_pretre - 1].pointsDepenses == Caracteristiques({2, 1, 0, 0, 3}));
-    REQUIRE(expedition.membres[s_guerrier - 1].pointsDepenses == Caracteristiques());
+    REQUIRE(expedition.membres[s_pretre.indice()].pointsDepenses == Caracteristiques({2, 1, 0, 0, 3}));
+    REQUIRE(expedition.membres[s_guerrier.indice()].pointsDepenses == Caracteristiques());
     const Partie suivante = partieDe(etageSuivant(expedition));
     const Escouade& arrivee = suivante.getEscouade();
 

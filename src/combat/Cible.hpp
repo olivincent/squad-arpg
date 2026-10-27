@@ -1,16 +1,17 @@
 // ./src/combat/Cible.hpp
 #pragma once
-#include <cstddef>
 #include <variant>
 #include <SFML/System/Vector2.hpp>
 #include "base/Cercle.hpp"
+#include "combat/IdMonstre.hpp"
+#include "combat/Place.hpp"
 
 struct CibleAllie {
-    std::size_t place;  // de 1 à N, comme la place d'une AdresseSkill
+    Place place;  // comme la place d'une AdresseSkill
 };
 
 struct CibleMonstre {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
-    int id;         // identifiant du monstre, pour attribuer les dégâts
+    IdMonstre id;   // pour attribuer les dégâts
     Cercle cercle;
 };
 

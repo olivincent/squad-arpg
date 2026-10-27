@@ -41,7 +41,7 @@ TEST_CASE("Zone : un point a portee et en vue part tout de suite (carte avec mur
     const TileMap carte = carteAvecMurVertical();
     Escouade escouade = uneEscouade({200.0f, 200.0f});
 
-    const std::vector<Coup> coups = declencherZoneEtAttendre(escouade, s_adresseExplosion, {100.0f, 235.0f}, {EntiteVue{1, cibleMonstre({100.0f, 235.0f})}}, carte, generateur);
+    const std::vector<Coup> coups = declencherZoneEtAttendre(escouade, s_adresseExplosion, {100.0f, 235.0f}, {MonstreVu{IdMonstre{1}, cibleMonstre({100.0f, 235.0f})}}, carte, generateur);
 
     REQUIRE(coups.size() == 1);
     REQUIRE_FALSE(escouade.skillEstPret(s_adresseExplosion));
@@ -51,7 +51,7 @@ TEST_CASE("Zone : un point a portee mais derriere un mur met le sort en attente,
     Generateur generateur = generateurDeTest();
     const TileMap carte = carteAvecMurVertical();
     Escouade escouade = uneEscouade({200.0f, 200.0f});
-    const std::vector<EntiteVue> monstres = {EntiteVue{1, cibleMonstre({320.0f, 235.0f})}};
+    const std::vector<MonstreVu> monstres = {MonstreVu{IdMonstre{1}, cibleMonstre({320.0f, 235.0f})}};
 
     REQUIRE(declencherZoneEtAttendre(escouade, s_adresseExplosion, {320.0f, 235.0f}, monstres, carte, generateur).empty());
 
@@ -65,7 +65,7 @@ TEST_CASE("Zone : un point dans un mur est refuse, sans attente ni recharge") {
     Generateur generateur = generateurDeTest();
     const TileMap carte = carteAvecMurVertical();
     Escouade escouade = uneEscouade({200.0f, 200.0f});
-    const std::vector<EntiteVue> monstres = {EntiteVue{1, cibleMonstre({100.0f, 235.0f})}};
+    const std::vector<MonstreVu> monstres = {MonstreVu{IdMonstre{1}, cibleMonstre({100.0f, 235.0f})}};
 
     REQUIRE(declencherZoneEtAttendre(escouade, s_adresseExplosion, {260.0f, 235.0f}, monstres, carte, generateur).empty());
 
@@ -79,7 +79,7 @@ TEST_CASE("Zone en attente : le lanceur contourne le mur, puis le sort part des 
     Generateur generateur = generateurDeTest();
     const TileMap carte = carteAvecMurVertical();
     Escouade escouade = uneEscouade({200.0f, 200.0f});
-    const std::vector<EntiteVue> monstres = {EntiteVue{1, cibleMonstre({320.0f, 235.0f})}};
+    const std::vector<MonstreVu> monstres = {MonstreVu{IdMonstre{1}, cibleMonstre({320.0f, 235.0f})}};
     REQUIRE(declencherZoneEtAttendre(escouade, s_adresseExplosion, {320.0f, 235.0f}, monstres, carte, generateur).empty());
 
     std::vector<Coup> coupsDeZone;
@@ -95,7 +95,7 @@ TEST_CASE("Zone en attente : le lanceur contourne le mur, puis le sort part des 
     }
 
     REQUIRE(coupsDeZone.size() == 1);
-    REQUIRE(coupsDeZone[0].idMonstre == 1);
+    REQUIRE(coupsDeZone[0].idMonstre == IdMonstre{1});
     REQUIRE(tics > 5);  // le lanceur a dû marcher
     REQUIRE_FALSE(escouade.skillEstPret(s_adresseExplosion));
 }
@@ -104,8 +104,8 @@ TEST_CASE("Zone : un monstre dans la zone mais derriere un mur est epargne") {
     Generateur generateur = generateurDeTest();
     const TileMap carte = carteAvecMurVertical();
     Escouade escouade = uneEscouade({200.0f, 200.0f});
-    const std::vector<EntiteVue> monstres = {
-        EntiteVue{1, cibleMonstre({285.0f, 235.0f})},  // dans la zone (60 px), de l'autre côté du mur
+    const std::vector<MonstreVu> monstres = {
+        MonstreVu{IdMonstre{1}, cibleMonstre({285.0f, 235.0f})},  // dans la zone (60 px), de l'autre côté du mur
     };
 
     REQUIRE(declencherZoneEtAttendre(escouade, s_adresseExplosion, {230.0f, 235.0f}, monstres, carte, generateur).empty());
@@ -117,15 +117,15 @@ TEST_CASE("Zone : un monstre dans la zone et en vue est touche, celui derriere l
     Generateur generateur = generateurDeTest();
     const TileMap carte = carteAvecMurVertical();
     Escouade escouade = uneEscouade({200.0f, 200.0f});
-    const std::vector<EntiteVue> monstres = {
-        EntiteVue{1, cibleMonstre({285.0f, 235.0f})},  // derrière le mur
-        EntiteVue{2, cibleMonstre({200.0f, 235.0f})},  // du même côté que le point
+    const std::vector<MonstreVu> monstres = {
+        MonstreVu{IdMonstre{1}, cibleMonstre({285.0f, 235.0f})},  // derrière le mur
+        MonstreVu{IdMonstre{2}, cibleMonstre({200.0f, 235.0f})},  // du même côté que le point
     };
 
     const std::vector<Coup> coups = declencherZoneEtAttendre(escouade, s_adresseExplosion, {230.0f, 235.0f}, monstres, carte, generateur);
 
     REQUIRE(coups.size() == 1);
-    REQUIRE(coups[0].idMonstre == 2);
+    REQUIRE(coups[0].idMonstre == IdMonstre{2});
     REQUIRE(coups[0].attaque.degats.total() == s_degatsZoneDeTest);
 }
 
@@ -134,7 +134,7 @@ TEST_CASE("Autodefense : un monstre a portee mais derriere un mur n'est pas frap
     const TileMap carte = carteAvecMurVertical();
     Escouade escouade = uneEscouade({200.0f, 200.0f});
     // Le mage en (185, 235) : portée de tir 120 px, monstre à 110 px bord à bord, mur entre les deux.
-    const std::vector<EntiteVue> monstres = {EntiteVue{1, cibleMonstre({320.0f, 235.0f})}};
+    const std::vector<MonstreVu> monstres = {MonstreVu{IdMonstre{1}, cibleMonstre({320.0f, 235.0f})}};
 
     REQUIRE(escouade.attaquer(s_dureeTic, monstres, carte, generateur).empty());
 }
@@ -143,36 +143,36 @@ TEST_CASE("Autodefense : un monstre a portee et en vue est frappe") {
     Generateur generateur = generateurDeTest();
     const TileMap carte = carteAvecMurVertical();
     Escouade escouade = uneEscouade({200.0f, 200.0f});
-    const std::vector<EntiteVue> monstres = {EntiteVue{1, cibleMonstre({100.0f, 235.0f})}};
+    const std::vector<MonstreVu> monstres = {MonstreVu{IdMonstre{1}, cibleMonstre({100.0f, 235.0f})}};
 
     const std::vector<Coup> coups = attaquerJusquAuDepart(escouade, monstres, carte, generateur);
 
     REQUIRE_FALSE(coups.empty());
-    REQUIRE(coups[0].idMonstre == 1);
+    REQUIRE(coups[0].idMonstre == IdMonstre{1});
 }
 
 TEST_CASE("Autodefense : le monstre le plus proche est cache, l'autre est frappe") {
     Generateur generateur = generateurDeTest();
     const TileMap carte = carteAvecMurVertical();
     Escouade escouade = uneEscouade({200.0f, 200.0f});
-    const std::vector<EntiteVue> monstres = {
-        EntiteVue{1, cibleMonstre({285.0f, 235.0f})},  // plus proche du mage, mais derrière le mur
-        EntiteVue{2, cibleMonstre({185.0f, 130.0f})},  // plus loin, en vue
+    const std::vector<MonstreVu> monstres = {
+        MonstreVu{IdMonstre{1}, cibleMonstre({285.0f, 235.0f})},  // plus proche du mage, mais derrière le mur
+        MonstreVu{IdMonstre{2}, cibleMonstre({185.0f, 130.0f})},  // plus loin, en vue
     };
 
     const std::vector<Coup> coups = attaquerJusquAuDepart(escouade, monstres, carte, generateur);
 
     REQUIRE_FALSE(coups.empty());
     for (const Coup& coup : coups) {
-        REQUIRE(coup.idMonstre == 2);
+        REQUIRE(coup.idMonstre == IdMonstre{2});
     }
 }
 
 // Ne laisse en vie que le mage (en (185, 235)) : seules sa portée et sa vue comptent.
 namespace {
 void garderSeulementLeMage(Escouade& escouade) {
-    infliger(escouade, 1, {235.0f, 210.0f}, s_coupMortel);
-    infliger(escouade, 1, {185.0f, 185.0f}, s_coupMortel);
+    infliger(escouade, IdMonstre{1}, {235.0f, 210.0f}, s_coupMortel);
+    infliger(escouade, IdMonstre{1}, {185.0f, 185.0f}, s_coupMortel);
 }
 }  // namespace
 
@@ -181,9 +181,9 @@ TEST_CASE("Combat verrouille : une cible a portee mais cachee ne fait pas arrete
     const TileMap carte = carteAvecMurVertical();
     Escouade escouade = uneEscouade({200.0f, 200.0f});
     garderSeulementLeMage(escouade);
-    escouade.verrouiller(1);
+    escouade.verrouiller(IdMonstre{1});
     const sf::Vector2f depart = escouade.getCentre();
-    const std::vector<EntiteVue> monstres = {EntiteVue{1, cibleMonstre({320.0f, 235.0f})}};
+    const std::vector<MonstreVu> monstres = {MonstreVu{IdMonstre{1}, cibleMonstre({320.0f, 235.0f})}};
 
     for (int i = 0; i < 20; ++i) {
         static_cast<void>(escouade.attaquer(s_dureeTic, monstres, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
@@ -198,9 +198,9 @@ TEST_CASE("Combat verrouille : une cible a portee et en vue fait arreter l'ancre
     const TileMap carte = carteAvecMurVertical();
     Escouade escouade = uneEscouade({200.0f, 200.0f});
     garderSeulementLeMage(escouade);
-    escouade.verrouiller(1);
+    escouade.verrouiller(IdMonstre{1});
     const sf::Vector2f depart = escouade.getCentre();
-    const std::vector<EntiteVue> monstres = {EntiteVue{1, cibleMonstre({100.0f, 235.0f})}};
+    const std::vector<MonstreVu> monstres = {MonstreVu{IdMonstre{1}, cibleMonstre({100.0f, 235.0f})}};
 
     for (int i = 0; i < 20; ++i) {
         static_cast<void>(escouade.attaquer(s_dureeTic, monstres, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
@@ -214,8 +214,8 @@ TEST_CASE("Agresseur a portee mais cache : le personnage va vers lui") {
     Generateur generateur = generateurDeTest();
     const TileMap carte = carteAvecMurVertical();
     Escouade escouade = uneEscouade({200.0f, 200.0f});
-    const std::vector<EntiteVue> monstres = {EntiteVue{1, cibleMonstre({283.0f, 235.0f})}};
-    infliger(escouade, 1, {283.0f, 235.0f}, 1);  // enregistre l'agresseur (touche le plus proche)
+    const std::vector<MonstreVu> monstres = {MonstreVu{IdMonstre{1}, cibleMonstre({283.0f, 235.0f})}};
+    infliger(escouade, IdMonstre{1}, {283.0f, 235.0f}, 1);  // enregistre l'agresseur (touche le plus proche)
     const sf::Vector2f depart = escouade.cerclesDesVivants()[2].centre;
     static_cast<void>(escouade.attaquer(s_dureeTic, monstres, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
 
@@ -253,8 +253,8 @@ TEST_CASE("Skill de degats avec verrou : un monstre a portee mais cache met le s
     const TileMap carte = carteAvecMursFins();
     Escouade escouade = uneEscouade({200.0f, 200.0f});
     // Guerrier en (235, 210) : le monstre est à 15 px bord à bord, mur entre les deux.
-    const std::vector<EntiteVue> monstres = {EntiteVue{1, cibleMonstre({275.0f, 210.0f})}};
-    escouade.verrouiller(1);
+    const std::vector<MonstreVu> monstres = {MonstreVu{IdMonstre{1}, cibleMonstre({275.0f, 210.0f})}};
+    escouade.verrouiller(IdMonstre{1});
 
     REQUIRE(declencherEtAttendre(escouade, s_adresseFrappe, monstres, carte, generateur).empty());
 
@@ -268,8 +268,8 @@ TEST_CASE("Skill de degats en attente derriere un mur : il part des que la vue e
     Generateur generateur = generateurDeTest();
     const TileMap carte = carteAvecMursFins();
     Escouade escouade = uneEscouade({200.0f, 200.0f});
-    const std::vector<EntiteVue> monstres = {EntiteVue{1, cibleMonstre({275.0f, 210.0f})}};
-    escouade.verrouiller(1);
+    const std::vector<MonstreVu> monstres = {MonstreVu{IdMonstre{1}, cibleMonstre({275.0f, 210.0f})}};
+    escouade.verrouiller(IdMonstre{1});
     REQUIRE(declencherEtAttendre(escouade, s_adresseFrappe, monstres, carte, generateur).empty());
 
     // Tant que le mur est là, le skill reste en attente : seule l'attaque de base du mêlée pourrait partir, et elle ne part pas non plus.
@@ -279,7 +279,7 @@ TEST_CASE("Skill de degats en attente derriere un mur : il part des que la vue e
     // La vue est obtenue (la carte n'a plus de mur) : le skill part, avec les dégâts de la frappe.
     const std::vector<Coup> coups = attendreLeDepartDesSkills(escouade, monstres, carteOuverte(), generateur);
     REQUIRE_FALSE(coups.empty());
-    REQUIRE(coups[0].idMonstre == 1);
+    REQUIRE(coups[0].idMonstre == IdMonstre{1});
     REQUIRE(coups[0].attaque.degats.total() == s_degatsFrappeDeTest);
     REQUIRE_FALSE(escouade.skillEstPret(s_adresseFrappe));
 }
@@ -288,7 +288,7 @@ TEST_CASE("Skill de degats sans verrou : un monstre a portee mais cache n'est pa
     Generateur generateur = generateurDeTest();
     const TileMap carte = carteAvecMursFins();
     Escouade escouade = uneEscouade({200.0f, 200.0f});
-    const std::vector<EntiteVue> monstres = {EntiteVue{1, cibleMonstre({275.0f, 210.0f})}};
+    const std::vector<MonstreVu> monstres = {MonstreVu{IdMonstre{1}, cibleMonstre({275.0f, 210.0f})}};
 
     REQUIRE(declencherEtAttendre(escouade, s_adresseFrappe, monstres, carte, generateur).empty());
 
@@ -303,16 +303,16 @@ TEST_CASE("Soin d'un allie a portee mais cache : le soin est mis en attente, pui
     const TileMap carte = carteAvecMursFins();
     Escouade escouade = uneEscouade({200.0f, 200.0f});
     // Soigneur (prêtre) en (185, 185), allié (guerrier) en (235, 210) : 36 px bord à bord, mur entre les deux.
-    infliger(escouade, 1, {235.0f, 210.0f}, 20);
+    infliger(escouade, IdMonstre{1}, {235.0f, 210.0f}, 20);
 
     REQUIRE(declencherEtAttendre(escouade, s_adresseSoin, {}, carte, generateur).empty());
 
     REQUIRE(escouade.skillEstPret(s_adresseSoin));              // pas encore parti
-    REQUIRE(placeAlliePourSoin(escouade) == 1);     // pas encore soigné
+    REQUIRE(placeAlliePourSoin(escouade) == Place{1});     // pas encore soigné
 
     // Le mur est là : rien ne part. La vue est obtenue (carte sans mur) : le soin part.
     escouade.mettreAJour(0.016f, carte, {});
-    REQUIRE(placeAlliePourSoin(escouade) == 1);
+    REQUIRE(placeAlliePourSoin(escouade) == Place{1});
     escouade.mettreAJour(0.016f, carteOuverte(), {});
     static_cast<void>(attendreLeDepartDesSkills(escouade, {}, carteOuverte(), generateur));  // l'activation avance et le soin part
 
@@ -325,7 +325,7 @@ TEST_CASE("Provocation : un monstre dans la zone mais derriere un mur n'est pas 
     const TileMap carte = carteAvecMursFins();
     Escouade escouade = uneEscouade({200.0f, 200.0f});
     // Guerrier en (235, 210), zone de 150 px : le monstre est à 40 px, mur entre les deux.
-    const std::vector<EntiteVue> monstres = {EntiteVue{1, cibleMonstre({275.0f, 210.0f})}};
+    const std::vector<MonstreVu> monstres = {MonstreVu{IdMonstre{1}, cibleMonstre({275.0f, 210.0f})}};
 
     REQUIRE(declencherEtAttendre(escouade, s_adresseProvocation, monstres, carte, generateur).empty());
 
@@ -337,15 +337,15 @@ TEST_CASE("Provocation : seuls les monstres dans la zone et en vue sont provoque
     Generateur generateur = generateurDeTest();
     const TileMap carte = carteAvecMursFins();
     Escouade escouade = uneEscouade({200.0f, 200.0f});
-    const std::vector<EntiteVue> monstres = {
-        EntiteVue{1, cibleMonstre({275.0f, 210.0f})},  // dans la zone, derrière le mur
-        EntiteVue{2, cibleMonstre({200.0f, 290.0f})},  // dans la zone, en vue
+    const std::vector<MonstreVu> monstres = {
+        MonstreVu{IdMonstre{1}, cibleMonstre({275.0f, 210.0f})},  // dans la zone, derrière le mur
+        MonstreVu{IdMonstre{2}, cibleMonstre({200.0f, 290.0f})},  // dans la zone, en vue
     };
 
     REQUIRE(declencherEtAttendre(escouade, s_adresseProvocation, monstres, carte, generateur).empty());
 
     REQUIRE(escouade.getProvocations().size() == 1);
-    REQUIRE(escouade.getProvocations()[0].id == 2);
+    REQUIRE(escouade.getProvocations()[0].id == IdMonstre{2});
     REQUIRE_FALSE(escouade.skillEstPret(s_adresseProvocation));
 }
 
@@ -362,7 +362,7 @@ TEST_CASE("unVivantPresDe : vrai quand un vivant est a l'ecart voulu ou moins") 
 TEST_CASE("unVivantPresDe : un mort pres de la zone ne compte pas") {
     Escouade escouade = uneEscouade({200.0f, 200.0f});
     const sf::FloatRect zone({265.0f, 195.0f}, {40.0f, 30.0f});
-    infliger(escouade, 1, {235.0f, 210.0f}, s_coupMortel);
+    infliger(escouade, IdMonstre{1}, {235.0f, 210.0f}, s_coupMortel);
 
     REQUIRE_FALSE(escouade.unVivantPresDe(zone, 20.0f));
 }

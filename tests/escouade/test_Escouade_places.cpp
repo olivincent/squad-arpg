@@ -34,7 +34,7 @@ constexpr float s_tolerance = 0.5f;
 // Image de Partie, sans les monstres qui bougent : attaquer() puis mettreAJour(), les
 // monstres comme obstacles. `apres` est appelée à la fin de chaque image.
 template <typename Fonction>
-void combattre(Escouade& escouade, const TileMap& carte, const std::vector<EntiteVue>& monstres, float duree,
+void combattre(Escouade& escouade, const TileMap& carte, const std::vector<MonstreVu>& monstres, float duree,
                Generateur& generateur, Fonction apres) {
     for (int i = 0; i < nombreDeTics(duree); ++i) {
         static_cast<void>(escouade.attaquer(s_dureeTic, monstres, carte, generateur));
@@ -43,7 +43,7 @@ void combattre(Escouade& escouade, const TileMap& carte, const std::vector<Entit
     }
 }
 
-void combattre(Escouade& escouade, const TileMap& carte, const std::vector<EntiteVue>& monstres, float duree,
+void combattre(Escouade& escouade, const TileMap& carte, const std::vector<MonstreVu>& monstres, float duree,
                Generateur& generateur) {
     combattre(escouade, carte, monstres, duree, generateur, [] {});
 }
@@ -68,8 +68,8 @@ TEST_CASE("Places d'attaque : le guerrier arrive au contact, les tireurs s'arret
     Generateur generateur = generateurDeTest();
     const TileMap& carte = carteOuverte();
     Escouade escouade = uneEscouade({300.0f, 500.0f});
-    const EntiteVue monstre{1, cibleMonstre({700.0f, 510.0f})};
-    escouade.verrouiller(1);
+    const MonstreVu monstre{1, cibleMonstre({700.0f, 510.0f})};
+    escouade.verrouiller(IdMonstre{1});
 
     combattre(escouade, carte, {monstre}, 8.0f, generateur);
 
@@ -89,8 +89,8 @@ TEST_CASE("Places d'attaque : deux melees en combat verrouille arrivent de cotes
     Generateur generateur = generateurDeTest();
     const TileMap& carte = carteOuverte();
     Escouade escouade = uneEscouadeADeuxGuerriers({300.0f, 500.0f});
-    const EntiteVue monstre{1, cibleMonstre({700.0f, 510.0f})};
-    escouade.verrouiller(1);
+    const MonstreVu monstre{1, cibleMonstre({700.0f, 510.0f})};
+    escouade.verrouiller(IdMonstre{1});
 
     combattre(escouade, carte, {monstre}, 8.0f, generateur);
 
@@ -107,8 +107,8 @@ TEST_CASE("Places d'attaque : un tireur s'arrete des qu'il est a portee, sur un 
     Generateur generateur = generateurDeTest();
     const TileMap& carte = carteOuverte();
     Escouade escouade = uneEscouade({300.0f, 500.0f});
-    const EntiteVue monstre{1, cibleMonstre({700.0f, 510.0f})};
-    escouade.verrouiller(1);
+    const MonstreVu monstre{1, cibleMonstre({700.0f, 510.0f})};
+    escouade.verrouiller(IdMonstre{1});
 
     combattre(escouade, carte, {monstre}, 8.0f, generateur);
 
@@ -125,8 +125,8 @@ TEST_CASE("Places d'attaque : l'angle est garde quand le monstre bouge") {
     Generateur generateur = generateurDeTest();
     const TileMap& carte = carteOuverte();
     Escouade escouade = uneEscouadeADeuxGuerriers({300.0f, 500.0f});
-    EntiteVue monstre{1, cibleMonstre({700.0f, 510.0f})};
-    escouade.verrouiller(1);
+    MonstreVu monstre{1, cibleMonstre({700.0f, 510.0f})};
+    escouade.verrouiller(IdMonstre{1});
     combattre(escouade, carte, {monstre}, 6.0f, generateur);
     const float avant = ecartAngulaire(escouade.cerclesDesVivants()[s_melee1], escouade.cerclesDesVivants()[s_melee2], monstre.cercle);
 
@@ -145,12 +145,12 @@ TEST_CASE("Places d'attaque : au changement de cible, chacun prend sa place auto
     Generateur generateur = generateurDeTest();
     const TileMap& carte = carteOuverte();
     Escouade escouade = uneEscouadeADeuxGuerriers({300.0f, 500.0f});
-    const std::vector<EntiteVue> monstres = {EntiteVue{1, cibleMonstre({700.0f, 510.0f})},
-                                             EntiteVue{2, cibleMonstre({500.0f, 800.0f})}};
-    escouade.verrouiller(1);
+    const std::vector<MonstreVu> monstres = {MonstreVu{IdMonstre{1}, cibleMonstre({700.0f, 510.0f})},
+                                             MonstreVu{IdMonstre{2}, cibleMonstre({500.0f, 800.0f})}};
+    escouade.verrouiller(IdMonstre{1});
     combattre(escouade, carte, monstres, 6.0f, generateur);
 
-    escouade.verrouiller(2);
+    escouade.verrouiller(IdMonstre{2});
     combattre(escouade, carte, monstres, 8.0f, generateur);
 
     const std::vector<Cercle> cercles = escouade.cerclesDesVivants();
@@ -165,8 +165,8 @@ TEST_CASE("Places d'attaque : une place dans un mur est sautee") {
     const TileMap carte = carteDegageeEntouree();  // mur de droite : x >= 760
     Escouade escouade = uneEscouadeADeuxGuerriers({300.0f, 300.0f});
     // À 25 px du mur : les places du côté du mur (centre à 43 px du monstre) sont dans le mur.
-    const EntiteVue monstre{1, cibleMonstre({735.0f, 310.0f})};
-    escouade.verrouiller(1);
+    const MonstreVu monstre{1, cibleMonstre({735.0f, 310.0f})};
+    escouade.verrouiller(IdMonstre{1});
 
     combattre(escouade, carte, {monstre}, 10.0f, generateur, [&] {
         for (const Cercle& cercle : escouade.cerclesDesVivants()) {
@@ -184,12 +184,12 @@ TEST_CASE("Places d'attaque : un agresseur sans verrou, le melee a portee frappe
     const TileMap& carte = carteOuverte();
     Escouade escouade = uneEscouadeADeuxGuerriers({300.0f, 500.0f});  // mêlées en (335, 485) et (335, 535)
     // À portée du premier mêlée seulement.
-    const EntiteVue monstre{1, cibleMonstre({345.0f, 470.0f})};
-    infliger(escouade, 1, monstre.cercle.centre, 10);  // le monstre devient agresseur
+    const MonstreVu monstre{1, cibleMonstre({345.0f, 470.0f})};
+    infliger(escouade, IdMonstre{1}, monstre.cercle.centre, 10);  // le monstre devient agresseur
 
     // Premier tic : le mêlée à portée reste sur place, l'autre vise une place d'attaque, pas le centre.
     combattre(escouade, carte, {monstre}, 0.02f, generateur);
-    const std::optional<sf::Vector2f> pointDuSecond = escouade.pointVise(2);
+    const std::optional<sf::Vector2f> pointDuSecond = escouade.pointVise(Place{2});
     REQUIRE(pointDuSecond.has_value());
     // Sur l'anneau d'attaque : rayon du monstre + rayon du personnage (10) + 90 % de la portée.
     const float anneau = monstre.cercle.rayon + 10.0f + 0.9f * s_porteeMeleeDeTest;
@@ -216,12 +216,13 @@ TEST_CASE("Places d'attaque : sans place valide, le personnage vise le centre du
                          "##########"},
                         40.0f);
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    const EntiteVue monstre{1, cibleMonstre({220.0f, 140.0f})};
-    escouade.verrouiller(1);
+    const MonstreVu monstre{1, cibleMonstre({220.0f, 140.0f})};
+    escouade.verrouiller(IdMonstre{1});
 
     combattre(escouade, carte, {monstre}, 0.02f, generateur);
 
-    for (std::size_t place = 1; place <= 3; ++place) {
+    for (std::size_t numero = 1; numero <= 3; ++numero) {
+        const Place place{numero};
         const std::optional<sf::Vector2f> point = escouade.pointVise(place);
         REQUIRE(point.has_value());
         REQUIRE(point->x == monstre.cercle.centre.x);
@@ -233,11 +234,12 @@ TEST_CASE("pointVise : place de formation hors combat, vide pour une place inval
     Escouade escouade = uneEscouade({300.0f, 500.0f});
     escouade.mettreAJour(s_dureeTic, carteOuverte(), {});
 
-    for (std::size_t place = 1; place <= 3; ++place) {
+    for (std::size_t numero = 1; numero <= 3; ++numero) {
+        const Place place{numero};
         const std::optional<sf::Vector2f> point = escouade.pointVise(place);
         REQUIRE(point.has_value());
-        verifierPointProche(*point, escouade.getPlacesDeFormation()[place - 1], 0.01f);
+        verifierPointProche(*point, escouade.getPlacesDeFormation()[place.indice()], 0.01f);
     }
-    REQUIRE_FALSE(escouade.pointVise(0).has_value());
-    REQUIRE_FALSE(escouade.pointVise(4).has_value());
+    REQUIRE_FALSE(escouade.pointVise(Place{0}).has_value());
+    REQUIRE_FALSE(escouade.pointVise(Place{4}).has_value());
 }

@@ -20,7 +20,6 @@
 namespace {
 // Écart bord à bord (cercle d'un personnage, zone de la porte) à partir duquel la porte s'ouvre.
 constexpr float s_porteeInteraction = 20.0f;
-constexpr int s_idDeLEscouadeEntiere = 0;  // `idCible` d'un événement qui vise l'escouade et non l'un de ses personnages
 const sf::Color s_couleurZoneDeControle(255, 0, 255, 180);  // débogage F3 : cercle fin des zones de contrôle
 constexpr float s_epaisseurZoneDeControle = 1.0f;
 
@@ -47,7 +46,7 @@ Partie::Partie(const Niveau& niveau, Expedition expedition, Generateur::result_t
       m_vision(m_carte) {
     int prochainId = 1;
     for (const MonstreDuNiveau& monstre : niveau.monstres) {
-        m_monstres.emplace_back(monstre.position, prochainId++, monstre.groupe,
+        m_monstres.emplace_back(monstre.position, IdMonstre{prochainId++}, monstre.groupe,
                                 renforcer(definitionDeMonstre(catalogue, monstre.categorie), m_profondeur));
     }
     int prochainIdObjet = 1;
@@ -137,7 +136,7 @@ void Partie::abandonnerLesVisees() {
     m_escalierVise = false;
 }
 
-Monstre* Partie::trouverMonstre(int id) {
+Monstre* Partie::trouverMonstre(IdMonstre id) {
     const auto it = std::find_if(m_monstres.begin(), m_monstres.end(), [&](const Monstre& m) {
         return m.getId() == id;
     });
@@ -212,7 +211,7 @@ void Partie::ramasserSiAPortee() {
         [[maybe_unused]] const bool retire = m_sol.retirer(objet->id);
         assert(retire);  // l'objet vient d'être trouvé
     } else {
-        signaler(Camp::Escouade, s_idDeLEscouadeEntiere, ancre, SacPlein{});
+        signaler(EscouadeEntiere{}, ancre, SacPlein{});
     }
 }
 
@@ -229,8 +228,8 @@ void Partie::prendreLEscalierSiAPortee() {
     }
 }
 
-std::vector<EntiteVue> Partie::entitesCiblables() const {
-    std::vector<EntiteVue> entites;
+std::vector<MonstreVu> Partie::entitesCiblables() const {
+    std::vector<MonstreVu> entites;
     for (const Monstre& m : m_monstres) {
         if (m.estCiblable()) {
             entites.push_back({m.getId(), m.getCercle()});
@@ -239,8 +238,8 @@ std::vector<EntiteVue> Partie::entitesCiblables() const {
     return entites;
 }
 
-std::vector<EntiteVue> Partie::entitesPhysiques() const {
-    std::vector<EntiteVue> entites;
+std::vector<MonstreVu> Partie::entitesPhysiques() const {
+    std::vector<MonstreVu> entites;
     for (const Monstre& m : m_monstres) {
         entites.push_back({m.getId(), m.getCercle()});
     }
@@ -260,28 +259,27 @@ Partie::CampsDeControle Partie::photographierLesCamps() const {
 
 void Partie::appliquerLesCoupsDOpportunite(const CampsDeControle& avant) {
     const CampsDeControle apres = photographierLesCamps();
-    const std::vector<CoupDOpportunite> surLesPersonnages =
-        coupsDOpportunite({avant.monstres, avant.personnages}, {apres.monstres, apres.personnages});
-    const std::vector<CoupDOpportunite> surLesMonstres =
-        coupsDOpportunite({avant.personnages, avant.monstres}, {apres.personnages, apres.monstres});
+    const std::vector<CoupDOpportunite<IdMonstre, Place>> surLesPersonnages =
+        coupsDOpportunite<IdMonstre, Place>({avant.monstres, avant.personnages}, {apres.monstres, apres.personnages});
+    const std::vector<CoupDOpportunite<Place, IdMonstre>> surLesMonstres =
+        coupsDOpportunite<Place, IdMonstre>({avant.personnages, avant.monstres}, {apres.personnages, apres.monstres});
 
     // Monstre qui frappe un personnage : comme un coup normal (le monstre devient un agresseur).
-    for (const CoupDOpportunite& coup : surLesPersonnages) {
+    for (const CoupDOpportunite<IdMonstre, Place>& coup : surLesPersonnages) {
         if (const Monstre* attaquant = trouverMonstre(coup.idAttaquant)) {
-            infligerAUnPersonnage(attaquant->getId(), static_cast<std::size_t>(coup.idCible),
-                                  attaquant->getAttaque(), true);
+            infligerAUnPersonnage(attaquant->getId(), coup.idCible, attaquant->getAttaque(), true);
         }
     }
     // Personnage qui frappe un monstre : un Coup comme ceux d'attaquer(), sans toucher à aucune recharge.
     std::vector<Coup> coupsSurLesMonstres;
-    for (const CoupDOpportunite& coup : surLesMonstres) {
-        if (const std::optional<Attaque> attaque = m_escouade.attaqueDeBase(static_cast<std::size_t>(coup.idAttaquant), m_generateur)) {
+    for (const CoupDOpportunite<Place, IdMonstre>& coup : surLesMonstres) {
+        if (const std::optional<Attaque> attaque = m_escouade.attaqueDeBase(coup.idAttaquant, m_generateur)) {
             coupsSurLesMonstres.push_back({coup.idCible, *attaque});
         }
     }
     appliquer(coupsSurLesMonstres, true);
 
-    const std::optional<int> idVerrouille = m_escouade.getCibleVerrouillee();
+    const std::optional<IdMonstre> idVerrouille = m_escouade.getCibleVerrouillee();
     if (idVerrouille.has_value()) {
         const Monstre* verrouille = trouverMonstre(*idVerrouille);
         if (verrouille != nullptr && !verrouille->estVivant()) {
@@ -312,7 +310,7 @@ void Partie::monterSiLExperienceLeDonne() {
     }
     // Un événement par niveau gagné, puis tous les niveaux d'un coup : la base d'un personnage est une fonction de son niveau.
     for (int atteint = m_escouade.getNiveau() + 1; atteint <= niveau; ++atteint) {
-        signaler(Camp::Escouade, s_idDeLEscouadeEntiere, m_escouade.getCentre(), NiveauAtteint{atteint});
+        signaler(EscouadeEntiere{}, m_escouade.getCentre(), NiveauAtteint{atteint});
     }
     m_escouade.monterAuNiveau(niveau);
 }
@@ -337,44 +335,44 @@ void Partie::appliquer(const std::vector<Coup>& coups, bool opportunite) {
     for (const Coup& coup : coups) {
         if (Monstre* touche = trouverMonstre(coup.idMonstre)) {
             const ResultatDuCoup resultat = touche->recevoirDegats(coup.attaque, m_generateur);
-            signalerLeCoup(Camp::Monstres, touche->getId(), touche->getCentre(), resultat, opportunite);
+            signalerLeCoup(touche->getId(), touche->getCentre(), resultat, opportunite);
         }
     }
 }
 
-void Partie::infligerAUnPersonnage(int idMonstre, std::size_t place, const Attaque& attaque, bool opportunite) {
+void Partie::infligerAUnPersonnage(IdMonstre idMonstre, Place place, const Attaque& attaque, bool opportunite) {
     const ResultatDuCoup resultat = m_escouade.recevoirCoup(idMonstre, place, attaque, m_generateur);
     if (const std::optional<sf::Vector2f> centre = m_escouade.centreDuPersonnage(place)) {
-        signalerLeCoup(Camp::Escouade, static_cast<int>(place), *centre, resultat, opportunite);
+        signalerLeCoup(place, *centre, resultat, opportunite);
     }
 }
 
 void Partie::signalerLesFaits() {
     for (const Escouade::FaitDEscouade& fait : m_escouade.prendreFaits()) {
         std::visit(Surcharges{[&](const Escouade::SoinApplique& soin) {
-                       signaler(Camp::Escouade, static_cast<int>(soin.place), soin.position, Soin{soin.montant, soin.critique});
+                       signaler(soin.place, soin.position, Soin{soin.montant, soin.critique});
                    },
                    [&](const Escouade::SkillPart& part) {
-                       signaler(Camp::Escouade, static_cast<int>(part.place), part.position, SkillLance{part.skill});
+                       signaler(part.place, part.position, SkillLance{part.skill});
                    },
                    [&](const Escouade::MonstreProvoque& provoque) {
                        // Un monstre disparu dans l'image n'a plus de position : pas de texte.
                        if (const Monstre* monstre = trouverMonstre(provoque.idMonstre)) {
-                           signaler(Camp::Monstres, monstre->getId(), monstre->getCentre(), Provoque{});
+                           signaler(monstre->getId(), monstre->getCentre(), Provoque{});
                        }
                    }},
                    fait);
     }
 }
 
-void Partie::signalerLeCoup(Camp campCible, int idCible, sf::Vector2f position, const ResultatDuCoup& resultat,
+void Partie::signalerLeCoup(CibleDEvenement cible, sf::Vector2f position, const ResultatDuCoup& resultat,
                             bool opportunite) {
     for (const DetailEvenement& detail : detailsDuCoup(resultat, opportunite)) {
-        signaler(campCible, idCible, position, detail);
+        signaler(cible, position, detail);
     }
 }
 
-void Partie::signaler(Camp campCible, int idCible, sf::Vector2f position, DetailEvenement detail) {
+void Partie::signaler(CibleDEvenement cible, sf::Vector2f position, DetailEvenement detail) {
     const bool montantNul = std::visit(Surcharges{[](const DegatsSubis& degats) { return degats.montant <= 0; },
                                                   [](const Soin& soin) { return soin.montant <= 0; },
                                                   [](const SkillLance&) { return false; },
@@ -387,7 +385,7 @@ void Partie::signaler(Camp campCible, int idCible, sf::Vector2f position, Detail
     if (montantNul) {
         return;
     }
-    m_evenements.push_back({campCible, idCible, position, detail});
+    m_evenements.push_back({cible, position, detail});
 }
 
 std::vector<EvenementDeCombat> Partie::prendreEvenements() {
@@ -396,7 +394,7 @@ std::vector<EvenementDeCombat> Partie::prendreEvenements() {
 
 void Partie::resoudreLesCoups(float dt) {
     // Monstre verrouillé : vide s'il n'y en a pas, s'il a disparu ou s'il rentre à son poste.
-    std::optional<int> idVerrouille = m_escouade.getCibleVerrouillee();
+    std::optional<IdMonstre> idVerrouille = m_escouade.getCibleVerrouillee();
     if (idVerrouille.has_value()) {
         const Monstre* verrouille = trouverMonstre(*idVerrouille);
         if (verrouille == nullptr || !verrouille->estCiblable()) {
@@ -405,7 +403,7 @@ void Partie::resoudreLesCoups(float dt) {
         }
     }
 
-    const std::vector<EntiteVue> monstresVus = entitesCiblables();
+    const std::vector<MonstreVu> monstresVus = entitesCiblables();
 
     // Lancer du skill de zone : réussi ou refusé, la demande est consommée.
     if (m_lancerDeZoneDemande.has_value()) {
@@ -459,8 +457,8 @@ void Partie::faireTournerLesMonstres(float dt) {
             }
         }
         obstacles.insert(obstacles.end(), autresMonstres.begin(), autresMonstres.end());
-        const std::optional<EntiteVue> proie = m_escouade.proieDuMonstre(m.getId(), m.getCentre());
-        const std::vector<EntiteVue> candidats = m_escouade.candidatsDeFrappe(m.getId());
+        const std::optional<PersonnageVu> proie = m_escouade.proieDuMonstre(m.getId(), m.getCentre());
+        const std::vector<PersonnageVu> candidats = m_escouade.candidatsDeFrappe(m.getId());
         m.mettreAJour(dt, proie, candidats, m_carte, obstacles, autresMonstres);
         faireFrapperLeMonstre(m, proie, candidats, dt);
     }
@@ -489,14 +487,13 @@ void Partie::alerterLesGroupes(const std::vector<bool>& enPoursuiteAvant) {
 // visé à l'engagement (même si une provocation a changé la proie entre-temps).
 // Seule la mort de ce personnage l'annule. Sinon, un monstre immobile avec une
 // cible de frappe (proie ou autre candidat) engage un coup.
-void Partie::faireFrapperLeMonstre(Monstre& monstre, std::optional<EntiteVue> proie,
-                                   const std::vector<EntiteVue>& candidats, float dt) {
-    if (const std::optional<int> place = monstre.cibleEngagee()) {
-        const std::size_t placeVisee = static_cast<std::size_t>(*place);
-        if (!m_escouade.placeEstVivante(placeVisee)) {
+void Partie::faireFrapperLeMonstre(Monstre& monstre, std::optional<PersonnageVu> proie,
+                                   const std::vector<PersonnageVu>& candidats, float dt) {
+    if (const std::optional<Place> placeVisee = monstre.cibleEngagee()) {
+        if (!m_escouade.placeEstVivante(*placeVisee)) {
             monstre.annulerAttaque();
         } else if (const std::optional<Attaque> attaque = monstre.avancerAttaque(dt, m_generateur)) {
-            infligerAUnPersonnage(monstre.getId(), placeVisee, *attaque, false);
+            infligerAUnPersonnage(monstre.getId(), *placeVisee, *attaque, false);
         }
         return;
     }
@@ -590,8 +587,8 @@ void Partie::dessinerCheminsDesMonstres(sf::RenderTarget& rendu) const {
 
 void Partie::dessinerZonesDeControle(sf::RenderTarget& rendu) const {
     const CampsDeControle camps = photographierLesCamps();
-    for (const std::vector<EntiteDeControle>* camp : {&camps.personnages, &camps.monstres}) {
-        for (const EntiteDeControle& entite : *camp) {
+    const auto dessinerLesZones = [&](const auto& camp) {
+        for (const auto& entite : camp) {
             if (entite.zone <= 0.0f) {
                 continue;
             }
@@ -604,7 +601,9 @@ void Partie::dessinerZonesDeControle(sf::RenderTarget& rendu) const {
             cercle.setOutlineThickness(s_epaisseurZoneDeControle);
             rendu.draw(cercle);
         }
-    }
+    };
+    dessinerLesZones(camps.personnages);
+    dessinerLesZones(camps.monstres);
 }
 
 bool Partie::estVisible(sf::Vector2f point) const {
@@ -615,7 +614,7 @@ Expedition Partie::expedition() const {
     Expedition expedition{.profondeur = m_profondeur, .graine = m_graineDExpedition, .membres = {}, .sac = m_escouade.sac(),
                           .experience = m_experience};
     for (std::size_t i = 0; i < m_classes.size(); ++i) {
-        const std::size_t place = i + 1;
+        const Place place = Place::depuisIndice(i);
         expedition.membres.push_back({.definition = m_classes[i],
                                       .equipement = m_escouade.equipementDuPersonnage(place),
                                       .pointsDepenses = m_escouade.pointsDepensesDuPersonnage(place).value()});

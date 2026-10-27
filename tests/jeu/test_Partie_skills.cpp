@@ -33,11 +33,11 @@ TEST_CASE("un skill et attaquer dans la meme image ne frappent pas deux fois le 
     const int vieDeDepart = partie.getMonstres().front().getPointsDeVie();
     const Defenses monstre{.armure = 0, .statistiques = monstreSansHasard().statistiques};
     const Attaque frappe{.degats = degatsPhysiques(s_degatsFrappeDeTest),
-                         .capaciteOffensive = partie.getEscouade().statistiquesDeCombatDuPersonnage(1)->capaciteOffensive,
+                         .capaciteOffensive = partie.getEscouade().statistiquesDeCombatDuPersonnage(Place{1})->capaciteOffensive,
                          .nature = NatureDAttaque::Contact};
     // Les attaques de base des deux tireurs, par les deux bornes de la plage de leur arme (le sceptre et le bâton, de Puissance de
     // référence) : un coup du tireur est entre les deux.
-    const auto bornes = [&](std::size_t place, IdObjet arme) {
+    const auto bornes = [&](Place place, IdObjet arme) {
         const DescriptionDAttaque description = descriptionDeLArme(Objet{arme});
         Attaque basse = *attaqueDeBaseDe(partie.getEscouade(), place);
         Attaque haute = basse;
@@ -45,8 +45,8 @@ TEST_CASE("un skill et attaquer dans la meme image ne frappent pas deux fois le 
         haute.degats = description.degats.max;
         return std::pair{basse, haute};
     };
-    const auto [bassePretre, hautePretre] = bornes(2, IdObjet::Sceptre);
-    const auto [basseMage, hauteMage] = bornes(3, IdObjet::Baton);
+    const auto [bassePretre, hautePretre] = bornes(Place{2}, IdObjet::Sceptre);
+    const auto [basseMage, hauteMage] = bornes(Place{3}, IdObjet::Baton);
 
     // 0,35 s : le skill est parti (activation de 0,3 s) et les tireurs ont eu
     // le temps d'exécuter leur coup (0,15 s), pas le mêlée, dont la recharge
@@ -66,7 +66,7 @@ TEST_CASE("un skill et attaquer dans la meme image ne frappent pas deux fois le 
     int basesDesTireurs = 0;
     for (const EvenementDeCombat& evenement : evenements) {
         const DegatsSubis* coup = std::get_if<DegatsSubis>(&evenement.detail);
-        if (coup == nullptr || evenement.campCible != Camp::Monstres) {
+        if (coup == nullptr || !std::holds_alternative<IdMonstre>(evenement.cible)) {
             continue;
         }
         total += coup->montant;

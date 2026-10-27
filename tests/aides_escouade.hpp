@@ -28,7 +28,9 @@
 #include "escouade/Escouade.hpp"
 #include "escouade/Personnage.hpp"
 #include "combat/EntiteVue.hpp"
+#include "combat/IdMonstre.hpp"
 #include "combat/IdSkill.hpp"
+#include "combat/Place.hpp"
 #include "combat/StatistiquesDeCombat.hpp"
 #include "monstres/Monstre.hpp"
 #include "objets/Affixe.hpp"
@@ -52,10 +54,10 @@
 // Adresses des quatre skills de l'escouade par défaut (touches 1 à 4 du jeu) :
 // le guerrier (place 1) a la frappe et la provocation, le prêtre (place 2) le soin,
 // le mage (place 3) l'explosion.
-inline constexpr AdresseSkill s_adresseFrappe{1, IdSkill::FrappePuissante};
-inline constexpr AdresseSkill s_adresseProvocation{1, IdSkill::Provocation};
-inline constexpr AdresseSkill s_adresseSoin{2, IdSkill::Soin};
-inline constexpr AdresseSkill s_adresseExplosion{3, IdSkill::Explosion};
+inline constexpr AdresseSkill s_adresseFrappe{Place{1}, IdSkill::FrappePuissante};
+inline constexpr AdresseSkill s_adresseProvocation{Place{1}, IdSkill::Provocation};
+inline constexpr AdresseSkill s_adresseSoin{Place{2}, IdSkill::Soin};
+inline constexpr AdresseSkill s_adresseExplosion{Place{3}, IdSkill::Explosion};
 
 // Valeurs des personnages de test, figées : celles du catalogue des classes au moment où elles ont été recopiées
 // (étape 80), mais indépendantes de lui. Rééquilibrer une classe dans Specialite.cpp ne change aucun
@@ -188,7 +190,7 @@ inline Attaque attaqueDeBaseDe(const Personnage& personnage) {
     return personnage.getAttaqueDeBase(generateur);
 }
 
-inline std::optional<Attaque> attaqueDeBaseDe(const Escouade& escouade, std::size_t place) {
+inline std::optional<Attaque> attaqueDeBaseDe(const Escouade& escouade, Place place) {
     Generateur generateur = generateurDeTest();
     return escouade.attaqueDeBase(place, generateur);
 }
@@ -426,7 +428,7 @@ inline Defenses defensesDuPersonnageDeTest(int armure) {
 
 // Un coup de `montant` dégâts sans hasard (ni tirage) du monstre `idMonstre` sur le personnage de cette place
 // (`Escouade::recevoirCoup`) ; rend les dégâts subis.
-inline int subirCoup(Escouade& escouade, int idMonstre, std::size_t place, int montant) {
+inline int subirCoup(Escouade& escouade, IdMonstre idMonstre, Place place, int montant) {
     Generateur generateur = generateurDeTest();
     return escouade.recevoirCoup(idMonstre, place, attaqueSansHasard(montant), generateur).montant;
 }
@@ -434,12 +436,12 @@ inline int subirCoup(Escouade& escouade, int idMonstre, std::size_t place, int m
 // Un coup du monstre `idMonstre`, posté en `origine`, sur la proie que l'escouade lui donne
 // (proieDuMonstre : provocateur, sinon le plus proche). Renvoie les dégâts subis ; 0 si personne n'est
 // touchable. Le chemin d'un coup de Partie, sans Partie.
-inline int infliger(Escouade& escouade, int idMonstre, sf::Vector2f origine, int quantite) {
-    const std::optional<EntiteVue> proie = escouade.proieDuMonstre(idMonstre, origine);
+inline int infliger(Escouade& escouade, IdMonstre idMonstre, sf::Vector2f origine, int quantite) {
+    const std::optional<PersonnageVu> proie = escouade.proieDuMonstre(idMonstre, origine);
     if (!proie.has_value()) {
         return 0;
     }
-    return subirCoup(escouade, idMonstre, static_cast<std::size_t>(proie->id), quantite);
+    return subirCoup(escouade, idMonstre, proie->id, quantite);
 }
 
 // Simule le temps qui passe par tics de 1/60 s, pendant la durée demandée.
@@ -471,7 +473,7 @@ inline void simulerAvecAttaque(Escouade& escouade, const TileMap& carte, float d
 // personnage qui atteint un monstre l'engage au premier tic et le frappe une fois,
 // au plus ; renvoie tous les coups partis. Aucun
 // mettreAJour : personne ne bouge, personne n'est donc « en mouvement ».
-inline std::vector<Coup> attaquerJusquAuDepart(Escouade& escouade, const std::vector<EntiteVue>& monstres, const TileMap& carte,
+inline std::vector<Coup> attaquerJusquAuDepart(Escouade& escouade, const std::vector<MonstreVu>& monstres, const TileMap& carte,
                                                Generateur& generateur) {
     std::vector<Coup> coups;
     for (int i = 0; i < nombreDeTics(0.35f); ++i) {
@@ -486,7 +488,7 @@ inline std::vector<Coup> attaquerJusquAuDepart(Escouade& escouade, const std::ve
 inline int attaquerCible(Escouade& escouade, const TileMap& carte, Cercle cible) {
     int total = 0;
     Generateur generateur = generateurDeTest();
-    for (const Coup& coup : attaquerJusquAuDepart(escouade, {EntiteVue{1, cible}}, carte, generateur)) {
+    for (const Coup& coup : attaquerJusquAuDepart(escouade, {MonstreVu{IdMonstre{1}, cible}}, carte, generateur)) {
         total += coup.attaque.degats.total();
     }
     return total;
@@ -501,7 +503,7 @@ inline constexpr float s_dureeAttenteSkill = 1.0f;
 // entre-temps (ceux des armes de la composition par défaut : `estUnCoupDeBaseDeLaComposition`)
 // sont écartés : seuls les skills comptent (leurs dégâts doivent donc sortir de la plage
 // de ces armes).
-inline std::vector<Coup> attendreLeDepartDesSkills(Escouade& escouade, const std::vector<EntiteVue>& monstres, const TileMap& carte,
+inline std::vector<Coup> attendreLeDepartDesSkills(Escouade& escouade, const std::vector<MonstreVu>& monstres, const TileMap& carte,
                                                    Generateur& generateur) {
     assert(!estUnCoupDeBaseDeLaComposition(s_degatsFrappeDeTest) && !estUnCoupDeBaseDeLaComposition(s_degatsZoneDeTest));
     std::vector<Coup> coups;
@@ -517,7 +519,7 @@ inline std::vector<Coup> attendreLeDepartDesSkills(Escouade& escouade, const std
 
 // Déclenche le skill de cette place (touches 1 à 4), puis attend son départ :
 // les coups de skill sont ceux de l'appel et ceux de l'attente.
-inline std::vector<Coup> declencherEtAttendre(Escouade& escouade, AdresseSkill adresse, const std::vector<EntiteVue>& monstres, const TileMap& carte,
+inline std::vector<Coup> declencherEtAttendre(Escouade& escouade, AdresseSkill adresse, const std::vector<MonstreVu>& monstres, const TileMap& carte,
                                               Generateur& generateur) {
     std::vector<Coup> coups = escouade.declencherSkill(adresse, monstres, carte, generateur);
     const std::vector<Coup> suite = attendreLeDepartDesSkills(escouade, monstres, carte, generateur);
@@ -526,7 +528,7 @@ inline std::vector<Coup> declencherEtAttendre(Escouade& escouade, AdresseSkill a
 }
 
 // Comme declencherEtAttendre, pour le skill de zone lancé en un point.
-inline std::vector<Coup> declencherZoneEtAttendre(Escouade& escouade, AdresseSkill adresse, sf::Vector2f point, const std::vector<EntiteVue>& monstres,
+inline std::vector<Coup> declencherZoneEtAttendre(Escouade& escouade, AdresseSkill adresse, sf::Vector2f point, const std::vector<MonstreVu>& monstres,
                                                   const TileMap& carte, Generateur& generateur) {
     std::vector<Coup> coups = escouade.declencherSkillDeZone(adresse, point, monstres, carte, generateur);
     const std::vector<Coup> suite = attendreLeDepartDesSkills(escouade, monstres, carte, generateur);
@@ -535,7 +537,7 @@ inline std::vector<Coup> declencherZoneEtAttendre(Escouade& escouade, AdresseSki
 }
 
 // Place de l'allié désigné par choisirCible, vide si aucune cible.
-inline std::optional<std::size_t> placeAlliePourSoin(const Escouade& escouade) {
+inline std::optional<Place> placeAlliePourSoin(const Escouade& escouade) {
     const std::optional<Cible> cible = escouade.choisirCible(TypeSkill::Soin, s_adresseSoin, {}, carteOuverte());
     if (!cible.has_value()) {
         return std::nullopt;
@@ -584,9 +586,9 @@ inline Exemplaires exemplaires(const Escouade& escouade) {
             tous.push_back(cle(*objet));
         }
     }
-    for (std::size_t place = 1; place <= 3; ++place) {
+    for (std::size_t i = 0; i < 3; ++i) {
         for (std::size_t e = 0; e < s_nombreEmplacements; ++e) {
-            if (const std::optional<Objet>& objet = escouade.equipementDuPersonnage(place).a(static_cast<Emplacement>(e))) {
+            if (const std::optional<Objet>& objet = escouade.equipementDuPersonnage(Place::depuisIndice(i)).a(static_cast<Emplacement>(e))) {
                 tous.push_back(cle(*objet));
             }
         }
@@ -648,7 +650,7 @@ inline void attirerHorsDuTerritoire(Partie& partie, sf::Vector2f arrivee) {
 }
 
 // Fait avancer la partie d'un tic et renvoie les points de vie du personnage de cette place.
-inline int pointsDeVieApresUnTic(Partie& partie, std::size_t place) {
+inline int pointsDeVieApresUnTic(Partie& partie, Place place) {
     partie.mettreAJour(s_dureeTic);
     return *partie.getEscouade().pointsDeVieDuPersonnage(place);
 }
@@ -656,7 +658,7 @@ inline int pointsDeVieApresUnTic(Partie& partie, std::size_t place) {
 // Avance jusqu'à ce que le personnage de cette place perde des points de vie (le premier coup du
 // monstre) ; renvoie ses points de vie à ce moment. Le coup lance la recharge du monstre (0,7 s au
 // moins) puis un nouveau coup exige 0,3 s d'exécution : aucun coup normal avant 1 s.
-inline int jusquAuPremierCoup(Partie& partie, std::size_t place) {
+inline int jusquAuPremierCoup(Partie& partie, Place place) {
     const int avant = *partie.getEscouade().pointsDeVieDuPersonnage(place);
     int pointsDeVie = avant;
     for (int i = 0; i < nombreDeTics(2.0f) && pointsDeVie == avant; ++i) {
@@ -671,13 +673,13 @@ inline constexpr float s_fenetreSansCoupNormal = 0.9f;  // en secondes, après l
 // Aides des tests de skills d'Escouade (étape 80 : partagées par les fichiers test_Escouade_skills*).
 
 // Le monstre d'identifiant 1 tel que l'escouade le voit, seul dans la liste.
-inline std::vector<EntiteVue> unSeulMonstre(Cercle cercle) {
-    return {EntiteVue{1, cercle}};
+inline std::vector<MonstreVu> unSeulMonstre(Cercle cercle) {
+    return {MonstreVu{IdMonstre{1}, cercle}};
 }
 
 // Déclenche le skill de cette place et renvoie le total des dégâts de la
 // liste de coups.
-inline int declencher(Escouade& escouade, AdresseSkill adresse, const std::vector<EntiteVue>& monstres) {
+inline int declencher(Escouade& escouade, AdresseSkill adresse, const std::vector<MonstreVu>& monstres) {
     int total = 0;
     Generateur generateur = generateurDeTest();
     for (const Coup& coup : declencherEtAttendre(escouade, adresse, monstres, carteOuverte(), generateur)) {

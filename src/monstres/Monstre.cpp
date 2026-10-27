@@ -16,7 +16,7 @@ namespace {
 constexpr std::uint8_t s_opaciteRetour = 128;  // sur 255 : environ 50 %, pour marquer le retour (débogage F3)
 }  // namespace
 
-Monstre::Monstre(sf::Vector2f centre, int id, int groupe, const DefinitionDeMonstre& definition)
+Monstre::Monstre(sf::Vector2f centre, IdMonstre id, int groupe, const DefinitionDeMonstre& definition)
     : m_mobile(centre, {definition.cote, definition.cote}, definition.vitesse),
       m_couleur(definition.couleur),
       m_vitalite(definition.pointsDeVieMax,
@@ -37,7 +37,7 @@ Monstre::Monstre(sf::Vector2f centre, int id, int groupe, const DefinitionDeMons
       m_poste(centre),
       m_alerte(false),
       m_soinAccumule(0.0f),
-      m_idCibleEngagee()
+      m_placeCibleEngagee()
 {
 }
 
@@ -73,7 +73,7 @@ Cercle Monstre::getCercle() const {
     return m_mobile.getCercle();
 }
 
-int Monstre::getId() const {
+IdMonstre Monstre::getId() const {
     return m_id;
 }
 
@@ -150,7 +150,7 @@ int Monstre::getExperience() const {
 // Détecte la proie si elle est dans le rayon de détection, dans le territoire
 // et en vue (`ligneDeVue`, en cases). Seule la détection exige la vue :
 // une fois en poursuite, le monstre ne perd pas sa proie en la perdant de vue.
-bool Monstre::proieDetectee(const std::optional<EntiteVue>& proie, const TileMap& carte) const {
+bool Monstre::proieDetectee(const std::optional<PersonnageVu>& proie, const TileMap& carte) const {
     if (!proie) {
         return false;
     }
@@ -161,22 +161,22 @@ bool Monstre::proieDetectee(const std::optional<EntiteVue>& proie, const TileMap
         && ligneDeVue(carte, m_mobile.getCentre(), centreProie);
 }
 
-std::optional<EntiteVue> Monstre::cibleDeFrappe(const std::optional<EntiteVue>& proie,
-                                                const std::vector<EntiteVue>& candidats,
-                                                const TileMap& carte) const {
-    const std::optional<int> id = choisirCibleAFrapper(
+std::optional<PersonnageVu> Monstre::cibleDeFrappe(const std::optional<PersonnageVu>& proie,
+                                                  const std::vector<PersonnageVu>& candidats,
+                                                  const TileMap& carte) const {
+    const std::optional<Place> id = choisirCibleAFrapper(
         getCercle(), [&](Cercle c) { return peutAtteindre(c, carte); }, candidats,
-        proie ? std::optional<int>(proie->id) : std::nullopt);
+        proie ? std::optional<Place>(proie->id) : std::nullopt);
     if (!id) {
         return std::nullopt;
     }
     // choisirCibleAFrapper ne choisit que parmi les candidats.
-    const EntiteVue* cible = trouverEntite(candidats, *id);
+    const PersonnageVu* cible = trouverEntite(candidats, *id);
     assert(cible != nullptr);
     return *cible;
 }
 
-void Monstre::mettreAJour(float dt, std::optional<EntiteVue> proie, const std::vector<EntiteVue>& candidats,
+void Monstre::mettreAJour(float dt, std::optional<PersonnageVu> proie, const std::vector<PersonnageVu>& candidats,
                           const TileMap& carte, const std::vector<Cercle>& obstacles,
                           const std::vector<Cercle>& aContourner) {
     m_attaque.mettreAJour(dt);
@@ -256,34 +256,34 @@ bool Monstre::peutAtteindre(Cercle cible, const TileMap& carte) const {
     return m_attaque.estAPortee(getCercle(), cible) && ligneDeVue(carte, m_mobile.getCentre(), cible.centre);
 }
 
-bool Monstre::engagerAttaque(std::optional<EntiteVue> proie, const std::vector<EntiteVue>& candidats, const TileMap& carte) {
+bool Monstre::engagerAttaque(std::optional<PersonnageVu> proie, const std::vector<PersonnageVu>& candidats, const TileMap& carte) {
     if (m_etat == Etat::Retour) {
         return false;
     }
-    const std::optional<EntiteVue> cible = cibleDeFrappe(proie, candidats, carte);
+    const std::optional<PersonnageVu> cible = cibleDeFrappe(proie, candidats, carte);
     if (!cible || m_mobile.estEnMouvement() || !m_attaque.commencer()) {
         return false;
     }
-    m_idCibleEngagee = cible->id;
+    m_placeCibleEngagee = cible->id;
     return true;
 }
 
-std::optional<int> Monstre::cibleEngagee() const {
+std::optional<Place> Monstre::cibleEngagee() const {
     if (m_attaque.getPhase() != PhaseSkill::EnExecution) {
         return std::nullopt;
     }
-    return m_idCibleEngagee;
+    return m_placeCibleEngagee;
 }
 
 std::optional<Attaque> Monstre::avancerAttaque(float dt, Generateur& generateur) {
     if (!cibleEngagee().has_value() || !m_attaque.avancer(dt, generateur)) {
         return std::nullopt;
     }
-    m_idCibleEngagee.reset();
+    m_placeCibleEngagee.reset();
     return getAttaque();
 }
 
 void Monstre::annulerAttaque() {
     m_attaque.annuler();
-    m_idCibleEngagee.reset();
+    m_placeCibleEngagee.reset();
 }

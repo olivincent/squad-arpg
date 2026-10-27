@@ -46,7 +46,7 @@ public:
     static constexpr float s_dureeDeVie = 0.8f;
 
     // Un texte par événement. Les textes ajoutés dans la même image (entre deux `mettreAJour`) pour la
-    // même cible (campCible et idCible) s'empilent : le k-ième est relevé de k fois 14 px.
+    // même cible (`cible`) s'empilent : le k-ième est relevé de k fois 14 px.
     void ajouter(const EvenementDeCombat& evenement);
     // Fait vieillir tous les textes de `dt`, retire ceux qui ont atteint `s_dureeDeVie`, et ouvre
     // l'image suivante pour l'empilement.

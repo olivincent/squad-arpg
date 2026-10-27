@@ -46,7 +46,7 @@ TEST_CASE("attaquer renvoie 0 pour une cible lointaine et l'escouade s'en rappro
     };
     TileMap carte(plan, 40.0f);
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    escouade.verrouiller(1);
+    escouade.verrouiller(IdMonstre{1});
 
     const sf::Vector2f cible{380.0f, 380.0f};
     const float distanceInitiale = (cible - escouade.getCentre()).length();
@@ -73,7 +73,7 @@ TEST_CASE("attaquer finit par infliger des degats sans que l'escouade atteigne l
     };
     TileMap carte(plan, 40.0f);
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    escouade.verrouiller(1);
+    escouade.verrouiller(IdMonstre{1});
 
     const sf::Vector2f cible{300.0f, 300.0f};
     const int degatsTotal = simulerAttaque(escouade, carte, cibleMonstre(cible), 5.0f);
@@ -97,9 +97,9 @@ TEST_CASE("attaquer ignore les personnages morts pour decider si l'escouade doit
     };
     TileMap carte(plan, 40.0f);
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    escouade.verrouiller(1);
+    escouade.verrouiller(IdMonstre{1});
 
-    infliger(escouade, 1, {1000.0f, 1000.0f}, s_coupMortel); // tue le personnage le plus proche de ce point
+    infliger(escouade, IdMonstre{1}, {1000.0f, 1000.0f}, s_coupMortel); // tue le personnage le plus proche de ce point
 
     escouade.allerVers({300.0f, 60.0f}, carte); // éloigne l'escouade, laisse le mort derrière
     simuler(escouade, carte, 10.0f); // largement assez pour arriver
@@ -125,7 +125,7 @@ TEST_CASE("attaquer renvoie les degats de tous les personnages pour une cible de
     };
     TileMap carte(plan, 40.0f);
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    escouade.verrouiller(1);
+    escouade.verrouiller(IdMonstre{1});
 
     // Centre initial (60, 60) ; guerrier en (85, 60), tireurs en
     // (35, 35) et (35, 85). Une cible de la taille d'un monstre en (85, 60)
@@ -149,24 +149,24 @@ TEST_CASE("getCibleVerrouillee est vide a la creation") {
 TEST_CASE("verrouiller pose la cible donnee") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
 
-    escouade.verrouiller(3);
+    escouade.verrouiller(IdMonstre{3});
 
-    REQUIRE(escouade.getCibleVerrouillee() == std::optional<int>(3));
+    REQUIRE(escouade.getCibleVerrouillee() == std::optional<IdMonstre>(IdMonstre{3}));
 }
 
 TEST_CASE("verrouiller remplace une cible deja posee") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
 
-    escouade.verrouiller(3);
-    escouade.verrouiller(7);
+    escouade.verrouiller(IdMonstre{3});
+    escouade.verrouiller(IdMonstre{7});
 
-    REQUIRE(escouade.getCibleVerrouillee() == std::optional<int>(7));
+    REQUIRE(escouade.getCibleVerrouillee() == std::optional<IdMonstre>(IdMonstre{7}));
 }
 
 TEST_CASE("deverrouiller vide la cible") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
 
-    escouade.verrouiller(3);
+    escouade.verrouiller(IdMonstre{3});
     escouade.deverrouiller();
 
     REQUIRE_FALSE(escouade.getCibleVerrouillee().has_value());
@@ -187,7 +187,7 @@ TEST_CASE("En combat, un personnage a portee de la cible reste immobile pendant 
     };
     TileMap carte(plan, 40.0f);
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    escouade.verrouiller(1); // id arbitraire, Escouade ne connaît pas Monstre
+    escouade.verrouiller(IdMonstre{1}); // id arbitraire, Escouade ne connaît pas Monstre
 
     // Centre initial (60, 60). Les deux tireurs (portée 120 px bord à bord)
     // démarrent à l'arrière, en (35, 35) et (35, 85) ; le guerrier
@@ -197,8 +197,8 @@ TEST_CASE("En combat, un personnage a portee de la cible reste immobile pendant 
     // (90 - 25 = 65 px) : l'ancre doit donc encore avancer.
     const sf::Vector2f cible{175.0f, 60.0f};
 
-    const sf::Vector2f tireurAvant = escouade.proieDuMonstre(1, {35.0f, 60.0f})->cercle.centre;
-    const sf::Vector2f meleeAvant = escouade.proieDuMonstre(1, {85.0f, 60.0f})->cercle.centre;
+    const sf::Vector2f tireurAvant = escouade.proieDuMonstre(IdMonstre{1}, {35.0f, 60.0f})->cercle.centre;
+    const sf::Vector2f meleeAvant = escouade.proieDuMonstre(IdMonstre{1}, {85.0f, 60.0f})->cercle.centre;
 
     // Comme dans Partie, l'ordre du joueur est redonné à chaque image (bouton
     // tenu) : il annule le coup que le tireur vient d'engager, qui sinon le
@@ -209,10 +209,10 @@ TEST_CASE("En combat, un personnage a portee de la cible reste immobile pendant 
         escouade.mettreAJour(1.0f / 60.0f, carte, {.physiques = {}, .ciblables = unSeulMonstre(cibleMonstre(cible)), .deControle = {}});
     }
 
-    const sf::Vector2f tireurApres = escouade.proieDuMonstre(1, {35.0f, 60.0f})->cercle.centre;
+    const sf::Vector2f tireurApres = escouade.proieDuMonstre(IdMonstre{1}, {35.0f, 60.0f})->cercle.centre;
     verifierPointProche(tireurApres, tireurAvant, 0.01f);
 
-    const sf::Vector2f meleeApres = escouade.proieDuMonstre(1, {85.0f, 60.0f})->cercle.centre;
+    const sf::Vector2f meleeApres = escouade.proieDuMonstre(IdMonstre{1}, {85.0f, 60.0f})->cercle.centre;
     REQUIRE((meleeApres - meleeAvant).length() > 5.0f);
 }
 
@@ -235,14 +235,14 @@ TEST_CASE("Sans verrou, un personnage deja a portee suit tout de meme son emplac
     const sf::Vector2f cible{175.0f, 60.0f}; // même configuration que le test précédent
     escouade.allerVers(cible, carte); // sans verrou, attaquer() n'approche pas : l'ordre vient du joueur
 
-    const sf::Vector2f tireurAvant = escouade.proieDuMonstre(1, {35.0f, 60.0f})->cercle.centre;
+    const sf::Vector2f tireurAvant = escouade.proieDuMonstre(IdMonstre{1}, {35.0f, 60.0f})->cercle.centre;
 
     for (int i = 0; i < 10; ++i) {
         attaquerCible(escouade, carte, cibleMonstre(cible));
         escouade.mettreAJour(1.0f / 60.0f, carte, {.physiques = {}, .ciblables = unSeulMonstre(cibleMonstre(cible)), .deControle = {}});
     }
 
-    const sf::Vector2f tireurApres = escouade.proieDuMonstre(1, {35.0f, 60.0f})->cercle.centre;
+    const sf::Vector2f tireurApres = escouade.proieDuMonstre(IdMonstre{1}, {35.0f, 60.0f})->cercle.centre;
     REQUIRE((tireurApres - tireurAvant).length() > 5.0f);
 }
 
@@ -256,12 +256,12 @@ TEST_CASE("Sans verrou, tous les personnages frappent un monstre a leur portee, 
     Escouade escouade = uneEscouade({50.0f, 50.0f});
     const sf::Vector2f centreInitial = escouade.getCentre();
 
-    const std::vector<Coup> coups = attaquerJusquAuDepart(escouade, {EntiteVue{4, cibleMonstre({85.0f, 60.0f})}}, carte, generateur);
-    escouade.mettreAJour(1.0f / 60.0f, carte, {.physiques = {}, .ciblables = {EntiteVue{4, cibleMonstre({85.0f, 60.0f})}}, .deControle = {}});
+    const std::vector<Coup> coups = attaquerJusquAuDepart(escouade, {MonstreVu{IdMonstre{4}, cibleMonstre({85.0f, 60.0f})}}, carte, generateur);
+    escouade.mettreAJour(1.0f / 60.0f, carte, {.physiques = {}, .ciblables = {MonstreVu{IdMonstre{4}, cibleMonstre({85.0f, 60.0f})}}, .deControle = {}});
 
     REQUIRE(coups.size() == 3);
     for (const Coup& coup : coups) {
-        REQUIRE(coup.idMonstre == 4);
+        REQUIRE(coup.idMonstre == IdMonstre{4});
         REQUIRE(estUnCoupDeBaseDeLaComposition(coup.attaque.degats.total()));
     }
     verifierPointProche(escouade.getCentre(), centreInitial);
@@ -273,7 +273,7 @@ TEST_CASE("La nature des coups : contact pour la melee, projectile pour les tire
     Escouade escouade = uneEscouade({50.0f, 50.0f});
 
     // Le guerrier (place 1) est en (85, 60), les tireurs en (35, 35) et (35, 85) : tous atteignent ce monstre.
-    const std::vector<Coup> coups = attaquerJusquAuDepart(escouade, {EntiteVue{4, cibleMonstre({85.0f, 60.0f})}}, carte, generateur);
+    const std::vector<Coup> coups = attaquerJusquAuDepart(escouade, {MonstreVu{IdMonstre{4}, cibleMonstre({85.0f, 60.0f})}}, carte, generateur);
 
     REQUIRE(coups.size() == 3);
     int contacts = 0;
@@ -291,7 +291,7 @@ TEST_CASE("Sans verrou, un monstre hors de portee de tous ne recoit aucun coup")
     const TileMap carte = carteDegagee10x10();
     Escouade escouade = uneEscouade({50.0f, 50.0f});
 
-    REQUIRE(escouade.attaquer(s_dureeTic, {EntiteVue{1, cibleMonstre({300.0f, 60.0f})}}, carte, generateur).empty());
+    REQUIRE(escouade.attaquer(s_dureeTic, {MonstreVu{IdMonstre{1}, cibleMonstre({300.0f, 60.0f})}}, carte, generateur).empty());
 }
 
 TEST_CASE("Sans verrou, seuls les tireurs frappent un monstre eloigne") {
@@ -300,7 +300,7 @@ TEST_CASE("Sans verrou, seuls les tireurs frappent un monstre eloigne") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
 
     // À 92 px bord à bord des tireurs, à 55 px du guerrier.
-    const std::vector<Coup> coups = attaquerJusquAuDepart(escouade, {EntiteVue{1, cibleMonstre({150.0f, 60.0f})}}, carte, generateur);
+    const std::vector<Coup> coups = attaquerJusquAuDepart(escouade, {MonstreVu{IdMonstre{1}, cibleMonstre({150.0f, 60.0f})}}, carte, generateur);
 
     REQUIRE(coups.size() == 2);
 }
@@ -309,14 +309,14 @@ TEST_CASE("Un verrou hors de portee n'empeche pas de frapper un autre monstre a 
     Generateur generateur = generateurDeTest();
     const TileMap carte = carteDegagee10x10();
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    escouade.verrouiller(2);
+    escouade.verrouiller(IdMonstre{2});
 
     const std::vector<Coup> coups = attaquerJusquAuDepart(escouade,
-        {EntiteVue{1, cibleMonstre({150.0f, 60.0f})}, EntiteVue{2, cibleMonstre({300.0f, 60.0f})}}, carte, generateur);
+        {MonstreVu{IdMonstre{1}, cibleMonstre({150.0f, 60.0f})}, MonstreVu{IdMonstre{2}, cibleMonstre({300.0f, 60.0f})}}, carte, generateur);
 
     REQUIRE(coups.size() == 2);
     for (const Coup& coup : coups) {
-        REQUIRE(coup.idMonstre == 1);
+        REQUIRE(coup.idMonstre == IdMonstre{1});
     }
 }
 
@@ -324,15 +324,15 @@ TEST_CASE("Le verrou a portee passe avant un monstre qui est a portee aussi") {
     Generateur generateur = generateurDeTest();
     const TileMap carte = carteDegagee10x10();
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    escouade.verrouiller(2);
+    escouade.verrouiller(IdMonstre{2});
 
     // Le monstre 1 est plus proche des tireurs, mais le 2 est verrouillé.
     const std::vector<Coup> coups = attaquerJusquAuDepart(escouade,
-        {EntiteVue{1, cibleMonstre({150.0f, 60.0f})}, EntiteVue{2, cibleMonstre({150.0f, 90.0f})}}, carte, generateur);
+        {MonstreVu{IdMonstre{1}, cibleMonstre({150.0f, 60.0f})}, MonstreVu{IdMonstre{2}, cibleMonstre({150.0f, 90.0f})}}, carte, generateur);
 
     REQUIRE(coups.size() == 2);
     for (const Coup& coup : coups) {
-        REQUIRE(coup.idMonstre == 2);
+        REQUIRE(coup.idMonstre == IdMonstre{2});
     }
 }
 
@@ -344,7 +344,7 @@ TEST_CASE("Deux personnages peuvent frapper deux monstres differents dans la mem
     // Le monstre 1 est à portée du tireur du haut seulement, le 2 du tireur du bas seulement
     // (tous deux dans la carte, en vue : la ligne de vue exige des points dans la carte).
     const std::vector<Coup> coups = attaquerJusquAuDepart(escouade,
-        {EntiteVue{1, cibleMonstre({140.0f, 50.0f})}, EntiteVue{2, cibleMonstre({140.0f, 270.0f})}}, carte, generateur);
+        {MonstreVu{IdMonstre{1}, cibleMonstre({140.0f, 50.0f})}, MonstreVu{IdMonstre{2}, cibleMonstre({140.0f, 270.0f})}}, carte, generateur);
 
     REQUIRE(coups.size() == 2);
     REQUIRE(coups[0].idMonstre != coups[1].idMonstre);
@@ -354,12 +354,12 @@ TEST_CASE("Une escouade dont tous les personnages sont morts ne frappe plus") {
     Generateur generateur = generateurDeTest();
     const TileMap carte = carteDegagee10x10();
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    infliger(escouade, 1, {85.0f, 35.0f}, s_coupMortel);
-    infliger(escouade, 1, {85.0f, 85.0f}, s_coupMortel);
-    infliger(escouade, 1, {35.0f, 35.0f}, s_coupMortel);
-    infliger(escouade, 1, {35.0f, 85.0f}, s_coupMortel);
+    infliger(escouade, IdMonstre{1}, {85.0f, 35.0f}, s_coupMortel);
+    infliger(escouade, IdMonstre{1}, {85.0f, 85.0f}, s_coupMortel);
+    infliger(escouade, IdMonstre{1}, {35.0f, 35.0f}, s_coupMortel);
+    infliger(escouade, IdMonstre{1}, {35.0f, 85.0f}, s_coupMortel);
 
-    REQUIRE(escouade.attaquer(s_dureeTic, {EntiteVue{1, cibleMonstre({85.0f, 60.0f})}}, carte, generateur).empty());
+    REQUIRE(escouade.attaquer(s_dureeTic, {MonstreVu{IdMonstre{1}, cibleMonstre({85.0f, 60.0f})}}, carte, generateur).empty());
 }
 
 // Temps d'exécution de l'attaque de base (0,15 s) : on frappe immobile, le
@@ -369,7 +369,7 @@ TEST_CASE("Une escouade dont tous les personnages sont morts ne frappe plus") {
 namespace {
 
 // Un tic d'attaquer() ; renvoie le total des dégâts des coups partis à ce tic.
-int attaquerCibleUnTic(Escouade& escouade, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur) {
+int attaquerCibleUnTic(Escouade& escouade, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur) {
     int total = 0;
     for (const Coup& coup : escouade.attaquer(s_dureeTic, monstres, carte, generateur)) {
         total += coup.attaque.degats.total();
@@ -379,7 +379,7 @@ int attaquerCibleUnTic(Escouade& escouade, const std::vector<EntiteVue>& monstre
 
 // Numéro du tic (à partir de 0) où le premier coup part, -1 s'il n'en part
 // aucun dans la durée donnée.
-int ticDuPremierCoup(Escouade& escouade, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur,
+int ticDuPremierCoup(Escouade& escouade, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur,
                      float duree) {
     for (int i = 0; i < nombreDeTics(duree); ++i) {
         if (!escouade.attaquer(s_dureeTic, monstres, carte, generateur).empty()) {
@@ -396,7 +396,7 @@ TEST_CASE("A l'arret, le coup part 0,15 s apres son engagement") {
     Generateur generateur = generateurDeTest();
     const TileMap carte = carteDegagee10x10();
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    const std::vector<EntiteVue> monstres = {EntiteVue{1, cibleMonstre({85.0f, 60.0f})}};
+    const std::vector<MonstreVu> monstres = {MonstreVu{IdMonstre{1}, cibleMonstre({85.0f, 60.0f})}};
 
     const int tic = ticDuPremierCoup(escouade, monstres, carte, generateur, 0.5f);
 
@@ -410,7 +410,7 @@ TEST_CASE("Aucun coup n'est engage pendant que l'ancre marche sous ordre du joue
     const TileMap carte = carteDegagee10x10();
     Escouade escouade = uneEscouade({50.0f, 50.0f});
     // Un monstre à portée de tir des tireurs pendant toute la marche (en vue, à côté du trajet).
-    const std::vector<EntiteVue> monstres = {EntiteVue{1, cibleMonstre({200.0f, 120.0f})}};
+    const std::vector<MonstreVu> monstres = {MonstreVu{IdMonstre{1}, cibleMonstre({200.0f, 120.0f})}};
 
     // L'ordre n'est donné qu'une fois : seul le mouvement des personnages (et
     // non l'annulation par un nouvel ordre) les empêche d'engager un coup.
@@ -428,7 +428,7 @@ TEST_CASE("Une fois l'escouade arretee, les coups reprennent") {
     Generateur generateur = generateurDeTest();
     const TileMap carte = carteDegagee10x10();
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    const std::vector<EntiteVue> monstres = {EntiteVue{1, cibleMonstre({200.0f, 120.0f})}};
+    const std::vector<MonstreVu> monstres = {MonstreVu{IdMonstre{1}, cibleMonstre({200.0f, 120.0f})}};
     escouade.allerVers({200.0f, 60.0f}, carte);
     simuler(escouade, carte, 3.0f);  // largement assez pour arriver et se mettre en place
 
@@ -439,7 +439,7 @@ TEST_CASE("Un ordre de deplacement pendant l'execution annule le coup, sans rech
     Generateur generateur = generateurDeTest();
     const TileMap carte = carteDegagee10x10();
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    const std::vector<EntiteVue> monstres = {EntiteVue{1, cibleMonstre({85.0f, 60.0f})}};
+    const std::vector<MonstreVu> monstres = {MonstreVu{IdMonstre{1}, cibleMonstre({85.0f, 60.0f})}};
     for (int i = 0; i < 5; ++i) {
         REQUIRE(escouade.attaquer(s_dureeTic, monstres, carte, generateur).empty());
     }
@@ -459,8 +459,8 @@ TEST_CASE("Un coup engage part meme si le monstre s'est eloigne") {
     Generateur generateur = generateurDeTest();
     const TileMap carte = carteDegagee10x10();
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    const std::vector<EntiteVue> proche = {EntiteVue{1, cibleMonstre({85.0f, 60.0f})}};
-    const std::vector<EntiteVue> loin = {EntiteVue{1, cibleMonstre({380.0f, 380.0f})}};
+    const std::vector<MonstreVu> proche = {MonstreVu{IdMonstre{1}, cibleMonstre({85.0f, 60.0f})}};
+    const std::vector<MonstreVu> loin = {MonstreVu{IdMonstre{1}, cibleMonstre({380.0f, 380.0f})}};
     for (int i = 0; i < 3; ++i) {
         REQUIRE(attaquerCibleUnTic(escouade, proche, carte, generateur) == 0);
     }
@@ -477,14 +477,14 @@ TEST_CASE("La disparition de la cible annule le coup engage, sans recharge conso
     Generateur generateur = generateurDeTest();
     const TileMap carte = carteDegagee10x10();
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    const std::vector<EntiteVue> monstres = {EntiteVue{1, cibleMonstre({85.0f, 60.0f})}};
+    const std::vector<MonstreVu> monstres = {MonstreVu{IdMonstre{1}, cibleMonstre({85.0f, 60.0f})}};
     REQUIRE(attaquerCibleUnTic(escouade, monstres, carte, generateur) == 0);
 
     // Le monstre est mort : plus de monstre dans la liste.
     REQUIRE(ticDuPremierCoup(escouade, {}, carte, generateur, 0.3f) == -1);
 
     // Un nouveau monstre : le coup repart au plus tard 0,15 s plus tard.
-    const int tic = ticDuPremierCoup(escouade, {EntiteVue{2, cibleMonstre({85.0f, 60.0f})}}, carte, generateur, 0.3f);
+    const int tic = ticDuPremierCoup(escouade, {MonstreVu{IdMonstre{2}, cibleMonstre({85.0f, 60.0f})}}, carte, generateur, 0.3f);
     REQUIRE(tic >= 0);
     REQUIRE(tic <= nombreDeTics(0.15f) + 2);
 }
@@ -493,10 +493,10 @@ TEST_CASE("La mort de l'attaquant annule son coup") {
     Generateur generateur = generateurDeTest();
     const TileMap carte = carteDegagee10x10();
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    const std::vector<EntiteVue> monstres = {EntiteVue{1, cibleMonstre({85.0f, 60.0f})}};
+    const std::vector<MonstreVu> monstres = {MonstreVu{IdMonstre{1}, cibleMonstre({85.0f, 60.0f})}};
     REQUIRE(attaquerCibleUnTic(escouade, monstres, carte, generateur) == 0);
 
-    infliger(escouade, 1, {85.0f, 60.0f}, s_coupMortel);  // tue le guerrier en (85, 60)
+    infliger(escouade, IdMonstre{1}, {85.0f, 60.0f}, s_coupMortel);  // tue le guerrier en (85, 60)
 
     int total = 0;
     for (int i = 0; i < nombreDeTics(0.35f); ++i) {
@@ -509,7 +509,7 @@ TEST_CASE("Un skill qui part annule le coup en execution de son lanceur") {
     Generateur generateur = generateurDeTest();
     const TileMap carte = carteDegagee10x10();
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    const std::vector<EntiteVue> monstres = {EntiteVue{1, cibleMonstre({85.0f, 60.0f})}};
+    const std::vector<MonstreVu> monstres = {MonstreVu{IdMonstre{1}, cibleMonstre({85.0f, 60.0f})}};
     REQUIRE(attaquerCibleUnTic(escouade, monstres, carte, generateur) == 0);
 
     // Guerrier : le skill commence son activation (il part à 0,3 s, dans la fenêtre ci-dessous : son coup n'est pas une attaque de base).
@@ -529,34 +529,34 @@ TEST_CASE("recevoirCoup frappe le personnage de la place donnee, pas le plus pro
     Escouade escouade = uneEscouade({50.0f, 50.0f});
 
     // Origine à côté du guerrier de la place 1 (85, 60) ; le coup vise la place 3 (35, 85).
-    subirCoup(escouade, 1, 3, s_coupMortel);
+    subirCoup(escouade, IdMonstre{1}, Place{3}, s_coupMortel);
 
     REQUIRE(escouade.cerclesDesVivants().size() == 2);
-    REQUIRE(escouade.placeEstVivante(1));
-    REQUIRE_FALSE(escouade.placeEstVivante(3));
+    REQUIRE(escouade.placeEstVivante(Place{1}));
+    REQUIRE_FALSE(escouade.placeEstVivante(Place{3}));
 }
 
 TEST_CASE("pointsDeVieDuPersonnage donne les points de vie de la place, vide si la place est invalide") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    const std::optional<int> guerrierAvant = escouade.pointsDeVieDuPersonnage(1);
-    const std::optional<int> pretreAvant = escouade.pointsDeVieDuPersonnage(2);
-    subirCoup(escouade, 1, 2, 10);
+    const std::optional<int> guerrierAvant = escouade.pointsDeVieDuPersonnage(Place{1});
+    const std::optional<int> pretreAvant = escouade.pointsDeVieDuPersonnage(Place{2});
+    subirCoup(escouade, IdMonstre{1}, Place{2}, 10);
 
-    REQUIRE(escouade.pointsDeVieDuPersonnage(1) == guerrierAvant);
-    REQUIRE(escouade.pointsDeVieDuPersonnage(2) == *pretreAvant - 10);  // le prêtre n'a pas d'armure
-    REQUIRE_FALSE(escouade.pointsDeVieDuPersonnage(0).has_value());
-    REQUIRE_FALSE(escouade.pointsDeVieDuPersonnage(4).has_value());
+    REQUIRE(escouade.pointsDeVieDuPersonnage(Place{1}) == guerrierAvant);
+    REQUIRE(escouade.pointsDeVieDuPersonnage(Place{2}) == *pretreAvant - 10);  // le prêtre n'a pas d'armure
+    REQUIRE_FALSE(escouade.pointsDeVieDuPersonnage(Place{0}).has_value());
+    REQUIRE_FALSE(escouade.pointsDeVieDuPersonnage(Place{4}).has_value());
 }
 
 TEST_CASE("entitesDeControle donne la place, le cercle et la zone de chaque vivant") {
     const Escouade escouade = uneEscouade({50.0f, 50.0f});
 
-    const std::vector<EntiteDeControle> entites = escouade.entitesDeControle();
+    const std::vector<PersonnageDeControle> entites = escouade.entitesDeControle();
 
     REQUIRE(entites.size() == 3);
     const std::vector<Cercle> cercles = escouade.cerclesDesVivants();
     for (std::size_t i = 0; i < entites.size(); ++i) {
-        REQUIRE(entites[i].id == static_cast<int>(i + 1));
+        REQUIRE(entites[i].id == Place::depuisIndice(i));
         REQUIRE(entites[i].cercle.centre == cercles[i].centre);
         REQUIRE(entites[i].cercle.rayon == cercles[i].rayon);
     }
@@ -567,86 +567,87 @@ TEST_CASE("entitesDeControle donne la place, le cercle et la zone de chaque viva
 
 TEST_CASE("entitesDeControle exclut les morts mais garde la place des autres") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    subirCoup(escouade, 1, 1, s_coupMortel);  // le guerrier meurt
+    subirCoup(escouade, IdMonstre{1}, Place{1}, s_coupMortel);  // le guerrier meurt
 
-    const std::vector<EntiteDeControle> entites = escouade.entitesDeControle();
+    const std::vector<PersonnageDeControle> entites = escouade.entitesDeControle();
 
     REQUIRE(entites.size() == 2);
-    REQUIRE(entites[0].id == 2);
-    REQUIRE(entites[1].id == 3);
+    REQUIRE(entites[0].id == Place{2});
+    REQUIRE(entites[1].id == Place{3});
 }
 
 TEST_CASE("attaqueDeBase : l'attaque de la place, vide si la place est invalide") {
     const Escouade escouade = uneEscouade({50.0f, 50.0f});
 
-    REQUIRE(dansLaPlage(attaqueDeBaseDe(escouade, 1)->degats.total(), descriptionDeLArme(Objet{IdObjet::EpeeAUneMain})));  // le guerrier
-    REQUIRE(dansLaPlage(attaqueDeBaseDe(escouade, 3)->degats.total(), descriptionDeLArme(Objet{IdObjet::Baton})));        // le mage
-    REQUIRE_FALSE(attaqueDeBaseDe(escouade, 0).has_value());
-    REQUIRE_FALSE(attaqueDeBaseDe(escouade, 4).has_value());
+    REQUIRE(dansLaPlage(attaqueDeBaseDe(escouade, Place{1})->degats.total(), descriptionDeLArme(Objet{IdObjet::EpeeAUneMain})));  // le guerrier
+    REQUIRE(dansLaPlage(attaqueDeBaseDe(escouade, Place{3})->degats.total(), descriptionDeLArme(Objet{IdObjet::Baton})));        // le mage
+    REQUIRE_FALSE(attaqueDeBaseDe(escouade, Place{0}).has_value());
+    REQUIRE_FALSE(attaqueDeBaseDe(escouade, Place{4}).has_value());
 }
 
 TEST_CASE("proieDuMonstre donne la place du personnage vise") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
 
-    REQUIRE(escouade.proieDuMonstre(1, {85.0f, 35.0f})->id == 1);
-    REQUIRE(escouade.proieDuMonstre(1, {35.0f, 85.0f})->id == 3);
-    escouade.provoquer(1, 2, 4.0f);
-    REQUIRE(escouade.proieDuMonstre(1, {35.0f, 85.0f})->id == 2);
+    REQUIRE(escouade.proieDuMonstre(IdMonstre{1}, {85.0f, 35.0f})->id == Place{1});
+    REQUIRE(escouade.proieDuMonstre(IdMonstre{1}, {35.0f, 85.0f})->id == Place{3});
+    escouade.provoquer(IdMonstre{1}, Place{2}, 4.0f);
+    REQUIRE(escouade.proieDuMonstre(IdMonstre{1}, {35.0f, 85.0f})->id == Place{2});
 }
 
 TEST_CASE("candidatsDeFrappe sans provocation donne tous les vivants avec leur place") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
 
-    const std::vector<EntiteVue> candidats = escouade.candidatsDeFrappe(1);
+    const std::vector<PersonnageVu> candidats = escouade.candidatsDeFrappe(IdMonstre{1});
 
     REQUIRE(candidats.size() == 3);
     for (std::size_t i = 0; i < candidats.size(); ++i) {
-        REQUIRE(candidats[i].id == static_cast<int>(i + 1));
+        REQUIRE(candidats[i].id == Place::depuisIndice(i));
     }
     verifierPointProche(candidats[0].cercle.centre, escouade.cerclesDesVivants()[0].centre);
 }
 
 TEST_CASE("candidatsDeFrappe exclut les morts") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    subirCoup(escouade, 1, 3, s_coupMortel);
+    subirCoup(escouade, IdMonstre{1}, Place{3}, s_coupMortel);
 
-    const std::vector<EntiteVue> candidats = escouade.candidatsDeFrappe(1);
+    const std::vector<PersonnageVu> candidats = escouade.candidatsDeFrappe(IdMonstre{1});
 
     REQUIRE(candidats.size() == 2);
-    for (const EntiteVue& candidat : candidats) {
-        REQUIRE(candidat.id != 3);
+    for (const PersonnageVu& candidat : candidats) {
+        REQUIRE(candidat.id != Place{3});
     }
 }
 
 TEST_CASE("candidatsDeFrappe d'un monstre provoque ne donne que le provocateur") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    escouade.provoquer(1, 2, 4.0f);
+    escouade.provoquer(IdMonstre{1}, Place{2}, 4.0f);
 
-    const std::vector<EntiteVue> candidats = escouade.candidatsDeFrappe(1);
+    const std::vector<PersonnageVu> candidats = escouade.candidatsDeFrappe(IdMonstre{1});
 
     REQUIRE(candidats.size() == 1);
-    REQUIRE(candidats[0].id == 2);
-    REQUIRE(escouade.candidatsDeFrappe(2).size() == 3);
+    REQUIRE(candidats[0].id == Place{2});
+    REQUIRE(escouade.candidatsDeFrappe(IdMonstre{2}).size() == 3);
 }
 
 TEST_CASE("candidatsDeFrappe revient a tous les vivants si le provocateur est mort") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    escouade.provoquer(1, 2, 4.0f);
-    subirCoup(escouade, 9, 2, s_coupMortel);
+    escouade.provoquer(IdMonstre{1}, Place{2}, 4.0f);
+    subirCoup(escouade, IdMonstre{9}, Place{2}, s_coupMortel);
 
-    const std::vector<EntiteVue> candidats = escouade.candidatsDeFrappe(1);
+    const std::vector<PersonnageVu> candidats = escouade.candidatsDeFrappe(IdMonstre{1});
 
     REQUIRE(candidats.size() == 2);
-    for (const EntiteVue& candidat : candidats) {
-        REQUIRE(candidat.id != 2);
+    for (const PersonnageVu& candidat : candidats) {
+        REQUIRE(candidat.id != Place{2});
     }
 }
 
 TEST_CASE("candidatsDeFrappe est vide si personne n'est vivant") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    for (std::size_t place = 1; place <= 3; ++place) {
-        subirCoup(escouade, 9, place, s_coupMortel);
+    for (std::size_t numero = 1; numero <= 3; ++numero) {
+        const Place place{numero};
+        subirCoup(escouade, IdMonstre{9}, place, s_coupMortel);
     }
 
-    REQUIRE(escouade.candidatsDeFrappe(1).empty());
+    REQUIRE(escouade.candidatsDeFrappe(IdMonstre{1}).empty());
 }

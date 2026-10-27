@@ -6,7 +6,7 @@ namespace {
 constexpr float s_dureeMemoire = 3.0f;  // en secondes, sans nouveau coup du même monstre
 }  // namespace
 
-void Agresseurs::enregistrer(int id) {
+void Agresseurs::enregistrer(IdMonstre id) {
     const auto connu = std::find_if(m_agresseurs.begin(), m_agresseurs.end(), [&](const Agresseur& a) {
         return a.id == id;
     });
@@ -24,15 +24,15 @@ void Agresseurs::mettreAJour(float dt) {
     std::erase_if(m_agresseurs, [](const Agresseur& a) { return a.tempsRestant <= 0.0f; });
 }
 
-void Agresseurs::retirerMonstresAbsents(const std::vector<EntiteVue>& monstres) {
+void Agresseurs::retirerMonstresAbsents(const std::vector<MonstreVu>& monstres) {
     std::erase_if(m_agresseurs, [&](const Agresseur& a) { return trouverEntite(monstres, a.id) == nullptr; });
 }
 
-std::vector<EntiteVue> Agresseurs::vusParmi(const std::vector<EntiteVue>& monstres) const {
-    std::vector<EntiteVue> vus;
+std::vector<MonstreVu> Agresseurs::vusParmi(const std::vector<MonstreVu>& monstres) const {
+    std::vector<MonstreVu> vus;
     vus.reserve(m_agresseurs.size());
     for (const Agresseur& agresseur : m_agresseurs) {
-        if (const EntiteVue* vu = trouverEntite(monstres, agresseur.id)) {
+        if (const MonstreVu* vu = trouverEntite(monstres, agresseur.id)) {
             vus.push_back(*vu);
         }
     }

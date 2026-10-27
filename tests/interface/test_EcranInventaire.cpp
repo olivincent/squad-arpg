@@ -23,8 +23,8 @@ namespace {
 
 const std::vector<std::string> s_noms = {"Guerrier", "Pretre", "Mage"};
 const sf::Vector2f s_vue{1200.0f, 800.0f};
-constexpr std::size_t s_guerrier = 1;
-constexpr std::size_t s_mage = 3;
+constexpr Place s_guerrier{1};
+constexpr Place s_mage{3};
 
 sf::Vector2f centre(sf::FloatRect zone) {
     return zone.position + zone.size / 2.0f;
@@ -34,7 +34,7 @@ sf::Vector2f centreDeLaCase(std::size_t indice) {
     return centre(rectangleDeLaCaseDuSac(indice, s_vue));
 }
 
-sf::Vector2f centreDeLEmplacement(std::size_t place, Emplacement emplacement) {
+sf::Vector2f centreDeLEmplacement(Place place, Emplacement emplacement) {
     return centre(rectangleDeLEmplacement(place, emplacement, s_vue));
 }
 
@@ -281,7 +281,7 @@ TEST_CASE("glissement : annulerLeGlissement abandonne sans rien deplacer") {
 
 // Les points libres et leur brouillon (étape 100.2). Une partie de niveau 2 : chaque personnage a 3 points libres.
 namespace {
-constexpr std::size_t s_pretre = 2;
+constexpr Place s_pretre{2};
 
 Partie partieDeNiveau(int niveau) {
     Expedition expedition = expeditionDeTest();

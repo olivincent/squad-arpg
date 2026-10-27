@@ -15,7 +15,7 @@ TEST_CASE("cliquer sur un monstre le verrouille") {
     Partie partie = unePartie(niveauDegage({{400.0f, 400.0f}, {300.0f, 400.0f}}), s_graineDeTest);
 
     REQUIRE(partie.cliquer({300.0f, 400.0f}) == ResultatClic::Monstre);
-    REQUIRE(partie.getEscouade().getCibleVerrouillee() == 2);
+    REQUIRE(partie.getEscouade().getCibleVerrouillee() == IdMonstre{2});
 }
 
 TEST_CASE("cliquer au sol renvoie Sol et leve le verrou") {
@@ -70,7 +70,7 @@ TEST_CASE("vision : le meme monstre devient cliquable quand l'escouade s'en appr
     avancer(partie, 150);
 
     REQUIRE(partie.cliquer(s_monstreAuLoin) == ResultatClic::Monstre);
-    REQUIRE(partie.getEscouade().getCibleVerrouillee() == 1);
+    REQUIRE(partie.getEscouade().getCibleVerrouillee() == IdMonstre{1});
 }
 
 namespace {

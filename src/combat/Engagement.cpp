@@ -5,8 +5,9 @@
 
 namespace {
 // L'entité de cet identifiant, nullptr si elle est absente.
-const EntiteDeControle* trouver(const std::vector<EntiteDeControle>& entites, int id) {
-    for (const EntiteDeControle& entite : entites) {
+template <class Identifiant>
+const EntiteDeControle<Identifiant>* trouver(const std::vector<EntiteDeControle<Identifiant>>& entites, Identifiant id) {
+    for (const EntiteDeControle<Identifiant>& entite : entites) {
         if (entite.id == id) {
             return &entite;
         }
@@ -14,8 +15,9 @@ const EntiteDeControle* trouver(const std::vector<EntiteDeControle>& entites, in
     return nullptr;
 }
 
-bool engageQuelquUn(const EntiteDeControle& attaquant, const std::vector<EntiteDeControle>& cibles) {
-    for (const EntiteDeControle& cible : cibles) {
+template <class IdA, class IdC>
+bool engageQuelquUn(const EntiteDeControle<IdA>& attaquant, const std::vector<EntiteDeControle<IdC>>& cibles) {
+    for (const EntiteDeControle<IdC>& cible : cibles) {
         if (engage(attaquant, cible)) {
             return true;
         }
@@ -26,8 +28,9 @@ bool engageQuelquUn(const EntiteDeControle& attaquant, const std::vector<EntiteD
 // Qui a rompu le contact : la cible, si elle s'est écartée de l'attaquant au moins autant que
 // l'attaquant s'est écarté d'elle (déplacements projetés sur la droite attaquant → cible du début).
 // Deux centres confondus n'ont pas de direction : personne n'a fui.
-bool cibleAFui(const EntiteDeControle& attaquantAvant, const EntiteDeControle& attaquantApres,
-               const EntiteDeControle& cibleAvant, const EntiteDeControle& cibleApres) {
+template <class IdA, class IdC>
+bool cibleAFui(const EntiteDeControle<IdA>& attaquantAvant, const EntiteDeControle<IdA>& attaquantApres,
+               const EntiteDeControle<IdC>& cibleAvant, const EntiteDeControle<IdC>& cibleApres) {
     const sf::Vector2f direction = cibleAvant.cercle.centre - attaquantAvant.cercle.centre;
     if (direction.lengthSquared() == 0.0f) {
         return false;
@@ -37,10 +40,10 @@ bool cibleAFui(const EntiteDeControle& attaquantAvant, const EntiteDeControle& a
     return ecartDeLaCible >= ecartDeLAttaquant;
 }
 
-// Le monstre engage-t-il un personnage d'identifiant différent de `idExclu` ?
-bool engageUnAutre(const EntiteDeControle& monstre, const std::vector<EntiteDeControle>& personnages, int idExclu) {
-    for (const EntiteDeControle& personnage : personnages) {
-        if (personnage.id != idExclu && engage(monstre, personnage)) {
+// Le monstre engage-t-il un personnage de place différente de `placeExclue` ?
+bool engageUnAutre(const MonstreDeControle& monstre, const std::vector<PersonnageDeControle>& personnages, Place placeExclue) {
+    for (const PersonnageDeControle& personnage : personnages) {
+        if (personnage.id != placeExclue && engage(monstre, personnage)) {
             return true;
         }
     }
@@ -48,22 +51,20 @@ bool engageUnAutre(const EntiteDeControle& monstre, const std::vector<EntiteDeCo
 }
 }  // namespace
 
-bool engage(const EntiteDeControle& a, const EntiteDeControle& b) {
-    return a.zone > 0.0f && distanceBordABord(a.cercle, b.cercle) <= a.zone;
-}
-
-std::vector<CoupDOpportunite> coupsDOpportunite(const PhotoDesCamps& avant, const PhotoDesCamps& apres) {
-    std::vector<CoupDOpportunite> coups;
-    for (const EntiteDeControle& attaquantAvant : avant.attaquants) {
-        const EntiteDeControle* attaquantApres = trouver(apres.attaquants, attaquantAvant.id);
+template <class IdAttaquant, class IdCible>
+std::vector<CoupDOpportunite<IdAttaquant, IdCible>> coupsDOpportunite(const PhotoDesCamps<IdAttaquant, IdCible>& avant,
+                                                                      const PhotoDesCamps<IdAttaquant, IdCible>& apres) {
+    std::vector<CoupDOpportunite<IdAttaquant, IdCible>> coups;
+    for (const EntiteDeControle<IdAttaquant>& attaquantAvant : avant.attaquants) {
+        const EntiteDeControle<IdAttaquant>* attaquantApres = trouver(apres.attaquants, attaquantAvant.id);
         // Absent à la fin (mort, retiré) : rien. Encore au contact de quelqu'un à la fin : exempté.
         if (attaquantApres == nullptr || engageQuelquUn(*attaquantApres, apres.cibles)) {
             continue;
         }
-        const EntiteDeControle* fuyardChoisi = nullptr;
+        const EntiteDeControle<IdCible>* fuyardChoisi = nullptr;
         float ecartChoisi = 0.0f;
-        for (const EntiteDeControle& cibleAvant : avant.cibles) {
-            const EntiteDeControle* cibleApres = trouver(apres.cibles, cibleAvant.id);
+        for (const EntiteDeControle<IdCible>& cibleAvant : avant.cibles) {
+            const EntiteDeControle<IdCible>* cibleApres = trouver(apres.cibles, cibleAvant.id);
             // Seule une paire engagée au début, dont la cible existe encore, a pu se rompre ;
             // l'attaquant n'engage plus personne à la fin, donc elle est bien rompue.
             if (cibleApres == nullptr || !engage(attaquantAvant, cibleAvant) ||
@@ -83,15 +84,21 @@ std::vector<CoupDOpportunite> coupsDOpportunite(const PhotoDesCamps& avant, cons
     return coups;
 }
 
-std::optional<int> monstreDontSeDegager(const EntiteDeControle& personnage,
-                                        const std::vector<EntiteDeControle>& personnages,
-                                        const std::vector<EntiteDeControle>& monstres) {
+// Les deux sens de la règle : un monstre contre un personnage, et un personnage contre un monstre.
+template std::vector<CoupDOpportunite<IdMonstre, Place>> coupsDOpportunite(const PhotoDesCamps<IdMonstre, Place>&,
+                                                                          const PhotoDesCamps<IdMonstre, Place>&);
+template std::vector<CoupDOpportunite<Place, IdMonstre>> coupsDOpportunite(const PhotoDesCamps<Place, IdMonstre>&,
+                                                                          const PhotoDesCamps<Place, IdMonstre>&);
+
+std::optional<IdMonstre> monstreDontSeDegager(const PersonnageDeControle& personnage,
+                                              const std::vector<PersonnageDeControle>& personnages,
+                                              const std::vector<MonstreDeControle>& monstres) {
     if (personnage.zone > 0.0f) {
         return std::nullopt;
     }
-    const EntiteDeControle* plusProche = nullptr;
+    const MonstreDeControle* plusProche = nullptr;
     float ecartChoisi = 0.0f;
-    for (const EntiteDeControle& monstre : monstres) {
+    for (const MonstreDeControle& monstre : monstres) {
         if (!engage(monstre, personnage)) {
             continue;
         }

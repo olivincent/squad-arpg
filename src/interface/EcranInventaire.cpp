@@ -142,7 +142,7 @@ void dessinerBouton(sf::RenderTarget& rendu, const sf::Font& police, sf::FloatRe
 // points libres : un « + » par caractéristique (grisé s'il n'en reste plus à répartir), un « − » là où il y en a en attente,
 // et « Apply » et « Reset » sur la ligne des points de vie s'il y a quelque chose en attente.
 void dessinerLesCaracteristiques(sf::RenderTarget& rendu, const sf::Font& police, const Escouade& escouade,
-                                 std::size_t place, sf::Vector2f tailleDeVue, const Caracteristiques& enAttente) {
+                                 Place place, sf::Vector2f tailleDeVue, const Caracteristiques& enAttente) {
     const Caracteristiques effectives = escouade.caracteristiquesDuPersonnage(place).value_or(Caracteristiques());
     const Caracteristiques bonus = escouade.equipementActifDuPersonnage(place).bonusTotal();
     const int libres = escouade.pointsLibresDuPersonnage(place).value_or(0);
@@ -175,7 +175,7 @@ void dessinerLesCaracteristiques(sf::RenderTarget& rendu, const sf::Font& police
 }
 
 // Sous les caractéristiques : ses statistiques de combat (capacités offensive et défensive).
-void dessinerLesStatistiques(sf::RenderTarget& rendu, const sf::Font& police, const Escouade& escouade, std::size_t place,
+void dessinerLesStatistiques(sf::RenderTarget& rendu, const sf::Font& police, const Escouade& escouade, Place place,
                              sf::Vector2f tailleDeVue) {
     const std::vector<std::string> lignes = lignesDeStatistiques(escouade.statistiquesDeCombatDuPersonnage(place).value_or(StatistiquesDeCombat()));
     for (std::size_t i = 0; i < lignes.size(); ++i) {
@@ -184,7 +184,7 @@ void dessinerLesStatistiques(sf::RenderTarget& rendu, const sf::Font& police, co
 }
 
 // La colonne d'un personnage : son en-tête (classe, couleur du personnage), son armure et ses 10 emplacements.
-void dessinerColonne(sf::RenderTarget& rendu, const sf::Font& police, const Escouade& escouade, std::size_t place,
+void dessinerColonne(sf::RenderTarget& rendu, const sf::Font& police, const Escouade& escouade, Place place,
                      const std::string& nomDeLaClasse, sf::Vector2f tailleDeVue, const Caracteristiques& enAttente) {
     const sf::FloatRect enTete = rectangleDeLEnTete(place, tailleDeVue);
     dessinerRectangle(rendu, enTete, escouade.couleurDuPersonnage(place).value_or(sf::Color(90, 90, 90)), sf::Color::Black);
@@ -273,7 +273,7 @@ void dessinerLesDestinations(sf::RenderTarget& rendu, const Escouade& escouade, 
             dessinerSurbrillance(rendu, rectangleDe(position, tailleDeVue));
         }
     };
-    for (std::size_t place = 1; place <= s_nombreDePlaces; ++place) {
+    for (const Place place : s_places) {
         for (std::size_t i = 0; i < s_nombreEmplacements; ++i) {
             surligner(PositionPortee{place, static_cast<Emplacement>(i)});
         }
@@ -357,28 +357,28 @@ Transition EcranInventaire::appuyer(sf::Keyboard::Scancode touche) {
     return Aucune{};
 }
 
-const Caracteristiques& EcranInventaire::pointsEnAttente(std::size_t place) const {
-    assert(place >= 1 && place <= s_nombreDePlaces);
-    return m_enAttente[place - 1];
+const Caracteristiques& EcranInventaire::pointsEnAttente(Place place) const {
+    assert(place.numero <= s_nombreDePlaces);
+    return m_enAttente[place.indice()];
 }
 
-int EcranInventaire::pointsRestants(std::size_t place) const {
+int EcranInventaire::pointsRestants(Place place) const {
     return m_escouade.pointsLibresDuPersonnage(place).value_or(0) - pointsEnAttente(place).somme();
 }
 
-void EcranInventaire::ajouterUnPoint(std::size_t place, Caracteristique caracteristique) {
+void EcranInventaire::ajouterUnPoint(Place place, Caracteristique caracteristique) {
     if (pointsRestants(place) > 0) {
-        m_enAttente[place - 1] += Caracteristiques::seule(caracteristique, 1);
+        m_enAttente[place.indice()] += Caracteristiques::seule(caracteristique, 1);
     }
 }
 
-void EcranInventaire::retirerUnPoint(std::size_t place, Caracteristique caracteristique) {
+void EcranInventaire::retirerUnPoint(Place place, Caracteristique caracteristique) {
     if (pointsEnAttente(place).valeur(caracteristique) > 0) {
-        m_enAttente[place - 1] += Caracteristiques::seule(caracteristique, -1);
+        m_enAttente[place.indice()] += Caracteristiques::seule(caracteristique, -1);
     }
 }
 
-void EcranInventaire::appliquer(std::size_t place) {
+void EcranInventaire::appliquer(Place place) {
     const Caracteristiques& enAttente = pointsEnAttente(place);
     if (enAttente.somme() == 0) {
         return;
@@ -390,9 +390,9 @@ void EcranInventaire::appliquer(std::size_t place) {
     reinitialiser(place);
 }
 
-void EcranInventaire::reinitialiser(std::size_t place) {
-    assert(place >= 1 && place <= s_nombreDePlaces);
-    m_enAttente[place - 1] = Caracteristiques();
+void EcranInventaire::reinitialiser(Place place) {
+    assert(place.numero <= s_nombreDePlaces);
+    m_enAttente[place.indice()] = Caracteristiques();
 }
 
 void EcranInventaire::cliquerSurUnBouton(const BoutonDePoints& bouton) {
@@ -490,8 +490,8 @@ void EcranInventaire::dessiner(const Contexte& contexte) const {
     niveau.setPosition({zonePanneau.position.x + zonePanneau.size.x - s_margeDuNiveau, zonePanneau.position.y + s_hauteurTitre});
     fenetre.draw(niveau);
 
-    for (std::size_t place = 1; place <= s_nombreDePlaces; ++place) {
-        dessinerColonne(fenetre, contexte.police, m_escouade, place, m_nomsDesClasses[place - 1], tailleVue, m_enAttente[place - 1]);
+    for (const Place place : s_places) {
+        dessinerColonne(fenetre, contexte.police, m_escouade, place, m_nomsDesClasses[place.indice()], tailleVue, m_enAttente[place.indice()]);
     }
     dessinerLeSac(fenetre, contexte.police, m_escouade.sac(), tailleVue);
 

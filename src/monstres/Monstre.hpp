@@ -5,6 +5,8 @@
 #include "base/Cercle.hpp"
 #include "combat/Attaque.hpp"
 #include "combat/EntiteVue.hpp"
+#include "combat/IdMonstre.hpp"
+#include "combat/Place.hpp"
 #include "combat/ResolutionDuCoup.hpp"
 #include "monde/Mobile.hpp"
 #include "combat/StatistiquesDeCombat.hpp"
@@ -24,7 +26,7 @@ public:
     // ensemble ». Le monstre ne sait pas ce qu'il désigne. `definition` : toutes ses valeurs
     // d'équilibrage (taille, couleur, vitesse, points de vie, armure, détection, territoire, zone de contrôle,
     // attaque) ; le monstre n'en choisit aucune.
-    Monstre(sf::Vector2f centre, int id, int groupe, const DefinitionDeMonstre& definition);
+    Monstre(sf::Vector2f centre, IdMonstre id, int groupe, const DefinitionDeMonstre& definition);
     // `marquerLeRetour` (débogage F3) : le carré d'un monstre qui rentre à son poste est semi-transparent.
     void dessiner(sf::RenderTarget& rendu, bool estCible, bool marquerLeRetour) const;
     // Débogage (F3) : trait fin du centre du monstre à travers le chemin restant de son Mobile.
@@ -34,7 +36,7 @@ public:
     // Il s'arrête dès qu'il a une cible de frappe (voir `engagerAttaque`).
     // `obstacles` le bloquent (collision) ; `aContourner` est ce que son chemin évite (voir `Mobile::allerVers`) :
     // les autres monstres, pas les personnages (un personnage sur le chemin est quelqu'un à frapper).
-    void mettreAJour(float dt, std::optional<EntiteVue> proie, const std::vector<EntiteVue>& candidats,
+    void mettreAJour(float dt, std::optional<PersonnageVu> proie, const std::vector<PersonnageVu>& candidats,
                      const TileMap& carte, const std::vector<Cercle>& obstacles,
                      const std::vector<Cercle>& aContourner);
     // Attaque en trois temps, comme celle d'un personnage : engager (cible à
@@ -46,14 +48,14 @@ public:
     // Engage sur la cible de frappe : la proie si elle est atteignable, sinon le
     // candidat atteignable le plus proche. Le monstre retient l'identifiant (la
     // place du personnage) jusqu'au départ du coup.
-    [[nodiscard]] bool engagerAttaque(std::optional<EntiteVue> proie, const std::vector<EntiteVue>& candidats, const TileMap& carte);
+    [[nodiscard]] bool engagerAttaque(std::optional<PersonnageVu> proie, const std::vector<PersonnageVu>& candidats, const TileMap& carte);
     // Identifiant (place) du personnage visé par le coup en exécution ; vide hors exécution.
-    [[nodiscard]] std::optional<int> cibleEngagee() const;
+    [[nodiscard]] std::optional<Place> cibleEngagee() const;
     [[nodiscard]] std::optional<Attaque> avancerAttaque(float dt, Generateur& generateur);
     void annulerAttaque();
     [[nodiscard]] sf::Vector2f getCentre() const;
     [[nodiscard]] Cercle getCercle() const;
-    [[nodiscard]] int getId() const;
+    [[nodiscard]] IdMonstre getId() const;
     [[nodiscard]] int getGroupe() const;
     [[nodiscard]] bool contient(sf::Vector2f point) const;
     // Sans aucun effet (ni dégâts, ni alerte, ni tirage) pendant le retour au poste : le monstre est invulnérable.
@@ -87,15 +89,15 @@ public:
 private:
     enum class Etat { EnGarde, Poursuite, Retour };
 
-    [[nodiscard]] bool proieDetectee(const std::optional<EntiteVue>& proie, const TileMap& carte) const;
+    [[nodiscard]] bool proieDetectee(const std::optional<PersonnageVu>& proie, const TileMap& carte) const;
     // Règle propre au monstre : `choisirCibleAFrapper` avec `peutAtteindre`, la proie préférée.
-    [[nodiscard]] std::optional<EntiteVue> cibleDeFrappe(const std::optional<EntiteVue>& proie,
-                                           const std::vector<EntiteVue>& candidats, const TileMap& carte) const;
+    [[nodiscard]] std::optional<PersonnageVu> cibleDeFrappe(const std::optional<PersonnageVu>& proie,
+                                           const std::vector<PersonnageVu>& candidats, const TileMap& carte) const;
 
     Mobile m_mobile;
     sf::Color m_couleur;
     Vitalite m_vitalite; // points de vie et armure
-    int m_id;
+    IdMonstre m_id;
     int m_groupe;
     Skill m_attaque;
     Degats m_degats;  // les portions de son coup
@@ -111,5 +113,5 @@ private:
     sf::Vector2f m_poste;
     bool m_alerte; // posée par `alerter`, consommée par `mettreAJour`
     float m_soinAccumule; // points de vie rendus pas encore entiers, pendant le retour ; 0 ailleurs
-    std::optional<int> m_idCibleEngagee; // lu seulement pendant l'exécution
+    std::optional<Place> m_placeCibleEngagee; // lu seulement pendant l'exécution
 };

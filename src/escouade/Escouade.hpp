@@ -24,7 +24,9 @@
 #include "combat/StatistiquesDeCombat.hpp"
 #include "combat/Engagement.hpp"
 #include "combat/EtatSkill.hpp"
+#include "combat/IdMonstre.hpp"
 #include "combat/IdSkill.hpp"
+#include "combat/Place.hpp"
 #include "monde/Mobile.hpp"
 #include "combat/EntiteVue.hpp"
 #include "escouade/Personnage.hpp"
@@ -62,8 +64,8 @@ public:
     // l'ancre (allerVers, approche du verrou, verrouiller) l'efface.
     void regarderVers(sf::Vector2f point);
     void annulerAttaquesEngagees();
-    [[nodiscard]] std::vector<Coup> attaquer(float dt, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
-    [[nodiscard]] std::vector<Coup> declencherSkill(AdresseSkill adresse, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
+    [[nodiscard]] std::vector<Coup> attaquer(float dt, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur);
+    [[nodiscard]] std::vector<Coup> declencherSkill(AdresseSkill adresse, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur);
     [[nodiscard]] bool skillEstPret(AdresseSkill adresse) const;
     [[nodiscard]] std::optional<EtatSkill> etatDuSkill(AdresseSkill adresse) const;
     // Type du skill à cette adresse ; vide si la place est invalide ou le skill inconnu de ce personnage.
@@ -72,33 +74,33 @@ public:
     // liste de chaque personnage.
     [[nodiscard]] std::vector<AdresseSkill> adressesDesSkills() const;
     // Couleur du personnage de cette place ; vide si la place est invalide.
-    [[nodiscard]] std::optional<sf::Color> couleurDuPersonnage(std::size_t place) const;
+    [[nodiscard]] std::optional<sf::Color> couleurDuPersonnage(Place place) const;
     // Points de vie du personnage de cette place ; vide si la place est invalide. Lu par les tests et par
     // l'écran d'inventaire (le jeu les montre sinon par la barre de vie dessinée).
-    [[nodiscard]] std::optional<int> pointsDeVieDuPersonnage(std::size_t place) const;
+    [[nodiscard]] std::optional<int> pointsDeVieDuPersonnage(Place place) const;
     // Points de vie maximum du personnage de cette place ; vide si la place est invalide.
-    [[nodiscard]] std::optional<int> pointsDeVieMaxDuPersonnage(std::size_t place) const;
+    [[nodiscard]] std::optional<int> pointsDeVieMaxDuPersonnage(Place place) const;
     // Caractéristiques effectives (base plus équipement) du personnage de cette place ; vide si la place est invalide.
-    [[nodiscard]] std::optional<Caracteristiques> caracteristiquesDuPersonnage(std::size_t place) const;
+    [[nodiscard]] std::optional<Caracteristiques> caracteristiquesDuPersonnage(Place place) const;
     // Caractéristiques de base (celles de sa classe, sans l'équipement) du personnage de cette place ; vide si la place est
     // invalide. Ce que l'expédition garde d'un étage à l'autre.
-    [[nodiscard]] std::optional<Caracteristiques> caracteristiquesDeBaseDuPersonnage(std::size_t place) const;
+    [[nodiscard]] std::optional<Caracteristiques> caracteristiquesDeBaseDuPersonnage(Place place) const;
     // Les points libres que le personnage de cette place a dépensés (ce que l'expédition garde), et ceux qui lui restent à
     // dépenser (calculés : `Personnage::getPointsLibres`) ; vide si la place est invalide.
-    [[nodiscard]] std::optional<Caracteristiques> pointsDepensesDuPersonnage(std::size_t place) const;
-    [[nodiscard]] std::optional<int> pointsLibresDuPersonnage(std::size_t place) const;
+    [[nodiscard]] std::optional<Caracteristiques> pointsDepensesDuPersonnage(Place place) const;
+    [[nodiscard]] std::optional<int> pointsLibresDuPersonnage(Place place) const;
     // Au moins un personnage, mort compris (il garde ses points), a des points libres à dépenser : le signal « Points to spend ».
     [[nodiscard]] bool aDesPointsLibres() const;
     // Fait dépenser ces points au personnage de cette place (`Personnage::depenserDesPoints`), tout ou rien ; faux, sans rien
     // changer, si la place est invalide ou si la dépense est refusée (valeur négative, plus que ses points libres). Permis à
     // tout moment, même en combat, et pour un mort.
-    [[nodiscard]] bool depenserDesPoints(std::size_t place, const Caracteristiques& depense);
+    [[nodiscard]] bool depenserDesPoints(Place place, const Caracteristiques& depense);
     // Statistiques de combat du personnage de cette place (tirées de ses caractéristiques effectives) ; vide
     // si la place est invalide. Lues par l'écran d'inventaire.
-    [[nodiscard]] std::optional<StatistiquesDeCombat> statistiquesDeCombatDuPersonnage(std::size_t place) const;
+    [[nodiscard]] std::optional<StatistiquesDeCombat> statistiquesDeCombatDuPersonnage(Place place) const;
     [[nodiscard]] float rayonZoneDuSkill(AdresseSkill adresse) const;
     [[nodiscard]] Cercle cercleDePorteeDuSkill(AdresseSkill adresse) const;
-    [[nodiscard]] std::vector<Coup> declencherSkillDeZone(AdresseSkill adresse, sf::Vector2f point, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
+    [[nodiscard]] std::vector<Coup> declencherSkillDeZone(AdresseSkill adresse, sf::Vector2f point, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur);
     // Les monstres tels que mettreAJour les reçoit, en trois listes nommées (on ne peut pas en
     // inverser deux). Aucun champ n'a de valeur par défaut : en omettre un dans une initialisation
     // désignée est signalé par le compilateur (-Wmissing-field-initializers). Si Partie oubliait
@@ -106,58 +108,58 @@ public:
     struct VueDesMonstres {
         // Tous les monstres, même ceux qui rentrent à leur poste : ils bloquent les personnages, et
         // chacun contourne en plus tous ceux qu'il n'approche pas.
-        std::vector<EntiteVue> physiques;
+        std::vector<MonstreVu> physiques;
         // Ceux qu'on peut viser (pas ceux qui rentrent à leur poste) : le verrou n'est vu, et un
         // monstre n'est « à portée », que s'il y est.
-        std::vector<EntiteVue> ciblables;
+        std::vector<MonstreVu> ciblables;
         // Ceux que la règle des zones de contrôle voit, avec leur zone ; Partie y met la photo du
         // début de l'image. Vide : aucun personnage ne se dégage.
-        std::vector<EntiteDeControle> deControle;
+        std::vector<MonstreDeControle> deControle;
     };
     void mettreAJour(float dt, const TileMap& carte, const VueDesMonstres& monstres);
     [[nodiscard]] sf::Vector2f getCentre() const;
     // Personnage que ce monstre poursuit : l'identifiant est sa place (1 à N), le cercle le sien.
-    [[nodiscard]] std::optional<EntiteVue> proieDuMonstre(int idMonstre, sf::Vector2f positionMonstre) const;
+    [[nodiscard]] std::optional<PersonnageVu> proieDuMonstre(IdMonstre idMonstre, sf::Vector2f positionMonstre) const;
     // Personnages que ce monstre peut frapper (identifiant = place) : seulement son
     // provocateur s'il est provoqué et vivant, sinon tous les personnages vivants.
-    [[nodiscard]] std::vector<EntiteVue> candidatsDeFrappe(int idMonstre) const;
-    [[nodiscard]] bool placeEstVivante(std::size_t place) const;
+    [[nodiscard]] std::vector<PersonnageVu> candidatsDeFrappe(IdMonstre idMonstre) const;
+    [[nodiscard]] bool placeEstVivante(Place place) const;
     // Une attaque du monstre `idMonstre` sur le personnage de cette place. Renvoie le résultat du coup
     // (`resoudreCoup`, qui tire dans `generateur`) : les dégâts réellement subis (après armure) ; rien si la
     // place est invalide ou morte. Une attaque qui a des dégâts désigne son auteur comme agresseur.
-    ResultatDuCoup recevoirCoup(int idMonstre, std::size_t place, const Attaque& attaque, Generateur& generateur);
+    ResultatDuCoup recevoirCoup(IdMonstre idMonstre, Place place, const Attaque& attaque, Generateur& generateur);
     [[nodiscard]] bool estVivante() const;
     [[nodiscard]] std::vector<Cercle> cerclesDesVivants() const;
     // Une entité de contrôle (identifiant = place de 1 à N, cercle, zone de contrôle) par personnage
     // vivant : les morts n'engagent personne et ne sont pas engagés.
-    [[nodiscard]] std::vector<EntiteDeControle> entitesDeControle() const;
+    [[nodiscard]] std::vector<PersonnageDeControle> entitesDeControle() const;
     // Attaque de base du personnage de cette place (dégâts tirés dans la plage de son arme, avant l'armure de la cible,
     // capacité offensive) : un coup d'opportunité la lit ici, avec le générateur de la partie. Vide si la place est invalide.
-    [[nodiscard]] std::optional<Attaque> attaqueDeBase(std::size_t place, Generateur& generateur) const;
+    [[nodiscard]] std::optional<Attaque> attaqueDeBase(Place place, Generateur& generateur) const;
     // Un cercle (centre du personnage, rayon de vision) par personnage vivant : la vision de
     // l'escouade est l'union de leurs champs.
     [[nodiscard]] std::vector<Cercle> cerclesDeVision() const;
     // Un personnage vivant est-il à `ecart` ou moins (bord à bord) de cette zone ?
     [[nodiscard]] bool unVivantPresDe(sf::FloatRect zone, float ecart) const;
     // Lu par les tests : le choix de la cible, avant tout temps d'activation (declencherSkill l'appelle aussi).
-    [[nodiscard]] std::optional<Cible> choisirCible(TypeSkill type, AdresseSkill adresse, const std::vector<EntiteVue>& monstres, const TileMap& carte) const;
-    void verrouiller(int idCible);
+    [[nodiscard]] std::optional<Cible> choisirCible(TypeSkill type, AdresseSkill adresse, const std::vector<MonstreVu>& monstres, const TileMap& carte) const;
+    void verrouiller(IdMonstre idCible);
     void deverrouiller();
-    [[nodiscard]] std::optional<int> getCibleVerrouillee() const;
+    [[nodiscard]] std::optional<IdMonstre> getCibleVerrouillee() const;
     // Les places de formation du dernier mettreAJour. Lu par les tests : la Formation est extraite, mais
     // l'assemblage (Escouade la met à jour avec la direction de marche et les obstacles) ne s'observe que là.
     [[nodiscard]] const std::vector<sf::Vector2f>& getPlacesDeFormation() const;
     // Identifiant du monstre dont le personnage de cette place se dégage (voir degagementVoulu) ;
     // vide s'il ne se dégage pas ou si la place est invalide. Lu par les tests : la règle de départ et de
     // fin du dégagement (degagementVoulu) n'est pas extraite, son résultat ne se voit que là.
-    [[nodiscard]] std::optional<int> degagementDuPersonnage(std::size_t place) const;
+    [[nodiscard]] std::optional<IdMonstre> degagementDuPersonnage(Place place) const;
     // Centre du personnage de cette place (de 1 à N), mort ou vivant ; vide si la place est invalide.
-    [[nodiscard]] std::optional<sf::Vector2f> centreDuPersonnage(std::size_t place) const;
+    [[nodiscard]] std::optional<sf::Vector2f> centreDuPersonnage(Place place) const;
     // Un soin appliqué : le personnage soigné (sa place), les points réellement rendus (jamais 0), son centre
     // à ce moment et si le soin était un critique. Données de sortie, comme les `Coup` : Escouade ne sait pas
     // qui les lit.
     struct SoinApplique {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
-        std::size_t place;
+        Place place;
         int montant;
         sf::Vector2f position;
         bool critique;
@@ -166,14 +168,14 @@ public:
     // par sorte de fait. `Partie` en fait des événements de combat.
     // Un skill qui part (fin de son activation) : la place du lanceur, le skill et son centre à ce moment.
     struct SkillPart {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
-        std::size_t place;
+        Place place;
         IdSkill skill;
         sf::Vector2f position;
     };
     // Un monstre que la provocation d'un skill vient de provoquer (de nouveau, s'il l'était déjà).
     // Pas de position : `Partie` la lit sur le monstre.
     struct MonstreProvoque {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
-        int idMonstre;
+        IdMonstre idMonstre;
     };
     using FaitDEscouade = std::variant<SoinApplique, SkillPart, MonstreProvoque>;
     // Les faits survenus depuis le dernier appel (par `declencherSkill` et `attaquer`), dans l'ordre ;
@@ -183,7 +185,7 @@ public:
     // mettreAJour : place de formation, place d'attaque, cible du skill en attente, ou sa
     // propre position s'il reste sur place. Vide si la place est invalide. Lu par les tests : la
     // résolution intention -> point est l'assemblage d'Escouade, que ni Intention ni PlacesDAttaque ne voient.
-    [[nodiscard]] std::optional<sf::Vector2f> pointVise(std::size_t place) const;
+    [[nodiscard]] std::optional<sf::Vector2f> pointVise(Place place) const;
     // Débogage : un trait fin du centre de chaque personnage vivant à son point visé, et un petit
     // cercle à ce point.
     void dessinerPointsVises(sf::RenderTarget& rendu) const;
@@ -193,9 +195,9 @@ public:
     // Le sac de l'escouade (cases à position fixe) et l'équipement du personnage de cette place
     // (`assert` : place valide). Lus par l'écran d'inventaire.
     [[nodiscard]] const Inventaire& sac() const;
-    [[nodiscard]] const Equipement& equipementDuPersonnage(std::size_t place) const;
+    [[nodiscard]] const Equipement& equipementDuPersonnage(Place place) const;
     // Le même, sans ses objets inactifs (seuil non atteint) : celui dont l'armure et les bonus ont un effet (étape 92.2).
-    [[nodiscard]] const Equipement& equipementActifDuPersonnage(std::size_t place) const;
+    [[nodiscard]] const Equipement& equipementActifDuPersonnage(Place place) const;
     // Les opérations sont transactionnelles : vraies, tout a été fait ; fausses, rien n'a bougé.
     // Un objet n'est jamais à deux endroits, ni nulle part. L'armure du personnage est recalculée.
     // Équiper ou déséquiper un personnage mort est permis. `assert` : place valide, case du sac < capacité.
@@ -213,7 +215,7 @@ public:
     // rien ne manque ou si le déplacement est refusé pour une autre raison. L'écran les montre en rouge (étape 92.3).
     [[nodiscard]] std::vector<SeuilDeCaracteristique> seuilsManques(const PositionDObjet& de, const PositionDObjet& vers) const;
     // L'objet porté à cet emplacement est-il inactif (porté, mais son seuil n'est plus atteint) ? Faux sans objet.
-    [[nodiscard]] bool objetPorteEstInactif(std::size_t place, Emplacement emplacement) const;
+    [[nodiscard]] bool objetPorteEstInactif(Place place, Emplacement emplacement) const;
     // L'objet de `de` va à `vers` ; si `vers` est occupé, les deux objets s'échangent ; une arme à deux mains range
     // l'objet de la main gauche dans le sac (et un bouclier une arme à deux mains). Faux, sans rien changer, si
     // `peutDeplacerObjet` est faux ; vrai sans effet si `de == vers`.
@@ -223,48 +225,48 @@ public:
     // recalculées, et un skill (en activation ou en attente) qui exigeait l'arme retirée est abandonné. L'objet n'est plus
     // nulle part : celui qui l'a retiré doit le poser ailleurs (le sol, `Partie::jeterUnObjet`).
     [[nodiscard]] std::optional<Objet> retirerObjet(const PositionDObjet& position);
-    void provoquer(int idMonstre, std::size_t place, float duree);
+    void provoquer(IdMonstre idMonstre, Place place, float duree);
     // Lu par les tests : le provocateur, l'identifiant et la durée restante, que candidatsDeFrappe ne montre pas.
     [[nodiscard]] const std::vector<Provocations::Provocation>& getProvocations() const;
 
 private:
     // Le sac et l'équipement de chaque personnage, copiés : l'état sur lequel se décide un déplacement.
     [[nodiscard]] EtatDesObjets etatDesObjets() const;
-    // Place de 1 à N : seule conversion vers l'indice 0 à N-1.
-    [[nodiscard]] bool placeValide(std::size_t place) const;
-    [[nodiscard]] Personnage& personnageDeLaPlace(std::size_t place);              // place valide exigée
-    [[nodiscard]] const Personnage& personnageDeLaPlace(std::size_t place) const;  // place valide exigée
+    // Cette place est celle d'un personnage de l'escouade (de 1 à N).
+    [[nodiscard]] bool placeValide(Place place) const;
+    [[nodiscard]] Personnage& personnageDeLaPlace(Place place);              // place valide exigée
+    [[nodiscard]] const Personnage& personnageDeLaPlace(Place place) const;  // place valide exigée
     [[nodiscard]] bool skillEnAttenteDeDegats() const;
     void annulerSkillDeDegatsEnAttente();
     // Abandonne le skill en attente dont le lanceur n'a plus l'arme qu'il exige (sans recharge consommée).
     void abandonnerLeSkillEnAttenteSansArme();
-    [[nodiscard]] std::optional<std::size_t> indicePersonnageLePlusProche(sf::Vector2f point) const;
-    [[nodiscard]] std::optional<std::size_t> indiceProieDuMonstre(int idMonstre, sf::Vector2f positionMonstre) const;
+    [[nodiscard]] std::optional<Place> placeDuVivantLePlusProche(sf::Vector2f point) const;
+    [[nodiscard]] std::optional<Place> placeDeLaProie(IdMonstre idMonstre, sf::Vector2f positionMonstre) const;
     // Avec quoi un personnage atteint une cible : son attaque de base ou son skill.
     // `skill` vide : l'attaque de base.
     [[nodiscard]] bool peutAtteindre(const Personnage& personnage, std::optional<IdSkill> skill, Cercle cible, const TileMap& carte) const;
     [[nodiscard]] bool peutLancerAuPoint(AdresseSkill adresse, sf::Vector2f point, const TileMap& carte) const;
-    std::vector<Coup> avancerSkillDe(std::size_t indice, float dt, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
-    std::vector<Coup> effetDuSkill(std::size_t place, IdSkill id, const std::optional<Cible>& cible, const Attaque& attaque, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
-    // L'intention que le skill en attente donne à son lanceur (indice de 0 à N-1).
+    std::vector<Coup> avancerSkillDe(Place place, float dt, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur);
+    std::vector<Coup> effetDuSkill(Place place, IdSkill id, const std::optional<Cible>& cible, const Attaque& attaque, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur);
+    // L'intention que le skill en attente donne à son lanceur.
     struct IntentionDuSkill {
-        std::size_t lanceur;
+        Place lanceur;
         Intention intention;
     };
     // `verrou` : le monstre verrouillé, s'il est ciblable (vide sinon).
-    std::optional<IntentionDuSkill> avancerSkillEnAttente(const TileMap& carte, const std::optional<EntiteVue>& verrou);
+    std::optional<IntentionDuSkill> avancerSkillEnAttente(const TileMap& carte, const std::optional<MonstreVu>& verrou);
     // Étapes d'attaquer(), dans l'ordre où elles sont appelées.
-    void actualiserMemoires(const std::vector<EntiteVue>& monstres);
+    void actualiserMemoires(const std::vector<MonstreVu>& monstres);
     void engagerSkillDeZoneEnAttente(const TileMap& carte);
     [[nodiscard]] bool tousLesVivantsAtteignent(Cercle cible, const TileMap& carte) const;
-    void approcherVerrou(const std::vector<EntiteVue>& monstres, const TileMap& carte);
-    void engagerSkillDeDegatsEnAttente(const std::vector<EntiteVue>& monstres, const TileMap& carte);
-    std::vector<Coup> avancerSkills(float dt, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
-    std::vector<Coup> autodefense(float dt, const std::vector<EntiteVue>& monstres, const TileMap& carte, Generateur& generateur);
+    void approcherVerrou(const std::vector<MonstreVu>& monstres, const TileMap& carte);
+    void engagerSkillDeDegatsEnAttente(const std::vector<MonstreVu>& monstres, const TileMap& carte);
+    std::vector<Coup> avancerSkills(float dt, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur);
+    std::vector<Coup> autodefense(float dt, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur);
     [[nodiscard]] float porteeDe(const Personnage& personnage, std::optional<IdSkill> skill) const;
     // Places d'attaque (m_placesDAttaque) : ce qu'elles doivent savoir du personnage de cet indice
     // qui approche ce monstre avec une action de cette portée.
-    [[nodiscard]] PlacesDAttaque::Approche approcheDe(std::size_t indice, EntiteVue monstre, float portee) const;
+    [[nodiscard]] PlacesDAttaque::Approche approcheDe(std::size_t indice, MonstreVu monstre, float portee) const;
     // Par personnage : son centre s'il est vivant et immobile (il occupe l'endroit où il se tient), vide sinon.
     [[nodiscard]] std::vector<std::optional<sf::Vector2f>> occupants() const;
     // Étapes de mettreAJour().
@@ -273,19 +275,19 @@ private:
     // Ce qui vaut pour tous les personnages dans un mettreAJour, calculé avant la boucle des personnages.
     struct ContexteDesIntentions {
         bool ancreArretee;
-        std::optional<EntiteVue> verrou;         // le monstre verrouillé, s'il est ciblable
-        std::vector<EntiteVue> agresseurs;       // la mémoire des agresseurs qui sont ciblables, avec leur cercle
+        std::optional<MonstreVu> verrou;         // le monstre verrouillé, s'il est ciblable
+        std::vector<MonstreVu> agresseurs;       // la mémoire des agresseurs qui sont ciblables, avec leur cercle
         std::optional<IntentionDuSkill> skill;   // l'intention du lanceur du skill en attente
     };
-    [[nodiscard]] std::optional<EntiteVue> confirmerDegagement(std::size_t indice,
+    [[nodiscard]] std::optional<MonstreVu> confirmerDegagement(std::size_t indice,
                                                                const std::optional<PlacesDAttaque::Place>& ancienne,
-                                                               const std::vector<EntiteVue>& monstres,
+                                                               const std::vector<MonstreVu>& monstres,
                                                                const TileMap& carte);
     [[nodiscard]] SituationDuPersonnage situationDe(std::size_t indice,
                                                     const std::optional<PlacesDAttaque::Place>& ancienne,
-                                                    const std::optional<EntiteVue>& degagement,
+                                                    const std::optional<MonstreVu>& degagement,
                                                     const ContexteDesIntentions& contexte,
-                                                    const std::vector<EntiteVue>& ciblables,
+                                                    const std::vector<MonstreVu>& ciblables,
                                                     const TileMap& carte) const;
     // Le point visé par une intention et, pour une approche, si une place d'attaque a été trouvée.
     struct PointVise {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
@@ -296,9 +298,9 @@ private:
                                 const std::optional<PlacesDAttaque::Place>& ancienne, const TileMap& carte);
     // Dégagement : ces deux fonctions décident, avec m_degagements, qui se dégage de quel monstre ;
     // choisirIntention en fait sa règle 2 (le point de branchement des futurs gambits).
-    void mettreAJourDegagements(bool ancreArretee, const std::vector<EntiteDeControle>& monstresDeControle);
-    [[nodiscard]] std::optional<int> degagementVoulu(std::size_t indice, bool ancreArretee, const std::vector<EntiteDeControle>& personnages,
-                                       const std::vector<EntiteDeControle>& monstresDeControle) const;
+    void mettreAJourDegagements(bool ancreArretee, const std::vector<MonstreDeControle>& monstresDeControle);
+    [[nodiscard]] std::optional<IdMonstre> degagementVoulu(std::size_t indice, bool ancreArretee, const std::vector<PersonnageDeControle>& personnages,
+                                       const std::vector<MonstreDeControle>& monstresDeControle) const;
 
     struct SkillEnAttente {
         AdresseSkill adresse;  // du skill en attente (place du lanceur et identifiant)
@@ -308,12 +310,12 @@ private:
     Mobile m_mobile;
     Formation m_formation;  // décalages, orientation et places de formation autour de l'ancre
     std::vector<Personnage> m_personnages;
-    std::optional<int> m_cibleVerrouillee;
+    std::optional<IdMonstre> m_cibleVerrouillee;
     std::optional<SkillEnAttente> m_skillEnAttente; // un seul skill en attente pour toute l'escouade
     PlacesDAttaque m_placesDAttaque;  // par personnage : place d'attaque retenue autour du monstre qu'il approche
     std::vector<sf::Vector2f> m_pointsVises;  // par personnage, calculé par mettreAJour
     // Par personnage : identifiant du monstre dont il se dégage vers sa place d'attaque (vide = il ne se dégage pas).
-    std::vector<std::optional<int>> m_degagements;
+    std::vector<std::optional<IdMonstre>> m_degagements;
     std::vector<FaitDEscouade> m_faits; // faits pas encore pris par prendreFaits
     Agresseurs m_agresseurs; // monstres qui ont frappé l'escouade récemment
     Provocations m_provocations; // monstres provoqués par un personnage

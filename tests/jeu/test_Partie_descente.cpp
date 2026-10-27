@@ -98,8 +98,9 @@ TEST_CASE("descente : l'etage suivant a la profondeur suivante et garde l'equipe
     REQUIRE(suivante.getProfondeur() == 2);
     REQUIRE(exemplaires(suivante) == avant);
     REQUIRE(suivante.getEscouade().sac().a(17) == Objet{IdObjet::GantsDeTissu});
-    REQUIRE(suivante.getEscouade().equipementDuPersonnage(3).a(Emplacement::Gants) == Objet{IdObjet::GantsDeTissu});
-    for (std::size_t place = 1; place <= 3; ++place) {
+    REQUIRE(suivante.getEscouade().equipementDuPersonnage(Place{3}).a(Emplacement::Gants) == Objet{IdObjet::GantsDeTissu});
+    for (std::size_t numero = 1; numero <= 3; ++numero) {
+        const Place place{numero};
         REQUIRE(suivante.getEscouade().equipementDuPersonnage(place) == escouade.equipementDuPersonnage(place));
     }
 }

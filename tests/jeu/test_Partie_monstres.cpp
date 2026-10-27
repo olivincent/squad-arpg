@@ -150,8 +150,8 @@ TEST_CASE("un monstre provoque ne frappe que son provocateur") {
     for (int i = 0; i < nombreDeTics(3.0f); ++i) {
         partie.mettreAJour(s_dureeTic);
         for (const Monstre& monstre : partie.getMonstres()) {
-            if (const std::optional<int> cible = monstre.cibleEngagee(); cible && i > nombreDeTics(0.3f)) {
-                REQUIRE(*cible == 1);
+            if (const std::optional<Place> cible = monstre.cibleEngagee(); cible && i > nombreDeTics(0.3f)) {
+                REQUIRE(*cible == Place{1});
                 aFrappeLeProvocateur = true;
             }
         }

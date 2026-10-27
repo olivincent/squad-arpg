@@ -35,10 +35,10 @@ BarreDeRaccourcis barreParDefaut(const std::vector<AdresseSkill>& adresses) {
     const std::size_t rangees = barre.taille() / s_emplacementsParRangee;
     std::vector<std::size_t> dejaPlaces(rangees, 0);  // par rangée (place - 1)
     for (const AdresseSkill& adresse : adresses) {
-        if (adresse.place < 1 || adresse.place > rangees) {
+        if (adresse.place.numero < 1 || adresse.place.numero > rangees) {
             continue;
         }
-        const std::size_t rangee = adresse.place - 1;
+        const std::size_t rangee = adresse.place.indice();
         if (dejaPlaces[rangee] >= s_emplacementsParRangee) {
             continue;
         }

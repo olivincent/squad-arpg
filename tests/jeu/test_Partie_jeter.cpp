@@ -19,7 +19,7 @@
 
 // Jeter un objet (étape 97.6, `jeterUnObjet` libre depuis 98.1) : et le compte des exemplaires à travers jeter puis ramasser.
 namespace {
-constexpr std::size_t s_guerrier = 1;
+constexpr Place s_guerrier{1};
 const sf::Vector2f s_coinLointain = {570.0f, 570.0f};
 
 // Une partie avec un monstre endormi loin dans un coin (une partie sans monstre est gagnée, donc figée), dont les

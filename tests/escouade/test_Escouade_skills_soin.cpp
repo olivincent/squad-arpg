@@ -27,42 +27,42 @@ TEST_CASE("choisirCible (soin) est vide quand tout le monde est a pleine vie") {
 
 TEST_CASE("choisirCible (soin) designe le seul blesse") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    infliger(escouade, 1, {35.0f, 85.0f}, 10);
+    infliger(escouade, IdMonstre{1}, {35.0f, 85.0f}, 10);
 
-    REQUIRE(placeAlliePourSoin(escouade) == 3);
+    REQUIRE(placeAlliePourSoin(escouade) == Place{3});
 }
 
 TEST_CASE("choisirCible (soin) designe celui qui a le moins de points de vie") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    infliger(escouade, 1, {85.0f, 60.0f}, 30);
-    infliger(escouade, 1, {35.0f, 85.0f}, 50);
+    infliger(escouade, IdMonstre{1}, {85.0f, 60.0f}, 30);
+    infliger(escouade, IdMonstre{1}, {35.0f, 85.0f}, 50);
 
-    REQUIRE(placeAlliePourSoin(escouade) == 3);
+    REQUIRE(placeAlliePourSoin(escouade) == Place{3});
 }
 
 TEST_CASE("choisirCible (soin) choisit la plus petite place en cas d'egalite") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    infliger(escouade, 1, {35.0f, 35.0f}, 20);  // prêtre (place 2), sans armure : perd 20
+    infliger(escouade, IdMonstre{1}, {35.0f, 35.0f}, 20);  // prêtre (place 2), sans armure : perd 20
     // Le guerrier (place 1) a plus de points de vie et de l'armure : on règle son coup pour qu'il en ait autant que le prêtre.
-    const int pointsDuPretre = *escouade.pointsDeVieDuPersonnage(2);
-    infliger(escouade, 1, {85.0f, 60.0f}, *escouade.pointsDeVieDuPersonnage(1) - pointsDuPretre + s_armureMeleeDeTest);
-    REQUIRE(*escouade.pointsDeVieDuPersonnage(1) == pointsDuPretre);
+    const int pointsDuPretre = *escouade.pointsDeVieDuPersonnage(Place{2});
+    infliger(escouade, IdMonstre{1}, {85.0f, 60.0f}, *escouade.pointsDeVieDuPersonnage(Place{1}) - pointsDuPretre + s_armureMeleeDeTest);
+    REQUIRE(*escouade.pointsDeVieDuPersonnage(Place{1}) == pointsDuPretre);
 
-    REQUIRE(placeAlliePourSoin(escouade) == 1);
+    REQUIRE(placeAlliePourSoin(escouade) == Place{1});
 }
 
 TEST_CASE("choisirCible (soin) ignore les morts") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    infliger(escouade, 1, {35.0f, 85.0f}, s_coupMortel);
-    infliger(escouade, 1, {85.0f, 60.0f}, 10);
+    infliger(escouade, IdMonstre{1}, {35.0f, 85.0f}, s_coupMortel);
+    infliger(escouade, IdMonstre{1}, {85.0f, 60.0f}, 10);
 
-    REQUIRE(placeAlliePourSoin(escouade) == 1);
+    REQUIRE(placeAlliePourSoin(escouade) == Place{1});
 }
 
 TEST_CASE("choisirCible (soin) est vide quand tout le monde est mort") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
     for (const sf::Vector2f origine : {sf::Vector2f(85.0f, 60.0f), sf::Vector2f(35.0f, 35.0f), sf::Vector2f(35.0f, 85.0f)}) {
-        infliger(escouade, 1, origine, s_coupMortel);
+        infliger(escouade, IdMonstre{1}, origine, s_coupMortel);
     }
 
     REQUIRE_FALSE(escouade.choisirCible(TypeSkill::Soin, s_adresseSoin, {}, carteOuverte()).has_value());
@@ -76,7 +76,7 @@ TEST_CASE("choisirCible (soin) est vide quand tout le monde est mort") {
 
 TEST_CASE("Le soin du pretre soigne un allie a portee, sans combat engage") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    infliger(escouade, 1, {35.0f, 85.0f}, 20);
+    infliger(escouade, IdMonstre{1}, {35.0f, 85.0f}, 20);
 
     REQUIRE(declencher(escouade, s_adresseSoin, {}) == 0);
 
@@ -86,41 +86,41 @@ TEST_CASE("Le soin du pretre soigne un allie a portee, sans combat engage") {
 
 TEST_CASE("prendreFaits rend le soin applique (place, points reellement rendus, position) puis se vide") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    infliger(escouade, 1, {35.0f, 85.0f}, 20);  // le mage (place 3) perd 20 points
+    infliger(escouade, IdMonstre{1}, {35.0f, 85.0f}, 20);  // le mage (place 3) perd 20 points
 
     declencher(escouade, s_adresseSoin, {});
     const std::vector<Escouade::FaitDEscouade> faits = escouade.prendreFaits();
 
     REQUIRE(faits.size() == 2);  // le skill qui part, puis le soin qu'il applique
     const auto& soin = std::get<Escouade::SoinApplique>(faits[1]);
-    REQUIRE(soin.place == 3);
+    REQUIRE(soin.place == Place{3});
     REQUIRE(soin.montant == 20);  // 30 de soin, mais il ne manquait que 20 points
-    verifierPointProche(soin.position, *escouade.centreDuPersonnage(3));
+    verifierPointProche(soin.position, *escouade.centreDuPersonnage(Place{3}));
     REQUIRE(escouade.prendreFaits().empty());
 }
 
 TEST_CASE("centreDuPersonnage : le centre de la place, vide si la place est invalide") {
     const Escouade escouade = uneEscouade({50.0f, 50.0f});
 
-    verifierPointProche(*escouade.centreDuPersonnage(3), {35.0f, 85.0f});
-    REQUIRE_FALSE(escouade.centreDuPersonnage(0).has_value());
-    REQUIRE_FALSE(escouade.centreDuPersonnage(4).has_value());
+    verifierPointProche(*escouade.centreDuPersonnage(Place{3}), {35.0f, 85.0f});
+    REQUIRE_FALSE(escouade.centreDuPersonnage(Place{0}).has_value());
+    REQUIRE_FALSE(escouade.centreDuPersonnage(Place{4}).has_value());
 }
 
 TEST_CASE("Le soin ne part pas si la cible est hors de portee") {
     Escouade escouade = uneEscouadeAuSoinCourt({50.0f, 50.0f});
-    infliger(escouade, 1, {85.0f, 60.0f}, 20);
+    infliger(escouade, IdMonstre{1}, {85.0f, 60.0f}, 20);
 
     declencher(escouade, s_adresseSoin, {});
 
-    REQUIRE(placeAlliePourSoin(escouade) == 1);
+    REQUIRE(placeAlliePourSoin(escouade) == Place{1});
 }
 
 TEST_CASE("Le soin ne part pas a pleine vie et ne declenche alors pas la recharge") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
     declencher(escouade, s_adresseSoin, {});
 
-    infliger(escouade, 1, {35.0f, 85.0f}, 20);
+    infliger(escouade, IdMonstre{1}, {35.0f, 85.0f}, 20);
     declencher(escouade, s_adresseSoin, {});
 
     REQUIRE_FALSE(escouade.choisirCible(TypeSkill::Soin, s_adresseSoin, {}, carteOuverte()).has_value());
@@ -128,22 +128,22 @@ TEST_CASE("Le soin ne part pas a pleine vie et ne declenche alors pas la recharg
 
 TEST_CASE("Le soin est en recharge juste apres son lancement") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    infliger(escouade, 1, {35.0f, 85.0f}, 2 * s_puissanceSoinDeTest);  // le mage perd deux soins
+    infliger(escouade, IdMonstre{1}, {35.0f, 85.0f}, 2 * s_puissanceSoinDeTest);  // le mage perd deux soins
 
     declencher(escouade, s_adresseSoin, {});   // un soin rendu : il manque encore un soin
     declencher(escouade, s_adresseSoin, {});   // refusé : recharge
 
-    REQUIRE(placeAlliePourSoin(escouade) == 3);
+    REQUIRE(placeAlliePourSoin(escouade) == Place{3});
 }
 
 TEST_CASE("Un soigneur mort ne soigne pas") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    infliger(escouade, 1, {35.0f, 35.0f}, s_coupMortel);
-    infliger(escouade, 1, {35.0f, 85.0f}, 20);
+    infliger(escouade, IdMonstre{1}, {35.0f, 35.0f}, s_coupMortel);
+    infliger(escouade, IdMonstre{1}, {35.0f, 85.0f}, 20);
 
     declencher(escouade, s_adresseSoin, {});
 
-    REQUIRE(placeAlliePourSoin(escouade) == 3);
+    REQUIRE(placeAlliePourSoin(escouade) == Place{3});
 }
 
 // Skill de soin en attente. Carte dégagée dédiée ; escouade immobile en
@@ -155,17 +155,17 @@ TEST_CASE("Un soin hors de portee est mis en attente : le soigneur marche, soign
     Generateur generateur = generateurDeTest();
     const TileMap carte = carteDegagee10x10();
     Escouade escouade = uneEscouadeAuSoinCourt({50.0f, 50.0f});
-    infliger(escouade, 1, {85.0f, 60.0f}, 20);
+    infliger(escouade, IdMonstre{1}, {85.0f, 60.0f}, 20);
     static_cast<void>(escouade.attaquer(s_dureeTic, {}, carte, generateur)); // le monstre fantôme n'existe pas : il n'est pas un agresseur
 
     declencher(escouade, s_adresseSoin, {});
-    REQUIRE(placeAlliePourSoin(escouade) == 1);   // pas encore soigné
+    REQUIRE(placeAlliePourSoin(escouade) == Place{1});   // pas encore soigné
 
     simulerAvecAttaque(escouade, carte, 1.5f, generateur);
     REQUIRE_FALSE(placeAlliePourSoin(escouade).has_value());  // soigné en route (marche, puis 0,6 s d'activation)
 
     simuler(escouade, carte, 2.0f);
-    const std::optional<EntiteVue> soigneur = escouade.proieDuMonstre(1, {35.0f, 35.0f});
+    const std::optional<PersonnageVu> soigneur = escouade.proieDuMonstre(IdMonstre{1}, {35.0f, 35.0f});
     REQUIRE(soigneur.has_value());
     verifierPointProche(soigneur->cercle.centre, {35.0f, 35.0f});
 }
@@ -174,18 +174,18 @@ TEST_CASE("Le soin en attente est annule si la cible meurt, sans recharge") {
     Generateur generateur = generateurDeTest();
     const TileMap carte = carteDegagee10x10();
     Escouade escouade = uneEscouadeAuSoinCourt({50.0f, 50.0f});
-    infliger(escouade, 1, {85.0f, 60.0f}, 20);
+    infliger(escouade, IdMonstre{1}, {85.0f, 60.0f}, 20);
     declencher(escouade, s_adresseSoin, {});
 
-    infliger(escouade, 1, {85.0f, 60.0f}, s_coupMortel);
+    infliger(escouade, IdMonstre{1}, {85.0f, 60.0f}, s_coupMortel);
     static_cast<void>(escouade.attaquer(s_dureeTic, {}, carte, generateur)); // le monstre fantôme n'existe pas : il n'est pas un agresseur
     simuler(escouade, carte, 2.0f);
 
     // Le soigneur est revenu à sa place et son skill est prêt : un nouveau
     // blessé à portée est soigné aussitôt.
-    const std::optional<EntiteVue> soigneur = escouade.proieDuMonstre(1, {35.0f, 35.0f});
+    const std::optional<PersonnageVu> soigneur = escouade.proieDuMonstre(IdMonstre{1}, {35.0f, 35.0f});
     verifierPointProche(soigneur->cercle.centre, {35.0f, 35.0f});
-    infliger(escouade, 1, {35.0f, 85.0f}, 20);
+    infliger(escouade, IdMonstre{1}, {35.0f, 85.0f}, 20);
     declencher(escouade, s_adresseSoin, {});
     REQUIRE_FALSE(placeAlliePourSoin(escouade).has_value());
 }
@@ -193,20 +193,20 @@ TEST_CASE("Le soin en attente est annule si la cible meurt, sans recharge") {
 TEST_CASE("Le soin en attente est annule si le soigneur meurt") {
     const TileMap carte = carteDegagee10x10();
     Escouade escouade = uneEscouadeAuSoinCourt({50.0f, 50.0f});
-    infliger(escouade, 1, {85.0f, 60.0f}, 20);
+    infliger(escouade, IdMonstre{1}, {85.0f, 60.0f}, 20);
     declencher(escouade, s_adresseSoin, {});
 
-    infliger(escouade, 1, {35.0f, 35.0f}, s_coupMortel);
+    infliger(escouade, IdMonstre{1}, {35.0f, 35.0f}, s_coupMortel);
     simuler(escouade, carte, 2.0f);
 
-    REQUIRE(placeAlliePourSoin(escouade) == 1);
+    REQUIRE(placeAlliePourSoin(escouade) == Place{1});
 }
 
 TEST_CASE("Un ordre de deplacement n'annule pas un soin en attente") {
     Generateur generateur = generateurDeTest();
     const TileMap carte = carteDegagee10x10();
     Escouade escouade = uneEscouadeAuSoinCourt({50.0f, 50.0f});
-    infliger(escouade, 1, {85.0f, 60.0f}, 20);
+    infliger(escouade, IdMonstre{1}, {85.0f, 60.0f}, 20);
     declencher(escouade, s_adresseSoin, {});
 
     escouade.allerVers({300.0f, 300.0f}, carte);
@@ -218,11 +218,11 @@ TEST_CASE("Un ordre de deplacement n'annule pas un soin en attente") {
 TEST_CASE("Un seul skill en attente a la fois") {
     const TileMap carte = carteDegagee10x10();
     Escouade escouade = uneEscouadeAuSoinCourt({50.0f, 50.0f});
-    infliger(escouade, 1, {85.0f, 60.0f}, 20);
+    infliger(escouade, IdMonstre{1}, {85.0f, 60.0f}, 20);
     declencher(escouade, s_adresseSoin, {});   // en attente
 
     // Le skill de dégâts de la place 1, à portée d'une cible, est refusé.
-    escouade.verrouiller(1);
+    escouade.verrouiller(IdMonstre{1});
     REQUIRE(declencher(escouade, s_adresseFrappe, unSeulMonstre(cibleMonstre({85.0f, 60.0f}))) == 0);
 }
 
@@ -233,7 +233,7 @@ Escouade escouadeAuPretreAdroit(int perte) {
     DefinitionPersonnage pretre = pretreDeTest();
     pretre.caracteristiques = Caracteristiques({10, 10, 1000, 10, 10});
     Escouade escouade = uneEscouadeDe({50.0f, 50.0f}, {guerrierDeTest(), pretre, mageDeTest()});
-    infliger(escouade, 1, {35.0f, 85.0f}, perte);
+    infliger(escouade, IdMonstre{1}, {35.0f, 85.0f}, perte);
     return escouade;
 }
 
@@ -278,7 +278,7 @@ TEST_CASE("Un soin critique reste plafonne aux points de vie maximum") {
         const Escouade::SoinApplique soin = soinDuPretre(escouade, generateur);
 
         REQUIRE(soin.montant == (soin.critique ? manque : s_puissanceSoinDeTest));
-        REQUIRE(*escouade.pointsDeVieDuPersonnage(3) <= *escouade.pointsDeVieMaxDuPersonnage(3));
+        REQUIRE(*escouade.pointsDeVieDuPersonnage(Place{3}) <= *escouade.pointsDeVieMaxDuPersonnage(Place{3}));
         critiques += soin.critique ? 1 : 0;
     }
     REQUIRE(critiques > 0);

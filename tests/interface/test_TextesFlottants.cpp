@@ -16,7 +16,7 @@
 namespace {
 
 EvenementDeCombat degatsSurUnMonstre(int id, int montant = 10, sf::Vector2f position = {100.0f, 100.0f}) {
-    return {Camp::Monstres, id, position, DegatsSubis{montant, false, false}};
+    return {IdMonstre{id}, position, DegatsSubis{montant, false, false}};
 }
 
 }  // namespace
@@ -79,7 +79,7 @@ TEST_CASE("l'empilement ne touche pas deux cibles differentes dans la meme image
     textes.ajouter(degatsSurUnMonstre(1));
     textes.ajouter(degatsSurUnMonstre(2));
     // Même identifiant, mais un personnage : une autre cible.
-    textes.ajouter({Camp::Escouade, 1, {100.0f, 100.0f}, DegatsSubis{10, false, false}});
+    textes.ajouter({Place{1}, {100.0f, 100.0f}, DegatsSubis{10, false, false}});
 
     for (const TexteFlottant& texte : textes.actifs()) {
         REQUIRE(texte.rang == 0);
@@ -99,21 +99,21 @@ TEST_CASE("l'empilement ne touche pas deux images differentes") {
 
 TEST_CASE("le libelle : degats, coup gratuit et soin") {
     REQUIRE(libelleDuTexte(degatsSurUnMonstre(1, 12)) == "12");
-    REQUIRE(libelleDuTexte({Camp::Escouade, 1, {}, DegatsSubis{7, true, false}}) == "7!");
-    REQUIRE(libelleDuTexte({Camp::Escouade, 2, {}, Soin{20, false}}) == "+20");
+    REQUIRE(libelleDuTexte({Place{1}, {}, DegatsSubis{7, true, false}}) == "7!");
+    REQUIRE(libelleDuTexte({Place{2}, {}, Soin{20, false}}) == "+20");
 }
 
 TEST_CASE("le libelle d'un critique : le montant suivi de Critique !") {
-    REQUIRE(libelleDuTexte({Camp::Monstres, 1, {}, DegatsSubis{12, false, true}}) == "12 Critical!");
-    REQUIRE(libelleDuTexte({Camp::Monstres, 1, {}, DegatsSubis{7, true, true}}) == "7! Critical!");  // le « ! » du coup gratuit reste
-    REQUIRE(libelleDuTexte({Camp::Escouade, 2, {}, Soin{20, true}}) == "+20 Critical!");
+    REQUIRE(libelleDuTexte({IdMonstre{1}, {}, DegatsSubis{12, false, true}}) == "12 Critical!");
+    REQUIRE(libelleDuTexte({IdMonstre{1}, {}, DegatsSubis{7, true, true}}) == "7! Critical!");  // le « ! » du coup gratuit reste
+    REQUIRE(libelleDuTexte({Place{2}, {}, Soin{20, true}}) == "+20 Critical!");
 }
 
 TEST_CASE("un critique est jaune et de 18 px, meme un coup gratuit ou sur un personnage") {
-    const EvenementDeCombat surUnMonstre{Camp::Monstres, 1, {}, DegatsSubis{10, false, true}};
-    const EvenementDeCombat surUnPersonnage{Camp::Escouade, 1, {}, DegatsSubis{10, false, true}};
-    const EvenementDeCombat gratuit{Camp::Monstres, 1, {}, DegatsSubis{10, true, true}};
-    const EvenementDeCombat normal{Camp::Monstres, 1, {}, DegatsSubis{10, false, false}};
+    const EvenementDeCombat surUnMonstre{IdMonstre{1}, {}, DegatsSubis{10, false, true}};
+    const EvenementDeCombat surUnPersonnage{Place{1}, {}, DegatsSubis{10, false, true}};
+    const EvenementDeCombat gratuit{IdMonstre{1}, {}, DegatsSubis{10, true, true}};
+    const EvenementDeCombat normal{IdMonstre{1}, {}, DegatsSubis{10, false, false}};
 
     REQUIRE(couleurDuTexte(surUnMonstre) == couleurDuTexte(surUnPersonnage));
     REQUIRE(couleurDuTexte(surUnMonstre) == couleurDuTexte(gratuit));
@@ -127,8 +127,8 @@ TEST_CASE("un critique est jaune et de 18 px, meme un coup gratuit ou sur un per
 }
 
 TEST_CASE("un soin critique reste vert, plus gros qu'un soin normal") {
-    const EvenementDeCombat critique{Camp::Escouade, 2, {}, Soin{10, true}};
-    const EvenementDeCombat normal{Camp::Escouade, 2, {}, Soin{10, false}};
+    const EvenementDeCombat critique{Place{2}, {}, Soin{10, true}};
+    const EvenementDeCombat normal{Place{2}, {}, Soin{10, false}};
 
     REQUIRE(couleurDuTexte(critique) == couleurDuTexte(normal));
     REQUIRE(couleurDuTexte(critique).g > couleurDuTexte(critique).r);
@@ -137,14 +137,14 @@ TEST_CASE("un soin critique reste vert, plus gros qu'un soin normal") {
 }
 
 TEST_CASE("le libelle d'une esquive et d'un blocage : Esquive, Bloque total et Bloque partiel") {
-    REQUIRE(libelleDuTexte({Camp::Monstres, 1, {}, Esquive{}}) == "Dodged");
-    REQUIRE(libelleDuTexte({Camp::Escouade, 1, {}, Bloque{40, true}}) == "Blocked");
-    REQUIRE(libelleDuTexte({Camp::Escouade, 1, {}, Bloque{40, false}}) == "Blocked \u2212" "40");
+    REQUIRE(libelleDuTexte({IdMonstre{1}, {}, Esquive{}}) == "Dodged");
+    REQUIRE(libelleDuTexte({Place{1}, {}, Bloque{40, true}}) == "Blocked");
+    REQUIRE(libelleDuTexte({Place{1}, {}, Bloque{40, false}}) == "Blocked \u2212" "40");
 }
 
 TEST_CASE("l'esquive est en gris clair et le blocage en gris plus fonce, tous deux de 14 px") {
-    const EvenementDeCombat esquive{Camp::Monstres, 1, {}, Esquive{}};
-    const EvenementDeCombat bloque{Camp::Escouade, 1, {}, Bloque{40, false}};
+    const EvenementDeCombat esquive{IdMonstre{1}, {}, Esquive{}};
+    const EvenementDeCombat bloque{Place{1}, {}, Bloque{40, false}};
 
     for (const EvenementDeCombat& evenement : {esquive, bloque}) {
         const sf::Color couleur = couleurDuTexte(evenement);
@@ -156,14 +156,14 @@ TEST_CASE("l'esquive est en gris clair et le blocage en gris plus fonce, tous de
 }
 
 TEST_CASE("le texte du sac plein : Bag full, de 14 px, d'une couleur que les autres textes n'ont pas") {
-    const EvenementDeCombat sacPlein{Camp::Escouade, 0, {}, SacPlein{}};
+    const EvenementDeCombat sacPlein{EscouadeEntiere{}, {}, SacPlein{}};
 
     REQUIRE(libelleDuTexte(sacPlein) == "Bag full");
     REQUIRE(tailleDuTexte(sacPlein) == 14);
     for (const EvenementDeCombat& autre :
-         {degatsSurUnMonstre(1), EvenementDeCombat{Camp::Escouade, 1, {}, DegatsSubis{10, false, false}},
-          EvenementDeCombat{Camp::Escouade, 2, {}, Soin{10, false}}, EvenementDeCombat{Camp::Monstres, 1, {}, Esquive{}},
-          EvenementDeCombat{Camp::Escouade, 1, {}, Bloque{40, false}}, EvenementDeCombat{Camp::Monstres, 1, {}, Provoque{}}}) {
+         {degatsSurUnMonstre(1), EvenementDeCombat{Place{1}, {}, DegatsSubis{10, false, false}},
+          EvenementDeCombat{Place{2}, {}, Soin{10, false}}, EvenementDeCombat{IdMonstre{1}, {}, Esquive{}},
+          EvenementDeCombat{Place{1}, {}, Bloque{40, false}}, EvenementDeCombat{IdMonstre{1}, {}, Provoque{}}}) {
         REQUIRE(couleurDuTexte(sacPlein) != couleurDuTexte(autre));
     }
 }
@@ -171,8 +171,8 @@ TEST_CASE("le texte du sac plein : Bag full, de 14 px, d'une couleur que les aut
 TEST_CASE("un blocage partiel s'empile au-dessus des degats de la meme cible et de la meme image") {
     TextesFlottants textes;
 
-    textes.ajouter({Camp::Escouade, 1, {100.0f, 100.0f}, DegatsSubis{60, false, false}});
-    textes.ajouter({Camp::Escouade, 1, {100.0f, 100.0f}, Bloque{40, false}});
+    textes.ajouter({Place{1}, {100.0f, 100.0f}, DegatsSubis{60, false, false}});
+    textes.ajouter({Place{1}, {100.0f, 100.0f}, Bloque{40, false}});
 
     REQUIRE(textes.actifs()[0].rang == 0);
     REQUIRE(textes.actifs()[1].rang == 1);
@@ -181,10 +181,10 @@ TEST_CASE("un blocage partiel s'empile au-dessus des degats de la meme cible et 
 
 TEST_CASE("la couleur et la taille : blanc sur un monstre, rouge sur un personnage, vert pour un soin, orange et plus gros pour un coup gratuit") {
     const EvenementDeCombat surUnMonstre = degatsSurUnMonstre(1);
-    const EvenementDeCombat surUnPersonnage{Camp::Escouade, 1, {}, DegatsSubis{10, false, false}};
-    const EvenementDeCombat soin{Camp::Escouade, 2, {}, Soin{10, false}};
-    const EvenementDeCombat gratuitSurUnMonstre{Camp::Monstres, 1, {}, DegatsSubis{10, true, false}};
-    const EvenementDeCombat gratuitSurUnPersonnage{Camp::Escouade, 1, {}, DegatsSubis{10, true, false}};
+    const EvenementDeCombat surUnPersonnage{Place{1}, {}, DegatsSubis{10, false, false}};
+    const EvenementDeCombat soin{Place{2}, {}, Soin{10, false}};
+    const EvenementDeCombat gratuitSurUnMonstre{IdMonstre{1}, {}, DegatsSubis{10, true, false}};
+    const EvenementDeCombat gratuitSurUnPersonnage{Place{1}, {}, DegatsSubis{10, true, false}};
 
     REQUIRE(couleurDuTexte(surUnMonstre) == sf::Color::White);
     REQUIRE(couleurDuTexte(surUnPersonnage).r == 255);
@@ -198,8 +198,8 @@ TEST_CASE("la couleur et la taille : blanc sur un monstre, rouge sur un personna
 }
 
 TEST_CASE("un skill lance : son nom en jaune dore, 14 px") {
-    const EvenementDeCombat lance{Camp::Escouade, 1, {}, SkillLance{IdSkill::ImpositionDesMains}};
-    const EvenementDeCombat autre{Camp::Escouade, 1, {}, SkillLance{IdSkill::FrappeSacree}};
+    const EvenementDeCombat lance{Place{1}, {}, SkillLance{IdSkill::ImpositionDesMains}};
+    const EvenementDeCombat autre{Place{1}, {}, SkillLance{IdSkill::FrappeSacree}};
 
     REQUIRE(libelleDuTexte(lance) == "Lay on Hands");
     REQUIRE(libelleDuTexte(autre) == "Holy Strike");
@@ -210,18 +210,18 @@ TEST_CASE("un skill lance : son nom en jaune dore, 14 px") {
 }
 
 TEST_CASE("provoque : le texte Provoque en rouge orange, 14 px") {
-    const EvenementDeCombat provoque{Camp::Monstres, 4, {}, Provoque{}};
+    const EvenementDeCombat provoque{IdMonstre{4}, {}, Provoque{}};
 
     REQUIRE(libelleDuTexte(provoque) == "Taunted");
     REQUIRE(couleurDuTexte(provoque).r == 255);
     REQUIRE(couleurDuTexte(provoque).g < 150);
-    REQUIRE(couleurDuTexte(provoque) != couleurDuTexte({Camp::Escouade, 1, {}, SkillLance{IdSkill::Provocation}}));
+    REQUIRE(couleurDuTexte(provoque) != couleurDuTexte({Place{1}, {}, SkillLance{IdSkill::Provocation}}));
     REQUIRE(tailleDuTexte(provoque) == 14);
 }
 
 namespace {
-EvenementDeCombat degatsDeLElement(Element element, Camp camp = Camp::Monstres, bool opportunite = false, bool critique = false) {
-    return {camp, 1, {}, DegatsSubis{10, opportunite, critique, element}};
+EvenementDeCombat degatsDeLElement(Element element, CibleDEvenement cible = IdMonstre{1}, bool opportunite = false, bool critique = false) {
+    return {cible, {}, DegatsSubis{10, opportunite, critique, element}};
 }
 
 double distanceDeCouleur(sf::Color a, sf::Color b) {
@@ -233,8 +233,8 @@ double distanceDeCouleur(sf::Color a, sf::Color b) {
 }  // namespace
 
 TEST_CASE("le nombre d'un coup physique garde la couleur de sa cible, quel que soit l'element par defaut") {
-    REQUIRE(couleurDuTexte(degatsDeLElement(Element::Physique, Camp::Monstres)) == sf::Color::White);
-    REQUIRE(couleurDuTexte(degatsDeLElement(Element::Physique, Camp::Escouade)) == sf::Color(255, 60, 60));
+    REQUIRE(couleurDuTexte(degatsDeLElement(Element::Physique, IdMonstre{1})) == sf::Color::White);
+    REQUIRE(couleurDuTexte(degatsDeLElement(Element::Physique, Place{1})) == sf::Color(255, 60, 60));
 }
 
 TEST_CASE("le nombre d'un coup elementaire prend la couleur de son element, sur un monstre comme sur un personnage") {
@@ -243,9 +243,9 @@ TEST_CASE("le nombre d'un coup elementaire prend la couleur de son element, sur 
             continue;
         }
         INFO("element " << static_cast<int>(element));
-        REQUIRE(couleurDuTexte(degatsDeLElement(element, Camp::Monstres)) == couleurDuTexte(degatsDeLElement(element, Camp::Escouade)));
-        REQUIRE(couleurDuTexte(degatsDeLElement(element)) != couleurDuTexte(degatsDeLElement(Element::Physique, Camp::Monstres)));
-        REQUIRE(couleurDuTexte(degatsDeLElement(element)) != couleurDuTexte(degatsDeLElement(Element::Physique, Camp::Escouade)));
+        REQUIRE(couleurDuTexte(degatsDeLElement(element, IdMonstre{1})) == couleurDuTexte(degatsDeLElement(element, Place{1})));
+        REQUIRE(couleurDuTexte(degatsDeLElement(element)) != couleurDuTexte(degatsDeLElement(Element::Physique, IdMonstre{1})));
+        REQUIRE(couleurDuTexte(degatsDeLElement(element)) != couleurDuTexte(degatsDeLElement(Element::Physique, Place{1})));
     }
 }
 
@@ -264,13 +264,13 @@ TEST_CASE("le feu est orange et le sacre dore") {
 
 TEST_CASE("les couleurs des nombres sont assez distinctes : physique, feu, sacre, coup gratuit, critique, soin") {
     const std::vector<sf::Color> couleurs = {
-        couleurDuTexte(degatsDeLElement(Element::Physique, Camp::Monstres)),
-        couleurDuTexte(degatsDeLElement(Element::Physique, Camp::Escouade)),
+        couleurDuTexte(degatsDeLElement(Element::Physique, IdMonstre{1})),
+        couleurDuTexte(degatsDeLElement(Element::Physique, Place{1})),
         couleurDuTexte(degatsDeLElement(Element::Feu)),
         couleurDuTexte(degatsDeLElement(Element::Sacre)),
-        couleurDuTexte(degatsDeLElement(Element::Physique, Camp::Monstres, true)),  // coup gratuit
-        couleurDuTexte(degatsDeLElement(Element::Physique, Camp::Monstres, false, true)),  // critique
-        couleurDuTexte({Camp::Escouade, 1, {}, Soin{10, false}}),
+        couleurDuTexte(degatsDeLElement(Element::Physique, IdMonstre{1}, true)),  // coup gratuit
+        couleurDuTexte(degatsDeLElement(Element::Physique, IdMonstre{1}, false, true)),  // critique
+        couleurDuTexte({Place{1}, {}, Soin{10, false}}),
     };
 
     for (std::size_t i = 0; i < couleurs.size(); ++i) {
@@ -282,8 +282,8 @@ TEST_CASE("les couleurs des nombres sont assez distinctes : physique, feu, sacre
 }
 
 TEST_CASE("un critique elementaire reste jaune, avec son Critique !") {
-    const EvenementDeCombat critiqueDeFeu = degatsDeLElement(Element::Feu, Camp::Monstres, false, true);
-    const EvenementDeCombat critiquePhysique = degatsDeLElement(Element::Physique, Camp::Monstres, false, true);
+    const EvenementDeCombat critiqueDeFeu = degatsDeLElement(Element::Feu, IdMonstre{1}, false, true);
+    const EvenementDeCombat critiquePhysique = degatsDeLElement(Element::Physique, IdMonstre{1}, false, true);
 
     REQUIRE(couleurDuTexte(critiqueDeFeu) == couleurDuTexte(critiquePhysique));
     REQUIRE(libelleDuTexte(critiqueDeFeu) == "10 Critical!");
@@ -296,15 +296,15 @@ TEST_CASE("le libelle d'un coup elementaire est le total, comme pour un coup phy
 }
 
 TEST_CASE("le texte du niveau atteint : Level up!, de 20 px, d'une couleur que les autres textes n'ont pas") {
-    const EvenementDeCombat niveauAtteint{Camp::Escouade, 0, {}, NiveauAtteint{3}};
+    const EvenementDeCombat niveauAtteint{EscouadeEntiere{}, {}, NiveauAtteint{3}};
 
     REQUIRE(libelleDuTexte(niveauAtteint) == "Level up!");
     REQUIRE(tailleDuTexte(niveauAtteint) == 20);
     for (const EvenementDeCombat& autre :
-         {degatsSurUnMonstre(1), EvenementDeCombat{Camp::Escouade, 1, {}, DegatsSubis{10, false, false}},
-          EvenementDeCombat{Camp::Escouade, 2, {}, Soin{10, false}}, EvenementDeCombat{Camp::Monstres, 1, {}, Esquive{}},
-          EvenementDeCombat{Camp::Escouade, 1, {}, Bloque{40, false}}, EvenementDeCombat{Camp::Monstres, 1, {}, Provoque{}},
-          EvenementDeCombat{Camp::Escouade, 0, {}, SacPlein{}}}) {
+         {degatsSurUnMonstre(1), EvenementDeCombat{Place{1}, {}, DegatsSubis{10, false, false}},
+          EvenementDeCombat{Place{2}, {}, Soin{10, false}}, EvenementDeCombat{IdMonstre{1}, {}, Esquive{}},
+          EvenementDeCombat{Place{1}, {}, Bloque{40, false}}, EvenementDeCombat{IdMonstre{1}, {}, Provoque{}},
+          EvenementDeCombat{EscouadeEntiere{}, {}, SacPlein{}}}) {
         REQUIRE(couleurDuTexte(niveauAtteint) != couleurDuTexte(autre));
     }
 }
@@ -312,8 +312,8 @@ TEST_CASE("le texte du niveau atteint : Level up!, de 20 px, d'une couleur que l
 TEST_CASE("le niveau atteint s'empile avec les autres textes de l'escouade entiere, comme Bag full") {
     TextesFlottants textes;
 
-    textes.ajouter({Camp::Escouade, 0, {}, SacPlein{}});
-    textes.ajouter({Camp::Escouade, 0, {}, NiveauAtteint{2}});
+    textes.ajouter({EscouadeEntiere{}, {}, SacPlein{}});
+    textes.ajouter({EscouadeEntiere{}, {}, NiveauAtteint{2}});
 
     REQUIRE(textes.actifs().size() == 2);
     REQUIRE(textes.actifs()[0].rang == 0);

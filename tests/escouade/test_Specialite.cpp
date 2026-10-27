@@ -211,8 +211,9 @@ TEST_CASE("trois rodeurs : la barre par defaut a une rangee par rodeur") {
 
     const BarreDeRaccourcis barre = barreParDefaut(escouade.adressesDesSkills());
 
-    for (std::size_t place = 1; place <= 3; ++place) {
-        const std::size_t debut = (place - 1) * 4;
+    for (std::size_t numero = 1; numero <= 3; ++numero) {
+        const Place place{numero};
+        const std::size_t debut = place.indice() * 4;
         REQUIRE(barre.adresse(debut) == AdresseSkill{place, IdSkill::TirPercant});
         REQUIRE(barre.adresse(debut + 1) == AdresseSkill{place, IdSkill::PluieDeFleches});
         REQUIRE_FALSE(barre.adresse(debut + 2).has_value());
@@ -224,10 +225,10 @@ TEST_CASE("une escouade de paladin, de rodeur et de guerrier connait les skills 
     const Escouade escouade = uneEscouadeDe({100.0f, 100.0f},
                             composer({IdSpecialite::Paladin, IdSpecialite::Rodeur, IdSpecialite::Guerrier}));
 
-    REQUIRE(escouade.typeDuSkill({1, IdSkill::ImpositionDesMains}) == TypeSkill::Soin);
-    REQUIRE(escouade.typeDuSkill({2, IdSkill::PluieDeFleches}) == TypeSkill::Zone);
-    REQUIRE(escouade.typeDuSkill({3, IdSkill::FrappePuissante}) == TypeSkill::DegatsSurCible);
-    REQUIRE_FALSE(escouade.typeDuSkill({1, IdSkill::TirPercant}).has_value());
+    REQUIRE(escouade.typeDuSkill({Place{1}, IdSkill::ImpositionDesMains}) == TypeSkill::Soin);
+    REQUIRE(escouade.typeDuSkill({Place{2}, IdSkill::PluieDeFleches}) == TypeSkill::Zone);
+    REQUIRE(escouade.typeDuSkill({Place{3}, IdSkill::FrappePuissante}) == TypeSkill::DegatsSurCible);
+    REQUIRE_FALSE(escouade.typeDuSkill({Place{1}, IdSkill::TirPercant}).has_value());
 }
 
 TEST_CASE("nature des attaques : contact pour les melees, projectile pour les tireurs, zone pour les zones") {
@@ -338,8 +339,8 @@ TEST_CASE("armure des classes : une escouade du catalogue encaisse selon l'equip
     const int armureDuMage = armureDe(composition[1].equipementDeDepart);
     Escouade escouade = uneEscouadeDe({100.0f, 100.0f}, std::move(composition));
 
-    REQUIRE(subirCoup(escouade, 7, 1, 40) == appliquerArmure(40, armureDuGuerrier));
-    REQUIRE(subirCoup(escouade, 7, 2, 40) == appliquerArmure(40, armureDuMage));
+    REQUIRE(subirCoup(escouade, IdMonstre{7}, Place{1}, 40) == appliquerArmure(40, armureDuGuerrier));
+    REQUIRE(subirCoup(escouade, IdMonstre{7}, Place{2}, 40) == appliquerArmure(40, armureDuMage));
 }
 
 TEST_CASE("caracteristiques des classes : somme de 50, et les points de vie de depart ne dependent que de l'Endurance") {

@@ -52,7 +52,7 @@ void ecoulerTemps(Personnage& personnage, const TileMap& carte, sf::Vector2f cen
 // l'exécution jusqu'à son départ. Les personnages de ce fichier ont une
 // attaque à exécution nulle (sauf mention) : le coup part au premier tic.
 int frapperEnEntier(Personnage& personnage, Cercle cible, Generateur& generateur) {
-    if (!personnage.estAPortee(cible) || !personnage.engagerAttaque(1)) {
+    if (!personnage.estAPortee(cible) || !personnage.engagerAttaque(IdMonstre{1})) {
         return 0;
     }
     for (int i = 0; i < nombreDeTics(1.0f); ++i) {
@@ -242,25 +242,25 @@ TEST_CASE("changer d'arme relance une recharge complete tiree dans l'intervalle 
     Personnage personnage = unPersonnage({100.0f, 100.0f}, capableDePorter(definitionArmee(IdObjet::EpeeAUneMain), {IdObjet::EpeeADeuxMains}));
     const TileMap carte = carteDegagee5x5();
     const DescriptionDAttaque lente = descriptionDeLArme(Objet{IdObjet::EpeeADeuxMains});
-    REQUIRE(personnage.engagerAttaque(1));  // une arme neuve est prête
+    REQUIRE(personnage.engagerAttaque(IdMonstre{1}));  // une arme neuve est prête
     personnage.annulerAttaque();
 
     static_cast<void>(personnage.poserEquipement(Emplacement::MainDroite, {IdObjet::EpeeADeuxMains}));
-    REQUIRE_FALSE(personnage.engagerAttaque(1));  // la recharge reste à tirer : pas prête
+    REQUIRE_FALSE(personnage.engagerAttaque(IdMonstre{1}));  // la recharge reste à tirer : pas prête
     personnage.relancerSiLArmeAChange(generateur);
 
-    REQUIRE_FALSE(personnage.engagerAttaque(1));  // en recharge
+    REQUIRE_FALSE(personnage.engagerAttaque(IdMonstre{1}));  // en recharge
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, lente.rechargeMin * 0.9f);
-    REQUIRE_FALSE(personnage.engagerAttaque(1));  // le minimum de l'intervalle n'est pas écoulé
+    REQUIRE_FALSE(personnage.engagerAttaque(IdMonstre{1}));  // le minimum de l'intervalle n'est pas écoulé
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, lente.rechargeMax);
-    REQUIRE(personnage.engagerAttaque(1));        // le maximum l'est
+    REQUIRE(personnage.engagerAttaque(IdMonstre{1}));        // le maximum l'est
 }
 
 TEST_CASE("changer d'arme annule le coup de base en cours, sans le faire partir") {
     Generateur generateur = generateurDeTest();
     Personnage personnage = unPersonnageArme({100.0f, 100.0f}, IdObjet::EpeeAUneMain);
-    REQUIRE(personnage.engagerAttaque(1));
-    REQUIRE(personnage.cibleEngagee() == 1);
+    REQUIRE(personnage.engagerAttaque(IdMonstre{1}));
+    REQUIRE(personnage.cibleEngagee() == IdMonstre{1});
 
     static_cast<void>(personnage.poserEquipement(Emplacement::MainDroite, {IdObjet::Dague}));
 
@@ -272,17 +272,17 @@ TEST_CASE("changer d'arme annule le coup de base en cours, sans le faire partir"
 TEST_CASE("un changement qui laisse l'arme intacte ne touche pas la recharge ni le coup en cours") {
     Generateur generateur = generateurDeTest();
     Personnage personnage = unPersonnageArme({100.0f, 100.0f}, IdObjet::EpeeAUneMain);
-    REQUIRE(personnage.engagerAttaque(1));
+    REQUIRE(personnage.engagerAttaque(IdMonstre{1}));
 
     static_cast<void>(personnage.poserEquipement(Emplacement::Anneau1, {IdObjet::AnneauDeProtection}));
     personnage.relancerSiLArmeAChange(generateur);
 
-    REQUIRE(personnage.cibleEngagee() == 1);  // le coup engagé continue
+    REQUIRE(personnage.cibleEngagee() == IdMonstre{1});  // le coup engagé continue
     REQUIRE(personnage.avancerAttaque(1.0f, generateur).has_value());
     // L'anneau n'a pas non plus remis l'attaque prête : elle est en recharge après son départ.
     static_cast<void>(personnage.poserEquipement(Emplacement::Anneau2, {IdObjet::AnneauDeProtection}));
     personnage.relancerSiLArmeAChange(generateur);
-    REQUIRE_FALSE(personnage.engagerAttaque(1));
+    REQUIRE_FALSE(personnage.engagerAttaque(IdMonstre{1}));
 }
 
 TEST_CASE("getPuissanceAttaqueDeBase renvoie les degats de l'attaque de base") {
@@ -296,14 +296,14 @@ TEST_CASE("lire la puissance de l'attaque de base ne change ni le coup engage ni
     Personnage personnage = unPersonnage({100.0f, 100.0f},
                           definitionArmee(IdObjet::Sceptre));
     Generateur generateur = generateurDeTest();
-    REQUIRE(personnage.engagerAttaque(1));
+    REQUIRE(personnage.engagerAttaque(IdMonstre{1}));
 
     REQUIRE(estUnCoupDeTireur(attaqueDeBaseDe(personnage).degats.total()));
 
-    REQUIRE(personnage.cibleEngagee() == 1);
+    REQUIRE(personnage.cibleEngagee() == IdMonstre{1});
     REQUIRE(estUnCoupDeTireur(degatsOuZero(personnage.avancerAttaque(0.2f, generateur))));  // le coup engagé part normalement
     REQUIRE(estUnCoupDeTireur(attaqueDeBaseDe(personnage).degats.total()));
-    REQUIRE_FALSE(personnage.engagerAttaque(1));                // la recharge court toujours
+    REQUIRE_FALSE(personnage.engagerAttaque(IdMonstre{1}));                // la recharge court toujours
 }
 
 TEST_CASE("Un personnage est mort apres un coup qui depasse le reste de ses points de vie") {
@@ -648,29 +648,29 @@ TEST_CASE("engagerAttaque exige un personnage immobile") {
 
     // 80 px à parcourir : il est en marche après quelques tics.
     ecoulerTemps(personnage, carte, {180.0f, 100.0f}, 0.1f);
-    REQUIRE_FALSE(personnage.engagerAttaque(1));
+    REQUIRE_FALSE(personnage.engagerAttaque(IdMonstre{1}));
     REQUIRE_FALSE(personnage.cibleEngagee().has_value());
 
     ecoulerTemps(personnage, carte, {180.0f, 100.0f}, 1.0f);
-    REQUIRE(personnage.engagerAttaque(1));
-    REQUIRE(personnage.cibleEngagee() == 1);
+    REQUIRE(personnage.engagerAttaque(IdMonstre{1}));
+    REQUIRE(personnage.cibleEngagee() == IdMonstre{1});
 }
 
 TEST_CASE("engagerAttaque refuse un personnage mort ou deja en execution") {
     Personnage mort = personnageAvecExecution();
     subir(mort, mort.getPointsDeVieMax());
-    REQUIRE_FALSE(mort.engagerAttaque(1));
+    REQUIRE_FALSE(mort.engagerAttaque(IdMonstre{1}));
 
     Personnage personnage = personnageAvecExecution();
-    REQUIRE(personnage.engagerAttaque(1));
-    REQUIRE_FALSE(personnage.engagerAttaque(2));
-    REQUIRE(personnage.cibleEngagee() == 1);
+    REQUIRE(personnage.engagerAttaque(IdMonstre{1}));
+    REQUIRE_FALSE(personnage.engagerAttaque(IdMonstre{2}));
+    REQUIRE(personnage.cibleEngagee() == IdMonstre{1});
 }
 
 TEST_CASE("avancerAttaque rend les degats une seule fois, a la fin de l'execution") {
     Generateur generateur = generateurDeTest();
     Personnage personnage = personnageAvecExecution();
-    REQUIRE(personnage.engagerAttaque(1));
+    REQUIRE(personnage.engagerAttaque(IdMonstre{1}));
 
     int total = 0;
     for (int i = 0; i < nombreDeTics(0.1f); ++i) {
@@ -693,7 +693,7 @@ TEST_CASE("l'attaque de base d'un personnage porte sa capacite offensive") {
                        .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest,
                        .caracteristiques = Caracteristiques({10, 10, 14, 8, 11})});  // 11 de Volonté : le sceptre est actif
     REQUIRE(attaqueDeBaseDe(rodeur).capaciteOffensive == 120);
-    REQUIRE(rodeur.engagerAttaque(1));
+    REQUIRE(rodeur.engagerAttaque(IdMonstre{1}));
 
     const std::optional<Attaque> attaque = rodeur.avancerAttaque(s_executionBaseDeTest, generateur);
 
@@ -710,7 +710,7 @@ TEST_CASE("l'attaque d'un personnage porte la nature de son attaque de base, cel
                                                                     .rechargeMin = 1.0f, .rechargeMax = 1.0f, .nature = NatureDAttaque::Contact})}},
                        .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
     REQUIRE(attaqueDeBaseDe(tireur).nature == NatureDAttaque::Projectile);
-    REQUIRE(tireur.engagerAttaque(1));
+    REQUIRE(tireur.engagerAttaque(IdMonstre{1}));
     REQUIRE(tireur.avancerAttaque(s_executionBaseDeTest, generateur)->nature == NatureDAttaque::Projectile);
 
     REQUIRE(tireur.engagerSkill(IdSkill::FrappePuissante, CibleMonstre{1, Cercle{}}));
@@ -720,33 +720,33 @@ TEST_CASE("l'attaque d'un personnage porte la nature de son attaque de base, cel
 TEST_CASE("annulerAttaque ne consomme pas de recharge") {
     Generateur generateur = generateurDeTest();
     Personnage personnage = personnageAvecExecution();
-    REQUIRE(personnage.engagerAttaque(1));
+    REQUIRE(personnage.engagerAttaque(IdMonstre{1}));
     REQUIRE(degatsOuZero(personnage.avancerAttaque(0.05f, generateur)) == 0);
 
     personnage.annulerAttaque();
 
     REQUIRE_FALSE(personnage.cibleEngagee().has_value());
-    REQUIRE(personnage.engagerAttaque(1));  // aussitôt prête de nouveau
+    REQUIRE(personnage.engagerAttaque(IdMonstre{1}));  // aussitôt prête de nouveau
 }
 
 TEST_CASE("Apres le depart du coup, la recharge court avant le coup suivant") {
     Generateur generateur = generateurDeTest();
     const TileMap carte = carteDegagee5x5();
     Personnage personnage = personnageAvecExecution();
-    REQUIRE(personnage.engagerAttaque(1));
+    REQUIRE(personnage.engagerAttaque(IdMonstre{1}));
     REQUIRE(estUnCoupDeTireur(degatsOuZero(personnage.avancerAttaque(0.2f, generateur))));
 
     // La recharge court dans l'intervalle de l'arme : pas prête avant son minimum, prête une fois son maximum écoulé.
-    REQUIRE_FALSE(personnage.engagerAttaque(1));
+    REQUIRE_FALSE(personnage.engagerAttaque(IdMonstre{1}));
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, s_rechargeTireurMinDeTest * 0.9f);
-    REQUIRE_FALSE(personnage.engagerAttaque(1));
+    REQUIRE_FALSE(personnage.engagerAttaque(IdMonstre{1}));
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, s_rechargeTireurMaxDeTest);
-    REQUIRE(personnage.engagerAttaque(1));
+    REQUIRE(personnage.engagerAttaque(IdMonstre{1}));
 }
 
 TEST_CASE("Engager un skill annule le coup en execution") {
     Personnage personnage = personnageAvecExecution();
-    REQUIRE(personnage.engagerAttaque(1));
+    REQUIRE(personnage.engagerAttaque(IdMonstre{1}));
 
     REQUIRE(personnage.engagerSkill(IdSkill::FrappePuissante, Cible(CibleMonstre{1, pointCible({150.0f, 100.0f})})));
 
@@ -833,7 +833,7 @@ TEST_CASE("Aucune attaque de base ne s'engage pendant l'activation d'un skill") 
     Personnage personnage = personnageAvecActivation();
     REQUIRE(personnage.engagerSkill(IdSkill::FrappePuissante, s_cibleDuSkill));
 
-    REQUIRE_FALSE(personnage.engagerAttaque(1));
+    REQUIRE_FALSE(personnage.engagerAttaque(IdMonstre{1}));
 }
 
 TEST_CASE("Au depart du skill, l'attaque de base repart pour une recharge complete") {
@@ -843,9 +843,9 @@ TEST_CASE("Au depart du skill, l'attaque de base repart pour une recharge comple
     REQUIRE(personnage.engagerSkill(IdSkill::FrappePuissante, s_cibleDuSkill));
     REQUIRE(degatsOuZero(personnage.avancerSkill(0.4f, generateur)) == 25);
 
-    REQUIRE_FALSE(personnage.engagerAttaque(1));
+    REQUIRE_FALSE(personnage.engagerAttaque(IdMonstre{1}));
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, s_rechargeTireurMaxDeTest + 0.1f);
-    REQUIRE(personnage.engagerAttaque(1));
+    REQUIRE(personnage.engagerAttaque(IdMonstre{1}));
 }
 
 TEST_CASE("mettreAJour garde la ligne droite en terrain degage meme avec un obstacle a contourner loin du trajet") {
@@ -1483,7 +1483,7 @@ TEST_CASE("l'attaque de base d'une dague porte sa penetration, celle d'une epee 
     REQUIRE(attaqueDeBaseDe(dague).penetration == descriptionDeLArme(Objet{IdObjet::Dague}).penetration);
     REQUIRE(attaqueDeBaseDe(dague).penetration > 0);
     REQUIRE(attaqueDeBaseDe(epee).penetration == 0);
-    REQUIRE(dague.engagerAttaque(1));
+    REQUIRE(dague.engagerAttaque(IdMonstre{1}));
     REQUIRE(dague.avancerAttaque(1.0f, generateur)->penetration == attaqueDeBaseDe(dague).penetration);  // part avec le coup
 
     REQUIRE(dague.engagerSkill(IdSkill::FrappePuissante, CibleMonstre{1, Cercle{}}));

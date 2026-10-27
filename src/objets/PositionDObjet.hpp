@@ -4,18 +4,19 @@
 #include <optional>
 #include <variant>
 
+#include "combat/Place.hpp"
 #include "objets/Emplacement.hpp"
 #include "objets/Objet.hpp"
 
 // Où se trouve un objet : une case du sac (indice à partir de 0) ou un emplacement d'un personnage
-// (place de 1 à N, comme partout). `objets/` ne connaît pas `Escouade` : la place n'est qu'un entier.
+// (sa `Place`). `objets/` ne connaît pas `Escouade` : la place n'est que le numéro d'un personnage.
 struct PositionDansLeSac {
     std::size_t caseDuSac;
 
     bool operator==(const PositionDansLeSac&) const = default;
 };
 struct PositionPortee {
-    std::size_t place;
+    Place place;
     Emplacement emplacement;
 
     bool operator==(const PositionPortee&) const = default;

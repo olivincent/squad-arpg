@@ -36,7 +36,7 @@ std::optional<PlacesDAttaque::Place> PlacesDAttaque::placeRetenue(std::size_t as
     return m_places.at(assaillant);
 }
 
-void PlacesDAttaque::oublierSaufAutourDe(std::size_t assaillant, std::optional<int> idCible) {
+void PlacesDAttaque::oublierSaufAutourDe(std::size_t assaillant, std::optional<IdMonstre> idCible) {
     std::optional<Place>& place = m_places.at(assaillant);
     if (place.has_value() && place->idCible != idCible) {
         place.reset();
@@ -52,7 +52,7 @@ std::optional<PlacesDAttaque::Place> PlacesDAttaque::trouverPlace(
     assert(approche.assaillant < m_places.size());
     assert(occupants.size() == m_places.size());
     const std::size_t indice = approche.assaillant;
-    const int idCible = approche.cible.id;
+    const IdMonstre idCible = approche.cible.id;
     const Cercle cible = approche.cible.cercle;
     const float rayonAssaillant = approche.cercleAssaillant.rayon;
     const float rayonAnneau = cible.rayon + rayonAssaillant + s_fractionPorteeAnneau * approche.portee;

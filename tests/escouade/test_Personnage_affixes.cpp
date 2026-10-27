@@ -67,13 +67,13 @@ TEST_CASE("le suffixe de Dexterite d'un arc entre dans les caracteristiques du p
 
 TEST_CASE("changer pour une arme a affixes refait l'attaque de base, un anneau a affixes ne la refait pas") {
     Personnage personnage = unPersonnage({100.0f, 100.0f}, capableDePorter(definitionArmee(IdObjet::MasseAUneMain), {IdObjet::MasseAUneMain}));
-    REQUIRE(personnage.engagerAttaque(1));  // une arme neuve est prête
+    REQUIRE(personnage.engagerAttaque(IdMonstre{1}));  // une arme neuve est prête
     personnage.annulerAttaque();
 
     static_cast<void>(personnage.poserEquipement(Emplacement::Anneau1, {IdObjet::AnneauDeProtection, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeLOurs, 2}}));
-    REQUIRE(personnage.engagerAttaque(1));  // la recharge n'a pas été relancée
+    REQUIRE(personnage.engagerAttaque(IdMonstre{1}));  // la recharge n'a pas été relancée
     personnage.annulerAttaque();
 
     static_cast<void>(personnage.poserEquipement(Emplacement::MainDroite, {IdObjet::MasseAUneMain, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}}));
-    REQUIRE_FALSE(personnage.engagerAttaque(1));  // l'attaque a changé : recharge complète à relancer
+    REQUIRE_FALSE(personnage.engagerAttaque(IdMonstre{1}));  // l'attaque a changé : recharge complète à relancer
 }

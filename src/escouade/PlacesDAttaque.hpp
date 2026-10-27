@@ -7,6 +7,7 @@
 #include <vector>
 #include "base/Cercle.hpp"
 #include "combat/EntiteVue.hpp"
+#include "combat/IdMonstre.hpp"
 
 class TileMap;
 
@@ -19,13 +20,13 @@ public:
     // Une place retenue : l'anneau et l'angle autour de la cible. La position se recalcule depuis le
     // centre actuel de la cible.
     struct Place {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
-        int idCible;
+        IdMonstre idCible;
         float rayon;      // de l'anneau, en pixels
         sf::Angle angle;  // autour du centre de la cible
     };
     // Un assaillant qui approche une cible.
     struct Approche {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
-        EntiteVue cible;
+        MonstreVu cible;
         std::size_t assaillant;   // indice, de 0 au nombre d'assaillants - 1
         Cercle cercleAssaillant;
         float portee;             // de l'action avec laquelle il approche, bord à bord
@@ -54,7 +55,7 @@ public:
     [[nodiscard]] std::optional<Place> placeRetenue(std::size_t assaillant) const;
     // Oubli : la place retenue de cet assaillant est gardée si elle est autour de cette cible, oubliée
     // sinon (vide : toujours oubliée).
-    void oublierSaufAutourDe(std::size_t assaillant, std::optional<int> idCible);
+    void oublierSaufAutourDe(std::size_t assaillant, std::optional<IdMonstre> idCible);
 
 private:
     // La place que `placer` retiendrait (sa règle est décrite plus haut) ; vide si aucune n'est libre.

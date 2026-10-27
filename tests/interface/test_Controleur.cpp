@@ -236,7 +236,7 @@ TEST_CASE("un autre skill de zone remplace la visee") {
     std::vector<DefinitionPersonnage> composition = compositionDeTest();
     composition.push_back(composition.back());
     Partie partie = partieDeTest(niveauDegage({s_monstreLointain}), composition);
-    const AdresseSkill explosionDuSecondMage{4, IdSkill::Explosion};
+    const AdresseSkill explosionDuSecondMage{Place{4}, IdSkill::Explosion};
     BarreDeRaccourcis barre(s_emplacementsPrincipaux);
     barre.placer(0, s_adresseExplosion);
     barre.placer(1, explosionDuSecondMage);

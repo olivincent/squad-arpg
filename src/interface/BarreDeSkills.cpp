@@ -156,7 +156,7 @@ void dessinerBarreDeSkills(sf::RenderTarget& rendu, const sf::Font& police,
         bande.setPosition({coin.x, coin.y + cote - s_hauteurBande});
         bande.setFillColor(lanceurVivant ? icone.couleurDuLanceur : sf::Color(90, 90, 90));
         rendu.draw(bande);
-        sf::Text numeroDePlace(police, std::to_string(icone.place), s_taillePlace);
+        sf::Text numeroDePlace(police, std::to_string(icone.place.numero), s_taillePlace);
         numeroDePlace.setFillColor(sf::Color::White);
         numeroDePlace.setOutlineColor(sf::Color::Black);
         numeroDePlace.setOutlineThickness(1.0f);

@@ -100,8 +100,8 @@ sf::Color couleurDuTexte(const EvenementDeCombat& evenement) {
                                      if (const std::optional<sf::Color>& couleur = s_couleurDeLElement[degats.element]) {
                                          return *couleur;
                                      }
-                                     return evenement.campCible == Camp::Monstres ? s_couleurDegatsSurUnMonstre
-                                                                                  : s_couleurDegatsSurUnPersonnage;
+                                     return std::holds_alternative<IdMonstre>(evenement.cible) ? s_couleurDegatsSurUnMonstre
+                                                                                : s_couleurDegatsSurUnPersonnage;
                                  },
                                  [](const Soin&) { return s_couleurSoin; },
                                  [](const SkillLance&) { return s_couleurNomDeSkill; },
@@ -132,8 +132,7 @@ unsigned int tailleDuTexte(const EvenementDeCombat& evenement) {
 
 void TextesFlottants::ajouter(const EvenementDeCombat& evenement) {
     const auto memeCibleMemeImage = [&](const TexteFlottant& texte) {
-        return texte.image == m_image && texte.evenement.campCible == evenement.campCible &&
-               texte.evenement.idCible == evenement.idCible;
+        return texte.image == m_image && texte.evenement.cible == evenement.cible;
     };
     const int rang = static_cast<int>(std::ranges::count_if(m_textes, memeCibleMemeImage));
     m_textes.push_back({evenement, 0.0f, rang, m_image});

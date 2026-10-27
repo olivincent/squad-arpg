@@ -2,7 +2,7 @@
 #include "escouade/Provocations.hpp"
 #include <algorithm>
 
-void Provocations::provoquer(int id, std::size_t place, float duree) {
+void Provocations::provoquer(IdMonstre id, Place place, float duree) {
     const auto connu = std::find_if(m_provocations.begin(), m_provocations.end(), [&](const Provocation& p) {
         return p.id == id;
     });
@@ -21,15 +21,15 @@ void Provocations::mettreAJour(float dt) {
     std::erase_if(m_provocations, [](const Provocation& p) { return p.tempsRestant <= 0.0f; });
 }
 
-void Provocations::retirerMonstresAbsents(const std::vector<EntiteVue>& monstres) {
+void Provocations::retirerMonstresAbsents(const std::vector<MonstreVu>& monstres) {
     std::erase_if(m_provocations, [&](const Provocation& p) { return trouverEntite(monstres, p.id) == nullptr; });
 }
 
-void Provocations::retirerProvocateur(std::size_t place) {
+void Provocations::retirerProvocateur(Place place) {
     std::erase_if(m_provocations, [&](const Provocation& p) { return p.place == place; });
 }
 
-std::optional<std::size_t> Provocations::provocateurDe(int id) const {
+std::optional<Place> Provocations::provocateurDe(IdMonstre id) const {
     const auto connu = std::find_if(m_provocations.begin(), m_provocations.end(), [&](const Provocation& p) {
         return p.id == id;
     });

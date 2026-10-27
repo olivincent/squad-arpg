@@ -23,11 +23,11 @@ constexpr float s_rayonAssaillantDeTest = 10.0f;
 constexpr float s_porteeDeTest = 20.0f;
 constexpr float s_porteeTireurDeTest = 120.0f;
 constexpr std::size_t s_nombreDAssaillants = 3;
-constexpr int s_idCible = 7;
-constexpr int s_idAutreCible = 8;
+constexpr IdMonstre s_idCible{7};
+constexpr IdMonstre s_idAutreCible{8};
 constexpr float s_tolerance = 0.01f;
 
-const EntiteVue s_cible{s_idCible, {{200.0f, 200.0f}, 15.0f}};
+const MonstreVu s_cible{s_idCible, {{200.0f, 200.0f}, 15.0f}};
 const sf::Vector2f s_ouest(100.0f, 200.0f);  // à l'ouest de la cible : le point de référence des tests
 const sf::Vector2f s_sud(200.0f, 300.0f);    // au sud de la cible (y vers le bas)
 
@@ -37,7 +37,7 @@ Occupants aucunOccupant() {
     return Occupants(s_nombreDAssaillants);
 }
 
-PlacesDAttaque::Approche approche(std::size_t assaillant, sf::Vector2f position, EntiteVue cible = s_cible,
+PlacesDAttaque::Approche approche(std::size_t assaillant, sf::Vector2f position, MonstreVu cible = s_cible,
                                   float portee = s_porteeDeTest) {
     return {
         .cible = cible,
@@ -60,7 +60,7 @@ bool chevaucheUnMur(const TileMap& carte, sf::Vector2f place) {
 }
 
 // Identifiant de la cible de la place retenue de cet assaillant ; vide s'il n'en a pas.
-std::optional<int> cibleRetenue(const PlacesDAttaque& places, std::size_t assaillant) {
+std::optional<IdMonstre> cibleRetenue(const PlacesDAttaque& places, std::size_t assaillant) {
     const std::optional<PlacesDAttaque::Place> place = places.placeRetenue(assaillant);
     if (!place.has_value()) {
         return std::nullopt;
@@ -76,7 +76,7 @@ TileMap carteALaCibleEnfermee() {
     plan[6] = "....###...";
     return TileMap(plan, 40.0f);
 }
-const EntiteVue s_cibleEnfermee{s_idCible, {{220.0f, 220.0f}, 15.0f}};
+const MonstreVu s_cibleEnfermee{s_idCible, {{220.0f, 220.0f}, 15.0f}};
 
 }  // namespace
 
@@ -121,7 +121,7 @@ TEST_CASE("PlacesDAttaque : les places retenues autour d'une autre cible ne gene
     // Deux cibles au même endroit : la place du premier assaillant n'est pas autour de la cible du second.
     PlacesDAttaque places(s_nombreDAssaillants, s_ecartDeTest);
     const TileMap carte = carteDegagee10x10();
-    const EntiteVue autreCible{s_idAutreCible, s_cible.cercle};
+    const MonstreVu autreCible{s_idAutreCible, s_cible.cercle};
 
     const auto premiere = places.placer(approche(0, s_ouest), std::nullopt, aucunOccupant(), carte);
     const auto seconde = places.placer(approche(1, s_ouest, autreCible), std::nullopt, aucunOccupant(), carte);
@@ -153,7 +153,7 @@ TEST_CASE("PlacesDAttaque : l'angle de l'ancienne place est garde quand la cible
     // La cible part vers le sud-est : sans l'ancienne place, la nouvelle serait dans la direction de
     // la référence, plus au nord.
     const sf::Vector2f deplacement(40.0f, 60.0f);
-    const EntiteVue cibleDeplacee{s_idCible, {s_cible.cercle.centre + deplacement, s_cible.cercle.rayon}};
+    const MonstreVu cibleDeplacee{s_idCible, {s_cible.cercle.centre + deplacement, s_cible.cercle.rayon}};
     const auto apres = places.placer(approche(0, s_ouest, cibleDeplacee), ancienne, aucunOccupant(), carte);
 
     REQUIRE(avant.has_value());
@@ -168,7 +168,7 @@ TEST_CASE("PlacesDAttaque : une ancienne place autour d'une autre cible n'est pa
     static_cast<void>(places.placer(approche(0, s_sud), std::nullopt, aucunOccupant(), carte));
     const std::optional<PlacesDAttaque::Place> ancienne = places.placeRetenue(0);
 
-    const EntiteVue autreCible{s_idAutreCible, s_cible.cercle};
+    const MonstreVu autreCible{s_idAutreCible, s_cible.cercle};
     const auto place = places.placer(approche(0, s_ouest, autreCible), ancienne, aucunOccupant(), carte);
 
     // Le même calcul sans ancienne place.
@@ -227,7 +227,7 @@ TEST_CASE("PlacesDAttaque : aucune place sans vue sur la cible") {
     // Mur sur toute la colonne 4 (x de 160 à 200 px), cible à l'est du mur. L'anneau d'un tireur passe
     // de l'autre côté : la place face à la référence ne touche pas le mur, mais ne voit pas la cible.
     const TileMap carte(std::vector<std::string>(10, "....#....."), 40.0f);
-    const EntiteVue cible{s_idCible, {{260.0f, 200.0f}, 15.0f}};
+    const MonstreVu cible{s_idCible, {{260.0f, 200.0f}, 15.0f}};
     PlacesDAttaque places(s_nombreDAssaillants, s_ecartDeTest);
 
     const auto place = places.placer(approche(0, s_ouest, cible, s_porteeTireurDeTest), std::nullopt, aucunOccupant(), carte);
@@ -242,7 +242,7 @@ TEST_CASE("PlacesDAttaque : sans place libre, rien n'est renvoye et la place ret
     const TileMap carte = carteALaCibleEnfermee();
     PlacesDAttaque places(s_nombreDAssaillants, s_ecartDeTest);
     // Une place retenue autour d'une autre cible, dans la partie dégagée de la carte.
-    const EntiteVue autreCible{s_idAutreCible, {{100.0f, 60.0f}, 15.0f}};
+    const MonstreVu autreCible{s_idAutreCible, {{100.0f, 60.0f}, 15.0f}};
     REQUIRE(places.placer(approche(0, s_ouest, autreCible), std::nullopt, aucunOccupant(), carte).has_value());
 
     const auto place = places.placer(approche(0, s_ouest, s_cibleEnfermee), std::nullopt, aucunOccupant(), carte);
@@ -291,7 +291,7 @@ TEST_CASE("PlacesDAttaque : peutPlacer tient compte des places retenues des autr
     plan[2] = "#.........";
     plan[3] = "#####.....";
     const TileMap carte(plan, 40.0f);
-    const EntiteVue auFond{s_idCible, {{60.0f, 100.0f}, 15.0f}};
+    const MonstreVu auFond{s_idCible, {{60.0f, 100.0f}, 15.0f}};
     const sf::Vector2f est(300.0f, 100.0f);
     const auto approcheEst = [&](std::size_t assaillant) {
         PlacesDAttaque::Approche a = approche(assaillant, est, auFond);

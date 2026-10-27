@@ -72,7 +72,6 @@ add_library(squad_core STATIC
     src/interface/EcranInventaire.cpp
     src/interface/EntreeDInterface.cpp
     src/interface/PileDEcrans.cpp
-    src/combat/EntiteVue.cpp
     src/rendu/BarreDeVie.cpp
     src/base/Eclaircir.cpp
     src/combat/PointsDeVie.cpp
@@ -183,6 +182,7 @@ add_executable(tests
     tests/interface/test_EcranInventaire.cpp
     tests/interface/test_PileDEcrans.cpp
     tests/combat/test_EntiteVue.cpp
+    tests/combat/test_Place.cpp
     tests/rendu/test_BarreDeVie.cpp
     tests/base/test_Eclaircir.cpp
     tests/combat/test_PointsDeVie.cpp

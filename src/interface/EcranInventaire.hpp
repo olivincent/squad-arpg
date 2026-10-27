@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "combat/Caracteristiques.hpp"
+#include "combat/Place.hpp"
 #include "interface/DispositionInventaire.hpp"
 #include "interface/Ecran.hpp"
 #include "objets/PositionDObjet.hpp"
@@ -59,17 +60,17 @@ public:
 
     // Le brouillon des points libres du personnage de cette place (de 1 à `s_nombreDePlaces`, `assert`) : ce qui est en attente
     // dans chaque caractéristique, et ce qui reste à répartir (ses points libres moins ce qui est en attente).
-    [[nodiscard]] const Caracteristiques& pointsEnAttente(std::size_t place) const;
-    [[nodiscard]] int pointsRestants(std::size_t place) const;
+    [[nodiscard]] const Caracteristiques& pointsEnAttente(Place place) const;
+    [[nodiscard]] int pointsRestants(Place place) const;
     // Met un point de plus en attente dans cette caractéristique ; sans effet s'il ne reste aucun point à répartir.
-    void ajouterUnPoint(std::size_t place, Caracteristique caracteristique);
+    void ajouterUnPoint(Place place, Caracteristique caracteristique);
     // En retire un : seulement un point en attente, jamais un point déjà dépensé ; sans effet s'il n'y en a pas.
-    void retirerUnPoint(std::size_t place, Caracteristique caracteristique);
+    void retirerUnPoint(Place place, Caracteristique caracteristique);
     // Dépense pour de bon ce qui est en attente chez ce personnage (`Escouade::depenserDesPoints`) puis vide son brouillon ;
     // sans effet s'il est vide.
-    void appliquer(std::size_t place);
+    void appliquer(Place place);
     // Efface le brouillon de ce personnage sans rien appliquer.
-    void reinitialiser(std::size_t place);
+    void reinitialiser(Place place);
 
     Transition traiterEvenement(const sf::Event& evenement, const Contexte& contexte) override;
     void mettreAJour(float dt, const Contexte& contexte) override;
@@ -82,7 +83,7 @@ private:
     const TileMap& m_carte;
     std::vector<std::string> m_nomsDesClasses;
     std::optional<PositionDObjet> m_origine;
-    std::array<Caracteristiques, s_nombreDePlaces> m_enAttente{};  // le brouillon, par place (indice = place − 1)
+    std::array<Caracteristiques, s_nombreDePlaces> m_enAttente{};  // le brouillon, par place (dans l'ordre des places)
     // Le bouton qu'on vient de presser agit.
     void cliquerSurUnBouton(const BoutonDePoints& bouton);
 };

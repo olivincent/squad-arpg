@@ -4,6 +4,7 @@
 #include "base/Aleatoire.hpp"
 #include "base/Cercle.hpp"
 #include "combat/EtatSkill.hpp"
+#include "combat/IdMonstre.hpp"
 #include "combat/IdSkill.hpp"
 #include "monde/Mobile.hpp"
 #include "combat/Skill.hpp"
@@ -54,13 +55,13 @@ public:
     // prête) ; avancer l'exécution, qui rend l'attaque au moment où le coup
     // part (vide avant) ; annuler, sans recharge consommée.
     // Refuse tant qu'une arme changée n'a pas relancé la recharge (`relancerSiLArmeAChange`).
-    [[nodiscard]] bool engagerAttaque(int idCible);
+    [[nodiscard]] bool engagerAttaque(IdMonstre idCible);
     // Quand l'arme a changé (`poserEquipement` / `retirerEquipement`), l'attaque de base repart pour une recharge
     // complète, tirée dans l'intervalle de la nouvelle arme : sans cela, retirer et remettre une arme lente (partie
     // figée) donnerait une attaque prête tout de suite. Le tirage attend un générateur, que l'équipement n'a pas :
     // `Escouade::attaquer` l'appelle au début de chaque image. Sans effet si l'arme n'a pas changé.
     void relancerSiLArmeAChange(Generateur& generateur);
-    [[nodiscard]] std::optional<int> cibleEngagee() const;
+    [[nodiscard]] std::optional<IdMonstre> cibleEngagee() const;
     [[nodiscard]] std::optional<Attaque> avancerAttaque(float dt, Generateur& generateur);
     // Sans effet sur une activation de skill : seul annulerSkill l'annule.
     void annulerAttaque();
