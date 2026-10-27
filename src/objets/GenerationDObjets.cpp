@@ -69,11 +69,12 @@ Rarete tirerRarete(Generateur& generateur, int niveau) {
     return Rarete::Commun;
 }
 
-// Un modèle au hasard, uniformément parmi ceux qui peuvent porter cette rareté.
-IdObjet tirerModele(Generateur& generateur, Rarete rarete) {
+// Un modèle au hasard, uniformément parmi ceux qui peuvent porter cette rareté et qui existent déjà à ce niveau (leur niveau
+// d'apparition).
+IdObjet tirerModele(Generateur& generateur, Rarete rarete, int niveau) {
     std::vector<IdObjet> possibles;
     for (const DefinitionObjet& definition : catalogueObjets()) {
-        if (peutPorterLaRarete(definition.id, rarete)) {
+        if (definition.niveauDApparition <= niveau && peutPorterLaRarete(definition.id, rarete)) {
             possibles.push_back(definition.id);
         }
     }
@@ -90,7 +91,7 @@ Affixe avecUneValeur(Generateur& generateur, IdAffixe id, int niveau) {
 Objet genererObjet(Generateur& generateur, int niveau) {
     assert(niveau >= 1);
     const Rarete rarete = tirerRarete(generateur, niveau);
-    Objet objet{tirerModele(generateur, rarete), rarete};
+    Objet objet{tirerModele(generateur, rarete, niveau), rarete};
     // La qualité de tout objet, arme ou non : l'ordre des tirages ne change plus quand d'autres objets en dépendront.
     objet.niveau = niveau;
     objet.qualite = tirerEntre(generateur, 0, s_qualiteMaximale);

@@ -240,6 +240,15 @@ TEST_CASE("genererObjet : l'objet retient le niveau recu et sa qualite va de 0 a
     }
 }
 
+TEST_CASE("genererObjet : aucun modele n'est tire sous son niveau d'apparition, a chaque niveau de 1 a 5") {
+    for (int niveau = 1; niveau <= 5; ++niveau) {
+        for (const Objet& objet : tirer(s_tirages, s_graine, niveau)) {
+            INFO("niveau " << niveau << ", " << definitionObjet(objet.modele).nom);
+            REQUIRE(definitionObjet(objet.modele).niveauDApparition <= niveau);
+        }
+    }
+}
+
 TEST_CASE("genererObjet : au niveau 5, 10000 tirages restent valides, chaque valeur est dans la plage agrandie, certaines depassent l'ancien maximum") {
     bool depasseLAncienMaximum = false;
     for (const Objet& objet : tirer(s_tirages, s_graine, 5)) {

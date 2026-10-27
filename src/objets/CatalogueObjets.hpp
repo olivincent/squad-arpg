@@ -40,6 +40,7 @@ struct DefinitionObjet {
     std::optional<DonneesDArme> arme = {};    // seulement pour une arme
     std::optional<DonneesDeBouclier> bouclier = {};  // seulement pour un bouclier : son blocage
     std::vector<ExigenceDeCaracteristique> exigences = {};  // vide : aucun seuil (cuir, bijoux)
+    int niveauDApparition = 1;  // `genererObjet` ne tire ce modèle que pour un objet d'au moins ce niveau (la profondeur)
 };
 
 // Ce qu'un objet apporte par lui-même (son modèle, son niveau et sa qualité), sans ses affixes : en entiers, le tout rangé comme
