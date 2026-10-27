@@ -20,13 +20,64 @@ constexpr int s_plancherDeCommun = 20;
 constexpr int s_gainDeMagiqueParNiveau = 3;
 constexpr int s_gainDeRareParNiveau = 2;
 
+// Les poids des familles de butin : les mêmes à toute profondeur (valeurs provisoires, « à tester »).
+constexpr int s_poidsArme = 35;
+constexpr int s_poidsArmure = 35;
+constexpr int s_poidsMainGauche = 15;
+constexpr int s_poidsBijou = 15;
+
 // Un élément au hasard, uniformément.
 template <typename T>
 const T& tirerParmi(Generateur& generateur, const std::vector<T>& elements) {
     assert(!elements.empty());
     return elements[static_cast<std::size_t>(tirerEntre(generateur, 0, static_cast<int>(elements.size()) - 1))];
 }
+
+// Un élément au hasard, selon son poids (un entier positif ; le total doit être positif). Un seul tirage.
+template <typename Conteneur, typename Poids>
+typename Conteneur::value_type tirerSelonLesPoids(Generateur& generateur, const Conteneur& elements, Poids poids) {
+    int poidsTotal = 0;
+    for (const auto& element : elements) {
+        poidsTotal += poids(element);
+    }
+    assert(poidsTotal > 0);
+    int reste = tirerEntre(generateur, 0, poidsTotal - 1);
+    for (const auto& element : elements) {
+        if (reste < poids(element)) {
+            return element;
+        }
+        reste -= poids(element);
+    }
+    assert(false);  // le tirage est dans [0, poidsTotal)
+    return elements.front();
+}
 }  // namespace
+
+FamilleDeButin familleDe(CategorieObjet categorie) {
+    switch (categorie) {
+        case CategorieObjet::Arme: return FamilleDeButin::Arme;
+        case CategorieObjet::Casque:
+        case CategorieObjet::Armure:
+        case CategorieObjet::Jambieres:
+        case CategorieObjet::Gants:
+        case CategorieObjet::Bottes: return FamilleDeButin::Armure;
+        case CategorieObjet::Bouclier:
+        case CategorieObjet::Relique: return FamilleDeButin::MainGauche;
+        case CategorieObjet::Collier:
+        case CategorieObjet::Anneau: return FamilleDeButin::Bijou;
+    }
+    return FamilleDeButin::Arme;
+}
+
+int poidsDeFamille(FamilleDeButin famille) {
+    switch (famille) {
+        case FamilleDeButin::Arme: return s_poidsArme;
+        case FamilleDeButin::Armure: return s_poidsArmure;
+        case FamilleDeButin::MainGauche: return s_poidsMainGauche;
+        case FamilleDeButin::Bijou: return s_poidsBijou;
+    }
+    return 0;
+}
 
 int poidsDeRarete(Rarete rarete, int niveau) {
     assert(niveau >= 1);
@@ -54,23 +105,16 @@ bool peutPorterLaRarete(IdObjet modele, Rarete rarete) {
 namespace {
 // Une rareté au hasard, selon les poids de ce niveau.
 Rarete tirerRarete(Generateur& generateur, int niveau) {
-    int poidsTotal = 0;
-    for (const Rarete rarete : s_raretes) {
-        poidsTotal += poidsDeRarete(rarete, niveau);
-    }
-    int reste = tirerEntre(generateur, 0, poidsTotal - 1);
-    for (const Rarete rarete : s_raretes) {
-        if (reste < poidsDeRarete(rarete, niveau)) {
-            return rarete;
-        }
-        reste -= poidsDeRarete(rarete, niveau);
-    }
-    assert(false);  // le tirage est dans [0, poidsTotal)
-    return Rarete::Commun;
+    return tirerSelonLesPoids(generateur, s_raretes, [niveau](Rarete rarete) { return poidsDeRarete(rarete, niveau); });
 }
 
-// Un modèle au hasard, uniformément parmi ceux qui peuvent porter cette rareté et qui existent déjà à ce niveau (leur niveau
-// d'apparition).
+bool estDeLaFamille(IdObjet modele, FamilleDeButin famille) {
+    return familleDe(definitionObjet(modele).categorie) == famille;
+}
+
+// Un modèle au hasard, en deux temps : une famille de butin, selon ses poids, parmi celles qui ont au moins un modèle possible ;
+// puis un modèle uniformément dans cette famille. Possible : il peut porter cette rareté et il existe déjà à ce niveau (son
+// niveau d'apparition).
 IdObjet tirerModele(Generateur& generateur, Rarete rarete, int niveau) {
     std::vector<IdObjet> possibles;
     for (const DefinitionObjet& definition : catalogueObjets()) {
@@ -78,6 +122,14 @@ IdObjet tirerModele(Generateur& generateur, Rarete rarete, int niveau) {
             possibles.push_back(definition.id);
         }
     }
+    std::vector<FamilleDeButin> familles;
+    for (const FamilleDeButin famille : s_famillesDeButin) {
+        if (std::ranges::any_of(possibles, [famille](IdObjet modele) { return estDeLaFamille(modele, famille); })) {
+            familles.push_back(famille);
+        }
+    }
+    const FamilleDeButin famille = tirerSelonLesPoids(generateur, familles, poidsDeFamille);
+    std::erase_if(possibles, [famille](IdObjet modele) { return !estDeLaFamille(modele, famille); });
     return tirerParmi(generateur, possibles);
 }
 

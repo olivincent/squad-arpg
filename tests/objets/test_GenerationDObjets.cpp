@@ -199,6 +199,91 @@ TEST_CASE("genererObjet : a un niveau eleve, le commun garde son plancher (20 su
     verifierLesProportions(20);
 }
 
+TEST_CASE("familleDe : les armes, l'armure, la main gauche et les bijoux") {
+    REQUIRE(familleDe(CategorieObjet::Arme) == FamilleDeButin::Arme);
+    for (const CategorieObjet categorie : {CategorieObjet::Casque, CategorieObjet::Armure, CategorieObjet::Jambieres,
+                                           CategorieObjet::Gants, CategorieObjet::Bottes}) {
+        REQUIRE(familleDe(categorie) == FamilleDeButin::Armure);
+    }
+    REQUIRE(familleDe(CategorieObjet::Bouclier) == FamilleDeButin::MainGauche);
+    REQUIRE(familleDe(CategorieObjet::Relique) == FamilleDeButin::MainGauche);
+    REQUIRE(familleDe(CategorieObjet::Collier) == FamilleDeButin::Bijou);
+    REQUIRE(familleDe(CategorieObjet::Anneau) == FamilleDeButin::Bijou);
+}
+
+TEST_CASE("poidsDeFamille : arme 35, armure 35, main gauche 15, bijou 15") {
+    REQUIRE(poidsDeFamille(FamilleDeButin::Arme) == 35);
+    REQUIRE(poidsDeFamille(FamilleDeButin::Armure) == 35);
+    REQUIRE(poidsDeFamille(FamilleDeButin::MainGauche) == 15);
+    REQUIRE(poidsDeFamille(FamilleDeButin::Bijou) == 15);
+}
+
+namespace {
+// Les proportions de familles des objets de cette rareté, tirés à ce niveau, sont celles de `poidsDeFamille` parmi les familles
+// éligibles (qui ont au moins un modèle apparu à ce niveau et capable de porter la rareté), à trois points près. La graine est
+// fixe : la tolérance détecte un algorithme modifié (famille tirée après le modèle, poids changés…).
+void verifierLesFamilles(Rarete rarete, int niveau) {
+    constexpr int tirages = 20000;
+    constexpr double tolerance = 0.03;
+    std::array<bool, s_famillesDeButin.size()> eligible = {};
+    for (const DefinitionObjet& definition : catalogueObjets()) {
+        if (definition.niveauDApparition <= niveau && peutPorterLaRarete(definition.id, rarete)) {
+            eligible[static_cast<std::size_t>(familleDe(definition.categorie))] = true;
+        }
+    }
+    int poidsTotal = 0;
+    for (const FamilleDeButin famille : s_famillesDeButin) {
+        poidsTotal += eligible[static_cast<std::size_t>(famille)] ? poidsDeFamille(famille) : 0;
+    }
+    std::array<int, s_famillesDeButin.size()> compte = {};
+    int total = 0;
+    for (const Objet& objet : tirer(tirages, s_graine, niveau)) {
+        if (objet.rarete == rarete) {
+            ++compte[static_cast<std::size_t>(familleDe(definitionObjet(objet.modele).categorie))];
+            ++total;
+        }
+    }
+    REQUIRE(total > 500);
+    for (const FamilleDeButin famille : s_famillesDeButin) {
+        const std::size_t indice = static_cast<std::size_t>(famille);
+        const double attendu = eligible[indice] ? static_cast<double>(poidsDeFamille(famille)) / poidsTotal : 0.0;
+        const double observe = static_cast<double>(compte[indice]) / total;
+        INFO("niveau " << niveau << ", rarete " << static_cast<int>(rarete) << ", famille " << indice << " : attendu " << attendu
+                       << ", observe " << observe);
+        REQUIRE(std::abs(observe - attendu) <= tolerance);
+    }
+}
+}  // namespace
+
+TEST_CASE("genererObjet : au niveau 1, les objets communs sont 35 / 35 / 15 / 15 % par famille") {
+    verifierLesFamilles(Rarete::Commun, 1);
+}
+
+TEST_CASE("genererObjet : au niveau 5, les memes proportions de familles malgre les pieces intermediaires et lourdes debloquees") {
+    verifierLesFamilles(Rarete::Commun, 5);
+}
+
+TEST_CASE("genererObjet : les objets magiques gardent les quatre familles, a tout niveau") {
+    verifierLesFamilles(Rarete::Magique, 1);
+    verifierLesFamilles(Rarete::Magique, 5);
+}
+
+TEST_CASE("genererObjet : un objet rare n'est jamais un bijou ni une relique, la main gauche est alors un bouclier") {
+    bool unBouclierRare = false;
+    for (const Objet& objet : tirer(s_tirages, s_graine, 5)) {
+        if (objet.rarete != Rarete::Rare) {
+            continue;
+        }
+        const CategorieObjet categorie = definitionObjet(objet.modele).categorie;
+        INFO(nomDeLObjet(objet));
+        REQUIRE(familleDe(categorie) != FamilleDeButin::Bijou);
+        REQUIRE(categorie != CategorieObjet::Relique);
+        unBouclierRare = unBouclierRare || categorie == CategorieObjet::Bouclier;
+    }
+    REQUIRE(unBouclierRare);
+    verifierLesFamilles(Rarete::Rare, 5);  // les proportions suivent les familles éligibles : 35 / 35 / 15 sur 85
+}
+
 TEST_CASE("genererObjet : la meme graine donne la meme suite d'objets, une autre graine une autre suite") {
     REQUIRE(tirer(200) == tirer(200));
     REQUIRE_FALSE(tirer(200) == tirer(200, s_graine + 1));
@@ -218,13 +303,13 @@ std::string decrire(const Objet& objet) {
 
 TEST_CASE("genererObjet : la suite d'objets de la graine 96 au niveau 1 est epinglee (qualite tiree apres le modele, vingt pieces d'armure et treize gabarits d'armes)") {
     // Épinglée avec la bibliothèque standard de MinGW (`std::uniform_int_distribution` n'est pas défini par la norme), à
-    // réépingler si elle change ou si l'ordre des tirages change : modèle (`IdObjet`) / rareté (`Rarete`), niveau, qualité,
-    // préfixe, suffixe (`IdAffixe` = valeur).
+    // réépingler si elle change ou si l'ordre des tirages change (rareté, famille, modèle, qualité, affixes : étape 104) :
+    // modèle (`IdObjet`) / rareté (`Rarete`), niveau, qualité, préfixe, suffixe (`IdAffixe` = valeur).
     const std::vector<std::string> attendu = {
-        "24/0 n1 q91 - -",     // anneau de puissance, commun
-        "34/1 n1 q2 - 8=3",    // masse à deux mains, magique, of the Lion
-        "27/1 n1 q11 - 4=1",   // épée à une main, magique, of the Ox
-        "26/0 n1 q25 - -", "31/0 n1 q3 - -", "9/0 n1 q93 - -", "37/0 n1 q51 - -", "9/0 n1 q32 - -",
+        "9/0 n1 q90 - -",      // bottes de cuir, commun
+        "38/1 n1 q70 - 6=2",   // arc, magique, of the Fox
+        "0/0 n1 q46 - -",      // robe, commun
+        "34/0 n1 q72 - -", "31/0 n1 q93 - -", "25/0 n1 q67 - -", "30/0 n1 q54 - -", "27/0 n1 q89 - -",
     };
     std::vector<std::string> obtenu;
     for (const Objet& objet : tirer(static_cast<int>(attendu.size()))) {
@@ -237,7 +322,7 @@ TEST_CASE("genererObjet : la suite d'objets de la graine 96 au niveau 1 est epin
     for (int i = 0; i < 200; ++i) {
         static_cast<void>(genererObjet(generateur, 1));
     }
-    REQUIRE(generateur() == 1670516804U);
+    REQUIRE(generateur() == 259422132U);
 }
 
 TEST_CASE("genererObjet : l'objet retient le niveau recu et sa qualite va de 0 a 100, les deux bornes sortent") {
