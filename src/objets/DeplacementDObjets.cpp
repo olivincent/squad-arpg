@@ -73,8 +73,8 @@ bool libererLaMainOpposee(EtatDesObjets& etat, const PositionDObjet& position) {
     if (!pose.has_value()) {
         return true;
     }
-    // Les deux mains : une arme à deux mains en main droite chasse la main gauche, un bouclier en main gauche chasse
-    // une arme à deux mains.
+    // Les deux mains : une arme à deux mains en main droite chasse la main gauche (bouclier ou relique), un objet de la main
+    // gauche chasse une arme à deux mains.
     const std::optional<Objet> droite = equipement.a(Emplacement::MainDroite);
     std::optional<Emplacement> aRanger;
     if (portee->emplacement == Emplacement::MainDroite && estADeuxMains(pose->modele) &&

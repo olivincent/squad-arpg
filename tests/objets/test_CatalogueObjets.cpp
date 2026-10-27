@@ -297,6 +297,7 @@ TEST_CASE("catalogueObjets : chaque type d'armure a ses cinq pieces, torse, jamb
     for (const DefinitionObjet& definition : catalogueObjets()) {
         REQUIRE(definition.typeDArmure.has_value() == (definition.categorie != CategorieObjet::Arme &&
                                                       definition.categorie != CategorieObjet::Bouclier &&
+                                                      definition.categorie != CategorieObjet::Relique &&
                                                       definition.categorie != CategorieObjet::Collier &&
                                                       definition.categorie != CategorieObjet::Anneau));
     }
@@ -397,10 +398,12 @@ TEST_CASE("catalogueObjets : seul un bouclier a des donnees de bouclier") {
     }
 }
 
-TEST_CASE("catalogueObjets : seules les pieces intermediaires et lourdes ont un bonus de combat (un malus d'esquive)") {
+TEST_CASE("catalogueObjets : seules les pieces intermediaires et lourdes (malus d'esquive) et les reliques (capacite offensive) ont un bonus de combat") {
     for (const DefinitionObjet& definition : catalogueObjets()) {
         const bool aUnMalus = definition.typeDArmure == TypeDArmure::Intermediaire || definition.typeDArmure == TypeDArmure::Lourd;
-        if (!aUnMalus) {
+        if (definition.categorie == CategorieObjet::Relique) {
+            REQUIRE(definition.bonusDeCombat == StatistiquesDeCombat{.capaciteOffensive = 10});  // leur seul bonus de combat
+        } else if (!aUnMalus) {
             REQUIRE(definition.bonusDeCombat == StatistiquesDeCombat());
         }
     }
@@ -648,4 +651,51 @@ TEST_CASE("mainsNues : 6 de degats sans ecart, 0,4 - 0,6 s, contact") {
     REQUIRE(mains.rechargeMin == 0.4f);
     REQUIRE(mains.rechargeMax == 0.6f);
     REQUIRE(mains.nature == NatureDAttaque::Contact);
+}
+
+TEST_CASE("catalogueObjets : l'orbe et la relique sacree sont des reliques de main gauche, avec leur caracteristique, leur seuil et 10 de capacite offensive") {
+    const DefinitionObjet& orbe = definitionObjet(IdObjet::Orbe);
+    const DefinitionObjet& relique = definitionObjet(IdObjet::ReliqueSacree);
+
+    REQUIRE(orbe.nom == "Orb");
+    REQUIRE(relique.nom == "Holy Relic");
+    for (const DefinitionObjet* definition : {&orbe, &relique}) {
+        INFO(definition->nom);
+        REQUIRE(definition->categorie == CategorieObjet::Relique);
+        REQUIRE(definition->armure == 0);
+        REQUIRE_FALSE(definition->bouclier.has_value());
+        REQUIRE(definition->bonusDeCombat == StatistiquesDeCombat{.capaciteOffensive = 10});
+        REQUIRE(peutAller(definition->categorie, Emplacement::MainGauche));
+        REQUIRE_FALSE(peutAller(definition->categorie, Emplacement::MainDroite));
+    }
+    REQUIRE(orbe.bonus == Caracteristiques::seule(Caracteristique::Savoir, 2));
+    REQUIRE(relique.bonus == Caracteristiques::seule(Caracteristique::Volonte, 2));
+    REQUIRE(orbe.exigences == std::vector<ExigenceDeCaracteristique>{{Caracteristique::Savoir, 2}});
+    REQUIRE(relique.exigences == std::vector<ExigenceDeCaracteristique>{{Caracteristique::Volonte, 2}});
+}
+
+TEST_CASE("effetsDeBase : le bonus et la capacite offensive d'une relique grandissent avec le niveau et la qualite") {
+    const auto effets = [](int niveau, int qualite) {
+        return effetsDeBase(Objet{IdObjet::ReliqueSacree, Rarete::Commun, std::nullopt, std::nullopt, niveau, qualite});
+    };
+
+    REQUIRE(effets(1, 50).bonus == Caracteristiques::seule(Caracteristique::Volonte, 2));
+    REQUIRE(effets(1, 50).bonusDeCombat.capaciteOffensive == 10);
+    REQUIRE(effets(5, 50).bonus == Caracteristiques::seule(Caracteristique::Volonte, 4));
+    REQUIRE(effets(5, 50).bonusDeCombat.capaciteOffensive == 20);
+    REQUIRE(effets(1, 100).bonusDeCombat.capaciteOffensive == 12);  // 11,5
+    REQUIRE(effets(1, 0).bonusDeCombat.capaciteOffensive == 9);     // 8,5
+}
+
+TEST_CASE("seuilsDeLObjet : une relique exige sa caracteristique, 6 au niveau 1, puis 2 de plus par niveau") {
+    REQUIRE(seuilsDeLObjet(Objet{IdObjet::Orbe}) == std::vector<SeuilDeCaracteristique>{{Caracteristique::Savoir, 6}});
+    REQUIRE(seuilsDeLObjet(Objet{IdObjet::ReliqueSacree, Rarete::Commun, std::nullopt, std::nullopt, 5}) ==
+            std::vector<SeuilDeCaracteristique>{{Caracteristique::Volonte, 14}});
+}
+
+TEST_CASE("objetValide : une relique ne porte que des suffixes de caracteristique, donc jamais rare") {
+    REQUIRE(objetValide(Objet{IdObjet::Orbe, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeLaChouette, 2}}));
+    REQUIRE_FALSE(objetValide(Objet{IdObjet::Orbe, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DEsquive, 2}}));
+    REQUIRE_FALSE(objetValide(Objet{IdObjet::Orbe, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeBlocage, 2}}));
+    REQUIRE_FALSE(objetValide(Objet{IdObjet::ReliqueSacree, Rarete::Magique, Affixe{IdAffixe::Renforce, 2}}));
 }

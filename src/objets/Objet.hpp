@@ -27,6 +27,8 @@ enum class IdObjet {
     Gantelets,
     Solerets,
     Bouclier,
+    Orbe,
+    ReliqueSacree,
     CollierDeProtection,
     AnneauDeProtection,
     AnneauDePuissance,

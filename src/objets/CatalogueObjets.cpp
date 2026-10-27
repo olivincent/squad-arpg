@@ -16,6 +16,10 @@ constexpr int s_armureCollierDeProtection = 1;
 constexpr int s_armureAnneauDeProtection = 1;
 constexpr int s_bonusAnneauDePuissance = 3;    // Puissance
 constexpr int s_bonusCollierDEndurance = 3;    // Endurance
+// Les reliques de la main gauche (valeurs provisoires, « à tester ») : un bonus de base dans la caractéristique de la relique et un
+// bonus de capacité offensive, qui grandissent avec le niveau et la qualité.
+constexpr int s_bonusDeRelique = 2;
+constexpr int s_capaciteOffensiveDeRelique = 10;
 constexpr int s_chanceDeBlocageBouclier = 20;       // en pour cent, au niveau 1
 constexpr int s_montantBloqueBouclier = 8;          // points absorbés par blocage, au niveau 1 et à la qualité moyenne
 
@@ -126,6 +130,14 @@ std::vector<DefinitionObjet> piecesDArmure(TypeDArmure type, IdObjet premier, co
     return pieces;
 }
 
+// Une relique de main gauche : sa caractéristique (bonus de base et seuil) et un bonus de capacité offensive.
+DefinitionObjet uneRelique(IdObjet id, std::string nom, Caracteristique caracteristique) {
+    DefinitionObjet relique = {id, std::move(nom), CategorieObjet::Relique, 0, Caracteristiques::seule(caracteristique, s_bonusDeRelique)};
+    relique.bonusDeCombat = {.capaciteOffensive = s_capaciteOffensiveDeRelique};
+    relique.exigences = {{caracteristique, s_penteSeuilPrincipale}};
+    return relique;
+}
+
 std::vector<DefinitionObjet> construireLeCatalogue() {
     std::vector<DefinitionObjet> catalogue;
     const auto ajouter = [&catalogue](std::vector<DefinitionObjet> definitions) {
@@ -148,6 +160,8 @@ std::vector<DefinitionObjet> construireLeCatalogue() {
         avecExigences({IdObjet::Bouclier, "Shield", CategorieObjet::Bouclier, s_armureBouclier, {}, {}, std::nullopt,
                        DonneesDeBouclier{.chanceAuNiveau1 = s_chanceDeBlocageBouclier, .montantAuNiveau1 = s_montantBloqueBouclier}},
                       {{Caracteristique::Endurance, s_penteSeuilPrincipale}}),
+        uneRelique(IdObjet::Orbe, "Orb", Caracteristique::Savoir),
+        uneRelique(IdObjet::ReliqueSacree, "Holy Relic", Caracteristique::Volonte),
         {IdObjet::CollierDeProtection, "Necklace of Protection", CategorieObjet::Collier,
          s_armureCollierDeProtection},
         {IdObjet::AnneauDeProtection, "Ring of Protection", CategorieObjet::Anneau,

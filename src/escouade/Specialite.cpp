@@ -92,7 +92,8 @@ const std::vector<TypeDArme> s_armesDeTir = {TypeDArme::Arc, TypeDArme::Arbalete
 constexpr std::array<float, 3> s_assombrissements = {0.0f, 0.30f, 0.55f};
 
 // Équipement de départ (niveau 1, qualité moyenne, communs) : une seule pièce d'armure, le torse (un justaucorps de cuir pour le
-// guerrier, le paladin et le rôdeur, une robe pour le prêtre et le mage), l'arme, et pour les mêlées un bouclier. Valeurs
+// guerrier, le paladin et le rôdeur, une robe pour le prêtre et le mage), l'arme, un bouclier pour les mêlées, une relique sacrée
+// pour le prêtre. Valeurs
 // provisoires, à ajuster après test.
 std::vector<ObjetDeDepart> equipementDeMelee(IdObjet arme) {
     return {{Emplacement::Torse, IdObjet::Justaucorps},
@@ -102,6 +103,13 @@ std::vector<ObjetDeDepart> equipementDeMelee(IdObjet arme) {
 
 std::vector<ObjetDeDepart> equipementDeTireur(IdObjet arme, IdObjet torse) {
     return {{Emplacement::Torse, torse}, {Emplacement::MainDroite, arme}};
+}
+
+// Le prêtre tient en plus une relique sacrée en main gauche.
+std::vector<ObjetDeDepart> equipementDuPretre(IdObjet arme) {
+    std::vector<ObjetDeDepart> equipement = equipementDeTireur(arme, IdObjet::Robe);
+    equipement.push_back({Emplacement::MainGauche, IdObjet::ReliqueSacree});
+    return equipement;
 }
 
 std::vector<Specialite> construireLeCatalogue() {
@@ -126,7 +134,7 @@ std::vector<Specialite> construireLeCatalogue() {
           .skills = {{IdSkill::Soin, Skill({.type = TypeSkill::Soin, .portee = s_porteeSoin, .puissance = s_puissanceSoin,
                                   .rechargeMin = s_rechargeSoin, .rechargeMax = s_rechargeSoin,
                                   .tempsExecution = s_activationSoin, .coefficients = s_puissanceSeule, .nature = NatureDAttaque::Contact})}},
-          .equipementDeDepart = equipementDeTireur(IdObjet::Sceptre, IdObjet::Robe), .rayonVision = s_rayonVision,
+          .equipementDeDepart = equipementDuPretre(IdObjet::Sceptre), .rayonVision = s_rayonVision,
           .caracteristiques = s_caracteristiquesPretre, .croissance = s_croissancePretre,
           .rang = Rang::Arriere}},
         // Mage : derrière, lance l'explosion.

@@ -291,10 +291,13 @@ TEST_CASE("equipement de depart : une seule piece d'armure, le torse (justaucorp
     }
 }
 
-TEST_CASE("equipement de depart : les tireurs ne portent que leur torse et leur arme") {
-    for (const IdSpecialite tireur : {IdSpecialite::Pretre, IdSpecialite::Mage, IdSpecialite::Rodeur}) {
+TEST_CASE("equipement de depart : le mage et le rodeur ne portent que leur torse et leur arme, le pretre a en plus une relique sacree") {
+    for (const IdSpecialite tireur : {IdSpecialite::Mage, IdSpecialite::Rodeur}) {
         REQUIRE(specialite(tireur).definition.equipementDeDepart.size() == 2);
+        REQUIRE_FALSE(portePar(specialite(tireur).definition, Emplacement::MainGauche).has_value());
     }
+    REQUIRE(specialite(IdSpecialite::Pretre).definition.equipementDeDepart.size() == 3);
+    REQUIRE(portePar(specialite(IdSpecialite::Pretre).definition, Emplacement::MainGauche) == IdObjet::ReliqueSacree);
 }
 
 TEST_CASE("equipement de depart : l'arme de chaque classe") {

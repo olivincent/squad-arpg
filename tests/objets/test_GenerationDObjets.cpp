@@ -221,10 +221,10 @@ TEST_CASE("genererObjet : la suite d'objets de la graine 96 au niveau 1 est epin
     // réépingler si elle change ou si l'ordre des tirages change : modèle (`IdObjet`) / rareté (`Rarete`), niveau, qualité,
     // préfixe, suffixe (`IdAffixe` = valeur).
     const std::vector<std::string> attendu = {
-        "23/0 n1 q91 - -",     // anneau de puissance, commun
-        "32/1 n1 q2 - 8=3",    // masse à deux mains, magique, of the Lion
-        "26/1 n1 q11 - 4=1",   // épée à une main, magique, of the Ox
-        "25/0 n1 q25 - -", "30/0 n1 q3 - -", "9/0 n1 q93 - -", "35/0 n1 q51 - -", "8/0 n1 q32 - -",
+        "24/0 n1 q91 - -",     // anneau de puissance, commun
+        "34/1 n1 q2 - 8=3",    // masse à deux mains, magique, of the Lion
+        "27/1 n1 q11 - 4=1",   // épée à une main, magique, of the Ox
+        "26/0 n1 q25 - -", "31/0 n1 q3 - -", "9/0 n1 q93 - -", "37/0 n1 q51 - -", "9/0 n1 q32 - -",
     };
     std::vector<std::string> obtenu;
     for (const Objet& objet : tirer(static_cast<int>(attendu.size()))) {

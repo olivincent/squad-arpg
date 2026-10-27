@@ -9,6 +9,7 @@ bool peutAller(CategorieObjet categorie, Emplacement emplacement) {
         case CategorieObjet::Gants:     return emplacement == Emplacement::Gants;
         case CategorieObjet::Bottes:    return emplacement == Emplacement::Bottes;
         case CategorieObjet::Bouclier:  return emplacement == Emplacement::MainGauche;
+        case CategorieObjet::Relique:   return emplacement == Emplacement::MainGauche;  // à la place d'un bouclier
         case CategorieObjet::Arme:      return emplacement == Emplacement::MainDroite;
         case CategorieObjet::Collier:   return emplacement == Emplacement::Collier;
         case CategorieObjet::Anneau:

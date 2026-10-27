@@ -6,10 +6,10 @@
 #include <cstddef>
 
 namespace {
-// Les catégories des suffixes de caractéristique : toutes.
+// Les catégories des suffixes de caractéristique : toutes (une relique ne porte que ceux-là).
 const std::vector<CategorieObjet> s_toutesLesCategories = {
     CategorieObjet::Casque, CategorieObjet::Armure, CategorieObjet::Jambieres, CategorieObjet::Gants,   CategorieObjet::Bottes,
-    CategorieObjet::Bouclier, CategorieObjet::Collier, CategorieObjet::Anneau, CategorieObjet::Arme};
+    CategorieObjet::Bouclier, CategorieObjet::Relique, CategorieObjet::Collier, CategorieObjet::Anneau, CategorieObjet::Arme};
 
 // Les plages de valeurs (valeurs provisoires, « à tester »). Les pour cent sont des points de pourcentage.
 constexpr PlageDeValeurs s_plageDegatsElementaires = {3, 8};  // feu et sacré, en points de dégâts

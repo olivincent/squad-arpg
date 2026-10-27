@@ -36,6 +36,7 @@ TEST_CASE("peutAller : chaque categorie a son emplacement") {
     REQUIRE(peutAller(CategorieObjet::Gants, Emplacement::Gants));
     REQUIRE(peutAller(CategorieObjet::Bottes, Emplacement::Bottes));
     REQUIRE(peutAller(CategorieObjet::Bouclier, Emplacement::MainGauche));
+    REQUIRE(peutAller(CategorieObjet::Relique, Emplacement::MainGauche));
     REQUIRE(peutAller(CategorieObjet::Collier, Emplacement::Collier));
 }
 
@@ -51,6 +52,11 @@ TEST_CASE("peutAller : un bouclier va seulement en main gauche") {
     REQUIRE_FALSE(peutAller(CategorieObjet::Bouclier, Emplacement::Torse));
 }
 
+TEST_CASE("peutAller : une relique va seulement en main gauche, a la place d'un bouclier") {
+    REQUIRE_FALSE(peutAller(CategorieObjet::Relique, Emplacement::MainDroite));
+    REQUIRE_FALSE(peutAller(CategorieObjet::Relique, Emplacement::Torse));
+}
+
 TEST_CASE("peutAller : une arme va en main droite, et seulement la, ni en main gauche") {
     REQUIRE(peutAller(CategorieObjet::Arme, Emplacement::MainDroite));
     REQUIRE_FALSE(peutAller(CategorieObjet::Arme, Emplacement::MainGauche));
@@ -60,7 +66,8 @@ TEST_CASE("peutAller : une arme va en main droite, et seulement la, ni en main g
 TEST_CASE("peutAller : la main droite n'accepte que les armes") {
     for (const CategorieObjet categorie :
          {CategorieObjet::Casque, CategorieObjet::Armure, CategorieObjet::Jambieres, CategorieObjet::Gants,
-          CategorieObjet::Bottes, CategorieObjet::Bouclier, CategorieObjet::Collier, CategorieObjet::Anneau}) {
+          CategorieObjet::Bottes, CategorieObjet::Bouclier, CategorieObjet::Relique, CategorieObjet::Collier,
+          CategorieObjet::Anneau}) {
         REQUIRE_FALSE(peutAller(categorie, Emplacement::MainDroite));
     }
 }
@@ -80,6 +87,7 @@ TEST_CASE("peutAller : un seul emplacement par categorie, deux pour les anneaux"
     REQUIRE(nombreDEmplacements(CategorieObjet::Gants) == 1);
     REQUIRE(nombreDEmplacements(CategorieObjet::Bottes) == 1);
     REQUIRE(nombreDEmplacements(CategorieObjet::Bouclier) == 1);
+    REQUIRE(nombreDEmplacements(CategorieObjet::Relique) == 1);
     REQUIRE(nombreDEmplacements(CategorieObjet::Collier) == 1);
     REQUIRE(nombreDEmplacements(CategorieObjet::Arme) == 1);
     REQUIRE(nombreDEmplacements(CategorieObjet::Anneau) == 2);

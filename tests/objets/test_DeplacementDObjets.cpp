@@ -431,3 +431,63 @@ TEST_CASE("seuilsManques : ne change rien a l'etat") {
 
     REQUIRE(contenu(etat) == avant);
 }
+
+// Les reliques (étape 103.5) : la main gauche accepte un bouclier ou une relique, et une arme à deux mains range celui des deux
+// qui s'y trouve, quelle que soit sa catégorie.
+TEST_CASE("reliques : equiper un baton range la relique comme un bouclier") {
+    EtatDesObjets etat = etatVide();
+    const Objet relique{IdObjet::ReliqueSacree};
+    porter(etat, s_placeA, Emplacement::MainGauche, relique);
+    rangerDansLeSac(etat, 3, Objet{IdObjet::Baton});
+
+    REQUIRE(deplacerLesObjets(etat, dansLeSac(3), portee(s_placeA, Emplacement::MainDroite)));
+
+    REQUIRE(etat.equipements[0].a(Emplacement::MainDroite) == Objet{IdObjet::Baton});
+    REQUIRE_FALSE(etat.equipements[0].a(Emplacement::MainGauche).has_value());
+    REQUIRE(etat.sac.a(0) == relique);  // la première case libre
+}
+
+TEST_CASE("reliques : une orbe se pose en main gauche a cote d'une baguette, sans rien ranger") {
+    EtatDesObjets etat = etatVide();
+    const Objet baguette{IdObjet::Baguette};
+    porter(etat, s_placeA, Emplacement::MainDroite, baguette);
+    rangerDansLeSac(etat, 2, Objet{IdObjet::Orbe});
+
+    REQUIRE(deplacerLesObjets(etat, dansLeSac(2), portee(s_placeA, Emplacement::MainGauche)));
+
+    REQUIRE(etat.equipements[0].a(Emplacement::MainGauche) == Objet{IdObjet::Orbe});
+    REQUIRE(etat.equipements[0].a(Emplacement::MainDroite) == baguette);
+    REQUIRE_FALSE(etat.sac.a(2).has_value());
+}
+
+TEST_CASE("reliques : une relique et un bouclier s'echangent en main gauche") {
+    EtatDesObjets etat = etatVide();
+    porter(etat, s_placeA, Emplacement::MainGauche, s_bouclier);
+    rangerDansLeSac(etat, 1, Objet{IdObjet::ReliqueSacree});
+
+    REQUIRE(deplacerLesObjets(etat, dansLeSac(1), portee(s_placeA, Emplacement::MainGauche)));
+
+    REQUIRE(etat.equipements[0].a(Emplacement::MainGauche) == Objet{IdObjet::ReliqueSacree});
+    REQUIRE(etat.sac.a(1) == s_bouclier);
+}
+
+TEST_CASE("reliques : une relique range l'arme a deux mains de la main droite, comme un bouclier") {
+    EtatDesObjets etat = etatVide();
+    porter(etat, s_placeA, Emplacement::MainDroite, s_arc);
+    rangerDansLeSac(etat, 4, Objet{IdObjet::Orbe});
+
+    REQUIRE(deplacerLesObjets(etat, dansLeSac(4), portee(s_placeA, Emplacement::MainGauche)));
+
+    REQUIRE(etat.equipements[0].a(Emplacement::MainGauche) == Objet{IdObjet::Orbe});
+    REQUIRE_FALSE(etat.equipements[0].a(Emplacement::MainDroite).has_value());
+    REQUIRE(etat.sac.a(0) == s_arc);
+}
+
+TEST_CASE("reliques : une relique ne va pas en main droite, ni une arme en main gauche") {
+    EtatDesObjets etat = etatVide();
+    rangerDansLeSac(etat, 0, Objet{IdObjet::Orbe});
+    rangerDansLeSac(etat, 1, s_epee);
+
+    REQUIRE_FALSE(deplacerLesObjets(etat, dansLeSac(0), portee(s_placeA, Emplacement::MainDroite)));
+    REQUIRE_FALSE(deplacerLesObjets(etat, dansLeSac(1), portee(s_placeA, Emplacement::MainGauche)));
+}

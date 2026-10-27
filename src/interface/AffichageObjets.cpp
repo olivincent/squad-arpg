@@ -74,6 +74,7 @@ std::string nomDeLaCategorie(CategorieObjet categorie) {
         case CategorieObjet::Gants: return "Gloves";
         case CategorieObjet::Bottes: return "Boots";
         case CategorieObjet::Bouclier: return "Shield";
+        case CategorieObjet::Relique: return "Relic";
         case CategorieObjet::Collier: return "Necklace";
         case CategorieObjet::Anneau: return "Ring";
         case CategorieObjet::Arme: return "Weapon";
@@ -114,6 +115,8 @@ std::string sigleDeLObjet(IdObjet id) {
         case IdObjet::Gantelets: return "GT";
         case IdObjet::Solerets: return "SB";
         case IdObjet::Bouclier: return "SH";
+        case IdObjet::Orbe: return "OR";
+        case IdObjet::ReliqueSacree: return "HR";
         case IdObjet::CollierDeProtection: return "NP";
         case IdObjet::AnneauDeProtection: return "RP";
         case IdObjet::AnneauDePuissance: return "RM";
