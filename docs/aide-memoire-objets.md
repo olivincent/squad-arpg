@@ -4,7 +4,7 @@
 
 ## Légende
 
-Chaque valeur porte un statut. **En jeu** : dans le code à la fin de l'étape 103 (tout ce qui a été fait aux étapes 102 et 103). **Décidé** : tranché le 27 octobre, pas encore dans le code (les affinités d'affixes, étape 104). **Proposé** : pas encore tranché. Les chiffres « en jeu » restent à tester en jouant.
+Chaque valeur porte un statut. **En jeu** : dans le code à la fin de l'étape 104 (tout ce qui a été fait aux étapes 102 à 104 : gabarits, familles de butin, affinités d'affixes). **Décidé** : tranché, pas encore dans le code (les poids de base des affixes). **Proposé** : pas encore tranché. Les chiffres « en jeu » restent à tester en jouant.
 
 Les armes et protections de l'étape 101 étaient des prototypes de test : les étapes 102 (armes) et 103 (armures, boucliers, reliques, bijoux) les ont toutes remplacées. Les noms anglais sont ceux affichés à l'écran ; les noms français sont ceux du code et de `docs/`.
 
@@ -183,7 +183,7 @@ Aucune pièce n'a de bonus de caractéristique de base. **Ensemble complet selon
 | Intermédiaire | Con +1, Dex +1 | 2 | of the Bear, of Evasion |
 | Lourd | Con +2 | 3 | Reinforced, of the Bear, of the Ox |
 
-**Niveau d'apparition** (en jeu) : un entier du gabarit, 1 par défaut ; `genererObjet` ne tire que les modèles dont le niveau d'apparition est au plus celui de l'objet, uniformément parmi les modèles éligibles (les poids de tirage viendront avec l'étape 104). Ainsi, au 1er étage on ne trouve que du tissu et du léger, des pièces Chain dès le 2e, des pièces Plate dès le 3e.
+**Niveau d'apparition** (en jeu) : un entier du gabarit, 1 par défaut ; `genererObjet` ne tire que les modèles dont le niveau d'apparition est au plus celui de l'objet : d'abord une famille de butin, puis un gabarit uniformément parmi les éligibles de cette famille (« Familles de butin » ci-dessous). Ainsi, au 1er étage on ne trouve que du tissu et du léger, des pièces Chain dès le 2e, des pièces Plate dès le 3e.
 
 **Noms à l'écran** : Robe, Cloth Leggings, Hood, Cloth Gloves, Slippers ; Leather Jerkin, Leather Leggings, Leather Cap, Leather Gloves, Leather Boots ; Chain Mail, Chain Leggings, Chain Coif, Chain Gloves, Chain Boots ; Plate Armor, Plate Greaves, Great Helm, Gauntlets, Sabatons.
 
@@ -247,25 +247,47 @@ Les plages sont multipliées par 1 + 0,25 × (niveau − 1), arrondies au plus p
 | of Deflection | suffixe | esquive contre les projectiles | 2 – 4 % | 4 – 8 % | casque, bouclier |
 | of Blocking | suffixe | chance de blocage | 3 – 7 % | 6 – 14 % | bouclier |
 
-Aujourd'hui, l'affixe d'un objet Magic est tiré uniformément parmi ceux que sa catégorie permet. Les anneaux et colliers n'ont aucun préfixe, donc ne sont jamais Rare.
+L'affixe d'un objet Magic est tiré parmi ceux que sa catégorie permet, pondéré par les affinités de son gabarit (« Affinités d'affixes » ci-dessous). Les anneaux et colliers n'ont aucun préfixe, donc ne sont jamais Rare.
 
-## Affinités d'affixes (décidé, étape 104)
+## Familles de butin (en jeu, étape 104)
+
+Le modèle d'un objet se tire en deux temps : une **famille**, puis un gabarit dans cette famille. Sans cela, l'armure (vingt pièces sur quarante modèles) ferait la moitié du butin, et davantage en débloquant le Chain (niveau 2) et le Plate (niveau 3).
+
+| Famille | Catégories | Poids |
+| --- | --- | --- |
+| Arme | armes | 35 |
+| Armure | casque, armure, jambières, gants, bottes | 35 |
+| Main gauche | bouclier, relique | 15 |
+| Bijou | anneau, collier | 15 |
+
+- La famille se **déduit** de la catégorie (`familleDe`) ; elle n'est stockée dans aucun gabarit.
+- **Éligibilité** : un gabarit est éligible s'il est apparu à ce niveau et peut porter la rareté tirée. Une famille est éligible si elle a au moins un gabarit éligible. Le tirage de famille se fait parmi les familles éligibles, selon leurs poids ; le gabarit est ensuite tiré **uniformément** parmi les éligibles de la famille (pas de poids par gabarit).
+- **Même proportions à toute profondeur** : débloquer des gabarits ne change pas la part des familles. Au niveau 1 comme au niveau 5, un objet Common est une arme, une armure, une main gauche ou un bijou dans les proportions 35 / 35 / 15 / 15.
+- **Rare** : les bijoux (pas de préfixe) et les reliques ne peuvent pas l'être ; il reste, pour la main gauche, le seul Shield. Les familles éligibles d'un Rare sont donc Arme, Armure et Main gauche, soit 41 / 41 / 18 %.
+- Ordre des tirages : rareté, famille, gabarit, qualité, affixes.
+- Valeurs « à tester ». Un poids par gabarit dans une famille viendra si un gabarit doit être plus rare.
+
+## Affinités d'affixes (en jeu, étape 104)
 
 La catégorie dit quels affixes ont un sens sur un objet ; le gabarit dit lesquels sont plus probables. Un bâton reste capable de tout, mais penche vers l'Intellect et le feu.
 
-**Le but est une structure où l'on ajoute ou retire un concept sans rien réécrire.** Chaque affixe a un poids de base dans son catalogue ; chaque gabarit garde une courte liste de ses affinités, tout le reste vaut 1.
+**Le but est une structure où l'on ajoute ou retire un concept sans rien réécrire.** Chaque gabarit garde une courte liste de ses affinités (`DefinitionObjet::affinites`, des `AffiniteDAffixe { affixe, multiplicateur }`), tout le reste vaut 1. Les cinq pièces d'un type d'armure partagent la liste de leur type (`affinitesDuType`). Un multiplicateur est d'au moins 2.
 
 - Ajouter un affixe : une ligne dans le catalogue d'affixes, et, si l'on veut, une affinité dans quelques gabarits.
 - Retirer un affixe : supprimer sa ligne ; le compilateur signale chaque gabarit qui le nommait encore.
 - Ajouter un gabarit : une ligne dans le catalogue, sans affinité si aucune tendance n'est voulue.
 
 ```
-poids d'un affixe = poids de base de l'affixe × affinité du gabarit   (1 par défaut, 0 = jamais)
+poids d'un affixe = affinité du gabarit   (1 par défaut)
 ```
+
+**Poids de base des affixes : pas encore en jeu.** Ils seraient tous égaux aujourd'hui ; ils viendront avec le premier affixe qu'on voudra plus rare (poids de base × affinité).
+
+**Une affinité pour un affixe que la catégorie ne permet pas est sans effet** : la catégorie décide de ce qui est permis, l'affinité ne fait que pondérer parmi les permis (of Deflection n'est permis que sur casque et bouclier : sur des gants légers, l'affinité du type léger ne joue pas). **Magic** : un seul tirage pondéré parmi tous les affixes permis, préfixes et suffixes confondus ; **Rare** : le préfixe et le suffixe sont chacun pondérés parmi ceux de leur position.
 
 **Exemple : un bâton Magic** (8 affixes permis sur une arme, of the Owl ×3, Blazing ×2) :
 
-| Affixe | Poids | Chance avec affinités | Chance uniforme aujourd'hui |
+| Affixe | Poids | Chance avec affinités | Chance uniforme (avant l'étape 104) |
 | --- | --- | --- | --- |
 | of the Owl (Int) | 3 | 27,3 % | 12,5 % |
 | Blazing (feu) | 2 | 18,2 % | 12,5 % |
@@ -292,21 +314,23 @@ Le tirage reste un seul tirage pondéré, comme les raretés : choisir d'abord �
 | Armure lourde | Reinforced | of the Bear, of the Ox |
 | Bouclier | of Blocking | Reinforced |
 | Orbe | of the Owl | — |
-| Relique sacrée | of the Lion | Hallowed |
+| Relique sacrée | of the Lion | — (pas de Hallowed : une relique ne porte pas de préfixe) |
+| Bijoux | — | — |
 
 Un affixe sans effet en jeu (régénération de mana) n'existe pas tant que le mana n'existe pas ; le tableau l'accueillera le jour venu.
 
-## Exemple complet de génération (décidé)
+## Exemple complet de génération (en jeu)
 
 Un monstre meurt au 3e étage et laisse une « Hand Axe of the Ox » de niveau 3. Voici chaque tirage, dans l'ordre fixe qui garde une graine reproductible.
 
 1. **Rareté**, poids du niveau 3 : Common 60, Magic 31, Rare 9. Tirage : Magic.
-2. **Gabarit**, uniforme parmi ceux qui peuvent être Magic. Tirage : hache à une main.
-3. **Qualité**, entre 0 et 100. Tirage : 62, soit un facteur de 0,85 + 0,30 × 0,62 = 1,036.
-4. **Dégâts de l'objet** : 20 × 1,5 × 1,036 = 31. Écart de ±25 % : chaque coup fera de 23 à 39.
-5. **Seuil** : Might 6 au niveau 1 + 2 × 2 niveaux = Might 10.
-6. **Affixe**, pondéré par les affinités de la hache (of the Ox ×2, étape 104) : 22 % de chances au lieu de 12,5 %. Tirage : of the Ox.
-7. **Valeur**, plage du niveau 3 : 1 – 3 × 1,5 = 2 – 5. Tirage : 4.
+2. **Famille**, poids Arme 35, Armure 35, Main gauche 15, Bijou 15 (toutes éligibles pour un Magic). Tirage : Arme.
+3. **Gabarit**, uniforme parmi les armes (toutes peuvent être Magic). Tirage : hache à une main.
+4. **Qualité**, entre 0 et 100. Tirage : 62, soit un facteur de 0,85 + 0,30 × 0,62 = 1,036.
+5. **Dégâts de l'objet** : 20 × 1,5 × 1,036 = 31. Écart de ±25 % : chaque coup fera de 23 à 39.
+6. **Seuil** : Might 6 au niveau 1 + 2 × 2 niveaux = Might 10.
+7. **Affixe**, pondéré par les affinités de la hache (of the Ox ×2) : 2 sur 9, soit 22 % de chances au lieu de 12,5 %. Tirage : of the Ox.
+8. **Valeur**, plage du niveau 3 : 1 – 3 × 1,5 = 2 – 5. Tirage : 4.
 
 **Ce que l'objet garde**. Tout le reste se recalcule depuis le gabarit :
 

@@ -8,7 +8,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 ## Étapes terminées
 
-Étapes 0 à 103 ✅. Les dernières :
+Étapes 0 à 104 ✅. Les dernières :
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 - Étape 83 — Inventaire et équipement : le modèle, sans interface ✅
@@ -32,15 +32,16 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - Étape 101 — Le niveau d'objet : la profondeur fait grandir les plages des affixes et les chances de Magic et de Rare ✅ (la phase 5 est terminée)
 - Étape 102 — Les gabarits d'armes : treize gabarits (vitesse, portée, nature, mains, pénétration, écart par coup), l'objet retient son niveau et sa qualité, ses dégâts et ses seuils se calculent, chaque coup tire ses dégâts dans une plage ✅ (première étape de la phase 6)
 - Étape 103 — Armures, boucliers et reliques : vingt pièces d'armure en quatre types (tissu, léger, intermédiaire, lourd), un Shield, deux reliques de main gauche (Orb, Holy Relic), malus d'esquive des pièces lourdes, niveau d'apparition dans le butin ; armure, blocage et bonus se calculent depuis le gabarit, le niveau et la qualité (`effetsDeBase`) ✅
+- Étape 104 — Familles de butin et affinités d'affixes : le butin se répartit entre arme, armure, main gauche et bijou (35 / 35 / 15 / 15, à toute profondeur), chaque gabarit penche vers quelques affixes ✅ (la phase 6 est terminée)
 
 ## État actuel (résumé)
 
 - **Outils** : conception dans Claude.ai, implémentation avec Claude Code dans VSCode (règles dans
   `CLAUDE.md`) ; dépôt Git `squad-arpg`, poussé sur GitHub ; SFML 3.0.2 intégrée à CMake.
-- **Code** (étape 103) : 103 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
+- **Code** (étape 104) : 103 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
   `combat`, `objets`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
   de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug` et `jeu`, 0
-  avertissement, 1 778 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers des étapes 98 à 102 : `docs/build.md`,
+  avertissement, 1 790 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers des étapes 98 à 102 : `docs/build.md`,
   `docs/audit.md`). `Escouade` n'est plus que l'assemblage : `Escouade.cpp` de 1 223 à 1 067 lignes. Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`). **Tout le texte affiché est en anglais** (identifiants, commentaires et documentation restent en français ; pas de système de traduction : `docs/glossaire.md` est la référence des noms du jeu). Un commit par sous-étape, fait par Claude Code (`CLAUDE.md`).
 - **Écrans** : menu à la souris, options d'affichage (fenêtré ou plein écran, résolutions,
   `reglages.ini`), choix de 3 classes parmi 5 (guerrier, prêtre, mage, paladin, rôdeur ; doublons
@@ -117,6 +118,15 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   (`docs/objets.md`, « Les protections, les boucliers et les reliques », `docs/aide-memoire-objets.md`).
   Les protections, boucliers et bijoux gardent leurs valeurs de prototype (étape 103) ; tout est « à tester » (`docs/objets.md`,
   « Les gabarits d'armes, le niveau et la qualité »).
+- **Familles de butin et affinités d'affixes** (étape 104) : `genererObjet` tire dans l'ordre la rareté, la **famille de butin**, le
+  gabarit, la qualité, les affixes. Les familles (Arme 35, Armure 35, Main gauche 15, Bijou 15, `poidsDeFamille`) se **déduisent** de la
+  catégorie (`familleDe`) et se tirent parmi celles qui ont un modèle éligible (apparu à ce niveau, capable de porter la rareté) ; le
+  gabarit est ensuite uniforme dans la famille. Les proportions sont donc **les mêmes à toute profondeur** (débloquer le Chain et le Plate
+  ne grossit plus la part de l'armure) ; un Rare n'est jamais un bijou ni une relique. **Chaque gabarit a une courte liste d'affinités**
+  (`DefinitionObjet::affinites`, multiplicateur de 3 ou de 2 ; par type pour les armures) : le bâton penche vers of the Owl et Blazing, les
+  dagues et lances vers Keen, les armures lourdes vers Reinforced, le Shield vers of Blocking. `affiniteDe` donne le poids d'un affixe (1
+  sans affinité) et le tirage ne pondère que parmi les affixes que la catégorie **permet**. Aucun poids de base par affixe ni par gabarit
+  encore. Rien ne change à l'écran ; tout est « à tester » (`docs/objets.md`, « Génération aléatoire », `docs/aide-memoire-objets.md`).
 - **Carte** : donjon généré à chaque partie (salles, couloirs en L de 2 cases, portes à chaque
   jonction, un groupe de monstres par salle sauf la première, un escalier, graine affichée), F5 = nouvelle expédition ;
   carte à la main pour les tests (`docs/generation.md`, `docs/carte-et-collision.md`).
@@ -313,20 +323,27 @@ ce qui reste à décider **en discussion** avant son prompt :
   - 103 ✅ : armures, boucliers et reliques sur le même patron : le facteur de qualité partagé et `effetsDeBase` (armure, bonus,
     capacités, blocage selon le niveau et la qualité), le niveau d'apparition, les vingt pièces d'armure (types, seuils, malus d'esquive,
     kits, infobulle), le Shield, les reliques de main gauche (Orb, Holy Relic).
-  - 104 : affinités et poids d'affixes (quel affixe sur quel gabarit, et avec quelle chance).
+  - 104 ✅ : familles de butin et affinités d'affixes : le modèle se tire en deux temps (famille, puis gabarit), les proportions des
+    familles ne changent pas avec la profondeur, chaque gabarit penche vers quelques affixes (tirage pondéré). **La phase 6 est terminée.**
 
 
-## Étape 104 (prochaine) : affinités et poids d'affixes (à discuter avec Claude.ai)
+## Étape 105 (prochaine) : à discuter avec Claude.ai
 
-L'étape 103 (armures, boucliers et reliques) est faite. La suite se discute avec Claude.ai ; l'aide-memoire des affinités est dans
-`docs/aide-memoire-objets.md`. Le Savoir et la
-Volonté n'ont encore aucun effet (les paires de croissance du prêtre et du mage deviendront justes quand ils serviront). L'`Expedition`
-garde les points dépensés ; c'est elle qu'on sauvegardera un jour.
+L'étape 104 (familles de butin et affinités d'affixes) est faite, et avec elle la phase 6. La suite se discute avec Claude.ai. Le Savoir
+et la Volonté n'ont encore aucun effet (les paires de croissance du prêtre et du mage deviendront justes quand ils serviront).
+L'`Expedition` garde les points dépensés ; c'est elle qu'on sauvegardera un jour.
+
+**Pistes issues de l'étape 104** (étapes à part, plus tard) :
+- **Ajuster en jouant** les poids des familles (35 / 35 / 15 / 15) et les multiplicateurs d'affinité (3 et 2) : « à tester ».
+- **Des poids de base par affixe**, le jour où un affixe devra être plus rare (poids de base × affinité) ; **des poids par gabarit** dans une
+  famille si un gabarit doit être plus rare (aujourd'hui uniforme).
+- **De nouveaux affixes** (mana, résistances, vitesse) : une ligne dans le catalogue d'affixes et, si l'on veut, des affinités ; la
+  régénération de mana ira sur le bâton quand le mana existera.
 
 **Pistes issues de l'étape 103** (étapes à part, plus tard) :
 - **Ajuster en jouant** l'armure de chaque pièce et de chaque type, les malus d'esquive, le gain de blocage par niveau (1), le montant du
   Shield, le +10 de capacité offensive des reliques et les niveaux d'apparition (2 et 3) : tout est « à tester ».
-- **Des poids de tirage par gabarit** (aujourd'hui uniforme parmi les modèles éligibles) : étape 104.
+- ~~**Des poids de tirage par gabarit**~~ : les familles de butin sont faites (étape 104) ; les poids par gabarit restent à venir.
 - **Un effet pour le Savoir et la Volonté**, que les reliques et les armes magiques annoncent déjà par leur seuil.
 - **Des bonus de vitesse** (et peut-être un malus de mouvement des armures lourdes) quand chaque personnage aura sa propre vitesse.
 - **Afficher la qualité**, et des modèles de base supérieurs au-delà du niveau (plaques d'acier après celles de fer).

@@ -2081,3 +2081,24 @@ gabarits ; une grande partie du travail est la **migration des tests**.
   catalogue (103.3 et 103.5), l'état du générateur après 200 objets ne change pas.
 - **Ce que les tests ne voient pas** : le rouge du malus dans l'infobulle, la lisibilité du signe moins, la sensation d'une armure lourde
   qui mange l'esquive, le butin qui s'alourdit en descendant : à l'œil.
+
+
+## Étape 104 : familles de butin et affinités d'affixes (+12 cas, 1 778 → 1 790)
+
+Deux sous-étapes, un commit chacune (104.1 enchaînée). Beaucoup de tirages : ces tests prennent de 3 à 8 s chacun en `debug`.
+- **104.1** (+6) : `test_GenerationDObjets.cpp` (`familleDe` pour les dix catégories ; `poidsDeFamille` 35 / 35 / 15 / 15 ; **les proportions de
+  familles de `verifierLesFamilles(rareté, niveau)`** : les familles éligibles sont calculées d'après le catalogue (niveau d'apparition
+  et `peutPorterLaRarete`), la part attendue est leur poids sur le total des éligibles, 20 000 tirages, tolérance de 3 points —
+  Common au niveau 1 et au niveau 5 (**les mêmes 35 / 35 / 15 / 15 : la propriété cherchée**), Magic aux niveaux 1 et 5, Rare au niveau
+  5 ; **un Rare n'est jamais un bijou ni une relique**, la main gauche est alors un Shield). La suite épinglée de la graine 96 est
+  réépinglée (modèle, qualité, affixes de huit objets, et l'état du générateur après 200 objets : la famille est tirée avant le modèle).
+- **104.2** (+6) : `test_CatalogueObjets.cpp` (**la table des affinités du tableau de conception** gabarit par gabarit, les cinq
+  pièces d'un type d'armure avec la liste de leur type, les bijoux sans affinité, et le tableau couvre tout le catalogue sans
+  répétition ; tout multiplicateur est d'au moins 2 et aucun affixe n'est nommé deux fois ; chaque affinité nomme un affixe permis
+  sur au moins une pièce du gabarit ou du type ; `affiniteDe` rend le multiplicateur ou 1) ; `test_GenerationDObjets.cpp`
+  (**`chanceAttendue` et `chanceObservee`** : sur 60 000 tirages au niveau 5, un bâton Magic porte of the Owl à 3/11 et Blazing à 2/11,
+  un arc Magic of the Owl à 1/11 et of the Fox à 3/11, un Shield Magic of Blocking à 3/11, un bâton Rare of the Owl à 3/7 et Blazing à
+  2/4, et le bâton porte of the Owl plus de deux fois plus souvent que l'arc ; **une affinité pour un affixe que la catégorie ne
+  permet pas ne joue pas** : of Deflection n'apparaît jamais sur des gants de cuir, et le bassin de ces gants vaut 7).
+- **Ce que les tests ne voient pas** : l'impression d'un butin équilibré en jouant (un tiers d'armes, un tiers d'armures), les
+  « Keen », « of the Owl » et « Reinforced » qui reviennent sur les bons gabarits : à l'œil, en tirant avec F7 aux étages 1 et 5.

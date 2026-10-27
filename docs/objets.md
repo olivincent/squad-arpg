@@ -236,8 +236,8 @@ depuis le gabarit, le niveau et la qualité de l'objet. Rien de tout cela n'est 
 - **Seuils et niveau d'apparition par type** (la règle des seuils est celle de l'étape 102, 6 au niveau 1, principale +2, secondaire
   +1) : tissu aucun ; léger Adresse +2 ; intermédiaire Endurance +1 et Adresse +1 ; lourd Endurance +2.
   `DefinitionObjet::niveauDApparition` (1 par défaut) : intermédiaire 2, lourd 3, tout le reste 1. `genererObjet` ne tire un modèle que
-  si son niveau d'apparition est au plus celui de l'objet, uniformément parmi les modèles éligibles qui peuvent porter la rareté tirée
-  (l'ordre des tirages ne change pas ; les poids par gabarit viendront à l'étape 104).
+  si son niveau d'apparition est au plus celui de l'objet et s'il peut porter la rareté tirée : c'est l'éligibilité, dans le tirage en
+  deux temps (famille de butin, puis gabarit) de l'étape 104 (« Génération aléatoire »).
 - **Malus d'esquive.** Un gabarit lourd ou intermédiaire a un `bonusDeCombat` négatif, **contre le contact ET contre les projectiles**,
   fixe (ni niveau ni qualité) : lourd −3 % au torse, −2 % aux jambes, −1 % à la tête, aux gants et aux bottes ; intermédiaire −1 % au
   torse et aux jambes. Il passe par les **statistiques de combat**, jamais par les caractéristiques (le point fixe des objets actifs
@@ -397,17 +397,31 @@ est le principal fabricant d'objets et le garant de leurs invariants ; on a gard
 constructeur).
 1. **La rareté**, selon `poidsDeRarete(rareté, niveau)` : au niveau 1, Common 70, Magic 25, Rare 5 (des poids en données, comme les compositions de groupe ;
    « à tester »). Elle est tirée **en premier et jamais retirée** : les proportions observées sont celles des poids.
-2. **Le modèle**, uniformément parmi ceux qui peuvent porter cette rareté. La règle est écrite une fois,
-   `peutPorterLaRarete(modèle, rareté)` : Common, tous ; Magic, au moins un affixe permis pour la catégorie ; Rare, au moins un
-   préfixe **et** un suffixe permis. Les anneaux et les colliers n'ont aucun préfixe : ils ne sont jamais Rare (voulu, voir les
-   pistes). Les gants et les bottes peuvent être Rare depuis que Reinforced leur est permis (ce sont des pièces d'armure).
-3. **Magic** : un affixe uniformément parmi **tous** ceux que la catégorie permet, préfixes et suffixes confondus
-   (`affixesPermisPour`), placé selon sa position. Une catégorie qui a plus de suffixes que de préfixes (une arme : 3
-   préfixes, 5 suffixes) donne donc plus souvent un suffixe. **Rare** : un préfixe uniforme parmi les préfixes permis et un
-   suffixe uniforme parmi les suffixes permis. Pas de poids par affixe (ils seraient tous égaux).
+2. **Le modèle, en deux temps** (étape 104). Un modèle est **éligible** s'il est apparu à ce niveau (`niveauDApparition`) et s'il peut
+   porter cette rareté. La règle de rareté est écrite une fois, `peutPorterLaRarete(modèle, rareté)` : Common, tous ; Magic, au moins un
+   affixe permis pour la catégorie ; Rare, au moins un préfixe **et** un suffixe permis. Les anneaux et les colliers n'ont aucun
+   préfixe : ils ne sont jamais Rare (voulu, voir les pistes) ; les reliques non plus. Les gants et les bottes peuvent être Rare
+   depuis que Reinforced leur est permis (ce sont des pièces d'armure).
+   - **La famille de butin**, selon `poidsDeFamille` : Arme 35, Armure 35, Main gauche 15, Bijou 15 (« à tester »), parmi les familles
+     qui ont au moins un modèle éligible. La famille se **déduit** de la catégorie (`familleDe`, seule source) : armes ; casque,
+     armure, jambières, gants, bottes ; bouclier et relique ; anneau et collier. Elle n'est stockée nulle part.
+   - **Le gabarit**, uniformément parmi les modèles éligibles de cette famille (pas de poids par gabarit).
+   Pourquoi deux temps : avec un tirage uniforme sur le catalogue, l'armure (vingt pièces sur quarante) faisait la moitié du butin, et sa
+   part grandissait quand le Chain (niveau 2) puis le Plate (niveau 3) se débloquaient. Avec les familles, **débloquer un gabarit ne
+   change pas la part de sa famille** : au niveau 1 comme au niveau 5, un Common sort en 35 / 35 / 15 / 15 %. Un Rare n'est jamais
+   un bijou ni une relique : ses familles éligibles sont Arme, Armure et Main gauche (le seul Shield), soit 41 / 41 / 18 %.
+3. **Les affixes, pondérés par les affinités du gabarit** (étape 104). Chaque gabarit a une courte liste `{ affixe, multiplicateur }`
+   (multiplicateur d'au moins 2, `DefinitionObjet::affinites`), et `affiniteDe(modèle, affixe)` rend le multiplicateur ou 1 : c'est le
+   poids de l'affixe. La catégorie décide de ce qui est **permis** (`affixesPermisPour`) ; l'affinité ne fait que pondérer parmi les
+   permis, donc une affinité pour un affixe que la catégorie ne permet pas est sans effet (of Deflection sur des gants légers). **Magic** :
+   un seul tirage pondéré parmi **tous** les affixes permis, préfixes et suffixes confondus, placé selon sa position (une arme a 3
+   préfixes et 5 suffixes : elle donne plus souvent un suffixe). **Rare** : un préfixe pondéré parmi les préfixes permis et un suffixe
+   pondéré parmi les suffixes permis. Exemple : un bâton Magic porte of the Owl (×3) 3 fois sur 11 et Blazing (×2) 2 fois sur 11, contre
+   1 fois sur 8 chacun sans affinité. Pas de poids de base par affixe (ils seraient tous égaux).
 4. **Chaque valeur** : un entier uniforme dans la plage de l'affixe **à ce niveau** (`plageAuNiveau`).
-L'ordre des tirages est fixe (rareté, modèle, **qualité** depuis l'étape 102, affixe, valeur, puis le second affixe d'un Rare), donc
-une graine donne toujours la même suite d'objets sur une même plateforme.
+L'ordre des tirages est fixe (rareté, **famille, gabarit** depuis l'étape 104, **qualité** depuis l'étape 102, affixe, valeur, puis le
+second affixe d'un Rare), donc une graine donne toujours la même suite d'objets sur une même plateforme. Tous les tirages pondérés
+(raretés, familles, affixes) passent par la même fonction, `tirerSelonLesPoids`, un seul tirage chacun.
 
 **Portabilité** : `std::mt19937` est défini exactement par la norme, mais `std::uniform_int_distribution` ne l'est pas. Une
 même graine peut donc donner d'autres objets avec une autre bibliothèque standard (MSVC, libstdc++, libc++). C'est sans
@@ -415,12 +429,17 @@ conséquence sur une seule plateforme, sans sauvegarde de graine ni multijoueur 
 donc aucun objet précis pour une graine : ils vérifient la validité, la couverture, les plages, les proportions et le
 déterminisme. **Une exception** : un test épingle les huit premiers objets de la graine 96 au niveau 1 (modèle, rareté, niveau,
 qualité, affixes) et l'état du générateur après 200 objets, pour prouver que l'ordre des tirages ne bouge pas par mégarde. Valable
-avec la bibliothèque standard de MinGW ; à réépingler si elle change ou si l'ordre des tirages change (réépinglée aux étapes 102.1 et
-102.4, parce que la qualité s'est ajoutée et que le catalogue a changé de taille).
+avec la bibliothèque standard de MinGW ; à réépingler si elle change ou si l'ordre des tirages change (réépinglée aux étapes 102.1,
+102.4, 103.3, 103.5 et 104.1, parce que la qualité s'est ajoutée, que le catalogue a changé de taille et que la famille est tirée avant
+le modèle). L'étape 104.2 ne l'a pas fait bouger : le nombre de tirages est le même et son seul objet Magic retombe sur le même
+affixe ; ce sont les tests statistiques qui détectent une pondération absente.
 
 **Proportions testées** : sur 10 000 tirages, l'écart type d'une proportion est d'au plus 0,5 point ; la tolérance de
 2 points (plus de quatre écarts types) ne sert pas à absorber le hasard, la graine étant fixe, mais à détecter un
-algorithme modifié (poids changés, rareté retirée après coup).
+algorithme modifié (poids changés, rareté retirée après coup). Les familles se testent sur 20 000 tirages, par rareté et par
+niveau, avec les familles éligibles calculées d'après le catalogue (tolérance de 3 points) ; les affinités sur 60 000 tirages au
+niveau 5 (bâton, arc, Shield, tolérance de 6 points pour Magic et de 10 pour Rare, d'après l'effectif). Ces tests prennent de 3 à
+8 s chacun en `debug`.
 
 ## Le niveau d'objet (étape 101)
 
@@ -553,6 +572,9 @@ et le sac, en lecture seule ; aucune fonction de modification n'est appelée.
   pas de palier d'affixe (un nom et une plage par palier, à la *Titan Quest*), pas de modèle de base supérieur (une épée d'acier après
   celle de fer) ; les plages sont les mêmes pour Magic et Rare ; pas d'affixe de résistance ni
   de modification des seuils ; les anneaux et les colliers n'ont aucun préfixe donc ne sont jamais Rare ; un seul préfixe et un seul suffixe ; pas d'objet unique ni de rareté supérieure à Rare.
+- Étape 104 : pas de poids de base par affixe (ils seraient tous égaux : il viendra avec le premier affixe qu'on voudra plus rare), pas
+  de poids par gabarit dans une famille (tirage uniforme). Les poids des familles
+  (35 / 35 / 15 / 15) et les multiplicateurs d'affinité (3 et 2) sont « à tester ».
 - La qualité n'est pas affichée : le joueur la voit dans les dégâts d'une arme et dans l'armure, le blocage et les bonus des protections.
 - L'emplacement affiche le nom du modèle (en la couleur de la rareté), pas le nom composé : trop long pour la cellule.
 - Pas de restriction d'équipement par classe. Une nouvelle partie repart toujours du départ (aucune sauvegarde de
@@ -632,8 +654,9 @@ bonus; StatistiquesDeCombat bonusDeCombat; Degats degatsAjoutes; int penetration
 `operator==`), `inline constexpr int s_seuilAuNiveau1 = 6`, `struct DefinitionObjet { IdObjet id; std::string nom;
 CategorieObjet categorie; int armure; Caracteristiques bonus = {}; StatistiquesDeCombat bonusDeCombat = {};
 std::optional<DonneesDArme> arme = {}; std::optional<DonneesDeBouclier> bouclier = {};
-std::vector<ExigenceDeCaracteristique> exigences = {}; int niveauDApparition = 1; std::optional<TypeDArmure> typeDArmure = {}; }`
-(les valeurs d'armure, de bonus, de capacités et de bouclier sont celles du niveau 1 et de la qualité moyenne : `effetsDeBase` donne
+std::vector<ExigenceDeCaracteristique> exigences = {}; int niveauDApparition = 1; std::optional<TypeDArmure> typeDArmure = {};
+std::vector<AffiniteDAffixe> affinites = {}; }` (`AffiniteDAffixe { IdAffixe affixe; int multiplicateur; }` et
+`s_multiplicateurMinimalDAffinite` (2) sont dans `Affixe.hpp` ; `avecAffinites` vérifie le minimum par `assert`) (les valeurs d'armure, de bonus, de capacités et de bouclier sont celles du niveau 1 et de la qualité moyenne : `effetsDeBase` donne
 celles d'un objet), `struct EffetsDeBase { int armure; Caracteristiques bonus; StatistiquesDeCombat bonusDeCombat; }`,
 `s_gainDeBlocageParNiveau` (1) et des fonctions libres, sans état.
 
@@ -647,6 +670,7 @@ celles d'un objet), `struct EffetsDeBase { int armure; Caracteristiques bonus; S
 | `bool estADeuxMains(IdObjet)` | Une arme à deux mains (épée, hache, masse à deux mains, bâton, arc, arbalète) ; faux pour tout autre objet, la lance comprise ; `[[nodiscard]]` |
 | `const DescriptionDAttaque& mainsNues()` | L'attaque de base sans arme ; `[[nodiscard]]` |
 | `DescriptionDAttaque descriptionDeLArme(const Objet&)` | L'attaque que donne cette arme, sans ses affixes (étape 102.4) : plage de dégâts selon le niveau et la qualité, le reste du gabarit ; `assert` : l'objet est une arme ; `[[nodiscard]]` |
+| `int affiniteDe(IdObjet modele, IdAffixe affixe)` | Le poids de cet affixe dans le tirage sur ce modèle (étape 104.2) : son multiplicateur d'affinité (au moins 2), 1 sans affinité ; l'unique lecture des affinités ; `[[nodiscard]]` |
 | `bool objetValide(const Objet&)` | Les invariants de l'objet : affixes à leur position, permis pour la catégorie, de valeur > 0, nombre conforme à la rareté (étape 95.3) ; `[[nodiscard]]` |
 | `std::string nomDeLObjet(const Objet&)` | « [préfixe] modèle [suffixe] » (« Blazing Mace ») ; `[[nodiscard]]` |
 | ~~`std::vector<Objet> sacDeDepart()`~~ | Supprimée à l'étape 99.1 (le sac commence vide). Elle rendait le contenu du sac au début d'une partie : gants de cuir, bottes de cuir, casque de cuir, tunique matelassée, collier de protection, deux anneaux de protection, l'anneau de puissance, le collier d'endurance, une dague et une épée à deux mains ; `[[nodiscard]]` |
@@ -676,10 +700,14 @@ reliques (qui grandit avec le niveau et la qualité) ; les esquives positives vi
 ### `GenerationDObjets` (`objets/`)
 
 `GenerationDObjets.hpp` / `.cpp` : des fonctions libres, sans état. `Affixe.hpp` porte aussi `inline constexpr std::array
-s_raretes` (les trois raretés, de la plus commune à la plus rare).
+s_raretes` (les trois raretés, de la plus commune à la plus rare). `GenerationDObjets.hpp` porte `enum class FamilleDeButin { Arme,
+Armure, MainGauche, Bijou }` et `s_famillesDeButin` (étape 104.1). Le `.cpp` garde en privé `tirerSelonLesPoids`, le tirage pondéré
+commun aux raretés, aux familles et aux affixes.
 
 | Fonction | Rôle |
 |---|---|
+| `FamilleDeButin familleDe(CategorieObjet)` | La famille d'une catégorie (étape 104.1) : armes ; casque, armure, jambières, gants, bottes ; bouclier et relique ; anneau et collier. Seule source de la règle ; `[[nodiscard]]` |
+| `int poidsDeFamille(FamilleDeButin)` | Le poids de cette famille dans le tirage : Arme 35, Armure 35, Main gauche 15, Bijou 15 (« à tester »), les mêmes à toute profondeur ; `[[nodiscard]]` |
 | `int poidsDeRarete(Rarete, int niveau)` | Le poids de cette rareté dans le tirage d'un objet de ce niveau : 70, 25, 5 au niveau 1 ; commun −5 (plancher 20), magique +3, rare +2 par niveau au-delà (« à tester ») ; `assert(niveau >= 1)` ; `[[nodiscard]]` |
 | `bool peutPorterLaRarete(IdObjet, Rarete)` | L'unique endroit de la règle : Common toujours, Magic avec au moins un affixe permis, Rare avec un préfixe et un suffixe permis ; `[[nodiscard]]` |
 | `Objet genererObjet(Generateur&, int niveau)` | Un objet tiré au hasard, valide, qui retient ce niveau et une qualité tirée de 0 à 100 (étapes 101 et 102 ; voir « Génération aléatoire », « Le niveau d'objet » et « Les gabarits d'armes… ») ; `assert(niveau >= 1)`, `assert(objetValide)` ; `[[nodiscard]]` |

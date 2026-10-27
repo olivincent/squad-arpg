@@ -163,7 +163,8 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 
 `objets/` — les objets, ce qu'on porte et le sac (`docs/objets.md`) :
 - `Emplacement` : les 10 emplacements, les 10 catégories d'objet (dont `Relique`, en main gauche comme le bouclier) et `peutAller`, seule source de la règle.
-- `Affixe` : `Rarete` (commun, magique, rare), `IdAffixe` et `Affixe` (l'identifiant et la valeur de CET objet) ; sans `.cpp`.
+- `Affixe` : `Rarete` (commun, magique, rare), `IdAffixe`, `Affixe` (l'identifiant et la valeur de CET objet) et `AffiniteDAffixe`
+  (le penchant d'un gabarit pour un affixe, étape 104) ; sans `.cpp`.
 - `Objet` : `IdObjet` et `Objet`, l'instance, distincte de son modèle : le modèle, la rareté, au plus un préfixe et un
   suffixe, le niveau et la qualité (étape 102) ; petite valeur, égalité par valeur ; `facteurDeNiveau`, l'unique facteur de niveau, et `facteurDeQualite`, l'unique facteur de qualité (étape 103).
 - `CatalogueAffixes` : `DefinitionDAffixe` (nom, position, effet, plage de valeurs, catégories permises), `catalogueAffixes()`,
@@ -171,15 +172,17 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
   `affixesPermisPour()` et `apportDesAffixes()`, ce que les affixes d'un objet ajoutent aux totaux.
 - `TypeDArmure` : tissu, léger, intermédiaire, lourd, le type d'une pièce d'armure (étape 103) ; sans `.cpp`.
 - `CatalogueObjets` : `DefinitionObjet` (nom, catégorie, valeurs de base du niveau 1, données d'arme ou de bouclier, exigences de
-  caractéristiques, niveau d'apparition, type d'armure), `effetsDeBase()` (l'unique calcul de ce qu'un objet apporte par lui-même :
+  caractéristiques, niveau d'apparition, type d'armure, affinités d'affixes), `affiniteDe()` (le poids d'un affixe sur un modèle),
+  `effetsDeBase()` (l'unique calcul de ce qu'un objet apporte par lui-même :
   armure, bonus, capacités, blocage selon son niveau et sa qualité, étape 103),
   `catalogueObjets()`, `definitionObjet()`, `seuilsDeLObjet()` (l'unique calcul d'un seuil : `6 + pente × (niveau − 1)`),
   `seuilsAtteints()`, `estADeuxMains()`, `mainsNues()`, `descriptionDeLArme()` (l'unique calcul de l'arme d'un objet : plage de
   dégâts selon le niveau et la qualité, le reste du gabarit),
   `objetValide()` (les invariants d'un objet), `nomDeLObjet()` (« Blazing Mace »).
 - `GenerationDObjets` : `genererObjet`, le tirage d'un objet valide d'un niveau (la profondeur où il est généré) avec le `Generateur`
-  reçu (rareté, modèle, affixes, valeurs), `genererButin` (le butin d'une mort : la chance, puis les objets), `poidsDeRarete`
-  (selon le niveau) et `peutPorterLaRarete`, l'unique endroit de la règle « quel modèle peut porter quelle rareté ».
+  reçu (rareté, famille de butin, gabarit, affixes pondérés par les affinités, valeurs), `genererButin` (le butin d'une mort : la
+  chance, puis les objets), `poidsDeRarete` (selon le niveau), `FamilleDeButin`, `familleDe` et `poidsDeFamille` (étape 104) et
+  `peutPorterLaRarete`, l'unique endroit de la règle « quel modèle peut porter quelle rareté ».
 - `ObjetsActifs` : `objetsActifs`, le point fixe qui dit quels objets portés ont un effet (un objet dont le seuil de
   caractéristiques n'est plus atteint reste porté mais est inactif) ; une règle pure.
 - `DonneesDArme`, `DonneesDeBouclier` : ce qui fait d'un objet une arme (le gabarit : type, mains, référence des dégâts, écart,

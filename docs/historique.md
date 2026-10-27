@@ -121,6 +121,7 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 101 — Le niveau d'objet : la profondeur fait grandir les plages des affixes et les chances de Magic et de Rare ✅
 - Étape 102 — Les gabarits d'armes : treize gabarits, l'objet retient son niveau et sa qualité, ses dégâts et ses seuils se calculent, chaque coup tire ses dégâts dans une plage ✅ (première étape de la phase 6, gabarits d'objets)
 - Étape 103 — Armures, boucliers et reliques : vingt pièces d'armure en quatre types, un Shield, deux reliques de main gauche, armure, blocage et bonus calculés depuis le gabarit, le niveau et la qualité, malus d'esquive des pièces lourdes, niveau d'apparition ✅
+- Étape 104 — Familles de butin et affinités d'affixes : le modèle se tire en deux temps (famille, puis gabarit), les proportions des familles sont les mêmes à toute profondeur, chaque gabarit penche vers quelques affixes ✅ (fin de la phase 6)
 
 ## Détail des étapes 0 à 73
 
@@ -2434,3 +2435,20 @@ le Shield remplace le bouclier rond (20 % + 1 par niveau, 8 absorbés, armure 1)
 tout objet de la main gauche), kit du prêtre. 1 778 tests (+33), 0 avertissement de compilation sur les deux presets, aucun avertissement
 `clang-tidy` nouveau. Détail : `docs/objets.md` (« Les protections, les boucliers et les reliques »), `docs/aide-memoire-objets.md`,
 `docs/tests.md`, `docs/glossaire.md`.
+
+### Étape 104 — Familles de butin et affinités d'affixes ✅
+
+Troisième et dernière étape de la phase 6 (gabarits d'objets), en deux sous-étapes, un commit chacune (104.1 enchaînée). Sans rien
+changer à l'écran : seul le tirage change. 104.1 : `FamilleDeButin` (Arme, Armure, Main gauche, Bijou), `familleDe(CategorieObjet)`
+(la famille se déduit de la catégorie, elle n'est stockée nulle part) et `poidsDeFamille` (35 / 35 / 15 / 15) ; `genererObjet` tire
+la rareté, puis la famille parmi celles qui ont un modèle éligible (apparu à ce niveau et capable de porter la rareté), puis le
+gabarit uniformément dans la famille ; le tirage pondéré est écrit une fois (`tirerSelonLesPoids`) et sert aussi aux raretés. Les
+proportions des familles sont les mêmes à toute profondeur (débloquer le Chain et le Plate ne grossit plus la part de l'armure) ; un
+Rare n'est jamais un bijou ni une relique. La suite épinglée de la graine 96 est réépinglée (la famille est tirée avant le modèle).
+104.2 : `AffiniteDAffixe` (`Affixe.hpp`), `DefinitionObjet::affinites`, `affiniteDe` ; les affinités des dix-huit gabarits, par type
+pour les armures (`affinitesDuType`, partagées par les cinq pièces), Shield, Orb et Holy Relic compris, aucune pour les bijoux ;
+multiplicateurs de 3 et de 2 (`s_affiniteForte`, `s_affiniteMoyenne`), au moins 2 vérifié par `assert` ; un affixe que la catégorie
+ne permet pas reste impossible ; Magic : un tirage pondéré parmi tous les affixes permis ; Rare : préfixe et suffixe chacun pondérés.
+Pas de poids de base par affixe. 1 790 tests (+12), 0 avertissement de compilation sur les deux presets, aucun avertissement
+`clang-tidy` dans les fichiers modifiés. Détail : `docs/objets.md` (« Génération aléatoire »), `docs/aide-memoire-objets.md`
+(« Familles de butin », « Affinités d'affixes »), `docs/tests.md`.
