@@ -4,9 +4,9 @@
 
 ## Légende
 
-Chaque valeur porte un statut. **En jeu** : dans le code à la fin de l'étape 104 (tout ce qui a été fait aux étapes 102 à 104 : gabarits, familles de butin, affinités d'affixes). **Décidé** : tranché, pas encore dans le code (les poids de base des affixes). **Proposé** : pas encore tranché. Les chiffres « en jeu » restent à tester en jouant.
+Chaque valeur porte un statut. **En jeu** : dans le code à la fin de l'étape 101. **Décidé** : tranché le 27 octobre, chiffres à tester. **Proposé** : pas encore tranché.
 
-Les armes et protections de l'étape 101 étaient des prototypes de test : les étapes 102 (armes) et 103 (armures, boucliers, reliques, bijoux) les ont toutes remplacées. Les noms anglais sont ceux affichés à l'écran ; les noms français sont ceux du code et de `docs/`.
+Les armes et protections de l'étape 101 sont des prototypes de test : tout ce qui est décidé ici les remplace. Les noms anglais sont ceux affichés à l'écran ; les noms français sont ceux du code et de `docs/`.
 
 ## Les cinq caractéristiques
 
@@ -83,7 +83,7 @@ Un coup passe par six étapes, toujours dans cet ordre (`resoudreCoup`). Un coup
 | 2 | double capacité | 20 % | ×1,75 |
 | 3 | triple capacité | 45 % | ×2 |
 
-**Exemple** (avec l'épée longue prototype de l'étape 101, gardée pour montrer le calcul ; l'épée à une main de l'étape 102 fait 13 – 17 au niveau 1). Un guerrier à Might 13 frappe : 15 × 1,09 = 16. Contre l'infanterie (armure 3) : 13, ou 21 sur un critique (16 × 1,5 = 24, moins 3). Contre l'infanterie lourde (armure 10) : 6 seulement. La dague prototype (15 après Might) y fait 8 : sa pénétration de 30 % ramène l'armure à 7.
+**Exemple** (avec l'épée longue prototype). Un guerrier à Might 13 frappe : 15 × 1,09 = 16. Contre l'infanterie (armure 3) : 13, ou 21 sur un critique (16 × 1,5 = 24, moins 3). Contre l'infanterie lourde (armure 10) : 6 seulement. La dague prototype (15 après Might) y fait 8 : sa pénétration de 30 % ramène l'armure à 7.
 
 ## Éléments et résistances
 
@@ -101,11 +101,11 @@ Trois éléments sont en jeu ; les autres entreront dans le code avec leur premi
 
 **Résistances** (à tester) : plafond 80 %, vulnérabilité jusqu'à −100 % (coup doublé). Personnages : 0 partout, aucun objet n'en donne encore. Monstres : 0, sauf la créature monstrueuse, 40 % contre le feu.
 
-## Les prototypes
+## Les prototypes en jeu
 
-Les sept armes et les douze protections de l'étape 101, aux valeurs fixes, ont été remplacées : les armes par treize gabarits (étape 102), les protections par vingt pièces d'armure, un Shield, deux reliques et quatre bijoux calculés (étape 103). Repère historique : l'épée longue prototype faisait 15 dégâts toutes les 0,65 s, soit 23 dégâts/s, la valeur de référence des armes à une main.
+L'étape 101 a 7 armes et 12 protections aux valeurs fixes, faites pour tester ; elles seront toutes remplacées par les gabarits ci-dessous. Repère : l'épée longue prototype fait 15 dégâts toutes les 0,65 s, soit 23 dégâts/s, la valeur de référence des armes à une main.
 
-## Gabarits d'armes (en jeu, étape 102)
+## Gabarits d'armes (décidé, étape 102)
 
 Un gabarit par type d'arme fixe son identité ; le niveau ne multiplie que les dégâts. Une dague de niveau 80 est aussi rapide qu'une dague de niveau 1, elle frappe seulement plus fort.
 
@@ -141,66 +141,57 @@ Dans chaque famille, l'épée est régulière, la hache moyenne, la masse impré
 
 **Skills** : la frappe puissante et la frappe sacrée exigent une arme de contact (n'importe laquelle) ; le tir perçant et la pluie de flèches, un arc ou une arbalète.
 
-**Kits de départ** (niveau 1, qualité 50, communs) : guerrier épée à une main, paladin masse à une main, prêtre sceptre, mage bâton, rôdeur arc ; l'armure, le bouclier et la relique sont dans les sections suivantes.
+**Kits de départ** (niveau 1, qualité 50, communs) : guerrier épée à une main, paladin masse à une main (les deux avec bouclier rond et pièces de fer), prêtre sceptre, mage bâton, rôdeur arc.
 
 Les tireurs gardent les mêmes dégâts/s que les autres pour l'instant, à ajuster en jouant.
 
-## Gabarits d'armures (en jeu, étape 103)
+## Gabarits d'armures (décidé, étape 103)
 
-Une pièce d'armure a un **type** (tissu, léger, intermédiaire, lourd) et un **emplacement**. Toutes les valeurs sont des entiers : la table donne la base au niveau 1, et le niveau la multiplie, arrondie au plus proche. Le facteur de qualité est celui des armes, écrit une fois (`facteurDeQualite`), et une seule fonction, `effetsDeBase`, calcule ce qu'un objet apporte par lui-même.
+Une pièce d'armure a un **type** (tissu, léger, intermédiaire, lourd) et un **emplacement**. Toutes les valeurs sont des entiers : la table donne la base au niveau 1, et le niveau la multiplie, arrondie au plus proche.
 
 ```
-armure de la pièce = arrondi(base × (1 + 0,25 × (niveau − 1)) × (0,85 + 0,30 × qualité / 100))
+armure de la pièce = arrondi(base × (1 + 0,25 × (niveau − 1)) × (0,85 + 0,30 × qualité))
 ```
 
-**Base au niveau 1** (chaque type bat le précédent sur chaque pièce, aucune pièce à 0) :
+**Base au niveau 1** (rapports 1 : 2 : 3,3 : 5, le tableau d'origine) :
 
 | Emplacement | Tissu | Léger | Intermédiaire | Lourd |
 | --- | --- | --- | --- | --- |
-| Torse | 2 | 3 | 5 | 7 |
-| Jambes | 1 | 2 | 3 | 5 |
-| Tête | 1 | 2 | 3 | 4 |
-| Gants | 1 | 2 | 3 | 4 |
-| Bottes | 1 | 2 | 3 | 4 |
-| Ensemble complet | 6 | 11 | 17 | 24 |
+| Torse | 1 | 2 | 4 | 6 |
+| Jambes | 1 | 1 | 2 | 3 |
+| Tête | 1 | 1 | 2 | 2 |
+| Gants | 0 | 1 | 1 | 2 |
+| Bottes | 0 | 1 | 1 | 2 |
+| Ensemble complet | 3 | 6 | 10 | 15 |
 | Esquive de l'ensemble | — | — | −2 % | −8 % |
 
-Aucune pièce n'a de bonus de caractéristique de base. **Ensemble complet selon le niveau**, qualité moyenne (au niveau 5, tout double exactement ; l'arrondi tasse un peu le tissu aux petits niveaux) :
+**Ensemble complet selon le niveau**, qualité moyenne. Au niveau 5, tout double exactement ; aux petits niveaux, l'arrondi tasse un peu le tissu, qui protège peu par choix.
 
 | Niveau | Tissu | Léger | Intermédiaire | Lourd |
 | --- | --- | --- | --- | --- |
-| 1 | 6 | 11 | 17 | 24 |
-| 3 | 11 | 17 | 28 | 37 |
-| 5 | 12 | 22 | 34 | 48 |
-| 10 | 19 | 38 | 56 | 78 |
+| 1 | 3 | 6 | 10 | 15 |
+| 3 | 6 | 11 | 16 | 23 |
+| 5 | 6 | 12 | 20 | 30 |
+| 10 | 9 | 19 | 33 | 51 |
 
-**Malus d'esquive**, contre le contact et contre les projectiles, fixe à tout niveau et à toute qualité : pièce lourde −3 % au torse, −2 % aux jambes, −1 % à la tête, aux gants et aux bottes ; pièce intermédiaire −1 % au torse et aux jambes. Il passe par les statistiques de combat, jamais par les caractéristiques. L'esquive qui joue ne descend jamais sous 0 ; un objet inactif (sous son seuil) n'a aucun effet, malus compris.
+**Malus d'esquive**, contre le contact et contre les projectiles, fixe à tout niveau : pièce lourde −3 % au torse, −2 % aux jambes, −1 % ailleurs ; pièce intermédiaire −1 % au torse et aux jambes. L'esquive totale ne descend jamais sous 0.
 
-| Type | Seuils (6 au niveau 1), pente par niveau | Niveau d'apparition | Tendances d'affixes (étape 104) |
-| --- | --- | --- | --- |
-| Tissu | aucun | 1 | of the Owl, of the Lion ; plus tard résistances, mana |
-| Léger | Dex +2 | 1 | of Evasion, of the Fox, of Deflection |
-| Intermédiaire | Con +1, Dex +1 | 2 | of the Bear, of Evasion |
-| Lourd | Con +2 | 3 | Reinforced, of the Bear, of the Ox |
-
-**Niveau d'apparition** (en jeu) : un entier du gabarit, 1 par défaut ; `genererObjet` ne tire que les modèles dont le niveau d'apparition est au plus celui de l'objet : d'abord une famille de butin, puis un gabarit uniformément parmi les éligibles de cette famille (« Familles de butin » ci-dessous). Ainsi, au 1er étage on ne trouve que du tissu et du léger, des pièces Chain dès le 2e, des pièces Plate dès le 3e.
-
-**Noms à l'écran** : Robe, Cloth Leggings, Hood, Cloth Gloves, Slippers ; Leather Jerkin, Leather Leggings, Leather Cap, Leather Gloves, Leather Boots ; Chain Mail, Chain Leggings, Chain Coif, Chain Gloves, Chain Boots ; Plate Armor, Plate Greaves, Great Helm, Gauntlets, Sabatons.
-
-**Kits de départ** (niveau 1, qualité 50, communs) : une seule pièce d'armure, le torse. Guerrier, paladin et rôdeur : Leather Jerkin (armure 3) ; prêtre et mage : Robe (armure 2). Main gauche : Shield pour le guerrier et le paladin, Holy Relic pour le prêtre. Aucune autre pièce d'armure au départ.
-
-**Infobulle** : nom, catégorie, type d'armure (« Heavy Armor »), « Item Level N », « Armor: N », malus « Dodge: −3 % » (en rouge), bonus de base, affixes, seuils.
+| Type | Seuils (6 au niveau 1), pente par niveau | Tendances d'affixes |
+| --- | --- | --- |
+| Tissu | aucun | of the Owl, of the Lion ; plus tard résistances, mana |
+| Léger | Dex +2 | of Evasion, of the Fox, of Deflection |
+| Intermédiaire | Con +1, Dex +1 | of the Bear, of Evasion |
+| Lourd | Con +2 | Reinforced, of the Bear, of the Ox |
 
 **Mouvement** : aucun malus. Des bonus de vitesse pourront venir quand chaque personnage aura sa propre vitesse en combat ; hors combat, l'escouade avance à la vitesse du plus lent.
 
-## Boucliers (en jeu, étape 103)
+## Boucliers (décidé, étape 103)
 
-Un seul gabarit, « Shield », à la *Titan Quest* : la chance de blocage et le montant absorbé grandissent tous les deux avec le niveau. La récupération de 3 s reste commune.
+Un seul gabarit, à la *Titan Quest* : la chance de blocage et le montant absorbé grandissent tous les deux avec le niveau. La récupération de 3 s reste commune.
 
-- Chance : 20 % au niveau 1, +1 point par niveau (le niveau seul, pas la qualité). Pas de plafond : la récupération et le montant fixe (un blocage n'annule pas le coup) suffisent à l'équilibre.
+- Chance : 20 % au niveau 1, +1 point par niveau. Pas de plafond : la récupération et le montant fixe (un blocage n'annule pas le coup) suffisent à l'équilibre.
 - Montant absorbé : 8 au niveau 1, × le facteur de niveau et la qualité. Armure : 1, × les mêmes facteurs.
-- Seuil : Con, 6 au niveau 1, +2 par niveau. « of Blocking » s'ajoute comme avant.
-- Infobulle : « Block: 20 % » et « Absorbs: 8 ».
+- Seuil : Con, 6 au niveau 1, +2 par niveau.
 
 | Niveau | Chance | Montant | Armure |
 | --- | --- | --- | --- |
@@ -209,20 +200,16 @@ Un seul gabarit, « Shield », à la *Titan Quest* : la chance de blocage et le 
 | 10 | 29 % | 26 | 3 |
 | 20 | 39 % | 46 | 6 |
 
-## Reliques de main gauche (en jeu, étape 103)
+## Reliques de main gauche (décidé, étape 103)
 
-Une catégorie pour la main gauche, à la place du bouclier : le prêtre au sceptre ou le mage à la baguette y gagnent quelque chose. La main gauche accepte un bouclier ou une relique ; une arme à deux mains range l'objet de la main gauche dans le sac, quelle que soit sa catégorie.
+Une nouvelle catégorie pour la main gauche, à la place du bouclier : le prêtre au sceptre ou le mage à la baguette y gagnent quelque chose. Une arme à deux mains la range dans le sac, comme un bouclier.
 
-| Gabarit | Seuils (6 au niveau 1), pente | Effet de base (grandit avec le niveau et la qualité) | Affinité ×3 (étape 104) |
+| Gabarit | Seuils (6 au niveau 1), pente | Effet de base (grandit avec le niveau) | Affinité ×3 |
 | --- | --- | --- | --- |
-| Orbe (Orb) | Int +2 | +2 Int et +10 de capacité offensive | of the Owl |
-| Relique sacrée (Holy Relic) | Res +2 | +2 Res et +10 de capacité offensive | of the Lion |
+| Orbe | Int +2 | +2 Int et +10 de capacité offensive | of the Owl |
+| Relique sacrée | Res +2 | +2 Res et +10 de capacité offensive | of the Lion |
 
-La capacité offensive est un bonus de statistiques de combat de l'équipement (pas une caractéristique). Affixes permis : les suffixes de caractéristique seulement (aucun préfixe, donc jamais Rare, comme les bijoux). Un effet simple pour l'instant, à repenser quand l'Intellect et la Resolve auront un effet.
-
-## Bijoux (en jeu, étape 103)
-
-Les quatre bijoux suivent la même règle que les autres objets (`base × facteurDeNiveau × facteurDeQualite`), sans seuil : Ring of Protection et Necklace of Protection armure 1, Ring of Might Puissance +3, Necklace of Constitution Endurance +3 (valeurs au niveau 1).
+Un effet simple pour l'instant, à repenser quand l'Intellect et la Resolve auront un effet.
 
 ## Raretés et affixes en jeu
 
@@ -247,47 +234,25 @@ Les plages sont multipliées par 1 + 0,25 × (niveau − 1), arrondies au plus p
 | of Deflection | suffixe | esquive contre les projectiles | 2 – 4 % | 4 – 8 % | casque, bouclier |
 | of Blocking | suffixe | chance de blocage | 3 – 7 % | 6 – 14 % | bouclier |
 
-L'affixe d'un objet Magic est tiré parmi ceux que sa catégorie permet, pondéré par les affinités de son gabarit (« Affinités d'affixes » ci-dessous). Les anneaux et colliers n'ont aucun préfixe, donc ne sont jamais Rare.
+Aujourd'hui, l'affixe d'un objet Magic est tiré uniformément parmi ceux que sa catégorie permet. Les anneaux et colliers n'ont aucun préfixe, donc ne sont jamais Rare.
 
-## Familles de butin (en jeu, étape 104)
-
-Le modèle d'un objet se tire en deux temps : une **famille**, puis un gabarit dans cette famille. Sans cela, l'armure (vingt pièces sur quarante modèles) ferait la moitié du butin, et davantage en débloquant le Chain (niveau 2) et le Plate (niveau 3).
-
-| Famille | Catégories | Poids |
-| --- | --- | --- |
-| Arme | armes | 35 |
-| Armure | casque, armure, jambières, gants, bottes | 35 |
-| Main gauche | bouclier, relique | 15 |
-| Bijou | anneau, collier | 15 |
-
-- La famille se **déduit** de la catégorie (`familleDe`) ; elle n'est stockée dans aucun gabarit.
-- **Éligibilité** : un gabarit est éligible s'il est apparu à ce niveau et peut porter la rareté tirée. Une famille est éligible si elle a au moins un gabarit éligible. Le tirage de famille se fait parmi les familles éligibles, selon leurs poids ; le gabarit est ensuite tiré **uniformément** parmi les éligibles de la famille (pas de poids par gabarit).
-- **Même proportions à toute profondeur** : débloquer des gabarits ne change pas la part des familles. Au niveau 1 comme au niveau 5, un objet Common est une arme, une armure, une main gauche ou un bijou dans les proportions 35 / 35 / 15 / 15.
-- **Rare** : les bijoux (pas de préfixe) et les reliques ne peuvent pas l'être ; il reste, pour la main gauche, le seul Shield. Les familles éligibles d'un Rare sont donc Arme, Armure et Main gauche, soit 41 / 41 / 18 %.
-- Ordre des tirages : rareté, famille, gabarit, qualité, affixes.
-- Valeurs « à tester ». Un poids par gabarit dans une famille viendra si un gabarit doit être plus rare.
-
-## Affinités d'affixes (en jeu, étape 104)
+## Affinités d'affixes (décidé, étape 104)
 
 La catégorie dit quels affixes ont un sens sur un objet ; le gabarit dit lesquels sont plus probables. Un bâton reste capable de tout, mais penche vers l'Intellect et le feu.
 
-**Le but est une structure où l'on ajoute ou retire un concept sans rien réécrire.** Chaque gabarit garde une courte liste de ses affinités (`DefinitionObjet::affinites`, des `AffiniteDAffixe { affixe, multiplicateur }`), tout le reste vaut 1. Les cinq pièces d'un type d'armure partagent la liste de leur type (`affinitesDuType`). Un multiplicateur est d'au moins 2.
+**Le but est une structure où l'on ajoute ou retire un concept sans rien réécrire.** Chaque affixe a un poids de base dans son catalogue ; chaque gabarit garde une courte liste de ses affinités, tout le reste vaut 1.
 
 - Ajouter un affixe : une ligne dans le catalogue d'affixes, et, si l'on veut, une affinité dans quelques gabarits.
 - Retirer un affixe : supprimer sa ligne ; le compilateur signale chaque gabarit qui le nommait encore.
 - Ajouter un gabarit : une ligne dans le catalogue, sans affinité si aucune tendance n'est voulue.
 
 ```
-poids d'un affixe = affinité du gabarit   (1 par défaut)
+poids d'un affixe = poids de base de l'affixe × affinité du gabarit   (1 par défaut, 0 = jamais)
 ```
-
-**Poids de base des affixes : pas encore en jeu.** Ils seraient tous égaux aujourd'hui ; ils viendront avec le premier affixe qu'on voudra plus rare (poids de base × affinité).
-
-**Une affinité pour un affixe que la catégorie ne permet pas est sans effet** : la catégorie décide de ce qui est permis, l'affinité ne fait que pondérer parmi les permis (of Deflection n'est permis que sur casque et bouclier : sur des gants légers, l'affinité du type léger ne joue pas). **Magic** : un seul tirage pondéré parmi tous les affixes permis, préfixes et suffixes confondus ; **Rare** : le préfixe et le suffixe sont chacun pondérés parmi ceux de leur position.
 
 **Exemple : un bâton Magic** (8 affixes permis sur une arme, of the Owl ×3, Blazing ×2) :
 
-| Affixe | Poids | Chance avec affinités | Chance uniforme (avant l'étape 104) |
+| Affixe | Poids | Chance avec affinités | Chance uniforme aujourd'hui |
 | --- | --- | --- | --- |
 | of the Owl (Int) | 3 | 27,3 % | 12,5 % |
 | Blazing (feu) | 2 | 18,2 % | 12,5 % |
@@ -314,23 +279,21 @@ Le tirage reste un seul tirage pondéré, comme les raretés : choisir d'abord �
 | Armure lourde | Reinforced | of the Bear, of the Ox |
 | Bouclier | of Blocking | Reinforced |
 | Orbe | of the Owl | — |
-| Relique sacrée | of the Lion | — (pas de Hallowed : une relique ne porte pas de préfixe) |
-| Bijoux | — | — |
+| Relique sacrée | of the Lion | Hallowed |
 
 Un affixe sans effet en jeu (régénération de mana) n'existe pas tant que le mana n'existe pas ; le tableau l'accueillera le jour venu.
 
-## Exemple complet de génération (en jeu)
+## Exemple complet de génération (décidé)
 
 Un monstre meurt au 3e étage et laisse une « Hand Axe of the Ox » de niveau 3. Voici chaque tirage, dans l'ordre fixe qui garde une graine reproductible.
 
 1. **Rareté**, poids du niveau 3 : Common 60, Magic 31, Rare 9. Tirage : Magic.
-2. **Famille**, poids Arme 35, Armure 35, Main gauche 15, Bijou 15 (toutes éligibles pour un Magic). Tirage : Arme.
-3. **Gabarit**, uniforme parmi les armes (toutes peuvent être Magic). Tirage : hache à une main.
-4. **Qualité**, entre 0 et 100. Tirage : 62, soit un facteur de 0,85 + 0,30 × 0,62 = 1,036.
-5. **Dégâts de l'objet** : 20 × 1,5 × 1,036 = 31. Écart de ±25 % : chaque coup fera de 23 à 39.
-6. **Seuil** : Might 6 au niveau 1 + 2 × 2 niveaux = Might 10.
-7. **Affixe**, pondéré par les affinités de la hache (of the Ox ×2) : 2 sur 9, soit 22 % de chances au lieu de 12,5 %. Tirage : of the Ox.
-8. **Valeur**, plage du niveau 3 : 1 – 3 × 1,5 = 2 – 5. Tirage : 4.
+2. **Gabarit**, uniforme parmi ceux qui peuvent être Magic. Tirage : hache à une main.
+3. **Qualité**, entre 0 et 100. Tirage : 62, soit un facteur de 0,85 + 0,30 × 0,62 = 1,036.
+4. **Dégâts de l'objet** : 20 × 1,5 × 1,036 = 31. Écart de ±25 % : chaque coup fera de 23 à 39.
+5. **Seuil** : Might 6 au niveau 1 + 2 × 2 niveaux = Might 10.
+6. **Affixe**, pondéré par les affinités de la hache (of the Ox ×2, étape 104) : 22 % de chances au lieu de 12,5 %. Tirage : of the Ox.
+7. **Valeur**, plage du niveau 3 : 1 – 3 × 1,5 = 2 – 5. Tirage : 4.
 
 **Ce que l'objet garde**. Tout le reste se recalcule depuis le gabarit :
 
