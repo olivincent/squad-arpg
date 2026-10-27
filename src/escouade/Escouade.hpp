@@ -249,6 +249,7 @@ private:
     // Étapes d'attaquer(), dans l'ordre où elles sont appelées.
     void actualiserMemoires(const std::vector<MonstreVu>& monstres);
     void engagerSkillDeZoneEnAttente(const TileMap& carte);
+    void engagerSkillSurSoiEnAttente();
     [[nodiscard]] bool tousLesVivantsAtteignent(Cercle cible, const TileMap& carte) const;
     void approcherVerrou(const std::vector<MonstreVu>& monstres, const TileMap& carte);
     void engagerSkillDeDegatsEnAttente(const std::vector<MonstreVu>& monstres, const TileMap& carte);
@@ -295,7 +296,9 @@ private:
 
     struct SkillEnAttente {
         AdresseSkill adresse;  // du skill en attente (place du lanceur et identifiant)
-        Cible cible;        // fixée à l'appui (pour un monstre, le cercle lu en route est celui du verrou, à jour)
+        // Fixée à l'appui (pour un monstre, le cercle lu en route est celui du verrou, à jour). Vide : un skill de mode `Soi`, qui
+        // attend seulement que son lanceur soit libre.
+        std::optional<Cible> cible;
     };
 
     Mobile m_mobile;

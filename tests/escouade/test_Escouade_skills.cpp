@@ -395,6 +395,45 @@ TEST_CASE("Lanceur occupe : sans verrou, une frappe en attente est abandonnee si
     REQUIRE(escouade.etatDuSkill(s_adresseSoin)->enActivation);
 }
 
+TEST_CASE("Lanceur occupe : une provocation demandee pendant l'activation d'un autre skill attend, puis part") {
+    Generateur generateur = generateurDeTest();
+    Escouade escouade = uneEscouade({50.0f, 50.0f});
+    const std::vector<MonstreVu> monstres = unSeulMonstre(cibleMonstre({85.0f, 60.0f}));  // au contact du guerrier, dans la zone de la provocation
+
+    // La frappe s'active (0,3 s) : le guerrier est occupé.
+    REQUIRE(coupsDe(escouade.declencherSkill(s_adresseFrappe, monstres, carteOuverte(), generateur)).empty());
+    REQUIRE(escouade.etatDuSkill(s_adresseFrappe)->enActivation);
+
+    // La provocation (mode Soi) attend, comme un skill à cible : elle n'est pas perdue, elle n'a pas commencé, sa recharge ne court pas.
+    REQUIRE(escouade.declencherSkill(s_adresseProvocation, monstres, carteOuverte(), generateur).empty());
+    REQUIRE_FALSE(escouade.etatDuSkill(s_adresseProvocation)->enActivation);
+    REQUIRE(escouade.skillEstPret(s_adresseProvocation));
+
+    // La frappe part (0,3 s), puis la provocation s'active et part (0,2 s) : elle provoque le monstre.
+    const std::vector<ResultatDEffet> resultats = attaquerPendantTout(escouade, monstres, 0.7f, generateur);
+    REQUIRE(compter(coupsDe(resultats), s_degatsFrappeDeTest) == 1);
+    const std::vector<ProvocationPosee> posees = parmiLesResultats<ProvocationPosee>(resultats);
+    REQUIRE(posees.size() == 1);
+    REQUIRE(posees[0].monstre == IdMonstre{1});
+    REQUIRE_FALSE(escouade.skillEstPret(s_adresseProvocation));  // sa recharge court
+}
+
+TEST_CASE("Lanceur occupe : une provocation en attente est abandonnee a la mort de son lanceur") {
+    Generateur generateur = generateurDeTest();
+    Escouade escouade = uneEscouade({50.0f, 50.0f});
+    const std::vector<MonstreVu> monstres = unSeulMonstre(cibleMonstre({85.0f, 60.0f}));
+    REQUIRE(coupsDe(escouade.declencherSkill(s_adresseFrappe, monstres, carteOuverte(), generateur)).empty());
+    REQUIRE(escouade.declencherSkill(s_adresseProvocation, monstres, carteOuverte(), generateur).empty());  // en attente
+
+    subirCoup(escouade, IdMonstre{9}, Place{1}, s_coupMortel);  // le guerrier meurt
+    escouade.mettreAJour(s_dureeTic, carteOuverte(), {});
+
+    // Plus rien n'attend : un autre skill est de nouveau accepté.
+    subirCoup(escouade, IdMonstre{9}, Place{3}, 30);
+    REQUIRE(escouade.declencherSkill(s_adresseSoin, {}, carteOuverte(), generateur).empty());
+    REQUIRE(escouade.etatDuSkill(s_adresseSoin)->enActivation);
+}
+
 TEST_CASE("Lanceur occupe : le paladin soigne apres sa frappe sacree") {
     Generateur generateur = generateurDeTest();
     Escouade escouade = uneEscouadeDe({50.0f, 50.0f}, {paladinDeTest()});  // seul, devant : en (85, 60)

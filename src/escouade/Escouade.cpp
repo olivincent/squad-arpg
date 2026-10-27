@@ -104,7 +104,8 @@ const Personnage& Escouade::personnageDeLaPlace(Place place) const {
 }
 
 bool Escouade::skillEnAttenteDeDegats() const {
-    return m_skillEnAttente.has_value() && std::holds_alternative<CibleMonstre>(m_skillEnAttente->cible);
+    return m_skillEnAttente.has_value() && m_skillEnAttente->cible.has_value() &&
+           std::holds_alternative<CibleMonstre>(*m_skillEnAttente->cible);
 }
 
 void Escouade::annulerSkillDeDegatsEnAttente() {
@@ -150,6 +151,7 @@ std::vector<ResultatDEffet> Escouade::attaquer(float dt, const std::vector<Monst
     }
     actualiserMemoires(monstres);
     engagerSkillDeZoneEnAttente(carte);
+    engagerSkillSurSoiEnAttente();
     approcherVerrou(monstres, carte);
     engagerSkillDeDegatsEnAttente(monstres, carte);
 
@@ -169,16 +171,33 @@ void Escouade::actualiserMemoires(const std::vector<MonstreVu>& monstres) {
 // libre (aucun skill en activation), à portée et en vue du point fixé au clic.
 // Il ne dépend pas du verrou. La mort du lanceur l'annule (avancerSkillEnAttente).
 void Escouade::engagerSkillDeZoneEnAttente(const TileMap& carte) {
-    if (!m_skillEnAttente.has_value() || !std::holds_alternative<CiblePoint>(m_skillEnAttente->cible)) {
+    if (!m_skillEnAttente.has_value() || !m_skillEnAttente->cible.has_value() ||
+        !std::holds_alternative<CiblePoint>(*m_skillEnAttente->cible)) {
         return;
     }
     const SkillEnAttente enAttente = *m_skillEnAttente;
-    const CiblePoint point = std::get<CiblePoint>(enAttente.cible);
+    const CiblePoint point = std::get<CiblePoint>(*enAttente.cible);
     Personnage& lanceur = personnageDeLaPlace(enAttente.adresse.place);
     if (!lanceur.peutEngagerSkill(enAttente.adresse.id) || !peutLancerAuPoint(enAttente.adresse, point.point, carte)) {
         return;
     }
     [[maybe_unused]] const bool engage = lanceur.engagerSkill(enAttente.adresse.id, enAttente.cible);
+    assert(engage);
+    m_skillEnAttente = std::nullopt;
+}
+
+// Skill sans cible (mode `Soi`) en attente : son activation commence dès que son lanceur est libre (aucun skill en activation). Il
+// n'a ni portée ni point à atteindre, et personne ne marche pour lui. La mort du lanceur l'annule (avancerSkillEnAttente).
+void Escouade::engagerSkillSurSoiEnAttente() {
+    if (!m_skillEnAttente.has_value() || m_skillEnAttente->cible.has_value()) {
+        return;
+    }
+    const AdresseSkill adresse = m_skillEnAttente->adresse;
+    Personnage& lanceur = personnageDeLaPlace(adresse.place);
+    if (!lanceur.peutEngagerSkill(adresse.id)) {
+        return;
+    }
+    [[maybe_unused]] const bool engage = lanceur.engagerSkill(adresse.id, std::nullopt);
     assert(engage);
     m_skillEnAttente = std::nullopt;
 }
@@ -215,13 +234,17 @@ void Escouade::approcherVerrou(const std::vector<MonstreVu>& monstres, const Til
 // lanceur), personne ne marche : une fois libre, le lanceur qui n'atteint plus
 // sa cible, ou dont la cible a disparu, abandonne le skill, sans recharge.
 void Escouade::engagerSkillDeDegatsEnAttente(const std::vector<MonstreVu>& monstres, const TileMap& carte) {
-    if (!m_skillEnAttente.has_value() || !std::holds_alternative<CibleMonstre>(m_skillEnAttente->cible)) {
+    if (!m_skillEnAttente.has_value()) {
         return;
     }
     const SkillEnAttente enAttente = *m_skillEnAttente;
+    const CibleMonstre* visee = enAttente.cible.has_value() ? std::get_if<CibleMonstre>(&*enAttente.cible) : nullptr;
+    if (visee == nullptr) {
+        return;
+    }
     const AdresseSkill adresse = enAttente.adresse;
     Personnage& lanceur = personnageDeLaPlace(adresse.place);
-    const MonstreVu* cible = trouverEntite(monstres, std::get<CibleMonstre>(enAttente.cible).id);
+    const MonstreVu* cible = trouverEntite(monstres, visee->id);
     const bool atteinte = cible != nullptr && peutAtteindre(lanceur, adresse.id, cible->cercle, carte);
     if (atteinte && lanceur.peutEngagerSkill(adresse.id)) {
         [[maybe_unused]] const bool engage = lanceur.engagerSkill(adresse.id, enAttente.cible);
@@ -417,14 +440,17 @@ std::vector<ResultatDEffet> Escouade::declencherSkill(AdresseSkill adresse, cons
         return {};
     }
 
-    // Soi (la provocation) : zone centrée sur le lanceur, sans cible. Son activation
-    // commence tout de suite ; elle touche les monstres au départ, même s'il
-    // n'y en a aucun (la recharge est alors consommée).
+    // Soi (la provocation) : sans cible, centré sur le lanceur. Son activation commence tout de suite si le lanceur est libre ; sinon
+    // (il active un autre skill) il est mis en attente, comme un skill à cible, et part dès que le lanceur est libre. Il touche les
+    // monstres au départ, même s'il n'y en a aucun (la recharge est alors consommée).
     if (*mode == ModeDeCible::Soi) {
-        if (!lanceur.engagerSkill(id, std::nullopt)) {
-            return {};
+        if (lanceur.peutEngagerSkill(id)) {
+            [[maybe_unused]] const bool engage = lanceur.engagerSkill(id, std::nullopt);
+            assert(engage);
+            return avancerSkillDe(place, 0.0f, monstres, carte, generateur);
         }
-        return avancerSkillDe(place, 0.0f, monstres, carte, generateur);
+        m_skillEnAttente = SkillEnAttente{adresse, std::nullopt};
+        return {};
     }
 
     // Point : il se lance à un point choisi (declencherSkillDeZone), pas ici.
@@ -445,21 +471,21 @@ std::vector<ResultatDEffet> Escouade::declencherSkill(AdresseSkill adresse, cons
             // marche vers la cible, ou finit d'abord l'activation en cours.
             [&](const CibleMonstre& monstre) -> std::vector<ResultatDEffet> {
                 if (peutAtteindre(lanceur, id, monstre.cercle, carte) && lanceur.peutEngagerSkill(id)) {
-                    [[maybe_unused]] const bool engage = lanceur.engagerSkill(id, *cible);
+                    [[maybe_unused]] const bool engage = lanceur.engagerSkill(id, cible);
                     assert(engage);
                     return avancerSkillDe(place, 0.0f, monstres, carte, generateur);
                 }
-                m_skillEnAttente = SkillEnAttente{adresse, *cible};
+                m_skillEnAttente = SkillEnAttente{adresse, cible};
                 return {};
             },
             // Soin : appliqué au départ, il ne sort pas d'Escouade. Même règle d'attente.
             [&](const CibleAllie& allie) -> std::vector<ResultatDEffet> {
                 if (peutAtteindre(lanceur, id, personnageDeLaPlace(allie.place).getCercle(), carte) && lanceur.peutEngagerSkill(id)) {
-                    [[maybe_unused]] const bool engage = lanceur.engagerSkill(id, *cible);
+                    [[maybe_unused]] const bool engage = lanceur.engagerSkill(id, cible);
                     assert(engage);
                     return avancerSkillDe(place, 0.0f, monstres, carte, generateur);
                 }
-                m_skillEnAttente = SkillEnAttente{adresse, *cible};
+                m_skillEnAttente = SkillEnAttente{adresse, cible};
                 return {};
             },
             // choisirCible ne renvoie jamais de CiblePoint (réservée au skill de zone).
@@ -624,13 +650,16 @@ std::optional<Escouade::IntentionDuSkill> Escouade::avancerSkillEnAttente(const 
     const SkillEnAttente enAttente = *m_skillEnAttente;
     const Place placeLanceur = enAttente.adresse.place;
     const IdSkill idSkill = enAttente.adresse.id;
-    const Cible& cible = enAttente.cible;
     const Personnage& lanceur = personnageDeLaPlace(placeLanceur);
 
     if (!lanceur.estVivant()) {
         m_skillEnAttente = std::nullopt;
         return std::nullopt;
     }
+    if (!enAttente.cible.has_value()) {
+        return std::nullopt;  // un skill sans cible n'a personne vers qui marcher : il attend que son lanceur soit libre
+    }
+    const Cible& cible = *enAttente.cible;
 
     const std::optional<Intention> intention = std::visit(
         Surcharges{
