@@ -106,7 +106,7 @@ std::vector<SeuilDeCaracteristique> seuilsNonAtteints(const EtatDesObjets& etat,
     assert(portee->place <= etat.bases.size());
     const Caracteristiques effectives = caracteristiquesEffectives(etat.bases[portee->place - 1], sansLui);
     std::vector<SeuilDeCaracteristique> manques;
-    for (const SeuilDeCaracteristique& seuil : definitionObjet(pose->modele).seuils) {
+    for (const SeuilDeCaracteristique& seuil : seuilsDeLObjet(*pose)) {
         if (effectives.valeur(seuil.caracteristique) < seuil.valeur) {
             manques.push_back(seuil);
         }

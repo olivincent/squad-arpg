@@ -89,9 +89,9 @@ Equipement Equipement::actifPour(const Caracteristiques& base) const {
         const std::optional<Objet>& objet = m_objets[i];
         if (objet.has_value()) {
             const DefinitionObjet& definition = definitionObjet(objet->modele);
-            // Les seuils ne dépendent que du modèle ; le bonus compte celui des affixes (un suffixe de caractéristique
-            // peut rendre actif un autre objet).
-            portes[i] = ExigencesEtBonus{definition.seuils, definition.bonus + apportDesAffixes(*objet).bonus};
+            // Les seuils viennent du modèle et du niveau de l'objet (`seuilsDeLObjet`) ; le bonus compte celui des affixes
+            // (un suffixe de caractéristique peut rendre actif un autre objet).
+            portes[i] = ExigencesEtBonus{seuilsDeLObjet(*objet), definition.bonus + apportDesAffixes(*objet).bonus};
         }
     }
     const std::vector<bool> actifs = objetsActifs(base, portes);

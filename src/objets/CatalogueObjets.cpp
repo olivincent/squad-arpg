@@ -40,21 +40,13 @@ constexpr int s_degatsArc = 15;
 constexpr int s_degatsMainsNues = 6;
 constexpr int s_penetrationDague = 30;  // en pour cent de l'armure ignorée
 
-// Seuils d'équipement (valeurs provisoires, « à tester »). Chaque classe peut porter son équipement de départ avec
-// ses caractéristiques de base ; personne ne peut porter l'épée à deux mains au départ.
-constexpr int s_puissanceArmeDeMelee = 11;         // épée longue, masse
-constexpr int s_puissanceEpeeADeuxMains = 13;
-constexpr int s_enduranceEpeeADeuxMains = 12;
-constexpr int s_adresseDague = 10;
-constexpr int s_adresseArc = 12;
-constexpr int s_savoirBaton = 12;
-constexpr int s_volonteSceptre = 11;
-constexpr int s_enduranceBouclierRond = 11;
-constexpr int s_enduranceArmureDeFer = 12;         // casque, cuirasse de mailles, jambières de fer
+// Les exigences d'équipement (valeurs provisoires, « à tester ») : le seuil de chaque exigence est
+// `s_seuilAuNiveau1 + pente × (niveau − 1)` (`seuilsDeLObjet`). La pente de la caractéristique principale d'un objet.
+constexpr int s_penteSeuilPrincipale = 2;
 
-// Cette définition, avec ces seuils.
-DefinitionObjet avecSeuils(DefinitionObjet definition, std::vector<SeuilDeCaracteristique> seuils) {
-    definition.seuils = std::move(seuils);
+// Cette définition, avec ces exigences.
+DefinitionObjet avecExigences(DefinitionObjet definition, std::vector<ExigenceDeCaracteristique> exigences) {
+    definition.exigences = std::move(exigences);
     return definition;
 }
 
@@ -75,15 +67,15 @@ DonneesDArme armeDeTir(TypeDArme type, int mains, int degats) {
 
 std::vector<DefinitionObjet> construireLeCatalogue() {
     return {
-        avecSeuils({IdObjet::CasqueDeFer, "Iron Helm", CategorieObjet::Casque, s_armureCasqueDeFer},
-                   {{Caracteristique::Endurance, s_enduranceArmureDeFer}}),
-        avecSeuils({IdObjet::CuirasseDeMailles, "Chain Mail", CategorieObjet::Armure, s_armureCuirasseDeMailles},
-                   {{Caracteristique::Endurance, s_enduranceArmureDeFer}}),
-        avecSeuils({IdObjet::JambieresDeFer, "Iron Greaves", CategorieObjet::Jambieres, s_armureJambieresDeFer},
-                   {{Caracteristique::Endurance, s_enduranceArmureDeFer}}),
-        avecSeuils({IdObjet::BouclierRond, "Round Shield", CategorieObjet::Bouclier, s_armureBouclierRond, {}, {}, std::nullopt,
-                    DonneesDeBouclier{.chanceDeBlocage = s_chanceDeBlocageBouclierRond, .montantBloque = s_montantBloqueBouclierRond}},
-                   {{Caracteristique::Endurance, s_enduranceBouclierRond}}),
+        avecExigences({IdObjet::CasqueDeFer, "Iron Helm", CategorieObjet::Casque, s_armureCasqueDeFer},
+                      {{Caracteristique::Endurance, s_penteSeuilPrincipale}}),
+        avecExigences({IdObjet::CuirasseDeMailles, "Chain Mail", CategorieObjet::Armure, s_armureCuirasseDeMailles},
+                      {{Caracteristique::Endurance, s_penteSeuilPrincipale}}),
+        avecExigences({IdObjet::JambieresDeFer, "Iron Greaves", CategorieObjet::Jambieres, s_armureJambieresDeFer},
+                      {{Caracteristique::Endurance, s_penteSeuilPrincipale}}),
+        avecExigences({IdObjet::BouclierRond, "Round Shield", CategorieObjet::Bouclier, s_armureBouclierRond, {}, {}, std::nullopt,
+                       DonneesDeBouclier{.chanceDeBlocage = s_chanceDeBlocageBouclierRond, .montantBloque = s_montantBloqueBouclierRond}},
+                      {{Caracteristique::Endurance, s_penteSeuilPrincipale}}),
         {IdObjet::GantsDeCuir, "Leather Gloves", CategorieObjet::Gants, s_armureGantsDeCuir},
         {IdObjet::BottesDeCuir, "Leather Boots", CategorieObjet::Bottes, s_armureBottesDeCuir, {},
          {.esquiveContact = s_esquiveBottesDeCuir}},
@@ -98,24 +90,25 @@ std::vector<DefinitionObjet> construireLeCatalogue() {
          Caracteristiques::seule(Caracteristique::Puissance, s_bonusAnneauDePuissance)},
         {IdObjet::CollierDEndurance, "Necklace of Constitution", CategorieObjet::Collier, 0,
          Caracteristiques::seule(Caracteristique::Endurance, s_bonusCollierDEndurance)},
-        avecSeuils({IdObjet::EpeeLongue, "Longsword", CategorieObjet::Arme, 0, {}, {},
-                    armeDeMelee(TypeDArme::EpeeLongue, 1, s_degatsEpeeLongue, 0.3f, 0.7f, s_executionArmeLegere)},
-                   {{Caracteristique::Puissance, s_puissanceArmeDeMelee}}),
-        avecSeuils({IdObjet::Masse, "Mace", CategorieObjet::Arme, 0, {}, {},
-                    armeDeMelee(TypeDArme::Masse, 1, s_degatsMasse, 0.3f, 0.7f, s_executionArmeLegere)},
-                   {{Caracteristique::Puissance, s_puissanceArmeDeMelee}}),
-        avecSeuils({IdObjet::Dague, "Dagger", CategorieObjet::Arme, 0, {}, {},
-                    armeDeMelee(TypeDArme::Dague, 1, s_degatsDague, 0.4f, 0.8f, s_executionArmeLegere, s_penetrationDague)},
-                   {{Caracteristique::Adresse, s_adresseDague}}),
-        avecSeuils({IdObjet::EpeeADeuxMains, "Greatsword", CategorieObjet::Arme, 0, {}, {},
-                    armeDeMelee(TypeDArme::EpeeADeuxMains, 2, s_degatsEpeeADeuxMains, 1.2f, 2.8f, s_executionArmeLourde)},
-                   {{Caracteristique::Puissance, s_puissanceEpeeADeuxMains}, {Caracteristique::Endurance, s_enduranceEpeeADeuxMains}}),
-        avecSeuils({IdObjet::Sceptre, "Scepter", CategorieObjet::Arme, 0, {}, {}, armeDeTir(TypeDArme::Sceptre, 1, s_degatsSceptre)},
-                   {{Caracteristique::Volonte, s_volonteSceptre}}),
-        avecSeuils({IdObjet::Baton, "Staff", CategorieObjet::Arme, 0, {}, {}, armeDeTir(TypeDArme::Baton, 2, s_degatsBaton)},
-                   {{Caracteristique::Savoir, s_savoirBaton}}),
-        avecSeuils({IdObjet::Arc, "Bow", CategorieObjet::Arme, 0, {}, {}, armeDeTir(TypeDArme::Arc, 2, s_degatsArc)},
-                   {{Caracteristique::Adresse, s_adresseArc}}),
+        // Armes prototypes : leur caractéristique principale, jusqu'aux gabarits d'armes (étape 102.4).
+        avecExigences({IdObjet::EpeeLongue, "Longsword", CategorieObjet::Arme, 0, {}, {},
+                       armeDeMelee(TypeDArme::EpeeLongue, 1, s_degatsEpeeLongue, 0.3f, 0.7f, s_executionArmeLegere)},
+                      {{Caracteristique::Puissance, s_penteSeuilPrincipale}}),
+        avecExigences({IdObjet::Masse, "Mace", CategorieObjet::Arme, 0, {}, {},
+                       armeDeMelee(TypeDArme::Masse, 1, s_degatsMasse, 0.3f, 0.7f, s_executionArmeLegere)},
+                      {{Caracteristique::Puissance, s_penteSeuilPrincipale}}),
+        avecExigences({IdObjet::Dague, "Dagger", CategorieObjet::Arme, 0, {}, {},
+                       armeDeMelee(TypeDArme::Dague, 1, s_degatsDague, 0.4f, 0.8f, s_executionArmeLegere, s_penetrationDague)},
+                      {{Caracteristique::Adresse, s_penteSeuilPrincipale}}),
+        avecExigences({IdObjet::EpeeADeuxMains, "Greatsword", CategorieObjet::Arme, 0, {}, {},
+                       armeDeMelee(TypeDArme::EpeeADeuxMains, 2, s_degatsEpeeADeuxMains, 1.2f, 2.8f, s_executionArmeLourde)},
+                      {{Caracteristique::Puissance, s_penteSeuilPrincipale}}),
+        avecExigences({IdObjet::Sceptre, "Scepter", CategorieObjet::Arme, 0, {}, {}, armeDeTir(TypeDArme::Sceptre, 1, s_degatsSceptre)},
+                      {{Caracteristique::Volonte, s_penteSeuilPrincipale}}),
+        avecExigences({IdObjet::Baton, "Staff", CategorieObjet::Arme, 0, {}, {}, armeDeTir(TypeDArme::Baton, 2, s_degatsBaton)},
+                      {{Caracteristique::Savoir, s_penteSeuilPrincipale}}),
+        avecExigences({IdObjet::Arc, "Bow", CategorieObjet::Arme, 0, {}, {}, armeDeTir(TypeDArme::Arc, 2, s_degatsArc)},
+                      {{Caracteristique::Adresse, s_penteSeuilPrincipale}}),
     };
 }
 }  // namespace
@@ -170,8 +163,16 @@ std::string nomDeLObjet(const Objet& objet) {
     return nom;
 }
 
-bool seuilsAtteints(IdObjet id, const Caracteristiques& caracteristiques) {
-    for (const SeuilDeCaracteristique& seuil : definitionObjet(id).seuils) {
+std::vector<SeuilDeCaracteristique> seuilsDeLObjet(const Objet& objet) {
+    std::vector<SeuilDeCaracteristique> seuils;
+    for (const ExigenceDeCaracteristique& exigence : definitionObjet(objet.modele).exigences) {
+        seuils.push_back({exigence.caracteristique, s_seuilAuNiveau1 + exigence.pente * (objet.niveau - 1)});
+    }
+    return seuils;
+}
+
+bool seuilsAtteints(const Objet& objet, const Caracteristiques& caracteristiques) {
+    for (const SeuilDeCaracteristique& seuil : seuilsDeLObjet(objet)) {
         if (caracteristiques.valeur(seuil.caracteristique) < seuil.valeur) {
             return false;
         }

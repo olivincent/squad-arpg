@@ -201,6 +201,15 @@ inline Personnage unPersonnage(sf::Vector2f centre, DefinitionPersonnage definit
     return Personnage(centre, std::move(membres[0].definition), std::move(membres[0].equipement), membres[0].pointsDepenses, 1);
 }
 
+// Un personnage de cette définition qui porte en plus cet objet à cet emplacement (à la place de ce qui s'y trouvait). L'équipement
+// de départ d'une définition ne dit que des modèles, donc des objets de niveau 1 : un objet d'un autre niveau (un seuil plus haut)
+// se pose ici.
+inline Personnage unPersonnageEquipe(sf::Vector2f centre, DefinitionPersonnage definition, Emplacement emplacement, const Objet& objet) {
+    std::vector<MembreDEscouade> membres = membresDeTest({std::move(definition)});
+    static_cast<void>(membres[0].equipement.poser(emplacement, objet));
+    return Personnage(centre, std::move(membres[0].definition), std::move(membres[0].equipement), membres[0].pointsDepenses, 1);
+}
+
 // Une escouade avec la composition par défaut des tests.
 inline Escouade uneEscouade(sf::Vector2f positionDepart) {
     return uneEscouadeDe(positionDepart, compositionDeTest());
@@ -251,10 +260,10 @@ inline DefinitionPersonnage avecCaracteristique(DefinitionPersonnage definition,
     return definition;
 }
 
-// Cette définition, avec juste ce qu'il faut de caractéristiques en plus pour porter ces objets (seuils lus au catalogue).
+// Cette définition, avec juste ce qu'il faut de caractéristiques en plus pour porter ces objets de niveau 1 (`seuilsDeLObjet`).
 inline DefinitionPersonnage capableDePorter(DefinitionPersonnage definition, const std::vector<IdObjet>& objets) {
     for (const IdObjet objet : objets) {
-        for (const SeuilDeCaracteristique& seuil : definitionObjet(objet).seuils) {
+        for (const SeuilDeCaracteristique& seuil : seuilsDeLObjet(Objet{objet})) {
             if (definition.caracteristiques.valeur(seuil.caracteristique) < seuil.valeur) {
                 definition = avecCaracteristique(std::move(definition), seuil.caracteristique, seuil.valeur);
             }

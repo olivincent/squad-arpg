@@ -12,6 +12,19 @@
 #include "objets/Emplacement.hpp"
 #include "objets/Objet.hpp"
 
+// Une caractéristique qu'un objet exige de qui le porte, et de combien le seuil monte à chaque niveau de l'objet. Le seuil
+// lui-même se calcule (`seuilsDeLObjet`) : il dépend du niveau de l'objet, que le modèle ne connaît pas.
+struct ExigenceDeCaracteristique {
+    Caracteristique caracteristique;
+    int pente;
+
+    bool operator==(const ExigenceDeCaracteristique&) const = default;
+};
+
+// Le seuil de toute exigence au niveau 1 (valeur provisoire, « à tester ») : la même pour tous les objets, qui ne se
+// distinguent que par leur pente.
+inline constexpr int s_seuilAuNiveau1 = 6;
+
 // Le modèle d'un objet : ce qui est commun à toutes ses instances.
 struct DefinitionObjet {
     IdObjet id;
@@ -22,7 +35,7 @@ struct DefinitionObjet {
     StatistiquesDeCombat bonusDeCombat = {};  // ajouté aux statistiques de combat de qui le porte (esquive, capacités…)
     std::optional<DonneesDArme> arme = {};    // seulement pour une arme
     std::optional<DonneesDeBouclier> bouclier = {};  // seulement pour un bouclier : son blocage
-    std::vector<SeuilDeCaracteristique> seuils = {};  // vide : aucun seuil (cuir, bijoux)
+    std::vector<ExigenceDeCaracteristique> exigences = {};  // vide : aucun seuil (cuir, bijoux)
 };
 
 // Tous les modèles, dans l'ordre de `IdObjet` : l'unique source de leurs valeurs.
@@ -47,8 +60,13 @@ struct DefinitionObjet {
 // n'accorde pas : aucun genre ni nombre à gérer sur les modèles.
 [[nodiscard]] std::string nomDeLObjet(const Objet& objet);
 
+// Les seuils de cet objet : pour chaque exigence de son modèle, `s_seuilAuNiveau1 + pente × (niveau − 1)`. UNE règle pour
+// tous les objets, l'unique endroit qui la calcule : tout ce qui a besoin d'un seuil (équiper, objets actifs, surbrillance,
+// infobulle) passe par cette fonction. Vide pour un objet sans exigence.
+[[nodiscard]] std::vector<SeuilDeCaracteristique> seuilsDeLObjet(const Objet& objet);
+
 // Ces caractéristiques atteignent-elles tous les seuils de cet objet ? Toujours vrai sans seuil.
-[[nodiscard]] bool seuilsAtteints(IdObjet id, const Caracteristiques& caracteristiques);
+[[nodiscard]] bool seuilsAtteints(const Objet& objet, const Caracteristiques& caracteristiques);
 
 // Cet objet prend-il les deux mains (une arme à deux mains) ?
 [[nodiscard]] bool estADeuxMains(IdObjet id);

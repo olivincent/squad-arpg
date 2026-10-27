@@ -4,6 +4,8 @@
 #include <optional>
 #include <vector>
 
+#include "combat/Caracteristiques.hpp"
+#include "objets/CatalogueObjets.hpp"
 #include "objets/DeplacementDObjets.hpp"
 #include "objets/Emplacement.hpp"
 #include "objets/Objet.hpp"
@@ -285,21 +287,39 @@ TEST_CASE("deplacementPossible : un sac plein qui ne peut pas ranger la main ref
     REQUIRE(contenu(etat) == avant);
 }
 
-// Les seuils (étape 92.1).
+// Les seuils (étape 92.1, selon le niveau de l'objet depuis l'étape 102.2).
 namespace {
 // Deux personnages de caractéristiques de base `a` et `b`.
 EtatDesObjets etatDeBases(const Caracteristiques& a, const Caracteristiques& b) {
     return {Inventaire(s_capaciteDuSac), std::vector<Equipement>(2), {a, b}};
 }
 
-// Il faut Puissance 13 et Endurance 12 pour l'épée à deux mains, Puissance 11 pour l'épée longue.
+// Des objets de niveau 6, dont le seuil est bien au-dessus de celui du niveau 1 : il se lit par `seuilsDeLObjet`.
+constexpr int s_niveauExigeant = 6;
+const Objet s_epeeExigeante{IdObjet::EpeeLongue, Rarete::Commun, std::nullopt, std::nullopt, s_niveauExigeant};
+const Objet s_epeeADeuxMainsExigeante{IdObjet::EpeeADeuxMains, Rarete::Commun, std::nullopt, std::nullopt, s_niveauExigeant};
+
+// Le seuil de Puissance d'une arme (sa seule exigence).
+int seuilDePuissance(const Objet& arme) {
+    const std::vector<SeuilDeCaracteristique> seuils = seuilsDeLObjet(arme);
+    REQUIRE(seuils.size() == 1);
+    REQUIRE(seuils.front().caracteristique == Caracteristique::Puissance);
+    return seuils.front().valeur;
+}
+
+// Un personnage sans rien d'autre qu'une Puissance de base.
+Caracteristiques avecPuissance(int puissance) {
+    return Caracteristiques({puissance, 0, 0, 0, 0});
+}
+
+// Un faible, qui n'atteint le seuil d'aucun objet de niveau 6, et un fort, qui les atteint tous.
 const Caracteristiques s_faible({10, 10, 10, 10, 10});
-const Caracteristiques s_fort({13, 12, 10, 10, 10});
+const Caracteristiques s_fort({100, 100, 100, 100, 100});
 }  // namespace
 
 TEST_CASE("seuils : un objet sous le seuil de son porteur ne peut pas etre equipe, rien ne bouge") {
     EtatDesObjets etat = etatDeBases(s_faible, s_fort);
-    rangerDansLeSac(etat, 0, s_epee);  // Puissance 11 exigée
+    rangerDansLeSac(etat, 0, s_epeeExigeante);
     const std::vector<std::optional<Objet>> avant = contenu(etat);
 
     REQUIRE_FALSE(deplacementPossible(etat, dansLeSac(0), portee(s_placeA, Emplacement::MainDroite)));
@@ -309,87 +329,94 @@ TEST_CASE("seuils : un objet sous le seuil de son porteur ne peut pas etre equip
     REQUIRE(deplacerLesObjets(etat, dansLeSac(0), portee(s_placeB, Emplacement::MainDroite)));  // le fort le peut
 }
 
-TEST_CASE("seuils : un seuil atteint exactement suffit") {
-    EtatDesObjets etat = etatDeBases(Caracteristiques({11, 0, 0, 0, 0}), s_faible);
-    rangerDansLeSac(etat, 0, s_epee);
+TEST_CASE("seuils : un seuil atteint exactement suffit, un point de moins ne suffit pas") {
+    const int seuil = seuilDePuissance(s_epeeExigeante);
+    EtatDesObjets juste = etatDeBases(avecPuissance(seuil), s_faible);
+    EtatDesObjets presque = etatDeBases(avecPuissance(seuil - 1), s_faible);
+    rangerDansLeSac(juste, 0, s_epeeExigeante);
+    rangerDansLeSac(presque, 0, s_epeeExigeante);
 
-    REQUIRE(deplacerLesObjets(etat, dansLeSac(0), portee(s_placeA, Emplacement::MainDroite)));
+    REQUIRE(deplacerLesObjets(juste, dansLeSac(0), portee(s_placeA, Emplacement::MainDroite)));
+    REQUIRE_FALSE(deplacerLesObjets(presque, dansLeSac(0), portee(s_placeA, Emplacement::MainDroite)));
 }
 
-TEST_CASE("seuils : les deux seuils de l'epee a deux mains comptent") {
-    EtatDesObjets etat = etatDeBases(Caracteristiques({13, 11, 0, 0, 0}), s_fort);
-    rangerDansLeSac(etat, 0, s_epeeADeuxMains);
+TEST_CASE("seuils : le seuil monte avec le niveau de l'objet") {
+    const Objet niveau1{IdObjet::EpeeLongue};
+    EtatDesObjets etat = etatDeBases(avecPuissance(seuilDePuissance(niveau1)), s_faible);
+    rangerDansLeSac(etat, 0, niveau1);
+    rangerDansLeSac(etat, 1, s_epeeExigeante);
 
-    REQUIRE_FALSE(deplacementPossible(etat, dansLeSac(0), portee(s_placeA, Emplacement::MainDroite)));  // Endurance 11 < 12
-    REQUIRE(deplacementPossible(etat, dansLeSac(0), portee(s_placeB, Emplacement::MainDroite)));
+    REQUIRE(deplacementPossible(etat, dansLeSac(0), portee(s_placeA, Emplacement::MainDroite)));
+    REQUIRE_FALSE(deplacementPossible(etat, dansLeSac(1), portee(s_placeA, Emplacement::MainDroite)));
 }
 
 TEST_CASE("seuils : les bonus des autres objets portes comptent") {
-    EtatDesObjets etat = etatDeBases(Caracteristiques({9, 0, 0, 0, 0}), s_fort);
-    rangerDansLeSac(etat, 0, s_epee);  // Puissance 11 exigée, 9 de base
+    const int bonus = definitionObjet(IdObjet::AnneauDePuissance).bonus.valeur(Caracteristique::Puissance);
+    REQUIRE(bonus > 0);
+    EtatDesObjets etat = etatDeBases(avecPuissance(seuilDePuissance(s_epeeExigeante) - bonus), s_fort);
+    rangerDansLeSac(etat, 0, s_epeeExigeante);  // un bonus de Puissance de moins que le seuil, de base
     REQUIRE_FALSE(deplacementPossible(etat, dansLeSac(0), portee(s_placeA, Emplacement::MainDroite)));
 
-    porter(etat, s_placeA, Emplacement::Anneau1, Objet{IdObjet::AnneauDePuissance});  // +3 de Puissance
+    porter(etat, s_placeA, Emplacement::Anneau1, Objet{IdObjet::AnneauDePuissance});
 
     REQUIRE(deplacementPossible(etat, dansLeSac(0), portee(s_placeA, Emplacement::MainDroite)));
 }
 
 TEST_CASE("seuils : vers le sac, aucun seuil") {
     EtatDesObjets etat = etatDeBases(s_faible, s_faible);
-    porter(etat, s_placeA, Emplacement::MainDroite, s_epeeADeuxMains);  // équipée de départ, sans en avoir les caractéristiques
+    porter(etat, s_placeA, Emplacement::MainDroite, s_epeeADeuxMainsExigeante);  // équipée de départ, sans en avoir les caractéristiques
 
     REQUIRE(deplacerLesObjets(etat, portee(s_placeA, Emplacement::MainDroite), dansLeSac(0)));
-    REQUIRE(etat.sac.a(0) == s_epeeADeuxMains);
+    REQUIRE(etat.sac.a(0) == s_epeeADeuxMainsExigeante);
 }
 
 TEST_CASE("seuils : l'echange entre deux personnages exige les seuils des deux cotes") {
     EtatDesObjets etat = etatDeBases(s_fort, s_faible);
-    porter(etat, s_placeA, Emplacement::MainDroite, s_epeeADeuxMains);
-    porter(etat, s_placeB, Emplacement::MainDroite, s_epee);  // le faible la porte, sans en avoir la Puissance
+    porter(etat, s_placeA, Emplacement::MainDroite, s_epeeADeuxMainsExigeante);
+    porter(etat, s_placeB, Emplacement::MainDroite, s_epeeExigeante);  // le faible la porte, sans en avoir la Puissance
     const std::vector<std::optional<Objet>> avant = contenu(etat);
 
-    // L'épée à deux mains irait chez le faible : refusé, même si l'épée longue va chez le fort.
+    // L'épée à deux mains irait chez le faible : refusé, même si l'autre épée va chez le fort.
     REQUIRE_FALSE(deplacerLesObjets(etat, portee(s_placeA, Emplacement::MainDroite), portee(s_placeB, Emplacement::MainDroite)));
     REQUIRE(contenu(etat) == avant);
 }
 
 TEST_CASE("seuils : l'echange avec le sac exige le seuil de l'objet qui arrive, pas celui de l'objet qui part") {
     EtatDesObjets etat = etatDeBases(s_faible, s_faible);
-    porter(etat, s_placeA, Emplacement::MainDroite, s_epeeADeuxMains);  // équipée de départ
+    porter(etat, s_placeA, Emplacement::MainDroite, s_epeeADeuxMainsExigeante);  // équipée de départ
     rangerDansLeSac(etat, 0, s_gants);
-    rangerDansLeSac(etat, 1, Objet{IdObjet::Dague});  // Adresse 10 : le faible l'a
+    rangerDansLeSac(etat, 1, Objet{IdObjet::Dague});  // niveau 1 : le faible l'atteint
 
     REQUIRE(deplacerLesObjets(etat, dansLeSac(1), portee(s_placeA, Emplacement::MainDroite)));
     REQUIRE(etat.equipements[0].a(Emplacement::MainDroite) == Objet{IdObjet::Dague});
-    REQUIRE(etat.sac.a(1) == s_epeeADeuxMains);
+    REQUIRE(etat.sac.a(1) == s_epeeADeuxMainsExigeante);
 }
 
 TEST_CASE("seuils : le bouclier range par les deux mains ne rencontre aucun seuil") {
     EtatDesObjets etat = etatDeBases(s_fort, s_fort);
     porter(etat, s_placeA, Emplacement::MainGauche, s_bouclier);
-    rangerDansLeSac(etat, 2, s_epeeADeuxMains);
+    rangerDansLeSac(etat, 2, s_epeeADeuxMainsExigeante);
 
     REQUIRE(deplacerLesObjets(etat, dansLeSac(2), portee(s_placeA, Emplacement::MainDroite)));
     REQUIRE(etat.sac.a(0) == s_bouclier);
 }
 
 TEST_CASE("seuilsManques : les seuils que le personnage qui recevrait l'objet n'atteint pas") {
-    EtatDesObjets etat = etatDeBases(Caracteristiques({13, 11, 0, 0, 0}), s_fort);
-    rangerDansLeSac(etat, 0, s_epeeADeuxMains);  // Puissance 13 et Endurance 12 exigées
+    EtatDesObjets etat = etatDeBases(s_faible, s_fort);
+    rangerDansLeSac(etat, 0, s_epeeADeuxMainsExigeante);
 
     const std::vector<SeuilDeCaracteristique> manques = seuilsManques(etat, dansLeSac(0), portee(s_placeA, Emplacement::MainDroite));
 
-    REQUIRE(manques == std::vector<SeuilDeCaracteristique>{{Caracteristique::Endurance, 12}});
+    REQUIRE(manques == seuilsDeLObjet(s_epeeADeuxMainsExigeante));
     REQUIRE(seuilsManques(etat, dansLeSac(0), portee(s_placeB, Emplacement::MainDroite)).empty());  // le fort les atteint
 }
 
-TEST_CASE("seuilsManques : tous les seuils non atteints, vide vers le sac ou quand le deplacement est refuse pour une autre raison") {
+TEST_CASE("seuilsManques : vide vers le sac ou quand le deplacement est refuse pour une autre raison") {
     EtatDesObjets etat = etatDeBases(s_faible, s_faible);
-    rangerDansLeSac(etat, 0, s_epeeADeuxMains);
+    rangerDansLeSac(etat, 0, s_epeeADeuxMainsExigeante);
     rangerDansLeSac(etat, 1, s_gants);
-    porter(etat, s_placeA, Emplacement::MainDroite, s_epee);
+    porter(etat, s_placeA, Emplacement::MainDroite, s_epeeExigeante);
 
-    REQUIRE(seuilsManques(etat, dansLeSac(0), portee(s_placeB, Emplacement::MainDroite)).size() == 2);  // Puissance 13 et Endurance 12
     REQUIRE(seuilsManques(etat, portee(s_placeA, Emplacement::MainDroite), dansLeSac(5)).empty());       // vers le sac
     REQUIRE(seuilsManques(etat, dansLeSac(1), portee(s_placeB, Emplacement::MainDroite)).empty());       // des gants en main : refusé autrement
     REQUIRE(seuilsManques(etat, dansLeSac(0), dansLeSac(0)).empty());
@@ -397,7 +424,7 @@ TEST_CASE("seuilsManques : tous les seuils non atteints, vide vers le sac ou qua
 
 TEST_CASE("seuilsManques : ne change rien a l'etat") {
     EtatDesObjets etat = etatDeBases(s_faible, s_faible);
-    rangerDansLeSac(etat, 0, s_epeeADeuxMains);
+    rangerDansLeSac(etat, 0, s_epeeADeuxMainsExigeante);
     const std::vector<std::optional<Objet>> avant = contenu(etat);
 
     static_cast<void>(seuilsManques(etat, dansLeSac(0), portee(s_placeA, Emplacement::MainDroite)));

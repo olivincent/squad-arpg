@@ -368,14 +368,8 @@ TEST_CASE("armes exigees : chaque classe porte au depart l'arme que ses skills e
 TEST_CASE("seuils : chaque classe atteint les seuils de son equipement de depart avec ses caracteristiques de base") {
     for (const Specialite& classe : catalogue()) {
         for (const ObjetDeDepart& objet : classe.definition.equipementDeDepart) {
-            REQUIRE(seuilsAtteints(objet.objet, classe.definition.caracteristiques));
+            REQUIRE(seuilsAtteints(Objet{objet.objet}, classe.definition.caracteristiques));
         }
-    }
-}
-
-TEST_CASE("seuils : aucune classe ne peut porter l'epee a deux mains au depart") {
-    for (const Specialite& classe : catalogue()) {
-        REQUIRE_FALSE(seuilsAtteints(IdObjet::EpeeADeuxMains, classe.definition.caracteristiques));
     }
 }
 

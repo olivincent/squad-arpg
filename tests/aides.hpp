@@ -46,12 +46,12 @@ inline const std::vector<ObjetDeDepart> s_equipementMeleeDeTest = {{Emplacement:
                                                                    {Emplacement::MainDroite, IdObjet::EpeeLongue}};
 
 // Les caractéristiques d'un personnage de test qui porte ces objets : la Puissance de référence (10) et juste ce qu'il
-// faut pour atteindre tous les seuils de ses objets (lus au catalogue, jamais écrits en littéral), les autres à 0.
+// faut pour atteindre tous les seuils de ses objets de niveau 1 (`seuilsDeLObjet`, jamais écrits en littéral), les autres à 0.
 // Sans cela, un objet de départ à seuil serait inactif (étape 92) et les armures et attaques de test ne s'appliqueraient pas.
 inline Caracteristiques caracteristiquesPourPorter(const std::vector<ObjetDeDepart>& objets) {
     std::array<int, s_nombreDeCaracteristiques> valeurs = {s_valeurDeReference, 0, 0, 0, 0};
     for (const ObjetDeDepart& objet : objets) {
-        for (const SeuilDeCaracteristique& seuil : definitionObjet(objet.objet).seuils) {
+        for (const SeuilDeCaracteristique& seuil : seuilsDeLObjet(Objet{objet.objet})) {
             int& valeur = valeurs[static_cast<std::size_t>(seuil.caracteristique)];
             valeur = std::max(valeur, seuil.valeur);
         }

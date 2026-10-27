@@ -280,40 +280,68 @@ TEST_CASE("estADeuxMains : l'epee a deux mains, le baton et l'arc, pas les autre
     REQUIRE_FALSE(estADeuxMains(IdObjet::BouclierRond));
 }
 
-TEST_CASE("catalogueObjets : les seuils des armes, des armures de fer et du bouclier") {
-    using Seuils = std::vector<SeuilDeCaracteristique>;
-    const auto seuils = [](IdObjet id) { return definitionObjet(id).seuils; };
+TEST_CASE("seuilsDeLObjet : 6 au niveau 1, puis la pente de l'exigence par niveau") {
+    const auto seuilDeLaCuirasse = [](int niveau) {
+        return seuilsDeLObjet(Objet{IdObjet::CuirasseDeMailles, Rarete::Commun, std::nullopt, std::nullopt, niveau});
+    };
 
-    REQUIRE(seuils(IdObjet::EpeeLongue) == Seuils{{Caracteristique::Puissance, 11}});
-    REQUIRE(seuils(IdObjet::Masse) == Seuils{{Caracteristique::Puissance, 11}});
-    REQUIRE(seuils(IdObjet::EpeeADeuxMains) == Seuils{{Caracteristique::Puissance, 13}, {Caracteristique::Endurance, 12}});
-    REQUIRE(seuils(IdObjet::Dague) == Seuils{{Caracteristique::Adresse, 10}});
-    REQUIRE(seuils(IdObjet::Arc) == Seuils{{Caracteristique::Adresse, 12}});
-    REQUIRE(seuils(IdObjet::Baton) == Seuils{{Caracteristique::Savoir, 12}});
-    REQUIRE(seuils(IdObjet::Sceptre) == Seuils{{Caracteristique::Volonte, 11}});
-    REQUIRE(seuils(IdObjet::BouclierRond) == Seuils{{Caracteristique::Endurance, 11}});
+    REQUIRE(seuilDeLaCuirasse(1) == std::vector<SeuilDeCaracteristique>{{Caracteristique::Endurance, 6}});
+    REQUIRE(seuilDeLaCuirasse(2) == std::vector<SeuilDeCaracteristique>{{Caracteristique::Endurance, 8}});
+    REQUIRE(seuilDeLaCuirasse(5) == std::vector<SeuilDeCaracteristique>{{Caracteristique::Endurance, 14}});
+    REQUIRE(seuilDeLaCuirasse(20) == std::vector<SeuilDeCaracteristique>{{Caracteristique::Endurance, 44}});
+}
+
+TEST_CASE("seuilsDeLObjet : le seuil ne depend que du modele et du niveau, ni de la rarete, ni des affixes, ni de la qualite") {
+    const Objet simple{IdObjet::Masse, Rarete::Commun, std::nullopt, std::nullopt, 3, 50};
+    const Objet magique{IdObjet::Masse, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}, std::nullopt, 3, 50};
+    const Objet excellente{IdObjet::Masse, Rarete::Commun, std::nullopt, std::nullopt, 3, 100};
+
+    REQUIRE(seuilsDeLObjet(magique) == seuilsDeLObjet(simple));
+    REQUIRE(seuilsDeLObjet(excellente) == seuilsDeLObjet(simple));
+}
+
+TEST_CASE("seuilsDeLObjet : les armes prototypes exigent leur caracteristique principale, les protections de fer l'Endurance") {
+    const auto exigees = [](IdObjet id) {
+        std::vector<Caracteristique> caracteristiques;
+        for (const SeuilDeCaracteristique& seuil : seuilsDeLObjet(Objet{id})) {
+            caracteristiques.push_back(seuil.caracteristique);
+        }
+        return caracteristiques;
+    };
+    using Liste = std::vector<Caracteristique>;
+
+    REQUIRE(exigees(IdObjet::EpeeLongue) == Liste{Caracteristique::Puissance});
+    REQUIRE(exigees(IdObjet::Masse) == Liste{Caracteristique::Puissance});
+    REQUIRE(exigees(IdObjet::EpeeADeuxMains) == Liste{Caracteristique::Puissance});
+    REQUIRE(exigees(IdObjet::Dague) == Liste{Caracteristique::Adresse});
+    REQUIRE(exigees(IdObjet::Arc) == Liste{Caracteristique::Adresse});
+    REQUIRE(exigees(IdObjet::Baton) == Liste{Caracteristique::Savoir});
+    REQUIRE(exigees(IdObjet::Sceptre) == Liste{Caracteristique::Volonte});
+    REQUIRE(exigees(IdObjet::BouclierRond) == Liste{Caracteristique::Endurance});
     for (const IdObjet fer : {IdObjet::CasqueDeFer, IdObjet::CuirasseDeMailles, IdObjet::JambieresDeFer}) {
-        REQUIRE(seuils(fer) == Seuils{{Caracteristique::Endurance, 12}});
+        REQUIRE(exigees(fer) == Liste{Caracteristique::Endurance});
     }
 }
 
-TEST_CASE("catalogueObjets : les objets de cuir et les bijoux n'ont aucun seuil") {
+TEST_CASE("catalogueObjets : les objets de cuir et les bijoux n'ont aucune exigence") {
     for (const IdObjet libre : {IdObjet::GantsDeCuir, IdObjet::BottesDeCuir, IdObjet::CasqueDeCuir, IdObjet::TuniqueMatelassee,
                                 IdObjet::CollierDeProtection, IdObjet::AnneauDeProtection, IdObjet::AnneauDePuissance,
                                 IdObjet::CollierDEndurance}) {
-        REQUIRE(definitionObjet(libre).seuils.empty());
+        REQUIRE(definitionObjet(libre).exigences.empty());
+        REQUIRE(seuilsDeLObjet(Objet{libre, Rarete::Commun, std::nullopt, std::nullopt, 9}).empty());
     }
 }
 
 TEST_CASE("seuilsAtteints : tous les seuils doivent l'etre, un objet sans seuil l'est toujours") {
-    const Caracteristiques faibles({10, 10, 10, 10, 10});
-    const Caracteristiques justes({13, 12, 0, 0, 0});
+    const Objet gants{IdObjet::GantsDeCuir};
+    const Objet dagueDeNiveau3{IdObjet::Dague, Rarete::Commun, std::nullopt, std::nullopt, 3};  // Adresse 10
+    const int seuil = seuilsDeLObjet(dagueDeNiveau3).front().valeur;
 
-    REQUIRE(seuilsAtteints(IdObjet::GantsDeCuir, Caracteristiques()));
-    REQUIRE_FALSE(seuilsAtteints(IdObjet::EpeeLongue, faibles));                          // Puissance 11 exigée
-    REQUIRE(seuilsAtteints(IdObjet::Dague, faibles));                                     // Adresse 10 : atteint, pas dépassé
-    REQUIRE_FALSE(seuilsAtteints(IdObjet::EpeeADeuxMains, Caracteristiques({13, 11, 0, 0, 0})));  // il manque 1 d'Endurance
-    REQUIRE(seuilsAtteints(IdObjet::EpeeADeuxMains, justes));
+    REQUIRE(seuilsAtteints(gants, Caracteristiques()));
+    REQUIRE_FALSE(seuilsAtteints(dagueDeNiveau3, Caracteristiques({0, 0, seuil - 1, 0, 0})));
+    REQUIRE(seuilsAtteints(dagueDeNiveau3, Caracteristiques({0, 0, seuil, 0, 0})));       // atteint, pas dépassé
+    REQUIRE(seuilsAtteints(dagueDeNiveau3, Caracteristiques({0, 0, seuil + 5, 0, 0})));
+    REQUIRE_FALSE(seuilsAtteints(dagueDeNiveau3, Caracteristiques({seuil, seuil, 0, seuil, seuil})));  // pas la bonne caractéristique
 }
 
 TEST_CASE("catalogueObjets : la dague perce 30 % de l'armure, aucune autre arme ni les mains nues") {

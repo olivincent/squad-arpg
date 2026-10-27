@@ -507,7 +507,7 @@ void EcranInventaire::dessiner(const Contexte& contexte) const {
             // Sur l'emplacement d'un personnage : les exigences de l'objet saisi, celles que ce personnage n'atteint
             // pas en rouge (étape 92.3).
             const std::optional<PositionDObjet> visee = elementSous(vue.point, tailleVue);
-            if (visee.has_value() && std::holds_alternative<PositionPortee>(*visee) && !definitionObjet(saisi->modele).seuils.empty()) {
+            if (visee.has_value() && std::holds_alternative<PositionPortee>(*visee) && !seuilsDeLObjet(*saisi).empty()) {
                 dessinerInfobulle(fenetre, contexte.police, *saisi, vue.point, tailleVue, m_escouade.seuilsManques(*m_origine, *visee), false);
             }
         }

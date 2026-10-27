@@ -166,7 +166,7 @@ std::vector<std::string> lignesDeLInfobulle(const Objet& objet) {
             lignes.push_back(ligneDAffixe(*affixe));
         }
     }
-    for (const SeuilDeCaracteristique& seuil : definition.seuils) {
+    for (const SeuilDeCaracteristique& seuil : seuilsDeLObjet(objet)) {
         lignes.push_back(ligneDeSeuil(seuil));
     }
     return lignes;

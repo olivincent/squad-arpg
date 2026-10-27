@@ -423,9 +423,18 @@ TEST_CASE("changer d'arme dans l'inventaire relance la recharge : le premier cou
     REQUIRE(coupsPendant(dague.rechargeMax + dague.tempsExecution + 0.2f) >= 1);
 }
 
+namespace {
+// Une cuirasse de niveau 20, dont le seuil d'Endurance dépasse celui de toutes les classes.
+const Objet s_cuirasseExigeante{IdObjet::CuirasseDeMailles, Rarete::Commun, std::nullopt, std::nullopt, 20};
+
+// Une épée à deux mains de niveau 4, dont le seuil de Puissance est juste au-dessus de celui du guerrier de départ, mais à la
+// portée du guerrier avec l'anneau de puissance (les `REQUIRE` du test le vérifient sans écrire les valeurs).
+const Objet s_epeeADeuxMainsDeNiveau4{IdObjet::EpeeADeuxMains, Rarete::Commun, std::nullopt, std::nullopt, 4};
+}  // namespace
+
 TEST_CASE("seuils : le mage ne peut pas recevoir la cuirasse de mailles, ni la surbrillance ni le deplacement") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});  // le mage n'a pas l'Endurance de la cuirasse
-    const Objet cuirasse{IdObjet::CuirasseDeMailles};
+    const Objet cuirasse = s_cuirasseExigeante;
     REQUIRE(escouade.ramasser(cuirasse));
     const Exemplaires avant = exemplaires(escouade);
 
@@ -437,30 +446,35 @@ TEST_CASE("seuils : le mage ne peut pas recevoir la cuirasse de mailles, ni la s
     REQUIRE(exemplaires(escouade) == avant);
 }
 
-TEST_CASE("seuils : le guerrier ne porte pas l'epee a deux mains, avec l'anneau de puissance il le peut") {
+TEST_CASE("seuils : le guerrier ne porte pas l'epee a deux mains de niveau 4, avec l'anneau de puissance il le peut") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    REQUIRE(escouade.ramasser(s_epeeADeuxMains));                            // case 0
-    REQUIRE(escouade.ramasser(Objet{IdObjet::AnneauDePuissance}));           // case 1
+    const int puissance = escouade.caracteristiquesDuPersonnage(s_guerrier)->valeur(Caracteristique::Puissance);
+    const int bonus = definitionObjet(IdObjet::AnneauDePuissance).bonus.valeur(Caracteristique::Puissance);
+    const int seuil = seuilsDeLObjet(s_epeeADeuxMainsDeNiveau4).front().valeur;
+    REQUIRE(seuil > puissance);          // sans l'anneau, il n'atteint pas le seuil…
+    REQUIRE(seuil <= puissance + bonus);  // …avec l'anneau, il l'atteint
+    REQUIRE(escouade.ramasser(s_epeeADeuxMainsDeNiveau4));         // case 0
+    REQUIRE(escouade.ramasser(Objet{IdObjet::AnneauDePuissance}));  // case 1
     REQUIRE_FALSE(escouade.peutDeplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::MainDroite)));
 
     REQUIRE(escouade.deplacerObjet(dansLeSac(1), portee(s_guerrier, Emplacement::Anneau1)));
 
     REQUIRE(escouade.peutDeplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::MainDroite)));
     REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::MainDroite)));
-    REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainDroite) == s_epeeADeuxMains);
+    REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainDroite) == s_epeeADeuxMainsDeNiveau4);
 }
 
 TEST_CASE("objets inactifs : retirer l'anneau de puissance rend l'epee a deux mains inactive, sans la deplacer") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    REQUIRE(escouade.ramasser(s_epeeADeuxMains));                  // case 0
+    REQUIRE(escouade.ramasser(s_epeeADeuxMainsDeNiveau4));         // case 0
     REQUIRE(escouade.ramasser(Objet{IdObjet::AnneauDePuissance}));  // case 1
     REQUIRE(escouade.deplacerObjet(dansLeSac(1), portee(s_guerrier, Emplacement::Anneau1)));
     REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::MainDroite)));
-    REQUIRE(escouade.equipementActifDuPersonnage(s_guerrier).a(Emplacement::MainDroite) == s_epeeADeuxMains);
+    REQUIRE(escouade.equipementActifDuPersonnage(s_guerrier).a(Emplacement::MainDroite) == s_epeeADeuxMainsDeNiveau4);
 
     REQUIRE(escouade.deplacerObjet(portee(s_guerrier, Emplacement::Anneau1), dansLeSac(5)));  // vers le sac : aucun seuil
 
-    REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainDroite) == s_epeeADeuxMains);   // toujours portée
+    REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainDroite) == s_epeeADeuxMainsDeNiveau4);   // toujours portée
     REQUIRE_FALSE(escouade.equipementActifDuPersonnage(s_guerrier).a(Emplacement::MainDroite).has_value());  // sans effet
     REQUIRE(escouade.attaqueDeBase(s_guerrier)->degats.total() <
             montantEffectif(definitionObjet(IdObjet::EpeeADeuxMains).arme->attaque.degats[Element::Physique], Coefficients::seul(Caracteristique::Puissance, 1.0f),
@@ -469,22 +483,23 @@ TEST_CASE("objets inactifs : retirer l'anneau de puissance rend l'epee a deux ma
 
 TEST_CASE("seuilsManques : ce que le mage n'atteint pas pour la cuirasse, rien pour des gants") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    REQUIRE(escouade.ramasser(Objet{IdObjet::CuirasseDeMailles}));  // case 0
-    REQUIRE(escouade.ramasser(s_gants));                            // case 1
+    REQUIRE(escouade.ramasser(s_cuirasseExigeante));  // case 0
+    REQUIRE(escouade.ramasser(s_gants));              // case 1
 
     const std::vector<SeuilDeCaracteristique> manques = escouade.seuilsManques(dansLeSac(0), portee(s_mage, Emplacement::Torse));
 
-    REQUIRE(manques == definitionObjet(IdObjet::CuirasseDeMailles).seuils);
+    REQUIRE(manques == seuilsDeLObjet(s_cuirasseExigeante));
     REQUIRE(escouade.seuilsManques(dansLeSac(1), portee(s_mage, Emplacement::Gants)).empty());
 }
 
 TEST_CASE("objetPorteEstInactif : un objet porte dont le seuil n'est pas atteint, pas un objet actif ni un emplacement vide") {
-    const std::vector<ObjetDeDepart> depart = {{Emplacement::Torse, IdObjet::CuirasseDeMailles}, {Emplacement::Gants, IdObjet::GantsDeCuir}};
-    DefinitionPersonnage faible = pretreDeTest();
-    faible.equipementDeDepart = depart;  // l'Endurance du prêtre ne suffit pas à la cuirasse
-    const Escouade escouade = uneEscouadeDe({50.0f, 50.0f}, {guerrierDeTest(), faible});
+    // Le prêtre porte, dès le départ, une cuirasse dont le seuil d'Endurance dépasse la sienne.
+    std::vector<MembreDEscouade> membres = membresDeTest({guerrierDeTest(), pretreDeTest()});
+    static_cast<void>(membres[1].equipement.poser(Emplacement::Torse, s_cuirasseExigeante));
+    static_cast<void>(membres[1].equipement.poser(Emplacement::Gants, s_gants));
+    const Escouade escouade({50.0f, 50.0f}, std::move(membres));
 
-    REQUIRE_FALSE(escouade.objetPorteEstInactif(s_guerrier, Emplacement::Torse));  // actif
+    REQUIRE_FALSE(escouade.objetPorteEstInactif(s_guerrier, Emplacement::Torse));  // le guerrier porte une cuirasse de niveau 1 : actif
     REQUIRE(escouade.objetPorteEstInactif(2, Emplacement::Torse));                 // porté, sans effet
     REQUIRE_FALSE(escouade.objetPorteEstInactif(2, Emplacement::Gants));           // sans seuil
     REQUIRE_FALSE(escouade.objetPorteEstInactif(2, Emplacement::Tete));            // vide
@@ -612,7 +627,7 @@ TEST_CASE("retirerObjet : l'objet n'est plus nulle part, sauf chez celui qui l'a
 
 TEST_CASE("retirerObjet : retirer l'anneau de puissance rend l'epee a deux mains inactive, comme un deplacement vers le sac") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    REQUIRE(escouade.ramasser(Objet{IdObjet::EpeeADeuxMains}));      // case 0
+    REQUIRE(escouade.ramasser(s_epeeADeuxMainsDeNiveau4));          // case 0
     REQUIRE(escouade.ramasser(Objet{IdObjet::AnneauDePuissance}));  // case 1
     REQUIRE(escouade.deplacerObjet(dansLeSac(1), portee(s_guerrier, Emplacement::Anneau1)));
     REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::MainDroite)));

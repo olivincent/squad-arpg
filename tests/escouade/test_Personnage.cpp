@@ -1366,11 +1366,16 @@ TEST_CASE("une arme dont le seuil n'est pas atteint reste portee mais le personn
 }
 
 TEST_CASE("retirer l'anneau de puissance rend l'epee inactive, le remettre la remet en service") {
-    Personnage personnage = unPersonnage({100.0f, 100.0f},
-                          avecCaracteristique(definitionArmee(IdObjet::EpeeLongue), Caracteristique::Puissance, 9));
+    // Une épée de niveau 3 : son seuil de Puissance est au-dessus de 9 mais à la portée de 9 plus l'anneau.
+    const Objet epee{IdObjet::EpeeLongue, Rarete::Commun, std::nullopt, std::nullopt, 3};
+    const int bonus = definitionObjet(IdObjet::AnneauDePuissance).bonus.valeur(Caracteristique::Puissance);
+    REQUIRE(seuilsDeLObjet(epee).front().valeur > 9);
+    REQUIRE(seuilsDeLObjet(epee).front().valeur <= 9 + bonus);
+    Personnage personnage = unPersonnageEquipe({100.0f, 100.0f}, avecCaracteristique(definitionArmee(IdObjet::EpeeLongue), Caracteristique::Puissance, 9),
+                                               Emplacement::MainDroite, epee);
     REQUIRE_FALSE(personnage.getEquipementActif().a(Emplacement::MainDroite).has_value());
 
-    static_cast<void>(personnage.poserEquipement(Emplacement::Anneau1, {IdObjet::AnneauDePuissance}));  // 9 + 3 = 12
+    static_cast<void>(personnage.poserEquipement(Emplacement::Anneau1, {IdObjet::AnneauDePuissance}));  // 9 + l'anneau
     REQUIRE(personnage.getEquipementActif().a(Emplacement::MainDroite).has_value());
     REQUIRE(personnage.getPorteeAttaqueDeBase() == definitionObjet(IdObjet::EpeeLongue).arme.value().attaque.portee);
 
@@ -1562,11 +1567,19 @@ TEST_CASE("changer d'arme change les degats physiques d'un skill de frappe, pas 
 
 // Le niveau (étape 99.4).
 namespace {
-// Une mêlée de test (épée longue : Puissance 11 exigée) de Puissance 10 et d'Endurance 5, qui grandit en Puissance puis en Endurance.
+// Une mêlée de test de Puissance 10 et d'Endurance 5, qui grandit en Puissance puis en Endurance.
 DefinitionPersonnage guerrierSousLeSeuil() {
     DefinitionPersonnage definition = avecCaracteristique(definitionArmee(IdObjet::EpeeLongue), Caracteristique::Puissance, 10);
     definition.croissance = {Caracteristique::Puissance, Caracteristique::Endurance};
     return avecCaracteristique(std::move(definition), Caracteristique::Endurance, 5);
+}
+
+// Une épée de niveau 4 : son seuil de Puissance (12) est au-dessus des 10 du guerrier.
+const Objet s_epeeExigeante{IdObjet::EpeeLongue, Rarete::Commun, std::nullopt, std::nullopt, 4};
+
+// Ce guerrier, qui porte cette épée exigeante : elle est inactive tant qu'il n'a pas atteint son seuil.
+Personnage unGuerrierSousLeSeuilArme() {
+    return unPersonnageEquipe({100.0f, 100.0f}, guerrierSousLeSeuil(), Emplacement::MainDroite, s_epeeExigeante);
 }
 }  // namespace
 
@@ -1648,11 +1661,14 @@ TEST_CASE("monterAuNiveau : un mort reste mort, avec son nouveau maximum") {
 }
 
 TEST_CASE("monterAuNiveau : un seuil d'equipement atteint grace a la croissance rend l'objet actif") {
-    Personnage personnage = unPersonnage({100.0f, 100.0f}, guerrierSousLeSeuil());  // Puissance 10, l'épée en exige 11
+    Personnage personnage = unGuerrierSousLeSeuilArme();  // Puissance 10, l'épée en exige 12
     REQUIRE_FALSE(personnage.getEquipementActif().a(Emplacement::MainDroite).has_value());
     REQUIRE(personnage.getPorteeAttaqueDeBase() == mainsNues().portee);
 
-    personnage.monterAuNiveau(2);  // la Puissance gagne 1
+    personnage.monterAuNiveau(2);  // la Puissance gagne 1 : 11, pas assez
+    REQUIRE_FALSE(personnage.getEquipementActif().a(Emplacement::MainDroite).has_value());
+
+    personnage.monterAuNiveau(4);  // et encore 1 au niveau 4 : 12
 
     REQUIRE(personnage.getEquipementActif().a(Emplacement::MainDroite).has_value());
     REQUIRE(personnage.getPorteeAttaqueDeBase() == definitionObjet(IdObjet::EpeeLongue).arme.value().attaque.portee);
@@ -1763,15 +1779,15 @@ TEST_CASE("depenserDesPoints : au niveau 1, il n'y a rien a depenser") {
 }
 
 TEST_CASE("depenserDesPoints : un seuil d'equipement atteint grace a la depense rend l'objet actif") {
-    // Une classe dont la croissance ne touche pas la Puissance : à 10, l'épée longue (11 exigé) reste inactive au niveau 2.
+    // Une classe dont la croissance ne touche pas la Puissance : à 10, l'épée de niveau 4 (12 exigé) reste inactive au niveau 2.
     DefinitionPersonnage definition = guerrierSousLeSeuil();
     definition.croissance = {Caracteristique::Endurance, Caracteristique::Endurance};
-    Personnage personnage = unPersonnage({100.0f, 100.0f}, std::move(definition));
+    Personnage personnage = unPersonnageEquipe({100.0f, 100.0f}, std::move(definition), Emplacement::MainDroite, s_epeeExigeante);
     personnage.monterAuNiveau(2);
     REQUIRE_FALSE(personnage.getEquipementActif().a(Emplacement::MainDroite).has_value());
     REQUIRE(personnage.getPorteeAttaqueDeBase() == mainsNues().portee);
 
-    REQUIRE(personnage.depenserDesPoints(s_unePuissance));
+    REQUIRE(personnage.depenserDesPoints(Caracteristiques::seule(Caracteristique::Puissance, 2)));
 
     REQUIRE(personnage.getEquipementActif().a(Emplacement::MainDroite).has_value());
     REQUIRE(personnage.getPorteeAttaqueDeBase() == definitionObjet(IdObjet::EpeeLongue).arme.value().attaque.portee);

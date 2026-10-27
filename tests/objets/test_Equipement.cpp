@@ -190,20 +190,23 @@ TEST_CASE("equipement : le bouclier compte dans les statistiques de combat total
 }
 
 // Les objets actifs (étape 92.2), avec les objets du catalogue.
-TEST_CASE("actifPour : l'epee longue exige 11 de Puissance, l'anneau de puissance la lui donne, le retirer la rend inactive") {
+TEST_CASE("actifPour : l'epee longue exige de la Puissance, l'anneau de puissance la lui donne, le retirer la rend inactive") {
     Equipement equipement;
     static_cast<void>(equipement.poser(Emplacement::MainDroite, {IdObjet::EpeeLongue}));
-    const Caracteristiques neuf({9, 0, 0, 0, 0});
+    const int seuil = seuilsDeLObjet(Objet{IdObjet::EpeeLongue}).front().valeur;
+    const int bonus = definitionObjet(IdObjet::AnneauDePuissance).bonus.valeur(Caracteristique::Puissance);
+    REQUIRE(bonus >= 1);
+    const Caracteristiques sous({seuil - bonus, 0, 0, 0, 0});  // juste ce que l'anneau comble
 
-    REQUIRE_FALSE(equipement.actifPour(neuf).a(Emplacement::MainDroite).has_value());
+    REQUIRE_FALSE(equipement.actifPour(sous).a(Emplacement::MainDroite).has_value());
     REQUIRE(equipement.a(Emplacement::MainDroite).has_value());  // elle reste portée
-    REQUIRE(equipement.actifPour(Caracteristiques({11, 0, 0, 0, 0})).a(Emplacement::MainDroite).has_value());
+    REQUIRE(equipement.actifPour(Caracteristiques({seuil, 0, 0, 0, 0})).a(Emplacement::MainDroite).has_value());
 
-    static_cast<void>(equipement.poser(Emplacement::Anneau1, {IdObjet::AnneauDePuissance}));  // +3 de Puissance : 12
-    REQUIRE(equipement.actifPour(neuf).a(Emplacement::MainDroite).has_value());
+    static_cast<void>(equipement.poser(Emplacement::Anneau1, {IdObjet::AnneauDePuissance}));
+    REQUIRE(equipement.actifPour(sous).a(Emplacement::MainDroite).has_value());
 
     static_cast<void>(equipement.retirer(Emplacement::Anneau1));
-    REQUIRE_FALSE(equipement.actifPour(neuf).a(Emplacement::MainDroite).has_value());  // inactive de nouveau
+    REQUIRE_FALSE(equipement.actifPour(sous).a(Emplacement::MainDroite).has_value());  // inactive de nouveau
 }
 
 TEST_CASE("actifPour : un objet inactif n'a aucun effet, ni armure, ni arme, ni blocage, ni bonus") {

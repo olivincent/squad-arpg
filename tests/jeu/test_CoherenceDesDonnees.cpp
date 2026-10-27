@@ -1,5 +1,6 @@
 // ./tests/jeu/test_CoherenceDesDonnees.cpp
 #include <catch2/catch_test_macros.hpp>
+#include <cstddef>
 #include <vector>
 
 #include "combat/Defense.hpp"
@@ -13,6 +14,7 @@
 #include "objets/CatalogueAffixes.hpp"
 #include "objets/CatalogueObjets.hpp"
 #include "objets/GenerationDObjets.hpp"
+#include "objets/Objet.hpp"
 
 // Ces tests vérifient les données des catalogues, pas du code : chaque donnée ajoutée plus tard (monstres,
 // compositions de groupes) y trouve sa vérification.
@@ -21,7 +23,28 @@ TEST_CASE("chaque classe atteint les seuils de tout son equipement de depart") {
     for (const Specialite& classe : catalogue()) {
         for (const ObjetDeDepart& objet : classe.definition.equipementDeDepart) {
             INFO(classe.nom << " porte " << definitionObjet(objet.objet).nom);
-            REQUIRE(seuilsAtteints(objet.objet, classe.definition.caracteristiques));
+            REQUIRE(seuilsAtteints(Objet{objet.objet}, classe.definition.caracteristiques));
+        }
+    }
+}
+
+TEST_CASE("toute classe peut porter tout objet du catalogue au niveau 1") {
+    for (const Specialite& classe : catalogue()) {
+        for (const DefinitionObjet& modele : catalogueObjets()) {
+            INFO(classe.nom << " porte " << modele.nom);
+            REQUIRE(seuilsAtteints(Objet{modele.id}, classe.definition.caracteristiques));
+        }
+    }
+}
+
+TEST_CASE("chaque exigence d'objet a une pente d'au moins 1, et aucun objet n'exige deux fois la meme caracteristique") {
+    for (const DefinitionObjet& modele : catalogueObjets()) {
+        INFO(modele.nom);
+        for (std::size_t i = 0; i < modele.exigences.size(); ++i) {
+            REQUIRE(modele.exigences[i].pente >= 1);
+            for (std::size_t j = i + 1; j < modele.exigences.size(); ++j) {
+                REQUIRE(modele.exigences[i].caracteristique != modele.exigences[j].caracteristique);
+            }
         }
     }
 }

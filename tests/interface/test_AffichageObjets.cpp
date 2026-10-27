@@ -46,7 +46,7 @@ TEST_CASE("affichage : l'infobulle donne le nom, la categorie, l'armure puis le 
     REQUIRE(lignes[0] == definitionObjet(IdObjet::CasqueDeFer).nom);
     REQUIRE(lignes[1] == "Helmet");
     REQUIRE(lignes[2] == "Armor: +" + std::to_string(definitionObjet(IdObjet::CasqueDeFer).armure));
-    REQUIRE(lignes[3] == ligneDeSeuil(definitionObjet(IdObjet::CasqueDeFer).seuils.front()));
+    REQUIRE(lignes[3] == ligneDeSeuil(seuilsDeLObjet(Objet{IdObjet::CasqueDeFer}).front()));
 }
 
 TEST_CASE("affichage : une ligne de seuil donne la caracteristique et la valeur exigee") {
@@ -54,12 +54,13 @@ TEST_CASE("affichage : une ligne de seuil donne la caracteristique et la valeur 
     REQUIRE(ligneDeSeuil({Caracteristique::Endurance, 12}) == "Requires Constitution 12");
 }
 
-TEST_CASE("affichage : l'infobulle liste tous les seuils, un par ligne, en dernier") {
-    const std::vector<std::string> lignes = lignesDeLInfobulle(Objet{IdObjet::EpeeADeuxMains});
+TEST_CASE("affichage : l'infobulle donne les seuils de l'objet a son niveau, en dernier") {
+    const Objet niveau5{IdObjet::EpeeADeuxMains, Rarete::Commun, std::nullopt, std::nullopt, 5};
+    const std::vector<std::string> lignes = lignesDeLInfobulle(niveau5);
 
     REQUIRE(lignes[1] == "Weapon");
-    REQUIRE(lignes[lignes.size() - 2] == "Requires Might 13");
-    REQUIRE(lignes.back() == "Requires Constitution 12");
+    REQUIRE(lignes.back() == ligneDeSeuil(seuilsDeLObjet(niveau5).back()));
+    REQUIRE(lignes.back() == "Requires Might 14");  // 6 + 2 × (5 − 1)
 }
 
 TEST_CASE("affichage : un objet sans seuil n'a aucune ligne d'exigence") {
@@ -123,7 +124,8 @@ TEST_CASE("affichage : l'infobulle d'une arme a une main donne ses degats, sa re
     const DescriptionDAttaque& attaque = definitionObjet(IdObjet::EpeeLongue).arme.value().attaque;
 
     REQUIRE(lignes == std::vector<std::string>{"Longsword", "Weapon", "Damage: " + std::to_string(attaque.degats.total()),
-                                               "Cooldown: 0.3 to 0.7 s", "Range: 20 px", "Melee", "Requires Might 11"});
+                                               "Cooldown: 0.3 to 0.7 s", "Range: 20 px", "Melee",
+                                               ligneDeSeuil({Caracteristique::Puissance, s_seuilAuNiveau1})});
 }
 
 TEST_CASE("affichage : l'infobulle d'une arme a deux mains le dit, celle d'une arme de tir donne un projectile") {
@@ -137,7 +139,7 @@ TEST_CASE("affichage : l'infobulle d'une arme a deux mains le dit, celle d'une a
     REQUIRE(arc[4] == "Range: 120 px");
     REQUIRE(sceptre[sceptre.size() - 2] == "Projectile");  // une main : pas de « Two-handed »
     REQUIRE(std::ranges::find(sceptre, "Two-handed") == sceptre.end());
-    REQUIRE(deuxMains[deuxMains.size() - 3] == "Two-handed");  // avant les deux seuils
+    REQUIRE(deuxMains[deuxMains.size() - 2] == "Two-handed");  // avant le seuil
     REQUIRE(deuxMains[3] == "Cooldown: 1.2 to 2.8 s");
 }
 
@@ -173,7 +175,8 @@ TEST_CASE("affichage : l'infobulle d'un objet rare donne le nom compose, la cate
 
     REQUIRE(lignes == std::vector<std::string>{"Keen Bow of the Fox", "Weapon", "Damage: " + std::to_string(attaque.degats.total()),
                                                "Cooldown: 0.4 to 0.6 s", "Range: 120 px", "Projectile", "Two-handed",
-                                               "Penetration: +15 %", "Dexterity: +2", "Requires Dexterity 12"});
+                                               "Penetration: +15 %", "Dexterity: +2",
+                                               ligneDeSeuil({Caracteristique::Adresse, s_seuilAuNiveau1})});
 }
 
 TEST_CASE("affichage : un objet magique n'a qu'une ligne d'affixe, un objet commun aucune") {
@@ -192,7 +195,8 @@ TEST_CASE("affichage : l'infobulle d'une cuirasse rare garde l'armure du modele 
 
     REQUIRE(lignes == std::vector<std::string>{"Reinforced Chain Mail of Evasion", "Body Armor",
                                                "Armor: +" + std::to_string(definitionObjet(IdObjet::CuirasseDeMailles).armure),
-                                               "Armor: +3", "Dodge vs Melee: +3 %", "Requires Constitution 12"});
+                                               "Armor: +3", "Dodge vs Melee: +3 %",
+                                               ligneDeSeuil({Caracteristique::Endurance, s_seuilAuNiveau1})});
 }
 
 TEST_CASE("ligneDAffixe : une ligne par effet, avec sa valeur") {
