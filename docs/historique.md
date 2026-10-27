@@ -119,6 +119,7 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 99 — L'expérience et les niveaux : un niveau d'escouade, la croissance automatique de deux caractéristiques par classe, les points de vie par niveau ✅
 - Étape 100 — Les points libres : 3 par niveau et par personnage, répartis dans l'inventaire avec un brouillon (+, −, Apply, Reset), définitifs ✅
 - Étape 101 — Le niveau d'objet : la profondeur fait grandir les plages des affixes et les chances de Magic et de Rare ✅
+- Étape 102 — Les gabarits d'armes : treize gabarits, l'objet retient son niveau et sa qualité, ses dégâts et ses seuils se calculent, chaque coup tire ses dégâts dans une plage ✅ (première étape de la phase 6, gabarits d'objets)
 
 ## Détail des étapes 0 à 73
 
@@ -2383,3 +2384,31 @@ plancher de 20, magique +3, rare +2 par niveau au-delà du premier) ; **au nivea
 épinglée). 101.3 : le butin des monstres et F7 sont générés au niveau de la profondeur (`m_profondeur`). Le niveau d'un objet est la
 profondeur où il est généré, sans champ dans l'`Objet`. 101.4 : documentation. 1 720 tests (+16), 0 avertissement de compilation sur
 les deux presets. Détail : `docs/objets.md`, `docs/classes-et-combat.md`, `docs/boucle-et-entrees.md`, `docs/tests.md`.
+
+### Étape 102 — Les gabarits d'armes ✅
+
+Première étape de la phase 6 (gabarits d'objets : 102 armes, 103 armures, boucliers et reliques, 104 affinités d'affixes), faite en
+quatre sous-étapes, un commit chacune, les trois premières enchaînées. Tous les objets précédents (sept armes, protections, seuils
+fixes) étaient des prototypes de test, remplacés sans chercher à les conserver. 102.1 : l'`Objet` reçoit `niveau` (au moins 1) et
+`qualite` (0 à 100, défauts 1 et 50), entiers pour que l'égalité par valeur reste fiable ; `objetValide` et `operator==` les
+incluent ; `genererObjet` tire la qualité pour **tout** objet, juste après le modèle (l'ordre des tirages ne changera plus à l'étape
+103) ; `facteurDeNiveau(n) = 1 + 0,25 × (n − 1)` est écrit une fois (`Objet.hpp`), `plageAuNiveau` l'utilise sans changer de valeur ;
+suite épinglée de la graine 96 réépinglée. 102.2 : une seule règle des seuils, `6 + pente × (niveau − 1)`
+(`s_seuilAuNiveau1`, `ExigenceDeCaracteristique`, `DefinitionObjet::exigences` à la place de `seuils`), une seule fonction,
+`seuilsDeLObjet(const Objet&)` ; `seuilsAtteints`, `Equipement::actifPour`, `deplacerLesObjets`, `seuilsManques`, l'infobulle et le
+test du glissement passent par elle ; au niveau 1 toute classe porte tout objet. 102.3 : `combat/PlageDeDegats` (`PlageDeDegats`,
+`plageFixe`, `tirerLesDegats` : un tirage par élément qui a un écart, aucun quand `min == max`), `DescriptionDAttaque::degats`
+devient une plage, le tirage a lieu au départ de l'attaque de base, de la frappe sacrée et des coups d'opportunité
+(`Personnage::getAttaqueDeBase(Generateur&)`, `Escouade::attaqueDeBase(place, Generateur&)`, la `Partie` passe son générateur) ;
+les prototypes n'avaient pas d'écart, donc aucune suite aléatoire ne change. 102.4 : les treize gabarits (`TypeDArme` et `IdObjet`
+remplacés : `EpeeLongue` devient `EpeeAUneMain`, `Masse` devient `MasseAUneMain`), `DonneesDArme` devient le gabarit (référence des
+dégâts, écart, recharge, exécution, portée, nature, pénétration) et `descriptionDeLArme(const Objet&)` le calcule pour un objet
+(moyenne `référence × facteurDeNiveau × (0,85 + 0,30 × qualité / 100)`, plage ± écart, bornes arrondies et d'au moins 1) ;
+`Equipement::attaqueDeBase`, l'infobulle et les tests y passent ; la frappe puissante et la frappe sacrée veulent toutes les armes de
+contact (`s_armesDeContact`), le tir perçant et la pluie de flèches l'arc ou l'arbalète ; kits de départ : guerrier épée à une main,
+paladin masse à une main, prêtre sceptre, mage bâton, rôdeur arc ; l'infobulle montre « Item Level N » et « Damage: 13–17 » ; sigles
+SW, HA, SP, GA, MU, WA, CB ajoutés. **Tests** : un coup n'est plus comparé à un nombre mais vérifié dans la plage de l'arme (aides
+`dansLaPlage`, `dansLaPlageAvecPuissance`, `montantAttendu`…) ; tests de données (dégâts/s de chaque gabarit au plus 10 % au-dessus
+du but de sa famille, plage contenant la moyenne aux niveaux 1 à 20). 1 745 tests (+25), 0 avertissement de compilation sur les deux
+presets, aucun avertissement `clang-tidy` nouveau. Détail : `docs/objets.md` (« Les gabarits d'armes, le niveau et la qualité »),
+`docs/combat.md`, `docs/tests.md`, `docs/glossaire.md`, `docs/classes-et-combat.md`.

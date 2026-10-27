@@ -8,7 +8,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 ## Étapes terminées
 
-Étapes 0 à 101 ✅. Les dernières :
+Étapes 0 à 102 ✅. Les dernières :
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 - Étape 83 — Inventaire et équipement : le modèle, sans interface ✅
@@ -30,15 +30,16 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - Étape 99 — L'expérience et les niveaux : un niveau d'escouade, la croissance automatique de deux caractéristiques par classe, les points de vie par niveau ✅
 - Étape 100 — Les points libres : 3 par niveau et par personnage, répartis dans l'inventaire avec un brouillon (+, −, Apply, Reset), définitifs ✅
 - Étape 101 — Le niveau d'objet : la profondeur fait grandir les plages des affixes et les chances de Magic et de Rare ✅ (la phase 5 est terminée)
+- Étape 102 — Les gabarits d'armes : treize gabarits (vitesse, portée, nature, mains, pénétration, écart par coup), l'objet retient son niveau et sa qualité, ses dégâts et ses seuils se calculent, chaque coup tire ses dégâts dans une plage ✅ (première étape de la phase 6)
 
 ## État actuel (résumé)
 
 - **Outils** : conception dans Claude.ai, implémentation avec Claude Code dans VSCode (règles dans
   `CLAUDE.md`) ; dépôt Git `squad-arpg`, poussé sur GitHub ; SFML 3.0.2 intégrée à CMake.
-- **Code** (étape 101) : 101 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
+- **Code** (étape 102) : 102 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
   `combat`, `objets`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
   de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug` et `jeu`, 0
-  avertissement, 1 720 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers des étapes 98 à 101 : `docs/build.md`,
+  avertissement, 1 745 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers des étapes 98 à 102 : `docs/build.md`,
   `docs/audit.md`). `Escouade` n'est plus que l'assemblage : `Escouade.cpp` de 1 223 à 1 067 lignes. Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`). **Tout le texte affiché est en anglais** (identifiants, commentaires et documentation restent en français ; pas de système de traduction : `docs/glossaire.md` est la référence des noms du jeu). Un commit par sous-étape, fait par Claude Code (`CLAUDE.md`).
 - **Écrans** : menu à la souris, options d'affichage (fenêtré ou plein écran, résolutions,
   `reglages.ini`), choix de 3 classes parmi 5 (guerrier, prêtre, mage, paladin, rôdeur ; doublons
@@ -83,26 +84,37 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   caractéristique affiche son effet (nombres lus dans les constantes ; « no effect yet » pour l'Intellect et la Resolve) ; en haut de
   l'écran, « Points to spend » tant qu'un personnage (mort compris) a des points (`docs/classes-et-combat.md`, « Les points libres »,
   `docs/ecrans.md`).
-- **Niveau d'objet** (étape 101) : **le niveau d'un objet est la profondeur où il est généré** (butin des monstres et F7), sans
-  champ dans l'`Objet`. `genererObjet(générateur, niveau)` : les plages des affixes sont multipliées par `1 + 0,25 × (niveau − 1)`
-  (`plageAuNiveau`, arrondi au plus proche ; au niveau 5, Blazing 3 – 8 devient 6 – 16, un suffixe de caractéristique 1 – 3 devient
-  2 – 6) et les poids de rareté passent, par niveau au-delà du premier, de commun −5 (plancher 20), magique +3, rare +2 (niveau 5 :
-  50 / 37 / 13) ; tout est « à tester ». Au niveau 1 rien ne change (mêmes tirages, mêmes objets pour une graine) ; les objets de base
-  et les seuils ne dépendent que du modèle. La `Partie` ne garde de l'`Expedition` reçue que ce qui vit pendant l'étage
-  (`docs/objets.md`, « Le niveau d'objet » ; `docs/boucle-et-entrees.md`).
+- **Niveau d'objet** (étape 101, complété à l'étape 102) : **le niveau d'un objet est la profondeur où il est généré** (butin des
+  monstres et F7) ; depuis l'étape 102 l'`Objet` le **retient** (`niveau`, avec une `qualite` de 0 à 100 tirée à la génération et
+  jamais affichée). `genererObjet(générateur, niveau)` : les plages des affixes sont multipliées par `facteurDeNiveau(n) = 1 + 0,25 ×
+  (n − 1)` (`plageAuNiveau`, arrondi au plus proche ; au niveau 5, Blazing 3 – 8 devient 6 – 16, un suffixe de caractéristique 1 – 3
+  devient 2 – 6) et les poids de rareté passent, par niveau au-delà du premier, de commun −5 (plancher 20), magique +3, rare +2 (niveau
+  5 : 50 / 37 / 13) ; tout est « à tester ». Les objets de base — armure, blocage — ne dépendent toujours que du modèle. La `Partie` ne
+  garde de l'`Expedition` reçue que ce qui vit pendant l'étage (`docs/objets.md`, « Le niveau d'objet » ; `docs/boucle-et-entrees.md`).
+- **Gabarits d'armes** (étape 102) : **treize gabarits** — dague, épée, hache et masse à une main, lance, épée, hache et masse à
+  deux mains, baguette, sceptre, bâton, arc, arbalète — fixent l'identité d'une arme (recharge, exécution, portée, nature, mains,
+  pénétration, écart par coup) ; ses **dégâts se calculent** depuis le niveau et la qualité de l'objet (`descriptionDeLArme`, l'unique
+  endroit : `référence × facteurDeNiveau × (0,85 + 0,30 × qualité / 100)`, plage de ± l'écart, bornes arrondies et d'au moins 1) et
+  **chaque coup tire ses dégâts dans la plage** (`PlageDeDegats`, `tirerLesDegats` : l'attaque de base, la frappe sacrée et les coups
+  d'opportunité ; aucun tirage sans écart) avant la Puissance. **Les seuils d'équipement suivent une seule règle** : `6 + pente × (niveau
+  de l'objet − 1)` (`seuilsDeLObjet`, pente 2 pour la caractéristique principale, 1 pour une secondaire) ; au niveau 1 toute classe porte
+  tout objet. Les skills de frappe veulent une arme de contact, ceux de l'archer un arc ou une arbalète. Kits de départ : guerrier épée à
+  une main, paladin masse à une main, prêtre sceptre, mage bâton, rôdeur arc. L'infobulle montre « Item Level N » et « Damage: 13–17 ».
+  Les protections, boucliers et bijoux gardent leurs valeurs de prototype (étape 103) ; tout est « à tester » (`docs/objets.md`,
+  « Les gabarits d'armes, le niveau et la qualité »).
 - **Carte** : donjon généré à chaque partie (salles, couloirs en L de 2 cases, portes à chaque
   jonction, un groupe de monstres par salle sauf la première, un escalier, graine affichée), F5 = nouvelle expédition ;
   carte à la main pour les tests (`docs/generation.md`, `docs/carte-et-collision.md`).
 - **Vision** : brouillard de guerre (inconnu, exploré, visible) par shadowcasting symétrique, la
   même règle que la ligne de vue du combat ; F6 le coupe à l'affichage (`docs/vision.md`).
 - **Objets** : 10 emplacements par personnage, un sac de 40 cases pour l'escouade, un catalogue de
-  19 objets dont 7 armes (épée longue, masse, dague, épée à deux mains, sceptre, bâton, arc) ; l'armure d'un
+  25 objets dont 13 armes (les treize gabarits de l'étape 102) ; l'armure d'un
   personnage est la somme de son équipement (guerrier et paladin partent équipés : 9 ; les autres : 0) ;
   **l'attaque de base et la zone de contrôle viennent de l'arme** de la main droite (les mains nues sans arme ;
   contact : zone de 20 px, projectile : aucune), changer d'arme relance une recharge complète ; une arme à deux
   mains exige la main gauche vide et range ce qui la gêne dans le sac (sac plein : refus) ; **les objets ont des
   seuils de caractéristiques** (impossible d'équiper sous le seuil ; un objet porté dont le seuil n'est plus atteint
-  est inactif : porté, sans effet, encadré en rouge) et la dague perce 30 % de l'armure ; chaque personnage a
+  est inactif : porté, sans effet, encadré en rouge ; le seuil monte avec le niveau de l'objet depuis l'étape 102) ; la dague, l'arc, la lance et l'arbalète percent une part de l'armure ; chaque personnage a
   cinq caractéristiques (base de sa classe plus bonus de l'équipement : Puissance, Endurance, Adresse, Savoir,
   Volonté), dont l'Endurance donne des points de vie (base commune de 240 plus 6 par point : environ 300 au
   départ, échelle × 3 de l'étape 91) et la Puissance augmente dégâts et soins (3 % par point au-dessus de 10),
@@ -279,12 +291,28 @@ ce qui reste à décider **en discussion** avant son prompt :
   - 101 ✅ : le niveau d'objet : en première sous-étape, la `Partie` ne garde plus de copie périmée de l'expédition ; le niveau
     d'un objet est la profondeur où il est généré ; plages d'affixes (`plageAuNiveau`) et poids de rareté (`poidsDeRarete`) selon le
     niveau ; butin et F7 générés au niveau de l'étage. **La phase 5 est terminée.**
+- **Phase 6, gabarits d'objets** (décidée à l'étape 102)
+  - 102 ✅ : les gabarits d'armes : l'`Objet` retient son niveau et sa qualité, une seule règle des seuils (`6 + pente × (niveau − 1)`),
+    la plage de dégâts et le tirage par coup, les treize gabarits, `descriptionDeLArme`, les exigences d'armes des skills, les kits
+    de départ, l'infobulle. Tous les objets de test précédents étaient des prototypes remplacés sans être conservés.
+  - 103 : armures, boucliers et reliques (bijoux) sur le même patron (valeurs de l'armure et du blocage selon le niveau et la
+    qualité, malus d'esquive) ; la qualité est déjà tirée pour tout objet.
+  - 104 : affinités et poids d'affixes (quel affixe sur quel gabarit, et avec quelle chance).
 
-## Étape 102 (prochaine) : à discuter avec Claude.ai
 
-L'étape 101 (le niveau d'objet) est faite et termine la phase 5 (progression). La suite se discute avec Claude.ai. Le Savoir et la
+## Étape 103 (prochaine) : armures, boucliers et reliques (à discuter avec Claude.ai)
+
+L'étape 102 (les gabarits d'armes) est faite et ouvre la phase 6. La suite se discute avec Claude.ai. Le Savoir et la
 Volonté n'ont encore aucun effet (les paires de croissance du prêtre et du mage deviendront justes quand ils serviront). L'`Expedition`
 garde les points dépensés ; c'est elle qu'on sauvegardera un jour.
+
+**Pistes issues de l'étape 102** (étapes à part, plus tard) :
+- **Ajuster en jouant** les dégâts/s visés (23 à une main, 30 à deux mains), les références et les écarts de chaque gabarit, la
+  croissance des dégâts par niveau (0,25) et l'amplitude de la qualité (0,85 à 1,15) : tout est « à tester ».
+- **Retoucher la frappe sacrée** : son bonus de 45 a été calibré pour une masse de 15, la masse du paladin en fait maintenant 26 en moyenne.
+- **Afficher la qualité** (aujourd'hui elle ne se voit que dans les dégâts), et un prix ou une rareté minimale qui s'en servent.
+- **Des vitesses de déplacement par personnage, des bonus de mouvement, du mana** : hors de portée de cette étape.
+- **Une zone de contrôle propre à la lance** (aujourd'hui celle du contact, 20 px, même pour 35 px de portée).
 
 **Pistes issues de l'étape 101** (étapes à part, plus tard) :
 - **Des paliers d'affixes à la *Titan Quest*** : un nom et une plage par palier, à la place d'une même plage qui s'agrandit.

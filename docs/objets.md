@@ -8,6 +8,11 @@ suffixe (« Rareté et affixes »), et depuis l'étape 96 `genererObjet` en tire
 personnages dans `docs/formation.md`. Les textes affichés sont en anglais (`docs/glossaire.md`) : les noms ci-dessous
 sont ceux du jeu, les identifiants du code restent en français.
 
+Depuis l'étape 102, **un objet porte un niveau et une qualité, et une arme est un gabarit** : treize gabarits d'armes fixent
+l'identité (vitesse, portée, nature, mains, pénétration, écart par coup), les dégâts se calculent depuis le niveau et la qualité de
+l'objet, chaque coup les tire dans une plage, et les seuils d'équipement montent avec le niveau (« Les gabarits d'armes, le niveau et
+la qualité »). Les sections « Armes (étape 91) » et « Seuils… (étape 92) » disent comment c'était avant ; ce qui a changé y est signalé.
+
 ## Décisions
 
 - **Un dossier `objets/`, entre `combat` et `escouade`** : ordre `base → monde → combat → objets →
@@ -24,10 +29,10 @@ sont ceux du jeu, les identifiants du code restent en français.
 - **Données, pas de hiérarchie** : comme `Specialite`, un catalogue (`DefinitionObjet` : id, nom,
   catégorie, armure) dans l'ordre de l'enum `IdObjet`, lu par `definitionObjet(id)` ; l'ordre est
   contrôlé par un `assert`. Pas de sous-classes `Casque`, `Anneau`…
-- **`Objet` est l'instance, `DefinitionObjet` le modèle** : `Objet` porte l'`IdObjet` du modèle, sa `Rarete` et
-  au plus un préfixe et un suffixe (étape 95) ; c'est une petite valeur copiable, sans allocation ni pointeur vers
-  le catalogue. L'égalité est par valeur (`operator==` : modèle, rareté et affixes) : deux masses sont égales
-  seulement si elles ont la même rareté et les mêmes affixes aux mêmes valeurs.
+- **`Objet` est l'instance, `DefinitionObjet` le modèle** : `Objet` porte l'`IdObjet` du modèle, sa `Rarete`, au plus un préfixe et un
+  suffixe (étape 95), son `niveau` et sa `qualite` (étape 102) ; c'est une petite valeur copiable, sans allocation ni pointeur vers
+  le catalogue. L'égalité est par valeur (`operator==` : tous les champs) : deux masses sont égales seulement si elles ont la même
+  rareté, les mêmes affixes aux mêmes valeurs, le même niveau et la même qualité.
 - **Un objet existe à un seul endroit** (un emplacement ou une case du sac). Les déplacements se
   font par valeur, et les fonctions qui rendent l'objet remplacé sont `[[nodiscard]]` : oublier
   l'ancien objet le ferait disparaître. Un test compte les exemplaires de chaque objet (**par valeur complète**,
@@ -48,8 +53,9 @@ sont ceux du jeu, les identifiants du code restent en français.
   les attentes sont calculées avec `definitionObjet(id).armure` ou `armureDe(equipement)`
   (`tests/aides.hpp`), jamais avec 9 ou 4 écrits en dur. `test_Specialite.cpp` reste le seul
   fichier qui lit l'équipement de départ du catalogue des classes. Depuis l'étape 91, l'attaque de base des
-  personnages de test vient d'une arme du catalogue : les constantes (`s_degatsBaseDeTest`…) sont **lues** dans la
-  description de l'attaque de l'épée longue ou du sceptre (`docs/tests.md`).
+  personnages de test vient d'une arme du catalogue : les constantes (`s_attaqueDeMeleeDeTest`…) sont **lues** dans la description
+  de l'épée à une main ou du sceptre (`descriptionDeLArme`, `docs/tests.md`). Depuis l'étape 102 un coup tire ses dégâts dans une
+  plage : un test vérifie qu'il est **dans la plage** de l'arme, jamais égal à un nombre.
 - **Opérations transactionnelles** : `ramasser` et `deplacerObjet` vérifient toutes leurs
   conditions avant de modifier quoi que ce soit ; vraies, tout est fait, fausses, rien n'a bougé.
   Une fois les conditions vérifiées, l'échange ne peut plus échouer : il ne dit jamais « sac plein »
@@ -76,11 +82,11 @@ sont ceux du jeu, les identifiants du code restent en français.
 
 - **Données, pas de hiérarchie** : une `DefinitionObjet` porte, si elle en est une, des `DonneesDArme`
   (`std::optional`) ; un bouclier porte des `DonneesDeBouclier`. Pas de sous-classe `Arme`.
-- **Une arme** : un `TypeDArme` (`EpeeLongue`, `Masse`, `Dague`, `EpeeADeuxMains`, `Sceptre`, `Baton`, `Arc` ;
-  `combat/TypeDArme.hpp`, parce que les skills l'exigent et que `combat/` ne connaît pas `objets/`), un nombre de
-  mains (1 ou 2) et une `DescriptionDAttaque` (`combat/`) : dégâts, intervalle de recharge, temps d'exécution,
-  portée bord à bord et nature (contact ou projectile). Les mains nues ne sont pas un objet : `mainsNues()`
-  rend leur description (6 dégâts, 0,4 – 0,6 s, 0,15 s, 20 px, contact).
+- **Une arme** : un `TypeDArme` (treize depuis l'étape 102, voir plus bas ; `combat/TypeDArme.hpp`, parce que les skills
+  l'exigent et que `combat/` ne connaît pas `objets/`), un nombre de mains (1 ou 2) et, depuis l'étape 102, un gabarit
+  (`DonneesDArme`) dont `descriptionDeLArme` tire la `DescriptionDAttaque` (`combat/`) : plage de dégâts, intervalle de recharge, temps
+  d'exécution, portée bord à bord, nature et pénétration. Les mains nues ne sont pas un objet : `mainsNues()` rend leur description
+  (6 dégâts sans écart, 0,4 – 0,6 s, 0,15 s, 20 px, contact).
 - **L'attaque de base est une valeur dérivée de l'équipement** : `Equipement::attaqueDeBase()` rend celle de
   l'arme de la main droite, sinon les mains nues ; le `Personnage` la recalcule à chaque changement d'équipement
   (`recalculerDepuisLEquipement`), comme l'armure et les caractéristiques, jamais stockée en double. Le skill de
@@ -110,31 +116,93 @@ sont ceux du jeu, les identifiants du code restent en français.
   (`s_recuperationDuBlocage`, `combat/Blocage.hpp`), plus une donnée d'objet : la règle « on garde la plus longue »
   a disparu. D'autres objets pourront plus tard ajouter de la chance de blocage ou réduire la récupération ; aucun
   champ n'existe pour cela, aucun objet ne s'en sert.
-- **Équipement de départ** : guerrier épée longue + bouclier rond + pièces de fer, paladin masse + bouclier rond +
-  pièces de fer, prêtre sceptre, mage bâton, rôdeur arc. (Le sac de départ de l'étape 91, avec une dague et une épée à deux mains,
-  n'existe plus depuis l'étape 99.1 : le sac commence vide.)
+- **Équipement de départ** : guerrier épée à une main + bouclier rond + pièces de fer, paladin masse à une main + bouclier rond +
+  pièces de fer, prêtre sceptre, mage bâton, rôdeur arc (depuis l'étape 102 ; tous de niveau 1, de qualité moyenne et communs). (Le sac
+  de départ de l'étape 91, avec une dague et une épée à deux mains, n'existe plus depuis l'étape 99.1 : le sac commence vide.)
 - **Les skills exigent un type d'arme** (`docs/combat.md`) : le refus est celui d'un lanceur mort.
+
+## Les gabarits d'armes, le niveau et la qualité (étape 102)
+
+- **Patron « Type Object », sans hiérarchie** : `DefinitionObjet` reste le gabarit ; l'`Objet` ne garde que deux entiers de plus,
+  `niveau` (au moins 1) et `qualite` (0 à `s_qualiteMaximale` = 100, valeurs par défaut 1 et `s_qualiteParDefaut` = 50). **Tout le
+  reste est recalculé depuis le gabarit, jamais stocké** : aucun champ de dégâts ni de seuils dans l'objet, aucune donnée d'arme sur
+  un objet qui n'est pas une arme. `objetValide` vérifie les bornes du niveau et de la qualité. Entiers, pas flottants : l'égalité par
+  valeur reste fiable.
+- **Le niveau** d'un objet est toujours la profondeur où il est généré (étape 101), mais l'objet le **retient** maintenant
+  (`genererObjet` l'écrit). Il agit sur trois choses, par un seul facteur écrit une fois, `facteurDeNiveau(n) = 1 + 0,25 × (n − 1)`
+  (`Objet.hpp`, `s_croissanceParNiveau`, « à tester ») : les plages des affixes (`plageAuNiveau`, valeurs inchangées), les dégâts des
+  armes et — par une autre règle — les seuils.
+- **La qualité** est tirée par `genererObjet` pour **tout** objet (armes ou non, pour que l'ordre des tirages ne change plus quand
+  l'armure en dépendra) : rareté, modèle, **qualité** (entier uniforme de 0 à 100), puis affixes et valeurs. Elle ne change que les
+  dégâts d'une arme (de 0,85 à 1,15 fois la moyenne) et **n'est pas affichée** : le joueur la voit dans les dégâts. Les objets de
+  départ sont de niveau 1, de qualité 50 et communs.
+- **Une seule fonction calcule l'arme d'un objet** : `descriptionDeLArme(const Objet&)` (`CatalogueObjets`). `Equipement::attaqueDeBase`,
+  l'infobulle et les tests passent par elle. Dégâts moyens = `degatsDeReference × facteurDeNiveau(niveau) × (0,85 + 0,30 × qualité /
+  100)` ; `min = arrondi(moyens × (1 − écart))`, `max = arrondi(moyens × (1 + écart))`, arrondis au plus proche (un seul arrondi par
+  borne) et d'au moins 1. **Ne dépendent jamais du niveau** : recharge, exécution, portée, nature, mains, pénétration, écart. Exemple :
+  l'épée à une main (référence 15, écart 15 %) fait 13 – 17 au niveau 1 et 26 – 35 au niveau 5 (qualité 50) ; qualité 0 : 11 – 15 ;
+  qualité 100 : 15 – 20.
+- **Les treize gabarits** (`DonneesDArme`, valeurs « à tester »). La référence est les dégâts moyens physiques d'un objet de niveau 1
+  et de qualité 50 ; elle se déduit de dégâts par seconde visés (23 à une main, 30 à deux mains) : `référence = dégâts/s × (exécution +
+  recharge moyenne)`. L'exécution est 0,15 s à une main, 0,3 s à deux mains. La zone de contrôle reste celle du contact (20 px) même
+  pour la lance.
+
+  | Gabarit (écran, sigle) | `IdObjet` / `TypeDArme` | Mains | Nature, portée | Recharge | Réf. | Écart | Pénétr. | Seuils (pente) |
+  |---|---|---|---|---|---|---|---|---|
+  | Dagger, DA | `Dague` | 1 | contact 20 | 0,20 – 0,50 | 10 | 10 % | 15 % | Adresse +2 |
+  | Sword, SW | `EpeeAUneMain` | 1 | contact 20 | 0,30 – 0,70 | 15 | 15 % | 0 | Puissance +2 |
+  | Hand Axe, HA | `HacheAUneMain` | 1 | contact 20 | 0,40 – 1,00 | 20 | 25 % | 0 | Puissance +2 |
+  | Mace, MA | `MasseAUneMain` | 1 | contact 20 | 0,60 – 1,40 | 26 | 40 % | 0 | Puissance +2 |
+  | Spear, SP | `Lance` | 1 | contact 35 | 0,70 – 1,45 | 28 | 25 % | 30 % | Adresse +2, Puissance +1 |
+  | Greatsword, GS | `EpeeADeuxMains` | 2 | contact 20 | 0,50 – 1,20 | 35 | 15 % | 0 | Puissance +2, Adresse +1 |
+  | Great Axe, GA | `HacheADeuxMains` | 2 | contact 20 | 0,80 – 1,80 | 48 | 25 % | 0 | Puissance +2 |
+  | Maul, MU | `MasseADeuxMains` | 2 | contact 20 | 0,80 – 1,80 | 48 | 40 % | 0 | Puissance +2, Endurance +1 |
+  | Wand, WA | `Baguette` | 1 | projectile 120 | 0,30 – 0,70 | 15 | 15 % | 0 | Savoir +2 |
+  | Scepter, SC | `Sceptre` | 1 | projectile 120 | 0,40 – 1,00 | 20 | 15 % | 0 | Volonté +2 |
+  | Staff, ST | `Baton` | 2 | projectile 120 | 0,55 – 0,85 | 30 | 25 % | 0 | Savoir +2 |
+  | Bow, BO | `Arc` | 2 | projectile 120 | 0,35 – 0,55 | 23 | 25 % | 15 % | Adresse +2 |
+  | Crossbow, CB | `Arbalete` | 2 | projectile 140 | 0,55 – 0,85 | 30 | 15 % | 30 % | Adresse +2, Puissance +1 |
+
+  Ils remplacent les sept armes prototypes de l'étape 91 (`EpeeLongue` devient `EpeeAUneMain`, `Masse` devient `MasseAUneMain`) :
+  l'épée à une main a la recharge, l'exécution, la portée et la moyenne (15) de l'ancienne épée longue ; la dague est la seule arme
+  sous son but de dégâts/s (20 contre 23), compensée par sa pénétration. Un test de données vérifie qu'aucun gabarit ne dépasse de plus
+  de 10 % les dégâts/s de sa famille.
+- **Chaque coup tire ses dégâts dans la plage** : `DescriptionDAttaque::degats` est une `PlageDeDegats { Degats min; Degats max; }`
+  (`combat/PlageDeDegats`) et `tirerLesDegats(Generateur&, plage)` tire, pour chaque élément dans l'ordre de `s_elements`, un entier
+  uniforme entre son minimum et son maximum — **aucun tirage quand `min == max`**, comme une recharge fixe (les mains nues, les
+  portions de feu et de sacré des affixes, qui s'ajoutent aux deux bornes). Le tirage a lieu **au départ de chaque coup qui utilise
+  l'arme** : l'attaque de base (`Personnage::attaqueDeLArme`), la frappe sacrée (`attaqueDeFrappe`) et les coups d'opportunité
+  (`Escouade::attaqueDeBase(place, Generateur&)`, la `Partie` passe son générateur) ; puis la Puissance joue sur la valeur tirée
+  (`montantEffectif`, un arrondi par portion), puis `resoudreCoup` comme avant. `Personnage::getAttaqueDeBase(Generateur&)` n'est donc
+  plus une simple lecture : chaque appel est un coup.
+- **Les seuils suivent une seule règle pour tous les objets** : `seuil(niveau) = s_seuilAuNiveau1 + pente × (niveau − 1)`, avec
+  `s_seuilAuNiveau1 = 6` (`CatalogueObjets.hpp`, « à tester »). Un gabarit déclare ses caractéristiques exigées avec leur pente
+  (`DefinitionObjet::exigences`, des `ExigenceDeCaracteristique { caracteristique; pente }` : principale +2, secondaire +1), et
+  `seuilsDeLObjet(const Objet&)` rend les `SeuilDeCaracteristique` de CET objet. Tout ce qui lisait les seuils d'un modèle passe par
+  elle : `seuilsAtteints`, `Equipement::actifPour` (donc `objetsActifs`), `deplacerLesObjets`, `seuilsManques`, l'infobulle et le test
+  du glissement de l'écran. Au niveau 5, le seuil principal est 14. **Au niveau 1, tout est à 6 : toute classe peut porter tout objet
+  du catalogue** (un test de données le vérifie). Protections prototypes en attendant l'étape 103 : les pièces de fer et le bouclier
+  rond exigent l'Endurance (+2), le cuir et les bijoux rien.
+- **Les skills exigent des familles d'armes** : la frappe puissante et la frappe sacrée veulent **toutes les armes de contact**
+  (une liste nommée, `s_armesDeContact`, écrite une fois dans `Specialite.cpp`) ; le tir perçant et la pluie de flèches veulent l'arc
+  ou l'arbalète. Les valeurs des skills ne changent pas.
+- **L'infobulle d'une arme** : nom, catégorie, « Item Level N » (sur tous les objets), puis pour une arme « Damage: 13–17 » (les
+  bornes de la plage, **avant** la Puissance ; un seul nombre sans écart), « Cooldown: 0.3 to 0.7 s », « Range: 20 px », « Melee » ou
+  « Projectile », « Penetration: N % » si elle en a une, « Two-handed », les affixes, les seuils. La qualité n'est pas affichée.
+- **Limites** : les protections, les boucliers et les bijoux gardent leurs valeurs fixes (étape 103) ; le niveau ne change toujours
+  pas les modèles de base (pas d'épée d'acier après celle de fer) ; la qualité ne touche que les armes ; le bonus sacré de la frappe
+  sacrée (45) a été calibré pour une masse de 15 et vaut maintenant avec une masse de 26 en moyenne (à retoucher en jouant) ; les
+  affinités et poids d'affixes viendront à l'étape 104.
 
 ## Seuils, objets inactifs et pénétration (étape 92)
 
-- **Seuils** : une `DefinitionObjet` peut exiger des valeurs minimales de caractéristiques (`seuils`, liste de
-  `SeuilDeCaracteristique { caracteristique, valeur }` ; vide : aucun seuil). Valeurs « à tester » :
-
-  | Objet | Seuil |
-  |---|---|
-  | Épée longue, masse | Puissance 11 |
-  | Épée à deux mains | Puissance 13 et Endurance 12 |
-  | Dague | Adresse 10 |
-  | Arc | Adresse 12 |
-  | Bâton | Savoir 12 |
-  | Sceptre | Volonté 11 |
-  | Bouclier rond | Endurance 11 |
-  | Casque de fer, cuirasse de mailles, jambières de fer | Endurance 12 |
-  | Objets de cuir, bijoux | aucun |
-
-  Chaque classe peut porter son équipement de départ avec ses caractéristiques de base (un test parcourt les
-  classes) ; personne ne peut porter l'épée à deux mains au départ (le guerrier y arrive avec l'anneau de
-  puissance).
+- **Seuils** : une `DefinitionObjet` peut exiger des valeurs minimales de caractéristiques. À l'étape 92 c'étaient des seuils fixes par
+  modèle (Puissance 11 pour l'épée longue et la masse, 13 et Endurance 12 pour l'épée à deux mains, Adresse 10 pour la dague, 12 pour
+  l'arc, Savoir 12 pour le bâton, Volonté 11 pour le sceptre, Endurance 11 pour le bouclier rond et 12 pour les pièces de fer) ;
+  **depuis l'étape 102 ils se calculent** : `seuilsDeLObjet(objet)`, `6 + pente × (niveau − 1)` par exigence (voir « Les gabarits
+  d'armes, le niveau et la qualité »). `SeuilDeCaracteristique { caracteristique, valeur }` reste le type d'un seuil calculé
+  (`ObjetsActifs.hpp`). Chaque classe peut porter son équipement de départ (un test parcourt les classes) et, au niveau 1, tout objet
+  du catalogue.
 - **Sous le seuil, impossible d'équiper** : `deplacerLesObjets` vérifie, pour chaque personnage qui reçoit un objet
   (la destination, et l'autre extrémité d'un échange entre personnages), qu'il atteint les seuils de l'objet posé
   avec ses **caractéristiques effectives sans compter cet objet** (un objet ne remplit pas son propre seuil) **et en
@@ -165,22 +233,22 @@ sont ceux du jeu, les identifiants du code restent en français.
   l'objet posé, après ce que le déplacement retire) ; un objet **porté inactif est encadré en rouge** dans
   l'inventaire (`Escouade::objetPorteEstInactif`) et son infobulle dit « Inactive: requirement not met ». L'armure et les
   bonus affichés sont ceux de l'équipement actif (`Escouade::equipementActifDuPersonnage`).
-- **Pénétration d'armure** : une propriété de l'arme (`DescriptionDAttaque::penetration`, en pour cent entier ; la
-  dague : 30, les autres armes et les mains nues : 0). Elle réduit l'armure du défenseur **avant** la soustraction M1 :
-  `armure effective = armure × (1 − pénétration)`, sans arrondi intermédiaire (l'arrondi reste celui de M1), plafonnée à
-  75 % (`s_penetrationMaximale`, `Defense.hpp`). Elle circule dans l'`Attaque` (`penetration`, 0 par défaut) : l'attaque de
+- **Pénétration d'armure** : une propriété de l'arme (`DescriptionDAttaque::penetration`, en pour cent entier ; depuis l'étape 102 :
+  la dague 15, l'arc 15, la lance 30, l'arbalète 30, les autres armes et les mains nues 0). Elle réduit l'armure du défenseur **avant**
+  la soustraction M1 : `armure effective = armure × (1 − pénétration)`, sans arrondi intermédiaire (l'arrondi reste celui de M1),
+  plafonnée à 75 % (`s_penetrationMaximale`, `Defense.hpp`). Elle circule dans l'`Attaque` (`penetration`, 0 par défaut) : l'attaque de
   base du `Personnage` en porte une (donc aussi les coups d'opportunité, qui en reprennent la puissance), les skills de
-  dégâts n'en ont pas (la frappe sacrée prend celle de l'arme). Depuis l'étape 95, le préfixe « Keen » ajoute de la
-  pénétration à celle de l'arme. L'infobulle de la dague affiche « Penetration: 30 % ».
+  dégâts n'en ont pas (la frappe sacrée prend celle de l'arme). Le préfixe « Keen » ajoute de la pénétration à celle de l'arme.
+  L'infobulle affiche « Penetration: N % » pour toute arme qui en a une.
 
 ## Rareté et affixes (étape 95)
 
 - **Un objet** : `struct Objet { IdObjet modele; Rarete rarete = Commun; std::optional<Affixe> prefixe; std::optional<Affixe>
-  suffixe; }`. Le type interdit un troisième affixe ; le reste est un invariant (ci-dessous). Un `Affixe` est
-  `{ IdAffixe id; int valeur; }` : l'identifiant **et la valeur de cet objet**. La valeur est gardée dans l'objet, pas lue
+  suffixe; int niveau = 1; int qualite = 50; }`. Le type interdit un troisième affixe ; le reste est un invariant (ci-dessous). Un
+  `Affixe` est `{ IdAffixe id; int valeur; }` : l'identifiant **et la valeur de cet objet**. La valeur est gardée dans l'objet, pas lue
   dans le catalogue : rééquilibrer un affixe plus tard ne change pas les objets déjà trouvés. Un agrégat à valeurs par
-  défaut : `Objet{IdObjet::Masse}` est une masse commune, ce qui a laissé inchangés les sites d'appel qui n'avaient besoin que
-  du modèle (équipement de départ, sac de départ, la plupart des tests).
+  défaut : `Objet{IdObjet::MasseAUneMain}` est une masse commune de niveau 1 et de qualité moyenne, ce qui a laissé inchangés les
+  sites d'appel qui n'avaient besoin que du modèle (équipement de départ, la plupart des tests).
 - **Raretés** (à la *Titan Quest*, pour l'instant ; d'autres viendront) : **Common** n'a aucun affixe, **Magic** exactement
   un (préfixe ou suffixe), **Rare** un préfixe et un suffixe. L'équipement de départ et le sac de départ sont communs.
 - **Invariants : une fonction de validation, pas une construction avec `assert`.** `objetValide(const Objet&)`
@@ -192,6 +260,7 @@ sont ceux du jeu, les identifiants du code restent en français.
   `Inventaire::poser` / `ajouter`, `assert` à la fin de `genererObjet`, test de données `test_CoherenceDesDonnees` pour le
   sac de départ, et les 10 000 tirages de `test_GenerationDObjets`) et se teste comme un prédicat, sans faire échouer le test par un `assert`. La valeur strictement positive vient
   d'une hypothèse de `objetsActifs` (bonus positifs ou nuls).
+  Depuis l'étape 102, `objetValide` vérifie aussi `niveau >= 1` et `0 <= qualite <= s_qualiteMaximale`.
 - **Le catalogue d'affixes** (`CatalogueAffixes`, en données comme les autres catalogues) : `DefinitionDAffixe { id, nom,
   position, effet, valeurs, categories }` dans l'ordre de `IdAffixe` (contrôlé par un `assert`). Douze affixes. Depuis
   l'étape 96, chacun a une **plage de valeurs** `{min, max}` (entiers, bornes incluses), qui ne sert qu'au tirage : la
@@ -226,6 +295,8 @@ sont ceux du jeu, les identifiants du code restent en français.
   et s'applique avec la défense). `Personnage::attaqueDeLArme` applique la Puissance **à chaque portion** (un arrondi par
   portion, `montantEffectif`). Les coups d'opportunité utilisent l'attaque de base, donc en profitent ; un skill de
   frappe (la frappe sacrée) prend **toutes** les portions de l'arme, affixes compris, plus son bonus.
+  Depuis l'étape 102, `degats` est une `PlageDeDegats` (min et max par élément) dont chaque coup tire sa valeur ; les portions des
+  affixes s'ajoutent aux deux bornes, donc sans écart.
 - **Les objets actifs** : le bonus de caractéristiques d'un affixe compte dans le point fixe de `objetsActifs`
   (`Equipement::actifPour` passe le bonus du modèle plus celui des affixes) : un suffixe « of the Ox » peut rendre actif un
   autre objet. Les **seuils ne dépendent que du modèle**. Un objet inactif perd tout : ses propriétés de modèle et ses
@@ -255,16 +326,17 @@ constructeur).
    préfixes, 5 suffixes) donne donc plus souvent un suffixe. **Rare** : un préfixe uniforme parmi les préfixes permis et un
    suffixe uniforme parmi les suffixes permis. Pas de poids par affixe (ils seraient tous égaux).
 4. **Chaque valeur** : un entier uniforme dans la plage de l'affixe **à ce niveau** (`plageAuNiveau`).
-L'ordre des tirages est fixe (rareté, modèle, affixe, valeur, puis le second affixe d'un Rare), donc une graine donne
-toujours la même suite d'objets sur une même plateforme.
+L'ordre des tirages est fixe (rareté, modèle, **qualité** depuis l'étape 102, affixe, valeur, puis le second affixe d'un Rare), donc
+une graine donne toujours la même suite d'objets sur une même plateforme.
 
 **Portabilité** : `std::mt19937` est défini exactement par la norme, mais `std::uniform_int_distribution` ne l'est pas. Une
 même graine peut donc donner d'autres objets avec une autre bibliothèque standard (MSVC, libstdc++, libc++). C'est sans
 conséquence sur une seule plateforme, sans sauvegarde de graine ni multijoueur : rien à corriger. Les tests n'attendent
 donc aucun objet précis pour une graine : ils vérifient la validité, la couverture, les plages, les proportions et le
-déterminisme. **Une exception depuis l'étape 101** : un test épingle les huit premiers objets de la graine 96 au niveau 1, et
-l'état du générateur après 200 objets, relevés avant d'ajouter le niveau, pour prouver que le niveau 1 consomme les mêmes tirages
-et donne les mêmes objets qu'avant. Valable avec la bibliothèque standard de MinGW ; à réépingler si elle change.
+déterminisme. **Une exception** : un test épingle les huit premiers objets de la graine 96 au niveau 1 (modèle, rareté, niveau,
+qualité, affixes) et l'état du générateur après 200 objets, pour prouver que l'ordre des tirages ne bouge pas par mégarde. Valable
+avec la bibliothèque standard de MinGW ; à réépingler si elle change ou si l'ordre des tirages change (réépinglée aux étapes 102.1 et
+102.4, parce que la qualité s'est ajoutée et que le catalogue a changé de taille).
 
 **Proportions testées** : sur 10 000 tirages, l'écart type d'une proportion est d'au plus 0,5 point ; la tolérance de
 2 points (plus de quatre écarts types) ne sert pas à absorber le hasard, la graine étant fixe, mais à détecter un
@@ -274,12 +346,12 @@ algorithme modifié (poids changés, rareté retirée après coup).
 
 **Le niveau d'un objet est la profondeur où il est généré** : un objet lâché au 4e étage, ou tiré par F7 au 4e étage, est de
 niveau 4. `genererObjet(générateur, niveau)` et `genererButin(générateur, chance, nombre, niveau)` le reçoivent (`assert` :
-niveau d'au moins 1) ; `Partie` leur passe `m_profondeur`, dans `retirerLesMorts` et `ramasserDesObjetsAleatoires`. **Il n'y a pas
-de champ niveau dans l'`Objet`** : la valeur tirée de chaque affixe porte déjà sa force, et rien ne lirait ce champ (un prix ou un
-affichage du niveau d'objet le justifierait, plus tard).
+niveau d'au moins 1) ; `Partie` leur passe `m_profondeur`, dans `retirerLesMorts` et `ramasserDesObjetsAleatoires`. **Depuis
+l'étape 102, l'`Objet` retient ce niveau** (champ `niveau`) : les dégâts d'une arme et les seuils en dépendent (voir « Les gabarits
+d'armes, le niveau et la qualité »).
 
-Il agit sur deux choses, par deux fonctions pures, et sur rien d'autre (les objets de base — dégâts des armes, armure, blocage —
-et les seuils ne dépendent que du modèle) :
+Il agit sur deux choses par des fonctions pures — les plages des affixes et les poids de rareté, ci-dessous —, plus, depuis l'étape
+102, sur les dégâts des armes et les seuils (les autres objets de base — armure, blocage — ne dépendent toujours que du modèle) :
 - **La plage des affixes** : `plageAuNiveau(id, niveau)` (`CatalogueAffixes`) multiplie le min et le max du catalogue par
   `1 + 0,25 × (niveau − 1)` (`s_croissanceDesPlagesParNiveau`, « à tester ») et arrondit au plus proche. Au niveau 5, Blazing
   passe de 3 – 8 à 6 – 16, un suffixe de caractéristique de 1 – 3 à 2 – 6, Keen de 10 – 20 % à 20 – 40 %. Le min reste au moins 1
@@ -290,8 +362,8 @@ et les seuils ne dépendent que du modèle) :
   « à tester »). Niveau 1 : 70 / 25 / 5 ; niveau 5 : 50 / 37 / 13 ; niveau 11 et au-delà, Common reste à 20 (niveau 20 : 20 / 82 /
   43). Les trois poids restent positifs à tout niveau (un test de données le vérifie jusqu'au niveau 20).
 
-**Au niveau 1, rien ne change** : mêmes plages, mêmes poids, donc **les mêmes tirages dans le même ordre** et les mêmes objets
-pour une même graine (suite épinglée par un test). L'ordre des tirages ne dépend pas du niveau.
+**Au niveau 1, les plages et les poids sont ceux d'avant** (même ordre des tirages d'affixes, hors la qualité tirée depuis l'étape
+102). L'ordre des tirages ne dépend pas du niveau.
 
 ## Le butin au sol (étape 97)
 
@@ -351,17 +423,19 @@ et le sac, en lecture seule ; aucune fonction de modification n'est appelée.
 - **Emplacement vide** : rectangle grisé avec le nom de l'emplacement en petit ; **occupé** : le nom
   de l'objet. **Case du sac vide** : carré vide ; **occupée** : le sigle de deux lettres (IH Iron Helm,
   CM Chain Mail, IG Iron Greaves, RS Round Shield, LG Leather Gloves, LB Leather Boots, LC Leather Cap, PT Padded Tunic,
-  NP Necklace of Protection, RP Ring of Protection, RM Ring of Might, NC Necklace of Constitution, LS Longsword, MA Mace, DA Dagger,
-  GS Greatsword, SC Scepter, ST Staff, BO Bow ; table complète dans `docs/glossaire.md`). Un test vérifie que les sigles
-  ont deux lettres et sont tous différents.
+  NP Necklace of Protection, RP Ring of Protection, RM Ring of Might, NC Necklace of Constitution, puis les armes : DA Dagger, SW Sword,
+  HA Hand Axe, MA Mace, SP Spear, GS Greatsword, GA Great Axe, MU Maul, WA Wand, SC Scepter, ST Staff, BO Bow, CB Crossbow ; table
+  complète dans `docs/glossaire.md`). Un test vérifie que les sigles ont deux lettres et sont tous différents.
 - **Infobulle** au survol d'un objet (`lignesDeLInfobulle(const Objet&)`, depuis l'étape 95 : elle prend l'objet, pas
-  son modèle). Dans cet ordre : le nom composé (de la couleur de la rareté : blanc, jaune, vert), la catégorie, les
-  propriétés du modèle — « Armor: +N » (absente si l'armure est nulle), une ligne par bonus de caractéristique
-  (« Might: +3 »), une par bonus de combat (« Dodge vs Melee: +5 % », « Dodge vs Projectiles: +5 % » :
-  `lignesDeBonusDeCombat`), pour un bouclier son blocage (« Block: 30 %, 12 points »), pour une arme son attaque
-  (« Damage: 15 », « Cooldown: 0.3 to 0.7 s » — « 0.5 s » si les bornes sont égales —, « Range: 20 px », « Melee » ou
-  « Projectile », « Penetration: 30 % » et « Two-handed ») —, **une ligne par affixe** (`ligneDAffixe` : « Fire Damage: +6 »,
-  « Penetration: +15 % », « Dexterity: +2 », « Block: +5 % »…), puis les seuils (« Requires Dexterity 12 »). La mention
+  son modèle). Dans cet ordre : le nom composé (de la couleur de la rareté : blanc, jaune, vert), la catégorie, **« Item Level N »**
+  (étape 102, tous les objets), les propriétés du modèle — « Armor: +N » (absente si l'armure est nulle), une ligne par bonus de
+  caractéristique (« Might: +3 »), une par bonus de combat (« Dodge vs Melee: +5 % », « Dodge vs Projectiles: +5 % » :
+  `lignesDeBonusDeCombat`), pour un bouclier son blocage (« Block: 30 %, 12 points »), pour une arme son attaque **telle que
+  `descriptionDeLArme` la calcule pour cet objet** (« Damage: 13–17 » — les bornes de la plage, avant la Puissance, un seul nombre
+  sans écart —, « Cooldown: 0.3 to 0.7 s » — « 0.5 s » si les bornes sont égales —, « Range: 20 px », « Melee » ou
+  « Projectile », « Penetration: 15 % » si elle en a une et « Two-handed ») —, **une ligne par affixe** (`ligneDAffixe` :
+  « Fire Damage: +6 », « Penetration: +15 % », « Dexterity: +2 », « Block: +5 % »…), puis les seuils de l'objet à son niveau
+  (« Requires Dexterity 6 », une ligne par exigence). La qualité n'est pas affichée. La mention
   « Inactive: requirement not met » est ajoutée par l'écran pour un objet porté inactif. Les durées s'écrivent avec un point.
   Rien au survol d'une case vide.
 - **« Armure : N » d'une colonne** est `Equipement::armureTotale()`, la valeur dont la `Vitalite`
@@ -395,10 +469,11 @@ et le sac, en lecture seule ; aucune fonction de modification n'est appelée.
 
 - L'affichage est un sigle de deux lettres par objet : pas d'icônes ; la seule couleur est celle de la rareté
   (étape 95).
-- Le niveau d'objet (étape 101) ne fait varier que les plages d'affixes et les poids de rareté, pas de palier d'affixe (un nom
-  et une plage par palier, à la *Titan Quest*), pas de modèle de base supérieur (une épée d'acier après celle de fer) ni de
-  champ niveau dans l'objet ; les plages sont les mêmes pour Magic et Rare ; pas d'affixe de résistance ni
+- Le niveau d'objet (étapes 101 et 102) fait varier les plages d'affixes, les poids de rareté, les dégâts des armes et les seuils,
+  pas de palier d'affixe (un nom et une plage par palier, à la *Titan Quest*), pas de modèle de base supérieur (une épée d'acier après
+  celle de fer) ; les plages sont les mêmes pour Magic et Rare ; pas d'affixe de résistance ni
   de modification des seuils ; les anneaux et les colliers n'ont aucun préfixe donc ne sont jamais Rare ; un seul préfixe et un seul suffixe ; pas d'objet unique ni de rareté supérieure à Rare.
+- Armures, boucliers et bijoux : valeurs fixes de prototype (étape 103). La qualité ne joue que sur les armes et n'est pas affichée.
 - L'emplacement affiche le nom du modèle (en la couleur de la rareté), pas le nom composé : trop long pour la cellule.
 - Pas de restriction d'équipement par classe. Une nouvelle partie repart toujours du départ (aucune sauvegarde de
   l'équipement ni des objets au sol). Pas de deux armes à la fois (la main gauche ne tient qu'un bouclier), ni de lancer, ni
@@ -435,9 +510,12 @@ CategorieObjet { Casque, Armure, Jambieres, Gants, Bottes, Bouclier, Collier, An
 
 `Objet.hpp`, sans `.cpp`. `enum class IdObjet { CasqueDeFer, CuirasseDeMailles, JambieresDeFer,
 BouclierRond, GantsDeCuir, BottesDeCuir, CasqueDeCuir, TuniqueMatelassee, CollierDeProtection,
-AnneauDeProtection, AnneauDePuissance, CollierDEndurance, EpeeLongue, Masse, Dague, EpeeADeuxMains, Sceptre, Baton,
-Arc }` ; `struct Objet { IdObjet modele; Rarete rarete = Rarete::Commun; std::optional<Affixe> prefixe = {};
-std::optional<Affixe> suffixe = {}; }` avec `operator==` par défaut (étape 95 ; avant : `struct Objet { IdObjet id; }`).
+AnneauDeProtection, AnneauDePuissance, CollierDEndurance, puis les treize armes (étape 102) : Dague, EpeeAUneMain, HacheAUneMain,
+MasseAUneMain, Lance, EpeeADeuxMains, HacheADeuxMains, MasseADeuxMains, Baguette, Sceptre, Baton, Arc, Arbalete }` ; `struct Objet {
+IdObjet modele; Rarete rarete = Rarete::Commun; std::optional<Affixe> prefixe = {}; std::optional<Affixe> suffixe = {}; int niveau = 1;
+int qualite = s_qualiteParDefaut; }` avec `operator==` par défaut. Constantes `s_qualiteMaximale` (100), `s_qualiteParDefaut` (50),
+`s_croissanceParNiveau` (0,25) et `[[nodiscard]] constexpr double facteurDeNiveau(int niveau)` = `1 + 0,25 × (niveau − 1)`, l'unique
+endroit qui l'écrit (`plageAuNiveau` et `descriptionDeLArme` l'utilisent).
 
 ### `Affixe` (`objets/`)
 
@@ -464,18 +542,21 @@ bonus; StatistiquesDeCombat bonusDeCombat; Degats degatsAjoutes; int penetration
 
 ### `CatalogueObjets` (`objets/`)
 
-`CatalogueObjets.hpp` / `.cpp` : `struct DefinitionObjet { IdObjet id; std::string nom;
+`CatalogueObjets.hpp` / `.cpp` : `struct ExigenceDeCaracteristique { Caracteristique caracteristique; int pente; }` (avec
+`operator==`), `inline constexpr int s_seuilAuNiveau1 = 6`, `struct DefinitionObjet { IdObjet id; std::string nom;
 CategorieObjet categorie; int armure; Caracteristiques bonus = {}; StatistiquesDeCombat bonusDeCombat = {};
 std::optional<DonneesDArme> arme = {}; std::optional<DonneesDeBouclier> bouclier = {};
-std::vector<SeuilDeCaracteristique> seuils = {}; }` et des fonctions libres, sans état.
+std::vector<ExigenceDeCaracteristique> exigences = {}; }` et des fonctions libres, sans état.
 
 | Fonction | Rôle |
 |---|---|
 | `const std::vector<DefinitionObjet>& catalogueObjets()` | Tous les modèles, dans l'ordre de `IdObjet` ; l'unique source de leurs valeurs ; `[[nodiscard]]` |
 | `const DefinitionObjet& definitionObjet(IdObjet id)` | Le modèle de cet identifiant ; `assert` : le catalogue suit l'ordre de l'enum ; `[[nodiscard]]` |
-| `bool seuilsAtteints(IdObjet, const Caracteristiques&)` | Ces caractéristiques atteignent-elles tous les seuils de l'objet ? Toujours vrai sans seuil (étape 92.1) ; `[[nodiscard]]` |
-| `bool estADeuxMains(IdObjet)` | Une arme à deux mains (épée à deux mains, bâton, arc) ; faux pour tout autre objet ; `[[nodiscard]]` |
+| `std::vector<SeuilDeCaracteristique> seuilsDeLObjet(const Objet&)` | Les seuils de CET objet : `s_seuilAuNiveau1 + pente × (niveau − 1)` pour chaque exigence de son modèle ; vide sans exigence. L'unique endroit qui calcule un seuil (étape 102.2) ; `[[nodiscard]]` |
+| `bool seuilsAtteints(const Objet&, const Caracteristiques&)` | Ces caractéristiques atteignent-elles tous les seuils de l'objet ? Toujours vrai sans seuil ; `[[nodiscard]]` |
+| `bool estADeuxMains(IdObjet)` | Une arme à deux mains (épée, hache, masse à deux mains, bâton, arc, arbalète) ; faux pour tout autre objet, la lance comprise ; `[[nodiscard]]` |
 | `const DescriptionDAttaque& mainsNues()` | L'attaque de base sans arme ; `[[nodiscard]]` |
+| `DescriptionDAttaque descriptionDeLArme(const Objet&)` | L'attaque que donne cette arme, sans ses affixes (étape 102.4) : plage de dégâts selon le niveau et la qualité, le reste du gabarit ; `assert` : l'objet est une arme ; `[[nodiscard]]` |
 | `bool objetValide(const Objet&)` | Les invariants de l'objet : affixes à leur position, permis pour la catégorie, de valeur > 0, nombre conforme à la rareté (étape 95.3) ; `[[nodiscard]]` |
 | `std::string nomDeLObjet(const Objet&)` | « [préfixe] modèle [suffixe] » (« Blazing Mace ») ; `[[nodiscard]]` |
 | ~~`std::vector<Objet> sacDeDepart()`~~ | Supprimée à l'étape 99.1 (le sac commence vide). Elle rendait le contenu du sac au début d'une partie : gants de cuir, bottes de cuir, casque de cuir, tunique matelassée, collier de protection, deux anneaux de protection, l'anneau de puissance, le collier d'endurance, une dague et une épée à deux mains ; `[[nodiscard]]` |
@@ -484,18 +565,9 @@ Valeurs d'armure (provisoires ; recalibrées à l'étape 87.3 pour le modèle M1
 casque de fer 2, cuirasse de mailles 4, jambières de fer 2, bouclier rond 1, gants de cuir 1, bottes de cuir 1,
 casque de cuir 1, tunique matelassée 2, collier de protection 1, anneau de protection 1 ; armes 0.
 
-Armes (étape 91, valeurs provisoires, « à tester ») :
-
-| Arme | Dégâts | Recharge | Exécution | Portée | Nature | Mains |
-|---|---|---|---|---|---|---|
-| Épée longue, masse | 15 | 0,3 – 0,7 s | 0,15 s | 20 px | contact | 1 |
-| Dague | 14 | 0,4 – 0,8 s | 0,15 s | 20 px | contact | 1 |
-| Épée à deux mains | 60 | 1,2 – 2,8 s | 0,3 s | 20 px | contact | 2 |
-| Sceptre | 15 | 0,4 – 0,6 s | 0,15 s | 120 px | projectile | 1 |
-| Bâton, arc | 15 | 0,4 – 0,6 s | 0,15 s | 120 px | projectile | 2 |
-| *Mains nues* (pas un objet) | 6 | 0,4 – 0,6 s | 0,15 s | 20 px | contact | — |
-
-Le coefficient de Puissance de l'attaque de base est 1,0 (`Personnage`, comme avant l'étape 91).
+Armes : les valeurs des treize gabarits sont dans le tableau de « Les gabarits d'armes, le niveau et la qualité » (étape 102), qui
+remplace celui des sept armes prototypes de l'étape 91. Les mains nues (pas un objet) : 6 dégâts sans écart, 0,4 – 0,6 s, 0,15 s, 20 px,
+contact. Le coefficient de Puissance de l'attaque de base est 1,0 (`Personnage`, comme avant l'étape 91).
 
 Bonus de caractéristiques (étape 88) : `DefinitionObjet` reçoit `Caracteristiques bonus = {}` (vide pour les
 objets de protection). Deux objets ajoutés au catalogue (`IdObjet::AnneauDePuissance`, `CollierDEndurance`,
@@ -521,7 +593,7 @@ s_raretes` (les trois raretés, de la plus commune à la plus rare).
 |---|---|
 | `int poidsDeRarete(Rarete, int niveau)` | Le poids de cette rareté dans le tirage d'un objet de ce niveau : 70, 25, 5 au niveau 1 ; commun −5 (plancher 20), magique +3, rare +2 par niveau au-delà (« à tester ») ; `assert(niveau >= 1)` ; `[[nodiscard]]` |
 | `bool peutPorterLaRarete(IdObjet, Rarete)` | L'unique endroit de la règle : Common toujours, Magic avec au moins un affixe permis, Rare avec un préfixe et un suffixe permis ; `[[nodiscard]]` |
-| `Objet genererObjet(Generateur&, int niveau)` | Un objet tiré au hasard, de ce niveau (étape 101), valide (voir « Génération aléatoire » et « Le niveau d'objet ») ; `assert(niveau >= 1)`, `assert(objetValide)` ; `[[nodiscard]]` |
+| `Objet genererObjet(Generateur&, int niveau)` | Un objet tiré au hasard, valide, qui retient ce niveau et une qualité tirée de 0 à 100 (étapes 101 et 102 ; voir « Génération aléatoire », « Le niveau d'objet » et « Les gabarits d'armes… ») ; `assert(niveau >= 1)`, `assert(objetValide)` ; `[[nodiscard]]` |
 | `std::vector<Objet> genererButin(Generateur&, int chancePourCent, int nombre, int niveau)` | Le butin d'une mort (étape 97.3) : vide si la chance est nulle ou si le tirage de chance échoue, sinon `nombre` objets de `genererObjet` de ce niveau ; **un seul tirage pour la chance, aucun à 0 ou 100** ; `assert` : chance de 0 à 100 ; `[[nodiscard]]` |
 
 ### `Equipement` (`objets/`)
@@ -585,15 +657,18 @@ PositionPortee { std::size_t place; Emplacement emplacement; }` (chacune avec `o
 |---|---|
 | `bool deplacementPermis(const PositionDObjet& de, const std::optional<Objet>& objetDe, const PositionDObjet& vers, const std::optional<Objet>& objetVers)` | Seule source de la règle des déplacements (voir « Déplacements ») ; `[[nodiscard]]` |
 
-### `DonneesDArme`, `DonneesDeBouclier` (`objets/`) et `TypeDArme`, `DescriptionDAttaque` (`combat/`)
+### `DonneesDArme`, `DonneesDeBouclier` (`objets/`) et `TypeDArme`, `DescriptionDAttaque`, `PlageDeDegats` (`combat/`)
 
-En-têtes seuls (étape 91). `struct DonneesDArme { TypeDArme type; int mains; DescriptionDAttaque attaque; }` ;
-`struct DonneesDeBouclier { int chanceDeBlocage; int montantBloque; }` ; `enum class TypeDArme { EpeeLongue, Masse,
-Dague, EpeeADeuxMains, Sceptre, Baton, Arc }` ; `struct DescriptionDAttaque { Degats degats; float rechargeMin;
-float rechargeMax; float tempsExecution; float portee; NatureDAttaque nature; int penetration; }` (depuis l'étape 95,
-`degats` est typé : une portion par élément ; avant, un entier) (toutes avec `operator==`, sans
-valeur par défaut : un oubli est signalé par le compilateur), accompagnée de `s_zoneDeControleDeContact` (20 px) et
-de `zoneDeControleDe(NatureDAttaque)` (contact : 20, projectile et zone : 0).
+En-têtes seuls. `struct DonneesDArme { TypeDArme type; int mains; int degatsDeReference; int ecartPourCent; float rechargeMin;
+float rechargeMax; float tempsExecution; float portee; NatureDAttaque nature; int penetration; }` (le gabarit, étape 102 ; avant,
+`{ type, mains, DescriptionDAttaque attaque }`) ; `struct DonneesDeBouclier { int chanceDeBlocage; int montantBloque; }` ; `enum class
+TypeDArme { Dague, EpeeAUneMain, HacheAUneMain, MasseAUneMain, Lance, EpeeADeuxMains, HacheADeuxMains, MasseADeuxMains, Baguette,
+Sceptre, Baton, Arc, Arbalete }` ; `struct DescriptionDAttaque { PlageDeDegats degats; float rechargeMin; float rechargeMax; float
+tempsExecution; float portee; NatureDAttaque nature; int penetration; }` (`degats` est une plage depuis l'étape 102, un `Degats` typé
+depuis l'étape 95) ; `struct PlageDeDegats { Degats min; Degats max; }`, `plageFixe(Degats)` et `Degats tirerLesDegats(Generateur&,
+const PlageDeDegats&)` (`combat/PlageDeDegats.hpp` / `.cpp`) (toutes avec `operator==`, sans valeur par défaut : un oubli est signalé
+par le compilateur), accompagnée de `s_zoneDeControleDeContact` (20 px) et de `zoneDeControleDe(NatureDAttaque)` (contact : 20,
+projectile et zone : 0).
 
 ### `DeplacementDObjets` (`objets/`) — la règle des déplacements (étape 91.3)
 
@@ -617,10 +692,10 @@ libres sans état, qui rendent des `std::string` en UTF-8.
 | `std::string nomDeLEmplacement(Emplacement)` | « Head », « Chest », « Legs », « Hands », « Feet », « Main Hand », « Off Hand », « Necklace », « Ring 1 », « Ring 2 » ; `switch` sans `default` ; `[[nodiscard]]` |
 | `std::string nomDeLaCategorie(CategorieObjet)` | « Helmet », « Body Armor », « Leggings », « Gloves », « Boots », « Shield », « Necklace », « Ring », « Weapon » ; `[[nodiscard]]` |
 | `std::string ligneDeSeuil(const SeuilDeCaracteristique&)` / `std::string ligneDObjetInactif()` | « Requires Might 11 » ; « Inactive: requirement not met » (étape 92.3) ; `[[nodiscard]]` |
-| `std::string sigleDeLObjet(IdObjet)` | Deux lettres par objet du catalogue (IH, CM, IG, RS, LG, LB, LC, PT, NP, RP, RM, NC, LS, MA, DA, GS, SC, ST, BO) ; `[[nodiscard]]` |
+| `std::string sigleDeLObjet(IdObjet)` | Deux lettres par objet du catalogue (IH, CM, IG, RS, LG, LB, LC, PT, NP, RP, RM, NC, puis DA, SW, HA, MA, SP, GS, GA, MU, WA, SC, ST, BO, CB) ; `[[nodiscard]]` |
 | `sf::Color couleurDeLaRarete(Rarete)` | Blanc (commun), jaune (magique), vert (rare) ; lisibles sur le fond le plus clair de l'inventaire (contraste ≥ 4,5, un test le vérifie) ; `[[nodiscard]]` (étape 95.5) |
 | `std::string ligneDAffixe(const Affixe&)` | « Fire Damage: +6 », « Holy Damage: +4 », « Penetration: +15 % », « Armor: +3 », « Dexterity: +2 », « Dodge vs Melee: +3 % », « Dodge vs Projectiles: +4 % », « Block: +5 % » ; `switch` sans `default` ; `[[nodiscard]]` |
-| `std::vector<std::string> lignesDeLInfobulle(const Objet&)` | Nom composé, catégorie, propriétés du modèle (armure, bonus, bonus de combat, blocage, attaque), une ligne par affixe, seuils ; `[[nodiscard]]` |
+| `std::vector<std::string> lignesDeLInfobulle(const Objet&)` | Nom composé, catégorie, « Item Level N », propriétés du modèle (armure, bonus, bonus de combat, blocage, attaque de l'arme calculée pour cet objet), une ligne par affixe, seuils de l'objet à son niveau ; `[[nodiscard]]` |
 
 ### Ce que `Personnage` et `Escouade` ajoutent
 

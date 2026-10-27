@@ -1600,7 +1600,7 @@ qui ne casse pas.
 
 ### L'attaque de base vient d'une arme du catalogue (91.4)
 
-Les personnages de test portent l'épée longue (mêlée), le sceptre (prêtre) et le bâton (mage), du catalogue des
+Les personnages de test portent l'épée à une main (mêlée), le sceptre (prêtre) et le bâton (mage), du catalogue des
 objets : c'est la seule dépendance au catalogue des objets de leur attaque, et les constantes (`s_degatsBaseDeTest`,
 `s_porteeMeleeDeTest`, `s_rechargeMeleeMinDeTest`…, `aides_escouade.hpp`) sont **lues** dans la description de
 l'attaque de l'arme (`inline const`, plus `constexpr`), jamais écrites en littéral. Leurs caractéristiques sont
@@ -1609,6 +1609,13 @@ Puissance, fait exactement les dégâts de l'arme ; Adresse 0 et Endurance 0 com
 vie). Une attaque « reconnaissable » (un coup qu'on suit parmi d'autres) s'obtient par une Puissance élevée
 (`avecPuissance`) ou par le choix de l'arme (l'épée à deux mains frappe une fois en 1,2 s), pas par une attaque
 écrite à la main ; un monstre qui ne doit pas mourir est `monstreIndestructible()`.
+**Depuis l'étape 102**, une arme a une plage de dégâts et chaque coup en tire un : `s_degatsBaseDeTest` n'existe plus. Les aides de
+`aides_escouade.hpp` disent « ce nombre est un coup de cette arme » : `dansLaPlage`, `dansLaPlageAvecPuissance` (la Puissance sur chaque
+borne), `estUnCoupDeBase` / `estUnCoupDeTireur` (l'épée ou le sceptre de test), `sontDesCoupsDeLaComposition` (le total de plusieurs
+personnages d'armes différentes), `montantAttendu` (un montant infligé, entre les deux bornes) ; `attaqueDeBaseDe(personnage)` /
+`attaqueDeBaseDe(escouade, place)` lisent l'attaque de base avec un générateur de test ; `unPersonnageEquipe` pose un objet d'un autre
+niveau que 1 (l'équipement de départ d'une définition ne dit que des modèles).
+
 
 ### Nouveaux tests
 
@@ -1960,7 +1967,7 @@ avant de construire la `Partie`.
   niveau gagné ; **une dépense valide change la base, le maximum de points de vie et les points libres** ; deux dépenses s'additionnent ;
   **un vivant blessé gagne autant de points de vie que son maximum** ; **un mort peut dépenser et reste mort** avec son nouveau maximum ;
   **une dépense trop grande est refusée sans rien changer** ; **une valeur négative aussi**, sans reprendre un point dépensé ; rien à
-  dépenser au niveau 1 ; **un seuil d'équipement atteint grâce à la dépense rend l'objet actif** (l'épée longue redevient l'arme) ;
+  dépenser au niveau 1 ; **un seuil d'équipement atteint grâce à la dépense rend l'objet actif** (l'épée redevient l'arme) ;
   les points dépensés restent après une montée de niveau) ; `test_Escouade_equipement.cpp` (+3 : la dépense va au personnage de cette
   place et aux autres rien ; place invalide, dépense trop grande ou négative : faux, rien ne change ; `monterAuNiveau` donne trois
   points par niveau à chaque personnage) ; `test_Expedition.cpp` (+2 : **une nouvelle expédition n'a aucun point dépensé** ; **les points
@@ -2009,3 +2016,32 @@ avant de construire la `Partie`.
   vérifie à l'œil.
 - **Un nom de `TEST_CASE` sans accent** : un « â » dans un nom a fait échouer le filtre de CTest (le test existait mais ne se lançait
   pas) ; « laches » et « a l'etage 5 ».
+
+## Étape 102 : les gabarits d'armes (+25 cas, 1 720 → 1 745)
+
+- **102.1** (+4) : `test_CatalogueObjets.cpp` (+3 : un objet sans précision est de niveau 1 et de qualité moyenne ; **le niveau et la
+  qualité comptent dans l'égalité** ; `objetValide` refuse un niveau sous 1 et une qualité hors de 0 – 100 ; `facteurDeNiveau`) ;
+  `test_GenerationDObjets.cpp` (+1, et la suite épinglée réépinglée : **la qualité est tirée après le modèle**, l'objet retient le niveau
+  reçu, les deux bornes de la qualité sortent). `aides_escouade.hpp` : la clé d'un exemplaire compte le niveau et la qualité.
+- **102.2** (+3) : `test_CatalogueObjets.cpp` (`seuilsDeLObjet` : 6, 8, 14, 44 aux niveaux 1, 2, 5, 20 ; ne dépend ni de la rareté, ni des
+  affixes, ni de la qualité ; plusieurs exigences) ; `test_CoherenceDesDonnees.cpp` (**toute classe peut porter tout objet du
+  catalogue au niveau 1**, qui remplace « personne ne porte l'épée à deux mains au départ » ; chaque pente est d'au moins 1). Les tests
+  qui avaient besoin d'un objet « sous le seuil » utilisent un objet de niveau supérieur ou lisent le seuil par `seuilsDeLObjet`.
+- **102.3** (+6) : `test_PlageDeDegats.cpp` (+5 : plage fixe, aucun tirage si `min == max`, les deux bornes sortent, **un tirage par
+  élément qui a un écart dans l'ordre des éléments**, même graine même tirage) ; `test_Personnage.cpp` (+1 : les mains nues ne tirent
+  rien). Aucun autre test ne change de valeur : les armes prototypes n'avaient pas d'écart.
+- **102.4** (+12) : `test_CatalogueObjets.cpp` (**les treize gabarits** — type, mains, nature, portée, exécution, recharge, référence,
+  écart, pénétration, exigences —, un type par arme, `estADeuxMains`, `descriptionDeLArme` : épée 13 – 17 au niveau 1, 26 – 35 au niveau
+  5, 11 – 15 et 15 – 20 aux qualités 0 et 100 ; jamais plus bas avec le niveau ou la qualité ; **la recharge, l'exécution, la portée, la
+  nature et la pénétration ne bougent pas avec le niveau** ; ni la rareté ni les affixes ne changent la plage ; les armes qui percent
+  l'armure ; les mains nues) ; `test_CoherenceDesDonnees.cpp` (+2 : **aucun gabarit ne dépasse de plus de 10 % les dégâts par seconde de
+  sa famille** — 23 à une main, 30 à deux mains — ; **la plage contient la moyenne à tout niveau de 1 à 20 et à toute qualité, et son
+  minimum est d'au moins 1**) ; `test_AffichageObjets.cpp` (« Item Level N », « Damage: 13–17 », les dégâts qui suivent le niveau, la
+  qualité jamais affichée, la pénétration de toute arme qui en a une) ; `test_Personnage.cpp` (+2 : un coup tire un seul nombre dans la
+  plage ; deux coups d'une masse ne sont pas toujours égaux) ; `test_Specialite.cpp` (les skills de frappe veulent toutes les armes de
+  contact, ceux de l'archer l'arc ou l'arbalète). Sigles uniques : le test existant sur les 25 objets.
+- **Tests réécrits** : plus de comparaison d'un coup à un nombre (voir « L'attaque de base vient d'une arme du catalogue ») ; les tests de
+  zone de contrôle déduisent les points de vie du monstre de la plage de l'arme (deux fois le plus petit coup, un monstre sans critique) ;
+  la fenêtre d'un coup passe de 0,2 s à 0,35 s (le bâton à deux mains met 0,3 s à frapper).
+- **Ce que les tests ne voient pas** : la sensation (les nombres flottants qui varient, la lance qui touche de plus loin, la dague qui
+  frappe plus souvent que la masse) se vérifie à l'œil.

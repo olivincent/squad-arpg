@@ -814,7 +814,7 @@ même endroit dans un passage étroit » a disparu de la liste des limites.
   `Avant` (colonne de x = +25), trois rôdeurs tous `Arriere` (x = −25) ; `decalagesDeFormation`
   gérait déjà ces cas.
 - **La classe ne fixe plus l'attaque de base** (étape 91.4) : elle garde ses skills, son rang, ses
-  caractéristiques de base et son équipement de départ, dont l'arme (guerrier épée longue, paladin masse, prêtre
+  caractéristiques de base et son équipement de départ, dont l'arme (guerrier épée à une main, paladin masse à une main, prêtre
   sceptre, mage bâton, rôdeur arc) fournit l'attaque de base, la portée et la zone de contrôle ; les skills de
   frappe et de tir exigent un type d'arme (`docs/combat.md`). Les points de vie ne viennent plus que de
   l'Endurance (base commune de 240).
@@ -1227,7 +1227,7 @@ un personnage immobile. Inclus par `Escouade` et `Formation` sans qu'elles dépe
 | `const Specialite& specialite(IdSpecialite id)` | L'entrée de cet identifiant (indexée par l'enum, `assert` sur l'identifiant) ; `[[nodiscard]]` |
 | `std::vector<DefinitionPersonnage> composer(const std::vector<IdSpecialite>& identifiants)` | Une définition par identifiant, dans l'ordre reçu (c'est l'ordre des places). La k-ième occurrence d'une même classe (k = 0, 1, 2) a sa couleur assombrie de 0 %, 30 % puis 55 % (`assombrir`) ; `assert` : pas plus de 3 fois la même classe ; `[[nodiscard]]` |
 
-Classes (équipement de départ depuis l'étape 91.4) : guerrier (`Avant`, rouge, armure 9, épée longue et bouclier rond, `FrappePuissante` et `Provocation`), prêtre (`Arriere`, jaune pâle, sceptre, `Soin`), mage (`Arriere`, violet, bâton, `Explosion`), paladin (`Avant`, orange, armure 9, masse et bouclier rond, `FrappeSacree` et `ImpositionDesMains`), rôdeur (`Arriere`, vert, arc, `TirPercant` et `PluieDeFleches`). Rayon de vision 320 px pour toutes. Zone de contrôle : celle de l'arme (20 px pour le guerrier et le paladin, au contact ; 0 pour les trois autres). Points de vie : 240 + 6 × Endurance (guerrier 324, paladin 318, prêtre et rôdeur 300, mage 288). Les skills de frappe et de tir exigent un type d'arme. Valeurs des skills dans `docs/combat.md`.
+Classes (équipement de départ depuis l'étape 91.4) : guerrier (`Avant`, rouge, armure 9, épée à une main et bouclier rond, `FrappePuissante` et `Provocation`), prêtre (`Arriere`, jaune pâle, sceptre, `Soin`), mage (`Arriere`, violet, bâton, `Explosion`), paladin (`Avant`, orange, armure 9, masse et bouclier rond, `FrappeSacree` et `ImpositionDesMains`), rôdeur (`Arriere`, vert, arc, `TirPercant` et `PluieDeFleches`). Rayon de vision 320 px pour toutes. Zone de contrôle : celle de l'arme (20 px pour le guerrier et le paladin, au contact ; 0 pour les trois autres). Points de vie : 240 + 6 × Endurance (guerrier 324, paladin 318, prêtre et rôdeur 300, mage 288). Les skills de frappe et de tir exigent un type d'arme. Valeurs des skills dans `docs/combat.md`.
 
 ### `Encerclement` (`monde/`) — les places d'un anneau
 

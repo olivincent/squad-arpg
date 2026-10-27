@@ -859,9 +859,9 @@ mains sont dans `docs/objets.md`.
   `declencherSkillDeZone` renvoient sans activation, sans mise en attente et sans recharge consommée. Perdre l'arme
   (inventaire) annule l'activation en cours et abandonne le skill en attente de l'escouade ; changer pour une autre
   arme qui convient ne touche à rien. `EtatSkill::armeAbsente` le dit, et `BarreDeSkills` grise l'icône (texte
-  atténué, ni quartier ni chiffre, comme un lanceur mort). Exigences du catalogue des classes : frappe puissante
-  épée longue, masse, dague ou épée à deux mains ; frappe sacrée épée longue, masse ou épée à deux mains ; tir
-  perçant et pluie de flèches arc ; les autres aucune. Pas de restriction par classe : un guerrier qui reçoit un arc
+  atténué, ni quartier ni chiffre, comme un lanceur mort). Exigences du catalogue des classes (depuis l'étape 102) : frappe puissante
+  et frappe sacrée **toute arme de contact** (dague, épée, hache ou masse à une ou deux mains, lance : la liste `s_armesDeContact`) ;
+  tir perçant et pluie de flèches arc ou arbalète ; les autres aucune. Pas de restriction par classe : un guerrier qui reçoit un arc
   tire, mais n'a plus sa frappe.
 - **Le blocage est une propriété du bouclier (étape 91.6)** : `DonneesDeBouclier` (chance, montant) ; la
   **récupération est une constante commune** (`s_recuperationDuBlocage`, `Blocage.hpp`, 3 s), lue par
@@ -874,8 +874,8 @@ mains sont dans `docs/objets.md`.
 
 Détail de conception : `docs/classes-et-combat.md`, section 8.
 
-- **Une propriété de l'arme** : `DescriptionDAttaque::penetration`, en pour cent entier ; la dague 30, les autres
-  armes et les mains nues 0. Elle circule dans l'`Attaque` (`penetration`, 0 par défaut) jusqu'à `resoudreCoup`, qui la
+- **Une propriété de l'arme** : `DescriptionDAttaque::penetration`, en pour cent entier ; depuis l'étape 102 la dague 15, l'arc 15, la
+  lance 30, l'arbalète 30, les autres armes et les mains nues 0. Elle circule dans l'`Attaque` (`penetration`, 0 par défaut) jusqu'à `resoudreCoup`, qui la
   passe à `appliquerArmure(montant, armure, penetration)`. Le `Personnage` la met dans l'attaque de base
   (`attaqueDeLArme`, depuis l'étape 95 ; avant, `attaqueDe(skill, penetration)`), donc aussi dans les coups
   d'opportunité (`Escouade::attaqueDeBase`) ; un skill de dégâts n'en a pas (il a sa propre puissance ; la frappe sacrée
@@ -936,8 +936,9 @@ Détail de conception : `docs/classes-et-combat.md`, sections 6, 7, 8 et 12.
   `DefinitionDeSkill::bonusDeFrappe` (un `Degats` typé, ici 45 de sacré) ; l'arme apporte les dégâts physiques, la nature
   et la pénétration (`Personnage::attaqueDeFrappe`, depuis `DescriptionDAttaque` de l'arme portée, **toutes ses portions**
   depuis l'étape 95 : un affixe de feu ou de sacré compte), le skill sa portée,
-  sa recharge, son temps d'activation et son bonus. Sa puissance est 0 et sa nature déclarée n'est pas lue. Calibrage :
-  masse (15) + 45 = 60, le total d'avant ; épée à deux mains (60) + 45 = 105. Le bonus étant un `Degats`, la frappe
+  sa recharge, son temps d'activation et son bonus. Sa puissance est 0 et sa nature déclarée n'est pas lue. Calibrage (étape 94) :
+  masse de 15 + 45 = 60, le total d'avant ; depuis l'étape 102 la masse à une main fait 26 en moyenne (71 en tout), à retoucher en
+  jouant. Les portions de l'arme sont **tirées dans sa plage** au départ de la frappe, comme pour l'attaque de base. Le bonus étant un `Degats`, la frappe
   puissante et le tir perçant pourront devenir des skills de frappe avec un bonus physique, sans changer la structure.
 - **Affichage** : toujours un seul nombre flottant, le total. `DegatsSubis::element` est celui de la plus grosse portion
   après les réductions (à égalité, le premier de l'énumération : `elementDominant`) ; sa couleur : physique inchangé
@@ -955,10 +956,11 @@ Détail de conception : `docs/classes-et-combat.md`, sections 6, 7, 8 et 12.
 
 Le modèle des affixes est dans `docs/objets.md` (« Rareté et affixes ») ; ici, ce qui change dans le circuit des coups.
 
-- **L'attaque de base est typée.** `DescriptionDAttaque::degats` est un `Degats` (une portion par élément) : les armes
-  du catalogue et les mains nues sont physiques (`degatsPhysiques`). `Equipement::attaqueDeBase` y ajoute les portions de feu
-  et de sacré des affixes de l'arme (« Blazing » : feu, « Hallowed » : sacré) et leur pénétration (« Keen »). Une masse
-  « Blazing » frappe donc en physique **et** en feu.
+- **L'attaque de base est typée.** `DescriptionDAttaque::degats` est une `PlageDeDegats` (un `Degats` minimum et un `Degats` maximum
+  depuis l'étape 102 ; un seul `Degats` depuis l'étape 95) : les armes du catalogue et les mains nues sont physiques
+  (`degatsPhysiques`). `Equipement::attaqueDeBase` y ajoute aux deux bornes les portions de feu et de sacré des affixes de l'arme
+  (« Blazing » : feu, « Hallowed » : sacré) et leur pénétration (« Keen »). Une masse « Blazing » frappe donc en physique **et** en feu.
+  **Chaque coup tire ses dégâts dans la plage** (`tirerLesDegats`, voir plus bas) avant la Puissance et la défense.
 - **La Puissance joue sur chaque portion.** `Personnage::attaqueDeLArme` (qui remplace l'usage de `attaqueDe(skill,
   penetration)` pour l'attaque de base ; le `Skill` de l'attaque de base n'a plus que le temps, sa puissance est 0) applique
   `montantEffectif` à chaque portion avec le coefficient de Puissance 1,0 : **un arrondi par portion**. Les coups d'opportunité
@@ -2039,6 +2041,19 @@ autre module ni de SFML.
 | `constexpr int resistanceEffective(int pourCent)` | Ramenée entre `s_resistanceMinimale` (−100) et `s_resistanceMaximale` (80) ; `[[nodiscard]]` |
 | `float appliquerResistance(float montant, int resistance)` | `montant × (1 − résistance effective / 100)`, sans arrondi ; une résistance négative augmente la portion ; `[[nodiscard]]` |
 | `int appliquerArmure(int montant, int armure, int penetration = 0)` | Dégâts réellement subis : `max(montant − armure effective, montant × 20 %)` (modèle M1, `s_plancherArmure`), où l'armure effective est `armure × (1 − penetration / 100)` (pénétration ramenée entre 0 et `s_penetrationMaximale`, 75, sans arrondi intermédiaire), arrondi au plus proche, au moins 1 si `montant > 0`, 0 si `montant == 0` ; `assert(montant >= 0)` et `assert(armure >= 0)` ; `[[nodiscard]]` |
+
+### `PlageDeDegats` (`combat/`) — la plage de dégâts d'une arme (étape 102.3)
+
+`PlageDeDegats.hpp` / `.cpp`. `struct PlageDeDegats { Degats min; Degats max; }` (avec `operator==`), un `Degats` par borne.
+
+| Fonction | Rôle |
+|---|---|
+| `constexpr PlageDeDegats plageFixe(const Degats&)` | Une plage sans écart (le minimum est le maximum) : les mains nues ; `[[nodiscard]]` |
+| `Degats tirerLesDegats(Generateur&, const PlageDeDegats&)` | Pour chaque élément, dans l'ordre de `s_elements`, un entier uniforme entre son minimum et son maximum (`tirerEntre`) ; **aucun tirage quand `min == max`**, donc le `Generateur` n'avance pas pour une plage fixe ; `assert` : le minimum ne dépasse pas le maximum ; `[[nodiscard]]` |
+
+Le tirage a lieu au départ de chaque coup qui utilise l'arme (`Personnage::attaqueDeLArme` et `attaqueDeFrappe`, `Escouade::attaqueDeBase`
+pour les coups d'opportunité) ; le résultat passe ensuite à `montantEffectif` (la Puissance, par portion) puis à `resoudreCoup`. Les
+gabarits d'armes qui donnent les plages : `docs/objets.md`, « Les gabarits d'armes, le niveau et la qualité ».
 
 ### `ResolutionDuCoup` (`combat/`) — le point d'entrée du coup (étape 87.2)
 

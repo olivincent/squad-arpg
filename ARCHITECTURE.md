@@ -46,7 +46,7 @@ squad-arpg/
 │   ├── rendu/      BarreDeVie, TraceDeChemin
 │   ├── monde/      TileMap, Chemin, Deplacement, Mobile, ChampDeVision, Vision,
 │   │               ObjetInteractif, Niveau, CategorieDeMonstre, CompositionDeGroupe, GenerateurDonjon, Encerclement
-│   ├── combat/     Skill, SkillConnu, IdSkill, TypeSkill, TypeDArme, DescriptionDAttaque, AdresseSkill, Cible, ActionEngagee, Progression,
+│   ├── combat/     Skill, SkillConnu, IdSkill, TypeSkill, TypeDArme, DescriptionDAttaque, PlageDeDegats, AdresseSkill, Cible, ActionEngagee, Progression,
 │   │               Element, Degats,
 │   │               EtatSkill, Coup, EvenementDeCombat, EntiteVue, Autodefense, Engagement,
 │   │               Attaque, NatureDAttaque, StatistiquesDeCombat, Esquive, Critique, Blocage, Defense,
@@ -136,8 +136,11 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `TypeSkill` : `DegatsSurCible`, `Soin`, `Provocation`, `Zone`.
 - `Element`, `Degats` : les éléments d'un coup (`Physique`, `Feu`, `Sacre`), `ParElement<T>` (une valeur par élément), `Degats`
   (les portions d'un coup) et `Portions` (leur version flottante pendant la résolution) ; sans `.cpp` (`docs/combat.md`).
-- `TypeDArme`, `DescriptionDAttaque` : le type d'une arme (ce qu'un skill peut exiger) et la description d'une attaque de base
-  (dégâts, recharge, exécution, portée, nature) que donne une arme ou les mains nues ; `zoneDeControleDe(nature)` (`docs/objets.md`).
+- `TypeDArme`, `DescriptionDAttaque` : le type d'une arme (treize depuis l'étape 102 ; ce qu'un skill peut exiger) et la description d'une
+  attaque de base (plage de dégâts, recharge, exécution, portée, nature, pénétration) que donne une arme ou les mains nues ;
+  `zoneDeControleDe(nature)` (`docs/objets.md`).
+- `PlageDeDegats` : un `Degats` minimum et un `Degats` maximum, `plageFixe`, et `tirerLesDegats` (un tirage par élément qui a un écart,
+  aucun quand `min == max`) : chaque coup d'une arme tire ses dégâts dans sa plage (`docs/combat.md`, `docs/objets.md`).
 - `IdSkill`, `SkillConnu`, `AdresseSkill` : identifiant stable d'un skill, skill d'un personnage, place + skill.
 - `Cible` : `std::variant` allié, monstre ou point, et `Surcharges` pour `std::visit`.
 - `ActionEngagee` : l'action (attaque de base ou skill) qu'un personnage prépare, et sa cible.
@@ -162,19 +165,22 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `Emplacement` : les 10 emplacements, les 8 catégories d'objet et `peutAller`, seule source de la règle.
 - `Affixe` : `Rarete` (commun, magique, rare), `IdAffixe` et `Affixe` (l'identifiant et la valeur de CET objet) ; sans `.cpp`.
 - `Objet` : `IdObjet` et `Objet`, l'instance, distincte de son modèle : le modèle, la rareté, au plus un préfixe et un
-  suffixe ; petite valeur, égalité par valeur.
+  suffixe, le niveau et la qualité (étape 102) ; petite valeur, égalité par valeur ; `facteurDeNiveau`, l'unique facteur de niveau.
 - `CatalogueAffixes` : `DefinitionDAffixe` (nom, position, effet, plage de valeurs, catégories permises), `catalogueAffixes()`,
   `definitionAffixe()`, `plageAuNiveau()` (la plage d'un affixe sur un objet d'un niveau, étape 101), `affixePermis()`,
   `affixesPermisPour()` et `apportDesAffixes()`, ce que les affixes d'un objet ajoutent aux totaux.
-- `CatalogueObjets` : `DefinitionObjet` (nom, catégorie, armure, bonus, données d'arme ou de bouclier, seuils),
-  `catalogueObjets()`, `definitionObjet()`, `seuilsAtteints()`, `estADeuxMains()`, `mainsNues()`,
+- `CatalogueObjets` : `DefinitionObjet` (nom, catégorie, armure, bonus, données d'arme ou de bouclier, exigences de caractéristiques),
+  `catalogueObjets()`, `definitionObjet()`, `seuilsDeLObjet()` (l'unique calcul d'un seuil : `6 + pente × (niveau − 1)`),
+  `seuilsAtteints()`, `estADeuxMains()`, `mainsNues()`, `descriptionDeLArme()` (l'unique calcul de l'arme d'un objet : plage de
+  dégâts selon le niveau et la qualité, le reste du gabarit),
   `objetValide()` (les invariants d'un objet), `nomDeLObjet()` (« Blazing Mace »).
 - `GenerationDObjets` : `genererObjet`, le tirage d'un objet valide d'un niveau (la profondeur où il est généré) avec le `Generateur`
   reçu (rareté, modèle, affixes, valeurs), `genererButin` (le butin d'une mort : la chance, puis les objets), `poidsDeRarete`
   (selon le niveau) et `peutPorterLaRarete`, l'unique endroit de la règle « quel modèle peut porter quelle rareté ».
 - `ObjetsActifs` : `objetsActifs`, le point fixe qui dit quels objets portés ont un effet (un objet dont le seuil de
   caractéristiques n'est plus atteint reste porté mais est inactif) ; une règle pure.
-- `DonneesDArme`, `DonneesDeBouclier` : ce qui fait d'un objet une arme (type, mains, attaque) ou un bouclier (chance et
+- `DonneesDArme`, `DonneesDeBouclier` : ce qui fait d'un objet une arme (le gabarit : type, mains, référence des dégâts, écart,
+  recharge, exécution, portée, nature, pénétration) ou un bouclier (chance et
   montant de blocage) ; des données, pas une hiérarchie.
 - `Equipement` : un objet au plus par emplacement, `armureTotale()`, `attaqueDeBase()` (l'arme de la main droite avec ses
   affixes, sinon les mains nues), `actifPour(base)` (sans ses objets inactifs) et `caracteristiquesEffectives` ; les affixes
@@ -257,7 +263,7 @@ Un dossier n'inclut que lui-même et ceux qui le **précèdent** dans cet ordre 
 ```
 base → monde → combat → objets → escouade, monstres → jeu → interface → app
 rendu : ne dépend que de base
-objets : ne dépend que de base (`Generateur`) et de combat (`Caracteristiques`, `StatistiquesDeCombat`, `TypeDArme`, `DescriptionDAttaque`, `Degats`)
+objets : ne dépend que de base (`Generateur`) et de combat (`Caracteristiques`, `StatistiquesDeCombat`, `TypeDArme`, `DescriptionDAttaque`, `PlageDeDegats`, `Degats`)
 ```
 
 - `escouade/` et `monstres/` ne s'incluent pas entre eux : ils communiquent par `combat/`
