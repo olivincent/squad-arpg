@@ -417,7 +417,7 @@ TEST_CASE("changer d'arme dans l'inventaire relance la recharge : le premier cou
     const auto coupsPendant = [&](float duree) {
         std::size_t coups = 0;
         for (int i = 0; i < nombreDeTics(duree); ++i) {
-            coups += escouade.attaquer(s_dureeTic, monstres, carte, generateur).size();
+            coups += coupsDe(escouade.attaquer(s_dureeTic, monstres, carte, generateur)).size();
             escouade.mettreAJour(s_dureeTic, carte, {.physiques = monstres, .ciblables = monstres, .deControle = {}});
         }
         return coups;

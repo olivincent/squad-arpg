@@ -75,6 +75,8 @@ public:
     // Les questions sur un skill se posent par identifiant. Un identifiant que ce
     // personnage ne connaît pas se comporte comme « pas de skill » : vide, faux ou rayon 0.
     [[nodiscard]] std::optional<ModeDeCible> modeSkill(IdSkill id) const;
+    // Le skill de cet identifiant, avec son effet et sa zone ; nullptr si le personnage ne le connaît pas.
+    [[nodiscard]] const Skill* skillConnu(IdSkill id) const;
     // Identifiants des skills qu'il connaît, dans l'ordre de sa liste.
     [[nodiscard]] std::vector<IdSkill> idsDesSkills() const;
     // L'arme portée permet-elle de lancer ce skill ? Faux pour un skill que le personnage ne connaît pas.

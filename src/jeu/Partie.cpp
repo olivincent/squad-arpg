@@ -277,7 +277,9 @@ void Partie::appliquerLesCoupsDOpportunite(const CampsDeControle& avant) {
             coupsSurLesMonstres.push_back({coup.idCible, *attaque});
         }
     }
-    appliquer(coupsSurLesMonstres, true);
+    for (const Coup& coup : coupsSurLesMonstres) {
+        infligerUnCoup(coup, true);
+    }
 
     const std::optional<IdMonstre> idVerrouille = m_escouade.getCibleVerrouillee();
     if (idVerrouille.has_value()) {
@@ -331,12 +333,25 @@ void Partie::gagnerUnNiveau() {
     monterSiLExperienceLeDonne();
 }
 
-void Partie::appliquer(const std::vector<Coup>& coups, bool opportunite) {
-    for (const Coup& coup : coups) {
-        if (Monstre* touche = trouverMonstre(coup.idMonstre)) {
-            const ResultatDuCoup resultat = touche->recevoirDegats(coup.attaque, m_generateur);
-            signalerLeCoup(touche->getId(), touche->getCentre(), resultat, opportunite);
-        }
+void Partie::infligerUnCoup(const Coup& coup, bool opportunite) {
+    if (Monstre* touche = trouverMonstre(coup.idMonstre)) {
+        const ResultatDuCoup resultat = touche->recevoirDegats(coup.attaque, m_generateur);
+        signalerLeCoup(touche->getId(), touche->getCentre(), resultat, opportunite);
+    }
+}
+
+void Partie::traduire(const std::vector<ResultatDEffet>& resultats) {
+    for (const ResultatDEffet& resultat : resultats) {
+        std::visit(Surcharges{[&](const SkillParti& parti) { signaler(parti.lanceur, parti.position, SkillLance{parti.skill}); },
+                              [&](const Coup& coup) { infligerUnCoup(coup, false); },
+                              [&](const SoinSurAllie& soin) { signaler(soin.place, soin.position, Soin{soin.montant, soin.critique}); },
+                              [&](const ProvocationPosee& provocation) {
+                                  // Un monstre disparu dans l'image n'a plus de position : pas de texte.
+                                  if (const Monstre* monstre = trouverMonstre(provocation.monstre)) {
+                                      signaler(monstre->getId(), monstre->getCentre(), Provoque{});
+                                  }
+                              }},
+                   resultat);
     }
 }
 
@@ -344,24 +359,6 @@ void Partie::infligerAUnPersonnage(IdMonstre idMonstre, Place place, const Attaq
     const ResultatDuCoup resultat = m_escouade.recevoirCoup(idMonstre, place, attaque, m_generateur);
     if (const std::optional<sf::Vector2f> centre = m_escouade.centreDuPersonnage(place)) {
         signalerLeCoup(place, *centre, resultat, opportunite);
-    }
-}
-
-void Partie::signalerLesFaits() {
-    for (const Escouade::FaitDEscouade& fait : m_escouade.prendreFaits()) {
-        std::visit(Surcharges{[&](const Escouade::SoinApplique& soin) {
-                       signaler(soin.place, soin.position, Soin{soin.montant, soin.critique});
-                   },
-                   [&](const Escouade::SkillPart& part) {
-                       signaler(part.place, part.position, SkillLance{part.skill});
-                   },
-                   [&](const Escouade::MonstreProvoque& provoque) {
-                       // Un monstre disparu dans l'image n'a plus de position : pas de texte.
-                       if (const Monstre* monstre = trouverMonstre(provoque.idMonstre)) {
-                           signaler(monstre->getId(), monstre->getCentre(), Provoque{});
-                       }
-                   }},
-                   fait);
     }
 }
 
@@ -407,20 +404,20 @@ void Partie::resoudreLesCoups(float dt) {
 
     // Lancer du skill de zone : réussi ou refusé, la demande est consommée.
     if (m_lancerDeZoneDemande.has_value()) {
-        appliquer(m_escouade.declencherSkillDeZone(m_lancerDeZoneDemande->adresse, m_lancerDeZoneDemande->point, monstresVus, m_carte, m_generateur));
+        traduire(m_escouade.declencherSkillDeZone(m_lancerDeZoneDemande->adresse, m_lancerDeZoneDemande->point, monstresVus, m_carte, m_generateur));
     }
 
     // Le skill passe avant l'attaque de base : s'il part, il relance
     // la recharge de base de ce personnage, qui ne frappe donc pas une
     // seconde fois dans la même image. Un soin ne rend aucun dégât.
     if (m_skillDemande.has_value()) {
-        appliquer(m_escouade.declencherSkill(*m_skillDemande, monstresVus, m_carte, m_generateur));
+        traduire(m_escouade.declencherSkill(*m_skillDemande, monstresVus, m_carte, m_generateur));
     }
 
     // Les coups sont demandés à chaque image, verrou ou non : chaque
     // personnage vivant frappe de lui-même un monstre à sa portée.
     if (m_escouade.estVivante()) {
-        appliquer(m_escouade.attaquer(dt, monstresVus, m_carte, m_generateur));
+        traduire(m_escouade.attaquer(dt, monstresVus, m_carte, m_generateur));
         if (idVerrouille.has_value()) {
             const Monstre* verrouille = trouverMonstre(*idVerrouille);
             if (verrouille != nullptr && !verrouille->estVivant()) {
@@ -428,9 +425,6 @@ void Partie::resoudreLesCoups(float dt) {
             }
         }
     }
-
-    // Soins du skill demandé et des skills qui partent dans attaquer().
-    signalerLesFaits();
 
     retirerLesMorts();
 }

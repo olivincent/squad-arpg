@@ -291,7 +291,7 @@ TEST_CASE("Sans verrou, un monstre hors de portee de tous ne recoit aucun coup")
     const TileMap carte = carteDegagee10x10();
     Escouade escouade = uneEscouade({50.0f, 50.0f});
 
-    REQUIRE(escouade.attaquer(s_dureeTic, {MonstreVu{IdMonstre{1}, cibleMonstre({300.0f, 60.0f})}}, carte, generateur).empty());
+    REQUIRE(coupsDe(escouade.attaquer(s_dureeTic, {MonstreVu{IdMonstre{1}, cibleMonstre({300.0f, 60.0f})}}, carte, generateur)).empty());
 }
 
 TEST_CASE("Sans verrou, seuls les tireurs frappent un monstre eloigne") {
@@ -359,7 +359,7 @@ TEST_CASE("Une escouade dont tous les personnages sont morts ne frappe plus") {
     infliger(escouade, IdMonstre{1}, {35.0f, 35.0f}, s_coupMortel);
     infliger(escouade, IdMonstre{1}, {35.0f, 85.0f}, s_coupMortel);
 
-    REQUIRE(escouade.attaquer(s_dureeTic, {MonstreVu{IdMonstre{1}, cibleMonstre({85.0f, 60.0f})}}, carte, generateur).empty());
+    REQUIRE(coupsDe(escouade.attaquer(s_dureeTic, {MonstreVu{IdMonstre{1}, cibleMonstre({85.0f, 60.0f})}}, carte, generateur)).empty());
 }
 
 // Temps d'exécution de l'attaque de base (0,15 s) : on frappe immobile, le
@@ -371,7 +371,7 @@ namespace {
 // Un tic d'attaquer() ; renvoie le total des dégâts des coups partis à ce tic.
 int attaquerCibleUnTic(Escouade& escouade, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur) {
     int total = 0;
-    for (const Coup& coup : escouade.attaquer(s_dureeTic, monstres, carte, generateur)) {
+    for (const Coup& coup : coupsDe(escouade.attaquer(s_dureeTic, monstres, carte, generateur))) {
         total += coup.attaque.degats.total();
     }
     return total;
@@ -382,7 +382,7 @@ int attaquerCibleUnTic(Escouade& escouade, const std::vector<MonstreVu>& monstre
 int ticDuPremierCoup(Escouade& escouade, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur,
                      float duree) {
     for (int i = 0; i < nombreDeTics(duree); ++i) {
-        if (!escouade.attaquer(s_dureeTic, monstres, carte, generateur).empty()) {
+        if (!coupsDe(escouade.attaquer(s_dureeTic, monstres, carte, generateur)).empty()) {
             return i;
         }
         escouade.mettreAJour(s_dureeTic, carte, {.physiques = {}, .ciblables = monstres, .deControle = {}});
@@ -417,7 +417,7 @@ TEST_CASE("Aucun coup n'est engage pendant que l'ancre marche sous ordre du joue
     escouade.allerVers({360.0f, 60.0f}, carte);
     int coups = 0;
     for (int i = 0; i < nombreDeTics(1.2f); ++i) {
-        coups += static_cast<int>(escouade.attaquer(s_dureeTic, monstres, carte, generateur).size());
+        coups += static_cast<int>(coupsDe(escouade.attaquer(s_dureeTic, monstres, carte, generateur)).size());
         escouade.mettreAJour(s_dureeTic, carte, {.physiques = {}, .ciblables = monstres, .deControle = {}});
     }
 
@@ -441,7 +441,7 @@ TEST_CASE("Un ordre de deplacement pendant l'execution annule le coup, sans rech
     Escouade escouade = uneEscouade({50.0f, 50.0f});
     const std::vector<MonstreVu> monstres = {MonstreVu{IdMonstre{1}, cibleMonstre({85.0f, 60.0f})}};
     for (int i = 0; i < 5; ++i) {
-        REQUIRE(escouade.attaquer(s_dureeTic, monstres, carte, generateur).empty());
+        REQUIRE(coupsDe(escouade.attaquer(s_dureeTic, monstres, carte, generateur)).empty());
     }
 
     escouade.allerVers(escouade.getCentre(), carte);  // un ordre, sans bouger l'ancre
@@ -513,12 +513,12 @@ TEST_CASE("Un skill qui part annule le coup en execution de son lanceur") {
     REQUIRE(attaquerCibleUnTic(escouade, monstres, carte, generateur) == 0);
 
     // Guerrier : le skill commence son activation (il part à 0,3 s, dans la fenêtre ci-dessous : son coup n'est pas une attaque de base).
-    REQUIRE(escouade.declencherSkill(s_adresseFrappe, monstres, carte, generateur).empty());
+    REQUIRE(coupsDe(escouade.declencherSkill(s_adresseFrappe, monstres, carte, generateur)).empty());
     REQUIRE_FALSE(escouade.skillEstPret(s_adresseFrappe));
 
     int attaquesDeBase = 0;
     for (int i = 0; i < nombreDeTics(0.35f); ++i) {
-        for (const Coup& coup : escouade.attaquer(s_dureeTic, monstres, carte, generateur)) {
+        for (const Coup& coup : coupsDe(escouade.attaquer(s_dureeTic, monstres, carte, generateur))) {
             attaquesDeBase += estUnCoupDeBaseDeLaComposition(coup.attaque.degats.total()) ? 1 : 0;
         }
     }

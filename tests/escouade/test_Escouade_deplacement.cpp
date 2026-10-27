@@ -464,7 +464,7 @@ TEST_CASE("Separation : des personnages trop proches s'ecartent en moins de 1 s"
     const TileMap& carte = carteOuverte();
     // La place 3 reste clouee sur place (activation jamais terminee, car pas d'attaquer) :
     // les autres, qui suivent leur place sur l'arc du demi-tour, la croisent.
-    REQUIRE(escouade.declencherSkillDeZone(s_adresseExplosion, {485.0f, 560.0f}, {}, carte, generateur).empty());
+    REQUIRE(coupsDe(escouade.declencherSkillDeZone(s_adresseExplosion, {485.0f, 560.0f}, {}, carte, generateur)).empty());
 
     escouade.allerVers({360.0f, 570.0f}, carte);
     bool chevauchement = false;
@@ -523,7 +523,7 @@ TEST_CASE("Separation : un personnage en activation n'est pas pousse") {
     Generateur generateur = generateurDeTest();
     Escouade escouade = uneEscouade({500.0f, 500.0f});  // place 3 en (485, 535)
     const TileMap& carte = carteOuverte();
-    REQUIRE(escouade.declencherSkillDeZone(s_adresseExplosion, {485.0f, 560.0f}, {}, carte, generateur).empty());  // activation en cours
+    REQUIRE(coupsDe(escouade.declencherSkillDeZone(s_adresseExplosion, {485.0f, 560.0f}, {}, carte, generateur)).empty());  // activation en cours
     REQUIRE(escouade.etatDuSkill(s_adresseExplosion)->enActivation);
 
     // Demi-tour : la place 2 vient se poser sur celle de la place 3. Sans

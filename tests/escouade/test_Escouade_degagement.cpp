@@ -65,7 +65,7 @@ bool engageLaPlace(const Escouade& escouade, const UnMonstre& monstre, Place pla
 // monstres. Renvoie les coups partis.
 std::vector<Coup> image(Escouade& escouade, const TileMap& carte, const std::vector<MonstreVu>& vues,
                         const std::vector<MonstreDeControle>& controle, Generateur& generateur) {
-    std::vector<Coup> coups = escouade.attaquer(s_dureeTic, vues, carte, generateur);
+    std::vector<Coup> coups = coupsDe(escouade.attaquer(s_dureeTic, vues, carte, generateur));
     escouade.mettreAJour(s_dureeTic, carte, {.physiques = vues, .ciblables = vues, .deControle = controle});
     return coups;
 }
@@ -257,7 +257,7 @@ TEST_CASE("Degagement : un skill en attente pour le mage empeche le depart et me
 
     SECTION("avant le depart") {
         Escouade escouade = uneEscouadeAuMageReconnaissable();
-        REQUIRE(escouade.declencherSkillDeZone(s_adresseExplosion, loin, monstre.vues, carte, generateur).empty());
+        REQUIRE(coupsDe(escouade.declencherSkillDeZone(s_adresseExplosion, loin, monstre.vues, carte, generateur)).empty());
 
         escouade.mettreAJour(s_dureeTic, carte, sansAttaquer(monstre));
 
@@ -267,7 +267,7 @@ TEST_CASE("Degagement : un skill en attente pour le mage empeche le depart et me
         Escouade escouade = uneEscouadeAuMageReconnaissable();
         escouade.mettreAJour(s_dureeTic, carte, sansAttaquer(monstre));
         REQUIRE(escouade.degagementDuPersonnage(s_mage) == IdMonstre{1});
-        REQUIRE(escouade.declencherSkillDeZone(s_adresseExplosion, loin, monstre.vues, carte, generateur).empty());
+        REQUIRE(coupsDe(escouade.declencherSkillDeZone(s_adresseExplosion, loin, monstre.vues, carte, generateur)).empty());
 
         escouade.mettreAJour(s_dureeTic, carte, sansAttaquer(monstre));
 

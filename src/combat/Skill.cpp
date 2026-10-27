@@ -22,6 +22,9 @@ Skill::Skill(const DefinitionDeSkill& definition)
     assert(m_tempsExecution >= 0.0f);
     assert(!m_rayonZone.has_value() || *m_rayonZone > 0.0f);
     assert(m_mode != ModeDeCible::Point || m_rayonZone.has_value());  // un skill à point touche une zone
+    // On vise un monstre pour lui faire des dégâts ou le provoquer, un allié pour le soigner.
+    assert(m_mode != ModeDeCible::Monstre || campTouche(m_effet) == CampTouche::Monstres);
+    assert(m_mode != ModeDeCible::Allie || campTouche(m_effet) == CampTouche::Allies);
 }
 
 // Recharge fixe (aucun tirage) si les deux bornes sont égales ; sinon tirage

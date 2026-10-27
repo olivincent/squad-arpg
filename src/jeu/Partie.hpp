@@ -171,12 +171,12 @@ private:
     // obstacles bloquants et à contourner).
     [[nodiscard]] std::vector<MonstreVu> entitesCiblables() const;
     [[nodiscard]] std::vector<MonstreVu> entitesPhysiques() const;
-    // Applique les coups aux monstres et signale chacun (`opportunite` : coups gratuits).
-    void appliquer(const std::vector<Coup>& coups, bool opportunite = false);
+    // Inflige ce coup au monstre qu'il vise et le signale (`opportunite` : coup gratuit).
+    void infligerUnCoup(const Coup& coup, bool opportunite);
+    // Traduit ce que l'escouade a produit (`ResultatDEffet`, son seul canal de sortie) : les coups sont infligés, le reste est signalé.
+    void traduire(const std::vector<ResultatDEffet>& resultats);
     // Une attaque de monstre sur le personnage de cette place (Escouade::recevoirCoup), signalée.
     void infligerAUnPersonnage(IdMonstre idMonstre, Place place, const Attaque& attaque, bool opportunite);
-    // Les faits qu'Escouade a produits depuis le dernier appel, signalés.
-    void signalerLesFaits();
     // Le seul endroit où un événement naît ; des dégâts ou un soin de montant nul ne produisent rien.
     void signaler(CibleDEvenement cible, sf::Vector2f position, DetailEvenement detail);
     // Ce qu'un coup a donné, en événements (`detailsDuCoup` : « Esquivé », ou les dégâts puis le blocage).

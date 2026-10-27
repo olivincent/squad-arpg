@@ -31,6 +31,7 @@
 #include "combat/IdMonstre.hpp"
 #include "combat/IdSkill.hpp"
 #include "combat/Place.hpp"
+#include "combat/ResultatDEffet.hpp"
 #include "combat/StatistiquesDeCombat.hpp"
 #include "monstres/Monstre.hpp"
 #include "objets/Affixe.hpp"
@@ -478,6 +479,30 @@ inline void simulerAvecAttaque(Escouade& escouade, const TileMap& carte, float d
     }
 }
 
+// Les coups d'une liste de résultats (attaquer et declencherSkill rendent tous leurs résultats, par un seul canal) : les tests des
+// dégâts ne lisent que ceux-là.
+inline std::vector<Coup> coupsDe(const std::vector<ResultatDEffet>& resultats) {
+    std::vector<Coup> coups;
+    for (const ResultatDEffet& resultat : resultats) {
+        if (const Coup* coup = std::get_if<Coup>(&resultat)) {
+            coups.push_back(*coup);
+        }
+    }
+    return coups;
+}
+
+// Les résultats d'une sorte (SkillParti, SoinSurAllie, ProvocationPosee), dans l'ordre.
+template <class Sorte>
+std::vector<Sorte> parmiLesResultats(const std::vector<ResultatDEffet>& resultats) {
+    std::vector<Sorte> choisis;
+    for (const ResultatDEffet& resultat : resultats) {
+        if (const Sorte* sorte = std::get_if<Sorte>(&resultat)) {
+            choisis.push_back(*sorte);
+        }
+    }
+    return choisis;
+}
+
 // Appelle attaquer() par tics de 1/60 s pendant 0,35 s : un peu plus que l'exécution
 // de l'attaque de base la plus lente de la composition par défaut (0,3 s, le bâton à
 // deux mains), moins que le plus court intervalle entre deux coups d'un même
@@ -489,7 +514,7 @@ inline std::vector<Coup> attaquerJusquAuDepart(Escouade& escouade, const std::ve
                                                Generateur& generateur) {
     std::vector<Coup> coups;
     for (int i = 0; i < nombreDeTics(0.35f); ++i) {
-        const std::vector<Coup> coupsDuTic = escouade.attaquer(s_dureeTic, monstres, carte, generateur);
+        const std::vector<Coup> coupsDuTic = coupsDe(escouade.attaquer(s_dureeTic, monstres, carte, generateur));
         coups.insert(coups.end(), coupsDuTic.begin(), coupsDuTic.end());
     }
     return coups;
@@ -510,42 +535,62 @@ inline int attaquerCible(Escouade& escouade, const TileMap& carte, Cercle cible)
 inline constexpr float s_dureeAttenteSkill = 1.0f;
 
 // Fait avancer par attaquer() (sans mettreAJour : personne ne bouge, les
-// recharges ne courent pas) pendant `s_dureeAttenteSkill`, et renvoie les coups
-// de skill partis. Les coups de l'attaque de base que les autres personnages portent
-// entre-temps (ceux des armes de la composition par défaut : `estUnCoupDeBaseDeLaComposition`)
-// sont écartés : seuls les skills comptent (leurs dégâts doivent donc sortir de la plage
-// de ces armes).
-inline std::vector<Coup> attendreLeDepartDesSkills(Escouade& escouade, const std::vector<MonstreVu>& monstres, const TileMap& carte,
-                                                   Generateur& generateur) {
+// recharges ne courent pas) pendant `s_dureeAttenteSkill`, et renvoie les résultats
+// des skills partis (départs, coups, soins, provocations). Les coups de l'attaque de
+// base que les autres personnages portent entre-temps (ceux des armes de la composition par
+// défaut : `estUnCoupDeBaseDeLaComposition`) sont écartés : seuls les skills comptent (leurs
+// dégâts doivent donc sortir de la plage de ces armes).
+inline std::vector<ResultatDEffet> attendreLeDepartDesSkillsTout(Escouade& escouade, const std::vector<MonstreVu>& monstres,
+                                                                 const TileMap& carte, Generateur& generateur) {
     assert(!estUnCoupDeBaseDeLaComposition(s_degatsFrappeDeTest) && !estUnCoupDeBaseDeLaComposition(s_degatsZoneDeTest));
-    std::vector<Coup> coups;
+    std::vector<ResultatDEffet> resultats;
     for (int i = 0; i < nombreDeTics(s_dureeAttenteSkill); ++i) {
-        for (const Coup& coup : escouade.attaquer(s_dureeTic, monstres, carte, generateur)) {
-            if (!estUnCoupDeBaseDeLaComposition(coup.attaque.degats.total())) {
-                coups.push_back(coup);
+        for (const ResultatDEffet& resultat : escouade.attaquer(s_dureeTic, monstres, carte, generateur)) {
+            const Coup* coup = std::get_if<Coup>(&resultat);
+            if (coup == nullptr || !estUnCoupDeBaseDeLaComposition(coup->attaque.degats.total())) {
+                resultats.push_back(resultat);
             }
         }
     }
-    return coups;
+    return resultats;
+}
+
+// Les coups de skill partis (le reste des résultats est écarté).
+inline std::vector<Coup> attendreLeDepartDesSkills(Escouade& escouade, const std::vector<MonstreVu>& monstres, const TileMap& carte,
+                                                   Generateur& generateur) {
+    return coupsDe(attendreLeDepartDesSkillsTout(escouade, monstres, carte, generateur));
 }
 
 // Déclenche le skill de cette place (touches 1 à 4), puis attend son départ :
-// les coups de skill sont ceux de l'appel et ceux de l'attente.
-inline std::vector<Coup> declencherEtAttendre(Escouade& escouade, AdresseSkill adresse, const std::vector<MonstreVu>& monstres, const TileMap& carte,
-                                              Generateur& generateur) {
-    std::vector<Coup> coups = escouade.declencherSkill(adresse, monstres, carte, generateur);
-    const std::vector<Coup> suite = attendreLeDepartDesSkills(escouade, monstres, carte, generateur);
-    coups.insert(coups.end(), suite.begin(), suite.end());
-    return coups;
+// les résultats sont ceux de l'appel et ceux de l'attente.
+inline std::vector<ResultatDEffet> declencherEtAttendreTout(Escouade& escouade, AdresseSkill adresse, const std::vector<MonstreVu>& monstres,
+                                                            const TileMap& carte, Generateur& generateur) {
+    std::vector<ResultatDEffet> resultats = escouade.declencherSkill(adresse, monstres, carte, generateur);
+    const std::vector<ResultatDEffet> suite = attendreLeDepartDesSkillsTout(escouade, monstres, carte, generateur);
+    resultats.insert(resultats.end(), suite.begin(), suite.end());
+    return resultats;
 }
 
-// Comme declencherEtAttendre, pour le skill de zone lancé en un point.
+// Les coups de skill de declencherEtAttendreTout.
+inline std::vector<Coup> declencherEtAttendre(Escouade& escouade, AdresseSkill adresse, const std::vector<MonstreVu>& monstres, const TileMap& carte,
+                                              Generateur& generateur) {
+    return coupsDe(declencherEtAttendreTout(escouade, adresse, monstres, carte, generateur));
+}
+
+// Comme declencherEtAttendreTout, pour le skill de zone lancé en un point.
+inline std::vector<ResultatDEffet> declencherZoneEtAttendreTout(Escouade& escouade, AdresseSkill adresse, sf::Vector2f point,
+                                                                const std::vector<MonstreVu>& monstres, const TileMap& carte,
+                                                                Generateur& generateur) {
+    std::vector<ResultatDEffet> resultats = escouade.declencherSkillDeZone(adresse, point, monstres, carte, generateur);
+    const std::vector<ResultatDEffet> suite = attendreLeDepartDesSkillsTout(escouade, monstres, carte, generateur);
+    resultats.insert(resultats.end(), suite.begin(), suite.end());
+    return resultats;
+}
+
+// Les coups de declencherZoneEtAttendreTout.
 inline std::vector<Coup> declencherZoneEtAttendre(Escouade& escouade, AdresseSkill adresse, sf::Vector2f point, const std::vector<MonstreVu>& monstres,
                                                   const TileMap& carte, Generateur& generateur) {
-    std::vector<Coup> coups = escouade.declencherSkillDeZone(adresse, point, monstres, carte, generateur);
-    const std::vector<Coup> suite = attendreLeDepartDesSkills(escouade, monstres, carte, generateur);
-    coups.insert(coups.end(), suite.begin(), suite.end());
-    return coups;
+    return coupsDe(declencherZoneEtAttendreTout(escouade, adresse, point, monstres, carte, generateur));
 }
 
 // Place de l'allié désigné par choisirCible, vide si aucune cible.
@@ -689,12 +734,17 @@ inline std::vector<MonstreVu> unSeulMonstre(Cercle cercle) {
     return {MonstreVu{IdMonstre{1}, cercle}};
 }
 
+// Déclenche le skill de cette place, attend son départ, et rend tous ses résultats.
+inline std::vector<ResultatDEffet> declencherTout(Escouade& escouade, AdresseSkill adresse, const std::vector<MonstreVu>& monstres) {
+    Generateur generateur = generateurDeTest();
+    return declencherEtAttendreTout(escouade, adresse, monstres, carteOuverte(), generateur);
+}
+
 // Déclenche le skill de cette place et renvoie le total des dégâts de la
 // liste de coups.
 inline int declencher(Escouade& escouade, AdresseSkill adresse, const std::vector<MonstreVu>& monstres) {
     int total = 0;
-    Generateur generateur = generateurDeTest();
-    for (const Coup& coup : declencherEtAttendre(escouade, adresse, monstres, carteOuverte(), generateur)) {
+    for (const Coup& coup : coupsDe(declencherTout(escouade, adresse, monstres))) {
         total += coup.attaque.degats.total();
     }
     return total;

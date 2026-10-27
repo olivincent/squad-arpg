@@ -164,7 +164,7 @@ TEST_CASE("Un skill de degats en attente est annule par un changement de cible, 
     declencher(escouade, s_adresseFrappe, unSeulMonstre(cibleMonstre({300.0f, 60.0f})));
 
     escouade.verrouiller(IdMonstre{1});   // même cible : toujours en attente
-    REQUIRE(escouade.declencherSkill(s_adresseFrappe, unSeulMonstre(cibleMonstre({85.0f, 60.0f})), carteOuverte(), generateur).empty());
+    REQUIRE(coupsDe(escouade.declencherSkill(s_adresseFrappe, unSeulMonstre(cibleMonstre({85.0f, 60.0f})), carteOuverte(), generateur)).empty());
 
     escouade.verrouiller(IdMonstre{2});   // autre cible : annulé
     REQUIRE(declencher(escouade, s_adresseFrappe, {MonstreVu{IdMonstre{2}, cibleMonstre({85.0f, 60.0f})}}) == s_degatsFrappeDeTest);

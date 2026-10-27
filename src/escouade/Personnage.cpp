@@ -204,6 +204,10 @@ std::optional<ModeDeCible> Personnage::modeSkill(IdSkill id) const {
     return skill->getMode();
 }
 
+const Skill* Personnage::skillConnu(IdSkill id) const {
+    return trouverSkill(id);
+}
+
 std::vector<IdSkill> Personnage::idsDesSkills() const {
     std::vector<IdSkill> ids;
     for (const SkillConnu& connu : m_skills) {

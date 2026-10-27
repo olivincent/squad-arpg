@@ -21,6 +21,7 @@
 #include "escouade/Formation.hpp"
 #include "escouade/Intention.hpp"
 #include "combat/Coup.hpp"
+#include "combat/ResultatDEffet.hpp"
 #include "combat/StatistiquesDeCombat.hpp"
 #include "combat/Engagement.hpp"
 #include "combat/EtatSkill.hpp"
@@ -64,8 +65,12 @@ public:
     // l'ancre (allerVers, approche du verrou, verrouiller) l'efface.
     void regarderVers(sf::Vector2f point);
     void annulerAttaquesEngagees();
-    [[nodiscard]] std::vector<Coup> attaquer(float dt, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur);
-    [[nodiscard]] std::vector<Coup> declencherSkill(AdresseSkill adresse, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur);
+    // Tout ce que l'escouade produit passe par ces trois fonctions et par elles seules, en `ResultatDEffet` (dans l'ordre où ils
+    // surviennent) : le départ d'un skill, les dégâts sur un monstre (`Coup` : l'attaque de base, un skill de dégâts, de frappe ou de
+    // zone), un soin rendu, une provocation posée. Les soins et les provocations ont déjà eu lieu dans l'escouade ; les `Coup` sont à
+    // infliger par `Partie`, qui traduit le tout en événements.
+    [[nodiscard]] std::vector<ResultatDEffet> attaquer(float dt, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur);
+    [[nodiscard]] std::vector<ResultatDEffet> declencherSkill(AdresseSkill adresse, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur);
     [[nodiscard]] bool skillEstPret(AdresseSkill adresse) const;
     [[nodiscard]] std::optional<EtatSkill> etatDuSkill(AdresseSkill adresse) const;
     // Comment le skill à cette adresse vise ; vide si la place est invalide ou le skill inconnu de ce personnage.
@@ -100,7 +105,7 @@ public:
     [[nodiscard]] std::optional<StatistiquesDeCombat> statistiquesDeCombatDuPersonnage(Place place) const;
     [[nodiscard]] float rayonZoneDuSkill(AdresseSkill adresse) const;
     [[nodiscard]] Cercle cercleDePorteeDuSkill(AdresseSkill adresse) const;
-    [[nodiscard]] std::vector<Coup> declencherSkillDeZone(AdresseSkill adresse, sf::Vector2f point, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur);
+    [[nodiscard]] std::vector<ResultatDEffet> declencherSkillDeZone(AdresseSkill adresse, sf::Vector2f point, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur);
     // Les monstres tels que mettreAJour les reçoit, en trois listes nommées (on ne peut pas en
     // inverser deux). Aucun champ n'a de valeur par défaut : en omettre un dans une initialisation
     // désignée est signalé par le compilateur (-Wmissing-field-initializers). Si Partie oubliait
@@ -155,32 +160,6 @@ public:
     [[nodiscard]] std::optional<IdMonstre> degagementDuPersonnage(Place place) const;
     // Centre du personnage de cette place (de 1 à N), mort ou vivant ; vide si la place est invalide.
     [[nodiscard]] std::optional<sf::Vector2f> centreDuPersonnage(Place place) const;
-    // Un soin appliqué : le personnage soigné (sa place), les points réellement rendus (jamais 0), son centre
-    // à ce moment et si le soin était un critique. Données de sortie, comme les `Coup` : Escouade ne sait pas
-    // qui les lit.
-    struct SoinApplique {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
-        Place place;
-        int montant;
-        sf::Vector2f position;
-        bool critique;
-    };
-    // Ce qui s'est passé dans l'escouade et que l'affichage doit savoir : un seul canal, un variant
-    // par sorte de fait. `Partie` en fait des événements de combat.
-    // Un skill qui part (fin de son activation) : la place du lanceur, le skill et son centre à ce moment.
-    struct SkillPart {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
-        Place place;
-        IdSkill skill;
-        sf::Vector2f position;
-    };
-    // Un monstre que la provocation d'un skill vient de provoquer (de nouveau, s'il l'était déjà).
-    // Pas de position : `Partie` la lit sur le monstre.
-    struct MonstreProvoque {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
-        IdMonstre idMonstre;
-    };
-    using FaitDEscouade = std::variant<SoinApplique, SkillPart, MonstreProvoque>;
-    // Les faits survenus depuis le dernier appel (par `declencherSkill` et `attaquer`), dans l'ordre ;
-    // la liste est vidée.
-    [[nodiscard]] std::vector<FaitDEscouade> prendreFaits();
     // Point vers lequel le personnage de cette place (de 1 à N) marche, calculé par le dernier
     // mettreAJour : place de formation, place d'attaque, cible du skill en attente, ou sa
     // propre position s'il reste sur place. Vide si la place est invalide. Lu par les tests : la
@@ -225,6 +204,8 @@ public:
     // recalculées, et un skill (en activation ou en attente) qui exigeait l'arme retirée est abandonné. L'objet n'est plus
     // nulle part : celui qui l'a retiré doit le poser ailleurs (le sol, `Partie::jeterUnObjet`).
     [[nodiscard]] std::optional<Objet> retirerObjet(const PositionDObjet& position);
+    // Pose une provocation sans lancer de skill. L'effet d'un skill de provocation la pose lui-même ; cette fonction sert aux tests, qui
+    // ont besoin d'un monstre provoqué sans en passer par le skill.
     void provoquer(IdMonstre idMonstre, Place place, float duree);
     // Lu par les tests : le provocateur, l'identifiant et la durée restante, que candidatsDeFrappe ne montre pas.
     [[nodiscard]] const std::vector<Provocations::Provocation>& getProvocations() const;
@@ -246,8 +227,18 @@ private:
     // `skill` vide : l'attaque de base.
     [[nodiscard]] bool peutAtteindre(const Personnage& personnage, std::optional<IdSkill> skill, Cercle cible, const TileMap& carte) const;
     [[nodiscard]] bool peutLancerAuPoint(AdresseSkill adresse, sf::Vector2f point, const TileMap& carte) const;
-    std::vector<Coup> avancerSkillDe(Place place, float dt, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur);
-    std::vector<Coup> effetDuSkill(Place place, IdSkill id, const std::optional<Cible>& cible, const Attaque& attaque, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur);
+    std::vector<ResultatDEffet> avancerSkillDe(Place place, float dt, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur);
+    // Le skill part : son départ, puis son effet (`std::visit` sur l'effet) appliqué à chaque entité que `entitesTouchees` désigne. Les
+    // soins et les provocations ont lieu ici ; les dégâts sortent en `Coup`.
+    std::vector<ResultatDEffet> appliquerLEffet(Place place, IdSkill id, const std::optional<Cible>& cible, const Attaque& attaque, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur);
+    // Les entités qu'un skill de ce lanceur touche : sans rayon de zone, la cible (le lanceur lui-même pour un skill sans cible) ; avec
+    // un rayon, toutes celles du camp que touche son effet (`campTouche`) qui sont dans le cercle de ce rayon centré sur la cible, le
+    // point visé ou le lanceur, et en vue de ce centre (`ligneDeVue` : le sort ne traverse pas les murs).
+    struct EntitesTouchees {
+        std::vector<IdMonstre> monstres;
+        std::vector<Place> allies;
+    };
+    [[nodiscard]] EntitesTouchees entitesTouchees(const Skill& skill, Place lanceur, const std::optional<Cible>& cible, const std::vector<MonstreVu>& monstres, const TileMap& carte) const;
     // L'intention que le skill en attente donne à son lanceur.
     struct IntentionDuSkill {
         Place lanceur;
@@ -261,8 +252,8 @@ private:
     [[nodiscard]] bool tousLesVivantsAtteignent(Cercle cible, const TileMap& carte) const;
     void approcherVerrou(const std::vector<MonstreVu>& monstres, const TileMap& carte);
     void engagerSkillDeDegatsEnAttente(const std::vector<MonstreVu>& monstres, const TileMap& carte);
-    std::vector<Coup> avancerSkills(float dt, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur);
-    std::vector<Coup> autodefense(float dt, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur);
+    std::vector<ResultatDEffet> avancerSkills(float dt, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur);
+    std::vector<ResultatDEffet> autodefense(float dt, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur);
     [[nodiscard]] float porteeDe(const Personnage& personnage, std::optional<IdSkill> skill) const;
     // Places d'attaque (m_placesDAttaque) : ce qu'elles doivent savoir du personnage de cet indice
     // qui approche ce monstre avec une action de cette portée.
@@ -316,7 +307,6 @@ private:
     std::vector<sf::Vector2f> m_pointsVises;  // par personnage, calculé par mettreAJour
     // Par personnage : identifiant du monstre dont il se dégage vers sa place d'attaque (vide = il ne se dégage pas).
     std::vector<std::optional<IdMonstre>> m_degagements;
-    std::vector<FaitDEscouade> m_faits; // faits pas encore pris par prendreFaits
     Agresseurs m_agresseurs; // monstres qui ont frappé l'escouade récemment
     Provocations m_provocations; // monstres provoqués par un personnage
     Inventaire m_sac;            // les objets que personne ne porte

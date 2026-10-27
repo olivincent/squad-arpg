@@ -85,7 +85,7 @@ TEST_CASE("Zone en attente : le lanceur contourne le mur, puis le sort part des 
     std::vector<Coup> coupsDeZone;
     int tics = 0;
     while (coupsDeZone.empty() && tics < 600) {
-        for (const Coup& coup : escouade.attaquer(s_dureeTic, monstres, carte, generateur)) {
+        for (const Coup& coup : coupsDe(escouade.attaquer(s_dureeTic, monstres, carte, generateur))) {
             if (coup.attaque.degats.total() == s_degatsZoneDeTest) {
                 coupsDeZone.push_back(coup);
             }
@@ -136,7 +136,7 @@ TEST_CASE("Autodefense : un monstre a portee mais derriere un mur n'est pas frap
     // Le mage en (185, 235) : portée de tir 120 px, monstre à 110 px bord à bord, mur entre les deux.
     const std::vector<MonstreVu> monstres = {MonstreVu{IdMonstre{1}, cibleMonstre({320.0f, 235.0f})}};
 
-    REQUIRE(escouade.attaquer(s_dureeTic, monstres, carte, generateur).empty());
+    REQUIRE(coupsDe(escouade.attaquer(s_dureeTic, monstres, carte, generateur)).empty());
 }
 
 TEST_CASE("Autodefense : un monstre a portee et en vue est frappe") {
@@ -273,7 +273,7 @@ TEST_CASE("Skill de degats en attente derriere un mur : il part des que la vue e
     REQUIRE(declencherEtAttendre(escouade, s_adresseFrappe, monstres, carte, generateur).empty());
 
     // Tant que le mur est là, le skill reste en attente : seule l'attaque de base du mêlée pourrait partir, et elle ne part pas non plus.
-    REQUIRE(escouade.attaquer(s_dureeTic, monstres, carte, generateur).empty());
+    REQUIRE(coupsDe(escouade.attaquer(s_dureeTic, monstres, carte, generateur)).empty());
     REQUIRE(escouade.skillEstPret(s_adresseFrappe));
 
     // La vue est obtenue (la carte n'a plus de mur) : le skill part, avec les dégâts de la frappe.

@@ -14,6 +14,8 @@
 #include "combat/EntiteVue.hpp"
 #include "monde/TileMap.hpp"
 #include "combat/ModeDeCible.hpp"
+#include "combat/EffetDeSkill.hpp"
+#include "combat/ResultatDEffet.hpp"
 
 // Escouade en (50, 50), orientée vers +x : les trois places sont en
 // (85, 60), (35, 35) et (35, 85). Des dégâts d'origine égale à
@@ -84,19 +86,19 @@ TEST_CASE("Le soin du pretre soigne un allie a portee, sans combat engage") {
     REQUIRE_FALSE(escouade.choisirCible(ModeDeCible::Allie, s_adresseSoin, {}, carteOuverte()).has_value());
 }
 
-TEST_CASE("prendreFaits rend le soin applique (place, points reellement rendus, position) puis se vide") {
+TEST_CASE("le soin rend ses resultats (place, points reellement rendus, position), une seule fois") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
     infliger(escouade, IdMonstre{1}, {35.0f, 85.0f}, 20);  // le mage (place 3) perd 20 points
 
-    declencher(escouade, s_adresseSoin, {});
-    const std::vector<Escouade::FaitDEscouade> faits = escouade.prendreFaits();
+    const std::vector<ResultatDEffet> resultats = declencherTout(escouade, s_adresseSoin, {});
 
-    REQUIRE(faits.size() == 2);  // le skill qui part, puis le soin qu'il applique
-    const auto& soin = std::get<Escouade::SoinApplique>(faits[1]);
+    REQUIRE(resultats.size() == 2);  // le skill qui part, puis le soin qu'il applique
+    REQUIRE(std::holds_alternative<SkillParti>(resultats[0]));
+    const SoinSurAllie& soin = std::get<SoinSurAllie>(resultats[1]);
     REQUIRE(soin.place == Place{3});
     REQUIRE(soin.montant == 20);  // 30 de soin, mais il ne manquait que 20 points
     verifierPointProche(soin.position, *escouade.centreDuPersonnage(Place{3}));
-    REQUIRE(escouade.prendreFaits().empty());
+    REQUIRE(coupsDe(resultats).empty());
 }
 
 TEST_CASE("centreDuPersonnage : le centre de la place, vide si la place est invalide") {
@@ -238,15 +240,10 @@ Escouade escouadeAuPretreAdroit(int perte) {
 }
 
 // Le seul soin appliqué par le skill du prêtre, avec ce générateur.
-Escouade::SoinApplique soinDuPretre(Escouade& escouade, Generateur& generateur) {
-    static_cast<void>(declencherEtAttendre(escouade, s_adresseSoin, {}, carteOuverte(), generateur));
-    for (const Escouade::FaitDEscouade& fait : escouade.prendreFaits()) {
-        if (const auto* soin = std::get_if<Escouade::SoinApplique>(&fait)) {
-            return *soin;
-        }
-    }
-    FAIL("aucun soin appliqué");
-    return {};
+SoinSurAllie soinDuPretre(Escouade& escouade, Generateur& generateur) {
+    const std::vector<SoinSurAllie> soins = parmiLesResultats<SoinSurAllie>(declencherEtAttendreTout(escouade, s_adresseSoin, {}, carteOuverte(), generateur));
+    REQUIRE(soins.size() == 1);
+    return soins[0];
 }
 }  // namespace
 
@@ -259,7 +256,7 @@ TEST_CASE("Un soin peut etre critique : le montant rendu est multiplie et le fai
     for (int i = 0; i < 100; ++i) {
         Escouade escouade = escouadeAuPretreAdroit(5 * s_puissanceSoinDeTest / 2);  // le soin n'est pas plafonné
 
-        const Escouade::SoinApplique soin = soinDuPretre(escouade, generateur);
+        const SoinSurAllie soin = soinDuPretre(escouade, generateur);
 
         REQUIRE(soin.montant == (soin.critique ? 2 * s_puissanceSoinDeTest : s_puissanceSoinDeTest));
         ++(soin.critique ? critiques : normaux);
@@ -275,11 +272,61 @@ TEST_CASE("Un soin critique reste plafonne aux points de vie maximum") {
     for (int i = 0; i < 100; ++i) {
         Escouade escouade = escouadeAuPretreAdroit(manque);
 
-        const Escouade::SoinApplique soin = soinDuPretre(escouade, generateur);
+        const SoinSurAllie soin = soinDuPretre(escouade, generateur);
 
         REQUIRE(soin.montant == (soin.critique ? manque : s_puissanceSoinDeTest));
         REQUIRE(*escouade.pointsDeVieDuPersonnage(Place{3}) <= *escouade.pointsDeVieMaxDuPersonnage(Place{3}));
         critiques += soin.critique ? 1 : 0;
     }
     REQUIRE(critiques > 0);
+}
+
+// Un soin de zone : le rayon est une propriété du skill, séparée de l'effet. Il touche chaque allié du cercle, centré sur le point visé
+// (mode Point) ou sur le lanceur (mode Soi). Escouade en (50, 50) : guerrier en (85, 60), prêtre en (35, 35), mage en (35, 85).
+namespace {
+Escouade uneEscouadeAuSoinDeZone(ModeDeCible mode, float rayon) {
+    std::vector<DefinitionPersonnage> composition = compositionDeTest();
+    composition[1].skills = {{IdSkill::Soin, Skill({.mode = mode,
+                                                    .portee = 200.0f,
+                                                    .rechargeMin = s_rechargeSoinDeTest,
+                                                    .rechargeMax = s_rechargeSoinDeTest,
+                                                    .effet = EffetSoin{.montant = s_puissanceSoinDeTest},
+                                                    .rayonZone = rayon,
+                                                    .tempsExecution = s_activationSoinDeTest})}};
+    Escouade escouade = uneEscouadeDe({50.0f, 50.0f}, std::move(composition));
+    for (std::size_t place = 1; place <= 3; ++place) {
+        subirCoup(escouade, IdMonstre{1}, Place{place}, 60);  // tous blessés
+    }
+    return escouade;
+}
+}  // namespace
+
+TEST_CASE("Un soin de zone a un point soigne chaque allie du cercle, et seulement eux") {
+    Generateur generateur = generateurDeTest();
+    Escouade escouade = uneEscouadeAuSoinDeZone(ModeDeCible::Point, 30.0f);  // le prêtre et le mage sont dans le cercle, le guerrier à 50 px
+    const int vieDuGuerrier = *escouade.pointsDeVieDuPersonnage(Place{1});
+
+    const std::vector<SoinSurAllie> soins = parmiLesResultats<SoinSurAllie>(
+        declencherZoneEtAttendreTout(escouade, s_adresseSoin, {35.0f, 60.0f}, {}, carteOuverte(), generateur));
+
+    REQUIRE(soins.size() == 2);
+    REQUIRE(soins[0].place == Place{2});
+    REQUIRE(soins[1].place == Place{3});
+    REQUIRE(soins[0].montant > 0);
+    REQUIRE(soins[1].montant > 0);
+    REQUIRE(*escouade.pointsDeVieDuPersonnage(Place{1}) == vieDuGuerrier);
+}
+
+TEST_CASE("Un soin de zone sur soi est centre sur le lanceur") {
+    Generateur generateur = generateurDeTest();
+    Escouade escouade = uneEscouadeAuSoinDeZone(ModeDeCible::Soi, 44.0f);  // le prêtre lui-même et le mage (50 px), pas le guerrier (56 px)
+    const int vieDuGuerrier = *escouade.pointsDeVieDuPersonnage(Place{1});
+
+    const std::vector<SoinSurAllie> soins = parmiLesResultats<SoinSurAllie>(
+        declencherEtAttendreTout(escouade, s_adresseSoin, {}, carteOuverte(), generateur));
+
+    REQUIRE(soins.size() == 2);
+    REQUIRE(soins[0].place == Place{2});
+    REQUIRE(soins[1].place == Place{3});
+    REQUIRE(*escouade.pointsDeVieDuPersonnage(Place{1}) == vieDuGuerrier);
 }

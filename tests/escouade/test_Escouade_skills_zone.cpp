@@ -133,7 +133,7 @@ TEST_CASE("Zone en attente : le lanceur se rapproche, puis le sort part au point
     std::vector<Coup> coupsDeZone;
     int tics = 0;
     while (coupsDeZone.empty() && tics < 300) {
-        for (const Coup& coup : escouade.attaquer(s_dureeTic, monstres, carte, generateur)) {
+        for (const Coup& coup : coupsDe(escouade.attaquer(s_dureeTic, monstres, carte, generateur))) {
             if (coup.attaque.degats.total() == s_degatsZoneDeTest) {
                 coupsDeZone.push_back(coup);
             }
@@ -163,7 +163,7 @@ TEST_CASE("Zone en attente : elle touche les monstres presents au depart, pas ce
     };
     std::vector<Coup> coupsDeZone;
     for (int i = 0; i < 300 && coupsDeZone.empty(); ++i) {
-        for (const Coup& coup : escouade.attaquer(s_dureeTic, ailleurs, carte, generateur)) {
+        for (const Coup& coup : coupsDe(escouade.attaquer(s_dureeTic, ailleurs, carte, generateur))) {
             if (coup.attaque.degats.total() == s_degatsZoneDeTest) {
                 coupsDeZone.push_back(coup);
             }
@@ -184,7 +184,7 @@ TEST_CASE("Zone en attente : la mort du lanceur l'annule sans recharge") {
     infliger(escouade, IdMonstre{1}, {185.0f, 235.0f}, s_coupMortel);  // tue la place 3
 
     for (int i = 0; i < 300; ++i) {
-        REQUIRE(escouade.attaquer(s_dureeTic, monstres, carte, generateur).empty());
+        REQUIRE(coupsDe(escouade.attaquer(s_dureeTic, monstres, carte, generateur)).empty());
         escouade.mettreAJour(0.016f, carte, {.physiques = {}, .ciblables = monstres, .deControle = {}});
     }
 
@@ -210,7 +210,7 @@ TEST_CASE("Zone en attente : verrouiller, deverrouiller et un ordre de deplaceme
 
     std::vector<Coup> coupsDeZone;
     for (int i = 0; i < 300 && coupsDeZone.empty(); ++i) {
-        for (const Coup& coup : escouade.attaquer(s_dureeTic, monstres, carte, generateur)) {
+        for (const Coup& coup : coupsDe(escouade.attaquer(s_dureeTic, monstres, carte, generateur))) {
             if (coup.attaque.degats.total() == s_degatsZoneDeTest) {
                 coupsDeZone.push_back(coup);
             }
@@ -319,7 +319,7 @@ TEST_CASE("Zone en attente : en combat verrouille, le lanceur contourne le monst
     const Cercle verrou = cibleMonstre({300.0f, 235.0f});
     const std::vector<MonstreVu> monstres = {MonstreVu{IdMonstre{1}, verrou}};
     escouade.verrouiller(IdMonstre{1});
-    REQUIRE(escouade.declencherSkillDeZone(s_adresseExplosion, {600.0f, 235.0f}, monstres, carte, generateur).empty());  // hors de portée : en attente
+    REQUIRE(coupsDe(escouade.declencherSkillDeZone(s_adresseExplosion, {600.0f, 235.0f}, monstres, carte, generateur)).empty());  // hors de portée : en attente
 
     for (int i = 0; i < nombreDeTics(5.0f) && escouade.skillEstPret(s_adresseExplosion); ++i) {
         static_cast<void>(escouade.attaquer(s_dureeTic, monstres, carte, generateur)); // avance l'état : les coups ne sont pas l'objet du test
