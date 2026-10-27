@@ -51,7 +51,7 @@ squad-arpg/
 │   │               EtatSkill, Coup, EvenementDeCombat, EntiteVue, Autodefense, Engagement,
 │   │               Attaque, NatureDAttaque, StatistiquesDeCombat, Esquive, Critique, Blocage, Defense,
 │   │               ResolutionDuCoup, Caracteristiques, PointsDeVie, Vitalite
-│   ├── objets/     Emplacement, Affixe, Objet, CatalogueAffixes, CatalogueObjets, DonneesDArme, DonneesDeBouclier, ObjetsActifs, Equipement,
+│   ├── objets/     Emplacement, Affixe, Objet, CatalogueAffixes, CatalogueObjets, TypeDArmure, DonneesDArme, DonneesDeBouclier, ObjetsActifs, Equipement,
 │   │               Inventaire, PositionDObjet, DeplacementDObjets, GenerationDObjets
 │   ├── escouade/   Escouade, Personnage, Formation, PlacesDAttaque, Intention, Separation,
 │   │               EcartEntrePersonnages, Composition, Specialite, SelectionDEscouade,
@@ -162,14 +162,17 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `Vitalite` : points de vie, défenses (armure, statistiques de combat) et récupération du blocage d'une entité, commune à `Personnage` et `Monstre`.
 
 `objets/` — les objets, ce qu'on porte et le sac (`docs/objets.md`) :
-- `Emplacement` : les 10 emplacements, les 8 catégories d'objet et `peutAller`, seule source de la règle.
+- `Emplacement` : les 10 emplacements, les 10 catégories d'objet (dont `Relique`, en main gauche comme le bouclier) et `peutAller`, seule source de la règle.
 - `Affixe` : `Rarete` (commun, magique, rare), `IdAffixe` et `Affixe` (l'identifiant et la valeur de CET objet) ; sans `.cpp`.
 - `Objet` : `IdObjet` et `Objet`, l'instance, distincte de son modèle : le modèle, la rareté, au plus un préfixe et un
-  suffixe, le niveau et la qualité (étape 102) ; petite valeur, égalité par valeur ; `facteurDeNiveau`, l'unique facteur de niveau.
+  suffixe, le niveau et la qualité (étape 102) ; petite valeur, égalité par valeur ; `facteurDeNiveau`, l'unique facteur de niveau, et `facteurDeQualite`, l'unique facteur de qualité (étape 103).
 - `CatalogueAffixes` : `DefinitionDAffixe` (nom, position, effet, plage de valeurs, catégories permises), `catalogueAffixes()`,
   `definitionAffixe()`, `plageAuNiveau()` (la plage d'un affixe sur un objet d'un niveau, étape 101), `affixePermis()`,
   `affixesPermisPour()` et `apportDesAffixes()`, ce que les affixes d'un objet ajoutent aux totaux.
-- `CatalogueObjets` : `DefinitionObjet` (nom, catégorie, armure, bonus, données d'arme ou de bouclier, exigences de caractéristiques),
+- `TypeDArmure` : tissu, léger, intermédiaire, lourd, le type d'une pièce d'armure (étape 103) ; sans `.cpp`.
+- `CatalogueObjets` : `DefinitionObjet` (nom, catégorie, valeurs de base du niveau 1, données d'arme ou de bouclier, exigences de
+  caractéristiques, niveau d'apparition, type d'armure), `effetsDeBase()` (l'unique calcul de ce qu'un objet apporte par lui-même :
+  armure, bonus, capacités, blocage selon son niveau et sa qualité, étape 103),
   `catalogueObjets()`, `definitionObjet()`, `seuilsDeLObjet()` (l'unique calcul d'un seuil : `6 + pente × (niveau − 1)`),
   `seuilsAtteints()`, `estADeuxMains()`, `mainsNues()`, `descriptionDeLArme()` (l'unique calcul de l'arme d'un objet : plage de
   dégâts selon le niveau et la qualité, le reste du gabarit),
@@ -182,7 +185,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `DonneesDArme`, `DonneesDeBouclier` : ce qui fait d'un objet une arme (le gabarit : type, mains, référence des dégâts, écart,
   recharge, exécution, portée, nature, pénétration) ou un bouclier (chance et
   montant de blocage) ; des données, pas une hiérarchie.
-- `Equipement` : un objet au plus par emplacement, `armureTotale()`, `attaqueDeBase()` (l'arme de la main droite avec ses
+- `Equipement` : un objet au plus par emplacement, `armureTotale()` (par `effetsDeBase` et les affixes), `attaqueDeBase()` (l'arme de la main droite avec ses
   affixes, sinon les mains nues), `actifPour(base)` (sans ses objets inactifs) et `caracteristiquesEffectives` ; les affixes
   entrent dans ces totaux, qui restent les seuls endroits qui calculent ; possédé par chaque `Personnage`.
 - `Inventaire` : le sac, des cases à position fixe ; possédé par l'`Escouade`.
@@ -349,6 +352,7 @@ de modifier un module, lire le fichier correspondant :
 | `docs/combat.md` | `Skill` (dont l'attaque de base), `Cercle`, portée bord à bord, autodéfense, `Cible`, skill en attente, circuit des dégâts, qui bloque qui, armure, caractéristiques, statistiques de combat et critique, aléatoire, zones de contrôle, événements et textes flottants | Avant de modifier un module de `combat/` ou de `base/`, `Provocations`, `Agresseurs`, `TextesFlottants`, `BarreDeVie` ou les listes d'obstacles |
 | `docs/monstre.md` | `Monstre` et `DefinitionDeMonstre` : définition, identifiant, états, détection, territoire, poursuite, retour au poste, riposte, statistiques de combat | Avant de modifier `Monstre` |
 | `docs/objets.md` | Objets : emplacements et catégories, catalogue, armes (type, mains, attaque de base) et boucliers, rareté et affixes (invariants, catalogue d'affixes, effets), `Equipement`, `Inventaire`, armure calculée depuis l'équipement, règle des déplacements et des deux mains (`DeplacementDObjets`), génération aléatoire (`GenerationDObjets`), butin au sol (`ObjetAuSol`), opérations `ramasser` / `ramasserTout` / `deplacerObjet` de l'`Escouade`, `PositionDObjet` ; référence des modules d'`objets/` | Avant de modifier un module d'`objets/`, `ObjetAuSol`, `AffichageObjets`, `AffichageObjetsAuSol` ou l'équipement d'un `Personnage` |
+| `docs/aide-memoire-objets.md` | Aide-mémoire des objets et des maths du jeu, avec le statut de chaque valeur (en jeu, décidé, proposé) : caractéristiques, formules, déroulement d'un coup, éléments, gabarits d'armes et d'armures, boucliers, reliques, raretés et affixes, affinités d'affixes (étape 104), exemple de génération | Avant de discuter ou de changer une valeur d'objet, de gabarit ou de formule |
 | `docs/tests.md` | Tests (Catch2, conventions, dossiers, aides) | Avant d'ajouter ou de modifier un test |
 | `docs/glossaire.md` | Les textes affichés par le jeu, en anglais : une table « concept (français) → texte à l'écran », référence de tous les noms (caractéristiques, classes, skills, objets, affixes, rareté, écrans, textes flottants) | Avant d'ajouter ou de changer un texte affiché, un nom d'objet, de skill ou de classe |
 | `docs/audit.md` | Audit du code avant l'étape 80 : constats par famille (R, M, P, D, C, E, L, V, T, B, K), organisation en dossiers, passages de `clang-tidy` | Avant de planifier une refactorisation |

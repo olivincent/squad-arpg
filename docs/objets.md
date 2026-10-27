@@ -13,6 +13,10 @@ l'identité (vitesse, portée, nature, mains, pénétration, écart par coup), l
 l'objet, chaque coup les tire dans une plage, et les seuils d'équipement montent avec le niveau (« Les gabarits d'armes, le niveau et
 la qualité »). Les sections « Armes (étape 91) » et « Seuils… (étape 92) » disent comment c'était avant ; ce qui a changé y est signalé.
 
+Depuis l'étape 103, **les protections suivent le même patron** : vingt pièces d'armure en quatre types, un Shield, deux reliques de main
+gauche et des bijoux dont les effets se calculent depuis le gabarit, le niveau et la qualité (`effetsDeBase`), avec un malus d'esquive
+pour les pièces lourdes et un niveau d'apparition dans le butin (« Les protections, les boucliers et les reliques »).
+
 ## Décisions
 
 - **Un dossier `objets/`, entre `combat` et `escouade`** : ordre `base → monde → combat → objets →
@@ -46,9 +50,9 @@ la qualité »). Les sections « Armes (étape 91) » et « Seuils… (étape 92
   aucune armure de classe : `DefinitionPersonnage::armure` est remplacé par
   `equipementDeDepart`. À la construction, la `Vitalite` reçoit `armureTotale()` de l'équipement
   de départ (`m_equipement` est déclaré avant `m_vitalite`).
-- **Équilibre** : le guerrier et le paladin partent équipés (casque de fer 2, cuirasse de mailles 4,
-  jambières de fer 2, bouclier rond 1 : 9 depuis l'échelle × 3 de l'étape 91.2 ; 50 avant l'étape 87), les trois
-  autres n'ont que leur arme (armure 0). Les valeurs sont provisoires.
+- **Équilibre** : depuis l'étape 103, chaque classe commence avec un torse (Leather Jerkin, armure 3, ou Robe, armure 2), son arme et,
+  pour les mêlées, un Shield (armure 1) ; le guerrier et le paladin ont donc 4, le rôdeur 3, le prêtre et le mage 2 (l'armure de 9 de
+  l'étape 91 et les pièces de fer sont des prototypes remplacés). Les valeurs sont provisoires.
 - **Les tests ne lisent pas les valeurs du catalogue d'objets** (même règle que pour les classes) :
   les attentes sont calculées avec `definitionObjet(id).armure` ou `armureDe(equipement)`
   (`tests/aides.hpp`), jamais avec 9 ou 4 écrits en dur. `test_Specialite.cpp` reste le seul
@@ -116,8 +120,9 @@ la qualité »). Les sections « Armes (étape 91) » et « Seuils… (étape 92
   (`s_recuperationDuBlocage`, `combat/Blocage.hpp`), plus une donnée d'objet : la règle « on garde la plus longue »
   a disparu. D'autres objets pourront plus tard ajouter de la chance de blocage ou réduire la récupération ; aucun
   champ n'existe pour cela, aucun objet ne s'en sert.
-- **Équipement de départ** : guerrier épée à une main + bouclier rond + pièces de fer, paladin masse à une main + bouclier rond +
-  pièces de fer, prêtre sceptre, mage bâton, rôdeur arc (depuis l'étape 102 ; tous de niveau 1, de qualité moyenne et communs). (Le sac
+- **Équipement de départ** : guerrier épée à une main + Shield + Leather Jerkin, paladin masse à une main + Shield + Leather Jerkin,
+  prêtre sceptre + Holy Relic + Robe, mage bâton + Robe, rôdeur arc + Leather Jerkin (depuis l'étape 103 ; tous de niveau 1, de qualité
+  moyenne et communs). (Le sac
   de départ de l'étape 91, avec une dague et une épée à deux mains, n'existe plus depuis l'étape 99.1 : le sac commence vide.)
 - **Les skills exigent un type d'arme** (`docs/combat.md`) : le refus est celui d'un lanceur mort.
 
@@ -181,18 +186,93 @@ la qualité »). Les sections « Armes (étape 91) » et « Seuils… (étape 92
   `seuilsDeLObjet(const Objet&)` rend les `SeuilDeCaracteristique` de CET objet. Tout ce qui lisait les seuils d'un modèle passe par
   elle : `seuilsAtteints`, `Equipement::actifPour` (donc `objetsActifs`), `deplacerLesObjets`, `seuilsManques`, l'infobulle et le test
   du glissement de l'écran. Au niveau 5, le seuil principal est 14. **Au niveau 1, tout est à 6 : toute classe peut porter tout objet
-  du catalogue** (un test de données le vérifie). Protections prototypes en attendant l'étape 103 : les pièces de fer et le bouclier
-  rond exigent l'Endurance (+2), le cuir et les bijoux rien.
+  du catalogue** (un test de données le vérifie). Depuis l'étape 103, les seuils des protections sont ceux de leur type (tissu aucun,
+  léger Adresse, intermédiaire Endurance et Adresse, lourd Endurance), le Shield exige l'Endurance, une relique sa caractéristique, les
+  bijoux rien.
 - **Les skills exigent des familles d'armes** : la frappe puissante et la frappe sacrée veulent **toutes les armes de contact**
   (une liste nommée, `s_armesDeContact`, écrite une fois dans `Specialite.cpp`) ; le tir perçant et la pluie de flèches veulent l'arc
   ou l'arbalète. Les valeurs des skills ne changent pas.
 - **L'infobulle d'une arme** : nom, catégorie, « Item Level N » (sur tous les objets), puis pour une arme « Damage: 13–17 » (les
   bornes de la plage, **avant** la Puissance ; un seul nombre sans écart), « Cooldown: 0.3 to 0.7 s », « Range: 20 px », « Melee » ou
   « Projectile », « Penetration: N % » si elle en a une, « Two-handed », les affixes, les seuils. La qualité n'est pas affichée.
-- **Limites** : les protections, les boucliers et les bijoux gardent leurs valeurs fixes (étape 103) ; le niveau ne change toujours
-  pas les modèles de base (pas d'épée d'acier après celle de fer) ; la qualité ne touche que les armes ; le bonus sacré de la frappe
+- **Limites** : le niveau ne change toujours pas les modèles de base (pas d'épée d'acier après celle de fer) ; le bonus sacré de la frappe
   sacrée (45) a été calibré pour une masse de 15 et vaut maintenant avec une masse de 26 en moyenne (à retoucher en jouant) ; les
   affinités et poids d'affixes viendront à l'étape 104.
+
+## Les protections, les boucliers et les reliques (étape 103)
+
+Les protections suivent le patron des armes : un **gabarit** fixe l'identité, et l'armure, le blocage et les bonus se **calculent**
+depuis le gabarit, le niveau et la qualité de l'objet. Rien de tout cela n'est stocké dans l'`Objet`. Tout le monde commence à égalité
+(niveau 1, qualité moyenne) ; les personnages se différencient en descendant. Valeurs « à tester ». Le tableau d'ensemble est dans
+`docs/aide-memoire-objets.md`.
+- **Un facteur de qualité, une fonction des effets de base.** `facteurDeQualite(q) = 0,85 + 0,30 × q / 100` (`Objet.hpp`, avec
+  `facteurDeNiveau`) est écrit une fois et partagé par les armes et les protections. `effetsDeBase(const Objet&)` (`CatalogueObjets`)
+  est l'**unique** endroit qui calcule ce qu'un objet apporte par lui-même (`EffetsDeBase { armure, bonus, bonusDeCombat }`), sans ses
+  affixes (`apportDesAffixes`) : `Equipement::armureTotale`, `bonusTotal`, `bonusDeCombatTotal`, `actifPour` et l'infobulle passent par
+  elle, comme l'attaque de base passe par `descriptionDeLArme`. Règles : l'**armure**, les **bonus de caractéristiques**, les
+  **capacités** et le **montant absorbé** d'un bouclier valent `base × facteurDeNiveau × facteurDeQualite`, un arrondi au plus proche
+  par valeur, en entier ; la **chance de blocage** est celle du niveau 1 plus `s_gainDeBlocageParNiveau` (1) par niveau au-delà du
+  premier (le niveau seul, pas la qualité) ; les **esquives** et les **résistances** du modèle sont fixes. Au niveau 1 et à la qualité
+  50, les valeurs sont celles du modèle (un test de données le vérifie sur tout le catalogue). `DefinitionObjet::armure`, `bonus`,
+  `bonusDeCombat` et `DonneesDeBouclier` (`chanceAuNiveau1`, `montantAuNiveau1`) sont donc des valeurs **de base**, jamais lues
+  directement pour jouer.
+- **Vingt pièces d'armure, quatre types.** `TypeDArmure { Tissu, Leger, Intermediaire, Lourd }` (`objets/TypeDArmure.hpp`) est dans
+  `DefinitionObjet::typeDArmure` (un `std::optional`, seulement pour une pièce). Un type a cinq pièces (torse, jambes, tête, gants,
+  bottes) dont les identifiants se suivent dans `IdObjet` ; le catalogue les construit par série (`piecesDArmure`). Aucune pièce n'a de
+  bonus de caractéristique de base. Armure de base au niveau 1 (chaque type bat le précédent sur CHAQUE pièce, aucune pièce à 0) :
+
+  | Emplacement | Tissu | Léger | Intermédiaire | Lourd |
+  |---|---|---|---|---|
+  | Torse | 2 | 3 | 5 | 7 |
+  | Jambes | 1 | 2 | 3 | 5 |
+  | Tête | 1 | 2 | 3 | 4 |
+  | Gants | 1 | 2 | 3 | 4 |
+  | Bottes | 1 | 2 | 3 | 4 |
+  | Ensemble | 6 | 11 | 17 | 24 |
+
+  Au niveau 5 tout double exactement (12, 22, 34, 48). Noms (tissu, léger, intermédiaire, lourd) : Robe, Cloth Leggings, Hood, Cloth
+  Gloves, Slippers ; Leather Jerkin, Leather Leggings, Leather Cap, Leather Gloves, Leather Boots ; Chain Mail, Chain Leggings, Chain
+  Coif, Chain Gloves, Chain Boots ; Plate Armor, Plate Greaves, Great Helm, Gauntlets, Sabatons (sigles : `docs/glossaire.md`).
+- **Seuils et niveau d'apparition par type** (la règle des seuils est celle de l'étape 102, 6 au niveau 1, principale +2, secondaire
+  +1) : tissu aucun ; léger Adresse +2 ; intermédiaire Endurance +1 et Adresse +1 ; lourd Endurance +2.
+  `DefinitionObjet::niveauDApparition` (1 par défaut) : intermédiaire 2, lourd 3, tout le reste 1. `genererObjet` ne tire un modèle que
+  si son niveau d'apparition est au plus celui de l'objet, uniformément parmi les modèles éligibles qui peuvent porter la rareté tirée
+  (l'ordre des tirages ne change pas ; les poids par gabarit viendront à l'étape 104).
+- **Malus d'esquive.** Un gabarit lourd ou intermédiaire a un `bonusDeCombat` négatif, **contre le contact ET contre les projectiles**,
+  fixe (ni niveau ni qualité) : lourd −3 % au torse, −2 % aux jambes, −1 % à la tête, aux gants et aux bottes ; intermédiaire −1 % au
+  torse et aux jambes. Il passe par les **statistiques de combat**, jamais par les caractéristiques (le point fixe des objets actifs
+  suppose des bonus de caractéristiques positifs ou nuls). L'esquive qui joue reste ramenée à 0 au minimum (`esquiveEffective`), donc une
+  armure lourde ne rend pas vulnérable mais mange l'esquive des affixes. Un objet inactif n'a aucun effet, malus compris.
+- **Le Shield** (`IdObjet::Bouclier`, remplace le bouclier rond) : chance de blocage 20 % + 1 point par niveau au-delà du premier, sans
+  plafond (la récupération de 3 s et le montant fixe suffisent à l'équilibre) ; montant absorbé 8 et armure 1 au niveau 1, × les mêmes
+  facteurs que les pièces (niveau 5 : 24 %, 16, 2 ; niveau 10 : 29 %, 26, 3 ; niveau 20 : 39 %, 46, 6) ; seuil Endurance +2 ; « of
+  Blocking » s'ajoute comme avant. Infobulle : « Block: 20 % » et « Absorbs: 8 » (deux lignes).
+- **Les reliques de la main gauche** (`CategorieObjet::Relique`). La main gauche accepte un bouclier **ou** une relique
+  (`peutAller`). La règle des deux mains ne change pas, elle ne regardait que l'emplacement : une arme à deux mains range l'objet de
+  la main gauche dans le sac, **quelle que soit sa catégorie**, et poser un objet en main gauche range une arme à deux mains. Deux
+  gabarits : **Orb** (seuil Savoir +2, bonus de base +2 Savoir et +10 de capacité offensive) et **Holy Relic** (seuil Volonté +2, +2
+  Volonté et +10 de capacité offensive) ; les deux bonus grandissent avec le niveau et la qualité (niveau 5 : +4 et +20). La capacité
+  offensive est un bonus de **statistiques de combat** de l'équipement (pas une caractéristique) : `statistiquesDuPersonnage` l'ajoutait
+  déjà. Affixes permis : les suffixes de caractéristique seulement, donc jamais Rare, comme les bijoux. Le Savoir et la Volonté n'ayant
+  encore aucun effet, la relique sert surtout de capacité offensive.
+- **Les bijoux** : les quatre prototypes suivent la même règle (`base × facteurDeNiveau × facteurDeQualite`), sans seuil : Ring of
+  Protection et Necklace of Protection armure 1, Ring of Might Puissance +3, Necklace of Constitution Endurance +3.
+- **Kits de départ** (niveau 1, qualité 50, communs) : une seule pièce d'armure, le torse. Guerrier, paladin et rôdeur : Leather Jerkin
+  (armure 3) ; prêtre et mage : Robe (armure 2). Main gauche : Shield pour le guerrier et le paladin, Holy Relic pour le prêtre, rien
+  pour le mage et le rôdeur. Les armes sont celles de l'étape 102.
+- **Infobulle d'une protection** : nom composé, catégorie, **type d'armure** (« Heavy Armor »), « Item Level N », « Armor: N » (sans
+  « + » ; l'affixe Reinforced a sa ligne « Armor: +3 »), malus d'esquive en **rouge** (« Dodge: −3 % » quand les deux esquives sont
+  égales, sinon « Dodge vs Melee: −1 % » et « Dodge vs Projectiles: … ») grâce à `lignesDeMalusDeLObjet`, bonus de base, blocage,
+  affixes, seuils. Le signe moins est le caractère U+2212.
+- **Tests.** Les tests de données du catalogue : cinq pièces par type, chaque type bat le précédent à chaque emplacement (niveaux 1 et
+  5), aucune pièce à 0, ensembles de 6 / 11 / 17 / 24 et 12 / 22 / 34 / 48, malus, exigences et niveau d'apparition par type, tableau du
+  Shield aux niveaux 1, 5, 10 et 20, deux gabarits de reliques. Les tests génériques utilisent les **pièces de tissu** (ni seuil ni
+  malus), et `s_equipementMeleeDeTest` des **pièces lourdes** (seuil d'Endurance seule) : leurs personnages ont donc un malus d'esquive
+  brut de −6 %, sans effet en combat. Les tests d'esquive posent un affixe « of Evasion » ou « of Deflection ». Le test qui épingle les
+  objets de la graine 96 est réépinglé (le catalogue a changé de taille).
+- **Limites** : le niveau ne change pas encore le modèle de base (pas de plaques d'acier après celles de fer) ; la qualité n'est pas
+  affichée ; aucun malus de mouvement (des bonus de vitesse viendront avec une vitesse propre à chaque personnage) ; pas de résistances,
+  de mana ni de plafond de blocage ; l'Intellect et la Resolve n'ont aucun effet ; poids de tirage et affinités d'affixes : étape 104.
 
 ## Seuils, objets inactifs et pénétration (étape 92)
 
@@ -421,9 +501,9 @@ et le sac, en lecture seule ; aucune fonction de modification n'est appelée.
   Les noms des objets, eux, viennent du catalogue (`DefinitionObjet::nom`). Textes en UTF-8,
   convertis par `sf::String::fromUtf8`.
 - **Emplacement vide** : rectangle grisé avec le nom de l'emplacement en petit ; **occupé** : le nom
-  de l'objet. **Case du sac vide** : carré vide ; **occupée** : le sigle de deux lettres (IH Iron Helm,
-  CM Chain Mail, IG Iron Greaves, RS Round Shield, LG Leather Gloves, LB Leather Boots, LC Leather Cap, PT Padded Tunic,
-  NP Necklace of Protection, RP Ring of Protection, RM Ring of Might, NC Necklace of Constitution, puis les armes : DA Dagger, SW Sword,
+  de l'objet. **Case du sac vide** : carré vide ; **occupée** : le sigle de deux lettres (LJ Leather Jerkin,
+  PA Plate Armor, SH Shield, OR Orb, HR Holy Relic, LG Leather Gloves, SL Slippers… ; les vingt pièces d'armure et les trois autres objets de main gauche,
+  puis NP Necklace of Protection, RP Ring of Protection, RM Ring of Might, NC Necklace of Constitution, puis les armes : DA Dagger, SW Sword,
   HA Hand Axe, MA Mace, SP Spear, GS Greatsword, GA Great Axe, MU Maul, WA Wand, SC Scepter, ST Staff, BO Bow, CB Crossbow ; table
   complète dans `docs/glossaire.md`). Un test vérifie que les sigles ont deux lettres et sont tous différents.
 - **Infobulle** au survol d'un objet (`lignesDeLInfobulle(const Objet&)`, depuis l'étape 95 : elle prend l'objet, pas
@@ -469,14 +549,14 @@ et le sac, en lecture seule ; aucune fonction de modification n'est appelée.
 
 - L'affichage est un sigle de deux lettres par objet : pas d'icônes ; la seule couleur est celle de la rareté
   (étape 95).
-- Le niveau d'objet (étapes 101 et 102) fait varier les plages d'affixes, les poids de rareté, les dégâts des armes et les seuils,
+- Le niveau d'objet (étapes 101 à 103) fait varier les plages d'affixes, les poids de rareté, les dégâts des armes, l'armure, le blocage, les bonus et les seuils,
   pas de palier d'affixe (un nom et une plage par palier, à la *Titan Quest*), pas de modèle de base supérieur (une épée d'acier après
   celle de fer) ; les plages sont les mêmes pour Magic et Rare ; pas d'affixe de résistance ni
   de modification des seuils ; les anneaux et les colliers n'ont aucun préfixe donc ne sont jamais Rare ; un seul préfixe et un seul suffixe ; pas d'objet unique ni de rareté supérieure à Rare.
-- Armures, boucliers et bijoux : valeurs fixes de prototype (étape 103). La qualité ne joue que sur les armes et n'est pas affichée.
+- La qualité n'est pas affichée : le joueur la voit dans les dégâts d'une arme et dans l'armure, le blocage et les bonus des protections.
 - L'emplacement affiche le nom du modèle (en la couleur de la rareté), pas le nom composé : trop long pour la cellule.
 - Pas de restriction d'équipement par classe. Une nouvelle partie repart toujours du départ (aucune sauvegarde de
-  l'équipement ni des objets au sol). Pas de deux armes à la fois (la main gauche ne tient qu'un bouclier), ni de lancer, ni
+  l'équipement ni des objets au sol). Pas de deux armes à la fois (la main gauche ne tient qu'un bouclier ou une relique), ni de lancer, ni
   de munitions.
 - Butin (étape 97) : pas de tables par monstre, pas de rareté minimale, pas d'or ; les objets au sol ne disparaissent pas avec
   le temps ; le nom d'un objet au sol ne s'affiche qu'au survol (pas de touche pour tous les montrer) ; pas de ramassage
@@ -500,22 +580,26 @@ et le sac, en lecture seule ; aucune fonction de modification n'est appelée.
 
 `enum class Emplacement { Tete, Torse, Jambes, Gants, Bottes, MainDroite, MainGauche, Collier,
 Anneau1, Anneau2 }` ; `inline constexpr std::size_t s_nombreEmplacements = 10` ; `enum class
-CategorieObjet { Casque, Armure, Jambieres, Gants, Bottes, Bouclier, Collier, Anneau, Arme }`.
+CategorieObjet { Casque, Armure, Jambieres, Gants, Bottes, Bouclier, Relique, Collier, Anneau, Arme }`.
 
 | Fonction | Rôle |
 |---|---|
-| `bool peutAller(CategorieObjet, Emplacement)` | Un objet de cette catégorie peut-il être porté à cet emplacement ? Chaque catégorie a un emplacement, sauf l'anneau (`Anneau1` et `Anneau2`) ; le bouclier va en `MainGauche` seulement ; l'arme va en `MainDroite` seulement (la main droite n'accepte qu'elle) ; `[[nodiscard]]` |
+| `bool peutAller(CategorieObjet, Emplacement)` | Un objet de cette catégorie peut-il être porté à cet emplacement ? Chaque catégorie a un emplacement, sauf l'anneau (`Anneau1` et `Anneau2`) ; le bouclier et la relique vont en `MainGauche` seulement ; l'arme va en `MainDroite` seulement (la main droite n'accepte qu'elle) ; `[[nodiscard]]` |
 
 ### `Objet` (`objets/`)
 
-`Objet.hpp`, sans `.cpp`. `enum class IdObjet { CasqueDeFer, CuirasseDeMailles, JambieresDeFer,
-BouclierRond, GantsDeCuir, BottesDeCuir, CasqueDeCuir, TuniqueMatelassee, CollierDeProtection,
-AnneauDeProtection, AnneauDePuissance, CollierDEndurance, puis les treize armes (étape 102) : Dague, EpeeAUneMain, HacheAUneMain,
+`Objet.hpp`, sans `.cpp`. `enum class IdObjet { les vingt pièces d'armure (étape 103, par type puis torse, jambes, tête, gants, bottes :
+Robe, JambieresDeTissu, Capuchon, GantsDeTissu, Chaussons, Justaucorps, JambieresDeCuir, CalotteDeCuir, GantsDeCuir, BottesDeCuir,
+CotteDeMailles, JambieresDeMailles, CoiffeDeMailles, GantsDeMailles, BottesDeMailles, ArmureDePlaques, JambieresDePlaques,
+HeaumeIntegral, Gantelets, Solerets), Bouclier, Orbe, ReliqueSacree, CollierDeProtection, AnneauDeProtection, AnneauDePuissance,
+CollierDEndurance, puis les treize armes (étape 102) : Dague, EpeeAUneMain, HacheAUneMain,
 MasseAUneMain, Lance, EpeeADeuxMains, HacheADeuxMains, MasseADeuxMains, Baguette, Sceptre, Baton, Arc, Arbalete }` ; `struct Objet {
 IdObjet modele; Rarete rarete = Rarete::Commun; std::optional<Affixe> prefixe = {}; std::optional<Affixe> suffixe = {}; int niveau = 1;
 int qualite = s_qualiteParDefaut; }` avec `operator==` par défaut. Constantes `s_qualiteMaximale` (100), `s_qualiteParDefaut` (50),
 `s_croissanceParNiveau` (0,25) et `[[nodiscard]] constexpr double facteurDeNiveau(int niveau)` = `1 + 0,25 × (niveau − 1)`, l'unique
-endroit qui l'écrit (`plageAuNiveau` et `descriptionDeLArme` l'utilisent).
+endroit qui l'écrit (`plageAuNiveau`, `descriptionDeLArme` et `effetsDeBase` l'utilisent) ; `s_facteurDeQualiteMin` (0,85),
+`s_amplitudeDeQualite` (0,30) et `[[nodiscard]] constexpr double facteurDeQualite(int qualite)` = `0,85 + 0,30 × qualité / 100`, écrit une
+fois (étape 103.1), partagé par les armes et les protections.
 
 ### `Affixe` (`objets/`)
 
@@ -542,16 +626,22 @@ bonus; StatistiquesDeCombat bonusDeCombat; Degats degatsAjoutes; int penetration
 
 ### `CatalogueObjets` (`objets/`)
 
+`TypeDArmure.hpp` : `enum class TypeDArmure { Tissu, Leger, Intermediaire, Lourd }`, sans `.cpp` (étape 103.3).
+
 `CatalogueObjets.hpp` / `.cpp` : `struct ExigenceDeCaracteristique { Caracteristique caracteristique; int pente; }` (avec
 `operator==`), `inline constexpr int s_seuilAuNiveau1 = 6`, `struct DefinitionObjet { IdObjet id; std::string nom;
 CategorieObjet categorie; int armure; Caracteristiques bonus = {}; StatistiquesDeCombat bonusDeCombat = {};
 std::optional<DonneesDArme> arme = {}; std::optional<DonneesDeBouclier> bouclier = {};
-std::vector<ExigenceDeCaracteristique> exigences = {}; }` et des fonctions libres, sans état.
+std::vector<ExigenceDeCaracteristique> exigences = {}; int niveauDApparition = 1; std::optional<TypeDArmure> typeDArmure = {}; }`
+(les valeurs d'armure, de bonus, de capacités et de bouclier sont celles du niveau 1 et de la qualité moyenne : `effetsDeBase` donne
+celles d'un objet), `struct EffetsDeBase { int armure; Caracteristiques bonus; StatistiquesDeCombat bonusDeCombat; }`,
+`s_gainDeBlocageParNiveau` (1) et des fonctions libres, sans état.
 
 | Fonction | Rôle |
 |---|---|
 | `const std::vector<DefinitionObjet>& catalogueObjets()` | Tous les modèles, dans l'ordre de `IdObjet` ; l'unique source de leurs valeurs ; `[[nodiscard]]` |
 | `const DefinitionObjet& definitionObjet(IdObjet id)` | Le modèle de cet identifiant ; `assert` : le catalogue suit l'ordre de l'enum ; `[[nodiscard]]` |
+| `EffetsDeBase effetsDeBase(const Objet&)` | Ce que l'objet apporte par lui-même, sans ses affixes (étape 103.1) : armure, bonus de caractéristiques, capacités et montant de blocage `base × facteurDeNiveau × facteurDeQualite` arrondis, chance de blocage du niveau 1 plus 1 par niveau, esquives et résistances fixes ; l'unique endroit qui les calcule ; `[[nodiscard]]` |
 | `std::vector<SeuilDeCaracteristique> seuilsDeLObjet(const Objet&)` | Les seuils de CET objet : `s_seuilAuNiveau1 + pente × (niveau − 1)` pour chaque exigence de son modèle ; vide sans exigence. L'unique endroit qui calcule un seuil (étape 102.2) ; `[[nodiscard]]` |
 | `bool seuilsAtteints(const Objet&, const Caracteristiques&)` | Ces caractéristiques atteignent-elles tous les seuils de l'objet ? Toujours vrai sans seuil ; `[[nodiscard]]` |
 | `bool estADeuxMains(IdObjet)` | Une arme à deux mains (épée, hache, masse à deux mains, bâton, arc, arbalète) ; faux pour tout autre objet, la lance comprise ; `[[nodiscard]]` |
@@ -561,9 +651,9 @@ std::vector<ExigenceDeCaracteristique> exigences = {}; }` et des fonctions libre
 | `std::string nomDeLObjet(const Objet&)` | « [préfixe] modèle [suffixe] » (« Blazing Mace ») ; `[[nodiscard]]` |
 | ~~`std::vector<Objet> sacDeDepart()`~~ | Supprimée à l'étape 99.1 (le sac commence vide). Elle rendait le contenu du sac au début d'une partie : gants de cuir, bottes de cuir, casque de cuir, tunique matelassée, collier de protection, deux anneaux de protection, l'anneau de puissance, le collier d'endurance, une dague et une épée à deux mains ; `[[nodiscard]]` |
 
-Valeurs d'armure (provisoires ; recalibrées à l'étape 87.3 pour le modèle M1, puis à l'échelle × 3 à l'étape 91.2) :
-casque de fer 2, cuirasse de mailles 4, jambières de fer 2, bouclier rond 1, gants de cuir 1, bottes de cuir 1,
-casque de cuir 1, tunique matelassée 2, collier de protection 1, anneau de protection 1 ; armes 0.
+Valeurs d'armure : le tableau des vingt pièces est dans « Les protections, les boucliers et les reliques (étape 103) » ; Shield 1,
+Necklace et Ring of Protection 1, armes et reliques 0. Les prototypes des étapes 87 à 91 (casque de fer, cuirasse de mailles, jambières de
+fer, bouclier rond, gants et bottes de cuir, casque de cuir, tunique matelassée) n'existent plus.
 
 Armes : les valeurs des treize gabarits sont dans le tableau de « Les gabarits d'armes, le niveau et la qualité » (étape 102), qui
 remplace celui des sept armes prototypes de l'étape 91. Les mains nues (pas un objet) : 6 dégâts sans écart, 0,4 – 0,6 s, 0,15 s, 20 px,
@@ -577,12 +667,11 @@ d'endurance » (collier, armure 0, Endurance +3). Un collier d'endurance donne +
 
 Bonus de combat (étape 90.2) : `DefinitionObjet` reçoit `StatistiquesDeCombat bonusDeCombat = {}`, le
 même type que les statistiques d'un personnage, qui s'y additionnent (`docs/combat.md`). Depuis l'étape 94, ce type
-porte aussi les **résistances** par élément (`Resistances`), additionnées de la même façon ; aucun objet n'en donne
-encore (étape 95), tous les personnages ont 0. Deux objets en ont
-un (valeurs « à tester », constantes nommées de `CatalogueObjets.cpp`) : les **bottes de cuir** +5 %
-d'esquive contre le contact, le **casque de cuir** +5 % d'esquive contre les projectiles. Le **bouclier rond**
-(30 % de chance de blocage, 12 points absorbés) est depuis l'étape 91.6 une propriété du bouclier
-(`DonneesDeBouclier`), plus un bonus.
+porte aussi les **résistances** par élément (`Resistances`) ; aucun objet n'en donne encore. Depuis l'étape 103, les seuls bonus de combat
+des modèles sont le **malus d'esquive** des pièces intermédiaires et lourdes (négatif, fixe) et le **+10 de capacité offensive** des
+reliques (qui grandit avec le niveau et la qualité) ; les esquives positives viennent des affixes. Le blocage d'un Shield (20 % au niveau 1,
+8 points) est une propriété du bouclier (`DonneesDeBouclier { chanceAuNiveau1, montantAuNiveau1 }`), ajoutée au bonus de combat par
+`effetsDeBase`. Bijoux : Ring of Might Puissance +3, Necklace of Constitution Endurance +3 au niveau 1.
 
 ### `GenerationDObjets` (`objets/`)
 
@@ -610,7 +699,7 @@ Données membres : `m_objets` (`std::array<std::optional<Objet>, s_nombreEmplace
 | `const std::optional<Objet>& a(Emplacement) const` | L'objet porté à cet emplacement, s'il y en a un ; `[[nodiscard]]` |
 | `std::optional<Objet> poser(Emplacement, Objet)` | Porte l'objet et rend celui qui y était ; `assert(objetValide(...))` et `assert(peutAller(...))` : c'est à l'appelant de vérifier ; `[[nodiscard]]` |
 | `std::optional<Objet> retirer(Emplacement)` | Enlève l'objet et le rend (vide si l'emplacement l'était) ; `[[nodiscard]]` |
-| `int armureTotale() const` | Somme de l'armure des objets portés (modèle plus affixes), recalculée à chaque appel ; `[[nodiscard]]` |
+| `int armureTotale() const` | Somme de l'armure des objets portés (`effetsDeBase` plus affixes), recalculée à chaque appel ; `[[nodiscard]]` |
 | `StatistiquesDeCombat bonusDeCombatTotal() const` | Somme des bonus de combat des objets portés (modèle plus affixes) et du blocage de leurs boucliers (chance, montant ; la chance d'un affixe s'y ajoute), recalculée à chaque appel ; `[[nodiscard]]` |
 | `Caracteristiques bonusTotal() const` | Somme des bonus de caractéristiques des objets portés (modèle plus affixes), recalculée à chaque appel (étape 88) ; `[[nodiscard]]` |
 | `DescriptionDAttaque attaqueDeBase() const` | L'attaque de base que donne l'équipement : celle de l'arme de la main droite avec le feu, le sacré et la pénétration de ses affixes, sinon `mainsNues()` (étape 91.4, 95.4) ; `[[nodiscard]]` |
@@ -661,7 +750,7 @@ PositionPortee { std::size_t place; Emplacement emplacement; }` (chacune avec `o
 
 En-têtes seuls. `struct DonneesDArme { TypeDArme type; int mains; int degatsDeReference; int ecartPourCent; float rechargeMin;
 float rechargeMax; float tempsExecution; float portee; NatureDAttaque nature; int penetration; }` (le gabarit, étape 102 ; avant,
-`{ type, mains, DescriptionDAttaque attaque }`) ; `struct DonneesDeBouclier { int chanceDeBlocage; int montantBloque; }` ; `enum class
+`{ type, mains, DescriptionDAttaque attaque }`) ; `struct DonneesDeBouclier { int chanceAuNiveau1; int montantAuNiveau1; }` ; `enum class
 TypeDArme { Dague, EpeeAUneMain, HacheAUneMain, MasseAUneMain, Lance, EpeeADeuxMains, HacheADeuxMains, MasseADeuxMains, Baguette,
 Sceptre, Baton, Arc, Arbalete }` ; `struct DescriptionDAttaque { PlageDeDegats degats; float rechargeMin; float rechargeMax; float
 tempsExecution; float portee; NatureDAttaque nature; int penetration; }` (`degats` est une plage depuis l'étape 102, un `Degats` typé
@@ -690,9 +779,11 @@ libres sans état, qui rendent des `std::string` en UTF-8.
 | Fonction | Rôle |
 |---|---|
 | `std::string nomDeLEmplacement(Emplacement)` | « Head », « Chest », « Legs », « Hands », « Feet », « Main Hand », « Off Hand », « Necklace », « Ring 1 », « Ring 2 » ; `switch` sans `default` ; `[[nodiscard]]` |
-| `std::string nomDeLaCategorie(CategorieObjet)` | « Helmet », « Body Armor », « Leggings », « Gloves », « Boots », « Shield », « Necklace », « Ring », « Weapon » ; `[[nodiscard]]` |
+| `std::string nomDeLaCategorie(CategorieObjet)` | « Helmet », « Body Armor », « Leggings », « Gloves », « Boots », « Shield », « Relic », « Necklace », « Ring », « Weapon » ; `[[nodiscard]]` |
+| `std::string nomDuTypeDArmure(TypeDArmure)` | « Cloth Armor », « Light Armor », « Medium Armor », « Heavy Armor » (étape 103.3) ; `[[nodiscard]]` |
+| `std::vector<std::string> lignesDeMalusDeLObjet(const Objet&)` | Les lignes de l'infobulle qui sont des malus de l'objet (« Dodge: −3 % ») ; l'écran les colore en rouge ; `[[nodiscard]]` |
 | `std::string ligneDeSeuil(const SeuilDeCaracteristique&)` / `std::string ligneDObjetInactif()` | « Requires Might 11 » ; « Inactive: requirement not met » (étape 92.3) ; `[[nodiscard]]` |
-| `std::string sigleDeLObjet(IdObjet)` | Deux lettres par objet du catalogue (IH, CM, IG, RS, LG, LB, LC, PT, NP, RP, RM, NC, puis DA, SW, HA, MA, SP, GS, GA, MU, WA, SC, ST, BO, CB) ; `[[nodiscard]]` |
+| `std::string sigleDeLObjet(IdObjet)` | Deux lettres par objet du catalogue (RO, CL, HD, CG, SL, LJ, LL, LC, LG, LB, CM, CE, CF, CH, CT, PA, PG, GH, GT, SB, SH, OR, HR, NP, RP, RM, NC, puis DA, SW, HA, MA, SP, GS, GA, MU, WA, SC, ST, BO, CB) ; `[[nodiscard]]` |
 | `sf::Color couleurDeLaRarete(Rarete)` | Blanc (commun), jaune (magique), vert (rare) ; lisibles sur le fond le plus clair de l'inventaire (contraste ≥ 4,5, un test le vérifie) ; `[[nodiscard]]` (étape 95.5) |
 | `std::string ligneDAffixe(const Affixe&)` | « Fire Damage: +6 », « Holy Damage: +4 », « Penetration: +15 % », « Armor: +3 », « Dexterity: +2 », « Dodge vs Melee: +3 % », « Dodge vs Projectiles: +4 % », « Block: +5 % » ; `switch` sans `default` ; `[[nodiscard]]` |
 | `std::vector<std::string> lignesDeLInfobulle(const Objet&)` | Nom composé, catégorie, « Item Level N », propriétés du modèle (armure, bonus, bonus de combat, blocage, attaque de l'arme calculée pour cet objet), une ligne par affixe, seuils de l'objet à son niveau ; `[[nodiscard]]` |
@@ -710,7 +801,7 @@ libres sans état, qui rendent des `std::string` en UTF-8.
   `docs/combat.md`) ; le catalogue d'aujourd'hui n'a aucun objet d'Adresse. Et **directement**, par
   `DefinitionObjet::bonusDeCombat` : esquives et blocage (étape 90), mais aussi les capacités, que
   `Equipement::bonusDeCombatTotal` additionne et que `statistiquesDuPersonnage` ajoute aux statistiques du
-  personnage. Le bouclier rond est donc maintenant porteur d'un blocage ; **les personnages de test ne le
+  personnage. Le Shield est donc porteur d'un blocage ; **les personnages de test ne le
   portent plus** (`s_equipementMeleeDeTest`), pour que leurs coups reçus ne soient pas bloqués au hasard :
   les tests de blocage l'ajoutent explicitement (`docs/tests.md`).
 - `Escouade` : membre `m_sac` (`Inventaire`, 40 cases), `sac()`, `equipementDuPersonnage(place)`,

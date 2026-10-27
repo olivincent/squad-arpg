@@ -622,9 +622,9 @@ personnages sont dans `docs/formation.md`, le monstre dans
   `Equipement`, recalculée en entier à chaque changement (`Vitalite::definirDefenses`) ; il n'y a plus
   d'armure de classe (`docs/objets.md`). Celle d'un monstre est fixe, une valeur de sa définition (de sa catégorie
   depuis l'étape 93, `docs/monstre.md`).
-- **Valeurs (étape 87.3, provisoires ; à l'échelle × 3 depuis l'étape 91.2)** : guerrier et paladin 9 (casque de
-  fer 2, cuirasse de mailles 4, jambières de fer 2, bouclier rond 1 ; 30 avant l'étape 91), prêtre, mage et
-  rôdeur 0, les monstres 3 (10 avant l'échelle × 3 ; depuis l'étape 93, 3 pour l'infanterie seulement : 0 pour la
+- **Valeurs (étape 87.3, provisoires ; à l'échelle × 3 depuis l'étape 91.2)** : depuis l'étape 103, l'armure d'un personnage est celle de
+  ses pièces calculée par `effetsDeBase` (guerrier et paladin 4 : Leather Jerkin 3 et Shield 1 ; rôdeur 3 ; prêtre et mage 2 : Robe ;
+  9 pour les kits de l'étape 91, 30 avant), les monstres 3 (10 avant l'échelle × 3 ; depuis l'étape 93, 3 pour l'infanterie seulement : 0 pour la
   nuée, 10 pour l'infanterie lourde, 6 pour la créature monstrueuse). Contrôle : un coup de monstre de 30 fait 21 à un guerrier, 30 à un
   mage ; une attaque de base de 15 fait 12 à un monstre.
 - **Le soin n'est pas touché** par l'armure. Les dégâts de zone, de skill et d'attaque de base passent
@@ -785,7 +785,8 @@ physique d'un coup (question 12 tranchée, voir « Types de dégâts et résista
   reste. **Blocage total** : si tout est absorbé, le coup s'arrête, **sans armure ni plancher** (le montant est
   0, pas 1) ; `ResultatDuCoup::bloque` dit ce qui a été absorbé (> 0 : il y a eu blocage ; total si `montant ==
   0`).
-- **Valeurs du bouclier rond (« à tester », `CatalogueObjets.cpp`)** : 30 % de chance, 12 points absorbés (40
+- **Valeurs du Shield (« à tester », `CatalogueObjets.cpp`)** : depuis l'étape 103, 20 % de chance au niveau 1 (+1 point par niveau) et 8
+  points absorbés au niveau 1 (× le facteur de niveau et de qualité), au lieu de 30 % et 12 pour le bouclier rond de l'étape 91 (40
   avant l'échelle × 3), 3 s de récupération (une constante commune depuis l'étape 91.6, plus la donnée du
   bouclier). Depuis l'étape 91.6, chance et montant sont les `DonneesDeBouclier` du bouclier, que `Equipement`
   ajoute aux statistiques de combat. Les monstres n'ont pas de bouclier (`montantBloque` 0), mais une définition de
@@ -977,7 +978,7 @@ Le modèle des affixes est dans `docs/objets.md` (« Rareté et affixes ») ; ic
   `armureAppliquee`, comme avant.
 - **Blocage.** La chance de blocage d'un affixe (« of Blocking ») s'ajoute à celle du bouclier dans
   `Equipement::bonusDeCombatTotal` ; le montant absorbé reste celui du bouclier (sans bouclier, l'affixe n'est même pas
-  permis). L'inventaire affiche la somme (« Block 35 % (12) » avec un bouclier rond « of Blocking » +5).
+  permis). L'inventaire affiche la somme (« Block 35 % (12) » avec un Shield « of Blocking » +5).
 - **Esquive et armure.** « of Evasion » et « of Deflection » ajoutent à l'esquive contre le contact ou les projectiles
   (plafond de 50 % inchangé), « Reinforced » à l'armure : tous passent par les totaux de l'équipement actif.
 - **Un objet inactif perd ses affixes** avec le reste (l'objet entier sort de l'équipement actif).

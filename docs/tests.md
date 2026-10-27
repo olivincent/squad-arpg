@@ -2045,3 +2045,39 @@ avant de construire la `Partie`.
   la fenêtre d'un coup passe de 0,2 s à 0,35 s (le bâton à deux mains met 0,3 s à frapper).
 - **Ce que les tests ne voient pas** : la sensation (les nombres flottants qui varient, la lance qui touche de plus loin, la dague qui
   frappe plus souvent que la masse) se vérifie à l'œil.
+
+
+## Étape 103 : armures, boucliers et reliques (+33 cas, 1 745 → 1 778)
+
+Cinq sous-étapes, un commit chacune (les deux premières enchaînées). Les protections prototypes des étapes 83 à 91 sont remplacées par des
+gabarits ; une grande partie du travail est la **migration des tests**.
+- **103.1** (+7) : `test_CatalogueObjets.cpp` (`facteurDeQualite` 0,85 / 1 / 1,15 ; **au niveau 1 et à la qualité moyenne, `effetsDeBase` rend
+  les valeurs du modèle pour tout le catalogue** ; l'armure suit le niveau et la qualité en entier arrondi ; le bonus d'un bijou grandit
+  sans toucher aux autres caractéristiques ; les esquives du modèle sont fixes ; le bouclier gagne 1 point de chance par niveau, pas par
+  qualité). Les champs `DonneesDeBouclier` sont renommés (`chanceAuNiveau1`, `montantAuNiveau1`).
+- **103.2** (+1) : `test_GenerationDObjets.cpp` (aucun modèle n'est tiré sous son niveau d'apparition, niveaux 1 à 5). Ce test ne
+  vérifiait rien tant qu'aucun modèle n'apparaissait après le niveau 1 : il est devenu réel en 103.3.
+- **103.3** (+13) : `test_CatalogueObjets.cpp` (**les données des vingt pièces** — cinq pièces par type avec le bon type, **chaque type bat
+  le précédent à chaque emplacement aux niveaux 1 et 5, aucune pièce à 0**, ensembles de 6 / 11 / 17 / 24 et 12 / 22 / 34 / 48, aucun
+  bonus de caractéristique, malus d'esquive du tableau, exigences et niveau d'apparition par type, seuls les types intermédiaire et
+  lourd ont un bonus de combat) ; `test_GenerationDObjets.cpp` (**à chaque niveau de 1 à 5, tous les modèles déjà apparus sortent, et eux
+  seuls**, qui rend le test d'apparition non vide) ; `test_AffichageObjets.cpp` (infobulle d'une pièce lourde, d'une pièce de tissu, type
+  d'armure, armure au niveau 5, malus d'esquive en une ligne, `lignesDeMalusDeLObjet`) ; `test_AffichageStatistiques.cpp` (l'esquive
+  négative s'affiche 0, deux esquives égales sur une ligne, `lignesDeMalusDeCombat`) ; `test_Specialite.cpp` (**une seule pièce d'armure par
+  kit, le torse** ; Leather Jerkin ou Robe) ; `test_Personnage.cpp` (une pièce lourde inactive n'a pas son malus).
+- **103.4** (+1) : `test_CatalogueObjets.cpp` (le Shield : 20 % et 8 au niveau 1, 24 % / 16 / 2 au niveau 5, 29 % / 26 / 3 au niveau 10,
+  39 % / 46 / 6 au niveau 20) ; l'infobulle du bouclier a deux lignes.
+- **103.5** (+11) : `test_CatalogueObjets.cpp` (gabarits des reliques, leurs effets selon le niveau et la qualité, leur seuil, **elles ne
+  portent que des suffixes de caractéristique**) ; `test_Emplacement.cpp` (la relique va en main gauche seulement) ;
+  `test_DeplacementDObjets.cpp` (**équiper un bâton range la relique comme un bouclier**, une orbe se pose à côté d'une baguette, une relique
+  et un bouclier s'échangent, une relique range un arc, ni en main droite) ; `test_Specialite.cpp` (le prêtre a une Holy Relic).
+- **Migration des tests** : (1) les tests génériques qui avaient besoin d'un objet « sans seuil » (`GantsDeCuir`, `BottesDeCuir`,
+  `CasqueDeCuir`) utilisent maintenant les **pièces de tissu** (`GantsDeTissu`, `Chaussons`, `Capuchon`) : sans seuil, sans malus ;
+  (2) `s_equipementMeleeDeTest` est en **pièces lourdes** (Endurance seule, comme les anciennes pièces de fer), ce qui donne à ses
+  personnages un malus d'esquive brut de −6 % (ramené à 0 : sans effet en combat) ; ses tests qui comparaient des statistiques les
+  calculent avec `Equipement(s_equipementMeleeDeTest).bonusDeCombatTotal()` ; (3) les tests d'esquive ne peuvent plus compter sur un objet
+  de base qui donne de l'esquive : ils posent un « of Evasion » ou « of Deflection » (par `deplacerObjet` quand le kit ne peut pas le
+  dire, un `ObjetDeDepart` n'ayant pas d'affixe) ; (4) la suite épinglée de la graine 96 est réépinglée à chaque changement de taille du
+  catalogue (103.3 et 103.5), l'état du générateur après 200 objets ne change pas.
+- **Ce que les tests ne voient pas** : le rouge du malus dans l'infobulle, la lisibilité du signe moins, la sensation d'une armure lourde
+  qui mange l'esquive, le butin qui s'alourdit en descendant : à l'œil.

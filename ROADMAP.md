@@ -8,7 +8,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 ## Étapes terminées
 
-Étapes 0 à 102 ✅. Les dernières :
+Étapes 0 à 103 ✅. Les dernières :
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 - Étape 83 — Inventaire et équipement : le modèle, sans interface ✅
@@ -31,15 +31,16 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - Étape 100 — Les points libres : 3 par niveau et par personnage, répartis dans l'inventaire avec un brouillon (+, −, Apply, Reset), définitifs ✅
 - Étape 101 — Le niveau d'objet : la profondeur fait grandir les plages des affixes et les chances de Magic et de Rare ✅ (la phase 5 est terminée)
 - Étape 102 — Les gabarits d'armes : treize gabarits (vitesse, portée, nature, mains, pénétration, écart par coup), l'objet retient son niveau et sa qualité, ses dégâts et ses seuils se calculent, chaque coup tire ses dégâts dans une plage ✅ (première étape de la phase 6)
+- Étape 103 — Armures, boucliers et reliques : vingt pièces d'armure en quatre types (tissu, léger, intermédiaire, lourd), un Shield, deux reliques de main gauche (Orb, Holy Relic), malus d'esquive des pièces lourdes, niveau d'apparition dans le butin ; armure, blocage et bonus se calculent depuis le gabarit, le niveau et la qualité (`effetsDeBase`) ✅
 
 ## État actuel (résumé)
 
 - **Outils** : conception dans Claude.ai, implémentation avec Claude Code dans VSCode (règles dans
   `CLAUDE.md`) ; dépôt Git `squad-arpg`, poussé sur GitHub ; SFML 3.0.2 intégrée à CMake.
-- **Code** (étape 102) : 102 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
+- **Code** (étape 103) : 103 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
   `combat`, `objets`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
   de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug` et `jeu`, 0
-  avertissement, 1 745 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers des étapes 98 à 102 : `docs/build.md`,
+  avertissement, 1 778 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers des étapes 98 à 102 : `docs/build.md`,
   `docs/audit.md`). `Escouade` n'est plus que l'assemblage : `Escouade.cpp` de 1 223 à 1 067 lignes. Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`). **Tout le texte affiché est en anglais** (identifiants, commentaires et documentation restent en français ; pas de système de traduction : `docs/glossaire.md` est la référence des noms du jeu). Un commit par sous-étape, fait par Claude Code (`CLAUDE.md`).
 - **Écrans** : menu à la souris, options d'affichage (fenêtré ou plein écran, résolutions,
   `reglages.ini`), choix de 3 classes parmi 5 (guerrier, prêtre, mage, paladin, rôdeur ; doublons
@@ -100,6 +101,20 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   de l'objet − 1)` (`seuilsDeLObjet`, pente 2 pour la caractéristique principale, 1 pour une secondaire) ; au niveau 1 toute classe porte
   tout objet. Les skills de frappe veulent une arme de contact, ceux de l'archer un arc ou une arbalète. Kits de départ : guerrier épée à
   une main, paladin masse à une main, prêtre sceptre, mage bâton, rôdeur arc. L'infobulle montre « Item Level N » et « Damage: 13–17 ».
+- **Protections, boucliers et reliques** (étape 103) : sur le même patron que les armes, **l'armure, le blocage et les bonus se calculent**
+  depuis le gabarit, le niveau et la qualité de l'objet (`effetsDeBase`, l'unique endroit ; `facteurDeQualite(q) = 0,85 + 0,30 × q /
+  100`, partagé avec les armes ; un arrondi au plus proche par valeur, en entier). **Vingt pièces d'armure** (`TypeDArmure` : tissu, léger,
+  intermédiaire, lourd ; torse, jambes, tête, gants, bottes) : armure de base au niveau 1 de 6 / 11 / 17 / 24 pour un ensemble complet,
+  aucun bonus de caractéristique ; seuils (tissu aucun, léger Adresse, intermédiaire Endurance et Adresse, lourd Endurance), **malus
+  d'esquive fixe** contre le contact et les projectiles (lourd −3 % au torse, −2 % aux jambes, −1 % ailleurs ; intermédiaire −1 % au
+  torse et aux jambes), qui passe par les statistiques de combat (l'esquive qui joue reste d'au moins 0) ; **niveau d'apparition**
+  (`DefinitionObjet::niveauDApparition` : intermédiaire 2, lourd 3) filtré par `genererObjet`. **Le Shield** remplace le bouclier rond :
+  20 % de blocage + 1 point par niveau, 8 points absorbés et armure 1 au niveau 1 (× niveau et qualité). **Deux reliques** (catégorie
+  `Relique`, main gauche à la place d'un bouclier, jamais Rare) : Orb (Savoir) et Holy Relic (Volonté), +2 dans leur caractéristique et
+  +10 de capacité offensive ; une arme à deux mains range l'objet de la main gauche quelle que soit sa catégorie. Kits : Leather Jerkin
+  (guerrier, paladin, rôdeur) ou Robe (prêtre, mage), Shield pour les mêlées, Holy Relic pour le prêtre ; aucune autre pièce. L'infobulle
+  montre le type d'armure, « Armor: N », le malus en rouge (« Dodge: −3 % »), « Block: 20 % » et « Absorbs: 8 ». Tout est « à tester »
+  (`docs/objets.md`, « Les protections, les boucliers et les reliques », `docs/aide-memoire-objets.md`).
   Les protections, boucliers et bijoux gardent leurs valeurs de prototype (étape 103) ; tout est « à tester » (`docs/objets.md`,
   « Les gabarits d'armes, le niveau et la qualité »).
 - **Carte** : donjon généré à chaque partie (salles, couloirs en L de 2 cases, portes à chaque
@@ -108,8 +123,8 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - **Vision** : brouillard de guerre (inconnu, exploré, visible) par shadowcasting symétrique, la
   même règle que la ligne de vue du combat ; F6 le coupe à l'affichage (`docs/vision.md`).
 - **Objets** : 10 emplacements par personnage, un sac de 40 cases pour l'escouade, un catalogue de
-  25 objets dont 13 armes (les treize gabarits de l'étape 102) ; l'armure d'un
-  personnage est la somme de son équipement (guerrier et paladin partent équipés : 9 ; les autres : 0) ;
+  40 objets (vingt pièces d'armure, un Shield, deux reliques, quatre bijoux, treize armes) ; l'armure d'un
+  personnage est la somme de son équipement (guerrier et paladin partent avec 4, le rôdeur 3, le prêtre et le mage 2) ;
   **l'attaque de base et la zone de contrôle viennent de l'arme** de la main droite (les mains nues sans arme ;
   contact : zone de 20 px, projectile : aucune), changer d'arme relance une recharge complète ; une arme à deux
   mains exige la main gauche vide et range ce qui la gêne dans le sac (sac plein : refus) ; **les objets ont des
@@ -119,8 +134,8 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   Volonté), dont l'Endurance donne des points de vie (base commune de 240 plus 6 par point : environ 300 au
   départ, échelle × 3 de l'étape 91) et la Puissance augmente dégâts et soins (3 % par point au-dessus de 10),
   l'Adresse donne les capacités offensive et défensive (`50 + 5 × Adresse`) ; des objets donnent aussi un
-  bonus de combat (bottes de cuir : esquive contre la mêlée ; casque de cuir : esquive contre les projectiles) et
-  le bouclier rond un blocage (30 %, 12 points, récupération commune de 3 s) ; **un objet porte sa rareté et au plus un
+  bonus de combat (le malus d'esquive des pièces lourdes, la capacité offensive des reliques) et
+  le Shield un blocage (20 % plus 1 par niveau, 8 points au niveau 1, récupération commune de 3 s) ; **un objet porte sa rareté et au plus un
   préfixe et un suffixe, avec leur valeur** (Common : aucun ; Magic : un ; Rare : un préfixe et un suffixe ; douze
   affixes : feu, sacré, pénétration, armure, une caractéristique, esquives, blocage ; nom composé « Keen Bow of the Fox »,
   couleur de rareté blanc, jaune, vert) dont les effets entrent dans les totaux de l'équipement ; **`genererObjet` tire un
@@ -295,16 +310,26 @@ ce qui reste à décider **en discussion** avant son prompt :
   - 102 ✅ : les gabarits d'armes : l'`Objet` retient son niveau et sa qualité, une seule règle des seuils (`6 + pente × (niveau − 1)`),
     la plage de dégâts et le tirage par coup, les treize gabarits, `descriptionDeLArme`, les exigences d'armes des skills, les kits
     de départ, l'infobulle. Tous les objets de test précédents étaient des prototypes remplacés sans être conservés.
-  - 103 : armures, boucliers et reliques (bijoux) sur le même patron (valeurs de l'armure et du blocage selon le niveau et la
-    qualité, malus d'esquive) ; la qualité est déjà tirée pour tout objet.
+  - 103 ✅ : armures, boucliers et reliques sur le même patron : le facteur de qualité partagé et `effetsDeBase` (armure, bonus,
+    capacités, blocage selon le niveau et la qualité), le niveau d'apparition, les vingt pièces d'armure (types, seuils, malus d'esquive,
+    kits, infobulle), le Shield, les reliques de main gauche (Orb, Holy Relic).
   - 104 : affinités et poids d'affixes (quel affixe sur quel gabarit, et avec quelle chance).
 
 
-## Étape 103 (prochaine) : armures, boucliers et reliques (à discuter avec Claude.ai)
+## Étape 104 (prochaine) : affinités et poids d'affixes (à discuter avec Claude.ai)
 
-L'étape 102 (les gabarits d'armes) est faite et ouvre la phase 6. La suite se discute avec Claude.ai. Le Savoir et la
+L'étape 103 (armures, boucliers et reliques) est faite. La suite se discute avec Claude.ai ; l'aide-memoire des affinités est dans
+`docs/aide-memoire-objets.md`. Le Savoir et la
 Volonté n'ont encore aucun effet (les paires de croissance du prêtre et du mage deviendront justes quand ils serviront). L'`Expedition`
 garde les points dépensés ; c'est elle qu'on sauvegardera un jour.
+
+**Pistes issues de l'étape 103** (étapes à part, plus tard) :
+- **Ajuster en jouant** l'armure de chaque pièce et de chaque type, les malus d'esquive, le gain de blocage par niveau (1), le montant du
+  Shield, le +10 de capacité offensive des reliques et les niveaux d'apparition (2 et 3) : tout est « à tester ».
+- **Des poids de tirage par gabarit** (aujourd'hui uniforme parmi les modèles éligibles) : étape 104.
+- **Un effet pour le Savoir et la Volonté**, que les reliques et les armes magiques annoncent déjà par leur seuil.
+- **Des bonus de vitesse** (et peut-être un malus de mouvement des armures lourdes) quand chaque personnage aura sa propre vitesse.
+- **Afficher la qualité**, et des modèles de base supérieurs au-delà du niveau (plaques d'acier après celles de fer).
 
 **Pistes issues de l'étape 102** (étapes à part, plus tard) :
 - **Ajuster en jouant** les dégâts/s visés (23 à une main, 30 à deux mains), les références et les écarts de chaque gabarit, la

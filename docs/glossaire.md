@@ -126,22 +126,38 @@ Le nom affiché d'un objet est `[préfixe] modèle [suffixe]` (« Blazing Mace �
 | Gants | Hands | Gants | Gloves |
 | Bottes | Feet | Bottes | Boots |
 | Main droite | Main Hand | Bouclier | Shield |
-| Main gauche | Off Hand | Collier | Necklace |
-| Collier | Necklace | Anneau | Ring |
-| Anneau 1, Anneau 2 | Ring 1, Ring 2 | Arme | Weapon |
+| Main gauche | Off Hand | Relique | Relic |
+| Collier | Necklace | Collier | Necklace |
+| Anneau 1, Anneau 2 | Ring 1, Ring 2 | Anneau | Ring |
+| | | Arme | Weapon |
 
 ## Objets (`objets/CatalogueObjets.cpp`, sigles dans `interface/AffichageObjets.cpp`)
 
 | Concept | Texte | Sigle |
 |---|---|---|
-| Casque de fer | Iron Helm | IH |
-| Cuirasse de mailles | Chain Mail | CM |
-| Jambières de fer | Iron Greaves | IG |
-| Bouclier rond | Round Shield | RS |
+| Robe | Robe | RO |
+| Jambières de tissu | Cloth Leggings | CL |
+| Capuchon | Hood | HD |
+| Gants de tissu | Cloth Gloves | CG |
+| Chaussons | Slippers | SL |
+| Justaucorps de cuir | Leather Jerkin | LJ |
+| Jambières de cuir | Leather Leggings | LL |
+| Calotte de cuir | Leather Cap | LC |
 | Gants de cuir | Leather Gloves | LG |
 | Bottes de cuir | Leather Boots | LB |
-| Casque de cuir | Leather Cap | LC |
-| Tunique matelassée | Padded Tunic | PT |
+| Cotte de mailles | Chain Mail | CM |
+| Jambières de mailles | Chain Leggings | CE |
+| Coiffe de mailles | Chain Coif | CF |
+| Gants de mailles | Chain Gloves | CH |
+| Bottes de mailles | Chain Boots | CT |
+| Armure de plaques | Plate Armor | PA |
+| Jambières de plaques | Plate Greaves | PG |
+| Heaume intégral | Great Helm | GH |
+| Gantelets | Gauntlets | GT |
+| Solerets | Sabatons | SB |
+| Bouclier | Shield | SH |
+| Orbe | Orb | OR |
+| Relique sacrée | Holy Relic | HR |
 | Collier de protection | Necklace of Protection | NP |
 | Anneau de protection | Ring of Protection | RP |
 | Anneau de puissance | Ring of Might | RM |
@@ -164,7 +180,9 @@ Le nom affiché d'un objet est `[préfixe] modèle [suffixe]` (« Blazing Mace �
 
 | Concept | Texte |
 |---|---|
-| Armure | Armor |
+| Armure d'un objet | Armor (« Armor: 10 » ; avec les affixes, « Armor: +3 » sur une ligne à part) |
+| Type d'une pièce d'armure (sous la catégorie) | Cloth Armor, Light Armor, Medium Armor, Heavy Armor |
+| Malus d'esquive d'une pièce (rouge) | Dodge (« Dodge: −3 % » quand les deux esquives sont égales), sinon Dodge vs Melee / Dodge vs Projectiles ; le signe moins est U+2212 |
 | Niveau de l'objet (sur tous les objets, sous la catégorie) | Item Level (« Item Level 3 ») ; la qualité n'est pas affichée |
 | Dégâts, recharge, portée | Damage (« Damage: 13–17 » : les bornes de la plage, avant la Puissance ; un seul nombre sans écart), Cooldown (« 0.3 to 0.7 s »), Range (« 20 px ») |
 | Nature de l'attaque : contact, projectile, zone | Melee, Projectile, Area |
@@ -172,7 +190,8 @@ Le nom affiché d'un objet est `[préfixe] modèle [suffixe]` (« Blazing Mace �
 | Deux mains | Two-handed |
 | Seuil de caractéristique | Requires Might 11 |
 | Objet inactif | Inactive: requirement not met |
-| Blocage d'un bouclier (infobulle) | Block: 30 %, 12 points |
+| Blocage d'un bouclier (infobulle, deux lignes) | Block: 20 %, Absorbs: 8 |
+| Bonus de capacité offensive d'un objet | Offensive Ability: +10 |
 | Capacité offensive, défensive | Offensive Ability, Defensive Ability |
 | Blocage (inventaire) | Block 30 % (12) |
 | Esquive mêlée, esquive projectile (inventaire) | Melee Dodge, Projectile Dodge |

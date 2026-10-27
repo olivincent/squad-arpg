@@ -120,6 +120,7 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 100 — Les points libres : 3 par niveau et par personnage, répartis dans l'inventaire avec un brouillon (+, −, Apply, Reset), définitifs ✅
 - Étape 101 — Le niveau d'objet : la profondeur fait grandir les plages des affixes et les chances de Magic et de Rare ✅
 - Étape 102 — Les gabarits d'armes : treize gabarits, l'objet retient son niveau et sa qualité, ses dégâts et ses seuils se calculent, chaque coup tire ses dégâts dans une plage ✅ (première étape de la phase 6, gabarits d'objets)
+- Étape 103 — Armures, boucliers et reliques : vingt pièces d'armure en quatre types, un Shield, deux reliques de main gauche, armure, blocage et bonus calculés depuis le gabarit, le niveau et la qualité, malus d'esquive des pièces lourdes, niveau d'apparition ✅
 
 ## Détail des étapes 0 à 73
 
@@ -2412,3 +2413,24 @@ SW, HA, SP, GA, MU, WA, CB ajoutés. **Tests** : un coup n'est plus comparé à 
 du but de sa famille, plage contenant la moyenne aux niveaux 1 à 20). 1 745 tests (+25), 0 avertissement de compilation sur les deux
 presets, aucun avertissement `clang-tidy` nouveau. Détail : `docs/objets.md` (« Les gabarits d'armes, le niveau et la qualité »),
 `docs/combat.md`, `docs/tests.md`, `docs/glossaire.md`, `docs/classes-et-combat.md`.
+
+### Étape 103 — Armures, boucliers et reliques ✅
+
+Deuxième étape de la phase 6 (gabarits d'objets), faite en cinq sous-étapes, un commit chacune (103.1 et 103.2 enchaînées), plus une
+correction `clang-tidy`. Les protections prototypes (pièces de fer et de cuir, bouclier rond, tunique matelassée) étaient des objets de
+test, remplacées sans être conservées. 103.1 : `facteurDeQualite(q) = 0,85 + 0,30 × q / 100` est écrit une fois (`Objet.hpp`) et
+partagé par les armes et les protections ; `effetsDeBase(const Objet&)` (`CatalogueObjets`) est l'unique endroit qui calcule l'armure,
+les bonus de caractéristiques, les capacités, la chance de blocage (+1 point par niveau, niveau seul) et le montant absorbé
+(`base × facteurDeNiveau × facteurDeQualite`, un arrondi par valeur, en entier) ; les esquives restent fixes ; `Equipement`
+(`armureTotale`, `bonusTotal`, `bonusDeCombatTotal`, `actifPour`) et l'infobulle y passent ; `DonneesDeBouclier` devient
+`{ chanceAuNiveau1, montantAuNiveau1 }` ; au niveau 1 et à la qualité moyenne aucune valeur ne change. 103.2 :
+`DefinitionObjet::niveauDApparition` (1 par défaut) et filtre de `genererObjet` (l'ordre des tirages ne change pas). 103.3 : les vingt
+pièces d'armure en quatre types (`TypeDArmure`, `typeDArmure` du gabarit, séries construites par `piecesDArmure`), table d'armure 6 / 11 /
+17 / 24, seuils par type, malus d'esquive des pièces lourdes et intermédiaires (statistiques de combat, jamais caractéristiques),
+niveaux d'apparition 2 et 3, kits (une seule pièce, le torse), sigles, infobulle (type, « Armor: N », « Dodge: −3 % » en rouge par
+`lignesDeMalusDeLObjet`, signe moins U+2212) ; les tests génériques passent aux pièces de tissu, la mêlée de test aux pièces lourdes. 103.4 :
+le Shield remplace le bouclier rond (20 % + 1 par niveau, 8 absorbés, armure 1), infobulle « Block » et « Absorbs » sur deux lignes. 103.5 :
+`CategorieObjet::Relique`, Orb et Holy Relic, la main gauche accepte un bouclier ou une relique (la règle des deux mains valait déjà pour
+tout objet de la main gauche), kit du prêtre. 1 778 tests (+33), 0 avertissement de compilation sur les deux presets, aucun avertissement
+`clang-tidy` nouveau. Détail : `docs/objets.md` (« Les protections, les boucliers et les reliques »), `docs/aide-memoire-objets.md`,
+`docs/tests.md`, `docs/glossaire.md`.
