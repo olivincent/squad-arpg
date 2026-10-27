@@ -2,26 +2,19 @@
 #pragma once
 #include "base/Aleatoire.hpp"
 #include "base/Cercle.hpp"
-#include "combat/Caracteristiques.hpp"
-#include "combat/Degats.hpp"
-#include "combat/Element.hpp"
+#include "combat/EffetDeSkill.hpp"
 #include "combat/ModeDeCible.hpp"
-#include "combat/NatureDAttaque.hpp"
 #include "combat/TypeDArme.hpp"
-#include "combat/TypeSkill.hpp"
 #include <optional>
 #include <vector>
 
-// Un skill : un type, une portée, une puissance et une recharge (un
-// intervalle [rechargeMin, rechargeMax] en secondes, tiré au hasard à chaque
-// déclenchement ; fixe si les deux bornes sont égales, sans aucun tirage). La
-// « puissance » est le nombre de dégâts pour un skill de Degats, le nombre
-// de points de vie rendus pour un skill de Soin, la durée en secondes pour
-// un skill de Provocation, le nombre de dégâts pour un skill de Zone, 0 pour un skill de frappe (voir
-// `bonusDeFrappe` : ses dégâts viennent de l'arme). Le
-// rayon de zone est la taille de la zone touchée par un skill de zone ; il
-// vaut 0 et n'est pas lu pour un skill à cible unique (c'est le type qui
-// décide).
+// Un skill se décrit en données : COMMENT il vise (un mode de cible), OÙ il s'applique (la cible, ou une zone autour d'elle) et
+// CE QU'IL FAIT (un effet), plus sa portée, sa recharge (un intervalle [rechargeMin, rechargeMax] en secondes, tiré au hasard à
+// chaque déclenchement ; fixe si les deux bornes sont égales, sans aucun tirage) et son temps d'exécution.
+//
+// La zone est une propriété du skill, séparée de l'effet : un rayon optionnel. Sans rayon, l'effet touche la cible ; avec un
+// rayon, il touche chaque entité du camp concerné (`campTouche` : les monstres pour les dégâts et la provocation, les alliés pour
+// un soin) dans le cercle de ce rayon centré sur la cible, sur le point visé (mode `Point`) ou sur le lanceur (mode `Soi`).
 //
 // Machine à états (PhaseSkill) d'un coup à temps d'exécution :
 //   Pret --commencer--> EnExecution --avancer (fin de l'exécution)--> EnRecharge
@@ -34,37 +27,27 @@
 // qui le retient.
 enum class PhaseSkill { Pret, EnExecution, EnRecharge };
 
-// Les données d'un skill, nommées à la construction (initialisation désignée) : sept valeurs de
-// types voisins qu'on ne confond plus. Voir `Skill` pour leur sens.
+// Les données d'un skill, nommées à la construction (initialisation désignée) : des valeurs de types voisins qu'on ne
+// confond plus. Voir `Skill` pour leur sens.
 struct DefinitionDeSkill {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
-    TypeSkill type;
     // Comment le skill vise (`ModeDeCible`) : ce qui décide du choix de la cible, du déclenchement, de la mise en attente et de la
     // visée. Il n'est lu que pour un skill de personnage ; l'attaque de base et celle d'un monstre écrivent `Monstre`.
     ModeDeCible mode;
     float portee;        // en pixels, écart bord à bord
-    int puissance;
     float rechargeMin;   // en secondes
     float rechargeMax;   // en secondes
-    float rayonZone = 0.0f;       // en pixels
+    // Ce que le skill fait. Sa part de la définition est celle de son effet : montant, élément, nature, coefficients… n'existent
+    // que dans l'alternative qui les lit. Pour un skill de frappe (`EffetFrappe`), les dégâts physiques, la nature et la pénétration
+    // sont ceux de l'arme portée.
+    EffetDeSkill effet;
+    // Vide : l'effet touche la cible. Présent : il touche tout le camp concerné dans ce rayon (en pixels) autour de la cible, du point
+    // visé ou du lanceur. Un skill de mode `Point` en a toujours un (sinon il n'aurait rien à toucher).
+    std::optional<float> rayonZone = std::nullopt;
     float tempsExecution = 0.0f;  // en secondes, entre l'engagement du coup et son départ
-    Coefficients coefficients = {};  // ce que la puissance doit aux caractéristiques du lanceur
-    // Nature de l'attaque (contact, projectile, zone) : sans valeur par défaut, chaque skill déclare la sienne (un
-    // oubli est signalé par le compilateur, comme le rayon de zone à l'étape 42). Elle n'est lue que pour un skill de
-    // dégâts ou de zone : un soin ou une provocation écrit `Contact`, qui ne sert à rien. `Zone` va avec le type
-    // `Zone`, et lui seul.
-    NatureDAttaque nature;
     // Les types d'arme qui permettent de lancer le skill (modèle de *Titan Quest* : pas de restriction par classe) ;
     // vide : aucune exigence. Sans l'une de ces armes en main droite (les mains nues n'en sont pas une), le skill est
     // refusé comme celui d'un lanceur mort.
     std::vector<TypeDArme> armesExigees = {};
-    // L'élément des dégâts de la puissance (skill de dégâts ou de zone) : une explosion est du feu. Le physique par
-    // défaut ; un soin et une provocation n'en ont pas.
-    Element element = Element::Physique;
-    // Présent : c'est un **skill de frappe** (étape 94), qui utilise l'arme portée. Ses dégâts physiques, sa nature et sa
-    // pénétration sont ceux de l'arme (`DescriptionDAttaque`) ; le skill apporte ce bonus fixe, typé (la frappe sacrée :
-    // du sacré), sa portée, sa recharge et son temps d'activation. La puissance est alors 0 et la nature déclarée
-    // (non zone) n'est pas lue : l'attaque prend celle de l'arme. Un skill de frappe est de type `DegatsSurCible`.
-    std::optional<Degats> bonusDeFrappe = std::nullopt;
 };
 
 class Skill {
@@ -84,36 +67,26 @@ public:
     void relancerRecharge(Generateur& generateur);
     [[nodiscard]] float getProgressionRecharge() const;
     [[nodiscard]] float getRechargeRestante() const;
-    [[nodiscard]] TypeSkill getType() const;
     [[nodiscard]] ModeDeCible getMode() const;
-    [[nodiscard]] float getRayonZone() const;
+    [[nodiscard]] const EffetDeSkill& getEffet() const;
+    // Le rayon de la zone touchée ; vide si l'effet touche la cible seule.
+    [[nodiscard]] std::optional<float> getRayonZone() const;
     [[nodiscard]] float getPortee() const;
-    [[nodiscard]] int getPuissance() const;
-    [[nodiscard]] const Coefficients& getCoefficients() const;
-    [[nodiscard]] NatureDAttaque getNature() const;
-    [[nodiscard]] Element getElement() const;
-    // Le bonus d'un skill de frappe ; vide pour tout autre skill.
-    [[nodiscard]] const std::optional<Degats>& getBonusDeFrappe() const;
     [[nodiscard]] const std::vector<TypeDArme>& getArmesExigees() const;
     // Cette arme (vide : les mains nues) permet-elle de lancer le skill ? Toujours vrai sans exigence.
     [[nodiscard]] bool convientA(std::optional<TypeDArme> arme) const;
 
 private:
-    TypeSkill m_type;
     ModeDeCible m_mode;
     float m_portee;         // en pixels, écart bord à bord
-    int m_puissance;
     float m_rechargeMin;    // en secondes
     float m_rechargeMax;    // en secondes
     float m_tempsRecharge;  // en secondes, durée de la recharge en cours (dernier tirage)
     float m_recharge;       // en secondes, avant le prochain déclenchement possible
-    float m_rayonZone;      // en pixels
+    EffetDeSkill m_effet;
+    std::optional<float> m_rayonZone;
     float m_tempsExecution; // en secondes, entre l'engagement du coup et son départ
-    Coefficients m_coefficients;
-    NatureDAttaque m_nature;
     std::vector<TypeDArme> m_armesExigees;
-    Element m_element;
-    std::optional<Degats> m_bonusDeFrappe;
     float m_executionRestante; // en secondes, lue seulement en phase EnExecution
     PhaseSkill m_phase;
 

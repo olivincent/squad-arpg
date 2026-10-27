@@ -40,7 +40,6 @@
 #include "objets/PositionDObjet.hpp"
 #include "escouade/Provocations.hpp"
 #include "combat/ResolutionDuCoup.hpp"
-#include "combat/TypeSkill.hpp"
 
 class TileMap;
 class Escouade {

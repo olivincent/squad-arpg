@@ -11,7 +11,6 @@
 #include "escouade/Escouade.hpp"
 #include "combat/EntiteVue.hpp"
 #include "monde/TileMap.hpp"
-#include "combat/TypeSkill.hpp"
 #include "combat/ModeDeCible.hpp"
 
 // Skill de zone (touche 4) : lanceur (mage) en (185, 235), 15 dégâts, recharge 8 s,

@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <optional>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "interface/BarreDeRaccourcis.hpp"
@@ -18,8 +19,8 @@
 #include "combat/ResolutionDuCoup.hpp"
 #include "monde/CategorieDeMonstre.hpp"
 #include "monstres/DefinitionDeMonstre.hpp"
+#include "combat/EffetDeSkill.hpp"
 #include "combat/Element.hpp"
-#include "combat/TypeSkill.hpp"
 #include "combat/TypeDArme.hpp"
 #include "escouade/Composition.hpp"
 #include "objets/CatalogueObjets.hpp"
@@ -156,16 +157,17 @@ TEST_CASE("le paladin est une melee qui frappe et soigne au contact") {
     REQUIRE(paladin.skills.size() == 2);
 
     REQUIRE(paladin.skills[0].id == IdSkill::FrappeSacree);
-    REQUIRE(paladin.skills[0].skill.getType() == TypeSkill::DegatsSurCible);
-    // Un skill de frappe : pas de puissance propre (les dégâts viennent de l'arme), un bonus sacré fixe.
-    REQUIRE(paladin.skills[0].skill.getPuissance() == 0);
-    REQUIRE(paladin.skills[0].skill.getBonusDeFrappe().has_value());
-    REQUIRE(*paladin.skills[0].skill.getBonusDeFrappe() == degatsDe(Element::Sacre, 45));
+    // Un skill de frappe : pas de dégâts propres (ils viennent de l'arme), un bonus sacré fixe.
+    REQUIRE(paladin.skills[0].skill.getMode() == ModeDeCible::Monstre);
+    REQUIRE(std::holds_alternative<EffetFrappe>(paladin.skills[0].skill.getEffet()));
+    REQUIRE(std::get<EffetFrappe>(paladin.skills[0].skill.getEffet()).bonus == degatsDe(Element::Sacre, 45));
+    REQUIRE_FALSE(paladin.skills[0].skill.getRayonZone().has_value());
     REQUIRE(paladin.skills[0].skill.getPortee() == 20.0f);
 
     REQUIRE(paladin.skills[1].id == IdSkill::ImpositionDesMains);
-    REQUIRE(paladin.skills[1].skill.getType() == TypeSkill::Soin);
-    REQUIRE(paladin.skills[1].skill.getPuissance() == 75);
+    REQUIRE(paladin.skills[1].skill.getMode() == ModeDeCible::Allie);
+    REQUIRE(std::holds_alternative<EffetSoin>(paladin.skills[1].skill.getEffet()));
+    REQUIRE(std::get<EffetSoin>(paladin.skills[1].skill.getEffet()).montant == 75);
     REQUIRE(paladin.skills[1].skill.getPortee() == 20.0f);
 }
 
@@ -180,14 +182,15 @@ TEST_CASE("le rodeur est un tireur avec un tir de loin et un skill de zone") {
     REQUIRE(rodeur.skills.size() == 2);
 
     REQUIRE(rodeur.skills[0].id == IdSkill::TirPercant);
-    REQUIRE(rodeur.skills[0].skill.getType() == TypeSkill::DegatsSurCible);
-    REQUIRE(rodeur.skills[0].skill.getPuissance() == 75);
+    REQUIRE(rodeur.skills[0].skill.getMode() == ModeDeCible::Monstre);
+    REQUIRE(std::get<EffetDegats>(rodeur.skills[0].skill.getEffet()).montant == 75);
+    REQUIRE_FALSE(rodeur.skills[0].skill.getRayonZone().has_value());
     REQUIRE(rodeur.skills[0].skill.getPortee() == 200.0f);
 
     REQUIRE(rodeur.skills[1].id == IdSkill::PluieDeFleches);
-    REQUIRE(rodeur.skills[1].skill.getType() == TypeSkill::Zone);
-    REQUIRE(rodeur.skills[1].skill.getPuissance() == 36);
-    REQUIRE(rodeur.skills[1].skill.getRayonZone() == 45.0f);
+    REQUIRE(rodeur.skills[1].skill.getMode() == ModeDeCible::Point);
+    REQUIRE(std::get<EffetDegats>(rodeur.skills[1].skill.getEffet()).montant == 36);
+    REQUIRE(rodeur.skills[1].skill.getRayonZone() == std::optional<float>(45.0f));
     REQUIRE(rodeur.skills[1].skill.getPortee() == 320.0f);
 }
 
@@ -241,10 +244,13 @@ TEST_CASE("nature des attaques : contact pour les melees, projectile pour les ti
     REQUIRE(nature(IdSpecialite::Mage) == NatureDAttaque::Projectile);
     REQUIRE(nature(IdSpecialite::Rodeur) == NatureDAttaque::Projectile);
 
-    const auto natureDuSkill = [](IdSpecialite id, std::size_t rang) { return specialite(id).definition.skills[rang].skill.getNature(); };
+    const auto natureDuSkill = [](IdSpecialite id, std::size_t rang) {
+        return std::get<EffetDegats>(specialite(id).definition.skills[rang].skill.getEffet()).nature;
+    };
     REQUIRE(natureDuSkill(IdSpecialite::Guerrier, 0) == NatureDAttaque::Contact);   // frappe puissante
     REQUIRE(natureDuSkill(IdSpecialite::Mage, 0) == NatureDAttaque::Zone);          // explosion
-    REQUIRE(natureDuSkill(IdSpecialite::Paladin, 0) == NatureDAttaque::Contact);    // frappe sacree
+    // La frappe sacrée n'a pas de nature propre : comme tout skill de frappe, elle prend celle de l'arme (contact, ci-dessus).
+    REQUIRE(std::holds_alternative<EffetFrappe>(specialite(IdSpecialite::Paladin).definition.skills[0].skill.getEffet()));
     REQUIRE(natureDuSkill(IdSpecialite::Rodeur, 0) == NatureDAttaque::Projectile);  // tir percant
     REQUIRE(natureDuSkill(IdSpecialite::Rodeur, 1) == NatureDAttaque::Zone);        // pluie de fleches
 }
@@ -410,8 +416,8 @@ TEST_CASE("l'explosion du mage est du feu, les autres skills de degats et de zon
         for (const SkillConnu& connu : classe.definition.skills) {
             const bool explosion = connu.id == IdSkill::Explosion;
             INFO(classe.nom << " : skill " << static_cast<int>(connu.id));
-            if (connu.skill.getType() == TypeSkill::DegatsSurCible || connu.skill.getType() == TypeSkill::Zone) {
-                REQUIRE(connu.skill.getElement() == (explosion ? Element::Feu : Element::Physique));
+            if (const EffetDegats* degats = std::get_if<EffetDegats>(&connu.skill.getEffet())) {
+                REQUIRE(degats->element == (explosion ? Element::Feu : Element::Physique));
             }
         }
     }

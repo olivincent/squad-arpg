@@ -1,5 +1,6 @@
 // ./src/escouade/Personnage.cpp
 #include "escouade/Personnage.hpp"
+#include "combat/Cible.hpp"
 #include "rendu/BarreDeVie.hpp"
 #include "monde/Chemin.hpp"
 #include "base/Eclaircir.hpp"
@@ -23,10 +24,12 @@ const Coefficients s_coefficientsDeLAttaqueDeBase = Coefficients::seul(Caracteri
 // La machine à états d'une attaque de base décrite par une arme (ou les mains nues). Elle ne porte que le temps (portée,
 // recharge, exécution) : ses dégâts, typés, sont ceux de la description (`attaqueDeLArme`), d'où la puissance à 0.
 Skill skillDeLAttaqueDeBase(const DescriptionDAttaque& description) {
-    return Skill({.type = TypeSkill::DegatsSurCible, .mode = ModeDeCible::Monstre, .portee = description.portee, .puissance = 0,
-                  .rechargeMin = description.rechargeMin, .rechargeMax = description.rechargeMax,
-                  .tempsExecution = description.tempsExecution, .coefficients = s_coefficientsDeLAttaqueDeBase,
-                  .nature = description.nature});
+    return Skill({.mode = ModeDeCible::Monstre,
+                  .portee = description.portee,
+                  .rechargeMin = description.rechargeMin,
+                  .rechargeMax = description.rechargeMax,
+                  .effet = EffetDegats{.montant = 0, .nature = description.nature, .coefficients = s_coefficientsDeLAttaqueDeBase},
+                  .tempsExecution = description.tempsExecution});
 }
 }  // namespace
 
@@ -193,14 +196,6 @@ Skill* Personnage::trouverSkill(IdSkill id) {
     return const_cast<Skill*>(std::as_const(*this).trouverSkill(id));
 }
 
-std::optional<TypeSkill> Personnage::typeSkill(IdSkill id) const {
-    const Skill* skill = trouverSkill(id);
-    if (skill == nullptr) {
-        return std::nullopt;
-    }
-    return skill->getType();
-}
-
 std::optional<ModeDeCible> Personnage::modeSkill(IdSkill id) const {
     const Skill* skill = trouverSkill(id);
     if (skill == nullptr) {
@@ -238,7 +233,7 @@ std::optional<EtatSkill> Personnage::etatDuSkill(IdSkill id) const {
     }
     const std::optional<ActionEngagee> action = skillEngage();
     const bool enActivation = action.has_value() && action->skill == id;
-    return EtatSkill{id, skill->getType(), skill->getProgressionRecharge(), skill->getRechargeRestante(), estVivant(),
+    return EtatSkill{id, skill->getProgressionRecharge(), skill->getRechargeRestante(), estVivant(),
                      !armeConvientA(*skill), enActivation};
 }
 
@@ -255,7 +250,7 @@ Cercle Personnage::cercleDePorteeDuSkill(IdSkill id) const {
 
 Cercle Personnage::zoneDuSkill(IdSkill id) const {
     const Skill* skill = trouverSkill(id);
-    return {getCentre(), skill != nullptr ? skill->getRayonZone() : 0.0f};
+    return {getCentre(), skill != nullptr ? skill->getRayonZone().value_or(0.0f) : 0.0f};
 }
 
 bool Personnage::engagerSkill(IdSkill id, std::optional<Cible> cible) {
@@ -296,10 +291,7 @@ std::optional<Attaque> Personnage::avancerSkill(float dt, Generateur& generateur
     m_actionEngagee.reset();
     // Le skill est parti : l'attaque de base repart pour une recharge complète.
     m_attaqueDeBase.relancerRecharge(generateur);
-    if (skill.getBonusDeFrappe().has_value()) {
-        return attaqueDeFrappe(skill, generateur);
-    }
-    return attaqueDe(skill);
+    return attaqueDuSkill(skill, generateur);
 }
 
 void Personnage::annulerSkill() {
@@ -446,30 +438,34 @@ Attaque Personnage::attaqueDeLArme(Generateur& generateur) const {
     return attaque;
 }
 
-Attaque Personnage::attaqueDe(const Skill& skill) const {
-    const int montant = montantEffectif(skill.getPuissance(), skill.getCoefficients(), m_caracteristiques);
-    Attaque attaque = {.degats = {},
-                       .capaciteOffensive = m_statistiques.capaciteOffensive,
-                       .nature = skill.getNature(),
-                       .penetration = 0};  // un skill a sa propre puissance : aucune pénétration
-    // Le type du skill dit ce que son montant est : des dégâts, un soin ou une durée.
-    switch (skill.getType()) {
-        case TypeSkill::DegatsSurCible:
-        case TypeSkill::Zone:
-            attaque.degats = degatsDe(skill.getElement(), montant);
-            break;
-        case TypeSkill::Soin:
-            attaque.soin = montant;
-            break;
-        case TypeSkill::Provocation:
-            attaque.dureeDeProvocation = montant;
-            break;
-    }
-    return attaque;
+Attaque Personnage::attaqueDuSkill(const Skill& skill, Generateur& generateur) const {
+    return std::visit(
+        Surcharges{
+            [&](const EffetDegats& degats) {
+                Attaque attaque = {.degats = {},
+                                   .capaciteOffensive = m_statistiques.capaciteOffensive,
+                                   .nature = degats.nature,
+                                   .penetration = 0};  // un skill a sa propre puissance : aucune pénétration
+                attaque.degats = degatsDe(degats.element, montantEffectif(degats.montant, degats.coefficients, m_caracteristiques));
+                return attaque;
+            },
+            [&](const EffetFrappe& frappe) { return attaqueDeFrappe(frappe, generateur); },
+            [&](const EffetSoin& soin) {
+                // La nature d'une attaque ne sert pas à un soin : le contact, comme avant l'effet en données.
+                Attaque attaque = {.degats = {}, .capaciteOffensive = m_statistiques.capaciteOffensive, .nature = NatureDAttaque::Contact};
+                attaque.soin = montantEffectif(soin.montant, soin.coefficients, m_caracteristiques);
+                return attaque;
+            },
+            [&](const EffetProvocation& provocation) {
+                Attaque attaque = {.degats = {}, .capaciteOffensive = m_statistiques.capaciteOffensive, .nature = NatureDAttaque::Contact};
+                attaque.dureeDeProvocation = provocation.duree;  // une durée n'est pas un montant : aucune caractéristique n'y joue
+                return attaque;
+            },
+        },
+        skill.getEffet());
 }
 
-Attaque Personnage::attaqueDeFrappe(const Skill& skill, Generateur& generateur) const {
-    assert(skill.getBonusDeFrappe().has_value());
+Attaque Personnage::attaqueDeFrappe(const EffetFrappe& frappe, Generateur& generateur) const {
     // Les dégâts viennent de l'arme (toutes ses portions, affixes compris, tirées dans sa plage), comme pour l'attaque de
     // base ; le skill n'ajoute que son bonus.
     Attaque attaque = {.degats = {},
@@ -478,8 +474,8 @@ Attaque Personnage::attaqueDeFrappe(const Skill& skill, Generateur& generateur) 
                        .penetration = m_descriptionDeBase.penetration};
     const Degats tires = tirerLesDegats(generateur, m_descriptionDeBase.degats);
     for (const Element element : s_elements) {
-        attaque.degats[element] = montantEffectif(tires[element], skill.getCoefficients(), m_caracteristiques);
-        attaque.degats[element] += montantEffectif((*skill.getBonusDeFrappe())[element], skill.getCoefficients(), m_caracteristiques);  // NOLINT(bugprone-unchecked-optional-access): vérifié par l'assert au-dessus (_assert de MinGW n'est pas noreturn)
+        attaque.degats[element] = montantEffectif(tires[element], frappe.coefficients, m_caracteristiques);
+        attaque.degats[element] += montantEffectif(frappe.bonus[element], frappe.coefficients, m_caracteristiques);
     }
     return attaque;
 }

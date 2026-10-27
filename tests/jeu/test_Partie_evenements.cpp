@@ -13,7 +13,6 @@
 #include "combat/Defense.hpp"
 #include "combat/Esquive.hpp"
 #include "combat/EvenementDeCombat.hpp"
-#include "combat/TypeSkill.hpp"
 #include "objets/Emplacement.hpp"
 #include "objets/Objet.hpp"
 #include "monstres/DefinitionDeMonstre.hpp"

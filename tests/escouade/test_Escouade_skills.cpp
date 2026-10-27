@@ -20,8 +20,8 @@
 #include "combat/EntiteVue.hpp"
 #include "combat/Skill.hpp"
 #include "monde/TileMap.hpp"
-#include "combat/TypeSkill.hpp"
 #include "combat/ModeDeCible.hpp"
+#include "combat/EffetDeSkill.hpp"
 
 TEST_CASE("etatDuSkill est vide pour une place invalide") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
@@ -30,13 +30,9 @@ TEST_CASE("etatDuSkill est vide pour une place invalide") {
     REQUIRE_FALSE(escouade.etatDuSkill(AdresseSkill{Place{5}, IdSkill::FrappePuissante}).has_value());
 }
 
-TEST_CASE("etatDuSkill donne le type du skill de chaque place") {
+TEST_CASE("etatDuSkill donne l'identifiant du skill de chaque place") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
 
-    REQUIRE(escouade.etatDuSkill(s_adresseFrappe)->type == TypeSkill::DegatsSurCible);
-    REQUIRE(escouade.etatDuSkill(s_adresseProvocation)->type == TypeSkill::Provocation);
-    REQUIRE(escouade.etatDuSkill(s_adresseSoin)->type == TypeSkill::Soin);
-    REQUIRE(escouade.etatDuSkill(s_adresseExplosion)->type == TypeSkill::Zone);
     REQUIRE(escouade.etatDuSkill(s_adresseExplosion)->id == IdSkill::Explosion);
 }
 
@@ -306,24 +302,37 @@ constexpr AdresseSkill s_adressePluie{Place{1}, IdSkill::PluieDeFleches};
 DefinitionPersonnage paladinDeTest() {
     DefinitionPersonnage paladin = guerrierDeTest();
     paladin.skills = {
-        {IdSkill::FrappeSacree, Skill({.type = TypeSkill::DegatsSurCible, .mode = ModeDeCible::Monstre, .portee = s_porteeMeleeDeTest,
-                                       .puissance = s_degatsFrappeSacreeDeTest, .rechargeMin = 5.0f,
-                                       .rechargeMax = 5.0f, .tempsExecution = 0.3f, .nature = NatureDAttaque::Contact})},
-        {IdSkill::ImpositionDesMains, Skill({.type = TypeSkill::Soin, .mode = ModeDeCible::Allie, .portee = s_porteeMeleeDeTest,
-                                             .puissance = s_puissanceImpositionDeTest, .rechargeMin = 10.0f,
-                                             .rechargeMax = 10.0f, .tempsExecution = 0.5f, .nature = NatureDAttaque::Contact})}};
+        {IdSkill::FrappeSacree, Skill({.mode = ModeDeCible::Monstre,
+                                       .portee = s_porteeMeleeDeTest,
+                                       .rechargeMin = 5.0f,
+                                       .rechargeMax = 5.0f,
+                                       .effet = EffetDegats{.montant = s_degatsFrappeSacreeDeTest, .nature = NatureDAttaque::Contact},
+                                       .tempsExecution = 0.3f})},
+        {IdSkill::ImpositionDesMains, Skill({.mode = ModeDeCible::Allie,
+                                             .portee = s_porteeMeleeDeTest,
+                                             .rechargeMin = 10.0f,
+                                             .rechargeMax = 10.0f,
+                                             .effet = EffetSoin{.montant = s_puissanceImpositionDeTest},
+                                             .tempsExecution = 0.5f})}};
     return paladin;
 }
 
 DefinitionPersonnage rodeurDeTest() {
     DefinitionPersonnage rodeur = mageDeTest();
     rodeur.skills = {
-        {IdSkill::TirPercant, Skill({.type = TypeSkill::DegatsSurCible, .mode = ModeDeCible::Monstre, .portee = 200.0f, .puissance = s_degatsTirDeTest,
-                                     .rechargeMin = 6.0f, .rechargeMax = 6.0f, .tempsExecution = 0.5f,
-                                     .nature = NatureDAttaque::Projectile})},
-        {IdSkill::PluieDeFleches, Skill({.type = TypeSkill::Zone, .mode = ModeDeCible::Point, .portee = 320.0f, .puissance = s_degatsPluieDeTest,
-                                         .rechargeMin = 8.0f, .rechargeMax = 8.0f, .rayonZone = 45.0f,
-                                         .tempsExecution = 0.8f, .nature = NatureDAttaque::Zone})}};
+        {IdSkill::TirPercant, Skill({.mode = ModeDeCible::Monstre,
+                                     .portee = 200.0f,
+                                     .rechargeMin = 6.0f,
+                                     .rechargeMax = 6.0f,
+                                     .effet = EffetDegats{.montant = s_degatsTirDeTest, .nature = NatureDAttaque::Projectile},
+                                     .tempsExecution = 0.5f})},
+        {IdSkill::PluieDeFleches, Skill({.mode = ModeDeCible::Point,
+                                         .portee = 320.0f,
+                                         .rechargeMin = 8.0f,
+                                         .rechargeMax = 8.0f,
+                                         .effet = EffetDegats{.montant = s_degatsPluieDeTest, .nature = NatureDAttaque::Zone},
+                                         .rayonZone = 45.0f,
+                                         .tempsExecution = 0.8f})}};
     return rodeur;
 }
 

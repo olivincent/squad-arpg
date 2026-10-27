@@ -3,9 +3,9 @@
 #include <cassert>
 #include <cstddef>
 #include "combat/Degats.hpp"
+#include "combat/EffetDeSkill.hpp"
 #include "combat/Element.hpp"
 #include "combat/NatureDAttaque.hpp"
-#include "combat/TypeSkill.hpp"
 
 namespace {
 // Ce que toutes les catégories partagent. Valeurs provisoires, à ajuster après test.
@@ -81,9 +81,12 @@ DefinitionDeMonstre definitionDuProfil(const Profil& profil) {
             .rayonTerritoire = s_rayonTerritoire,
             .zoneDeControle = s_zoneDeControle,
             .regenerationRetour = s_regenerationRetour,
-            .attaque = {.type = TypeSkill::DegatsSurCible, .mode = ModeDeCible::Monstre, .portee = s_porteeAttaque, .puissance = 0,
-                        .rechargeMin = profil.rechargeMin, .rechargeMax = profil.rechargeMax,
-                        .tempsExecution = profil.execution, .nature = NatureDAttaque::Contact},
+            .attaque = {.mode = ModeDeCible::Monstre,
+                        .portee = s_porteeAttaque,
+                        .rechargeMin = profil.rechargeMin,
+                        .rechargeMax = profil.rechargeMax,
+                        .effet = EffetDegats{.montant = 0, .nature = NatureDAttaque::Contact},
+                        .tempsExecution = profil.execution},
             .degats = degatsPhysiques(profil.degats),
             .statistiques = {.capaciteOffensive = profil.capaciteOffensive,
                              .capaciteDefensive = profil.capaciteDefensive,

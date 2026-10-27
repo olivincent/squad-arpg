@@ -13,7 +13,6 @@
 #include "escouade/Escouade.hpp"
 #include "combat/EntiteVue.hpp"
 #include "monde/TileMap.hpp"
-#include "combat/TypeSkill.hpp"
 #include "combat/ModeDeCible.hpp"
 
 // Escouade en (50, 50), orientée vers +x : les trois places sont en

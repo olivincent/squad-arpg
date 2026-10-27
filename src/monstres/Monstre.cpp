@@ -1,6 +1,7 @@
 // ./src/monstres/Monstre.cpp
 #include "monstres/Monstre.hpp"
 #include "combat/Autodefense.hpp"
+#include "combat/EffetDeSkill.hpp"
 #include "rendu/BarreDeVie.hpp"
 #include "monde/ChampDeVision.hpp"
 #include "base/Eclaircir.hpp"
@@ -11,6 +12,7 @@
 #include <SFML/Graphics/Rect.hpp>
 #include <cassert>
 #include <cstdint>
+#include <variant>
 
 namespace {
 constexpr std::uint8_t s_opaciteRetour = 128;  // sur 255 : environ 50 %, pour marquer le retour (débogage F3)
@@ -126,9 +128,10 @@ float Monstre::getZoneDeControle() const {
 }
 
 Attaque Monstre::getAttaque() const {
+    // Les dégâts d'un monstre sont ceux de sa définition ; sa nature est celle du seul effet qu'il ait, des dégâts propres.
     return {.degats = m_degats,
             .capaciteOffensive = m_statistiques.capaciteOffensive,
-            .nature = m_attaque.getNature()};
+            .nature = std::get<EffetDegats>(m_attaque.getEffet()).nature};
 }
 
 const StatistiquesDeCombat& Monstre::getStatistiques() const {

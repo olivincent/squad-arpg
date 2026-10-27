@@ -51,6 +51,7 @@ add_library(squad_core STATIC
     src/monstres/DefinitionDeMonstre.cpp
     src/monstres/Monstre.cpp
     src/combat/Skill.cpp
+    src/combat/EffetDeSkill.cpp
     src/monde/Mobile.cpp
     src/base/Cercle.cpp
     src/rendu/TraceDeChemin.cpp
@@ -183,6 +184,7 @@ add_executable(tests
     tests/interface/test_PileDEcrans.cpp
     tests/combat/test_EntiteVue.cpp
     tests/combat/test_Place.cpp
+    tests/combat/test_EffetDeSkill.cpp
     tests/rendu/test_BarreDeVie.cpp
     tests/base/test_Eclaircir.cpp
     tests/combat/test_PointsDeVie.cpp

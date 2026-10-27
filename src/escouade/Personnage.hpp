@@ -74,7 +74,6 @@ public:
     [[nodiscard]] bool estEnExecution() const;
     // Les questions sur un skill se posent par identifiant. Un identifiant que ce
     // personnage ne connaît pas se comporte comme « pas de skill » : vide, faux ou rayon 0.
-    [[nodiscard]] std::optional<TypeSkill> typeSkill(IdSkill id) const;
     [[nodiscard]] std::optional<ModeDeCible> modeSkill(IdSkill id) const;
     // Identifiants des skills qu'il connaît, dans l'ordre de sa liste.
     [[nodiscard]] std::vector<IdSkill> idsDesSkills() const;
@@ -89,7 +88,7 @@ public:
     // Skill en trois temps, comme l'attaque de base : engager (vivant, skill
     // prêt, aucun autre skill en activation ; annule le coup de base en
     // exécution, mais ne demande pas d'immobilité) ; avancer l'activation, qui
-    // rend l'attaque (dégâts, soin ou durée de provocation selon le type du skill, et capacité offensive) au moment
+    // rend l'attaque (dégâts, soin ou durée de provocation selon l'effet du skill, et capacité offensive) au moment
     // où l'effet part, vide avant (et relance la recharge de l'attaque de base) ; annuler, sans recharge consommée. Une seule action
     // engagée à la fois ; les recharges des skills sont indépendantes. La portée
     // et la vue sont vérifiées par Escouade ; la cible est stockée sans être interprétée.
@@ -175,14 +174,14 @@ private:
     // portion (`montantEffectif`, un arrondi par portion), la nature et la pénétration de l'arme, la capacité offensive du
     // personnage.
     [[nodiscard]] Attaque attaqueDeLArme(Generateur& generateur) const;
-    // L'attaque de ce skill de ce personnage : son montant, caractéristiques comprises (`montantEffectif`), rangé
-    // dans le champ que dit le type du skill (dégâts, soin ou durée de provocation), la
-    // capacité offensive du personnage ; aucune pénétration.
-    [[nodiscard]] Attaque attaqueDe(const Skill& skill) const;
+    // L'attaque de ce skill de ce personnage, selon son effet : le montant, caractéristiques comprises (`montantEffectif`), rangé
+    // dans le champ que dit l'effet (dégâts, soin ou durée de provocation), la capacité offensive du personnage ; aucune
+    // pénétration, sauf pour un skill de frappe (celle de l'arme).
+    [[nodiscard]] Attaque attaqueDuSkill(const Skill& skill, Generateur& generateur) const;
     // Celle d'un skill de frappe : toutes les portions de l'arme portée (affixes compris), tirées dans sa plage comme pour
     // l'attaque de base, la nature et la pénétration de l'arme, plus le bonus du skill ; la Puissance joue sur chaque portion
-    // (`montantEffectif`, avec les coefficients du skill).
-    [[nodiscard]] Attaque attaqueDeFrappe(const Skill& skill, Generateur& generateur) const;
+    // (`montantEffectif`, avec les coefficients de l'effet).
+    [[nodiscard]] Attaque attaqueDeFrappe(const EffetFrappe& frappe, Generateur& generateur) const;
     // Son arme permet-elle de lancer ce skill (`Skill::convientA`) ?
     [[nodiscard]] bool armeConvientA(const Skill& skill) const;
     [[nodiscard]] const Skill* trouverSkill(IdSkill id) const;  // nullptr si le personnage ne connaît pas ce skill

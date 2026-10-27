@@ -1,9 +1,11 @@
 // ./tests/monstres/test_DefinitionDeMonstre.cpp
 #include <catch2/catch_test_macros.hpp>
+#include <variant>
 
 #include "combat/Element.hpp"
 #include "monde/CategorieDeMonstre.hpp"
 #include "monstres/DefinitionDeMonstre.hpp"
+#include "combat/EffetDeSkill.hpp"
 
 // Le renforcement par la profondeur (étape 98.3).
 namespace {
@@ -17,13 +19,13 @@ void verifierQueLeResteNeChangePas(const DefinitionDeMonstre& avant, const Defin
     REQUIRE(apres.rayonTerritoire == avant.rayonTerritoire);
     REQUIRE(apres.zoneDeControle == avant.zoneDeControle);
     REQUIRE(apres.regenerationRetour == avant.regenerationRetour);
-    REQUIRE(apres.attaque.type == avant.attaque.type);
+    REQUIRE(apres.attaque.mode == avant.attaque.mode);
     REQUIRE(apres.attaque.portee == avant.attaque.portee);
     REQUIRE(apres.attaque.rechargeMin == avant.attaque.rechargeMin);
     REQUIRE(apres.attaque.rechargeMax == avant.attaque.rechargeMax);
     REQUIRE(apres.attaque.rayonZone == avant.attaque.rayonZone);
     REQUIRE(apres.attaque.tempsExecution == avant.attaque.tempsExecution);
-    REQUIRE(apres.attaque.nature == avant.attaque.nature);
+    REQUIRE(std::get<EffetDegats>(apres.attaque.effet).nature == std::get<EffetDegats>(avant.attaque.effet).nature);
     REQUIRE(apres.statistiques.esquiveContact == avant.statistiques.esquiveContact);
     REQUIRE(apres.statistiques.esquiveProjectile == avant.statistiques.esquiveProjectile);
     REQUIRE(apres.statistiques.chanceDeBlocage == avant.statistiques.chanceDeBlocage);
