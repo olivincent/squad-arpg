@@ -131,9 +131,9 @@ public:
     // Une entité de contrôle (identifiant = place de 1 à N, cercle, zone de contrôle) par personnage
     // vivant : les morts n'engagent personne et ne sont pas engagés.
     [[nodiscard]] std::vector<EntiteDeControle> entitesDeControle() const;
-    // Attaque de base du personnage de cette place (dégâts avant l'armure de la cible, capacité offensive) ;
-    // vide si la place est invalide.
-    [[nodiscard]] std::optional<Attaque> attaqueDeBase(std::size_t place) const;
+    // Attaque de base du personnage de cette place (dégâts tirés dans la plage de son arme, avant l'armure de la cible,
+    // capacité offensive) : un coup d'opportunité la lit ici, avec le générateur de la partie. Vide si la place est invalide.
+    [[nodiscard]] std::optional<Attaque> attaqueDeBase(std::size_t place, Generateur& generateur) const;
     // Un cercle (centre du personnage, rayon de vision) par personnage vivant : la vision de
     // l'escouade est l'union de leurs champs.
     [[nodiscard]] std::vector<Cercle> cerclesDeVision() const;

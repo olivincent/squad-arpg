@@ -76,7 +76,7 @@ TEST_CASE("jeterUnObjet : un objet porte arrive au sol, l'emplacement se vide et
 
 TEST_CASE("jeterUnObjet : jeter l'arme portee applique les regles du retrait ordinaire, l'attaque de base devient celle des mains nues") {
     Partie partie = partieDeLeJet();
-    const std::optional<Attaque> avant = partie.getEscouade().attaqueDeBase(s_guerrier);
+    const std::optional<Attaque> avant = attaqueDeBaseDe(partie.getEscouade(), s_guerrier);
     REQUIRE(avant.has_value());
 
     REQUIRE(jeter(partie, PositionPortee{s_guerrier, Emplacement::MainDroite}));

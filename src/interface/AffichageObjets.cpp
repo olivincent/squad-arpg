@@ -23,7 +23,10 @@ std::string secondes(float valeur) {
 // Les lignes d'une arme : l'attaque de base qu'elle donne et, à deux mains, « Two-handed ».
 void ajouterLesLignesDUneArme(std::vector<std::string>& lignes, const DonneesDArme& arme) {
     const DescriptionDAttaque& attaque = arme.attaque;
-    lignes.push_back("Damage: " + std::to_string(attaque.degats.total()));
+    // Les bornes de la plage, avant la Puissance de qui la porte ; un seul nombre quand il n'y a pas d'écart.
+    const int min = attaque.degats.min.total();
+    const int max = attaque.degats.max.total();
+    lignes.push_back("Damage: " + (min == max ? std::to_string(min) : std::to_string(min) + "–" + std::to_string(max)));
     lignes.push_back("Cooldown: " + (attaque.rechargeMin == attaque.rechargeMax
                                           ? secondes(attaque.rechargeMin)
                                           : secondes(attaque.rechargeMin) + " to " + secondes(attaque.rechargeMax)) + " s");

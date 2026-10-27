@@ -275,7 +275,7 @@ void Partie::appliquerLesCoupsDOpportunite(const CampsDeControle& avant) {
     // Personnage qui frappe un monstre : un Coup comme ceux d'attaquer(), sans toucher à aucune recharge.
     std::vector<Coup> coupsSurLesMonstres;
     for (const CoupDOpportunite& coup : surLesMonstres) {
-        if (const std::optional<Attaque> attaque = m_escouade.attaqueDeBase(static_cast<std::size_t>(coup.idAttaquant))) {
+        if (const std::optional<Attaque> attaque = m_escouade.attaqueDeBase(static_cast<std::size_t>(coup.idAttaquant), m_generateur)) {
             coupsSurLesMonstres.push_back({coup.idCible, *attaque});
         }
     }

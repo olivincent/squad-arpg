@@ -577,10 +577,10 @@ TEST_CASE("entitesDeControle exclut les morts mais garde la place des autres") {
 TEST_CASE("attaqueDeBase : l'attaque de la place, vide si la place est invalide") {
     const Escouade escouade = uneEscouade({50.0f, 50.0f});
 
-    REQUIRE(escouade.attaqueDeBase(1)->degats.total() == s_degatsBaseDeTest);
-    REQUIRE(escouade.attaqueDeBase(3)->degats.total() == s_degatsBaseDeTest);
-    REQUIRE_FALSE(escouade.attaqueDeBase(0).has_value());
-    REQUIRE_FALSE(escouade.attaqueDeBase(4).has_value());
+    REQUIRE(attaqueDeBaseDe(escouade, 1)->degats.total() == s_degatsBaseDeTest);
+    REQUIRE(attaqueDeBaseDe(escouade, 3)->degats.total() == s_degatsBaseDeTest);
+    REQUIRE_FALSE(attaqueDeBaseDe(escouade, 0).has_value());
+    REQUIRE_FALSE(attaqueDeBaseDe(escouade, 4).has_value());
 }
 
 TEST_CASE("proieDuMonstre donne la place du personnage vise") {

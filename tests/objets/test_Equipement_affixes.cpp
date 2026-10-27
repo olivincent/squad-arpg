@@ -86,9 +86,9 @@ TEST_CASE("affixes : une masse flamboyante frappe en physique et en feu") {
 
     const DescriptionDAttaque attaque = equipement.attaqueDeBase();
 
-    REQUIRE(attaque.degats[Element::Physique] == masse.degats[Element::Physique]);
-    REQUIRE(attaque.degats[Element::Feu] == 6);
-    REQUIRE(attaque.degats[Element::Sacre] == 0);
+    REQUIRE(attaque.degats.min[Element::Physique] == masse.degats.min[Element::Physique]);
+    REQUIRE(attaque.degats.min[Element::Feu] == 6);
+    REQUIRE(attaque.degats.min[Element::Sacre] == 0);
     // Le reste de l'attaque est celui de l'arme.
     REQUIRE(attaque.portee == masse.portee);
     REQUIRE(attaque.nature == masse.nature);
@@ -102,9 +102,9 @@ TEST_CASE("affixes : une masse sanctifiee frappe en physique et en sacre") {
 
     const DescriptionDAttaque attaque = equipement.attaqueDeBase();
 
-    REQUIRE(attaque.degats[Element::Sacre] == 4);
-    REQUIRE(attaque.degats[Element::Feu] == 0);
-    REQUIRE(attaque.degats[Element::Physique] == definitionObjet(IdObjet::Masse).arme.value().attaque.degats[Element::Physique]);
+    REQUIRE(attaque.degats.min[Element::Sacre] == 4);
+    REQUIRE(attaque.degats.min[Element::Feu] == 0);
+    REQUIRE(attaque.degats.min[Element::Physique] == definitionObjet(IdObjet::Masse).arme.value().attaque.degats.min[Element::Physique]);
 }
 
 TEST_CASE("affixes : la penetration d'un prefixe acere s'ajoute a celle de l'arme") {
@@ -148,7 +148,7 @@ TEST_CASE("affixes : un objet inactif perd tout, ses proprietes de modele et ses
     REQUIRE(actif.bonusDeCombatTotal() == StatistiquesDeCombat());
     REQUIRE(actif.attaqueDeBase() == mainsNues());
     REQUIRE(equipement.armureTotale() > 0);  // l'équipement porté garde l'objet et ses affixes
-    REQUIRE(equipement.attaqueDeBase().degats[Element::Feu] == 6);
+    REQUIRE(equipement.attaqueDeBase().degats.min[Element::Feu] == 6);
 }
 
 TEST_CASE("affixes : les seuils ne dependent que du modele, jamais des affixes") {

@@ -70,7 +70,7 @@ int coupsGratuitsDuPremier(IdObjet arme) {
     std::vector<DefinitionPersonnage> composition = {guerrierDeTest(), guerrierDeTest(), guerrierDeTest()};
     composition[0] = avecPuissance(capableDePorter(avecArme(composition[0], arme), {arme}), s_puissanceReconnaissable);
     Partie partie = partieDeTest(niveauDegage({{270.0f, 160.0f}}), std::move(composition), s_graineDeTest, monstreIndestructible());
-    const Attaque coupDuPremier = *partie.getEscouade().attaqueDeBase(1);
+    const Attaque coupDuPremier = *attaqueDeBaseDe(partie.getEscouade(), 1);
     const Defenses monstre{.armure = 0, .statistiques = monstreSansHasard().statistiques};
 
     int gratuits = 0;
@@ -110,8 +110,8 @@ TEST_CASE("zone de controle : un monstre tue par un coup gratuit est retire et l
     composition[0] = avecPuissance(avecArme(composition[0], IdObjet::EpeeADeuxMains), s_puissanceReconnaissable);
     Partie partie = partieDeTest(niveauDegage({{270.0f, 160.0f}}), std::move(composition));
     const int vieDuMonstre = partie.getMonstres().front().getPointsDeVie();
-    REQUIRE(partie.getEscouade().attaqueDeBase(1)->degats.total() >= 6 * vieDuMonstre / 10);
-    REQUIRE(partie.getEscouade().attaqueDeBase(1)->degats.total() * 3 / 2 < vieDuMonstre);
+    REQUIRE(attaqueDeBaseDe(partie.getEscouade(), 1)->degats.total() >= 6 * vieDuMonstre / 10);
+    REQUIRE(attaqueDeBaseDe(partie.getEscouade(), 1)->degats.total() * 3 / 2 < vieDuMonstre);
     REQUIRE(partie.cliquer({270.0f, 160.0f}) == ResultatClic::Monstre);
 
     // En 1,2 s les autres guerriers ne retirent que quelques points : seul le coup gratuit peut le tuer.

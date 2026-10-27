@@ -133,8 +133,8 @@ float Personnage::getPorteeAttaqueDeBase() const {
     return m_attaqueDeBase.getPortee();
 }
 
-Attaque Personnage::getAttaqueDeBase() const {
-    return attaqueDeLArme();
+Attaque Personnage::getAttaqueDeBase(Generateur& generateur) const {
+    return attaqueDeLArme(generateur);
 }
 
 float Personnage::getZoneDeControle() const {
@@ -170,7 +170,7 @@ std::optional<Attaque> Personnage::avancerAttaque(float dt, Generateur& generate
         return std::nullopt;
     }
     m_actionEngagee.reset();
-    return attaqueDeLArme();
+    return attaqueDeLArme(generateur);
 }
 
 void Personnage::annulerAttaque() {
@@ -289,7 +289,7 @@ std::optional<Attaque> Personnage::avancerSkill(float dt, Generateur& generateur
     // Le skill est parti : l'attaque de base repart pour une recharge complète.
     m_attaqueDeBase.relancerRecharge(generateur);
     if (skill.getBonusDeFrappe().has_value()) {
-        return attaqueDeFrappe(skill);
+        return attaqueDeFrappe(skill, generateur);
     }
     return attaqueDe(skill);
 }
@@ -425,14 +425,15 @@ void Personnage::relancerSiLArmeAChange(Generateur& generateur) {
     }
 }
 
-Attaque Personnage::attaqueDeLArme() const {
+Attaque Personnage::attaqueDeLArme(Generateur& generateur) const {
     Attaque attaque = {.degats = {},
                        .capaciteOffensive = m_statistiques.capaciteOffensive,
                        .nature = m_descriptionDeBase.nature,
                        .penetration = m_descriptionDeBase.penetration};
-    // La Puissance joue sur chaque portion, arrondie une fois par portion.
+    // Le coup tire ses dégâts dans la plage de l'arme, puis la Puissance joue sur chaque portion, arrondie une fois par portion.
+    const Degats tires = tirerLesDegats(generateur, m_descriptionDeBase.degats);
     for (const Element element : s_elements) {
-        attaque.degats[element] = montantEffectif(m_descriptionDeBase.degats[element], s_coefficientsDeLAttaqueDeBase, m_caracteristiques);
+        attaque.degats[element] = montantEffectif(tires[element], s_coefficientsDeLAttaqueDeBase, m_caracteristiques);
     }
     return attaque;
 }
@@ -459,16 +460,17 @@ Attaque Personnage::attaqueDe(const Skill& skill) const {
     return attaque;
 }
 
-Attaque Personnage::attaqueDeFrappe(const Skill& skill) const {
+Attaque Personnage::attaqueDeFrappe(const Skill& skill, Generateur& generateur) const {
     assert(skill.getBonusDeFrappe().has_value());
-    // Les dégâts viennent de l'arme (toutes ses portions, affixes compris), comme pour l'attaque de base ; le skill n'ajoute
-    // que son bonus.
+    // Les dégâts viennent de l'arme (toutes ses portions, affixes compris, tirées dans sa plage), comme pour l'attaque de
+    // base ; le skill n'ajoute que son bonus.
     Attaque attaque = {.degats = {},
                        .capaciteOffensive = m_statistiques.capaciteOffensive,
                        .nature = m_descriptionDeBase.nature,
                        .penetration = m_descriptionDeBase.penetration};
+    const Degats tires = tirerLesDegats(generateur, m_descriptionDeBase.degats);
     for (const Element element : s_elements) {
-        attaque.degats[element] = montantEffectif(m_descriptionDeBase.degats[element], skill.getCoefficients(), m_caracteristiques);
+        attaque.degats[element] = montantEffectif(tires[element], skill.getCoefficients(), m_caracteristiques);
         attaque.degats[element] += montantEffectif((*skill.getBonusDeFrappe())[element], skill.getCoefficients(), m_caracteristiques);  // NOLINT(bugprone-unchecked-optional-access): vérifié par l'assert au-dessus (_assert de MinGW n'est pas noreturn)
     }
     return attaque;

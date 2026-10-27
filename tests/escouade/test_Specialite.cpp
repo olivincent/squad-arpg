@@ -228,7 +228,7 @@ TEST_CASE("une escouade de paladin, de rodeur et de guerrier connait les skills 
 }
 
 TEST_CASE("nature des attaques : contact pour les melees, projectile pour les tireurs, zone pour les zones") {
-    const auto nature = [](IdSpecialite id) { return deLaClasse(id).getAttaqueDeBase().nature; };
+    const auto nature = [](IdSpecialite id) { return attaqueDeBaseDe(deLaClasse(id)).nature; };
 
     REQUIRE(nature(IdSpecialite::Guerrier) == NatureDAttaque::Contact);
     REQUIRE(nature(IdSpecialite::Paladin) == NatureDAttaque::Contact);
@@ -406,7 +406,7 @@ TEST_CASE("la frappe sacree avec la masse de depart : physique de la masse, sacr
 
     const Attaque attaque = frappeSacreeDe(paladin);
 
-    REQUIRE(attaque.degats[Element::Physique] == montantEffectif(definitionObjet(IdObjet::Masse).arme->attaque.degats[Element::Physique], puissance, paladin.getCaracteristiques()));
+    REQUIRE(attaque.degats[Element::Physique] == montantEffectif(definitionObjet(IdObjet::Masse).arme->attaque.degats.min[Element::Physique], puissance, paladin.getCaracteristiques()));
     REQUIRE(attaque.degats[Element::Sacre] == montantEffectif(45, puissance, paladin.getCaracteristiques()));
     REQUIRE(attaque.degats[Element::Feu] == 0);
     // Le total d'avant l'étape 94 : un skill de 60 avec la Puissance. Chaque portion arrondit à part : écart d'au plus 1.
@@ -441,7 +441,7 @@ TEST_CASE("la frappe sacree avec une masse flamboyante a trois portions : physiq
 
     const Attaque attaque = frappeSacreeDe(paladin);
 
-    REQUIRE(attaque.degats[Element::Physique] == montantEffectif(definitionObjet(IdObjet::Masse).arme->attaque.degats[Element::Physique], puissance, paladin.getCaracteristiques()));
+    REQUIRE(attaque.degats[Element::Physique] == montantEffectif(definitionObjet(IdObjet::Masse).arme->attaque.degats.min[Element::Physique], puissance, paladin.getCaracteristiques()));
     REQUIRE(attaque.degats[Element::Feu] == montantEffectif(6, puissance, paladin.getCaracteristiques()));
     REQUIRE(attaque.degats[Element::Sacre] == montantEffectif(45, puissance, paladin.getCaracteristiques()));
     REQUIRE(attaque.degats[Element::Physique] > 0);

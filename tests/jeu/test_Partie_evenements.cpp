@@ -94,7 +94,7 @@ TEST_CASE("evenements : un skill de degats donne un evenement sur le monstre, ar
     const Attaque frappe{.degats = degatsPhysiques(s_degatsFrappeDeTest),
                          .capaciteOffensive = partie.getEscouade().statistiquesDeCombatDuPersonnage(1)->capaciteOffensive,
                          .nature = NatureDAttaque::Contact};
-    const Attaque base = *partie.getEscouade().attaqueDeBase(1);
+    const Attaque base = *attaqueDeBaseDe(partie.getEscouade(), 1);
 
     const std::vector<EvenementDeCombat> evenements = evenementsPendant(partie, 0.5f);
 
@@ -142,7 +142,7 @@ TEST_CASE("evenements : un critique est signale, et son montant est multiplie") 
     adroit.caracteristiques = Caracteristiques({10, 2'000'000, 1000, 10, 10});
     Partie partie = partieDeTest(niveauDegage({{235.0f, 170.0f}}), std::vector<DefinitionPersonnage>{adroit}, s_graineDeTest,
                                  monstreIndestructible());
-    const Attaque attaque = *partie.getEscouade().attaqueDeBase(1);
+    const Attaque attaque = *attaqueDeBaseDe(partie.getEscouade(), 1);
     const Defenses monstre = defensesDuMonstreDeTest();
 
     const std::vector<EvenementDeCombat> evenements = evenementsPendant(partie, 60.0f);
@@ -200,7 +200,7 @@ TEST_CASE("evenements : un coup gratuit est marque, dans les deux sens") {
     std::vector<DefinitionPersonnage> composition = {guerrierDeTest(), guerrierDeTest(), guerrierDeTest()};
     composition[0] = avecPuissance(avecArme(composition[0], IdObjet::EpeeADeuxMains), s_puissanceDeLEpeeADeuxMains);
     Partie guerriers = partieDeTest(niveauDegage({{270.0f, 160.0f}}), std::move(composition));
-    const Attaque coupDuPremier = *guerriers.getEscouade().attaqueDeBase(1);
+    const Attaque coupDuPremier = *attaqueDeBaseDe(guerriers.getEscouade(), 1);
     std::vector<EvenementDeCombat> evenements;
     guerriers.demanderSkill({3, IdSkill::Provocation});
     for (int i = 0; i < nombreDeTics(1.2f); ++i) {
@@ -246,7 +246,7 @@ TEST_CASE("evenements : un soin donne un evenement Soin sur l'allie soigne, avec
 TEST_CASE("evenements : un coup sur un monstre deja mort dans l'image ne produit rien") {
     // Les deux coups (2000 dégâts) partent au même tic : le premier tue, le second tombe sur un mort (0).
     Partie partie = deuxGuerriersQuiTuentLeMemeMonstre();
-    const Attaque coup = *partie.getEscouade().attaqueDeBase(1);
+    const Attaque coup = *attaqueDeBaseDe(partie.getEscouade(), 1);
 
     const std::vector<EvenementDeCombat> evenements = parmi<DegatsSubis>(evenementsPendant(partie, 0.5f), Camp::Monstres);
 

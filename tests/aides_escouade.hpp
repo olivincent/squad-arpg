@@ -70,7 +70,7 @@ inline const Caracteristiques s_caracteristiquesDeTest({s_valeurDeReference, 0, 
 // Attaque de base (mêlées et tireurs).
 inline const DescriptionDAttaque s_attaqueDeMeleeDeTest = definitionObjet(IdObjet::EpeeLongue).arme.value().attaque;
 inline const DescriptionDAttaque s_attaqueDeTireurDeTest = definitionObjet(IdObjet::Sceptre).arme.value().attaque;
-inline const int s_degatsBaseDeTest = s_attaqueDeMeleeDeTest.degats[Element::Physique];
+inline const int s_degatsBaseDeTest = s_attaqueDeMeleeDeTest.degats.min[Element::Physique];
 inline const float s_executionBaseDeTest = s_attaqueDeMeleeDeTest.tempsExecution;  // en secondes
 inline const float s_porteeMeleeDeTest = s_attaqueDeMeleeDeTest.portee;            // bord à bord
 inline const float s_porteeTireurDeTest = s_attaqueDeTireurDeTest.portee;          // bord à bord
@@ -100,6 +100,18 @@ inline constexpr int s_degatsZoneDeTest = 45;
 inline constexpr float s_rechargeZoneDeTest = 8.0f;
 inline constexpr float s_activationZoneDeTest = 0.8f;
 inline constexpr float s_rayonZoneDeTest = 60.0f;   // depuis le point visé
+
+// L'attaque de base de ce personnage (ou du personnage de cette place), tirée avec un générateur de test neuf : pour les tests qui
+// regardent ce que porte une attaque (nature, pénétration, capacité) ou des dégâts qui ne dépendent pas du tirage.
+inline Attaque attaqueDeBaseDe(const Personnage& personnage) {
+    Generateur generateur = generateurDeTest();
+    return personnage.getAttaqueDeBase(generateur);
+}
+
+inline std::optional<Attaque> attaqueDeBaseDe(const Escouade& escouade, std::size_t place) {
+    Generateur generateur = generateurDeTest();
+    return escouade.attaqueDeBase(place, generateur);
+}
 
 // Guerrier de test : devant, mêlée, frappe puissante et provocation.
 inline DefinitionPersonnage guerrierDeTest() {

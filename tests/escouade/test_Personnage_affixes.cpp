@@ -28,11 +28,11 @@ TEST_CASE("une masse flamboyante frappe en physique et en feu, la Puissance sur 
     const Personnage personnage = armeDe(masseFlamboyante, 20);  // +30 % sur chaque portion
     const DescriptionDAttaque masse = definitionObjet(IdObjet::Masse).arme.value().attaque;
 
-    const Attaque attaque = personnage.getAttaqueDeBase();
+    const Attaque attaque = attaqueDeBaseDe(personnage);
 
-    REQUIRE(attaque.degats[Element::Physique] == montantEffectif(masse.degats[Element::Physique], s_puissance, personnage.getCaracteristiques()));
+    REQUIRE(attaque.degats[Element::Physique] == montantEffectif(masse.degats.min[Element::Physique], s_puissance, personnage.getCaracteristiques()));
     REQUIRE(attaque.degats[Element::Feu] == montantEffectif(6, s_puissance, personnage.getCaracteristiques()));
-    REQUIRE(attaque.degats[Element::Physique] > masse.degats[Element::Physique]);  // la Puissance joue vraiment
+    REQUIRE(attaque.degats[Element::Physique] > masse.degats.min[Element::Physique]);  // la Puissance joue vraiment
     REQUIRE(attaque.degats[Element::Feu] > 6);
     REQUIRE(attaque.degats[Element::Sacre] == 0);
 }
@@ -40,9 +40,9 @@ TEST_CASE("une masse flamboyante frappe en physique et en feu, la Puissance sur 
 TEST_CASE("une masse sans affixe frappe comme avant, en physique seulement") {
     const Personnage personnage = armeDe({IdObjet::Masse}, 10);
 
-    const Attaque attaque = personnage.getAttaqueDeBase();
+    const Attaque attaque = attaqueDeBaseDe(personnage);
 
-    REQUIRE(attaque.degats[Element::Physique] == definitionObjet(IdObjet::Masse).arme->attaque.degats[Element::Physique]);
+    REQUIRE(attaque.degats[Element::Physique] == definitionObjet(IdObjet::Masse).arme->attaque.degats.min[Element::Physique]);
     REQUIRE(attaque.degats[Element::Feu] == 0);
     REQUIRE(attaque.degats[Element::Sacre] == 0);
 }
@@ -50,7 +50,7 @@ TEST_CASE("une masse sans affixe frappe comme avant, en physique seulement") {
 TEST_CASE("un arc acere perce de plus que l'arc seul, sa nature reste le projectile") {
     Personnage personnage = armeDe({IdObjet::Arc, Rarete::Rare, Affixe{IdAffixe::Acere, 15}, Affixe{IdAffixe::DuRenard, 2}}, 10);
 
-    const Attaque attaque = personnage.getAttaqueDeBase();
+    const Attaque attaque = attaqueDeBaseDe(personnage);
 
     REQUIRE(attaque.penetration == 15);
     REQUIRE(attaque.nature == NatureDAttaque::Projectile);

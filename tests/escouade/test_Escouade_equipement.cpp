@@ -312,12 +312,12 @@ TEST_CASE("la puissance de l'attaque de base lue par l'escouade (coup d'opportun
     DefinitionPersonnage definition = guerrierDeTest();
     definition.caracteristiques = Caracteristiques({s_valeurDeReference + 1, 10, 10, 10, 10});  // 11 de Puissance : l'épée est active (bonus de 3 % arrondi à 0)
     Escouade escouade = uneEscouadeDe({50.0f, 50.0f}, {definition});
-    REQUIRE(escouade.attaqueDeBase(1)->degats.total() == degats);
+    REQUIRE(attaqueDeBaseDe(escouade, 1)->degats.total() == degats);
 
     REQUIRE(escouade.ramasser(Objet{IdObjet::AnneauDePuissance}));
     REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(1, Emplacement::Anneau1)));
 
-    REQUIRE(escouade.attaqueDeBase(1)->degats.total() ==
+    REQUIRE(attaqueDeBaseDe(escouade, 1)->degats.total() ==
             montantEffectif(degats, puissance, escouade.caracteristiquesDuPersonnage(1).value()));
 }
 
@@ -476,8 +476,8 @@ TEST_CASE("objets inactifs : retirer l'anneau de puissance rend l'epee a deux ma
 
     REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainDroite) == s_epeeADeuxMainsDeNiveau4);   // toujours portée
     REQUIRE_FALSE(escouade.equipementActifDuPersonnage(s_guerrier).a(Emplacement::MainDroite).has_value());  // sans effet
-    REQUIRE(escouade.attaqueDeBase(s_guerrier)->degats.total() <
-            montantEffectif(definitionObjet(IdObjet::EpeeADeuxMains).arme->attaque.degats[Element::Physique], Coefficients::seul(Caracteristique::Puissance, 1.0f),
+    REQUIRE(attaqueDeBaseDe(escouade, s_guerrier)->degats.total() <
+            montantEffectif(definitionObjet(IdObjet::EpeeADeuxMains).arme->attaque.degats.min[Element::Physique], Coefficients::seul(Caracteristique::Puissance, 1.0f),
                             *escouade.caracteristiquesDuPersonnage(s_guerrier)));
 }
 
@@ -507,12 +507,12 @@ TEST_CASE("objetPorteEstInactif : un objet porte dont le seuil n'est pas atteint
 
 TEST_CASE("la penetration de l'attaque de base lue par l'escouade (coup d'opportunite) est celle de l'arme") {
     Escouade escouade = uneEscouadeDe({50.0f, 50.0f}, {capableDePorter(guerrierDeTest(), {IdObjet::Dague})});
-    REQUIRE(escouade.attaqueDeBase(s_guerrier)->penetration == 0);  // l'épée longue
+    REQUIRE(attaqueDeBaseDe(escouade, s_guerrier)->penetration == 0);  // l'épée longue
     REQUIRE(escouade.ramasser(Objet{IdObjet::Dague}));
 
     REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::MainDroite)));
 
-    REQUIRE(escouade.attaqueDeBase(s_guerrier)->penetration == definitionObjet(IdObjet::Dague).arme->attaque.penetration);
+    REQUIRE(attaqueDeBaseDe(escouade, s_guerrier)->penetration == definitionObjet(IdObjet::Dague).arme->attaque.penetration);
 }
 
 TEST_CASE("un objet a affixes garde ses affixes du sac a l'emplacement et retour, et se compte par valeur complete") {

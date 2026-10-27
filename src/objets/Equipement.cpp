@@ -58,12 +58,13 @@ DescriptionDAttaque Equipement::attaqueDeBase() const {
     if (main.has_value()) {
         const std::optional<DonneesDArme>& arme = definitionObjet(main->modele).arme;
         if (arme.has_value()) {
-            // L'attaque de l'arme, avec ce que ses affixes y ajoutent : du feu ou du sacré en portions de plus, de la
-            // pénétration en plus de celle de l'arme (le plafond s'applique avec la défense).
+            // L'attaque de l'arme, avec ce que ses affixes y ajoutent : du feu ou du sacré en portions de plus (sans écart : au
+            // minimum comme au maximum), de la pénétration en plus de celle de l'arme (le plafond s'applique avec la défense).
             DescriptionDAttaque attaque = arme->attaque;
             const ApportDesAffixes apport = apportDesAffixes(*main);
             for (const Element element : s_elements) {
-                attaque.degats[element] += apport.degatsAjoutes[element];
+                attaque.degats.min[element] += apport.degatsAjoutes[element];
+                attaque.degats.max[element] += apport.degatsAjoutes[element];
             }
             attaque.penetration += apport.penetration;
             return attaque;

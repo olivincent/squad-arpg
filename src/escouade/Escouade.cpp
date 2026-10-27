@@ -1040,11 +1040,11 @@ std::vector<EntiteDeControle> Escouade::entitesDeControle() const {
     return entites;
 }
 
-std::optional<Attaque> Escouade::attaqueDeBase(std::size_t place) const {
+std::optional<Attaque> Escouade::attaqueDeBase(std::size_t place, Generateur& generateur) const {
     if (!placeValide(place)) {
         return std::nullopt;
     }
-    return personnageDeLaPlace(place).getAttaqueDeBase();
+    return personnageDeLaPlace(place).getAttaqueDeBase(generateur);
 }
 
 std::vector<Cercle> Escouade::cerclesDeVision() const {

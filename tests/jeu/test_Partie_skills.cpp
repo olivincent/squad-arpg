@@ -33,8 +33,8 @@ TEST_CASE("un skill et attaquer dans la meme image ne frappent pas deux fois le 
     const Attaque frappe{.degats = degatsPhysiques(s_degatsFrappeDeTest),
                          .capaciteOffensive = partie.getEscouade().statistiquesDeCombatDuPersonnage(1)->capaciteOffensive,
                          .nature = NatureDAttaque::Contact};
-    const Attaque basePretre = *partie.getEscouade().attaqueDeBase(2);
-    const Attaque baseMage = *partie.getEscouade().attaqueDeBase(3);
+    const Attaque basePretre = *attaqueDeBaseDe(partie.getEscouade(), 2);
+    const Attaque baseMage = *attaqueDeBaseDe(partie.getEscouade(), 3);
 
     // 0,35 s : le skill est parti (activation de 0,3 s) et les tireurs ont eu
     // le temps d'exécuter leur coup (0,15 s), pas le mêlée, dont la recharge

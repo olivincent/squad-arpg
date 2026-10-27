@@ -44,9 +44,10 @@ public:
     [[nodiscard]] bool estAPortee(Cercle cible) const;
     // Portée de l'attaque de base, bord à bord.
     [[nodiscard]] float getPorteeAttaqueDeBase() const;
-    // Son attaque de base : les dégâts (caractéristiques comprises, `montantEffectif`), avant l'armure de la
-    // cible, et sa capacité offensive.
-    [[nodiscard]] Attaque getAttaqueDeBase() const;
+    // Son attaque de base : les dégâts tirés dans la plage de son arme (`tirerLesDegats`, aucun tirage si la plage est
+    // fixe) puis les caractéristiques (`montantEffectif`), avant l'armure de la cible, et sa capacité offensive. Un coup
+    // d'opportunité la lit ici : chaque appel est un coup.
+    [[nodiscard]] Attaque getAttaqueDeBase(Generateur& generateur) const;
     // Zone de contrôle, en pixels, bord à bord ; 0 : il n'engage personne. Celle de son attaque de base, donc de son arme.
     [[nodiscard]] float getZoneDeControle() const;
     // Attaque de base en trois temps : engager (vivant, immobile, attaque
@@ -167,16 +168,18 @@ private:
     // jamais ajustées. Une arme qui change annule le coup de base en cours, sans recharge consommée, puis
     // l'attaque repart pour une recharge complète (`relancerSiLArmeAChange`).
     void recalculerDepuisLEquipement();
-    // L'attaque de base : les portions de l'arme portée (ou des mains nues), la Puissance sur chaque portion
-    // (`montantEffectif`, un arrondi par portion), la nature et la pénétration de l'arme, la capacité offensive du personnage.
-    [[nodiscard]] Attaque attaqueDeLArme() const;
+    // L'attaque de base : les portions de l'arme portée (ou des mains nues) tirées dans sa plage, la Puissance sur chaque
+    // portion (`montantEffectif`, un arrondi par portion), la nature et la pénétration de l'arme, la capacité offensive du
+    // personnage.
+    [[nodiscard]] Attaque attaqueDeLArme(Generateur& generateur) const;
     // L'attaque de ce skill de ce personnage : son montant, caractéristiques comprises (`montantEffectif`), rangé
     // dans le champ que dit le type du skill (dégâts, soin ou durée de provocation), la
     // capacité offensive du personnage ; aucune pénétration.
     [[nodiscard]] Attaque attaqueDe(const Skill& skill) const;
-    // Celle d'un skill de frappe : toutes les portions, la nature et la pénétration de l'arme portée (affixes compris), plus
-    // le bonus du skill ; la Puissance joue sur chaque portion (`montantEffectif`, avec les coefficients du skill).
-    [[nodiscard]] Attaque attaqueDeFrappe(const Skill& skill) const;
+    // Celle d'un skill de frappe : toutes les portions de l'arme portée (affixes compris), tirées dans sa plage comme pour
+    // l'attaque de base, la nature et la pénétration de l'arme, plus le bonus du skill ; la Puissance joue sur chaque portion
+    // (`montantEffectif`, avec les coefficients du skill).
+    [[nodiscard]] Attaque attaqueDeFrappe(const Skill& skill, Generateur& generateur) const;
     // Son arme permet-elle de lancer ce skill (`Skill::convientA`) ?
     [[nodiscard]] bool armeConvientA(const Skill& skill) const;
     [[nodiscard]] const Skill* trouverSkill(IdSkill id) const;  // nullptr si le personnage ne connaît pas ce skill

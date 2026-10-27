@@ -123,7 +123,7 @@ TEST_CASE("affichage : l'infobulle d'une arme a une main donne ses degats, sa re
     const std::vector<std::string> lignes = lignesDeLInfobulle(Objet{IdObjet::EpeeLongue});
     const DescriptionDAttaque& attaque = definitionObjet(IdObjet::EpeeLongue).arme.value().attaque;
 
-    REQUIRE(lignes == std::vector<std::string>{"Longsword", "Weapon", "Damage: " + std::to_string(attaque.degats.total()),
+    REQUIRE(lignes == std::vector<std::string>{"Longsword", "Weapon", "Damage: " + std::to_string(attaque.degats.min.total()),
                                                "Cooldown: 0.3 to 0.7 s", "Range: 20 px", "Melee",
                                                ligneDeSeuil({Caracteristique::Puissance, s_seuilAuNiveau1})});
 }
@@ -173,7 +173,7 @@ TEST_CASE("affichage : l'infobulle d'un objet rare donne le nom compose, la cate
     const std::vector<std::string> lignes = lignesDeLInfobulle(s_arcAcereDuRenard);
     const DescriptionDAttaque& attaque = definitionObjet(IdObjet::Arc).arme.value().attaque;
 
-    REQUIRE(lignes == std::vector<std::string>{"Keen Bow of the Fox", "Weapon", "Damage: " + std::to_string(attaque.degats.total()),
+    REQUIRE(lignes == std::vector<std::string>{"Keen Bow of the Fox", "Weapon", "Damage: " + std::to_string(attaque.degats.min.total()),
                                                "Cooldown: 0.4 to 0.6 s", "Range: 120 px", "Projectile", "Two-handed",
                                                "Penetration: +15 %", "Dexterity: +2",
                                                ligneDeSeuil({Caracteristique::Adresse, s_seuilAuNiveau1})});

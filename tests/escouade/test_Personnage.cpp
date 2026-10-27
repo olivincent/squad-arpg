@@ -190,17 +190,29 @@ TEST_CASE("changer d'arme change la zone de controle, la portee et l'attaque de 
     const DescriptionDAttaque epee = definitionObjet(IdObjet::EpeeLongue).arme.value().attaque;
     const DescriptionDAttaque arc = definitionObjet(IdObjet::Arc).arme.value().attaque;
     REQUIRE(personnage.getPorteeAttaqueDeBase() == epee.portee);
-    REQUIRE(personnage.getAttaqueDeBase().degats.total() == montantEffectif(epee.degats[Element::Physique], Coefficients::seul(Caracteristique::Puissance, 1.0f),
+    REQUIRE(attaqueDeBaseDe(personnage).degats.total() == montantEffectif(epee.degats.min[Element::Physique], Coefficients::seul(Caracteristique::Puissance, 1.0f),
                                                                      personnage.getCaracteristiques()));
 
     static_cast<void>(personnage.retirerEquipement(Emplacement::MainDroite));
     REQUIRE(personnage.getPorteeAttaqueDeBase() == mainsNues().portee);   // sans arme : les mains nues
-    REQUIRE(personnage.getAttaqueDeBase().nature == NatureDAttaque::Contact);
+    REQUIRE(attaqueDeBaseDe(personnage).nature == NatureDAttaque::Contact);
 
     static_cast<void>(personnage.poserEquipement(Emplacement::MainDroite, {IdObjet::Arc}));
     REQUIRE(personnage.getPorteeAttaqueDeBase() == arc.portee);
     REQUIRE(personnage.getZoneDeControle() == 0.0f);
-    REQUIRE(personnage.getAttaqueDeBase().nature == NatureDAttaque::Projectile);
+    REQUIRE(attaqueDeBaseDe(personnage).nature == NatureDAttaque::Projectile);
+}
+
+TEST_CASE("l'attaque de base d'une arme sans ecart, ou des mains nues, ne tire rien : le generateur n'avance pas") {
+    Personnage armee = unPersonnageArme({100.0f, 100.0f}, IdObjet::EpeeLongue);
+    Personnage nue = unPersonnage({100.0f, 100.0f}, definitionSansArme());
+    Generateur generateur = generateurDeTest();
+    const Generateur avant = generateur;
+
+    static_cast<void>(armee.getAttaqueDeBase(generateur));
+    static_cast<void>(nue.getAttaqueDeBase(generateur));
+
+    REQUIRE(generateur == avant);
 }
 
 TEST_CASE("changer d'arme relance une recharge complete tiree dans l'intervalle de la nouvelle arme") {
@@ -255,7 +267,7 @@ TEST_CASE("getPuissanceAttaqueDeBase renvoie les degats de l'attaque de base") {
     const Personnage personnage = unPersonnage({100.0f, 100.0f},
                                 definitionArmee(IdObjet::Sceptre));
 
-    REQUIRE(personnage.getAttaqueDeBase().degats.total() == s_degatsBaseDeTest);
+    REQUIRE(attaqueDeBaseDe(personnage).degats.total() == s_degatsBaseDeTest);
 }
 
 TEST_CASE("lire la puissance de l'attaque de base ne change ni le coup engage ni la recharge") {
@@ -264,11 +276,11 @@ TEST_CASE("lire la puissance de l'attaque de base ne change ni le coup engage ni
     Generateur generateur = generateurDeTest();
     REQUIRE(personnage.engagerAttaque(1));
 
-    REQUIRE(personnage.getAttaqueDeBase().degats.total() == s_degatsBaseDeTest);
+    REQUIRE(attaqueDeBaseDe(personnage).degats.total() == s_degatsBaseDeTest);
 
     REQUIRE(personnage.cibleEngagee() == 1);
     REQUIRE(degatsOuZero(personnage.avancerAttaque(0.2f, generateur)) == s_degatsBaseDeTest);  // le coup engagé part normalement
-    REQUIRE(personnage.getAttaqueDeBase().degats.total() == s_degatsBaseDeTest);
+    REQUIRE(attaqueDeBaseDe(personnage).degats.total() == s_degatsBaseDeTest);
     REQUIRE_FALSE(personnage.engagerAttaque(1));                // la recharge court toujours
 }
 
@@ -658,7 +670,7 @@ TEST_CASE("l'attaque de base d'un personnage porte sa capacite offensive") {
                       {.couleur = sf::Color::White,
                        .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest,
                        .caracteristiques = Caracteristiques({10, 10, 14, 8, 11})});  // 11 de Volonté : le sceptre est actif
-    REQUIRE(rodeur.getAttaqueDeBase().capaciteOffensive == 120);
+    REQUIRE(attaqueDeBaseDe(rodeur).capaciteOffensive == 120);
     REQUIRE(rodeur.engagerAttaque(1));
 
     const std::optional<Attaque> attaque = rodeur.avancerAttaque(s_executionBaseDeTest, generateur);
@@ -675,7 +687,7 @@ TEST_CASE("l'attaque d'un personnage porte la nature de son attaque de base, cel
                        .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 20.0f, .puissance = 7,
                                                                     .rechargeMin = 1.0f, .rechargeMax = 1.0f, .nature = NatureDAttaque::Contact})}},
                        .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
-    REQUIRE(tireur.getAttaqueDeBase().nature == NatureDAttaque::Projectile);
+    REQUIRE(attaqueDeBaseDe(tireur).nature == NatureDAttaque::Projectile);
     REQUIRE(tireur.engagerAttaque(1));
     REQUIRE(tireur.avancerAttaque(s_executionBaseDeTest, generateur)->nature == NatureDAttaque::Projectile);
 
@@ -1231,17 +1243,17 @@ Personnage unPersonnageDePuissance(const Caracteristiques& base) {
 
 TEST_CASE("equiper l'anneau de puissance augmente les degats de l'attaque de base") {
     Personnage personnage = unPersonnageDePuissance(Caracteristiques({12, 10, 10, 10, 11}));
-    const int avant = personnage.getAttaqueDeBase().degats.total();
+    const int avant = attaqueDeBaseDe(personnage).degats.total();
     REQUIRE(avant == montantEffectif(s_degatsBaseDeTest, Coefficients::seul(Caracteristique::Puissance, 1.0f), personnage.getCaracteristiques()));
 
     static_cast<void>(personnage.poserEquipement(Emplacement::Anneau1, {IdObjet::AnneauDePuissance}));
 
-    REQUIRE(personnage.getAttaqueDeBase().degats.total() > avant);
-    REQUIRE(personnage.getAttaqueDeBase().degats.total() ==
+    REQUIRE(attaqueDeBaseDe(personnage).degats.total() > avant);
+    REQUIRE(attaqueDeBaseDe(personnage).degats.total() ==
             montantEffectif(s_degatsBaseDeTest, Coefficients::seul(Caracteristique::Puissance, 1.0f), personnage.getCaracteristiques()));
 
     static_cast<void>(personnage.retirerEquipement(Emplacement::Anneau1));
-    REQUIRE(personnage.getAttaqueDeBase().degats.total() == avant);
+    REQUIRE(attaqueDeBaseDe(personnage).degats.total() == avant);
 }
 
 TEST_CASE("le coup de l'attaque de base et le skill de degats rendent le montant effectif") {
@@ -1361,8 +1373,8 @@ TEST_CASE("une arme dont le seuil n'est pas atteint reste portee mais le personn
     REQUIRE(personnage.getEquipement().a(Emplacement::MainDroite) == Objet{IdObjet::EpeeLongue});
     REQUIRE_FALSE(personnage.getEquipementActif().a(Emplacement::MainDroite).has_value());
     REQUIRE(personnage.getPorteeAttaqueDeBase() == mainsNues().portee);
-    REQUIRE(personnage.getAttaqueDeBase().degats.total() ==
-            montantEffectif(mainsNues().degats[Element::Physique], Coefficients::seul(Caracteristique::Puissance, 1.0f), personnage.getCaracteristiques()));
+    REQUIRE(attaqueDeBaseDe(personnage).degats.total() ==
+            montantEffectif(mainsNues().degats.min[Element::Physique], Coefficients::seul(Caracteristique::Puissance, 1.0f), personnage.getCaracteristiques()));
 }
 
 TEST_CASE("retirer l'anneau de puissance rend l'epee inactive, le remettre la remet en service") {
@@ -1433,11 +1445,11 @@ TEST_CASE("l'attaque de base d'une dague porte sa penetration, celle d'une epee 
     Personnage epee = unPersonnage({100.0f, 100.0f}, definitionArmee(IdObjet::EpeeLongue));
     Generateur generateur = generateurDeTest();
 
-    REQUIRE(dague.getAttaqueDeBase().penetration == definitionObjet(IdObjet::Dague).arme->attaque.penetration);
-    REQUIRE(dague.getAttaqueDeBase().penetration > 0);
-    REQUIRE(epee.getAttaqueDeBase().penetration == 0);
+    REQUIRE(attaqueDeBaseDe(dague).penetration == definitionObjet(IdObjet::Dague).arme->attaque.penetration);
+    REQUIRE(attaqueDeBaseDe(dague).penetration > 0);
+    REQUIRE(attaqueDeBaseDe(epee).penetration == 0);
     REQUIRE(dague.engagerAttaque(1));
-    REQUIRE(dague.avancerAttaque(1.0f, generateur)->penetration == dague.getAttaqueDeBase().penetration);  // part avec le coup
+    REQUIRE(dague.avancerAttaque(1.0f, generateur)->penetration == attaqueDeBaseDe(dague).penetration);  // part avec le coup
 
     REQUIRE(dague.engagerSkill(IdSkill::FrappePuissante, CibleMonstre{1, Cercle{}}));
     REQUIRE(dague.avancerSkill(1.0f, generateur)->penetration == 0);
@@ -1445,13 +1457,13 @@ TEST_CASE("l'attaque de base d'une dague porte sa penetration, celle d'une epee 
 
 TEST_CASE("changer pour une dague donne la penetration, la retirer la reprend") {
     Personnage personnage = unPersonnage({100.0f, 100.0f}, capableDePorter(definitionArmee(IdObjet::EpeeLongue), {IdObjet::Dague}));
-    REQUIRE(personnage.getAttaqueDeBase().penetration == 0);
+    REQUIRE(attaqueDeBaseDe(personnage).penetration == 0);
 
     static_cast<void>(personnage.poserEquipement(Emplacement::MainDroite, {IdObjet::Dague}));
-    REQUIRE(personnage.getAttaqueDeBase().penetration == definitionObjet(IdObjet::Dague).arme->attaque.penetration);
+    REQUIRE(attaqueDeBaseDe(personnage).penetration == definitionObjet(IdObjet::Dague).arme->attaque.penetration);
 
     static_cast<void>(personnage.retirerEquipement(Emplacement::MainDroite));
-    REQUIRE(personnage.getAttaqueDeBase().penetration == 0);  // les mains nues
+    REQUIRE(attaqueDeBaseDe(personnage).penetration == 0);  // les mains nues
 }
 
 TEST_CASE("l'attaque d'un skill range son montant dans le champ de son type, les autres restent a zero") {
@@ -1549,7 +1561,7 @@ TEST_CASE("un skill de frappe prend les degats physiques et la nature de l'arme,
     const Attaque tir = lancerSkillEnEntier(archer, Cible(CibleMonstre{1, Cercle{{120.0f, 100.0f}, 10.0f}}), generateur, IdSkill::FrappeSacree);
 
     REQUIRE(tir.nature == NatureDAttaque::Projectile);  // celle de l'arc, pas la nature déclarée par le skill
-    REQUIRE(tir.degats[Element::Physique] == montantEffectif(definitionObjet(IdObjet::Arc).arme->attaque.degats[Element::Physique], puissance, archer.getCaracteristiques()));
+    REQUIRE(tir.degats[Element::Physique] == montantEffectif(definitionObjet(IdObjet::Arc).arme->attaque.degats.min[Element::Physique], puissance, archer.getCaracteristiques()));
     REQUIRE(tir.degats[Element::Feu] == montantEffectif(10, puissance, archer.getCaracteristiques()));
 }
 
