@@ -14,7 +14,7 @@ namespace {
 const Objet s_masseFlamboyante{IdObjet::MasseAUneMain, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}};
 const Objet s_masseSanctifiee{IdObjet::MasseAUneMain, Rarete::Magique, Affixe{IdAffixe::Sanctifie, 4}};
 const Objet s_arcAcereDuRenard{IdObjet::Arc, Rarete::Rare, Affixe{IdAffixe::Acere, 15}, Affixe{IdAffixe::DuRenard, 2}};
-const Objet s_mailleRenforceeDEsquive{IdObjet::CuirasseDeMailles, Rarete::Rare, Affixe{IdAffixe::Renforce, 3},
+const Objet s_mailleRenforceeDEsquive{IdObjet::ArmureDePlaques, Rarete::Rare, Affixe{IdAffixe::Renforce, 3},
                                       Affixe{IdAffixe::DEsquive, 3}};
 const Objet s_bouclierDeBlocage{IdObjet::BouclierRond, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeBlocage, 5}};
 
@@ -27,23 +27,25 @@ TEST_CASE("affixes : l'armure d'un prefixe s'ajoute a celle du modele") {
     Equipement equipement;
     poser(equipement, Emplacement::Torse, s_mailleRenforceeDEsquive);
 
-    REQUIRE(equipement.armureTotale() == definitionObjet(IdObjet::CuirasseDeMailles).armure + 3);
+    REQUIRE(equipement.armureTotale() == definitionObjet(IdObjet::ArmureDePlaques).armure + 3);
 }
 
-TEST_CASE("affixes : l'esquive d'un suffixe s'ajoute, celle d'un objet sans bonus de combat comprise") {
+TEST_CASE("affixes : l'esquive d'un suffixe s'ajoute au malus du modele, et a celui des autres pieces") {
     Equipement equipement;
     poser(equipement, Emplacement::Torse, s_mailleRenforceeDEsquive);
-    REQUIRE(equipement.bonusDeCombatTotal() == StatistiquesDeCombat{.esquiveContact = 3});
+    const StatistiquesDeCombat malusDeLaPlaque = definitionObjet(IdObjet::ArmureDePlaques).bonusDeCombat;
+    REQUIRE(equipement.bonusDeCombatTotal() == malusDeLaPlaque + StatistiquesDeCombat{.esquiveContact = 3});
+    REQUIRE(equipement.bonusDeCombatTotal().esquiveProjectile == malusDeLaPlaque.esquiveProjectile);  // le suffixe ne joue que contre le contact
 
-    poser(equipement, Emplacement::Bottes, {IdObjet::BottesDeCuir});  // 5 % de leur modèle
-    REQUIRE(equipement.bonusDeCombatTotal().esquiveContact == 3 + definitionObjet(IdObjet::BottesDeCuir).bonusDeCombat.esquiveContact);
+    poser(equipement, Emplacement::Bottes, {IdObjet::Solerets});  // un malus de plus
+    REQUIRE(equipement.bonusDeCombatTotal().esquiveContact == 3 + malusDeLaPlaque.esquiveContact + definitionObjet(IdObjet::Solerets).bonusDeCombat.esquiveContact);
 }
 
 TEST_CASE("affixes : l'esquive contre les projectiles du suffixe de deviation") {
     Equipement equipement;
-    poser(equipement, Emplacement::Tete, {IdObjet::CasqueDeCuir, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeDeviation, 4}});
+    poser(equipement, Emplacement::Tete, {IdObjet::Capuchon, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeDeviation, 4}});
 
-    REQUIRE(equipement.bonusDeCombatTotal().esquiveProjectile == definitionObjet(IdObjet::CasqueDeCuir).bonusDeCombat.esquiveProjectile + 4);
+    REQUIRE(equipement.bonusDeCombatTotal().esquiveProjectile == 4);  // le capuchon n'a pas de malus
     REQUIRE(equipement.bonusDeCombatTotal().esquiveContact == 0);
 }
 
@@ -176,7 +178,7 @@ TEST_CASE("affixes : un suffixe de caracteristique peut rendre actif un autre ob
 TEST_CASE("affixes : les affixes d'un objet inactif ne comptent pas dans les caracteristiques effectives") {
     Equipement equipement;
     // La cuirasse exige de l'Endurance : inactive sous son seuil, donc son suffixe de Puissance ne compte pas.
-    poser(equipement, Emplacement::Torse, {IdObjet::CuirasseDeMailles, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DuBoeuf, 5}});
+    poser(equipement, Emplacement::Torse, {IdObjet::ArmureDePlaques, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DuBoeuf, 5}});
     const Caracteristiques base({s_seuilAuNiveau1 - 1, s_seuilAuNiveau1 - 1, 0, 0, 0});
 
     REQUIRE_FALSE(equipement.actifPour(base).a(Emplacement::Torse).has_value());
@@ -189,7 +191,7 @@ TEST_CASE("affixes : une chaine d'objets actifs par leurs affixes se resout comm
     // comble (la base est au seuil du niveau 1 moins 2 : l'anneau suffit à l'arme, le collier à la cuirasse).
     poser(equipement, Emplacement::MainDroite, {IdObjet::EpeeAUneMain});
     poser(equipement, Emplacement::Anneau1, {IdObjet::AnneauDeProtection, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DuBoeuf, 2}});
-    poser(equipement, Emplacement::Torse, {IdObjet::CuirasseDeMailles});
+    poser(equipement, Emplacement::Torse, {IdObjet::ArmureDePlaques});
     poser(equipement, Emplacement::Collier, {IdObjet::CollierDeProtection, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeLOurs, 3}});
 
     const Equipement actif = equipement.actifPour(Caracteristiques({s_seuilAuNiveau1 - 2, s_seuilAuNiveau1 - 2, 0, 0, 0}));

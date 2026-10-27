@@ -7,9 +7,9 @@
 
 namespace {
 constexpr std::size_t s_capaciteDeTest = 3;
-const Objet s_casque{IdObjet::CasqueDeFer};
-const Objet s_gants{IdObjet::GantsDeCuir};
-const Objet s_bottes{IdObjet::BottesDeCuir};
+const Objet s_casque{IdObjet::HeaumeIntegral};
+const Objet s_gants{IdObjet::GantsDeTissu};
+const Objet s_bottes{IdObjet::Chaussons};
 }  // namespace
 
 TEST_CASE("inventaire : les cases sont toutes vides au depart") {

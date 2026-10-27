@@ -1,30 +1,41 @@
 // ./src/objets/CatalogueObjets.cpp
 #include "objets/CatalogueObjets.hpp"
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cmath>
 #include <cstddef>
+#include <iterator>
 #include <optional>
 #include <utility>
 
 namespace {
 // Valeurs provisoires, à ajuster après test.
-constexpr int s_armureCasqueDeFer = 2;
-constexpr int s_armureCuirasseDeMailles = 4;
-constexpr int s_armureJambieresDeFer = 2;
 constexpr int s_armureBouclierRond = 1;
-constexpr int s_armureGantsDeCuir = 1;
-constexpr int s_armureBottesDeCuir = 1;
-constexpr int s_armureCasqueDeCuir = 1;
-constexpr int s_armureTuniqueMatelassee = 2;
 constexpr int s_armureCollierDeProtection = 1;
 constexpr int s_armureAnneauDeProtection = 1;
 constexpr int s_bonusAnneauDePuissance = 3;    // Puissance
 constexpr int s_bonusCollierDEndurance = 3;    // Endurance
-constexpr int s_esquiveBottesDeCuir = 5;       // en pour cent, contre le contact
-constexpr int s_esquiveCasqueDeCuir = 5;       // en pour cent, contre les projectiles
 constexpr int s_chanceDeBlocageBouclierRond = 30;       // en pour cent, au niveau 1
 constexpr int s_montantBloqueBouclierRond = 12;         // points absorbés par blocage, au niveau 1 et à la qualité moyenne
+
+// L'armure de base des pièces (niveau 1, qualité moyenne), par type : torse, jambes, tête, gants, bottes (valeurs provisoires, « à
+// tester »). Chaque type bat le précédent sur chaque pièce ; un ensemble complet vaut 6, 11, 17 et 24.
+constexpr std::array<int, 5> s_armureDeTissu = {2, 1, 1, 1, 1};
+constexpr std::array<int, 5> s_armureDeLArmureLegere = {3, 2, 2, 2, 2};
+constexpr std::array<int, 5> s_armureDeLArmureIntermediaire = {5, 3, 3, 3, 3};
+constexpr std::array<int, 5> s_armureDeLArmureLourde = {7, 5, 4, 4, 4};
+
+// Les malus d'esquive des pièces, en points de pourcentage (contre le contact comme contre les projectiles), fixes à tout niveau.
+constexpr std::array<int, 5> s_aucunMalus = {0, 0, 0, 0, 0};
+constexpr std::array<int, 5> s_malusIntermediaire = {1, 1, 0, 0, 0};
+constexpr std::array<int, 5> s_malusLourd = {3, 2, 1, 1, 1};
+
+// Le niveau d'apparition de chaque type dans le butin : les pièces plus lourdes n'arrivent qu'en descendant.
+constexpr int s_apparitionDuTissu = 1;
+constexpr int s_apparitionDuLeger = 1;
+constexpr int s_apparitionDeLIntermediaire = 2;
+constexpr int s_apparitionDuLourd = 3;
 
 // Armes (valeurs provisoires, à tester). Une attaque de contact engage (zone de contrôle), un projectile non. Les durées sont
 // en secondes, les portées en pixels, bord à bord.
@@ -78,23 +89,65 @@ DefinitionObjet uneArmeDeTir(IdObjet id, std::string nom, TypeDArme type, int ma
                    portee, penetration, std::move(exigences));
 }
 
+// Les cinq emplacements d'une série de pièces d'armure, dans l'ordre des identifiants de `IdObjet` : torse, jambes, tête, gants,
+// bottes.
+constexpr std::size_t s_piecesParType = 5;
+constexpr std::array<CategorieObjet, s_piecesParType> s_categoriesDesPieces = {
+    CategorieObjet::Armure, CategorieObjet::Jambieres, CategorieObjet::Casque, CategorieObjet::Gants, CategorieObjet::Bottes};
+
+// Les exigences d'un type d'armure (le seuil de chacune : 6 au niveau 1, puis la pente par niveau) : le tissu aucune, le léger
+// l'Adresse, l'intermédiaire l'Endurance et l'Adresse, le lourd l'Endurance.
+std::vector<ExigenceDeCaracteristique> exigencesDuType(TypeDArmure type) {
+    switch (type) {
+        case TypeDArmure::Tissu: return {};
+        case TypeDArmure::Leger: return {{Caracteristique::Adresse, s_penteSeuilPrincipale}};
+        case TypeDArmure::Intermediaire:
+            return {{Caracteristique::Endurance, s_penteSeuilSecondaire}, {Caracteristique::Adresse, s_penteSeuilSecondaire}};
+        case TypeDArmure::Lourd: return {{Caracteristique::Endurance, s_penteSeuilPrincipale}};
+    }
+    return {};
+}
+
+// Les cinq pièces d'un type d'armure : leur armure de base (niveau 1, qualité moyenne), leur malus d'esquive (en points de
+// pourcentage, contre le contact comme contre les projectiles ; fixe), le niveau d'apparition du type. Les identifiants se
+// suivent dans `IdObjet` à partir du premier.
+std::vector<DefinitionObjet> piecesDArmure(TypeDArmure type, IdObjet premier, const std::array<std::string, s_piecesParType>& noms,
+                                          const std::array<int, s_piecesParType>& armure,
+                                          const std::array<int, s_piecesParType>& malusDEsquive, int niveauDApparition) {
+    std::vector<DefinitionObjet> pieces;
+    for (std::size_t i = 0; i < s_piecesParType; ++i) {
+        DefinitionObjet piece = {static_cast<IdObjet>(static_cast<std::size_t>(premier) + i), noms[i], s_categoriesDesPieces[i], armure[i]};
+        piece.bonusDeCombat = {.esquiveContact = -malusDEsquive[i], .esquiveProjectile = -malusDEsquive[i]};
+        piece.exigences = exigencesDuType(type);
+        piece.niveauDApparition = niveauDApparition;
+        piece.typeDArmure = type;
+        pieces.push_back(std::move(piece));
+    }
+    return pieces;
+}
+
 std::vector<DefinitionObjet> construireLeCatalogue() {
-    return {
-        avecExigences({IdObjet::CasqueDeFer, "Iron Helm", CategorieObjet::Casque, s_armureCasqueDeFer},
-                      {{Caracteristique::Endurance, s_penteSeuilPrincipale}}),
-        avecExigences({IdObjet::CuirasseDeMailles, "Chain Mail", CategorieObjet::Armure, s_armureCuirasseDeMailles},
-                      {{Caracteristique::Endurance, s_penteSeuilPrincipale}}),
-        avecExigences({IdObjet::JambieresDeFer, "Iron Greaves", CategorieObjet::Jambieres, s_armureJambieresDeFer},
-                      {{Caracteristique::Endurance, s_penteSeuilPrincipale}}),
+    std::vector<DefinitionObjet> catalogue;
+    const auto ajouter = [&catalogue](std::vector<DefinitionObjet> definitions) {
+        catalogue.insert(catalogue.end(), std::make_move_iterator(definitions.begin()), std::make_move_iterator(definitions.end()));
+    };
+    // Les vingt pièces d'armure (étape 103.3). Le type bat le précédent sur CHAQUE pièce ; aucune pièce n'a de bonus de
+    // caractéristique ; seules les pièces intermédiaires et lourdes ont un malus d'esquive. Torse, jambes, tête, gants, bottes.
+    ajouter(piecesDArmure(TypeDArmure::Tissu, IdObjet::Robe, {"Robe", "Cloth Leggings", "Hood", "Cloth Gloves", "Slippers"},
+                          s_armureDeTissu, s_aucunMalus, s_apparitionDuTissu));
+    ajouter(piecesDArmure(TypeDArmure::Leger, IdObjet::Justaucorps,
+                          {"Leather Jerkin", "Leather Leggings", "Leather Cap", "Leather Gloves", "Leather Boots"}, s_armureDeLArmureLegere,
+                          s_aucunMalus, s_apparitionDuLeger));
+    ajouter(piecesDArmure(TypeDArmure::Intermediaire, IdObjet::CotteDeMailles,
+                          {"Chain Mail", "Chain Leggings", "Chain Coif", "Chain Gloves", "Chain Boots"}, s_armureDeLArmureIntermediaire,
+                          s_malusIntermediaire, s_apparitionDeLIntermediaire));
+    ajouter(piecesDArmure(TypeDArmure::Lourd, IdObjet::ArmureDePlaques,
+                          {"Plate Armor", "Plate Greaves", "Great Helm", "Gauntlets", "Sabatons"}, s_armureDeLArmureLourde, s_malusLourd,
+                          s_apparitionDuLourd));
+    ajouter({
         avecExigences({IdObjet::BouclierRond, "Round Shield", CategorieObjet::Bouclier, s_armureBouclierRond, {}, {}, std::nullopt,
                        DonneesDeBouclier{.chanceAuNiveau1 = s_chanceDeBlocageBouclierRond, .montantAuNiveau1 = s_montantBloqueBouclierRond}},
                       {{Caracteristique::Endurance, s_penteSeuilPrincipale}}),
-        {IdObjet::GantsDeCuir, "Leather Gloves", CategorieObjet::Gants, s_armureGantsDeCuir},
-        {IdObjet::BottesDeCuir, "Leather Boots", CategorieObjet::Bottes, s_armureBottesDeCuir, {},
-         {.esquiveContact = s_esquiveBottesDeCuir}},
-        {IdObjet::CasqueDeCuir, "Leather Cap", CategorieObjet::Casque, s_armureCasqueDeCuir, {},
-         {.esquiveProjectile = s_esquiveCasqueDeCuir}},
-        {IdObjet::TuniqueMatelassee, "Padded Tunic", CategorieObjet::Armure, s_armureTuniqueMatelassee},
         {IdObjet::CollierDeProtection, "Necklace of Protection", CategorieObjet::Collier,
          s_armureCollierDeProtection},
         {IdObjet::AnneauDeProtection, "Ring of Protection", CategorieObjet::Anneau,
@@ -103,6 +156,8 @@ std::vector<DefinitionObjet> construireLeCatalogue() {
          Caracteristiques::seule(Caracteristique::Puissance, s_bonusAnneauDePuissance)},
         {IdObjet::CollierDEndurance, "Necklace of Constitution", CategorieObjet::Collier, 0,
          Caracteristiques::seule(Caracteristique::Endurance, s_bonusCollierDEndurance)},
+    });
+    ajouter({
         // Les treize gabarits d'armes (étape 102.4), dans l'ordre de `IdObjet`. Chacun fixe l'identité de l'arme ; ses dégâts
         // dépendent de l'objet (`descriptionDeLArme`). Les dégâts/s visés sont 23 à une main et 30 à deux mains : la référence
         // est ces dégâts/s fois (exécution + recharge moyenne).
@@ -133,7 +188,8 @@ std::vector<DefinitionObjet> construireLeCatalogue() {
                      {{Caracteristique::Adresse, s_penteSeuilPrincipale}}),
         uneArmeDeTir(IdObjet::Arbalete,            "Crossbow",   TypeDArme::Arbalete,        2, 30, 15, 0.55f, 0.85f, s_porteeDeLArbalete, 30,
                      {{Caracteristique::Adresse, s_penteSeuilPrincipale}, {Caracteristique::Puissance, s_penteSeuilSecondaire}}),
-    };
+    });
+    return catalogue;
 }
 }  // namespace
 

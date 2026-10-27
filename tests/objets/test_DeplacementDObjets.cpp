@@ -22,9 +22,9 @@ const Objet s_bouclier{IdObjet::BouclierRond};
 const Objet s_epee{IdObjet::EpeeAUneMain};
 const Objet s_epeeADeuxMains{IdObjet::EpeeADeuxMains};
 const Objet s_arc{IdObjet::Arc};
-const Objet s_gants{IdObjet::GantsDeCuir};
-const Objet s_bottes{IdObjet::BottesDeCuir};
-const Objet s_casque{IdObjet::CasqueDeCuir};
+const Objet s_gants{IdObjet::GantsDeTissu};
+const Objet s_bottes{IdObjet::Chaussons};
+const Objet s_casque{IdObjet::Capuchon};
 
 PositionDObjet dansLeSac(std::size_t caseDuSac) {
     return PositionDansLeSac{caseDuSac};

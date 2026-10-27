@@ -1030,7 +1030,7 @@ TEST_CASE("recevoirSoin sur un mort renvoie zero") {
 }
 
 TEST_CASE("l'armure du personnage est celle de son equipement de depart") {
-    const std::vector<ObjetDeDepart> casqueSeul = {{Emplacement::Tete, IdObjet::CasqueDeFer}};
+    const std::vector<ObjetDeDepart> casqueSeul = {{Emplacement::Tete, IdObjet::HeaumeIntegral}};
     Personnage casque = unPersonnage({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
                        .equipementDeDepart = casqueSeul, .rayonVision = s_rayonVisionDeTest,
@@ -1038,13 +1038,13 @@ TEST_CASE("l'armure du personnage est celle de son equipement de depart") {
     Personnage nu = unPersonnage({100.0f, 100.0f},
                   definitionArmee(IdObjet::Sceptre));
 
-    REQUIRE(subir(casque, 40) == appliquerArmure(40, definitionObjet(IdObjet::CasqueDeFer).armure));
+    REQUIRE(subir(casque, 40) == appliquerArmure(40, definitionObjet(IdObjet::HeaumeIntegral).armure));
     REQUIRE(subir(nu, 40) == 40);
 }
 
 TEST_CASE("l'armure du personnage additionne tous les objets de depart") {
-    const std::vector<ObjetDeDepart> depart = {{Emplacement::Tete, IdObjet::CasqueDeFer},
-                                               {Emplacement::Torse, IdObjet::CuirasseDeMailles}};
+    const std::vector<ObjetDeDepart> depart = {{Emplacement::Tete, IdObjet::HeaumeIntegral},
+                                               {Emplacement::Torse, IdObjet::ArmureDePlaques}};
     Personnage equipe = unPersonnage({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
                        .equipementDeDepart = depart, .rayonVision = s_rayonVisionDeTest,
@@ -1088,11 +1088,11 @@ TEST_CASE("l'esquive d'un personnage vient de son equipement, recalculee a chaqu
     REQUIRE(personnage.getStatistiques().esquiveContact == 0);
     REQUIRE(personnage.getStatistiques().esquiveProjectile == 0);
 
-    static_cast<void>(personnage.poserEquipement(Emplacement::Bottes, {IdObjet::BottesDeCuir}));
+    static_cast<void>(personnage.poserEquipement(Emplacement::Bottes, {IdObjet::Chaussons, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DEsquive, 5}}));
     REQUIRE(personnage.getStatistiques().esquiveContact == 5);
     REQUIRE(personnage.getStatistiques().esquiveProjectile == 0);
 
-    static_cast<void>(personnage.poserEquipement(Emplacement::Tete, {IdObjet::CasqueDeCuir}));
+    static_cast<void>(personnage.poserEquipement(Emplacement::Tete, {IdObjet::Capuchon, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeDeviation, 5}}));
     REQUIRE(personnage.getStatistiques().esquiveProjectile == 5);
 
     static_cast<void>(personnage.retirerEquipement(Emplacement::Bottes));
@@ -1100,13 +1100,24 @@ TEST_CASE("l'esquive d'un personnage vient de son equipement, recalculee a chaqu
     REQUIRE(personnage.getStatistiques() == statistiquesDuPersonnage(personnage.getCaracteristiques(), StatistiquesDeCombat()));
 }
 
-TEST_CASE("un equipement de depart qui donne de l'esquive compte des la construction") {
+TEST_CASE("un equipement de depart qui change l'esquive compte des la construction (le malus d'une piece lourde)") {
     const Personnage personnage = unPersonnage({100.0f, 100.0f},
                                 {.couleur = sf::Color::White,
-                                 .equipementDeDepart = {{Emplacement::Bottes, IdObjet::BottesDeCuir}},
-                                 .rayonVision = s_rayonVisionDeTest});
+                                 .equipementDeDepart = {{Emplacement::Bottes, IdObjet::Solerets}},
+                                 .rayonVision = s_rayonVisionDeTest,
+                                 .caracteristiques = Caracteristiques({10, 12, 10, 10, 11})});  // l'Endurance que les sabatons exigent
 
-    REQUIRE(personnage.getStatistiques().esquiveContact == 5);
+    REQUIRE(personnage.getStatistiques().esquiveContact == definitionObjet(IdObjet::Solerets).bonusDeCombat.esquiveContact);
+    REQUIRE(personnage.getStatistiques().esquiveContact < 0);
+}
+
+TEST_CASE("une piece lourde inactive n'a pas son malus d'esquive") {
+    const Personnage personnage = unPersonnage({100.0f, 100.0f},
+                                {.couleur = sf::Color::White,
+                                 .equipementDeDepart = {{Emplacement::Bottes, IdObjet::Solerets}},
+                                 .rayonVision = s_rayonVisionDeTest});  // Endurance 0 : sous le seuil
+
+    REQUIRE(personnage.getStatistiques().esquiveContact == 0);
 }
 
 TEST_CASE("le bouclier rond donne au personnage sa chance de blocage et son montant") {
@@ -1151,7 +1162,7 @@ TEST_CASE("un personnage au bouclier : apres un blocage, plus aucun pendant 3 s,
 
 TEST_CASE("un personnage qui esquive ne perd aucun point de vie") {
     Personnage personnage = unPersonnage({100.0f, 100.0f}, avecEnduranceEnorme(definitionArmee()));
-    static_cast<void>(personnage.poserEquipement(Emplacement::Bottes, {IdObjet::BottesDeCuir}));
+    static_cast<void>(personnage.poserEquipement(Emplacement::Bottes, {IdObjet::Chaussons, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DEsquive, 5}}));
     Generateur generateur = generateurDeTest();
     const Attaque attaque{.degats = degatsPhysiques(10), .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
     int esquives = 0;
@@ -1425,13 +1436,13 @@ TEST_CASE("retirer l'anneau de puissance rend l'epee inactive, le remettre la re
 }
 
 TEST_CASE("une armure ou un bouclier inactif ne donne ni armure ni blocage") {
-    const std::vector<ObjetDeDepart> lourd = {{Emplacement::Torse, IdObjet::CuirasseDeMailles}, {Emplacement::MainGauche, IdObjet::BouclierRond}};
+    const std::vector<ObjetDeDepart> lourd = {{Emplacement::Torse, IdObjet::ArmureDePlaques}, {Emplacement::MainGauche, IdObjet::BouclierRond}};
     Personnage nu = unPersonnage({100.0f, 100.0f}, {.couleur = sf::Color::White, .equipementDeDepart = lourd, .rayonVision = s_rayonVisionDeTest});  // Endurance 0
     Personnage fort = unPersonnage({100.0f, 100.0f}, {.couleur = sf::Color::White, .equipementDeDepart = lourd, .rayonVision = s_rayonVisionDeTest,
                                        .caracteristiques = caracteristiquesPourPorter(lourd)});
 
     // L'armure sans le bouclier (qui bloquerait au hasard) ; le blocage se lit dans les statistiques.
-    const std::vector<ObjetDeDepart> cuirasse = {{Emplacement::Torse, IdObjet::CuirasseDeMailles}};
+    const std::vector<ObjetDeDepart> cuirasse = {{Emplacement::Torse, IdObjet::ArmureDePlaques}};
     Personnage cuirasseSansForce = unPersonnage({100.0f, 100.0f}, {.couleur = sf::Color::White, .equipementDeDepart = cuirasse, .rayonVision = s_rayonVisionDeTest});
     Personnage cuirasseAvecForce = unPersonnage({100.0f, 100.0f}, {.couleur = sf::Color::White, .equipementDeDepart = cuirasse, .rayonVision = s_rayonVisionDeTest,
                                                     .caracteristiques = caracteristiquesPourPorter(cuirasse)});

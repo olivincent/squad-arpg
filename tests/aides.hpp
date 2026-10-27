@@ -37,12 +37,12 @@ inline constexpr float s_rayonVisionDeTest = 320.0f;
 // Un coup assez fort pour tuer n'importe quelle entité du jeu, quelle que soit son armure.
 inline constexpr int s_coupMortel = 100000;
 
-// Équipement de départ des mêlées de test : l'armure du catalogue des classes (sans bouclier, qui bloquerait au
+// Équipement de départ des mêlées de test : des pièces lourdes (seuil d'Endurance seule, comme les anciennes pièces de fer ; sans bouclier, qui bloquerait au
 // hasard) et l'épée à une main, dont vient leur attaque de base. L'armure qui en résulte est toujours lue dans le
 // catalogue d'objets, jamais écrite en littéral.
-inline const std::vector<ObjetDeDepart> s_equipementMeleeDeTest = {{Emplacement::Tete, IdObjet::CasqueDeFer},
-                                                                   {Emplacement::Torse, IdObjet::CuirasseDeMailles},
-                                                                   {Emplacement::Jambes, IdObjet::JambieresDeFer},
+inline const std::vector<ObjetDeDepart> s_equipementMeleeDeTest = {{Emplacement::Tete, IdObjet::HeaumeIntegral},
+                                                                   {Emplacement::Torse, IdObjet::ArmureDePlaques},
+                                                                   {Emplacement::Jambes, IdObjet::JambieresDePlaques},
                                                                    {Emplacement::MainDroite, IdObjet::EpeeAUneMain}};
 
 // Les caractéristiques d'un personnage de test qui porte ces objets : la Puissance de référence (10) et juste ce qu'il

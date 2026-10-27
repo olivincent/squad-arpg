@@ -39,10 +39,31 @@ TEST_CASE("affichage : le bonus de combat d'un objet donne une ligne par bonus n
     const std::vector<std::string> lignes = lignesDeBonusDeCombat(
         {.capaciteOffensive = 10, .capaciteDefensive = -5, .esquiveContact = 5, .esquiveProjectile = 7});
 
-    REQUIRE(lignes == std::vector<std::string>{"Offensive Ability: +10", "Defensive Ability: -5",
+    REQUIRE(lignes == std::vector<std::string>{"Offensive Ability: +10", "Defensive Ability: −5",
                                                "Dodge vs Melee: +5 %", "Dodge vs Projectiles: +7 %"});
 }
 
 TEST_CASE("affichage : un objet sans bonus de combat n'a aucune ligne") {
     REQUIRE(lignesDeBonusDeCombat({}).empty());
+}
+
+TEST_CASE("affichage : l'esquive negative d'une armure lourde s'affiche 0, jamais sous 0") {
+    const std::vector<std::string> lignes = lignesDeStatistiques({.esquiveContact = -6, .esquiveProjectile = -2});
+
+    REQUIRE(lignes[3] == "Melee Dodge 0 %");
+    REQUIRE(lignes[4] == "Projectile Dodge 0 %");
+}
+
+TEST_CASE("affichage : deux esquives egales et non nulles tiennent sur une ligne, des esquives differentes sur deux") {
+    REQUIRE(lignesDeBonusDeCombat({.esquiveContact = -3, .esquiveProjectile = -3}) == std::vector<std::string>{"Dodge: −3 %"});
+    REQUIRE(lignesDeBonusDeCombat({.esquiveContact = 4, .esquiveProjectile = 4}) == std::vector<std::string>{"Dodge: +4 %"});
+    REQUIRE(lignesDeBonusDeCombat({.esquiveContact = -3, .esquiveProjectile = -1}) ==
+            std::vector<std::string>{"Dodge vs Melee: −3 %", "Dodge vs Projectiles: −1 %"});
+}
+
+TEST_CASE("affichage : les lignes de malus sont celles des seules valeurs negatives") {
+    REQUIRE(lignesDeMalusDeCombat({.capaciteOffensive = 10, .capaciteDefensive = -5, .esquiveContact = -3, .esquiveProjectile = -3}) ==
+            std::vector<std::string>{"Defensive Ability: −5", "Dodge: −3 %"});
+    REQUIRE(lignesDeMalusDeCombat({.capaciteOffensive = 10, .esquiveContact = 5}).empty());
+    REQUIRE(lignesDeMalusDeCombat({}).empty());
 }

@@ -39,15 +39,33 @@ TEST_CASE("affichage : chaque objet du catalogue a un sigle de deux lettres, tou
     REQUIRE(sigles.size() == catalogueObjets().size());
 }
 
-TEST_CASE("affichage : l'infobulle donne le nom, la categorie, le niveau, l'armure puis le seuil") {
-    const std::vector<std::string> lignes = lignesDeLInfobulle(Objet{IdObjet::CasqueDeFer});
+TEST_CASE("affichage : l'infobulle d'une piece lourde donne le nom, la categorie, le type, le niveau, l'armure, le malus d'esquive puis le seuil") {
+    const std::vector<std::string> lignes = lignesDeLInfobulle(Objet{IdObjet::HeaumeIntegral});
 
-    REQUIRE(lignes.size() == 5);
-    REQUIRE(lignes[0] == definitionObjet(IdObjet::CasqueDeFer).nom);
-    REQUIRE(lignes[1] == "Helmet");
-    REQUIRE(lignes[2] == "Item Level 1");
-    REQUIRE(lignes[3] == "Armor: +" + std::to_string(definitionObjet(IdObjet::CasqueDeFer).armure));
-    REQUIRE(lignes[4] == ligneDeSeuil(seuilsDeLObjet(Objet{IdObjet::CasqueDeFer}).front()));
+    REQUIRE(lignes == std::vector<std::string>{definitionObjet(IdObjet::HeaumeIntegral).nom, "Helmet", "Heavy Armor", "Item Level 1",
+                                               "Armor: " + std::to_string(definitionObjet(IdObjet::HeaumeIntegral).armure), "Dodge: −1 %",
+                                               ligneDeSeuil(seuilsDeLObjet(Objet{IdObjet::HeaumeIntegral}).front())});
+}
+
+TEST_CASE("affichage : l'infobulle d'une piece de tissu n'a ni malus ni seuil") {
+    REQUIRE(lignesDeLInfobulle(Objet{IdObjet::Robe}) ==
+            std::vector<std::string>{"Robe", "Body Armor", "Cloth Armor", "Item Level 1",
+                                     "Armor: " + std::to_string(definitionObjet(IdObjet::Robe).armure)});
+}
+
+TEST_CASE("affichage : le type d'armure se dit en toutes lettres") {
+    REQUIRE(nomDuTypeDArmure(TypeDArmure::Tissu) == "Cloth Armor");
+    REQUIRE(nomDuTypeDArmure(TypeDArmure::Leger) == "Light Armor");
+    REQUIRE(nomDuTypeDArmure(TypeDArmure::Intermediaire) == "Medium Armor");
+    REQUIRE(nomDuTypeDArmure(TypeDArmure::Lourd) == "Heavy Armor");
+}
+
+TEST_CASE("affichage : l'armure de l'infobulle suit le niveau de la piece (la plaque de niveau 5 : 14)") {
+    const std::vector<std::string> lignes =
+        lignesDeLInfobulle(Objet{IdObjet::ArmureDePlaques, Rarete::Commun, std::nullopt, std::nullopt, 5});
+
+    REQUIRE(lignes[4] == "Armor: 14");
+    REQUIRE(lignes.back() == "Requires Constitution 14");
 }
 
 TEST_CASE("affichage : une ligne de seuil donne la caracteristique et la valeur exigee") {
@@ -66,7 +84,7 @@ TEST_CASE("affichage : l'infobulle donne les seuils de l'objet a son niveau, en 
 }
 
 TEST_CASE("affichage : un objet sans seuil n'a aucune ligne d'exigence") {
-    for (const IdObjet libre : {IdObjet::GantsDeCuir, IdObjet::BottesDeCuir, IdObjet::AnneauDePuissance, IdObjet::CollierDEndurance}) {
+    for (const IdObjet libre : {IdObjet::GantsDeTissu, IdObjet::Chaussons, IdObjet::AnneauDePuissance, IdObjet::CollierDEndurance}) {
         for (const std::string& ligne : lignesDeLInfobulle(Objet{libre})) {
             REQUIRE(ligne.find("Requires") == std::string::npos);
         }
@@ -102,16 +120,25 @@ TEST_CASE("affichage : aucun objet du catalogue n'affiche une valeur nulle") {
     }
 }
 
-TEST_CASE("affichage : l'infobulle des bottes de cuir donne l'esquive contre la melee") {
-    const std::vector<std::string> lignes = lignesDeLInfobulle(Objet{IdObjet::BottesDeCuir});
+TEST_CASE("affichage : l'infobulle d'une plaque donne son malus d'esquive en une ligne, une piece legere n'en a pas") {
+    const std::vector<std::string> plaque = lignesDeLInfobulle(Objet{IdObjet::ArmureDePlaques});
+    const std::vector<std::string> sabatons = lignesDeLInfobulle(Objet{IdObjet::Solerets});
+    const std::vector<std::string> cotte = lignesDeLInfobulle(Objet{IdObjet::CotteDeMailles});
+    const std::vector<std::string> bottes = lignesDeLInfobulle(Objet{IdObjet::BottesDeCuir});
 
-    REQUIRE(lignes.back() == "Dodge vs Melee: +5 %");
+    REQUIRE(plaque[5] == "Dodge: −3 %");
+    REQUIRE(sabatons[5] == "Dodge: −1 %");
+    REQUIRE(cotte[5] == "Dodge: −1 %");
+    REQUIRE(std::ranges::none_of(bottes, [](const std::string& ligne) { return ligne.starts_with("Dodge"); }));
 }
 
-TEST_CASE("affichage : l'infobulle du casque de cuir donne l'esquive contre les projectiles") {
-    const std::vector<std::string> lignes = lignesDeLInfobulle(Objet{IdObjet::CasqueDeCuir});
-
-    REQUIRE(lignes.back() == "Dodge vs Projectiles: +5 %");
+TEST_CASE("lignesDeMalusDeLObjet : les lignes de malus de l'infobulle, rien pour un objet sans malus") {
+    REQUIRE(lignesDeMalusDeLObjet(Objet{IdObjet::ArmureDePlaques}) == std::vector<std::string>{"Dodge: −3 %"});
+    REQUIRE(lignesDeMalusDeLObjet(Objet{IdObjet::JambieresDePlaques}) == std::vector<std::string>{"Dodge: −2 %"});
+    REQUIRE(lignesDeMalusDeLObjet(Objet{IdObjet::Robe}).empty());
+    REQUIRE(lignesDeMalusDeLObjet(Objet{IdObjet::EpeeAUneMain}).empty());
+    // L'esquive d'un affixe est un bonus, pas un malus.
+    REQUIRE(lignesDeMalusDeLObjet(Objet{IdObjet::Chaussons, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DEsquive, 3}}).empty());
 }
 
 TEST_CASE("affichage : l'infobulle du bouclier rond donne son blocage") {
@@ -214,11 +241,11 @@ TEST_CASE("affichage : un objet magique n'a qu'une ligne d'affixe, un objet comm
 
 TEST_CASE("affichage : l'infobulle d'une cuirasse rare garde l'armure du modele et celle de l'affixe sur deux lignes") {
     const std::vector<std::string> lignes = lignesDeLInfobulle(
-        Objet{IdObjet::CuirasseDeMailles, Rarete::Rare, Affixe{IdAffixe::Renforce, 3}, Affixe{IdAffixe::DEsquive, 3}});
+        Objet{IdObjet::ArmureDePlaques, Rarete::Rare, Affixe{IdAffixe::Renforce, 3}, Affixe{IdAffixe::DEsquive, 3}});
 
-    REQUIRE(lignes == std::vector<std::string>{"Reinforced Chain Mail of Evasion", "Body Armor", "Item Level 1",
-                                               "Armor: +" + std::to_string(definitionObjet(IdObjet::CuirasseDeMailles).armure),
-                                               "Armor: +3", "Dodge vs Melee: +3 %",
+    REQUIRE(lignes == std::vector<std::string>{"Reinforced Plate Armor of Evasion", "Body Armor", "Heavy Armor", "Item Level 1",
+                                               "Armor: " + std::to_string(definitionObjet(IdObjet::ArmureDePlaques).armure),
+                                               "Dodge: −3 %", "Armor: +3", "Dodge vs Melee: +3 %",
                                                ligneDeSeuil({Caracteristique::Endurance, s_seuilAuNiveau1})});
 }
 

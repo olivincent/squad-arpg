@@ -16,7 +16,10 @@
 [[nodiscard]] std::vector<std::string> lignesDeStatistiques(const StatistiquesDeCombat& statistiques);
 
 // Les lignes d'infobulle du bonus de combat d'un objet, une par bonus non nul, dans cet ordre :
-// « Capacité offensive : +10 », « Capacité défensive : +10 », « Esquive contre la mêlée : +5 % » et
-// « Esquive contre les projectiles : +5 % ». Vide pour un objet sans bonus. (Le blocage d'un bouclier est une
-// propriété du bouclier : `lignesDeLInfobulle`.)
+// « Offensive Ability: +10 », « Defensive Ability: +10 », « Dodge vs Melee: +5 % » et « Dodge vs Projectiles: +5 % » ; quand les
+// deux esquives sont égales et non nulles, une seule ligne les réunit (« Dodge: −3 % »). Un nombre négatif s'écrit avec le signe
+// moins (U+2212). Vide pour un objet sans bonus. (Le blocage d'un bouclier est une propriété du bouclier : `lignesDeLInfobulle`.)
 [[nodiscard]] std::vector<std::string> lignesDeBonusDeCombat(const StatistiquesDeCombat& bonus);
+
+// Les lignes de `lignesDeBonusDeCombat` qui sont des malus (valeurs négatives) : l'écran les colore en rouge.
+[[nodiscard]] std::vector<std::string> lignesDeMalusDeCombat(const StatistiquesDeCombat& bonus);

@@ -18,10 +18,10 @@ const PositionDObjet s_collierGuerrier = PositionPortee{1, Emplacement::Collier}
 const PositionDObjet s_mainDroite = PositionPortee{1, Emplacement::MainDroite};
 
 const std::optional<Objet> s_vide = std::nullopt;
-const std::optional<Objet> s_casqueDeFer = Objet{IdObjet::CasqueDeFer};
-const std::optional<Objet> s_casqueDeCuir = Objet{IdObjet::CasqueDeCuir};
-const std::optional<Objet> s_gants = Objet{IdObjet::GantsDeCuir};
-const std::optional<Objet> s_bottes = Objet{IdObjet::BottesDeCuir};
+const std::optional<Objet> s_casqueDeFer = Objet{IdObjet::HeaumeIntegral};
+const std::optional<Objet> s_casqueDeCuir = Objet{IdObjet::Capuchon};
+const std::optional<Objet> s_gants = Objet{IdObjet::GantsDeTissu};
+const std::optional<Objet> s_bottes = Objet{IdObjet::Chaussons};
 const std::optional<Objet> s_anneau = Objet{IdObjet::AnneauDeProtection};
 }  // namespace
 

@@ -65,7 +65,7 @@ bool sacContient(const Partie& partie, const Objet& objet) {
 
 void remplirLeSac(Partie& partie) {
     while (partie.getEscouade().sac().casesLibres() > 0) {
-        REQUIRE(partie.getEscouade().ramasser(Objet{IdObjet::GantsDeCuir}));
+        REQUIRE(partie.getEscouade().ramasser(Objet{IdObjet::GantsDeTissu}));
     }
 }
 

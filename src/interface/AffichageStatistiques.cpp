@@ -4,9 +4,9 @@
 #include "combat/Esquive.hpp"
 
 namespace {
-// Un nombre signé : « +5 », « -3 ».
+// Un nombre signé : « +5 », « −3 » (le signe moins typographique, U+2212, que la police de l'interface a).
 std::string signe(int valeur) {
-    return (valeur > 0 ? "+" : "") + std::to_string(valeur);
+    return valeur < 0 ? "−" + std::to_string(-valeur) : (valeur > 0 ? "+" : "") + std::to_string(valeur);
 }
 }  // namespace
 
@@ -29,6 +29,10 @@ std::vector<std::string> lignesDeBonusDeCombat(const StatistiquesDeCombat& bonus
     if (bonus.capaciteDefensive != 0) {
         lignes.push_back("Defensive Ability: " + signe(bonus.capaciteDefensive));
     }
+    if (bonus.esquiveContact != 0 && bonus.esquiveContact == bonus.esquiveProjectile) {
+        lignes.push_back("Dodge: " + signe(bonus.esquiveContact) + " %");
+        return lignes;
+    }
     if (bonus.esquiveContact != 0) {
         lignes.push_back("Dodge vs Melee: " + signe(bonus.esquiveContact) + " %");
     }
@@ -36,4 +40,15 @@ std::vector<std::string> lignesDeBonusDeCombat(const StatistiquesDeCombat& bonus
         lignes.push_back("Dodge vs Projectiles: " + signe(bonus.esquiveProjectile) + " %");
     }
     return lignes;
+}
+
+std::vector<std::string> lignesDeMalusDeCombat(const StatistiquesDeCombat& bonus) {
+    // Seules les valeurs négatives : leurs lignes sont celles du bonus complet, écrites par la même fonction.
+    const auto negatif = [](int valeur) { return valeur < 0 ? valeur : 0; };
+    StatistiquesDeCombat malus;
+    malus.capaciteOffensive = negatif(bonus.capaciteOffensive);
+    malus.capaciteDefensive = negatif(bonus.capaciteDefensive);
+    malus.esquiveContact = negatif(bonus.esquiveContact);
+    malus.esquiveProjectile = negatif(bonus.esquiveProjectile);
+    return lignesDeBonusDeCombat(malus);
 }

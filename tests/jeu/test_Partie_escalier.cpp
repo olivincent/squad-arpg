@@ -151,7 +151,7 @@ TEST_CASE("escalier : avec un objet au sol sous le curseur, le clic vise l'objet
     // 48 objets remplissent les cases libres autour de l'escalier (rayon de recherche de 3 cases), le 49e n'a plus d'autre
     // place que l'escalier lui-même.
     for (int i = 0; i < 49; ++i) {
-        partie.getSol().poser(Objet{IdObjet::GantsDeCuir}, centreDe(s_caseProche), partie.getCarte());
+        partie.getSol().poser(Objet{IdObjet::GantsDeTissu}, centreDe(s_caseProche), partie.getCarte());
     }
     REQUIRE(partie.getSol().tous().back().position == centreDe(s_caseProche));
 

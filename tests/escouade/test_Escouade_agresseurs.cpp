@@ -17,6 +17,7 @@
 #include "monde/TileMap.hpp"
 #include "objets/Emplacement.hpp"
 #include "objets/Objet.hpp"
+#include "objets/PositionDObjet.hpp"
 
 
 TEST_CASE("proieDuMonstre renvoie un centre plus proche du point que le centre de l'escouade") {
@@ -353,14 +354,16 @@ TEST_CASE("Agresseurs : un agresseur mort dans l'image n'attire plus personne, l
 
 TEST_CASE("Un coup esquive compte comme une attaque recue : le monstre devient agresseur, sans degats") {
     DefinitionPersonnage guerrier = avecEnduranceEnorme(guerrierDeTest());
-    guerrier.equipementDeDepart.push_back({Emplacement::Bottes, IdObjet::BottesDeCuir});  // esquive contre le contact
     const Attaque attaque{.degats = degatsPhysiques(1), .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
     Escouade escouade = uneEscouadeDe({50.0f, 50.0f}, {guerrier});
+    // Des chaussons d'esquive contre le contact (15 %, moins les 6 % de malus des pièces lourdes du guerrier de test), posés comme le joueur le fait : du sac vers la place.
+    REQUIRE(escouade.ramasser(Objet{IdObjet::Chaussons, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DEsquive, 15}}));
+    REQUIRE(escouade.deplacerObjet(PositionDansLeSac{0}, PositionPortee{1, Emplacement::Bottes}));
     Generateur generateur = generateurDeTest();
     int esquives = 0;
 
-    // Chaque coup vient d'un monstre neuf : esquivé ou non, il doit devenir agresseur. Avec 5 % d'esquive, la chance
-    // de n'en voir aucune sur 2 000 coups est de l'ordre de 10^-45, quelle que soit la graine.
+    // Chaque coup vient d'un monstre neuf : esquivé ou non, il doit devenir agresseur. Avec 9 % d'esquive, la chance
+    // de n'en voir aucune sur 2 000 coups est de l'ordre de 10^-82, quelle que soit la graine.
     for (int monstre = 1; monstre <= 2000; ++monstre) {
         const int vieAvant = *escouade.pointsDeVieDuPersonnage(1);
         const ResultatDuCoup resultat = escouade.recevoirCoup(monstre, 1, attaque, generateur);

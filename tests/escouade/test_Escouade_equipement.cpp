@@ -17,6 +17,7 @@
 #include "escouade/Escouade.hpp"
 #include "objets/CatalogueObjets.hpp"
 #include "objets/Emplacement.hpp"
+#include "objets/Equipement.hpp"
 #include "objets/Inventaire.hpp"
 #include "objets/Objet.hpp"
 #include "objets/PositionDObjet.hpp"
@@ -51,16 +52,16 @@ PositionDObjet portee(std::size_t place, Emplacement emplacement) {
     return PositionPortee{place, emplacement};
 }
 
-const Objet s_gants{IdObjet::GantsDeCuir};
-const Objet s_casqueDeCuir{IdObjet::CasqueDeCuir};
-const Objet s_casqueDeFer{IdObjet::CasqueDeFer};
+const Objet s_gants{IdObjet::GantsDeTissu};
+const Objet s_casqueDeCuir{IdObjet::Capuchon};
+const Objet s_casqueDeFer{IdObjet::HeaumeIntegral};
 
 // Un lot de quatre objets différents, tous à affixes : aucun n'est porté au départ, donc chacun a zéro exemplaire dans une
 // escouade neuve (les objets sont comptés par valeur complète).
 const std::vector<Objet> s_lotDeQuatre = {
     {IdObjet::MasseAUneMain, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}},
     {IdObjet::Arc, Rarete::Rare, Affixe{IdAffixe::Acere, 15}, Affixe{IdAffixe::DuRenard, 2}},
-    {IdObjet::CasqueDeFer, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeDeviation, 3}},
+    {IdObjet::HeaumeIntegral, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeDeviation, 3}},
     {IdObjet::BouclierRond, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeBlocage, 5}}};
 }  // namespace
 
@@ -105,7 +106,7 @@ TEST_CASE("deplacer du sac vers un emplacement vide : l'objet quitte le sac, l'e
     REQUIRE_FALSE(escouade.sac().a(0).has_value());
     REQUIRE(escouade.equipementDuPersonnage(s_mage).a(Emplacement::Gants) == s_gants);
     REQUIRE(exemplaires(escouade) == avant);
-    REQUIRE(degatsSubis(escouade, s_mage) == appliquerArmure(s_coup, definitionObjet(IdObjet::GantsDeCuir).armure));
+    REQUIRE(degatsSubis(escouade, s_mage) == appliquerArmure(s_coup, definitionObjet(IdObjet::GantsDeTissu).armure));
 }
 
 TEST_CASE("deplacer du sac vers un emplacement occupe echange avec la case du sac") {
@@ -118,8 +119,8 @@ TEST_CASE("deplacer du sac vers un emplacement occupe echange avec la case du sa
     REQUIRE(escouade.sac().a(0) == s_casqueDeFer);
     REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::Tete) == s_casqueDeCuir);
     REQUIRE(exemplaires(escouade) == avant);
-    const int armureApres = armureAvant - definitionObjet(IdObjet::CasqueDeFer).armure +
-                            definitionObjet(IdObjet::CasqueDeCuir).armure;
+    const int armureApres = armureAvant - definitionObjet(IdObjet::HeaumeIntegral).armure +
+                            definitionObjet(IdObjet::Capuchon).armure;
     REQUIRE(escouade.equipementDuPersonnage(s_guerrier).armureTotale() == armureApres);
     REQUIRE(degatsSubis(escouade, s_guerrier) == appliquerArmure(s_coup, armureApres));
 }
@@ -158,7 +159,7 @@ TEST_CASE("deplacer d'un emplacement vers une case vide : l'objet va dans le sac
     REQUIRE(escouade.sac().a(7) == s_casqueDeFer);
     REQUIRE_FALSE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::Tete).has_value());
     REQUIRE(exemplaires(escouade) == avant);
-    const int armureApres = armureAvant - definitionObjet(IdObjet::CasqueDeFer).armure;
+    const int armureApres = armureAvant - definitionObjet(IdObjet::HeaumeIntegral).armure;
     REQUIRE(degatsSubis(escouade, s_guerrier) == appliquerArmure(s_coup, armureApres));
 }
 
@@ -214,13 +215,13 @@ TEST_CASE("tout desequiper ramene l'armure a zero, tout reequiper la rend") {
 TEST_CASE("l'armure suit un objet d'un personnage a l'autre") {
     Escouade escouade = uneEscouadeCapableDeToutPorter({50.0f, 50.0f});
     const Exemplaires avant = exemplaires(escouade);
-    const int armureJambieres = definitionObjet(IdObjet::JambieresDeFer).armure;
+    const int armureJambieres = definitionObjet(IdObjet::JambieresDePlaques).armure;
     const int armureGuerrier = escouade.equipementDuPersonnage(s_guerrier).armureTotale();
 
     REQUIRE(escouade.deplacerObjet(portee(s_guerrier, Emplacement::Jambes), portee(s_mage, Emplacement::Jambes)));
 
     REQUIRE_FALSE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::Jambes).has_value());
-    REQUIRE(escouade.equipementDuPersonnage(s_mage).a(Emplacement::Jambes) == Objet{IdObjet::JambieresDeFer});
+    REQUIRE(escouade.equipementDuPersonnage(s_mage).a(Emplacement::Jambes) == Objet{IdObjet::JambieresDePlaques});
     REQUIRE(escouade.equipementDuPersonnage(s_mage).armureTotale() == armureJambieres);
     REQUIRE(exemplaires(escouade) == avant);
     REQUIRE(degatsSubis(escouade, s_mage) == appliquerArmure(s_coup, armureJambieres));
@@ -234,7 +235,7 @@ TEST_CASE("echange entre deux personnages : les deux armures changent") {
     const Exemplaires avant = exemplaires(escouade);
     const int armureGuerrier = escouade.equipementDuPersonnage(s_guerrier).armureTotale();
     const int armureMage = escouade.equipementDuPersonnage(s_mage).armureTotale();
-    const int ecart = definitionObjet(IdObjet::CasqueDeFer).armure - definitionObjet(IdObjet::CasqueDeCuir).armure;
+    const int ecart = definitionObjet(IdObjet::HeaumeIntegral).armure - definitionObjet(IdObjet::Capuchon).armure;
 
     REQUIRE(escouade.deplacerObjet(portee(s_guerrier, Emplacement::Tete), portee(s_mage, Emplacement::Tete)));
 
@@ -300,7 +301,9 @@ TEST_CASE("statistiquesDeCombatDuPersonnage : celles du personnage de la place, 
     rodeur.caracteristiques = Caracteristiques({10, 10, 14, 8, 8});
     const Escouade escouade = uneEscouadeDe({50.0f, 50.0f}, {guerrierDeTest(), rodeur});
 
-    REQUIRE(escouade.statistiquesDeCombatDuPersonnage(1) == statistiquesDuPersonnage(Caracteristiques(), StatistiquesDeCombat()));
+    // Le guerrier de test porte des pièces lourdes : leur malus d'esquive est dans ses statistiques.
+    REQUIRE(escouade.statistiquesDeCombatDuPersonnage(1) ==
+            statistiquesDuPersonnage(Caracteristiques(), Equipement(s_equipementMeleeDeTest).bonusDeCombatTotal()));
     REQUIRE(escouade.statistiquesDeCombatDuPersonnage(2) == StatistiquesDeCombat{120, 120});
     REQUIRE_FALSE(escouade.statistiquesDeCombatDuPersonnage(0).has_value());
     REQUIRE_FALSE(escouade.statistiquesDeCombatDuPersonnage(3).has_value());
@@ -429,7 +432,7 @@ TEST_CASE("changer d'arme dans l'inventaire relance la recharge : le premier cou
 
 namespace {
 // Une cuirasse de niveau 20, dont le seuil d'Endurance dépasse celui de toutes les classes.
-const Objet s_cuirasseExigeante{IdObjet::CuirasseDeMailles, Rarete::Commun, std::nullopt, std::nullopt, 20};
+const Objet s_cuirasseExigeante{IdObjet::ArmureDePlaques, Rarete::Commun, std::nullopt, std::nullopt, 20};
 
 // Une hache à deux mains de niveau 4 (elle n'exige que de la Puissance), dont le seuil est juste au-dessus de celui du guerrier de départ, mais à la
 // portée du guerrier avec l'anneau de puissance (les `REQUIRE` du test le vérifient sans écrire les valeurs).

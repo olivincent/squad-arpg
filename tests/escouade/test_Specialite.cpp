@@ -1,9 +1,11 @@
 // ./tests/escouade/test_Specialite.cpp
 #include <catch2/catch_test_macros.hpp>
+#include <array>
 #include <cassert>
 #include <cstdlib>
 #include <cstddef>
 #include <optional>
+#include <utility>
 #include <vector>
 
 #include "interface/BarreDeRaccourcis.hpp"
@@ -171,7 +173,8 @@ TEST_CASE("le rodeur est un tireur avec un tir de loin et un skill de zone") {
 
     REQUIRE(specialite(IdSpecialite::Rodeur).nom == "Ranger");
     REQUIRE(rodeur.rang == Rang::Arriere);
-    REQUIRE(rodeur.equipementDeDepart == std::vector<ObjetDeDepart>{{Emplacement::MainDroite, IdObjet::Arc}});
+    REQUIRE(rodeur.equipementDeDepart ==
+            std::vector<ObjetDeDepart>{{Emplacement::Torse, IdObjet::Justaucorps}, {Emplacement::MainDroite, IdObjet::Arc}});
     REQUIRE(deLaClasse(IdSpecialite::Rodeur).getPorteeAttaqueDeBase() == deLaClasse(IdSpecialite::Mage).getPorteeAttaqueDeBase());
     REQUIRE(rodeur.skills.size() == 2);
 
@@ -261,16 +264,36 @@ TEST_CASE("composer garde l'arme, donc la zone de controle, de la classe, quelle
     REQUIRE(unPersonnage({0.0f, 0.0f}, composition[2]).getZoneDeControle() == 0.0f);
 }
 
-TEST_CASE("equipement de depart : les melees portent armure, bouclier et arme, les tireurs seulement leur arme") {
+TEST_CASE("equipement de depart : les melees portent un bouclier, une seule piece d'armure, le torse, et leur arme") {
     for (const IdSpecialite melee : {IdSpecialite::Guerrier, IdSpecialite::Paladin}) {
         const DefinitionPersonnage& definition = specialite(melee).definition;
         REQUIRE(armureDe(definition.equipementDeDepart) > 0);
         REQUIRE(portePar(definition, Emplacement::MainGauche) == IdObjet::BouclierRond);
+        REQUIRE(definition.equipementDeDepart.size() == 3);
     }
+}
+
+TEST_CASE("equipement de depart : une seule piece d'armure, le torse (justaucorps de cuir, robe pour le pretre et le mage)") {
+    const std::array<std::pair<IdSpecialite, IdObjet>, 5> torses = {{{IdSpecialite::Guerrier, IdObjet::Justaucorps},
+                                                                     {IdSpecialite::Paladin, IdObjet::Justaucorps},
+                                                                     {IdSpecialite::Rodeur, IdObjet::Justaucorps},
+                                                                     {IdSpecialite::Pretre, IdObjet::Robe},
+                                                                     {IdSpecialite::Mage, IdObjet::Robe}}};
+
+    for (const auto& [classe, torse] : torses) {
+        const DefinitionPersonnage& definition = specialite(classe).definition;
+        REQUIRE(portePar(definition, Emplacement::Torse) == torse);
+        int pieces = 0;
+        for (const ObjetDeDepart& objet : definition.equipementDeDepart) {
+            pieces += definitionObjet(objet.objet).typeDArmure.has_value() ? 1 : 0;
+        }
+        REQUIRE(pieces == 1);
+    }
+}
+
+TEST_CASE("equipement de depart : les tireurs ne portent que leur torse et leur arme") {
     for (const IdSpecialite tireur : {IdSpecialite::Pretre, IdSpecialite::Mage, IdSpecialite::Rodeur}) {
-        const DefinitionPersonnage& definition = specialite(tireur).definition;
-        REQUIRE(definition.equipementDeDepart.size() == 1);
-        REQUIRE(armureDe(definition.equipementDeDepart) == 0);
+        REQUIRE(specialite(tireur).definition.equipementDeDepart.size() == 2);
     }
 }
 
@@ -309,10 +332,11 @@ TEST_CASE("armure des classes : une escouade du catalogue encaisse selon l'equip
     std::erase_if(composition[0].equipementDeDepart,
                   [](const ObjetDeDepart& objet) { return objet.emplacement == Emplacement::MainGauche; });
     const int armureDuGuerrier = armureDe(composition[0].equipementDeDepart);
+    const int armureDuMage = armureDe(composition[1].equipementDeDepart);
     Escouade escouade = uneEscouadeDe({100.0f, 100.0f}, std::move(composition));
 
     REQUIRE(subirCoup(escouade, 7, 1, 40) == appliquerArmure(40, armureDuGuerrier));
-    REQUIRE(subirCoup(escouade, 7, 2, 40) == 40);
+    REQUIRE(subirCoup(escouade, 7, 2, 40) == appliquerArmure(40, armureDuMage));
 }
 
 TEST_CASE("caracteristiques des classes : somme de 50, et les points de vie de depart ne dependent que de l'Endurance") {

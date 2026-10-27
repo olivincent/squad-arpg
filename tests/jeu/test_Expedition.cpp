@@ -78,9 +78,9 @@ TEST_CASE("expedition : aller-retour, l'equipement, le sac et les caracteristiqu
     // Un objet magique à la case 20 du sac (une case que `ramasser` ne donnerait pas : la place est gardée), une paire de gants
     // portés par le mage, la masse flamboyante dans la main droite du prêtre.
     REQUIRE(escouade.sac().capacite() > 20);
-    REQUIRE(escouade.ramasser(Objet{IdObjet::GantsDeCuir}));
+    REQUIRE(escouade.ramasser(Objet{IdObjet::GantsDeTissu}));
     REQUIRE(escouade.deplacerObjet(PositionDansLeSac{0}, PositionDansLeSac{20}));
-    REQUIRE(escouade.ramasser(Objet{IdObjet::GantsDeCuir}));
+    REQUIRE(escouade.ramasser(Objet{IdObjet::GantsDeTissu}));
     REQUIRE(escouade.deplacerObjet(PositionDansLeSac{0}, PositionPortee{s_mage, Emplacement::Gants}));
     REQUIRE(escouade.ramasser(s_masseFlamboyante));
     REQUIRE(escouade.deplacerObjet(PositionDansLeSac{0}, PositionPortee{s_pretre, Emplacement::MainDroite}));
@@ -91,8 +91,8 @@ TEST_CASE("expedition : aller-retour, l'equipement, le sac et les caracteristiqu
     const Escouade& arrivee = suivante.getEscouade();
 
     REQUIRE(exemplaires(suivante) == avant);
-    REQUIRE(arrivee.sac().a(20) == Objet{IdObjet::GantsDeCuir});
-    REQUIRE(arrivee.equipementDuPersonnage(s_mage).a(Emplacement::Gants) == Objet{IdObjet::GantsDeCuir});
+    REQUIRE(arrivee.sac().a(20) == Objet{IdObjet::GantsDeTissu});
+    REQUIRE(arrivee.equipementDuPersonnage(s_mage).a(Emplacement::Gants) == Objet{IdObjet::GantsDeTissu});
     REQUIRE(arrivee.equipementDuPersonnage(s_pretre).a(Emplacement::MainDroite) == s_masseFlamboyante);
     for (std::size_t place = s_guerrier; place <= s_mage; ++place) {
         REQUIRE(arrivee.equipementDuPersonnage(place) == escouade.equipementDuPersonnage(place));
@@ -108,14 +108,14 @@ TEST_CASE("expedition : un objet inactif (seuil non atteint) reste porte d'un et
     // Un personnage sans Endurance qui porte la cuirasse de mailles : l'objet est porté, inactif. La reconstruction ne vérifie
     // aucun seuil, elle reprend l'équipement tel quel.
     std::vector<DefinitionPersonnage> composition = compositionDeTest();
-    composition[0] = {.couleur = sf::Color::White, .skills = {}, .equipementDeDepart = {{Emplacement::Torse, IdObjet::CuirasseDeMailles}},
+    composition[0] = {.couleur = sf::Color::White, .skills = {}, .equipementDeDepart = {{Emplacement::Torse, IdObjet::ArmureDePlaques}},
                       .rayonVision = composition[0].rayonVision};
     Partie partie = partieDe(expeditionDeTest(composition));
     REQUIRE(partie.getEscouade().objetPorteEstInactif(s_guerrier, Emplacement::Torse));
 
     const Partie suivante = partieDe(partie.expedition());
 
-    REQUIRE(suivante.getEscouade().equipementDuPersonnage(s_guerrier).a(Emplacement::Torse) == Objet{IdObjet::CuirasseDeMailles});
+    REQUIRE(suivante.getEscouade().equipementDuPersonnage(s_guerrier).a(Emplacement::Torse) == Objet{IdObjet::ArmureDePlaques});
     REQUIRE(suivante.getEscouade().objetPorteEstInactif(s_guerrier, Emplacement::Torse));
 }
 
@@ -140,7 +140,7 @@ TEST_CASE("expedition : l'etage suivant commence a pleine vie, un mort compris")
 TEST_CASE("expedition : rien de l'etage ne passe, ni les monstres, ni les objets au sol, ni les agresseurs") {
     Partie partie = partieDe(expeditionCapableDeToutPorter(), {s_coinLointain});
     REQUIRE(partie.getMonstres().size() == 1);
-    REQUIRE(partie.getEscouade().ramasser(Objet{IdObjet::GantsDeCuir}));
+    REQUIRE(partie.getEscouade().ramasser(Objet{IdObjet::GantsDeTissu}));
     REQUIRE(jeterUnObjet(partie.getEscouade(), partie.getSol(), partie.getCarte(), PositionDansLeSac{0}));
     REQUIRE(partie.getSol().tous().size() == 1);
     REQUIRE(subirCoup(partie.getEscouade(), 1, s_guerrier, 10) > 0);  // le monstre 1 devient un agresseur

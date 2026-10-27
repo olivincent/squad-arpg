@@ -81,16 +81,39 @@ std::string nomDeLaCategorie(CategorieObjet categorie) {
     return "";
 }
 
+std::string nomDuTypeDArmure(TypeDArmure type) {
+    switch (type) {
+        case TypeDArmure::Tissu: return "Cloth Armor";
+        case TypeDArmure::Leger: return "Light Armor";
+        case TypeDArmure::Intermediaire: return "Medium Armor";
+        case TypeDArmure::Lourd: return "Heavy Armor";
+    }
+    return "";
+}
+
 std::string sigleDeLObjet(IdObjet id) {
     switch (id) {
-        case IdObjet::CasqueDeFer: return "IH";
-        case IdObjet::CuirasseDeMailles: return "CM";
-        case IdObjet::JambieresDeFer: return "IG";
-        case IdObjet::BouclierRond: return "RS";
+        case IdObjet::Robe: return "RO";
+        case IdObjet::JambieresDeTissu: return "CL";
+        case IdObjet::Capuchon: return "HD";
+        case IdObjet::GantsDeTissu: return "CG";
+        case IdObjet::Chaussons: return "SL";
+        case IdObjet::Justaucorps: return "LJ";
+        case IdObjet::JambieresDeCuir: return "LL";
+        case IdObjet::CalotteDeCuir: return "LC";
         case IdObjet::GantsDeCuir: return "LG";
         case IdObjet::BottesDeCuir: return "LB";
-        case IdObjet::CasqueDeCuir: return "LC";
-        case IdObjet::TuniqueMatelassee: return "PT";
+        case IdObjet::CotteDeMailles: return "CM";
+        case IdObjet::JambieresDeMailles: return "CE";
+        case IdObjet::CoiffeDeMailles: return "CF";
+        case IdObjet::GantsDeMailles: return "CH";
+        case IdObjet::BottesDeMailles: return "CT";
+        case IdObjet::ArmureDePlaques: return "PA";
+        case IdObjet::JambieresDePlaques: return "PG";
+        case IdObjet::HeaumeIntegral: return "GH";
+        case IdObjet::Gantelets: return "GT";
+        case IdObjet::Solerets: return "SB";
+        case IdObjet::BouclierRond: return "RS";
         case IdObjet::CollierDeProtection: return "NP";
         case IdObjet::AnneauDeProtection: return "RP";
         case IdObjet::AnneauDePuissance: return "RM";
@@ -153,12 +176,15 @@ std::string ligneDAffixe(const Affixe& affixe) {
 std::vector<std::string> lignesDeLInfobulle(const Objet& objet) {
     const DefinitionObjet& definition = definitionObjet(objet.modele);
     // La qualité n'est pas affichée : le joueur la voit dans ce qu'elle change (les dégâts d'une arme).
-    std::vector<std::string> lignes = {nomDeLObjet(objet), nomDeLaCategorie(definition.categorie),
-                                       "Item Level " + std::to_string(objet.niveau)};
+    std::vector<std::string> lignes = {nomDeLObjet(objet), nomDeLaCategorie(definition.categorie)};
+    if (definition.typeDArmure.has_value()) {
+        lignes.push_back(nomDuTypeDArmure(*definition.typeDArmure));
+    }
+    lignes.push_back("Item Level " + std::to_string(objet.niveau));
     // Les effets de base de CET objet (son niveau et sa qualité compris), jamais ceux du modèle.
     const EffetsDeBase effets = effetsDeBase(objet);
     if (effets.armure != 0) {
-        lignes.push_back("Armor: +" + std::to_string(effets.armure));
+        lignes.push_back("Armor: " + std::to_string(effets.armure));
     }
     for (const Caracteristique caracteristique : s_caracteristiques) {
         if (const int bonus = effets.bonus.valeur(caracteristique); bonus != 0) {
@@ -184,4 +210,8 @@ std::vector<std::string> lignesDeLInfobulle(const Objet& objet) {
         lignes.push_back(ligneDeSeuil(seuil));
     }
     return lignes;
+}
+
+std::vector<std::string> lignesDeMalusDeLObjet(const Objet& objet) {
+    return lignesDeMalusDeCombat(effetsDeBase(objet).bonusDeCombat);
 }

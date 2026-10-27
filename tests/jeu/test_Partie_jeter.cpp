@@ -42,7 +42,7 @@ float distance(sf::Vector2f a, sf::Vector2f b) {
     return std::hypot(a.x - b.x, a.y - b.y);
 }
 
-const Objet s_gants{IdObjet::GantsDeCuir};
+const Objet s_gants{IdObjet::GantsDeTissu};
 const Objet s_masseFlamboyante{IdObjet::MasseAUneMain, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}};
 }  // namespace
 

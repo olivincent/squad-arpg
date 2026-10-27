@@ -27,7 +27,7 @@ sf::Vector2f centre(int x, int y) {
     return {s_tailleCase * static_cast<float>(x) + s_tailleCase / 2.0f, s_tailleCase * static_cast<float>(y) + s_tailleCase / 2.0f};
 }
 
-const Objet s_gants{IdObjet::GantsDeCuir};
+const Objet s_gants{IdObjet::GantsDeTissu};
 
 // Pose `nombre` objets l'un après l'autre à partir de cette origine, chacun voyant les précédents.
 ObjetsAuSol poser(const TileMap& carte, sf::Vector2f origine, int nombre) {

@@ -54,7 +54,7 @@ TEST_CASE("peutPorterLaRarete : un bijou peut etre magique (un suffixe) mais jam
 }
 
 TEST_CASE("peutPorterLaRarete : les gants et les bottes peuvent etre rares (Reinforced), comme les armes et les armures") {
-    for (const IdObjet modele : {IdObjet::GantsDeCuir, IdObjet::BottesDeCuir, IdObjet::CasqueDeFer, IdObjet::CuirasseDeMailles,
+    for (const IdObjet modele : {IdObjet::GantsDeTissu, IdObjet::Chaussons, IdObjet::HeaumeIntegral, IdObjet::ArmureDePlaques,
                                  IdObjet::BouclierRond, IdObjet::Arc, IdObjet::MasseAUneMain}) {
         INFO(definitionObjet(modele).nom);
         REQUIRE(peutPorterLaRarete(modele, Rarete::Magique));
@@ -102,11 +102,9 @@ TEST_CASE("genererObjet : 10000 tirages, tous valides") {
 
 TEST_CASE("genererObjet : chaque rarete, chaque modele et chaque affixe apparaissent, chaque valeur reste dans sa plage") {
     std::set<Rarete> raretes;
-    std::set<IdObjet> modeles;
     std::set<IdAffixe> affixes;
     for (const Objet& objet : tirer(s_tirages)) {
         raretes.insert(objet.rarete);
-        modeles.insert(objet.modele);
         for (const std::optional<Affixe>& affixe : {objet.prefixe, objet.suffixe}) {
             if (affixe.has_value()) {
                 affixes.insert(affixe->id);
@@ -116,8 +114,24 @@ TEST_CASE("genererObjet : chaque rarete, chaque modele et chaque affixe apparais
         }
     }
     REQUIRE(raretes.size() == s_raretes.size());
-    REQUIRE(modeles.size() == catalogueObjets().size());
     REQUIRE(affixes.size() == catalogueAffixes().size());
+}
+
+TEST_CASE("genererObjet : a chaque niveau de 1 a 5, tous les modeles deja apparus sortent, et eux seuls") {
+    for (int niveau = 1; niveau <= 5; ++niveau) {
+        std::set<IdObjet> sortis;
+        std::set<IdObjet> attendus;
+        for (const Objet& objet : tirer(s_tirages, s_graine, niveau)) {
+            sortis.insert(objet.modele);
+        }
+        for (const DefinitionObjet& definition : catalogueObjets()) {
+            if (definition.niveauDApparition <= niveau) {
+                attendus.insert(definition.id);
+            }
+        }
+        INFO("niveau " << niveau);
+        REQUIRE(sortis == attendus);
+    }
 }
 
 TEST_CASE("genererObjet : les bornes de chaque plage sortent") {
@@ -202,15 +216,15 @@ std::string decrire(const Objet& objet) {
 }
 }  // namespace
 
-TEST_CASE("genererObjet : la suite d'objets de la graine 96 au niveau 1 est epinglee (qualite tiree apres le modele, treize gabarits d'armes)") {
+TEST_CASE("genererObjet : la suite d'objets de la graine 96 au niveau 1 est epinglee (qualite tiree apres le modele, vingt pieces d'armure et treize gabarits d'armes)") {
     // Épinglée avec la bibliothèque standard de MinGW (`std::uniform_int_distribution` n'est pas défini par la norme), à
     // réépingler si elle change ou si l'ordre des tirages change : modèle (`IdObjet`) / rareté (`Rarete`), niveau, qualité,
     // préfixe, suffixe (`IdAffixe` = valeur).
     const std::vector<std::string> attendu = {
-        "11/0 n1 q91 - -",     // collier d'endurance, commun
-        "20/1 n1 q2 - 8=3",    // baguette, magique, of the Lion
-        "14/1 n1 q11 - 4=1",   // hache à une main, magique, of the Ox
-        "14/0 n1 q25 - -", "17/0 n1 q3 - -", "8/0 n1 q93 - -", "22/0 n1 q51 - -", "7/0 n1 q32 - -",
+        "23/0 n1 q91 - -",     // anneau de puissance, commun
+        "32/1 n1 q2 - 8=3",    // masse à deux mains, magique, of the Lion
+        "26/1 n1 q11 - 4=1",   // épée à une main, magique, of the Ox
+        "25/0 n1 q25 - -", "30/0 n1 q3 - -", "9/0 n1 q93 - -", "35/0 n1 q51 - -", "8/0 n1 q32 - -",
     };
     std::vector<std::string> obtenu;
     for (const Objet& objet : tirer(static_cast<int>(attendu.size()))) {

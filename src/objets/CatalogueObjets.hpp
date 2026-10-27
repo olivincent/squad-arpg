@@ -12,6 +12,7 @@
 #include "objets/ObjetsActifs.hpp"
 #include "objets/Emplacement.hpp"
 #include "objets/Objet.hpp"
+#include "objets/TypeDArmure.hpp"
 
 // Une caractéristique qu'un objet exige de qui le porte, et de combien le seuil monte à chaque niveau de l'objet. Le seuil
 // lui-même se calcule (`seuilsDeLObjet`) : il dépend du niveau de l'objet, que le modèle ne connaît pas.
@@ -39,8 +40,9 @@ struct DefinitionObjet {
     StatistiquesDeCombat bonusDeCombat = {};
     std::optional<DonneesDArme> arme = {};    // seulement pour une arme
     std::optional<DonneesDeBouclier> bouclier = {};  // seulement pour un bouclier : son blocage
-    std::vector<ExigenceDeCaracteristique> exigences = {};  // vide : aucun seuil (cuir, bijoux)
+    std::vector<ExigenceDeCaracteristique> exigences = {};  // vide : aucun seuil (tissu, bijoux)
     int niveauDApparition = 1;  // `genererObjet` ne tire ce modèle que pour un objet d'au moins ce niveau (la profondeur)
+    std::optional<TypeDArmure> typeDArmure = {};  // seulement pour une pièce d'armure (torse, jambes, tête, gants, bottes)
 };
 
 // Ce qu'un objet apporte par lui-même (son modèle, son niveau et sa qualité), sans ses affixes : en entiers, le tout rangé comme

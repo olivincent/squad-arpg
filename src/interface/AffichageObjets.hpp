@@ -19,7 +19,10 @@
 // « Helmet », « Body Armor », « Ring »…
 [[nodiscard]] std::string nomDeLaCategorie(CategorieObjet categorie);
 
-// Deux lettres, pour une case du sac (« IH » pour le casque de fer, Iron Helm).
+// « Cloth Armor », « Light Armor », « Medium Armor », « Heavy Armor ».
+[[nodiscard]] std::string nomDuTypeDArmure(TypeDArmure type);
+
+// Deux lettres, pour une case du sac (« PA » pour l'armure de plaques, Plate Armor).
 [[nodiscard]] std::string sigleDeLObjet(IdObjet id);
 
 // Une ligne de seuil : « Requires Might 11 ». Les lignes d'infobulle d'un objet à seuils la contiennent ; l'écran
@@ -38,10 +41,10 @@
 [[nodiscard]] std::string ligneDAffixe(const Affixe& affixe);
 
 // Les lignes de l'infobulle d'un objet, dans cet ordre :
-// - son nom composé (« Keen Bow of the Fox », `nomDeLObjet`), sa catégorie et son niveau (« Item Level 3 ») ; la qualité n'est
-//   PAS affichée ;
-// - les propriétés de son modèle : son armure (« Armor: +10 », absente si elle est nulle), une ligne par bonus de
-//   caractéristique (« Might: +3 »), une par bonus de combat (« Dodge vs Melee: +5 % » : `lignesDeBonusDeCombat`), pour un
+// - son nom composé (« Keen Bow of the Fox », `nomDeLObjet`), sa catégorie, pour une pièce d'armure son type (« Heavy Armor »)
+//   et son niveau (« Item Level 3 ») ; la qualité n'est PAS affichée ;
+// - ses effets de base, ceux de CET objet (`effetsDeBase`) : son armure (« Armor: 10 », absente si elle est nulle), une ligne par
+//   bonus de caractéristique (« Might: +3 »), une par bonus de combat (« Dodge: −3 % » : `lignesDeBonusDeCombat`), pour un
 //   bouclier son blocage (« Block: 30 %, 12 points ») et pour une arme son attaque, celle de cet objet
 //   (`descriptionDeLArme`) : « Damage: 13–17 » (les bornes de la plage, avant la Puissance), « Cooldown: 0.3 to 0.7 s »,
 //   « Range: 20 px », « Melee » ou « Projectile », « Penetration: 30 % » si l'arme perce l'armure, et « Two-handed » à deux
@@ -50,3 +53,6 @@
 // - les seuils de l'objet à son niveau (« Requires Might 11 », `seuilsDeLObjet`).
 // La mention « inactif » n'en fait pas partie : elle dépend de l'endroit où l'objet est porté (`ligneDObjetInactif`).
 [[nodiscard]] std::vector<std::string> lignesDeLInfobulle(const Objet& objet);
+
+// Les lignes de `lignesDeLInfobulle` qui sont des malus de l'objet (« Dodge: −3 % ») : l'écran les colore en rouge.
+[[nodiscard]] std::vector<std::string> lignesDeMalusDeLObjet(const Objet& objet);

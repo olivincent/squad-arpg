@@ -2,6 +2,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <optional>
 #include <vector>
@@ -128,16 +129,16 @@ TEST_CASE("effetsDeBase : au niveau 1 et a la qualite moyenne, ce sont les valeu
 }
 
 TEST_CASE("effetsDeBase : l'armure suit le niveau et la qualite, en entier arrondi au plus proche") {
-    const auto armure = [](int niveau, int qualite) {  // la cuirasse de mailles : 4 au niveau 1
-        return effetsDeBase(Objet{IdObjet::CuirasseDeMailles, Rarete::Commun, std::nullopt, std::nullopt, niveau, qualite}).armure;
+    const auto armure = [](int niveau, int qualite) {  // l'armure de plaques : 7 au niveau 1
+        return effetsDeBase(Objet{IdObjet::ArmureDePlaques, Rarete::Commun, std::nullopt, std::nullopt, niveau, qualite}).armure;
     };
 
-    REQUIRE(armure(1, 50) == 4);
-    REQUIRE(armure(5, 50) == 8);  // x 2
-    REQUIRE(armure(2, 50) == 5);  // 5
-    REQUIRE(armure(1, 0) == 3);   // 3,4
-    REQUIRE(armure(1, 100) == 5); // 4,6
-    REQUIRE(armure(3, 100) == 7); // 4 x 1,5 x 1,15 = 6,9
+    REQUIRE(armure(1, 50) == 7);
+    REQUIRE(armure(5, 50) == 14);  // x 2
+    REQUIRE(armure(2, 50) == 9);   // 8,75
+    REQUIRE(armure(1, 0) == 6);    // 5,95
+    REQUIRE(armure(1, 100) == 8);  // 8,05
+    REQUIRE(armure(3, 100) == 12); // 7 x 1,5 x 1,15 = 12,075
 }
 
 TEST_CASE("effetsDeBase : le bonus de caracteristiques d'un bijou grandit, sans toucher aux autres caracteristiques") {
@@ -152,13 +153,14 @@ TEST_CASE("effetsDeBase : le bonus de caracteristiques d'un bijou grandit, sans 
 }
 
 TEST_CASE("effetsDeBase : les esquives du modele sont fixes, ni le niveau ni la qualite n'y changent rien") {
-    const StatistiquesDeCombat depart = effetsDeBase(Objet{IdObjet::BottesDeCuir}).bonusDeCombat;
+    const StatistiquesDeCombat depart = effetsDeBase(Objet{IdObjet::ArmureDePlaques}).bonusDeCombat;
 
-    REQUIRE(depart.esquiveContact > 0);
+    REQUIRE(depart.esquiveContact < 0);
     for (const int niveau : {1, 5, 20}) {
         for (const int qualite : {0, 50, 100}) {
-            const Objet bottes{IdObjet::BottesDeCuir, Rarete::Commun, std::nullopt, std::nullopt, niveau, qualite};
-            REQUIRE(effetsDeBase(bottes).bonusDeCombat.esquiveContact == depart.esquiveContact);
+            const Objet armure{IdObjet::ArmureDePlaques, Rarete::Commun, std::nullopt, std::nullopt, niveau, qualite};
+            REQUIRE(effetsDeBase(armure).bonusDeCombat.esquiveContact == depart.esquiveContact);
+            REQUIRE(effetsDeBase(armure).bonusDeCombat.esquiveProjectile == depart.esquiveProjectile);
         }
     }
 }
@@ -208,12 +210,12 @@ TEST_CASE("objetValide : un affixe est a sa position, un prefixe dans prefixe et
 }
 
 TEST_CASE("objetValide : un affixe est permis pour la categorie du modele") {
-    REQUIRE_FALSE(objetValide(Objet{IdObjet::CasqueDeFer, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}}));  // du feu sur un casque
+    REQUIRE_FALSE(objetValide(Objet{IdObjet::HeaumeIntegral, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}}));  // du feu sur un casque
     REQUIRE_FALSE(objetValide(Objet{IdObjet::MasseAUneMain, Rarete::Magique, Affixe{IdAffixe::Renforce, 2}}));           // de l'armure sur une arme
     REQUIRE_FALSE(objetValide(Objet{IdObjet::MasseAUneMain, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeBlocage, 5}}));  // du blocage sur une arme
     REQUIRE_FALSE(objetValide(Objet{IdObjet::BouclierRond, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DEsquive, 3}}));  // pas sur un bouclier
     REQUIRE(objetValide(Objet{IdObjet::BouclierRond, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeBlocage, 5}}));
-    REQUIRE(objetValide(Objet{IdObjet::CuirasseDeMailles, Rarete::Rare, Affixe{IdAffixe::Renforce, 3}, Affixe{IdAffixe::DEsquive, 3}}));
+    REQUIRE(objetValide(Objet{IdObjet::ArmureDePlaques, Rarete::Rare, Affixe{IdAffixe::Renforce, 3}, Affixe{IdAffixe::DEsquive, 3}}));
     REQUIRE(objetValide(Objet{IdObjet::AnneauDeProtection, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeLaChouette, 2}}));
 }
 
@@ -228,8 +230,8 @@ TEST_CASE("nomDeLObjet : prefixe, modele, suffixe") {
     REQUIRE(nomDeLObjet(Objet{IdObjet::Arc, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DuRenard, 2}}) == "Bow of the Fox");
     REQUIRE(nomDeLObjet(Objet{IdObjet::Arc, Rarete::Rare, Affixe{IdAffixe::Acere, 15}, Affixe{IdAffixe::DuRenard, 2}}) ==
             "Keen Bow of the Fox");
-    REQUIRE(nomDeLObjet(Objet{IdObjet::CuirasseDeMailles, Rarete::Rare, Affixe{IdAffixe::Renforce, 3}, Affixe{IdAffixe::DEsquive, 3}}) ==
-            "Reinforced Chain Mail of Evasion");
+    REQUIRE(nomDeLObjet(Objet{IdObjet::ArmureDePlaques, Rarete::Rare, Affixe{IdAffixe::Renforce, 3}, Affixe{IdAffixe::DEsquive, 3}}) ==
+            "Reinforced Plate Armor of Evasion");
 }
 
 TEST_CASE("catalogueObjets : l'anneau de puissance donne de la Puissance, le collier d'endurance de l'Endurance") {
@@ -250,12 +252,116 @@ TEST_CASE("catalogueObjets : l'anneau de puissance donne de la Puissance, le col
     }
 }
 
-TEST_CASE("catalogueObjets : les bottes de cuir donnent 5 % d'esquive contre le contact, le casque de cuir 5 % contre les projectiles") {
-    const StatistiquesDeCombat& bottes = definitionObjet(IdObjet::BottesDeCuir).bonusDeCombat;
-    const StatistiquesDeCombat& casque = definitionObjet(IdObjet::CasqueDeCuir).bonusDeCombat;
+namespace {
+// Les vingt pièces d'armure par type, dans l'ordre torse, jambes, tête, gants, bottes (l'ordre des identifiants).
+struct SerieDArmure {
+    TypeDArmure type;
+    IdObjet premier;
+    int niveauDApparition;
+    std::vector<ExigenceDeCaracteristique> exigences;
+    std::array<int, 5> malus;  // points d'esquive perdus, contre le contact comme contre les projectiles
+};
 
-    REQUIRE(bottes == StatistiquesDeCombat{.esquiveContact = 5});
-    REQUIRE(casque == StatistiquesDeCombat{.esquiveProjectile = 5});
+const std::vector<SerieDArmure>& seriesDArmure() {
+    static const std::vector<SerieDArmure> series = {
+        {TypeDArmure::Tissu, IdObjet::Robe, 1, {}, {0, 0, 0, 0, 0}},
+        {TypeDArmure::Leger, IdObjet::Justaucorps, 1, {{Caracteristique::Adresse, 2}}, {0, 0, 0, 0, 0}},
+        {TypeDArmure::Intermediaire, IdObjet::CotteDeMailles, 2, {{Caracteristique::Endurance, 1}, {Caracteristique::Adresse, 1}}, {1, 1, 0, 0, 0}},
+        {TypeDArmure::Lourd, IdObjet::ArmureDePlaques, 3, {{Caracteristique::Endurance, 2}}, {3, 2, 1, 1, 1}},
+    };
+    return series;
+}
+
+IdObjet piece(const SerieDArmure& serie, std::size_t emplacement) {
+    return static_cast<IdObjet>(static_cast<std::size_t>(serie.premier) + emplacement);
+}
+
+int armureDeLaPiece(IdObjet id, int niveau) {
+    return effetsDeBase(Objet{id, Rarete::Commun, std::nullopt, std::nullopt, niveau}).armure;
+}
+}  // namespace
+
+TEST_CASE("catalogueObjets : chaque type d'armure a ses cinq pieces, torse, jambes, tete, gants, bottes, et son type") {
+    const std::array<CategorieObjet, 5> categories = {CategorieObjet::Armure, CategorieObjet::Jambieres, CategorieObjet::Casque,
+                                                      CategorieObjet::Gants, CategorieObjet::Bottes};
+
+    REQUIRE(seriesDArmure().size() == 4);
+    for (const SerieDArmure& serie : seriesDArmure()) {
+        for (std::size_t i = 0; i < 5; ++i) {
+            const DefinitionObjet& definition = definitionObjet(piece(serie, i));
+            INFO(definition.nom);
+            REQUIRE(definition.categorie == categories[i]);
+            REQUIRE(definition.typeDArmure == serie.type);
+        }
+    }
+    for (const DefinitionObjet& definition : catalogueObjets()) {
+        REQUIRE(definition.typeDArmure.has_value() == (definition.categorie != CategorieObjet::Arme &&
+                                                      definition.categorie != CategorieObjet::Bouclier &&
+                                                      definition.categorie != CategorieObjet::Collier &&
+                                                      definition.categorie != CategorieObjet::Anneau));
+    }
+}
+
+TEST_CASE("catalogueObjets : a chaque emplacement, chaque type d'armure a plus d'armure que le precedent, au niveau 1 comme au niveau 5") {
+    for (const int niveau : {1, 5}) {
+        for (std::size_t i = 0; i < 5; ++i) {
+            int precedente = 0;
+            for (const SerieDArmure& serie : seriesDArmure()) {
+                const int armure = armureDeLaPiece(piece(serie, i), niveau);
+                INFO(definitionObjet(piece(serie, i)).nom << ", niveau " << niveau);
+                REQUIRE(armure > precedente);  // aucune pièce à 0, et strictement plus que le type d'avant
+                precedente = armure;
+            }
+        }
+    }
+}
+
+TEST_CASE("catalogueObjets : un ensemble complet vaut 6, 11, 17 et 24 au niveau 1, 12, 22, 34 et 48 au niveau 5") {
+    const std::array<int, 4> auNiveau1 = {6, 11, 17, 24};
+    const std::array<int, 4> auNiveau5 = {12, 22, 34, 48};
+
+    for (std::size_t t = 0; t < seriesDArmure().size(); ++t) {
+        int niveau1 = 0;
+        int niveau5 = 0;
+        for (std::size_t i = 0; i < 5; ++i) {
+            niveau1 += armureDeLaPiece(piece(seriesDArmure()[t], i), 1);
+            niveau5 += armureDeLaPiece(piece(seriesDArmure()[t], i), 5);
+        }
+        INFO("type " << t);
+        REQUIRE(niveau1 == auNiveau1[t]);
+        REQUIRE(niveau5 == auNiveau5[t]);
+    }
+}
+
+TEST_CASE("catalogueObjets : aucune piece d'armure n'a de bonus de caracteristique, les malus d'esquive sont ceux du tableau") {
+    for (const SerieDArmure& serie : seriesDArmure()) {
+        for (std::size_t i = 0; i < 5; ++i) {
+            const DefinitionObjet& definition = definitionObjet(piece(serie, i));
+            INFO(definition.nom);
+            REQUIRE(definition.bonus == Caracteristiques());
+            REQUIRE_FALSE(definition.arme.has_value());
+            REQUIRE(definition.bonusDeCombat == StatistiquesDeCombat{.esquiveContact = -serie.malus[i], .esquiveProjectile = -serie.malus[i]});
+        }
+    }
+}
+
+TEST_CASE("catalogueObjets : les exigences et le niveau d'apparition d'une piece sont ceux de son type") {
+    for (const SerieDArmure& serie : seriesDArmure()) {
+        for (std::size_t i = 0; i < 5; ++i) {
+            const DefinitionObjet& definition = definitionObjet(piece(serie, i));
+            INFO(definition.nom);
+            REQUIRE(definition.exigences == serie.exigences);
+            REQUIRE(definition.niveauDApparition == serie.niveauDApparition);
+        }
+    }
+}
+
+TEST_CASE("catalogueObjets : tout le reste du catalogue apparait des le niveau 1") {
+    for (const DefinitionObjet& definition : catalogueObjets()) {
+        if (!definition.typeDArmure.has_value()) {
+            REQUIRE(definition.niveauDApparition == 1);
+        }
+    }
 }
 
 TEST_CASE("catalogueObjets : le bouclier rond bloque 30 % des coups, 12 points, par ses donnees de bouclier") {
@@ -273,9 +379,10 @@ TEST_CASE("catalogueObjets : seul un bouclier a des donnees de bouclier") {
     }
 }
 
-TEST_CASE("catalogueObjets : les autres objets n'ont aucun bonus de combat") {
+TEST_CASE("catalogueObjets : seules les pieces intermediaires et lourdes ont un bonus de combat (un malus d'esquive)") {
     for (const DefinitionObjet& definition : catalogueObjets()) {
-        if (definition.id != IdObjet::BottesDeCuir && definition.id != IdObjet::CasqueDeCuir) {
+        const bool aUnMalus = definition.typeDArmure == TypeDArmure::Intermediaire || definition.typeDArmure == TypeDArmure::Lourd;
+        if (!aUnMalus) {
             REQUIRE(definition.bonusDeCombat == StatistiquesDeCombat());
         }
     }
@@ -451,7 +558,7 @@ TEST_CASE("descriptionDeLArme : ni la rarete ni les affixes ne changent la plage
 
 TEST_CASE("seuilsDeLObjet : 6 au niveau 1, puis la pente de l'exigence par niveau") {
     const auto seuilDeLaCuirasse = [](int niveau) {
-        return seuilsDeLObjet(Objet{IdObjet::CuirasseDeMailles, Rarete::Commun, std::nullopt, std::nullopt, niveau});
+        return seuilsDeLObjet(Objet{IdObjet::ArmureDePlaques, Rarete::Commun, std::nullopt, std::nullopt, niveau});
     };
 
     REQUIRE(seuilDeLaCuirasse(1) == std::vector<SeuilDeCaracteristique>{{Caracteristique::Endurance, 6}});
@@ -477,16 +584,16 @@ TEST_CASE("seuilsDeLObjet : une arme a deux exigences les a toutes, la principal
             std::vector<SeuilDeCaracteristique>{{Caracteristique::Adresse, 6}, {Caracteristique::Puissance, 6}});
 }
 
-TEST_CASE("seuilsDeLObjet : les protections de fer et le bouclier exigent l'Endurance") {
-    for (const IdObjet fer : {IdObjet::CasqueDeFer, IdObjet::CuirasseDeMailles, IdObjet::JambieresDeFer, IdObjet::BouclierRond}) {
-        const std::vector<SeuilDeCaracteristique> seuils = seuilsDeLObjet(Objet{fer});
+TEST_CASE("seuilsDeLObjet : les pieces lourdes et le bouclier exigent l'Endurance") {
+    for (const IdObjet lourd : {IdObjet::HeaumeIntegral, IdObjet::ArmureDePlaques, IdObjet::JambieresDePlaques, IdObjet::BouclierRond}) {
+        const std::vector<SeuilDeCaracteristique> seuils = seuilsDeLObjet(Objet{lourd});
         REQUIRE(seuils.size() == 1);
         REQUIRE(seuils.front().caracteristique == Caracteristique::Endurance);
     }
 }
 
-TEST_CASE("catalogueObjets : les objets de cuir et les bijoux n'ont aucune exigence") {
-    for (const IdObjet libre : {IdObjet::GantsDeCuir, IdObjet::BottesDeCuir, IdObjet::CasqueDeCuir, IdObjet::TuniqueMatelassee,
+TEST_CASE("catalogueObjets : les pieces de tissu et les bijoux n'ont aucune exigence") {
+    for (const IdObjet libre : {IdObjet::Robe, IdObjet::GantsDeTissu, IdObjet::Chaussons, IdObjet::Capuchon, IdObjet::JambieresDeTissu,
                                 IdObjet::CollierDeProtection, IdObjet::AnneauDeProtection, IdObjet::AnneauDePuissance,
                                 IdObjet::CollierDEndurance}) {
         REQUIRE(definitionObjet(libre).exigences.empty());
@@ -495,7 +602,7 @@ TEST_CASE("catalogueObjets : les objets de cuir et les bijoux n'ont aucune exige
 }
 
 TEST_CASE("seuilsAtteints : tous les seuils doivent l'etre, un objet sans seuil l'est toujours") {
-    const Objet gants{IdObjet::GantsDeCuir};
+    const Objet gants{IdObjet::GantsDeTissu};
     const Objet dagueDeNiveau3{IdObjet::Dague, Rarete::Commun, std::nullopt, std::nullopt, 3};  // Adresse 10
     const int seuil = seuilsDeLObjet(dagueDeNiveau3).front().valeur;
 

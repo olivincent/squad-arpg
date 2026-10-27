@@ -308,17 +308,19 @@ void dessinerCadreDInfobulle(sf::RenderTarget& rendu, const sf::Font& police, st
 
 // L'infobulle d'un objet près du curseur, gardée dans la vue : un cadre sombre, une ligne par texte. Le nom (première
 // ligne) est de la couleur de la rareté. Les seuils de `manques` (ceux que le personnage visé n'atteint pas) et, si
-// l'objet est `inactif`, une dernière ligne « Inactive: requirement not met », sont en rouge.
+// l'objet est `inactif`, une dernière ligne « Inactive: requirement not met », et les malus de l'objet (« Dodge: −3 % ») sont
+// en rouge.
 void dessinerInfobulle(sf::RenderTarget& rendu, const sf::Font& police, const Objet& objet, sf::Vector2f curseur,
                        sf::Vector2f tailleDeVue, const std::vector<SeuilDeCaracteristique>& manques, bool inactif) {
     std::vector<sf::Text> lignes;
     float largeur = 0.0f;
     std::vector<std::string> textes = lignesDeLInfobulle(objet);
+    const std::vector<std::string> malus = lignesDeMalusDeLObjet(objet);
     if (inactif) {
         textes.push_back(ligneDObjetInactif());
     }
     for (const std::string& ligne : textes) {
-        const bool enRouge = ligne == ligneDObjetInactif() ||
+        const bool enRouge = ligne == ligneDObjetInactif() || std::ranges::find(malus, ligne) != malus.end() ||
                              std::ranges::any_of(manques, [&](const SeuilDeCaracteristique& seuil) { return ligne == ligneDeSeuil(seuil); });
         const sf::Color couleur = enRouge ? s_couleurInactif : (lignes.empty() ? couleurDeLaRarete(objet.rarete) : sf::Color::White);
         lignes.push_back(texte(police, ligne, s_tailleInfobulle, couleur));

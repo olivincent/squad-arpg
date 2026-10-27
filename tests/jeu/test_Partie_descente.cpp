@@ -84,9 +84,9 @@ TEST_CASE("descente : l'etage suivant a la profondeur suivante et garde l'equipe
     Partie partie(niveauAvecEscalier({{s_coinLointain, 0}}), expedition, s_graineDeTest, catalogueDeTest(monstreSansHasard()));
     Escouade& escouade = partie.getEscouade();
     // Un sac et un équipement qui ont bougé pendant l'étage.
-    REQUIRE(escouade.ramasser(Objet{IdObjet::GantsDeCuir}));
+    REQUIRE(escouade.ramasser(Objet{IdObjet::GantsDeTissu}));
     REQUIRE(escouade.deplacerObjet(PositionDansLeSac{0}, PositionDansLeSac{17}));
-    REQUIRE(escouade.ramasser(Objet{IdObjet::GantsDeCuir}));
+    REQUIRE(escouade.ramasser(Objet{IdObjet::GantsDeTissu}));
     REQUIRE(escouade.deplacerObjet(PositionDansLeSac{0}, PositionPortee{3, Emplacement::Gants}));
     const Exemplaires avant = exemplaires(partie);
     prendreLEscalier(partie);
@@ -97,8 +97,8 @@ TEST_CASE("descente : l'etage suivant a la profondeur suivante et garde l'equipe
 
     REQUIRE(suivante.getProfondeur() == 2);
     REQUIRE(exemplaires(suivante) == avant);
-    REQUIRE(suivante.getEscouade().sac().a(17) == Objet{IdObjet::GantsDeCuir});
-    REQUIRE(suivante.getEscouade().equipementDuPersonnage(3).a(Emplacement::Gants) == Objet{IdObjet::GantsDeCuir});
+    REQUIRE(suivante.getEscouade().sac().a(17) == Objet{IdObjet::GantsDeTissu});
+    REQUIRE(suivante.getEscouade().equipementDuPersonnage(3).a(Emplacement::Gants) == Objet{IdObjet::GantsDeTissu});
     for (std::size_t place = 1; place <= 3; ++place) {
         REQUIRE(suivante.getEscouade().equipementDuPersonnage(place) == escouade.equipementDuPersonnage(place));
     }

@@ -46,7 +46,7 @@ Partie partieSansMonstre() {
 // La même, avec des gants de cuir dans la case 0 du sac.
 Partie partieAvecDesGants() {
     Partie partie = partieSansMonstre();
-    REQUIRE(partie.getEscouade().ramasser(Objet{IdObjet::GantsDeCuir}));
+    REQUIRE(partie.getEscouade().ramasser(Objet{IdObjet::GantsDeTissu}));
     return partie;
 }
 
@@ -113,7 +113,7 @@ TEST_CASE("glissement : rien ne bouge avant le relachement") {
 
     ecran.saisir(centreDeLaCase(0), s_vue);
 
-    REQUIRE(escouade.sac().a(0) == Objet{IdObjet::GantsDeCuir});
+    REQUIRE(escouade.sac().a(0) == Objet{IdObjet::GantsDeTissu});
 }
 
 TEST_CASE("glissement : relacher sur un emplacement compatible equipe l'objet") {
@@ -126,7 +126,7 @@ TEST_CASE("glissement : relacher sur un emplacement compatible equipe l'objet") 
 
     REQUIRE_FALSE(ecran.origineDuGlissement().has_value());
     REQUIRE_FALSE(escouade.sac().a(0).has_value());
-    REQUIRE(escouade.equipementDuPersonnage(s_mage).a(Emplacement::Gants) == Objet{IdObjet::GantsDeCuir});
+    REQUIRE(escouade.equipementDuPersonnage(s_mage).a(Emplacement::Gants) == Objet{IdObjet::GantsDeTissu});
 }
 
 TEST_CASE("glissement : relacher sur une case du sac range l'objet") {
@@ -138,7 +138,7 @@ TEST_CASE("glissement : relacher sur une case du sac range l'objet") {
     ecran.relacher(centreDeLaCase(12), s_vue);
 
     REQUIRE_FALSE(escouade.sac().a(0).has_value());
-    REQUIRE(escouade.sac().a(12) == Objet{IdObjet::GantsDeCuir});
+    REQUIRE(escouade.sac().a(12) == Objet{IdObjet::GantsDeTissu});
 }
 
 TEST_CASE("glissement : un emplacement incompatible refuse, rien ne bouge, le glissement se termine") {
@@ -150,8 +150,8 @@ TEST_CASE("glissement : un emplacement incompatible refuse, rien ne bouge, le gl
     ecran.relacher(centreDeLEmplacement(s_guerrier, Emplacement::Tete), s_vue);
 
     REQUIRE_FALSE(ecran.origineDuGlissement().has_value());
-    REQUIRE(escouade.sac().a(0) == Objet{IdObjet::GantsDeCuir});
-    REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::Tete) == Objet{IdObjet::CasqueDeFer});
+    REQUIRE(escouade.sac().a(0) == Objet{IdObjet::GantsDeTissu});
+    REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::Tete) == Objet{IdObjet::HeaumeIntegral});
 }
 
 TEST_CASE("glissement : relacher dans un ecart du panneau ne bouge rien, ne jette rien et termine le glissement") {
@@ -163,7 +163,7 @@ TEST_CASE("glissement : relacher dans un ecart du panneau ne bouge rien, ne jett
     ecran.relacher(centre(rectangleDeLEnTete(s_guerrier, s_vue)), s_vue);  // dans le panneau, sur aucun element
 
     REQUIRE_FALSE(ecran.origineDuGlissement().has_value());
-    REQUIRE(escouade.sac().a(0) == Objet{IdObjet::GantsDeCuir});
+    REQUIRE(escouade.sac().a(0) == Objet{IdObjet::GantsDeTissu});
     REQUIRE(partie.getSol().tous().empty());
 }
 
@@ -178,7 +178,7 @@ TEST_CASE("jeter : lacher un objet du sac hors du panneau le pose au sol pres de
     REQUIRE_FALSE(ecran.origineDuGlissement().has_value());
     REQUIRE_FALSE(partie.getEscouade().sac().a(0).has_value());
     REQUIRE(partie.getSol().tous().size() == 1);
-    REQUIRE(partie.getSol().tous().front().objet == Objet{IdObjet::GantsDeCuir});
+    REQUIRE(partie.getSol().tous().front().objet == Objet{IdObjet::GantsDeTissu});
     REQUIRE(exemplaires(partie) == avant);
 }
 
@@ -204,7 +204,7 @@ TEST_CASE("jeter : annuler le glissement avant de lacher ne jette rien") {
     ecran.annulerLeGlissement();
     ecran.relacher({1.0f, 1.0f}, s_vue);
 
-    REQUIRE(partie.getEscouade().sac().a(0) == Objet{IdObjet::GantsDeCuir});
+    REQUIRE(partie.getEscouade().sac().a(0) == Objet{IdObjet::GantsDeTissu});
     REQUIRE(partie.getSol().tous().empty());
 }
 
@@ -214,7 +214,7 @@ TEST_CASE("jeter : lacher hors du panneau sans glissement ne fait rien") {
 
     ecran.relacher({1.0f, 1.0f}, s_vue);
 
-    REQUIRE(partie.getEscouade().sac().a(0) == Objet{IdObjet::GantsDeCuir});
+    REQUIRE(partie.getEscouade().sac().a(0) == Objet{IdObjet::GantsDeTissu});
     REQUIRE(partie.getSol().tous().empty());
 }
 
@@ -225,7 +225,7 @@ TEST_CASE("glissement : relacher sans glissement ne fait rien") {
 
     ecran.relacher(centreDeLaCase(3), s_vue);
 
-    REQUIRE(escouade.sac().a(0) == Objet{IdObjet::GantsDeCuir});
+    REQUIRE(escouade.sac().a(0) == Objet{IdObjet::GantsDeTissu});
     REQUIRE_FALSE(escouade.sac().a(3).has_value());
 }
 
@@ -239,7 +239,7 @@ TEST_CASE("glissement : un objet porte se saisit et s'echange avec un autre pers
     ecran.relacher(centreDeLEmplacement(s_mage, Emplacement::Jambes), s_vue);
 
     REQUIRE_FALSE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::Jambes).has_value());
-    REQUIRE(escouade.equipementDuPersonnage(s_mage).a(Emplacement::Jambes) == Objet{IdObjet::JambieresDeFer});
+    REQUIRE(escouade.equipementDuPersonnage(s_mage).a(Emplacement::Jambes) == Objet{IdObjet::JambieresDePlaques});
 }
 
 TEST_CASE("glissement : Echap l'annule sans fermer, un deuxieme Echap ferme") {
@@ -250,7 +250,7 @@ TEST_CASE("glissement : Echap l'annule sans fermer, un deuxieme Echap ferme") {
     ecran.saisir(centreDeLaCase(0), s_vue);
     REQUIRE(std::holds_alternative<Aucune>(ecran.appuyer(sf::Keyboard::Scan::Escape)));
     REQUIRE_FALSE(ecran.origineDuGlissement().has_value());
-    REQUIRE(escouade.sac().a(0) == Objet{IdObjet::GantsDeCuir});
+    REQUIRE(escouade.sac().a(0) == Objet{IdObjet::GantsDeTissu});
 
     REQUIRE(std::holds_alternative<Depiler>(ecran.appuyer(sf::Keyboard::Scan::Escape)));
 }
@@ -263,7 +263,7 @@ TEST_CASE("glissement : I ferme l'ecran meme pendant un glissement, rien n'a bou
     ecran.saisir(centreDeLaCase(0), s_vue);
 
     REQUIRE(std::holds_alternative<Depiler>(ecran.appuyer(sf::Keyboard::Scan::I)));
-    REQUIRE(escouade.sac().a(0) == Objet{IdObjet::GantsDeCuir});
+    REQUIRE(escouade.sac().a(0) == Objet{IdObjet::GantsDeTissu});
 }
 
 TEST_CASE("glissement : annulerLeGlissement abandonne sans rien deplacer") {
@@ -275,7 +275,7 @@ TEST_CASE("glissement : annulerLeGlissement abandonne sans rien deplacer") {
     ecran.annulerLeGlissement();
     ecran.relacher(centreDeLEmplacement(s_mage, Emplacement::Gants), s_vue);
 
-    REQUIRE(escouade.sac().a(0) == Objet{IdObjet::GantsDeCuir});
+    REQUIRE(escouade.sac().a(0) == Objet{IdObjet::GantsDeTissu});
     REQUIRE_FALSE(escouade.equipementDuPersonnage(s_mage).a(Emplacement::Gants).has_value());
 }
 

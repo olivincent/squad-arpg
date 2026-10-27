@@ -23,7 +23,7 @@ Partie partieDuSac() {
 // Remplit le sac d'objets communs jusqu'à ne laisser que `libres` cases libres.
 void remplirLeSac(Partie& partie, std::size_t libres) {
     while (partie.getEscouade().sac().casesLibres() > libres) {
-        REQUIRE(partie.getEscouade().ramasser(Objet{IdObjet::GantsDeCuir}));
+        REQUIRE(partie.getEscouade().ramasser(Objet{IdObjet::GantsDeTissu}));
     }
 }
 

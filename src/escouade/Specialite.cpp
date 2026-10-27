@@ -91,19 +91,17 @@ const std::vector<TypeDArme> s_armesDeTir = {TypeDArme::Arc, TypeDArme::Arbalete
 // Part de noir mélangée à la couleur de la classe, selon le nombre de fois où elle a déjà été prise.
 constexpr std::array<float, 3> s_assombrissements = {0.0f, 0.30f, 0.55f};
 
-// Équipement de départ : les mêlées portent une armure complète (9 en tout), un bouclier et leur arme, les tireurs
-// seulement leur arme (leur attaque de base et leur zone de contrôle en viennent). Valeurs provisoires, à ajuster
-// après test.
+// Équipement de départ (niveau 1, qualité moyenne, communs) : une seule pièce d'armure, le torse (un justaucorps de cuir pour le
+// guerrier, le paladin et le rôdeur, une robe pour le prêtre et le mage), l'arme, et pour les mêlées un bouclier. Valeurs
+// provisoires, à ajuster après test.
 std::vector<ObjetDeDepart> equipementDeMelee(IdObjet arme) {
-    return {{Emplacement::Tete, IdObjet::CasqueDeFer},
-            {Emplacement::Torse, IdObjet::CuirasseDeMailles},
-            {Emplacement::Jambes, IdObjet::JambieresDeFer},
+    return {{Emplacement::Torse, IdObjet::Justaucorps},
             {Emplacement::MainDroite, arme},
             {Emplacement::MainGauche, IdObjet::BouclierRond}};
 }
 
-std::vector<ObjetDeDepart> equipementDeTireur(IdObjet arme) {
-    return {{Emplacement::MainDroite, arme}};
+std::vector<ObjetDeDepart> equipementDeTireur(IdObjet arme, IdObjet torse) {
+    return {{Emplacement::Torse, torse}, {Emplacement::MainDroite, arme}};
 }
 
 std::vector<Specialite> construireLeCatalogue() {
@@ -128,7 +126,7 @@ std::vector<Specialite> construireLeCatalogue() {
           .skills = {{IdSkill::Soin, Skill({.type = TypeSkill::Soin, .portee = s_porteeSoin, .puissance = s_puissanceSoin,
                                   .rechargeMin = s_rechargeSoin, .rechargeMax = s_rechargeSoin,
                                   .tempsExecution = s_activationSoin, .coefficients = s_puissanceSeule, .nature = NatureDAttaque::Contact})}},
-          .equipementDeDepart = equipementDeTireur(IdObjet::Sceptre), .rayonVision = s_rayonVision,
+          .equipementDeDepart = equipementDeTireur(IdObjet::Sceptre, IdObjet::Robe), .rayonVision = s_rayonVision,
           .caracteristiques = s_caracteristiquesPretre, .croissance = s_croissancePretre,
           .rang = Rang::Arriere}},
         // Mage : derrière, lance l'explosion.
@@ -138,7 +136,7 @@ std::vector<Specialite> construireLeCatalogue() {
                                        .rechargeMin = s_rechargeZone, .rechargeMax = s_rechargeZone,
                                        .rayonZone = s_rayonZone, .tempsExecution = s_activationZone, .coefficients = s_puissanceSeule,
                                        .nature = NatureDAttaque::Zone, .element = Element::Feu})}},
-          .equipementDeDepart = equipementDeTireur(IdObjet::Baton), .rayonVision = s_rayonVision,
+          .equipementDeDepart = equipementDeTireur(IdObjet::Baton, IdObjet::Robe), .rayonVision = s_rayonVision,
           .caracteristiques = s_caracteristiquesMage, .croissance = s_croissanceMage,
           .rang = Rang::Arriere}},
         // Paladin : devant, au contact, frappe et soigne.
@@ -170,7 +168,7 @@ std::vector<Specialite> construireLeCatalogue() {
                                             .rechargeMax = s_rechargePluie, .rayonZone = s_rayonPluie,
                                             .tempsExecution = s_activationPluie, .coefficients = s_puissanceSeule,
                                             .nature = NatureDAttaque::Zone, .armesExigees = s_armesDeTir})}},
-          .equipementDeDepart = equipementDeTireur(IdObjet::Arc), .rayonVision = s_rayonVision,
+          .equipementDeDepart = equipementDeTireur(IdObjet::Arc, IdObjet::Justaucorps), .rayonVision = s_rayonVision,
           .caracteristiques = s_caracteristiquesRodeur, .croissance = s_croissanceRodeur,
           .rang = Rang::Arriere}},
     };
