@@ -141,12 +141,15 @@ TEST_CASE("lignesDeMalusDeLObjet : les lignes de malus de l'infobulle, rien pour
     REQUIRE(lignesDeMalusDeLObjet(Objet{IdObjet::Chaussons, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DEsquive, 3}}).empty());
 }
 
-TEST_CASE("affichage : l'infobulle du bouclier rond donne son blocage") {
-    const std::vector<std::string> lignes = lignesDeLInfobulle(Objet{IdObjet::BouclierRond});
+TEST_CASE("affichage : l'infobulle du bouclier donne sa chance de blocage et le montant absorbe, a son niveau") {
+    const std::vector<std::string> niveau1 = lignesDeLInfobulle(Objet{IdObjet::Bouclier});
+    const std::vector<std::string> niveau5 = lignesDeLInfobulle(Objet{IdObjet::Bouclier, Rarete::Commun, std::nullopt, std::nullopt, 5});
 
-    const DonneesDeBouclier& bouclier = definitionObjet(IdObjet::BouclierRond).bouclier.value();
-    REQUIRE(lignes[lignes.size() - 2] == "Block: " + std::to_string(bouclier.chanceAuNiveau1) + " %, " +
-                                 std::to_string(bouclier.montantAuNiveau1) + " points");
+    REQUIRE(niveau1 == std::vector<std::string>{"Shield", "Shield", "Item Level 1", "Armor: 1", "Block: 20 %", "Absorbs: 8",
+                                                ligneDeSeuil({Caracteristique::Endurance, s_seuilAuNiveau1})});
+    REQUIRE(niveau5[3] == "Armor: 2");
+    REQUIRE(niveau5[4] == "Block: 24 %");
+    REQUIRE(niveau5[5] == "Absorbs: 16");
 }
 
 TEST_CASE("affichage : l'infobulle d'une arme a une main donne son niveau, ses degats, sa recharge, sa portee et sa nature") {

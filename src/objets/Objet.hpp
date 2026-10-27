@@ -26,7 +26,7 @@ enum class IdObjet {
     HeaumeIntegral,
     Gantelets,
     Solerets,
-    BouclierRond,
+    Bouclier,
     CollierDeProtection,
     AnneauDeProtection,
     AnneauDePuissance,

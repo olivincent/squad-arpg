@@ -16,7 +16,7 @@ const Objet s_masseSanctifiee{IdObjet::MasseAUneMain, Rarete::Magique, Affixe{Id
 const Objet s_arcAcereDuRenard{IdObjet::Arc, Rarete::Rare, Affixe{IdAffixe::Acere, 15}, Affixe{IdAffixe::DuRenard, 2}};
 const Objet s_mailleRenforceeDEsquive{IdObjet::ArmureDePlaques, Rarete::Rare, Affixe{IdAffixe::Renforce, 3},
                                       Affixe{IdAffixe::DEsquive, 3}};
-const Objet s_bouclierDeBlocage{IdObjet::BouclierRond, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeBlocage, 5}};
+const Objet s_bouclierDeBlocage{IdObjet::Bouclier, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeBlocage, 5}};
 
 void poser(Equipement& equipement, Emplacement emplacement, const Objet& objet) {
     static_cast<void>(equipement.poser(emplacement, objet));
@@ -66,7 +66,7 @@ TEST_CASE("affixes : le bonus du modele et celui de l'affixe s'additionnent") {
 TEST_CASE("affixes : la chance de blocage s'ajoute a celle du bouclier, le montant reste celui du bouclier") {
     Equipement equipement;
     poser(equipement, Emplacement::MainGauche, s_bouclierDeBlocage);
-    const DonneesDeBouclier& bouclier = definitionObjet(IdObjet::BouclierRond).bouclier.value();
+    const DonneesDeBouclier& bouclier = definitionObjet(IdObjet::Bouclier).bouclier.value();
 
     const StatistiquesDeCombat total = equipement.bonusDeCombatTotal();
 
@@ -76,9 +76,9 @@ TEST_CASE("affixes : la chance de blocage s'ajoute a celle du bouclier, le monta
 
 TEST_CASE("affixes : l'armure d'un bouclier renforce s'ajoute aussi") {
     Equipement equipement;
-    poser(equipement, Emplacement::MainGauche, {IdObjet::BouclierRond, Rarete::Magique, Affixe{IdAffixe::Renforce, 2}});
+    poser(equipement, Emplacement::MainGauche, {IdObjet::Bouclier, Rarete::Magique, Affixe{IdAffixe::Renforce, 2}});
 
-    REQUIRE(equipement.armureTotale() == definitionObjet(IdObjet::BouclierRond).armure + 2);
+    REQUIRE(equipement.armureTotale() == definitionObjet(IdObjet::Bouclier).armure + 2);
 }
 
 TEST_CASE("affixes : une masse flamboyante frappe en physique et en feu") {

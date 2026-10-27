@@ -81,14 +81,14 @@ TEST_CASE("armureTotale : complete, tous les emplacements de defense garnis") {
     REQUIRE_FALSE(equipement.poser(Emplacement::Jambes, {IdObjet::JambieresDePlaques}).has_value());
     REQUIRE_FALSE(equipement.poser(Emplacement::Gants, {IdObjet::GantsDeTissu}).has_value());
     REQUIRE_FALSE(equipement.poser(Emplacement::Bottes, {IdObjet::Chaussons}).has_value());
-    REQUIRE_FALSE(equipement.poser(Emplacement::MainGauche, {IdObjet::BouclierRond}).has_value());
+    REQUIRE_FALSE(equipement.poser(Emplacement::MainGauche, {IdObjet::Bouclier}).has_value());
     REQUIRE_FALSE(equipement.poser(Emplacement::Collier, {IdObjet::CollierDeProtection}).has_value());
     REQUIRE_FALSE(equipement.poser(Emplacement::Anneau1, {IdObjet::AnneauDeProtection}).has_value());
     REQUIRE_FALSE(equipement.poser(Emplacement::Anneau2, {IdObjet::AnneauDeProtection}).has_value());
 
     int attendu = 0;
     for (const IdObjet id : {IdObjet::HeaumeIntegral, IdObjet::ArmureDePlaques, IdObjet::JambieresDePlaques,
-                             IdObjet::GantsDeTissu, IdObjet::Chaussons, IdObjet::BouclierRond,
+                             IdObjet::GantsDeTissu, IdObjet::Chaussons, IdObjet::Bouclier,
                              IdObjet::CollierDeProtection, IdObjet::AnneauDeProtection,
                              IdObjet::AnneauDeProtection}) {
         attendu += armureDe(id);
@@ -164,7 +164,7 @@ TEST_CASE("typeDArme : le type de l'arme de la main droite, vide sans arme") {
     REQUIRE(equipement.typeDArme() == TypeDArme::Arc);
 
     static_cast<void>(equipement.retirer(Emplacement::MainDroite));
-    static_cast<void>(equipement.poser(Emplacement::MainGauche, {IdObjet::BouclierRond}));
+    static_cast<void>(equipement.poser(Emplacement::MainGauche, {IdObjet::Bouclier}));
     REQUIRE_FALSE(equipement.typeDArme().has_value());  // un bouclier n'est pas une arme
 }
 
@@ -178,12 +178,12 @@ TEST_CASE("attaqueDeBase d'un equipement : celle de l'arme de la main droite, si
 
 TEST_CASE("equipement : le bouclier compte dans les statistiques de combat totales, sans bonus de recuperation") {
     Equipement equipement;
-    static_cast<void>(equipement.poser(Emplacement::MainGauche, {IdObjet::BouclierRond}));
+    static_cast<void>(equipement.poser(Emplacement::MainGauche, {IdObjet::Bouclier}));
     static_cast<void>(equipement.poser(Emplacement::Bottes, {IdObjet::Solerets}));
 
     const StatistiquesDeCombat total = equipement.bonusDeCombatTotal();
 
-    const DonneesDeBouclier& bouclier = definitionObjet(IdObjet::BouclierRond).bouclier.value();
+    const DonneesDeBouclier& bouclier = definitionObjet(IdObjet::Bouclier).bouclier.value();
     REQUIRE(total.chanceDeBlocage == bouclier.chanceAuNiveau1);
     REQUIRE(total.montantBloque == bouclier.montantAuNiveau1);
     REQUIRE(total.esquiveContact == definitionObjet(IdObjet::Solerets).bonusDeCombat.esquiveContact);
@@ -212,7 +212,7 @@ TEST_CASE("actifPour : l'epee a une main exige de la Puissance, l'anneau de puis
 TEST_CASE("actifPour : un objet inactif n'a aucun effet, ni armure, ni arme, ni blocage, ni bonus") {
     Equipement equipement;
     static_cast<void>(equipement.poser(Emplacement::Torse, {IdObjet::ArmureDePlaques}));
-    static_cast<void>(equipement.poser(Emplacement::MainGauche, {IdObjet::BouclierRond}));
+    static_cast<void>(equipement.poser(Emplacement::MainGauche, {IdObjet::Bouclier}));
     static_cast<void>(equipement.poser(Emplacement::MainDroite, {IdObjet::Arc}));
     static_cast<void>(equipement.poser(Emplacement::Bottes, {IdObjet::Chaussons}));  // pas de seuil
     const Equipement actif = equipement.actifPour(Caracteristiques());

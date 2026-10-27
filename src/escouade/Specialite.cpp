@@ -97,7 +97,7 @@ constexpr std::array<float, 3> s_assombrissements = {0.0f, 0.30f, 0.55f};
 std::vector<ObjetDeDepart> equipementDeMelee(IdObjet arme) {
     return {{Emplacement::Torse, IdObjet::Justaucorps},
             {Emplacement::MainDroite, arme},
-            {Emplacement::MainGauche, IdObjet::BouclierRond}};
+            {Emplacement::MainGauche, IdObjet::Bouclier}};
 }
 
 std::vector<ObjetDeDepart> equipementDeTireur(IdObjet arme, IdObjet torse) {

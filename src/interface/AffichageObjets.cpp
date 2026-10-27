@@ -113,7 +113,7 @@ std::string sigleDeLObjet(IdObjet id) {
         case IdObjet::HeaumeIntegral: return "GH";
         case IdObjet::Gantelets: return "GT";
         case IdObjet::Solerets: return "SB";
-        case IdObjet::BouclierRond: return "RS";
+        case IdObjet::Bouclier: return "SH";
         case IdObjet::CollierDeProtection: return "NP";
         case IdObjet::AnneauDeProtection: return "RP";
         case IdObjet::AnneauDePuissance: return "RM";
@@ -195,8 +195,8 @@ std::vector<std::string> lignesDeLInfobulle(const Objet& objet) {
         lignes.push_back(ligne);
     }
     if (definition.bouclier.has_value()) {
-        lignes.push_back("Block: " + std::to_string(effets.bonusDeCombat.chanceDeBlocage) + " %, " +
-                         std::to_string(effets.bonusDeCombat.montantBloque) + " points");
+        lignes.push_back("Block: " + std::to_string(effets.bonusDeCombat.chanceDeBlocage) + " %");
+        lignes.push_back("Absorbs: " + std::to_string(effets.bonusDeCombat.montantBloque));
     }
     if (definition.arme.has_value()) {
         ajouterLesLignesDUneArme(lignes, objet, *definition.arme);

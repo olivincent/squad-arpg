@@ -379,13 +379,13 @@ TEST_CASE("Un coup esquive compte comme une attaque recue : le monstre devient a
 
 TEST_CASE("Un coup bloque compte comme une attaque recue : le monstre devient agresseur") {
     DefinitionPersonnage guerrier = guerrierDeTest();
-    guerrier.equipementDeDepart.push_back({Emplacement::MainGauche, IdObjet::BouclierRond});
+    guerrier.equipementDeDepart.push_back({Emplacement::MainGauche, IdObjet::Bouclier});
     Generateur generateur = generateurDeTest();
     int blocages = 0;
 
     // Une escouade neuve par coup (après un blocage, le bouclier récupère 3 s). Le coup est plus faible que ce que le
-    // bouclier absorbe : bloqué, il ne fait aucun dégât. Avec 30 % de blocage, la chance de n'en voir aucun sur
-    // 150 coups est de l'ordre de 10^-23, quelle que soit la graine.
+    // bouclier absorbe : bloqué, il ne fait aucun dégât. Avec 20 % de blocage, la chance de n'en voir aucun sur
+    // 150 coups est de l'ordre de 10^-15, quelle que soit la graine.
     for (int essai = 0; essai < 150; ++essai) {
         Escouade escouade = uneEscouadeDe({50.0f, 50.0f}, {guerrier});
         const StatistiquesDeCombat statistiques = *escouade.statistiquesDeCombatDuPersonnage(1);

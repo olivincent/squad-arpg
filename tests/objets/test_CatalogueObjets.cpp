@@ -50,7 +50,7 @@ TEST_CASE("definitionObjet : rend l'entree du catalogue de cet identifiant") {
     for (const DefinitionObjet& definition : catalogueObjets()) {
         REQUIRE(&definitionObjet(definition.id) == &definition);
     }
-    REQUIRE(definitionObjet(IdObjet::BouclierRond).categorie == CategorieObjet::Bouclier);
+    REQUIRE(definitionObjet(IdObjet::Bouclier).categorie == CategorieObjet::Bouclier);
     REQUIRE(definitionObjet(IdObjet::AnneauDeProtection).categorie == CategorieObjet::Anneau);
 }
 
@@ -166,9 +166,9 @@ TEST_CASE("effetsDeBase : les esquives du modele sont fixes, ni le niveau ni la 
 }
 
 TEST_CASE("effetsDeBase : un bouclier gagne un point de chance par niveau (pas par qualite) et un montant qui suit niveau et qualite") {
-    const DonneesDeBouclier& modele = definitionObjet(IdObjet::BouclierRond).bouclier.value();
+    const DonneesDeBouclier& modele = definitionObjet(IdObjet::Bouclier).bouclier.value();
     const auto bouclier = [](int niveau, int qualite) {
-        return effetsDeBase(Objet{IdObjet::BouclierRond, Rarete::Commun, std::nullopt, std::nullopt, niveau, qualite}).bonusDeCombat;
+        return effetsDeBase(Objet{IdObjet::Bouclier, Rarete::Commun, std::nullopt, std::nullopt, niveau, qualite}).bonusDeCombat;
     };
 
     REQUIRE(bouclier(1, 50).chanceDeBlocage == modele.chanceAuNiveau1);
@@ -213,8 +213,8 @@ TEST_CASE("objetValide : un affixe est permis pour la categorie du modele") {
     REQUIRE_FALSE(objetValide(Objet{IdObjet::HeaumeIntegral, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}}));  // du feu sur un casque
     REQUIRE_FALSE(objetValide(Objet{IdObjet::MasseAUneMain, Rarete::Magique, Affixe{IdAffixe::Renforce, 2}}));           // de l'armure sur une arme
     REQUIRE_FALSE(objetValide(Objet{IdObjet::MasseAUneMain, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeBlocage, 5}}));  // du blocage sur une arme
-    REQUIRE_FALSE(objetValide(Objet{IdObjet::BouclierRond, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DEsquive, 3}}));  // pas sur un bouclier
-    REQUIRE(objetValide(Objet{IdObjet::BouclierRond, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeBlocage, 5}}));
+    REQUIRE_FALSE(objetValide(Objet{IdObjet::Bouclier, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DEsquive, 3}}));  // pas sur un bouclier
+    REQUIRE(objetValide(Objet{IdObjet::Bouclier, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeBlocage, 5}}));
     REQUIRE(objetValide(Objet{IdObjet::ArmureDePlaques, Rarete::Rare, Affixe{IdAffixe::Renforce, 3}, Affixe{IdAffixe::DEsquive, 3}}));
     REQUIRE(objetValide(Objet{IdObjet::AnneauDeProtection, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeLaChouette, 2}}));
 }
@@ -364,13 +364,31 @@ TEST_CASE("catalogueObjets : tout le reste du catalogue apparait des le niveau 1
     }
 }
 
-TEST_CASE("catalogueObjets : le bouclier rond bloque 30 % des coups, 12 points, par ses donnees de bouclier") {
-    const DefinitionObjet& bouclier = definitionObjet(IdObjet::BouclierRond);
+TEST_CASE("catalogueObjets : le bouclier bloque 20 % des coups au niveau 1 et absorbe 8 points, par ses donnees de bouclier") {
+    const DefinitionObjet& bouclier = definitionObjet(IdObjet::Bouclier);
 
     REQUIRE(bouclier.bouclier.has_value());
-    REQUIRE(bouclier.bouclier->chanceAuNiveau1 == 30);
-    REQUIRE(bouclier.bouclier->montantAuNiveau1 == 12);
+    REQUIRE(bouclier.bouclier->chanceAuNiveau1 == 20);
+    REQUIRE(bouclier.bouclier->montantAuNiveau1 == 8);
+    REQUIRE(bouclier.armure == 1);
     REQUIRE(bouclier.bonusDeCombat == StatistiquesDeCombat());  // le blocage n'est pas un bonus de statistiques
+    REQUIRE(bouclier.exigences == std::vector<ExigenceDeCaracteristique>{{Caracteristique::Endurance, 2}});
+}
+
+TEST_CASE("effetsDeBase : le bouclier suit le tableau (chance, montant, armure) aux niveaux 1, 5, 10 et 20") {
+    const auto effets = [](int niveau) { return effetsDeBase(Objet{IdObjet::Bouclier, Rarete::Commun, std::nullopt, std::nullopt, niveau}); };
+
+    REQUIRE(effets(1).bonusDeCombat.chanceDeBlocage == 20);
+    REQUIRE(effets(1).bonusDeCombat.montantBloque == 8);
+    REQUIRE(effets(5).bonusDeCombat.chanceDeBlocage == 24);
+    REQUIRE(effets(5).bonusDeCombat.montantBloque == 16);
+    REQUIRE(effets(5).armure == 2);
+    REQUIRE(effets(10).bonusDeCombat.chanceDeBlocage == 29);
+    REQUIRE(effets(10).bonusDeCombat.montantBloque == 26);
+    REQUIRE(effets(10).armure == 3);
+    REQUIRE(effets(20).bonusDeCombat.chanceDeBlocage == 39);
+    REQUIRE(effets(20).bonusDeCombat.montantBloque == 46);
+    REQUIRE(effets(20).armure == 6);
 }
 
 TEST_CASE("catalogueObjets : seul un bouclier a des donnees de bouclier") {
@@ -480,7 +498,7 @@ TEST_CASE("estADeuxMains : les armes a deux mains, pas les autres armes ni les a
     REQUIRE(estADeuxMains(IdObjet::Arbalete));
     REQUIRE(estADeuxMains(IdObjet::MasseADeuxMains));
     REQUIRE_FALSE(estADeuxMains(IdObjet::Lance));  // une lance se tient d'une main
-    REQUIRE_FALSE(estADeuxMains(IdObjet::BouclierRond));
+    REQUIRE_FALSE(estADeuxMains(IdObjet::Bouclier));
 }
 
 TEST_CASE("descriptionDeLArme : l'epee a une main de niveau 1 et de qualite moyenne fait 13 a 17, a 0,3 - 0,7 s") {
@@ -585,7 +603,7 @@ TEST_CASE("seuilsDeLObjet : une arme a deux exigences les a toutes, la principal
 }
 
 TEST_CASE("seuilsDeLObjet : les pieces lourdes et le bouclier exigent l'Endurance") {
-    for (const IdObjet lourd : {IdObjet::HeaumeIntegral, IdObjet::ArmureDePlaques, IdObjet::JambieresDePlaques, IdObjet::BouclierRond}) {
+    for (const IdObjet lourd : {IdObjet::HeaumeIntegral, IdObjet::ArmureDePlaques, IdObjet::JambieresDePlaques, IdObjet::Bouclier}) {
         const std::vector<SeuilDeCaracteristique> seuils = seuilsDeLObjet(Objet{lourd});
         REQUIRE(seuils.size() == 1);
         REQUIRE(seuils.front().caracteristique == Caracteristique::Endurance);

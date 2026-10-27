@@ -11,13 +11,13 @@
 
 namespace {
 // Valeurs provisoires, à ajuster après test.
-constexpr int s_armureBouclierRond = 1;
+constexpr int s_armureBouclier = 1;
 constexpr int s_armureCollierDeProtection = 1;
 constexpr int s_armureAnneauDeProtection = 1;
 constexpr int s_bonusAnneauDePuissance = 3;    // Puissance
 constexpr int s_bonusCollierDEndurance = 3;    // Endurance
-constexpr int s_chanceDeBlocageBouclierRond = 30;       // en pour cent, au niveau 1
-constexpr int s_montantBloqueBouclierRond = 12;         // points absorbés par blocage, au niveau 1 et à la qualité moyenne
+constexpr int s_chanceDeBlocageBouclier = 20;       // en pour cent, au niveau 1
+constexpr int s_montantBloqueBouclier = 8;          // points absorbés par blocage, au niveau 1 et à la qualité moyenne
 
 // L'armure de base des pièces (niveau 1, qualité moyenne), par type : torse, jambes, tête, gants, bottes (valeurs provisoires, « à
 // tester »). Chaque type bat le précédent sur chaque pièce ; un ensemble complet vaut 6, 11, 17 et 24.
@@ -145,8 +145,8 @@ std::vector<DefinitionObjet> construireLeCatalogue() {
                           {"Plate Armor", "Plate Greaves", "Great Helm", "Gauntlets", "Sabatons"}, s_armureDeLArmureLourde, s_malusLourd,
                           s_apparitionDuLourd));
     ajouter({
-        avecExigences({IdObjet::BouclierRond, "Round Shield", CategorieObjet::Bouclier, s_armureBouclierRond, {}, {}, std::nullopt,
-                       DonneesDeBouclier{.chanceAuNiveau1 = s_chanceDeBlocageBouclierRond, .montantAuNiveau1 = s_montantBloqueBouclierRond}},
+        avecExigences({IdObjet::Bouclier, "Shield", CategorieObjet::Bouclier, s_armureBouclier, {}, {}, std::nullopt,
+                       DonneesDeBouclier{.chanceAuNiveau1 = s_chanceDeBlocageBouclier, .montantAuNiveau1 = s_montantBloqueBouclier}},
                       {{Caracteristique::Endurance, s_penteSeuilPrincipale}}),
         {IdObjet::CollierDeProtection, "Necklace of Protection", CategorieObjet::Collier,
          s_armureCollierDeProtection},

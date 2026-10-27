@@ -365,7 +365,7 @@ TEST_CASE("evenements : un coup esquive par un monstre donne Esquive, et aucun d
 
 TEST_CASE("evenements : un blocage partiel donne les degats puis Bloque, puis rien pendant la recuperation") {
     DefinitionPersonnage guerrier = guerrierInfatigable();
-    guerrier.equipementDeDepart.push_back({Emplacement::MainGauche, IdObjet::BouclierRond});  // 30 %, 40 points, 3 s
+    guerrier.equipementDeDepart.push_back({Emplacement::MainGauche, IdObjet::Bouclier});  // 20 %, 8 points, 3 s
     const DefinitionDeMonstre monstre = monstreIndestructible();
     Partie partie = partieDeTest(niveauDegage({{270.0f, 210.0f}}), std::vector<DefinitionPersonnage>{guerrier}, s_graineDeTest, monstre);
     const StatistiquesDeCombat bouclier = *partie.getEscouade().statistiquesDeCombatDuPersonnage(1);

@@ -18,7 +18,7 @@ constexpr std::size_t s_capaciteDuSac = 6;
 constexpr std::size_t s_placeA = 1;
 constexpr std::size_t s_placeB = 2;
 
-const Objet s_bouclier{IdObjet::BouclierRond};
+const Objet s_bouclier{IdObjet::Bouclier};
 const Objet s_epee{IdObjet::EpeeAUneMain};
 const Objet s_epeeADeuxMains{IdObjet::EpeeADeuxMains};
 const Objet s_arc{IdObjet::Arc};

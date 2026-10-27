@@ -62,7 +62,7 @@ const std::vector<Objet> s_lotDeQuatre = {
     {IdObjet::MasseAUneMain, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}},
     {IdObjet::Arc, Rarete::Rare, Affixe{IdAffixe::Acere, 15}, Affixe{IdAffixe::DuRenard, 2}},
     {IdObjet::HeaumeIntegral, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeDeviation, 3}},
-    {IdObjet::BouclierRond, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeBlocage, 5}}};
+    {IdObjet::Bouclier, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeBlocage, 5}}};
 }  // namespace
 
 TEST_CASE("le sac d'une escouade neuve est vide") {
@@ -331,7 +331,7 @@ TEST_CASE("la puissance de l'attaque de base lue par l'escouade (coup d'opportun
 // Les deux mains (étape 91.3) : la règle est celle de `deplacerLesObjets` (`test_DeplacementDObjets.cpp`) ; ici,
 // ce que l'escouade en fait : l'armure recalculée, la surbrillance qui suit l'action, rien ne bouge au refus.
 namespace {
-const Objet s_bouclier{IdObjet::BouclierRond};
+const Objet s_bouclier{IdObjet::Bouclier};
 const Objet s_epeeADeuxMains{IdObjet::EpeeADeuxMains};
 const Objet s_epee{IdObjet::EpeeAUneMain};
 
@@ -356,7 +356,7 @@ TEST_CASE("deux mains : l'epee a deux mains range le bouclier du guerrier dans l
     REQUIRE(escouade.sac().a(0) == s_bouclier);   // la première case libre
     REQUIRE(escouade.sac().a(1) == s_epee);       // l'épée à une main du guerrier a pris la place de l'arme (échange)
     REQUIRE(exemplaires(escouade) == avant);
-    const int armureApres = armureAvant - definitionObjet(IdObjet::BouclierRond).armure;
+    const int armureApres = armureAvant - definitionObjet(IdObjet::Bouclier).armure;
     REQUIRE(escouade.equipementDuPersonnage(s_guerrier).armureTotale() == armureApres);
     REQUIRE(degatsSubis(escouade, s_guerrier) == appliquerArmure(s_coup, armureApres));
 }

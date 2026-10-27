@@ -1120,12 +1120,12 @@ TEST_CASE("une piece lourde inactive n'a pas son malus d'esquive") {
     REQUIRE(personnage.getStatistiques().esquiveContact == 0);
 }
 
-TEST_CASE("le bouclier rond donne au personnage sa chance de blocage et son montant") {
+TEST_CASE("le bouclier donne au personnage sa chance de blocage et son montant") {
     Personnage personnage = unPersonnageSansEsquive();
 
-    static_cast<void>(personnage.poserEquipement(Emplacement::MainGauche, {IdObjet::BouclierRond}));
+    static_cast<void>(personnage.poserEquipement(Emplacement::MainGauche, {IdObjet::Bouclier}));
 
-    const DonneesDeBouclier& bouclier = definitionObjet(IdObjet::BouclierRond).bouclier.value();
+    const DonneesDeBouclier& bouclier = definitionObjet(IdObjet::Bouclier).bouclier.value();
     REQUIRE(personnage.getStatistiques().chanceDeBlocage == bouclier.chanceAuNiveau1);
     REQUIRE(personnage.getStatistiques().montantBloque == bouclier.montantAuNiveau1);
     static_cast<void>(personnage.retirerEquipement(Emplacement::MainGauche));
@@ -1135,11 +1135,11 @@ TEST_CASE("le bouclier rond donne au personnage sa chance de blocage et son mont
 TEST_CASE("un personnage au bouclier : apres un blocage, plus aucun pendant 3 s, puis de nouveau") {
     // Endurance énorme : il encaisse les centaines de coups de 1 point sans mourir.
     Personnage personnage = unPersonnage({100.0f, 100.0f}, avecEnduranceEnorme(definitionArmee()));
-    static_cast<void>(personnage.poserEquipement(Emplacement::MainGauche, {IdObjet::BouclierRond}));
+    static_cast<void>(personnage.poserEquipement(Emplacement::MainGauche, {IdObjet::Bouclier}));
     const TileMap carte = carteDegagee5x5();
     Generateur generateur = generateurDeTest();
     const Attaque attaque{.degats = degatsPhysiques(1), .capaciteOffensive = 0, .nature = NatureDAttaque::Contact};
-    // À 30 % par coup, la chance de ne voir aucun blocage sur 200 coups est de l'ordre de 10^-31.
+    // À 20 % par coup, la chance de ne voir aucun blocage sur 200 coups est de l'ordre de 10^-20.
     const auto jusquAuBlocage = [&] {
         bool bloque = false;
         for (int i = 0; i < 200 && !bloque; ++i) {
@@ -1436,7 +1436,7 @@ TEST_CASE("retirer l'anneau de puissance rend l'epee inactive, le remettre la re
 }
 
 TEST_CASE("une armure ou un bouclier inactif ne donne ni armure ni blocage") {
-    const std::vector<ObjetDeDepart> lourd = {{Emplacement::Torse, IdObjet::ArmureDePlaques}, {Emplacement::MainGauche, IdObjet::BouclierRond}};
+    const std::vector<ObjetDeDepart> lourd = {{Emplacement::Torse, IdObjet::ArmureDePlaques}, {Emplacement::MainGauche, IdObjet::Bouclier}};
     Personnage nu = unPersonnage({100.0f, 100.0f}, {.couleur = sf::Color::White, .equipementDeDepart = lourd, .rayonVision = s_rayonVisionDeTest});  // Endurance 0
     Personnage fort = unPersonnage({100.0f, 100.0f}, {.couleur = sf::Color::White, .equipementDeDepart = lourd, .rayonVision = s_rayonVisionDeTest,
                                        .caracteristiques = caracteristiquesPourPorter(lourd)});
@@ -1451,7 +1451,7 @@ TEST_CASE("une armure ou un bouclier inactif ne donne ni armure ni blocage") {
     REQUIRE(nu.getStatistiques().montantBloque == 0);
     REQUIRE(nu.getEquipement().armureTotale() > 0);  // portée, sans effet
     REQUIRE(subir(cuirasseAvecForce, 40) == appliquerArmure(40, armureDe(cuirasse)));
-    REQUIRE(fort.getStatistiques().montantBloque == definitionObjet(IdObjet::BouclierRond).bouclier->montantAuNiveau1);
+    REQUIRE(fort.getStatistiques().montantBloque == definitionObjet(IdObjet::Bouclier).bouclier->montantAuNiveau1);
 }
 
 TEST_CASE("une arme inactive ne permet pas les skills qui l'exigent") {

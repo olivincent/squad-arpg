@@ -268,7 +268,7 @@ TEST_CASE("equipement de depart : les melees portent un bouclier, une seule piec
     for (const IdSpecialite melee : {IdSpecialite::Guerrier, IdSpecialite::Paladin}) {
         const DefinitionPersonnage& definition = specialite(melee).definition;
         REQUIRE(armureDe(definition.equipementDeDepart) > 0);
-        REQUIRE(portePar(definition, Emplacement::MainGauche) == IdObjet::BouclierRond);
+        REQUIRE(portePar(definition, Emplacement::MainGauche) == IdObjet::Bouclier);
         REQUIRE(definition.equipementDeDepart.size() == 3);
     }
 }

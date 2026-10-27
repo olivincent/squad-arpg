@@ -55,7 +55,7 @@ TEST_CASE("peutPorterLaRarete : un bijou peut etre magique (un suffixe) mais jam
 
 TEST_CASE("peutPorterLaRarete : les gants et les bottes peuvent etre rares (Reinforced), comme les armes et les armures") {
     for (const IdObjet modele : {IdObjet::GantsDeTissu, IdObjet::Chaussons, IdObjet::HeaumeIntegral, IdObjet::ArmureDePlaques,
-                                 IdObjet::BouclierRond, IdObjet::Arc, IdObjet::MasseAUneMain}) {
+                                 IdObjet::Bouclier, IdObjet::Arc, IdObjet::MasseAUneMain}) {
         INFO(definitionObjet(modele).nom);
         REQUIRE(peutPorterLaRarete(modele, Rarete::Magique));
         REQUIRE(peutPorterLaRarete(modele, Rarete::Rare));
