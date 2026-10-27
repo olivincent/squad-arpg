@@ -65,12 +65,44 @@ TEST_CASE("Objet : l'egalite est par valeur, modele, rarete et affixes compris")
     REQUIRE(masseFlamboyante != Objet{IdObjet::Masse, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DuLion, 6}});
 }
 
-TEST_CASE("Objet : un objet sans autre precision est commun et sans affixe") {
+TEST_CASE("Objet : un objet sans autre precision est commun, sans affixe, de niveau 1 et de qualite moyenne") {
     const Objet objet{IdObjet::Arc};
 
     REQUIRE(objet.rarete == Rarete::Commun);
     REQUIRE_FALSE(objet.prefixe.has_value());
     REQUIRE_FALSE(objet.suffixe.has_value());
+    REQUIRE(objet.niveau == 1);
+    REQUIRE(objet.qualite == 50);
+}
+
+TEST_CASE("Objet : le niveau et la qualite comptent dans l'egalite") {
+    const Objet base{IdObjet::Masse, Rarete::Commun, std::nullopt, std::nullopt, 3, 70};
+
+    REQUIRE(base == Objet{IdObjet::Masse, Rarete::Commun, std::nullopt, std::nullopt, 3, 70});
+    REQUIRE(base != Objet{IdObjet::Masse, Rarete::Commun, std::nullopt, std::nullopt, 4, 70});  // autre niveau
+    REQUIRE(base != Objet{IdObjet::Masse, Rarete::Commun, std::nullopt, std::nullopt, 3, 71});  // autre qualité
+    REQUIRE(base != Objet{IdObjet::Masse});                                                      // niveau 1, qualité 50
+}
+
+TEST_CASE("objetValide : le niveau est d'au moins 1 et la qualite va de 0 a 100") {
+    const auto objet = [](int niveau, int qualite) {
+        return Objet{IdObjet::Masse, Rarete::Commun, std::nullopt, std::nullopt, niveau, qualite};
+    };
+
+    REQUIRE(objetValide(objet(1, 0)));
+    REQUIRE(objetValide(objet(1, 100)));
+    REQUIRE(objetValide(objet(20, 50)));
+    REQUIRE_FALSE(objetValide(objet(0, 50)));
+    REQUIRE_FALSE(objetValide(objet(-1, 50)));
+    REQUIRE_FALSE(objetValide(objet(1, -1)));
+    REQUIRE_FALSE(objetValide(objet(1, 101)));
+}
+
+TEST_CASE("facteurDeNiveau : 1 au niveau 1, puis 0,25 de plus par niveau") {
+    REQUIRE(facteurDeNiveau(1) == 1.0);
+    REQUIRE(facteurDeNiveau(2) == 1.25);
+    REQUIRE(facteurDeNiveau(5) == 2.0);
+    REQUIRE(facteurDeNiveau(9) == 3.0);
 }
 
 TEST_CASE("objetValide : tout modele du catalogue est valide a l'etat commun") {

@@ -140,6 +140,9 @@ const DescriptionDAttaque& mainsNues() {
 }
 
 bool objetValide(const Objet& objet) {
+    if (objet.niveau < 1 || objet.qualite < 0 || objet.qualite > s_qualiteMaximale) {
+        return false;
+    }
     const CategorieObjet categorie = definitionObjet(objet.modele).categorie;
     const auto affixeValide = [&](const std::optional<Affixe>& affixe, PositionDAffixe position) {
         return !affixe.has_value() || (affixe->valeur > 0 && definitionAffixe(affixe->id).position == position &&

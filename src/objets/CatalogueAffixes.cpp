@@ -19,10 +19,6 @@ constexpr PlageDeValeurs s_plageCaracteristique = {1, 3};     // points de carac
 constexpr PlageDeValeurs s_plageEsquive = {2, 4};             // pour cent
 constexpr PlageDeValeurs s_plageBlocage = {3, 7};             // pour cent de chance
 
-// De combien les bornes d'une plage grandissent à chaque niveau d'objet au-delà du premier, en part de la plage du catalogue
-// (valeur provisoire, « à tester »).
-constexpr double s_croissanceDesPlagesParNiveau = 0.25;
-
 std::vector<DefinitionDAffixe> construireLeCatalogue() {
     return {
         {IdAffixe::Flamboyant, "Blazing", PositionDAffixe::Prefixe, EffetDAffixe::DegatsDeFeu, s_plageDegatsElementaires,
@@ -87,7 +83,7 @@ const DefinitionDAffixe& definitionAffixe(IdAffixe id) {
 PlageDeValeurs plageAuNiveau(IdAffixe id, int niveau) {
     assert(niveau >= 1);
     const PlageDeValeurs& plage = definitionAffixe(id).valeurs;
-    const double facteur = 1.0 + s_croissanceDesPlagesParNiveau * (niveau - 1);
+    const double facteur = facteurDeNiveau(niveau);
     return {static_cast<int>(std::lround(plage.min * facteur)), static_cast<int>(std::lround(plage.max * facteur))};
 }
 

@@ -19,13 +19,13 @@
 // Tire un objet au hasard, toujours valide (`objetValide`) :
 // 1. la rareté, selon `poidsDeRarete` à ce niveau ;
 // 2. le modèle, uniformément parmi ceux qui peuvent porter cette rareté (`peutPorterLaRarete`) ;
-// 3. magique : un affixe uniformément parmi TOUS ceux que la catégorie permet, préfixes et suffixes confondus, placé selon
+// 3. la qualité, un entier uniforme de 0 à `s_qualiteMaximale`, pour TOUT objet (arme ou non : l'ordre des tirages ne dépend
+//    pas du modèle) ;
+// 4. magique : un affixe uniformément parmi TOUS ceux que la catégorie permet, préfixes et suffixes confondus, placé selon
 //    sa position ; rare : un préfixe et un suffixe, chacun uniformément parmi ceux que la catégorie permet ;
-// 4. chaque valeur : un entier uniforme dans la plage de l'affixe à ce niveau (`plageAuNiveau`, la même pour un objet magique
+// 5. chaque valeur : un entier uniforme dans la plage de l'affixe à ce niveau (`plageAuNiveau`, la même pour un objet magique
 //    et pour un objet rare).
-// `niveau` : le niveau de l'objet, la profondeur où il est tiré (`assert` : au moins 1). Au niveau 1, les mêmes tirages et les
-// mêmes objets que lorsque le niveau n'existait pas, pour une même graine. Les objets de base (dégâts, armure, blocage) et les
-// seuils ne dépendent que du modèle.
+// `niveau` : le niveau de l'objet, la profondeur où il est tiré (`assert` : au moins 1) ; l'objet le retient.
 // Fonction sans état : le seul hasard est le `Generateur` reçu, que la `Partie` possède. La suite d'objets d'une graine
 // dépend de la bibliothèque standard (`std::uniform_int_distribution` n'est pas défini par la norme, contrairement à
 // `std::mt19937`) : sans conséquence tant que rien n'est sauvegardé ni partagé (`docs/objets.md`).

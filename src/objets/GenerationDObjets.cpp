@@ -91,6 +91,9 @@ Objet genererObjet(Generateur& generateur, int niveau) {
     assert(niveau >= 1);
     const Rarete rarete = tirerRarete(generateur, niveau);
     Objet objet{tirerModele(generateur, rarete), rarete};
+    // La qualité de tout objet, arme ou non : l'ordre des tirages ne change plus quand d'autres objets en dépendront.
+    objet.niveau = niveau;
+    objet.qualite = tirerEntre(generateur, 0, s_qualiteMaximale);
     const CategorieObjet categorie = definitionObjet(objet.modele).categorie;
     const std::vector<IdAffixe> prefixes = affixesPermisPour(categorie, PositionDAffixe::Prefixe);
     const std::vector<IdAffixe> suffixes = affixesPermisPour(categorie, PositionDAffixe::Suffixe);

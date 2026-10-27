@@ -191,9 +191,10 @@ TEST_CASE("genererObjet : la meme graine donne la meme suite d'objets, une autre
 }
 
 namespace {
-// Un objet en une ligne : modèle, rareté, puis préfixe et suffixe éventuels (identifiant et valeur).
+// Un objet en une ligne : modèle, rareté, niveau, qualité, puis préfixe et suffixe éventuels (identifiant et valeur).
 std::string decrire(const Objet& objet) {
-    std::string texte = std::to_string(static_cast<int>(objet.modele)) + "/" + std::to_string(static_cast<int>(objet.rarete));
+    std::string texte = std::to_string(static_cast<int>(objet.modele)) + "/" + std::to_string(static_cast<int>(objet.rarete)) +
+                        " n" + std::to_string(objet.niveau) + " q" + std::to_string(objet.qualite);
     for (const std::optional<Affixe>& affixe : {objet.prefixe, objet.suffixe}) {
         texte += affixe.has_value() ? " " + std::to_string(static_cast<int>(affixe->id)) + "=" + std::to_string(affixe->valeur) : " -";
     }
@@ -201,27 +202,42 @@ std::string decrire(const Objet& objet) {
 }
 }  // namespace
 
-TEST_CASE("genererObjet : au niveau 1, la meme suite d'objets et les memes tirages qu'avant l'etape 101 (suite epinglee)") {
-    // Épinglée avec la bibliothèque standard de MinGW (`std::uniform_int_distribution` n'est pas défini par la norme) avant que
-    // `genererObjet` reçoive un niveau : modèle (`IdObjet`) / rareté (`Rarete`), préfixe, suffixe (`IdAffixe` = valeur).
+TEST_CASE("genererObjet : la suite d'objets de la graine 96 au niveau 1 est epinglee (etape 102.1 : la qualite est tiree apres le modele)") {
+    // Épinglée avec la bibliothèque standard de MinGW (`std::uniform_int_distribution` n'est pas défini par la norme), à
+    // réépingler si elle change ou si l'ordre des tirages change : modèle (`IdObjet`) / rareté (`Rarete`), niveau, qualité,
+    // préfixe, suffixe (`IdAffixe` = valeur).
     const std::vector<std::string> attendu = {
-        "9/0 - -",      // anneau de protection, commun
-        "16/1 - 7=1",   // sceptre, magique, of Deflection
-        "13/1 - 6=2",   // masse, magique, of Evasion
-        "9/0 - -", "8/0 - -", "4/0 - -", "13/0 - -", "5/0 - -",
+        "9/0 n1 q91 - -",      // anneau de protection, commun
+        "15/1 n1 q2 - 8=3",    // épée à deux mains, magique, of the Lion
+        "11/1 n1 q11 - 6=1",   // collier d'endurance, magique, of the Fox
+        "10/0 n1 q25 - -", "13/0 n1 q3 - -", "6/0 n1 q93 - -", "17/0 n1 q51 - -", "5/0 n1 q32 - -",
     };
-    const std::vector<Objet> objets = tirer(static_cast<int>(attendu.size()));
-    for (std::size_t i = 0; i < attendu.size(); ++i) {
-        INFO("objet " << i);
-        REQUIRE(decrire(objets[i]) == attendu[i]);
+    std::vector<std::string> obtenu;
+    for (const Objet& objet : tirer(static_cast<int>(attendu.size()))) {
+        obtenu.push_back(decrire(objet));
     }
+    REQUIRE(obtenu == attendu);
 
-    // Le même nombre de tirages : après 200 objets, le prochain nombre du générateur est celui d'avant.
+    // Le nombre de tirages : après 200 objets, le prochain nombre du générateur est toujours le même.
     Generateur generateur(s_graine);
     for (int i = 0; i < 200; ++i) {
         static_cast<void>(genererObjet(generateur, 1));
     }
-    REQUIRE(generateur() == 3549376931U);
+    REQUIRE(generateur() == 1670516804U);
+}
+
+TEST_CASE("genererObjet : l'objet retient le niveau recu et sa qualite va de 0 a 100, les deux bornes sortent") {
+    for (const int niveau : {1, 5}) {
+        std::set<int> qualites;
+        for (const Objet& objet : tirer(s_tirages, s_graine, niveau)) {
+            REQUIRE(objet.niveau == niveau);
+            REQUIRE(objet.qualite >= 0);
+            REQUIRE(objet.qualite <= 100);
+            qualites.insert(objet.qualite);
+        }
+        REQUIRE(*qualites.begin() == 0);
+        REQUIRE(*qualites.rbegin() == 100);
+    }
 }
 
 TEST_CASE("genererObjet : au niveau 5, 10000 tirages restent valides, chaque valeur est dans la plage agrandie, certaines depassent l'ancien maximum") {

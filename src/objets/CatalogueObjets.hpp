@@ -35,6 +35,7 @@ struct DefinitionObjet {
 // `assert` : `Objet` est un agrégat (on l'écrit en toutes lettres, comme le fait le tirage de `genererObjet`), donc aucune
 // construction n'est obligée de passer par une fonction ; la validation, elle, se vérifie à chaque frontière
 // (`Equipement::poser`, le sac, les tests de données) et se teste sans `assert`. Un objet est valide quand :
+// - son niveau est d'au moins 1 et sa qualité va de 0 à `s_qualiteMaximale` ;
 // - chaque affixe est à sa position (un préfixe dans `prefixe`, un suffixe dans `suffixe`), permis pour la catégorie de
 //   son modèle (`affixePermis`), et de valeur strictement positive (le calcul des objets actifs suppose des bonus
 //   positifs ou nuls) ;

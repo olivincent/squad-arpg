@@ -457,15 +457,16 @@ inline Niveau niveauDegage(const std::vector<sf::Vector2f>& monstres) {
     return niveauDegageEnGroupes(deLaPartie);
 }
 
-// Un objet par valeur complète (modèle, rareté, affixes), sous une forme qui se trie : deux objets du même modèle mais
-// d'affixes différents sont deux exemplaires distincts.
-using Cle = std::array<int, 6>;
+// Un objet par valeur complète (modèle, rareté, affixes, niveau, qualité), sous une forme qui se trie : deux objets du même
+// modèle mais d'affixes, de niveau ou de qualité différents sont deux exemplaires distincts.
+using Cle = std::array<int, 8>;
 
 inline Cle cle(const Objet& objet) {
     const auto affixe = [](const std::optional<Affixe>& a) { return a.has_value() ? std::pair{static_cast<int>(a->id), a->valeur} : std::pair{-1, 0}; };
     const auto [idPrefixe, valeurPrefixe] = affixe(objet.prefixe);
     const auto [idSuffixe, valeurSuffixe] = affixe(objet.suffixe);
-    return {static_cast<int>(objet.modele), static_cast<int>(objet.rarete), idPrefixe, valeurPrefixe, idSuffixe, valeurSuffixe};
+    return {static_cast<int>(objet.modele), static_cast<int>(objet.rarete), idPrefixe, valeurPrefixe, idSuffixe, valeurSuffixe,
+            objet.niveau, objet.qualite};
 }
 
 // Tous les objets qui existent dans le sac et dans tous les équipements, un par exemplaire, triés : comparer deux de
