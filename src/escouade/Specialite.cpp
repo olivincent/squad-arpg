@@ -9,6 +9,7 @@
 #include "combat/Degats.hpp"
 #include "combat/Element.hpp"
 #include "combat/IdSkill.hpp"
+#include "combat/ModeDeCible.hpp"
 #include "combat/NatureDAttaque.hpp"
 #include "combat/TypeDArme.hpp"
 #include "combat/TypeSkill.hpp"
@@ -117,11 +118,11 @@ std::vector<Specialite> construireLeCatalogue() {
         // Guerrier : devant, au contact.
         {IdSpecialite::Guerrier, "Warrior",
          {.couleur = s_couleurGuerrier,
-          .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = s_porteeMelee,
+          .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .mode = ModeDeCible::Monstre, .portee = s_porteeMelee,
                                              .puissance = s_degatsSkill, .rechargeMin = s_rechargeSkill,
                                              .rechargeMax = s_rechargeSkill, .tempsExecution = s_activationSkill, .coefficients = s_puissanceSeule,
                                              .nature = NatureDAttaque::Contact, .armesExigees = s_armesDeContact})},
-           {IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .portee = 0.0f,
+           {IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .mode = ModeDeCible::Soi, .portee = 0.0f,
                                          .puissance = s_dureeProvocation, .rechargeMin = s_rechargeProvocation,
                                          .rechargeMax = s_rechargeProvocation, .rayonZone = s_rayonProvocation,
                                          .tempsExecution = s_activationProvocation, .nature = NatureDAttaque::Contact})}},
@@ -131,7 +132,7 @@ std::vector<Specialite> construireLeCatalogue() {
         // Prêtre : derrière, soigne.
         {IdSpecialite::Pretre, "Priest",
          {.couleur = s_couleurPretre,
-          .skills = {{IdSkill::Soin, Skill({.type = TypeSkill::Soin, .portee = s_porteeSoin, .puissance = s_puissanceSoin,
+          .skills = {{IdSkill::Soin, Skill({.type = TypeSkill::Soin, .mode = ModeDeCible::Allie, .portee = s_porteeSoin, .puissance = s_puissanceSoin,
                                   .rechargeMin = s_rechargeSoin, .rechargeMax = s_rechargeSoin,
                                   .tempsExecution = s_activationSoin, .coefficients = s_puissanceSeule, .nature = NatureDAttaque::Contact})}},
           .equipementDeDepart = equipementDuPretre(IdObjet::Sceptre), .rayonVision = s_rayonVision,
@@ -140,7 +141,7 @@ std::vector<Specialite> construireLeCatalogue() {
         // Mage : derrière, lance l'explosion.
         {IdSpecialite::Mage, "Mage",
          {.couleur = s_couleurMage,
-          .skills = {{IdSkill::Explosion, Skill({.type = TypeSkill::Zone, .portee = s_porteeZone, .puissance = s_degatsZone,
+          .skills = {{IdSkill::Explosion, Skill({.type = TypeSkill::Zone, .mode = ModeDeCible::Point, .portee = s_porteeZone, .puissance = s_degatsZone,
                                        .rechargeMin = s_rechargeZone, .rechargeMax = s_rechargeZone,
                                        .rayonZone = s_rayonZone, .tempsExecution = s_activationZone, .coefficients = s_puissanceSeule,
                                        .nature = NatureDAttaque::Zone, .element = Element::Feu})}},
@@ -150,13 +151,13 @@ std::vector<Specialite> construireLeCatalogue() {
         // Paladin : devant, au contact, frappe et soigne.
         {IdSpecialite::Paladin, "Paladin",
          {.couleur = s_couleurPaladin,
-          .skills = {{IdSkill::FrappeSacree, Skill({.type = TypeSkill::DegatsSurCible, .portee = s_porteeMelee,
+          .skills = {{IdSkill::FrappeSacree, Skill({.type = TypeSkill::DegatsSurCible, .mode = ModeDeCible::Monstre, .portee = s_porteeMelee,
                                           .puissance = 0, .rechargeMin = s_rechargeFrappeSacree,
                                           .rechargeMax = s_rechargeFrappeSacree,
                                           .tempsExecution = s_activationFrappeSacree, .coefficients = s_puissanceSeule,
                                           .nature = NatureDAttaque::Contact, .armesExigees = s_armesDeContact,
                                           .bonusDeFrappe = degatsDe(Element::Sacre, s_bonusSacreFrappeSacree)})},
-           {IdSkill::ImpositionDesMains, Skill({.type = TypeSkill::Soin, .portee = s_porteeMelee,
+           {IdSkill::ImpositionDesMains, Skill({.type = TypeSkill::Soin, .mode = ModeDeCible::Allie, .portee = s_porteeMelee,
                                                 .puissance = s_puissanceImposition,
                                                 .rechargeMin = s_rechargeImposition,
                                                 .rechargeMax = s_rechargeImposition,
@@ -167,11 +168,11 @@ std::vector<Specialite> construireLeCatalogue() {
         // Rôdeur : derrière, tire de loin et lance une pluie de flèches.
         {IdSpecialite::Rodeur, "Ranger",
          {.couleur = s_couleurRodeur,
-          .skills = {{IdSkill::TirPercant, Skill({.type = TypeSkill::DegatsSurCible, .portee = s_porteeTirPercant,
+          .skills = {{IdSkill::TirPercant, Skill({.type = TypeSkill::DegatsSurCible, .mode = ModeDeCible::Monstre, .portee = s_porteeTirPercant,
                                         .puissance = s_degatsTirPercant, .rechargeMin = s_rechargeTirPercant,
                                         .rechargeMax = s_rechargeTirPercant, .tempsExecution = s_activationTirPercant, .coefficients = s_puissanceSeule,
                                         .nature = NatureDAttaque::Projectile, .armesExigees = s_armesDeTir})},
-           {IdSkill::PluieDeFleches, Skill({.type = TypeSkill::Zone, .portee = s_porteePluie,
+           {IdSkill::PluieDeFleches, Skill({.type = TypeSkill::Zone, .mode = ModeDeCible::Point, .portee = s_porteePluie,
                                             .puissance = s_degatsPluie, .rechargeMin = s_rechargePluie,
                                             .rechargeMax = s_rechargePluie, .rayonZone = s_rayonPluie,
                                             .tempsExecution = s_activationPluie, .coefficients = s_puissanceSeule,

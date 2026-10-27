@@ -24,6 +24,7 @@
 #include "monde/TileMap.hpp"
 #include "objets/CatalogueObjets.hpp"
 #include "objets/Equipement.hpp"
+#include "combat/ModeDeCible.hpp"
 
 namespace {
 
@@ -345,7 +346,7 @@ TEST_CASE("Lancer un skill rend sa puissance") {
     Generateur generateur = generateurDeTest();
     Personnage personnage = unPersonnage({100.0f, 100.0f},
                           {.couleur = sf::Color::White,
-                           .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
+                           .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .mode = ModeDeCible::Monstre, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
                            .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
 
     REQUIRE(lancerSkillEnEntier(personnage, Cible(CibleMonstre{1, pointCible({150.0f, 100.0f})}), generateur).degats.total() == 25);
@@ -355,7 +356,7 @@ TEST_CASE("Un personnage avec un skill de provocation en expose le type et le la
     Generateur generateur = generateurDeTest();
     Personnage personnage = unPersonnage({100.0f, 100.0f},
                           {.couleur = sf::Color::White,
-                           .skills = {{IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .portee = 0.0f, .puissance = 4, .rechargeMin = 10.0f, .rechargeMax = 10.0f, .rayonZone = 150.0f, .nature = NatureDAttaque::Contact})}},
+                           .skills = {{IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .mode = ModeDeCible::Soi, .portee = 0.0f, .puissance = 4, .rechargeMin = 10.0f, .rechargeMax = 10.0f, .rayonZone = 150.0f, .nature = NatureDAttaque::Contact})}},
                            .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
 
     REQUIRE(personnage.typeSkill(IdSkill::Provocation) == TypeSkill::Provocation);
@@ -367,7 +368,7 @@ TEST_CASE("Un personnage avec un skill de provocation en expose le type et le la
 TEST_CASE("zoneDuSkill est centree sur le personnage, au rayon de zone du skill") {
     Personnage provocateur = unPersonnage({100.0f, 100.0f},
                            {.couleur = sf::Color::White,
-                            .skills = {{IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .portee = 0.0f, .puissance = 4, .rechargeMin = 10.0f, .rechargeMax = 10.0f, .rayonZone = 150.0f, .nature = NatureDAttaque::Contact})}},
+                            .skills = {{IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .mode = ModeDeCible::Soi, .portee = 0.0f, .puissance = 4, .rechargeMin = 10.0f, .rechargeMax = 10.0f, .rayonZone = 150.0f, .nature = NatureDAttaque::Contact})}},
                             .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
     Personnage sansSkill = unPersonnage({100.0f, 100.0f},
                          definitionArmee(IdObjet::Sceptre));
@@ -390,7 +391,7 @@ TEST_CASE("engagerSkill refuse un personnage sans skill, sans toucher a l'attaqu
 TEST_CASE("engagerSkill refuse un personnage mort") {
     Personnage personnage = unPersonnage({100.0f, 100.0f},
                           {.couleur = sf::Color::White,
-                           .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
+                           .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .mode = ModeDeCible::Monstre, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
                            .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
 
     subir(personnage, personnage.getPointsDeVieMax());
@@ -402,7 +403,7 @@ TEST_CASE("skillEstAPortee mesure la portee du skill, sans toucher a l'attaque d
     Generateur generateur = generateurDeTest();
     Personnage personnage = unPersonnage({100.0f, 100.0f},
                           {.couleur = sf::Color::White,
-                           .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
+                           .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .mode = ModeDeCible::Monstre, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
                            .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
 
     REQUIRE(personnage.skillEstAPortee(IdSkill::FrappePuissante, pointCible({150.0f, 100.0f})));
@@ -414,7 +415,7 @@ TEST_CASE("Un skill ne peut pas etre relance pendant sa recharge, puis le peut u
     Generateur generateur = generateurDeTest();
     Personnage personnage = unPersonnage({100.0f, 100.0f},
                           {.couleur = sf::Color::White,
-                           .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
+                           .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .mode = ModeDeCible::Monstre, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
                            .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
     const TileMap carte = carteDegagee5x5();
     const Cible cible = CibleMonstre{1, pointCible({150.0f, 100.0f})};
@@ -431,7 +432,7 @@ TEST_CASE("Apres un skill reussi, l'attaque de base attend une recharge complete
     Generateur generateur = generateurDeTest();
     Personnage personnage = unPersonnage({100.0f, 100.0f},
                           {.couleur = sf::Color::White,
-                           .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
+                           .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .mode = ModeDeCible::Monstre, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
                            .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
     const TileMap carte = carteDegagee5x5();
     const Cercle cible = pointCible({150.0f, 100.0f});
@@ -636,7 +637,7 @@ namespace {
 Personnage personnageAvecExecution() {
     return unPersonnage({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
-                       .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
+                       .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .mode = ModeDeCible::Monstre, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
                        .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
 }
 
@@ -706,7 +707,7 @@ TEST_CASE("l'attaque d'un personnage porte la nature de son attaque de base, cel
     Generateur generateur = generateurDeTest();
     Personnage tireur = unPersonnage({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
-                       .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 20.0f, .puissance = 7,
+                       .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .mode = ModeDeCible::Monstre, .portee = 20.0f, .puissance = 7,
                                                                     .rechargeMin = 1.0f, .rechargeMax = 1.0f, .nature = NatureDAttaque::Contact})}},
                        .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
     REQUIRE(attaqueDeBaseDe(tireur).nature == NatureDAttaque::Projectile);
@@ -760,7 +761,7 @@ namespace {
 Personnage personnageAvecActivation() {
     return unPersonnage({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
-                       .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .tempsExecution = 0.3f, .nature = NatureDAttaque::Contact})}},
+                       .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .mode = ModeDeCible::Monstre, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .tempsExecution = 0.3f, .nature = NatureDAttaque::Contact})}},
                        .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
 }
 
@@ -918,7 +919,7 @@ namespace {
 Personnage personnageAvecDeuxSkills() {
     return unPersonnage({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
-                       .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .tempsExecution = 0.3f, .nature = NatureDAttaque::Contact})}, {IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .portee = 0.0f, .puissance = 4, .rechargeMin = 10.0f, .rechargeMax = 10.0f, .rayonZone = 150.0f, .tempsExecution = 0.2f, .nature = NatureDAttaque::Contact})}},
+                       .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .mode = ModeDeCible::Monstre, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .tempsExecution = 0.3f, .nature = NatureDAttaque::Contact})}, {IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .mode = ModeDeCible::Soi, .portee = 0.0f, .puissance = 4, .rechargeMin = 10.0f, .rechargeMax = 10.0f, .rayonZone = 150.0f, .tempsExecution = 0.2f, .nature = NatureDAttaque::Contact})}},
                        .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
 }
 
@@ -1268,8 +1269,8 @@ Personnage unPersonnageDePuissance(const Caracteristiques& base) {
     const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
     return unPersonnage({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
-                       .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 250, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .coefficients = puissance, .nature = NatureDAttaque::Contact})},
-                                  {IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .portee = 0.0f, .puissance = 4, .rechargeMin = 10.0f, .rechargeMax = 10.0f, .rayonZone = 150.0f, .nature = NatureDAttaque::Contact})}},
+                       .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .mode = ModeDeCible::Monstre, .portee = 80.0f, .puissance = 250, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .coefficients = puissance, .nature = NatureDAttaque::Contact})},
+                                  {IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .mode = ModeDeCible::Soi, .portee = 0.0f, .puissance = 4, .rechargeMin = 10.0f, .rechargeMax = 10.0f, .rayonZone = 150.0f, .nature = NatureDAttaque::Contact})}},
                        .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest,
                        .caracteristiques = base});
 }
@@ -1506,9 +1507,9 @@ TEST_CASE("l'attaque d'un skill range son montant dans le champ de son type, les
     const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
     Personnage personnage = unPersonnage({100.0f, 100.0f},
                           {.couleur = sf::Color::White,
-                           .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})},
-                                      {IdSkill::Soin, Skill({.type = TypeSkill::Soin, .portee = 80.0f, .puissance = 90, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .coefficients = puissance, .nature = NatureDAttaque::Contact})},
-                                      {IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .portee = 0.0f, .puissance = 4, .rechargeMin = 10.0f, .rechargeMax = 10.0f, .rayonZone = 150.0f, .nature = NatureDAttaque::Contact})}},
+                           .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .mode = ModeDeCible::Monstre, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})},
+                                      {IdSkill::Soin, Skill({.type = TypeSkill::Soin, .mode = ModeDeCible::Allie, .portee = 80.0f, .puissance = 90, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .coefficients = puissance, .nature = NatureDAttaque::Contact})},
+                                      {IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .mode = ModeDeCible::Soi, .portee = 0.0f, .puissance = 4, .rechargeMin = 10.0f, .rechargeMax = 10.0f, .rayonZone = 150.0f, .nature = NatureDAttaque::Contact})}},
                            .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest,
                            .caracteristiques = Caracteristiques({10, 10, 10, 10, 10})});
 
@@ -1533,8 +1534,8 @@ TEST_CASE("l'attaque d'un skill de zone de feu porte toute sa puissance dans la 
     const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
     Personnage personnage = unPersonnage({100.0f, 100.0f},
                           {.couleur = sf::Color::White,
-                           .skills = {{IdSkill::Explosion, Skill({.type = TypeSkill::Zone, .portee = 200.0f, .puissance = 40, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .rayonZone = 60.0f, .coefficients = puissance, .nature = NatureDAttaque::Zone, .element = Element::Feu})},
-                                      {IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
+                           .skills = {{IdSkill::Explosion, Skill({.type = TypeSkill::Zone, .mode = ModeDeCible::Point, .portee = 200.0f, .puissance = 40, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .rayonZone = 60.0f, .coefficients = puissance, .nature = NatureDAttaque::Zone, .element = Element::Feu})},
+                                      {IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .mode = ModeDeCible::Monstre, .portee = 80.0f, .puissance = 25, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .nature = NatureDAttaque::Contact})}},
                            .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest,
                            .caracteristiques = Caracteristiques({10, 10, 10, 10, 10})});
 
@@ -1553,7 +1554,7 @@ TEST_CASE("l'attaque de base et la Puissance : toutes les portions profitent de 
     const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
     Personnage fort = unPersonnage({100.0f, 100.0f},
                     {.couleur = sf::Color::White,
-                     .skills = {{IdSkill::Explosion, Skill({.type = TypeSkill::Zone, .portee = 200.0f, .puissance = 100, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .rayonZone = 60.0f, .coefficients = puissance, .nature = NatureDAttaque::Zone, .element = Element::Feu})}},
+                     .skills = {{IdSkill::Explosion, Skill({.type = TypeSkill::Zone, .mode = ModeDeCible::Point, .portee = 200.0f, .puissance = 100, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .rayonZone = 60.0f, .coefficients = puissance, .nature = NatureDAttaque::Zone, .element = Element::Feu})}},
                      .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest,
                      .caracteristiques = Caracteristiques({20, 10, 10, 10, 10})});
 
@@ -1569,7 +1570,7 @@ Personnage unPersonnageDeFrappe(IdObjet arme, std::vector<TypeDArme> armes) {
     const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
     return unPersonnage({100.0f, 100.0f},
                       {.couleur = sf::Color::White,
-                       .skills = {{IdSkill::FrappeSacree, Skill({.type = TypeSkill::DegatsSurCible, .portee = 80.0f, .puissance = 0, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .coefficients = puissance, .nature = NatureDAttaque::Contact, .armesExigees = std::move(armes), .bonusDeFrappe = degatsDe(Element::Feu, 10)})}},
+                       .skills = {{IdSkill::FrappeSacree, Skill({.type = TypeSkill::DegatsSurCible, .mode = ModeDeCible::Monstre, .portee = 80.0f, .puissance = 0, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .coefficients = puissance, .nature = NatureDAttaque::Contact, .armesExigees = std::move(armes), .bonusDeFrappe = degatsDe(Element::Feu, 10)})}},
                        .equipementDeDepart = {{Emplacement::MainDroite, arme}}, .rayonVision = s_rayonVisionDeTest,
                        .caracteristiques = Caracteristiques({20, 20, 20, 20, 20})});
 }

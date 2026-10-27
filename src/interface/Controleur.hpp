@@ -30,8 +30,8 @@ public:
     // Clic droit : annule la visée.
     void appuiDroit();
     // Active l'emplacement `emplacement` de la barre (touche ou clic : même action). Vide : rien.
-    // Skill de type Zone : entre en visée de cette adresse (escouade vivante, skill prêt ; remplace
-    // la visée d'un autre skill de zone) ou en sort si cette adresse est déjà en visée. Autre type :
+    // Skill de mode `Point` : entre en visée de cette adresse (escouade vivante, skill prêt ; remplace
+    // la visée d'un autre skill à point) ou en sort si cette adresse est déjà en visée. Autre mode :
     // demandé à la partie, la visée en cours continue. `assert(emplacement < barre.taille())`.
     void activerEmplacement(Partie& partie, const BarreDeRaccourcis& barre, std::size_t emplacement);
     void appuiEchap();

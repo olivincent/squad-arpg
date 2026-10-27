@@ -14,6 +14,7 @@
 #include "combat/EntiteVue.hpp"
 #include "monde/TileMap.hpp"
 #include "combat/TypeSkill.hpp"
+#include "combat/ModeDeCible.hpp"
 
 // Escouade en (50, 50), orientée vers +x : les trois places sont en
 // (85, 60), (35, 35) et (35, 85). Des dégâts d'origine égale à
@@ -22,7 +23,7 @@
 TEST_CASE("choisirCible (soin) est vide quand tout le monde est a pleine vie") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
 
-    REQUIRE_FALSE(escouade.choisirCible(TypeSkill::Soin, s_adresseSoin, {}, carteOuverte()).has_value());
+    REQUIRE_FALSE(escouade.choisirCible(ModeDeCible::Allie, s_adresseSoin, {}, carteOuverte()).has_value());
 }
 
 TEST_CASE("choisirCible (soin) designe le seul blesse") {
@@ -65,7 +66,7 @@ TEST_CASE("choisirCible (soin) est vide quand tout le monde est mort") {
         infliger(escouade, IdMonstre{1}, origine, s_coupMortel);
     }
 
-    REQUIRE_FALSE(escouade.choisirCible(TypeSkill::Soin, s_adresseSoin, {}, carteOuverte()).has_value());
+    REQUIRE_FALSE(escouade.choisirCible(ModeDeCible::Allie, s_adresseSoin, {}, carteOuverte()).has_value());
 }
 
 // Soin (prêtre, place 2, en (35, 35), portée 40 px bord à bord = 60 px entre
@@ -81,7 +82,7 @@ TEST_CASE("Le soin du pretre soigne un allie a portee, sans combat engage") {
     REQUIRE(declencher(escouade, s_adresseSoin, {}) == 0);
 
     // 80 + 30 plafonné à 100 : plus personne à soigner.
-    REQUIRE_FALSE(escouade.choisirCible(TypeSkill::Soin, s_adresseSoin, {}, carteOuverte()).has_value());
+    REQUIRE_FALSE(escouade.choisirCible(ModeDeCible::Allie, s_adresseSoin, {}, carteOuverte()).has_value());
 }
 
 TEST_CASE("prendreFaits rend le soin applique (place, points reellement rendus, position) puis se vide") {
@@ -123,7 +124,7 @@ TEST_CASE("Le soin ne part pas a pleine vie et ne declenche alors pas la recharg
     infliger(escouade, IdMonstre{1}, {35.0f, 85.0f}, 20);
     declencher(escouade, s_adresseSoin, {});
 
-    REQUIRE_FALSE(escouade.choisirCible(TypeSkill::Soin, s_adresseSoin, {}, carteOuverte()).has_value());
+    REQUIRE_FALSE(escouade.choisirCible(ModeDeCible::Allie, s_adresseSoin, {}, carteOuverte()).has_value());
 }
 
 TEST_CASE("Le soin est en recharge juste apres son lancement") {

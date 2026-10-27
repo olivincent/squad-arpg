@@ -23,7 +23,7 @@ const Coefficients s_coefficientsDeLAttaqueDeBase = Coefficients::seul(Caracteri
 // La machine à états d'une attaque de base décrite par une arme (ou les mains nues). Elle ne porte que le temps (portée,
 // recharge, exécution) : ses dégâts, typés, sont ceux de la description (`attaqueDeLArme`), d'où la puissance à 0.
 Skill skillDeLAttaqueDeBase(const DescriptionDAttaque& description) {
-    return Skill({.type = TypeSkill::DegatsSurCible, .portee = description.portee, .puissance = 0,
+    return Skill({.type = TypeSkill::DegatsSurCible, .mode = ModeDeCible::Monstre, .portee = description.portee, .puissance = 0,
                   .rechargeMin = description.rechargeMin, .rechargeMax = description.rechargeMax,
                   .tempsExecution = description.tempsExecution, .coefficients = s_coefficientsDeLAttaqueDeBase,
                   .nature = description.nature});
@@ -199,6 +199,14 @@ std::optional<TypeSkill> Personnage::typeSkill(IdSkill id) const {
         return std::nullopt;
     }
     return skill->getType();
+}
+
+std::optional<ModeDeCible> Personnage::modeSkill(IdSkill id) const {
+    const Skill* skill = trouverSkill(id);
+    if (skill == nullptr) {
+        return std::nullopt;
+    }
+    return skill->getMode();
 }
 
 std::vector<IdSkill> Personnage::idsDesSkills() const {

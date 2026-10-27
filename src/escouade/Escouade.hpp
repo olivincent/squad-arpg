@@ -26,6 +26,7 @@
 #include "combat/EtatSkill.hpp"
 #include "combat/IdMonstre.hpp"
 #include "combat/IdSkill.hpp"
+#include "combat/ModeDeCible.hpp"
 #include "combat/Place.hpp"
 #include "monde/Mobile.hpp"
 #include "combat/EntiteVue.hpp"
@@ -68,8 +69,8 @@ public:
     [[nodiscard]] std::vector<Coup> declencherSkill(AdresseSkill adresse, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur);
     [[nodiscard]] bool skillEstPret(AdresseSkill adresse) const;
     [[nodiscard]] std::optional<EtatSkill> etatDuSkill(AdresseSkill adresse) const;
-    // Type du skill à cette adresse ; vide si la place est invalide ou le skill inconnu de ce personnage.
-    [[nodiscard]] std::optional<TypeSkill> typeDuSkill(AdresseSkill adresse) const;
+    // Comment le skill à cette adresse vise ; vide si la place est invalide ou le skill inconnu de ce personnage.
+    [[nodiscard]] std::optional<ModeDeCible> modeDuSkill(AdresseSkill adresse) const;
     // Les adresses de tous les skills de l'escouade : par place croissante, puis dans l'ordre de la
     // liste de chaque personnage.
     [[nodiscard]] std::vector<AdresseSkill> adressesDesSkills() const;
@@ -142,7 +143,7 @@ public:
     // Un personnage vivant est-il à `ecart` ou moins (bord à bord) de cette zone ?
     [[nodiscard]] bool unVivantPresDe(sf::FloatRect zone, float ecart) const;
     // Lu par les tests : le choix de la cible, avant tout temps d'activation (declencherSkill l'appelle aussi).
-    [[nodiscard]] std::optional<Cible> choisirCible(TypeSkill type, AdresseSkill adresse, const std::vector<MonstreVu>& monstres, const TileMap& carte) const;
+    [[nodiscard]] std::optional<Cible> choisirCible(ModeDeCible mode, AdresseSkill adresse, const std::vector<MonstreVu>& monstres, const TileMap& carte) const;
     void verrouiller(IdMonstre idCible);
     void deverrouiller();
     [[nodiscard]] std::optional<IdMonstre> getCibleVerrouillee() const;

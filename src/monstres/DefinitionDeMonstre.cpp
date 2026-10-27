@@ -81,7 +81,7 @@ DefinitionDeMonstre definitionDuProfil(const Profil& profil) {
             .rayonTerritoire = s_rayonTerritoire,
             .zoneDeControle = s_zoneDeControle,
             .regenerationRetour = s_regenerationRetour,
-            .attaque = {.type = TypeSkill::DegatsSurCible, .portee = s_porteeAttaque, .puissance = 0,
+            .attaque = {.type = TypeSkill::DegatsSurCible, .mode = ModeDeCible::Monstre, .portee = s_porteeAttaque, .puissance = 0,
                         .rechargeMin = profil.rechargeMin, .rechargeMax = profil.rechargeMax,
                         .tempsExecution = profil.execution, .nature = NatureDAttaque::Contact},
             .degats = degatsPhysiques(profil.degats),

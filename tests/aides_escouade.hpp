@@ -46,6 +46,7 @@
 #include "monde/TileMap.hpp"
 #include "combat/TypeDArme.hpp"
 #include "combat/TypeSkill.hpp"
+#include "combat/ModeDeCible.hpp"
 
 // Fixtures d'Escouade et de Partie communes à plusieurs fichiers de tests : personnages et escouades
 // de test, simulations, niveaux de Partie. Séparées d'aides.hpp (étape 80) : un fichier de tests qui
@@ -198,12 +199,12 @@ inline std::optional<Attaque> attaqueDeBaseDe(const Escouade& escouade, Place pl
 // Guerrier de test : devant, mêlée, frappe puissante et provocation.
 inline DefinitionPersonnage guerrierDeTest() {
     return {.couleur = sf::Color::Red,
-            .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = s_porteeMeleeDeTest,
+            .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .mode = ModeDeCible::Monstre, .portee = s_porteeMeleeDeTest,
                                                .puissance = s_degatsFrappeDeTest,
                                                .rechargeMin = s_rechargeFrappeDeTest,
                                                .rechargeMax = s_rechargeFrappeDeTest,
                                                .tempsExecution = s_activationFrappeDeTest, .nature = NatureDAttaque::Contact})},
-             {IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .portee = 0.0f,
+             {IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .mode = ModeDeCible::Soi, .portee = 0.0f,
                                            .puissance = s_dureeProvocationDeTest,
                                            .rechargeMin = s_rechargeProvocationDeTest,
                                            .rechargeMax = s_rechargeProvocationDeTest,
@@ -218,7 +219,7 @@ inline DefinitionPersonnage guerrierDeTest() {
 // Prêtre de test : derrière, tireur, soin.
 inline DefinitionPersonnage pretreDeTest() {
     return {.couleur = sf::Color(255, 240, 150),
-            .skills = {{IdSkill::Soin, Skill({.type = TypeSkill::Soin, .portee = s_porteeSoinDeTest,
+            .skills = {{IdSkill::Soin, Skill({.type = TypeSkill::Soin, .mode = ModeDeCible::Allie, .portee = s_porteeSoinDeTest,
                                     .puissance = s_puissanceSoinDeTest, .rechargeMin = s_rechargeSoinDeTest,
                                     .rechargeMax = s_rechargeSoinDeTest, .tempsExecution = s_activationSoinDeTest, .nature = NatureDAttaque::Contact})}},
             .equipementDeDepart = {{Emplacement::MainDroite, IdObjet::Sceptre}},
@@ -230,7 +231,7 @@ inline DefinitionPersonnage pretreDeTest() {
 // Mage de test : derrière, tireur, explosion (skill de zone, de feu comme celle de la classe).
 inline DefinitionPersonnage mageDeTest() {
     return {.couleur = sf::Color(160, 80, 220),
-            .skills = {{IdSkill::Explosion, Skill({.type = TypeSkill::Zone, .portee = s_porteeZoneDeTest,
+            .skills = {{IdSkill::Explosion, Skill({.type = TypeSkill::Zone, .mode = ModeDeCible::Point, .portee = s_porteeZoneDeTest,
                                          .puissance = s_degatsZoneDeTest, .rechargeMin = s_rechargeZoneDeTest,
                                          .rechargeMax = s_rechargeZoneDeTest, .rayonZone = s_rayonZoneDeTest,
                                          .tempsExecution = s_activationZoneDeTest, .nature = NatureDAttaque::Zone,
@@ -243,7 +244,7 @@ inline DefinitionPersonnage mageDeTest() {
 
 // Un skill de dégâts de contact qui exige l'un de ces types d'arme (vide : aucune exigence).
 inline Skill skillExigeantDesArmes(std::vector<TypeDArme> armes) {
-    return Skill({.type = TypeSkill::DegatsSurCible, .portee = s_porteeMeleeDeTest, .puissance = s_degatsFrappeDeTest,
+    return Skill({.type = TypeSkill::DegatsSurCible, .mode = ModeDeCible::Monstre, .portee = s_porteeMeleeDeTest, .puissance = s_degatsFrappeDeTest,
                   .rechargeMin = s_rechargeFrappeDeTest, .rechargeMax = s_rechargeFrappeDeTest,
                   .tempsExecution = s_activationFrappeDeTest, .nature = NatureDAttaque::Contact,
                   .armesExigees = std::move(armes)});
@@ -413,7 +414,7 @@ inline Escouade uneEscouadeADeuxGuerriers(sf::Vector2f positionDepart) {
 // soin normal (40 px) : il faut ce soin court pour tester un soin hors de portée.
 inline Escouade uneEscouadeAuSoinCourt(sf::Vector2f positionDepart) {
     std::vector<DefinitionPersonnage> composition = compositionDeTest();
-    composition[1].skills = {{IdSkill::Soin, Skill({.type = TypeSkill::Soin, .portee = 33.0f,
+    composition[1].skills = {{IdSkill::Soin, Skill({.type = TypeSkill::Soin, .mode = ModeDeCible::Allie, .portee = 33.0f,
                                                     .puissance = s_puissanceSoinDeTest,
                                                     .rechargeMin = s_rechargeSoinDeTest,
                                                     .rechargeMax = s_rechargeSoinDeTest,
@@ -538,7 +539,7 @@ inline std::vector<Coup> declencherZoneEtAttendre(Escouade& escouade, AdresseSki
 
 // Place de l'allié désigné par choisirCible, vide si aucune cible.
 inline std::optional<Place> placeAlliePourSoin(const Escouade& escouade) {
-    const std::optional<Cible> cible = escouade.choisirCible(TypeSkill::Soin, s_adresseSoin, {}, carteOuverte());
+    const std::optional<Cible> cible = escouade.choisirCible(ModeDeCible::Allie, s_adresseSoin, {}, carteOuverte());
     if (!cible.has_value()) {
         return std::nullopt;
     }

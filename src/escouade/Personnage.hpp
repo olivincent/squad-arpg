@@ -6,6 +6,7 @@
 #include "combat/EtatSkill.hpp"
 #include "combat/IdMonstre.hpp"
 #include "combat/IdSkill.hpp"
+#include "combat/ModeDeCible.hpp"
 #include "monde/Mobile.hpp"
 #include "combat/Skill.hpp"
 #include "combat/SkillConnu.hpp"
@@ -74,6 +75,7 @@ public:
     // Les questions sur un skill se posent par identifiant. Un identifiant que ce
     // personnage ne connaît pas se comporte comme « pas de skill » : vide, faux ou rayon 0.
     [[nodiscard]] std::optional<TypeSkill> typeSkill(IdSkill id) const;
+    [[nodiscard]] std::optional<ModeDeCible> modeSkill(IdSkill id) const;
     // Identifiants des skills qu'il connaît, dans l'ordre de sa liste.
     [[nodiscard]] std::vector<IdSkill> idsDesSkills() const;
     // L'arme portée permet-elle de lancer ce skill ? Faux pour un skill que le personnage ne connaît pas.

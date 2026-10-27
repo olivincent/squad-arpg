@@ -29,6 +29,7 @@
 #include "objets/Emplacement.hpp"
 #include "objets/Objet.hpp"
 #include "escouade/Specialite.hpp"
+#include "combat/ModeDeCible.hpp"
 
 namespace {
 // Un personnage construit depuis la définition de la classe (son attaque de base et sa zone de contrôle en viennent).
@@ -225,10 +226,10 @@ TEST_CASE("une escouade de paladin, de rodeur et de guerrier connait les skills 
     const Escouade escouade = uneEscouadeDe({100.0f, 100.0f},
                             composer({IdSpecialite::Paladin, IdSpecialite::Rodeur, IdSpecialite::Guerrier}));
 
-    REQUIRE(escouade.typeDuSkill({Place{1}, IdSkill::ImpositionDesMains}) == TypeSkill::Soin);
-    REQUIRE(escouade.typeDuSkill({Place{2}, IdSkill::PluieDeFleches}) == TypeSkill::Zone);
-    REQUIRE(escouade.typeDuSkill({Place{3}, IdSkill::FrappePuissante}) == TypeSkill::DegatsSurCible);
-    REQUIRE_FALSE(escouade.typeDuSkill({Place{1}, IdSkill::TirPercant}).has_value());
+    REQUIRE(escouade.modeDuSkill({Place{1}, IdSkill::ImpositionDesMains}) == ModeDeCible::Allie);
+    REQUIRE(escouade.modeDuSkill({Place{2}, IdSkill::PluieDeFleches}) == ModeDeCible::Point);
+    REQUIRE(escouade.modeDuSkill({Place{3}, IdSkill::FrappePuissante}) == ModeDeCible::Monstre);
+    REQUIRE_FALSE(escouade.modeDuSkill({Place{1}, IdSkill::TirPercant}).has_value());
 }
 
 TEST_CASE("nature des attaques : contact pour les melees, projectile pour les tireurs, zone pour les zones") {

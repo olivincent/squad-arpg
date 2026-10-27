@@ -6,6 +6,7 @@
 
 Skill::Skill(const DefinitionDeSkill& definition)
     : m_type(definition.type),
+      m_mode(definition.mode),
       m_portee(definition.portee),
       m_puissance(definition.puissance),
       m_rechargeMin(definition.rechargeMin),
@@ -104,6 +105,10 @@ float Skill::getRechargeRestante() const {
 
 TypeSkill Skill::getType() const {
     return m_type;
+}
+
+ModeDeCible Skill::getMode() const {
+    return m_mode;
 }
 
 float Skill::getPortee() const {

@@ -12,6 +12,7 @@
 #include "combat/EntiteVue.hpp"
 #include "monde/TileMap.hpp"
 #include "combat/TypeSkill.hpp"
+#include "combat/ModeDeCible.hpp"
 
 // Skill de zone (touche 4) : lanceur (mage) en (185, 235), 15 dégâts, recharge 8 s,
 // zone de 60 px de rayon ; monstres de rayon 15, donc touchés jusqu'à 75 px
@@ -277,7 +278,7 @@ TEST_CASE("declencherSkill sans point refuse un skill de zone, et choisirCible n
 
     REQUIRE(declencherEtAttendre(escouade, s_adresseExplosion, monstres, carteOuverte(), generateur).empty());
     REQUIRE(escouade.skillEstPret(s_adresseExplosion));
-    REQUIRE_FALSE(escouade.choisirCible(TypeSkill::Zone, s_adresseExplosion, monstres, carteOuverte()).has_value());
+    REQUIRE_FALSE(escouade.choisirCible(ModeDeCible::Point, s_adresseExplosion, monstres, carteOuverte()).has_value());
 }
 
 TEST_CASE("Zone : relance la recharge de l'attaque de base du lanceur") {

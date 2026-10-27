@@ -21,6 +21,7 @@
 #include "combat/Skill.hpp"
 #include "monde/TileMap.hpp"
 #include "combat/TypeSkill.hpp"
+#include "combat/ModeDeCible.hpp"
 
 TEST_CASE("etatDuSkill est vide pour une place invalide") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
@@ -254,18 +255,20 @@ TEST_CASE("Une adresse dont le skill est inconnu du personnage est traitee comme
 
     REQUIRE_FALSE(escouade.skillEstPret(inconnue));
     REQUIRE_FALSE(escouade.etatDuSkill(inconnue).has_value());
-    REQUIRE_FALSE(escouade.typeDuSkill(inconnue).has_value());
+    REQUIRE_FALSE(escouade.modeDuSkill(inconnue).has_value());
     REQUIRE(escouade.rayonZoneDuSkill(inconnue) == 0.0f);
     REQUIRE(declencherEtAttendre(escouade, inconnue, {MonstreVu{IdMonstre{1}, cibleMonstre({110.0f, 35.0f})}}, carteOuverte(), generateur).empty());
     REQUIRE(declencherZoneEtAttendre(escouade, inconnue, {235.0f, 235.0f}, {}, carteOuverte(), generateur).empty());
 }
 
-TEST_CASE("typeDuSkill donne le type du skill a l'adresse, vide pour une place invalide") {
+TEST_CASE("modeDuSkill donne le mode de cible du skill a l'adresse, vide pour une place invalide") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
 
-    REQUIRE(escouade.typeDuSkill(s_adresseFrappe) == TypeSkill::DegatsSurCible);
-    REQUIRE(escouade.typeDuSkill(s_adresseExplosion) == TypeSkill::Zone);
-    REQUIRE_FALSE(escouade.typeDuSkill(AdresseSkill{Place{5}, IdSkill::FrappePuissante}).has_value());
+    REQUIRE(escouade.modeDuSkill(s_adresseFrappe) == ModeDeCible::Monstre);
+    REQUIRE(escouade.modeDuSkill(s_adresseExplosion) == ModeDeCible::Point);
+    REQUIRE(escouade.modeDuSkill(s_adresseProvocation) == ModeDeCible::Soi);
+    REQUIRE(escouade.modeDuSkill(s_adresseSoin) == ModeDeCible::Allie);
+    REQUIRE_FALSE(escouade.modeDuSkill(AdresseSkill{Place{5}, IdSkill::FrappePuissante}).has_value());
 }
 
 TEST_CASE("adressesDesSkills : par place, puis dans l'ordre de la liste du personnage") {
@@ -303,10 +306,10 @@ constexpr AdresseSkill s_adressePluie{Place{1}, IdSkill::PluieDeFleches};
 DefinitionPersonnage paladinDeTest() {
     DefinitionPersonnage paladin = guerrierDeTest();
     paladin.skills = {
-        {IdSkill::FrappeSacree, Skill({.type = TypeSkill::DegatsSurCible, .portee = s_porteeMeleeDeTest,
+        {IdSkill::FrappeSacree, Skill({.type = TypeSkill::DegatsSurCible, .mode = ModeDeCible::Monstre, .portee = s_porteeMeleeDeTest,
                                        .puissance = s_degatsFrappeSacreeDeTest, .rechargeMin = 5.0f,
                                        .rechargeMax = 5.0f, .tempsExecution = 0.3f, .nature = NatureDAttaque::Contact})},
-        {IdSkill::ImpositionDesMains, Skill({.type = TypeSkill::Soin, .portee = s_porteeMeleeDeTest,
+        {IdSkill::ImpositionDesMains, Skill({.type = TypeSkill::Soin, .mode = ModeDeCible::Allie, .portee = s_porteeMeleeDeTest,
                                              .puissance = s_puissanceImpositionDeTest, .rechargeMin = 10.0f,
                                              .rechargeMax = 10.0f, .tempsExecution = 0.5f, .nature = NatureDAttaque::Contact})}};
     return paladin;
@@ -315,10 +318,10 @@ DefinitionPersonnage paladinDeTest() {
 DefinitionPersonnage rodeurDeTest() {
     DefinitionPersonnage rodeur = mageDeTest();
     rodeur.skills = {
-        {IdSkill::TirPercant, Skill({.type = TypeSkill::DegatsSurCible, .portee = 200.0f, .puissance = s_degatsTirDeTest,
+        {IdSkill::TirPercant, Skill({.type = TypeSkill::DegatsSurCible, .mode = ModeDeCible::Monstre, .portee = 200.0f, .puissance = s_degatsTirDeTest,
                                      .rechargeMin = 6.0f, .rechargeMax = 6.0f, .tempsExecution = 0.5f,
                                      .nature = NatureDAttaque::Projectile})},
-        {IdSkill::PluieDeFleches, Skill({.type = TypeSkill::Zone, .portee = 320.0f, .puissance = s_degatsPluieDeTest,
+        {IdSkill::PluieDeFleches, Skill({.type = TypeSkill::Zone, .mode = ModeDeCible::Point, .portee = 320.0f, .puissance = s_degatsPluieDeTest,
                                          .rechargeMin = 8.0f, .rechargeMax = 8.0f, .rayonZone = 45.0f,
                                          .tempsExecution = 0.8f, .nature = NatureDAttaque::Zone})}};
     return rodeur;

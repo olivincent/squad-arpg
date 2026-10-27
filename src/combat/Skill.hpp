@@ -5,6 +5,7 @@
 #include "combat/Caracteristiques.hpp"
 #include "combat/Degats.hpp"
 #include "combat/Element.hpp"
+#include "combat/ModeDeCible.hpp"
 #include "combat/NatureDAttaque.hpp"
 #include "combat/TypeDArme.hpp"
 #include "combat/TypeSkill.hpp"
@@ -37,6 +38,9 @@ enum class PhaseSkill { Pret, EnExecution, EnRecharge };
 // types voisins qu'on ne confond plus. Voir `Skill` pour leur sens.
 struct DefinitionDeSkill {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
     TypeSkill type;
+    // Comment le skill vise (`ModeDeCible`) : ce qui décide du choix de la cible, du déclenchement, de la mise en attente et de la
+    // visée. Il n'est lu que pour un skill de personnage ; l'attaque de base et celle d'un monstre écrivent `Monstre`.
+    ModeDeCible mode;
     float portee;        // en pixels, écart bord à bord
     int puissance;
     float rechargeMin;   // en secondes
@@ -81,6 +85,7 @@ public:
     [[nodiscard]] float getProgressionRecharge() const;
     [[nodiscard]] float getRechargeRestante() const;
     [[nodiscard]] TypeSkill getType() const;
+    [[nodiscard]] ModeDeCible getMode() const;
     [[nodiscard]] float getRayonZone() const;
     [[nodiscard]] float getPortee() const;
     [[nodiscard]] int getPuissance() const;
@@ -95,6 +100,7 @@ public:
 
 private:
     TypeSkill m_type;
+    ModeDeCible m_mode;
     float m_portee;         // en pixels, écart bord à bord
     int m_puissance;
     float m_rechargeMin;    // en secondes

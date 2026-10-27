@@ -357,27 +357,27 @@ std::vector<Coup> Escouade::declencherSkill(AdresseSkill adresse, const std::vec
     const Place place = adresse.place;
     const IdSkill id = adresse.id;
     Personnage& lanceur = personnageDeLaPlace(place);
-    const std::optional<TypeSkill> type = lanceur.typeSkill(id);
-    if (!type.has_value() || m_skillEnAttente.has_value() || !lanceur.skillEstPret(id)) {
+    const std::optional<ModeDeCible> mode = lanceur.modeSkill(id);
+    if (!mode.has_value() || m_skillEnAttente.has_value() || !lanceur.skillEstPret(id)) {
         return {};
     }
 
-    // Provocation : zone centrée sur le lanceur, sans cible. Son activation
+    // Soi (la provocation) : zone centrée sur le lanceur, sans cible. Son activation
     // commence tout de suite ; elle touche les monstres au départ, même s'il
     // n'y en a aucun (la recharge est alors consommée).
-    if (*type == TypeSkill::Provocation) {
+    if (*mode == ModeDeCible::Soi) {
         if (!lanceur.engagerSkill(id, std::nullopt)) {
             return {};
         }
         return avancerSkillDe(place, 0.0f, monstres, carte, generateur);
     }
 
-    // Zone : elle se lance à un point choisi (declencherSkillDeZone), pas ici.
-    if (*type == TypeSkill::Zone) {
+    // Point : il se lance à un point choisi (declencherSkillDeZone), pas ici.
+    if (*mode == ModeDeCible::Point) {
         return {};
     }
 
-    const std::optional<Cible> cible = choisirCible(*type, adresse, monstres, carte);
+    const std::optional<Cible> cible = choisirCible(*mode, adresse, monstres, carte);
     if (!cible.has_value()) {
         return {};
     }
@@ -424,11 +424,11 @@ std::optional<EtatSkill> Escouade::etatDuSkill(AdresseSkill adresse) const {
     return personnageDeLaPlace(adresse.place).etatDuSkill(adresse.id);
 }
 
-std::optional<TypeSkill> Escouade::typeDuSkill(AdresseSkill adresse) const {
+std::optional<ModeDeCible> Escouade::modeDuSkill(AdresseSkill adresse) const {
     if (!placeValide(adresse.place)) {
         return std::nullopt;
     }
-    return personnageDeLaPlace(adresse.place).typeSkill(adresse.id);
+    return personnageDeLaPlace(adresse.place).modeSkill(adresse.id);
 }
 
 std::vector<AdresseSkill> Escouade::adressesDesSkills() const {
@@ -537,7 +537,7 @@ std::vector<Coup> Escouade::declencherSkillDeZone(AdresseSkill adresse, sf::Vect
 
     const IdSkill id = adresse.id;
     Personnage& lanceur = personnageDeLaPlace(adresse.place);
-    if (lanceur.typeSkill(id) != TypeSkill::Zone) {
+    if (lanceur.modeSkill(id) != ModeDeCible::Point) {
         return {};
     }
 
@@ -1060,12 +1060,12 @@ bool Escouade::unVivantPresDe(sf::FloatRect zone, float ecart) const {
     return false;
 }
 
-std::optional<Cible> Escouade::choisirCible(TypeSkill type, AdresseSkill adresse, const std::vector<MonstreVu>& monstres, const TileMap& carte) const {
-    // Skills de zone, sans cible.
-    if (type == TypeSkill::Provocation || type == TypeSkill::Zone) {
+std::optional<Cible> Escouade::choisirCible(ModeDeCible mode, AdresseSkill adresse, const std::vector<MonstreVu>& monstres, const TileMap& carte) const {
+    // Soi et Point : pas de cible à choisir (le point est celui du clic).
+    if (mode == ModeDeCible::Soi || mode == ModeDeCible::Point) {
         return std::nullopt;
     }
-    if (type == TypeSkill::DegatsSurCible) {
+    if (mode == ModeDeCible::Monstre) {
         // Avec un verrou : le monstre verrouillé, à portée ou non.
         if (m_cibleVerrouillee.has_value()) {
             const MonstreVu* verrou = trouverEntite(monstres, *m_cibleVerrouillee);

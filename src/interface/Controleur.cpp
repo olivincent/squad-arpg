@@ -5,7 +5,7 @@
 #include "interface/BarreDeRaccourcis.hpp"
 #include "base/Cercle.hpp"
 #include "jeu/Partie.hpp"
-#include "combat/TypeSkill.hpp"
+#include "combat/ModeDeCible.hpp"
 
 void Controleur::debutImage(const Partie& partie) {
     // Lanceur mort ou escouade vaincue : on sort de la visée.
@@ -51,8 +51,8 @@ void Controleur::activerEmplacement(Partie& partie, const BarreDeRaccourcis& bar
     if (!adresse.has_value()) {
         return;
     }
-    // La visée dépend du type du skill, pas de l'emplacement.
-    if (partie.getEscouade().typeDuSkill(*adresse) == TypeSkill::Zone) {
+    // La visée dépend du mode de cible du skill, pas de l'emplacement.
+    if (partie.getEscouade().modeDuSkill(*adresse) == ModeDeCible::Point) {
         if (m_adresseEnVisee == adresse) {
             m_adresseEnVisee.reset();
         } else if (partie.getEscouade().estVivante() && partie.getEscouade().skillEstPret(*adresse)) {
