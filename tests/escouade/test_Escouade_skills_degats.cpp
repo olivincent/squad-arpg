@@ -115,11 +115,13 @@ TEST_CASE("Le skill de degats est refuse sans monstre verrouille meme si une cib
     REQUIRE(declencher(escouade, s_adresseFrappe, {}) == 0);
 }
 
-// Skill de dégâts en attente. Les attaques de base des 3 personnages réunies
-// restent sous la frappe en un tic : un tic qui rapporte au moins la frappe
-// contient donc forcément le skill.
-TEST_CASE("skill de degats en attente : les attaques de base des trois personnages reunies restent sous la frappe") {
-    REQUIRE(3 * s_degatsBaseDeTest < s_degatsFrappeDeTest);
+// Skill de dégâts en attente. Chaque attaque de base reste sous la frappe : un tic qui rapporte au moins la frappe contient
+// donc le skill (sauf si les trois personnages frappent dans le même tic, au plus fort de leur plage : la graine est fixe, le
+// test est déterministe).
+TEST_CASE("skill de degats en attente : chaque attaque de base des personnages reste sous la frappe") {
+    for (const IdObjet arme : {IdObjet::EpeeAUneMain, IdObjet::Sceptre, IdObjet::Baton}) {
+        REQUIRE(descriptionDeLArme(Objet{arme}).degats.max.total() < s_degatsFrappeDeTest);
+    }
 }
 
 TEST_CASE("Un skill de degats hors de portee est mis en attente, puis part a l'arrivee du lanceur") {

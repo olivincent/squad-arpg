@@ -11,8 +11,8 @@
 // Les affixes ont un effet (étape 95.4) : ils entrent dans les totaux de l'équipement (`armureTotale`, `bonusTotal`,
 // `bonusDeCombatTotal`, `attaqueDeBase`), qui restent les seuls endroits qui calculent.
 namespace {
-const Objet s_masseFlamboyante{IdObjet::Masse, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}};
-const Objet s_masseSanctifiee{IdObjet::Masse, Rarete::Magique, Affixe{IdAffixe::Sanctifie, 4}};
+const Objet s_masseFlamboyante{IdObjet::MasseAUneMain, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}};
+const Objet s_masseSanctifiee{IdObjet::MasseAUneMain, Rarete::Magique, Affixe{IdAffixe::Sanctifie, 4}};
 const Objet s_arcAcereDuRenard{IdObjet::Arc, Rarete::Rare, Affixe{IdAffixe::Acere, 15}, Affixe{IdAffixe::DuRenard, 2}};
 const Objet s_mailleRenforceeDEsquive{IdObjet::CuirasseDeMailles, Rarete::Rare, Affixe{IdAffixe::Renforce, 3},
                                       Affixe{IdAffixe::DEsquive, 3}};
@@ -82,7 +82,7 @@ TEST_CASE("affixes : l'armure d'un bouclier renforce s'ajoute aussi") {
 TEST_CASE("affixes : une masse flamboyante frappe en physique et en feu") {
     Equipement equipement;
     poser(equipement, Emplacement::MainDroite, s_masseFlamboyante);
-    const DescriptionDAttaque masse = definitionObjet(IdObjet::Masse).arme.value().attaque;
+    const DescriptionDAttaque masse = descriptionDeLArme(Objet{IdObjet::MasseAUneMain});
 
     const DescriptionDAttaque attaque = equipement.attaqueDeBase();
 
@@ -104,25 +104,25 @@ TEST_CASE("affixes : une masse sanctifiee frappe en physique et en sacre") {
 
     REQUIRE(attaque.degats.min[Element::Sacre] == 4);
     REQUIRE(attaque.degats.min[Element::Feu] == 0);
-    REQUIRE(attaque.degats.min[Element::Physique] == definitionObjet(IdObjet::Masse).arme.value().attaque.degats.min[Element::Physique]);
+    REQUIRE(attaque.degats.min[Element::Physique] == descriptionDeLArme(Objet{IdObjet::MasseAUneMain}).degats.min[Element::Physique]);
 }
 
 TEST_CASE("affixes : la penetration d'un prefixe acere s'ajoute a celle de l'arme") {
     Equipement equipement;
     poser(equipement, Emplacement::MainDroite, s_arcAcereDuRenard);
-    REQUIRE(equipement.attaqueDeBase().penetration == 15);  // l'arc ne perce rien
+    REQUIRE(equipement.attaqueDeBase().penetration == descriptionDeLArme(Objet{IdObjet::Arc}).penetration + 15);  // celle de l'arc, plus l'affixe
 
     poser(equipement, Emplacement::MainDroite, {IdObjet::Dague, Rarete::Magique, Affixe{IdAffixe::Acere, 15}});
-    REQUIRE(equipement.attaqueDeBase().penetration == definitionObjet(IdObjet::Dague).arme->attaque.penetration + 15);
+    REQUIRE(equipement.attaqueDeBase().penetration == descriptionDeLArme(Objet{IdObjet::Dague}).penetration + 15);
 }
 
 TEST_CASE("affixes : la penetration cumulee n'est pas plafonnee dans l'attaque, le plafond de 75 % joue a l'application") {
     Equipement equipement;
-    poser(equipement, Emplacement::MainDroite, {IdObjet::Dague, Rarete::Magique, Affixe{IdAffixe::Acere, 60}});
+    poser(equipement, Emplacement::MainDroite, {IdObjet::Dague, Rarete::Magique, Affixe{IdAffixe::Acere, 80}});
 
     const int penetration = equipement.attaqueDeBase().penetration;
 
-    REQUIRE(penetration == definitionObjet(IdObjet::Dague).arme->attaque.penetration + 60);
+    REQUIRE(penetration == descriptionDeLArme(Objet{IdObjet::Dague}).penetration + 80);
     REQUIRE(penetration > s_penetrationMaximale);
     REQUIRE(armureAppliquee(100.0f, 40, penetration) == armureAppliquee(100.0f, 40, s_penetrationMaximale));
 }
@@ -132,8 +132,8 @@ TEST_CASE("affixes : un affixe de l'arme ne change pas l'attaque des mains nues 
     poser(equipement, Emplacement::Torse, s_mailleRenforceeDEsquive);  // pas une arme
     REQUIRE(equipement.attaqueDeBase() == mainsNues());
 
-    poser(equipement, Emplacement::MainDroite, {IdObjet::Masse});
-    REQUIRE(equipement.attaqueDeBase() == definitionObjet(IdObjet::Masse).arme.value().attaque);
+    poser(equipement, Emplacement::MainDroite, {IdObjet::MasseAUneMain});
+    REQUIRE(equipement.attaqueDeBase() == descriptionDeLArme(Objet{IdObjet::MasseAUneMain}));
 }
 
 TEST_CASE("affixes : un objet inactif perd tout, ses proprietes de modele et ses affixes") {
@@ -162,8 +162,8 @@ TEST_CASE("affixes : les seuils ne dependent que du modele, jamais des affixes")
 
 TEST_CASE("affixes : un suffixe de caracteristique peut rendre actif un autre objet") {
     Equipement equipement;
-    poser(equipement, Emplacement::MainDroite, {IdObjet::EpeeLongue});
-    const int seuil = seuilsDeLObjet(Objet{IdObjet::EpeeLongue}).front().valeur;  // de Puissance
+    poser(equipement, Emplacement::MainDroite, {IdObjet::EpeeAUneMain});
+    const int seuil = seuilsDeLObjet(Objet{IdObjet::EpeeAUneMain}).front().valeur;  // de Puissance
     const Caracteristiques base({seuil - 2, 0, 0, 0, 0});
     REQUIRE_FALSE(equipement.actifPour(base).a(Emplacement::MainDroite).has_value());
 
@@ -187,7 +187,7 @@ TEST_CASE("affixes : une chaine d'objets actifs par leurs affixes se resout comm
     Equipement equipement;
     // Arme : Puissance exigée, que l'anneau « du Bœuf » +2 comble. Cuirasse : Endurance exigée, que le collier « de l'Ours » +3
     // comble (la base est au seuil du niveau 1 moins 2 : l'anneau suffit à l'arme, le collier à la cuirasse).
-    poser(equipement, Emplacement::MainDroite, {IdObjet::EpeeLongue});
+    poser(equipement, Emplacement::MainDroite, {IdObjet::EpeeAUneMain});
     poser(equipement, Emplacement::Anneau1, {IdObjet::AnneauDeProtection, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DuBoeuf, 2}});
     poser(equipement, Emplacement::Torse, {IdObjet::CuirasseDeMailles});
     poser(equipement, Emplacement::Collier, {IdObjet::CollierDeProtection, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeLOurs, 3}});

@@ -146,20 +146,27 @@ Le nom affiché d'un objet est `[préfixe] modèle [suffixe]` (« Blazing Mace �
 | Anneau de protection | Ring of Protection | RP |
 | Anneau de puissance | Ring of Might | RM |
 | Collier d'endurance | Necklace of Constitution | NC |
-| Épée longue | Longsword | LS |
-| Masse | Mace | MA |
 | Dague | Dagger | DA |
+| Épée à une main | Sword | SW |
+| Hache à une main | Hand Axe | HA |
+| Masse à une main | Mace | MA |
+| Lance | Spear | SP |
 | Épée à deux mains | Greatsword | GS |
+| Hache à deux mains | Great Axe | GA |
+| Masse à deux mains | Maul | MU |
+| Baguette | Wand | WA |
 | Sceptre | Scepter | SC |
 | Bâton | Staff | ST |
 | Arc | Bow | BO |
+| Arbalète | Crossbow | CB |
 
 ## Lignes d'infobulle et statistiques (`interface/AffichageObjets.cpp`, `AffichageStatistiques.cpp`)
 
 | Concept | Texte |
 |---|---|
 | Armure | Armor |
-| Dégâts, recharge, portée | Damage, Cooldown (« 0.3 to 0.7 s »), Range (« 20 px ») |
+| Niveau de l'objet (sur tous les objets, sous la catégorie) | Item Level (« Item Level 3 ») ; la qualité n'est pas affichée |
+| Dégâts, recharge, portée | Damage (« Damage: 13–17 » : les bornes de la plage, avant la Puissance ; un seul nombre sans écart), Cooldown (« 0.3 to 0.7 s »), Range (« 20 px ») |
 | Nature de l'attaque : contact, projectile, zone | Melee, Projectile, Area |
 | Pénétration d'armure | Penetration (« Penetration: 30 % ») |
 | Deux mains | Two-handed |

@@ -58,7 +58,7 @@ const Objet s_casqueDeFer{IdObjet::CasqueDeFer};
 // Un lot de quatre objets différents, tous à affixes : aucun n'est porté au départ, donc chacun a zéro exemplaire dans une
 // escouade neuve (les objets sont comptés par valeur complète).
 const std::vector<Objet> s_lotDeQuatre = {
-    {IdObjet::Masse, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}},
+    {IdObjet::MasseAUneMain, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}},
     {IdObjet::Arc, Rarete::Rare, Affixe{IdAffixe::Acere, 15}, Affixe{IdAffixe::DuRenard, 2}},
     {IdObjet::CasqueDeFer, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeDeviation, 3}},
     {IdObjet::BouclierRond, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeBlocage, 5}}};
@@ -307,18 +307,22 @@ TEST_CASE("statistiquesDeCombatDuPersonnage : celles du personnage de la place, 
 }
 
 TEST_CASE("la puissance de l'attaque de base lue par l'escouade (coup d'opportunite) suit les caracteristiques") {
-    const int degats = s_degatsBaseDeTest;
     const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
     DefinitionPersonnage definition = guerrierDeTest();
     definition.caracteristiques = Caracteristiques({s_valeurDeReference + 1, 10, 10, 10, 10});  // 11 de Puissance : l'épée est active (bonus de 3 % arrondi à 0)
     Escouade escouade = uneEscouadeDe({50.0f, 50.0f}, {definition});
-    REQUIRE(attaqueDeBaseDe(escouade, 1)->degats.total() == degats);
+    REQUIRE(dansLaPlageAvecPuissance(attaqueDeBaseDe(escouade, 1)->degats.total(), s_attaqueDeMeleeDeTest,
+                                     escouade.caracteristiquesDuPersonnage(1).value()));
 
     REQUIRE(escouade.ramasser(Objet{IdObjet::AnneauDePuissance}));
     REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(1, Emplacement::Anneau1)));
 
-    REQUIRE(attaqueDeBaseDe(escouade, 1)->degats.total() ==
-            montantEffectif(degats, puissance, escouade.caracteristiquesDuPersonnage(1).value()));
+    // Le coup tiré dans la plage de l'épée, la Puissance de l'anneau sur chaque borne.
+    const Caracteristiques avecAnneau = escouade.caracteristiquesDuPersonnage(1).value();
+    const int degats = attaqueDeBaseDe(escouade, 1)->degats.total();
+    REQUIRE(degats >= montantEffectif(s_degatsBaseMinDeTest, puissance, avecAnneau));
+    REQUIRE(degats <= montantEffectif(s_degatsBaseMaxDeTest, puissance, avecAnneau));
+    REQUIRE(montantEffectif(s_degatsBaseMaxDeTest, puissance, avecAnneau) > s_degatsBaseMaxDeTest);  // la Puissance joue vraiment
 }
 
 // Les deux mains (étape 91.3) : la règle est celle de `deplacerLesObjets` (`test_DeplacementDObjets.cpp`) ; ici,
@@ -326,7 +330,7 @@ TEST_CASE("la puissance de l'attaque de base lue par l'escouade (coup d'opportun
 namespace {
 const Objet s_bouclier{IdObjet::BouclierRond};
 const Objet s_epeeADeuxMains{IdObjet::EpeeADeuxMains};
-const Objet s_epee{IdObjet::EpeeLongue};
+const Objet s_epee{IdObjet::EpeeAUneMain};
 
 // Le guerrier porte le bouclier rond ; le sac contient l'épée à deux mains en case 0.
 Escouade escouadeDuGuerrierAuBouclier() {
@@ -347,7 +351,7 @@ TEST_CASE("deux mains : l'epee a deux mains range le bouclier du guerrier dans l
     REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainDroite) == s_epeeADeuxMains);
     REQUIRE_FALSE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainGauche).has_value());
     REQUIRE(escouade.sac().a(0) == s_bouclier);   // la première case libre
-    REQUIRE(escouade.sac().a(1) == s_epee);       // l'épée longue du guerrier a pris la place de l'arme (échange)
+    REQUIRE(escouade.sac().a(1) == s_epee);       // l'épée à une main du guerrier a pris la place de l'arme (échange)
     REQUIRE(exemplaires(escouade) == avant);
     const int armureApres = armureAvant - definitionObjet(IdObjet::BouclierRond).armure;
     REQUIRE(escouade.equipementDuPersonnage(s_guerrier).armureTotale() == armureApres);
@@ -363,7 +367,7 @@ TEST_CASE("deux mains : un bouclier range l'arme a deux mains que le guerrier po
 
     REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainGauche) == s_bouclier);
     REQUIRE_FALSE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainDroite).has_value());
-    REQUIRE(escouade.sac().a(0) == s_epee);              // l'épée longue rendue par l'échange de l'arme à deux mains
+    REQUIRE(escouade.sac().a(0) == s_epee);              // l'épée à une main rendue par l'échange de l'arme à deux mains
     REQUIRE(escouade.sac().a(1) == s_epeeADeuxMains);    // la première case libre : celle que le bouclier a quittée
     REQUIRE(exemplaires(escouade) == avant);
 }
@@ -405,7 +409,7 @@ TEST_CASE("changer d'arme dans l'inventaire relance la recharge : le premier cou
     Escouade escouade = uneEscouadeDe({50.0f, 50.0f}, {capableDePorter(guerrierDeTest(), {IdObjet::Dague})});
     REQUIRE(escouade.ramasser(Objet{IdObjet::Dague}));
     REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::MainDroite)));
-    const DescriptionDAttaque dague = definitionObjet(IdObjet::Dague).arme.value().attaque;
+    const DescriptionDAttaque dague = descriptionDeLArme(Objet{IdObjet::Dague});
     const std::vector<EntiteVue> monstres = {EntiteVue{1, cibleMonstre({110.0f, 60.0f})}};  // au contact du guerrier, en (85, 60)
     const auto coupsPendant = [&](float duree) {
         std::size_t coups = 0;
@@ -427,9 +431,9 @@ namespace {
 // Une cuirasse de niveau 20, dont le seuil d'Endurance dépasse celui de toutes les classes.
 const Objet s_cuirasseExigeante{IdObjet::CuirasseDeMailles, Rarete::Commun, std::nullopt, std::nullopt, 20};
 
-// Une épée à deux mains de niveau 4, dont le seuil de Puissance est juste au-dessus de celui du guerrier de départ, mais à la
+// Une hache à deux mains de niveau 4 (elle n'exige que de la Puissance), dont le seuil est juste au-dessus de celui du guerrier de départ, mais à la
 // portée du guerrier avec l'anneau de puissance (les `REQUIRE` du test le vérifient sans écrire les valeurs).
-const Objet s_epeeADeuxMainsDeNiveau4{IdObjet::EpeeADeuxMains, Rarete::Commun, std::nullopt, std::nullopt, 4};
+const Objet s_hacheADeuxMainsDeNiveau4{IdObjet::HacheADeuxMains, Rarete::Commun, std::nullopt, std::nullopt, 4};
 }  // namespace
 
 TEST_CASE("seuils : le mage ne peut pas recevoir la cuirasse de mailles, ni la surbrillance ni le deplacement") {
@@ -446,14 +450,14 @@ TEST_CASE("seuils : le mage ne peut pas recevoir la cuirasse de mailles, ni la s
     REQUIRE(exemplaires(escouade) == avant);
 }
 
-TEST_CASE("seuils : le guerrier ne porte pas l'epee a deux mains de niveau 4, avec l'anneau de puissance il le peut") {
+TEST_CASE("seuils : le guerrier ne porte pas la hache a deux mains de niveau 4, avec l'anneau de puissance il le peut") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
     const int puissance = escouade.caracteristiquesDuPersonnage(s_guerrier)->valeur(Caracteristique::Puissance);
     const int bonus = definitionObjet(IdObjet::AnneauDePuissance).bonus.valeur(Caracteristique::Puissance);
-    const int seuil = seuilsDeLObjet(s_epeeADeuxMainsDeNiveau4).front().valeur;
+    const int seuil = seuilsDeLObjet(s_hacheADeuxMainsDeNiveau4).front().valeur;
     REQUIRE(seuil > puissance);          // sans l'anneau, il n'atteint pas le seuil…
     REQUIRE(seuil <= puissance + bonus);  // …avec l'anneau, il l'atteint
-    REQUIRE(escouade.ramasser(s_epeeADeuxMainsDeNiveau4));         // case 0
+    REQUIRE(escouade.ramasser(s_hacheADeuxMainsDeNiveau4));         // case 0
     REQUIRE(escouade.ramasser(Objet{IdObjet::AnneauDePuissance}));  // case 1
     REQUIRE_FALSE(escouade.peutDeplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::MainDroite)));
 
@@ -461,23 +465,23 @@ TEST_CASE("seuils : le guerrier ne porte pas l'epee a deux mains de niveau 4, av
 
     REQUIRE(escouade.peutDeplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::MainDroite)));
     REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::MainDroite)));
-    REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainDroite) == s_epeeADeuxMainsDeNiveau4);
+    REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainDroite) == s_hacheADeuxMainsDeNiveau4);
 }
 
-TEST_CASE("objets inactifs : retirer l'anneau de puissance rend l'epee a deux mains inactive, sans la deplacer") {
+TEST_CASE("objets inactifs : retirer l'anneau de puissance rend la hache a deux mains inactive, sans la deplacer") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    REQUIRE(escouade.ramasser(s_epeeADeuxMainsDeNiveau4));         // case 0
+    REQUIRE(escouade.ramasser(s_hacheADeuxMainsDeNiveau4));         // case 0
     REQUIRE(escouade.ramasser(Objet{IdObjet::AnneauDePuissance}));  // case 1
     REQUIRE(escouade.deplacerObjet(dansLeSac(1), portee(s_guerrier, Emplacement::Anneau1)));
     REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::MainDroite)));
-    REQUIRE(escouade.equipementActifDuPersonnage(s_guerrier).a(Emplacement::MainDroite) == s_epeeADeuxMainsDeNiveau4);
+    REQUIRE(escouade.equipementActifDuPersonnage(s_guerrier).a(Emplacement::MainDroite) == s_hacheADeuxMainsDeNiveau4);
 
     REQUIRE(escouade.deplacerObjet(portee(s_guerrier, Emplacement::Anneau1), dansLeSac(5)));  // vers le sac : aucun seuil
 
-    REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainDroite) == s_epeeADeuxMainsDeNiveau4);   // toujours portée
+    REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::MainDroite) == s_hacheADeuxMainsDeNiveau4);   // toujours portée
     REQUIRE_FALSE(escouade.equipementActifDuPersonnage(s_guerrier).a(Emplacement::MainDroite).has_value());  // sans effet
     REQUIRE(attaqueDeBaseDe(escouade, s_guerrier)->degats.total() <
-            montantEffectif(definitionObjet(IdObjet::EpeeADeuxMains).arme->attaque.degats.min[Element::Physique], Coefficients::seul(Caracteristique::Puissance, 1.0f),
+            montantEffectif(descriptionDeLArme(Objet{IdObjet::HacheADeuxMains}).degats.min[Element::Physique], Coefficients::seul(Caracteristique::Puissance, 1.0f),
                             *escouade.caracteristiquesDuPersonnage(s_guerrier)));
 }
 
@@ -507,17 +511,17 @@ TEST_CASE("objetPorteEstInactif : un objet porte dont le seuil n'est pas atteint
 
 TEST_CASE("la penetration de l'attaque de base lue par l'escouade (coup d'opportunite) est celle de l'arme") {
     Escouade escouade = uneEscouadeDe({50.0f, 50.0f}, {capableDePorter(guerrierDeTest(), {IdObjet::Dague})});
-    REQUIRE(attaqueDeBaseDe(escouade, s_guerrier)->penetration == 0);  // l'épée longue
+    REQUIRE(attaqueDeBaseDe(escouade, s_guerrier)->penetration == 0);  // l'épée à une main
     REQUIRE(escouade.ramasser(Objet{IdObjet::Dague}));
 
     REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::MainDroite)));
 
-    REQUIRE(attaqueDeBaseDe(escouade, s_guerrier)->penetration == definitionObjet(IdObjet::Dague).arme->attaque.penetration);
+    REQUIRE(attaqueDeBaseDe(escouade, s_guerrier)->penetration == descriptionDeLArme(Objet{IdObjet::Dague}).penetration);
 }
 
 TEST_CASE("un objet a affixes garde ses affixes du sac a l'emplacement et retour, et se compte par valeur complete") {
-    const Objet masseFlamboyante{IdObjet::Masse, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}};
-    const Objet masseCommune{IdObjet::Masse};
+    const Objet masseFlamboyante{IdObjet::MasseAUneMain, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}};
+    const Objet masseCommune{IdObjet::MasseAUneMain};
     Escouade escouade = escouadeAvecSac({masseFlamboyante, masseCommune});
     const Exemplaires avant = exemplaires(escouade);
 
@@ -625,9 +629,9 @@ TEST_CASE("retirerObjet : l'objet n'est plus nulle part, sauf chez celui qui l'a
     REQUIRE(exemplaires(escouade) == attendu);
 }
 
-TEST_CASE("retirerObjet : retirer l'anneau de puissance rend l'epee a deux mains inactive, comme un deplacement vers le sac") {
+TEST_CASE("retirerObjet : retirer l'anneau de puissance rend la hache a deux mains inactive, comme un deplacement vers le sac") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
-    REQUIRE(escouade.ramasser(s_epeeADeuxMainsDeNiveau4));          // case 0
+    REQUIRE(escouade.ramasser(s_hacheADeuxMainsDeNiveau4));          // case 0
     REQUIRE(escouade.ramasser(Objet{IdObjet::AnneauDePuissance}));  // case 1
     REQUIRE(escouade.deplacerObjet(dansLeSac(1), portee(s_guerrier, Emplacement::Anneau1)));
     REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::MainDroite)));

@@ -1,6 +1,8 @@
 // ./tests/jeu/test_Partie_skills.cpp
 #include <catch2/catch_test_macros.hpp>
 #include <SFML/System/Vector2.hpp>
+#include <cstddef>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -33,8 +35,18 @@ TEST_CASE("un skill et attaquer dans la meme image ne frappent pas deux fois le 
     const Attaque frappe{.degats = degatsPhysiques(s_degatsFrappeDeTest),
                          .capaciteOffensive = partie.getEscouade().statistiquesDeCombatDuPersonnage(1)->capaciteOffensive,
                          .nature = NatureDAttaque::Contact};
-    const Attaque basePretre = *attaqueDeBaseDe(partie.getEscouade(), 2);
-    const Attaque baseMage = *attaqueDeBaseDe(partie.getEscouade(), 3);
+    // Les attaques de base des deux tireurs, par les deux bornes de la plage de leur arme (le sceptre et le bâton, de Puissance de
+    // référence) : un coup du tireur est entre les deux.
+    const auto bornes = [&](std::size_t place, IdObjet arme) {
+        const DescriptionDAttaque description = descriptionDeLArme(Objet{arme});
+        Attaque basse = *attaqueDeBaseDe(partie.getEscouade(), place);
+        Attaque haute = basse;
+        basse.degats = description.degats.min;
+        haute.degats = description.degats.max;
+        return std::pair{basse, haute};
+    };
+    const auto [bassePretre, hautePretre] = bornes(2, IdObjet::Sceptre);
+    const auto [basseMage, hauteMage] = bornes(3, IdObjet::Baton);
 
     // 0,35 s : le skill est parti (activation de 0,3 s) et les tireurs ont eu
     // le temps d'exécuter leur coup (0,15 s), pas le mêlée, dont la recharge
@@ -60,8 +72,10 @@ TEST_CASE("un skill et attaquer dans la meme image ne frappent pas deux fois le 
         total += coup->montant;
         if (coup->montant == degatsAttendus(frappe, monstre, coup->critique)) {
             ++frappes;
-        } else if (coup->montant == degatsAttendus(basePretre, monstre, coup->critique) ||
-                   coup->montant == degatsAttendus(baseMage, monstre, coup->critique)) {
+        } else if ((coup->montant >= degatsAttendus(bassePretre, monstre, coup->critique) &&
+                    coup->montant <= degatsAttendus(hautePretre, monstre, coup->critique)) ||
+                   (coup->montant >= degatsAttendus(basseMage, monstre, coup->critique) &&
+                    coup->montant <= degatsAttendus(hauteMage, monstre, coup->critique))) {
             ++basesDesTireurs;
         }
     }

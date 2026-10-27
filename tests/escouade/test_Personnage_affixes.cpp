@@ -17,20 +17,21 @@ const Coefficients s_puissance = Coefficients::seul(Caracteristique::Puissance, 
 
 // Un personnage avec cette Puissance (relevée au besoin pour porter l'arme), qui porte cet objet en main droite.
 Personnage armeDe(const Objet& arme, int puissance) {
-    Personnage personnage = unPersonnage({100.0f, 100.0f}, capableDePorter(avecPuissance(definitionArmee(IdObjet::Masse), puissance), {arme.modele}));
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, capableDePorter(avecPuissance(definitionArmee(IdObjet::MasseAUneMain), puissance), {arme.modele}));
     static_cast<void>(personnage.poserEquipement(Emplacement::MainDroite, arme));
     return personnage;
 }
 }  // namespace
 
 TEST_CASE("une masse flamboyante frappe en physique et en feu, la Puissance sur chacune des portions") {
-    const Objet masseFlamboyante{IdObjet::Masse, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}};
+    const Objet masseFlamboyante{IdObjet::MasseAUneMain, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}};
     const Personnage personnage = armeDe(masseFlamboyante, 20);  // +30 % sur chaque portion
-    const DescriptionDAttaque masse = definitionObjet(IdObjet::Masse).arme.value().attaque;
+    const DescriptionDAttaque masse = descriptionDeLArme(Objet{IdObjet::MasseAUneMain});
 
     const Attaque attaque = attaqueDeBaseDe(personnage);
 
-    REQUIRE(attaque.degats[Element::Physique] == montantEffectif(masse.degats.min[Element::Physique], s_puissance, personnage.getCaracteristiques()));
+    // Le coup de la masse est tiré dans sa plage, la Puissance sur le tirage ; le feu de l'affixe est fixe.
+    REQUIRE(dansLaPlageAvecPuissance(attaque.degats[Element::Physique], masse, personnage.getCaracteristiques()));
     REQUIRE(attaque.degats[Element::Feu] == montantEffectif(6, s_puissance, personnage.getCaracteristiques()));
     REQUIRE(attaque.degats[Element::Physique] > masse.degats.min[Element::Physique]);  // la Puissance joue vraiment
     REQUIRE(attaque.degats[Element::Feu] > 6);
@@ -38,11 +39,11 @@ TEST_CASE("une masse flamboyante frappe en physique et en feu, la Puissance sur 
 }
 
 TEST_CASE("une masse sans affixe frappe comme avant, en physique seulement") {
-    const Personnage personnage = armeDe({IdObjet::Masse}, 10);
+    const Personnage personnage = armeDe({IdObjet::MasseAUneMain}, 10);
 
     const Attaque attaque = attaqueDeBaseDe(personnage);
 
-    REQUIRE(attaque.degats[Element::Physique] == definitionObjet(IdObjet::Masse).arme->attaque.degats.min[Element::Physique]);
+    REQUIRE(dansLaPlage(attaque.degats[Element::Physique], descriptionDeLArme(Objet{IdObjet::MasseAUneMain})));
     REQUIRE(attaque.degats[Element::Feu] == 0);
     REQUIRE(attaque.degats[Element::Sacre] == 0);
 }
@@ -52,7 +53,7 @@ TEST_CASE("un arc acere perce de plus que l'arc seul, sa nature reste le project
 
     const Attaque attaque = attaqueDeBaseDe(personnage);
 
-    REQUIRE(attaque.penetration == 15);
+    REQUIRE(attaque.penetration == descriptionDeLArme(Objet{IdObjet::Arc}).penetration + 15);  // celle de l'arc, plus l'affixe
     REQUIRE(attaque.nature == NatureDAttaque::Projectile);
 }
 
@@ -65,7 +66,7 @@ TEST_CASE("le suffixe de Dexterite d'un arc entre dans les caracteristiques du p
 }
 
 TEST_CASE("changer pour une arme a affixes refait l'attaque de base, un anneau a affixes ne la refait pas") {
-    Personnage personnage = unPersonnage({100.0f, 100.0f}, capableDePorter(definitionArmee(IdObjet::Masse), {IdObjet::Masse}));
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, capableDePorter(definitionArmee(IdObjet::MasseAUneMain), {IdObjet::MasseAUneMain}));
     REQUIRE(personnage.engagerAttaque(1));  // une arme neuve est prête
     personnage.annulerAttaque();
 
@@ -73,6 +74,6 @@ TEST_CASE("changer pour une arme a affixes refait l'attaque de base, un anneau a
     REQUIRE(personnage.engagerAttaque(1));  // la recharge n'a pas été relancée
     personnage.annulerAttaque();
 
-    static_cast<void>(personnage.poserEquipement(Emplacement::MainDroite, {IdObjet::Masse, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}}));
+    static_cast<void>(personnage.poserEquipement(Emplacement::MainDroite, {IdObjet::MasseAUneMain, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}}));
     REQUIRE_FALSE(personnage.engagerAttaque(1));  // l'attaque a changé : recharge complète à relancer
 }

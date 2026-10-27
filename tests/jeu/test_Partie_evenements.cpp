@@ -143,6 +143,7 @@ TEST_CASE("evenements : un critique est signale, et son montant est multiplie") 
     Partie partie = partieDeTest(niveauDegage({{235.0f, 170.0f}}), std::vector<DefinitionPersonnage>{adroit}, s_graineDeTest,
                                  monstreIndestructible());
     const Attaque attaque = *attaqueDeBaseDe(partie.getEscouade(), 1);
+    const DescriptionDAttaque epee = descriptionDeLArme(Objet{IdObjet::EpeeAUneMain});
     const Defenses monstre = defensesDuMonstreDeTest();
 
     const std::vector<EvenementDeCombat> evenements = evenementsPendant(partie, 60.0f);
@@ -150,7 +151,7 @@ TEST_CASE("evenements : un critique est signale, et son montant est multiplie") 
     int critiques = 0;
     int normaux = 0;
     for (const EvenementDeCombat& evenement : parmi<DegatsSubis>(evenements, Camp::Monstres)) {
-        REQUIRE(degats(evenement).montant == degatsAttendus(attaque, monstre, degats(evenement).critique));
+        REQUIRE(montantAttendu(degats(evenement).montant, attaque, epee, monstre, degats(evenement).critique));
         ++(degats(evenement).critique ? critiques : normaux);
     }
     REQUIRE(critiques > 0);
@@ -194,13 +195,16 @@ TEST_CASE("evenements : un coup gratuit est marque, dans les deux sens") {
     REQUIRE(degats(surLeMage[0]).montant ==
             degatsAttendus(attaqueDuMonstre, defensesDuPersonnageDeTest(0), degats(surLeMage[0]).critique));  // armure 0
 
-    // Trois guerriers ; le premier frappe une fois, fort (l'épée à deux mains, de Puissance telle qu'elle prend 60 %
-    // des points de vie du monstre, 90 % si critique, et de recharge d'au moins 1,2 s : une seule frappe en 1,2 s).
-    // Le troisième le provoque dès le départ : il quitte le premier, qui le frappe gratuitement (le même coup).
+    // Trois guerriers ; le premier frappe fort (l'épée à deux mains, d'une Puissance qui rend son coup reconnaissable : il tire
+    // dans la plage de l'arme, de recharge d'au moins 0,5 s : une ou deux frappes en 1,2 s). Le troisième le provoque dès le
+    // départ : il quitte le premier, qui le frappe gratuitement (un coup de la même force).
     std::vector<DefinitionPersonnage> composition = {guerrierDeTest(), guerrierDeTest(), guerrierDeTest()};
-    composition[0] = avecPuissance(avecArme(composition[0], IdObjet::EpeeADeuxMains), s_puissanceDeLEpeeADeuxMains);
+    composition[0] = avecPuissance(capableDePorter(avecArme(composition[0], IdObjet::EpeeADeuxMains), {IdObjet::EpeeADeuxMains}),
+                                   s_puissanceDeLEpeeADeuxMains);
     Partie guerriers = partieDeTest(niveauDegage({{270.0f, 160.0f}}), std::move(composition));
     const Attaque coupDuPremier = *attaqueDeBaseDe(guerriers.getEscouade(), 1);
+    const DescriptionDAttaque epeeADeuxMains = descriptionDeLArme(Objet{IdObjet::EpeeADeuxMains});
+    const Caracteristiques puissanceDuPremier = guerriers.getEscouade().caracteristiquesDuPersonnage(1).value();
     std::vector<EvenementDeCombat> evenements;
     guerriers.demanderSkill({3, IdSkill::Provocation});
     for (int i = 0; i < nombreDeTics(1.2f); ++i) {
@@ -211,11 +215,12 @@ TEST_CASE("evenements : un coup gratuit est marque, dans les deux sens") {
     int normaux = 0;
     int gratuits = 0;
     for (const EvenementDeCombat& evenement : parmi<DegatsSubis>(evenements, Camp::Monstres)) {
-        if (degats(evenement).montant == degatsAttendus(coupDuPremier, defensesDuMonstreDeTest(), degats(evenement).critique)) {
+        if (montantAttendu(degats(evenement).montant, coupDuPremier, epeeADeuxMains, defensesDuMonstreDeTest(), degats(evenement).critique,
+                           puissanceDuPremier)) {
             ++(degats(evenement).opportunite ? gratuits : normaux);
         }
     }
-    REQUIRE(normaux == 1);
+    REQUIRE(normaux >= 1);  // au moins sa frappe, et une seconde si sa recharge est courte
     REQUIRE(gratuits == 1);
 }
 

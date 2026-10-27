@@ -55,7 +55,7 @@ TEST_CASE("peutPorterLaRarete : un bijou peut etre magique (un suffixe) mais jam
 
 TEST_CASE("peutPorterLaRarete : les gants et les bottes peuvent etre rares (Reinforced), comme les armes et les armures") {
     for (const IdObjet modele : {IdObjet::GantsDeCuir, IdObjet::BottesDeCuir, IdObjet::CasqueDeFer, IdObjet::CuirasseDeMailles,
-                                 IdObjet::BouclierRond, IdObjet::Arc, IdObjet::Masse}) {
+                                 IdObjet::BouclierRond, IdObjet::Arc, IdObjet::MasseAUneMain}) {
         INFO(definitionObjet(modele).nom);
         REQUIRE(peutPorterLaRarete(modele, Rarete::Magique));
         REQUIRE(peutPorterLaRarete(modele, Rarete::Rare));
@@ -202,15 +202,15 @@ std::string decrire(const Objet& objet) {
 }
 }  // namespace
 
-TEST_CASE("genererObjet : la suite d'objets de la graine 96 au niveau 1 est epinglee (etape 102.1 : la qualite est tiree apres le modele)") {
+TEST_CASE("genererObjet : la suite d'objets de la graine 96 au niveau 1 est epinglee (qualite tiree apres le modele, treize gabarits d'armes)") {
     // Épinglée avec la bibliothèque standard de MinGW (`std::uniform_int_distribution` n'est pas défini par la norme), à
     // réépingler si elle change ou si l'ordre des tirages change : modèle (`IdObjet`) / rareté (`Rarete`), niveau, qualité,
     // préfixe, suffixe (`IdAffixe` = valeur).
     const std::vector<std::string> attendu = {
-        "9/0 n1 q91 - -",      // anneau de protection, commun
-        "15/1 n1 q2 - 8=3",    // épée à deux mains, magique, of the Lion
-        "11/1 n1 q11 - 6=1",   // collier d'endurance, magique, of the Fox
-        "10/0 n1 q25 - -", "13/0 n1 q3 - -", "6/0 n1 q93 - -", "17/0 n1 q51 - -", "5/0 n1 q32 - -",
+        "11/0 n1 q91 - -",     // collier d'endurance, commun
+        "20/1 n1 q2 - 8=3",    // baguette, magique, of the Lion
+        "14/1 n1 q11 - 4=1",   // hache à une main, magique, of the Ox
+        "14/0 n1 q25 - -", "17/0 n1 q3 - -", "8/0 n1 q93 - -", "22/0 n1 q51 - -", "7/0 n1 q32 - -",
     };
     std::vector<std::string> obtenu;
     for (const Objet& objet : tirer(static_cast<int>(attendu.size()))) {

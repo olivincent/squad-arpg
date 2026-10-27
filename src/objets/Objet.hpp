@@ -17,13 +17,20 @@ enum class IdObjet {
     AnneauDeProtection,
     AnneauDePuissance,
     CollierDEndurance,
-    EpeeLongue,
-    Masse,
+    // Les treize gabarits d'armes (étape 102), dans l'ordre de `TypeDArme`.
     Dague,
+    EpeeAUneMain,
+    HacheAUneMain,
+    MasseAUneMain,
+    Lance,
     EpeeADeuxMains,
+    HacheADeuxMains,
+    MasseADeuxMains,
+    Baguette,
     Sceptre,
     Baton,
-    Arc
+    Arc,
+    Arbalete
 };
 
 // La qualité d'un objet va de 0 à `s_qualiteMaximale` (entier : l'égalité par valeur reste fiable) ; un objet écrit sans

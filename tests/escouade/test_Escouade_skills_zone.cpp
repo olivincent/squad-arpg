@@ -292,7 +292,7 @@ TEST_CASE("Zone : relance la recharge de l'attaque de base du lanceur") {
     const std::vector<Coup> coups = attaquerJusquAuDepart(escouade, monstres, carte, generateur);
 
     REQUIRE(coups.size() == 1);
-    REQUIRE(coups[0].attaque.degats.total() == s_degatsBaseDeTest);
+    REQUIRE(estUnCoupDeTireur(coups[0].attaque.degats.total()));  // celui du prêtre : le mage, lui, doit attendre
 }
 
 TEST_CASE("rayonZoneDuSkill : celui de l'explosion et de la provocation, 0 sans zone ou place invalide") {

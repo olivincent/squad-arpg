@@ -109,7 +109,7 @@ TEST_CASE("attaquer ignore les personnages morts pour decider si l'escouade doit
     // en arrière.
     const sf::Vector2f cible = centreAvant + sf::Vector2f(30.0f, 0.0f);
 
-    REQUIRE(attaquerCible(escouade, carte, cibleMonstre(cible)) == 2 * s_degatsBaseDeTest); // les 2 vivants
+    REQUIRE(sontDesCoupsDeLaComposition(attaquerCible(escouade, carte, cibleMonstre(cible)), 2)); // les 2 vivants
     escouade.mettreAJour(1.0f / 60.0f, carte, {.physiques = {}, .ciblables = unSeulMonstre(cibleMonstre(cible)), .deControle = {}});
 
     verifierPointProche(escouade.getCentre(), centreAvant);
@@ -134,7 +134,7 @@ TEST_CASE("attaquer renvoie les degats de tous les personnages pour une cible de
     const sf::Vector2f cible{85.0f, 60.0f};
     const sf::Vector2f centreInitial = escouade.getCentre();
 
-    REQUIRE(attaquerCible(escouade, carte, cibleMonstre(cible)) == 3 * s_degatsBaseDeTest);
+    REQUIRE(sontDesCoupsDeLaComposition(attaquerCible(escouade, carte, cibleMonstre(cible)), 3));
     escouade.mettreAJour(1.0f / 60.0f, carte, {.physiques = {}, .ciblables = unSeulMonstre(cibleMonstre(cible)), .deControle = {}});
 
     verifierPointProche(escouade.getCentre(), centreInitial);
@@ -262,7 +262,7 @@ TEST_CASE("Sans verrou, tous les personnages frappent un monstre a leur portee, 
     REQUIRE(coups.size() == 3);
     for (const Coup& coup : coups) {
         REQUIRE(coup.idMonstre == 4);
-        REQUIRE(coup.attaque.degats.total() == s_degatsBaseDeTest);
+        REQUIRE(estUnCoupDeBaseDeLaComposition(coup.attaque.degats.total()));
     }
     verifierPointProche(escouade.getCentre(), centreInitial);
 }
@@ -466,11 +466,11 @@ TEST_CASE("Un coup engage part meme si le monstre s'est eloigne") {
     }
 
     int total = 0;
-    for (int i = 0; i < nombreDeTics(0.2f); ++i) {
+    for (int i = 0; i < nombreDeTics(0.35f); ++i) {
         total += attaquerCibleUnTic(escouade, loin, carte, generateur);
     }
 
-    REQUIRE(total == 3 * s_degatsBaseDeTest);  // les 3 personnages, sur un monstre devenu hors de portée
+    REQUIRE(sontDesCoupsDeLaComposition(total, 3));  // les 3 personnages, sur un monstre devenu hors de portée
 }
 
 TEST_CASE("La disparition de la cible annule le coup engage, sans recharge consommee") {
@@ -499,10 +499,10 @@ TEST_CASE("La mort de l'attaquant annule son coup") {
     infliger(escouade, 1, {85.0f, 60.0f}, s_coupMortel);  // tue le guerrier en (85, 60)
 
     int total = 0;
-    for (int i = 0; i < nombreDeTics(0.2f); ++i) {
+    for (int i = 0; i < nombreDeTics(0.35f); ++i) {
         total += attaquerCibleUnTic(escouade, monstres, carte, generateur);
     }
-    REQUIRE(total == 2 * s_degatsBaseDeTest);  // les 2 autres personnages seulement
+    REQUIRE(sontDesCoupsDeLaComposition(total, 2));  // les 2 autres personnages seulement
 }
 
 TEST_CASE("Un skill qui part annule le coup en execution de son lanceur") {
@@ -512,15 +512,17 @@ TEST_CASE("Un skill qui part annule le coup en execution de son lanceur") {
     const std::vector<EntiteVue> monstres = {EntiteVue{1, cibleMonstre({85.0f, 60.0f})}};
     REQUIRE(attaquerCibleUnTic(escouade, monstres, carte, generateur) == 0);
 
-    // Guerrier : le skill commence son activation (il part à 0,3 s, après la fenêtre ci-dessous).
+    // Guerrier : le skill commence son activation (il part à 0,3 s, dans la fenêtre ci-dessous : son coup n'est pas une attaque de base).
     REQUIRE(escouade.declencherSkill(s_adresseFrappe, monstres, carte, generateur).empty());
     REQUIRE_FALSE(escouade.skillEstPret(s_adresseFrappe));
 
-    int total = 0;
-    for (int i = 0; i < nombreDeTics(0.2f); ++i) {
-        total += attaquerCibleUnTic(escouade, monstres, carte, generateur);
+    int attaquesDeBase = 0;
+    for (int i = 0; i < nombreDeTics(0.35f); ++i) {
+        for (const Coup& coup : escouade.attaquer(s_dureeTic, monstres, carte, generateur)) {
+            attaquesDeBase += estUnCoupDeBaseDeLaComposition(coup.attaque.degats.total()) ? 1 : 0;
+        }
     }
-    REQUIRE(total == 2 * s_degatsBaseDeTest);  // le guerrier du skill ne frappe pas : les 2 autres seulement
+    REQUIRE(attaquesDeBase == 2);  // le guerrier du skill ne frappe pas : les 2 autres seulement
 }
 
 TEST_CASE("recevoirCoup frappe le personnage de la place donnee, pas le plus proche") {
@@ -577,8 +579,8 @@ TEST_CASE("entitesDeControle exclut les morts mais garde la place des autres") {
 TEST_CASE("attaqueDeBase : l'attaque de la place, vide si la place est invalide") {
     const Escouade escouade = uneEscouade({50.0f, 50.0f});
 
-    REQUIRE(attaqueDeBaseDe(escouade, 1)->degats.total() == s_degatsBaseDeTest);
-    REQUIRE(attaqueDeBaseDe(escouade, 3)->degats.total() == s_degatsBaseDeTest);
+    REQUIRE(dansLaPlage(attaqueDeBaseDe(escouade, 1)->degats.total(), descriptionDeLArme(Objet{IdObjet::EpeeAUneMain})));  // le guerrier
+    REQUIRE(dansLaPlage(attaqueDeBaseDe(escouade, 3)->degats.total(), descriptionDeLArme(Objet{IdObjet::Baton})));        // le mage
     REQUIRE_FALSE(attaqueDeBaseDe(escouade, 0).has_value());
     REQUIRE_FALSE(attaqueDeBaseDe(escouade, 4).has_value());
 }

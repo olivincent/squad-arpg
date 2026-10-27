@@ -55,9 +55,8 @@ TEST_CASE("zone de controle : un guerrier qui reste au contact ne recoit aucun c
 
 namespace {
 
-// Une Puissance qui rend le coup du premier guerrier reconnaissable : son attaque de base (15 pour une arme du
-// catalogue, 60 pour l'épée à deux mains) fait plus de trois fois plus, quand les autres guerriers (Puissance de
-// base) ne font que l'attaque de leur épée.
+// Une Puissance qui rend le coup du premier guerrier reconnaissable : son attaque de base (de 13 à 60 selon l'arme et le
+// tirage) fait plus de trois fois plus, quand les autres guerriers (Puissance de base) ne font que l'attaque de leur épée.
 constexpr int s_puissanceReconnaissable = 77;
 
 // Trois guerriers (le premier au nord, à (235, 160)) et un monstre à (270, 160), au contact du premier seulement.
@@ -66,11 +65,29 @@ constexpr int s_puissanceReconnaissable = 77;
 // provocation attendait le premier coup, les autres guerriers se seraient déjà portés au contact du monstre et
 // l'auraient retenu dans la zone du premier). Renvoie le nombre de coups **gratuits** (marqués `opportunite`) de la force du coup du premier sur le
 // monstre, sur 1,2 s. Un monstre indestructible : aucun coup ne le tue.
+// Le coup de base du premier guerrier à la borne basse et à la borne haute de la plage de son arme, avec sa Puissance : tout
+// coup qu'il porte est entre les deux.
+struct BornesDuCoup {
+    Attaque basse;
+    Attaque haute;
+};
+
+BornesDuCoup bornesDuCoupDuPremier(const Partie& partie, IdObjet arme) {
+    const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
+    const Caracteristiques caracteristiques = partie.getEscouade().caracteristiquesDuPersonnage(1).value();
+    const DescriptionDAttaque description = descriptionDeLArme(Objet{arme});
+    Attaque basse = *attaqueDeBaseDe(partie.getEscouade(), 1);
+    Attaque haute = basse;
+    basse.degats = degatsPhysiques(montantEffectif(description.degats.min.total(), puissance, caracteristiques));
+    haute.degats = degatsPhysiques(montantEffectif(description.degats.max.total(), puissance, caracteristiques));
+    return {basse, haute};
+}
+
 int coupsGratuitsDuPremier(IdObjet arme) {
     std::vector<DefinitionPersonnage> composition = {guerrierDeTest(), guerrierDeTest(), guerrierDeTest()};
     composition[0] = avecPuissance(capableDePorter(avecArme(composition[0], arme), {arme}), s_puissanceReconnaissable);
     Partie partie = partieDeTest(niveauDegage({{270.0f, 160.0f}}), std::move(composition), s_graineDeTest, monstreIndestructible());
-    const Attaque coupDuPremier = *attaqueDeBaseDe(partie.getEscouade(), 1);
+    const BornesDuCoup bornes = bornesDuCoupDuPremier(partie, arme);
     const Defenses monstre{.armure = 0, .statistiques = monstreSansHasard().statistiques};
 
     int gratuits = 0;
@@ -82,7 +99,8 @@ int coupsGratuitsDuPremier(IdObjet arme) {
             if (coup == nullptr || evenement.campCible != Camp::Monstres) {
                 continue;
             }
-            if (coup->opportunite && coup->montant == degatsAttendus(coupDuPremier, monstre, coup->critique)) {
+            if (coup->opportunite && coup->montant >= degatsAttendus(bornes.basse, monstre, coup->critique) &&
+                coup->montant <= degatsAttendus(bornes.haute, monstre, coup->critique)) {
                 ++gratuits;
             }
         }
@@ -93,8 +111,8 @@ int coupsGratuitsDuPremier(IdObjet arme) {
 }  // namespace
 
 TEST_CASE("zone de controle : un monstre qui quitte un guerrier pour un provocateur est frappe gratuitement") {
-    // L'épée à deux mains frappe une fois en 1,2 s (recharge d'au moins 1,2 s) : le coup gratuit est le seul de sa
-    // force marqué comme tel.
+    // L'épée à deux mains frappe peu en 1,2 s (exécution de 0,3 s, recharge d'au moins 0,5 s) : le coup gratuit est le seul de
+    // sa force marqué comme tel.
     REQUIRE(coupsGratuitsDuPremier(IdObjet::EpeeADeuxMains) == 1);
 }
 
@@ -104,14 +122,18 @@ TEST_CASE("zone de controle : un personnage sans zone ne frappe jamais gratuitem
 }
 
 TEST_CASE("zone de controle : un monstre tue par un coup gratuit est retire et le verrou est leve") {
-    // Le premier coup (60 % des points de vie du monstre, 90 % s'il est critique : il reste en vie) en laisse au
-    // plus 40 % ; le coup gratuit, au moins aussi fort, le tue. La provocation est demandée dès le départ.
+    // Les points de vie du monstre sont deux fois le plus petit coup du premier guerrier : le premier coup, même le plus fort de
+    // sa plage, ne le tue pas (le plus fort est moins que le double du plus faible) ; le coup gratuit, au moins aussi fort que le
+    // plus faible, le tue. Aucun critique : le monstre a une capacité défensive énorme, donc le rapport des capacités est nul.
     std::vector<DefinitionPersonnage> composition = {guerrierDeTest(), guerrierDeTest(), guerrierDeTest()};
-    composition[0] = avecPuissance(avecArme(composition[0], IdObjet::EpeeADeuxMains), s_puissanceReconnaissable);
-    Partie partie = partieDeTest(niveauDegage({{270.0f, 160.0f}}), std::move(composition));
-    const int vieDuMonstre = partie.getMonstres().front().getPointsDeVie();
-    REQUIRE(attaqueDeBaseDe(partie.getEscouade(), 1)->degats.total() >= 6 * vieDuMonstre / 10);
-    REQUIRE(attaqueDeBaseDe(partie.getEscouade(), 1)->degats.total() * 3 / 2 < vieDuMonstre);
+    composition[0] = avecPuissance(capableDePorter(avecArme(composition[0], IdObjet::EpeeADeuxMains), {IdObjet::EpeeADeuxMains}),
+                                   s_puissanceReconnaissable);
+    const BornesDuCoup bornes = bornesDuCoupDuPremier(partieDeTest(niveauDegage({{270.0f, 160.0f}}), composition), IdObjet::EpeeADeuxMains);
+    REQUIRE(bornes.haute.degats.total() < 2 * bornes.basse.degats.total());
+    DefinitionDeMonstre definition = monstreSansHasard();
+    definition.statistiques.capaciteDefensive = 1'000'000;
+    definition.pointsDeVieMax = 2 * bornes.basse.degats.total();
+    Partie partie = partieDeTest(niveauDegage({{270.0f, 160.0f}}), std::move(composition), s_graineDeTest, definition);
     REQUIRE(partie.cliquer({270.0f, 160.0f}) == ResultatClic::Monstre);
 
     // En 1,2 s les autres guerriers ne retirent que quelques points : seul le coup gratuit peut le tuer.
@@ -168,7 +190,9 @@ namespace {
 // Le mage est d'une Puissance énorme : son attaque de base (le bâton) fait quatre fois celle de l'épée du guerrier,
 // donc reconnaissable. Le monstre est indestructible : trois secondes de coups ne le tuent pas.
 constexpr int s_puissanceDuMage = 110;
-const int s_degatsDuMageDansLaPartie = montantEffectif(s_degatsBaseDeTest, Coefficients::seul(Caracteristique::Puissance, 1.0f),
+// Le moins qu'un coup de base du mage lui fait perdre : le minimum de la plage de son bâton, avec sa Puissance.
+const int s_degatsDuMageDansLaPartie = montantEffectif(descriptionDeLArme(Objet{IdObjet::Baton}).degats.min.total(),
+                                                       Coefficients::seul(Caracteristique::Puissance, 1.0f),
                                                        avecPuissance(mageDeTest(), s_puissanceDuMage).caracteristiques);
 
 Partie unGuerrierEtUnMageAuContact() {

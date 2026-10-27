@@ -351,11 +351,11 @@ TEST_CASE("Skill.convientA : sans exigence, toute arme et les mains nues convien
 
 TEST_CASE("Skill.convientA : avec des exigences, seules les armes de la liste conviennent, jamais les mains nues") {
     const Skill exigeant({.type = TypeSkill::DegatsSurCible, .portee = 20.0f, .puissance = 5, .rechargeMin = 1.0f, .rechargeMax = 1.0f,
-                          .nature = NatureDAttaque::Contact, .armesExigees = {TypeDArme::EpeeLongue, TypeDArme::Masse}});
+                          .nature = NatureDAttaque::Contact, .armesExigees = {TypeDArme::EpeeAUneMain, TypeDArme::MasseAUneMain}});
 
     REQUIRE(exigeant.getArmesExigees().size() == 2);
-    REQUIRE(exigeant.convientA(TypeDArme::EpeeLongue));
-    REQUIRE(exigeant.convientA(TypeDArme::Masse));
+    REQUIRE(exigeant.convientA(TypeDArme::EpeeAUneMain));
+    REQUIRE(exigeant.convientA(TypeDArme::MasseAUneMain));
     REQUIRE_FALSE(exigeant.convientA(TypeDArme::Dague));
     REQUIRE_FALSE(exigeant.convientA(TypeDArme::Arc));
     REQUIRE_FALSE(exigeant.convientA(std::nullopt));

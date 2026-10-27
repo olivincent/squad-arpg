@@ -43,7 +43,7 @@ float distance(sf::Vector2f a, sf::Vector2f b) {
 }
 
 const Objet s_gants{IdObjet::GantsDeCuir};
-const Objet s_masseFlamboyante{IdObjet::Masse, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}};
+const Objet s_masseFlamboyante{IdObjet::MasseAUneMain, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}};
 }  // namespace
 
 TEST_CASE("jeterUnObjet : un objet du sac arrive au sol pres de l'ancre, et quitte le sac") {

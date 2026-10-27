@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include "combat/Caracteristiques.hpp"
+#include "combat/DescriptionDAttaque.hpp"
 #include "combat/StatistiquesDeCombat.hpp"
 #include "objets/CatalogueAffixes.hpp"
 #include "objets/DonneesDArme.hpp"
@@ -73,3 +74,13 @@ struct DefinitionObjet {
 
 // L'attaque de base de qui ne porte aucune arme : les mains nues, qui ne sont pas un objet.
 [[nodiscard]] const DescriptionDAttaque& mainsNues();
+
+// L'attaque que donne cette arme, sans ses affixes. L'UNIQUE endroit qui la calcule : `Equipement::attaqueDeBase`, l'infobulle
+// et les tests y passent. Rien n'est stocké dans l'objet ; tout vient du gabarit de son modèle (`DonneesDArme`) et de son
+// niveau et de sa qualité :
+// - les dégâts moyens (physiques) sont `degatsDeReference × facteurDeNiveau(niveau) × (0,85 + 0,30 × qualité / 100)` ;
+// - la plage de chaque coup va de `moyens × (1 − écart)` à `moyens × (1 + écart)`, chaque borne arrondie au plus proche (un seul
+//   arrondi) et d'au moins 1 ;
+// - la recharge, l'exécution, la portée, la nature et la pénétration sont celles du gabarit, JAMAIS influencées par le niveau.
+// `assert` : l'objet est une arme.
+[[nodiscard]] DescriptionDAttaque descriptionDeLArme(const Objet& arme);

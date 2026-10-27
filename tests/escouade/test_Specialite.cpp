@@ -146,9 +146,9 @@ TEST_CASE("le paladin est une melee qui frappe et soigne au contact") {
 
     REQUIRE(specialite(IdSpecialite::Paladin).nom == "Paladin");
     REQUIRE(paladin.rang == Rang::Avant);
-    // La même armure et le même bouclier que le guerrier, mais la masse à la place de l'épée longue.
+    // La même armure et le même bouclier que le guerrier, mais la masse à la place de l'épée à une main.
     REQUIRE(armureDe(paladin.equipementDeDepart) == armureDe(guerrier.equipementDeDepart));
-    REQUIRE(armeDe(paladin) == IdObjet::Masse);
+    REQUIRE(armeDe(paladin) == IdObjet::MasseAUneMain);
     REQUIRE(deLaClasse(IdSpecialite::Paladin).getPorteeAttaqueDeBase() == deLaClasse(IdSpecialite::Guerrier).getPorteeAttaqueDeBase());
     REQUIRE(paladin.skills.size() == 2);
 
@@ -275,8 +275,8 @@ TEST_CASE("equipement de depart : les melees portent armure, bouclier et arme, l
 }
 
 TEST_CASE("equipement de depart : l'arme de chaque classe") {
-    REQUIRE(armeDe(specialite(IdSpecialite::Guerrier).definition) == IdObjet::EpeeLongue);
-    REQUIRE(armeDe(specialite(IdSpecialite::Paladin).definition) == IdObjet::Masse);
+    REQUIRE(armeDe(specialite(IdSpecialite::Guerrier).definition) == IdObjet::EpeeAUneMain);
+    REQUIRE(armeDe(specialite(IdSpecialite::Paladin).definition) == IdObjet::MasseAUneMain);
     REQUIRE(armeDe(specialite(IdSpecialite::Pretre).definition) == IdObjet::Sceptre);
     REQUIRE(armeDe(specialite(IdSpecialite::Mage).definition) == IdObjet::Baton);
     REQUIRE(armeDe(specialite(IdSpecialite::Rodeur).definition) == IdObjet::Arc);
@@ -340,12 +340,15 @@ TEST_CASE("armes exigees : frappe puissante, frappe sacree et skills de l'archer
     using Types = std::vector<TypeDArme>;
     const auto exigees = [](IdSpecialite id, std::size_t rang) { return specialite(id).definition.skills[rang].skill.getArmesExigees(); };
 
-    REQUIRE(exigees(IdSpecialite::Guerrier, 0) ==
-            Types{TypeDArme::EpeeLongue, TypeDArme::Masse, TypeDArme::Dague, TypeDArme::EpeeADeuxMains});  // frappe puissante
-    REQUIRE(exigees(IdSpecialite::Paladin, 0) ==
-            Types{TypeDArme::EpeeLongue, TypeDArme::Masse, TypeDArme::EpeeADeuxMains});                    // frappe sacree
-    REQUIRE(exigees(IdSpecialite::Rodeur, 0) == Types{TypeDArme::Arc});                                      // tir percant
-    REQUIRE(exigees(IdSpecialite::Rodeur, 1) == Types{TypeDArme::Arc});                                      // pluie de fleches
+    const Types contact = {TypeDArme::Dague,          TypeDArme::EpeeAUneMain,    TypeDArme::HacheAUneMain,
+                           TypeDArme::MasseAUneMain,  TypeDArme::Lance,           TypeDArme::EpeeADeuxMains,
+                           TypeDArme::HacheADeuxMains, TypeDArme::MasseADeuxMains};  // toutes les armes de contact
+    const Types tir = {TypeDArme::Arc, TypeDArme::Arbalete};
+
+    REQUIRE(exigees(IdSpecialite::Guerrier, 0) == contact);  // frappe puissante
+    REQUIRE(exigees(IdSpecialite::Paladin, 0) == contact);   // frappe sacree
+    REQUIRE(exigees(IdSpecialite::Rodeur, 0) == tir);        // tir percant
+    REQUIRE(exigees(IdSpecialite::Rodeur, 1) == tir);        // pluie de fleches
 }
 
 TEST_CASE("armes exigees : les autres skills n'exigent rien") {
@@ -400,23 +403,21 @@ Attaque frappeSacreeDe(Personnage& paladin) {
 }
 }  // namespace
 
-TEST_CASE("la frappe sacree avec la masse de depart : physique de la masse, sacre du bonus, le total d'avant") {
+TEST_CASE("la frappe sacree avec la masse de depart : physique de la masse, sacre du bonus") {
     Personnage paladin = deLaClasse(IdSpecialite::Paladin);
     const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
 
     const Attaque attaque = frappeSacreeDe(paladin);
 
-    REQUIRE(attaque.degats[Element::Physique] == montantEffectif(definitionObjet(IdObjet::Masse).arme->attaque.degats.min[Element::Physique], puissance, paladin.getCaracteristiques()));
+    // Le physique est un coup de la masse (tiré dans sa plage), le sacré est le bonus fixe du skill.
+    REQUIRE(dansLaPlageAvecPuissance(attaque.degats[Element::Physique], descriptionDeLArme(Objet{IdObjet::MasseAUneMain}), paladin.getCaracteristiques()));
     REQUIRE(attaque.degats[Element::Sacre] == montantEffectif(45, puissance, paladin.getCaracteristiques()));
     REQUIRE(attaque.degats[Element::Feu] == 0);
-    // Le total d'avant l'étape 94 : un skill de 60 avec la Puissance. Chaque portion arrondit à part : écart d'au plus 1.
-    const int avant = montantEffectif(60, puissance, paladin.getCaracteristiques());
-    REQUIRE(std::abs(attaque.degats.total() - avant) <= 1);
     REQUIRE(attaque.nature == NatureDAttaque::Contact);
     REQUIRE(attaque.penetration == 0);
 }
 
-TEST_CASE("la frappe sacree avec l'epee a deux mains : la portion physique est plus grande, le sacre est le meme") {
+TEST_CASE("la frappe sacree avec l'epee a deux mains : le physique est un coup de cette arme, le sacre est le meme") {
     DefinitionPersonnage definition = specialite(IdSpecialite::Paladin).definition;
     definition.caracteristiques = Caracteristiques({20, 20, 8, 7, 11});  // de quoi porter l'épée à deux mains
     Personnage avecLaMasse = unPersonnage({0.0f, 0.0f}, definition);
@@ -429,19 +430,19 @@ TEST_CASE("la frappe sacree avec l'epee a deux mains : la portion physique est p
     const Attaque masse = frappeSacreeDe(avecLaMasse);
     const Attaque deuxMains = frappeSacreeDe(avecLEpee);
 
-    REQUIRE(deuxMains.degats[Element::Physique] > masse.degats[Element::Physique]);
+    REQUIRE(dansLaPlageAvecPuissance(masse.degats[Element::Physique], descriptionDeLArme(Objet{IdObjet::MasseAUneMain}), avecLaMasse.getCaracteristiques()));
+    REQUIRE(dansLaPlageAvecPuissance(deuxMains.degats[Element::Physique], descriptionDeLArme(Objet{IdObjet::EpeeADeuxMains}), avecLEpee.getCaracteristiques()));
     REQUIRE(deuxMains.degats[Element::Sacre] == masse.degats[Element::Sacre]);
-    REQUIRE(deuxMains.degats.total() > masse.degats.total());
 }
 
 TEST_CASE("la frappe sacree avec une masse flamboyante a trois portions : physique, feu de l'arme, sacre du bonus") {
     Personnage paladin = deLaClasse(IdSpecialite::Paladin);
-    static_cast<void>(paladin.poserEquipement(Emplacement::MainDroite, Objet{IdObjet::Masse, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}}));
+    static_cast<void>(paladin.poserEquipement(Emplacement::MainDroite, Objet{IdObjet::MasseAUneMain, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}}));
     const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
 
     const Attaque attaque = frappeSacreeDe(paladin);
 
-    REQUIRE(attaque.degats[Element::Physique] == montantEffectif(definitionObjet(IdObjet::Masse).arme->attaque.degats.min[Element::Physique], puissance, paladin.getCaracteristiques()));
+    REQUIRE(dansLaPlageAvecPuissance(attaque.degats[Element::Physique], descriptionDeLArme(Objet{IdObjet::MasseAUneMain}), paladin.getCaracteristiques()));
     REQUIRE(attaque.degats[Element::Feu] == montantEffectif(6, puissance, paladin.getCaracteristiques()));
     REQUIRE(attaque.degats[Element::Sacre] == montantEffectif(45, puissance, paladin.getCaracteristiques()));
     REQUIRE(attaque.degats[Element::Physique] > 0);
@@ -451,7 +452,7 @@ TEST_CASE("la frappe sacree avec une masse flamboyante a trois portions : physiq
 
 TEST_CASE("la frappe sacree avec une masse sanctifiee ajoute le sacre de l'arme a celui du bonus, une portion arrondie a part chacune") {
     Personnage paladin = deLaClasse(IdSpecialite::Paladin);
-    static_cast<void>(paladin.poserEquipement(Emplacement::MainDroite, Objet{IdObjet::Masse, Rarete::Magique, Affixe{IdAffixe::Sanctifie, 4}}));
+    static_cast<void>(paladin.poserEquipement(Emplacement::MainDroite, Objet{IdObjet::MasseAUneMain, Rarete::Magique, Affixe{IdAffixe::Sanctifie, 4}}));
     const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
 
     const Attaque attaque = frappeSacreeDe(paladin);
@@ -462,7 +463,7 @@ TEST_CASE("la frappe sacree avec une masse sanctifiee ajoute le sacre de l'arme 
 
 TEST_CASE("la frappe sacree prend la penetration de l'arme, affixes compris") {
     Personnage paladin = deLaClasse(IdSpecialite::Paladin);
-    static_cast<void>(paladin.poserEquipement(Emplacement::MainDroite, Objet{IdObjet::Masse, Rarete::Magique, Affixe{IdAffixe::Acere, 15}}));
+    static_cast<void>(paladin.poserEquipement(Emplacement::MainDroite, Objet{IdObjet::MasseAUneMain, Rarete::Magique, Affixe{IdAffixe::Acere, 15}}));
 
     REQUIRE(frappeSacreeDe(paladin).penetration == 15);
 }
@@ -488,7 +489,7 @@ TEST_CASE("la frappe sacree du paladin : doree contre l'infanterie lourde, physi
     Personnage paladin = deLaClasse(IdSpecialite::Paladin);
     const Attaque attaque = frappeSacreeDe(paladin);
 
-    // La masse : 15 de physique contre 45 de sacré, l'armure de 10 achève le physique.
+    // La masse : au plus 36 de physique contre 45 de sacré, et l'armure de 10 achève le physique.
     REQUIRE(resoudreCoup(attaque, defensesDe(CategorieDeMonstre::InfanterieLourde), true, generateur).portions.elementDominant() == Element::Sacre);
 
     DefinitionPersonnage definition = specialite(IdSpecialite::Paladin).definition;
@@ -496,7 +497,8 @@ TEST_CASE("la frappe sacree du paladin : doree contre l'infanterie lourde, physi
     Personnage avecLEpee = unPersonnage({0.0f, 0.0f}, definition);
     static_cast<void>(avecLEpee.retirerEquipement(Emplacement::MainGauche));
     static_cast<void>(avecLEpee.retirerEquipement(Emplacement::MainDroite));
-    static_cast<void>(avecLEpee.poserEquipement(Emplacement::MainDroite, Objet{IdObjet::EpeeADeuxMains}));
+    // Une hache à deux mains de niveau 5 : au moins 72 de physique, bien plus que les 45 de sacré (la Puissance joue sur les deux).
+    static_cast<void>(avecLEpee.poserEquipement(Emplacement::MainDroite, Objet{IdObjet::HacheADeuxMains, Rarete::Commun, std::nullopt, std::nullopt, 5}));
     const Attaque lourde = frappeSacreeDe(avecLEpee);
 
     REQUIRE(resoudreCoup(lourde, defensesDe(CategorieDeMonstre::Infanterie), true, generateur).portions.elementDominant() == Element::Physique);

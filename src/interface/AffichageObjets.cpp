@@ -20,9 +20,10 @@ std::string secondes(float valeur) {
     return texte;
 }
 
-// Les lignes d'une arme : l'attaque de base qu'elle donne et, à deux mains, « Two-handed ».
-void ajouterLesLignesDUneArme(std::vector<std::string>& lignes, const DonneesDArme& arme) {
-    const DescriptionDAttaque& attaque = arme.attaque;
+// Les lignes d'une arme : l'attaque de base qu'elle donne (celle de CET objet, `descriptionDeLArme`) et, à deux mains,
+// « Two-handed ».
+void ajouterLesLignesDUneArme(std::vector<std::string>& lignes, const Objet& objet, const DonneesDArme& arme) {
+    const DescriptionDAttaque attaque = descriptionDeLArme(objet);
     // Les bornes de la plage, avant la Puissance de qui la porte ; un seul nombre quand il n'y a pas d'écart.
     const int min = attaque.degats.min.total();
     const int max = attaque.degats.max.total();
@@ -94,13 +95,19 @@ std::string sigleDeLObjet(IdObjet id) {
         case IdObjet::AnneauDeProtection: return "RP";
         case IdObjet::AnneauDePuissance: return "RM";
         case IdObjet::CollierDEndurance: return "NC";
-        case IdObjet::EpeeLongue: return "LS";
-        case IdObjet::Masse: return "MA";
         case IdObjet::Dague: return "DA";
+        case IdObjet::EpeeAUneMain: return "SW";
+        case IdObjet::HacheAUneMain: return "HA";
+        case IdObjet::MasseAUneMain: return "MA";
+        case IdObjet::Lance: return "SP";
         case IdObjet::EpeeADeuxMains: return "GS";
+        case IdObjet::HacheADeuxMains: return "GA";
+        case IdObjet::MasseADeuxMains: return "MU";
+        case IdObjet::Baguette: return "WA";
         case IdObjet::Sceptre: return "SC";
         case IdObjet::Baton: return "ST";
         case IdObjet::Arc: return "BO";
+        case IdObjet::Arbalete: return "CB";
     }
     return "";
 }
@@ -145,7 +152,9 @@ std::string ligneDAffixe(const Affixe& affixe) {
 
 std::vector<std::string> lignesDeLInfobulle(const Objet& objet) {
     const DefinitionObjet& definition = definitionObjet(objet.modele);
-    std::vector<std::string> lignes = {nomDeLObjet(objet), nomDeLaCategorie(definition.categorie)};
+    // La qualité n'est pas affichée : le joueur la voit dans ce qu'elle change (les dégâts d'une arme).
+    std::vector<std::string> lignes = {nomDeLObjet(objet), nomDeLaCategorie(definition.categorie),
+                                       "Item Level " + std::to_string(objet.niveau)};
     if (definition.armure != 0) {
         lignes.push_back("Armor: +" + std::to_string(definition.armure));
     }
@@ -162,7 +171,7 @@ std::vector<std::string> lignesDeLInfobulle(const Objet& objet) {
                          std::to_string(definition.bouclier->montantBloque) + " points");
     }
     if (definition.arme.has_value()) {
-        ajouterLesLignesDUneArme(lignes, *definition.arme);
+        ajouterLesLignesDUneArme(lignes, objet, *definition.arme);
     }
     for (const std::optional<Affixe>& affixe : {objet.prefixe, objet.suffixe}) {
         if (affixe.has_value()) {

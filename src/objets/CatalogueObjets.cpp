@@ -1,7 +1,10 @@
 // ./src/objets/CatalogueObjets.cpp
 #include "objets/CatalogueObjets.hpp"
+#include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <cstddef>
+#include <optional>
 #include <utility>
 
 namespace {
@@ -23,26 +26,31 @@ constexpr int s_esquiveCasqueDeCuir = 5;       // en pour cent, contre les proje
 constexpr int s_chanceDeBlocageBouclierRond = 30;       // en pour cent
 constexpr int s_montantBloqueBouclierRond = 12;         // points absorbés par blocage
 
-// Armes (valeurs provisoires, à tester). Une attaque de contact engage (zone de contrôle), un projectile non.
-constexpr float s_porteeDeContact = 20.0f;        // bord à bord
-constexpr float s_porteeDeProjectile = 120.0f;    // bord à bord
-constexpr float s_executionArmeLegere = 0.15f;    // en secondes
-constexpr float s_executionArmeLourde = 0.3f;
-constexpr float s_rechargeTirMin = 0.4f;          // en secondes, les armes de tir ont le même intervalle
-constexpr float s_rechargeTirMax = 0.6f;
-constexpr int s_degatsEpeeLongue = 15;
-constexpr int s_degatsMasse = 15;
-constexpr int s_degatsDague = 14;
-constexpr int s_degatsEpeeADeuxMains = 60;
-constexpr int s_degatsSceptre = 15;
-constexpr int s_degatsBaton = 15;
-constexpr int s_degatsArc = 15;
+// Armes (valeurs provisoires, à tester). Une attaque de contact engage (zone de contrôle), un projectile non. Les durées sont
+// en secondes, les portées en pixels, bord à bord.
+constexpr float s_porteeDeContact = 20.0f;
+constexpr float s_porteeDeLaLance = 35.0f;
+constexpr float s_porteeDeProjectile = 120.0f;
+constexpr float s_porteeDeLArbalete = 140.0f;
+constexpr float s_executionUneMain = 0.15f;       // une arme à deux mains met le double de temps à frapper
+constexpr float s_executionDeuxMains = 0.3f;
+
+// Les mains nues, sans arme : elles ne sont pas un objet et ne dépendent ni d'un niveau ni d'une qualité.
 constexpr int s_degatsMainsNues = 6;
-constexpr int s_penetrationDague = 30;  // en pour cent de l'armure ignorée
+constexpr float s_rechargeMainsNuesMin = 0.4f;
+constexpr float s_rechargeMainsNuesMax = 0.6f;
+
+// Les dégâts moyens d'une arme : sa référence, fois le facteur de son niveau (`facteurDeNiveau`), fois un facteur de qualité qui
+// va de `s_facteurDeQualiteMin` (qualité 0) à `s_facteurDeQualiteMin + s_amplitudeDeQualite` (qualité 100), donc 1 à la qualité
+// moyenne (valeurs provisoires, « à tester »).
+constexpr double s_facteurDeQualiteMin = 0.85;
+constexpr double s_amplitudeDeQualite = 0.30;
 
 // Les exigences d'équipement (valeurs provisoires, « à tester ») : le seuil de chaque exigence est
-// `s_seuilAuNiveau1 + pente × (niveau − 1)` (`seuilsDeLObjet`). La pente de la caractéristique principale d'un objet.
+// `s_seuilAuNiveau1 + pente × (niveau − 1)` (`seuilsDeLObjet`). La pente de la caractéristique principale d'un objet, puis celle
+// d'une caractéristique secondaire.
 constexpr int s_penteSeuilPrincipale = 2;
+constexpr int s_penteSeuilSecondaire = 1;
 
 // Cette définition, avec ces exigences.
 DefinitionObjet avecExigences(DefinitionObjet definition, std::vector<ExigenceDeCaracteristique> exigences) {
@@ -50,19 +58,30 @@ DefinitionObjet avecExigences(DefinitionObjet definition, std::vector<ExigenceDe
     return definition;
 }
 
-DonneesDArme armeDeMelee(TypeDArme type, int mains, int degats, float rechargeMin, float rechargeMax, float execution,
-                         int penetration = 0) {
-    return {.type = type, .mains = mains,
-            .attaque = {.degats = plageFixe(degatsPhysiques(degats)), .rechargeMin = rechargeMin, .rechargeMax = rechargeMax,
-                        .tempsExecution = execution, .portee = s_porteeDeContact, .nature = NatureDAttaque::Contact,
-                        .penetration = penetration}};
+// Une arme d'après son gabarit : le type, les mains (le temps d'exécution en découle), la référence de ses dégâts et l'écart de
+// ses coups (en pour cent), son intervalle de recharge, sa nature et sa portée, sa pénétration.
+DefinitionObjet uneArme(IdObjet id, std::string nom, TypeDArme type, int mains, int reference, int ecartPourCent, float rechargeMin,
+                        float rechargeMax, NatureDAttaque nature, float portee, int penetration,
+                        std::vector<ExigenceDeCaracteristique> exigences) {
+    const DonneesDArme gabarit = {.type = type, .mains = mains, .degatsDeReference = reference, .ecartPourCent = ecartPourCent,
+                                  .rechargeMin = rechargeMin, .rechargeMax = rechargeMax,
+                                  .tempsExecution = mains == 2 ? s_executionDeuxMains : s_executionUneMain, .portee = portee,
+                                  .nature = nature, .penetration = penetration};
+    return avecExigences({id, std::move(nom), CategorieObjet::Arme, 0, {}, {}, gabarit}, std::move(exigences));
 }
 
-DonneesDArme armeDeTir(TypeDArme type, int mains, int degats) {
-    return {.type = type, .mains = mains,
-            .attaque = {.degats = plageFixe(degatsPhysiques(degats)), .rechargeMin = s_rechargeTirMin, .rechargeMax = s_rechargeTirMax,
-                        .tempsExecution = s_executionArmeLegere, .portee = s_porteeDeProjectile,
-                        .nature = NatureDAttaque::Projectile, .penetration = 0}};
+DefinitionObjet uneArmeDeContact(IdObjet id, std::string nom, TypeDArme type, int mains, int reference, int ecartPourCent,
+                                 float rechargeMin, float rechargeMax, float portee, int penetration,
+                                 std::vector<ExigenceDeCaracteristique> exigences) {
+    return uneArme(id, std::move(nom), type, mains, reference, ecartPourCent, rechargeMin, rechargeMax, NatureDAttaque::Contact,
+                   portee, penetration, std::move(exigences));
+}
+
+DefinitionObjet uneArmeDeTir(IdObjet id, std::string nom, TypeDArme type, int mains, int reference, int ecartPourCent,
+                             float rechargeMin, float rechargeMax, float portee, int penetration,
+                             std::vector<ExigenceDeCaracteristique> exigences) {
+    return uneArme(id, std::move(nom), type, mains, reference, ecartPourCent, rechargeMin, rechargeMax, NatureDAttaque::Projectile,
+                   portee, penetration, std::move(exigences));
 }
 
 std::vector<DefinitionObjet> construireLeCatalogue() {
@@ -90,25 +109,36 @@ std::vector<DefinitionObjet> construireLeCatalogue() {
          Caracteristiques::seule(Caracteristique::Puissance, s_bonusAnneauDePuissance)},
         {IdObjet::CollierDEndurance, "Necklace of Constitution", CategorieObjet::Collier, 0,
          Caracteristiques::seule(Caracteristique::Endurance, s_bonusCollierDEndurance)},
-        // Armes prototypes : leur caractéristique principale, jusqu'aux gabarits d'armes (étape 102.4).
-        avecExigences({IdObjet::EpeeLongue, "Longsword", CategorieObjet::Arme, 0, {}, {},
-                       armeDeMelee(TypeDArme::EpeeLongue, 1, s_degatsEpeeLongue, 0.3f, 0.7f, s_executionArmeLegere)},
-                      {{Caracteristique::Puissance, s_penteSeuilPrincipale}}),
-        avecExigences({IdObjet::Masse, "Mace", CategorieObjet::Arme, 0, {}, {},
-                       armeDeMelee(TypeDArme::Masse, 1, s_degatsMasse, 0.3f, 0.7f, s_executionArmeLegere)},
-                      {{Caracteristique::Puissance, s_penteSeuilPrincipale}}),
-        avecExigences({IdObjet::Dague, "Dagger", CategorieObjet::Arme, 0, {}, {},
-                       armeDeMelee(TypeDArme::Dague, 1, s_degatsDague, 0.4f, 0.8f, s_executionArmeLegere, s_penetrationDague)},
-                      {{Caracteristique::Adresse, s_penteSeuilPrincipale}}),
-        avecExigences({IdObjet::EpeeADeuxMains, "Greatsword", CategorieObjet::Arme, 0, {}, {},
-                       armeDeMelee(TypeDArme::EpeeADeuxMains, 2, s_degatsEpeeADeuxMains, 1.2f, 2.8f, s_executionArmeLourde)},
-                      {{Caracteristique::Puissance, s_penteSeuilPrincipale}}),
-        avecExigences({IdObjet::Sceptre, "Scepter", CategorieObjet::Arme, 0, {}, {}, armeDeTir(TypeDArme::Sceptre, 1, s_degatsSceptre)},
-                      {{Caracteristique::Volonte, s_penteSeuilPrincipale}}),
-        avecExigences({IdObjet::Baton, "Staff", CategorieObjet::Arme, 0, {}, {}, armeDeTir(TypeDArme::Baton, 2, s_degatsBaton)},
-                      {{Caracteristique::Savoir, s_penteSeuilPrincipale}}),
-        avecExigences({IdObjet::Arc, "Bow", CategorieObjet::Arme, 0, {}, {}, armeDeTir(TypeDArme::Arc, 2, s_degatsArc)},
-                      {{Caracteristique::Adresse, s_penteSeuilPrincipale}}),
+        // Les treize gabarits d'armes (étape 102.4), dans l'ordre de `IdObjet`. Chacun fixe l'identité de l'arme ; ses dégâts
+        // dépendent de l'objet (`descriptionDeLArme`). Les dégâts/s visés sont 23 à une main et 30 à deux mains : la référence
+        // est ces dégâts/s fois (exécution + recharge moyenne).
+        //                id,                  nom,          type,                    mains, réf., écart, recharge,  portée, pénétr., exigences
+        uneArmeDeContact(IdObjet::Dague,           "Dagger",     TypeDArme::Dague,           1, 10, 10, 0.20f, 0.50f, s_porteeDeContact, 15,
+                         {{Caracteristique::Adresse, s_penteSeuilPrincipale}}),
+        uneArmeDeContact(IdObjet::EpeeAUneMain,    "Sword",      TypeDArme::EpeeAUneMain,    1, 15, 15, 0.30f, 0.70f, s_porteeDeContact, 0,
+                         {{Caracteristique::Puissance, s_penteSeuilPrincipale}}),
+        uneArmeDeContact(IdObjet::HacheAUneMain,   "Hand Axe",   TypeDArme::HacheAUneMain,   1, 20, 25, 0.40f, 1.00f, s_porteeDeContact, 0,
+                         {{Caracteristique::Puissance, s_penteSeuilPrincipale}}),
+        uneArmeDeContact(IdObjet::MasseAUneMain,   "Mace",       TypeDArme::MasseAUneMain,   1, 26, 40, 0.60f, 1.40f, s_porteeDeContact, 0,
+                         {{Caracteristique::Puissance, s_penteSeuilPrincipale}}),
+        uneArmeDeContact(IdObjet::Lance,           "Spear",      TypeDArme::Lance,           1, 28, 25, 0.70f, 1.45f, s_porteeDeLaLance, 30,
+                         {{Caracteristique::Adresse, s_penteSeuilPrincipale}, {Caracteristique::Puissance, s_penteSeuilSecondaire}}),
+        uneArmeDeContact(IdObjet::EpeeADeuxMains,  "Greatsword", TypeDArme::EpeeADeuxMains,  2, 35, 15, 0.50f, 1.20f, s_porteeDeContact, 0,
+                         {{Caracteristique::Puissance, s_penteSeuilPrincipale}, {Caracteristique::Adresse, s_penteSeuilSecondaire}}),
+        uneArmeDeContact(IdObjet::HacheADeuxMains, "Great Axe",  TypeDArme::HacheADeuxMains, 2, 48, 25, 0.80f, 1.80f, s_porteeDeContact, 0,
+                         {{Caracteristique::Puissance, s_penteSeuilPrincipale}}),
+        uneArmeDeContact(IdObjet::MasseADeuxMains, "Maul",       TypeDArme::MasseADeuxMains, 2, 48, 40, 0.80f, 1.80f, s_porteeDeContact, 0,
+                         {{Caracteristique::Puissance, s_penteSeuilPrincipale}, {Caracteristique::Endurance, s_penteSeuilSecondaire}}),
+        uneArmeDeTir(IdObjet::Baguette,            "Wand",       TypeDArme::Baguette,        1, 15, 15, 0.30f, 0.70f, s_porteeDeProjectile, 0,
+                     {{Caracteristique::Savoir, s_penteSeuilPrincipale}}),
+        uneArmeDeTir(IdObjet::Sceptre,             "Scepter",    TypeDArme::Sceptre,         1, 20, 15, 0.40f, 1.00f, s_porteeDeProjectile, 0,
+                     {{Caracteristique::Volonte, s_penteSeuilPrincipale}}),
+        uneArmeDeTir(IdObjet::Baton,               "Staff",      TypeDArme::Baton,           2, 30, 25, 0.55f, 0.85f, s_porteeDeProjectile, 0,
+                     {{Caracteristique::Savoir, s_penteSeuilPrincipale}}),
+        uneArmeDeTir(IdObjet::Arc,                 "Bow",        TypeDArme::Arc,             2, 23, 25, 0.35f, 0.55f, s_porteeDeProjectile, 15,
+                     {{Caracteristique::Adresse, s_penteSeuilPrincipale}}),
+        uneArmeDeTir(IdObjet::Arbalete,            "Crossbow",   TypeDArme::Arbalete,        2, 30, 15, 0.55f, 0.85f, s_porteeDeLArbalete, 30,
+                     {{Caracteristique::Adresse, s_penteSeuilPrincipale}, {Caracteristique::Puissance, s_penteSeuilSecondaire}}),
     };
 }
 }  // namespace
@@ -125,11 +155,24 @@ const DefinitionObjet& definitionObjet(IdObjet id) {
 }
 
 const DescriptionDAttaque& mainsNues() {
-    static const DescriptionDAttaque s_mainsNues = {.degats = plageFixe(degatsPhysiques(s_degatsMainsNues)), .rechargeMin = s_rechargeTirMin,
-                                                    .rechargeMax = s_rechargeTirMax, .tempsExecution = s_executionArmeLegere,
-                                                    .portee = s_porteeDeContact, .nature = NatureDAttaque::Contact,
-                                                    .penetration = 0};
+    static const DescriptionDAttaque s_mainsNues = {.degats = plageFixe(degatsPhysiques(s_degatsMainsNues)),
+                                                    .rechargeMin = s_rechargeMainsNuesMin, .rechargeMax = s_rechargeMainsNuesMax,
+                                                    .tempsExecution = s_executionUneMain, .portee = s_porteeDeContact,
+                                                    .nature = NatureDAttaque::Contact, .penetration = 0};
     return s_mainsNues;
+}
+
+DescriptionDAttaque descriptionDeLArme(const Objet& arme) {
+    const std::optional<DonneesDArme>& gabarit = definitionObjet(arme.modele).arme;
+    assert(gabarit.has_value());
+    const DonneesDArme& donnees = *gabarit;  // NOLINT(bugprone-unchecked-optional-access): vérifié par l'assert au-dessus (_assert de MinGW n'est pas noreturn)
+    const double moyens = donnees.degatsDeReference * facteurDeNiveau(arme.niveau) *
+                          (s_facteurDeQualiteMin + s_amplitudeDeQualite * arme.qualite / s_qualiteMaximale);
+    // Un seul arrondi par borne, au plus proche, et au moins 1 point.
+    const auto borne = [&](int pourCent) { return std::max(1, static_cast<int>(std::lround(moyens * pourCent / 100.0))); };
+    return {.degats = {degatsPhysiques(borne(100 - donnees.ecartPourCent)), degatsPhysiques(borne(100 + donnees.ecartPourCent))},
+            .rechargeMin = donnees.rechargeMin, .rechargeMax = donnees.rechargeMax, .tempsExecution = donnees.tempsExecution,
+            .portee = donnees.portee, .nature = donnees.nature, .penetration = donnees.penetration};
 }
 
 bool objetValide(const Objet& objet) {

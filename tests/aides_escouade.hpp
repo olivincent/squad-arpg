@@ -8,6 +8,7 @@
 #include <array>
 #include <cassert>
 #include <cstddef>
+#include <functional>
 #include <optional>
 #include <string>
 #include <utility>
@@ -60,17 +61,96 @@ inline constexpr AdresseSkill s_adresseExplosion{3, IdSkill::Explosion};
 // (étape 80), mais indépendantes de lui. Rééquilibrer une classe dans Specialite.cpp ne change aucun
 // test de règle ; test_Specialite.cpp est le seul fichier de tests qui lit les valeurs du catalogue des classes.
 // Exception depuis l'étape 91 : l'attaque de base vient de l'arme que le personnage porte, donc du catalogue des
-// objets ; les mêlées de test portent l'épée longue, le prêtre le sceptre, le mage le bâton, et les constantes ci-dessous
-// **sont lues** dans la description de leur attaque (jamais écrites en littéral).
+// objets ; les mêlées de test portent l'épée à une main, le prêtre le sceptre, le mage le bâton, et les constantes ci-dessous
+// **sont lues** dans la description de leur attaque (`descriptionDeLArme`, jamais écrites en littéral).
+// Depuis l'étape 102, les dégâts d'une arme sont une plage dont chaque coup tire sa valeur : un test ne compare plus un coup à un
+// nombre, il vérifie qu'il est dans la plage (`estUnCoupDeBase`, `sontDesCoupsDeBase`, `dansLaPlage`).
 // Caractéristiques des personnages de test : la Puissance de référence (10), pour que l'attaque de base, qui en profite
 // à plein, fasse exactement les dégâts de son arme ; les quatre autres à 0 (Adresse 0 : capacité de 50, Endurance 0 :
 // 240 points de vie), comme avant l'étape 91.
 inline const Caracteristiques s_caracteristiquesDeTest({s_valeurDeReference, 0, 0, 0, 0});
 
 // Attaque de base (mêlées et tireurs).
-inline const DescriptionDAttaque s_attaqueDeMeleeDeTest = definitionObjet(IdObjet::EpeeLongue).arme.value().attaque;
-inline const DescriptionDAttaque s_attaqueDeTireurDeTest = definitionObjet(IdObjet::Sceptre).arme.value().attaque;
-inline const int s_degatsBaseDeTest = s_attaqueDeMeleeDeTest.degats.min[Element::Physique];
+inline const DescriptionDAttaque s_attaqueDeMeleeDeTest = descriptionDeLArme(Objet{IdObjet::EpeeAUneMain});
+inline const DescriptionDAttaque s_attaqueDeTireurDeTest = descriptionDeLArme(Objet{IdObjet::Sceptre});
+// La plage des dégâts physiques de la mêlée de test (l'épée à une main), et le coup de base de n'importe quelle arme.
+inline const int s_degatsBaseMinDeTest = s_attaqueDeMeleeDeTest.degats.min[Element::Physique];
+inline const int s_degatsBaseMaxDeTest = s_attaqueDeMeleeDeTest.degats.max[Element::Physique];
+
+// Ce total est-il dans la plage de cette arme, avec la Puissance de référence ? (un seul coup)
+inline bool dansLaPlage(int degats, const DescriptionDAttaque& arme) {
+    return degats >= arme.degats.min.total() && degats <= arme.degats.max.total();
+}
+
+// Ce total est-il un coup de cette arme pour un porteur de ces caractéristiques ? La Puissance joue sur chaque borne de la plage
+// (`montantEffectif`, croissant avec la base : un coup tiré dans la plage reste entre les deux bornes ainsi calculées).
+inline bool dansLaPlageAvecPuissance(int degats, const DescriptionDAttaque& arme, const Caracteristiques& caracteristiques) {
+    const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
+    return degats >= montantEffectif(arme.degats.min.total(), puissance, caracteristiques) &&
+           degats <= montantEffectif(arme.degats.max.total(), puissance, caracteristiques);
+}
+
+// Ce montant, infligé à ce défenseur, est-il celui d'un coup de cette arme ? `modele` donne ce que l'attaque porte hors des dégâts
+// (capacité offensive, nature) ; les dégâts vont de la borne basse à la borne haute de la plage, `critique` dit si le coup l'était
+// (`degatsAttendus`, croissant avec les dégâts), pour un porteur de ces caractéristiques (la Puissance de référence par défaut).
+inline bool montantAttendu(int montant, const Attaque& modele, const DescriptionDAttaque& arme, const Defenses& defenses, bool critique,
+                           const Caracteristiques& porteur = s_caracteristiquesDeTest) {
+    const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
+    Attaque basse = modele;
+    Attaque haute = modele;
+    for (const Element element : s_elements) {
+        basse.degats[element] = montantEffectif(arme.degats.min[element], puissance, porteur);
+        haute.degats[element] = montantEffectif(arme.degats.max[element], puissance, porteur);
+    }
+    return montant >= degatsAttendus(basse, defenses, critique) && montant <= degatsAttendus(haute, defenses, critique);
+}
+
+// Ce total est-il celui de `nombre` coups de l'attaque de base de la mêlée de test ? Chaque coup est dans la plage : le total
+// est entre `nombre` fois le minimum et `nombre` fois le maximum.
+inline bool sontDesCoupsDeBase(int total, int nombre) {
+    return total >= nombre * s_degatsBaseMinDeTest && total <= nombre * s_degatsBaseMaxDeTest;
+}
+
+inline bool estUnCoupDeBase(int degats) {
+    return sontDesCoupsDeBase(degats, 1);
+}
+
+// Ce total est-il celui de `nombre` coups de base de personnages de la composition par défaut (épée à une main, sceptre, bâton,
+// qui ne frappent pas du même nombre) ? Quels que soient ceux qui frappent, le total est entre les `nombre` plus petits
+// minimums et les `nombre` plus grands maximums ; avec les trois, il est exact.
+inline bool sontDesCoupsDeLaComposition(int total, std::size_t nombre) {
+    std::vector<int> minimums;
+    std::vector<int> maximums;
+    for (const IdObjet arme : {IdObjet::EpeeAUneMain, IdObjet::Sceptre, IdObjet::Baton}) {
+        const DescriptionDAttaque description = descriptionDeLArme(Objet{arme});
+        minimums.push_back(description.degats.min.total());
+        maximums.push_back(description.degats.max.total());
+    }
+    std::ranges::sort(minimums);
+    std::ranges::sort(maximums, std::greater<>());
+    int plusBas = 0;
+    int plusHaut = 0;
+    for (std::size_t i = 0; i < nombre; ++i) {
+        plusBas += minimums[i];
+        plusHaut += maximums[i];
+    }
+    return total >= plusBas && total <= plusHaut;
+}
+
+// Ce total est-il un coup de base du sceptre, l'arme des tireurs de test (Puissance de référence) ?
+inline bool estUnCoupDeTireur(int degats) {
+    return dansLaPlage(degats, s_attaqueDeTireurDeTest);
+}
+
+// Ce total est-il un coup de base de l'une des armes de la composition par défaut (épée à une main, sceptre, bâton) ?
+inline bool estUnCoupDeBaseDeLaComposition(int degats) {
+    for (const IdObjet arme : {IdObjet::EpeeAUneMain, IdObjet::Sceptre, IdObjet::Baton}) {
+        if (dansLaPlage(degats, descriptionDeLArme(Objet{arme}))) {
+            return true;
+        }
+    }
+    return false;
+}
 inline const float s_executionBaseDeTest = s_attaqueDeMeleeDeTest.tempsExecution;  // en secondes
 inline const float s_porteeMeleeDeTest = s_attaqueDeMeleeDeTest.portee;            // bord à bord
 inline const float s_porteeTireurDeTest = s_attaqueDeTireurDeTest.portee;          // bord à bord
@@ -171,7 +251,7 @@ inline Skill skillExigeantDesArmes(std::vector<TypeDArme> armes) {
 // signature complète de `DefinitionPersonnage`, pour qu'un changement de cette signature ne touche que les aides.
 // Une définition sans classe (ni skill, ni caractéristiques : Adresse 0), armée de cette arme en main droite, d'où
 // viennent son attaque de base, sa portée et sa zone de contrôle.
-inline DefinitionPersonnage definitionArmee(IdObjet arme = IdObjet::EpeeLongue) {
+inline DefinitionPersonnage definitionArmee(IdObjet arme = IdObjet::EpeeAUneMain) {
     return {.couleur = sf::Color::White, .equipementDeDepart = {{Emplacement::MainDroite, arme}},
             .rayonVision = s_rayonVisionDeTest, .caracteristiques = caracteristiquesPourPorter({{Emplacement::MainDroite, arme}})};
 }
@@ -384,15 +464,17 @@ inline void simulerAvecAttaque(Escouade& escouade, const TileMap& carte, float d
     }
 }
 
-// Appelle attaquer() par tics de 1/60 s pendant 0,2 s : un peu plus que
-// l'exécution de l'attaque de base (0,15 s), moins que sa plus petite recharge
-// (0,3 s). Chaque personnage qui atteint un monstre l'engage au premier tic et
-// le frappe une fois, au plus ; renvoie tous les coups partis. Aucun
+// Appelle attaquer() par tics de 1/60 s pendant 0,35 s : un peu plus que l'exécution
+// de l'attaque de base la plus lente de la composition par défaut (0,3 s, le bâton à
+// deux mains), moins que le plus court intervalle entre deux coups d'un même
+// personnage (0,6 s : exécution et recharge minimale de l'épée à une main). Chaque
+// personnage qui atteint un monstre l'engage au premier tic et le frappe une fois,
+// au plus ; renvoie tous les coups partis. Aucun
 // mettreAJour : personne ne bouge, personne n'est donc « en mouvement ».
 inline std::vector<Coup> attaquerJusquAuDepart(Escouade& escouade, const std::vector<EntiteVue>& monstres, const TileMap& carte,
                                                Generateur& generateur) {
     std::vector<Coup> coups;
-    for (int i = 0; i < nombreDeTics(0.2f); ++i) {
+    for (int i = 0; i < nombreDeTics(0.35f); ++i) {
         const std::vector<Coup> coupsDuTic = escouade.attaquer(s_dureeTic, monstres, carte, generateur);
         coups.insert(coups.end(), coupsDuTic.begin(), coupsDuTic.end());
     }
@@ -415,16 +497,17 @@ inline constexpr float s_dureeAttenteSkill = 1.0f;
 
 // Fait avancer par attaquer() (sans mettreAJour : personne ne bouge, les
 // recharges ne courent pas) pendant `s_dureeAttenteSkill`, et renvoie les coups
-// de skill partis. Les coups de l'attaque de base (s_degatsBaseDeTest) que les
-// autres personnages portent entre-temps sont écartés : seuls les skills comptent
-// (leurs dégâts doivent donc différer de ceux de l'attaque de base).
+// de skill partis. Les coups de l'attaque de base que les autres personnages portent
+// entre-temps (ceux des armes de la composition par défaut : `estUnCoupDeBaseDeLaComposition`)
+// sont écartés : seuls les skills comptent (leurs dégâts doivent donc sortir de la plage
+// de ces armes).
 inline std::vector<Coup> attendreLeDepartDesSkills(Escouade& escouade, const std::vector<EntiteVue>& monstres, const TileMap& carte,
                                                    Generateur& generateur) {
-    assert(s_degatsFrappeDeTest != s_degatsBaseDeTest && s_degatsZoneDeTest != s_degatsBaseDeTest);
+    assert(!estUnCoupDeBaseDeLaComposition(s_degatsFrappeDeTest) && !estUnCoupDeBaseDeLaComposition(s_degatsZoneDeTest));
     std::vector<Coup> coups;
     for (int i = 0; i < nombreDeTics(s_dureeAttenteSkill); ++i) {
         for (const Coup& coup : escouade.attaquer(s_dureeTic, monstres, carte, generateur)) {
-            if (coup.attaque.degats.total() != s_degatsBaseDeTest) {
+            if (!estUnCoupDeBaseDeLaComposition(coup.attaque.degats.total())) {
                 coups.push_back(coup);
             }
         }

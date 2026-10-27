@@ -38,13 +38,15 @@
 [[nodiscard]] std::string ligneDAffixe(const Affixe& affixe);
 
 // Les lignes de l'infobulle d'un objet, dans cet ordre :
-// - son nom composé (« Keen Bow of the Fox », `nomDeLObjet`) et sa catégorie ;
+// - son nom composé (« Keen Bow of the Fox », `nomDeLObjet`), sa catégorie et son niveau (« Item Level 3 ») ; la qualité n'est
+//   PAS affichée ;
 // - les propriétés de son modèle : son armure (« Armor: +10 », absente si elle est nulle), une ligne par bonus de
 //   caractéristique (« Might: +3 »), une par bonus de combat (« Dodge vs Melee: +5 % » : `lignesDeBonusDeCombat`), pour un
-//   bouclier son blocage (« Block: 30 %, 12 points ») et pour une arme son attaque (« Damage: 15 », « Cooldown: 0.3 to
-//   0.7 s », « Range: 20 px », « Melee » ou « Projectile », « Penetration: 30 % » si l'arme perce l'armure, et
-//   « Two-handed » à deux mains) ;
+//   bouclier son blocage (« Block: 30 %, 12 points ») et pour une arme son attaque, celle de cet objet
+//   (`descriptionDeLArme`) : « Damage: 13–17 » (les bornes de la plage, avant la Puissance), « Cooldown: 0.3 to 0.7 s »,
+//   « Range: 20 px », « Melee » ou « Projectile », « Penetration: 30 % » si l'arme perce l'armure, et « Two-handed » à deux
+//   mains ;
 // - une ligne par affixe (`ligneDAffixe`), préfixe puis suffixe ;
-// - les seuils du modèle (« Requires Might 11 »).
+// - les seuils de l'objet à son niveau (« Requires Might 11 », `seuilsDeLObjet`).
 // La mention « inactif » n'en fait pas partie : elle dépend de l'endroit où l'objet est porté (`ligneDObjetInactif`).
 [[nodiscard]] std::vector<std::string> lignesDeLInfobulle(const Objet& objet);

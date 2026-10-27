@@ -1,9 +1,12 @@
 // ./tests/jeu/test_CoherenceDesDonnees.cpp
 #include <catch2/catch_test_macros.hpp>
+#include <cmath>
 #include <cstddef>
+#include <optional>
 #include <vector>
 
 #include "combat/Defense.hpp"
+#include "combat/DescriptionDAttaque.hpp"
 #include "combat/Element.hpp"
 #include "combat/Esquive.hpp"
 #include "escouade/Specialite.hpp"
@@ -13,6 +16,7 @@
 #include "monstres/DefinitionDeMonstre.hpp"
 #include "objets/CatalogueAffixes.hpp"
 #include "objets/CatalogueObjets.hpp"
+#include "objets/DonneesDArme.hpp"
 #include "objets/GenerationDObjets.hpp"
 #include "objets/Objet.hpp"
 
@@ -33,6 +37,53 @@ TEST_CASE("toute classe peut porter tout objet du catalogue au niveau 1") {
         for (const DefinitionObjet& modele : catalogueObjets()) {
             INFO(classe.nom << " porte " << modele.nom);
             REQUIRE(seuilsAtteints(Objet{modele.id}, classe.definition.caracteristiques));
+        }
+    }
+}
+
+namespace {
+// Les dégâts par seconde visés d'une arme de niveau 1 et de qualité moyenne (valeurs « à tester ») : toutes les armes d'une main
+// visent le même, toutes les armes à deux mains aussi. Une arme au-dessus de ce but de plus de 10 % est trop forte pour sa famille ;
+// une arme sous le but (la dague, qui perce l'armure) est compensée par autre chose.
+constexpr double s_degatsParSecondeUneMain = 23.0;
+constexpr double s_degatsParSecondeDeuxMains = 30.0;
+constexpr double s_excesPermis = 1.10;
+
+// Les dégâts par seconde du gabarit de cette arme : sa référence, par le temps d'un coup (exécution et recharge moyenne).
+double degatsParSeconde(const DonneesDArme& arme) {
+    const double recharge = (static_cast<double>(arme.rechargeMin) + static_cast<double>(arme.rechargeMax)) / 2.0;
+    return arme.degatsDeReference / (static_cast<double>(arme.tempsExecution) + recharge);
+}
+}  // namespace
+
+TEST_CASE("aucun gabarit d'arme ne depasse de plus de 10 % les degats par seconde vises de sa famille") {
+    for (const DefinitionObjet& modele : catalogueObjets()) {
+        if (!modele.arme.has_value()) {
+            continue;
+        }
+        const DonneesDArme& arme = *modele.arme;
+        const double vise = arme.mains == 2 ? s_degatsParSecondeDeuxMains : s_degatsParSecondeUneMain;
+        INFO(modele.nom << " : " << degatsParSeconde(arme) << " degats par seconde pour " << vise << " vises");
+        REQUIRE(degatsParSeconde(arme) <= vise * s_excesPermis);
+    }
+}
+
+TEST_CASE("la plage de chaque arme contient sa moyenne, a tous les niveaux de 1 a 20 et a toutes les qualites, et son minimum est d'au moins 1") {
+    for (const DefinitionObjet& modele : catalogueObjets()) {
+        if (!modele.arme.has_value()) {
+            continue;
+        }
+        for (int niveau = 1; niveau <= 20; ++niveau) {
+            for (const int qualite : {0, 25, 50, 75, 100}) {
+                INFO(modele.nom << ", niveau " << niveau << ", qualite " << qualite);
+                const DescriptionDAttaque arme = descriptionDeLArme(Objet{modele.id, Rarete::Commun, std::nullopt, std::nullopt, niveau, qualite});
+                // La moyenne se recalcule ici de la façon la plus simple : le gabarit, le niveau, la qualité.
+                const double moyenne = modele.arme->degatsDeReference * facteurDeNiveau(niveau) * (0.85 + 0.30 * qualite / 100.0);
+                REQUIRE(arme.degats.min.total() >= 1);
+                REQUIRE(arme.degats.min.total() <= arme.degats.max.total());
+                REQUIRE(arme.degats.min.total() <= static_cast<int>(std::lround(moyenne)));
+                REQUIRE(arme.degats.max.total() >= static_cast<int>(std::lround(moyenne)));
+            }
         }
     }
 }

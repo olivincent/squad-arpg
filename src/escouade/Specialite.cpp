@@ -40,8 +40,8 @@ constexpr float s_activationZone = 0.8f;      // en secondes
 constexpr float s_rayonZone = 60.0f;          // rayon de zone, depuis le point visé
 
 // Paladin et rôdeur : valeurs provisoires, à ajuster après test.
-// Le bonus sacré de la frappe sacrée s'ajoute aux dégâts de l'arme. Calibré sur la masse de départ du paladin (15) :
-// 15 + 45 = 60, le total d'avant l'étape 94 ; avec l'épée à deux mains (60), 105.
+// Le bonus sacré de la frappe sacrée s'ajoute aux dégâts de l'arme. Calibré à l'étape 94 sur une masse de départ de 15 (15 + 45 =
+// 60) ; depuis l'étape 102, la masse de départ du paladin fait 26 en moyenne (71 en tout) : à retoucher en jouant.
 constexpr int s_bonusSacreFrappeSacree = 45;
 constexpr float s_rechargeFrappeSacree = 5.0f;    // en secondes
 constexpr float s_activationFrappeSacree = 0.3f;  // en secondes
@@ -80,11 +80,13 @@ constexpr PaireDeCroissance s_croissanceRodeur = {Caracteristique::Adresse, Cara
 // (la durée d'une provocation n'est pas un montant).
 constexpr Coefficients s_puissanceSeule = Coefficients::seul(Caracteristique::Puissance, 1.0f);
 
-// Les armes qui permettent les skills de frappe et de tir (modèle de *Titan Quest* : pas de restriction par classe).
-const std::vector<TypeDArme> s_armesDeFrappePuissante = {TypeDArme::EpeeLongue, TypeDArme::Masse, TypeDArme::Dague,
-                                                         TypeDArme::EpeeADeuxMains};
-const std::vector<TypeDArme> s_armesDeFrappeSacree = {TypeDArme::EpeeLongue, TypeDArme::Masse, TypeDArme::EpeeADeuxMains};
-const std::vector<TypeDArme> s_armesDeTir = {TypeDArme::Arc};
+// Les armes qui permettent les skills de frappe et de tir (modèle de *Titan Quest* : pas de restriction par classe). Les skills
+// de frappe (frappe puissante, frappe sacrée) veulent une arme de contact, quelle qu'elle soit ; les skills de tir (tir perçant,
+// pluie de flèches) un arc ou une arbalète.
+const std::vector<TypeDArme> s_armesDeContact = {TypeDArme::Dague,          TypeDArme::EpeeAUneMain,    TypeDArme::HacheAUneMain,
+                                                 TypeDArme::MasseAUneMain,  TypeDArme::Lance,           TypeDArme::EpeeADeuxMains,
+                                                 TypeDArme::HacheADeuxMains, TypeDArme::MasseADeuxMains};
+const std::vector<TypeDArme> s_armesDeTir = {TypeDArme::Arc, TypeDArme::Arbalete};
 
 // Part de noir mélangée à la couleur de la classe, selon le nombre de fois où elle a déjà été prise.
 constexpr std::array<float, 3> s_assombrissements = {0.0f, 0.30f, 0.55f};
@@ -112,12 +114,12 @@ std::vector<Specialite> construireLeCatalogue() {
           .skills = {{IdSkill::FrappePuissante, Skill({.type = TypeSkill::DegatsSurCible, .portee = s_porteeMelee,
                                              .puissance = s_degatsSkill, .rechargeMin = s_rechargeSkill,
                                              .rechargeMax = s_rechargeSkill, .tempsExecution = s_activationSkill, .coefficients = s_puissanceSeule,
-                                             .nature = NatureDAttaque::Contact, .armesExigees = s_armesDeFrappePuissante})},
+                                             .nature = NatureDAttaque::Contact, .armesExigees = s_armesDeContact})},
            {IdSkill::Provocation, Skill({.type = TypeSkill::Provocation, .portee = 0.0f,
                                          .puissance = s_dureeProvocation, .rechargeMin = s_rechargeProvocation,
                                          .rechargeMax = s_rechargeProvocation, .rayonZone = s_rayonProvocation,
                                          .tempsExecution = s_activationProvocation, .nature = NatureDAttaque::Contact})}},
-          .equipementDeDepart = equipementDeMelee(IdObjet::EpeeLongue), .rayonVision = s_rayonVision,
+          .equipementDeDepart = equipementDeMelee(IdObjet::EpeeAUneMain), .rayonVision = s_rayonVision,
           .caracteristiques = s_caracteristiquesGuerrier, .croissance = s_croissanceGuerrier,
           .rang = Rang::Avant}},
         // Prêtre : derrière, soigne.
@@ -146,14 +148,14 @@ std::vector<Specialite> construireLeCatalogue() {
                                           .puissance = 0, .rechargeMin = s_rechargeFrappeSacree,
                                           .rechargeMax = s_rechargeFrappeSacree,
                                           .tempsExecution = s_activationFrappeSacree, .coefficients = s_puissanceSeule,
-                                          .nature = NatureDAttaque::Contact, .armesExigees = s_armesDeFrappeSacree,
+                                          .nature = NatureDAttaque::Contact, .armesExigees = s_armesDeContact,
                                           .bonusDeFrappe = degatsDe(Element::Sacre, s_bonusSacreFrappeSacree)})},
            {IdSkill::ImpositionDesMains, Skill({.type = TypeSkill::Soin, .portee = s_porteeMelee,
                                                 .puissance = s_puissanceImposition,
                                                 .rechargeMin = s_rechargeImposition,
                                                 .rechargeMax = s_rechargeImposition,
                                                 .tempsExecution = s_activationImposition, .coefficients = s_puissanceSeule, .nature = NatureDAttaque::Contact})}},
-          .equipementDeDepart = equipementDeMelee(IdObjet::Masse), .rayonVision = s_rayonVision,
+          .equipementDeDepart = equipementDeMelee(IdObjet::MasseAUneMain), .rayonVision = s_rayonVision,
           .caracteristiques = s_caracteristiquesPaladin, .croissance = s_croissancePaladin,
           .rang = Rang::Avant}},
         // Rôdeur : derrière, tire de loin et lance une pluie de flèches.

@@ -15,12 +15,12 @@
 
 namespace {
 
-// Personnage en (0, 0), rayon 10, portée 20 px bord à bord (celle de l'épée longue, que l'aide vérifie) : un cercle
+// Personnage en (0, 0), rayon 10, portée 20 px bord à bord (celle de l'épée à une main, que l'aide vérifie) : un cercle
 // de rayon 15 est à portée si son centre est à 45 px ou moins.
 Personnage personnageDePortee20() {
     Personnage personnage = unPersonnage({0.0f, 0.0f},
                           {.couleur = sf::Color::Red,
-                           .equipementDeDepart = {{Emplacement::MainDroite, IdObjet::EpeeLongue}},
+                           .equipementDeDepart = {{Emplacement::MainDroite, IdObjet::EpeeAUneMain}},
                            .rayonVision = s_rayonVisionDeTest});
     REQUIRE(personnage.getPorteeAttaqueDeBase() == 20.0f);
     return personnage;

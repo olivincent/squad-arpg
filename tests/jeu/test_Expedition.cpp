@@ -38,7 +38,7 @@ Partie partieDe(Expedition expedition, const std::vector<sf::Vector2f>& monstres
     return Partie(niveauDegage(monstres), std::move(expedition), s_graineDeTest, catalogueDeTest(monstreSansHasard()));
 }
 
-const Objet s_masseFlamboyante{IdObjet::Masse, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}};
+const Objet s_masseFlamboyante{IdObjet::MasseAUneMain, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}};
 }  // namespace
 
 TEST_CASE("nouvelleExpedition : profondeur 1, l'equipement de depart porte, un sac vide") {

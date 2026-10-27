@@ -4,6 +4,7 @@
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <optional>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -102,7 +103,7 @@ TEST_CASE("frapper renvoie les degats pour une cible a portee") {
     Personnage personnage = unPersonnage({100.0f, 100.0f},
                           definitionArmee(IdObjet::Sceptre));
 
-    REQUIRE(frapperEnEntier(personnage, pointCible({150.0f, 100.0f}), generateur) == s_degatsBaseDeTest);
+    REQUIRE(estUnCoupDeTireur(frapperEnEntier(personnage, pointCible({150.0f, 100.0f}), generateur)));
 }
 
 TEST_CASE("frapper renvoie 0 pour une cible hors de portee") {
@@ -120,9 +121,9 @@ TEST_CASE("frapper renvoie de nouveau les degats apres une duree simulee genereu
     const TileMap carte = carteDegagee5x5();
     const Cercle cible = pointCible({150.0f, 100.0f});
 
-    REQUIRE(frapperEnEntier(personnage, cible, generateur) == s_degatsBaseDeTest);
-    ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.6f);
-    REQUIRE(frapperEnEntier(personnage, cible, generateur) == s_degatsBaseDeTest);
+    REQUIRE(estUnCoupDeTireur(frapperEnEntier(personnage, cible, generateur)));
+    ecoulerTemps(personnage, carte, {100.0f, 100.0f}, s_rechargeTireurMaxDeTest + s_executionBaseDeTest + 0.1f);
+    REQUIRE(estUnCoupDeTireur(frapperEnEntier(personnage, cible, generateur)));
 }
 
 TEST_CASE("Un personnage est vivant a la creation") {
@@ -175,7 +176,7 @@ TEST_CASE("getRayonVision renvoie le rayon donne au constructeur") {
 }
 
 TEST_CASE("getZoneDeControle vient de l'arme : une attaque de contact engage, un projectile non, les mains nues engagent") {
-    const Personnage epee = unPersonnageArme({100.0f, 100.0f}, IdObjet::EpeeLongue);
+    const Personnage epee = unPersonnageArme({100.0f, 100.0f}, IdObjet::EpeeAUneMain);
     const Personnage arc = unPersonnageArme({100.0f, 100.0f}, IdObjet::Arc);
     const Personnage mainsNues = unPersonnage({100.0f, 100.0f}, definitionSansArme());
 
@@ -186,12 +187,11 @@ TEST_CASE("getZoneDeControle vient de l'arme : une attaque de contact engage, un
 }
 
 TEST_CASE("changer d'arme change la zone de controle, la portee et l'attaque de base") {
-    Personnage personnage = unPersonnage({100.0f, 100.0f}, capableDePorter(definitionArmee(IdObjet::EpeeLongue), {IdObjet::Arc}));
-    const DescriptionDAttaque epee = definitionObjet(IdObjet::EpeeLongue).arme.value().attaque;
-    const DescriptionDAttaque arc = definitionObjet(IdObjet::Arc).arme.value().attaque;
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, capableDePorter(definitionArmee(IdObjet::EpeeAUneMain), {IdObjet::Arc}));
+    const DescriptionDAttaque epee = descriptionDeLArme(Objet{IdObjet::EpeeAUneMain});
+    const DescriptionDAttaque arc = descriptionDeLArme(Objet{IdObjet::Arc});
     REQUIRE(personnage.getPorteeAttaqueDeBase() == epee.portee);
-    REQUIRE(attaqueDeBaseDe(personnage).degats.total() == montantEffectif(epee.degats.min[Element::Physique], Coefficients::seul(Caracteristique::Puissance, 1.0f),
-                                                                     personnage.getCaracteristiques()));
+    REQUIRE(dansLaPlageAvecPuissance(attaqueDeBaseDe(personnage).degats.total(), epee, personnage.getCaracteristiques()));
 
     static_cast<void>(personnage.retirerEquipement(Emplacement::MainDroite));
     REQUIRE(personnage.getPorteeAttaqueDeBase() == mainsNues().portee);   // sans arme : les mains nues
@@ -203,23 +203,45 @@ TEST_CASE("changer d'arme change la zone de controle, la portee et l'attaque de 
     REQUIRE(attaqueDeBaseDe(personnage).nature == NatureDAttaque::Projectile);
 }
 
-TEST_CASE("l'attaque de base d'une arme sans ecart, ou des mains nues, ne tire rien : le generateur n'avance pas") {
-    Personnage armee = unPersonnageArme({100.0f, 100.0f}, IdObjet::EpeeLongue);
+TEST_CASE("l'attaque de base des mains nues ne tire rien : le generateur n'avance pas") {
     Personnage nue = unPersonnage({100.0f, 100.0f}, definitionSansArme());
     Generateur generateur = generateurDeTest();
     const Generateur avant = generateur;
 
-    static_cast<void>(armee.getAttaqueDeBase(generateur));
     static_cast<void>(nue.getAttaqueDeBase(generateur));
 
     REQUIRE(generateur == avant);
 }
 
+TEST_CASE("l'attaque de base d'une arme tire un seul nombre, dans la plage de l'arme, a chaque coup") {
+    Personnage armee = unPersonnageArme({100.0f, 100.0f}, IdObjet::EpeeAUneMain);
+    const DescriptionDAttaque epee = descriptionDeLArme(Objet{IdObjet::EpeeAUneMain});
+    Generateur generateur = generateurDeTest();
+    Generateur temoin = generateurDeTest();
+
+    const Attaque attaque = armee.getAttaqueDeBase(generateur);
+
+    REQUIRE(attaque.degats[Element::Physique] == tirerEntre(temoin, epee.degats.min[Element::Physique], epee.degats.max[Element::Physique]));
+    REQUIRE(generateur == temoin);  // exactement un tirage : une seule portion a un ecart
+}
+
+TEST_CASE("deux coups de base d'une meme arme ne font pas toujours les memes degats") {
+    Personnage armee = unPersonnageArme({100.0f, 100.0f}, IdObjet::MasseAUneMain);
+    Generateur generateur = generateurDeTest();
+    std::set<int> vus;
+
+    for (int i = 0; i < 200; ++i) {
+        vus.insert(armee.getAttaqueDeBase(generateur).degats.total());
+    }
+
+    REQUIRE(vus.size() > 5);
+}
+
 TEST_CASE("changer d'arme relance une recharge complete tiree dans l'intervalle de la nouvelle arme") {
     Generateur generateur = generateurDeTest();
-    Personnage personnage = unPersonnage({100.0f, 100.0f}, capableDePorter(definitionArmee(IdObjet::EpeeLongue), {IdObjet::EpeeADeuxMains}));
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, capableDePorter(definitionArmee(IdObjet::EpeeAUneMain), {IdObjet::EpeeADeuxMains}));
     const TileMap carte = carteDegagee5x5();
-    const DescriptionDAttaque lente = definitionObjet(IdObjet::EpeeADeuxMains).arme.value().attaque;
+    const DescriptionDAttaque lente = descriptionDeLArme(Objet{IdObjet::EpeeADeuxMains});
     REQUIRE(personnage.engagerAttaque(1));  // une arme neuve est prête
     personnage.annulerAttaque();
 
@@ -236,7 +258,7 @@ TEST_CASE("changer d'arme relance une recharge complete tiree dans l'intervalle 
 
 TEST_CASE("changer d'arme annule le coup de base en cours, sans le faire partir") {
     Generateur generateur = generateurDeTest();
-    Personnage personnage = unPersonnageArme({100.0f, 100.0f}, IdObjet::EpeeLongue);
+    Personnage personnage = unPersonnageArme({100.0f, 100.0f}, IdObjet::EpeeAUneMain);
     REQUIRE(personnage.engagerAttaque(1));
     REQUIRE(personnage.cibleEngagee() == 1);
 
@@ -249,7 +271,7 @@ TEST_CASE("changer d'arme annule le coup de base en cours, sans le faire partir"
 
 TEST_CASE("un changement qui laisse l'arme intacte ne touche pas la recharge ni le coup en cours") {
     Generateur generateur = generateurDeTest();
-    Personnage personnage = unPersonnageArme({100.0f, 100.0f}, IdObjet::EpeeLongue);
+    Personnage personnage = unPersonnageArme({100.0f, 100.0f}, IdObjet::EpeeAUneMain);
     REQUIRE(personnage.engagerAttaque(1));
 
     static_cast<void>(personnage.poserEquipement(Emplacement::Anneau1, {IdObjet::AnneauDeProtection}));
@@ -267,7 +289,7 @@ TEST_CASE("getPuissanceAttaqueDeBase renvoie les degats de l'attaque de base") {
     const Personnage personnage = unPersonnage({100.0f, 100.0f},
                                 definitionArmee(IdObjet::Sceptre));
 
-    REQUIRE(attaqueDeBaseDe(personnage).degats.total() == s_degatsBaseDeTest);
+    REQUIRE(estUnCoupDeTireur(attaqueDeBaseDe(personnage).degats.total()));
 }
 
 TEST_CASE("lire la puissance de l'attaque de base ne change ni le coup engage ni la recharge") {
@@ -276,11 +298,11 @@ TEST_CASE("lire la puissance de l'attaque de base ne change ni le coup engage ni
     Generateur generateur = generateurDeTest();
     REQUIRE(personnage.engagerAttaque(1));
 
-    REQUIRE(attaqueDeBaseDe(personnage).degats.total() == s_degatsBaseDeTest);
+    REQUIRE(estUnCoupDeTireur(attaqueDeBaseDe(personnage).degats.total()));
 
     REQUIRE(personnage.cibleEngagee() == 1);
-    REQUIRE(degatsOuZero(personnage.avancerAttaque(0.2f, generateur)) == s_degatsBaseDeTest);  // le coup engagé part normalement
-    REQUIRE(attaqueDeBaseDe(personnage).degats.total() == s_degatsBaseDeTest);
+    REQUIRE(estUnCoupDeTireur(degatsOuZero(personnage.avancerAttaque(0.2f, generateur))));  // le coup engagé part normalement
+    REQUIRE(estUnCoupDeTireur(attaqueDeBaseDe(personnage).degats.total()));
     REQUIRE_FALSE(personnage.engagerAttaque(1));                // la recharge court toujours
 }
 
@@ -362,7 +384,7 @@ TEST_CASE("engagerSkill refuse un personnage sans skill, sans toucher a l'attaqu
     const Cercle cible = pointCible({150.0f, 100.0f});
 
     REQUIRE_FALSE(personnage.engagerSkill(IdSkill::FrappePuissante, Cible(CibleMonstre{1, cible})));
-    REQUIRE(frapperEnEntier(personnage, cible, generateur) == s_degatsBaseDeTest);
+    REQUIRE(estUnCoupDeTireur(frapperEnEntier(personnage, cible, generateur)));
 }
 
 TEST_CASE("engagerSkill refuse un personnage mort") {
@@ -385,7 +407,7 @@ TEST_CASE("skillEstAPortee mesure la portee du skill, sans toucher a l'attaque d
 
     REQUIRE(personnage.skillEstAPortee(IdSkill::FrappePuissante, pointCible({150.0f, 100.0f})));
     REQUIRE_FALSE(personnage.skillEstAPortee(IdSkill::FrappePuissante, pointCible({300.0f, 100.0f})));
-    REQUIRE(frapperEnEntier(personnage, pointCible({150.0f, 100.0f}), generateur) == s_degatsBaseDeTest);
+    REQUIRE(estUnCoupDeTireur(frapperEnEntier(personnage, pointCible({150.0f, 100.0f}), generateur)));
 }
 
 TEST_CASE("Un skill ne peut pas etre relance pendant sa recharge, puis le peut une fois ecoulee") {
@@ -418,13 +440,13 @@ TEST_CASE("Apres un skill reussi, l'attaque de base attend une recharge complete
     // 0,2 s de recharge. Le skill la relance au complet (0,5 s) : 0,3 s
     // plus tard, elle ne doit toujours pas partir, alors qu'elle l'aurait
     // fait sans le skill.
-    REQUIRE(frapperEnEntier(personnage, cible, generateur) == s_degatsBaseDeTest);
+    REQUIRE(estUnCoupDeTireur(frapperEnEntier(personnage, cible, generateur)));
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.3f);
     REQUIRE(lancerSkillEnEntier(personnage, Cible(CibleMonstre{1, cible}), generateur).degats.total() == 25);
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.3f);
     REQUIRE(frapperEnEntier(personnage, cible, generateur) == 0);
     ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.3f);
-    REQUIRE(frapperEnEntier(personnage, cible, generateur) == s_degatsBaseDeTest);
+    REQUIRE(estUnCoupDeTireur(frapperEnEntier(personnage, cible, generateur)));
 }
 
 TEST_CASE("mettreAJour s'arrete avant d'entrer dans un obstacle") {
@@ -660,7 +682,7 @@ TEST_CASE("avancerAttaque rend les degats une seule fois, a la fin de l'executio
     for (int i = 0; i < nombreDeTics(0.2f); ++i) {
         total += degatsOuZero(personnage.avancerAttaque(s_dureeTic, generateur));
     }
-    REQUIRE(total == s_degatsBaseDeTest);
+    REQUIRE(estUnCoupDeTireur(total));
     REQUIRE_FALSE(personnage.cibleEngagee().has_value());
 }
 
@@ -676,7 +698,7 @@ TEST_CASE("l'attaque de base d'un personnage porte sa capacite offensive") {
     const std::optional<Attaque> attaque = rodeur.avancerAttaque(s_executionBaseDeTest, generateur);
 
     REQUIRE(attaque.has_value());
-    REQUIRE(attaque->degats.total() == s_degatsBaseDeTest);
+    REQUIRE(estUnCoupDeTireur(attaque->degats.total()));
     REQUIRE(attaque->capaciteOffensive == 120);
 }
 
@@ -712,12 +734,13 @@ TEST_CASE("Apres le depart du coup, la recharge court avant le coup suivant") {
     const TileMap carte = carteDegagee5x5();
     Personnage personnage = personnageAvecExecution();
     REQUIRE(personnage.engagerAttaque(1));
-    REQUIRE(degatsOuZero(personnage.avancerAttaque(0.2f, generateur)) == s_degatsBaseDeTest);
+    REQUIRE(estUnCoupDeTireur(degatsOuZero(personnage.avancerAttaque(0.2f, generateur))));
 
+    // La recharge court dans l'intervalle de l'arme : pas prête avant son minimum, prête une fois son maximum écoulé.
     REQUIRE_FALSE(personnage.engagerAttaque(1));
-    ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.4f);
+    ecoulerTemps(personnage, carte, {100.0f, 100.0f}, s_rechargeTireurMinDeTest * 0.9f);
     REQUIRE_FALSE(personnage.engagerAttaque(1));
-    ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.2f);
+    ecoulerTemps(personnage, carte, {100.0f, 100.0f}, s_rechargeTireurMaxDeTest);
     REQUIRE(personnage.engagerAttaque(1));
 }
 
@@ -821,7 +844,7 @@ TEST_CASE("Au depart du skill, l'attaque de base repart pour une recharge comple
     REQUIRE(degatsOuZero(personnage.avancerSkill(0.4f, generateur)) == 25);
 
     REQUIRE_FALSE(personnage.engagerAttaque(1));
-    ecoulerTemps(personnage, carte, {100.0f, 100.0f}, 0.6f);
+    ecoulerTemps(personnage, carte, {100.0f, 100.0f}, s_rechargeTireurMaxDeTest + 0.1f);
     REQUIRE(personnage.engagerAttaque(1));
 }
 
@@ -1244,13 +1267,13 @@ Personnage unPersonnageDePuissance(const Caracteristiques& base) {
 TEST_CASE("equiper l'anneau de puissance augmente les degats de l'attaque de base") {
     Personnage personnage = unPersonnageDePuissance(Caracteristiques({12, 10, 10, 10, 11}));
     const int avant = attaqueDeBaseDe(personnage).degats.total();
-    REQUIRE(avant == montantEffectif(s_degatsBaseDeTest, Coefficients::seul(Caracteristique::Puissance, 1.0f), personnage.getCaracteristiques()));
+    const DescriptionDAttaque sceptre = descriptionDeLArme(Objet{IdObjet::Sceptre});  // l'arme de ce personnage
+    REQUIRE(dansLaPlageAvecPuissance(avant, sceptre, personnage.getCaracteristiques()));
 
     static_cast<void>(personnage.poserEquipement(Emplacement::Anneau1, {IdObjet::AnneauDePuissance}));
 
     REQUIRE(attaqueDeBaseDe(personnage).degats.total() > avant);
-    REQUIRE(attaqueDeBaseDe(personnage).degats.total() ==
-            montantEffectif(s_degatsBaseDeTest, Coefficients::seul(Caracteristique::Puissance, 1.0f), personnage.getCaracteristiques()));
+    REQUIRE(dansLaPlageAvecPuissance(attaqueDeBaseDe(personnage).degats.total(), sceptre, personnage.getCaracteristiques()));
 
     static_cast<void>(personnage.retirerEquipement(Emplacement::Anneau1));
     REQUIRE(attaqueDeBaseDe(personnage).degats.total() == avant);
@@ -1262,7 +1285,8 @@ TEST_CASE("le coup de l'attaque de base et le skill de degats rendent le montant
     const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
     const Cercle cible{{120.0f, 100.0f}, 10.0f};
 
-    REQUIRE(frapperEnEntier(personnage, cible, generateur) == montantEffectif(s_degatsBaseDeTest, puissance, personnage.getCaracteristiques()));
+    REQUIRE(dansLaPlageAvecPuissance(frapperEnEntier(personnage, cible, generateur), descriptionDeLArme(Objet{IdObjet::Sceptre}),
+                                     personnage.getCaracteristiques()));
     REQUIRE(personnage.engagerSkill(IdSkill::FrappePuissante, CibleMonstre{1, cible}));
     int rendu = 0;
     for (int i = 0; i < nombreDeTics(1.0f) && rendu == 0; ++i) {
@@ -1289,13 +1313,13 @@ TEST_CASE("la duree d'une provocation ne profite d'aucune caracteristique") {
 namespace {
 Personnage unPersonnageAuSkillExigeant(std::optional<IdObjet> arme) {
     DefinitionPersonnage definition = arme.has_value() ? definitionArmee(*arme) : definitionSansArme();
-    definition.skills = {{IdSkill::FrappePuissante, skillExigeantDesArmes({TypeDArme::EpeeLongue, TypeDArme::Masse})}};
+    definition.skills = {{IdSkill::FrappePuissante, skillExigeantDesArmes({TypeDArme::EpeeAUneMain, TypeDArme::MasseAUneMain})}};
     return unPersonnage({100.0f, 100.0f}, std::move(definition));
 }
 }  // namespace
 
 TEST_CASE("un skill qui exige une arme est pret et engageable avec l'une de ces armes") {
-    Personnage personnage = unPersonnageAuSkillExigeant(IdObjet::Masse);
+    Personnage personnage = unPersonnageAuSkillExigeant(IdObjet::MasseAUneMain);
 
     REQUIRE(personnage.skillEstPret(IdSkill::FrappePuissante));
     REQUIRE(personnage.peutEngagerSkill(IdSkill::FrappePuissante));
@@ -1329,7 +1353,7 @@ TEST_CASE("un skill sans exigence reste utilisable aux mains nues") {
 }
 
 TEST_CASE("retirer ou poser l'arme exigee rend le skill refuse ou pret") {
-    Personnage personnage = unPersonnageAuSkillExigeant(IdObjet::EpeeLongue);
+    Personnage personnage = unPersonnageAuSkillExigeant(IdObjet::EpeeAUneMain);
     REQUIRE(personnage.skillEstPret(IdSkill::FrappePuissante));
 
     static_cast<void>(personnage.retirerEquipement(Emplacement::MainDroite));
@@ -1339,28 +1363,28 @@ TEST_CASE("retirer ou poser l'arme exigee rend le skill refuse ou pret") {
     static_cast<void>(personnage.poserEquipement(Emplacement::MainDroite, {IdObjet::Arc}));
     REQUIRE_FALSE(personnage.skillEstPret(IdSkill::FrappePuissante));
 
-    static_cast<void>(personnage.poserEquipement(Emplacement::MainDroite, {IdObjet::Masse}));
+    static_cast<void>(personnage.poserEquipement(Emplacement::MainDroite, {IdObjet::MasseAUneMain}));
     REQUIRE(personnage.skillEstPret(IdSkill::FrappePuissante));
     REQUIRE_FALSE(personnage.etatDuSkill(IdSkill::FrappePuissante)->armeAbsente);
 }
 
 TEST_CASE("retirer l'arme exigee annule l'activation du skill, sans recharge consommee") {
-    Personnage personnage = unPersonnageAuSkillExigeant(IdObjet::EpeeLongue);
+    Personnage personnage = unPersonnageAuSkillExigeant(IdObjet::EpeeAUneMain);
     REQUIRE(personnage.engagerSkill(IdSkill::FrappePuissante, CibleMonstre{1, Cercle{}}));
     REQUIRE(personnage.skillEngage().has_value());
 
     static_cast<void>(personnage.retirerEquipement(Emplacement::MainDroite));
 
     REQUIRE_FALSE(personnage.skillEngage().has_value());
-    static_cast<void>(personnage.poserEquipement(Emplacement::MainDroite, {IdObjet::Masse}));
+    static_cast<void>(personnage.poserEquipement(Emplacement::MainDroite, {IdObjet::MasseAUneMain}));
     REQUIRE(personnage.skillEstPret(IdSkill::FrappePuissante));  // la recharge n'a pas été consommée
 }
 
 TEST_CASE("changer pour une autre arme qui convient laisse le skill en activation") {
-    Personnage personnage = unPersonnageAuSkillExigeant(IdObjet::EpeeLongue);
+    Personnage personnage = unPersonnageAuSkillExigeant(IdObjet::EpeeAUneMain);
     REQUIRE(personnage.engagerSkill(IdSkill::FrappePuissante, CibleMonstre{1, Cercle{}}));
 
-    static_cast<void>(personnage.poserEquipement(Emplacement::MainDroite, {IdObjet::Masse}));
+    static_cast<void>(personnage.poserEquipement(Emplacement::MainDroite, {IdObjet::MasseAUneMain}));
 
     REQUIRE(personnage.skillEngage().has_value());
 }
@@ -1368,9 +1392,9 @@ TEST_CASE("changer pour une autre arme qui convient laisse le skill en activatio
 // Objets inactifs (étape 92.2).
 TEST_CASE("une arme dont le seuil n'est pas atteint reste portee mais le personnage frappe aux mains nues") {
     Personnage personnage = unPersonnage({100.0f, 100.0f},
-                          avecCaracteristique(definitionArmee(IdObjet::EpeeLongue), Caracteristique::Puissance, 5));  // sous les 11 exigés
+                          avecCaracteristique(definitionArmee(IdObjet::EpeeAUneMain), Caracteristique::Puissance, 5));  // sous les 11 exigés
 
-    REQUIRE(personnage.getEquipement().a(Emplacement::MainDroite) == Objet{IdObjet::EpeeLongue});
+    REQUIRE(personnage.getEquipement().a(Emplacement::MainDroite) == Objet{IdObjet::EpeeAUneMain});
     REQUIRE_FALSE(personnage.getEquipementActif().a(Emplacement::MainDroite).has_value());
     REQUIRE(personnage.getPorteeAttaqueDeBase() == mainsNues().portee);
     REQUIRE(attaqueDeBaseDe(personnage).degats.total() ==
@@ -1379,17 +1403,17 @@ TEST_CASE("une arme dont le seuil n'est pas atteint reste portee mais le personn
 
 TEST_CASE("retirer l'anneau de puissance rend l'epee inactive, le remettre la remet en service") {
     // Une épée de niveau 3 : son seuil de Puissance est au-dessus de 9 mais à la portée de 9 plus l'anneau.
-    const Objet epee{IdObjet::EpeeLongue, Rarete::Commun, std::nullopt, std::nullopt, 3};
+    const Objet epee{IdObjet::EpeeAUneMain, Rarete::Commun, std::nullopt, std::nullopt, 3};
     const int bonus = definitionObjet(IdObjet::AnneauDePuissance).bonus.valeur(Caracteristique::Puissance);
     REQUIRE(seuilsDeLObjet(epee).front().valeur > 9);
     REQUIRE(seuilsDeLObjet(epee).front().valeur <= 9 + bonus);
-    Personnage personnage = unPersonnageEquipe({100.0f, 100.0f}, avecCaracteristique(definitionArmee(IdObjet::EpeeLongue), Caracteristique::Puissance, 9),
+    Personnage personnage = unPersonnageEquipe({100.0f, 100.0f}, avecCaracteristique(definitionArmee(IdObjet::EpeeAUneMain), Caracteristique::Puissance, 9),
                                                Emplacement::MainDroite, epee);
     REQUIRE_FALSE(personnage.getEquipementActif().a(Emplacement::MainDroite).has_value());
 
     static_cast<void>(personnage.poserEquipement(Emplacement::Anneau1, {IdObjet::AnneauDePuissance}));  // 9 + l'anneau
     REQUIRE(personnage.getEquipementActif().a(Emplacement::MainDroite).has_value());
-    REQUIRE(personnage.getPorteeAttaqueDeBase() == definitionObjet(IdObjet::EpeeLongue).arme.value().attaque.portee);
+    REQUIRE(personnage.getPorteeAttaqueDeBase() == descriptionDeLArme(Objet{IdObjet::EpeeAUneMain}).portee);
 
     static_cast<void>(personnage.retirerEquipement(Emplacement::Anneau1));
     REQUIRE_FALSE(personnage.getEquipementActif().a(Emplacement::MainDroite).has_value());
@@ -1420,8 +1444,8 @@ TEST_CASE("une armure ou un bouclier inactif ne donne ni armure ni blocage") {
 }
 
 TEST_CASE("une arme inactive ne permet pas les skills qui l'exigent") {
-    DefinitionPersonnage definition = avecCaracteristique(definitionArmee(IdObjet::EpeeLongue), Caracteristique::Puissance, 5);
-    definition.skills = {{IdSkill::FrappePuissante, skillExigeantDesArmes({TypeDArme::EpeeLongue})}};
+    DefinitionPersonnage definition = avecCaracteristique(definitionArmee(IdObjet::EpeeAUneMain), Caracteristique::Puissance, 5);
+    definition.skills = {{IdSkill::FrappePuissante, skillExigeantDesArmes({TypeDArme::EpeeAUneMain})}};
     const Personnage personnage = unPersonnage({100.0f, 100.0f}, std::move(definition));
 
     REQUIRE_FALSE(personnage.skillEstPret(IdSkill::FrappePuissante));
@@ -1442,10 +1466,10 @@ TEST_CASE("l'attaque de base d'une dague porte sa penetration, celle d'une epee 
     DefinitionPersonnage definition = capableDePorter(definitionArmee(IdObjet::Dague), {IdObjet::Dague});
     definition.skills = {{IdSkill::FrappePuissante, skillExigeantDesArmes({})}};
     Personnage dague = unPersonnage({100.0f, 100.0f}, definition);
-    Personnage epee = unPersonnage({100.0f, 100.0f}, definitionArmee(IdObjet::EpeeLongue));
+    Personnage epee = unPersonnage({100.0f, 100.0f}, definitionArmee(IdObjet::EpeeAUneMain));
     Generateur generateur = generateurDeTest();
 
-    REQUIRE(attaqueDeBaseDe(dague).penetration == definitionObjet(IdObjet::Dague).arme->attaque.penetration);
+    REQUIRE(attaqueDeBaseDe(dague).penetration == descriptionDeLArme(Objet{IdObjet::Dague}).penetration);
     REQUIRE(attaqueDeBaseDe(dague).penetration > 0);
     REQUIRE(attaqueDeBaseDe(epee).penetration == 0);
     REQUIRE(dague.engagerAttaque(1));
@@ -1456,11 +1480,11 @@ TEST_CASE("l'attaque de base d'une dague porte sa penetration, celle d'une epee 
 }
 
 TEST_CASE("changer pour une dague donne la penetration, la retirer la reprend") {
-    Personnage personnage = unPersonnage({100.0f, 100.0f}, capableDePorter(definitionArmee(IdObjet::EpeeLongue), {IdObjet::Dague}));
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, capableDePorter(definitionArmee(IdObjet::EpeeAUneMain), {IdObjet::Dague}));
     REQUIRE(attaqueDeBaseDe(personnage).penetration == 0);
 
     static_cast<void>(personnage.poserEquipement(Emplacement::MainDroite, {IdObjet::Dague}));
-    REQUIRE(attaqueDeBaseDe(personnage).penetration == definitionObjet(IdObjet::Dague).arme->attaque.penetration);
+    REQUIRE(attaqueDeBaseDe(personnage).penetration == descriptionDeLArme(Objet{IdObjet::Dague}).penetration);
 
     static_cast<void>(personnage.retirerEquipement(Emplacement::MainDroite));
     REQUIRE(attaqueDeBaseDe(personnage).penetration == 0);  // les mains nues
@@ -1542,13 +1566,13 @@ Personnage unPersonnageDeFrappe(IdObjet arme, std::vector<TypeDArme> armes) {
 
 TEST_CASE("un skill de frappe prend la penetration de l'arme, pas celle du skill") {
     Generateur generateur = generateurDeTest();
-    Personnage dague = unPersonnageDeFrappe(IdObjet::Dague, {TypeDArme::Dague, TypeDArme::EpeeLongue});
-    Personnage epee = unPersonnageDeFrappe(IdObjet::EpeeLongue, {TypeDArme::Dague, TypeDArme::EpeeLongue});
+    Personnage dague = unPersonnageDeFrappe(IdObjet::Dague, {TypeDArme::Dague, TypeDArme::EpeeAUneMain});
+    Personnage epee = unPersonnageDeFrappe(IdObjet::EpeeAUneMain, {TypeDArme::Dague, TypeDArme::EpeeAUneMain});
 
     const Attaque avecDague = lancerSkillEnEntier(dague, Cible(CibleMonstre{1, Cercle{{120.0f, 100.0f}, 10.0f}}), generateur, IdSkill::FrappeSacree);
     const Attaque avecEpee = lancerSkillEnEntier(epee, Cible(CibleMonstre{1, Cercle{{120.0f, 100.0f}, 10.0f}}), generateur, IdSkill::FrappeSacree);
 
-    REQUIRE(avecDague.penetration == definitionObjet(IdObjet::Dague).arme->attaque.penetration);
+    REQUIRE(avecDague.penetration == descriptionDeLArme(Objet{IdObjet::Dague}).penetration);
     REQUIRE(avecDague.penetration > 0);
     REQUIRE(avecEpee.penetration == 0);
 }
@@ -1561,16 +1585,16 @@ TEST_CASE("un skill de frappe prend les degats physiques et la nature de l'arme,
     const Attaque tir = lancerSkillEnEntier(archer, Cible(CibleMonstre{1, Cercle{{120.0f, 100.0f}, 10.0f}}), generateur, IdSkill::FrappeSacree);
 
     REQUIRE(tir.nature == NatureDAttaque::Projectile);  // celle de l'arc, pas la nature déclarée par le skill
-    REQUIRE(tir.degats[Element::Physique] == montantEffectif(definitionObjet(IdObjet::Arc).arme->attaque.degats.min[Element::Physique], puissance, archer.getCaracteristiques()));
+    REQUIRE(dansLaPlageAvecPuissance(tir.degats[Element::Physique], descriptionDeLArme(Objet{IdObjet::Arc}), archer.getCaracteristiques()));
     REQUIRE(tir.degats[Element::Feu] == montantEffectif(10, puissance, archer.getCaracteristiques()));
 }
 
 TEST_CASE("changer d'arme change les degats physiques d'un skill de frappe, pas son bonus") {
     Generateur generateur = generateurDeTest();
-    Personnage personnage = unPersonnageDeFrappe(IdObjet::EpeeLongue, {TypeDArme::EpeeLongue, TypeDArme::Dague});
+    Personnage personnage = unPersonnageDeFrappe(IdObjet::EpeeAUneMain, {TypeDArme::EpeeAUneMain, TypeDArme::Dague});
     const Attaque epee = lancerSkillEnEntier(personnage, Cible(CibleMonstre{1, Cercle{{120.0f, 100.0f}, 10.0f}}), generateur, IdSkill::FrappeSacree);
 
-    Personnage poignard = unPersonnageDeFrappe(IdObjet::Dague, {TypeDArme::EpeeLongue, TypeDArme::Dague});
+    Personnage poignard = unPersonnageDeFrappe(IdObjet::Dague, {TypeDArme::EpeeAUneMain, TypeDArme::Dague});
     const Attaque dague = lancerSkillEnEntier(poignard, Cible(CibleMonstre{1, Cercle{{120.0f, 100.0f}, 10.0f}}), generateur, IdSkill::FrappeSacree);
 
     REQUIRE(epee.degats[Element::Physique] != dague.degats[Element::Physique]);  // 15 et 14, avec la Puissance
@@ -1581,13 +1605,13 @@ TEST_CASE("changer d'arme change les degats physiques d'un skill de frappe, pas 
 namespace {
 // Une mêlée de test de Puissance 10 et d'Endurance 5, qui grandit en Puissance puis en Endurance.
 DefinitionPersonnage guerrierSousLeSeuil() {
-    DefinitionPersonnage definition = avecCaracteristique(definitionArmee(IdObjet::EpeeLongue), Caracteristique::Puissance, 10);
+    DefinitionPersonnage definition = avecCaracteristique(definitionArmee(IdObjet::EpeeAUneMain), Caracteristique::Puissance, 10);
     definition.croissance = {Caracteristique::Puissance, Caracteristique::Endurance};
     return avecCaracteristique(std::move(definition), Caracteristique::Endurance, 5);
 }
 
 // Une épée de niveau 4 : son seuil de Puissance (12) est au-dessus des 10 du guerrier.
-const Objet s_epeeExigeante{IdObjet::EpeeLongue, Rarete::Commun, std::nullopt, std::nullopt, 4};
+const Objet s_epeeExigeante{IdObjet::EpeeAUneMain, Rarete::Commun, std::nullopt, std::nullopt, 4};
 
 // Ce guerrier, qui porte cette épée exigeante : elle est inactive tant qu'il n'a pas atteint son seuil.
 Personnage unGuerrierSousLeSeuilArme() {
@@ -1683,7 +1707,7 @@ TEST_CASE("monterAuNiveau : un seuil d'equipement atteint grace a la croissance 
     personnage.monterAuNiveau(4);  // et encore 1 au niveau 4 : 12
 
     REQUIRE(personnage.getEquipementActif().a(Emplacement::MainDroite).has_value());
-    REQUIRE(personnage.getPorteeAttaqueDeBase() == definitionObjet(IdObjet::EpeeLongue).arme.value().attaque.portee);
+    REQUIRE(personnage.getPorteeAttaqueDeBase() == descriptionDeLArme(Objet{IdObjet::EpeeAUneMain}).portee);
 }
 
 // Les points libres (étape 100.1).
@@ -1802,7 +1826,7 @@ TEST_CASE("depenserDesPoints : un seuil d'equipement atteint grace a la depense 
     REQUIRE(personnage.depenserDesPoints(Caracteristiques::seule(Caracteristique::Puissance, 2)));
 
     REQUIRE(personnage.getEquipementActif().a(Emplacement::MainDroite).has_value());
-    REQUIRE(personnage.getPorteeAttaqueDeBase() == definitionObjet(IdObjet::EpeeLongue).arme.value().attaque.portee);
+    REQUIRE(personnage.getPorteeAttaqueDeBase() == descriptionDeLArme(Objet{IdObjet::EpeeAUneMain}).portee);
 }
 
 TEST_CASE("les points depenses restent apres une montee de niveau, et les libres augmentent de trois") {

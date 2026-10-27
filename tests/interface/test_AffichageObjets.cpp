@@ -39,14 +39,15 @@ TEST_CASE("affichage : chaque objet du catalogue a un sigle de deux lettres, tou
     REQUIRE(sigles.size() == catalogueObjets().size());
 }
 
-TEST_CASE("affichage : l'infobulle donne le nom, la categorie, l'armure puis le seuil") {
+TEST_CASE("affichage : l'infobulle donne le nom, la categorie, le niveau, l'armure puis le seuil") {
     const std::vector<std::string> lignes = lignesDeLInfobulle(Objet{IdObjet::CasqueDeFer});
 
-    REQUIRE(lignes.size() == 4);
+    REQUIRE(lignes.size() == 5);
     REQUIRE(lignes[0] == definitionObjet(IdObjet::CasqueDeFer).nom);
     REQUIRE(lignes[1] == "Helmet");
-    REQUIRE(lignes[2] == "Armor: +" + std::to_string(definitionObjet(IdObjet::CasqueDeFer).armure));
-    REQUIRE(lignes[3] == ligneDeSeuil(seuilsDeLObjet(Objet{IdObjet::CasqueDeFer}).front()));
+    REQUIRE(lignes[2] == "Item Level 1");
+    REQUIRE(lignes[3] == "Armor: +" + std::to_string(definitionObjet(IdObjet::CasqueDeFer).armure));
+    REQUIRE(lignes[4] == ligneDeSeuil(seuilsDeLObjet(Objet{IdObjet::CasqueDeFer}).front()));
 }
 
 TEST_CASE("affichage : une ligne de seuil donne la caracteristique et la valeur exigee") {
@@ -59,8 +60,9 @@ TEST_CASE("affichage : l'infobulle donne les seuils de l'objet a son niveau, en 
     const std::vector<std::string> lignes = lignesDeLInfobulle(niveau5);
 
     REQUIRE(lignes[1] == "Weapon");
-    REQUIRE(lignes.back() == ligneDeSeuil(seuilsDeLObjet(niveau5).back()));
-    REQUIRE(lignes.back() == "Requires Might 14");  // 6 + 2 × (5 − 1)
+    REQUIRE(lignes[2] == "Item Level 5");
+    REQUIRE(lignes[lignes.size() - 2] == "Requires Might 14");  // 6 + 2 × (5 − 1)
+    REQUIRE(lignes.back() == "Requires Dexterity 10");          // 6 + 1 × (5 − 1)
 }
 
 TEST_CASE("affichage : un objet sans seuil n'a aucune ligne d'exigence") {
@@ -78,17 +80,18 @@ TEST_CASE("affichage : la ligne d'un objet inactif") {
 TEST_CASE("affichage : l'infobulle d'un objet sans armure n'a pas de ligne d'armure, mais une ligne par bonus") {
     const std::vector<std::string> lignes = lignesDeLInfobulle(Objet{IdObjet::AnneauDePuissance});
 
-    REQUIRE(lignes.size() == 3);
+    REQUIRE(lignes.size() == 4);
     REQUIRE(lignes[0] == definitionObjet(IdObjet::AnneauDePuissance).nom);
     REQUIRE(lignes[1] == "Ring");
-    REQUIRE(lignes[2] == "Might: +" + std::to_string(definitionObjet(IdObjet::AnneauDePuissance).bonus.valeur(Caracteristique::Puissance)));
+    REQUIRE(lignes[2] == "Item Level 1");
+    REQUIRE(lignes[3] == "Might: +" + std::to_string(definitionObjet(IdObjet::AnneauDePuissance).bonus.valeur(Caracteristique::Puissance)));
 }
 
 TEST_CASE("affichage : l'infobulle du collier d'endurance donne l'Endurance") {
     const std::vector<std::string> lignes = lignesDeLInfobulle(Objet{IdObjet::CollierDEndurance});
 
-    REQUIRE(lignes.size() == 3);
-    REQUIRE(lignes[2] == "Constitution: +" + std::to_string(definitionObjet(IdObjet::CollierDEndurance).bonus.valeur(Caracteristique::Endurance)));
+    REQUIRE(lignes.size() == 4);
+    REQUIRE(lignes[3] == "Constitution: +" + std::to_string(definitionObjet(IdObjet::CollierDEndurance).bonus.valeur(Caracteristique::Endurance)));
 }
 
 TEST_CASE("affichage : aucun objet du catalogue n'affiche une valeur nulle") {
@@ -119,13 +122,26 @@ TEST_CASE("affichage : l'infobulle du bouclier rond donne son blocage") {
                                  std::to_string(bouclier.montantBloque) + " points");
 }
 
-TEST_CASE("affichage : l'infobulle d'une arme a une main donne ses degats, sa recharge, sa portee et sa nature") {
-    const std::vector<std::string> lignes = lignesDeLInfobulle(Objet{IdObjet::EpeeLongue});
-    const DescriptionDAttaque& attaque = definitionObjet(IdObjet::EpeeLongue).arme.value().attaque;
+TEST_CASE("affichage : l'infobulle d'une arme a une main donne son niveau, ses degats, sa recharge, sa portee et sa nature") {
+    const std::vector<std::string> lignes = lignesDeLInfobulle(Objet{IdObjet::EpeeAUneMain});
 
-    REQUIRE(lignes == std::vector<std::string>{"Longsword", "Weapon", "Damage: " + std::to_string(attaque.degats.min.total()),
-                                               "Cooldown: 0.3 to 0.7 s", "Range: 20 px", "Melee",
-                                               ligneDeSeuil({Caracteristique::Puissance, s_seuilAuNiveau1})});
+    // Les bornes de la plage de l'arme, avant la Puissance de qui la porte.
+    REQUIRE(lignes == std::vector<std::string>{"Sword", "Weapon", "Item Level 1", "Damage: 13–17", "Cooldown: 0.3 to 0.7 s", "Range: 20 px",
+                                               "Melee", ligneDeSeuil({Caracteristique::Puissance, s_seuilAuNiveau1})});
+}
+
+TEST_CASE("affichage : les degats de l'infobulle suivent le niveau de l'arme, pas sa qualite qui n'est pas affichee") {
+    const auto lignesDe = [](int niveau, int qualite) {
+        return lignesDeLInfobulle(Objet{IdObjet::EpeeAUneMain, Rarete::Commun, std::nullopt, std::nullopt, niveau, qualite});
+    };
+
+    REQUIRE(lignesDe(5, 50)[2] == "Item Level 5");
+    REQUIRE(lignesDe(5, 50)[3] == "Damage: 26–35");  // 30 de moyenne
+    REQUIRE(lignesDe(1, 0)[3] == "Damage: 11–15");
+    REQUIRE(lignesDe(1, 100)[3] == "Damage: 15–20");
+    for (const std::string& ligne : lignesDe(1, 100)) {
+        REQUIRE(ligne.find("uality") == std::string::npos);
+    }
 }
 
 TEST_CASE("affichage : l'infobulle d'une arme a deux mains le dit, celle d'une arme de tir donne un projectile") {
@@ -134,13 +150,14 @@ TEST_CASE("affichage : l'infobulle d'une arme a deux mains le dit, celle d'une a
     const std::vector<std::string> deuxMains = lignesDeLInfobulle(Objet{IdObjet::EpeeADeuxMains});
 
     REQUIRE(arc[arc.size() - 2] == "Two-handed");  // avant le seuil d'Adresse
-    REQUIRE(arc[arc.size() - 3] == "Projectile");
-    REQUIRE(arc[3] == "Cooldown: 0.4 to 0.6 s");
-    REQUIRE(arc[4] == "Range: 120 px");
+    REQUIRE(arc[arc.size() - 3] == "Penetration: 15 %");
+    REQUIRE(arc[arc.size() - 4] == "Projectile");
+    REQUIRE(arc[4] == "Cooldown: 0.4 to 0.6 s");
+    REQUIRE(arc[5] == "Range: 120 px");
     REQUIRE(sceptre[sceptre.size() - 2] == "Projectile");  // une main : pas de « Two-handed »
     REQUIRE(std::ranges::find(sceptre, "Two-handed") == sceptre.end());
-    REQUIRE(deuxMains[deuxMains.size() - 2] == "Two-handed");  // avant le seuil
-    REQUIRE(deuxMains[3] == "Cooldown: 1.2 to 2.8 s");
+    REQUIRE(deuxMains[deuxMains.size() - 3] == "Two-handed");  // avant les deux seuils (Puissance, Adresse)
+    REQUIRE(deuxMains[4] == "Cooldown: 0.5 to 1.2 s");
 }
 
 TEST_CASE("affichage : seules les armes ont des lignes d'attaque, et les deux mains ne sont dites que des armes a deux mains") {
@@ -153,15 +170,19 @@ TEST_CASE("affichage : seules les armes ont des lignes d'attaque, et les deux ma
     }
 }
 
-TEST_CASE("affichage : l'infobulle de la dague donne sa penetration, celle des autres armes non") {
-    const std::vector<std::string> dague = lignesDeLInfobulle(Objet{IdObjet::Dague});
-
-    REQUIRE(std::ranges::find(dague, "Penetration: 30 %") != dague.end());
-    for (const IdObjet autre : {IdObjet::EpeeLongue, IdObjet::Masse, IdObjet::EpeeADeuxMains, IdObjet::Sceptre, IdObjet::Baton, IdObjet::Arc}) {
-        for (const std::string& ligne : lignesDeLInfobulle(Objet{autre})) {
-            REQUIRE(ligne.find("Penetration") == std::string::npos);
+TEST_CASE("affichage : l'infobulle d'une arme donne sa penetration seulement si elle en a une") {
+    for (const DefinitionObjet& definition : catalogueObjets()) {
+        if (!definition.arme.has_value()) {
+            continue;
         }
+        INFO(definition.nom);
+        const int penetration = descriptionDeLArme(Objet{definition.id}).penetration;
+        const std::vector<std::string> lignes = lignesDeLInfobulle(Objet{definition.id});
+        const bool affichee = std::ranges::find(lignes, "Penetration: " + std::to_string(penetration) + " %") != lignes.end();
+        REQUIRE(affichee == (penetration > 0));
     }
+    const std::vector<std::string> dague = lignesDeLInfobulle(Objet{IdObjet::Dague});
+    REQUIRE(std::ranges::find(dague, "Penetration: 15 %") != dague.end());
 }
 
 // Les affixes et la rareté (étape 95.5).
@@ -171,17 +192,19 @@ const Objet s_arcAcereDuRenard{IdObjet::Arc, Rarete::Rare, Affixe{IdAffixe::Acer
 
 TEST_CASE("affichage : l'infobulle d'un objet rare donne le nom compose, la categorie, l'attaque, une ligne par affixe, puis le seuil") {
     const std::vector<std::string> lignes = lignesDeLInfobulle(s_arcAcereDuRenard);
-    const DescriptionDAttaque& attaque = definitionObjet(IdObjet::Arc).arme.value().attaque;
+    const DescriptionDAttaque attaque = descriptionDeLArme(s_arcAcereDuRenard);
+    const std::string degats = "Damage: " + std::to_string(attaque.degats.min.total()) + "–" + std::to_string(attaque.degats.max.total());
 
-    REQUIRE(lignes == std::vector<std::string>{"Keen Bow of the Fox", "Weapon", "Damage: " + std::to_string(attaque.degats.min.total()),
-                                               "Cooldown: 0.4 to 0.6 s", "Range: 120 px", "Projectile", "Two-handed",
+    REQUIRE(lignes == std::vector<std::string>{"Keen Bow of the Fox", "Weapon", "Item Level 1", degats,
+                                               "Cooldown: 0.4 to 0.6 s", "Range: 120 px", "Projectile",
+                                               "Penetration: " + std::to_string(attaque.penetration) + " %", "Two-handed",
                                                "Penetration: +15 %", "Dexterity: +2",
                                                ligneDeSeuil({Caracteristique::Adresse, s_seuilAuNiveau1})});
 }
 
 TEST_CASE("affichage : un objet magique n'a qu'une ligne d'affixe, un objet commun aucune") {
-    const std::vector<std::string> magique = lignesDeLInfobulle(Objet{IdObjet::Masse, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}});
-    const std::vector<std::string> commun = lignesDeLInfobulle(Objet{IdObjet::Masse});
+    const std::vector<std::string> magique = lignesDeLInfobulle(Objet{IdObjet::MasseAUneMain, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}});
+    const std::vector<std::string> commun = lignesDeLInfobulle(Objet{IdObjet::MasseAUneMain});
 
     REQUIRE(magique.front() == "Blazing Mace");
     REQUIRE(std::ranges::find(magique, "Fire Damage: +6") != magique.end());
@@ -193,7 +216,7 @@ TEST_CASE("affichage : l'infobulle d'une cuirasse rare garde l'armure du modele 
     const std::vector<std::string> lignes = lignesDeLInfobulle(
         Objet{IdObjet::CuirasseDeMailles, Rarete::Rare, Affixe{IdAffixe::Renforce, 3}, Affixe{IdAffixe::DEsquive, 3}});
 
-    REQUIRE(lignes == std::vector<std::string>{"Reinforced Chain Mail of Evasion", "Body Armor",
+    REQUIRE(lignes == std::vector<std::string>{"Reinforced Chain Mail of Evasion", "Body Armor", "Item Level 1",
                                                "Armor: +" + std::to_string(definitionObjet(IdObjet::CuirasseDeMailles).armure),
                                                "Armor: +3", "Dodge vs Melee: +3 %",
                                                ligneDeSeuil({Caracteristique::Endurance, s_seuilAuNiveau1})});

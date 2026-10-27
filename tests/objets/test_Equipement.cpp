@@ -173,7 +173,7 @@ TEST_CASE("attaqueDeBase d'un equipement : celle de l'arme de la main droite, si
     REQUIRE(equipement.attaqueDeBase() == mainsNues());
 
     static_cast<void>(equipement.poser(Emplacement::MainDroite, {IdObjet::EpeeADeuxMains}));
-    REQUIRE(equipement.attaqueDeBase() == definitionObjet(IdObjet::EpeeADeuxMains).arme.value().attaque);
+    REQUIRE(equipement.attaqueDeBase() == descriptionDeLArme(Objet{IdObjet::EpeeADeuxMains}));
 }
 
 TEST_CASE("equipement : le bouclier compte dans les statistiques de combat totales, sans bonus de recuperation") {
@@ -190,10 +190,10 @@ TEST_CASE("equipement : le bouclier compte dans les statistiques de combat total
 }
 
 // Les objets actifs (étape 92.2), avec les objets du catalogue.
-TEST_CASE("actifPour : l'epee longue exige de la Puissance, l'anneau de puissance la lui donne, le retirer la rend inactive") {
+TEST_CASE("actifPour : l'epee a une main exige de la Puissance, l'anneau de puissance la lui donne, le retirer la rend inactive") {
     Equipement equipement;
-    static_cast<void>(equipement.poser(Emplacement::MainDroite, {IdObjet::EpeeLongue}));
-    const int seuil = seuilsDeLObjet(Objet{IdObjet::EpeeLongue}).front().valeur;
+    static_cast<void>(equipement.poser(Emplacement::MainDroite, {IdObjet::EpeeAUneMain}));
+    const int seuil = seuilsDeLObjet(Objet{IdObjet::EpeeAUneMain}).front().valeur;
     const int bonus = definitionObjet(IdObjet::AnneauDePuissance).bonus.valeur(Caracteristique::Puissance);
     REQUIRE(bonus >= 1);
     const Caracteristiques sous({seuil - bonus, 0, 0, 0, 0});  // juste ce que l'anneau comble

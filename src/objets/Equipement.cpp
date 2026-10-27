@@ -60,7 +60,7 @@ DescriptionDAttaque Equipement::attaqueDeBase() const {
         if (arme.has_value()) {
             // L'attaque de l'arme, avec ce que ses affixes y ajoutent : du feu ou du sacré en portions de plus (sans écart : au
             // minimum comme au maximum), de la pénétration en plus de celle de l'arme (le plafond s'applique avec la défense).
-            DescriptionDAttaque attaque = arme->attaque;
+            DescriptionDAttaque attaque = descriptionDeLArme(*main);
             const ApportDesAffixes apport = apportDesAffixes(*main);
             for (const Element element : s_elements) {
                 attaque.degats.min[element] += apport.degatsAjoutes[element];

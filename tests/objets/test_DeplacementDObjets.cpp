@@ -19,7 +19,7 @@ constexpr std::size_t s_placeA = 1;
 constexpr std::size_t s_placeB = 2;
 
 const Objet s_bouclier{IdObjet::BouclierRond};
-const Objet s_epee{IdObjet::EpeeLongue};
+const Objet s_epee{IdObjet::EpeeAUneMain};
 const Objet s_epeeADeuxMains{IdObjet::EpeeADeuxMains};
 const Objet s_arc{IdObjet::Arc};
 const Objet s_gants{IdObjet::GantsDeCuir};
@@ -296,7 +296,7 @@ EtatDesObjets etatDeBases(const Caracteristiques& a, const Caracteristiques& b) 
 
 // Des objets de niveau 6, dont le seuil est bien au-dessus de celui du niveau 1 : il se lit par `seuilsDeLObjet`.
 constexpr int s_niveauExigeant = 6;
-const Objet s_epeeExigeante{IdObjet::EpeeLongue, Rarete::Commun, std::nullopt, std::nullopt, s_niveauExigeant};
+const Objet s_epeeExigeante{IdObjet::EpeeAUneMain, Rarete::Commun, std::nullopt, std::nullopt, s_niveauExigeant};
 const Objet s_epeeADeuxMainsExigeante{IdObjet::EpeeADeuxMains, Rarete::Commun, std::nullopt, std::nullopt, s_niveauExigeant};
 
 // Le seuil de Puissance d'une arme (sa seule exigence).
@@ -341,7 +341,7 @@ TEST_CASE("seuils : un seuil atteint exactement suffit, un point de moins ne suf
 }
 
 TEST_CASE("seuils : le seuil monte avec le niveau de l'objet") {
-    const Objet niveau1{IdObjet::EpeeLongue};
+    const Objet niveau1{IdObjet::EpeeAUneMain};
     EtatDesObjets etat = etatDeBases(avecPuissance(seuilDePuissance(niveau1)), s_faible);
     rangerDansLeSac(etat, 0, niveau1);
     rangerDansLeSac(etat, 1, s_epeeExigeante);

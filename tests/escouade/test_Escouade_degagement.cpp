@@ -31,8 +31,11 @@ constexpr float s_zoneDuMonstre = 20.0f;
 // celle des autres, donc reconnaissable.
 const DefinitionPersonnage s_mageReconnaissable = avecPuissance(mageDeTest(), 110);
 const Caracteristiques& s_caracteristiquesDuMage = s_mageReconnaissable.caracteristiques;
-const int s_degatsDuMage = montantEffectif(s_degatsBaseDeTest, Coefficients::seul(Caracteristique::Puissance, 1.0f),
-                                           s_caracteristiquesDuMage);
+const DescriptionDAttaque s_batonDuMage = descriptionDeLArme(Objet{IdObjet::Baton});
+const int s_degatsMinDuMage = montantEffectif(s_batonDuMage.degats.min.total(), Coefficients::seul(Caracteristique::Puissance, 1.0f),
+                                              s_caracteristiquesDuMage);
+const int s_degatsMaxDuMage = montantEffectif(s_batonDuMage.degats.max.total(), Coefficients::seul(Caracteristique::Puissance, 1.0f),
+                                              s_caracteristiquesDuMage);
 
 // Le mage tire des coups reconnaissables (exécution de 0,15 s).
 Escouade uneEscouadeAuMageReconnaissable() {
@@ -77,7 +80,7 @@ Escouade::VueDesMonstres sansAttaquer(const UnMonstre& monstre) {
 int coupsDuMage(const std::vector<Coup>& coups) {
     int total = 0;
     for (const Coup& coup : coups) {
-        total += coup.attaque.degats.total() == s_degatsDuMage ? 1 : 0;
+        total += coup.attaque.degats.total() >= s_degatsMinDuMage && coup.attaque.degats.total() <= s_degatsMaxDuMage ? 1 : 0;
     }
     return total;
 }
