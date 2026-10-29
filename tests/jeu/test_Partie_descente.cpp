@@ -6,6 +6,7 @@
 
 #include "aides.hpp"
 #include "aides_escouade.hpp"
+#include "combat/Progression.hpp"
 #include "jeu/Expedition.hpp"
 #include "jeu/Partie.hpp"
 #include "monde/Niveau.hpp"
@@ -225,4 +226,38 @@ TEST_CASE("descente : l'experience survit a la descente, dans l'expedition de l'
 
     REQUIRE(suivante.experience == 137);
     REQUIRE(etageSuivantPartie.expedition().experience == 137);
+}
+
+TEST_CASE("descente : une partie de quatre personnages descend d'un etage, equipement et points depenses gardes, tous vivants") {
+    std::vector<DefinitionPersonnage> composition = compositionDeTest();
+    composition.push_back(guerrierDeTest());
+    for (DefinitionPersonnage& definition : composition) {
+        definition = capableDeToutPorter(std::move(definition));
+    }
+    Expedition expedition = expeditionDeTest(std::move(composition));
+    expedition.experience = experiencePourAtteindre(3);  // des points libres pour le quatrieme
+    Partie partie(niveauAvecEscalier({{s_coinLointain, 0}}), expedition, s_graineDeTest, catalogueDeTest(monstreSansHasard()));
+    Escouade& escouade = partie.getEscouade();
+    const Place quatrieme{4};
+    REQUIRE(partie.expedition().membres.size() == 4);
+    REQUIRE(escouade.ramasser(Objet{IdObjet::GantsDeTissu}));
+    REQUIRE(escouade.deplacerObjet(PositionDansLeSac{0}, PositionPortee{quatrieme, Emplacement::Gants}));
+    REQUIRE(escouade.depenserDesPoints(quatrieme, Caracteristiques::seule(Caracteristique::Puissance, 2)));
+    REQUIRE(subirCoup(escouade, IdMonstre{1}, Place{3}, 1'000'000) > 0);  // le mage meurt
+    prendreLEscalier(partie);
+    REQUIRE(partie.doitDescendre());
+
+    const Partie suivante(niveauAvecEscalier({{s_coinLointain, 0}}), etageSuivant(partie.expedition()), s_graineDeTest,
+                          catalogueDeTest(monstreSansHasard()));
+    const Escouade& arrivee = suivante.getEscouade();
+
+    REQUIRE(suivante.getProfondeur() == 2);
+    REQUIRE(suivante.expedition().membres.size() == 4);
+    for (std::size_t numero = 1; numero <= 4; ++numero) {
+        const Place place{numero};
+        REQUIRE(arrivee.placeEstVivante(place));
+        REQUIRE(arrivee.equipementDuPersonnage(place) == escouade.equipementDuPersonnage(place));
+    }
+    REQUIRE(arrivee.equipementDuPersonnage(quatrieme).a(Emplacement::Gants) == Objet{IdObjet::GantsDeTissu});
+    REQUIRE(arrivee.pointsDepensesDuPersonnage(quatrieme) == Caracteristiques::seule(Caracteristique::Puissance, 2));
 }

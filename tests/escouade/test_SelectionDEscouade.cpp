@@ -26,7 +26,11 @@ TEST_CASE("selection : elle commence vide et incomplete") {
     REQUIRE_FALSE(selection.estComplete());
 }
 
-TEST_CASE("selection : ajouter remplit les cases dans l'ordre jusqu'a trois") {
+TEST_CASE("selection : la taille de l'escouade est de quatre personnages") {
+    REQUIRE(s_tailleDeLEscouade == 4);
+}
+
+TEST_CASE("selection : ajouter remplit les cases dans l'ordre jusqu'a quatre") {
     SelectionDEscouade selection;
 
     selection.ajouter(IdSpecialite::Mage);
@@ -36,18 +40,34 @@ TEST_CASE("selection : ajouter remplit les cases dans l'ordre jusqu'a trois") {
 
     selection.ajouter(IdSpecialite::Rodeur);
     REQUIRE(selection.liste() == Liste{IdSpecialite::Mage, IdSpecialite::Guerrier, IdSpecialite::Rodeur});
+    REQUIRE_FALSE(selection.estComplete());  // trois ne suffisent plus
+
+    selection.ajouter(IdSpecialite::Pretre);
+    REQUIRE(selection.liste() == Liste{IdSpecialite::Mage, IdSpecialite::Guerrier, IdSpecialite::Rodeur, IdSpecialite::Pretre});
     REQUIRE(selection.estComplete());
 }
 
-TEST_CASE("selection : ajouter au-dela de trois est sans effet") {
+TEST_CASE("selection : ajouter au-dela de quatre est sans effet") {
     SelectionDEscouade selection;
-    selection.ajouter(IdSpecialite::Mage);
-    selection.ajouter(IdSpecialite::Mage);
-    selection.ajouter(IdSpecialite::Mage);
+    for (int i = 0; i < 4; ++i) {
+        selection.ajouter(IdSpecialite::Mage);
+    }
 
     selection.ajouter(IdSpecialite::Paladin);
 
-    REQUIRE(selection.liste() == Liste{IdSpecialite::Mage, IdSpecialite::Mage, IdSpecialite::Mage});
+    REQUIRE(selection.liste() == Liste{IdSpecialite::Mage, IdSpecialite::Mage, IdSpecialite::Mage, IdSpecialite::Mage});
+    REQUIRE(selection.estComplete());
+}
+
+TEST_CASE("selection : quatre fois la meme classe est permis") {
+    SelectionDEscouade selection;
+
+    for (int i = 0; i < 4; ++i) {
+        selection.ajouter(IdSpecialite::Guerrier);
+    }
+
+    REQUIRE(selection.liste() == Liste(4, IdSpecialite::Guerrier));
+    REQUIRE(selection.estComplete());
 }
 
 TEST_CASE("selection : une meme classe peut etre prise plusieurs fois") {
@@ -76,11 +96,13 @@ TEST_CASE("selection : retirer la premiere case, puis ajouter, remet la selectio
     selection.ajouter(IdSpecialite::Guerrier);
     selection.ajouter(IdSpecialite::Pretre);
     selection.ajouter(IdSpecialite::Mage);
+    selection.ajouter(IdSpecialite::Rodeur);
 
     selection.retirer(0);
+    REQUIRE_FALSE(selection.estComplete());
     selection.ajouter(IdSpecialite::Paladin);
 
-    REQUIRE(selection.liste() == Liste{IdSpecialite::Pretre, IdSpecialite::Mage, IdSpecialite::Paladin});
+    REQUIRE(selection.liste() == Liste{IdSpecialite::Pretre, IdSpecialite::Mage, IdSpecialite::Rodeur, IdSpecialite::Paladin});
     REQUIRE(selection.estComplete());
 }
 

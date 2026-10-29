@@ -21,10 +21,18 @@
 
 namespace {
 
-const std::vector<std::string> s_noms = {"Guerrier", "Pretre", "Mage"};
+const std::vector<std::string> s_noms = {"Guerrier", "Pretre", "Mage", "Pretre"};
 const sf::Vector2f s_vue{1200.0f, 800.0f};
 constexpr Place s_guerrier{1};
 constexpr Place s_mage{3};
+constexpr Place s_quatrieme{4};  // un deuxieme pretre : l'inventaire a un onglet par personnage de l'escouade (quatre)
+
+// La composition de test et un quatrieme personnage (un deuxieme pretre, qui ne change rien aux trois premiers).
+std::vector<DefinitionPersonnage> compositionDeQuatre() {
+    std::vector<DefinitionPersonnage> composition = compositionDeTest();
+    composition.push_back(pretreDeTest());
+    return composition;
+}
 
 sf::Vector2f centre(sf::FloatRect zone) {
     return zone.position + zone.size / 2.0f;
@@ -47,7 +55,7 @@ void ouvrir(EcranInventaire& ecran, Place place) {
 
 // Une partie sans monstre, avec l'escouade de test et un sac vide.
 Partie partieSansMonstre() {
-    return unePartie(niveauDegage({}), s_graineDeTest);
+    return partieDeTest(niveauDegage({}), compositionDeQuatre());
 }
 
 // La même, avec des gants de cuir dans la case 0 du sac.
@@ -59,7 +67,7 @@ Partie partieAvecDesGants() {
 
 // La même, dont les trois personnages peuvent porter tous les objets du catalogue.
 Partie partieCapableDeToutPorter() {
-    std::vector<DefinitionPersonnage> composition = compositionDeTest();
+    std::vector<DefinitionPersonnage> composition = compositionDeQuatre();
     for (DefinitionPersonnage& definition : composition) {
         definition = capableDeToutPorter(std::move(definition));
     }
@@ -296,7 +304,7 @@ namespace {
 constexpr Place s_pretre{2};
 
 Partie partieDeNiveau(int niveau) {
-    Expedition expedition = expeditionDeTest();
+    Expedition expedition = expeditionDeTest(compositionDeQuatre());
     expedition.experience = experiencePourAtteindre(niveau);
     return Partie(niveauDegage({}), std::move(expedition), s_graineDeTest, catalogueDeTest(monstreSansHasard()));
 }
@@ -727,8 +735,8 @@ TEST_CASE("ongletsDeDestination : les onglets dont le personnage peut recevoir l
 
     ecran.saisir(centreDeLEmplacement(s_tete), s_vue);  // le capuchon du mage
 
-    // Le guerrier (l'échange, le heaume allant au sac) et le prêtre (tête vide) ; pas le mage, dont le capuchon n'a pas d'autre place.
-    REQUIRE(ecran.ongletsDeDestination() == std::vector<Place>{s_guerrier, s_pretre});
+    // Le guerrier (l'échange, le heaume allant au sac) et les deux prêtres (tête vide) ; pas le mage, dont le capuchon n'a pas d'autre place.
+    REQUIRE(ecran.ongletsDeDestination() == std::vector<Place>{s_guerrier, s_pretre, s_quatrieme});
 }
 
 TEST_CASE("ongletsDeDestination : sac plein, l'onglet du guerrier n'y est plus") {
@@ -741,5 +749,44 @@ TEST_CASE("ongletsDeDestination : sac plein, l'onglet du guerrier n'y est plus")
 
     ecran.saisir(centreDeLEmplacement(s_tete), s_vue);
 
-    REQUIRE(ecran.ongletsDeDestination() == std::vector<Place>{s_pretre});
+    REQUIRE(ecran.ongletsDeDestination() == std::vector<Place>{s_pretre, s_quatrieme});
+}
+
+// Quatre onglets (étape 106.6).
+TEST_CASE("quatre onglets : un par personnage, chacun s'ouvre et montre son equipement") {
+    Partie partie = partieCapableDeToutPorter();
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+    REQUIRE(s_places.size() == 4);
+
+    for (const Place place : s_places) {
+        ouvrir(ecran, place);
+        ecran.saisir(centreDeLEmplacement(Emplacement::MainDroite), s_vue);
+        REQUIRE(ecran.origineDuGlissement() == PositionDObjet{PositionPortee{place, Emplacement::MainDroite}});
+        ecran.annulerLeGlissement();
+    }
+}
+
+TEST_CASE("quatre onglets : le quatrieme personnage recoit un objet du sac, glisse depuis un autre onglet") {
+    Partie partie = partieAvecDesGants();
+    Escouade& escouade = partie.getEscouade();
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+
+    ecran.saisir(centreDeLaCase(0), s_vue);
+    survoler(ecran, s_quatrieme);
+    ecran.relacher(centreDeLEmplacement(Emplacement::Gants), s_vue);
+
+    REQUIRE(escouade.equipementDuPersonnage(s_quatrieme).a(Emplacement::Gants) == Objet{IdObjet::GantsDeTissu});
+}
+
+TEST_CASE("quatre onglets : le brouillon des points libres du quatrieme est le sien") {
+    Partie partie = partieDeNiveau(2);
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+    ouvrir(ecran, s_quatrieme);
+
+    ecran.saisir(centre(rectangleDuBoutonPlus(Caracteristique::Savoir, s_vue)), s_vue);
+
+    REQUIRE(ecran.pointsEnAttente(s_quatrieme) == Caracteristiques::seule(Caracteristique::Savoir, 1));
+    REQUIRE(ecran.pointsEnAttente(s_pretre) == Caracteristiques());
+    ecran.appliquer(s_quatrieme);
+    REQUIRE(partie.getEscouade().pointsDepensesDuPersonnage(s_quatrieme) == Caracteristiques::seule(Caracteristique::Savoir, 1));
 }

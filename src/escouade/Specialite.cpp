@@ -2,6 +2,7 @@
 #include "escouade/Specialite.hpp"
 #include <array>
 #include <cassert>
+#include "escouade/TailleDeLEscouade.hpp"
 #include <cstddef>
 #include <utility>
 #include "base/Eclaircir.hpp"
@@ -89,8 +90,10 @@ const std::vector<TypeDArme> s_armesDeContact = {TypeDArme::Dague,          Type
                                                  TypeDArme::HacheADeuxMains, TypeDArme::MasseADeuxMains};
 const std::vector<TypeDArme> s_armesDeTir = {TypeDArme::Arc, TypeDArme::Arbalete};
 
-// Part de noir mélangée à la couleur de la classe, selon le nombre de fois où elle a déjà été prise.
-constexpr std::array<float, 3> s_assombrissements = {0.0f, 0.30f, 0.55f};
+// Part de noir mélangée à la couleur de la classe, selon le nombre de fois où elle a déjà été prise : une classe peut remplir toute
+// l'escouade, donc une nuance par place.
+constexpr std::array<float, 4> s_assombrissements = {0.0f, 0.20f, 0.40f, 0.60f};
+static_assert(s_assombrissements.size() >= s_tailleDeLEscouade);
 
 // Équipement de départ (niveau 1, qualité moyenne, communs) : une seule pièce d'armure, le torse (un justaucorps de cuir pour le
 // guerrier, le paladin et le rôdeur, une robe pour le prêtre et le mage), l'arme, un bouclier pour les mêlées, une relique sacrée

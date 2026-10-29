@@ -111,17 +111,29 @@ TEST_CASE("composer : des classes differentes gardent leur couleur de classe") {
     }
 }
 
-TEST_CASE("composer : la meme classe prise plusieurs fois s'assombrit de 0, 30 puis 55 pour cent") {
+TEST_CASE("composer : la meme classe prise plusieurs fois s'assombrit de 0, 20, 40 puis 60 pour cent") {
     const sf::Color couleurDeClasse = specialite(IdSpecialite::Guerrier).definition.couleur;
 
     const std::vector<DefinitionPersonnage> composition =
-        composer({IdSpecialite::Guerrier, IdSpecialite::Guerrier, IdSpecialite::Guerrier});
+        composer({IdSpecialite::Guerrier, IdSpecialite::Guerrier, IdSpecialite::Guerrier, IdSpecialite::Guerrier});
 
     REQUIRE(composition[0].couleur == couleurDeClasse);
-    REQUIRE(composition[1].couleur == assombrir(couleurDeClasse, 0.30f));
-    REQUIRE(composition[2].couleur == assombrir(couleurDeClasse, 0.55f));
-    REQUIRE(composition[1].couleur != composition[0].couleur);
-    REQUIRE(composition[2].couleur != composition[1].couleur);
+    REQUIRE(composition[1].couleur == assombrir(couleurDeClasse, 0.20f));
+    REQUIRE(composition[2].couleur == assombrir(couleurDeClasse, 0.40f));
+    REQUIRE(composition[3].couleur == assombrir(couleurDeClasse, 0.60f));
+}
+
+TEST_CASE("composer : quatre fois la meme classe donne quatre teintes distinctes") {
+    for (const Specialite& classe : catalogue()) {
+        const std::vector<DefinitionPersonnage> composition = composer(std::vector<IdSpecialite>(4, classe.id));
+
+        REQUIRE(composition.size() == 4);
+        for (std::size_t i = 0; i < composition.size(); ++i) {
+            for (std::size_t j = i + 1; j < composition.size(); ++j) {
+                REQUIRE(composition[i].couleur != composition[j].couleur);
+            }
+        }
+    }
 }
 
 TEST_CASE("composer : le rang d'occurrence se compte par classe, pas sur toute la liste") {
@@ -132,7 +144,7 @@ TEST_CASE("composer : le rang d'occurrence se compte par classe, pas sur toute l
 
     REQUIRE(composition[0].couleur == couleurDuMage);
     REQUIRE(composition[1].couleur == specialite(IdSpecialite::Guerrier).definition.couleur);
-    REQUIRE(composition[2].couleur == assombrir(couleurDuMage, 0.30f));
+    REQUIRE(composition[2].couleur == assombrir(couleurDuMage, 0.20f));
 }
 
 TEST_CASE("composer : seule la couleur change entre deux occurrences d'une classe") {

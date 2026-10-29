@@ -21,6 +21,6 @@ struct Specialite {
 [[nodiscard]] const Specialite& specialite(IdSpecialite id);
 
 // Une définition par identifiant, dans l'ordre reçu (c'est l'ordre des places). La même classe
-// peut revenir : sa k-ième occurrence a la couleur de la classe assombrie de 0 %, 30 % puis 55 %.
-// `assert` : une classe revient 3 fois au plus.
+// peut revenir : sa k-ième occurrence a la couleur de la classe assombrie de 0 %, 20 %, 40 % puis 60 %.
+// `assert` : une classe revient 4 fois au plus (`s_tailleDeLEscouade`).
 [[nodiscard]] std::vector<DefinitionPersonnage> composer(const std::vector<IdSpecialite>& identifiants);

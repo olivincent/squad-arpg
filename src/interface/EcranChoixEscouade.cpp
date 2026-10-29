@@ -27,7 +27,7 @@ constexpr std::size_t s_actionRetour = 1;
 // Décalage de chaque colonne par rapport au centre de la vue.
 const sf::Vector2f s_decalageDesClasses{-300.0f, 0.0f};
 const sf::Vector2f s_decalageDesCases{300.0f, -80.0f};
-const sf::Vector2f s_decalageDesActions{300.0f, 140.0f};
+const sf::Vector2f s_decalageDesActions{300.0f, 160.0f};  // sous les quatre cases (qui finissent à +70), 20 px d'écart
 constexpr float s_hauteurDuTitre = -280.0f;  // par rapport au centre de la vue
 
 constexpr unsigned int s_tailleTitre = 36;
@@ -58,7 +58,7 @@ sf::Text texteCentre(const sf::Font& police, const std::string& libelle, unsigne
     return texte;
 }
 
-// Les trois cases de sélection : « 1. Guerrier » ou « 1. — », avec la couleur que le personnage
+// Les cases de sélection (une par personnage) : « 1. Guerrier » ou « 1. — », avec la couleur que le personnage
 // aura dans la partie (les doublons sont assombris) ; une case remplie survolée est plus claire.
 void dessinerLesCases(sf::RenderTarget& rendu, const sf::Font& police, const SelectionDEscouade& selection,
                       sf::Vector2f centreDesColonne, std::optional<std::size_t> survolee) {
