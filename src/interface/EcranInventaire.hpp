@@ -59,6 +59,9 @@ public:
     // L'origine du glissement en cours, s'il y en a un.
     [[nodiscard]] const std::optional<PositionDObjet>& origineDuGlissement() const;
 
+    // La place du personnage dont l'onglet est ouvert (la place 1 à chaque ouverture de l'écran). Un clic sur un onglet l'ouvre.
+    [[nodiscard]] Place placeOuverte() const;
+
     // Le brouillon des points libres du personnage de cette place (de 1 à `s_tailleDeLEscouade`, `assert`) : ce qui est en attente
     // dans chaque caractéristique, et ce qui reste à répartir (ses points libres moins ce qui est en attente).
     [[nodiscard]] const Caracteristiques& pointsEnAttente(Place place) const;
@@ -83,6 +86,7 @@ private:
     ObjetsAuSol& m_sol;
     const TileMap& m_carte;
     std::vector<std::string> m_nomsDesClasses;
+    Place m_ouverte = s_places.front();  // l'onglet affiché
     std::optional<PositionDObjet> m_origine;
     std::array<Caracteristiques, s_tailleDeLEscouade> m_enAttente{};  // le brouillon, par place (dans l'ordre des places)
     // Le bouton qu'on vient de presser agit.

@@ -22,6 +22,7 @@
 #include "combat/Caracteristiques.hpp"
 #include "combat/StatistiquesDeCombat.hpp"
 #include "combat/Cible.hpp"
+#include "base/Eclaircir.hpp"
 #include "escouade/Escouade.hpp"
 #include "escouade/TailleDeLEscouade.hpp"
 #include "interface/AffichageCaracteristiques.hpp"
@@ -50,7 +51,6 @@ constexpr unsigned int s_tailleNomDEmplacement = 11;
 constexpr unsigned int s_tailleSigle = 18;
 constexpr unsigned int s_tailleEtiquetteDuSac = 16;
 constexpr float s_margeDuTexte = 6.0f;  // entre le texte d'un emplacement et son bord
-constexpr float s_hauteurEtiquetteDuSac = 24.0f;
 constexpr unsigned int s_tailleInfobulle = 14;
 constexpr float s_margeInfobulle = 8.0f;
 const sf::Color s_couleurInfobulle(15, 15, 15);
@@ -68,6 +68,9 @@ constexpr float s_epaisseurSurbrillance = 3.0f;
 const sf::Color s_couleurAttenuation(40, 40, 40, 190);  // sur l'origine du glissement : le panneau, presque opaque
 const sf::Color s_couleurDesPointsLibres(255, 215, 0);  // « Points: N »
 const sf::Color s_couleurEnAttente(110, 220, 110);      // « (+2) » : ce qui est en attente dans une caractéristique
+constexpr float s_assombrissementDesOngletsFermes = 0.55f;  // part de noir mélangée à la couleur d'un onglet fermé
+constexpr float s_epaisseurDeLOngletOuvert = 2.0f;
+constexpr float s_coteDeLaMarque = 8.0f;  // la marque dorée d'un onglet dont le personnage a des points libres
 constexpr unsigned int s_tailleBouton = 14;
 constexpr unsigned int s_tailleBoutonDeDepense = 12;
 
@@ -98,6 +101,16 @@ void dessinerRectangle(sf::RenderTarget& rendu, sf::FloatRect zone, sf::Color fo
     forme.setFillColor(fond);
     forme.setOutlineColor(contour);
     forme.setOutlineThickness(1.0f);
+    rendu.draw(forme);
+}
+
+// Un contour doré autour d'une destination valide du glissement.
+void dessinerSurbrillance(sf::RenderTarget& rendu, sf::FloatRect zone) {
+    sf::RectangleShape forme(zone.size);
+    forme.setPosition(zone.position);
+    forme.setFillColor(sf::Color::Transparent);
+    forme.setOutlineColor(s_couleurSurbrillance);
+    forme.setOutlineThickness(s_epaisseurSurbrillance);
     rendu.draw(forme);
 }
 
@@ -150,7 +163,7 @@ void dessinerLesCaracteristiques(sf::RenderTarget& rendu, const sf::Font& police
     const int restants = libres - enAttente.somme();
     for (std::size_t i = 0; i < s_nombreDeCaracteristiques; ++i) {
         const Caracteristique caracteristique = s_caracteristiques[i];
-        const sf::FloatRect zone = rectangleDeLaCellule(place, i, tailleDeVue);
+        const sf::FloatRect zone = rectangleDeLaCellule(i, tailleDeVue);
         const float bord = dessinerCellule(rendu, police, zone,
                                            ligneDeCaracteristique(caracteristique, effectives.valeur(caracteristique), bonus.valeur(caracteristique)));
         const int attente = enAttente.valeur(caracteristique);
@@ -160,18 +173,18 @@ void dessinerLesCaracteristiques(sf::RenderTarget& rendu, const sf::Font& police
             rendu.draw(enPlus);
         }
         if (libres > 0) {
-            dessinerBouton(rendu, police, rectangleDuBoutonPlus(place, caracteristique, tailleDeVue), "+", s_tailleBouton, restants > 0);
+            dessinerBouton(rendu, police, rectangleDuBoutonPlus(caracteristique, tailleDeVue), "+", s_tailleBouton, restants > 0);
             if (attente > 0) {
-                dessinerBouton(rendu, police, rectangleDuBoutonMoins(place, caracteristique, tailleDeVue), "−", s_tailleBouton, true);
+                dessinerBouton(rendu, police, rectangleDuBoutonMoins(caracteristique, tailleDeVue), "−", s_tailleBouton, true);
             }
         }
     }
-    dessinerCellule(rendu, police, rectangleDeLaCellule(place, s_nombreDeCaracteristiques, tailleDeVue),
+    dessinerCellule(rendu, police, rectangleDeLaCellule(s_nombreDeCaracteristiques, tailleDeVue),
                     "HP " + std::to_string(escouade.pointsDeVieDuPersonnage(place).value_or(0)) + " / " +
                         std::to_string(escouade.pointsDeVieMaxDuPersonnage(place).value_or(0)));
     if (enAttente.somme() > 0) {
-        dessinerBouton(rendu, police, rectangleDuBoutonAppliquer(place, tailleDeVue), "Apply", s_tailleBoutonDeDepense, true);
-        dessinerBouton(rendu, police, rectangleDuBoutonReinitialiser(place, tailleDeVue), "Reset", s_tailleBoutonDeDepense, true);
+        dessinerBouton(rendu, police, rectangleDuBoutonAppliquer(tailleDeVue), "Apply", s_tailleBoutonDeDepense, true);
+        dessinerBouton(rendu, police, rectangleDuBoutonReinitialiser(tailleDeVue), "Reset", s_tailleBoutonDeDepense, true);
     }
 }
 
@@ -180,25 +193,55 @@ void dessinerLesStatistiques(sf::RenderTarget& rendu, const sf::Font& police, co
                              sf::Vector2f tailleDeVue) {
     const std::vector<std::string> lignes = lignesDeStatistiques(escouade.statistiquesDeCombatDuPersonnage(place).value_or(StatistiquesDeCombat()));
     for (std::size_t i = 0; i < lignes.size(); ++i) {
-        dessinerCellule(rendu, police, rectangleDeLaStatistique(place, i, tailleDeVue), lignes[i]);
+        dessinerCellule(rendu, police, rectangleDeLaStatistique(i, tailleDeVue), lignes[i]);
     }
 }
 
-// La colonne d'un personnage : son en-tête (classe, couleur du personnage), son armure et ses 10 emplacements.
-void dessinerColonne(sf::RenderTarget& rendu, const sf::Font& police, const Escouade& escouade, Place place,
-                     const std::string& nomDeLaClasse, sf::Vector2f tailleDeVue, const Caracteristiques& enAttente) {
-    const sf::FloatRect enTete = rectangleDeLEnTete(place, tailleDeVue);
-    dessinerRectangle(rendu, enTete, escouade.couleurDuPersonnage(place).value_or(sf::Color(90, 90, 90)), sf::Color::Black);
-    sf::Text classe = texte(police, nomDeLaClasse, s_tailleEnTete, sf::Color::White);
-    classe.setOutlineColor(sf::Color::Black);
-    classe.setOutlineThickness(1.5f);
-    const sf::FloatRect limites = classe.getLocalBounds();
-    classe.setOrigin(limites.position + limites.size / 2.0f);
-    classe.setPosition(enTete.position + enTete.size / 2.0f);
-    rendu.draw(classe);
+// Les onglets : un par personnage, de la couleur de son personnage (plus sombre quand il n'est pas ouvert, contour blanc pour
+// l'ouvert), avec le nom de sa classe et une marque dorée s'il a des points libres. `dores` : les onglets à entourer d'un
+// contour doré (les destinations d'un glissement).
+void dessinerLesOnglets(sf::RenderTarget& rendu, const sf::Font& police, const Escouade& escouade, Place ouverte,
+                        const std::vector<std::string>& nomsDesClasses, sf::Vector2f tailleDeVue, const std::vector<Place>& dores) {
+    for (const Place place : s_places) {
+        const sf::FloatRect zone = rectangleDeLOnglet(place, tailleDeVue);
+        const bool estOuvert = place == ouverte;
+        const sf::Color couleur = escouade.couleurDuPersonnage(place).value_or(sf::Color(90, 90, 90));
+        sf::RectangleShape fond(zone.size);
+        fond.setPosition(zone.position);
+        fond.setFillColor(estOuvert ? couleur : assombrir(couleur, s_assombrissementDesOngletsFermes));
+        fond.setOutlineColor(estOuvert ? sf::Color::White : sf::Color::Black);
+        fond.setOutlineThickness(estOuvert ? s_epaisseurDeLOngletOuvert : 1.0f);
+        rendu.draw(fond);
+        sf::Text classe = texte(police, nomsDesClasses[place.indice()], s_tailleEnTete, sf::Color::White);
+        classe.setOutlineColor(sf::Color::Black);
+        classe.setOutlineThickness(1.5f);
+        const sf::FloatRect limites = classe.getLocalBounds();
+        const float largeurDisponible = zone.size.x - 2.0f * s_margeDuTexte;
+        if (limites.size.x > largeurDisponible) {
+            classe.setScale({largeurDisponible / limites.size.x, largeurDisponible / limites.size.x});
+        }
+        classe.setOrigin(limites.position + limites.size / 2.0f);
+        classe.setPosition(zone.position + zone.size / 2.0f);
+        rendu.draw(classe);
+        if (escouade.pointsLibresDuPersonnage(place).value_or(0) > 0) {
+            sf::RectangleShape marque({s_coteDeLaMarque, s_coteDeLaMarque});
+            marque.setPosition({zone.position.x + zone.size.x - s_coteDeLaMarque - 3.0f, zone.position.y + 3.0f});
+            marque.setFillColor(s_couleurDesPointsLibres);
+            marque.setOutlineColor(sf::Color::Black);
+            marque.setOutlineThickness(1.0f);
+            rendu.draw(marque);
+        }
+        if (std::ranges::find(dores, place) != dores.end()) {
+            dessinerSurbrillance(rendu, zone);
+        }
+    }
+}
 
+// La colonne du personnage de l'onglet ouvert : son armure et ses 10 emplacements, ses caractéristiques et ses statistiques.
+void dessinerColonne(sf::RenderTarget& rendu, const sf::Font& police, const Escouade& escouade, Place place,
+                     sf::Vector2f tailleDeVue, const Caracteristiques& enAttente) {
     const Equipement& equipement = escouade.equipementDuPersonnage(place);
-    const sf::FloatRect zoneArmure = rectangleDeLArmure(place, tailleDeVue);
+    const sf::FloatRect zoneArmure = rectangleDeLArmure(tailleDeVue);
     // L'armure qui a un effet : celle des objets actifs.
     sf::Text armure = texte(police, "Armor: " + std::to_string(escouade.equipementActifDuPersonnage(place).armureTotale()), s_tailleArmure, sf::Color::White);
     armure.setPosition(zoneArmure.position + sf::Vector2f{s_margeDuTexte, 0.0f});
@@ -218,7 +261,7 @@ void dessinerColonne(sf::RenderTarget& rendu, const sf::Font& police, const Esco
 
     for (std::size_t i = 0; i < s_nombreEmplacements; ++i) {
         const Emplacement emplacement = static_cast<Emplacement>(i);
-        dessinerEmplacement(rendu, police, rectangleDeLEmplacement(place, emplacement, tailleDeVue), emplacement,
+        dessinerEmplacement(rendu, police, rectangleDeLEmplacement(emplacement, tailleDeVue), emplacement,
                             equipement.a(emplacement), escouade.objetPorteEstInactif(place, emplacement));
     }
     dessinerLesCaracteristiques(rendu, police, escouade, place, tailleDeVue, enAttente);
@@ -228,9 +271,8 @@ void dessinerColonne(sf::RenderTarget& rendu, const sf::Font& police, const Esco
 // Le sac : une case par indice, vide, ou avec le sigle de son objet.
 void dessinerLeSac(sf::RenderTarget& rendu, const sf::Font& police, const Inventaire& sac, sf::Vector2f tailleDeVue) {
     assert(sac.capacite() == s_casesDuSac);
-    const sf::FloatRect premiere = rectangleDeLaCaseDuSac(0, tailleDeVue);
     sf::Text etiquette = texte(police, "Bag", s_tailleEtiquetteDuSac, sf::Color::White);
-    etiquette.setPosition(premiere.position - sf::Vector2f{0.0f, s_hauteurEtiquetteDuSac});
+    etiquette.setPosition(rectangleDeLEtiquetteDuSac(tailleDeVue).position);
     rendu.draw(etiquette);
 
     for (std::size_t indice = 0; indice < s_casesDuSac; ++indice) {
@@ -245,39 +287,35 @@ void dessinerLeSac(sf::RenderTarget& rendu, const sf::Font& police, const Invent
     }
 }
 
-// Le rectangle d'une position : un emplacement d'un personnage ou une case du sac.
-sf::FloatRect rectangleDe(const PositionDObjet& position, sf::Vector2f tailleDeVue) {
+// Le rectangle d'une position à l'écran : une case du sac, ou un emplacement du personnage de l'onglet `ouverte` ; vide pour
+// l'emplacement d'un autre personnage, dont l'onglet n'est pas affiché.
+std::optional<sf::FloatRect> rectangleDe(const PositionDObjet& position, Place ouverte, sf::Vector2f tailleDeVue) {
     return std::visit(
         Surcharges{
-            [&](const PositionPortee& portee) { return rectangleDeLEmplacement(portee.place, portee.emplacement, tailleDeVue); },
-            [&](const PositionDansLeSac& dansLeSac) { return rectangleDeLaCaseDuSac(dansLeSac.caseDuSac, tailleDeVue); },
+            [&](const PositionPortee& portee) -> std::optional<sf::FloatRect> {
+                if (portee.place != ouverte) {
+                    return std::nullopt;
+                }
+                return rectangleDeLEmplacement(portee.emplacement, tailleDeVue);
+            },
+            [&](const PositionDansLeSac& dansLeSac) -> std::optional<sf::FloatRect> {
+                return rectangleDeLaCaseDuSac(dansLeSac.caseDuSac, tailleDeVue);
+            },
         },
         position);
 }
 
-// Un contour doré autour d'une destination valide du glissement.
-void dessinerSurbrillance(sf::RenderTarget& rendu, sf::FloatRect zone) {
-    sf::RectangleShape forme(zone.size);
-    forme.setPosition(zone.position);
-    forme.setFillColor(sf::Color::Transparent);
-    forme.setOutlineColor(s_couleurSurbrillance);
-    forme.setOutlineThickness(s_epaisseurSurbrillance);
-    rendu.draw(forme);
-}
-
-// Contour sur chaque position, autre que l'origine, où l'objet saisi peut être déposé (emplacements
-// des personnages et cases du sac) : la même requête que le relâchement, donc ce qui brille est permis.
-void dessinerLesDestinations(sf::RenderTarget& rendu, const Escouade& escouade, const PositionDObjet& origine,
+// Contour sur chaque position affichée, autre que l'origine, où l'objet saisi peut être déposé (emplacements
+// du personnage ouvert et cases du sac) : la même requête que le relâchement, donc ce qui brille est permis.
+void dessinerLesDestinations(sf::RenderTarget& rendu, const Escouade& escouade, const PositionDObjet& origine, Place ouverte,
                              sf::Vector2f tailleDeVue) {
     const auto surligner = [&](const PositionDObjet& position) {
         if (position != origine && escouade.peutDeplacerObjet(origine, position)) {
-            dessinerSurbrillance(rendu, rectangleDe(position, tailleDeVue));
+            dessinerSurbrillance(rendu, rectangleDe(position, ouverte, tailleDeVue).value());
         }
     };
-    for (const Place place : s_places) {
-        for (std::size_t i = 0; i < s_nombreEmplacements; ++i) {
-            surligner(PositionPortee{place, static_cast<Emplacement>(i)});
-        }
+    for (std::size_t i = 0; i < s_nombreEmplacements; ++i) {
+        surligner(PositionPortee{ouverte, static_cast<Emplacement>(i)});
     }
     for (std::size_t indice = 0; indice < s_casesDuSac; ++indice) {
         surligner(PositionDansLeSac{indice});
@@ -345,6 +383,10 @@ EcranInventaire::EcranInventaire(Escouade& escouade, ObjetsAuSol& sol, const Til
     assert(m_nomsDesClasses.size() == s_tailleDeLEscouade);
 }
 
+Place EcranInventaire::placeOuverte() const {
+    return m_ouverte;
+}
+
 Transition EcranInventaire::appuyer(sf::Keyboard::Scancode touche) {
     if (touche == sf::Keyboard::Scan::Escape && m_origine.has_value()) {
         annulerLeGlissement();
@@ -409,11 +451,15 @@ void EcranInventaire::cliquerSurUnBouton(const BoutonDePoints& bouton) {
 void EcranInventaire::saisir(sf::Vector2f point, sf::Vector2f tailleDeVue) {
     // Un bouton des points libres agit tout de suite. Un bouton qui n'est pas visible (rien en attente, plus de point à
     // répartir) n'a rien à faire : les opérations sont sans effet dans ces cas.
-    if (const std::optional<BoutonDePoints> bouton = boutonSous(point, tailleDeVue)) {
+    if (const std::optional<Place> onglet = ongletSous(point, tailleDeVue)) {
+        m_ouverte = *onglet;
+        return;
+    }
+    if (const std::optional<BoutonDePoints> bouton = boutonSous(point, m_ouverte, tailleDeVue)) {
         cliquerSurUnBouton(*bouton);
         return;
     }
-    const std::optional<PositionDObjet> position = elementSous(point, tailleDeVue);
+    const std::optional<PositionDObjet> position = elementSous(point, m_ouverte, tailleDeVue);
     if (position.has_value() && m_escouade.objetA(*position).has_value()) {
         m_origine = position;
     }
@@ -423,7 +469,7 @@ void EcranInventaire::relacher(sf::Vector2f point, sf::Vector2f tailleDeVue) {
     if (!m_origine.has_value()) {
         return;
     }
-    const std::optional<PositionDObjet> cible = elementSous(point, tailleDeVue);
+    const std::optional<PositionDObjet> cible = elementSous(point, m_ouverte, tailleDeVue);
     if (cible.has_value()) {
         // Un déplacement refusé est normal (emplacement incompatible) : rien ne bouge, il n'y a rien à dire.
         static_cast<void>(m_escouade.deplacerObjet(*m_origine, *cible));
@@ -491,36 +537,37 @@ void EcranInventaire::dessiner(const Contexte& contexte) const {
     niveau.setPosition({zonePanneau.position.x + zonePanneau.size.x - s_margeDuNiveau, zonePanneau.position.y + s_hauteurTitre});
     fenetre.draw(niveau);
 
-    for (const Place place : s_places) {
-        dessinerColonne(fenetre, contexte.police, m_escouade, place, m_nomsDesClasses[place.indice()], tailleVue, m_enAttente[place.indice()]);
-    }
+    dessinerLesOnglets(fenetre, contexte.police, m_escouade, m_ouverte, m_nomsDesClasses, tailleVue, {});
+    dessinerColonne(fenetre, contexte.police, m_escouade, m_ouverte, tailleVue, m_enAttente[m_ouverte.indice()]);
     dessinerLeSac(fenetre, contexte.police, m_escouade.sac(), tailleVue);
 
     // Dernières, par-dessus tout le reste.
     if (m_origine.has_value()) {
-        dessinerLesDestinations(fenetre, m_escouade, *m_origine, tailleVue);
-        // L'origine atténuée (l'objet n'a pas bougé : il est « en main »), l'objet saisi sous le curseur.
-        const sf::FloatRect origine = rectangleDe(*m_origine, tailleVue);
-        sf::RectangleShape voileDOrigine(origine.size);
-        voileDOrigine.setPosition(origine.position);
-        voileDOrigine.setFillColor(s_couleurAttenuation);
-        fenetre.draw(voileDOrigine);
+        dessinerLesDestinations(fenetre, m_escouade, *m_origine, m_ouverte, tailleVue);
+        // L'origine atténuée (l'objet n'a pas bougé : il est « en main »), l'objet saisi sous le curseur. L'origine d'un autre
+        // personnage que l'onglet ouvert n'est pas affichée : rien à atténuer.
+        if (const std::optional<sf::FloatRect> origine = rectangleDe(*m_origine, m_ouverte, tailleVue)) {
+            sf::RectangleShape voileDOrigine(origine->size);
+            voileDOrigine.setPosition(origine->position);
+            voileDOrigine.setFillColor(s_couleurAttenuation);
+            fenetre.draw(voileDOrigine);
+        }
         if (const std::optional<Objet> saisi = m_escouade.objetA(*m_origine)) {
             dessinerObjetSaisi(fenetre, contexte.police, *saisi, vue.point, tailleVue);
             // Sur l'emplacement d'un personnage : les exigences de l'objet saisi, celles que ce personnage n'atteint
             // pas en rouge (étape 92.3).
-            const std::optional<PositionDObjet> visee = elementSous(vue.point, tailleVue);
+            const std::optional<PositionDObjet> visee = elementSous(vue.point, m_ouverte, tailleVue);
             if (visee.has_value() && std::holds_alternative<PositionPortee>(*visee) && !seuilsDeLObjet(*saisi).empty()) {
                 dessinerInfobulle(fenetre, contexte.police, *saisi, vue.point, tailleVue, m_escouade.seuilsManques(*m_origine, *visee), false);
             }
         }
-    } else if (const std::optional<PositionDObjet> survolee = elementSous(vue.point, tailleVue)) {
+    } else if (const std::optional<PositionDObjet> survolee = elementSous(vue.point, m_ouverte, tailleVue)) {
         if (const std::optional<Objet> objet = m_escouade.objetA(*survolee)) {
             const PositionPortee* portee = std::get_if<PositionPortee>(&*survolee);
             const bool inactif = portee != nullptr && m_escouade.objetPorteEstInactif(portee->place, portee->emplacement);
             dessinerInfobulle(fenetre, contexte.police, *objet, vue.point, tailleVue, {}, inactif);
         }
-    } else if (const std::optional<CaracteristiqueSurvolee> ligneSurvolee = caracteristiqueSous(vue.point, tailleVue)) {
+    } else if (const std::optional<CaracteristiqueSurvolee> ligneSurvolee = caracteristiqueSous(vue.point, m_ouverte, tailleVue)) {
         dessinerInfobulleDeTexte(fenetre, contexte.police, ligneDEffetDeLaCaracteristique(ligneSurvolee->caracteristique), vue.point, tailleVue);
     }
 }

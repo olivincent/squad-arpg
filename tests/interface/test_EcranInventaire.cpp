@@ -34,8 +34,15 @@ sf::Vector2f centreDeLaCase(std::size_t indice) {
     return centre(rectangleDeLaCaseDuSac(indice, s_vue));
 }
 
-sf::Vector2f centreDeLEmplacement(Place place, Emplacement emplacement) {
-    return centre(rectangleDeLEmplacement(place, emplacement, s_vue));
+// Le centre de cet emplacement dans la colonne du personnage de l'onglet ouvert.
+sf::Vector2f centreDeLEmplacement(Emplacement emplacement) {
+    return centre(rectangleDeLEmplacement(emplacement, s_vue));
+}
+
+// Ouvre l'onglet de cette place par un clic, comme le joueur.
+void ouvrir(EcranInventaire& ecran, Place place) {
+    ecran.saisir(centre(rectangleDeLOnglet(place, s_vue)), s_vue);
+    REQUIRE(ecran.placeOuverte() == place);
 }
 
 // Une partie sans monstre, avec l'escouade de test et un sac vide.
@@ -99,7 +106,8 @@ TEST_CASE("glissement : saisir un objet commence le glissement, une case vide no
     REQUIRE_FALSE(ecran.origineDuGlissement().has_value());
     ecran.saisir({1.0f, 1.0f}, s_vue);  // hors des elements
     REQUIRE_FALSE(ecran.origineDuGlissement().has_value());
-    ecran.saisir(centreDeLEmplacement(s_mage, Emplacement::Gants), s_vue);  // emplacement vide
+    ouvrir(ecran, s_mage);
+    ecran.saisir(centreDeLEmplacement(Emplacement::Gants), s_vue);  // emplacement vide
     REQUIRE_FALSE(ecran.origineDuGlissement().has_value());
 
     ecran.saisir(centreDeLaCase(0), s_vue);
@@ -121,8 +129,9 @@ TEST_CASE("glissement : relacher sur un emplacement compatible equipe l'objet") 
     Escouade& escouade = partie.getEscouade();
     EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
 
+    ouvrir(ecran, s_mage);
     ecran.saisir(centreDeLaCase(0), s_vue);
-    ecran.relacher(centreDeLEmplacement(s_mage, Emplacement::Gants), s_vue);
+    ecran.relacher(centreDeLEmplacement(Emplacement::Gants), s_vue);
 
     REQUIRE_FALSE(ecran.origineDuGlissement().has_value());
     REQUIRE_FALSE(escouade.sac().a(0).has_value());
@@ -147,7 +156,7 @@ TEST_CASE("glissement : un emplacement incompatible refuse, rien ne bouge, le gl
     EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
 
     ecran.saisir(centreDeLaCase(0), s_vue);
-    ecran.relacher(centreDeLEmplacement(s_guerrier, Emplacement::Tete), s_vue);
+    ecran.relacher(centreDeLEmplacement(Emplacement::Tete), s_vue);
 
     REQUIRE_FALSE(ecran.origineDuGlissement().has_value());
     REQUIRE(escouade.sac().a(0) == Objet{IdObjet::GantsDeTissu});
@@ -160,7 +169,7 @@ TEST_CASE("glissement : relacher dans un ecart du panneau ne bouge rien, ne jett
     EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
 
     ecran.saisir(centreDeLaCase(0), s_vue);
-    ecran.relacher(centre(rectangleDeLEnTete(s_guerrier, s_vue)), s_vue);  // dans le panneau, sur aucun element
+    ecran.relacher(centre(rectangleDeLArmure(s_vue)), s_vue);  // dans le panneau, sur aucun element
 
     REQUIRE_FALSE(ecran.origineDuGlissement().has_value());
     REQUIRE(escouade.sac().a(0) == Objet{IdObjet::GantsDeTissu});
@@ -187,7 +196,7 @@ TEST_CASE("jeter : lacher un objet porte hors du panneau le pose au sol, l'empla
     EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
     const Exemplaires avant = exemplaires(partie);
 
-    ecran.saisir(centreDeLEmplacement(s_guerrier, Emplacement::MainDroite), s_vue);
+    ecran.saisir(centreDeLEmplacement(Emplacement::MainDroite), s_vue);
     REQUIRE(ecran.origineDuGlissement() == PositionDObjet{PositionPortee{s_guerrier, Emplacement::MainDroite}});
     ecran.relacher({s_vue.x - 5.0f, s_vue.y - 5.0f}, s_vue);
 
@@ -234,9 +243,11 @@ TEST_CASE("glissement : un objet porte se saisit et s'echange avec un autre pers
     Escouade& escouade = partie.getEscouade();
     EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
 
-    ecran.saisir(centreDeLEmplacement(s_guerrier, Emplacement::Jambes), s_vue);
+    ecran.saisir(centreDeLEmplacement(Emplacement::Jambes), s_vue);
     REQUIRE(ecran.origineDuGlissement() == PositionDObjet{PositionPortee{s_guerrier, Emplacement::Jambes}});
-    ecran.relacher(centreDeLEmplacement(s_mage, Emplacement::Jambes), s_vue);
+    ouvrir(ecran, s_mage);  // l'onglet s'ouvre, le glissement continue
+    REQUIRE(ecran.origineDuGlissement() == PositionDObjet{PositionPortee{s_guerrier, Emplacement::Jambes}});
+    ecran.relacher(centreDeLEmplacement(Emplacement::Jambes), s_vue);
 
     REQUIRE_FALSE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::Jambes).has_value());
     REQUIRE(escouade.equipementDuPersonnage(s_mage).a(Emplacement::Jambes) == Objet{IdObjet::JambieresDePlaques});
@@ -271,9 +282,10 @@ TEST_CASE("glissement : annulerLeGlissement abandonne sans rien deplacer") {
     Escouade& escouade = partie.getEscouade();
     EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
 
+    ouvrir(ecran, s_mage);
     ecran.saisir(centreDeLaCase(0), s_vue);
     ecran.annulerLeGlissement();
-    ecran.relacher(centreDeLEmplacement(s_mage, Emplacement::Gants), s_vue);
+    ecran.relacher(centreDeLEmplacement(Emplacement::Gants), s_vue);
 
     REQUIRE(escouade.sac().a(0) == Objet{IdObjet::GantsDeTissu});
     REQUIRE_FALSE(escouade.equipementDuPersonnage(s_mage).a(Emplacement::Gants).has_value());
@@ -316,7 +328,8 @@ TEST_CASE("points libres : cliquer sur le + d'une caracteristique met un point e
     Partie partie = partieDeNiveau(2);
     EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
 
-    ecran.saisir(centre(rectangleDuBoutonPlus(s_pretre, Caracteristique::Volonte, s_vue)), s_vue);
+    ouvrir(ecran, s_pretre);
+    ecran.saisir(centre(rectangleDuBoutonPlus(Caracteristique::Volonte, s_vue)), s_vue);
 
     REQUIRE(ecran.pointsEnAttente(s_pretre) == Caracteristiques::seule(Caracteristique::Volonte, 1));
     REQUIRE_FALSE(ecran.origineDuGlissement().has_value());  // un bouton ne commence aucun glissement
@@ -331,7 +344,7 @@ TEST_CASE("points libres : le + est sans effet quand il ne reste aucun point a r
     REQUIRE(ecran.pointsRestants(s_guerrier) == 0);
 
     ecran.ajouterUnPoint(s_guerrier, Caracteristique::Adresse);
-    ecran.saisir(centre(rectangleDuBoutonPlus(s_guerrier, Caracteristique::Puissance, s_vue)), s_vue);
+    ecran.saisir(centre(rectangleDuBoutonPlus(Caracteristique::Puissance, s_vue)), s_vue);  // l'onglet 1 est ouvert
 
     REQUIRE(ecran.pointsEnAttente(s_guerrier) == unePuissance(3));
     REQUIRE(ecran.pointsRestants(s_guerrier) == 0);
@@ -342,7 +355,7 @@ TEST_CASE("points libres : au niveau 1, le + est sans effet") {
     EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
 
     ecran.ajouterUnPoint(s_guerrier, Caracteristique::Puissance);
-    ecran.saisir(centre(rectangleDuBoutonPlus(s_guerrier, Caracteristique::Puissance, s_vue)), s_vue);
+    ecran.saisir(centre(rectangleDuBoutonPlus(Caracteristique::Puissance, s_vue)), s_vue);
 
     REQUIRE(ecran.pointsEnAttente(s_guerrier) == Caracteristiques());
     REQUIRE(ecran.pointsRestants(s_guerrier) == 0);
@@ -358,7 +371,8 @@ TEST_CASE("points libres : le - retire un point en attente, pas plus") {
     REQUIRE(ecran.pointsEnAttente(s_mage) == unePuissance());
     REQUIRE(ecran.pointsRestants(s_mage) == 2);
 
-    ecran.saisir(centre(rectangleDuBoutonMoins(s_mage, Caracteristique::Puissance, s_vue)), s_vue);
+    ouvrir(ecran, s_mage);
+    ecran.saisir(centre(rectangleDuBoutonMoins(Caracteristique::Puissance, s_vue)), s_vue);
     REQUIRE(ecran.pointsEnAttente(s_mage) == Caracteristiques());
 
     ecran.retirerUnPoint(s_mage, Caracteristique::Puissance);  // plus rien en attente : pas de valeur negative
@@ -377,7 +391,8 @@ TEST_CASE("points libres : le - ne retire jamais un point deja depense") {
     const Caracteristiques baseApres = escouade.caracteristiquesDeBaseDuPersonnage(s_mage).value();
 
     ecran.retirerUnPoint(s_mage, Caracteristique::Endurance);
-    ecran.saisir(centre(rectangleDuBoutonMoins(s_mage, Caracteristique::Endurance, s_vue)), s_vue);
+    ouvrir(ecran, s_mage);
+    ecran.saisir(centre(rectangleDuBoutonMoins(Caracteristique::Endurance, s_vue)), s_vue);
 
     REQUIRE(escouade.pointsDepensesDuPersonnage(s_mage) == Caracteristiques::seule(Caracteristique::Endurance, 2));
     REQUIRE(escouade.caracteristiquesDeBaseDuPersonnage(s_mage) == baseApres);
@@ -394,7 +409,8 @@ TEST_CASE("points libres : Apply depense pour de bon, puis vide le brouillon") {
     ecran.ajouterUnPoint(s_mage, Caracteristique::Endurance);
     ecran.ajouterUnPoint(s_mage, Caracteristique::Endurance);
 
-    ecran.saisir(centre(rectangleDuBoutonAppliquer(s_mage, s_vue)), s_vue);
+    ouvrir(ecran, s_mage);
+    ecran.saisir(centre(rectangleDuBoutonAppliquer(s_vue)), s_vue);
 
     REQUIRE(escouade.pointsDepensesDuPersonnage(s_mage) == Caracteristiques({1, 2, 0, 0, 0}));
     REQUIRE(escouade.pointsLibresDuPersonnage(s_mage) == 0);
@@ -410,7 +426,8 @@ TEST_CASE("points libres : Apply sans rien en attente ne fait rien") {
     EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
 
     ecran.appliquer(s_mage);
-    ecran.saisir(centre(rectangleDuBoutonAppliquer(s_mage, s_vue)), s_vue);
+    ouvrir(ecran, s_mage);
+    ecran.saisir(centre(rectangleDuBoutonAppliquer(s_vue)), s_vue);
 
     REQUIRE(escouade.pointsDepensesDuPersonnage(s_mage) == Caracteristiques());
     REQUIRE(escouade.pointsLibresDuPersonnage(s_mage) == 3);
@@ -423,7 +440,8 @@ TEST_CASE("points libres : Reset vide le brouillon sans rien appliquer") {
     ecran.ajouterUnPoint(s_mage, Caracteristique::Puissance);
     ecran.ajouterUnPoint(s_mage, Caracteristique::Adresse);
 
-    ecran.saisir(centre(rectangleDuBoutonReinitialiser(s_mage, s_vue)), s_vue);
+    ouvrir(ecran, s_mage);
+    ecran.saisir(centre(rectangleDuBoutonReinitialiser(s_vue)), s_vue);
 
     REQUIRE(ecran.pointsEnAttente(s_mage) == Caracteristiques());
     REQUIRE(ecran.pointsRestants(s_mage) == 3);
@@ -462,4 +480,93 @@ TEST_CASE("points libres : un brouillon par personnage, independants") {
     REQUIRE(ecran.pointsEnAttente(s_guerrier) == unePuissance());  // le brouillon du guerrier est intact
     REQUIRE(ecran.pointsRestants(s_guerrier) == 5);
     REQUIRE(ecran.pointsRestants(s_mage) == 4);
+}
+
+// Les onglets (étape 106.4).
+TEST_CASE("onglets : l'ecran s'ouvre sur le premier personnage") {
+    Partie partie = partieSansMonstre();
+    const EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+
+    REQUIRE(ecran.placeOuverte() == Place{1});
+}
+
+TEST_CASE("onglets : un clic sur un onglet l'ouvre, sans commencer de glissement") {
+    Partie partie = partieAvecDesGants();
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+
+    for (const Place place : s_places) {
+        ouvrir(ecran, place);
+        REQUIRE_FALSE(ecran.origineDuGlissement().has_value());
+    }
+    ouvrir(ecran, s_pretre);
+    ouvrir(ecran, s_pretre);  // l'onglet ouvert, recliqué : rien ne change
+}
+
+TEST_CASE("onglets : les emplacements cliques sont ceux du personnage de l'onglet ouvert") {
+    Partie partie = partieCapableDeToutPorter();
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+    REQUIRE(partie.getEscouade().equipementDuPersonnage(s_pretre).a(Emplacement::MainDroite).has_value());
+
+    ecran.saisir(centreDeLEmplacement(Emplacement::MainDroite), s_vue);
+    REQUIRE(ecran.origineDuGlissement() == PositionDObjet{PositionPortee{s_guerrier, Emplacement::MainDroite}});
+    ecran.annulerLeGlissement();
+    ouvrir(ecran, s_pretre);
+    ecran.saisir(centreDeLEmplacement(Emplacement::MainDroite), s_vue);
+
+    REQUIRE(ecran.origineDuGlissement() == PositionDObjet{PositionPortee{s_pretre, Emplacement::MainDroite}});
+}
+
+TEST_CASE("onglets : le sac reste le meme, quel que soit l'onglet ouvert") {
+    Partie partie = partieAvecDesGants();
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+
+    for (const Place place : s_places) {
+        ouvrir(ecran, place);
+        ecran.saisir(centreDeLaCase(0), s_vue);
+        REQUIRE(ecran.origineDuGlissement() == PositionDObjet{PositionDansLeSac{0}});
+        ecran.annulerLeGlissement();
+    }
+}
+
+TEST_CASE("onglets : le brouillon des points libres survit au changement d'onglet et s'efface a la fermeture") {
+    Partie partie = partieDeNiveau(2);
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+    ouvrir(ecran, s_mage);
+    ecran.saisir(centre(rectangleDuBoutonPlus(Caracteristique::Savoir, s_vue)), s_vue);
+    REQUIRE(ecran.pointsEnAttente(s_mage) == Caracteristiques::seule(Caracteristique::Savoir, 1));
+
+    ouvrir(ecran, s_guerrier);
+    ouvrir(ecran, s_mage);
+
+    REQUIRE(ecran.pointsEnAttente(s_mage) == Caracteristiques::seule(Caracteristique::Savoir, 1));
+    REQUIRE(ecran.pointsRestants(s_mage) == 2);
+    REQUIRE(std::holds_alternative<Depiler>(ecran.appuyer(sf::Keyboard::Scan::I)));
+    REQUIRE(ecran.pointsEnAttente(s_mage) == Caracteristiques());
+}
+
+TEST_CASE("onglets : les boutons des points libres agissent sur le personnage de l'onglet ouvert") {
+    Partie partie = partieDeNiveau(2);
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+
+    ouvrir(ecran, s_pretre);
+    ecran.saisir(centre(rectangleDuBoutonPlus(Caracteristique::Puissance, s_vue)), s_vue);
+    ouvrir(ecran, s_mage);
+    ecran.saisir(centre(rectangleDuBoutonPlus(Caracteristique::Puissance, s_vue)), s_vue);
+    ecran.saisir(centre(rectangleDuBoutonPlus(Caracteristique::Puissance, s_vue)), s_vue);
+
+    REQUIRE(ecran.pointsEnAttente(s_pretre) == unePuissance(1));
+    REQUIRE(ecran.pointsEnAttente(s_mage) == unePuissance(2));
+    REQUIRE(ecran.pointsEnAttente(s_guerrier) == Caracteristiques());
+}
+
+TEST_CASE("onglets : jeter un objet hors du panneau marche depuis n'importe quel onglet") {
+    Partie partie = partieAvecDesGants();
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+    ouvrir(ecran, s_mage);
+
+    ecran.saisir(centreDeLaCase(0), s_vue);
+    ecran.relacher({1.0f, 1.0f}, s_vue);
+
+    REQUIRE_FALSE(partie.getEscouade().sac().a(0).has_value());
+    REQUIRE(partie.getSol().tous().size() == 1);
 }
