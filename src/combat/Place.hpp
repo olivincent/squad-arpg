@@ -10,7 +10,7 @@
 struct Place {
     std::size_t numero;
 
-    [[nodiscard]] static Place depuisIndice(std::size_t indice) {
+    [[nodiscard]] static constexpr Place depuisIndice(std::size_t indice) {
         return Place{indice + 1};
     }
     [[nodiscard]] std::size_t indice() const {

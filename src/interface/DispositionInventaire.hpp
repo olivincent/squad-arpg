@@ -9,6 +9,7 @@
 #include <variant>
 
 #include "combat/Caracteristiques.hpp"
+#include "escouade/TailleDeLEscouade.hpp"
 #include "objets/Emplacement.hpp"
 #include "combat/Place.hpp"
 #include "objets/PositionDObjet.hpp"
@@ -18,7 +19,7 @@
 // stockée : tout est recalculé depuis la taille de la vue. Le dessin, le survol et les tests
 // appellent les mêmes fonctions.
 //
-// En haut, une colonne par personnage, dans l'ordre des places (de 1 à `s_nombreDePlaces`) : une
+// En haut, une colonne par personnage, dans l'ordre des places (de 1 à `s_tailleDeLEscouade`) : une
 // bande d'en-tête (la classe), une ligne d'armure, puis les 10 emplacements en deux colonnes de 5
 // (Tête, Torse, Jambes, Gants, Bottes à gauche ; Main droite, Main gauche, Collier, Anneau 1,
 // Anneau 2 à droite : l'ordre de `Emplacement`), puis le bloc des caractéristiques et des points de vie, puis
@@ -26,8 +27,14 @@
 // `s_colonnesDuSac` par rangée (deux rangées), dans l'ordre des indices. Tout tient dans une vue de
 // 1200 × 800 au moins, sans chevauchement (les boutons des points libres sont dans les lignes du bloc des caractéristiques).
 
-inline constexpr std::size_t s_nombreDePlaces = 3;
-inline constexpr std::array<Place, s_nombreDePlaces> s_places = {Place{1}, Place{2}, Place{3}};  // les colonnes, dans l'ordre
+// Les places de 1 à `s_tailleDeLEscouade`, dans l'ordre : les colonnes.
+inline constexpr std::array<Place, s_tailleDeLEscouade> s_places = [] {
+    std::array<Place, s_tailleDeLEscouade> places{};
+    for (std::size_t i = 0; i < places.size(); ++i) {
+        places[i] = Place::depuisIndice(i);
+    }
+    return places;
+}();
 inline constexpr std::size_t s_colonnesDuSac = 20;
 inline constexpr std::size_t s_lignesDeCaracteristiques = s_nombreDeCaracteristiques + 1;  // du bloc des caractéristiques : une par caractéristique, puis les points de vie
 inline constexpr std::size_t s_lignesDeStatistiques = 3;       // du bloc des statistiques de combat
@@ -39,7 +46,7 @@ inline constexpr std::size_t s_casesDuSac = 40;  // la capacité du sac de l'esc
 [[nodiscard]] sf::FloatRect rectangleDuPanneau(sf::Vector2f tailleDeVue);
 
 // La bande d'en-tête de la colonne de cette place (le nom de la classe). `assert` : place de 1 à
-// `s_nombreDePlaces`.
+// `s_tailleDeLEscouade`.
 [[nodiscard]] sf::FloatRect rectangleDeLEnTete(Place place, sf::Vector2f tailleDeVue);
 
 // La ligne sous l'en-tête (« Armure : N », « (mort) »). Même précondition.
@@ -58,7 +65,7 @@ inline constexpr std::size_t s_casesDuSac = 40;  // la capacité du sac de l'esc
 
 // Les boutons des points libres. Les rectangles sont toujours les mêmes : que le bouton soit visible ou actif, c'est à
 // l'écran d'en décider (`EcranInventaire`). « + » et « − » sont à droite de la ligne de la caractéristique ; « Apply » et
-// « Reset » à droite de la ligne des points de vie. `assert` : place de 1 à `s_nombreDePlaces`.
+// « Reset » à droite de la ligne des points de vie. `assert` : place de 1 à `s_tailleDeLEscouade`.
 [[nodiscard]] sf::FloatRect rectangleDuBoutonPlus(Place place, Caracteristique caracteristique, sf::Vector2f tailleDeVue);
 [[nodiscard]] sf::FloatRect rectangleDuBoutonMoins(Place place, Caracteristique caracteristique, sf::Vector2f tailleDeVue);
 [[nodiscard]] sf::FloatRect rectangleDuBoutonAppliquer(Place place, sf::Vector2f tailleDeVue);

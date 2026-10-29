@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "escouade/SelectionDEscouade.hpp"
+#include "escouade/TailleDeLEscouade.hpp"
 
 namespace {
 
@@ -84,7 +85,7 @@ TEST_CASE("selection : retirer la premiere case, puis ajouter, remet la selectio
 }
 
 TEST_CASE("caseSous : un point au centre de chaque case donne cette case") {
-    for (std::size_t i = 0; i < SelectionDEscouade::s_taille; ++i) {
+    for (std::size_t i = 0; i < s_tailleDeLEscouade; ++i) {
         REQUIRE(caseSous(centreDeLaCase(i), s_centre) == i);
     }
 }
@@ -101,7 +102,7 @@ TEST_CASE("caseSous : hors des cases ou dans un ecart, rien") {
 
 TEST_CASE("rectangleDeLaCase : les cases sont empilees, centrees sur le centre donne") {
     const sf::FloatRect premiere = rectangleDeLaCase(0, s_centre);
-    const sf::FloatRect derniere = rectangleDeLaCase(SelectionDEscouade::s_taille - 1, s_centre);
+    const sf::FloatRect derniere = rectangleDeLaCase(s_tailleDeLEscouade - 1, s_centre);
 
     REQUIRE(premiere.position.x == derniere.position.x);
     REQUIRE(premiere.position.y < derniere.position.y);

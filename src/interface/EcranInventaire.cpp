@@ -23,6 +23,7 @@
 #include "combat/StatistiquesDeCombat.hpp"
 #include "combat/Cible.hpp"
 #include "escouade/Escouade.hpp"
+#include "escouade/TailleDeLEscouade.hpp"
 #include "interface/AffichageCaracteristiques.hpp"
 #include "interface/AffichageStatistiques.hpp"
 #include "interface/AffichageNiveau.hpp"
@@ -341,7 +342,7 @@ void dessinerInfobulleDeTexte(sf::RenderTarget& rendu, const sf::Font& police, c
 
 EcranInventaire::EcranInventaire(Escouade& escouade, ObjetsAuSol& sol, const TileMap& carte, std::vector<std::string> nomsDesClasses)
     : m_escouade(escouade), m_sol(sol), m_carte(carte), m_nomsDesClasses(std::move(nomsDesClasses)) {
-    assert(m_nomsDesClasses.size() == s_nombreDePlaces);
+    assert(m_nomsDesClasses.size() == s_tailleDeLEscouade);
 }
 
 Transition EcranInventaire::appuyer(sf::Keyboard::Scancode touche) {
@@ -358,7 +359,7 @@ Transition EcranInventaire::appuyer(sf::Keyboard::Scancode touche) {
 }
 
 const Caracteristiques& EcranInventaire::pointsEnAttente(Place place) const {
-    assert(place.numero <= s_nombreDePlaces);
+    assert(place.numero <= s_tailleDeLEscouade);
     return m_enAttente[place.indice()];
 }
 
@@ -391,7 +392,7 @@ void EcranInventaire::appliquer(Place place) {
 }
 
 void EcranInventaire::reinitialiser(Place place) {
-    assert(place.numero <= s_nombreDePlaces);
+    assert(place.numero <= s_tailleDeLEscouade);
     m_enAttente[place.indice()] = Caracteristiques();
 }
 

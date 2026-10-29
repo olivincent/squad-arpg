@@ -11,6 +11,7 @@
 
 #include "combat/Caracteristiques.hpp"
 #include "combat/Place.hpp"
+#include "escouade/TailleDeLEscouade.hpp"
 #include "interface/DispositionInventaire.hpp"
 #include "interface/Ecran.hpp"
 #include "objets/PositionDObjet.hpp"
@@ -38,7 +39,7 @@ public:
     // Ce que l'écran utilise, et rien d'autre de la partie : `escouade`, dont il lit et déplace les objets, `sol`, où il jette
     // ceux qu'on lâche hors du panneau, et `carte`, qui dit où ils tombent près de l'ancre. Ils appartiennent à la `Partie` de
     // l'écran de jeu, qui reste sous celui-ci dans la pile et leur survit donc (invariant de la pile, `docs/ecrans.md`).
-    // `nomsDesClasses` : le nom de la classe de chaque place, dans l'ordre des places (`s_nombreDePlaces` noms).
+    // `nomsDesClasses` : le nom de la classe de chaque place, dans l'ordre des places (`s_tailleDeLEscouade` noms).
     EcranInventaire(Escouade& escouade, ObjetsAuSol& sol, const TileMap& carte, std::vector<std::string> nomsDesClasses);
 
     // Une touche pressée : I dépile l'écran ; Échap annule le glissement en cours, ou dépile s'il n'y en
@@ -58,7 +59,7 @@ public:
     // L'origine du glissement en cours, s'il y en a un.
     [[nodiscard]] const std::optional<PositionDObjet>& origineDuGlissement() const;
 
-    // Le brouillon des points libres du personnage de cette place (de 1 à `s_nombreDePlaces`, `assert`) : ce qui est en attente
+    // Le brouillon des points libres du personnage de cette place (de 1 à `s_tailleDeLEscouade`, `assert`) : ce qui est en attente
     // dans chaque caractéristique, et ce qui reste à répartir (ses points libres moins ce qui est en attente).
     [[nodiscard]] const Caracteristiques& pointsEnAttente(Place place) const;
     [[nodiscard]] int pointsRestants(Place place) const;
@@ -83,7 +84,7 @@ private:
     const TileMap& m_carte;
     std::vector<std::string> m_nomsDesClasses;
     std::optional<PositionDObjet> m_origine;
-    std::array<Caracteristiques, s_nombreDePlaces> m_enAttente{};  // le brouillon, par place (dans l'ordre des places)
+    std::array<Caracteristiques, s_tailleDeLEscouade> m_enAttente{};  // le brouillon, par place (dans l'ordre des places)
     // Le bouton qu'on vient de presser agit.
     void cliquerSurUnBouton(const BoutonDePoints& bouton);
 };

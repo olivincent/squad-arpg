@@ -16,6 +16,7 @@
 #include "interface/Contexte.hpp"
 #include "interface/EcranJeu.hpp"
 #include "escouade/Specialite.hpp"
+#include "escouade/TailleDeLEscouade.hpp"
 #include "interface/EntreeDInterface.hpp"
 
 namespace {
@@ -62,7 +63,7 @@ sf::Text texteCentre(const sf::Font& police, const std::string& libelle, unsigne
 void dessinerLesCases(sf::RenderTarget& rendu, const sf::Font& police, const SelectionDEscouade& selection,
                       sf::Vector2f centreDesColonne, std::optional<std::size_t> survolee) {
     const std::vector<DefinitionPersonnage> composition = composer(selection.liste());
-    for (std::size_t i = 0; i < SelectionDEscouade::s_taille; ++i) {
+    for (std::size_t i = 0; i < s_tailleDeLEscouade; ++i) {
         const sf::FloatRect zone = rectangleDeLaCase(i, centreDesColonne);
         const bool remplie = i < selection.liste().size();
 
@@ -151,7 +152,7 @@ void EcranChoixEscouade::dessiner(const Contexte& contexte) const {
     const sf::Vector2f centre = pointeur.centre;
     const sf::Vector2f curseur = pointeur.point;
 
-    const std::string titre = "Choose " + std::to_string(SelectionDEscouade::s_taille) + " classes";
+    const std::string titre = "Choose " + std::to_string(s_tailleDeLEscouade) + " classes";
     fenetre.draw(texteCentre(contexte.police, titre, s_tailleTitre, centre + sf::Vector2f{0.0f, s_hauteurDuTitre}, sf::Color::White));
 
     m_classes.dessiner(fenetre, contexte.police, centreDesClasses(centre), m_classes.boutonSous(curseur, centreDesClasses(centre)));

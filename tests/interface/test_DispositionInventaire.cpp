@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "combat/Caracteristiques.hpp"
+#include "escouade/TailleDeLEscouade.hpp"
 #include "interface/DispositionInventaire.hpp"
 
 namespace {
@@ -19,7 +20,7 @@ const sf::Vector2f s_vueLarge{1422.0f, 800.0f};  // 16:9
 // Tous les rectangles de l'écran, pour les vérifications globales.
 std::vector<sf::FloatRect> tousLesRectangles(sf::Vector2f vue) {
     std::vector<sf::FloatRect> rectangles;
-    for (std::size_t numero = 1; numero <= s_nombreDePlaces; ++numero) {
+    for (std::size_t numero = 1; numero <= s_tailleDeLEscouade; ++numero) {
         const Place place{numero};
         rectangles.push_back(rectangleDeLEnTete(place, vue));
         rectangles.push_back(rectangleDeLArmure(place, vue));
@@ -70,7 +71,7 @@ TEST_CASE("disposition : aucun chevauchement") {
 
 TEST_CASE("disposition : les colonnes sont dans l'ordre des places, centrees") {
     const sf::FloatRect premiere = rectangleDeLEnTete(Place{1}, s_vueMinimale);
-    const sf::FloatRect derniere = rectangleDeLEnTete(Place{s_nombreDePlaces}, s_vueMinimale);
+    const sf::FloatRect derniere = rectangleDeLEnTete(Place{s_tailleDeLEscouade}, s_vueMinimale);
 
     REQUIRE(premiere.position.x < rectangleDeLEnTete(Place{2}, s_vueMinimale).position.x);
     REQUIRE(rectangleDeLEnTete(Place{2}, s_vueMinimale).position.x < derniere.position.x);
@@ -113,7 +114,7 @@ TEST_CASE("disposition : le sac est sous les colonnes des personnages") {
 
 TEST_CASE("elementSous : le centre de chaque emplacement le designe") {
     for (const sf::Vector2f vue : {s_vueMinimale, s_vueLarge}) {
-        for (std::size_t numero = 1; numero <= s_nombreDePlaces; ++numero) {
+        for (std::size_t numero = 1; numero <= s_tailleDeLEscouade; ++numero) {
             const Place place{numero};
             for (std::size_t i = 0; i < s_nombreEmplacements; ++i) {
                 const Emplacement emplacement = static_cast<Emplacement>(i);
@@ -252,7 +253,7 @@ TEST_CASE("le panneau : une bande de jeu reste visible tout autour, assez large 
 // Les boutons des points libres (étape 100.2).
 TEST_CASE("disposition : les boutons + et - sont dans la ligne de leur caracteristique, a droite, sans se toucher") {
     for (const sf::Vector2f vue : {s_vueMinimale, s_vueLarge}) {
-        for (std::size_t numero = 1; numero <= s_nombreDePlaces; ++numero) {
+        for (std::size_t numero = 1; numero <= s_tailleDeLEscouade; ++numero) {
             const Place place{numero};
             for (const Caracteristique caracteristique : s_caracteristiques) {
                 const sf::FloatRect ligne = rectangleDeLaCellule(place, static_cast<std::size_t>(caracteristique), vue);
@@ -273,7 +274,7 @@ TEST_CASE("disposition : les boutons + et - sont dans la ligne de leur caracteri
 }
 
 TEST_CASE("disposition : Apply et Reset sont dans la ligne des points de vie, a droite, sans se toucher") {
-    for (std::size_t numero = 1; numero <= s_nombreDePlaces; ++numero) {
+    for (std::size_t numero = 1; numero <= s_tailleDeLEscouade; ++numero) {
         const Place place{numero};
         const sf::FloatRect ligne = rectangleDeLaCellule(place, s_nombreDeCaracteristiques, s_vueMinimale);
         const sf::FloatRect appliquer = rectangleDuBoutonAppliquer(place, s_vueMinimale);
@@ -290,7 +291,7 @@ TEST_CASE("disposition : Apply et Reset sont dans la ligne des points de vie, a 
 }
 
 TEST_CASE("boutonSous : le centre de chaque bouton le designe") {
-    for (std::size_t numero = 1; numero <= s_nombreDePlaces; ++numero) {
+    for (std::size_t numero = 1; numero <= s_tailleDeLEscouade; ++numero) {
         const Place place{numero};
         for (const Caracteristique caracteristique : s_caracteristiques) {
             REQUIRE(boutonSous(centre(rectangleDuBoutonPlus(place, caracteristique, s_vueMinimale)), s_vueMinimale) ==
@@ -314,7 +315,7 @@ TEST_CASE("boutonSous : rien sur le texte d'une caracteristique, un emplacement 
 }
 
 TEST_CASE("caracteristiqueSous : toute la ligne d'une caracteristique la designe, boutons compris") {
-    for (std::size_t numero = 1; numero <= s_nombreDePlaces; ++numero) {
+    for (std::size_t numero = 1; numero <= s_tailleDeLEscouade; ++numero) {
         const Place place{numero};
         for (const Caracteristique caracteristique : s_caracteristiques) {
             const sf::FloatRect ligne = rectangleDeLaCellule(place, static_cast<std::size_t>(caracteristique), s_vueMinimale);

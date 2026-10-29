@@ -1,6 +1,7 @@
 // ./src/interface/DispositionInventaire.cpp
 #include "interface/DispositionInventaire.hpp"
 #include "combat/Caracteristiques.hpp"
+#include "escouade/TailleDeLEscouade.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -35,8 +36,8 @@ constexpr float s_decalageInfobulle = 16.0f;  // entre le curseur et le coin de 
 static_assert(s_nombreEmplacements == 2 * s_emplacementsParColonne);
 static_assert(s_casesDuSac % s_colonnesDuSac == 0);
 
-constexpr float s_largeurDesColonnes = static_cast<float>(s_nombreDePlaces) * s_largeurDeColonne +
-                                       static_cast<float>(s_nombreDePlaces - 1) * s_ecartDeColonnes;
+constexpr float s_largeurDesColonnes = static_cast<float>(s_tailleDeLEscouade) * s_largeurDeColonne +
+                                       static_cast<float>(s_tailleDeLEscouade - 1) * s_ecartDeColonnes;
 constexpr float s_rangeesDuSac = static_cast<float>(s_casesDuSac / s_colonnesDuSac);
 constexpr float s_largeurDuPanneau = s_largeurDesColonnes + 2.0f * s_margeLaterale;
 constexpr float s_hauteurDuPanneau = s_hautDuSac + s_rangeesDuSac * (s_cote + s_ecartEntreCases) - s_ecartEntreCases + s_margeBasse;
@@ -48,7 +49,7 @@ float hautDuPanneau(sf::Vector2f tailleDeVue) {
 
 // Le bord gauche de la colonne de cette place, les colonnes étant centrées dans la vue.
 float xDeLaColonne(Place place, sf::Vector2f tailleDeVue) {
-    assert(place.numero <= s_nombreDePlaces);
+    assert(place.numero <= s_tailleDeLEscouade);
     return (tailleDeVue.x - s_largeurDesColonnes) / 2.0f + static_cast<float>(place.indice()) * (s_largeurDeColonne + s_ecartDeColonnes);
 }
 
