@@ -16,13 +16,13 @@ namespace {
 // Niveau : niveauDegage (aides.hpp). Le lanceur du skill de zone (le mage, place 3)
 // est le tireur en (185, 235).
 
-// La barre par défaut de la composition par défaut : Q frappe, W provocation, A soin, Z explosion.
+// La barre par défaut de la composition par défaut : Q frappe et A provocation (le guerrier), W soin (le prêtre), E explosion (le mage).
 BarreDeRaccourcis barreDe(const Partie& partie) {
     return barreParDefaut(partie.getEscouade().adressesDesSkills());
 }
-constexpr std::size_t s_emplacementProvocation = 1;
-constexpr std::size_t s_emplacementVide = 2;
-constexpr std::size_t s_emplacementExplosion = 8;
+constexpr std::size_t s_emplacementProvocation = 4;
+constexpr std::size_t s_emplacementVide = 3;
+constexpr std::size_t s_emplacementExplosion = 2;
 
 constexpr sf::Vector2f s_pointDeLancer{250.0f, 250.0f};  // à portée du lanceur
 // Hors de portée de détection : la partie n'est pas gagnée, donc le monde bouge.

@@ -209,7 +209,7 @@ TEST_CASE("trois rodeurs : tous derriere, en colonne, avec trois nuances de vert
     REQUIRE(composition[0].couleur != composition[2].couleur);
 }
 
-TEST_CASE("trois rodeurs : la barre par defaut a une rangee par rodeur") {
+TEST_CASE("trois rodeurs : la barre par defaut a une colonne par rodeur") {
     const Escouade escouade = uneEscouadeDe({100.0f, 100.0f},
                             composer({IdSpecialite::Rodeur, IdSpecialite::Rodeur, IdSpecialite::Rodeur}));
 
@@ -217,11 +217,10 @@ TEST_CASE("trois rodeurs : la barre par defaut a une rangee par rodeur") {
 
     for (std::size_t numero = 1; numero <= 3; ++numero) {
         const Place place{numero};
-        const std::size_t debut = place.indice() * 4;
-        REQUIRE(barre.adresse(debut) == AdresseSkill{place, IdSkill::TirPercant});
-        REQUIRE(barre.adresse(debut + 1) == AdresseSkill{place, IdSkill::PluieDeFleches});
-        REQUIRE_FALSE(barre.adresse(debut + 2).has_value());
-        REQUIRE_FALSE(barre.adresse(debut + 3).has_value());
+        const std::size_t haut = place.indice();  // la colonne de la place : 4 emplacements d'écart d'une rangée à l'autre
+        REQUIRE(barre.adresse(haut) == AdresseSkill{place, IdSkill::TirPercant});
+        REQUIRE(barre.adresse(haut + 4) == AdresseSkill{place, IdSkill::PluieDeFleches});
+        REQUIRE_FALSE(barre.adresse(haut + 8).has_value());
     }
 }
 

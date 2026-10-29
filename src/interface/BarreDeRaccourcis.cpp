@@ -1,9 +1,11 @@
 // ./src/interface/BarreDeRaccourcis.cpp
 #include "interface/BarreDeRaccourcis.hpp"
 #include <cassert>
+#include "escouade/TailleDeLEscouade.hpp"
 
 namespace {
-constexpr std::size_t s_emplacementsParRangee = 4;
+constexpr std::size_t s_emplacementsParRangee = 4;  // aussi le nombre de colonnes : une par personnage
+static_assert(s_tailleDeLEscouade <= s_emplacementsParRangee, "la barre a une colonne par personnage");
 constexpr float s_coteDeLIcone = 48.0f;
 constexpr float s_ecartEntreIcones = 4.0f;
 constexpr float s_margeDuBas = 10.0f;
@@ -33,17 +35,17 @@ void BarreDeRaccourcis::vider(std::size_t emplacement) {
 BarreDeRaccourcis barreParDefaut(const std::vector<AdresseSkill>& adresses) {
     BarreDeRaccourcis barre(s_emplacementsPrincipaux);
     const std::size_t rangees = barre.taille() / s_emplacementsParRangee;
-    std::vector<std::size_t> dejaPlaces(rangees, 0);  // par rangée (place - 1)
+    std::vector<std::size_t> dejaPlaces(s_emplacementsParRangee, 0);  // par colonne (place - 1)
     for (const AdresseSkill& adresse : adresses) {
-        if (adresse.place.numero < 1 || adresse.place.numero > rangees) {
+        if (adresse.place.numero < 1 || adresse.place.numero > s_emplacementsParRangee) {
             continue;
         }
-        const std::size_t rangee = adresse.place.indice();
-        if (dejaPlaces[rangee] >= s_emplacementsParRangee) {
+        const std::size_t colonne = adresse.place.indice();
+        if (dejaPlaces[colonne] >= rangees) {
             continue;
         }
-        barre.placer(rangee * s_emplacementsParRangee + dejaPlaces[rangee], adresse);
-        ++dejaPlaces[rangee];
+        barre.placer(dejaPlaces[colonne] * s_emplacementsParRangee + colonne, adresse);
+        ++dejaPlaces[colonne];
     }
     return barre;
 }

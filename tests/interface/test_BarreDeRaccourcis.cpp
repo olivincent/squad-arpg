@@ -43,37 +43,56 @@ TEST_CASE("une meme adresse peut etre placee sur deux emplacements") {
     REQUIRE(barre.adresse(3) == s_adresseFrappe);
 }
 
-TEST_CASE("barreParDefaut : une rangee de 4 par personnage avec la composition par defaut") {
+TEST_CASE("barreParDefaut : une colonne de 3 par personnage avec la composition par defaut") {
     const Escouade escouade = uneEscouade({200.0f, 200.0f});
 
     const BarreDeRaccourcis barre = barreParDefaut(escouade.adressesDesSkills());
 
     REQUIRE(barre.taille() == s_emplacementsPrincipaux);
-    REQUIRE(barre.adresse(0) == s_adresseFrappe);      // Q
-    REQUIRE(barre.adresse(1) == s_adresseProvocation); // W
-    REQUIRE(barre.adresse(4) == s_adresseSoin);        // A
-    REQUIRE(barre.adresse(8) == s_adresseExplosion);   // Z
-    for (const std::size_t vide : {2, 3, 5, 6, 7, 9, 10, 11}) {
+    REQUIRE(barre.adresse(0) == s_adresseFrappe);      // Q : le guerrier, colonne 1
+    REQUIRE(barre.adresse(4) == s_adresseProvocation); // A
+    REQUIRE(barre.adresse(1) == s_adresseSoin);        // W : le pretre, colonne 2
+    REQUIRE(barre.adresse(2) == s_adresseExplosion);   // E : le mage, colonne 3
+    for (const std::size_t vide : {3, 5, 6, 7, 8, 9, 10, 11}) {
         REQUIRE_FALSE(barre.adresse(vide).has_value());
     }
 }
 
-TEST_CASE("barreParDefaut : les skills au-dela du quatrieme d'un personnage ne sont pas places") {
+TEST_CASE("barreParDefaut : les skills au-dela du troisieme d'un personnage ne sont pas places") {
     const std::vector<AdresseSkill> adresses = {
-        {Place{1}, IdSkill::FrappePuissante}, {Place{1}, IdSkill::Provocation}, {Place{1}, IdSkill::Soin}, {Place{1}, IdSkill::Explosion},
-        {Place{1}, IdSkill::FrappePuissante},  // le cinquieme du personnage 1
+        {Place{1}, IdSkill::FrappePuissante}, {Place{1}, IdSkill::Provocation}, {Place{1}, IdSkill::Soin},
+        {Place{1}, IdSkill::Explosion},  // le quatrieme du personnage 1
         {Place{2}, IdSkill::Soin},
     };
 
     const BarreDeRaccourcis barre = barreParDefaut(adresses);
 
-    REQUIRE(barre.adresse(3) == AdresseSkill{Place{1}, IdSkill::Explosion});
-    REQUIRE(barre.adresse(4) == s_adresseSoin);  // la rangee suivante n'est pas touchee
+    REQUIRE(barre.adresse(0) == s_adresseFrappe);
+    REQUIRE(barre.adresse(4) == s_adresseProvocation);
+    REQUIRE(barre.adresse(8) == AdresseSkill{Place{1}, IdSkill::Soin});  // le troisieme, en bas de la colonne
+    REQUIRE(barre.adresse(1) == s_adresseSoin);  // la colonne suivante n'est pas touchee
     REQUIRE_FALSE(barre.adresse(5).has_value());
 }
 
-TEST_CASE("barreParDefaut : une place sans rangee est ignoree, sans erreur") {
-    const std::vector<AdresseSkill> adresses = {{Place{4}, IdSkill::Soin}, {Place{0}, IdSkill::Soin}};
+TEST_CASE("barreParDefaut : la place p occupe les emplacements p-1, p+3 et p+7") {
+    std::vector<AdresseSkill> adresses;
+    for (std::size_t numero = 1; numero <= 4; ++numero) {
+        for (const IdSkill skill : {IdSkill::FrappePuissante, IdSkill::Provocation, IdSkill::Soin}) {
+            adresses.push_back({Place{numero}, skill});
+        }
+    }
+
+    const BarreDeRaccourcis barre = barreParDefaut(adresses);
+
+    for (std::size_t numero = 1; numero <= 4; ++numero) {
+        REQUIRE(barre.adresse(numero - 1) == AdresseSkill{Place{numero}, IdSkill::FrappePuissante});
+        REQUIRE(barre.adresse(numero + 3) == AdresseSkill{Place{numero}, IdSkill::Provocation});
+        REQUIRE(barre.adresse(numero + 7) == AdresseSkill{Place{numero}, IdSkill::Soin});
+    }
+}
+
+TEST_CASE("barreParDefaut : une place sans colonne est ignoree, sans erreur") {
+    const std::vector<AdresseSkill> adresses = {{Place{5}, IdSkill::Soin}, {Place{0}, IdSkill::Soin}};
 
     const BarreDeRaccourcis barre = barreParDefaut(adresses);
 
