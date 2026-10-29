@@ -432,6 +432,147 @@ TEST_CASE("seuilsManques : ne change rien a l'etat") {
     REQUIRE(contenu(etat) == avant);
 }
 
+// Le repli au sac (étape 106.2) : dans un échange entre deux emplacements, l'objet qui reviendrait à un personnage qui ne peut pas
+// le porter va dans le sac au lieu de faire refuser l'échange.
+namespace {
+// Des caractéristiques qui n'atteignent aucun seuil (le « faible » de ces tests), et un torse de plaques de niveau 20, dont le seuil
+// d'Endurance dépasse celui d'un personnage de base.
+const Caracteristiques s_nul({0, 0, 0, 0, 0});
+const Objet s_plaquesExigeantes{IdObjet::ArmureDePlaques, Rarete::Commun, std::nullopt, std::nullopt, 20};
+const Objet s_robe{IdObjet::Robe};
+}  // namespace
+
+TEST_CASE("repli au sac : l'objet que le donneur ne peut pas porter va dans le sac, son emplacement reste vide") {
+    EtatDesObjets etat = etatDeBases(s_nul, s_fort);  // A donne sa robe à B, qui porte des plaques qu'A ne peut pas porter
+    porter(etat, s_placeA, Emplacement::Torse, s_robe);
+    porter(etat, s_placeB, Emplacement::Torse, s_plaquesExigeantes);
+
+    REQUIRE(deplacerLesObjets(etat, portee(s_placeA, Emplacement::Torse), portee(s_placeB, Emplacement::Torse)));
+
+    REQUIRE(etat.equipements[1].a(Emplacement::Torse) == s_robe);
+    REQUIRE_FALSE(etat.equipements[0].a(Emplacement::Torse).has_value());
+    REQUIRE(etat.sac.a(0) == s_plaquesExigeantes);  // la première case libre
+}
+
+TEST_CASE("repli au sac : la surbrillance et le calcul suivent la meme regle") {
+    EtatDesObjets etat = etatDeBases(s_nul, s_fort);
+    porter(etat, s_placeA, Emplacement::Torse, s_robe);
+    porter(etat, s_placeB, Emplacement::Torse, s_plaquesExigeantes);
+    const std::vector<std::optional<Objet>> avant = contenu(etat);
+
+    REQUIRE(deplacementPossible(etat, portee(s_placeA, Emplacement::Torse), portee(s_placeB, Emplacement::Torse)));
+    REQUIRE(contenu(etat) == avant);
+    // Dans l'autre sens, A recevrait les plaques de B : le receveur ne les porte pas, l'échange est refusé.
+    REQUIRE_FALSE(deplacementPossible(etat, portee(s_placeB, Emplacement::Torse), portee(s_placeA, Emplacement::Torse)));
+    REQUIRE(seuilsManques(etat, portee(s_placeA, Emplacement::Torse), portee(s_placeB, Emplacement::Torse)).empty());
+}
+
+TEST_CASE("repli au sac : sac plein, tout est refuse et rien ne bouge") {
+    EtatDesObjets etat = etatDeBases(s_nul, s_fort);
+    porter(etat, s_placeA, Emplacement::Torse, s_robe);
+    porter(etat, s_placeB, Emplacement::Torse, s_plaquesExigeantes);
+    remplirLeSacSauf(etat, {});
+    const std::vector<std::optional<Objet>> avant = contenu(etat);
+
+    REQUIRE_FALSE(deplacementPossible(etat, portee(s_placeA, Emplacement::Torse), portee(s_placeB, Emplacement::Torse)));
+    REQUIRE_FALSE(deplacerLesObjets(etat, portee(s_placeA, Emplacement::Torse), portee(s_placeB, Emplacement::Torse)));
+
+    REQUIRE(contenu(etat) == avant);
+}
+
+TEST_CASE("repli au sac : le receveur doit toujours atteindre les seuils de ce qu'il recoit") {
+    EtatDesObjets etat = etatDeBases(s_fort, s_nul);  // B recevrait les plaques d'A, qu'il ne peut pas porter
+    porter(etat, s_placeA, Emplacement::Torse, s_plaquesExigeantes);
+    porter(etat, s_placeB, Emplacement::Torse, s_robe);
+    rangerDansLeSac(etat, 0, s_gants);
+    const std::vector<std::optional<Objet>> avant = contenu(etat);
+
+    REQUIRE_FALSE(deplacerLesObjets(etat, portee(s_placeA, Emplacement::Torse), portee(s_placeB, Emplacement::Torse)));
+    REQUIRE_FALSE(deplacementPossible(etat, portee(s_placeA, Emplacement::Torse), portee(s_placeB, Emplacement::Torse)));
+
+    REQUIRE(contenu(etat) == avant);
+}
+
+TEST_CASE("repli au sac : un echange que les deux peuvent honorer reste un echange") {
+    EtatDesObjets etat = etatDeBases(s_fort, s_fort);
+    porter(etat, s_placeA, Emplacement::Torse, s_robe);
+    porter(etat, s_placeB, Emplacement::Torse, s_plaquesExigeantes);
+
+    REQUIRE(deplacerLesObjets(etat, portee(s_placeA, Emplacement::Torse), portee(s_placeB, Emplacement::Torse)));
+
+    REQUIRE(etat.equipements[0].a(Emplacement::Torse) == s_plaquesExigeantes);
+    REQUIRE(etat.equipements[1].a(Emplacement::Torse) == s_robe);
+    REQUIRE_FALSE(etat.sac.a(0).has_value());  // rien n'a été rangé
+}
+
+TEST_CASE("repli au sac : entre une case du sac et un emplacement, un objet qu'on ne peut pas porter reste refuse") {
+    EtatDesObjets etat = etatDeBases(s_nul, s_fort);
+    porter(etat, s_placeA, Emplacement::Torse, s_plaquesExigeantes);  // équipée de départ, sans en avoir l'Endurance
+    rangerDansLeSac(etat, 0, s_plaquesExigeantes);
+    const std::vector<std::optional<Objet>> avant = contenu(etat);
+
+    REQUIRE_FALSE(deplacerLesObjets(etat, dansLeSac(0), portee(s_placeA, Emplacement::Torse)));  // le sac ne reçoit rien d'autre : refusé
+
+    REQUIRE(contenu(etat) == avant);
+}
+
+TEST_CASE("repli au sac : un deplacement peut envoyer deux objets au sac, tout ou rien") {
+    // A (faible) porte une épée à deux mains de niveau 1 ; B (fort) porte une épée exigeante et un bouclier. A donne son épée à B :
+    // B la reçoit, donc son bouclier va dans le sac ; A ne peut pas porter l'épée exigeante de B, qui va dans le sac aussi.
+    const auto etatDeDepart = [] {
+        EtatDesObjets etat = etatDeBases(s_faible, s_fort);
+        porter(etat, s_placeA, Emplacement::MainDroite, s_epeeADeuxMains);
+        porter(etat, s_placeB, Emplacement::MainDroite, s_epeeExigeante);
+        porter(etat, s_placeB, Emplacement::MainGauche, s_bouclier);
+        return etat;
+    };
+    const PositionDObjet de = portee(s_placeA, Emplacement::MainDroite);
+    const PositionDObjet vers = portee(s_placeB, Emplacement::MainDroite);
+
+    SECTION("deux cases libres : les deux objets partent au sac") {
+        EtatDesObjets etat = etatDeDepart();
+        remplirLeSacSauf(etat, {2, 4});
+
+        REQUIRE(deplacerLesObjets(etat, de, vers));
+
+        REQUIRE(etat.equipements[1].a(Emplacement::MainDroite) == s_epeeADeuxMains);
+        REQUIRE_FALSE(etat.equipements[1].a(Emplacement::MainGauche).has_value());
+        REQUIRE_FALSE(etat.equipements[0].a(Emplacement::MainDroite).has_value());
+        REQUIRE(((etat.sac.a(2) == s_epeeExigeante && etat.sac.a(4) == s_bouclier) ||
+                 (etat.sac.a(2) == s_bouclier && etat.sac.a(4) == s_epeeExigeante)));
+    }
+    SECTION("une seule case libre : refus, rien ne bouge") {
+        EtatDesObjets etat = etatDeDepart();
+        remplirLeSacSauf(etat, {3});
+        const std::vector<std::optional<Objet>> avant = contenu(etat);
+
+        REQUIRE_FALSE(deplacementPossible(etat, de, vers));
+        REQUIRE_FALSE(deplacerLesObjets(etat, de, vers));
+
+        REQUIRE(contenu(etat) == avant);
+    }
+}
+
+TEST_CASE("repli au sac : aucun objet ne disparait ni ne se double") {
+    EtatDesObjets etat = etatDeBases(s_nul, s_fort);
+    porter(etat, s_placeA, Emplacement::Torse, s_robe);
+    porter(etat, s_placeB, Emplacement::Torse, s_plaquesExigeantes);
+    rangerDansLeSac(etat, 1, s_gants);
+    const auto compter = [](const EtatDesObjets& e) {
+        int total = 0;
+        for (const std::optional<Objet>& objet : contenu(e)) {
+            total += objet.has_value() ? 1 : 0;
+        }
+        return total;
+    };
+
+    REQUIRE(deplacerLesObjets(etat, portee(s_placeA, Emplacement::Torse), portee(s_placeB, Emplacement::Torse)));
+
+    REQUIRE(compter(etat) == 3);
+    REQUIRE(etat.sac.a(0) == s_plaquesExigeantes);
+    REQUIRE(etat.sac.a(1) == s_gants);
+}
+
 // Les reliques (étape 103.5) : la main gauche accepte un bouclier ou une relique, et une arme à deux mains range celui des deux
 // qui s'y trouve, quelle que soit sa catégorie.
 TEST_CASE("reliques : equiper un baton range la relique comme un bouclier") {

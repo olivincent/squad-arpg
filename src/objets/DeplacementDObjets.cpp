@@ -114,8 +114,11 @@ std::vector<SeuilDeCaracteristique> seuilsNonAtteints(const EtatDesObjets& etat,
     return manques;
 }
 
-// Le déplacement sans les seuils : la règle de base et les deux mains, sur une copie. Vide si l'un des deux refuse.
-std::optional<EtatDesObjets> deplacerSansLesSeuils(const EtatDesObjets& etat, const PositionDObjet& de, const PositionDObjet& vers) {
+// Le déplacement sans les seuils : la règle de base et les deux mains, sur une copie. Vide si l'un des deux refuse. Avec
+// `repliAuSac`, l'objet qui reprendrait la place d'origine dans un échange va dans la première case libre du sac à la place
+// (sac plein : vide) ; il n'est alors pas posé sur `de`, donc la règle des deux mains ne le regarde pas.
+std::optional<EtatDesObjets> deplacerSansLesSeuils(const EtatDesObjets& etat, const PositionDObjet& de, const PositionDObjet& vers,
+                                                   bool repliAuSac) {
     const std::optional<Objet> objetDe = objetA(etat, de);
     const std::optional<Objet> objetVers = objetA(etat, vers);
     if (!deplacementPermis(de, objetDe, vers, objetVers)) {
@@ -130,10 +133,15 @@ std::optional<EtatDesObjets> deplacerSansLesSeuils(const EtatDesObjets& etat, co
     [[maybe_unused]] const std::optional<Objet> sortiVers = retirerA(essai, vers);
     assert(sortiDe.has_value());
     poserA(essai, vers, *sortiDe);  // NOLINT(bugprone-unchecked-optional-access): vérifié par l'assert au-dessus (la règle de base a refusé les sources vides)
-    if (sortiVers.has_value()) {
+    const bool versLeSac = repliAuSac && sortiVers.has_value();
+    if (versLeSac) {
+        if (!essai.sac.ajouter(*sortiVers)) {  // NOLINT(bugprone-unchecked-optional-access): `versLeSac` suppose la valeur
+            return std::nullopt;
+        }
+    } else if (sortiVers.has_value()) {
         poserA(essai, de, *sortiVers);
     }
-    if (!libererLaMainOpposee(essai, vers) || (sortiVers.has_value() && !libererLaMainOpposee(essai, de))) {
+    if (!libererLaMainOpposee(essai, vers) || (sortiVers.has_value() && !versLeSac && !libererLaMainOpposee(essai, de))) {
         return std::nullopt;
     }
     return essai;
@@ -141,23 +149,36 @@ std::optional<EtatDesObjets> deplacerSansLesSeuils(const EtatDesObjets& etat, co
 }  // namespace
 
 bool deplacerLesObjets(EtatDesObjets& etat, const PositionDObjet& de, const PositionDObjet& vers) {
-    // Sur une copie : un sac plein au moment de ranger une main, ou un seuil non atteint, refuse tout, état intact.
-    std::optional<EtatDesObjets> essai = deplacerSansLesSeuils(etat, de, vers);
-    if (!essai.has_value()) {
-        return false;
-    }
+    // Sur une copie : un sac plein au moment de ranger un objet, ou un seuil non atteint, refuse tout, état intact.
+    std::optional<EtatDesObjets> essai = deplacerSansLesSeuils(etat, de, vers, false);
     if (de == vers) {
+        if (!essai.has_value()) {
+            return false;
+        }
+        etat = std::move(*essai);
         return true;
     }
-    if (!seuilsNonAtteints(*essai, vers).empty() || (objetA(etat, vers).has_value() && !seuilsNonAtteints(*essai, de).empty())) {
-        return false;
+    const bool echange = objetA(etat, vers).has_value();
+    if (essai.has_value() && seuilsNonAtteints(*essai, vers).empty() &&
+        (!echange || seuilsNonAtteints(*essai, de).empty())) {
+        etat = std::move(*essai);
+        return true;
     }
-    etat = std::move(*essai);
-    return true;
+    // L'échange entre deux emplacements que le personnage d'origine ne peut pas honorer : l'objet qui lui revient va dans le
+    // sac, le receveur doit toujours atteindre les seuils de ce qu'il reçoit. Vers le sac, l'objet d'une case du sac reste
+    // refusé s'il ne peut pas être porté (rien ne le range ailleurs).
+    if (echange && std::holds_alternative<PositionPortee>(de) && std::holds_alternative<PositionPortee>(vers)) {
+        std::optional<EtatDesObjets> repli = deplacerSansLesSeuils(etat, de, vers, true);
+        if (repli.has_value() && seuilsNonAtteints(*repli, vers).empty()) {
+            etat = std::move(*repli);
+            return true;
+        }
+    }
+    return false;
 }
 
 std::vector<SeuilDeCaracteristique> seuilsManques(const EtatDesObjets& etat, const PositionDObjet& de, const PositionDObjet& vers) {
-    const std::optional<EtatDesObjets> essai = deplacerSansLesSeuils(etat, de, vers);
+    const std::optional<EtatDesObjets> essai = deplacerSansLesSeuils(etat, de, vers, false);
     return essai.has_value() && de != vers ? seuilsNonAtteints(*essai, vers) : std::vector<SeuilDeCaracteristique>{};
 }
 

@@ -488,6 +488,50 @@ TEST_CASE("objets inactifs : retirer l'anneau de puissance rend la hache a deux 
                             *escouade.caracteristiquesDuPersonnage(s_guerrier)));
 }
 
+namespace {
+// Le guerrier porte le heaume (`s_casqueDeFer` : son seuil d'Endurance est à la portée du guerrier de test mais pas du mage ; les
+// `REQUIRE` ci-dessous le vérifient), le mage un capuchon (sans seuil).
+Escouade escouadeAuHeaumeEtAuCapuchon() {
+    Escouade escouade = uneEscouade({50.0f, 50.0f});
+    const int seuil = seuilsDeLObjet(s_casqueDeFer).front().valeur;
+    REQUIRE(escouade.caracteristiquesDuPersonnage(s_guerrier)->valeur(Caracteristique::Endurance) >= seuil);
+    REQUIRE(escouade.caracteristiquesDuPersonnage(s_mage)->valeur(Caracteristique::Endurance) < seuil);
+    REQUIRE(escouade.ramasser(s_casqueDeFer));  // case 0
+    REQUIRE(escouade.ramasser(s_casqueDeCuir));     // case 1
+    REQUIRE(escouade.deplacerObjet(dansLeSac(0), portee(s_guerrier, Emplacement::Tete)));
+    REQUIRE(escouade.deplacerObjet(dansLeSac(1), portee(s_mage, Emplacement::Tete)));
+    return escouade;
+}
+}  // namespace
+
+TEST_CASE("echange entre deux personnages : l'objet que le donneur ne peut pas porter va dans le sac (etape 106.2)") {
+    Escouade escouade = escouadeAuHeaumeEtAuCapuchon();
+    // Le mage donne son capuchon au guerrier, qui le porte ; le heaume du guerrier irait chez le mage, qui ne le porte pas.
+    REQUIRE(escouade.peutDeplacerObjet(portee(s_mage, Emplacement::Tete), portee(s_guerrier, Emplacement::Tete)));
+
+    REQUIRE(escouade.deplacerObjet(portee(s_mage, Emplacement::Tete), portee(s_guerrier, Emplacement::Tete)));
+
+    REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::Tete) == s_casqueDeCuir);
+    REQUIRE_FALSE(escouade.equipementDuPersonnage(s_mage).a(Emplacement::Tete).has_value());
+    REQUIRE(escouade.sac().a(0) == s_casqueDeFer);  // la première case libre
+    // Du sac vers le mage, le heaume reste refusé : le repli ne vaut que pour l'échange entre deux emplacements.
+    REQUIRE_FALSE(escouade.peutDeplacerObjet(dansLeSac(0), portee(s_mage, Emplacement::Tete)));
+}
+
+TEST_CASE("echange entre deux personnages : sac plein, l'echange est refuse (ni surbrillance ni deplacement), rien ne bouge (etape 106.2)") {
+    Escouade escouade = escouadeAuHeaumeEtAuCapuchon();
+    while (escouade.ramasser(s_gants)) {
+    }
+    const Exemplaires avant = exemplaires(escouade);
+
+    REQUIRE_FALSE(escouade.peutDeplacerObjet(portee(s_mage, Emplacement::Tete), portee(s_guerrier, Emplacement::Tete)));
+    REQUIRE_FALSE(escouade.deplacerObjet(portee(s_mage, Emplacement::Tete), portee(s_guerrier, Emplacement::Tete)));
+
+    REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::Tete) == s_casqueDeFer);
+    REQUIRE(escouade.equipementDuPersonnage(s_mage).a(Emplacement::Tete) == s_casqueDeCuir);
+    REQUIRE(exemplaires(escouade) == avant);
+}
+
 TEST_CASE("seuilsManques : ce que le mage n'atteint pas pour la cuirasse, rien pour des gants") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
     REQUIRE(escouade.ramasser(s_cuirasseExigeante));  // case 0

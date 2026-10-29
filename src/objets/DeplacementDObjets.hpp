@@ -27,7 +27,13 @@ struct EtatDesObjets {
 //   personnages sont traitées pareil ;
 // - les seuils (étape 92) : un objet posé sur un personnage exige que celui-ci atteigne ses seuils avec ses
 //   caractéristiques effectives **sans compter l'objet posé** et en tenant compte de ce que le déplacement retire
-//   (l'objet échangé, ce qui est rangé dans le sac). Vers le sac, aucun seuil.
+//   (l'objet échangé, ce qui est rangé dans le sac). Vers le sac, aucun seuil ;
+// - le repli au sac (étape 106) : dans un échange entre deux emplacements, si le personnage d'origine ne peut pas porter
+//   l'objet qui lui revient (seuils), cet objet va dans la première case libre du sac et l'emplacement d'origine reste
+//   vide, au lieu de refuser l'échange. Il se combine avec les deux mains (plusieurs objets au sac dans le même
+//   déplacement, tout ou rien : un sac sans assez de cases libres refuse tout). Le receveur doit toujours atteindre les
+//   seuils de ce qu'il reçoit. Entre une case du sac et un emplacement, rien ne change (un objet du sac qu'on ne peut
+//   pas porter reste refusé).
 // `assert` : places valides, cases du sac valides.
 [[nodiscard]] bool deplacerLesObjets(EtatDesObjets& etat, const PositionDObjet& de, const PositionDObjet& vers);
 
