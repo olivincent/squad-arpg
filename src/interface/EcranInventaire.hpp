@@ -54,10 +54,17 @@ public:
     // (`rectangleDuPanneau`), l'objet est jeté au sol près de l'ancre, qu'il vienne du sac ou d'un emplacement porté. Le
     // glissement se termine dans tous les cas ; sans glissement, ne fait rien.
     void relacher(sf::Vector2f point, sf::Vector2f tailleDeVue);
+    // Le curseur est en `point` (coordonnées de la vue d'interface). Pendant un glissement, survoler un onglet l'ouvre aussitôt,
+    // sans délai ; l'origine du glissement reste valide même si son onglet n'est plus affiché. Sans glissement, ne fait rien
+    // (seul un clic ouvre un onglet).
+    void survoler(sf::Vector2f point, sf::Vector2f tailleDeVue);
     // Abandonne le glissement sans rien déplacer (Échap, perte du focus).
     void annulerLeGlissement();
     // L'origine du glissement en cours, s'il y en a un.
     [[nodiscard]] const std::optional<PositionDObjet>& origineDuGlissement() const;
+    // Pendant un glissement, les places dont le personnage a au moins un emplacement où l'objet saisi peut être déposé (la même
+    // requête que le relâchement, `Escouade::peutDeplacerObjet`) : leurs onglets ont un contour doré. Vide sans glissement.
+    [[nodiscard]] std::vector<Place> ongletsDeDestination() const;
 
     // La place du personnage dont l'onglet est ouvert (la place 1 à chaque ouverture de l'écran). Un clic sur un onglet l'ouvre.
     [[nodiscard]] Place placeOuverte() const;

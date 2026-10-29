@@ -481,12 +481,38 @@ void EcranInventaire::relacher(sf::Vector2f point, sf::Vector2f tailleDeVue) {
     m_origine.reset();
 }
 
+void EcranInventaire::survoler(sf::Vector2f point, sf::Vector2f tailleDeVue) {
+    if (!m_origine.has_value()) {
+        return;
+    }
+    if (const std::optional<Place> onglet = ongletSous(point, tailleDeVue)) {
+        m_ouverte = *onglet;
+    }
+}
+
 void EcranInventaire::annulerLeGlissement() {
     m_origine.reset();
 }
 
 const std::optional<PositionDObjet>& EcranInventaire::origineDuGlissement() const {
     return m_origine;
+}
+
+std::vector<Place> EcranInventaire::ongletsDeDestination() const {
+    std::vector<Place> places;
+    if (!m_origine.has_value()) {
+        return places;
+    }
+    for (const Place place : s_places) {
+        for (std::size_t i = 0; i < s_nombreEmplacements; ++i) {
+            const PositionDObjet position = PositionPortee{place, static_cast<Emplacement>(i)};
+            if (position != *m_origine && m_escouade.peutDeplacerObjet(*m_origine, position)) {
+                places.push_back(place);
+                break;
+            }
+        }
+    }
+    return places;
 }
 
 Transition EcranInventaire::traiterEvenement(const sf::Event& evenement, const Contexte& contexte) {
@@ -497,6 +523,8 @@ Transition EcranInventaire::traiterEvenement(const sf::Event& evenement, const C
         saisir(clic->point, clic->centre * 2.0f);
     } else if (const std::optional<PointDInterface> relachement = relachementGaucheDInterface(evenement, contexte)) {
         relacher(relachement->point, relachement->centre * 2.0f);
+    } else if (const std::optional<PointDInterface> deplacement = deplacementDeLaSourisDInterface(evenement, contexte)) {
+        survoler(deplacement->point, deplacement->centre * 2.0f);
     } else if (evenement.is<sf::Event::FocusLost>()) {
         // Le relâchement hors de la fenêtre n'arrive pas : sans cela l'objet resterait collé au curseur.
         annulerLeGlissement();
@@ -537,7 +565,7 @@ void EcranInventaire::dessiner(const Contexte& contexte) const {
     niveau.setPosition({zonePanneau.position.x + zonePanneau.size.x - s_margeDuNiveau, zonePanneau.position.y + s_hauteurTitre});
     fenetre.draw(niveau);
 
-    dessinerLesOnglets(fenetre, contexte.police, m_escouade, m_ouverte, m_nomsDesClasses, tailleVue, {});
+    dessinerLesOnglets(fenetre, contexte.police, m_escouade, m_ouverte, m_nomsDesClasses, tailleVue, ongletsDeDestination());
     dessinerColonne(fenetre, contexte.police, m_escouade, m_ouverte, tailleVue, m_enAttente[m_ouverte.indice()]);
     dessinerLeSac(fenetre, contexte.police, m_escouade.sac(), tailleVue);
 

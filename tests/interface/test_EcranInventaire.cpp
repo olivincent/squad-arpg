@@ -570,3 +570,176 @@ TEST_CASE("onglets : jeter un objet hors du panneau marche depuis n'importe quel
     REQUIRE_FALSE(partie.getEscouade().sac().a(0).has_value());
     REQUIRE(partie.getSol().tous().size() == 1);
 }
+
+// Le survol d'un onglet pendant un glissement (étape 106.5).
+namespace {
+constexpr Emplacement s_tete = Emplacement::Tete;
+
+void survoler(EcranInventaire& ecran, Place place) {
+    ecran.survoler(centre(rectangleDeLOnglet(place, s_vue)), s_vue);
+}
+
+// La partie sans monstre où le mage porte un capuchon (sans seuil) ; le guerrier porte un heaume intégral, que le mage ne peut pas porter.
+Partie partieAuHeaumeEtAuCapuchon() {
+    Partie partie = partieSansMonstre();
+    Escouade& escouade = partie.getEscouade();
+    REQUIRE(escouade.ramasser(Objet{IdObjet::Capuchon}));
+    REQUIRE(escouade.deplacerObjet(PositionDansLeSac{0}, PositionPortee{s_mage, s_tete}));
+    REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(s_tete) == Objet{IdObjet::HeaumeIntegral});
+    return partie;
+}
+}  // namespace
+
+TEST_CASE("survoler : sans glissement, un onglet survole ne s'ouvre pas") {
+    Partie partie = partieAvecDesGants();
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+
+    survoler(ecran, s_mage);
+
+    REQUIRE(ecran.placeOuverte() == s_guerrier);
+}
+
+TEST_CASE("survoler : pendant un glissement, un onglet survole s'ouvre aussitot, le glissement continue") {
+    Partie partie = partieAvecDesGants();
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+    ecran.saisir(centreDeLaCase(0), s_vue);
+
+    survoler(ecran, s_mage);
+    REQUIRE(ecran.placeOuverte() == s_mage);
+    survoler(ecran, s_pretre);
+    REQUIRE(ecran.placeOuverte() == s_pretre);
+
+    REQUIRE(ecran.origineDuGlissement() == PositionDObjet{PositionDansLeSac{0}});
+}
+
+TEST_CASE("survoler : pendant un glissement, un point hors des onglets ne change pas l'onglet ouvert") {
+    Partie partie = partieAvecDesGants();
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+    ouvrir(ecran, s_pretre);
+    ecran.saisir(centreDeLaCase(0), s_vue);
+
+    ecran.survoler(centreDeLaCase(3), s_vue);
+    ecran.survoler({1.0f, 1.0f}, s_vue);
+
+    REQUIRE(ecran.placeOuverte() == s_pretre);
+}
+
+TEST_CASE("survoler : l'origine d'un emplacement reste valide quand son onglet n'est plus affiche") {
+    Partie partie = partieCapableDeToutPorter();
+    Escouade& escouade = partie.getEscouade();
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+
+    ecran.saisir(centreDeLEmplacement(Emplacement::Jambes), s_vue);  // les jambes du guerrier
+    survoler(ecran, s_mage);
+    REQUIRE(ecran.origineDuGlissement() == PositionDObjet{PositionPortee{s_guerrier, Emplacement::Jambes}});
+    ecran.relacher(centreDeLEmplacement(Emplacement::Jambes), s_vue);  // les jambes du mage
+
+    REQUIRE_FALSE(escouade.equipementDuPersonnage(s_guerrier).a(Emplacement::Jambes).has_value());
+    REQUIRE(escouade.equipementDuPersonnage(s_mage).a(Emplacement::Jambes) == Objet{IdObjet::JambieresDePlaques});
+}
+
+TEST_CASE("survoler : un objet du sac glisse sur l'emplacement d'un autre personnage") {
+    Partie partie = partieAvecDesGants();
+    Escouade& escouade = partie.getEscouade();
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+
+    ecran.saisir(centreDeLaCase(0), s_vue);
+    survoler(ecran, s_pretre);
+    ecran.relacher(centreDeLEmplacement(Emplacement::Gants), s_vue);
+
+    REQUIRE_FALSE(escouade.sac().a(0).has_value());
+    REQUIRE(escouade.equipementDuPersonnage(s_pretre).a(Emplacement::Gants) == Objet{IdObjet::GantsDeTissu});
+}
+
+TEST_CASE("survoler : l'echange avec un personnage qui ne peut pas reprendre l'objet envoie celui-ci au sac") {
+    Partie partie = partieAuHeaumeEtAuCapuchon();
+    Escouade& escouade = partie.getEscouade();
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+    ouvrir(ecran, s_mage);
+
+    ecran.saisir(centreDeLEmplacement(s_tete), s_vue);  // le capuchon du mage
+    survoler(ecran, s_guerrier);
+    ecran.relacher(centreDeLEmplacement(s_tete), s_vue);  // sur le heaume du guerrier
+
+    REQUIRE_FALSE(ecran.origineDuGlissement().has_value());
+    REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(s_tete) == Objet{IdObjet::Capuchon});
+    REQUIRE_FALSE(escouade.equipementDuPersonnage(s_mage).a(s_tete).has_value());  // le mage ne porte pas le heaume
+    REQUIRE(escouade.sac().a(0) == Objet{IdObjet::HeaumeIntegral});
+}
+
+TEST_CASE("survoler : sac plein, l'emplacement du heaume n'est pas une destination et rien ne bouge") {
+    Partie partie = partieAuHeaumeEtAuCapuchon();
+    Escouade& escouade = partie.getEscouade();
+    while (escouade.ramasser(Objet{IdObjet::GantsDeTissu})) {
+    }
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+    ouvrir(ecran, s_mage);
+    const Exemplaires avant = exemplaires(partie);
+
+    ecran.saisir(centreDeLEmplacement(s_tete), s_vue);
+    REQUIRE_FALSE(escouade.peutDeplacerObjet(*ecran.origineDuGlissement(), PositionPortee{s_guerrier, s_tete}));
+    survoler(ecran, s_guerrier);
+    ecran.relacher(centreDeLEmplacement(s_tete), s_vue);
+
+    REQUIRE(escouade.equipementDuPersonnage(s_guerrier).a(s_tete) == Objet{IdObjet::HeaumeIntegral});
+    REQUIRE(escouade.equipementDuPersonnage(s_mage).a(s_tete) == Objet{IdObjet::Capuchon});
+    REQUIRE(exemplaires(partie) == avant);
+}
+
+TEST_CASE("survoler : relacher sur un onglet ne deplace rien et termine le glissement") {
+    Partie partie = partieAvecDesGants();
+    Escouade& escouade = partie.getEscouade();
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+
+    ecran.saisir(centreDeLaCase(0), s_vue);
+    survoler(ecran, s_mage);
+    ecran.relacher(centre(rectangleDeLOnglet(s_mage, s_vue)), s_vue);
+
+    REQUIRE_FALSE(ecran.origineDuGlissement().has_value());
+    REQUIRE(escouade.sac().a(0) == Objet{IdObjet::GantsDeTissu});  // rien n'a bougé…
+    REQUIRE(partie.getSol().tous().empty());                         // …ni n'a été jeté (le point est dans le panneau)
+}
+
+TEST_CASE("survoler : Echap annule le glissement apres le changement d'onglet, sans rien deplacer") {
+    Partie partie = partieAvecDesGants();
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+
+    ecran.saisir(centreDeLaCase(0), s_vue);
+    survoler(ecran, s_mage);
+    REQUIRE(std::holds_alternative<Aucune>(ecran.appuyer(sf::Keyboard::Scan::Escape)));
+
+    REQUIRE_FALSE(ecran.origineDuGlissement().has_value());
+    REQUIRE(partie.getEscouade().sac().a(0) == Objet{IdObjet::GantsDeTissu});
+    REQUIRE(ecran.placeOuverte() == s_mage);  // l'onglet reste ouvert
+}
+
+TEST_CASE("ongletsDeDestination : vide sans glissement") {
+    Partie partie = partieAuHeaumeEtAuCapuchon();
+    const EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+
+    REQUIRE(ecran.ongletsDeDestination().empty());
+}
+
+TEST_CASE("ongletsDeDestination : les onglets dont le personnage peut recevoir l'objet saisi, d'apres la meme requete que le relachement") {
+    Partie partie = partieAuHeaumeEtAuCapuchon();
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+    ouvrir(ecran, s_mage);
+
+    ecran.saisir(centreDeLEmplacement(s_tete), s_vue);  // le capuchon du mage
+
+    // Le guerrier (l'échange, le heaume allant au sac) et le prêtre (tête vide) ; pas le mage, dont le capuchon n'a pas d'autre place.
+    REQUIRE(ecran.ongletsDeDestination() == std::vector<Place>{s_guerrier, s_pretre});
+}
+
+TEST_CASE("ongletsDeDestination : sac plein, l'onglet du guerrier n'y est plus") {
+    Partie partie = partieAuHeaumeEtAuCapuchon();
+    Escouade& escouade = partie.getEscouade();
+    while (escouade.ramasser(Objet{IdObjet::GantsDeTissu})) {
+    }
+    EcranInventaire ecran(partie.getEscouade(), partie.getSol(), partie.getCarte(), s_noms);
+    ouvrir(ecran, s_mage);
+
+    ecran.saisir(centreDeLEmplacement(s_tete), s_vue);
+
+    REQUIRE(ecran.ongletsDeDestination() == std::vector<Place>{s_pretre});
+}
