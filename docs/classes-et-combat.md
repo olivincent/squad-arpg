@@ -50,7 +50,7 @@ Quand un point entre dans `ROADMAP.md`, sa conception détaillée se fait en dis
 | **Vert** | Nature, forêt | Archers, poison, soin dans le temps | Peu de magie instantanée, contrôle limité |
 | **Bleu** | Esprit, tempête | Protection magique, instantané, froid et foudre, contrôle, psychique | Dégâts directs faibles, fragile |
 
-- **Proposé.** Ce qu'une couleur ne sait **pas** faire compte autant que ce qu'elle fait : c'est le manque qui force la synergie entre les 3 personnages.
+- **Proposé.** Ce qu'une couleur ne sait **pas** faire compte autant que ce qu'elle fait : c'est le manque qui force la synergie entre les personnages de l'escouade (4 depuis l'étape 106).
 - **Proposé.** Les mots-clés de *Magic* comme mécaniques nommées et réutilisables (le joueur les apprend une fois) :
 
 | Mot-clé | Transposition |
@@ -69,7 +69,7 @@ Quand un point entre dans `ROADMAP.md`, sa conception détaillée se fait en dis
 
 ## 4. Les classes et la progression
 
-- **Retenu.** Une seule classe par personnage (3 personnages, donc déjà 3 classes : plus serait trop de combinaisons). Une même classe peut être prise jusqu'à 3 fois (étape 76).
+- **Retenu.** Une seule classe par personnage. **Quatre personnages depuis l'étape 106** (trois auparavant, étape 74) : le feel d'un groupe de jeu de rôle à la *D&D*, plus de place pour les gambits et l'organisation de l'escouade, et moins de skills actifs par personnage (trois par personnage sur la barre de 12 emplacements). Une même classe peut être prise jusqu'à 4 fois (3 à l'étape 76), en quatre teintes (0, 20, 40, 60 % de noir). Les valeurs d'équilibrage (monstres, courbe d'expérience, butin) n'ont pas changé avec ce passage : à ajuster en jouant.
 - **Retenu (dans le principe).** Une **classe de base qu'on spécialise ensuite**, par exemple un mage qui devient mage du feu ou mage du givre.
 - **Retenu.** Progression à la *Titan Quest* : en montant le niveau de sa classe, on débloque des skills et on choisit lesquels prendre. On ne peut pas tout prendre, c'est ce qui rend les personnages uniques.
 - **Retenu.** Pas d'arbre géant à la *Path of Exile* (intimidant, on s'y perd). La classe garde le joueur dans une lignée cohérente.

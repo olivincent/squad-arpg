@@ -54,7 +54,7 @@ squad-arpg/
 │   ├── objets/     Emplacement, Affixe, Objet, CatalogueAffixes, CatalogueObjets, TypeDArmure, DonneesDArme, DonneesDeBouclier, ObjetsActifs, Equipement,
 │   │               Inventaire, PositionDObjet, DeplacementDObjets, GenerationDObjets
 │   ├── escouade/   Escouade, Personnage, Formation, PlacesDAttaque, Intention, Separation,
-│   │               EcartEntrePersonnages, Composition, Specialite, SelectionDEscouade,
+│   │               EcartEntrePersonnages, TailleDeLEscouade, Composition, Specialite, SelectionDEscouade,
 │   │               Provocations, Agresseurs
 │   ├── monstres/   Monstre, DefinitionDeMonstre
 │   ├── jeu/        Partie, Expedition, ObjetAuSol, ObjetsAuSol
@@ -213,11 +213,14 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
   priorité où se brancheront les gambits, et `cerclesAContourner` (fonctions pures, sans carte).
 - `Separation` : `pousseesDeSeparation`, séparation douce en fonction pure (`EtatDeSeparation`).
 - `EcartEntrePersonnages` : `s_ecartEntrePersonnages`, en-tête neutre.
+- `TailleDeLEscouade` : `s_tailleDeLEscouade` (4), le nombre de personnages que le joueur choisit : la seule constante de cette idée, pour
+  la sélection, l'inventaire, la barre et `composer` ; `Escouade` et `Expedition` n'en dépendent pas (`docs/formation.md`, « Quatre
+  personnages »). En-tête neutre.
 - `Composition` : `DefinitionPersonnage` (dont la recette d'équipement de départ, lue par `nouvelleExpedition` seule, et la paire de
   croissance), `MembreDEscouade` (une définition, l'`Equipement` qu'elle porte et ses points dépensés : ce que l'`Escouade` reçoit), `Rang` et
   `decalagesDeFormation`.
 - `Specialite` : catalogue des 5 classes et `composer`.
-- `SelectionDEscouade` : les 3 classes choisies, cases de l'écran de choix (`docs/ecrans.md`).
+- `SelectionDEscouade` : les `s_tailleDeLEscouade` (4) classes choisies, cases de l'écran de choix (`docs/ecrans.md`).
 - `Provocations` : monstres provoqués et leur provocateur (`docs/combat.md`).
 - `Agresseurs` : monstres qui ont frappé l'escouade, mémoire de 3 s par identifiant, sans position
   (`docs/combat.md`).
@@ -239,8 +242,8 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `PileDEcrans` : la pile et `premierEcranADessiner`, quels écrans dessiner (`docs/ecrans.md`).
 - `EntreeDInterface` : clic gauche et curseur en coordonnées d'interface, pour les écrans à vue d'interface (`docs/ecrans.md`).
 - `EcranJeu` : l'écran de la partie : événements, caméra, dessin, textes flottants, descente à l'étage suivant (`docs/ecrans.md`).
-- `EcranInventaire` : le sac et l'équipement, déplacement des objets par glisser-déposer, par-dessus la partie figée, touche I ; un panneau centré qui laisse voir le jeu autour ; le brouillon des points libres (+, −, Apply, Reset), un état de l'écran (`docs/ecrans.md`).
-- `DispositionInventaire` : rectangles de l'inventaire, `elementSous` (une `PositionDObjet`), boutons des points libres (`boutonSous`), `caracteristiqueSous`, placement de l'infobulle (`docs/ecrans.md`).
+- `EcranInventaire` : le sac commun et l'équipement d'un personnage à la fois (un onglet par personnage, un état de l'écran), déplacement des objets par glisser-déposer (survoler un onglet pendant un glissement l'ouvre), par-dessus la partie figée, touche I ; un panneau centré qui laisse voir le jeu autour ; le brouillon des points libres (+, −, Apply, Reset), par personnage, un état de l'écran (`docs/ecrans.md`).
+- `DispositionInventaire` : rectangles de l'inventaire (une colonne pour tous les onglets, les onglets, le sac de 5 × 8), `ongletSous`, `elementSous` (une `PositionDObjet`), boutons des points libres (`boutonSous`), `caracteristiqueSous` (les trois reçoivent la place ouverte), placement de l'infobulle (`docs/ecrans.md`).
 - `AffichageObjets` : noms des emplacements et des catégories, sigles, lignes de l'infobulle d'un objet, lignes des
   affixes, couleur de la rareté (`docs/objets.md`).
 - `AffichageObjetsAuSol` : le losange des objets au sol et leur nom au survol (`docs/objets.md`).
@@ -253,7 +256,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `Reglages` : réglages d'affichage, `reglages.ini`, table des touches des raccourcis (`docs/ecrans.md`).
 - `TailleDeVue` : vue à hauteur fixe et vue d'interface (`docs/ecrans.md`).
 - `EmplacementsPrincipaux` : `s_emplacementsPrincipaux`, en-tête neutre (P1, `docs/boucle-et-entrees.md`).
-- `BarreDeRaccourcis` : modèle des emplacements, disposition par défaut et à l'écran (`docs/boucle-et-entrees.md`).
+- `BarreDeRaccourcis` : modèle des emplacements, disposition par défaut (une colonne de trois par personnage) et à l'écran (`docs/boucle-et-entrees.md`).
 - `CommandeDeTouche` : `commandePourTouche`, ce que fait chaque touche (F3 à F9 de débogage comprises), fonction pure
   (`docs/boucle-et-entrees.md`).
 - `ClicInterface` : ce qu'un clic touche dans l'interface (`docs/boucle-et-entrees.md`).

@@ -1,6 +1,6 @@
 # Squad-ARPG — Formation
 
-`Escouade` (l'ancre et ses N personnages, 3 par défaut depuis l'étape 74) et `Personnage` (un membre).
+`Escouade` (l'ancre et ses N personnages, 3 depuis l'étape 74, **4 depuis l'étape 106** : voir « Quatre personnages » ci-dessous) et `Personnage` (un membre).
 L'attaque, la portée, le skill et les obstacles sont dans
 `docs/combat.md` ; le déplacement par chemin de l'ancre dans
 `docs/chemin.md`.
@@ -804,12 +804,12 @@ même endroit dans un passage étroit » a disparu de la liste des limites.
   Une classe est une **recette de départ** : plus tard (arbres de skills, niveaux, hors de portée
   ici), deux personnages de la même classe deviendront différents ; l'objet qui évoluera est le
   `Personnage`, pas la classe.
-- **Doublons permis** : une classe peut être prise 1 à 3 fois. Pour qu'on les distingue à l'écran,
-  `composer` donne à la k-ième occurrence d'une même classe sa couleur assombrie de 0 %, 30 % puis 55 %
+- **Doublons permis** : une classe peut être prise 1 à 4 fois (1 à 3 avant l'étape 106.6). Pour qu'on les distingue à l'écran,
+  `composer` donne à la k-ième occurrence d'une même classe sa couleur assombrie de 0 %, 20 %, 40 % puis 60 % (0, 30 et 55 % avant)
   (`assombrir`, à côté d'`eclaircir`). On n'éclaircit pas : l'éclaircissement est déjà l'indice
   visuel d'un coup ou d'un skill en préparation. Le compte se fait **par classe** (guerrier, mage,
   guerrier : le second guerrier est la 2ᵉ occurrence), pas sur toute la liste.
-- **L'ordre de la liste donne les places** 1, 2, 3, donc les rangées de la barre par défaut et
+- **L'ordre de la liste donne les places** 1 à 4, donc les colonnes de la barre par défaut et
   l'ordre des décalages. La formation dépend du rang de chaque classe : trois guerriers sont tous
   `Avant` (colonne de x = +25), trois rôdeurs tous `Arriere` (x = −25) ; `decalagesDeFormation`
   gérait déjà ces cas.
@@ -824,8 +824,26 @@ même endroit dans un passage étroit » a disparu de la liste des limites.
 - **Soin au contact** : l'imposition des mains a une portée de 20 px (bord à bord) : le paladin va
   vers le vivant le plus blessé en skill en attente et commence son activation à l'arrivée, comme
   tout soin hors de portée. Le choix de la cible reste celui de `choisirCible`.
-- **Limites** : au plus trois fois la même classe (`assert` dans `composer`) ; pas d'arbre de skills,
+- **Limites** : au plus quatre fois la même classe (`assert` dans `composer`, une nuance par place) ; pas d'arbre de skills,
   de niveaux ni de points à dépenser ; valeurs du paladin et du rôdeur provisoires.
+
+## Quatre personnages (étape 106)
+
+- **Pourquoi quatre** (conception, `docs/classes-et-combat.md`, section 4) : le feel d'un groupe de jeu de rôle à la *D&D*, plus de place
+  pour les gambits et l'organisation de l'escouade, et **moins de skills actifs par personnage** (la barre garde 12 emplacements, trois par
+  personnage). Le passage de 3 à 4 ne change aucune règle de combat ; aucun rééquilibrage (monstres, courbe d'expérience, butin) n'est fait,
+  il viendra plus tard.
+- **Une seule constante** : `s_tailleDeLEscouade` (`escouade/TailleDeLEscouade.hpp`, **4**, un en-tête neutre sur le modèle d'
+  `EcartEntrePersonnages.hpp`). Elle remplace `SelectionDEscouade::s_taille` et `s_nombreDePlaces` de l'inventaire (étape 106.1). La
+  sélection, l'écran d'inventaire (onglets), la barre de raccourcis (`static_assert` : une colonne par personnage au plus) et `composer`
+  (une nuance par place) s'y rapportent. `Escouade`, `Formation`, `Expedition` et `Place` restent génériques en N : c'est une règle de la
+  sélection, pas du moteur ; les tests du moteur gardent leur composition de 3 (`compositionDeTest`), et `uneEscouadeADeuxGuerriers`
+  teste déjà 4.
+- **La formation ne change pas** : `decalagesDeFormation` range par rang, autant de personnages `Avant` (colonne de x = +25) que de
+  `Arriere` (x = −25), de y = (k − (n−1)/2) × 50. Avec deux classes de mêlée et deux tireurs, deux colonnes de deux (un carré de
+  50 px sur 50) ; avec un guerrier et trois tireurs, un devant et trois derrière.
+- **Les anneaux de secours** d'une place repliée (`s_rayonsDeSecoursPlaces` de `Formation.cpp`, trois rayons) ne dépendent pas du nombre de
+  personnages : ils servent à trouver un point libre, pas à compter.
 
 ## Zone de contrôle (étape 77, venue de l'arme à l'étape 91)
 

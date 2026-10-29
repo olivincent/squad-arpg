@@ -2,7 +2,6 @@
 #include "escouade/Specialite.hpp"
 #include <array>
 #include <cassert>
-#include "escouade/TailleDeLEscouade.hpp"
 #include <cstddef>
 #include <utility>
 #include "base/Eclaircir.hpp"
@@ -14,6 +13,7 @@
 #include "combat/ModeDeCible.hpp"
 #include "combat/NatureDAttaque.hpp"
 #include "combat/TypeDArme.hpp"
+#include "escouade/TailleDeLEscouade.hpp"
 #include "objets/Equipement.hpp"
 
 namespace {

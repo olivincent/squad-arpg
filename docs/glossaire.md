@@ -216,7 +216,7 @@ Le nom affiché d'un objet est `[préfixe] modèle [suffixe]` (« Blazing Mace �
 |---|---|
 | Menu | Start Game, Options, Quit |
 | Options | Mode: Fullscreen / Mode: Windowed, Resolution: < 1280 × 720 >, Back |
-| Choix de l'escouade | Choose 3 classes, Start, Back |
+| Choix de l'escouade | Choose 4 classes (le nombre suit `s_tailleDeLEscouade`), Start, Back |
 | Partie | Depth N / 5 (profondeur, `interface/AffichageProfondeur.cpp`), Level N (niveau de l'escouade, `interface/AffichageNiveau.cpp`, aussi dans l'inventaire) et sa barre d'expérience, Monsters: N (compteur), Seed: N (graine de l'étage, dans la console) |
 | Inventaire | Inventory, Bag, Armor: N, (dead), Points: N, Apply, Reset (voir « Caractéristiques ») |
 | Fin de partie | Victory, Defeat, Press R to return to squad selection |

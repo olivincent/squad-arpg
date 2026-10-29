@@ -123,6 +123,7 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 103 — Armures, boucliers et reliques : vingt pièces d'armure en quatre types, un Shield, deux reliques de main gauche, armure, blocage et bonus calculés depuis le gabarit, le niveau et la qualité, malus d'esquive des pièces lourdes, niveau d'apparition ✅
 - Étape 104 — Familles de butin et affinités d'affixes : le modèle se tire en deux temps (famille, puis gabarit), les proportions des familles sont les mêmes à toute profondeur, chaque gabarit penche vers quelques affixes ✅ (fin de la phase 6)
 - Étape 105 — Les skills en données (R4 et R5) : un mode de cible, une zone séparée de l'effet, un effet en `std::variant`, un seul canal de sortie, des types forts pour les places et les monstres, la provocation qui attend ✅ (première étape de la phase 7)
+- Étape 106 — L'escouade passe à 4 personnages : une seule constante de taille, l'échange d'objets entre personnages avec repli au sac, la barre de raccourcis par colonne, l'inventaire en onglets à côté d'un sac commun ✅ (le mana passe à l'étape 107)
 
 ## Détail des étapes 0 à 73
 
@@ -2474,3 +2475,27 @@ sans autre ligne. 105.5 : le mode `Soi` lève la limite de l'étape 80 (`SkillEn
 105.6 : la documentation. 1 803 tests (+13), 0 avertissement de compilation sur les deux presets, aucun avertissement `clang-tidy`
 nouveau (deux de moins dans `Escouade.cpp`). Détail : `docs/combat.md` (« Les skills en données (étape 105) »), `docs/audit.md` (R4 et
 R5), `docs/formation.md`, `docs/tests.md`.
+
+### Étape 106 — L'escouade passe à 4 personnages ✅
+
+Le mana, prévu à cette étape, passe à l'étape 107. Le joueur choisit **quatre** personnages (le feel d'un groupe de jeu de rôle à la *D&D*,
+plus de gambits et d'organisation, moins de skills actifs par personnage) ; `Escouade`, `Formation`, `Expedition` et `Place` étaient déjà
+génériques en N, le « 3 » n'était une règle qu'à quelques endroits. Sept sous-étapes, un commit chacune, enchaînées en une session autonome
+(les tests visuels sont regroupés, à faire par Olivier). 106.1 : `s_tailleDeLEscouade` (`escouade/TailleDeLEscouade.hpp`, en-tête neutre) remplace
+`SelectionDEscouade::s_taille` et `s_nombreDePlaces` (3 d'abord, sans changement de comportement) ; `Place::depuisIndice` devient `constexpr`
+pour construire `s_places`. 106.2 : **le repli au sac** de `deplacerLesObjets` (l'objet que le donneur d'un échange entre deux emplacements ne
+peut pas reprendre va dans la première case libre du sac ; le receveur doit toujours atteindre les seuils ; tout ou rien, deux mains
+comprises ; la surbrillance suit sans autre code ; `Escouade::deplacerObjet` n'a pas changé). 106.3 : `barreParDefaut` range les skills **par
+colonne** (place p : emplacements p−1, p+3, p+7 ; table de touches et géométrie inchangées). 106.4 : **l'inventaire en onglets** (une
+colonne pour tous les personnages, onglets de la couleur du personnage avec marque dorée s'il a des points libres, sac commun de 5 × 8
+à droite, panneau de 776 × 538 px ; `rectangleDeLEnTete` supprimée, les fonctions de disposition perdent leur paramètre de place,
+`elementSous`, `boutonSous` et `caracteristiqueSous` reçoivent la place ouverte ; l'onglet ouvert est un état de `EcranInventaire`, le
+brouillon reste par personnage). 106.5 : **survoler un onglet pendant un glissement l'ouvre** (`survoler`,
+`deplacementDeLaSourisDInterface`) et les onglets qui ont une destination valide ont un contour doré (`ongletsDeDestination`). 106.6 :
+`s_tailleDeLEscouade = 4` ; `composer` accepte quatre doublons (teintes de 0, 20, 40 et 60 %) ; l'écran de choix a quatre cases et la
+colonne des actions descend de 20 px (aucune colonne n'en chevauche une autre) ; l'inventaire et la `Partie` marchent à quatre (test de la
+descente). 106.7 : la documentation. Décisions prises sans Olivier : la fixture de `test_EcranInventaire.cpp` passe à quatre personnages (l'écran
+suppose `s_tailleDeLEscouade` personnages) ; le panneau garde l'étiquette « Bag » au-dessus du sac et supprime l'en-tête de classe (l'onglet
+en tient lieu) ; le quatrième personnage des tests d'écran est un deuxième prêtre. 1 845 tests (+42), 0 avertissement de compilation sur les
+deux presets. Détail : `docs/formation.md` (« Quatre personnages »), `docs/ecrans.md`, `docs/objets.md` (« Le repli au sac »),
+`docs/boucle-et-entrees.md`, `docs/tests.md`.

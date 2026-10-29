@@ -287,6 +287,8 @@ depuis le gabarit, le niveau et la qualité de l'objet. Rien de tout cela n'est 
   (la destination, et l'autre extrémité d'un échange entre personnages), qu'il atteint les seuils de l'objet posé
   avec ses **caractéristiques effectives sans compter cet objet** (un objet ne remplit pas son propre seuil) **et en
   tenant compte de ce que le déplacement retire** (l'objet échangé, l'objet rangé dans le sac par les deux mains).
+  Depuis l'étape 106.2, l'objet qui revient au donneur d'un échange entre deux emplacements va dans le sac s'il ne peut pas le porter
+  (voir « Déplacements », « Le repli au sac »).
   La règle reste dans une seule fonction de décision, utilisée par la surbrillance et par le déplacement ;
   `EtatDesObjets` porte pour cela les caractéristiques de base de chaque place (`bases`). Vers le sac, aucun seuil.
   L'équipement de départ d'un personnage n'est pas vérifié à la construction.
@@ -510,8 +512,8 @@ voient et se ramassent, et on peut en jeter. Un objet est toujours à **un seul 
 
 ## Affichage (étape 84)
 
-L'écran d'inventaire (`EcranInventaire`, `docs/ecrans.md`) montre l'équipement des trois personnages
-et le sac, en lecture seule ; aucune fonction de modification n'est appelée.
+L'écran d'inventaire (`EcranInventaire`, `docs/ecrans.md`) montre l'équipement d'un personnage à la fois (un onglet par personnage,
+quatre depuis l'étape 106.6) et le sac commun, en lecture seule ; aucune fonction de modification n'est appelée.
 
 - **Les mots sont dans l'interface, pas dans `objets/`** : `interface/AffichageObjets` donne le nom
   d'un emplacement (« Head », « Main Hand »…), le nom d'une catégorie (« Helmet », « Leggings »…) et le
@@ -537,10 +539,11 @@ et le sac, en lecture seule ; aucune fonction de modification n'est appelée.
   (« Requires Dexterity 6 », une ligne par exigence). La qualité n'est pas affichée. La mention
   « Inactive: requirement not met » est ajoutée par l'écran pour un objet porté inactif. Les durées s'écrivent avec un point.
   Rien au survol d'une case vide.
-- **« Armure : N » d'une colonne** est `Equipement::armureTotale()`, la valeur dont la `Vitalite`
+- **« Armor: N » de la colonne** est `Equipement::armureTotale()`, la valeur dont la `Vitalite`
   du personnage est calculée ; elle n'est pas mise en cache dans l'écran.
 - **Disposition** : `interface/DispositionInventaire`, fonctions pures qui servent au dessin, au
-  survol et aux tests ; l'étape 85 s'en servira pour le glisser-déposer (`docs/ecrans.md`).
+  survol, au glisser-déposer et aux tests (`docs/ecrans.md`) ; depuis l'étape 106.4, une colonne pour tous les onglets et un sac de
+  5 rangées de 8 cases.
 
 ## Déplacements (étape 85)
 
@@ -563,6 +566,22 @@ et le sac, en lecture seule ; aucune fonction de modification n'est appelée.
   La condition d'échange est écrite quand même : les armes à deux mains la rendront utile.
 - **Glissement** : le modèle ne bouge pas pendant le glissement ; tout se joue au relâchement
   (`docs/ecrans.md`).
+- **Le repli au sac (étape 106.2)** : dans un échange entre **deux emplacements** (deux personnages, ou deux emplacements d'un même
+  personnage), si le personnage d'origine ne peut pas porter l'objet qui lui revient (ses seuils, calculés comme pour le receveur :
+  sans compter l'objet posé), cet objet va dans la **première case libre du sac** et l'emplacement d'origine reste vide, au lieu de
+  refuser l'échange. Exemple : le personnage 1 donne son torse au personnage 2, qui peut le porter ; le torse du personnage 2 ne
+  peut pas être porté par le personnage 1 (Puissance ou Endurance trop basse) : il va dans le sac. Le **receveur** doit toujours
+  atteindre les seuils de ce qu'il reçoit, sinon tout est refusé (inchangé). La règle se **combine avec les deux mains** : plusieurs
+  objets peuvent partir au sac dans le même déplacement (celui qu'un personnage ne peut pas reprendre, et l'objet que les deux mains
+  chassent), **tout ou rien** : sans assez de cases libres, tout est refusé et rien ne bouge. Elle ne vaut pas entre une case du sac
+  et un emplacement : rien ne change, un objet du sac qu'on ne peut pas porter reste refusé. Elle vit dans `deplacerLesObjets` : `deplacerSansLesSeuils` prend un
+  drapeau `repliAuSac` ; le calcul d'abord sans repli (échange ordinaire inchangé), puis, s'il est refusé et qu'il s'agit d'un échange
+  entre emplacements, avec repli ; `deplacementPossible` et `peutDeplacerObjet` (la surbrillance) en dérivent, donc la suivent
+  sans autre code. `Escouade::deplacerObjet` recopiait déjà le sac et tous les équipements : rien n'a changé. **Pourquoi** : avec quatre
+  personnages, on s'échange des pièces sans cesse ; refuser parce que l'autre ne peut pas reprendre la sienne obligeait à la poser
+  dans le sac d'abord. **Limite** : si le calcul sans repli est refusé parce que le sac n'a pas deux cases libres alors que
+  l'objet repris aurait pu être porté, le repli (qui n'en demande qu'une) peut l'accepter et envoyer au sac un objet qui
+  aurait pu être porté ; cas rare, accepté (« à tester »).
 
 ## Limites connues
 
@@ -795,7 +814,7 @@ projectile et zone : 0).
 
 | Fonction | Rôle |
 |---|---|
-| `bool deplacerLesObjets(EtatDesObjets&, const PositionDObjet& de, const PositionDObjet& vers)` | Déplace l'objet de `de` vers `vers` (échange si occupé, deux mains comprises), ou rend faux sans rien changer ; `[[nodiscard]]` |
+| `bool deplacerLesObjets(EtatDesObjets&, const PositionDObjet& de, const PositionDObjet& vers)` | Déplace l'objet de `de` vers `vers` (échange si occupé, deux mains comprises, repli au sac de l'objet que le donneur ne peut pas reprendre depuis l'étape 106.2), ou rend faux sans rien changer ; `[[nodiscard]]` |
 | `bool deplacementPossible(const EtatDesObjets&, de, vers)` | Le même calcul sur une copie ; `[[nodiscard]]` |
 | `std::vector<SeuilDeCaracteristique> seuilsManques(const EtatDesObjets&, de, vers)` | Les seuils de l'objet posé en `vers` que son porteur n'atteindrait pas (même calcul que la décision) ; vide vers le sac ou si le déplacement est refusé pour une autre raison ; `[[nodiscard]]` (étape 92.3) |
 

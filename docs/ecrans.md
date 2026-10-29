@@ -91,10 +91,25 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
   `EcranJeu` lui donne (il connaît ses `IdSpecialite`). Il n'appelle que deux fonctions de modification :
   `Escouade::deplacerObjet` et `jeterUnObjet` (`jeu/ObjetsAuSol`). Un module ne reçoit que ce qu'il utilise. La croix de la
   fenêtre quitte, comme partout.
-- **Le panneau** (étape 98.1) est de la taille de son contenu (1 076 × 658 px depuis l'étape 100.2, 604 avant ; dans la vue d'interface de 800 px de haut),
-  **centré**, et laisse voir le jeu tout autour : au moins 62 px de chaque côté dans une vue de 1200 × 800, 71 px en haut et en bas (98 avant l'étape 100.2).
-  Les cases n'ont pas changé de taille : la place s'est gagnée sur les marges, l'écart entre colonnes (12 px au lieu de 20), le
-  titre et le sac, mis sur 2 rangées de 20 cases au lieu de 4 de 10. La bande autour est l'endroit où l'on jette un objet.
+- **Le panneau** (étape 98.1, refait à l'étape 106.4) est de la taille de son contenu (**776 × 538 px** depuis l'étape 106.4,
+  1 076 × 658 avant ; dans la vue d'interface de 800 px de haut), **centré**, et laisse voir le jeu tout autour : 212 px de chaque côté et
+  131 px en haut et en bas dans une vue de 1200 × 800. Les cases n'ont pas changé de taille (44 px). La bande autour est l'endroit où l'on
+  jette un objet.
+- **Des onglets et un sac commun (étape 106.4)** : à gauche, un onglet par personnage (de la couleur du personnage, avec le nom de sa
+  classe ; plus sombre quand il est fermé, contour blanc pour l'ouvert ; une petite marque dorée dans son coin s'il a des points libres),
+  puis la colonne du personnage dont l'onglet est ouvert (armure, « (dead) », « Points: N », 10 emplacements, caractéristiques,
+  statistiques) ; à droite, le sac commun, toujours visible, **5 rangées de 8 cases**. L'onglet ouvert est **un état de l'écran**
+  (`m_ouverte`, la place 1 à chaque ouverture de l'écran ; il n'est pas mémorisé d'une ouverture à l'autre) ; un clic sur un onglet
+  l'ouvre. Le **brouillon des points libres reste par place** (`m_enAttente`) : il survit au changement d'onglet et s'efface à la
+  fermeture, comme avant. **Pourquoi** : quatre colonnes de 340 px côte à côte (1 400 px) ne tiennent pas dans 1200 × 800 ; une colonne
+  à la fois laisse la place au sac, qui reste visible pour y glisser un objet d'un personnage à l'autre.
+- **Le glisser d'un personnage à l'autre (étapes 106.2 et 106.5)** : pendant un glissement, **survoler un onglet l'ouvre aussitôt**, sans
+  délai (`survoler(point, tailleDeVue)`, traduit du `MouseMoved` par `deplacementDeLaSourisDInterface` ; sans glissement, elle ne fait
+  rien : seul un clic ouvre un onglet). L'origine du glissement reste valide même si son onglet n'est plus affiché (on ne lit que sa
+  position dans le modèle ; le voile d'origine n'est dessiné que si elle est visible). Relâcher **sur un onglet** ne déplace rien (le point
+  est dans le panneau, sur aucun élément) et termine le glissement. Pendant un glissement, un onglet dont le personnage a **au moins une
+  destination valide** (`ongletsDeDestination()`, la même requête `peutDeplacerObjet` que le relâchement) a un contour doré. La règle du
+  repli au sac pour l'échange (`DeplacementDObjets`, `docs/objets.md`) fait que la surbrillance l'accepte sans autre code.
 - **Glisser-déposer** (étape 85) : l'état est un `std::optional<PositionDObjet>`, l'origine. Rien ne
   bouge dans le modèle pendant le glissement ; tout se joue au relâchement.
   - Appui du bouton gauche sur une position occupée : début du glissement ; position vide ou ailleurs : rien.
@@ -109,23 +124,24 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
   - Affichage : l'origine est recouverte d'un voile (`s_couleurAttenuation`), l'objet saisi (carré de la
     taille d'une case avec son sigle) suit le curseur et est dessiné en dernier, l'infobulle est masquée.
     Les destinations valides (`peutDeplacerObjet(origine, position)`, sauf l'origine) ont un contour doré :
-    les emplacements des 3 personnages et les cases du sac. C'est la requête du relâchement, donc ce
-    qui brille est permis.
-  - Les fonctions `saisir`, `relacher`, `annulerLeGlissement` prennent des points en coordonnées
+    les emplacements du personnage de l'onglet ouvert et les cases du sac (plus, depuis l'étape 106.5, les onglets qui ont une
+    destination). C'est la requête du relâchement, donc ce qui brille est permis.
+  - Les fonctions `saisir`, `relacher`, `survoler`, `annulerLeGlissement` prennent des points en coordonnées
     d'interface : les tests n'ont besoin ni de fenêtre ni d'événement SFML. `traiterEvenement` ne fait que
-    les traduire (`clicGaucheDInterface`, `relachementGaucheDInterface`, `FocusLost`).
+    les traduire (`clicGaucheDInterface`, `relachementGaucheDInterface`, `deplacementDeLaSourisDInterface`, `FocusLost`).
 - **Disposition en fonctions pures** (`interface/DispositionInventaire`), sans position stockée :
-  tout est recalculé depuis la taille de la vue d'interface. En haut, une colonne par personnage
-  (bande de la classe à la couleur du personnage, « Armor: N », « (dead) », 10 emplacements en
-  deux colonnes de 5, puis, depuis l'étape 88, le bloc de ses cinq caractéristiques effectives — avec « (+N) »
-  quand l'équipement en donne — et de ses points de vie « HP actuels / maximum » (depuis l'étape 100.2, **une ligne par
-  caractéristique sur toute la largeur de la colonne**, six lignes de 18 px, pour y mettre les boutons des points libres), puis, depuis l'étape 89, le
+  tout est recalculé depuis la taille de la vue d'interface. À gauche, les onglets puis **une seule colonne**, la même pour tous les
+  personnages (la géométrie ne dépend plus de la place : c'est l'écran qui fournit la place ouverte là où une position en a besoin,
+  `elementSous`, `boutonSous` et `caracteristiqueSous`) : « Armor: N », « (dead) », 10 emplacements en
+  deux colonnes de 5, puis le bloc de ses cinq caractéristiques effectives — avec « (+N) »
+  quand l'équipement en donne — et de ses points de vie « HP actuels / maximum » (une ligne par
+  caractéristique sur toute la largeur de la colonne, six lignes de 18 px, pour y mettre les boutons des points libres), puis le
   bloc de ses statistiques de combat — « Offensive Ability N », « Defensive Ability N », « Block 30 % (40) »,
-  « Melee Dodge N % » et « Projectile Dodge N % » (étape 90, valeurs effectives), lues par
-  `Escouade::statistiquesDeCombatDuPersonnage`) ; en bas, le sac (depuis l'étape 98.1, 2 rangées de 20 cases). Le dessin, le survol et les tests
-  appellent les mêmes rectangles (`rectangleDeLEmplacement`, `rectangleDeLaCaseDuSac`,
-  `elementSous`), aussi utilisés par le glisser-déposer. Un test vérifie que tout
-  tient dans 1200 × 800 (et en 16:9), dans le panneau, sans chevauchement.
+  « Melee Dodge N % » et « Projectile Dodge N % » (valeurs effectives), lues par
+  `Escouade::statistiquesDeCombatDuPersonnage` ; à droite, le sac (5 rangées de 8 cases) sous son étiquette « Bag ». Le dessin, le survol et les tests
+  appellent les mêmes rectangles (`rectangleDeLOnglet`, `rectangleDeLEmplacement`, `rectangleDeLaCaseDuSac`,
+  `elementSous`, `ongletSous`), aussi utilisés par le glisser-déposer. Un test vérifie que tout
+  tient dans 1200 × 800 (et en 16:9), dans le panneau, sans chevauchement, onglets compris.
 - **Infobulle** : au survol d'un emplacement ou d'une case occupés, le nom composé de l'objet (de la couleur de sa
   rareté), sa catégorie, les propriétés de son modèle (armure, bonus, blocage d'un bouclier, attaque d'une arme : dégâts,
   recharge, portée, melee ou projectile, « Two-handed »), une ligne par affixe, puis ses seuils (`lignesDeLInfobulle(const
@@ -181,13 +197,13 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
   oubli), en UTF-8 passé à `sf::String::fromUtf8`. Un texte plus large que son rectangle est
   rétréci.
 
-## `EcranChoixEscouade` : le choix des 3 classes (étape 76)
+## `EcranChoixEscouade` : le choix des 4 classes (étape 76, 4 classes depuis l'étape 106.6)
 
 - **Pourquoi un écran entre le menu et le jeu** : le joueur choisit sa composition avant chaque
   partie. L'écran de choix **reste sous** le jeu dans la pile : c'est la pile qui conserve la
   sélection, sans sauvegarde ni état global. R après une défaite ou une victoire dépile le jeu et
   retombe sur le choix, sélection intacte, pour rejouer la même composition ou en changer.
-- **Le modèle est à part** : `SelectionDEscouade` (3 classes au plus, doublons permis, `retirer`
+- **Le modèle est à part** : `SelectionDEscouade` (`s_tailleDeLEscouade` = 4 classes au plus, doublons permis, `retirer`
   fait remonter les suivantes) ne sait rien des écrans ; l'écran n'est que sa vue et sa traduction
   des clics. `EcranJeu` reçoit la liste d'`IdSpecialite` et la garde pour F5 ; c'est lui qui appelle
   `composer`, `Partie` ne reçoit toujours que des `DefinitionPersonnage`.
@@ -197,7 +213,9 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
   (`ListeDeBoutons`). `centreDesClasses`, `centreDesCases` et `centreDesActions` sont les seules
   sources des positions : dessin, clic et tests les appellent. La géométrie des cases est une
   fonction pure (`rectangleDeLaCase`, `caseSous`), comme la barre de raccourcis. À 1200 × 800 (vue de
-  1200 px de large) les colonnes tiennent avec 40 px de marge.
+  1200 px de large) les colonnes tiennent avec 40 px de marge. **Depuis l'étape 106.6** (quatre cases de 60 px et trois écarts de 20 px,
+  300 px de haut, de −230 à +70 autour du centre), la colonne des actions a été descendue de +140 à +160 px : sinon « Start » touchait la
+  quatrième case (un test vérifie qu'aucune colonne n'en chevauche une autre, en 1200 × 800 et en 16:9).
 - **Pas de `ListeDeBoutons` pour les cases** : une case vide n'est pas un bouton grisé mais une
   position de la sélection ; un clic sur une case remplie la retire, ce qui n'est pas une action de
   la liste. Les dimensions (520 × 60, 20 px) sont recopiées dans `SelectionDEscouade.cpp` pour que les
@@ -208,8 +226,8 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
 - **La bande de couleur d'une case** utilise `composer(sélection)` : le joueur voit déjà la nuance
   que le personnage aura en jeu.
 - **Limites** : souris seulement ; pas de description de classe ni d'infobulle ; la sélection n'est
-  pas écrite dans `reglages.ini` (elle repart vide à chaque lancement du jeu) ; au plus trois fois la
-  même classe, parce qu'il n'y a que trois nuances et trois places.
+  pas écrite dans `reglages.ini` (elle repart vide à chaque lancement du jeu) ; au plus quatre fois la
+  même classe, parce qu'il n'y a que quatre nuances (0, 20, 40, 60 %) et quatre places.
 
 ## `EcranJeu` : le jeu de l'ancien `main.cpp`
 
@@ -314,7 +332,7 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
 - Inventaire (étapes 84 et 85) : pas de clic droit pour équiper, pas de prise au clic puis dépôt au
   clic, pas de glisser vers le monde (`docs/brainstorm.md`) ; la touche I n'est pas configurable ; pas d'icônes d'objets (un sigle de deux lettres) ni de couleurs par rareté ;
   `s_casesDuSac` (disposition) doit égaler la capacité du sac, une constante de `Escouade.cpp`
-  (un `assert` du dessin le vérifie) ; `EcranInventaire` suppose `s_nombreDePlaces` = 3 classes.
+  (un `assert` du dessin le vérifie) ; `EcranInventaire` suppose `s_tailleDeLEscouade` (4) noms de classes et une escouade de cette taille.
 - Les boutons de `ListeDeBoutons` recopient le centrage de texte de
   `EcranDeFin.cpp` (à extraire dans un module commun, dans un commit à part).
 - Le menu reste sous les options et n'est pas redessiné pendant le changement
@@ -418,6 +436,7 @@ Fonction pure, testée avec des écrans de test.
 | Fonction | Rôle |
 |---|---|
 | `std::optional<PointDInterface> clicGaucheDInterface(const sf::Event&, const Contexte&)` | Le point d'un clic gauche en coordonnées de la vue d'interface et le centre de cette vue ; vide pour tout autre événement ; `[[nodiscard]]` |
+| `std::optional<PointDInterface> deplacementDeLaSourisDInterface(const sf::Event&, const Contexte&)` | Étape 106.5 : le point où la souris vient d'aller (`MouseMoved`), même conversion ; vide pour tout autre événement ; pour le survol d'un onglet pendant un glissement (non testée, elle a besoin d'une `RenderWindow`) |
 | `std::optional<PointDInterface> relachementGaucheDInterface(const sf::Event&, const Contexte&)` | Le point du relâchement du bouton gauche, même conversion ; vide pour tout autre événement ; utilisée par le glisser-déposer de l'inventaire ; `[[nodiscard]]` |
 | `PointDInterface preparerLInterface(const Contexte&)` | Pose `vueDInterface` sur la fenêtre et rend la position du curseur dans cette vue, avec le centre ; ne vide pas la fenêtre ; `[[nodiscard]]` |
 
@@ -481,68 +500,72 @@ construction, `explicit EcranMenu(std::vector<Resolution>)`), `m_boutons` (`List
 | `EcranOptions(const Reglages&, std::vector<Resolution>)` | Part des réglages en cours ; l'indice est celui de la résolution courante dans la liste (0 si absente) |
 | `Transition cliquer(sf::Vector2f point, sf::Vector2f centre)` | Mode : bascule, `AppliquerReglages`. Résolution : tiers gauche = précédente, tiers droit = suivante, `AppliquerReglages` (`Aucune` aux bouts de la liste, au milieu, ou ligne inactive : plein écran ou liste vide). « Back » : `Depiler` |
 
-### `EcranChoixEscouade` (`interface/`) — le choix des 3 classes
+### `EcranChoixEscouade` (`interface/`) — le choix des 4 classes
 
 `EcranChoixEscouade.hpp` / `.cpp`. Entre le menu et la partie. Données membres : `m_selection` (`SelectionDEscouade`), `m_classes` (`ListeDeBoutons`, un bouton par entrée du `catalogue()`, dans son ordre), `m_actions` (`ListeDeBoutons` : « Start », « Back »). Trois colonnes sans position stockée, recalculées à partir du `centre` de la vue d'interface : les classes à gauche, les cases de sélection puis les actions à droite. Voir `docs/ecrans.md`.
 
 | Fonction | Rôle |
 |---|---|
-| `sf::Vector2f centreDesClasses(sf::Vector2f centre)` / `centreDesCases(...)` / `centreDesActions(...)` | Centre de chaque colonne (décalages de −300, +300 et +300 px en x ; 0, −80 et +140 en y) ; une seule source pour le dessin, le clic et les tests ; `[[nodiscard]]` |
+| `sf::Vector2f centreDesClasses(sf::Vector2f centre)` / `centreDesCases(...)` / `centreDesActions(...)` | Centre de chaque colonne (décalages de −300, +300 et +300 px en x ; 0, −80 et +160 en y depuis l'étape 106.6, +140 avant) ; une seule source pour le dessin, le clic et les tests ; `[[nodiscard]]` |
 | `EcranChoixEscouade()` | Sélection vide, « Start » inactif |
 | `Transition cliquer(sf::Vector2f point, sf::Vector2f centre)` | Classe : l'ajoute à la sélection (sans effet si elle est complète). Case remplie : la retire. « Start » (actif seulement si la sélection est complète) : `Empiler(EcranJeu(sélection))`, la sélection restant dans cet écran. « Back » : `Depiler`. Case vide ou ailleurs : `Aucune` ; `[[nodiscard]]` |
 | `const SelectionDEscouade& getSelection() const` | La sélection en cours (tests) ; `[[nodiscard]]` |
-| `void dessiner(const Contexte&) const` | Titre, boutons des classes, trois cases « 1. Warrior » ou « 1. — » (bande de la couleur que le personnage aura en jeu, doublons assombris), actions |
+| `void dessiner(const Contexte&) const` | Titre (« Choose 4 classes »), boutons des classes, quatre cases « 1. Warrior » ou « 1. — » (bande de la couleur que le personnage aura en jeu, doublons assombris), actions |
 
 ### `EcranInventaire` (`interface/`) — l'inventaire
 
-`EcranInventaire.hpp` / `.cpp`. Données membres : `m_escouade` (`Escouade&`), `m_sol` (`ObjetsAuSol&`) et `m_carte` (`const TileMap&`), ceux de la `Partie` de l'`EcranJeu` du dessous (valides grâce à l'invariant de la pile), `m_nomsDesClasses` (`std::vector<std::string>`, un nom par place), `m_origine` (`std::optional<PositionDObjet>`, l'origine du glissement en cours), `m_enAttente` (`std::array<Caracteristiques, s_nombreDePlaces>`, étape 100.2 : le brouillon des points libres, par place).
+`EcranInventaire.hpp` / `.cpp`. Données membres : `m_escouade` (`Escouade&`), `m_sol` (`ObjetsAuSol&`) et `m_carte` (`const TileMap&`), ceux de la `Partie` de l'`EcranJeu` du dessous (valides grâce à l'invariant de la pile), `m_nomsDesClasses` (`std::vector<std::string>`, un nom par place), `m_ouverte` (`Place`, étape 106.4 : l'onglet affiché, la place 1 au départ), `m_origine` (`std::optional<PositionDObjet>`, l'origine du glissement en cours), `m_enAttente` (`std::array<Caracteristiques, s_tailleDeLEscouade>`, étape 100.2 : le brouillon des points libres, par place, qui survit au changement d'onglet).
 
 | Fonction | Rôle |
 |---|---|
-| `EcranInventaire(Escouade&, ObjetsAuSol&, const TileMap&, std::vector<std::string>)` | `assert` : `s_nombreDePlaces` noms |
+| `EcranInventaire(Escouade&, ObjetsAuSol&, const TileMap&, std::vector<std::string>)` | `assert` : `s_tailleDeLEscouade` noms ; l'escouade doit avoir ce nombre de personnages (les tests de l'écran utilisent une composition de quatre) |
+| `Place placeOuverte() const` | Étape 106.4 : la place du personnage dont l'onglet est ouvert ; `[[nodiscard]]` |
 | `Transition appuyer(sf::Keyboard::Scancode)` | I : `Depiler` ; Échap : annule le glissement en cours (`Aucune`), sinon `Depiler` ; autre touche : `Aucune` ; fermer efface le brouillon des points libres (étape 100.2) ; `[[nodiscard]]` |
-| `void saisir(sf::Vector2f point, sf::Vector2f tailleDeVue)` | Un bouton des points libres sous le point (`boutonSous`) agit tout de suite (`cliquerSurUnBouton`, privée : `std::visit` du `BoutonDePoints`) et ne commence aucun glissement ; sinon commence un glissement si un objet est sous le point |
-| `const Caracteristiques& pointsEnAttente(Place place) const` / `int pointsRestants(Place place) const` | Étape 100.2 : le brouillon de ce personnage (`assert` : place de 1 à `s_nombreDePlaces`) et ce qui reste à répartir (ses points libres moins le brouillon) ; `[[nodiscard]]` |
+| `void saisir(sf::Vector2f point, sf::Vector2f tailleDeVue)` | Un onglet sous le point (`ongletSous`) s'ouvre (et ne commence aucun glissement) ; un bouton des points libres sous le point (`boutonSous`, avec la place ouverte) agit tout de suite (`cliquerSurUnBouton`, privée : `std::visit` du `BoutonDePoints`) et ne commence aucun glissement ; sinon commence un glissement si un objet est sous le point |
+| `const Caracteristiques& pointsEnAttente(Place place) const` / `int pointsRestants(Place place) const` | Étape 100.2 : le brouillon de ce personnage (`assert` : place de 1 à `s_tailleDeLEscouade`) et ce qui reste à répartir (ses points libres moins le brouillon) ; `[[nodiscard]]` |
 | `void ajouterUnPoint(Place place, Caracteristique)` / `void retirerUnPoint(Place place, Caracteristique)` | Un point de plus en attente (sans effet s'il ne reste rien à répartir) / un point de moins (sans effet s'il n'y a rien en attente : jamais un point déjà dépensé) |
 | `void appliquer(Place place)` / `void reinitialiser(Place place)` | `Escouade::depenserDesPoints` puis efface le brouillon de ce personnage (sans effet s'il est vide) / efface le brouillon sans rien appliquer |
 | `void relacher(sf::Vector2f point, sf::Vector2f tailleDeVue)` | `deplacerObjet(origine, position sous le point)` s'il y en a une ; sinon, hors du panneau, `jeterUnObjet(escouade, sol, carte, origine)` (étapes 97.6 et 98.1) ; termine toujours le glissement ; sans glissement, ne fait rien |
+| `void survoler(sf::Vector2f point, sf::Vector2f tailleDeVue)` | Étape 106.5 : pendant un glissement, ouvre l'onglet sous le point (aussitôt) ; sans glissement ou hors des onglets, ne fait rien |
+| `std::vector<Place> ongletsDeDestination() const` | Étape 106.5 : pendant un glissement, les places dont un emplacement peut recevoir l'objet saisi (`Escouade::peutDeplacerObjet`) ; vide sans glissement ; leurs onglets sont entourés d'or ; `[[nodiscard]]` |
 | `void annulerLeGlissement()` | Efface l'origine sans rien déplacer |
 | `const std::optional<PositionDObjet>& origineDuGlissement() const` | L'origine du glissement, vide sinon ; lue par les tests ; `[[nodiscard]]` |
-| `Transition traiterEvenement(...)` | Touche : `appuyer` ; appui gauche : `saisir` ; relâchement gauche : `relacher` ; `FocusLost` : `annulerLeGlissement` ; le reste : `Aucune` |
+| `Transition traiterEvenement(...)` | Touche : `appuyer` ; appui gauche : `saisir` ; relâchement gauche : `relacher` ; déplacement de la souris : `survoler` ; `FocusLost` : `annulerLeGlissement` ; le reste : `Aucune` |
 | `void mettreAJour(float, const Contexte&)` | Ne fait rien (le monde dessous est figé) |
 | `bool laisseVoirDessous() const` | `true` |
-| `void dessiner(const Contexte&) const` | Vue d'interface, voile sombre, panneau (centré, de la taille de son contenu), titre, les 3 colonnes (en-tête à la couleur du personnage, armure lue sur son `Equipement`, « (mort) » si ses points de vie sont 0, « Points: N » s'il a des points libres, 10 emplacements, caractéristiques effectives (avec le brouillon en vert et les boutons « + » et « − ») et points de vie (avec « Apply » et « Reset » s'il y a un brouillon), puis capacités offensive et défensive, lus sur l'`Escouade`), le sac (sigles), puis : sans glissement, l'infobulle de l'objet sous le curseur, ou, sur la ligne d'une caractéristique, celle de son effet ; pendant un glissement, le contour des destinations valides, le voile sur l'origine et l'objet saisi sous le curseur (pas d'infobulle) |
+| `void dessiner(const Contexte&) const` | Vue d'interface, voile sombre, panneau (centré, de la taille de son contenu), titre, les onglets (couleur du personnage, nom de la classe, marque dorée s'il a des points libres, contour doré pendant un glissement s'il peut recevoir l'objet), la colonne du personnage ouvert (armure lue sur son `Equipement`, « (dead) » si ses points de vie sont 0, « Points: N » s'il a des points libres, 10 emplacements, caractéristiques effectives (avec le brouillon en vert et les boutons « + » et « − ») et points de vie (avec « Apply » et « Reset » s'il y a un brouillon), puis capacités offensive et défensive, lus sur l'`Escouade`), le sac (sigles), puis : sans glissement, l'infobulle de l'objet sous le curseur, ou, sur la ligne d'une caractéristique, celle de son effet ; pendant un glissement, le contour des destinations valides, le voile sur l'origine et l'objet saisi sous le curseur (pas d'infobulle) |
 
 ### `DispositionInventaire` (`interface/`) — où est chaque élément
 
-`DispositionInventaire.hpp` / `.cpp`, fonctions pures en coordonnées de la vue d'interface, `tailleDeVue` en paramètre. Constantes : `s_nombreDePlaces` (3), `s_colonnesDuSac` (20 depuis l'étape 98.1), `s_casesDuSac` (40, la capacité du sac), `s_lignesDeCaracteristiques` (6 depuis l'étape 100.2 : cinq caractéristiques et les points de vie, en une colonne ; 3 avant) et `s_lignesDeStatistiques` (3), `s_cellulesDeStatistiques` (6). Colonnes de 340 px centrées (12 px d'écart), emplacements de 160 × 40 px, cases du sac de 44 px. Les positions verticales se comptent depuis le haut du panneau, lui-même centré dans la vue.
+`DispositionInventaire.hpp` / `.cpp`, fonctions pures en coordonnées de la vue d'interface, `tailleDeVue` en paramètre. Constantes : `s_places` (les places 1 à `s_tailleDeLEscouade`, `escouade/TailleDeLEscouade`, qui a remplacé `s_nombreDePlaces` à l'étape 106.1), `s_colonnesDuSac` (8 depuis l'étape 106.4 ; 20 depuis l'étape 98.1), `s_casesDuSac` (40, la capacité du sac), `s_lignesDeCaracteristiques` (6 : cinq caractéristiques et les points de vie, en une colonne) et `s_lignesDeStatistiques` (3), `s_cellulesDeStatistiques` (6). Depuis l'étape 106.4 : une seule colonne de 340 px (la même pour tous les onglets, la géométrie ne dépend plus de la place), 24 px d'écart avec le sac, 16 px de marge, emplacements de 160 × 40 px, cases du sac de 44 px. Les positions verticales se comptent depuis le haut du panneau, lui-même centré dans la vue.
 
 | Fonction | Rôle |
 |---|---|
-| `rectangleDuPanneau(tailleDeVue)` | Étape 98.1 (la vue moins 40 px de chaque côté à l'étape 97.6) : le panneau de l'inventaire, de la taille de son contenu (1 076 × 658 px depuis l'étape 100.2, la même quelle que soit la vue), centré dans la vue ; un point lâché en dehors jette l'objet ; `[[nodiscard]]` |
-| `rectangleDeLEnTete(place, tailleDeVue)` / `rectangleDeLArmure(...)` | Bande de la classe et ligne « Armure » de la colonne de cette place (de 1 à `s_nombreDePlaces`) ; `[[nodiscard]]` |
-| `rectangleDeLEmplacement(place, Emplacement, tailleDeVue)` | Rectangle de l'emplacement ; les 5 premiers de l'enum à gauche, les 5 suivants à droite ; `[[nodiscard]]` |
-| `rectangleDesCaracteristiques(place, tailleDeVue)` / `rectangleDeLaCellule(place, indice, tailleDeVue)` | Étape 88 : le bloc sous les emplacements (340 × 108 px depuis l'étape 100.2, `s_lignesDeCaracteristiques` = 6 lignes de 18 px, pleine largeur) et ses 6 lignes de haut en bas : Puissance, Endurance, Adresse, Savoir, Volonté, points de vie (c'était 340 × 54 px en deux colonnes) ; `assert(indice <= s_nombreDeCaracteristiques)` ; `[[nodiscard]]` |
-| `rectangleDesStatistiques(place, tailleDeVue)` / `rectangleDeLaStatistique(place, indice, tailleDeVue)` | Étape 89 : le bloc sous celui des caractéristiques (340 × 54 px, `s_lignesDeStatistiques` = 3 lignes de 18 px) et ses `s_cellulesDeStatistiques` (6) cellules en deux colonnes remplies colonne par colonne ; la première colonne porte les capacités offensive et défensive et le blocage, la seconde les deux esquives (une cellule libre) — `lignesDeStatistiques`, étape 90 ; `assert(indice < s_cellulesDeStatistiques)` ; le sac a été descendu de 500 à 550 px pour lui faire place (puis à 552 px, étape 100.2, pour les trois lignes de plus du bloc des caractéristiques) ; `[[nodiscard]]` |
-| `rectangleDeLaCaseDuSac(indice, tailleDeVue)` | Rectangle de la case (`assert(indice < s_casesDuSac)`). Nommée ainsi parce que `rectangleDeLaCase` existe dans `SelectionDEscouade` ; `[[nodiscard]]` |
-| `rectangleDuBoutonPlus(place, Caracteristique, tailleDeVue)` / `rectangleDuBoutonMoins(...)` | Étape 100.2 : les boutons de 22 × 18 px à droite de la ligne de la caractéristique (le « + » au bord, le « − » à sa gauche, 4 px d'écart) ; toujours les mêmes rectangles, visibles ou non ; `[[nodiscard]]` |
-| `rectangleDuBoutonAppliquer(place, tailleDeVue)` / `rectangleDuBoutonReinitialiser(...)` | Étape 100.2 : « Apply » et « Reset », 64 × 18 px, à droite de la ligne des points de vie ; `[[nodiscard]]` |
-| `std::optional<BoutonDePoints> boutonSous(point, tailleDeVue)` | `BoutonPlus {place, caracteristique}`, `BoutonMoins {...}`, `BoutonAppliquer {place}` ou `BoutonReinitialiser {place}` (un `std::variant`, comme `PositionDObjet`) ; vide ailleurs ; ne dit pas si le bouton est visible ; `[[nodiscard]]` |
-| `std::optional<CaracteristiqueSurvolee> caracteristiqueSous(point, tailleDeVue)` | La caractéristique dont la ligne (boutons compris) contient le point, pour l'infobulle ; vide ailleurs, sur la ligne des points de vie comprise ; `[[nodiscard]]` |
-| `std::optional<PositionDObjet> elementSous(point, tailleDeVue)` | `PositionPortee {place, emplacement}` ou `PositionDansLeSac {caseDuSac}` (`objets/PositionDObjet`) ; vide dans un écart, sur un en-tête ou hors des éléments ; `[[nodiscard]]` |
+| `rectangleDuPanneau(tailleDeVue)` | Le panneau de l'inventaire, de la taille de son contenu (776 × 538 px depuis l'étape 106.4, la même quelle que soit la vue), centré dans la vue ; un point lâché en dehors jette l'objet ; `[[nodiscard]]` |
+| `rectangleDeLOnglet(place, tailleDeVue)` / `ongletSous(point, tailleDeVue)` | Étape 106.4 : l'onglet de cette place (une bande de 32 px au-dessus de la colonne, les onglets côte à côte sur la largeur de la colonne, 4 px d'écart ; `assert` : place de 1 à `s_tailleDeLEscouade`) / la place dont l'onglet contient le point, vide dans un écart ou ailleurs. Remplacent `rectangleDeLEnTete`, supprimée : l'onglet tient lieu d'en-tête ; `[[nodiscard]]` |
+| `rectangleDeLArmure(tailleDeVue)` | La ligne « Armor » sous les onglets ; `[[nodiscard]]` |
+| `rectangleDeLEmplacement(Emplacement, tailleDeVue)` | Rectangle de l'emplacement dans la colonne ; les 5 premiers de l'enum à gauche, les 5 suivants à droite ; `[[nodiscard]]` |
+| `rectangleDesCaracteristiques(tailleDeVue)` / `rectangleDeLaCellule(indice, tailleDeVue)` | Le bloc sous les emplacements (340 × 108 px, `s_lignesDeCaracteristiques` = 6 lignes de 18 px, pleine largeur) et ses 6 lignes de haut en bas : Puissance, Endurance, Adresse, Savoir, Volonté, points de vie ; `assert(indice <= s_nombreDeCaracteristiques)` ; `[[nodiscard]]` |
+| `rectangleDesStatistiques(tailleDeVue)` / `rectangleDeLaStatistique(indice, tailleDeVue)` | Le bloc sous celui des caractéristiques (340 × 54 px, `s_lignesDeStatistiques` = 3 lignes de 18 px) et ses `s_cellulesDeStatistiques` (6) cellules en deux colonnes remplies colonne par colonne (`lignesDeStatistiques`) ; `assert(indice < s_cellulesDeStatistiques)` ; `[[nodiscard]]` |
+| `rectangleDeLaCaseDuSac(indice, tailleDeVue)` / `rectangleDeLEtiquetteDuSac(tailleDeVue)` | Rectangle de la case (`assert(indice < s_casesDuSac)`), à droite de la colonne, en 5 rangées de 8 / de l'étiquette « Bag » au-dessus de la première. Nommée ainsi parce que `rectangleDeLaCase` existe dans `SelectionDEscouade` ; `[[nodiscard]]` |
+| `rectangleDuBoutonPlus(Caracteristique, tailleDeVue)` / `rectangleDuBoutonMoins(...)` | Étape 100.2 : les boutons de 22 × 18 px à droite de la ligne de la caractéristique (le « + » au bord, le « − » à sa gauche, 4 px d'écart) ; toujours les mêmes rectangles, visibles ou non ; `[[nodiscard]]` |
+| `rectangleDuBoutonAppliquer(tailleDeVue)` / `rectangleDuBoutonReinitialiser(...)` | Étape 100.2 : « Apply » et « Reset », 64 × 18 px, à droite de la ligne des points de vie ; `[[nodiscard]]` |
+| `std::optional<BoutonDePoints> boutonSous(point, ouverte, tailleDeVue)` | `BoutonPlus {place, caracteristique}`, `BoutonMoins {...}`, `BoutonAppliquer {place}` ou `BoutonReinitialiser {place}` (un `std::variant`, comme `PositionDObjet`), la place étant celle de l'onglet `ouverte` ; vide ailleurs ; ne dit pas si le bouton est visible ; `[[nodiscard]]` |
+| `std::optional<CaracteristiqueSurvolee> caracteristiqueSous(point, ouverte, tailleDeVue)` | La caractéristique dont la ligne (boutons compris) contient le point, pour l'infobulle ; vide ailleurs, sur la ligne des points de vie comprise ; `[[nodiscard]]` |
+| `std::optional<PositionDObjet> elementSous(point, ouverte, tailleDeVue)` | `PositionPortee {ouverte, emplacement}` ou `PositionDansLeSac {caseDuSac}` (`objets/PositionDObjet`) ; vide dans un écart, sur un onglet ou hors des éléments ; `[[nodiscard]]` |
 | `sf::FloatRect placerInfobulle(curseur, tailleInfobulle, tailleDeVue)` | Sous et à droite du curseur (16 px), de l'autre côté s'il sortirait de la vue, puis gardée dans la vue ; `[[nodiscard]]` |
 
 ### `SelectionDEscouade` (`escouade/`) — les classes choisies
 
-`SelectionDEscouade.hpp` / `.cpp`. Logique pure : une classe et deux fonctions libres. Donnée membre : `m_specialites` (`std::vector<IdSpecialite>`) ; constante `static constexpr std::size_t s_taille = 3`.
+`SelectionDEscouade.hpp` / `.cpp`. Logique pure : une classe et deux fonctions libres. Donnée membre : `m_specialites` (`std::vector<IdSpecialite>`). La taille est `s_tailleDeLEscouade` (`escouade/TailleDeLEscouade.hpp`, 4 depuis l'étape 106.6), la seule constante de cette idée : `SelectionDEscouade::s_taille` et `s_nombreDePlaces` ont été supprimées à l'étape 106.1.
 
 | Fonction | Rôle |
 |---|---|
 | `void ajouter(IdSpecialite id)` | À la fin s'il reste de la place, sans effet sinon ; les doublons sont permis |
 | `void retirer(std::size_t indice)` | Retire cette case, les suivantes remontent ; `assert(indice < liste().size())` |
-| `bool estComplete() const` | Trois classes choisies ; `[[nodiscard]]` |
-| `const std::vector<IdSpecialite>& liste() const` | Dans l'ordre de sélection, c'est l'ordre des places 1 à 3 ; `[[nodiscard]]` |
-| `sf::FloatRect rectangleDeLaCase(std::size_t indice, sf::Vector2f centre)` | Case de sélection `indice` : colonne de 3 cases de 520 × 60 px, 20 px d'écart, centrée sur `centre` ; `assert` ; `[[nodiscard]]` |
+| `bool estComplete() const` | `s_tailleDeLEscouade` classes choisies ; `[[nodiscard]]` |
+| `const std::vector<IdSpecialite>& liste() const` | Dans l'ordre de sélection, c'est l'ordre des places 1 à `s_tailleDeLEscouade` ; `[[nodiscard]]` |
+| `sf::FloatRect rectangleDeLaCase(std::size_t indice, sf::Vector2f centre)` | Case de sélection `indice` : colonne de `s_tailleDeLEscouade` cases de 520 × 60 px, 20 px d'écart, centrée sur `centre` ; `assert` ; `[[nodiscard]]` |
 | `std::optional<std::size_t> caseSous(sf::Vector2f point, sf::Vector2f centre)` | Case qui contient le point, vide dans un écart ou hors des cases ; construite sur `rectangleDeLaCase` ; `[[nodiscard]]` |
 
 ### `ListeDeBoutons` (`interface/`) — une colonne de boutons

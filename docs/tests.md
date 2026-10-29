@@ -2137,3 +2137,46 @@ Six sous-étapes, un commit chacune, toutes enchaînées. Une refactorisation : 
 - **Ce que les tests ne voient pas** : que tous les skills se comportent comme avant à l'écran (chiffres flottants, critiques,
   « Dodged » et « Blocked », visée de la zone, icônes grisées) : à l'œil, en jouant chaque classe ; l'ordre des événements d'une image,
   qui a changé sans effet sur l'affichage (un texte ne s'empile qu'avec ceux de la même cible).
+
+## Étape 106 : l'escouade passe à 4 personnages, inventaire en onglets
+
+1 803 tests avant l'étape, 1 845 après (+42), 0 avertissement sur les deux presets. **Les tests existants restent à trois** (`compositionDeTest`,
+`uneEscouade…`) : `Escouade` est générique en N et `uneEscouadeADeuxGuerriers` testait déjà quatre ; la taille 4 est une règle de la
+sélection, de l'inventaire et de la barre, testée par des tests ciblés. Seuls changent les tests dont l'attente *est* la taille de
+l'escouade (la sélection, l'écran de choix, `composer`, la barre par défaut) et ceux de l'écran d'inventaire, dont la fixture passe à quatre
+personnages (`compositionDeQuatre` : la composition de test et un deuxième prêtre, qui ne change rien aux trois premiers).
+
+- **106.1** (0) : `s_tailleDeLEscouade` (valant encore 3) remplace `SelectionDEscouade::s_taille` et `s_nombreDePlaces` ; aucun test ne change
+  d'attente.
+- **106.2** (+10) : `test_DeplacementDObjets.cpp` (+8 : l'exemple d'Olivier — le donneur ne peut pas porter le torse du receveur, qui va dans le
+  sac, son emplacement reste vide ; la surbrillance (`deplacementPossible`) et `seuilsManques` suivent ; sac plein : tout refusé, rien ne bouge ; le receveur sous
+  le seuil : refusé ; un échange que les deux peuvent honorer reste un échange ; entre une case du sac et un emplacement, un objet
+  qu'on ne peut pas porter reste refusé ; **deux objets au sac dans le même déplacement** (celui qu'un personnage ne peut pas reprendre et le
+  bouclier chassé par une arme à deux mains), avec deux cases libres puis une seule : refus ; aucun objet ne disparaît ni ne se double) et
+  `test_Escouade_equipement.cpp` (+2 : le même cas au niveau de l'`Escouade` avec un heaume que le mage ne porte pas, sac libre puis sac plein). Aucun test existant n'attendait un refus dans ce cas.
+- **106.3** (+1) : `test_BarreDeRaccourcis.cpp` (**la place p occupe les emplacements p−1, p+3, p+7** pour quatre places de trois skills ; le 4ᵉ skill n'est
+  pas placé ; une place sans colonne — la 5ᵉ, la 0 — est ignorée) ; les attentes de la barre par défaut sont réécrites par colonne
+  (`test_BarreDeRaccourcis`, `test_Specialite` pour les trois rôdeurs, les constantes d'emplacements de `test_Controleur` : provocation = A,
+  vide = R, explosion = E).
+- **106.4** (+9 nets : 7 d'écran, la disposition réécrite) : `test_DispositionInventaire.cpp` est réécrit pour la géométrie sans place (tout tient dans
+  1200 × 800 et en 16:9, **onglets compris**, dans le panneau, **sans chevauchement** ; les onglets dans l'ordre, sur la largeur de la
+  colonne ; le sac de 5 × 8 à droite de la colonne ; `ongletSous` ; `elementSous`, `boutonSous` et `caracteristiqueSous` **rendent la place
+  ouverte** qu'on leur donne ; le panneau plus étroit que l'ancien) ; `test_EcranInventaire.cpp` (+7 : place 1 à l'ouverture ; un clic sur
+  un onglet l'ouvre sans commencer de glissement ; les emplacements cliqués sont ceux de l'onglet ouvert ; le sac est le même sur tous les onglets ; **le
+  brouillon des points libres survit au changement d'onglet et s'efface à la fermeture** ; les boutons agissent sur le personnage ouvert ;
+  jeter depuis n'importe quel onglet). L'aide `ouvrir(ecran, place)` clique l'onglet comme le joueur.
+- **106.5** (+12) : `test_EcranInventaire.cpp` (**`survoler`** : sans glissement, aucun effet ; avec un glissement, l'onglet s'ouvre, le glissement
+  continue, un point hors des onglets ne change rien ; l'origine d'un emplacement reste valide quand son onglet n'est plus affiché ; un
+  objet du sac glisse sur un autre personnage ; **l'échange avec repli au sac passe par l'écran** (capuchon du mage contre heaume du guerrier) ; sac plein, la
+  destination n'est pas valide et rien ne bouge ; relâcher sur un onglet ne déplace rien, ne jette rien et termine le glissement ; Échap
+  annule après un changement d'onglet ; **`ongletsDeDestination`** : vide sans glissement, les onglets des personnages qui peuvent recevoir l'objet, sans le guerrier quand le sac
+  est plein).
+- **106.6** (+10 nets) : `test_SelectionDEscouade.cpp` (complète à quatre, un 5ᵉ ajout sans effet, quatre fois la même classe, la taille vaut 4),
+  `test_EcranChoixEscouade.cpp` (quatre fois la même classe, « Start » inactif avec trois classes, **aucune colonne n'en chevauche une autre en 1200 × 800 et en
+  16:9**, la colonne des actions sous la dernière case), `test_Specialite.cpp` (teintes de 0, 20, 40, 60 % ; **quatre teintes distinctes
+  pour chacune des cinq classes**), `test_EcranInventaire.cpp` (+3 : quatre onglets, le quatrième personnage reçoit un objet glissé depuis un
+  autre onglet, son brouillon est le sien), `test_Partie_descente.cpp` (+1 : **une partie de quatre personnages descend d'un étage**, équipement et points
+  dépensés gardés, tous vivants, un mort revenu à pleine vie).
+- **Ce que les tests ne voient pas** : le dessin des onglets (couleur, classe, marque dorée, contour doré pendant un glissement), la disposition
+  du panneau à l'écran, le survol à la souris (la traduction de `MouseMoved`, `deplacementDeLaSourisDInterface`, a besoin d'une `RenderWindow`),
+  la formation de quatre en jeu, les quatre colonnes de la barre : à l'œil, en jouant.

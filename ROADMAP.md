@@ -8,7 +8,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 ## Étapes terminées
 
-Étapes 0 à 105 ✅. Les dernières :
+Étapes 0 à 106 ✅. Les dernières :
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 - Étape 83 — Inventaire et équipement : le modèle, sans interface ✅
@@ -34,18 +34,19 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - Étape 103 — Armures, boucliers et reliques : vingt pièces d'armure en quatre types (tissu, léger, intermédiaire, lourd), un Shield, deux reliques de main gauche (Orb, Holy Relic), malus d'esquive des pièces lourdes, niveau d'apparition dans le butin ; armure, blocage et bonus se calculent depuis le gabarit, le niveau et la qualité (`effetsDeBase`) ✅
 - Étape 104 — Familles de butin et affinités d'affixes : le butin se répartit entre arme, armure, main gauche et bijou (35 / 35 / 15 / 15, à toute profondeur), chaque gabarit penche vers quelques affixes ✅ (la phase 6 est terminée)
 - Étape 105 — Les skills en données (R4 et R5) : un mode de cible, une zone séparée de l'effet, un effet en `std::variant`, un seul canal de sortie, des types forts `Place` et `IdMonstre`, la provocation qui attend ✅ (première étape de la phase 7)
+- Étape 106 — L'escouade passe à 4 personnages : une seule constante de taille, l'échange d'objets entre personnages avec repli au sac, la barre de raccourcis par colonne, l'inventaire en onglets à côté d'un sac commun ✅ (le mana passe à l'étape 107)
 
 ## État actuel (résumé)
 
 - **Outils** : conception dans Claude.ai, implémentation avec Claude Code dans VSCode (règles dans
   `CLAUDE.md`) ; dépôt Git `squad-arpg`, poussé sur GitHub ; SFML 3.0.2 intégrée à CMake.
-- **Code** (étape 105) : 107 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
+- **Code** (étape 106) : 108 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
   `combat`, `objets`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
   de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug` et `jeu`, 0
-  avertissement, 1 803 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers des étapes 98 à 102 : `docs/build.md`,
+  avertissement, 1 845 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers des étapes 98 à 102 : `docs/build.md`,
   `docs/audit.md`). `Escouade` n'est plus que l'assemblage : `Escouade.cpp` de 1 223 à 1 067 lignes. Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`). **Tout le texte affiché est en anglais** (identifiants, commentaires et documentation restent en français ; pas de système de traduction : `docs/glossaire.md` est la référence des noms du jeu). Un commit par sous-étape, fait par Claude Code (`CLAUDE.md`).
 - **Écrans** : menu à la souris, options d'affichage (fenêtré ou plein écran, résolutions,
-  `reglages.ini`), choix de 3 classes parmi 5 (guerrier, prêtre, mage, paladin, rôdeur ; doublons
+  `reglages.ini`), choix de 4 classes parmi 5 (guerrier, prêtre, mage, paladin, rôdeur ; doublons
   permis), puis la partie ; R après une victoire ou une défaite ramène au choix. La pile d'écrans
   dessine sous un écran qui laisse voir dessous (`laisseVoirDessous`) ; le `clear` est dans
   l'`Application` (`docs/ecrans.md`).
@@ -139,6 +140,22 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   seule conversion vers 0 à N-1) et `IdMonstre` remplacent les entiers partout ; `EntiteVue` et `EntiteDeControle` sont des gabarits
   (`MonstreVu`, `PersonnageVu`…) ; la cible d'un événement est un `std::variant<Place, IdMonstre, EscouadeEntiere>`. Rien ne change à
   l'écran, sauf la provocation qui attend (`docs/combat.md`, « Les skills en données (étape 105) », `docs/audit.md`, R4 et R5).
+- **Quatre personnages et inventaire en onglets** (étape 106) : l'escouade compte **quatre** personnages (3 avant), **une seule constante**
+  `s_tailleDeLEscouade` (`escouade/TailleDeLEscouade.hpp`) pour la sélection, l'inventaire, la barre de raccourcis et `composer` ;
+  `Escouade`, `Formation`, `Expedition` et `Place` restent génériques en N et leurs tests gardent leur composition de trois. Raison :
+  le feel d'un groupe de jeu de rôle à la *D&D*, plus de gambits et d'organisation, moins de skills actifs par personnage. **L'écran de
+  choix** a quatre cases (la colonne des actions est descendue de 20 px pour ne chevaucher aucune autre) ; la même classe peut être prise
+  **quatre fois**, en quatre teintes (0, 20, 40, 60 % de noir). **L'échange d'objets entre deux emplacements** a un **repli au sac** :
+  si le personnage d'origine ne peut pas porter l'objet qui lui revient (seuils), cet objet va dans la première case libre du sac au lieu
+  de refuser l'échange (le receveur doit toujours atteindre les seuils ; tout ou rien si le sac manque de cases, deux mains comprises ;
+  `deplacerLesObjets` reste l'unique décision, la surbrillance la suit). **La barre de raccourcis** garde ses 12 emplacements, sa table de
+  touches et sa géométrie, mais se range **par colonne** : trois emplacements par personnage (place p : emplacements p−1, p+3, p+7, soit
+  Q A Z / W S X / E D C / R F V). **L'inventaire** montre un personnage à la fois par **onglets** (couleur du personnage, classe, marque dorée
+  s'il a des points libres) à côté d'un **sac commun** toujours visible ; le panneau mesure 776 × 538 px (1 076 × 658 avant) ; l'onglet
+  ouvert est un état de l'écran (la place 1 à chaque ouverture), le brouillon des points libres reste par personnage ; **pendant un
+  glissement, survoler un onglet l'ouvre aussitôt** et les onglets dont le personnage peut recevoir l'objet ont un contour doré. Aucun
+  rééquilibrage (monstres, `k = 21`, butin). Tout est à voir à l'écran (`docs/formation.md`, « Quatre personnages », `docs/ecrans.md`,
+  `docs/objets.md`, « Le repli au sac », `docs/boucle-et-entrees.md`).
 - **Carte** : donjon généré à chaque partie (salles, couloirs en L de 2 cases, portes à chaque
   jonction, un groupe de monstres par salle sauf la première, un escalier, graine affichée), F5 = nouvelle expédition ;
   carte à la main pour les tests (`docs/generation.md`, `docs/carte-et-collision.md`).
@@ -172,11 +189,12 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   plein : « Bag full », l'objet reste au sol), et lâcher un objet du sac ou d'un emplacement hors du panneau de l'inventaire le
   jette près de l'ancre (le panneau est réduit depuis l'étape 98 : le jeu reste visible tout autour, le sac tient sur 2 rangées de
   20 cases ; un objet évite la case de l'escalier ; les objets au sol ne descendent pas avec l'escouade). La
-  touche I ouvre l'inventaire par-dessus la partie figée : équipement des 3 personnages, sac de 40
-  cases, caractéristiques, points de vie, capacités, blocage et esquives de chaque personnage, infobulle au survol, et glisser-déposer des objets (sac, emplacements, entre personnages ;
-  échange si la destination est occupée ; destinations valides en surbrillance) (`docs/objets.md`,
+  touche I ouvre l'inventaire par-dessus la partie figée : **un onglet par personnage** (quatre) avec l'équipement,
+  les caractéristiques, les points de vie, les capacités, le blocage et les esquives du personnage ouvert, et le **sac commun de 40
+  cases (5 rangées de 8) toujours visible à droite** ; infobulle au survol, et glisser-déposer des objets (sac, emplacements, entre
+  personnages ; échange si la destination est occupée ; destinations valides en surbrillance) (`docs/objets.md`,
   `docs/ecrans.md`).
-- **Escouade** : une ancre suivie par 3 personnages en formation (rangs avant et arrière), qui
+- **Escouade** : une ancre suivie par 4 personnages en formation (rangs avant et arrière), qui
   pivote et se resserre près des murs ; places d'attaque autour des monstres, séparation douce,
   chemins qui contournent les monstres, dégagement des tireurs (`docs/formation.md`, `docs/chemin.md`).
 - **Combat** : verrou par clic, attaque de base et zone de contrôle de l'arme, skills qui exigent un type d'arme
@@ -341,16 +359,32 @@ ce qui reste à décider **en discussion** avant son prompt :
   leurs skills)
   - 105 ✅ : R4 et R5 (voir ci-dessus) : le mode de cible, la zone et l'effet en données, un seul canal de sortie, les types forts, la
     provocation qui attend. Aucun nouveau skill ni nouvelle règle : c'est la structure qui accueillera la suite.
+  - 106 ✅ : l'escouade passe à 4 personnages (voir « Quatre personnages et inventaire en onglets ») ; le mana, prévu à cette place, passe à
+    l'étape 107.
   - À discuter avec Claude.ai : le mana (coûts, ressources de classe), les effets du Savoir et de la Volonté, puis les buffs,
     les affaiblissements, les effets dans le temps et les auras (plusieurs effets par skill).
 
 
-## Étape 106 (prochaine) : à discuter avec Claude.ai
+## Étape 107 (prochaine) : à discuter avec Claude.ai
 
-L'étape 105 (les skills en données) est faite : première étape de la phase 7. La suite se discute avec Claude.ai, après la conception des
+Les étapes 105 (les skills en données) et 106 (quatre personnages) sont faites. La suite se discute avec Claude.ai, après la conception des
 classes par Olivier : le mana, puis les effets du Savoir et de la Volonté. Le Savoir
 et la Volonté n'ont encore aucun effet (les paires de croissance du prêtre et du mage deviendront justes quand ils serviront).
 L'`Expedition` garde les points dépensés ; c'est elle qu'on sauvegardera un jour.
+
+**Pistes issues de l'étape 106** (étapes à part, plus tard) :
+- **Rééquilibrer pour quatre personnages** : points de vie et dégâts des monstres, nombre et composition des groupes, `k = 21` (un
+  personnage de plus partage la même expérience), butin (la même quantité pour quatre porteurs) : rien n'a été touché.
+- **Touches 1 à 4 pour changer d'onglet**, mémoire de l'onglet ouvert entre deux ouvertures, délai avant l'ouverture d'un onglet survolé,
+  et un texte qui explique un refus de déplacement (« needs Might 12 », sac plein) : écartés de l'étape 106.
+- **Une escouade de taille variable** (recrutement, départ à 3) : la constante est unique mais l'écran de choix, la barre et l'inventaire
+  supposent exactement `s_tailleDeLEscouade` personnages ; le moteur (`Escouade`, `Expedition`) est déjà générique.
+- **Le repli au sac peut ranger un objet portable** quand le sac n'a qu'une case libre alors que l'échange ordinaire en demandait deux
+  (`docs/objets.md`, « Le repli au sac ») : cas rare, à revoir si cela surprend.
+- **La barre de raccourcis par colonne** place au plus trois skills par personnage : un 4ᵉ skill d'une classe n'est pas placé (aucune
+  classe n'en a plus de deux aujourd'hui) ; les sauvegardes de la disposition viendront avec l'écran de configuration des touches.
+- **Ajuster en jouant** la taille du panneau de l'inventaire (776 × 538 px), les teintes des doublons (20 / 40 / 60 %) et la marque dorée
+  des onglets (8 px) : tout est à voir à l'écran.
 
 **Pistes issues de l'étape 105** (étapes à part, plus tard) :
 - **Plusieurs effets par skill** (aujourd'hui un seul : un `std::vector<EffetDeSkill>` ou une liste d'effets, le jour où un skill soigne

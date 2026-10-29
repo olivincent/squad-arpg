@@ -228,9 +228,14 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
   (place puis liste du personnage), `barreParDefaut` la dispose, `EcranJeu` reconstruit la barre
   à chaque nouvelle partie (au même endroit que `m_controleur = Controleur{}`). Le `Controleur`
   reçoit la barre à chaque appel, sans la garder.
-- **Disposition par défaut** : une rangée de 4 emplacements par personnage, dans l'ordre des
-  places. Avec la composition actuelle : Q = frappe puissante, W = provocation, A = soin,
-  Z = explosion, le reste vide. Un 5ᵉ skill d'un personnage n'est pas placé (sans erreur).
+- **Disposition par défaut** : une **colonne** de 3 emplacements par personnage, dans l'ordre des
+  places (depuis l'étape 106.3 ; une rangée de 4 auparavant) : la place p occupe les emplacements
+  p−1, p+3 et p+7, soit Q A Z pour la place 1, W S X pour la place 2, E D C pour la place 3 et R F V
+  pour la place 4, ses skills de haut en bas dans l'ordre reçu. Avec la composition de test : Q = frappe
+  puissante, A = provocation (le guerrier), W = soin (le prêtre), E = explosion (le mage), le reste vide. Un 4ᵉ skill
+  d'un personnage, ou une place sans colonne (au-delà de la 4ᵉ), n'est pas placé (sans erreur). **Pourquoi** : quatre
+  personnages font quatre colonnes dans la grille de 4 × 3 existante ; la table de touches et la géométrie n'ont pas changé,
+  et la touche d'un personnage est la même pour tous ses skills (la colonne), plus facile à retenir que quatre rangées.
 - **Touches** : grille Q W E R / A S D F / Z X C V, scancodes (touches physiques). La table est
   dans `Reglages` mais n'est ni lue ni écrite dans `reglages.ini` : `EcranJeu` la lit déjà dans
   le `Contexte`, c'est le chemin que prendra la configuration. R est l'emplacement 3 en jeu ; sur
@@ -259,13 +264,13 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
 - **Dessin** : `EcranJeu::dessiner` construit une `IconeDeRaccourci` par emplacement (état du
   skill demandé à l'escouade, nom de la touche, couleur du personnage lanceur par
   `Escouade::couleurDuPersonnage`, contour de visée) et `dessinerBarreDeSkills` les dessine aux
-  rectangles de `rectangleDeLEmplacement` : grille de 4 colonnes × 3 rangées, icônes de 48 px,
+  rectangles de `rectangleDeLEmplacement` : grille de 4 colonnes × 3 rangées (une colonne par personnage), icônes de 48 px,
   4 px d'écart, centrée en bas de la vue d'interface avec 10 px de marge. Le dessin et le clic
   partagent ce même calcul. Un emplacement vide est un cadre sombre avec seulement le nom de sa
   touche.
 - **Limites connues** : touches non configurables ni sauvegardées ; une seule barre ; la barre ne
   montre pas le skill en attente ; pas de survol, d'infobulle ni de clic droit sur la barre ; pas
-  d'interface pour placer les skills. Dans la grille par défaut, une 4ᵉ place n'a pas de rangée.
+  d'interface pour placer les skills. Dans la grille par défaut, une 5ᵉ place n'aurait pas de colonne et un 4ᵉ skill d'un personnage n'est pas placé.
 
 ## Mode visée : le skill de zone (étape 42)
 
@@ -642,7 +647,7 @@ même chose avec plus de détail.
 - Barre de raccourcis (étape 75) : elle ne montre pas le skill en attente ; les touches ne sont
   ni configurables ni sauvegardées (table dans `Reglages`, pas dans `reglages.ini`) ; une seule
   barre, pas de survol, d'infobulle ni de clic droit sur une icône, pas d'interface pour placer
-  les skills ; une 4ᵉ place n'a pas de rangée dans la disposition par défaut, et un 5ᵉ skill d'un
+  les skills ; une 5ᵉ place n'aurait pas de colonne dans la disposition par défaut (étape 106.3), et un 4ᵉ skill d'un
   personnage n'est pas placé. Sa position se recalcule à chaque image depuis la vue d'interface.
   La police se charge par chemin relatif : le jeu doit être lancé depuis le dossier de `main.exe`.
 
@@ -754,7 +759,7 @@ Trois fonctions libres :
 
 | Fonction | Rôle |
 |---|---|
-| `BarreDeRaccourcis barreParDefaut(const std::vector<AdresseSkill>& adresses)` | Barre de `s_emplacementsPrincipaux` emplacements : une rangée de 4 par personnage, dans l'ordre des places (place 1 : emplacements 0 à 3…), ses skills dans l'ordre reçu. Le 5ᵉ skill d'un personnage, ou une place sans rangée, n'est pas placé (sans erreur). Ne connaît pas `Escouade` ; `[[nodiscard]]` |
+| `BarreDeRaccourcis barreParDefaut(const std::vector<AdresseSkill>& adresses)` | Barre de `s_emplacementsPrincipaux` emplacements : une colonne de 3 par personnage, dans l'ordre des places (place p : emplacements p−1, p+3, p+7), ses skills dans l'ordre reçu (étape 106.3 ; une rangée de 4 avant). Le 4ᵉ skill d'un personnage, ou une place sans colonne, n'est pas placé (sans erreur). Ne connaît pas `Escouade` ; `[[nodiscard]]` |
 | `sf::FloatRect rectangleDeLEmplacement(std::size_t emplacement, sf::Vector2f tailleVue)` | Grille de 4 colonnes × 3 rangées, icônes de 48 px, 4 px d'écart, centrée en bas de la vue d'interface avec 10 px de marge ; l'emplacement 0 en haut à gauche ; `assert` ; `[[nodiscard]]` |
 | `std::optional<std::size_t> emplacementSous(sf::Vector2f point, sf::Vector2f tailleVue)` | Emplacement dont l'icône contient le point ; vide dans un écart ou hors barre. Construite sur `rectangleDeLEmplacement` : une seule source de vérité pour le dessin et le clic ; `[[nodiscard]]` |
 

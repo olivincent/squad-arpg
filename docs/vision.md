@@ -112,7 +112,8 @@ modules : `ChampDeVision` (l'algorithme), `Vision` (la connaissance du joueur) e
   permet des rayons différents par personnage ; les valeurs restent identiques.
 - `Escouade::cerclesDeVision()` : un `Cercle` (centre du personnage, rayon de vision) par
   personnage **vivant**. La vision de l'escouade est l'union des champs ; un mort ne voit
-  plus.
+  plus. L'escouade compte quatre personnages depuis l'étape 106 (`s_tailleDeLEscouade`, `docs/formation.md`) : l'union est de quatre
+  champs au plus, sans rien changer à l'algorithme (la vision lit les cercles de l'escouade, quel que soit leur nombre).
 
 ## Dans `Partie`
 
