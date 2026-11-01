@@ -360,7 +360,8 @@ void Partie::traduire(const std::vector<ResultatDEffet>& resultats) {
                                   if (const Monstre* monstre = trouverMonstre(provocation.monstre)) {
                                       signaler(monstre->getId(), monstre->getCentre(), Provoque{});
                                   }
-                              }},
+                              },
+                              [&](const SkillSansEnergie& refus) { signaler(refus.lanceur, refus.position, EnergieInsuffisante{}); }},
                    resultat);
     }
 }
@@ -387,7 +388,8 @@ void Partie::signaler(CibleDEvenement cible, sf::Vector2f position, DetailEvenem
                                                   [](const Esquive&) { return false; },
                                                   [](const Bloque&) { return false; },
                                                   [](const SacPlein&) { return false; },
-                                                  [](const NiveauAtteint&) { return false; }},
+                                                  [](const NiveauAtteint&) { return false; },
+                                                  [](const EnergieInsuffisante&) { return false; }},
                                        detail);
     if (montantNul) {
         return;

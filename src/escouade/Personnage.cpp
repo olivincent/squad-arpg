@@ -274,7 +274,12 @@ bool Personnage::peutEngagerSkill(IdSkill id) const {
     const Skill* skill = trouverSkill(id);
     // Un seul skill en activation à la fois, même si les recharges sont indépendantes.
     return estVivant() && skill != nullptr && !skillEngage().has_value() && skill->getPhase() == PhaseSkill::Pret &&
-           armeConvientA(*skill);
+           armeConvientA(*skill) && m_energie.suffit(skill->getCout());
+}
+
+bool Personnage::energieSuffit(IdSkill id) const {
+    const Skill* skill = trouverSkill(id);
+    return skill != nullptr && m_energie.suffit(skill->getCout());
 }
 
 std::optional<ActionEngagee> Personnage::skillEngage() const {
@@ -296,7 +301,9 @@ std::optional<Attaque> Personnage::avancerSkill(float dt, Generateur& generateur
         return std::nullopt;
     }
     m_actionEngagee.reset();
-    // Le skill est parti : l'attaque de base repart pour une recharge complète.
+    // Le skill est parti : son coût est payé (l'énergie a été vérifiée à l'engagement, et seul un skill à la fois s'active, donc rien
+    // n'a pu la dépenser depuis) et l'attaque de base repart pour une recharge complète.
+    m_energie.payer(skill.getCout());
     m_attaqueDeBase.relancerRecharge(generateur);
     return attaqueDuSkill(skill, generateur);
 }

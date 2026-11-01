@@ -31,6 +31,8 @@
 #include "objets/Objet.hpp"
 #include "escouade/Specialite.hpp"
 #include "combat/ModeDeCible.hpp"
+#include "combat/IdSkill.hpp"
+#include "combat/SkillConnu.hpp"
 
 namespace {
 // Un personnage construit depuis la définition de la classe (son attaque de base et sa zone de contrôle en viennent).
@@ -565,4 +567,36 @@ TEST_CASE("composer : la paire de croissance de la classe est gardee, quelle que
 
     REQUIRE(composition[0].croissance == specialite(IdSpecialite::Rodeur).definition.croissance);
     REQUIRE(composition[1].croissance == specialite(IdSpecialite::Rodeur).definition.croissance);
+}
+
+// Le coût en énergie des skills de classe (étape 108.3).
+
+TEST_CASE("cout en energie : chaque skill du catalogue des classes coute plus de 0") {
+    for (const Specialite& classe : catalogue()) {
+        for (const SkillConnu& connu : classe.definition.skills) {
+            INFO(classe.nom);
+            REQUIRE(connu.skill.getCout() > 0);
+        }
+    }
+}
+
+TEST_CASE("cout en energie : les valeurs calibrees du catalogue des classes") {
+    // Sorts (30 s avant le vide) : recharge × (2 + 100 / 30). Techniques (120 s) : recharge × (2 + 100 / 120). Arrondis au plus proche.
+    const auto cout = [](IdSpecialite classe, IdSkill skill) {
+        for (const SkillConnu& connu : specialite(classe).definition.skills) {
+            if (connu.id == skill) {
+                return connu.skill.getCout();
+            }
+        }
+        return -1;
+    };
+
+    REQUIRE(cout(IdSpecialite::Mage, IdSkill::Explosion) == 43);                // sort, recharge 8 s
+    REQUIRE(cout(IdSpecialite::Pretre, IdSkill::Soin) == 43);                   // sort, 8 s
+    REQUIRE(cout(IdSpecialite::Guerrier, IdSkill::FrappePuissante) == 14);      // technique, 5 s
+    REQUIRE(cout(IdSpecialite::Guerrier, IdSkill::Provocation) == 28);          // technique, 10 s
+    REQUIRE(cout(IdSpecialite::Paladin, IdSkill::FrappeSacree) == 14);          // technique, 5 s
+    REQUIRE(cout(IdSpecialite::Paladin, IdSkill::ImpositionDesMains) == 28);    // technique, 10 s
+    REQUIRE(cout(IdSpecialite::Rodeur, IdSkill::TirPercant) == 17);             // technique, 6 s
+    REQUIRE(cout(IdSpecialite::Rodeur, IdSkill::PluieDeFleches) == 23);         // technique, 8 s
 }

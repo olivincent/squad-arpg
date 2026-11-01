@@ -140,6 +140,7 @@ add_executable(tests
     tests/monde/test_TileMap.cpp
     tests/monde/test_Chemin.cpp
     tests/escouade/test_Escouade_deplacement.cpp
+    tests/escouade/test_Escouade_energie.cpp
     tests/escouade/test_Escouade_combat.cpp
     tests/escouade/test_Escouade_skills.cpp
     tests/escouade/test_Escouade_skills_degats.cpp

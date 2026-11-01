@@ -57,7 +57,9 @@ struct SacPlein {};
 struct NiveauAtteint {
     int niveau;
 };
-using DetailEvenement = std::variant<DegatsSubis, Soin, SkillLance, Provoque, Esquive, Bloque, SacPlein, NiveauAtteint>;
+// Un skill est refusé faute d'énergie (`SkillSansEnergie`), au-dessus de son lanceur.
+struct EnergieInsuffisante {};
+using DetailEvenement = std::variant<DegatsSubis, Soin, SkillLance, Provoque, Esquive, Bloque, SacPlein, NiveauAtteint, EnergieInsuffisante>;
 
 // `position` : COPIE du centre de la cible à ce moment ; aucune référence vers l'entité, qui peut
 // disparaître dans la même image (monstre tué par ce coup).

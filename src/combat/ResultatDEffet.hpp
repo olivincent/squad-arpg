@@ -33,6 +33,13 @@ struct ProvocationPosee {  // NOLINT(cppcoreguidelines-pro-type-member-init): ch
     IdMonstre monstre;
 };
 
+// Un skill demandé, ou en attente, est refusé faute d'énergie : le lanceur n'a pas de quoi payer son coût. Rien n'a eu lieu (ni
+// départ, ni recharge, ni coût) ; au-dessus du lanceur, à son centre.
+struct SkillSansEnergie {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
+    Place lanceur;
+    sf::Vector2f position;
+};
+
 // Les dégâts sur un monstre sont un `Coup` : une attaque à infliger à ce monstre (l'attaque de base, un skill de dégâts, de frappe
 // ou de zone, un coup d'opportunité).
-using ResultatDEffet = std::variant<SkillParti, Coup, SoinSurAllie, ProvocationPosee>;
+using ResultatDEffet = std::variant<SkillParti, Coup, SoinSurAllie, ProvocationPosee, SkillSansEnergie>;

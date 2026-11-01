@@ -9,6 +9,7 @@
 #include "combat/Degats.hpp"
 #include "combat/EffetDeSkill.hpp"
 #include "combat/Element.hpp"
+#include "combat/Energie.hpp"
 #include "combat/IdSkill.hpp"
 #include "combat/ModeDeCible.hpp"
 #include "combat/NatureDAttaque.hpp"
@@ -40,6 +41,24 @@ constexpr int s_degatsZone = 45;
 constexpr float s_rechargeZone = 8.0f;        // en secondes
 constexpr float s_activationZone = 0.8f;      // en secondes
 constexpr float s_rayonZone = 60.0f;          // rayon de zone, depuis le point visé
+
+// Le coût en énergie des skills (étape 108), déduit d'une règle de calibrage et non choisi un par un : à partir d'une réserve pleine
+// de niveau 1, un personnage qui lance un skill à chaque fin de recharge, avec la régénération de base, tombe à sec en `T` secondes.
+// Avec la recharge `r` du skill, il dépense `coût / r` points par seconde et en regagne `s_regenerationDEnergieDeBase` :
+//   coût / r − régénération = réserve / T, donc coût = r × (régénération + réserve / T),
+// arrondi au plus proche. `T` vaut 30 s pour un sort (l'explosion du mage, le soin du prêtre) et 120 s pour une technique (tout autre
+// skill de classe). Cette distinction ne sert qu'au calibrage : ce n'est pas un concept du jeu, un skill ne la porte pas. « À tester ».
+constexpr float s_secondesAvantLeVideDUnSort = 30.0f;
+constexpr float s_secondesAvantLeVideDUneTechnique = 120.0f;
+constexpr int coutCalibre(float recharge, float secondesAvantLeVide) {
+    return static_cast<int>(recharge * (s_regenerationDEnergieDeBase + static_cast<float>(s_energieDeBase) / secondesAvantLeVide) + 0.5f);
+}
+constexpr int coutDUnSort(float recharge) {
+    return coutCalibre(recharge, s_secondesAvantLeVideDUnSort);
+}
+constexpr int coutDUneTechnique(float recharge) {
+    return coutCalibre(recharge, s_secondesAvantLeVideDUneTechnique);
+}
 
 // Paladin et rôdeur : valeurs provisoires, à ajuster après test.
 // Le bonus sacré de la frappe sacrée s'ajoute aux dégâts de l'arme. Calibré à l'étape 94 sur une masse de départ de 15 (15 + 45 =
@@ -127,14 +146,16 @@ std::vector<Specialite> construireLeCatalogue() {
                                                        .rechargeMax = s_rechargeSkill,
                                                        .effet = EffetDegats{.montant = s_degatsSkill, .nature = NatureDAttaque::Contact, .coefficients = s_puissanceSeule},
                                                        .tempsExecution = s_activationSkill,
-                                                       .armesExigees = s_armesDeContact})},
+                                                       .armesExigees = s_armesDeContact,
+                                                       .cout = coutDUneTechnique(s_rechargeSkill)})},
            {IdSkill::Provocation, Skill({.mode = ModeDeCible::Soi,
                                          .portee = 0.0f,
                                          .rechargeMin = s_rechargeProvocation,
                                          .rechargeMax = s_rechargeProvocation,
                                          .effet = EffetProvocation{.duree = s_dureeProvocation},
                                          .rayonZone = s_rayonProvocation,
-                                         .tempsExecution = s_activationProvocation})}},
+                                         .tempsExecution = s_activationProvocation,
+                                         .cout = coutDUneTechnique(s_rechargeProvocation)})}},
           .equipementDeDepart = equipementDeMelee(IdObjet::EpeeAUneMain), .rayonVision = s_rayonVision,
           .caracteristiques = s_caracteristiquesGuerrier, .croissance = s_croissanceGuerrier,
           .rang = Rang::Avant}},
@@ -146,7 +167,8 @@ std::vector<Specialite> construireLeCatalogue() {
                                             .rechargeMin = s_rechargeSoin,
                                             .rechargeMax = s_rechargeSoin,
                                             .effet = EffetSoin{.montant = s_puissanceSoin, .coefficients = s_puissanceSeule},
-                                            .tempsExecution = s_activationSoin})}},
+                                            .tempsExecution = s_activationSoin,
+                                            .cout = coutDUnSort(s_rechargeSoin)})}},
           .equipementDeDepart = equipementDuPretre(IdObjet::Sceptre), .rayonVision = s_rayonVision,
           .caracteristiques = s_caracteristiquesPretre, .croissance = s_croissancePretre,
           .rang = Rang::Arriere}},
@@ -159,7 +181,8 @@ std::vector<Specialite> construireLeCatalogue() {
                                                  .rechargeMax = s_rechargeZone,
                                                  .effet = EffetDegats{.montant = s_degatsZone, .nature = NatureDAttaque::Zone, .element = Element::Feu, .coefficients = s_puissanceSeule},
                                                  .rayonZone = s_rayonZone,
-                                                 .tempsExecution = s_activationZone})}},
+                                                 .tempsExecution = s_activationZone,
+                                                 .cout = coutDUnSort(s_rechargeZone)})}},
           .equipementDeDepart = equipementDeTireur(IdObjet::Baton, IdObjet::Robe), .rayonVision = s_rayonVision,
           .caracteristiques = s_caracteristiquesMage, .croissance = s_croissanceMage,
           .rang = Rang::Arriere}},
@@ -172,13 +195,15 @@ std::vector<Specialite> construireLeCatalogue() {
                                                     .rechargeMax = s_rechargeFrappeSacree,
                                                     .effet = EffetFrappe{.bonus = degatsDe(Element::Sacre, s_bonusSacreFrappeSacree), .coefficients = s_puissanceSeule},
                                                     .tempsExecution = s_activationFrappeSacree,
-                                                    .armesExigees = s_armesDeContact})},
+                                                    .armesExigees = s_armesDeContact,
+                                                    .cout = coutDUneTechnique(s_rechargeFrappeSacree)})},
            {IdSkill::ImpositionDesMains, Skill({.mode = ModeDeCible::Allie,
                                                 .portee = s_porteeMelee,
                                                 .rechargeMin = s_rechargeImposition,
                                                 .rechargeMax = s_rechargeImposition,
                                                 .effet = EffetSoin{.montant = s_puissanceImposition, .coefficients = s_puissanceSeule},
-                                                .tempsExecution = s_activationImposition})}},
+                                                .tempsExecution = s_activationImposition,
+                                                .cout = coutDUneTechnique(s_rechargeImposition)})}},
           .equipementDeDepart = equipementDeMelee(IdObjet::MasseAUneMain), .rayonVision = s_rayonVision,
           .caracteristiques = s_caracteristiquesPaladin, .croissance = s_croissancePaladin,
           .rang = Rang::Avant}},
@@ -191,7 +216,8 @@ std::vector<Specialite> construireLeCatalogue() {
                                                   .rechargeMax = s_rechargeTirPercant,
                                                   .effet = EffetDegats{.montant = s_degatsTirPercant, .nature = NatureDAttaque::Projectile, .coefficients = s_puissanceSeule},
                                                   .tempsExecution = s_activationTirPercant,
-                                                  .armesExigees = s_armesDeTir})},
+                                                  .armesExigees = s_armesDeTir,
+                                                  .cout = coutDUneTechnique(s_rechargeTirPercant)})},
            {IdSkill::PluieDeFleches, Skill({.mode = ModeDeCible::Point,
                                             .portee = s_porteePluie,
                                             .rechargeMin = s_rechargePluie,
@@ -199,7 +225,8 @@ std::vector<Specialite> construireLeCatalogue() {
                                             .effet = EffetDegats{.montant = s_degatsPluie, .nature = NatureDAttaque::Zone, .coefficients = s_puissanceSeule},
                                             .rayonZone = s_rayonPluie,
                                             .tempsExecution = s_activationPluie,
-                                            .armesExigees = s_armesDeTir})}},
+                                            .armesExigees = s_armesDeTir,
+                                            .cout = coutDUneTechnique(s_rechargePluie)})}},
           .equipementDeDepart = equipementDeTireur(IdObjet::Arc, IdObjet::Justaucorps), .rayonVision = s_rayonVision,
           .caracteristiques = s_caracteristiquesRodeur, .croissance = s_croissanceRodeur,
           .rang = Rang::Arriere}},

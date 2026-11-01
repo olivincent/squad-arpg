@@ -48,6 +48,9 @@ struct DefinitionDeSkill {  // NOLINT(cppcoreguidelines-pro-type-member-init): c
     // vide : aucune exigence. Sans l'une de ces armes en main droite (les mains nues n'en sont pas une), le skill est
     // refusé comme celui d'un lanceur mort.
     std::vector<TypeDArme> armesExigees = {};
+    // L'énergie que le skill coûte à son lanceur (étape 108) : vérifiée à l'engagement, payée au départ de l'effet, jamais pour un skill
+    // annulé. 0 : gratuit (l'attaque de base et les skills des monstres, qui n'ont pas d'énergie).
+    int cout = 0;
 };
 
 class Skill {
@@ -73,6 +76,7 @@ public:
     [[nodiscard]] std::optional<float> getRayonZone() const;
     [[nodiscard]] float getPortee() const;
     [[nodiscard]] const std::vector<TypeDArme>& getArmesExigees() const;
+    [[nodiscard]] int getCout() const;
     // Cette arme (vide : les mains nues) permet-elle de lancer le skill ? Toujours vrai sans exigence.
     [[nodiscard]] bool convientA(std::optional<TypeDArme> arme) const;
 
@@ -87,6 +91,7 @@ private:
     std::optional<float> m_rayonZone;
     float m_tempsExecution; // en secondes, entre l'engagement du coup et son départ
     std::vector<TypeDArme> m_armesExigees;
+    int m_cout;             // en points d'énergie
     float m_executionRestante; // en secondes, lue seulement en phase EnExecution
     PhaseSkill m_phase;
 

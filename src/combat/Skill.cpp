@@ -15,11 +15,13 @@ Skill::Skill(const DefinitionDeSkill& definition)
       m_rayonZone(definition.rayonZone),
       m_tempsExecution(definition.tempsExecution),
       m_armesExigees(definition.armesExigees),
+      m_cout(definition.cout),
       m_executionRestante(0.0f),
       m_phase(PhaseSkill::Pret)
 {
     assert(m_rechargeMin >= 0.0f && m_rechargeMin <= m_rechargeMax);
     assert(m_tempsExecution >= 0.0f);
+    assert(m_cout >= 0);
     assert(!m_rayonZone.has_value() || *m_rayonZone > 0.0f);
     assert(m_mode != ModeDeCible::Point || m_rayonZone.has_value());  // un skill à point touche une zone
     // On vise un monstre pour lui faire des dégâts ou le provoquer, un allié pour le soigner.
@@ -119,6 +121,10 @@ float Skill::getPortee() const {
 
 const std::vector<TypeDArme>& Skill::getArmesExigees() const {
     return m_armesExigees;
+}
+
+int Skill::getCout() const {
+    return m_cout;
 }
 
 bool Skill::convientA(std::optional<TypeDArme> arme) const {

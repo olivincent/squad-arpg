@@ -72,6 +72,9 @@ public:
     [[nodiscard]] std::vector<ResultatDEffet> attaquer(float dt, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur);
     [[nodiscard]] std::vector<ResultatDEffet> declencherSkill(AdresseSkill adresse, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur);
     [[nodiscard]] bool skillEstPret(AdresseSkill adresse) const;
+    // L'énergie du lanceur couvre le coût du skill (`Personnage::energieSuffit`). Faux si la place est invalide. Distinct de
+    // `skillEstPret` : un skill prêt mais trop cher est refusé avec un résultat `SkillSansEnergie`, pas en silence.
+    [[nodiscard]] bool energieSuffit(AdresseSkill adresse) const;
     [[nodiscard]] std::optional<EtatSkill> etatDuSkill(AdresseSkill adresse) const;
     // Comment le skill à cette adresse vise ; vide si la place est invalide ou le skill inconnu de ce personnage.
     [[nodiscard]] std::optional<ModeDeCible> modeDuSkill(AdresseSkill adresse) const;
@@ -85,6 +88,10 @@ public:
     [[nodiscard]] std::optional<int> pointsDeVieDuPersonnage(Place place) const;
     // Points de vie maximum du personnage de cette place ; vide si la place est invalide.
     [[nodiscard]] std::optional<int> pointsDeVieMaxDuPersonnage(Place place) const;
+    // Énergie et énergie maximum du personnage de cette place ; vide si la place est invalide. Lues par l'écran d'inventaire et par
+    // les tests (le jeu montre sinon l'énergie par la barre dessinée sous la barre de vie).
+    [[nodiscard]] std::optional<int> energieDuPersonnage(Place place) const;
+    [[nodiscard]] std::optional<int> energieMaxDuPersonnage(Place place) const;
     // Caractéristiques effectives (base plus équipement) du personnage de cette place ; vide si la place est invalide.
     [[nodiscard]] std::optional<Caracteristiques> caracteristiquesDuPersonnage(Place place) const;
     // Caractéristiques de base (celles de sa classe, sans l'équipement) du personnage de cette place ; vide si la place est
@@ -221,6 +228,11 @@ private:
     void annulerSkillDeDegatsEnAttente();
     // Abandonne le skill en attente dont le lanceur n'a plus l'arme qu'il exige (sans recharge consommée).
     void abandonnerLeSkillEnAttenteSansArme();
+    // Abandonne, sans coût ni recharge, le skill en attente dont le lanceur est libre mais n'a plus de quoi le payer (il a payé un
+    // autre skill entre-temps) ; rend alors le refus à signaler.
+    [[nodiscard]] std::vector<ResultatDEffet> abandonnerLeSkillEnAttenteSansEnergie();
+    // Le refus d'un skill faute d'énergie, au-dessus de son lanceur.
+    [[nodiscard]] std::vector<ResultatDEffet> refusSansEnergie(Place lanceur) const;
     [[nodiscard]] std::optional<Place> placeDuVivantLePlusProche(sf::Vector2f point) const;
     [[nodiscard]] std::optional<Place> placeDeLaProie(IdMonstre idMonstre, sf::Vector2f positionMonstre) const;
     // Avec quoi un personnage atteint une cible : son attaque de base ou son skill.

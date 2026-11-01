@@ -529,3 +529,20 @@ TEST_CASE("un skill ordinaire n'a pas de bonus de frappe, un skill de frappe a l
     REQUIRE(std::get<EffetFrappe>(frappe.getEffet()).bonus[Element::Sacre] == 45);
     REQUIRE(std::get<EffetDegats>(ordinaire.getEffet()).element == Element::Physique);
 }
+
+TEST_CASE("Skill : le cout en energie est de 0 par defaut et se lit par getCout") {
+    const Skill gratuit({.mode = ModeDeCible::Monstre,
+                         .portee = 80.0f,
+                         .rechargeMin = 5.0f,
+                         .rechargeMax = 5.0f,
+                         .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}});
+    const Skill payant({.mode = ModeDeCible::Monstre,
+                        .portee = 80.0f,
+                        .rechargeMin = 5.0f,
+                        .rechargeMax = 5.0f,
+                        .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact},
+                        .cout = 43});
+
+    REQUIRE(gratuit.getCout() == 0);
+    REQUIRE(payant.getCout() == 43);
+}

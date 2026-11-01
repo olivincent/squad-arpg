@@ -6,6 +6,7 @@
 #include "monde/CategorieDeMonstre.hpp"
 #include "monstres/DefinitionDeMonstre.hpp"
 #include "combat/EffetDeSkill.hpp"
+#include "monstres/RoleDeMonstre.hpp"
 
 // Le renforcement par la profondeur (étape 98.3).
 namespace {
@@ -142,4 +143,15 @@ TEST_CASE("experience : au troisieme etage, +50 % arrondi au plus proche") {
     REQUIRE(renforcer(definitionDeMonstre(CategorieDeMonstre::Infanterie), 3).experience == 15);
     REQUIRE(renforcer(definitionDeMonstre(CategorieDeMonstre::InfanterieLourde), 3).experience == 38);   // 37,5
     REQUIRE(renforcer(definitionDeMonstre(CategorieDeMonstre::CreatureMonstrueuse), 3).experience == 150);
+}
+
+// Les monstres n'ont pas d'énergie : ni leur attaque ni leur soin n'ont de coût (étape 108.3).
+TEST_CASE("cout en energie : aucun skill de monstre n'a de cout") {
+    for (const CategorieDeMonstre categorie : s_categoriesDeMonstre) {
+        const DefinitionDeMonstre& definition = definitionDeMonstre(catalogueDeMonstres(), categorie);
+        REQUIRE(definition.attaque.cout == 0);
+        if (const RoleSoigneur* soigneur = std::get_if<RoleSoigneur>(&definition.role)) {
+            REQUIRE(soigneur->soin.cout == 0);
+        }
+    }
 }

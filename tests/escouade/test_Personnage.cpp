@@ -1999,3 +1999,120 @@ TEST_CASE("energie : changer d'equipement ne change pas l'energie") {
     REQUIRE(personnage.getEnergie() == s_energieDeBase);
     REQUIRE(personnage.getEnergieMax() == s_energieDeBase);
 }
+
+// Le coût des skills (étape 108.3).
+namespace {
+// Un personnage dont le skill de dégâts coûte `cout` (activation nulle : l'effet part au premier tic).
+Personnage unPersonnageQuiPaie(int cout) {
+    DefinitionPersonnage definition = definitionArmee();
+    definition.skills.push_back({IdSkill::FrappePuissante, Skill({.mode = ModeDeCible::Monstre,
+                                                                  .portee = 100.0f,
+                                                                  .rechargeMin = 5.0f,
+                                                                  .rechargeMax = 5.0f,
+                                                                  .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact},
+                                                                  .cout = cout})});
+    return unPersonnage({100.0f, 100.0f}, std::move(definition));
+}
+}  // namespace
+
+TEST_CASE("cout : energieSuffit compare l'energie au cout du skill, au point pres") {
+    const Personnage exact = unPersonnageQuiPaie(s_energieDeBase);
+    const Personnage trop = unPersonnageQuiPaie(s_energieDeBase + 1);
+
+    REQUIRE(exact.energieSuffit(IdSkill::FrappePuissante));
+    REQUIRE_FALSE(trop.energieSuffit(IdSkill::FrappePuissante));
+    REQUIRE_FALSE(exact.energieSuffit(IdSkill::Soin));  // un skill qu'il ne connaît pas
+}
+
+TEST_CASE("cout : un skill trop cher n'est pas engage, rien ne change") {
+    Personnage personnage = unPersonnageQuiPaie(s_energieDeBase + 1);
+
+    REQUIRE(personnage.skillEstPret(IdSkill::FrappePuissante));  // prêt au sens de la recharge et de l'arme
+    REQUIRE_FALSE(personnage.peutEngagerSkill(IdSkill::FrappePuissante));
+    REQUIRE_FALSE(personnage.engagerSkill(IdSkill::FrappePuissante, std::nullopt));
+    REQUIRE_FALSE(personnage.skillEngage().has_value());
+    REQUIRE(personnage.getEnergie() == s_energieDeBase);
+}
+
+TEST_CASE("cout : engager ne paie rien, l'effet qui part paie") {
+    Generateur generateur = generateurDeTest();
+    Personnage personnage = unPersonnageQuiPaie(43);
+
+    REQUIRE(personnage.engagerSkill(IdSkill::FrappePuissante, std::nullopt));
+    REQUIRE(personnage.getEnergie() == s_energieDeBase);
+
+    REQUIRE(personnage.avancerSkill(s_dureeTic, generateur).has_value());
+    REQUIRE(personnage.getEnergie() == s_energieDeBase - 43);
+}
+
+TEST_CASE("cout : un skill annule ne coute rien") {
+    Personnage personnage = unPersonnageQuiPaie(43);
+    REQUIRE(personnage.engagerSkill(IdSkill::FrappePuissante, std::nullopt));
+
+    personnage.annulerSkill();
+
+    REQUIRE(personnage.getEnergie() == s_energieDeBase);
+    REQUIRE(personnage.skillEstPret(IdSkill::FrappePuissante));
+}
+
+TEST_CASE("cout : un skill gratuit se lance a energie nulle") {
+    Generateur generateur = generateurDeTest();
+    Personnage payeur = unPersonnageQuiPaie(s_energieDeBase);
+    Personnage gratuit = unPersonnageQuiPaie(0);
+    const Attaque tout = lancerSkillEnEntier(payeur, std::nullopt, generateur);  // vide la réserve
+    REQUIRE(tout.degats.total() > 0);
+    REQUIRE(payeur.getEnergie() == 0);
+
+    const Attaque rien = lancerSkillEnEntier(gratuit, std::nullopt, generateur);
+
+    REQUIRE(rien.degats.total() > 0);
+    REQUIRE(gratuit.getEnergie() == s_energieDeBase);
+}
+
+TEST_CASE("energie : un vivant regenere 2 points par seconde apres avoir paye") {
+    Generateur generateur = generateurDeTest();
+    const TileMap carte = carteDegagee5x5();
+    Personnage personnage = unPersonnageQuiPaie(50);
+    static_cast<void>(lancerSkillEnEntier(personnage, std::nullopt, generateur));
+    REQUIRE(personnage.getEnergie() == s_energieDeBase - 50);
+
+    ecoulerTemps(personnage, carte, personnage.getCentre(), 10.0f);
+
+    REQUIRE(personnage.getEnergie() >= s_energieDeBase - 50 + 19);
+    REQUIRE(personnage.getEnergie() <= s_energieDeBase - 50 + 20);
+}
+
+TEST_CASE("energie : la regeneration s'arrete au maximum") {
+    const TileMap carte = carteDegagee5x5();
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, guerrierSousLeSeuil());
+
+    ecoulerTemps(personnage, carte, personnage.getCentre(), 5.0f);
+
+    REQUIRE(personnage.getEnergie() == personnage.getEnergieMax());
+}
+
+TEST_CASE("energie : un mort ne regenere pas") {
+    Generateur generateur = generateurDeTest();
+    const TileMap carte = carteDegagee5x5();
+    Personnage personnage = unPersonnageQuiPaie(50);
+    static_cast<void>(lancerSkillEnEntier(personnage, std::nullopt, generateur));
+    subir(personnage, personnage.getPointsDeVieMax());
+    REQUIRE_FALSE(personnage.estVivant());
+    const int avant = personnage.getEnergie();
+
+    ecoulerTemps(personnage, carte, personnage.getCentre(), 10.0f);
+
+    REQUIRE(personnage.getEnergie() == avant);
+}
+
+TEST_CASE("energie : un vivant qui monte de niveau gagne autant d'energie que son maximum") {
+    Generateur generateur = generateurDeTest();
+    Personnage personnage = unPersonnageQuiPaie(50);
+    static_cast<void>(lancerSkillEnEntier(personnage, std::nullopt, generateur));
+    const int manque = personnage.getEnergieMax() - personnage.getEnergie();
+
+    personnage.monterAuNiveau(3);
+
+    REQUIRE(personnage.getEnergieMax() == s_energieDeBase + 2 * s_energieParNiveau);
+    REQUIRE(personnage.getEnergieMax() - personnage.getEnergie() == manque);  // le manque ne change pas
+}

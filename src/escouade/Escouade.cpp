@@ -150,12 +150,14 @@ std::vector<ResultatDEffet> Escouade::attaquer(float dt, const std::vector<Monst
         personnage.relancerSiLArmeAChange(generateur);  // une arme changée dans l'inventaire : recharge complète
     }
     actualiserMemoires(monstres);
+    std::vector<ResultatDEffet> resultats = abandonnerLeSkillEnAttenteSansEnergie();
     engagerSkillDeZoneEnAttente(carte);
     engagerSkillSurSoiEnAttente();
     approcherVerrou(monstres, carte);
     engagerSkillDeDegatsEnAttente(monstres, carte);
 
-    std::vector<ResultatDEffet> resultats = avancerSkills(dt, monstres, carte, generateur);
+    const std::vector<ResultatDEffet> desSkills = avancerSkills(dt, monstres, carte, generateur);
+    resultats.insert(resultats.end(), desSkills.begin(), desSkills.end());
     const std::vector<ResultatDEffet> deLAutodefense = autodefense(dt, monstres, carte, generateur);
     resultats.insert(resultats.end(), deLAutodefense.begin(), deLAutodefense.end());
     return resultats;
@@ -439,6 +441,10 @@ std::vector<ResultatDEffet> Escouade::declencherSkill(AdresseSkill adresse, cons
     if (!mode.has_value() || m_skillEnAttente.has_value() || !lanceur.skillEstPret(id)) {
         return {};
     }
+    // Prêt mais trop cher : refusé, et non mis en attente (l'énergie ne remonte pas assez vite pour qu'on attende).
+    if (!lanceur.energieSuffit(id)) {
+        return refusSansEnergie(place);
+    }
 
     // Soi (la provocation) : sans cible, centré sur le lanceur. Son activation commence tout de suite si le lanceur est libre ; sinon
     // (il active un autre skill) il est mis en attente, comme un skill à cible, et part dès que le lanceur est libre. Il touche les
@@ -498,6 +504,14 @@ bool Escouade::skillEstPret(AdresseSkill adresse) const {
     return placeValide(adresse.place) && personnageDeLaPlace(adresse.place).skillEstPret(adresse.id);
 }
 
+bool Escouade::energieSuffit(AdresseSkill adresse) const {
+    return placeValide(adresse.place) && personnageDeLaPlace(adresse.place).energieSuffit(adresse.id);
+}
+
+std::vector<ResultatDEffet> Escouade::refusSansEnergie(Place lanceur) const {
+    return {SkillSansEnergie{lanceur, personnageDeLaPlace(lanceur).getCentre()}};
+}
+
 std::optional<EtatSkill> Escouade::etatDuSkill(AdresseSkill adresse) const {
     if (!placeValide(adresse.place)) {
         return std::nullopt;
@@ -541,6 +555,20 @@ std::optional<int> Escouade::pointsDeVieMaxDuPersonnage(Place place) const {
         return std::nullopt;
     }
     return personnageDeLaPlace(place).getPointsDeVieMax();
+}
+
+std::optional<int> Escouade::energieDuPersonnage(Place place) const {
+    if (!placeValide(place)) {
+        return std::nullopt;
+    }
+    return personnageDeLaPlace(place).getEnergie();
+}
+
+std::optional<int> Escouade::energieMaxDuPersonnage(Place place) const {
+    if (!placeValide(place)) {
+        return std::nullopt;
+    }
+    return personnageDeLaPlace(place).getEnergieMax();
 }
 
 std::optional<Caracteristiques> Escouade::caracteristiquesDuPersonnage(Place place) const {
@@ -620,6 +648,9 @@ std::vector<ResultatDEffet> Escouade::declencherSkillDeZone(AdresseSkill adresse
     Personnage& lanceur = personnageDeLaPlace(adresse.place);
     if (lanceur.modeSkill(id) != ModeDeCible::Point) {
         return {};
+    }
+    if (!lanceur.energieSuffit(id)) {
+        return refusSansEnergie(adresse.place);
     }
 
     // Un point dans un mur est refusé : ni départ, ni attente, ni recharge.
@@ -1314,6 +1345,22 @@ std::optional<Objet> Escouade::retirerObjet(const PositionDObjet& position) {
                                              position);
     abandonnerLeSkillEnAttenteSansArme();
     return retire;
+}
+
+// Un skill en attente dont le lanceur est libre (aucun skill en activation) mais n'a plus de quoi le payer est abandonné, sans coût ni
+// recharge, et signalé. Tant que le lanceur active un autre skill, on attend : c'est ce skill, une fois parti, qui peut avoir vidé la
+// réserve. Un lanceur mort est déjà traité par `avancerSkillEnAttente` : pas de texte au-dessus d'un mort.
+std::vector<ResultatDEffet> Escouade::abandonnerLeSkillEnAttenteSansEnergie() {
+    if (!m_skillEnAttente.has_value()) {
+        return {};
+    }
+    const AdresseSkill adresse = m_skillEnAttente->adresse;
+    const Personnage& lanceur = personnageDeLaPlace(adresse.place);
+    if (!lanceur.estVivant() || lanceur.skillEngage().has_value() || lanceur.energieSuffit(adresse.id)) {
+        return {};
+    }
+    m_skillEnAttente = std::nullopt;
+    return refusSansEnergie(adresse.place);
 }
 
 // Un skill en attente dont le lanceur n'a plus l'arme qu'il exige est abandonné (sans recharge consommée).

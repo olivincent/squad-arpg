@@ -92,13 +92,17 @@ public:
     // prêt, aucun autre skill en activation ; annule le coup de base en
     // exécution, mais ne demande pas d'immobilité) ; avancer l'activation, qui
     // rend l'attaque (dégâts, soin ou durée de provocation selon l'effet du skill, et capacité offensive) au moment
-    // où l'effet part, vide avant (et relance la recharge de l'attaque de base) ; annuler, sans recharge consommée. Une seule action
+    // où l'effet part, vide avant (et relance la recharge de l'attaque de base, et paie le coût en énergie) ; annuler, sans recharge
+    // ni coût. Une seule action
     // engagée à la fois ; les recharges des skills sont indépendantes. La portée
     // et la vue sont vérifiées par Escouade ; la cible est stockée sans être interprétée.
     [[nodiscard]] bool engagerSkill(IdSkill id, std::optional<Cible> cible);
     // Les conditions d'engagerSkill : vivant, skill connu et prêt, arme exigée portée, aucun skill en
-    // activation (le lanceur est libre).
+    // activation (le lanceur est libre), énergie suffisante (`energieSuffit`).
     [[nodiscard]] bool peutEngagerSkill(IdSkill id) const;
+    // Son énergie couvre le coût du skill (`Skill::getCout`). Faux pour un skill qu'il ne connaît pas. Le coût est vérifié à
+    // l'engagement et payé au départ de l'effet (`avancerSkill`) : un skill annulé ne coûte rien.
+    [[nodiscard]] bool energieSuffit(IdSkill id) const;
     [[nodiscard]] std::optional<ActionEngagee> skillEngage() const;
     [[nodiscard]] std::optional<Attaque> avancerSkill(float dt, Generateur& generateur);
     void annulerSkill();
