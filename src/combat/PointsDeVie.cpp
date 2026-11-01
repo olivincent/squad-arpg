@@ -1,56 +1,42 @@
 // ./src/combat/PointsDeVie.cpp
 #include "combat/PointsDeVie.hpp"
-#include <algorithm>
-#include <cassert>
 
 PointsDeVie::PointsDeVie(int maximum)
-    : m_valeur(maximum),
-      m_maximum(maximum)
+    : m_jauge(maximum)
 {
-    assert(maximum > 0);
 }
 
 void PointsDeVie::subirDegats(int montant) {
-    assert(montant >= 0);
-    m_valeur -= montant;
-    if (m_valeur < 0) {
-        m_valeur = 0;
-    }
+    static_cast<void>(m_jauge.retirer(montant));  // seule compte la valeur qui reste, pas ce qui a été retiré
 }
 
 int PointsDeVie::soigner(int montant) {
-    assert(montant >= 0);
     if (!estVivant()) {
         return 0;
     }
-    const int avant = m_valeur;
-    m_valeur += montant;
-    if (m_valeur > m_maximum) {
-        m_valeur = m_maximum;
-    }
-    return m_valeur - avant;
+    return m_jauge.ajouter(montant);
 }
 
 void PointsDeVie::changerMaximum(int nouveauMaximum) {
-    assert(nouveauMaximum > 0);
     if (estVivant()) {
-        m_valeur = std::clamp(m_valeur + (nouveauMaximum - m_maximum), 1, nouveauMaximum);
+        m_jauge.changerMaximum(nouveauMaximum, 1);
+    } else {
+        m_jauge.definirMaximum(nouveauMaximum);
     }
-    m_maximum = nouveauMaximum;
 }
 
 bool PointsDeVie::estVivant() const {
-    return m_valeur > 0;
+    return m_jauge.getValeur() > 0;
 }
 
 int PointsDeVie::getValeur() const {
-    return m_valeur;
+    return m_jauge.getValeur();
 }
 
 int PointsDeVie::getMaximum() const {
-    return m_maximum;
+    return m_jauge.getMaximum();
 }
 
 float PointsDeVie::getRatio() const {
-    return static_cast<float>(m_valeur) / static_cast<float>(m_maximum);
+    return m_jauge.getRatio();
 }

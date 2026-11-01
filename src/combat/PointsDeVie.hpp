@@ -1,12 +1,13 @@
 // ./src/combat/PointsDeVie.hpp
 #pragma once
+#include "combat/Jauge.hpp"
 
 // Les points de vie d'une entité. Invariants, garantis par la classe :
 //   - 0 <= valeur <= maximum ;
 //   - maximum > 0 ;
 //   - une valeur à 0 ne remonte plus (un mort ne se soigne pas : la mort
 //     est définitive).
-// Commence plein. Ne dépend d'aucun autre module du projet.
+// Commence plein. Le plafond et le plancher à 0 sont ceux de la `Jauge` qu'elle possède ; la mort est sa règle à elle.
 class PointsDeVie {
 public:
     explicit PointsDeVie(int maximum);
@@ -24,6 +25,5 @@ public:
     [[nodiscard]] float getRatio() const;
 
 private:
-    int m_valeur;
-    int m_maximum;
+    Jauge m_jauge;
 };
