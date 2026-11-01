@@ -2,6 +2,8 @@
 #include "monstres/DefinitionDeMonstre.hpp"
 #include <cassert>
 #include <cstddef>
+#include <variant>
+#include "combat/Cible.hpp"
 #include "combat/Degats.hpp"
 #include "combat/EffetDeSkill.hpp"
 #include "combat/Element.hpp"
@@ -146,5 +148,13 @@ DefinitionDeMonstre renforcer(const DefinitionDeMonstre& definition, int profond
     renforcee.statistiques.capaciteOffensive += s_capaciteParEtage * etagesEnPlus;
     renforcee.statistiques.capaciteDefensive += s_capaciteParEtage * etagesEnPlus;
     renforcee.experience = majoree(definition.experience, s_pourcentDExperienceParEtage * etagesEnPlus);
+    // Le soin d'un soigneur est majoré du même pourcentage que les dégâts ; les deux autres rôles n'ont rien à majorer.
+    std::visit(Surcharges{[](RoleMelee&) {},
+                          [](RoleTireur&) {},
+                          [etagesEnPlus](RoleSoigneur& soigneur) {
+                              EffetSoin& soin = std::get<EffetSoin>(soigneur.soin.effet);
+                              soin.montant = majoree(soin.montant, s_pourcentDeDegatsParEtage * etagesEnPlus);
+                          }},
+               renforcee.role);
     return renforcee;
 }

@@ -189,8 +189,12 @@ private:
     // Étapes de mettreAJour(), dans l'ordre où elles sont appelées.
     void resoudreLesCoups(float dt);
     void faireTournerLesMonstres(float dt);
-    void faireFrapperLeMonstre(Monstre& monstre, std::optional<PersonnageVu> proie,
-                               const std::vector<PersonnageVu>& candidats, float dt);
+    // Ce que le monstre engage ou fait partir cette image : un coup, ou le soin d'un soigneur.
+    void faireAgirLeMonstre(Monstre& monstre, std::optional<PersonnageVu> proie, const std::vector<PersonnageVu>& candidats,
+                            const std::vector<AllieVu>& allies, float dt);
+    // Fait avancer le soin engagé de ce soigneur sur le monstre `idSoigne`, ou l'annule s'il n'est plus soignable ; au départ,
+    // le soigne et signale le soin.
+    void faireSoignerLeMonstre(Monstre& soigneur, IdMonstre idSoigne, float dt);
     // Les deux camps tels que la règle des zones de contrôle les voit (Engagement.hpp) : les personnages
     // vivants et les monstres vivants qui ne rentrent pas à leur poste (invulnérables, ils n'engagent
     // personne et ne sont engagés par personne).

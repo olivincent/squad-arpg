@@ -22,6 +22,13 @@
 
 class TileMap;
 
+// Un soin qui part : le membre du groupe à soigner et le montant, rendus par `Monstre::avancerSoin`. Le monstre ne touche jamais un
+// autre monstre : c'est `Partie` qui l'applique, comme elle applique l'attaque (`Attaque`).
+struct SoinDeMonstre {
+    IdMonstre cible;
+    int montant;
+};
+
 class Monstre {
 public:
     // `groupe` est un identifiant opaque : des monstres de même groupe « vont
@@ -57,6 +64,18 @@ public:
     [[nodiscard]] std::optional<Place> cibleEngagee() const;
     [[nodiscard]] std::optional<Attaque> avancerAttaque(float dt, Generateur& generateur);
     void annulerAttaque();
+    // Le soin du soigneur, en trois temps comme l'attaque. Engager : le soigneur est en poursuite, immobile, sans coup engagé, son
+    // soin est prêt, et le plus blessé de `allies` (`choisirLeBlesse`) est à portée ET en vue ; il est retenu jusqu'au départ.
+    // Faux pour tout autre monstre. Un soin et un coup ne sont jamais engagés ensemble.
+    [[nodiscard]] bool engagerSoin(const std::vector<AllieVu>& allies, const TileMap& carte);
+    // Le membre visé par le soin en activation ; vide hors activation.
+    [[nodiscard]] std::optional<IdMonstre> cibleDuSoinEngage() const;
+    // Fait avancer l'activation ; rend le soin au départ (cible et montant), vide avant.
+    [[nodiscard]] std::optional<SoinDeMonstre> avancerSoin(float dt, Generateur& generateur);
+    // Annule le soin en activation, sans recharge consommée.
+    void annulerSoin();
+    // Reçoit un soin : rend les points réellement rendus (plafonnés au maximum ; 0 pour un monstre qui rentre à son poste).
+    int recevoirSoin(int montant);
     [[nodiscard]] sf::Vector2f getCentre() const;
     [[nodiscard]] Cercle getCercle() const;
     [[nodiscard]] IdMonstre getId() const;
@@ -98,8 +117,15 @@ private:
     // Ce que le rôle fait passer avec le temps (le délai entre deux reculs du tireur).
     void faireAvancerLeRole(float dt);
     // Le rôle prend la main en poursuite : vrai quand le monstre est en recul (l'ordre est donné, la poursuite n'y touche pas).
-    [[nodiscard]] bool agirSelonLeRole(const std::vector<PersonnageVu>& candidats, const TileMap& carte,
-                                       const std::vector<Cercle>& aContourner);
+    [[nodiscard]] bool agirSelonLeRole(const std::vector<PersonnageVu>& candidats, const std::vector<AllieVu>& allies,
+                                       const TileMap& carte, const std::vector<Cercle>& aContourner);
+    // Le soigneur : peut-il soigner cet allié d'où il est (à portée de son soin ET en vue) ?
+    [[nodiscard]] bool peutSoigner(const EtatSoigneur& soigneur, const AllieVu& allie, const TileMap& carte) const;
+    // Le soigneur dont le soin est prêt et qui a un blessé à soigner : il s'arrête s'il peut le soigner d'où il est (pour que
+    // `engagerSoin` réussisse), sinon marche vers lui. Vrai quand il le fait (la poursuite n'y touche pas) ; faux sans soin prêt ni
+    // blessé : il se comporte alors comme son attaque le décrit.
+    [[nodiscard]] bool allerSoigner(EtatSoigneur& soigneur, const std::vector<AllieVu>& allies, const TileMap& carte,
+                                    const std::vector<Cercle>& aContourner);
     // Le tireur : un recul en cours se poursuit jusqu'à son arrivée ou son blocage ; sinon, si un personnage est au contact et que
     // le délai est écoulé, il recule dans la direction opposée au plus proche (rien si la destination n'est pas dégagée).
     [[nodiscard]] bool reculerSiAuContact(EtatTireur& tireur, const std::vector<PersonnageVu>& candidats,

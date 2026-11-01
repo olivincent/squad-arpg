@@ -2,7 +2,13 @@
 #include <catch2/catch_test_macros.hpp>
 #include <variant>
 
+#include <optional>
+
+#include "aides.hpp"
+#include "base/Cercle.hpp"
+#include "combat/AllieVu.hpp"
 #include "combat/EffetDeSkill.hpp"
+#include "combat/IdMonstre.hpp"
 #include "combat/NatureDAttaque.hpp"
 #include "monde/CategorieDeMonstre.hpp"
 #include "monstres/DefinitionDeMonstre.hpp"
@@ -43,6 +49,46 @@ TEST_CASE("role : l'etat initial est l'alternative de meme rang que le role") {
     REQUIRE(tireurInitial.role.distanceDeRecul == 80.0f);
     REQUIRE(tireurInitial.delaiRestant == 0.0f);
     REQUIRE_FALSE(tireurInitial.enRecul);
+}
+
+namespace {
+AllieVu unAllie(int id, int pointsDeVie, int pointsDeVieMax) {
+    return {IdMonstre{id}, Cercle{{0.0f, 0.0f}, 15.0f}, pointsDeVie, pointsDeVieMax};
+}
+}  // namespace
+
+TEST_CASE("choisirLeBlesse : personne sous le seuil, personne a soigner") {
+    // Plein, et juste au seuil de 75 % (225 sur 300 n'est pas « sous » 75 %).
+    REQUIRE_FALSE(choisirLeBlesse({}, 75).has_value());
+    REQUIRE_FALSE(choisirLeBlesse({unAllie(2, 300, 300), unAllie(3, 225, 300)}, 75).has_value());
+    REQUIRE(choisirLeBlesse({unAllie(2, 224, 300)}, 75).has_value());
+}
+
+TEST_CASE("choisirLeBlesse : le plus blesse en proportion, pas le plus de points perdus") {
+    // 100 sur 300 (33 %) a perdu 200 points ; 10 sur 60 (17 %) n'en a perdu que 50, mais davantage en proportion.
+    const std::optional<AllieVu> choisi = choisirLeBlesse({unAllie(2, 100, 300), unAllie(3, 10, 60)}, 75);
+
+    REQUIRE(choisi.has_value());
+    REQUIRE(choisi->id == IdMonstre{3});
+}
+
+TEST_CASE("choisirLeBlesse : a egalite, le plus petit identifiant") {
+    // 100 sur 300 et 50 sur 150 : un tiers chacun. L'ordre de la liste n'y change rien.
+    REQUIRE(choisirLeBlesse({unAllie(5, 100, 300), unAllie(3, 50, 150)}, 75)->id == IdMonstre{3});
+    REQUIRE(choisirLeBlesse({unAllie(3, 50, 150), unAllie(5, 100, 300)}, 75)->id == IdMonstre{3});
+}
+
+TEST_CASE("choisirLeBlesse : jamais un mort") {
+    REQUIRE_FALSE(choisirLeBlesse({unAllie(2, 0, 300)}, 75).has_value());
+}
+
+TEST_CASE("role : renforcer majore le soin du soigneur comme les degats") {
+    const DefinitionDeMonstre soigneur = soigneurSansHasard();
+
+    const DefinitionDeMonstre renforce = renforcer(soigneur, 3);  // +30 % : deux étages de 15 %
+
+    REQUIRE(std::get<EffetSoin>(std::get<RoleSoigneur>(renforce.role).soin.effet).montant == 98);  // 75 × 1,3 = 97,5
+    REQUIRE(std::get<EffetSoin>(std::get<RoleSoigneur>(renforcer(soigneur, 1).role).soin.effet).montant == 75);
 }
 
 TEST_CASE("role : renforcer garde le role de la definition") {

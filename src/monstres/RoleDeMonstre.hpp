@@ -1,6 +1,11 @@
 // ./src/monstres/RoleDeMonstre.hpp
 #pragma once
+#include <optional>
 #include <variant>
+#include <vector>
+#include "combat/AllieVu.hpp"
+#include "combat/IdMonstre.hpp"
+#include "combat/Skill.hpp"
 
 // Ce qu'un monstre fait EN PLUS de sa poursuite et de sa frappe : son rôle, une alternative par sorte de rôle, chacune avec ses
 // seuls champs (sur le modèle d'`EffetDeSkill`). Le rôle a deux moitiés : la DONNÉE, dans la définition, immuable (`RoleDeMonstre`) ;
@@ -20,8 +25,12 @@ struct RoleTireur {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs s
     float delaiEntreReculs;   // en secondes ; le premier recul est disponible tout de suite
 };
 
-// Le soigneur (étape 107.4) n'a pas encore de champs : il les recevra avec son comportement.
-struct RoleSoigneur {};
+// Un soigneur soigne les membres BLESSÉS de son groupe (jamais lui-même) avec un skill de mode `Allie` (`EffetSoin`). Quand il n'a
+// personne à soigner ou que son soin recharge, il se comporte comme son attaque le décrit (un tireur faible, sans recul).
+struct RoleSoigneur {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
+    DefinitionDeSkill soin;  // mode `Allie`, un `EffetSoin` : montant, portée, recharge, temps d'activation
+    int seuilDeBlessure;     // en pour cent des points de vie maximum : un membre est blessé en dessous (strictement)
+};
 
 using RoleDeMonstre = std::variant<RoleMelee, RoleTireur, RoleSoigneur>;
 
@@ -34,9 +43,18 @@ struct EtatTireur {  // NOLINT(cppcoreguidelines-pro-type-member-init): `role` n
     bool enRecul = false;          // un recul est en cours (son ordre est donné à `Mobile`)
 };
 
-struct EtatSoigneur {};
+struct EtatSoigneur {  // NOLINT(cppcoreguidelines-pro-type-member-init): `role` et `soin` n'ont pas de valeur par défaut exprès
+    RoleSoigneur role;                    // les données, copiées de la définition
+    Skill soin;                           // la machine à états du soin (prêt, activation, recharge)
+    std::optional<IdMonstre> cibleDuSoin; // le membre visé par le soin engagé, lu seulement pendant l'activation
+};
 
 using EtatDuRole = std::variant<EtatMelee, EtatTireur, EtatSoigneur>;
 
 // L'état d'un monstre qui vient d'être créé avec ce rôle : l'alternative de même rang que le rôle.
 [[nodiscard]] EtatDuRole etatInitialDuRole(const RoleDeMonstre& role);
+
+// Le membre à soigner parmi ces alliés : le plus blessé EN PROPORTION de ses points de vie maximum, parmi ceux qui sont strictement
+// sous `seuilDeBlessure` pour cent ; à égalité, le plus petit identifiant. Vide si personne n'est assez blessé. Les alliés sont déjà
+// ceux qu'on peut soigner (vivants, ciblables, sans le soigneur lui-même) : cette fonction ne regarde que la blessure. Pure.
+[[nodiscard]] std::optional<AllieVu> choisirLeBlesse(const std::vector<AllieVu>& allies, int seuilDeBlessure);

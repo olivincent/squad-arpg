@@ -222,6 +222,8 @@ add_executable(tests
     tests/monstres/test_RoleDeMonstre.cpp
     tests/monstres/test_Monstre_tireur.cpp
     tests/jeu/test_Partie_allies.cpp
+    tests/jeu/test_Partie_soigneur.cpp
+    tests/monstres/test_Monstre_soigneur.cpp
     tests/jeu/test_Partie_clics.cpp
     tests/jeu/test_Partie_skills.cpp
     tests/jeu/test_Partie_monstres.cpp

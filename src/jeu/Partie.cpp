@@ -463,8 +463,9 @@ void Partie::faireTournerLesMonstres(float dt) {
         obstacles.insert(obstacles.end(), autresMonstres.begin(), autresMonstres.end());
         const std::optional<PersonnageVu> proie = m_escouade.proieDuMonstre(m.getId(), m.getCentre());
         const std::vector<PersonnageVu> candidats = m_escouade.candidatsDeFrappe(m.getId());
-        m.mettreAJour(dt, proie, candidats, alliesDuGroupe(m), m_carte, obstacles, autresMonstres);
-        faireFrapperLeMonstre(m, proie, candidats, dt);
+        const std::vector<AllieVu> allies = alliesDuGroupe(m);
+        m.mettreAJour(dt, proie, candidats, allies, m_carte, obstacles, autresMonstres);
+        faireAgirLeMonstre(m, proie, candidats, allies, dt);
     }
 
     alerterLesGroupes(enPoursuiteAvant);
@@ -491,8 +492,11 @@ void Partie::alerterLesGroupes(const std::vector<bool>& enPoursuiteAvant) {
 // visé à l'engagement (même si une provocation a changé la proie entre-temps).
 // Seule la mort de ce personnage l'annule. Sinon, un monstre immobile avec une
 // cible de frappe (proie ou autre candidat) engage un coup.
-void Partie::faireFrapperLeMonstre(Monstre& monstre, std::optional<PersonnageVu> proie,
-                                   const std::vector<PersonnageVu>& candidats, float dt) {
+// Un soin engagé (soigneur) part à la fin de son activation sur le membre visé ; il est annulé, sans recharge, si ce membre n'est
+// plus soignable (disparu, en retour, à pleine vie). Un soin et un coup ne sont jamais engagés ensemble : le soin, prioritaire, est
+// tenté d'abord.
+void Partie::faireAgirLeMonstre(Monstre& monstre, std::optional<PersonnageVu> proie,
+                                const std::vector<PersonnageVu>& candidats, const std::vector<AllieVu>& allies, float dt) {
     if (const std::optional<Place> placeVisee = monstre.cibleEngagee()) {
         if (!m_escouade.placeEstVivante(*placeVisee)) {
             monstre.annulerAttaque();
@@ -501,8 +505,27 @@ void Partie::faireFrapperLeMonstre(Monstre& monstre, std::optional<PersonnageVu>
         }
         return;
     }
-    // Tentative à chaque image : l'échec est normal (en marche, en recharge, rien à frapper…).
+    if (const std::optional<IdMonstre> idSoigne = monstre.cibleDuSoinEngage()) {
+        faireSoignerLeMonstre(monstre, *idSoigne, dt);
+        return;
+    }
+    // Tentatives à chaque image : l'échec est normal (en marche, en recharge, rien à soigner ni à frapper…).
+    if (monstre.engagerSoin(allies, m_carte)) {
+        return;
+    }
     static_cast<void>(monstre.engagerAttaque(proie, candidats, m_carte));
+}
+
+void Partie::faireSoignerLeMonstre(Monstre& soigneur, IdMonstre idSoigne, float dt) {
+    Monstre* soigne = trouverMonstre(idSoigne);
+    if (soigne == nullptr || !soigne->estCiblable() || soigne->getPointsDeVie() >= soigne->getPointsDeVieMax()) {
+        soigneur.annulerSoin();
+        return;
+    }
+    if (const std::optional<SoinDeMonstre> soin = soigneur.avancerSoin(dt, m_generateur)) {
+        // Le montant signalé est ce qui a été rendu (plafonné au maximum) ; pas de critique pour le soin d'un monstre.
+        signaler(soigne->getId(), soigne->getCentre(), Soin{.montant = soigne->recevoirSoin(soin->montant), .critique = false});
+    }
 }
 
 bool Partie::doitDescendre() const {

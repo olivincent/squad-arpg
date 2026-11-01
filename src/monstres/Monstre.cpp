@@ -53,7 +53,8 @@ void Monstre::dessiner(sf::RenderTarget& rendu, bool estCible, bool marquerLeRet
 
     sf::RectangleShape forme(taille);
     forme.setPosition(centre - taille / 2.0f);
-    sf::Color couleur = cibleEngagee().has_value() ? eclaircir(m_couleur, s_eclaircissementExecution) : m_couleur;
+    const bool enExecution = cibleEngagee().has_value() || cibleDuSoinEngage().has_value();  // un coup ou un soin
+    sf::Color couleur = enExecution ? eclaircir(m_couleur, s_eclaircissementExecution) : m_couleur;
     if (marquerLeRetour && m_etat == Etat::Retour) {
         couleur.a = s_opaciteRetour;
     }
@@ -190,16 +191,83 @@ std::optional<PersonnageVu> Monstre::cibleDeFrappe(const std::optional<Personnag
 void Monstre::faireAvancerLeRole(float dt) {
     std::visit(Surcharges{[](EtatMelee&) {},
                           [dt](EtatTireur& tireur) { tireur.delaiRestant = std::max(0.0f, tireur.delaiRestant - dt); },
-                          [](EtatSoigneur&) {}},
+                          [dt](EtatSoigneur& soigneur) { soigneur.soin.mettreAJour(dt); }},
                m_etatDuRole);
 }
 
-bool Monstre::agirSelonLeRole(const std::vector<PersonnageVu>& candidats, const TileMap& carte,
-                              const std::vector<Cercle>& aContourner) {
+bool Monstre::agirSelonLeRole(const std::vector<PersonnageVu>& candidats, const std::vector<AllieVu>& allies,
+                              const TileMap& carte, const std::vector<Cercle>& aContourner) {
     return std::visit(Surcharges{[](EtatMelee&) { return false; },
                                  [&](EtatTireur& tireur) { return reculerSiAuContact(tireur, candidats, carte, aContourner); },
-                                 [](EtatSoigneur&) { return false; }},
+                                 [&](EtatSoigneur& soigneur) { return allerSoigner(soigneur, allies, carte, aContourner); }},
                       m_etatDuRole);
+}
+
+bool Monstre::peutSoigner(const EtatSoigneur& soigneur, const AllieVu& allie, const TileMap& carte) const {
+    return soigneur.soin.estAPortee(getCercle(), allie.cercle) && ligneDeVue(carte, m_mobile.getCentre(), allie.cercle.centre);
+}
+
+bool Monstre::allerSoigner(EtatSoigneur& soigneur, const std::vector<AllieVu>& allies, const TileMap& carte,
+                           const std::vector<Cercle>& aContourner) {
+    if (soigneur.soin.getPhase() != PhaseSkill::Pret) {
+        return false;
+    }
+    const std::optional<AllieVu> blesse = choisirLeBlesse(allies, soigneur.role.seuilDeBlessure);
+    if (!blesse) {
+        return false;
+    }
+    if (peutSoigner(soigneur, *blesse, carte)) {
+        m_mobile.arreter();  // immobile, pour que `engagerSoin` réussisse
+    } else {
+        m_mobile.allerVers(blesse->cercle.centre, carte, aContourner);
+    }
+    return true;
+}
+
+bool Monstre::engagerSoin(const std::vector<AllieVu>& allies, const TileMap& carte) {
+    EtatSoigneur* soigneur = std::get_if<EtatSoigneur>(&m_etatDuRole);
+    if (soigneur == nullptr || m_etat != Etat::Poursuite || cibleEngagee().has_value() || m_mobile.estEnMouvement()) {
+        return false;
+    }
+    const std::optional<AllieVu> blesse = choisirLeBlesse(allies, soigneur->role.seuilDeBlessure);
+    if (!blesse || !peutSoigner(*soigneur, *blesse, carte) || !soigneur->soin.commencer()) {
+        return false;
+    }
+    soigneur->cibleDuSoin = blesse->id;
+    return true;
+}
+
+std::optional<IdMonstre> Monstre::cibleDuSoinEngage() const {
+    const EtatSoigneur* soigneur = std::get_if<EtatSoigneur>(&m_etatDuRole);
+    if (soigneur == nullptr || soigneur->soin.getPhase() != PhaseSkill::EnExecution) {
+        return std::nullopt;
+    }
+    return soigneur->cibleDuSoin;
+}
+
+std::optional<SoinDeMonstre> Monstre::avancerSoin(float dt, Generateur& generateur) {
+    EtatSoigneur* soigneur = std::get_if<EtatSoigneur>(&m_etatDuRole);
+    const std::optional<IdMonstre> cible = cibleDuSoinEngage();
+    if (soigneur == nullptr || !cible.has_value() || !soigneur->soin.avancer(dt, generateur)) {
+        return std::nullopt;
+    }
+    soigneur->cibleDuSoin.reset();
+    // Le seul effet du soin d'un monstre est un `EffetSoin` (le constructeur de `Skill` vérifie le mode `Allie`).
+    return SoinDeMonstre{.cible = *cible, .montant = std::get<EffetSoin>(soigneur->soin.getEffet()).montant};
+}
+
+void Monstre::annulerSoin() {
+    if (EtatSoigneur* soigneur = std::get_if<EtatSoigneur>(&m_etatDuRole)) {
+        soigneur->soin.annuler();
+        soigneur->cibleDuSoin.reset();
+    }
+}
+
+int Monstre::recevoirSoin(int montant) {
+    if (!estCiblable() || !estVivant()) {
+        return 0;
+    }
+    return m_vitalite.soigner(montant);
 }
 
 bool Monstre::reculerSiAuContact(EtatTireur& tireur, const std::vector<PersonnageVu>& candidats, const TileMap& carte,
@@ -248,15 +316,15 @@ bool Monstre::reculerSiAuContact(EtatTireur& tireur, const std::vector<Personnag
 }
 
 void Monstre::mettreAJour(float dt, std::optional<PersonnageVu> proie, const std::vector<PersonnageVu>& candidats,
-                          const std::vector<AllieVu>& /*allies*/, const TileMap& carte, const std::vector<Cercle>& obstacles,
+                          const std::vector<AllieVu>& allies, const TileMap& carte, const std::vector<Cercle>& obstacles,
                           const std::vector<Cercle>& aContourner) {
     m_attaque.mettreAJour(dt);
     m_vitalite.mettreAJour(dt);
     faireAvancerLeRole(dt);
 
-    // Un coup en exécution : le monstre reste sur place, ni poursuite ni
+    // Un coup (ou un soin) en exécution : le monstre reste sur place, ni poursuite ni
     // retour (l'état et le coup reçu sont pris en compte après le coup).
-    if (cibleEngagee().has_value()) {
+    if (cibleEngagee().has_value() || cibleDuSoinEngage().has_value()) {
         m_mobile.arreter();
         m_mobile.mettreAJour(dt, carte, obstacles);
         return;
@@ -311,8 +379,8 @@ void Monstre::mettreAJour(float dt, std::optional<PersonnageVu> proie, const std
         m_soinAccumule = 0.0f;
     }
 
-    // Un monstre en recul (rôle de tireur) a déjà son ordre : il ne poursuit pas et n'engage pas de coup, il bouge.
-    if (m_etat == Etat::Poursuite && !agirSelonLeRole(candidats, carte, aContourner)) {
+    // Un monstre en recul (tireur) ou en marche vers un blessé (soigneur) a déjà son ordre : il ne poursuit pas sa proie.
+    if (m_etat == Etat::Poursuite && !agirSelonLeRole(candidats, allies, carte, aContourner)) {
         if (cibleDeFrappe(proie, candidats, carte)) {
             m_mobile.arreter();
         } else {
@@ -334,7 +402,7 @@ bool Monstre::engagerAttaque(std::optional<PersonnageVu> proie, const std::vecto
         return false;
     }
     const std::optional<PersonnageVu> cible = cibleDeFrappe(proie, candidats, carte);
-    if (!cible || m_mobile.estEnMouvement() || !m_attaque.commencer()) {
+    if (!cible || cibleDuSoinEngage().has_value() || m_mobile.estEnMouvement() || !m_attaque.commencer()) {
         return false;
     }
     m_placeCibleEngagee = cible->id;

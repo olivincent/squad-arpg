@@ -48,5 +48,5 @@ using CatalogueDeMonstres = std::array<DefinitionDeMonstre, s_nombreDeCategories
 // portion** du coup (physique, feu, sacré), une portion nulle restant nulle. Le niveau passe par les nombres, sans formule d'écart
 // de niveau. L'armure, l'esquive, le blocage, les résistances, la vitesse, la taille, la portée et la recharge de l'attaque et le
 // butin ne changent pas. L'expérience que rapporte le monstre est majorée de 25 % par étage au-delà du premier, comme ses
-// points de vie. Une fonction pure ; `assert` : profondeur d'au moins 1.
+// points de vie. Le montant du soin d'un soigneur est majoré du même pourcentage que les dégâts. Une fonction pure ;`assert` : profondeur d'au moins 1.
 [[nodiscard]] DefinitionDeMonstre renforcer(const DefinitionDeMonstre& definition, int profondeur);
