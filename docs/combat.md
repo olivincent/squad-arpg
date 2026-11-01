@@ -898,6 +898,14 @@ Détail de conception : `docs/classes-et-combat.md`, section 8.
 
 Détail de conception : `docs/classes-et-combat.md`, sections 6, 7, 8 et 12.
 
+**Mise à jour de conception (étape 109, documentation seulement).** La liste des éléments décidée à l'étape 94 est remplacée : il y en a
+**huit** (Physical, Fire, Cold, Lightning, Arcane, Necrotic, Holy, Poison) et **le saignement comme type de dégâts est abandonné** ; c'est
+du physique dans le temps, que la résistance physique réduit et que l'armure ne réduit pas. Pas de Piercing comme type : la pénétration
+d'armure joue ce rôle. Tout élément pourra avoir des dégâts dans le temps (résistés par la résistance de cet élément, sans armure, sans
+critique). La résistance physique s'appliquera à tout le physique, direct ou dans le temps, mais elle sera rare et son plafond plus bas
+que celui des autres résistances (valeur à déterminer ; le code applique encore 80 % à tous les éléments). Détail et liste des statistiques :
+`docs/classes-et-combat.md`, sections 8 et 13. Ce qui suit décrit le **code de l'étape 94**, qui n'a pas changé.
+
 - **Un coup est un ensemble de portions.** `Element` (`Physique`, `Feu`, `Sacre`, plus la sentinelle `Nombre`) et
   `ParElement<T>` (`combat/Element.hpp`) : une valeur par élément, à zéro par défaut, indexée par `Element` (le
   `static_cast` est caché dans `operator[]`), `seul(élément, valeur)`, `total()`, `elementDominant()` ; la taille vient de
@@ -951,7 +959,8 @@ Détail de conception : `docs/classes-et-combat.md`, sections 6, 7, 8 et 12.
   restent distinctes (≥ 50 de distance RGB).
 - **Exemple** : une explosion de 45 de feu contre l'infanterie lourde (armure 10) fait 45 (l'armure n'y touche pas),
   contre la créature monstrueuse 27 ; une attaque de base de 45 physiques contre l'infanterie lourde fait 35.
-- **Limites** : trois éléments seulement (froid, foudre, poison, nécrotique, saignement avec leur première source) ;
+- **Limites** : trois éléments seulement sur les huit voulus (froid, foudre, arcane, nécrotique, poison avec leur première source ; le
+  saignement n'est plus un élément depuis l'étape 109) ;
   pas de pénétration de résistance, pas de résistance ni de bonus élémentaire sur les objets (étape 95), pas de
   bouclier anti-magie, pas d'effets dans le temps, pas de nombre flottant par portion. Le Savoir et la Volonté n'ont
   toujours aucun effet.
