@@ -46,13 +46,14 @@ struct StatistiquesDeCombat {
     constexpr bool operator==(const StatistiquesDeCombat&) const = default;
 };
 
-// Capacités d'un personnage sans Adresse (celle du point de référence 10 : 100). Provisoire, à tester.
-inline constexpr int s_capaciteDeBase = 50;
-// Capacité (offensive et défensive) que donne chaque point d'Adresse. Provisoire, à tester.
+// Capacités d'un personnage dont l'Adresse est à la référence. Provisoire, à tester.
+inline constexpr int s_capaciteDeReference = 100;
+// Capacité (offensive et défensive) que donne chaque point d'Adresse (une ligne de la table de contributions,
+// `Contributions.hpp`). Provisoire, à tester.
 inline constexpr int s_capaciteParPointDAdresse = 5;
 
-// Les statistiques d'un personnage : `s_capaciteDeBase` plus `s_capaciteParPointDAdresse` par point d'Adresse
-// effective (base de classe plus équipement) pour les deux capacités, plus les bonus de combat de son équipement
+// Les statistiques d'un personnage : `s_capaciteDeReference` plus l'apport de l'Adresse effective (base de classe plus
+// équipement ; `apportDesCaracteristiques`) pour les deux capacités, plus les bonus de combat de son équipement
 // (`bonusDEquipement`, la somme de ceux de ses objets). La capacité offensive est bornée à 0 par le bas ; la
 // défensive à 1, parce que le rapport des capacités la divise.
 [[nodiscard]] StatistiquesDeCombat statistiquesDuPersonnage(const Caracteristiques& caracteristiques,

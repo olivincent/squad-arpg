@@ -97,18 +97,22 @@ inline constexpr int s_valeurDeReference = 10;
 // le coefficient du skill. Provisoire, à tester.
 inline constexpr float s_bonusParPoint = 0.03f;
 
-// Points de vie de base d'un personnage, les mêmes pour toutes les classes : l'Endurance fait seule la différence.
-// Provisoire, à tester.
-inline constexpr int s_pointsDeVieDeBase = 240;
+// Points de vie d'un personnage de niveau 1 dont l'Endurance est à la référence, les mêmes pour toutes les classes : l'Endurance
+// fait seule la différence. Provisoire, à tester.
+inline constexpr int s_pointsDeVieDeReference = 300;
 
-// Points de vie maximum que donne chaque point d'Endurance. Provisoire, à tester.
+// Points de vie maximum que donne chaque point d'Endurance (une ligne de la table de contributions, `Contributions.hpp`).
+// Provisoire, à tester.
 inline constexpr int s_pvParPointDEndurance = 6;
+
+// Les mêmes points de vie à 0 d'Endurance : un repère, `s_pointsDeVieDeReference` moins ce que donnent les 10 points de référence.
+inline constexpr int s_pointsDeVieDeBase = s_pointsDeVieDeReference - s_pvParPointDEndurance * s_valeurDeReference;
 
 // Points de vie maximum que donne chaque niveau au-delà du premier. Provisoire, à tester.
 inline constexpr int s_pvParNiveau = 8;
 
-// Points de vie maximum d'un personnage : `s_pointsDeVieDeBase` plus `s_pvParPointDEndurance` par point
-// d'Endurance (effective : base de classe plus croissance plus équipement) plus `s_pvParNiveau` par niveau au-delà du premier.
+// Points de vie maximum d'un personnage : `s_pointsDeVieDeReference` plus l'apport de l'Endurance (effective : base de classe plus
+// croissance plus équipement ; `apportDesCaracteristiques`) plus `s_pvParNiveau` par niveau au-delà du premier.
 // Préconditions : niveau >= 1, le résultat est > 0.
 [[nodiscard]] int pointsDeVieMax(const Caracteristiques& caracteristiques, int niveau);
 

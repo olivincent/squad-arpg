@@ -3,11 +3,12 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include "combat/Contributions.hpp"
 
 int pointsDeVieMax(const Caracteristiques& caracteristiques, int niveau) {
     assert(niveau >= 1);
-    const int maximum = s_pointsDeVieDeBase + s_pvParPointDEndurance * caracteristiques.valeur(Caracteristique::Endurance) +
-                        s_pvParNiveau * (niveau - 1);
+    const float apport = apportDesCaracteristiques(StatistiqueAlimentee::PointsDeVieMax, caracteristiques);
+    const int maximum = s_pointsDeVieDeReference + static_cast<int>(std::lround(apport)) + s_pvParNiveau * (niveau - 1);
     assert(maximum > 0);
     return maximum;
 }
