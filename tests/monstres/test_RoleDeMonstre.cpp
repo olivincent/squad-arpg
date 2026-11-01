@@ -9,6 +9,7 @@
 #include "combat/AllieVu.hpp"
 #include "combat/EffetDeSkill.hpp"
 #include "combat/IdMonstre.hpp"
+#include "combat/ModeDeCible.hpp"
 #include "combat/NatureDAttaque.hpp"
 #include "monde/CategorieDeMonstre.hpp"
 #include "monstres/DefinitionDeMonstre.hpp"
@@ -37,13 +38,31 @@ TEST_CASE("role : le tireur a un recul qui a un sens") {
     REQUIRE(std::get<EffetDegats>(definition.attaque.effet).nature == NatureDAttaque::Projectile);
 }
 
+TEST_CASE("role : le soigneur du catalogue soigne 75 points toutes les 6 s a 150 px, apres 0,8 s") {
+    const DefinitionDeMonstre& definition = definitionDeMonstre(CategorieDeMonstre::Soigneur);
+    const RoleSoigneur* soigneur = std::get_if<RoleSoigneur>(&definition.role);
+
+    REQUIRE(soigneur != nullptr);
+    REQUIRE(soigneur->soin.mode == ModeDeCible::Allie);
+    REQUIRE(std::get<EffetSoin>(soigneur->soin.effet).montant == 75);
+    REQUIRE(soigneur->soin.portee == 150.0f);
+    REQUIRE(soigneur->soin.rechargeMin == 6.0f);
+    REQUIRE(soigneur->soin.rechargeMax == 6.0f);
+    REQUIRE(soigneur->soin.tempsExecution == 0.8f);
+    REQUIRE(soigneur->seuilDeBlessure == 75);
+    // Hors soin, un tireur faible : projectile de portée 120, sans zone de contrôle.
+    REQUIRE(definition.attaque.portee == 120.0f);
+    REQUIRE(definition.zoneDeControle == 0.0f);
+    REQUIRE(std::get<EffetDegats>(definition.attaque.effet).nature == NatureDAttaque::Projectile);
+}
+
 TEST_CASE("role : l'etat initial est l'alternative de meme rang que le role") {
     const RoleTireur tireur{.distanceDeContact = 20.0f, .distanceDeRecul = 80.0f, .delaiEntreReculs = 8.0f};
     const EtatDuRole etat = etatInitialDuRole(tireur);
 
     REQUIRE(std::holds_alternative<EtatMelee>(etatInitialDuRole(RoleMelee{})));
     REQUIRE(std::holds_alternative<EtatTireur>(etat));
-    REQUIRE(std::holds_alternative<EtatSoigneur>(etatInitialDuRole(RoleSoigneur{})));
+    REQUIRE(std::holds_alternative<EtatSoigneur>(etatInitialDuRole(definitionDeMonstre(CategorieDeMonstre::Soigneur).role)));
     // Le tireur part avec ses données, un recul disponible tout de suite et aucun recul en cours.
     const EtatTireur& tireurInitial = std::get<EtatTireur>(etat);
     REQUIRE(tireurInitial.role.distanceDeRecul == 80.0f);

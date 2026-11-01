@@ -24,6 +24,14 @@ constexpr float s_distanceDeContactDuTireur = 20.0f;  // en dessous, un personna
 constexpr float s_distanceDeReculDuTireur = 80.0f;
 constexpr float s_delaiEntreReculsDuTireur = 8.0f;    // en secondes
 
+// Le soigneur (étape 107.5, « à tester ») : son attaque est celle d'un tireur faible, son soin un skill de mode `Allie`.
+constexpr float s_porteeDuSoigneur = 120.0f;       // de son attaque, bord à bord
+constexpr int s_montantDuSoin = 75;                // points de vie rendus
+constexpr float s_porteeDuSoin = 150.0f;           // bord à bord
+constexpr float s_rechargeDuSoin = 6.0f;           // en secondes, fixe
+constexpr float s_activationDuSoin = 0.8f;         // en secondes, immobile
+constexpr int s_seuilDeBlessure = 75;              // en pour cent des points de vie maximum : un membre est blessé en dessous
+
 // Le renforcement par la profondeur : ce que chaque étage au-delà du premier ajoute (« à tester »).
 constexpr int s_pourcentDePointsDeVieParEtage = 25;  // des points de vie maximum de la définition
 constexpr int s_pourcentDeDegatsParEtage = 15;       // des dégâts de l'attaque de la définition
@@ -94,6 +102,20 @@ constexpr Profil s_tireur = {.couleur = {190, 110, 40}, .rayon = 13.0f, .vitesse
                                                 .distanceDeRecul = s_distanceDeReculDuTireur,
                                                 .delaiEntreReculs = s_delaiEntreReculsDuTireur}};
 
+// Soigne les membres blessés de son groupe (jamais lui-même) ; sans soin à faire, il tire faiblement de loin, sans reculer.
+constexpr Profil s_soigneur = {.couleur = {40, 160, 150}, .rayon = 12.0f, .vitesse = 150.0f, .pointsDeVieMax = 180,
+                               .armure = 1, .degats = 12, .rechargeMin = 1.5f, .rechargeMax = 2.5f, .execution = 0.4f,
+                               .capaciteOffensive = 90, .capaciteDefensive = 90, .esquive = 5, .resistances = {},
+                               .chanceDeButin = 25, .nombreDObjets = 1, .experience = 15,
+                               .portee = s_porteeDuSoigneur, .zoneDeControle = 0.0f, .nature = NatureDAttaque::Projectile,
+                               .role = RoleSoigneur{.soin = {.mode = ModeDeCible::Allie,
+                                                             .portee = s_porteeDuSoin,
+                                                             .rechargeMin = s_rechargeDuSoin,
+                                                             .rechargeMax = s_rechargeDuSoin,
+                                                             .effet = EffetSoin{.montant = s_montantDuSoin},
+                                                             .tempsExecution = s_activationDuSoin},
+                                                    .seuilDeBlessure = s_seuilDeBlessure}};
+
 DefinitionDeMonstre definitionDuProfil(const Profil& profil) {
     return {.cote = 2.0f * profil.rayon,
             .couleur = profil.couleur,
@@ -125,7 +147,8 @@ DefinitionDeMonstre definitionDuProfil(const Profil& profil) {
 const CatalogueDeMonstres& catalogueDeMonstres() {
     static const CatalogueDeMonstres catalogue = {definitionDuProfil(s_nuee), definitionDuProfil(s_infanterie),
                                                   definitionDuProfil(s_infanterieLourde),
-                                                  definitionDuProfil(s_creatureMonstrueuse), definitionDuProfil(s_tireur)};
+                                                  definitionDuProfil(s_creatureMonstrueuse), definitionDuProfil(s_tireur),
+                                                  definitionDuProfil(s_soigneur)};
     return catalogue;
 }
 

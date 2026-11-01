@@ -3,17 +3,22 @@
 #include <cmath>
 #include <cstddef>
 #include <optional>
+#include <variant>
 #include <vector>
 
 #include "combat/Defense.hpp"
 #include "combat/DescriptionDAttaque.hpp"
+#include "combat/EffetDeSkill.hpp"
 #include "combat/Element.hpp"
 #include "combat/Esquive.hpp"
+#include "combat/ModeDeCible.hpp"
+#include "combat/NatureDAttaque.hpp"
 #include "escouade/Specialite.hpp"
 #include "monde/CategorieDeMonstre.hpp"
 #include "monde/CompositionDeGroupe.hpp"
 #include "monde/GenerateurDonjon.hpp"
 #include "monstres/DefinitionDeMonstre.hpp"
+#include "monstres/RoleDeMonstre.hpp"
 #include "objets/CatalogueAffixes.hpp"
 #include "objets/CatalogueObjets.hpp"
 #include "objets/DonneesDArme.hpp"
@@ -196,6 +201,58 @@ TEST_CASE("chaque composition de groupe est non vide et coherente") {
         REQUIRE(composition.poids > 0);
     }
     verifierComposition(compositionDeLaCreature());
+}
+
+TEST_CASE("une composition qui contient un soigneur contient toujours au moins un autre monstre") {
+    std::vector<CompositionDeGroupe> compositions = compositionsOrdinaires();
+    compositions.push_back(compositionDeLaCreature());
+    int avecSoigneur = 0;
+
+    for (const CompositionDeGroupe& composition : compositions) {
+        int minimumSoigneurs = 0;
+        int minimumAutres = 0;
+        bool contientUnSoigneur = false;
+        for (const EffectifDeCategorie& effectif : composition.effectifs) {
+            if (effectif.categorie == CategorieDeMonstre::Soigneur) {
+                contientUnSoigneur = true;
+                minimumSoigneurs += effectif.min;
+            } else {
+                minimumAutres += effectif.min;
+            }
+        }
+        if (contientUnSoigneur) {
+            ++avecSoigneur;
+            INFO("un soigneur (" << minimumSoigneurs << " au moins) doit avoir un autre monstre garanti");
+            REQUIRE(minimumAutres >= 1);
+        }
+    }
+    REQUIRE(avecSoigneur >= 1);  // la composition « escouade »
+}
+
+TEST_CASE("le role de chaque definition de monstre est coherent avec ses valeurs") {
+    for (const CategorieDeMonstre categorie : s_categoriesDeMonstre) {
+        const DefinitionDeMonstre& definition = definitionDeMonstre(categorie);
+        INFO("categorie " << static_cast<int>(categorie));
+        if (const RoleSoigneur* soigneur = std::get_if<RoleSoigneur>(&definition.role)) {
+            // Un soin : un skill de mode Allie dont l'effet rend des points, avec une activation et une recharge.
+            REQUIRE(soigneur->soin.mode == ModeDeCible::Allie);
+            REQUIRE(std::holds_alternative<EffetSoin>(soigneur->soin.effet));
+            REQUIRE(std::get<EffetSoin>(soigneur->soin.effet).montant > 0);
+            REQUIRE(soigneur->soin.portee > 0.0f);
+            REQUIRE(soigneur->soin.rechargeMin > 0.0f);
+            REQUIRE(soigneur->soin.rechargeMin <= soigneur->soin.rechargeMax);
+            REQUIRE(soigneur->seuilDeBlessure > 0);
+            REQUIRE(soigneur->seuilDeBlessure < 100);
+        }
+        if (const RoleTireur* tireur = std::get_if<RoleTireur>(&definition.role)) {
+            REQUIRE(tireur->distanceDeContact > 0.0f);
+            REQUIRE(tireur->distanceDeRecul > 0.0f);
+            REQUIRE(tireur->delaiEntreReculs > 0.0f);
+        }
+        // Qui frappe de loin n'engage personne : seule une attaque de contact a une zone de contrôle.
+        const NatureDAttaque nature = std::get<EffetDegats>(definition.attaque.effet).nature;
+        REQUIRE((nature == NatureDAttaque::Contact) == (definition.zoneDeControle > 0.0f));
+    }
 }
 
 TEST_CASE("la composition de la creature est une creature seule") {

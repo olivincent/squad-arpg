@@ -19,7 +19,8 @@ struct CompositionDeGroupe {
 };
 
 // Les compositions tirées au hasard pour peupler une salle : nuée (5 à 7 nuées), infanterie (1 à 3), mélange
-// (1 à 2 infanteries et 1 infanterie lourde), tireurs (1 à 2 infanteries puis 1 à 2 tireurs), de poids 25, 25, 20 et 15.
+// (1 à 2 infanteries et 1 infanterie lourde), tireurs (1 à 2 infanteries puis 1 à 2 tireurs), escouade (1 à 2 infanteries, 1 tireur
+// et 1 soigneur), de poids 25, 25, 20, 15 et 15. Un soigneur n'est jamais seul dans une composition (`test_CoherenceDesDonnees`).
 // Valeurs provisoires, à tester.
 [[nodiscard]] std::vector<CompositionDeGroupe> compositionsOrdinaires();
 

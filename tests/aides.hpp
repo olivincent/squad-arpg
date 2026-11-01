@@ -17,14 +17,10 @@
 #include "combat/Attaque.hpp"
 #include "combat/Critique.hpp"
 #include "combat/Defense.hpp"
-#include "combat/EffetDeSkill.hpp"
-#include "combat/ModeDeCible.hpp"
-#include "combat/NatureDAttaque.hpp"
 #include "combat/ResolutionDuCoup.hpp"
 #include "monde/TileMap.hpp"
 #include "objets/CatalogueObjets.hpp"
 #include "monstres/DefinitionDeMonstre.hpp"
-#include "monstres/RoleDeMonstre.hpp"
 #include "objets/Equipement.hpp"
 
 // Aides de base communes à plusieurs fichiers de tests : graine et générateur, tolérances, cibles,
@@ -109,21 +105,13 @@ inline DefinitionDeMonstre monstreSansHasard() {
     return definition;
 }
 
-// Un soigneur sans esquive ni butin : le corps de l'infanterie de test, une attaque de projectile de portée 120 sans zone de
-// contrôle, et le soin du jeu (75 points, mode Allie, portée 150 bord à bord, recharge fixe de 6 s, activation de 0,8 s, sur un
-// membre sous 75 % de ses points de vie maximum).
+// Le soigneur du jeu, sans esquive ni butin : le soin de 75 points (mode Allie, portée 150 bord à bord, recharge fixe de 6 s,
+// activation de 0,8 s) sur un membre sous 75 % de ses points de vie maximum, et une attaque de projectile de portée 120.
 inline DefinitionDeMonstre soigneurSansHasard() {
-    DefinitionDeMonstre definition = monstreSansHasard();
-    definition.zoneDeControle = 0.0f;
-    definition.attaque.portee = 120.0f;
-    definition.attaque.effet = EffetDegats{.montant = 0, .nature = NatureDAttaque::Projectile};
-    definition.role = RoleSoigneur{.soin = {.mode = ModeDeCible::Allie,
-                                            .portee = 150.0f,
-                                            .rechargeMin = 6.0f,
-                                            .rechargeMax = 6.0f,
-                                            .effet = EffetSoin{.montant = 75},
-                                            .tempsExecution = 0.8f},
-                                   .seuilDeBlessure = 75};
+    DefinitionDeMonstre definition = definitionDeMonstre(CategorieDeMonstre::Soigneur);
+    definition.chanceDeButin = 0;
+    definition.statistiques.esquiveContact = 0;
+    definition.statistiques.esquiveProjectile = 0;
     return definition;
 }
 

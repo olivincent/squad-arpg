@@ -15,19 +15,16 @@
 #include "monstres/Monstre.hpp"
 #include "jeu/Partie.hpp"
 
-// Le soin d'un soigneur dans une partie (étape 107.4) : `Partie` applique le soin au monstre visé et le signale. Le soigneur occupe
-// l'emplacement de la nuée du catalogue de test (le soigneur n'est pas encore une catégorie du jeu) ; son groupe est celui d'une
-// infanterie de 2000 points de vie que l'escouade blesse.
+// Le soin d'un soigneur dans une partie (étape 107.4) : `Partie` applique le soin au monstre visé et le signale. Le soigneur partage
+// le groupe d'une infanterie de 2000 points de vie que l'escouade blesse.
 
 TEST_CASE("un soigneur soigne un membre blesse de son groupe, jamais lui-meme") {
     DefinitionDeMonstre infanterie = monstreSansHasard();
     infanterie.pointsDeVieMax = 2000;  // assez pour passer sous 75 % sans mourir
-    DefinitionDeMonstre soigneur = soigneurSansHasard();
-    soigneur.pointsDeVieMax = 100000;  // l'escouade le frappe aussi : il doit survivre
     CatalogueDeMonstres catalogue = catalogueDeTest(infanterie);
-    catalogue[static_cast<std::size_t>(CategorieDeMonstre::Nuee)] = soigneur;
+    catalogue[static_cast<std::size_t>(CategorieDeMonstre::Soigneur)].pointsDeVieMax = 100000;  // l'escouade le frappe aussi
     const Niveau niveau{std::vector<std::string>(15, std::string(15, '.')), 40.0f, {200.0f, 200.0f},
-                        {{{270.0f, 210.0f}, 0}, {{330.0f, 260.0f}, 0, CategorieDeMonstre::Nuee}}};
+                        {{{270.0f, 210.0f}, 0}, {{330.0f, 260.0f}, 0, CategorieDeMonstre::Soigneur}}};
     Partie partie(niveau, expeditionDeTest(compositionDeTest()), s_graineDeTest, catalogue);
     const IdMonstre idInfanterie = partie.getMonstres()[0].getId();
     const IdMonstre idSoigneur = partie.getMonstres()[1].getId();

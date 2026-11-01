@@ -101,6 +101,8 @@ TEST_CASE("le libelle : degats, coup gratuit et soin") {
     REQUIRE(libelleDuTexte(degatsSurUnMonstre(1, 12)) == "12");
     REQUIRE(libelleDuTexte({Place{1}, {}, DegatsSubis{7, true, false}}) == "7!");
     REQUIRE(libelleDuTexte({Place{2}, {}, Soin{20, false}}) == "+20");
+    REQUIRE(libelleDuTexte({IdMonstre{2}, {}, Soin{20, false}}) == "+20");  // le soin d'un soigneur, sur un monstre
+    REQUIRE(couleurDuTexte({IdMonstre{2}, {}, Soin{20, false}}) == couleurDuTexte({Place{2}, {}, Soin{20, false}}));
 }
 
 TEST_CASE("le libelle d'un critique : le montant suivi de Critique !") {
