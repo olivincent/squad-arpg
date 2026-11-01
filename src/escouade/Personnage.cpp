@@ -1,6 +1,7 @@
 // ./src/escouade/Personnage.cpp
 #include "escouade/Personnage.hpp"
 #include "combat/Cible.hpp"
+#include "combat/Energie.hpp"
 #include "rendu/BarreDeVie.hpp"
 #include "monde/Chemin.hpp"
 #include "base/Eclaircir.hpp"
@@ -51,6 +52,7 @@ Personnage::Personnage(sf::Vector2f centre, DefinitionPersonnage definition, Equ
       m_caracteristiques(m_caracteristiquesDeBase + m_equipementActif.bonusTotal()),
       m_statistiques(statistiquesDuPersonnage(m_caracteristiques, m_equipementActif.bonusDeCombatTotal())),
       m_vitalite(pointsDeVieMax(m_caracteristiques, m_niveau), defenses()),
+      m_energie(energieMax(m_niveau), s_regenerationDEnergieDeBase),
       m_rayonVision(definition.rayonVision),
       m_actionEngagee()
 {
@@ -112,6 +114,7 @@ void Personnage::mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte,
     m_mobile.mettreAJour(dt, carte, obstacles);
 
     m_vitalite.mettreAJour(dt);
+    m_energie.regenerer(dt);  // le mort est sorti plus haut : il ne régénère pas
     m_attaqueDeBase.mettreAJour(dt);
     for (SkillConnu& connu : m_skills) {
         connu.skill.mettreAJour(dt);
@@ -327,6 +330,14 @@ int Personnage::getPointsDeVieMax() const {
     return m_vitalite.getMaximum();
 }
 
+int Personnage::getEnergie() const {
+    return m_energie.getValeur();
+}
+
+int Personnage::getEnergieMax() const {
+    return m_energie.getMaximum();
+}
+
 sf::Vector2f Personnage::getCentre() const {
     return m_mobile.getCentre();
 }
@@ -406,6 +417,11 @@ void Personnage::recalculerDepuisLEquipement() {
     m_statistiques = statistiquesDuPersonnage(m_caracteristiques, m_equipementActif.bonusDeCombatTotal());
     m_vitalite.definirMaximum(pointsDeVieMax(m_caracteristiques, m_niveau));
     m_vitalite.definirDefenses(defenses());
+    if (estVivant()) {
+        m_energie.changerMaximum(energieMax(m_niveau));
+    } else {
+        m_energie.definirMaximum(energieMax(m_niveau));
+    }
     // Un skill en activation qui exige une arme qu'on ne porte plus est annulé, sans recharge consommée.
     if (const std::optional<ActionEngagee> action = skillEngage(); action.has_value() && action->skill.has_value()) {
         const Skill* skill = trouverSkill(*action->skill);

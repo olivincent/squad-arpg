@@ -17,6 +17,7 @@
 #include "combat/Blocage.hpp"
 #include "combat/Esquive.hpp"
 #include "combat/Caracteristiques.hpp"
+#include "combat/Energie.hpp"
 #include "combat/StatistiquesDeCombat.hpp"
 #include "combat/Defense.hpp"
 #include "combat/IdSkill.hpp"
@@ -1947,4 +1948,54 @@ TEST_CASE("les points depenses restent apres une montee de niveau, et les libres
     REQUIRE(personnage.getPointsDepenses() == Caracteristiques::seule(Caracteristique::Adresse, 3));
     REQUIRE(personnage.getPointsLibres() == 3);
     REQUIRE(personnage.getCaracteristiquesDeBase().valeur(Caracteristique::Adresse) == adresseAvant + 3);
+}
+
+// L'énergie (étape 108.2).
+
+TEST_CASE("energie : un personnage de niveau 1 commence plein, a 100") {
+    const Personnage personnage = unPersonnage({100.0f, 100.0f}, guerrierSousLeSeuil());
+
+    REQUIRE(personnage.getEnergie() == s_energieDeBase);
+    REQUIRE(personnage.getEnergieMax() == s_energieDeBase);
+}
+
+TEST_CASE("energie : le maximum est le meme pour toutes les classes et suit le niveau") {
+    std::vector<MembreDEscouade> membres = membresDeTest({definitionArmee(IdObjet::Sceptre), guerrierSousLeSeuil()});
+    const Personnage lance(
+        {100.0f, 100.0f}, std::move(membres[0].definition), std::move(membres[0].equipement), membres[0].pointsDepenses, 5);
+    const Personnage guerrier(
+        {100.0f, 100.0f}, std::move(membres[1].definition), std::move(membres[1].equipement), membres[1].pointsDepenses, 5);
+
+    REQUIRE(lance.getEnergieMax() == s_energieDeBase + 4 * s_energieParNiveau);
+    REQUIRE(guerrier.getEnergieMax() == lance.getEnergieMax());
+    REQUIRE(lance.getEnergie() == lance.getEnergieMax());  // pleine au départ, quel que soit le niveau
+}
+
+TEST_CASE("energie : monter de niveau augmente le maximum, un vivant plein reste plein") {
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, guerrierSousLeSeuil());
+
+    personnage.monterAuNiveau(3);
+
+    REQUIRE(personnage.getEnergieMax() == s_energieDeBase + 2 * s_energieParNiveau);
+    REQUIRE(personnage.getEnergie() == personnage.getEnergieMax());
+}
+
+TEST_CASE("energie : un mort ne gagne rien a la montee de niveau") {
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, guerrierSousLeSeuil());
+    subir(personnage, personnage.getPointsDeVieMax());
+    REQUIRE_FALSE(personnage.estVivant());
+
+    personnage.monterAuNiveau(3);
+
+    REQUIRE(personnage.getEnergieMax() == s_energieDeBase + 2 * s_energieParNiveau);
+    REQUIRE(personnage.getEnergie() == s_energieDeBase);  // son maximum a grandi, sa réserve non
+}
+
+TEST_CASE("energie : changer d'equipement ne change pas l'energie") {
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, guerrierSousLeSeuil());
+
+    static_cast<void>(personnage.retirerEquipement(Emplacement::Torse));
+
+    REQUIRE(personnage.getEnergie() == s_energieDeBase);
+    REQUIRE(personnage.getEnergieMax() == s_energieDeBase);
 }

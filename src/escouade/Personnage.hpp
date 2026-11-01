@@ -7,6 +7,7 @@
 #include "combat/IdMonstre.hpp"
 #include "combat/IdSkill.hpp"
 #include "combat/ModeDeCible.hpp"
+#include "combat/Reserve.hpp"
 #include "monde/Mobile.hpp"
 #include "combat/Skill.hpp"
 #include "combat/SkillConnu.hpp"
@@ -109,6 +110,10 @@ public:
     [[nodiscard]] bool estVivant() const;
     [[nodiscard]] int getPointsDeVie() const;
     [[nodiscard]] int getPointsDeVieMax() const;
+    // Son énergie (étape 108), pleine à la création. Elle se régénère tant qu'il est vivant (`mettreAJour`) ; son maximum suit le
+    // niveau (`energieMax`) : à chaque niveau, un vivant gagne autant d'énergie que son maximum augmente, un mort ne gagne rien.
+    [[nodiscard]] int getEnergie() const;
+    [[nodiscard]] int getEnergieMax() const;
     [[nodiscard]] sf::Vector2f getCentre() const;
     [[nodiscard]] Cercle getCercle() const;
     // Rayon de vision, en pixels.
@@ -162,6 +167,7 @@ private:
     Caracteristiques m_caracteristiques;        // effectives : seul `recalculerDepuisLEquipement` les écrit
     StatistiquesDeCombat m_statistiques;        // tirées des caractéristiques effectives, écrites au même endroit
     Vitalite m_vitalite;    // points de vie et défenses
+    Reserve m_energie;      // celle des skills de classe ; le maximum vient du niveau, le débit est celui de base
     float m_rayonVision;    // en pixels
     // Ce qu'il oppose à un coup : l'armure de son équipement et ses statistiques de combat.
     [[nodiscard]] Defenses defenses() const;
