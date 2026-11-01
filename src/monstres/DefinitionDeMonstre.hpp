@@ -6,6 +6,7 @@
 #include "combat/Skill.hpp"
 #include "combat/StatistiquesDeCombat.hpp"
 #include "monde/CategorieDeMonstre.hpp"
+#include "monstres/RoleDeMonstre.hpp"
 
 // Les valeurs d'équilibrage d'un monstre, nommées à la construction (initialisation désignée) : un monstre
 // ne choisit rien, il reçoit sa définition. Une définition par catégorie (`catalogueDeMonstres`).
@@ -25,6 +26,7 @@ struct DefinitionDeMonstre {  // NOLINT(cppcoreguidelines-pro-type-member-init):
     int chanceDeButin;         // en pour cent : la chance que sa mort laisse du butin (un seul tirage)
     int nombreDObjets;         // le nombre d'objets que laisse un butin
     int experience;            // ce que sa mort rapporte à l'escouade, quel que soit le tueur (« à tester »)
+    RoleDeMonstre role;        // ce qu'il fait en plus de poursuivre et de frapper (mêlée, tireur, soigneur)
 };
 
 // Une définition par catégorie, dans l'ordre de `CategorieDeMonstre`.

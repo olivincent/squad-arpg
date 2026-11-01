@@ -49,6 +49,7 @@ add_library(squad_core STATIC
     src/escouade/Personnage.cpp
     src/monde/Deplacement.cpp
     src/monstres/DefinitionDeMonstre.cpp
+    src/monstres/RoleDeMonstre.cpp
     src/monstres/Monstre.cpp
     src/combat/Skill.cpp
     src/combat/EffetDeSkill.cpp
@@ -218,6 +219,7 @@ add_executable(tests
     tests/jeu/test_Partie_descente.cpp
     tests/interface/test_AffichageProfondeur.cpp
     tests/monstres/test_DefinitionDeMonstre.cpp
+    tests/monstres/test_RoleDeMonstre.cpp
     tests/jeu/test_Partie_clics.cpp
     tests/jeu/test_Partie_skills.cpp
     tests/jeu/test_Partie_monstres.cpp

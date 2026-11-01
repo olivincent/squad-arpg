@@ -39,7 +39,8 @@ Monstre::Monstre(sf::Vector2f centre, IdMonstre id, int groupe, const Definition
       m_poste(centre),
       m_alerte(false),
       m_soinAccumule(0.0f),
-      m_placeCibleEngagee()
+      m_placeCibleEngagee(),
+      m_etatDuRole(etatInitialDuRole(definition.role))
 {
 }
 

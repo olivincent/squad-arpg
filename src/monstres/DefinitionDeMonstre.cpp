@@ -94,7 +94,8 @@ DefinitionDeMonstre definitionDuProfil(const Profil& profil) {
                              .resistances = profil.resistances},
             .chanceDeButin = profil.chanceDeButin,
             .nombreDObjets = profil.nombreDObjets,
-            .experience = profil.experience};
+            .experience = profil.experience,
+            .role = RoleMelee{}};
 }
 }  // namespace
 

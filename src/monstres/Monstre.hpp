@@ -12,6 +12,7 @@
 #include "combat/StatistiquesDeCombat.hpp"
 #include "combat/Vitalite.hpp"
 #include "monstres/DefinitionDeMonstre.hpp"
+#include "monstres/RoleDeMonstre.hpp"
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/System/Vector2.hpp>
@@ -114,4 +115,5 @@ private:
     bool m_alerte; // posée par `alerter`, consommée par `mettreAJour`
     float m_soinAccumule; // points de vie rendus pas encore entiers, pendant le retour ; 0 ailleurs
     std::optional<Place> m_placeCibleEngagee; // lu seulement pendant l'exécution
+    EtatDuRole m_etatDuRole; // l'état d'exécution du rôle de la définition (même alternative que le rôle)
 };
