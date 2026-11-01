@@ -52,7 +52,7 @@ inline void ecoulerTemps(Monstre& monstre, float duree, std::optional<Cercle> ci
     }
     const int nombreTics = nombreDeTics(duree);
     for (int i = 0; i < nombreTics; ++i) {
-        monstre.mettreAJour(s_dureeTic, proie, candidats, carte, obstacles, aContourner);
+        monstre.mettreAJour(s_dureeTic, proie, candidats, {}, carte, obstacles, aContourner);
     }
 }
 

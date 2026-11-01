@@ -6,6 +6,7 @@
 #include <optional>
 #include <vector>
 #include "combat/AdresseSkill.hpp"
+#include "combat/AllieVu.hpp"
 #include "base/Aleatoire.hpp"
 #include "escouade/Composition.hpp"
 #include "combat/Coup.hpp"
@@ -131,6 +132,10 @@ public:
     // Pour l'inventaire, qui déplace les objets de l'escouade (`docs/ecrans.md`).
     [[nodiscard]] Escouade& getEscouade();
     [[nodiscard]] const std::vector<Monstre>& getMonstres() const;
+    // Ce que ce monstre voit de son groupe : les AUTRES monstres de même groupe, vivants et ciblables (pas ceux qui rentrent à leur
+    // poste), avec leur cercle et leurs points de vie. La seule fonction qui construit cette vue : le point d'extension où une
+    // future escouade de monstres se branchera. Publique pour que les tests la lisent.
+    [[nodiscard]] std::vector<AllieVu> alliesDuGroupe(const Monstre& monstre) const;
     // La carte, pour ce qui doit trouver une place dans le monde (jeter un objet : `jeterUnObjet`).
     [[nodiscard]] const TileMap& getCarte() const;
     // Les objets posés au sol (`tous()` : dans l'ordre où ils sont tombés).

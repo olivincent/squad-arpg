@@ -36,7 +36,7 @@ void ecoulerAvec(Monstre& monstre, float duree, const std::vector<Cercle>& perso
     }
     const std::optional<PersonnageVu> proie = candidats.empty() ? std::nullopt : std::optional<PersonnageVu>(candidats.front());
     for (int i = 0; i < nombreDeTics(duree); ++i) {
-        monstre.mettreAJour(s_dureeTic, proie, candidats, carte, {}, {});
+        monstre.mettreAJour(s_dureeTic, proie, candidats, {}, carte, {}, {});
     }
 }
 }  // namespace

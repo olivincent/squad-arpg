@@ -127,6 +127,10 @@ int Monstre::getPointsDeVie() const {
     return m_vitalite.getValeur();
 }
 
+int Monstre::getPointsDeVieMax() const {
+    return m_vitalite.getMaximum();
+}
+
 float Monstre::getZoneDeControle() const {
     return m_zoneDeControle;
 }
@@ -244,7 +248,7 @@ bool Monstre::reculerSiAuContact(EtatTireur& tireur, const std::vector<Personnag
 }
 
 void Monstre::mettreAJour(float dt, std::optional<PersonnageVu> proie, const std::vector<PersonnageVu>& candidats,
-                          const TileMap& carte, const std::vector<Cercle>& obstacles,
+                          const std::vector<AllieVu>& /*allies*/, const TileMap& carte, const std::vector<Cercle>& obstacles,
                           const std::vector<Cercle>& aContourner) {
     m_attaque.mettreAJour(dt);
     m_vitalite.mettreAJour(dt);

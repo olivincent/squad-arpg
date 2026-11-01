@@ -184,7 +184,7 @@ void ecoulerTempsAvecCandidats(Monstre& monstre, float duree, std::optional<Pers
                                const std::vector<PersonnageVu>& candidats, const TileMap& carte) {
     const int nombreTics = nombreDeTics(duree);
     for (int i = 0; i < nombreTics; ++i) {
-        monstre.mettreAJour(s_dureeTic, proie, candidats, carte, {}, {});
+        monstre.mettreAJour(s_dureeTic, proie, candidats, {}, carte, {}, {});
     }
 }
 
@@ -281,7 +281,7 @@ TEST_CASE("Monstre ne contourne pas un personnage entre lui et sa proie : il s'a
     const std::vector<Cercle> obstacles = {proie.cercle, devant.cercle};
 
     for (int i = 0; i < nombreDeTics(3.0f); ++i) {
-        monstre.mettreAJour(s_dureeTic, proie, candidats, carte, obstacles, {});
+        monstre.mettreAJour(s_dureeTic, proie, candidats, {}, carte, obstacles, {});
     }
 
     REQUIRE(monstre.getCentre().x < 110.0f);

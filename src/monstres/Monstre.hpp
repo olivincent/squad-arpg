@@ -1,6 +1,7 @@
 // ./src/monstres/Monstre.hpp
 #pragma once
 #include "base/Aleatoire.hpp"
+#include "combat/AllieVu.hpp"
 #include "combat/Skill.hpp"
 #include "base/Cercle.hpp"
 #include "combat/Attaque.hpp"
@@ -35,10 +36,12 @@ public:
     // `proie` est le personnage que le monstre poursuit (sans dépendre de la vue) ;
     // `candidats` sont ceux qu'il peut frapper (identifiant = place du personnage).
     // Il s'arrête dès qu'il a une cible de frappe (voir `engagerAttaque`).
+    // `allies` : les autres monstres ciblables et vivants de son groupe (voir `Partie::alliesDuGroupe`), sans lui-même ; seuls
+    // certains rôles s'en servent, les autres l'ignorent.
     // `obstacles` le bloquent (collision) ; `aContourner` est ce que son chemin évite (voir `Mobile::allerVers`) :
     // les autres monstres, pas les personnages (un personnage sur le chemin est quelqu'un à frapper).
     void mettreAJour(float dt, std::optional<PersonnageVu> proie, const std::vector<PersonnageVu>& candidats,
-                     const TileMap& carte, const std::vector<Cercle>& obstacles,
+                     const std::vector<AllieVu>& allies, const TileMap& carte, const std::vector<Cercle>& obstacles,
                      const std::vector<Cercle>& aContourner);
     // Attaque en trois temps, comme celle d'un personnage : engager (cible à
     // portée et en vue, monstre immobile, attaque prête) ; avancer l'exécution, qui rend
@@ -75,6 +78,7 @@ public:
     [[nodiscard]] bool estCiblable() const;
     [[nodiscard]] bool estVivant() const;
     [[nodiscard]] int getPointsDeVie() const;
+    [[nodiscard]] int getPointsDeVieMax() const;
     // Zone de contrôle du monstre, en pixels, bord à bord.
     [[nodiscard]] float getZoneDeControle() const;
     // Son attaque : les dégâts, avant l'armure de la cible, et sa capacité offensive.

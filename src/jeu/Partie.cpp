@@ -246,6 +246,16 @@ std::vector<MonstreVu> Partie::entitesPhysiques() const {
     return entites;
 }
 
+std::vector<AllieVu> Partie::alliesDuGroupe(const Monstre& monstre) const {
+    std::vector<AllieVu> allies;
+    for (const Monstre& autre : m_monstres) {
+        if (autre.getId() != monstre.getId() && autre.getGroupe() == monstre.getGroupe() && autre.estVivant() && autre.estCiblable()) {
+            allies.push_back({autre.getId(), autre.getCercle(), autre.getPointsDeVie(), autre.getPointsDeVieMax()});
+        }
+    }
+    return allies;
+}
+
 Partie::CampsDeControle Partie::photographierLesCamps() const {
     CampsDeControle camps;
     camps.personnages = m_escouade.entitesDeControle();
@@ -453,7 +463,7 @@ void Partie::faireTournerLesMonstres(float dt) {
         obstacles.insert(obstacles.end(), autresMonstres.begin(), autresMonstres.end());
         const std::optional<PersonnageVu> proie = m_escouade.proieDuMonstre(m.getId(), m.getCentre());
         const std::vector<PersonnageVu> candidats = m_escouade.candidatsDeFrappe(m.getId());
-        m.mettreAJour(dt, proie, candidats, m_carte, obstacles, autresMonstres);
+        m.mettreAJour(dt, proie, candidats, alliesDuGroupe(m), m_carte, obstacles, autresMonstres);
         faireFrapperLeMonstre(m, proie, candidats, dt);
     }
 
