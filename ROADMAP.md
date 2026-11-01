@@ -8,7 +8,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 ## Étapes terminées
 
-Étapes 0 à 108 ✅. Les dernières :
+Étapes 0 à 109 ✅. Les dernières :
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 - Étape 83 — Inventaire et équipement : le modèle, sans interface ✅
@@ -36,7 +36,8 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - Étape 105 — Les skills en données (R4 et R5) : un mode de cible, une zone séparée de l'effet, un effet en `std::variant`, un seul canal de sortie, des types forts `Place` et `IdMonstre`, la provocation qui attend ✅ (première étape de la phase 7)
 - Étape 106 — L'escouade passe à 4 personnages : une seule constante de taille, l'échange d'objets entre personnages avec repli au sac, la barre de raccourcis par colonne, l'inventaire en onglets à côté d'un sac commun ✅ (le mana passe à l'étape 107)
 - Étape 107 — Monstres à rôles : le rôle en données (mêlée, tireur, soigneur), le tireur qui frappe de loin et recule au contact, la vue des alliés du groupe, le soigneur qui soigne les blessés de son groupe ✅ (le mana passe à l'étape 108)
-- Étape 108 — L'énergie, la ressource des skills : une jauge plafonnée, une réserve qui se régénère, une énergie par personnage, un coût par skill calibré par une règle, le refus « Not enough energy », la barre bleue, l'affixe « of Replenishment » ✅ (les effets du Savoir et de la Volonté passent à l'étape 109)
+- Étape 108 — L'énergie, la ressource des skills : une jauge plafonnée, une réserve qui se régénère, une énergie par personnage, un coût par skill calibré par une règle, le refus « Not enough energy », la barre bleue, l'affixe « of Replenishment » ✅ (les effets du Savoir et de la Volonté passent à l'étape 110)
+- Étape 109 — Documentation : la liste cible des statistiques (trois niveaux : caractéristiques, ressources, statistiques de combat), huit types de dégâts et de résistances (le saignement n'est plus un type), Aegis et Ward, résistances aux états, attributs ; aucune modification du code ✅
 
 ## État actuel (résumé)
 
@@ -392,19 +393,30 @@ ce qui reste à décider **en discussion** avant son prompt :
   - 107 ✅ : les monstres à rôles (voir « Monstres à rôles ») : le rôle en données, le tireur et son recul, la vue des alliés du groupe, le
     soigneur. Le mana, prévu à cette place, passe à l'étape 108.
   - 108 ✅ : l'énergie, la ressource des skills (voir « L'énergie »). Les ressources de classe et l'Élan restent à discuter.
-  - À discuter avec Claude.ai : les effets du Savoir et de la Volonté (étape 109, dont un lien possible avec l'énergie), puis les buffs,
-    les affaiblissements, les effets dans le temps et les auras (plusieurs effets par skill).
+  - 109 ✅ : documentation seulement : la liste cible des statistiques (`docs/classes-et-combat.md`, section 13), chaque statistique marquée
+    existante ou non (voir « La liste cible des statistiques »).
+  - À discuter avec Claude.ai : les effets du Savoir et de la Volonté (étape 110, dont un lien possible avec l'énergie), puis les buffs,
+    les affaiblissements, les effets dans le temps et les auras (plusieurs effets par skill), et la mise en code de la liste cible.
 
 
-## Étape 109 (prochaine) : à discuter avec Claude.ai
+## Étape 110 (prochaine) : à discuter avec Claude.ai
 
-Les étapes 105 (les skills en données), 106 (quatre personnages), 107 (les monstres à rôles) et 108 (l'énergie) sont faites. La suite se discute avec
-Claude.ai, après la conception des classes par Olivier : les effets du Savoir et de la Volonté, qui pourraient toucher l'énergie. Le Savoir
-et la Volonté n'ont encore aucun effet (les paires de croissance du prêtre et du mage deviendront justes quand ils serviront).
-L'`Expedition` garde les points dépensés ; c'est elle qu'on sauvegardera un jour.
+Les étapes 105 (les skills en données), 106 (quatre personnages), 107 (les monstres à rôles), 108 (l'énergie) et 109 (la liste cible des
+statistiques, documentation) sont faites. La suite se discute avec Claude.ai, après la conception des classes par Olivier : les effets du
+Savoir et de la Volonté, qui pourraient toucher l'énergie. Le Savoir et la Volonté n'ont encore aucun effet (les paires de croissance du
+prêtre et du mage deviendront justes quand ils serviront). L'`Expedition` garde les points dépensés ; c'est elle qu'on sauvegardera un jour.
+
+**La liste cible des statistiques** (étape 109, documentation seulement) : `docs/classes-et-combat.md`, section 13, en donne le détail et marque
+chaque statistique existante ou non. En bref : trois niveaux (caractéristiques, ressources, statistiques de combat), les monstres sans
+caractéristiques, huit types de dégâts et de résistances (le saignement n'est plus un type : cette décision remplace celle de l'étape 94),
+Aegis et Ward à la place d'Égide et de Barrière, des résistances aux états ; la plupart de ces statistiques n'existent pas encore.
+**Écarts entre le code et ces décisions**, à traiter dans des étapes à part : le commentaire de `combat/Element.hpp` cite encore le saignement
+comme futur élément ; `resistanceEffective` applique le même plafond de 80 % à la résistance physique ; `Element` n'a que trois des huit
+éléments ; l'inventaire et les infobulles affichent « Melee Dodge » / « Dodge vs Melee » et « Projectile Dodge » / « Dodge vs Projectiles » au
+lieu de Dodge et Deflect ; le multiplicateur de critique n'est pas une statistique ; la récupération du blocage est une constante commune.
 
 **Pistes issues de l'étape 108** (étapes à part, plus tard) :
-- **Une caractéristique qui donne de l'énergie ou de la régénération** (étape 109, avec le Savoir et la Volonté) ; **un affixe d'énergie
+- **Une caractéristique qui donne de l'énergie ou de la régénération** (étape 110, avec le Savoir et la Volonté) ; **un affixe d'énergie
   maximum**, une régénération différente hors combat, des potions, des refuges qui rendent l'énergie.
 - **L'Élan** (ressource partagée de l'escouade, `Reserve` en est la structure) et les **ressources de classe** (rage, foi…) si on en veut.
 - **Le coût dans une infobulle de la barre de raccourcis** (avec l'écran de configuration des touches), et la possibilité de ranger l'imposition
@@ -537,14 +549,14 @@ L'`Expedition` garde les points dépensés ; c'est elle qu'on sauvegardera un jo
   `Affichage*` et dans les catalogues ; `docs/glossaire.md` en dresse la liste.
 
 **Pistes issues de l'étape 94** (étapes à part, plus tard) :
-- **Les éléments sans source** : froid, foudre, poison, nécrotique, saignement s'ajoutent à `Element` avec leur premier
-  skill ou monstre (le saignement est un type de dégâts, `docs/classes-et-combat.md`, section 8) ; Psychique / Arcane est
-  à revoir en créant les classes.
+- **Les éléments sans source** : froid, foudre, arcane, nécrotique, poison s'ajoutent à `Element` avec leur premier
+  skill ou monstre (depuis l'étape 109 le saignement n'est plus un type de dégâts mais du physique dans le temps,
+  `docs/classes-et-combat.md`, sections 8 et 13).
 - **La pénétration de résistance** (par l'équipement ou des skills), et les bonus de pénétration d'armure.
 - **Un bouclier anti-magie**, qui bloquerait aussi une part des portions élémentaires.
 - **La frappe puissante et le tir perçant en skills de frappe** (la structure de la frappe sacrée, avec un bonus
   physique).
-- **Les effets dans le temps** (saignement, poison) qui ignorent l'armure, et les immunités.
+- **Les effets dans le temps** (le saignement, du physique dans le temps ; le poison…) qui ignorent l'armure, et les immunités.
 
 **Pistes issues de l'étape 93** (étapes à part, plus tard) :
 - **La vraie escouade de monstres** (ancre, formation, places d'attaque autour de leur cible, cible commune) : elle

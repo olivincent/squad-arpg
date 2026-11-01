@@ -125,7 +125,8 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 105 — Les skills en données (R4 et R5) : un mode de cible, une zone séparée de l'effet, un effet en `std::variant`, un seul canal de sortie, des types forts pour les places et les monstres, la provocation qui attend ✅ (première étape de la phase 7)
 - Étape 106 — L'escouade passe à 4 personnages : une seule constante de taille, l'échange d'objets entre personnages avec repli au sac, la barre de raccourcis par colonne, l'inventaire en onglets à côté d'un sac commun ✅ (le mana passe à l'étape 107)
 - Étape 107 — Monstres à rôles : le rôle en données (mêlée, tireur, soigneur), le tireur qui frappe de loin et recule au contact, la vue des alliés du groupe, le soigneur qui soigne les blessés de son groupe ✅ (le mana passe à l'étape 108)
-- Étape 108 — L'énergie, la ressource des skills : une jauge plafonnée et une réserve qui se régénère, une énergie par personnage (100 plus 5 par niveau, 2 par seconde), un coût par skill calibré par une règle (sort 30 s, technique 120 s), le refus et l'abandon avec « Not enough energy », la barre bleue, l'affixe « of Replenishment » ✅ (les effets du Savoir et de la Volonté passent à l'étape 109)
+- Étape 108 — L'énergie, la ressource des skills : une jauge plafonnée et une réserve qui se régénère, une énergie par personnage (100 plus 5 par niveau, 2 par seconde), un coût par skill calibré par une règle (sort 30 s, technique 120 s), le refus et l'abandon avec « Not enough energy », la barre bleue, l'affixe « of Replenishment » ✅ (les effets du Savoir et de la Volonté passent à l'étape 110)
+- Étape 109 — Documentation : la liste cible des statistiques (caractéristiques, ressources, statistiques de combat), huit types de dégâts et de résistances (le saignement n'est plus un type), Aegis et Ward, résistances aux états, attributs ✅ (aucune modification du code)
 
 ## Détail des étapes 0 à 73
 
@@ -2547,3 +2548,29 @@ techniques (le prompt ne nommait comme sorts que l'explosion et le soin du prêt
 trop cher est refusé dès la touche, sans entrer en visée ; aucun texte n'est affiché au-dessus d'un lanceur mort. 1 955
 tests (+70), 0 avertissement de compilation sur les deux presets. Détail : `docs/classes-et-combat.md` (section 14 bis), `docs/combat.md`
 (« L'énergie »), `docs/objets.md`, `docs/ecrans.md`, `docs/glossaire.md`, `docs/tests.md`.
+
+### Étape 109 — Documentation : la liste cible des statistiques ✅
+
+Étape de documentation seule : **aucune modification du code**, quatre sous-étapes enchaînées, un commit chacune. Olivier a dressé la liste cible des
+statistiques du jeu ; la plupart n'existent pas encore dans le code. 109.1 : `docs/classes-et-combat.md`, section 13, refaite (l'ancien « inventaire des
+statistiques de combat » devient la « liste cible ») : **trois niveaux à ne pas mélanger** (les cinq caractéristiques ; les ressources, points de vie et
+énergie, qui sont des jauges, avec leurs statistiques de maximum, de régénération, de vol et de soins reçus ; les statistiques de combat que lit le
+moteur du coup), les monstres confirmés **sans caractéristiques** (leurs statistiques viennent de leur définition, renforcée par la profondeur), des
+tableaux par groupe (Ressources, Offense, Défense, Contrôle, Utilité) avec les colonnes Rôle, Source principale et Existe remplie d'après le code de
+l'étape 108, les décisions et les pistes non décidées. **Décisions** : huit types de dégâts et de résistances (Physical, Fire, Cold, Lightning, Arcane,
+Necrotic, Holy, Poison) ; le **saignement n'est plus un type de dégâts** mais du physique dans le temps (cette décision remplace celle de l'étape 94) ; pas
+de Piercing (la pénétration d'armure joue ce rôle) ; tout élément peut avoir des dégâts dans le temps (ils ignorent l'armure, ne critiquent pas, et sont
+résistés par la résistance de l'élément) ; la résistance physique est rare, avec un plafond plus bas dont la valeur reste à déterminer ; **Aegis** (physique,
+immunise à Stun et Slow) et **Ward** (le reste, poison compris, immunise à Charm, Fear et Disruption) absorbent en dernier, dégâts dans le temps
+compris ; résistances aux états qui réduisent la durée ; Offensive Ability et Defensive Ability gardent leur nom ; pas de Crit Chance ; pas de
+statistique défensive contre la pénétration d'armure ; Dodge (contact) et Deflect (projectiles) ; blocage en trois valeurs ; Attack Speed est un
+modificateur. **Pistes non décidées** : bonus de dégâts par type, menace (Threat), résistance des monstres à la provocation, portée de Slow, plafond de
+la résistance physique, sort de la résistance à l'interruption de l'ancienne liste ; les sections 5, 6, 8, 9, 12, 14 et 15 du même fichier suivent (Égide et
+Barrière deviennent Aegis et Ward, la section 9 est réécrite avec les immunités). 109.2 : `docs/combat.md` (« Types de dégâts et résistances (étape 94) » :
+note de mise à jour, limite corrigée). 109.3 : `docs/glossaire.md` (les huit éléments, la table des
+noms de la liste cible avec leur identifiant ou le texte affiché aujourd'hui) et `docs/aide-memoire-objets.md` (le saignement retiré des éléments).
+109.4 : `ROADMAP.md`, `ARCHITECTURE.md` (ligne de `docs/classes-et-combat.md`) et ce fichier. **Écarts entre le code et les décisions**, à traiter dans des
+étapes à part : le commentaire de `combat/Element.hpp` cite encore le saignement ; `resistanceEffective` applique 80 % à la résistance physique ;
+`Element` n'a que trois des huit éléments ; « Melee Dodge » et « Projectile Dodge » (et « Dodge vs … ») à l'écran au lieu de Dodge et Deflect ; le
+multiplicateur de critique et la récupération du blocage ne sont pas des statistiques. Détail : `docs/classes-et-combat.md` (section 13), `docs/combat.md`,
+`docs/glossaire.md`.
