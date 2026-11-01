@@ -71,6 +71,7 @@ Le nom affiché d'un objet est `[préfixe] modèle [suffixe]` (« Blazing Mace �
 | d'Esquive | of Evasion | suffixe | Dodge vs Melee: +N % |
 | de Déviation | of Deflection | suffixe | Dodge vs Projectiles: +N % |
 | de Blocage | of Blocking | suffixe | Block: +N % |
+| de Renouveau (régénération d'énergie) | of Replenishment | suffixe | +N % Energy Regeneration |
 
 ## Classes (`escouade/Specialite.cpp`)
 
@@ -114,6 +115,7 @@ Le nom affiché d'un objet est `[préfixe] modèle [suffixe]` (« Blazing Mace �
 | Provoqué | Taunted |
 | Sac plein (l'objet visé reste au sol) | Bag full |
 | Niveau atteint (au-dessus de l'escouade) | Level up! |
+| Skill refusé faute d'énergie (au-dessus du lanceur) | Not enough energy (bleu violacé) |
 | Coup gratuit (attaque d'opportunité) | un `!` après le nombre (« 7! ») |
 
 ## Emplacements et catégories d'objet (`interface/AffichageObjets.cpp`)
@@ -197,6 +199,8 @@ Le nom affiché d'un objet est `[préfixe] modèle [suffixe]` (« Blazing Mace �
 | Esquive mêlée, esquive projectile (inventaire) | Melee Dodge, Projectile Dodge |
 | Bonus d'esquive d'un objet | Dodge vs Melee, Dodge vs Projectiles |
 | Points de vie | HP |
+| Énergie du personnage (inventaire) | Energy (« Energy 87 / 100 ») |
+| Régénération d'énergie (inventaire ; le seul nombre décimal du jeu, une décimale) | Energy Regen (« Energy Regen 2.3/s ») |
 
 ## Touches de débogage
 

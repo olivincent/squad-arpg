@@ -125,6 +125,7 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 105 — Les skills en données (R4 et R5) : un mode de cible, une zone séparée de l'effet, un effet en `std::variant`, un seul canal de sortie, des types forts pour les places et les monstres, la provocation qui attend ✅ (première étape de la phase 7)
 - Étape 106 — L'escouade passe à 4 personnages : une seule constante de taille, l'échange d'objets entre personnages avec repli au sac, la barre de raccourcis par colonne, l'inventaire en onglets à côté d'un sac commun ✅ (le mana passe à l'étape 107)
 - Étape 107 — Monstres à rôles : le rôle en données (mêlée, tireur, soigneur), le tireur qui frappe de loin et recule au contact, la vue des alliés du groupe, le soigneur qui soigne les blessés de son groupe ✅ (le mana passe à l'étape 108)
+- Étape 108 — L'énergie, la ressource des skills : une jauge plafonnée et une réserve qui se régénère, une énergie par personnage (100 plus 5 par niveau, 2 par seconde), un coût par skill calibré par une règle (sort 30 s, technique 120 s), le refus et l'abandon avec « Not enough energy », la barre bleue, l'affixe « of Replenishment » ✅ (les effets du Savoir et de la Volonté passent à l'étape 109)
 
 ## Détail des étapes 0 à 73
 
@@ -2522,3 +2523,27 @@ le mur) ; le contact du tireur se lit sur ses candidats de frappe (un tireur pro
 structure à part plutôt qu'une instance d'`EntiteVue` (qui n'a pas de points de vie et que les deux camps partagent). 1 885 tests (+40),
 0 avertissement de compilation sur les deux presets. Détail : `docs/monstre.md` (« Rôles »), `docs/generation.md`,
 `docs/boucle-et-entrees.md`, `docs/tests.md`.
+
+### Étape 108 — L'énergie, la ressource des skills ✅
+
+Première couche de la ressource des skills, à la *Titan Quest* et *Grim Dawn* : une seule ressource, l'**énergie**, pour toutes les classes
+(la question 6 de `docs/classes-et-combat.md` est tranchée en partie ; l'Élan et les ressources de classe restent à discuter). Cinq
+sous-étapes, un commit chacune (108.1 à 108.3 enchaînées, selon le prompt). 108.1 : `PointsDeVie` a des règles propres à la mort, donc on
+n'a pas généralisé `PointsDeVie` mais extrait **`Jauge`** (une valeur entière entre 0 et un maximum), que `PointsDeVie` possède maintenant, et
+**`Reserve`** (une jauge, un débit de régénération et un accumulateur `float` : seule la partie entière est ajoutée, comme `m_soinAccumule` du
+monstre), réutilisable pour l'Élan. 108.2 : `combat/Energie.hpp` (`energieMax` : 100 plus 5 par niveau ; 2 points par seconde), une `Reserve` par
+`Personnage`, régénérée tant qu'il est vivant, un vivant gagne ce que le maximum augmente, un mort rien, pleine à chaque étage (l'`Expedition` ne
+garde pas l'énergie). 108.3 : `DefinitionDeSkill::cout` (0 par défaut ; l'attaque de base et les monstres coûtent 0) ; **vérifié à l'engagement,
+payé au départ de l'effet**, un skill annulé ne coûte rien, un skill de zone paie même zone vide ; **les coûts sont déduits d'une règle de
+calibrage** (`coût = recharge × (2 + 100 / T)`, T = 30 s pour un sort, 120 s pour une technique) plutôt que choisis un par un : 43, 43, 14,
+28, 14, 28, 17, 23 ; un skill prêt mais trop cher est refusé (`SkillSansEnergie` dans `ResultatDEffet`, `EnergieInsuffisante` dans les
+événements) sans mise en attente, et un skill en attente dont le lanceur n'a plus de quoi payer est abandonné sans coût. 108.4 : une barre
+bleue de 3 px sous la barre de vie, l'icône trop chère en **bleu atténué** (le gris reste pour l'arme manquante ou le lanceur mort),
+« Not enough energy » (bleu violacé), « Energy N / M » et « Energy Regen 2.0/s » dans l'inventaire (**le seul nombre décimal affiché**,
+exception voulue), le panneau de l'inventaire passe de 538 à 556 px de haut. 108.5 : l'affixe **of Replenishment** (suffixe, 10 à 20 %
+au niveau 1, armes, reliques et bijoux, affinités : bâton ×3, sceptre, Orb et Holy Relic ×2), les pourcentages de tous les objets actifs
+s'additionnent et majorent la régénération de base. Décisions prises sans Olivier : l'imposition des mains (soin du paladin) est rangée parmi les
+techniques (le prompt ne nommait comme sorts que l'explosion et le soin du prêtre : son coût passerait de 28 à 53 en sort) ; un skill de zone
+trop cher est refusé dès la touche, sans entrer en visée ; aucun texte n'est affiché au-dessus d'un lanceur mort. 1 955
+tests (+70), 0 avertissement de compilation sur les deux presets. Détail : `docs/classes-et-combat.md` (section 14 bis), `docs/combat.md`
+(« L'énergie »), `docs/objets.md`, `docs/ecrans.md`, `docs/glossaire.md`, `docs/tests.md`.

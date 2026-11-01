@@ -1782,6 +1782,41 @@ d'équilibrage qui change. Seul changement visible : la provocation peut être m
 - **Limites.** Un seul skill en attente pour toute l'escouade (inchangé). Un effet qui touche plusieurs alliés tire un critique par
   allié. Plusieurs effets par skill, les buffs, le mana et les effets dans le temps restent à faire (phase 7).
 
+## L'énergie (étape 108)
+
+La ressource des skills : une réserve par personnage, que les skills de classe dépensent. Les décisions de conception (maximum,
+régénération, coûts calibrés, refus) sont dans `docs/classes-et-combat.md`, section 14 bis ; ici, la technique.
+
+- **Une jauge, deux usages.** `PointsDeVie` avait des règles propres à la mort (un mort ne remonte plus, un vivant garde 1 point), donc
+  on n'a pas généralisé `PointsDeVie` : on a extrait `Jauge` (une valeur entière entre 0 et un maximum, le plafond et le plancher),
+  que `PointsDeVie` possède maintenant et que `Reserve` possède aussi. Même démarche que D1 à l'étape 82.1 : la règle commune écrite
+  une fois, chaque classe garde la sienne. `Reserve` ajoute à la jauge un débit de régénération et un accumulateur `float` : à 2 points
+  par seconde et 60 images par seconde, une image ajoute 0,03 point, qu'un entier tronquerait à 0 ; seule la partie entière est
+  ajoutée, le reste est gardé (comme `m_soinAccumule` du monstre). Pleine, la réserve ne garde aucun reste. L'Élan, ressource partagée
+  de l'escouade, est la piste privilégiée pour une seconde `Reserve`.
+- **Les règles propres à l'énergie** (`combat/Energie.hpp`, sans `.cpp`) : `s_energieDeBase` (100), `s_energieParNiveau` (5),
+  `s_regenerationDEnergieDeBase` (2,0), `energieMax(niveau)` et `regenerationDEnergie(bonusEnPourcent)`.
+- **Dans `Personnage`** : `m_energie` (`Reserve`), créée pleine ; régénérée par `mettreAJour` tant qu'il est vivant ; son maximum et son
+  débit sont recalculés par `recalculerDepuisLEquipement` (un vivant gagne ce que le maximum augmente via `Reserve::changerMaximum`, un
+  mort `definirMaximum`, sans gain) ; `energieSuffit(id)` compare l'énergie au coût du skill ; `peutEngagerSkill` l'exige (donc
+  `engagerSkill` refuse un skill trop cher) ; `avancerSkill` paie le coût quand l'effet part. Un seul skill s'active à la fois et rien
+  d'autre ne dépense l'énergie : ce qui a été vérifié à l'engagement est encore là au départ.
+- **Dans `Escouade`** : `skillEstPret` ne change pas (recharge, arme, vie) et `energieSuffit(adresse)` est la question de plus, distincte
+  pour que le refus ait sa raison. `declencherSkill` et `declencherSkillDeZone` rendent un `SkillSansEnergie` pour un skill prêt mais
+  trop cher (avant la distinction des modes : un skill de zone est refusé aussi). `abandonnerLeSkillEnAttenteSansEnergie`, appelé en
+  tête d'`attaquer`, abandonne le skill en attente dont le lanceur est libre (aucun skill en activation) mais sans énergie, et le
+  signale. `energieDuPersonnage`, `energieMaxDuPersonnage` et `regenerationDEnergieDuPersonnage` sont lus par l'inventaire.
+- **Le canal de sortie.** `SkillSansEnergie { Place lanceur; sf::Vector2f position; }` est une alternative de plus de `ResultatDEffet`, que
+  `Partie::traduire` convertit en `EnergieInsuffisante {}` (un détail d'événement de plus) ; `TextesFlottants` l'écrit « Not enough energy » (14 px,
+  bleu violacé 150, 150, 255, une couleur qu'aucun autre texte n'a).
+- **À l'écran.** Une barre bleue de 3 px (`rendu/BarreDEnergie`), sous la barre de vie, entre elle et le carré ; l'icône d'un skill trop
+  cher a son texte en bleu atténué (90, 105, 200) alors que le gris (90, 90, 90) reste pour un lanceur mort ou une arme manquante (deux
+  causes, deux teintes) ; la recharge reste affichée sur une icône bleutée. Le `Controleur` n'entre pas en visée pour un skill de zone
+  trop cher : il demande le skill, et l'escouade le refuse avec son texte.
+- **Limites.** Aucune caractéristique n'agit sur l'énergie (étape 109). Pas de régénération différente hors combat, pas de potions, pas
+  d'affixe d'énergie maximum, pas de coût dans une infobulle de la barre de raccourcis. Un skill en attente ne réserve pas son coût : un
+  lanceur qui paie un autre skill entre-temps le voit abandonné. L'énergie des morts ne diminue pas (elle est refaite à l'étage suivant).
+
 ## Référence des modules
 
 Repris tel quel d'`ARCHITECTURE.md` à l'étape 81 (K1, « déplacer d'abord ») : données
@@ -1822,18 +1857,18 @@ sans nouveau coup du même monstre. Aucune position (82.5).
 Un `ModeDeCible` (comment il vise), une portée (bord à bord), un intervalle de recharge, un `EffetDeSkill` (ce qu'il fait), un rayon
 de zone optionnel (où il s'applique : voir « Les skills en données (étape 105) »), un temps d'exécution et les types d'arme qu'il
 exige. Sert aussi d'attaque de base (un `EffetDegats` de montant 0, de mode `Monstre`) et d'attaque des monstres.
-Il suit une machine à états (`enum class PhaseSkill { Pret, EnExecution, EnRecharge }`) : `commencer` (prêt → en exécution), `avancer` (fin de l'exécution : le coup part, la recharge est tirée, → en recharge), `annuler` (en exécution → prêt, sans recharge). Les skills des personnages passent par la même machine à états (étape 58 : activation de 0,3 s, 0,2 s, 0,6 s et 0,8 s pour dégâts, provocation, soin et zone) ; avec un temps nul, l'effet part dans l'image de l'engagement. Il ne connaît pas la cible du coup engagé, c'est son propriétaire qui la retient.
+Il porte aussi le coût en énergie du skill (`cout`, `getCout()`, étape 108). Il suit une machine à états (`enum class PhaseSkill { Pret, EnExecution, EnRecharge }`) : `commencer` (prêt → en exécution), `avancer` (fin de l'exécution : le coup part, la recharge est tirée, → en recharge), `annuler` (en exécution → prêt, sans recharge). Les skills des personnages passent par la même machine à états (étape 58 : activation de 0,3 s, 0,2 s, 0,6 s et 0,8 s pour dégâts, provocation, soin et zone) ; avec un temps nul, l'effet part dans l'image de l'engagement. Il ne connaît pas la cible du coup engagé, c'est son propriétaire qui la retient.
 Possédé par valeur par `Personnage` (attaque de base, plus ses skills) et par `Monstre` (son attaque). Ne connaît ni la position de son
 propriétaire ni sa cible : il reçoit deux `Cercle`. Ne dessine rien.
 
 Données membres : `m_mode` (`ModeDeCible`), `m_portee` (bord à bord), `m_rechargeMin`, `m_rechargeMax` (intervalle de recharge,
 en secondes), `m_tempsRecharge` (durée de la recharge en cours, dernier tirage), `m_recharge`, `m_effet` (`EffetDeSkill`),
 `m_rayonZone` (`std::optional<float>`, en pixels), `m_tempsExecution`, `m_armesExigees` (`std::vector<TypeDArme>`, étape 91.5),
-`m_executionRestante` (secondes), `m_phase` (`PhaseSkill`).
+`m_cout` (entier, en points d'énergie, étape 108), `m_executionRestante` (secondes), `m_phase` (`PhaseSkill`).
 
 | Fonction | Rôle |
 |---|---|
-| `explicit Skill(const DefinitionDeSkill&)` | Crée le skill depuis ses données nommées : `DefinitionDeSkill { mode; portee; rechargeMin; rechargeMax; effet; rayonZone = vide; tempsExecution = 0; armesExigees = {} }`, en initialisation désignée (`Skill({.mode = ModeDeCible::Monstre, .portee = 80.0f, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}})`). Les quatre premiers champs et l'effet n'ont pas de valeur par défaut (un oubli est une erreur de compilation). `assert` : `0 <= min <= max` (recharge fixe si `min == max`), temps d'exécution `>= 0`, rayon `> 0` s'il y en a un, un skill de mode `Point` a un rayon, un skill de mode `Monstre` un effet qui touche les monstres (`campTouche`), un skill de mode `Allie` un effet qui touche les alliés ; prêt à la création |
+| `explicit Skill(const DefinitionDeSkill&)` | Crée le skill depuis ses données nommées : `DefinitionDeSkill { mode; portee; rechargeMin; rechargeMax; effet; rayonZone = vide; tempsExecution = 0; armesExigees = {}; cout = 0 }`, en initialisation désignée (`Skill({.mode = ModeDeCible::Monstre, .portee = 80.0f, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}})`). Les quatre premiers champs et l'effet n'ont pas de valeur par défaut (un oubli est une erreur de compilation). `assert` : `0 <= min <= max` (recharge fixe si `min == max`), temps d'exécution `>= 0`, rayon `> 0` s'il y en a un, un skill de mode `Point` a un rayon, un skill de mode `Monstre` un effet qui touche les monstres (`campTouche`), un skill de mode `Allie` un effet qui touche les alliés ; prêt à la création |
 | `bool commencer()` | Prêt → en exécution ; faux, sans rien changer, dans toute autre phase ; `[[nodiscard]]` |
 | `bool avancer(float dt, Generateur& generateur)` | En exécution : fait avancer l'exécution ; vrai une seule fois, au départ du coup (la recharge est alors tirée, phase → en recharge). Autres phases : comme `mettreAJour`, faux ; `[[nodiscard]]` |
 | `void annuler()` | En exécution → prêt, sans recharge ; sans effet ailleurs |
@@ -1848,6 +1883,7 @@ en secondes), `m_tempsRecharge` (durée de la recharge en cours, dernier tirage)
 | `std::optional<float> getRayonZone() const` | Le rayon de la zone touchée ; vide si l'effet touche la cible seule ; `[[nodiscard]]` |
 | `float getPortee() const` | Portée du skill (bord à bord) |
 | `const std::vector<TypeDArme>& getArmesExigees() const` | Les types d'arme qui permettent le skill (vide : aucune exigence) ; `[[nodiscard]]` |
+| `int getCout() const` | Le coût en énergie (0 : gratuit) ; `assert(cout >= 0)` à la création ; `[[nodiscard]]` |
 | `bool convientA(std::optional<TypeDArme> arme) const` | Toujours vrai sans exigence ; sinon l'arme (vide : mains nues, faux) est-elle dans la liste ? ; `[[nodiscard]]` |
 
 ### `ModeDeCible` (`combat/`) — comment un skill vise
@@ -1871,7 +1907,7 @@ endroit où il se déduit.
 `ResultatDEffet.hpp`, sans `.cpp` : `struct SkillParti { Place lanceur; IdSkill skill; sf::Vector2f position; }` (le départ du skill, au
 centre du lanceur, toujours le premier résultat du skill ; jamais pour l'attaque de base), `Coup` (dégâts sur un monstre), `struct SoinSurAllie
 { Place place; int montant; sf::Vector2f position; bool critique; }` (les points réellement rendus, jamais 0), `struct ProvocationPosee {
-IdMonstre monstre; }` et `using ResultatDEffet = std::variant<SkillParti, Coup, SoinSurAllie, ProvocationPosee>`. Rendu par `attaquer`,
+IdMonstre monstre; }`, `struct SkillSansEnergie { Place lanceur; sf::Vector2f position; }` (étape 108 : un skill demandé ou en attente refusé faute d'énergie, rien n'a eu lieu) et `using ResultatDEffet = std::variant<SkillParti, Coup, SoinSurAllie, ProvocationPosee, SkillSansEnergie>`. Rendu par `attaquer`,
 `declencherSkill` et `declencherSkillDeZone` ; lu par `Partie::traduire`.
 
 ### `Place` et `IdMonstre` (`combat/`) — les types forts (étape 105.1)
@@ -1961,7 +1997,7 @@ réussi, le même pour tous.
 
 ### `EvenementDeCombat` (`combat/`) — ce qui s'est passé, en données
 
-`EvenementDeCombat.hpp` / `.cpp` : `struct EscouadeEntiere {}`, `using CibleDEvenement = std::variant<Place, IdMonstre, EscouadeEntiere>`, les détails `DegatsSubis { int montant; bool opportunite; bool critique; Element element = Physique; }` (`element` : celui de la plus grosse portion après les réductions, étape 94 ; `Degats` avant l'étape 94), `Soin { int montant; bool critique; }`, `SkillLance { IdSkill skill; }`, `Provoque {}`, `Esquive {}`, `Bloque { int montant; bool total; }`, `using DetailEvenement = std::variant<DegatsSubis, Soin, SkillLance, Provoque, Esquive, Bloque, SacPlein, NiveauAtteint>` et `struct EvenementDeCombat { CibleDEvenement cible; sf::Vector2f position; DetailEvenement detail; }`. `cible` : un personnage (sa `Place`), un monstre (son `IdMonstre`) ou l'escouade entière (`EscouadeEntiere` : sac plein, niveau atteint) ; `montant` : ce qui a réellement été appliqué (armure comprise, soin plafonné), jamais 0 ; `position` : COPIE du centre de la cible à ce moment (le monstre tué par ce coup est retiré dans la même image, l'événement lui survit) ; `opportunite` : coup gratuit ; `critique` : le coup ou le soin a été un critique (le montant est déjà multiplié) ; `Bloque::montant` : ce que le blocage a absorbé (jamais 0), `total` : il a tout absorbé (aucun `DegatsSubis` ne suit) ; `SkillLance` : cible = le lanceur ; `Provoque` : cible = le monstre provoqué ; `Esquive` : cible = celui qui a esquivé. La fonction pure `std::vector<DetailEvenement> detailsDuCoup(const ResultatDuCoup&, bool opportunite)` (`[[nodiscard]]`) convertit un résultat de coup : `Esquive` seul s'il a été esquivé, sinon `DegatsSubis` (rien s'ils sont nuls ; son `element` est `portions.elementDominant()`) puis `Bloque` s'il y a eu blocage ; liste vide pour un résultat « rien ». Patron « file d'événements » : produits par `Partie` (`prendreEvenements`), lus par `EcranJeu`, sans callback ni observateur. Voir `docs/combat.md`.
+`EvenementDeCombat.hpp` / `.cpp` : `struct EscouadeEntiere {}`, `using CibleDEvenement = std::variant<Place, IdMonstre, EscouadeEntiere>`, les détails `DegatsSubis { int montant; bool opportunite; bool critique; Element element = Physique; }` (`element` : celui de la plus grosse portion après les réductions, étape 94 ; `Degats` avant l'étape 94), `Soin { int montant; bool critique; }`, `SkillLance { IdSkill skill; }`, `Provoque {}`, `Esquive {}`, `Bloque { int montant; bool total; }`, `EnergieInsuffisante {}` (étape 108 : un skill refusé faute d'énergie, au-dessus de son lanceur), `using DetailEvenement = std::variant<DegatsSubis, Soin, SkillLance, Provoque, Esquive, Bloque, SacPlein, NiveauAtteint, EnergieInsuffisante>` et `struct EvenementDeCombat { CibleDEvenement cible; sf::Vector2f position; DetailEvenement detail; }`. `cible` : un personnage (sa `Place`), un monstre (son `IdMonstre`) ou l'escouade entière (`EscouadeEntiere` : sac plein, niveau atteint) ; `montant` : ce qui a réellement été appliqué (armure comprise, soin plafonné), jamais 0 ; `position` : COPIE du centre de la cible à ce moment (le monstre tué par ce coup est retiré dans la même image, l'événement lui survit) ; `opportunite` : coup gratuit ; `critique` : le coup ou le soin a été un critique (le montant est déjà multiplié) ; `Bloque::montant` : ce que le blocage a absorbé (jamais 0), `total` : il a tout absorbé (aucun `DegatsSubis` ne suit) ; `SkillLance` : cible = le lanceur ; `Provoque` : cible = le monstre provoqué ; `Esquive` : cible = celui qui a esquivé. La fonction pure `std::vector<DetailEvenement> detailsDuCoup(const ResultatDuCoup&, bool opportunite)` (`[[nodiscard]]`) convertit un résultat de coup : `Esquive` seul s'il a été esquivé, sinon `DegatsSubis` (rien s'ils sont nuls ; son `element` est `portions.elementDominant()`) puis `Bloque` s'il y a eu blocage ; liste vide pour un résultat « rien ». Patron « file d'événements » : produits par `Partie` (`prendreEvenements`), lus par `EcranJeu`, sans callback ni observateur. Voir `docs/combat.md`.
 
 ### `TextesFlottants` (`interface/`) — les dégâts et soins à l'écran
 
@@ -1976,7 +2012,7 @@ réussi, le même pour tous.
 | `float hauteurDuTexte(float age)` | Fonction libre pure : 20 px au-dessus du centre de la cible à la naissance, 30 px de plus sur toute la durée de vie ; `[[nodiscard]]` |
 | `float opaciteDuTexte(float age)` | Pure : 1 pendant la première moitié de la vie, puis linéaire jusqu'à 0 à 0,8 s ; `[[nodiscard]]` |
 | `sf::Vector2f positionDuTexte(const TexteFlottant&)` | Pure : position de l'événement, relevée de `hauteurDuTexte(age)` et de 14 px par rang ; `[[nodiscard]]` |
-| `std::string libelleDuTexte(const EvenementDeCombat&)` / `sf::Color couleurDuTexte(...)` / `unsigned int tailleDuTexte(...)` | Purs. Dégâts « 12 », coup gratuit « 12! » (orange, 20 px), soin « +12 » (vert) ; critique : le texte suivi de « Critical! » (« 12 Critical! », « 12! Critical! », « +12 Critical! »), jaune vif pour des dégâts (même gratuits), vert pour un soin, 18 px dans les deux cas ; nom du skill lancé (jaune doré, 14 px) ; « Taunted » (rouge orangé, 14 px) ; « Dodged » (gris clair, 14 px), « Blocked » (blocage total) ou « Blocked −N » (partiel, signe moins U+2212), gris, 14 px ; dégâts physiques sur un monstre blancs, sur un personnage rouges, feu orange rougeâtre et sacré or pâle quel que soit le camp (le critique et le coup gratuit gardent leur couleur) ; 16 px sinon ; `std::visit` sur le détail ; `[[nodiscard]]` |
+| `std::string libelleDuTexte(const EvenementDeCombat&)` / `sf::Color couleurDuTexte(...)` / `unsigned int tailleDuTexte(...)` | Purs. Dégâts « 12 », coup gratuit « 12! » (orange, 20 px), soin « +12 » (vert) ; critique : le texte suivi de « Critical! » (« 12 Critical! », « 12! Critical! », « +12 Critical! »), jaune vif pour des dégâts (même gratuits), vert pour un soin, 18 px dans les deux cas ; nom du skill lancé (jaune doré, 14 px) ; « Taunted » (rouge orangé, 14 px) ; « Dodged » (gris clair, 14 px), « Blocked » (blocage total) ou « Blocked −N » (partiel, signe moins U+2212), gris, 14 px ; « Not enough energy » (bleu violacé, 14 px) ; dégâts physiques sur un monstre blancs, sur un personnage rouges, feu orange rougeâtre et sacré or pâle quel que soit le camp (le critique et le coup gratuit gardent leur couleur) ; 16 px sinon ; `std::visit` sur le détail ; `[[nodiscard]]` |
 
 ### `ActionEngagee` (`combat/`) — l'action qu'un personnage prépare
 
@@ -2038,7 +2074,7 @@ erreur de compilation.
 
 ### `EtatSkill` (`combat/`) — le skill d'une place, pour l'affichage
 
-`EtatSkill.hpp`, sans `.cpp` : `struct EtatSkill { IdSkill id; float progression; float tempsRestant; bool lanceurVivant; bool armeAbsente; bool enActivation; }`. `armeAbsente` (étape 91.5) : le skill exige un type d'arme que le lanceur ne porte pas ; l'icône est grisée. `progression` va de 0 (juste lancé) à 1 (prêt), `tempsRestant` est en secondes, `enActivation` est vrai pendant l'activation du skill. Produite par `Escouade::etatDuSkill`, consommée par `BarreDeSkills`.
+`EtatSkill.hpp`, sans `.cpp` : `struct EtatSkill { IdSkill id; float progression; float tempsRestant; bool lanceurVivant; bool armeAbsente; bool energieInsuffisante; bool enActivation; }`. `energieInsuffisante` (étape 108.4) : l'énergie du lanceur ne couvre pas le coût ; l'icône est teintée en bleu (une autre teinte que `armeAbsente`). `armeAbsente` (étape 91.5) : le skill exige un type d'arme que le lanceur ne porte pas ; l'icône est grisée. `progression` va de 0 (juste lancé) à 1 (prêt), `tempsRestant` est en secondes, `enActivation` est vrai pendant l'activation du skill. Produite par `Escouade::etatDuSkill`, consommée par `BarreDeSkills`.
 
 ### `BarreDeVie` (`rendu/`) — la barre de vie d'une entité
 
@@ -2154,14 +2190,54 @@ gabarits d'armes qui donnent les plages : `docs/objets.md`, « Les gabarits d'ar
 | `ResultatDuCoup resoudreCoup(const Attaque&, const Defenses&, bool blocagePret, Generateur&)` | Appelée par `Vitalite::recevoirDegats`. Esquive (`coupEsquive`) : un coup esquivé s'arrête ; critique (`coupCritique`, multiplicateur sur toutes les portions) ; blocage (`appliquerBlocage`, portion physique seule) : un blocage total s'arrête, sans armure ; armure (`armureAppliquee`, portion physique) ; résistances (`appliquerResistance`, chaque portion) ; un seul arrondi par portion, au moins 1 au total (voir « Types de dégâts et résistances (étape 94) »). **Le seul tirage du moteur du coup**, au plus un par étape et seulement si la chance est non nulle (esquive nulle ou zone, capacité offensive nulle, pas de bouclier, récupération en cours, pas de portion physique) ; aucun pour un total nul ; `blocagePret` : le blocage n'est pas en récupération ; `assert(montant >= 0)` |
 | `ResultatDuCoup resoudreSoin(const Attaque&, Generateur&)` | Étape 89.4 : un soin peut être critique contre `s_capaciteDefensiveDeReference` (100), sans armure ; même règle de tirage. Appelée par `Escouade::effetDuSkill` |
 
+### `Jauge` (`combat/`) — une valeur entière plafonnée (étape 108.1)
+
+Classe à sémantique de valeur, sans dépendance. Invariant : `0 <= valeur <= maximum`, `maximum > 0`. Possédée par valeur par
+`PointsDeVie` et par `Reserve`. Données membres : `m_valeur`, `m_maximum`.
+
+| Fonction | Rôle |
+|---|---|
+| `explicit Jauge(int maximum)` | Commence pleine ; `assert(maximum > 0)` |
+| `int ajouter(int montant)` / `int retirer(int montant)` | `assert(montant >= 0)` ; plafonnés au maximum / à 0 ; rendent ce qui a réellement été ajouté / retiré |
+| `void changerMaximum(int nouveauMaximum, int plancher = 0)` | La valeur change de la même différence que le maximum, bornée à `[plancher, nouveauMaximum]` (les points de vie d'un vivant passent 1) |
+| `void definirMaximum(int nouveauMaximum)` | Change le maximum sans toucher à la valeur, sauf pour la plafonner (un mort, un personnage mort et son énergie) |
+| `int getValeur() const` / `int getMaximum() const` / `float getRatio() const` | Lectures ; `[[nodiscard]]` |
+
+### `Reserve` (`combat/`) — une réserve qui se régénère (étape 108.1)
+
+Une `Jauge`, un débit de régénération (`m_regeneration`, points par seconde) et un accumulateur (`m_accumule`, `0 <= m_accumule < 1`).
+Possédée par valeur par `Personnage` (`m_energie`) ; l'Élan sera une seconde instance. Ne sait pas qui la possède : celui qui l'a décide
+si elle se régénère et ce qu'elle paie.
+
+| Fonction | Rôle |
+|---|---|
+| `Reserve(int maximum, float regenerationParSeconde)` | Commence pleine ; `assert(maximum > 0)` et débit `>= 0` |
+| `void regenerer(float dt)` | Ajoute la partie entière de ce qui s'est régénéré, garde le reste ; pleine, aucun reste |
+| `bool suffit(int cout) const` / `void payer(int cout)` | La réserve contient au moins `cout` ; retire `cout` (`assert(suffit(cout))`) |
+| `void changerMaximum(int)` / `void definirMaximum(int)` | Voir `Jauge` |
+| `void definirRegeneration(float)` | Change le débit (`assert >= 0`) ; appelé quand l'équipement change |
+| `int getValeur()` / `int getMaximum()` / `float getRatio()` / `float getRegeneration()` | Lectures ; `[[nodiscard]]` |
+
+### `Energie` (`combat/`) — les règles de l'énergie (étape 108.2)
+
+`Energie.hpp`, sans `.cpp` : `s_energieDeBase` (100), `s_energieParNiveau` (5), `s_regenerationDEnergieDeBase` (2,0), `constexpr int
+energieMax(int niveau)` (100 plus 5 par niveau au-delà du premier ; `assert(niveau >= 1)`) et `constexpr float
+regenerationDEnergie(int bonusEnPourcent)` (la base majorée du pourcentage des affixes ; `assert(bonus >= 0)`).
+
+### `BarreDEnergie` (`rendu/`) — la barre d'énergie d'une entité (étape 108.4)
+
+Deux fonctions libres, comme `BarreDeVie`, et `s_hauteurBarreDEnergie` (3 px). `positionBarreDEnergie(centre, taille)` : le coin
+haut-gauche, aligné sur la barre de vie, 1 px sous elle (entre la barre de vie et le carré) ; `dessinerBarreDEnergie(rendu, position,
+largeur, ratio)` : un fond sombre, puis une partie bleue proportionnelle à `ratio`. Utilisée par `Personnage::dessiner` (un vivant).
+
 ### `PointsDeVie` (`combat/`) — les points de vie d'une entité
 
 Classe à sémantique de valeur, possédée par valeur par `Vitalite` (donc par `Personnage` et
 `Monstre`, qui délèguent leurs façades à `Vitalite`).
-Ne dépend d'aucun autre module ni de SFML. Invariants : `0 <= valeur <=
+Ne dépend que de `Jauge` (étape 108.1, qui lui donne le plafond et le plancher à 0 ; la mort est sa règle à elle), ni de SFML. Invariants : `0 <= valeur <=
 maximum`, `maximum > 0`, une valeur à 0 ne remonte plus.
 
-Données membres : `m_valeur`, `m_maximum`.
+Données membres : `m_jauge` (`Jauge`).
 
 | Fonction | Rôle |
 |---|---|

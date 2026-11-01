@@ -25,7 +25,8 @@ enum class IdAffixe {
     DuLion,
     DEsquive,
     DeDeviation,
-    DeBlocage
+    DeBlocage,
+    DeRenouveau  // « of Replenishment » : la régénération d'énergie
 };
 
 // Le penchant d'un gabarit pour un affixe : dans le tirage, le poids de cet affixe est multiplié par `multiplicateur` (au moins

@@ -195,8 +195,10 @@ std::vector<DefinitionObjet> construireLeCatalogue() {
                                     {{Caracteristique::Endurance, s_penteSeuilPrincipale}}),
                       {{IdAffixe::DeBlocage, s_affiniteForte}, {IdAffixe::Renforce, s_affiniteMoyenne}}),
         // Une relique ne porte aucun préfixe : son affinité est un suffixe.
-        avecAffinites(uneRelique(IdObjet::Orbe, "Orb", Caracteristique::Savoir), {{IdAffixe::DeLaChouette, s_affiniteForte}}),
-        avecAffinites(uneRelique(IdObjet::ReliqueSacree, "Holy Relic", Caracteristique::Volonte), {{IdAffixe::DuLion, s_affiniteForte}}),
+        avecAffinites(uneRelique(IdObjet::Orbe, "Orb", Caracteristique::Savoir),
+                      {{IdAffixe::DeLaChouette, s_affiniteForte}, {IdAffixe::DeRenouveau, s_affiniteMoyenne}}),
+        avecAffinites(uneRelique(IdObjet::ReliqueSacree, "Holy Relic", Caracteristique::Volonte),
+                      {{IdAffixe::DuLion, s_affiniteForte}, {IdAffixe::DeRenouveau, s_affiniteMoyenne}}),
         {IdObjet::CollierDeProtection, "Necklace of Protection", CategorieObjet::Collier,
          s_armureCollierDeProtection},
         {IdObjet::AnneauDeProtection, "Ring of Protection", CategorieObjet::Anneau,
@@ -251,11 +253,11 @@ std::vector<DefinitionObjet> construireLeCatalogue() {
         avecAffinites(
             uneArmeDeTir(IdObjet::Sceptre,             "Scepter",    TypeDArme::Sceptre,         1, 20, 15, 0.40f, 1.00f, s_porteeDeProjectile, 0,
                          {{Caracteristique::Volonte, s_penteSeuilPrincipale}}),
-            {{IdAffixe::DuLion, s_affiniteForte}, {IdAffixe::Sanctifie, s_affiniteMoyenne}}),
+            {{IdAffixe::DuLion, s_affiniteForte}, {IdAffixe::Sanctifie, s_affiniteMoyenne}, {IdAffixe::DeRenouveau, s_affiniteMoyenne}}),
         avecAffinites(
             uneArmeDeTir(IdObjet::Baton,               "Staff",      TypeDArme::Baton,           2, 30, 25, 0.55f, 0.85f, s_porteeDeProjectile, 0,
                          {{Caracteristique::Savoir, s_penteSeuilPrincipale}}),
-            {{IdAffixe::DeLaChouette, s_affiniteForte}, {IdAffixe::Flamboyant, s_affiniteMoyenne}}),
+            {{IdAffixe::DeLaChouette, s_affiniteForte}, {IdAffixe::Flamboyant, s_affiniteMoyenne}, {IdAffixe::DeRenouveau, s_affiniteForte}}),
         avecAffinites(
             uneArmeDeTir(IdObjet::Arc,                 "Bow",        TypeDArme::Arc,             2, 23, 25, 0.35f, 0.55f, s_porteeDeProjectile, 15,
                          {{Caracteristique::Adresse, s_penteSeuilPrincipale}}),

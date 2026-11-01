@@ -53,7 +53,7 @@ Personnage::Personnage(sf::Vector2f centre, DefinitionPersonnage definition, Equ
       m_caracteristiques(m_caracteristiquesDeBase + m_equipementActif.bonusTotal()),
       m_statistiques(statistiquesDuPersonnage(m_caracteristiques, m_equipementActif.bonusDeCombatTotal())),
       m_vitalite(pointsDeVieMax(m_caracteristiques, m_niveau), defenses()),
-      m_energie(energieMax(m_niveau), s_regenerationDEnergieDeBase),
+      m_energie(energieMax(m_niveau), regenerationDEnergie(m_equipementActif.bonusDeRegenerationDEnergie())),
       m_rayonVision(definition.rayonVision),
       m_actionEngagee()
 {
@@ -435,6 +435,7 @@ void Personnage::recalculerDepuisLEquipement() {
     } else {
         m_energie.definirMaximum(energieMax(m_niveau));
     }
+    m_energie.definirRegeneration(regenerationDEnergie(m_equipementActif.bonusDeRegenerationDEnergie()));
     // Un skill en activation qui exige une arme qu'on ne porte plus est annulé, sans recharge consommée.
     if (const std::optional<ActionEngagee> action = skillEngage(); action.has_value() && action->skill.has_value()) {
         const Skill* skill = trouverSkill(*action->skill);

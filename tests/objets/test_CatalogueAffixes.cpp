@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "objets/CatalogueAffixes.hpp"
+#include "objets/CatalogueObjets.hpp"
 
 // Les données du catalogue d'affixes (étape 95.3). Les règles qui les lient aux objets (position, catégorie, rareté)
 // sont dans `test_CatalogueObjets.cpp` (`objetValide`).
@@ -17,7 +18,7 @@ TEST_CASE("catalogueAffixes : suit l'ordre de IdAffixe") {
     for (std::size_t i = 0; i < catalogue.size(); ++i) {
         REQUIRE(static_cast<std::size_t>(catalogue[i].id) == i);
     }
-    REQUIRE(static_cast<std::size_t>(IdAffixe::DeBlocage) == catalogue.size() - 1);
+    REQUIRE(static_cast<std::size_t>(IdAffixe::DeRenouveau) == catalogue.size() - 1);
 }
 
 TEST_CASE("catalogueAffixes : chaque affixe a un nom distinct et au moins une categorie permise") {
@@ -30,14 +31,14 @@ TEST_CASE("catalogueAffixes : chaque affixe a un nom distinct et au moins une ca
     REQUIRE(noms.size() == catalogueAffixes().size());
 }
 
-TEST_CASE("catalogueAffixes : quatre prefixes puis huit suffixes, comme decide a l'etape 95") {
+TEST_CASE("catalogueAffixes : quatre prefixes puis neuf suffixes (huit a l'etape 95, plus of Replenishment a l'etape 108)") {
     std::size_t prefixes = 0;
     std::size_t suffixes = 0;
     for (const DefinitionDAffixe& definition : catalogueAffixes()) {
         (definition.position == PositionDAffixe::Prefixe ? prefixes : suffixes) += 1;
     }
     REQUIRE(prefixes == 4);
-    REQUIRE(suffixes == 8);
+    REQUIRE(suffixes == 9);
 }
 
 TEST_CASE("definitionAffixe : rend l'entree du catalogue de cet identifiant") {
@@ -126,4 +127,46 @@ TEST_CASE("plageAuNiveau : une plage ne rapetisse jamais d'un niveau a l'autre, 
             precedente = plage;
         }
     }
+}
+
+TEST_CASE("of Replenishment : un suffixe de 10 a 20 pour cent, permis sur les armes, les reliques et les bijoux seulement") {
+    const DefinitionDAffixe& definition = definitionAffixe(IdAffixe::DeRenouveau);
+
+    REQUIRE(definition.nom == "of Replenishment");
+    REQUIRE(definition.position == PositionDAffixe::Suffixe);
+    REQUIRE(definition.effet == EffetDAffixe::RegenerationDEnergie);
+    REQUIRE(definition.valeurs.min == 10);
+    REQUIRE(definition.valeurs.max == 20);
+    for (const CategorieObjet categorie : {CategorieObjet::Arme, CategorieObjet::Relique, CategorieObjet::Collier, CategorieObjet::Anneau}) {
+        REQUIRE(affixePermis(IdAffixe::DeRenouveau, categorie));
+    }
+    for (const CategorieObjet categorie : {CategorieObjet::Casque, CategorieObjet::Armure, CategorieObjet::Jambieres,
+                                           CategorieObjet::Gants, CategorieObjet::Bottes, CategorieObjet::Bouclier}) {
+        REQUIRE_FALSE(affixePermis(IdAffixe::DeRenouveau, categorie));
+    }
+}
+
+TEST_CASE("of Replenishment : sa plage grandit avec le niveau de l'objet, comme les autres") {
+    REQUIRE(plageAuNiveau(IdAffixe::DeRenouveau, 1).min == 10);
+    REQUIRE(plageAuNiveau(IdAffixe::DeRenouveau, 1).max == 20);
+    REQUIRE(plageAuNiveau(IdAffixe::DeRenouveau, 5).min == 20);
+    REQUIRE(plageAuNiveau(IdAffixe::DeRenouveau, 5).max == 40);
+}
+
+TEST_CASE("of Replenishment : l'apport est de la regeneration d'energie, rien d'autre") {
+    const ApportDesAffixes apport = apportDesAffixes(Objet{IdObjet::Baton, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeRenouveau, 15}});
+
+    REQUIRE(apport.regenerationDEnergie == 15);
+    REQUIRE(apport.armure == 0);
+    REQUIRE(apport.bonus == Caracteristiques());
+    REQUIRE(apport.bonusDeCombat == StatistiquesDeCombat());
+    REQUIRE(apportDesAffixes(Objet{IdObjet::Baton}).regenerationDEnergie == 0);
+}
+
+TEST_CASE("of Replenishment : un objet valide sur une arme, un bijou ou une relique, pas sur une armure") {
+    REQUIRE(objetValide(Objet{IdObjet::Baton, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeRenouveau, 15}}));
+    REQUIRE(objetValide(Objet{IdObjet::Orbe, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeRenouveau, 15}}));
+    REQUIRE(objetValide(Objet{IdObjet::AnneauDePuissance, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeRenouveau, 15}}));
+    REQUIRE_FALSE(objetValide(Objet{IdObjet::Robe, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeRenouveau, 15}}));
+    REQUIRE_FALSE(objetValide(Objet{IdObjet::Bouclier, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeRenouveau, 15}}));
 }

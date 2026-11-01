@@ -43,14 +43,14 @@ squad-arpg/
 ├── CLAUDE.md, ARCHITECTURE.md, ROADMAP.md
 ├── src/
 │   ├── base/       Aleatoire, Cercle, Eclaircir
-│   ├── rendu/      BarreDeVie, TraceDeChemin
+│   ├── rendu/      BarreDeVie, BarreDEnergie, TraceDeChemin
 │   ├── monde/      TileMap, Chemin, Deplacement, Mobile, ChampDeVision, Vision,
 │   │               ObjetInteractif, Niveau, CategorieDeMonstre, CompositionDeGroupe, GenerateurDonjon, Encerclement
 │   ├── combat/     Skill, SkillConnu, IdSkill, ModeDeCible, EffetDeSkill, ResultatDEffet, Place, IdMonstre, TypeDArme, DescriptionDAttaque, PlageDeDegats, AdresseSkill, Cible, ActionEngagee, Progression,
 │   │               Element, Degats,
 │   │               EtatSkill, Coup, EvenementDeCombat, EntiteVue, AllieVu, Autodefense, Engagement,
 │   │               Attaque, NatureDAttaque, StatistiquesDeCombat, Esquive, Critique, Blocage, Defense,
-│   │               ResolutionDuCoup, Caracteristiques, PointsDeVie, Vitalite
+│   │               ResolutionDuCoup, Caracteristiques, Energie, Jauge, Reserve, PointsDeVie, Vitalite
 │   ├── objets/     Emplacement, Affixe, Objet, CatalogueAffixes, CatalogueObjets, TypeDArmure, DonneesDArme, DonneesDeBouclier, ObjetsActifs, Equipement,
 │   │               Inventaire, PositionDObjet, DeplacementDObjets, GenerationDObjets
 │   ├── escouade/   Escouade, Personnage, Formation, PlacesDAttaque, Intention, Separation,
@@ -113,6 +113,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 
 `rendu/` — primitives de dessin :
 - `BarreDeVie` : position et dessin de la barre de vie d'une entité (`docs/combat.md`).
+- `BarreDEnergie` : position (sous la barre de vie) et dessin de la barre d'énergie d'un personnage (`docs/combat.md`).
 - `TraceDeChemin` : ligne brisée du chemin restant, débogage F3 (`docs/chemin.md`).
 
 `monde/` — la carte et ce qui s'y déplace :
@@ -160,7 +161,10 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `StatistiquesDeCombat` : ce que le moteur du coup lit d'une entité (capacités, esquives, blocage, résistances par élément), aussi le bonus de combat d'un objet ; `statistiquesDuPersonnage`, seul endroit où elles se calculent.
 - `Esquive`, `Critique`, `Blocage` : les étapes du coup qui dépendent du hasard, des fonctions pures qui reçoivent un tirage (`docs/combat.md`).
 - `ResolutionDuCoup` : `resoudreCoup`, point d'entrée unique d'un coup, portion par portion (esquive, critique, blocage du physique, armure, résistances, un arrondi par portion) et seul tirage du moteur ; `resoudreSoin` ; `Defenses`.
-- `PointsDeVie` : valeur et maximum, invariants de vie et de mort.
+- `Jauge` : une valeur entière plafonnée entre 0 et un maximum, la règle commune de `PointsDeVie` et de `Reserve` (`docs/combat.md`, « L'énergie »).
+- `Reserve` : une `Jauge`, un débit de régénération et un accumulateur (seule la partie entière est ajoutée) ; l'énergie d'un personnage, demain l'Élan.
+- `Energie` : les règles de l'énergie des personnages (`energieMax`, `regenerationDEnergie`, 100 plus 5 par niveau, 2 par seconde) ; sans `.cpp`.
+- `PointsDeVie` : une `Jauge` et les invariants de vie et de mort.
 - `Caracteristiques` : les cinq caractéristiques (`Caracteristique`, `Caracteristiques`, `Coefficients`), les points de vie maximum (selon le niveau) et `montantEffectif`, seule source du montant d'un skill de personnage (`docs/combat.md`).
 - `Progression` : la courbe de l'expérience (`niveauPour`, `experiencePourAtteindre`, `progressionVersLeNiveauSuivant`, `experienceManquante`) la croissance automatique d'une classe (`PaireDeCroissance`, `croissanceAuNiveau`) et les points libres (`pointsLibresRecus`, `pointsLibresDisponibles`, `depensePermise`) ; des fonctions pures (`docs/combat.md`, `docs/classes-et-combat.md`).
 - `Vitalite` : points de vie, défenses (armure, statistiques de combat) et récupération du blocage d'une entité, commune à `Personnage` et `Monstre`.
@@ -291,7 +295,7 @@ objets : ne dépend que de base (`Generateur`) et de combat (`Caracteristiques`,
 **Exceptions transitoires, jusqu'à M1** (séparer le dessin du noyau, `docs/audit.md`) : des
 classes du noyau se dessinent elles-mêmes.
 - Inclusions de `rendu/` depuis le noyau : `escouade/Escouade.cpp` → `rendu/TraceDeChemin.hpp` ;
-  `escouade/Personnage.cpp` → `rendu/BarreDeVie.hpp` ; `monstres/Monstre.cpp` →
+  `escouade/Personnage.cpp` → `rendu/BarreDeVie.hpp` et `rendu/BarreDEnergie.hpp` ; `monstres/Monstre.cpp` →
   `rendu/BarreDeVie.hpp` et `rendu/TraceDeChemin.hpp`.
 - Cible et formes de dessin SFML dans le noyau (`RenderTarget` dans le `.hpp`, formes dans le
   `.cpp`) : `monde/TileMap` (`RectangleShape`), `monde/Vision` (`VertexArray`), `escouade/Escouade`

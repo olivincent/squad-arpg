@@ -9,6 +9,7 @@
 #include "combat/Element.hpp"
 #include "escouade/Personnage.hpp"
 #include "objets/CatalogueObjets.hpp"
+#include "combat/Energie.hpp"
 
 // L'attaque de base d'un personnage qui porte une arme à affixes (étape 95.4). Le coup d'opportunité d'`Escouade` lit
 // `Personnage::getAttaqueDeBase`, comme l'attaque ordinaire : il en profite sans autre règle.
@@ -77,3 +78,42 @@ TEST_CASE("changer pour une arme a affixes refait l'attaque de base, un anneau a
     static_cast<void>(personnage.poserEquipement(Emplacement::MainDroite, {IdObjet::MasseAUneMain, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}}));
     REQUIRE_FALSE(personnage.engagerAttaque(IdMonstre{1}));  // l'attaque a changé : recharge complète à relancer
 }
+
+// La régénération d'énergie des affixes « of Replenishment » (étape 108.5).
+namespace {
+const Objet s_baton15{IdObjet::Baton, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeRenouveau, 15}};
+}  // namespace
+
+TEST_CASE("of Replenishment : equiper l'objet majore la regeneration d'energie, le retirer la ramene a la base") {
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, definitionArmee(IdObjet::Baton));
+    static_cast<void>(personnage.retirerEquipement(Emplacement::MainDroite));
+    REQUIRE(personnage.getRegenerationDEnergie() == s_regenerationDEnergieDeBase);
+
+    static_cast<void>(personnage.poserEquipement(Emplacement::MainDroite, s_baton15));
+    REQUIRE(personnage.getRegenerationDEnergie() == regenerationDEnergie(15));
+    REQUIRE(personnage.getRegenerationDEnergie() > s_regenerationDEnergieDeBase);
+
+    static_cast<void>(personnage.retirerEquipement(Emplacement::MainDroite));
+    REQUIRE(personnage.getRegenerationDEnergie() == s_regenerationDEnergieDeBase);
+}
+
+TEST_CASE("of Replenishment : deux objets additionnent leurs pourcentages avant de majorer la base") {
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, definitionArmee(IdObjet::Baton));
+    static_cast<void>(personnage.poserEquipement(Emplacement::MainDroite, s_baton15));
+
+    static_cast<void>(personnage.poserEquipement(
+        Emplacement::Collier, {IdObjet::CollierDeProtection, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeRenouveau, 12}}));
+
+    REQUIRE(personnage.getRegenerationDEnergie() == regenerationDEnergie(27));
+}
+
+TEST_CASE("of Replenishment : un objet inactif ne majore pas la regeneration") {
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, definitionArmee(IdObjet::Baton));
+
+    static_cast<void>(personnage.poserEquipement(Emplacement::MainDroite, {IdObjet::Baton, Rarete::Magique, std::nullopt,
+                                                                           Affixe{IdAffixe::DeRenouveau, 15}, 9}));
+
+    REQUIRE_FALSE(personnage.getEquipementActif().a(Emplacement::MainDroite).has_value());  // le seuil du niveau 9 n'est pas atteint
+    REQUIRE(personnage.getRegenerationDEnergie() == s_regenerationDEnergieDeBase);
+}
+

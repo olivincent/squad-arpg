@@ -715,8 +715,9 @@ const std::vector<AffinitesAttendues>& affinitesAttendues() {
         {{IdObjet::MasseAUneMain, IdObjet::MasseADeuxMains}, {{IdAffixe::Sanctifie, 3}, {IdAffixe::DuBoeuf, 2}}},
         {{IdObjet::Lance}, {{IdAffixe::Acere, 3}, {IdAffixe::DuRenard, 2}}},
         {{IdObjet::EpeeADeuxMains}, {{IdAffixe::DuBoeuf, 3}, {IdAffixe::DuRenard, 2}}},
-        {{IdObjet::Baguette, IdObjet::Baton}, {{IdAffixe::DeLaChouette, 3}, {IdAffixe::Flamboyant, 2}}},
-        {{IdObjet::Sceptre}, {{IdAffixe::DuLion, 3}, {IdAffixe::Sanctifie, 2}}},
+        {{IdObjet::Baguette}, {{IdAffixe::DeLaChouette, 3}, {IdAffixe::Flamboyant, 2}}},
+        {{IdObjet::Baton}, {{IdAffixe::DeLaChouette, 3}, {IdAffixe::Flamboyant, 2}, {IdAffixe::DeRenouveau, 3}}},
+        {{IdObjet::Sceptre}, {{IdAffixe::DuLion, 3}, {IdAffixe::Sanctifie, 2}, {IdAffixe::DeRenouveau, 2}}},
         {{IdObjet::Arc}, {{IdAffixe::DuRenard, 3}, {IdAffixe::Acere, 2}}},
         {{IdObjet::Arbalete}, {{IdAffixe::Acere, 3}, {IdAffixe::DuBoeuf, 2}}},
         {{IdObjet::Robe, IdObjet::JambieresDeTissu, IdObjet::Capuchon, IdObjet::GantsDeTissu, IdObjet::Chaussons},
@@ -729,8 +730,8 @@ const std::vector<AffinitesAttendues>& affinitesAttendues() {
         {{IdObjet::ArmureDePlaques, IdObjet::JambieresDePlaques, IdObjet::HeaumeIntegral, IdObjet::Gantelets, IdObjet::Solerets},
          {{IdAffixe::Renforce, 3}, {IdAffixe::DeLOurs, 2}, {IdAffixe::DuBoeuf, 2}}},
         {{IdObjet::Bouclier}, {{IdAffixe::DeBlocage, 3}, {IdAffixe::Renforce, 2}}},
-        {{IdObjet::Orbe}, {{IdAffixe::DeLaChouette, 3}}},
-        {{IdObjet::ReliqueSacree}, {{IdAffixe::DuLion, 3}}},
+        {{IdObjet::Orbe}, {{IdAffixe::DeLaChouette, 3}, {IdAffixe::DeRenouveau, 2}}},
+        {{IdObjet::ReliqueSacree}, {{IdAffixe::DuLion, 3}, {IdAffixe::DeRenouveau, 2}}},
         {{IdObjet::CollierDeProtection, IdObjet::AnneauDeProtection, IdObjet::AnneauDePuissance, IdObjet::CollierDEndurance}, {}},
     };
     return table;
@@ -777,6 +778,11 @@ TEST_CASE("affiniteDe : le multiplicateur de l'affinite, 1 pour tout autre affix
     REQUIRE(affiniteDe(IdObjet::Baton, IdAffixe::DeLaChouette) == 3);
     REQUIRE(affiniteDe(IdObjet::Baton, IdAffixe::Flamboyant) == 2);
     REQUIRE(affiniteDe(IdObjet::Baton, IdAffixe::Acere) == 1);
+    REQUIRE(affiniteDe(IdObjet::Baton, IdAffixe::DeRenouveau) == 3);
+    REQUIRE(affiniteDe(IdObjet::Sceptre, IdAffixe::DeRenouveau) == 2);
+    REQUIRE(affiniteDe(IdObjet::Orbe, IdAffixe::DeRenouveau) == 2);
+    REQUIRE(affiniteDe(IdObjet::ReliqueSacree, IdAffixe::DeRenouveau) == 2);
+    REQUIRE(affiniteDe(IdObjet::Baguette, IdAffixe::DeRenouveau) == 1);  // la baguette n'a pas ce penchant
     REQUIRE(affiniteDe(IdObjet::Baton, IdAffixe::DeBlocage) == 1);  // un affixe que le bâton ne peut pas porter vaut 1 aussi
     REQUIRE(affiniteDe(IdObjet::AnneauDePuissance, IdAffixe::DuBoeuf) == 1);
     REQUIRE(affiniteDe(IdObjet::Bouclier, IdAffixe::DeBlocage) == 3);

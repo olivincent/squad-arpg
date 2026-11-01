@@ -307,3 +307,12 @@ TEST_CASE("couleurDeLaRarete : lisible sur le fond le plus clair de l'inventaire
         REQUIRE(contraste(couleurDeLaRarete(rarete), fondLePlusClair) >= 4.5);  // seuil AA du texte courant
     }
 }
+
+TEST_CASE("affichage : of Replenishment s'ecrit +N % Energy Regeneration dans l'infobulle, et dans le nom de l'objet") {
+    const Objet baton{IdObjet::Baton, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeRenouveau, 15}};
+
+    const std::vector<std::string> lignes = lignesDeLInfobulle(baton);
+
+    REQUIRE(std::ranges::find(lignes, "+15 % Energy Regeneration") != lignes.end());
+    REQUIRE(nomDeLObjet(baton) == "Staff of Replenishment");
+}

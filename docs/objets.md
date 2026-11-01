@@ -361,6 +361,7 @@ depuis le gabarit, le niveau et la qualité de l'objet. Rien de tout cela n'est 
   | of Evasion (`DEsquive`) | suffixe | esquive contre le contact, en pour cent | bottes, armure |
   | of Deflection (`DeDeviation`) | suffixe | esquive contre les projectiles, en pour cent | casque, bouclier |
   | of Blocking (`DeBlocage`) | suffixe | chance de blocage, en pour cent | bouclier |
+  | of Replenishment (`DeRenouveau`, étape 108) | suffixe | pour cent de régénération d'énergie de base, additionnés entre tous les objets actifs | arme, relique, collier, anneau |
 
   Aucun affixe de résistance pour l'instant : les monstres ne frappent qu'en physique.
 - **Nom affiché** : `nomDeLObjet(objet)` = `[préfixe] modèle [suffixe]` (« Blazing Mace », « Keen Bow of the Fox »,
@@ -645,16 +646,16 @@ fois (étape 103.1), partagé par les armes et les protections.
 ### `Affixe` (`objets/`)
 
 `Affixe.hpp`, sans `.cpp`. `enum class Rarete { Commun, Magique, Rare }` ; `enum class IdAffixe { Flamboyant, Sanctifie,
-Acere, Renforce, DuBoeuf, DeLOurs, DuRenard, DeLaChouette, DuLion, DEsquive, DeDeviation, DeBlocage }` (quatre préfixes puis
-huit suffixes) ; `struct Affixe { IdAffixe id; int valeur; }` avec `operator==`.
+Acere, Renforce, DuBoeuf, DeLOurs, DuRenard, DeLaChouette, DuLion, DEsquive, DeDeviation, DeBlocage, DeRenouveau }` (quatre préfixes puis
+neuf suffixes) ; `struct Affixe { IdAffixe id; int valeur; }` avec `operator==`.
 
 ### `CatalogueAffixes` (`objets/`)
 
 `CatalogueAffixes.hpp` / `.cpp`. `enum class PositionDAffixe { Prefixe, Suffixe }` ; `enum class EffetDAffixe {
 DegatsDeFeu, DegatsSacres, PenetrationDArmure, Armure, Puissance, Endurance, Adresse, Savoir, Volonte, EsquiveContact,
-EsquiveProjectile, ChanceDeBlocage }` ; `struct DefinitionDAffixe { IdAffixe id; std::string nom; PositionDAffixe position;
+EsquiveProjectile, ChanceDeBlocage, RegenerationDEnergie }` ; `struct DefinitionDAffixe { IdAffixe id; std::string nom; PositionDAffixe position;
 EffetDAffixe effet; PlageDeValeurs valeurs; std::vector<CategorieObjet> categories; }` ; `struct PlageDeValeurs { int min; int max; }` ; `struct ApportDesAffixes { int armure = 0; Caracteristiques
-bonus; StatistiquesDeCombat bonusDeCombat; Degats degatsAjoutes; int penetration = 0; }`.
+bonus; StatistiquesDeCombat bonusDeCombat; Degats degatsAjoutes; int penetration = 0; int regenerationDEnergie = 0; }`.
 
 | Fonction | Rôle |
 |---|---|
@@ -748,6 +749,7 @@ Données membres : `m_objets` (`std::array<std::optional<Objet>, s_nombreEmplace
 | `std::optional<Objet> retirer(Emplacement)` | Enlève l'objet et le rend (vide si l'emplacement l'était) ; `[[nodiscard]]` |
 | `int armureTotale() const` | Somme de l'armure des objets portés (`effetsDeBase` plus affixes), recalculée à chaque appel ; `[[nodiscard]]` |
 | `StatistiquesDeCombat bonusDeCombatTotal() const` | Somme des bonus de combat des objets portés (modèle plus affixes) et du blocage de leurs boucliers (chance, montant ; la chance d'un affixe s'y ajoute), recalculée à chaque appel ; `[[nodiscard]]` |
+| `int bonusDeRegenerationDEnergie() const` | Somme, en pour cent, de la régénération d'énergie des affixes « of Replenishment » des objets portés (étape 108.5) ; sur `actifPour(base)`, un objet inactif ne compte pas ; `[[nodiscard]]` |
 | `Caracteristiques bonusTotal() const` | Somme des bonus de caractéristiques des objets portés (modèle plus affixes), recalculée à chaque appel (étape 88) ; `[[nodiscard]]` |
 | `DescriptionDAttaque attaqueDeBase() const` | L'attaque de base que donne l'équipement : celle de l'arme de la main droite avec le feu, le sacré et la pénétration de ses affixes, sinon `mainsNues()` (étape 91.4, 95.4) ; `[[nodiscard]]` |
 | `std::optional<TypeDArme> typeDArme() const` | Le type de l'arme de la main droite, vide sans arme (étape 91.5) ; `[[nodiscard]]` |
@@ -836,6 +838,8 @@ libres sans état, qui rendent des `std::string` en UTF-8.
 | `std::vector<std::string> lignesDeLInfobulle(const Objet&)` | Nom composé, catégorie, « Item Level N », propriétés du modèle (armure, bonus, bonus de combat, blocage, attaque de l'arme calculée pour cet objet), une ligne par affixe, seuils de l'objet à son niveau ; `[[nodiscard]]` |
 
 ### Ce que `Personnage` et `Escouade` ajoutent
+
+- **L'énergie (étape 108.5)** : `Personnage::recalculerDepuisLEquipement` règle le débit de la `Reserve` d'énergie sur `regenerationDEnergie(m_equipementActif.bonusDeRegenerationDEnergie())` : la base de 2 par seconde majorée de la somme des pourcentages des objets actifs (15 % et 12 % font 27 %, soit 2,54 par seconde). Équiper ou retirer l'objet, ou le rendre inactif sous son seuil, le change tout de suite. Affinités : bâton ×3, sceptre, Orb et Holy Relic ×2 ; la plage (10 à 20 % au niveau 1) grandit avec le niveau de l'objet comme les autres (`plageAuNiveau`). Il est permis sur les armes, les reliques et les bijoux : un anneau ou un collier (sans préfixe) ne peut pas être Rare.
 
 - `Personnage` : membre `m_equipement`, `getEquipement()`, `poserEquipement(Emplacement, Objet)` et
   `retirerEquipement(Emplacement)` (qui rendent l'objet remplacé ou retiré et recalculent, d'un seul appel à

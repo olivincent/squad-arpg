@@ -48,6 +48,16 @@ StatistiquesDeCombat Equipement::bonusDeCombatTotal() const {
     return total;
 }
 
+int Equipement::bonusDeRegenerationDEnergie() const {
+    int total = 0;
+    for (const std::optional<Objet>& objet : m_objets) {
+        if (objet) {
+            total += apportDesAffixes(*objet).regenerationDEnergie;
+        }
+    }
+    return total;
+}
+
 DescriptionDAttaque Equipement::attaqueDeBase() const {
     const std::optional<Objet>& main = a(Emplacement::MainDroite);
     if (main.has_value()) {

@@ -4,8 +4,7 @@
 
 Reserve::Reserve(int maximum, float regenerationParSeconde)
     : m_jauge(maximum),
-      m_regeneration(regenerationParSeconde),
-      m_accumule(0.0f)
+      m_regeneration(regenerationParSeconde)
 {
     assert(regenerationParSeconde >= 0.0f);
 }

@@ -172,6 +172,7 @@ std::string ligneDAffixe(const Affixe& affixe) {
         case EffetDAffixe::EsquiveContact: return lignesDeBonusDeCombat({.esquiveContact = valeur}).front();
         case EffetDAffixe::EsquiveProjectile: return lignesDeBonusDeCombat({.esquiveProjectile = valeur}).front();
         case EffetDAffixe::ChanceDeBlocage: return "Block: " + plus + " %";
+        case EffetDAffixe::RegenerationDEnergie: return plus + " % Energy Regeneration";
     }
     return "";
 }

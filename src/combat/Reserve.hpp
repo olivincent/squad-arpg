@@ -29,5 +29,5 @@ public:
 private:
     Jauge m_jauge;
     float m_regeneration;  // en points par seconde
-    float m_accumule;      // points régénérés pas encore entiers, 0 <= m_accumule < 1
+    float m_accumule = 0.0f;  // points régénérés pas encore entiers, 0 <= m_accumule < 1
 };

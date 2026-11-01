@@ -233,6 +233,7 @@ Les plages sont multipliées par 1 + 0,25 × (niveau − 1), arrondies au plus p
 | of Evasion | suffixe | esquive contre le contact | 2 – 4 % | 4 – 8 % | bottes, armure |
 | of Deflection | suffixe | esquive contre les projectiles | 2 – 4 % | 4 – 8 % | casque, bouclier |
 | of Blocking | suffixe | chance de blocage | 3 – 7 % | 6 – 14 % | bouclier |
+| of Replenishment (étape 108) | suffixe | régénération d'énergie (pour cent de la base de 2 par seconde) | 10 – 20 % | 20 – 40 % | armes, reliques, colliers, anneaux |
 
 Aujourd'hui, l'affixe d'un objet Magic est tiré uniformément parmi ceux que sa catégorie permet. Les anneaux et colliers n'ont aucun préfixe, donc ne sont jamais Rare.
 
@@ -269,8 +270,8 @@ Le tirage reste un seul tirage pondéré, comme les raretés : choisir d'abord �
 | Lance | Keen | of the Fox |
 | Épée à deux mains | of the Ox | of the Fox |
 | Baguette | of the Owl | Blazing |
-| Sceptre | of the Lion | Hallowed |
-| Bâton | of the Owl | Blazing ; plus tard, régénération de mana |
+| Sceptre | of the Lion | Hallowed, of Replenishment |
+| Bâton | of the Owl, of Replenishment | Blazing |
 | Arc | of the Fox | Keen |
 | Arbalète | Keen | of the Ox |
 | Armure de tissu | of the Owl, of the Lion | — |
@@ -278,10 +279,10 @@ Le tirage reste un seul tirage pondéré, comme les raretés : choisir d'abord �
 | Armure intermédiaire | — | of the Bear, of Evasion |
 | Armure lourde | Reinforced | of the Bear, of the Ox |
 | Bouclier | of Blocking | Reinforced |
-| Orbe | of the Owl | — |
-| Relique sacrée | of the Lion | Hallowed |
+| Orbe | of the Owl | of Replenishment |
+| Relique sacrée | of the Lion | Hallowed, of Replenishment |
 
-Un affixe sans effet en jeu (régénération de mana) n'existe pas tant que le mana n'existe pas ; le tableau l'accueillera le jour venu.
+La régénération d'énergie (étape 108) est le premier affixe d'une ressource : of Replenishment, ×3 sur le bâton, ×2 sur le sceptre, l'Orb et la Holy Relic. Un affixe d'énergie maximum n'existe pas.
 
 ## Exemple complet de génération (décidé)
 

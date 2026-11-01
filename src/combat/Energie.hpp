@@ -15,6 +15,14 @@ inline constexpr int s_energieParNiveau = 5;
 // Régénération de base, en points par seconde : la même en combat et hors combat.
 inline constexpr float s_regenerationDEnergieDeBase = 2.0f;
 
+// Régénération d'un personnage dont l'équipement actif donne `bonusEnPourcent` pour cent de régénération (les affixes « of
+// Replenishment », additionnés entre objets) : la régénération de base majorée de ce pourcentage, en points par seconde.
+// Précondition : bonusEnPourcent >= 0.
+[[nodiscard]] constexpr float regenerationDEnergie(int bonusEnPourcent) {
+    assert(bonusEnPourcent >= 0);
+    return s_regenerationDEnergieDeBase * (1.0f + static_cast<float>(bonusEnPourcent) / 100.0f);
+}
+
 // Énergie maximum d'un personnage de ce niveau : `s_energieDeBase` plus `s_energieParNiveau` par niveau au-delà du premier.
 // Précondition : niveau >= 1.
 [[nodiscard]] constexpr int energieMax(int niveau) {

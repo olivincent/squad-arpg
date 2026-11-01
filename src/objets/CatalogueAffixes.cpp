@@ -18,6 +18,7 @@ constexpr PlageDeValeurs s_plageArmure = {2, 5};              // points d'armure
 constexpr PlageDeValeurs s_plageCaracteristique = {1, 3};     // points de caractéristique
 constexpr PlageDeValeurs s_plageEsquive = {2, 4};             // pour cent
 constexpr PlageDeValeurs s_plageBlocage = {3, 7};             // pour cent de chance
+constexpr PlageDeValeurs s_plageRegenerationDEnergie = {10, 20};  // pour cent de la régénération de base
 
 std::vector<DefinitionDAffixe> construireLeCatalogue() {
     return {
@@ -46,6 +47,8 @@ std::vector<DefinitionDAffixe> construireLeCatalogue() {
          {CategorieObjet::Casque, CategorieObjet::Bouclier}},
         {IdAffixe::DeBlocage, "of Blocking", PositionDAffixe::Suffixe, EffetDAffixe::ChanceDeBlocage, s_plageBlocage,
          {CategorieObjet::Bouclier}},
+        {IdAffixe::DeRenouveau, "of Replenishment", PositionDAffixe::Suffixe, EffetDAffixe::RegenerationDEnergie,
+         s_plageRegenerationDEnergie, {CategorieObjet::Arme, CategorieObjet::Relique, CategorieObjet::Collier, CategorieObjet::Anneau}},
     };
 }
 
@@ -65,6 +68,7 @@ void ajouter(ApportDesAffixes& apport, const Affixe& affixe) {
         case EffetDAffixe::EsquiveContact: apport.bonusDeCombat.esquiveContact += valeur; break;
         case EffetDAffixe::EsquiveProjectile: apport.bonusDeCombat.esquiveProjectile += valeur; break;
         case EffetDAffixe::ChanceDeBlocage: apport.bonusDeCombat.chanceDeBlocage += valeur; break;
+        case EffetDAffixe::RegenerationDEnergie: apport.regenerationDEnergie += valeur; break;
     }
 }
 }  // namespace

@@ -28,7 +28,8 @@ enum class EffetDAffixe {
     Volonte,
     EsquiveContact,      // pour cent d'esquive contre le contact
     EsquiveProjectile,   // pour cent d'esquive contre les projectiles
-    ChanceDeBlocage      // pour cent de chance de blocage, ajoutés à ceux du bouclier (le montant reste le sien)
+    ChanceDeBlocage,     // pour cent de chance de blocage, ajoutés à ceux du bouclier (le montant reste le sien)
+    RegenerationDEnergie // pour cent de la régénération d'énergie de base, ajoutés (étape 108)
 };
 
 // Les valeurs qu'un affixe peut prendre sur un objet tiré : un entier dans [min, max], bornes incluses. Elle ne sert qu'au
@@ -75,6 +76,7 @@ struct ApportDesAffixes {
     StatistiquesDeCombat bonusDeCombat = {};  // les esquives, et la chance de blocage (le montant reste celui du bouclier)
     Degats degatsAjoutes = {};                // portions ajoutées à l'attaque de base de l'arme (feu, sacré)
     int penetration = 0;                      // pour cent ajoutés à celle de l'arme (le plafond s'applique plus loin)
+    int regenerationDEnergie = 0;             // pour cent de la régénération d'énergie de base, additionnés entre objets
 };
 
 // L'apport des affixes de cet objet (celui du préfixe plus celui du suffixe) ; nul pour un objet commun.

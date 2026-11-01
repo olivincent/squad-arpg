@@ -194,7 +194,7 @@ Quand un point entre dans `ROADMAP.md`, sa conception détaillée se fait en dis
   4. Une croissance automatique répartie sur deux caractéristiques, jamais une seule.
 - **Retenu** (fait à l'étape 99 pour la classe, pas encore pour la spécialisation). Trois sources : une **petite croissance automatique orientée par la spécialisation** (un mage du feu gagne plutôt de la Puissance, un mage du givre plutôt du Savoir), l'**essentiel en points libres**, et l'**équipement**.
 - **Retenu.** L'équipement peut augmenter une caractéristique **et/ou** directement un élément de la mécanique de combat (par exemple + critique, + résistance au feu, + esquive contre les projectiles).
-- **Retenu.** Le **mana** n'est rattaché à aucune caractéristique tant que la ressource n'est pas tranchée (question 6).
+- **Retenu.** L'**énergie** (étape 108, la ressource des skills) n'est rattachée à aucune caractéristique : son maximum ne vient que du niveau. Le Savoir et la Volonté n'ont encore aucun effet ; l'étape 109 leur en donnera.
 - **Retenu.** Redistribution des points **payante, seulement dans les refuges** (village, campement), jamais en pleine quête.
 - **Retenu.** Seuils d'équipement à la *Titan Quest* (étape 92) : un objet peut exiger des valeurs minimales de caractéristiques ; **sous le seuil, impossible de l'équiper** (la vérification compte les caractéristiques effectives du destinataire sans l'objet posé, en tenant compte de ce que le déplacement retire).
 - **Retenu** (étape 92). **Objet inactif** : un objet porté dont le seuil n'est plus atteint (les caractéristiques ont baissé) **reste porté mais n'a plus aucun effet** (ni armure, ni bonus, ni arme, ni bouclier) ; il se remet en service quand le seuil revient. Calcul par point fixe (un objet retiré peut en désactiver un autre). Affichage : seuils dans l'infobulle, en rouge ceux qu'un personnage n'atteint pas pendant un glissement, objet inactif encadré en rouge.
@@ -367,8 +367,8 @@ Points de conception associés (**proposés**) :
 
 | Statistique | Rôle | Source principale | Existe |
 |---|---|---|---|
-| Mana max et régénération | Budget de skills, surtout hors combat | Niveau, équipement (caractéristique à décider, question 6) | |
-| Coût d'un skill | Mana, ou PV pour le noir | Skill | |
+| Énergie max et régénération | Budget de skills | Niveau (100 plus 5 par niveau au-delà du premier), régénération de base 2 par seconde, majorée par l'affixe « of Replenishment » ; aucune caractéristique pour l'instant (étape 109) | Oui (étape 108) |
+| Coût d'un skill | Énergie (PV pour le noir, un jour) | Skill | Oui (étape 108) : énergie, entier, 0 pour l'attaque de base et pour les monstres |
 | Vitesse de déplacement | Poursuite, fuite, placement | Classe, équipement, *Lenteur* / *Hâte* | Oui |
 | Zone de contrôle | Déclenche l'attaque d'opportunité | Arme (contact) depuis l'étape 91 | Oui |
 
@@ -387,13 +387,54 @@ Points de conception associés (**proposés**) :
 3. **Les plafonds** : esquive, résistances, réduction de recharge ; lesquels, et à combien ? *(En partie tranchée : l'esquive est plafonnée à 50 % (étape 90), les résistances à 80 % avec des vulnérabilités jusqu'à −100 % (étape 94, à tester). Reste la réduction de recharge.)*
 4. *Tranchée* : l'Égide et la Barrière absorbent en dernier (section 9).
 5. *Tranchée* (étape 94) : **la liste des éléments** (physique, feu, froid, foudre, poison, sacré, nécrotique, saignement ; psychique / arcane en piste) et le saignement est un type (section 8).
-6. **La ressource** : piste privilégiée, une ressource partagée, l'**Élan**, en couche au-dessus de ressources propres à certaines classes (section 15). À confirmer : quelles classes ont leur propre ressource, et laquelle. Le mana n'est rattaché à aucune caractéristique tant que ce n'est pas tranché.
+6. **La ressource** : *en partie tranchée à l'étape 108* : une **énergie** par personnage, la même pour toutes les classes, à la *Titan Quest* et *Grim Dawn* (section 14 bis). Reste ouvert : l'**Élan**, ressource partagée de l'escouade, en couche au-dessus (section 15), et quelles classes ont leur propre ressource (rage, foi…), qui ne sont pas faites. La structure qui accueillera l'Élan existe (`Reserve`). Le lien entre l'énergie et une caractéristique (Savoir, Volonté) est à discuter à l'étape 109.
 7. *Tranchée* (étape 89) : **la magie critique**, comme le reste (section 7). Dans *Titan Quest*, non.
 8. **Les classes de départ** : quelles classes de base, quelles spécialisations, quels paliers ?
 9. **L'automatisation** : quels skills partent seuls (gambits, `docs/brainstorm.md`), lesquels restent au clavier ?
 10. **Un bonus pour une escouade d'une seule couleur** ? (Moins pertinent depuis que les couleurs ne sont qu'un guide de conception.)
 11. **Les noms définitifs** des cinq caractéristiques. *(Depuis l'étape 95, les noms de travail sont en anglais à l'écran : Might, Constitution, Dexterity, Intellect, Resolve. Les noms français restent ceux du code et de ce document ; le choix définitif reste à faire.)*
 12. *Tranchée* (étape 94) : **le blocage et les portions typées** : le bouclier ne réduit que la portion physique (section 7).
+
+## 14 bis. L'énergie (étape 108)
+
+Statuts : *retenu* = décidé et fait, *à tester* = valeur provisoire.
+
+- **Retenu.** Une seule ressource, l'**énergie** (« Energy » à l'écran, `Energie` dans le code), pour toutes les classes : une `Reserve`
+  par personnage (une `Jauge` entière, un débit de régénération et un accumulateur `float` qui ne laisse passer que la partie entière).
+  Ni ressource de classe ni Élan à cette étape.
+- **À tester.** **Maximum** : 100 plus 5 par niveau au-delà du premier (`s_energieDeBase`, `s_energieParNiveau`) ; commun à toutes les
+  classes ; à la montée de niveau un vivant gagne autant d'énergie que son maximum augmente (comme les points de vie), un mort ne gagne
+  rien. **Régénération** : 2 points par seconde (`s_regenerationDEnergieDeBase`), la même en combat et hors combat, majorée en pour
+  cent par l'affixe « of Replenishment » ; un mort ne régénère pas. **Pleine au début de chaque étage** : l'`Expedition` ne garde pas
+  l'énergie.
+- **Retenu.** **Le coût d'un skill** est un entier de `DefinitionDeSkill` (`cout`, 0 par défaut). L'attaque de base et les skills des
+  monstres coûtent 0 (les monstres n'ont pas d'énergie ; un test de cohérence le vérifie, comme celui qui exige un coût de plus de 0
+  pour chaque skill de classe). On **vérifie** l'énergie à l'engagement (début de l'activation) et on la **paie** au départ de l'effet :
+  un skill annulé (cible morte, soin sans blessé, arme retirée) ne coûte rien, un skill de zone paie même si la zone est vide, comme sa
+  recharge.
+- **Retenu.** **Énergie insuffisante** : à la demande du joueur le skill est refusé, jamais mis en attente, et « Not enough energy »
+  apparaît sur le personnage ; un skill déjà en attente dont le lanceur est libre mais n'a plus de quoi payer (il a payé un autre skill
+  entre-temps) est abandonné sans coût, avec le même texte.
+- **À tester.** **Calibrage par une règle** et non au cas par cas : à partir d'une réserve pleine de niveau 1, un personnage qui lance un
+  skill à chaque fin de recharge, avec la régénération de base, tombe à sec en 30 s pour un sort et en 120 s pour une technique. Avec une
+  recharge `r`, une réserve de 100 et 2 de régénération : `coût / r − 2 = 100 / T`, donc `coût = r × (2 + 100 / T)`, arrondi au plus
+  proche. La distinction sort / technique ne sert qu'au calibrage : ce n'est pas un concept du jeu, aucun champ ni énumération.
+
+  | Skill | Classe | Recharge | Calibrage | Coût |
+  |---|---|---|---|---|
+  | Explosion | mage | 8 s | sort (30 s) | 43 |
+  | Soin | prêtre | 8 s | sort (30 s) | 43 |
+  | Frappe puissante | guerrier | 5 s | technique (120 s) | 14 |
+  | Provocation | guerrier | 10 s | technique (120 s) | 28 |
+  | Frappe sacrée | paladin | 5 s | technique (120 s) | 14 |
+  | Imposition des mains | paladin | 10 s | technique (120 s) | 28 |
+  | Tir perçant | rôdeur | 6 s | technique (120 s) | 17 |
+  | Pluie de flèches | rôdeur | 8 s | technique (120 s) | 23 |
+
+  L'imposition des mains (un soin) est rangée parmi les techniques : le prompt de l'étape ne nommait comme sorts que l'explosion et le
+  soin du prêtre. Son coût passerait à 53 si on la voulait sort.
+- **À tester.** Le **débit** d'énergie d'un skill lancé en boucle (43 points en 8 s, soit 5,4 par seconde, contre 2 de régénération)
+  vide la réserve en 30 s ; les techniques, bien plus lentement.
 
 ## 15. Pistes
 

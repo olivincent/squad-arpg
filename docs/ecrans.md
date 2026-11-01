@@ -91,8 +91,8 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
   `EcranJeu` lui donne (il connaît ses `IdSpecialite`). Il n'appelle que deux fonctions de modification :
   `Escouade::deplacerObjet` et `jeterUnObjet` (`jeu/ObjetsAuSol`). Un module ne reçoit que ce qu'il utilise. La croix de la
   fenêtre quitte, comme partout.
-- **Le panneau** (étape 98.1, refait à l'étape 106.4) est de la taille de son contenu (**776 × 538 px** depuis l'étape 106.4,
-  1 076 × 658 avant ; dans la vue d'interface de 800 px de haut), **centré**, et laisse voir le jeu tout autour : 212 px de chaque côté et
+- **Le panneau** (étape 98.1, refait à l'étape 106.4) est de la taille de son contenu (**776 × 556 px** depuis l'étape 108.4, 538 de haut avant la ligne d'énergie ;
+  776 × 538 depuis l'étape 106.4, 1 076 × 658 avant ; dans la vue d'interface de 800 px de haut), **centré**, et laisse voir le jeu tout autour : 212 px de chaque côté et
   131 px en haut et en bas dans une vue de 1200 × 800. Les cases n'ont pas changé de taille (44 px). La bande autour est l'endroit où l'on
   jette un objet.
 - **Des onglets et un sac commun (étape 106.4)** : à gauche, un onglet par personnage (de la couleur du personnage, avec le nom de sa
@@ -134,11 +134,13 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
   personnages (la géométrie ne dépend plus de la place : c'est l'écran qui fournit la place ouverte là où une position en a besoin,
   `elementSous`, `boutonSous` et `caracteristiqueSous`) : « Armor: N », « (dead) », 10 emplacements en
   deux colonnes de 5, puis le bloc de ses cinq caractéristiques effectives — avec « (+N) »
-  quand l'équipement en donne — et de ses points de vie « HP actuels / maximum » (une ligne par
-  caractéristique sur toute la largeur de la colonne, six lignes de 18 px, pour y mettre les boutons des points libres), puis le
+  quand l'équipement en donne — de ses points de vie « HP actuels / maximum » et de son énergie « Energy actuelle / maximum » (étape 108.4 ; une ligne par
+  caractéristique sur toute la largeur de la colonne, sept lignes de 18 px, pour y mettre les boutons des points libres), puis le
   bloc de ses statistiques de combat — « Offensive Ability N », « Defensive Ability N », « Block 30 % (40) »,
   « Melee Dodge N % » et « Projectile Dodge N % » (valeurs effectives), lues par
-  `Escouade::statistiquesDeCombatDuPersonnage` ; à droite, le sac (5 rangées de 8 cases) sous son étiquette « Bag ». Le dessin, le survol et les tests
+  `Escouade::statistiquesDeCombatDuPersonnage`, puis, dans la sixième cellule, la régénération d'énergie « Energy Regen 2.0/s » ;
+  **c'est le seul nombre décimal affiché par le jeu, une exception voulue** (une décimale, `ligneDeRegenerationDEnergie`), parce que c'est un débit
+  (points par seconde) que les affixes majorent de pour cent, et qu'un entier cacherait cette majoration (2,3 serait 2) ; à droite, le sac (5 rangées de 8 cases) sous son étiquette « Bag ». Le dessin, le survol et les tests
   appellent les mêmes rectangles (`rectangleDeLOnglet`, `rectangleDeLEmplacement`, `rectangleDeLaCaseDuSac`,
   `elementSous`, `ongletSous`), aussi utilisés par le glisser-déposer. Un test vérifie que tout
   tient dans 1200 × 800 (et en 16:9), dans le panneau, sans chevauchement, onglets compris.
@@ -541,12 +543,12 @@ construction, `explicit EcranMenu(std::vector<Resolution>)`), `m_boutons` (`List
 
 | Fonction | Rôle |
 |---|---|
-| `rectangleDuPanneau(tailleDeVue)` | Le panneau de l'inventaire, de la taille de son contenu (776 × 538 px depuis l'étape 106.4, la même quelle que soit la vue), centré dans la vue ; un point lâché en dehors jette l'objet ; `[[nodiscard]]` |
+| `rectangleDuPanneau(tailleDeVue)` | Le panneau de l'inventaire, de la taille de son contenu (776 × 556 px depuis l'étape 108.4, 776 × 538 depuis l'étape 106.4, la même quelle que soit la vue), centré dans la vue ; un point lâché en dehors jette l'objet ; `[[nodiscard]]` |
 | `rectangleDeLOnglet(place, tailleDeVue)` / `ongletSous(point, tailleDeVue)` | Étape 106.4 : l'onglet de cette place (une bande de 32 px au-dessus de la colonne, les onglets côte à côte sur la largeur de la colonne, 4 px d'écart ; `assert` : place de 1 à `s_tailleDeLEscouade`) / la place dont l'onglet contient le point, vide dans un écart ou ailleurs. Remplacent `rectangleDeLEnTete`, supprimée : l'onglet tient lieu d'en-tête ; `[[nodiscard]]` |
 | `rectangleDeLArmure(tailleDeVue)` | La ligne « Armor » sous les onglets ; `[[nodiscard]]` |
 | `rectangleDeLEmplacement(Emplacement, tailleDeVue)` | Rectangle de l'emplacement dans la colonne ; les 5 premiers de l'enum à gauche, les 5 suivants à droite ; `[[nodiscard]]` |
-| `rectangleDesCaracteristiques(tailleDeVue)` / `rectangleDeLaCellule(indice, tailleDeVue)` | Le bloc sous les emplacements (340 × 108 px, `s_lignesDeCaracteristiques` = 6 lignes de 18 px, pleine largeur) et ses 6 lignes de haut en bas : Puissance, Endurance, Adresse, Savoir, Volonté, points de vie ; `assert(indice <= s_nombreDeCaracteristiques)` ; `[[nodiscard]]` |
-| `rectangleDesStatistiques(tailleDeVue)` / `rectangleDeLaStatistique(indice, tailleDeVue)` | Le bloc sous celui des caractéristiques (340 × 54 px, `s_lignesDeStatistiques` = 3 lignes de 18 px) et ses `s_cellulesDeStatistiques` (6) cellules en deux colonnes remplies colonne par colonne (`lignesDeStatistiques`) ; `assert(indice < s_cellulesDeStatistiques)` ; `[[nodiscard]]` |
+| `rectangleDesCaracteristiques(tailleDeVue)` / `rectangleDeLaCellule(indice, tailleDeVue)` | Le bloc sous les emplacements (340 × 126 px, `s_lignesDeCaracteristiques` = 7 lignes de 18 px, pleine largeur) et ses 7 lignes de haut en bas : Puissance, Endurance, Adresse, Savoir, Volonté, points de vie (`s_celluleDesPointsDeVie`), énergie (`s_celluleDeLEnergie`, étape 108.4) ; `assert(indice < s_lignesDeCaracteristiques)` ; `[[nodiscard]]` |
+| `rectangleDesStatistiques(tailleDeVue)` / `rectangleDeLaStatistique(indice, tailleDeVue)` | Le bloc sous celui des caractéristiques (340 × 54 px, `s_lignesDeStatistiques` = 3 lignes de 18 px) et ses `s_cellulesDeStatistiques` (6) cellules en deux colonnes remplies colonne par colonne (`lignesDeStatistiques` pour les cinq premières, la régénération d'énergie à `s_celluleDeLaRegeneration`, la sixième) ; `assert(indice < s_cellulesDeStatistiques)` ; `[[nodiscard]]` |
 | `rectangleDeLaCaseDuSac(indice, tailleDeVue)` / `rectangleDeLEtiquetteDuSac(tailleDeVue)` | Rectangle de la case (`assert(indice < s_casesDuSac)`), à droite de la colonne, en 5 rangées de 8 / de l'étiquette « Bag » au-dessus de la première. Nommée ainsi parce que `rectangleDeLaCase` existe dans `SelectionDEscouade` ; `[[nodiscard]]` |
 | `rectangleDuBoutonPlus(Caracteristique, tailleDeVue)` / `rectangleDuBoutonMoins(...)` | Étape 100.2 : les boutons de 22 × 18 px à droite de la ligne de la caractéristique (le « + » au bord, le « − » à sa gauche, 4 px d'écart) ; toujours les mêmes rectangles, visibles ou non ; `[[nodiscard]]` |
 | `rectangleDuBoutonAppliquer(tailleDeVue)` / `rectangleDuBoutonReinitialiser(...)` | Étape 100.2 : « Apply » et « Reset », 64 × 18 px, à droite de la ligne des points de vie ; `[[nodiscard]]` |

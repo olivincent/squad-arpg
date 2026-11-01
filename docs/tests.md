@@ -2181,6 +2181,49 @@ personnages (`compositionDeQuatre` : la composition de test et un deuxième prê
   du panneau à l'écran, le survol à la souris (la traduction de `MouseMoved`, `deplacementDeLaSourisDInterface`, a besoin d'une `RenderWindow`),
   la formation de quatre en jeu, les quatre colonnes de la barre : à l'œil, en jouant.
 
+## Étape 108 : l'énergie, la ressource des skills
+
+1 885 tests avant l'étape, 1 955 après (+70), 0 avertissement de compilation sur les deux presets. Les quatre attentes changées (catalogue des
+affixes, affinités des gabarits, tirage des affixes) ne figeaient que l'ancien catalogue.
+- **108.1** (+19) : `test_Jauge.cpp` (nouveau : commence pleine ; `retirer` et `ajouter` rendent ce qui a réellement bougé, plafonnés à 0 et au
+  maximum ; `changerMaximum` décale la valeur, sans descendre sous 0 ni sous le plancher ; `definirMaximum` ne la touche que pour la plafonner)
+  et `test_Reserve.cpp` (nouveau : `payer` et `suffit` au point près ; **la partie entière seule est ajoutée, le reste est gardé** (0,6 s à 2 par
+  seconde : 1 point, puis 1 de plus à 0,5 s) ; **10 s à 60 images par seconde rendent 19 ou 20 points** (l'erreur de `float` peut en retarder un d'un
+  tic) ; pleine, aucun reste mis de côté ; débit nul ; `definirRegeneration`). Les 36 tests de `PointsDeVie` n'ont pas changé : la classe garde
+  son comportement, par `Jauge`.
+- **108.2** (+5) : `test_Personnage.cpp` (commence pleine à 100 ; le maximum est le même pour toutes les classes et suit le niveau ; un vivant
+  plein reste plein à la montée de niveau ; **un mort ne gagne rien** : maximum 110, énergie 100).
+- **108.3** (+24) : `test_Escouade_energie.cpp` (nouveau : le coût est payé au départ et non à l'engagement ; **un skill prêt mais trop cher est
+  refusé avec un `SkillSansEnergie`, sans attente ni recharge** ; il passe une fois l'énergie remontée ; la régénération au débit de base ; un
+  skill annulé ne coûte rien ; **un skill de zone paie même zone vide** et est refusé au clic s'il est trop cher ; **un skill en attente dont le
+  lanceur n'a plus de quoi payer est abandonné, sans coût, avec son texte** (et la demande suivante est jugée seule, pas ignorée par une attente
+  qui serait restée) ; un skill en attente dont le lanceur a de quoi payer part normalement ; un soin sans blessé ne coûte rien),
+  `test_Personnage.cpp` (`energieSuffit` au point près ; un skill trop cher n'est pas engagé ; engager ne paie rien et l'effet qui part paie ;
+  annuler ne coûte rien ; un skill gratuit se lance à énergie nulle ; **un vivant régénère, un mort non** ; le manque ne change pas à la montée de
+  niveau), `test_Skill.cpp` (`getCout`), `test_Specialite.cpp` (**chaque skill de classe coûte plus de 0** ; **les huit coûts calibrés**, 43, 43, 14, 28,
+  14, 28, 17, 23) et `test_DefinitionDeMonstre.cpp` (**aucun skill de monstre n'a de coût**, soin du soigneur compris). Les personnages qui paient
+  (`guerrierQuiPaie`, `pretreQuiPaie`, `mageQuiPaie`, `s_coutDeTest`) sont dans `aides_escouade.hpp` : les définitions de test ordinaires ne coûtent
+  rien, pour que les autres tests ne dépendent pas de l'énergie.
+- **108.4** (+10) : `test_BarreDEnergie.cpp` (nouveau : la barre est sous la barre de vie sans la recouvrir, au-dessus du carré),
+  `test_DispositionInventaire.cpp` (sept lignes de caractéristiques dont l'énergie en dernier ; la régénération à la sixième cellule des
+  statistiques, sans chevaucher les autres), `test_AffichageStatistiques.cpp` (« Energy 87 / 100 », **« Energy Regen » à une décimale** : 2,0, 2,3, 2,34
+  arrondi à 2,3, 2,36 à 2,4), `test_TextesFlottants.cpp` (« Not enough energy » : libellé, 14 px, **une couleur que les dix autres textes n'ont pas**),
+  `test_BarreDeSkills.cpp` (`energieInsuffisante` d'une icône, distinct de `armeAbsente`), `test_Escouade_skills.cpp` (`etatDuSkill` le dit sans
+  toucher à la progression) et `test_Controleur.cpp` (**un skill de zone trop cher n'entre pas en visée** : refusé avec son événement ; un skill direct
+  trop cher aussi).
+- **108.5** (+12) : `test_CatalogueAffixes.cpp` (quatre préfixes puis neuf suffixes ; of Replenishment : 10 à 20, arme, relique, collier et
+  anneau seulement ; sa plage au niveau 5 : 20 à 40 ; son apport ne touche que la régénération ; objet valide ou non selon la catégorie),
+  `test_CatalogueObjets.cpp` (le tableau des affinités : bâton ×3, sceptre, Orb et Holy Relic ×2, **la baguette n'en a pas** ; le tableau
+  séparait déjà mal la baguette et le bâton, ils ont maintenant chacun leur ligne), `test_GenerationDObjets.cpp` (le bassin d'une arme passe à 9
+  affixes : of the Owl d'un bâton vaut 3 sur 14, of Replenishment aussi, of the Owl d'un arc 1 sur 12, d'un bâton rare 3 sur 10 ;
+  la fréquence observée de of Replenishment sur 60 000 objets), `test_Equipement_affixes.cpp` (**les pourcentages de tous les objets portés
+  s'additionnent** ; **un objet inactif ne donne rien** sur `actifPour`), `test_Personnage_affixes.cpp` (équiper majore, retirer ramène à la base,
+  deux objets additionnent avant de majorer, un objet inactif ne compte pas), `test_AffichageObjets.cpp` (« +15 % Energy Regeneration » dans
+  l'infobulle, « Staff of Replenishment ») et `test_Energie.cpp` (nouveau : `energieMax`, `regenerationDEnergie`).
+- **Ce que les tests ne voient pas** : la lisibilité de la barre bleue de 3 px à côté de la barre verte, la teinte bleue de l'icône trop chère
+  contre le gris de l'arme manquante, le rythme de la barre qui se vide (explosion en boucle : environ 30 s) et se remplit, l'équilibre des
+  coûts et du débit de 2 par seconde : à l'œil, en jouant.
+
 ## Étape 107 : les monstres à rôles, le tireur et le soigneur
 
 1 845 tests avant l'étape, 1 885 après (+40), 0 avertissement sur les deux presets. Aucun test existant n'a changé d'attente : seuls les

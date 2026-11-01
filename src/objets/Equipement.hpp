@@ -53,6 +53,11 @@ public:
     // bouclier ; le montant reste celui du bouclier.
     [[nodiscard]] StatistiquesDeCombat bonusDeCombatTotal() const;
 
+    // Somme, en pour cent, de la régénération d'énergie que donnent les affixes des objets portés (étape 108), recalculée à chaque
+    // appel. S'applique à la régénération de base (`regenerationDEnergie`) ; appelée sur l'équipement actif, elle ne compte pas un
+    // objet inactif.
+    [[nodiscard]] int bonusDeRegenerationDEnergie() const;
+
     // L'attaque de base que donne cet équipement : celle de l'arme de la main droite, avec les portions de feu et de sacré
     // et la pénétration que ses affixes y ajoutent, sinon les mains nues (`mainsNues`). Une valeur dérivée, recalculée à
     // chaque appel, jamais stockée.

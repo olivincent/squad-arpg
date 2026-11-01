@@ -8,7 +8,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 ## Étapes terminées
 
-Étapes 0 à 107 ✅. Les dernières :
+Étapes 0 à 108 ✅. Les dernières :
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 - Étape 83 — Inventaire et équipement : le modèle, sans interface ✅
@@ -36,15 +36,16 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - Étape 105 — Les skills en données (R4 et R5) : un mode de cible, une zone séparée de l'effet, un effet en `std::variant`, un seul canal de sortie, des types forts `Place` et `IdMonstre`, la provocation qui attend ✅ (première étape de la phase 7)
 - Étape 106 — L'escouade passe à 4 personnages : une seule constante de taille, l'échange d'objets entre personnages avec repli au sac, la barre de raccourcis par colonne, l'inventaire en onglets à côté d'un sac commun ✅ (le mana passe à l'étape 107)
 - Étape 107 — Monstres à rôles : le rôle en données (mêlée, tireur, soigneur), le tireur qui frappe de loin et recule au contact, la vue des alliés du groupe, le soigneur qui soigne les blessés de son groupe ✅ (le mana passe à l'étape 108)
+- Étape 108 — L'énergie, la ressource des skills : une jauge plafonnée, une réserve qui se régénère, une énergie par personnage, un coût par skill calibré par une règle, le refus « Not enough energy », la barre bleue, l'affixe « of Replenishment » ✅ (les effets du Savoir et de la Volonté passent à l'étape 109)
 
 ## État actuel (résumé)
 
 - **Outils** : conception dans Claude.ai, implémentation avec Claude Code dans VSCode (règles dans
   `CLAUDE.md`) ; dépôt Git `squad-arpg`, poussé sur GitHub ; SFML 3.0.2 intégrée à CMake.
-- **Code** (étape 107) : 110 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
+- **Code** (étape 108) : 110 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
   `combat`, `objets`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
   de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug` et `jeu`, 0
-  avertissement, 1 885 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers des étapes 98 à 102 : `docs/build.md`,
+  avertissement, 1 955 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers des étapes 98 à 102 : `docs/build.md`,
   `docs/audit.md`). `Escouade` n'est plus que l'assemblage : `Escouade.cpp` de 1 223 à 1 067 lignes. Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`). **Tout le texte affiché est en anglais** (identifiants, commentaires et documentation restent en français ; pas de système de traduction : `docs/glossaire.md` est la référence des noms du jeu). Un commit par sous-étape, fait par Claude Code (`CLAUDE.md`).
 - **Écrans** : menu à la souris, options d'affichage (fenêtré ou plein écran, résolutions,
   `reglages.ini`), choix de 4 classes parmi 5 (guerrier, prêtre, mage, paladin, rôdeur ; doublons
@@ -157,6 +158,20 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   glissement, survoler un onglet l'ouvre aussitôt** et les onglets dont le personnage peut recevoir l'objet ont un contour doré. Aucun
   rééquilibrage (monstres, `k = 21`, butin). Tout est à voir à l'écran (`docs/formation.md`, « Quatre personnages », `docs/ecrans.md`,
   `docs/objets.md`, « Le repli au sac », `docs/boucle-et-entrees.md`).
+- **L'énergie** (étape 108) : **une seule ressource pour toutes les classes**, l'énergie (« Energy »), une `Reserve` par personnage (une `Jauge`
+  entière, un débit, un accumulateur `float` qui ne laisse passer que la partie entière). **Maximum** 100 plus 5 par niveau au-delà du premier
+  (un vivant gagne ce que le maximum augmente), **régénération** de 2 points par seconde, la même en combat et hors combat, **pleine au début
+  de chaque étage** (l'`Expedition` ne garde pas l'énergie) ; un mort ne régénère pas. **Chaque skill de classe coûte de l'énergie**
+  (`DefinitionDeSkill::cout`) ; l'attaque de base et les monstres coûtent 0. Les coûts sont **déduits d'une règle de calibrage** : un skill
+  lancé à chaque fin de recharge vide une réserve de 100 en 30 s pour un sort, 120 s pour une technique (`coût = recharge × (2 + 100 / T)`) :
+  explosion et soin 43, frappe puissante et frappe sacrée 14, provocation et imposition des mains 28, tir perçant 17, pluie de flèches 23
+  (« à tester » ; l'imposition des mains est comptée en technique). **Vérifié à l'engagement, payé au départ de l'effet** : un skill annulé
+  ne coûte rien, un skill de zone paie même zone vide. Un skill prêt mais trop cher est **refusé** (jamais mis en attente) avec « Not
+  enough energy » ; un skill en attente dont le lanceur n'a plus de quoi payer est abandonné sans coût. À l'écran : une barre bleue de 3 px
+  sous la barre de vie, l'icône trop chère en bleu atténué (le gris reste pour l'arme manquante), « Energy N / M » et « Energy Regen 2.0/s »
+  dans l'inventaire (le seul nombre décimal affiché). **L'affixe « of Replenishment »** (suffixe de 10 à 20 % au niveau 1, sur les armes, les
+  reliques et les bijoux ; bâton ×3, sceptre, Orb et Holy Relic ×2) majore la régénération de base ; les pourcentages des objets actifs
+  s'additionnent. Aucune caractéristique n'agit encore sur l'énergie (`docs/classes-et-combat.md`, section 14 bis ; `docs/combat.md`, « L'énergie »).
 - **Carte** : donjon généré à chaque partie (salles, couloirs en L de 2 cases, portes à chaque
   jonction, un groupe de monstres par salle sauf la première, un escalier, graine affichée), F5 = nouvelle expédition ;
   carte à la main pour les tests (`docs/generation.md`, `docs/carte-et-collision.md`).
@@ -376,16 +391,27 @@ ce qui reste à décider **en discussion** avant son prompt :
     l'étape 108.
   - 107 ✅ : les monstres à rôles (voir « Monstres à rôles ») : le rôle en données, le tireur et son recul, la vue des alliés du groupe, le
     soigneur. Le mana, prévu à cette place, passe à l'étape 108.
-  - À discuter avec Claude.ai : le mana (coûts, ressources de classe), les effets du Savoir et de la Volonté, puis les buffs,
+  - 108 ✅ : l'énergie, la ressource des skills (voir « L'énergie »). Les ressources de classe et l'Élan restent à discuter.
+  - À discuter avec Claude.ai : les effets du Savoir et de la Volonté (étape 109, dont un lien possible avec l'énergie), puis les buffs,
     les affaiblissements, les effets dans le temps et les auras (plusieurs effets par skill).
 
 
-## Étape 108 (prochaine) : à discuter avec Claude.ai
+## Étape 109 (prochaine) : à discuter avec Claude.ai
 
-Les étapes 105 (les skills en données), 106 (quatre personnages) et 107 (les monstres à rôles) sont faites. La suite se discute avec
-Claude.ai, après la conception des classes par Olivier : le mana, puis les effets du Savoir et de la Volonté. Le Savoir
+Les étapes 105 (les skills en données), 106 (quatre personnages), 107 (les monstres à rôles) et 108 (l'énergie) sont faites. La suite se discute avec
+Claude.ai, après la conception des classes par Olivier : les effets du Savoir et de la Volonté, qui pourraient toucher l'énergie. Le Savoir
 et la Volonté n'ont encore aucun effet (les paires de croissance du prêtre et du mage deviendront justes quand ils serviront).
 L'`Expedition` garde les points dépensés ; c'est elle qu'on sauvegardera un jour.
+
+**Pistes issues de l'étape 108** (étapes à part, plus tard) :
+- **Une caractéristique qui donne de l'énergie ou de la régénération** (étape 109, avec le Savoir et la Volonté) ; **un affixe d'énergie
+  maximum**, une régénération différente hors combat, des potions, des refuges qui rendent l'énergie.
+- **L'Élan** (ressource partagée de l'escouade, `Reserve` en est la structure) et les **ressources de classe** (rage, foi…) si on en veut.
+- **Le coût dans une infobulle de la barre de raccourcis** (avec l'écran de configuration des touches), et la possibilité de ranger l'imposition
+  des mains parmi les sorts (coût de 28 à 53).
+- **Ajuster en jouant** les 100 de base, les 5 par niveau, les 2 par seconde, les cibles de 30 s et de 120 s, la barre de 3 px et les deux teintes
+  de bleu : tout est « à tester ». L'énergie d'un skill en attente n'est pas réservée.
+- **Les monstres n'ont pas d'énergie** : une limite voulue, pas un oubli.
 
 **Pistes issues de l'étape 107** (étapes à part, plus tard) :
 - **Ajuster en jouant** les valeurs du tireur et du soigneur (points de vie, recul de 80 px et délai de 8 s, soin de 75 points toutes les

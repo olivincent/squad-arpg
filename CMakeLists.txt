@@ -193,6 +193,7 @@ add_executable(tests
     tests/rendu/test_BarreDeVie.cpp
     tests/rendu/test_BarreDEnergie.cpp
     tests/base/test_Eclaircir.cpp
+    tests/combat/test_Energie.cpp
     tests/combat/test_Jauge.cpp
     tests/combat/test_PointsDeVie.cpp
     tests/combat/test_Reserve.cpp

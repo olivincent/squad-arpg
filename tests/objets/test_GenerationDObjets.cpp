@@ -331,12 +331,13 @@ void verifierLaChance(const std::vector<Objet>& objets, IdObjet modele, Rarete r
 }  // namespace
 
 TEST_CASE("genererObjet : les affinites orientent les affixes, un baton porte of the Owl bien plus souvent qu'un arc, un Shield of Blocking") {
-    // 8 affixes permis sur une arme, 8 aussi sur le Shield : sans affinité, chacun aurait 12,5 %.
-    REQUIRE(chanceAttendue(IdObjet::Baton, Rarete::Magique, IdAffixe::DeLaChouette) == Catch::Approx(3.0 / 11));  // 3 + 2 + 6 × 1
-    REQUIRE(chanceAttendue(IdObjet::Baton, Rarete::Magique, IdAffixe::Flamboyant) == Catch::Approx(2.0 / 11));
-    REQUIRE(chanceAttendue(IdObjet::Arc, Rarete::Magique, IdAffixe::DeLaChouette) == Catch::Approx(1.0 / 11));  // 3 + 2 + 6 × 1
+    // 9 affixes permis sur une arme (8 avant of Replenishment), 8 sur le Shield : sans affinité, chacun aurait 11 % (12,5 % sur le Shield).
+    REQUIRE(chanceAttendue(IdObjet::Baton, Rarete::Magique, IdAffixe::DeLaChouette) == Catch::Approx(3.0 / 14));  // 3 + 2 + 3 + 6 × 1
+    REQUIRE(chanceAttendue(IdObjet::Baton, Rarete::Magique, IdAffixe::Flamboyant) == Catch::Approx(2.0 / 14));
+    REQUIRE(chanceAttendue(IdObjet::Baton, Rarete::Magique, IdAffixe::DeRenouveau) == Catch::Approx(3.0 / 14));
+    REQUIRE(chanceAttendue(IdObjet::Arc, Rarete::Magique, IdAffixe::DeLaChouette) == Catch::Approx(1.0 / 12));  // 3 + 2 + 7 × 1
     REQUIRE(chanceAttendue(IdObjet::Bouclier, Rarete::Magique, IdAffixe::DeBlocage) == Catch::Approx(3.0 / 11));  // 3 + 2 + 6 × 1
-    REQUIRE(chanceAttendue(IdObjet::Baton, Rarete::Rare, IdAffixe::DeLaChouette) == Catch::Approx(3.0 / 7));  // 3 + 4 × 1 suffixes
+    REQUIRE(chanceAttendue(IdObjet::Baton, Rarete::Rare, IdAffixe::DeLaChouette) == Catch::Approx(3.0 / 10));  // 3 + 3 + 4 × 1 suffixes
     REQUIRE(chanceAttendue(IdObjet::Baton, Rarete::Rare, IdAffixe::Flamboyant) == Catch::Approx(2.0 / 4));  // 2 + 2 × 1 préfixes
 
     const std::vector<Objet> objets = tirer(60000, s_graine, 5);
@@ -344,6 +345,7 @@ TEST_CASE("genererObjet : les affinites orientent les affixes, un baton porte of
     constexpr double toleranceRare = 0.10;     // environ 250 bâtons rares
     verifierLaChance(objets, IdObjet::Baton, Rarete::Magique, IdAffixe::DeLaChouette, toleranceMagique);
     verifierLaChance(objets, IdObjet::Baton, Rarete::Magique, IdAffixe::Flamboyant, toleranceMagique);
+    verifierLaChance(objets, IdObjet::Baton, Rarete::Magique, IdAffixe::DeRenouveau, toleranceMagique);
     verifierLaChance(objets, IdObjet::Arc, Rarete::Magique, IdAffixe::DeLaChouette, toleranceMagique);
     verifierLaChance(objets, IdObjet::Arc, Rarete::Magique, IdAffixe::DuRenard, toleranceMagique);
     verifierLaChance(objets, IdObjet::Bouclier, Rarete::Magique, IdAffixe::DeBlocage, toleranceMagique);

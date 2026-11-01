@@ -198,3 +198,27 @@ TEST_CASE("affixes : une chaine d'objets actifs par leurs affixes se resout comm
 
     REQUIRE(actif == equipement);
 }
+
+TEST_CASE("affixes : les pourcentages de regeneration d'energie de tous les objets portes s'additionnent") {
+    Equipement equipement;
+    REQUIRE(equipement.bonusDeRegenerationDEnergie() == 0);
+
+    poser(equipement, Emplacement::MainDroite, {IdObjet::Baton, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeRenouveau, 15}});
+    REQUIRE(equipement.bonusDeRegenerationDEnergie() == 15);
+
+    poser(equipement, Emplacement::Collier, {IdObjet::CollierDeProtection, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeRenouveau, 12}});
+    REQUIRE(equipement.bonusDeRegenerationDEnergie() == 27);
+}
+
+TEST_CASE("affixes : un objet inactif ne donne pas de regeneration d'energie") {
+    Equipement equipement;
+    // Un bâton de niveau 5 exige 14 de Savoir ; un porteur qui n'en a que 6 ne l'active pas.
+    poser(equipement, Emplacement::MainDroite,
+          {IdObjet::Baton, Rarete::Magique, std::nullopt, Affixe{IdAffixe::DeRenouveau, 15}, 5});
+    REQUIRE(equipement.bonusDeRegenerationDEnergie() == 15);  // porté, donc compté tant qu'on ne regarde pas l'équipement actif
+
+    const Caracteristiques faible({0, 0, 0, 6, 0});
+    REQUIRE(equipement.actifPour(faible).bonusDeRegenerationDEnergie() == 0);
+    const Caracteristiques capable({0, 0, 0, 14, 0});
+    REQUIRE(equipement.actifPour(capable).bonusDeRegenerationDEnergie() == 15);
+}
