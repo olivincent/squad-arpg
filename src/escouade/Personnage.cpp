@@ -3,6 +3,7 @@
 #include "combat/Cible.hpp"
 #include "combat/Energie.hpp"
 #include "rendu/BarreDeVie.hpp"
+#include "rendu/BarreDEnergie.hpp"
 #include "monde/Chemin.hpp"
 #include "base/Eclaircir.hpp"
 #include "monde/TileMap.hpp"
@@ -82,6 +83,7 @@ void Personnage::dessiner(sf::RenderTarget& rendu) const {
 
     const sf::Vector2f positionBarre = positionBarreDeVie(getCentre(), taille);
     dessinerBarreDeVie(rendu, positionBarre, taille.x, m_vitalite.getRatio());
+    dessinerBarreDEnergie(rendu, positionBarreDEnergie(getCentre(), taille), taille.x, m_energie.getRatio());
 }
 
 void Personnage::mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte, const std::vector<Cercle>& obstacles,
@@ -241,7 +243,7 @@ std::optional<EtatSkill> Personnage::etatDuSkill(IdSkill id) const {
     const std::optional<ActionEngagee> action = skillEngage();
     const bool enActivation = action.has_value() && action->skill == id;
     return EtatSkill{id, skill->getProgressionRecharge(), skill->getRechargeRestante(), estVivant(),
-                     !armeConvientA(*skill), enActivation};
+                     !armeConvientA(*skill), !m_energie.suffit(skill->getCout()), enActivation};
 }
 
 bool Personnage::skillEstAPortee(IdSkill id, Cercle cible) const {
@@ -343,6 +345,10 @@ int Personnage::getEnergie() const {
 
 int Personnage::getEnergieMax() const {
     return m_energie.getMaximum();
+}
+
+float Personnage::getRegenerationDEnergie() const {
+    return m_energie.getRegeneration();
 }
 
 sf::Vector2f Personnage::getCentre() const {

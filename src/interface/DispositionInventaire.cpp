@@ -115,7 +115,7 @@ sf::FloatRect rectangleDesCaracteristiques(sf::Vector2f tailleDeVue) {
 }
 
 sf::FloatRect rectangleDeLaCellule(std::size_t indice, sf::Vector2f tailleDeVue) {
-    assert(indice <= s_nombreDeCaracteristiques);
+    assert(indice < s_lignesDeCaracteristiques);
     const sf::FloatRect bloc = rectangleDesCaracteristiques(tailleDeVue);
     return {{bloc.position.x, bloc.position.y + static_cast<float>(indice) * s_hauteurDeLigneDeCaracteristique},
             {bloc.size.x, s_hauteurDeLigneDeCaracteristique}};

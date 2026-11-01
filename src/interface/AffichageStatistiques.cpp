@@ -1,6 +1,7 @@
 // ./src/interface/AffichageStatistiques.cpp
 #include "interface/AffichageStatistiques.hpp"
 #include <algorithm>
+#include <cstdio>
 #include "combat/Esquive.hpp"
 
 namespace {
@@ -19,6 +20,16 @@ std::vector<std::string> lignesDeStatistiques(const StatistiquesDeCombat& statis
             blocage,
             "Melee Dodge " + std::to_string(esquiveEffective(statistiques.esquiveContact)) + " %",
             "Projectile Dodge " + std::to_string(esquiveEffective(statistiques.esquiveProjectile)) + " %"};
+}
+
+std::string ligneDEnergie(int energie, int energieMax) {
+    return "Energy " + std::to_string(energie) + " / " + std::to_string(energieMax);
+}
+
+std::string ligneDeRegenerationDEnergie(float pointsParSeconde) {
+    char nombre[32];
+    std::snprintf(nombre, sizeof(nombre), "%.1f", static_cast<double>(pointsParSeconde));
+    return std::string("Energy Regen ") + nombre + "/s";
 }
 
 std::vector<std::string> lignesDeBonusDeCombat(const StatistiquesDeCombat& bonus) {

@@ -15,6 +15,12 @@
 // 5 % ». Les esquives sont celles qui jouent, plafond compris (`esquiveEffective`).
 [[nodiscard]] std::vector<std::string> lignesDeStatistiques(const StatistiquesDeCombat& statistiques);
 
+// Les deux lignes de l'énergie d'un personnage dans l'inventaire : « Energy 87 / 100 » (actuelle sur maximum, des entiers) et
+// « Energy Regen 2.3/s » (points par seconde, avec UNE décimale : la régénération est le seul nombre décimal affiché, parce que c'est
+// un débit).
+[[nodiscard]] std::string ligneDEnergie(int energie, int energieMax);
+[[nodiscard]] std::string ligneDeRegenerationDEnergie(float pointsParSeconde);
+
 // Les lignes d'infobulle du bonus de combat d'un objet, une par bonus non nul, dans cet ordre :
 // « Offensive Ability: +10 », « Defensive Ability: +10 », « Dodge vs Melee: +5 % » et « Dodge vs Projectiles: +5 % » ; quand les
 // deux esquives sont égales et non nulles, une seule ligne les réunit (« Dodge: −3 % »). Un nombre négatif s'écrit avec le signe

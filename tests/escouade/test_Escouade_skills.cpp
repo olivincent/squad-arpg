@@ -22,6 +22,7 @@
 #include "monde/TileMap.hpp"
 #include "combat/ModeDeCible.hpp"
 #include "combat/EffetDeSkill.hpp"
+#include "combat/Energie.hpp"
 
 TEST_CASE("etatDuSkill est vide pour une place invalide") {
     Escouade escouade = uneEscouade({50.0f, 50.0f});
@@ -647,4 +648,18 @@ TEST_CASE("Armes exigees : un skill en attente est abandonne quand retirerObjet 
 
     REQUIRE(coupsDe(escouade.declencherSkill(s_provocationDuGuerrierReel, loin, carteOuverte(), generateur)).empty());
     REQUIRE(escouade.etatDuSkill(s_provocationDuGuerrierReel)->enActivation);  // plus rien n'attend
+}
+
+TEST_CASE("etatDuSkill : l'energie insuffisante est dite, sans toucher a la progression de la recharge") {
+    Generateur generateur = generateurDeTest();
+    Escouade escouade = uneEscouadeDe({50.0f, 50.0f}, {guerrierQuiPaie(), pretreDeTest(), mageDeTest()});
+    const std::vector<MonstreVu> monstre = {MonstreVu{IdMonstre{1}, cibleMonstre({85.0f, 60.0f})}};
+    REQUIRE_FALSE(escouade.etatDuSkill(s_adresseProvocation)->energieInsuffisante);
+
+    static_cast<void>(declencherEtAttendreTout(escouade, s_adresseFrappe, monstre, carteOuverte(), generateur));  // 100 − 60 = 40 < 60
+
+    const std::optional<EtatSkill> provocation = escouade.etatDuSkill(s_adresseProvocation);
+    REQUIRE(provocation->energieInsuffisante);
+    REQUIRE(provocation->progression == 1.0f);  // prêt au sens de la recharge
+    REQUIRE_FALSE(provocation->armeAbsente);
 }

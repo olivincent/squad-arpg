@@ -321,3 +321,19 @@ TEST_CASE("le niveau atteint s'empile avec les autres textes de l'escouade entie
     REQUIRE(textes.actifs()[0].rang == 0);
     REQUIRE(textes.actifs()[1].rang == 1);
 }
+
+TEST_CASE("le texte de l'energie insuffisante : Not enough energy, de 14 px, d'une couleur que les autres textes n'ont pas") {
+    const EvenementDeCombat refus{Place{3}, {}, EnergieInsuffisante{}};
+
+    REQUIRE(libelleDuTexte(refus) == "Not enough energy");
+    REQUIRE(tailleDuTexte(refus) == 14);
+    for (const EvenementDeCombat& autre :
+         {degatsSurUnMonstre(1), EvenementDeCombat{Place{1}, {}, DegatsSubis{10, false, false}},
+          EvenementDeCombat{Place{1}, {}, DegatsSubis{10, true, false}}, EvenementDeCombat{Place{1}, {}, DegatsSubis{10, false, true}},
+          EvenementDeCombat{Place{2}, {}, Soin{10, false}}, EvenementDeCombat{IdMonstre{1}, {}, Esquive{}},
+          EvenementDeCombat{Place{1}, {}, Bloque{40, false}}, EvenementDeCombat{IdMonstre{1}, {}, Provoque{}},
+          EvenementDeCombat{Place{1}, {}, SkillLance{IdSkill::Explosion}}, EvenementDeCombat{EscouadeEntiere{}, {}, SacPlein{}},
+          EvenementDeCombat{EscouadeEntiere{}, {}, NiveauAtteint{3}}}) {
+        REQUIRE(couleurDuTexte(refus) != couleurDuTexte(autre));
+    }
+}

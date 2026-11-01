@@ -250,6 +250,60 @@ inline DefinitionPersonnage mageDeTest() {
             .rang = Rang::Arriere};
 }
 
+// Des personnages dont les skills coûtent de l'énergie (étape 108) : les définitions de test des classes ne coûtent rien, pour que les
+// autres tests ne dépendent pas de l'énergie. Les coûts sont assez grands pour qu'on voie la réserve de 100 se vider : 60 pour les
+// skills du guerrier et du prêtre (un seul à la fois), `cout` pour l'explosion du mage.
+inline constexpr int s_coutDeTest = 60;
+inline constexpr int s_coutDeLExplosionDeTest = 30;
+
+inline DefinitionPersonnage guerrierQuiPaie(int coutFrappe = s_coutDeTest, int coutProvocation = s_coutDeTest) {
+    DefinitionPersonnage guerrier = guerrierDeTest();
+    guerrier.skills.clear();
+    guerrier.skills.push_back({IdSkill::FrappePuissante, Skill({.mode = ModeDeCible::Monstre,
+                                                                .portee = s_porteeMeleeDeTest,
+                                                                .rechargeMin = s_rechargeFrappeDeTest,
+                                                                .rechargeMax = s_rechargeFrappeDeTest,
+                                                                .effet = EffetDegats{.montant = s_degatsFrappeDeTest, .nature = NatureDAttaque::Contact},
+                                                                .tempsExecution = s_activationFrappeDeTest,
+                                                                .cout = coutFrappe})});
+    guerrier.skills.push_back({IdSkill::Provocation, Skill({.mode = ModeDeCible::Soi,
+                                                            .portee = 0.0f,
+                                                            .rechargeMin = s_rechargeProvocationDeTest,
+                                                            .rechargeMax = s_rechargeProvocationDeTest,
+                                                            .effet = EffetProvocation{.duree = s_dureeProvocationDeTest},
+                                                            .rayonZone = s_rayonProvocationDeTest,
+                                                            .tempsExecution = s_activationProvocationDeTest,
+                                                            .cout = coutProvocation})});
+    return guerrier;
+}
+
+inline DefinitionPersonnage pretreQuiPaie() {
+    DefinitionPersonnage pretre = pretreDeTest();
+    pretre.skills.clear();
+    pretre.skills.push_back({IdSkill::Soin, Skill({.mode = ModeDeCible::Allie,
+                                                   .portee = s_porteeSoinDeTest,
+                                                   .rechargeMin = s_rechargeSoinDeTest,
+                                                   .rechargeMax = s_rechargeSoinDeTest,
+                                                   .effet = EffetSoin{.montant = s_puissanceSoinDeTest},
+                                                   .tempsExecution = s_activationSoinDeTest,
+                                                   .cout = s_coutDeTest})});
+    return pretre;
+}
+
+inline DefinitionPersonnage mageQuiPaie(int cout) {
+    DefinitionPersonnage mage = mageDeTest();
+    mage.skills.clear();
+    mage.skills.push_back({IdSkill::Explosion, Skill({.mode = ModeDeCible::Point,
+                                                      .portee = s_porteeZoneDeTest,
+                                                      .rechargeMin = s_rechargeZoneDeTest,
+                                                      .rechargeMax = s_rechargeZoneDeTest,
+                                                      .effet = EffetDegats{.montant = s_degatsZoneDeTest, .nature = NatureDAttaque::Zone, .element = Element::Feu},
+                                                      .rayonZone = s_rayonZoneDeTest,
+                                                      .tempsExecution = s_activationZoneDeTest,
+                                                      .cout = cout})});
+    return mage;
+}
+
 // Un skill de dégâts de contact qui exige l'un de ces types d'arme (vide : aucune exigence).
 inline Skill skillExigeantDesArmes(std::vector<TypeDArme> armes) {
     return Skill({.mode = ModeDeCible::Monstre,

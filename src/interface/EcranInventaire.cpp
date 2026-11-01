@@ -152,7 +152,7 @@ void dessinerBouton(sf::RenderTarget& rendu, const sf::Font& police, sf::FloatRe
 }
 
 // Sous les emplacements d'un personnage : ses cinq caractéristiques effectives (avec le bonus de son équipement s'il y en a un,
-// puis les points en attente dans une autre couleur) et ses points de vie, actuels sur maximum. Quand le personnage a des
+// puis les points en attente dans une autre couleur), ses points de vie et son énergie, actuels sur maximum. Quand le personnage a des
 // points libres : un « + » par caractéristique (grisé s'il n'en reste plus à répartir), un « − » là où il y en a en attente,
 // et « Apply » et « Reset » sur la ligne des points de vie s'il y a quelque chose en attente.
 void dessinerLesCaracteristiques(sf::RenderTarget& rendu, const sf::Font& police, const Escouade& escouade,
@@ -179,22 +179,27 @@ void dessinerLesCaracteristiques(sf::RenderTarget& rendu, const sf::Font& police
             }
         }
     }
-    dessinerCellule(rendu, police, rectangleDeLaCellule(s_nombreDeCaracteristiques, tailleDeVue),
+    dessinerCellule(rendu, police, rectangleDeLaCellule(s_celluleDesPointsDeVie, tailleDeVue),
                     "HP " + std::to_string(escouade.pointsDeVieDuPersonnage(place).value_or(0)) + " / " +
                         std::to_string(escouade.pointsDeVieMaxDuPersonnage(place).value_or(0)));
+    dessinerCellule(rendu, police, rectangleDeLaCellule(s_celluleDeLEnergie, tailleDeVue),
+                    ligneDEnergie(escouade.energieDuPersonnage(place).value_or(0), escouade.energieMaxDuPersonnage(place).value_or(0)));
     if (enAttente.somme() > 0) {
         dessinerBouton(rendu, police, rectangleDuBoutonAppliquer(tailleDeVue), "Apply", s_tailleBoutonDeDepense, true);
         dessinerBouton(rendu, police, rectangleDuBoutonReinitialiser(tailleDeVue), "Reset", s_tailleBoutonDeDepense, true);
     }
 }
 
-// Sous les caractéristiques : ses statistiques de combat (capacités offensive et défensive).
+// Sous les caractéristiques : ses statistiques de combat (capacités offensive et défensive, blocage, esquives) et la régénération
+// de son énergie.
 void dessinerLesStatistiques(sf::RenderTarget& rendu, const sf::Font& police, const Escouade& escouade, Place place,
                              sf::Vector2f tailleDeVue) {
     const std::vector<std::string> lignes = lignesDeStatistiques(escouade.statistiquesDeCombatDuPersonnage(place).value_or(StatistiquesDeCombat()));
     for (std::size_t i = 0; i < lignes.size(); ++i) {
         dessinerCellule(rendu, police, rectangleDeLaStatistique(i, tailleDeVue), lignes[i]);
     }
+    dessinerCellule(rendu, police, rectangleDeLaStatistique(s_celluleDeLaRegeneration, tailleDeVue),
+                    ligneDeRegenerationDEnergie(escouade.regenerationDEnergieDuPersonnage(place).value_or(0.0f)));
 }
 
 // Les onglets : un par personnage, de la couleur de son personnage (plus sombre quand il n'est pas ouvert, contour blanc pour

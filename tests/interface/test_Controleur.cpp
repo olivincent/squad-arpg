@@ -10,6 +10,9 @@
 #include "interface/Controleur.hpp"
 #include "monde/Niveau.hpp"
 #include "jeu/Partie.hpp"
+#include "combat/EvenementDeCombat.hpp"
+#include "combat/Energie.hpp"
+#include <variant>
 
 namespace {
 
@@ -307,4 +310,36 @@ TEST_CASE("interrompre annule la visee et desarme le deplacement continu") {
     controleur.mettreAJourDeplacement(partie, true, curseur);  // bouton encore tenu
     avancer(partie, 30);
     verifierPointProche(partie.getEscouade().getCentre(), depart);
+}
+
+TEST_CASE("un skill de zone trop cher n'entre pas en visee : il est refuse avec son texte") {
+    Partie partie = partieDeTest(niveauDegage({s_monstreLointain}), {guerrierDeTest(), pretreDeTest(), mageQuiPaie(s_energieDeBase + 1)});
+    Controleur controleur;
+    const BarreDeRaccourcis barre = barreDe(partie);
+    REQUIRE(partie.getEscouade().skillEstPret(s_adresseExplosion));
+
+    controleur.activerEmplacement(partie, barre, s_emplacementExplosion);
+    avancer(partie, 1);
+
+    REQUIRE_FALSE(controleur.getAdresseEnVisee().has_value());
+    REQUIRE(partie.getEscouade().skillEstPret(s_adresseExplosion));  // ni recharge ni attente
+    const std::vector<EvenementDeCombat> evenements = partie.prendreEvenements();
+    REQUIRE(evenements.size() == 1);
+    REQUIRE(evenements[0].cible == CibleDEvenement{Place{3}});
+    REQUIRE(std::holds_alternative<EnergieInsuffisante>(evenements[0].detail));
+}
+
+TEST_CASE("un skill direct trop cher est refuse avec son texte, sans partir") {
+    Partie partie = partieDeTest(niveauDegage({s_monstreLointain}), {guerrierQuiPaie(s_coutDeTest, s_energieDeBase + 1), pretreDeTest(), mageDeTest()});
+    Controleur controleur;
+    const BarreDeRaccourcis barre = barreDe(partie);
+
+    controleur.activerEmplacement(partie, barre, s_emplacementProvocation);
+    avancer(partie, nombreDeTics(1.0f));
+
+    REQUIRE(partie.getEscouade().skillEstPret(s_adresseProvocation));  // rien n'est parti, aucune recharge
+    const std::vector<EvenementDeCombat> evenements = partie.prendreEvenements();
+    REQUIRE(evenements.size() == 1);
+    REQUIRE(evenements[0].cible == CibleDEvenement{Place{1}});
+    REQUIRE(std::holds_alternative<EnergieInsuffisante>(evenements[0].detail));
 }

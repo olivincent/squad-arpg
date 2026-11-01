@@ -92,6 +92,8 @@ public:
     // les tests (le jeu montre sinon l'énergie par la barre dessinée sous la barre de vie).
     [[nodiscard]] std::optional<int> energieDuPersonnage(Place place) const;
     [[nodiscard]] std::optional<int> energieMaxDuPersonnage(Place place) const;
+    // Sa régénération d'énergie, en points par seconde ; vide si la place est invalide.
+    [[nodiscard]] std::optional<float> regenerationDEnergieDuPersonnage(Place place) const;
     // Caractéristiques effectives (base plus équipement) du personnage de cette place ; vide si la place est invalide.
     [[nodiscard]] std::optional<Caracteristiques> caracteristiquesDuPersonnage(Place place) const;
     // Caractéristiques de base (celles de sa classe, sans l'équipement) du personnage de cette place ; vide si la place est

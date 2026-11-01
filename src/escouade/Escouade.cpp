@@ -571,6 +571,13 @@ std::optional<int> Escouade::energieMaxDuPersonnage(Place place) const {
     return personnageDeLaPlace(place).getEnergieMax();
 }
 
+std::optional<float> Escouade::regenerationDEnergieDuPersonnage(Place place) const {
+    if (!placeValide(place)) {
+        return std::nullopt;
+    }
+    return personnageDeLaPlace(place).getRegenerationDEnergie();
+}
+
 std::optional<Caracteristiques> Escouade::caracteristiquesDuPersonnage(Place place) const {
     if (!placeValide(place)) {
         return std::nullopt;

@@ -20,57 +20,6 @@
 // à portée de sa frappe.
 
 namespace {
-constexpr int s_coutDeTest = 60;
-constexpr int s_coutDeLExplosionDeTest = 30;
-
-DefinitionPersonnage guerrierQuiPaie() {
-    DefinitionPersonnage guerrier = guerrierDeTest();
-    guerrier.skills.clear();
-    guerrier.skills.push_back({IdSkill::FrappePuissante, Skill({.mode = ModeDeCible::Monstre,
-                                                                .portee = s_porteeMeleeDeTest,
-                                                                .rechargeMin = s_rechargeFrappeDeTest,
-                                                                .rechargeMax = s_rechargeFrappeDeTest,
-                                                                .effet = EffetDegats{.montant = s_degatsFrappeDeTest, .nature = NatureDAttaque::Contact},
-                                                                .tempsExecution = s_activationFrappeDeTest,
-                                                                .cout = s_coutDeTest})});
-    guerrier.skills.push_back({IdSkill::Provocation, Skill({.mode = ModeDeCible::Soi,
-                                                            .portee = 0.0f,
-                                                            .rechargeMin = s_rechargeProvocationDeTest,
-                                                            .rechargeMax = s_rechargeProvocationDeTest,
-                                                            .effet = EffetProvocation{.duree = s_dureeProvocationDeTest},
-                                                            .rayonZone = s_rayonProvocationDeTest,
-                                                            .tempsExecution = s_activationProvocationDeTest,
-                                                            .cout = s_coutDeTest})});
-    return guerrier;
-}
-
-DefinitionPersonnage pretreQuiPaie() {
-    DefinitionPersonnage pretre = pretreDeTest();
-    pretre.skills.clear();
-    pretre.skills.push_back({IdSkill::Soin, Skill({.mode = ModeDeCible::Allie,
-                                                   .portee = s_porteeSoinDeTest,
-                                                   .rechargeMin = s_rechargeSoinDeTest,
-                                                   .rechargeMax = s_rechargeSoinDeTest,
-                                                   .effet = EffetSoin{.montant = s_puissanceSoinDeTest},
-                                                   .tempsExecution = s_activationSoinDeTest,
-                                                   .cout = s_coutDeTest})});
-    return pretre;
-}
-
-DefinitionPersonnage mageQuiPaie(int cout) {
-    DefinitionPersonnage mage = mageDeTest();
-    mage.skills.clear();
-    mage.skills.push_back({IdSkill::Explosion, Skill({.mode = ModeDeCible::Point,
-                                                      .portee = s_porteeZoneDeTest,
-                                                      .rechargeMin = s_rechargeZoneDeTest,
-                                                      .rechargeMax = s_rechargeZoneDeTest,
-                                                      .effet = EffetDegats{.montant = s_degatsZoneDeTest, .nature = NatureDAttaque::Zone, .element = Element::Feu},
-                                                      .rayonZone = s_rayonZoneDeTest,
-                                                      .tempsExecution = s_activationZoneDeTest,
-                                                      .cout = cout})});
-    return mage;
-}
-
 Escouade uneEscouadeQuiPaie(sf::Vector2f centre, int coutDeLExplosion = s_coutDeLExplosionDeTest) {
     return uneEscouadeDe(centre, {guerrierQuiPaie(), pretreQuiPaie(), mageQuiPaie(coutDeLExplosion)});
 }

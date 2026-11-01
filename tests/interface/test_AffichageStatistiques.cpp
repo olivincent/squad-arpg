@@ -67,3 +67,15 @@ TEST_CASE("affichage : les lignes de malus sont celles des seules valeurs negati
     REQUIRE(lignesDeMalusDeCombat({.capaciteOffensive = 10, .esquiveContact = 5}).empty());
     REQUIRE(lignesDeMalusDeCombat({}).empty());
 }
+
+TEST_CASE("affichage : l'energie s'affiche actuelle sur maximum, en entiers") {
+    REQUIRE(ligneDEnergie(87, 100) == "Energy 87 / 100");
+    REQUIRE(ligneDEnergie(0, 105) == "Energy 0 / 105");
+}
+
+TEST_CASE("affichage : la regeneration d'energie s'affiche avec une decimale, le seul nombre decimal") {
+    REQUIRE(ligneDeRegenerationDEnergie(2.0f) == "Energy Regen 2.0/s");
+    REQUIRE(ligneDeRegenerationDEnergie(2.3f) == "Energy Regen 2.3/s");
+    REQUIRE(ligneDeRegenerationDEnergie(2.34f) == "Energy Regen 2.3/s");
+    REQUIRE(ligneDeRegenerationDEnergie(2.36f) == "Energy Regen 2.4/s");
+}

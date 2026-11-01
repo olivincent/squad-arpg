@@ -75,6 +75,7 @@ add_library(squad_core STATIC
     src/interface/EntreeDInterface.cpp
     src/interface/PileDEcrans.cpp
     src/rendu/BarreDeVie.cpp
+    src/rendu/BarreDEnergie.cpp
     src/base/Eclaircir.cpp
     src/combat/Jauge.cpp
     src/combat/PointsDeVie.cpp
@@ -190,6 +191,7 @@ add_executable(tests
     tests/combat/test_Place.cpp
     tests/combat/test_EffetDeSkill.cpp
     tests/rendu/test_BarreDeVie.cpp
+    tests/rendu/test_BarreDEnergie.cpp
     tests/base/test_Eclaircir.cpp
     tests/combat/test_Jauge.cpp
     tests/combat/test_PointsDeVie.cpp

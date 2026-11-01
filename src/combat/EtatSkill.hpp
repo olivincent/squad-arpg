@@ -9,5 +9,6 @@ struct EtatSkill {
     float tempsRestant;   // en secondes
     bool lanceurVivant;
     bool armeAbsente;     // le skill exige un type d'arme que le lanceur ne porte pas : refusé, icône grisée
+    bool energieInsuffisante;  // l'énergie du lanceur ne couvre pas le coût du skill : refusé, icône grisée d'une autre teinte
     bool enActivation;    // le lanceur prépare le skill (il n'est pas encore parti)
 };

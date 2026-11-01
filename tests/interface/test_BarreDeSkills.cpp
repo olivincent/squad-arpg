@@ -16,6 +16,7 @@
 #include "interface/BarreDeSkills.hpp"
 #include "interface/Reglages.hpp"
 #include "combat/IdSkill.hpp"
+#include "combat/Energie.hpp"
 
 namespace {
 
@@ -145,5 +146,21 @@ TEST_CASE("iconesDeLaBarre : un skill dont l'arme exigee manque le dit (icone gr
             continue;
         }
         REQUIRE(icones[i].etat->armeAbsente == (icones[i].etat->id == IdSkill::FrappePuissante));
+    }
+}
+
+TEST_CASE("iconesDeLaBarre : un skill trop cher pour son lanceur le dit, les autres non") {
+    Escouade escouade = uneEscouadeDe({100.0f, 100.0f}, {guerrierDeTest(), pretreDeTest(), mageQuiPaie(s_energieDeBase + 1)});
+    const BarreDeRaccourcis barre = barreParDefaut(escouade.adressesDesSkills());
+    const TouchesDesRaccourcis touches = Reglages{}.touchesDesRaccourcis;
+
+    const auto icones = iconesDeLaBarre(barre, escouade, touches, std::nullopt);
+
+    for (std::size_t i = 0; i < icones.size(); ++i) {
+        if (!icones[i].etat.has_value()) {
+            continue;
+        }
+        REQUIRE(icones[i].etat->energieInsuffisante == (icones[i].etat->id == IdSkill::Explosion));
+        REQUIRE_FALSE(icones[i].etat->armeAbsente);  // une cause distincte de l'arme
     }
 }

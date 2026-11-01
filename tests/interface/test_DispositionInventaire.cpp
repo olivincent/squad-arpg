@@ -209,7 +209,7 @@ TEST_CASE("infobulle : toujours entierement dans la vue, curseur n'importe ou") 
 TEST_CASE("disposition : les lignes du bloc des caracteristiques tiennent dans le bloc, en une colonne de haut en bas") {
     const sf::FloatRect bloc = rectangleDesCaracteristiques(s_vueMinimale);
 
-    for (std::size_t cellule = 0; cellule <= s_nombreDeCaracteristiques; ++cellule) {
+    for (std::size_t cellule = 0; cellule < s_lignesDeCaracteristiques; ++cellule) {
         const sf::FloatRect zone = rectangleDeLaCellule(cellule, s_vueMinimale);
         REQUIRE(zone.position.x == bloc.position.x);
         REQUIRE(zone.size.x == bloc.size.x);
@@ -219,7 +219,25 @@ TEST_CASE("disposition : les lignes du bloc des caracteristiques tiennent dans l
             REQUIRE(zone.position.y >= rectangleDeLaCellule(cellule - 1, s_vueMinimale).position.y + zone.size.y);
         }
     }
-    REQUIRE(s_lignesDeCaracteristiques == s_nombreDeCaracteristiques + 1);
+    // Cinq caractéristiques, puis les points de vie, puis l'énergie.
+    REQUIRE(s_lignesDeCaracteristiques == s_nombreDeCaracteristiques + 2);
+    REQUIRE(s_celluleDesPointsDeVie == s_nombreDeCaracteristiques);
+    REQUIRE(s_celluleDeLEnergie == s_celluleDesPointsDeVie + 1);
+    REQUIRE(s_celluleDeLEnergie == s_lignesDeCaracteristiques - 1);
+}
+
+TEST_CASE("disposition : la regeneration d'energie a la derniere cellule du bloc des statistiques, apres les cinq statistiques") {
+    REQUIRE(s_celluleDeLaRegeneration == s_cellulesDeStatistiques - 1);
+    const sf::FloatRect bloc = rectangleDesStatistiques(s_vueMinimale);
+    const sf::FloatRect regeneration = rectangleDeLaStatistique(s_celluleDeLaRegeneration, s_vueMinimale);
+
+    REQUIRE(regeneration.position.x >= bloc.position.x);
+    REQUIRE(regeneration.position.x + regeneration.size.x <= bloc.position.x + bloc.size.x);
+    REQUIRE(regeneration.position.y + regeneration.size.y <= bloc.position.y + bloc.size.y);
+    for (std::size_t i = 0; i < s_celluleDeLaRegeneration; ++i) {
+        const sf::FloatRect autre = rectangleDeLaStatistique(i, s_vueMinimale);
+        REQUIRE_FALSE(autre.findIntersection(regeneration).has_value());
+    }
 }
 
 TEST_CASE("disposition : les cellules du bloc des statistiques tiennent dans le bloc, en deux colonnes") {

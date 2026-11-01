@@ -56,6 +56,11 @@ void Controleur::activerEmplacement(Partie& partie, const BarreDeRaccourcis& bar
         if (m_adresseEnVisee == adresse) {
             m_adresseEnVisee.reset();
         } else if (partie.getEscouade().estVivante() && partie.getEscouade().skillEstPret(*adresse)) {
+            if (!partie.getEscouade().energieSuffit(*adresse)) {
+                // Trop cher : pas de visée pour rien. La demande est refusée par l'escouade, avec son texte « Not enough energy ».
+                partie.demanderSkill(*adresse);
+                return;
+            }
             m_adresseEnVisee = adresse;
             // Le déplacement continu est suspendu : il ne reprendra qu'à un
             // nouvel appui sur le sol.

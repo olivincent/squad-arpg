@@ -118,6 +118,8 @@ public:
     // niveau (`energieMax`) : à chaque niveau, un vivant gagne autant d'énergie que son maximum augmente, un mort ne gagne rien.
     [[nodiscard]] int getEnergie() const;
     [[nodiscard]] int getEnergieMax() const;
+    // Sa régénération d'énergie, en points par seconde.
+    [[nodiscard]] float getRegenerationDEnergie() const;
     [[nodiscard]] sf::Vector2f getCentre() const;
     [[nodiscard]] Cercle getCercle() const;
     // Rayon de vision, en pixels.

@@ -36,9 +36,12 @@ inline constexpr std::array<Place, s_tailleDeLEscouade> s_places = [] {
     return places;
 }();  // les onglets, dans l'ordre des places
 inline constexpr std::size_t s_colonnesDuSac = 8;
-inline constexpr std::size_t s_lignesDeCaracteristiques = s_nombreDeCaracteristiques + 1;  // du bloc des caractéristiques : une par caractéristique, puis les points de vie
+inline constexpr std::size_t s_celluleDesPointsDeVie = s_nombreDeCaracteristiques;       // la ligne qui suit les caractéristiques
+inline constexpr std::size_t s_celluleDeLEnergie = s_nombreDeCaracteristiques + 1;        // puis celle de l'énergie
+inline constexpr std::size_t s_lignesDeCaracteristiques = s_nombreDeCaracteristiques + 2;  // du bloc des caractéristiques : une par caractéristique, puis les points de vie et l'énergie
 inline constexpr std::size_t s_lignesDeStatistiques = 3;       // du bloc des statistiques de combat
 inline constexpr std::size_t s_cellulesDeStatistiques = 2 * s_lignesDeStatistiques;  // en deux colonnes
+inline constexpr std::size_t s_celluleDeLaRegeneration = 5;  // la sixième et dernière, après les cinq statistiques de combat
 inline constexpr std::size_t s_casesDuSac = 40;  // la capacité du sac de l'escouade
 
 // Le panneau de l'inventaire : de la taille de son contenu (la même quelle que soit la vue), centré dans la vue, qui laisse
@@ -58,12 +61,13 @@ inline constexpr std::size_t s_casesDuSac = 40;  // la capacité du sac de l'esc
 // Le rectangle de cet emplacement dans la colonne.
 [[nodiscard]] sf::FloatRect rectangleDeLEmplacement(Emplacement emplacement, sf::Vector2f tailleDeVue);
 
-// Le bloc sous les emplacements : les cinq caractéristiques et les points de vie, en une colonne de
+// Le bloc sous les emplacements : les cinq caractéristiques, les points de vie et l'énergie, en une colonne de
 // `s_lignesDeCaracteristiques` lignes pleine largeur (la place des boutons des points libres à droite).
 [[nodiscard]] sf::FloatRect rectangleDesCaracteristiques(sf::Vector2f tailleDeVue);
 
 // La ligne du bloc : l'indice 0 à 4 est la caractéristique de ce rang dans l'enum (`s_caracteristiques`), l'indice 5 les
-// points de vie, de haut en bas. `assert(indice <= s_nombreDeCaracteristiques)`.
+// points de vie (`s_celluleDesPointsDeVie`), l'indice 6 l'énergie (`s_celluleDeLEnergie`), de haut en bas.
+// `assert(indice < s_lignesDeCaracteristiques)`.
 [[nodiscard]] sf::FloatRect rectangleDeLaCellule(std::size_t indice, sf::Vector2f tailleDeVue);
 
 // Les boutons des points libres. Les rectangles sont toujours les mêmes : que le bouton soit visible ou actif, c'est à
@@ -118,7 +122,8 @@ struct CaracteristiqueSurvolee {
 // `s_lignesDeStatistiques` lignes (`rectangleDeLaStatistique`).
 [[nodiscard]] sf::FloatRect rectangleDesStatistiques(sf::Vector2f tailleDeVue);
 
-// La cellule d'une ligne du bloc des statistiques, remplies colonne par colonne.
+// La cellule d'une ligne du bloc des statistiques, remplies colonne par colonne : les cinq statistiques de combat, puis la
+// régénération d'énergie (`s_celluleDeLaRegeneration`).
 // `assert(indice < s_cellulesDeStatistiques)`.
 [[nodiscard]] sf::FloatRect rectangleDeLaStatistique(std::size_t indice, sf::Vector2f tailleDeVue);
 

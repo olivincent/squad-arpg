@@ -22,6 +22,10 @@ constexpr unsigned int s_tailleNomDeTouche = 11;
 constexpr unsigned int s_tailleSecondes = 20;
 constexpr unsigned int s_taillePlace = 11;
 constexpr float s_hauteurBande = 14.0f;
+// Le texte d'une icône qu'on ne peut pas lancer : gris si le lanceur est mort ou n'a pas l'arme exigée, bleu atténué (la teinte de
+// la barre d'énergie) si l'énergie ne couvre pas le coût. Deux teintes, pour que le joueur lise la cause d'un coup d'œil.
+const sf::Color s_couleurIconeInutilisable(90, 90, 90);
+const sf::Color s_couleurIconeTropChere(90, 105, 200);
 
 // Écrit `texte` centré sur `centre`.
 void dessinerTexteCentre(sf::RenderTarget& rendu, const sf::Font& police, const std::string& texte,
@@ -137,10 +141,12 @@ void dessinerBarreDeSkills(sf::RenderTarget& rendu, const sf::Font& police,
         fond.setOutlineThickness(icone.enVisee || enActivation ? 3.0f : 1.0f);
         rendu.draw(fond);
 
-        // Lanceur mort, arme exigée absente ou emplacement vide : texte atténué, ni quartier ni chiffre.
+        // Lanceur mort, arme exigée absente ou emplacement vide : texte atténué en gris, ni quartier ni chiffre. Énergie insuffisante :
+        // texte atténué en bleu (la teinte de l'énergie, qui distingue cette cause de l'autre) ; la recharge, elle, reste affichée.
         const bool lanceurVivant = icone.etat.has_value() && icone.etat->lanceurVivant;
         const bool utilisable = lanceurVivant && !icone.etat->armeAbsente;
-        const sf::Color couleurTexte = utilisable ? sf::Color::White : sf::Color(90, 90, 90);
+        const bool tropCher = utilisable && icone.etat->energieInsuffisante;
+        const sf::Color couleurTexte = !utilisable ? s_couleurIconeInutilisable : (tropCher ? s_couleurIconeTropChere : sf::Color::White);
         sf::Text nomDeLaTouche(police, icone.touche, s_tailleNomDeTouche);
         nomDeLaTouche.setFillColor(couleurTexte);
         nomDeLaTouche.setPosition(coin + sf::Vector2f{4.0f, 1.0f});
