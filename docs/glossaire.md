@@ -38,12 +38,56 @@ Les nombres des effets sont lus dans les constantes du code (`s_bonusParPoint`, 
 
 ## Éléments (pas encore affichés : textes à venir avec les résistances dans l'inventaire)
 
-| Concept | Texte |
-|---|---|
-| Physique | Physical |
-| Feu | Fire |
-| Sacré | Holy |
-| Froid, foudre, poison, nécrotique, saignement (pas encore dans `Element`) | Cold, Lightning, Poison, Necrotic, Bleed |
+Huit éléments depuis l'étape 109 (`docs/classes-et-combat.md`, section 13). Le saignement n'est plus un élément : c'est du physique dans le temps.
+
+| Concept | Texte | Identifiant |
+|---|---|---|
+| Physique | Physical | `Element::Physique` |
+| Feu | Fire | `Element::Feu` |
+| Sacré | Holy | `Element::Sacre` |
+| Froid | Cold | pas encore dans `Element` |
+| Foudre | Lightning | pas encore dans `Element` |
+| Arcane | Arcane | pas encore dans `Element` |
+| Nécrotique | Necrotic | pas encore dans `Element` |
+| Poison | Poison | pas encore dans `Element` |
+
+## Liste cible des statistiques (étape 109, noms de travail)
+
+Noms anglais de la liste cible (`docs/classes-et-combat.md`, section 13). « Affiché aujourd'hui » dit le texte que le jeu montre déjà quand il
+diffère du nom cible : ces textes ne changent pas à l'étape 109 (documentation seulement).
+
+| Concept | Texte | Identifiant ou texte affiché aujourd'hui |
+|---|---|---|
+| Capacité offensive | Offensive Ability | `StatistiquesDeCombat::capaciteOffensive` ; affiché tel quel |
+| Capacité défensive | Defensive Ability | `StatistiquesDeCombat::capaciteDefensive` ; affiché tel quel |
+| Multiplicateur de critique | Crit Damage | `multiplicateurDeCritique` (fonction du rapport des capacités, pas encore une statistique) |
+| Armure | Armor | `armure` (objets, `Defenses`) ; affiché tel quel |
+| Pénétration d'armure | Armor Penetration | `Attaque::penetration` ; affiché « Penetration » |
+| Esquive contre le contact | Dodge | `StatistiquesDeCombat::esquiveContact` ; affiché « Melee Dodge » (inventaire), « Dodge vs Melee » (objets) |
+| Esquive contre les projectiles | Deflect | `StatistiquesDeCombat::esquiveProjectile` ; affiché « Projectile Dodge », « Dodge vs Projectiles » |
+| Chance de blocage | Block Chance | `StatistiquesDeCombat::chanceDeBlocage` ; affiché « Block » |
+| Montant bloqué | Block Amount | `StatistiquesDeCombat::montantBloque` ; affiché « Absorbs » ou entre parenthèses |
+| Récupération du blocage | Block Recovery | `s_recuperationDuBlocage` (une constante, pas une statistique) |
+| Réserve d'absorption du physique | Aegis | n'existe pas (anciennement « Égide ») |
+| Réserve d'absorption du non-physique | Ward | n'existe pas (anciennement « Barrière ») |
+| Résistance à un élément | Fire Resistance, Holy Resistance… (un nom par élément) | `StatistiquesDeCombat::resistances` (`ParElement<int>`) ; pas encore affichées |
+| Résistance à l'étourdissement, au ralentissement | Stun Resistance, Slow Resistance | n'existent pas |
+| Résistance au charme, à la peur, à la perturbation | Charm Resistance, Fear Resistance, Disruption Resistance | n'existent pas |
+| États de contrôle physique | Stun, Slow | n'existent pas |
+| États de contrôle magique | Charm, Fear, Disruption (empêche d'utiliser les skills) | n'existent pas |
+| Points de vie maximum | Max Life | `pointsDeVieMax` ; affiché « HP » |
+| Régénération de vie | Life Regen | n'existe pas |
+| Vol de vie, vie par mort | Life Steal, Life per Kill | n'existent pas |
+| Soins reçus | Healing Received | n'existe pas |
+| Énergie maximum | Max Energy | `energieMax` ; affiché « Energy » |
+| Régénération d'énergie | Energy Regen | `regenerationDEnergie` ; affiché « Energy Regen » |
+| Vol d'énergie | Energy Steal | n'existe pas |
+| Vitesse de déplacement | Movement Speed | `Mobile::m_vitesse` (fixe) ; pas affichée |
+| Vitesse d'attaque (modificateur, 100 % de base) | Attack Speed | n'existe pas (la vitesse de base vient de l'arme) |
+| Vitesse d'incantation | Cast Speed | n'existe pas |
+| Recharge des skills (%) | Skill Recharge | n'existe pas |
+| Durée des effets (%) | Effect Duration | n'existe pas |
+| Taille de zone (%) | Area Size | n'existe pas |
 
 ## Raretés d'objet
 

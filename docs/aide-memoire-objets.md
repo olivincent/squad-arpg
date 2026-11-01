@@ -96,8 +96,9 @@ Trois éléments sont en jeu ; les autres entreront dans le code avec leur premi
 | Sacré | En jeu | Frappe sacrée, préfixe Hallowed | — | Or pâle |
 | Froid, foudre | Prévu | — | — | — |
 | Poison, nécrotique | Prévu | — | — | — |
-| Saignement | Prévu | — | Sa propre résistance ; dans le temps, ignore l'armure | — |
-| Psychique / arcane | Piste | — | À revoir avec les classes | — |
+| Arcane | Prévu (étape 109, remplace la piste « psychique / arcane ») | — | — | — |
+
+Le saignement n'est plus un élément depuis l'étape 109 : c'est du physique dans le temps (il ignore l'armure, la résistance physique le réduit). Huit éléments au total ; liste des statistiques : `docs/classes-et-combat.md`, section 13.
 
 **Résistances** (à tester) : plafond 80 %, vulnérabilité jusqu'à −100 % (coup doublé). Personnages : 0 partout, aucun objet n'en donne encore. Monstres : 0, sauf la créature monstrueuse, 40 % contre le feu.
 
