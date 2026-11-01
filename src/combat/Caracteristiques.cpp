@@ -5,10 +5,10 @@
 #include <cmath>
 #include "combat/Contributions.hpp"
 
-int pointsDeVieMax(const Caracteristiques& caracteristiques, int niveau) {
-    assert(niveau >= 1);
+int pointsDeVieMax(const Caracteristiques& caracteristiques, int niveauDeClasse, int pvParNiveauDeClasse) {
+    assert(niveauDeClasse >= 1);
     const float apport = apportDesCaracteristiques(StatistiqueAlimentee::PointsDeVieMax, caracteristiques);
-    const int maximum = s_pointsDeVieDeReference + static_cast<int>(std::lround(apport)) + s_pvParNiveau * (niveau - 1);
+    const int maximum = s_pointsDeVieDeReference + static_cast<int>(std::lround(apport)) + pvParNiveauDeClasse * (niveauDeClasse - 1);
     assert(maximum > 0);
     return maximum;
 }

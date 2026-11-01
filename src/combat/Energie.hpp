@@ -9,7 +9,8 @@
 // Énergie maximum au niveau 1, la même pour toutes les classes.
 inline constexpr int s_energieDeBase = 100;
 
-// Énergie maximum que donne chaque niveau au-delà du premier.
+// Énergie maximum que donne chaque niveau de classe au-delà du premier : la valeur par défaut d'une classe
+// (`DefinitionPersonnage::energieParNiveauDeClasse`).
 inline constexpr int s_energieParNiveau = 5;
 
 // Régénération de base, en points par seconde : la même en combat et hors combat.
@@ -23,9 +24,9 @@ inline constexpr float s_regenerationDEnergieDeBase = 2.0f;
     return s_regenerationDEnergieDeBase * (1.0f + static_cast<float>(bonusEnPourcent) / 100.0f);
 }
 
-// Énergie maximum d'un personnage de ce niveau : `s_energieDeBase` plus `s_energieParNiveau` par niveau au-delà du premier.
-// Précondition : niveau >= 1.
-[[nodiscard]] constexpr int energieMax(int niveau) {
-    assert(niveau >= 1);
-    return s_energieDeBase + s_energieParNiveau * (niveau - 1);
+// Énergie maximum d'un personnage de ce niveau de classe : `s_energieDeBase` plus `energieParNiveauDeClasse` par niveau de classe
+// au-delà du premier (`niveauDeClasse`). Précondition : niveauDeClasse >= 1.
+[[nodiscard]] constexpr int energieMax(int niveauDeClasse, int energieParNiveauDeClasse) {
+    assert(niveauDeClasse >= 1);
+    return s_energieDeBase + energieParNiveauDeClasse * (niveauDeClasse - 1);
 }

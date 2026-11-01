@@ -8,6 +8,11 @@ int experiencePourAtteindre(int niveau) {
     return s_experienceDeLaCourbe * niveau * (niveau - 1);
 }
 
+int niveauDeClasse(int niveauDuJoueur) {
+    assert(niveauDuJoueur >= 1);
+    return niveauDuJoueur;
+}
+
 Caracteristiques croissanceAuNiveau(int niveau, const PaireDeCroissance& paire) {
     assert(niveau >= 1);
     Caracteristiques croissance;

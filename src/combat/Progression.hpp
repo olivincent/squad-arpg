@@ -21,6 +21,11 @@ inline constexpr int s_experienceDeLaCourbe = 21;
 // L'expérience cumulée qu'il faut pour atteindre ce niveau. `assert` : niveau >= 1.
 [[nodiscard]] int experiencePourAtteindre(int niveau);
 
+// Le niveau de classe d'un personnage : ce dont dépendent les gains de sa classe (points de vie, énergie, croissance des
+// caractéristiques). Plus tard les points de skill iront soit dans des skills, soit dans ce niveau ; tant qu'ils n'existent pas,
+// il est égal au niveau du joueur. Les points libres suivent toujours le niveau du joueur, pas celui-ci. `assert` : niveau >= 1.
+[[nodiscard]] int niveauDeClasse(int niveauDuJoueur);
+
 // La paire de caractéristiques qui grandissent avec le niveau d'une classe, dans l'ordre : la première gagne au niveau 2, la
 // seconde au niveau 3, et ainsi de suite en alternance (une donnée de chaque classe, `Specialite`).
 using PaireDeCroissance = std::array<Caracteristique, 2>;

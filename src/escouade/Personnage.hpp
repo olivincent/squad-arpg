@@ -159,8 +159,10 @@ private:
     Mobile m_mobile;        // position (centre en pixels du monde) et déplacement
     sf::Color m_couleur;
     Caracteristiques m_caracteristiquesDeClasse;  // celles de sa classe au niveau 1, jamais modifiées
-    PaireDeCroissance m_croissance;              // ce qui grandit avec le niveau
-    int m_niveau;                                // celui de l'escouade, >= 1
+    PaireDeCroissance m_croissance;              // ce qui grandit avec le niveau de classe
+    int m_pvParNiveauDeClasse;                   // points de vie maximum par niveau de classe au-delà du premier
+    int m_energieParNiveauDeClasse;              // énergie maximum par niveau de classe au-delà du premier
+    int m_niveau;                               // celui de l'escouade, >= 1
     Caracteristiques m_pointsDepenses;           // les points libres dépensés, définitifs ; seul `depenserDesPoints` les change
     Caracteristiques m_caracteristiquesDeBase;   // sa classe plus la croissance de son niveau plus ses points dépensés (`baseAuNiveau`), sans l'équipement
     Equipement m_equipement;  // ce qu'il porte, objets inactifs compris ; déclaré avant ce qui en est tiré

@@ -4,6 +4,7 @@
 #include <SFML/System/Vector2.hpp>
 #include <vector>
 #include "combat/Caracteristiques.hpp"
+#include "combat/Energie.hpp"
 #include "combat/Progression.hpp"
 #include "combat/Skill.hpp"
 #include "combat/SkillConnu.hpp"
@@ -25,6 +26,9 @@ struct DefinitionPersonnage {
     // Les deux caractéristiques qui grandissent avec le niveau, en alternance (`croissanceAuNiveau`) ; par défaut Puissance et
     // Endurance, celles du guerrier.
     PaireDeCroissance croissance = {Caracteristique::Puissance, Caracteristique::Endurance};
+    // Ce que chaque niveau de classe (`niveauDeClasse`) au-delà du premier ajoute au maximum de points de vie et d'énergie.
+    int pvParNiveauDeClasse = s_pvParNiveau;
+    int energieParNiveauDeClasse = s_energieParNiveau;
     Rang rang = Rang::Avant;
 };
 

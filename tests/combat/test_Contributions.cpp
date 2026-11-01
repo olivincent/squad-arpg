@@ -40,7 +40,7 @@ TEST_CASE("la table redonne les formules d'avant : 240 + 6 x Endurance et 50 + 5
     for (int valeur = 0; valeur <= 40; ++valeur) {
         const Caracteristiques caracteristiques({10, valeur, valeur, 10, 10});
 
-        REQUIRE(pointsDeVieMax(caracteristiques, 1) == 240 + 6 * valeur);
+        REQUIRE(pointsDeVieMax(caracteristiques, 1, s_pvParNiveau) == 240 + 6 * valeur);
         const StatistiquesDeCombat statistiques = statistiquesDuPersonnage(caracteristiques, StatistiquesDeCombat{});
         REQUIRE(statistiques.capaciteOffensive == std::max(0, 50 + 5 * valeur));
         REQUIRE(statistiques.capaciteDefensive == std::max(1, 50 + 5 * valeur));

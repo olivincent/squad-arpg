@@ -108,13 +108,14 @@ inline constexpr int s_pvParPointDEndurance = 6;
 // Les mêmes points de vie à 0 d'Endurance : un repère, `s_pointsDeVieDeReference` moins ce que donnent les 10 points de référence.
 inline constexpr int s_pointsDeVieDeBase = s_pointsDeVieDeReference - s_pvParPointDEndurance * s_valeurDeReference;
 
-// Points de vie maximum que donne chaque niveau au-delà du premier. Provisoire, à tester.
+// Points de vie maximum que donne chaque niveau de classe au-delà du premier : la valeur par défaut d'une classe
+// (`DefinitionPersonnage::pvParNiveauDeClasse`). Provisoire, à tester.
 inline constexpr int s_pvParNiveau = 8;
 
 // Points de vie maximum d'un personnage : `s_pointsDeVieDeReference` plus l'apport de l'Endurance (effective : base de classe plus
-// croissance plus équipement ; `apportDesCaracteristiques`) plus `s_pvParNiveau` par niveau au-delà du premier.
-// Préconditions : niveau >= 1, le résultat est > 0.
-[[nodiscard]] int pointsDeVieMax(const Caracteristiques& caracteristiques, int niveau);
+// croissance plus équipement ; `apportDesCaracteristiques`) plus `pvParNiveauDeClasse` par niveau de classe au-delà du premier
+// (`niveauDeClasse`). Préconditions : niveauDeClasse >= 1, le résultat est > 0.
+[[nodiscard]] int pointsDeVieMax(const Caracteristiques& caracteristiques, int niveauDeClasse, int pvParNiveauDeClasse);
 
 // Le montant (dégâts ou soin) d'un skill de personnage, une fois ses caractéristiques prises en compte :
 //   montant × (1 + Σ coefficient × `s_bonusParPoint` × (caractéristique − `s_valeurDeReference`)),

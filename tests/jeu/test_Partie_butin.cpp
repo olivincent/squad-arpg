@@ -115,7 +115,7 @@ TEST_CASE("niveau : une partie commence au niveau de l'experience de l'expeditio
     const Partie partie(salleAvecMonstres({}), expedition, s_graineDeTest, catalogueDeTest(monstreSansHasard()));
 
     REQUIRE(partie.getEscouade().getNiveau() == 3);
-    REQUIRE(partie.getEscouade().pointsDeVieMaxDuPersonnage(Place{1}) == pointsDeVieMax(*partie.getEscouade().caracteristiquesDuPersonnage(Place{1}), 3));
+    REQUIRE(partie.getEscouade().pointsDeVieMaxDuPersonnage(Place{1}) == pointsDeVieMax(*partie.getEscouade().caracteristiquesDuPersonnage(Place{1}), 3, s_pvParNiveau));
 }
 
 TEST_CASE("niveau : l'experience d'un monstre tue fait monter l'escouade au seuil exact") {

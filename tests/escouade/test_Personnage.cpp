@@ -1241,7 +1241,7 @@ TEST_CASE("les points de vie maximum d'un personnage viennent de la base commune
                                  .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest,
                                  .caracteristiques = base});
 
-    REQUIRE(personnage.getPointsDeVieMax() == pointsDeVieMax(base, 1));
+    REQUIRE(personnage.getPointsDeVieMax() == pointsDeVieMax(base, 1, s_pvParNiveau));
     REQUIRE(personnage.getPointsDeVie() == personnage.getPointsDeVieMax());
 }
 
@@ -1279,7 +1279,7 @@ TEST_CASE("un equipement de depart qui donne des caracteristiques compte des la 
                                  .caracteristiques = base});
 
     REQUIRE(personnage.getCaracteristiques() == base + definitionObjet(IdObjet::CollierDEndurance).bonus);
-    REQUIRE(personnage.getPointsDeVieMax() == pointsDeVieMax(personnage.getCaracteristiques(), 1));
+    REQUIRE(personnage.getPointsDeVieMax() == pointsDeVieMax(personnage.getCaracteristiques(), 1, s_pvParNiveau));
     REQUIRE(personnage.getPointsDeVie() == personnage.getPointsDeVieMax());
 }
 
@@ -1733,7 +1733,7 @@ TEST_CASE("un personnage de niveau 1 n'a que la base de sa classe") {
     REQUIRE(personnage.getNiveau() == 1);
     REQUIRE(personnage.getCaracteristiquesDeBase().valeur(Caracteristique::Puissance) == 10);
     REQUIRE(personnage.getCaracteristiquesDeBase().valeur(Caracteristique::Endurance) == 5);
-    REQUIRE(personnage.getPointsDeVieMax() == pointsDeVieMax(personnage.getCaracteristiques(), 1));
+    REQUIRE(personnage.getPointsDeVieMax() == pointsDeVieMax(personnage.getCaracteristiques(), 1, s_pvParNiveau));
 }
 
 TEST_CASE("monterAuNiveau : la croissance alterne sur la paire de la classe, aux niveaux 2, 3 et 4") {
@@ -1969,6 +1969,18 @@ TEST_CASE("energie : le maximum est le meme pour toutes les classes et suit le n
     REQUIRE(lance.getEnergieMax() == s_energieDeBase + 4 * s_energieParNiveau);
     REQUIRE(guerrier.getEnergieMax() == lance.getEnergieMax());
     REQUIRE(lance.getEnergie() == lance.getEnergieMax());  // pleine au départ, quel que soit le niveau
+}
+
+TEST_CASE("niveau de classe : les gains de points de vie et d'energie par niveau sont ceux de la classe") {
+    DefinitionPersonnage definition = guerrierSousLeSeuil();
+    definition.pvParNiveauDeClasse = 20;
+    definition.energieParNiveauDeClasse = 10;
+    Personnage personnage = unPersonnage({100.0f, 100.0f}, definition);
+
+    personnage.monterAuNiveau(3);
+
+    REQUIRE(personnage.getPointsDeVieMax() == pointsDeVieMax(personnage.getCaracteristiques(), 3, 20));
+    REQUIRE(personnage.getEnergieMax() == s_energieDeBase + 2 * 10);
 }
 
 TEST_CASE("energie : monter de niveau augmente le maximum, un vivant plein reste plein") {

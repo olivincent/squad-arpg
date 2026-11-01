@@ -41,6 +41,8 @@ Personnage::Personnage(sf::Vector2f centre, DefinitionPersonnage definition, Equ
       m_couleur(definition.couleur),
       m_caracteristiquesDeClasse(definition.caracteristiques),
       m_croissance(definition.croissance),
+      m_pvParNiveauDeClasse(definition.pvParNiveauDeClasse),
+      m_energieParNiveauDeClasse(definition.energieParNiveauDeClasse),
       m_niveau(niveau),
       m_pointsDepenses(pointsDepenses),
       m_caracteristiquesDeBase(baseAuNiveau(niveau)),
@@ -52,8 +54,8 @@ Personnage::Personnage(sf::Vector2f centre, DefinitionPersonnage definition, Equ
       m_cibleChemin(),
       m_caracteristiques(m_caracteristiquesDeBase + m_equipementActif.bonusTotal()),
       m_statistiques(statistiquesDuPersonnage(m_caracteristiques, m_equipementActif.bonusDeCombatTotal())),
-      m_vitalite(pointsDeVieMax(m_caracteristiques, m_niveau), defenses()),
-      m_energie(energieMax(m_niveau), regenerationDEnergie(m_equipementActif.bonusDeRegenerationDEnergie())),
+      m_vitalite(pointsDeVieMax(m_caracteristiques, niveauDeClasse(m_niveau), m_pvParNiveauDeClasse), defenses()),
+      m_energie(energieMax(niveauDeClasse(m_niveau), m_energieParNiveauDeClasse), regenerationDEnergie(m_equipementActif.bonusDeRegenerationDEnergie())),
       m_rayonVision(definition.rayonVision),
       m_actionEngagee()
 {
@@ -392,7 +394,7 @@ Defenses Personnage::defenses() const {
 }
 
 Caracteristiques Personnage::baseAuNiveau(int niveau) const {
-    return m_caracteristiquesDeClasse + croissanceAuNiveau(niveau, m_croissance) + m_pointsDepenses;
+    return m_caracteristiquesDeClasse + croissanceAuNiveau(niveauDeClasse(niveau), m_croissance) + m_pointsDepenses;
 }
 
 const Caracteristiques& Personnage::getPointsDepenses() const {
@@ -428,12 +430,13 @@ void Personnage::recalculerDepuisLEquipement() {
     m_equipementActif = m_equipement.actifPour(m_caracteristiquesDeBase);
     m_caracteristiques = m_caracteristiquesDeBase + m_equipementActif.bonusTotal();
     m_statistiques = statistiquesDuPersonnage(m_caracteristiques, m_equipementActif.bonusDeCombatTotal());
-    m_vitalite.definirMaximum(pointsDeVieMax(m_caracteristiques, m_niveau));
+    m_vitalite.definirMaximum(pointsDeVieMax(m_caracteristiques, niveauDeClasse(m_niveau), m_pvParNiveauDeClasse));
     m_vitalite.definirDefenses(defenses());
+    const int energieMaximum = energieMax(niveauDeClasse(m_niveau), m_energieParNiveauDeClasse);
     if (estVivant()) {
-        m_energie.changerMaximum(energieMax(m_niveau));
+        m_energie.changerMaximum(energieMaximum);
     } else {
-        m_energie.definirMaximum(energieMax(m_niveau));
+        m_energie.definirMaximum(energieMaximum);
     }
     m_energie.definirRegeneration(regenerationDEnergie(m_equipementActif.bonusDeRegenerationDEnergie()));
     // Un skill en activation qui exige une arme qu'on ne porte plus est annulé, sans recharge consommée.

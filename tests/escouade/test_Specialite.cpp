@@ -371,7 +371,7 @@ TEST_CASE("caracteristiques des classes : somme de 50, et les points de vie de d
             somme += definition.caracteristiques.valeur(caracteristique);
         }
         REQUIRE(somme == 50);
-        REQUIRE(pointsDeVieMax(definition.caracteristiques, 1) ==
+        REQUIRE(pointsDeVieMax(definition.caracteristiques, 1, s_pvParNiveau) ==
                 s_pointsDeVieDeBase + s_pvParPointDEndurance * definition.caracteristiques.valeur(Caracteristique::Endurance));
     }
 }

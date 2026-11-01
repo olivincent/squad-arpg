@@ -126,3 +126,9 @@ TEST_CASE("depensePermise : une valeur negative est refusee, meme si la somme es
     REQUIRE_FALSE(depensePermise(5, Caracteristiques(), Caracteristiques({-1, 0, 0, 0, 0})));
     REQUIRE_FALSE(depensePermise(5, Caracteristiques(), Caracteristiques({4, -1, 0, 0, 0})));  // somme 3, mais une reprise
 }
+
+TEST_CASE("niveauDeClasse : tant que les points de skill n'existent pas, c'est le niveau du joueur") {
+    REQUIRE(niveauDeClasse(1) == 1);
+    REQUIRE(niveauDeClasse(7) == 7);
+    REQUIRE(niveauDeClasse(60) == 60);
+}
