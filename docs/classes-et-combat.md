@@ -179,7 +179,8 @@ Quand un point entre dans `ROADMAP.md`, sa conception détaillée se fait en dis
 | **Savoir** | Taille des zones | Durée des effets infligés | Bâtons, grimoires |
 | **Volonté** | Résistance au contrôle magique (peur, silence, charme) | Résistance à l'interruption | Symboles sacrés, focaliseurs |
 
-- **Retenu.** Le contrôle est séparé en **physique** (Endurance) et **magique** (Volonté), en miroir de l'Égide et de la Barrière (section 9).
+- **Retenu.** Le contrôle est séparé en **physique** (Endurance) et **magique** (Volonté), en miroir d'Aegis et de Ward (section 9).
+- **Retenu** (étape 109). Les états de la liste cible sont Stun et Slow (contrôle physique), Charm, Fear et Disruption (contrôle magique), chacun avec une résistance qui en réduit la durée (section 13). Les exemples d'états du tableau ci-dessus (recul, enracinement, silence) sont des noms de travail antérieurs : la section 13 prévaut.
 - **Retenu.** Garde-fous pour le Savoir (taille des zones et durée des effets sont les deux effets qui cassent le plus souvent un jeu) :
   1. **Coefficients par skill** pour la zone et la durée, comme pour les dégâts (levier 2) : chaque skill déclare combien il profite du Savoir, et certains n'en profitent pas (par exemple la provocation).
   2. **Le bonus de zone porte sur l'aire, pas sur le rayon** (+40 % d'aire ≈ +18 % de rayon), avec un plafond. La surface croît avec le carré du rayon : un bonus sur le rayon grandirait trop vite.
@@ -214,7 +215,7 @@ Quand un point entre dans `ROADMAP.md`, sa conception détaillée se fait en dis
 4. **Dégâts de départ.** Arme ou skill, plus les coefficients par caractéristique du skill, multipliés par le critique. Le critique s'applique **avant** toute réduction : contre une armure par soustraction, c'est ce qui en fait l'arme naturelle contre l'infanterie lourde. *(Depuis l'étape 94, le critique et la Puissance s'appliquent à **toutes** les portions du coup, bonus élémentaires compris.)*
 5. **Blocage au bouclier** (section 7). Un montant fixe est retiré. Si tout est absorbé : « Bloqué ». *(Fait à l'étape 90 : le montant retiré l'est avant l'armure ; un blocage total saute l'armure et son plancher. Depuis l'étape 94, il ne retire que de la portion **physique**.)*
 6. **Armure et résistances.** L'armure réduit la part physique, chaque résistance réduit la part de son élément. *(Fait à l'étape 94.)*
-7. **Égide ou Barrière** (section 9) absorbent ce qui reste, puis les points de vie encaissent le reste.
+7. **Aegis** (le physique) **et Ward** (le reste) (section 9) absorbent ce qui reste, puis les points de vie encaissent le reste.
 8. **Effets secondaires.** Vol de vie, effets dans le temps, contrôle.
 
 - **Retenu** (étape 94). Un coup est une petite collection de **portions typées** (`Degats`, une quantité par `Element` : par exemple 30 physique + 10 feu), chacune réduite par sa propre défense, plutôt qu'un seul nombre. Chaque étape est une fonction pure testable seule, dans l'esprit d'`appliquerArmure` (étape 55) ; `resoudreCoup` les enchaîne.
@@ -247,25 +248,30 @@ Quand un point entre dans `ROADMAP.md`, sa conception détaillée se fait en dis
 - **À tester.** Plancher de départ : 20 % (`s_plancherArmure`, `Defense.cpp`). C'est lui qui décide si une nuée est « inoffensive » ou « gênante » contre un tank.
 - **Retenu** (étape 92). Pénétration d'armure **en %** (ignore X % de l'armure) : identité des armes de spécialiste (estoc, dague de miséricorde, arbalète, pic de guerre). Elle réduit l'armure du défenseur **avant** la soustraction M1 : `armure effective = armure × (1 − pénétration)`, sans arrondi intermédiaire. Propriété de l'arme, portée par l'attaque de base (coups d'opportunité compris) ; un skill n'en a pas (il a sa propre puissance) ; pas de bonus de pénétration par l'équipement à cette étape. La dague : 30 %.
 - **À tester** (étape 92). Plafond de la pénétration : 75 % (`s_penetrationMaximale`, `Defense.hpp`).
-- **Retenu.** Les effets dans le temps (saignement, poison…) **ignorent l'armure** ; seules les résistances s'appliquent. Le saignement devient une réponse naturelle à l'infanterie lourde.
+- **Retenu.** Les effets dans le temps (saignement, poison…) **ignorent l'armure** ; seules les résistances s'appliquent. Le saignement (du physique dans le temps, voir plus bas) devient une réponse naturelle à l'infanterie lourde. *Étape 109 : tout élément peut avoir des dégâts dans le temps, résistés par la résistance de cet élément ; ils ne critiquent pas (section 13).*
 - **Retenu** (étape 94). **L'armure ne protège que contre le physique.** Chaque élément a sa **résistance en %** : une seule règle pour tous, physique compris (`portion × (1 − résistance)`, sans arrondi), appliquée après l'armure. La résistance physique vaut 0 partout pour l'instant. Valeurs : `docs/combat.md`.
+- **Retenu** (étape 109). **La résistance physique s'applique à tout le physique**, direct ou dans le temps, mais elle est **rare** et son **plafond sera plus bas** que celui des autres résistances. *Le code applique aujourd'hui à la résistance physique le même plafond de 80 % que les autres (`resistanceEffective`) ; la valeur du plafond physique reste à déterminer (section 13, « Pistes non décidées »).*
 - **À tester** (étape 94, question 3 tranchée pour les résistances). **Plafond de 80 %** (`s_resistanceMaximale`, `Defense.hpp`, à côté de la pénétration d'armure) ; les résistances **négatives** (vulnérabilités) sont permises jusqu'à −100 % (`s_resistanceMinimale`, le coup est doublé). Hors de [−100, 80], la valeur est ramenée dans l'intervalle à l'application. Les personnages ont toutes leurs résistances à 0 (l'équipement en donnera à l'étape 95) ; les monstres les ont dans leur définition (`docs/monstre.md`) : toutes à 0 sauf la créature monstrueuse, 40 % contre le feu. Les attaques des monstres restent 100 % physiques.
 - **Proposé.** Une **pénétration de résistance** pourra exister pour les sorts, gagnée par l'équipement ou les skills, pas propre à toute la magie. *Pas à l'étape 94 : la pénétration d'armure ne touche que l'armure.*
-- **Retenu** (étape 94, question 5 tranchée). **Les éléments** : physique, feu, froid, foudre, poison, sacré, nécrotique, saignement. Le **saignement est un type de dégâts** avec sa propre résistance : il arrive surtout dans le temps et ignore l'armure comme tout effet dans le temps, mais il n'est pas imparable. *Psychique / Arcane* reste une piste, à revoir en créant les classes. **Dans le code, seulement ceux qui ont une source** : physique, feu (l'explosion du mage), sacré (la frappe sacrée du paladin) ; les autres s'ajouteront avec leur premier skill ou monstre.
+- ~~**Retenu** (étape 94, question 5 tranchée). **Les éléments** : physique, feu, froid, foudre, poison, sacré, nécrotique, saignement. Le **saignement est un type de dégâts** avec sa propre résistance.~~ **Remplacé à l'étape 109** : les éléments sont **huit** — Physical, Fire, Cold, Lightning, Arcane, Necrotic, Holy, Poison — et le saignement n'est plus un type de dégâts, c'est du physique dans le temps (section 13, « Décisions de l'étape 109 »). Arcane remplace la piste « Psychique / Arcane ».
+- **Retenu** (étape 94, inchangé). **Dans le code, seulement les éléments qui ont une source** : physique, feu (l'explosion du mage), sacré (la frappe sacrée du paladin) ; les autres s'ajouteront avec leur premier skill ou monstre.
 - **Principe.** On ne peut pas se protéger contre tout, et c'est voulu :
   - l'équipement a des profils (plate : beaucoup d'armure, peu de résistances ; robe enchantée : l'inverse ; cuir : entre les deux) ;
   - les couleurs ont un rôle défensif (blanc : armure ; bleu : protection magique) ;
   - les ennemis ont un profil (nid de chamans du feu, chevaliers en plate) ;
   - les points de vie restent la défense universelle.
 
-## 9. Barrières (à la *Divinity: Original Sin 2*)
+## 9. Aegis et Ward (à la *Divinity: Original Sin 2*)
+
+*Aegis et Ward sont les noms de la liste cible de l'étape 109 ; ils remplacent les anciens noms de travail « Égide » (physique, blanc) et « Barrière » (magique, bleu).*
 
 - **Retenu.** Garder le principe de *Divinity 2* : des réserves de protection physique et magique en plus des points de vie.
-- **Retenu.** Les intégrer comme **effets temporaires** donnés par des skills et un peu d'équipement, pas comme système de base pour tout le monde (qui doublerait nos défenses et pousse, dans *Divinity 2*, aux groupes tout physiques ou tout magiques). Noms de travail : **Égide** (physique, blanc) et **Barrière** (magique, bleu). Exemple d'équipement : une amulette rare donnant une petite Barrière qui se recharge hors combat.
-- **Proposé.** Garder la règle forte de *Divinity 2* : **tant qu'une réserve tient, le contrôle de son type ne passe pas.** Le combat devient « percer la défense, puis contrôler ».
-- **Retenu.** L'Égide et la Barrière absorbent **en dernier**, après l'armure et les résistances, comme une bulle par-dessus les points de vie (à la *Titan Quest*). L'armure garde ainsi sa valeur même sous une réserve.
+- **Retenu.** Les intégrer comme **effets temporaires** donnés par des skills et un peu d'équipement, pas comme système de base pour tout le monde (qui doublerait nos défenses et pousse, dans *Divinity 2*, aux groupes tout physiques ou tout magiques). Exemple d'équipement : une amulette rare donnant un petit Ward qui se recharge hors combat.
+- **Retenu** (étape 109, c'était « proposé »). Ce sont des **points d'absorption**. **Aegis absorbe le physique** ; tant qu'il en reste, la cible est **immunisée à Stun et Slow**. **Ward absorbe tout ce qui n'est pas physique, poison compris** ; tant qu'il en reste, la cible est **immunisée à Charm, Fear et Disruption**. **Tant qu'une réserve tient, le contrôle de son type ne passe pas** (la règle forte de *Divinity 2*) : le combat devient « percer la défense, puis contrôler ».
+- **Retenu.** Aegis et Ward absorbent **en dernier**, après l'armure et les résistances, comme une bulle par-dessus les points de vie (à la *Titan Quest*). L'armure garde ainsi sa valeur même sous une réserve. **Les deux absorbent aussi les dégâts dans le temps** (étape 109).
 - Note : « armure » désigne déjà la réduction par soustraction ; ces réserves ont besoin d'un autre nom.
-- L’Égide protège du contrôle physique et la Barrière du contrôle magique, en miroir de l’Endurance et de la Volonté (section 5).
+- Aegis protège du contrôle physique et Ward du contrôle magique, en miroir de la Constitution et de la Resolve (section 5).
+- **Existe** : non (étape 108). Ni Aegis ni Ward, ni aucun état de contrôle, ne sont dans le code.
 
 ## 10. Les zones et l'escouade
 
@@ -275,7 +281,7 @@ Quand un point entre dans `ROADMAP.md`, sa conception détaillée se fait en dis
 
 - **a. Les grosses zones visent le groupe** et s'évitent en déplaçant l'escouade entière, comme les grenades de *Dawn of War 2* : larges, bien annoncées (cercle au sol pendant l'activation du monstre).
 - **b. Les petites zones sont évitées par réflexe** : un personnage dans une zone annoncée fait un pas pour en sortir, dans la limite de sa laisse autour de sa place en formation (étape 40). Le réflexe pourrait dépendre d'un trait de classe (un voleur réagit vite, un chevalier en plate pas du tout).
-- **c. Les sorts dangereux ciblés sur un personnage se gèrent sans bouger** : interrompre le lanceur, protéger la cible (Barrière, Égide), ou encaisser et soigner.
+- **c. Les sorts dangereux ciblés sur un personnage se gèrent sans bouger** : interrompre le lanceur, protéger la cible (Ward, Aegis), ou encaisser et soigner.
 - **d. Plus tard, si le besoin s'en fait sentir :** un ordre de formation resserrée ou dispersée. Dispersée, elle encaisse moins les zones, mais les auras touchent moins de monde et la ligne de front tient moins bien.
 
 ## 11. Catégories d'ennemis (à la *Warhammer 40k*)
@@ -306,7 +312,7 @@ Quand un point entre dans `ROADMAP.md`, sa conception détaillée se fait en dis
 1. **Ciblage** : soi, un allié, un ennemi, un point au sol, une zone autour du lanceur, un cône, une ligne, une chaîne, un projectile.
 2. **Déclenchement** : activation (interruptible), instantané, canalisé, bascule (aura), passif, réaction (« quand je suis touché », « quand un allié tombe sous 30 % », lien direct avec les gambits).
 3. **Durée de l'effet** : immédiat, dans le temps (DoT, HoT), persistant au sol, posé sur une cible, permanent tant que la source existe.
-4. **Effet** : dégâts (typés), soin, absorption (Barrière, Égide), modification de statistique, contrôle, déplacement (charge, recul, téléportation), invocation, menace.
+4. **Effet** : dégâts (typés), soin, absorption (Ward, Aegis), modification de statistique, contrôle, déplacement (charge, recul, téléportation), invocation, menace.
 5. **Coût** : recharge, mana, ressource de classe, ou points de vie (identité du noir).
 
 Note de structure : un skill deviendra probablement une **composition** (un ciblage, un déclenchement, une liste d'effets) plutôt qu'un `enum` et un `switch` qui grossissent à chaque nouveau skill. Extension connue, à accueillir le moment venu.
@@ -323,70 +329,159 @@ Points de conception associés (**proposés**) :
 - **Retenu** (étape 91, documentation seulement). **Deux familles de skills de dégâts** : les **skills de frappe** utilisent l'arme (ses dégâts plus un bonus, sa nature et sa pénétration ; candidats : frappe puissante, frappe sacrée, tir perçant) et les **skills à dégâts propres** (explosion, pluie de flèches). La description de l'attaque construite à partir de l'arme (`DescriptionDAttaque`) peut servir de point de départ à un skill de frappe ; aucun skill ne change à l'étape 91.
 - **Retenu** (étape 94). **La frappe sacrée est le premier skill de frappe** (`DefinitionDeSkill::bonusDeFrappe`). De l'arme : les dégâts physiques (Puissance comprise), la nature et la pénétration. Du skill : un **bonus fixe, typé** (un `Degats` : ici du sacré), la recharge, le temps d'activation et la portée. Les exigences d'arme ne changent pas (épée longue, masse, épée à deux mains). **À tester** : bonus sacré de 45, calibré sur la masse de départ (15 + 45 = 60, le total d'avant) ; avec l'épée à deux mains (60) : 105. Contre l'infanterie lourde, l'armure écrase le physique et le nombre est doré. La frappe puissante et le tir perçant pourront devenir des skills de frappe avec un bonus physique, sans changer la structure (section 15).
 
-## 13. Inventaire des statistiques de combat
+## 13. Liste cible des statistiques (étape 109)
 
-« Existe » : déjà dans le code.
+Liste dressée par Olivier à l'étape 109 (documentation seulement : le code n'a pas changé). Elle remplace l'ancien « inventaire des statistiques de combat » et sert de référence aux étapes futures. « Existe » dit ce que le code fait **à la fin de l'étape 108**. Les noms en anglais sont les noms affichés (noms de travail, `docs/glossaire.md`) ; quand le code a un équivalent, il est cité. Toutes les valeurs d'équilibrage citées sont « à tester ».
 
-**Côté attaquant**
+### Trois niveaux, à ne pas mélanger
+
+- **Retenu.** **Les caractéristiques** (cinq, réparties par le joueur) : Might, Constitution, Dexterity, Intellect, Resolve. Elles *donnent* des effets aux autres statistiques (section 5) ; ce ne sont pas des statistiques de combat.
+- **Retenu.** **Les ressources** : les points de vie et l'énergie sont des **jauges**, pas des caractéristiques. Les statistiques d'une ressource sont son maximum, sa régénération, et ce qui la remplit autrement (Life Steal, Energy Steal, Life per Kill, Healing Received).
+- **Retenu.** **Les statistiques de combat** : ce que le moteur du coup lit d'une entité (`StatistiquesDeCombat`, `combat/StatistiquesDeCombat.hpp`).
+- **Retenu (confirmé par écrit).** **Un monstre a des statistiques de combat mais pas de caractéristiques.** Ses valeurs viennent de sa `DefinitionDeMonstre`, ajustées par la profondeur de l'étage (`renforcer`, `docs/monstre.md`). C'est l'architecture actuelle : rien à changer.
+
+### Caractéristiques
 
 | Statistique | Rôle | Source principale | Existe |
 |---|---|---|---|
-| Dégâts de base | Montant de départ du coup | Arme, skill ; modifiés par la Puissance | Oui (l'attaque de base vient de l'arme depuis l'étape 91 ; par skill pour les autres ; la Puissance, étape 88 : 3 % par point au-dessus de 10, valeurs à tester) |
-| Type de dégâts | Physique, feu, froid, foudre, poison, sacré, nécrotique, saignement | Arme, skill | Oui (étape 94 : physique, feu et sacré ; un coup est une collection de portions ; les autres éléments avec leur première source) |
+| Might (Puissance) | Dégâts et soins (+ %, modéré) | Classe, croissance, points libres, équipement | Oui (étape 88 : 3 % par point au-dessus de 10) |
+| Constitution (Endurance) | Points de vie ; résistance au contrôle physique (section 5) | idem | Oui pour les points de vie (étape 88/91 : 6 par point) ; la résistance au contrôle : non |
+| Dexterity (Adresse) | Capacités offensive et défensive | idem | Oui (étape 89 : 5 par point) |
+| Intellect (Savoir) | Taille des zones et durée des effets infligés (section 5) | idem | Existe, **sans aucun effet** |
+| Resolve (Volonté) | Résistance au contrôle magique (section 5) | idem | Existe, **sans aucun effet** |
+
+### Ressources
+
+| Statistique | Rôle | Source principale | Existe |
+|---|---|---|---|
+| Max Life | Survie | Constitution, niveau, équipement | Oui (`pointsDeVieMax` : base commune 240 plus 6 par point de Constitution plus 8 par niveau au-delà du premier ; échelle × 3) ; monstres : leur définition |
+| Life Regen | Points de vie regagnés dans le temps | Équipement, skills | Non (seul le monstre qui rentre à son poste se régénère, `regenerationRetour`) |
+| Life Steal | % des dégâts infligés rendus en points de vie | Équipement, skills | Non |
+| Life per Kill | Points de vie rendus par monstre tué | Équipement, skills | Non |
+| Healing Received | Majore (ou réduit) les soins reçus | Équipement, skills | Non |
+| Max Energy | Budget de skills | Niveau (100 plus 5 par niveau au-delà du premier) ; aucune caractéristique pour l'instant | Oui (étape 108, `energieMax`) |
+| Energy Regen | Énergie regagnée dans le temps | Base de 2 par seconde, majorée en % par l'affixe « of Replenishment » | Oui (étape 108, `regenerationDEnergie`) |
+| Energy Steal | Énergie rendue par les dégâts infligés | Équipement, skills | Non |
+| Coût d'un skill | Énergie (points de vie pour le noir, un jour) | Skill | Oui (étape 108) : entier, 0 pour l'attaque de base et pour les monstres |
+
+### Offense
+
+| Statistique | Rôle | Source principale | Existe |
+|---|---|---|---|
+| Dégâts de base | Montant de départ du coup, par élément | Arme, skill ; modifiés par Might | Oui (l'attaque de base vient de l'arme depuis l'étape 91 ; plage tirée à chaque coup depuis l'étape 102) |
+| Dégâts dans le temps | Un élément infligé sur la durée | Skills, monstres | Non (règles décidées plus bas : ignorent l'armure, ne critiquent pas) |
+| Offensive Ability | Chance et force du critique, contre la Defensive Ability du défenseur | Dexterity, équipement | Oui (`capaciteOffensive`, étape 89 : `50 + 5 × Dexterity` ; 100 pour un monstre ordinaire ; bonus d'équipement : le +10 des reliques) |
+| Crit Damage | Multiplicateur d'un critique (une statistique) | Équipement, skills | **Partiel** : le multiplicateur existe (`multiplicateurDeCritique`, de ×1,5 à ×2) mais n'est que fonction du rapport des capacités, sans bonus d'équipement ni de skill |
+| Armor Penetration (%) | Ignore X % de l'armure du défenseur | Arme, équipement | Oui (étape 92 : propriété de l'arme, la dague 30 %, plafond de 75 %, préfixe « Keen ») |
+| Puissance de soin | Montant soigné | Skill, Might, équipement | Oui (par skill ; Might, comme les dégâts) |
+
+Il n'y a **pas de Crit Chance** : la chance de critique vient seulement du rapport entre Offensive Ability et Defensive Ability (section 7).
+
+### Défense
+
+| Statistique | Rôle | Source principale | Existe |
+|---|---|---|---|
+| Armor | Réduit le physique direct (soustraction avec plancher de 20 %) | Équipement | Oui (étape 87 ; seulement la portion physique depuis l'étape 94) |
+| Résistances (huit, voir « Les huit éléments ») | Réduit la part de son élément, en % plafonné | Équipement, skills | Oui pour le mécanisme (étape 94 : une valeur par `Element`, plafond de 80 %, vulnérabilité jusqu'à −100 %) ; trois éléments seulement dans le code ; aucun objet n'en donne encore ; monstres dans leur définition (la créature monstrueuse 40 % de feu) |
+| Dodge | % d'éviter un coup de **contact** | Équipement, skills (plafond) | Oui (`esquiveContact`, étape 90 : plafond de 50 %, monstres 5 %, bottes de cuir +5 %, malus des pièces lourdes) ; affiché aujourd'hui « Melee Dodge » |
+| Deflect | % d'éviter un **projectile** | Équipement, skills (plafond) | Oui (`esquiveProjectile`, étape 90 : plafond de 50 %, monstres 5 %, casque de cuir +5 %) ; affiché aujourd'hui « Projectile Dodge » |
+| Block Chance | Chance de bloquer un coup de contact ou un projectile | Bouclier, skills | Oui (`chanceDeBlocage`, étape 103 : Shield 20 % plus 1 par niveau) |
+| Block Amount | Points absorbés par un blocage (seulement la portion physique) | Bouclier, skills | Oui (`montantBloque`, étape 103 : 8 points au niveau 1) |
+| Block Recovery | Temps pendant lequel un bouclier qui a bloqué ne bloque plus | Bouclier, skills | **Partiel** : une constante commune de 3 s (`s_recuperationDuBlocage`), pas une statistique |
+| Defensive Ability | Réduit le critique subi | Dexterity, équipement | Oui (`capaciteDefensive`, étape 89 ; une référence de 100 pour les soins) |
+| Aegis | Points d'absorption du **physique**, appliqués en dernier ; immunité à Stun et Slow tant qu'il en reste | Skills, équipement | Non |
+| Ward | Points d'absorption de **tout ce qui n'est pas physique** (poison compris), appliqués en dernier ; immunité à Charm, Fear et Disruption tant qu'il en reste | Skills, équipement | Non |
+
+Il n'y a **pas de statistique défensive contre la pénétration d'armure** : elle annulerait l'identité des armes qui percent l'armure (dague, lance, arc, arbalète). Les autres couches défensives (Dodge et Deflect, le blocage, Aegis, la résistance physique) en sont la parade.
+
+#### Les huit éléments
+
+| Élément | Résistance | Dans `Element` aujourd'hui |
+|---|---|---|
+| Physical | Physical Resistance (voir les décisions) | Oui (`Physique`), résistance 0 partout |
+| Fire | Fire Resistance | Oui (`Feu`) |
+| Holy | Holy Resistance | Oui (`Sacre`) |
+| Cold | Cold Resistance | Non |
+| Lightning | Lightning Resistance | Non |
+| Arcane | Arcane Resistance | Non |
+| Necrotic | Necrotic Resistance | Non |
+| Poison | Poison Resistance | Non |
+
+### Contrôle (résistances aux états)
+
+Une résistance à un état **réduit sa durée**.
+
+| Statistique | Rôle | Source principale | Existe |
+|---|---|---|---|
+| Stun Resistance | Contrôle physique : durée de l'étourdissement | Constitution, équipement | Non (aucun état de contrôle dans le jeu) |
+| Slow Resistance | Contrôle physique : durée du ralentissement | Constitution, équipement | Non |
+| Charm Resistance | Contrôle magique : durée du charme | Resolve, équipement | Non |
+| Fear Resistance | Contrôle magique : durée de la peur | Resolve, équipement | Non |
+| Disruption Resistance | Contrôle magique : durée de la perturbation (Disruption empêche d'utiliser les skills) | Resolve, équipement | Non |
+
+### Utilité
+
+| Statistique | Rôle | Source principale | Existe |
+|---|---|---|---|
+| Movement Speed | Poursuite, fuite, placement | Classe, équipement, skills | **Partiel** : une vitesse de base fixe (`Mobile`), sans modificateur d'équipement ni de skill |
+| Attack Speed | **Modificateur** (100 % de base) de la cadence des attaques ; la vitesse de base vient de l'arme | Équipement, skills | **Partiel** : la vitesse de base vient de l'arme depuis l'étape 91 ; le modificateur n'existe pas |
+| Cast Speed | Modificateur du temps d'incantation des skills (n'a d'effet que si les skills ont un temps d'incantation) | Équipement, skills | Non (les skills ont déjà un temps d'activation, mais aucun modificateur) |
+| Skill Recharge (%) | Raccourcit les recharges des skills | Équipement, skills | Non (la réduction de recharge reste ouverte : question 3) |
+| Effect Duration (%) | Durée des effets infligés | Intellect, équipement | Non |
+| Area Size (%) | Aire des skills de zone (section 5 : le bonus porte sur l'aire) | Intellect, équipement | Non (rayon fixe par skill) |
+
+### Propriétés d'une attaque (une arme ou un skill, pas des statistiques d'entité)
+
+| Propriété | Rôle | Source | Existe |
+|---|---|---|---|
+| Type de dégâts | Élément de chaque portion | Arme, skill | Oui (étape 94 : trois éléments sur huit ; un coup est une collection de portions) |
 | Intervalle de recharge | Temps entre deux coups (min-max) | Arme, skill | Oui (par arme depuis l'étape 91 ; changer d'arme relance une recharge complète) |
 | Temps d'exécution / d'activation | Durée d'immobilité de l'attaquant | Arme, skill | Oui |
 | Portée | Distance bord à bord | Arme, skill | Oui |
-| Capacité offensive | Chance et force du critique | Adresse, équipement | Oui (étape 89 : `50 + 5 × Adresse` pour un personnage, 100 pour un monstre ordinaire ; pas de bonus d'équipement propre) |
-| Multiplicateur de critique | Force du critique | Équipement, skills | Oui, mais seulement en fonction du rapport des capacités (de ×1,5 à ×2, étape 89) ; pas de bonus d'équipement ni de skill |
-| Pénétration d'armure | Ignore un % de l'armure | Arme, équipement | Oui (étape 92 : propriété de l'arme, la dague 30 %, plafond de 75 % ; pas de bonus d'équipement) |
-| Pénétration de résistance | Ignore une part de la résistance | Équipement, skills | Non (l'étape 94 ne la fait pas) |
-| Puissance de soin | Montant soigné | Skill, Puissance, équipement | Oui (par skill ; la Puissance, étape 88, comme les dégâts) |
-| Taille de zone | Rayon d'un skill de zone | Skill, Savoir, équipement | Oui (fixe) |
-| Durée des effets | Buffs, debuffs, DoT, contrôle infligé | Skill, Savoir, équipement | |
-| Vol de vie | % des dégâts rendus en PV | Équipement, skills | |
-| Réduction de recharge, vitesse | Accélère les actions | Équipement, *Hâte* | |
-
-**Côté défenseur**
-
-| Statistique | Rôle | Source principale | Existe |
-|---|---|---|---|
-| Points de vie | Survie | Endurance, niveau, équipement | Oui (étape 91 : base commune 240 + 6 par point d'Endurance, à tester ; échelle × 3) |
-| Régénération | PV regagnés dans le temps | Équipement, skills | |
-| Armure | Réduit le physique | Équipement | Oui (soustraction avec plancher de 20 %, étape 87 ; seulement la portion physique depuis l'étape 94) |
-| Résistances | Une par élément, en % plafonné | Équipement, skills | Oui (étape 94 : plafond de 80 %, vulnérabilité jusqu'à −100 % ; monstres dans leur définition, la créature monstrueuse 40 % de feu ; personnages 0, l'équipement en donnera à l'étape 95) |
-| Esquive contre la mêlée | % d'éviter un coup au contact | Équipement, skills (plafond) | Oui (étape 90 : plafond de 50 %, monstres 5 %, bottes de cuir +5 % ; pas de skills qui en donnent) |
-| Esquive contre les projectiles | % d'éviter un tir | Équipement, skills (plafond) | Oui (étape 90 : plafond de 50 %, monstres 5 %, casque de cuir +5 %) |
-| Capacité défensive | Réduit le critique subi | Adresse, équipement | Oui (étape 89 : comme la capacité offensive ; une référence de 100 pour les soins) |
-| Résistance au contrôle physique | Réduit la durée de l'étourdissement, du recul, de l'enracinement | Endurance, équipement | |
-| Résistance au contrôle magique | Réduit la durée de la peur, du silence, du charme | Volonté, équipement | |
-| Résistance à l'interruption | Chance de garder son activation | Volonté, équipement | |
-| Égide / Barrière | Réserve temporaire ; l'Égide bloque le contrôle physique, la Barrière le contrôle magique | Skills, équipement | |
-| Blocage | Chance, montant fixe absorbé, temps de récupération | Bouclier, skills | Oui (étape 103 : Shield 20 % plus 1 par niveau, 8 points au niveau 1 ; étape 91 : bouclier rond 30 %, 12 points ; récupération commune de 3 s ; pas de skills qui en donnent ; étape 94 : ne réduit que la portion physique) |
-
-**Ressources et déplacement**
-
-| Statistique | Rôle | Source principale | Existe |
-|---|---|---|---|
-| Énergie max et régénération | Budget de skills | Niveau (100 plus 5 par niveau au-delà du premier), régénération de base 2 par seconde, majorée par l'affixe « of Replenishment » ; aucune caractéristique pour l'instant (étape 109) | Oui (étape 108) |
-| Coût d'un skill | Énergie (PV pour le noir, un jour) | Skill | Oui (étape 108) : énergie, entier, 0 pour l'attaque de base et pour les monstres |
-| Vitesse de déplacement | Poursuite, fuite, placement | Classe, équipement, *Lenteur* / *Hâte* | Oui |
 | Zone de contrôle | Déclenche l'attaque d'opportunité | Arme (contact) depuis l'étape 91 | Oui |
+| Pénétration de résistance | Ignore une part de la résistance | Équipement, skills | Non, et hors de la liste cible : reste une piste (section 15) |
 
-**Propriétés de la cible**
+### Propriétés de la cible
 
 | Propriété | Rôle | Existe |
 |---|---|---|
-| Catégorie | Nuée, infanterie, infanterie lourde, créature monstrueuse | Oui (étape 93) |
+| Catégorie | Nuée, infanterie, infanterie lourde, créature monstrueuse (plus tireur et soigneur, étape 107) | Oui (étape 93) |
 | Taille (cercle) | Portée bord à bord, blocage, encerclement | Oui |
-| Immunités | Ex. pas de recul pour une créature monstrueuse | |
+| Immunités | Ex. pas de recul pour une créature monstrueuse | Non |
+
+### Décisions de l'étape 109
+
+- **Retenu.** **Huit types de dégâts et de résistances** : Physical, Fire, Cold, Lightning, Arcane, Necrotic, Holy, Poison. **Cette décision remplace celle de l'étape 94** (section 8) : le **saignement n'est plus un type de dégâts** ; c'est du **physique dans le temps**. Arcane remplace la piste « Psychique / Arcane ».
+- **Retenu.** **Pas de Piercing comme type de dégâts** : la pénétration d'armure (un attribut d'attaque, en %) joue ce rôle.
+- **Retenu.** **Tout élément peut avoir des dégâts dans le temps**, résistés par la résistance de cet élément. Règles inchangées : les dégâts dans le temps **ignorent l'armure** et **ne critiquent pas**. Un saignement est donc du physique dans le temps : l'armure ne le réduit pas, la résistance physique oui.
+- **Retenu.** **La résistance physique (%) s'applique à tout le physique**, direct ou dans le temps. Elle est **rare**, avec un **plafond plus bas** que celui des autres résistances. *Valeur du plafond à déterminer : aucune n'est proposée ici.* L'armure reste la défense principale contre les coups physiques directs.
+- **Retenu.** **Aegis et Ward** (anciens noms de travail, section 9) sont des **points d'absorption appliqués en dernier** dans le déroulement du coup (étape 7, section 6), comme déjà décidé. Aegis absorbe le physique ; tant qu'il en reste, la cible est immunisée à Stun et Slow. Ward absorbe tout ce qui n'est pas physique, poison compris ; tant qu'il en reste, la cible est immunisée à Charm, Fear et Disruption. **Les deux absorbent aussi les dégâts dans le temps.**
+- **Retenu.** **Offensive Ability et Defensive Ability** gardent leurs noms actuels (pas « Attack Power » ni « Defense Power »).
+- **Retenu.** **Pas de Crit Chance** : la chance de critique vient seulement du rapport des deux capacités. **Crit Damage** est une statistique (un multiplicateur).
+- **Retenu.** **Pas de statistique défensive contre la pénétration d'armure** (voir « Défense »).
+- **Retenu.** **Dodge** = l'esquive contre le contact ; **Deflect** = l'esquive contre les projectiles. Le blocage garde ses **trois valeurs** (Block Chance, Block Amount, Block Recovery), comme à l'étape 90.
+- **Retenu.** **Attack Speed** est un modificateur (100 % de base) : la vitesse de base d'une attaque vient de l'arme. **Cast Speed** n'a d'effet que si les skills ont un temps d'incantation.
+- **Retenu.** Les **résistances aux états réduisent la durée** : Stun et Slow (contrôle physique), Charm, Fear et Disruption (contrôle magique ; Disruption empêche d'utiliser les skills).
+
+### Pistes non décidées
+
+Rien de ceci n'est une décision.
+
+- **Bonus de dégâts par type** (+ % Fire, etc.) : ajouterait une statistique par élément côté attaquant.
+- **Menace (Threat)** pour les tanks : aujourd'hui les monstres frappent toujours le plus proche (section 15, hystérésis).
+- **Résistance des monstres à la provocation.**
+- **Portée de Slow** : le déplacement, l'attaque, ou les deux.
+- **Le plafond de la résistance physique** (voir plus haut).
+- **La résistance à l'interruption** de l'ancienne liste (chance de garder son activation, section 5) n'est pas dans la liste cible : à trancher si Disruption la remplace, ou si les deux existent.
+- **Block Recovery** comme vraie statistique (aujourd'hui une constante commune) : à décider avec les skills de blocage.
 
 ## 14. Questions ouvertes
 
 1. *Tranchée* : blocage à la *Titan Quest* (section 7).
 2. **Le niveau** entre-t-il dans les formules (pénalité selon l'écart, à la *Diablo 2* / WoW), ou un monstre plus fort l'est-il seulement par ses nombres ? *(En partie éclairée à l'étape 89 : le critique traite le niveau par les nombres, car il ne lit que le rapport des capacités ; un monstre de zone plus profonde aura de plus grandes capacités, sans formule d'écart de niveau. Les autres étapes du coup restent à décider. **Étape 98** : les monstres sont renforcés par la profondeur de l'étage, toujours par leurs nombres : points de vie +25 %, dégâts +15 %, capacités +10 par étage au-delà du premier (`renforcer`, `docs/monstre.md`) ; aucune formule d'écart de niveau, ni pénalité ni bonus. Reste à décider quand les personnages auront un niveau (étape 99). **Étape 101** : le niveau d'un *objet* est la profondeur où il est généré ; il agit par les nombres aussi, jamais par une formule d'écart : les plages des affixes grandissent de 25 % du catalogue par niveau et les raretés Magic et Rare deviennent plus fréquentes (`docs/objets.md`, « Le niveau d'objet »).)*
-3. **Les plafonds** : esquive, résistances, réduction de recharge ; lesquels, et à combien ? *(En partie tranchée : l'esquive est plafonnée à 50 % (étape 90), les résistances à 80 % avec des vulnérabilités jusqu'à −100 % (étape 94, à tester). Reste la réduction de recharge.)*
-4. *Tranchée* : l'Égide et la Barrière absorbent en dernier (section 9).
-5. *Tranchée* (étape 94) : **la liste des éléments** (physique, feu, froid, foudre, poison, sacré, nécrotique, saignement ; psychique / arcane en piste) et le saignement est un type (section 8).
+3. **Les plafonds** : esquive, résistances, réduction de recharge ; lesquels, et à combien ? *(En partie tranchée : l'esquive est plafonnée à 50 % (étape 90), les résistances à 80 % avec des vulnérabilités jusqu'à −100 % (étape 94, à tester). Reste la réduction de recharge, et, depuis l'étape 109, le plafond de la résistance physique, qui sera plus bas que celui des autres résistances : sa valeur est à déterminer.)*
+4. *Tranchée* : Aegis et Ward absorbent en dernier (section 9).
+5. *Tranchée* (étape 94, **modifiée à l'étape 109**) : **la liste des éléments** : huit — Physical, Fire, Cold, Lightning, Arcane, Necrotic, Holy, Poison ; le saignement n'est plus un type, c'est du physique dans le temps (sections 8 et 13).
 6. **La ressource** : *en partie tranchée à l'étape 108* : une **énergie** par personnage, la même pour toutes les classes, à la *Titan Quest* et *Grim Dawn* (section 14 bis). Reste ouvert : l'**Élan**, ressource partagée de l'escouade, en couche au-dessus (section 15), et quelles classes ont leur propre ressource (rage, foi…), qui ne sont pas faites. La structure qui accueillera l'Élan existe (`Reserve`). Le lien entre l'énergie et une caractéristique (Savoir, Volonté) est à discuter à l'étape 109.
 7. *Tranchée* (étape 89) : **la magie critique**, comme le reste (section 7). Dans *Titan Quest*, non.
 8. **Les classes de départ** : quelles classes de base, quelles spécialisations, quels paliers ?
@@ -440,7 +535,8 @@ Statuts : *retenu* = décidé et fait, *à tester* = valeur provisoire.
 
 Idées retenues pour plus tard, sans étape prévue.
 
-- **Éléments sans source** (étape 94) : froid, foudre, poison, nécrotique, saignement s'ajouteront à l'énumération `Element` avec leur premier skill ou monstre ; `Psychique / Arcane` est à revoir en créant les classes.
+- **Éléments sans source** (étape 94, modifiée à l'étape 109) : froid, foudre, arcane, nécrotique et poison s'ajouteront à l'énumération `Element` avec leur premier skill ou monstre ; le saignement n'est plus un élément (du physique dans le temps).
+- **Les statistiques de la liste cible** (étape 109, section 13) qui n'existent pas encore : une étape à part chacune ou par groupe (ressources, états de contrôle, Aegis et Ward, modificateurs de vitesse), à discuter dans Claude.ai.
 - **Pénétration de résistance** : par l'équipement ou des skills, comme la pénétration d'armure (à décider).
 - **Bouclier anti-magie** : un bouclier qui bloquerait aussi une part des portions élémentaires (le Shield ne bloque que le physique).
 - **Frappe puissante et tir perçant en skills de frappe** : la même structure que la frappe sacrée, avec un bonus physique.
