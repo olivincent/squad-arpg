@@ -91,6 +91,15 @@ private:
     enum class Etat { EnGarde, Poursuite, Retour };
 
     [[nodiscard]] bool proieDetectee(const std::optional<PersonnageVu>& proie, const TileMap& carte) const;
+    // Ce que le rôle fait passer avec le temps (le délai entre deux reculs du tireur).
+    void faireAvancerLeRole(float dt);
+    // Le rôle prend la main en poursuite : vrai quand le monstre est en recul (l'ordre est donné, la poursuite n'y touche pas).
+    [[nodiscard]] bool agirSelonLeRole(const std::vector<PersonnageVu>& candidats, const TileMap& carte,
+                                       const std::vector<Cercle>& aContourner);
+    // Le tireur : un recul en cours se poursuit jusqu'à son arrivée ou son blocage ; sinon, si un personnage est au contact et que
+    // le délai est écoulé, il recule dans la direction opposée au plus proche (rien si la destination n'est pas dégagée).
+    [[nodiscard]] bool reculerSiAuContact(EtatTireur& tireur, const std::vector<PersonnageVu>& candidats,
+                                          const TileMap& carte, const std::vector<Cercle>& aContourner);
     // Règle propre au monstre : `choisirCibleAFrapper` avec `peutAtteindre`, la proie préférée.
     [[nodiscard]] std::optional<PersonnageVu> cibleDeFrappe(const std::optional<PersonnageVu>& proie,
                                            const std::vector<PersonnageVu>& candidats, const TileMap& carte) const;

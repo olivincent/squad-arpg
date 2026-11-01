@@ -220,6 +220,7 @@ add_executable(tests
     tests/interface/test_AffichageProfondeur.cpp
     tests/monstres/test_DefinitionDeMonstre.cpp
     tests/monstres/test_RoleDeMonstre.cpp
+    tests/monstres/test_Monstre_tireur.cpp
     tests/jeu/test_Partie_clics.cpp
     tests/jeu/test_Partie_skills.cpp
     tests/jeu/test_Partie_monstres.cpp

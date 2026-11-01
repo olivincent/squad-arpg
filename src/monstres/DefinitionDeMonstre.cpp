@@ -16,6 +16,12 @@ constexpr float s_regenerationRetour = 0.5f;   // fraction des points de vie max
 constexpr float s_porteeAttaque = 15.0f;       // bord à bord
 constexpr int s_resistanceAuFeuDeLaCreature = 40;  // en pour cent (« à tester »)
 
+// Le tireur (étape 107.2, « à tester »).
+constexpr float s_porteeDuTireur = 120.0f;         // bord à bord
+constexpr float s_distanceDeContactDuTireur = 20.0f;  // en dessous, un personnage le fait reculer
+constexpr float s_distanceDeReculDuTireur = 80.0f;
+constexpr float s_delaiEntreReculsDuTireur = 8.0f;    // en secondes
+
 // Le renforcement par la profondeur : ce que chaque étage au-delà du premier ajoute (« à tester »).
 constexpr int s_pourcentDePointsDeVieParEtage = 25;  // des points de vie maximum de la définition
 constexpr int s_pourcentDeDegatsParEtage = 15;       // des dégâts de l'attaque de la définition
@@ -46,6 +52,11 @@ struct Profil {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans 
     int chanceDeButin;        // en pour cent (« à tester »)
     int nombreDObjets;        // laissés quand le butin tombe
     int experience;           // rapportée à l'escouade par sa mort (« à tester »)
+    // Ce que toutes les catégories partagent, sauf le tireur : le monstre de mêlée, par défaut.
+    float portee = s_porteeAttaque;            // bord à bord
+    float zoneDeControle = s_zoneDeControle;   // en pixels, bord à bord (0 : n'engage personne)
+    NatureDAttaque nature = NatureDAttaque::Contact;
+    RoleDeMonstre role = RoleMelee{};
 };
 
 constexpr Profil s_nuee = {.couleur = {115, 165, 25}, .rayon = 9.0f, .vitesse = 190.0f, .pointsDeVieMax = 60,
@@ -71,6 +82,16 @@ constexpr Profil s_creatureMonstrueuse = {.couleur = {90, 30, 140}, .rayon = 16.
                                           .resistances = Resistances::seul(Element::Feu, s_resistanceAuFeuDeLaCreature),
                                           .chanceDeButin = 100, .nombreDObjets = 3, .experience = 100};
 
+// Tire à distance (projectile, sans zone de contrôle, comme une arme à projectile chez un personnage) et recule quand on le colle.
+constexpr Profil s_tireur = {.couleur = {190, 110, 40}, .rayon = 13.0f, .vitesse = 160.0f, .pointsDeVieMax = 200,
+                             .armure = 1, .degats = 25, .rechargeMin = 1.2f, .rechargeMax = 1.8f, .execution = 0.4f,
+                             .capaciteOffensive = 100, .capaciteDefensive = 90, .esquive = 10, .resistances = {},
+                             .chanceDeButin = 20, .nombreDObjets = 1, .experience = 12,
+                             .portee = s_porteeDuTireur, .zoneDeControle = 0.0f, .nature = NatureDAttaque::Projectile,
+                             .role = RoleTireur{.distanceDeContact = s_distanceDeContactDuTireur,
+                                                .distanceDeRecul = s_distanceDeReculDuTireur,
+                                                .delaiEntreReculs = s_delaiEntreReculsDuTireur}};
+
 DefinitionDeMonstre definitionDuProfil(const Profil& profil) {
     return {.cote = 2.0f * profil.rayon,
             .couleur = profil.couleur,
@@ -79,13 +100,13 @@ DefinitionDeMonstre definitionDuProfil(const Profil& profil) {
             .armure = profil.armure,
             .rayonDetection = s_rayonDetection,
             .rayonTerritoire = s_rayonTerritoire,
-            .zoneDeControle = s_zoneDeControle,
+            .zoneDeControle = profil.zoneDeControle,
             .regenerationRetour = s_regenerationRetour,
             .attaque = {.mode = ModeDeCible::Monstre,
-                        .portee = s_porteeAttaque,
+                        .portee = profil.portee,
                         .rechargeMin = profil.rechargeMin,
                         .rechargeMax = profil.rechargeMax,
-                        .effet = EffetDegats{.montant = 0, .nature = NatureDAttaque::Contact},
+                        .effet = EffetDegats{.montant = 0, .nature = profil.nature},
                         .tempsExecution = profil.execution},
             .degats = degatsPhysiques(profil.degats),
             .statistiques = {.capaciteOffensive = profil.capaciteOffensive,
@@ -95,14 +116,14 @@ DefinitionDeMonstre definitionDuProfil(const Profil& profil) {
             .chanceDeButin = profil.chanceDeButin,
             .nombreDObjets = profil.nombreDObjets,
             .experience = profil.experience,
-            .role = RoleMelee{}};
+            .role = profil.role};
 }
 }  // namespace
 
 const CatalogueDeMonstres& catalogueDeMonstres() {
     static const CatalogueDeMonstres catalogue = {definitionDuProfil(s_nuee), definitionDuProfil(s_infanterie),
                                                   definitionDuProfil(s_infanterieLourde),
-                                                  definitionDuProfil(s_creatureMonstrueuse)};
+                                                  definitionDuProfil(s_creatureMonstrueuse), definitionDuProfil(s_tireur)};
     return catalogue;
 }
 

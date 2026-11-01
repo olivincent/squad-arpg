@@ -19,7 +19,8 @@ struct CompositionDeGroupe {
 };
 
 // Les compositions tirées au hasard pour peupler une salle : nuée (5 à 7 nuées), infanterie (1 à 3), mélange
-// (1 à 2 infanteries et 1 infanterie lourde), de poids 30, 40 et 30. Valeurs provisoires, à tester.
+// (1 à 2 infanteries et 1 infanterie lourde), tireurs (1 à 2 infanteries puis 1 à 2 tireurs), de poids 25, 25, 20 et 15.
+// Valeurs provisoires, à tester.
 [[nodiscard]] std::vector<CompositionDeGroupe> compositionsOrdinaires();
 
 // La composition de la salle la plus éloignée du départ : une seule créature monstrueuse. Son poids n'est pas utilisé

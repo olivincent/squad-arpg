@@ -4,7 +4,7 @@
 
 EtatDuRole etatInitialDuRole(const RoleDeMonstre& role) {
     return std::visit(Surcharges{[](const RoleMelee&) -> EtatDuRole { return EtatMelee{}; },
-                                 [](const RoleTireur&) -> EtatDuRole { return EtatTireur{}; },
+                                 [](const RoleTireur& tireur) -> EtatDuRole { return EtatTireur{.role = tireur}; },
                                  [](const RoleSoigneur&) -> EtatDuRole { return EtatSoigneur{}; }},
                       role);
 }

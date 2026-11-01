@@ -1,6 +1,8 @@
 // ./src/monstres/Monstre.cpp
 #include "monstres/Monstre.hpp"
+#include "base/Cercle.hpp"
 #include "combat/Autodefense.hpp"
+#include "combat/Cible.hpp"
 #include "combat/EffetDeSkill.hpp"
 #include "rendu/BarreDeVie.hpp"
 #include "monde/ChampDeVision.hpp"
@@ -10,6 +12,7 @@
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Rect.hpp>
+#include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <variant>
@@ -180,11 +183,72 @@ std::optional<PersonnageVu> Monstre::cibleDeFrappe(const std::optional<Personnag
     return *cible;
 }
 
+void Monstre::faireAvancerLeRole(float dt) {
+    std::visit(Surcharges{[](EtatMelee&) {},
+                          [dt](EtatTireur& tireur) { tireur.delaiRestant = std::max(0.0f, tireur.delaiRestant - dt); },
+                          [](EtatSoigneur&) {}},
+               m_etatDuRole);
+}
+
+bool Monstre::agirSelonLeRole(const std::vector<PersonnageVu>& candidats, const TileMap& carte,
+                              const std::vector<Cercle>& aContourner) {
+    return std::visit(Surcharges{[](EtatMelee&) { return false; },
+                                 [&](EtatTireur& tireur) { return reculerSiAuContact(tireur, candidats, carte, aContourner); },
+                                 [](EtatSoigneur&) { return false; }},
+                      m_etatDuRole);
+}
+
+bool Monstre::reculerSiAuContact(EtatTireur& tireur, const std::vector<PersonnageVu>& candidats, const TileMap& carte,
+                                 const std::vector<Cercle>& aContourner) {
+    if (tireur.enRecul) {
+        if (m_mobile.directionVoulue() && !m_mobile.estBloque()) {
+            return true;
+        }
+        tireur.enRecul = false;  // arrivé ou bloqué : il reprend son comportement normal
+        return false;
+    }
+    if (tireur.delaiRestant > 0.0f) {
+        return false;
+    }
+
+    const PersonnageVu* auContact = nullptr;
+    float ecartAuContact = 0.0f;
+    for (const PersonnageVu& candidat : candidats) {
+        const float ecart = distanceBordABord(getCercle(), candidat.cercle);
+        if (ecart <= tireur.role.distanceDeContact && (auContact == nullptr || ecart < ecartAuContact)) {
+            auContact = &candidat;
+            ecartAuContact = ecart;
+        }
+    }
+    if (auContact == nullptr) {
+        return false;
+    }
+
+    const sf::Vector2f eloignement = m_mobile.getCentre() - auContact->cercle.centre;
+    if (eloignement.lengthSquared() == 0.0f) {
+        return false;  // centres confondus : pas de direction opposée
+    }
+    const sf::Vector2f destination = m_mobile.getCentre() + eloignement.normalized() * tireur.role.distanceDeRecul;
+    // Un recul impossible n'a pas lieu et ne consomme pas le délai : destination dans un mur, derrière un coin, aucun chemin.
+    if (!ligneDeVue(carte, m_mobile.getCentre(), destination)) {
+        return false;
+    }
+    m_mobile.arreter();
+    m_mobile.allerVers(destination, carte, aContourner);
+    if (!m_mobile.directionVoulue()) {
+        return false;
+    }
+    tireur.enRecul = true;
+    tireur.delaiRestant = tireur.role.delaiEntreReculs;
+    return true;
+}
+
 void Monstre::mettreAJour(float dt, std::optional<PersonnageVu> proie, const std::vector<PersonnageVu>& candidats,
                           const TileMap& carte, const std::vector<Cercle>& obstacles,
                           const std::vector<Cercle>& aContourner) {
     m_attaque.mettreAJour(dt);
     m_vitalite.mettreAJour(dt);
+    faireAvancerLeRole(dt);
 
     // Un coup en exécution : le monstre reste sur place, ni poursuite ni
     // retour (l'état et le coup reçu sont pris en compte après le coup).
@@ -243,7 +307,8 @@ void Monstre::mettreAJour(float dt, std::optional<PersonnageVu> proie, const std
         m_soinAccumule = 0.0f;
     }
 
-    if (m_etat == Etat::Poursuite) {
+    // Un monstre en recul (rôle de tireur) a déjà son ordre : il ne poursuit pas et n'engage pas de coup, il bouge.
+    if (m_etat == Etat::Poursuite && !agirSelonLeRole(candidats, carte, aContourner)) {
         if (cibleDeFrappe(proie, candidats, carte)) {
             m_mobile.arreter();
         } else {

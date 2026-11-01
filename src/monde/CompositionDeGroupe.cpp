@@ -3,9 +3,10 @@
 
 namespace {
 // Valeurs provisoires, à ajuster après test.
-constexpr int s_poidsDeLaNuee = 30;
-constexpr int s_poidsDeLInfanterie = 40;
-constexpr int s_poidsDuMelange = 30;
+constexpr int s_poidsDeLaNuee = 25;
+constexpr int s_poidsDeLInfanterie = 25;
+constexpr int s_poidsDuMelange = 20;
+constexpr int s_poidsDesTireurs = 15;
 constexpr int s_nueeMin = 5;
 constexpr int s_nueeMax = 7;
 constexpr int s_infanterieMin = 1;
@@ -13,6 +14,10 @@ constexpr int s_infanterieMax = 3;
 constexpr int s_melangeInfanterieMin = 1;
 constexpr int s_melangeInfanterieMax = 2;
 constexpr int s_melangeLourdes = 1;
+constexpr int s_tireursInfanterieMin = 1;
+constexpr int s_tireursInfanterieMax = 2;
+constexpr int s_tireursMin = 1;
+constexpr int s_tireursMax = 2;
 }  // namespace
 
 std::vector<CompositionDeGroupe> compositionsOrdinaires() {
@@ -23,6 +28,9 @@ std::vector<CompositionDeGroupe> compositionsOrdinaires() {
         {.effectifs = {{CategorieDeMonstre::Infanterie, s_melangeInfanterieMin, s_melangeInfanterieMax},
                        {CategorieDeMonstre::InfanterieLourde, s_melangeLourdes, s_melangeLourdes}},
          .poids = s_poidsDuMelange},
+        {.effectifs = {{CategorieDeMonstre::Infanterie, s_tireursInfanterieMin, s_tireursInfanterieMax},
+                       {CategorieDeMonstre::Tireur, s_tireursMin, s_tireursMax}},
+         .poids = s_poidsDesTireurs},
     };
 }
 
