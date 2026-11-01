@@ -1015,7 +1015,7 @@ Le modèle des affixes est dans `docs/objets.md` (« Rareté et affixes ») ; ic
   ou de vue (pas de revérification à la fin). Annulation, sans recharge
   consommée :
   - mort de l'attaquant, disparition ou mort de la cible (`Escouade::attaquer`
-    pour un personnage ; `Partie::faireFrapperLeMonstre` pour un monstre,
+    pour un personnage ; `Partie::faireAgirLeMonstre` pour un monstre,
     qui annule si le personnage visé est mort) ;
   - personnage seulement : un ordre de déplacement (`Escouade::allerVers`,
     donc aussi le déplacement continu), un verrouillage sur un autre monstre,
@@ -1122,7 +1122,8 @@ image).
 - **Un monstre frappe un personnage** (étape 57) : pour chaque monstre,
   `Partie` demande `escouade.proieDuMonstre(...)` (l'entité du provocateur
   si ce monstre est provoqué, sinon du vivant le plus proche) et
-  `escouade.candidatsDeFrappe(...)`, puis met le monstre à jour. Puis `faireFrapperLeMonstre` : si un coup est engagé, il
+  `escouade.candidatsDeFrappe(...)`, puis met le monstre à jour. Puis `faireAgirLeMonstre` (`faireFrapperLeMonstre` avant l'étape 107,
+  qui y a ajouté le soin des monstres : `docs/monstre.md`) : si un coup est engagé, il
   avance (annulé si le personnage visé est mort) et, au départ, `Partie`
   appelle `escouade.recevoirCoup(id, place, attaque, générateur)` sur la place
   retenue à l'engagement ; sinon, un monstre immobile avec une cible de

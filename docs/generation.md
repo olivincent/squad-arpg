@@ -107,10 +107,13 @@ positions qu'avant.
   (catégorie, nombre minimal, nombre maximal), un poids (chance relative d'être tirée) et un drapeau `serre`.
   `placerMonstres` ne connaît pas d'autre recette : la future escouade de monstres (ancre, formation, cible
   commune) se branchera sur ces compositions sans réécrire la génération.
-- **Les trois compositions ordinaires** (`compositionsOrdinaires()`, provisoires, « à tester ») : **nuée** (5 à 7
-  nuées, poids 30, `serre`), **infanterie** (1 à 3 infanteries, poids 40, la génération d'avant l'étape 93),
-  **mélange** (1 à 2 infanteries puis 1 infanterie lourde, poids 30). Chaque salle sauf la première en reçoit une,
-  tirée selon les poids (un tirage, avant ceux des effectifs et des positions).
+- **Les cinq compositions ordinaires** (`compositionsOrdinaires()`, provisoires, « à tester ») : **nuée** (5 à 7
+  nuées, poids 25, `serre`), **infanterie** (1 à 3 infanteries, poids 25, la génération d'avant l'étape 93),
+  **mélange** (1 à 2 infanteries puis 1 infanterie lourde, poids 20) ; depuis l'étape 107, **tireurs** (1 à 2 infanteries puis
+  1 à 2 tireurs, poids 15) et **escouade** (1 à 2 infanteries, 1 tireur, 1 soigneur, poids 15) ; les poids valaient 30, 40 et 30
+  pour les trois premières. Chaque salle sauf la première en reçoit une, tirée selon les poids (un tirage, avant ceux des
+  effectifs et des positions). **Un soigneur n'est jamais seul** : une composition qui en contient un contient toujours au moins un
+  autre monstre garanti (`test_CoherenceDesDonnees`).
 - **La créature** (`compositionDeLaCreature()`) : une seule créature monstrueuse, seule dans son groupe, dans la
   salle **la plus éloignée de la salle 0** (distance entre les centres ; à égalité, la plus petite), **à la place**
   du groupe tiré (la salle ne tire pas de composition). Au plus une par niveau. Si sa position est rejetée (trop
@@ -300,5 +303,5 @@ les effectifs dans l'ordre de placement, le poids parmi les compositions ordinai
 
 | Fonction | Rôle |
 |---|---|
-| `std::vector<CompositionDeGroupe> compositionsOrdinaires()` | Nuée (5 à 7, poids 30, serrée), infanterie (1 à 3, poids 40), mélange (1 à 2 infanteries et 1 infanterie lourde, poids 30) ; `[[nodiscard]]` |
+| `std::vector<CompositionDeGroupe> compositionsOrdinaires()` | Nuée (5 à 7, poids 25, serrée), infanterie (1 à 3, poids 25), mélange (1 à 2 infanteries et 1 infanterie lourde, poids 20), tireurs (1 à 2 infanteries, 1 à 2 tireurs, poids 15), escouade (1 à 2 infanteries, 1 tireur, 1 soigneur, poids 15) ; `[[nodiscard]]` |
 | `CompositionDeGroupe compositionDeLaCreature()` | Une créature monstrueuse (1 à 1), poids 0 (jamais tirée) ; `[[nodiscard]]` |

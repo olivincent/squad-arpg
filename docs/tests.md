@@ -2180,3 +2180,39 @@ personnages (`compositionDeQuatre` : la composition de test et un deuxième prê
 - **Ce que les tests ne voient pas** : le dessin des onglets (couleur, classe, marque dorée, contour doré pendant un glissement), la disposition
   du panneau à l'écran, le survol à la souris (la traduction de `MouseMoved`, `deplacementDeLaSourisDInterface`, a besoin d'une `RenderWindow`),
   la formation de quatre en jeu, les quatre colonnes de la barre : à l'œil, en jouant.
+
+## Étape 107 : les monstres à rôles, le tireur et le soigneur
+
+1 845 tests avant l'étape, 1 885 après (+40), 0 avertissement sur les deux presets. Aucun test existant n'a changé d'attente : seuls les
+quatre appels de `Monstre::mettreAJour` des tests ont reçu le paramètre des alliés (`{}`).
+
+- **107.1** (+3) : `test_RoleDeMonstre.cpp` (nouveau : les quatre catégories d'avant sont des mêlées ; l'état initial est l'alternative de même
+  rang que le rôle ; `renforcer` garde le rôle).
+- **107.2** (+11) : `test_Monstre_tireur.cpp` (nouveau : attaque de projectile sans zone de contrôle ; frappe à distance sans contact ;
+  **recule de 80 px dans la direction opposée** au personnage au contact ; ne recule pas hors contact (32 px bord à bord) ; recule devant le **plus
+  proche** de deux ; n'engage pas de coup pendant son recul ; **au plus un recul par 8 s**, le premier tout de suite (il reste à 6 s, il recule
+  à 8 s) ; le recul **attend la fin du coup** en cours ; pas de recul en retour au poste (le monstre rentre vers son poste, dans le sens
+  opposé au recul) ; **un recul impossible** (deux colonnes de mur derrière lui) n'a pas lieu **et ne consomme pas le délai** : le personnage
+  passe de l'autre côté, le recul a lieu tout de suite) et `test_RoleDeMonstre.cpp` (les valeurs du tireur). Le test de cohérence « deux
+  catégories ne se ressemblent ni par la couleur ni par la taille » couvre le tireur sans changement.
+- **107.3** (+4) : `test_Partie_allies.cpp` (nouveau : `alliesDuGroupe` rend les autres monstres du groupe avec cercle et points de vie ; jamais
+  le monstre lui-même ni un monstre d'un autre groupe ; un monstre tué n'y est plus ; **un monstre qui rentre à son poste n'y est pas**, le
+  second membre d'un groupe de deux voyant son voisin disparaître de sa vue quand il abandonne).
+- **107.4** (+19) : `test_Monstre_soigneur.cpp` (nouveau : engage le soin sur le blessé à portée et en vue ; **plein, juste au seuil de 75 % (225
+  sur 300) et personne** : pas de soin, **224 sur 300** : soigné ; le plus blessé **en proportion** (10 sur 60 avant 100 sur 300) ; hors de portée il
+  marche vers le blessé plutôt que de frapper sa proie à 70 px ; **hors de vue** (même géométrie avec et sans mur) ; **0,8 s d'activation
+  immobile**, puis le soin part avec son montant, une seule fois ; **recharge de 6 s** (5,5 s : refusé, 6,5 s : accepté) ; un soin annulé ne
+  consomme pas de recharge ; **jamais un soin et un coup engagés ensemble**, dans les deux ordres ; sans rien à soigner, un tireur faible sans recul ;
+  un monstre qui n'est pas soigneur n'engage aucun soin ; `recevoirSoin` plafonné, nul en retour), `test_RoleDeMonstre.cpp`
+  (`choisirLeBlesse` : personne sous le seuil, proportion et non points perdus, égalité par identifiant dans les deux ordres, jamais un mort ;
+  `renforcer` majore le soin : 75 devient 98 au 3e étage) et `test_Partie_soigneur.cpp` (nouveau : **dans une partie**, une infanterie de
+  2 000 points de vie blessée par l'escouade est soignée de 75 par son soigneur, jamais le soigneur lui-même, sans critique).
+- **107.5** (+3) : `test_CoherenceDesDonnees.cpp` (**une composition qui contient un soigneur contient toujours un autre monstre garanti** ;
+  le rôle de chaque définition est cohérent avec ses valeurs : un soin est un skill de mode `Allie` avec un `EffetSoin` positif, une recharge et un
+  seuil entre 0 et 100 exclus, un recul a des valeurs positives, et **seule une attaque de contact a une zone de contrôle**),
+  `test_RoleDeMonstre.cpp` (le soigneur du catalogue : 75, 150, 6 s, 0,8 s, 75 %, attaque de portée 120), `test_TextesFlottants.cpp` (le soin
+  d'un monstre a le libellé et la couleur de celui d'un personnage, deux assertions de plus dans un test existant). Le catalogue de test
+  (`catalogueDeTest`) couvre les six catégories ; `soigneurSansHasard()` (`aides.hpp`) est le soigneur du jeu sans esquive ni butin.
+- **Ce que les tests ne voient pas** : la couleur des deux nouveaux carrés à l'écran (le brun orangé du tireur contre l'orange du paladin), le
+  recul et la marche du soigneur dans un vrai donjon (murs, portes, autres monstres), le texte vert sur le monstre soigné, l'équilibre des valeurs
+  (le soigneur rend 75 points toutes les 6 s, soit 12,5 par seconde) : à l'œil, en jouant.

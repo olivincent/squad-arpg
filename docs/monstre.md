@@ -50,7 +50,8 @@ déplacement par chemin dans `docs/chemin.md`.
 
 ## Catégories de monstres (étape 93)
 
-Section 11 de `docs/classes-et-combat.md`. Quatre catégories aux profils différents, pour que les différences
+Section 11 de `docs/classes-et-combat.md`. Quatre catégories aux profils différents (depuis l'étape 107, deux de plus, le tireur et le
+soigneur, qui ont un rôle : « Rôles » ci-dessous), pour que les différences
 entre armes, la pénétration et le critique se voient : avant, tous les monstres étaient identiques (300 points
 de vie, armure 3).
 
@@ -99,11 +100,98 @@ de vie, armure 3).
   les centres des cases ; marge de 4 px pour la créature).
 - **La créature est « simple »** : seulement ses valeurs. Ses règles propres (immunité au recul et à
   l'étourdissement, ne pas être bloquée par un seul personnage) viendront plus tard.
-- **Comportements** : inchangés et communs à toutes les catégories (détection, territoire, poursuite, retour au
+- **Comportements** (étape 93) : inchangés et communs aux quatre catégories d'alors (détection, territoire, poursuite, retour au
   poste, alerte du groupe). Une nuée n'est qu'un groupe de petits monstres qui s'alertent ensemble ; elle n'a
   ni cible commune, ni ancre, ni formation (voir `docs/generation.md` pour sa génération).
 - **Coût mesuré** (preset `jeu`, `docs/tests.md`) : une image de `Partie` au contact d'une nuée de 7, les autres
   groupes d'un niveau de 19 monstres en place, coûte en moyenne 0,04 ms (au pire 0,18 ms).
+
+## Rôles : le tireur et le soigneur (étape 107)
+
+Les quatre catégories d'avant ont toutes le même comportement (poursuite, frappe au contact). Deux nouvelles catégories, **Tireur** et
+**Soigneur**, ajoutent un *rôle* : ce qu'un monstre fait en plus de poursuivre et de frapper. Ni escouade de monstres, ni ancre, ni
+formation, ni cible commune : le groupe reste un identifiant, et `Partie` passe au soigneur les alliés de son groupe.
+
+- **Le rôle est une donnée de la définition** : `RoleDeMonstre = std::variant<RoleMelee, RoleTireur, RoleSoigneur>`
+  (`monstres/RoleDeMonstre.hpp`), sur le modèle d'`EffetDeSkill` : chaque alternative ne porte que ses champs, et `std::visit` fait
+  signaler par le compilateur tout rôle oublié (`Monstre::faireAvancerLeRole`, `agirSelonLeRole`, `renforcer`, `etatInitialDuRole`).
+  **Pas d'héritage de `Monstre`** : `Partie` garde un `std::vector<Monstre>` par valeur (une classe dérivée y serait tranchée), et un rôle
+  est une donnée d'équilibrage, pas une identité de type. Les quatre catégories d'avant ont `RoleMelee` et ne changent pas.
+- **Le rôle a deux moitiés** : la donnée (dans la définition, immuable) et l'état d'exécution (`EtatDuRole`, dans `m_etatDuRole`, de
+  même forme, construit par `etatInitialDuRole`). L'état **copie les données de son rôle** (`EtatTireur::role`,
+  `EtatSoigneur::role`) et y ajoute ce qui change : ainsi le monstre ne relit pas sa définition et on ne peut pas confondre l'état d'un
+  rôle avec les données d'un autre.
+- **Une définition = un rôle** : le tireur et le soigneur sont deux catégories du catalogue (`CategorieDeMonstre::Tireur`, `Soigneur`,
+  ajoutées à la fin de l'enum : les index existants ne bougent pas), pas un axe séparé du corps (pas de grille catégorie × rôle).
+
+### Le tireur
+
+- **Une attaque de projectile de portée 120 px** bord à bord, **sans zone de contrôle** (`zoneDeControle` 0, comme une arme à projectile
+  chez un personnage : la règle d'`Engagement` veut une zone `> 0`). Il s'arrête dès qu'il a une cible de frappe (règle commune) et
+  frappe donc à distance. `Profil` a quatre champs communs (portée, zone, nature, rôle) dont les valeurs par défaut sont celles de
+  mêlée ; seuls le tireur et le soigneur les remplacent.
+- **Le recul** (`Monstre::reculerSiAuContact`) : quand un personnage est au contact (bord à bord ≤ 20 px, `distanceDeContact`), il
+  recule de 80 px (`distanceDeRecul`) dans la direction opposée à ce personnage (le plus proche s'il y en a plusieurs), **au plus un recul
+  par tranche de 8 s** (`delaiEntreReculs`, `EtatTireur::delaiRestant` ; le premier est disponible tout de suite). **Seulement en
+  poursuite**, jamais pendant l'exécution d'un coup (le recul attend la fin du coup : `mettreAJour` rend la main avant), jamais en retour.
+  Pendant le recul (`EtatTireur::enRecul`) il ne poursuit pas et n'engage pas de coup (il bouge) ; arrivé ou bloqué (`estBloque`), il
+  reprend son comportement. Il subit le coup gratuit de la zone qu'il quitte (règle de l'étape 77 : c'est le prix du recul).
+- **Un recul impossible n'a pas lieu et ne consomme pas le délai** : la destination doit être **en vue** (`ligneDeVue`, en cases) et
+  `allerVers` doit donner un chemin. Écart avec le prompt, qui ne parlait que de mur et de chemin : sans la vue, un tireur adossé à un mur
+  fin pouvait « reculer » en contournant le mur par un long chemin.
+- **Les personnages au contact sont cherchés parmi les `candidats` de frappe** : un tireur provoqué ne voit que son provocateur. Limite
+  connue, à lever en lui passant tous les vivants si cela gêne.
+
+### Le soigneur
+
+- **Il soigne les membres de son groupe, jamais lui-même** : la vue des alliés (`Partie::alliesDuGroupe`, ci-dessous) ne contient pas le
+  monstre qui la reçoit. Jamais un monstre mort, en retour (déjà invulnérable et en régénération) ni à pleine vie.
+- **Le soin est un skill** (`RoleSoigneur::soin`, une `DefinitionDeSkill` de mode `Allie` avec un `EffetSoin`) : 75 points, portée 150 px
+  bord à bord **et en vue**, recharge fixe de 6 s (aucun tirage), activation de 0,8 s pendant laquelle le soigneur est immobile et
+  éclairci comme pendant un coup (`dessiner`). `EtatSoigneur::soin` en est la machine à états (`Skill`).
+- **Cible** (`choisirLeBlesse`, fonction pure) : le membre le plus blessé **en proportion** de ses points de vie maximum, parmi ceux
+  **strictement** sous 75 % (`seuilDeBlessure`) ; égalité : le plus petit identifiant. La comparaison est un produit en croix en entiers.
+- **Priorité** (`allerSoigner`, puis `Partie::faireAgirLeMonstre`) : soin prêt et blessé valide → s'il est à portée et en vue, il
+  s'arrête et le soin s'engage (`engagerSoin`) ; sinon il **marche vers le blessé** (`allerVers`, à chaque image comme la poursuite) ;
+  sans soin prêt ni blessé, il se comporte comme son attaque le décrit : **un tireur faible** (projectile de portée 120, 12 dégâts), **sans
+  recul**. Un soin et un coup ne sont jamais engagés en même temps (`engagerSoin` refuse pendant un coup, `engagerAttaque` pendant un
+  soin ; `Partie` tente le soin d'abord).
+- **Le monstre ne touche jamais un autre monstre.** `avancerSoin` rend un `SoinDeMonstre` (cible, montant) au départ ; c'est
+  `Partie::faireSoignerLeMonstre` qui l'applique au monstre visé (`Monstre::recevoirSoin`, par sa `Vitalite`) et signale l'événement
+  `Soin` (le même vert que les soins des personnages ; le texte flottant ne regarde pas le camp de la cible). **Annulé sans recharge**
+  si la cible disparaît, passe en retour ou est à pleine vie (vérifié à chaque image, donc au départ aussi). **Pas de critique** pour le
+  soin d'un monstre ; l'événement porte le montant réellement rendu (plafonné).
+- **`renforcer`** majore le montant du soin du même pourcentage que les dégâts (+15 % par étage au-delà du premier : 75 devient 98 au
+  3e étage).
+
+### La vue des alliés (étape 107.3)
+
+- **`Partie::alliesDuGroupe(monstre)`** est la seule fonction qui construit cette vue : les **autres** monstres de même groupe, vivants et
+  ciblables (pas ceux qui rentrent à leur poste), sous la forme d'un `AllieVu` (`combat/AllieVu.hpp` : identifiant, cercle, points de vie
+  et maximum). Une structure à part et non une instance d'`EntiteVue` : celle-ci est partagée par les deux camps et n'a pas de points de
+  vie. Elle est transmise à `Monstre::mettreAJour` (les rôles qui ne s'en servent pas l'ignorent). C'est le **point d'extension** où une
+  future escouade de monstres se branchera. Publique, pour que les tests la lisent ; le vecteur des monstres ne contient que des vivants,
+  le filtre `estVivant` est donc une garde.
+
+### Valeurs (« à tester », dans le tableau de `Profil`)
+
+| | PV | Armure | Attaque | Recharge | Exécution | Vitesse | Rayon | OA | DA | Esquive | Butin | XP | Couleur |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Tireur | 200 | 1 | 25 | 1,2 – 1,8 s | 0,4 s | 160 | 13 | 100 | 90 | 10 % / 10 % | 20 %, 1 | 12 | brun orangé (190, 110, 40) |
+| Soigneur | 180 | 1 | 12 | 1,5 – 2,5 s | 0,4 s | 150 | 12 | 90 | 90 | 5 % / 5 % | 25 %, 1 | 15 | turquoise (40, 160, 150) |
+
+Le brun orangé du tireur est plus sombre que l'orange du paladin (255, 140, 0) : à juger à l'écran. Côtés de 26 et 24 px, distincts de ceux
+des autres catégories (le test de cohérence l'exige).
+
+### Limites connues
+
+- Un tireur provoqué ne recule que devant son provocateur (voir plus haut). Le recul ne tient pas compte des autres monstres (ils sont des
+  obstacles, pas à contourner : le recul peut se bloquer contre l'un d'eux et se termine alors après 0,3 s).
+- Un soigneur ne soigne qu'en poursuite ; un groupe au repos qui aurait des blessés (aucun cas aujourd'hui : les blessures viennent d'un
+  combat, qui réveille le groupe) ne serait pas soigné. Un soigneur seul ne fait rien de plus qu'un tireur faible.
+- Un seul soigneur par groupe est prévu : deux soigneurs peuvent viser le même blessé (le second soin est annulé s'il est plein à son départ).
+- Ni soin de zone, ni auto-soin, ni critique ni interruption du soin d'un monstre ; pas de projectile visible ; pas de nom de monstre affiché.
+- Le tireur et le soigneur n'ont ni stratégie d'attaque ni cible commune : leur proie est celle de `Escouade::proieDuMonstre`.
 
 ## Butin (étape 97)
 
@@ -402,7 +490,7 @@ de vie, armure 3).
   même si la cible s'est éloignée, et touche ce personnage (`Escouade::recevoirCoup`).
   Une provocation survenue pendant l'exécution ne change pas la cible du coup
   en cours. Seule la mort du personnage visé l'annule, sans recharge
-  (`Partie::faireFrapperLeMonstre` appelle `annulerAttaque`) ; un monstre ne
+  (`Partie::faireAgirLeMonstre` appelle `annulerAttaque`) ; un monstre ne
   s'annule jamais lui-même.
 - **Indice visuel** : pendant l'exécution, le carré est éclairci de 50 %
   (`eclaircir`), le contour jaune du monstre verrouillé est inchangé.
@@ -562,7 +650,7 @@ Données membres : `m_mobile`, `m_couleur` (`sf::Color`, celle de la définition
 (`StatistiquesDeCombat`), `m_regenerationRetour`, `m_etat` (`Etat`,
 `enum class` privé : `EnGarde`, `Poursuite`, `Retour`), `m_poste`,
 `m_groupe` (`int`, opaque), `m_alerte` (`bool`, posé par `alerter`,
-consommé par `mettreAJour`), `m_soinAccumule` (`float`, points de vie rendus pas encore entiers pendant le retour, 0 ailleurs), `m_placeCibleEngagee` (`std::optional<Place>`, place du personnage visé par le coup en exécution). Toutes les valeurs d'équilibrage viennent de la `DefinitionDeMonstre` du constructeur (aucune constante publique).
+consommé par `mettreAJour`), `m_soinAccumule` (`float`, points de vie rendus pas encore entiers pendant le retour, 0 ailleurs), `m_placeCibleEngagee` (`std::optional<Place>`, place du personnage visé par le coup en exécution), `m_etatDuRole` (`EtatDuRole`, étape 107). Toutes les valeurs d'équilibrage viennent de la `DefinitionDeMonstre` du constructeur (aucune constante publique).
 
 | Fonction | Rôle |
 |---|---|
@@ -574,13 +662,19 @@ consommé par `mettreAJour`), `m_soinAccumule` (`float`, points de vie rendus pa
 | `bool estCiblable() const` | Faux en `Retour` (le monstre n'est la cible de personne, mais reste un obstacle) ; vrai sinon ; `[[nodiscard]]` |
 | `void dessiner(sf::RenderTarget& rendu, bool estCible, bool marquerLeRetour) const` | Dessine le monstre, de la couleur de sa définition (éclairci de 50 % pendant l'exécution d'un coup ; semi-transparent, alpha 128, s'il est en retour et que `marquerLeRetour`, c'est-à-dire F3) et sa barre de vie ; ajoute un contour jaune si `estCible` |
 | `void dessinerChemin(sf::RenderTarget& rendu) const` | Débogage (F3) : trait rouge fin du centre du monstre à travers son chemin restant |
-| `void mettreAJour(float dt, std::optional<PersonnageVu> proie, const std::vector<PersonnageVu>& candidats, const TileMap& carte, const std::vector<Cercle>& obstacles, const std::vector<Cercle>& aContourner)` | Décrémente la recharge. Pendant l'exécution d'un coup : arrête le monstre et le déplace (immobile), sans toucher à l'état. Sinon met à jour l'état (détection de la proie soumise à la ligne de vue, `proieDetectee`, seulement en `EnGarde` ; la poursuite ne dépend pas de la vue ; `Retour` ne se termine qu'à l'arrivée au poste, sans retour possible vers `Poursuite`), regagne des points de vie en `Retour` (50 % du maximum par seconde, par l'accumulateur `m_soinAccumule`) et donne ses ordres à `m_mobile` (poursuite de la proie, arrêt dès qu'une cible de frappe existe, retour au poste — le chemin du retour est aussi recalculé quand `estBloque()`), puis le déplace ; `obstacles` le bloquent, `aContourner` (les autres monstres, pas les personnages) est ce que ses chemins évitent |
+| `void mettreAJour(float dt, std::optional<PersonnageVu> proie, const std::vector<PersonnageVu>& candidats, const std::vector<AllieVu>& allies, const TileMap& carte, const std::vector<Cercle>& obstacles, const std::vector<Cercle>& aContourner)` | Décrémente la recharge (celle du soin d'un soigneur et le délai entre deux reculs d'un tireur aussi : `faireAvancerLeRole`). Pendant l'exécution d'un coup **ou d'un soin**, voir ci-dessous. En poursuite, le rôle passe d'abord (`agirSelonLeRole` : recul du tireur, marche du soigneur vers un blessé), puis la poursuite habituelle. `allies` : les autres membres ciblables et vivants du groupe (étape 107). Pendant l'exécution d'un coup : arrête le monstre et le déplace (immobile), sans toucher à l'état. Sinon met à jour l'état (détection de la proie soumise à la ligne de vue, `proieDetectee`, seulement en `EnGarde` ; la poursuite ne dépend pas de la vue ; `Retour` ne se termine qu'à l'arrivée au poste, sans retour possible vers `Poursuite`), regagne des points de vie en `Retour` (50 % du maximum par seconde, par l'accumulateur `m_soinAccumule`) et donne ses ordres à `m_mobile` (poursuite de la proie, arrêt dès qu'une cible de frappe existe, retour au poste — le chemin du retour est aussi recalculé quand `estBloque()`), puis le déplace ; `obstacles` le bloquent, `aContourner` (les autres monstres, pas les personnages) est ce que ses chemins évitent |
 | `bool peutAtteindre(Cercle cible, const TileMap& carte) const` | La cible est-elle à portée d'attaque (bord à bord) ET en vue (`ligneDeVue`, en cases) ? Même règle que `Escouade::peutAtteindre` ; `[[nodiscard]]` |
 | `bool engagerAttaque(std::optional<PersonnageVu> proie, const std::vector<PersonnageVu>& candidats, const TileMap& carte)` | Engage un coup (0,3 s d'exécution) sur la cible de frappe : faux s'il n'y en a pas, si le monstre est en retour, s'il est en mouvement ou si l'attaque n'est pas prête. La place choisie est retenue jusqu'au départ. `Partie` le tente à chaque image (l'échec est normal) ; `[[nodiscard]]` |
 | `std::optional<Place> cibleEngagee() const` | Place du personnage visé par le coup en exécution (pas forcément la proie) ; vide hors exécution |
 | `std::optional<PersonnageVu> cibleDeFrappe(...) const` (privée) | `choisirCibleAFrapper` avec `peutAtteindre` comme prédicat et l'id de la proie comme préféré : la proie si atteignable, sinon le candidat atteignable le plus proche (bord à bord ; égalité : le premier) |
 | `std::optional<Attaque> avancerAttaque(float dt, Generateur& generateur)` | Fait avancer l'exécution ; rend son attaque au départ du coup, vide sinon ; `[[nodiscard]]` |
 | `void annulerAttaque()` | Annule le coup en exécution, sans recharge consommée (appelée par `Partie` quand la proie engagée meurt) |
+| `bool engagerSoin(const std::vector<AllieVu>& allies, const TileMap& carte)` | Étape 107.4 : engage le soin sur `choisirLeBlesse(allies)` s'il est à portée du soin ET en vue ; faux pour un autre rôle, hors poursuite, pendant un coup, en mouvement, soin pas prêt ou personne à soigner ; `[[nodiscard]]` |
+| `std::optional<IdMonstre> cibleDuSoinEngage() const` | Le membre visé par le soin en activation ; vide hors activation (et pour tout monstre qui n'est pas soigneur) ; `[[nodiscard]]` |
+| `std::optional<SoinDeMonstre> avancerSoin(float dt, Generateur&)` | Fait avancer l'activation (0,8 s) ; rend `{cible, montant}` au départ, vide avant ; `[[nodiscard]]` |
+| `void annulerSoin()` | Annule le soin en activation, sans recharge consommée |
+| `int recevoirSoin(int montant)` | Rend les points réellement rendus (plafonnés au maximum) ; 0 en retour au poste ou pour un mort |
+| `int getPointsDeVieMax() const` | Points de vie maximum ; `[[nodiscard]]` |
 | `sf::Vector2f getCentre() const` | Centre du monstre |
 | `Cercle getCercle() const` | Cercle centré sur le monstre, de rayon la moitié du côté de sa définition (15 pour l'infanterie ; façade de `Mobile::getCercle`) |
 | `IdMonstre getId() const` | Identifiant du monstre |
@@ -599,12 +693,23 @@ Champs de `struct DefinitionDeMonstre` : `cote` (`float`, du carré, en pixels ;
 `zoneDeControle`, `regenerationRetour`, `attaque` (`DefinitionDeSkill` : portée, recharge, exécution, nature ; sa puissance vaut
 0), `degats` (`Degats` : les portions du coup par élément, étape 99.1), `statistiques` (`StatistiquesDeCombat` : capacités,
 esquives, et depuis l'étape 94 les résistances), `chanceDeButin` (en pour cent), `nombreDObjets` (étape 97) et `experience`
-(étape 99.2).
+(étape 99.2) et `role` (`RoleDeMonstre`, étape 107.1).
 
 | Fonction | Rôle |
 |---|---|
-| `using CatalogueDeMonstres = std::array<DefinitionDeMonstre, s_nombreDeCategoriesDeMonstre>` | Une définition par catégorie, indexée par `CategorieDeMonstre` |
-| `const CatalogueDeMonstres& catalogueDeMonstres()` | Les définitions des quatre catégories, construites une fois ; l'unique source de leurs valeurs ; `[[nodiscard]]` |
+| `using CatalogueDeMonstres = std::array<DefinitionDeMonstre, s_nombreDeCategoriesDeMonstre>` | Une définition par catégorie (six depuis l'étape 107), indexée par `CategorieDeMonstre` |
+| `const CatalogueDeMonstres& catalogueDeMonstres()` | Les définitions de toutes les catégories, construites une fois ; l'unique source de leurs valeurs ; `[[nodiscard]]` |
 | `const DefinitionDeMonstre& definitionDeMonstre(const CatalogueDeMonstres&, CategorieDeMonstre)` | La définition de cette catégorie dans ce catalogue (le seul endroit qui indexe le tableau) ; `[[nodiscard]]` |
 | `const DefinitionDeMonstre& definitionDeMonstre(CategorieDeMonstre)` | La même, dans le catalogue du jeu ; `[[nodiscard]]` |
-| `DefinitionDeMonstre renforcer(const DefinitionDeMonstre&, int profondeur)` | Étape 98.3 : la définition renforcée par la profondeur (points de vie +25 %, chaque portion des dégâts +15 %, capacités +10, expérience +25 %, par étage au-delà du premier ; arrondi au plus proche) ; pure ; l'identité au 1er étage ; `assert` : profondeur >= 1 ; `[[nodiscard]]` |
+| `DefinitionDeMonstre renforcer(const DefinitionDeMonstre&, int profondeur)` | Étape 98.3 : la définition renforcée par la profondeur (points de vie +25 %, chaque portion des dégâts +15 %, capacités +10, expérience +25 %, par étage au-delà du premier ; arrondi au plus proche ; depuis l'étape 107, le montant du soin d'un soigneur +15 % comme les dégâts) ; pure ; l'identité au 1er étage ; `assert` : profondeur >= 1 ; `[[nodiscard]]` |
+
+### `RoleDeMonstre` (`monstres/`) — ce qu'un monstre fait en plus de poursuivre et de frapper (étape 107)
+
+`RoleDeMonstre.hpp` / `.cpp`. Données : `RoleMelee {}`, `RoleTireur {distanceDeContact, distanceDeRecul, delaiEntreReculs}`,
+`RoleSoigneur {soin (DefinitionDeSkill), seuilDeBlessure}`, `RoleDeMonstre = std::variant<…>`. États, dans le monstre : `EtatMelee {}`,
+`EtatTireur {role, delaiRestant, enRecul}`, `EtatSoigneur {role, soin (Skill), cibleDuSoin}`, `EtatDuRole = std::variant<…>`.
+
+| Fonction | Rôle |
+|---|---|
+| `EtatDuRole etatInitialDuRole(const RoleDeMonstre&)` | L'état d'un monstre neuf : l'alternative de même rang, avec une copie des données du rôle ; `[[nodiscard]]` |
+| `std::optional<AllieVu> choisirLeBlesse(const std::vector<AllieVu>&, int seuilDeBlessure)` | Le plus blessé en proportion parmi ceux strictement sous le seuil (en pour cent) ; égalité : le plus petit identifiant ; vide si personne ; fonction pure ; `[[nodiscard]]` |

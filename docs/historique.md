@@ -124,6 +124,7 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 104 — Familles de butin et affinités d'affixes : le modèle se tire en deux temps (famille, puis gabarit), les proportions des familles sont les mêmes à toute profondeur, chaque gabarit penche vers quelques affixes ✅ (fin de la phase 6)
 - Étape 105 — Les skills en données (R4 et R5) : un mode de cible, une zone séparée de l'effet, un effet en `std::variant`, un seul canal de sortie, des types forts pour les places et les monstres, la provocation qui attend ✅ (première étape de la phase 7)
 - Étape 106 — L'escouade passe à 4 personnages : une seule constante de taille, l'échange d'objets entre personnages avec repli au sac, la barre de raccourcis par colonne, l'inventaire en onglets à côté d'un sac commun ✅ (le mana passe à l'étape 107)
+- Étape 107 — Monstres à rôles : le rôle en données (mêlée, tireur, soigneur), le tireur qui frappe de loin et recule au contact, la vue des alliés du groupe, le soigneur qui soigne les blessés de son groupe ✅ (le mana passe à l'étape 108)
 
 ## Détail des étapes 0 à 73
 
@@ -2498,4 +2499,26 @@ descente). 106.7 : la documentation. Décisions prises sans Olivier : la fixture
 suppose `s_tailleDeLEscouade` personnages) ; le panneau garde l'étiquette « Bag » au-dessus du sac et supprime l'en-tête de classe (l'onglet
 en tient lieu) ; le quatrième personnage des tests d'écran est un deuxième prêtre. 1 845 tests (+42), 0 avertissement de compilation sur les
 deux presets. Détail : `docs/formation.md` (« Quatre personnages »), `docs/ecrans.md`, `docs/objets.md` (« Le repli au sac »),
+`docs/boucle-et-entrees.md`, `docs/tests.md`.
+
+### Étape 107 — Monstres à rôles : le tireur et le soigneur ✅
+
+Le mana, prévu à l'étape 107, passe à l'étape 108. Les monstres reçoivent un **rôle** : ce qu'ils font en plus de poursuivre et de frapper. Pas
+d'objet « escouade de monstres » : le groupe reste un identifiant opaque et `Partie` passe au soigneur les alliés de son groupe. Cinq
+sous-étapes, un commit chacune (107.1 à 107.4 enchaînées, selon le prompt). 107.1 : `RoleDeMonstre = std::variant<RoleMelee, RoleTireur,
+RoleSoigneur>` dans la `DefinitionDeMonstre`, l'état d'exécution (`EtatDuRole`, de même forme, qui copie les données de son rôle) dans le
+monstre ; les quatre catégories d'avant sont des mêlées, aucun comportement ne change. 107.2 : la catégorie **Tireur** (200 points de vie,
+projectile de portée 120 px, aucune zone de contrôle) et son **recul** (au contact à 20 px bord à bord, 80 px dans la direction opposée, au
+plus un par 8 s, jamais pendant un coup ni en retour, un recul impossible ne consomme pas le délai), la composition « tireurs » ; les poids des
+compositions deviennent 25 / 25 / 20 / 15. 107.3 : **`Partie::alliesDuGroupe`**, l'unique construction de la vue des alliés (`AllieVu` :
+identifiant, cercle, points de vie et maximum ; les autres membres vivants et ciblables du groupe), transmise à `Monstre::mettreAJour`.
+107.4 : le **soin du soigneur** (skill de mode `Allie`, 75 points, 150 px en vue, recharge fixe de 6 s, activation de 0,8 s ; cible : le plus
+blessé en proportion sous 75 % ; priorité soin, puis marche vers le blessé, puis tireur faible sans recul ; annulé sans recharge si la cible
+meurt, rentre ou est pleine ; appliqué par `Partie`, qui signale un `Soin`), `renforcer` majore le soin comme les dégâts ; `faireFrapperLeMonstre`
+devient `faireAgirLeMonstre`. 107.5 : la catégorie **Soigneur** (180 points de vie), la composition « escouade » (poids 15, les cinq poids font
+100), la règle « un soigneur n'est jamais seul », le texte flottant du soin d'un monstre (aucun code : il ne regardait pas le camp), la
+documentation. Décisions prises sans Olivier : le recul exige aussi la vue sur la destination (un tireur adossé à un mur fin ne contourne pas
+le mur) ; le contact du tireur se lit sur ses candidats de frappe (un tireur provoqué ne recule que devant son provocateur) ; `AllieVu` est une
+structure à part plutôt qu'une instance d'`EntiteVue` (qui n'a pas de points de vie et que les deux camps partagent). 1 885 tests (+40),
+0 avertissement de compilation sur les deux presets. Détail : `docs/monstre.md` (« Rôles »), `docs/generation.md`,
 `docs/boucle-et-entrees.md`, `docs/tests.md`.

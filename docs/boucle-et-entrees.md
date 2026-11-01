@@ -457,13 +457,15 @@ fichier : un seul niveau, codé dans `Niveau.cpp`.
      du monstre *avant* qu'il ne bouge (vide si aucun n'est vivant) ; et
      `candidatsDeFrappe(id)` : le provocateur seul s'il est provoqué, sinon
      tous les vivants (étape 66) ;
-  2. `m.mettreAJour(dt, proie, candidats, carte, obstacles, autresMonstres)` : le monstre décide
-     seul de poursuivre, s'arrêter dès qu'il a une cible de frappe ou rentrer
-     (voir `docs/monstre.md`) ;
-  3. `faireFrapperLeMonstre` (étape 57) : un coup engagé avance, et part
+  2. `m.mettreAJour(dt, proie, candidats, allies, carte, obstacles, autresMonstres)` : le monstre décide
+     seul de poursuivre, s'arrêter dès qu'il a une cible de frappe ou rentrer, et selon son rôle de reculer
+     (tireur) ou de marcher vers un blessé (soigneur) (voir `docs/monstre.md`) ; `allies` est la vue de son
+     groupe, construite par `alliesDuGroupe(m)` (étape 107) ;
+  3. `faireAgirLeMonstre` (étape 57, `faireFrapperLeMonstre` avant l'étape 107) : un coup engagé avance, et part
      au bout de 0,3 s sur la place retenue (`escouade.recevoirCoup`), annulé
-     si ce personnage est mort ; sinon, un monstre immobile avec une cible de
-     frappe engage un coup (voir `docs/combat.md`).
+     si ce personnage est mort ; un soin engagé (soigneur) avance de même et, au départ, `faireSoignerLeMonstre`
+     le rend au monstre visé par `Monstre::recevoirSoin` et signale un `Soin` ; sinon, un monstre immobile tente
+     d'abord d'engager un soin, puis, avec une cible de frappe, un coup (voir `docs/combat.md`).
 - **Zones de contrôle** (étape 77) : deux photos des camps (`CampsDeControle`, privée à `Partie` :
   `EntiteDeControle` des monstres ciblables et des personnages vivants), l'une avant
   `escouade.mettreAJour`, l'autre après le tour des monstres. Un monstre qui passe en retour pendant

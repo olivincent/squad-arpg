@@ -8,7 +8,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 ## Étapes terminées
 
-Étapes 0 à 106 ✅. Les dernières :
+Étapes 0 à 107 ✅. Les dernières :
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 - Étape 83 — Inventaire et équipement : le modèle, sans interface ✅
@@ -35,15 +35,16 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - Étape 104 — Familles de butin et affinités d'affixes : le butin se répartit entre arme, armure, main gauche et bijou (35 / 35 / 15 / 15, à toute profondeur), chaque gabarit penche vers quelques affixes ✅ (la phase 6 est terminée)
 - Étape 105 — Les skills en données (R4 et R5) : un mode de cible, une zone séparée de l'effet, un effet en `std::variant`, un seul canal de sortie, des types forts `Place` et `IdMonstre`, la provocation qui attend ✅ (première étape de la phase 7)
 - Étape 106 — L'escouade passe à 4 personnages : une seule constante de taille, l'échange d'objets entre personnages avec repli au sac, la barre de raccourcis par colonne, l'inventaire en onglets à côté d'un sac commun ✅ (le mana passe à l'étape 107)
+- Étape 107 — Monstres à rôles : le rôle en données (mêlée, tireur, soigneur), le tireur qui frappe de loin et recule au contact, la vue des alliés du groupe, le soigneur qui soigne les blessés de son groupe ✅ (le mana passe à l'étape 108)
 
 ## État actuel (résumé)
 
 - **Outils** : conception dans Claude.ai, implémentation avec Claude Code dans VSCode (règles dans
   `CLAUDE.md`) ; dépôt Git `squad-arpg`, poussé sur GitHub ; SFML 3.0.2 intégrée à CMake.
-- **Code** (étape 106) : 108 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
+- **Code** (étape 107) : 110 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
   `combat`, `objets`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
   de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug` et `jeu`, 0
-  avertissement, 1 845 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers des étapes 98 à 102 : `docs/build.md`,
+  avertissement, 1 885 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers des étapes 98 à 102 : `docs/build.md`,
   `docs/audit.md`). `Escouade` n'est plus que l'assemblage : `Escouade.cpp` de 1 223 à 1 067 lignes. Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`). **Tout le texte affiché est en anglais** (identifiants, commentaires et documentation restent en français ; pas de système de traduction : `docs/glossaire.md` est la référence des noms du jeu). Un commit par sous-étape, fait par Claude Code (`CLAUDE.md`).
 - **Écrans** : menu à la souris, options d'affichage (fenêtré ou plein écran, résolutions,
   `reglages.ini`), choix de 4 classes parmi 5 (guerrier, prêtre, mage, paladin, rôdeur ; doublons
@@ -216,10 +217,22 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   monstres, infanterie, infanterie lourde, créature monstrueuse), chacune avec ses valeurs dans une
   `DefinitionDeMonstre` du catalogue (`docs/monstre.md`), sa couleur et sa taille ; le `Niveau` dit la catégorie de
   chaque monstre (`CategorieDeMonstre`). Le générateur peuple chaque salle sauf la première d'un groupe dont la
-  composition est une donnée (nuée de 5 à 7 en grappe, 1 à 3 infanteries, ou 1 à 2 infanteries avec 1 infanterie
-  lourde ; poids 30, 40, 30), plus une créature monstrueuse seule dans la salle la plus éloignée du départ
+  composition est une donnée (nuée de 5 à 7 en grappe, 1 à 3 infanteries, 1 à 2 infanteries avec 1 infanterie
+  lourde, 1 à 2 infanteries avec 1 à 2 tireurs, ou 1 à 2 infanteries avec 1 tireur et 1 soigneur ; poids 25, 25, 20, 15, 15),
+  plus une créature monstrueuse seule dans la salle la plus éloignée du départ
   (`docs/generation.md`). La créature n'a que ses valeurs (rayon réduit à 16, le chemin ne tenant pas compte du
   rayon contre les murs) ; ses règles propres (immunités, blocage) et l'escouade de monstres viendront plus tard.
+- **Monstres à rôles** (étape 107) : un **rôle** est une donnée de la définition (`RoleDeMonstre`, un `std::variant<RoleMelee,
+  RoleTireur, RoleSoigneur>` ; son état d'exécution est dans le monstre) ; **deux catégories de plus**, une définition = un rôle, les quatre
+  d'avant restent des mêlées. Le **tireur** (carré brun orangé, 200 points de vie) tire de loin (projectile, portée 120 px, aucune zone de
+  contrôle) et, quand un personnage est au contact (20 px bord à bord), **recule de 80 px** dans la direction opposée, au plus une fois par
+  8 s, jamais pendant un coup ni en retour ; il subit le coup gratuit de la zone qu'il quitte. Le **soigneur** (carré turquoise, 180 points
+  de vie) **soigne les membres blessés de son groupe, jamais lui-même** : le plus blessé en proportion sous 75 %, 75 points, à 150 px en
+  vue, activation de 0,8 s immobile, recharge de 6 s ; sans soin à faire il marche vers le blessé, sinon il tire faiblement de loin sans
+  reculer. Pas d'objet « escouade de monstres » : le groupe reste un identifiant, et `Partie::alliesDuGroupe` (`AllieVu`) est la **seule
+  construction de la vue des alliés**, le point d'extension de la future escouade de monstres. Le monstre ne touche jamais un autre monstre :
+  `Partie` applique son soin (texte flottant vert) ; `renforcer` majore le soin comme les dégâts. Tout est « à tester » (`docs/monstre.md`,
+  « Rôles »).
 - **Interface** : barre de raccourcis de 12 emplacements (Q W E R / A S D F / Z X C V, ou clic ;
   « l'interface d'abord »), compteur de monstres, écran de victoire ou de défaite ; F3 à F9 de
   débogage ; une touche devient une commande par une fonction pure, `commandePourTouche`
@@ -360,17 +373,32 @@ ce qui reste à décider **en discussion** avant son prompt :
   - 105 ✅ : R4 et R5 (voir ci-dessus) : le mode de cible, la zone et l'effet en données, un seul canal de sortie, les types forts, la
     provocation qui attend. Aucun nouveau skill ni nouvelle règle : c'est la structure qui accueillera la suite.
   - 106 ✅ : l'escouade passe à 4 personnages (voir « Quatre personnages et inventaire en onglets ») ; le mana, prévu à cette place, passe à
-    l'étape 107.
+    l'étape 108.
+  - 107 ✅ : les monstres à rôles (voir « Monstres à rôles ») : le rôle en données, le tireur et son recul, la vue des alliés du groupe, le
+    soigneur. Le mana, prévu à cette place, passe à l'étape 108.
   - À discuter avec Claude.ai : le mana (coûts, ressources de classe), les effets du Savoir et de la Volonté, puis les buffs,
     les affaiblissements, les effets dans le temps et les auras (plusieurs effets par skill).
 
 
-## Étape 107 (prochaine) : à discuter avec Claude.ai
+## Étape 108 (prochaine) : à discuter avec Claude.ai
 
-Les étapes 105 (les skills en données) et 106 (quatre personnages) sont faites. La suite se discute avec Claude.ai, après la conception des
-classes par Olivier : le mana, puis les effets du Savoir et de la Volonté. Le Savoir
+Les étapes 105 (les skills en données), 106 (quatre personnages) et 107 (les monstres à rôles) sont faites. La suite se discute avec
+Claude.ai, après la conception des classes par Olivier : le mana, puis les effets du Savoir et de la Volonté. Le Savoir
 et la Volonté n'ont encore aucun effet (les paires de croissance du prêtre et du mage deviendront justes quand ils serviront).
 L'`Expedition` garde les points dépensés ; c'est elle qu'on sauvegardera un jour.
+
+**Pistes issues de l'étape 107** (étapes à part, plus tard) :
+- **Ajuster en jouant** les valeurs du tireur et du soigneur (points de vie, recul de 80 px et délai de 8 s, soin de 75 points toutes les
+  6 s, seuil de 75 %, poids des compositions 25 / 25 / 20 / 15 / 15) et la couleur brun orangé du tireur, proche de l'orange du paladin :
+  tout est « à tester ».
+- **L'escouade de monstres** (ancre, formation, cible commune, retraite groupée) : `Partie::alliesDuGroupe` en est le point d'entrée ; elle
+  demandera de déplacer `Formation` et `PlacesDAttaque` hors d'`escouade/`.
+- **Un soigneur qui soigne hors poursuite**, un soin de zone, un auto-soin, un critique et une interruption du soin d'un monstre, deux
+  soigneurs qui se coordonnent (aujourd'hui ils peuvent viser le même blessé) : tous écartés de l'étape 107.
+- **Le tireur provoqué** ne recule que devant son provocateur (le contact se lit sur ses candidats de frappe) ; lui passer tous les
+  vivants si cela gêne. **Un projectile visible**, un nom de monstre affiché, d'autres rôles (un monstre qui invoque, qui protège) : une
+  alternative de plus dans `RoleDeMonstre` et dans `EtatDuRole`, le compilateur signale chaque `std::visit` à compléter.
+- **Une « stratégie d'attaque » par rôle** (`docs/brainstorm.md`, 4 bis) : la proie reste celle de `Escouade::proieDuMonstre` pour tous.
 
 **Pistes issues de l'étape 106** (étapes à part, plus tard) :
 - **Rééquilibrer pour quatre personnages** : points de vie et dégâts des monstres, nombre et composition des groupes, `k = 21` (un

@@ -48,7 +48,7 @@ squad-arpg/
 │   │               ObjetInteractif, Niveau, CategorieDeMonstre, CompositionDeGroupe, GenerateurDonjon, Encerclement
 │   ├── combat/     Skill, SkillConnu, IdSkill, ModeDeCible, EffetDeSkill, ResultatDEffet, Place, IdMonstre, TypeDArme, DescriptionDAttaque, PlageDeDegats, AdresseSkill, Cible, ActionEngagee, Progression,
 │   │               Element, Degats,
-│   │               EtatSkill, Coup, EvenementDeCombat, EntiteVue, Autodefense, Engagement,
+│   │               EtatSkill, Coup, EvenementDeCombat, EntiteVue, AllieVu, Autodefense, Engagement,
 │   │               Attaque, NatureDAttaque, StatistiquesDeCombat, Esquive, Critique, Blocage, Defense,
 │   │               ResolutionDuCoup, Caracteristiques, PointsDeVie, Vitalite
 │   ├── objets/     Emplacement, Affixe, Objet, CatalogueAffixes, CatalogueObjets, TypeDArmure, DonneesDArme, DonneesDeBouclier, ObjetsActifs, Equipement,
@@ -56,7 +56,7 @@ squad-arpg/
 │   ├── escouade/   Escouade, Personnage, Formation, PlacesDAttaque, Intention, Separation,
 │   │               EcartEntrePersonnages, TailleDeLEscouade, Composition, Specialite, SelectionDEscouade,
 │   │               Provocations, Agresseurs
-│   ├── monstres/   Monstre, DefinitionDeMonstre
+│   ├── monstres/   Monstre, DefinitionDeMonstre, RoleDeMonstre
 │   ├── jeu/        Partie, Expedition, ObjetAuSol, ObjetsAuSol
 │   ├── interface/  Ecran, Transition, Contexte, PileDEcrans, EntreeDInterface, EcranMenu,
 │   │               EcranOptions, EcranChoixEscouade, EcranJeu, EcranInventaire,
@@ -124,7 +124,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `Vision` : cases inconnues, explorées, visibles, et voile du brouillard (`docs/vision.md`).
 - `ObjetInteractif` : portes et point d'approche (`docs/carte-et-collision.md`).
 - `Niveau` : données d'un niveau (dont la catégorie de chaque monstre), `creerNiveau()` pour les tests (`docs/generation.md`).
-- `CategorieDeMonstre` : `Nuee`, `Infanterie`, `InfanterieLourde`, `CreatureMonstrueuse`, le nom seul, ici parce que `Niveau` et le
+- `CategorieDeMonstre` : `Nuee`, `Infanterie`, `InfanterieLourde`, `CreatureMonstrueuse`, `Tireur`, `Soigneur`, le nom seul, ici parce que `Niveau` et le
   générateur le nomment ; les valeurs sont dans `monstres/` (`docs/monstre.md`).
 - `CompositionDeGroupe` : la recette d'un groupe de monstres en données (catégories, nombres, poids), `compositionsOrdinaires()`,
   `compositionDeLaCreature()` (`docs/generation.md`).
@@ -153,6 +153,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `Coup` : une attaque à infliger à un monstre (`IdMonstre`), l'alternative « dégâts » de `ResultatDEffet`.
 - `EvenementDeCombat` : une cible (`std::variant<Place, IdMonstre, EscouadeEntiere>`), une position et un détail en variant (dégâts, soin, skill lancé, monstre provoqué, esquive, blocage…), en données (file de `Partie`) ; `detailsDuCoup` convertit le résultat d'un coup.
 - `EntiteVue<Identifiant>` : une entité telle que l'autre camp la voit (`MonstreVu`, `PersonnageVu`), et `trouverEntite`.
+- `AllieVu` : un monstre tel que les membres de son groupe le voient (identifiant, cercle, points de vie et maximum), construit par `Partie::alliesDuGroupe` et lu par le soigneur ; sans `.cpp` (`docs/monstre.md`).
 - `Autodefense` : quel ennemi frapper, quel agresseur viser.
 - `Engagement` : zones de contrôle (`EntiteDeControle<Identifiant>`, dans les deux sens), coups d'opportunité, monstre dont se dégager.
 - `Defense` : `appliquerArmure` et `armureAppliquee`, modèle M1 (soustraction avec plancher de 20 %, armure réduite par la pénétration de l'attaque), et `appliquerResistance` (résistance par élément, de −100 % à 80 %).
@@ -227,11 +228,12 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 
 `monstres/` :
 - `Monstre` : états, détection, territoire, poursuite, retour au poste, frappe (`docs/monstre.md`).
-- `DefinitionDeMonstre` : toutes les valeurs d'équilibrage d'un monstre, le catalogue des quatre catégories
+- `DefinitionDeMonstre` : toutes les valeurs d'équilibrage d'un monstre, le catalogue des six catégories
   (`catalogueDeMonstres()`, `definitionDeMonstre(catégorie)`) (`docs/monstre.md`).
+- `RoleDeMonstre` : ce qu'un monstre fait en plus de poursuivre et de frapper, un `std::variant` de données (`RoleMelee`, `RoleTireur`, `RoleSoigneur`) et son état d'exécution (`EtatDuRole`, de même forme, dans le monstre), `etatInitialDuRole`, `choisirLeBlesse` (`docs/monstre.md`, « Rôles »).
 
 `jeu/` :
-- `Partie` : un étage — règles de jeu, ordre d'une image, intermédiaire escouade/monstres (et seul tireur du `Generateur`, y compris pour F7 et le butin) ; se construit depuis un `Niveau` et une `Expedition`, rend l'`Expedition` de la partie en cours, renforce les monstres par la profondeur, prend l'escalier ; reçoit le catalogue des monstres (`docs/boucle-et-entrees.md`).
+- `Partie` : un étage — règles de jeu, ordre d'une image, intermédiaire escouade/monstres (et seul tireur du `Generateur`, y compris pour F7 et le butin) ; se construit depuis un `Niveau` et une `Expedition`, rend l'`Expedition` de la partie en cours, renforce les monstres par la profondeur, prend l'escalier ; reçoit le catalogue des monstres ; `alliesDuGroupe`, seule construction de la vue des alliés d'un monstre, et application du soin d'un soigneur (`docs/boucle-et-entrees.md`, `docs/monstre.md`).
 - `Expedition` : ce qui survit d'un étage à l'autre (profondeur, graine, personnages — classe, équipement et points libres dépensés —, sac, expérience totale ; le niveau, les points disponibles et les caractéristiques de base se calculent), `nouvelleExpedition` (seul endroit qui lit l'équipement de départ des recettes ; sac vide), `compositionDeLExpedition`, `etageSuivant`, `graineDEtage`, `s_profondeurMaximale` (`docs/boucle-et-entrees.md`).
 - `ObjetAuSol` : un objet posé au sol (identifiant, objet, position) (`docs/objets.md`).
 - `ObjetsAuSol` : les objets au sol d'un étage : identifiants jamais réutilisés, `poser` (où : `positionPour`, qui évite l'escalier), `retirer`, `trouver`, `sous` (le survol, avec la carte et la vision) ; `jeterUnObjet`, qui retire un objet de l'escouade et le pose au sol (`docs/objets.md`).
@@ -359,7 +361,7 @@ de modifier un module, lire le fichier correspondant :
 | `docs/chemin.md` | Recherche de chemin (A*), suivi de chemin (`Mobile`), lissage de chemin, trace de débogage | Avant de modifier `Chemin`, `Mobile` ou `TraceDeChemin` |
 | `docs/formation.md` | `Escouade` et `Personnage` : ancre, formation, orientation, séparation douce, verrou de cible, placement en combat, places d'attaque, intentions, mort et défaite ; `Formation`, `PlacesDAttaque`, `Intention`, `Separation`, `Composition`, `Specialite`, `Encerclement` | Avant de modifier `Escouade`, `Personnage`, `Formation`, `PlacesDAttaque`, `Intention`, `Separation`, `Composition`, `Specialite` ou `Encerclement` |
 | `docs/combat.md` | `Skill` (dont l'attaque de base), `Cercle`, portée bord à bord, autodéfense, `Cible`, skill en attente, circuit des dégâts, qui bloque qui, armure, caractéristiques, statistiques de combat et critique, aléatoire, zones de contrôle, événements et textes flottants | Avant de modifier un module de `combat/` ou de `base/`, `Provocations`, `Agresseurs`, `TextesFlottants`, `BarreDeVie` ou les listes d'obstacles |
-| `docs/monstre.md` | `Monstre` et `DefinitionDeMonstre` : définition, identifiant, états, détection, territoire, poursuite, retour au poste, riposte, statistiques de combat | Avant de modifier `Monstre` |
+| `docs/monstre.md` | `Monstre`, `DefinitionDeMonstre` et `RoleDeMonstre` : définition, identifiant, états, détection, territoire, poursuite, retour au poste, riposte, statistiques de combat, rôles (tireur, soigneur) | Avant de modifier `Monstre` |
 | `docs/objets.md` | Objets : emplacements et catégories, catalogue, armes (type, mains, attaque de base) et boucliers, rareté et affixes (invariants, catalogue d'affixes, effets), `Equipement`, `Inventaire`, armure calculée depuis l'équipement, règle des déplacements et des deux mains (`DeplacementDObjets`), génération aléatoire (`GenerationDObjets`), butin au sol (`ObjetAuSol`), opérations `ramasser` / `ramasserTout` / `deplacerObjet` de l'`Escouade`, `PositionDObjet` ; référence des modules d'`objets/` | Avant de modifier un module d'`objets/`, `ObjetAuSol`, `AffichageObjets`, `AffichageObjetsAuSol` ou l'équipement d'un `Personnage` |
 | `docs/aide-memoire-objets.md` | Aide-mémoire des objets et des maths du jeu, avec le statut de chaque valeur (en jeu, décidé, proposé) : caractéristiques, formules, déroulement d'un coup, éléments, gabarits d'armes et d'armures, boucliers, reliques, raretés et affixes, affinités d'affixes (étape 104), exemple de génération | Avant de discuter ou de changer une valeur d'objet, de gabarit ou de formule |
 | `docs/tests.md` | Tests (Catch2, conventions, dossiers, aides) | Avant d'ajouter ou de modifier un test |
