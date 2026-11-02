@@ -6,5 +6,6 @@
 // - `Soi` : aucune cible, le skill part du lanceur (la provocation) ;
 // - `Monstre` : un monstre, celui du verrou ou celui que le lanceur frapperait en autodéfense ;
 // - `Allie` : un personnage de l'escouade, le plus blessé ;
-// - `Point` : un point du monde que le joueur désigne (visée à la souris).
-enum class ModeDeCible { Soi, Monstre, Allie, Point };
+// - `Point` : un point du monde que le joueur désigne (visée à la souris) ;
+// - `Escouade` : toute l'escouade du lanceur, tous ses membres vivants, sans cible ni portée (un buff de groupe).
+enum class ModeDeCible { Soi, Monstre, Allie, Point, Escouade };

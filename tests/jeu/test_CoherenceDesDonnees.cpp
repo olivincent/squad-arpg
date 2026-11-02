@@ -11,6 +11,7 @@
 #include "combat/EffetDeSkill.hpp"
 #include "combat/Element.hpp"
 #include "combat/Esquive.hpp"
+#include "combat/ValeursEffectives.hpp"
 #include "combat/ModeDeCible.hpp"
 #include "combat/NatureDAttaque.hpp"
 #include "escouade/Specialite.hpp"
@@ -44,6 +45,25 @@ TEST_CASE("toute classe peut porter tout objet du catalogue au niveau 1") {
             REQUIRE(seuilsAtteints(Objet{modele.id}, classe.definition.caracteristiques));
         }
     }
+}
+
+TEST_CASE("un buff ne dure jamais plus longtemps que sa recharge, meme au plafond du bonus de duree") {
+    int buffs = 0;
+    for (const Specialite& classe : catalogue()) {
+        for (const SkillConnu& connu : classe.definition.skills) {
+            for (const EffetDeSkill& effet : connu.skill.getEffets()) {
+                const EffetModificateur* modificateur = std::get_if<EffetModificateur>(&effet);
+                if (modificateur == nullptr || modificateur->pourcentage < 0) {
+                    continue;
+                }
+                ++buffs;
+                INFO(classe.nom << " : " << connu.skill.getRechargeMin() << " s de recharge");
+                const float auPlafond = static_cast<float>(modificateur->duree) * (1.0f + modificateur->coefficientDeDuree * s_plafondDuBonusDeDuree);
+                REQUIRE(auPlafond <= connu.skill.getRechargeMin());
+            }
+        }
+    }
+    REQUIRE(buffs >= 1);  // la bénédiction du prêtre
 }
 
 namespace {

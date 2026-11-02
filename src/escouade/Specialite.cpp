@@ -28,6 +28,12 @@ constexpr float s_rayonVision = 320.0f;  // en pixels (8 cases), le même pour t
 constexpr int s_degatsSkill = 75;
 constexpr float s_rechargeSkill = 5.0f;   // en secondes
 constexpr float s_activationSkill = 0.3f; // en secondes, immobile avant que l'effet parte
+// Bénédiction du prêtre (étape 111, « à tester ») : un buff d'armure pour toute l'escouade. Un sort : sa durée profite de l'Intellect, mais
+// jamais au-delà de sa recharge (`Personnage::effetsActifsDuSkill`) ; 10 s de base avec +100 % au plafond font exactement les 20 s de la recharge.
+constexpr int s_bonusDArmureBenediction = 20;       // en pour cent de l'armure
+constexpr int s_dureeBenediction = 10;              // en secondes, de base
+constexpr float s_rechargeBenediction = 20.0f;      // en secondes
+constexpr float s_activationBenediction = 0.5f;     // en secondes, immobile avant que l'effet parte
 constexpr int s_malusDArmureFrappePuissante = -25;       // en pour cent de l'armure de la cible (« à tester »)
 constexpr int s_dureeMalusDArmureFrappePuissante = 8;    // en secondes
 constexpr float s_porteeSoin = 40.0f;     // bord à bord
@@ -179,7 +185,19 @@ std::vector<Specialite> construireLeCatalogue() {
                                             .rechargeMax = s_rechargeSoin,
                                             .effets = {EffetSoin{.montant = s_puissanceSoin, .coefficients = s_volonteSeule}},
                                             .tempsExecution = s_activationSoin,
-                                            .cout = coutDUnSort(s_rechargeSoin)})}},
+                                            .cout = coutDUnSort(s_rechargeSoin)})},
+           // Le coût suit la règle des techniques (57), pas celle des sorts (107, plus que la réserve de départ) : une recharge de 20 s
+           // ne se règle pas sur une réserve de 30 s.
+           {IdSkill::Benediction, Skill({.mode = ModeDeCible::Escouade,
+                                         .portee = 0.0f,
+                                         .rechargeMin = s_rechargeBenediction,
+                                         .rechargeMax = s_rechargeBenediction,
+                                         .effets = {EffetModificateur{.statistique = StatistiqueModifiable::Armure,
+                                                                      .pourcentage = s_bonusDArmureBenediction,
+                                                                      .duree = s_dureeBenediction,
+                                                                      .coefficientDeDuree = 1.0f}},
+                                         .tempsExecution = s_activationBenediction,
+                                         .cout = coutDUneTechnique(s_rechargeBenediction)})}},
           .equipementDeDepart = equipementDuPretre(IdObjet::Sceptre), .rayonVision = s_rayonVision,
           .caracteristiques = s_caracteristiquesPretre, .croissance = s_croissancePretre,
           .rang = Rang::Arriere}},

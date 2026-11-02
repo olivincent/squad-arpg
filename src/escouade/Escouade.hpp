@@ -91,6 +91,8 @@ public:
     [[nodiscard]] std::optional<int> pointsDeVieMaxDuPersonnage(Place place) const;
     // Les effets actifs du personnage de cette place (un buff posé par un allié) ; vide si la place est invalide.
     [[nodiscard]] std::optional<EffetsActifs> effetsDuPersonnage(Place place) const;
+    // Son armure effective, effets actifs compris (l'inventaire l'affiche) ; vide si la place est invalide.
+    [[nodiscard]] std::optional<int> armureDuPersonnage(Place place) const;
     // Énergie et énergie maximum du personnage de cette place ; vide si la place est invalide. Lues par l'écran d'inventaire et par
     // les tests (le jeu montre sinon l'énergie par la barre dessinée sous la barre de vie).
     [[nodiscard]] std::optional<int> energieDuPersonnage(Place place) const;

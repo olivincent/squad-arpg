@@ -188,7 +188,7 @@ void Escouade::engagerSkillDeZoneEnAttente(const TileMap& carte) {
     m_skillEnAttente = std::nullopt;
 }
 
-// Skill sans cible (mode `Soi`) en attente : son activation commence dès que son lanceur est libre (aucun skill en activation). Il
+// Skill sans cible (mode `Soi` ou `Escouade`) en attente : son activation commence dès que son lanceur est libre (aucun skill en activation). Il
 // n'a ni portée ni point à atteindre, et personne ne marche pour lui. La mort du lanceur l'annule (avancerSkillEnAttente).
 void Escouade::engagerSkillSurSoiEnAttente() {
     if (!m_skillEnAttente.has_value() || m_skillEnAttente->cible.has_value()) {
@@ -306,6 +306,16 @@ Escouade::EntitesTouchees Escouade::entitesTouchees(const Skill& skill, Place la
                                                     const std::vector<MonstreVu>& monstres, const TileMap& carte) const {
     const CampTouche camp = campTouche(skill.getEffet());
     EntitesTouchees touchees;
+
+    // Toute l'escouade du lanceur : chaque membre vivant, sans portée ni ligne de vue.
+    if (skill.getMode() == ModeDeCible::Escouade) {
+        for (std::size_t i = 0; i < m_personnages.size(); ++i) {
+            if (m_personnages[i].estVivant()) {
+                touchees.allies.push_back(Place::depuisIndice(i));
+            }
+        }
+        return touchees;
+    }
 
     const std::optional<float> rayon = personnageDeLaPlace(lanceur).rayonEffectifDuSkill(skill);
     if (!rayon.has_value()) {
@@ -454,10 +464,10 @@ std::vector<ResultatDEffet> Escouade::declencherSkill(AdresseSkill adresse, cons
         return refusSansEnergie(place);
     }
 
-    // Soi (la provocation) : sans cible, centré sur le lanceur. Son activation commence tout de suite si le lanceur est libre ; sinon
+    // Soi (la provocation) et Escouade (un buff de groupe) : sans cible, centrés sur le lanceur. Son activation commence tout de suite si le lanceur est libre ; sinon
     // (il active un autre skill) il est mis en attente, comme un skill à cible, et part dès que le lanceur est libre. Il touche les
     // monstres au départ, même s'il n'y en a aucun (la recharge est alors consommée).
-    if (*mode == ModeDeCible::Soi) {
+    if (*mode == ModeDeCible::Soi || *mode == ModeDeCible::Escouade) {
         if (lanceur.peutEngagerSkill(id)) {
             [[maybe_unused]] const bool engage = lanceur.engagerSkill(id, std::nullopt);
             assert(engage);
@@ -556,6 +566,13 @@ std::optional<int> Escouade::pointsDeVieDuPersonnage(Place place) const {
         return std::nullopt;
     }
     return personnageDeLaPlace(place).getPointsDeVie();
+}
+
+std::optional<int> Escouade::armureDuPersonnage(Place place) const {
+    if (!placeValide(place)) {
+        return std::nullopt;
+    }
+    return personnageDeLaPlace(place).getArmure();
 }
 
 std::optional<EffetsActifs> Escouade::effetsDuPersonnage(Place place) const {
@@ -1194,8 +1211,8 @@ bool Escouade::unVivantPresDe(sf::FloatRect zone, float ecart) const {
 }
 
 std::optional<Cible> Escouade::choisirCible(ModeDeCible mode, AdresseSkill adresse, const std::vector<MonstreVu>& monstres, const TileMap& carte) const {
-    // Soi et Point : pas de cible à choisir (le point est celui du clic).
-    if (mode == ModeDeCible::Soi || mode == ModeDeCible::Point) {
+    // Soi, Escouade et Point : pas de cible à choisir (le point est celui du clic).
+    if (mode == ModeDeCible::Soi || mode == ModeDeCible::Escouade || mode == ModeDeCible::Point) {
         return std::nullopt;
     }
     if (mode == ModeDeCible::Monstre) {

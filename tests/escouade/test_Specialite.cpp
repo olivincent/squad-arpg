@@ -646,6 +646,28 @@ TEST_CASE("frappe puissante : ses degats, puis -25 % d'armure sur la cible penda
     REQUIRE(malus.coefficientDeDuree == 0.0f);
 }
 
+TEST_CASE("benediction : le pretre la connait, un buff d'armure de +20 % pendant 10 s pour toute l'escouade, recharge de 20 s") {
+    const Skill* benediction = nullptr;
+    for (const SkillConnu& connu : specialite(IdSpecialite::Pretre).definition.skills) {
+        if (connu.id == IdSkill::Benediction) {
+            benediction = &connu.skill;
+        }
+    }
+    REQUIRE(benediction != nullptr);
+
+    REQUIRE(benediction->getMode() == ModeDeCible::Escouade);
+    REQUIRE_FALSE(benediction->getRayonZone().has_value());
+    REQUIRE(benediction->getRechargeMin() == 20.0f);
+    REQUIRE(benediction->getEffets().size() == 1);
+    const EffetModificateur& buff = std::get<EffetModificateur>(benediction->getEffet());
+    REQUIRE(buff.statistique == StatistiqueModifiable::Armure);
+    REQUIRE(buff.pourcentage == 20);
+    REQUIRE(buff.duree == 10);
+    REQUIRE(buff.coefficientDeDuree == 1.0f);  // un sort : sa durée profite de l'Intellect
+    REQUIRE(benediction->getCout() == 57);     // technique de 20 s
+    REQUIRE(specialite(IdSpecialite::Pretre).definition.skills.size() == 2);
+}
+
 TEST_CASE("coefficients d'aire : l'explosion, un sort, profite de l'Intellect ; la pluie de fleches et la provocation, non") {
     for (const Specialite& classe : catalogue()) {
         for (const SkillConnu& connu : classe.definition.skills) {

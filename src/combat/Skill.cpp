@@ -30,6 +30,8 @@ Skill::Skill(const DefinitionDeSkill& definition)
     // On vise un monstre pour lui faire des dégâts ou le provoquer, un allié pour le soigner.
     assert(m_mode != ModeDeCible::Monstre || campTouche(m_effets.front()) == CampTouche::Monstres);
     assert(m_mode != ModeDeCible::Allie || campTouche(m_effets.front()) == CampTouche::Allies);
+    // Toute l'escouade : un skill sans zone ni portée qui touche les alliés (un buff).
+    assert(m_mode != ModeDeCible::Escouade || (campTouche(m_effets.front()) == CampTouche::Allies && !m_rayonZone.has_value()));
     // Un modificateur principal est un buff, posé sur les alliés ; un affaiblissement n'existe que derrière un coup.
     assert(!std::holds_alternative<EffetModificateur>(m_effets.front()) || campTouche(m_effets.front()) == CampTouche::Allies);
     // Les effets secondaires sont des modificateurs qui suivent des dégâts ou une frappe et touchent le même camp que lui : `Escouade`
@@ -118,6 +120,10 @@ float Skill::getRechargeRestante() const {
 
 ModeDeCible Skill::getMode() const {
     return m_mode;
+}
+
+float Skill::getRechargeMin() const {
+    return m_rechargeMin;
 }
 
 const EffetDeSkill& Skill::getEffet() const {

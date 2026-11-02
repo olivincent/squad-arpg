@@ -74,6 +74,8 @@ public:
     void relancerRecharge(Generateur& generateur);
     [[nodiscard]] float getProgressionRecharge() const;
     [[nodiscard]] float getRechargeRestante() const;
+    // La plus courte recharge possible, en secondes : un buff ne dure jamais plus longtemps.
+    [[nodiscard]] float getRechargeMin() const;
     [[nodiscard]] ModeDeCible getMode() const;
     // L'effet principal : le premier de la liste.
     [[nodiscard]] const EffetDeSkill& getEffet() const;

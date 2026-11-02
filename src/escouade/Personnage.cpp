@@ -5,6 +5,7 @@
 #include "combat/ValeursEffectives.hpp"
 #include "rendu/BarreDeVie.hpp"
 #include "rendu/BarreDEnergie.hpp"
+#include "rendu/MarquesDEffets.hpp"
 #include "monde/Chemin.hpp"
 #include "base/Eclaircir.hpp"
 #include "monde/TileMap.hpp"
@@ -84,6 +85,8 @@ void Personnage::dessiner(sf::RenderTarget& rendu) const {
     const sf::Vector2f positionBarre = positionBarreDeVie(getCentre(), taille);
     dessinerBarreDeVie(rendu, positionBarre, taille.x, m_vitalite.getRatio());
     dessinerBarreDEnergie(rendu, positionBarreDEnergie(getCentre(), taille), taille.x, m_energie.getRatio());
+    dessinerMarquesDEffets(rendu, positionMarquesDEffets(getCentre(), taille), m_vitalite.getEffets().nombreDeBonus(),
+                           m_vitalite.getEffets().nombreDeMalus());
 }
 
 void Personnage::mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte, const std::vector<Cercle>& obstacles,
@@ -347,6 +350,10 @@ const EffetsActifs& Personnage::getEffets() const {
     return m_vitalite.getEffets();
 }
 
+int Personnage::getArmure() const {
+    return m_vitalite.getArmure();
+}
+
 int Personnage::getPointsDeVie() const {
     return m_vitalite.getValeur();
 }
@@ -529,8 +536,12 @@ std::vector<EffetActif> Personnage::effetsActifsDuSkill(const Skill& skill, IdSk
     for (const EffetDeSkill& effet : skill.getEffets()) {
         // Seul le modificateur pose un effet actif pour l'instant ; les autres sortes d'effet actif (étapes 112 à 114) s'ajouteront ici.
         if (const auto* modificateur = std::get_if<EffetModificateur>(&effet)) {
+            float duree = dureeEffective(static_cast<float>(modificateur->duree), modificateur->coefficientDeDuree, m_caracteristiques);
+            if (modificateur->pourcentage >= 0) {
+                duree = std::min(duree, skill.getRechargeMin());  // un buff ne dure jamais plus longtemps que sa recharge
+            }
             effets.push_back({.source = id,
-                              .dureeRestante = dureeEffective(static_cast<float>(modificateur->duree), modificateur->coefficientDeDuree, m_caracteristiques),
+                              .dureeRestante = duree,
                               .sorte = ModificateurDeStatistique{.statistique = modificateur->statistique, .pourcentage = modificateur->pourcentage}});
         }
     }

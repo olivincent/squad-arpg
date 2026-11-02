@@ -11,5 +11,6 @@ enum class IdSkill {
     FrappeSacree,
     ImpositionDesMains,
     TirPercant,
-    PluieDeFleches
+    PluieDeFleches,
+    Benediction
 };

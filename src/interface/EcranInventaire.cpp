@@ -26,6 +26,7 @@
 #include "escouade/Escouade.hpp"
 #include "escouade/TailleDeLEscouade.hpp"
 #include "interface/AffichageCaracteristiques.hpp"
+#include "interface/AffichageEffets.hpp"
 #include "interface/AffichageStatistiques.hpp"
 #include "interface/AffichageNiveau.hpp"
 #include "interface/AffichageObjets.hpp"
@@ -67,6 +68,8 @@ constexpr float s_epaisseurInactif = 3.0f;
 constexpr float s_epaisseurSurbrillance = 3.0f;
 const sf::Color s_couleurAttenuation(40, 40, 40, 190);  // sur l'origine du glissement : le panneau, presque opaque
 const sf::Color s_couleurDesPointsLibres(255, 215, 0);  // « Points: N »
+const sf::Color s_couleurDUnBonus(110, 220, 110);   // un effet actif qui aide
+const sf::Color s_couleurDUnMalus(230, 80, 80);     // un effet actif qui handicape
 const sf::Color s_couleurEnAttente(110, 220, 110);      // « (+2) » : ce qui est en attente dans une caractéristique
 constexpr float s_assombrissementDesOngletsFermes = 0.55f;  // part de noir mélangée à la couleur d'un onglet fermé
 constexpr float s_epaisseurDeLOngletOuvert = 2.0f;
@@ -257,8 +260,8 @@ void dessinerColonne(sf::RenderTarget& rendu, const sf::Font& police, const Esco
                      sf::Vector2f tailleDeVue, const Caracteristiques& enAttente) {
     const Equipement& equipement = escouade.equipementDuPersonnage(place);
     const sf::FloatRect zoneArmure = rectangleDeLArmure(tailleDeVue);
-    // L'armure qui a un effet : celle des objets actifs.
-    sf::Text armure = texte(police, "Armor: " + std::to_string(escouade.equipementActifDuPersonnage(place).armureTotale()), s_tailleArmure, sf::Color::White);
+    // L'armure qui joue : celle des objets actifs, modifiée par les effets actifs.
+    sf::Text armure = texte(police, "Armor: " + std::to_string(escouade.armureDuPersonnage(place).value_or(0)), s_tailleArmure, sf::Color::White);
     armure.setPosition(zoneArmure.position + sf::Vector2f{s_margeDuTexte, 0.0f});
     rendu.draw(armure);
     // Sous le nom du personnage : ce qu'il lui reste à répartir, brouillon déduit, tant qu'il a des points libres.
@@ -282,6 +285,22 @@ void dessinerColonne(sf::RenderTarget& rendu, const sf::Font& police, const Esco
     dessinerLesCaracteristiques(rendu, police, escouade, place, tailleDeVue, enAttente);
     dessinerLesStatistiques(rendu, police, escouade, place, tailleDeVue);
     dessinerLesResistances(rendu, police, escouade, place, tailleDeVue);
+}
+
+// À droite de la colonne, sous le sac : les effets actifs du personnage ouvert, une ligne chacun (nom du skill, valeur, secondes
+// restantes), en vert pour un bonus et en rouge pour un malus.
+void dessinerLesEffetsActifs(sf::RenderTarget& rendu, const sf::Font& police, const Escouade& escouade, Place place,
+                             sf::Vector2f tailleDeVue) {
+    sf::Text titre = texte(police, titreDesEffetsActifs(), s_tailleEtiquetteDuSac, sf::Color::White);
+    titre.setPosition(rectangleDesEffetsActifs(tailleDeVue).position);
+    rendu.draw(titre);
+    const std::vector<EffetActif> effets = escouade.effetsDuPersonnage(place).value_or(EffetsActifs()).liste();
+    for (std::size_t i = 0; i < effets.size() && i < s_lignesDEffetsActifs; ++i) {
+        sf::Text ligne = texte(police, ligneDEffetActif(effets[i]), s_tailleCaracteristique,
+                               estUnBonus(effets[i]) ? s_couleurDUnBonus : s_couleurDUnMalus);
+        ligne.setPosition(rectangleDeLEffetActif(i, tailleDeVue).position);
+        rendu.draw(ligne);
+    }
 }
 
 // Le sac : une case par indice, vide, ou avec le sigle de son objet.
@@ -584,6 +603,7 @@ void EcranInventaire::dessiner(const Contexte& contexte) const {
     dessinerLesOnglets(fenetre, contexte.police, m_escouade, m_ouverte, m_nomsDesClasses, tailleVue, ongletsDeDestination());
     dessinerColonne(fenetre, contexte.police, m_escouade, m_ouverte, tailleVue, m_enAttente[m_ouverte.indice()]);
     dessinerLeSac(fenetre, contexte.police, m_escouade.sac(), tailleVue);
+    dessinerLesEffetsActifs(fenetre, contexte.police, m_escouade, m_ouverte, tailleVue);
 
     // Dernières, par-dessus tout le reste.
     if (m_origine.has_value()) {

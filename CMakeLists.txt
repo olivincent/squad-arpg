@@ -66,6 +66,7 @@ add_library(squad_core STATIC
     src/interface/CommandeDeTouche.cpp
     src/interface/AffichageCaracteristiques.cpp
     src/interface/AffichageNiveau.cpp
+    src/interface/AffichageEffets.cpp
     src/interface/AffichageStatistiques.cpp
     src/interface/AffichageObjets.cpp
     src/interface/AffichageObjetsAuSol.cpp
@@ -183,6 +184,7 @@ add_executable(tests
     tests/combat/test_Engagement.cpp
     tests/interface/test_AffichageCaracteristiques.cpp
     tests/interface/test_AffichageNiveau.cpp
+    tests/interface/test_AffichageEffets.cpp
     tests/interface/test_AffichageStatistiques.cpp
     tests/interface/test_AffichageObjets.cpp
     tests/interface/test_AffichageSkills.cpp

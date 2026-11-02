@@ -30,6 +30,8 @@ public:
     // Pose un effet actif (`EffetsActifs::poser` : le même skill rafraîchit, deux skills se cumulent). Sans effet sur un mort.
     void poserEffet(const EffetActif& effet);
     [[nodiscard]] const EffetsActifs& getEffets() const;
+    // L'armure qui joue contre le prochain coup : celle des défenses, effets actifs compris (`appliquerLesEffets`).
+    [[nodiscard]] int getArmure() const;
     // Le blocage n'est pas en récupération : un blocage est tenté au prochain coup.
     [[nodiscard]] bool blocagePret() const;
     // Change le maximum des points de vie (`PointsDeVie::changerMaximum`). Précondition : `maximum > 0`.

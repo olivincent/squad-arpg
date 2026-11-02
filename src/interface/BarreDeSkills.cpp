@@ -68,6 +68,8 @@ std::string sigleDuSkill(IdSkill id) {
             return "PC";
         case IdSkill::PluieDeFleches:
             return "RA";
+        case IdSkill::Benediction:
+            return "BL";
     }
     return "??";
 }

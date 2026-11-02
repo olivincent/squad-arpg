@@ -122,6 +122,8 @@ public:
     // effet sur un mort ; la mort retire tous les effets. Ils passent au-dessus de ses défenses, recalculées sans les perdre.
     void poserEffet(const EffetActif& effet);
     [[nodiscard]] const EffetsActifs& getEffets() const;
+    // Son armure effective : celle de son équipement actif, modifiée par ses effets actifs.
+    [[nodiscard]] int getArmure() const;
     [[nodiscard]] bool estVivant() const;
     [[nodiscard]] int getPointsDeVie() const;
     [[nodiscard]] int getPointsDeVieMax() const;

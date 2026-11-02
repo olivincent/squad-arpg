@@ -51,6 +51,10 @@ const EffetsActifs& Vitalite::getEffets() const {
     return m_effets;
 }
 
+int Vitalite::getArmure() const {
+    return appliquerLesEffets(m_defenses, m_effets).armure;
+}
+
 bool Vitalite::blocagePret() const {
     return m_recuperationDuBlocage <= 0.0f;
 }

@@ -37,6 +37,9 @@ std::vector<sf::FloatRect> tousLesRectangles(sf::Vector2f vue) {
         rectangles.push_back(rectangleDeLEmplacement(static_cast<Emplacement>(i), vue));
     }
     rectangles.push_back(rectangleDeLEtiquetteDuSac(vue));
+    for (std::size_t ligne = 0; ligne < s_lignesDEffetsActifs; ++ligne) {
+        rectangles.push_back(rectangleDeLEffetActif(ligne, vue));
+    }
     for (std::size_t indice = 0; indice < s_casesDuSac; ++indice) {
         rectangles.push_back(rectangleDeLaCaseDuSac(indice, vue));
     }

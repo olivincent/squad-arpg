@@ -257,6 +257,7 @@ inline constexpr int s_malusDArmureDeTest = -25;         // en pour cent
 inline constexpr int s_dureeMalusDArmureDeTest = 8;      // en secondes
 inline constexpr int s_bonusDArmureDeTest = 20;          // en pour cent
 inline constexpr int s_dureeBonusDArmureDeTest = 10;     // en secondes
+inline constexpr float s_rechargeBonusDArmureDeTest = 20.0f;  // en secondes : au plafond de durée (+100 %), 10 s de base font exactement 20 s
 
 inline DefinitionPersonnage guerrierQuiAffaiblit() {
     DefinitionPersonnage guerrier = guerrierDeTest();
@@ -274,14 +275,31 @@ inline DefinitionPersonnage guerrierQuiAffaiblit() {
     return guerrier;
 }
 
+// Le même buff pour toute l'escouade (mode `Escouade`, sans portée), comme la bénédiction du prêtre ; `duree` et `recharge` en secondes.
+inline DefinitionPersonnage pretreQuiBenitToutLeMonde(int duree = s_dureeBonusDArmureDeTest, float recharge = s_rechargeBonusDArmureDeTest) {
+    DefinitionPersonnage pretre = pretreDeTest();
+    pretre.skills.front() = SkillConnu{
+        IdSkill::Benediction,
+        Skill({.mode = ModeDeCible::Escouade,
+               .portee = 0.0f,
+               .rechargeMin = recharge,
+               .rechargeMax = recharge,
+               .effets = {EffetModificateur{.statistique = StatistiqueModifiable::Armure,
+                                            .pourcentage = s_bonusDArmureDeTest,
+                                            .duree = duree,
+                                            .coefficientDeDuree = 1.0f}},
+               .tempsExecution = s_activationSoinDeTest})};
+    return pretre;
+}
+
 inline DefinitionPersonnage pretreQuiBenit() {
     DefinitionPersonnage pretre = pretreDeTest();
     pretre.skills.front() = SkillConnu{
         IdSkill::Soin,
         Skill({.mode = ModeDeCible::Allie,
                .portee = s_porteeSoinDeTest,
-               .rechargeMin = s_rechargeSoinDeTest,
-               .rechargeMax = s_rechargeSoinDeTest,
+               .rechargeMin = s_rechargeBonusDArmureDeTest,
+               .rechargeMax = s_rechargeBonusDArmureDeTest,
                .effets = {EffetModificateur{.statistique = StatistiqueModifiable::Armure,
                                             .pourcentage = s_bonusDArmureDeTest,
                                             .duree = s_dureeBonusDArmureDeTest,

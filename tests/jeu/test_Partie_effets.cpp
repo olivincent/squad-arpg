@@ -71,6 +71,24 @@ TEST_CASE("effets : frapper de nouveau pendant l'effet le rafraichit, il n'y en 
     REQUIRE(effetsDuMonstre(partie).liste()[0].dureeRestante > static_cast<float>(s_dureeMalusDArmureDeTest) - 0.5f);
 }
 
+TEST_CASE("effets : descendre d'un etage retire tous les effets actifs, la benediction comprise") {
+    Partie partie = partieDeTest(niveauDegage({{235.0f, 170.0f}}), {guerrierDeTest(), pretreQuiBenitToutLeMonde(), mageDeTest()},
+                                 s_graineDeTest, monstreIndestructible());
+    partie.demanderSkill({Place{2}, IdSkill::Benediction});
+    avancer(partie, nombreDeTics(0.8f));
+    for (const Place place : {Place{1}, Place{2}, Place{3}}) {
+        REQUIRE(partie.getEscouade().effetsDuPersonnage(place)->liste().size() == 1);
+    }
+    const int armureBenie = *partie.getEscouade().armureDuPersonnage(Place{1});
+
+    const Partie suivante(niveauDegage({{235.0f, 170.0f}}), etageSuivant(partie.expedition()), s_graineDeTest, catalogueDeTest(monstreSansHasard()));
+
+    for (const Place place : {Place{1}, Place{2}, Place{3}}) {
+        REQUIRE(suivante.getEscouade().effetsDuPersonnage(place)->liste().empty());
+    }
+    REQUIRE(*suivante.getEscouade().armureDuPersonnage(Place{1}) < armureBenie);
+}
+
 TEST_CASE("effets : un skill sans effet actif n'en pose pas") {
     Partie partie = unePartie(niveauDegage({{235.0f, 170.0f}}), s_graineDeTest);
 

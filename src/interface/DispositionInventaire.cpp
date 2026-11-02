@@ -182,6 +182,18 @@ sf::FloatRect rectangleDeLaCaseDuSac(std::size_t indice, sf::Vector2f tailleDeVu
     return {{x, y}, {s_cote, s_cote}};
 }
 
+sf::FloatRect rectangleDesEffetsActifs(sf::Vector2f tailleDeVue) {
+    return {{xDeLaColonne(tailleDeVue) + s_largeurDeColonne + s_ecartColonneEtSac, hautDuPanneau(tailleDeVue) + s_basDuSac + s_ecartVertical * 4.0f},
+            {s_largeurDuSac, s_hauteurDeLigneDeCaracteristique * static_cast<float>(1 + s_lignesDEffetsActifs)}};
+}
+
+sf::FloatRect rectangleDeLEffetActif(std::size_t indice, sf::Vector2f tailleDeVue) {
+    assert(indice < s_lignesDEffetsActifs);
+    const sf::FloatRect bloc = rectangleDesEffetsActifs(tailleDeVue);
+    return {{bloc.position.x, bloc.position.y + static_cast<float>(1 + indice) * s_hauteurDeLigneDeCaracteristique},
+            {bloc.size.x, s_hauteurDeLigneDeCaracteristique}};
+}
+
 sf::FloatRect rectangleDeLEtiquetteDuSac(sf::Vector2f tailleDeVue) {
     return {{xDeLaColonne(tailleDeVue) + s_largeurDeColonne + s_ecartColonneEtSac, hautDuPanneau(tailleDeVue) + s_hautDesOnglets},
             {s_largeurDuSac, s_hauteurEtiquetteDuSac}};

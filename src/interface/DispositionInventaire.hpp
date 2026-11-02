@@ -137,6 +137,14 @@ struct CaracteristiqueSurvolee {
 // `assert(indice < s_lignesDeResistances)`.
 [[nodiscard]] sf::FloatRect rectangleDeLaResistance(std::size_t indice, sf::Vector2f tailleDeVue);
 
+// Le bloc des effets actifs du personnage ouvert, à droite de la colonne, sous le sac : un titre, puis `s_lignesDEffetsActifs` lignes
+// (`rectangleDeLEffetActif`) ; les effets en trop ne s'affichent pas.
+inline constexpr std::size_t s_lignesDEffetsActifs = 8;
+[[nodiscard]] sf::FloatRect rectangleDesEffetsActifs(sf::Vector2f tailleDeVue);
+
+// La ligne de l'effet actif de ce rang, de haut en bas, sous le titre. `assert(indice < s_lignesDEffetsActifs)`.
+[[nodiscard]] sf::FloatRect rectangleDeLEffetActif(std::size_t indice, sf::Vector2f tailleDeVue);
+
 // Le rectangle de cette case du sac. `assert(indice < s_casesDuSac)`.
 [[nodiscard]] sf::FloatRect rectangleDeLaCaseDuSac(std::size_t indice, sf::Vector2f tailleDeVue);
 
