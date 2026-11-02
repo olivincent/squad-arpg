@@ -783,3 +783,26 @@ TEST_CASE("frappe sacree : ses degats sacres, puis un etourdissement de 1,5 s, s
     REQUIRE(etourdissement.pourcentage == 0);
     REQUIRE(etourdissement.coefficientDeDuree == 0.0f);
 }
+
+TEST_CASE("pluie de fleches : ses degats de zone, puis un ralentissement de 30 % et une entrave de 20 % pendant 3 s, sans bonus de duree") {
+    const Skill* pluie = nullptr;
+    for (const SkillConnu& connu : specialite(IdSpecialite::Rodeur).definition.skills) {
+        if (connu.id == IdSkill::PluieDeFleches) {
+            pluie = &connu.skill;
+        }
+    }
+    REQUIRE(pluie != nullptr);
+
+    REQUIRE(pluie->getEffets().size() == 3);
+    REQUIRE(std::holds_alternative<EffetDegats>(pluie->getEffets()[0]));
+    const EffetControle& ralentissement = std::get<EffetControle>(pluie->getEffets()[1]);
+    REQUIRE(ralentissement.etat == EtatInflige::Ralentissement);
+    REQUIRE(ralentissement.pourcentage == 30);
+    REQUIRE(ralentissement.duree == 3.0f);
+    REQUIRE(ralentissement.coefficientDeDuree == 0.0f);
+    const EffetControle& entrave = std::get<EffetControle>(pluie->getEffets()[2]);
+    REQUIRE(entrave.etat == EtatInflige::Entrave);
+    REQUIRE(entrave.pourcentage == 20);
+    REQUIRE(entrave.duree == 3.0f);
+    REQUIRE(entrave.coefficientDeDuree == 0.0f);
+}

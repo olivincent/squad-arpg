@@ -1,4 +1,5 @@
 // ./tests/jeu/test_Partie_controle.cpp
+#include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <variant>
@@ -13,6 +14,8 @@
 
 // Le contrôle dans une partie (étape 113) : une frappe qui étourdit, le rendement décroissant et ses textes, le contresort du mage. Le monstre
 // est à portée de la frappe du guerrier (comme dans test_Partie_effets.cpp), sans esquive ni armure, et indestructible.
+
+using Catch::Approx;
 
 namespace {
 constexpr AdresseSkill s_adresseContresort{Place{3}, IdSkill::Contresort};
@@ -137,4 +140,37 @@ TEST_CASE("controle partie : un controle de monstre sur un personnage s'affiche 
         }
     }
     REQUIRE(vu);
+}
+
+TEST_CASE("controle partie : un skill de zone qui ralentit et entrave pose deux effets de rangs differents sur chaque monstre touche") {
+    Partie partie = partieDeTest(niveauDegage({{235.0f, 170.0f}, {250.0f, 185.0f}}), {guerrierDeTest(), pretreDeTest(), mageQuiRalentit()},
+                                 s_graineDeTest, monstreIndestructible());
+
+    partie.lancerSkillDeZone(s_adresseExplosion, {242.0f, 177.0f});
+    const std::vector<ControleSubi> controles = controlesSurLesMonstresPendant(partie, 1.0f);  // l'activation dure 0,8 s
+
+    REQUIRE(controles.size() == 4);  // « Slowed » et « Hampered » sur chacun des deux monstres
+    for (const Monstre& monstre : partie.getMonstres()) {
+        const EffetsActifs& effets = monstre.getEffets();
+        REQUIRE(effets.nombreDeControles() == 2);
+        REQUIRE(effets.liste()[0].rang == 1);
+        REQUIRE(effets.liste()[1].rang == 2);
+        REQUIRE(facteurDeDeplacement(effets) == Approx(0.7f));
+        REQUIRE(facteurDAttaque(effets) == Approx(0.8f));
+        REQUIRE(peutBouger(effets));
+        REQUIRE(peutAttaquer(effets));
+    }
+}
+
+TEST_CASE("controle partie : les deux controles d'un meme skill expirent ensemble apres leur duree") {
+    Partie partie = partieDeTest(niveauDegage({{235.0f, 170.0f}}), {guerrierDeTest(), pretreDeTest(), mageQuiRalentit()}, s_graineDeTest,
+                                 monstreIndestructible());
+    partie.lancerSkillDeZone(s_adresseExplosion, {235.0f, 170.0f});
+    avancer(partie, nombreDeTics(1.0f));
+    REQUIRE(effetsDuMonstre(partie).nombreDeControles() == 2);
+
+    avancer(partie, nombreDeTics(3.5f));
+
+    REQUIRE(effetsDuMonstre(partie).nombreDeControles() == 0);
+    REQUIRE(facteurDeDeplacement(effetsDuMonstre(partie)) == Approx(1.0f));
 }

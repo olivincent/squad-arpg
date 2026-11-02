@@ -107,6 +107,12 @@ constexpr int s_degatsPluie = 36;
 constexpr float s_rechargePluie = 8.0f;           // en secondes
 constexpr float s_activationPluie = 0.8f;         // en secondes
 constexpr float s_rayonPluie = 45.0f;             // rayon de zone, depuis le point visé
+// Ralentissement et entrave de la pluie de flèches (étape 113, « à tester ») : chaque monstre touché avance 30 % moins vite ET frappe 20 % moins
+// vite pendant 3 s. Deux effets actifs d'un même skill sur la même cible, distingués par leur rang. Coefficient de durée de 0 : une technique,
+// la durée ne profite pas de l'Intellect. Une zone ne s'esquive pas : tout monstre touché est affecté, sauf immunité (rendement décroissant).
+constexpr int s_ralentissementPluie = 30;         // en pour cent de la vitesse de déplacement
+constexpr int s_entravePluie = 20;                // en pour cent de la vitesse d'attaque de base
+constexpr float s_dureeDeControlePluie = 3.0f;    // en secondes
 
 // Caractéristiques de base de chaque classe (somme 50, provisoires, à tester) : Puissance, Endurance,
 // Adresse, Savoir, Volonté. Les points de vie ne viennent que de l'Endurance (`pointsDeVieMax` : base commune
@@ -296,7 +302,14 @@ std::vector<Specialite> construireLeCatalogue() {
                                             .portee = s_porteePluie,
                                             .rechargeMin = s_rechargePluie,
                                             .rechargeMax = s_rechargePluie,
-                                            .effets = {EffetDegats{.montant = s_degatsPluie, .nature = NatureDAttaque::Zone, .coefficients = s_puissanceSeule}},
+                                            .effets = {EffetDegats{.montant = s_degatsPluie, .nature = NatureDAttaque::Zone, .coefficients = s_puissanceSeule},
+                                                       // Chaque monstre touché est ralenti et entravé un moment.
+                                                       EffetControle{.etat = EtatInflige::Ralentissement,
+                                                                     .duree = s_dureeDeControlePluie,
+                                                                     .pourcentage = s_ralentissementPluie},
+                                                       EffetControle{.etat = EtatInflige::Entrave,
+                                                                     .duree = s_dureeDeControlePluie,
+                                                                     .pourcentage = s_entravePluie}},
                                             .rayonZone = s_rayonPluie,
                                             .tempsExecution = s_activationPluie,
                                             .armesExigees = s_armesDeTir,

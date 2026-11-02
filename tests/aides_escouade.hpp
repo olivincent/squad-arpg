@@ -310,6 +310,27 @@ inline DefinitionPersonnage mageQuiContreLesSorts() {
     return mage;
 }
 
+// Le mage de test dont l'explosion ralentit (30 %) et entrave (20 %) aussi chaque monstre touché pendant 3 s, comme la pluie de flèches du rôdeur.
+inline constexpr int s_ralentissementDeTest = 30;
+inline constexpr int s_entraveDeTest = 20;
+inline constexpr float s_dureeDeRalentissementDeTest = 3.0f;
+
+inline DefinitionPersonnage mageQuiRalentit() {
+    DefinitionPersonnage mage = mageDeTest();
+    mage.skills.front() = SkillConnu{
+        IdSkill::Explosion,
+        Skill({.mode = ModeDeCible::Point,
+               .portee = s_porteeZoneDeTest,
+               .rechargeMin = s_rechargeZoneDeTest,
+               .rechargeMax = s_rechargeZoneDeTest,
+               .effets = {EffetDegats{.montant = s_degatsZoneDeTest, .nature = NatureDAttaque::Zone, .element = Element::Feu},
+                          EffetControle{.etat = EtatInflige::Ralentissement, .duree = s_dureeDeRalentissementDeTest, .pourcentage = s_ralentissementDeTest},
+                          EffetControle{.etat = EtatInflige::Entrave, .duree = s_dureeDeRalentissementDeTest, .pourcentage = s_entraveDeTest}},
+               .rayonZone = s_rayonZoneDeTest,
+               .tempsExecution = s_activationZoneDeTest})};
+    return mage;
+}
+
 // Des effets dans le temps (étape 112). Le guerrier de test dont la frappe pose aussi un saignement (physique, montant sur la Puissance,
 // jusqu'à `s_pilesDeSaignementDeTest` piles) sur la cible qu'elle touche, et le prêtre de test dont le skill (qui porte l'identifiant `Soin`) est
 // un soin dans le temps sur un allié.
