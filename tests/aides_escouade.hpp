@@ -69,10 +69,10 @@ inline constexpr AdresseSkill s_adresseExplosion{Place{3}, IdSkill::Explosion};
 // **sont lues** dans la description de leur attaque (`descriptionDeLArme`, jamais écrites en littéral).
 // Depuis l'étape 102, les dégâts d'une arme sont une plage dont chaque coup tire sa valeur : un test ne compare plus un coup à un
 // nombre, il vérifie qu'il est dans la plage (`estUnCoupDeBase`, `sontDesCoupsDeBase`, `dansLaPlage`).
-// Caractéristiques des personnages de test : la Puissance de référence (10), pour que l'attaque de base, qui en profite
-// à plein, fasse exactement les dégâts de son arme ; les quatre autres à 0 (Adresse 0 : capacité de 50, Endurance 0 :
+// Caractéristiques des personnages de test : la Puissance et la Volonté de référence (10), pour que l'attaque de base, qui en profite
+// à plein, fasse exactement les dégâts de son arme, et que l'énergie maximum soit celle de base ; les trois autres à 0 (Adresse 0 : capacité de 50, Endurance 0 :
 // 240 points de vie), comme avant l'étape 91.
-inline const Caracteristiques s_caracteristiquesDeTest({s_valeurDeReference, 0, 0, 0, 0});
+inline const Caracteristiques s_caracteristiquesDeTest({s_valeurDeReference, 0, 0, 0, s_valeurDeReference});
 
 // Attaque de base (mêlées et tireurs).
 inline const DescriptionDAttaque s_attaqueDeMeleeDeTest = descriptionDeLArme(Objet{IdObjet::EpeeAUneMain});

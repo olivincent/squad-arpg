@@ -202,6 +202,16 @@ void dessinerLesStatistiques(sf::RenderTarget& rendu, const sf::Font& police, co
                     ligneDeRegenerationDEnergie(escouade.regenerationDEnergieDuPersonnage(place).value_or(0.0f)));
 }
 
+// Sous les statistiques : ses résistances aux cinq états de contrôle, une par ligne.
+void dessinerLesResistances(sf::RenderTarget& rendu, const sf::Font& police, const Escouade& escouade, Place place,
+                            sf::Vector2f tailleDeVue) {
+    const std::vector<std::string> lignes =
+        lignesDeResistancesAuControle(escouade.statistiquesDeCombatDuPersonnage(place).value_or(StatistiquesDeCombat()));
+    for (std::size_t i = 0; i < lignes.size(); ++i) {
+        dessinerCellule(rendu, police, rectangleDeLaResistance(i, tailleDeVue), lignes[i]);
+    }
+}
+
 // Les onglets : un par personnage, de la couleur de son personnage (plus sombre quand il n'est pas ouvert, contour blanc pour
 // l'ouvert), avec le nom de sa classe et une marque dorée s'il a des points libres. `dores` : les onglets à entourer d'un
 // contour doré (les destinations d'un glissement).
@@ -242,7 +252,7 @@ void dessinerLesOnglets(sf::RenderTarget& rendu, const sf::Font& police, const E
     }
 }
 
-// La colonne du personnage de l'onglet ouvert : son armure et ses 10 emplacements, ses caractéristiques et ses statistiques.
+// La colonne du personnage de l'onglet ouvert : son armure et ses 10 emplacements, ses caractéristiques, ses statistiques et ses résistances.
 void dessinerColonne(sf::RenderTarget& rendu, const sf::Font& police, const Escouade& escouade, Place place,
                      sf::Vector2f tailleDeVue, const Caracteristiques& enAttente) {
     const Equipement& equipement = escouade.equipementDuPersonnage(place);
@@ -271,6 +281,7 @@ void dessinerColonne(sf::RenderTarget& rendu, const sf::Font& police, const Esco
     }
     dessinerLesCaracteristiques(rendu, police, escouade, place, tailleDeVue, enAttente);
     dessinerLesStatistiques(rendu, police, escouade, place, tailleDeVue);
+    dessinerLesResistances(rendu, police, escouade, place, tailleDeVue);
 }
 
 // Le sac : une case par indice, vide, ou avec le sigle de son objet.

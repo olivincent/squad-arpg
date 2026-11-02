@@ -1,10 +1,16 @@
 // ./src/interface/AffichageStatistiques.cpp
 #include "interface/AffichageStatistiques.hpp"
 #include <algorithm>
+#include <array>
 #include <cstdio>
+#include <string_view>
+#include "combat/Defense.hpp"
 #include "combat/Esquive.hpp"
 
 namespace {
+// Le nom affiché de chaque état de contrôle, dans l'ordre de `EtatDeControle`.
+constexpr std::array<std::string_view, s_nombreDEtatsDeControle> s_nomsDesEtats = {"Stun", "Slow", "Charm", "Fear", "Disruption"};
+
 // Un nombre signé : « +5 », « −3 » (le signe moins typographique, U+2212, que la police de l'interface a).
 std::string signe(int valeur) {
     return valeur < 0 ? "−" + std::to_string(-valeur) : (valeur > 0 ? "+" : "") + std::to_string(valeur);
@@ -20,6 +26,23 @@ std::vector<std::string> lignesDeStatistiques(const StatistiquesDeCombat& statis
             blocage,
             "Melee Dodge " + std::to_string(esquiveEffective(statistiques.esquiveContact)) + " %",
             "Projectile Dodge " + std::to_string(esquiveEffective(statistiques.esquiveProjectile)) + " %"};
+}
+
+std::string pourCentAvecUneDecimale(float valeur) {
+    char nombre[32];
+    std::snprintf(nombre, sizeof(nombre), "%.1f", static_cast<double>(valeur < 0.0f ? -valeur : valeur));
+    const std::string texte = nombre;
+    // « −0.0 » n'existe pas : une valeur qui s'arrondit à zéro s'écrit sans signe.
+    return (valeur < 0.0f && texte != "0.0") ? "−" + texte : texte;
+}
+
+std::vector<std::string> lignesDeResistancesAuControle(const StatistiquesDeCombat& statistiques) {
+    std::vector<std::string> lignes;
+    for (const EtatDeControle etat : s_etatsDeControle) {
+        lignes.push_back(std::string(s_nomsDesEtats[static_cast<std::size_t>(etat)]) + " Resistance " +
+                         pourCentAvecUneDecimale(resistanceAuControleEffective(statistiques.resistancesAuControle[etat])) + " %");
+    }
+    return lignes;
 }
 
 std::string ligneDEnergie(int energie, int energieMax) {

@@ -115,7 +115,7 @@ public:
     [[nodiscard]] int getPointsDeVie() const;
     [[nodiscard]] int getPointsDeVieMax() const;
     // Son énergie (étape 108), pleine à la création. Elle se régénère tant qu'il est vivant (`mettreAJour`) ; son maximum suit le
-    // niveau (`energieMax`) : à chaque niveau, un vivant gagne autant d'énergie que son maximum augmente, un mort ne gagne rien.
+    // niveau de classe et sa Volonté (`energieMax`) : quand il augmente, un vivant gagne autant d'énergie, un mort ne gagne rien.
     [[nodiscard]] int getEnergie() const;
     [[nodiscard]] int getEnergieMax() const;
     // Sa régénération d'énergie, en points par seconde.

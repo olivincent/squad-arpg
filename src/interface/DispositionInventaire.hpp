@@ -9,6 +9,7 @@
 #include <variant>
 
 #include "combat/Caracteristiques.hpp"
+#include "combat/EtatDeControle.hpp"
 #include "escouade/TailleDeLEscouade.hpp"
 #include "objets/Emplacement.hpp"
 #include "combat/Place.hpp"
@@ -22,7 +23,7 @@
 // À gauche, des onglets (un par personnage, dans l'ordre des places, de 1 à `s_tailleDeLEscouade`) puis la colonne du
 // personnage dont l'onglet est ouvert : une ligne d'armure, les 10 emplacements en deux colonnes de 5 (Tête, Torse, Jambes,
 // Gants, Bottes à gauche ; Main droite, Main gauche, Collier, Anneau 1, Anneau 2 à droite : l'ordre de `Emplacement`), le bloc des
-// caractéristiques et des points de vie, puis le bloc des statistiques de combat. La colonne est la même pour tous les
+// caractéristiques et des points de vie, puis le bloc des statistiques de combat et celui des résistances au contrôle. La colonne est la même pour tous les
 // onglets : la géométrie ne dépend pas de la place, c'est l'écran qui dit laquelle est ouverte (`elementSous`, `boutonSous` et
 // `caracteristiqueSous` la reçoivent). À droite, le sac commun, toujours visible : `s_casesDuSac` cases carrées,
 // `s_colonnesDuSac` par rangée, dans l'ordre des indices. Tout tient dans une vue de 1200 × 800 au moins, sans chevauchement
@@ -42,6 +43,7 @@ inline constexpr std::size_t s_lignesDeCaracteristiques = s_nombreDeCaracteristi
 inline constexpr std::size_t s_lignesDeStatistiques = 3;       // du bloc des statistiques de combat
 inline constexpr std::size_t s_cellulesDeStatistiques = 2 * s_lignesDeStatistiques;  // en deux colonnes
 inline constexpr std::size_t s_celluleDeLaRegeneration = 5;  // la sixième et dernière, après les cinq statistiques de combat
+inline constexpr std::size_t s_lignesDeResistances = s_nombreDEtatsDeControle;  // du bloc des résistances au contrôle : une par état, en une colonne
 inline constexpr std::size_t s_casesDuSac = 40;  // la capacité du sac de l'escouade
 
 // Le panneau de l'inventaire : de la taille de son contenu (la même quelle que soit la vue), centré dans la vue, qui laisse
@@ -126,6 +128,14 @@ struct CaracteristiqueSurvolee {
 // régénération d'énergie (`s_celluleDeLaRegeneration`).
 // `assert(indice < s_cellulesDeStatistiques)`.
 [[nodiscard]] sf::FloatRect rectangleDeLaStatistique(std::size_t indice, sf::Vector2f tailleDeVue);
+
+// Le bloc sous celui des statistiques : les résistances aux états de contrôle, en une colonne pleine largeur de
+// `s_lignesDeResistances` lignes (`rectangleDeLaResistance`).
+[[nodiscard]] sf::FloatRect rectangleDesResistances(sf::Vector2f tailleDeVue);
+
+// La ligne de l'état de contrôle de ce rang dans l'énumération `EtatDeControle` (0 : étourdissement…), de haut en bas.
+// `assert(indice < s_lignesDeResistances)`.
+[[nodiscard]] sf::FloatRect rectangleDeLaResistance(std::size_t indice, sf::Vector2f tailleDeVue);
 
 // Le rectangle de cette case du sac. `assert(indice < s_casesDuSac)`.
 [[nodiscard]] sf::FloatRect rectangleDeLaCaseDuSac(std::size_t indice, sf::Vector2f tailleDeVue);

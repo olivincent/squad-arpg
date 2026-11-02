@@ -34,6 +34,13 @@ inline constexpr int s_resistanceMinimale = -100;
                                            : (pourCent > s_resistanceMaximale ? s_resistanceMaximale : pourCent);
 }
 
+// Une résistance à un état de contrôle telle qu'elle joue : les mêmes bornes que celles d'un élément.
+[[nodiscard]] constexpr float resistanceAuControleEffective(float pourCent) {
+    const float minimale = static_cast<float>(s_resistanceMinimale);
+    const float maximale = static_cast<float>(s_resistanceMaximale);
+    return pourCent < minimale ? minimale : (pourCent > maximale ? maximale : pourCent);
+}
+
 // Ce qui reste d'une portion après la résistance de son élément : montant × (1 − résistance effective), sans
 // arrondi. Une résistance négative (vulnérabilité) augmente la portion. Précondition : montant >= 0.
 [[nodiscard]] float appliquerResistance(float montant, int resistance);

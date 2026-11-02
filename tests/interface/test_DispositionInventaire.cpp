@@ -30,6 +30,9 @@ std::vector<sf::FloatRect> tousLesRectangles(sf::Vector2f vue) {
     for (std::size_t cellule = 0; cellule < s_cellulesDeStatistiques; ++cellule) {
         rectangles.push_back(rectangleDeLaStatistique(cellule, vue));
     }
+    for (std::size_t ligne = 0; ligne < s_lignesDeResistances; ++ligne) {
+        rectangles.push_back(rectangleDeLaResistance(ligne, vue));
+    }
     for (std::size_t i = 0; i < s_nombreEmplacements; ++i) {
         rectangles.push_back(rectangleDeLEmplacement(static_cast<Emplacement>(i), vue));
     }
@@ -374,4 +377,23 @@ TEST_CASE("caracteristiqueSous : rien sur la ligne des points de vie, les statis
     REQUIRE_FALSE(caracteristiqueSous(centre(rectangleDeLaCellule(s_nombreDeCaracteristiques, s_vueMinimale)), s_ouverte, s_vueMinimale).has_value());
     REQUIRE_FALSE(caracteristiqueSous(centre(rectangleDeLaStatistique(0, s_vueMinimale)), s_ouverte, s_vueMinimale).has_value());
     REQUIRE_FALSE(caracteristiqueSous(centre(rectangleDeLEmplacement(Emplacement::Tete, s_vueMinimale)), s_ouverte, s_vueMinimale).has_value());
+}
+
+TEST_CASE("disposition : les cinq resistances au controle sont en une colonne sous les statistiques, sans chevauchement") {
+    REQUIRE(s_lignesDeResistances == 5);
+    const sf::FloatRect statistiques = rectangleDesStatistiques(s_vueMinimale);
+    const sf::FloatRect bloc = rectangleDesResistances(s_vueMinimale);
+
+    REQUIRE(bloc.position.y >= statistiques.position.y + statistiques.size.y);
+    REQUIRE(bloc.position.x == statistiques.position.x);
+    REQUIRE(bloc.size.x == statistiques.size.x);
+    for (std::size_t i = 0; i < s_lignesDeResistances; ++i) {
+        const sf::FloatRect ligne = rectangleDeLaResistance(i, s_vueMinimale);
+        REQUIRE(ligne.position.x == bloc.position.x);
+        REQUIRE(ligne.position.y >= bloc.position.y);
+        REQUIRE(ligne.position.y + ligne.size.y <= bloc.position.y + bloc.size.y);
+        if (i > 0) {
+            REQUIRE(ligne.position.y >= rectangleDeLaResistance(i - 1, s_vueMinimale).position.y + ligne.size.y);
+        }
+    }
 }

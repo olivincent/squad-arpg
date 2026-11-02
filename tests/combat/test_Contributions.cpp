@@ -46,3 +46,39 @@ TEST_CASE("la table redonne les formules d'avant : 240 + 6 x Endurance et 50 + 5
         REQUIRE(statistiques.capaciteDefensive == std::max(1, 50 + 5 * valeur));
     }
 }
+
+TEST_CASE("apportDesCaracteristiques : la Volonte alimente l'energie max, 3 par point") {
+    REQUIRE(apportDesCaracteristiques(StatistiqueAlimentee::EnergieMax, Caracteristiques({10, 10, 10, 10, 15})) == Approx(15.0f));
+    REQUIRE(apportDesCaracteristiques(StatistiqueAlimentee::EnergieMax, Caracteristiques({10, 10, 10, 10, 8})) == Approx(-6.0f));
+    REQUIRE(apportDesCaracteristiques(StatistiqueAlimentee::EnergieMax, Caracteristiques({10, 30, 30, 30, 10})) == Approx(0.0f));
+}
+
+TEST_CASE("resistances au controle : la Constitution resiste au controle physique, la Volonte au magique, 0,3 % par point") {
+    const Caracteristiques constitution({10, 20, 10, 10, 10});
+    const Caracteristiques volonte({10, 10, 10, 10, 20});
+
+    REQUIRE(apportDesCaracteristiques(resistanceAuControle(EtatDeControle::Etourdissement), constitution) == Approx(3.0f));
+    REQUIRE(apportDesCaracteristiques(resistanceAuControle(EtatDeControle::Ralentissement), constitution) == Approx(3.0f));
+    REQUIRE(apportDesCaracteristiques(resistanceAuControle(EtatDeControle::Charme), constitution) == Approx(0.0f));
+    REQUIRE(apportDesCaracteristiques(resistanceAuControle(EtatDeControle::Peur), constitution) == Approx(0.0f));
+    REQUIRE(apportDesCaracteristiques(resistanceAuControle(EtatDeControle::Disruption), constitution) == Approx(0.0f));
+
+    REQUIRE(apportDesCaracteristiques(resistanceAuControle(EtatDeControle::Etourdissement), volonte) == Approx(0.0f));
+    REQUIRE(apportDesCaracteristiques(resistanceAuControle(EtatDeControle::Ralentissement), volonte) == Approx(0.0f));
+    REQUIRE(apportDesCaracteristiques(resistanceAuControle(EtatDeControle::Charme), volonte) == Approx(3.0f));
+    REQUIRE(apportDesCaracteristiques(resistanceAuControle(EtatDeControle::Peur), volonte) == Approx(3.0f));
+    REQUIRE(apportDesCaracteristiques(resistanceAuControle(EtatDeControle::Disruption), volonte) == Approx(3.0f));
+}
+
+TEST_CASE("resistances au controle : un leger malus sous la reference") {
+    REQUIRE(apportDesCaracteristiques(resistanceAuControle(EtatDeControle::Etourdissement), Caracteristiques({10, 0, 10, 10, 10})) ==
+            Approx(-3.0f));
+}
+
+TEST_CASE("resistanceAuControle : une statistique distincte par etat") {
+    for (const EtatDeControle a : s_etatsDeControle) {
+        for (const EtatDeControle b : s_etatsDeControle) {
+            REQUIRE((resistanceAuControle(a) == resistanceAuControle(b)) == (a == b));
+        }
+    }
+}

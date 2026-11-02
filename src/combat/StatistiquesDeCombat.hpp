@@ -2,11 +2,15 @@
 #pragma once
 #include "combat/Caracteristiques.hpp"
 #include "combat/Element.hpp"
+#include "combat/EtatDeControle.hpp"
 
 // Les résistances d'une entité, en pour cent par élément : un coup en perd cette part, élément par élément
 // (`appliquerResistance`, bornée par `s_resistanceMinimale` et `s_resistanceMaximale`). Négative : vulnérabilité.
 // La résistance physique est 0 partout pour l'instant : l'armure fait le travail du physique.
 using Resistances = ParElement<int>;
+
+// Les résistances aux états de contrôle, en pour cent par état (des flottants : un point de caractéristique en donne 0,3).
+using ResistancesAuControle = ParEtat<float>;
 
 // Ce que le moteur du coup lit d'une entité (`docs/classes-et-combat.md`, sections 6, 7 et 13). Le moteur
 // ne connaît pas les caractéristiques : un personnage en tire ses statistiques (`statistiquesDuPersonnage`,
@@ -21,6 +25,10 @@ struct StatistiquesDeCombat {
     int chanceDeBlocage = 0;    // chance en pour cent de bloquer un coup de contact ou un projectile (bouclier)
     int montantBloque = 0;      // points que le blocage absorbe, sans dépasser le coup ; 0 : pas de bouclier
     Resistances resistances = {};  // en pour cent par élément ; toutes à 0 par défaut
+    // En pour cent par état de contrôle, avec des décimales (0,3 % par point de caractéristique) ; toutes à 0 par défaut. Elles
+    // réduiront la durée de l'état subi, bornées comme les résistances élémentaires (`resistanceAuControleEffective`). Rien ne les
+    // lit encore.
+    ResistancesAuControle resistancesAuControle = {};
     // La récupération qui suit un blocage réussi est la même pour tous (`s_recuperationDuBlocage`, `Blocage.hpp`) :
     // ce n'est pas une statistique.
 
@@ -34,6 +42,9 @@ struct StatistiquesDeCombat {
         montantBloque += autre.montantBloque;
         for (const Element element : s_elements) {
             resistances[element] += autre.resistances[element];
+        }
+        for (const EtatDeControle etat : s_etatsDeControle) {
+            resistancesAuControle[etat] += autre.resistancesAuControle[etat];
         }
         return *this;
     }
@@ -52,8 +63,14 @@ inline constexpr int s_capaciteDeReference = 100;
 // `Contributions.hpp`). Provisoire, à tester.
 inline constexpr int s_capaciteParPointDAdresse = 5;
 
+// Résistance à chaque état de contrôle que donne chaque point de la caractéristique qui le résiste (Constitution pour l'étourdissement
+// et le ralentissement, Resolve pour le charme, la peur et la Disruption), en pour cent : une ligne de la table de contributions
+// (`Contributions.hpp`). Négative sous la référence. Provisoire, à tester.
+inline constexpr float s_resistanceAuControleParPoint = 0.3f;
+
 // Les statistiques d'un personnage : `s_capaciteDeReference` plus l'apport de l'Adresse effective (base de classe plus
-// équipement ; `apportDesCaracteristiques`) pour les deux capacités, plus les bonus de combat de son équipement
+// équipement ; `apportDesCaracteristiques`) pour les deux capacités, l'apport de la Constitution et de la Resolve aux résistances
+// aux états de contrôle (non bornées : `resistanceAuControleEffective` les ramène), plus les bonus de combat de son équipement
 // (`bonusDEquipement`, la somme de ceux de ses objets). La capacité offensive est bornée à 0 par le bas ; la
 // défensive à 1, parce que le rapport des capacités la divise.
 [[nodiscard]] StatistiquesDeCombat statistiquesDuPersonnage(const Caracteristiques& caracteristiques,

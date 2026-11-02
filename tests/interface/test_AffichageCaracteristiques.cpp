@@ -5,6 +5,7 @@
 #include <string>
 
 #include "combat/Caracteristiques.hpp"
+#include "combat/Energie.hpp"
 #include "combat/StatistiquesDeCombat.hpp"
 #include "interface/AffichageCaracteristiques.hpp"
 
@@ -42,9 +43,11 @@ TEST_CASE("affichage : l'effet d'une caracteristique lit les constantes du jeu, 
     REQUIRE(ligneDEffetDeLaCaracteristique(Caracteristique::Puissance) ==
             "Might: +" + std::to_string(std::lround(s_bonusParPoint * 100.0f)) + "% damage and healing per point");
     REQUIRE(ligneDEffetDeLaCaracteristique(Caracteristique::Endurance) ==
-            "Constitution: +" + std::to_string(s_pvParPointDEndurance) + " health per point");
+            "Constitution: +" + std::to_string(s_pvParPointDEndurance) + " health and +0.3% Stun and Slow resistance per point");
     REQUIRE(ligneDEffetDeLaCaracteristique(Caracteristique::Adresse) ==
             "Dexterity: +" + std::to_string(s_capaciteParPointDAdresse) + " offensive and defensive capability per point");
     REQUIRE(ligneDEffetDeLaCaracteristique(Caracteristique::Savoir) == "Intellect: no effect yet");
-    REQUIRE(ligneDEffetDeLaCaracteristique(Caracteristique::Volonte) == "Resolve: no effect yet");
+    REQUIRE(ligneDEffetDeLaCaracteristique(Caracteristique::Volonte) ==
+            "Resolve: +" + std::to_string(s_energieParPointDeVolonte) +
+                " energy and +0.3% Charm, Fear and Disruption resistance per point");
 }

@@ -303,8 +303,10 @@ TEST_CASE("statistiquesDeCombatDuPersonnage : celles du personnage de la place, 
 
     // Le guerrier de test porte des pièces lourdes : leur malus d'esquive est dans ses statistiques.
     REQUIRE(escouade.statistiquesDeCombatDuPersonnage(Place{1}) ==
-            statistiquesDuPersonnage(Caracteristiques(), Equipement(s_equipementMeleeDeTest).bonusDeCombatTotal()));
-    REQUIRE(escouade.statistiquesDeCombatDuPersonnage(Place{2}) == StatistiquesDeCombat{120, 120});
+            statistiquesDuPersonnage(caracteristiquesPourPorter(s_equipementMeleeDeTest),
+                                     Equipement(s_equipementMeleeDeTest).bonusDeCombatTotal()));
+    REQUIRE(escouade.statistiquesDeCombatDuPersonnage(Place{2}) == statistiquesDuPersonnage(rodeur.caracteristiques, StatistiquesDeCombat()));
+    REQUIRE(escouade.statistiquesDeCombatDuPersonnage(Place{2})->capaciteOffensive == 120);
     REQUIRE_FALSE(escouade.statistiquesDeCombatDuPersonnage(Place{0}).has_value());
     REQUIRE_FALSE(escouade.statistiquesDeCombatDuPersonnage(Place{3}).has_value());
 }

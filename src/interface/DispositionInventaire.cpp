@@ -45,7 +45,9 @@ constexpr float s_hautDesCaracteristiques =
     static_cast<float>(s_emplacementsParColonne - 1) * s_ecartEntreEmplacements + s_ecartVertical;
 constexpr float s_hautDesStatistiques =
     s_hautDesCaracteristiques + static_cast<float>(s_lignesDeCaracteristiques) * s_hauteurDeLigneDeCaracteristique + s_ecartVertical;
-constexpr float s_basDeLaColonne = s_hautDesStatistiques + static_cast<float>(s_lignesDeStatistiques) * s_hauteurDeLigneDeCaracteristique;
+constexpr float s_hautDesResistances =
+    s_hautDesStatistiques + static_cast<float>(s_lignesDeStatistiques) * s_hauteurDeLigneDeCaracteristique + s_ecartVertical;
+constexpr float s_basDeLaColonne = s_hautDesResistances + static_cast<float>(s_lignesDeResistances) * s_hauteurDeLigneDeCaracteristique;
 
 // À droite de la colonne, le sac : son étiquette, puis ses cases.
 constexpr float s_largeurDuSac = static_cast<float>(s_colonnesDuSac) * (s_cote + s_ecartEntreCases) - s_ecartEntreCases;
@@ -157,6 +159,18 @@ sf::FloatRect rectangleDeLaStatistique(std::size_t indice, sf::Vector2f tailleDe
     return {{bloc.position.x + static_cast<float>(colonne) * largeurDeCellule,
              bloc.position.y + static_cast<float>(rangee) * s_hauteurDeLigneDeCaracteristique},
             {largeurDeCellule, s_hauteurDeLigneDeCaracteristique}};
+}
+
+sf::FloatRect rectangleDesResistances(sf::Vector2f tailleDeVue) {
+    return {{xDeLaColonne(tailleDeVue), hautDuPanneau(tailleDeVue) + s_hautDesResistances},
+            {s_largeurDeColonne, static_cast<float>(s_lignesDeResistances) * s_hauteurDeLigneDeCaracteristique}};
+}
+
+sf::FloatRect rectangleDeLaResistance(std::size_t indice, sf::Vector2f tailleDeVue) {
+    assert(indice < s_lignesDeResistances);
+    const sf::FloatRect bloc = rectangleDesResistances(tailleDeVue);
+    return {{bloc.position.x, bloc.position.y + static_cast<float>(indice) * s_hauteurDeLigneDeCaracteristique},
+            {bloc.size.x, s_hauteurDeLigneDeCaracteristique}};
 }
 
 sf::FloatRect rectangleDeLaCaseDuSac(std::size_t indice, sf::Vector2f tailleDeVue) {

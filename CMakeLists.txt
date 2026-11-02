@@ -89,6 +89,7 @@ add_library(squad_core STATIC
     src/combat/Blocage.cpp
     src/combat/Caracteristiques.cpp
     src/combat/Contributions.cpp
+    src/combat/Energie.cpp
     src/combat/Progression.cpp
     src/combat/Defense.cpp
     src/combat/ResolutionDuCoup.cpp

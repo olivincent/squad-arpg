@@ -55,7 +55,7 @@ Personnage::Personnage(sf::Vector2f centre, DefinitionPersonnage definition, Equ
       m_caracteristiques(m_caracteristiquesDeBase + m_equipementActif.bonusTotal()),
       m_statistiques(statistiquesDuPersonnage(m_caracteristiques, m_equipementActif.bonusDeCombatTotal())),
       m_vitalite(pointsDeVieMax(m_caracteristiques, niveauDeClasse(m_niveau), m_pvParNiveauDeClasse), defenses()),
-      m_energie(energieMax(niveauDeClasse(m_niveau), m_energieParNiveauDeClasse), regenerationDEnergie(m_equipementActif.bonusDeRegenerationDEnergie())),
+      m_energie(energieMax(m_caracteristiques, niveauDeClasse(m_niveau), m_energieParNiveauDeClasse), regenerationDEnergie(m_equipementActif.bonusDeRegenerationDEnergie())),
       m_rayonVision(definition.rayonVision),
       m_actionEngagee()
 {
@@ -432,7 +432,7 @@ void Personnage::recalculerDepuisLEquipement() {
     m_statistiques = statistiquesDuPersonnage(m_caracteristiques, m_equipementActif.bonusDeCombatTotal());
     m_vitalite.definirMaximum(pointsDeVieMax(m_caracteristiques, niveauDeClasse(m_niveau), m_pvParNiveauDeClasse));
     m_vitalite.definirDefenses(defenses());
-    const int energieMaximum = energieMax(niveauDeClasse(m_niveau), m_energieParNiveauDeClasse);
+    const int energieMaximum = energieMax(m_caracteristiques, niveauDeClasse(m_niveau), m_energieParNiveauDeClasse);
     if (estVivant()) {
         m_energie.changerMaximum(energieMaximum);
     } else {

@@ -29,3 +29,12 @@
 
 // Les lignes de `lignesDeBonusDeCombat` qui sont des malus (valeurs négatives) : l'écran les colore en rouge.
 [[nodiscard]] std::vector<std::string> lignesDeMalusDeCombat(const StatistiquesDeCombat& bonus);
+
+// Un pour cent avec UNE décimale, sans le signe « % » : « 3.0 », « 0.3 », « −3.0 » (le signe moins typographique, U+2212). Les résistances
+// aux états de contrôle bougent de 0,3 % par point de caractéristique : en entiers, on ne verrait rien changer d'un point à l'autre.
+[[nodiscard]] std::string pourCentAvecUneDecimale(float valeur);
+
+// Les cinq lignes des résistances aux états de contrôle de l'inventaire, dans l'ordre de `EtatDeControle` : « Stun Resistance 3.0 % »,
+// « Slow Resistance 3.0 % », « Charm Resistance 1.2 % », « Fear Resistance 1.2 % », « Disruption Resistance 1.2 % ». Les valeurs sont
+// celles qui jouent, bornes comprises (`resistanceAuControleEffective`).
+[[nodiscard]] std::vector<std::string> lignesDeResistancesAuControle(const StatistiquesDeCombat& statistiques);

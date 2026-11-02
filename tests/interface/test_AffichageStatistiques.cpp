@@ -79,3 +79,35 @@ TEST_CASE("affichage : la regeneration d'energie s'affiche avec une decimale, le
     REQUIRE(ligneDeRegenerationDEnergie(2.34f) == "Energy Regen 2.3/s");
     REQUIRE(ligneDeRegenerationDEnergie(2.36f) == "Energy Regen 2.4/s");
 }
+
+TEST_CASE("affichage : un pour cent a une decimale, le signe moins typographique sous zero") {
+    REQUIRE(pourCentAvecUneDecimale(3.0f) == "3.0");
+    REQUIRE(pourCentAvecUneDecimale(0.3f) == "0.3");
+    REQUIRE(pourCentAvecUneDecimale(-3.0f) == "−3.0");
+    REQUIRE(pourCentAvecUneDecimale(0.0f) == "0.0");
+    REQUIRE(pourCentAvecUneDecimale(-0.01f) == "0.0");  // « −0.0 » ne s'écrit pas
+}
+
+TEST_CASE("affichage : les cinq resistances au controle, dans l'ordre des etats, avec une decimale") {
+    StatistiquesDeCombat statistiques;
+    statistiques.resistancesAuControle[EtatDeControle::Etourdissement] = 3.0f;
+    statistiques.resistancesAuControle[EtatDeControle::Ralentissement] = 0.3f;
+    statistiques.resistancesAuControle[EtatDeControle::Charme] = -1.5f;
+    statistiques.resistancesAuControle[EtatDeControle::Peur] = 1.2f;
+
+    const std::vector<std::string> lignes = lignesDeResistancesAuControle(statistiques);
+
+    REQUIRE(lignes == std::vector<std::string>{"Stun Resistance 3.0 %", "Slow Resistance 0.3 %", "Charm Resistance −1.5 %",
+                                               "Fear Resistance 1.2 %", "Disruption Resistance 0.0 %"});
+}
+
+TEST_CASE("affichage : une resistance au controle est affichee avec ses bornes, de -100 % a 80 %") {
+    StatistiquesDeCombat statistiques;
+    statistiques.resistancesAuControle[EtatDeControle::Etourdissement] = 250.0f;
+    statistiques.resistancesAuControle[EtatDeControle::Ralentissement] = -400.0f;
+
+    const std::vector<std::string> lignes = lignesDeResistancesAuControle(statistiques);
+
+    REQUIRE(lignes[0] == "Stun Resistance 80.0 %");
+    REQUIRE(lignes[1] == "Slow Resistance −100.0 %");
+}

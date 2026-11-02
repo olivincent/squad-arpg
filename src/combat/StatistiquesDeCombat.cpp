@@ -17,5 +17,8 @@ StatistiquesDeCombat statistiquesDuPersonnage(const Caracteristiques& caracteris
         std::max(0, capaciteDe(StatistiqueAlimentee::CapaciteOffensive, caracteristiques) + bonusDEquipement.capaciteOffensive);
     statistiques.capaciteDefensive =
         std::max(1, capaciteDe(StatistiqueAlimentee::CapaciteDefensive, caracteristiques) + bonusDEquipement.capaciteDefensive);
+    for (const EtatDeControle etat : s_etatsDeControle) {
+        statistiques.resistancesAuControle[etat] += apportDesCaracteristiques(resistanceAuControle(etat), caracteristiques);
+    }
     return statistiques;
 }
