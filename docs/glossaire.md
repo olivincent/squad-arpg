@@ -151,6 +151,8 @@ Le nom affiché d'un objet est `[préfixe] modèle [suffixe]` (« Blazing Mace �
 | Pluie de flèches | Rain of Arrows | RA |
 | Bénédiction | Blessing | BL |
 | Renew (soin dans le temps du prêtre) | Renew | RN |
+| Contresort (Disruption, mage ; étape 113) | Counterspell | CS |
+| Coup assommant (capacité de l'infanterie lourde ; identité de l'étourdissement, jamais dans la barre ; étape 113) | Stunning Blow | SB |
 
 ## Effets actifs (`interface/AffichageEffets.cpp`)
 
@@ -162,6 +164,7 @@ Le nom affiché d'un objet est `[préfixe] modèle [suffixe]` (« Blazing Mace �
 | Dégâts dans le temps : le nom de l'élément, le montant par seconde | Bleeding (physique), Burning (feu), Holy Fire (sacré, sans source aujourd'hui) : « Burning: 8 per s (2 s) » |
 | Soin dans le temps : le nom du skill, le montant par seconde | « Renew: 9 per s (6 s) » |
 | Statistique modifiée (armure) | Armor (aussi « Armor: N » en tête de la colonne de l'inventaire, effets actifs compris) |
+| Étourdissement, ralentissement, entrave, Disruption (étape 113) : le nom de l'état, jamais celui du skill ; le pourcentage pour les deux du milieu | « Stunned (2 s) », « Slowed: −30 % (3 s) », « Hampered: −20 % (3 s) », « Disrupted (1 s) » (le signe moins est U+2212) |
 
 ## Textes flottants (`interface/TextesFlottants.cpp`)
 
@@ -173,6 +176,8 @@ Le nom affiché d'un objet est `[préfixe] modèle [suffixe]` (« Blazing Mace �
 | Provoqué | Taunted |
 | Sac plein (l'objet visé reste au sol) | Bag full |
 | Niveau atteint (au-dessus de l'escouade) | Level up! |
+| État de contrôle posé (étape 113) | Stunned, Slowed, Hampered, Disrupted (jaune) |
+| Contrôle bloqué par le rendement décroissant (immunité) | Immune (gris) |
 | Skill refusé faute d'énergie (au-dessus du lanceur) | Not enough energy (bleu violacé) |
 | Coup gratuit (attaque d'opportunité) | un `!` après le nombre (« 7! ») |
 

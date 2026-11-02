@@ -148,7 +148,10 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
   Armor (10 s) », en vert pour un bonus et en rouge pour un malus ; le panneau ne change pas de taille. **Étape 112** : les effets dans le temps y
   ont leur ligne (« Bleeding ×2: 14 per s (4 s) », « Renew: 9 per s (6 s) »), avec « ×N » quand l'effet a plus d'une pile (`AffichageEffets`,
   `docs/combat.md`). Sous les carrés des entités, le nombre de piles suit la marque quand il dépasse 1 (`rendu/MarquesDEffets`) ; les ticks sont de
-  petits textes flottants (`TextesFlottants`, 12 px) ; la barre de skills du prêtre a un troisième skill, Renew (sigle RN).
+  petits textes flottants (`TextesFlottants`, 12 px) ; la barre de skills du prêtre a un troisième skill, Renew (sigle RN). **Étape 113** : un contrôle
+  y a sa ligne, avec le nom de son état (« Stunned (2 s) », « Slowed: −30 % (3 s) », « Hampered: −20 % (3 s) », « Disrupted (1 s) ») ; sous les carrés
+  des entités, une marque **jaune** par contrôle (après les vertes et les rouges) ; au-dessus de la cible, un texte flottant jaune de 14 px à la pose
+  (« Stunned »…) ou gris (« Immune ») ; la barre du mage a un second skill, Counterspell (sigle CS), dans l'emplacement du milieu de sa colonne.
 - **Infobulle** : au survol d'un emplacement ou d'une case occupés, le nom composé de l'objet (de la couleur de sa
   rareté), sa catégorie, les propriétés de son modèle (armure, bonus, blocage d'un bouclier, attaque d'une arme : dégâts,
   recharge, portée, melee ou projectile, « Two-handed »), une ligne par affixe, puis ses seuils (`lignesDeLInfobulle(const

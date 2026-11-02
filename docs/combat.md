@@ -1995,6 +1995,92 @@ section 14 quater ; ici, la technique.
   monstre qui rentre à son poste est perdu ; les ticks d'un personnage ne tuent personne dans le jeu actuel (aucun monstre n'en pose) mais
   le chemin est le même.
 
+## Le contrôle (étape 113)
+
+Une sorte d'effet actif de plus (`Controle`), quatre états infligés, le rendement décroissant, et des utilisateurs dans les deux camps. Les
+décisions de conception (valeurs, règles de jeu) sont dans `docs/classes-et-combat.md`, section 14 quinquies ; ici, la technique.
+
+- **`EtatInflige`** (`combat/EffetActif.hpp`) : `Etourdissement` (Stunned), `Ralentissement` (Slowed), `Entrave` (Hampered) et `Disruption`
+  (Disrupted), plus la sentinelle `Nombre`. **Distinct d'`EtatDeControle`** (étape 110), qui nomme les cinq états dont on a une *résistance* :
+  l'entrave n'a pas de résistance propre, elle suit celle du ralentissement. Plutôt que d'ajouter une valeur factice à `EtatDeControle` (qui
+  aurait élargi `ParEtat`, l'inventaire et la table de contributions), l'état infligé est un type à part, et **une seule fonction**,
+  `etatQuiResiste(EtatInflige)` (`combat/Controle`), fait le lien. `resistanceAppliquee(statistiques, état)` est la résistance bornée
+  (`resistanceAuControleEffective` : de −100 % à 80 %) qui s'applique à un état. L'inventaire garde ses cinq résistances.
+- **`Controle { EtatInflige etat; int pourcentage = 0; }`** est la quatrième alternative de `SorteDEffetActif`. `pourcentage` (1 à 100) ne sert
+  qu'au ralentissement et à l'entrave ; 0 pour les deux autres. `estUnBonus` : un contrôle est un malus, mais `estUnControle(effet)` le sépare
+  des malus de statistique pour l'affichage (sa marque est jaune).
+- **Les règles de lecture** (`combat/Controle`, des fonctions pures sur `const EffetsActifs&` — personnages et monstres les appellent de la
+  même façon) : `estSousEtat`, `peutBouger` et `peutAttaquer` (faux si étourdi), `peutUtiliserUnSkill` (faux si étourdi ou en Disruption),
+  `facteurDeDeplacement` et `facteurDAttaque` (`1 − pourcentage`, jamais sous 0, du **plus fort** ralentissement / de la plus forte entrave).
+- **Le cumul vient de la lecture, pas d'une règle de pose.** La liste garde un contrôle par `(skill, rang)` (le même skill reposé rafraîchit,
+  `EffetsActifs::poser` : plus longue durée, pourcentage le plus fort, `lePlusFort(Controle, Controle)`). Les règles regardent *tous* les effets :
+  deux étourdissements (deux Disruptions) de skills différents durent donc tant qu'il en reste un ; deux ralentissements (deux entraves) donnent le
+  plus fort, jamais la somme (`pourcentageLePlusFort`).
+- **La durée posée** : `dureePosee(duree, resistance, rendement) = duree × (1 − resistance / 100) × rendement`, l'unique endroit du calcul. La
+  `duree` est celle du skill déjà majorée par le bonus de durée de l'Intellect selon le `coefficientDeDuree` du skill
+  (`Personnage::effetsActifsDuSkill`, comme tout effet) ; la résistance de la cible et le rendement décroissant s'appliquent **chez la cible**, dans
+  `Vitalite::poserEffet`. **La résistance est lue à la pose** (contrairement à celle d'un tick, lue au tick) : une vulnérabilité (résistance
+  négative) allonge la durée, jusqu'au double ; le plafond de 80 % laisse toujours au moins 20 % de la durée, donc une durée positive.
+- **Le rendement décroissant** (`combat/RendementsDeControle`, possédé par `EffetsActifs`, donc par `Vitalite`) : un compteur **par état et par
+  cible**. La 1re application d'un état vaut 100 % de sa durée, la 2e 50 %, la 3e 25 %, puis l'entité est **immune** à cet état
+  (`s_rendementsDesApplications`). Le compteur d'un état revient à zéro `s_remiseAZeroDuRendement` = 15 s après la dernière application qui a
+  joué ; **une application bloquée par l'immunité ne pose rien et ne repousse pas cette échéance** (sinon insister garderait l'immunité à
+  jamais : l'immunité dure donc 15 s après la 3e application). Chaque état a son compteur (étourdir n'use pas la Disruption) ; le ralentissement et
+  l'entrave en ont chacun un aussi. Le compteur s'écoule avec `EffetsActifs::mettreAJour` et disparaît avec `vider()` (mort, descente d'un étage,
+  monstre qui rentre à son poste). Toute application compte, même celle qui ne fait que rafraîchir un effet encore actif.
+- **`Vitalite::poserEffet`** distingue le contrôle des autres effets : il compte l'application (`compterUneApplicationDeControle`), s'arrête là si
+  le facteur est 0 (immunité), sinon pose l'effet avec la durée posée. Chaque application, posée ou bloquée, est notée dans une liste que
+  `prendreLesControles()` rend et vide (`ControleApplique { EtatInflige etat; bool immunise; }` ; même patron que `prendreLesTicks`).
+  `Vitalite::recevoirDegats` pose les effets de l'attaque par ce même chemin (donc un contrôle suit la règle des effets secondaires : seulement si
+  le coup n'est pas esquivé). Une attaque **sans dégâts** (le contresort) n'est jamais esquivée : `resoudreCoup` rend « rien » avant l'esquive.
+- **Ce que fait chaque état** :
+  - *Étourdissement.* `Personnage::mettreAJour` arrête son `Mobile` (`arreter()`) sans le faire avancer ; `Monstre::mettreAJour` ne fait rien d'autre
+    qu'écouler ses recharges et son rôle (il arrête son `Mobile` et rend la main, l'état garde/poursuite/retour reprend après). `engagerAttaque`,
+    `engagerSkill`/`peutEngagerSkill`/`skillEstPret` (personnage) et `engagerAttaque`/`engagerSoin` (monstre) refusent. **Une activation en cours est
+    annulée à la pose** : `Personnage::appliquerLeControle` / `Monstre::appliquerLeControle`, appelées après `recevoirDegats` et `poserEffet`, annulent
+    l'attaque de base engagée, le skill en activation ou le soin en activation, **sans recharge consommée ni coût d'énergie**. Les recharges
+    continuent de s'écouler (les `Skill` des personnages et l'attaque de base sont mis à jour même étourdis).
+  - *Ralentissement.* Le temps qui s'écoule pour le déplacement est multiplié par `facteurDeDeplacement` (`Mobile::mettreAJour(dt × facteur)`) : la
+    vitesse est multipliée. Hors combat, l'escouade avance à la vitesse de l'ancre ; un personnage ralenti est donc en retard sur sa place de
+    formation (accepté).
+  - *Entrave.* Le temps qui s'écoule pour l'**attaque de base** (`Skill::mettreAJour` et `Skill::avancer`) est multiplié par `facteurDAttaque` :
+    l'exécution et la recharge s'allongent. L'activation des skills n'est pas touchée (elle relèvera de la vitesse d'incantation).
+  - *Disruption.* `peutUtiliserUnSkill` est faux : un skill ne peut pas être engagé, celui qui s'active est annulé, et `Escouade::attaquer`
+    abandonne le skill en attente de ce lanceur (`abandonnerLeSkillEnAttenteSousControle`, sans recharge ni coût ; **l'étourdissement le fait
+    aussi**, puisqu'il interdit les skills). L'attaque de base reste permise. Pour un monstre, ses capacités de rôle comptent comme des skills : le
+    soigneur ne soigne plus (`engagerSoin` refuse, `allerSoigner` rend `false` : il se comporte comme son attaque le décrit), le coup assommant n'a pas lieu.
+- **Les effets d'un monstre sur un personnage** : le mécanisme est celui des effets d'un skill de personnage. `Monstre::avancerAttaque` rend une
+  `Attaque` dont `effets` peut contenir des effets actifs ; ils voyagent par `Partie::infligerAUnPersonnage` → `Escouade::recevoirCoup` →
+  `Personnage::recevoirDegats` → `Vitalite::recevoirDegats`, et ne se posent que si le coup n'est pas esquivé. Un seul utilisateur : le **rôle
+  d'assommeur** (`RoleAssommeur`, `docs/monstre.md`). `getAttaque()` (const, utilisée par les coups d'opportunité) ne porte jamais d'effet.
+  `Escouade::recevoirCoup` ne change pas. Une attaque qui ne fait que poser des effets (aucun dégât) alerte quand même le monstre qui la reçoit.
+- **`EffetControle`** (`combat/EffetDeSkill`) : `{ EtatInflige etat; float duree; int pourcentage = 0; float coefficientDeDuree = 0; }`.
+  `campTouche` : les monstres. **Effet secondaire** d'un skill de dégâts ou de frappe (la frappe sacrée, la pluie de flèches : posé sur chaque
+  monstre que le coup atteint, si le coup n'est pas esquivé) ou **effet principal** d'un skill de mode `Monstre` ou `Point` sans dégâts (le
+  contresort : `Escouade::appliquerLEffet` l'envoie en `Coup` sans dégâts, comme les effets d'un coup). `Skill` (`assert`) : `duree > 0`,
+  pourcentage entre 1 et 100 pour le ralentissement et l'entrave, 0 pour les deux autres. **Convention du coefficient de durée** (testée sur le
+  catalogue, `test_CoherenceDesDonnees`) : 0 pour un contrôle derrière une frappe ou des dégâts (une technique), de 0 à 1 pour un contrôle principal
+  (un sort).
+- **Affichage.** `ControleSubi { EtatInflige etat; bool immunise; }` est un détail d'événement de plus : « Stunned », « Slowed », « Hampered »,
+  « Disrupted » en jaune, ou « Immune » en gris quand le rendement décroissant a tout bloqué, 14 px, au-dessus de la cible (monstre ou
+  personnage). `Partie::signalerLesControles` lit les poses de chaque monstre touché juste après son coup et celles de l'escouade (après un coup
+  de monstre et une fois par image). **Marque jaune** sous l'entité, une par effet de contrôle (`EffetsActifs::nombreDeControles`, rangée après les
+  bonus verts et les malus rouges ; `pilesDesMalus` n'en compte plus). **L'inventaire** : une ligne par état dans « Active effects »
+  (`AffichageEffets` : « Stunned (2 s) », « Slowed: −30 % (3 s) », « Hampered: −20 % (3 s) », « Disrupted (1 s) » — le nom de l'état, pas celui du
+  skill).
+- **Les quatre utilisateurs** (valeurs « à tester ») : la **frappe sacrée** du paladin (étourdissement de 1,5 s si le coup touche, coefficient de
+  durée 0) ; la **pluie de flèches** du rôdeur (ralentissement de 30 % **et** entrave de 20 % pendant 3 s sur chaque monstre touché, deux effets
+  de rangs 1 et 2 du même skill, coefficient 0) ; le **contresort** (`IdSkill::Contresort`, « Counterspell », sigle CS), deuxième skill du mage
+  (mode `Monstre`, portée 250 px comme l'explosion, Disruption de 2 s de base avec un coefficient de durée de 0,5, activation de 0,3 s, recharge de
+  10 s, coût de 53 selon `coutDUnSort`, abordable avec la réserve de départ du mage : 53 + 43 de l'explosion ≤ 106) ; et, côté monstres, le **coup
+  assommant** de l'infanterie lourde (`IdSkill::CoupAssommant`, « Stunning Blow », sigle SB : seulement l'identité de l'effet, ce n'est pas un skill
+  de la barre). Les tests visuels de l'étape sont dans `ROADMAP.md`.
+- **Limites.** Ni Charm ni Fear (Fear aura son étape : il déplace la cible contre sa volonté) ; pas de vitesse d'incantation (l'entrave ne touche
+  que l'attaque de base) ; pas d'immunité ou de résistance spéciale des créatures monstrueuses (elles subissent le contrôle comme les autres) ; le
+  coup assommant consomme son délai de 10 s dès qu'il part, qu'il touche ou non (le monstre ne sait pas si son coup a été esquivé) ; les durées
+  d'un contrôle ne sont pas sauvegardées (comme tout effet) ; le contrôle d'un personnage ne l'empêche pas d'être poussé par la séparation douce ni
+  de subir les coups d'opportunité ; un monstre étourdi n'engage plus rien mais reste un obstacle et garde sa zone de contrôle.
+
 ## Référence des modules
 
 Repris tel quel d'`ARCHITECTURE.md` à l'étape 81 (K1, « déplacer d'abord ») : données
@@ -2078,8 +2164,8 @@ en attente) et `Controleur` (visée), jamais déduit de l'effet.
 
 `EffetDeSkill.hpp` / `.cpp` : `struct EffetDegats { int montant; NatureDAttaque nature; Element element = Physique; Coefficients
 coefficients = {}; }`, `struct EffetFrappe { Degats bonus; Coefficients coefficients = {}; }` (l'arme portée plus ce bonus typé : la frappe
-sacrée), `struct EffetSoin { int montant; Coefficients coefficients = {}; }`, `struct EffetProvocation { int duree; float coefficientDeDuree = 0; }` (secondes ; le bonus de durée de l'Intellect, étape 110.5) et `struct EffetModificateur { StatistiqueModifiable statistique; int pourcentage; int duree; float coefficientDeDuree = 0; }` (étape 111.4 : pose un effet actif ; principal, c'est un buff pour les alliés ; secondaire, un affaiblissement pour les monstres qu'un coup atteint) et `using
-EffetDeSkill = std::variant<EffetDegats, EffetFrappe, EffetSoin, EffetProvocation, EffetModificateur, EffetDegatsDansLeTemps, EffetSoinDansLeTemps>` ; étape 112 : `struct EffetDegatsDansLeTemps { int montant; int duree; Element element = Physique; int pilesMax = 1; Coefficients coefficients = {}; float coefficientDeDuree = 0; }` (toujours secondaire : pose des `DegatsDansLeTemps` sur les monstres qu'un coup atteint, montant par tick et par pile) et `struct EffetSoinDansLeTemps { int montant; int duree; int pilesMax = 1; Coefficients coefficients = {}; float coefficientDeDuree = 0; }` (principal, alliés). `enum class CampTouche { Monstres, Allies }` et
+sacrée), `struct EffetSoin { int montant; Coefficients coefficients = {}; }`, `struct EffetProvocation { int duree; float coefficientDeDuree = 0; }` (secondes ; le bonus de durée de l'Intellect, étape 110.5) et `struct EffetControle { EtatInflige etat; float duree; int pourcentage = 0; float coefficientDeDuree = 0; }` (étape 113 : pose un contrôle sur les monstres touchés ; secondaire derrière des dégâts ou une frappe, principal pour un sort sans dégâts), `struct EffetModificateur { StatistiqueModifiable statistique; int pourcentage; int duree; float coefficientDeDuree = 0; }` (étape 111.4 : pose un effet actif ; principal, c'est un buff pour les alliés ; secondaire, un affaiblissement pour les monstres qu'un coup atteint) et `using
+EffetDeSkill = std::variant<EffetDegats, EffetFrappe, EffetSoin, EffetProvocation, EffetModificateur, EffetDegatsDansLeTemps, EffetSoinDansLeTemps, EffetControle>` ; étape 112 : `struct EffetDegatsDansLeTemps { int montant; int duree; Element element = Physique; int pilesMax = 1; Coefficients coefficients = {}; float coefficientDeDuree = 0; }` (toujours secondaire : pose des `DegatsDansLeTemps` sur les monstres qu'un coup atteint, montant par tick et par pile) et `struct EffetSoinDansLeTemps { int montant; int duree; int pilesMax = 1; Coefficients coefficients = {}; float coefficientDeDuree = 0; }` (principal, alliés). `enum class CampTouche { Monstres, Allies }` et
 `CampTouche campTouche(const EffetDeSkill&)` (`[[nodiscard]]`) : le camp que touche un effet quand le skill a un rayon de zone, seul
 endroit où il se déduit.
 
@@ -2178,7 +2264,7 @@ réussi, le même pour tous.
 
 ### `EvenementDeCombat` (`combat/`) — ce qui s'est passé, en données
 
-`EvenementDeCombat.hpp` / `.cpp` : `struct EscouadeEntiere {}`, `using CibleDEvenement = std::variant<Place, IdMonstre, EscouadeEntiere>`, les détails `DegatsSubis { int montant; bool opportunite; bool critique; Element element = Physique; }` (`element` : celui de la plus grosse portion après les réductions, étape 94 ; `Degats` avant l'étape 94), `Soin { int montant; bool critique; }`, `SkillLance { IdSkill skill; }`, `Provoque {}`, `Esquive {}`, `Bloque { int montant; bool total; }`, `EnergieInsuffisante {}` (étape 108 : un skill refusé faute d'énergie, au-dessus de son lanceur), `using DetailEvenement = std::variant<DegatsSubis, Soin, SkillLance, Provoque, Esquive, Bloque, SacPlein, NiveauAtteint, EnergieInsuffisante>` et `struct EvenementDeCombat { CibleDEvenement cible; sf::Vector2f position; DetailEvenement detail; }`. `cible` : un personnage (sa `Place`), un monstre (son `IdMonstre`) ou l'escouade entière (`EscouadeEntiere` : sac plein, niveau atteint) ; `montant` : ce qui a réellement été appliqué (armure comprise, soin plafonné), jamais 0 ; `position` : COPIE du centre de la cible à ce moment (le monstre tué par ce coup est retiré dans la même image, l'événement lui survit) ; `opportunite` : coup gratuit ; `critique` : le coup ou le soin a été un critique (le montant est déjà multiplié) ; `Bloque::montant` : ce que le blocage a absorbé (jamais 0), `total` : il a tout absorbé (aucun `DegatsSubis` ne suit) ; `SkillLance` : cible = le lanceur ; `Provoque` : cible = le monstre provoqué ; `Esquive` : cible = celui qui a esquivé. La fonction pure `std::vector<DetailEvenement> detailsDuCoup(const ResultatDuCoup&, bool opportunite)` (`[[nodiscard]]`) convertit un résultat de coup : `Esquive` seul s'il a été esquivé, sinon `DegatsSubis` (rien s'ils sont nuls ; son `element` est `portions.elementDominant()`) puis `Bloque` s'il y a eu blocage ; liste vide pour un résultat « rien ». Patron « file d'événements » : produits par `Partie` (`prendreEvenements`), lus par `EcranJeu`, sans callback ni observateur. Voir `docs/combat.md`.
+`EvenementDeCombat.hpp` / `.cpp` : `struct EscouadeEntiere {}`, `using CibleDEvenement = std::variant<Place, IdMonstre, EscouadeEntiere>`, les détails `DegatsSubis { int montant; bool opportunite; bool critique; Element element = Physique; }` (`element` : celui de la plus grosse portion après les réductions, étape 94 ; `Degats` avant l'étape 94), `Soin { int montant; bool critique; }`, `SkillLance { IdSkill skill; }`, `Provoque {}`, `Esquive {}`, `Bloque { int montant; bool total; }`, `EnergieInsuffisante {}` (étape 108 : un skill refusé faute d'énergie, au-dessus de son lanceur), `ControleSubi { EtatInflige etat; bool immunise; }` (étape 113.4 : un état de contrôle posé, ou « Immune »), `using DetailEvenement = std::variant<DegatsSubis, Soin, SkillLance, Provoque, Esquive, Bloque, SacPlein, NiveauAtteint, EnergieInsuffisante, ControleSubi>` et `struct EvenementDeCombat { CibleDEvenement cible; sf::Vector2f position; DetailEvenement detail; }`. `cible` : un personnage (sa `Place`), un monstre (son `IdMonstre`) ou l'escouade entière (`EscouadeEntiere` : sac plein, niveau atteint) ; `montant` : ce qui a réellement été appliqué (armure comprise, soin plafonné), jamais 0 ; `position` : COPIE du centre de la cible à ce moment (le monstre tué par ce coup est retiré dans la même image, l'événement lui survit) ; `opportunite` : coup gratuit ; `critique` : le coup ou le soin a été un critique (le montant est déjà multiplié) ; `Bloque::montant` : ce que le blocage a absorbé (jamais 0), `total` : il a tout absorbé (aucun `DegatsSubis` ne suit) ; `SkillLance` : cible = le lanceur ; `Provoque` : cible = le monstre provoqué ; `Esquive` : cible = celui qui a esquivé. La fonction pure `std::vector<DetailEvenement> detailsDuCoup(const ResultatDuCoup&, bool opportunite)` (`[[nodiscard]]`) convertit un résultat de coup : `Esquive` seul s'il a été esquivé, sinon `DegatsSubis` (rien s'ils sont nuls ; son `element` est `portions.elementDominant()`) puis `Bloque` s'il y a eu blocage ; liste vide pour un résultat « rien ». Patron « file d'événements » : produits par `Partie` (`prendreEvenements`), lus par `EcranJeu`, sans callback ni observateur. Voir `docs/combat.md`.
 
 ### `TextesFlottants` (`interface/`) — les dégâts et soins à l'écran
 
@@ -2193,7 +2279,7 @@ réussi, le même pour tous.
 | `float hauteurDuTexte(float age)` | Fonction libre pure : 20 px au-dessus du centre de la cible à la naissance, 30 px de plus sur toute la durée de vie ; `[[nodiscard]]` |
 | `float opaciteDuTexte(float age)` | Pure : 1 pendant la première moitié de la vie, puis linéaire jusqu'à 0 à 0,8 s ; `[[nodiscard]]` |
 | `sf::Vector2f positionDuTexte(const TexteFlottant&)` | Pure : position de l'événement, relevée de `hauteurDuTexte(age)` et de 14 px par rang ; `[[nodiscard]]` |
-| `std::string libelleDuTexte(const EvenementDeCombat&)` / `sf::Color couleurDuTexte(...)` / `unsigned int tailleDuTexte(...)` | Purs. Dégâts « 12 », coup gratuit « 12! » (orange, 20 px), soin « +12 » (vert) ; critique : le texte suivi de « Critical! » (« 12 Critical! », « 12! Critical! », « +12 Critical! »), jaune vif pour des dégâts (même gratuits), vert pour un soin, 18 px dans les deux cas ; nom du skill lancé (jaune doré, 14 px) ; « Taunted » (rouge orangé, 14 px) ; « Dodged » (gris clair, 14 px), « Blocked » (blocage total) ou « Blocked −N » (partiel, signe moins U+2212), gris, 14 px ; « Not enough energy » (bleu violacé, 14 px) ; dégâts physiques sur un monstre blancs, sur un personnage rouges, feu orange rougeâtre et sacré or pâle quel que soit le camp (le critique et le coup gratuit gardent leur couleur) ; 16 px sinon ; `std::visit` sur le détail ; `[[nodiscard]]` |
+| `std::string libelleDuTexte(const EvenementDeCombat&)` / `sf::Color couleurDuTexte(...)` / `unsigned int tailleDuTexte(...)` | Purs. Dégâts « 12 », coup gratuit « 12! » (orange, 20 px), soin « +12 » (vert) ; critique : le texte suivi de « Critical! » (« 12 Critical! », « 12! Critical! », « +12 Critical! »), jaune vif pour des dégâts (même gratuits), vert pour un soin, 18 px dans les deux cas ; nom du skill lancé (jaune doré, 14 px) ; « Taunted » (rouge orangé, 14 px) ; « Dodged » (gris clair, 14 px), « Blocked » (blocage total) ou « Blocked −N » (partiel, signe moins U+2212), gris, 14 px ; « Not enough energy » (bleu violacé, 14 px) ; « Stunned », « Slowed », « Hampered », « Disrupted » (jaune, 14 px) ou « Immune » (gris, 14 px) pour un `ControleSubi` ; dégâts physiques sur un monstre blancs, sur un personnage rouges, feu orange rougeâtre et sacré or pâle quel que soit le camp (le critique et le coup gratuit gardent leur couleur) ; 16 px sinon ; `std::visit` sur le détail ; `[[nodiscard]]` |
 
 ### `ActionEngagee` (`combat/`) — l'action qu'un personnage prépare
 
@@ -2457,7 +2543,8 @@ combat, étape 89 ; avant, un `int m_armure`), `m_effets` (`EffetsActifs`, étap
 | `Vitalite(int pointsDeVieMax, const Defenses& defenses)` | Commence pleine ; `assert(armure >= 0)` et `assert(capaciteDefensive > 0)` (et `maximum > 0` par `PointsDeVie`) |
 | `void definirDefenses(const Defenses& defenses)` | Remplace les défenses (celles d'un personnage sont recalculées depuis son équipement et ses caractéristiques) ; mêmes préconditions ; remplace `definirArmure` |
 | `ResultatDuCoup recevoirDegats(const Attaque& attaque, Generateur& generateur)` | `resoudreCoup(attaque, défenses, blocagePret(), générateur)`, contre les défenses que les effets actifs ont modifiées (`appliquerLesEffets`), puis lance la récupération du blocage si un blocage a eu lieu, puis `PointsDeVie::subirDegats` ; un mort perd ses effets actifs, un survivant reçoit ceux de l'attaque si le coup n'est pas esquivé ; renvoie le résultat (dégâts après critique, blocage et armure, non plafonnés par les points de vie restants ; critique, esquivé, bloqué) ; rien (montant 0, aucun tirage) pour un mort |
-| `void poserEffet(const EffetActif& effet)` | Pose un effet actif (`EffetsActifs::poser`) ; sans effet sur un mort (étape 111.3) |
+| `void poserEffet(const EffetActif& effet)` | Pose un effet actif (`EffetsActifs::poser`) ; sans effet sur un mort (étape 111.3). Étape 113.2 : un contrôle compte d'abord son application pour le rendement décroissant (rien n'est posé s'il y a immunité), puis sa durée devient `dureePosee` avec la résistance de la cible à cet état, lue à la pose ; `recevoirDegats` pose les effets de l'attaque par ce chemin |
+| `std::vector<ControleApplique> prendreLesControles()` | Les poses de contrôle (posées ou bloquées par l'immunité) depuis le dernier appel, puis les oublie ; `[[nodiscard]]` ; lu par `Partie` (étape 113.2) |
 | `const EffetsActifs& getEffets() const` / `int getArmure() const` | Les effets actifs ; l'armure qui joue contre le prochain coup, effets compris ; `[[nodiscard]]` |
 | `void mettreAJour(float dt)` | Fait couler la récupération du blocage (sans descendre sous 0) et les effets actifs ; applique les ticks des effets dans le temps dans l'ordre (dégâts : `resoudreTick` contre les défenses d'à présent puis `subirDegats` ; soin : `soigner`) ; à la mort, vide les effets et laisse les ticks suivants du pas ; sans effet sur un mort ; appelée par `Personnage::mettreAJour` (vivant) et `Monstre::mettreAJour` (étape 112.3) |
 | `std::vector<Tick> prendreLesTicks()` | Ce que les ticks ont fait depuis le dernier appel (dégâts subis après résistance, soin réellement rendu, jamais 0), puis les oublie ; `[[nodiscard]]` ; lu par `Partie` une fois par image (étape 112.3) |
@@ -2512,7 +2599,25 @@ Disruption (0,3 %) ; Savoir vers les bonus d'aire et de durée (0,003).
 
 `EtatDeControle.hpp`, sans `.cpp` : `enum class EtatDeControle { Etourdissement, Ralentissement, Charme, Peur, Disruption, Nombre }`
 (la sentinelle `Nombre` donne `s_nombreDEtatsDeControle`), `s_etatsDeControle` (pour les parcourir) et `ParEtat<T>` (une valeur par état,
-`operator[]`, `==` : le même patron que `ParElement<T>`). Aucun état n'est encore infligé : seules les résistances existent.
+`operator[]`, `==` : le même patron que `ParElement<T>`). Ce sont les états dont on a une *résistance*. Depuis l'étape 113, quatre états sont infligés
+par des effets actifs, mais par un type à part, `EtatInflige` (`EffetActif.hpp`), parce que l'entrave n'a pas de résistance propre (voir
+« Le contrôle (étape 113) »). Charme et peur ne sont toujours pas infligés.
+
+### `Controle` (`combat/`) — les règles du contrôle (étape 113)
+
+`Controle.hpp` / `.cpp`, des fonctions pures sur `const EffetsActifs&` : `EtatDeControle etatQuiResiste(EtatInflige)` (l'entrave suit le
+ralentissement, l'unique lien), `float resistanceAppliquee(const StatistiquesDeCombat&, EtatInflige)` (bornée), `float dureePosee(float dureeAvantResistance,
+float resistance, float rendement)` (`durée × (1 − résistance / 100) × rendement`), `bool estSousEtat(effets, état)`, `peutBouger`, `peutAttaquer`,
+`peutUtiliserUnSkill`, `float facteurDeDeplacement` et `facteurDAttaque` (tous `[[nodiscard]]`), et `struct ControleApplique { EtatInflige etat; bool
+immunise; }` (une pose, rendue par `Vitalite::prendreLesControles`). Appelées par `Personnage`, `Monstre`, `Escouade` (skill en attente) et `Vitalite`.
+
+### `RendementsDeControle` (`combat/`) — le rendement décroissant (étape 113.2)
+
+`RendementsDeControle.hpp` / `.cpp` : `s_remiseAZeroDuRendement` (15 s), `s_rendementsDesApplications` ({1, 0,5, 0,25}) et la classe
+`RendementsDeControle` (un compteur `{ applications; depuisLaDerniere }` par `EtatInflige`) : `float appliquer(EtatInflige)` (`[[nodiscard]]` : compte
+l'application et rend le facteur 1, 0,5, 0,25 puis 0 ; une application bloquée, de facteur 0, ne compte pas et ne repousse pas la remise à zéro),
+`facteurSuivant(état)` (sans compter), `applications(état)`, `mettreAJour(dt)` (remet un compteur à zéro 15 s après sa dernière application),
+`vider()`. Possédée par `EffetsActifs` (`compterUneApplicationDeControle`, `rendements()`), qui l'écoule et la vide avec les effets.
 
 ### `ValeursEffectives` (`combat/`) — l'aire et la durée selon l'Intellect (étape 110.5)
 
@@ -2525,7 +2630,7 @@ appelant est `Personnage` (`rayonEffectifDuSkill`, `attaqueDuSkill`). `Skill` po
 
 ### `AffichageSkills` (`interface/`) — les noms des skills
 
-`AffichageSkills.hpp` / `.cpp` : `std::string nomDuSkill(IdSkill)` (`[[nodiscard]]`), `switch` sans `default` (un skill ajouté sans nom fait avertir le compilateur), UTF-8, en anglais depuis l'étape 95 : « Power Strike », « Taunt », « Heal », « Explosion », « Holy Strike », « Lay on Hands », « Piercing Shot », « Rain of Arrows », « Blessing », « Renew ». Le noyau ne connaît que `IdSkill` ; comme `AffichageObjets`, les mots sont dans l'interface.
+`AffichageSkills.hpp` / `.cpp` : `std::string nomDuSkill(IdSkill)` (`[[nodiscard]]`), `switch` sans `default` (un skill ajouté sans nom fait avertir le compilateur), UTF-8, en anglais depuis l'étape 95 : « Power Strike », « Taunt », « Heal », « Explosion », « Holy Strike », « Lay on Hands », « Piercing Shot », « Rain of Arrows », « Blessing », « Renew », « Counterspell », « Stunning Blow » (étape 113). Le noyau ne connaît que `IdSkill` ; comme `AffichageObjets`, les mots sont dans l'interface.
 
 
 ### `EffetActif` et `EffetsActifs` (`combat/`) — ce qu'un skill laisse sur une entité (étape 111.3)
@@ -2533,24 +2638,28 @@ appelant est `Personnage` (`rayonEffectifDuSkill`, `attaqueDuSkill`). `Skill` po
 `EffetActif.hpp` (sans `.cpp`) : `enum class StatistiqueModifiable { Armure }`, `struct ModificateurDeStatistique { StatistiqueModifiable
 statistique; int pourcentage; }` (`==`), `s_intervalleDeTick` (1 s), `struct DegatsDansLeTemps { Element element; int montant; float avantLeTick =
 s_intervalleDeTick; }` et `struct SoinDansLeTemps { int montant; float avantLeTick; }` (étape 112.3 ; `montant` : celui d'une pile, par tick),
-`using SorteDEffetActif = std::variant<ModificateurDeStatistique, DegatsDansLeTemps, SoinDansLeTemps>`, `struct EffetActif { IdSkill source; int
+`enum class EtatInflige { Etourdissement, Ralentissement, Entrave, Disruption, Nombre }` et `struct Controle { EtatInflige etat; int pourcentage = 0; }`
+(étape 113.1),
+`using SorteDEffetActif = std::variant<ModificateurDeStatistique, DegatsDansLeTemps, SoinDansLeTemps, Controle>`, `struct EffetActif { IdSkill source; int
 rang = 0; float dureeRestante; SorteDEffetActif sorte; int pilesMax = 1; int piles = 1; }` (identité `(source, rang)` depuis 112.1, piles depuis
-112.2) et `estUnBonus(const EffetActif&)` (modificateur ≥ 0 et soin dans le temps : bonus ; dégâts dans le temps : malus ; `[[nodiscard]]`).
+112.2), `estUnBonus(const EffetActif&)` (modificateur ≥ 0 et soin dans le temps : bonus ; dégâts dans le temps et contrôle : malus ; `[[nodiscard]]`) et
+`estUnControle(const EffetActif&)` (113.4 : la marque jaune).
 `EffetsActifs.hpp` / `.cpp` : `struct TickDeDegats { Element element; int montant; }`, `struct TickDeSoin { int montant; }`, `Tick =
 std::variant<TickDeDegats, TickDeSoin>` ; `class EffetsActifs` (un `std::vector<EffetActif>` dans l'ordre de pose) : `poser(const EffetActif&)`
 (`assert` durée > 0 et `1 <= piles <= pilesMax` ; ajoute, ou rafraîchit l'effet de même `(source, rang)` : plus longue durée, valeur par pile de
 plus grande amplitude, une pile de plus jusqu'au maximum, rythme des ticks gardé), `std::vector<Tick> mettreAJour(float dt)` (décrémente,
-rend les ticks échus, `std::erase_if` à 0), `vider()`, `liste()`, `pilesDesBonus()` / `pilesDesMalus()` (`[[nodiscard]]` : les piles de chaque
-bonus puis de chaque malus, pour les marques) ; et la fonction libre
+rend les ticks échus, `std::erase_if` à 0 ; fait aussi couler le rendement décroissant), `vider()` (vide aussi le rendement), `liste()`,
+`pilesDesBonus()` / `pilesDesMalus()` (`[[nodiscard]]` : les piles de chaque bonus puis de chaque malus qui n'est pas un contrôle, pour les marques),
+`nombreDeControles()` (une marque jaune chacun), `compterUneApplicationDeControle(EtatInflige)` et `rendements()` (étape 113.2) ; et la fonction libre
 `Defenses appliquerLesEffets(const Defenses&, const EffetsActifs&)` (`[[nodiscard]]`). Possédé par `Vitalite`.
 
 ### `MarquesDEffets` (`rendu/`) — les marques d'effets actifs (étape 111.4)
 
 `MarquesDEffets.hpp` / `.cpp` : `s_coteDUneMarque` (4 px), `s_ecartEntreMarques` (2 px) et `s_cotePointDeChiffre` (1,5 px) ; `positionMarquesDEffets(centre, taille)` (coin
 haut-gauche de la rangée, sous le carré de l'entité, alignée sur son bord gauche) ; `pointsDuChiffre(int chiffre)` (étape 112.4 : les points
-allumés d'un chiffre de 0 à 9 dans une grille de 3 × 5, `[[nodiscard]]`) ; `dessinerMarquesDEffets(rendu, position, pilesDesBonus, pilesDesMalus)`
-(une marque verte par élément de `pilesDesBonus` puis une rouge par élément de `pilesDesMalus`, de gauche à droite ; le nombre de piles suit sa
-marque, en chiffres de la même couleur, quand il dépasse 1). Ne dépend que de SFML : la rangée reçoit des nombres, pas les effets
+allumés d'un chiffre de 0 à 9 dans une grille de 3 × 5, `[[nodiscard]]`) ; `dessinerMarquesDEffets(rendu, position, pilesDesBonus, pilesDesMalus, controles)`
+(une marque verte par élément de `pilesDesBonus`, puis une rouge par élément de `pilesDesMalus`, puis — étape 113.4 — une jaune par contrôle, de gauche à
+droite ; le nombre de piles suit sa marque, en chiffres de la même couleur, quand il dépasse 1). Ne dépend que de SFML : la rangée reçoit des nombres, pas les effets
 (exceptions transitoires de `ARCHITECTURE.md` : `Monstre` et `Personnage` se dessinent encore eux-mêmes).
 
 ### `AffichageEffets` (`interface/`) — les effets actifs à l'écran (étape 111.5)
@@ -2560,4 +2669,5 @@ sans `default`) et `ligneDEffetActif(const EffetActif&)` : « Blessing: +20 % Ar
 U+2212 ; secondes restantes arrondies vers le haut, donc jamais « 0 s » pour un effet actif) ; depuis l'étape 112.4, « ×N » après le nom quand
 l'effet a plus d'une pile (la valeur est celle de toutes les piles) et les effets dans le temps : « Bleeding ×2: 14 per s (4 s) », « Burning: 8
 per s (2 s) », « Renew: 9 per s (6 s) » (des dégâts dans le temps portent le nom de leur élément — « Bleeding », « Burning », « Holy Fire » —, un
-soin dans le temps celui de son skill).
+soin dans le temps celui de son skill). Étape 113.4 : un contrôle porte le nom de son état (`nomDeLEtatInflige` : « Stunned », « Slowed », « Hampered »,
+« Disrupted »), et son pourcentage pour le ralentissement et l'entrave : « Stunned (2 s) », « Slowed: −30 % (3 s) », « Hampered: −20 % (3 s) ».

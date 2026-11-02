@@ -621,6 +621,46 @@ trois utilisateurs. La technique est dans `docs/combat.md`, « Les dégâts et l
   « soins reçus » ; une identité par lanceur (aujourd'hui deux archers partagent les piles) ; Aegis et Ward (étape 114), les états de contrôle (étape
   113) ; d'ajuster en jouant le rythme (1 s), les montants, les durées et le plafond de 3 piles.
 
+## 14 quinquies. Les états de contrôle (étape 113)
+
+*Statut : retenu à l'étape 113 ; toutes les valeurs sont « à tester ».* Le contrôle est une sorte d'effet actif de plus, avec quatre états, le
+rendement décroissant sur la cible et des utilisateurs dans les deux camps. La technique est dans `docs/combat.md`, « Le contrôle (étape 113) ».
+
+- **Quatre états.** *Stun* : ni déplacement, ni attaque, ni skill ; une activation en cours est annulée ; les recharges continuent. *Slowed* : la vitesse
+  de déplacement est multipliée par (1 − pourcentage). *Hampered* (nouvel état, « attaque ralentie ») : la vitesse d'attaque de base est multipliée par
+  (1 − pourcentage), donc l'intervalle entre deux attaques s'allonge ; l'activation des skills n'est pas touchée (elle relèvera d'une vitesse
+  d'incantation, plus tard). *Disruption* : aucun skill ne peut être déclenché, et un skill en attente ou une activation en cours est annulé ;
+  l'attaque de base reste permise. L'interruption est unifiée avec la Disruption (décision antérieure : pas de statistique d'interruption séparée).
+  Pour un monstre, ses capacités de rôle (le soin du soigneur, le coup assommant) comptent comme des skills.
+- **Résistances.** Stun et Slowed sont résistés par la Constitution, Disruption par la Resolve (0,3 % par point au-dessus de 10, bornes −100 % /
+  80 %). **Hampered n'a pas de résistance propre : il est réduit par la résistance au ralentissement** (une seule fonction dit quelle résistance
+  s'applique à un état). L'inventaire garde ses cinq résistances. Charm et Fear ne sont pas de cette étape ; Fear aura la sienne (il déplace la cible
+  contre sa volonté et touche la formation, les intentions et l'A*).
+- **Cumul.** Le même skill reposé rafraîchit (règle de tous les effets actifs). Deux étourdissements (deux Disruptions) de skills différents durent
+  tant qu'il en reste un. Deux ralentissements (deux entraves) de skills différents : **le plus fort, jamais la somme**.
+- **Durée posée = durée de base × facteur de durée de l'Intellect du lanceur (selon le coefficient du skill) × (1 − résistance de la cible) × facteur de
+  rendement décroissant.** La résistance est lue à la pose (alors que celle d'un tick de dégâts est lue au tick).
+- **Rendement décroissant, dans les deux camps.** Compté par état et par cible : 100 %, 50 %, 25 %, puis immunité (texte « Immune », rien n'est posé).
+  Le compteur revient à zéro 15 s après la dernière application qui a joué (une application bloquée ne repousse pas l'échéance), et disparaît avec les
+  effets de l'entité (mort, descente, monstre qui rentre à son poste).
+- **Les quatre utilisateurs :**
+
+| Utilisateur | Effet | Durée | Coefficient de durée | Notes |
+|---|---|---|---|---|
+| Holy Strike (paladin) | Stun si le coup touche | 1,5 s | 0 (une frappe) | un coup esquivé ne fait rien |
+| Rain of Arrows (rôdeur) | Slowed −30 % **et** Hampered −20 %, sur chaque monstre touché | 3 s | 0 | deux effets du même skill, rangs 1 et 2 ; une zone ne s'esquive pas |
+| Counterspell (mage, nouveau) | Disruption sur un monstre, sans dégâts | 2 s | 0,5 (un sort) | mode Monstre, portée 250 px, activation 0,3 s, recharge 10 s, coût 53 (règle des sorts) |
+| Stunning Blow (infanterie lourde) | Stun sur un personnage quand son attaque de base touche | 1 s | — | au plus une fois toutes les 10 s par monstre ; bloqué par la Disruption |
+
+  Le coût du contresort (53) laisse le mage lancer aussi une explosion (43) avec la réserve de départ (106). Le contresort est le deuxième skill du mage
+  (sigle CS dans la barre).
+- **À l'écran.** Marque jaune sous l'entité (une par contrôle), texte flottant à la pose (« Stunned », « Slowed », « Hampered », « Disrupted », ou « Immune »),
+  une ligne par état dans « Active effects » de l'inventaire avec sa durée restante (« Slowed: −30 % (3 s) »).
+- **Reste ouvert** : Fear et Charm (étapes à part), Aegis et Ward et l'immunité au contrôle qu'ils donneront (étape 114), un modificateur de statistique de
+  vitesse d'attaque et une vitesse d'incantation, d'autres monstres qui posent des effets, une immunité ou une résistance spéciale des créatures
+  monstrueuses, des affixes de résistance au contrôle ; d'ajuster en jouant les durées (1,5 s ; 3 s ; 2 s ; 1 s), les pourcentages (30 % et 20 %), le délai
+  de 10 s du coup assommant, le rythme du rendement (100 / 50 / 25 %, remise à zéro à 15 s).
+
 ## 15. Pistes
 
 Idées retenues pour plus tard, sans étape prévue.

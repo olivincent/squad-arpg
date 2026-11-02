@@ -106,23 +106,48 @@ de vie, armure 3).
 - **Coût mesuré** (preset `jeu`, `docs/tests.md`) : une image de `Partie` au contact d'une nuée de 7, les autres
   groupes d'un niveau de 19 monstres en place, coûte en moyenne 0,04 ms (au pire 0,18 ms).
 
-## Rôles : le tireur et le soigneur (étape 107)
+## Rôles : le tireur, le soigneur (étape 107) et l'assommeur (étape 113)
 
 Les quatre catégories d'avant ont toutes le même comportement (poursuite, frappe au contact). Deux nouvelles catégories, **Tireur** et
 **Soigneur**, ajoutent un *rôle* : ce qu'un monstre fait en plus de poursuivre et de frapper. Ni escouade de monstres, ni ancre, ni
 formation, ni cible commune : le groupe reste un identifiant, et `Partie` passe au soigneur les alliés de son groupe.
 
-- **Le rôle est une donnée de la définition** : `RoleDeMonstre = std::variant<RoleMelee, RoleTireur, RoleSoigneur>`
+- **Le rôle est une donnée de la définition** : `RoleDeMonstre = std::variant<RoleMelee, RoleTireur, RoleSoigneur, RoleAssommeur>`
   (`monstres/RoleDeMonstre.hpp`), sur le modèle d'`EffetDeSkill` : chaque alternative ne porte que ses champs, et `std::visit` fait
   signaler par le compilateur tout rôle oublié (`Monstre::faireAvancerLeRole`, `agirSelonLeRole`, `renforcer`, `etatInitialDuRole`).
   **Pas d'héritage de `Monstre`** : `Partie` garde un `std::vector<Monstre>` par valeur (une classe dérivée y serait tranchée), et un rôle
-  est une donnée d'équilibrage, pas une identité de type. Les quatre catégories d'avant ont `RoleMelee` et ne changent pas.
+  est une donnée d'équilibrage, pas une identité de type. La nuée, l'infanterie et la créature monstrueuse ont `RoleMelee` et ne changent pas ;
+  l'infanterie lourde a le rôle d'assommeur depuis l'étape 113.
 - **Le rôle a deux moitiés** : la donnée (dans la définition, immuable) et l'état d'exécution (`EtatDuRole`, dans `m_etatDuRole`, de
   même forme, construit par `etatInitialDuRole`). L'état **copie les données de son rôle** (`EtatTireur::role`,
   `EtatSoigneur::role`) et y ajoute ce qui change : ainsi le monstre ne relit pas sa définition et on ne peut pas confondre l'état d'un
   rôle avec les données d'un autre.
 - **Une définition = un rôle** : le tireur et le soigneur sont deux catégories du catalogue (`CategorieDeMonstre::Tireur`, `Soigneur`,
   ajoutées à la fin de l'enum : les index existants ne bougent pas), pas un axe séparé du corps (pas de grille catégorie × rôle).
+
+### L'assommeur (étape 113)
+
+Premier monstre qui **pose un effet actif** sur un personnage. L'infanterie lourde (`RoleAssommeur { dureeDeLEtourdissement = 1 s, delaiEntreCoups =
+10 s }`, valeurs « à tester ») étourdit le personnage que touche son attaque de base, au plus une fois toutes les 10 s.
+- **Le mécanisme est général** : une `Attaque` porte des `effets` (`Attaque::effets`), que `Vitalite::recevoirDegats` pose sur la cible si le coup n'est
+  pas esquivé. `Monstre::avancerAttaque` rend `getAttaque()` plus, si le rôle est prêt, un `EffetActif` (`IdSkill::CoupAssommant`, rang 0, un `Controle`
+  d'étourdissement) ; `getAttaque()` (const, utilisée par les coups d'opportunité) n'en porte jamais. D'autres monstres qui posent des effets
+  seraient une alternative de plus dans `RoleDeMonstre` et dans `EtatDuRole`, ou le même mécanisme avec une autre sorte d'effet.
+- **`EtatAssommeur { role, delaiRestant }`** : le délai s'écoule dans `faireAvancerLeRole`, le premier coup est disponible tout de suite. Le délai
+  repart **au départ du coup, qu'il touche ou non** (le monstre ne sait pas si son coup a été esquivé : limite connue, simple).
+- **La Disruption l'empêche** (une capacité de rôle compte comme un skill, `peutUtiliserUnSkill`) : le monstre frappe, sans étourdir, et le délai ne
+  repart pas. Un monstre étourdi n'a plus de coup à faire partir (son coup engagé est annulé à la pose).
+- **La profondeur ne change pas son étourdissement** (`renforcer`) : un contrôle n'est pas un montant.
+- **La résistance du personnage joue** : la Constitution raccourcit la durée (0,3 % par point au-dessus de 10), le rendement décroissant aussi
+  (100 %, 50 %, 25 %, puis « Immune ») : `docs/combat.md`, « Le contrôle (étape 113) ».
+
+### Le contrôle subi par un monstre (étape 113)
+
+Un monstre porte les mêmes effets actifs que les personnages (`Vitalite`). Étourdi, il ne fait rien (`Monstre::mettreAJour` arrête son `Mobile` et rend
+la main ; ses recharges et son rôle continuent de s'écouler) et son coup ou son soin en activation est annulé à la pose, sans recharge. Ralenti, il avance
+plus lentement (`Mobile::mettreAJour(dt × facteur)`). Entravé, son attaque de base s'exécute et se recharge plus lentement. En Disruption, le soigneur ne
+soigne plus (il tire faiblement de loin) mais frappe. Un coup d'une attaque qui ne fait que poser un contrôle (le contresort) alerte le monstre. Il est
+vidé avec les effets quand le monstre rentre à son poste. Détail : `docs/combat.md`, « Le contrôle (étape 113) ».
 
 ### Le tireur
 
@@ -673,6 +698,7 @@ consommé par `mettreAJour`), `m_soinAccumule` (`float`, points de vie rendus pa
 | `std::optional<IdMonstre> cibleDuSoinEngage() const` | Le membre visé par le soin en activation ; vide hors activation (et pour tout monstre qui n'est pas soigneur) ; `[[nodiscard]]` |
 | `std::optional<SoinDeMonstre> avancerSoin(float dt, Generateur&)` | Fait avancer l'activation (0,8 s) ; rend `{cible, montant}` au départ, vide avant ; `[[nodiscard]]` |
 | `void annulerSoin()` | Annule le soin en activation, sans recharge consommée |
+| `std::vector<ControleApplique> prendreLesControles()` | Étape 113 : les poses de contrôle subies depuis le dernier appel (`Vitalite::prendreLesControles`), puis les oublie ; `[[nodiscard]]` |
 | `int recevoirSoin(int montant)` | Rend les points réellement rendus (plafonnés au maximum) ; 0 en retour au poste ou pour un mort |
 | `int getPointsDeVieMax() const` | Points de vie maximum ; `[[nodiscard]]` |
 | `sf::Vector2f getCentre() const` | Centre du monstre |
@@ -693,7 +719,7 @@ Champs de `struct DefinitionDeMonstre` : `cote` (`float`, du carré, en pixels ;
 `zoneDeControle`, `regenerationRetour`, `attaque` (`DefinitionDeSkill` : portée, recharge, exécution, nature ; sa puissance vaut
 0), `degats` (`Degats` : les portions du coup par élément, étape 99.1), `statistiques` (`StatistiquesDeCombat` : capacités,
 esquives, et depuis l'étape 94 les résistances), `chanceDeButin` (en pour cent), `nombreDObjets` (étape 97) et `experience`
-(étape 99.2) et `role` (`RoleDeMonstre`, étape 107.1).
+(étape 99.2) et `role` (`RoleDeMonstre`, étape 107.1 ; l'infanterie lourde a `RoleAssommeur` depuis l'étape 113.7).
 
 | Fonction | Rôle |
 |---|---|
@@ -706,8 +732,9 @@ esquives, et depuis l'étape 94 les résistances), `chanceDeButin` (en pour cent
 ### `RoleDeMonstre` (`monstres/`) — ce qu'un monstre fait en plus de poursuivre et de frapper (étape 107)
 
 `RoleDeMonstre.hpp` / `.cpp`. Données : `RoleMelee {}`, `RoleTireur {distanceDeContact, distanceDeRecul, delaiEntreReculs}`,
-`RoleSoigneur {soin (DefinitionDeSkill), seuilDeBlessure}`, `RoleDeMonstre = std::variant<…>`. États, dans le monstre : `EtatMelee {}`,
-`EtatTireur {role, delaiRestant, enRecul}`, `EtatSoigneur {role, soin (Skill), cibleDuSoin}`, `EtatDuRole = std::variant<…>`.
+`RoleSoigneur {soin (DefinitionDeSkill), seuilDeBlessure}`, `RoleAssommeur {dureeDeLEtourdissement, delaiEntreCoups}` (étape 113), `RoleDeMonstre =
+std::variant<…>`. États, dans le monstre : `EtatMelee {}`, `EtatTireur {role, delaiRestant, enRecul}`, `EtatSoigneur {role, soin (Skill), cibleDuSoin}`,
+`EtatAssommeur {role, delaiRestant}`, `EtatDuRole = std::variant<…>`.
 
 | Fonction | Rôle |
 |---|---|

@@ -8,7 +8,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 ## Étapes terminées
 
-Étapes 0 à 112 ✅. Les dernières :
+Étapes 0 à 113 ✅. Les dernières :
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 - Étape 83 — Inventaire et équipement : le modèle, sans interface ✅
@@ -41,15 +41,16 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - Étape 110 — Les effets des caractéristiques : une table de contributions en données, la Resolve vers l'énergie et les résistances au contrôle, le niveau de classe, le montant à 1 % par point, la convention des coefficients (Might pour l'arme, Intellect pour les sorts, Resolve pour les soins), le coefficient de l'attaque de base porté par le gabarit d'arme, l'aire (rayon par racine carrée) et la durée de l'Intellect, de nouvelles bases pour le mage, le prêtre et le paladin ✅
 - Étape 111 — Le socle des effets actifs : un concept unique (le modificateur de statistique en première sorte, l'armure), plusieurs effets par skill, l'affaiblissement de la frappe puissante (−25 % d'armure pendant 8 s), la bénédiction du prêtre (+20 % d'armure à toute l'escouade, nouveau mode de cible), la durée d'un buff plafonnée par sa recharge, marques vertes et rouges sous les entités et liste des effets dans l'inventaire ✅
 - Étape 112 — Les dégâts et les soins dans le temps : l'identité d'un effet (skill, rang), les piles (maximum de 1 par défaut), deux sortes d'effet actif de plus (un tick par seconde, montant figé à la pose, `resoudreTick` : la seule résistance), le saignement du tir perçant (jusqu'à 3 piles), la brûlure de l'explosion, Renew (soin dans le temps du prêtre), compteur de piles, petits chiffres des ticks ✅
+- Étape 113 — Les états de contrôle : une sorte d'effet actif de plus (étourdissement, ralentissement, entrave « Hampered », Disruption), le cumul (le plus fort, jamais la somme), la durée posée (durée × résistance × rendement décroissant 100 / 50 / 25 % puis « Immune »), l'étourdissement de la frappe sacrée, le ralentissement et l'entrave de la pluie de flèches, Counterspell (nouveau sort du mage), le coup assommant de l'infanterie lourde (premiers effets posés par des monstres) ✅
 
 ## État actuel (résumé)
 
 - **Outils** : conception dans Claude.ai, implémentation avec Claude Code dans VSCode (règles dans
   `CLAUDE.md`) ; dépôt Git `squad-arpg`, poussé sur GitHub ; SFML 3.0.2 intégrée à CMake.
-- **Code** (étape 112) : 117 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
+- **Code** (étape 113) : 119 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
   `combat`, `objets`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
   de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug` et `jeu`, 0
-  avertissement, 2 118 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers des étapes 98 à 102 : `docs/build.md`,
+  avertissement, 2 214 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers des étapes 98 à 102 : `docs/build.md`,
   `docs/audit.md`). `Escouade` n'est plus que l'assemblage : `Escouade.cpp` de 1 223 à 1 067 lignes. Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`). **Tout le texte affiché est en anglais** (identifiants, commentaires et documentation restent en français ; pas de système de traduction : `docs/glossaire.md` est la référence des noms du jeu). Un commit par sous-étape, fait par Claude Code (`CLAUDE.md`).
 - **Écrans** : menu à la souris, options d'affichage (fenêtré ou plein écran, résolutions,
   `reglages.ini`), choix de 4 classes parmi 5 (guerrier, prêtre, mage, paladin, rôdeur ; doublons
@@ -224,6 +225,25 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   (chiffres de 3 × 5 points), les ticks sont de petits chiffres (12 px) de la couleur de leur élément (soin vert), une ligne par effet dans
   l'inventaire (« Bleeding ×2: 14 per s (4 s) »). Voir `docs/combat.md` (« Les dégâts et les soins dans le temps (étape 112) »),
   `docs/classes-et-combat.md` (section 14 quater).
+- **Les états de contrôle** (étape 113) : une sorte d'effet actif de plus (`Controle`), **quatre états infligés** (`EtatInflige` : Stun, Slowed, Hampered,
+  Disruption ; Charm et Fear ne sont pas de cette étape, Fear aura la sienne). **Stun** : ni déplacement, ni attaque, ni skill, l'activation en cours est annulée
+  (sans recharge ni coût), les recharges continuent. **Slowed** : vitesse de déplacement × (1 − pourcentage). **Hampered** (nouveau, « attaque ralentie ») :
+  vitesse de l'attaque de base × (1 − pourcentage), donc exécution et recharge plus longues, les skills non touchés ; **il n'a pas de résistance propre, il
+  suit celle du ralentissement** (une fonction, `etatQuiResiste` ; l'inventaire garde ses cinq résistances). **Disruption** : aucun skill (le skill en
+  activation et le skill en attente sont annulés), l'attaque de base reste ; pour un monstre, ses capacités de rôle comptent comme des skills. **Cumul** :
+  deux Stun / deux Disruption de skills différents durent tant qu'il en reste un ; deux Slowed / deux Hampered : **le plus fort, jamais la somme**.
+  **Durée posée = durée × facteur de durée de l'Intellect (coefficient du skill) × (1 − résistance de la cible, lue à la pose) × rendement décroissant**
+  (`dureePosee`). **Rendement décroissant**, dans les deux camps : par état et par cible, 100 %, 50 %, 25 %, puis immunité (« Immune », rien n'est posé) ;
+  remise à zéro 15 s après la dernière application qui a joué (une application bloquée ne repousse pas l'échéance) ; le compteur vit avec les effets de
+  l'entité et disparaît avec eux. **Quatre utilisateurs** (« à tester ») : **Holy Strike** (frappe sacrée) étourdit 1,5 s si le coup touche ; **Rain of
+  Arrows** ralentit de 30 % et entrave de 20 % pendant 3 s chaque monstre touché (deux effets de rangs différents du même skill) ; **Counterspell**
+  (`IdSkill::Contresort`, sigle CS), deuxième skill du mage : Disruption de 2 s sur un monstre (coefficient de durée 0,5), sans dégâts, portée 250 px,
+  activation 0,3 s, recharge 10 s, coût 53 (la règle des sorts ; 53 + 43 de l'explosion ≤ 106, la réserve de départ) ; et, **premier monstre qui pose un
+  effet actif**, le **coup assommant** de l'infanterie lourde (`RoleAssommeur`) : Stun de 1 s sur le personnage que touche son attaque de base, au plus une
+  fois toutes les 10 s (le délai part avec le coup, qu'il touche ou non). À l'écran : une marque **jaune** par contrôle sous l'entité, un texte flottant à la
+  pose (« Stunned », « Slowed », « Hampered », « Disrupted », ou « Immune »), une ligne par état dans « Active effects » de l'inventaire avec sa durée
+  restante (« Slowed: −30 % (3 s) »). Voir `docs/combat.md` (« Le contrôle (étape 113) »), `docs/classes-et-combat.md` (section 14 quinquies),
+  `docs/monstre.md` (« L'assommeur »).
 - **Carte** : donjon généré à chaque partie (salles, couloirs en L de 2 cases, portes à chaque
   jonction, un groupe de monstres par salle sauf la première, un escalier, graine affichée), F5 = nouvelle expédition ;
   carte à la main pour les tests (`docs/generation.md`, `docs/carte-et-collision.md`).
@@ -448,15 +468,40 @@ ce qui reste à décider **en discussion** avant son prompt :
     existante ou non (voir « La liste cible des statistiques »).
   - 110 ✅ : les effets des caractéristiques (voir « Les effets des caractéristiques »).
   - 111 ✅ : le socle des effets actifs (voir « Les effets actifs »).
-  - 112 ✅ : les dégâts et les soins dans le temps (voir « Dégâts et soins dans le temps »). Prévu ensuite : 113 états de contrôle ; 114 Aegis et
-    Ward ; plus tard Charm et les auras.
+  - 112 ✅ : les dégâts et les soins dans le temps (voir « Dégâts et soins dans le temps »).
+  - 113 ✅ : les états de contrôle (voir « Les états de contrôle »). Prévu ensuite : 114 Aegis et Ward ; Fear dans sa propre étape ; plus tard Charm et
+    les auras.
 
 
-## Étape 113 (prochaine) : les états de contrôle
+## Étape 114 (prochaine) : Aegis et Ward
 
-Les étapes 105 à 112 sont faites. Plan décidé avec Olivier à l'étape 111 : **113** les états de contrôle (étourdissement, ralentissement, charme,
-peur, Disruption, avec leurs résistances calculées à l'étape 110) ; **114** Aegis et Ward ; plus tard Charm et les auras. Chaque étape se discute
-avec Claude.ai avant son prompt. L'`Expedition` garde les points dépensés ; c'est elle qu'on sauvegardera un jour.
+Les étapes 105 à 113 sont faites. Plan : **114** Aegis et Ward (et l'immunité au contrôle qu'ils donneront) ; **Fear** dans sa propre étape (il déplace la
+cible contre sa volonté et touche la formation, les intentions et l'A*) ; plus tard Charm et les auras. Chaque étape se discute avec Claude.ai avant son
+prompt. L'`Expedition` garde les points dépensés ; c'est elle qu'on sauvegardera un jour.
+
+**Tests visuels de l'étape 113** (à faire par Olivier, Claude Code ne voit pas la fenêtre) :
+1. Paladin, Frappe sacrée qui touche : « Stunned », marque jaune, le monstre ne bouge plus et n'attaque plus pendant environ 1,5 s. Une Frappe sacrée esquivée ne fait rien.
+2. Frappe sacrée répétée sur le même monstre : les étourdissements raccourcissent, puis « Immune ». Après 15 s sans étourdissement, la durée pleine revient.
+3. Rôdeur, Pluie de flèches sur un groupe : « Slowed » et « Hampered », les monstres avancent et frappent plus lentement pendant 3 s.
+4. Mage, Counterspell sur un soigneur : « Disrupted », il ne soigne plus pendant environ 2 s, mais continue ses attaques de base.
+5. Infanterie lourde : de temps en temps, un personnage touché affiche « Stunned » et s'arrête environ 1 s, pas plus d'une fois toutes les 10 s par monstre. Un personnage avec beaucoup de Constitution reste étourdi un peu moins longtemps.
+6. Inventaire (touche I) : les lignes des états avec leur durée restante, et le pourcentage pour Slowed et Hampered.
+7. F8 : plus aucune marque à l'étage suivant.
+
+**Pistes issues de l'étape 113** (étapes à part, plus tard) :
+- **Ajuster en jouant** : l'étourdissement de la frappe sacrée (1,5 s), le ralentissement (30 %) et l'entrave (20 %) de la pluie de flèches (3 s), le contresort
+  (2 s, coefficient 0,5, recharge 10 s, coût 53, activation 0,3 s), le coup assommant (1 s, une fois par 10 s), le rendement décroissant (100 / 50 / 25 %,
+  remise à zéro à 15 s), la couleur jaune et la lisibilité d'une rangée de trois sortes de marques ; tout est « à tester ».
+- **Fear et Charm** (Fear : une étape à part, il déplace la cible contre sa volonté) ; **Aegis et Ward** et l'immunité au contrôle (étape 114).
+- **Une vitesse d'incantation** (l'entrave ne touche que l'attaque de base) et **un modificateur de statistique de vitesse d'attaque** (aujourd'hui le
+  facteur d'attaque ne vient que de l'entrave).
+- **D'autres monstres qui posent des effets** (un poison, un saignement, un ralentissement sur les personnages) : le mécanisme (`Attaque::effets` d'un monstre,
+  un rôle) est prêt, l'assommeur est le seul utilisateur. **Le coup assommant ne repart que s'il touche** (aujourd'hui son délai part au départ du coup,
+  esquivé ou non : il faudrait remonter le résultat du coup au monstre).
+- **Une immunité ou une résistance spéciale des créatures monstrueuses** (`docs/classes-et-combat.md`, section 11) ; **des affixes de résistance au contrôle**
+  sur l'équipement ; un rendement décroissant différent selon l'état.
+- **Un personnage ralenti hors combat** ralentit la formation (l'ancre va plus vite que lui) : accepté ; à revoir si la formation s'étire trop.
+- **Un contrôle qui interrompt aussi le déplacement des monstres en recul** (le tireur étourdi pendant son recul reprend à la fin) : non traité.
 
 **Pistes issues de l'étape 112** (étapes à part, plus tard) :
 - **Ajuster en jouant** : le saignement (8 par seconde et par pile, 6 s, 3 piles, 64 % du tir perçant par pile), la brûlure (8 par seconde, 4 s, 71 % de

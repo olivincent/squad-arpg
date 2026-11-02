@@ -2260,6 +2260,52 @@ quatre appels de `Monstre::mettreAJour` des tests ont reçu le paramètre des al
   recul et la marche du soigneur dans un vrai donjon (murs, portes, autres monstres), le texte vert sur le monstre soigné, l'équilibre des valeurs
   (le soigneur rend 75 points toutes les 6 s, soit 12,5 par seconde) : à l'œil, en jouant.
 
+## Étape 113 : les états de contrôle (2 118 → 2 214)
+
+2 118 tests au début de l'étape (2 155 après 113.1-113.2, 2 181 après 113.3, 2 198 après 113.4, 2 201 après 113.5, 2 204 après 113.6, 2 214 à la fin).
+Fixtures dans `aides.hpp` : `unControle(état, durée, pourcentage, source, rang)` et `attaqueQuiControle(effet)` (une attaque sans dégât qui ne pose
+que ce contrôle : ni esquive, ni critique, aucun tirage). Dans `aides_escouade.hpp` : `guerrierQuiEtourdit`, `mageQuiContreLesSorts`,
+`mageQuiRalentit` (une explosion qui ralentit de 30 % et entrave de 20 % comme la pluie de flèches).
+- **113.1 (et 113.2, un seul commit)** : `test_Controle.cpp` (**les règles de lecture** : sans effet tout est permis ; l'étourdissement interdit
+  mouvement, attaque et skill ; la Disruption interdit les skills seuls ; le ralentissement ne touche que le déplacement, l'entrave que l'attaque ; **le
+  cumul** : deux étourdissements / deux Disruptions durent tant qu'il en reste un, deux ralentissements / deux entraves gardent **le plus fort et non la
+  somme**, un ralentissement et une entrave du même skill (rangs différents) ne se confondent pas, le même skill reposé rafraîchit en gardant le
+  pourcentage le plus fort ; un ralentissement de 100 % ne passe pas sous 0 ; `etatQuiResiste` : l'entrave suit le ralentissement ;
+  `resistanceAppliquee` bornée ; `dureePosee`), `test_RendementsDeControle.cpp` (**100 / 50 / 25 % puis immunité**, un compteur par état, **remise à
+  zéro après 15 s**, une application qui joue repousse l'échéance, **une application bloquée ne la repousse pas**, `vider`), `test_Vitalite.cpp` (la
+  durée posée sans résistance, avec résistance, avec vulnérabilité, plafonnée à 80 %, l'entrave réduite par la résistance au ralentissement ; la
+  résistance d'un autre état ne joue pas ; le rendement et la résistance se multiplient ; le compteur d'un état ne touche pas celui d'un autre ;
+  la durée pleine revient après 15 s ; la mort et `viderLesEffets` vident le compteur ; un mort ne reçoit rien ; le contrôle d'une attaque se pose par
+  le même chemin), `test_EffetsActifs.cpp` (la marque jaune n'est pas dans les malus ; le temps fait couler le rendement ; `vider` le remet à zéro),
+  `test_AffichageSkills.cpp` et `test_BarreDeSkills.cpp` (Counterspell et Stunning Blow).
+- **113.3** : `test_Personnage_controle.cpp` (**étourdi, il ne bouge pas puis repart ; ralenti, il avance moitié moins vite ; l'entrave ne ralentit pas son
+  déplacement** ; étourdi il refuse l'attaque de base et tout skill ; **l'étourdissement annule le coup engagé et le skill en activation sans recharge
+  ni coût** ; la Disruption annule le skill mais pas le coup de base ; les recharges continuent sous l'étourdissement ; **l'entrave allonge
+  l'exécution** (environ le double à 50 %) **et la recharge** de l'attaque de base ; **la Constitution raccourcit un étourdissement (0,3 % par point), la
+  Resolve une Disruption** ; **un skill en attente est abandonné quand son lanceur est étourdi** ; un skill demandé par un lanceur étourdi est refusé),
+  `test_Monstre_controle.cpp` (les mêmes règles pour un monstre : il ne bouge pas, ralenti il avance moitié moins vite, le coup engagé est annulé sans
+  recharge, l'entrave allonge l'exécution et la recharge, **la Disruption empêche le soin du soigneur et l'annule en activation, sans recharge**, mais pas
+  l'attaque de base ; un coup qui ne fait que poser un contrôle alerte le monstre).
+- **113.4** : `test_Partie_controle.cpp` (**une frappe qui touche étourdit le monstre et le dit** : effet, événement, marque ; l'étourdissement expire ;
+  **le rendement décroissant raccourcit puis dit « Immune »** sur quatre frappes de skill identique ; la durée pleine revient 15 s après ; un contrôle
+  posé sur un personnage est signalé au-dessus de lui), `test_Specialite.cpp` (la frappe sacrée : 1,5 s, coefficient de durée 0), `test_TextesFlottants.cpp`
+  (libellés, taille, couleurs ; « Immune » gris, la couleur d'un contrôle n'est celle d'aucun autre texte), `test_AffichageEffets.cpp` (« Stunned (2 s) »,
+  « Slowed: −30 % (3 s) »), `test_CoherenceDesDonnees.cpp` (**un contrôle de frappe ou de tir a un coefficient de durée de 0**, un contrôle de sort de 0 à 1).
+- **113.5** : `test_Specialite.cpp` (la pluie de flèches : ralentissement de 30 % et entrave de 20 % pendant 3 s, coefficient 0), `test_Partie_controle.cpp`
+  (un skill de zone qui ralentit et entrave pose **deux effets de rangs 1 et 2** sur chaque monstre touché ; les facteurs de 0,7 et 0,8 ; les deux
+  expirent ensemble).
+- **113.6** : `test_Specialite.cpp` (le contresort : deuxième skill du mage, mode `Monstre`, Disruption de 2 s, coefficient 0,5 ; **son coût de 53 reste
+  abordable avec la réserve de départ, explosion comprise** ; sa place dans la barre par défaut), `test_Partie_controle.cpp` (le contresort met un monstre
+  en Disruption sans dégâts).
+- **113.7** : `test_Monstre_assommeur.cpp` (seule l'infanterie lourde l'est, 1 s et 10 s ; **son premier coup porte l'étourdissement**, identifié par
+  `CoupAssommant` ; **au plus un par 10 s** ; la Disruption l'empêche sans repartir le délai ; un coup d'opportunité n'en porte pas ; les autres monstres
+  non ; la profondeur ne le change pas ; étourdi lui-même, rien ne part), `test_RoleDeMonstre.cpp` (les trois mêlées restantes, l'état initial de
+  l'assommeur), `test_Partie_controle.cpp` (**le coup d'une infanterie lourde étourdit un personnage, une seule fois en 8 s**).
+- **Ce que les tests ne voient pas** : la couleur jaune des marques et des textes à côté du vert et du rouge, la lisibilité d'une rangée de trois sortes de
+  marques, « Stunned » et « Slowed »/« Hampered » empilés au-dessus d'un monstre touché par la pluie de flèches, le ressenti d'un monstre figé 1,5 s, d'un
+  soigneur qui ne soigne plus 2 s, d'un personnage immobilisé 1 s par l'infanterie lourde (trop long ? trop fréquent ?), l'équilibre des durées et des
+  pourcentages, la formation d'un personnage ralenti hors combat.
+
 ## Étape 112 : les dégâts et les soins dans le temps (2 053 → 2 118)
 
 2 053 tests au début de l'étape (2 055 après 112.1, 2 064 après 112.2, 2 102 après 112.3, 2 111 après 112.4, 2 114 après 112.5, 2 118 à la fin).

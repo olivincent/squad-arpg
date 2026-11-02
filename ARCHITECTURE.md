@@ -47,7 +47,7 @@ squad-arpg/
 │   ├── monde/      TileMap, Chemin, Deplacement, Mobile, ChampDeVision, Vision,
 │   │               ObjetInteractif, Niveau, CategorieDeMonstre, CompositionDeGroupe, GenerateurDonjon, Encerclement
 │   ├── combat/     Skill, SkillConnu, IdSkill, ModeDeCible, EffetDeSkill, ResultatDEffet, Place, IdMonstre, TypeDArme, DescriptionDAttaque, PlageDeDegats, AdresseSkill, Cible, ActionEngagee, Progression,
-│   │               Element, Degats, EffetActif, EffetsActifs,
+│   │               Element, Degats, EffetActif, EffetsActifs, Controle, RendementsDeControle,
 │   │               EtatSkill, Coup, EvenementDeCombat, EntiteVue, AllieVu, Autodefense, Engagement,
 │   │               Attaque, NatureDAttaque, StatistiquesDeCombat, Esquive, Critique, Blocage, Defense,
 │   │               ResolutionDuCoup, Caracteristiques, Contributions, EtatDeControle, ValeursEffectives, Energie, Jauge, Reserve, PointsDeVie, Vitalite
@@ -166,14 +166,16 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `Reserve` : une `Jauge`, un débit de régénération et un accumulateur (seule la partie entière est ajoutée) ; l'énergie d'un personnage, demain l'Élan.
 - `Energie` : les règles de l'énergie des personnages (`energieMax`, `regenerationDEnergie` : 100 plus la Volonté plus un gain par niveau de classe, 2 par seconde).
 - `Contributions` : la table des contributions des caractéristiques aux statistiques (points de vie, énergie, capacités, résistances au contrôle, bonus d'aire et de durée) et `apportDesCaracteristiques`, la seule forme de calcul `poids × (caractéristique − 10)` (`docs/classes-et-combat.md`, section 5 ; `docs/combat.md`).
-- `EtatDeControle` : les cinq états (Stun, Slow, Charm, Fear, Disruption) et `ParEtat<T>` ; sans `.cpp` (`docs/combat.md`).
+- `EtatDeControle` : les cinq états dont on a une résistance (Stun, Slow, Charm, Fear, Disruption) et `ParEtat<T>` ; sans `.cpp` (`docs/combat.md`). Distinct d'`EtatInflige` (`EffetActif.hpp`), les quatre états qu'un effet actif inflige depuis l'étape 113 (Stun, Slowed, Hampered, Disruption).
 - `ValeursEffectives` : le bonus d'aire (rayon par racine carrée) et de durée de l'Intellect, plafonnés ; `rayonEffectif` et `dureeEffective`, lues par `Personnage` seul (`docs/combat.md`).
 - `PointsDeVie` : une `Jauge` et les invariants de vie et de mort.
 - `Caracteristiques` : les cinq caractéristiques (`Caracteristique`, `Caracteristiques`, `Coefficients`), les points de vie maximum (selon le niveau de classe) et `montantEffectif`, seule source du montant d'un skill de personnage (`docs/combat.md`).
 - `Progression` : la courbe de l'expérience (`niveauPour`, `niveauDeClasse`, `experiencePourAtteindre`, `progressionVersLeNiveauSuivant`, `experienceManquante`) la croissance automatique d'une classe (`PaireDeCroissance`, `croissanceAuNiveau`) et les points libres (`pointsLibresRecus`, `pointsLibresDisponibles`, `depensePermise`) ; des fonctions pures (`docs/combat.md`, `docs/classes-et-combat.md`).
 - `Vitalite` : points de vie, défenses (armure, statistiques de combat), effets actifs et récupération du blocage d'une entité, commune à `Personnage` et `Monstre`.
-- `EffetActif` : ce qu'un skill laisse sur une entité pour une durée (l'identité skill + rang d'effet, la durée restante, une sorte en `std::variant` : le modificateur de statistique, l'armure, les dégâts dans le temps et le soin dans le temps, et les piles), `estUnBonus` ; sans `.cpp` (`docs/combat.md`, « Les effets actifs (étape 111) » et « Les dégâts et les soins dans le temps (étape 112) »).
-- `EffetsActifs` : les effets actifs d'une entité (cumul : un effet de même identité rafraîchit et gagne une pile jusqu'à son maximum), `mettreAJour` (qui rend les ticks), `vider`, et `appliquerLesEffets`, l'unique endroit où ils changent une statistique (pourcentages additionnés, une seule application) ; possédés par `Vitalite`, qui applique les ticks.
+- `EffetActif` : ce qu'un skill laisse sur une entité pour une durée (l'identité skill + rang d'effet, la durée restante, une sorte en `std::variant` : le modificateur de statistique, l'armure, les dégâts dans le temps, le soin dans le temps et le contrôle, et les piles), `estUnBonus`, `estUnControle` ; sans `.cpp` (`docs/combat.md`, « Les effets actifs (étape 111) », « Les dégâts et les soins dans le temps (étape 112) » et « Le contrôle (étape 113) »).
+- `EffetsActifs` : les effets actifs d'une entité (cumul : un effet de même identité rafraîchit et gagne une pile jusqu'à son maximum), `mettreAJour` (qui rend les ticks), `vider`, et `appliquerLesEffets`, l'unique endroit où ils changent une statistique (pourcentages additionnés, une seule application) ; possédés par `Vitalite`, qui applique les ticks et pose les contrôles (résistance de la cible, rendement décroissant).
+- `Controle` : les règles du contrôle, des fonctions pures sur les effets d'une entité (`peutBouger`, `peutAttaquer`, `peutUtiliserUnSkill`, `facteurDeDeplacement`, `facteurDAttaque`), `etatQuiResiste` (l'entrave suit la résistance au ralentissement), `resistanceAppliquee`, `dureePosee` (`docs/combat.md`, « Le contrôle (étape 113) »).
+- `RendementsDeControle` : le rendement décroissant du contrôle, un compteur par état (100 / 50 / 25 % puis immunité, remise à zéro 15 s après la dernière application), possédé par `EffetsActifs` (`docs/combat.md`).
 
 `objets/` — les objets, ce qu'on porte et le sac (`docs/objets.md`) :
 - `Emplacement` : les 10 emplacements, les 10 catégories d'objet (dont `Relique`, en main gauche comme le bouclier) et `peutAller`, seule source de la règle.
@@ -240,7 +242,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `Monstre` : états, détection, territoire, poursuite, retour au poste, frappe (`docs/monstre.md`).
 - `DefinitionDeMonstre` : toutes les valeurs d'équilibrage d'un monstre, le catalogue des six catégories
   (`catalogueDeMonstres()`, `definitionDeMonstre(catégorie)`) (`docs/monstre.md`).
-- `RoleDeMonstre` : ce qu'un monstre fait en plus de poursuivre et de frapper, un `std::variant` de données (`RoleMelee`, `RoleTireur`, `RoleSoigneur`) et son état d'exécution (`EtatDuRole`, de même forme, dans le monstre), `etatInitialDuRole`, `choisirLeBlesse` (`docs/monstre.md`, « Rôles »).
+- `RoleDeMonstre` : ce qu'un monstre fait en plus de poursuivre et de frapper, un `std::variant` de données (`RoleMelee`, `RoleTireur`, `RoleSoigneur`, `RoleAssommeur` — le coup assommant de l'infanterie lourde, étape 113) et son état d'exécution (`EtatDuRole`, de même forme, dans le monstre), `etatInitialDuRole`, `choisirLeBlesse` (`docs/monstre.md`, « Rôles »).
 
 `jeu/` :
 - `Partie` : un étage — règles de jeu, ordre d'une image, intermédiaire escouade/monstres (et seul tireur du `Generateur`, y compris pour F7 et le butin) ; se construit depuis un `Niveau` et une `Expedition`, rend l'`Expedition` de la partie en cours, renforce les monstres par la profondeur, prend l'escalier ; reçoit le catalogue des monstres ; `alliesDuGroupe`, seule construction de la vue des alliés d'un monstre, et application du soin d'un soigneur (`docs/boucle-et-entrees.md`, `docs/monstre.md`).

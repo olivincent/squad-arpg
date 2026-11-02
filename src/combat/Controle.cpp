@@ -26,8 +26,9 @@ float facteurDuPourcentage(int pourcentage) {
 EtatDeControle etatQuiResiste(EtatInflige etat) {
     switch (etat) {
         case EtatInflige::Etourdissement: return EtatDeControle::Etourdissement;
-        case EtatInflige::Ralentissement: return EtatDeControle::Ralentissement;
-        case EtatInflige::Entrave: return EtatDeControle::Ralentissement;
+        case EtatInflige::Ralentissement:
+        case EtatInflige::Entrave:  // l'entrave n'a pas de résistance propre : celle du ralentissement
+            return EtatDeControle::Ralentissement;
         case EtatInflige::Disruption: return EtatDeControle::Disruption;
         case EtatInflige::Nombre: return EtatDeControle::Etourdissement;
     }

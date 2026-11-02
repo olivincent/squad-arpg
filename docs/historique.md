@@ -130,6 +130,7 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 110 — Les effets des caractéristiques : une table de contributions en données, la Resolve vers l'énergie et les résistances au contrôle, le niveau de classe, le montant à 1 % par point, la convention des coefficients (Might pour l'arme, Intellect pour les sorts, Resolve pour les soins), l'aire et la durée de l'Intellect, de nouvelles bases pour le mage, le prêtre et le paladin ✅ (exception à `ARCHITECTURE.md` : des statistiques calculées avant leurs mécaniques)
 - Étape 111 — Le socle des effets actifs : un concept unique (le modificateur de statistique en première sorte), plusieurs effets par skill, l'affaiblissement de la frappe puissante, la bénédiction du prêtre (mode « toute l'escouade »), la durée d'un buff plafonnée par sa recharge, marques vertes et rouges et liste dans l'inventaire ✅
 - Étape 112 — Les dégâts et les soins dans le temps : l'identité d'un effet (skill, rang), les piles (maximum de 1 par défaut), deux sortes d'effet actif de plus (un tick par seconde, montant figé à la pose, `resoudreTick`), le saignement du tir perçant, la brûlure de l'explosion, Renew (soin dans le temps du prêtre), compteur de piles et petits chiffres des ticks ✅
+- Étape 113 — Les états de contrôle : le contrôle comme sorte d'effet actif (étourdissement, ralentissement, entrave « Hampered » qui suit la résistance au ralentissement, Disruption), le cumul (le plus fort, jamais la somme), la durée posée avec la résistance de la cible et le rendement décroissant (100 / 50 / 25 % puis « Immune », remise à zéro à 15 s), l'étourdissement de la frappe sacrée, le ralentissement et l'entrave de la pluie de flèches, le contresort du mage, le coup assommant de l'infanterie lourde (premiers effets posés par des monstres), marque jaune, textes flottants et lignes de l'inventaire ✅
 
 ## Détail des étapes 0 à 73
 
@@ -2646,3 +2647,25 @@ de `mettreAJour`, pour ne pas changer trois signatures utilisées partout ; le n
 n'ont pas de police) ; un monstre qui rentre à son poste perd ses effets ; le tick d'un effet est rendu en retard de moins d'1 ms à la fin de l'effet plutôt que
 perdu. 2 118 tests (+65), 0 avertissement de compilation sur les deux presets. Détail : `docs/combat.md` (« Les dégâts et les soins dans le temps (étape 112) »),
 `docs/classes-et-combat.md` (section 14 quater), `docs/glossaire.md`, `docs/ecrans.md`, `docs/tests.md`.
+
+### Étape 113 — Les états de contrôle ✅
+
+Sept sous-étapes enchaînées sans arrêt (Olivier absent : les tests visuels sont regroupés dans `ROADMAP.md`). **Un seul commit pour 113.1 et 113.2**
+(« 113.1-113.2 ») : leurs changements s'entremêlaient dans les mêmes fichiers (`EffetsActifs.hpp`, `Controle.hpp`) et la séparation en deux commits
+compilables aurait demandé de les défaire à la main. 113.1 : `Controle { EtatInflige etat; int pourcentage }`, quatrième alternative de `SorteDEffetActif`,
+`EtatInflige` (Stun, Slowed, Hampered, Disruption), `combat/Controle` (les règles de lecture : peut bouger, attaquer, lancer un skill, facteurs de déplacement et
+d'attaque ; le cumul vient de la lecture). 113.2 : `dureePosee` (durée × (1 − résistance) × rendement), `RendementsDeControle` (possédé par `EffetsActifs`),
+`Vitalite::poserEffet` qui compte l'application, bloque l'immunité et note chaque pose (`prendreLesControles`). 113.3 : les règles appliquées (`Personnage` et
+`Monstre` : mouvement, attaque de base, skills, soin du soigneur, annulation à la pose, entrave sur l'exécution et la recharge, ralentissement sur le temps du
+`Mobile`, `Escouade::abandonnerLeSkillEnAttenteSousControle`). 113.4 : `EffetControle` côté skill, l'étourdissement de la frappe sacrée, `ControleSubi`
+(événement), texte flottant (« Stunned », « Immune »), marque jaune, lignes de l'inventaire. 113.5 : ralentissement et entrave de la pluie de flèches. 113.6 :
+`IdSkill::Contresort`, deuxième skill du mage. 113.7 : `RoleAssommeur` et `IdSkill::CoupAssommant`, premier monstre qui pose un effet actif. **Choix faits sans
+Olivier** : l'état infligé est un type à part (`EtatInflige`) plutôt qu'une valeur de plus d'`EtatDeControle`, pour ne pas élargir `ParEtat`, l'inventaire ni
+la table de contributions avec un état sans résistance ; une application bloquée par l'immunité ne repousse pas la remise à zéro du compteur (sinon insister
+garderait l'immunité à jamais) ; un étourdissement abandonne aussi le skill en attente (il interdit les skills, comme la Disruption) ; un étourdi laisse son
+`Mobile` à l'arrêt, un monstre étourdi saute tout son comportement sauf ses recharges et son rôle ; une attaque sans dégâts qui pose un effet alerte le monstre
+(sinon le contresort ne réveillerait pas sa cible) ; le délai du coup assommant part avec le coup, qu'il touche ou non (le monstre ne sait pas s'il a été
+esquivé) ; l'entrave multiplie le temps de l'attaque de base (exécution et recharge) et pas celui des skills ; le contresort coûte 53 (règle des sorts, recharge de
+10 s) pour rester abordable avec la réserve de départ du mage. 2 214 tests (+96), 0 avertissement de compilation sur les deux presets. Détail :
+`docs/combat.md` (« Le contrôle (étape 113) »), `docs/classes-et-combat.md` (section 14 quinquies), `docs/monstre.md` (« L'assommeur »), `docs/glossaire.md`,
+`docs/ecrans.md`, `docs/tests.md`.
