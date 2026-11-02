@@ -2,12 +2,13 @@
 #pragma once
 #include <variant>
 #include "combat/Element.hpp"
+#include "combat/FamilleDAbsorption.hpp"
 #include "combat/SourceDEffet.hpp"
 
 // Un effet actif (étape 111) : ce qu'un skill a posé sur une entité pour une durée, et qui expire. Buffs, affaiblissements, dégâts dans
 // le temps, contrôle, Aegis et Ward seront tous des effets actifs ; chaque sorte est une alternative de `SorteDEffetActif`, et le
 // compilateur signale chaque `std::visit` à compléter. Pour l'instant : le modificateur de statistique, les dégâts dans le temps, le
-// soin dans le temps (étape 112) et le contrôle (étape 113).
+// soin dans le temps (étape 112), le contrôle (étape 113) et l'absorption (étape 114).
 //
 // À ne pas confondre avec `EffetDeSkill` (`EffetDeSkill.hpp`) : celui-là est la donnée d'un skill, ce qu'il fait quand il part ; l'effet
 // actif est ce qui reste sur l'entité touchée, avec son temps restant. Les `Effet*` de skill qui posent un effet actif en sont la source.
@@ -69,7 +70,20 @@ struct Controle {
     constexpr bool operator==(const Controle&) const = default;
 };
 
-using SorteDEffetActif = std::variant<ModificateurDeStatistique, DegatsDansLeTemps, SoinDansLeTemps, Controle>;
+// Un bouclier d'absorption (étape 114) : Aegis (le physique) ou Ward (tout le non-physique). `points` : ce qu'il peut encore absorber ; il
+// disparaît quand il tombe à 0 OU quand la durée de l'effet s'écoule. Il agit en dernier dans un coup ou un tick (après l'armure et les
+// résistances : `resoudreCoup`, `resoudreTick`), et tant qu'il reste des points de sa famille, l'entité est immunisée contre le contrôle de
+// cette famille (`Vitalite::poserEffet`). Plusieurs boucliers de même famille coexistent (sources différentes) : le premier à expirer est
+// consommé d'abord (`EffetsActifs::consommerLAbsorption`). Reposé par la même source, il rafraîchit la durée et garde le plus grand nombre
+// de points entre ce qui reste et ce qui est posé.
+struct Absorption {
+    FamilleDAbsorption famille;
+    int points;
+
+    constexpr bool operator==(const Absorption&) const = default;
+};
+
+using SorteDEffetActif = std::variant<ModificateurDeStatistique, DegatsDansLeTemps, SoinDansLeTemps, Controle, Absorption>;
 
 struct EffetActif {
     // L'identité de l'effet est (source, rang) : le skill ou la capacité de monstre qui l'a posé et le rang de l'effet dans la liste
@@ -92,13 +106,15 @@ struct EffetActif {
 }
 
 // Un bonus (vert à l'écran) aide l'entité qui le porte ; sinon c'est un malus (rouge). Un modificateur de 0 % est un bonus ; un soin
-// dans le temps est un bonus, des dégâts dans le temps et un contrôle des malus (mais la marque d'un contrôle est jaune : `estUnControle`).
+// dans le temps et un bouclier d'absorption sont des bonus, des dégâts dans le temps et un contrôle des malus (mais la marque d'un contrôle
+// est jaune : `estUnControle`).
 [[nodiscard]] inline bool estUnBonus(const EffetActif& effet) {
     struct Visiteur {
         bool operator()(const ModificateurDeStatistique& modificateur) const { return modificateur.pourcentage >= 0; }
         bool operator()(const DegatsDansLeTemps&) const { return false; }
         bool operator()(const SoinDansLeTemps&) const { return true; }
         bool operator()(const Controle&) const { return false; }
+        bool operator()(const Absorption&) const { return true; }
     };
     return std::visit(Visiteur{}, effet.sorte);
 }

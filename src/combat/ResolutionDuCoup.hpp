@@ -4,6 +4,7 @@
 #include "combat/Attaque.hpp"
 #include "combat/Degats.hpp"
 #include "combat/Element.hpp"
+#include "combat/FamilleDAbsorption.hpp"
 #include "combat/StatistiquesDeCombat.hpp"
 
 // Ce que le défenseur oppose à un coup : son armure (qui réduit la portion physique) et ses statistiques de combat
@@ -11,6 +12,7 @@
 struct Defenses {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
     int armure;
     StatistiquesDeCombat statistiques;  // capaciteDefensive > 0
+    PointsDAbsorption absorption = {};  // les boucliers d'absorption qu'il a en ce moment (étape 114) ; `appliquerLesEffets` les remplit
 };
 
 // Ce qu'un coup (ou un soin) a donné. Un résultat « rien » (montant 0, ni critique ni esquive) est celui d'un

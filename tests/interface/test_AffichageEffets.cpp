@@ -84,3 +84,16 @@ TEST_CASE("nomDeLEtatInflige : les quatre etats, en anglais") {
     REQUIRE(nomDeLEtatInflige(EtatInflige::Entrave) == "Hampered");
     REQUIRE(nomDeLEtatInflige(EtatInflige::Disruption) == "Disrupted");
 }
+
+TEST_CASE("ligneDEffetActif : un bouclier porte le nom de sa famille et ses points restants") {
+    const EffetActif aegis{.source = IdSkill::Soin, .dureeRestante = 5.2f, .sorte = Absorption{.famille = FamilleDAbsorption::Aegis, .points = 45}};
+    const EffetActif ward{.source = IdCapacite::CoupAssommant, .dureeRestante = 8.0f, .sorte = Absorption{.famille = FamilleDAbsorption::Ward, .points = 60}};
+
+    REQUIRE(ligneDEffetActif(aegis) == "Aegis: 45 (6 s)");
+    REQUIRE(ligneDEffetActif(ward) == "Ward: 60 (8 s)");
+}
+
+TEST_CASE("nomDeLaFamilleDAbsorption : Aegis et Ward") {
+    REQUIRE(nomDeLaFamilleDAbsorption(FamilleDAbsorption::Aegis) == "Aegis");
+    REQUIRE(nomDeLaFamilleDAbsorption(FamilleDAbsorption::Ward) == "Ward");
+}

@@ -85,6 +85,7 @@ add_library(squad_core STATIC
     src/combat/Vitalite.cpp
     src/combat/EffetsActifs.cpp
     src/combat/Controle.cpp
+    src/combat/FamilleDAbsorption.cpp
     src/combat/RendementsDeControle.cpp
     src/combat/StatistiquesDeCombat.cpp
     src/combat/Critique.cpp
@@ -212,6 +213,7 @@ add_executable(tests
     tests/combat/test_Vitalite.cpp
     tests/combat/test_EffetsActifs.cpp
     tests/combat/test_Controle.cpp
+    tests/combat/test_FamilleDAbsorption.cpp
     tests/combat/test_RendementsDeControle.cpp
     tests/combat/test_Defense.cpp
     tests/combat/test_Caracteristiques.cpp

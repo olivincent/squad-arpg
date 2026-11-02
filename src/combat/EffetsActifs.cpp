@@ -36,6 +36,12 @@ Controle lePlusFort(const Controle& present, const Controle& nouveau) {
     return nouveau.pourcentage > present.pourcentage ? nouveau : present;
 }
 
+// Un bouclier reposé garde le plus grand nombre de points entre ce qui lui reste et ce qu'on lui pose (la même famille, puisque
+// l'identité est la même).
+Absorption lePlusFort(const Absorption& present, const Absorption& nouveau) {
+    return nouveau.points > present.points ? nouveau : present;
+}
+
 // Deux sortes de même identité ont la même alternative (une identité est un skill et un rang, et un rang est une sorte).
 SorteDEffetActif lePlusFort(const SorteDEffetActif& present, const SorteDEffetActif& nouveau) {
     assert(present.index() == nouveau.index());
@@ -89,6 +95,7 @@ std::vector<Tick> EffetsActifs::mettreAJour(float dt) {
         std::visit(Surcharges{
                        [](ModificateurDeStatistique&) {},
                        [](Controle&) {},
+                       [](Absorption&) {},
                        [&](DegatsDansLeTemps& degats) {
                            for (int i = ticksEchus(degats.avantLeTick, ecoule, fin); i > 0; --i) {
                                ticks.push_back(TickDeDegats{degats.element, degats.montant * effet.piles});
@@ -121,6 +128,40 @@ const RendementsDeControle& EffetsActifs::rendements() const {
 
 const std::vector<EffetActif>& EffetsActifs::liste() const {
     return m_effets;
+}
+
+PointsDAbsorption EffetsActifs::pointsDAbsorption() const {
+    PointsDAbsorption points;
+    for (const EffetActif& effet : m_effets) {
+        if (const auto* absorption = std::get_if<Absorption>(&effet.sorte)) {
+            (absorption->famille == FamilleDAbsorption::Aegis ? points.aegis : points.ward) += absorption->points;
+        }
+    }
+    return points;
+}
+
+void EffetsActifs::consommerLAbsorption(FamilleDAbsorption famille, int points) {
+    assert(points >= 0 && points <= pointsDAbsorption().deLaFamille(famille));
+    // Les boucliers de la famille, celui qui expire le premier d'abord ; le tri stable garde l'ordre de pose à égalité.
+    std::vector<EffetActif*> boucliers;
+    for (EffetActif& effet : m_effets) {
+        const auto* absorption = std::get_if<Absorption>(&effet.sorte);
+        if (absorption != nullptr && absorption->famille == famille) {
+            boucliers.push_back(&effet);
+        }
+    }
+    std::ranges::stable_sort(boucliers, [](const EffetActif* a, const EffetActif* b) { return a->dureeRestante < b->dureeRestante; });
+    int restant = points;
+    for (EffetActif* bouclier : boucliers) {
+        Absorption& absorption = std::get<Absorption>(bouclier->sorte);
+        const int pris = std::min(restant, absorption.points);
+        absorption.points -= pris;
+        restant -= pris;
+    }
+    std::erase_if(m_effets, [](const EffetActif& effet) {
+        const auto* absorption = std::get_if<Absorption>(&effet.sorte);
+        return absorption != nullptr && absorption->points <= 0;
+    });
 }
 
 std::vector<int> EffetsActifs::pilesDesBonus() const {
@@ -163,10 +204,13 @@ Defenses appliquerLesEffets(const Defenses& defenses, const EffetsActifs& effets
                        [](const DegatsDansLeTemps&) {},
                        [](const SoinDansLeTemps&) {},
                        [](const Controle&) {},
+                       // Un bouclier d'absorption ne change aucune statistique : il agit par ses points (`pointsDAbsorption`).
+                       [](const Absorption&) {},
                    },
                    effet.sorte);
     }
     Defenses resultat = defenses;
+    resultat.absorption = effets.pointsDAbsorption();
     const double armure = static_cast<double>(defenses.armure) * (100 + pourcentageDArmure) / 100.0;
     resultat.armure = std::max(0, static_cast<int>(std::lround(armure)));
     return resultat;

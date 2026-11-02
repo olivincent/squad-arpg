@@ -513,3 +513,157 @@ TEST_CASE("EffetsActifs vider : retire aussi le compteur de rendement") {
 
     REQUIRE(effets.rendements().applications(EtatInflige::Disruption) == 0);
 }
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// L'absorption (étape 114.2) : Aegis et Ward, nouvelle sorte d'effet actif.
+
+namespace {
+EffetActif bouclier(SourceDEffet source, FamilleDAbsorption famille, int points, float duree) {
+    return {.source = source, .dureeRestante = duree, .sorte = Absorption{.famille = famille, .points = points}};
+}
+
+int pointsDuPremier(const EffetsActifs& effets) {
+    return std::get<Absorption>(effets.liste().front().sorte).points;
+}
+}  // namespace
+
+TEST_CASE("absorption : un bouclier est un bonus (marque verte)") {
+    EffetsActifs effets;
+    effets.poser(bouclier(IdSkill::Soin, FamilleDAbsorption::Aegis, 50, 8.0f));
+
+    REQUIRE(effets.pilesDesBonus() == std::vector<int>{1});
+    REQUIRE(effets.pilesDesMalus().empty());
+    REQUIRE(effets.nombreDeControles() == 0);
+}
+
+TEST_CASE("absorption : les points se cumulent par famille") {
+    EffetsActifs effets;
+    effets.poser(bouclier(IdSkill::Soin, FamilleDAbsorption::Aegis, 50, 8.0f));
+    effets.poser(bouclier(IdSkill::Explosion, FamilleDAbsorption::Aegis, 20, 8.0f));
+    effets.poser(bouclier(IdSkill::Benediction, FamilleDAbsorption::Ward, 35, 8.0f));
+
+    REQUIRE(effets.pointsDAbsorption() == PointsDAbsorption{.aegis = 70, .ward = 35});
+}
+
+TEST_CASE("absorption : sans bouclier, aucun point") {
+    REQUIRE(EffetsActifs{}.pointsDAbsorption() == PointsDAbsorption{});
+}
+
+TEST_CASE("absorption : la meme source reposee rafraichit la duree et garde le plus grand nombre de points") {
+    EffetsActifs effets;
+    effets.poser(bouclier(IdSkill::Soin, FamilleDAbsorption::Aegis, 60, 4.0f));
+    effets.consommerLAbsorption(FamilleDAbsorption::Aegis, 45);  // il reste 15
+
+    effets.poser(bouclier(IdSkill::Soin, FamilleDAbsorption::Aegis, 60, 8.0f));
+
+    REQUIRE(effets.liste().size() == 1);
+    REQUIRE(pointsDuPremier(effets) == 60);
+    REQUIRE(effets.liste().front().dureeRestante == 8.0f);
+}
+
+TEST_CASE("absorption : reposer un bouclier plus petit que ce qui reste ne diminue pas les points") {
+    EffetsActifs effets;
+    effets.poser(bouclier(IdSkill::Soin, FamilleDAbsorption::Aegis, 60, 4.0f));
+
+    effets.poser(bouclier(IdSkill::Soin, FamilleDAbsorption::Aegis, 40, 8.0f));
+
+    REQUIRE(effets.liste().size() == 1);
+    REQUIRE(pointsDuPremier(effets) == 60);
+    REQUIRE(effets.liste().front().dureeRestante == 8.0f);  // la durée, elle, est rafraîchie
+}
+
+TEST_CASE("absorption : deux sources de la meme famille font deux effets separes") {
+    EffetsActifs effets;
+    effets.poser(bouclier(IdSkill::Soin, FamilleDAbsorption::Aegis, 60, 8.0f));
+    effets.poser(bouclier(IdSkill::Explosion, FamilleDAbsorption::Aegis, 30, 8.0f));
+    effets.poser(bouclier(IdCapacite::CoupAssommant, FamilleDAbsorption::Aegis, 10, 8.0f));
+
+    REQUIRE(effets.liste().size() == 3);
+}
+
+TEST_CASE("absorption consommer : le bouclier qui expire le premier est consomme d'abord") {
+    EffetsActifs effets;
+    effets.poser(bouclier(IdSkill::Soin, FamilleDAbsorption::Aegis, 60, 8.0f));
+    effets.poser(bouclier(IdSkill::Explosion, FamilleDAbsorption::Aegis, 30, 3.0f));  // expire avant, bien que posé après
+
+    effets.consommerLAbsorption(FamilleDAbsorption::Aegis, 20);
+
+    REQUIRE(effets.liste().size() == 2);
+    REQUIRE(std::get<Absorption>(effets.liste()[0].sorte).points == 60);  // celui de 8 s est intact
+    REQUIRE(std::get<Absorption>(effets.liste()[1].sorte).points == 10);  // celui de 3 s a payé
+}
+
+TEST_CASE("absorption consommer : un bouclier epuise disparait et le suivant prend le reste") {
+    EffetsActifs effets;
+    effets.poser(bouclier(IdSkill::Soin, FamilleDAbsorption::Aegis, 60, 8.0f));
+    effets.poser(bouclier(IdSkill::Explosion, FamilleDAbsorption::Aegis, 30, 3.0f));
+
+    effets.consommerLAbsorption(FamilleDAbsorption::Aegis, 50);  // 30 au premier à expirer, 20 au suivant
+
+    REQUIRE(effets.liste().size() == 1);
+    REQUIRE(effets.liste().front().source == SourceDEffet{IdSkill::Soin});
+    REQUIRE(pointsDuPremier(effets) == 40);
+}
+
+TEST_CASE("absorption consommer : a duree egale, le plus anciennement pose d'abord") {
+    EffetsActifs effets;
+    effets.poser(bouclier(IdSkill::Soin, FamilleDAbsorption::Aegis, 30, 5.0f));
+    effets.poser(bouclier(IdSkill::Explosion, FamilleDAbsorption::Aegis, 30, 5.0f));
+
+    effets.consommerLAbsorption(FamilleDAbsorption::Aegis, 30);
+
+    REQUIRE(effets.liste().size() == 1);
+    REQUIRE(effets.liste().front().source == SourceDEffet{IdSkill::Explosion});
+}
+
+TEST_CASE("absorption consommer : l'autre famille et les autres effets ne sont pas touches") {
+    EffetsActifs effets;
+    effets.poser(bouclier(IdSkill::Soin, FamilleDAbsorption::Aegis, 40, 8.0f));
+    effets.poser(bouclier(IdSkill::Benediction, FamilleDAbsorption::Ward, 40, 8.0f));
+    effets.poser(effetDArmure(IdSkill::FrappePuissante, -25, 8.0f));
+
+    effets.consommerLAbsorption(FamilleDAbsorption::Aegis, 40);
+
+    REQUIRE(effets.liste().size() == 2);
+    REQUIRE(effets.pointsDAbsorption() == PointsDAbsorption{.aegis = 0, .ward = 40});
+}
+
+TEST_CASE("absorption : le bouclier disparait quand sa duree s'ecoule, meme s'il lui reste des points") {
+    EffetsActifs effets;
+    effets.poser(bouclier(IdSkill::Soin, FamilleDAbsorption::Aegis, 60, 2.0f));
+
+    static_cast<void>(effets.mettreAJour(1.0f));
+    REQUIRE(effets.pointsDAbsorption().aegis == 60);
+
+    static_cast<void>(effets.mettreAJour(1.5f));
+    REQUIRE(effets.liste().empty());
+    REQUIRE(effets.pointsDAbsorption().aegis == 0);
+}
+
+TEST_CASE("absorption : appliquerLesEffets remplit les points d'absorption des defenses, sans toucher l'armure") {
+    EffetsActifs effets;
+    effets.poser(bouclier(IdSkill::Soin, FamilleDAbsorption::Aegis, 60, 8.0f));
+    effets.poser(bouclier(IdSkill::Benediction, FamilleDAbsorption::Ward, 25, 8.0f));
+    const Defenses defenses = {.armure = 10, .statistiques = {.capaciteDefensive = 100}};
+
+    const Defenses avecEffets = appliquerLesEffets(defenses, effets);
+
+    REQUIRE(avecEffets.absorption == PointsDAbsorption{.aegis = 60, .ward = 25});
+    REQUIRE(avecEffets.armure == 10);
+}
+
+TEST_CASE("absorption : vider retire les boucliers") {
+    EffetsActifs effets;
+    effets.poser(bouclier(IdSkill::Soin, FamilleDAbsorption::Aegis, 60, 8.0f));
+
+    effets.vider();
+
+    REQUIRE(effets.pointsDAbsorption() == PointsDAbsorption{});
+}
+
+TEST_CASE("SourceDEffet : un skill et une capacite ne se confondent jamais") {
+    REQUIRE(SourceDEffet{IdSkill::Soin} == SourceDEffet{IdSkill::Soin});
+    REQUIRE(SourceDEffet{IdSkill::Soin} != SourceDEffet{IdSkill::Explosion});
+    REQUIRE(SourceDEffet{IdCapacite::CoupAssommant} == SourceDEffet{IdCapacite::CoupAssommant});
+    REQUIRE(SourceDEffet{IdSkill::FrappePuissante} != SourceDEffet{IdCapacite::CoupAssommant});
+}

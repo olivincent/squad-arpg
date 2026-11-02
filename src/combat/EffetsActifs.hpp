@@ -45,6 +45,12 @@ public:
     [[nodiscard]] float compterUneApplicationDeControle(EtatInflige etat);
     [[nodiscard]] const RendementsDeControle& rendements() const;
     [[nodiscard]] const std::vector<EffetActif>& liste() const;
+    // Les points d'absorption que ces effets donnent, par famille (tous les boucliers de la famille additionnés).
+    [[nodiscard]] PointsDAbsorption pointsDAbsorption() const;
+    // Retire `points` aux boucliers de cette famille : celui qui expire le premier d'abord (la durée restante la plus courte ; à égalité,
+    // le plus anciennement posé), puis le suivant. Un bouclier tombé à 0 disparaît. Précondition : `points` ne dépasse pas ce que la
+    // famille a (`pointsDAbsorption`).
+    void consommerLAbsorption(FamilleDAbsorption famille, int points);
     // Les piles de chaque effet actif qui est un bonus (`estUnBonus`), puis de chaque malus, dans l'ordre où ils ont été posés : une marque
     // verte ou rouge par élément à l'écran, suivie du nombre de piles quand il dépasse 1.
     // Les malus qui ne sont pas des contrôles (un contrôle a sa rangée jaune : `nombreDeControles`).
@@ -61,5 +67,5 @@ private:
 // Les défenses une fois les effets pris en compte, quelle que soit leur source (personnage ou monstre) : la couche des effets s'applique
 // après les caractéristiques et l'équipement. Les pourcentages de tous les effets sur une même statistique s'additionnent, puis
 // s'appliquent une seule fois : `statistique × (100 + somme) / 100`, arrondie au plus proche, jamais sous 0. Seul endroit qui lit les
-// effets pour changer une statistique.
+// effets pour changer une statistique. Il remplit aussi `Defenses::absorption` (étape 114), les points d'absorption que ces effets donnent.
 [[nodiscard]] Defenses appliquerLesEffets(const Defenses& defenses, const EffetsActifs& effets);

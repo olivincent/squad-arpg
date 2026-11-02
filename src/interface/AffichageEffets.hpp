@@ -13,6 +13,10 @@
 // texte flottant à la pose et la ligne de l'inventaire le partagent.
 [[nodiscard]] std::string nomDeLEtatInflige(EtatInflige etat);
 
+// Le nom d'une famille d'absorption (étape 114) : « Aegis », « Ward ». La ligne de l'inventaire, la couleur du segment et le texte
+// flottant l'utilisent.
+[[nodiscard]] std::string nomDeLaFamilleDAbsorption(FamilleDAbsorption famille);
+
 // Le nom de la statistique qu'un modificateur change : « Armor ».
 [[nodiscard]] std::string nomDeLaStatistique(StatistiqueModifiable statistique);
 
@@ -21,6 +25,7 @@
 // restante en secondes entières (arrondie vers le haut : un effet encore actif n'affiche jamais « 0 s »), par exemple
 // « Blessing: +20 % Armor (10 s) », « Power Strike: −25 % Armor (8 s) », « Bleeding ×2: 14 per s (4 s) » ou « Renew: 9 per s (6 s) ».
 // Un contrôle porte le nom de son état et, pour le ralentissement et l'entrave, son pourcentage : « Stunned (2 s) »,
-// « Slowed: −30 % (3 s) », « Hampered: −20 % (3 s) ».
+// « Slowed: −30 % (3 s) », « Hampered: −20 % (3 s) ». Un bouclier d'absorption porte le nom de sa famille et ses points restants :
+// « Aegis: 45 (6 s) ».
 // Le signe moins est le signe typographique (U+2212), le × aussi (U+00D7).
 [[nodiscard]] std::string ligneDEffetActif(const EffetActif& effet);

@@ -24,6 +24,15 @@ std::string nomDeLEtatInflige(EtatInflige etat) {
     return "";
 }
 
+// Pas de `default` : une famille ajoutée sans nom fait avertir le compilateur.
+std::string nomDeLaFamilleDAbsorption(FamilleDAbsorption famille) {
+    switch (famille) {
+        case FamilleDAbsorption::Aegis: return "Aegis";
+        case FamilleDAbsorption::Ward: return "Ward";
+    }
+    return "";
+}
+
 // Pas de `default` : une statistique ajoutée sans nom fait avertir le compilateur.
 std::string nomDeLaStatistique(StatistiqueModifiable statistique) {
     switch (statistique) {
@@ -51,7 +60,9 @@ std::string nomDeLEffetActif(const EffetActif& effet) {
                                  // Le soin dans le temps porte le nom de son skill (Renew).
                                  [&](const SoinDansLeTemps&) { return nomDeLaSource(effet.source); },
                                  // Un contrôle porte le nom de son état, non celui du skill qui l'a posé.
-                                 [](const Controle& controle) { return nomDeLEtatInflige(controle.etat); }},
+                                 [](const Controle& controle) { return nomDeLEtatInflige(controle.etat); },
+                                 // Un bouclier porte le nom de sa famille, non celui de son skill : « Aegis », « Ward ».
+                                 [](const Absorption& absorption) { return nomDeLaFamilleDAbsorption(absorption.famille); }},
                       effet.sorte);
 }
 }  // namespace
@@ -67,7 +78,9 @@ std::string ligneDEffetActif(const EffetActif& effet) {
                    // Seuls le ralentissement et l'entrave ont un pourcentage : un étourdissement ou une Disruption n'a pas de valeur.
                    [](const Controle& controle) {
                        return controle.pourcentage > 0 ? "−" + std::to_string(controle.pourcentage) + " %" : std::string();
-                   }},
+                   },
+                   // Les points qui restent au bouclier : « Aegis: 45 (6 s) ».
+                   [](const Absorption& absorption) { return std::to_string(absorption.points); }},
         effet.sorte);
     const std::string piles = effet.piles > 1 ? " ×" + std::to_string(effet.piles) : "";
     const int secondes = static_cast<int>(std::ceil(effet.dureeRestante));
