@@ -49,6 +49,11 @@ constexpr int s_degatsZone = 45;
 constexpr float s_rechargeZone = 8.0f;        // en secondes
 constexpr float s_activationZone = 0.8f;      // en secondes
 constexpr float s_rayonZone = 60.0f;          // rayon de zone, depuis le point visé
+// Brûlure de l'explosion (étape 112, « à tester ») : du feu dans le temps sur chaque monstre touché, sur le Savoir du mage, une seule pile
+// (lancer l'explosion de nouveau rafraîchit). 8 points par seconde pendant 4 s, soit 32 points (71 % des 45 de l'explosion). Coefficient de
+// durée de 0, comme tout effet dans le temps : son montant gagne déjà par le Savoir.
+constexpr int s_brulureExplosion = 8;         // par seconde
+constexpr int s_dureeBrulure = 4;             // en secondes
 
 // Le coût en énergie des skills (étape 108), déduit d'une règle de calibrage et non choisi un par un : à partir d'une réserve pleine
 // de niveau 1, un personnage qui lance un skill à chaque fin de recharge, avec la régénération de base, tombe à sec en `T` secondes.
@@ -214,7 +219,12 @@ std::vector<Specialite> construireLeCatalogue() {
                                                  .portee = s_porteeZone,
                                                  .rechargeMin = s_rechargeZone,
                                                  .rechargeMax = s_rechargeZone,
-                                                 .effets = {EffetDegats{.montant = s_degatsZone, .nature = NatureDAttaque::Zone, .element = Element::Feu, .coefficients = s_savoirSeul}},
+                                                 .effets = {EffetDegats{.montant = s_degatsZone, .nature = NatureDAttaque::Zone, .element = Element::Feu, .coefficients = s_savoirSeul},
+                                                            // Chaque monstre que la zone touche brûle un moment.
+                                                            EffetDegatsDansLeTemps{.montant = s_brulureExplosion,
+                                                                                   .duree = s_dureeBrulure,
+                                                                                   .element = Element::Feu,
+                                                                                   .coefficients = s_savoirSeul}},
                                                  .rayonZone = s_rayonZone,
                                                  .coefficientDAire = 1.0f,  // un sort : son aire profite de l'Intellect
                                                  .tempsExecution = s_activationZone,

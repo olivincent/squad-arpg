@@ -204,3 +204,25 @@ TEST_CASE("effets dans le temps : un soin dans le temps rend des points de vie c
     }
     REQUIRE(total == perte);  // plafonné : les ticks rendent ce que le guerrier avait perdu, pas un point de plus
 }
+
+TEST_CASE("effets dans le temps : une explosion qui brule pose une brulure sur chaque monstre touche, des petits chiffres de feu chaque seconde") {
+    Partie partie = partieDeTest(niveauDegage({{235.0f, 170.0f}, {250.0f, 185.0f}}), {guerrierDeTest(), pretreDeTest(), mageQuiBrule()},
+                                 s_graineDeTest, monstreIndestructible());
+    partie.lancerSkillDeZone(s_adresseExplosion, {242.0f, 177.0f});
+    avancer(partie, nombreDeTics(1.0f));  // l'activation dure 0,8 s
+    REQUIRE(partie.getMonstres().size() == 2);
+    for (const Monstre& monstre : partie.getMonstres()) {
+        REQUIRE(monstre.getEffets().liste().size() == 1);
+        REQUIRE(monstre.getEffets().pilesDesMalus() == std::vector<int>{1});
+    }
+    static_cast<void>(partie.prendreEvenements());
+
+    const std::vector<EvenementDeCombat> ticks = ticksPendant(partie, static_cast<float>(s_dureeDeBrulureDeTest) + 1.0f);
+
+    REQUIRE(ticks.size() >= static_cast<std::size_t>(2 * (s_dureeDeBrulureDeTest - 1)));  // quatre ticks par monstre, les premiers déjà tombés peut-être
+    for (const EvenementDeCombat& tick : ticks) {
+        const DegatsSubis& degats = std::get<DegatsSubis>(tick.detail);
+        REQUIRE(degats.element == Element::Feu);
+        REQUIRE(degats.montant == s_montantDeBrulureDeTest);
+    }
+}

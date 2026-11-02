@@ -673,6 +673,30 @@ TEST_CASE("tir percant : ses degats, puis un saignement physique de 8 par second
     REQUIRE(total <= 1.0 * direct);
 }
 
+TEST_CASE("explosion : ses degats de feu, puis une brulure de 8 par seconde pendant 4 s, une seule pile, sur le Savoir") {
+    const Skill* explosion = nullptr;
+    for (const SkillConnu& connu : specialite(IdSpecialite::Mage).definition.skills) {
+        if (connu.id == IdSkill::Explosion) {
+            explosion = &connu.skill;
+        }
+    }
+    REQUIRE(explosion != nullptr);
+
+    REQUIRE(explosion->getEffets().size() == 2);
+    REQUIRE(std::holds_alternative<EffetDegats>(explosion->getEffets()[0]));
+    const EffetDegatsDansLeTemps& brulure = std::get<EffetDegatsDansLeTemps>(explosion->getEffets()[1]);
+    REQUIRE(brulure.element == Element::Feu);
+    REQUIRE(brulure.montant == 8);
+    REQUIRE(brulure.duree == 4);
+    REQUIRE(brulure.pilesMax == 1);
+    REQUIRE(brulure.coefficients == Coefficients::seul(Caracteristique::Savoir, 1.0f));
+    REQUIRE(brulure.coefficientDeDuree == 0.0f);
+    const double direct = std::get<EffetDegats>(explosion->getEffets()[0]).montant;
+    const double total = static_cast<double>(brulure.montant) * brulure.duree;
+    REQUIRE(total >= 0.5 * direct);
+    REQUIRE(total <= 1.0 * direct);
+}
+
 TEST_CASE("benediction : le pretre la connait, un buff d'armure de +20 % pendant 10 s pour toute l'escouade, recharge de 20 s") {
     const Skill* benediction = nullptr;
     for (const SkillConnu& connu : specialite(IdSpecialite::Pretre).definition.skills) {

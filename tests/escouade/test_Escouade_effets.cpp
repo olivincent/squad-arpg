@@ -263,3 +263,28 @@ TEST_CASE("effets dans le temps : les ticks d'un soin rendent des points de vie 
     REQUIRE(std::get<TickDeSoin>(ticks[0].tick).montant == s_montantDeSoinDansLeTempsDeTest);
     REQUIRE(escouade.prendreLesTicks().empty());
 }
+
+TEST_CASE("effets dans le temps : une explosion qui brule pose la brulure sur chaque monstre touche, pas sur celui hors zone") {
+    Generateur generateur = generateurDeTest();
+    Escouade escouade = uneEscouadeDe({200.0f, 200.0f}, {guerrierDeTest(), pretreDeTest(), mageQuiBrule()});
+    const std::vector<MonstreVu> monstres = {
+        MonstreVu{IdMonstre{1}, cibleMonstre({300.0f, 300.0f})},
+        MonstreVu{IdMonstre{2}, cibleMonstre({330.0f, 300.0f})},
+        MonstreVu{IdMonstre{3}, cibleMonstre({500.0f, 300.0f})},
+    };
+
+    const std::vector<Coup> coups = declencherZoneEtAttendre(escouade, s_adresseExplosion, {300.0f, 300.0f}, monstres, carteDegageeEntouree(), generateur);
+
+    REQUIRE(coups.size() == 2);  // le troisième monstre est hors de la zone
+    for (const Coup& coup : coups) {
+        REQUIRE(coup.attaque.effets.size() == 1);
+        const EffetActif& effet = coup.attaque.effets[0];
+        REQUIRE(effet.source == IdSkill::Explosion);
+        REQUIRE(effet.rang == 1);
+        REQUIRE(effet.pilesMax == 1);
+        REQUIRE(effet.dureeRestante == static_cast<float>(s_dureeDeBrulureDeTest));
+        const DegatsDansLeTemps& brulure = std::get<DegatsDansLeTemps>(effet.sorte);
+        REQUIRE(brulure.element == Element::Feu);
+        REQUIRE(brulure.montant == s_montantDeBrulureDeTest);
+    }
+}

@@ -301,6 +301,28 @@ inline DefinitionPersonnage guerrierQuiSaigne() {
     return guerrier;
 }
 
+// Le mage de test dont l'explosion pose aussi une brûlure (feu dans le temps, montant sur le Savoir, une seule pile) sur chaque monstre touché.
+inline constexpr int s_montantDeBrulureDeTest = 7;   // par tick
+inline constexpr int s_dureeDeBrulureDeTest = 4;     // en secondes
+
+inline DefinitionPersonnage mageQuiBrule() {
+    DefinitionPersonnage mage = mageDeTest();
+    mage.skills.front() = SkillConnu{
+        IdSkill::Explosion,
+        Skill({.mode = ModeDeCible::Point,
+               .portee = s_porteeZoneDeTest,
+               .rechargeMin = s_rechargeZoneDeTest,
+               .rechargeMax = s_rechargeZoneDeTest,
+               .effets = {EffetDegats{.montant = s_degatsZoneDeTest, .nature = NatureDAttaque::Zone, .element = Element::Feu},
+                          EffetDegatsDansLeTemps{.montant = s_montantDeBrulureDeTest,
+                                                 .duree = s_dureeDeBrulureDeTest,
+                                                 .element = Element::Feu,
+                                                 .coefficients = Coefficients::seul(Caracteristique::Savoir, 1.0f)}},
+               .rayonZone = s_rayonZoneDeTest,
+               .tempsExecution = s_activationZoneDeTest})};
+    return mage;
+}
+
 inline DefinitionPersonnage pretreQuiRegenere() {
     DefinitionPersonnage pretre = pretreDeTest();
     pretre.skills.front() = SkillConnu{
