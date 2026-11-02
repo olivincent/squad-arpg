@@ -6,8 +6,9 @@
 
 namespace {
 // Un modificateur d'armure posé par ce skill, pour cette durée (en secondes).
-EffetActif effetDArmure(IdSkill source, int pourcentage, float duree) {
+EffetActif effetDArmure(IdSkill source, int pourcentage, float duree, int rang = 0) {
     return {.source = source,
+            .rang = rang,
             .dureeRestante = duree,
             .sorte = ModificateurDeStatistique{.statistique = StatistiqueModifiable::Armure, .pourcentage = pourcentage}};
 }
@@ -43,6 +44,32 @@ TEST_CASE("EffetsActifs poser : deux skills differents se cumulent") {
     REQUIRE(effets.liste().size() == 2);
     REQUIRE(pourcentageDe(effets.liste()[0]) == -25);
     REQUIRE(pourcentageDe(effets.liste()[1]) == 20);
+}
+
+TEST_CASE("EffetsActifs poser : un meme skill peut poser deux effets de rangs differents sur la meme entite") {
+    EffetsActifs effets;
+
+    effets.poser(effetDArmure(IdSkill::FrappePuissante, -25, 8.0f, 0));
+    effets.poser(effetDArmure(IdSkill::FrappePuissante, -10, 8.0f, 1));
+
+    REQUIRE(effets.liste().size() == 2);
+    REQUIRE(pourcentageDe(effets.liste()[0]) == -25);
+    REQUIRE(pourcentageDe(effets.liste()[1]) == -10);
+}
+
+TEST_CASE("EffetsActifs poser : le meme skill et le meme rang rafraichissent, chacun de son cote") {
+    EffetsActifs effets;
+    effets.poser(effetDArmure(IdSkill::FrappePuissante, -25, 8.0f, 0));
+    effets.poser(effetDArmure(IdSkill::FrappePuissante, -10, 8.0f, 1));
+    effets.mettreAJour(5.0f);
+
+    effets.poser(effetDArmure(IdSkill::FrappePuissante, -30, 8.0f, 1));
+
+    REQUIRE(effets.liste().size() == 2);
+    REQUIRE(effets.liste()[0].dureeRestante == 3.0f);
+    REQUIRE(pourcentageDe(effets.liste()[0]) == -25);
+    REQUIRE(effets.liste()[1].dureeRestante == 8.0f);
+    REQUIRE(pourcentageDe(effets.liste()[1]) == -30);
 }
 
 TEST_CASE("EffetsActifs poser : le meme skill rafraichit la duree, il n'y a jamais deux effets du meme skill") {

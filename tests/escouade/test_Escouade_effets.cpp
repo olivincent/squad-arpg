@@ -47,6 +47,7 @@ TEST_CASE("effets : le coup d'un skill qui affaiblit porte l'effet actif de ce s
     REQUIRE(coups[0].attaque.effets.size() == 1);
     const EffetActif& effet = coups[0].attaque.effets[0];
     REQUIRE(effet.source == IdSkill::FrappePuissante);
+    REQUIRE(effet.rang == 1);  // le rang de l'effet dans la liste du skill : le principal (les dégâts) est le rang 0
     REQUIRE(effet.dureeRestante == static_cast<float>(s_dureeMalusDArmureDeTest));  // coefficient de durée 0 : l'Intellect n'y change rien
     REQUIRE(std::get<ModificateurDeStatistique>(effet.sorte) == s_malusAttendu);
 }

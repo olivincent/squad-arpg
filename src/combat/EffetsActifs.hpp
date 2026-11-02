@@ -7,8 +7,9 @@
 // Les effets actifs d'une entité (étape 111), dans l'ordre où ils ont été posés. Possédés par `Vitalite`, donc par les personnages comme
 // par les monstres.
 //
-// Cumul : un skill n'a jamais deux effets actifs sur une même entité (l'identité d'un effet est son skill, quel que soit le lanceur).
-// Reposer le même skill rafraîchit la durée (la plus longue des deux : un rafraîchissement ne raccourcit jamais) et garde la valeur
+// Cumul : un skill n'a jamais deux effets actifs de même identité sur une même entité (l'identité d'un effet est son skill et son rang
+// dans la liste d'effets du skill, quel que soit le lanceur ; `EffetActif`).
+// Reposer le même effet du même skill rafraîchit la durée (la plus longue des deux : un rafraîchissement ne raccourcit jamais) et garde la valeur
 // la plus forte ; deux skills différents se cumulent. Les piles d'intensité n'existent pas.
 class EffetsActifs {
 public:

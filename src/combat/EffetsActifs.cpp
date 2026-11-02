@@ -21,7 +21,8 @@ SorteDEffetActif lePlusFort(const SorteDEffetActif& present, const SorteDEffetAc
 
 void EffetsActifs::poser(const EffetActif& effet) {
     assert(effet.dureeRestante > 0.0f);
-    const auto present = std::ranges::find(m_effets, effet.source, &EffetActif::source);
+    const auto present = std::ranges::find_if(
+        m_effets, [&](const EffetActif& autre) { return autre.source == effet.source && autre.rang == effet.rang; });
     if (present == m_effets.end()) {
         m_effets.push_back(effet);
         return;

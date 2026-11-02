@@ -533,14 +533,15 @@ Attaque Personnage::attaqueDuSkill(const Skill& skill, IdSkill id, Generateur& g
 
 std::vector<EffetActif> Personnage::effetsActifsDuSkill(const Skill& skill, IdSkill id) const {
     std::vector<EffetActif> effets;
-    for (const EffetDeSkill& effet : skill.getEffets()) {
+    for (std::size_t rang = 0; rang < skill.getEffets().size(); ++rang) {
         // Seul le modificateur pose un effet actif pour l'instant ; les autres sortes d'effet actif (étapes 112 à 114) s'ajouteront ici.
-        if (const auto* modificateur = std::get_if<EffetModificateur>(&effet)) {
+        if (const auto* modificateur = std::get_if<EffetModificateur>(&skill.getEffets()[rang])) {
             float duree = dureeEffective(static_cast<float>(modificateur->duree), modificateur->coefficientDeDuree, m_caracteristiques);
             if (modificateur->pourcentage >= 0) {
                 duree = std::min(duree, skill.getRechargeMin());  // un buff ne dure jamais plus longtemps que sa recharge
             }
             effets.push_back({.source = id,
+                              .rang = static_cast<int>(rang),
                               .dureeRestante = duree,
                               .sorte = ModificateurDeStatistique{.statistique = modificateur->statistique, .pourcentage = modificateur->pourcentage}});
         }

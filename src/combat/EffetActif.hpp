@@ -26,7 +26,11 @@ struct ModificateurDeStatistique {
 using SorteDEffetActif = std::variant<ModificateurDeStatistique>;
 
 struct EffetActif {
-    IdSkill source;          // l'identité de l'effet : le skill qui l'a posé (jamais deux effets du même skill sur une entité)
+    // L'identité de l'effet est (source, rang) : le skill qui l'a posé et le rang de l'effet dans la liste d'effets de ce skill
+    // (`DefinitionDeSkill::effets`, 0 pour le principal). Un skill n'a jamais deux effets de même identité sur une entité ; il peut en
+    // avoir deux de rangs différents. Elle ne dépend pas du lanceur : deux lanceurs du même skill n'en font qu'un.
+    IdSkill source;
+    int rang = 0;
     float dureeRestante;     // en secondes ; l'effet disparaît à 0
     SorteDEffetActif sorte;
 };
