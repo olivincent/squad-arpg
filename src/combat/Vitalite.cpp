@@ -103,7 +103,15 @@ void Vitalite::poserEffet(const EffetActif& effet) {
         m_effets.poser(effet);
         return;
     }
-    // Un contrôle : le rendement décroissant de cet état d'abord (une application bloquée ne pose rien), puis la durée selon la
+    // Un contrôle. D'abord l'immunité des boucliers (étape 114) : tant qu'il reste des points à la famille qui protège de cette catégorie de
+    // résistance (Aegis pour le contrôle physique, Ward pour le magique), rien n'est posé, et l'application n'est PAS comptée dans le
+    // rendement décroissant (rien n'a été posé). Elle est notée comme une immunité (« Immune »). Un contrôle déjà en place n'est pas
+    // retiré : le bouclier n'empêche que les nouveaux.
+    if (m_effets.pointsDAbsorption().deLaFamille(familleQuiImmunise(etatQuiResiste(controle->etat))) > 0) {
+        m_controlesAppliques.push_back({controle->etat, true});
+        return;
+    }
+    // Puis le rendement décroissant de cet état (une application bloquée ne pose rien), puis la durée selon la
     // résistance de la cible, lue maintenant.
     const float rendement = m_effets.compterUneApplicationDeControle(controle->etat);
     if (rendement <= 0.0f) {

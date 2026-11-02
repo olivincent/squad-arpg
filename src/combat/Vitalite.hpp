@@ -41,7 +41,9 @@ public:
     // Pose un effet actif (`EffetsActifs::poser` : le même skill rafraîchit, deux skills se cumulent). Sans effet sur un mort.
     // Un contrôle (étape 113) passe d'abord par la cible : son application est comptée pour le rendement décroissant (100 %, 50 %,
     // 25 %, puis l'immunité : rien n'est posé), et sa durée devient `dureePosee` avec la résistance de la cible à cet état, lue à la
-    // pose. Chaque application est notée (`prendreLesControles`).
+    // pose. Chaque application est notée (`prendreLesControles`). Étape 114 : avant tout cela, un contrôle est refusé (noté comme une
+    // immunité, jamais compté dans le rendement) tant que la cible a des points d'absorption de la famille qui protège de cet état
+    // (`familleQuiImmunise` : Aegis pour l'étourdissement et le ralentissement, donc l'entrave ; Ward pour la Disruption).
     void poserEffet(const EffetActif& effet);
     // Les contrôles que les poses ont donnés depuis le dernier appel, dans l'ordre, puis les oublie. `Partie` en fait des événements.
     [[nodiscard]] std::vector<ControleApplique> prendreLesControles();
