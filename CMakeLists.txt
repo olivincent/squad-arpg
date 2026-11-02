@@ -252,6 +252,7 @@ add_executable(tests
     tests/jeu/test_Partie_controle.cpp
     tests/monstres/test_Monstre_soigneur.cpp
     tests/monstres/test_Monstre_controle.cpp
+    tests/monstres/test_Monstre_assommeur.cpp
     tests/jeu/test_Partie_clics.cpp
     tests/jeu/test_Partie_skills.cpp
     tests/jeu/test_Partie_monstres.cpp

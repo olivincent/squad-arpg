@@ -5,6 +5,7 @@
 EtatDuRole etatInitialDuRole(const RoleDeMonstre& role) {
     return std::visit(Surcharges{[](const RoleMelee&) -> EtatDuRole { return EtatMelee{}; },
                                  [](const RoleTireur& tireur) -> EtatDuRole { return EtatTireur{.role = tireur}; },
+                                 [](const RoleAssommeur& assommeur) -> EtatDuRole { return EtatAssommeur{.role = assommeur}; },
                                  [](const RoleSoigneur& soigneur) -> EtatDuRole {
                                      return EtatSoigneur{.role = soigneur, .soin = Skill(soigneur.soin), .cibleDuSoin = std::nullopt};
                                  }},

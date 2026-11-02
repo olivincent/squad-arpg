@@ -10,6 +10,8 @@
 #include "combat/Controle.hpp"
 #include "combat/EvenementDeCombat.hpp"
 #include "jeu/Partie.hpp"
+#include "monde/CategorieDeMonstre.hpp"
+#include "monstres/DefinitionDeMonstre.hpp"
 #include "monstres/Monstre.hpp"
 
 // Le contrôle dans une partie (étape 113) : une frappe qui étourdit, le rendement décroissant et ses textes, le contresort du mage. Le monstre
@@ -173,4 +175,36 @@ TEST_CASE("controle partie : les deux controles d'un meme skill expirent ensembl
 
     REQUIRE(effetsDuMonstre(partie).nombreDeControles() == 0);
     REQUIRE(facteurDeDeplacement(effetsDuMonstre(partie)) == Approx(1.0f));
+}
+
+TEST_CASE("controle partie : le coup d'une infanterie lourde etourdit le personnage touche, une seule fois dans les 10 s") {
+    DefinitionDeMonstre lourd = definitionDeMonstre(CategorieDeMonstre::InfanterieLourde);
+    lourd.chanceDeButin = 0;
+    lourd.pointsDeVieMax = 10'000'000;
+    lourd.statistiques.esquiveContact = 0;
+    Partie partie = partieDeTest(niveauDegage({{235.0f, 170.0f}}), {avecEnduranceEnorme(guerrierDeTest()), pretreDeTest(), mageDeTest()},
+                                 s_graineDeTest, lourd);
+
+    std::vector<EvenementDeCombat> evenements;
+    for (int i = 0; i < nombreDeTics(8.0f); ++i) {  // le monstre détecte, vient, frappe plusieurs fois
+        partie.mettreAJour(s_dureeTic);
+        const std::vector<EvenementDeCombat> duTic = partie.prendreEvenements();
+        evenements.insert(evenements.end(), duTic.begin(), duTic.end());
+    }
+
+    int etourdissements = 0;
+    int coups = 0;
+    for (const EvenementDeCombat& evenement : evenements) {
+        if (!std::holds_alternative<Place>(evenement.cible)) {
+            continue;
+        }
+        if (const auto* controle = std::get_if<ControleSubi>(&evenement.detail); controle != nullptr && controle->etat == EtatInflige::Etourdissement) {
+            ++etourdissements;
+        }
+        if (const auto* degats = std::get_if<DegatsSubis>(&evenement.detail); degats != nullptr && !degats->opportunite) {
+            ++coups;
+        }
+    }
+    REQUIRE(coups >= 2);          // il a frappé plusieurs fois en 8 s…
+    REQUIRE(etourdissements == 1);  // …mais n'a étourdi qu'une fois (pas deux étourdissements en moins de 10 s)
 }

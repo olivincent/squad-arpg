@@ -32,6 +32,11 @@ constexpr float s_rechargeDuSoin = 6.0f;           // en secondes, fixe
 constexpr float s_activationDuSoin = 0.8f;         // en secondes, immobile
 constexpr int s_seuilDeBlessure = 75;              // en pour cent des points de vie maximum : un membre est blessé en dessous
 
+// Le coup assommant de l'infanterie lourde (étape 113, « à tester ») : son attaque de base étourdit le personnage touché 1 s, au plus une fois
+// toutes les 10 s.
+constexpr float s_dureeDuCoupAssommant = 1.0f;     // en secondes, avant la résistance du personnage
+constexpr float s_delaiEntreCoupsAssommants = 10.0f;  // en secondes
+
 // Le renforcement par la profondeur : ce que chaque étage au-delà du premier ajoute (« à tester »).
 constexpr int s_pourcentDePointsDeVieParEtage = 25;  // des points de vie maximum de la définition
 constexpr int s_pourcentDeDegatsParEtage = 15;       // des dégâts de l'attaque de la définition
@@ -81,7 +86,9 @@ constexpr Profil s_infanterieLourde = {.couleur = {110, 125, 140}, .rayon = 17.0
                                        .pointsDeVieMax = 450, .armure = 10, .degats = 45, .rechargeMin = 1.2f,
                                        .rechargeMax = 1.8f, .execution = 0.4f, .capaciteOffensive = 100,
                                        .capaciteDefensive = 120, .esquive = 0, .resistances = {},
-                                       .chanceDeButin = 35, .nombreDObjets = 1, .experience = 25};
+                                       .chanceDeButin = 35, .nombreDObjets = 1, .experience = 25,
+                                       .role = RoleAssommeur{.dureeDeLEtourdissement = s_dureeDuCoupAssommant,
+                                                             .delaiEntreCoups = s_delaiEntreCoupsAssommants}};
 // Rayon 16 et non 30 : un chemin suit les centres des cases, donc à une demi-case (20 px) du mur de sa voie, et un
 // cercle de rayon 20 ou plus s'y bloque (mesuré : 19 passe, 20 non). 16 laisse 4 px de marge. À rétablir quand le
 // chemin tiendra compte du rayon des monstres (`docs/monstre.md`).
@@ -173,9 +180,11 @@ DefinitionDeMonstre renforcer(const DefinitionDeMonstre& definition, int profond
     renforcee.statistiques.capaciteOffensive += s_capaciteParEtage * etagesEnPlus;
     renforcee.statistiques.capaciteDefensive += s_capaciteParEtage * etagesEnPlus;
     renforcee.experience = majoree(definition.experience, s_pourcentDExperienceParEtage * etagesEnPlus);
-    // Le soin d'un soigneur est majoré du même pourcentage que les dégâts ; les deux autres rôles n'ont rien à majorer.
+    // Le soin d'un soigneur est majoré du même pourcentage que les dégâts ; les autres rôles n'ont rien à majorer (l'étourdissement d'un
+    // assommeur ne grandit pas avec la profondeur : le contrôle n'est pas un montant).
     std::visit(Surcharges{[](RoleMelee&) {},
                           [](RoleTireur&) {},
+                          [](RoleAssommeur&) {},
                           [etagesEnPlus](RoleSoigneur& soigneur) {
                               EffetSoin& soin = std::get<EffetSoin>(soigneur.soin.effets.front());
                               soin.montant = majoree(soin.montant, s_pourcentDeDegatsParEtage * etagesEnPlus);

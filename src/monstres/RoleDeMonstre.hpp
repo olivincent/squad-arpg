@@ -32,7 +32,16 @@ struct RoleSoigneur {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs
     int seuilDeBlessure;     // en pour cent des points de vie maximum : un membre est blessé en dessous (strictement)
 };
 
-using RoleDeMonstre = std::variant<RoleMelee, RoleTireur, RoleSoigneur>;
+// Un assommeur (étape 113) frappe comme une mêlée, et son attaque de base étourdit le personnage qu'elle touche pendant `dureeDeLEtourdissement`
+// (avant la résistance du personnage et le rendement décroissant), au plus une fois par `delaiEntreCoups`. Premier monstre qui pose un effet
+// actif : l'effet voyage dans l'`Attaque` (`Attaque::effets`), comme ceux d'un skill de personnage. C'est une capacité de rôle : la Disruption
+// l'empêche (elle compte comme un skill), l'attaque de base reste, sans étourdissement.
+struct RoleAssommeur {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
+    float dureeDeLEtourdissement;  // en secondes
+    float delaiEntreCoups;         // en secondes ; le premier coup assommant est disponible tout de suite
+};
+
+using RoleDeMonstre = std::variant<RoleMelee, RoleTireur, RoleSoigneur, RoleAssommeur>;
 
 // L'état d'exécution de chaque rôle, dans le monstre. Une alternative par rôle, dans le même ordre.
 struct EtatMelee {};
@@ -49,7 +58,12 @@ struct EtatSoigneur {  // NOLINT(cppcoreguidelines-pro-type-member-init): `role`
     std::optional<IdMonstre> cibleDuSoin; // le membre visé par le soin engagé, lu seulement pendant l'activation
 };
 
-using EtatDuRole = std::variant<EtatMelee, EtatTireur, EtatSoigneur>;
+struct EtatAssommeur {  // NOLINT(cppcoreguidelines-pro-type-member-init): `role` n'a pas de valeur par défaut exprès
+    RoleAssommeur role;            // les données, copiées de la définition
+    float delaiRestant = 0.0f;     // en secondes, avant que le prochain coup assommant soit permis ; 0 : permis
+};
+
+using EtatDuRole = std::variant<EtatMelee, EtatTireur, EtatSoigneur, EtatAssommeur>;
 
 // L'état d'un monstre qui vient d'être créé avec ce rôle : l'alternative de même rang que le rôle.
 [[nodiscard]] EtatDuRole etatInitialDuRole(const RoleDeMonstre& role);

@@ -121,6 +121,9 @@ public:
 private:
     enum class Etat { EnGarde, Poursuite, Retour };
 
+    // Le coup assommant (rôle d'assommeur, étape 113) : si le monstre en a un et que son délai est écoulé, l'attaque qui part porte
+    // l'étourdissement de son rôle et le délai repart. Sans effet pour un autre rôle ou en Disruption.
+    void poserLeCoupAssommantSiPret(Attaque& attaque);
     // Annule ce que le contrôle subi interdit (étape 113, `Controle.hpp`) : étourdi, le coup engagé et le soin en activation ; en
     // Disruption, le soin en activation (l'attaque de base reste permise). Appelée dès qu'un coup a pu poser un contrôle.
     void appliquerLeControle();

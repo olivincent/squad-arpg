@@ -17,11 +17,12 @@
 
 // Le rôle d'un monstre (étape 107.1) : une donnée de la définition, un état de même forme dans le monstre.
 
-TEST_CASE("role : les quatre categories d'avant les roles sont des melees") {
-    for (const CategorieDeMonstre categorie : {CategorieDeMonstre::Nuee, CategorieDeMonstre::Infanterie,
-                                               CategorieDeMonstre::InfanterieLourde, CategorieDeMonstre::CreatureMonstrueuse}) {
+TEST_CASE("role : la nuee, l'infanterie et la creature monstrueuse sont des melees, l'infanterie lourde un assommeur") {
+    for (const CategorieDeMonstre categorie :
+         {CategorieDeMonstre::Nuee, CategorieDeMonstre::Infanterie, CategorieDeMonstre::CreatureMonstrueuse}) {
         REQUIRE(std::holds_alternative<RoleMelee>(definitionDeMonstre(categorie).role));
     }
+    REQUIRE(std::holds_alternative<RoleAssommeur>(definitionDeMonstre(CategorieDeMonstre::InfanterieLourde).role));
 }
 
 TEST_CASE("role : le tireur a un recul qui a un sens") {
@@ -63,6 +64,11 @@ TEST_CASE("role : l'etat initial est l'alternative de meme rang que le role") {
     REQUIRE(std::holds_alternative<EtatMelee>(etatInitialDuRole(RoleMelee{})));
     REQUIRE(std::holds_alternative<EtatTireur>(etat));
     REQUIRE(std::holds_alternative<EtatSoigneur>(etatInitialDuRole(definitionDeMonstre(CategorieDeMonstre::Soigneur).role)));
+    // L'assommeur part avec ses données et un coup assommant disponible tout de suite.
+    const EtatDuRole assommeur = etatInitialDuRole(definitionDeMonstre(CategorieDeMonstre::InfanterieLourde).role);
+    REQUIRE(std::holds_alternative<EtatAssommeur>(assommeur));
+    REQUIRE(std::get<EtatAssommeur>(assommeur).delaiRestant == 0.0f);
+    REQUIRE(std::get<EtatAssommeur>(assommeur).role.delaiEntreCoups == 10.0f);
     // Le tireur part avec ses données, un recul disponible tout de suite et aucun recul en cours.
     const EtatTireur& tireurInitial = std::get<EtatTireur>(etat);
     REQUIRE(tireurInitial.role.distanceDeRecul == 80.0f);

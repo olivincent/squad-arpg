@@ -1,4 +1,5 @@
 // ./tests/escouade/test_Personnage_controle.cpp
+#include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <optional>
@@ -11,6 +12,8 @@
 #include "combat/Controle.hpp"
 #include "escouade/Escouade.hpp"
 #include "escouade/Personnage.hpp"
+
+using Catch::Approx;
 
 // Le contrôle subi par un personnage (étape 113.3) : étourdi il ne fait rien, ralenti il avance moins vite, entravé son attaque de base est
 // plus lente, en Disruption il ne lance plus de skill mais frappe encore. Guerrier de test (frappe puissante, provocation) en (100, 100) ;
@@ -240,4 +243,21 @@ TEST_CASE("controle escouade : un skill demande par un lanceur etourdi est refus
 
     REQUIRE(resultats.empty());
     REQUIRE_FALSE(escouade.skillEstPret(s_adresseProvocation));
+}
+
+TEST_CASE("controle personnage : la Constitution raccourcit un etourdissement (0,3 % par point au-dessus de 10), la Resolve une Disruption") {
+    Personnage robuste = unPersonnage({100.0f, 100.0f}, avecCaracteristique(guerrierDeTest(), Caracteristique::Endurance, 110));
+    Personnage volontaire = unPersonnage({100.0f, 100.0f}, avecCaracteristique(guerrierDeTest(), Caracteristique::Volonte, 110));
+    Personnage ordinaire = unPersonnage({100.0f, 100.0f}, avecCaracteristique(guerrierDeTest(), Caracteristique::Endurance, 10));
+
+    subirLeControle(robuste, unControle(EtatInflige::Etourdissement, 1.0f));
+    subirLeControle(ordinaire, unControle(EtatInflige::Etourdissement, 1.0f));
+    subirLeControle(volontaire, unControle(EtatInflige::Etourdissement, 1.0f));
+
+    const auto duree = [](const Personnage& personnage) { return personnage.getEffets().liste().front().dureeRestante; };
+    REQUIRE(duree(ordinaire) == Approx(1.0f));
+    REQUIRE(duree(robuste) == Approx(0.7f));      // Constitution 110 : 30 % de résistance
+    REQUIRE(duree(volontaire) > 0.99f);           // la Resolve ne protège pas de l'étourdissement
+    subirLeControle(volontaire, unControle(EtatInflige::Disruption, 1.0f, 0, IdSkill::Explosion));
+    REQUIRE(volontaire.getEffets().liste().back().dureeRestante == Approx(0.7f));
 }

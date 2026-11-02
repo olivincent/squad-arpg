@@ -218,7 +218,8 @@ std::optional<PersonnageVu> Monstre::cibleDeFrappe(const std::optional<Personnag
 void Monstre::faireAvancerLeRole(float dt) {
     std::visit(Surcharges{[](EtatMelee&) {},
                           [dt](EtatTireur& tireur) { tireur.delaiRestant = std::max(0.0f, tireur.delaiRestant - dt); },
-                          [dt](EtatSoigneur& soigneur) { soigneur.soin.mettreAJour(dt); }},
+                          [dt](EtatSoigneur& soigneur) { soigneur.soin.mettreAJour(dt); },
+                          [dt](EtatAssommeur& assommeur) { assommeur.delaiRestant = std::max(0.0f, assommeur.delaiRestant - dt); }},
                m_etatDuRole);
 }
 
@@ -226,7 +227,8 @@ bool Monstre::agirSelonLeRole(const std::vector<PersonnageVu>& candidats, const 
                               const TileMap& carte, const std::vector<Cercle>& aContourner) {
     return std::visit(Surcharges{[](EtatMelee&) { return false; },
                                  [&](EtatTireur& tireur) { return reculerSiAuContact(tireur, candidats, carte, aContourner); },
-                                 [&](EtatSoigneur& soigneur) { return allerSoigner(soigneur, allies, carte, aContourner); }},
+                                 [&](EtatSoigneur& soigneur) { return allerSoigner(soigneur, allies, carte, aContourner); },
+                                 [](EtatAssommeur&) { return false; }},
                       m_etatDuRole);
 }
 
@@ -461,7 +463,23 @@ std::optional<Attaque> Monstre::avancerAttaque(float dt, Generateur& generateur)
         return std::nullopt;
     }
     m_placeCibleEngagee.reset();
-    return getAttaque();
+    Attaque attaque = getAttaque();
+    poserLeCoupAssommantSiPret(attaque);
+    return attaque;
+}
+
+void Monstre::poserLeCoupAssommantSiPret(Attaque& attaque) {
+    EtatAssommeur* assommeur = std::get_if<EtatAssommeur>(&m_etatDuRole);
+    // La Disruption l'empêche comme un skill ; elle ne peut pas coïncider avec un étourdissement, qui annule le coup avant qu'il parte. Le délai
+    // part avec le coup, qu'il touche ou non : le monstre ne sait pas ce que sa cible en fait (esquive).
+    if (assommeur == nullptr || assommeur->delaiRestant > 0.0f || !peutUtiliserUnSkill(m_vitalite.getEffets())) {
+        return;
+    }
+    attaque.effets.push_back({.source = IdSkill::CoupAssommant,
+                              .rang = 0,
+                              .dureeRestante = assommeur->role.dureeDeLEtourdissement,
+                              .sorte = Controle{.etat = EtatInflige::Etourdissement}});
+    assommeur->delaiRestant = assommeur->role.delaiEntreCoups;
 }
 
 void Monstre::annulerAttaque() {
