@@ -105,9 +105,6 @@ inline constexpr int s_pointsDeVieDeReference = 300;
 // Provisoire, à tester.
 inline constexpr int s_pvParPointDEndurance = 6;
 
-// Les mêmes points de vie à 0 d'Endurance : un repère, `s_pointsDeVieDeReference` moins ce que donnent les 10 points de référence.
-inline constexpr int s_pointsDeVieDeBase = s_pointsDeVieDeReference - s_pvParPointDEndurance * s_valeurDeReference;
-
 // Points de vie maximum que donne chaque niveau de classe au-delà du premier : la valeur par défaut d'une classe
 // (`DefinitionPersonnage::pvParNiveauDeClasse`). Provisoire, à tester.
 inline constexpr int s_pvParNiveau = 8;

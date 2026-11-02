@@ -1786,7 +1786,7 @@ TEST_CASE("monterAuNiveau : les points de vie maximum suivent la formule du nive
 
     personnage.monterAuNiveau(3);  // l'Endurance gagne 1 au niveau 3
 
-    REQUIRE(personnage.getPointsDeVieMax() == s_pointsDeVieDeBase + s_pvParPointDEndurance * 6 + 2 * s_pvParNiveau);
+    REQUIRE(personnage.getPointsDeVieMax() == s_pointsDeVieDeReference + s_pvParPointDEndurance * (6 - s_valeurDeReference) + 2 * s_pvParNiveau);
 }
 
 TEST_CASE("monterAuNiveau : un vivant blesse gagne autant de points de vie que son maximum") {
