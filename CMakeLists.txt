@@ -81,6 +81,7 @@ add_library(squad_core STATIC
     src/combat/PointsDeVie.cpp
     src/combat/Reserve.cpp
     src/combat/Vitalite.cpp
+    src/combat/EffetsActifs.cpp
     src/combat/StatistiquesDeCombat.cpp
     src/combat/Critique.cpp
     src/combat/Esquive.cpp
@@ -201,6 +202,7 @@ add_executable(tests
     tests/combat/test_PointsDeVie.cpp
     tests/combat/test_Reserve.cpp
     tests/combat/test_Vitalite.cpp
+    tests/combat/test_EffetsActifs.cpp
     tests/combat/test_Defense.cpp
     tests/combat/test_Caracteristiques.cpp
     tests/combat/test_Contributions.cpp

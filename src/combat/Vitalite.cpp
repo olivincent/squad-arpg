@@ -20,16 +20,30 @@ ResultatDuCoup Vitalite::recevoirDegats(const Attaque& attaque, Generateur& gene
     if (!estVivant()) {
         return {.montant = 0, .critique = false};
     }
-    const ResultatDuCoup resultat = resoudreCoup(attaque, m_defenses, blocagePret(), generateur);
+    const ResultatDuCoup resultat = resoudreCoup(attaque, appliquerLesEffets(m_defenses, m_effets), blocagePret(), generateur);
     if (resultat.bloque > 0) {
         m_recuperationDuBlocage = s_recuperationDuBlocage;
     }
     m_pointsDeVie.subirDegats(resultat.montant);
+    if (!estVivant()) {
+        m_effets.vider();
+    }
     return resultat;
 }
 
 void Vitalite::mettreAJour(float dt) {
     m_recuperationDuBlocage = m_recuperationDuBlocage > dt ? m_recuperationDuBlocage - dt : 0.0f;
+    m_effets.mettreAJour(dt);
+}
+
+void Vitalite::poserEffet(const EffetActif& effet) {
+    if (estVivant()) {
+        m_effets.poser(effet);
+    }
+}
+
+const EffetsActifs& Vitalite::getEffets() const {
+    return m_effets;
 }
 
 bool Vitalite::blocagePret() const {

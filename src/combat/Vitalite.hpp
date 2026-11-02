@@ -2,6 +2,8 @@
 #pragma once
 #include "base/Aleatoire.hpp"
 #include "combat/Attaque.hpp"
+#include "combat/EffetActif.hpp"
+#include "combat/EffetsActifs.hpp"
 #include "combat/PointsDeVie.hpp"
 #include "combat/ResolutionDuCoup.hpp"
 
@@ -16,13 +18,17 @@ public:
     // Remplace les défenses (celles d'un personnage sont recalculées depuis son équipement et ses
     // caractéristiques). Mêmes préconditions.
     void definirDefenses(const Defenses& defenses);
-    // Résout le coup (`resoudreCoup`, qui tire dans `generateur`) puis retire les points de vie. Le
+    // Résout le coup (`resoudreCoup`, qui tire dans `generateur`, contre les défenses que les effets actifs ont modifiées :
+    // `appliquerLesEffets`) puis retire les points de vie. Si l'entité en meurt, ses effets actifs disparaissent. Le
     // résultat porte les dégâts après armure, non plafonnés par les points de vie restants ; rien (0, sans
     // tirage) pour un mort. Un blocage réussi lance la récupération du blocage (le temps pendant lequel le
     // bouclier ne bloque plus), qui est un état de la vitalité : elle s'écoule par `mettreAJour`.
     ResultatDuCoup recevoirDegats(const Attaque& attaque, Generateur& generateur);
-    // Fait couler le temps : la récupération du blocage diminue de `dt`, sans descendre sous 0.
+    // Fait couler le temps : la récupération du blocage diminue de `dt`, sans descendre sous 0, et les effets actifs s'écoulent.
     void mettreAJour(float dt);
+    // Pose un effet actif (`EffetsActifs::poser` : le même skill rafraîchit, deux skills se cumulent). Sans effet sur un mort.
+    void poserEffet(const EffetActif& effet);
+    [[nodiscard]] const EffetsActifs& getEffets() const;
     // Le blocage n'est pas en récupération : un blocage est tenté au prochain coup.
     [[nodiscard]] bool blocagePret() const;
     // Change le maximum des points de vie (`PointsDeVie::changerMaximum`). Précondition : `maximum > 0`.
@@ -36,6 +42,7 @@ public:
 
 private:
     PointsDeVie m_pointsDeVie;
-    Defenses m_defenses;
+    Defenses m_defenses;  // sans les effets actifs : ce que donnent les caractéristiques et l'équipement (ou la définition)
+    EffetsActifs m_effets;
     float m_recuperationDuBlocage = 0.0f;  // en secondes ; 0 : le blocage est prêt
 };

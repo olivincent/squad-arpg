@@ -229,6 +229,91 @@ TEST_CASE("Vitalite : un blocage total ne retire aucun point de vie") {
     REQUIRE(vitalite.getValeur() == 1000);
 }
 
+namespace {
+// Un modificateur d'armure de ce skill, pour cette durée (en secondes).
+EffetActif effetDArmure(IdSkill source, int pourcentage, float duree) {
+    return {.source = source,
+            .dureeRestante = duree,
+            .sorte = ModificateurDeStatistique{.statistique = StatistiqueModifiable::Armure, .pourcentage = pourcentage}};
+}
+}  // namespace
+
+TEST_CASE("Vitalite : un buff d'armure s'applique au coup suivant, un affaiblissement aussi") {
+    Vitalite vitalite(10000, defensesDeTest(20));
+    REQUIRE(subir(vitalite, 100) == 80);  // armure 20
+
+    vitalite.poserEffet(effetDArmure(IdSkill::Soin, 50, 10.0f));  // armure 30
+    REQUIRE(subir(vitalite, 100) == 70);
+
+    vitalite.poserEffet(effetDArmure(IdSkill::FrappePuissante, -100, 8.0f));  // armure 20 × (100 + 50 − 100) / 100 = 10
+    REQUIRE(subir(vitalite, 100) == 90);
+}
+
+TEST_CASE("Vitalite : un effet expire avec le temps et l'armure revient a sa valeur") {
+    Vitalite vitalite(10000, defensesDeTest(20));
+    vitalite.poserEffet(effetDArmure(IdSkill::Soin, 50, 10.0f));
+    REQUIRE(subir(vitalite, 100) == 70);
+
+    vitalite.mettreAJour(9.0f);
+    REQUIRE(vitalite.getEffets().liste().size() == 1);
+    REQUIRE(subir(vitalite, 100) == 70);
+
+    vitalite.mettreAJour(1.0f);
+    REQUIRE(vitalite.getEffets().liste().empty());
+    REQUIRE(subir(vitalite, 100) == 80);
+}
+
+TEST_CASE("Vitalite : les effets passent au-dessus des defenses recalculees (equipement, niveau)") {
+    Vitalite vitalite(10000, defensesDeTest(20));
+    vitalite.poserEffet(effetDArmure(IdSkill::Soin, 50, 10.0f));
+
+    vitalite.definirDefenses(defensesDeTest(40));  // armure 40, puis +50 % : 60
+
+    REQUIRE(subir(vitalite, 100) == 40);
+    REQUIRE(vitalite.getEffets().liste().size() == 1);
+}
+
+TEST_CASE("Vitalite : la mort retire tous les effets actifs") {
+    Vitalite vitalite(100, defensesDeTest(0));
+    vitalite.poserEffet(effetDArmure(IdSkill::Soin, 50, 10.0f));
+    vitalite.poserEffet(effetDArmure(IdSkill::FrappePuissante, -25, 8.0f));
+    REQUIRE(vitalite.getEffets().liste().size() == 2);
+
+    REQUIRE(subir(vitalite, 100) == 100);
+
+    REQUIRE_FALSE(vitalite.estVivant());
+    REQUIRE(vitalite.getEffets().liste().empty());
+}
+
+TEST_CASE("Vitalite : un coup qui ne tue pas laisse les effets") {
+    Vitalite vitalite(100, defensesDeTest(0));
+    vitalite.poserEffet(effetDArmure(IdSkill::Soin, 50, 10.0f));
+
+    REQUIRE(subir(vitalite, 30) == 30);
+
+    REQUIRE(vitalite.getEffets().liste().size() == 1);
+}
+
+TEST_CASE("Vitalite : on ne pose pas d'effet sur un mort") {
+    Vitalite vitalite(100, defensesDeTest(0));
+    static_cast<void>(subir(vitalite, 100));
+
+    vitalite.poserEffet(effetDArmure(IdSkill::Soin, 50, 10.0f));
+
+    REQUIRE(vitalite.getEffets().liste().empty());
+}
+
+TEST_CASE("Vitalite : le meme skill pose deux fois rafraichit son effet, il n'y en a qu'un") {
+    Vitalite vitalite(100, defensesDeTest(20));
+    vitalite.poserEffet(effetDArmure(IdSkill::Soin, 20, 10.0f));
+    vitalite.mettreAJour(6.0f);
+
+    vitalite.poserEffet(effetDArmure(IdSkill::Soin, 20, 10.0f));
+
+    REQUIRE(vitalite.getEffets().liste().size() == 1);
+    REQUIRE(vitalite.getEffets().liste()[0].dureeRestante == 10.0f);
+}
+
 TEST_CASE("Vitalite : sans bouclier, le blocage est toujours pret") {
     Vitalite vitalite(100, defensesDeTest(0));
     Generateur generateur = generateurDeTest();
