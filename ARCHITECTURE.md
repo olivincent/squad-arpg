@@ -48,7 +48,7 @@ squad-arpg/
 │   │               ObjetInteractif, Niveau, CategorieDeMonstre, CompositionDeGroupe, GenerateurDonjon, Encerclement
 │   ├── combat/     Skill, SkillConnu, IdSkill, ModeDeCible, EffetDeSkill, ResultatDEffet, Place, IdMonstre, TypeDArme, DescriptionDAttaque, PlageDeDegats, AdresseSkill, Cible, ActionEngagee, Progression,
 │   │               Element, Degats, EffetActif, EffetsActifs, Controle, RendementsDeControle,
-│   │               EtatSkill, Coup, EvenementDeCombat, EntiteVue, AllieVu, Autodefense, Engagement,
+│   │               EtatSkill, Coup, EvenementDeCombat, EntiteVue, AllieVu, SourceDEffet, FamilleDAbsorption, Autodefense, Engagement,
 │   │               Attaque, NatureDAttaque, StatistiquesDeCombat, Esquive, Critique, Blocage, Defense,
 │   │               ResolutionDuCoup, Caracteristiques, Contributions, EtatDeControle, ValeursEffectives, Energie, Jauge, Reserve, PointsDeVie, Vitalite
 │   ├── objets/     Emplacement, Affixe, Objet, CatalogueAffixes, CatalogueObjets, TypeDArmure, DonneesDArme, DonneesDeBouclier, ObjetsActifs, Equipement,
@@ -112,7 +112,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `Eclaircir` : `eclaircir` et `assombrir` une couleur, `s_eclaircissementExecution`.
 
 `rendu/` — primitives de dessin :
-- `BarreDeVie` : position et dessin de la barre de vie d'une entité (`docs/combat.md`).
+- `BarreDeVie` : position et dessin de la barre de vie d'une entité, et les segments d'absorption argenté et bleu (`segmentsDAbsorption`, `dessinerAbsorption` ; `docs/combat.md`).
 - `BarreDEnergie` : position (sous la barre de vie) et dessin de la barre d'énergie d'un personnage (`docs/combat.md`).
 - `MarquesDEffets` : la rangée de marques d'effets actifs sous le carré d'une entité, une verte par bonus, une rouge par malus, suivie du nombre de piles au-delà de 1 (`docs/combat.md`, « Les effets actifs »).
 - `TraceDeChemin` : ligne brisée du chemin restant, débogage F3 (`docs/chemin.md`).
@@ -155,7 +155,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `Coup` : une attaque à infliger à un monstre (`IdMonstre`), l'alternative « dégâts » de `ResultatDEffet`.
 - `EvenementDeCombat` : une cible (`std::variant<Place, IdMonstre, EscouadeEntiere>`), une position et un détail en variant (dégâts, soin, skill lancé, monstre provoqué, esquive, blocage…), en données (file de `Partie`) ; `detailsDuCoup` convertit le résultat d'un coup.
 - `EntiteVue<Identifiant>` : une entité telle que l'autre camp la voit (`MonstreVu`, `PersonnageVu`), et `trouverEntite`.
-- `AllieVu` : un monstre tel que les membres de son groupe le voient (identifiant, cercle, points de vie et maximum), construit par `Partie::alliesDuGroupe` et lu par le soigneur ; sans `.cpp` (`docs/monstre.md`).
+- `AllieVu` : un monstre tel que les membres de son groupe le voient (identifiant, cercle, points de vie et maximum, porte-t-il un Ward), construit par `Partie::alliesDuGroupe` et lu par le soigneur ; sans `.cpp` (`docs/monstre.md`).
 - `Autodefense` : quel ennemi frapper, quel agresseur viser.
 - `Engagement` : zones de contrôle (`EntiteDeControle<Identifiant>`, dans les deux sens), coups d'opportunité, monstre dont se dégager.
 - `Defense` : `appliquerArmure` et `armureAppliquee`, modèle M1 (soustraction avec plancher de 20 %, armure réduite par la pénétration de l'attaque), et `appliquerResistance` (résistance par élément, de −100 % à 80 %).
@@ -172,7 +172,9 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `Caracteristiques` : les cinq caractéristiques (`Caracteristique`, `Caracteristiques`, `Coefficients`), les points de vie maximum (selon le niveau de classe) et `montantEffectif`, seule source du montant d'un skill de personnage (`docs/combat.md`).
 - `Progression` : la courbe de l'expérience (`niveauPour`, `niveauDeClasse`, `experiencePourAtteindre`, `progressionVersLeNiveauSuivant`, `experienceManquante`) la croissance automatique d'une classe (`PaireDeCroissance`, `croissanceAuNiveau`) et les points libres (`pointsLibresRecus`, `pointsLibresDisponibles`, `depensePermise`) ; des fonctions pures (`docs/combat.md`, `docs/classes-et-combat.md`).
 - `Vitalite` : points de vie, défenses (armure, statistiques de combat), effets actifs et récupération du blocage d'une entité, commune à `Personnage` et `Monstre`.
-- `EffetActif` : ce qu'un skill laisse sur une entité pour une durée (l'identité skill + rang d'effet, la durée restante, une sorte en `std::variant` : le modificateur de statistique, l'armure, les dégâts dans le temps, le soin dans le temps et le contrôle, et les piles), `estUnBonus`, `estUnControle` ; sans `.cpp` (`docs/combat.md`, « Les effets actifs (étape 111) », « Les dégâts et les soins dans le temps (étape 112) » et « Le contrôle (étape 113) »).
+- `EffetActif` : ce qu'un skill ou une capacité de monstre laisse sur une entité pour une durée (l'identité source + rang d'effet, la durée restante, une sorte en `std::variant` : le modificateur de statistique, l'armure, les dégâts dans le temps, le soin dans le temps, le contrôle et l'absorption, et les piles), `estUnBonus`, `estUnControle` ; sans `.cpp` (`docs/combat.md`, « Les effets actifs (étape 111) », « Les dégâts et les soins dans le temps (étape 112) », « Le contrôle (étape 113) » et « L'absorption (étape 114) »).
+- `SourceDEffet` : d'où vient un effet actif, un `IdSkill` ou un `IdCapacite` (une capacité de monstre : le coup assommant, le Ward du soigneur) ; sans `.cpp` (`docs/combat.md`, « L'absorption (étape 114) »).
+- `FamilleDAbsorption` : Aegis (le physique, immunise contre Stun et Slow) et Ward (le non-physique, immunise contre Charm, Fear et Disruption), `familleQuiAbsorbe`, `familleQuiImmunise`, `PointsDAbsorption` et `portionsAbsorbees` ; les boucliers agissent en dernier dans `resoudreCoup` et `resoudreTick` (`docs/combat.md`).
 - `EffetsActifs` : les effets actifs d'une entité (cumul : un effet de même identité rafraîchit et gagne une pile jusqu'à son maximum), `mettreAJour` (qui rend les ticks), `vider`, et `appliquerLesEffets`, l'unique endroit où ils changent une statistique (pourcentages additionnés, une seule application) ; possédés par `Vitalite`, qui applique les ticks et pose les contrôles (résistance de la cible, rendement décroissant).
 - `Controle` : les règles du contrôle, des fonctions pures sur les effets d'une entité (`peutBouger`, `peutAttaquer`, `peutUtiliserUnSkill`, `facteurDeDeplacement`, `facteurDAttaque`), `etatQuiResiste` (l'entrave suit la résistance au ralentissement), `resistanceAppliquee`, `dureePosee` (`docs/combat.md`, « Le contrôle (étape 113) »).
 - `RendementsDeControle` : le rendement décroissant du contrôle, un compteur par état (100 / 50 / 25 % puis immunité, remise à zéro 15 s après la dernière application), possédé par `EffetsActifs` (`docs/combat.md`).
@@ -242,7 +244,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `Monstre` : états, détection, territoire, poursuite, retour au poste, frappe (`docs/monstre.md`).
 - `DefinitionDeMonstre` : toutes les valeurs d'équilibrage d'un monstre, le catalogue des six catégories
   (`catalogueDeMonstres()`, `definitionDeMonstre(catégorie)`) (`docs/monstre.md`).
-- `RoleDeMonstre` : ce qu'un monstre fait en plus de poursuivre et de frapper, un `std::variant` de données (`RoleMelee`, `RoleTireur`, `RoleSoigneur`, `RoleAssommeur` — le coup assommant de l'infanterie lourde, étape 113) et son état d'exécution (`EtatDuRole`, de même forme, dans le monstre), `etatInitialDuRole`, `choisirLeBlesse` (`docs/monstre.md`, « Rôles »).
+- `RoleDeMonstre` : ce qu'un monstre fait en plus de poursuivre et de frapper, un `std::variant` de données (`RoleMelee`, `RoleTireur`, `RoleSoigneur` — le soin et, depuis l'étape 114, le Ward —, `RoleAssommeur` — le coup assommant de l'infanterie lourde, étape 113) et son état d'exécution (`EtatDuRole`, de même forme, dans le monstre), `etatInitialDuRole`, `choisirLeBlesse`, `choisirLaCibleDuWard` (`docs/monstre.md`, « Rôles »).
 
 `jeu/` :
 - `Partie` : un étage — règles de jeu, ordre d'une image, intermédiaire escouade/monstres (et seul tireur du `Generateur`, y compris pour F7 et le butin) ; se construit depuis un `Niveau` et une `Expedition`, rend l'`Expedition` de la partie en cours, renforce les monstres par la profondeur, prend l'escalier ; reçoit le catalogue des monstres ; `alliesDuGroupe`, seule construction de la vue des alliés d'un monstre, et application du soin d'un soigneur (`docs/boucle-et-entrees.md`, `docs/monstre.md`).

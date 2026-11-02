@@ -132,6 +132,8 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 112 — Les dégâts et les soins dans le temps : l'identité d'un effet (skill, rang), les piles (maximum de 1 par défaut), deux sortes d'effet actif de plus (un tick par seconde, montant figé à la pose, `resoudreTick`), le saignement du tir perçant, la brûlure de l'explosion, Renew (soin dans le temps du prêtre), compteur de piles et petits chiffres des ticks ✅
 - Étape 113 — Les états de contrôle : le contrôle comme sorte d'effet actif (étourdissement, ralentissement, entrave « Hampered » qui suit la résistance au ralentissement, Disruption), le cumul (le plus fort, jamais la somme), la durée posée avec la résistance de la cible et le rendement décroissant (100 / 50 / 25 % puis « Immune », remise à zéro à 15 s), l'étourdissement de la frappe sacrée, le ralentissement et l'entrave de la pluie de flèches, le contresort du mage, le coup assommant de l'infanterie lourde (premiers effets posés par des monstres), marque jaune, textes flottants et lignes de l'inventaire ✅
 
+- Étape 114 — Aegis et Ward : l'absorption comme sorte d'effet actif (Aegis pour le physique, Ward pour le non-physique), appliquée en dernier dans le coup et les ticks, l'immunité au contrôle par famille, l'identité des sources d'effet (skill ou capacité de monstre), l'Aegis du paladin et le Ward du soigneur des monstres ✅
+
 ## Détail des étapes 0 à 73
 
 ### Étape 0 — Squelette de projet ✅ TERMINÉE
@@ -2668,4 +2670,21 @@ garderait l'immunité à jamais) ; un étourdissement abandonne aussi le skill e
 esquivé) ; l'entrave multiplie le temps de l'attaque de base (exécution et recharge) et pas celui des skills ; le contresort coûte 53 (règle des sorts, recharge de
 10 s) pour rester abordable avec la réserve de départ du mage. 2 214 tests (+96), 0 avertissement de compilation sur les deux presets. Détail :
 `docs/combat.md` (« Le contrôle (étape 113) »), `docs/classes-et-combat.md` (section 14 quinquies), `docs/monstre.md` (« L'assommeur »), `docs/glossaire.md`,
+`docs/ecrans.md`, `docs/tests.md`.
+
+### Étape 114 — Aegis et Ward ✅
+
+Sept sous-étapes enchaînées sans arrêt (Olivier absent : les tests visuels sont regroupés dans `ROADMAP.md`), un commit par sous-étape. 114.1 :
+`SourceDEffet` (un skill ou une capacité de monstre), `IdCapacite::CoupAssommant` ; `CoupAssommant` quitte `IdSkill`, aucun comportement ne change.
+114.2 : `Absorption { famille, points }`, cinquième sorte d'effet actif ; `FamilleDAbsorption` (Aegis : le physique, Ward : le reste) ; le cumul (le même skill
+rafraîchit et garde le plus grand nombre de points), `consommerLAbsorption` (celui qui expire le premier). 114.3 : `Defenses::absorption`, `resoudreCoup`
+et `resoudreTick` absorbent en dernier, `ResultatDuCoup::absorbees`, `Vitalite` consomme, l'événement `Absorbe` et le texte « Absorbed −N ». 114.4 : l'immunité
+au contrôle par famille dans `Vitalite::poserEffet`, sans entrer dans le rendement décroissant, sans retirer un contrôle en place. 114.5 : `EffetAbsorption`,
+l'Aegis du paladin, le segment argenté et bleu de la barre de vie, la ligne d'inventaire. 114.6 : le Ward du soigneur des monstres. **Choix faits sans
+Olivier** : le Ward du soigneur ne marche pas vers sa cible (il s'engage quand le soigneur est déjà immobile) ; le Ward est posé en priorité sur un allié
+blessé sans Ward, à défaut sur le plus entamé (donc aussi sur un allié en pleine forme) ; son montant (70, 23 % des points de vie d'une infanterie) est majoré
+par la profondeur comme les points de vie (25 % par étage) ; l'Aegis coûte 80 d'énergie (la règle des sorts, comme le soin, et non celle des techniques) ;
+l'absorption se compte sur les portions arrondies, en points entiers, et un coup entièrement retenu inflige 0 ; le texte « Absorbed −N » dit toujours le
+montant ; aucun texte à la pose du Ward d'un monstre. 2 305 tests (+91), 0 avertissement de compilation sur les deux presets. Détail : `docs/combat.md`
+(« L'absorption (étape 114) »), `docs/classes-et-combat.md` (section 14 sexies), `docs/monstre.md` (« Le Ward du soigneur »), `docs/glossaire.md`,
 `docs/ecrans.md`, `docs/tests.md`.

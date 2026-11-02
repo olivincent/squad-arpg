@@ -152,7 +152,9 @@ Le nom affiché d'un objet est `[préfixe] modèle [suffixe]` (« Blazing Mace �
 | Bénédiction | Blessing | BL |
 | Renew (soin dans le temps du prêtre) | Renew | RN |
 | Contresort (Disruption, mage ; étape 113) | Counterspell | CS |
-| Coup assommant (capacité de l'infanterie lourde ; identité de l'étourdissement, jamais dans la barre ; étape 113) | Stunning Blow | SB |
+| Aegis (paladin ; un bouclier contre le physique sur l'allié le plus blessé ; étape 114) | Aegis | AG |
+| Coup assommant (capacité de l'infanterie lourde ; identité de l'étourdissement, `IdCapacite`, jamais dans la barre ; étape 113) | Stunning Blow | — |
+| Ward du soigneur (capacité de monstre ; `IdCapacite`, jamais dans la barre ; étape 114) | Ward | — |
 
 ## Effets actifs (`interface/AffichageEffets.cpp`)
 
@@ -163,6 +165,7 @@ Le nom affiché d'un objet est `[préfixe] modèle [suffixe]` (« Blazing Mace �
 | Plusieurs piles (étape 112) : « ×N » après le nom, la valeur de toutes les piles | « Bleeding ×2: 14 per s (4 s) » (le × est U+00D7) |
 | Dégâts dans le temps : le nom de l'élément, le montant par seconde | Bleeding (physique), Burning (feu), Holy Fire (sacré, sans source aujourd'hui) : « Burning: 8 per s (2 s) » |
 | Soin dans le temps : le nom du skill, le montant par seconde | « Renew: 9 per s (6 s) » |
+| Bouclier d'absorption (étape 114) : le nom de la famille et les points qui restent | « Aegis: 45 (6 s) », « Ward: 60 (8 s) » (vert, un bonus) |
 | Statistique modifiée (armure) | Armor (aussi « Armor: N » en tête de la colonne de l'inventaire, effets actifs compris) |
 | Étourdissement, ralentissement, entrave, Disruption (étape 113) : le nom de l'état, jamais celui du skill ; le pourcentage pour les deux du milieu | « Stunned (2 s) », « Slowed: −30 % (3 s) », « Hampered: −20 % (3 s) », « Disrupted (1 s) » (le signe moins est U+2212) |
 
@@ -174,6 +177,7 @@ Le nom affiché d'un objet est `[préfixe] modèle [suffixe]` (« Blazing Mace �
 | Esquivé | Dodged |
 | Bloqué | Blocked (« Blocked −40 » si le blocage est partiel) |
 | Provoqué | Taunted |
+| Points retenus par un bouclier d'absorption (étape 114) ; le montant est toujours dit | Absorbed −25 (argenté pour l'Aegis, bleu pour le Ward ; 12 px pour un tick) |
 | Sac plein (l'objet visé reste au sol) | Bag full |
 | Niveau atteint (au-dessus de l'escouade) | Level up! |
 | État de contrôle posé (étape 113) | Stunned, Slowed, Hampered, Disrupted (jaune) |

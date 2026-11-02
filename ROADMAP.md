@@ -8,7 +8,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 ## Étapes terminées
 
-Étapes 0 à 113 ✅. Les dernières :
+Étapes 0 à 114 ✅. Les dernières :
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 - Étape 83 — Inventaire et équipement : le modèle, sans interface ✅
@@ -47,10 +47,10 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 - **Outils** : conception dans Claude.ai, implémentation avec Claude Code dans VSCode (règles dans
   `CLAUDE.md`) ; dépôt Git `squad-arpg`, poussé sur GitHub ; SFML 3.0.2 intégrée à CMake.
-- **Code** (étape 113) : 119 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
+- **Code** (étape 114) : 121 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
   `combat`, `objets`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
   de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug` et `jeu`, 0
-  avertissement, 2 214 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers des étapes 98 à 102 : `docs/build.md`,
+  avertissement, 2 305 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers des étapes 98 à 102 : `docs/build.md`,
   `docs/audit.md`). `Escouade` n'est plus que l'assemblage : `Escouade.cpp` de 1 223 à 1 067 lignes. Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`). **Tout le texte affiché est en anglais** (identifiants, commentaires et documentation restent en français ; pas de système de traduction : `docs/glossaire.md` est la référence des noms du jeu). Un commit par sous-étape, fait par Claude Code (`CLAUDE.md`).
 - **Écrans** : menu à la souris, options d'affichage (fenêtré ou plein écran, résolutions,
   `reglages.ini`), choix de 4 classes parmi 5 (guerrier, prêtre, mage, paladin, rôdeur ; doublons
@@ -244,6 +244,20 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   pose (« Stunned », « Slowed », « Hampered », « Disrupted », ou « Immune »), une ligne par état dans « Active effects » de l'inventaire avec sa durée
   restante (« Slowed: −30 % (3 s) »). Voir `docs/combat.md` (« Le contrôle (étape 113) »), `docs/classes-et-combat.md` (section 14 quinquies),
   `docs/monstre.md` (« L'assommeur »).
+- **Aegis et Ward** (étape 114) : l'absorption est une **sorte d'effet actif de plus** (`Absorption { famille, points }`), avec **deux familles** : l'**Aegis**
+  absorbe le physique, le **Ward** tout le non-physique. Ils agissent **en dernier**, après l'armure, les résistances et l'arrondi, **portion par portion**
+  (`resoudreCoup`) et sur les **ticks** de dégâts dans le temps (`resoudreTick`) ; les soins ne sont pas touchés ; un coup entièrement retenu inflige 0.
+  Un bouclier disparaît à 0 point **ou** quand sa durée s'écoule. **Cumul** : la même source rafraîchit et garde le plus grand nombre de points ; deux sources
+  de la même famille font deux effets, et un coup consomme d'abord **celui qui expire le premier**. **Immunité au contrôle** : tant qu'il reste des points d'une
+  famille, la cible est immunisée contre son contrôle (Aegis : Stun, Slowed, Hampered ; Ward : Disruption, et plus tard Charm et Fear) ; la pose refusée
+  affiche « Immune » et **ne compte pas dans le rendement décroissant** ; un contrôle déjà en place n'est pas retiré. **Identité des sources** : un effet
+  vient d'un skill **ou** d'une capacité de monstre (`SourceDEffet`, `IdCapacite` : `CoupAssommant` n'est plus un `IdSkill`). **Deux utilisateurs** (« à
+  tester ») : **Aegis**, troisième skill du paladin (sigle AG, mode Allie : l'allié le plus blessé ; 60 points sur la Resolve, 8 s de base plafonnées par la
+  recharge de 15 s, coût 80, portée et activation du soin) ; et le **Ward du soigneur des monstres** (70 points majorés de 25 % par étage, 8 s, recharge 12 s,
+  sur un allié de son groupe, **jamais sur lui-même** : le Counterspell l'interrompt ; le soin passe avant ; il ne marche pas vers sa cible). À l'écran : un
+  **segment argenté (Aegis) puis bleu (Ward)** sur la barre de vie, qui prolonge la partie pleine et se cale contre le bord droit à pleine vie ; une marque verte ;
+  un texte « Absorbed −N » dans la couleur du bouclier ; une ligne « Aegis: 45 (6 s) » dans l'inventaire (`docs/combat.md`, « L'absorption (étape 114) » ;
+  `docs/classes-et-combat.md`, section 14 sexies ; `docs/monstre.md`, « Le Ward du soigneur »).
 - **Carte** : donjon généré à chaque partie (salles, couloirs en L de 2 cases, portes à chaque
   jonction, un groupe de monstres par salle sauf la première, un escalier, graine affichée), F5 = nouvelle expédition ;
   carte à la main pour les tests (`docs/generation.md`, `docs/carte-et-collision.md`).
@@ -469,30 +483,45 @@ ce qui reste à décider **en discussion** avant son prompt :
   - 110 ✅ : les effets des caractéristiques (voir « Les effets des caractéristiques »).
   - 111 ✅ : le socle des effets actifs (voir « Les effets actifs »).
   - 112 ✅ : les dégâts et les soins dans le temps (voir « Dégâts et soins dans le temps »).
-  - 113 ✅ : les états de contrôle (voir « Les états de contrôle »). Prévu ensuite : 114 Aegis et Ward ; Fear dans sa propre étape ; plus tard Charm et
-    les auras.
+  - 113 ✅ : les états de contrôle (voir « Les états de contrôle »).
+  - 114 ✅ : Aegis et Ward (voir « Aegis et Ward »). Prévu ensuite : l'étape 115 est à discuter ; Fear dans sa propre étape ; plus tard Charm, les auras et
+    la purification.
 
 
-## Étape 114 (prochaine) : Aegis et Ward
+## Étape 115 (à discuter)
 
-Les étapes 105 à 113 sont faites. Plan : **114** Aegis et Ward (et l'immunité au contrôle qu'ils donneront) ; **Fear** dans sa propre étape (il déplace la
-cible contre sa volonté et touche la formation, les intentions et l'A*) ; plus tard Charm et les auras. Chaque étape se discute avec Claude.ai avant son
-prompt. L'`Expedition` garde les points dépensés ; c'est elle qu'on sauvegardera un jour.
+Les étapes 105 à 114 sont faites. Ensuite, à discuter avec Claude.ai avant son prompt : **Fear** dans sa propre étape (il déplace la cible contre sa volonté et
+touche la formation, les intentions et l'A*) ; plus tard Charm, les auras, la purification (retirer un état ou un effet existant), des boucliers venant de
+l'équipement. L'`Expedition` garde les points dépensés ; c'est elle qu'on sauvegardera un jour.
 
-**Tests visuels de l'étape 113** (à faire par Olivier, Claude Code ne voit pas la fenêtre) :
-1. Paladin, Frappe sacrée qui touche : « Stunned », marque jaune, le monstre ne bouge plus et n'attaque plus pendant environ 1,5 s. Une Frappe sacrée esquivée ne fait rien.
-2. Frappe sacrée répétée sur le même monstre : les étourdissements raccourcissent, puis « Immune ». Après 15 s sans étourdissement, la durée pleine revient.
-3. Rôdeur, Pluie de flèches sur un groupe : « Slowed » et « Hampered », les monstres avancent et frappent plus lentement pendant 3 s.
-4. Mage, Counterspell sur un soigneur : « Disrupted », il ne soigne plus pendant environ 2 s, mais continue ses attaques de base.
-5. Infanterie lourde : de temps en temps, un personnage touché affiche « Stunned » et s'arrête environ 1 s, pas plus d'une fois toutes les 10 s par monstre. Un personnage avec beaucoup de Constitution reste étourdi un peu moins longtemps.
-6. Inventaire (touche I) : les lignes des états avec leur durée restante, et le pourcentage pour Slowed et Hampered.
-7. F8 : plus aucune marque à l'étage suivant.
+**Tests visuels de l'étape 114** (à faire par Olivier, Claude Code ne voit pas la fenêtre) :
+1. Paladin, Aegis sur un allié blessé : un segment argenté sur sa barre de vie et une marque verte. Les coups des monstres font baisser le segment avant les PV, avec les montants absorbés (« Absorbed −N ») affichés en argenté, et les dégâts qui passent en dessous.
+2. Pendant l'Aegis, l'infanterie lourde ne peut plus étourdir ce personnage : « Immune ». Quand le segment disparaît, le coup assommant fonctionne de nouveau.
+3. Relancer Aegis sur un personnage qui en a déjà un : toujours un seul segment, durée rafraîchie.
+4. Un soigneur de monstres pose un Ward bleu sur un allié, jamais sur lui-même. L'Explosion et la brûlure du mage sont absorbées par le Ward ; les flèches et les frappes physiques passent à travers.
+5. Counterspell sur le soigneur : il est interrompu et ne pose plus de Ward pendant la Disruption.
+6. Inventaire (touche I) : la ligne Aegis avec ses points et sa durée restante.
+7. F8 : plus aucun segment ni marque à l'étage suivant.
+
+**Pistes issues de l'étape 114** (étapes à part, plus tard) :
+- **Ajuster en jouant** : l'Aegis (60 points sur la Resolve, 8 s, recharge 15 s, coût 80 sur 103 d'énergie : un seul Aegis par réserve), le Ward du soigneur (70 points,
+  +25 % par étage, 8 s, recharge 12 s, activation 0,8 s), les couleurs (argenté 200/205/215, bleu 80/140/255), la lisibilité du segment avec les marques sous le
+  carré ; tout est « à tester ».
+- **La purification** (retirer un état ou un effet existant : un bouclier n'empêche que les nouveaux contrôles) ; **des boucliers venant de l'équipement** (une
+  amulette qui se recharge hors combat, `docs/classes-et-combat.md`, section 9).
+- **Un Ward qui sert** : aucun monstre n'inflige aujourd'hui de non-physique ni de contrôle magique, donc le Ward des monstres ne retient que l'explosion et la
+  brûlure du mage ; des monstres qui infligent du feu ou de la Disruption lui donneraient un rôle. **Un soigneur qui marche vers sa cible du Ward** (aujourd'hui il
+  ne le pose que s'il est déjà immobile), **un texte à la pose du Ward** d'un monstre, **deux soigneurs qui se coordonnent**, **un Ward propre à la créature
+  monstrueuse** : écartés de l'étape 114.
+- **Un Aegis qui se pose sur un allié en pleine forme** (aujourd'hui, comme le soin, le mode `Allie` exige un blessé) ; **un Aegis sur tout le groupe** (mode `Escouade`).
+- **Les seuils de l'Aegis dans le catalogue** : l'Aegis d'un personnage de classe autre que le paladin, un Ward pour le prêtre ou le mage (aucun skill de personnage
+  ne pose encore de Ward).
 
 **Pistes issues de l'étape 113** (étapes à part, plus tard) :
 - **Ajuster en jouant** : l'étourdissement de la frappe sacrée (1,5 s), le ralentissement (30 %) et l'entrave (20 %) de la pluie de flèches (3 s), le contresort
   (2 s, coefficient 0,5, recharge 10 s, coût 53, activation 0,3 s), le coup assommant (1 s, une fois par 10 s), le rendement décroissant (100 / 50 / 25 %,
   remise à zéro à 15 s), la couleur jaune et la lisibilité d'une rangée de trois sortes de marques ; tout est « à tester ».
-- **Fear et Charm** (Fear : une étape à part, il déplace la cible contre sa volonté) ; **Aegis et Ward** et l'immunité au contrôle (étape 114).
+- **Fear et Charm** (Fear : une étape à part, il déplace la cible contre sa volonté) ; ~~Aegis et Ward et l'immunité au contrôle~~ (faits à l'étape 114).
 - **Une vitesse d'incantation** (l'entrave ne touche que l'attaque de base) et **un modificateur de statistique de vitesse d'attaque** (aujourd'hui le
   facteur d'attaque ne vient que de l'entrave).
 - **D'autres monstres qui posent des effets** (un poison, un saignement, un ralentissement sur les personnages) : le mécanisme (`Attaque::effets` d'un monstre,

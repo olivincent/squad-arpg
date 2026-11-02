@@ -302,7 +302,7 @@ Max Life et les capacités donnent exactement les résultats d'avant (300 + 6 ×
 - **Retenu.** Aegis et Ward absorbent **en dernier**, après l'armure et les résistances, comme une bulle par-dessus les points de vie (à la *Titan Quest*). L'armure garde ainsi sa valeur même sous une réserve. **Les deux absorbent aussi les dégâts dans le temps** (étape 109).
 - Note : « armure » désigne déjà la réduction par soustraction ; ces réserves ont besoin d'un autre nom.
 - Aegis protège du contrôle physique et Ward du contrôle magique, en miroir de la Constitution et de la Resolve (section 5).
-- **Existe** : non (étape 108). Ni Aegis ni Ward, ni aucun état de contrôle, ne sont dans le code.
+- **Existe** : oui, depuis l'étape 114 (section 14 sexies) : l'absorption est un effet actif, l'Aegis du paladin et le Ward du soigneur des monstres en sont les deux premiers utilisateurs, et l'immunité au contrôle est câblée. Pas encore de bouclier venant de l'équipement.
 
 ## 10. Les zones et l'escouade
 
@@ -420,8 +420,8 @@ Il n'y a **pas de Crit Chance** : la chance de critique vient seulement du rappo
 | Block Amount | Points absorbés par un blocage (seulement la portion physique) | Bouclier, skills | Oui (`montantBloque`, étape 103 : 8 points au niveau 1) |
 | Block Recovery | Temps pendant lequel un bouclier qui a bloqué ne bloque plus | Bouclier, skills | **Partiel** : une constante commune de 3 s (`s_recuperationDuBlocage`), pas une statistique |
 | Defensive Ability | Réduit le critique subi | Dexterity, équipement | Oui (`capaciteDefensive`, étape 89 ; une référence de 100 pour les soins) |
-| Aegis | Points d'absorption du **physique**, appliqués en dernier ; immunité à Stun et Slow tant qu'il en reste | Skills, équipement | Non |
-| Ward | Points d'absorption de **tout ce qui n'est pas physique** (poison compris), appliqués en dernier ; immunité à Charm, Fear et Disruption tant qu'il en reste | Skills, équipement | Non |
+| Aegis | Points d'absorption du **physique**, appliqués en dernier ; immunité à Stun et Slow tant qu'il en reste | Skills, équipement | **Oui** depuis l'étape 114 (effet actif `Absorption`), par les skills ; pas encore par l'équipement |
+| Ward | Points d'absorption de **tout ce qui n'est pas physique** (poison compris), appliqués en dernier ; immunité à Charm, Fear et Disruption tant qu'il en reste | Skills, équipement | **Oui** depuis l'étape 114 (effet actif `Absorption`), par le soigneur des monstres ; pas encore par l'équipement |
 
 Il n'y a **pas de statistique défensive contre la pénétration d'armure** : elle annulerait l'identité des armes qui percent l'armure (dague, lance, arc, arbalète). Les autres couches défensives (Dodge et Deflect, le blocage, Aegis, la résistance physique) en sont la parade.
 
@@ -656,10 +656,48 @@ rendement décroissant sur la cible et des utilisateurs dans les deux camps. La 
   (sigle CS dans la barre).
 - **À l'écran.** Marque jaune sous l'entité (une par contrôle), texte flottant à la pose (« Stunned », « Slowed », « Hampered », « Disrupted », ou « Immune »),
   une ligne par état dans « Active effects » de l'inventaire avec sa durée restante (« Slowed: −30 % (3 s) »).
-- **Reste ouvert** : Fear et Charm (étapes à part), Aegis et Ward et l'immunité au contrôle qu'ils donneront (étape 114), un modificateur de statistique de
+- **Reste ouvert** : Fear et Charm (étapes à part), ~~Aegis et Ward et l'immunité au contrôle qu'ils donneront~~ (faits à l'étape 114, section 14 sexies), un modificateur de statistique de
   vitesse d'attaque et une vitesse d'incantation, d'autres monstres qui posent des effets, une immunité ou une résistance spéciale des créatures
   monstrueuses, des affixes de résistance au contrôle ; d'ajuster en jouant les durées (1,5 s ; 3 s ; 2 s ; 1 s), les pourcentages (30 % et 20 %), le délai
   de 10 s du coup assommant, le rythme du rendement (100 / 50 / 25 %, remise à zéro à 15 s).
+
+## 14 sexies. Aegis et Ward (étape 114)
+
+*Statut : retenu à l'étape 114 ; toutes les valeurs sont « à tester ».* L'absorption est une sorte d'effet actif de plus (`Absorption`), avec
+l'immunité au contrôle qu'elle donne et des utilisateurs dans les deux camps. La technique est dans `docs/combat.md`, « L'absorption (étape 114) ».
+
+- **Deux familles de points d'absorption.** *Aegis* : le physique. *Ward* : tout le non-physique (feu, sacré, le poison à venir…). Un bouclier porte sa
+  famille, ses **points restants** et sa durée ; il disparaît quand ses points tombent à 0 **ou** quand sa durée s'écoule. C'est un buff : coefficient de
+  durée de l'Intellect 1 pour un skill de personnage, et la règle « jamais plus long que la recharge » s'applique (testée sur le catalogue).
+- **Dans le coup, en dernier.** Après l'armure, les résistances et l'arrondi, **portion par portion** : la portion physique est absorbée par les Aegis,
+  les autres par les Ward. Un coup qui reste retenu tout entier inflige 0 (le « au moins 1 » se joue avant l'absorption). Les **ticks** de dégâts dans
+  le temps suivent la même règle : après la résistance, un tick physique va aux Aegis, un autre aux Ward. Les **soins** ne sont pas touchés. Un coup
+  esquivé n'use aucun bouclier.
+- **Cumul.** Le même skill (ou la même capacité) reposé rafraîchit la durée et garde le plus grand nombre de points entre ce qui reste et ce qu'on pose.
+  Deux sources différentes de la même famille font **deux effets séparés** ; un coup consomme d'abord **celui qui expire le premier** (durée restante la
+  plus courte, à égalité le plus anciennement posé), puis le suivant.
+- **Immunité au contrôle.** Tant que le total des points d'une famille est supérieur à 0, la cible est immunisée contre le contrôle de cette famille :
+  **Aegis** contre les états dont la catégorie de résistance est Stun ou Slow (**Stun, Slowed, Hampered**), **Ward** contre Charm, Fear et Disruption
+  (aujourd'hui **Disruption**). Une pose refusée affiche « Immune » et **ne compte pas dans le rendement décroissant** (rien n'a été posé). Un contrôle
+  **déjà en place n'est pas retiré** par la pose d'un bouclier : il n'empêche que les nouveaux (la purification est une autre mécanique, plus tard).
+  Un coup qui épuise l'Aegis et porte un étourdissement étourdit (les effets du coup se posent après lui).
+- **Identité des sources.** Un effet vient d'un skill **ou** d'une capacité de monstre (`SourceDEffet`, `IdCapacite`) ; `CoupAssommant` n'est plus un
+  `IdSkill`. L'identité d'un effet actif est (source, rang). Aucun comportement n'a changé en le faisant.
+- **Les deux utilisateurs :**
+
+| Utilisateur | Effet | Montant | Durée | Recharge | Notes |
+|---|---|---|---|---|---|
+| Aegis (paladin, nouveau, sigle AG) | un Aegis sur l'allié le plus blessé (mode Allie) | 60 sur la Resolve (1 % par point : 61 à Resolve 11) | 8 s de base (jusqu'à 15 s : plafonnée par la recharge) | 15 s | portée et activation de Soin (40 px, 0,6 s), coût d'un sort : 80 |
+| Ward (soigneur des monstres) | un Ward sur un allié de son groupe, jamais sur lui-même | 70, majorés de 25 % par étage comme les points de vie | 8 s | 12 s | activation 0,8 s ; en priorité un allié blessé sans Ward ; le soin passe avant |
+
+  Le coût de l'Aegis suit la règle des sorts (`15 × (2 + 100 / 30) = 80`) : le paladin de départ (103 d'énergie) peut l'enchaîner avec une frappe sacrée (14)
+  mais pas avec deux Aegis. Le Ward du soigneur est une **capacité de rôle** : l'étourdissement et la Disruption l'empêchent, le Counterspell l'interrompt.
+- **À l'écran.** Un segment sur la barre de vie (argenté pour l'Aegis, bleu pour le Ward) qui prolonge la partie pleine et se cale contre le bord droit à
+  pleine vie ; une marque verte (un bouclier est un bonus) ; un texte flottant « Absorbed −N » dans la couleur du bouclier (en 12 px pour un tick), avec
+  les dégâts qui passent juste dessous ; une ligne par bouclier dans « Active effects » (« Aegis: 45 (6 s) »).
+- **Reste ouvert** : la purification (retirer un état ou un effet existant), des boucliers venant de l'équipement (l'amulette qui se recharge hors combat), Fear
+  et Charm (étapes à part, leur immunité par le Ward est déjà câblée), d'autres capacités de monstres (un bouclier propre à la créature), des monstres qui
+  infligent du non-physique ou du contrôle magique, ajuster en jouant les 60 points, 8 s, 15 s, le coût de 80, le Ward du soigneur (70, 12 s), les couleurs.
 
 ## 15. Pistes
 

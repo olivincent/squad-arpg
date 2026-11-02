@@ -130,7 +130,7 @@ formation, ni cible commune : le groupe reste un identifiant, et `Partie` passe 
 Premier monstre qui **pose un effet actif** sur un personnage. L'infanterie lourde (`RoleAssommeur { dureeDeLEtourdissement = 1 s, delaiEntreCoups =
 10 s }`, valeurs « à tester ») étourdit le personnage que touche son attaque de base, au plus une fois toutes les 10 s.
 - **Le mécanisme est général** : une `Attaque` porte des `effets` (`Attaque::effets`), que `Vitalite::recevoirDegats` pose sur la cible si le coup n'est
-  pas esquivé. `Monstre::avancerAttaque` rend `getAttaque()` plus, si le rôle est prêt, un `EffetActif` (`IdSkill::CoupAssommant`, rang 0, un `Controle`
+  pas esquivé. `Monstre::avancerAttaque` rend `getAttaque()` plus, si le rôle est prêt, un `EffetActif` (`IdCapacite::CoupAssommant`, rang 0, un `Controle`
   d'étourdissement) ; `getAttaque()` (const, utilisée par les coups d'opportunité) n'en porte jamais. D'autres monstres qui posent des effets
   seraient une alternative de plus dans `RoleDeMonstre` et dans `EtatDuRole`, ou le même mécanisme avec une autre sorte d'effet.
 - **`EtatAssommeur { role, delaiRestant }`** : le délai s'écoule dans `faireAvancerLeRole`, le premier coup est disponible tout de suite. Le délai
@@ -188,6 +188,28 @@ vidé avec les effets quand le monstre rentre à son poste. Détail : `docs/comb
   soin d'un monstre ; l'événement porte le montant réellement rendu (plafonné).
 - **`renforcer`** majore le montant du soin du même pourcentage que les dégâts (+15 % par étage au-delà du premier : 75 devient 98 au
   3e étage).
+
+### Le Ward du soigneur (étape 114.6)
+
+- **Une deuxième capacité de rôle** : `RoleSoigneur::ward` (une `DefinitionDeSkill` de mode `Allie` avec un `EffetAbsorption` de famille Ward) :
+  70 points pendant 8 s sur un allié de son groupe, portée 150 px bord à bord et en vue, recharge fixe de 12 s, activation de 0,8 s immobile
+  (comme le soin). `EtatSoigneur::ward` en est la machine à états. Le **soin passe avant** (`Partie::faireAgirLeMonstre` tente `engagerSoin`, puis
+  `engagerWard`, puis `engagerAttaque`) ; un Ward, un soin et un coup ne sont jamais engagés ensemble (`enActivationDeRole`).
+- **Jamais sur lui-même** : la vue des alliés ne le contient pas. Il reste donc interruptible par le Counterspell (Disruption) : une capacité de
+  rôle compte comme un skill, la Disruption et l'étourdissement l'empêchent et annulent l'activation en cours, sans recharge consommée.
+- **Cible** (`choisirLaCibleDuWard`, fonction pure) : parmi les alliés vivants **sans Ward** (`AllieVu::aUnWard`, rempli par `Partie::alliesDuGroupe`),
+  le plus blessé en proportion sous le seuil de 75 % ; à défaut, le plus entamé même s'il l'est peu (donc un allié en pleine forme est protégé
+  quand personne n'est blessé) ; égalité : le plus petit identifiant ; vide si tous en ont un.
+- **Il ne marche pas vers sa cible** (contrairement au soin) : le Ward s'engage quand le soigneur est déjà immobile avec une cible à portée et en vue.
+  Choix le plus simple de l'étape ; un soigneur en marche vers son blessé ou vers sa proie l'engage dès qu'il s'arrête.
+- **Le monstre ne touche jamais un autre monstre** : `avancerWard` rend un `WardDeMonstre { cible, effet }` au départ (source `IdCapacite::WardDuSoigneur`,
+  rang 0, `Absorption { Ward, 70 }`, 8 s) ; `Partie::faireProtegerLeMonstre` le pose par `Monstre::recevoirUnEffet` (sans effet sur un monstre en retour ou
+  mort) ; annulé sans recharge si la cible disparaît ou passe en retour. Aucun texte flottant à la pose ; le segment bleu de la barre de vie et la
+  marque verte le montrent. Un Ward posé de nouveau par la même capacité rafraîchit (la source est la même) : en pratique `aUnWard` l'évite.
+- **`renforcer`** majore les points du Ward de 25 % par étage au-delà du premier (comme les points de vie : 70 devient 105 au 3e étage).
+- **Limites** : le Ward ne retient aujourd'hui que le non-physique, et aucun monstre n'en inflige à l'escouade : il ne sert qu'aux dégâts du mage
+  (explosion, brûlure) ; son immunité à la Disruption ne sert que contre un Counterspell du joueur ; deux soigneurs peuvent viser le même allié ;
+  pas de Ward posé sur un allié hors de portée (le soigneur ne marche pas pour cela).
 
 ### La vue des alliés (étape 107.3)
 
@@ -732,11 +754,12 @@ esquives, et depuis l'étape 94 les résistances), `chanceDeButin` (en pour cent
 ### `RoleDeMonstre` (`monstres/`) — ce qu'un monstre fait en plus de poursuivre et de frapper (étape 107)
 
 `RoleDeMonstre.hpp` / `.cpp`. Données : `RoleMelee {}`, `RoleTireur {distanceDeContact, distanceDeRecul, delaiEntreReculs}`,
-`RoleSoigneur {soin (DefinitionDeSkill), seuilDeBlessure}`, `RoleAssommeur {dureeDeLEtourdissement, delaiEntreCoups}` (étape 113), `RoleDeMonstre =
-std::variant<…>`. États, dans le monstre : `EtatMelee {}`, `EtatTireur {role, delaiRestant, enRecul}`, `EtatSoigneur {role, soin (Skill), cibleDuSoin}`,
+`RoleSoigneur {soin (DefinitionDeSkill), seuilDeBlessure, ward (DefinitionDeSkill, étape 114)}`, `RoleAssommeur {dureeDeLEtourdissement, delaiEntreCoups}` (étape 113), `RoleDeMonstre =
+std::variant<…>`. États, dans le monstre : `EtatMelee {}`, `EtatTireur {role, delaiRestant, enRecul}`, `EtatSoigneur {role, soin (Skill), cibleDuSoin, ward (Skill), cibleDuWard}`,
 `EtatAssommeur {role, delaiRestant}`, `EtatDuRole = std::variant<…>`.
 
 | Fonction | Rôle |
 |---|---|
 | `EtatDuRole etatInitialDuRole(const RoleDeMonstre&)` | L'état d'un monstre neuf : l'alternative de même rang, avec une copie des données du rôle ; `[[nodiscard]]` |
+| `std::optional<AllieVu> choisirLaCibleDuWard(const std::vector<AllieVu>&, int seuilDeBlessure)` | Étape 114.6 : parmi les alliés vivants sans Ward, le plus blessé en proportion sous le seuil, à défaut le plus entamé ; égalité : le plus petit identifiant ; vide si tous en ont un ; fonction pure ; `[[nodiscard]]` |
 | `std::optional<AllieVu> choisirLeBlesse(const std::vector<AllieVu>&, int seuilDeBlessure)` | Le plus blessé en proportion parmi ceux strictement sous le seuil (en pour cent) ; égalité : le plus petit identifiant ; vide si personne ; fonction pure ; `[[nodiscard]]` |

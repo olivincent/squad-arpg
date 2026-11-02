@@ -2260,6 +2260,42 @@ quatre appels de `Monstre::mettreAJour` des tests ont reçu le paramètre des al
   recul et la marche du soigneur dans un vrai donjon (murs, portes, autres monstres), le texte vert sur le monstre soigné, l'équilibre des valeurs
   (le soigneur rend 75 points toutes les 6 s, soit 12,5 par seconde) : à l'œil, en jouant.
 
+## Étape 114 : Aegis et Ward (2 214 → 2 305)
+
+2 214 tests au début de l'étape (2 214 après 114.1, 2 237 après 114.2, 2 266 après 114.3, 2 275 après 114.4, 2 286 après 114.5, 2 305 à la fin).
+
+- **114.1** : aucun test de plus (la suite passe telle quelle) ; `test_Vitalite.cpp`, `test_Monstre_assommeur.cpp`, `test_AffichageSkills.cpp` et
+  `test_BarreDeSkills.cpp` suivent le déplacement de `CoupAssommant` vers `IdCapacite` (le test du nom compte maintenant 11 skills).
+- **114.2** : `test_FamilleDAbsorption.cpp` (nouveau : le physique aux Aegis, le reste aux Ward ; Aegis pour Stun et Slow, Ward pour Charm, Fear et
+  Disruption ; `portionsAbsorbees` portion par portion, **un Ward trop petit couvre le feu avant le sacré**) ; `test_EffetsActifs.cpp` (un bouclier est
+  un bonus ; les points se cumulent par famille ; **la même source reposée rafraîchit la durée et garde le plus grand nombre de points, sans jamais
+  les diminuer** ; deux sources font deux effets ; **le bouclier qui expire le premier est consommé d'abord, même posé après** ; un bouclier épuisé
+  disparaît et le suivant prend le reste ; à durée égale, le plus ancien ; l'autre famille et les autres effets ne sont pas touchés ; **la durée seule
+  le fait expirer** ; `appliquerLesEffets` remplit `Defenses::absorption` sans toucher l'armure ; `SourceDEffet`) ; `test_AffichageEffets.cpp` (« Aegis: 45
+  (6 s) »).
+- **114.3** : `test_Absorption.cpp` (nouveau : l'Aegis absorbe la portion physique, **un Aegis ne retient jamais le feu ni un Ward le physique**, un coup mixte
+  portion par portion, **après l'armure et après la résistance**, sans bouclier rien ; les ticks : feu au Ward, physique à l'Aegis, après la
+  résistance, absorption totale ; `Vitalite` : un coup use l'Aegis avant les points de vie et **le bouclier épuisé disparaît**, **un coup esquivé ne
+  l'use pas**, le Ward absorbe la brûlure et le tick est rendu avec son `absorbe` (même à 0), le Ward laisse passer le saignement, les soins ne sont
+  pas touchés, la mort retire les boucliers ; `detailsDuCoup` : un `Absorbe` par famille, `total` quand rien ne passe) ; `test_TextesFlottants.cpp` (« Absorbed −25 »,
+  les deux couleurs, 12 px pour un tick, distinctes de tous les autres textes).
+- **114.4** : `test_Absorption_immunite.cpp` (nouveau : **l'Aegis immunise contre Stun, Slowed et Hampered mais pas la Disruption**, le Ward contre la
+  Disruption mais pas Stun ; sans point ou après expiration plus d'immunité ; **un contrôle bloqué ne compte pas dans le rendement décroissant** (la
+  première application réelle garde sa durée pleine) ; **poser un bouclier ne retire pas un contrôle en place** ; **un coup qui laisse des points à
+  l'Aegis n'étourdit pas, un coup qui l'épuise étourdit** ; la pose refusée est notée « Immune »).
+- **114.5** : `test_Specialite.cpp` (le paladin a trois skills ; l'Aegis : 60 points sur la Resolve, 8 s, coefficient de durée 1, recharge 15 s ; même portée
+  que le soin, coût 80 ≤ 100 ; la barre par défaut le range dans la colonne du paladin), `test_Escouade_absorption.cpp` (nouveau : posé sur l'allié le plus
+  blessé et sur lui seul ; **le montant suit la Resolve, 1 % par point** ; la durée plafonnée par la recharge), `test_CoherenceDesDonnees.cpp` (**un bouclier ne
+  dure jamais plus que sa recharge**, coefficient de durée 1, touche les alliés), `test_BarreDeVie.cpp` (les segments : vides sans bouclier, **à la suite de la
+  vie**, calés contre le bord droit à pleine vie, bornés à la barre), `test_AffichageSkills.cpp` et `test_BarreDeSkills.cpp` (« Aegis », AG).
+- **114.6** : `test_Monstre_ward.cpp` (nouveau : le soigneur engage un Ward sur un allié en pleine forme et non un soin ; **jamais sur lui-même** (sans allié rien) ;
+  un allié qui a déjà un Ward n'en reçoit pas ; hors de portée il ne marche pas ; **activation de 0,8 s puis 70 points de Ward pendant 8 s**, source
+  `WardDuSoigneur` ; recharge de 12 s ; **annulé sans recharge** ; **la Disruption et l'étourdissement l'empêchent et l'annulent** ; ni coup ni Ward ensemble ;
+  un autre monstre n'en a pas ; `choisirLaCibleDuWard` : blessé sans Ward d'abord, à défaut le plus entamé), `test_RoleDeMonstre.cpp` (les valeurs, **`renforcer`
+  majore le Ward de 25 % par étage**), `test_Partie_ward.cpp` (nouveau : dans une partie, le Ward arrive sur le membre du groupe et jamais sur le soigneur).
+- **Ce que les tests ne voient pas** : la lisibilité du segment argenté et bleu avec les marques sous le carré, la couleur argentée contre le blanc des
+  dégâts sur un monstre, le rythme du Ward du soigneur (12 s) en combat réel ; les tests visuels sont dans `ROADMAP.md`.
+
 ## Étape 113 : les états de contrôle (2 118 → 2 214)
 
 2 118 tests au début de l'étape (2 155 après 113.1-113.2, 2 181 après 113.3, 2 198 après 113.4, 2 201 après 113.5, 2 204 après 113.6, 2 214 à la fin).

@@ -2073,13 +2073,83 @@ décisions de conception (valeurs, règles de jeu) sont dans `docs/classes-et-co
   de rangs 1 et 2 du même skill, coefficient 0) ; le **contresort** (`IdSkill::Contresort`, « Counterspell », sigle CS), deuxième skill du mage
   (mode `Monstre`, portée 250 px comme l'explosion, Disruption de 2 s de base avec un coefficient de durée de 0,5, activation de 0,3 s, recharge de
   10 s, coût de 53 selon `coutDUnSort`, abordable avec la réserve de départ du mage : 53 + 43 de l'explosion ≤ 106) ; et, côté monstres, le **coup
-  assommant** de l'infanterie lourde (`IdSkill::CoupAssommant`, « Stunning Blow », sigle SB : seulement l'identité de l'effet, ce n'est pas un skill
+  assommant** de l'infanterie lourde (`IdCapacite::CoupAssommant` depuis l'étape 114.1, « Stunning Blow » : seulement l'identité de l'effet, ce n'est pas un skill
   de la barre). Les tests visuels de l'étape sont dans `ROADMAP.md`.
 - **Limites.** Ni Charm ni Fear (Fear aura son étape : il déplace la cible contre sa volonté) ; pas de vitesse d'incantation (l'entrave ne touche
   que l'attaque de base) ; pas d'immunité ou de résistance spéciale des créatures monstrueuses (elles subissent le contrôle comme les autres) ; le
   coup assommant consomme son délai de 10 s dès qu'il part, qu'il touche ou non (le monstre ne sait pas si son coup a été esquivé) ; les durées
   d'un contrôle ne sont pas sauvegardées (comme tout effet) ; le contrôle d'un personnage ne l'empêche pas d'être poussé par la séparation douce ni
   de subir les coups d'opportunité ; un monstre étourdi n'engage plus rien mais reste un obstacle et garde sa zone de contrôle.
+
+## L'absorption (étape 114)
+
+Une sorte d'effet actif de plus (`Absorption`), l'immunité au contrôle qu'elle donne, l'identité des sources d'effet, et des utilisateurs dans les deux
+camps. Les décisions de conception (valeurs, règles de jeu) sont dans `docs/classes-et-combat.md`, section 14 sexies ; ici, la technique.
+
+- **L'identité des sources (114.1).** `SourceDEffet` (`combat/SourceDEffet.hpp`, sans `.cpp`) : un `std::variant<IdSkill, IdCapacite>` dans une
+  structure à deux constructeurs implicites et un `==` (`{.source = IdSkill::Soin}` et `{.source = IdCapacite::WardDuSoigneur}` s'écrivent tels
+  quels, et `effet.source == IdSkill::Soin` compile). `IdCapacite` nomme les capacités de monstre qui posent un effet : `CoupAssommant` (qui a quitté
+  `IdSkill`) et `WardDuSoigneur`. L'identité d'un effet actif est **(source, rang)**. Un `IdSkill` reste un skill de la barre ; `AffichageSkills` a
+  `nomDeLaCapacite` et `nomDeLaSource`.
+- **`FamilleDAbsorption`** (`combat/FamilleDAbsorption.hpp` / `.cpp`) : `enum class { Aegis, Ward }`. `familleQuiAbsorbe(Element)` (le physique aux
+  Aegis, tout le reste aux Ward : **seule fonction** de ce lien) et `familleQuiImmunise(EtatDeControle)` (Aegis pour Stun et Slow, Ward pour Charm, Fear
+  et Disruption : **seule fonction** de ce lien ; l'entrave y arrive par `etatQuiResiste`, qui l'envoie sur Slow). `PointsDAbsorption { aegis; ward }` et
+  `portionsAbsorbees(portions, points)` : pour chaque famille, le plus petit de ce qu'elle a et de ce que ses éléments apportent, **dans l'ordre de
+  `s_elements`** (un Ward trop petit couvre le feu avant le sacré).
+- **`Absorption { FamilleDAbsorption famille; int points; }`** est la cinquième alternative de `SorteDEffetActif` (`EffetActif.hpp`). `estUnBonus` :
+  vrai (marque verte). Le cumul : `lePlusFort(Absorption, Absorption)` garde **le plus grand nombre de points** entre ce qui reste et ce qu'on pose, et
+  `EffetsActifs::poser` rafraîchit la durée (la plus longue) comme pour tout effet. Pas de piles (maximum 1). Deux sources différentes = deux effets.
+- **`EffetsActifs`** : `pointsDAbsorption()` (les totaux par famille) et `consommerLAbsorption(famille, points)` : trie les boucliers de la famille par
+  durée restante croissante (`stable_sort` : à égalité, l'ordre de pose), retire les points l'un après l'autre et `erase_if` ceux qui tombent à 0.
+  Précondition : `points` ne dépasse pas le total de la famille (`assert`). `mettreAJour` n'y touche pas : la durée seule les fait expirer.
+  `appliquerLesEffets` remplit **`Defenses::absorption`** (un champ de plus, `PointsDAbsorption`, vide par défaut) : c'est le seul endroit qui les lit.
+- **Dans le coup (114.3).** `resoudreCoup` : après l'arrondi, `portionsAbsorbees(subies, defenses.absorption)` ; `ResultatDuCoup::absorbees` (un
+  `Degats`) dit ce qui a été retenu, `montant` et `portions` ce qui passe. Le « au moins 1 » de l'arrondi se joue **avant** : un coup entièrement
+  retenu rend `montant == 0`. Un coup esquivé s'arrête avant, un coup entièrement bloqué aussi (le blocage retire le physique avant tout). Aucun
+  tirage. L'ordre complet est dans le commentaire de `resoudreCoup` (l'étape 7).
+- **Dans les ticks.** `resoudreTick(element, montant, const Defenses&)` rend un `ResultatDuTick { montant; absorbe }` : la résistance de l'élément
+  (la surcharge sur `StatistiquesDeCombat`, inchangée), puis l'absorption du tick entier par la famille de son élément. `TickDeDegats` porte un
+  `absorbe` de plus ; `Vitalite::mettreAJour` l'applique, **range le tick même si `montant == 0`** quand `absorbe > 0`, et lit les défenses effets
+  compris à chaque tick.
+- **`Vitalite`.** `consommerLAbsorption(const Degats&)` (privée) retire des effets ce que le coup ou le tick vient de retenir : la portion physique aux
+  Aegis, la somme des autres aux Ward. `getRatioDAbsorption(famille)` : points / points de vie maximum, pour la barre de vie. Un bouclier épuisé
+  disparaît tout de suite ; à la mort, `vider` retire le reste.
+- **L'immunité (114.4).** `Vitalite::poserEffet`, pour un contrôle, regarde d'abord `pointsDAbsorption().deLaFamille(familleQuiImmunise(
+  etatQuiResiste(état))) > 0` : si oui, **rien n'est posé, l'application n'est pas comptée dans le rendement décroissant**, et elle est notée comme
+  une immunité (`ControleApplique { état, true }` : le même « Immune » que le rendement). Un contrôle déjà en place reste : poser un bouclier ne le
+  retire pas. Un coup qui porte à la fois des dégâts et un contrôle consomme d'abord les dégâts, **puis** pose les effets : s'il épuise l'Aegis, le
+  contrôle passe.
+- **`EffetAbsorption`** (`combat/EffetDeSkill`, la neuvième alternative de `EffetDeSkill`) : `{ famille; int montant; int duree; Coefficients
+  coefficients; float coefficientDeDuree }`. `campTouche` : les alliés. Toujours l'effet **principal** d'un skill d'allié (`Skill` interdit un
+  effet secondaire de cette sorte). `Personnage::effetsActifsDuSkill` : les points sont `montantEffectif(montant, coefficients, caractéristiques)`
+  (figés à la pose, comme un soin) et la durée `min(dureeEffective(...), recharge)` : un buff ne dure jamais plus que sa recharge.
+  `Escouade::appliquerLEffet` la pose comme un buff (`poserSurLesAllies`). Testé sur le catalogue (`test_CoherenceDesDonnees`).
+- **Aegis, le skill du paladin (114.5).** `IdSkill::Aegis` (« Aegis », sigle AG), troisième skill du paladin : mode `Allie` (l'allié vivant le plus
+  blessé en points, comme le soin ; sans blessé, refus), 60 points sur la Resolve, 8 s de base avec coefficient de durée 1 (plafonné par la recharge de
+  15 s), portée et activation du soin (40 px, 0,6 s), coût `coutDUnSort(15)` = 80. La barre par défaut le range dans la colonne du paladin.
+- **Le Ward du soigneur (114.6).** `RoleSoigneur::ward` (une `DefinitionDeSkill` de mode `Allie` avec un `EffetAbsorption` de famille Ward : 70 points,
+  8 s, recharge 12 s, portée 150, activation 0,8 s) ; `EtatSoigneur` a un second `Skill ward` et un `cibleDuWard`. `Monstre::engagerWard`
+  (poursuite, immobile, sans coup ni soin engagé, Ward prêt, pas étourdi ni en Disruption, cible à portée ET en vue ; **il ne marche pas** vers la
+  cible), `cibleDuWardEngage`, `avancerWard` (rend un `WardDeMonstre { cible, effet }` au départ, source `IdCapacite::WardDuSoigneur`, rang 0),
+  `annulerWard` (sans recharge) et `recevoirUnEffet` (le monstre protégé, s'il n'est pas en retour ni mort). La cible vient de la fonction pure
+  `choisirLaCibleDuWard(allies, seuil)` (`RoleDeMonstre`) : parmi les alliés sans Ward (`AllieVu::aUnWard`) et vivants, **le plus blessé en proportion sous
+  le seuil, à défaut le plus entamé même s'il l'est peu**, à égalité le plus petit identifiant ; le soigneur n'est jamais dans la liste (il ne se pose
+  jamais de Ward et reste interruptible par le Counterspell). `Partie::alliesDuGroupe` remplit `aUnWard` ; `faireAgirLeMonstre` tente le soin, puis le
+  Ward, puis l'attaque ; `faireProtegerLeMonstre` annule le Ward si la cible a disparu ou rentre à son poste, sinon pose l'effet au départ. `renforcer`
+  majore le Ward de 25 % par étage (comme les points de vie). La Disruption et l'étourdissement l'empêchent et annulent celui qui s'active
+  (`appliquerLeControle`), comme le soin. Aucun texte flottant à la pose : le segment bleu et la marque verte suffisent.
+- **Affichage (114.3 et 114.5).** `Absorbe { int montant; FamilleDAbsorption famille; bool total; bool dansLeTemps }` est un détail d'événement de
+  plus ; `detailsDuCoup` en donne un par famille qui a retenu quelque chose, après les dégâts et le blocage ; `Partie::signalerLesTicks` en donne un
+  par tick retenu. Texte « Absorbed −N » dans la couleur de la famille (argenté 200/205/215 pour l'Aegis, bleu 80/140/255 pour le Ward), 14 px, 12 px
+  pour un tick ; les dégâts qui passent sont leur propre texte. **Le segment** (`rendu/BarreDeVie`, `segmentsDAbsorption` pure et `dessinerAbsorption`) :
+  Aegis puis Ward côte à côte, à partir de la fin de la partie pleine ; s'ils dépassent le bord droit (en particulier à pleine vie), ils se calent contre
+  lui et recouvrent la fin de la vie ; le tout est borné à la barre. `rendu/` ne connaît pas `PointsDAbsorption` : `Personnage` et `Monstre` passent des
+  ratios. Marque verte (un bonus). Inventaire : « Aegis: 45 (6 s) » (`AffichageEffets` : le nom de la famille, les points restants).
+- **Limites.** Pas de purification (un contrôle en place n'est jamais retiré) ; pas de bouclier venant de l'équipement ; Fear et Charm n'existent pas
+  (leur immunité par le Ward est câblée mais sans utilisateur) ; aucun monstre n'inflige de non-physique ni de contrôle magique, donc le Ward des
+  monstres ne retient aujourd'hui que l'explosion et la brûlure du mage, et son immunité ne sert jamais ; l'Aegis ne se pose que sur un allié
+  blessé ; le segment d'absorption n'est pas sauvegardé (comme tout effet) ; les Aegis/Ward des monstres ne s'empilent pas (un Ward à la fois par monstre,
+  sinon le soigneur en choisit un autre).
 
 ## Référence des modules
 
@@ -2547,6 +2617,7 @@ combat, étape 89 ; avant, un `int m_armure`), `m_effets` (`EffetsActifs`, étap
 | `std::vector<ControleApplique> prendreLesControles()` | Les poses de contrôle (posées ou bloquées par l'immunité) depuis le dernier appel, puis les oublie ; `[[nodiscard]]` ; lu par `Partie` (étape 113.2) |
 | `const EffetsActifs& getEffets() const` / `int getArmure() const` | Les effets actifs ; l'armure qui joue contre le prochain coup, effets compris ; `[[nodiscard]]` |
 | `void mettreAJour(float dt)` | Fait couler la récupération du blocage (sans descendre sous 0) et les effets actifs ; applique les ticks des effets dans le temps dans l'ordre (dégâts : `resoudreTick` contre les défenses d'à présent puis `subirDegats` ; soin : `soigner`) ; à la mort, vide les effets et laisse les ticks suivants du pas ; sans effet sur un mort ; appelée par `Personnage::mettreAJour` (vivant) et `Monstre::mettreAJour` (étape 112.3) |
+| `float getRatioDAbsorption(FamilleDAbsorption) const` | Points d'absorption de la famille / points de vie maximum, pour le segment de la barre de vie ; `[[nodiscard]]` (étape 114.5) |
 | `std::vector<Tick> prendreLesTicks()` | Ce que les ticks ont fait depuis le dernier appel (dégâts subis après résistance, soin réellement rendu, jamais 0), puis les oublie ; `[[nodiscard]]` ; lu par `Partie` une fois par image (étape 112.3) |
 | `void viderLesEffets()` | Retire tous les effets (le monstre qui rentre à son poste, invulnérable) (étape 112.3) |
 | `bool blocagePret() const` | La récupération est écoulée ; `[[nodiscard]]` |
@@ -2630,7 +2701,7 @@ appelant est `Personnage` (`rayonEffectifDuSkill`, `attaqueDuSkill`). `Skill` po
 
 ### `AffichageSkills` (`interface/`) — les noms des skills
 
-`AffichageSkills.hpp` / `.cpp` : `std::string nomDuSkill(IdSkill)` (`[[nodiscard]]`), `switch` sans `default` (un skill ajouté sans nom fait avertir le compilateur), UTF-8, en anglais depuis l'étape 95 : « Power Strike », « Taunt », « Heal », « Explosion », « Holy Strike », « Lay on Hands », « Piercing Shot », « Rain of Arrows », « Blessing », « Renew », « Counterspell », « Stunning Blow » (étape 113). Le noyau ne connaît que `IdSkill` ; comme `AffichageObjets`, les mots sont dans l'interface.
+`AffichageSkills.hpp` / `.cpp` : `std::string nomDuSkill(IdSkill)` (`[[nodiscard]]`), `switch` sans `default` (un skill ajouté sans nom fait avertir le compilateur), UTF-8, en anglais depuis l'étape 95 : « Power Strike », « Taunt », « Heal », « Explosion », « Holy Strike », « Lay on Hands », « Piercing Shot », « Rain of Arrows », « Blessing », « Renew », « Counterspell », « Aegis » (étape 114) ; `nomDeLaCapacite(IdCapacite)` (« Stunning Blow », « Ward ») et `nomDeLaSource(SourceDEffet)` (114.1). Le noyau ne connaît que `IdSkill` ; comme `AffichageObjets`, les mots sont dans l'interface.
 
 
 ### `EffetActif` et `EffetsActifs` (`combat/`) — ce qu'un skill laisse sur une entité (étape 111.3)
@@ -2640,17 +2711,17 @@ statistique; int pourcentage; }` (`==`), `s_intervalleDeTick` (1 s), `struct Deg
 s_intervalleDeTick; }` et `struct SoinDansLeTemps { int montant; float avantLeTick; }` (étape 112.3 ; `montant` : celui d'une pile, par tick),
 `enum class EtatInflige { Etourdissement, Ralentissement, Entrave, Disruption, Nombre }` et `struct Controle { EtatInflige etat; int pourcentage = 0; }`
 (étape 113.1),
-`using SorteDEffetActif = std::variant<ModificateurDeStatistique, DegatsDansLeTemps, SoinDansLeTemps, Controle>`, `struct EffetActif { IdSkill source; int
+`struct Absorption { FamilleDAbsorption famille; int points; }` (étape 114.2), `using SorteDEffetActif = std::variant<ModificateurDeStatistique, DegatsDansLeTemps, SoinDansLeTemps, Controle, Absorption>`, `struct EffetActif { SourceDEffet source; int
 rang = 0; float dureeRestante; SorteDEffetActif sorte; int pilesMax = 1; int piles = 1; }` (identité `(source, rang)` depuis 112.1, piles depuis
 112.2), `estUnBonus(const EffetActif&)` (modificateur ≥ 0 et soin dans le temps : bonus ; dégâts dans le temps et contrôle : malus ; `[[nodiscard]]`) et
-`estUnControle(const EffetActif&)` (113.4 : la marque jaune).
-`EffetsActifs.hpp` / `.cpp` : `struct TickDeDegats { Element element; int montant; }`, `struct TickDeSoin { int montant; }`, `Tick =
+`estUnControle(const EffetActif&)` (113.4 : la marque jaune) ; l'absorption est un bonus (114.2). `SourceDEffet.hpp` : `IdCapacite` et `SourceDEffet` (114.1) ; `FamilleDAbsorption.hpp` / `.cpp` : voir « L'absorption (étape 114) ».
+`EffetsActifs.hpp` / `.cpp` : `struct TickDeDegats { Element element; int montant; int absorbe = 0; }`, `struct TickDeSoin { int montant; }`, `Tick =
 std::variant<TickDeDegats, TickDeSoin>` ; `class EffetsActifs` (un `std::vector<EffetActif>` dans l'ordre de pose) : `poser(const EffetActif&)`
 (`assert` durée > 0 et `1 <= piles <= pilesMax` ; ajoute, ou rafraîchit l'effet de même `(source, rang)` : plus longue durée, valeur par pile de
 plus grande amplitude, une pile de plus jusqu'au maximum, rythme des ticks gardé), `std::vector<Tick> mettreAJour(float dt)` (décrémente,
 rend les ticks échus, `std::erase_if` à 0 ; fait aussi couler le rendement décroissant), `vider()` (vide aussi le rendement), `liste()`,
 `pilesDesBonus()` / `pilesDesMalus()` (`[[nodiscard]]` : les piles de chaque bonus puis de chaque malus qui n'est pas un contrôle, pour les marques),
-`nombreDeControles()` (une marque jaune chacun), `compterUneApplicationDeControle(EtatInflige)` et `rendements()` (étape 113.2) ; et la fonction libre
+`nombreDeControles()` (une marque jaune chacun), `compterUneApplicationDeControle(EtatInflige)` et `rendements()` (étape 113.2), `pointsDAbsorption()` et `consommerLAbsorption(famille, points)` (étape 114.2) ; et la fonction libre
 `Defenses appliquerLesEffets(const Defenses&, const EffetsActifs&)` (`[[nodiscard]]`). Possédé par `Vitalite`.
 
 ### `MarquesDEffets` (`rendu/`) — les marques d'effets actifs (étape 111.4)
