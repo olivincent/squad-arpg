@@ -7,7 +7,8 @@
 // personnage. Une capacité de monstre n'est pas un skill (ni barre, ni recharge de personnage, ni énergie) : elle n'a pas de valeur dans
 // `IdSkill`. Ajouter une capacité : une valeur ici, son nom dans `AffichageSkills`.
 enum class IdCapacite {
-    CoupAssommant  // l'infanterie lourde (étape 113) : l'étourdissement qu'elle pose
+    CoupAssommant,   // l'infanterie lourde (étape 113) : l'étourdissement qu'elle pose
+    WardDuSoigneur   // le soigneur (étape 114) : le Ward qu'il pose sur un allié de son groupe
 };
 
 // D'où vient un effet actif : un skill OU une capacité de monstre. Avec le rang, c'est l'identité de l'effet (`EffetActif`) : deux

@@ -7,7 +7,11 @@ EtatDuRole etatInitialDuRole(const RoleDeMonstre& role) {
                                  [](const RoleTireur& tireur) -> EtatDuRole { return EtatTireur{.role = tireur}; },
                                  [](const RoleAssommeur& assommeur) -> EtatDuRole { return EtatAssommeur{.role = assommeur}; },
                                  [](const RoleSoigneur& soigneur) -> EtatDuRole {
-                                     return EtatSoigneur{.role = soigneur, .soin = Skill(soigneur.soin), .cibleDuSoin = std::nullopt};
+                                     return EtatSoigneur{.role = soigneur,
+                                                         .soin = Skill(soigneur.soin),
+                                                         .cibleDuSoin = std::nullopt,
+                                                         .ward = Skill(soigneur.ward),
+                                                         .cibleDuWard = std::nullopt};
                                  }},
                       role);
 }
@@ -31,4 +35,23 @@ std::optional<AllieVu> choisirLeBlesse(const std::vector<AllieVu>& allies, int s
         }
     }
     return blesse == nullptr ? std::nullopt : std::optional<AllieVu>(*blesse);
+}
+
+std::optional<AllieVu> choisirLaCibleDuWard(const std::vector<AllieVu>& allies, int seuilDeBlessure) {
+    std::vector<AllieVu> sansWard;
+    for (const AllieVu& allie : allies) {
+        if (!allie.aUnWard && allie.pointsDeVie > 0) {
+            sansWard.push_back(allie);
+        }
+    }
+    if (const std::optional<AllieVu> blesse = choisirLeBlesse(sansWard, seuilDeBlessure)) {
+        return blesse;
+    }
+    const AllieVu* choisi = nullptr;
+    for (const AllieVu& allie : sansWard) {
+        if (choisi == nullptr || estPlusBlesse(allie, *choisi)) {
+            choisi = &allie;
+        }
+    }
+    return choisi == nullptr ? std::nullopt : std::optional<AllieVu>(*choisi);
 }

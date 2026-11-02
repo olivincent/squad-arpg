@@ -7,6 +7,7 @@
 #include "combat/Degats.hpp"
 #include "combat/EffetDeSkill.hpp"
 #include "combat/Element.hpp"
+#include "combat/FamilleDAbsorption.hpp"
 #include "combat/NatureDAttaque.hpp"
 
 namespace {
@@ -31,6 +32,13 @@ constexpr float s_porteeDuSoin = 150.0f;           // bord à bord
 constexpr float s_rechargeDuSoin = 6.0f;           // en secondes, fixe
 constexpr float s_activationDuSoin = 0.8f;         // en secondes, immobile
 constexpr int s_seuilDeBlessure = 75;              // en pour cent des points de vie maximum : un membre est blessé en dessous
+
+// Le Ward du soigneur (étape 114, « à tester ») : un bouclier contre le non-physique sur un allié de son groupe, jamais sur lui-même. 70 points
+// (23 % des 300 points de vie d'une infanterie), majorés par la profondeur comme les points de vie ; 8 s, recharge de 12 s (un buff ne dure jamais plus
+// que sa recharge), à la portée du soin, avec la même activation.
+constexpr int s_montantDuWard = 70;                // points absorbés
+constexpr int s_dureeDuWard = 8;                   // en secondes
+constexpr float s_rechargeDuWard = 12.0f;          // en secondes, fixe
 
 // Le coup assommant de l'infanterie lourde (étape 113, « à tester ») : son attaque de base étourdit le personnage touché 1 s, au plus une fois
 // toutes les 10 s.
@@ -123,7 +131,15 @@ const Profil s_soigneur ={.couleur = {40, 160, 150}, .rayon = 12.0f, .vitesse = 
                                                              .rechargeMax = s_rechargeDuSoin,
                                                              .effets = {EffetSoin{.montant = s_montantDuSoin}},
                                                              .tempsExecution = s_activationDuSoin},
-                                                    .seuilDeBlessure = s_seuilDeBlessure}};
+                                                    .seuilDeBlessure = s_seuilDeBlessure,
+                                                    .ward = {.mode = ModeDeCible::Allie,
+                                                             .portee = s_porteeDuSoin,
+                                                             .rechargeMin = s_rechargeDuWard,
+                                                             .rechargeMax = s_rechargeDuWard,
+                                                             .effets = {EffetAbsorption{.famille = FamilleDAbsorption::Ward,
+                                                                                        .montant = s_montantDuWard,
+                                                                                        .duree = s_dureeDuWard}},
+                                                             .tempsExecution = s_activationDuSoin}}};
 
 DefinitionDeMonstre definitionDuProfil(const Profil& profil) {
     return {.cote = 2.0f * profil.rayon,
@@ -188,6 +204,9 @@ DefinitionDeMonstre renforcer(const DefinitionDeMonstre& definition, int profond
                           [etagesEnPlus](RoleSoigneur& soigneur) {
                               EffetSoin& soin = std::get<EffetSoin>(soigneur.soin.effets.front());
                               soin.montant = majoree(soin.montant, s_pourcentDeDegatsParEtage * etagesEnPlus);
+                              // Le Ward est majoré comme les points de vie (c'est de la vie en plus), non comme les dégâts.
+                              EffetAbsorption& ward = std::get<EffetAbsorption>(soigneur.ward.effets.front());
+                              ward.montant = majoree(ward.montant, s_pourcentDePointsDeVieParEtage * etagesEnPlus);
                           }},
                renforcee.role);
     return renforcee;

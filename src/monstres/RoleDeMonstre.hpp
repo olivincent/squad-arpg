@@ -30,6 +30,9 @@ struct RoleTireur {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs s
 struct RoleSoigneur {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
     DefinitionDeSkill soin;  // mode `Allie`, un `EffetSoin` : montant, portée, recharge, temps d'activation
     int seuilDeBlessure;     // en pour cent des points de vie maximum : un membre est blessé en dessous (strictement)
+    // Sa deuxième capacité (étape 114) : un Ward sur un allié de son groupe, jamais sur lui-même (mode `Allie`, un `EffetAbsorption` de
+    // famille Ward : points, durée ; portée, recharge, temps d'activation). Le soin passe avant.
+    DefinitionDeSkill ward;
 };
 
 // Un assommeur (étape 113) frappe comme une mêlée, et son attaque de base étourdit le personnage qu'elle touche pendant `dureeDeLEtourdissement`
@@ -52,10 +55,12 @@ struct EtatTireur {  // NOLINT(cppcoreguidelines-pro-type-member-init): `role` n
     bool enRecul = false;          // un recul est en cours (son ordre est donné à `Mobile`)
 };
 
-struct EtatSoigneur {  // NOLINT(cppcoreguidelines-pro-type-member-init): `role` et `soin` n'ont pas de valeur par défaut exprès
+struct EtatSoigneur {  // NOLINT(cppcoreguidelines-pro-type-member-init): `role`, `soin` et `ward` n'ont pas de valeur par défaut exprès
     RoleSoigneur role;                    // les données, copiées de la définition
     Skill soin;                           // la machine à états du soin (prêt, activation, recharge)
     std::optional<IdMonstre> cibleDuSoin; // le membre visé par le soin engagé, lu seulement pendant l'activation
+    Skill ward;                           // la machine à états du Ward (étape 114)
+    std::optional<IdMonstre> cibleDuWard; // le membre visé par le Ward engagé, lu seulement pendant l'activation
 };
 
 struct EtatAssommeur {  // NOLINT(cppcoreguidelines-pro-type-member-init): `role` n'a pas de valeur par défaut exprès
@@ -72,3 +77,8 @@ using EtatDuRole = std::variant<EtatMelee, EtatTireur, EtatSoigneur, EtatAssomme
 // sous `seuilDeBlessure` pour cent ; à égalité, le plus petit identifiant. Vide si personne n'est assez blessé. Les alliés sont déjà
 // ceux qu'on peut soigner (vivants, ciblables, sans le soigneur lui-même) : cette fonction ne regarde que la blessure. Pure.
 [[nodiscard]] std::optional<AllieVu> choisirLeBlesse(const std::vector<AllieVu>& allies, int seuilDeBlessure);
+
+// Le membre sur qui poser un Ward (étape 114) : parmi ceux qui n'en ont pas déjà (`AllieVu::aUnWard`) et sont vivants, le plus blessé en
+// proportion sous `seuilDeBlessure` (`choisirLeBlesse`) ; à défaut, le plus blessé en proportion même s'il ne l'est pas assez, à égalité le
+// plus petit identifiant. Vide si tous en ont un. Les alliés sont ceux du groupe sans le soigneur : il ne se protège jamais. Pure.
+[[nodiscard]] std::optional<AllieVu> choisirLaCibleDuWard(const std::vector<AllieVu>& allies, int seuilDeBlessure);

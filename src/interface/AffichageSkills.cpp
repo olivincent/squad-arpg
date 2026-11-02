@@ -28,6 +28,7 @@ std::string nomDuSkill(IdSkill id) {
 std::string nomDeLaCapacite(IdCapacite id) {
     switch (id) {
         case IdCapacite::CoupAssommant: return "Stunning Blow";
+        case IdCapacite::WardDuSoigneur: return "Ward";
     }
     return "";
 }

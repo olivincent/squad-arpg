@@ -251,7 +251,8 @@ std::vector<AllieVu> Partie::alliesDuGroupe(const Monstre& monstre) const {
     std::vector<AllieVu> allies;
     for (const Monstre& autre : m_monstres) {
         if (autre.getId() != monstre.getId() && autre.getGroupe() == monstre.getGroupe() && autre.estVivant() && autre.estCiblable()) {
-            allies.push_back({autre.getId(), autre.getCercle(), autre.getPointsDeVie(), autre.getPointsDeVieMax()});
+            allies.push_back({autre.getId(), autre.getCercle(), autre.getPointsDeVie(), autre.getPointsDeVieMax(),
+                              autre.getEffets().pointsDAbsorption().ward > 0});
         }
     }
     return allies;
@@ -549,8 +550,12 @@ void Partie::faireAgirLeMonstre(Monstre& monstre, std::optional<PersonnageVu> pr
         faireSoignerLeMonstre(monstre, *idSoigne, dt);
         return;
     }
-    // Tentatives à chaque image : l'échec est normal (en marche, en recharge, rien à soigner ni à frapper…).
-    if (monstre.engagerSoin(allies, m_carte)) {
+    if (const std::optional<IdMonstre> idProtege = monstre.cibleDuWardEngage()) {
+        faireProtegerLeMonstre(monstre, *idProtege, dt);
+        return;
+    }
+    // Tentatives à chaque image : l'échec est normal (en marche, en recharge, rien à soigner ni à frapper…). Le soin passe avant le Ward.
+    if (monstre.engagerSoin(allies, m_carte) || monstre.engagerWard(allies, m_carte)) {
         return;
     }
     static_cast<void>(monstre.engagerAttaque(proie, candidats, m_carte));
@@ -565,6 +570,19 @@ void Partie::faireSoignerLeMonstre(Monstre& soigneur, IdMonstre idSoigne, float 
     if (const std::optional<SoinDeMonstre> soin = soigneur.avancerSoin(dt, m_generateur)) {
         // Le montant signalé est ce qui a été rendu (plafonné au maximum) ; pas de critique pour le soin d'un monstre.
         signaler(soigne->getId(), soigne->getCentre(), Soin{.montant = soigne->recevoirSoin(soin->montant), .critique = false});
+    }
+}
+
+// Un Ward engagé part à la fin de son activation sur le membre visé ; il est annulé, sans recharge, si ce membre n'est plus protégeable
+// (disparu ou en retour).
+void Partie::faireProtegerLeMonstre(Monstre& soigneur, IdMonstre idProtege, float dt) {
+    Monstre* protege = trouverMonstre(idProtege);
+    if (protege == nullptr || !protege->estCiblable()) {
+        soigneur.annulerWard();
+        return;
+    }
+    if (const std::optional<WardDeMonstre> ward = soigneur.avancerWard(dt, m_generateur)) {
+        protege->recevoirUnEffet(ward->effet);
     }
 }
 

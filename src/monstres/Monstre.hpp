@@ -6,6 +6,7 @@
 #include "base/Cercle.hpp"
 #include "combat/Attaque.hpp"
 #include "combat/Controle.hpp"
+#include "combat/EffetActif.hpp"
 #include "combat/EntiteVue.hpp"
 #include "combat/IdMonstre.hpp"
 #include "combat/Place.hpp"
@@ -28,6 +29,13 @@ class TileMap;
 struct SoinDeMonstre {
     IdMonstre cible;
     int montant;
+};
+
+// Un Ward qui part (étape 114) : le membre du groupe à protéger et l'effet actif à lui poser (`Monstre::avancerWard`). Comme le soin,
+// `Partie` l'applique : le monstre ne touche jamais un autre monstre.
+struct WardDeMonstre {
+    IdMonstre cible;
+    EffetActif effet;
 };
 
 class Monstre {
@@ -75,6 +83,18 @@ public:
     [[nodiscard]] std::optional<SoinDeMonstre> avancerSoin(float dt, Generateur& generateur);
     // Annule le soin en activation, sans recharge consommée.
     void annulerSoin();
+    // Le Ward du soigneur (étape 114), en trois temps comme le soin. Engager : le soigneur est en poursuite, immobile, sans coup ni soin
+    // engagé, son Ward est prêt, et la cible choisie (`choisirLaCibleDuWard` : un allié blessé sans Ward d'abord, jamais lui-même) est à portée
+    // ET en vue ; il ne marche pas vers elle. Faux pour tout autre monstre, et en Disruption ou étourdi (une capacité de rôle compte comme un skill).
+    [[nodiscard]] bool engagerWard(const std::vector<AllieVu>& allies, const TileMap& carte);
+    // Le membre visé par le Ward en activation ; vide hors activation.
+    [[nodiscard]] std::optional<IdMonstre> cibleDuWardEngage() const;
+    // Fait avancer l'activation ; rend le Ward au départ (cible et effet), vide avant.
+    [[nodiscard]] std::optional<WardDeMonstre> avancerWard(float dt, Generateur& generateur);
+    // Annule le Ward en activation, sans recharge consommée.
+    void annulerWard();
+    // Reçoit un effet actif posé par un allié (un Ward) : sans effet pour un monstre qui rentre à son poste (invulnérable) ou mort.
+    void recevoirUnEffet(const EffetActif& effet);
     // Reçoit un soin : rend les points réellement rendus (plafonnés au maximum ; 0 pour un monstre qui rentre à son poste).
     int recevoirSoin(int montant);
     [[nodiscard]] sf::Vector2f getCentre() const;
@@ -135,6 +155,8 @@ private:
                                        const TileMap& carte, const std::vector<Cercle>& aContourner);
     // Le soigneur : peut-il soigner cet allié d'où il est (à portée de son soin ET en vue) ?
     [[nodiscard]] bool peutSoigner(const EtatSoigneur& soigneur, const AllieVu& allie, const TileMap& carte) const;
+    // Un soin ou un Ward est-il en activation ? Le monstre reste alors sur place.
+    [[nodiscard]] bool enActivationDeRole() const;
     // Le soigneur dont le soin est prêt et qui a un blessé à soigner : il s'arrête s'il peut le soigner d'où il est (pour que
     // `engagerSoin` réussisse), sinon marche vers lui. Vrai quand il le fait (la poursuite n'y touche pas) ; faux sans soin prêt ni
     // blessé : il se comporte alors comme son attaque le décrit.

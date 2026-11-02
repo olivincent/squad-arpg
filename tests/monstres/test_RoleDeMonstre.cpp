@@ -8,6 +8,7 @@
 #include "base/Cercle.hpp"
 #include "combat/AllieVu.hpp"
 #include "combat/EffetDeSkill.hpp"
+#include "combat/FamilleDAbsorption.hpp"
 #include "combat/IdMonstre.hpp"
 #include "combat/ModeDeCible.hpp"
 #include "combat/NatureDAttaque.hpp"
@@ -121,4 +122,34 @@ TEST_CASE("role : renforcer garde le role de la definition") {
         const DefinitionDeMonstre& definition = definitionDeMonstre(categorie);
         REQUIRE(renforcer(definition, 4).role.index() == definition.role.index());
     }
+}
+
+TEST_CASE("role : le Ward du soigneur du catalogue est un bouclier de 70 points, 8 s, recharge 12 s, sur un allie") {
+    const RoleSoigneur& soigneur = std::get<RoleSoigneur>(definitionDeMonstre(CategorieDeMonstre::Soigneur).role);
+
+    REQUIRE(soigneur.ward.mode == ModeDeCible::Allie);
+    const EffetAbsorption& absorption = std::get<EffetAbsorption>(soigneur.ward.effets.front());
+    REQUIRE(absorption.famille == FamilleDAbsorption::Ward);
+    REQUIRE(absorption.montant == 70);
+    REQUIRE(absorption.duree == 8);
+    REQUIRE(soigneur.ward.rechargeMin == 12.0f);
+    REQUIRE(soigneur.ward.rechargeMax == 12.0f);
+    REQUIRE(static_cast<float>(absorption.duree) <= soigneur.ward.rechargeMin);  // un buff ne dure jamais plus que sa recharge
+    REQUIRE(soigneur.ward.cout == 0);
+}
+
+TEST_CASE("role : renforcer majore le Ward du soigneur comme les points de vie (25 % par etage)") {
+    const DefinitionDeMonstre soigneur = soigneurSansHasard();
+
+    const DefinitionDeMonstre renforce = renforcer(soigneur, 3);  // +50 % : deux étages de 25 %
+
+    REQUIRE(std::get<EffetAbsorption>(std::get<RoleSoigneur>(renforce.role).ward.effets.front()).montant == 105);
+    REQUIRE(std::get<EffetAbsorption>(std::get<RoleSoigneur>(renforcer(soigneur, 1).role).ward.effets.front()).montant == 70);
+}
+
+TEST_CASE("role : l'etat initial du soigneur a un Ward pret et aucune cible") {
+    const EtatSoigneur etat = std::get<EtatSoigneur>(etatInitialDuRole(definitionDeMonstre(CategorieDeMonstre::Soigneur).role));
+
+    REQUIRE(etat.ward.getPhase() == PhaseSkill::Pret);
+    REQUIRE_FALSE(etat.cibleDuWard.has_value());
 }

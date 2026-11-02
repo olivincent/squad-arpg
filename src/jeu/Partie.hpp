@@ -202,6 +202,8 @@ private:
     // Fait avancer le soin engagé de ce soigneur sur le monstre `idSoigne`, ou l'annule s'il n'est plus soignable ; au départ,
     // le soigne et signale le soin.
     void faireSoignerLeMonstre(Monstre& soigneur, IdMonstre idSoigne, float dt);
+    // Fait avancer le Ward engagé de ce soigneur sur le monstre `idProtege` (étape 114), ou l'annule s'il n'est plus protégeable ; au départ, le lui pose.
+    void faireProtegerLeMonstre(Monstre& soigneur, IdMonstre idProtege, float dt);
     // Les deux camps tels que la règle des zones de contrôle les voit (Engagement.hpp) : les personnages
     // vivants et les monstres vivants qui ne rentrent pas à leur poste (invulnérables, ils n'engagent
     // personne et ne sont engagés par personne).

@@ -56,7 +56,7 @@ void Monstre::dessiner(sf::RenderTarget& rendu, bool estCible, bool marquerLeRet
 
     sf::RectangleShape forme(taille);
     forme.setPosition(centre - taille / 2.0f);
-    const bool enExecution = cibleEngagee().has_value() || cibleDuSoinEngage().has_value();  // un coup ou un soin
+    const bool enExecution = cibleEngagee().has_value() || enActivationDeRole();  // un coup, un soin ou un Ward
     sf::Color couleur = enExecution ? eclaircir(m_couleur, s_eclaircissementExecution) : m_couleur;
     if (marquerLeRetour && m_etat == Etat::Retour) {
         couleur.a = s_opaciteRetour;
@@ -120,6 +120,7 @@ void Monstre::appliquerLeControle() {
     }
     if (!peutUtiliserUnSkill(m_vitalite.getEffets())) {
         annulerSoin();
+        annulerWard();
     }
 }
 
@@ -221,7 +222,10 @@ std::optional<PersonnageVu> Monstre::cibleDeFrappe(const std::optional<Personnag
 void Monstre::faireAvancerLeRole(float dt) {
     std::visit(Surcharges{[](EtatMelee&) {},
                           [dt](EtatTireur& tireur) { tireur.delaiRestant = std::max(0.0f, tireur.delaiRestant - dt); },
-                          [dt](EtatSoigneur& soigneur) { soigneur.soin.mettreAJour(dt); },
+                          [dt](EtatSoigneur& soigneur) {
+                              soigneur.soin.mettreAJour(dt);
+                              soigneur.ward.mettreAJour(dt);
+                          },
                           [dt](EtatAssommeur& assommeur) { assommeur.delaiRestant = std::max(0.0f, assommeur.delaiRestant - dt); }},
                m_etatDuRole);
 }
@@ -259,7 +263,7 @@ bool Monstre::allerSoigner(EtatSoigneur& soigneur, const std::vector<AllieVu>& a
 
 bool Monstre::engagerSoin(const std::vector<AllieVu>& allies, const TileMap& carte) {
     EtatSoigneur* soigneur = std::get_if<EtatSoigneur>(&m_etatDuRole);
-    if (soigneur == nullptr || m_etat != Etat::Poursuite || cibleEngagee().has_value() || m_mobile.estEnMouvement() ||
+    if (soigneur == nullptr || m_etat != Etat::Poursuite || cibleEngagee().has_value() || enActivationDeRole() || m_mobile.estEnMouvement() ||
         !peutUtiliserUnSkill(m_vitalite.getEffets())) {
         return false;
     }
@@ -295,6 +299,63 @@ void Monstre::annulerSoin() {
         soigneur->soin.annuler();
         soigneur->cibleDuSoin.reset();
     }
+}
+
+bool Monstre::enActivationDeRole() const {
+    return cibleDuSoinEngage().has_value() || cibleDuWardEngage().has_value();
+}
+
+bool Monstre::engagerWard(const std::vector<AllieVu>& allies, const TileMap& carte) {
+    EtatSoigneur* soigneur = std::get_if<EtatSoigneur>(&m_etatDuRole);
+    if (soigneur == nullptr || m_etat != Etat::Poursuite || cibleEngagee().has_value() || enActivationDeRole() || m_mobile.estEnMouvement() ||
+        !peutUtiliserUnSkill(m_vitalite.getEffets()) || soigneur->ward.getPhase() != PhaseSkill::Pret) {
+        return false;
+    }
+    const std::optional<AllieVu> protege = choisirLaCibleDuWard(allies, soigneur->role.seuilDeBlessure);
+    if (!protege || !soigneur->ward.estAPortee(getCercle(), protege->cercle) ||
+        !ligneDeVue(carte, m_mobile.getCentre(), protege->cercle.centre) || !soigneur->ward.commencer()) {
+        return false;
+    }
+    soigneur->cibleDuWard = protege->id;
+    return true;
+}
+
+std::optional<IdMonstre> Monstre::cibleDuWardEngage() const {
+    const EtatSoigneur* soigneur = std::get_if<EtatSoigneur>(&m_etatDuRole);
+    if (soigneur == nullptr || soigneur->ward.getPhase() != PhaseSkill::EnExecution) {
+        return std::nullopt;
+    }
+    return soigneur->cibleDuWard;
+}
+
+std::optional<WardDeMonstre> Monstre::avancerWard(float dt, Generateur& generateur) {
+    EtatSoigneur* soigneur = std::get_if<EtatSoigneur>(&m_etatDuRole);
+    const std::optional<IdMonstre> cible = cibleDuWardEngage();
+    if (soigneur == nullptr || !cible.has_value() || !soigneur->ward.avancer(dt, generateur)) {
+        return std::nullopt;
+    }
+    soigneur->cibleDuWard.reset();
+    // Le seul effet du Ward d'un monstre est un `EffetAbsorption` (mode `Allie`, vérifié par le constructeur de `Skill`).
+    const EffetAbsorption& absorption = std::get<EffetAbsorption>(soigneur->ward.getEffet());
+    return WardDeMonstre{.cible = *cible,
+                         .effet = {.source = IdCapacite::WardDuSoigneur,
+                                   .rang = 0,
+                                   .dureeRestante = static_cast<float>(absorption.duree),
+                                   .sorte = Absorption{.famille = absorption.famille, .points = absorption.montant}}};
+}
+
+void Monstre::annulerWard() {
+    if (EtatSoigneur* soigneur = std::get_if<EtatSoigneur>(&m_etatDuRole)) {
+        soigneur->ward.annuler();
+        soigneur->cibleDuWard.reset();
+    }
+}
+
+void Monstre::recevoirUnEffet(const EffetActif& effet) {
+    if (!estCiblable() || !estVivant()) {
+        return;
+    }
+    m_vitalite.poserEffet(effet);
 }
 
 int Monstre::recevoirSoin(int montant) {
@@ -368,7 +429,7 @@ void Monstre::mettreAJour(float dt, std::optional<PersonnageVu> proie, const std
 
     // Un coup (ou un soin) en exécution : le monstre reste sur place, ni poursuite ni
     // retour (l'état et le coup reçu sont pris en compte après le coup).
-    if (cibleEngagee().has_value() || cibleDuSoinEngage().has_value()) {
+    if (cibleEngagee().has_value() || enActivationDeRole()) {
         m_mobile.arreter();
         m_mobile.mettreAJour(dt, carte, obstacles);
         return;
@@ -447,7 +508,7 @@ bool Monstre::engagerAttaque(std::optional<PersonnageVu> proie, const std::vecto
         return false;
     }
     const std::optional<PersonnageVu> cible = cibleDeFrappe(proie, candidats, carte);
-    if (!cible || !peutAttaquer(m_vitalite.getEffets()) || cibleDuSoinEngage().has_value() || m_mobile.estEnMouvement() || !m_attaque.commencer()) {
+    if (!cible || !peutAttaquer(m_vitalite.getEffets()) || enActivationDeRole() || m_mobile.estEnMouvement() || !m_attaque.commencer()) {
         return false;
     }
     m_placeCibleEngagee = cible->id;
