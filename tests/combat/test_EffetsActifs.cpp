@@ -6,11 +6,17 @@
 
 namespace {
 // Un modificateur d'armure posé par ce skill, pour cette durée (en secondes).
-EffetActif effetDArmure(IdSkill source, int pourcentage, float duree, int rang = 0) {
+EffetActif effetDArmure(IdSkill source, int pourcentage, float duree, int rang = 0, int pilesMax = 1) {
     return {.source = source,
             .rang = rang,
             .dureeRestante = duree,
-            .sorte = ModificateurDeStatistique{.statistique = StatistiqueModifiable::Armure, .pourcentage = pourcentage}};
+            .sorte = ModificateurDeStatistique{.statistique = StatistiqueModifiable::Armure, .pourcentage = pourcentage},
+            .pilesMax = pilesMax};
+}
+
+// Un affaiblissement de ce skill qui s'empile jusqu'à `pilesMax` fois.
+EffetActif affaiblissementEmpilable(int pourcentage, float duree, int pilesMax) {
+    return effetDArmure(IdSkill::FrappePuissante, pourcentage, duree, 0, pilesMax);
 }
 
 int pourcentageDe(const EffetActif& effet) {
@@ -210,4 +216,109 @@ TEST_CASE("appliquerLesEffets : les statistiques de combat restent celles de la 
     const Defenses defenses = {.armure = 20, .statistiques = {.capaciteDefensive = 100, .esquiveContact = 7, .chanceDeBlocage = 30}};
 
     REQUIRE(appliquerLesEffets(defenses, effets).statistiques == defenses.statistiques);
+}
+
+// Les piles (étape 112) : génériques, un maximum de 1 par défaut.
+
+TEST_CASE("piles : un effet qui vient d'etre pose a une pile, avec un maximum de 1 par defaut") {
+    EffetsActifs effets;
+
+    effets.poser(effetDArmure(IdSkill::FrappePuissante, -25, 8.0f));
+
+    REQUIRE(effets.liste()[0].piles == 1);
+    REQUIRE(effets.liste()[0].pilesMax == 1);
+}
+
+TEST_CASE("piles : avec un maximum de 1, reposer ne change que la duree et la valeur, comme a l'etape 111") {
+    EffetsActifs effets;
+    effets.poser(effetDArmure(IdSkill::FrappePuissante, -25, 8.0f));
+    effets.mettreAJour(5.0f);
+
+    effets.poser(effetDArmure(IdSkill::FrappePuissante, -40, 6.0f));
+    effets.poser(effetDArmure(IdSkill::FrappePuissante, -10, 6.0f));
+
+    REQUIRE(effets.liste().size() == 1);
+    REQUIRE(effets.liste()[0].piles == 1);
+    REQUIRE(effets.liste()[0].dureeRestante == 6.0f);
+    REQUIRE(pourcentageDe(effets.liste()[0]) == -40);
+}
+
+TEST_CASE("piles : chaque application ajoute une pile, jusqu'au maximum") {
+    EffetsActifs effets;
+
+    effets.poser(affaiblissementEmpilable(-10, 8.0f, 3));
+    REQUIRE(effets.liste()[0].piles == 1);
+    effets.poser(affaiblissementEmpilable(-10, 8.0f, 3));
+    REQUIRE(effets.liste()[0].piles == 2);
+    effets.poser(affaiblissementEmpilable(-10, 8.0f, 3));
+    REQUIRE(effets.liste()[0].piles == 3);
+    effets.poser(affaiblissementEmpilable(-10, 8.0f, 3));
+    REQUIRE(effets.liste()[0].piles == 3);
+
+    REQUIRE(effets.liste().size() == 1);
+}
+
+TEST_CASE("piles : toutes les piles partagent une seule duree, rafraichie a chaque application") {
+    EffetsActifs effets;
+    effets.poser(affaiblissementEmpilable(-10, 8.0f, 3));
+    effets.mettreAJour(5.0f);
+    REQUIRE(effets.liste()[0].dureeRestante == 3.0f);
+
+    effets.poser(affaiblissementEmpilable(-10, 8.0f, 3));
+    REQUIRE(effets.liste()[0].piles == 2);
+    REQUIRE(effets.liste()[0].dureeRestante == 8.0f);
+
+    effets.mettreAJour(8.0f);  // les deux piles disparaissent ensemble
+    REQUIRE(effets.liste().empty());
+}
+
+TEST_CASE("piles : l'application au maximum rafraichit quand meme la duree") {
+    EffetsActifs effets;
+    effets.poser(affaiblissementEmpilable(-10, 8.0f, 2));
+    effets.poser(affaiblissementEmpilable(-10, 8.0f, 2));
+    effets.mettreAJour(6.0f);
+
+    effets.poser(affaiblissementEmpilable(-10, 8.0f, 2));
+
+    REQUIRE(effets.liste()[0].piles == 2);
+    REQUIRE(effets.liste()[0].dureeRestante == 8.0f);
+}
+
+TEST_CASE("piles : la valeur par pile est la plus forte des applications") {
+    EffetsActifs effets;
+    effets.poser(affaiblissementEmpilable(-10, 8.0f, 3));
+    effets.poser(affaiblissementEmpilable(-30, 8.0f, 3));
+    effets.poser(affaiblissementEmpilable(-20, 8.0f, 3));
+
+    REQUIRE(effets.liste()[0].piles == 3);
+    REQUIRE(pourcentageDe(effets.liste()[0]) == -30);
+}
+
+TEST_CASE("piles : deux skills differents ont chacun leurs piles") {
+    EffetsActifs effets;
+    effets.poser(effetDArmure(IdSkill::FrappePuissante, -10, 8.0f, 0, 3));
+    effets.poser(effetDArmure(IdSkill::Provocation, -10, 8.0f, 0, 3));
+    effets.poser(effetDArmure(IdSkill::FrappePuissante, -10, 8.0f, 0, 3));
+
+    REQUIRE(effets.liste().size() == 2);
+    REQUIRE(effets.liste()[0].piles == 2);
+    REQUIRE(effets.liste()[1].piles == 1);
+}
+
+TEST_CASE("piles : l'effet vaut la valeur par pile fois le nombre de piles") {
+    EffetsActifs effets;
+    effets.poser(affaiblissementEmpilable(-10, 8.0f, 3));
+    effets.poser(affaiblissementEmpilable(-10, 8.0f, 3));
+    effets.poser(affaiblissementEmpilable(-10, 8.0f, 3));
+
+    REQUIRE(appliquerLesEffets(defensesDeTest(100), effets).armure == 70);  // −10 % × 3 piles
+}
+
+TEST_CASE("piles : les piles d'un affaiblissement s'additionnent aux autres pourcentages avant l'application unique") {
+    EffetsActifs effets;
+    effets.poser(effetDArmure(IdSkill::Soin, 20, 10.0f));
+    effets.poser(affaiblissementEmpilable(-10, 8.0f, 3));
+    effets.poser(affaiblissementEmpilable(-10, 8.0f, 3));
+
+    REQUIRE(appliquerLesEffets(defensesDeTest(100), effets).armure == 100);  // +20 − 2 × 10
 }

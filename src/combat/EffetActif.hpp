@@ -15,7 +15,7 @@
 enum class StatistiqueModifiable { Armure };
 
 // Un pourcentage entier ajouté à une statistique : positif pour un buff, négatif pour un affaiblissement. Les pourcentages de tous les
-// effets actifs sur une même statistique s'additionnent, puis s'appliquent une seule fois.
+// effets actifs sur une même statistique s'additionnent (chacun fois ses piles), puis s'appliquent une seule fois.
 struct ModificateurDeStatistique {
     StatistiqueModifiable statistique;
     int pourcentage;
@@ -33,6 +33,11 @@ struct EffetActif {
     int rang = 0;
     float dureeRestante;     // en secondes ; l'effet disparaît à 0
     SorteDEffetActif sorte;
+    // Les piles, communes à toutes les sortes : une nouvelle application du même effet ajoute une pile, jusqu'à `pilesMax` ; avec 1 (le
+    // défaut) il n'y a jamais qu'une pile. La valeur de la sorte est celle d'UNE pile : l'effet vaut cette valeur fois `piles`. Toutes
+    // les piles partagent la durée. Voir `EffetsActifs::poser`.
+    int pilesMax = 1;
+    int piles = 1;
 };
 
 // Un bonus (vert à l'écran) aide l'entité qui le porte ; sinon c'est un malus (rouge). Un modificateur de 0 % est un bonus.

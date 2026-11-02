@@ -21,6 +21,7 @@ SorteDEffetActif lePlusFort(const SorteDEffetActif& present, const SorteDEffetAc
 
 void EffetsActifs::poser(const EffetActif& effet) {
     assert(effet.dureeRestante > 0.0f);
+    assert(effet.piles >= 1 && effet.piles <= effet.pilesMax);
     const auto present = std::ranges::find_if(
         m_effets, [&](const EffetActif& autre) { return autre.source == effet.source && autre.rang == effet.rang; });
     if (present == m_effets.end()) {
@@ -29,6 +30,9 @@ void EffetsActifs::poser(const EffetActif& effet) {
     }
     present->dureeRestante = std::max(present->dureeRestante, effet.dureeRestante);
     present->sorte = lePlusFort(present->sorte, effet.sorte);
+    // Une pile de plus, jusqu'au maximum ; avec un maximum de 1, la règle de l'étape 111 (rien que la durée et la valeur).
+    present->piles = std::min(present->piles + effet.piles, effet.pilesMax);
+    present->pilesMax = effet.pilesMax;
 }
 
 void EffetsActifs::mettreAJour(float dt) {
@@ -61,7 +65,7 @@ Defenses appliquerLesEffets(const Defenses& defenses, const EffetsActifs& effets
                        [&](const ModificateurDeStatistique& modificateur) {
                            switch (modificateur.statistique) {
                                case StatistiqueModifiable::Armure:
-                                   pourcentageDArmure += modificateur.pourcentage;
+                                   pourcentageDArmure += modificateur.pourcentage * effet.piles;
                                    break;
                            }
                        },
