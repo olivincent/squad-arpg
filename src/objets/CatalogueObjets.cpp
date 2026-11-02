@@ -88,8 +88,16 @@ DefinitionObjet uneArme(IdObjet id, std::string nom, TypeDArme type, int mains, 
     const DonneesDArme gabarit = {.type = type, .mains = mains, .degatsDeReference = reference, .ecartPourCent = ecartPourCent,
                                   .rechargeMin = rechargeMin, .rechargeMax = rechargeMax,
                                   .tempsExecution = mains == 2 ? s_executionDeuxMains : s_executionUneMain, .portee = portee,
-                                  .nature = nature, .penetration = penetration};
+                                  .nature = nature, .penetration = penetration,
+                                  .coefficients = Coefficients::seul(Caracteristique::Puissance, 1.0f)};
     return avecExigences({id, std::move(nom), CategorieObjet::Arme, 0, {}, {}, gabarit}, std::move(exigences));
+}
+
+// Cette arme, dont l'attaque de base profite du Savoir à la place de la Puissance : une arme de lanceur.
+DefinitionObjet pourUnLanceur(DefinitionObjet definition) {
+    assert(definition.arme.has_value());
+    definition.arme->coefficients = Coefficients::seul(Caracteristique::Savoir, 1.0f);  // NOLINT(bugprone-unchecked-optional-access): vérifié par l'assert (_assert de MinGW n'est pas noreturn)
+    return definition;
 }
 
 DefinitionObjet uneArmeDeContact(IdObjet id, std::string nom, TypeDArme type, int mains, int reference, int ecartPourCent,
@@ -247,16 +255,16 @@ std::vector<DefinitionObjet> construireLeCatalogue() {
                              {{Caracteristique::Puissance, s_penteSeuilPrincipale}, {Caracteristique::Endurance, s_penteSeuilSecondaire}}),
             {{IdAffixe::Sanctifie, s_affiniteForte}, {IdAffixe::DuBoeuf, s_affiniteMoyenne}}),
         avecAffinites(
-            uneArmeDeTir(IdObjet::Baguette,            "Wand",       TypeDArme::Baguette,        1, 15, 15, 0.30f, 0.70f, s_porteeDeProjectile, 0,
-                         {{Caracteristique::Savoir, s_penteSeuilPrincipale}}),
+            pourUnLanceur(uneArmeDeTir(IdObjet::Baguette, "Wand",    TypeDArme::Baguette,        1, 15, 15, 0.30f, 0.70f, s_porteeDeProjectile, 0,
+                                       {{Caracteristique::Savoir, s_penteSeuilPrincipale}})),
             {{IdAffixe::DeLaChouette, s_affiniteForte}, {IdAffixe::Flamboyant, s_affiniteMoyenne}}),
         avecAffinites(
-            uneArmeDeTir(IdObjet::Sceptre,             "Scepter",    TypeDArme::Sceptre,         1, 20, 15, 0.40f, 1.00f, s_porteeDeProjectile, 0,
-                         {{Caracteristique::Volonte, s_penteSeuilPrincipale}}),
+            pourUnLanceur(uneArmeDeTir(IdObjet::Sceptre,  "Scepter", TypeDArme::Sceptre,         1, 20, 15, 0.40f, 1.00f, s_porteeDeProjectile, 0,
+                                       {{Caracteristique::Volonte, s_penteSeuilPrincipale}})),
             {{IdAffixe::DuLion, s_affiniteForte}, {IdAffixe::Sanctifie, s_affiniteMoyenne}, {IdAffixe::DeRenouveau, s_affiniteMoyenne}}),
         avecAffinites(
-            uneArmeDeTir(IdObjet::Baton,               "Staff",      TypeDArme::Baton,           2, 30, 25, 0.55f, 0.85f, s_porteeDeProjectile, 0,
-                         {{Caracteristique::Savoir, s_penteSeuilPrincipale}}),
+            pourUnLanceur(uneArmeDeTir(IdObjet::Baton,    "Staff",   TypeDArme::Baton,           2, 30, 25, 0.55f, 0.85f, s_porteeDeProjectile, 0,
+                                       {{Caracteristique::Savoir, s_penteSeuilPrincipale}})),
             {{IdAffixe::DeLaChouette, s_affiniteForte}, {IdAffixe::Flamboyant, s_affiniteMoyenne}, {IdAffixe::DeRenouveau, s_affiniteForte}}),
         avecAffinites(
             uneArmeDeTir(IdObjet::Arc,                 "Bow",        TypeDArme::Arc,             2, 23, 25, 0.35f, 0.55f, s_porteeDeProjectile, 15,
@@ -295,7 +303,8 @@ const DescriptionDAttaque& mainsNues() {
     static const DescriptionDAttaque s_mainsNues = {.degats = plageFixe(degatsPhysiques(s_degatsMainsNues)),
                                                     .rechargeMin = s_rechargeMainsNuesMin, .rechargeMax = s_rechargeMainsNuesMax,
                                                     .tempsExecution = s_executionUneMain, .portee = s_porteeDeContact,
-                                                    .nature = NatureDAttaque::Contact, .penetration = 0};
+                                                    .nature = NatureDAttaque::Contact, .penetration = 0,
+                                                    .coefficients = Coefficients::seul(Caracteristique::Puissance, 1.0f)};
     return s_mainsNues;
 }
 
@@ -328,7 +337,7 @@ DescriptionDAttaque descriptionDeLArme(const Objet& arme) {
     const auto borne = [&](int pourCent) { return std::max(1, static_cast<int>(std::lround(moyens * pourCent / 100.0))); };
     return {.degats = {degatsPhysiques(borne(100 - donnees.ecartPourCent)), degatsPhysiques(borne(100 + donnees.ecartPourCent))},
             .rechargeMin = donnees.rechargeMin, .rechargeMax = donnees.rechargeMax, .tempsExecution = donnees.tempsExecution,
-            .portee = donnees.portee, .nature = donnees.nature, .penetration = donnees.penetration};
+            .portee = donnees.portee, .nature = donnees.nature, .penetration = donnees.penetration, .coefficients = donnees.coefficients};
 }
 
 bool objetValide(const Objet& objet) {

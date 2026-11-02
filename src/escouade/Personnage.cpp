@@ -20,9 +20,6 @@ constexpr float s_cote = 20.0f;           // côté du carré, en pixels
 constexpr float s_vitesse = 240.0f;       // en pixels par seconde
 const sf::Color s_couleurContour(40, 40, 40);       // contour de 1 px vers l'intérieur, pour distinguer deux personnages collés
 constexpr float s_epaisseurContour = -1.0f;         // négative : vers l'intérieur
-// L'attaque de base profite de la Puissance à plein, d'elle seule.
-const Coefficients s_coefficientsDeLAttaqueDeBase = Coefficients::seul(Caracteristique::Puissance, 1.0f);
-
 // La machine à états d'une attaque de base décrite par une arme (ou les mains nues). Elle ne porte que le temps (portée,
 // recharge, exécution) : ses dégâts, typés, sont ceux de la description (`attaqueDeLArme`), d'où la puissance à 0.
 Skill skillDeLAttaqueDeBase(const DescriptionDAttaque& description) {
@@ -30,7 +27,7 @@ Skill skillDeLAttaqueDeBase(const DescriptionDAttaque& description) {
                   .portee = description.portee,
                   .rechargeMin = description.rechargeMin,
                   .rechargeMax = description.rechargeMax,
-                  .effet = EffetDegats{.montant = 0, .nature = description.nature, .coefficients = s_coefficientsDeLAttaqueDeBase},
+                  .effet = EffetDegats{.montant = 0, .nature = description.nature, .coefficients = description.coefficients},
                   .tempsExecution = description.tempsExecution});
 }
 }  // namespace
@@ -467,10 +464,11 @@ Attaque Personnage::attaqueDeLArme(Generateur& generateur) const {
                        .capaciteOffensive = m_statistiques.capaciteOffensive,
                        .nature = m_descriptionDeBase.nature,
                        .penetration = m_descriptionDeBase.penetration};
-    // Le coup tire ses dégâts dans la plage de l'arme, puis la Puissance joue sur chaque portion, arrondie une fois par portion.
+    // Le coup tire ses dégâts dans la plage de l'arme, puis les caractéristiques que l'arme fait jouer (la Puissance, ou le Savoir
+    // pour une arme de lanceur) agissent sur chaque portion, arrondie une fois par portion.
     const Degats tires = tirerLesDegats(generateur, m_descriptionDeBase.degats);
     for (const Element element : s_elements) {
-        attaque.degats[element] = montantEffectif(tires[element], s_coefficientsDeLAttaqueDeBase, m_caracteristiques);
+        attaque.degats[element] = montantEffectif(tires[element], m_descriptionDeBase.coefficients, m_caracteristiques);
     }
     return attaque;
 }

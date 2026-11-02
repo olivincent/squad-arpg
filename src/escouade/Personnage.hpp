@@ -186,7 +186,7 @@ private:
     // jamais ajustées. Une arme qui change annule le coup de base en cours, sans recharge consommée, puis
     // l'attaque repart pour une recharge complète (`relancerSiLArmeAChange`).
     void recalculerDepuisLEquipement();
-    // L'attaque de base : les portions de l'arme portée (ou des mains nues) tirées dans sa plage, la Puissance sur chaque
+    // L'attaque de base : les portions de l'arme portée (ou des mains nues) tirées dans sa plage, les caractéristiques de l'arme (`coefficients`) sur chaque
     // portion (`montantEffectif`, un arrondi par portion), la nature et la pénétration de l'arme, la capacité offensive du
     // personnage.
     [[nodiscard]] Attaque attaqueDeLArme(Generateur& generateur) const;

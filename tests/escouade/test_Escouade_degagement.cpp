@@ -27,14 +27,14 @@ constexpr Place s_pretre{2};
 constexpr Place s_mage{3};
 
 constexpr float s_zoneDuMonstre = 20.0f;
-// Le mage est d'une Puissance énorme : son attaque de base (le bâton, portée de tireur) fait quatre fois plus que
+// Le mage est d'un Savoir énorme : son attaque de base (le bâton, portée de tireur) fait quatre fois plus que
 // celle des autres, donc reconnaissable.
-const DefinitionPersonnage s_mageReconnaissable = avecPuissance(mageDeTest(), 110);
+const DefinitionPersonnage s_mageReconnaissable = avecCaracteristique(mageDeTest(), Caracteristique::Savoir, 310);
 const Caracteristiques& s_caracteristiquesDuMage = s_mageReconnaissable.caracteristiques;
 const DescriptionDAttaque s_batonDuMage = descriptionDeLArme(Objet{IdObjet::Baton});
-const int s_degatsMinDuMage = montantEffectif(s_batonDuMage.degats.min.total(), Coefficients::seul(Caracteristique::Puissance, 1.0f),
+const int s_degatsMinDuMage = montantEffectif(s_batonDuMage.degats.min.total(), s_batonDuMage.coefficients,
                                               s_caracteristiquesDuMage);
-const int s_degatsMaxDuMage = montantEffectif(s_batonDuMage.degats.max.total(), Coefficients::seul(Caracteristique::Puissance, 1.0f),
+const int s_degatsMaxDuMage = montantEffectif(s_batonDuMage.degats.max.total(), s_batonDuMage.coefficients,
                                               s_caracteristiquesDuMage);
 
 // Le mage tire des coups reconnaissables (exécution de 0,15 s).

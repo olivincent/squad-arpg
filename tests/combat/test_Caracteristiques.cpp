@@ -82,25 +82,25 @@ TEST_CASE("montantEffectif : un coefficient nul ignore les caracteristiques") {
 TEST_CASE("montantEffectif : chaque point au-dessus de la reference ajoute s_bonusParPoint, chaque point en dessous le retire") {
     const Coefficients coefficients = Coefficients::seul(Caracteristique::Puissance, 1.0f);
 
-    REQUIRE(montantEffectif(1000, coefficients, Caracteristiques({s_valeurDeReference + 3, 0, 0, 0, 0})) == 1090);
-    REQUIRE(montantEffectif(1000, coefficients, Caracteristiques({s_valeurDeReference - 5, 0, 0, 0, 0})) == 850);
+    REQUIRE(montantEffectif(1000, coefficients, Caracteristiques({s_valeurDeReference + 3, 0, 0, 0, 0})) == 1030);
+    REQUIRE(montantEffectif(1000, coefficients, Caracteristiques({s_valeurDeReference - 5, 0, 0, 0, 0})) == 950);
 }
 
 TEST_CASE("montantEffectif : le coefficient pondere et les caracteristiques s'additionnent") {
     const Coefficients moitie = Coefficients::seul(Caracteristique::Puissance, 0.5f);
-    REQUIRE(montantEffectif(1000, moitie, Caracteristiques({s_valeurDeReference + 10, 0, 0, 0, 0})) == 1150);
+    REQUIRE(montantEffectif(1000, moitie, Caracteristiques({s_valeurDeReference + 10, 0, 0, 0, 0})) == 1050);
 
     const Coefficients deux({1.0f, 0.0f, 0.0f, 1.0f, 0.0f});
-    REQUIRE(montantEffectif(1000, deux, Caracteristiques({s_valeurDeReference + 2, 0, 0, s_valeurDeReference + 4, 0})) == 1180);
+    REQUIRE(montantEffectif(1000, deux, Caracteristiques({s_valeurDeReference + 2, 0, 0, s_valeurDeReference + 4, 0})) == 1060);
 }
 
 TEST_CASE("montantEffectif : arrondi au plus proche") {
     const Coefficients coefficients = Coefficients::seul(Caracteristique::Puissance, 1.0f);
-    const Caracteristiques plusUn({s_valeurDeReference + 1, 0, 0, 0, 0});
+    const Caracteristiques plusQuatre({s_valeurDeReference + 4, 0, 0, 0, 0});
 
-    REQUIRE(montantEffectif(50, coefficients, plusUn) == 52);  // 51,5
-    REQUIRE(montantEffectif(10, coefficients, plusUn) == 10);  // 10,3
-    REQUIRE(montantEffectif(20, coefficients, plusUn) == 21);  // 20,6
+    REQUIRE(montantEffectif(50, coefficients, plusQuatre) == 52);  // 52,0
+    REQUIRE(montantEffectif(10, coefficients, plusQuatre) == 10);  // 10,4
+    REQUIRE(montantEffectif(20, coefficients, plusQuatre) == 21);  // 20,8
 }
 
 TEST_CASE("montantEffectif : jamais negatif") {

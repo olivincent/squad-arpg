@@ -40,16 +40,17 @@ std::string ligneDEffetDeLaCaracteristique(Caracteristique caracteristique) {
     // Pas de `default` : une caractéristique ajoutée sans effet décrit fait avertir le compilateur.
     switch (caracteristique) {
         case Caracteristique::Puissance:
-            return nom + "+" + std::to_string(std::lround(s_bonusParPoint * 100.0f)) + "% damage and healing per point";
+            return nom + "+" + std::to_string(std::lround(s_bonusParPoint * 100.0f)) + "% weapon damage per point";
         case Caracteristique::Endurance:
             return nom + "+" + std::to_string(s_pvParPointDEndurance) + " health and +" +
                    pourCentAvecUneDecimale(s_resistanceAuControleParPoint) + "% Stun and Slow resistance per point";
         case Caracteristique::Adresse:
             return nom + "+" + std::to_string(s_capaciteParPointDAdresse) + " offensive and defensive capability per point";
         case Caracteristique::Savoir:
-            return nom + "no effect yet";
+            return nom + "+" + std::to_string(std::lround(s_bonusParPoint * 100.0f)) + "% spell damage per point";
         case Caracteristique::Volonte:
-            return nom + "+" + std::to_string(s_energieParPointDeVolonte) + " energy and +" +
+            return nom + "+" + std::to_string(s_energieParPointDeVolonte) + " energy, +" +
+                   std::to_string(std::lround(s_bonusParPoint * 100.0f)) + "% healing and +" +
                    pourCentAvecUneDecimale(s_resistanceAuControleParPoint) + "% Charm, Fear and Disruption resistance per point";
     }
     return "";

@@ -600,3 +600,28 @@ TEST_CASE("cout en energie : les valeurs calibrees du catalogue des classes") {
     REQUIRE(cout(IdSpecialite::Rodeur, IdSkill::TirPercant) == 17);             // technique, 6 s
     REQUIRE(cout(IdSpecialite::Rodeur, IdSkill::PluieDeFleches) == 23);         // technique, 8 s
 }
+
+TEST_CASE("coefficients : la Puissance pour ce qui frappe avec l'arme, le Savoir pour un sort de degats, la Volonte pour un soin, rien pour la provocation") {
+    const auto coefficients = [](IdSpecialite classe, IdSkill skill) {
+        for (const SkillConnu& connu : specialite(classe).definition.skills) {
+            if (connu.id == skill) {
+                return std::visit(Surcharges{[](const EffetDegats& effet) { return effet.coefficients; },
+                                             [](const EffetFrappe& effet) { return effet.coefficients; },
+                                             [](const EffetSoin& effet) { return effet.coefficients; },
+                                             [](const EffetProvocation&) { return Coefficients(); }},
+                                  connu.skill.getEffet());
+            }
+        }
+        return Coefficients::seul(Caracteristique::Endurance, -1.0f);  // un skill introuvable ne passe aucune comparaison
+    };
+    const auto seul = [](Caracteristique caracteristique) { return Coefficients::seul(caracteristique, 1.0f); };
+
+    REQUIRE(coefficients(IdSpecialite::Guerrier, IdSkill::FrappePuissante) == seul(Caracteristique::Puissance));
+    REQUIRE(coefficients(IdSpecialite::Guerrier, IdSkill::Provocation) == Coefficients());
+    REQUIRE(coefficients(IdSpecialite::Paladin, IdSkill::FrappeSacree) == seul(Caracteristique::Puissance));
+    REQUIRE(coefficients(IdSpecialite::Paladin, IdSkill::ImpositionDesMains) == seul(Caracteristique::Volonte));
+    REQUIRE(coefficients(IdSpecialite::Pretre, IdSkill::Soin) == seul(Caracteristique::Volonte));
+    REQUIRE(coefficients(IdSpecialite::Mage, IdSkill::Explosion) == seul(Caracteristique::Savoir));
+    REQUIRE(coefficients(IdSpecialite::Rodeur, IdSkill::TirPercant) == seul(Caracteristique::Puissance));
+    REQUIRE(coefficients(IdSpecialite::Rodeur, IdSkill::PluieDeFleches) == seul(Caracteristique::Puissance));
+}

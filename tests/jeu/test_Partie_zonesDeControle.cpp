@@ -57,7 +57,7 @@ namespace {
 
 // Une Puissance qui rend le coup du premier guerrier reconnaissable : son attaque de base (de 13 à 60 selon l'arme et le
 // tirage) fait plus de trois fois plus, quand les autres guerriers (Puissance de base) ne font que l'attaque de leur épée.
-constexpr int s_puissanceReconnaissable = 77;
+constexpr int s_puissanceReconnaissable = 211;
 
 // Trois guerriers (le premier au nord, à (235, 160)) et un monstre à (270, 160), au contact du premier seulement.
 // Le premier porte cette arme, de Puissance `s_puissanceReconnaissable` : son coup est reconnaissable. Le troisième
@@ -189,16 +189,16 @@ TEST_CASE("zone de controle : un monstre qui rentre a son poste ne donne ni ne r
 
 namespace {
 
-// Le mage est d'une Puissance énorme : son attaque de base (le bâton) fait quatre fois celle de l'épée du guerrier,
+// Le mage est d'un Savoir énorme : son attaque de base (le bâton) fait quatre fois celle de l'épée du guerrier,
 // donc reconnaissable. Le monstre est indestructible : trois secondes de coups ne le tuent pas.
-constexpr int s_puissanceDuMage = 110;
-// Le moins qu'un coup de base du mage lui fait perdre : le minimum de la plage de son bâton, avec sa Puissance.
+constexpr int s_savoirDuMage = 310;
+// Le moins qu'un coup de base du mage lui fait perdre : le minimum de la plage de son bâton, avec son Savoir.
 const int s_degatsDuMageDansLaPartie = montantEffectif(descriptionDeLArme(Objet{IdObjet::Baton}).degats.min.total(),
-                                                       Coefficients::seul(Caracteristique::Puissance, 1.0f),
-                                                       avecPuissance(mageDeTest(), s_puissanceDuMage).caracteristiques);
+                                                       Coefficients::seul(Caracteristique::Savoir, 1.0f),
+                                                       avecCaracteristique(mageDeTest(), Caracteristique::Savoir, s_savoirDuMage).caracteristiques);
 
 Partie unGuerrierEtUnMageAuContact() {
-    std::vector<DefinitionPersonnage> composition = {guerrierDeTest(), avecPuissance(mageDeTest(), s_puissanceDuMage)};
+    std::vector<DefinitionPersonnage> composition = {guerrierDeTest(), avecCaracteristique(mageDeTest(), Caracteristique::Savoir, s_savoirDuMage)};
     return partieDeTest(niveauDegage({{219.0f, 232.0f}}), std::move(composition), s_graineDeTest, monstreIndestructible());
 }
 

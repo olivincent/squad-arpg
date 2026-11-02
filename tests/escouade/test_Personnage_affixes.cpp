@@ -26,7 +26,7 @@ Personnage armeDe(const Objet& arme, int puissance) {
 
 TEST_CASE("une masse flamboyante frappe en physique et en feu, la Puissance sur chacune des portions") {
     const Objet masseFlamboyante{IdObjet::MasseAUneMain, Rarete::Magique, Affixe{IdAffixe::Flamboyant, 6}};
-    const Personnage personnage = armeDe(masseFlamboyante, 20);  // +30 % sur chaque portion
+    const Personnage personnage = armeDe(masseFlamboyante, 20);  // +10 % sur chaque portion
     const DescriptionDAttaque masse = descriptionDeLArme(Objet{IdObjet::MasseAUneMain});
 
     const Attaque attaque = attaqueDeBaseDe(personnage);

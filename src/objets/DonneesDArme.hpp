@@ -1,5 +1,6 @@
 // ./src/objets/DonneesDArme.hpp
 #pragma once
+#include "combat/Caracteristiques.hpp"
 #include "combat/NatureDAttaque.hpp"
 #include "combat/TypeDArme.hpp"
 
@@ -18,6 +19,7 @@ struct DonneesDArme {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs
     float portee;             // en pixels, bord à bord
     NatureDAttaque nature;    // contact ou projectile ; la zone de contrôle en découle
     int penetration;          // en pour cent de l'armure du défenseur ignorée (0 : aucune)
+    Coefficients coefficients;  // ce que l'attaque de base doit aux caractéristiques : la Puissance, ou le Savoir pour une arme de lanceur
 
     bool operator==(const DonneesDArme&) const = default;
 };

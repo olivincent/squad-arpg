@@ -644,6 +644,17 @@ TEST_CASE("catalogueObjets : la dague, l'arc, la lance et l'arbalete percent l'a
     REQUIRE(mainsNues().penetration == 0);
 }
 
+TEST_CASE("catalogueObjets : l'attaque de base profite du Savoir pour la baguette, le sceptre et le baton, de la Puissance pour le reste") {
+    for (const GabaritAttendu& attendu : gabaritsAttendus()) {
+        const bool lanceur = attendu.id == IdObjet::Baguette || attendu.id == IdObjet::Sceptre || attendu.id == IdObjet::Baton;
+        const Coefficients voulus = Coefficients::seul(lanceur ? Caracteristique::Savoir : Caracteristique::Puissance, 1.0f);
+        INFO(definitionObjet(attendu.id).nom);
+        REQUIRE(definitionObjet(attendu.id).arme->coefficients == voulus);
+        REQUIRE(descriptionDeLArme(Objet{attendu.id}).coefficients == voulus);  // la description le reprend du gabarit
+    }
+    REQUIRE(mainsNues().coefficients == Coefficients::seul(Caracteristique::Puissance, 1.0f));
+}
+
 TEST_CASE("mainsNues : 6 de degats sans ecart, 0,4 - 0,6 s, contact") {
     const DescriptionDAttaque& mains = mainsNues();
 

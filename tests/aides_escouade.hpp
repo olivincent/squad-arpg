@@ -69,10 +69,11 @@ inline constexpr AdresseSkill s_adresseExplosion{Place{3}, IdSkill::Explosion};
 // **sont lues** dans la description de leur attaque (`descriptionDeLArme`, jamais écrites en littéral).
 // Depuis l'étape 102, les dégâts d'une arme sont une plage dont chaque coup tire sa valeur : un test ne compare plus un coup à un
 // nombre, il vérifie qu'il est dans la plage (`estUnCoupDeBase`, `sontDesCoupsDeBase`, `dansLaPlage`).
-// Caractéristiques des personnages de test : la Puissance et la Volonté de référence (10), pour que l'attaque de base, qui en profite
-// à plein, fasse exactement les dégâts de son arme, et que l'énergie maximum soit celle de base ; les trois autres à 0 (Adresse 0 : capacité de 50, Endurance 0 :
-// 240 points de vie), comme avant l'étape 91.
-inline const Caracteristiques s_caracteristiquesDeTest({s_valeurDeReference, 0, 0, 0, s_valeurDeReference});
+// Caractéristiques des personnages de test : la Puissance, le Savoir et la Volonté de référence (10), pour que l'attaque de base,
+// qui profite de la Puissance (mêlées) ou du Savoir (armes de lanceur) à plein, fasse exactement les dégâts de son arme, et que
+// l'énergie maximum soit celle de base ; les deux autres à 0 (Adresse 0 : capacité de 50, Endurance 0 : 240 points de vie), comme
+// avant l'étape 91.
+inline const Caracteristiques s_caracteristiquesDeTest({s_valeurDeReference, 0, 0, s_valeurDeReference, s_valeurDeReference});
 
 // Attaque de base (mêlées et tireurs).
 inline const DescriptionDAttaque s_attaqueDeMeleeDeTest = descriptionDeLArme(Objet{IdObjet::EpeeAUneMain});
@@ -86,12 +87,12 @@ inline bool dansLaPlage(int degats, const DescriptionDAttaque& arme) {
     return degats >= arme.degats.min.total() && degats <= arme.degats.max.total();
 }
 
-// Ce total est-il un coup de cette arme pour un porteur de ces caractéristiques ? La Puissance joue sur chaque borne de la plage
-// (`montantEffectif`, croissant avec la base : un coup tiré dans la plage reste entre les deux bornes ainsi calculées).
+// Ce total est-il un coup de cette arme pour un porteur de ces caractéristiques ? Les caractéristiques que l'arme fait jouer
+// (`arme.coefficients`) agissent sur chaque borne de la plage (`montantEffectif`, croissant avec la base : un coup tiré dans la
+// plage reste entre les deux bornes ainsi calculées).
 inline bool dansLaPlageAvecPuissance(int degats, const DescriptionDAttaque& arme, const Caracteristiques& caracteristiques) {
-    const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
-    return degats >= montantEffectif(arme.degats.min.total(), puissance, caracteristiques) &&
-           degats <= montantEffectif(arme.degats.max.total(), puissance, caracteristiques);
+    return degats >= montantEffectif(arme.degats.min.total(), arme.coefficients, caracteristiques) &&
+           degats <= montantEffectif(arme.degats.max.total(), arme.coefficients, caracteristiques);
 }
 
 // Ce montant, infligé à ce défenseur, est-il celui d'un coup de cette arme ? `modele` donne ce que l'attaque porte hors des dégâts
@@ -99,12 +100,11 @@ inline bool dansLaPlageAvecPuissance(int degats, const DescriptionDAttaque& arme
 // (`degatsAttendus`, croissant avec les dégâts), pour un porteur de ces caractéristiques (la Puissance de référence par défaut).
 inline bool montantAttendu(int montant, const Attaque& modele, const DescriptionDAttaque& arme, const Defenses& defenses, bool critique,
                            const Caracteristiques& porteur = s_caracteristiquesDeTest) {
-    const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
     Attaque basse = modele;
     Attaque haute = modele;
     for (const Element element : s_elements) {
-        basse.degats[element] = montantEffectif(arme.degats.min[element], puissance, porteur);
-        haute.degats[element] = montantEffectif(arme.degats.max[element], puissance, porteur);
+        basse.degats[element] = montantEffectif(arme.degats.min[element], arme.coefficients, porteur);
+        haute.degats[element] = montantEffectif(arme.degats.max[element], arme.coefficients, porteur);
     }
     return montant >= degatsAttendus(basse, defenses, critique) && montant <= degatsAttendus(haute, defenses, critique);
 }

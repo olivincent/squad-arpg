@@ -95,7 +95,7 @@ inline constexpr int s_valeurDeReference = 10;
 
 // Part du montant que gagne (ou perd, sous la référence) chaque point de caractéristique, multipliée par
 // le coefficient du skill. Provisoire, à tester.
-inline constexpr float s_bonusParPoint = 0.03f;
+inline constexpr float s_bonusParPoint = 0.01f;
 
 // Points de vie d'un personnage de niveau 1 dont l'Endurance est à la référence, les mêmes pour toutes les classes : l'Endurance
 // fait seule la différence. Provisoire, à tester.

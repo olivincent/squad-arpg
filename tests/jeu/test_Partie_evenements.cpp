@@ -27,9 +27,9 @@
 namespace {
 
 // Une Puissance qui multiplie l'attaque de base par plus de 30 : elle tue en un coup un monstre ordinaire.
-constexpr int s_puissanceMortelle = 1000;
+constexpr int s_puissanceMortelle = 3000;
 // Celle qui fait de l'épée à deux mains (60) un coup d'environ 60 % des points de vie du monstre ordinaire.
-constexpr int s_puissanceDeLEpeeADeuxMains = 77;
+constexpr int s_puissanceDeLEpeeADeuxMains = 211;
 
 // Avance de cette durée, tic par tic, et rend tous les événements produits.
 std::vector<EvenementDeCombat> evenementsPendant(Partie& partie, float duree) {

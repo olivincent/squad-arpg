@@ -41,13 +41,15 @@ TEST_CASE("affichage : les points en attente s ecrivent (+N), rien s il n y en a
 
 TEST_CASE("affichage : l'effet d'une caracteristique lit les constantes du jeu, sans les recopier") {
     REQUIRE(ligneDEffetDeLaCaracteristique(Caracteristique::Puissance) ==
-            "Might: +" + std::to_string(std::lround(s_bonusParPoint * 100.0f)) + "% damage and healing per point");
+            "Might: +" + std::to_string(std::lround(s_bonusParPoint * 100.0f)) + "% weapon damage per point");
     REQUIRE(ligneDEffetDeLaCaracteristique(Caracteristique::Endurance) ==
             "Constitution: +" + std::to_string(s_pvParPointDEndurance) + " health and +0.3% Stun and Slow resistance per point");
     REQUIRE(ligneDEffetDeLaCaracteristique(Caracteristique::Adresse) ==
             "Dexterity: +" + std::to_string(s_capaciteParPointDAdresse) + " offensive and defensive capability per point");
-    REQUIRE(ligneDEffetDeLaCaracteristique(Caracteristique::Savoir) == "Intellect: no effect yet");
+    REQUIRE(ligneDEffetDeLaCaracteristique(Caracteristique::Savoir) ==
+            "Intellect: +" + std::to_string(std::lround(s_bonusParPoint * 100.0f)) + "% spell damage per point");
     REQUIRE(ligneDEffetDeLaCaracteristique(Caracteristique::Volonte) ==
-            "Resolve: +" + std::to_string(s_energieParPointDeVolonte) +
-                " energy and +0.3% Charm, Fear and Disruption resistance per point");
+            "Resolve: +" + std::to_string(s_energieParPointDeVolonte) + " energy, +" +
+                std::to_string(std::lround(s_bonusParPoint * 100.0f)) +
+                "% healing and +0.3% Charm, Fear and Disruption resistance per point");
 }

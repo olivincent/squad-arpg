@@ -1319,7 +1319,7 @@ TEST_CASE("changer d'equipement ne ressuscite pas un mort") {
 }
 
 namespace {
-// Un personnage dont l'attaque de base et un skill de dégâts profitent de la Puissance.
+// Un personnage dont l'attaque de base (une épée) et un skill de dégâts profitent de la Puissance.
 Personnage unPersonnageDePuissance(const Caracteristiques& base) {
     const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
     return unPersonnage({100.0f, 100.0f},
@@ -1335,7 +1335,7 @@ Personnage unPersonnageDePuissance(const Caracteristiques& base) {
                                                                 .rechargeMax = 10.0f,
                                                                 .effet = EffetProvocation{.duree = 4},
                                                                 .rayonZone = 150.0f})}},
-                       .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest,
+                       .equipementDeDepart = {{Emplacement::MainDroite, IdObjet::EpeeAUneMain}}, .rayonVision = s_rayonVisionDeTest,
                        .caracteristiques = base});
 }
 }  // namespace
@@ -1343,16 +1343,28 @@ Personnage unPersonnageDePuissance(const Caracteristiques& base) {
 TEST_CASE("equiper l'anneau de puissance augmente les degats de l'attaque de base") {
     Personnage personnage = unPersonnageDePuissance(Caracteristiques({12, 10, 10, 10, 11}));
     const int avant = attaqueDeBaseDe(personnage).degats.total();
-    const DescriptionDAttaque sceptre = descriptionDeLArme(Objet{IdObjet::Sceptre});  // l'arme de ce personnage
-    REQUIRE(dansLaPlageAvecPuissance(avant, sceptre, personnage.getCaracteristiques()));
+    const DescriptionDAttaque epee = descriptionDeLArme(Objet{IdObjet::EpeeAUneMain});  // l'arme de ce personnage
+    REQUIRE(dansLaPlageAvecPuissance(avant, epee, personnage.getCaracteristiques()));
 
     static_cast<void>(personnage.poserEquipement(Emplacement::Anneau1, {IdObjet::AnneauDePuissance}));
 
     REQUIRE(attaqueDeBaseDe(personnage).degats.total() > avant);
-    REQUIRE(dansLaPlageAvecPuissance(attaqueDeBaseDe(personnage).degats.total(), sceptre, personnage.getCaracteristiques()));
+    REQUIRE(dansLaPlageAvecPuissance(attaqueDeBaseDe(personnage).degats.total(), epee, personnage.getCaracteristiques()));
 
     static_cast<void>(personnage.retirerEquipement(Emplacement::Anneau1));
     REQUIRE(attaqueDeBaseDe(personnage).degats.total() == avant);
+}
+
+TEST_CASE("l'attaque de base d'une arme de lanceur profite du Savoir, pas de la Puissance") {
+    const DescriptionDAttaque baton = descriptionDeLArme(Objet{IdObjet::Baton});
+    const Personnage savant = unPersonnage({100.0f, 100.0f}, avecCaracteristique(definitionArmee(IdObjet::Baton), Caracteristique::Savoir, 110));
+    const Personnage fort = unPersonnage({100.0f, 100.0f}, avecPuissance(definitionArmee(IdObjet::Baton), 110));
+
+    REQUIRE(dansLaPlageAvecPuissance(attaqueDeBaseDe(savant).degats.total(), baton, savant.getCaracteristiques()));
+    REQUIRE(dansLaPlageAvecPuissance(attaqueDeBaseDe(fort).degats.total(), baton, fort.getCaracteristiques()));
+    // 110 de Savoir double la plage du bâton (+100 %) ; 110 de Puissance n'y change rien.
+    REQUIRE(attaqueDeBaseDe(savant).degats.total() > attaqueDeBaseDe(fort).degats.total());
+    REQUIRE(attaqueDeBaseDe(savant).degats.total() >= baton.degats.min.total() * 2 - 1);
 }
 
 TEST_CASE("le coup de l'attaque de base et le skill de degats rendent le montant effectif") {
@@ -1361,7 +1373,7 @@ TEST_CASE("le coup de l'attaque de base et le skill de degats rendent le montant
     const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
     const Cercle cible{{120.0f, 100.0f}, 10.0f};
 
-    REQUIRE(dansLaPlageAvecPuissance(frapperEnEntier(personnage, cible, generateur), descriptionDeLArme(Objet{IdObjet::Sceptre}),
+    REQUIRE(dansLaPlageAvecPuissance(frapperEnEntier(personnage, cible, generateur), descriptionDeLArme(Objet{IdObjet::EpeeAUneMain}),
                                      personnage.getCaracteristiques()));
     REQUIRE(personnage.engagerSkill(IdSkill::FrappePuissante, CibleMonstre{1, cible}));
     int rendu = 0;

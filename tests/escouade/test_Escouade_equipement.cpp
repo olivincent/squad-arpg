@@ -314,7 +314,7 @@ TEST_CASE("statistiquesDeCombatDuPersonnage : celles du personnage de la place, 
 TEST_CASE("la puissance de l'attaque de base lue par l'escouade (coup d'opportunite) suit les caracteristiques") {
     const Coefficients puissance = Coefficients::seul(Caracteristique::Puissance, 1.0f);
     DefinitionPersonnage definition = guerrierDeTest();
-    definition.caracteristiques = Caracteristiques({s_valeurDeReference + 1, 10, 10, 10, 10});  // 11 de Puissance : l'épée est active (bonus de 3 % arrondi à 0)
+    definition.caracteristiques = Caracteristiques({s_valeurDeReference + 1, 10, 10, 10, 10});  // 11 de Puissance : l'épée est active (bonus de 1 % arrondi à 0)
     Escouade escouade = uneEscouadeDe({50.0f, 50.0f}, {definition});
     REQUIRE(dansLaPlageAvecPuissance(attaqueDeBaseDe(escouade, Place{1})->degats.total(), s_attaqueDeMeleeDeTest,
                                      escouade.caracteristiquesDuPersonnage(Place{1}).value()));

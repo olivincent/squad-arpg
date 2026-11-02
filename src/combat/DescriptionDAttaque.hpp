@@ -1,5 +1,6 @@
 // ./src/combat/DescriptionDAttaque.hpp
 #pragma once
+#include "combat/Caracteristiques.hpp"
 #include "combat/NatureDAttaque.hpp"
 #include "combat/PlageDeDegats.hpp"
 
@@ -16,6 +17,7 @@ struct DescriptionDAttaque {  // NOLINT(cppcoreguidelines-pro-type-member-init):
     float portee;             // en pixels, bord à bord
     NatureDAttaque nature;    // contact ou projectile ; la zone de contrôle en découle (un coup de contact engage)
     int penetration;          // en pour cent de l'armure du défenseur ignorée (0 : aucune), plafonnée à l'application
+    Coefficients coefficients;  // ce que le montant de chaque coup doit aux caractéristiques de l'attaquant (`montantEffectif`)
 
     bool operator==(const DescriptionDAttaque&) const = default;
 };

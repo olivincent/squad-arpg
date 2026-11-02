@@ -97,9 +97,12 @@ constexpr PaireDeCroissance s_croissancePretre = {Caracteristique::Puissance, Ca
 constexpr PaireDeCroissance s_croissanceMage = {Caracteristique::Puissance, Caracteristique::Savoir};
 constexpr PaireDeCroissance s_croissanceRodeur = {Caracteristique::Adresse, Caracteristique::Puissance};
 
-// Tous les montants des personnages (dégâts, soins) profitent de la Puissance, à plein et d'elle seule
-// (la durée d'une provocation n'est pas un montant).
+// La convention des coefficients d'un skill (étape 110) : une caractéristique à plein et elle seule, selon ce que fait le skill.
+// La Puissance pour ce qui frappe avec l'arme (frappes, tirs), le Savoir pour un sort de dégâts, la Volonté pour un soin ou une
+// protection. Une provocation n'a aucun coefficient : sa durée n'est pas un montant.
 constexpr Coefficients s_puissanceSeule = Coefficients::seul(Caracteristique::Puissance, 1.0f);
+constexpr Coefficients s_savoirSeul = Coefficients::seul(Caracteristique::Savoir, 1.0f);
+constexpr Coefficients s_volonteSeule = Coefficients::seul(Caracteristique::Volonte, 1.0f);
 
 // Les armes qui permettent les skills de frappe et de tir (modèle de *Titan Quest* : pas de restriction par classe). Les skills
 // de frappe (frappe puissante, frappe sacrée) veulent une arme de contact, quelle qu'elle soit ; les skills de tir (tir perçant,
@@ -166,7 +169,7 @@ std::vector<Specialite> construireLeCatalogue() {
                                             .portee = s_porteeSoin,
                                             .rechargeMin = s_rechargeSoin,
                                             .rechargeMax = s_rechargeSoin,
-                                            .effet = EffetSoin{.montant = s_puissanceSoin, .coefficients = s_puissanceSeule},
+                                            .effet = EffetSoin{.montant = s_puissanceSoin, .coefficients = s_volonteSeule},
                                             .tempsExecution = s_activationSoin,
                                             .cout = coutDUnSort(s_rechargeSoin)})}},
           .equipementDeDepart = equipementDuPretre(IdObjet::Sceptre), .rayonVision = s_rayonVision,
@@ -179,7 +182,7 @@ std::vector<Specialite> construireLeCatalogue() {
                                                  .portee = s_porteeZone,
                                                  .rechargeMin = s_rechargeZone,
                                                  .rechargeMax = s_rechargeZone,
-                                                 .effet = EffetDegats{.montant = s_degatsZone, .nature = NatureDAttaque::Zone, .element = Element::Feu, .coefficients = s_puissanceSeule},
+                                                 .effet = EffetDegats{.montant = s_degatsZone, .nature = NatureDAttaque::Zone, .element = Element::Feu, .coefficients = s_savoirSeul},
                                                  .rayonZone = s_rayonZone,
                                                  .tempsExecution = s_activationZone,
                                                  .cout = coutDUnSort(s_rechargeZone)})}},
@@ -201,7 +204,7 @@ std::vector<Specialite> construireLeCatalogue() {
                                                 .portee = s_porteeMelee,
                                                 .rechargeMin = s_rechargeImposition,
                                                 .rechargeMax = s_rechargeImposition,
-                                                .effet = EffetSoin{.montant = s_puissanceImposition, .coefficients = s_puissanceSeule},
+                                                .effet = EffetSoin{.montant = s_puissanceImposition, .coefficients = s_volonteSeule},
                                                 .tempsExecution = s_activationImposition,
                                                 .cout = coutDUneTechnique(s_rechargeImposition)})}},
           .equipementDeDepart = equipementDeMelee(IdObjet::MasseAUneMain), .rayonVision = s_rayonVision,
