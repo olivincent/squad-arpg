@@ -15,12 +15,14 @@
 #include "combat/Caracteristiques.hpp"
 #include "combat/Cible.hpp"
 #include "combat/Defense.hpp"
+#include "combat/Energie.hpp"
 #include "combat/Degats.hpp"
 #include "combat/ResolutionDuCoup.hpp"
 #include "monde/CategorieDeMonstre.hpp"
 #include "monstres/DefinitionDeMonstre.hpp"
 #include "combat/EffetDeSkill.hpp"
 #include "combat/Element.hpp"
+#include "combat/Progression.hpp"
 #include "combat/TypeDArme.hpp"
 #include "escouade/Composition.hpp"
 #include "objets/CatalogueObjets.hpp"
@@ -805,4 +807,43 @@ TEST_CASE("pluie de fleches : ses degats de zone, puis un ralentissement de 30 %
     REQUIRE(entrave.pourcentage == 20);
     REQUIRE(entrave.duree == 3.0f);
     REQUIRE(entrave.coefficientDeDuree == 0.0f);
+}
+
+TEST_CASE("contresort : le mage le connait apres l'explosion, un sort sans degats qui met un monstre en Disruption pendant 2 s") {
+    const std::vector<SkillConnu>& skills = specialite(IdSpecialite::Mage).definition.skills;
+    REQUIRE(skills.size() == 2);
+    REQUIRE(skills[0].id == IdSkill::Explosion);
+    REQUIRE(skills[1].id == IdSkill::Contresort);
+    const Skill& contresort = skills[1].skill;
+
+    REQUIRE(contresort.getMode() == ModeDeCible::Monstre);
+    REQUIRE_FALSE(contresort.getRayonZone().has_value());
+    REQUIRE(contresort.getArmesExigees().empty());
+    REQUIRE(contresort.getEffets().size() == 1);
+    const EffetControle& disruption = std::get<EffetControle>(contresort.getEffet());
+    REQUIRE(disruption.etat == EtatInflige::Disruption);
+    REQUIRE(disruption.duree == 2.0f);
+    REQUIRE(disruption.pourcentage == 0);
+    REQUIRE(disruption.coefficientDeDuree == 0.5f);  // un sort : la moitié du bonus de durée de l'Intellect
+    REQUIRE(campTouche(contresort.getEffet()) == CampTouche::Monstres);
+}
+
+TEST_CASE("contresort : son cout (53, un sort de 10 s) reste abordable avec la reserve de depart du mage, explosion comprise") {
+    const DefinitionPersonnage& mage = specialite(IdSpecialite::Mage).definition;
+    const int coutDuContresort = mage.skills[1].skill.getCout();
+    const int coutDeLExplosion = mage.skills[0].skill.getCout();
+
+    REQUIRE(coutDuContresort == 53);
+    const int reserveDeDepart = energieMax(mage.caracteristiques, niveauDeClasse(1), mage.energieParNiveauDeClasse);
+    REQUIRE(coutDuContresort <= reserveDeDepart);
+    REQUIRE(coutDuContresort + coutDeLExplosion <= reserveDeDepart);  // un contresort puis une explosion, réserve pleine
+}
+
+TEST_CASE("contresort : la barre par defaut le range sous l'explosion, dans la colonne du mage") {
+    const Escouade escouade = uneEscouadeDe({100.0f, 100.0f}, composer({IdSpecialite::Mage, IdSpecialite::Guerrier, IdSpecialite::Pretre}));
+
+    const BarreDeRaccourcis barre = barreParDefaut(escouade.adressesDesSkills());
+
+    REQUIRE(barre.adresse(0) == AdresseSkill{Place{1}, IdSkill::Explosion});
+    REQUIRE(barre.adresse(4) == AdresseSkill{Place{1}, IdSkill::Contresort});
 }

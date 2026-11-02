@@ -61,6 +61,15 @@ constexpr float s_rayonZone = 60.0f;          // rayon de zone, depuis le point 
 // durée de 0, comme tout effet dans le temps : son montant gagne déjà par le Savoir.
 constexpr int s_brulureExplosion = 8;         // par seconde
 constexpr int s_dureeBrulure = 4;             // en secondes
+// Contresort (Counterspell) du mage (étape 113, « à tester ») : un sort sans dégâts qui met un monstre en Disruption, donc l'empêche de lancer
+// ses capacités (le soin du soigneur, par exemple) pendant 2 s de base, majorées de moitié du bonus de durée de l'Intellect. Même portée que l'explosion,
+// activation courte (c'est une interruption), recharge de 10 s : son coût de sort (53, règle de `coutDUnSort`) laisse le mage lancer aussi
+// une explosion (43) avec sa réserve de départ (106).
+constexpr float s_porteeContresort = 250.0f;          // bord à bord
+constexpr float s_dureeDeDisruptionContresort = 2.0f; // en secondes, de base
+constexpr float s_coefficientDeDureeContresort = 0.5f;
+constexpr float s_rechargeContresort = 10.0f;         // en secondes
+constexpr float s_activationContresort = 0.3f;        // en secondes
 
 // Le coût en énergie des skills (étape 108), déduit d'une règle de calibrage et non choisi un par un : à partir d'une réserve pleine
 // de niveau 1, un personnage qui lance un skill à chaque fin de recharge, avec la régénération de base, tombe à sec en `T` secondes.
@@ -254,7 +263,17 @@ std::vector<Specialite> construireLeCatalogue() {
                                                  .rayonZone = s_rayonZone,
                                                  .coefficientDAire = 1.0f,  // un sort : son aire profite de l'Intellect
                                                  .tempsExecution = s_activationZone,
-                                                 .cout = coutDUnSort(s_rechargeZone)})}},
+                                                 .cout = coutDUnSort(s_rechargeZone)})},
+           // Un sort sans dégâts sur un monstre : il ne peut plus lancer de skill pendant un moment.
+           {IdSkill::Contresort, Skill({.mode = ModeDeCible::Monstre,
+                                        .portee = s_porteeContresort,
+                                        .rechargeMin = s_rechargeContresort,
+                                        .rechargeMax = s_rechargeContresort,
+                                        .effets = {EffetControle{.etat = EtatInflige::Disruption,
+                                                                 .duree = s_dureeDeDisruptionContresort,
+                                                                 .coefficientDeDuree = s_coefficientDeDureeContresort}},
+                                        .tempsExecution = s_activationContresort,
+                                        .cout = coutDUnSort(s_rechargeContresort)})}},
           .equipementDeDepart = equipementDeTireur(IdObjet::Baton, IdObjet::Robe), .rayonVision = s_rayonVision,
           .caracteristiques = s_caracteristiquesMage, .croissance = s_croissanceMage,
           .rang = Rang::Arriere}},
