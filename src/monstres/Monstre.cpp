@@ -67,8 +67,8 @@ void Monstre::dessiner(sf::RenderTarget& rendu, bool estCible, bool marquerLeRet
     rendu.draw(forme);
 
     dessinerBarreDeVie(rendu, positionBarreDeVie(centre, taille), taille.x, m_vitalite.getRatio());
-    dessinerMarquesDEffets(rendu, positionMarquesDEffets(centre, taille), m_vitalite.getEffets().nombreDeBonus(),
-                           m_vitalite.getEffets().nombreDeMalus());
+    dessinerMarquesDEffets(rendu, positionMarquesDEffets(centre, taille), m_vitalite.getEffets().pilesDesBonus(),
+                           m_vitalite.getEffets().pilesDesMalus());
 }
 
 void Monstre::dessinerChemin(sf::RenderTarget& rendu) const {

@@ -37,8 +37,8 @@ TEST_CASE("effets : une frappe qui touche pose l'affaiblissement sur le monstre"
     REQUIRE(std::get<ModificateurDeStatistique>(effet.sorte).pourcentage == s_malusDArmureDeTest);
     REQUIRE(effet.dureeRestante > static_cast<float>(s_dureeMalusDArmureDeTest) - 0.5f);
     REQUIRE(effet.dureeRestante <= static_cast<float>(s_dureeMalusDArmureDeTest));
-    REQUIRE(effetsDuMonstre(partie).nombreDeMalus() == 1);
-    REQUIRE(effetsDuMonstre(partie).nombreDeBonus() == 0);
+    REQUIRE(effetsDuMonstre(partie).pilesDesMalus() == std::vector<int>{1});
+    REQUIRE(effetsDuMonstre(partie).pilesDesBonus().empty());
 }
 
 TEST_CASE("effets : l'affaiblissement expire apres sa duree") {
@@ -124,7 +124,7 @@ TEST_CASE("effets dans le temps : une frappe qui touche pose le saignement, et c
     partie.demanderSkill(s_adresseFrappe);
     avancer(partie, nombreDeTics(0.4f));  // l'activation dure 0,3 s
     REQUIRE(effetsDuMonstre(partie).liste().size() == 1);
-    REQUIRE(effetsDuMonstre(partie).nombreDeMalus() == 1);
+    REQUIRE(effetsDuMonstre(partie).pilesDesMalus() == std::vector<int>{1});
     static_cast<void>(partie.prendreEvenements());
 
     const std::vector<EvenementDeCombat> ticks = ticksPendant(partie, static_cast<float>(s_dureeDeSaignementDeTest) + 1.0f);

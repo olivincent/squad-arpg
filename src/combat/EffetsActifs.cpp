@@ -107,12 +107,24 @@ const std::vector<EffetActif>& EffetsActifs::liste() const {
     return m_effets;
 }
 
-int EffetsActifs::nombreDeBonus() const {
-    return static_cast<int>(std::ranges::count_if(m_effets, [](const EffetActif& effet) { return estUnBonus(effet); }));
+std::vector<int> EffetsActifs::pilesDesBonus() const {
+    std::vector<int> piles;
+    for (const EffetActif& effet : m_effets) {
+        if (estUnBonus(effet)) {
+            piles.push_back(effet.piles);
+        }
+    }
+    return piles;
 }
 
-int EffetsActifs::nombreDeMalus() const {
-    return static_cast<int>(m_effets.size()) - nombreDeBonus();
+std::vector<int> EffetsActifs::pilesDesMalus() const {
+    std::vector<int> piles;
+    for (const EffetActif& effet : m_effets) {
+        if (!estUnBonus(effet)) {
+            piles.push_back(effet.piles);
+        }
+    }
+    return piles;
 }
 
 Defenses appliquerLesEffets(const Defenses& defenses, const EffetsActifs& effets) {

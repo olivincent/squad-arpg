@@ -81,6 +81,12 @@ constexpr float s_porteeTirPercant = 200.0f;      // bord à bord
 constexpr int s_degatsTirPercant = 75;
 constexpr float s_rechargeTirPercant = 6.0f;      // en secondes
 constexpr float s_activationTirPercant = 0.5f;    // en secondes
+// Saignement du tir perçant (étape 112, « à tester ») : du physique dans le temps, qui ignore l'armure et suit la Puissance du tireur. Une pile
+// vaut 8 points par seconde pendant 6 s, soit 48 points (64 % des 75 du tir) ; jusqu'à 3 piles, donc 24 par seconde au mieux. Un effet dans le temps
+// a un coefficient de durée de 0 : son montant gagne déjà par la Puissance, la durée ne gagnerait pas deux fois.
+constexpr int s_saignementTirPercant = 8;         // par seconde et par pile
+constexpr int s_dureeSaignement = 6;              // en secondes
+constexpr int s_pilesDeSaignement = 3;
 constexpr float s_porteePluie = 320.0f;           // portée de lancement, bord à bord
 constexpr int s_degatsPluie = 36;
 constexpr float s_rechargePluie = 8.0f;           // en secondes
@@ -244,7 +250,13 @@ std::vector<Specialite> construireLeCatalogue() {
                                                   .portee = s_porteeTirPercant,
                                                   .rechargeMin = s_rechargeTirPercant,
                                                   .rechargeMax = s_rechargeTirPercant,
-                                                  .effets = {EffetDegats{.montant = s_degatsTirPercant, .nature = NatureDAttaque::Projectile, .coefficients = s_puissanceSeule}},
+                                                  .effets = {EffetDegats{.montant = s_degatsTirPercant, .nature = NatureDAttaque::Projectile, .coefficients = s_puissanceSeule},
+                                                             // Si le tir touche : le monstre saigne, chaque tir de plus ajoute une pile.
+                                                             EffetDegatsDansLeTemps{.montant = s_saignementTirPercant,
+                                                                                    .duree = s_dureeSaignement,
+                                                                                    .element = Element::Physique,
+                                                                                    .pilesMax = s_pilesDeSaignement,
+                                                                                    .coefficients = s_puissanceSeule}},
                                                   .tempsExecution = s_activationTirPercant,
                                                   .armesExigees = s_armesDeTir,
                                                   .cout = coutDUneTechnique(s_rechargeTirPercant)})},

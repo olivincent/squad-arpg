@@ -26,3 +26,36 @@ TEST_CASE("titre et nom de statistique du bloc des effets actifs") {
     REQUIRE(titreDesEffetsActifs() == "Active effects");
     REQUIRE(nomDeLaStatistique(StatistiqueModifiable::Armure) == "Armor");
 }
+
+// Les effets dans le temps et les piles (étape 112).
+
+namespace {
+EffetActif degatsDansLeTemps(Element element, int montant, float duree, int piles = 1) {
+    return {.source = IdSkill::TirPercant,
+            .rang = 1,
+            .dureeRestante = duree,
+            .sorte = DegatsDansLeTemps{.element = element, .montant = montant},
+            .pilesMax = 3,
+            .piles = piles};
+}
+}  // namespace
+
+TEST_CASE("ligneDEffetActif : des degats dans le temps portent le nom de leur element, le montant par seconde et les piles") {
+    REQUIRE(ligneDEffetActif(degatsDansLeTemps(Element::Physique, 7, 4.0f, 2)) == "Bleeding ×2: 14 per s (4 s)");
+    REQUIRE(ligneDEffetActif(degatsDansLeTemps(Element::Physique, 7, 3.2f, 1)) == "Bleeding: 7 per s (4 s)");
+    REQUIRE(ligneDEffetActif(degatsDansLeTemps(Element::Feu, 8, 2.0f)) == "Burning: 8 per s (2 s)");
+}
+
+TEST_CASE("ligneDEffetActif : un soin dans le temps porte le nom de son skill") {
+    const EffetActif soin{.source = IdSkill::Soin, .dureeRestante = 6.0f, .sorte = SoinDansLeTemps{.montant = 9}};
+
+    REQUIRE(ligneDEffetActif(soin) == "Heal: 9 per s (6 s)");
+}
+
+TEST_CASE("ligneDEffetActif : un modificateur empile montre la valeur de toutes ses piles") {
+    EffetActif affaiblissement = effet(IdSkill::FrappePuissante, -10, 8.0f);
+    affaiblissement.pilesMax = 3;
+    affaiblissement.piles = 2;
+
+    REQUIRE(ligneDEffetActif(affaiblissement) == "Power Strike ×2: −20 % Armor (8 s)");
+}

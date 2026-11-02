@@ -337,3 +337,37 @@ TEST_CASE("le texte de l'energie insuffisante : Not enough energy, de 14 px, d'u
         REQUIRE(couleurDuTexte(refus) != couleurDuTexte(autre));
     }
 }
+
+// Les ticks des effets dans le temps (étape 112) : plus petits qu'un coup, de la couleur de leur élément ; les soins restent verts.
+
+TEST_CASE("un tick de degats dans le temps est plus petit qu'un coup, meme critique ou gratuit, et se lit comme un nombre") {
+    const EvenementDeCombat tick{IdMonstre{1}, {}, DegatsSubis{.montant = 8, .opportunite = false, .critique = false, .element = Element::Physique, .dansLeTemps = true}};
+    const EvenementDeCombat coup{IdMonstre{1}, {}, DegatsSubis{8, false, false}};
+
+    REQUIRE(libelleDuTexte(tick) == "8");
+    REQUIRE(tailleDuTexte(tick) == 12);
+    REQUIRE(tailleDuTexte(tick) < tailleDuTexte(coup));
+}
+
+TEST_CASE("un tick de degats dans le temps a la couleur de son element, comme un coup") {
+    const auto tickDe = [](Element element) {
+        return EvenementDeCombat{IdMonstre{1}, {}, DegatsSubis{.montant = 8, .opportunite = false, .critique = false, .element = element, .dansLeTemps = true}};
+    };
+    const auto coupDe = [](Element element) {
+        return EvenementDeCombat{IdMonstre{1}, {}, DegatsSubis{.montant = 8, .opportunite = false, .critique = false, .element = element}};
+    };
+
+    REQUIRE(couleurDuTexte(tickDe(Element::Feu)) == couleurDuTexte(coupDe(Element::Feu)));
+    REQUIRE(couleurDuTexte(tickDe(Element::Physique)) == couleurDuTexte(coupDe(Element::Physique)));
+    REQUIRE(couleurDuTexte(tickDe(Element::Feu)) != couleurDuTexte(tickDe(Element::Physique)));
+}
+
+TEST_CASE("un tick de soin dans le temps est vert comme un soin, plus petit, avec son signe plus") {
+    const EvenementDeCombat tick{Place{2}, {}, Soin{.montant = 9, .critique = false, .dansLeTemps = true}};
+    const EvenementDeCombat soin{Place{2}, {}, Soin{9, false}};
+
+    REQUIRE(libelleDuTexte(tick) == "+9");
+    REQUIRE(couleurDuTexte(tick) == couleurDuTexte(soin));
+    REQUIRE(tailleDuTexte(tick) == 12);
+    REQUIRE(tailleDuTexte(tick) < tailleDuTexte(soin));
+}

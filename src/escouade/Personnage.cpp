@@ -85,8 +85,8 @@ void Personnage::dessiner(sf::RenderTarget& rendu) const {
     const sf::Vector2f positionBarre = positionBarreDeVie(getCentre(), taille);
     dessinerBarreDeVie(rendu, positionBarre, taille.x, m_vitalite.getRatio());
     dessinerBarreDEnergie(rendu, positionBarreDEnergie(getCentre(), taille), taille.x, m_energie.getRatio());
-    dessinerMarquesDEffets(rendu, positionMarquesDEffets(getCentre(), taille), m_vitalite.getEffets().nombreDeBonus(),
-                           m_vitalite.getEffets().nombreDeMalus());
+    dessinerMarquesDEffets(rendu, positionMarquesDEffets(getCentre(), taille), m_vitalite.getEffets().pilesDesBonus(),
+                           m_vitalite.getEffets().pilesDesMalus());
 }
 
 void Personnage::mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte, const std::vector<Cercle>& obstacles,

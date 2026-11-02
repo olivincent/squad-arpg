@@ -648,6 +648,31 @@ TEST_CASE("frappe puissante : ses degats, puis -25 % d'armure sur la cible penda
     REQUIRE(malus.coefficientDeDuree == 0.0f);
 }
 
+TEST_CASE("tir percant : ses degats, puis un saignement physique de 8 par seconde pendant 6 s, jusqu'a 3 piles, sur la Puissance") {
+    const Skill* tir = nullptr;
+    for (const SkillConnu& connu : specialite(IdSpecialite::Rodeur).definition.skills) {
+        if (connu.id == IdSkill::TirPercant) {
+            tir = &connu.skill;
+        }
+    }
+    REQUIRE(tir != nullptr);
+
+    REQUIRE(tir->getEffets().size() == 2);
+    REQUIRE(std::holds_alternative<EffetDegats>(tir->getEffets()[0]));
+    const EffetDegatsDansLeTemps& saignement = std::get<EffetDegatsDansLeTemps>(tir->getEffets()[1]);
+    REQUIRE(saignement.element == Element::Physique);
+    REQUIRE(saignement.montant == 8);
+    REQUIRE(saignement.duree == 6);
+    REQUIRE(saignement.pilesMax == 3);
+    REQUIRE(saignement.coefficients == Coefficients::seul(Caracteristique::Puissance, 1.0f));
+    REQUIRE(saignement.coefficientDeDuree == 0.0f);
+    // Ordre de grandeur : le total d'une pile vaut entre 50 et 100 % des dégâts directs du tir.
+    const double direct = std::get<EffetDegats>(tir->getEffets()[0]).montant;
+    const double total = static_cast<double>(saignement.montant) * saignement.duree;
+    REQUIRE(total >= 0.5 * direct);
+    REQUIRE(total <= 1.0 * direct);
+}
+
 TEST_CASE("benediction : le pretre la connait, un buff d'armure de +20 % pendant 10 s pour toute l'escouade, recharge de 20 s") {
     const Skill* benediction = nullptr;
     for (const SkillConnu& connu : specialite(IdSpecialite::Pretre).definition.skills) {

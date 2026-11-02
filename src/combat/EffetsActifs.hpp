@@ -39,9 +39,10 @@ public:
     // Retire tous les effets (la mort de l'entité).
     void vider();
     [[nodiscard]] const std::vector<EffetActif>& liste() const;
-    // Combien d'effets actifs sont des bonus (`estUnBonus`), combien sont des malus : une marque verte ou rouge chacun, à l'écran.
-    [[nodiscard]] int nombreDeBonus() const;
-    [[nodiscard]] int nombreDeMalus() const;
+    // Les piles de chaque effet actif qui est un bonus (`estUnBonus`), puis de chaque malus, dans l'ordre où ils ont été posés : une marque
+    // verte ou rouge par élément à l'écran, suivie du nombre de piles quand il dépasse 1.
+    [[nodiscard]] std::vector<int> pilesDesBonus() const;
+    [[nodiscard]] std::vector<int> pilesDesMalus() const;
 
 private:
     std::vector<EffetActif> m_effets;
