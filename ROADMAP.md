@@ -8,7 +8,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 ## Étapes terminées
 
-Étapes 0 à 111 ✅. Les dernières :
+Étapes 0 à 112 ✅. Les dernières :
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 - Étape 83 — Inventaire et équipement : le modèle, sans interface ✅
@@ -40,15 +40,16 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - Étape 109 — Documentation : la liste cible des statistiques (trois niveaux : caractéristiques, ressources, statistiques de combat), huit types de dégâts et de résistances (le saignement n'est plus un type), Aegis et Ward, résistances aux états, attributs ; aucune modification du code ✅
 - Étape 110 — Les effets des caractéristiques : une table de contributions en données, la Resolve vers l'énergie et les résistances au contrôle, le niveau de classe, le montant à 1 % par point, la convention des coefficients (Might pour l'arme, Intellect pour les sorts, Resolve pour les soins), le coefficient de l'attaque de base porté par le gabarit d'arme, l'aire (rayon par racine carrée) et la durée de l'Intellect, de nouvelles bases pour le mage, le prêtre et le paladin ✅
 - Étape 111 — Le socle des effets actifs : un concept unique (le modificateur de statistique en première sorte, l'armure), plusieurs effets par skill, l'affaiblissement de la frappe puissante (−25 % d'armure pendant 8 s), la bénédiction du prêtre (+20 % d'armure à toute l'escouade, nouveau mode de cible), la durée d'un buff plafonnée par sa recharge, marques vertes et rouges sous les entités et liste des effets dans l'inventaire ✅
+- Étape 112 — Les dégâts et les soins dans le temps : l'identité d'un effet (skill, rang), les piles (maximum de 1 par défaut), deux sortes d'effet actif de plus (un tick par seconde, montant figé à la pose, `resoudreTick` : la seule résistance), le saignement du tir perçant (jusqu'à 3 piles), la brûlure de l'explosion, Renew (soin dans le temps du prêtre), compteur de piles, petits chiffres des ticks ✅
 
 ## État actuel (résumé)
 
 - **Outils** : conception dans Claude.ai, implémentation avec Claude Code dans VSCode (règles dans
   `CLAUDE.md`) ; dépôt Git `squad-arpg`, poussé sur GitHub ; SFML 3.0.2 intégrée à CMake.
-- **Code** (étape 111) : 117 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
+- **Code** (étape 112) : 117 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
   `combat`, `objets`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
   de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug` et `jeu`, 0
-  avertissement, 2 053 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers des étapes 98 à 102 : `docs/build.md`,
+  avertissement, 2 118 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers des étapes 98 à 102 : `docs/build.md`,
   `docs/audit.md`). `Escouade` n'est plus que l'assemblage : `Escouade.cpp` de 1 223 à 1 067 lignes. Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`). **Tout le texte affiché est en anglais** (identifiants, commentaires et documentation restent en français ; pas de système de traduction : `docs/glossaire.md` est la référence des noms du jeu). Un commit par sous-étape, fait par Claude Code (`CLAUDE.md`).
 - **Écrans** : menu à la souris, options d'affichage (fenêtré ou plein écran, résolutions,
   `reglages.ini`), choix de 4 classes parmi 5 (guerrier, prêtre, mage, paladin, rôdeur ; doublons
@@ -207,6 +208,22 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   catalogue). À l'écran : une marque de 4 px sous le carré de chaque entité (verte pour un bonus, rouge pour un malus), « Active effects » sous le sac
   de l'inventaire (nom, valeur, secondes restantes) et l'armure affichée inclut les effets. Tout est « à tester » (`docs/combat.md`, « Les effets
   actifs (étape 111) » ; `docs/classes-et-combat.md`, section 14 ter).
+- **Dégâts et soins dans le temps** (étape 112) : deux sortes d'effet actif de plus, des **piles** pour toutes les sortes et une **identité d'effet
+  (skill, rang dans la liste d'effets du skill)** : un skill peut poser deux effets sur la même cible (la limite de l'étape 111 est levée), mais deux
+  lanceurs du même skill n'en font toujours qu'un. **Piles** : chaque effet déclare un maximum, 1 par défaut (la règle de l'étape 111 ne change pas) ;
+  au-delà de 1, chaque application ajoute une pile et rafraîchit la durée, toutes les piles partagent cette durée, la valeur par pile est la plus forte,
+  l'effet vaut valeur × piles. **Ticks** : un par seconde, le premier une seconde après la pose, un rafraîchissement ne remet pas le rythme à zéro, N
+  secondes donnent N ticks ; le **montant par tick est figé à la pose** avec les caractéristiques du lanceur (l'effet continue s'il meurt) ; coefficient
+  de durée 0 pour ces effets (testé sur le catalogue). **`resoudreTick`** : ni esquive, ni critique, ni blocage, ni armure ; seule la résistance de
+  l'élément, lue au tick, un arrondi ; un soin dans le temps ne critique pas et est plafonné. `Vitalite` applique les ticks et les rend à `Partie`
+  (`prendreLesTicks`), qui les signale par le même canal qu'un coup (`DegatsSubis` / `Soin` avec `dansLeTemps`) : un monstre tué par un tick meurt
+  comme les autres (expérience, butin). Un monstre qui rentre à son poste perd ses effets. **Trois utilisateurs** (« à tester ») : **Bleeding**, le
+  tir perçant du rôdeur (physique, Puissance, 8 par seconde et par pile, 6 s, jusqu'à 3 piles) ; **Burning**, l'explosion du mage sur chaque monstre
+  touché (feu, Savoir, 8 par seconde, 4 s, 1 pile) ; **Renew** (`IdSkill::Renouvellement`), troisième skill du prêtre (soin dans le temps sur l'allié
+  le plus blessé, Volonté, 11 par seconde pendant 8 s, recharge de 10 s, coût de 53). À l'écran : le nombre de piles suit la marque sous l'entité
+  (chiffres de 3 × 5 points), les ticks sont de petits chiffres (12 px) de la couleur de leur élément (soin vert), une ligne par effet dans
+  l'inventaire (« Bleeding ×2: 14 per s (4 s) »). Voir `docs/combat.md` (« Les dégâts et les soins dans le temps (étape 112) »),
+  `docs/classes-et-combat.md` (section 14 quater).
 - **Carte** : donjon généré à chaque partie (salles, couloirs en L de 2 cases, portes à chaque
   jonction, un groupe de monstres par salle sauf la première, un escalier, graine affichée), F5 = nouvelle expédition ;
   carte à la main pour les tests (`docs/generation.md`, `docs/carte-et-collision.md`).
@@ -430,16 +447,28 @@ ce qui reste à décider **en discussion** avant son prompt :
   - 109 ✅ : documentation seulement : la liste cible des statistiques (`docs/classes-et-combat.md`, section 13), chaque statistique marquée
     existante ou non (voir « La liste cible des statistiques »).
   - 110 ✅ : les effets des caractéristiques (voir « Les effets des caractéristiques »).
-  - 111 ✅ : le socle des effets actifs (voir « Les effets actifs »). Prévu ensuite : 112 dégâts et soins dans le temps ; 113 états de
-    contrôle ; 114 Aegis et Ward ; plus tard Charm et les auras.
+  - 111 ✅ : le socle des effets actifs (voir « Les effets actifs »).
+  - 112 ✅ : les dégâts et les soins dans le temps (voir « Dégâts et soins dans le temps »). Prévu ensuite : 113 états de contrôle ; 114 Aegis et
+    Ward ; plus tard Charm et les auras.
 
 
-## Étape 112 (prochaine) : dégâts et soins dans le temps
+## Étape 113 (prochaine) : les états de contrôle
 
-Les étapes 105 à 111 sont faites. Plan décidé avec Olivier à l'étape 111 : **112** les dégâts et les soins dans le temps (une sorte de plus de
-`SorteDEffetActif`, le saignement étant du physique dans le temps qui ignore l'armure) ; **113** les états de contrôle (étourdissement,
-ralentissement, charme, peur, Disruption, avec leurs résistances calculées à l'étape 110) ; **114** Aegis et Ward ; plus tard Charm et les auras.
-Chaque étape se discute avec Claude.ai avant son prompt. L'`Expedition` garde les points dépensés ; c'est elle qu'on sauvegardera un jour.
+Les étapes 105 à 112 sont faites. Plan décidé avec Olivier à l'étape 111 : **113** les états de contrôle (étourdissement, ralentissement, charme,
+peur, Disruption, avec leurs résistances calculées à l'étape 110) ; **114** Aegis et Ward ; plus tard Charm et les auras. Chaque étape se discute
+avec Claude.ai avant son prompt. L'`Expedition` garde les points dépensés ; c'est elle qu'on sauvegardera un jour.
+
+**Pistes issues de l'étape 112** (étapes à part, plus tard) :
+- **Ajuster en jouant** : le saignement (8 par seconde et par pile, 6 s, 3 piles, 64 % du tir perçant par pile), la brûlure (8 par seconde, 4 s, 71 % de
+  l'explosion), Renew (11 par seconde, 8 s, recharge de 10 s, activation de 0,4 s, coût de 53), le rythme d'un tick par seconde, la taille des ticks
+  (12 px) et le compteur de piles (chiffres de 3 × 5 points de 1,5 px) ; tout est « à tester ».
+- **Des monstres qui posent des effets dans le temps** (un poison, un saignement sur les personnages) : le chemin est prêt (`Escouade::prendreLesTicks`,
+  la mort d'un personnage par un tick) mais aucun skill de monstre n'en pose. **Le poison et les éléments qui manquent à `Element`**.
+- **Une statistique « soins reçus »**, **une identité par lanceur** (aujourd'hui deux archers partagent les piles du saignement), **un premier tick
+  immédiat** si on le veut, **une durée de tick variable** (haste) : écartés de l'étape 112.
+- **Des effets dans le temps principaux pour les dégâts** (un skill qui ne fait que saigner) : aujourd'hui `Skill` l'interdit par `assert`, les dégâts
+  dans le temps n'existent que derrière un coup.
+- **`Holy Fire`** (le nom affiché des dégâts sacrés dans le temps) n'a aucune source et ne sera vu que le jour où il y en aura une.
 
 **Pistes issues de l'étape 111** (étapes à part, plus tard) :
 - **Ajuster en jouant** : −25 % d'armure pendant 8 s (frappe puissante), +20 % pendant 10 s de base, recharge de 20 s et coût de 57 (bénédiction), le
@@ -447,10 +476,10 @@ Chaque étape se discute avec Claude.ai avant son prompt. L'`Expedition` garde l
 - **Des icônes dessinées** à la place des marques de 4 px, et le survol d'un effet (infobulle) ; la liste de l'inventaire s'arrête à 8 effets.
 - **D'autres statistiques modifiables** que l'armure (une valeur de `StatistiqueModifiable` et un cas d'`appliquerLesEffets`) ; les statistiques de
   combat de `Defenses::statistiques` ne sont pas encore modifiables.
-- **Les piles d'intensité** et les auras à bascule ; **des monstres qui posent des effets** ; **un buff qui choisit sa cible** (aujourd'hui seul le mode
+- ~~**Les piles d'intensité**~~ (faites à l'étape 112) et les auras à bascule ; **des monstres qui posent des effets** ; **un buff qui choisit sa cible** (aujourd'hui seul le mode
   `Escouade` convient à un buff : le mode `Allie` vise l'allié le plus blessé).
-- **L'identité d'un effet est son skill seul** : un skill qui poserait deux effets actifs sur la même cible les confondrait (à revoir avec le premier
-  skill à deux effets actifs). Les effets secondaires sont limités, par `assert`, aux modificateurs derrière des dégâts ou une frappe.
+- ~~**L'identité d'un effet est son skill seul**~~ : levée à l'étape 112 (l'identité est le skill et le rang de l'effet). Les effets secondaires sont
+  limités, par `assert`, aux modificateurs et aux dégâts dans le temps derrière des dégâts ou une frappe.
 
 **Pistes issues de l'étape 110** (étapes à part, plus tard) :
 - **Les mécaniques qui lisent les statistiques calculées sans l'être encore** : les états de contrôle (étourdissement, ralentissement, charme,

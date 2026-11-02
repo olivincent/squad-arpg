@@ -2260,6 +2260,40 @@ quatre appels de `Monstre::mettreAJour` des tests ont reçu le paramètre des al
   recul et la marche du soigneur dans un vrai donjon (murs, portes, autres monstres), le texte vert sur le monstre soigné, l'équilibre des valeurs
   (le soigneur rend 75 points toutes les 6 s, soit 12,5 par seconde) : à l'œil, en jouant.
 
+## Étape 112 : les dégâts et les soins dans le temps (2 053 → 2 118)
+
+2 053 tests au début de l'étape (2 055 après 112.1, 2 064 après 112.2, 2 102 après 112.3, 2 111 après 112.4, 2 114 après 112.5, 2 118 à la fin).
+- **112.1** : `test_EffetsActifs.cpp` (un même skill peut poser deux effets de rangs différents ; même skill et même rang rafraîchissent, chacun de son
+  côté), `test_Escouade_effets.cpp` (l'effet secondaire de la frappe puissante est de rang 1).
+- **112.2** : `test_EffetsActifs.cpp` (les piles : un maximum de 1 redonne exactement la règle de l'étape 111 ; une pile de plus à chaque application
+  jusqu'au maximum ; durée partagée et rafraîchie, même au maximum ; valeur par pile la plus forte ; deux skills, deux jeux de piles ; l'effet vaut
+  la valeur × les piles dans `appliquerLesEffets`, additionné aux autres pourcentages).
+- **112.3** : `test_EffetsActifs.cpp` (les ticks : le premier à 1 s pile, **N ticks pour N secondes** par grands pas et à 60 images par seconde pour
+  1, 4, 6, 8, 10 et 20 s — la tolérance de fin —, un pas plus long que l'intervalle, une durée non entière, le **rythme gardé au rafraîchissement**,
+  le montant fois les piles, la valeur la plus forte avec le rythme du premier, le soin, un modificateur sans tick, deux rangs à deux rythmes, un
+  effet dans le temps ne change aucune statistique, `estUnBonus`), `test_ResolutionDuCoup_portions.cpp` (`resoudreTick` : la résistance de l'élément
+  seule, la vulnérabilité, un seul arrondi, le plafond de 80 %, le montant nul), `test_Vitalite.cpp` (un tick retire des points de vie et est rendu une
+  fois ; **ni armure, ni esquive, ni blocage** avec des valeurs énormes ; **la résistance est lue au tick**, pas à la pose ; un tick entièrement résisté
+  n'est pas rendu ; le soin plafonné au maximum et rendu pour ce qu'il a rendu ; ni critique ; **un tick qui tue** vide les effets et les ticks
+  suivants du pas n'ont pas lieu ; un mort ne subit rien ; un coup qui pose un effet dans le temps ; `viderLesEffets`),
+  `test_Escouade_effets.cpp` (le coup porte l'effet de rang 1 avec ses piles ; **le montant est figé à la pose avec les caractéristiques du
+  lanceur** ; un soin dans le temps est posé sans soin immédiat, jamais plus longtemps que la recharge, et ses ticks rendent des points de vie et
+  sont rendus à la partie), `test_Partie_effets.cpp` (le saignement pose un petit chiffre par seconde, **un monstre tué par un tick meurt comme les
+  autres et rapporte son expérience**, le saignement continue si le lanceur meurt, le soin dans le temps rend ce qui manquait et pas un point de
+  plus), `test_Monstre_retour.cpp` (le monstre qui rentre à son poste perd ses effets), `test_Specialite.cpp` (le lecteur de coefficients couvre
+  les nouvelles alternatives), `test_TextesFlottants.cpp` (taille, couleur et libellé d'un tick), `test_AffichageEffets.cpp`. Fixtures dans
+  `aides_escouade.hpp` : `guerrierQuiSaigne`, `pretreQuiRegenere`, `mageQuiBrule`.
+- **112.4** : `test_Specialite.cpp` (le tir perçant du catalogue : 8 par seconde, 6 s, 3 piles, Puissance, total entre 50 et 100 % du direct),
+  `test_MarquesDEffets.cpp` (`pointsDuChiffre`), `test_AffichageEffets.cpp` (« Bleeding ×2: 14 per s (4 s) », « Burning », le modificateur empilé),
+  `test_Partie_effets.cpp` (`nombreDeBonus` / `nombreDeMalus` deviennent `pilesDesBonus` / `pilesDesMalus`).
+- **112.5** : `test_Specialite.cpp` (l'explosion du catalogue : 8 par seconde, 4 s, 1 pile, Savoir), `test_Escouade_effets.cpp` (la brûlure est posée sur
+  chaque monstre de la zone, pas sur celui de dehors), `test_Partie_effets.cpp` (deux monstres touchés, des chiffres de feu chaque seconde).
+- **112.6** : `test_Specialite.cpp` (Renew : mode, valeurs, coût 53, la colonne du prêtre dans la barre par défaut), `test_CoherenceDesDonnees.cpp`
+  (**le coefficient de durée de tout effet dans le temps du catalogue est 0** ; un soin dans le temps ne dure pas plus que sa recharge),
+  `test_AffichageEffets.cpp` (« Renew: 9 per s (6 s) »), `test_AffichageSkills.cpp` et `test_BarreDeSkills.cpp` (Blessing et Renew).
+- **Ce que les tests ne voient pas** : la taille et la lisibilité des petits chiffres, la position du compteur de piles à côté de la marque, la couleur
+  des marques, l'effet d'un saignement à trois piles en vrai combat, l'équilibre des valeurs (64 %, 71 % et 98 % des directs), le rythme de Renew.
+
 ## Étape 111 : les effets actifs, buffs et affaiblissements (1 997 → 2 053)
 
 1 997 tests au début de l'étape (aucun changement après 111.1 et 111.2, 2 021 après 111.3, 2 041 après 111.4, 2 053 à la fin).

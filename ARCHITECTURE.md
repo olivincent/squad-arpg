@@ -114,7 +114,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 `rendu/` — primitives de dessin :
 - `BarreDeVie` : position et dessin de la barre de vie d'une entité (`docs/combat.md`).
 - `BarreDEnergie` : position (sous la barre de vie) et dessin de la barre d'énergie d'un personnage (`docs/combat.md`).
-- `MarquesDEffets` : la rangée de marques d'effets actifs sous le carré d'une entité, une verte par bonus, une rouge par malus (`docs/combat.md`, « Les effets actifs »).
+- `MarquesDEffets` : la rangée de marques d'effets actifs sous le carré d'une entité, une verte par bonus, une rouge par malus, suivie du nombre de piles au-delà de 1 (`docs/combat.md`, « Les effets actifs »).
 - `TraceDeChemin` : ligne brisée du chemin restant, débogage F3 (`docs/chemin.md`).
 
 `monde/` — la carte et ce qui s'y déplace :
@@ -136,7 +136,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 `combat/` — skills et règles communes aux deux camps (`docs/combat.md`) :
 - `Skill` : mode de cible, portée, recharge, effet, rayon de zone optionnel, armes exigées, machine à états `commencer`/`avancer`/`annuler`.
 - `ModeDeCible`, `EffetDeSkill` : comment un skill vise (`Soi`, `Monstre`, `Allie`, `Point`) et ce qu'il fait (`EffetDegats`, `EffetFrappe`, `EffetSoin`,
-  `EffetProvocation`, un `std::variant`, chacun avec ses seuls champs) ; `campTouche`, le camp que touche un effet dans une zone (`docs/combat.md`, étape 105).
+  `EffetProvocation`, `EffetModificateur`, `EffetDegatsDansLeTemps`, `EffetSoinDansLeTemps`, un `std::variant`, chacun avec ses seuls champs) ; `campTouche`, le camp que touche un effet dans une zone (`docs/combat.md`, étape 105).
 - `Place`, `IdMonstre` : les types forts d'une place d'escouade (de 1 à N, `indice()` la seule conversion vers 0 à N-1) et d'un monstre ; sans `.cpp`.
 - `ResultatDEffet` : la sortie unique d'`Escouade` (`SkillParti`, `Coup`, `SoinSurAllie`, `ProvocationPosee`), traduite en événements par `Partie`.
 - `Element`, `Degats` : les éléments d'un coup (`Physique`, `Feu`, `Sacre`), `ParElement<T>` (une valeur par élément), `Degats`
@@ -161,7 +161,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `Defense` : `appliquerArmure` et `armureAppliquee`, modèle M1 (soustraction avec plancher de 20 %, armure réduite par la pénétration de l'attaque), et `appliquerResistance` (résistance par élément, de −100 % à 80 %).
 - `StatistiquesDeCombat` : ce que le moteur du coup lit d'une entité (capacités, esquives, blocage, résistances par élément, résistances aux états de contrôle), aussi le bonus de combat d'un objet ; `statistiquesDuPersonnage`, seul endroit où elles se calculent.
 - `Esquive`, `Critique`, `Blocage` : les étapes du coup qui dépendent du hasard, des fonctions pures qui reçoivent un tirage (`docs/combat.md`).
-- `ResolutionDuCoup` : `resoudreCoup`, point d'entrée unique d'un coup, portion par portion (esquive, critique, blocage du physique, armure, résistances, un arrondi par portion) et seul tirage du moteur ; `resoudreSoin` ; `Defenses`.
+- `ResolutionDuCoup` : `resoudreCoup`, point d'entrée unique d'un coup, portion par portion (esquive, critique, blocage du physique, armure, résistances, un arrondi par portion) et seul tirage du moteur ; `resoudreSoin` ; `resoudreTick` (un tick de dégâts dans le temps : la seule résistance de l'élément) ; `Defenses`.
 - `Jauge` : une valeur entière plafonnée entre 0 et un maximum, la règle commune de `PointsDeVie` et de `Reserve` (`docs/combat.md`, « L'énergie »).
 - `Reserve` : une `Jauge`, un débit de régénération et un accumulateur (seule la partie entière est ajoutée) ; l'énergie d'un personnage, demain l'Élan.
 - `Energie` : les règles de l'énergie des personnages (`energieMax`, `regenerationDEnergie` : 100 plus la Volonté plus un gain par niveau de classe, 2 par seconde).
@@ -172,8 +172,8 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `Caracteristiques` : les cinq caractéristiques (`Caracteristique`, `Caracteristiques`, `Coefficients`), les points de vie maximum (selon le niveau de classe) et `montantEffectif`, seule source du montant d'un skill de personnage (`docs/combat.md`).
 - `Progression` : la courbe de l'expérience (`niveauPour`, `niveauDeClasse`, `experiencePourAtteindre`, `progressionVersLeNiveauSuivant`, `experienceManquante`) la croissance automatique d'une classe (`PaireDeCroissance`, `croissanceAuNiveau`) et les points libres (`pointsLibresRecus`, `pointsLibresDisponibles`, `depensePermise`) ; des fonctions pures (`docs/combat.md`, `docs/classes-et-combat.md`).
 - `Vitalite` : points de vie, défenses (armure, statistiques de combat), effets actifs et récupération du blocage d'une entité, commune à `Personnage` et `Monstre`.
-- `EffetActif` : ce qu'un skill laisse sur une entité pour une durée (la source, la durée restante, une sorte en `std::variant` : aujourd'hui le modificateur de statistique, l'armure), `estUnBonus` ; sans `.cpp` (`docs/combat.md`, « Les effets actifs (étape 111) »).
-- `EffetsActifs` : les effets actifs d'une entité (cumul : un skill n'a jamais deux effets sur une entité, il rafraîchit), `mettreAJour`, `vider`, et `appliquerLesEffets`, l'unique endroit où ils changent une statistique (pourcentages additionnés, une seule application) ; possédés par `Vitalite`.
+- `EffetActif` : ce qu'un skill laisse sur une entité pour une durée (l'identité skill + rang d'effet, la durée restante, une sorte en `std::variant` : le modificateur de statistique, l'armure, les dégâts dans le temps et le soin dans le temps, et les piles), `estUnBonus` ; sans `.cpp` (`docs/combat.md`, « Les effets actifs (étape 111) » et « Les dégâts et les soins dans le temps (étape 112) »).
+- `EffetsActifs` : les effets actifs d'une entité (cumul : un effet de même identité rafraîchit et gagne une pile jusqu'à son maximum), `mettreAJour` (qui rend les ticks), `vider`, et `appliquerLesEffets`, l'unique endroit où ils changent une statistique (pourcentages additionnés, une seule application) ; possédés par `Vitalite`, qui applique les ticks.
 
 `objets/` — les objets, ce qu'on porte et le sac (`docs/objets.md`) :
 - `Emplacement` : les 10 emplacements, les 10 catégories d'objet (dont `Relique`, en main gauche comme le bouclier) et `peutAller`, seule source de la règle.

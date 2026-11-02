@@ -129,6 +129,7 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 109 — Documentation : la liste cible des statistiques (caractéristiques, ressources, statistiques de combat), huit types de dégâts et de résistances (le saignement n'est plus un type), Aegis et Ward, résistances aux états, attributs ✅ (aucune modification du code)
 - Étape 110 — Les effets des caractéristiques : une table de contributions en données, la Resolve vers l'énergie et les résistances au contrôle, le niveau de classe, le montant à 1 % par point, la convention des coefficients (Might pour l'arme, Intellect pour les sorts, Resolve pour les soins), l'aire et la durée de l'Intellect, de nouvelles bases pour le mage, le prêtre et le paladin ✅ (exception à `ARCHITECTURE.md` : des statistiques calculées avant leurs mécaniques)
 - Étape 111 — Le socle des effets actifs : un concept unique (le modificateur de statistique en première sorte), plusieurs effets par skill, l'affaiblissement de la frappe puissante, la bénédiction du prêtre (mode « toute l'escouade »), la durée d'un buff plafonnée par sa recharge, marques vertes et rouges et liste dans l'inventaire ✅
+- Étape 112 — Les dégâts et les soins dans le temps : l'identité d'un effet (skill, rang), les piles (maximum de 1 par défaut), deux sortes d'effet actif de plus (un tick par seconde, montant figé à la pose, `resoudreTick`), le saignement du tir perçant, la brûlure de l'explosion, Renew (soin dans le temps du prêtre), compteur de piles et petits chiffres des ticks ✅
 
 ## Détail des étapes 0 à 73
 
@@ -2623,3 +2624,25 @@ bénédiction suit la règle des techniques (la règle des sorts donne 107, plus
 modificateurs derrière des dégâts ou une frappe (`assert`) ; l'identité d'un effet est son skill seul. 2 053 tests (+56), 0 avertissement de compilation sur
 les deux presets. Détail : `docs/combat.md` (« Les effets actifs (étape 111) »), `docs/classes-et-combat.md` (section 14 ter), `docs/glossaire.md`,
 `docs/ecrans.md`, `docs/tests.md`.
+
+### Étape 112 — Les dégâts et les soins dans le temps ✅
+
+Sept sous-étapes enchaînées sans arrêt (Olivier absent : un commit chacune, les tests visuels regroupés à la fin). 112.1 : l'identité d'un `EffetActif` devient
+**(skill, rang de l'effet dans la liste du skill)** (`EffetActif::rang`, rempli par `Personnage::effetsActifsDuSkill`) ; un même skill peut poser deux effets
+sur la même cible. 112.2 : les **piles** pour toutes les sortes (`pilesMax` à 1 par défaut, `piles`) : une application de plus ajoute une pile jusqu'au maximum
+et rafraîchit la durée partagée, la valeur par pile est la plus forte, l'effet vaut valeur × piles. 112.3 : `DegatsDansLeTemps` et `SoinDansLeTemps` (deux
+types, un montant par pile et par tick), `EffetDegatsDansLeTemps` / `EffetSoinDansLeTemps` côté skill, `EffetsActifs::mettreAJour` qui rend les ticks (un par
+seconde, le premier une seconde après la pose, rythme gardé au rafraîchissement, N secondes donnent N ticks avec une tolérance de fin de 1 ms), montant figé
+à la pose, `resoudreTick` (la seule résistance de l'élément, un arrondi), `Vitalite` qui applique les ticks et les rend (`prendreLesTicks`), `Partie` qui les
+signale (`dansLeTemps` sur `DegatsSubis` et `Soin`) et retire les monstres qu'un tick a tués, effets vidés pour un monstre qui rentre à son poste, `assert` de
+`Skill` élargi. 112.4 : le **saignement** du tir perçant (8 par seconde et par pile, 6 s, 3 piles), le compteur de piles à côté de la marque
+(`rendu/MarquesDEffets`, chiffres de 3 × 5 points, `pilesDesBonus` / `pilesDesMalus` à la place de `nombreDeBonus` / `nombreDeMalus`), les petits chiffres des
+ticks (12 px), les lignes de l'inventaire (« Bleeding ×2: 14 per s (4 s) »). 112.5 : la **brûlure** de l'explosion (8 par seconde, 4 s, une pile). 112.6 :
+**Renew** (`IdSkill::Renouvellement`, troisième skill du prêtre : 11 par seconde pendant 8 s, recharge de 10 s, coût de 53) et le test du coefficient de durée 0 sur
+le catalogue. **Choix faits sans Olivier** : les ticks sortent de `Vitalite` par une liste lue une fois par image (`prendreLesTicks`) plutôt que par le retour
+de `mettreAJour`, pour ne pas changer trois signatures utilisées partout ; le nom affiché d'un effet de dégâts dans le temps vient de son élément (« Bleeding »,
+« Burning », « Holy Fire » sans source) et celui d'un soin dans le temps de son skill ; un soin dans le temps ne dure jamais plus que la recharge de son skill
+(comme un buff) ; des dégâts dans le temps ne sont jamais l'effet principal d'un skill ; le compteur de piles est dessiné à la main en rectangles (les entités
+n'ont pas de police) ; un monstre qui rentre à son poste perd ses effets ; le tick d'un effet est rendu en retard de moins d'1 ms à la fin de l'effet plutôt que
+perdu. 2 118 tests (+65), 0 avertissement de compilation sur les deux presets. Détail : `docs/combat.md` (« Les dégâts et les soins dans le temps (étape 112) »),
+`docs/classes-et-combat.md` (section 14 quater), `docs/glossaire.md`, `docs/ecrans.md`, `docs/tests.md`.

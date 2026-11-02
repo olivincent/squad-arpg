@@ -150,6 +150,7 @@ Le nom affiché d'un objet est `[préfixe] modèle [suffixe]` (« Blazing Mace �
 | Tir perçant | Piercing Shot | PC |
 | Pluie de flèches | Rain of Arrows | RA |
 | Bénédiction | Blessing | BL |
+| Renew (soin dans le temps du prêtre) | Renew | RN |
 
 ## Effets actifs (`interface/AffichageEffets.cpp`)
 
@@ -157,6 +158,9 @@ Le nom affiché d'un objet est `[préfixe] modèle [suffixe]` (« Blazing Mace �
 |---|---|
 | Titre du bloc de l'inventaire | Active effects |
 | Une ligne : skill, valeur, secondes restantes (arrondies vers le haut) | « Blessing: +20 % Armor (10 s) », « Power Strike: −25 % Armor (8 s) » (vert pour un bonus, rouge pour un malus) |
+| Plusieurs piles (étape 112) : « ×N » après le nom, la valeur de toutes les piles | « Bleeding ×2: 14 per s (4 s) » (le × est U+00D7) |
+| Dégâts dans le temps : le nom de l'élément, le montant par seconde | Bleeding (physique), Burning (feu), Holy Fire (sacré, sans source aujourd'hui) : « Burning: 8 per s (2 s) » |
+| Soin dans le temps : le nom du skill, le montant par seconde | « Renew: 9 per s (6 s) » |
 | Statistique modifiée (armure) | Armor (aussi « Armor: N » en tête de la colonne de l'inventaire, effets actifs compris) |
 
 ## Textes flottants (`interface/TextesFlottants.cpp`)

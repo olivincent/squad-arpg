@@ -570,7 +570,8 @@ prévues : dégâts et soins dans le temps, états de contrôle, Aegis et Ward ;
 sorte, le **modificateur de statistique** (armure seulement). La technique est dans `docs/combat.md`, « Les effets actifs (étape 111) ».
 
 - **Cumul.** Le même skill posé de nouveau sur la même cible (quel que soit le lanceur) rafraîchit la durée et garde la valeur la plus forte :
-  jamais deux effets du même skill sur une cible. Deux skills différents se cumulent. Pas de piles d'intensité.
+  jamais deux effets du même skill sur une cible. Deux skills différents se cumulent. (Étape 112 : l'identité est le skill *et le rang de l'effet
+  dans sa liste*, et les piles d'intensité existent : section 14 quater.)
 - **Calcul.** Les pourcentages de tous les effets sur une statistique s'additionnent, puis s'appliquent une seule fois, arrondis, l'armure
   restant à 0 au minimum. La couche des effets passe **après** les caractéristiques et l'équipement, pour les personnages comme pour les monstres.
 - **Vie d'un effet.** La durée diminue avec le temps de jeu ; l'effet disparaît à 0, à la mort de l'entité et à la descente d'un étage. Les
@@ -583,8 +584,42 @@ sorte, le **modificateur de statistique** (armure seulement). La technique est d
   (une technique : la durée ne profite pas de l'Intellect). La **bénédiction** (« Blessing ») du prêtre : +20 % d'armure à toute l'escouade pendant
   10 s de base (un sort : coefficient de durée 1, soit jusqu'à 20 s au plafond), recharge de 20 s, coût de 57 d'énergie (la règle des techniques
   donne 57 ; celle des sorts, 107, dépasserait la réserve de départ).
-- **Reste ouvert** : les piles d'intensité, les auras à bascule, d'autres statistiques modifiables (au-delà de l'armure), les monstres qui posent des
+- **Reste ouvert** : les auras à bascule, d'autres statistiques modifiables (au-delà de l'armure), les monstres qui posent des
   effets, un buff qui choisit sa cible (aujourd'hui seul « toute l'escouade » convient à un buff), les icônes dessinées.
+
+## 14 quater. Les dégâts et les soins dans le temps (étape 112)
+
+*Statut : retenu à l'étape 112 ; toutes les valeurs sont « à tester ».* Deux sortes d'effet actif de plus, des **piles** pour toutes les sortes, et
+trois utilisateurs. La technique est dans `docs/combat.md`, « Les dégâts et les soins dans le temps (étape 112) ».
+
+- **Identité d'un effet : (skill, rang de l'effet dans la liste du skill).** Un skill peut donc poser deux effets sur la même cible sans qu'ils se
+  confondent (un affaiblissement et un saignement). Elle ne dépend pas du lanceur : deux lanceurs du même skill n'en font qu'un.
+- **Piles.** Chaque effet déclare un maximum de piles, 1 par défaut (la règle de l'étape 111 ne change pas). Avec plus : chaque application ajoute
+  une pile jusqu'au maximum et rafraîchit la durée, toutes les piles partagent cette durée, la valeur par pile est la plus forte des applications,
+  l'effet vaut la valeur par pile × le nombre de piles. Le maximum empêche toute multiplication sans fin, quelle que soit la recharge.
+- **Un tick par seconde, le premier une seconde après la pose** : une durée de N secondes donne N ticks, un rafraîchissement ne remet pas le rythme à
+  zéro. Le **montant par tick est figé à la pose**, avec les caractéristiques du lanceur à ce moment-là, et l'effet continue si le lanceur meurt.
+- **Un tick n'est pas un coup** : pas d'esquive, pas de critique, pas de blocage, pas d'armure. Seule la **résistance de l'élément** s'applique,
+  lue chez la cible au moment du tick (celle du physique pour le saignement). Un soin dans le temps ne critique pas et ne dépasse pas le maximum. Le
+  saignement est ainsi du *physique dans le temps qui ignore l'armure*, comme prévu à l'étape 109 (il n'est pas un type de dégâts).
+- **Coefficient de durée 0 pour les effets dans le temps** (pas de double gain montant × durée) : l'Intellect agit sur l'aire et la durée des
+  *autres* effets (buffs, provocation) ; un test parcourt le catalogue.
+- **Ordre de grandeur.** Le total d'une pile d'un effet dans le temps vaut 50 à 100 % des dégâts directs de son skill ; le total de Renew est du même
+  ordre que le soin. Un tick est affiché plus petit qu'un coup, dans la couleur de son élément (le soin reste vert).
+- **Les trois utilisateurs** :
+
+| Effet | Skill | Élément / caractéristique | Par seconde | Durée | Piles | Total d'une pile | Direct du skill |
+|---|---|---|---|---|---|---|---|
+| Bleeding (saignement) | Piercing Shot (rôdeur) | physique / Might | 8 | 6 s | jusqu'à 3 | 48 (64 %) | 75 |
+| Burning (brûlure) | Explosion (mage), sur chaque monstre touché | feu / Intellect | 8 | 4 s | 1 | 32 (71 %) | 45 |
+| Renew | skill du prêtre, soin sur l'allié le plus blessé (mode `Allie`) | Resolve | 11 | 8 s | 1 | 88 | 90 (le soin) |
+
+  Renew : recharge de 10 s (plus que sa durée, aucun chevauchement), activation de 0,4 s (le soin : 0,6 s), portée de 40 px comme le soin, coût de
+  53 d'énergie (la règle des sorts : `coutDUnSort(10)`), troisième skill du prêtre. Comme un buff, un soin dans le temps ne dure jamais plus que sa
+  recharge (test sur le catalogue).
+- **Reste ouvert** : des monstres qui posent des effets dans le temps ; le poison et les éléments qui manquent à `Element` ; une statistique
+  « soins reçus » ; une identité par lanceur (aujourd'hui deux archers partagent les piles) ; Aegis et Ward (étape 114), les états de contrôle (étape
+  113) ; d'ajuster en jouant le rythme (1 s), les montants, les durées et le plafond de 3 piles.
 
 ## 15. Pistes
 

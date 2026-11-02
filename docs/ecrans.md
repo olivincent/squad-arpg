@@ -145,7 +145,10 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
   `elementSous`, `ongletSous`), aussi utilisés par le glisser-déposer. Un test vérifie que tout
   tient dans 1200 × 800 (et en 16:9), dans le panneau, sans chevauchement, onglets compris. **Les effets actifs (étape 111.5)** : sous le sac, à
   droite de la colonne, le titre « Active effects » puis une ligne par effet du personnage ouvert (8 au plus, `rectangleDeLEffetActif`), « Blessing: +20 %
-  Armor (10 s) », en vert pour un bonus et en rouge pour un malus ; le panneau ne change pas de taille.
+  Armor (10 s) », en vert pour un bonus et en rouge pour un malus ; le panneau ne change pas de taille. **Étape 112** : les effets dans le temps y
+  ont leur ligne (« Bleeding ×2: 14 per s (4 s) », « Renew: 9 per s (6 s) »), avec « ×N » quand l'effet a plus d'une pile (`AffichageEffets`,
+  `docs/combat.md`). Sous les carrés des entités, le nombre de piles suit la marque quand il dépasse 1 (`rendu/MarquesDEffets`) ; les ticks sont de
+  petits textes flottants (`TextesFlottants`, 12 px) ; la barre de skills du prêtre a un troisième skill, Renew (sigle RN).
 - **Infobulle** : au survol d'un emplacement ou d'une case occupés, le nom composé de l'objet (de la couleur de sa
   rareté), sa catégorie, les propriétés de son modèle (armure, bonus, blocage d'un bouclier, attaque d'une arme : dégâts,
   recharge, portée, melee ou projectile, « Two-handed »), une ligne par affixe, puis ses seuils (`lignesDeLInfobulle(const

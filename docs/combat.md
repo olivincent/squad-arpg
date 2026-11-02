@@ -1877,10 +1877,11 @@ conception (cumul, ordre des couches) sont dans `docs/classes-et-combat.md`, sec
 - **Le conteneur vit dans `Vitalite`** (`EffetsActifs`, une liste dans l'ordre de pose) : personnages et monstres subissent donc les mêmes
   effets sans code en double. `Vitalite::mettreAJour` les fait couler ; la mort les vide (`recevoirDegats`) ; `poserEffet` est sans effet sur un
   mort. Rien n'est sauvegardé dans l'`Expedition` : une nouvelle `Partie` (la descente) reconstruit ses entités sans effet.
-- **Cumul.** L'identité d'un effet est son skill, quel que soit le lanceur : poser de nouveau le même skill sur la même entité ne crée
-  jamais un deuxième effet. Il **rafraîchit** (la plus longue des deux durées : un rafraîchissement ne raccourcit jamais) et garde la
-  **valeur la plus forte** (plus grande amplitude, `lePlusFort`, un `std::visit` à deux variants qui veut une surcharge par paire de sortes).
-  Deux skills différents se cumulent. Pas de piles d'intensité.
+- **Cumul.** L'identité d'un effet est son skill, quel que soit le lanceur (depuis l'étape 112 : le skill *et le rang de l'effet dans sa
+  liste*) : poser de nouveau le même effet sur la même entité ne crée jamais un deuxième effet. Il **rafraîchit** (la plus longue des deux
+  durées : un rafraîchissement ne raccourcit jamais) et garde la **valeur la plus forte** (plus grande amplitude, `lePlusFort`, une surcharge
+  par sorte). Deux skills différents se cumulent. Les piles d'intensité sont arrivées à l'étape 112 (maximum de 1 par défaut : rien ne change
+  sans elles).
 - **Ordre des couches.** Caractéristiques, puis équipement (`Personnage::defenses`), puis effets actifs. `Vitalite` garde les défenses de base
   (`m_defenses`) et applique les effets à chaque lecture (`appliquerLesEffets`, `getArmure`) : recalculer l'équipement ou le niveau
   (`definirDefenses`) ne perd donc aucun effet. `appliquerLesEffets(const Defenses&, const EffetsActifs&)` est l'unique endroit qui lit les
@@ -1891,8 +1892,8 @@ conception (cumul, ordre des couches) sont dans `docs/classes-et-combat.md`, sec
   de `StatistiqueModifiable` et un cas du `switch` d'`appliquerLesEffets` (sans `default`, le compilateur le signale).
 - **Plusieurs effets par skill (111.2).** `DefinitionDeSkill::effets` est une liste, jamais vide ; le premier est l'effet principal
   (`Skill::getEffet`, qui décide du camp touché et de l'attaque), les suivants sont des effets secondaires (`Skill::getEffets`). Invariants
-  (`assert` du constructeur de `Skill`) : un effet secondaire est un `EffetModificateur`, il suit des dégâts ou une frappe et touche le même
-  camp ; un modificateur principal est un buff. `campTouche(EffetModificateur)` : un pourcentage positif ou nul touche les alliés, un négatif
+  (`assert` du constructeur de `Skill`) : un effet secondaire est un `EffetModificateur` (ou, depuis l'étape 112, un `EffetDegatsDansLeTemps`),
+  il suit des dégâts ou une frappe et touche le même camp ; un modificateur principal est un buff. `campTouche(EffetModificateur)` : un pourcentage positif ou nul touche les alliés, un négatif
   les monstres.
 - **Un coup qui touche (111.4).** Les effets à poser sur un monstre voyagent dans l'`Attaque` (`Attaque::effets`, remplie par
   `Personnage::attaqueDuSkill`), donc dans le `Coup`. `Vitalite::recevoirDegats` les pose **après** le coup, seulement si l'entité survit et si
@@ -1907,16 +1908,92 @@ conception (cumul, ordre des couches) sont dans `docs/classes-et-combat.md`, sec
   catalogue pour vérifier qu'aucun skill de classe n'en a besoin : `durée × (1 + coefficient × s_plafondDuBonusDeDuree) <= recharge`. La
   bénédiction (10 s de base, +100 % au plafond, 20 s de recharge) est exactement à la limite.
 - **Affichage.** Une marque de 4 px par effet actif sous le carré de chaque entité (`rendu/MarquesDEffets` : verte pour un bonus, rouge pour
-  un malus, `EffetsActifs::nombreDeBonus` / `nombreDeMalus` ; sous le carré et non sous la barre de vie, qui est au-dessus). Dans
+  un malus, `EffetsActifs::pilesDesBonus` / `pilesDesMalus` ; sous le carré et non sous la barre de vie, qui est au-dessus). Dans
   l'inventaire, le bloc « Active effects » sous le sac (`docs/ecrans.md`) et l'armure effective (`Escouade::armureDuPersonnage`).
 - **Les deux premiers utilisateurs** (valeurs « à tester ») : la frappe puissante du guerrier (−25 % d'armure sur la cible pendant 8 s,
   coefficient de durée 0 : une technique) et la **bénédiction** du prêtre (`IdSkill::Benediction`, « Blessing » : +20 % d'armure à toute
   l'escouade pendant 10 s, recharge de 20 s, coefficient de durée 1, activation de 0,5 s, coût de 57). Le coût suit la règle des techniques
   (`coutDUneTechnique`) : celle des sorts donnerait 107, plus que la réserve de départ.
-- **Limites.** Une seule sorte d'effet actif et une seule statistique modifiable ; l'identité étant le skill, un skill qui poserait deux effets
-  actifs sur la même cible les confondrait ; un effet secondaire n'existe que derrière des dégâts ou une frappe ; les monstres ne posent aucun
-  effet ; pas d'icônes dessinées ; un skill de mode `Escouade` n'a pas de visée (pas de portée, pas de zone) ; la liste de l'inventaire
-  s'arrête à 8 effets.
+- **Limites.** Une seule statistique modifiable (les sortes d'effet de plus sont venues à l'étape 112 : dégâts et soins dans le temps) ; un
+  effet secondaire n'existe que derrière des dégâts ou une frappe ; les monstres ne posent aucun effet ; pas d'icônes dessinées ; un skill de
+  mode `Escouade` n'a pas de visée (pas de portée, pas de zone) ; la liste de l'inventaire s'arrête à 8 effets. (La limite « l'identité est le
+  skill seul » est levée à l'étape 112.)
+
+## Les dégâts et les soins dans le temps (étape 112)
+
+Deux sortes d'effet actif de plus (`DegatsDansLeTemps`, `SoinDansLeTemps`), des piles pour toutes les sortes, et une identité d'effet qui
+distingue les effets d'un même skill. Les décisions de conception (valeurs, ordre de grandeur) sont dans `docs/classes-et-combat.md`,
+section 14 quater ; ici, la technique.
+
+- **Identité : (skill, rang).** Un `EffetActif` porte `source` (l'`IdSkill`) et `rang` (sa place dans la liste d'effets du skill, 0 pour le
+  principal ; `Personnage::effetsActifsDuSkill` le remplit avec l'indice de l'effet). `EffetsActifs::poser` cherche l'effet de même
+  `(source, rang)` : un même skill peut donc poser deux effets actifs sur la même entité (un modificateur et un saignement) sans qu'ils se
+  confondent. Elle ne dépend toujours pas du lanceur : deux lanceurs du même skill n'en font qu'un seul. La limite de l'étape 111 (l'identité
+  est le skill seul) est levée.
+- **Piles, pour toutes les sortes.** `EffetActif::pilesMax` (1 par défaut) et `piles` (1 à la pose). Avec `pilesMax == 1`, rien ne change :
+  la règle de l'étape 111 (rafraîchir la durée, garder la valeur la plus forte). Avec plus, chaque nouvelle application du même effet ajoute
+  une pile jusqu'au maximum **et** rafraîchit la durée ; toutes les piles partagent cette durée ; la valeur *par pile* est la plus forte des
+  applications ; l'effet vaut la valeur par pile × `piles` (`appliquerLesEffets` pour un modificateur, le montant du tick pour le reste).
+  Une seule ligne dans `poser` : `piles = min(piles + 1, pilesMax)`. Le maximum interdit toute multiplication sans fin, quelle que soit la
+  recharge du skill.
+- **Les deux sortes.** `DegatsDansLeTemps { Element element; int montant; float avantLeTick }` (physique pour le saignement, feu pour la
+  brûlure) et `SoinDansLeTemps { int montant; float avantLeTick }` : deux types, pas un montant signé. `montant` est celui d'**une pile**,
+  par tick. `estUnBonus` : le soin dans le temps est un bonus (marque verte), les dégâts un malus (rouge). `appliquerLesEffets` les ignore :
+  ils n'agissent que par leurs ticks. `lePlusFort` (dans `EffetsActifs.cpp`) a une surcharge par sorte, et celles des effets dans le temps
+  gardent le compte à rebours du tick de l'effet déjà posé.
+- **Les ticks.** `s_intervalleDeTick` = 1 s. `EffetsActifs::mettreAJour(dt)` rend les ticks qui ont eu lieu pendant le pas (`std::vector<Tick>`,
+  `Tick = std::variant<TickDeDegats, TickDeSoin>`, montant × piles). Le premier tick a lieu 1 s après la pose ; une pose qui rafraîchit ne
+  remet pas le rythme à zéro (le compte à rebours de l'effet déjà posé est gardé) ; une durée de N secondes donne N ticks. Un pas plus long
+  que l'intervalle rend plusieurs ticks, sans jamais dépasser la fin de l'effet. **Tolérance de fin** : la durée et le compte à rebours
+  s'usent du même `dt` mais le second repart de 1 à chaque tick, et deux sommes de flottants ne tombent pas toujours ensemble ; si l'effet
+  vient de s'épuiser et que son tick est en retard de moins de `s_toleranceDeTick` (1 ms), il est rendu quand même. Sans cela, 6 s à 60
+  images par seconde donnent parfois 5 ticks (test sur 1, 4, 6, 8, 10 et 20 s).
+- **Montant figé à la pose.** `Personnage::effetsActifsDuSkill` calcule le montant par tick avec `montantEffectif` (les coefficients de
+  l'effet de skill et les caractéristiques du lanceur **à ce moment-là**) ; l'effet actif n'a plus de lien avec le lanceur, il continue s'il
+  meurt. `EffetDegatsDansLeTemps` / `EffetSoinDansLeTemps` (dans `EffetDeSkill`) ont un `coefficientDeDuree` de 0 par défaut : l'effet gagne
+  déjà par son montant (Puissance, Savoir, Volonté), la durée ne gagnerait pas une seconde fois. Le test de `test_CoherenceDesDonnees`
+  parcourt le catalogue pour le vérifier.
+- **`resoudreTick(Element, int montant, const StatistiquesDeCombat&)`** (`combat/ResolutionDuCoup`) : un tick n'est pas un coup, il ne vise
+  personne. Ni esquive, ni critique, ni blocage, ni armure, ni tirage : seule la résistance de l'élément (celle du physique aussi) s'applique,
+  **lue chez la cible à l'instant du tick** (un équipement changé entre deux ticks compte), puis un arrondi au plus proche (peut rendre 0).
+  Un soin dans le temps ne critique pas (`resoudreSoin` n'est pas appelée) et est plafonné au maximum par `PointsDeVie::soigner`.
+- **`Vitalite` applique les ticks.** `Vitalite::mettreAJour(dt)` fait couler les effets, applique chaque tick dans l'ordre (dégâts par
+  `resoudreTick` puis `subirDegats`, soin par `soigner`) et s'arrête à la mort (les effets sont alors vidés et les ticks suivants du pas
+  n'ont pas lieu). Ce qui a *vraiment* été subi ou rendu (après résistance, soin plafonné ; jamais 0) s'accumule dans une liste que
+  `prendreLesTicks()` rend et vide (`Personnage::prendreLesTicks`, `Monstre::prendreLesTicks`, `Escouade::prendreLesTicks` →
+  `TickSurUnAllie { Place place; Tick tick; }`). Choix : une liste lue après la mise à jour plutôt qu'un retour de `mettreAJour`, pour ne
+  pas changer les signatures de `Personnage::mettreAJour`, `Escouade::mettreAJour` et `Monstre::mettreAJour` (appelées partout, y compris
+  par les tests).
+- **Même canal qu'un coup.** `Partie` lit ces ticks une fois par image (`signalerLesTicks`) et en fait des événements de combat :
+  `DegatsSubis` (`dansLeTemps = true`, ni gratuit ni critique, avec l'élément) et `Soin` (`dansLeTemps = true`). Pour un monstre,
+  `faireTournerLesMonstres` lit ses ticks juste après sa mise à jour, saute son action s'il est mort, puis appelle `retirerLesMorts` après
+  `alerterLesGroupes` : un monstre tué par un tick meurt exactement comme un autre (expérience, butin, déverrouillage de la cible) avant la
+  photo des zones de contrôle. Pour l'escouade, `Partie::mettreAJour` lit `Escouade::prendreLesTicks` après sa mise à jour.
+- **Un monstre qui rentre à son poste perd ses effets** (`Vitalite::viderLesEffets`, à l'entrée en `Retour`) : invulnérable, il ne doit pas
+  être tué par un saignement, et un effet ne lui est de toute façon plus posé (`Monstre::recevoirDegats` rend avant la vitalité).
+- **Les effets secondaires s'élargissent.** `Skill` (`assert`) : un effet secondaire est un `EffetModificateur` ou un `EffetDegatsDansLeTemps`
+  qui suit des dégâts ou une frappe et touche le même camp ; des dégâts dans le temps ne sont jamais l'effet principal (c'est un coup qui les
+  fait toucher une cible) ; un soin dans le temps est un effet principal, de mode `Allie` (`campTouche` : les alliés), que
+  `Escouade::appliquerLEffet` pose sur chaque allié touché comme un buff. Il ne dure jamais plus longtemps que la recharge de son skill
+  (même règle que les buffs, codée dans `effetsActifsDuSkill`, testée sur le catalogue). Les effets secondaires voyagent dans le `Coup` et
+  ne sont posés que si le coup n'est pas esquivé (une explosion, de nature zone, ne s'esquive pas).
+- **Affichage.** Les ticks sont plus petits que les coups (12 px, `tailleDuTexte`) et gardent la couleur de leur élément (le soin reste vert).
+  Chaque effet actif a sa marque verte ou rouge sous le carré de l'entité ; quand ses piles dépassent 1 le nombre suit la marque, en petits
+  chiffres de 3 × 5 points dessinés à la main (`pointsDuChiffre` : les entités se dessinent sans police). `EffetsActifs::pilesDesBonus` /
+  `pilesDesMalus` remplacent `nombreDeBonus` / `nombreDeMalus`. L'inventaire a une ligne par effet : « Bleeding ×2: 14 per s (4 s) »,
+  « Burning: 8 per s (2 s) », « Renew: 9 per s (6 s) » (`AffichageEffets` : les dégâts dans le temps portent le nom de leur élément, le soin
+  celui de son skill ; le montant est celui de toutes les piles).
+- **Les trois utilisateurs** (valeurs « à tester ») : le **saignement** du tir perçant (physique, Puissance, 8 par seconde et par pile pendant
+  6 s, jusqu'à 3 piles), la **brûlure** de l'explosion (feu, Savoir, 8 par seconde pendant 4 s, une pile, sur chaque monstre touché), et
+  **Renew** (`IdSkill::Renouvellement`, « Renew », sigle RN), nouveau skill du prêtre : soin dans le temps sur l'allié le plus blessé, Volonté,
+  11 par seconde pendant 8 s, recharge de 10 s, activation de 0,4 s, portée du soin (40 px), coût de 53 (règle des sorts, `coutDUnSort(10)`),
+  troisième skill du prêtre (l'emplacement du bas de sa colonne de la barre).
+- **Limites.** Aucun monstre ne pose d'effet dans le temps ; pas de poison ni d'autres éléments (il manque à `Element`) ; pas de statistique
+  « soins reçus » ; l'identité n'est pas par lanceur (deux archers n'empilent pas deux effets distincts, ils partagent les piles) ; le montant
+  d'un tick est figé à la pose (une pile posée plus tard avec une Puissance plus forte relève la valeur par pile, mais ne change pas les
+  ticks déjà comptés) ; un rafraîchissement ne raccourcit jamais ; le premier tick n'est jamais immédiat ; un effet dans le temps sur un
+  monstre qui rentre à son poste est perdu ; les ticks d'un personnage ne tuent personne dans le jeu actuel (aucun monstre n'en pose) mais
+  le chemin est le même.
 
 ## Référence des modules
 
@@ -2002,7 +2079,7 @@ en attente) et `Controleur` (visée), jamais déduit de l'effet.
 `EffetDeSkill.hpp` / `.cpp` : `struct EffetDegats { int montant; NatureDAttaque nature; Element element = Physique; Coefficients
 coefficients = {}; }`, `struct EffetFrappe { Degats bonus; Coefficients coefficients = {}; }` (l'arme portée plus ce bonus typé : la frappe
 sacrée), `struct EffetSoin { int montant; Coefficients coefficients = {}; }`, `struct EffetProvocation { int duree; float coefficientDeDuree = 0; }` (secondes ; le bonus de durée de l'Intellect, étape 110.5) et `struct EffetModificateur { StatistiqueModifiable statistique; int pourcentage; int duree; float coefficientDeDuree = 0; }` (étape 111.4 : pose un effet actif ; principal, c'est un buff pour les alliés ; secondaire, un affaiblissement pour les monstres qu'un coup atteint) et `using
-EffetDeSkill = std::variant<EffetDegats, EffetFrappe, EffetSoin, EffetProvocation, EffetModificateur>`. `enum class CampTouche { Monstres, Allies }` et
+EffetDeSkill = std::variant<EffetDegats, EffetFrappe, EffetSoin, EffetProvocation, EffetModificateur, EffetDegatsDansLeTemps, EffetSoinDansLeTemps>` ; étape 112 : `struct EffetDegatsDansLeTemps { int montant; int duree; Element element = Physique; int pilesMax = 1; Coefficients coefficients = {}; float coefficientDeDuree = 0; }` (toujours secondaire : pose des `DegatsDansLeTemps` sur les monstres qu'un coup atteint, montant par tick et par pile) et `struct EffetSoinDansLeTemps { int montant; int duree; int pilesMax = 1; Coefficients coefficients = {}; float coefficientDeDuree = 0; }` (principal, alliés). `enum class CampTouche { Monstres, Allies }` et
 `CampTouche campTouche(const EffetDeSkill&)` (`[[nodiscard]]`) : le camp que touche un effet quand le skill a un rayon de zone, seul
 endroit où il se déduit.
 
@@ -2292,11 +2369,12 @@ gabarits d'armes qui donnent les plages : `docs/objets.md`, « Les gabarits d'ar
 
 ### `ResolutionDuCoup` (`combat/`) — le point d'entrée du coup (étape 87.2)
 
-`Defenses { int armure; StatistiquesDeCombat statistiques; }` (initialisation désignée ; `statistiques.capaciteDefensive > 0` ; seules les statistiques défensives sont lues), `ResultatDuCoup { int montant = 0; bool critique = false; bool esquive = false; int bloque = 0; Degats portions = {}; }` (montant : le total après critique, blocage, armure, résistances et arrondi, somme de `portions` ; `esquive` : coup esquivé, montant 0 ; `bloque` : points absorbés, total si `montant == 0` ; `portions` : ce que chaque élément a donné, étape 94 ; le résultat par défaut `{}` est « rien »), et deux fonctions libres, `[[nodiscard]]`, sans état ni SFML :
+`Defenses { int armure; StatistiquesDeCombat statistiques; }` (initialisation désignée ; `statistiques.capaciteDefensive > 0` ; seules les statistiques défensives sont lues), `ResultatDuCoup { int montant = 0; bool critique = false; bool esquive = false; int bloque = 0; Degats portions = {}; }` (montant : le total après critique, blocage, armure, résistances et arrondi, somme de `portions` ; `esquive` : coup esquivé, montant 0 ; `bloque` : points absorbés, total si `montant == 0` ; `portions` : ce que chaque élément a donné, étape 94 ; le résultat par défaut `{}` est « rien »), et trois fonctions libres, `[[nodiscard]]`, sans état ni SFML :
 
 | Fonction | Rôle |
 |---|---|
 | `ResultatDuCoup resoudreCoup(const Attaque&, const Defenses&, bool blocagePret, Generateur&)` | Appelée par `Vitalite::recevoirDegats`. Esquive (`coupEsquive`) : un coup esquivé s'arrête ; critique (`coupCritique`, multiplicateur sur toutes les portions) ; blocage (`appliquerBlocage`, portion physique seule) : un blocage total s'arrête, sans armure ; armure (`armureAppliquee`, portion physique) ; résistances (`appliquerResistance`, chaque portion) ; un seul arrondi par portion, au moins 1 au total (voir « Types de dégâts et résistances (étape 94) »). **Le seul tirage du moteur du coup**, au plus un par étape et seulement si la chance est non nulle (esquive nulle ou zone, capacité offensive nulle, pas de bouclier, récupération en cours, pas de portion physique) ; aucun pour un total nul ; `blocagePret` : le blocage n'est pas en récupération ; `assert(montant >= 0)` |
+| `int resoudreTick(Element, int montant, const StatistiquesDeCombat&)` | Étape 112.3 : un tick de dégâts dans le temps. Seule la résistance de l'élément du défenseur (`appliquerResistance`, plafonnée) puis un arrondi au plus proche ; ni esquive, ni critique, ni blocage, ni armure, ni tirage. Appelée par `Vitalite::mettreAJour` ; peut rendre 0 ; `assert(montant >= 0)` |
 | `ResultatDuCoup resoudreSoin(const Attaque&, Generateur&)` | Étape 89.4 : un soin peut être critique contre `s_capaciteDefensiveDeReference` (100), sans armure ; même règle de tirage. Appelée par `Escouade::effetDuSkill` |
 
 ### `Jauge` (`combat/`) — une valeur entière plafonnée (étape 108.1)
@@ -2381,7 +2459,9 @@ combat, étape 89 ; avant, un `int m_armure`), `m_effets` (`EffetsActifs`, étap
 | `ResultatDuCoup recevoirDegats(const Attaque& attaque, Generateur& generateur)` | `resoudreCoup(attaque, défenses, blocagePret(), générateur)`, contre les défenses que les effets actifs ont modifiées (`appliquerLesEffets`), puis lance la récupération du blocage si un blocage a eu lieu, puis `PointsDeVie::subirDegats` ; un mort perd ses effets actifs, un survivant reçoit ceux de l'attaque si le coup n'est pas esquivé ; renvoie le résultat (dégâts après critique, blocage et armure, non plafonnés par les points de vie restants ; critique, esquivé, bloqué) ; rien (montant 0, aucun tirage) pour un mort |
 | `void poserEffet(const EffetActif& effet)` | Pose un effet actif (`EffetsActifs::poser`) ; sans effet sur un mort (étape 111.3) |
 | `const EffetsActifs& getEffets() const` / `int getArmure() const` | Les effets actifs ; l'armure qui joue contre le prochain coup, effets compris ; `[[nodiscard]]` |
-| `void mettreAJour(float dt)` | Fait couler la récupération du blocage (sans descendre sous 0) et les effets actifs ; appelée par `Personnage::mettreAJour` (vivant) et `Monstre::mettreAJour` |
+| `void mettreAJour(float dt)` | Fait couler la récupération du blocage (sans descendre sous 0) et les effets actifs ; applique les ticks des effets dans le temps dans l'ordre (dégâts : `resoudreTick` contre les défenses d'à présent puis `subirDegats` ; soin : `soigner`) ; à la mort, vide les effets et laisse les ticks suivants du pas ; sans effet sur un mort ; appelée par `Personnage::mettreAJour` (vivant) et `Monstre::mettreAJour` (étape 112.3) |
+| `std::vector<Tick> prendreLesTicks()` | Ce que les ticks ont fait depuis le dernier appel (dégâts subis après résistance, soin réellement rendu, jamais 0), puis les oublie ; `[[nodiscard]]` ; lu par `Partie` une fois par image (étape 112.3) |
+| `void viderLesEffets()` | Retire tous les effets (le monstre qui rentre à son poste, invulnérable) (étape 112.3) |
 | `bool blocagePret() const` | La récupération est écoulée ; `[[nodiscard]]` |
 | `void definirMaximum(int maximum)` | `PointsDeVie::changerMaximum` (précondition `maximum > 0`) |
 | `int soigner(int montant)` | `PointsDeVie::soigner` : plafonné au maximum, 0 pour un mort ; renvoie les points réellement rendus |
@@ -2445,28 +2525,39 @@ appelant est `Personnage` (`rayonEffectifDuSkill`, `attaqueDuSkill`). `Skill` po
 
 ### `AffichageSkills` (`interface/`) — les noms des skills
 
-`AffichageSkills.hpp` / `.cpp` : `std::string nomDuSkill(IdSkill)` (`[[nodiscard]]`), `switch` sans `default` (un skill ajouté sans nom fait avertir le compilateur), UTF-8, en anglais depuis l'étape 95 : « Power Strike », « Taunt », « Heal », « Explosion », « Holy Strike », « Lay on Hands », « Piercing Shot », « Rain of Arrows », « Blessing ». Le noyau ne connaît que `IdSkill` ; comme `AffichageObjets`, les mots sont dans l'interface.
+`AffichageSkills.hpp` / `.cpp` : `std::string nomDuSkill(IdSkill)` (`[[nodiscard]]`), `switch` sans `default` (un skill ajouté sans nom fait avertir le compilateur), UTF-8, en anglais depuis l'étape 95 : « Power Strike », « Taunt », « Heal », « Explosion », « Holy Strike », « Lay on Hands », « Piercing Shot », « Rain of Arrows », « Blessing », « Renew ». Le noyau ne connaît que `IdSkill` ; comme `AffichageObjets`, les mots sont dans l'interface.
 
 
 ### `EffetActif` et `EffetsActifs` (`combat/`) — ce qu'un skill laisse sur une entité (étape 111.3)
 
 `EffetActif.hpp` (sans `.cpp`) : `enum class StatistiqueModifiable { Armure }`, `struct ModificateurDeStatistique { StatistiqueModifiable
-statistique; int pourcentage; }` (`==`), `using SorteDEffetActif = std::variant<ModificateurDeStatistique>`, `struct EffetActif { IdSkill source;
-float dureeRestante; SorteDEffetActif sorte; }` et `estUnBonus(const EffetActif&)` (pourcentage ≥ 0, `[[nodiscard]]`, un `std::visit`).
-`EffetsActifs.hpp` / `.cpp` : `class EffetsActifs` (un `std::vector<EffetActif>` dans l'ordre de pose) : `poser(const EffetActif&)` (`assert`
-durée > 0 ; ajoute, ou rafraîchit l'effet du même `source` : plus longue durée, valeur de plus grande amplitude), `mettreAJour(float dt)`
-(décrémente, `std::erase_if` à 0), `vider()`, `liste()`, `nombreDeBonus()` / `nombreDeMalus()` (`[[nodiscard]]`) ; et la fonction libre
+statistique; int pourcentage; }` (`==`), `s_intervalleDeTick` (1 s), `struct DegatsDansLeTemps { Element element; int montant; float avantLeTick =
+s_intervalleDeTick; }` et `struct SoinDansLeTemps { int montant; float avantLeTick; }` (étape 112.3 ; `montant` : celui d'une pile, par tick),
+`using SorteDEffetActif = std::variant<ModificateurDeStatistique, DegatsDansLeTemps, SoinDansLeTemps>`, `struct EffetActif { IdSkill source; int
+rang = 0; float dureeRestante; SorteDEffetActif sorte; int pilesMax = 1; int piles = 1; }` (identité `(source, rang)` depuis 112.1, piles depuis
+112.2) et `estUnBonus(const EffetActif&)` (modificateur ≥ 0 et soin dans le temps : bonus ; dégâts dans le temps : malus ; `[[nodiscard]]`).
+`EffetsActifs.hpp` / `.cpp` : `struct TickDeDegats { Element element; int montant; }`, `struct TickDeSoin { int montant; }`, `Tick =
+std::variant<TickDeDegats, TickDeSoin>` ; `class EffetsActifs` (un `std::vector<EffetActif>` dans l'ordre de pose) : `poser(const EffetActif&)`
+(`assert` durée > 0 et `1 <= piles <= pilesMax` ; ajoute, ou rafraîchit l'effet de même `(source, rang)` : plus longue durée, valeur par pile de
+plus grande amplitude, une pile de plus jusqu'au maximum, rythme des ticks gardé), `std::vector<Tick> mettreAJour(float dt)` (décrémente,
+rend les ticks échus, `std::erase_if` à 0), `vider()`, `liste()`, `pilesDesBonus()` / `pilesDesMalus()` (`[[nodiscard]]` : les piles de chaque
+bonus puis de chaque malus, pour les marques) ; et la fonction libre
 `Defenses appliquerLesEffets(const Defenses&, const EffetsActifs&)` (`[[nodiscard]]`). Possédé par `Vitalite`.
 
 ### `MarquesDEffets` (`rendu/`) — les marques d'effets actifs (étape 111.4)
 
-`MarquesDEffets.hpp` / `.cpp` : `s_coteDUneMarque` (4 px) et `s_ecartEntreMarques` (2 px) ; `positionMarquesDEffets(centre, taille)` (coin
-haut-gauche de la rangée, sous le carré de l'entité, alignée sur son bord gauche) ; `dessinerMarquesDEffets(rendu, position, bonus, malus)`
-(`bonus` marques vertes puis `malus` rouges, de gauche à droite). Ne dépend que de SFML : la rangée reçoit des nombres, pas les effets
+`MarquesDEffets.hpp` / `.cpp` : `s_coteDUneMarque` (4 px), `s_ecartEntreMarques` (2 px) et `s_cotePointDeChiffre` (1,5 px) ; `positionMarquesDEffets(centre, taille)` (coin
+haut-gauche de la rangée, sous le carré de l'entité, alignée sur son bord gauche) ; `pointsDuChiffre(int chiffre)` (étape 112.4 : les points
+allumés d'un chiffre de 0 à 9 dans une grille de 3 × 5, `[[nodiscard]]`) ; `dessinerMarquesDEffets(rendu, position, pilesDesBonus, pilesDesMalus)`
+(une marque verte par élément de `pilesDesBonus` puis une rouge par élément de `pilesDesMalus`, de gauche à droite ; le nombre de piles suit sa
+marque, en chiffres de la même couleur, quand il dépasse 1). Ne dépend que de SFML : la rangée reçoit des nombres, pas les effets
 (exceptions transitoires de `ARCHITECTURE.md` : `Monstre` et `Personnage` se dessinent encore eux-mêmes).
 
 ### `AffichageEffets` (`interface/`) — les effets actifs à l'écran (étape 111.5)
 
 `AffichageEffets.hpp` / `.cpp` : `titreDesEffetsActifs()` (« Active effects »), `nomDeLaStatistique(StatistiqueModifiable)` (« Armor », `switch`
 sans `default`) et `ligneDEffetActif(const EffetActif&)` : « Blessing: +20 % Armor (10 s) », « Power Strike: −25 % Armor (8 s) » (signe moins
-U+2212 ; secondes restantes arrondies vers le haut, donc jamais « 0 s » pour un effet actif).
+U+2212 ; secondes restantes arrondies vers le haut, donc jamais « 0 s » pour un effet actif) ; depuis l'étape 112.4, « ×N » après le nom quand
+l'effet a plus d'une pile (la valeur est celle de toutes les piles) et les effets dans le temps : « Bleeding ×2: 14 per s (4 s) », « Burning: 8
+per s (2 s) », « Renew: 9 per s (6 s) » (des dégâts dans le temps portent le nom de leur élément — « Bleeding », « Burning », « Holy Fire » —, un
+soin dans le temps celui de son skill).
