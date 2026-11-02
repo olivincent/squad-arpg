@@ -47,9 +47,9 @@ TEST_CASE("ligneDEffetActif : des degats dans le temps portent le nom de leur el
 }
 
 TEST_CASE("ligneDEffetActif : un soin dans le temps porte le nom de son skill") {
-    const EffetActif soin{.source = IdSkill::Soin, .dureeRestante = 6.0f, .sorte = SoinDansLeTemps{.montant = 9}};
+    const EffetActif renew{.source = IdSkill::Renouvellement, .dureeRestante = 6.0f, .sorte = SoinDansLeTemps{.montant = 9}};
 
-    REQUIRE(ligneDEffetActif(soin) == "Heal: 9 per s (6 s)");
+    REQUIRE(ligneDEffetActif(renew) == "Renew: 9 per s (6 s)");
 }
 
 TEST_CASE("ligneDEffetActif : un modificateur empile montre la valeur de toutes ses piles") {

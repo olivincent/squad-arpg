@@ -697,6 +697,37 @@ TEST_CASE("explosion : ses degats de feu, puis une brulure de 8 par seconde pend
     REQUIRE(total <= 1.0 * direct);
 }
 
+TEST_CASE("renew : le pretre le connait, un soin dans le temps de 11 par seconde pendant 8 s sur l'allie le plus blesse, a la Volonte") {
+    const std::vector<SkillConnu>& skills = specialite(IdSpecialite::Pretre).definition.skills;
+    REQUIRE(skills.size() == 3);
+    REQUIRE(skills[2].id == IdSkill::Renouvellement);
+    const Skill& renew = skills[2].skill;
+
+    REQUIRE(renew.getMode() == ModeDeCible::Allie);
+    REQUIRE_FALSE(renew.getRayonZone().has_value());
+    REQUIRE(renew.getEffets().size() == 1);
+    const EffetSoinDansLeTemps& soin = std::get<EffetSoinDansLeTemps>(renew.getEffet());
+    REQUIRE(soin.montant == 11);
+    REQUIRE(soin.duree == 8);
+    REQUIRE(soin.pilesMax == 1);
+    REQUIRE(soin.coefficients == Coefficients::seul(Caracteristique::Volonte, 1.0f));
+    REQUIRE(soin.coefficientDeDuree == 0.0f);
+    REQUIRE(renew.getCout() == 53);  // un sort (règle du soin) de 10 s de recharge
+    // Du même ordre que le soin immédiat (90) : le total de ses ticks.
+    REQUIRE(soin.montant * soin.duree >= 80);
+    REQUIRE(soin.montant * soin.duree <= 100);
+}
+
+TEST_CASE("renew : la barre par defaut le range sous le soin et la benediction, dans la colonne du pretre") {
+    const Escouade escouade = uneEscouadeDe({100.0f, 100.0f}, composer({IdSpecialite::Pretre, IdSpecialite::Guerrier, IdSpecialite::Mage}));
+
+    const BarreDeRaccourcis barre = barreParDefaut(escouade.adressesDesSkills());
+
+    REQUIRE(barre.adresse(0) == AdresseSkill{Place{1}, IdSkill::Soin});
+    REQUIRE(barre.adresse(4) == AdresseSkill{Place{1}, IdSkill::Benediction});
+    REQUIRE(barre.adresse(8) == AdresseSkill{Place{1}, IdSkill::Renouvellement});
+}
+
 TEST_CASE("benediction : le pretre la connait, un buff d'armure de +20 % pendant 10 s pour toute l'escouade, recharge de 20 s") {
     const Skill* benediction = nullptr;
     for (const SkillConnu& connu : specialite(IdSpecialite::Pretre).definition.skills) {
@@ -716,7 +747,7 @@ TEST_CASE("benediction : le pretre la connait, un buff d'armure de +20 % pendant
     REQUIRE(buff.duree == 10);
     REQUIRE(buff.coefficientDeDuree == 1.0f);  // un sort : sa durée profite de l'Intellect
     REQUIRE(benediction->getCout() == 57);     // technique de 20 s
-    REQUIRE(specialite(IdSpecialite::Pretre).definition.skills.size() == 2);
+    REQUIRE(specialite(IdSpecialite::Pretre).definition.skills.size() == 3);  // le soin, la bénédiction, Renew
 }
 
 TEST_CASE("coefficients d'aire : l'explosion, un sort, profite de l'Intellect ; la pluie de fleches et la provocation, non") {

@@ -12,5 +12,6 @@ enum class IdSkill {
     ImpositionDesMains,
     TirPercant,
     PluieDeFleches,
-    Benediction
+    Benediction,
+    Renouvellement
 };

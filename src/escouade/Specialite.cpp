@@ -36,6 +36,13 @@ constexpr float s_rechargeBenediction = 20.0f;      // en secondes
 constexpr float s_activationBenediction = 0.5f;     // en secondes, immobile avant que l'effet parte
 constexpr int s_malusDArmureFrappePuissante = -25;       // en pour cent de l'armure de la cible (« à tester »)
 constexpr int s_dureeMalusDArmureFrappePuissante = 8;    // en secondes
+// Renew du prêtre (étape 112, « à tester ») : un soin dans le temps sur l'allié le plus blessé, sur la Volonté comme le soin. 11 points par seconde
+// pendant 8 s, soit 88 points : du même ordre que les 90 du soin. Recharge de 10 s (plus que sa durée de 8 s : pas de chevauchement), activation
+// plus courte que celle du soin, coût d'un sort (règle du soin, `coutDUnSort`). Un coefficient de durée de 0, comme tout effet dans le temps.
+constexpr int s_soinRenouvellement = 11;           // par seconde
+constexpr int s_dureeRenouvellement = 8;           // en secondes
+constexpr float s_rechargeRenouvellement = 10.0f;  // en secondes
+constexpr float s_activationRenouvellement = 0.4f; // en secondes
 constexpr float s_porteeSoin = 40.0f;     // bord à bord
 constexpr int s_puissanceSoin = 90;
 constexpr float s_rechargeSoin = 8.0f;    // en secondes
@@ -208,7 +215,17 @@ std::vector<Specialite> construireLeCatalogue() {
                                                                       .duree = s_dureeBenediction,
                                                                       .coefficientDeDuree = 1.0f}},
                                          .tempsExecution = s_activationBenediction,
-                                         .cout = coutDUneTechnique(s_rechargeBenediction)})}},
+                                         .cout = coutDUneTechnique(s_rechargeBenediction)})},
+           // Un soin dans le temps sur l'allié le plus blessé (mode `Allie`, comme le soin) : rien tout de suite, des ticks ensuite.
+           {IdSkill::Renouvellement, Skill({.mode = ModeDeCible::Allie,
+                                            .portee = s_porteeSoin,
+                                            .rechargeMin = s_rechargeRenouvellement,
+                                            .rechargeMax = s_rechargeRenouvellement,
+                                            .effets = {EffetSoinDansLeTemps{.montant = s_soinRenouvellement,
+                                                                            .duree = s_dureeRenouvellement,
+                                                                            .coefficients = s_volonteSeule}},
+                                            .tempsExecution = s_activationRenouvellement,
+                                            .cout = coutDUnSort(s_rechargeRenouvellement)})}},
           .equipementDeDepart = equipementDuPretre(IdObjet::Sceptre), .rayonVision = s_rayonVision,
           .caracteristiques = s_caracteristiquesPretre, .croissance = s_croissancePretre,
           .rang = Rang::Arriere}},

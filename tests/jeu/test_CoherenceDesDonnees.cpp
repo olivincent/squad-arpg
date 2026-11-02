@@ -47,6 +47,41 @@ TEST_CASE("toute classe peut porter tout objet du catalogue au niveau 1") {
     }
 }
 
+TEST_CASE("un effet dans le temps a un coefficient de duree de 0 : son montant gagne deja, la duree ne gagnerait pas deux fois") {
+    int effetsDansLeTemps = 0;
+    for (const Specialite& classe : catalogue()) {
+        for (const SkillConnu& connu : classe.definition.skills) {
+            for (const EffetDeSkill& effet : connu.skill.getEffets()) {
+                INFO(classe.nom << " : skill " << static_cast<int>(connu.id));
+                if (const auto* degats = std::get_if<EffetDegatsDansLeTemps>(&effet)) {
+                    ++effetsDansLeTemps;
+                    REQUIRE(degats->coefficientDeDuree == 0.0f);
+                } else if (const auto* soin = std::get_if<EffetSoinDansLeTemps>(&effet)) {
+                    ++effetsDansLeTemps;
+                    REQUIRE(soin->coefficientDeDuree == 0.0f);
+                }
+            }
+        }
+    }
+    REQUIRE(effetsDansLeTemps >= 3);  // le saignement, la brûlure et Renew
+}
+
+TEST_CASE("un soin dans le temps ne dure jamais plus longtemps que la recharge de son skill") {
+    int soins = 0;
+    for (const Specialite& classe : catalogue()) {
+        for (const SkillConnu& connu : classe.definition.skills) {
+            for (const EffetDeSkill& effet : connu.skill.getEffets()) {
+                if (const auto* soin = std::get_if<EffetSoinDansLeTemps>(&effet)) {
+                    ++soins;
+                    INFO(classe.nom << " : " << connu.skill.getRechargeMin() << " s de recharge");
+                    REQUIRE(static_cast<float>(soin->duree) <= connu.skill.getRechargeMin());
+                }
+            }
+        }
+    }
+    REQUIRE(soins >= 1);  // Renew
+}
+
 TEST_CASE("un buff ne dure jamais plus longtemps que sa recharge, meme au plafond du bonus de duree") {
     int buffs = 0;
     for (const Specialite& classe : catalogue()) {

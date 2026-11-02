@@ -70,6 +70,8 @@ std::string sigleDuSkill(IdSkill id) {
             return "RA";
         case IdSkill::Benediction:
             return "BL";
+        case IdSkill::Renouvellement:
+            return "RN";
     }
     return "??";
 }
