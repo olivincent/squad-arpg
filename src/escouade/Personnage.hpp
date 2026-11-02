@@ -3,6 +3,8 @@
 #include "combat/ActionEngagee.hpp"
 #include "base/Aleatoire.hpp"
 #include "base/Cercle.hpp"
+#include "combat/EffetActif.hpp"
+#include "combat/EffetsActifs.hpp"
 #include "combat/EtatSkill.hpp"
 #include "combat/IdMonstre.hpp"
 #include "combat/IdSkill.hpp"
@@ -116,6 +118,10 @@ public:
     // maximum, 0 pour un mort).
     ResultatDuCoup recevoirDegats(const Attaque& attaque, Generateur& generateur);
     int recevoirSoin(int quantite);
+    // Ses effets actifs (étape 111), que sa vitalité possède : un buff posé par un allié, un affaiblissement. `poserEffet` est sans
+    // effet sur un mort ; la mort retire tous les effets. Ils passent au-dessus de ses défenses, recalculées sans les perdre.
+    void poserEffet(const EffetActif& effet);
+    [[nodiscard]] const EffetsActifs& getEffets() const;
     [[nodiscard]] bool estVivant() const;
     [[nodiscard]] int getPointsDeVie() const;
     [[nodiscard]] int getPointsDeVieMax() const;
@@ -198,7 +204,11 @@ private:
     // L'attaque de ce skill de ce personnage, selon son effet : le montant, caractéristiques comprises (`montantEffectif`), rangé
     // dans le champ que dit l'effet (dégâts, soin ou durée de provocation), la capacité offensive du personnage ; aucune
     // pénétration, sauf pour un skill de frappe (celle de l'arme).
-    [[nodiscard]] Attaque attaqueDuSkill(const Skill& skill, Generateur& generateur) const;
+    // Elle porte aussi les effets actifs du skill (`effetsActifsDuSkill`).
+    [[nodiscard]] Attaque attaqueDuSkill(const Skill& skill, IdSkill id, Generateur& generateur) const;
+    // Les effets actifs que ce skill, lancé par ce personnage, pose : un par modificateur de sa liste d'effets, avec sa durée majorée
+    // par le bonus de durée (`dureeEffective`). L'identité de chacun est le skill (`id`).
+    [[nodiscard]] std::vector<EffetActif> effetsActifsDuSkill(const Skill& skill, IdSkill id) const;
     // Celle d'un skill de frappe : toutes les portions de l'arme portée (affixes compris), tirées dans sa plage comme pour
     // l'attaque de base, la nature et la pénétration de l'arme, plus le bonus du skill ; la Puissance joue sur chaque portion
     // (`montantEffectif`, avec les coefficients de l'effet).

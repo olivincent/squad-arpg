@@ -19,7 +19,8 @@ public:
     // caractéristiques). Mêmes préconditions.
     void definirDefenses(const Defenses& defenses);
     // Résout le coup (`resoudreCoup`, qui tire dans `generateur`, contre les défenses que les effets actifs ont modifiées :
-    // `appliquerLesEffets`) puis retire les points de vie. Si l'entité en meurt, ses effets actifs disparaissent. Le
+    // `appliquerLesEffets`) puis retire les points de vie. Si l'entité en meurt, ses effets actifs disparaissent ; sinon, et si le coup
+    // n'est pas esquivé, elle reçoit ceux de l'attaque (`Attaque::effets`), après le coup : ils ne jouent qu'au suivant. Le
     // résultat porte les dégâts après armure, non plafonnés par les points de vie restants ; rien (0, sans
     // tirage) pour un mort. Un blocage réussi lance la récupération du blocage (le temps pendant lequel le
     // bouclier ne bloque plus), qui est un état de la vitalité : elle s'écoule par `mettreAJour`.

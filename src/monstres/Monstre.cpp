@@ -5,6 +5,7 @@
 #include "combat/Cible.hpp"
 #include "combat/EffetDeSkill.hpp"
 #include "rendu/BarreDeVie.hpp"
+#include "rendu/MarquesDEffets.hpp"
 #include "monde/ChampDeVision.hpp"
 #include "base/Eclaircir.hpp"
 #include "monde/TileMap.hpp"
@@ -66,6 +67,8 @@ void Monstre::dessiner(sf::RenderTarget& rendu, bool estCible, bool marquerLeRet
     rendu.draw(forme);
 
     dessinerBarreDeVie(rendu, positionBarreDeVie(centre, taille), taille.x, m_vitalite.getRatio());
+    dessinerMarquesDEffets(rendu, positionMarquesDEffets(centre, taille), m_vitalite.getEffets().nombreDeBonus(),
+                           m_vitalite.getEffets().nombreDeMalus());
 }
 
 void Monstre::dessinerChemin(sf::RenderTarget& rendu) const {
@@ -130,6 +133,10 @@ int Monstre::getPointsDeVie() const {
 
 int Monstre::getPointsDeVieMax() const {
     return m_vitalite.getMaximum();
+}
+
+const EffetsActifs& Monstre::getEffets() const {
+    return m_vitalite.getEffets();
 }
 
 float Monstre::getZoneDeControle() const {

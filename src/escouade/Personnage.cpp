@@ -315,7 +315,7 @@ std::optional<Attaque> Personnage::avancerSkill(float dt, Generateur& generateur
     // n'a pu la dépenser depuis) et l'attaque de base repart pour une recharge complète.
     m_energie.payer(skill.getCout());
     m_attaqueDeBase.relancerRecharge(generateur);
-    return attaqueDuSkill(skill, generateur);
+    return attaqueDuSkill(skill, *action->skill, generateur);  // NOLINT(bugprone-unchecked-optional-access): vérifié par l'assert au-dessus (_assert de MinGW n'est pas noreturn)
 }
 
 void Personnage::annulerSkill() {
@@ -337,6 +337,14 @@ int Personnage::recevoirSoin(int quantite) {
 
 bool Personnage::estVivant() const {
     return m_vitalite.estVivant();
+}
+
+void Personnage::poserEffet(const EffetActif& effet) {
+    m_vitalite.poserEffet(effet);
+}
+
+const EffetsActifs& Personnage::getEffets() const {
+    return m_vitalite.getEffets();
 }
 
 int Personnage::getPointsDeVie() const {
@@ -482,8 +490,8 @@ Attaque Personnage::attaqueDeLArme(Generateur& generateur) const {
     return attaque;
 }
 
-Attaque Personnage::attaqueDuSkill(const Skill& skill, Generateur& generateur) const {
-    return std::visit(
+Attaque Personnage::attaqueDuSkill(const Skill& skill, IdSkill id, Generateur& generateur) const {
+    Attaque duSkill = std::visit(
         Surcharges{
             [&](const EffetDegats& degats) {
                 Attaque attaque = {.degats = {},
@@ -506,8 +514,27 @@ Attaque Personnage::attaqueDuSkill(const Skill& skill, Generateur& generateur) c
                 attaque.dureeDeProvocation = dureeEffective(static_cast<float>(provocation.duree), provocation.coefficientDeDuree, m_caracteristiques);
                 return attaque;
             },
+            // Un modificateur n'a ni dégâts ni soin : tout ce qu'il produit est dans les effets actifs, ajoutés plus bas.
+            [&](const EffetModificateur&) {
+                return Attaque{.degats = {}, .capaciteOffensive = m_statistiques.capaciteOffensive, .nature = NatureDAttaque::Contact};
+            },
         },
         skill.getEffet());
+    duSkill.effets = effetsActifsDuSkill(skill, id);
+    return duSkill;
+}
+
+std::vector<EffetActif> Personnage::effetsActifsDuSkill(const Skill& skill, IdSkill id) const {
+    std::vector<EffetActif> effets;
+    for (const EffetDeSkill& effet : skill.getEffets()) {
+        // Seul le modificateur pose un effet actif pour l'instant ; les autres sortes d'effet actif (étapes 112 à 114) s'ajouteront ici.
+        if (const auto* modificateur = std::get_if<EffetModificateur>(&effet)) {
+            effets.push_back({.source = id,
+                              .dureeRestante = dureeEffective(static_cast<float>(modificateur->duree), modificateur->coefficientDeDuree, m_caracteristiques),
+                              .sorte = ModificateurDeStatistique{.statistique = modificateur->statistique, .pourcentage = modificateur->pourcentage}});
+        }
+    }
+    return effets;
 }
 
 Attaque Personnage::attaqueDeFrappe(const EffetFrappe& frappe, Generateur& generateur) const {

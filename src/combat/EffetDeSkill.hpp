@@ -3,6 +3,7 @@
 #include <variant>
 #include "combat/Caracteristiques.hpp"
 #include "combat/Degats.hpp"
+#include "combat/EffetActif.hpp"
 #include "combat/Element.hpp"
 #include "combat/NatureDAttaque.hpp"
 
@@ -43,9 +44,22 @@ struct EffetProvocation {  // NOLINT(cppcoreguidelines-pro-type-member-init): ch
     float coefficientDeDuree = 0.0f;  // sa part du bonus de durée du lanceur (`dureeEffective`), de 0 à 1 ; la provocation du guerrier : 0
 };
 
-using EffetDeSkill = std::variant<EffetDegats, EffetFrappe, EffetSoin, EffetProvocation>;
+// Pose un modificateur de statistique (`ModificateurDeStatistique`, un effet actif) sur chaque entité touchée, pour cette durée (en
+// secondes, majorée par le bonus de durée du lanceur selon `coefficientDeDuree`, de 0 à 1 ; 0 pour ce qui n'est pas un sort). Le
+// pourcentage est positif pour un buff, négatif pour un affaiblissement. Effet principal d'un skill, il touche les alliés et est donc
+// un buff ; effet secondaire, il suit des dégâts ou une frappe, touche les monstres que le coup atteint, et n'est posé que si le coup
+// n'est pas esquivé.
+struct EffetModificateur {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
+    StatistiqueModifiable statistique;
+    int pourcentage;
+    int duree;
+    float coefficientDeDuree = 0.0f;
+};
 
-// Le camp que touche un effet quand il a un rayon de zone : les dégâts et la provocation touchent les monstres, le soin les alliés.
+using EffetDeSkill = std::variant<EffetDegats, EffetFrappe, EffetSoin, EffetProvocation, EffetModificateur>;
+
+// Le camp que touche un effet quand il a un rayon de zone : les dégâts et la provocation touchent les monstres, le soin les alliés, un
+// modificateur les alliés si c'est un buff et les monstres si c'est un affaiblissement.
 // Seul endroit où le camp se déduit de l'effet.
 enum class CampTouche { Monstres, Allies };
 [[nodiscard]] CampTouche campTouche(const EffetDeSkill& effet);

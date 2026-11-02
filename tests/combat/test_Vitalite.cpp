@@ -314,6 +314,63 @@ TEST_CASE("Vitalite : le meme skill pose deux fois rafraichit son effet, il n'y 
     REQUIRE(vitalite.getEffets().liste()[0].dureeRestante == 10.0f);
 }
 
+namespace {
+// Un coup de contact de ces dégâts qui pose un affaiblissement d'armure de -25 % pendant 8 s.
+Attaque coupQuiAffaiblit(int montant) {
+    Attaque attaque = attaqueSansHasard(montant);
+    attaque.effets.push_back(effetDArmure(IdSkill::FrappePuissante, -25, 8.0f));
+    return attaque;
+}
+}  // namespace
+
+TEST_CASE("Vitalite : les effets de l'attaque se posent apres le coup, ils ne jouent qu'au suivant") {
+    Vitalite vitalite(10000, defensesDeTest(20));
+    Generateur generateur = generateurDeTest();
+
+    REQUIRE(vitalite.recevoirDegats(coupQuiAffaiblit(100), generateur).montant == 80);  // armure 20, pas encore affaiblie
+    REQUIRE(vitalite.getEffets().liste().size() == 1);
+
+    REQUIRE(vitalite.recevoirDegats(coupQuiAffaiblit(100), generateur).montant == 85);  // armure 15
+    REQUIRE(vitalite.getEffets().liste().size() == 1);  // le même skill rafraîchit, il n'en pose pas un deuxième
+}
+
+TEST_CASE("Vitalite : un coup esquive ne pose aucun effet") {
+    Generateur generateur = generateurDeTest();
+    int esquives = 0;
+    int touches = 0;
+
+    for (int i = 0; i < 100; ++i) {
+        Vitalite vitalite(100000, {.armure = 0, .statistiques = {.capaciteDefensive = 100, .esquiveContact = 50}});
+        const ResultatDuCoup resultat = vitalite.recevoirDegats(coupQuiAffaiblit(100), generateur);
+        REQUIRE(vitalite.getEffets().liste().empty() == resultat.esquive);
+        (resultat.esquive ? esquives : touches) += 1;
+    }
+    REQUIRE(esquives > 0);
+    REQUIRE(touches > 0);
+}
+
+TEST_CASE("Vitalite : un coup qui tue ne laisse aucun effet") {
+    Vitalite vitalite(100, defensesDeTest(0));
+    Generateur generateur = generateurDeTest();
+
+    static_cast<void>(vitalite.recevoirDegats(coupQuiAffaiblit(100), generateur));
+
+    REQUIRE_FALSE(vitalite.estVivant());
+    REQUIRE(vitalite.getEffets().liste().empty());
+}
+
+TEST_CASE("Vitalite : un coup bloque en entier pose quand meme ses effets, il a atteint") {
+    Vitalite vitalite(1000, {.armure = 0, .statistiques = {.capaciteDefensive = 100, .chanceDeBlocage = 100, .montantBloque = 40}});
+    Generateur generateur = generateurDeTest();
+    Attaque attaque = attaqueSansHasard(30);
+    attaque.effets.push_back(effetDArmure(IdSkill::FrappePuissante, -25, 8.0f));
+
+    const ResultatDuCoup resultat = vitalite.recevoirDegats(attaque, generateur);
+
+    REQUIRE(resultat.bloque == 30);
+    REQUIRE(vitalite.getEffets().liste().size() == 1);
+}
+
 TEST_CASE("Vitalite : sans bouclier, le blocage est toujours pret") {
     Vitalite vitalite(100, defensesDeTest(0));
     Generateur generateur = generateurDeTest();

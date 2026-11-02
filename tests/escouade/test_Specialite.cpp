@@ -609,7 +609,8 @@ TEST_CASE("coefficients : la Puissance pour ce qui frappe avec l'arme, le Savoir
                 return std::visit(Surcharges{[](const EffetDegats& effet) { return effet.coefficients; },
                                              [](const EffetFrappe& effet) { return effet.coefficients; },
                                              [](const EffetSoin& effet) { return effet.coefficients; },
-                                             [](const EffetProvocation&) { return Coefficients(); }},
+                                             [](const EffetProvocation&) { return Coefficients(); },
+                                             [](const EffetModificateur&) { return Coefficients(); }},
                                   connu.skill.getEffet());
             }
         }
@@ -625,6 +626,24 @@ TEST_CASE("coefficients : la Puissance pour ce qui frappe avec l'arme, le Savoir
     REQUIRE(coefficients(IdSpecialite::Mage, IdSkill::Explosion) == seul(Caracteristique::Savoir));
     REQUIRE(coefficients(IdSpecialite::Rodeur, IdSkill::TirPercant) == seul(Caracteristique::Puissance));
     REQUIRE(coefficients(IdSpecialite::Rodeur, IdSkill::PluieDeFleches) == seul(Caracteristique::Puissance));
+}
+
+TEST_CASE("frappe puissante : ses degats, puis -25 % d'armure sur la cible pendant 8 s, une technique sans bonus de duree") {
+    const Skill* frappe = nullptr;
+    for (const SkillConnu& connu : specialite(IdSpecialite::Guerrier).definition.skills) {
+        if (connu.id == IdSkill::FrappePuissante) {
+            frappe = &connu.skill;
+        }
+    }
+    REQUIRE(frappe != nullptr);
+
+    REQUIRE(frappe->getEffets().size() == 2);
+    REQUIRE(std::holds_alternative<EffetDegats>(frappe->getEffets()[0]));
+    const EffetModificateur& malus = std::get<EffetModificateur>(frappe->getEffets()[1]);
+    REQUIRE(malus.statistique == StatistiqueModifiable::Armure);
+    REQUIRE(malus.pourcentage == -25);
+    REQUIRE(malus.duree == 8);
+    REQUIRE(malus.coefficientDeDuree == 0.0f);
 }
 
 TEST_CASE("coefficients d'aire : l'explosion, un sort, profite de l'Intellect ; la pluie de fleches et la provocation, non") {

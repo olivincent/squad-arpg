@@ -28,6 +28,8 @@ constexpr float s_rayonVision = 320.0f;  // en pixels (8 cases), le même pour t
 constexpr int s_degatsSkill = 75;
 constexpr float s_rechargeSkill = 5.0f;   // en secondes
 constexpr float s_activationSkill = 0.3f; // en secondes, immobile avant que l'effet parte
+constexpr int s_malusDArmureFrappePuissante = -25;       // en pour cent de l'armure de la cible (« à tester »)
+constexpr int s_dureeMalusDArmureFrappePuissante = 8;    // en secondes
 constexpr float s_porteeSoin = 40.0f;     // bord à bord
 constexpr int s_puissanceSoin = 90;
 constexpr float s_rechargeSoin = 8.0f;    // en secondes
@@ -149,7 +151,11 @@ std::vector<Specialite> construireLeCatalogue() {
                                                        .portee = s_porteeMelee,
                                                        .rechargeMin = s_rechargeSkill,
                                                        .rechargeMax = s_rechargeSkill,
-                                                       .effets = {EffetDegats{.montant = s_degatsSkill, .nature = NatureDAttaque::Contact, .coefficients = s_puissanceSeule}},
+                                                       .effets = {EffetDegats{.montant = s_degatsSkill, .nature = NatureDAttaque::Contact, .coefficients = s_puissanceSeule},
+                                                                  // Si le coup touche : l'armure de la cible baisse un moment. Une technique, pas un sort : la durée ne profite pas de l'Intellect.
+                                                                  EffetModificateur{.statistique = StatistiqueModifiable::Armure,
+                                                                                    .pourcentage = s_malusDArmureFrappePuissante,
+                                                                                    .duree = s_dureeMalusDArmureFrappePuissante}},
                                                        .tempsExecution = s_activationSkill,
                                                        .armesExigees = s_armesDeContact,
                                                        .cout = coutDUneTechnique(s_rechargeSkill)})},

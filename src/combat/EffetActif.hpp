@@ -30,3 +30,8 @@ struct EffetActif {
     float dureeRestante;     // en secondes ; l'effet disparaît à 0
     SorteDEffetActif sorte;
 };
+
+// Un bonus (vert à l'écran) aide l'entité qui le porte ; sinon c'est un malus (rouge). Un modificateur de 0 % est un bonus.
+[[nodiscard]] inline bool estUnBonus(const EffetActif& effet) {
+    return std::visit([](const ModificateurDeStatistique& modificateur) { return modificateur.pourcentage >= 0; }, effet.sorte);
+}

@@ -98,6 +98,9 @@ public:
     [[nodiscard]] bool estVivant() const;
     [[nodiscard]] int getPointsDeVie() const;
     [[nodiscard]] int getPointsDeVieMax() const;
+    // Ses effets actifs (étape 111), que sa vitalité possède : un affaiblissement posé par une frappe. Ils s'écoulent avec le temps et
+    // disparaissent à sa mort ; un coup reçu pendant le retour au poste (invulnérable) n'en pose aucun.
+    [[nodiscard]] const EffetsActifs& getEffets() const;
     // Zone de contrôle du monstre, en pixels, bord à bord.
     [[nodiscard]] float getZoneDeControle() const;
     // Son attaque : les dégâts, avant l'armure de la cible, et sa capacité offensive.

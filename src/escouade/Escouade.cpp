@@ -363,7 +363,7 @@ Escouade::EntitesTouchees Escouade::entitesTouchees(const Skill& skill, Place la
 }
 
 // Effet d'un skill qui part, appliqué au moment du départ : le départ du skill, puis, pour chaque entité touchée, ce que fait l'effet.
-// Le soin (critique éventuel compris) et la provocation ont lieu ici ; les dégâts sortent en `Coup`.
+// Le soin (critique éventuel compris), la provocation et un buff ont lieu ici ; les dégâts sortent en `Coup`.
 std::vector<ResultatDEffet> Escouade::appliquerLEffet(Place place, IdSkill id, const std::optional<Cible>& cible, const Attaque& attaque, const std::vector<MonstreVu>& monstres, const TileMap& carte, Generateur& generateur) {
     const Personnage& lanceur = personnageDeLaPlace(place);
     const Skill* skill = lanceur.skillConnu(id);
@@ -393,6 +393,14 @@ std::vector<ResultatDEffet> Escouade::appliquerLEffet(Place place, IdSkill id, c
                 for (const IdMonstre monstre : touchees.monstres) {
                     m_provocations.provoquer(monstre, place, attaque.dureeDeProvocation);
                     resultats.push_back(ProvocationPosee{monstre});
+                }
+            },
+            // Un buff : posé sur chaque allié touché, tout de suite (les effets d'un coup sur un monstre, eux, partent avec le `Coup`).
+            [&](const EffetModificateur&) {
+                for (const Place beneficiaire : touchees.allies) {
+                    for (const EffetActif& effet : attaque.effets) {
+                        personnageDeLaPlace(beneficiaire).poserEffet(effet);
+                    }
                 }
             },
         },
@@ -548,6 +556,13 @@ std::optional<int> Escouade::pointsDeVieDuPersonnage(Place place) const {
         return std::nullopt;
     }
     return personnageDeLaPlace(place).getPointsDeVie();
+}
+
+std::optional<EffetsActifs> Escouade::effetsDuPersonnage(Place place) const {
+    if (!placeValide(place)) {
+        return std::nullopt;
+    }
+    return personnageDeLaPlace(place).getEffets();
 }
 
 std::optional<int> Escouade::pointsDeVieMaxDuPersonnage(Place place) const {

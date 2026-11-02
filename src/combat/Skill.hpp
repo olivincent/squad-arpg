@@ -77,6 +77,9 @@ public:
     [[nodiscard]] ModeDeCible getMode() const;
     // L'effet principal : le premier de la liste.
     [[nodiscard]] const EffetDeSkill& getEffet() const;
+    // Tous les effets, le principal d'abord. Un effet secondaire est un modificateur (`EffetModificateur`) qui suit des dégâts ou une
+    // frappe et touche les monstres que le coup atteint.
+    [[nodiscard]] const std::vector<EffetDeSkill>& getEffets() const;
     // Le rayon de la zone touchée ; vide si l'effet touche la cible seule.
     [[nodiscard]] std::optional<float> getRayonZone() const;
     // Sa part du bonus d'aire du lanceur, de 0 à 1.

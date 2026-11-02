@@ -27,6 +27,11 @@ ResultatDuCoup Vitalite::recevoirDegats(const Attaque& attaque, Generateur& gene
     m_pointsDeVie.subirDegats(resultat.montant);
     if (!estVivant()) {
         m_effets.vider();
+    } else if (!resultat.esquive) {
+        // Les effets du skill ne se posent que si le coup atteint : un coup esquivé n'applique rien.
+        for (const EffetActif& effet : attaque.effets) {
+            m_effets.poser(effet);
+        }
     }
     return resultat;
 }

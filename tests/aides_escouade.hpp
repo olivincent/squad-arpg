@@ -44,6 +44,7 @@
 #include "jeu/ObjetAuSol.hpp"
 #include "jeu/Partie.hpp"
 #include "combat/Skill.hpp"
+#include "combat/SkillConnu.hpp"
 #include "monde/TileMap.hpp"
 #include "combat/TypeDArme.hpp"
 #include "combat/ModeDeCible.hpp"
@@ -248,6 +249,45 @@ inline DefinitionPersonnage mageDeTest() {
             .rayonVision = s_rayonVisionDeTest,
             .caracteristiques = caracteristiquesPourPorter({{Emplacement::MainDroite, IdObjet::Baton}}),
             .rang = Rang::Arriere};
+}
+
+// Des effets actifs (étape 111). Le guerrier de test dont la frappe pose aussi un affaiblissement d'armure sur la cible qu'elle touche,
+// et le prêtre de test dont le skill (qui porte l'identifiant `Soin`) est un buff d'armure posé sur un allié.
+inline constexpr int s_malusDArmureDeTest = -25;         // en pour cent
+inline constexpr int s_dureeMalusDArmureDeTest = 8;      // en secondes
+inline constexpr int s_bonusDArmureDeTest = 20;          // en pour cent
+inline constexpr int s_dureeBonusDArmureDeTest = 10;     // en secondes
+
+inline DefinitionPersonnage guerrierQuiAffaiblit() {
+    DefinitionPersonnage guerrier = guerrierDeTest();
+    guerrier.skills.front() = SkillConnu{
+        IdSkill::FrappePuissante,
+        Skill({.mode = ModeDeCible::Monstre,
+               .portee = s_porteeMeleeDeTest,
+               .rechargeMin = s_rechargeFrappeDeTest,
+               .rechargeMax = s_rechargeFrappeDeTest,
+               .effets = {EffetDegats{.montant = s_degatsFrappeDeTest, .nature = NatureDAttaque::Contact},
+                          EffetModificateur{.statistique = StatistiqueModifiable::Armure,
+                                            .pourcentage = s_malusDArmureDeTest,
+                                            .duree = s_dureeMalusDArmureDeTest}},
+               .tempsExecution = s_activationFrappeDeTest})};
+    return guerrier;
+}
+
+inline DefinitionPersonnage pretreQuiBenit() {
+    DefinitionPersonnage pretre = pretreDeTest();
+    pretre.skills.front() = SkillConnu{
+        IdSkill::Soin,
+        Skill({.mode = ModeDeCible::Allie,
+               .portee = s_porteeSoinDeTest,
+               .rechargeMin = s_rechargeSoinDeTest,
+               .rechargeMax = s_rechargeSoinDeTest,
+               .effets = {EffetModificateur{.statistique = StatistiqueModifiable::Armure,
+                                            .pourcentage = s_bonusDArmureDeTest,
+                                            .duree = s_dureeBonusDArmureDeTest,
+                                            .coefficientDeDuree = 1.0f}},
+               .tempsExecution = s_activationSoinDeTest})};
+    return pretre;
 }
 
 // Des personnages dont les skills coûtent de l'énergie (étape 108) : les définitions de test des classes ne coûtent rien, pour que les

@@ -76,6 +76,7 @@ add_library(squad_core STATIC
     src/interface/PileDEcrans.cpp
     src/rendu/BarreDeVie.cpp
     src/rendu/BarreDEnergie.cpp
+    src/rendu/MarquesDEffets.cpp
     src/base/Eclaircir.cpp
     src/combat/Jauge.cpp
     src/combat/PointsDeVie.cpp
@@ -152,6 +153,7 @@ add_executable(tests
     tests/escouade/test_Escouade_skills_soin.cpp
     tests/escouade/test_Escouade_skills_provocation.cpp
     tests/escouade/test_Escouade_skills_zone.cpp
+    tests/escouade/test_Escouade_effets.cpp
     tests/escouade/test_Escouade_agresseurs.cpp
     tests/escouade/test_Escouade_vue.cpp
     tests/escouade/test_Escouade_places.cpp
@@ -196,6 +198,7 @@ add_executable(tests
     tests/combat/test_EffetDeSkill.cpp
     tests/rendu/test_BarreDeVie.cpp
     tests/rendu/test_BarreDEnergie.cpp
+    tests/rendu/test_MarquesDEffets.cpp
     tests/base/test_Eclaircir.cpp
     tests/combat/test_Energie.cpp
     tests/combat/test_Jauge.cpp
@@ -238,6 +241,7 @@ add_executable(tests
     tests/monstres/test_Monstre_tireur.cpp
     tests/jeu/test_Partie_allies.cpp
     tests/jeu/test_Partie_soigneur.cpp
+    tests/jeu/test_Partie_effets.cpp
     tests/monstres/test_Monstre_soigneur.cpp
     tests/jeu/test_Partie_clics.cpp
     tests/jeu/test_Partie_skills.cpp

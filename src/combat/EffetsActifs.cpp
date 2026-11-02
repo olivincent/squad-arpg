@@ -45,6 +45,14 @@ const std::vector<EffetActif>& EffetsActifs::liste() const {
     return m_effets;
 }
 
+int EffetsActifs::nombreDeBonus() const {
+    return static_cast<int>(std::ranges::count_if(m_effets, [](const EffetActif& effet) { return estUnBonus(effet); }));
+}
+
+int EffetsActifs::nombreDeMalus() const {
+    return static_cast<int>(m_effets.size()) - nombreDeBonus();
+}
+
 Defenses appliquerLesEffets(const Defenses& defenses, const EffetsActifs& effets) {
     int pourcentageDArmure = 0;
     for (const EffetActif& effet : effets.liste()) {

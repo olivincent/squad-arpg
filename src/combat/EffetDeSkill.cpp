@@ -6,6 +6,9 @@ CampTouche campTouche(const EffetDeSkill& effet) {
     return std::visit(Surcharges{[](const EffetDegats&) { return CampTouche::Monstres; },
                                  [](const EffetFrappe&) { return CampTouche::Monstres; },
                                  [](const EffetSoin&) { return CampTouche::Allies; },
-                                 [](const EffetProvocation&) { return CampTouche::Monstres; }},
+                                 [](const EffetProvocation&) { return CampTouche::Monstres; },
+                                 [](const EffetModificateur& modificateur) {
+                                     return modificateur.pourcentage >= 0 ? CampTouche::Allies : CampTouche::Monstres;
+                                 }},
                       effet);
 }

@@ -1,6 +1,8 @@
 // ./src/combat/Attaque.hpp
 #pragma once
+#include <vector>
 #include "combat/Degats.hpp"
+#include "combat/EffetActif.hpp"
 #include "combat/NatureDAttaque.hpp"
 
 // Ce qui part de l'attaquant quand un coup ou un skill part, et qui circule jusqu'au défenseur à la place d'un
@@ -16,4 +18,7 @@ struct Attaque {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans
     int penetration = 0;     // en pour cent de l'armure du défenseur ignorée (plafonnée : `s_penetrationMaximale`) ; l'attaque de base d'une arme en a, un skill n'en a pas
     int soin = 0;            // points de vie à rendre, caractéristiques comprises ; seulement pour un skill de soin
     float dureeDeProvocation = 0.0f;  // en secondes ; seulement pour un skill de provocation
+    // Les effets actifs que le skill pose : sur chaque monstre que le coup atteint (`Vitalite::recevoirDegats`, qui n'en pose aucun si
+    // le coup est esquivé) ou, pour un modificateur principal, sur les alliés touchés (`Escouade`). Vide pour l'attaque de base.
+    std::vector<EffetActif> effets = {};
 };

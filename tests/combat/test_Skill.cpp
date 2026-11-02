@@ -47,6 +47,36 @@ TEST_CASE("Skill.getEffet renvoie l'effet donne au constructeur, une alternative
     REQUIRE(std::get<EffetSoin>(soin.getEffet()).montant == 25);
 }
 
+TEST_CASE("Skill.getEffets garde tous les effets, le principal d'abord") {
+    const Skill frappe({.mode = ModeDeCible::Monstre,
+                        .portee = 80.0f,
+                        .rechargeMin = 5.0f,
+                        .rechargeMax = 5.0f,
+                        .effets = {EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact},
+                                   EffetModificateur{.statistique = StatistiqueModifiable::Armure, .pourcentage = -25, .duree = 8}}});
+    const Skill simple({.mode = ModeDeCible::Monstre,
+                        .portee = 80.0f,
+                        .rechargeMin = 5.0f,
+                        .rechargeMax = 5.0f,
+                        .effets = {EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}}});
+
+    REQUIRE(frappe.getEffets().size() == 2);
+    REQUIRE(std::holds_alternative<EffetDegats>(frappe.getEffets()[0]));
+    REQUIRE(std::holds_alternative<EffetModificateur>(frappe.getEffets()[1]));
+    REQUIRE(std::holds_alternative<EffetDegats>(frappe.getEffet()));  // le principal
+    REQUIRE(simple.getEffets().size() == 1);
+}
+
+TEST_CASE("Skill : un buff est un effet principal valide, il touche les allies") {
+    const Skill benediction({.mode = ModeDeCible::Allie,
+                             .portee = 80.0f,
+                             .rechargeMin = 20.0f,
+                             .rechargeMax = 20.0f,
+                             .effets = {EffetModificateur{.statistique = StatistiqueModifiable::Armure, .pourcentage = 20, .duree = 10}}});
+
+    REQUIRE(campTouche(benediction.getEffet()) == CampTouche::Allies);
+}
+
 TEST_CASE("Skill.getMode renvoie le mode de cible donne au constructeur, quel que soit ce que fait le skill") {
     // Le mode (comment on vise) ne se déduit pas du type (ce que le skill fait) : un skill de dégâts peut viser un monstre ou un point.
     Skill surUnMonstre({.mode = ModeDeCible::Monstre,

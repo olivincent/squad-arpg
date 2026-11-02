@@ -30,6 +30,16 @@ Skill::Skill(const DefinitionDeSkill& definition)
     // On vise un monstre pour lui faire des dégâts ou le provoquer, un allié pour le soigner.
     assert(m_mode != ModeDeCible::Monstre || campTouche(m_effets.front()) == CampTouche::Monstres);
     assert(m_mode != ModeDeCible::Allie || campTouche(m_effets.front()) == CampTouche::Allies);
+    // Un modificateur principal est un buff, posé sur les alliés ; un affaiblissement n'existe que derrière un coup.
+    assert(!std::holds_alternative<EffetModificateur>(m_effets.front()) || campTouche(m_effets.front()) == CampTouche::Allies);
+    // Les effets secondaires sont des modificateurs qui suivent des dégâts ou une frappe et touchent le même camp que lui : `Escouade`
+    // et `Personnage` n'en posent pas d'autres.
+    assert(m_effets.size() == 1 || std::holds_alternative<EffetDegats>(m_effets.front()) ||
+           std::holds_alternative<EffetFrappe>(m_effets.front()));
+    for (std::size_t i = 1; i < m_effets.size(); ++i) {
+        assert(std::holds_alternative<EffetModificateur>(m_effets[i]));
+        assert(campTouche(m_effets[i]) == campTouche(m_effets.front()));
+    }
 }
 
 // Recharge fixe (aucun tirage) si les deux bornes sont égales ; sinon tirage
@@ -112,6 +122,10 @@ ModeDeCible Skill::getMode() const {
 
 const EffetDeSkill& Skill::getEffet() const {
     return m_effets.front();
+}
+
+const std::vector<EffetDeSkill>& Skill::getEffets() const {
+    return m_effets;
 }
 
 std::optional<float> Skill::getRayonZone() const {
