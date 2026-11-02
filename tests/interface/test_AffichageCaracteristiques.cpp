@@ -47,7 +47,7 @@ TEST_CASE("affichage : l'effet d'une caracteristique lit les constantes du jeu, 
     REQUIRE(ligneDEffetDeLaCaracteristique(Caracteristique::Adresse) ==
             "Dexterity: +" + std::to_string(s_capaciteParPointDAdresse) + " offensive and defensive capability per point");
     REQUIRE(ligneDEffetDeLaCaracteristique(Caracteristique::Savoir) ==
-            "Intellect: +" + std::to_string(std::lround(s_bonusParPoint * 100.0f)) + "% spell damage per point");
+            "Intellect: +" + std::to_string(std::lround(s_bonusParPoint * 100.0f)) + "% spell damage, +0.3% area and +0.3% duration per point");
     REQUIRE(ligneDEffetDeLaCaracteristique(Caracteristique::Volonte) ==
             "Resolve: +" + std::to_string(s_energieParPointDeVolonte) + " energy, +" +
                 std::to_string(std::lround(s_bonusParPoint * 100.0f)) +

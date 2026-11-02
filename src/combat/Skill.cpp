@@ -13,6 +13,7 @@ Skill::Skill(const DefinitionDeSkill& definition)
       m_recharge(0.0f),
       m_effet(definition.effet),
       m_rayonZone(definition.rayonZone),
+      m_coefficientDAire(definition.coefficientDAire),
       m_tempsExecution(definition.tempsExecution),
       m_armesExigees(definition.armesExigees),
       m_cout(definition.cout),
@@ -23,6 +24,7 @@ Skill::Skill(const DefinitionDeSkill& definition)
     assert(m_tempsExecution >= 0.0f);
     assert(m_cout >= 0);
     assert(!m_rayonZone.has_value() || *m_rayonZone > 0.0f);
+    assert(m_coefficientDAire >= 0.0f && m_coefficientDAire <= 1.0f);
     assert(m_mode != ModeDeCible::Point || m_rayonZone.has_value());  // un skill à point touche une zone
     // On vise un monstre pour lui faire des dégâts ou le provoquer, un allié pour le soigner.
     assert(m_mode != ModeDeCible::Monstre || campTouche(m_effet) == CampTouche::Monstres);
@@ -129,4 +131,8 @@ int Skill::getCout() const {
 
 bool Skill::convientA(std::optional<TypeDArme> arme) const {
     return m_armesExigees.empty() || (arme.has_value() && std::ranges::find(m_armesExigees, *arme) != m_armesExigees.end());
+}
+
+float Skill::getCoefficientDAire() const {
+    return m_coefficientDAire;
 }

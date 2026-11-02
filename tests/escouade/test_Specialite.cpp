@@ -625,3 +625,12 @@ TEST_CASE("coefficients : la Puissance pour ce qui frappe avec l'arme, le Savoir
     REQUIRE(coefficients(IdSpecialite::Rodeur, IdSkill::TirPercant) == seul(Caracteristique::Puissance));
     REQUIRE(coefficients(IdSpecialite::Rodeur, IdSkill::PluieDeFleches) == seul(Caracteristique::Puissance));
 }
+
+TEST_CASE("coefficients d'aire : l'explosion, un sort, profite de l'Intellect ; la pluie de fleches et la provocation, non") {
+    for (const Specialite& classe : catalogue()) {
+        for (const SkillConnu& connu : classe.definition.skills) {
+            INFO(classe.nom << " : skill " << static_cast<int>(connu.id));
+            REQUIRE(connu.skill.getCoefficientDAire() == (connu.id == IdSkill::Explosion ? 1.0f : 0.0f));
+        }
+    }
+}

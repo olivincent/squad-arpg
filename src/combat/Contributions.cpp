@@ -3,6 +3,7 @@
 #include <array>
 #include "combat/Energie.hpp"
 #include "combat/StatistiquesDeCombat.hpp"
+#include "combat/ValeursEffectives.hpp"
 
 namespace {
 // Une ligne de la table : la caractéristique, la statistique qu'elle alimente, et le poids de chaque point au-dessus de la
@@ -28,6 +29,8 @@ constexpr std::array s_contributions = {
     Contribution{Caracteristique::Volonte, StatistiqueAlimentee::ResistanceCharme, s_resistanceAuControleParPoint},
     Contribution{Caracteristique::Volonte, StatistiqueAlimentee::ResistancePeur, s_resistanceAuControleParPoint},
     Contribution{Caracteristique::Volonte, StatistiqueAlimentee::ResistanceDisruption, s_resistanceAuControleParPoint},
+    Contribution{Caracteristique::Savoir, StatistiqueAlimentee::BonusDAire, s_bonusDAireParPoint},
+    Contribution{Caracteristique::Savoir, StatistiqueAlimentee::BonusDeDuree, s_bonusDeDureeParPoint},
 };
 
 // Indexée par `EtatDeControle`, dans l'ordre de l'énumération.

@@ -307,7 +307,7 @@ Escouade::EntitesTouchees Escouade::entitesTouchees(const Skill& skill, Place la
     const CampTouche camp = campTouche(skill.getEffet());
     EntitesTouchees touchees;
 
-    const std::optional<float> rayon = skill.getRayonZone();
+    const std::optional<float> rayon = personnageDeLaPlace(lanceur).rayonEffectifDuSkill(skill);
     if (!rayon.has_value()) {
         if (!cible.has_value()) {
             if (camp == CampTouche::Allies) {
@@ -391,7 +391,7 @@ std::vector<ResultatDEffet> Escouade::appliquerLEffet(Place place, IdSkill id, c
             },
             [&](const EffetProvocation&) {
                 for (const IdMonstre monstre : touchees.monstres) {
-                    m_provocations.provoquer(monstre, place, static_cast<float>(attaque.dureeDeProvocation));
+                    m_provocations.provoquer(monstre, place, attaque.dureeDeProvocation);
                     resultats.push_back(ProvocationPosee{monstre});
                 }
             },

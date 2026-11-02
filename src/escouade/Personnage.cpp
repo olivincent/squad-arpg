@@ -2,6 +2,7 @@
 #include "escouade/Personnage.hpp"
 #include "combat/Cible.hpp"
 #include "combat/Energie.hpp"
+#include "combat/ValeursEffectives.hpp"
 #include "rendu/BarreDeVie.hpp"
 #include "rendu/BarreDEnergie.hpp"
 #include "monde/Chemin.hpp"
@@ -258,7 +259,15 @@ Cercle Personnage::cercleDePorteeDuSkill(IdSkill id) const {
 
 Cercle Personnage::zoneDuSkill(IdSkill id) const {
     const Skill* skill = trouverSkill(id);
-    return {getCentre(), skill != nullptr ? skill->getRayonZone().value_or(0.0f) : 0.0f};
+    return {getCentre(), skill != nullptr ? rayonEffectifDuSkill(*skill).value_or(0.0f) : 0.0f};
+}
+
+std::optional<float> Personnage::rayonEffectifDuSkill(const Skill& skill) const {
+    const std::optional<float> rayon = skill.getRayonZone();
+    if (!rayon.has_value()) {
+        return std::nullopt;
+    }
+    return rayonEffectif(*rayon, skill.getCoefficientDAire(), m_caracteristiques);
 }
 
 bool Personnage::engagerSkill(IdSkill id, std::optional<Cible> cible) {
@@ -493,7 +502,8 @@ Attaque Personnage::attaqueDuSkill(const Skill& skill, Generateur& generateur) c
             },
             [&](const EffetProvocation& provocation) {
                 Attaque attaque = {.degats = {}, .capaciteOffensive = m_statistiques.capaciteOffensive, .nature = NatureDAttaque::Contact};
-                attaque.dureeDeProvocation = provocation.duree;  // une durée n'est pas un montant : aucune caractéristique n'y joue
+                // Une durée n'est pas un montant : seul le bonus de durée de l'Intellect y joue, selon le coefficient de l'effet.
+                attaque.dureeDeProvocation = dureeEffective(static_cast<float>(provocation.duree), provocation.coefficientDeDuree, m_caracteristiques);
                 return attaque;
             },
         },

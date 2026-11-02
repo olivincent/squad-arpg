@@ -12,6 +12,7 @@
 #include "aides_escouade.hpp"
 #include "combat/EtatSkill.hpp"
 #include "combat/TypeDArme.hpp"
+#include "combat/ValeursEffectives.hpp"
 #include "escouade/Personnage.hpp"
 #include "base/Cercle.hpp"
 #include "combat/Blocage.hpp"
@@ -1388,8 +1389,8 @@ TEST_CASE("la duree d'une provocation ne profite d'aucune caracteristique") {
     Personnage personnage = unPersonnageDePuissance(Caracteristiques({40, 40, 40, 40, 40}));
 
     REQUIRE(personnage.engagerSkill(IdSkill::Provocation, std::nullopt));
-    int rendu = 0;
-    for (int i = 0; i < nombreDeTics(1.0f) && rendu == 0; ++i) {
+    float rendu = 0.0f;
+    for (int i = 0; i < nombreDeTics(1.0f) && rendu == 0.0f; ++i) {
         if (const std::optional<Attaque> attaque = personnage.avancerSkill(s_dureeTic, generateur)) {
             rendu = attaque->dureeDeProvocation;
         }
@@ -2139,4 +2140,43 @@ TEST_CASE("energie : un vivant qui monte de niveau gagne autant d'energie que so
 
     REQUIRE(personnage.getEnergieMax() == s_energieDeBase + 2 * s_energieParNiveau);
     REQUIRE(personnage.getEnergieMax() - personnage.getEnergie() == manque);  // le manque ne change pas
+}
+
+namespace {
+// Un personnage qui lance une provocation de 4 s à zone de 150 px, de ce coefficient d'aire et de durée, avec cet Intellect.
+Personnage unProvocateurDeLIntellect(int savoir, float coefficientDAire, float coefficientDeDuree) {
+    return unPersonnage({100.0f, 100.0f},
+                        avecCaracteristique({.couleur = sf::Color::White,
+                                             .skills = {{IdSkill::Provocation, Skill({.mode = ModeDeCible::Soi,
+                                                                                      .portee = 0.0f,
+                                                                                      .rechargeMin = 10.0f,
+                                                                                      .rechargeMax = 10.0f,
+                                                                                      .effet = EffetProvocation{.duree = 4, .coefficientDeDuree = coefficientDeDuree},
+                                                                                      .rayonZone = 150.0f,
+                                                                                      .coefficientDAire = coefficientDAire})}},
+                                             .equipementDeDepart = s_armeDeTireurSeuleDeTest,
+                                             .rayonVision = s_rayonVisionDeTest,
+                                             .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest},
+                                            Caracteristique::Savoir, savoir));
+}
+}  // namespace
+
+TEST_CASE("zoneDuSkill : le rayon de zone grandit avec l'Intellect selon le coefficient d'aire du skill") {
+    const Personnage sansBonus = unProvocateurDeLIntellect(s_valeurDeReference, 1.0f, 0.0f);
+    const Personnage savant = unProvocateurDeLIntellect(1'000, 1.0f, 0.0f);
+    const Personnage savantSansAire = unProvocateurDeLIntellect(1'000, 0.0f, 0.0f);
+
+    REQUIRE(sansBonus.zoneDuSkill(IdSkill::Provocation).rayon == 150.0f);
+    REQUIRE(savant.zoneDuSkill(IdSkill::Provocation).rayon == rayonEffectif(150.0f, 1.0f, savant.getCaracteristiques()));
+    REQUIRE(savant.zoneDuSkill(IdSkill::Provocation).rayon > 150.0f);
+    REQUIRE(savantSansAire.zoneDuSkill(IdSkill::Provocation).rayon == 150.0f);
+}
+
+TEST_CASE("la duree d'une provocation grandit avec l'Intellect selon son coefficient de duree, nul par defaut") {
+    Generateur generateur = generateurDeTest();
+    Personnage avecDuree = unProvocateurDeLIntellect(1'000, 0.0f, 1.0f);   // +100 % de durée (plafond)
+    Personnage sansDuree = unProvocateurDeLIntellect(1'000, 0.0f, 0.0f);
+
+    REQUIRE(lancerSkillEnEntier(avecDuree, std::nullopt, generateur, IdSkill::Provocation).dureeDeProvocation == 8.0f);
+    REQUIRE(lancerSkillEnEntier(sansDuree, std::nullopt, generateur, IdSkill::Provocation).dureeDeProvocation == 4.0f);
 }

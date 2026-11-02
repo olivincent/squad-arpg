@@ -12,6 +12,7 @@
 #include "combat/EntiteVue.hpp"
 #include "monde/TileMap.hpp"
 #include "combat/ModeDeCible.hpp"
+#include "combat/ValeursEffectives.hpp"
 
 // Skill de zone (touche 4) : lanceur (mage) en (185, 235), 15 dégâts, recharge 8 s,
 // zone de 60 px de rayon ; monstres de rayon 15, donc touchés jusqu'à 75 px
@@ -328,4 +329,53 @@ TEST_CASE("Zone en attente : en combat verrouille, le lanceur contourne le monst
 
     REQUIRE_FALSE(escouade.skillEstPret(s_adresseExplosion));  // arrivé à portée du point : le sort est lancé
     REQUIRE(escouade.cerclesDesVivants()[0].centre.x > verrou.centre.x + verrou.rayon);  // passé de l'autre côté du verrou
+}
+
+namespace {
+// Une escouade dont le mage a cet Intellect et dont l'explosion a ce coefficient d'aire (le rayon de base est celui de la zone de test).
+Escouade uneEscouadeAuMageDe(int savoir, float coefficientDAire) {
+    DefinitionPersonnage mage = avecCaracteristique(mageDeTest(), Caracteristique::Savoir, savoir);
+    mage.skills = {{IdSkill::Explosion, Skill({.mode = ModeDeCible::Point,
+                                               .portee = s_porteeZoneDeTest,
+                                               .rechargeMin = s_rechargeZoneDeTest,
+                                               .rechargeMax = s_rechargeZoneDeTest,
+                                               .effet = EffetDegats{.montant = s_degatsZoneDeTest, .nature = NatureDAttaque::Zone, .element = Element::Feu},
+                                               .rayonZone = s_rayonZoneDeTest,
+                                               .coefficientDAire = coefficientDAire,
+                                               .tempsExecution = s_activationZoneDeTest})}};
+    std::vector<DefinitionPersonnage> composition = compositionDeTest();
+    composition[s_adresseExplosion.place.indice()] = mage;
+    return uneEscouadeDe({200.0f, 200.0f}, std::move(composition));
+}
+
+// L'explosion visée en (300, 300) touche-t-elle un monstre dont le centre est à 90 px (rayon 15 : il faut une zone de plus de 75) ?
+bool touchePlusLoinQueLaZoneDeBase(Escouade& escouade) {
+    Generateur generateur = generateurDeTest();
+    const TileMap carte = carteDegageeEntouree();
+    const std::vector<MonstreVu> monstres = {MonstreVu{IdMonstre{1}, cibleMonstre({390.0f, 300.0f})}};
+    return !declencherZoneEtAttendre(escouade, s_adresseExplosion, {300.0f, 300.0f}, monstres, carte, generateur).empty();
+}
+}  // namespace
+
+TEST_CASE("Zone : l'Intellect agrandit l'aire d'un sort de zone, la zone de base ne touchait pas ce monstre") {
+    Escouade sansBonus = uneEscouadeAuMageDe(s_valeurDeReference, 1.0f);
+    Escouade savant = uneEscouadeAuMageDe(1'000, 1.0f);  // +100 % d'aire (plafond) : rayon de 60 × √2 = 85, soit 100 px bord à bord
+
+    REQUIRE_FALSE(touchePlusLoinQueLaZoneDeBase(sansBonus));
+    REQUIRE(touchePlusLoinQueLaZoneDeBase(savant));
+}
+
+TEST_CASE("Zone : un coefficient d'aire nul ignore l'Intellect (la pluie de fleches, la provocation)") {
+    Escouade pasUnSort = uneEscouadeAuMageDe(1'000, 0.0f);
+
+    REQUIRE_FALSE(touchePlusLoinQueLaZoneDeBase(pasUnSort));
+}
+
+TEST_CASE("rayonZoneDuSkill : le rayon de visee est le rayon effectif, celui de la zone touchee") {
+    Escouade savant = uneEscouadeAuMageDe(1'000, 1.0f);
+    Escouade pasUnSort = uneEscouadeAuMageDe(1'000, 0.0f);
+
+    REQUIRE(savant.rayonZoneDuSkill(s_adresseExplosion) > s_rayonZoneDeTest);
+    REQUIRE(savant.rayonZoneDuSkill(s_adresseExplosion) == rayonEffectif(s_rayonZoneDeTest, 1.0f, savant.caracteristiquesDuPersonnage(s_adresseExplosion.place).value()));
+    REQUIRE(pasUnSort.rayonZoneDuSkill(s_adresseExplosion) == s_rayonZoneDeTest);
 }

@@ -36,10 +36,11 @@ struct EffetSoin {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sa
     Coefficients coefficients = {};
 };
 
-// Les monstres touchés prennent pour proie le lanceur pendant cette durée (en secondes ; ce n'est pas un montant, aucune
-// caractéristique n'y joue).
+// Les monstres touchés prennent pour proie le lanceur pendant cette durée (en secondes ; ce n'est pas un montant : les coefficients
+// de montant n'y jouent pas, seul le bonus de durée de l'Intellect, selon `coefficientDeDuree`).
 struct EffetProvocation {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
     int duree;
+    float coefficientDeDuree = 0.0f;  // sa part du bonus de durée du lanceur (`dureeEffective`), de 0 à 1 ; la provocation du guerrier : 0
 };
 
 using EffetDeSkill = std::variant<EffetDegats, EffetFrappe, EffetSoin, EffetProvocation>;

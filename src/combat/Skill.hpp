@@ -43,6 +43,9 @@ struct DefinitionDeSkill {  // NOLINT(cppcoreguidelines-pro-type-member-init): c
     // Vide : l'effet touche la cible. Présent : il touche tout le camp concerné dans ce rayon (en pixels) autour de la cible, du point
     // visé ou du lanceur. Un skill de mode `Point` en a toujours un (sinon il n'aurait rien à toucher).
     std::optional<float> rayonZone = std::nullopt;
+    // Combien le rayon de la zone profite du bonus d'aire de l'Intellect du lanceur (`rayonEffectif`) : 0 = pas du tout, 1 = à plein. Sans effet
+    // sans rayon de zone. Un sort de zone en a un ; une zone qui n'en est pas un (la pluie de flèches, la provocation) garde 0.
+    float coefficientDAire = 0.0f;
     float tempsExecution = 0.0f;  // en secondes, entre l'engagement du coup et son départ
     // Les types d'arme qui permettent de lancer le skill (modèle de *Titan Quest* : pas de restriction par classe) ;
     // vide : aucune exigence. Sans l'une de ces armes en main droite (les mains nues n'en sont pas une), le skill est
@@ -74,6 +77,8 @@ public:
     [[nodiscard]] const EffetDeSkill& getEffet() const;
     // Le rayon de la zone touchée ; vide si l'effet touche la cible seule.
     [[nodiscard]] std::optional<float> getRayonZone() const;
+    // Sa part du bonus d'aire du lanceur, de 0 à 1.
+    [[nodiscard]] float getCoefficientDAire() const;
     [[nodiscard]] float getPortee() const;
     [[nodiscard]] const std::vector<TypeDArme>& getArmesExigees() const;
     [[nodiscard]] int getCout() const;
@@ -89,6 +94,7 @@ private:
     float m_recharge;       // en secondes, avant le prochain déclenchement possible
     EffetDeSkill m_effet;
     std::optional<float> m_rayonZone;
+    float m_coefficientDAire;
     float m_tempsExecution; // en secondes, entre l'engagement du coup et son départ
     std::vector<TypeDArme> m_armesExigees;
     int m_cout;             // en points d'énergie

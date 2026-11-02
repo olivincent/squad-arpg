@@ -5,6 +5,7 @@
 
 #include "combat/Energie.hpp"
 #include "combat/StatistiquesDeCombat.hpp"
+#include "combat/ValeursEffectives.hpp"
 #include "interface/AffichageStatistiques.hpp"
 
 // Le `switch` n'a pas de `default` : une caractéristique ajoutée sans nom fait avertir le compilateur.
@@ -47,7 +48,9 @@ std::string ligneDEffetDeLaCaracteristique(Caracteristique caracteristique) {
         case Caracteristique::Adresse:
             return nom + "+" + std::to_string(s_capaciteParPointDAdresse) + " offensive and defensive capability per point";
         case Caracteristique::Savoir:
-            return nom + "+" + std::to_string(std::lround(s_bonusParPoint * 100.0f)) + "% spell damage per point";
+            return nom + "+" + std::to_string(std::lround(s_bonusParPoint * 100.0f)) + "% spell damage, +" +
+                   pourCentAvecUneDecimale(s_bonusDAireParPoint * 100.0f) + "% area and +" + pourCentAvecUneDecimale(s_bonusDeDureeParPoint * 100.0f) +
+                   "% duration per point";
         case Caracteristique::Volonte:
             return nom + "+" + std::to_string(s_energieParPointDeVolonte) + " energy, +" +
                    std::to_string(std::lround(s_bonusParPoint * 100.0f)) + "% healing and +" +

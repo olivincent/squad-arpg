@@ -15,5 +15,5 @@ struct Attaque {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans
     NatureDAttaque nature;   // contact, projectile ou zone : une donnée de l'attaque, jamais déduite ; lue par l'esquive et le blocage
     int penetration = 0;     // en pour cent de l'armure du défenseur ignorée (plafonnée : `s_penetrationMaximale`) ; l'attaque de base d'une arme en a, un skill n'en a pas
     int soin = 0;            // points de vie à rendre, caractéristiques comprises ; seulement pour un skill de soin
-    int dureeDeProvocation = 0;  // en secondes ; seulement pour un skill de provocation
+    float dureeDeProvocation = 0.0f;  // en secondes ; seulement pour un skill de provocation
 };

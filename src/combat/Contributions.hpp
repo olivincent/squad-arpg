@@ -13,7 +13,9 @@ enum class StatistiqueAlimentee {
     ResistanceRalentissement,
     ResistanceCharme,
     ResistancePeur,
-    ResistanceDisruption
+    ResistanceDisruption,
+    BonusDAire,    // en fraction de l'aire (0,25 : +25 %), avant le plafond (`ValeursEffectives.hpp`)
+    BonusDeDuree   // en fraction de la durée, avant le plafond
 };
 
 // La statistique qu'est la résistance à cet état de contrôle.

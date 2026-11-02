@@ -86,7 +86,12 @@ public:
     [[nodiscard]] bool skillEstPret(IdSkill id) const;
     [[nodiscard]] std::optional<EtatSkill> etatDuSkill(IdSkill id) const;
     [[nodiscard]] bool skillEstAPortee(IdSkill id, Cercle cible) const;
+    // La zone du skill, centrée sur le personnage, au rayon que ses caractéristiques lui donnent (`rayonEffectif`) ; rayon 0 sans
+    // zone ou sans ce skill.
     [[nodiscard]] Cercle zoneDuSkill(IdSkill id) const;
+    // Le rayon de zone de ce skill (celui du personnage ou non) pour ce lanceur : le rayon de base majoré par son Intellect selon le
+    // coefficient d'aire du skill. Vide sans zone. Seul endroit qui le calcule, avec le montant et la durée de `attaqueDuSkill`.
+    [[nodiscard]] std::optional<float> rayonEffectifDuSkill(const Skill& skill) const;
     [[nodiscard]] Cercle cercleDePorteeDuSkill(IdSkill id) const;
     // Skill en trois temps, comme l'attaque de base : engager (vivant, skill
     // prêt, aucun autre skill en activation ; annule le coup de base en

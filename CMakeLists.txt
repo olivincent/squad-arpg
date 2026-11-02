@@ -89,6 +89,7 @@ add_library(squad_core STATIC
     src/combat/Blocage.cpp
     src/combat/Caracteristiques.cpp
     src/combat/Contributions.cpp
+    src/combat/ValeursEffectives.cpp
     src/combat/Energie.cpp
     src/combat/Progression.cpp
     src/combat/Defense.cpp
@@ -203,6 +204,7 @@ add_executable(tests
     tests/combat/test_Defense.cpp
     tests/combat/test_Caracteristiques.cpp
     tests/combat/test_Contributions.cpp
+    tests/combat/test_ValeursEffectives.cpp
     tests/combat/test_Progression.cpp
     tests/combat/test_StatistiquesDeCombat.cpp
     tests/combat/test_ResolutionDuCoup.cpp

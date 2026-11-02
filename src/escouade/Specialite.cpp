@@ -99,7 +99,9 @@ constexpr PaireDeCroissance s_croissanceRodeur = {Caracteristique::Adresse, Cara
 
 // La convention des coefficients d'un skill (étape 110) : une caractéristique à plein et elle seule, selon ce que fait le skill.
 // La Puissance pour ce qui frappe avec l'arme (frappes, tirs), le Savoir pour un sort de dégâts, la Volonté pour un soin ou une
-// protection. Une provocation n'a aucun coefficient : sa durée n'est pas un montant.
+// protection. Une provocation n'a aucun coefficient : sa durée n'est pas un montant. L'aire (`coefficientDAire`) suit la même idée : 1 pour un
+// sort de zone (l'explosion), 0 pour une zone qui n'en est pas un (la pluie de flèches, la provocation). La durée (`coefficientDeDuree`) vaut
+// 0 pour tout effet dans le temps qui gagne déjà par son montant, pour ne pas gagner deux fois.
 constexpr Coefficients s_puissanceSeule = Coefficients::seul(Caracteristique::Puissance, 1.0f);
 constexpr Coefficients s_savoirSeul = Coefficients::seul(Caracteristique::Savoir, 1.0f);
 constexpr Coefficients s_volonteSeule = Coefficients::seul(Caracteristique::Volonte, 1.0f);
@@ -184,6 +186,7 @@ std::vector<Specialite> construireLeCatalogue() {
                                                  .rechargeMax = s_rechargeZone,
                                                  .effet = EffetDegats{.montant = s_degatsZone, .nature = NatureDAttaque::Zone, .element = Element::Feu, .coefficients = s_savoirSeul},
                                                  .rayonZone = s_rayonZone,
+                                                 .coefficientDAire = 1.0f,  // un sort : son aire profite de l'Intellect
                                                  .tempsExecution = s_activationZone,
                                                  .cout = coutDUnSort(s_rechargeZone)})}},
           .equipementDeDepart = equipementDeTireur(IdObjet::Baton, IdObjet::Robe), .rayonVision = s_rayonVision,
