@@ -25,7 +25,9 @@ public:
     // n'est pas esquivé, elle reçoit ceux de l'attaque (`Attaque::effets`), après le coup : ils ne jouent qu'au suivant. Le
     // résultat porte les dégâts après armure, non plafonnés par les points de vie restants ; rien (0, sans
     // tirage) pour un mort. Un blocage réussi lance la récupération du blocage (le temps pendant lequel le
-    // bouclier ne bloque plus), qui est un état de la vitalité : elle s'écoule par `mettreAJour`.
+    // bouclier ne bloque plus), qui est un état de la vitalité : elle s'écoule par `mettreAJour`. Les boucliers d'absorption (Aegis, Ward ;
+    // étape 114) retiennent d'abord leur part, en dernier dans le coup : ils sont consommés ici (`resultat.absorbees`), et un bouclier
+    // épuisé disparaît ; le coup esquivé n'en use aucun.
     ResultatDuCoup recevoirDegats(const Attaque& attaque, Generateur& generateur);
     // Fait couler le temps : la récupération du blocage diminue de `dt`, sans descendre sous 0, et les effets actifs s'écoulent. Les ticks
     // des effets dans le temps qui ont lieu sont appliqués tout de suite, dans l'ordre : les dégâts par `resoudreTick` contre les
@@ -33,8 +35,8 @@ public:
     // effets actifs, et les ticks suivants n'ont pas lieu. Sans effet sur un mort.
     void mettreAJour(float dt);
     // Ce que les ticks ont fait depuis le dernier appel, dans l'ordre, puis les oublie : des dégâts subis (après la résistance, non
-    // plafonnés par les points de vie restants) ou des points de vie rendus (réellement, jamais 0). Les ticks sans effet (montant nul)
-    // n'y figurent pas. `Partie` en fait des événements, une fois par image.
+    // plafonnés par les points de vie restants, et ce que les boucliers d'absorption ont retenu : `TickDeDegats::absorbe`) ou des points de
+    // vie rendus (réellement, jamais 0). Les ticks sans effet (ni montant ni absorption) n'y figurent pas. `Partie` en fait des événements, une fois par image.
     [[nodiscard]] std::vector<Tick> prendreLesTicks();
     // Pose un effet actif (`EffetsActifs::poser` : le même skill rafraîchit, deux skills se cumulent). Sans effet sur un mort.
     // Un contrôle (étape 113) passe d'abord par la cible : son application est comptée pour le rendement décroissant (100 %, 50 %,
@@ -60,6 +62,9 @@ public:
     [[nodiscard]] float getRatio() const;
 
 private:
+    // Retire des boucliers d'absorption ce que le coup ou le tick vient de leur faire retenir : le physique aux Aegis, le reste aux Ward.
+    void consommerLAbsorption(const Degats& absorbees);
+
     PointsDeVie m_pointsDeVie;
     Defenses m_defenses;  // sans les effets actifs : ce que donnent les caractéristiques et l'équipement (ou la définition)
     EffetsActifs m_effets;

@@ -9,10 +9,11 @@
 
 // Un tick qui vient d'avoir lieu (étape 112) : des dégâts d'un élément ou un soin, du montant d'UNE pile fois ses piles. Au sortir d'
 // `EffetsActifs::mettreAJour` c'est le montant avant réduction ; `Vitalite::prendreLesTicks` rend les mêmes types avec ce qui a vraiment été
-// subi ou rendu.
+// subi ou rendu (pour des dégâts : `montant` subi, `absorbe` retenu par les boucliers).
 struct TickDeDegats {
     Element element;
     int montant;
+    int absorbe = 0;  // étape 114 : ce que les boucliers d'absorption de la cible ont retenu ; 0 au sortir d'`EffetsActifs::mettreAJour`
 };
 struct TickDeSoin {
     int montant;

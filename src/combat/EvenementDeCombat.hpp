@@ -5,6 +5,7 @@
 #include <vector>
 #include "combat/EffetActif.hpp"
 #include "combat/Element.hpp"
+#include "combat/FamilleDAbsorption.hpp"
 #include "combat/IdMonstre.hpp"
 #include "combat/IdSkill.hpp"
 #include "combat/Place.hpp"
@@ -53,6 +54,15 @@ struct Bloque {
     int montant;
     bool total;
 };
+// Un bouclier d'absorption a retenu `montant` points (jamais 0) du coup ou du tick (étape 114), de la couleur de sa famille. `total` : rien
+// n'est passé, aucun `DegatsSubis` ne suit ; sinon un `DegatsSubis` pour le reste a été signalé juste avant (même cible, même image).
+// Un coup mixte donne un événement par famille. `dansLeTemps` : le tick d'un effet dans le temps, affiché en plus petit.
+struct Absorbe {
+    int montant;
+    FamilleDAbsorption famille;
+    bool total;
+    bool dansLeTemps = false;
+};
 // Le sac est plein : l'objet que l'escouade est venue ramasser reste au sol. Au-dessus de l'escouade entière (`EscouadeEntiere`) ;
 // `position` est celle de l'ancre.
 struct SacPlein {};
@@ -70,7 +80,7 @@ struct ControleSubi {
     bool immunise;
 };
 using DetailEvenement =
-    std::variant<DegatsSubis, Soin, SkillLance, Provoque, Esquive, Bloque, SacPlein, NiveauAtteint, EnergieInsuffisante, ControleSubi>;
+    std::variant<DegatsSubis, Soin, SkillLance, Provoque, Esquive, Bloque, Absorbe, SacPlein, NiveauAtteint, EnergieInsuffisante, ControleSubi>;
 
 // `position` : COPIE du centre de la cible à ce moment ; aucune référence vers l'entité, qui peut
 // disparaître dans la même image (monstre tué par ce coup).
@@ -82,6 +92,7 @@ struct EvenementDeCombat {  // NOLINT(cppcoreguidelines-pro-type-member-init): c
 
 // Ce qu'un coup donne, en détails d'événements, dans l'ordre où ils s'empilent à l'écran (même cible, même
 // image : le premier en bas) : un coup esquivé donne `Esquive` seul ; sinon les `DegatsSubis` (rien s'ils sont nuls,
-// donc rien après un blocage total ni pour un mort), puis `Bloque` s'il y a eu un blocage, au-dessus des dégâts.
+// donc rien après un blocage total ni pour un mort), puis `Bloque` s'il y a eu un blocage, au-dessus des dégâts, puis un `Absorbe` par
+// famille de bouclier qui a retenu quelque chose (Aegis avant Ward), au-dessus du blocage.
 // `opportunite` : coup gratuit. Un résultat « rien » (mort, monstre invulnérable, montant nul) donne une liste vide.
 [[nodiscard]] std::vector<DetailEvenement> detailsDuCoup(const ResultatDuCoup& resultat, bool opportunite);

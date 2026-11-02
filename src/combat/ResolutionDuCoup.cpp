@@ -8,6 +8,7 @@
 #include "combat/Defense.hpp"
 #include "combat/Element.hpp"
 #include "combat/Esquive.hpp"
+#include "combat/FamilleDAbsorption.hpp"
 
 namespace {
 // Un nombre de 0 inclus à 1 exclu. Le seul tirage du moteur du coup.
@@ -97,12 +98,28 @@ ResultatDuCoup resoudreCoup(const Attaque& attaque, const Defenses& defenses, bo
     for (const Element element : s_elements) {
         portions[element] = appliquerResistance(portions[element], defenses.statistiques.resistances[element]);
     }
-    const Degats subies = arrondir(portions);
-    return {.montant = subies.total(), .critique = critique.critique, .esquive = false, .bloque = bloque, .portions = subies};
+    // Les boucliers d'absorption agissent en dernier, sur les portions arrondies : ils retiennent des points entiers.
+    Degats subies = arrondir(portions);
+    const Degats absorbees = portionsAbsorbees(subies, defenses.absorption);
+    for (const Element element : s_elements) {
+        subies[element] -= absorbees[element];
+    }
+    return {.montant = subies.total(),
+            .critique = critique.critique,
+            .esquive = false,
+            .bloque = bloque,
+            .portions = subies,
+            .absorbees = absorbees};
 }
 
 int resoudreTick(Element element, int montant, const StatistiquesDeCombat& defenseur) {
     return static_cast<int>(std::lround(appliquerResistance(static_cast<float>(montant), defenseur.resistances[element])));
+}
+
+ResultatDuTick resoudreTick(Element element, int montant, const Defenses& defenses) {
+    const int apresResistance = resoudreTick(element, montant, defenses.statistiques);
+    const int absorbe = portionsAbsorbees(degatsDe(element, apresResistance), defenses.absorption)[element];
+    return {.montant = apresResistance - absorbe, .absorbe = absorbe};
 }
 
 ResultatDuCoup resoudreSoin(const Attaque& attaque, Generateur& generateur) {

@@ -12,5 +12,14 @@ std::vector<DetailEvenement> detailsDuCoup(const ResultatDuCoup& resultat, bool 
     if (resultat.bloque > 0) {
         details.push_back(Bloque{resultat.bloque, resultat.montant == 0});
     }
+    // Un événement par famille qui a retenu quelque chose : la portion physique pour l'Aegis, tout le reste pour le Ward.
+    const int parAegis = resultat.absorbees[Element::Physique];
+    const int parWard = resultat.absorbees.total() - parAegis;
+    if (parAegis > 0) {
+        details.push_back(Absorbe{parAegis, FamilleDAbsorption::Aegis, resultat.montant == 0});
+    }
+    if (parWard > 0) {
+        details.push_back(Absorbe{parWard, FamilleDAbsorption::Ward, resultat.montant == 0});
+    }
     return details;
 }

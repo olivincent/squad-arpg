@@ -9,6 +9,7 @@
 #include <variant>
 #include "base/Cercle.hpp"
 #include "combat/Coup.hpp"
+#include "combat/FamilleDAbsorption.hpp"
 #include "combat/Progression.hpp"
 #include "combat/EntiteVue.hpp"
 #include "combat/Cible.hpp"
@@ -401,6 +402,9 @@ void Partie::signalerLesTicks(CibleDEvenement cible, sf::Vector2f position, cons
         std::visit(Surcharges{[&](const TickDeDegats& degats) {
                                   signaler(cible, position,
                                            DegatsSubis{.montant = degats.montant, .opportunite = false, .critique = false, .element = degats.element, .dansLeTemps = true});
+                                  // Ce que les boucliers d'absorption ont retenu du tick, au-dessus des dégâts qui passent (aucun si tout est retenu).
+                                  signaler(cible, position,
+                                           Absorbe{.montant = degats.absorbe, .famille = familleQuiAbsorbe(degats.element), .total = degats.montant == 0, .dansLeTemps = true});
                               },
                               [&](const TickDeSoin& soin) { signaler(cible, position, Soin{.montant = soin.montant, .critique = false, .dansLeTemps = true}); }},
                    tick);
@@ -414,6 +418,7 @@ void Partie::signaler(CibleDEvenement cible, sf::Vector2f position, DetailEvenem
                                                   [](const Provoque&) { return false; },
                                                   [](const Esquive&) { return false; },
                                                   [](const Bloque&) { return false; },
+                                                  [](const Absorbe& absorbe) { return absorbe.montant <= 0; },
                                                   [](const SacPlein&) { return false; },
                                                   [](const NiveauAtteint&) { return false; },
                                                   [](const EnergieInsuffisante&) { return false; },

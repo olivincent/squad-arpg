@@ -9,6 +9,7 @@
 #include <variant>
 #include "combat/Cible.hpp"
 #include "combat/Element.hpp"
+#include "combat/FamilleDAbsorption.hpp"
 #include "interface/AffichageEffets.hpp"
 #include "interface/AffichageSkills.hpp"
 
@@ -25,6 +26,7 @@ constexpr unsigned int s_tailleNomDeSkill = 14;
 constexpr unsigned int s_tailleProvoque = 14;
 constexpr unsigned int s_tailleEsquive = 14;
 constexpr unsigned int s_tailleBloque = 14;
+constexpr unsigned int s_tailleAbsorbe = 14;
 constexpr unsigned int s_tailleSacPlein = 14;
 constexpr unsigned int s_tailleNiveauAtteint = 20;
 constexpr unsigned int s_tailleEnergieInsuffisante = 14;
@@ -49,6 +51,9 @@ const sf::Color s_couleurNomDeSkill(255, 210, 60);  // jaune doré
 const sf::Color s_couleurProvoque(255, 100, 40);    // rouge orangé
 const sf::Color s_couleurEsquive(215, 215, 215);    // gris clair
 const sf::Color s_couleurBloque(150, 150, 150);     // gris
+// Le montant qu'un bouclier d'absorption a retenu, dans la couleur de sa famille (la même que son segment sur la barre de vie).
+const sf::Color s_couleurAegis(200, 205, 215);      // argenté
+const sf::Color s_couleurWard(80, 140, 255);        // bleu
 const sf::Color s_couleurSacPlein(255, 140, 140);   // rose rouge : un refus
 const sf::Color s_couleurEnergieInsuffisante(150, 150, 255);  // bleu violacé, la teinte de l'énergie : un refus que nul autre texte n'a
 const sf::Color s_couleurControle(240, 215, 40);   // jaune, la teinte de la marque de contrôle sous l'entité
@@ -91,6 +96,8 @@ std::string libelleDuTexte(const EvenementDeCombat& evenement) {
                                      // Un blocage partiel dit combien il a absorbé (« Blocked −40 », signe moins U+2212).
                                      return bloque.total ? std::string("Blocked") : "Blocked \u2212" + std::to_string(bloque.montant);
                                  },
+                                 // Le montant retenu, toujours dit : « Absorbed −25 » (signe moins U+2212).
+                                 [](const Absorbe& absorbe) { return "Absorbed −" + std::to_string(absorbe.montant); },
                                  [](const SacPlein&) { return std::string("Bag full"); },
                                  [](const NiveauAtteint&) { return std::string("Level up!"); },
                                  [](const EnergieInsuffisante&) { return std::string("Not enough energy"); },
@@ -117,6 +124,9 @@ sf::Color couleurDuTexte(const EvenementDeCombat& evenement) {
                                  [](const Provoque&) { return s_couleurProvoque; },
                                  [](const Esquive&) { return s_couleurEsquive; },
                                  [](const Bloque&) { return s_couleurBloque; },
+                                 [](const Absorbe& absorbe) {
+                                     return absorbe.famille == FamilleDAbsorption::Aegis ? s_couleurAegis : s_couleurWard;
+                                 },
                                  [](const SacPlein&) { return s_couleurSacPlein; },
                                  [](const NiveauAtteint&) { return s_couleurNiveauAtteint; },
                                  [](const EnergieInsuffisante&) { return s_couleurEnergieInsuffisante; },
@@ -144,6 +154,7 @@ unsigned int tailleDuTexte(const EvenementDeCombat& evenement) {
                                  [](const Provoque&) { return s_tailleProvoque; },
                                  [](const Esquive&) { return s_tailleEsquive; },
                                  [](const Bloque&) { return s_tailleBloque; },
+                                 [](const Absorbe& absorbe) { return absorbe.dansLeTemps ? s_tailleDansLeTemps : s_tailleAbsorbe; },
                                  [](const SacPlein&) { return s_tailleSacPlein; },
                                  [](const NiveauAtteint&) { return s_tailleNiveauAtteint; },
                                  [](const EnergieInsuffisante&) { return s_tailleEnergieInsuffisante; },

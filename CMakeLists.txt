@@ -214,6 +214,7 @@ add_executable(tests
     tests/combat/test_EffetsActifs.cpp
     tests/combat/test_Controle.cpp
     tests/combat/test_FamilleDAbsorption.cpp
+    tests/combat/test_Absorption.cpp
     tests/combat/test_RendementsDeControle.cpp
     tests/combat/test_Defense.cpp
     tests/combat/test_Caracteristiques.cpp

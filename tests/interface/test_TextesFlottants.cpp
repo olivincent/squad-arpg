@@ -405,3 +405,41 @@ TEST_CASE("la couleur d'un controle pose n'est celle d'aucun autre texte") {
         REQUIRE(couleurDuTexte(pose) != couleurDuTexte(autre));
     }
 }
+
+// L'absorption (étape 114.3) : le montant retenu, dans la couleur de la famille du bouclier.
+
+TEST_CASE("le texte d'une absorption : le montant retenu, argente pour l'Aegis et bleu pour le Ward, de 14 px") {
+    const EvenementDeCombat aegis{Place{1}, {}, Absorbe{25, FamilleDAbsorption::Aegis, false}};
+    const EvenementDeCombat ward{IdMonstre{1}, {}, Absorbe{18, FamilleDAbsorption::Ward, true}};
+
+    REQUIRE(libelleDuTexte(aegis) == "Absorbed −" "25");
+    REQUIRE(libelleDuTexte(ward) == "Absorbed −" "18");
+    REQUIRE(couleurDuTexte(aegis) == sf::Color(200, 205, 215));
+    REQUIRE(couleurDuTexte(ward) == sf::Color(80, 140, 255));
+    REQUIRE(tailleDuTexte(aegis) == 14);
+    REQUIRE(tailleDuTexte(ward) == 14);
+}
+
+TEST_CASE("le texte d'une absorption d'un tick : la meme chose, en petit (12 px)") {
+    const EvenementDeCombat tick{IdMonstre{1}, {}, Absorbe{5, FamilleDAbsorption::Ward, false, true}};
+
+    REQUIRE(libelleDuTexte(tick) == "Absorbed −" "5");
+    REQUIRE(tailleDuTexte(tick) == 12);
+}
+
+TEST_CASE("les couleurs de l'Aegis et du Ward ne sont celles d'aucun autre texte") {
+    const EvenementDeCombat aegis{Place{1}, {}, Absorbe{25, FamilleDAbsorption::Aegis, false}};
+    const EvenementDeCombat ward{Place{1}, {}, Absorbe{25, FamilleDAbsorption::Ward, false}};
+    REQUIRE(couleurDuTexte(aegis) != couleurDuTexte(ward));
+    for (const EvenementDeCombat& autre :
+         {degatsSurUnMonstre(1), EvenementDeCombat{Place{1}, {}, DegatsSubis{10, false, false}},
+          EvenementDeCombat{Place{1}, {}, DegatsSubis{10, true, false}}, EvenementDeCombat{Place{1}, {}, DegatsSubis{10, false, true}},
+          EvenementDeCombat{Place{2}, {}, Soin{10, false}}, EvenementDeCombat{IdMonstre{1}, {}, Esquive{}},
+          EvenementDeCombat{Place{1}, {}, Bloque{40, false}}, EvenementDeCombat{IdMonstre{1}, {}, Provoque{}},
+          EvenementDeCombat{Place{1}, {}, SkillLance{IdSkill::Explosion}}, EvenementDeCombat{EscouadeEntiere{}, {}, SacPlein{}},
+          EvenementDeCombat{EscouadeEntiere{}, {}, NiveauAtteint{3}}, EvenementDeCombat{Place{3}, {}, EnergieInsuffisante{}},
+          EvenementDeCombat{IdMonstre{1}, {}, ControleSubi{EtatInflige::Etourdissement, false}}}) {
+        REQUIRE(couleurDuTexte(aegis) != couleurDuTexte(autre));
+        REQUIRE(couleurDuTexte(ward) != couleurDuTexte(autre));
+    }
+}

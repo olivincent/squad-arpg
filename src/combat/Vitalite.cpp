@@ -1,6 +1,8 @@
 // ./src/combat/Vitalite.cpp
 #include "combat/Vitalite.hpp"
 #include "combat/Blocage.hpp"
+#include "combat/Degats.hpp"
+#include "combat/FamilleDAbsorption.hpp"
 #include "combat/ResolutionDuCoup.hpp"
 #include <cassert>
 #include <utility>
@@ -26,6 +28,7 @@ ResultatDuCoup Vitalite::recevoirDegats(const Attaque& attaque, Generateur& gene
     if (resultat.bloque > 0) {
         m_recuperationDuBlocage = s_recuperationDuBlocage;
     }
+    consommerLAbsorption(resultat.absorbees);
     m_pointsDeVie.subirDegats(resultat.montant);
     if (!estVivant()) {
         m_effets.vider();
@@ -49,10 +52,11 @@ void Vitalite::mettreAJour(float dt) {
         }
         std::visit(Surcharges{
                        [&](const TickDeDegats& degats) {
-                           const int subi = resoudreTick(degats.element, degats.montant, m_defenses.statistiques);
-                           m_pointsDeVie.subirDegats(subi);
-                           if (subi > 0) {
-                               m_ticksAppliques.push_back(TickDeDegats{degats.element, subi});
+                           const ResultatDuTick resolu = resoudreTick(degats.element, degats.montant, appliquerLesEffets(m_defenses, m_effets));
+                           consommerLAbsorption(degatsDe(degats.element, resolu.absorbe));
+                           m_pointsDeVie.subirDegats(resolu.montant);
+                           if (resolu.montant > 0 || resolu.absorbe > 0) {
+                               m_ticksAppliques.push_back(TickDeDegats{degats.element, resolu.montant, resolu.absorbe});
                            }
                            if (!estVivant()) {
                                m_effets.vider();
@@ -70,6 +74,20 @@ void Vitalite::mettreAJour(float dt) {
 
 std::vector<Tick> Vitalite::prendreLesTicks() {
     return std::exchange(m_ticksAppliques, {});
+}
+
+void Vitalite::consommerLAbsorption(const Degats& absorbees) {
+    int physique = 0;
+    int nonPhysique = 0;
+    for (const Element element : s_elements) {
+        (familleQuiAbsorbe(element) == FamilleDAbsorption::Aegis ? physique : nonPhysique) += absorbees[element];
+    }
+    if (physique > 0) {
+        m_effets.consommerLAbsorption(FamilleDAbsorption::Aegis, physique);
+    }
+    if (nonPhysique > 0) {
+        m_effets.consommerLAbsorption(FamilleDAbsorption::Ward, nonPhysique);
+    }
 }
 
 void Vitalite::viderLesEffets() {
