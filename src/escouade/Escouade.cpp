@@ -419,6 +419,7 @@ std::vector<ResultatDEffet> Escouade::appliquerLEffet(Place place, IdSkill id, c
             // partent avec le `Coup`).
             [&](const EffetModificateur&) { poserSurLesAllies(); },
             [&](const EffetSoinDansLeTemps&) { poserSurLesAllies(); },
+            [&](const EffetAbsorption&) { poserSurLesAllies(); },  // un bouclier (étape 114) se pose comme un buff
             // Jamais l'effet principal (le constructeur de `Skill` l'exige) : des dégâts dans le temps suivent un coup.
             [](const EffetDegatsDansLeTemps&) {},
         },

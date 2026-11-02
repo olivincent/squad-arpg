@@ -62,6 +62,8 @@ public:
     [[nodiscard]] int getValeur() const;
     [[nodiscard]] int getMaximum() const;
     [[nodiscard]] float getRatio() const;
+    // Les points d'absorption d'une famille en fraction des points de vie maximum (étape 114), pour le segment de la barre de vie ; peut dépasser 1.
+    [[nodiscard]] float getRatioDAbsorption(FamilleDAbsorption famille) const;
 
 private:
     // Retire des boucliers d'absorption ce que le coup ou le tick vient de leur faire retenir : le physique aux Aegis, le reste aux Ward.

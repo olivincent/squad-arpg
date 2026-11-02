@@ -10,6 +10,7 @@ CampTouche campTouche(const EffetDeSkill& effet) {
                                  [](const EffetSoinDansLeTemps&) { return CampTouche::Allies; },
                                  [](const EffetControle&) { return CampTouche::Monstres; },
                                  [](const EffetProvocation&) { return CampTouche::Monstres; },
+                                 [](const EffetAbsorption&) { return CampTouche::Allies; },
                                  [](const EffetModificateur& modificateur) {
                                      return modificateur.pourcentage >= 0 ? CampTouche::Allies : CampTouche::Monstres;
                                  }},

@@ -5,6 +5,7 @@
 #include "combat/Degats.hpp"
 #include "combat/EffetActif.hpp"
 #include "combat/Element.hpp"
+#include "combat/FamilleDAbsorption.hpp"
 #include "combat/NatureDAttaque.hpp"
 
 // CE QUE FAIT un skill, une alternative par sorte d'effet, chacune avec ses champs et seulement les siens : un champ n'existe que là
@@ -93,12 +94,25 @@ struct EffetControle {  // NOLINT(cppcoreguidelines-pro-type-member-init): champ
     float coefficientDeDuree = 0.0f;
 };
 
+// Pose un bouclier d'absorption (`Absorption`, un effet actif : Aegis pour le physique, Ward pour le non-physique) sur chaque allié touché
+// (étape 114) : `montant` points, majorés par les coefficients du lanceur comme un soin (la Volonté), pendant `duree` secondes, majorées par le
+// bonus de durée de l'Intellect selon `coefficientDeDuree` (1 pour un skill de personnage, un buff) mais jamais au-delà de la recharge du
+// skill. Toujours l'effet principal d'un skill qui touche les alliés (mode `Allie`, `Escouade`) : comme un buff, il n'existe pas derrière un
+// coup.
+struct EffetAbsorption {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
+    FamilleDAbsorption famille;
+    int montant;
+    int duree;
+    Coefficients coefficients = {};
+    float coefficientDeDuree = 0.0f;
+};
+
 using EffetDeSkill = std::variant<EffetDegats, EffetFrappe, EffetSoin, EffetProvocation, EffetModificateur, EffetDegatsDansLeTemps,
-                                  EffetSoinDansLeTemps, EffetControle>;
+                                  EffetSoinDansLeTemps, EffetControle, EffetAbsorption>;
 
 // Le camp que touche un effet quand il a un rayon de zone : les dégâts, les dégâts dans le temps et la provocation touchent les monstres,
-// le soin et le soin dans le temps les alliés, un modificateur les alliés si c'est un buff et les monstres si c'est un affaiblissement, un
-// contrôle les monstres.
+// le soin, le soin dans le temps et l'absorption les alliés, un modificateur les alliés si c'est un buff et les monstres si c'est un
+// affaiblissement, un contrôle les monstres.
 // Seul endroit où le camp se déduit de l'effet.
 enum class CampTouche { Monstres, Allies };
 [[nodiscard]] CampTouche campTouche(const EffetDeSkill& effet);

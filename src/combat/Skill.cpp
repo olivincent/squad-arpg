@@ -14,6 +14,9 @@ namespace {
         if (const auto* soin = std::get_if<EffetSoinDansLeTemps>(&effet)) {
             return soin->duree > 0 && soin->pilesMax >= 1 && soin->montant >= 0;
         }
+        if (const auto* absorption = std::get_if<EffetAbsorption>(&effet)) {
+            return absorption->duree > 0 && absorption->montant >= 0;  // un bouclier a aussi une durée (étape 114)
+        }
         return true;
     });
 }

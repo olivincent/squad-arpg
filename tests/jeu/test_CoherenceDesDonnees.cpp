@@ -123,6 +123,28 @@ TEST_CASE("un buff ne dure jamais plus longtemps que sa recharge, meme au plafon
     REQUIRE(buffs >= 1);  // la bénédiction du prêtre
 }
 
+TEST_CASE("un bouclier d'absorption de skill ne dure jamais plus longtemps que sa recharge, a un coefficient de duree de 1 et touche les allies") {
+    int boucliers = 0;
+    for (const Specialite& classe : catalogue()) {
+        for (const SkillConnu& connu : classe.definition.skills) {
+            for (const EffetDeSkill& effet : connu.skill.getEffets()) {
+                const EffetAbsorption* absorption = std::get_if<EffetAbsorption>(&effet);
+                if (absorption == nullptr) {
+                    continue;
+                }
+                ++boucliers;
+                INFO(classe.nom << " : " << connu.skill.getRechargeMin() << " s de recharge");
+                REQUIRE(absorption->montant > 0);
+                REQUIRE(absorption->coefficientDeDuree == 1.0f);
+                REQUIRE(campTouche(effet) == CampTouche::Allies);
+                // Le bonus de durée plafonne : au plafond le bouclier dure plus que la recharge, et `Personnage` le ramène à elle ; de base il tient dedans.
+                REQUIRE(static_cast<float>(absorption->duree) <= connu.skill.getRechargeMin());
+            }
+        }
+    }
+    REQUIRE(boucliers >= 1);  // l'Aegis du paladin
+}
+
 namespace {
 // Les dégâts par seconde visés d'une arme de niveau 1 et de qualité moyenne (valeurs « à tester ») : toutes les armes d'une main
 // visent le même, toutes les armes à deux mains aussi. Une arme au-dessus de ce but de plus de 10 % est trop forte pour sa famille ;

@@ -45,6 +45,7 @@ TEST_CASE("sigleDuSkill donne deux lettres par skill") {
     REQUIRE(sigleDuSkill(IdSkill::Benediction) == "BL");
     REQUIRE(sigleDuSkill(IdSkill::Renouvellement) == "RN");
     REQUIRE(sigleDuSkill(IdSkill::Contresort) == "CS");
+    REQUIRE(sigleDuSkill(IdSkill::Aegis) == "AG");
 }
 
 TEST_CASE("sigleDuSkill : les sigles sont tous differents") {
@@ -52,7 +53,7 @@ TEST_CASE("sigleDuSkill : les sigles sont tous differents") {
                                       IdSkill::Explosion,       IdSkill::FrappeSacree, IdSkill::ImpositionDesMains,
                                       IdSkill::TirPercant,      IdSkill::PluieDeFleches,
                                       IdSkill::Benediction,     IdSkill::Renouvellement,
-                                      IdSkill::Contresort};
+                                      IdSkill::Contresort,      IdSkill::Aegis};
     for (std::size_t i = 0; i < ids.size(); ++i) {
         for (std::size_t j = i + 1; j < ids.size(); ++j) {
             REQUIRE(sigleDuSkill(ids[i]) != sigleDuSkill(ids[j]));

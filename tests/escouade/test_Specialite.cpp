@@ -21,6 +21,7 @@
 #include "monde/CategorieDeMonstre.hpp"
 #include "monstres/DefinitionDeMonstre.hpp"
 #include "combat/EffetDeSkill.hpp"
+#include "combat/FamilleDAbsorption.hpp"
 #include "combat/Element.hpp"
 #include "combat/Progression.hpp"
 #include "combat/TypeDArme.hpp"
@@ -170,7 +171,7 @@ TEST_CASE("le paladin est une melee qui frappe et soigne au contact") {
     REQUIRE(armureDe(paladin.equipementDeDepart) == armureDe(guerrier.equipementDeDepart));
     REQUIRE(armeDe(paladin) == IdObjet::MasseAUneMain);
     REQUIRE(deLaClasse(IdSpecialite::Paladin).getPorteeAttaqueDeBase() == deLaClasse(IdSpecialite::Guerrier).getPorteeAttaqueDeBase());
-    REQUIRE(paladin.skills.size() == 2);
+    REQUIRE(paladin.skills.size() == 3);  // la frappe sacrée, l'imposition des mains et (étape 114) Aegis
 
     REQUIRE(paladin.skills[0].id == IdSkill::FrappeSacree);
     // Un skill de frappe : pas de dégâts propres (ils viennent de l'arme), un bonus sacré fixe.
@@ -615,7 +616,8 @@ TEST_CASE("coefficients : la Puissance pour ce qui frappe avec l'arme, le Savoir
                                              [](const EffetModificateur&) { return Coefficients(); },
                                              [](const EffetDegatsDansLeTemps& effet) { return effet.coefficients; },
                                              [](const EffetSoinDansLeTemps& effet) { return effet.coefficients; },
-                                             [](const EffetControle&) { return Coefficients(); }},
+                                             [](const EffetControle&) { return Coefficients(); },
+                                             [](const EffetAbsorption& effet) { return effet.coefficients; }},
                                   connu.skill.getEffet());
             }
         }
@@ -846,4 +848,56 @@ TEST_CASE("contresort : la barre par defaut le range sous l'explosion, dans la c
 
     REQUIRE(barre.adresse(0) == AdresseSkill{Place{1}, IdSkill::Explosion});
     REQUIRE(barre.adresse(4) == AdresseSkill{Place{1}, IdSkill::Contresort});
+}
+
+// Aegis du paladin (étape 114.5).
+
+namespace {
+const Skill& aegisDuPaladin() {
+    for (const SkillConnu& connu : specialite(IdSpecialite::Paladin).definition.skills) {
+        if (connu.id == IdSkill::Aegis) {
+            return connu.skill;
+        }
+    }
+    FAIL("le paladin n'a pas d'Aegis");
+    return specialite(IdSpecialite::Paladin).definition.skills.front().skill;
+}
+}  // namespace
+
+TEST_CASE("aegis : le paladin pose un Aegis de 60 points sur la Volonte, 8 s de base, recharge 15 s, sur l'allie le plus blesse") {
+    const Skill& aegis = aegisDuPaladin();
+
+    REQUIRE(aegis.getMode() == ModeDeCible::Allie);
+    REQUIRE(aegis.getEffets().size() == 1);
+    const EffetAbsorption& absorption = std::get<EffetAbsorption>(aegis.getEffet());
+    REQUIRE(absorption.famille == FamilleDAbsorption::Aegis);
+    REQUIRE(absorption.montant == 60);
+    REQUIRE(absorption.duree == 8);
+    REQUIRE(absorption.coefficients == Coefficients::seul(Caracteristique::Volonte, 1.0f));
+    REQUIRE(absorption.coefficientDeDuree == 1.0f);  // un buff : la durée profite de l'Intellect
+    REQUIRE(aegis.getRechargeMin() == 15.0f);
+}
+
+TEST_CASE("aegis : meme portee que le soin, cout d'un sort") {
+    const Skill& aegis = aegisDuPaladin();
+    const Skill* soin = nullptr;
+    for (const SkillConnu& connu : specialite(IdSpecialite::Pretre).definition.skills) {
+        if (connu.id == IdSkill::Soin) {
+            soin = &connu.skill;
+        }
+    }
+    REQUIRE(soin != nullptr);
+
+    REQUIRE(aegis.getPortee() == soin->getPortee());
+    REQUIRE(aegis.getCout() == 80);  // coût d'un sort : 15 × (2 + 100 / 30)
+    REQUIRE(aegis.getCout() <= 100);  // la réserve de départ le permet
+}
+
+TEST_CASE("aegis : la barre par defaut le range sous l'imposition des mains, dans la colonne du paladin") {
+    const Escouade escouade = uneEscouadeDe({100.0f, 100.0f}, composer({IdSpecialite::Paladin}));
+    const BarreDeRaccourcis barre = barreParDefaut(escouade.adressesDesSkills());
+
+    REQUIRE(barre.adresse(0) == AdresseSkill{Place{1}, IdSkill::FrappeSacree});
+    REQUIRE(barre.adresse(4) == AdresseSkill{Place{1}, IdSkill::ImpositionDesMains});
+    REQUIRE(barre.adresse(8) == AdresseSkill{Place{1}, IdSkill::Aegis});
 }

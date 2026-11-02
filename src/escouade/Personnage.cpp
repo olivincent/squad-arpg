@@ -85,6 +85,8 @@ void Personnage::dessiner(sf::RenderTarget& rendu) const {
 
     const sf::Vector2f positionBarre = positionBarreDeVie(getCentre(), taille);
     dessinerBarreDeVie(rendu, positionBarre, taille.x, m_vitalite.getRatio());
+    dessinerAbsorption(rendu, positionBarre, taille.x, m_vitalite.getRatio(), m_vitalite.getRatioDAbsorption(FamilleDAbsorption::Aegis),
+                       m_vitalite.getRatioDAbsorption(FamilleDAbsorption::Ward));
     dessinerBarreDEnergie(rendu, positionBarreDEnergie(getCentre(), taille), taille.x, m_energie.getRatio());
     dessinerMarquesDEffets(rendu, positionMarquesDEffets(getCentre(), taille), m_vitalite.getEffets().pilesDesBonus(),
                            m_vitalite.getEffets().pilesDesMalus(), m_vitalite.getEffets().nombreDeControles());
@@ -567,6 +569,7 @@ Attaque Personnage::attaqueDuSkill(const Skill& skill, IdSkill id, Generateur& g
             [&](const EffetDegatsDansLeTemps&) { return attaqueSansDegats(); },
             [&](const EffetSoinDansLeTemps&) { return attaqueSansDegats(); },
             [&](const EffetControle&) { return attaqueSansDegats(); },
+            [&](const EffetAbsorption&) { return attaqueSansDegats(); },
         },
         skill.getEffet());
     duSkill.effets = effetsActifsDuSkill(skill, id);
@@ -616,6 +619,17 @@ std::vector<EffetActif> Personnage::effetsActifsDuSkill(const Skill& skill, IdSk
                                       .rang = static_cast<int>(rang),
                                       .dureeRestante = dureeEffective(controle.duree, controle.coefficientDeDuree, m_caracteristiques),
                                       .sorte = Controle{.etat = controle.etat, .pourcentage = controle.pourcentage}});
+                },
+                // Un bouclier est un buff : sa durée profite de l'Intellect selon le coefficient du skill, mais ne dépasse jamais la recharge ;
+                // ses points sont figés ici, à la pose, avec les caractéristiques du lanceur (comme un soin).
+                [&](const EffetAbsorption& absorption) {
+                    const float duree = std::min(dureeEffective(static_cast<float>(absorption.duree), absorption.coefficientDeDuree, m_caracteristiques),
+                                                 skill.getRechargeMin());
+                    effets.push_back({.source = id,
+                                      .rang = static_cast<int>(rang),
+                                      .dureeRestante = duree,
+                                      .sorte = Absorption{.famille = absorption.famille,
+                                                          .points = montantEffectif(absorption.montant, absorption.coefficients, m_caracteristiques)}});
                 },
                 [](const EffetDegats&) {},
                 [](const EffetFrappe&) {},

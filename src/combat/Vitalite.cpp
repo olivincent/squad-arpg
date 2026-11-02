@@ -160,6 +160,10 @@ int Vitalite::getMaximum() const {
     return m_pointsDeVie.getMaximum();
 }
 
+float Vitalite::getRatioDAbsorption(FamilleDAbsorption famille) const {
+    return static_cast<float>(m_effets.pointsDAbsorption().deLaFamille(famille)) / static_cast<float>(m_pointsDeVie.getMaximum());
+}
+
 float Vitalite::getRatio() const {
     return m_pointsDeVie.getRatio();
 }

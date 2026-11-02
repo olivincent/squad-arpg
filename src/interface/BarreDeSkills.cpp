@@ -74,6 +74,8 @@ std::string sigleDuSkill(IdSkill id) {
             return "RN";
         case IdSkill::Contresort:
             return "CS";
+        case IdSkill::Aegis:
+            return "AG";
     }
     return "??";
 }

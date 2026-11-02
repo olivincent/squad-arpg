@@ -12,3 +12,37 @@ TEST_CASE("positionBarreDeVie place la barre au-dessus du carre, alignee sur son
     REQUIRE(position.x == 90.0f);
     REQUIRE(position.y == 179.0f);
 }
+
+// Les segments d'absorption (étape 114.5).
+
+TEST_CASE("segmentsDAbsorption : sans bouclier, deux segments vides") {
+    const auto [aegis, ward] = segmentsDAbsorption(0.6f, 0.0f, 0.0f);
+
+    REQUIRE(aegis.fin == aegis.debut);
+    REQUIRE(ward.fin == ward.debut);
+}
+
+TEST_CASE("segmentsDAbsorption : les segments prolongent la partie pleine, l'Aegis puis le Ward") {
+    const auto [aegis, ward] = segmentsDAbsorption(0.5f, 0.2f, 0.1f);
+
+    REQUIRE(aegis.debut == 0.5f);
+    REQUIRE(aegis.fin == 0.7f);
+    REQUIRE(ward.debut == 0.7f);
+    REQUIRE(ward.fin == 0.8f);
+}
+
+TEST_CASE("segmentsDAbsorption : a pleine vie les segments se calent contre le bord droit") {
+    const auto [aegis, ward] = segmentsDAbsorption(1.0f, 0.25f, 0.0f);
+
+    REQUIRE(aegis.debut == 0.75f);
+    REQUIRE(aegis.fin == 1.0f);
+}
+
+TEST_CASE("segmentsDAbsorption : un bouclier plus grand que la barre la remplit sans la depasser") {
+    const auto [aegis, ward] = segmentsDAbsorption(0.4f, 3.0f, 2.0f);
+
+    REQUIRE(aegis.debut == 0.0f);
+    REQUIRE(aegis.fin == 1.0f);
+    REQUIRE(ward.fin <= 1.0f);
+    REQUIRE(ward.fin == ward.debut);  // l'Aegis a tout pris
+}

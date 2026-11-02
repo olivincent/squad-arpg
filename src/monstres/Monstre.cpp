@@ -69,6 +69,8 @@ void Monstre::dessiner(sf::RenderTarget& rendu, bool estCible, bool marquerLeRet
     rendu.draw(forme);
 
     dessinerBarreDeVie(rendu, positionBarreDeVie(centre, taille), taille.x, m_vitalite.getRatio());
+    dessinerAbsorption(rendu, positionBarreDeVie(centre, taille), taille.x, m_vitalite.getRatio(),
+                       m_vitalite.getRatioDAbsorption(FamilleDAbsorption::Aegis), m_vitalite.getRatioDAbsorption(FamilleDAbsorption::Ward));
     dessinerMarquesDEffets(rendu, positionMarquesDEffets(centre, taille), m_vitalite.getEffets().pilesDesBonus(),
                            m_vitalite.getEffets().pilesDesMalus(), m_vitalite.getEffets().nombreDeControles());
 }

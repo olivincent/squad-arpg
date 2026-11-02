@@ -10,6 +10,7 @@
 #include "combat/EffetDeSkill.hpp"
 #include "combat/Element.hpp"
 #include "combat/Energie.hpp"
+#include "combat/FamilleDAbsorption.hpp"
 #include "combat/IdSkill.hpp"
 #include "combat/ModeDeCible.hpp"
 #include "combat/NatureDAttaque.hpp"
@@ -43,6 +44,13 @@ constexpr int s_soinRenouvellement = 11;           // par seconde
 constexpr int s_dureeRenouvellement = 8;           // en secondes
 constexpr float s_rechargeRenouvellement = 10.0f;  // en secondes
 constexpr float s_activationRenouvellement = 0.4f; // en secondes
+// Aegis du paladin (étape 114, « à tester ») : un bouclier d'absorption du physique sur l'allié le plus blessé (mode `Allie`, comme le soin),
+// sur la Volonté comme les soins du paladin. 60 points au niveau 1 (environ 20 % des points de vie de départ), 8 s de base, recharge de 15 s. Un
+// buff : sa durée profite du bonus de durée de l'Intellect (coefficient 1) mais ne dépasse jamais la recharge (`Personnage::effetsActifsDuSkill`) ;
+// 8 s de base avec +100 % au plafond font 16 s, ramenées à 15. Portée, activation et règle du coût de Soin.
+constexpr int s_montantAegis = 60;                // points absorbés
+constexpr int s_dureeAegis = 8;                   // en secondes, de base
+constexpr float s_rechargeAegis = 15.0f;          // en secondes
 constexpr float s_porteeSoin = 40.0f;     // bord à bord
 constexpr int s_puissanceSoin = 90;
 constexpr float s_rechargeSoin = 8.0f;    // en secondes
@@ -296,7 +304,19 @@ std::vector<Specialite> construireLeCatalogue() {
                                                 .rechargeMax = s_rechargeImposition,
                                                 .effets = {EffetSoin{.montant = s_puissanceImposition, .coefficients = s_volonteSeule}},
                                                 .tempsExecution = s_activationImposition,
-                                                .cout = coutDUneTechnique(s_rechargeImposition)})}},
+                                                .cout = coutDUneTechnique(s_rechargeImposition)})},
+           // Un bouclier contre le physique sur l'allié le plus blessé : la règle du coût d'un sort, comme le soin dont il reprend la portée et l'activation.
+           {IdSkill::Aegis, Skill({.mode = ModeDeCible::Allie,
+                                   .portee = s_porteeSoin,
+                                   .rechargeMin = s_rechargeAegis,
+                                   .rechargeMax = s_rechargeAegis,
+                                   .effets = {EffetAbsorption{.famille = FamilleDAbsorption::Aegis,
+                                                              .montant = s_montantAegis,
+                                                              .duree = s_dureeAegis,
+                                                              .coefficients = s_volonteSeule,
+                                                              .coefficientDeDuree = 1.0f}},
+                                   .tempsExecution = s_activationSoin,
+                                   .cout = coutDUnSort(s_rechargeAegis)})}},
           .equipementDeDepart = equipementDeMelee(IdObjet::MasseAUneMain), .rayonVision = s_rayonVision,
           .caracteristiques = s_caracteristiquesPaladin, .croissance = s_croissancePaladin,
           .rang = Rang::Avant}},

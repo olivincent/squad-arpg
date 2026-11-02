@@ -14,5 +14,6 @@ enum class IdSkill {
     PluieDeFleches,
     Benediction,
     Renouvellement,
-    Contresort  // le sort du mage qui coupe les skills d'un monstre (Disruption, étape 113)
+    Contresort,  // le sort du mage qui coupe les skills d'un monstre (Disruption, étape 113)
+    Aegis        // le sort du paladin qui pose un Aegis sur l'allié le plus blessé (étape 114)
 };

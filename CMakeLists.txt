@@ -158,6 +158,7 @@ add_executable(tests
     tests/escouade/test_Escouade_skills_provocation.cpp
     tests/escouade/test_Escouade_skills_zone.cpp
     tests/escouade/test_Escouade_effets.cpp
+    tests/escouade/test_Escouade_absorption.cpp
     tests/escouade/test_Escouade_agresseurs.cpp
     tests/escouade/test_Escouade_vue.cpp
     tests/escouade/test_Escouade_places.cpp
