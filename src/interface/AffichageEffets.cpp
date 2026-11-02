@@ -46,10 +46,10 @@ std::string nomDesDegatsDansLeTemps(Element element) {
 }
 
 std::string nomDeLEffetActif(const EffetActif& effet) {
-    return std::visit(Surcharges{[&](const ModificateurDeStatistique&) { return nomDuSkill(effet.source); },
+    return std::visit(Surcharges{[&](const ModificateurDeStatistique&) { return nomDeLaSource(effet.source); },
                                  [](const DegatsDansLeTemps& degats) { return nomDesDegatsDansLeTemps(degats.element); },
                                  // Le soin dans le temps porte le nom de son skill (Renew).
-                                 [&](const SoinDansLeTemps&) { return nomDuSkill(effet.source); },
+                                 [&](const SoinDansLeTemps&) { return nomDeLaSource(effet.source); },
                                  // Un contrôle porte le nom de son état, non celui du skill qui l'a posé.
                                  [](const Controle& controle) { return nomDeLEtatInflige(controle.etat); }},
                       effet.sorte);

@@ -4,6 +4,7 @@
 
 #include "aides.hpp"
 #include "combat/Blocage.hpp"
+#include "combat/SourceDEffet.hpp"
 #include "combat/Vitalite.hpp"
 
 using Catch::Approx;
@@ -550,7 +551,7 @@ TEST_CASE("viderLesEffets : retire les effets sans toucher aux points de vie") {
 
 namespace {
 // Un contrôle de cet état, de cette durée avant résistance, posé par ce skill.
-EffetActif controleDe(EtatInflige etat, float duree, IdSkill source = IdSkill::FrappeSacree, int pourcentage = 0) {
+EffetActif controleDe(EtatInflige etat, float duree, SourceDEffet source = IdSkill::FrappeSacree, int pourcentage = 0) {
     return {.source = source, .dureeRestante = duree, .sorte = Controle{.etat = etat, .pourcentage = pourcentage}};
 }
 
@@ -626,7 +627,7 @@ TEST_CASE("controle : rendement decroissant 100 %, 50 %, 25 %, puis immunite") {
     // Un skill différent à chaque fois : aucun rafraîchissement, chaque effet garde la durée posée.
     vitalite.poserEffet(controleDe(EtatInflige::Etourdissement, 4.0f, IdSkill::FrappeSacree));
     vitalite.poserEffet(controleDe(EtatInflige::Etourdissement, 4.0f, IdSkill::FrappePuissante));
-    vitalite.poserEffet(controleDe(EtatInflige::Etourdissement, 4.0f, IdSkill::CoupAssommant));
+    vitalite.poserEffet(controleDe(EtatInflige::Etourdissement, 4.0f, IdCapacite::CoupAssommant));
     vitalite.poserEffet(controleDe(EtatInflige::Etourdissement, 4.0f, IdSkill::Contresort));
 
     const std::vector<EffetActif>& effets = vitalite.getEffets().liste();
@@ -664,7 +665,7 @@ TEST_CASE("controle : apres 15 s sans application, la duree pleine revient") {
     Vitalite vitalite(100, defensesDeTest(0));
     vitalite.poserEffet(controleDe(EtatInflige::Etourdissement, 1.0f, IdSkill::FrappeSacree));
     vitalite.poserEffet(controleDe(EtatInflige::Etourdissement, 1.0f, IdSkill::FrappePuissante));
-    vitalite.poserEffet(controleDe(EtatInflige::Etourdissement, 1.0f, IdSkill::CoupAssommant));
+    vitalite.poserEffet(controleDe(EtatInflige::Etourdissement, 1.0f, IdCapacite::CoupAssommant));
     vitalite.mettreAJour(15.0f);
     REQUIRE(vitalite.getEffets().liste().empty());
 

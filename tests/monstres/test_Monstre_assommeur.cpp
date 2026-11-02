@@ -73,7 +73,7 @@ TEST_CASE("assommeur : son premier coup porte un etourdissement de son role, ide
     REQUIRE(attaque.has_value());
     REQUIRE(attaque->effets.size() == 1);
     const EffetActif& effet = attaque->effets.front();
-    REQUIRE(effet.source == IdSkill::CoupAssommant);
+    REQUIRE(effet.source == IdCapacite::CoupAssommant);
     REQUIRE(effet.dureeRestante == Approx(1.0f));
     REQUIRE(std::get<Controle>(effet.sorte).etat == EtatInflige::Etourdissement);
     REQUIRE(attaque->degats.total() == lourd.getAttaque().degats.total());  // les dégâts du coup ne changent pas

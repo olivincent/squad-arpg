@@ -1,6 +1,10 @@
 // ./src/interface/AffichageSkills.cpp
 #include "interface/AffichageSkills.hpp"
 
+#include <variant>
+
+#include "combat/Cible.hpp"
+
 // Pas de `default` : un skill ajouté sans nom fait avertir le compilateur.
 
 std::string nomDuSkill(IdSkill id) {
@@ -16,7 +20,19 @@ std::string nomDuSkill(IdSkill id) {
         case IdSkill::Benediction: return "Blessing";
         case IdSkill::Renouvellement: return "Renew";
         case IdSkill::Contresort: return "Counterspell";
-        case IdSkill::CoupAssommant: return "Stunning Blow";
     }
     return "";
+}
+
+std::string nomDeLaCapacite(IdCapacite id) {
+    switch (id) {
+        case IdCapacite::CoupAssommant: return "Stunning Blow";
+    }
+    return "";
+}
+
+std::string nomDeLaSource(const SourceDEffet& source) {
+    return std::visit(Surcharges{[](IdSkill skill) { return nomDuSkill(skill); },
+                                 [](IdCapacite capacite) { return nomDeLaCapacite(capacite); }},
+                      source.valeur);
 }

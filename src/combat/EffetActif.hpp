@@ -2,7 +2,7 @@
 #pragma once
 #include <variant>
 #include "combat/Element.hpp"
-#include "combat/IdSkill.hpp"
+#include "combat/SourceDEffet.hpp"
 
 // Un effet actif (étape 111) : ce qu'un skill a posé sur une entité pour une durée, et qui expire. Buffs, affaiblissements, dégâts dans
 // le temps, contrôle, Aegis et Ward seront tous des effets actifs ; chaque sorte est une alternative de `SorteDEffetActif`, et le
@@ -72,10 +72,10 @@ struct Controle {
 using SorteDEffetActif = std::variant<ModificateurDeStatistique, DegatsDansLeTemps, SoinDansLeTemps, Controle>;
 
 struct EffetActif {
-    // L'identité de l'effet est (source, rang) : le skill qui l'a posé et le rang de l'effet dans la liste d'effets de ce skill
-    // (`DefinitionDeSkill::effets`, 0 pour le principal). Un skill n'a jamais deux effets de même identité sur une entité ; il peut en
-    // avoir deux de rangs différents. Elle ne dépend pas du lanceur : deux lanceurs du même skill n'en font qu'un.
-    IdSkill source;
+    // L'identité de l'effet est (source, rang) : le skill ou la capacité de monstre qui l'a posé et le rang de l'effet dans la liste
+    // d'effets de ce skill (`DefinitionDeSkill::effets`, 0 pour le principal). Une source n'a jamais deux effets de même identité sur
+    // une entité ; elle peut en avoir deux de rangs différents. Elle ne dépend pas du lanceur : deux lanceurs du même skill n'en font qu'un.
+    SourceDEffet source;
     int rang = 0;
     float dureeRestante;     // en secondes ; l'effet disparaît à 0
     SorteDEffetActif sorte;

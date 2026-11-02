@@ -5,6 +5,7 @@
 #include "combat/Cible.hpp"
 #include "combat/Controle.hpp"
 #include "combat/EffetDeSkill.hpp"
+#include "combat/SourceDEffet.hpp"
 #include "rendu/BarreDeVie.hpp"
 #include "rendu/MarquesDEffets.hpp"
 #include "monde/ChampDeVision.hpp"
@@ -475,7 +476,7 @@ void Monstre::poserLeCoupAssommantSiPret(Attaque& attaque) {
     if (assommeur == nullptr || assommeur->delaiRestant > 0.0f || !peutUtiliserUnSkill(m_vitalite.getEffets())) {
         return;
     }
-    attaque.effets.push_back({.source = IdSkill::CoupAssommant,
+    attaque.effets.push_back({.source = IdCapacite::CoupAssommant,
                               .rang = 0,
                               .dureeRestante = assommeur->role.dureeDeLEtourdissement,
                               .sorte = Controle{.etat = EtatInflige::Etourdissement}});
