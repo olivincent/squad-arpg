@@ -5,6 +5,7 @@
 #include "combat/Skill.hpp"
 #include "base/Cercle.hpp"
 #include "combat/Attaque.hpp"
+#include "combat/Controle.hpp"
 #include "combat/EntiteVue.hpp"
 #include "combat/IdMonstre.hpp"
 #include "combat/Place.hpp"
@@ -103,6 +104,8 @@ public:
     [[nodiscard]] const EffetsActifs& getEffets() const;
     // Ce que les ticks de ses effets dans le temps ont fait depuis le dernier appel (`Vitalite::prendreLesTicks`).
     [[nodiscard]] std::vector<Tick> prendreLesTicks();
+    // Ce que les poses de contrôle ont donné depuis le dernier appel (`Vitalite::prendreLesControles`), puis les oublie.
+    [[nodiscard]] std::vector<ControleApplique> prendreLesControles();
     // Zone de contrôle du monstre, en pixels, bord à bord.
     [[nodiscard]] float getZoneDeControle() const;
     // Son attaque : les dégâts, avant l'armure de la cible, et sa capacité offensive.
@@ -118,6 +121,9 @@ public:
 private:
     enum class Etat { EnGarde, Poursuite, Retour };
 
+    // Annule ce que le contrôle subi interdit (étape 113, `Controle.hpp`) : étourdi, le coup engagé et le soin en activation ; en
+    // Disruption, le soin en activation (l'attaque de base reste permise). Appelée dès qu'un coup a pu poser un contrôle.
+    void appliquerLeControle();
     [[nodiscard]] bool proieDetectee(const std::optional<PersonnageVu>& proie, const TileMap& carte) const;
     // Ce que le rôle fait passer avec le temps (le délai entre deux reculs du tireur).
     void faireAvancerLeRole(float dt);

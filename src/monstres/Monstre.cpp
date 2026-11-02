@@ -3,6 +3,7 @@
 #include "base/Cercle.hpp"
 #include "combat/Autodefense.hpp"
 #include "combat/Cible.hpp"
+#include "combat/Controle.hpp"
 #include "combat/EffetDeSkill.hpp"
 #include "rendu/BarreDeVie.hpp"
 #include "rendu/MarquesDEffets.hpp"
@@ -102,10 +103,21 @@ ResultatDuCoup Monstre::recevoirDegats(const Attaque& attaque, Generateur& gener
         return {.montant = 0, .critique = false};
     }
     const ResultatDuCoup resultat = m_vitalite.recevoirDegats(attaque, generateur);
-    if (attaque.degats.total() > 0) {
+    appliquerLeControle();
+    // Une attaque sans dégâts mais qui pose des effets (un contrôle) est hostile aussi : elle alerte.
+    if (attaque.degats.total() > 0 || !attaque.effets.empty()) {
         alerter();
     }
     return resultat;
+}
+
+void Monstre::appliquerLeControle() {
+    if (!peutAttaquer(m_vitalite.getEffets())) {
+        annulerAttaque();
+    }
+    if (!peutUtiliserUnSkill(m_vitalite.getEffets())) {
+        annulerSoin();
+    }
 }
 
 void Monstre::alerter() {
@@ -141,6 +153,10 @@ const EffetsActifs& Monstre::getEffets() const {
 
 std::vector<Tick> Monstre::prendreLesTicks() {
     return m_vitalite.prendreLesTicks();
+}
+
+std::vector<ControleApplique> Monstre::prendreLesControles() {
+    return m_vitalite.prendreLesControles();
 }
 
 float Monstre::getZoneDeControle() const {
@@ -220,7 +236,8 @@ bool Monstre::peutSoigner(const EtatSoigneur& soigneur, const AllieVu& allie, co
 
 bool Monstre::allerSoigner(EtatSoigneur& soigneur, const std::vector<AllieVu>& allies, const TileMap& carte,
                            const std::vector<Cercle>& aContourner) {
-    if (soigneur.soin.getPhase() != PhaseSkill::Pret) {
+    // En Disruption (ou étourdi), le soin est interdit : le soigneur se comporte comme son attaque le décrit.
+    if (soigneur.soin.getPhase() != PhaseSkill::Pret || !peutUtiliserUnSkill(m_vitalite.getEffets())) {
         return false;
     }
     const std::optional<AllieVu> blesse = choisirLeBlesse(allies, soigneur.role.seuilDeBlessure);
@@ -237,7 +254,8 @@ bool Monstre::allerSoigner(EtatSoigneur& soigneur, const std::vector<AllieVu>& a
 
 bool Monstre::engagerSoin(const std::vector<AllieVu>& allies, const TileMap& carte) {
     EtatSoigneur* soigneur = std::get_if<EtatSoigneur>(&m_etatDuRole);
-    if (soigneur == nullptr || m_etat != Etat::Poursuite || cibleEngagee().has_value() || m_mobile.estEnMouvement()) {
+    if (soigneur == nullptr || m_etat != Etat::Poursuite || cibleEngagee().has_value() || m_mobile.estEnMouvement() ||
+        !peutUtiliserUnSkill(m_vitalite.getEffets())) {
         return false;
     }
     const std::optional<AllieVu> blesse = choisirLeBlesse(allies, soigneur->role.seuilDeBlessure);
@@ -329,12 +347,19 @@ bool Monstre::reculerSiAuContact(EtatTireur& tireur, const std::vector<Personnag
 void Monstre::mettreAJour(float dt, std::optional<PersonnageVu> proie, const std::vector<PersonnageVu>& candidats,
                           const std::vector<AllieVu>& allies, const TileMap& carte, const std::vector<Cercle>& obstacles,
                           const std::vector<Cercle>& aContourner) {
-    m_attaque.mettreAJour(dt);
+    m_attaque.mettreAJour(dt * facteurDAttaque(m_vitalite.getEffets()));  // l'entrave ralentit l'attaque de base, pas le soin
     m_vitalite.mettreAJour(dt);
     if (!estVivant()) {
         return;  // mort d'un tick : `Partie` le retire dans l'image
     }
     faireAvancerLeRole(dt);
+
+    // Étourdi, le monstre ne fait rien : ni déplacement, ni coup, ni soin (`appliquerLeControle` a déjà annulé l'activation en cours).
+    // Ses recharges et son rôle ont continué à s'écouler plus haut ; son état (garde, poursuite, retour) reprend à la fin de l'effet.
+    if (!peutBouger(m_vitalite.getEffets())) {
+        m_mobile.arreter();
+        return;
+    }
 
     // Un coup (ou un soin) en exécution : le monstre reste sur place, ni poursuite ni
     // retour (l'état et le coup reçu sont pris en compte après le coup).
@@ -405,7 +430,7 @@ void Monstre::mettreAJour(float dt, std::optional<PersonnageVu> proie, const std
         }
     }
 
-    m_mobile.mettreAJour(dt, carte, obstacles);
+    m_mobile.mettreAJour(dt * facteurDeDeplacement(m_vitalite.getEffets()), carte, obstacles);  // le ralentissement
 }
 
 bool Monstre::peutAtteindre(Cercle cible, const TileMap& carte) const {
@@ -417,7 +442,7 @@ bool Monstre::engagerAttaque(std::optional<PersonnageVu> proie, const std::vecto
         return false;
     }
     const std::optional<PersonnageVu> cible = cibleDeFrappe(proie, candidats, carte);
-    if (!cible || cibleDuSoinEngage().has_value() || m_mobile.estEnMouvement() || !m_attaque.commencer()) {
+    if (!cible || !peutAttaquer(m_vitalite.getEffets()) || cibleDuSoinEngage().has_value() || m_mobile.estEnMouvement() || !m_attaque.commencer()) {
         return false;
     }
     m_placeCibleEngagee = cible->id;
@@ -432,7 +457,7 @@ std::optional<Place> Monstre::cibleEngagee() const {
 }
 
 std::optional<Attaque> Monstre::avancerAttaque(float dt, Generateur& generateur) {
-    if (!cibleEngagee().has_value() || !m_attaque.avancer(dt, generateur)) {
+    if (!cibleEngagee().has_value() || !m_attaque.avancer(dt * facteurDAttaque(m_vitalite.getEffets()), generateur)) {
         return std::nullopt;
     }
     m_placeCibleEngagee.reset();

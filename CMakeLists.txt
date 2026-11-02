@@ -177,6 +177,7 @@ add_executable(tests
     tests/monstres/test_Monstre_retour.cpp
     tests/monstres/test_Monstre_engagement.cpp
     tests/escouade/test_Personnage.cpp
+    tests/escouade/test_Personnage_controle.cpp
     tests/escouade/test_Personnage_affixes.cpp
     tests/combat/test_Skill.cpp
     tests/monde/test_Mobile.cpp
@@ -249,6 +250,7 @@ add_executable(tests
     tests/jeu/test_Partie_soigneur.cpp
     tests/jeu/test_Partie_effets.cpp
     tests/monstres/test_Monstre_soigneur.cpp
+    tests/monstres/test_Monstre_controle.cpp
     tests/jeu/test_Partie_clics.cpp
     tests/jeu/test_Partie_skills.cpp
     tests/jeu/test_Partie_monstres.cpp

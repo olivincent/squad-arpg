@@ -118,6 +118,14 @@ public:
     // maximum, 0 pour un mort).
     ResultatDuCoup recevoirDegats(const Attaque& attaque, Generateur& generateur);
     int recevoirSoin(int quantite);
+    // Le contrôle qu'il subit (étape 113, `Controle.hpp`), lu dans ses effets actifs. Étourdi, il ne bouge pas, ne frappe pas et ne lance
+    // aucun skill ; en Disruption, il ne lance aucun skill (son attaque de base reste permise) ; ralenti, il avance moins vite ; entravé,
+    // son attaque de base est plus lente. Un contrôle qui vient d'être posé annule tout de suite ce qu'il interdit : le coup de base
+    // engagé s'il est étourdi, le skill en activation s'il est étourdi ou en Disruption (sans recharge ni coût).
+    [[nodiscard]] bool peutAttaquer() const;
+    [[nodiscard]] bool peutUtiliserUnSkill() const;
+    // Ce que les poses de contrôle ont donné depuis le dernier appel (`Vitalite::prendreLesControles`), puis les oublie.
+    [[nodiscard]] std::vector<ControleApplique> prendreLesControles();
     // Ses effets actifs (étape 111), que sa vitalité possède : un buff posé par un allié, un affaiblissement. `poserEffet` est sans
     // effet sur un mort ; la mort retire tous les effets. Ils passent au-dessus de ses défenses, recalculées sans les perdre.
     void poserEffet(const EffetActif& effet);
@@ -192,6 +200,8 @@ private:
     Vitalite m_vitalite;    // points de vie et défenses
     Reserve m_energie;      // celle des skills de classe ; le maximum vient du niveau, le débit est celui de base
     float m_rayonVision;    // en pixels
+    // Annule ce que le contrôle subi interdit (voir `peutAttaquer`) ; appelée dès qu'un coup ou un effet a pu en poser un.
+    void appliquerLeControle();
     // Ce qu'il oppose à un coup : l'armure de son équipement et ses statistiques de combat.
     [[nodiscard]] Defenses defenses() const;
     // Sa classe, plus la croissance de ce niveau (`croissanceAuNiveau`), plus ses points dépensés : l'unique calcul de sa base.

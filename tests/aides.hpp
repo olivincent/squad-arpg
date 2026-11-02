@@ -141,6 +141,17 @@ inline Defenses defensesDeTest(int armure = 0) {
     return {.armure = armure, .statistiques = {.capaciteOffensive = 0, .capaciteDefensive = 100}};
 }
 
+// Un contrôle (étape 113) de cet état et de ce pourcentage, d'une durée avant résistance, posé par ce skill : à poser par `poserEffet`
+// (un personnage) ou dans les effets d'une attaque (`attaqueQuiControle`, un monstre).
+inline EffetActif unControle(EtatInflige etat, float duree, int pourcentage = 0, IdSkill source = IdSkill::Contresort, int rang = 0) {
+    return {.source = source, .rang = rang, .dureeRestante = duree, .sorte = Controle{.etat = etat, .pourcentage = pourcentage}};
+}
+
+// Une attaque sans dégâts qui ne pose que ce contrôle : ni esquive ni critique (aucun dégât, aucun tirage).
+inline Attaque attaqueQuiControle(const EffetActif& controle) {
+    return {.degats = {}, .capaciteOffensive = 0, .nature = NatureDAttaque::Contact, .effets = {controle}};
+}
+
 // Les dégâts d'une attaque qui vient de partir, 0 si rien n'est parti (ce que rendaient avancerAttaque et
 // avancerSkill avant de rendre une attaque entière).
 inline int degatsOuZero(const std::optional<Attaque>& attaque) {

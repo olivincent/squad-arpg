@@ -150,6 +150,7 @@ std::vector<ResultatDEffet> Escouade::attaquer(float dt, const std::vector<Monst
         personnage.relancerSiLArmeAChange(generateur);  // une arme changée dans l'inventaire : recharge complète
     }
     actualiserMemoires(monstres);
+    abandonnerLeSkillEnAttenteSousControle();
     std::vector<ResultatDEffet> resultats = abandonnerLeSkillEnAttenteSansEnergie();
     engagerSkillDeZoneEnAttente(carte);
     engagerSkillSurSoiEnAttente();
@@ -1415,6 +1416,14 @@ std::vector<ResultatDEffet> Escouade::abandonnerLeSkillEnAttenteSansEnergie() {
     }
     m_skillEnAttente = std::nullopt;
     return refusSansEnergie(adresse.place);
+}
+
+// Un skill en attente dont le lanceur est étourdi ou en Disruption est abandonné, sans recharge ni coût. Un lanceur mort est déjà
+// traité par `avancerSkillEnAttente`.
+void Escouade::abandonnerLeSkillEnAttenteSousControle() {
+    if (m_skillEnAttente.has_value() && !personnageDeLaPlace(m_skillEnAttente->adresse.place).peutUtiliserUnSkill()) {
+        m_skillEnAttente = std::nullopt;
+    }
 }
 
 // Un skill en attente dont le lanceur n'a plus l'arme qu'il exige est abandonné (sans recharge consommée).

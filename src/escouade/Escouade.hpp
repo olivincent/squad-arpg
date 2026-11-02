@@ -245,6 +245,9 @@ private:
     void annulerSkillDeDegatsEnAttente();
     // Abandonne le skill en attente dont le lanceur n'a plus l'arme qu'il exige (sans recharge consommée).
     void abandonnerLeSkillEnAttenteSansArme();
+    // Abandonne le skill en attente dont le lanceur ne peut plus lancer de skill (étourdi ou en Disruption, étape 113), sans recharge ni
+    // coût. Appelée au début de chaque image : un contrôle posé pendant l'attente ou l'activation d'un autre skill est vu à l'image suivante.
+    void abandonnerLeSkillEnAttenteSousControle();
     // Abandonne, sans coût ni recharge, le skill en attente dont le lanceur est libre mais n'a plus de quoi le payer (il a payé un
     // autre skill entre-temps) ; rend alors le refus à signaler.
     [[nodiscard]] std::vector<ResultatDEffet> abandonnerLeSkillEnAttenteSansEnergie();

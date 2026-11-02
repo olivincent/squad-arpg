@@ -1,6 +1,7 @@
 // ./src/escouade/Personnage.cpp
 #include "escouade/Personnage.hpp"
 #include "combat/Cible.hpp"
+#include "combat/Controle.hpp"
 #include "combat/Energie.hpp"
 #include "combat/ValeursEffectives.hpp"
 #include "rendu/BarreDeVie.hpp"
@@ -95,32 +96,39 @@ void Personnage::mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte,
         return;
     }
 
-    // Règle hybride : en ligne droite quand le trajet est libre de murs et loin des obstacles à
-    // contourner (tout chemin en cours est alors abandonné), par un chemin A* sinon.
-    const sf::Vector2f centre = getCentre();
-    const sf::Vector2f taille = m_mobile.getTaille();
-    if (carte.trajetLibre(sf::FloatRect(centre - taille / 2.0f, taille), cible - centre) &&
-        !traverseUnObstacle(centre, cible, aContourner, taille.x / 2.0f)) {
-        m_mobile.allerToutDroit(cible);
-        m_cibleChemin.reset();
-    } else if (!m_cibleChemin.has_value() || !m_mobile.directionVoulue().has_value() ||
-               (cible - *m_cibleChemin).length() > s_seuilRecalcul || m_mobile.estBloque()) {
-        // Chemin à (re)calculer : aucun en cours, ou fini, ou la cible
-        // s'est éloignée de sa fin de plus d'une case, ou le personnage est bloqué (allerVers
-        // remet le compteur à zéro : au plus un recalcul toutes les 0,3 s). allerToutDroit passe
-        // d'abord, pour que le personnage garde la ligne droite si le A*
-        // ne trouve aucun chemin (allerVers laisse alors le chemin
-        // intact). Même sans chemin trouvé, la cible est mémorisée : on
-        // ne relance pas un A* voué à l'échec à chaque image.
-        m_mobile.allerToutDroit(cible);
-        m_mobile.allerVers(cible, carte, aContourner);
-        m_cibleChemin = cible;
+    // Étourdi, il reste sur place (son chemin est abandonné : il en retrouvera un à la fin de l'étourdissement). Sinon, ralenti, il
+    // avance moins vite : c'est le temps qui s'écoule pour son déplacement qui est multiplié.
+    if (!peutBouger(m_vitalite.getEffets())) {
+        m_mobile.arreter();
+    } else {
+        // Règle hybride : en ligne droite quand le trajet est libre de murs et loin des obstacles à
+        // contourner (tout chemin en cours est alors abandonné), par un chemin A* sinon.
+        const sf::Vector2f centre = getCentre();
+        const sf::Vector2f taille = m_mobile.getTaille();
+        if (carte.trajetLibre(sf::FloatRect(centre - taille / 2.0f, taille), cible - centre) &&
+            !traverseUnObstacle(centre, cible, aContourner, taille.x / 2.0f)) {
+            m_mobile.allerToutDroit(cible);
+            m_cibleChemin.reset();
+        } else if (!m_cibleChemin.has_value() || !m_mobile.directionVoulue().has_value() ||
+                   (cible - *m_cibleChemin).length() > s_seuilRecalcul || m_mobile.estBloque()) {
+            // Chemin à (re)calculer : aucun en cours, ou fini, ou la cible
+            // s'est éloignée de sa fin de plus d'une case, ou le personnage est bloqué (allerVers
+            // remet le compteur à zéro : au plus un recalcul toutes les 0,3 s). allerToutDroit passe
+            // d'abord, pour que le personnage garde la ligne droite si le A*
+            // ne trouve aucun chemin (allerVers laisse alors le chemin
+            // intact). Même sans chemin trouvé, la cible est mémorisée : on
+            // ne relance pas un A* voué à l'échec à chaque image.
+            m_mobile.allerToutDroit(cible);
+            m_mobile.allerVers(cible, carte, aContourner);
+            m_cibleChemin = cible;
+        }
+        m_mobile.mettreAJour(dt * facteurDeDeplacement(m_vitalite.getEffets()), carte, obstacles);
     }
-    m_mobile.mettreAJour(dt, carte, obstacles);
 
     m_vitalite.mettreAJour(dt);
     m_energie.regenerer(dt);  // le mort est sorti plus haut : il ne régénère pas
-    m_attaqueDeBase.mettreAJour(dt);
+    // Les recharges continuent sous le contrôle ; seule l'entrave ralentit celle de l'attaque de base.
+    m_attaqueDeBase.mettreAJour(dt * facteurDAttaque(m_vitalite.getEffets()));
     for (SkillConnu& connu : m_skills) {
         connu.skill.mettreAJour(dt);
     }
@@ -157,7 +165,7 @@ bool Personnage::estAPortee(Cercle cible) const {
 }
 
 bool Personnage::engagerAttaque(IdMonstre idCible) {
-    if (!estVivant() || m_mobile.estEnMouvement() || m_actionEngagee.has_value() || m_rechargeARelancer ||
+    if (!estVivant() || !peutAttaquer() || m_mobile.estEnMouvement() || m_actionEngagee.has_value() || m_rechargeARelancer ||
         !m_attaqueDeBase.commencer()) {
         return false;
     }
@@ -177,7 +185,8 @@ std::optional<IdMonstre> Personnage::cibleEngagee() const {
 }
 
 std::optional<Attaque> Personnage::avancerAttaque(float dt, Generateur& generateur) {
-    if (!cibleEngagee().has_value() || !m_attaqueDeBase.avancer(dt, generateur)) {
+    // L'entrave allonge l'exécution et la recharge de l'attaque de base : le temps qui s'écoule pour elle est multiplié.
+    if (!cibleEngagee().has_value() || !m_attaqueDeBase.avancer(dt * facteurDAttaque(m_vitalite.getEffets()), generateur)) {
         return std::nullopt;
     }
     m_actionEngagee.reset();
@@ -235,7 +244,7 @@ bool Personnage::armeConvientAuSkill(IdSkill id) const {
 
 bool Personnage::skillEstPret(IdSkill id) const {
     const Skill* skill = trouverSkill(id);
-    return estVivant() && skill != nullptr && skill->getPhase() == PhaseSkill::Pret && armeConvientA(*skill);
+    return estVivant() && peutUtiliserUnSkill() && skill != nullptr && skill->getPhase() == PhaseSkill::Pret && armeConvientA(*skill);
 }
 
 std::optional<EtatSkill> Personnage::etatDuSkill(IdSkill id) const {
@@ -286,8 +295,8 @@ bool Personnage::engagerSkill(IdSkill id, std::optional<Cible> cible) {
 bool Personnage::peutEngagerSkill(IdSkill id) const {
     const Skill* skill = trouverSkill(id);
     // Un seul skill en activation à la fois, même si les recharges sont indépendantes.
-    return estVivant() && skill != nullptr && !skillEngage().has_value() && skill->getPhase() == PhaseSkill::Pret &&
-           armeConvientA(*skill) && m_energie.suffit(skill->getCout());
+    return estVivant() && peutUtiliserUnSkill() && skill != nullptr && !skillEngage().has_value() &&
+           skill->getPhase() == PhaseSkill::Pret && armeConvientA(*skill) && m_energie.suffit(skill->getCout());
 }
 
 bool Personnage::energieSuffit(IdSkill id) const {
@@ -331,7 +340,9 @@ void Personnage::annulerSkill() {
 }
 
 ResultatDuCoup Personnage::recevoirDegats(const Attaque& attaque, Generateur& generateur) {
-    return m_vitalite.recevoirDegats(attaque, generateur);
+    const ResultatDuCoup resultat = m_vitalite.recevoirDegats(attaque, generateur);
+    appliquerLeControle();
+    return resultat;
 }
 
 int Personnage::recevoirSoin(int quantite) {
@@ -344,6 +355,28 @@ bool Personnage::estVivant() const {
 
 void Personnage::poserEffet(const EffetActif& effet) {
     m_vitalite.poserEffet(effet);
+    appliquerLeControle();
+}
+
+bool Personnage::peutAttaquer() const {
+    return ::peutAttaquer(m_vitalite.getEffets());
+}
+
+bool Personnage::peutUtiliserUnSkill() const {
+    return ::peutUtiliserUnSkill(m_vitalite.getEffets());
+}
+
+std::vector<ControleApplique> Personnage::prendreLesControles() {
+    return m_vitalite.prendreLesControles();
+}
+
+void Personnage::appliquerLeControle() {
+    if (!peutAttaquer()) {
+        annulerAttaque();
+    }
+    if (!peutUtiliserUnSkill()) {
+        annulerSkill();
+    }
 }
 
 const EffetsActifs& Personnage::getEffets() const {
