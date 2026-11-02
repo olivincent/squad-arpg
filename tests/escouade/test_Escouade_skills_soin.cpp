@@ -290,7 +290,7 @@ Escouade uneEscouadeAuSoinDeZone(ModeDeCible mode, float rayon) {
                                                     .portee = 200.0f,
                                                     .rechargeMin = s_rechargeSoinDeTest,
                                                     .rechargeMax = s_rechargeSoinDeTest,
-                                                    .effet = EffetSoin{.montant = s_puissanceSoinDeTest},
+                                                    .effets = {EffetSoin{.montant = s_puissanceSoinDeTest}},
                                                     .rayonZone = rayon,
                                                     .tempsExecution = s_activationSoinDeTest})}};
     Escouade escouade = uneEscouadeDe({50.0f, 50.0f}, std::move(composition));

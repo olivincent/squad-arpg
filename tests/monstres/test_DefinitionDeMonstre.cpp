@@ -26,7 +26,7 @@ void verifierQueLeResteNeChangePas(const DefinitionDeMonstre& avant, const Defin
     REQUIRE(apres.attaque.rechargeMax == avant.attaque.rechargeMax);
     REQUIRE(apres.attaque.rayonZone == avant.attaque.rayonZone);
     REQUIRE(apres.attaque.tempsExecution == avant.attaque.tempsExecution);
-    REQUIRE(std::get<EffetDegats>(apres.attaque.effet).nature == std::get<EffetDegats>(avant.attaque.effet).nature);
+    REQUIRE(std::get<EffetDegats>(apres.attaque.effets.front()).nature == std::get<EffetDegats>(avant.attaque.effets.front()).nature);
     REQUIRE(apres.statistiques.esquiveContact == avant.statistiques.esquiveContact);
     REQUIRE(apres.statistiques.esquiveProjectile == avant.statistiques.esquiveProjectile);
     REQUIRE(apres.statistiques.chanceDeBlocage == avant.statistiques.chanceDeBlocage);

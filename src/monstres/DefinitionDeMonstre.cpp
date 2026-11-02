@@ -103,7 +103,9 @@ constexpr Profil s_tireur = {.couleur = {190, 110, 40}, .rayon = 13.0f, .vitesse
                                                 .delaiEntreReculs = s_delaiEntreReculsDuTireur}};
 
 // Soigne les membres blessés de son groupe (jamais lui-même) ; sans soin à faire, il tire faiblement de loin, sans reculer.
-constexpr Profil s_soigneur = {.couleur = {40, 160, 150}, .rayon = 12.0f, .vitesse = 150.0f, .pointsDeVieMax = 180,
+// `const` et non `constexpr` : la liste d'effets de son soin est un `std::vector` non vide, que le compilateur ne sait pas évaluer
+// à la compilation. Il n'est lu que par `catalogueDeMonstres`, donc après le démarrage.
+const Profil s_soigneur ={.couleur = {40, 160, 150}, .rayon = 12.0f, .vitesse = 150.0f, .pointsDeVieMax = 180,
                                .armure = 1, .degats = 12, .rechargeMin = 1.5f, .rechargeMax = 2.5f, .execution = 0.4f,
                                .capaciteOffensive = 90, .capaciteDefensive = 90, .esquive = 5, .resistances = {},
                                .chanceDeButin = 25, .nombreDObjets = 1, .experience = 15,
@@ -112,7 +114,7 @@ constexpr Profil s_soigneur = {.couleur = {40, 160, 150}, .rayon = 12.0f, .vites
                                                              .portee = s_porteeDuSoin,
                                                              .rechargeMin = s_rechargeDuSoin,
                                                              .rechargeMax = s_rechargeDuSoin,
-                                                             .effet = EffetSoin{.montant = s_montantDuSoin},
+                                                             .effets = {EffetSoin{.montant = s_montantDuSoin}},
                                                              .tempsExecution = s_activationDuSoin},
                                                     .seuilDeBlessure = s_seuilDeBlessure}};
 
@@ -130,7 +132,7 @@ DefinitionDeMonstre definitionDuProfil(const Profil& profil) {
                         .portee = profil.portee,
                         .rechargeMin = profil.rechargeMin,
                         .rechargeMax = profil.rechargeMax,
-                        .effet = EffetDegats{.montant = 0, .nature = profil.nature},
+                        .effets = {EffetDegats{.montant = 0, .nature = profil.nature}},
                         .tempsExecution = profil.execution},
             .degats = degatsPhysiques(profil.degats),
             .statistiques = {.capaciteOffensive = profil.capaciteOffensive,
@@ -175,7 +177,7 @@ DefinitionDeMonstre renforcer(const DefinitionDeMonstre& definition, int profond
     std::visit(Surcharges{[](RoleMelee&) {},
                           [](RoleTireur&) {},
                           [etagesEnPlus](RoleSoigneur& soigneur) {
-                              EffetSoin& soin = std::get<EffetSoin>(soigneur.soin.effet);
+                              EffetSoin& soin = std::get<EffetSoin>(soigneur.soin.effets.front());
                               soin.montant = majoree(soin.montant, s_pourcentDeDegatsParEtage * etagesEnPlus);
                           }},
                renforcee.role);

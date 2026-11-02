@@ -193,7 +193,7 @@ TEST_CASE("energie : un skill en attente dont le lanceur a assez d'energie part 
                                                             .portee = 0.0f,
                                                             .rechargeMin = s_rechargeProvocationDeTest,
                                                             .rechargeMax = s_rechargeProvocationDeTest,
-                                                            .effet = EffetProvocation{.duree = s_dureeProvocationDeTest},
+                                                            .effets = {EffetProvocation{.duree = s_dureeProvocationDeTest}},
                                                             .rayonZone = s_rayonProvocationDeTest,
                                                             .tempsExecution = s_activationProvocationDeTest,
                                                             .cout = s_coutDeTest})});

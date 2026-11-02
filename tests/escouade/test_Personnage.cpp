@@ -353,7 +353,7 @@ TEST_CASE("Lancer un skill rend sa puissance") {
                                                                         .portee = 80.0f,
                                                                         .rechargeMin = 5.0f,
                                                                         .rechargeMax = 5.0f,
-                                                                        .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}})}},
+                                                                        .effets = {EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}}})}},
                            .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
 
     REQUIRE(lancerSkillEnEntier(personnage, Cible(CibleMonstre{1, pointCible({150.0f, 100.0f})}), generateur).degats.total() == 25);
@@ -367,7 +367,7 @@ TEST_CASE("Un personnage avec un skill de provocation en expose le type et le la
                                                                     .portee = 0.0f,
                                                                     .rechargeMin = 10.0f,
                                                                     .rechargeMax = 10.0f,
-                                                                    .effet = EffetProvocation{.duree = 4},
+                                                                    .effets = {EffetProvocation{.duree = 4}},
                                                                     .rayonZone = 150.0f})}},
                            .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
 
@@ -384,7 +384,7 @@ TEST_CASE("zoneDuSkill est centree sur le personnage, au rayon de zone du skill"
                                                                      .portee = 0.0f,
                                                                      .rechargeMin = 10.0f,
                                                                      .rechargeMax = 10.0f,
-                                                                     .effet = EffetProvocation{.duree = 4},
+                                                                     .effets = {EffetProvocation{.duree = 4}},
                                                                      .rayonZone = 150.0f})}},
                             .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
     Personnage sansSkill = unPersonnage({100.0f, 100.0f},
@@ -412,7 +412,7 @@ TEST_CASE("engagerSkill refuse un personnage mort") {
                                                                         .portee = 80.0f,
                                                                         .rechargeMin = 5.0f,
                                                                         .rechargeMax = 5.0f,
-                                                                        .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}})}},
+                                                                        .effets = {EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}}})}},
                            .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
 
     subir(personnage, personnage.getPointsDeVieMax());
@@ -428,7 +428,7 @@ TEST_CASE("skillEstAPortee mesure la portee du skill, sans toucher a l'attaque d
                                                                         .portee = 80.0f,
                                                                         .rechargeMin = 5.0f,
                                                                         .rechargeMax = 5.0f,
-                                                                        .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}})}},
+                                                                        .effets = {EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}}})}},
                            .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
 
     REQUIRE(personnage.skillEstAPortee(IdSkill::FrappePuissante, pointCible({150.0f, 100.0f})));
@@ -444,7 +444,7 @@ TEST_CASE("Un skill ne peut pas etre relance pendant sa recharge, puis le peut u
                                                                         .portee = 80.0f,
                                                                         .rechargeMin = 5.0f,
                                                                         .rechargeMax = 5.0f,
-                                                                        .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}})}},
+                                                                        .effets = {EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}}})}},
                            .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
     const TileMap carte = carteDegagee5x5();
     const Cible cible = CibleMonstre{1, pointCible({150.0f, 100.0f})};
@@ -465,7 +465,7 @@ TEST_CASE("Apres un skill reussi, l'attaque de base attend une recharge complete
                                                                         .portee = 80.0f,
                                                                         .rechargeMin = 5.0f,
                                                                         .rechargeMax = 5.0f,
-                                                                        .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}})}},
+                                                                        .effets = {EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}}})}},
                            .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
     const TileMap carte = carteDegagee5x5();
     const Cercle cible = pointCible({150.0f, 100.0f});
@@ -674,7 +674,7 @@ Personnage personnageAvecExecution() {
                                                                     .portee = 80.0f,
                                                                     .rechargeMin = 5.0f,
                                                                     .rechargeMax = 5.0f,
-                                                                    .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}})}},
+                                                                    .effets = {EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}}})}},
                        .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
 }
 
@@ -748,7 +748,7 @@ TEST_CASE("l'attaque d'un personnage porte la nature de son attaque de base, cel
                                                                     .portee = 20.0f,
                                                                     .rechargeMin = 1.0f,
                                                                     .rechargeMax = 1.0f,
-                                                                    .effet = EffetDegats{.montant = 7, .nature = NatureDAttaque::Contact}})}},
+                                                                    .effets = {EffetDegats{.montant = 7, .nature = NatureDAttaque::Contact}}})}},
                        .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
     REQUIRE(attaqueDeBaseDe(tireur).nature == NatureDAttaque::Projectile);
     REQUIRE(tireur.engagerAttaque(IdMonstre{1}));
@@ -805,7 +805,7 @@ Personnage personnageAvecActivation() {
                                                                     .portee = 80.0f,
                                                                     .rechargeMin = 5.0f,
                                                                     .rechargeMax = 5.0f,
-                                                                    .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact},
+                                                                    .effets = {EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}},
                                                                     .tempsExecution = 0.3f})}},
                        .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
 }
@@ -968,12 +968,12 @@ Personnage personnageAvecDeuxSkills() {
                                                                     .portee = 80.0f,
                                                                     .rechargeMin = 5.0f,
                                                                     .rechargeMax = 5.0f,
-                                                                    .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact},
+                                                                    .effets = {EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}},
                                                                     .tempsExecution = 0.3f})}, {IdSkill::Provocation, Skill({.mode = ModeDeCible::Soi,
                                                                                                                                                                                                                                                                                                              .portee = 0.0f,
                                                                                                                                                                                                                                                                                                              .rechargeMin = 10.0f,
                                                                                                                                                                                                                                                                                                              .rechargeMax = 10.0f,
-                                                                                                                                                                                                                                                                                                             .effet = EffetProvocation{.duree = 4},
+                                                                                                                                                                                                                                                                                                             .effets = {EffetProvocation{.duree = 4}},
                                                                                                                                                                                                                                                                                                              .rayonZone = 150.0f,
                                                                                                                                                                                                                                                                                                              .tempsExecution = 0.2f})}},
                        .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest, .caracteristiques = s_caracteristiquesDeLArmeDeTireurDeTest});
@@ -1329,12 +1329,12 @@ Personnage unPersonnageDePuissance(const Caracteristiques& base) {
                                                                     .portee = 80.0f,
                                                                     .rechargeMin = 5.0f,
                                                                     .rechargeMax = 5.0f,
-                                                                    .effet = EffetDegats{.montant = 250, .nature = NatureDAttaque::Contact, .coefficients = puissance}})},
+                                                                    .effets = {EffetDegats{.montant = 250, .nature = NatureDAttaque::Contact, .coefficients = puissance}}})},
                                   {IdSkill::Provocation, Skill({.mode = ModeDeCible::Soi,
                                                                 .portee = 0.0f,
                                                                 .rechargeMin = 10.0f,
                                                                 .rechargeMax = 10.0f,
-                                                                .effet = EffetProvocation{.duree = 4},
+                                                                .effets = {EffetProvocation{.duree = 4}},
                                                                 .rayonZone = 150.0f})}},
                        .equipementDeDepart = {{Emplacement::MainDroite, IdObjet::EpeeAUneMain}}, .rayonVision = s_rayonVisionDeTest,
                        .caracteristiques = base});
@@ -1588,17 +1588,17 @@ TEST_CASE("l'attaque d'un skill range son montant dans le champ de son type, les
                                                                         .portee = 80.0f,
                                                                         .rechargeMin = 5.0f,
                                                                         .rechargeMax = 5.0f,
-                                                                        .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}})},
+                                                                        .effets = {EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}}})},
                                       {IdSkill::Soin, Skill({.mode = ModeDeCible::Allie,
                                                              .portee = 80.0f,
                                                              .rechargeMin = 5.0f,
                                                              .rechargeMax = 5.0f,
-                                                             .effet = EffetSoin{.montant = 90, .coefficients = puissance}})},
+                                                             .effets = {EffetSoin{.montant = 90, .coefficients = puissance}}})},
                                       {IdSkill::Provocation, Skill({.mode = ModeDeCible::Soi,
                                                                     .portee = 0.0f,
                                                                     .rechargeMin = 10.0f,
                                                                     .rechargeMax = 10.0f,
-                                                                    .effet = EffetProvocation{.duree = 4},
+                                                                    .effets = {EffetProvocation{.duree = 4}},
                                                                     .rayonZone = 150.0f})}},
                            .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest,
                            .caracteristiques = Caracteristiques({10, 10, 10, 10, 10})});
@@ -1628,13 +1628,13 @@ TEST_CASE("l'attaque d'un skill de zone de feu porte toute sa puissance dans la 
                                                                   .portee = 200.0f,
                                                                   .rechargeMin = 5.0f,
                                                                   .rechargeMax = 5.0f,
-                                                                  .effet = EffetDegats{.montant = 40, .nature = NatureDAttaque::Zone, .element = Element::Feu, .coefficients = puissance},
+                                                                  .effets = {EffetDegats{.montant = 40, .nature = NatureDAttaque::Zone, .element = Element::Feu, .coefficients = puissance}},
                                                                   .rayonZone = 60.0f})},
                                       {IdSkill::FrappePuissante, Skill({.mode = ModeDeCible::Monstre,
                                                                         .portee = 80.0f,
                                                                         .rechargeMin = 5.0f,
                                                                         .rechargeMax = 5.0f,
-                                                                        .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}})}},
+                                                                        .effets = {EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}}})}},
                            .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest,
                            .caracteristiques = Caracteristiques({10, 10, 10, 10, 10})});
 
@@ -1657,7 +1657,7 @@ TEST_CASE("l'attaque de base et la Puissance : toutes les portions profitent de 
                                                             .portee = 200.0f,
                                                             .rechargeMin = 5.0f,
                                                             .rechargeMax = 5.0f,
-                                                            .effet = EffetDegats{.montant = 100, .nature = NatureDAttaque::Zone, .element = Element::Feu, .coefficients = puissance},
+                                                            .effets = {EffetDegats{.montant = 100, .nature = NatureDAttaque::Zone, .element = Element::Feu, .coefficients = puissance}},
                                                             .rayonZone = 60.0f})}},
                      .equipementDeDepart = s_armeDeTireurSeuleDeTest, .rayonVision = s_rayonVisionDeTest,
                      .caracteristiques = Caracteristiques({20, 10, 10, 10, 10})});
@@ -1678,7 +1678,7 @@ Personnage unPersonnageDeFrappe(IdObjet arme, std::vector<TypeDArme> armes) {
                                                                  .portee = 80.0f,
                                                                  .rechargeMin = 5.0f,
                                                                  .rechargeMax = 5.0f,
-                                                                 .effet = EffetFrappe{.bonus = degatsDe(Element::Feu, 10), .coefficients = puissance},
+                                                                 .effets = {EffetFrappe{.bonus = degatsDe(Element::Feu, 10), .coefficients = puissance}},
                                                                  .armesExigees = std::move(armes)})}},
                        .equipementDeDepart = {{Emplacement::MainDroite, arme}}, .rayonVision = s_rayonVisionDeTest,
                        .caracteristiques = Caracteristiques({20, 20, 20, 20, 20})});
@@ -2034,7 +2034,7 @@ Personnage unPersonnageQuiPaie(int cout) {
                                                                   .portee = 100.0f,
                                                                   .rechargeMin = 5.0f,
                                                                   .rechargeMax = 5.0f,
-                                                                  .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact},
+                                                                  .effets = {EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}},
                                                                   .cout = cout})});
     return unPersonnage({100.0f, 100.0f}, std::move(definition));
 }
@@ -2151,7 +2151,7 @@ Personnage unProvocateurDeLIntellect(int savoir, float coefficientDAire, float c
                                                                                       .portee = 0.0f,
                                                                                       .rechargeMin = 10.0f,
                                                                                       .rechargeMax = 10.0f,
-                                                                                      .effet = EffetProvocation{.duree = 4, .coefficientDeDuree = coefficientDeDuree},
+                                                                                      .effets = {EffetProvocation{.duree = 4, .coefficientDeDuree = coefficientDeDuree}},
                                                                                       .rayonZone = 150.0f,
                                                                                       .coefficientDAire = coefficientDAire})}},
                                              .equipementDeDepart = s_armeDeTireurSeuleDeTest,

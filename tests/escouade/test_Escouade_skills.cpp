@@ -301,13 +301,13 @@ DefinitionPersonnage paladinDeTest() {
                                        .portee = s_porteeMeleeDeTest,
                                        .rechargeMin = 5.0f,
                                        .rechargeMax = 5.0f,
-                                       .effet = EffetDegats{.montant = s_degatsFrappeSacreeDeTest, .nature = NatureDAttaque::Contact},
+                                       .effets = {EffetDegats{.montant = s_degatsFrappeSacreeDeTest, .nature = NatureDAttaque::Contact}},
                                        .tempsExecution = 0.3f})},
         {IdSkill::ImpositionDesMains, Skill({.mode = ModeDeCible::Allie,
                                              .portee = s_porteeMeleeDeTest,
                                              .rechargeMin = 10.0f,
                                              .rechargeMax = 10.0f,
-                                             .effet = EffetSoin{.montant = s_puissanceImpositionDeTest},
+                                             .effets = {EffetSoin{.montant = s_puissanceImpositionDeTest}},
                                              .tempsExecution = 0.5f})}};
     return paladin;
 }
@@ -319,13 +319,13 @@ DefinitionPersonnage rodeurDeTest() {
                                      .portee = 200.0f,
                                      .rechargeMin = 6.0f,
                                      .rechargeMax = 6.0f,
-                                     .effet = EffetDegats{.montant = s_degatsTirDeTest, .nature = NatureDAttaque::Projectile},
+                                     .effets = {EffetDegats{.montant = s_degatsTirDeTest, .nature = NatureDAttaque::Projectile}},
                                      .tempsExecution = 0.5f})},
         {IdSkill::PluieDeFleches, Skill({.mode = ModeDeCible::Point,
                                          .portee = 320.0f,
                                          .rechargeMin = 8.0f,
                                          .rechargeMax = 8.0f,
-                                         .effet = EffetDegats{.montant = s_degatsPluieDeTest, .nature = NatureDAttaque::Zone},
+                                         .effets = {EffetDegats{.montant = s_degatsPluieDeTest, .nature = NatureDAttaque::Zone}},
                                          .rayonZone = 45.0f,
                                          .tempsExecution = 0.8f})}};
     return rodeur;

@@ -11,7 +11,7 @@ Skill::Skill(const DefinitionDeSkill& definition)
       m_rechargeMax(definition.rechargeMax),
       m_tempsRecharge(definition.rechargeMax),
       m_recharge(0.0f),
-      m_effet(definition.effet),
+      m_effets(definition.effets),
       m_rayonZone(definition.rayonZone),
       m_coefficientDAire(definition.coefficientDAire),
       m_tempsExecution(definition.tempsExecution),
@@ -23,12 +23,13 @@ Skill::Skill(const DefinitionDeSkill& definition)
     assert(m_rechargeMin >= 0.0f && m_rechargeMin <= m_rechargeMax);
     assert(m_tempsExecution >= 0.0f);
     assert(m_cout >= 0);
+    assert(!m_effets.empty());
     assert(!m_rayonZone.has_value() || *m_rayonZone > 0.0f);
     assert(m_coefficientDAire >= 0.0f && m_coefficientDAire <= 1.0f);
     assert(m_mode != ModeDeCible::Point || m_rayonZone.has_value());  // un skill à point touche une zone
     // On vise un monstre pour lui faire des dégâts ou le provoquer, un allié pour le soigner.
-    assert(m_mode != ModeDeCible::Monstre || campTouche(m_effet) == CampTouche::Monstres);
-    assert(m_mode != ModeDeCible::Allie || campTouche(m_effet) == CampTouche::Allies);
+    assert(m_mode != ModeDeCible::Monstre || campTouche(m_effets.front()) == CampTouche::Monstres);
+    assert(m_mode != ModeDeCible::Allie || campTouche(m_effets.front()) == CampTouche::Allies);
 }
 
 // Recharge fixe (aucun tirage) si les deux bornes sont égales ; sinon tirage
@@ -110,7 +111,7 @@ ModeDeCible Skill::getMode() const {
 }
 
 const EffetDeSkill& Skill::getEffet() const {
-    return m_effet;
+    return m_effets.front();
 }
 
 std::optional<float> Skill::getRayonZone() const {

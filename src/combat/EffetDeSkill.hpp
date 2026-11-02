@@ -8,8 +8,8 @@
 
 // CE QUE FAIT un skill, une alternative par sorte d'effet, chacune avec ses champs et seulement les siens : un champ n'existe que là
 // où il a un sens (une provocation n'a ni élément ni coefficients, un soin ni nature). Où il s'applique (une cible ou une zone) est
-// l'affaire du rayon de zone du skill ; comment il vise, celle de son `ModeDeCible`. Un seul effet par skill pour l'instant ; un
-// nouveau type d'effet est une alternative de plus, et le compilateur signale chaque `std::visit` à compléter.
+// l'affaire du rayon de zone du skill ; comment il vise, celle de son `ModeDeCible`. Un skill porte une liste d'effets (le premier est
+// le principal) ; un nouveau type d'effet est une alternative de plus, et le compilateur signale chaque `std::visit` à compléter.
 //
 // Les coefficients disent ce que le montant doit aux caractéristiques du lanceur (`montantEffectif`) ; sans eux, le montant est
 // celui de la définition.

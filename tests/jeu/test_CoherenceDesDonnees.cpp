@@ -236,8 +236,8 @@ TEST_CASE("le role de chaque definition de monstre est coherent avec ses valeurs
         if (const RoleSoigneur* soigneur = std::get_if<RoleSoigneur>(&definition.role)) {
             // Un soin : un skill de mode Allie dont l'effet rend des points, avec une activation et une recharge.
             REQUIRE(soigneur->soin.mode == ModeDeCible::Allie);
-            REQUIRE(std::holds_alternative<EffetSoin>(soigneur->soin.effet));
-            REQUIRE(std::get<EffetSoin>(soigneur->soin.effet).montant > 0);
+            REQUIRE(std::holds_alternative<EffetSoin>(soigneur->soin.effets.front()));
+            REQUIRE(std::get<EffetSoin>(soigneur->soin.effets.front()).montant > 0);
             REQUIRE(soigneur->soin.portee > 0.0f);
             REQUIRE(soigneur->soin.rechargeMin > 0.0f);
             REQUIRE(soigneur->soin.rechargeMin <= soigneur->soin.rechargeMax);
@@ -250,7 +250,7 @@ TEST_CASE("le role de chaque definition de monstre est coherent avec ses valeurs
             REQUIRE(tireur->delaiEntreReculs > 0.0f);
         }
         // Qui frappe de loin n'engage personne : seule une attaque de contact a une zone de contrôle.
-        const NatureDAttaque nature = std::get<EffetDegats>(definition.attaque.effet).nature;
+        const NatureDAttaque nature = std::get<EffetDegats>(definition.attaque.effets.front()).nature;
         REQUIRE((nature == NatureDAttaque::Contact) == (definition.zoneDeControle > 0.0f));
     }
 }

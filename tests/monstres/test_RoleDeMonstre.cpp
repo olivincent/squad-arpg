@@ -35,7 +35,7 @@ TEST_CASE("role : le tireur a un recul qui a un sens") {
     // Il frappe de loin : sa portée dépasse son contact, et il n'engage personne.
     REQUIRE(definition.attaque.portee > tireur->distanceDeContact);
     REQUIRE(definition.zoneDeControle == 0.0f);
-    REQUIRE(std::get<EffetDegats>(definition.attaque.effet).nature == NatureDAttaque::Projectile);
+    REQUIRE(std::get<EffetDegats>(definition.attaque.effets.front()).nature == NatureDAttaque::Projectile);
 }
 
 TEST_CASE("role : le soigneur du catalogue soigne 75 points toutes les 6 s a 150 px, apres 0,8 s") {
@@ -44,7 +44,7 @@ TEST_CASE("role : le soigneur du catalogue soigne 75 points toutes les 6 s a 150
 
     REQUIRE(soigneur != nullptr);
     REQUIRE(soigneur->soin.mode == ModeDeCible::Allie);
-    REQUIRE(std::get<EffetSoin>(soigneur->soin.effet).montant == 75);
+    REQUIRE(std::get<EffetSoin>(soigneur->soin.effets.front()).montant == 75);
     REQUIRE(soigneur->soin.portee == 150.0f);
     REQUIRE(soigneur->soin.rechargeMin == 6.0f);
     REQUIRE(soigneur->soin.rechargeMax == 6.0f);
@@ -53,7 +53,7 @@ TEST_CASE("role : le soigneur du catalogue soigne 75 points toutes les 6 s a 150
     // Hors soin, un tireur faible : projectile de portée 120, sans zone de contrôle.
     REQUIRE(definition.attaque.portee == 120.0f);
     REQUIRE(definition.zoneDeControle == 0.0f);
-    REQUIRE(std::get<EffetDegats>(definition.attaque.effet).nature == NatureDAttaque::Projectile);
+    REQUIRE(std::get<EffetDegats>(definition.attaque.effets.front()).nature == NatureDAttaque::Projectile);
 }
 
 TEST_CASE("role : l'etat initial est l'alternative de meme rang que le role") {
@@ -106,8 +106,8 @@ TEST_CASE("role : renforcer majore le soin du soigneur comme les degats") {
 
     const DefinitionDeMonstre renforce = renforcer(soigneur, 3);  // +30 % : deux étages de 15 %
 
-    REQUIRE(std::get<EffetSoin>(std::get<RoleSoigneur>(renforce.role).soin.effet).montant == 98);  // 75 × 1,3 = 97,5
-    REQUIRE(std::get<EffetSoin>(std::get<RoleSoigneur>(renforcer(soigneur, 1).role).soin.effet).montant == 75);
+    REQUIRE(std::get<EffetSoin>(std::get<RoleSoigneur>(renforce.role).soin.effets.front()).montant == 98);  // 75 × 1,3 = 97,5
+    REQUIRE(std::get<EffetSoin>(std::get<RoleSoigneur>(renforcer(soigneur, 1).role).soin.effets.front()).montant == 75);
 }
 
 TEST_CASE("role : renforcer garde le role de la definition") {

@@ -36,10 +36,11 @@ struct DefinitionDeSkill {  // NOLINT(cppcoreguidelines-pro-type-member-init): c
     float portee;        // en pixels, écart bord à bord
     float rechargeMin;   // en secondes
     float rechargeMax;   // en secondes
-    // Ce que le skill fait. Sa part de la définition est celle de son effet : montant, élément, nature, coefficients… n'existent
-    // que dans l'alternative qui les lit. Pour un skill de frappe (`EffetFrappe`), les dégâts physiques, la nature et la pénétration
-    // sont ceux de l'arme portée.
-    EffetDeSkill effet;
+    // Ce que le skill fait : une liste d'effets, jamais vide. Le premier est l'effet principal (`Skill::getEffet`) : il décide du camp
+    // que le skill touche et de l'attaque qui en part. La part de la définition de chaque effet est la sienne : montant, élément,
+    // nature, coefficients… n'existent que dans l'alternative qui les lit. Pour un skill de frappe (`EffetFrappe`), les dégâts
+    // physiques, la nature et la pénétration sont ceux de l'arme portée.
+    std::vector<EffetDeSkill> effets;
     // Vide : l'effet touche la cible. Présent : il touche tout le camp concerné dans ce rayon (en pixels) autour de la cible, du point
     // visé ou du lanceur. Un skill de mode `Point` en a toujours un (sinon il n'aurait rien à toucher).
     std::optional<float> rayonZone = std::nullopt;
@@ -74,6 +75,7 @@ public:
     [[nodiscard]] float getProgressionRecharge() const;
     [[nodiscard]] float getRechargeRestante() const;
     [[nodiscard]] ModeDeCible getMode() const;
+    // L'effet principal : le premier de la liste.
     [[nodiscard]] const EffetDeSkill& getEffet() const;
     // Le rayon de la zone touchée ; vide si l'effet touche la cible seule.
     [[nodiscard]] std::optional<float> getRayonZone() const;
@@ -92,7 +94,7 @@ private:
     float m_rechargeMax;    // en secondes
     float m_tempsRecharge;  // en secondes, durée de la recharge en cours (dernier tirage)
     float m_recharge;       // en secondes, avant le prochain déclenchement possible
-    EffetDeSkill m_effet;
+    std::vector<EffetDeSkill> m_effets;  // jamais vide ; le premier est l'effet principal
     std::optional<float> m_rayonZone;
     float m_coefficientDAire;
     float m_tempsExecution; // en secondes, entre l'engagement du coup et son départ

@@ -204,13 +204,13 @@ inline DefinitionPersonnage guerrierDeTest() {
                                                          .portee = s_porteeMeleeDeTest,
                                                          .rechargeMin = s_rechargeFrappeDeTest,
                                                          .rechargeMax = s_rechargeFrappeDeTest,
-                                                         .effet = EffetDegats{.montant = s_degatsFrappeDeTest, .nature = NatureDAttaque::Contact},
+                                                         .effets = {EffetDegats{.montant = s_degatsFrappeDeTest, .nature = NatureDAttaque::Contact}},
                                                          .tempsExecution = s_activationFrappeDeTest})},
              {IdSkill::Provocation, Skill({.mode = ModeDeCible::Soi,
                                            .portee = 0.0f,
                                            .rechargeMin = s_rechargeProvocationDeTest,
                                            .rechargeMax = s_rechargeProvocationDeTest,
-                                           .effet = EffetProvocation{.duree = s_dureeProvocationDeTest},
+                                           .effets = {EffetProvocation{.duree = s_dureeProvocationDeTest}},
                                            .rayonZone = s_rayonProvocationDeTest,
                                            .tempsExecution = s_activationProvocationDeTest})}},
             .equipementDeDepart = s_equipementMeleeDeTest,
@@ -226,7 +226,7 @@ inline DefinitionPersonnage pretreDeTest() {
                                               .portee = s_porteeSoinDeTest,
                                               .rechargeMin = s_rechargeSoinDeTest,
                                               .rechargeMax = s_rechargeSoinDeTest,
-                                              .effet = EffetSoin{.montant = s_puissanceSoinDeTest},
+                                              .effets = {EffetSoin{.montant = s_puissanceSoinDeTest}},
                                               .tempsExecution = s_activationSoinDeTest})}},
             .equipementDeDepart = {{Emplacement::MainDroite, IdObjet::Sceptre}},
             .rayonVision = s_rayonVisionDeTest,
@@ -241,7 +241,7 @@ inline DefinitionPersonnage mageDeTest() {
                                                    .portee = s_porteeZoneDeTest,
                                                    .rechargeMin = s_rechargeZoneDeTest,
                                                    .rechargeMax = s_rechargeZoneDeTest,
-                                                   .effet = EffetDegats{.montant = s_degatsZoneDeTest, .nature = NatureDAttaque::Zone, .element = Element::Feu},
+                                                   .effets = {EffetDegats{.montant = s_degatsZoneDeTest, .nature = NatureDAttaque::Zone, .element = Element::Feu}},
                                                    .rayonZone = s_rayonZoneDeTest,
                                                    .tempsExecution = s_activationZoneDeTest})}},
             .equipementDeDepart = {{Emplacement::MainDroite, IdObjet::Baton}},
@@ -263,14 +263,14 @@ inline DefinitionPersonnage guerrierQuiPaie(int coutFrappe = s_coutDeTest, int c
                                                                 .portee = s_porteeMeleeDeTest,
                                                                 .rechargeMin = s_rechargeFrappeDeTest,
                                                                 .rechargeMax = s_rechargeFrappeDeTest,
-                                                                .effet = EffetDegats{.montant = s_degatsFrappeDeTest, .nature = NatureDAttaque::Contact},
+                                                                .effets = {EffetDegats{.montant = s_degatsFrappeDeTest, .nature = NatureDAttaque::Contact}},
                                                                 .tempsExecution = s_activationFrappeDeTest,
                                                                 .cout = coutFrappe})});
     guerrier.skills.push_back({IdSkill::Provocation, Skill({.mode = ModeDeCible::Soi,
                                                             .portee = 0.0f,
                                                             .rechargeMin = s_rechargeProvocationDeTest,
                                                             .rechargeMax = s_rechargeProvocationDeTest,
-                                                            .effet = EffetProvocation{.duree = s_dureeProvocationDeTest},
+                                                            .effets = {EffetProvocation{.duree = s_dureeProvocationDeTest}},
                                                             .rayonZone = s_rayonProvocationDeTest,
                                                             .tempsExecution = s_activationProvocationDeTest,
                                                             .cout = coutProvocation})});
@@ -284,7 +284,7 @@ inline DefinitionPersonnage pretreQuiPaie() {
                                                    .portee = s_porteeSoinDeTest,
                                                    .rechargeMin = s_rechargeSoinDeTest,
                                                    .rechargeMax = s_rechargeSoinDeTest,
-                                                   .effet = EffetSoin{.montant = s_puissanceSoinDeTest},
+                                                   .effets = {EffetSoin{.montant = s_puissanceSoinDeTest}},
                                                    .tempsExecution = s_activationSoinDeTest,
                                                    .cout = s_coutDeTest})});
     return pretre;
@@ -297,7 +297,7 @@ inline DefinitionPersonnage mageQuiPaie(int cout) {
                                                       .portee = s_porteeZoneDeTest,
                                                       .rechargeMin = s_rechargeZoneDeTest,
                                                       .rechargeMax = s_rechargeZoneDeTest,
-                                                      .effet = EffetDegats{.montant = s_degatsZoneDeTest, .nature = NatureDAttaque::Zone, .element = Element::Feu},
+                                                      .effets = {EffetDegats{.montant = s_degatsZoneDeTest, .nature = NatureDAttaque::Zone, .element = Element::Feu}},
                                                       .rayonZone = s_rayonZoneDeTest,
                                                       .tempsExecution = s_activationZoneDeTest,
                                                       .cout = cout})});
@@ -310,7 +310,7 @@ inline Skill skillExigeantDesArmes(std::vector<TypeDArme> armes) {
                   .portee = s_porteeMeleeDeTest,
                   .rechargeMin = s_rechargeFrappeDeTest,
                   .rechargeMax = s_rechargeFrappeDeTest,
-                  .effet = EffetDegats{.montant = s_degatsFrappeDeTest, .nature = NatureDAttaque::Contact},
+                  .effets = {EffetDegats{.montant = s_degatsFrappeDeTest, .nature = NatureDAttaque::Contact}},
                   .tempsExecution = s_activationFrappeDeTest,
                   .armesExigees = std::move(armes)});
 }
@@ -483,7 +483,7 @@ inline Escouade uneEscouadeAuSoinCourt(sf::Vector2f positionDepart) {
                                                     .portee = 33.0f,
                                                     .rechargeMin = s_rechargeSoinDeTest,
                                                     .rechargeMax = s_rechargeSoinDeTest,
-                                                    .effet = EffetSoin{.montant = s_puissanceSoinDeTest},
+                                                    .effets = {EffetSoin{.montant = s_puissanceSoinDeTest}},
                                                     .tempsExecution = s_activationSoinDeTest})}};
     return uneEscouadeDe(positionDepart, std::move(composition));
 }

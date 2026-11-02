@@ -339,7 +339,7 @@ Escouade uneEscouadeAuMageDe(int savoir, float coefficientDAire) {
                                                .portee = s_porteeZoneDeTest,
                                                .rechargeMin = s_rechargeZoneDeTest,
                                                .rechargeMax = s_rechargeZoneDeTest,
-                                               .effet = EffetDegats{.montant = s_degatsZoneDeTest, .nature = NatureDAttaque::Zone, .element = Element::Feu},
+                                               .effets = {EffetDegats{.montant = s_degatsZoneDeTest, .nature = NatureDAttaque::Zone, .element = Element::Feu}},
                                                .rayonZone = s_rayonZoneDeTest,
                                                .coefficientDAire = coefficientDAire,
                                                .tempsExecution = s_activationZoneDeTest})}};

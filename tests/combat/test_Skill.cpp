@@ -34,12 +34,12 @@ TEST_CASE("Skill.getEffet renvoie l'effet donne au constructeur, une alternative
                   .portee = 80.0f,
                   .rechargeMin = 5.0f,
                   .rechargeMax = 5.0f,
-                  .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}});
+                  .effets = {EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}}});
     Skill soin({.mode = ModeDeCible::Allie,
                 .portee = 80.0f,
                 .rechargeMin = 5.0f,
                 .rechargeMax = 5.0f,
-                .effet = EffetSoin{.montant = 25}});
+                .effets = {EffetSoin{.montant = 25}}});
 
     REQUIRE(std::holds_alternative<EffetDegats>(degats.getEffet()));
     REQUIRE(std::get<EffetDegats>(degats.getEffet()).montant == 25);
@@ -53,23 +53,23 @@ TEST_CASE("Skill.getMode renvoie le mode de cible donne au constructeur, quel qu
                         .portee = 80.0f,
                         .rechargeMin = 5.0f,
                         .rechargeMax = 5.0f,
-                        .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}});
+                        .effets = {EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}}});
     Skill surUnAllie({.mode = ModeDeCible::Allie,
                       .portee = 80.0f,
                       .rechargeMin = 5.0f,
                       .rechargeMax = 5.0f,
-                      .effet = EffetSoin{.montant = 25}});
+                      .effets = {EffetSoin{.montant = 25}}});
     Skill surSoi({.mode = ModeDeCible::Soi,
                   .portee = 0.0f,
                   .rechargeMin = 10.0f,
                   .rechargeMax = 10.0f,
-                  .effet = EffetProvocation{.duree = 4},
+                  .effets = {EffetProvocation{.duree = 4}},
                   .rayonZone = 150.0f});
     Skill surUnPoint({.mode = ModeDeCible::Point,
                       .portee = 250.0f,
                       .rechargeMin = 8.0f,
                       .rechargeMax = 8.0f,
-                      .effet = EffetDegats{.montant = 15, .nature = NatureDAttaque::Zone},
+                      .effets = {EffetDegats{.montant = 15, .nature = NatureDAttaque::Zone}},
                       .rayonZone = 60.0f});
 
     REQUIRE(surUnMonstre.getMode() == ModeDeCible::Monstre);
@@ -83,13 +83,13 @@ TEST_CASE("Skill.getRayonZone renvoie le rayon donne au constructeur, distinct d
                 .portee = 250.0f,
                 .rechargeMin = 8.0f,
                 .rechargeMax = 8.0f,
-                .effet = EffetDegats{.montant = 15, .nature = NatureDAttaque::Contact},
+                .effets = {EffetDegats{.montant = 15, .nature = NatureDAttaque::Contact}},
                 .rayonZone = 60.0f});
     Skill monoCible({.mode = ModeDeCible::Allie,
                      .portee = 40.0f,
                      .rechargeMin = 8.0f,
                      .rechargeMax = 8.0f,
-                     .effet = EffetSoin{.montant = 30}});
+                     .effets = {EffetSoin{.montant = 30}}});
 
     REQUIRE(zone.getRayonZone() == std::optional<float>(60.0f));
     REQUIRE(zone.estAPortee(pointCible({100.0f, 100.0f}), pointCible({300.0f, 100.0f})));
@@ -102,7 +102,7 @@ TEST_CASE("Skill de provocation : la puissance est la duree, avec zone et rechar
                        .portee = 0.0f,
                        .rechargeMin = 10.0f,
                        .rechargeMax = 10.0f,
-                       .effet = EffetProvocation{.duree = 4},
+                       .effets = {EffetProvocation{.duree = 4}},
                        .rayonZone = 150.0f});
     const Cercle origine = pointCible({100.0f, 100.0f});
 
@@ -121,7 +121,7 @@ TEST_CASE("Skill refuse de partir pendant la recharge, puis repart une fois ecou
                  .portee = 80.0f,
                  .rechargeMin = 5.0f,
                  .rechargeMax = 5.0f,
-                 .effet = EffetSoin{.montant = 25}});
+                 .effets = {EffetSoin{.montant = 25}}});
 
     REQUIRE(lancer(skill, generateur));
     REQUIRE_FALSE(lancer(skill, generateur));
@@ -139,7 +139,7 @@ TEST_CASE("Skill.getProgressionRecharge vaut 1 pret, 0 juste apres le declenchem
                  .portee = 80.0f,
                  .rechargeMin = 5.0f,
                  .rechargeMax = 5.0f,
-                 .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}});
+                 .effets = {EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}}});
 
     REQUIRE(skill.getProgressionRecharge() == 1.0f);
 
@@ -155,7 +155,7 @@ TEST_CASE("Skill.estAPortee renvoie vrai pour un point proche") {
                  .portee = 80.0f,
                  .rechargeMin = 0.5f,
                  .rechargeMax = 0.5f,
-                 .effet = EffetDegats{.montant = 5, .nature = NatureDAttaque::Contact}});
+                 .effets = {EffetDegats{.montant = 5, .nature = NatureDAttaque::Contact}}});
 
     REQUIRE(skill.estAPortee(pointCible({100.0f, 100.0f}), pointCible({150.0f, 100.0f})));
 }
@@ -165,7 +165,7 @@ TEST_CASE("Skill.estAPortee renvoie faux pour un point lointain") {
                  .portee = 80.0f,
                  .rechargeMin = 0.5f,
                  .rechargeMax = 0.5f,
-                 .effet = EffetDegats{.montant = 5, .nature = NatureDAttaque::Contact}});
+                 .effets = {EffetDegats{.montant = 5, .nature = NatureDAttaque::Contact}}});
 
     REQUIRE_FALSE(skill.estAPortee(pointCible({100.0f, 100.0f}), pointCible({300.0f, 100.0f})));
 }
@@ -175,7 +175,7 @@ TEST_CASE("Skill.estAPortee renvoie vrai pour une distance exactement egale a la
                  .portee = 80.0f,
                  .rechargeMin = 0.5f,
                  .rechargeMax = 0.5f,
-                 .effet = EffetDegats{.montant = 5, .nature = NatureDAttaque::Contact}});
+                 .effets = {EffetDegats{.montant = 5, .nature = NatureDAttaque::Contact}}});
 
     REQUIRE(skill.estAPortee(pointCible({100.0f, 100.0f}), pointCible({180.0f, 100.0f})));
 }
@@ -186,7 +186,7 @@ TEST_CASE("Skill refuse de partir apres une duree simulee trop courte") {
                  .portee = 80.0f,
                  .rechargeMin = 0.5f,
                  .rechargeMax = 0.5f,
-                 .effet = EffetDegats{.montant = 5, .nature = NatureDAttaque::Contact}});
+                 .effets = {EffetDegats{.montant = 5, .nature = NatureDAttaque::Contact}}});
 
     REQUIRE(lancer(skill, generateur));
     ecoulerTemps(skill, 0.3f);
@@ -199,7 +199,7 @@ TEST_CASE("Skill repart apres une duree simulee genereuse") {
                  .portee = 80.0f,
                  .rechargeMin = 0.5f,
                  .rechargeMax = 0.5f,
-                 .effet = EffetDegats{.montant = 5, .nature = NatureDAttaque::Contact}});
+                 .effets = {EffetDegats{.montant = 5, .nature = NatureDAttaque::Contact}}});
 
     REQUIRE(lancer(skill, generateur));
     ecoulerTemps(skill, 0.6f);
@@ -212,7 +212,7 @@ TEST_CASE("Skill.relancerRecharge empeche de frapper avant une recharge complete
                  .portee = 80.0f,
                  .rechargeMin = 0.5f,
                  .rechargeMax = 0.5f,
-                 .effet = EffetDegats{.montant = 5, .nature = NatureDAttaque::Contact}});
+                 .effets = {EffetDegats{.montant = 5, .nature = NatureDAttaque::Contact}}});
 
     skill.relancerRecharge(generateur);
     REQUIRE_FALSE(lancer(skill, generateur));
@@ -226,7 +226,7 @@ TEST_CASE("Skill.getProgressionRecharge vaut 1 prete, 0 juste apres un coup, ent
                  .portee = 80.0f,
                  .rechargeMin = 0.5f,
                  .rechargeMax = 0.5f,
-                 .effet = EffetDegats{.montant = 5, .nature = NatureDAttaque::Contact}});
+                 .effets = {EffetDegats{.montant = 5, .nature = NatureDAttaque::Contact}}});
 
     REQUIRE(skill.getProgressionRecharge() == 1.0f);
 
@@ -248,7 +248,7 @@ TEST_CASE("Skill.getProgressionRecharge ne depasse jamais 1, meme apres un long 
                  .portee = 80.0f,
                  .rechargeMin = 0.5f,
                  .rechargeMax = 0.5f,
-                 .effet = EffetDegats{.montant = 5, .nature = NatureDAttaque::Contact}});
+                 .effets = {EffetDegats{.montant = 5, .nature = NatureDAttaque::Contact}}});
 
     skill.relancerRecharge(generateur);
     skill.mettreAJour(10.0f);
@@ -261,17 +261,17 @@ TEST_CASE("La nature d'un skill vient de sa definition, Contact par defaut") {
                            .portee = 20.0f,
                            .rechargeMin = 1.0f,
                            .rechargeMax = 1.0f,
-                           .effet = EffetDegats{.montant = 5, .nature = NatureDAttaque::Contact}});
+                           .effets = {EffetDegats{.montant = 5, .nature = NatureDAttaque::Contact}}});
     const Skill tir({.mode = ModeDeCible::Monstre,
                      .portee = 120.0f,
                      .rechargeMin = 1.0f,
                      .rechargeMax = 1.0f,
-                     .effet = EffetDegats{.montant = 5, .nature = NatureDAttaque::Projectile}});
+                     .effets = {EffetDegats{.montant = 5, .nature = NatureDAttaque::Projectile}}});
     const Skill zone({.mode = ModeDeCible::Point,
                       .portee = 250.0f,
                       .rechargeMin = 1.0f,
                       .rechargeMax = 1.0f,
-                      .effet = EffetDegats{.montant = 5, .nature = NatureDAttaque::Zone},
+                      .effets = {EffetDegats{.montant = 5, .nature = NatureDAttaque::Zone}},
                       .rayonZone = 60.0f});
 
     REQUIRE(std::get<EffetDegats>(parDefaut.getEffet()).nature == NatureDAttaque::Contact);
@@ -285,7 +285,7 @@ TEST_CASE("Skill de zone : le depart relance la recharge, refuse tant qu'elle co
                  .portee = 250.0f,
                  .rechargeMin = 8.0f,
                  .rechargeMax = 8.0f,
-                 .effet = EffetDegats{.montant = 15, .nature = NatureDAttaque::Zone},
+                 .effets = {EffetDegats{.montant = 15, .nature = NatureDAttaque::Zone}},
                  .rayonZone = 60.0f});
 
     REQUIRE(lancer(skill, generateur));
@@ -304,7 +304,7 @@ TEST_CASE("Skill a recharge fixe (min == max) donne exactement cette valeur, san
                  .portee = 80.0f,
                  .rechargeMin = 5.0f,
                  .rechargeMax = 5.0f,
-                 .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}});
+                 .effets = {EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}}});
 
     REQUIRE(lancer(skill, generateur));
 
@@ -318,7 +318,7 @@ TEST_CASE("Skill a recharge en intervalle : chaque recharge est dans l'intervall
                  .portee = 80.0f,
                  .rechargeMin = 0.3f,
                  .rechargeMax = 0.7f,
-                 .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}});
+                 .effets = {EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}}});
     std::vector<float> recharges;
 
     for (int i = 0; i < 200; ++i) {
@@ -341,12 +341,12 @@ TEST_CASE("Skill : deux generateurs de meme graine donnent la meme suite de rech
                   .portee = 80.0f,
                   .rechargeMin = 0.3f,
                   .rechargeMax = 0.7f,
-                  .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}});
+                  .effets = {EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}}});
     Skill skillB({.mode = ModeDeCible::Monstre,
                   .portee = 80.0f,
                   .rechargeMin = 0.3f,
                   .rechargeMax = 0.7f,
-                  .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}});
+                  .effets = {EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}}});
 
     for (int i = 0; i < 20; ++i) {
         skillA.mettreAJour(1.0f);
@@ -363,7 +363,7 @@ TEST_CASE("Skill.relancerRecharge tire aussi dans l'intervalle") {
                  .portee = 80.0f,
                  .rechargeMin = 0.3f,
                  .rechargeMax = 0.7f,
-                 .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}});
+                 .effets = {EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}}});
 
     skill.relancerRecharge(generateur);
 
@@ -379,7 +379,7 @@ TEST_CASE("Skill.commencer passe en execution depuis pret seulement") {
                  .portee = 80.0f,
                  .rechargeMin = 1.0f,
                  .rechargeMax = 1.0f,
-                 .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact},
+                 .effets = {EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}},
                  .tempsExecution = 0.5f});
 
     REQUIRE(skill.getPhase() == PhaseSkill::Pret);
@@ -395,7 +395,7 @@ TEST_CASE("Skill.avancer fait partir le coup une seule fois a la fin de l'execut
                  .portee = 80.0f,
                  .rechargeMin = 1.0f,
                  .rechargeMax = 1.0f,
-                 .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact},
+                 .effets = {EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}},
                  .tempsExecution = 0.5f});
     REQUIRE(skill.commencer());
 
@@ -419,7 +419,7 @@ TEST_CASE("Skill.avancer tire la recharge au depart du coup puis revient a pret"
                  .portee = 80.0f,
                  .rechargeMin = 1.0f,
                  .rechargeMax = 1.0f,
-                 .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact},
+                 .effets = {EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}},
                  .tempsExecution = 0.5f});
     REQUIRE(skill.commencer());
     REQUIRE_FALSE(skill.avancer(0.4f, generateur));
@@ -443,7 +443,7 @@ TEST_CASE("Skill.annuler revient a pret sans consommer de recharge") {
                  .portee = 80.0f,
                  .rechargeMin = 1.0f,
                  .rechargeMax = 1.0f,
-                 .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact},
+                 .effets = {EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}},
                  .tempsExecution = 0.5f});
     REQUIRE(skill.commencer());
     REQUIRE_FALSE(skill.avancer(0.2f, generateur));
@@ -461,7 +461,7 @@ TEST_CASE("Skill.annuler ne touche pas une recharge en cours") {
                  .portee = 80.0f,
                  .rechargeMin = 1.0f,
                  .rechargeMax = 1.0f,
-                 .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}});
+                 .effets = {EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}}});
     REQUIRE(skill.commencer());
     REQUIRE(skill.avancer(0.0f, generateur));
 
@@ -477,7 +477,7 @@ TEST_CASE("Skill a execution nulle : le coup part des le premier avancer") {
                  .portee = 80.0f,
                  .rechargeMin = 1.0f,
                  .rechargeMax = 1.0f,
-                 .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}});
+                 .effets = {EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}}});
     REQUIRE(skill.commencer());
 
     REQUIRE(skill.avancer(s_dureeTic, generateur));
@@ -489,7 +489,7 @@ TEST_CASE("Skill.convientA : sans exigence, toute arme et les mains nues convien
                        .portee = 20.0f,
                        .rechargeMin = 1.0f,
                        .rechargeMax = 1.0f,
-                       .effet = EffetDegats{.montant = 5, .nature = NatureDAttaque::Contact}});
+                       .effets = {EffetDegats{.montant = 5, .nature = NatureDAttaque::Contact}}});
 
     REQUIRE(libre.getArmesExigees().empty());
     REQUIRE(libre.convientA(std::nullopt));
@@ -501,7 +501,7 @@ TEST_CASE("Skill.convientA : avec des exigences, seules les armes de la liste co
                           .portee = 20.0f,
                           .rechargeMin = 1.0f,
                           .rechargeMax = 1.0f,
-                          .effet = EffetDegats{.montant = 5, .nature = NatureDAttaque::Contact},
+                          .effets = {EffetDegats{.montant = 5, .nature = NatureDAttaque::Contact}},
                           .armesExigees = {TypeDArme::EpeeAUneMain, TypeDArme::MasseAUneMain}});
 
     REQUIRE(exigeant.getArmesExigees().size() == 2);
@@ -517,12 +517,12 @@ TEST_CASE("un skill ordinaire n'a pas de bonus de frappe, un skill de frappe a l
                            .portee = 20.0f,
                            .rechargeMin = 1.0f,
                            .rechargeMax = 1.0f,
-                           .effet = EffetDegats{.montant = 5, .nature = NatureDAttaque::Contact}});
+                           .effets = {EffetDegats{.montant = 5, .nature = NatureDAttaque::Contact}}});
     const Skill frappe({.mode = ModeDeCible::Monstre,
                         .portee = 20.0f,
                         .rechargeMin = 1.0f,
                         .rechargeMax = 1.0f,
-                        .effet = EffetFrappe{.bonus = degatsDe(Element::Sacre, 45)}});
+                        .effets = {EffetFrappe{.bonus = degatsDe(Element::Sacre, 45)}}});
 
     REQUIRE_FALSE(std::holds_alternative<EffetFrappe>(ordinaire.getEffet()));
     REQUIRE(std::holds_alternative<EffetFrappe>(frappe.getEffet()));
@@ -535,12 +535,12 @@ TEST_CASE("Skill : le cout en energie est de 0 par defaut et se lit par getCout"
                          .portee = 80.0f,
                          .rechargeMin = 5.0f,
                          .rechargeMax = 5.0f,
-                         .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}});
+                         .effets = {EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}}});
     const Skill payant({.mode = ModeDeCible::Monstre,
                         .portee = 80.0f,
                         .rechargeMin = 5.0f,
                         .rechargeMax = 5.0f,
-                        .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact},
+                        .effets = {EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}},
                         .cout = 43});
 
     REQUIRE(gratuit.getCout() == 0);

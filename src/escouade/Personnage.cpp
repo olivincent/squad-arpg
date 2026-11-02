@@ -28,7 +28,7 @@ Skill skillDeLAttaqueDeBase(const DescriptionDAttaque& description) {
                   .portee = description.portee,
                   .rechargeMin = description.rechargeMin,
                   .rechargeMax = description.rechargeMax,
-                  .effet = EffetDegats{.montant = 0, .nature = description.nature, .coefficients = description.coefficients},
+                  .effets = {EffetDegats{.montant = 0, .nature = description.nature, .coefficients = description.coefficients}},
                   .tempsExecution = description.tempsExecution});
 }
 }  // namespace
