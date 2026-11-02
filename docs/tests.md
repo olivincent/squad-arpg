@@ -2260,6 +2260,32 @@ quatre appels de `Monstre::mettreAJour` des tests ont reçu le paramètre des al
   recul et la marche du soigneur dans un vrai donjon (murs, portes, autres monstres), le texte vert sur le monstre soigné, l'équilibre des valeurs
   (le soigneur rend 75 points toutes les 6 s, soit 12,5 par seconde) : à l'œil, en jouant.
 
+## Étape 111 : les effets actifs, buffs et affaiblissements (1 997 → 2 053)
+
+1 997 tests au début de l'étape (aucun changement après 111.1 et 111.2, 2 021 après 111.3, 2 041 après 111.4, 2 053 à la fin).
+- **111.1** : `test_Caracteristiques.cpp`, `test_Specialite.cpp`, `test_Personnage.cpp` : les six assertions qui comparaient à `s_pointsDeVieDeBase`
+  passent par la vraie formule (`s_pointsDeVieDeReference + 6 × (Endurance − 10)`).
+- **111.2** : aucun test nouveau ; 91 `.effet = X{...}` réécrits en `.effets = {X{...}}` par un script, les lectures `.attaque.effet` en
+  `.effets.front()`.
+- **111.3** : `test_EffetsActifs.cpp` (nouveau : la pose, le cumul — deux skills se cumulent, le même rafraîchit sans raccourcir et garde la valeur
+  la plus forte dans les deux sens —, l'écoulement du temps et l'expiration à 0 pile, le vidage, `appliquerLesEffets` : buff, malus, **l'addition avant
+  l'application** — 19 contre 18 — l'arrondi, le plancher à 0, les statistiques de combat intactes) ; `test_Vitalite.cpp` (l'armure effective dans
+  `recevoirDegats`, l'expiration, les effets au-dessus de défenses recalculées, la mort qui vide, pas de pose sur un mort).
+- **111.4** : `test_Vitalite.cpp` (les effets de l'attaque se posent après le coup, **un coup esquivé n'en pose aucun** — 100 coups, équivalence
+  « aucun effet ⇔ esquivé » —, un coup qui tue n'en laisse aucun, un blocage total pose quand même), `test_Skill.cpp` (`getEffets`, un buff comme
+  effet principal), `test_EffetDeSkill.cpp` (le camp d'un modificateur), `test_Escouade_effets.cpp` (nouveau : le coup d'un skill qui affaiblit porte
+  l'effet de son skill, un buff parti est posé sur l'allié visé seul, la durée profite de l'Intellect et se plafonne à +100 %),
+  `test_Partie_effets.cpp` (nouveau : une frappe qui touche pose l'effet sur le monstre, il expire après 8 s, refrapper le rafraîchit sans en
+  doubler), `test_Specialite.cpp` (la frappe puissante du catalogue), `test_MarquesDEffets.cpp`. Fixtures dans `aides_escouade.hpp` :
+  `guerrierQuiAffaiblit`, `pretreQuiBenit`, `pretreQuiBenitToutLeMonde`.
+- **111.5** : `test_Escouade_effets.cpp` (la bénédiction touche chaque vivant à pleine vie, pas un mort, l'armure monte de 20 % puis revient à
+  l'expiration, la durée est ramenée à la recharge, y compris avec le bonus de durée au plafond), `test_Partie_effets.cpp` (descendre retire tous
+  les effets), `test_CoherenceDesDonnees.cpp` (**un buff ne dure jamais plus longtemps que sa recharge**, tous les skills de classe),
+  `test_Specialite.cpp` (la bénédiction du catalogue : mode, 20 %, 10 s, coefficient 1, recharge 20 s, coût 57), `test_AffichageEffets.cpp`
+  (nouveau), `test_DispositionInventaire.cpp` (les lignes d'effets tiennent dans le panneau sans chevauchement).
+- **Ce que les tests ne voient pas** : la couleur et la position des marques sous les carrés, le bloc « Active effects » de l'inventaire, la
+  lisibilité de l'armure qui change pendant un combat, l'équilibre des valeurs (−25 % pendant 8 s, +20 % pendant 10 s pour 57 d'énergie).
+
 ## Étape 110 : les effets des caractéristiques
 
 1 955 tests au début de l'étape (1 977 après 110.3, 1 980 après 110.4, 1 996 après 110.5, 1 997 à la fin).

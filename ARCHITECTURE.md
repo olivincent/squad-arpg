@@ -43,11 +43,11 @@ squad-arpg/
 ├── CLAUDE.md, ARCHITECTURE.md, ROADMAP.md
 ├── src/
 │   ├── base/       Aleatoire, Cercle, Eclaircir
-│   ├── rendu/      BarreDeVie, BarreDEnergie, TraceDeChemin
+│   ├── rendu/      BarreDeVie, BarreDEnergie, MarquesDEffets, TraceDeChemin
 │   ├── monde/      TileMap, Chemin, Deplacement, Mobile, ChampDeVision, Vision,
 │   │               ObjetInteractif, Niveau, CategorieDeMonstre, CompositionDeGroupe, GenerateurDonjon, Encerclement
 │   ├── combat/     Skill, SkillConnu, IdSkill, ModeDeCible, EffetDeSkill, ResultatDEffet, Place, IdMonstre, TypeDArme, DescriptionDAttaque, PlageDeDegats, AdresseSkill, Cible, ActionEngagee, Progression,
-│   │               Element, Degats,
+│   │               Element, Degats, EffetActif, EffetsActifs,
 │   │               EtatSkill, Coup, EvenementDeCombat, EntiteVue, AllieVu, Autodefense, Engagement,
 │   │               Attaque, NatureDAttaque, StatistiquesDeCombat, Esquive, Critique, Blocage, Defense,
 │   │               ResolutionDuCoup, Caracteristiques, Contributions, EtatDeControle, ValeursEffectives, Energie, Jauge, Reserve, PointsDeVie, Vitalite
@@ -60,7 +60,7 @@ squad-arpg/
 │   ├── jeu/        Partie, Expedition, ObjetAuSol, ObjetsAuSol
 │   ├── interface/  Ecran, Transition, Contexte, PileDEcrans, EntreeDInterface, EcranMenu,
 │   │               EcranOptions, EcranChoixEscouade, EcranJeu, EcranInventaire,
-│   │               DispositionInventaire, AffichageObjets, AffichageObjetsAuSol, AffichageCaracteristiques, AffichageStatistiques, AffichageSkills, AffichageProfondeur, AffichageNiveau, ListeDeBoutons, Reglages, TailleDeVue,
+│   │               DispositionInventaire, AffichageObjets, AffichageObjetsAuSol, AffichageCaracteristiques, AffichageStatistiques, AffichageSkills, AffichageProfondeur, AffichageNiveau, AffichageEffets, ListeDeBoutons, Reglages, TailleDeVue,
 │   │               EmplacementsPrincipaux, BarreDeRaccourcis, CommandeDeTouche, ClicInterface,
 │   │               BarreDeSkills, EcranDeFin, TextesFlottants, Controleur
 │   └── app/        main.cpp, Application
@@ -114,6 +114,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 `rendu/` — primitives de dessin :
 - `BarreDeVie` : position et dessin de la barre de vie d'une entité (`docs/combat.md`).
 - `BarreDEnergie` : position (sous la barre de vie) et dessin de la barre d'énergie d'un personnage (`docs/combat.md`).
+- `MarquesDEffets` : la rangée de marques d'effets actifs sous le carré d'une entité, une verte par bonus, une rouge par malus (`docs/combat.md`, « Les effets actifs »).
 - `TraceDeChemin` : ligne brisée du chemin restant, débogage F3 (`docs/chemin.md`).
 
 `monde/` — la carte et ce qui s'y déplace :
@@ -170,7 +171,9 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `PointsDeVie` : une `Jauge` et les invariants de vie et de mort.
 - `Caracteristiques` : les cinq caractéristiques (`Caracteristique`, `Caracteristiques`, `Coefficients`), les points de vie maximum (selon le niveau de classe) et `montantEffectif`, seule source du montant d'un skill de personnage (`docs/combat.md`).
 - `Progression` : la courbe de l'expérience (`niveauPour`, `niveauDeClasse`, `experiencePourAtteindre`, `progressionVersLeNiveauSuivant`, `experienceManquante`) la croissance automatique d'une classe (`PaireDeCroissance`, `croissanceAuNiveau`) et les points libres (`pointsLibresRecus`, `pointsLibresDisponibles`, `depensePermise`) ; des fonctions pures (`docs/combat.md`, `docs/classes-et-combat.md`).
-- `Vitalite` : points de vie, défenses (armure, statistiques de combat) et récupération du blocage d'une entité, commune à `Personnage` et `Monstre`.
+- `Vitalite` : points de vie, défenses (armure, statistiques de combat), effets actifs et récupération du blocage d'une entité, commune à `Personnage` et `Monstre`.
+- `EffetActif` : ce qu'un skill laisse sur une entité pour une durée (la source, la durée restante, une sorte en `std::variant` : aujourd'hui le modificateur de statistique, l'armure), `estUnBonus` ; sans `.cpp` (`docs/combat.md`, « Les effets actifs (étape 111) »).
+- `EffetsActifs` : les effets actifs d'une entité (cumul : un skill n'a jamais deux effets sur une entité, il rafraîchit), `mettreAJour`, `vider`, et `appliquerLesEffets`, l'unique endroit où ils changent une statistique (pourcentages additionnés, une seule application) ; possédés par `Vitalite`.
 
 `objets/` — les objets, ce qu'on porte et le sac (`docs/objets.md`) :
 - `Emplacement` : les 10 emplacements, les 10 catégories d'objet (dont `Relique`, en main gauche comme le bouclier) et `peutAller`, seule source de la règle.
@@ -259,6 +262,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `AffichageCaracteristiques` : les noms des cinq caractéristiques, la ligne d'une caractéristique avec son bonus, « Points: N », le brouillon « (+N) » et l'infobulle d'effet (`docs/combat.md`).
 - `AffichageStatistiques` : les lignes des statistiques de combat de l'inventaire et des bonus de combat d'une infobulle (`docs/combat.md`).
 - `AffichageSkills` : `nomDuSkill`, le nom affiché d'un skill (`docs/combat.md`).
+- `AffichageEffets` : le titre du bloc des effets actifs de l'inventaire et la ligne d'un effet (« Blessing: +20 % Armor (10 s) ») (`docs/combat.md`).
 - `AffichageProfondeur` : `ligneDeProfondeur`, « Depth 2 / 5 » (`docs/boucle-et-entrees.md`).
 - `AffichageNiveau` : `ligneDeNiveau`, « Level 3 », et `ligneDePointsADepenser`, « Points to spend » (`docs/boucle-et-entrees.md`, `docs/ecrans.md`).
 - `ListeDeBoutons` : colonne de boutons sans position stockée (`docs/ecrans.md`).
@@ -298,8 +302,8 @@ objets : ne dépend que de base (`Generateur`) et de combat (`Caracteristiques`,
 **Exceptions transitoires, jusqu'à M1** (séparer le dessin du noyau, `docs/audit.md`) : des
 classes du noyau se dessinent elles-mêmes.
 - Inclusions de `rendu/` depuis le noyau : `escouade/Escouade.cpp` → `rendu/TraceDeChemin.hpp` ;
-  `escouade/Personnage.cpp` → `rendu/BarreDeVie.hpp` et `rendu/BarreDEnergie.hpp` ; `monstres/Monstre.cpp` →
-  `rendu/BarreDeVie.hpp` et `rendu/TraceDeChemin.hpp`.
+  `escouade/Personnage.cpp` → `rendu/BarreDeVie.hpp`, `rendu/BarreDEnergie.hpp` et `rendu/MarquesDEffets.hpp` ; `monstres/Monstre.cpp` →
+  `rendu/BarreDeVie.hpp`, `rendu/MarquesDEffets.hpp` et `rendu/TraceDeChemin.hpp`.
 - Cible et formes de dessin SFML dans le noyau (`RenderTarget` dans le `.hpp`, formes dans le
   `.cpp`) : `monde/TileMap` (`RectangleShape`), `monde/Vision` (`VertexArray`), `escouade/Escouade`
   (`CircleShape`, `RectangleShape`, `Vertex`), `escouade/Personnage` (`RectangleShape`),

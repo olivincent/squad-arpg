@@ -132,7 +132,7 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
 - **Disposition en fonctions pures** (`interface/DispositionInventaire`), sans position stockée :
   tout est recalculé depuis la taille de la vue d'interface. À gauche, les onglets puis **une seule colonne**, la même pour tous les
   personnages (la géométrie ne dépend plus de la place : c'est l'écran qui fournit la place ouverte là où une position en a besoin,
-  `elementSous`, `boutonSous` et `caracteristiqueSous`) : « Armor: N », « (dead) », 10 emplacements en
+  `elementSous`, `boutonSous` et `caracteristiqueSous`) : « Armor: N » (l'armure effective, effets actifs compris : `Escouade::armureDuPersonnage`, étape 111.5), « (dead) », 10 emplacements en
   deux colonnes de 5, puis le bloc de ses cinq caractéristiques effectives — avec « (+N) »
   quand l'équipement en donne — de ses points de vie « HP actuels / maximum » et de son énergie « Energy actuelle / maximum » (étape 108.4 ; une ligne par
   caractéristique sur toute la largeur de la colonne, sept lignes de 18 px, pour y mettre les boutons des points libres), puis le
@@ -143,7 +143,9 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
   (points par seconde) que les affixes majorent de pour cent, et qu'un entier cacherait cette majoration (2,3 serait 2) ; à droite, le sac (5 rangées de 8 cases) sous son étiquette « Bag ». Le dessin, le survol et les tests
   appellent les mêmes rectangles (`rectangleDeLOnglet`, `rectangleDeLEmplacement`, `rectangleDeLaCaseDuSac`,
   `elementSous`, `ongletSous`), aussi utilisés par le glisser-déposer. Un test vérifie que tout
-  tient dans 1200 × 800 (et en 16:9), dans le panneau, sans chevauchement, onglets compris.
+  tient dans 1200 × 800 (et en 16:9), dans le panneau, sans chevauchement, onglets compris. **Les effets actifs (étape 111.5)** : sous le sac, à
+  droite de la colonne, le titre « Active effects » puis une ligne par effet du personnage ouvert (8 au plus, `rectangleDeLEffetActif`), « Blessing: +20 %
+  Armor (10 s) », en vert pour un bonus et en rouge pour un malus ; le panneau ne change pas de taille.
 - **Infobulle** : au survol d'un emplacement ou d'une case occupés, le nom composé de l'objet (de la couleur de sa
   rareté), sa catégorie, les propriétés de son modèle (armure, bonus, blocage d'un bouclier, attaque d'une arme : dégâts,
   recharge, portée, melee ou projectile, « Two-handed »), une ligne par affixe, puis ses seuils (`lignesDeLInfobulle(const
@@ -549,6 +551,7 @@ construction, `explicit EcranMenu(std::vector<Resolution>)`), `m_boutons` (`List
 | `rectangleDeLEmplacement(Emplacement, tailleDeVue)` | Rectangle de l'emplacement dans la colonne ; les 5 premiers de l'enum à gauche, les 5 suivants à droite ; `[[nodiscard]]` |
 | `rectangleDesCaracteristiques(tailleDeVue)` / `rectangleDeLaCellule(indice, tailleDeVue)` | Le bloc sous les emplacements (340 × 126 px, `s_lignesDeCaracteristiques` = 7 lignes de 18 px, pleine largeur) et ses 7 lignes de haut en bas : Puissance, Endurance, Adresse, Savoir, Volonté, points de vie (`s_celluleDesPointsDeVie`), énergie (`s_celluleDeLEnergie`, étape 108.4) ; `assert(indice < s_lignesDeCaracteristiques)` ; `[[nodiscard]]` |
 | `rectangleDesStatistiques(tailleDeVue)` / `rectangleDeLaStatistique(indice, tailleDeVue)` | Le bloc sous celui des caractéristiques (340 × 54 px, `s_lignesDeStatistiques` = 3 lignes de 18 px) et ses `s_cellulesDeStatistiques` (6) cellules en deux colonnes remplies colonne par colonne (`lignesDeStatistiques` pour les cinq premières, la régénération d'énergie à `s_celluleDeLaRegeneration`, la sixième) ; `assert(indice < s_cellulesDeStatistiques)` ; `[[nodiscard]]` |
+| `rectangleDesEffetsActifs(tailleDeVue)` / `rectangleDeLEffetActif(indice, tailleDeVue)` | Étape 111.5 : le bloc des effets actifs sous le sac (titre puis `s_lignesDEffetsActifs` = 8 lignes de 18 px), la ligne de ce rang (`assert(indice < s_lignesDEffetsActifs)`) ; `[[nodiscard]]` |
 | `rectangleDeLaCaseDuSac(indice, tailleDeVue)` / `rectangleDeLEtiquetteDuSac(tailleDeVue)` | Rectangle de la case (`assert(indice < s_casesDuSac)`), à droite de la colonne, en 5 rangées de 8 / de l'étiquette « Bag » au-dessus de la première. Nommée ainsi parce que `rectangleDeLaCase` existe dans `SelectionDEscouade` ; `[[nodiscard]]` |
 | `rectangleDuBoutonPlus(Caracteristique, tailleDeVue)` / `rectangleDuBoutonMoins(...)` | Étape 100.2 : les boutons de 22 × 18 px à droite de la ligne de la caractéristique (le « + » au bord, le « − » à sa gauche, 4 px d'écart) ; toujours les mêmes rectangles, visibles ou non ; `[[nodiscard]]` |
 | `rectangleDuBoutonAppliquer(tailleDeVue)` / `rectangleDuBoutonReinitialiser(...)` | Étape 100.2 : « Apply » et « Reset », 64 × 18 px, à droite de la ligne des points de vie ; `[[nodiscard]]` |

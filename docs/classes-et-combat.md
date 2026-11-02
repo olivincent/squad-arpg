@@ -562,6 +562,30 @@ Statuts : *retenu* = décidé et fait, *à tester* = valeur provisoire.
 - **À tester.** Le **débit** d'énergie d'un skill lancé en boucle (43 points en 8 s, soit 5,4 par seconde, contre 2 de régénération)
   vide la réserve en 30 s ; les techniques, bien plus lentement.
 
+## 14 ter. Les effets actifs (étape 111)
+
+*Statut : retenu à l'étape 111 ; toutes les valeurs sont « à tester ».* Un seul concept pour tout ce qu'un skill laisse sur une entité pour une
+durée : l'**effet actif**. Buffs, affaiblissements, dégâts et soins dans le temps, états de contrôle, Aegis et Ward en seront tous (étapes 112 à 114
+prévues : dégâts et soins dans le temps, états de contrôle, Aegis et Ward ; plus tard Charm et les auras). L'étape 111 pose le socle et la première
+sorte, le **modificateur de statistique** (armure seulement). La technique est dans `docs/combat.md`, « Les effets actifs (étape 111) ».
+
+- **Cumul.** Le même skill posé de nouveau sur la même cible (quel que soit le lanceur) rafraîchit la durée et garde la valeur la plus forte :
+  jamais deux effets du même skill sur une cible. Deux skills différents se cumulent. Pas de piles d'intensité.
+- **Calcul.** Les pourcentages de tous les effets sur une statistique s'additionnent, puis s'appliquent une seule fois, arrondis, l'armure
+  restant à 0 au minimum. La couche des effets passe **après** les caractéristiques et l'équipement, pour les personnages comme pour les monstres.
+- **Vie d'un effet.** La durée diminue avec le temps de jeu ; l'effet disparaît à 0, à la mort de l'entité et à la descente d'un étage. Les
+  effets actifs ne sont pas sauvegardés dans l'expédition.
+- **Un coup qui n'atteint pas n'applique rien.** Les effets secondaires d'un skill de dégâts ne se posent que si le coup n'est pas esquivé.
+- **Règle de durée des buffs.** *Un buff ne dure jamais plus longtemps que sa recharge*, même au plafond du bonus de durée de l'Intellect : la
+  durée d'un buff est ramenée à sa recharge, et un test parcourt le catalogue des classes. (Sinon un buff permanent suffirait, sans coût réel.)
+- **Mode de cible « toute l'escouade »** : tous les membres vivants du lanceur, sans portée ni choix de cible.
+- **Les deux premiers utilisateurs.** La **frappe puissante** du guerrier affaiblit : −25 % d'armure sur la cible pendant 8 s, si le coup touche
+  (une technique : la durée ne profite pas de l'Intellect). La **bénédiction** (« Blessing ») du prêtre : +20 % d'armure à toute l'escouade pendant
+  10 s de base (un sort : coefficient de durée 1, soit jusqu'à 20 s au plafond), recharge de 20 s, coût de 57 d'énergie (la règle des techniques
+  donne 57 ; celle des sorts, 107, dépasserait la réserve de départ).
+- **Reste ouvert** : les piles d'intensité, les auras à bascule, d'autres statistiques modifiables (au-delà de l'armure), les monstres qui posent des
+  effets, un buff qui choisit sa cible (aujourd'hui seul « toute l'escouade » convient à un buff), les icônes dessinées.
+
 ## 15. Pistes
 
 Idées retenues pour plus tard, sans étape prévue.

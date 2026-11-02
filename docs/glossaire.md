@@ -149,6 +149,15 @@ Le nom affiché d'un objet est `[préfixe] modèle [suffixe]` (« Blazing Mace �
 | Imposition des mains | Lay on Hands | LH |
 | Tir perçant | Piercing Shot | PC |
 | Pluie de flèches | Rain of Arrows | RA |
+| Bénédiction | Blessing | BL |
+
+## Effets actifs (`interface/AffichageEffets.cpp`)
+
+| Concept | Texte |
+|---|---|
+| Titre du bloc de l'inventaire | Active effects |
+| Une ligne : skill, valeur, secondes restantes (arrondies vers le haut) | « Blessing: +20 % Armor (10 s) », « Power Strike: −25 % Armor (8 s) » (vert pour un bonus, rouge pour un malus) |
+| Statistique modifiée (armure) | Armor (aussi « Armor: N » en tête de la colonne de l'inventaire, effets actifs compris) |
 
 ## Textes flottants (`interface/TextesFlottants.cpp`)
 

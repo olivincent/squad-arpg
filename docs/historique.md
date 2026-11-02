@@ -128,6 +128,7 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 108 — L'énergie, la ressource des skills : une jauge plafonnée et une réserve qui se régénère, une énergie par personnage (100 plus 5 par niveau, 2 par seconde), un coût par skill calibré par une règle (sort 30 s, technique 120 s), le refus et l'abandon avec « Not enough energy », la barre bleue, l'affixe « of Replenishment » ✅ (les effets du Savoir et de la Volonté passent à l'étape 110)
 - Étape 109 — Documentation : la liste cible des statistiques (caractéristiques, ressources, statistiques de combat), huit types de dégâts et de résistances (le saignement n'est plus un type), Aegis et Ward, résistances aux états, attributs ✅ (aucune modification du code)
 - Étape 110 — Les effets des caractéristiques : une table de contributions en données, la Resolve vers l'énergie et les résistances au contrôle, le niveau de classe, le montant à 1 % par point, la convention des coefficients (Might pour l'arme, Intellect pour les sorts, Resolve pour les soins), l'aire et la durée de l'Intellect, de nouvelles bases pour le mage, le prêtre et le paladin ✅ (exception à `ARCHITECTURE.md` : des statistiques calculées avant leurs mécaniques)
+- Étape 111 — Le socle des effets actifs : un concept unique (le modificateur de statistique en première sorte), plusieurs effets par skill, l'affaiblissement de la frappe puissante, la bénédiction du prêtre (mode « toute l'escouade »), la durée d'un buff plafonnée par sa recharge, marques vertes et rouges et liste dans l'inventaire ✅
 
 ## Détail des étapes 0 à 73
 
@@ -2602,3 +2603,23 @@ l'Intellect. 110.6 : bases du mage (6 / 8 / 8 / 16 / 12) et du prêtre (8 / 10 /
 lanceur (elle exige une arme de contact) ; le plafond précède le coefficient du skill ; l'infobulle de la Resolve annonce aussi +1 % de soins. 1 997 tests
 (+42), 0 avertissement de compilation sur les deux presets. Détail : `docs/classes-et-combat.md` (section 5, « Les effets des caractéristiques », sections 4
 et 13), `docs/combat.md` (« Les effets des caractéristiques »), `docs/glossaire.md`, `docs/ecrans.md`, `docs/tests.md`.
+
+### Étape 111 — Le socle des effets actifs, buffs et affaiblissements ✅
+
+Six sous-étapes, un commit chacune (111.1 à 111.3 et 111.6 enchaînées). **Un seul concept, l'effet actif** : ce qu'un skill laisse sur une entité pour
+une durée, avec une sorte par alternative d'un `std::variant` ; cette étape ne crée que le **modificateur de statistique** (l'armure), les autres sortes
+viendront aux étapes 112 à 114 (dégâts et soins dans le temps ; états de contrôle ; Aegis et Ward). 111.1 : `s_pointsDeVieDeBase`, qui ne servait plus qu'aux
+tests, est supprimée. 111.2 : une définition de skill porte une **liste d'effets** (`DefinitionDeSkill::effets`, le premier est l'effet principal) ; `s_soigneur`
+passe de `constexpr` à `const` (un `std::vector` non vide n'est pas évaluable à la compilation). 111.3 : `combat/EffetActif`, `combat/EffetsActifs` (cumul :
+un skill n'a jamais deux effets sur une entité, il rafraîchit — la plus longue durée, la valeur de plus grande amplitude —, expiration, vidage),
+`appliquerLesEffets` (pourcentages additionnés puis appliqués une fois, arrondi, armure ≥ 0, sur `Defenses` parce que l'armure y vit), conteneur dans `Vitalite`,
+vidé à la mort. 111.4 : `EffetModificateur`, `Attaque::effets` (les effets voyagent avec le coup, `Vitalite::recevoirDegats` les pose si le coup n'est
+pas esquivé et que l'entité survit), la **frappe puissante** affaiblit (−25 % d'armure pendant 8 s), `rendu/MarquesDEffets` (marques rouges sous les monstres).
+111.5 : `ModeDeCible::Escouade` (tous les membres vivants, sans cible), `IdSkill::Benediction` (« Blessing » : +20 % d'armure à toute l'escouade pendant 10 s,
+recharge de 20 s, coefficient de durée 1, coût de 57), la **règle de durée des buffs** (jamais plus que la recharge : code et test sur le catalogue), marques
+vertes sous les personnages, bloc « Active effects » et armure effective dans l'inventaire (`Escouade::armureDuPersonnage`, `effetsDuPersonnage`).
+**Choix faits sans Olivier** : un rafraîchissement ne raccourcit jamais ; les marques sont sous le carré de l'entité (la barre de vie est au-dessus) ; le coût de la
+bénédiction suit la règle des techniques (la règle des sorts donne 107, plus que la réserve de départ) ; les effets secondaires sont limités aux
+modificateurs derrière des dégâts ou une frappe (`assert`) ; l'identité d'un effet est son skill seul. 2 053 tests (+56), 0 avertissement de compilation sur
+les deux presets. Détail : `docs/combat.md` (« Les effets actifs (étape 111) »), `docs/classes-et-combat.md` (section 14 ter), `docs/glossaire.md`,
+`docs/ecrans.md`, `docs/tests.md`.

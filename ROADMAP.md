@@ -8,7 +8,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 ## Étapes terminées
 
-Étapes 0 à 110 ✅. Les dernières :
+Étapes 0 à 111 ✅. Les dernières :
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 - Étape 83 — Inventaire et équipement : le modèle, sans interface ✅
@@ -39,15 +39,16 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - Étape 108 — L'énergie, la ressource des skills : une jauge plafonnée, une réserve qui se régénère, une énergie par personnage, un coût par skill calibré par une règle, le refus « Not enough energy », la barre bleue, l'affixe « of Replenishment » ✅ (les effets du Savoir et de la Volonté passent à l'étape 110)
 - Étape 109 — Documentation : la liste cible des statistiques (trois niveaux : caractéristiques, ressources, statistiques de combat), huit types de dégâts et de résistances (le saignement n'est plus un type), Aegis et Ward, résistances aux états, attributs ; aucune modification du code ✅
 - Étape 110 — Les effets des caractéristiques : une table de contributions en données, la Resolve vers l'énergie et les résistances au contrôle, le niveau de classe, le montant à 1 % par point, la convention des coefficients (Might pour l'arme, Intellect pour les sorts, Resolve pour les soins), le coefficient de l'attaque de base porté par le gabarit d'arme, l'aire (rayon par racine carrée) et la durée de l'Intellect, de nouvelles bases pour le mage, le prêtre et le paladin ✅
+- Étape 111 — Le socle des effets actifs : un concept unique (le modificateur de statistique en première sorte, l'armure), plusieurs effets par skill, l'affaiblissement de la frappe puissante (−25 % d'armure pendant 8 s), la bénédiction du prêtre (+20 % d'armure à toute l'escouade, nouveau mode de cible), la durée d'un buff plafonnée par sa recharge, marques vertes et rouges sous les entités et liste des effets dans l'inventaire ✅
 
 ## État actuel (résumé)
 
 - **Outils** : conception dans Claude.ai, implémentation avec Claude Code dans VSCode (règles dans
   `CLAUDE.md`) ; dépôt Git `squad-arpg`, poussé sur GitHub ; SFML 3.0.2 intégrée à CMake.
-- **Code** (étape 110) : 113 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
+- **Code** (étape 111) : 117 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
   `combat`, `objets`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
   de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug` et `jeu`, 0
-  avertissement, 1 997 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers des étapes 98 à 102 : `docs/build.md`,
+  avertissement, 2 053 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers des étapes 98 à 102 : `docs/build.md`,
   `docs/audit.md`). `Escouade` n'est plus que l'assemblage : `Escouade.cpp` de 1 223 à 1 067 lignes. Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`). **Tout le texte affiché est en anglais** (identifiants, commentaires et documentation restent en français ; pas de système de traduction : `docs/glossaire.md` est la référence des noms du jeu). Un commit par sous-étape, fait par Claude Code (`CLAUDE.md`).
 - **Écrans** : menu à la souris, options d'affichage (fenêtré ou plein écran, résolutions,
   `reglages.ini`), choix de 4 classes parmi 5 (guerrier, prêtre, mage, paladin, rôdeur ; doublons
@@ -191,6 +192,21 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   points libres suivent toujours le niveau du joueur). **Nouvelles bases** : mage 6 / 8 / 8 / 16 / 12 (paire Intellect puis Resolve), prêtre
   8 / 10 / 8 / 12 / 12 (Resolve puis Intellect), paladin inchangé (paire Might puis Resolve) ; l'énergie maximum au niveau 1 diffère donc selon la
   classe. Tout est « à tester » (`docs/classes-et-combat.md`, section 5, « Les effets des caractéristiques » ; `docs/combat.md`).
+- **Les effets actifs** (étape 111) : **un seul concept pour tout ce qu'un skill laisse sur une entité pour une durée**, l'effet actif
+  (`combat/EffetActif`, une sorte par alternative d'un `std::variant`) ; l'étape ne crée que le **modificateur de statistique** (un pourcentage
+  entier sur l'armure, positif pour un buff, négatif pour un affaiblissement), les autres sortes viendront aux étapes 112 à 114. Le conteneur
+  (`EffetsActifs`) vit dans `Vitalite` : personnages et monstres subissent les mêmes effets. **Cumul** : le même skill sur la même cible (quel que
+  soit le lanceur) rafraîchit la durée et garde la valeur la plus forte, jamais deux effets du même skill ; deux skills se cumulent ; pas de piles.
+  **Calcul** : les pourcentages d'une statistique s'additionnent, puis s'appliquent une seule fois (arrondi, armure ≥ 0), après les
+  caractéristiques et l'équipement (`appliquerLesEffets`). Un effet disparaît à 0, à la mort et à la descente d'un étage ; l'`Expedition` ne les
+  garde pas. **Un skill porte une liste d'effets** (le premier est le principal) ; les effets secondaires d'un coup (qui voyagent dans
+  `Attaque::effets`) ne se posent que si le coup n'est pas esquivé. **Mode de cible `Escouade`** : tous les membres vivants, sans cible ni
+  portée. **Frappe puissante** : en plus de ses dégâts, −25 % d'armure sur la cible pendant 8 s (une technique : la durée ne profite pas de
+  l'Intellect). **Bénédiction** (« Blessing », prêtre) : +20 % d'armure à toute l'escouade pendant 10 s de base (un sort : jusqu'à 20 s au plafond de
+  durée), recharge de 20 s, coût de 57 d'énergie. **Règle** : un buff ne dure jamais plus longtemps que sa recharge (codée et testée sur le
+  catalogue). À l'écran : une marque de 4 px sous le carré de chaque entité (verte pour un bonus, rouge pour un malus), « Active effects » sous le sac
+  de l'inventaire (nom, valeur, secondes restantes) et l'armure affichée inclut les effets. Tout est « à tester » (`docs/combat.md`, « Les effets
+  actifs (étape 111) » ; `docs/classes-et-combat.md`, section 14 ter).
 - **Carte** : donjon généré à chaque partie (salles, couloirs en L de 2 cases, portes à chaque
   jonction, un groupe de monstres par salle sauf la première, un escalier, graine affichée), F5 = nouvelle expédition ;
   carte à la main pour les tests (`docs/generation.md`, `docs/carte-et-collision.md`).
@@ -413,15 +429,28 @@ ce qui reste à décider **en discussion** avant son prompt :
   - 108 ✅ : l'énergie, la ressource des skills (voir « L'énergie »). Les ressources de classe et l'Élan restent à discuter.
   - 109 ✅ : documentation seulement : la liste cible des statistiques (`docs/classes-et-combat.md`, section 13), chaque statistique marquée
     existante ou non (voir « La liste cible des statistiques »).
-  - 110 ✅ : les effets des caractéristiques (voir « Les effets des caractéristiques »). À discuter avec Claude.ai : les buffs,
-    les affaiblissements, les effets dans le temps et les auras (plusieurs effets par skill), et la mise en code de la liste cible.
+  - 110 ✅ : les effets des caractéristiques (voir « Les effets des caractéristiques »).
+  - 111 ✅ : le socle des effets actifs (voir « Les effets actifs »). Prévu ensuite : 112 dégâts et soins dans le temps ; 113 états de
+    contrôle ; 114 Aegis et Ward ; plus tard Charm et les auras.
 
 
-## Étape 111 (prochaine) : à discuter avec Claude.ai
+## Étape 112 (prochaine) : dégâts et soins dans le temps
 
-Les étapes 105 à 110 sont faites. La suite se discute avec Claude.ai, après la conception des classes et des skills par Olivier : les buffs, les
-affaiblissements, les effets dans le temps et les auras, puis les mécaniques qui liront les statistiques calculées à l'étape 110. L'`Expedition`
-garde les points dépensés ; c'est elle qu'on sauvegardera un jour.
+Les étapes 105 à 111 sont faites. Plan décidé avec Olivier à l'étape 111 : **112** les dégâts et les soins dans le temps (une sorte de plus de
+`SorteDEffetActif`, le saignement étant du physique dans le temps qui ignore l'armure) ; **113** les états de contrôle (étourdissement,
+ralentissement, charme, peur, Disruption, avec leurs résistances calculées à l'étape 110) ; **114** Aegis et Ward ; plus tard Charm et les auras.
+Chaque étape se discute avec Claude.ai avant son prompt. L'`Expedition` garde les points dépensés ; c'est elle qu'on sauvegardera un jour.
+
+**Pistes issues de l'étape 111** (étapes à part, plus tard) :
+- **Ajuster en jouant** : −25 % d'armure pendant 8 s (frappe puissante), +20 % pendant 10 s de base, recharge de 20 s et coût de 57 (bénédiction), le
+  plafond de durée qui égale la recharge ; tout est « à tester ».
+- **Des icônes dessinées** à la place des marques de 4 px, et le survol d'un effet (infobulle) ; la liste de l'inventaire s'arrête à 8 effets.
+- **D'autres statistiques modifiables** que l'armure (une valeur de `StatistiqueModifiable` et un cas d'`appliquerLesEffets`) ; les statistiques de
+  combat de `Defenses::statistiques` ne sont pas encore modifiables.
+- **Les piles d'intensité** et les auras à bascule ; **des monstres qui posent des effets** ; **un buff qui choisit sa cible** (aujourd'hui seul le mode
+  `Escouade` convient à un buff : le mode `Allie` vise l'allié le plus blessé).
+- **L'identité d'un effet est son skill seul** : un skill qui poserait deux effets actifs sur la même cible les confondrait (à revoir avec le premier
+  skill à deux effets actifs). Les effets secondaires sont limités, par `assert`, aux modificateurs derrière des dégâts ou une frappe.
 
 **Pistes issues de l'étape 110** (étapes à part, plus tard) :
 - **Les mécaniques qui lisent les statistiques calculées sans l'être encore** : les états de contrôle (étourdissement, ralentissement, charme,

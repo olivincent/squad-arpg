@@ -843,7 +843,7 @@ mains sont dans `docs/objets.md`.
   100), esquives, chance de blocage, plancher de 20 %, plafonds. Repères : attaque de base 15, coup de monstre 30,
   frappe puissante 75, soin 90, explosion 45, monstre 300 points de vie (régénération du retour : une fraction du
   maximum, donc inchangée).
-- **Points de vie des personnages** : base **commune** (`s_pointsDeVieDeBase`, 240) plus `s_pvParPointDEndurance`
+- **Points de vie des personnages** : base **commune** (240 à 0 d'Endurance ; la constante `s_pointsDeVieDeBase` a disparu à l'étape 111.1) plus `s_pvParPointDEndurance`
   (6) par point d'Endurance, plus `s_pvParNiveau` (8) par niveau au-delà du premier (étape 99.4),
   `pointsDeVieMax(const Caracteristiques&, int niveau)`. Plus de base par classe
   (`DefinitionPersonnage::pointsDeVieDeBase` supprimé) : l'Endurance fait seule la différence (guerrier 324,
@@ -1863,6 +1863,61 @@ régénération, coûts calibrés, refus) sont dans `docs/classes-et-combat.md`,
   d'affixe d'énergie maximum, pas de coût dans une infobulle de la barre de raccourcis. Un skill en attente ne réserve pas son coût : un
   lanceur qui paie un autre skill entre-temps le voit abandonné. L'énergie des morts ne diminue pas (elle est refaite à l'étage suivant).
 
+## Les effets actifs (étape 111)
+
+Un seul concept pour tout ce qu'un skill laisse sur une entité pour une durée : l'**effet actif** (`combat/EffetActif`). Buffs,
+affaiblissements, dégâts dans le temps, contrôle, Aegis et Ward en seront tous ; chaque sorte est une alternative d'un `std::variant`
+(`SorteDEffetActif`), comme `EffetDeSkill`. L'étape 111 ne crée que la première : le **modificateur de statistique**. Les décisions de
+conception (cumul, ordre des couches) sont dans `docs/classes-et-combat.md`, section 14 ter ; ici, la technique.
+
+- **Skill et effet actif sont deux choses.** `EffetDeSkill` (`EffetModificateur`) est la *donnée* d'un skill : statistique, pourcentage, durée de
+  base, coefficient de durée. `EffetActif` est ce qui *reste sur l'entité touchée* : la source (l'`IdSkill` qui l'a posé), la durée restante et
+  la sorte (`ModificateurDeStatistique { StatistiqueModifiable statistique; int pourcentage; }`). `Personnage::effetsActifsDuSkill` fait
+  passer de l'un à l'autre en majorant la durée par `dureeEffective` ; c'est le seul endroit.
+- **Le conteneur vit dans `Vitalite`** (`EffetsActifs`, une liste dans l'ordre de pose) : personnages et monstres subissent donc les mêmes
+  effets sans code en double. `Vitalite::mettreAJour` les fait couler ; la mort les vide (`recevoirDegats`) ; `poserEffet` est sans effet sur un
+  mort. Rien n'est sauvegardé dans l'`Expedition` : une nouvelle `Partie` (la descente) reconstruit ses entités sans effet.
+- **Cumul.** L'identité d'un effet est son skill, quel que soit le lanceur : poser de nouveau le même skill sur la même entité ne crée
+  jamais un deuxième effet. Il **rafraîchit** (la plus longue des deux durées : un rafraîchissement ne raccourcit jamais) et garde la
+  **valeur la plus forte** (plus grande amplitude, `lePlusFort`, un `std::visit` à deux variants qui veut une surcharge par paire de sortes).
+  Deux skills différents se cumulent. Pas de piles d'intensité.
+- **Ordre des couches.** Caractéristiques, puis équipement (`Personnage::defenses`), puis effets actifs. `Vitalite` garde les défenses de base
+  (`m_defenses`) et applique les effets à chaque lecture (`appliquerLesEffets`, `getArmure`) : recalculer l'équipement ou le niveau
+  (`definirDefenses`) ne perd donc aucun effet. `appliquerLesEffets(const Defenses&, const EffetsActifs&)` est l'unique endroit qui lit les
+  effets pour changer une statistique, pour un personnage comme pour un monstre ; il agit sur `Defenses` parce que l'armure y vit (les autres
+  statistiques de combat sont dans `Defenses::statistiques`, pas encore modifiables).
+- **Calcul.** Les pourcentages de tous les effets sur une statistique **s'additionnent**, puis s'appliquent une seule fois : `armure × (100 +
+  somme) / 100`, arrondie au plus proche, jamais sous 0 (+20 % et −25 % font −5 %, pas ×0,9). Ajouter une statistique modifiable : une valeur
+  de `StatistiqueModifiable` et un cas du `switch` d'`appliquerLesEffets` (sans `default`, le compilateur le signale).
+- **Plusieurs effets par skill (111.2).** `DefinitionDeSkill::effets` est une liste, jamais vide ; le premier est l'effet principal
+  (`Skill::getEffet`, qui décide du camp touché et de l'attaque), les suivants sont des effets secondaires (`Skill::getEffets`). Invariants
+  (`assert` du constructeur de `Skill`) : un effet secondaire est un `EffetModificateur`, il suit des dégâts ou une frappe et touche le même
+  camp ; un modificateur principal est un buff. `campTouche(EffetModificateur)` : un pourcentage positif ou nul touche les alliés, un négatif
+  les monstres.
+- **Un coup qui touche (111.4).** Les effets à poser sur un monstre voyagent dans l'`Attaque` (`Attaque::effets`, remplie par
+  `Personnage::attaqueDuSkill`), donc dans le `Coup`. `Vitalite::recevoirDegats` les pose **après** le coup, seulement si l'entité survit et si
+  le coup n'est pas esquivé (`ResultatDuCoup::esquive`) : un coup bloqué en entier touche quand même. Un monstre en retour au poste est
+  invulnérable : `Monstre::recevoirDegats` rend avant la vitalité, rien n'est posé. Un buff, lui, est posé par `Escouade::appliquerLEffet`
+  sur chaque allié touché, au départ du skill.
+- **Mode `Escouade` (111.5).** `ModeDeCible::Escouade` : tous les membres vivants du lanceur, sans cible, sans portée, sans ligne de vue ni
+  zone. Il se déclenche et attend comme `Soi` (sans cible), `entitesTouchees` renvoie tous les vivants. Un skill de ce mode touche les alliés
+  et n'a pas de rayon de zone (`assert`). Le mode `Allie` ne convient pas à un buff : il vise l'allié le plus blessé.
+- **Règle de durée d'un buff (111.5).** Un buff (pourcentage ≥ 0) ne dure jamais plus longtemps que sa recharge la plus courte
+  (`Skill::getRechargeMin`) : `effetsActifsDuSkill` ramène la durée à ce plafond (`std::min`), et `test_CoherenceDesDonnees` parcourt le
+  catalogue pour vérifier qu'aucun skill de classe n'en a besoin : `durée × (1 + coefficient × s_plafondDuBonusDeDuree) <= recharge`. La
+  bénédiction (10 s de base, +100 % au plafond, 20 s de recharge) est exactement à la limite.
+- **Affichage.** Une marque de 4 px par effet actif sous le carré de chaque entité (`rendu/MarquesDEffets` : verte pour un bonus, rouge pour
+  un malus, `EffetsActifs::nombreDeBonus` / `nombreDeMalus` ; sous le carré et non sous la barre de vie, qui est au-dessus). Dans
+  l'inventaire, le bloc « Active effects » sous le sac (`docs/ecrans.md`) et l'armure effective (`Escouade::armureDuPersonnage`).
+- **Les deux premiers utilisateurs** (valeurs « à tester ») : la frappe puissante du guerrier (−25 % d'armure sur la cible pendant 8 s,
+  coefficient de durée 0 : une technique) et la **bénédiction** du prêtre (`IdSkill::Benediction`, « Blessing » : +20 % d'armure à toute
+  l'escouade pendant 10 s, recharge de 20 s, coefficient de durée 1, activation de 0,5 s, coût de 57). Le coût suit la règle des techniques
+  (`coutDUneTechnique`) : celle des sorts donnerait 107, plus que la réserve de départ.
+- **Limites.** Une seule sorte d'effet actif et une seule statistique modifiable ; l'identité étant le skill, un skill qui poserait deux effets
+  actifs sur la même cible les confondrait ; un effet secondaire n'existe que derrière des dégâts ou une frappe ; les monstres ne posent aucun
+  effet ; pas d'icônes dessinées ; un skill de mode `Escouade` n'a pas de visée (pas de portée, pas de zone) ; la liste de l'inventaire
+  s'arrête à 8 effets.
+
 ## Référence des modules
 
 Repris tel quel d'`ARCHITECTURE.md` à l'étape 81 (K1, « déplacer d'abord ») : données
@@ -1900,7 +1955,7 @@ sans nouveau coup du même monstre. Aucune position (82.5).
 
 ### `Skill` (`combat/`) — une capacité spéciale
 
-Un `ModeDeCible` (comment il vise), une portée (bord à bord), un intervalle de recharge, un `EffetDeSkill` (ce qu'il fait), un rayon
+Un `ModeDeCible` (comment il vise), une portée (bord à bord), un intervalle de recharge, une liste d'`EffetDeSkill` (ce qu'il fait, le premier est le principal), un rayon
 de zone optionnel (où il s'applique : voir « Les skills en données (étape 105) »), un temps d'exécution et les types d'arme qu'il
 exige. Sert aussi d'attaque de base (un `EffetDegats` de montant 0, de mode `Monstre`) et d'attaque des monstres.
 Il porte aussi le coût en énergie du skill (`cout`, `getCout()`, étape 108). Il suit une machine à états (`enum class PhaseSkill { Pret, EnExecution, EnRecharge }`) : `commencer` (prêt → en exécution), `avancer` (fin de l'exécution : le coup part, la recharge est tirée, → en recharge), `annuler` (en exécution → prêt, sans recharge). Les skills des personnages passent par la même machine à états (étape 58 : activation de 0,3 s, 0,2 s, 0,6 s et 0,8 s pour dégâts, provocation, soin et zone) ; avec un temps nul, l'effet part dans l'image de l'engagement. Il ne connaît pas la cible du coup engagé, c'est son propriétaire qui la retient.
@@ -1908,13 +1963,13 @@ Possédé par valeur par `Personnage` (attaque de base, plus ses skills) et par 
 propriétaire ni sa cible : il reçoit deux `Cercle`. Ne dessine rien.
 
 Données membres : `m_mode` (`ModeDeCible`), `m_portee` (bord à bord), `m_rechargeMin`, `m_rechargeMax` (intervalle de recharge,
-en secondes), `m_tempsRecharge` (durée de la recharge en cours, dernier tirage), `m_recharge`, `m_effet` (`EffetDeSkill`),
+en secondes), `m_tempsRecharge` (durée de la recharge en cours, dernier tirage), `m_recharge`, `m_effets` (`std::vector<EffetDeSkill>`, jamais vide, étape 111.2),
 `m_rayonZone` (`std::optional<float>`, en pixels), `m_coefficientDAire` (étape 110.5), `m_tempsExecution`, `m_armesExigees` (`std::vector<TypeDArme>`, étape 91.5),
 `m_cout` (entier, en points d'énergie, étape 108), `m_executionRestante` (secondes), `m_phase` (`PhaseSkill`).
 
 | Fonction | Rôle |
 |---|---|
-| `explicit Skill(const DefinitionDeSkill&)` | Crée le skill depuis ses données nommées : `DefinitionDeSkill { mode; portee; rechargeMin; rechargeMax; effet; rayonZone = vide; coefficientDAire = 0 (étape 110.5) ; tempsExecution = 0; armesExigees = {}; cout = 0 }`, en initialisation désignée (`Skill({.mode = ModeDeCible::Monstre, .portee = 80.0f, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}})`). Les quatre premiers champs et l'effet n'ont pas de valeur par défaut (un oubli est une erreur de compilation). `assert` : `0 <= min <= max` (recharge fixe si `min == max`), temps d'exécution `>= 0`, rayon `> 0` s'il y en a un, un skill de mode `Point` a un rayon, un skill de mode `Monstre` un effet qui touche les monstres (`campTouche`), un skill de mode `Allie` un effet qui touche les alliés ; prêt à la création |
+| `explicit Skill(const DefinitionDeSkill&)` | Crée le skill depuis ses données nommées : `DefinitionDeSkill { mode; portee; rechargeMin; rechargeMax; effets; rayonZone = vide; coefficientDAire = 0 (étape 110.5) ; tempsExecution = 0; armesExigees = {}; cout = 0 }`, en initialisation désignée (`Skill({.mode = ModeDeCible::Monstre, .portee = 80.0f, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .effets = {EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}}})`). Les quatre premiers champs et l'effet n'ont pas de valeur par défaut (un oubli est une erreur de compilation). `assert` : `0 <= min <= max` (recharge fixe si `min == max`), temps d'exécution `>= 0`, rayon `> 0` s'il y en a un, un skill de mode `Point` a un rayon, un skill de mode `Monstre` un effet qui touche les monstres (`campTouche`), un skill de mode `Allie` un effet qui touche les alliés, un skill de mode `Escouade` un effet qui touche les alliés et pas de rayon, une liste d'effets non vide (secondaires : voir « Les effets actifs (étape 111) ») ; prêt à la création |
 | `bool commencer()` | Prêt → en exécution ; faux, sans rien changer, dans toute autre phase ; `[[nodiscard]]` |
 | `bool avancer(float dt, Generateur& generateur)` | En exécution : fait avancer l'exécution ; vrai une seule fois, au départ du coup (la recharge est alors tirée, phase → en recharge). Autres phases : comme `mettreAJour`, faux ; `[[nodiscard]]` |
 | `void annuler()` | En exécution → prêt, sans recharge ; sans effet ailleurs |
@@ -1925,7 +1980,9 @@ en secondes), `m_tempsRecharge` (durée de la recharge en cours, dernier tirage)
 | `float getProgressionRecharge() const` | De 0 (juste après le déclenchement) à 1 (prêt) ; 1 si le temps de recharge est nul |
 | `float getRechargeRestante() const` | Temps de recharge restant, en secondes (0 si prêt) |
 | `ModeDeCible getMode() const` | Comment le skill vise ; `[[nodiscard]]` |
-| `const EffetDeSkill& getEffet() const` | Ce que fait le skill, brut (sans les caractéristiques : `Personnage::attaqueDuSkill` les applique) ; `[[nodiscard]]` |
+| `const std::vector<EffetDeSkill>& getEffets() const` | Tous les effets, le principal d'abord (étape 111.4) ; `[[nodiscard]]` |
+| `float getRechargeMin() const` | La plus courte recharge possible, en secondes : le plafond de la durée d'un buff (étape 111.5) ; `[[nodiscard]]` |
+| `const EffetDeSkill& getEffet() const` | L'effet principal (le premier) : ce que fait le skill, brut (sans les caractéristiques : `Personnage::attaqueDuSkill` les applique) ; `[[nodiscard]]` |
 | `std::optional<float> getRayonZone() const` | Le rayon de la zone touchée ; vide si l'effet touche la cible seule ; `[[nodiscard]]` |
 | `float getCoefficientDAire() const` | Sa part du bonus d'aire de l'Intellect du lanceur, de 0 à 1 (étape 110.5) ; `[[nodiscard]]` |
 | `float getPortee() const` | Portée du skill (bord à bord) |
@@ -1935,17 +1992,17 @@ en secondes), `m_tempsRecharge` (durée de la recharge en cours, dernier tirage)
 
 ### `ModeDeCible` (`combat/`) — comment un skill vise
 
-`ModeDeCible.hpp`, sans `.cpp` : `enum class ModeDeCible { Soi, Monstre, Allie, Point }`. `Soi` : aucune cible, le skill part du lanceur
+`ModeDeCible.hpp`, sans `.cpp` : `enum class ModeDeCible { Soi, Monstre, Allie, Point, Escouade }`. `Soi` : aucune cible, le skill part du lanceur
 (la provocation) ; `Monstre` : le monstre du verrou, ou celui que le lanceur frapperait en autodéfense ; `Allie` : le personnage le plus
-blessé ; `Point` : un point du monde que le joueur désigne (visée à la souris). Lu par `Escouade` (choix de la cible, déclenchement, mise
+blessé ; `Point` : un point du monde que le joueur désigne (visée à la souris) ; `Escouade` (étape 111.5) : tous les membres vivants du lanceur, sans cible, portée ni zone (un buff de groupe). Lu par `Escouade` (choix de la cible, déclenchement, mise
 en attente) et `Controleur` (visée), jamais déduit de l'effet.
 
 ### `EffetDeSkill` (`combat/`) — ce que fait un skill
 
 `EffetDeSkill.hpp` / `.cpp` : `struct EffetDegats { int montant; NatureDAttaque nature; Element element = Physique; Coefficients
 coefficients = {}; }`, `struct EffetFrappe { Degats bonus; Coefficients coefficients = {}; }` (l'arme portée plus ce bonus typé : la frappe
-sacrée), `struct EffetSoin { int montant; Coefficients coefficients = {}; }`, `struct EffetProvocation { int duree; float coefficientDeDuree = 0; }` (secondes ; le bonus de durée de l'Intellect, étape 110.5) et `using
-EffetDeSkill = std::variant<EffetDegats, EffetFrappe, EffetSoin, EffetProvocation>`. `enum class CampTouche { Monstres, Allies }` et
+sacrée), `struct EffetSoin { int montant; Coefficients coefficients = {}; }`, `struct EffetProvocation { int duree; float coefficientDeDuree = 0; }` (secondes ; le bonus de durée de l'Intellect, étape 110.5) et `struct EffetModificateur { StatistiqueModifiable statistique; int pourcentage; int duree; float coefficientDeDuree = 0; }` (étape 111.4 : pose un effet actif ; principal, c'est un buff pour les alliés ; secondaire, un affaiblissement pour les monstres qu'un coup atteint) et `using
+EffetDeSkill = std::variant<EffetDegats, EffetFrappe, EffetSoin, EffetProvocation, EffetModificateur>`. `enum class CampTouche { Monstres, Allies }` et
 `CampTouche campTouche(const EffetDeSkill&)` (`[[nodiscard]]`) : le camp que touche un effet quand le skill a un rayon de zone, seul
 endroit où il se déduit.
 
@@ -2165,7 +2222,7 @@ de la chaîne `Partie` → `Escouade` → `Personnage` → `Skill` et `Partie` �
   `valeur(Caracteristique)`, `+=`, `+`, `==` ; `[[nodiscard]]`.
 - `class Coefficients` : la même forme en flottants (`seul`, `valeur`, `==`), pour les skills.
 - Constantes : `s_valeurDeReference` (10), `s_bonusParPoint` (0,01 depuis l'étape 110.4, 0,03 avant), `s_pointsDeVieDeReference`
-  (300, étape 110.1), `s_pointsDeVieDeBase` (240, dérivée de la précédente : un repère que les tests utilisent),
+  (300, étape 110.1 ; `s_pointsDeVieDeBase`, 240, qui n'en était qu'un repère dérivé, est supprimée à l'étape 111.1),
   `s_pvParPointDEndurance` (6) depuis l'étape 91.2 (avant : 20 par point, base par classe), `s_pvParNiveau` (8, étape 99.4, la valeur
   par défaut du gain par niveau de classe).
 - `int pointsDeVieMax(const Caracteristiques&, int niveauDeClasse, int pvParNiveauDeClasse)` : `s_pointsDeVieDeReference` plus l'apport
@@ -2315,14 +2372,16 @@ retour). L'interface ne contient que ce que `Personnage` et `Monstre` utilisent.
 dépend que de `PointsDeVie` et `Defense`, ni de SFML.
 
 Données membres : `m_pointsDeVie` (`PointsDeVie`), `m_defenses` (`Defenses` : l'armure et les statistiques de
-combat, étape 89 ; avant, un `int m_armure`), `m_recuperationDuBlocage` (`float`, secondes, étape 90.3 ; 0 : le blocage est prêt ; lancée à `s_recuperationDuBlocage` depuis l'étape 91.6).
+combat, étape 89 ; avant, un `int m_armure`), `m_effets` (`EffetsActifs`, étape 111.3), `m_recuperationDuBlocage` (`float`, secondes, étape 90.3 ; 0 : le blocage est prêt ; lancée à `s_recuperationDuBlocage` depuis l'étape 91.6).
 
 | Fonction | Rôle |
 |---|---|
 | `Vitalite(int pointsDeVieMax, const Defenses& defenses)` | Commence pleine ; `assert(armure >= 0)` et `assert(capaciteDefensive > 0)` (et `maximum > 0` par `PointsDeVie`) |
 | `void definirDefenses(const Defenses& defenses)` | Remplace les défenses (celles d'un personnage sont recalculées depuis son équipement et ses caractéristiques) ; mêmes préconditions ; remplace `definirArmure` |
-| `ResultatDuCoup recevoirDegats(const Attaque& attaque, Generateur& generateur)` | `resoudreCoup(attaque, défenses, blocagePret(), générateur)`, puis lance la récupération du blocage si un blocage a eu lieu, puis `PointsDeVie::subirDegats` ; renvoie le résultat (dégâts après critique, blocage et armure, non plafonnés par les points de vie restants ; critique, esquivé, bloqué) ; rien (montant 0, aucun tirage) pour un mort |
-| `void mettreAJour(float dt)` | Fait couler la récupération du blocage (sans descendre sous 0) ; appelée par `Personnage::mettreAJour` (vivant) et `Monstre::mettreAJour` |
+| `ResultatDuCoup recevoirDegats(const Attaque& attaque, Generateur& generateur)` | `resoudreCoup(attaque, défenses, blocagePret(), générateur)`, contre les défenses que les effets actifs ont modifiées (`appliquerLesEffets`), puis lance la récupération du blocage si un blocage a eu lieu, puis `PointsDeVie::subirDegats` ; un mort perd ses effets actifs, un survivant reçoit ceux de l'attaque si le coup n'est pas esquivé ; renvoie le résultat (dégâts après critique, blocage et armure, non plafonnés par les points de vie restants ; critique, esquivé, bloqué) ; rien (montant 0, aucun tirage) pour un mort |
+| `void poserEffet(const EffetActif& effet)` | Pose un effet actif (`EffetsActifs::poser`) ; sans effet sur un mort (étape 111.3) |
+| `const EffetsActifs& getEffets() const` / `int getArmure() const` | Les effets actifs ; l'armure qui joue contre le prochain coup, effets compris ; `[[nodiscard]]` |
+| `void mettreAJour(float dt)` | Fait couler la récupération du blocage (sans descendre sous 0) et les effets actifs ; appelée par `Personnage::mettreAJour` (vivant) et `Monstre::mettreAJour` |
 | `bool blocagePret() const` | La récupération est écoulée ; `[[nodiscard]]` |
 | `void definirMaximum(int maximum)` | `PointsDeVie::changerMaximum` (précondition `maximum > 0`) |
 | `int soigner(int montant)` | `PointsDeVie::soigner` : plafonné au maximum, 0 pour un mort ; renvoie les points réellement rendus |
@@ -2386,4 +2445,28 @@ appelant est `Personnage` (`rayonEffectifDuSkill`, `attaqueDuSkill`). `Skill` po
 
 ### `AffichageSkills` (`interface/`) — les noms des skills
 
-`AffichageSkills.hpp` / `.cpp` : `std::string nomDuSkill(IdSkill)` (`[[nodiscard]]`), `switch` sans `default` (un skill ajouté sans nom fait avertir le compilateur), UTF-8, en anglais depuis l'étape 95 : « Power Strike », « Taunt », « Heal », « Explosion », « Holy Strike », « Lay on Hands », « Piercing Shot », « Rain of Arrows ». Le noyau ne connaît que `IdSkill` ; comme `AffichageObjets`, les mots sont dans l'interface.
+`AffichageSkills.hpp` / `.cpp` : `std::string nomDuSkill(IdSkill)` (`[[nodiscard]]`), `switch` sans `default` (un skill ajouté sans nom fait avertir le compilateur), UTF-8, en anglais depuis l'étape 95 : « Power Strike », « Taunt », « Heal », « Explosion », « Holy Strike », « Lay on Hands », « Piercing Shot », « Rain of Arrows », « Blessing ». Le noyau ne connaît que `IdSkill` ; comme `AffichageObjets`, les mots sont dans l'interface.
+
+
+### `EffetActif` et `EffetsActifs` (`combat/`) — ce qu'un skill laisse sur une entité (étape 111.3)
+
+`EffetActif.hpp` (sans `.cpp`) : `enum class StatistiqueModifiable { Armure }`, `struct ModificateurDeStatistique { StatistiqueModifiable
+statistique; int pourcentage; }` (`==`), `using SorteDEffetActif = std::variant<ModificateurDeStatistique>`, `struct EffetActif { IdSkill source;
+float dureeRestante; SorteDEffetActif sorte; }` et `estUnBonus(const EffetActif&)` (pourcentage ≥ 0, `[[nodiscard]]`, un `std::visit`).
+`EffetsActifs.hpp` / `.cpp` : `class EffetsActifs` (un `std::vector<EffetActif>` dans l'ordre de pose) : `poser(const EffetActif&)` (`assert`
+durée > 0 ; ajoute, ou rafraîchit l'effet du même `source` : plus longue durée, valeur de plus grande amplitude), `mettreAJour(float dt)`
+(décrémente, `std::erase_if` à 0), `vider()`, `liste()`, `nombreDeBonus()` / `nombreDeMalus()` (`[[nodiscard]]`) ; et la fonction libre
+`Defenses appliquerLesEffets(const Defenses&, const EffetsActifs&)` (`[[nodiscard]]`). Possédé par `Vitalite`.
+
+### `MarquesDEffets` (`rendu/`) — les marques d'effets actifs (étape 111.4)
+
+`MarquesDEffets.hpp` / `.cpp` : `s_coteDUneMarque` (4 px) et `s_ecartEntreMarques` (2 px) ; `positionMarquesDEffets(centre, taille)` (coin
+haut-gauche de la rangée, sous le carré de l'entité, alignée sur son bord gauche) ; `dessinerMarquesDEffets(rendu, position, bonus, malus)`
+(`bonus` marques vertes puis `malus` rouges, de gauche à droite). Ne dépend que de SFML : la rangée reçoit des nombres, pas les effets
+(exceptions transitoires de `ARCHITECTURE.md` : `Monstre` et `Personnage` se dessinent encore eux-mêmes).
+
+### `AffichageEffets` (`interface/`) — les effets actifs à l'écran (étape 111.5)
+
+`AffichageEffets.hpp` / `.cpp` : `titreDesEffetsActifs()` (« Active effects »), `nomDeLaStatistique(StatistiqueModifiable)` (« Armor », `switch`
+sans `default`) et `ligneDEffetActif(const EffetActif&)` : « Blessing: +20 % Armor (10 s) », « Power Strike: −25 % Armor (8 s) » (signe moins
+U+2212 ; secondes restantes arrondies vers le haut, donc jamais « 0 s » pour un effet actif).
