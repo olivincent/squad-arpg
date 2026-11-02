@@ -59,3 +59,28 @@ TEST_CASE("ligneDEffetActif : un modificateur empile montre la valeur de toutes 
 
     REQUIRE(ligneDEffetActif(affaiblissement) == "Power Strike ×2: −20 % Armor (8 s)");
 }
+
+// Le contrôle (étape 113) : le nom de l'état, son pourcentage pour le ralentissement et l'entrave, les secondes restantes.
+
+namespace {
+EffetActif controle(EtatInflige etat, int pourcentage, float duree) {
+    return {.source = IdSkill::PluieDeFleches, .dureeRestante = duree, .sorte = Controle{.etat = etat, .pourcentage = pourcentage}};
+}
+}  // namespace
+
+TEST_CASE("ligneDEffetActif : un controle porte le nom de son etat, pas celui du skill") {
+    REQUIRE(ligneDEffetActif(controle(EtatInflige::Etourdissement, 0, 1.5f)) == "Stunned (2 s)");
+    REQUIRE(ligneDEffetActif(controle(EtatInflige::Disruption, 0, 1.0f)) == "Disrupted (1 s)");
+}
+
+TEST_CASE("ligneDEffetActif : le ralentissement et l'entrave disent leur pourcentage, avec le signe moins typographique") {
+    REQUIRE(ligneDEffetActif(controle(EtatInflige::Ralentissement, 30, 3.0f)) == "Slowed: −30 % (3 s)");
+    REQUIRE(ligneDEffetActif(controle(EtatInflige::Entrave, 20, 2.2f)) == "Hampered: −20 % (3 s)");
+}
+
+TEST_CASE("nomDeLEtatInflige : les quatre etats, en anglais") {
+    REQUIRE(nomDeLEtatInflige(EtatInflige::Etourdissement) == "Stunned");
+    REQUIRE(nomDeLEtatInflige(EtatInflige::Ralentissement) == "Slowed");
+    REQUIRE(nomDeLEtatInflige(EtatInflige::Entrave) == "Hampered");
+    REQUIRE(nomDeLEtatInflige(EtatInflige::Disruption) == "Disrupted");
+}

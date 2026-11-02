@@ -398,6 +398,8 @@ std::vector<ResultatDEffet> Escouade::appliquerLEffet(Place place, IdSkill id, c
         Surcharges{
             [&](const EffetDegats&) { infligerAuxMonstres(); },
             [&](const EffetFrappe&) { infligerAuxMonstres(); },
+            // Un contresort et ses semblables : un contrôle sans dégâts, qui voyage dans un `Coup` vide comme les effets d'un coup.
+            [&](const EffetControle&) { infligerAuxMonstres(); },
             [&](const EffetSoin&) {
                 for (const Place soigne : touchees.allies) {
                     Personnage& allie = personnageDeLaPlace(soigne);
@@ -589,6 +591,16 @@ std::vector<TickSurUnAllie> Escouade::prendreLesTicks() {
         }
     }
     return ticks;
+}
+
+std::vector<ControleSurUnAllie> Escouade::prendreLesControles() {
+    std::vector<ControleSurUnAllie> controles;
+    for (std::size_t i = 0; i < m_personnages.size(); ++i) {
+        for (const ControleApplique& controle : m_personnages[i].prendreLesControles()) {
+            controles.push_back({Place::depuisIndice(i), controle});
+        }
+    }
+    return controles;
 }
 
 std::optional<EffetsActifs> Escouade::effetsDuPersonnage(Place place) const {

@@ -187,6 +187,10 @@ private:
     // Les ticks des effets dans le temps de cette entité (`Vitalite::prendreLesTicks`) : des dégâts ou un soin, signalés comme tels, plus
     // petits à l'écran que ceux d'un coup. Le montant est celui qui a été subi ou rendu.
     void signalerLesTicks(CibleDEvenement cible, sf::Vector2f position, const std::vector<Tick>& ticks);
+    // Les contrôles que des poses ont donnés à cette entité (`Vitalite::prendreLesControles`), signalés : « Stunned »… ou « Immune ».
+    void signalerLesControles(CibleDEvenement cible, sf::Vector2f position, const std::vector<ControleApplique>& controles);
+    // Ceux que les personnages ont subis depuis le dernier appel (`Escouade::prendreLesControles`).
+    void signalerLesControlesDeLEscouade();
     // Ce qu'un coup a donné, en événements (`detailsDuCoup` : « Esquivé », ou les dégâts puis le blocage).
     void signalerLeCoup(CibleDEvenement cible, sf::Vector2f position, const ResultatDuCoup& resultat, bool opportunite);
     // Étapes de mettreAJour(), dans l'ordre où elles sont appelées.

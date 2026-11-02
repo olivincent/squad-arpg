@@ -45,6 +45,12 @@
 
 class TileMap;
 
+// Un contrôle qui vient d'être posé (ou bloqué par l'immunité) sur ce personnage (`Escouade::prendreLesControles`).
+struct ControleSurUnAllie {
+    Place place;
+    ControleApplique controle;
+};
+
 // Un tick d'effet dans le temps qui vient d'avoir lieu sur ce personnage (`Escouade::prendreLesTicks`).
 struct TickSurUnAllie {
     Place place;
@@ -101,6 +107,9 @@ public:
     // Ce que les ticks des effets dans le temps ont fait aux personnages depuis le dernier appel, dans l'ordre des places puis des ticks
     // (`Vitalite::prendreLesTicks`), puis les oublie. `Partie` en fait des événements, une fois par image.
     [[nodiscard]] std::vector<TickSurUnAllie> prendreLesTicks();
+    // Les contrôles que les poses ont donnés aux personnages depuis le dernier appel (`Vitalite::prendreLesControles`), dans l'ordre des
+    // places, puis les oublie. `Partie` en fait des événements.
+    [[nodiscard]] std::vector<ControleSurUnAllie> prendreLesControles();
     // Son armure effective, effets actifs compris (l'inventaire l'affiche) ; vide si la place est invalide.
     [[nodiscard]] std::optional<int> armureDuPersonnage(Place place) const;
     // Énergie et énergie maximum du personnage de cette place ; vide si la place est invalide. Lues par l'écran d'inventaire et par

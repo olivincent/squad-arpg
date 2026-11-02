@@ -47,8 +47,11 @@ public:
     [[nodiscard]] const std::vector<EffetActif>& liste() const;
     // Les piles de chaque effet actif qui est un bonus (`estUnBonus`), puis de chaque malus, dans l'ordre où ils ont été posés : une marque
     // verte ou rouge par élément à l'écran, suivie du nombre de piles quand il dépasse 1.
+    // Les malus qui ne sont pas des contrôles (un contrôle a sa rangée jaune : `nombreDeControles`).
     [[nodiscard]] std::vector<int> pilesDesBonus() const;
     [[nodiscard]] std::vector<int> pilesDesMalus() const;
+    // Combien d'effets de contrôle sont actifs : une marque jaune chacun.
+    [[nodiscard]] int nombreDeControles() const;
 
 private:
     std::vector<EffetActif> m_effets;

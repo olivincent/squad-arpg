@@ -347,6 +347,7 @@ void Partie::infligerUnCoup(const Coup& coup, bool opportunite) {
     if (Monstre* touche = trouverMonstre(coup.idMonstre)) {
         const ResultatDuCoup resultat = touche->recevoirDegats(coup.attaque, m_generateur);
         signalerLeCoup(touche->getId(), touche->getCentre(), resultat, opportunite);
+        signalerLesControles(touche->getId(), touche->getCentre(), touche->prendreLesControles());
     }
 }
 
@@ -370,6 +371,21 @@ void Partie::infligerAUnPersonnage(IdMonstre idMonstre, Place place, const Attaq
     const ResultatDuCoup resultat = m_escouade.recevoirCoup(idMonstre, place, attaque, m_generateur);
     if (const std::optional<sf::Vector2f> centre = m_escouade.centreDuPersonnage(place)) {
         signalerLeCoup(place, *centre, resultat, opportunite);
+    }
+    signalerLesControlesDeLEscouade();
+}
+
+void Partie::signalerLesControles(CibleDEvenement cible, sf::Vector2f position, const std::vector<ControleApplique>& controles) {
+    for (const ControleApplique& controle : controles) {
+        signaler(cible, position, ControleSubi{controle.etat, controle.immunise});
+    }
+}
+
+void Partie::signalerLesControlesDeLEscouade() {
+    for (const ControleSurUnAllie& controle : m_escouade.prendreLesControles()) {
+        if (const std::optional<sf::Vector2f> centre = m_escouade.centreDuPersonnage(controle.place)) {
+            signalerLesControles(controle.place, *centre, {controle.controle});
+        }
     }
 }
 
@@ -400,7 +416,8 @@ void Partie::signaler(CibleDEvenement cible, sf::Vector2f position, DetailEvenem
                                                   [](const Bloque&) { return false; },
                                                   [](const SacPlein&) { return false; },
                                                   [](const NiveauAtteint&) { return false; },
-                                                  [](const EnergieInsuffisante&) { return false; }},
+                                                  [](const EnergieInsuffisante&) { return false; },
+                                                  [](const ControleSubi&) { return false; }},
                                        detail);
     if (montantNul) {
         return;
@@ -599,6 +616,7 @@ void Partie::mettreAJour(float dt) {
             signalerLesTicks(tick.place, *centre, {tick.tick});
         }
     }
+    signalerLesControlesDeLEscouade();
     interagirSiAPortee();
     ramasserSiAPortee();
     prendreLEscalierSiAPortee();

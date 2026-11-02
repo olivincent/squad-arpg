@@ -3,6 +3,7 @@
 #include <SFML/System/Vector2.hpp>
 #include <variant>
 #include <vector>
+#include "combat/EffetActif.hpp"
 #include "combat/Element.hpp"
 #include "combat/IdMonstre.hpp"
 #include "combat/IdSkill.hpp"
@@ -62,7 +63,14 @@ struct NiveauAtteint {
 };
 // Un skill est refusé faute d'énergie (`SkillSansEnergie`), au-dessus de son lanceur.
 struct EnergieInsuffisante {};
-using DetailEvenement = std::variant<DegatsSubis, Soin, SkillLance, Provoque, Esquive, Bloque, SacPlein, NiveauAtteint, EnergieInsuffisante>;
+// Un état de contrôle vient d'être posé sur la cible (étape 113), au-dessus d'elle : « Stunned », « Slowed »… ; `immunise` : le rendement
+// décroissant a tout bloqué, rien n'est posé (« Immune »).
+struct ControleSubi {
+    EtatInflige etat;
+    bool immunise;
+};
+using DetailEvenement =
+    std::variant<DegatsSubis, Soin, SkillLance, Provoque, Esquive, Bloque, SacPlein, NiveauAtteint, EnergieInsuffisante, ControleSubi>;
 
 // `position` : COPIE du centre de la cible à ce moment ; aucune référence vers l'entité, qui peut
 // disparaître dans la même image (monstre tué par ce coup).

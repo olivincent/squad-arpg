@@ -80,11 +80,25 @@ struct EffetSoinDansLeTemps {  // NOLINT(cppcoreguidelines-pro-type-member-init)
     float coefficientDeDuree = 0.0f;
 };
 
+// Pose un état de contrôle (`Controle`, un effet actif) sur chaque monstre touché, pour cette durée (étape 113) : un étourdissement, un
+// ralentissement (`pourcentage` de la vitesse de déplacement en moins), une entrave (de la vitesse d'attaque de base) ou une Disruption.
+// `duree` est la durée avant la résistance de la cible et le rendement décroissant (`dureePosee`), majorée par le bonus de durée du lanceur
+// selon `coefficientDeDuree` (0 pour une technique ou une frappe, un coefficient pour un sort). Effet principal d'un skill de mode `Monstre` ou
+// `Point` (un sort sans dégâts : le contresort), il touche les monstres ; effet secondaire, il suit des dégâts ou une frappe et n'est posé
+// que si le coup n'est pas esquivé.
+struct EffetControle {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
+    EtatInflige etat;
+    float duree;
+    int pourcentage = 0;  // de 1 à 100 pour le ralentissement et l'entrave, 0 pour les deux autres
+    float coefficientDeDuree = 0.0f;
+};
+
 using EffetDeSkill = std::variant<EffetDegats, EffetFrappe, EffetSoin, EffetProvocation, EffetModificateur, EffetDegatsDansLeTemps,
-                                  EffetSoinDansLeTemps>;
+                                  EffetSoinDansLeTemps, EffetControle>;
 
 // Le camp que touche un effet quand il a un rayon de zone : les dégâts, les dégâts dans le temps et la provocation touchent les monstres,
-// le soin et le soin dans le temps les alliés, un modificateur les alliés si c'est un buff et les monstres si c'est un affaiblissement.
+// le soin et le soin dans le temps les alliés, un modificateur les alliés si c'est un buff et les monstres si c'est un affaiblissement, un
+// contrôle les monstres.
 // Seul endroit où le camp se déduit de l'effet.
 enum class CampTouche { Monstres, Allies };
 [[nodiscard]] CampTouche campTouche(const EffetDeSkill& effet);

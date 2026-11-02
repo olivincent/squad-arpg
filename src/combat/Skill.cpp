@@ -17,6 +17,18 @@ namespace {
         return true;
     });
 }
+
+// Un contrôle a une durée, et un pourcentage de 1 à 100 pour le ralentissement et l'entrave seulement (lu seulement par un `assert`).
+[[maybe_unused]] bool controlesValides(const std::vector<EffetDeSkill>& effets) {
+    return std::ranges::all_of(effets, [](const EffetDeSkill& effet) {
+        const auto* controle = std::get_if<EffetControle>(&effet);
+        if (controle == nullptr) {
+            return true;
+        }
+        const bool aUnPourcentage = controle->etat == EtatInflige::Ralentissement || controle->etat == EtatInflige::Entrave;
+        return controle->duree > 0.0f && (aUnPourcentage ? controle->pourcentage >= 1 && controle->pourcentage <= 100 : controle->pourcentage == 0);
+    });
+}
 }  // namespace
 
 Skill::Skill(const DefinitionDeSkill& definition)
@@ -51,15 +63,17 @@ Skill::Skill(const DefinitionDeSkill& definition)
     assert(!std::holds_alternative<EffetModificateur>(m_effets.front()) || campTouche(m_effets.front()) == CampTouche::Allies);
     // Des dégâts dans le temps ne sont jamais l'effet principal : ils suivent un coup, qui seul les fait toucher une cible.
     assert(!std::holds_alternative<EffetDegatsDansLeTemps>(m_effets.front()));
-    // Les effets secondaires sont des modificateurs ou des dégâts dans le temps qui suivent des dégâts ou une frappe et touchent le même camp
-    // que lui : `Escouade` et `Personnage` n'en posent pas d'autres.
+    // Les effets secondaires sont des modificateurs, des dégâts dans le temps ou des contrôles qui suivent des dégâts ou une frappe et touchent
+    // le même camp que lui : `Escouade` et `Personnage` n'en posent pas d'autres.
     assert(m_effets.size() == 1 || std::holds_alternative<EffetDegats>(m_effets.front()) ||
            std::holds_alternative<EffetFrappe>(m_effets.front()));
     for (std::size_t i = 1; i < m_effets.size(); ++i) {
-        assert(std::holds_alternative<EffetModificateur>(m_effets[i]) || std::holds_alternative<EffetDegatsDansLeTemps>(m_effets[i]));
+        assert(std::holds_alternative<EffetModificateur>(m_effets[i]) || std::holds_alternative<EffetDegatsDansLeTemps>(m_effets[i]) ||
+               std::holds_alternative<EffetControle>(m_effets[i]));
         assert(campTouche(m_effets[i]) == campTouche(m_effets.front()));
     }
     assert(effetsDansLeTempsValides(m_effets));
+    assert(controlesValides(m_effets));
 }
 
 // Recharge fixe (aucun tirage) si les deux bornes sont égales ; sinon tirage

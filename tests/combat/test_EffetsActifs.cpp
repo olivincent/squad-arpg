@@ -481,3 +481,35 @@ TEST_CASE("estUnBonus : un soin dans le temps est un bonus, des degats dans le t
     REQUIRE(estUnBonus(regeneration(4.0f)));
     REQUIRE_FALSE(estUnBonus(saignement(4.0f)));
 }
+
+// Les marques d'un contrôle (étape 113) : une rangée jaune à part, ni dans les bonus ni dans les malus.
+
+TEST_CASE("EffetsActifs : un controle a sa propre marque, il n'est pas dans les malus") {
+    EffetsActifs effets;
+    effets.poser(effetDArmure(IdSkill::FrappePuissante, -25, 8.0f));
+    effets.poser({.source = IdSkill::FrappeSacree, .dureeRestante = 2.0f, .sorte = Controle{.etat = EtatInflige::Etourdissement}});
+    effets.poser({.source = IdSkill::PluieDeFleches, .rang = 1, .dureeRestante = 2.0f, .sorte = Controle{.etat = EtatInflige::Entrave, .pourcentage = 20}});
+
+    REQUIRE(effets.pilesDesMalus() == std::vector<int>{1});  // seul l'affaiblissement d'armure
+    REQUIRE(effets.pilesDesBonus().empty());
+    REQUIRE(effets.nombreDeControles() == 2);
+}
+
+TEST_CASE("EffetsActifs : le temps fait aussi couler le rendement decroissant du controle") {
+    EffetsActifs effets;
+    static_cast<void>(effets.compterUneApplicationDeControle(EtatInflige::Etourdissement));
+    REQUIRE(effets.rendements().applications(EtatInflige::Etourdissement) == 1);
+
+    static_cast<void>(effets.mettreAJour(15.0f));
+
+    REQUIRE(effets.rendements().applications(EtatInflige::Etourdissement) == 0);
+}
+
+TEST_CASE("EffetsActifs vider : retire aussi le compteur de rendement") {
+    EffetsActifs effets;
+    static_cast<void>(effets.compterUneApplicationDeControle(EtatInflige::Disruption));
+
+    effets.vider();
+
+    REQUIRE(effets.rendements().applications(EtatInflige::Disruption) == 0);
+}

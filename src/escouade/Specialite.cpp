@@ -86,6 +86,9 @@ constexpr int coutDUneTechnique(float recharge) {
 constexpr int s_bonusSacreFrappeSacree = 45;
 constexpr float s_rechargeFrappeSacree = 5.0f;    // en secondes
 constexpr float s_activationFrappeSacree = 0.3f;  // en secondes
+// Étourdissement de la frappe sacrée (étape 113, « à tester ») : si le coup touche, le monstre ne fait plus rien pendant 1,5 s (avant sa résistance
+// et le rendement décroissant). Coefficient de durée de 0 : une frappe, la durée ne profite pas de l'Intellect.
+constexpr float s_dureeEtourdissementFrappeSacree = 1.5f;  // en secondes
 constexpr int s_puissanceImposition = 75;
 constexpr float s_rechargeImposition = 10.0f;     // en secondes
 constexpr float s_activationImposition = 0.5f;    // en secondes
@@ -256,7 +259,9 @@ std::vector<Specialite> construireLeCatalogue() {
                                                     .portee = s_porteeMelee,
                                                     .rechargeMin = s_rechargeFrappeSacree,
                                                     .rechargeMax = s_rechargeFrappeSacree,
-                                                    .effets = {EffetFrappe{.bonus = degatsDe(Element::Sacre, s_bonusSacreFrappeSacree), .coefficients = s_puissanceSeule}},
+                                                    .effets = {EffetFrappe{.bonus = degatsDe(Element::Sacre, s_bonusSacreFrappeSacree), .coefficients = s_puissanceSeule},
+                                                               // Si le coup touche : le monstre est étourdi un moment.
+                                                               EffetControle{.etat = EtatInflige::Etourdissement, .duree = s_dureeEtourdissementFrappeSacree}},
                                                     .tempsExecution = s_activationFrappeSacree,
                                                     .armesExigees = s_armesDeContact,
                                                     .cout = coutDUneTechnique(s_rechargeFrappeSacree)})},

@@ -133,10 +133,14 @@ std::vector<int> EffetsActifs::pilesDesBonus() const {
     return piles;
 }
 
+int EffetsActifs::nombreDeControles() const {
+    return static_cast<int>(std::ranges::count_if(m_effets, [](const EffetActif& effet) { return estUnControle(effet); }));
+}
+
 std::vector<int> EffetsActifs::pilesDesMalus() const {
     std::vector<int> piles;
     for (const EffetActif& effet : m_effets) {
-        if (!estUnBonus(effet)) {
+        if (!estUnBonus(effet) && !estUnControle(effet)) {
             piles.push_back(effet.piles);
         }
     }

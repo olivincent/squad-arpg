@@ -612,7 +612,8 @@ TEST_CASE("coefficients : la Puissance pour ce qui frappe avec l'arme, le Savoir
                                              [](const EffetProvocation&) { return Coefficients(); },
                                              [](const EffetModificateur&) { return Coefficients(); },
                                              [](const EffetDegatsDansLeTemps& effet) { return effet.coefficients; },
-                                             [](const EffetSoinDansLeTemps& effet) { return effet.coefficients; }},
+                                             [](const EffetSoinDansLeTemps& effet) { return effet.coefficients; },
+                                             [](const EffetControle&) { return Coefficients(); }},
                                   connu.skill.getEffet());
             }
         }
@@ -763,4 +764,22 @@ TEST_CASE("caracteristiques des classes : les bases du mage, du pretre et du pal
     REQUIRE(specialite(IdSpecialite::Mage).definition.caracteristiques == Caracteristiques({6, 8, 8, 16, 12}));
     REQUIRE(specialite(IdSpecialite::Pretre).definition.caracteristiques == Caracteristiques({8, 10, 8, 12, 12}));
     REQUIRE(specialite(IdSpecialite::Paladin).definition.caracteristiques == Caracteristiques({11, 13, 8, 7, 11}));
+}
+
+TEST_CASE("frappe sacree : ses degats sacres, puis un etourdissement de 1,5 s, sans bonus de duree (une frappe)") {
+    const Skill* frappe = nullptr;
+    for (const SkillConnu& connu : specialite(IdSpecialite::Paladin).definition.skills) {
+        if (connu.id == IdSkill::FrappeSacree) {
+            frappe = &connu.skill;
+        }
+    }
+    REQUIRE(frappe != nullptr);
+
+    REQUIRE(frappe->getEffets().size() == 2);
+    REQUIRE(std::holds_alternative<EffetFrappe>(frappe->getEffets()[0]));
+    const EffetControle& etourdissement = std::get<EffetControle>(frappe->getEffets()[1]);
+    REQUIRE(etourdissement.etat == EtatInflige::Etourdissement);
+    REQUIRE(etourdissement.duree == 1.5f);
+    REQUIRE(etourdissement.pourcentage == 0);
+    REQUIRE(etourdissement.coefficientDeDuree == 0.0f);
 }

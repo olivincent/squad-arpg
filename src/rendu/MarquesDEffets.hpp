@@ -21,7 +21,7 @@ constexpr float s_cotePointDeChiffre = 1.5f;
 [[nodiscard]] std::vector<sf::Vector2i> pointsDuChiffre(int chiffre);
 
 // Dessine une marque par effet actif à partir de `position`, de gauche à droite : d'abord une marque verte par élément de `pilesDesBonus`,
-// puis une rouge par élément de `pilesDesMalus`. Le nombre de piles de l'effet (l'élément) suit sa marque, en chiffres de la même couleur,
-// quand il dépasse 1. Rien si les deux sont vides.
+// puis une rouge par élément de `pilesDesMalus`, puis une jaune par contrôle (étape 113 : `controles` marques). Le nombre de piles de
+// l'effet (l'élément) suit sa marque, en chiffres de la même couleur, quand il dépasse 1 (un contrôle n'a pas de piles). Rien si tout est vide.
 void dessinerMarquesDEffets(sf::RenderTarget& rendu, sf::Vector2f position, const std::vector<int>& pilesDesBonus,
-                            const std::vector<int>& pilesDesMalus);
+                            const std::vector<int>& pilesDesMalus, int controles);

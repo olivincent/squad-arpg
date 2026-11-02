@@ -28,6 +28,7 @@ constexpr std::array<std::array<unsigned int, s_lignesDUnChiffre>, 10> s_chiffre
 
 const sf::Color s_couleurDesBonus(60, 200, 60);
 const sf::Color s_couleurDesMalus(220, 50, 50);
+const sf::Color s_couleurDesControles(240, 215, 40);  // jaune : ni le vert d'un bonus ni le rouge d'un malus
 
 void dessinerUnRectangle(sf::RenderTarget& rendu, sf::Vector2f position, float cote, sf::Color couleur) {
     sf::RectangleShape forme({cote, cote});
@@ -82,7 +83,8 @@ std::vector<sf::Vector2i> pointsDuChiffre(int chiffre) {
 }
 
 void dessinerMarquesDEffets(sf::RenderTarget& rendu, sf::Vector2f position, const std::vector<int>& pilesDesBonus,
-                            const std::vector<int>& pilesDesMalus) {
-    const float suite = dessinerUneRangee(rendu, position, pilesDesBonus, s_couleurDesBonus);
-    dessinerUneRangee(rendu, {suite, position.y}, pilesDesMalus, s_couleurDesMalus);
+                            const std::vector<int>& pilesDesMalus, int controles) {
+    const float suiteDesBonus = dessinerUneRangee(rendu, position, pilesDesBonus, s_couleurDesBonus);
+    const float suiteDesMalus = dessinerUneRangee(rendu, {suiteDesBonus, position.y}, pilesDesMalus, s_couleurDesMalus);
+    dessinerUneRangee(rendu, {suiteDesMalus, position.y}, std::vector<int>(static_cast<std::size_t>(controles), 1), s_couleurDesControles);
 }

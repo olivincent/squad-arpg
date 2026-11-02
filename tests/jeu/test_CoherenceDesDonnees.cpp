@@ -66,6 +66,28 @@ TEST_CASE("un effet dans le temps a un coefficient de duree de 0 : son montant g
     REQUIRE(effetsDansLeTemps >= 3);  // le saignement, la brûlure et Renew
 }
 
+TEST_CASE("un controle de frappe ou de tir a un coefficient de duree de 0, un controle de sort un coefficient de 0 a 1") {
+    int controles = 0;
+    for (const Specialite& classe : catalogue()) {
+        for (const SkillConnu& connu : classe.definition.skills) {
+            for (const EffetDeSkill& effet : connu.skill.getEffets()) {
+                const EffetControle* controle = std::get_if<EffetControle>(&effet);
+                if (controle == nullptr) {
+                    continue;
+                }
+                ++controles;
+                INFO(classe.nom << " : skill " << static_cast<int>(connu.id));
+                REQUIRE(controle->coefficientDeDuree >= 0.0f);
+                REQUIRE(controle->coefficientDeDuree <= 1.0f);
+                if (!std::holds_alternative<EffetControle>(connu.skill.getEffet())) {
+                    REQUIRE(controle->coefficientDeDuree == 0.0f);  // un contrôle derrière une frappe ou un coup : une technique
+                }
+            }
+        }
+    }
+    REQUIRE(controles >= 1);  // l'étourdissement de la frappe sacrée
+}
+
 TEST_CASE("un soin dans le temps ne dure jamais plus longtemps que la recharge de son skill") {
     int soins = 0;
     for (const Specialite& classe : catalogue()) {

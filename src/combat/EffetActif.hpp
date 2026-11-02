@@ -86,8 +86,13 @@ struct EffetActif {
     int piles = 1;
 };
 
+// Un contrôle (jaune à l'écran) n'est ni un bonus ni un malus de statistique : il a sa propre rangée de marques.
+[[nodiscard]] inline bool estUnControle(const EffetActif& effet) {
+    return std::holds_alternative<Controle>(effet.sorte);
+}
+
 // Un bonus (vert à l'écran) aide l'entité qui le porte ; sinon c'est un malus (rouge). Un modificateur de 0 % est un bonus ; un soin
-// dans le temps est un bonus, des dégâts dans le temps et un contrôle des malus (la marque du contrôle a sa propre couleur : jaune).
+// dans le temps est un bonus, des dégâts dans le temps et un contrôle des malus (mais la marque d'un contrôle est jaune : `estUnControle`).
 [[nodiscard]] inline bool estUnBonus(const EffetActif& effet) {
     struct Visiteur {
         bool operator()(const ModificateurDeStatistique& modificateur) const { return modificateur.pourcentage >= 0; }

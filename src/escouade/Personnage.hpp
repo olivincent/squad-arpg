@@ -220,8 +220,8 @@ private:
     // pénétration, sauf pour un skill de frappe (celle de l'arme).
     // Elle porte aussi les effets actifs du skill (`effetsActifsDuSkill`).
     [[nodiscard]] Attaque attaqueDuSkill(const Skill& skill, IdSkill id, Generateur& generateur) const;
-    // Les effets actifs que ce skill, lancé par ce personnage, pose : un par modificateur de sa liste d'effets, avec sa durée majorée
-    // par le bonus de durée (`dureeEffective`). L'identité de chacun est le skill (`id`).
+    // Les effets actifs que ce skill, lancé par ce personnage, pose : un par modificateur, effet dans le temps ou contrôle de sa liste
+    // d'effets, avec sa durée majorée par le bonus de durée (`dureeEffective`). L'identité de chacun est le skill (`id`) et son rang.
     [[nodiscard]] std::vector<EffetActif> effetsActifsDuSkill(const Skill& skill, IdSkill id) const;
     // Celle d'un skill de frappe : toutes les portions de l'arme portée (affixes compris), tirées dans sa plage comme pour
     // l'attaque de base, la nature et la pénétration de l'arme, plus le bonus du skill ; la Puissance joue sur chaque portion

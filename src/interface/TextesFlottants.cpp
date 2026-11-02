@@ -9,6 +9,7 @@
 #include <variant>
 #include "combat/Cible.hpp"
 #include "combat/Element.hpp"
+#include "interface/AffichageEffets.hpp"
 #include "interface/AffichageSkills.hpp"
 
 namespace {
@@ -27,6 +28,7 @@ constexpr unsigned int s_tailleBloque = 14;
 constexpr unsigned int s_tailleSacPlein = 14;
 constexpr unsigned int s_tailleNiveauAtteint = 20;
 constexpr unsigned int s_tailleEnergieInsuffisante = 14;
+constexpr unsigned int s_tailleControle = 14;
 constexpr float s_epaisseurContour = 1.0f;
 const sf::Color s_couleurDegatsSurUnMonstre = sf::Color::White;
 const sf::Color s_couleurDegatsSurUnPersonnage(255, 60, 60);
@@ -49,6 +51,8 @@ const sf::Color s_couleurEsquive(215, 215, 215);    // gris clair
 const sf::Color s_couleurBloque(150, 150, 150);     // gris
 const sf::Color s_couleurSacPlein(255, 140, 140);   // rose rouge : un refus
 const sf::Color s_couleurEnergieInsuffisante(150, 150, 255);  // bleu violacé, la teinte de l'énergie : un refus que nul autre texte n'a
+const sf::Color s_couleurControle(240, 215, 40);   // jaune, la teinte de la marque de contrôle sous l'entité
+const sf::Color s_couleurImmunite(170, 170, 170);  // gris : rien ne s'est passé
 const sf::Color s_couleurNiveauAtteint(120, 220, 255);  // bleu clair : une bonne nouvelle, que ni le soin (vert) ni un nom de skill (jaune) n'ont
 }  // namespace
 
@@ -89,7 +93,8 @@ std::string libelleDuTexte(const EvenementDeCombat& evenement) {
                                  },
                                  [](const SacPlein&) { return std::string("Bag full"); },
                                  [](const NiveauAtteint&) { return std::string("Level up!"); },
-                                 [](const EnergieInsuffisante&) { return std::string("Not enough energy"); }},
+                                 [](const EnergieInsuffisante&) { return std::string("Not enough energy"); },
+                                 [](const ControleSubi& controle) { return controle.immunise ? std::string("Immune") : nomDeLEtatInflige(controle.etat); }},
                       evenement.detail);
 }
 
@@ -114,7 +119,8 @@ sf::Color couleurDuTexte(const EvenementDeCombat& evenement) {
                                  [](const Bloque&) { return s_couleurBloque; },
                                  [](const SacPlein&) { return s_couleurSacPlein; },
                                  [](const NiveauAtteint&) { return s_couleurNiveauAtteint; },
-                                 [](const EnergieInsuffisante&) { return s_couleurEnergieInsuffisante; }},
+                                 [](const EnergieInsuffisante&) { return s_couleurEnergieInsuffisante; },
+                                 [](const ControleSubi& controle) { return controle.immunise ? s_couleurImmunite : s_couleurControle; }},
                       evenement.detail);
 }
 
@@ -140,7 +146,8 @@ unsigned int tailleDuTexte(const EvenementDeCombat& evenement) {
                                  [](const Bloque&) { return s_tailleBloque; },
                                  [](const SacPlein&) { return s_tailleSacPlein; },
                                  [](const NiveauAtteint&) { return s_tailleNiveauAtteint; },
-                                 [](const EnergieInsuffisante&) { return s_tailleEnergieInsuffisante; }},
+                                 [](const EnergieInsuffisante&) { return s_tailleEnergieInsuffisante; },
+                                 [](const ControleSubi&) { return s_tailleControle; }},
                       evenement.detail);
 }
 

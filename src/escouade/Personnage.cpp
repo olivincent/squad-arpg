@@ -87,7 +87,7 @@ void Personnage::dessiner(sf::RenderTarget& rendu) const {
     dessinerBarreDeVie(rendu, positionBarre, taille.x, m_vitalite.getRatio());
     dessinerBarreDEnergie(rendu, positionBarreDEnergie(getCentre(), taille), taille.x, m_energie.getRatio());
     dessinerMarquesDEffets(rendu, positionMarquesDEffets(getCentre(), taille), m_vitalite.getEffets().pilesDesBonus(),
-                           m_vitalite.getEffets().pilesDesMalus());
+                           m_vitalite.getEffets().pilesDesMalus(), m_vitalite.getEffets().nombreDeControles());
 }
 
 void Personnage::mettreAJour(float dt, sf::Vector2f cible, const TileMap& carte, const std::vector<Cercle>& obstacles,
@@ -566,6 +566,7 @@ Attaque Personnage::attaqueDuSkill(const Skill& skill, IdSkill id, Generateur& g
             [&](const EffetModificateur&) { return attaqueSansDegats(); },
             [&](const EffetDegatsDansLeTemps&) { return attaqueSansDegats(); },
             [&](const EffetSoinDansLeTemps&) { return attaqueSansDegats(); },
+            [&](const EffetControle&) { return attaqueSansDegats(); },
         },
         skill.getEffet());
     duSkill.effets = effetsActifsDuSkill(skill, id);
@@ -607,6 +608,14 @@ std::vector<EffetActif> Personnage::effetsActifsDuSkill(const Skill& skill, IdSk
                                       .dureeRestante = duree,
                                       .sorte = SoinDansLeTemps{.montant = montantEffectif(soin.montant, soin.coefficients, m_caracteristiques)},
                                       .pilesMax = soin.pilesMax});
+                },
+                // Un contrôle : la durée du skill, majorée par l'Intellect selon le coefficient du skill ; la résistance de la cible et le
+                // rendement décroissant jouent à la pose, chez elle (`Vitalite::poserEffet`).
+                [&](const EffetControle& controle) {
+                    effets.push_back({.source = id,
+                                      .rang = static_cast<int>(rang),
+                                      .dureeRestante = dureeEffective(controle.duree, controle.coefficientDeDuree, m_caracteristiques),
+                                      .sorte = Controle{.etat = controle.etat, .pourcentage = controle.pourcentage}});
                 },
                 [](const EffetDegats&) {},
                 [](const EffetFrappe&) {},

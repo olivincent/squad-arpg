@@ -371,3 +371,37 @@ TEST_CASE("un tick de soin dans le temps est vert comme un soin, plus petit, ave
     REQUIRE(tailleDuTexte(tick) == 12);
     REQUIRE(tailleDuTexte(tick) < tailleDuTexte(soin));
 }
+
+// Les états de contrôle (étape 113) : le nom de l'état, ou « Immune » quand le rendement décroissant a tout bloqué.
+
+TEST_CASE("le texte d'un controle pose : le nom de l'etat, de 14 px, jaune") {
+    REQUIRE(libelleDuTexte({IdMonstre{1}, {}, ControleSubi{EtatInflige::Etourdissement, false}}) == "Stunned");
+    REQUIRE(libelleDuTexte({IdMonstre{1}, {}, ControleSubi{EtatInflige::Ralentissement, false}}) == "Slowed");
+    REQUIRE(libelleDuTexte({IdMonstre{1}, {}, ControleSubi{EtatInflige::Entrave, false}}) == "Hampered");
+    REQUIRE(libelleDuTexte({IdMonstre{1}, {}, ControleSubi{EtatInflige::Disruption, false}}) == "Disrupted");
+    const EvenementDeCombat pose{IdMonstre{1}, {}, ControleSubi{EtatInflige::Etourdissement, false}};
+    REQUIRE(tailleDuTexte(pose) == 14);
+    REQUIRE(couleurDuTexte(pose) == sf::Color(240, 215, 40));
+}
+
+TEST_CASE("le texte d'une immunite : Immune, gris, quel que soit l'etat") {
+    for (const EtatInflige etat : {EtatInflige::Etourdissement, EtatInflige::Ralentissement, EtatInflige::Entrave, EtatInflige::Disruption}) {
+        const EvenementDeCombat immunite{IdMonstre{1}, {}, ControleSubi{etat, true}};
+        REQUIRE(libelleDuTexte(immunite) == "Immune");
+        REQUIRE(couleurDuTexte(immunite) == sf::Color(170, 170, 170));
+        REQUIRE(tailleDuTexte(immunite) == 14);
+    }
+}
+
+TEST_CASE("la couleur d'un controle pose n'est celle d'aucun autre texte") {
+    const EvenementDeCombat pose{IdMonstre{1}, {}, ControleSubi{EtatInflige::Etourdissement, false}};
+    for (const EvenementDeCombat& autre :
+         {degatsSurUnMonstre(1), EvenementDeCombat{Place{1}, {}, DegatsSubis{10, false, false}},
+          EvenementDeCombat{Place{1}, {}, DegatsSubis{10, true, false}}, EvenementDeCombat{Place{1}, {}, DegatsSubis{10, false, true}},
+          EvenementDeCombat{Place{2}, {}, Soin{10, false}}, EvenementDeCombat{IdMonstre{1}, {}, Esquive{}},
+          EvenementDeCombat{Place{1}, {}, Bloque{40, false}}, EvenementDeCombat{IdMonstre{1}, {}, Provoque{}},
+          EvenementDeCombat{Place{1}, {}, SkillLance{IdSkill::Explosion}}, EvenementDeCombat{EscouadeEntiere{}, {}, SacPlein{}},
+          EvenementDeCombat{EscouadeEntiere{}, {}, NiveauAtteint{3}}, EvenementDeCombat{Place{3}, {}, EnergieInsuffisante{}}}) {
+        REQUIRE(couleurDuTexte(pose) != couleurDuTexte(autre));
+    }
+}

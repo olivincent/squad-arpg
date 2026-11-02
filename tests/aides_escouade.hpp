@@ -275,6 +275,41 @@ inline DefinitionPersonnage guerrierQuiAffaiblit() {
     return guerrier;
 }
 
+// Du contrôle (étape 113). Le guerrier de test dont la frappe étourdit aussi la cible qu'elle touche, et le mage de test dont un second skill (qui porte
+// l'identifiant `Contresort`) met un monstre en Disruption sans lui faire de dégâts.
+inline constexpr float s_dureeDEtourdissementDeTest = 1.5f;  // en secondes, avant résistance
+inline constexpr float s_dureeDeDisruptionDeTest = 2.0f;
+inline constexpr float s_porteeDuContresortDeTest = 250.0f;
+inline constexpr float s_rechargeDuContresortDeTest = 12.0f;
+inline constexpr float s_activationDuContresortDeTest = 0.4f;
+
+inline DefinitionPersonnage guerrierQuiEtourdit() {
+    DefinitionPersonnage guerrier = guerrierDeTest();
+    guerrier.skills.front() = SkillConnu{
+        IdSkill::FrappePuissante,
+        Skill({.mode = ModeDeCible::Monstre,
+               .portee = s_porteeMeleeDeTest,
+               .rechargeMin = s_rechargeFrappeDeTest,
+               .rechargeMax = s_rechargeFrappeDeTest,
+               .effets = {EffetDegats{.montant = s_degatsFrappeDeTest, .nature = NatureDAttaque::Contact},
+                          EffetControle{.etat = EtatInflige::Etourdissement, .duree = s_dureeDEtourdissementDeTest}},
+               .tempsExecution = s_activationFrappeDeTest})};
+    return guerrier;
+}
+
+inline DefinitionPersonnage mageQuiContreLesSorts() {
+    DefinitionPersonnage mage = mageDeTest();
+    mage.skills.push_back(SkillConnu{
+        IdSkill::Contresort,
+        Skill({.mode = ModeDeCible::Monstre,
+               .portee = s_porteeDuContresortDeTest,
+               .rechargeMin = s_rechargeDuContresortDeTest,
+               .rechargeMax = s_rechargeDuContresortDeTest,
+               .effets = {EffetControle{.etat = EtatInflige::Disruption, .duree = s_dureeDeDisruptionDeTest, .coefficientDeDuree = 0.5f}},
+               .tempsExecution = s_activationDuContresortDeTest})});
+    return mage;
+}
+
 // Des effets dans le temps (étape 112). Le guerrier de test dont la frappe pose aussi un saignement (physique, montant sur la Puissance,
 // jusqu'à `s_pilesDeSaignementDeTest` piles) sur la cible qu'elle touche, et le prêtre de test dont le skill (qui porte l'identifiant `Soin`) est
 // un soin dans le temps sur un allié.
