@@ -2259,3 +2259,30 @@ quatre appels de `Monstre::mettreAJour` des tests ont reçu le paramètre des al
 - **Ce que les tests ne voient pas** : la couleur des deux nouveaux carrés à l'écran (le brun orangé du tireur contre l'orange du paladin), le
   recul et la marche du soigneur dans un vrai donjon (murs, portes, autres monstres), le texte vert sur le monstre soigné, l'équilibre des valeurs
   (le soigneur rend 75 points toutes les 6 s, soit 12,5 par seconde) : à l'œil, en jouant.
+
+## Étape 110 : les effets des caractéristiques
+
+1 955 tests au début de l'étape (1 977 après 110.3, 1 980 après 110.4, 1 996 après 110.5, 1 997 à la fin).
+- **110.1** : `test_Contributions.cpp` (nouveau : `apportDesCaracteristiques` est nul à la référence pour chaque statistique, donne exactement les
+  anciennes valeurs de points de vie et de capacités, et ne lit que la caractéristique de sa ligne).
+- **110.2** : `test_Progression.cpp` (`niveauDeClasse`), `test_Caracteristiques.cpp` (le gain par niveau de classe est un paramètre de `pointsDeVieMax`),
+  `test_Personnage.cpp` (les gains viennent de la définition).
+- **110.3** : `test_Energie.cpp` réécrit (`energieMax` selon la Volonté et le niveau de classe), `test_StatistiquesDeCombat.cpp` (les cinq résistances au
+  contrôle : Constitution vers Stun et Slow, Resolve vers Charm, Fear et Disruption, léger malus sous 10), `test_AffichageStatistiques.cpp` (les lignes
+  « Stun Resistance 3.0 % », le signe moins typographique), `test_DispositionInventaire.cpp` (le bloc en une colonne sous les statistiques, sans
+  chevauchement). **Les aides de test donnent la Resolve de référence (10)** à `s_caracteristiquesDeTest` et à `caracteristiquesPourPorter`, sinon
+  l'énergie maximum des personnages de test serait de 70 ; quelques tests qui supposaient « seule l'Adresse compte » comparent désormais les capacités seules.
+- **110.4** : `test_Caracteristiques.cpp` (`montantEffectif` à 1 % par point : 1030, 950, 1050, 1060 ; l'arrondi sur +4 points), `test_CatalogueObjets.cpp` (le
+  coefficient de chaque gabarit : Intellect pour la baguette, le sceptre et le bâton), `test_Specialite.cpp` (le coefficient de chaque skill du catalogue),
+  `test_Personnage.cpp` (une arme de lanceur profite de l'Intellect, pas de la Puissance), `test_AffichageCaracteristiques.cpp`. **Les aides**
+  `dansLaPlageAvecPuissance` et `montantAttendu` lisent `arme.coefficients` et les personnages de test ont aussi l'Intellect de référence (10) ; les
+  « puissances reconnaissables » de `test_Partie_evenements.cpp` et `test_Partie_zonesDeControle.cpp` sont multipliées par environ 3 (1000 → 3000,
+  77 → 211) et les mages reconnaissables reçoivent de l'Intellect (310).
+- **110.5** : `test_ValeursEffectives.cpp` (nouveau : le bonus d'aire et de durée, le **plafond testé de chaque côté** — 333 points donnent 0,999,
+  334 points sont ramenés à 1 —, la racine carrée du rayon : +21 % d'aire donne un rayon ×1,1, +100 % donne ×√2, le coefficient pondère avant la racine,
+  coefficient nul), `test_Personnage.cpp` (`zoneDuSkill` et la durée de provocation selon l'Intellect et les coefficients),
+  `test_Escouade_skills_zone.cpp` (un monstre à 90 px n'est touché que si l'aire est agrandie ; le rayon de visée est le rayon effectif),
+  `test_Specialite.cpp` (seule l'explosion a un coefficient d'aire).
+- **110.6** : `test_Specialite.cpp` (les bases du mage, du prêtre et du paladin ; les trois paires de croissance).
+- **Ce que les tests ne voient pas** : l'infobulle de la Resolve, la plus longue (environ 100 caractères), dans la vue de 1 200 × 800 ; l'agrandissement du
+  cercle de l'explosion, trop petit pour se voir à bas niveau ; le bloc des résistances dans le panneau de 652 px.

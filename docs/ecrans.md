@@ -91,7 +91,7 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
   `EcranJeu` lui donne (il connaît ses `IdSpecialite`). Il n'appelle que deux fonctions de modification :
   `Escouade::deplacerObjet` et `jeterUnObjet` (`jeu/ObjetsAuSol`). Un module ne reçoit que ce qu'il utilise. La croix de la
   fenêtre quitte, comme partout.
-- **Le panneau** (étape 98.1, refait à l'étape 106.4) est de la taille de son contenu (**776 × 556 px** depuis l'étape 108.4, 538 de haut avant la ligne d'énergie ;
+- **Le panneau** (étape 98.1, refait à l'étape 106.4) est de la taille de son contenu (**776 × 652 px** depuis l'étape 110.3 (le bloc des cinq résistances au contrôle sous les statistiques), 556 de haut depuis l'étape 108.4, 538 avant la ligne d'énergie ;
   776 × 538 depuis l'étape 106.4, 1 076 × 658 avant ; dans la vue d'interface de 800 px de haut), **centré**, et laisse voir le jeu tout autour : 212 px de chaque côté et
   131 px en haut et en bas dans une vue de 1200 × 800. Les cases n'ont pas changé de taille (44 px). La bande autour est l'endroit où l'on
   jette un objet.
@@ -139,7 +139,7 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
   bloc de ses statistiques de combat — « Offensive Ability N », « Defensive Ability N », « Block 30 % (40) »,
   « Melee Dodge N % » et « Projectile Dodge N % » (valeurs effectives), lues par
   `Escouade::statistiquesDeCombatDuPersonnage`, puis, dans la sixième cellule, la régénération d'énergie « Energy Regen 2.0/s » ;
-  **c'est le seul nombre décimal affiché par le jeu, une exception voulue** (une décimale, `ligneDeRegenerationDEnergie`), parce que c'est un débit
+  **une exception voulue : un nombre décimal** (une décimale, `ligneDeRegenerationDEnergie` ; les résistances au contrôle de l'étape 110 en affichent aussi, en pour cent), parce que c'est un débit
   (points par seconde) que les affixes majorent de pour cent, et qu'un entier cacherait cette majoration (2,3 serait 2) ; à droite, le sac (5 rangées de 8 cases) sous son étiquette « Bag ». Le dessin, le survol et les tests
   appellent les mêmes rectangles (`rectangleDeLOnglet`, `rectangleDeLEmplacement`, `rectangleDeLaCaseDuSac`,
   `elementSous`, `ongletSous`), aussi utilisés par le glisser-déposer. Un test vérifie que tout
@@ -174,7 +174,7 @@ la section « Référence des modules » à la fin de ce fichier, et celui d'une
     l'écran une référence à l'`Expedition` aurait obligé une fonction libre à tenir à jour deux copies des mêmes points.
 - **Infobulle d'une caractéristique (étape 100.2)** : sans glissement, le survol de la ligne d'une caractéristique (`caracteristiqueSous`,
   boutons compris) affiche une ligne près du curseur, sur le même cadre que l'infobulle d'un objet (`ligneDEffetDeLaCaracteristique` :
-  les nombres sont lus dans `s_bonusParPoint`, `s_pvParPointDEndurance` et `s_capaciteParPointDAdresse`, jamais recopiés).
+  les nombres sont lus dans `s_bonusParPoint`, `s_pvParPointDEndurance`, `s_capaciteParPointDAdresse`, `s_energieParPointDeVolonte`, `s_resistanceAuControleParPoint`, `s_bonusDAireParPoint` et `s_bonusDeDureeParPoint`, jamais recopiés ; textes de l'étape 110 dans `docs/glossaire.md`).
 - **Couleur de la rareté (étape 95.5)** : le texte d'un objet magique (jaune) ou rare (vert) prend la couleur de sa rareté
   (`couleurDeLaRarete`) : le sigle dans le sac et sur l'objet saisi, le nom sur un emplacement, le nom dans l'infobulle. Le
   commun reste blanc. Ces couleurs restent lisibles sur le fond de l'inventaire (un test vérifie le contraste sur le gris
@@ -543,7 +543,7 @@ construction, `explicit EcranMenu(std::vector<Resolution>)`), `m_boutons` (`List
 
 | Fonction | Rôle |
 |---|---|
-| `rectangleDuPanneau(tailleDeVue)` | Le panneau de l'inventaire, de la taille de son contenu (776 × 556 px depuis l'étape 108.4, 776 × 538 depuis l'étape 106.4, la même quelle que soit la vue), centré dans la vue ; un point lâché en dehors jette l'objet ; `[[nodiscard]]` |
+| `rectangleDuPanneau(tailleDeVue)` | Le panneau de l'inventaire, de la taille de son contenu (776 × 652 px depuis l'étape 110.3, 776 × 556 depuis l'étape 108.4, 776 × 538 depuis l'étape 106.4, la même quelle que soit la vue), centré dans la vue ; un point lâché en dehors jette l'objet ; `[[nodiscard]]` |
 | `rectangleDeLOnglet(place, tailleDeVue)` / `ongletSous(point, tailleDeVue)` | Étape 106.4 : l'onglet de cette place (une bande de 32 px au-dessus de la colonne, les onglets côte à côte sur la largeur de la colonne, 4 px d'écart ; `assert` : place de 1 à `s_tailleDeLEscouade`) / la place dont l'onglet contient le point, vide dans un écart ou ailleurs. Remplacent `rectangleDeLEnTete`, supprimée : l'onglet tient lieu d'en-tête ; `[[nodiscard]]` |
 | `rectangleDeLArmure(tailleDeVue)` | La ligne « Armor » sous les onglets ; `[[nodiscard]]` |
 | `rectangleDeLEmplacement(Emplacement, tailleDeVue)` | Rectangle de l'emplacement dans la colonne ; les 5 premiers de l'enum à gauche, les 5 suivants à droite ; `[[nodiscard]]` |

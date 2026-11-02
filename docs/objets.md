@@ -254,7 +254,7 @@ depuis le gabarit, le niveau et la qualité de l'objet. Rien de tout cela n'est 
   Volonté et +10 de capacité offensive) ; les deux bonus grandissent avec le niveau et la qualité (niveau 5 : +4 et +20). La capacité
   offensive est un bonus de **statistiques de combat** de l'équipement (pas une caractéristique) : `statistiquesDuPersonnage` l'ajoutait
   déjà. Affixes permis : les suffixes de caractéristique seulement, donc jamais Rare, comme les bijoux. Le Savoir et la Volonté n'ayant
-  encore aucun effet, la relique sert surtout de capacité offensive.
+  encore aucun effet à l'étape 103 (depuis l'étape 110, le Savoir majore les sorts et l'aire, la Volonté l'énergie et les soins), la relique sert d'abord de capacité offensive.
 - **Les bijoux** : les quatre prototypes suivent la même règle (`base × facteurDeNiveau × facteurDeQualite`), sans seuil : Ring of
   Protection et Necklace of Protection armure 1, Ring of Might Puissance +3, Necklace of Constitution Endurance +3.
 - **Kits de départ** (niveau 1, qualité 50, communs) : une seule pièce d'armure, le torse. Guerrier, paladin et rôdeur : Leather Jerkin
@@ -272,7 +272,7 @@ depuis le gabarit, le niveau et la qualité de l'objet. Rien de tout cela n'est 
   objets de la graine 96 est réépinglé (le catalogue a changé de taille).
 - **Limites** : le niveau ne change pas encore le modèle de base (pas de plaques d'acier après celles de fer) ; la qualité n'est pas
   affichée ; aucun malus de mouvement (des bonus de vitesse viendront avec une vitesse propre à chaque personnage) ; pas de résistances,
-  de mana ni de plafond de blocage ; l'Intellect et la Resolve n'ont aucun effet ; poids de tirage et affinités d'affixes : étape 104.
+  de mana ni de plafond de blocage ; (l'Intellect et la Resolve ont des effets depuis l'étape 110) ; poids de tirage et affinités d'affixes : étape 104.
 
 ## Seuils, objets inactifs et pénétration (étape 92)
 

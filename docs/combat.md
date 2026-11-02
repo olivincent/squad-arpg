@@ -653,8 +653,7 @@ Détail de conception : `docs/classes-et-combat.md`, section 5.
   `Personnage::recalculerDepuisLEquipement` (nommée `recalculerCaracteristiques` avant l'étape 89, quand elle
   ne recalculait que les caractéristiques et les points de vie), le seul endroit qui les écrit (même règle
   que l'armure, jamais d'ajustement incrémental). La Puissance et l'Endurance ont un effet depuis l'étape 88,
-  l'Adresse depuis l'étape 89 (les capacités, voir plus bas) ; le Savoir et la Volonté existent et
-  s'affichent, sans effet.
+  l'Adresse depuis l'étape 89 (les capacités, voir plus bas) ; le Savoir et la Volonté ont des effets depuis l'étape 110.
 - **Endurance → points de vie** : `pointsDeVieMax(pointsDeVieDeBase, caracteristiques)` = base de la classe
   + `s_pvParPointDEndurance` (20) × Endurance effective. Les PV de base de chaque classe (720, 740, 800,
   840, 800) sont ajustés pour que le maximum de départ soit 1000 pour toutes, comme avant l'étape 88. (Depuis les étapes 91.2 et
@@ -663,16 +662,17 @@ Détail de conception : `docs/classes-et-combat.md`, section 5.
   différence ; un vivant garde au moins 1 PV (on ne meurt pas en se déséquipant) ; un mort reste à 0.
 - **Puissance → dégâts et soins par des coefficients** : chaque skill et chaque attaque de base de
   personnage déclare dans ses données un `Coefficients` (un flottant par caractéristique, 0 par défaut) ;
-  aujourd'hui Puissance 1,0 pour tous les skills de dégâts, de soin et de zone et pour les attaques de base,
-  rien pour la provocation (sa durée n'est pas un montant). `montantEffectif(montant, coefficients,
+  depuis l'étape 110.4 selon la **convention** (voir « Les effets des caractéristiques (étape 110) » plus bas) : Puissance pour ce qui
+  frappe avec l'arme, Savoir pour l'explosion, Volonté pour les soins, rien pour la provocation (sa durée n'est pas un montant) ;
+  l'attaque de base lit le coefficient de son arme. `montantEffectif(montant, coefficients,
   caracteristiques)` = `montant × (1 + Σ coefficient × s_bonusParPoint × (caractéristique − 10))`, avec
-  `s_bonusParPoint = 0,03`, arrondi au plus proche, jamais négatif : c'est **la seule fonction** qui calcule ce
+  `s_bonusParPoint = 0,01` (0,03 avant l'étape 110.4), arrondi au plus proche, jamais négatif : c'est **la seule fonction** qui calcule ce
   montant. `Personnage::attaqueDe(skill)` (`montantDe` avant l'étape 89.3) l'appelle pour `avancerAttaque`,
   `avancerSkill` et `getAttaqueDeBase` (lu par `Partie` pour les coups d'opportunité) : tout ce qui inflige
   un dégât ou un soin de personnage passe par là, et y ajoute la capacité offensive du personnage. Un Puissance de 13 (anneau de puissance +3) donne +9 %.
 - **Les monstres n'ont pas de caractéristiques** : leurs coefficients sont nuls, leurs montants ne changent
   pas.
-- **Limites** : pas d'effet du Savoir et de la Volonté ; pas de points libres, de niveaux ni de
+- **Limites** (à l'étape 88 ; le Savoir et la Volonté ont des effets depuis l'étape 110) : pas de points libres, de niveaux ni de
   croissance ; pas de caractéristiques de monstres ; valeurs de référence provisoires.
 
 ## Le critique, les statistiques de combat et l'attaque qui circule (étape 89)
@@ -962,8 +962,8 @@ que celui des autres résistances (valeur à déterminer ; le code applique enco
 - **Limites** : trois éléments seulement sur les huit voulus (froid, foudre, arcane, nécrotique, poison avec leur première source ; le
   saignement n'est plus un élément depuis l'étape 109) ;
   pas de pénétration de résistance, pas de résistance ni de bonus élémentaire sur les objets (étape 95), pas de
-  bouclier anti-magie, pas d'effets dans le temps, pas de nombre flottant par portion. Le Savoir et la Volonté n'ont
-  toujours aucun effet.
+  bouclier anti-magie, pas d'effets dans le temps, pas de nombre flottant par portion. (Écrit à l'étape 94 ; depuis l'étape 110 le Savoir et la Volonté ont
+  des effets.)
 
 ## Les affixes dans le combat (étape 95)
 
@@ -1791,6 +1791,43 @@ d'équilibrage qui change. Seul changement visible : la provocation peut être m
 - **Limites.** Un seul skill en attente pour toute l'escouade (inchangé). Un effet qui touche plusieurs alliés tire un critique par
   allié. Plusieurs effets par skill, les buffs, le mana et les effets dans le temps restent à faire (phase 7).
 
+## Les effets des caractéristiques (étape 110)
+
+Les décisions et les valeurs sont dans `docs/classes-et-combat.md`, section 5, « Les effets des caractéristiques (étape 110) » ; ici, la
+technique et les limites.
+
+- **Une table plutôt que des formules écrites à la main.** Avant l'étape, `pointsDeVieMax` et `statistiquesDuPersonnage` avaient chacun leur
+  `6 × Endurance` et leur `50 + 5 × Adresse`. Ajouter l'énergie et cinq résistances aurait multiplié ces formules. `combat/Contributions`
+  les remplace par une liste de lignes (caractéristique, statistique, poids) et une seule fonction, `apportDesCaracteristiques`. Le test
+  de la sous-étape 110.1 vérifie que les résultats d'avant ne changent pas pour chaque valeur d'Endurance et d'Adresse de 0 à 40. La
+  base, elle, reste dans la règle de la statistique : elle n'est pas une contribution, et chaque statistique l'arrondit à sa façon.
+- **Des résistances en `float`.** 0,3 % par point ne se lit pas dans un entier (il faudrait 3 points pour voir 1 %). `StatistiquesDeCombat`
+  a donc un `ParEtat<float>` (`resistancesAuControle`), alors que les résistances élémentaires restent des `int`. Les bornes (−100 % à 80 %)
+  sont celles de `resistanceAuControleEffective`, appliquée à l'affichage et à l'usage futur, pas au stockage.
+- **Deux niveaux.** Le niveau du joueur ne change pas (expérience, points libres) ; le **niveau de classe** (`niveauDeClasse`) est ce que
+  reçoivent `pointsDeVieMax`, `energieMax` et `croissanceAuNiveau`. Aujourd'hui l'un est égal à l'autre. Les gains par niveau de classe
+  (`pvParNiveauDeClasse`, `energieParNiveauDeClasse`) et la paire de croissance sont des champs de `DefinitionPersonnage` ; `Personnage`
+  les garde et les relit à chaque recalcul. Les entrées du catalogue des classes n'écrivent pas les gains (les valeurs par défaut).
+- **Où se calculent les valeurs d'un skill.** Le montant, la durée et le rayon d'un skill de personnage se calculent tous dans
+  `Personnage` (`attaqueDuSkill`, `rayonEffectifDuSkill`), jamais dans `Escouade` ni dans l'interface : `Escouade::entitesTouchees`
+  (qui est touché) et `zoneDuSkill` (le cercle de visée) appellent la même méthode, donc la visée ne ment pas. Le rayon de **portée** d'un
+  skill n'est pas touché (il n'a pas de coefficient).
+- **Le coefficient de l'attaque de base** voyage du gabarit d'arme (`DonneesDArme::coefficients`) à la description (`DescriptionDAttaque`)
+  puis à `Personnage::attaqueDeLArme`. Les mains nues ont le leur (`mainsNues()`, Puissance). Une arme à affixes garde le coefficient de son
+  gabarit : les affixes ajoutent des portions, ils ne changent pas la caractéristique qui les majore. La frappe sacrée garde ses propres
+  coefficients (Puissance) même avec une arme de lanceur : elle exige une arme de contact.
+- **Calculé sans être lu.** Les résistances au contrôle, le bonus de durée et le coefficient de durée de la provocation sont des
+  statistiques qu'aucune mécanique ne lit (exception d'Olivier à `ARCHITECTURE.md`, notée dans `docs/historique.md`). Seuls
+  l'affichage de l'inventaire, les infobulles et les tests les lisent.
+- **Tests qui épinglaient les anciennes valeurs.** `s_bonusParPoint` de 3 % à 1 % et le passage du sceptre et du bâton à l'Intellect ont
+  changé les valeurs attendues de `montantEffectif` (1030, 950, 1050, 1060), les infobulles, les « puissances reconnaissables » des tests de
+  zone, d'événements et de dégagement (multipliées par environ 3, ou transférées sur l'Intellect pour les mages), et les aides de test :
+  les personnages de test ont Might, Intellect et Resolve à la référence (10).
+- **Limites.** Aucun skill n'utilise encore la durée ; les poids des caractéristiques ne sont pas partagés entre plusieurs sources
+  (équipement, skills) ; les résistances au contrôle des monstres sont à 0 ; un Intellect négatif ferait un bonus d'aire sous −1 (impossible
+  aujourd'hui : base de classe positive, bonus d'objets positifs). Un seul skill de zone (l'explosion) profite de l'aire, de façon presque
+  invisible à bas niveau (+3 % d'aire pour 10 points d'Intellect).
+
 ## L'énergie (étape 108)
 
 La ressource des skills : une réserve par personnage, que les skills de classe dépensent. Les décisions de conception (maximum,
@@ -1804,7 +1841,7 @@ régénération, coûts calibrés, refus) sont dans `docs/classes-et-combat.md`,
   ajoutée, le reste est gardé (comme `m_soinAccumule` du monstre). Pleine, la réserve ne garde aucun reste. L'Élan, ressource partagée
   de l'escouade, est la piste privilégiée pour une seconde `Reserve`.
 - **Les règles propres à l'énergie** (`combat/Energie.hpp`, sans `.cpp`) : `s_energieDeBase` (100), `s_energieParNiveau` (5),
-  `s_regenerationDEnergieDeBase` (2,0), `energieMax(niveau)` et `regenerationDEnergie(bonusEnPourcent)`.
+  `s_regenerationDEnergieDeBase` (2,0), `energieMax` (étape 110.3 : selon la Volonté et le niveau de classe, voir « Référence des modules ») et `regenerationDEnergie(bonusEnPourcent)`.
 - **Dans `Personnage`** : `m_energie` (`Reserve`), créée pleine ; régénérée par `mettreAJour` tant qu'il est vivant ; son maximum et son
   débit sont recalculés par `recalculerDepuisLEquipement` (un vivant gagne ce que le maximum augmente via `Reserve::changerMaximum`, un
   mort `definirMaximum`, sans gain) ; `energieSuffit(id)` compare l'énergie au coût du skill ; `peutEngagerSkill` l'exige (donc
@@ -1822,7 +1859,7 @@ régénération, coûts calibrés, refus) sont dans `docs/classes-et-combat.md`,
   cher a son texte en bleu atténué (90, 105, 200) alors que le gris (90, 90, 90) reste pour un lanceur mort ou une arme manquante (deux
   causes, deux teintes) ; la recharge reste affichée sur une icône bleutée. Le `Controleur` n'entre pas en visée pour un skill de zone
   trop cher : il demande le skill, et l'escouade le refuse avec son texte.
-- **Limites.** Aucune caractéristique n'agit sur l'énergie (étape 109). Pas de régénération différente hors combat, pas de potions, pas
+- **Limites.** Seule la Volonté agit sur l'énergie maximum (étape 110.3), pas sur la régénération. Pas de régénération différente hors combat, pas de potions, pas
   d'affixe d'énergie maximum, pas de coût dans une infobulle de la barre de raccourcis. Un skill en attente ne réserve pas son coût : un
   lanceur qui paie un autre skill entre-temps le voit abandonné. L'énergie des morts ne diminue pas (elle est refaite à l'étage suivant).
 
@@ -1872,12 +1909,12 @@ propriétaire ni sa cible : il reçoit deux `Cercle`. Ne dessine rien.
 
 Données membres : `m_mode` (`ModeDeCible`), `m_portee` (bord à bord), `m_rechargeMin`, `m_rechargeMax` (intervalle de recharge,
 en secondes), `m_tempsRecharge` (durée de la recharge en cours, dernier tirage), `m_recharge`, `m_effet` (`EffetDeSkill`),
-`m_rayonZone` (`std::optional<float>`, en pixels), `m_tempsExecution`, `m_armesExigees` (`std::vector<TypeDArme>`, étape 91.5),
+`m_rayonZone` (`std::optional<float>`, en pixels), `m_coefficientDAire` (étape 110.5), `m_tempsExecution`, `m_armesExigees` (`std::vector<TypeDArme>`, étape 91.5),
 `m_cout` (entier, en points d'énergie, étape 108), `m_executionRestante` (secondes), `m_phase` (`PhaseSkill`).
 
 | Fonction | Rôle |
 |---|---|
-| `explicit Skill(const DefinitionDeSkill&)` | Crée le skill depuis ses données nommées : `DefinitionDeSkill { mode; portee; rechargeMin; rechargeMax; effet; rayonZone = vide; tempsExecution = 0; armesExigees = {}; cout = 0 }`, en initialisation désignée (`Skill({.mode = ModeDeCible::Monstre, .portee = 80.0f, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}})`). Les quatre premiers champs et l'effet n'ont pas de valeur par défaut (un oubli est une erreur de compilation). `assert` : `0 <= min <= max` (recharge fixe si `min == max`), temps d'exécution `>= 0`, rayon `> 0` s'il y en a un, un skill de mode `Point` a un rayon, un skill de mode `Monstre` un effet qui touche les monstres (`campTouche`), un skill de mode `Allie` un effet qui touche les alliés ; prêt à la création |
+| `explicit Skill(const DefinitionDeSkill&)` | Crée le skill depuis ses données nommées : `DefinitionDeSkill { mode; portee; rechargeMin; rechargeMax; effet; rayonZone = vide; coefficientDAire = 0 (étape 110.5) ; tempsExecution = 0; armesExigees = {}; cout = 0 }`, en initialisation désignée (`Skill({.mode = ModeDeCible::Monstre, .portee = 80.0f, .rechargeMin = 5.0f, .rechargeMax = 5.0f, .effet = EffetDegats{.montant = 25, .nature = NatureDAttaque::Contact}})`). Les quatre premiers champs et l'effet n'ont pas de valeur par défaut (un oubli est une erreur de compilation). `assert` : `0 <= min <= max` (recharge fixe si `min == max`), temps d'exécution `>= 0`, rayon `> 0` s'il y en a un, un skill de mode `Point` a un rayon, un skill de mode `Monstre` un effet qui touche les monstres (`campTouche`), un skill de mode `Allie` un effet qui touche les alliés ; prêt à la création |
 | `bool commencer()` | Prêt → en exécution ; faux, sans rien changer, dans toute autre phase ; `[[nodiscard]]` |
 | `bool avancer(float dt, Generateur& generateur)` | En exécution : fait avancer l'exécution ; vrai une seule fois, au départ du coup (la recharge est alors tirée, phase → en recharge). Autres phases : comme `mettreAJour`, faux ; `[[nodiscard]]` |
 | `void annuler()` | En exécution → prêt, sans recharge ; sans effet ailleurs |
@@ -1890,6 +1927,7 @@ en secondes), `m_tempsRecharge` (durée de la recharge en cours, dernier tirage)
 | `ModeDeCible getMode() const` | Comment le skill vise ; `[[nodiscard]]` |
 | `const EffetDeSkill& getEffet() const` | Ce que fait le skill, brut (sans les caractéristiques : `Personnage::attaqueDuSkill` les applique) ; `[[nodiscard]]` |
 | `std::optional<float> getRayonZone() const` | Le rayon de la zone touchée ; vide si l'effet touche la cible seule ; `[[nodiscard]]` |
+| `float getCoefficientDAire() const` | Sa part du bonus d'aire de l'Intellect du lanceur, de 0 à 1 (étape 110.5) ; `[[nodiscard]]` |
 | `float getPortee() const` | Portée du skill (bord à bord) |
 | `const std::vector<TypeDArme>& getArmesExigees() const` | Les types d'arme qui permettent le skill (vide : aucune exigence) ; `[[nodiscard]]` |
 | `int getCout() const` | Le coût en énergie (0 : gratuit) ; `assert(cout >= 0)` à la création ; `[[nodiscard]]` |
@@ -1906,7 +1944,7 @@ en attente) et `Controleur` (visée), jamais déduit de l'effet.
 
 `EffetDeSkill.hpp` / `.cpp` : `struct EffetDegats { int montant; NatureDAttaque nature; Element element = Physique; Coefficients
 coefficients = {}; }`, `struct EffetFrappe { Degats bonus; Coefficients coefficients = {}; }` (l'arme portée plus ce bonus typé : la frappe
-sacrée), `struct EffetSoin { int montant; Coefficients coefficients = {}; }`, `struct EffetProvocation { int duree; }` (secondes) et `using
+sacrée), `struct EffetSoin { int montant; Coefficients coefficients = {}; }`, `struct EffetProvocation { int duree; float coefficientDeDuree = 0; }` (secondes ; le bonus de durée de l'Intellect, étape 110.5) et `using
 EffetDeSkill = std::variant<EffetDegats, EffetFrappe, EffetSoin, EffetProvocation>`. `enum class CampTouche { Monstres, Allies }` et
 `CampTouche campTouche(const EffetDeSkill&)` (`[[nodiscard]]`) : le camp que touche un effet quand le skill a un rayon de zone, seul
 endroit où il se déduit.
@@ -2126,10 +2164,15 @@ de la chaîne `Partie` → `Escouade` → `Personnage` → `Skill` et `Partie` �
   `Caracteristiques()` (toutes à 0), `explicit Caracteristiques(std::array<int, 5>)`, `static seule(Caracteristique, int)`,
   `valeur(Caracteristique)`, `+=`, `+`, `==` ; `[[nodiscard]]`.
 - `class Coefficients` : la même forme en flottants (`seul`, `valeur`, `==`), pour les skills.
-- Constantes : `s_valeurDeReference` (10), `s_bonusParPoint` (0,03), `s_pointsDeVieDeBase` (240) et
-  `s_pvParPointDEndurance` (6) depuis l'étape 91.2 (avant : 20 par point, base par classe), `s_pvParNiveau` (8, étape 99.4).
-- `int pointsDeVieMax(const Caracteristiques&, int niveau)` : 240 + 6 × Endurance + 8 × (niveau − 1) ; `assert(niveau >= 1)` et
-  `assert(résultat > 0)` ; `[[nodiscard]]`. Le niveau est celui de l'escouade (`Personnage::getNiveau`).
+- Constantes : `s_valeurDeReference` (10), `s_bonusParPoint` (0,01 depuis l'étape 110.4, 0,03 avant), `s_pointsDeVieDeReference`
+  (300, étape 110.1), `s_pointsDeVieDeBase` (240, dérivée de la précédente : un repère que les tests utilisent),
+  `s_pvParPointDEndurance` (6) depuis l'étape 91.2 (avant : 20 par point, base par classe), `s_pvParNiveau` (8, étape 99.4, la valeur
+  par défaut du gain par niveau de classe).
+- `int pointsDeVieMax(const Caracteristiques&, int niveauDeClasse, int pvParNiveauDeClasse)` : `s_pointsDeVieDeReference` plus l'apport
+  de l'Endurance (`apportDesCaracteristiques`, 6 × (Endurance − 10)) plus `pvParNiveauDeClasse` × (niveau de classe − 1) ; le même
+  résultat que 240 + 6 × Endurance + 8 × (niveau − 1) (étapes 110.1 et 110.2) ; `assert(niveauDeClasse >= 1)` et `assert(résultat > 0)` ;
+  `[[nodiscard]]`. Le niveau de classe est `niveauDeClasse(Personnage::getNiveau())` (`combat/Progression`), égal au niveau de l'escouade
+  tant que les points de skill n'existent pas.
 
 ### `Progression` (`combat/`) — la courbe de l'expérience et la croissance (étape 99)
 
@@ -2229,9 +2272,11 @@ si elle se régénère et ce qu'elle paie.
 
 ### `Energie` (`combat/`) — les règles de l'énergie (étape 108.2)
 
-`Energie.hpp`, sans `.cpp` : `s_energieDeBase` (100), `s_energieParNiveau` (5), `s_regenerationDEnergieDeBase` (2,0), `constexpr int
-energieMax(int niveau)` (100 plus 5 par niveau au-delà du premier ; `assert(niveau >= 1)`) et `constexpr float
-regenerationDEnergie(int bonusEnPourcent)` (la base majorée du pourcentage des affixes ; `assert(bonus >= 0)`).
+`Energie.hpp` et `Energie.cpp` (le `.cpp` date de l'étape 110.3) : `s_energieDeBase` (100), `s_energieParNiveau` (5, la valeur par défaut du
+gain par niveau de classe), `s_energieParPointDeVolonte` (3), `s_regenerationDEnergieDeBase` (2,0), `int energieMax(const Caracteristiques&,
+int niveauDeClasse, int energieParNiveauDeClasse)` (100 plus l'apport de la Volonté, 3 × (Volonté − 10), plus le gain par niveau de classe
+au-delà du premier ; `assert(niveauDeClasse >= 1)`) et `constexpr float regenerationDEnergie(int bonusEnPourcent)` (la base majorée du
+pourcentage des affixes ; `assert(bonus >= 0)`). Avant l'étape 110.3, `energieMax(niveau)` ne lisait que le niveau.
 
 ### `BarreDEnergie` (`rendu/`) — la barre d'énergie d'une entité (étape 108.4)
 
@@ -2307,6 +2352,37 @@ Données membres : `struct Cercle { sf::Vector2f centre; float rayon; }`.
 `std::vector<std::string> lignesDeBonusDeCombat(const StatistiquesDeCombat&)` (`[[nodiscard]]`), une ligne par bonus
 non nul pour l'infobulle d'un objet (« Dodge vs Melee: +5 % »… ; plus de ligne de blocage depuis l'étape 91.6). Comme `AffichageCaracteristiques`, les mots sont dans
 l'interface, le noyau ne connaît que les nombres.
+
+`std::vector<std::string> lignesDeResistancesAuControle(const StatistiquesDeCombat&)` (`[[nodiscard]]`, étape 110.3) : une ligne par
+état de contrôle, dans l'ordre de `EtatDeControle` (« Stun Resistance 3.0 % », « Charm Resistance −1.5 % »), la résistance effective
+(bornée de −100 % à 80 %) à une décimale ; `pourCentAvecUneDecimale(float)` l'écrit (signe moins typographique sous zéro, jamais « −0.0 »).
+`DispositionInventaire` leur réserve un bloc d'une colonne sous les statistiques.
+
+### `Contributions` (`combat/`) — la table des contributions des caractéristiques (étape 110.1)
+
+`Contributions.hpp` / `.cpp`. `enum class StatistiqueAlimentee { PointsDeVieMax, EnergieMax, CapaciteOffensive, CapaciteDefensive,
+ResistanceEtourdissement, ResistanceRalentissement, ResistanceCharme, ResistancePeur, ResistanceDisruption, BonusDAire, BonusDeDuree }`
+et `float apportDesCaracteristiques(StatistiqueAlimentee, const Caracteristiques&)` : la somme, sur les lignes de la table (privée, dans le
+`.cpp`) de cette statistique, de `poids × (caractéristique − s_valeurDeReference)`. Une seule forme de calcul, plusieurs lignes possibles par
+statistique ; la **base** de chaque statistique reste dans sa règle (`pointsDeVieMax`, `energieMax`, `statistiquesDuPersonnage`), qui arrondit
+(`std::lround`). `StatistiqueAlimentee resistanceAuControle(EtatDeControle)` relie un état à sa statistique. Lignes : Endurance vers points de
+vie (6) et Stun / Slow (0,3 % par point) ; Adresse vers les deux capacités (5) ; Volonté vers l'énergie maximum (3) et Charm / Fear /
+Disruption (0,3 %) ; Savoir vers les bonus d'aire et de durée (0,003).
+
+### `EtatDeControle` (`combat/`) — les cinq états de contrôle (étape 110.3)
+
+`EtatDeControle.hpp`, sans `.cpp` : `enum class EtatDeControle { Etourdissement, Ralentissement, Charme, Peur, Disruption, Nombre }`
+(la sentinelle `Nombre` donne `s_nombreDEtatsDeControle`), `s_etatsDeControle` (pour les parcourir) et `ParEtat<T>` (une valeur par état,
+`operator[]`, `==` : le même patron que `ParElement<T>`). Aucun état n'est encore infligé : seules les résistances existent.
+
+### `ValeursEffectives` (`combat/`) — l'aire et la durée selon l'Intellect (étape 110.5)
+
+`ValeursEffectives.hpp` / `.cpp`, des fonctions pures : `s_bonusDAireParPoint` et `s_bonusDeDureeParPoint` (0,003), `s_plafondDuBonusDAire` et
+`s_plafondDuBonusDeDuree` (1,0) ; `bonusDAire(caracteristiques)` et `bonusDeDuree(caracteristiques)` (l'apport de la table, plafonné) ;
+`rayonEffectif(rayon, coefficientDAire, caracteristiques)` = `rayon × √(1 + coefficient × bonus d'aire)` ; `dureeEffective(durée,
+coefficientDeDuree, caracteristiques)` = `durée × (1 + coefficient × bonus de durée)`. Le plafond précède le coefficient du skill. Le seul
+appelant est `Personnage` (`rayonEffectifDuSkill`, `attaqueDuSkill`). `Skill` porte `coefficientDAire` (0 par défaut, 1 pour l'explosion) et
+`EffetProvocation` un `coefficientDeDuree` (0 par défaut) ; `Attaque::dureeDeProvocation` est un `float`.
 
 ### `AffichageSkills` (`interface/`) — les noms des skills
 

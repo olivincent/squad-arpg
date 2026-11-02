@@ -50,7 +50,7 @@ squad-arpg/
 │   │               Element, Degats,
 │   │               EtatSkill, Coup, EvenementDeCombat, EntiteVue, AllieVu, Autodefense, Engagement,
 │   │               Attaque, NatureDAttaque, StatistiquesDeCombat, Esquive, Critique, Blocage, Defense,
-│   │               ResolutionDuCoup, Caracteristiques, Energie, Jauge, Reserve, PointsDeVie, Vitalite
+│   │               ResolutionDuCoup, Caracteristiques, Contributions, EtatDeControle, ValeursEffectives, Energie, Jauge, Reserve, PointsDeVie, Vitalite
 │   ├── objets/     Emplacement, Affixe, Objet, CatalogueAffixes, CatalogueObjets, TypeDArmure, DonneesDArme, DonneesDeBouclier, ObjetsActifs, Equipement,
 │   │               Inventaire, PositionDObjet, DeplacementDObjets, GenerationDObjets
 │   ├── escouade/   Escouade, Personnage, Formation, PlacesDAttaque, Intention, Separation,
@@ -158,15 +158,18 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `Autodefense` : quel ennemi frapper, quel agresseur viser.
 - `Engagement` : zones de contrôle (`EntiteDeControle<Identifiant>`, dans les deux sens), coups d'opportunité, monstre dont se dégager.
 - `Defense` : `appliquerArmure` et `armureAppliquee`, modèle M1 (soustraction avec plancher de 20 %, armure réduite par la pénétration de l'attaque), et `appliquerResistance` (résistance par élément, de −100 % à 80 %).
-- `StatistiquesDeCombat` : ce que le moteur du coup lit d'une entité (capacités, esquives, blocage, résistances par élément), aussi le bonus de combat d'un objet ; `statistiquesDuPersonnage`, seul endroit où elles se calculent.
+- `StatistiquesDeCombat` : ce que le moteur du coup lit d'une entité (capacités, esquives, blocage, résistances par élément, résistances aux états de contrôle), aussi le bonus de combat d'un objet ; `statistiquesDuPersonnage`, seul endroit où elles se calculent.
 - `Esquive`, `Critique`, `Blocage` : les étapes du coup qui dépendent du hasard, des fonctions pures qui reçoivent un tirage (`docs/combat.md`).
 - `ResolutionDuCoup` : `resoudreCoup`, point d'entrée unique d'un coup, portion par portion (esquive, critique, blocage du physique, armure, résistances, un arrondi par portion) et seul tirage du moteur ; `resoudreSoin` ; `Defenses`.
 - `Jauge` : une valeur entière plafonnée entre 0 et un maximum, la règle commune de `PointsDeVie` et de `Reserve` (`docs/combat.md`, « L'énergie »).
 - `Reserve` : une `Jauge`, un débit de régénération et un accumulateur (seule la partie entière est ajoutée) ; l'énergie d'un personnage, demain l'Élan.
-- `Energie` : les règles de l'énergie des personnages (`energieMax`, `regenerationDEnergie`, 100 plus 5 par niveau, 2 par seconde) ; sans `.cpp`.
+- `Energie` : les règles de l'énergie des personnages (`energieMax`, `regenerationDEnergie` : 100 plus la Volonté plus un gain par niveau de classe, 2 par seconde).
+- `Contributions` : la table des contributions des caractéristiques aux statistiques (points de vie, énergie, capacités, résistances au contrôle, bonus d'aire et de durée) et `apportDesCaracteristiques`, la seule forme de calcul `poids × (caractéristique − 10)` (`docs/classes-et-combat.md`, section 5 ; `docs/combat.md`).
+- `EtatDeControle` : les cinq états (Stun, Slow, Charm, Fear, Disruption) et `ParEtat<T>` ; sans `.cpp` (`docs/combat.md`).
+- `ValeursEffectives` : le bonus d'aire (rayon par racine carrée) et de durée de l'Intellect, plafonnés ; `rayonEffectif` et `dureeEffective`, lues par `Personnage` seul (`docs/combat.md`).
 - `PointsDeVie` : une `Jauge` et les invariants de vie et de mort.
-- `Caracteristiques` : les cinq caractéristiques (`Caracteristique`, `Caracteristiques`, `Coefficients`), les points de vie maximum (selon le niveau) et `montantEffectif`, seule source du montant d'un skill de personnage (`docs/combat.md`).
-- `Progression` : la courbe de l'expérience (`niveauPour`, `experiencePourAtteindre`, `progressionVersLeNiveauSuivant`, `experienceManquante`) la croissance automatique d'une classe (`PaireDeCroissance`, `croissanceAuNiveau`) et les points libres (`pointsLibresRecus`, `pointsLibresDisponibles`, `depensePermise`) ; des fonctions pures (`docs/combat.md`, `docs/classes-et-combat.md`).
+- `Caracteristiques` : les cinq caractéristiques (`Caracteristique`, `Caracteristiques`, `Coefficients`), les points de vie maximum (selon le niveau de classe) et `montantEffectif`, seule source du montant d'un skill de personnage (`docs/combat.md`).
+- `Progression` : la courbe de l'expérience (`niveauPour`, `niveauDeClasse`, `experiencePourAtteindre`, `progressionVersLeNiveauSuivant`, `experienceManquante`) la croissance automatique d'une classe (`PaireDeCroissance`, `croissanceAuNiveau`) et les points libres (`pointsLibresRecus`, `pointsLibresDisponibles`, `depensePermise`) ; des fonctions pures (`docs/combat.md`, `docs/classes-et-combat.md`).
 - `Vitalite` : points de vie, défenses (armure, statistiques de combat) et récupération du blocage d'une entité, commune à `Personnage` et `Monstre`.
 
 `objets/` — les objets, ce qu'on porte et le sac (`docs/objets.md`) :
@@ -221,7 +224,7 @@ Détail : `docs/boucle-et-entrees.md`, « Qui possède quoi ».
 - `TailleDeLEscouade` : `s_tailleDeLEscouade` (4), le nombre de personnages que le joueur choisit : la seule constante de cette idée, pour
   la sélection, l'inventaire, la barre et `composer` ; `Escouade` et `Expedition` n'en dépendent pas (`docs/formation.md`, « Quatre
   personnages »). En-tête neutre.
-- `Composition` : `DefinitionPersonnage` (dont la recette d'équipement de départ, lue par `nouvelleExpedition` seule, et la paire de
+- `Composition` : `DefinitionPersonnage` (dont la recette d'équipement de départ, lue par `nouvelleExpedition` seule, ses gains par niveau de classe (points de vie, énergie) et la paire de
   croissance), `MembreDEscouade` (une définition, l'`Equipement` qu'elle porte et ses points dépensés : ce que l'`Escouade` reçoit), `Rang` et
   `decalagesDeFormation`.
 - `Specialite` : catalogue des 5 classes et `composer`.

@@ -117,16 +117,16 @@ Quand un point entre dans `ROADMAP.md`, sa conception détaillée se fait en dis
 | Classe | Première (niveaux pairs) | Seconde (niveaux impairs) |
 |---|---|---|
 | Guerrier (Warrior) | Puissance (Might) | Endurance (Constitution) |
-| Paladin | Puissance (Might) | Endurance (Constitution) |
-| Prêtre (Priest) | Puissance (Might) | Volonté (Resolve) |
-| Mage | Puissance (Might) | Savoir (Intellect) |
+| Paladin | Puissance (Might) | Volonté (Resolve) *(étape 110 ; Endurance avant)* |
+| Prêtre (Priest) | Volonté (Resolve) *(étape 110 ; Puissance avant)* | Savoir (Intellect) *(Volonté avant)* |
+| Mage | Savoir (Intellect) *(Puissance avant)* | Volonté (Resolve) *(Savoir avant)* |
 | Rôdeur (Ranger) | Adresse (Dexterity) | Puissance (Might) |
 
 - **Retenu.** Les caractéristiques de base d'un personnage sont **calculées** (la base de sa classe plus la croissance du niveau,
   `croissanceAuNiveau`), plus, depuis l'étape 100, les points libres que le joueur a dépensés (section suivante), jamais copiées
-  dans l'`Expedition` : une seule source, la classe, l'expérience et les points dépensés. Le Savoir et la Volonté n'ont encore
-  aucun effet : les paires du prêtre et du mage deviendront justes quand ils serviront.
-- **À tester.** **Points de vie par niveau** : `pointsDeVieMax = 240 + 6 × Endurance + 8 × (niveau − 1)` (`s_pvParNiveau = 8`).
+  dans l'`Expedition` : une seule source, la classe, l'expérience et les points dépensés. Le Savoir et la Volonté ont des effets depuis
+  l'étape 110, et les paires du mage, du prêtre et du paladin en tiennent compte (section 5, « Les effets des caractéristiques »).
+- **À tester.** **Points de vie par niveau** : `pointsDeVieMax = 300 + 6 × (Endurance − 10) + 8 × (niveau de classe − 1)` (le gain par niveau de classe, 8, est une donnée de la classe depuis l'étape 110 ; `s_pvParNiveau` en est la valeur par défaut). C'était `240 + 6 × Endurance + 8 × (niveau − 1)` : le même résultat.
 - **Retenu.** **Montée de niveau au milieu d'un étage** : les caractéristiques, les statistiques, le maximum de points de vie et
   les objets actifs sont recalculés tout de suite, par le chemin de l'équipement (`Personnage::recalculerDepuisLEquipement`) ; les
   points de vie actuels d'un vivant montent du même montant que son maximum (`PointsDeVie::changerMaximum`) ; un mort reste mort
@@ -156,9 +156,9 @@ Quand un point entre dans `ROADMAP.md`, sa conception détaillée se fait en dis
   point en attente, « − » ne retire qu'un point en attente (jamais un point déjà dépensé), « Apply » dépense, « Reset » et la fermeture
   de l'inventaire effacent. Les valeurs dérivées (points de vie, capacités, armure) ne montrent pas le brouillon : elles changent à « Apply ».
 - **Retenu.** **L'infobulle d'une caractéristique** dit ce qu'un point fait, avec les nombres lus dans les constantes du jeu
-  (`s_bonusParPoint`, `s_pvParPointDEndurance`, `s_capaciteParPointDAdresse`), jamais recopiés : « Might: +3% damage and healing per
-  point », « Constitution: +6 health per point », « Dexterity: +5 offensive and defensive capability per point », « no effect yet »
-  pour l'Intellect et la Resolve. Le signal « Points to spend » apparaît en haut de l'écran tant qu'un personnage (mort compris) a
+  (`s_bonusParPoint`, `s_pvParPointDEndurance`, `s_capaciteParPointDAdresse`…), jamais recopiés (textes de l'étape 110, `docs/glossaire.md`) : « Might: +1% weapon damage per
+  point », « Constitution: +6 health and +0.3% Stun and Slow resistance per point », « Dexterity: +5 offensive and defensive capability per point »,
+  « Intellect: +1% spell damage, +0.3% area and +0.3% duration per point », « Resolve: +3 energy, +1% healing and +0.3% Charm, Fear and Disruption resistance per point ». Le signal « Points to spend » apparaît en haut de l'écran tant qu'un personnage (mort compris) a
   des points libres.
 - **Pistes** (étapes à part) : la **redistribution payante aux refuges** ; **l'aperçu des valeurs dérivées** pendant le brouillon (points de vie,
   capacités avant « Apply ») ; l'effet de l'Intellect et de la Resolve ; les rangs de skills et les points de skills.
@@ -195,7 +195,7 @@ Quand un point entre dans `ROADMAP.md`, sa conception détaillée se fait en dis
   4. Une croissance automatique répartie sur deux caractéristiques, jamais une seule.
 - **Retenu** (fait à l'étape 99 pour la classe, pas encore pour la spécialisation). Trois sources : une **petite croissance automatique orientée par la spécialisation** (un mage du feu gagne plutôt de la Puissance, un mage du givre plutôt du Savoir), l'**essentiel en points libres**, et l'**équipement**.
 - **Retenu.** L'équipement peut augmenter une caractéristique **et/ou** directement un élément de la mécanique de combat (par exemple + critique, + résistance au feu, + esquive contre les projectiles).
-- **Retenu.** L'**énergie** (étape 108, la ressource des skills) n'est rattachée à aucune caractéristique : son maximum ne vient que du niveau. Le Savoir et la Volonté n'ont encore aucun effet ; l'étape 109 leur en donnera.
+- **Retenu.** L'**énergie** (étape 108, la ressource des skills) : son maximum vient du niveau de classe et, depuis l'étape 110, de la Volonté (3 par point au-dessus de 10).
 - **Retenu.** Redistribution des points **payante, seulement dans les refuges** (village, campement), jamais en pleine quête.
 - **Retenu.** Seuils d'équipement à la *Titan Quest* (étape 92) : un objet peut exiger des valeurs minimales de caractéristiques ; **sous le seuil, impossible de l'équiper** (la vérification compte les caractéristiques effectives du destinataire sans l'objet posé, en tenant compte de ce que le déplacement retire).
 - **Retenu** (étape 92). **Objet inactif** : un objet porté dont le seuil n'est plus atteint (les caractéristiques ont baissé) **reste porté mais n'a plus aucun effet** (ni armure, ni bonus, ni arme, ni bouclier) ; il se remet en service quand le seuil revient. Calcul par point fixe (un objet retiré peut en désactiver un autre). Affichage : seuils dans l'infobulle, en rouge ceux qu'un personnage n'atteint pas pendant un glissement, objet inactif encadré en rouge.
@@ -203,7 +203,38 @@ Quand un point entre dans `ROADMAP.md`, sa conception détaillée se fait en dis
 - **Remplacé à l'étape 102.** Les seuils fixes par modèle deviennent une règle unique : `6 + pente × (niveau de l'objet − 1)` par caractéristique exigée (pente 2 pour la principale, 1 pour une secondaire). Au niveau 1 tout vaut 6, donc toute classe porte tout objet du catalogue.
 - **Retenu** (étape 91). **Échelle × 3** : 1000 points de vie au départ, c'est trop haut pour un jeu dont les nombres grandiront avec les niveaux (*Titan Quest* commence à 300). Toutes les valeurs en points de vie (points de vie, dégâts, soins, armures, montant bloqué) passent à 30 % de leur valeur d'avant ; les pourcentages et les rapports ne changent pas (3 % par point de Puissance, capacités `50 + 5 × Adresse`, esquives, plancher de 20 %).
 - **Retenu** (étape 91). **Points de vie de départ d'environ 300** : une **base commune à toutes les classes, 240**, plus **6 par point d'Endurance** (guerrier 324, paladin 318, prêtre et rôdeur 300, mage 288) ; plus de base de points de vie par classe, l'Endurance fait seule la différence.
-- **À tester** (étape 88). Valeurs de référence : référence 10 pour tous les effets ; 3 % de bonus par point de Puissance au-dessus (ou en dessous) de 10 ; 6 points de vie par point d'Endurance (20 sur une base par classe avant l'étape 91) ; bases de classe de somme 50 (guerrier 12/14/10/6/8, paladin 11/13/8/7/11, prêtre 10/10/8/10/12, mage 10/8/8/14/10, rôdeur 10/10/14/8/8 pour Puissance/Endurance/Adresse/Savoir/Volonté). Puissance et Endurance ont un effet depuis l'étape 88, l'Adresse depuis l'étape 89 (capacités offensive et défensive, section 7) ; Savoir et Volonté n'en ont pas encore.
+- **À tester** (étape 88 ; bases des trois classes remplacées et pourcentage de la Puissance passé à 1 % à l'étape 110, voir « Les effets des caractéristiques »). Valeurs de référence : référence 10 pour tous les effets ; 3 % de bonus par point de Puissance au-dessus (ou en dessous) de 10 ; 6 points de vie par point d'Endurance (20 sur une base par classe avant l'étape 91) ; bases de classe de somme 50 (guerrier 12/14/10/6/8, paladin 11/13/8/7/11, prêtre 10/10/8/10/12, mage 10/8/8/14/10, rôdeur 10/10/14/8/8 pour Puissance/Endurance/Adresse/Savoir/Volonté). Puissance et Endurance ont un effet depuis l'étape 88, l'Adresse depuis l'étape 89 (capacités offensive et défensive, section 7) ; Savoir et Volonté n'en ont pas encore.
+
+### Les effets des caractéristiques (étape 110)
+
+Principe : une caractéristique donne un **bonus d'appoint** ; l'essentiel vient de l'équipement et des skills, et une caractéristique seule n'atteint jamais un plafond. Niveau maximum visé : 60. Deux familles d'effets. Toutes les valeurs sont « à tester ».
+
+**Exception à `ARCHITECTURE.md`** (décision d'Olivier, pour cette étape seulement) : les statistiques que les caractéristiques alimentent (résistances au contrôle, bonus d'aire et de durée) sont **calculées, affichées et testées maintenant**, même si aucune mécanique ne les lit encore ; Olivier pourra ainsi concevoir ses skills. Les mécaniques qui les liront (étourdissement, ralentissement, charme, peur, Disruption, Aegis, Ward, buffs, dégâts dans le temps) viennent plus tard.
+
+- **Retenu.** **Effets intrinsèques**, toujours actifs : la **table de contributions** (`combat/Contributions`), des lignes (caractéristique, statistique, poids) et **une seule forme de calcul**, `valeur = base + poids × (caractéristique − 10)` (`apportDesCaracteristiques` fait la somme des lignes d'une statistique ; une statistique pourra en avoir plusieurs). La base reste dans la règle de chaque statistique (`pointsDeVieMax`, `energieMax`, `statistiquesDuPersonnage`), qui arrondit.
+
+| Caractéristique | Statistique | Base | Poids par point |
+|---|---|---|---|
+| Constitution | Max Life | 300 plus le gain par niveau de classe | 6 |
+| Constitution | Stun Resistance, Slow Resistance | 0 % | 0,3 % |
+| Dexterity | Offensive Ability, Defensive Ability | 100 | 5 |
+| Resolve | Max Energy | 100 plus le gain par niveau de classe | 3 |
+| Resolve | Charm, Fear et Disruption Resistance | 0 % | 0,3 % |
+| Intellect | Area Size (bonus d'**aire**) | 0 % | 0,3 %, plafond +100 % |
+| Intellect | Effect Duration | 0 % | 0,3 %, plafond +100 % |
+
+Max Life et les capacités donnent exactement les résultats d'avant (300 + 6 × (C − 10) = 240 + 6 × C ; 100 + 5 × (D − 10) = 50 + 5 × D). Sous 10, une caractéristique donne un léger malus. Les résistances au contrôle (un `ParEtat<float>` dans `StatistiquesDeCombat`) réduisent la durée de l'état subi et sont bornées de −100 % à 80 % à l'usage (`resistanceAuControleEffective`) ; les monstres les ont dans leurs statistiques, à 0 par défaut.
+
+- **Retenu.** **Effets par coefficient** : le skill déclare combien il profite de chaque caractéristique (de 0 à 1) pour son **montant**, son **aire** et sa **durée**.
+  - **Montant** (dégâts, soins, plus tard Aegis et Ward donnés) : **1 % par point au-dessus de 10** (3 % avant l'étape 110), sans plafond, la même règle pour Might, Intellect et Resolve (`s_bonusParPoint`, `montantEffectif`).
+  - **Aire** : 0,3 % **d'aire** par point d'Intellect, `rayon = rayon de base × √(1 + coefficient × bonus d'aire)`, bonus total plafonné à +100 % d'aire (rayon ×√2). **Durée** : 0,3 % par point d'Intellect, `durée × (1 + coefficient × bonus)`, plafonnée à +100 %. Le plafond porte sur le **total des sources** (aujourd'hui la seule est la caractéristique ; l'équipement et les skills s'y ajouteront) et précède le coefficient du skill (`combat/ValeursEffectives`).
+  - **Le seul endroit** qui calcule les valeurs effectives d'un skill est `Personnage` (`attaqueDuSkill` pour le montant et la durée, `rayonEffectifDuSkill` pour le rayon) ; le cercle de visée et la zone touchée lisent le même rayon.
+- **Retenu.** **Convention des coefficients** (skills existants) : arme, frappes et attaques de base, **Might** ; sorts de dégâts, **Intellect** (montant et aire) ; soins, plus tard Aegis et Ward donnés, **Resolve** ; une zone qui n'est pas un sort (la pluie de flèches) a un **coefficient d'aire 0** ; la provocation n'a aucun coefficient (ni montant, ni aire, ni durée). Catalogue : Frappe puissante Might ; Provocation aucun ; Soin Resolve ; Explosion Intellect, aire 1 ; Frappe sacrée Might ; Imposition des mains Resolve ; Tir perçant et Pluie de flèches Might (aire 0). **L'attaque de base** vient du gabarit d'arme (`DonneesDArme::coefficients`, copié dans `DescriptionDAttaque`) : Intellect pour la baguette, le sceptre et le bâton (armes de lanceur), Might pour toutes les autres et pour les mains nues.
+- **Retenu.** **Dégâts dans le temps** (quand ils existeront) : **coefficient de durée 0**, pour éviter le double gain montant × durée. À respecter à la création de ces skills.
+- **Retenu, documenté seulement.** **Un buff ne dure jamais plus longtemps que sa recharge**, même au plafond d'Intellect (ci-dessus, garde-fou 4). Elle sera codée et testée avec les buffs.
+- **Retenu.** **Niveau de classe** (préparation du système à la *Titan Quest*, codé plus tard) : plus tard, les points de skill iront soit dans des skills, soit dans le niveau de la classe, qui augmente les statistiques de base ; le niveau du joueur ne donnera plus de points de vie ni d'énergie. Dès l'étape 110, les gains par niveau sont des **données de la classe** (`DefinitionPersonnage` : `pvParNiveauDeClasse` 8, `energieParNiveauDeClasse` 5, la paire de croissance) et les calculs reçoivent un niveau de classe (`niveauDeClasse`, égal au niveau du joueur tant que les points de skill n'existent pas : le jeu se joue comme avant). Les points libres de caractéristiques (3 par niveau du joueur) ne changent pas.
+- **À tester.** **Bases des classes** (somme toujours 50, ordre Might / Constitution / Dexterity / Intellect / Resolve) : guerrier 12 / 14 / 10 / 6 / 8, paladin 11 / 13 / 8 / 7 / 11, prêtre 8 / 10 / 8 / 12 / 12, mage 6 / 8 / 8 / 16 / 12, rôdeur 10 / 10 / 14 / 8 / 8. Paires de croissance : mage Intellect puis Resolve, prêtre Resolve puis Intellect, paladin Might puis Resolve ; guerrier et rôdeur inchangés. L'énergie maximum au niveau 1 devient donc propre à chaque classe (100 + 3 × (Resolve − 10) : guerrier 94, paladin 103, prêtre 106, mage 106, rôdeur 94).
+- **Hors portée de l'étape 110.** Les mécaniques qui lisent les nouvelles statistiques ; le système de points de skill ; des affixes d'équipement pour elles ; les contributions croisées (deux caractéristiques vers une même statistique) ; le rendement décroissant du contrôle sur une même cible ; les poids des capacités ; le rééquilibrage des monstres.
 
 ## 6. Le déroulement d'un coup
 
@@ -331,7 +362,7 @@ Points de conception associés (**proposés**) :
 
 ## 13. Liste cible des statistiques (étape 109)
 
-Liste dressée par Olivier à l'étape 109 (documentation seulement : le code n'a pas changé). Elle remplace l'ancien « inventaire des statistiques de combat » et sert de référence aux étapes futures. « Existe » dit ce que le code fait **à la fin de l'étape 108**. Les noms en anglais sont les noms affichés (noms de travail, `docs/glossaire.md`) ; quand le code a un équivalent, il est cité. Toutes les valeurs d'équilibrage citées sont « à tester ».
+Liste dressée par Olivier à l'étape 109 (documentation seulement : le code n'a pas changé). Elle remplace l'ancien « inventaire des statistiques de combat » et sert de référence aux étapes futures. « Existe » dit ce que le code fait **à la fin de l'étape 110** (l'étape 109 l'avait dressé à la fin de l'étape 108). Les noms en anglais sont les noms affichés (noms de travail, `docs/glossaire.md`) ; quand le code a un équivalent, il est cité. Toutes les valeurs d'équilibrage citées sont « à tester ».
 
 ### Trois niveaux, à ne pas mélanger
 
@@ -344,22 +375,22 @@ Liste dressée par Olivier à l'étape 109 (documentation seulement : le code n'
 
 | Statistique | Rôle | Source principale | Existe |
 |---|---|---|---|
-| Might (Puissance) | Dégâts et soins (+ %, modéré) | Classe, croissance, points libres, équipement | Oui (étape 88 : 3 % par point au-dessus de 10) |
-| Constitution (Endurance) | Points de vie ; résistance au contrôle physique (section 5) | idem | Oui pour les points de vie (étape 88/91 : 6 par point) ; la résistance au contrôle : non |
+| Might (Puissance) | Montant des skills et attaques d'arme (+ %, modéré) | Classe, croissance, points libres, équipement | Oui (étape 88 : 3 % par point au-dessus de 10 ; **1 % depuis l'étape 110**, avec des coefficients par skill : Might pour l'arme, Intellect pour les sorts, Resolve pour les soins) |
+| Constitution (Endurance) | Points de vie ; résistance au contrôle physique (section 5) | idem | Oui : points de vie (étape 88/91 : 6 par point) et, depuis l'étape 110, Stun et Slow Resistance (0,3 % par point) |
 | Dexterity (Adresse) | Capacités offensive et défensive | idem | Oui (étape 89 : 5 par point) |
-| Intellect (Savoir) | Taille des zones et durée des effets infligés (section 5) | idem | Existe, **sans aucun effet** |
-| Resolve (Volonté) | Résistance au contrôle magique (section 5) | idem | Existe, **sans aucun effet** |
+| Intellect (Savoir) | Taille des zones et durée des effets infligés (section 5) ; montant des sorts | idem | Oui (étape 110) : montant des sorts (1 %), aire (0,3 %) et durée (0,3 %), les deux derniers plafonnés à +100 % ; calculés, aucun skill n'utilise encore la durée |
+| Resolve (Volonté) | Résistance au contrôle magique (section 5) ; énergie maximum ; montant des soins | idem | Oui (étape 110) : Max Energy (3 par point), Charm, Fear et Disruption Resistance (0,3 % par point), montant des soins (1 %) |
 
 ### Ressources
 
 | Statistique | Rôle | Source principale | Existe |
 |---|---|---|---|
-| Max Life | Survie | Constitution, niveau, équipement | Oui (`pointsDeVieMax` : base commune 240 plus 6 par point de Constitution plus 8 par niveau au-delà du premier ; échelle × 3) ; monstres : leur définition |
+| Max Life | Survie | Constitution, niveau de classe, équipement | Oui (`pointsDeVieMax` : 300 plus 6 par point de Constitution au-dessus de 10 plus le gain par niveau de classe, 8, au-delà du premier ; échelle × 3) ; monstres : leur définition |
 | Life Regen | Points de vie regagnés dans le temps | Équipement, skills | Non (seul le monstre qui rentre à son poste se régénère, `regenerationRetour`) |
 | Life Steal | % des dégâts infligés rendus en points de vie | Équipement, skills | Non |
 | Life per Kill | Points de vie rendus par monstre tué | Équipement, skills | Non |
 | Healing Received | Majore (ou réduit) les soins reçus | Équipement, skills | Non |
-| Max Energy | Budget de skills | Niveau (100 plus 5 par niveau au-delà du premier) ; aucune caractéristique pour l'instant | Oui (étape 108, `energieMax`) |
+| Max Energy | Budget de skills | Niveau de classe (100 plus 5 par niveau au-delà du premier) et Resolve (3 par point au-dessus de 10) | Oui (étape 108, `energieMax` ; Resolve depuis l'étape 110) |
 | Energy Regen | Énergie regagnée dans le temps | Base de 2 par seconde, majorée en % par l'affixe « of Replenishment » | Oui (étape 108, `regenerationDEnergie`) |
 | Energy Steal | Énergie rendue par les dégâts infligés | Équipement, skills | Non |
 | Coût d'un skill | Énergie (points de vie pour le noir, un jour) | Skill | Oui (étape 108) : entier, 0 pour l'attaque de base et pour les monstres |
@@ -413,11 +444,11 @@ Une résistance à un état **réduit sa durée**.
 
 | Statistique | Rôle | Source principale | Existe |
 |---|---|---|---|
-| Stun Resistance | Contrôle physique : durée de l'étourdissement | Constitution, équipement | Non (aucun état de contrôle dans le jeu) |
-| Slow Resistance | Contrôle physique : durée du ralentissement | Constitution, équipement | Non |
-| Charm Resistance | Contrôle magique : durée du charme | Resolve, équipement | Non |
-| Fear Resistance | Contrôle magique : durée de la peur | Resolve, équipement | Non |
-| Disruption Resistance | Contrôle magique : durée de la perturbation (Disruption empêche d'utiliser les skills) | Resolve, équipement | Non |
+| Stun Resistance | Contrôle physique : durée de l'étourdissement | Constitution, équipement | **Calculée** depuis l'étape 110 (`resistancesAuControle`, 0,3 % par point de Constitution, affichée dans l'inventaire) ; aucun état de contrôle ne la lit encore |
+| Slow Resistance | Contrôle physique : durée du ralentissement | Constitution, équipement | Calculée (idem) |
+| Charm Resistance | Contrôle magique : durée du charme | Resolve, équipement | Calculée depuis l'étape 110 (0,3 % par point de Resolve) ; aucun état ne la lit encore |
+| Fear Resistance | Contrôle magique : durée de la peur | Resolve, équipement | Calculée depuis l'étape 110 (0,3 % par point de Resolve) ; aucun état ne la lit encore |
+| Disruption Resistance | Contrôle magique : durée de la perturbation (Disruption empêche d'utiliser les skills) | Resolve, équipement | Calculée depuis l'étape 110 (0,3 % par point de Resolve) ; aucun état ne la lit encore |
 
 ### Utilité
 
@@ -427,8 +458,8 @@ Une résistance à un état **réduit sa durée**.
 | Attack Speed | **Modificateur** (100 % de base) de la cadence des attaques ; la vitesse de base vient de l'arme | Équipement, skills | **Partiel** : la vitesse de base vient de l'arme depuis l'étape 91 ; le modificateur n'existe pas |
 | Cast Speed | Modificateur du temps d'incantation des skills (n'a d'effet que si les skills ont un temps d'incantation) | Équipement, skills | Non (les skills ont déjà un temps d'activation, mais aucun modificateur) |
 | Skill Recharge (%) | Raccourcit les recharges des skills | Équipement, skills | Non (la réduction de recharge reste ouverte : question 3) |
-| Effect Duration (%) | Durée des effets infligés | Intellect, équipement | Non |
-| Area Size (%) | Aire des skills de zone (section 5 : le bonus porte sur l'aire) | Intellect, équipement | Non (rayon fixe par skill) |
+| Effect Duration (%) | Durée des effets infligés | Intellect, équipement | **Calculée** depuis l'étape 110 (`bonusDeDuree`, 0,3 % par point d'Intellect, plafond +100 %) ; la provocation l'accepte (coefficient 0), aucun skill du catalogue ne l'utilise |
+| Area Size (%) | Aire des skills de zone (section 5 : le bonus porte sur l'aire) | Intellect, équipement | Oui depuis l'étape 110 (`bonusDAire`, 0,3 % d'aire par point, plafond +100 %, rayon par racine carrée) pour les skills dont le coefficient d'aire n'est pas nul (l'explosion) |
 
 ### Propriétés d'une attaque (une arme ou un skill, pas des statistiques d'entité)
 
@@ -482,7 +513,7 @@ Rien de ceci n'est une décision.
 3. **Les plafonds** : esquive, résistances, réduction de recharge ; lesquels, et à combien ? *(En partie tranchée : l'esquive est plafonnée à 50 % (étape 90), les résistances à 80 % avec des vulnérabilités jusqu'à −100 % (étape 94, à tester). Reste la réduction de recharge, et, depuis l'étape 109, le plafond de la résistance physique, qui sera plus bas que celui des autres résistances : sa valeur est à déterminer.)*
 4. *Tranchée* : Aegis et Ward absorbent en dernier (section 9).
 5. *Tranchée* (étape 94, **modifiée à l'étape 109**) : **la liste des éléments** : huit — Physical, Fire, Cold, Lightning, Arcane, Necrotic, Holy, Poison ; le saignement n'est plus un type, c'est du physique dans le temps (sections 8 et 13).
-6. **La ressource** : *en partie tranchée à l'étape 108* : une **énergie** par personnage, la même pour toutes les classes, à la *Titan Quest* et *Grim Dawn* (section 14 bis). Reste ouvert : l'**Élan**, ressource partagée de l'escouade, en couche au-dessus (section 15), et quelles classes ont leur propre ressource (rage, foi…), qui ne sont pas faites. La structure qui accueillera l'Élan existe (`Reserve`). Le lien entre l'énergie et une caractéristique (Savoir, Volonté) est à discuter à l'étape 109.
+6. **La ressource** : *en partie tranchée à l'étape 108* : une **énergie** par personnage, la même pour toutes les classes, à la *Titan Quest* et *Grim Dawn* (section 14 bis). Reste ouvert : l'**Élan**, ressource partagée de l'escouade, en couche au-dessus (section 15), et quelles classes ont leur propre ressource (rage, foi…), qui ne sont pas faites. La structure qui accueillera l'Élan existe (`Reserve`). Le lien entre l'énergie et une caractéristique est fait à l'étape 110 : la Volonté donne 3 points d'énergie maximum par point au-dessus de 10 (section 5).
 7. *Tranchée* (étape 89) : **la magie critique**, comme le reste (section 7). Dans *Titan Quest*, non.
 8. **Les classes de départ** : quelles classes de base, quelles spécialisations, quels paliers ?
 9. **L'automatisation** : quels skills partent seuls (gambits, `docs/brainstorm.md`), lesquels restent au clavier ?

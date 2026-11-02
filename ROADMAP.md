@@ -8,7 +8,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 ## Étapes terminées
 
-Étapes 0 à 109 ✅. Les dernières :
+Étapes 0 à 110 ✅. Les dernières :
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 - Étape 83 — Inventaire et équipement : le modèle, sans interface ✅
@@ -38,15 +38,16 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - Étape 107 — Monstres à rôles : le rôle en données (mêlée, tireur, soigneur), le tireur qui frappe de loin et recule au contact, la vue des alliés du groupe, le soigneur qui soigne les blessés de son groupe ✅ (le mana passe à l'étape 108)
 - Étape 108 — L'énergie, la ressource des skills : une jauge plafonnée, une réserve qui se régénère, une énergie par personnage, un coût par skill calibré par une règle, le refus « Not enough energy », la barre bleue, l'affixe « of Replenishment » ✅ (les effets du Savoir et de la Volonté passent à l'étape 110)
 - Étape 109 — Documentation : la liste cible des statistiques (trois niveaux : caractéristiques, ressources, statistiques de combat), huit types de dégâts et de résistances (le saignement n'est plus un type), Aegis et Ward, résistances aux états, attributs ; aucune modification du code ✅
+- Étape 110 — Les effets des caractéristiques : une table de contributions en données, la Resolve vers l'énergie et les résistances au contrôle, le niveau de classe, le montant à 1 % par point, la convention des coefficients (Might pour l'arme, Intellect pour les sorts, Resolve pour les soins), le coefficient de l'attaque de base porté par le gabarit d'arme, l'aire (rayon par racine carrée) et la durée de l'Intellect, de nouvelles bases pour le mage, le prêtre et le paladin ✅
 
 ## État actuel (résumé)
 
 - **Outils** : conception dans Claude.ai, implémentation avec Claude Code dans VSCode (règles dans
   `CLAUDE.md`) ; dépôt Git `squad-arpg`, poussé sur GitHub ; SFML 3.0.2 intégrée à CMake.
-- **Code** (étape 108) : 110 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
+- **Code** (étape 110) : 113 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
   `combat`, `objets`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
   de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug` et `jeu`, 0
-  avertissement, 1 955 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers des étapes 98 à 102 : `docs/build.md`,
+  avertissement, 1 997 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers des étapes 98 à 102 : `docs/build.md`,
   `docs/audit.md`). `Escouade` n'est plus que l'assemblage : `Escouade.cpp` de 1 223 à 1 067 lignes. Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`). **Tout le texte affiché est en anglais** (identifiants, commentaires et documentation restent en français ; pas de système de traduction : `docs/glossaire.md` est la référence des noms du jeu). Un commit par sous-étape, fait par Claude Code (`CLAUDE.md`).
 - **Écrans** : menu à la souris, options d'affichage (fenêtré ou plein écran, résolutions,
   `reglages.ini`), choix de 4 classes parmi 5 (guerrier, prêtre, mage, paladin, rôdeur ; doublons
@@ -69,8 +70,8 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   expérience** (une donnée de `DefinitionDeMonstre` : nuée 3, infanterie 10, infanterie lourde 25, créature 100, majorée de 25 % par
   étage au-delà du premier), quel que soit le tueur, même si des personnages sont morts ; elle survit à la descente. La courbe est
   `k × n × (n − 1)` avec **`k = 21`** (calibré : tous les monstres tués, niveau 3 à 4 après le 1er étage, 10 à 11 après le 5e).
-  **Chaque niveau donne +1 point, en alternance dans les deux caractéristiques de la classe** (guerrier et paladin : Might puis
-  Constitution ; prêtre : Might puis Resolve ; mage : Might puis Intellect ; rôdeur : Dexterity puis Might) et **8 points de vie
+  **Chaque niveau donne +1 point, en alternance dans les deux caractéristiques de la classe** (guerrier : Might puis
+  Constitution ; paladin : Might puis Resolve ; prêtre : Resolve puis Intellect ; mage : Intellect puis Resolve ; rôdeur : Dexterity puis Might, depuis l'étape 110) et **8 points de vie
   maximum** (`240 + 6 × Endurance + 8 × (niveau − 1)`). Les caractéristiques de base sont **calculées** (classe plus croissance),
   plus copiées dans l'expédition. Une montée en cours d'étage recalcule tout par le chemin de l'équipement : un vivant gagne autant
   de points de vie que son maximum, un mort reste mort, plusieurs niveaux d'un coup s'appliquent tous, un seuil d'équipement
@@ -88,7 +89,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   l'inventaire (I), un personnage qui a des points voit « Points: N » sous son nom, un « + » (grisé à 0) et, là où il y a de l'attente,
   un « − » à côté de chaque caractéristique, la valeur « Might 15 (+2) » avec le brouillon en vert, et « Apply » / « Reset » ; **le
   brouillon est un état de l'écran**, effacé par « Reset » et par la fermeture ; les valeurs dérivées changent à « Apply ». Le survol d'une
-  caractéristique affiche son effet (nombres lus dans les constantes ; « no effect yet » pour l'Intellect et la Resolve) ; en haut de
+  caractéristique affiche son effet (nombres lus dans les constantes) ; en haut de
   l'écran, « Points to spend » tant qu'un personnage (mort compris) a des points (`docs/classes-et-combat.md`, « Les points libres »,
   `docs/ecrans.md`).
 - **Niveau d'objet** (étape 101, complété à l'étape 102) : **le niveau d'un objet est la profondeur où il est généré** (butin des
@@ -170,9 +171,26 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   ne coûte rien, un skill de zone paie même zone vide. Un skill prêt mais trop cher est **refusé** (jamais mis en attente) avec « Not
   enough energy » ; un skill en attente dont le lanceur n'a plus de quoi payer est abandonné sans coût. À l'écran : une barre bleue de 3 px
   sous la barre de vie, l'icône trop chère en bleu atténué (le gris reste pour l'arme manquante), « Energy N / M » et « Energy Regen 2.0/s »
-  dans l'inventaire (le seul nombre décimal affiché). **L'affixe « of Replenishment »** (suffixe de 10 à 20 % au niveau 1, sur les armes, les
+  dans l'inventaire (une décimale). **L'affixe « of Replenishment »** (suffixe de 10 à 20 % au niveau 1, sur les armes, les
   reliques et les bijoux ; bâton ×3, sceptre, Orb et Holy Relic ×2) majore la régénération de base ; les pourcentages des objets actifs
-  s'additionnent. Aucune caractéristique n'agit encore sur l'énergie (`docs/classes-et-combat.md`, section 14 bis ; `docs/combat.md`, « L'énergie »).
+  s'additionnent. La Resolve agit sur l'énergie maximum depuis l'étape 110 (3 par point au-dessus de 10) (`docs/classes-et-combat.md`, section 14 bis ; `docs/combat.md`, « L'énergie »).
+- **Les effets des caractéristiques** (étape 110) : les cinq caractéristiques alimentent maintenant leurs statistiques par une **table de
+  contributions en données** (`combat/Contributions` : une ligne = caractéristique, statistique, poids ; une seule forme de calcul, `base + poids ×
+  (caractéristique − 10)`, la base restant dans la règle de chaque statistique). **Constitution** : points de vie (6 par point) et Stun / Slow
+  Resistance (0,3 %) ; **Dexterity** : les deux capacités (5 par point, inchangé) ; **Resolve** : énergie maximum (3 par point) et Charm / Fear /
+  Disruption Resistance (0,3 %) ; **Intellect** : bonus d'**aire** (0,3 % d'aire par point, rayon par racine carrée, plafond +100 %) et de **durée**
+  (0,3 %, plafond +100 %). Les cinq **résistances au contrôle** (`EtatDeControle`, `ParEtat<float>`, bornes −100 % / 80 %) sont affichées dans
+  l'inventaire (« Stun Resistance 3.0 % », le panneau passe à 776 × 652 px) ; aucun état n'est encore infligé. **Exception à `ARCHITECTURE.md`**,
+  voulue par Olivier pour cette étape : ces statistiques sont calculées, affichées et testées avant que les mécaniques qui les liront existent
+  (`docs/historique.md`). **Le montant passe à 1 % par point** (3 % avant) et les skills suivent une **convention de coefficients** : Might pour
+  l'arme (frappe puissante, frappe sacrée, tir perçant, pluie de flèches), **Intellect pour l'explosion** (montant et aire), **Resolve pour les
+  soins** (soin, imposition des mains), rien pour la provocation ; l'attaque de base lit le coefficient de son arme (**Intellect pour la baguette,
+  le sceptre et le bâton**, Might pour le reste et les mains nues). `Personnage` est le seul endroit qui calcule les valeurs effectives d'un skill
+  (montant, durée, rayon) : le cercle de visée et la zone touchée lisent le même rayon. **Niveau de classe** : les gains par niveau (points de vie
+  8, énergie 5) et la paire de croissance sont des données de la classe, les calculs reçoivent un niveau de classe égal au niveau du joueur (les
+  points libres suivent toujours le niveau du joueur). **Nouvelles bases** : mage 6 / 8 / 8 / 16 / 12 (paire Intellect puis Resolve), prêtre
+  8 / 10 / 8 / 12 / 12 (Resolve puis Intellect), paladin inchangé (paire Might puis Resolve) ; l'énergie maximum au niveau 1 diffère donc selon la
+  classe. Tout est « à tester » (`docs/classes-et-combat.md`, section 5, « Les effets des caractéristiques » ; `docs/combat.md`).
 - **Carte** : donjon généré à chaque partie (salles, couloirs en L de 2 cases, portes à chaque
   jonction, un groupe de monstres par salle sauf la première, un escalier, graine affichée), F5 = nouvelle expédition ;
   carte à la main pour les tests (`docs/generation.md`, `docs/carte-et-collision.md`).
@@ -188,7 +206,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   est inactif : porté, sans effet, encadré en rouge ; le seuil monte avec le niveau de l'objet depuis l'étape 102) ; la dague, l'arc, la lance et l'arbalète percent une part de l'armure ; chaque personnage a
   cinq caractéristiques (base de sa classe plus bonus de l'équipement : Puissance, Endurance, Adresse, Savoir,
   Volonté), dont l'Endurance donne des points de vie (base commune de 240 plus 6 par point : environ 300 au
-  départ, échelle × 3 de l'étape 91) et la Puissance augmente dégâts et soins (3 % par point au-dessus de 10),
+  départ, échelle × 3 de l'étape 91) et la Puissance augmente les dégâts d'arme (1 % par point au-dessus de 10 depuis l'étape 110, 3 % avant),
   l'Adresse donne les capacités offensive et défensive (`50 + 5 × Adresse`) ; des objets donnent aussi un
   bonus de combat (le malus d'esquive des pièces lourdes, la capacité offensive des reliques) et
   le Shield un blocage (20 % plus 1 par niveau, 8 points au niveau 1, récupération commune de 3 s) ; **un objet porte sa rareté et au plus un
@@ -395,16 +413,30 @@ ce qui reste à décider **en discussion** avant son prompt :
   - 108 ✅ : l'énergie, la ressource des skills (voir « L'énergie »). Les ressources de classe et l'Élan restent à discuter.
   - 109 ✅ : documentation seulement : la liste cible des statistiques (`docs/classes-et-combat.md`, section 13), chaque statistique marquée
     existante ou non (voir « La liste cible des statistiques »).
-  - À discuter avec Claude.ai : les effets du Savoir et de la Volonté (étape 110, dont un lien possible avec l'énergie), puis les buffs,
+  - 110 ✅ : les effets des caractéristiques (voir « Les effets des caractéristiques »). À discuter avec Claude.ai : les buffs,
     les affaiblissements, les effets dans le temps et les auras (plusieurs effets par skill), et la mise en code de la liste cible.
 
 
-## Étape 110 (prochaine) : à discuter avec Claude.ai
+## Étape 111 (prochaine) : à discuter avec Claude.ai
 
-Les étapes 105 (les skills en données), 106 (quatre personnages), 107 (les monstres à rôles), 108 (l'énergie) et 109 (la liste cible des
-statistiques, documentation) sont faites. La suite se discute avec Claude.ai, après la conception des classes par Olivier : les effets du
-Savoir et de la Volonté, qui pourraient toucher l'énergie. Le Savoir et la Volonté n'ont encore aucun effet (les paires de croissance du
-prêtre et du mage deviendront justes quand ils serviront). L'`Expedition` garde les points dépensés ; c'est elle qu'on sauvegardera un jour.
+Les étapes 105 à 110 sont faites. La suite se discute avec Claude.ai, après la conception des classes et des skills par Olivier : les buffs, les
+affaiblissements, les effets dans le temps et les auras, puis les mécaniques qui liront les statistiques calculées à l'étape 110. L'`Expedition`
+garde les points dépensés ; c'est elle qu'on sauvegardera un jour.
+
+**Pistes issues de l'étape 110** (étapes à part, plus tard) :
+- **Les mécaniques qui lisent les statistiques calculées sans l'être encore** : les états de contrôle (étourdissement, ralentissement, charme,
+  peur, Disruption) et leurs résistances ; un skill qui utilise la durée (`coefficientDeDuree`) ; Aegis et Ward ; les buffs, les affaiblissements
+  et les dégâts dans le temps (coefficient de durée 0 par convention). La règle « un buff ne dure jamais plus longtemps que sa recharge » se codera
+  avec les buffs.
+- **Les points de skill et le niveau de classe** : le niveau de classe est aujourd'hui égal au niveau du joueur ; les points de skill iront soit
+  dans des skills, soit dans la classe, et le niveau du joueur ne donnera plus de points de vie ni d'énergie.
+- **Des sources de plus pour une même statistique** (équipement, skills) : la table de contributions les accueille, le plafond porte sur le
+  total ; des affixes d'équipement pour les résistances au contrôle, l'aire et la durée ; le rendement décroissant du contrôle sur une cible.
+- **Ajuster en jouant** : 1 % par point (au lieu de 3 %), 0,3 % par point pour l'aire, la durée et les résistances, les plafonds de +100 %, 3
+  d'énergie par point de Resolve, les nouvelles bases du mage (6 / 8 / 8 / 16 / 12), du prêtre (8 / 10 / 8 / 12 / 12) et les paires de
+  croissance, le coefficient d'attaque de base du sceptre (Intellect) : tout est « à tester ». L'énergie maximum au niveau 1 diffère
+  maintenant d'une classe à l'autre (94 pour le guerrier et le rôdeur, 106 pour le prêtre et le mage).
+- **L'infobulle de la Resolve est longue** (environ 100 caractères) : à vérifier dans la vue de 1 200 × 800 au minimum.
 
 **La liste cible des statistiques** (étape 109, documentation seulement) : `docs/classes-et-combat.md`, section 13, en donne le détail et marque
 chaque statistique existante ou non. En bref : trois niveaux (caractéristiques, ressources, statistiques de combat), les monstres sans
@@ -495,7 +527,7 @@ lieu de Dodge et Deflect ; le multiplicateur de critique n'est pas une statistiq
 **Pistes issues de l'étape 100** (étapes à part, plus tard) :
 - **La redistribution payante aux refuges** : reprendre les points dépensés pour les remettre ailleurs (aujourd'hui définitif).
 - **L'aperçu des valeurs dérivées pendant le brouillon** (points de vie, capacités, armure avant « Apply »).
-- **Un effet pour l'Intellect et la Resolve**, que l'infobulle annonce « no effect yet ».
+- ~~**Un effet pour l'Intellect et la Resolve**~~ : fait à l'étape 110.
 - **Les rangs de skills et les points de skills**, et un écran de caractéristiques séparé de l'inventaire, si le panneau se remplit trop.
 - **Ajuster en jouant** les 3 points par niveau (`s_pointsLibresParNiveau`), à voir avec la croissance automatique (+1 par niveau)
   et `k = 21`.

@@ -127,6 +127,7 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 107 — Monstres à rôles : le rôle en données (mêlée, tireur, soigneur), le tireur qui frappe de loin et recule au contact, la vue des alliés du groupe, le soigneur qui soigne les blessés de son groupe ✅ (le mana passe à l'étape 108)
 - Étape 108 — L'énergie, la ressource des skills : une jauge plafonnée et une réserve qui se régénère, une énergie par personnage (100 plus 5 par niveau, 2 par seconde), un coût par skill calibré par une règle (sort 30 s, technique 120 s), le refus et l'abandon avec « Not enough energy », la barre bleue, l'affixe « of Replenishment » ✅ (les effets du Savoir et de la Volonté passent à l'étape 110)
 - Étape 109 — Documentation : la liste cible des statistiques (caractéristiques, ressources, statistiques de combat), huit types de dégâts et de résistances (le saignement n'est plus un type), Aegis et Ward, résistances aux états, attributs ✅ (aucune modification du code)
+- Étape 110 — Les effets des caractéristiques : une table de contributions en données, la Resolve vers l'énergie et les résistances au contrôle, le niveau de classe, le montant à 1 % par point, la convention des coefficients (Might pour l'arme, Intellect pour les sorts, Resolve pour les soins), l'aire et la durée de l'Intellect, de nouvelles bases pour le mage, le prêtre et le paladin ✅ (exception à `ARCHITECTURE.md` : des statistiques calculées avant leurs mécaniques)
 
 ## Détail des étapes 0 à 73
 
@@ -2574,3 +2575,30 @@ noms de la liste cible avec leur identifiant ou le texte affiché aujourd'hui) e
 `Element` n'a que trois des huit éléments ; « Melee Dodge » et « Projectile Dodge » (et « Dodge vs … ») à l'écran au lieu de Dodge et Deflect ; le
 multiplicateur de critique et la récupération du blocage ne sont pas des statistiques. Détail : `docs/classes-et-combat.md` (section 13), `docs/combat.md`,
 `docs/glossaire.md`.
+
+### Étape 110 — Les effets des caractéristiques ✅
+
+Sept sous-étapes, un commit chacune (110.1, 110.2 et 110.6 enchaînées). **Exception à `ARCHITECTURE.md`, décidée par Olivier pour cette étape seulement** : le
+principe 1 (« anticiper la structure, pas les fonctionnalités ») interdit une statistique qu'aucune mécanique ne lit ; Olivier a voulu que toutes les
+statistiques alimentées par les caractéristiques (les cinq résistances au contrôle, le bonus de durée, le coefficient de durée de la provocation)
+soient **calculées, affichées et testées maintenant**, pour concevoir ensuite ses skills avec elles. Les mécaniques qui les liront (étourdissement,
+ralentissement, charme, peur, Disruption, Aegis, Ward, buffs, dégâts dans le temps) ne font pas partie de l'étape. 110.1 : `combat/Contributions` (la table,
+`apportDesCaracteristiques`) remplace les formules écrites à la main des points de vie et des capacités, sans changer aucun résultat (vérifié de 0 à 40) ;
+`s_pointsDeVieDeReference` (300), `s_pointsDeVieDeBase` (240) devenue un repère dérivé. 110.2 : le **niveau de classe** (`niveauDeClasse`, égal au niveau
+du joueur) ; les gains par niveau (`pvParNiveauDeClasse` 8, `energieParNiveauDeClasse` 5) et la paire de croissance sont des champs de `DefinitionPersonnage` ;
+`pointsDeVieMax`, `energieMax` et `croissanceAuNiveau` reçoivent le niveau de classe ; aucun résultat ne change. 110.3 : la Resolve vers l'énergie maximum
+(3 par point, `energieMax` gagne un `.cpp`), `EtatDeControle` et `ParEtat<T>`, les cinq **résistances au contrôle** (`float`, 0,3 % par point de Constitution ou
+de Resolve, bornes −100 % / 80 %), le bloc d'affichage de l'inventaire (le panneau passe de 556 à 652 px de haut), les infobulles de la Constitution et de la
+Resolve ; les tests d'énergie ont dû donner une Resolve de référence (10) aux personnages de test. 110.4 : `s_bonusParPoint` de 0,03 à 0,01, la **convention
+des coefficients** (Might pour l'arme, Intellect pour l'explosion, Resolve pour les soins, rien pour la provocation), le coefficient de l'attaque de base dans
+`DonneesDArme` puis `DescriptionDAttaque` (Intellect pour la baguette, le sceptre et le bâton ; Might pour le reste et les mains nues). **Tests dont les
+valeurs changent, attendu** : quatre tests de `montantEffectif` (1030, 950, 1050, 1060), les infobulles, les « puissances reconnaissables » de trois fichiers
+de tests de parties (multipliées par environ 3), le mage « reconnaissable » (310 d'Intellect au lieu de 110 de Might) et le test de l'anneau de puissance (un
+personnage à l'épée). 110.5 : `combat/ValeursEffectives` (bonus d'aire en racine carrée, bonus de durée, plafonds de +100 % portant sur le total des sources
+et précédant le coefficient du skill), `Skill::coefficientDAire` (1 pour l'explosion, 0 ailleurs), `EffetProvocation::coefficientDeDuree` (0),
+`Attaque::dureeDeProvocation` en `float`, `Personnage::rayonEffectifDuSkill` (le cercle de visée et la zone touchée lisent le même rayon), l'infobulle de
+l'Intellect. 110.6 : bases du mage (6 / 8 / 8 / 16 / 12) et du prêtre (8 / 10 / 8 / 12 / 12), paires de croissance du mage, du prêtre et du paladin.
+**Choix faits sans Olivier** : le sceptre du prêtre est une arme de lanceur (Intellect) ; la frappe sacrée garde le coefficient Might même avec une arme de
+lanceur (elle exige une arme de contact) ; le plafond précède le coefficient du skill ; l'infobulle de la Resolve annonce aussi +1 % de soins. 1 997 tests
+(+42), 0 avertissement de compilation sur les deux presets. Détail : `docs/classes-et-combat.md` (section 5, « Les effets des caractéristiques », sections 4
+et 13), `docs/combat.md` (« Les effets des caractéristiques »), `docs/glossaire.md`, `docs/ecrans.md`, `docs/tests.md`.

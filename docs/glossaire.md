@@ -29,12 +29,13 @@ Points libres (étape 100, `interface/AffichageCaracteristiques.cpp`, `Affichage
 | Boutons d'une caractéristique | +, − |
 | Boutons du brouillon d'un personnage | Apply, Reset |
 | Signal en haut de l'écran | Points to spend |
-| Effet de Might | Might: +3% damage and healing per point |
-| Effet de Constitution | Constitution: +6 health per point |
+| Effet de Might | Might: +1% weapon damage per point |
+| Effet de Constitution | Constitution: +6 health and +0.3% Stun and Slow resistance per point |
 | Effet de Dexterity | Dexterity: +5 offensive and defensive capability per point |
-| Effet d'Intellect, de Resolve | Intellect: no effect yet, Resolve: no effect yet |
+| Effet d'Intellect | Intellect: +1% spell damage, +0.3% area and +0.3% duration per point |
+| Effet de Resolve | Resolve: +3 energy, +1% healing and +0.3% Charm, Fear and Disruption resistance per point |
 
-Les nombres des effets sont lus dans les constantes du code (`s_bonusParPoint`, `s_pvParPointDEndurance`, `s_capaciteParPointDAdresse`).
+Les nombres des effets sont lus dans les constantes du code (`s_bonusParPoint`, `s_pvParPointDEndurance`, `s_capaciteParPointDAdresse`, `s_energieParPointDeVolonte`, `s_resistanceAuControleParPoint`, `s_bonusDAireParPoint`, `s_bonusDeDureeParPoint`).
 
 ## Éléments (pas encore affichés : textes à venir avec les résistances dans l'inventaire)
 
@@ -71,10 +72,10 @@ diffère du nom cible : ces textes ne changent pas à l'étape 109 (documentatio
 | Réserve d'absorption du physique | Aegis | n'existe pas (anciennement « Égide ») |
 | Réserve d'absorption du non-physique | Ward | n'existe pas (anciennement « Barrière ») |
 | Résistance à un élément | Fire Resistance, Holy Resistance… (un nom par élément) | `StatistiquesDeCombat::resistances` (`ParElement<int>`) ; pas encore affichées |
-| Résistance à l'étourdissement, au ralentissement | Stun Resistance, Slow Resistance | n'existent pas |
-| Résistance au charme, à la peur, à la perturbation | Charm Resistance, Fear Resistance, Disruption Resistance | n'existent pas |
-| États de contrôle physique | Stun, Slow | n'existent pas |
-| États de contrôle magique | Charm, Fear, Disruption (empêche d'utiliser les skills) | n'existent pas |
+| Résistance à l'étourdissement, au ralentissement | Stun Resistance, Slow Resistance | `StatistiquesDeCombat::resistancesAuControle` (`ParEtat<float>`, étape 110) ; affichées dans l'inventaire, « Stun Resistance 3.0 % » (une décimale, signe moins typographique sous zéro) |
+| Résistance au charme, à la peur, à la perturbation | Charm Resistance, Fear Resistance, Disruption Resistance | idem (étape 110), « Charm Resistance −1.5 % » |
+| États de contrôle physique | Stun, Slow | `EtatDeControle` (étape 110) ; aucun état n'est encore infligé |
+| États de contrôle magique | Charm, Fear, Disruption (empêche d'utiliser les skills) | idem |
 | Points de vie maximum | Max Life | `pointsDeVieMax` ; affiché « HP » |
 | Régénération de vie | Life Regen | n'existe pas |
 | Vol de vie, vie par mort | Life Steal, Life per Kill | n'existent pas |
@@ -244,7 +245,8 @@ Le nom affiché d'un objet est `[préfixe] modèle [suffixe]` (« Blazing Mace �
 | Bonus d'esquive d'un objet | Dodge vs Melee, Dodge vs Projectiles |
 | Points de vie | HP |
 | Énergie du personnage (inventaire) | Energy (« Energy 87 / 100 ») |
-| Régénération d'énergie (inventaire ; le seul nombre décimal du jeu, une décimale) | Energy Regen (« Energy Regen 2.3/s ») |
+| Régénération d'énergie (inventaire ; une décimale) | Energy Regen (« Energy Regen 2.3/s ») |
+| Résistance à un état de contrôle (inventaire ; un pour cent à une décimale) | Stun Resistance, Slow Resistance, Charm Resistance, Fear Resistance, Disruption Resistance (« Stun Resistance 3.0 % ») |
 
 ## Touches de débogage
 
