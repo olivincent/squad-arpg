@@ -380,6 +380,17 @@ void Partie::signalerLeCoup(CibleDEvenement cible, sf::Vector2f position, const 
     }
 }
 
+void Partie::signalerLesTicks(CibleDEvenement cible, sf::Vector2f position, const std::vector<Tick>& ticks) {
+    for (const Tick& tick : ticks) {
+        std::visit(Surcharges{[&](const TickDeDegats& degats) {
+                                  signaler(cible, position,
+                                           DegatsSubis{.montant = degats.montant, .opportunite = false, .critique = false, .element = degats.element, .dansLeTemps = true});
+                              },
+                              [&](const TickDeSoin& soin) { signaler(cible, position, Soin{.montant = soin.montant, .critique = false, .dansLeTemps = true}); }},
+                   tick);
+    }
+}
+
 void Partie::signaler(CibleDEvenement cible, sf::Vector2f position, DetailEvenement detail) {
     const bool montantNul = std::visit(Surcharges{[](const DegatsSubis& degats) { return degats.montant <= 0; },
                                                   [](const Soin& soin) { return soin.montant <= 0; },
@@ -467,10 +478,15 @@ void Partie::faireTournerLesMonstres(float dt) {
         const std::vector<PersonnageVu> candidats = m_escouade.candidatsDeFrappe(m.getId());
         const std::vector<AllieVu> allies = alliesDuGroupe(m);
         m.mettreAJour(dt, proie, candidats, allies, m_carte, obstacles, autresMonstres);
+        signalerLesTicks(m.getId(), m.getCentre(), m.prendreLesTicks());
+        if (!m.estVivant()) {
+            continue;  // tué par un tick de cette image : il n'agit pas, et est retiré plus bas
+        }
         faireAgirLeMonstre(m, proie, candidats, allies, dt);
     }
 
     alerterLesGroupes(enPoursuiteAvant);
+    retirerLesMorts();  // ceux qu'un tick a tués : expérience et butin comme pour un coup, avant la photo des zones de contrôle
 }
 
 // Les groupes à alerter sont tous collectés avant le premier `alerter()` : un
@@ -578,6 +594,11 @@ void Partie::mettreAJour(float dt) {
     m_escouade.mettreAJour(dt, m_carte, {.physiques = entitesPhysiques(),
                                          .ciblables = entitesCiblables(),
                                          .deControle = avant.monstres});
+    for (const TickSurUnAllie& tick : m_escouade.prendreLesTicks()) {
+        if (const std::optional<sf::Vector2f> centre = m_escouade.centreDuPersonnage(tick.place)) {
+            signalerLesTicks(tick.place, *centre, {tick.tick});
+        }
+    }
     interagirSiAPortee();
     ramasserSiAPortee();
     prendreLEscalierSiAPortee();

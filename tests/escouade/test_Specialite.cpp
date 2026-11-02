@@ -610,7 +610,9 @@ TEST_CASE("coefficients : la Puissance pour ce qui frappe avec l'arme, le Savoir
                                              [](const EffetFrappe& effet) { return effet.coefficients; },
                                              [](const EffetSoin& effet) { return effet.coefficients; },
                                              [](const EffetProvocation&) { return Coefficients(); },
-                                             [](const EffetModificateur&) { return Coefficients(); }},
+                                             [](const EffetModificateur&) { return Coefficients(); },
+                                             [](const EffetDegatsDansLeTemps& effet) { return effet.coefficients; },
+                                             [](const EffetSoinDansLeTemps& effet) { return effet.coefficients; }},
                                   connu.skill.getEffet());
             }
         }

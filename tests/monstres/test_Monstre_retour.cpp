@@ -171,3 +171,22 @@ TEST_CASE("Monstre.recevoirDegats en retour renvoie zero") {
 
     REQUIRE(subir(monstre, 10) == 0);
 }
+
+TEST_CASE("Monstre qui rentre a son poste perd ses effets actifs : un effet dans le temps ne tue pas un invulnerable") {
+    const TileMap carte = carteLongue();
+    Monstre monstre({100.0f, 100.0f}, IdMonstre{1}, 0, monstreAvecArmure(0));
+    ecoulerTemps(monstre, 0.2f, pointCible({250.0f, 100.0f}), carte);  // détection : il poursuit
+    Generateur generateur = generateurDeTest();
+    Attaque attaque = {.degats = degatsPhysiques(1), .capaciteOffensive = 0, .nature = NatureDAttaque::Zone};
+    attaque.effets.push_back({.source = IdSkill::TirPercant,
+                              .rang = 1,
+                              .dureeRestante = 600.0f,
+                              .sorte = DegatsDansLeTemps{.element = Element::Physique, .montant = 5}});
+    static_cast<void>(monstre.recevoirDegats(attaque, generateur));
+    REQUIRE(monstre.getEffets().liste().size() == 1);
+
+    amenerEnRetourHorsTerritoire(monstre, carte);
+
+    REQUIRE(monstre.getEffets().liste().empty());
+    REQUIRE(monstre.estVivant());
+}

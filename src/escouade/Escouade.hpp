@@ -44,6 +44,13 @@
 #include "combat/ResolutionDuCoup.hpp"
 
 class TileMap;
+
+// Un tick d'effet dans le temps qui vient d'avoir lieu sur ce personnage (`Escouade::prendreLesTicks`).
+struct TickSurUnAllie {
+    Place place;
+    Tick tick;
+};
+
 class Escouade {
 public:
     static constexpr std::size_t s_capaciteDuSac = 40;  // cases du sac de l'escouade
@@ -91,6 +98,9 @@ public:
     [[nodiscard]] std::optional<int> pointsDeVieMaxDuPersonnage(Place place) const;
     // Les effets actifs du personnage de cette place (un buff posé par un allié) ; vide si la place est invalide.
     [[nodiscard]] std::optional<EffetsActifs> effetsDuPersonnage(Place place) const;
+    // Ce que les ticks des effets dans le temps ont fait aux personnages depuis le dernier appel, dans l'ordre des places puis des ticks
+    // (`Vitalite::prendreLesTicks`), puis les oublie. `Partie` en fait des événements, une fois par image.
+    [[nodiscard]] std::vector<TickSurUnAllie> prendreLesTicks();
     // Son armure effective, effets actifs compris (l'inventaire l'affiche) ; vide si la place est invalide.
     [[nodiscard]] std::optional<int> armureDuPersonnage(Place place) const;
     // Énergie et énergie maximum du personnage de cette place ; vide si la place est invalide. Lues par l'écran d'inventaire et par

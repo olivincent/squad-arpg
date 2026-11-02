@@ -279,3 +279,41 @@ TEST_CASE("portions : la creature monstrueuse encaisse 60 % du feu et la totalit
     REQUIRE(feuSurOrdinaire == 100);
     REQUIRE(sacreSurCreature == 100);  // elle ne résiste qu'au feu
 }
+
+// resoudreTick (étape 112) : seule la résistance de l'élément joue.
+
+TEST_CASE("resoudreTick : sans resistance, le tick passe entier") {
+    REQUIRE(resoudreTick(Element::Physique, 14, StatistiquesDeCombat{}) == 14);
+    REQUIRE(resoudreTick(Element::Feu, 14, StatistiquesDeCombat{}) == 14);
+}
+
+TEST_CASE("resoudreTick : la resistance de l'element reduit le tick, celle des autres elements non") {
+    StatistiquesDeCombat statistiques;
+    statistiques.resistances[Element::Feu] = 50;
+
+    REQUIRE(resoudreTick(Element::Feu, 14, statistiques) == 7);
+    REQUIRE(resoudreTick(Element::Physique, 14, statistiques) == 14);
+    REQUIRE(resoudreTick(Element::Sacre, 14, statistiques) == 14);
+}
+
+TEST_CASE("resoudreTick : la resistance physique joue aussi (le saignement), la vulnerabilite augmente le tick") {
+    StatistiquesDeCombat statistiques;
+    statistiques.resistances[Element::Physique] = 25;
+    REQUIRE(resoudreTick(Element::Physique, 20, statistiques) == 15);
+
+    statistiques.resistances[Element::Physique] = -50;
+    REQUIRE(resoudreTick(Element::Physique, 20, statistiques) == 30);
+}
+
+TEST_CASE("resoudreTick : un seul arrondi, au plus proche, et la resistance est plafonnee a 80 %") {
+    StatistiquesDeCombat statistiques;
+    statistiques.resistances[Element::Feu] = 50;
+    REQUIRE(resoudreTick(Element::Feu, 7, statistiques) == 4);  // 3,5 arrondi au plus proche
+
+    statistiques.resistances[Element::Feu] = 200;
+    REQUIRE(resoudreTick(Element::Feu, 10, statistiques) == 2);  // 80 % au plus
+}
+
+TEST_CASE("resoudreTick : un montant nul reste nul") {
+    REQUIRE(resoudreTick(Element::Feu, 0, StatistiquesDeCombat{}) == 0);
+}

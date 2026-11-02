@@ -17,6 +17,7 @@ constexpr float s_montee = 30.0f;          // px gagnés sur toute la durée de 
 constexpr float s_ecartEmpilement = 14.0f; // px entre deux textes de la même cible dans la même image
 constexpr float s_finDeLaOpacitePleine = 0.5f;  // fraction de la vie pendant laquelle le texte est opaque
 constexpr unsigned int s_tailleNormale = 16;
+constexpr unsigned int s_tailleDansLeTemps = 12;  // un tick d'effet dans le temps : plus petit qu'un coup, il en vient un par seconde
 constexpr unsigned int s_tailleCoupGratuit = 20;
 constexpr unsigned int s_tailleCritique = 18;  // plus gros qu'un coup normal, moins qu'un coup gratuit
 constexpr unsigned int s_tailleNomDeSkill = 14;
@@ -119,12 +120,20 @@ sf::Color couleurDuTexte(const EvenementDeCombat& evenement) {
 
 unsigned int tailleDuTexte(const EvenementDeCombat& evenement) {
     return std::visit(Surcharges{[](const DegatsSubis& degats) {
+                                     if (degats.dansLeTemps) {
+                                         return s_tailleDansLeTemps;
+                                     }
                                      if (degats.critique) {
                                          return s_tailleCritique;
                                      }
                                      return degats.opportunite ? s_tailleCoupGratuit : s_tailleNormale;
                                  },
-                                 [](const Soin& soin) { return soin.critique ? s_tailleCritique : s_tailleNormale; },
+                                 [](const Soin& soin) {
+                                     if (soin.dansLeTemps) {
+                                         return s_tailleDansLeTemps;
+                                     }
+                                     return soin.critique ? s_tailleCritique : s_tailleNormale;
+                                 },
                                  [](const SkillLance&) { return s_tailleNomDeSkill; },
                                  [](const Provoque&) { return s_tailleProvoque; },
                                  [](const Esquive&) { return s_tailleEsquive; },

@@ -25,15 +25,18 @@ using CibleDEvenement = std::variant<Place, IdMonstre, EscouadeEntiere>;
 // `opportunite` : coup gratuit. `critique` : le coup ou le soin a été un critique (le montant est déjà multiplié).
 // `element` : celui de la plus grosse portion après les réductions (à égalité, le premier de l'énumération) : le
 // montant est le total, un seul nombre à l'écran, dont l'élément donne la couleur.
+// `dansLeTemps` : un tick d'un effet dans le temps (étape 112), non un coup ; jamais gratuit ni critique. Il s'affiche en plus petit.
 struct DegatsSubis {
     int montant;
     bool opportunite;
     bool critique;
     Element element = Element::Physique;
+    bool dansLeTemps = false;
 };
 struct Soin {
     int montant;
     bool critique;
+    bool dansLeTemps = false;  // un tick de soin dans le temps, jamais critique
 };
 // Un skill de la barre part (fin de son activation), au-dessus de son lanceur ; jamais l'attaque de base.
 struct SkillLance {

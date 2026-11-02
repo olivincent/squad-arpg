@@ -56,10 +56,35 @@ struct EffetModificateur {  // NOLINT(cppcoreguidelines-pro-type-member-init): c
     float coefficientDeDuree = 0.0f;
 };
 
-using EffetDeSkill = std::variant<EffetDegats, EffetFrappe, EffetSoin, EffetProvocation, EffetModificateur>;
+// Pose des dégâts dans le temps (`DegatsDansLeTemps`, un effet actif) sur chaque monstre touché : `montant` points de cet élément par
+// seconde pendant `duree` secondes, ceux d'une pile, au plus `pilesMax` piles (le saignement s'empile, la brûlure non). Le montant se
+// fige à la pose, avec les coefficients et les caractéristiques du lanceur à ce moment-là. Toujours un effet secondaire : il suit des
+// dégâts ou une frappe, n'est posé que si le coup n'est pas esquivé, et touche les monstres que le coup atteint. Le coefficient de
+// durée vaut 0 (le défaut) : le montant gagne déjà par le Savoir ou la Puissance, la durée ne gagnerait pas une seconde fois.
+struct EffetDegatsDansLeTemps {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
+    int montant;
+    int duree;
+    Element element = Element::Physique;
+    int pilesMax = 1;
+    Coefficients coefficients = {};
+    float coefficientDeDuree = 0.0f;
+};
 
-// Le camp que touche un effet quand il a un rayon de zone : les dégâts et la provocation touchent les monstres, le soin les alliés, un
-// modificateur les alliés si c'est un buff et les monstres si c'est un affaiblissement.
+// Pose un soin dans le temps (`SoinDansLeTemps`) sur chaque allié touché : `montant` points de vie par seconde pendant `duree` secondes,
+// figés à la pose. Effet principal d'un skill (il touche les alliés, comme un buff). Même coefficient de durée de 0 par convention.
+struct EffetSoinDansLeTemps {  // NOLINT(cppcoreguidelines-pro-type-member-init): champs sans valeur par défaut exprès, un oubli est signalé par le compilateur
+    int montant;
+    int duree;
+    int pilesMax = 1;
+    Coefficients coefficients = {};
+    float coefficientDeDuree = 0.0f;
+};
+
+using EffetDeSkill = std::variant<EffetDegats, EffetFrappe, EffetSoin, EffetProvocation, EffetModificateur, EffetDegatsDansLeTemps,
+                                  EffetSoinDansLeTemps>;
+
+// Le camp que touche un effet quand il a un rayon de zone : les dégâts, les dégâts dans le temps et la provocation touchent les monstres,
+// le soin et le soin dans le temps les alliés, un modificateur les alliés si c'est un buff et les monstres si c'est un affaiblissement.
 // Seul endroit où le camp se déduit de l'effet.
 enum class CampTouche { Monstres, Allies };
 [[nodiscard]] CampTouche campTouche(const EffetDeSkill& effet);

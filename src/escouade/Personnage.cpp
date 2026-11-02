@@ -350,6 +350,10 @@ const EffetsActifs& Personnage::getEffets() const {
     return m_vitalite.getEffets();
 }
 
+std::vector<Tick> Personnage::prendreLesTicks() {
+    return m_vitalite.prendreLesTicks();
+}
+
 int Personnage::getArmure() const {
     return m_vitalite.getArmure();
 }
@@ -498,6 +502,9 @@ Attaque Personnage::attaqueDeLArme(Generateur& generateur) const {
 }
 
 Attaque Personnage::attaqueDuSkill(const Skill& skill, IdSkill id, Generateur& generateur) const {
+    const auto attaqueSansDegats = [&] {
+        return Attaque{.degats = {}, .capaciteOffensive = m_statistiques.capaciteOffensive, .nature = NatureDAttaque::Contact};
+    };
     Attaque duSkill = std::visit(
         Surcharges{
             [&](const EffetDegats& degats) {
@@ -521,10 +528,11 @@ Attaque Personnage::attaqueDuSkill(const Skill& skill, IdSkill id, Generateur& g
                 attaque.dureeDeProvocation = dureeEffective(static_cast<float>(provocation.duree), provocation.coefficientDeDuree, m_caracteristiques);
                 return attaque;
             },
-            // Un modificateur n'a ni dégâts ni soin : tout ce qu'il produit est dans les effets actifs, ajoutés plus bas.
-            [&](const EffetModificateur&) {
-                return Attaque{.degats = {}, .capaciteOffensive = m_statistiques.capaciteOffensive, .nature = NatureDAttaque::Contact};
-            },
+            // Un modificateur ou un effet dans le temps n'a ni dégâts ni soin : tout ce qu'il produit est dans les effets actifs, ajoutés
+            // plus bas (des dégâts dans le temps n'est jamais l'effet principal : le constructeur de `Skill` l'exige).
+            [&](const EffetModificateur&) { return attaqueSansDegats(); },
+            [&](const EffetDegatsDansLeTemps&) { return attaqueSansDegats(); },
+            [&](const EffetSoinDansLeTemps&) { return attaqueSansDegats(); },
         },
         skill.getEffet());
     duSkill.effets = effetsActifsDuSkill(skill, id);
@@ -534,17 +542,45 @@ Attaque Personnage::attaqueDuSkill(const Skill& skill, IdSkill id, Generateur& g
 std::vector<EffetActif> Personnage::effetsActifsDuSkill(const Skill& skill, IdSkill id) const {
     std::vector<EffetActif> effets;
     for (std::size_t rang = 0; rang < skill.getEffets().size(); ++rang) {
-        // Seul le modificateur pose un effet actif pour l'instant ; les autres sortes d'effet actif (étapes 112 à 114) s'ajouteront ici.
-        if (const auto* modificateur = std::get_if<EffetModificateur>(&skill.getEffets()[rang])) {
-            float duree = dureeEffective(static_cast<float>(modificateur->duree), modificateur->coefficientDeDuree, m_caracteristiques);
-            if (modificateur->pourcentage >= 0) {
-                duree = std::min(duree, skill.getRechargeMin());  // un buff ne dure jamais plus longtemps que sa recharge
-            }
-            effets.push_back({.source = id,
-                              .rang = static_cast<int>(rang),
-                              .dureeRestante = duree,
-                              .sorte = ModificateurDeStatistique{.statistique = modificateur->statistique, .pourcentage = modificateur->pourcentage}});
-        }
+        // Les sortes d'effet actif de plus (étape 114) s'ajouteront ici. Un effet de skill qui n'en pose pas (dégâts, frappe, soin,
+        // provocation) ne produit rien.
+        std::visit(
+            Surcharges{
+                [&](const EffetModificateur& modificateur) {
+                    float duree = dureeEffective(static_cast<float>(modificateur.duree), modificateur.coefficientDeDuree, m_caracteristiques);
+                    if (modificateur.pourcentage >= 0) {
+                        duree = std::min(duree, skill.getRechargeMin());  // un buff ne dure jamais plus longtemps que sa recharge
+                    }
+                    effets.push_back({.source = id,
+                                      .rang = static_cast<int>(rang),
+                                      .dureeRestante = duree,
+                                      .sorte = ModificateurDeStatistique{.statistique = modificateur.statistique, .pourcentage = modificateur.pourcentage}});
+                },
+                // Le montant par tick est figé ici, à la pose : les caractéristiques de ce moment-là, pas celles du tick.
+                [&](const EffetDegatsDansLeTemps& degats) {
+                    effets.push_back({.source = id,
+                                      .rang = static_cast<int>(rang),
+                                      .dureeRestante = dureeEffective(static_cast<float>(degats.duree), degats.coefficientDeDuree, m_caracteristiques),
+                                      .sorte = DegatsDansLeTemps{.element = degats.element,
+                                                                 .montant = montantEffectif(degats.montant, degats.coefficients, m_caracteristiques)},
+                                      .pilesMax = degats.pilesMax});
+                },
+                [&](const EffetSoinDansLeTemps& soin) {
+                    // Un soin dans le temps est un bonus pour ses alliés : comme un buff, il ne dure jamais plus longtemps que la recharge.
+                    const float duree = std::min(dureeEffective(static_cast<float>(soin.duree), soin.coefficientDeDuree, m_caracteristiques),
+                                                 skill.getRechargeMin());
+                    effets.push_back({.source = id,
+                                      .rang = static_cast<int>(rang),
+                                      .dureeRestante = duree,
+                                      .sorte = SoinDansLeTemps{.montant = montantEffectif(soin.montant, soin.coefficients, m_caracteristiques)},
+                                      .pilesMax = soin.pilesMax});
+                },
+                [](const EffetDegats&) {},
+                [](const EffetFrappe&) {},
+                [](const EffetSoin&) {},
+                [](const EffetProvocation&) {},
+            },
+            skill.getEffets()[rang]);
     }
     return effets;
 }

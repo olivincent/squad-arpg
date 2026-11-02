@@ -275,6 +275,47 @@ inline DefinitionPersonnage guerrierQuiAffaiblit() {
     return guerrier;
 }
 
+// Des effets dans le temps (étape 112). Le guerrier de test dont la frappe pose aussi un saignement (physique, montant sur la Puissance,
+// jusqu'à `s_pilesDeSaignementDeTest` piles) sur la cible qu'elle touche, et le prêtre de test dont le skill (qui porte l'identifiant `Soin`) est
+// un soin dans le temps sur un allié.
+inline constexpr int s_montantDeSaignementDeTest = 8;   // par tick et par pile
+inline constexpr int s_dureeDeSaignementDeTest = 6;     // en secondes
+inline constexpr int s_pilesDeSaignementDeTest = 3;
+inline constexpr int s_montantDeSoinDansLeTempsDeTest = 11;  // par tick
+inline constexpr int s_dureeDeSoinDansLeTempsDeTest = 8;     // en secondes
+
+inline DefinitionPersonnage guerrierQuiSaigne() {
+    DefinitionPersonnage guerrier = guerrierDeTest();
+    guerrier.skills.front() = SkillConnu{
+        IdSkill::FrappePuissante,
+        Skill({.mode = ModeDeCible::Monstre,
+               .portee = s_porteeMeleeDeTest,
+               .rechargeMin = s_rechargeFrappeDeTest,
+               .rechargeMax = s_rechargeFrappeDeTest,
+               .effets = {EffetDegats{.montant = s_degatsFrappeDeTest, .nature = NatureDAttaque::Contact},
+                          EffetDegatsDansLeTemps{.montant = s_montantDeSaignementDeTest,
+                                                 .duree = s_dureeDeSaignementDeTest,
+                                                 .pilesMax = s_pilesDeSaignementDeTest,
+                                                 .coefficients = Coefficients::seul(Caracteristique::Puissance, 1.0f)}},
+               .tempsExecution = s_activationFrappeDeTest})};
+    return guerrier;
+}
+
+inline DefinitionPersonnage pretreQuiRegenere() {
+    DefinitionPersonnage pretre = pretreDeTest();
+    pretre.skills.front() = SkillConnu{
+        IdSkill::Soin,
+        Skill({.mode = ModeDeCible::Allie,
+               .portee = s_porteeSoinDeTest,
+               .rechargeMin = s_rechargeSoinDeTest,
+               .rechargeMax = s_rechargeSoinDeTest,
+               .effets = {EffetSoinDansLeTemps{.montant = s_montantDeSoinDansLeTempsDeTest,
+                                               .duree = s_dureeDeSoinDansLeTempsDeTest,
+                                               .coefficients = Coefficients::seul(Caracteristique::Volonte, 1.0f)}},
+               .tempsExecution = s_activationSoinDeTest})};
+    return pretre;
+}
+
 // Le même buff pour toute l'escouade (mode `Escouade`, sans portée), comme la bénédiction du prêtre ; `duree` et `recharge` en secondes.
 inline DefinitionPersonnage pretreQuiBenitToutLeMonde(int duree = s_dureeBonusDArmureDeTest, float recharge = s_rechargeBonusDArmureDeTest) {
     DefinitionPersonnage pretre = pretreDeTest();

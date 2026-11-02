@@ -3,6 +3,7 @@
 #include "base/Aleatoire.hpp"
 #include "combat/Attaque.hpp"
 #include "combat/Degats.hpp"
+#include "combat/Element.hpp"
 #include "combat/StatistiquesDeCombat.hpp"
 
 // Ce que le défenseur oppose à un coup : son armure (qui réduit la portion physique) et ses statistiques de combat
@@ -42,6 +43,12 @@ struct ResultatDuCoup {
 // Précondition : aucune portion de attaque.degats n'est négative.
 [[nodiscard]] ResultatDuCoup resoudreCoup(const Attaque& attaque, const Defenses& defenses, bool blocagePret,
                                           Generateur& generateur);
+
+// Un tick de dégâts dans le temps (étape 112) : `montant` points de cet élément, ce que la cible subit. Pas d'esquive, pas de critique,
+// pas de blocage et pas d'armure : un tick n'est pas un coup, il ne vise personne. Seule la résistance de l'élément joue (celle du
+// physique aussi : le saignement), lue chez la cible à l'instant du tick et non à la pose. Un seul arrondi, au plus proche ; aucun
+// tirage. Peut rendre 0 (un petit tick très résisté). Précondition : montant >= 0.
+[[nodiscard]] int resoudreTick(Element element, int montant, const StatistiquesDeCombat& defenseur);
 
 // Capacité défensive contre laquelle un soin tente son critique. Elle suivra le niveau de la zone quand les
 // niveaux existeront. Provisoire, à tester.

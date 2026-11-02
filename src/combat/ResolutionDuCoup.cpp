@@ -101,6 +101,10 @@ ResultatDuCoup resoudreCoup(const Attaque& attaque, const Defenses& defenses, bo
     return {.montant = subies.total(), .critique = critique.critique, .esquive = false, .bloque = bloque, .portions = subies};
 }
 
+int resoudreTick(Element element, int montant, const StatistiquesDeCombat& defenseur) {
+    return static_cast<int>(std::lround(appliquerResistance(static_cast<float>(montant), defenseur.resistances[element])));
+}
+
 ResultatDuCoup resoudreSoin(const Attaque& attaque, Generateur& generateur) {
     const ResultatCritique critique =
         critiqueDe(attaque.soin, attaque.capaciteOffensive, s_capaciteDefensiveDeReference, generateur);

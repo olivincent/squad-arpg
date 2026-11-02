@@ -178,3 +178,88 @@ TEST_CASE("benediction : meme avec le bonus de duree au plafond, la duree ne dep
 
     REQUIRE(escouade.effetsDuPersonnage(Place{1})->liste()[0].dureeRestante == s_rechargeBonusDArmureDeTest);  // 10 × 2 = 20 = la recharge
 }
+
+// Les effets dans le temps (étape 112) : le montant par tick se fige à la pose.
+
+TEST_CASE("effets dans le temps : le coup d'un skill qui fait saigner porte le saignement, de rang 1, avec ses piles") {
+    Generateur generateur = generateurDeTest();
+    Escouade escouade = uneEscouadeDe({50.0f, 50.0f}, {guerrierQuiSaigne(), pretreDeTest(), mageDeTest()});
+
+    const std::vector<Coup> coups = declencherEtAttendre(escouade, s_adresseFrappe, {MonstreVu{IdMonstre{4}, cibleMonstre({85.0f, 60.0f})}}, carteOuverte(), generateur);
+
+    REQUIRE(coups.size() == 1);
+    REQUIRE(coups[0].attaque.effets.size() == 1);
+    const EffetActif& effet = coups[0].attaque.effets[0];
+    REQUIRE(effet.source == IdSkill::FrappePuissante);
+    REQUIRE(effet.rang == 1);
+    REQUIRE(effet.dureeRestante == static_cast<float>(s_dureeDeSaignementDeTest));  // coefficient de durée 0 : l'Intellect n'y change rien
+    REQUIRE(effet.pilesMax == s_pilesDeSaignementDeTest);
+    REQUIRE(effet.piles == 1);
+    const DegatsDansLeTemps& saignement = std::get<DegatsDansLeTemps>(effet.sorte);
+    REQUIRE(saignement.element == Element::Physique);
+    REQUIRE(saignement.montant == s_montantDeSaignementDeTest);  // Puissance de référence : aucun bonus
+}
+
+TEST_CASE("effets dans le temps : le montant par tick est celui des caracteristiques du lanceur au moment de la pose") {
+    Generateur generateur = generateurDeTest();
+    // 100 points de Puissance au-dessus de la référence : 1 % chacun, le montant double.
+    Escouade escouade = uneEscouadeDe({50.0f, 50.0f}, {avecCaracteristique(guerrierQuiSaigne(), Caracteristique::Puissance, s_valeurDeReference + 100), pretreDeTest(), mageDeTest()});
+
+    const std::vector<Coup> coups = declencherEtAttendre(escouade, s_adresseFrappe, {MonstreVu{IdMonstre{4}, cibleMonstre({85.0f, 60.0f})}}, carteOuverte(), generateur);
+
+    REQUIRE(coups.size() == 1);
+    REQUIRE(std::get<DegatsDansLeTemps>(coups[0].attaque.effets[0].sorte).montant == 2 * s_montantDeSaignementDeTest);
+}
+
+TEST_CASE("effets dans le temps : un soin dans le temps est pose sur l'allie vise, sans soin immediat") {
+    Escouade escouade = uneEscouadeDe({50.0f, 50.0f}, {guerrierDeTest(), pretreQuiRegenere(), mageDeTest()});
+    infliger(escouade, IdMonstre{1}, {85.0f, 60.0f}, 30);  // le guerrier est blessé : c'est lui que le prêtre vise
+    const int vieAvant = *escouade.pointsDeVieDuPersonnage(Place{1});
+
+    static_cast<void>(declencherTout(escouade, s_adresseSoin, {}));
+
+    REQUIRE(*escouade.pointsDeVieDuPersonnage(Place{1}) == vieAvant);  // rien tout de suite : tout vient des ticks
+    const EffetsActifs effets = *escouade.effetsDuPersonnage(Place{1});
+    REQUIRE(effets.liste().size() == 1);
+    REQUIRE(effets.liste()[0].source == IdSkill::Soin);
+    REQUIRE(effets.liste()[0].rang == 0);
+    REQUIRE(effets.liste()[0].dureeRestante == static_cast<float>(s_dureeDeSoinDansLeTempsDeTest));
+    REQUIRE(std::get<SoinDansLeTemps>(effets.liste()[0].sorte).montant == s_montantDeSoinDansLeTempsDeTest);
+    REQUIRE(escouade.effetsDuPersonnage(Place{2})->liste().empty());
+    REQUIRE(escouade.effetsDuPersonnage(Place{3})->liste().empty());
+}
+
+TEST_CASE("effets dans le temps : un soin dans le temps ne dure jamais plus longtemps que la recharge du skill") {
+    DefinitionPersonnage pretre = pretreQuiRegenere();
+    pretre.skills.front() = SkillConnu{IdSkill::Soin, Skill({.mode = ModeDeCible::Allie,
+                                                             .portee = s_porteeSoinDeTest,
+                                                             .rechargeMin = 5.0f,
+                                                             .rechargeMax = 5.0f,
+                                                             .effets = {EffetSoinDansLeTemps{.montant = 4, .duree = 20}},
+                                                             .tempsExecution = s_activationSoinDeTest})};
+    Escouade escouade = uneEscouadeDe({50.0f, 50.0f}, {guerrierDeTest(), pretre, mageDeTest()});
+    infliger(escouade, IdMonstre{1}, {85.0f, 60.0f}, 30);
+
+    static_cast<void>(declencherTout(escouade, s_adresseSoin, {}));
+
+    REQUIRE(escouade.effetsDuPersonnage(Place{1})->liste()[0].dureeRestante == 5.0f);
+}
+
+TEST_CASE("effets dans le temps : les ticks d'un soin rendent des points de vie au personnage et sont rendus a la partie") {
+    Escouade escouade = uneEscouadeDe({50.0f, 50.0f}, {guerrierDeTest(), pretreQuiRegenere(), mageDeTest()});
+    infliger(escouade, IdMonstre{1}, {85.0f, 60.0f}, 60);
+    static_cast<void>(declencherTout(escouade, s_adresseSoin, {}));
+    const int vieAvant = *escouade.pointsDeVieDuPersonnage(Place{1});
+    static_cast<void>(escouade.prendreLesTicks());
+
+    for (int i = 0; i < 61; ++i) {  // une seconde et un tic : le premier tick a lieu à une seconde, sans dépendre des flottants
+        escouade.mettreAJour(1.0f / 60.0f, carteOuverte(), {});
+    }
+
+    REQUIRE(*escouade.pointsDeVieDuPersonnage(Place{1}) == vieAvant + s_montantDeSoinDansLeTempsDeTest);
+    const std::vector<TickSurUnAllie> ticks = escouade.prendreLesTicks();
+    REQUIRE(ticks.size() == 1);
+    REQUIRE(ticks[0].place == Place{1});
+    REQUIRE(std::get<TickDeSoin>(ticks[0].tick).montant == s_montantDeSoinDansLeTempsDeTest);
+    REQUIRE(escouade.prendreLesTicks().empty());
+}

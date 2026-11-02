@@ -1,8 +1,22 @@
 // ./src/combat/EffetsActifs.hpp
 #pragma once
+#include <variant>
 #include <vector>
 #include "combat/EffetActif.hpp"
+#include "combat/Element.hpp"
 #include "combat/ResolutionDuCoup.hpp"
+
+// Un tick qui vient d'avoir lieu (étape 112) : des dégâts d'un élément ou un soin, du montant d'UNE pile fois ses piles. Au sortir d'
+// `EffetsActifs::mettreAJour` c'est le montant avant réduction ; `Vitalite::prendreLesTicks` rend les mêmes types avec ce qui a vraiment été
+// subi ou rendu.
+struct TickDeDegats {
+    Element element;
+    int montant;
+};
+struct TickDeSoin {
+    int montant;
+};
+using Tick = std::variant<TickDeDegats, TickDeSoin>;
 
 // Les effets actifs d'une entité (étape 111), dans l'ordre où ils ont été posés. Possédés par `Vitalite`, donc par les personnages comme
 // par les monstres.
@@ -17,8 +31,11 @@ class EffetsActifs {
 public:
     // Ajoute l'effet, ou rafraîchit celui de même identité (et lui ajoute une pile). Préconditions : dureeRestante > 0, 1 <= piles <= pilesMax.
     void poser(const EffetActif& effet);
-    // Fait couler le temps : chaque durée diminue de `dt`, et l'effet qui atteint 0 disparaît.
-    void mettreAJour(float dt);
+    // Fait couler le temps : chaque durée diminue de `dt`, et l'effet qui atteint 0 disparaît. Rend les ticks des effets dans le temps qui
+    // ont eu lieu pendant ce pas, effet par effet dans l'ordre où ils ont été posés, tous les `s_intervalleDeTick` : le premier une seconde
+    // après la pose, jamais après la fin de l'effet (une durée de N secondes donne N ticks, même quand l'imprécision des flottants fait
+    // atteindre 0 à la durée un instant avant le dernier tick). Un tick n'a lieu qu'une fois : l'effet qui disparaît a rendu les siens.
+    std::vector<Tick> mettreAJour(float dt);
     // Retire tous les effets (la mort de l'entité).
     void vider();
     [[nodiscard]] const std::vector<EffetActif>& liste() const;

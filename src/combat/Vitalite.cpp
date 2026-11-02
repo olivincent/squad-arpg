@@ -3,6 +3,8 @@
 #include "combat/Blocage.hpp"
 #include "combat/ResolutionDuCoup.hpp"
 #include <cassert>
+#include <utility>
+#include "combat/Cible.hpp"
 
 Vitalite::Vitalite(int pointsDeVieMax, const Defenses& defenses)
     : m_pointsDeVie(pointsDeVieMax),
@@ -38,7 +40,40 @@ ResultatDuCoup Vitalite::recevoirDegats(const Attaque& attaque, Generateur& gene
 
 void Vitalite::mettreAJour(float dt) {
     m_recuperationDuBlocage = m_recuperationDuBlocage > dt ? m_recuperationDuBlocage - dt : 0.0f;
-    m_effets.mettreAJour(dt);
+    if (!estVivant()) {
+        return;
+    }
+    for (const Tick& tick : m_effets.mettreAJour(dt)) {
+        if (!estVivant()) {
+            break;  // mort d'un tick précédent de ce pas : les suivants n'ont pas lieu
+        }
+        std::visit(Surcharges{
+                       [&](const TickDeDegats& degats) {
+                           const int subi = resoudreTick(degats.element, degats.montant, m_defenses.statistiques);
+                           m_pointsDeVie.subirDegats(subi);
+                           if (subi > 0) {
+                               m_ticksAppliques.push_back(TickDeDegats{degats.element, subi});
+                           }
+                           if (!estVivant()) {
+                               m_effets.vider();
+                           }
+                       },
+                       [&](const TickDeSoin& soin) {
+                           if (const int rendu = m_pointsDeVie.soigner(soin.montant); rendu > 0) {
+                               m_ticksAppliques.push_back(TickDeSoin{rendu});
+                           }
+                       },
+                   },
+                   tick);
+    }
+}
+
+std::vector<Tick> Vitalite::prendreLesTicks() {
+    return std::exchange(m_ticksAppliques, {});
+}
+
+void Vitalite::viderLesEffets() {
+    m_effets.vider();
 }
 
 void Vitalite::poserEffet(const EffetActif& effet) {

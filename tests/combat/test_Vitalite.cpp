@@ -379,3 +379,168 @@ TEST_CASE("Vitalite : sans bouclier, le blocage est toujours pret") {
 
     REQUIRE(vitalite.blocagePret());
 }
+
+// Les ticks des effets dans le temps (étape 112).
+
+namespace {
+EffetActif saignementSur(float duree, int montant, int pilesMax = 1) {
+    return {.source = IdSkill::TirPercant,
+            .rang = 1,
+            .dureeRestante = duree,
+            .sorte = DegatsDansLeTemps{.element = Element::Physique, .montant = montant},
+            .pilesMax = pilesMax};
+}
+
+EffetActif brulureSur(float duree, int montant) {
+    return {.source = IdSkill::Explosion,
+            .rang = 1,
+            .dureeRestante = duree,
+            .sorte = DegatsDansLeTemps{.element = Element::Feu, .montant = montant}};
+}
+
+EffetActif soinSur(float duree, int montant) {
+    return {.source = IdSkill::Soin, .dureeRestante = duree, .sorte = SoinDansLeTemps{.montant = montant}};
+}
+}  // namespace
+
+TEST_CASE("ticks : un tick de degats retire des points de vie et est rendu une fois") {
+    Vitalite vitalite(100, defensesDeTest(0));
+    vitalite.poserEffet(saignementSur(4.0f, 10));
+
+    vitalite.mettreAJour(1.0f);
+
+    REQUIRE(vitalite.getValeur() == 90);
+    const std::vector<Tick> ticks = vitalite.prendreLesTicks();
+    REQUIRE(ticks.size() == 1);
+    REQUIRE(std::get<TickDeDegats>(ticks[0]).montant == 10);
+    REQUIRE(vitalite.prendreLesTicks().empty());
+}
+
+TEST_CASE("ticks : ni armure, ni esquive, ni blocage, ni critique : seule la resistance joue") {
+    Defenses defenses = defensesDeTest(1000);  // une armure énorme
+    defenses.statistiques.esquiveContact = 100;
+    defenses.statistiques.esquiveProjectile = 100;
+    defenses.statistiques.chanceDeBlocage = 100;
+    defenses.statistiques.montantBloque = 1000;
+    Vitalite vitalite(1000, defenses);
+    vitalite.poserEffet(saignementSur(3.0f, 10));
+
+    for (int i = 0; i < 3; ++i) {
+        vitalite.mettreAJour(1.0f);
+    }
+
+    REQUIRE(vitalite.getValeur() == 970);  // trois ticks entiers
+    REQUIRE(vitalite.blocagePret());
+}
+
+TEST_CASE("ticks : la resistance est lue au tick, pas a la pose") {
+    Vitalite vitalite(100, defensesDeTest(0));
+    vitalite.poserEffet(brulureSur(4.0f, 10));
+    vitalite.mettreAJour(1.0f);
+    REQUIRE(vitalite.getValeur() == 90);
+
+    Defenses resistante = defensesDeTest(0);
+    resistante.statistiques.resistances[Element::Feu] = 50;
+    vitalite.definirDefenses(resistante);  // l'équipement change entre deux ticks
+    vitalite.mettreAJour(1.0f);
+
+    REQUIRE(vitalite.getValeur() == 85);
+    const std::vector<Tick> ticks = vitalite.prendreLesTicks();
+    REQUIRE(ticks.size() == 2);
+    REQUIRE(std::get<TickDeDegats>(ticks[0]).montant == 10);
+    REQUIRE(std::get<TickDeDegats>(ticks[1]).montant == 5);
+    REQUIRE(std::get<TickDeDegats>(ticks[1]).element == Element::Feu);
+}
+
+TEST_CASE("ticks : un tick entierement resiste n'est pas rendu") {
+    Defenses defenses = defensesDeTest(0);
+    defenses.statistiques.resistances[Element::Feu] = 80;
+    Vitalite vitalite(100, defenses);
+    vitalite.poserEffet(brulureSur(2.0f, 1));  // 1 × 20 % = 0,2 : arrondi à 0
+
+    vitalite.mettreAJour(1.0f);
+
+    REQUIRE(vitalite.getValeur() == 100);
+    REQUIRE(vitalite.prendreLesTicks().empty());
+}
+
+TEST_CASE("ticks : un soin dans le temps rend des points de vie, plafonnes au maximum") {
+    Vitalite vitalite(100, defensesDeTest(0));
+    static_cast<void>(subir(vitalite, 5));
+    vitalite.poserEffet(soinSur(3.0f, 9));
+
+    vitalite.mettreAJour(1.0f);
+    REQUIRE(vitalite.getValeur() == 100);  // 95 + 9 plafonné à 100
+
+    const std::vector<Tick> ticks = vitalite.prendreLesTicks();
+    REQUIRE(ticks.size() == 1);
+    REQUIRE(std::get<TickDeSoin>(ticks[0]).montant == 5);  // ce qui a été réellement rendu
+
+    vitalite.mettreAJour(1.0f);  // à pleine vie : rien à rendre, rien de signalé
+    REQUIRE(vitalite.getValeur() == 100);
+    REQUIRE(vitalite.prendreLesTicks().empty());
+}
+
+TEST_CASE("ticks : un soin dans le temps ne critique pas, meme avec une grande capacite") {
+    Vitalite vitalite(1000, defensesDeTest(0));
+    static_cast<void>(subir(vitalite, 500));
+    vitalite.poserEffet(soinSur(10.0f, 9));
+
+    for (int i = 0; i < 10; ++i) {
+        vitalite.mettreAJour(1.0f);
+    }
+
+    REQUIRE(vitalite.getValeur() == 590);  // 10 ticks de 9, jamais plus
+}
+
+TEST_CASE("ticks : un tick qui tue vide les effets, et les ticks suivants du meme pas n'ont pas lieu") {
+    Vitalite vitalite(15, defensesDeTest(0));
+    vitalite.poserEffet(saignementSur(5.0f, 10));
+    vitalite.poserEffet(brulureSur(5.0f, 10));
+    vitalite.poserEffet(soinSur(5.0f, 50));
+
+    vitalite.mettreAJour(1.0f);  // trois ticks : 10 (reste 5), 10 (mort), puis le soin n'a pas lieu
+
+    REQUIRE_FALSE(vitalite.estVivant());
+    REQUIRE(vitalite.getValeur() == 0);
+    REQUIRE(vitalite.getEffets().liste().empty());
+    const std::vector<Tick> ticks = vitalite.prendreLesTicks();
+    REQUIRE(ticks.size() == 2);
+    REQUIRE(std::holds_alternative<TickDeDegats>(ticks[0]));
+    REQUIRE(std::holds_alternative<TickDeDegats>(ticks[1]));
+}
+
+TEST_CASE("ticks : un mort ne subit plus aucun tick") {
+    Vitalite vitalite(100, defensesDeTest(0));
+    static_cast<void>(subir(vitalite, 100));
+
+    vitalite.mettreAJour(5.0f);
+
+    REQUIRE_FALSE(vitalite.estVivant());
+    REQUIRE(vitalite.prendreLesTicks().empty());
+}
+
+TEST_CASE("ticks : un coup qui pose un effet dans le temps le pose, et il bat apres le coup") {
+    Vitalite vitalite(1000, defensesDeTest(0));
+    Generateur generateur = generateurDeTest();
+    Attaque attaque = {.degats = degatsPhysiques(50), .capaciteOffensive = 0, .nature = NatureDAttaque::Zone};
+    attaque.effets.push_back(saignementSur(4.0f, 10));
+
+    static_cast<void>(vitalite.recevoirDegats(attaque, generateur));
+    REQUIRE(vitalite.getValeur() == 950);
+    REQUIRE(vitalite.getEffets().liste().size() == 1);
+
+    vitalite.mettreAJour(4.0f);
+    REQUIRE(vitalite.getValeur() == 910);  // quatre ticks de 10 après le coup de 50
+}
+
+TEST_CASE("viderLesEffets : retire les effets sans toucher aux points de vie") {
+    Vitalite vitalite(100, defensesDeTest(0));
+    vitalite.poserEffet(saignementSur(4.0f, 10));
+
+    vitalite.viderLesEffets();
+    vitalite.mettreAJour(4.0f);
+
+    REQUIRE(vitalite.getValeur() == 100);
+    REQUIRE(vitalite.getEffets().liste().empty());
+}

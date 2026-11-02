@@ -4,6 +4,21 @@
 #include <cassert>
 #include <random>
 
+namespace {
+// Un effet dans le temps a une durée, au moins une pile et un montant positif ou nul (lu seulement par un `assert`).
+[[maybe_unused]] bool effetsDansLeTempsValides(const std::vector<EffetDeSkill>& effets) {
+    return std::ranges::all_of(effets, [](const EffetDeSkill& effet) {
+        if (const auto* degats = std::get_if<EffetDegatsDansLeTemps>(&effet)) {
+            return degats->duree > 0 && degats->pilesMax >= 1 && degats->montant >= 0;
+        }
+        if (const auto* soin = std::get_if<EffetSoinDansLeTemps>(&effet)) {
+            return soin->duree > 0 && soin->pilesMax >= 1 && soin->montant >= 0;
+        }
+        return true;
+    });
+}
+}  // namespace
+
 Skill::Skill(const DefinitionDeSkill& definition)
     : m_mode(definition.mode),
       m_portee(definition.portee),
@@ -34,14 +49,17 @@ Skill::Skill(const DefinitionDeSkill& definition)
     assert(m_mode != ModeDeCible::Escouade || (campTouche(m_effets.front()) == CampTouche::Allies && !m_rayonZone.has_value()));
     // Un modificateur principal est un buff, posé sur les alliés ; un affaiblissement n'existe que derrière un coup.
     assert(!std::holds_alternative<EffetModificateur>(m_effets.front()) || campTouche(m_effets.front()) == CampTouche::Allies);
-    // Les effets secondaires sont des modificateurs qui suivent des dégâts ou une frappe et touchent le même camp que lui : `Escouade`
-    // et `Personnage` n'en posent pas d'autres.
+    // Des dégâts dans le temps ne sont jamais l'effet principal : ils suivent un coup, qui seul les fait toucher une cible.
+    assert(!std::holds_alternative<EffetDegatsDansLeTemps>(m_effets.front()));
+    // Les effets secondaires sont des modificateurs ou des dégâts dans le temps qui suivent des dégâts ou une frappe et touchent le même camp
+    // que lui : `Escouade` et `Personnage` n'en posent pas d'autres.
     assert(m_effets.size() == 1 || std::holds_alternative<EffetDegats>(m_effets.front()) ||
            std::holds_alternative<EffetFrappe>(m_effets.front()));
     for (std::size_t i = 1; i < m_effets.size(); ++i) {
-        assert(std::holds_alternative<EffetModificateur>(m_effets[i]));
+        assert(std::holds_alternative<EffetModificateur>(m_effets[i]) || std::holds_alternative<EffetDegatsDansLeTemps>(m_effets[i]));
         assert(campTouche(m_effets[i]) == campTouche(m_effets.front()));
     }
+    assert(effetsDansLeTempsValides(m_effets));
 }
 
 // Recharge fixe (aucun tirage) si les deux bornes sont égales ; sinon tirage

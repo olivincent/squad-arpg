@@ -35,8 +35,8 @@ struct TexteFlottant {  // NOLINT(cppcoreguidelines-pro-type-member-init): champ
 // Soin vert (critique ou non), nom de skill jaune doré, « Provoqué » rouge orangé, « Esquivé » gris clair,
 // « Bloqué » gris, « Bag full » rose rouge, « Level up! » bleu clair.
 [[nodiscard]] sf::Color couleurDuTexte(const EvenementDeCombat& evenement);
-// 18 px pour un critique (dégâts ou soin), 20 px pour un coup gratuit ou « Level up! », 14 px pour un nom de skill, « Provoqué »,
-// « Esquivé », « Bloqué » ou « Bag full », 16 px sinon.
+// 12 px pour un tick d'effet dans le temps (dégâts ou soin), 18 px pour un critique (dégâts ou soin), 20 px pour un coup gratuit ou
+// « Level up! », 14 px pour un nom de skill, « Provoqué », « Esquivé », « Bloqué » ou « Bag full », 16 px sinon.
 [[nodiscard]] unsigned int tailleDuTexte(const EvenementDeCombat& evenement);
 
 // Les textes à l'écran. Logique pure (sans fenêtre) ; seul `dessiner` touche à SFML. Possédé par

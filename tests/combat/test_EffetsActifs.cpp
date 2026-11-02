@@ -19,6 +19,31 @@ EffetActif affaiblissementEmpilable(int pourcentage, float duree, int pilesMax) 
     return effetDArmure(IdSkill::FrappePuissante, pourcentage, duree, 0, pilesMax);
 }
 
+// Des dégâts dans le temps de ce skill (étape 112) : ce montant par tick et par pile, pour cette durée.
+EffetActif saignement(float duree, int montant = 10, int pilesMax = 1, IdSkill source = IdSkill::TirPercant, int rang = 1) {
+    return {.source = source,
+            .rang = rang,
+            .dureeRestante = duree,
+            .sorte = DegatsDansLeTemps{.element = Element::Physique, .montant = montant},
+            .pilesMax = pilesMax};
+}
+
+EffetActif regeneration(float duree, int montant = 9) {
+    return {.source = IdSkill::Soin, .dureeRestante = duree, .sorte = SoinDansLeTemps{.montant = montant}};
+}
+
+// Fait couler `duree` secondes par pas de `pas` et rend tous les ticks, dans l'ordre.
+std::vector<Tick> ticksSur(EffetsActifs& effets, float duree, float pas) {
+    std::vector<Tick> tous;
+    float ecoule = 0.0f;
+    while (ecoule < duree - 1.0e-4f) {
+        const std::vector<Tick> ticks = effets.mettreAJour(pas);
+        tous.insert(tous.end(), ticks.begin(), ticks.end());
+        ecoule += pas;
+    }
+    return tous;
+}
+
 int pourcentageDe(const EffetActif& effet) {
     return std::get<ModificateurDeStatistique>(effet.sorte).pourcentage;
 }
@@ -321,4 +346,138 @@ TEST_CASE("piles : les piles d'un affaiblissement s'additionnent aux autres pour
     effets.poser(affaiblissementEmpilable(-10, 8.0f, 3));
 
     REQUIRE(appliquerLesEffets(defensesDeTest(100), effets).armure == 100);  // +20 − 2 × 10
+}
+
+// Les effets dans le temps (étape 112) : un tick par seconde, le premier une seconde après la pose.
+
+TEST_CASE("ticks : le premier tick a lieu une seconde apres la pose, pas avant") {
+    EffetsActifs effets;
+    effets.poser(saignement(4.0f));
+
+    REQUIRE(effets.mettreAJour(0.5f).empty());
+    REQUIRE(effets.mettreAJour(0.4f).empty());
+    const std::vector<Tick> ticks = effets.mettreAJour(0.1f);
+
+    REQUIRE(ticks.size() == 1);
+    REQUIRE(std::get<TickDeDegats>(ticks[0]).montant == 10);
+    REQUIRE(std::get<TickDeDegats>(ticks[0]).element == Element::Physique);
+}
+
+TEST_CASE("ticks : une duree de N secondes donne N ticks, par grands pas") {
+    EffetsActifs effets;
+    effets.poser(saignement(4.0f));
+
+    REQUIRE(ticksSur(effets, 4.0f, 0.5f).size() == 4);
+    REQUIRE(effets.liste().empty());
+}
+
+TEST_CASE("ticks : une duree de N secondes donne N ticks, a 60 images par seconde (l'imprecision des flottants ne perd pas le dernier)") {
+    for (const float duree : {1.0f, 4.0f, 6.0f, 8.0f, 10.0f, 20.0f}) {
+        INFO("duree " << duree);
+        EffetsActifs effets;
+        effets.poser(saignement(duree));
+
+        REQUIRE(static_cast<float>(ticksSur(effets, duree + 0.5f, 1.0f / 60.0f).size()) == duree);
+    }
+}
+
+TEST_CASE("ticks : un pas plus long que l'intervalle rend plusieurs ticks, sans depasser la duree") {
+    EffetsActifs effets;
+    effets.poser(saignement(3.0f));
+    REQUIRE(effets.mettreAJour(2.5f).size() == 2);
+
+    effets.poser(saignement(3.0f, 10, 1, IdSkill::Explosion, 1));
+    REQUIRE(effets.mettreAJour(10.0f).size() == 1 + 3);  // le premier : son 3e tick ; le second : 3 ticks, pas 10
+    REQUIRE(effets.liste().empty());
+}
+
+TEST_CASE("ticks : une duree qui n'est pas entiere ne donne que les ticks entiers") {
+    EffetsActifs effets;
+    effets.poser(saignement(2.5f));
+
+    REQUIRE(ticksSur(effets, 3.0f, 0.5f).size() == 2);
+}
+
+TEST_CASE("ticks : un rafraichissement ne remet pas le rythme a zero") {
+    EffetsActifs effets;
+    effets.poser(saignement(4.0f));
+    REQUIRE(effets.mettreAJour(0.5f).empty());
+
+    effets.poser(saignement(4.0f));  // rafraîchit la durée à 4 s, mais le prochain tick reste dans 0,5 s
+
+    REQUIRE(effets.mettreAJour(0.25f).empty());
+    REQUIRE(effets.mettreAJour(0.25f).size() == 1);
+    REQUIRE(effets.liste()[0].dureeRestante == 3.5f);
+}
+
+TEST_CASE("ticks : le montant d'un tick est celui d'une pile fois le nombre de piles") {
+    EffetsActifs effets;
+    effets.poser(saignement(4.0f, 10, 3));
+    effets.poser(saignement(4.0f, 10, 3));
+    effets.poser(saignement(4.0f, 10, 3));
+
+    const std::vector<Tick> ticks = effets.mettreAJour(1.0f);
+
+    REQUIRE(ticks.size() == 1);
+    REQUIRE(std::get<TickDeDegats>(ticks[0]).montant == 30);
+}
+
+TEST_CASE("ticks : le montant par pile est le plus fort des applications, le rythme celui de la premiere") {
+    EffetsActifs effets;
+    effets.poser(saignement(4.0f, 8, 3));
+    static_cast<void>(effets.mettreAJour(0.25f));
+    effets.poser(saignement(4.0f, 12, 3));
+    effets.poser(saignement(4.0f, 9, 3));
+
+    REQUIRE(std::get<DegatsDansLeTemps>(effets.liste()[0].sorte).montant == 12);
+    const std::vector<Tick> ticks = effets.mettreAJour(0.75f);
+    REQUIRE(ticks.size() == 1);
+    REQUIRE(std::get<TickDeDegats>(ticks[0]).montant == 12 * 3);
+}
+
+TEST_CASE("ticks : un soin dans le temps rend des ticks de soin") {
+    EffetsActifs effets;
+    effets.poser(regeneration(3.0f, 9));
+
+    const std::vector<Tick> ticks = ticksSur(effets, 3.0f, 0.5f);
+
+    REQUIRE(ticks.size() == 3);
+    for (const Tick& tick : ticks) {
+        REQUIRE(std::get<TickDeSoin>(tick).montant == 9);
+    }
+}
+
+TEST_CASE("ticks : un modificateur de statistique n'a aucun tick") {
+    EffetsActifs effets;
+    effets.poser(effetDArmure(IdSkill::Soin, 20, 5.0f));
+
+    REQUIRE(ticksSur(effets, 5.0f, 0.5f).empty());
+}
+
+TEST_CASE("ticks : deux effets dans le temps de rangs differents battent chacun a leur rythme, dans l'ordre de pose") {
+    EffetsActifs effets;
+    effets.poser(saignement(4.0f, 10, 1, IdSkill::TirPercant, 1));
+    static_cast<void>(effets.mettreAJour(0.5f));
+    effets.poser(saignement(4.0f, 7, 1, IdSkill::TirPercant, 2));
+
+    const std::vector<Tick> ticks = effets.mettreAJour(0.5f);  // le premier bat à 1 s, le second dans 1 s
+
+    REQUIRE(ticks.size() == 1);
+    REQUIRE(std::get<TickDeDegats>(ticks[0]).montant == 10);
+    const std::vector<Tick> suivants = effets.mettreAJour(0.5f);
+    REQUIRE(suivants.size() == 1);
+    REQUIRE(std::get<TickDeDegats>(suivants[0]).montant == 7);
+}
+
+TEST_CASE("ticks : un effet dans le temps ne change aucune statistique") {
+    EffetsActifs effets;
+    effets.poser(saignement(4.0f));
+    effets.poser(regeneration(4.0f));
+
+    REQUIRE(appliquerLesEffets(defensesDeTest(20), effets).armure == 20);
+}
+
+TEST_CASE("estUnBonus : un soin dans le temps est un bonus, des degats dans le temps un malus") {
+    REQUIRE(estUnBonus(regeneration(4.0f)));
+    REQUIRE_FALSE(estUnBonus(saignement(4.0f)));
 }

@@ -139,6 +139,10 @@ const EffetsActifs& Monstre::getEffets() const {
     return m_vitalite.getEffets();
 }
 
+std::vector<Tick> Monstre::prendreLesTicks() {
+    return m_vitalite.prendreLesTicks();
+}
+
 float Monstre::getZoneDeControle() const {
     return m_zoneDeControle;
 }
@@ -327,6 +331,9 @@ void Monstre::mettreAJour(float dt, std::optional<PersonnageVu> proie, const std
                           const std::vector<Cercle>& aContourner) {
     m_attaque.mettreAJour(dt);
     m_vitalite.mettreAJour(dt);
+    if (!estVivant()) {
+        return;  // mort d'un tick : `Partie` le retire dans l'image
+    }
     faireAvancerLeRole(dt);
 
     // Un coup (ou un soin) en exécution : le monstre reste sur place, ni poursuite ni
@@ -365,6 +372,7 @@ void Monstre::mettreAJour(float dt, std::optional<PersonnageVu> proie, const std
     }
 
     if (m_etat == Etat::Retour && etatPrecedent != Etat::Retour) {
+        m_vitalite.viderLesEffets();  // invulnérable en rentrant : un effet dans le temps ne le tuerait pas, et ne reste pas
         m_mobile.arreter();
         m_mobile.allerVers(m_poste, carte, aContourner);
     } else if (m_etat == Etat::Retour && m_mobile.estBloque()) {

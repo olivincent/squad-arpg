@@ -1,5 +1,6 @@
 // ./src/combat/Vitalite.hpp
 #pragma once
+#include <vector>
 #include "base/Aleatoire.hpp"
 #include "combat/Attaque.hpp"
 #include "combat/EffetActif.hpp"
@@ -25,10 +26,19 @@ public:
     // tirage) pour un mort. Un blocage réussi lance la récupération du blocage (le temps pendant lequel le
     // bouclier ne bloque plus), qui est un état de la vitalité : elle s'écoule par `mettreAJour`.
     ResultatDuCoup recevoirDegats(const Attaque& attaque, Generateur& generateur);
-    // Fait couler le temps : la récupération du blocage diminue de `dt`, sans descendre sous 0, et les effets actifs s'écoulent.
+    // Fait couler le temps : la récupération du blocage diminue de `dt`, sans descendre sous 0, et les effets actifs s'écoulent. Les ticks
+    // des effets dans le temps qui ont lieu sont appliqués tout de suite, dans l'ordre : les dégâts par `resoudreTick` contre les
+    // résistances d'à présent, puis retirés des points de vie ; le soin est rendu (plafonné au maximum). Une entité qui en meurt perd ses
+    // effets actifs, et les ticks suivants n'ont pas lieu. Sans effet sur un mort.
     void mettreAJour(float dt);
+    // Ce que les ticks ont fait depuis le dernier appel, dans l'ordre, puis les oublie : des dégâts subis (après la résistance, non
+    // plafonnés par les points de vie restants) ou des points de vie rendus (réellement, jamais 0). Les ticks sans effet (montant nul)
+    // n'y figurent pas. `Partie` en fait des événements, une fois par image.
+    [[nodiscard]] std::vector<Tick> prendreLesTicks();
     // Pose un effet actif (`EffetsActifs::poser` : le même skill rafraîchit, deux skills se cumulent). Sans effet sur un mort.
     void poserEffet(const EffetActif& effet);
+    // Retire tous les effets actifs (un monstre qui rentre à son poste, invulnérable, n'en garde aucun).
+    void viderLesEffets();
     [[nodiscard]] const EffetsActifs& getEffets() const;
     // L'armure qui joue contre le prochain coup : celle des défenses, effets actifs compris (`appliquerLesEffets`).
     [[nodiscard]] int getArmure() const;
@@ -47,5 +57,6 @@ private:
     PointsDeVie m_pointsDeVie;
     Defenses m_defenses;  // sans les effets actifs : ce que donnent les caractéristiques et l'équipement (ou la définition)
     EffetsActifs m_effets;
+    std::vector<Tick> m_ticksAppliques;  // ce que les ticks ont fait depuis `prendreLesTicks`
     float m_recuperationDuBlocage = 0.0f;  // en secondes ; 0 : le blocage est prêt
 };

@@ -386,6 +386,13 @@ std::vector<ResultatDEffet> Escouade::appliquerLEffet(Place place, IdSkill id, c
             resultats.push_back(Coup{monstre, attaque});
         }
     };
+    const auto poserSurLesAllies = [&] {
+        for (const Place beneficiaire : touchees.allies) {
+            for (const EffetActif& effet : attaque.effets) {
+                personnageDeLaPlace(beneficiaire).poserEffet(effet);
+            }
+        }
+    };
     std::visit(
         Surcharges{
             [&](const EffetDegats&) { infligerAuxMonstres(); },
@@ -405,14 +412,12 @@ std::vector<ResultatDEffet> Escouade::appliquerLEffet(Place place, IdSkill id, c
                     resultats.push_back(ProvocationPosee{monstre});
                 }
             },
-            // Un buff : posé sur chaque allié touché, tout de suite (les effets d'un coup sur un monstre, eux, partent avec le `Coup`).
-            [&](const EffetModificateur&) {
-                for (const Place beneficiaire : touchees.allies) {
-                    for (const EffetActif& effet : attaque.effets) {
-                        personnageDeLaPlace(beneficiaire).poserEffet(effet);
-                    }
-                }
-            },
+            // Un buff ou un soin dans le temps : posé sur chaque allié touché, tout de suite (les effets d'un coup sur un monstre, eux,
+            // partent avec le `Coup`).
+            [&](const EffetModificateur&) { poserSurLesAllies(); },
+            [&](const EffetSoinDansLeTemps&) { poserSurLesAllies(); },
+            // Jamais l'effet principal (le constructeur de `Skill` l'exige) : des dégâts dans le temps suivent un coup.
+            [](const EffetDegatsDansLeTemps&) {},
         },
         skill->getEffet());  // NOLINT(bugprone-unchecked-optional-access): vérifié par l'assert au-dessus (_assert de MinGW n'est pas noreturn)
     return resultats;
@@ -573,6 +578,16 @@ std::optional<int> Escouade::armureDuPersonnage(Place place) const {
         return std::nullopt;
     }
     return personnageDeLaPlace(place).getArmure();
+}
+
+std::vector<TickSurUnAllie> Escouade::prendreLesTicks() {
+    std::vector<TickSurUnAllie> ticks;
+    for (std::size_t i = 0; i < m_personnages.size(); ++i) {
+        for (const Tick& tick : m_personnages[i].prendreLesTicks()) {
+            ticks.push_back({Place::depuisIndice(i), tick});
+        }
+    }
+    return ticks;
 }
 
 std::optional<EffetsActifs> Escouade::effetsDuPersonnage(Place place) const {

@@ -4,18 +4,57 @@
 #include <cassert>
 #include <cmath>
 #include <cstdlib>
+#include <type_traits>
 #include "combat/Cible.hpp"
 
 namespace {
-// De deux sorts du même skill, celle dont la valeur est la plus forte (la première en cas d'égalité). Le visiteur à deux variants veut
-// une surcharge par paire : une sorte de plus ne compile pas tant qu'on n'a pas dit comment la comparer.
+// Marge sous laquelle un tick en retard d'un rien est quand même rendu à la fin de l'effet : la durée et le compte à rebours du tick
+// s'usent du même `dt`, mais le compte à rebours repart de 1 à chaque tick, et deux sommes de flottants ne tombent pas toujours ensemble.
+constexpr float s_toleranceDeTick = 1.0e-3f;
+
+// De deux valeurs d'un même effet, celle qui est la plus forte (la première en cas d'égalité), et pour un effet dans le temps le rythme
+// des ticks de celle qui était déjà posée. Une surcharge par sorte : une sorte de plus ne compile pas tant qu'on n'a pas dit comment
+// comparer ses valeurs.
+ModificateurDeStatistique lePlusFort(const ModificateurDeStatistique& present, const ModificateurDeStatistique& nouveau) {
+    return std::abs(nouveau.pourcentage) > std::abs(present.pourcentage) ? nouveau : present;
+}
+
+DegatsDansLeTemps lePlusFort(const DegatsDansLeTemps& present, const DegatsDansLeTemps& nouveau) {
+    DegatsDansLeTemps retenu = nouveau.montant > present.montant ? nouveau : present;
+    retenu.avantLeTick = present.avantLeTick;
+    return retenu;
+}
+
+SoinDansLeTemps lePlusFort(const SoinDansLeTemps& present, const SoinDansLeTemps& nouveau) {
+    SoinDansLeTemps retenu = nouveau.montant > present.montant ? nouveau : present;
+    retenu.avantLeTick = present.avantLeTick;
+    return retenu;
+}
+
+// Deux sortes de même identité ont la même alternative (une identité est un skill et un rang, et un rang est une sorte).
 SorteDEffetActif lePlusFort(const SorteDEffetActif& present, const SorteDEffetActif& nouveau) {
-    return std::visit(Surcharges{
-                          [](const ModificateurDeStatistique& a, const ModificateurDeStatistique& b) -> SorteDEffetActif {
-                              return std::abs(b.pourcentage) > std::abs(a.pourcentage) ? b : a;
-                          },
-                      },
-                      present, nouveau);
+    assert(present.index() == nouveau.index());
+    return std::visit(
+        [&](const auto& valeurNouvelle) -> SorteDEffetActif {
+            return lePlusFort(std::get<std::decay_t<decltype(valeurNouvelle)>>(present), valeurNouvelle);
+        },
+        nouveau);
+}
+
+// Combien de ticks ont lieu quand `ecoule` secondes passent sur un compte à rebours de tick ; `ecoule` ne dépasse jamais ce qui restait à
+// l'effet, et `fin` dit qu'il vient de s'épuiser.
+int ticksEchus(float& avantLeTick, float ecoule, bool fin) {
+    int ticks = 0;
+    avantLeTick -= ecoule;
+    while (avantLeTick <= 0.0f) {
+        ++ticks;
+        avantLeTick += s_intervalleDeTick;
+    }
+    if (fin && avantLeTick <= s_toleranceDeTick) {
+        ++ticks;
+        avantLeTick += s_intervalleDeTick;
+    }
+    return ticks;
 }
 }  // namespace
 
@@ -35,11 +74,29 @@ void EffetsActifs::poser(const EffetActif& effet) {
     present->pilesMax = effet.pilesMax;
 }
 
-void EffetsActifs::mettreAJour(float dt) {
+std::vector<Tick> EffetsActifs::mettreAJour(float dt) {
+    std::vector<Tick> ticks;
     for (EffetActif& effet : m_effets) {
+        const float ecoule = std::min(dt, effet.dureeRestante);
         effet.dureeRestante -= dt;
+        const bool fin = effet.dureeRestante <= 0.0f;
+        std::visit(Surcharges{
+                       [](ModificateurDeStatistique&) {},
+                       [&](DegatsDansLeTemps& degats) {
+                           for (int i = ticksEchus(degats.avantLeTick, ecoule, fin); i > 0; --i) {
+                               ticks.push_back(TickDeDegats{degats.element, degats.montant * effet.piles});
+                           }
+                       },
+                       [&](SoinDansLeTemps& soin) {
+                           for (int i = ticksEchus(soin.avantLeTick, ecoule, fin); i > 0; --i) {
+                               ticks.push_back(TickDeSoin{soin.montant * effet.piles});
+                           }
+                       },
+                   },
+                   effet.sorte);
     }
     std::erase_if(m_effets, [](const EffetActif& effet) { return effet.dureeRestante <= 0.0f; });
+    return ticks;
 }
 
 void EffetsActifs::vider() {
@@ -69,6 +126,9 @@ Defenses appliquerLesEffets(const Defenses& defenses, const EffetsActifs& effets
                                    break;
                            }
                        },
+                       // Les effets dans le temps ne changent aucune statistique : ils agissent par leurs ticks.
+                       [](const DegatsDansLeTemps&) {},
+                       [](const SoinDansLeTemps&) {},
                    },
                    effet.sorte);
     }

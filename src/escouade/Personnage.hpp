@@ -122,6 +122,8 @@ public:
     // effet sur un mort ; la mort retire tous les effets. Ils passent au-dessus de ses défenses, recalculées sans les perdre.
     void poserEffet(const EffetActif& effet);
     [[nodiscard]] const EffetsActifs& getEffets() const;
+    // Ce que les ticks de ses effets dans le temps ont fait depuis le dernier appel (`Vitalite::prendreLesTicks`).
+    [[nodiscard]] std::vector<Tick> prendreLesTicks();
     // Son armure effective : celle de son équipement actif, modifiée par ses effets actifs.
     [[nodiscard]] int getArmure() const;
     [[nodiscard]] bool estVivant() const;

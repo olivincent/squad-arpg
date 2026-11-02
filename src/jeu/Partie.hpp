@@ -184,6 +184,9 @@ private:
     void infligerAUnPersonnage(IdMonstre idMonstre, Place place, const Attaque& attaque, bool opportunite);
     // Le seul endroit où un événement naît ; des dégâts ou un soin de montant nul ne produisent rien.
     void signaler(CibleDEvenement cible, sf::Vector2f position, DetailEvenement detail);
+    // Les ticks des effets dans le temps de cette entité (`Vitalite::prendreLesTicks`) : des dégâts ou un soin, signalés comme tels, plus
+    // petits à l'écran que ceux d'un coup. Le montant est celui qui a été subi ou rendu.
+    void signalerLesTicks(CibleDEvenement cible, sf::Vector2f position, const std::vector<Tick>& ticks);
     // Ce qu'un coup a donné, en événements (`detailsDuCoup` : « Esquivé », ou les dégâts puis le blocage).
     void signalerLeCoup(CibleDEvenement cible, sf::Vector2f position, const ResultatDuCoup& resultat, bool opportunite);
     // Étapes de mettreAJour(), dans l'ordre où elles sont appelées.
