@@ -84,17 +84,17 @@ constexpr float s_rayonPluie = 45.0f;             // rayon de zone, depuis le po
 // plus `s_pvParPointDEndurance` par point) : guerrier 324, paladin 318, prêtre et rôdeur 300, mage 288.
 constexpr Caracteristiques s_caracteristiquesGuerrier({12, 14, 10, 6, 8});
 constexpr Caracteristiques s_caracteristiquesPaladin({11, 13, 8, 7, 11});
-constexpr Caracteristiques s_caracteristiquesPretre({10, 10, 8, 10, 12});
-constexpr Caracteristiques s_caracteristiquesMage({10, 8, 8, 14, 10});
+constexpr Caracteristiques s_caracteristiquesPretre({8, 10, 8, 12, 12});
+constexpr Caracteristiques s_caracteristiquesMage({6, 8, 8, 16, 12});
 constexpr Caracteristiques s_caracteristiquesRodeur({10, 10, 14, 8, 8});
 
 // La paire de caractéristiques qui grandissent avec le niveau de chaque classe (la première au niveau 2, la seconde au niveau 3,
-// en alternance ; « à tester »). Le Savoir et la Volonté n'ont encore aucun effet : les paires du prêtre et du mage deviendront
-// justes quand ces caractéristiques serviront.
+// en alternance ; « à tester »). Le Savoir et la Volonté ont des effets depuis l'étape 110 : le mage grandit en Savoir puis en Volonté,
+// le prêtre en Volonté puis en Savoir, le paladin en Puissance puis en Volonté (ses soins).
 constexpr PaireDeCroissance s_croissanceGuerrier = {Caracteristique::Puissance, Caracteristique::Endurance};
-constexpr PaireDeCroissance s_croissancePaladin = {Caracteristique::Puissance, Caracteristique::Endurance};
-constexpr PaireDeCroissance s_croissancePretre = {Caracteristique::Puissance, Caracteristique::Volonte};
-constexpr PaireDeCroissance s_croissanceMage = {Caracteristique::Puissance, Caracteristique::Savoir};
+constexpr PaireDeCroissance s_croissancePaladin = {Caracteristique::Puissance, Caracteristique::Volonte};
+constexpr PaireDeCroissance s_croissancePretre = {Caracteristique::Volonte, Caracteristique::Savoir};
+constexpr PaireDeCroissance s_croissanceMage = {Caracteristique::Savoir, Caracteristique::Volonte};
 constexpr PaireDeCroissance s_croissanceRodeur = {Caracteristique::Adresse, Caracteristique::Puissance};
 
 // La convention des coefficients d'un skill (étape 110) : une caractéristique à plein et elle seule, selon ce que fait le skill.

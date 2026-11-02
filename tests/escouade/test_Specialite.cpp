@@ -556,9 +556,9 @@ TEST_CASE("croissance : la paire de caracteristiques de chaque classe") {
     const PaireDeCroissance puissanceEtEndurance = {Caracteristique::Puissance, Caracteristique::Endurance};
 
     REQUIRE(specialite(IdSpecialite::Guerrier).definition.croissance == puissanceEtEndurance);
-    REQUIRE(specialite(IdSpecialite::Paladin).definition.croissance == puissanceEtEndurance);
-    REQUIRE(specialite(IdSpecialite::Pretre).definition.croissance == PaireDeCroissance{Caracteristique::Puissance, Caracteristique::Volonte});
-    REQUIRE(specialite(IdSpecialite::Mage).definition.croissance == PaireDeCroissance{Caracteristique::Puissance, Caracteristique::Savoir});
+    REQUIRE(specialite(IdSpecialite::Paladin).definition.croissance == PaireDeCroissance{Caracteristique::Puissance, Caracteristique::Volonte});
+    REQUIRE(specialite(IdSpecialite::Pretre).definition.croissance == PaireDeCroissance{Caracteristique::Volonte, Caracteristique::Savoir});
+    REQUIRE(specialite(IdSpecialite::Mage).definition.croissance == PaireDeCroissance{Caracteristique::Savoir, Caracteristique::Volonte});
     REQUIRE(specialite(IdSpecialite::Rodeur).definition.croissance == PaireDeCroissance{Caracteristique::Adresse, Caracteristique::Puissance});
 }
 
@@ -633,4 +633,10 @@ TEST_CASE("coefficients d'aire : l'explosion, un sort, profite de l'Intellect ; 
             REQUIRE(connu.skill.getCoefficientDAire() == (connu.id == IdSkill::Explosion ? 1.0f : 0.0f));
         }
     }
+}
+
+TEST_CASE("caracteristiques des classes : les bases du mage, du pretre et du paladin (etape 110)") {
+    REQUIRE(specialite(IdSpecialite::Mage).definition.caracteristiques == Caracteristiques({6, 8, 8, 16, 12}));
+    REQUIRE(specialite(IdSpecialite::Pretre).definition.caracteristiques == Caracteristiques({8, 10, 8, 12, 12}));
+    REQUIRE(specialite(IdSpecialite::Paladin).definition.caracteristiques == Caracteristiques({11, 13, 8, 7, 11}));
 }
