@@ -12,6 +12,18 @@ std::string titreDesEffetsActifs() {
     return "Active effects";
 }
 
+// Pas de `default` : un état ajouté sans nom fait avertir le compilateur.
+std::string nomDeLEtatInflige(EtatInflige etat) {
+    switch (etat) {
+        case EtatInflige::Etourdissement: return "Stunned";
+        case EtatInflige::Ralentissement: return "Slowed";
+        case EtatInflige::Entrave: return "Hampered";
+        case EtatInflige::Disruption: return "Disrupted";
+        case EtatInflige::Nombre: return "";
+    }
+    return "";
+}
+
 // Pas de `default` : une statistique ajoutée sans nom fait avertir le compilateur.
 std::string nomDeLaStatistique(StatistiqueModifiable statistique) {
     switch (statistique) {
@@ -37,7 +49,9 @@ std::string nomDeLEffetActif(const EffetActif& effet) {
     return std::visit(Surcharges{[&](const ModificateurDeStatistique&) { return nomDuSkill(effet.source); },
                                  [](const DegatsDansLeTemps& degats) { return nomDesDegatsDansLeTemps(degats.element); },
                                  // Le soin dans le temps porte le nom de son skill (Renew).
-                                 [&](const SoinDansLeTemps&) { return nomDuSkill(effet.source); }},
+                                 [&](const SoinDansLeTemps&) { return nomDuSkill(effet.source); },
+                                 // Un contrôle porte le nom de son état, non celui du skill qui l'a posé.
+                                 [](const Controle& controle) { return nomDeLEtatInflige(controle.etat); }},
                       effet.sorte);
 }
 }  // namespace
@@ -49,9 +63,14 @@ std::string ligneDEffetActif(const EffetActif& effet) {
                        return std::string(total < 0 ? "−" : "+") + std::to_string(std::abs(total)) + " % " + nomDeLaStatistique(modificateur.statistique);
                    },
                    [&](const DegatsDansLeTemps& degats) { return std::to_string(degats.montant * effet.piles) + " per s"; },
-                   [&](const SoinDansLeTemps& soin) { return std::to_string(soin.montant * effet.piles) + " per s"; }},
+                   [&](const SoinDansLeTemps& soin) { return std::to_string(soin.montant * effet.piles) + " per s"; },
+                   // Seuls le ralentissement et l'entrave ont un pourcentage : un étourdissement ou une Disruption n'a pas de valeur.
+                   [](const Controle& controle) {
+                       return controle.pourcentage > 0 ? "−" + std::to_string(controle.pourcentage) + " %" : std::string();
+                   }},
         effet.sorte);
     const std::string piles = effet.piles > 1 ? " ×" + std::to_string(effet.piles) : "";
     const int secondes = static_cast<int>(std::ceil(effet.dureeRestante));
-    return nomDeLEffetActif(effet) + piles + ": " + valeur + " (" + std::to_string(secondes) + " s)";
+    const std::string duree = "(" + std::to_string(secondes) + " s)";
+    return nomDeLEffetActif(effet) + piles + (valeur.empty() ? " " : ": " + valeur + " ") + duree;
 }

@@ -15,6 +15,8 @@ std::string nomDuSkill(IdSkill id) {
         case IdSkill::PluieDeFleches: return "Rain of Arrows";
         case IdSkill::Benediction: return "Blessing";
         case IdSkill::Renouvellement: return "Renew";
+        case IdSkill::Contresort: return "Counterspell";
+        case IdSkill::CoupAssommant: return "Stunning Blow";
     }
     return "";
 }

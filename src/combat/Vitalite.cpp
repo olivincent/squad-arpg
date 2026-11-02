@@ -32,7 +32,7 @@ ResultatDuCoup Vitalite::recevoirDegats(const Attaque& attaque, Generateur& gene
     } else if (!resultat.esquive) {
         // Les effets du skill ne se posent que si le coup atteint : un coup esquivé n'applique rien.
         for (const EffetActif& effet : attaque.effets) {
-            m_effets.poser(effet);
+            poserEffet(effet);
         }
     }
     return resultat;
@@ -77,9 +77,29 @@ void Vitalite::viderLesEffets() {
 }
 
 void Vitalite::poserEffet(const EffetActif& effet) {
-    if (estVivant()) {
-        m_effets.poser(effet);
+    if (!estVivant()) {
+        return;
     }
+    const auto* controle = std::get_if<Controle>(&effet.sorte);
+    if (controle == nullptr) {
+        m_effets.poser(effet);
+        return;
+    }
+    // Un contrôle : le rendement décroissant de cet état d'abord (une application bloquée ne pose rien), puis la durée selon la
+    // résistance de la cible, lue maintenant.
+    const float rendement = m_effets.compterUneApplicationDeControle(controle->etat);
+    if (rendement <= 0.0f) {
+        m_controlesAppliques.push_back({controle->etat, true});
+        return;
+    }
+    EffetActif pose = effet;
+    pose.dureeRestante = dureePosee(effet.dureeRestante, resistanceAppliquee(m_defenses.statistiques, controle->etat), rendement);
+    m_effets.poser(pose);
+    m_controlesAppliques.push_back({controle->etat, false});
+}
+
+std::vector<ControleApplique> Vitalite::prendreLesControles() {
+    return std::exchange(m_controlesAppliques, {});
 }
 
 const EffetsActifs& Vitalite::getEffets() const {

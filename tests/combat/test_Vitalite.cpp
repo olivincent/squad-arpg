@@ -1,9 +1,12 @@
 // ./tests/combat/test_Vitalite.cpp
+#include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include "aides.hpp"
 #include "combat/Blocage.hpp"
 #include "combat/Vitalite.hpp"
+
+using Catch::Approx;
 
 TEST_CASE("Vitalite commence pleine") {
     const Vitalite vitalite(100, defensesDeTest(0));
@@ -543,4 +546,170 @@ TEST_CASE("viderLesEffets : retire les effets sans toucher aux points de vie") {
 
     REQUIRE(vitalite.getValeur() == 100);
     REQUIRE(vitalite.getEffets().liste().empty());
+}
+
+namespace {
+// Un contrôle de cet état, de cette durée avant résistance, posé par ce skill.
+EffetActif controleDe(EtatInflige etat, float duree, IdSkill source = IdSkill::FrappeSacree, int pourcentage = 0) {
+    return {.source = source, .dureeRestante = duree, .sorte = Controle{.etat = etat, .pourcentage = pourcentage}};
+}
+
+float dureeDuPremierEffet(const Vitalite& vitalite) {
+    return vitalite.getEffets().liste().front().dureeRestante;
+}
+
+// Des défenses avec cette résistance à cet état de contrôle.
+Defenses defensesResistantes(EtatDeControle etat, float resistance) {
+    Defenses defenses = defensesDeTest(0);
+    defenses.statistiques.resistancesAuControle[etat] = resistance;
+    return defenses;
+}
+}  // namespace
+
+TEST_CASE("controle : sans resistance, il dure sa duree et la pose est notee") {
+    Vitalite vitalite(100, defensesDeTest(0));
+
+    vitalite.poserEffet(controleDe(EtatInflige::Etourdissement, 1.5f));
+
+    REQUIRE(dureeDuPremierEffet(vitalite) == Approx(1.5f));
+    REQUIRE(estSousEtat(vitalite.getEffets(), EtatInflige::Etourdissement));
+    const std::vector<ControleApplique> poses = vitalite.prendreLesControles();
+    REQUIRE(poses.size() == 1);
+    REQUIRE(poses[0].etat == EtatInflige::Etourdissement);
+    REQUIRE_FALSE(poses[0].immunise);
+    REQUIRE(vitalite.prendreLesControles().empty());  // oublié une fois pris
+}
+
+TEST_CASE("controle : la resistance de la cible raccourcit la duree, lue a la pose") {
+    Vitalite vitalite(100, defensesResistantes(EtatDeControle::Etourdissement, 20.0f));
+
+    vitalite.poserEffet(controleDe(EtatInflige::Etourdissement, 2.0f));
+
+    REQUIRE(dureeDuPremierEffet(vitalite) == Approx(1.6f));
+}
+
+TEST_CASE("controle : une resistance negative (vulnerabilite) allonge la duree") {
+    Vitalite vitalite(100, defensesResistantes(EtatDeControle::Disruption, -50.0f));
+
+    vitalite.poserEffet(controleDe(EtatInflige::Disruption, 2.0f));
+
+    REQUIRE(dureeDuPremierEffet(vitalite) == Approx(3.0f));
+}
+
+TEST_CASE("controle : la resistance est bornee a 80 %, la duree ne tombe jamais a zero") {
+    Vitalite vitalite(100, defensesResistantes(EtatDeControle::Etourdissement, 500.0f));
+
+    vitalite.poserEffet(controleDe(EtatInflige::Etourdissement, 2.0f));
+
+    REQUIRE(dureeDuPremierEffet(vitalite) == Approx(0.4f));
+}
+
+TEST_CASE("controle : l'entrave est reduite par la resistance au ralentissement") {
+    Vitalite vitalite(100, defensesResistantes(EtatDeControle::Ralentissement, 25.0f));
+
+    vitalite.poserEffet(controleDe(EtatInflige::Entrave, 4.0f, IdSkill::PluieDeFleches, 20));
+
+    REQUIRE(dureeDuPremierEffet(vitalite) == Approx(3.0f));
+}
+
+TEST_CASE("controle : la resistance a un autre etat ne joue pas") {
+    Vitalite vitalite(100, defensesResistantes(EtatDeControle::Disruption, 50.0f));
+
+    vitalite.poserEffet(controleDe(EtatInflige::Etourdissement, 2.0f));
+
+    REQUIRE(dureeDuPremierEffet(vitalite) == Approx(2.0f));
+}
+
+TEST_CASE("controle : rendement decroissant 100 %, 50 %, 25 %, puis immunite") {
+    Vitalite vitalite(100, defensesDeTest(0));
+
+    // Un skill différent à chaque fois : aucun rafraîchissement, chaque effet garde la durée posée.
+    vitalite.poserEffet(controleDe(EtatInflige::Etourdissement, 4.0f, IdSkill::FrappeSacree));
+    vitalite.poserEffet(controleDe(EtatInflige::Etourdissement, 4.0f, IdSkill::FrappePuissante));
+    vitalite.poserEffet(controleDe(EtatInflige::Etourdissement, 4.0f, IdSkill::CoupAssommant));
+    vitalite.poserEffet(controleDe(EtatInflige::Etourdissement, 4.0f, IdSkill::Contresort));
+
+    const std::vector<EffetActif>& effets = vitalite.getEffets().liste();
+    REQUIRE(effets.size() == 3);  // la quatrième application est bloquée
+    REQUIRE(effets[0].dureeRestante == Approx(4.0f));
+    REQUIRE(effets[1].dureeRestante == Approx(2.0f));
+    REQUIRE(effets[2].dureeRestante == Approx(1.0f));
+    const std::vector<ControleApplique> poses = vitalite.prendreLesControles();
+    REQUIRE(poses.size() == 4);
+    REQUIRE_FALSE(poses[2].immunise);
+    REQUIRE(poses[3].immunise);
+}
+
+TEST_CASE("controle : la resistance et le rendement se multiplient") {
+    Vitalite vitalite(100, defensesResistantes(EtatDeControle::Etourdissement, 50.0f));
+
+    vitalite.poserEffet(controleDe(EtatInflige::Etourdissement, 4.0f, IdSkill::FrappeSacree));
+    vitalite.poserEffet(controleDe(EtatInflige::Etourdissement, 4.0f, IdSkill::FrappePuissante));
+
+    REQUIRE(vitalite.getEffets().liste()[0].dureeRestante == Approx(2.0f));  // 4 × 0,5 × 1
+    REQUIRE(vitalite.getEffets().liste()[1].dureeRestante == Approx(1.0f));  // 4 × 0,5 × 0,5
+}
+
+TEST_CASE("controle : chaque etat a son propre compteur de rendement") {
+    Vitalite vitalite(100, defensesDeTest(0));
+
+    vitalite.poserEffet(controleDe(EtatInflige::Etourdissement, 4.0f, IdSkill::FrappeSacree));
+    vitalite.poserEffet(controleDe(EtatInflige::Etourdissement, 4.0f, IdSkill::FrappePuissante));
+    vitalite.poserEffet(controleDe(EtatInflige::Disruption, 4.0f, IdSkill::Contresort));
+
+    REQUIRE(vitalite.getEffets().liste()[2].dureeRestante == Approx(4.0f));
+}
+
+TEST_CASE("controle : apres 15 s sans application, la duree pleine revient") {
+    Vitalite vitalite(100, defensesDeTest(0));
+    vitalite.poserEffet(controleDe(EtatInflige::Etourdissement, 1.0f, IdSkill::FrappeSacree));
+    vitalite.poserEffet(controleDe(EtatInflige::Etourdissement, 1.0f, IdSkill::FrappePuissante));
+    vitalite.poserEffet(controleDe(EtatInflige::Etourdissement, 1.0f, IdSkill::CoupAssommant));
+    vitalite.mettreAJour(15.0f);
+    REQUIRE(vitalite.getEffets().liste().empty());
+
+    vitalite.poserEffet(controleDe(EtatInflige::Etourdissement, 4.0f, IdSkill::Contresort));
+
+    REQUIRE(dureeDuPremierEffet(vitalite) == Approx(4.0f));
+}
+
+TEST_CASE("controle : la mort vide les effets et le compteur") {
+    Vitalite vitalite(100, defensesDeTest(0));
+    vitalite.poserEffet(controleDe(EtatInflige::Etourdissement, 1.0f, IdSkill::FrappeSacree));
+    vitalite.poserEffet(controleDe(EtatInflige::Etourdissement, 1.0f, IdSkill::FrappePuissante));
+    static_cast<void>(subir(vitalite, s_coupMortel));
+    REQUIRE(vitalite.getEffets().liste().empty());
+
+    REQUIRE(vitalite.getEffets().rendements().applications(EtatInflige::Etourdissement) == 0);
+}
+
+TEST_CASE("controle : viderLesEffets remet aussi le compteur a zero") {
+    Vitalite vitalite(100, defensesDeTest(0));
+    vitalite.poserEffet(controleDe(EtatInflige::Etourdissement, 1.0f, IdSkill::FrappeSacree));
+
+    vitalite.viderLesEffets();
+
+    REQUIRE(vitalite.getEffets().rendements().applications(EtatInflige::Etourdissement) == 0);
+}
+
+TEST_CASE("controle : un mort n'en recoit pas") {
+    Vitalite vitalite(100, defensesDeTest(0));
+    static_cast<void>(subir(vitalite, s_coupMortel));
+
+    vitalite.poserEffet(controleDe(EtatInflige::Etourdissement, 1.0f));
+
+    REQUIRE(vitalite.getEffets().liste().empty());
+    REQUIRE(vitalite.prendreLesControles().empty());
+}
+
+TEST_CASE("controle : celui d'une attaque se pose apres le coup, par le meme chemin") {
+    Vitalite vitalite(1000, defensesResistantes(EtatDeControle::Etourdissement, 50.0f));
+    Generateur generateur = generateurDeTest();
+    Attaque attaque = attaqueSansHasard(10);
+    attaque.effets.push_back(controleDe(EtatInflige::Etourdissement, 2.0f));
+
+    static_cast<void>(vitalite.recevoirDegats(attaque, generateur));
+
+    REQUIRE(dureeDuPremierEffet(vitalite) == Approx(1.0f));
+    REQUIRE(vitalite.prendreLesControles().size() == 1);
 }

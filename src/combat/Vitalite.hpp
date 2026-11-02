@@ -3,6 +3,7 @@
 #include <vector>
 #include "base/Aleatoire.hpp"
 #include "combat/Attaque.hpp"
+#include "combat/Controle.hpp"
 #include "combat/EffetActif.hpp"
 #include "combat/EffetsActifs.hpp"
 #include "combat/PointsDeVie.hpp"
@@ -36,7 +37,12 @@ public:
     // n'y figurent pas. `Partie` en fait des événements, une fois par image.
     [[nodiscard]] std::vector<Tick> prendreLesTicks();
     // Pose un effet actif (`EffetsActifs::poser` : le même skill rafraîchit, deux skills se cumulent). Sans effet sur un mort.
+    // Un contrôle (étape 113) passe d'abord par la cible : son application est comptée pour le rendement décroissant (100 %, 50 %,
+    // 25 %, puis l'immunité : rien n'est posé), et sa durée devient `dureePosee` avec la résistance de la cible à cet état, lue à la
+    // pose. Chaque application est notée (`prendreLesControles`).
     void poserEffet(const EffetActif& effet);
+    // Les contrôles que les poses ont donnés depuis le dernier appel, dans l'ordre, puis les oublie. `Partie` en fait des événements.
+    [[nodiscard]] std::vector<ControleApplique> prendreLesControles();
     // Retire tous les effets actifs (un monstre qui rentre à son poste, invulnérable, n'en garde aucun).
     void viderLesEffets();
     [[nodiscard]] const EffetsActifs& getEffets() const;
@@ -58,5 +64,6 @@ private:
     Defenses m_defenses;  // sans les effets actifs : ce que donnent les caractéristiques et l'équipement (ou la définition)
     EffetsActifs m_effets;
     std::vector<Tick> m_ticksAppliques;  // ce que les ticks ont fait depuis `prendreLesTicks`
+    std::vector<ControleApplique> m_controlesAppliques;  // ce que les poses de contrôle ont donné depuis `prendreLesControles`
     float m_recuperationDuBlocage = 0.0f;  // en secondes ; 0 : le blocage est prêt
 };

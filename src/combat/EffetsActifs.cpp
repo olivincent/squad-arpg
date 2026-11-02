@@ -31,6 +31,11 @@ SoinDansLeTemps lePlusFort(const SoinDansLeTemps& present, const SoinDansLeTemps
     return retenu;
 }
 
+// Un contrôle posé de nouveau garde le pourcentage le plus fort (le même état, puisque l'identité est la même).
+Controle lePlusFort(const Controle& present, const Controle& nouveau) {
+    return nouveau.pourcentage > present.pourcentage ? nouveau : present;
+}
+
 // Deux sortes de même identité ont la même alternative (une identité est un skill et un rang, et un rang est une sorte).
 SorteDEffetActif lePlusFort(const SorteDEffetActif& present, const SorteDEffetActif& nouveau) {
     assert(present.index() == nouveau.index());
@@ -75,6 +80,7 @@ void EffetsActifs::poser(const EffetActif& effet) {
 }
 
 std::vector<Tick> EffetsActifs::mettreAJour(float dt) {
+    m_rendements.mettreAJour(dt);
     std::vector<Tick> ticks;
     for (EffetActif& effet : m_effets) {
         const float ecoule = std::min(dt, effet.dureeRestante);
@@ -82,6 +88,7 @@ std::vector<Tick> EffetsActifs::mettreAJour(float dt) {
         const bool fin = effet.dureeRestante <= 0.0f;
         std::visit(Surcharges{
                        [](ModificateurDeStatistique&) {},
+                       [](Controle&) {},
                        [&](DegatsDansLeTemps& degats) {
                            for (int i = ticksEchus(degats.avantLeTick, ecoule, fin); i > 0; --i) {
                                ticks.push_back(TickDeDegats{degats.element, degats.montant * effet.piles});
@@ -101,6 +108,15 @@ std::vector<Tick> EffetsActifs::mettreAJour(float dt) {
 
 void EffetsActifs::vider() {
     m_effets.clear();
+    m_rendements.vider();
+}
+
+float EffetsActifs::compterUneApplicationDeControle(EtatInflige etat) {
+    return m_rendements.appliquer(etat);
+}
+
+const RendementsDeControle& EffetsActifs::rendements() const {
+    return m_rendements;
 }
 
 const std::vector<EffetActif>& EffetsActifs::liste() const {
@@ -138,9 +154,11 @@ Defenses appliquerLesEffets(const Defenses& defenses, const EffetsActifs& effets
                                    break;
                            }
                        },
-                       // Les effets dans le temps ne changent aucune statistique : ils agissent par leurs ticks.
+                       // Les effets dans le temps ne changent aucune statistique : ils agissent par leurs ticks. Un contrôle non plus : il
+                       // se lit par ses règles (`Controle.hpp`).
                        [](const DegatsDansLeTemps&) {},
                        [](const SoinDansLeTemps&) {},
+                       [](const Controle&) {},
                    },
                    effet.sorte);
     }

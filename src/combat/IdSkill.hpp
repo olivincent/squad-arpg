@@ -13,5 +13,7 @@ enum class IdSkill {
     TirPercant,
     PluieDeFleches,
     Benediction,
-    Renouvellement
+    Renouvellement,
+    Contresort,    // le sort du mage qui coupe les skills d'un monstre (Disruption, étape 113)
+    CoupAssommant  // la capacité de l'infanterie lourde (étape 113) : l'identité de l'étourdissement qu'elle pose
 };

@@ -4,6 +4,7 @@
 #include <vector>
 #include "combat/EffetActif.hpp"
 #include "combat/Element.hpp"
+#include "combat/RendementsDeControle.hpp"
 #include "combat/ResolutionDuCoup.hpp"
 
 // Un tick qui vient d'avoir lieu (étape 112) : des dégâts d'un élément ou un soin, du montant d'UNE pile fois ses piles. Au sortir d'
@@ -31,13 +32,18 @@ class EffetsActifs {
 public:
     // Ajoute l'effet, ou rafraîchit celui de même identité (et lui ajoute une pile). Préconditions : dureeRestante > 0, 1 <= piles <= pilesMax.
     void poser(const EffetActif& effet);
-    // Fait couler le temps : chaque durée diminue de `dt`, et l'effet qui atteint 0 disparaît. Rend les ticks des effets dans le temps qui
+    // Fait couler le temps : chaque durée diminue de `dt`, et l'effet qui atteint 0 disparaît ; le rendement décroissant du contrôle
+    // s'écoule aussi. Rend les ticks des effets dans le temps qui
     // ont eu lieu pendant ce pas, effet par effet dans l'ordre où ils ont été posés, tous les `s_intervalleDeTick` : le premier une seconde
     // après la pose, jamais après la fin de l'effet (une durée de N secondes donne N ticks, même quand l'imprécision des flottants fait
     // atteindre 0 à la durée un instant avant le dernier tick). Un tick n'a lieu qu'une fois : l'effet qui disparaît a rendu les siens.
     std::vector<Tick> mettreAJour(float dt);
-    // Retire tous les effets (la mort de l'entité).
+    // Retire tous les effets (la mort de l'entité), et remet à zéro le rendement décroissant du contrôle.
     void vider();
+    // Compte une application de cet état de contrôle et rend le facteur de sa durée (1, 0,5, 0,25, puis 0 : l'immunité ;
+    // `RendementsDeControle::appliquer`). Le compteur vit ici, avec les effets : il s'écoule avec eux (`mettreAJour`) et disparaît avec eux.
+    [[nodiscard]] float compterUneApplicationDeControle(EtatInflige etat);
+    [[nodiscard]] const RendementsDeControle& rendements() const;
     [[nodiscard]] const std::vector<EffetActif>& liste() const;
     // Les piles de chaque effet actif qui est un bonus (`estUnBonus`), puis de chaque malus, dans l'ordre où ils ont été posés : une marque
     // verte ou rouge par élément à l'écran, suivie du nombre de piles quand il dépasse 1.
@@ -46,6 +52,7 @@ public:
 
 private:
     std::vector<EffetActif> m_effets;
+    RendementsDeControle m_rendements;
 };
 
 // Les défenses une fois les effets pris en compte, quelle que soit leur source (personnage ou monstre) : la couche des effets s'applique
