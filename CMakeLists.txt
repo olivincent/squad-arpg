@@ -1,8 +1,9 @@
 # ./CMakeLists.txt
-# 3.20 : la plus petite version qui suffit (CMakePresets.json en version 2,
-# pour les presets de build et de test ; catch_discover_tests demande 3.19).
+# 3.25 : la plus petite version qui suffit (FetchContent_Declare avec SYSTEM,
+# pour le preset distribution ; CMakePresets.json en version 2 demande 3.20,
+# catch_discover_tests 3.19).
 # 4.4 : la dernière version essayée, dont on garde le comportement (policies).
-cmake_minimum_required(VERSION 3.20...4.4)
+cmake_minimum_required(VERSION 3.25...4.4)
 
 project(SquadArpg LANGUAGES CXX)
 
@@ -19,7 +20,30 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # compile_commands.json, que clang-tidy refuse.
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
-find_package(SFML 3.0.2 COMPONENTS Graphics REQUIRED)
+# Exécutable autonome à distribuer (preset « distribution », docs/build.md) :
+# SFML en statique et -static pour main. OFF pour debug et jeu.
+option(SQUAD_DISTRIBUTION "Produire un main.exe autonome (liaison statique)" OFF)
+
+# SFML : deux chemins qui fournissent les mêmes cibles (SFML::Graphics…).
+# - distribution : compilée depuis ses sources, en statique, avec sa propre
+#   FreeType (celle du paquet MSYS2 ne se lie pas en statique, docs/build.md) ;
+# - sinon : le paquet MSYS2.
+# La version est la même des deux côtés : à changer ensemble.
+if(SQUAD_DISTRIBUTION)
+    include(FetchContent)
+    FetchContent_Declare(SFML
+        GIT_REPOSITORY https://github.com/SFML/SFML.git
+        GIT_TAG 3.0.2
+        GIT_SHALLOW ON
+        SYSTEM)
+    set(BUILD_SHARED_LIBS OFF)
+    set(SFML_USE_SYSTEM_DEPS OFF)
+    set(SFML_BUILD_AUDIO OFF)
+    set(SFML_BUILD_NETWORK OFF)
+    FetchContent_MakeAvailable(SFML)
+else()
+    find_package(SFML 3.0.2 COMPONENTS Graphics REQUIRED)
+endif()
 find_package(Catch2 3 REQUIRED)
 
 # Avertissements du compilateur (pas -Werror), sur les trois cibles. Ceux des
@@ -141,6 +165,10 @@ add_executable(main
 )
 target_link_libraries(main PRIVATE squad_core)
 target_compile_options(main PRIVATE ${AVERTISSEMENTS})
+if(SQUAD_DISTRIBUTION)
+    # Intègre libstdc++, libgcc et winpthread dans main.exe.
+    target_link_options(main PRIVATE -static)
+endif()
 
 # Copie assets/ à côté de main.exe (le jeu charge ses fichiers par chemin relatif).
 add_custom_command(TARGET main POST_BUILD

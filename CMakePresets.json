@@ -26,6 +26,14 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release"
             }
+        },
+        {
+            "name": "distribution",
+            "displayName": "distribution (main.exe autonome, lié en statique)",
+            "inherits": "jeu",
+            "cacheVariables": {
+                "SQUAD_DISTRIBUTION": "ON"
+            }
         }
     ],
     "buildPresets": [
@@ -36,6 +44,11 @@
         {
             "name": "jeu",
             "configurePreset": "jeu"
+        },
+        {
+            "name": "distribution",
+            "configurePreset": "distribution",
+            "targets": ["main"]
         }
     ],
     "testPresets": [
