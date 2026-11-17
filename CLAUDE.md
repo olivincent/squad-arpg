@@ -135,6 +135,7 @@ standard, UBSan) dans `build/debug`, `jeu` (Release) dans `build/jeu`.
 ```bash
 cmake --preset debug && cmake --build --preset debug   # configuration (une fois) et compilation
 cmake --preset jeu && cmake --build --preset jeu
+cmake --preset distribution && cmake --build --preset distribution   # main.exe autonome (statique, sans console)
 ctest --preset debug                                    # toute la suite, en parallèle
 ./build/debug/tests.exe "*a portee*"                    # quelques tests, par filtre
 ./build/jeu/main.exe                                    # exécution (c'est Olivier qui lance le jeu pour tester)
@@ -142,4 +143,7 @@ clang-tidy -p build/jeu src/escouade/Escouade.cpp       # analyse statique d'une
 ```
 
 Le dossier `build/` n'est jamais modifié à la main ni commité. Les deux presets
-doivent compiler sans aucun avertissement, tests compris.
+doivent compiler sans aucun avertissement, tests compris. Le preset `distribution`
+(Release, SFML compilée depuis ses sources, voir `docs/build.md`) ne se compile pas à chaque
+sous-étape : seulement quand `CMakeLists.txt`, `CMakePresets.json` ou les dépendances changent,
+et avant chaque release ; la première configuration demande le réseau.

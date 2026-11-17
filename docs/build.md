@@ -4,11 +4,13 @@
 
 - **CMake minimal** : `cmake_minimum_required`, `project()`,
   `CMAKE_CXX_STANDARD` = 20 (`CMAKE_CXX_STANDARD_REQUIRED` = ON).
-  - **`cmake_minimum_required(VERSION 3.20...4.4)`** (étape 80) : 3.20 est la plus petite version
-    qui suffit (`CMakePresets.json` en version 2, pour les presets de build et de test ;
+  - **`cmake_minimum_required(VERSION 3.25...4.4)`** (étape 80, borne basse passée de 3.20 à 3.25
+    à l'étape 115) : 3.25 est la plus petite version qui suffit. `FetchContent_Declare` avec
+    `SYSTEM`, pour le preset `distribution`, demande 3.25 ; avant, 3.20 suffisait
+    (`CMakePresets.json` en version 2, pour les presets de build et de test ;
     `catch_discover_tests` demande 3.19). La borne haute (4.4, la version installée) garde le
-    comportement des règles de CMake (*policies*) de cette version. Avant, la version exacte
-    installée (4.4.3) était exigée sans raison.
+    comportement des règles de CMake (*policies*) de cette version. Avant l'étape 80, la version
+    exacte installée (4.4.3) était exigée sans raison.
   - **Type de build par défaut : Release** (`if(NOT CMAKE_BUILD_TYPE)`), pour une configuration
     sans preset. Jusqu'à l'étape 79, `build/` n'avait aucun type : ni optimisation ni `NDEBUG`
     (24 monstres en poursuite coûtaient 31 ms par image au lieu de 2 ms).
@@ -16,9 +18,10 @@
     La recherche de modules ajoutait des étapes au build et, dans `compile_commands.json`, des
     options propres à GCC (`-fmodules-ts`, `-fmodule-mapper=…`, `-fdeps-format=…`) que clang
     (donc `clang-tidy`) refuse.
-- **`find_package`** regroupés en haut du fichier : SFML
-  (`find_package(SFML 3.0.2 COMPONENTS Graphics REQUIRED)`) et Catch2
-  (`find_package(Catch2 3 REQUIRED)`).
+- **SFML et Catch2** en haut du fichier : Catch2 par `find_package(Catch2 3 REQUIRED)` ; SFML par
+  `find_package(SFML 3.0.2 COMPONENTS Graphics REQUIRED)` (paquet MSYS2, presets `debug` et `jeu`),
+  ou, quand `SQUAD_DISTRIBUTION` est ON, compilée depuis ses sources par `FetchContent` (voir
+  « Distribution »). Les deux chemins fournissent les mêmes cibles (`SFML::Graphics`).
 - **Bibliothèque `squad_core`** (`add_library(squad_core STATIC ...)`,
   une source par ligne pour que chaque ajout ne change qu'une ligne du
   diff) : regroupe la logique de jeu, réutilisée par `main` et par `tests`.
@@ -75,19 +78,23 @@ dont héritent :
 |---|---|---|---|
 | `debug` | `build/debug` | Debug (`-O0 -g`, `assert` actifs) | `-D_GLIBCXX_ASSERTIONS` (bornes des conteneurs de la bibliothèque standard vérifiées), UBSan en mode piège (`-fsanitize=undefined -fsanitize-undefined-trap-on-error`) |
 | `jeu` | `build/jeu` | Release (`-O3`, `NDEBUG`) | — |
+| `distribution` | `build/distribution` | Release (hérite de `jeu`) | `SQUAD_DISTRIBUTION=ON` : `main.exe` autonome (voir « Distribution », étape 115) |
 
 - **UBSan en mode piège** : le compilateur ajoute des vérifications de comportement indéfini
   (débordement d'entier signé, décalage invalide…) ; au premier cas, le programme s'arrête sur une
   instruction illégale. Ce mode n'a pas besoin de `libubsan`, absente de MinGW. Il vit dans le preset
   `debug`, sans option CMake à part.
-- **Presets de build** (`debug`, `jeu`) et **de test** (`debug`). VSCode (CMake Tools) les détecte
-  et propose de choisir un preset de configuration.
+- **Presets de build** (`debug`, `jeu`, `distribution`) et **de test** (`debug` seulement). VSCode
+  (CMake Tools) les détecte et propose de choisir un preset de configuration. Le preset de build
+  `distribution` ne compile que la cible `main` (`"targets": ["main"]`) : les tests ne sont ni
+  nécessaires ni liés en statique.
 - Commandes :
 
   ```bash
   cmake --preset jeu && cmake --build --preset jeu     # le jeu : ./build/jeu/main.exe
   cmake --preset debug && cmake --build --preset debug # les tests
   ctest --preset debug                                  # toute la suite
+  cmake --preset distribution && cmake --build --preset distribution  # main.exe autonome
   ```
 
   Le jeu charge la police et `reglages.ini` depuis le dossier courant : le lancer depuis le dossier
@@ -95,6 +102,61 @@ dont héritent :
 - **Fichiers JSON sans commentaire** : `CMakePresets.json` n'a pas sa ligne de chemin (le JSON
   n'accepte pas de commentaire). Le nombre de tâches de ctest (12) y est écrit en dur : c'est le
   nombre de cœurs de la machine de développement.
+
+## Distribution (étape 115)
+
+Le preset `distribution` produit un `build/distribution/main.exe` **autonome** : sans MSYS2, il
+démarre sur un ordinateur Windows avec seulement son dossier `assets/` à côté. Il ne change rien
+pour `debug` et `jeu`.
+
+- **`SQUAD_DISTRIBUTION`** : une variable de cache CMake (`option`, OFF par défaut), mise à ON par
+  le seul preset `distribution`. Elle commande, pour la cible `main`, la liaison statique et
+  l'absence de console, et le chemin de SFML (compilée depuis ses sources).
+- **SFML compilée depuis ses sources** : `FetchContent_Declare(SFML ...)` au tag `3.0.2`
+  (`GIT_SHALLOW`, `SYSTEM` pour que ses en-têtes ne produisent pas d'avertissements dans notre code),
+  avec `BUILD_SHARED_LIBS OFF`, `SFML_USE_SYSTEM_DEPS OFF` (elle compile sa propre FreeType),
+  `SFML_BUILD_AUDIO OFF` et `SFML_BUILD_NETWORK OFF` (seuls System, Window, Graphics et Main servent),
+  puis `FetchContent_MakeAvailable`. `find_package(SFML ...)` n'est fait que quand l'option est
+  OFF : les deux chemins donnent les mêmes cibles, les `target_link_libraries` ne changent pas.
+  - **La version de SFML est écrite à deux endroits** (`GIT_TAG 3.0.2` et
+    `find_package(SFML 3.0.2 ...)`) et doit rester **identique**, pour que le jeu se comporte de la
+    même façon avec les trois presets. À changer ensemble lors d'une mise à jour (le paquet MSYS2
+    d'un côté, le tag de l'autre).
+  - **La première configuration demande le réseau** (téléchargement de SFML et de FreeType) et prend
+    quelques minutes (42 s pour la configuration seule, puis la compilation de SFML dans le build, soit
+    environ 200 étapes de compilation) ; les suivantes ne retéléchargent rien (1 s). Supprimer
+    `build/distribution` refait le téléchargement.
+- **`-static`** à l'édition des liens de `main` : intègre libstdc++, libgcc et winpthread dans
+  l'exécutable, au lieu des DLL `libstdc++-6.dll`, `libgcc_s_seh-1.dll` et `libwinpthread-1.dll`.
+- **Sans console** : `main` devient une application Windows (`WIN32_EXECUTABLE`) et se lie à
+  `SFML::Main`. Un `.exe` Windows a un *sous-système* : console (il ouvre une console et démarre par
+  `main`) ou GUI (il n'ouvre rien et démarre par `WinMain`). `WIN32_EXECUTABLE` demande le sous-système
+  GUI ; notre code n'a que `main()`, donc `SFML::Main` fournit un `WinMain` qui rappelle `main()`.
+  `objdump -p main.exe` donne `Windows GUI` (distribution) ou `Windows CUI` (jeu).
+  - **Limite acceptée** : sans console, la graine (« Seed: N ») et le message d'erreur de la police
+    introuvable (`std::cerr`) ne sont plus visibles ; le jeu se ferme simplement s'il ne trouve pas
+    `assets/`. Le preset `jeu` garde sa console.
+- **Pourquoi la liaison statique avec le paquet MSYS2 a échoué** : SFML était bien liée en statique
+  (`SFML_STATIC_LIBRARIES` avant `find_package`), mais le `find_package(Freetype)` de SFML
+  (`FindFreetype`, module standard de CMake) trouve `libfreetype.dll.a`, la **bibliothèque
+  d'importation** de la DLL, et non l'archive statique. Une `.dll.a` ne contient que l'adresse des
+  fonctions d'une DLL ; une `.a` en contient le code. `main.exe` importait donc `libfreetype-6.dll` et,
+  en cascade, harfbuzz, png, zlib, bz2, brotli, graphite2, glib… (une douzaine de DLL de `/ucrt64` pour FreeType seule). L'archive
+  `libfreetype.a` existe, mais ses dépendances ne sont décrites que par `freetype2.pc`
+  (`Requires.private`), que ni CMake ni SFML ne lisent ici : la lier demandait une liste de
+  bibliothèques écrite à la main, fragile et liée à la version du paquet. Compiler SFML depuis ses
+  sources, avec sa FreeType, règle tout sans liste.
+- **Contrôle** : `ldd build/distribution/main.exe` ne doit montrer que des DLL de Windows (aucune de
+  `/ucrt64`) ; à l'étape 115, 5,8 Mo. À compiler à cette étape, puis quand `CMakeLists.txt`,
+  `CMakePresets.json` ou les dépendances changent, et avant chaque release.
+- **Faire une release** (à la main : ni CPack, ni script, ni GitHub Actions, ni signature) :
+  1. `cmake --preset distribution && cmake --build --preset distribution` ;
+  2. copier `build/distribution/main.exe` et le dossier `build/distribution/assets/` dans un dossier
+     `Squad-ARPG` ;
+  3. le compresser en `Squad-ARPG-windows.zip` ;
+  4. le décompresser dans un dossier neuf et le tester **hors de MSYS2** (double-clic dans
+     l'Explorateur : le terminal MSYS2 cacherait une DLL manquante dans son `PATH`) ;
+  5. le joindre à une Release GitHub.
 
 ## CTest (étape 80)
 
