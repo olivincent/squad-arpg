@@ -2701,6 +2701,6 @@ l'archive statique ne sont décrites que par `freetype2.pc`). Arrêt et rapport,
 `FetchContent` (tag fixé, `GIT_SHALLOW`, `SYSTEM`, sa propre FreeType, ni audio ni réseau) pour `distribution` seulement ; `find_package(SFML)` reste pour
 `debug` et `jeu` ; `cmake_minimum_required` passe à 3.25 (`SYSTEM`). Résultat : aucune DLL de `/ucrt64` (que des DLL de Windows), 5,8 Mo. 115.2 : sans
 console (`WIN32_EXECUTABLE`, `SFML::Main` qui fournit `WinMain`) ; sous-système Windows GUI pour `distribution`, console pour `jeu`. 115.3 : documentation
-(`docs/build.md`, `CLAUDE.md`). **Limite acceptée** : sans console, la graine et le message d'erreur de la police ne se voient plus. **Non fait** : le
-`README.md` annoncé n'était ni dans le dépôt ni sur `origin/main` ; ses deux changements (sans `.dll` dans « Essayer le jeu », une ligne sur le preset)
-restent à faire quand il sera là. Détail : `docs/build.md` (« Distribution (étape 115) »).
+(`docs/build.md`, `CLAUDE.md`). **Limite acceptée** : sans console, la graine et le message d'erreur de la police ne se voient plus. Le
+`README.md` n'était pas dans le dépôt pendant l'étape ; ajouté ensuite, il dit déjà que le zip ne contient que `main.exe` et `assets/` et mentionne le preset
+(rien à y changer). Détail : `docs/build.md` (« Distribution (étape 115) »).

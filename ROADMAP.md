@@ -56,7 +56,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
   `debug` et `jeu` n'ont pas changé. La version de SFML est écrite à deux endroits, à changer ensemble ; la première
   configuration demande le réseau. **Limite** : sans console, la graine et l'erreur de police ne se voient plus. Le preset
   se compile quand `CMakeLists.txt`, `CMakePresets.json` ou les dépendances changent, et avant chaque release (zip fait à
-  la main, `docs/build.md`, « Distribution »). **Reste à faire** : les deux changements du `README.md` (annoncé mais absent du dépôt à l'étape 115).
+  la main, `docs/build.md`, « Distribution »). Le `README.md` (« Essayer le jeu » : `main.exe` et `assets/` seulement ; une ligne sur le preset) est à jour.
 - **Code** (étape 115, aucun changement dans `src/`) : 121 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
   `combat`, `objets`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
   de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug`, `jeu` et `distribution`, 0
