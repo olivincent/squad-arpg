@@ -29,9 +29,9 @@ sans complexité excessive pour démarrer.
 | OS | Windows, console MSYS2 UCRT64 |
 | IDE | VSCode, avec Claude Code pour l'implémentation |
 | Compilateur | MinGW-w64 (via MSYS2 UCRT64) |
-| Build | CMake + Ninja, presets `debug` et `jeu` (`docs/build.md`) |
+| Build | CMake 3.25 ou plus + Ninja, presets `debug`, `jeu` et `distribution` (`docs/build.md`) |
 | Langage | C++20 |
-| Bibliothèque graphique | SFML 3.0.2 |
+| Bibliothèque graphique | SFML 3.0.2 (paquet MSYS2 ; compilée depuis ses sources, en statique, pour le preset `distribution`) |
 | Tests | Catch2 3 (paquet MSYS2 `mingw-w64-ucrt-x86_64-catch`), lancés par CTest |
 | Analyse | clang-tidy et clang-format (paquet `mingw-w64-ucrt-x86_64-clang-tools-extra`) |
 
@@ -78,7 +78,9 @@ sources et des tests : `CMakeLists.txt`.
 
 Deux exécutables, `main` (le jeu) et `tests` (Catch2), liés à la bibliothèque statique
 `squad_core`, qui contient tout `src/` sauf `app/` : logique de jeu et écrans, testables sans
-fenêtre ni boucle. `main` ne contient que `app/` (`main.cpp` et `Application`).
+fenêtre ni boucle. `main` ne contient que `app/` (`main.cpp` et `Application`). Le preset
+`distribution` ne compile que `main`, en un `main.exe` autonome (liaison statique, sans console), à
+distribuer avec son dossier `assets/` (`docs/build.md`, « Distribution »).
 
 ## Qui possède quoi
 
@@ -367,7 +369,7 @@ de modifier un module, lire le fichier correspondant :
 
 | Fichier | Contenu | Quand le lire |
 |---|---|---|
-| `docs/build.md` | Build (CMake, `squad_core`, dossiers et chemins d'inclusion, exécutables), presets `debug` et `jeu`, CTest, `clang-format` et `clang-tidy`, choix de SFML | Avant de modifier `CMakeLists.txt`, `CMakePresets.json`, `.clang-tidy` ou d'ajouter un fichier source |
+| `docs/build.md` | Build (CMake, `squad_core`, dossiers et chemins d'inclusion, exécutables), presets `debug`, `jeu` et `distribution` (exécutable autonome, `SQUAD_DISTRIBUTION`, release), CTest, `clang-format` et `clang-tidy`, choix de SFML | Avant de modifier `CMakeLists.txt`, `CMakePresets.json`, `.clang-tidy` ou d'ajouter un fichier source |
 | `docs/ecrans.md` | `Application`, pile d'écrans (patron State, dessin sous un écran), `Transition`, `Contexte`, `EcranJeu`, `EcranInventaire` et sa disposition, vues à hauteur fixe, `Reglages` (dont la table des touches) et `reglages.ini`, menu, options, choix de l'escouade ; référence de `app/` et des écrans | Avant de modifier `Application`, un `Ecran`, `PileDEcrans`, `EntreeDInterface`, `DispositionInventaire`, `ListeDeBoutons`, `Reglages`, `TailleDeVue` ou `SelectionDEscouade` |
 | `docs/boucle-et-entrees.md` | Qui possède quoi, qui fait quoi entre `EcranJeu`, `Controleur` et `Partie`, ordre d'une image, souris et clavier, barre de raccourcis et « l'interface d'abord », mode visée, combat engagé, défaite, caméra ; référence de `Partie`, `Controleur` et du HUD | Avant de modifier `Partie`, `Controleur`, `BarreDeRaccourcis`, `CommandeDeTouche`, `ClicInterface`, `BarreDeSkills` ou `EcranDeFin` |
 | `docs/carte-et-collision.md` | Carte, collision et dessin, portes et objets interactifs, déplacement avec glissement et obstacles, plan texte et validation | Avant de modifier `TileMap`, `Deplacement` ou `ObjetInteractif` |

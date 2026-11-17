@@ -8,7 +8,7 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 
 ## Étapes terminées
 
-Étapes 0 à 114 ✅. Les dernières :
+Étapes 0 à 115 ✅. Les dernières :
 - Étape 81 — Dossiers et documentation ✅
 - Étape 82 — `Escouade` allégée : `Vitalite`, `Formation`, `PlacesDAttaque`, `Intention` ✅
 - Étape 83 — Inventaire et équipement : le modèle, sans interface ✅
@@ -42,14 +42,24 @@ Version courte, importée par `CLAUDE.md` à chaque session. Ailleurs :
 - Étape 111 — Le socle des effets actifs : un concept unique (le modificateur de statistique en première sorte, l'armure), plusieurs effets par skill, l'affaiblissement de la frappe puissante (−25 % d'armure pendant 8 s), la bénédiction du prêtre (+20 % d'armure à toute l'escouade, nouveau mode de cible), la durée d'un buff plafonnée par sa recharge, marques vertes et rouges sous les entités et liste des effets dans l'inventaire ✅
 - Étape 112 — Les dégâts et les soins dans le temps : l'identité d'un effet (skill, rang), les piles (maximum de 1 par défaut), deux sortes d'effet actif de plus (un tick par seconde, montant figé à la pose, `resoudreTick` : la seule résistance), le saignement du tir perçant (jusqu'à 3 piles), la brûlure de l'explosion, Renew (soin dans le temps du prêtre), compteur de piles, petits chiffres des ticks ✅
 - Étape 113 — Les états de contrôle : une sorte d'effet actif de plus (étourdissement, ralentissement, entrave « Hampered », Disruption), le cumul (le plus fort, jamais la somme), la durée posée (durée × résistance × rendement décroissant 100 / 50 / 25 % puis « Immune »), l'étourdissement de la frappe sacrée, le ralentissement et l'entrave de la pluie de flèches, Counterspell (nouveau sort du mage), le coup assommant de l'infanterie lourde (premiers effets posés par des monstres) ✅
+- Étape 114 — Aegis et Ward : l'absorption (Aegis pour le physique, Ward pour le non-physique), appliquée en dernier dans le coup et les ticks, l'immunité au contrôle par famille, l'Aegis du paladin et le Ward du soigneur des monstres ✅
+- Étape 115 — Le preset « distribution » : un `main.exe` autonome (SFML 3.0.2 compilée depuis ses sources et liée en statique, `-static`, sans console), à distribuer avec son seul dossier `assets/` ; hors des phases, aucun changement du code du jeu ✅
 
 ## État actuel (résumé)
 
 - **Outils** : conception dans Claude.ai, implémentation avec Claude Code dans VSCode (règles dans
   `CLAUDE.md`) ; dépôt Git `squad-arpg`, poussé sur GitHub ; SFML 3.0.2 intégrée à CMake.
-- **Code** (étape 114) : 121 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
+- **Distribution** (étape 115) : le preset `distribution` produit un `build/distribution/main.exe` **autonome**
+  (aucune DLL de MSYS2, 5,8 Mo, sans console), à distribuer avec son seul dossier `assets/`. `SQUAD_DISTRIBUTION`
+  (ON dans ce seul preset) compile SFML 3.0.2 depuis ses sources par `FetchContent` (le paquet MSYS2 ne se lie pas en
+  statique : `FindFreetype` trouve la bibliothèque d'importation), ajoute `-static`, `WIN32_EXECUTABLE` et `SFML::Main` ;
+  `debug` et `jeu` n'ont pas changé. La version de SFML est écrite à deux endroits, à changer ensemble ; la première
+  configuration demande le réseau. **Limite** : sans console, la graine et l'erreur de police ne se voient plus. Le preset
+  se compile quand `CMakeLists.txt`, `CMakePresets.json` ou les dépendances changent, et avant chaque release (zip fait à
+  la main, `docs/build.md`, « Distribution »). **Reste à faire** : les deux changements du `README.md` (annoncé mais absent du dépôt à l'étape 115).
+- **Code** (étape 115, aucun changement dans `src/`) : 121 modules rangés en 10 dossiers par domaine (`base`, `rendu`, `monde`,
   `combat`, `objets`, `escouade`, `monstres`, `jeu`, `interface`, `app`), `#include` à chemin complet, règles
-  de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug` et `jeu`, 0
+  de dépendance vérifiées (`ARCHITECTURE.md`) ; tests en miroir. Presets `debug`, `jeu` et `distribution`, 0
   avertissement, 2 305 tests verts sous CTest, 39 avertissements `clang-tidy` avant l'étape 98 (non recomptés ; aucun nouveau dans les fichiers des étapes 98 à 102 : `docs/build.md`,
   `docs/audit.md`). `Escouade` n'est plus que l'assemblage : `Escouade.cpp` de 1 223 à 1 067 lignes. Les tests ne dépendent pas du catalogue des classes (`docs/tests.md`). **Tout le texte affiché est en anglais** (identifiants, commentaires et documentation restent en français ; pas de système de traduction : `docs/glossaire.md` est la référence des noms du jeu). Un commit par sous-étape, fait par Claude Code (`CLAUDE.md`).
 - **Écrans** : menu à la souris, options d'affichage (fenêtré ou plein écran, résolutions,
@@ -484,13 +494,15 @@ ce qui reste à décider **en discussion** avant son prompt :
   - 111 ✅ : le socle des effets actifs (voir « Les effets actifs »).
   - 112 ✅ : les dégâts et les soins dans le temps (voir « Dégâts et soins dans le temps »).
   - 113 ✅ : les états de contrôle (voir « Les états de contrôle »).
-  - 114 ✅ : Aegis et Ward (voir « Aegis et Ward »). Prévu ensuite : l'étape 115 est à discuter ; Fear dans sa propre étape ; plus tard Charm, les auras et
+  - 114 ✅ : Aegis et Ward (voir « Aegis et Ward »). Prévu ensuite : l'étape 116 est à discuter ; Fear dans sa propre étape ; plus tard Charm, les auras et
     la purification.
+  - 115 ✅ : le preset « distribution » (voir « Distribution »), hors des phases : une étape de build, aucun changement du code du jeu. Fear, annoncée comme
+    « étape 115 à discuter », passe à l'étape 116.
 
 
-## Étape 115 (à discuter)
+## Étape 116 (à discuter)
 
-Les étapes 105 à 114 sont faites. Ensuite, à discuter avec Claude.ai avant son prompt : **Fear** dans sa propre étape (il déplace la cible contre sa volonté et
+Les étapes 105 à 115 sont faites. Ensuite, à discuter avec Claude.ai avant son prompt : **Fear** dans sa propre étape (il déplace la cible contre sa volonté et
 touche la formation, les intentions et l'A*) ; plus tard Charm, les auras, la purification (retirer un état ou un effet existant), des boucliers venant de
 l'équipement. L'`Expedition` garde les points dépensés ; c'est elle qu'on sauvegardera un jour.
 

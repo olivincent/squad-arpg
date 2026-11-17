@@ -133,6 +133,7 @@ sources sont rangées en dossiers (`src/escouade/Escouade.cpp`, voir `ARCHITECTU
 - Étape 113 — Les états de contrôle : le contrôle comme sorte d'effet actif (étourdissement, ralentissement, entrave « Hampered » qui suit la résistance au ralentissement, Disruption), le cumul (le plus fort, jamais la somme), la durée posée avec la résistance de la cible et le rendement décroissant (100 / 50 / 25 % puis « Immune », remise à zéro à 15 s), l'étourdissement de la frappe sacrée, le ralentissement et l'entrave de la pluie de flèches, le contresort du mage, le coup assommant de l'infanterie lourde (premiers effets posés par des monstres), marque jaune, textes flottants et lignes de l'inventaire ✅
 
 - Étape 114 — Aegis et Ward : l'absorption comme sorte d'effet actif (Aegis pour le physique, Ward pour le non-physique), appliquée en dernier dans le coup et les ticks, l'immunité au contrôle par famille, l'identité des sources d'effet (skill ou capacité de monstre), l'Aegis du paladin et le Ward du soigneur des monstres ✅
+- Étape 115 — Le preset « distribution » : un `main.exe` autonome (SFML 3.0.2 compilée depuis ses sources par `FetchContent` et liée en statique, `-static`, sans console), à distribuer avec son seul dossier `assets/` ; aucun changement du code du jeu ✅ (hors des phases du `ROADMAP.md` ; Fear passe à l'étape 116)
 
 ## Détail des étapes 0 à 73
 
@@ -2688,3 +2689,18 @@ l'absorption se compte sur les portions arrondies, en points entiers, et un coup
 montant ; aucun texte à la pose du Ward d'un monstre. 2 305 tests (+91), 0 avertissement de compilation sur les deux presets. Détail : `docs/combat.md`
 (« L'absorption (étape 114) »), `docs/classes-et-combat.md` (section 14 sexies), `docs/monstre.md` (« Le Ward du soigneur »), `docs/glossaire.md`,
 `docs/ecrans.md`, `docs/tests.md`.
+
+### Étape 115 — Le preset « distribution » ✅
+
+Trois sous-étapes, un arrêt chacune, un commit chacune ; **aucun fichier de `src/` ni de `tests/` modifié** (2 305 tests inchangés). Objectif : le dépôt est public
+sur GitHub et `build/jeu/main.exe` dépendait des DLL d'UCRT64 (il ne démarrait pas sans MSYS2) et ouvrait une console. 115.1 : la variable de cache
+`SQUAD_DISTRIBUTION` (OFF par défaut, ON dans le seul preset `distribution`, qui hérite de `jeu`), le preset de build `distribution` (cible `main` seulement),
+`-static` sur `main`. **Premier essai** : SFML en statique par `SFML_STATIC_LIBRARIES` et le paquet MSYS2 ; l'édition des liens réussissait mais `main.exe`
+importait encore `libfreetype-6.dll` et ses dépendances (`FindFreetype` trouve la bibliothèque d'importation `libfreetype.dll.a`, et les dépendances de
+l'archive statique ne sont décrites que par `freetype2.pc`). Arrêt et rapport, puis **choix d'Olivier** : SFML 3.0.2 compilée depuis ses sources par
+`FetchContent` (tag fixé, `GIT_SHALLOW`, `SYSTEM`, sa propre FreeType, ni audio ni réseau) pour `distribution` seulement ; `find_package(SFML)` reste pour
+`debug` et `jeu` ; `cmake_minimum_required` passe à 3.25 (`SYSTEM`). Résultat : aucune DLL de `/ucrt64` (que des DLL de Windows), 5,8 Mo. 115.2 : sans
+console (`WIN32_EXECUTABLE`, `SFML::Main` qui fournit `WinMain`) ; sous-système Windows GUI pour `distribution`, console pour `jeu`. 115.3 : documentation
+(`docs/build.md`, `CLAUDE.md`). **Limite acceptée** : sans console, la graine et le message d'erreur de la police ne se voient plus. **Non fait** : le
+`README.md` annoncé n'était ni dans le dépôt ni sur `origin/main` ; ses deux changements (sans `.dll` dans « Essayer le jeu », une ligne sur le preset)
+restent à faire quand il sera là. Détail : `docs/build.md` (« Distribution (étape 115) »).
