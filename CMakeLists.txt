@@ -168,6 +168,10 @@ target_compile_options(main PRIVATE ${AVERTISSEMENTS})
 if(SQUAD_DISTRIBUTION)
     # Intègre libstdc++, libgcc et winpthread dans main.exe.
     target_link_options(main PRIVATE -static)
+    # Sans fenêtre console : application Windows (sous-système GUI). Elle
+    # démarre par WinMain, que fournit SFML::Main (qui rappelle main()).
+    set_target_properties(main PROPERTIES WIN32_EXECUTABLE ON)
+    target_link_libraries(main PRIVATE SFML::Main)
 endif()
 
 # Copie assets/ à côté de main.exe (le jeu charge ses fichiers par chemin relatif).
